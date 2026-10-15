@@ -1,5 +1,5 @@
 import { h } from '../ui/dom.js';
-import { APP_NAME, APP_TAGLINE, APP_VERSION } from '../config.js';
+import { APP_NAME } from '../config.js';
 import { setState } from '../store.js';
 import { slot } from '../identity.js';
 
@@ -10,12 +10,11 @@ export function createTitle() {
     el.classList.add('title-screen');
     inviteEl = h('div.invite');
     el.append(
-      h('div.title-top', h('span.mono.dim', `SYS//v${APP_VERSION}`), slot !== '1' ? h('span.tag.tag-you', `TEST SLOT ${slot}`) : null),
+      h('div.title-top', slot !== '1' ? h('span.tag.tag-you', `TEST SLOT ${slot}`) : null),
       h('div.logo-wrap',
         h('div.logo-ring'),
         h('h1.logo', { 'aria-label': APP_NAME },
-          words.map((w, i) => h('span.logo-line', { 'data-text': w, style: { '--i': i } }, w))),
-        h('p.tagline.mono', '> ', APP_TAGLINE, h('span.caret', '_'))),
+          words.map((w, i) => h('span.logo-line', { 'data-text': w, style: { '--i': i } }, w)))),
       inviteEl,
       h('div.title-actions',
         h('button.btn.btn-primary.btn-xl', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'host' }) }, h('span', 'HOST GAME')),
