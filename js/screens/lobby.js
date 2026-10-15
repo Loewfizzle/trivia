@@ -11,6 +11,7 @@ import { leaveRoom, kickPlayer } from '../room.js';
 import { startGame, onlineCount } from '../host.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { slot } from '../identity.js';
+import { openHelp } from '../ui/help.js';
 import { sfx } from '../audio/sfx.js';
 import { prefetch } from '../audio/music.js';
 
@@ -123,14 +124,16 @@ export function createLobby() {
         h('div.gc-name', g.name),
         h('div.gc-blurb', g.blurb)),
       g.playable ? h('div.gc-go', '›') : h('div.gc-lock', h('span', 'LOCKED'), h('small', 'COMING SOON')));
+      const wrap = h('div.game-card-wrap', card,
+        h('button.gc-help', { type: 'button', 'aria-label': `How to play ${g.name}`, onclick: () => openHelp(g.id) }, '?'));
       els.gameCards[g.id] = card;
-      els.games.append(card);
+      els.games.append(wrap);
     }
   }
 
   function pickGame(g) {
     if (!g.playable) { toast(`${g.name} // COMING SOON`, 'info'); return; }
-    if (!isHost()) { toast('ONLY THE HOST PICKS THE GAME', 'info'); return; }
+    if (!isHost()) { openHelp(g.id); return; } // guests: read up while the host picks
     openOptions(g);
   }
 
@@ -156,6 +159,7 @@ export function createLobby() {
         h('div.sheet-kicker', g.tag),
         h('h2.sheet-title', g.name),
         h('p.sheet-text', g.blurb),
+        h('button.btn.btn-text.help-link', { type: 'button', onclick: () => openHelp(g.id) }, 'HOW TO PLAY ›'),
         mod.OPTIONS.map(o => h('div.field',
           h('span.label', o.label, o.hint ? h('small.field-hint', ` · ${o.hint}`) : null),
           o.type === 'multi'

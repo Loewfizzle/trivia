@@ -2,6 +2,7 @@ import { h } from '../ui/dom.js';
 import { APP_NAME } from '../config.js';
 import { setState } from '../store.js';
 import { slot } from '../identity.js';
+import { openHelp } from '../ui/help.js';
 
 export function createTitle() {
   let inviteEl;
@@ -19,6 +20,7 @@ export function createTitle() {
       h('div.title-actions',
         h('button.btn.btn-primary.btn-xl', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'host' }) }, h('span', 'HOST GAME')),
         h('button.btn.btn-ghost.btn-xl', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'join' }) }, h('span', 'JOIN GAME'))),
+      h('button.btn.btn-text.title-help', { type: 'button', onclick: () => openHelp() }, 'HOW TO PLAY'),
       h('p.title-foot.mono', '2–8 PLAYERS · ONE PHONE EACH · ANYWHERE'),
     );
     update(st);
