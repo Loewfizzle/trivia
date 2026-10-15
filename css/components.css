@@ -701,3 +701,39 @@
 /* "DEADLOCK" is longer than "WINNER": keep it inside a phone-width screen */
 .winner-title.is-tied { font-size: clamp(30px, 10.5vw, 54px); letter-spacing: 0.08em; }
 .winner { overflow: hidden; }
+
+/* ---- how to play ---- */
+.sheet.help { max-height: 92dvh; gap: 14px; }
+.help-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.help-tab {
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.02);
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+.help-tab[aria-selected='true'] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.help-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px; }
+.help-goal { font-size: 17px; line-height: 1.4; font-weight: 600; color: var(--text); padding-left: 12px; border-left: 3px solid var(--accent); }
+.help-section { display: flex; flex-direction: column; gap: 8px; }
+.help-h { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.22em; color: var(--accent); }
+.help-list { display: flex; flex-direction: column; gap: 6px; }
+.help-list li { position: relative; padding-left: 18px; font-size: 15px; line-height: 1.4; color: var(--text-dim); }
+.help-list li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); }
+.help-legend { display: flex; flex-direction: column; gap: 8px; }
+.help-legend li { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--text-dim); }
+.help-tile { display: grid; place-items: center; width: 34px; height: 34px; font-family: var(--font-display); font-weight: 900; font-size: 16px; }
+.help-tile[data-s='2'] { background: #3dff8b; color: #00200d; }
+.help-tile[data-s='1'] { background: #ffc21a; color: #1d1300; }
+.help-tile[data-s='0'] { background: #1b2139; color: #8b9cc4; }
+.help-link { align-self: flex-start; min-height: 36px; padding: 0; color: var(--accent); }
+.title-help { align-self: center; color: var(--text-dim); letter-spacing: 0.24em; }
+.help-body {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  padding-bottom: 24px;
+}

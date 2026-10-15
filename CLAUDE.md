@@ -51,6 +51,7 @@ js/ui/dom.js             h() element helper, misc DOM utils
 js/ui/components.js      avatar, playerChip, createTimer(ticks), countUp, leaderboard(note), burst, glitchFlash, accessGranted, segmented, chips
 js/ui/final.js           shared podium + WINNER reveal + BACK TO LOBBY (host-aware), used by every game
 js/ui/settings-panel.js  gear button (fixed, every screen) + settings sheet (music/sfx/mute/haptics, room + leave)
+js/ui/help.js            HOW TO PLAY sheet: rules for all four games (tabs). Opened from title, lobby cards (?), options sheet, gear menu
 js/ui/toast.js           toasts
 js/audio/settings.js     device-wide prefs { music: .35, sfx: .7, muted, haptics } in localStorage (try/catch)
 js/audio/engine.js       AudioContext, music/sfx buses -> limiter, unlock on first gesture, suspend when hidden
