@@ -1,11 +1,11 @@
-// Paste your Firebase web app config here (Firebase console → Project settings → Your apps).
+// Firebase web app config (Firebase console → Project settings → Your apps).
 // These values are not secrets; access is controlled by database.rules.json.
 export const firebaseConfig = {
-  apiKey: 'PASTE_ME',
-  authDomain: 'PASTE_ME.firebaseapp.com',
-  databaseURL: 'https://PASTE_ME-default-rtdb.firebaseio.com',
-  projectId: 'PASTE_ME',
-  storageBucket: 'PASTE_ME.appspot.com',
-  messagingSenderId: 'PASTE_ME',
-  appId: 'PASTE_ME',
+  apiKey: 'AIzaSyAAZoQd_zb04suT4tKzoSKSPyE4DBos9Zo',
+  authDomain: 'trivia-bb753.firebaseapp.com',
+  databaseURL: 'https://trivia-bb753-default-rtdb.firebaseio.com',
+  projectId: 'trivia-bb753',
+  storageBucket: 'trivia-bb753.firebasestorage.app',
+  messagingSenderId: '873911591222',
+  appId: '1:873911591222:web:dc2976d89f2f9871569397',
 };
