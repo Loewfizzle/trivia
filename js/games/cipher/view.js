@@ -2,17 +2,16 @@
 // state is the row being typed and an optimistic copy of my own board.
 import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
 import { avatar, createTimer, countUp, leaderboard, burst } from '../../ui/components.js';
+import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
 import { dbRef, set, serverTimestamp, serverNow } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { playerOrder } from '../../core/room-logic.js';
-import { isHost } from '../../store.js';
-import { backToLobby } from '../../host.js';
-import { leaveRoom } from '../../room.js';
 import {
   evaluateGuess, keyStates, asArray, standings, totals, encodeWord, decodeWord, secretKey, MAX_GUESSES,
 } from './logic.js';
 import { isValidGuess, isLoaded, loadLength } from './words.js';
+import { sfx } from '../../audio/sfx.js';
 
 const KEY_ROWS = ['qwertyuiop', 'asdfghjkl', '>zxcvbnm<'];
 const FLIP_STAGGER = 110;
@@ -25,7 +24,6 @@ export function createView() {
   let timer, introRaf = 0, cancelers = [];
   let ro;
   let lastScore = 0;
-  let leaveArmed = 0;
 
   // ---------- helpers ----------
   const game = () => st.game;
@@ -33,6 +31,8 @@ export function createView() {
   const secret = g => decodeWord(g.secret, secretKey(st.code, g.matchId, g.round));
   const amPlaying = () => !!(st.game && st.game.participants && st.game.participants[st.uid]);
   const L = () => game().lengths[game().round];
+  // live boards only count once they belong to this round
+  const boardsFor = g => (st.liveKey && st.liveKey.includes(`"boards/${roundKey(g)}"`) && st.live.boards) || {};
 
   function onKey(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -48,11 +48,10 @@ export function createView() {
     root.classList.add('cb');
     els.round = h('div.cb-round');
     els.score = h('div.cb-score', '0');
-    timer = createTimer({ warnAt: 15_000 });
-    els.leave = h('button.icon-btn.cb-exit', { type: 'button', 'aria-label': 'Leave room', onclick: armLeave }, '⏻');
-    els.header = h('header.cb-head',
+    timer = createTimer({ warnAt: 15_000, ticks: true });
+    els.header = h('header.game-head',
       h('div.cb-head-l', h('div.cb-title', 'CIPHER', h('b', 'BREACH')), els.round),
-      h('div.cb-head-r', h('div.cb-score-wrap', h('small', 'SCORE'), els.score), els.leave),
+      h('div.cb-head-r', h('div.cb-score-wrap', h('small', 'SCORE'), els.score)),
     );
     els.timerWrap = h('div.cb-timer', timer.el);
     els.opps = h('div.cb-opps');
@@ -74,6 +73,7 @@ export function createView() {
     timer && timer.stop();
     cancelAnimationFrame(introRaf);
     cancelers.forEach(c => c());
+    if (els.final) els.final.destroy();
   }
 
   // ---------- update ----------
@@ -99,7 +99,7 @@ export function createView() {
     const pk = `${g.matchId}|${g.round}|${g.phase}`;
     if (pk !== phaseKey) { phaseKey = pk; buildOverlay(g); }
     else if (g.phase === 'reveal') refreshReveal(g);
-    else if (g.phase === 'final') renderFinalActions();
+    else if (g.phase === 'final' && els.final) els.final.refresh();
   }
 
   // Local board <- DB (adopts the stored board after a refresh / rejoin)
@@ -112,8 +112,9 @@ export function createView() {
       sizeBoard();
       if (!isLoaded(length)) loadLength(length).catch(() => {});
     }
-    const mine = st.boards && st.boards[st.uid];
-    if (mine && st.boardsKey === key) {
+    const boards = boardsFor(g);
+    const mine = boards[st.uid];
+    if (mine) {
       const pats = asArray(mine.p);
       if (pats.length > local.patterns.length) {
         const sk = secretKey(st.code, g.matchId, g.round);
@@ -186,7 +187,7 @@ export function createView() {
 
   // ---------- keyboard ----------
   function buildKeyboard() {
-    const kb = h('div.kbd', { role: 'group', 'aria-label': 'Keyboard' });
+    const kb = h('div.kbd', { role: 'group', 'aria-label': 'Keyboard', dataset: { sfx: 'none' } });
     els.keys = {};
     for (const rowStr of KEY_ROWS) {
       const row = h('div.kbd-row');
@@ -226,6 +227,7 @@ export function createView() {
     if (k === '>') { submit(); return; }
     if (local.input.length >= local.length) return;
     vibrate(8);
+    sfx('key');
     local.input += k;
     renderBoardState();
   }
@@ -248,6 +250,7 @@ export function createView() {
     local.solved = /^2+$/.test(pattern);
     local.done = local.solved || local.patterns.length >= MAX_GUESSES;
     paintRow(r, word, pattern, true);
+    if (!reducedMotion()) [...pattern].forEach((s, i) => setTimeout(() => sfx('flip', { state: s, i }), i * FLIP_STAGGER + 260));
     const flipMs = reducedMotion() ? 0 : local.length * FLIP_STAGGER + 450;
     setTimeout(() => {
       local.revealed = Math.max(local.revealed, r + 1);
@@ -255,8 +258,9 @@ export function createView() {
       if (local.solved) {
         els.rows[r].classList.add('win');
         vibrate([20, 40, 80]);
+        sfx('solve');
         burst(els.boardWrap, ['#3dff8b', '#00f0ff', '#e8f6ff'], 28);
-      } else if (local.done) vibrate([60, 40, 60]);
+      } else if (local.done) { vibrate([60, 40, 60]); sfx('absent'); }
     }, flipMs);
     renderKeyboard();
 
@@ -275,6 +279,7 @@ export function createView() {
 
   function reject(row, msg) {
     vibrate([30, 30, 30]);
+    sfx('invalid');
     if (row) pulseClass(row, 'shake', 500);
     toast(msg, 'err', 1200);
   }
@@ -304,7 +309,7 @@ export function createView() {
     }
     for (const uid of uids) {
       const o = els.oppMap[uid];
-      const b = (st.boardsKey === roundKey(g) && st.boards[uid]) || {};
+      const b = boardsFor(g)[uid] || {};
       const pats = asArray(b.p);
       pats.forEach((p, r) => {
         for (let i = 0; i < p.length; i++) {
@@ -353,7 +358,7 @@ export function createView() {
     const tickIntro = () => {
       const left = g.phaseEndsAt - serverNow();
       const t = left > 0 ? String(Math.ceil(left / 1000)) : 'GO';
-      if (t !== last) { last = t; num.textContent = t; pulseClass(num, 'tick'); if (t !== 'GO') vibrate(10); }
+      if (t !== last) { last = t; num.textContent = t; pulseClass(num, 'tick'); if (t !== 'GO') { vibrate(10); sfx('tick'); } else sfx('challenge'); }
       if (left > -500) introRaf = requestAnimationFrame(tickIntro);
     };
     tickIntro();
@@ -370,6 +375,7 @@ export function createView() {
       tiles,
       els.revealList));
     els.revealShown = false;
+    sfx('roundEnd');
     refreshReveal(g);
     if (local.solved) setTimeout(() => burst(els.overlay, ['#3dff8b', '#00f0ff', '#f3ff3a']), 900);
   }
@@ -403,57 +409,11 @@ export function createView() {
   }
 
   function buildFinal(g) {
-    const rows = standings(g);
-    const podium = h('div.podium');
-    const places = [rows[1], rows[0], rows[2]];
-    const delays = { 1: 2400, 2: 1300, 3: 500 };
-    places.forEach((r, i) => {
-      if (!r) { podium.append(h('div.pod.pod-empty')); return; }
-      const p = st.players[r.uid] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
-      const place = i === 1 ? 1 : i === 0 ? 2 : 3;
-      const scoreEl = h('div.pod-score', '0');
-      podium.append(h(`div.pod.pod-${place}`, { style: { '--c': colorHex(p.color), '--d': `${delays[place]}ms` } },
-        h('div.pod-who', avatar(p.avatar, p.color, place === 1 ? 64 : 46), h('div.pod-name', p.name), scoreEl),
-        h('div.pod-block', h('span', String(r.rank)))));
-      setTimeout(() => cancelers.push(countUp(scoreEl, 0, r.score, 1000)), delays[place] + 200);
+    els.final = createFinal({
+      rows: standings(g), players: st.players, me: st.uid, presence: st.presence,
+      winnerLine: name => `${name} BREACHED THE MAINFRAME`,
     });
-    const winner = rows[0] && (st.players[rows[0].uid] || { name: 'GHOST' });
-    const tied = rows.filter(r => r.rank === 1).length > 1;
-    const title = h('div.winner-title', { 'data-text': tied ? 'DEADLOCK' : 'WINNER' }, tied ? 'DEADLOCK' : 'WINNER');
-    const sub = h('div.winner-name', tied ? 'SHARED VICTORY' : `${winner ? winner.name : ''} BREACHED THE MAINFRAME`);
-    els.finalActions = h('div.final-actions');
-    els.finalActionsHost = null;
-    renderFinalActions();
-    const panel = h('div.panel-full.final',
-      h('div.sheet-kicker', 'MATCH COMPLETE'),
-      h('div.winner', title, sub),
-      podium,
-      leaderboard(rows, st.players, { me: st.uid, presence: st.presence, stagger: 60 }),
-      els.finalActions);
-    els.overlay.append(panel);
-    setTimeout(() => {
-      panel.classList.add('crowned');
-      if (rows[0] && rows[0].uid === st.uid) vibrate([40, 60, 40, 60, 120]);
-      const c = rows[0] && st.players[rows[0].uid];
-      burst(panel, [c ? colorHex(c.color) : '#3dff8b', '#f3ff3a', '#ff2bd6', '#00f0ff'], 48);
-    }, reducedMotion() ? 0 : 2500);
-  }
-
-  // Re-evaluated on every update: the host can change while the podium is up.
-  function renderFinalActions() {
-    const host = isHost();
-    if (els.finalActionsHost === host) return;
-    els.finalActionsHost = host;
-    els.finalActions.replaceChildren(host
-      ? h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: () => backToLobby() }, h('span', 'BACK TO LOBBY'))
-      : h('div.wait-note', 'WAITING FOR HOST TO RETURN TO LOBBY…'));
-  }
-
-  function armLeave() {
-    const now = Date.now();
-    if (now - leaveArmed < 2500) { leaveRoom(); return; }
-    leaveArmed = now;
-    toast('TAP ⏻ AGAIN TO LEAVE THE ROOM', 'warn', 2400);
+    els.overlay.append(els.final.el);
   }
 
   return { mount, update, unmount };

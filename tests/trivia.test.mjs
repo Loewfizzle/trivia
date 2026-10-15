@@ -1,0 +1,104 @@
+// Trivia layer: entity decoding, normalization, source parsing (mocked fetch),
+// obfuscation, and the fallback bank.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { decodeEntities, normalize, acceptable, fetchOtdb, fetchTriviaApi } from '../js/trivia/sources.js';
+import { setFallbackRows, pickFallback, qHash } from '../js/trivia/bank.js';
+import { appendPatch, decodeQuestion } from '../js/trivia/bankdata.js';
+import { encodeJSON, decodeJSON } from '../js/core/obfuscate.js';
+import { selectedCategories } from '../js/trivia/categories.js';
+import { rngFrom } from '../js/core/rng.js';
+
+const rows = JSON.parse(readFileSync('data/trivia/fallback.json', 'utf8')).questions;
+setFallbackRows(rows);
+
+test('HTML entities from Open Trivia DB decode cleanly', () => {
+  assert.equal(decodeEntities('Who wrote &quot;Hamlet&quot;?'), 'Who wrote "Hamlet"?');
+  assert.equal(decodeEntities('Beyonc&eacute; &amp; Jay-Z&#039;s &ldquo;tour&rdquo;'), 'Beyoncé & Jay-Z\'s “tour”');
+  assert.equal(decodeEntities('&#x00E9;t&eacute;  \n spaced'), 'été spaced');
+  assert.equal(decodeEntities('Unknown &bogus; stays'), 'Unknown &bogus; stays');
+});
+
+test('normalize shuffles answers and tracks the correct index', () => {
+  for (let s = 0; s < 20; s++) {
+    const n = normalize({ q: 'Q?', correct: 'right', wrong: ['w1', 'w2', 'w3'], cat: 'general', d: 'hard' }, rngFrom(`n${s}`));
+    assert.equal(n.a.length, 4);
+    assert.equal(n.a[n.c], 'right');
+  }
+});
+
+test('acceptable() filters awkward questions', () => {
+  const ok = { q: 'What is the capital of Peru?', correct: 'Lima', wrong: ['Quito', 'Bogotá', 'La Paz'] };
+  assert.ok(acceptable(ok));
+  assert.ok(!acceptable({ ...ok, wrong: ['Quito', 'Lima', 'La Paz'] }), 'duplicate answers');
+  assert.ok(!acceptable({ ...ok, wrong: ['Quito'] }), 'not 4 options');
+  assert.ok(!acceptable({ ...ok, q: 'x'.repeat(250) }), 'too long for a phone');
+});
+
+const mockFetch = body => async () => ({ status: 200, ok: true, json: async () => body });
+
+test('Open Trivia DB results are decoded, normalized, and easy questions dropped', async () => {
+  const res = await fetchOtdb({
+    fetchFn: mockFetch({
+      response_code: 0,
+      results: [
+        { category: 'Science &amp; Nature', type: 'multiple', difficulty: 'hard', question: 'What is &quot;H2O&quot;?', correct_answer: 'Water', incorrect_answers: ['Salt', 'Air', 'Fire'] },
+        { category: 'Entertainment: Film', type: 'multiple', difficulty: 'easy', question: 'Too easy question?', correct_answer: 'A', incorrect_answers: ['B', 'C', 'D'] },
+      ],
+    }),
+  });
+  assert.equal(res.code, 0);
+  assert.equal(res.items.length, 1);
+  assert.equal(res.items[0].q, 'What is "H2O"?');
+  assert.equal(res.items[0].cat, 'science');
+  assert.equal(res.items[0].a[res.items[0].c], 'Water');
+  const limited = await fetchOtdb({ fetchFn: async () => ({ status: 429, json: async () => ({}) }) });
+  assert.equal(limited.code, 5);
+});
+
+test('The Trivia API results are normalized', async () => {
+  const items = await fetchTriviaApi({
+    fetchFn: mockFetch([
+      { category: 'history', difficulty: 'medium', question: { text: 'Who was the first Roman emperor?' }, correctAnswer: 'Augustus', incorrectAnswers: ['Nero', 'Caligula', 'Tiberius'] },
+    ]),
+  });
+  assert.equal(items.length, 1);
+  assert.equal(items[0].cat, 'history');
+  assert.equal(items[0].a[items[0].c], 'Augustus');
+});
+
+test('obfuscation round-trips unicode and hides the answer text', () => {
+  const item = { q: 'Which city is “Brasília”?', a: ['Brasília', 'São Paulo', 'Rio', 'Huế'], c: 0 };
+  const enc = encodeJSON(item, 'ROOM:m:q0');
+  assert.ok(!enc.includes('Bras'));
+  assert.deepEqual(decodeJSON(enc, 'ROOM:m:q0'), item);
+  assert.equal(decodeJSON(enc, 'ROOM:m:q1'), null, 'wrong key does not decode');
+});
+
+test('appendPatch skips repeats and decodeQuestion reads them back', () => {
+  const game = { matchId: 'm', trivia: { n: 0, seen: {} } };
+  const items = [
+    { q: 'One?', a: ['a', 'b', 'c', 'd'], c: 1 },
+    { q: 'one', a: ['a', 'b', 'c', 'd'], c: 2 }, // same text after normalization → skipped
+    { q: 'Two?', a: ['a', 'b', 'c', 'd'], c: 3 },
+  ];
+  const { patch, n } = appendPatch(game, 'ROOM', items);
+  assert.equal(n, 2);
+  const g = { matchId: 'm', bank: { 0: patch['bank/0'], 1: patch['bank/1'] } };
+  assert.equal(decodeQuestion(g, 'ROOM', 1).q, 'Two?');
+});
+
+test('fallback bank: ≥300 medium/hard questions, unique, picks respect categories and avoid repeats', () => {
+  assert.ok(rows.length >= 300, `${rows.length}`);
+  assert.equal(new Set(rows.map(r => qHash(r[2]))).size, rows.length);
+  assert.ok(rows.every(r => r.length === 7 && ['medium', 'hard'].includes(r[1])));
+  const cats = new Set(rows.map(r => r[0]));
+  for (const c of selectedCategories([])) assert.ok(cats.has(c.id), `fallback has ${c.id}`);
+  const picks = pickFallback(10, { cats: ['history'], rand: rngFrom('p') });
+  assert.equal(picks.length, 10);
+  assert.ok(picks.every(p => p.cat === 'history' && p.a[p.c]));
+  const seen = Object.fromEntries(picks.map(p => [qHash(p.q), true]));
+  const more = pickFallback(10, { cats: ['history'], seen, rand: rngFrom('p') });
+  assert.ok(more.every(p => !seen[qHash(p.q)]), 'no repeats');
+});

@@ -53,3 +53,6 @@ export function pickWord(length, used, rand = Math.random) {
   }
   return { key: `${length}_${idx}`, word: l.answers[idx] };
 }
+
+// Answer pool for a length (null until loaded) — also used by OVERCLOCK's unscramble.
+export const answersFor = length => (cache.has(length) ? cache.get(length).answers : null);

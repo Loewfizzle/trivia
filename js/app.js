@@ -13,6 +13,10 @@ import { GAME_MODULES } from './games/registry.js';
 import { createTitle } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { createLobby } from './screens/lobby.js';
+import { installAudio } from './audio/engine.js';
+import { playMusic, prefetch, musicDebug } from './audio/music.js';
+import { sfx } from './audio/sfx.js';
+import { installSettingsPanel } from './ui/settings-panel.js';
 
 document.title = APP_NAME;
 const stage = $('#stage');
@@ -35,8 +39,17 @@ function makeScreen(key) {
   return { mount(el) { el.classList.add('boot-screen'); el.append(h('div.boot-spinner'), h('p.mono.dim', 'ESTABLISHING UPLINK…')); }, update() {} };
 }
 
+// Which music track a state should hear. [track, fallbackIfMissing]
+function musicFor(st) {
+  if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game) return ['menu'];
+  const mod = GAME_MODULES[st.game.id];
+  const track = (mod && mod.MUSIC) || 'menu';
+  return st.game.phase === 'final' ? ['victory', track] : [track];
+}
+
 function render(st) {
   const key = routeKey(st);
+  if (st.ready) { const [track, fallback] = musicFor(st); playMusic(track, fallback); }
   // theme follows the active game
   const theme = st.game && st.meta && st.meta.status === 'playing' ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
   document.body.dataset.theme = theme || '';
@@ -63,6 +76,16 @@ function render(st) {
 subscribe(render);
 
 async function boot() {
+  installAudio();
+  installSettingsPanel();
+  // Soft UI tick on every button press (game keyboards opt out with data-sfx="none").
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest && e.target.closest('button');
+    if (b && !b.closest('[data-sfx="none"]') && !b.disabled) sfx('tap');
+  }, { capture: true, passive: true });
+  // Music is lazy: the menu track warms up after first paint.
+  setTimeout(() => prefetch('menu'), 1200);
+  window.__arcade = { musicDebug, state };
   // iOS: block pinch-zoom gestures (viewport meta alone is ignored by Safari).
   document.addEventListener('gesturestart', e => e.preventDefault());
   watchDuplicateTabs(() => toast(slot === '1'
