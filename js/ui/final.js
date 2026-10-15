@@ -4,7 +4,7 @@ import { h, vibrate, reducedMotion } from './dom.js';
 import { avatar, countUp, leaderboard, burst } from './components.js';
 import { colorHex } from '../config.js';
 import { isHost } from '../store.js';
-import { backToLobby } from '../host.js';
+import { backToLobby, rematch } from '../host.js';
 import { sfx } from '../audio/sfx.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
@@ -39,14 +39,17 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     const host = isHost();
     if (hostShown === host) return;
     hostShown = host;
-    actions.replaceChildren(host
-      ? h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: () => backToLobby() }, h('span', 'BACK TO LOBBY'))
-      : h('div.wait-note', 'WAITING FOR HOST TO RETURN TO LOBBY…'));
+    actions.replaceChildren(...(host
+      ? [
+        h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: e => { e.currentTarget.classList.add('is-busy'); rematch(); } }, h('span', 'REMATCH')),
+        h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => backToLobby() }, h('span', 'BACK TO LOBBY')),
+      ]
+      : [h('div.wait-note', 'WAITING FOR THE HOST — REMATCH OR LOBBY…')]));
   }
   refresh();
   const el = h('div.panel-full.final',
     h('div.sheet-kicker', kicker),
-    h('div.winner', h('div.winner-title', { 'data-text': word }, word),
+    h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
       h('div.winner-name', tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
     podium,
     leaderboard(rows, players, { me, presence, stagger: 60 }),

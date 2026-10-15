@@ -6,11 +6,14 @@
 //   createView()             -> { mount(el, state), update(state), unmount() }
 //   DEFAULT_SETTINGS, OPTIONS, estimateMinutes(settings)  (lobby options sheet)
 //   MUSIC                    -> music track id (js/audio/music.js)
+//   finalRanks(game)         -> [{ uid, rank }] for the game-night scoreboard
+// A director step may include `$room: { 'path/under/room': value }` for room-level side writes.
 import * as cipher from './cipher/index.js';
 import * as signal from './signal/index.js';
 import * as overclock from './overclock/index.js';
+import * as bluff from './bluff/index.js';
 
-export const GAME_MODULES = { cipher, signal, overclock };
+export const GAME_MODULES = { cipher, signal, overclock, bluff };
 
 export function livePathsFor(game) {
   const mod = game && GAME_MODULES[game.id];
@@ -23,4 +26,4 @@ export function liveKeyFor(game) {
 }
 
 // Every player-writable node any game uses; wiped when a match starts or ends.
-export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc'];
+export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes'];

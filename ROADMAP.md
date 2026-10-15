@@ -1,48 +1,63 @@
 # NEURAL ARCADE — Roadmap
 
-> Working title. The name lives in one constant: `APP_NAME` in `js/config.js` (also update `<title>`/meta in `index.html`).
+> Working title. The name lives in one constant: `APP_NAME` in `js/config.js` (also update `<title>`/meta in `index.html`,
+> `manifest.webmanifest`, and re-render the preview image with `tests/integration/render-assets.mjs`).
 
 One web app, four games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
-returns to the same lobby and the host can pick another game without anyone rejoining.
+returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **trivia.loewfizzle.com** (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
-Backend: Firebase Realtime Database + Anonymous Auth. Target match length 5–10 min, host-adjustable.
+Backend: Firebase Realtime Database + Anonymous Auth.
 
-## The games
+## The games — all four are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
-| 1 | **CIPHER BREACH** | Competitive Wordle race. Same hidden word for everyone; opponents' boards shown live as color-only tiles. Points for solving, speed, fewer guesses. Word length grows over rounds. | terminal green / cyan | ✅ Stage 1 |
-| 2 | **NEURAL BLUFF** | Bluffing trivia (Fibbage/Balderdash). Obscure true-fact question; everyone writes a convincing fake; fakes + truth shuffled; vote for the real one. Points for finding the truth and for fooling others. Custom question bank. | cold dystopian propaganda | ⏳ Stage 3 |
-| 3 | **LAST SIGNAL** | Trivia battle royale. HP + 2 shields each. Answer correctly + fast to strike your locked target; wrong/silent breaks a shield, then burns HP. Damage escalates every 5 questions. Eliminated players spectate; the UI decays as players fall. | alarm red | ✅ Stage 2 |
-| 4 | **OVERCLOCK** | Gauntlet of 30-second mind challenges (unscramble, memory sequence, odd one out, quick math, pattern lock, trivia lightning), identical for everyone from a shared seed. Live leaderboard between rounds; final challenge ×2. Standard (12) and Marathon (24). | amber / magenta high energy | ✅ Stage 2 |
+| 1 | **CIPHER BREACH** | Competitive Wordle race; opponents' boards live as color-only tiles; word length grows. | terminal green / cyan | ✅ Stage 1 |
+| 2 | **NEURAL BLUFF** | Bluffing trivia: write a convincing lie, find the truth among everyone's lies, score for fooling friends. 356 hand-written strange-but-true questions. | cold "Ministry of Truth" dossiers | ✅ Stage 3 |
+| 3 | **LAST SIGNAL** | Trivia battle royale: HP + shields, strike your target, escalating damage, decaying UI. | alarm red | ✅ Stage 2 |
+| 4 | **OVERCLOCK** | Six kinds of 30-second mind challenges, identical for everyone from a shared seed. | amber / magenta | ✅ Stage 2 |
 
 ## Stages
 
-### ✅ Stage 1 — foundation + hub + lobby + multiplayer core + CIPHER BREACH (complete)
-- [x] Repo, static no-build setup, Vercel config, Firebase modular SDK from gstatic CDN
-- [x] Design system: tokens, chamfered buttons, panels, player chips + hex avatars, timer bar, toasts, leaderboard, segmented control, bottom sheet, glitch transitions, ACCESS GRANTED join effect, particle bursts
-- [x] Title screen, HOST / JOIN, invite links `/?room=ABCD`, Web Share + clipboard fallback
-- [x] Profile: callsign, 8 neon colors (auto de-duplicated per room), 12 avatars
-- [x] Lobby: live list with connection status, host game picker, kick, 2–8 players
-- [x] Presence, seamless rejoin, host migration (offline or frozen heartbeat), pure host-authoritative director
-- [x] Server-time timers, Screen Wake Lock, stale-room cleanup (> 6 h idle), multi-tab testing slots, emulator mode
-- [x] CIPHER BREACH complete; open-licensed word lists; security rules + unit / rules / E2E tests
+### ✅ Stage 1 — foundation, lobby, multiplayer core, CIPHER BREACH
+Static no-build site, design system, rooms + invite links, presence, rejoin, host migration, server-time timers,
+wake lock, stale-room cleanup, multi-tab testing slots, Cipher Breach, open-licensed word lists, security rules, tests.
 
-### ✅ Stage 2 — audio + LAST SIGNAL + OVERCLOCK (complete)
-- [x] Audio engine: one AudioContext, music + SFX buses, soft limiter, iOS unlock on first tap, pause in background, `audioSession = 'ambient'`
-- [x] Music: lazy-loaded 128 kbps MP3s (`audio/music/`), 1.5 s crossfades, seamless loop crossfade, never restarts a shared track, victory track on podiums (falls back to the game track), silent if a file is missing
-- [x] Synthesized SFX (sine/triangle, filtered, reverb/delay, C-maj7 / A-min-pentatonic palette) for UI, Cipher tiles, countdown ticks, hits, shields, eliminations, Overclock, victory; light haptics
-- [x] Settings sheet (gear on every screen): music / effects volume, mute, haptics, room code + leave
-- [x] Trivia layer: Open Trivia DB (medium/hard, session token, ≥5 s between calls, batched) → The Trivia API → bundled 333-question fallback bank; entity decoding, de-duplication, obfuscated bank stored in the room so any host can continue it
-- [x] LAST SIGNAL: targeting, speed-scaled strikes (10–30), shields/burn, ×1.25 escalation every 5 Qs, simultaneous resolution, eliminations + FLATLINE moment + spectators, progressive decay, 35-Q cap, host options (HP 75/100/150, categories)
-- [x] OVERCLOCK: 6 seeded challenge types, rules cards on first appearance, partial credit + speed bonus, ×2 final, live progress strip, standings with rank changes, Standard / Marathon, resume mid-challenge
-- [x] Shared podium/winner component; lobby unlocks both cards with per-game option sheets
-- [x] Tests: 57 unit/simulation, 16 security-rule, 3 end-to-end browser suites (Cipher, Signal with host loss + audio crossfades, Overclock with identical-challenge check + mid-challenge refresh); screenshot review at 390×844 and 412×915
+### ✅ Stage 2 — audio, LAST SIGNAL, OVERCLOCK
+Web Audio engine (iOS unlock, background pause, crossfades, seamless loops), six music tracks, synthesized SFX,
+settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question fallback bank), Last Signal, Overclock.
 
-### ⏳ Stage 3 — NEURAL BLUFF + final polish
-- [ ] Custom-written question bank (obscure true facts + answers + accepted alternates)
-- [ ] Write fake → shuffle → vote → reveal flow; filter fakes that match the truth
-- [ ] Neural Bluff identity (cold propaganda), its music track is already in `audio/music/neural-bluff.mp3`
-- [ ] Final polish: extra animations, session-long win tracker across games, accessibility pass, sound/haptics tuning from real-phone feedback
+### ✅ Stage 3 — NEURAL BLUFF + final polish
+- [x] Neural Bluff: 356-question strange-but-true bank (answers, accepted variants, 3 house lies each); WRITE (60 s)
+      with a gentle "too close to the truth" check and iOS-keyboard-aware layout; VOTE (30 s) with merged duplicate
+      lies, house-lie padding (≥5 options under 4 players), no voting for your own lie, one ♥ like; dramatic
+      time-synced reveal (who fell for it → redaction lifts → whose lie → TRUTH VERIFIED → tally); 1000 / 500 / 100
+      scoring, triple-points final round; Short (5) and Standard (8) modes; no repeated questions within a room
+- [x] Game-night scoreboard across all games in a room (3/2/1 points per podium, crown for the leader)
+- [x] REMATCH (same game, same settings) and BACK TO LOBBY on every results screen
+- [x] Late joiners watch as spectators and are dealt into the next game automatically
+- [x] Installable app: manifest, icon set (incl. maskable + apple-touch), standalone, network-first service worker
+      that never caches Firebase and always serves the newest version when online
+- [x] Link previews: Open Graph / Twitter tags + a 1200×630 preview card
+- [x] Connection UX: reconnecting / restored banner, friendly errors for bad codes, expired invites and full rooms
+- [x] Boot screen inline in the HTML (no flash of unstyled content), fonts load without blocking
+- [x] Accessibility/contrast fixes; Lighthouse mobile: **99 performance / 100 accessibility / 100 best practices / 100 SEO**
+      (Firebase SDK loads dynamically, stylesheets are non-blocking, music downloads only after the first tap)
+- [x] 8 players in 8 separate browser contexts played a full game of all four games end to end; 55–60 fps with
+      8 players' live updates
+- [x] Consistency pass across every screen
+
+## Future ideas
+- **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host
+  option to pick packs; custom word lists for Cipher Breach (kids mode, themed words).
+- **Custom rooms:** host-written Bluff questions typed in before a party ("office edition").
+- **More Overclock challenges:** color-word Stroop test, quick estimation, flag/shape matching, reaction time.
+- **Team modes:** 2v2 / 4v4 variants of Last Signal and Overclock.
+- **TV / big-screen mode:** a read-only "board" view for a laptop on the TV while phones are controllers.
+- **Profiles:** optional persistent stats and achievements across nights (would need a non-anonymous sign-in).
+- **Localization:** Spanish/French/German UI and question banks.
+- **Haptics on iOS:** not possible from the web today; revisit if Safari adds an API.
+- **Moderation:** a host button to hide an offensive Bluff lie before voting.
+- **Analytics:** lightweight, privacy-respecting play counts per game to see what the group loves.

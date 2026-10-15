@@ -232,3 +232,45 @@ test('overclock progress: own board during play, consistent counts, locked once 
   await assertFails(set(ref(db('host'), `${R}/oc/m3/2/host`), prog(1, 1, false)), 'challenge closed');
   await assertSucceeds(update(ref(db('host'), R), { oc: null }));
 });
+
+// ---------- Stage 3: NEURAL BLUFF + game night ----------
+function bluffRoom(phase) {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'bluff', matchId: 'm4', round: 2, rk: '2', phase, participants: { host: true, p2: true } };
+  return r;
+}
+
+test('bluff lies: own, during write only, current round, length-limited', async () => {
+  await seed(bluffRoom('write'));
+  const lie = t => ({ t, at: serverTimestamp() });
+  await assertSucceeds(set(ref(db('p2'), `${R}/lies/m4/2/p2`), lie('Calebs Cola')));
+  await assertSucceeds(set(ref(db('p2'), `${R}/lies/m4/2/p2`), lie('Edited lie')), 'can edit while writing');
+  await assertFails(set(ref(db('p2'), `${R}/lies/m4/2/host`), lie('x')), 'not someone else');
+  await assertFails(set(ref(db('p2'), `${R}/lies/m4/1/p2`), lie('x')), 'not an old round');
+  await assertFails(set(ref(db('p2'), `${R}/lies/m4/2/p2`), lie('x'.repeat(41))), 'max 40 chars');
+  await assertFails(set(ref(db('stranger'), `${R}/lies/m4/2/stranger`), lie('x')), 'participants only');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'vote'));
+  await assertFails(set(ref(db('p2'), `${R}/lies/m4/2/p2`), lie('late')), 'writing closed');
+});
+
+test('bluff votes: own, during vote only, optional like', async () => {
+  await seed(bluffRoom('vote'));
+  await assertSucceeds(set(ref(db('p2'), `${R}/votes/m4/2/p2`), { k: 'oabc', like: 'odef', at: serverTimestamp() }));
+  await assertSucceeds(set(ref(db('p2'), `${R}/votes/m4/2/p2`), { k: 'oxyz', at: serverTimestamp() }), 'can change vote');
+  await assertFails(set(ref(db('p2'), `${R}/votes/m4/2/host`), { k: 'o1', at: serverTimestamp() }));
+  await assertFails(set(ref(db('p2'), `${R}/votes/m4/2/p2`), { k: 'o1', at: serverTimestamp(), extra: 1 }), 'no extra fields');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'reveal'));
+  await assertFails(set(ref(db('p2'), `${R}/votes/m4/2/p2`), { k: 'o1', at: serverTimestamp() }), 'voting closed');
+  await assertSucceeds(update(ref(db('host'), R), { lies: null, votes: null }), 'host clears');
+});
+
+test('game night scoreboard and question history: host only', async () => {
+  await seed(lobbyRoom());
+  const entry = { g: 'bluff', p: { host: 3, p2: 2 }, n: { host: 'HOST', p2: 'TWO' }, at: serverTimestamp() };
+  await assertFails(set(ref(db('p2'), `${R}/night/m9`), entry));
+  await assertSucceeds(set(ref(db('host'), `${R}/night/m9`), entry));
+  await assertSucceeds(update(ref(db('host'), `${R}/meta`), { 'used/bluff/q123': true }));
+  await assertFails(update(ref(db('p2'), `${R}/meta`), { 'used/bluff/q999': true }));
+  await assertFails(update(ref(db('host'), `${R}/meta`), { 'used/bluff/q1': 'yes' }), 'boolean only');
+});

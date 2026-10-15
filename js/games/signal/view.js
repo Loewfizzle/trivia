@@ -199,6 +199,7 @@ export function createView() {
       clear(els.arena);
       cards = {};
       els.arena.style.setProperty('--cols', uids.length <= 2 ? 2 : uids.length <= 4 ? uids.length : 4);
+      els.arena.classList.toggle('is-dense', uids.length > 4); // 4 across: drop avatars so names fit
       for (const uid of uids) {
         const p = player(uid);
         const hpFill = h('div.hp-fill');

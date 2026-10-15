@@ -2,32 +2,79 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#04050d">
   <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="format-detection" content="telephone=no">
-  <meta name="description" content="Neon multiplayer party games for 2–8 players. One phone each.">
-  <meta property="og:title" content="NEURAL ARCADE">
-  <meta property="og:description" content="Neon multiplayer party games. Grab a phone, enter the code.">
+  <meta name="apple-mobile-web-app-title" content="ARCADE">
+  <meta name="application-name" content="NEURAL ARCADE">
+  <meta name="description" content="Four neon multiplayer party games for 2–8 players. One phone each — same room or across cities.">
+  <!-- link previews (iMessage, WhatsApp, Slack, Discord, X…) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NEURAL ARCADE">
+  <meta property="og:title" content="NEURAL ARCADE — you’re invited">
+  <meta property="og:description" content="Four neon party games for 2–8 players. Tap the link on your phone to join the room.">
+  <meta property="og:url" content="https://trivia.loewfizzle.com/">
+  <meta property="og:image" content="https://trivia.loewfizzle.com/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="NEURAL ARCADE — Cipher Breach, Last Signal, Overclock, Neural Bluff">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NEURAL ARCADE — you’re invited">
+  <meta name="twitter:description" content="Four neon party games for 2–8 players. Tap the link to join.">
+  <meta name="twitter:image" content="https://trivia.loewfizzle.com/assets/og.png">
   <title>NEURAL ARCADE</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/favicon-64.png" type="image/png" sizes="64x64">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/icon.svg">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <style>
+    /* Inline boot screen: paints instantly, before any stylesheet, so there is never unstyled content. */
+    html, body { margin: 0; background: #04050d; }
+    #boot { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+      background: radial-gradient(60% 40% at 50% 38%, rgba(0, 240, 255, .14), transparent 70%), #04050d;
+      color: #8b9cc4; font: 700 11px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .32em; transition: opacity .45s ease; }
+    #boot.out { opacity: 0; pointer-events: none; }
+    html:not(.css-ready) body > *:not(#boot):not(script) { visibility: hidden !important; }
+    #boot svg { width: 84px; height: 84px; overflow: visible; animation: boot-pulse 1.6s ease-in-out infinite; }
+    #boot .bar { position: relative; width: 140px; height: 2px; background: rgba(120, 220, 255, .15); overflow: hidden; }
+    #boot .bar i { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #00f0ff, #ff2bd6, transparent); animation: boot-run 1.1s ease-in-out infinite; }
+    @keyframes boot-pulse { 50% { opacity: .55; transform: scale(.94); } }
+    @keyframes boot-run { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+    @media (prefers-reduced-motion: reduce) { #boot svg, #boot .bar i { animation: none; } }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+  <!-- fonts load without blocking first paint; the boot screen waits briefly for them -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap"></noscript>
   <link rel="modulepreload" href="js/app.js">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/screens.css">
-  <link rel="stylesheet" href="css/cipher.css">
-  <link rel="stylesheet" href="css/signal.css">
-  <link rel="stylesheet" href="css/overclock.css">
+  <!-- Core styles load without blocking the inline boot screen; the app stays hidden until all three
+       have arrived (html.css-ready), so there is still never a flash of unstyled content. -->
+  <script>
+    window.__css = 0;
+    window.__cssDone = function () { if (++window.__css >= 3) document.documentElement.classList.add('css-ready'); };
+  </script>
+  <link rel="stylesheet" href="css/base.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
+  <link rel="stylesheet" href="css/components.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
+  <link rel="stylesheet" href="css/screens.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
+  <noscript><link rel="stylesheet" href="css/base.css"><link rel="stylesheet" href="css/components.css"><link rel="stylesheet" href="css/screens.css"></noscript>
+  <link rel="stylesheet" href="css/cipher.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="css/signal.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="css/overclock.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="css/bluff.css" media="print" onload="this.media='all'">
+  <!-- per-game styles aren't needed for the first paint, so they load without blocking it -->
 </head>
 <body>
+  <div id="boot" role="status" aria-label="Loading">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,6 88,28 88,72 50,94 12,72 12,28" fill="rgba(0,240,255,.06)" stroke="#00f0ff" stroke-width="5" stroke-linejoin="round"/><path d="M34 64V36l32 28V36" fill="none" stroke="#ff2bd6" stroke-width="6" stroke-linecap="square"/></svg>
+    <div class="bar"><i></i></div>
+    <div>ESTABLISHING UPLINK</div>
+  </div>
   <div class="bg" aria-hidden="true">
     <div class="bg-glow"></div>
     <div class="bg-grid"></div>
@@ -36,7 +83,7 @@
     <div class="bg-vignette"></div>
   </div>
   <main id="stage"></main>
-  <div id="net" class="net" role="status">⌁ SIGNAL LOST — RECONNECTING…</div>
+  <div id="net" class="net" role="status" aria-live="polite"><span class="net-dot"></span><span class="net-text"></span></div>
   <noscript><p style="padding:24px;color:#fff">This game needs JavaScript.</p></noscript>
   <script type="module" src="js/app.js"></script>
 </body>

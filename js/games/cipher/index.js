@@ -1,6 +1,6 @@
 // CIPHER BREACH module entry (see games/registry.js for the contract).
 import { createGame, nextStep } from './director.js';
-import { roundLengths, DEFAULT_SETTINGS, ROUND_COUNT_OPTIONS, ROUND_TIME_OPTIONS, PHASE_MS } from './logic.js';
+import { roundLengths, DEFAULT_SETTINGS, ROUND_COUNT_OPTIONS, ROUND_TIME_OPTIONS, PHASE_MS, standings as cipherStandings } from './logic.js';
 import { loadLengths, pickWord } from './words.js';
 export { createView } from './view.js';
 
@@ -36,3 +36,5 @@ export function estimateMinutes(s) {
   const perRound = s.roundSec * 0.75 + (PHASE_MS.intro + PHASE_MS.reveal + PHASE_MS.standings) / 1000;
   return Math.max(1, Math.round((s.rounds * perRound) / 60));
 }
+
+export const finalRanks = game => cipherStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));

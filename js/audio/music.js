@@ -146,8 +146,8 @@ function watchLoop() {
 export function playMusic(id, fallback = null) {
   if (desired && desired.id === id && desired.fallback === fallback) { apply(); return; }
   desired = id ? { id, fallback } : null;
-  if (id) prefetch(id);
-  if (fallback) prefetch(fallback);
+  // Nothing can play before the first tap, so don't spend the player's bandwidth until then.
+  if (isUnlocked()) { if (id) prefetch(id); if (fallback) prefetch(fallback); }
   apply();
 }
 
@@ -169,7 +169,11 @@ export function musicDebug() {
   };
 }
 
-onUnlock(() => { makeVoices(); apply(); });
+onUnlock(() => {
+  makeVoices();
+  if (desired) { prefetch(desired.id); if (desired.fallback) prefetch(desired.fallback); }
+  apply();
+});
 onVisibility(v => {
   visible = v;
   if (!current) { apply(); return; }

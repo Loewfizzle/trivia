@@ -113,11 +113,9 @@ try {
   await shot(B, '06-lobby-guest');
   log('lobby OK, colors', colors);
 
-  // locked game cards
-  await A.evaluate(() => document.querySelector('.game-card[data-theme="bluff"]').scrollIntoView({ block: 'center' }));
-  await sleep(300);
-  await A.click('.game-card[data-theme="bluff"]');
-  if (!(await toastText(A)).includes('COMING SOON')) fail('locked card toast missing');
+  // all four games are playable (Stage 3)
+  const locked = await A.$$eval('.game-card.is-locked', els => els.length);
+  if (locked !== 0) fail(`expected no locked game cards, found ${locked}`);
 
   // ---------- start Cipher Breach: 3 rounds, 1:00 ----------
   await A.evaluate(() => document.querySelector('.game-card[data-theme="cipher"]').scrollIntoView({ block: 'center' }));

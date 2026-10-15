@@ -2,10 +2,12 @@
 import { h } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
+import { sfx } from '../audio/sfx.js';
 import { COLORS, AVATAR_IDS, NAME_MAX, colorHex } from '../config.js';
 import { setState } from '../store.js';
 import { loadProfile, saveProfile } from '../identity.js';
 import { createRoom, joinRoom } from '../room.js';
+import { firebaseReady } from '../firebase.js';
 import { normalizeCode, sanitizeName } from '../core/room-logic.js';
 
 export function createSetup() {
@@ -61,7 +63,7 @@ export function createSetup() {
         h('div.field', h('span.label', 'SIGNAL COLOR'), els.colors),
         h('div.field', h('span.label', 'AVATAR'), els.avatars),
         els.preview),
-      h('div.form-cta', els.go));
+      h('div.form-cta', els.err = h('p.form-error', { role: 'alert', hidden: true }), els.go));
     renderPicks();
     if (mode === 'join' && !st.invite) setTimeout(() => els.code.focus(), 350);
   }
@@ -85,6 +87,7 @@ export function createSetup() {
 
   async function submit() {
     if (busy) return;
+    els.err.hidden = true;
     const name = sanitizeName(profile.name, NAME_MAX);
     if (!name) { toast('ENTER A CALLSIGN', 'err'); els.name.focus(); return; }
     let code = null;
@@ -98,11 +101,18 @@ export function createSetup() {
     els.go.classList.add('is-busy');
     els.go.firstChild.textContent = mode === 'host' ? 'ALLOCATING…' : 'CONNECTING…';
     try {
+      // Firebase loads in the background while the title screen is up; wait for it here if needed.
+      await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
       if (mode === 'host') await createRoom(p);
       else await joinRoom(code, p);
       setState({ invite: '' });
     } catch (e) {
-      toast(String(e && e.message || e).toUpperCase().slice(0, 80), 'err', 3200);
+      const msg = String((e && e.message) || e);
+      // Firebase errors are cryptic; our own messages are written for people.
+      const friendly = /permission|network|unavailable/i.test(msg) ? 'Couldn’t reach the game servers. Check your connection and try again.' : msg;
+      els.err.textContent = friendly;
+      els.err.hidden = false;
+      sfx('invalid');
       busy = false;
       els.go.classList.remove('is-busy');
       els.go.firstChild.textContent = mode === 'host' ? 'CREATE ROOM' : 'CONNECT';
