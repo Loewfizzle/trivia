@@ -16,7 +16,7 @@ let liveUnsubs = [];
 let liveWanted = null;
 let seen = { meta: false, self: false };
 
-const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, live: {}, liveKey: null };
+const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, live: {}, liveKey: null };
 
 function cleanProfile(profile) {
   return { name: sanitizeName(profile.name, NAME_MAX) || 'ANON', color: profile.color, avatar: sanitizeAvatar(profile.avatar) };
@@ -56,12 +56,13 @@ export async function createRoom(profile) {
 
 export async function joinRoom(input, profile) {
   const code = normalizeCode(input);
-  if (!code) throw new Error('ROOM CODES ARE 4 LETTERS');
+  if (!code) throw new Error('Room codes are 4 letters (no I or O).');
   const room = await readRoomBasics(code);
-  if (!room.meta) throw new Error(`ROOM ${code} NOT FOUND`);
-  if (room.kicked) throw new Error('THE HOST REMOVED YOU FROM THIS ROOM');
+  if (!room.meta) throw new Error(`No room ${code} found. Check the code, or ask the host for a new invite (rooms close after 6 hours idle).`);
+  if (room.kicked) throw new Error('The host removed you from this room.');
   const others = Object.keys(room.players).filter(u => u !== state.uid).length;
-  if (!room.players[state.uid] && others >= MAX_PLAYERS) throw new Error('ROOM IS FULL (8/8)');
+  if (!room.players[state.uid] && others >= MAX_PLAYERS) throw new Error(`Room ${code} is full (${MAX_PLAYERS}/${MAX_PLAYERS} players).`);
+  if (!room.players[state.uid] && room.meta.status === 'playing') toast('GAME IN PROGRESS — YOU’LL WATCH, THEN JOIN THE NEXT ONE', 'info', 4500);
   await writePlayer(code, profile, room.players);
   enterRoom(code);
   return code;
@@ -109,6 +110,7 @@ function enterRoom(code) {
     setState({ players });
   });
   listen('presence', presence => setState({ presence: presence || {} }));
+  listen('night', night => setState({ night: night || {} }));
   listen('kicked', kicked => {
     kicked = kicked || {};
     if (kicked[state.uid]) { exitRoom('THE HOST REMOVED YOU FROM THE ROOM', 'err'); return; }
@@ -212,4 +214,11 @@ export async function cleanupStaleRooms() {
   const jobs = [];
   snap.forEach(child => { jobs.push(remove(child.ref).catch(() => {})); });
   await Promise.all(jobs);
+}
+
+// Used by the title screen to tell a player up front that an invite has expired.
+export async function roomExists(input) {
+  const code = normalizeCode(input);
+  if (!code) return false;
+  try { return (await get(dbRef(`${R(code)}/meta/status`))).exists(); } catch { return true; } // unknown → let the join attempt decide
 }

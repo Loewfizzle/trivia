@@ -1,19 +1,23 @@
 # NEURAL ARCADE — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each). Static site on Vercel
-(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. See `ROADMAP.md` for
-the plan and current stage. **Keep this file and ROADMAP.md updated as you work.**
+(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All three build stages are complete
+(see `ROADMAP.md` for what shipped and the future-ideas list). **Keep this file and ROADMAP.md updated as you work.**
 
 ## Ground rules
 - **No build step.** Plain HTML/CSS/ES modules. No npm deps in the shipped site. Firebase comes
-  from `https://www.gstatic.com/firebasejs/11.10.0/…` (only imported in `js/firebase.js`).
+  from `https://www.gstatic.com/firebasejs/11.10.0/…` — loaded with a *dynamic* import inside `initFirebase()`;
+  `js/firebase.js` exports thin wrappers (`ref`, `get`, `set`…) that are only valid after `firebaseReady` resolves.
+  Never add a static import of the SDK (it would block the first paint on ~450 KB).
 - **Stability first.** Phones lock, switch apps and drop signal. Every screen must render purely
   from the mirrored DB state (`store.state`) so refresh/rejoin/host-change "just work".
 - **The host is the authority, but holds no private state.** Game flow lives in a pure
   `nextStep(game, ctx)` director; any client that becomes host continues from the DB.
 - **Timers use server time** (`serverNow()` = `Date.now() + .info/serverTimeOffset`). Never `Date.now()` for game timing.
 - **60fps:** animate only `transform` and `opacity`. Static glows are fine; never animate box-shadow/filters on many elements. Everything respects `prefers-reduced-motion`.
-- Mobile: `100dvh`, safe-area insets, inputs ≥ 16px, touch targets ≥ 44px, no zoom (`touch-action: manipulation` + `gesturestart` block).
+- Mobile: `100dvh`, safe-area insets, inputs ≥ 16px, touch targets ≥ 44px. No zoom: `body { touch-action: pan-x pan-y }` +
+  iOS `gesturestart` block (the viewport meta deliberately has no `user-scalable=no` — Lighthouse penalizes it).
+- Contrast: all text ≥ 4.5:1 on its background (`--text-faint` is the dimmest allowed text color).
 - The app name is `APP_NAME` in `js/config.js` (plus `<title>`/meta tags in `index.html`).
 - **Audio is polish, never a dependency.** Everything must work silently: missing files, locked iOS audio, muted. SFX stay quiet — felt more than heard after 20 minutes.
 - **Visual review:** every new screen gets screenshot-reviewed at 390×844 and 412×915 (see Testing → E2E) with at least two refine passes.
@@ -27,6 +31,11 @@ css/screens.css          title, setup, lobby
 css/cipher.css           CIPHER BREACH
 css/signal.css           LAST SIGNAL (decay layers, hit fx, FLATLINE)
 css/overclock.css        OVERCLOCK (challenge UIs, rules cards)
+css/bluff.css            NEURAL BLUFF (dossiers, stamps, redaction bars, reveal exhibits)
+manifest.webmanifest     PWA manifest (standalone, portrait, icons)
+sw.js                    network-first service worker for same-origin static files only (never Firebase/CDNs/audio)
+assets/                  icon set (icon-192/512, maskable, apple-touch, favicon), og.png 1200×630 link preview
+firebase.json            emulator config for local testing (repo root so it can reference database.rules.json)
 audio/music/*.mp3        music (menu, cipher-breach, last-signal, overclock, neural-bluff, victory), 128 kbps, ~0.3–3.5 MB each
 js/config.js             APP_NAME, limits, timeouts, colors, avatars (SVG paths), GAMES registry metadata
 js/firebase-config.js    the user's Firebase web config (the ONLY place it lives)
@@ -49,6 +58,7 @@ js/audio/music.js        playMusic(id, fallback), prefetch(id), musicDebug(); vo
 js/audio/sfx.js          sfx(name, opts): synthesized effects (see SOUNDS for names)
 js/core/rng.js           PURE seeded RNG (mulberry32), hashString, shuffle, pick
 js/core/obfuscate.js     PURE unicode-safe XOR+base64 for data that must not be readable in plain sight
+js/core/night.js         PURE game-night standings from rooms/{code}/night
 js/trivia/categories.js  host categories <-> Open Trivia DB ids <-> The Trivia API slugs
 js/trivia/sources.js     fetch + normalize (OTDB, The Trivia API), entity decoding, filters (fetch injectable)
 js/trivia/bank.js        bundled fallback bank loader + picker
@@ -64,7 +74,9 @@ js/games/cipher/index.js     module contract (see registry.js)
 js/games/signal/{logic,director,view,index}.js     LAST SIGNAL (logic.js: damage, targets, resolution, rankings, decay)
 js/games/overclock/challenges.js                   seeded generators for the 6 challenge types + INFO (names/rules)
 js/games/overclock/{logic,director,view,index}.js  OVERCLOCK (logic.js: order, scoring, standings)
+js/games/bluff/{logic,director,bank,view,index}.js  NEURAL BLUFF (logic.js: tooClose, buildOptions, scoreRound, revealScript)
 data/trivia/fallback.json    333 hand-written medium/hard questions: [category, difficulty, q, correct, w1, w2, w3]
+data/bluff/questions.json    356 strange-but-true questions: [category, "text with ____", answer, [variants], [3 house lies]]
 data/words/answers-N.json    answer pools (N = 5,6,7) — fixed-width words concatenated in one JSON string
 data/words/valid-N.json      valid-guess dictionaries
 scripts/build-words.mjs      regenerates data/words from open sources (see header for URLs/licenses)
@@ -86,6 +98,10 @@ rooms/{CODE}/
   answers/{matchId}/{q}/{uid}:    { c: 0-3, at: server time }   ← SIGNAL, own, once, during 'question', alive only
   targets/{matchId}/{uid}:        uid of another participant    ← SIGNAL, own
   oc/{matchId}/{ci}/{uid}:        { p, ok, n, done, at, doneAt } ← OVERCLOCK, own, during 'play', locked once done
+  lies/{matchId}/{round}/{uid}:   { t ≤ 40 chars, at }          ← BLUFF, own, during 'write' (editable)
+  votes/{matchId}/{round}/{uid}:  { k: optionKey, like?, at }   ← BLUFF, own, during 'vote' (changeable)
+  night/{matchId}:   { g: gameId, p: { uid: 3|2|1|0 }, n: { uid: name }, at }  ← host; game-night scoreboard
+  meta/used/bluff/{questionId}: true                            ← host; Bluff questions already used in this room
 ```
 All player-writable nodes are listed in `ALL_PLAYER_NODES` (registry.js) and wiped by the host on match start/end.
 CIPHER `game`: `{ id:'cipher', matchId, rounds, lengths[], roundMs, maxGuesses, participants{uid:true},
@@ -102,6 +118,13 @@ OVERCLOCK `game`: `{ id:'overclock', matchId, settings{mode}, seed, total, order
 phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{type}, tq{ci:bankIndex}, tUsed, results{ci:{uid:{pts,ok,parts}}}, bank, trivia }`.
 Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, level})`; no challenge content is stored.
 Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge.
+
+BLUFF `game`: `{ id:'bluff', matchId, settings{mode}, rounds, participants, round, rk, phase: intro|write|vote|reveal|standings|final,
+phaseStartAt, phaseEndsAt, qx (enc {id,q,a,v,cat}), hx (enc house lies), used{id}, options[{k,t}] (vote phase, no authorship),
+ox (enc full options with authors/truth), reveal{steps,unpicked} (plain, from the reveal on), results{round:{uid:{pts,truth,fooled,likes,picked}}} }`.
+Option keys are `optionKey(text)` = hash of the normalized text, so identical lies merge and a client can recognize its
+own lie without authorship being public. The reveal is time-driven: `revealStepAt(script, serverNow - phaseStartAt)`.
+Scoring: truth 1000, each victim of your lie 500 (every merged author), each like 100; final round ×3.
 
 **Trivia bank:** questions are appended to `game/bank/{i}` (obfuscated with key `code:matchId:q{i}`). Signal question
 `q` = `bank[q]`; Overclock lightning challenge `ci` uses `bank[tq[ci]]..+2`. The host keeps it topped up (Open Trivia DB
@@ -121,6 +144,11 @@ appends from the fallback bank synchronously.
   (+4 s per rank) via a transaction on `meta/hostId`; the rules only allow the claim under those conditions.
 - **Director:** `host.js` ticks every 250 ms; if host, calls `module.prepare()` (asset/trivia top-ups) and
   `module.step(game, {code, now, live, online})`, writing the returned patch. A per-transition in-flight guard prevents duplicate writes.
+- **Room-level side writes:** a director step may carry `$room: { 'meta/used/bluff/ID': true }`; `host.js` strips it and
+  writes it in the same atomic room update. When a step enters `final`, `host.js` also writes `night/{matchId}` from
+  `module.finalRanks(game)` (idempotent per match).
+- **Rematch / late joiners:** `rematch()` (host.js) restarts the same game with `meta.settings[gameId]` and every
+  connected player — late joiners (who spectate the running game) are dealt in automatically.
 - **Live player data:** each module's `livePaths(game)` names the player-written paths for the current step (e.g. this
   question's answers). `room.js` mirrors them into `state.live` and sets `state.liveKey` only once all have loaded.
   Directors and views must check `liveKey` before trusting `live` (a refresh must never look like "no progress").
@@ -140,10 +168,26 @@ appends from the fallback bank synchronously.
 - `window.__arcade.musicDebug()` exposes music state (the E2E asserts crossfades with it).
 - To replace music: drop an MP3 with the same name into `audio/music/` (≈128 kbps, < 4 MB).
 
+## Loading, PWA, previews (Lighthouse mobile: 99 performance / 100 accessibility / 100 best practices / 100 SEO)
+- `index.html` inlines the boot screen styles, so it paints right after the HTML. **All stylesheets are non-blocking**
+  (`media=print` + onload swap); the three core sheets call `__cssDone()` and the page keeps everything except `#boot`
+  hidden until `html.css-ready` — no flash of unstyled content. Per-game sheets load the same way, without gating.
+- `app.js#dismissBoot` fades the boot screen once core CSS is in and fonts are loaded (≤1.5 s wait). Players **without** a
+  saved session get the title screen immediately (Firebase keeps loading in the background; `setup.js` awaits
+  `firebaseReady` on submit). Players resuming a room wait on the boot screen until they're reconnected.
+- Music never downloads before the first tap (it can't play anyway) — see `audio/music.js#playMusic`.
+- Keep hidden-but-rendered text out of the initial DOM (e.g. the connection banner starts empty) or Lighthouse picks
+  it as the LCP element.
+- Service worker registers only on https non-localhost. It is network-first with cache fallback, skips cross-origin,
+  `/audio/` and range requests. Bump `CACHE` in `sw.js` only if you need to purge old offline copies.
+- Link previews use absolute URLs to `https://trivia.loewfizzle.com/assets/og.png` — update if the domain changes.
+- Re-render icons/preview after design changes: `cd tests/integration && node render-assets.mjs "<browser path>"`.
+
 ## Design system
 - Tokens in `css/base.css :root`: backgrounds `--bg-0..3`, `--text/-dim/-faint`, neon `--cyan --magenta --yellow --green --red --orange --violet`,
   per-game `--accent --accent-2 --accent-ink --accent-soft --accent-glow`, fonts `--font-display` (Orbitron),
   `--font-ui` (Chakra Petch), `--font-mono` (JetBrains Mono), `--font-num` (Chakra Petch — use for all numbers; Orbitron's 0 looks like a block).
+- Neural Bluff reuses tokens but adds `--bone --stamp --stamp-text --verify` and `.stamp`, `.redact`, `.dossier`, `.exhibit`.
 - Game identity: `body[data-theme=cipher|signal|bluff|overclock]` (set automatically while a game runs) re-maps the accent tokens.
 - Components (CSS + `js/ui/components.js`): `.btn .btn-primary|.btn-ghost|.btn-text|.btn-danger .btn-xl|.btn-sm .btn-block`,
   `.panel`, `.chip` (+ `avatar()`), `.tag-host/.tag-you/.tag-lost`, `createTimer({ticks})`, `leaderboard()`, `countUp()`,
@@ -152,27 +196,27 @@ appends from the fallback bank synchronously.
 - Game screens fill `.screen` with `overflow: hidden`; the fixed gear sits top-right (headers use `padding-right: 52px`).
 - Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)` — custom properties are supported.
 
-## Adding a game (Stage 3 checklist: NEURAL BLUFF)
+## Adding a game (checklist)
 1. `js/games/<id>/logic.js` + `director.js` (pure, testable) → `createGame()` and `nextStep()`.
 2. `js/games/<id>/view.js` with `createView() → { mount(el, state), update(state), unmount() }`; use `createFinal()` for the podium.
 3. `js/games/<id>/index.js` exporting the contract in `registry.js` (start, prepare, step, livePaths, MUSIC, DEFAULT_SETTINGS,
-   OPTIONS, estimateMinutes, createView); register it; add new player nodes to `ALL_PLAYER_NODES`.
-4. Set `playable: true` in `GAMES` (`js/config.js`), add `css/<id>.css` + `<link>` in `index.html`. Music id `bluff` already exists.
+   OPTIONS, estimateMinutes, createView, finalRanks); register it; add new player nodes to `ALL_PLAYER_NODES`.
+4. Add it to `GAMES` (`js/config.js`) with `playable: true`, add `css/<id>.css` + `<link>` in `index.html`, a music id in `audio/music.js`.
 5. Extend `database.rules.json` for new player-writable paths (own data only, phase/round-gated) + rules tests.
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (57 tests: rules of all three games, host-migration replays, seeded generation, trivia parsing, fallback bank)
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (67 tests: rules of all four games, host-migration replays,
+  seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
   Opening the *same* slot in two tabs shows a warning (they'd be the same player). Separate browser profiles / incognito also work.
 - **Local emulators (rules + E2E):** needs Java 11+ and Node.
   ```
   cd tests/integration && npm install
-  npx firebase emulators:start --only database,auth --project demo-arcade   # uses ../../database.rules.json via firebase.json below
+  npm run emulators        # = firebase emulators:start --only database,auth --project demo-arcade --config ../../firebase.json
   ```
-  (`tests/integration/firebase.json` configures the ports and points at the repo rules:)
-  `{"database":{"rules":"../../database.rules.json"},"emulators":{"database":{"port":9000},"auth":{"port":9099},"ui":{"enabled":false},"singleProjectMode":true}}`
+  (`firebase.json` lives at the repo root — firebase-tools refuses rules files outside its project directory.)
   - Rules tests: `node --test rules.test.mjs`
   - App against emulators: `node scripts/serve.mjs` then open `http://localhost:5173/?emu` (add `&slot=2` …). `?emu` only works on localhost.
   - E2E (3 headless tabs play a full match incl. host loss + refresh + kick): `node e2e.mjs "<path to chrome/edge>" ./shots`
@@ -180,7 +224,12 @@ appends from the fallback bank synchronously.
   - Stage 2 E2E: `node e2e-stage2.mjs "<browser path>" ./shots [signal|overclock|all]`. Covers Last Signal (targeting,
     eliminations, host killed mid-battle, audio unlock / background pause / crossfades / victory track) and Overclock (every
     challenge UI, identical challenges on all clients, refresh mid-challenge), and writes every new screen at 390×844 and 412×915.
+  - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
+    all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
+    every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
   - The E2E harness uses `puppeteer-core` with a locally installed Chrome/Edge (no browser download).
+  - Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"`
+    (`scripts/serve.mjs` gzips like Vercel so the numbers are representative).
 
 ## Firebase setup notes
 - Console → Build → Realtime Database (create), Authentication → Sign-in method → **Anonymous: enable**.
@@ -191,6 +240,17 @@ appends from the fallback bank synchronously.
 ## Music
 Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 -ar 44100 -ac 2 -b:a 128k`; overclock at
 120k to stay under 4 MB). The originals stay out of the repo.
+
+## Adding content
+- **Neural Bluff questions:** append rows to `data/bluff/questions.json`:
+  `["category", "Something strange is called ____.", "Real Answer", ["real answer", "other accepted spellings"], ["lie 1", "lie 2", "lie 3"]]`.
+  Rules: the fact must be true and surprising; the answer ≤ 4 words; variants cover common spellings; house lies must be
+  believable and must not be "too close" (run `node --test tests/bluff.test.mjs` — it rejects any house lie the
+  closeness check would treat as the truth). Categories: brands, inventions, history, science, animals, food, geography,
+  laws, words, pop, sports, misc (labels in `bluff/view.js#CAT`).
+- **Fallback trivia (Last Signal / Overclock):** append `[category, "medium"|"hard", question, correct, wrong1, wrong2, wrong3]`
+  to `data/trivia/fallback.json`; categories must match `js/trivia/categories.js`. `tests/trivia.test.mjs` validates it.
+- **Cipher Breach / Unscramble words:** edit the blocklist or sizes in `scripts/build-words.mjs` and rebuild (below).
 
 ## Word lists
 Built by `scripts/build-words.mjs` from ENABLE (public domain), the SCOWL-derived Hunspell en_US

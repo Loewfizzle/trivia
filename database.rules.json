@@ -35,6 +35,13 @@
           },
           "$other": {
             ".validate": false
+          },
+          "used": {
+            "$game": {
+              "$id": {
+                ".validate": "newData.isBoolean()"
+              }
+            }
           }
         },
         "players": {
@@ -177,6 +184,55 @@
                 }
               }
             }
+          }
+        },
+        "lies": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$match": {
+            "$r": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'bluff' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/rk').val() === $r && root.child('rooms/' + $code + '/game/phase').val() === 'write' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists()",
+                ".validate": "newData.hasChildren(['t', 'at'])",
+                "t": {
+                  ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 40"
+                },
+                "at": {
+                  ".validate": "newData.isNumber() && newData.val() === now"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            }
+          }
+        },
+        "votes": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$match": {
+            "$r": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'bluff' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/rk').val() === $r && root.child('rooms/' + $code + '/game/phase').val() === 'vote' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists()",
+                ".validate": "newData.hasChildren(['k', 'at'])",
+                "k": {
+                  ".validate": "newData.isString() && newData.val().length <= 16"
+                },
+                "like": {
+                  ".validate": "newData.isString() && newData.val().length <= 16"
+                },
+                "at": {
+                  ".validate": "newData.isNumber() && newData.val() === now"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            }
+          }
+        },
+        "night": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid",
+          "$match": {
+            ".validate": "newData.hasChildren(['g', 'p'])"
           }
         }
       }

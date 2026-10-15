@@ -1,6 +1,8 @@
 // Lobby: room code + invite, live player list, host game picker.
 import { h, clear } from '../ui/dom.js';
-import { playerChip, segmented, chips as chipSelect, accessGranted } from '../ui/components.js';
+import { playerChip, segmented, chips as chipSelect, accessGranted, avatar } from '../ui/components.js';
+import { nightStandings } from '../core/night.js';
+import { colorHex } from '../config.js';
 import { toast } from '../ui/toast.js';
 import { APP_NAME, GAMES, MAX_PLAYERS, MIN_PLAYERS } from '../config.js';
 import { isHost } from '../store.js';
@@ -52,6 +54,7 @@ export function createLobby() {
     els.players = h('div.players');
     els.games = h('div.games');
     els.hint = h('p.lobby-hint.mono');
+    els.night = h('section.lobby-section.night');
     el.append(
       h('header.lobby-head',
         h('div.lobby-room',
@@ -63,6 +66,7 @@ export function createLobby() {
       h('section.lobby-section',
         h('div.section-head', h('span.label', 'OPERATIVES'), els.count),
         els.players),
+      els.night,
       h('section.lobby-section',
         h('div.section-head', h('span.label', 'SELECT PROTOCOL')),
         els.hint,
@@ -74,6 +78,28 @@ export function createLobby() {
     buildGames();
     if (!greeted.has(st.code)) { greeted.add(st.code); el.classList.add('greet'); accessGranted(st.code); }
     update(state);
+  }
+
+  // Game-night leaderboard across every match played in this room.
+  function renderNight() {
+    const rows = nightStandings(st.night, st.players);
+    const sig = JSON.stringify(rows);
+    if (els.night.dataset.sig === sig) return;
+    els.night.dataset.sig = sig;
+    els.night.hidden = !rows.length;
+    if (!rows.length) { els.night.replaceChildren(); return; }
+    const games = Object.keys(st.night || {}).length;
+    els.night.replaceChildren(
+      h('div.section-head', h('span.label', 'GAME NIGHT'), h('span.count', `${games} GAME${games === 1 ? '' : 'S'}`)),
+      h('ol.night-list', rows.map(r => {
+        const p = st.players[r.uid] || { name: r.name, color: 'cyan', avatar: 'ghost' };
+        return h('li.night-row', { class: r.leader ? 'is-leader' : null, style: { '--c': colorHex(p.color) } },
+          h('span.night-rank', r.leader ? '♛' : String(r.rank)),
+          avatar(p.avatar, p.color, 26),
+          h('span.night-name', p.name, h('small', `${r.wins} WIN${r.wins === 1 ? '' : 'S'} · ${r.games} PLAYED`)),
+          h('span.night-pts', String(r.points)));
+      })),
+      h('p.night-foot.mono', '3 / 2 / 1 points for finishing 1st / 2nd / 3rd in each game.'));
   }
 
   let leaveArmed = 0;
@@ -144,6 +170,7 @@ export function createLobby() {
 
   function update(state) {
     st = state;
+    renderNight();
     const host = isHost();
     const order = playerOrder(st.players);
     els.count.textContent = `${order.length}/${MAX_PLAYERS}`;

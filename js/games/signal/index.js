@@ -1,6 +1,6 @@
 // LAST SIGNAL module entry (see games/registry.js for the contract).
 import { createGame, nextStep } from './director.js';
-import { DEFAULT_SETTINGS, HP_OPTIONS } from './logic.js';
+import { DEFAULT_SETTINGS, HP_OPTIONS, rankings } from './logic.js';
 import { initialBank, topUp, fallbackPatch, decodeQuestion } from '../../trivia/feed.js';
 import { loadFallback } from '../../trivia/bank.js';
 import { CATEGORIES } from '../../trivia/categories.js';
@@ -43,3 +43,5 @@ export const OPTIONS = [
 export function estimateMinutes(s) {
   return Math.round((s.hp / 100) * 6 + 1);
 }
+
+export const finalRanks = game => rankings(game).map(r => ({ uid: r.uid, rank: r.rank }));

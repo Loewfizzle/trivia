@@ -1,16 +1,29 @@
 // Firebase bootstrap + thin helpers. Everything Firebase-specific is imported from here.
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import {
-  initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, signInAnonymously, connectAuthEmulator,
-} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
-import {
-  getDatabase, ref, get, set, update, remove, onValue, off, onDisconnect, serverTimestamp,
-  runTransaction, query, orderByChild, endAt, limitToFirst, connectDatabaseEmulator,
-} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js';
+//
+// The SDK (~450 KB) is loaded with a dynamic import inside initFirebase(), so the title
+// screen can paint before it arrives. The exported helpers are thin wrappers that call
+// into the loaded SDK — every caller runs after initFirebase() has resolved.
 import { firebaseConfig } from './firebase-config.js';
 import { slot, useEmulator } from './identity.js';
 
-export { ref, get, set, update, remove, onValue, off, onDisconnect, serverTimestamp, runTransaction, query, orderByChild, endAt, limitToFirst };
+const SDK = 'https://www.gstatic.com/firebasejs/11.10.0';
+let sdk = null;
+const call = name => (...args) => sdk[name](...args);
+
+export const ref = call('ref');
+export const get = call('get');
+export const set = call('set');
+export const update = call('update');
+export const remove = call('remove');
+export const onValue = call('onValue');
+export const off = call('off');
+export const onDisconnect = call('onDisconnect');
+export const serverTimestamp = call('serverTimestamp');
+export const runTransaction = call('runTransaction');
+export const query = call('query');
+export const orderByChild = call('orderByChild');
+export const endAt = call('endAt');
+export const limitToFirst = call('limitToFirst');
 
 // Local development against the Firebase emulators (localhost only): add ?emu to the URL.
 const EMU_CONFIG = { apiKey: 'demo-key', authDomain: 'demo-arcade.firebaseapp.com', projectId: 'demo-arcade', databaseURL: 'http://127.0.0.1:9000?ns=demo-arcade-default-rtdb', appId: 'demo' };
@@ -20,23 +33,31 @@ export const isConfigured = useEmulator || !String(firebaseConfig.apiKey || '').
 
 let app, auth, db;
 let offset = 0;
+let readyResolve;
+/** Resolves once Firebase is initialized and signed in. */
+export const firebaseReady = new Promise(r => { readyResolve = r; });
 
 // Each identity slot is a separately named Firebase app, so its anonymous user
 // is persisted under its own key — that's what lets several tabs be different players.
 export async function initFirebase(onConnectedChange) {
-  app = initializeApp(config, slot === '1' ? '[DEFAULT]' : `slot-${slot}`);
-  auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
-  db = getDatabase(app);
+  const [appMod, authMod, dbMod] = await Promise.all([
+    import(`${SDK}/firebase-app.js`), import(`${SDK}/firebase-auth.js`), import(`${SDK}/firebase-database.js`),
+  ]);
+  sdk = { ...appMod, ...authMod, ...dbMod };
+  app = sdk.initializeApp(config, slot === '1' ? '[DEFAULT]' : `slot-${slot}`);
+  auth = sdk.initializeAuth(app, { persistence: [sdk.indexedDBLocalPersistence, sdk.browserLocalPersistence] });
+  db = sdk.getDatabase(app);
   if (useEmulator) {
-    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-    connectDatabaseEmulator(db, '127.0.0.1', 9000);
+    sdk.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    sdk.connectDatabaseEmulator(db, '127.0.0.1', 9000);
   }
   onValue(ref(db, '.info/serverTimeOffset'), s => { offset = s.val() || 0; });
   onValue(ref(db, '.info/connected'), s => onConnectedChange && onConnectedChange(!!s.val()));
   // Wait for the persisted user to load first — signing in again would mint a new uid
   // and orphan the player's seat in their room.
   await auth.authStateReady();
-  const user = auth.currentUser || (await signInAnonymously(auth)).user;
+  const user = auth.currentUser || (await sdk.signInAnonymously(auth)).user;
+  readyResolve(user.uid);
   return user.uid;
 }
 

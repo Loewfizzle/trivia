@@ -23,6 +23,8 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   animation: noise 0.5s steps(3) infinite;
 }
+/* nothing to show until someone falls: keep the noise layer out of compositing entirely */
+.screen.ls:not(.decay-1)::before { display: none; }
 .screen.ls::after {
   content: '';
   position: absolute;
@@ -404,3 +406,8 @@
   .ls-me { padding: 7px 10px; }
   .ls-q-text { font-size: 16px; }
 }
+
+/* 5–7 rivals, 4 per row: the card's top border already carries the player's color */
+.ls-arena.is-dense .card-top .avatar { display: none; }
+.ls-arena.is-dense .card-name { font-size: 11px; letter-spacing: 0.02em; }
+.ls-arena.is-dense .ls-card { padding: 7px 6px 6px; }

@@ -1,7 +1,7 @@
 // Global constants. Change APP_NAME here to rebrand the whole site.
 export const APP_NAME = 'NEURAL ARCADE';
 export const APP_TAGLINE = 'four minds // one signal';
-export const APP_VERSION = '0.2.0';
+export const APP_VERSION = '1.0.0';
 
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;
@@ -55,6 +55,6 @@ export const AVATAR_IDS = Object.keys(AVATARS);
 export const GAMES = [
   { id: 'cipher', name: 'CIPHER BREACH', theme: 'cipher', tag: 'WORD RACE', blurb: 'Same hidden word. Everyone races. Watch their boards light up.', playable: true },
   { id: 'signal', name: 'LAST SIGNAL', theme: 'signal', tag: 'TRIVIA ROYALE', blurb: '100 HP. Answer fast, strike a rival. Last one standing.', playable: true },
-  { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: false },
+  { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: true },
   { id: 'overclock', name: 'OVERCLOCK', theme: 'overclock', tag: 'MIND GAUNTLET', blurb: 'Rapid 30-second brain spikes. Live leaderboard.', playable: true },
 ];
