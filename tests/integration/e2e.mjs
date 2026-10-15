@@ -8,7 +8,9 @@ import { mkdirSync } from 'node:fs';
 
 const BROWSER = process.argv[2] || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const SHOTS = process.argv[3] || './shots';
-const BASE = 'http://localhost:5173';
+// E2E_BASE=https://trivia.loewfizzle.com runs against production (real Firebase, no ?emu).
+const BASE = process.env.E2E_BASE || 'http://localhost:5173';
+const EMU = BASE.includes('localhost') ? 'emu&' : '';
 mkdirSync(SHOTS, { recursive: true });
 
 const t0 = Date.now();
@@ -24,7 +26,7 @@ async function open(slot, qs = '') {
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   page.on('pageerror', e => { errors.push(`slot${slot} pageerror: ${e.message}`); log(`slot${slot} PAGEERROR`, e.message); });
   page.on('console', m => { if (m.type() === 'error') { errors.push(`slot${slot} console: ${m.text()}`); log(`slot${slot} console.error`, m.text()); } });
-  await page.goto(`${BASE}/?emu&slot=${slot}${qs}`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE}/?${EMU}slot=e2e${slot}${qs}`, { waitUntil: 'domcontentloaded' });
   page.slot = slot;
   // Hidden tabs don't run requestAnimationFrame, which puppeteer's actions wait on.
   for (const fn of ['click', 'type']) { const orig = page[fn].bind(page); page[fn] = async (...a) => { await page.bringToFront(); return orig(...a); }; }

@@ -114,6 +114,7 @@ Totals are always **derived** from `results` (never stored), so replaying a tran
   - Rules tests: `node --test rules.test.mjs`
   - App against emulators: `node scripts/serve.mjs` then open `http://localhost:5173/?emu` (add `&slot=2` …). `?emu` only works on localhost.
   - E2E (3 headless tabs play a full match incl. host loss + refresh + kick): `node e2e.mjs "<path to chrome/edge>" ./shots`
+  - Same E2E against production (real Firebase): `E2E_BASE=https://trivia.loewfizzle.com node e2e.mjs "<browser path>" ./shots`
 
 ## Firebase setup notes
 - Console → Build → Realtime Database (create), Authentication → Sign-in method → **Anonymous: enable**.
