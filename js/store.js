@@ -17,8 +17,8 @@ export const state = {
   presence: {},
   kicked: {},
   game: null,
-  boards: {},             // boards for game.matchId / game.round
-  boardsKey: null,        // `${matchId}/${round}` the boards belong to
+  live: {},               // per-game player-written data for the current step, e.g. { boards } or { answers, targets }
+  liveKey: null,          // which paths `live` currently reflects (see games/registry.js liveKeyFor)
 };
 
 const listeners = new Set();

@@ -8,13 +8,15 @@ import { saveSession, loadSession, loadProfile, setUrlRoom } from './identity.js
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { toast } from './ui/toast.js';
+import { livePathsFor, liveKeyFor } from './games/registry.js';
 
 const R = code => `rooms/${code}`;
 let unsubs = [];
-let boardsUnsub = null;
+let liveUnsubs = [];
+let liveWanted = null;
 let seen = { meta: false, self: false };
 
-const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, boards: {}, boardsKey: null };
+const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, live: {}, liveKey: null };
 
 function cleanProfile(profile) {
   return { name: sanitizeName(profile.name, NAME_MAX) || 'ANON', color: profile.color, avatar: sanitizeAvatar(profile.avatar) };
@@ -114,20 +116,33 @@ function enterRoom(code) {
   });
   listen('game', game => {
     setState({ game });
-    watchBoards(code, game);
+    watchLive(code, game);
   });
   armPresence();
 }
 
-function watchBoards(code, game) {
-  const key = game && game.matchId != null ? `${game.matchId}/${game.round}` : null;
-  if (key === state.boardsKey && boardsUnsub) return;
-  if (boardsUnsub) { boardsUnsub(); boardsUnsub = null; }
-  setState({ boards: {}, boardsKey: null });
+// Subscribes to the player-written paths the active game needs right now
+// (e.g. this round's boards). liveKey is only set once every path has loaded,
+// so the director never decides on half-synced data.
+function watchLive(code, game) {
+  const key = liveKeyFor(game);
+  if (key === liveWanted) return;
+  liveWanted = key;
+  liveUnsubs.forEach(u => u());
+  liveUnsubs = [];
+  setState({ live: {}, liveKey: null });
   if (!key) return;
-  boardsUnsub = onValue(dbRef(`${R(code)}/boards/${key}`), s => {
-    if (state.code === code) setState({ boards: s.val() || {}, boardsKey: key });
-  });
+  const paths = livePathsFor(game);
+  const live = {};
+  const loaded = new Set();
+  for (const [name, path] of Object.entries(paths)) {
+    liveUnsubs.push(onValue(dbRef(`${R(code)}/${path}`), s => {
+      if (state.code !== code || liveWanted !== key) return;
+      live[name] = s.val() || {};
+      loaded.add(name);
+      setState({ live: { ...live }, liveKey: loaded.size === Object.keys(paths).length ? key : null });
+    }));
+  }
 }
 
 // (Re)registers presence; called on room entry and on every reconnect.
@@ -143,7 +158,9 @@ export async function armPresence() {
 function stopListening() {
   unsubs.forEach(u => u());
   unsubs = [];
-  if (boardsUnsub) { boardsUnsub(); boardsUnsub = null; }
+  liveUnsubs.forEach(u => u());
+  liveUnsubs = [];
+  liveWanted = null;
 }
 
 export function exitRoom(reason, kind = 'warn') {

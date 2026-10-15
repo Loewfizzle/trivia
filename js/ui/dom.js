@@ -1,3 +1,5 @@
+import { settings } from '../audio/settings.js';
+
 // Tiny DOM helpers. h('div.card.big', { onclick, dataset, style }, ...children)
 export function h(sel, props, ...children) {
   if (props == null || typeof props !== 'object' || props instanceof Node || Array.isArray(props)) {
@@ -60,6 +62,8 @@ export function pulseClass(el, cls, ms) {
   if (ms) setTimeout(() => el.classList.remove(cls), ms);
 }
 
+// Light haptics where supported (Android); iOS Safari has no Vibration API — skipped silently.
 export function vibrate(pattern) {
+  if (!settings.haptics) return;
   try { navigator.vibrate && navigator.vibrate(pattern); } catch { /* unsupported */ }
 }

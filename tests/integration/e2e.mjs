@@ -114,9 +114,9 @@ try {
   log('lobby OK, colors', colors);
 
   // locked game cards
-  await A.evaluate(() => document.querySelector('.game-card[data-theme="signal"]').scrollIntoView({ block: 'center' }));
+  await A.evaluate(() => document.querySelector('.game-card[data-theme="bluff"]').scrollIntoView({ block: 'center' }));
   await sleep(300);
-  await A.click('.game-card[data-theme="signal"]');
+  await A.click('.game-card[data-theme="bluff"]');
   if (!(await toastText(A)).includes('COMING SOON')) fail('locked card toast missing');
 
   // ---------- start Cipher Breach: 3 rounds, 1:00 ----------

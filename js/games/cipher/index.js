@@ -5,6 +5,12 @@ import { loadLengths, pickWord } from './words.js';
 export { createView } from './view.js';
 
 export { nextStep, pickWord, DEFAULT_SETTINGS };
+export const MUSIC = 'cipher';
+
+export const livePaths = g => ({ boards: `boards/${g.matchId}/${g.round}` });
+
+export const step = (game, { code, now, live, online }) =>
+  nextStep(game, { code, now, boards: live.boards || {}, online, pickWord });
 
 export async function start({ code, matchId, settings, participants, now }) {
   const s = { ...DEFAULT_SETTINGS, ...settings };

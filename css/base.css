@@ -61,8 +61,8 @@
   --accent-soft: rgba(233, 228, 212, 0.1); --accent-glow: rgba(215, 38, 46, 0.45);
 }
 [data-theme='overclock'] {
-  --accent: #f3ff3a; --accent-2: #ff2bd6; --accent-ink: #181a00;
-  --accent-soft: rgba(243, 255, 58, 0.12); --accent-glow: rgba(243, 255, 58, 0.45);
+  --accent: #ffb627; --accent-2: #ff2bd6; --accent-ink: #1c1000;
+  --accent-soft: rgba(255, 182, 39, 0.12); --accent-glow: rgba(255, 182, 39, 0.5);
 }
 
 *, *::before, *::after { box-sizing: border-box; }

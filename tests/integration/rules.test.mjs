@@ -182,3 +182,53 @@ test('stale-room cleanup: query + delete only rooms idle > 6h', async () => {
   await assertFails(remove(ref(me, 'rooms/NEWW')));
   await assertSucceeds(remove(ref(db('x'), 'rooms/NEWW')), 'host can close their room');
 });
+
+// ---------- Stage 2: LAST SIGNAL / OVERCLOCK paths ----------
+function signalRoom(phase = 'question') {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'signal', matchId: 'm2', q: 4, qk: '4', phase, participants: { host: true, p2: true }, out: {} };
+  return r;
+}
+
+test('signal answers: own, once, current question, alive participants only', async () => {
+  await seed(signalRoom());
+  const ans = { c: 2, at: serverTimestamp() };
+  await assertSucceeds(set(ref(db('p2'), `${R}/answers/m2/4/p2`), ans));
+  await assertFails(set(ref(db('p2'), `${R}/answers/m2/4/p2`), { c: 1, at: serverTimestamp() }), 'no changing an answer');
+  await assertFails(set(ref(db('p2'), `${R}/answers/m2/4/host`), ans), 'not for someone else');
+  await assertFails(set(ref(db('host'), `${R}/answers/m2/3/host`), ans), 'not an old question');
+  await assertFails(set(ref(db('host'), `${R}/answers/m2/4/host`), { c: 7, at: serverTimestamp() }), 'choice 0-3');
+  await assertFails(set(ref(db('host'), `${R}/answers/m2/4/host`), { c: 1, at: 123 }), 'server time only');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/host`), 2));
+  await assertFails(set(ref(db('host'), `${R}/answers/m2/4/host`), ans), 'eliminated players cannot answer');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'reveal'));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/host`), null));
+  await assertFails(set(ref(db('host'), `${R}/answers/m2/4/host`), ans), 'question closed');
+});
+
+test('signal targets: own node, must name another participant', async () => {
+  await seed(signalRoom());
+  await assertSucceeds(set(ref(db('p2'), `${R}/targets/m2/p2`), 'host'));
+  await assertFails(set(ref(db('p2'), `${R}/targets/m2/p2`), 'p2'), 'not yourself');
+  await assertFails(set(ref(db('p2'), `${R}/targets/m2/p2`), 'stranger'), 'must be a participant');
+  await assertFails(set(ref(db('p2'), `${R}/targets/m2/host`), 'p2'), 'not someone else\'s target');
+  await assertSucceeds(update(ref(db('host'), R), { answers: null, targets: null }), 'host clears');
+});
+
+test('overclock progress: own board during play, consistent counts, locked once done', async () => {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'overclock', matchId: 'm3', ci: 2, ck: '2', phase: 'play', participants: { host: true, p2: true } };
+  await seed(r);
+  const prog = (p, ok, done) => ({ p, ok, n: 4, done, at: serverTimestamp(), ...(done ? { doneAt: serverTimestamp() } : {}) });
+  await assertSucceeds(set(ref(db('p2'), `${R}/oc/m3/2/p2`), prog(1, 1, false)));
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), prog(2, 3, false)), 'ok cannot exceed p');
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/1/p2`), prog(1, 1, false)), 'not an old challenge');
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/host`), prog(1, 1, false)), 'not someone else');
+  await assertSucceeds(set(ref(db('p2'), `${R}/oc/m3/2/p2`), prog(4, 4, true)));
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), prog(4, 4, true)), 'finished boards are locked');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'standings'));
+  await assertFails(set(ref(db('host'), `${R}/oc/m3/2/host`), prog(1, 1, false)), 'challenge closed');
+  await assertSucceeds(update(ref(db('host'), R), { oc: null }));
+});

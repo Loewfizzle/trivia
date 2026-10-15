@@ -1,6 +1,6 @@
 // Lobby: room code + invite, live player list, host game picker.
 import { h, clear } from '../ui/dom.js';
-import { playerChip, segmented, accessGranted } from '../ui/components.js';
+import { playerChip, segmented, chips as chipSelect, accessGranted } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
 import { APP_NAME, GAMES, MAX_PLAYERS, MIN_PLAYERS } from '../config.js';
 import { isHost } from '../store.js';
@@ -9,6 +9,8 @@ import { leaveRoom, kickPlayer } from '../room.js';
 import { startGame, onlineCount } from '../host.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { slot } from '../identity.js';
+import { sfx } from '../audio/sfx.js';
+import { prefetch } from '../audio/music.js';
 
 const greeted = new Set(); // rooms we've already shown the join effect for (this page load)
 
@@ -108,6 +110,7 @@ export function createLobby() {
 
   function openOptions(g) {
     const mod = GAME_MODULES[g.id];
+    prefetch(mod.MUSIC);
     const saved = (st.meta && st.meta.settings && st.meta.settings[g.id]) || {};
     const settings = { ...mod.DEFAULT_SETTINGS, ...saved };
     const est = h('span.est');
@@ -127,7 +130,11 @@ export function createLobby() {
         h('div.sheet-kicker', g.tag),
         h('h2.sheet-title', g.name),
         h('p.sheet-text', g.blurb),
-        mod.OPTIONS.map(o => h('div.field', h('span.label', o.label), segmented(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); }))),
+        mod.OPTIONS.map(o => h('div.field',
+          h('span.label', o.label, o.hint ? h('small.field-hint', ` · ${o.hint}`) : null),
+          o.type === 'multi'
+            ? chipSelect(o.choices, [].concat(settings[o.key] || []), v => { settings[o.key] = v; renderEst(); })
+            : segmented(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); }))),
         h('div.options-meta', h('span.mono.dim', 'EST. MATCH LENGTH'), est),
         startBtn,
         h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CANCEL')));
@@ -140,6 +147,7 @@ export function createLobby() {
     const host = isHost();
     const order = playerOrder(st.players);
     els.count.textContent = `${order.length}/${MAX_PLAYERS}`;
+    if (chips.size && order.some(uid => !chips.has(uid))) sfx('playerJoined');
 
     // keyed player list
     const seen = new Set();

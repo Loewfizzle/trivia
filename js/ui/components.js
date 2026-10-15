@@ -2,6 +2,7 @@
 import { h, svgEl, reducedMotion } from './dom.js';
 import { AVATARS, colorHex } from '../config.js';
 import { serverNow } from '../firebase.js';
+import { sfx } from '../audio/sfx.js';
 
 export function avatar(avatarId, colorId, size = 40) {
   const path = AVATARS[avatarId] || AVATARS.bolt;
@@ -26,7 +27,8 @@ export function playerChip(p, opts = {}) {
 }
 
 // Countdown bar driven by server time. set(endsAt, totalMs)
-export function createTimer({ warnAt = 10_000 } = {}) {
+// ticks: soft countdown ticks during the last 5 seconds.
+export function createTimer({ warnAt = 10_000, ticks = false } = {}) {
   const fill = h('div.timer-fill');
   const num = h('div.timer-num', '--');
   const el = h('div.timer', h('div.timer-track', fill), num);
@@ -36,6 +38,7 @@ export function createTimer({ warnAt = 10_000 } = {}) {
     fill.style.transform = `scaleX(${Math.min(1, left / total)})`;
     const sec = Math.ceil(left / 1000);
     if (sec !== lastSec) {
+      if (ticks && lastSec !== -1 && sec >= 1 && sec <= 5) sfx('tick', { last: sec === 1 });
       lastSec = sec;
       num.textContent = sec >= 60 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : String(sec).padStart(2, '0');
       el.classList.toggle('is-warn', left > 0 && left <= warnAt);
@@ -82,13 +85,15 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
     },
     h('span.lb-rank', String(r.rank).padStart(2, '0')),
     avatar(p.avatar, p.color, 30),
-    h('span.lb-name', p.name, presence && presence[r.uid] && presence[r.uid].online === false ? h('span.lb-lost', ' ⌁') : null),
+    h('span.lb-name', p.name, presence && presence[r.uid] && presence[r.uid].online === false ? h('span.lb-lost', ' ⌁') : null,
+      r.note ? h('small.lb-note', r.note) : null),
     r.delta ? h('span.lb-delta', `+${r.delta}`) : null,
     move ? h('span.lb-move', move === 'up' ? '▲' : '▼') : null,
     scoreEl);
     list.append(row);
     setTimeout(() => countUp(scoreEl, r.prevScore ?? r.score, r.score, 1100), 250 + i * stagger);
   });
+  if (rows.some(r => (r.prevScore ?? r.score) !== r.score)) setTimeout(() => sfx('shimmer'), 300);
   return list;
 }
 
@@ -124,8 +129,22 @@ export function accessGranted(code) {
     h('div.access-ring'), h('div.access-ring.r2'), h('div.access-ring.r3'),
     h('div.access-text', h('small', 'UPLINK ESTABLISHED'), h('strong', 'ACCESS GRANTED'), h('small.mono', `ROOM ${code}`)));
   document.body.append(el);
+  sfx('join');
   setTimeout(() => el.classList.add('out'), reducedMotion() ? 600 : 1300);
   setTimeout(() => el.remove(), reducedMotion() ? 900 : 1800);
+}
+
+// Multi-select chips. values: array of selected values.
+export function chips(options, values, onChange) {
+  const sel = new Set(values || []);
+  const el = h('div.chips', { role: 'group' });
+  const render = () => [...el.children].forEach(b => b.setAttribute('aria-pressed', String(sel.has(b.dataset.v))));
+  options.forEach(o => el.append(h('button.chip-btn', {
+    type: 'button', dataset: { v: String(o.value) },
+    onclick: () => { if (sel.has(o.value)) sel.delete(o.value); else sel.add(o.value); render(); onChange([...sel]); },
+  }, o.label)));
+  render();
+  return el;
 }
 
 // Segmented control. options: [{ value, label }]

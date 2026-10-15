@@ -8,7 +8,7 @@ import { dbRef, update, runTransaction, serverTimestamp, serverNow } from './fir
 import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline } from './core/room-logic.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS } from './config.js';
-import { GAME_MODULES } from './games/registry.js';
+import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES } from './games/registry.js';
 import { toast } from './ui/toast.js';
 
 let lastBeat = 0;
@@ -63,13 +63,12 @@ function direct(now) {
   const game = state.game;
   const mod = GAME_MODULES[game.id];
   if (!mod) return;
-  // Only decide with boards that belong to the current round.
-  const key = `${game.matchId}/${game.round}`;
-  if (state.boardsKey !== key) return;
-  mod.prepare(game); // ensures word lists etc. are loading on a freshly promoted host
-  const step = mod.nextStep(game, { code: state.code, now, boards: state.boards, online: onlineMap(), pickWord: mod.pickWord });
+  // Only decide with player data that belongs to the current step.
+  if (state.liveKey !== liveKeyFor(game)) return;
+  mod.prepare(game, { code: state.code, host: true }); // e.g. word lists / trivia top-ups on a freshly promoted host
+  const step = mod.step(game, { code: state.code, now, live: state.live, online: onlineMap() });
   if (!step) return;
-  const sig = `${game.matchId}|${game.round}|${game.phase}`;
+  const sig = `${game.matchId}|${game.phase}|${game.phaseStartAt}`;
   if (inflight.sig === sig && now - inflight.at < 3000) return; // write already on its way
   inflight = { sig, at: now };
   if (step.lobby) { backToLobby(); return; }
@@ -92,7 +91,7 @@ export async function startGame(gameId, settings) {
   inflight = { sig: '', at: 0 };
   await update(dbRef(`rooms/${state.code}`), {
     game,
-    boards: null,
+    ...clearPlayerNodes(),
     'meta/status': 'playing',
     'meta/activeAt': serverTimestamp(),
     'meta/hostBeat': serverTimestamp(),
@@ -100,11 +99,13 @@ export async function startGame(gameId, settings) {
   });
 }
 
+const clearPlayerNodes = () => Object.fromEntries(ALL_PLAYER_NODES.map(n => [n, null]));
+
 export async function backToLobby() {
   if (!isHost() || !state.code) return;
   await update(dbRef(`rooms/${state.code}`), {
     game: null,
-    boards: null,
+    ...clearPlayerNodes(),
     'meta/status': 'lobby',
     'meta/activeAt': serverTimestamp(),
   }).catch(e => console.warn('lobby', e));
