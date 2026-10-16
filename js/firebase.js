@@ -24,6 +24,11 @@ export const query = call('query');
 export const orderByChild = call('orderByChild');
 export const endAt = call('endAt');
 export const limitToFirst = call('limitToFirst');
+export const limitToLast = call('limitToLast');
+export const push = call('push');
+// whole-connection switches (chat's offline-send test hook)
+export const goOffline = () => sdk.goOffline(db);
+export const goOnline = () => sdk.goOnline(db);
 
 // Local development against the Firebase emulators (localhost only): add ?emu to the URL.
 const EMU_CONFIG = { apiKey: 'demo-key', authDomain: 'demo-arcade.firebaseapp.com', projectId: 'demo-arcade', databaseURL: 'http://127.0.0.1:9000?ns=demo-arcade-default-rtdb', appId: 'demo' };

@@ -1,7 +1,7 @@
 # NEURAL ARCADE — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each). Static site on Vercel
-(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All five build stages are complete
+(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All six build stages are complete
 (see `ROADMAP.md` for what shipped and the future-ideas list). **Keep this file and ROADMAP.md updated as you work.**
 
 ## Ground rules
@@ -33,6 +33,7 @@ css/signal.css           LAST SIGNAL (decay layers, hit fx, FLATLINE)
 css/overclock.css        OVERCLOCK (challenge UIs, rules cards)
 css/bluff.css            NEURAL BLUFF (dossiers, stamps, redaction bars, reveal exhibits)
 css/pulse.css            PULSE (HUD, song/Echo cards, countdown, results table, calibration overlay)
+css/chat.css             room chat (lobby strip, chat sheet, in-game chat button)
 css/golf.css             NEON PAR (HUD, zone/par cards, scorecard table, ACE cinematic, sabotage sheet, fog, ball picker)
 manifest.webmanifest     PWA manifest (standalone, portrait, icons)
 sw.js                    network-first service worker for same-origin static files only (never Firebase/CDNs/audio)
@@ -61,7 +62,7 @@ js/audio/settings.js     device-wide prefs { music: .35, sfx: .7, muted, musicOf
                          musicOff silences the music bus only (PULSE songs too), effects stay
 js/audio/engine.js       AudioContext, music/sfx buses -> limiter, unlock on first gesture, suspend when hidden
 js/audio/music.js        playMusic(id, fallback), prefetch(id), musicDebug(); voice pool, crossfades, loop crossfade
-js/audio/sfx.js          sfx(name, opts): synthesized effects (see SOUNDS for names)
+js/audio/sfx.js          sfx(name, opts): synthesized effects (see SOUNDS for names; `chat` = the soft message blip)
 js/core/rng.js           PURE seeded RNG (mulberry32), hashString, shuffle, pick
 js/core/obfuscate.js     PURE unicode-safe XOR+base64 for data that must not be readable in plain sight
 js/core/night.js         PURE game-night standings from rooms/{code}/night
@@ -71,6 +72,9 @@ js/trivia/bank.js        bundled fallback bank loader + picker
 js/trivia/bankdata.js    PURE bank encoding: appendPatch, decodeQuestion, fallbackPatch
 js/trivia/feed.js        host-only: initialBank() at start, topUp() keeps questions queued (rate-limit aware)
 js/screens/{title,setup,lobby}.js
+js/chat/logic.js         PURE chat rules: chatLocked(game, uid, live) per game, maskProfanity, cleanText, typing line, unread
+js/chat/chat.js          chat data layer (own store, lazy): listeners, send/outbox/retry, typing, unread, host system lines + prune + clear
+js/chat/ui.js            chat UI: lobby strip, chat sheet (visualViewport keyboard, swipe), in-game chat button with lock + badge
 js/games/registry.js     id → game module
 js/games/lazy-view.js    lazyView(): a game's view module loads only when its match is on screen
 js/games/cipher/logic.js     PURE rules: evaluateGuess (duplicates!), keyStates, scoring, results, standings, secret obfuscation
@@ -132,6 +136,12 @@ rooms/{CODE}/
   meta/used/bluff/{questionId}: true                            ← host; Bluff questions already used in this room
   meta/used/trivia/{qHash}: true                                ← host; trivia questions any match in this room has banked
   pulse/{matchId}/{uid}: { k: songIndex, ready, s, c, mc, p, g, o, m, n, e, er, at }  ← PULSE, own, current song only
+chats/{CODE}/                          ← top level (rooms/{CODE} is readable by any signed-in user; chat isn't)
+  m/{key}:      { u, n, t ≤ 300, at } player line (own uid, server time) | { s, x ≤ 80, at } system line (host only)
+  rate/{uid}:   server time of that player's last message (rules: ≥ 800 ms apart; written in the same update)
+  typing/{uid}: server time while typing (onDisconnect remove; readers ignore entries > 6.5 s old)
+  (read/write: members only — player node exists and not kicked. Host: system lines, prune, clear.)
+rooms/{CODE}/meta/settings/chat: { filter: bool }                 ← host; "Filter language" (default off)
   golf/{matchId}/{uid}:  { h, s, x, y, st, f?, sh?, b?, pu, pk, ls, le, ri?, rt?, sab?, ball, at }  ← NEON PAR, own, current hole, 'play' only
 ```
 All player-writable nodes are listed in `ALL_PLAYER_NODES` (registry.js) and wiped by the host on match start/end.
@@ -277,7 +287,7 @@ Totals are derived from `results` (lowest strokes wins).
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (101 tests: rules of all six games incl. NEON PAR physics + director, host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (105 tests: rules of all six games incl. NEON PAR physics + director, chat locks + profanity filter, host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -306,6 +316,10 @@ Totals are derived from `results` (lowest strokes wins).
     `GPU=1` uses the real GPU (frame pacing; default is software WebGL). Scene-only preview (no Firebase):
     `tests/integration/golf-preview.html?hole=6&tier=2&ghosts=7&at=tee&fly=1`; render profile of every hole at 4x CPU and
     phone pixel density: `node golf-profile.mjs "<browser path>" [tier]` (measured: 60 fps on all nine at the high tier).
+  - Chat E2E: `node e2e-chat.mjs "<browser path>" ./shots` (env `N=8`, `GPU=0` for software WebGL) — 8 players: real-UI
+    sends, grouping, typing indicators, unread + sound, profanity toggle, throttle hint, rules-rejected send → retry,
+    offline send, fake-keyboard layout, kick (access lost), late joiner + refresh history, system lines, lock/unlock in
+    all six games (badge counts, no sound/toast), golf frame pacing while the room chats, host clear (40 checks).
   - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
@@ -371,6 +385,33 @@ Trims songs > 3:15 to their most energetic ~2:50 (fade in/out), skips intros > 1
 4. Look at the song in `pulse-preview.html?song=pulse6` and play it once (an E2E: `SONG=pulse6 N=2 node e2e-pulse.mjs …`).
 5. Commit `audio/pulse/`, `data/pulse/` and push. Titles/artists come from ID3 tags, else "Track 06"; to rename, edit
    `title`/`artist` in `data/pulse/manifest.json` **and** `data/pulse/pulse6.json` (a rebuild overwrites them).
+
+## Room chat (Stage 6)
+- **Data:** `chats/{code}` (see Data model) — kept *outside* `rooms/{code}` because the room's `.read` is open to every
+  signed-in user and rules cascade. Members = player node exists and not kicked, so a kick (or leaving) cuts access at
+  once. A fresh room clears `chats/{code}`; the last player out / stale cleanup removes it.
+- **Own store, lazy code:** `js/chat/*` loads the first time the player is in a room (`app.js`, `lobby.js`, `host.js` use
+  dynamic imports — none of it is in the first paint). Chat state is NOT in the app store, so messages never re-render a
+  game; the list updates incrementally (one element per message, keyed). E2E measured NEON PAR frame work unchanged.
+- **Query:** `orderByChild('at')` + `limitToLast(100)` (`.indexOn: at`). The host prunes older lines (`hostTick`, ≤ every 20 s).
+- **Sending:** `send()` = one update writing `m/{pushKey}` + `rate/{uid}` (server time). Client gap 0.9 s → "Slow down"
+  hint; the rules' 0.8 s gap rejects anything faster → the line shows NOT SENT · TAP TO RETRY (outbox, same text, new
+  key). Offline: Firebase queues the write; the line shows SENDING… until the server confirms.
+- **Locks** (`logic.js#chatLocked`, unit-tested): chat opens in the lobby and every break; it is locked only during your
+  own active play — Cipher guessing (until solved/out), Last Signal answering (eliminated = always open), Overclock
+  challenge (until done), Bluff write/vote, PULSE song/Echo, Neon Par until you hole out. Spectators can always chat.
+  While locked: the button shows a small lock, the badge keeps counting, no sound/toast/vibration, and an open sheet
+  closes when the next round starts. `body.chat-fab-on .timer` leaves room for the button under the gear.
+- **System lines** (host, quiet style): joined, left, signal lost (after 6 s offline), reconnected, removed by the host,
+  new host (written by the new host), "<GAME> started" (`s-start-{matchId}`), winner (`s-win-{matchId}`, ties summarized).
+- **Profanity:** `meta/settings/chat/filter` (host, gear → FILTER LANGUAGE, default off) masks at render time on every
+  phone (past lines too). Whole words with common endings only (`maskProfanity`; tests keep Scunthorpe/assassin/class).
+- **UI:** lobby strip (latest 2 lines + typing + a message field → opens the sheet focused, so the keyboard comes up);
+  sheet with grouped lines (same sender < 3 min), own lines right/accent, relative times, "New messages" pill when
+  scrolled up, typing line, 300-char counter from 260, swipe down / × / backdrop to close (closing blurs → keyboard
+  hides). Keyboard: `visualViewport` → `--kb` / `--vh` on the sheet (test hook `window.__fakeVV` + `__chatLayout()`).
+  Text is always `textContent` (never HTML); links are plain text. Unread per device: `localStorage na:chat:read:{code}`.
+- **Sound:** `sfx('chat')` + a 6 ms vibration for others' lines, only when the sheet is closed, not locked, tab visible.
 
 ## NEON PAR (mini golf)
 **Everyone plays the same hole at once; nothing waits on the network.** Each phone simulates its own ball with

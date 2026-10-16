@@ -94,7 +94,7 @@
 
 .gp-cd {
   position: absolute;
-  top: calc(var(--safe-t) + 120px);
+  top: calc(var(--safe-t) + 166px);
   right: calc(var(--safe-r) + 12px);
   padding: 6px 10px;
   font-family: var(--font-display);
@@ -180,7 +180,7 @@
 @keyframes gp-sab-in { from { opacity: 0; transform: translateY(14px) scale(0.9); } }
 .gp-ballbtn {
   right: calc(var(--safe-r) + 12px);
-  top: calc(var(--safe-t) + 66px);
+  top: calc(var(--safe-t) + 112px); /* under the gear and the chat button */
   bottom: auto;
   width: 44px;
   height: 44px;

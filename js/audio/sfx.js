@@ -139,6 +139,8 @@ const SOUNDS = {
   ocCorrect: () => { tone({ f: hz('E5'), dur: 0.25, gain: 0.035, rev: 0.25 }); tone({ f: hz('B5'), at: 0.05, dur: 0.35, gain: 0.03, rev: 0.3 }); },
   ocWrong: () => { tone({ f: hz('E4'), dur: 0.18, gain: 0.04, lp: 1200, rev: 0.15 }); tone({ f: hz('C4'), at: 0.1, dur: 0.28, gain: 0.04, lp: 900, rev: 0.2 }); },
   node: ({ i = 0 } = {}) => tone({ f: hz(PENTA[i % PENTA.length]), dur: 0.3, gain: 0.03, rev: 0.3, lp: 4000 }),
+  // chat: a barely-there two-note blip
+  chat: () => { tone({ f: hz('E6'), dur: 0.09, gain: 0.011, lp: 4200, rev: 0.12 }); tone({ f: hz('B6'), at: 0.07, dur: 0.12, gain: 0.008, lp: 4800, rev: 0.18 }); },
   // NEON PAR
   putt: ({ p = 0.5 } = {}) => { // wooden-ish tock, brighter + louder with power
     tone({ f: 900 + p * 700, to: 420, dur: 0.07, gain: 0.03 + p * 0.04, type: 'triangle', lp: 2400 + p * 2600, rev: 0.08 });

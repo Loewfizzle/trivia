@@ -47,6 +47,7 @@ export async function createRoom(profile) {
     try {
       await set(metaRef, { hostId: state.uid, status: 'lobby', createdAt: serverTimestamp(), activeAt: serverTimestamp(), hostBeat: serverTimestamp() });
     } catch { continue; } // lost a race for this code
+    await remove(dbRef(`chats/${code}`)).catch(() => {}); // a fresh room starts with a fresh chat
     await writePlayer(code, profile, {});
     enterRoom(code);
     return code;
@@ -188,6 +189,7 @@ export async function leaveRoom() {
         await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() });
       } else {
         await remove(dbRef(R(code))); // last one out turns off the lights
+        await remove(dbRef(`chats/${code}`)).catch(() => {});
         exitRoom();
         return;
       }
@@ -213,7 +215,7 @@ export async function cleanupStaleRooms() {
   const cutoff = serverNow() - ROOM_TTL_MS - 60_000;
   const snap = await get(query(dbRef('rooms'), orderByChild('meta/activeAt'), endAt(cutoff), limitToFirst(20)));
   const jobs = [];
-  snap.forEach(child => { jobs.push(remove(child.ref).catch(() => {})); });
+  snap.forEach(child => { jobs.push(remove(child.ref).then(() => remove(dbRef(`chats/${child.key}`))).catch(() => {})); });
   await Promise.all(jobs);
 }
 
