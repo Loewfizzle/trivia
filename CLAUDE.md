@@ -174,7 +174,8 @@ Newer types: **lexicon** (6 parts; ok = 6 − (max − best length), only the lo
 no speed bonus — the closest player(s) get +60 instead, decided in `computeResults` from `ok`), **rewire** (2 parts; ok = solved +
 0.6·reach for the unsolved one; `genRewire` builds a solved path then scrambles, always solvable). Bank-backed types pick
 `bankIndex(seed, type, occ)` from a shuffled per-match deck so a repeat in Marathon never deals the same entry. Standings
-last 10 s for lexicon/timeline/closest (`standingsMs`) to fit the reveal panel.
+last 10 s for lexicon/timeline/closest (`standingsMs`) to fit the reveal panel. Unscramble also gets a reveal (the word,
+the scrambled letters, how many cracked it) within the normal 6 s.
 Types: unscramble, memory, oddone, math, pattern, trivia, stroop (Color Clash), reflex (Signal Lock), count (Quick Count),
 lexicon, timeline, closest (Closest Call), rewire, truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
 Signal Lock times taps from the pointerdown event against the frame the flash painted (performance.now clock, local only).

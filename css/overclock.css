@@ -534,6 +534,9 @@
 .rv-w { font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: 0.04em; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rv-word small { font-family: var(--font-num); font-size: 11px; color: var(--text-faint); }
 .rv-word.is-max .rv-w { color: var(--accent); }
+.rv-us .rv-kicker { min-height: 0; }
+.rv-us-count { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: var(--text-dim); }
+.rv-us-count b { font-family: var(--font-num); font-size: 15px; color: var(--accent); }
 .rv-order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .rv-order li { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; padding: 7px 10px; background: rgba(255, 255, 255, 0.04); border-left: 2px solid var(--accent); animation: q-in 0.35s var(--ease) both; }
 .rv-pos { font-family: var(--font-num); font-weight: 700; font-size: 18px; color: var(--accent); }
