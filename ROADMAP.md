@@ -86,6 +86,19 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] Three zone music tracks (crossfaded), synthesized putt / bounce / cup / portal / boost / bumper / pickup /
       sabotage / respawn / ACE sounds, light haptics
 
+### ✅ Stage 6 — Room chat
+- [x] Free-text chat for the whole room session (no presets/emoji reactions/GIFs/read receipts): a compact lobby strip
+      that opens a full chat sheet; in games a chat button under the gear with an unread badge
+- [x] Open in the lobby and every break; locked (quiet lock icon, badge still counting, no sound/toasts) during your own
+      active play in all six games; spectators and eliminated / finished players can always chat
+- [x] Names in player colour, grouped lines, own lines styled apart, relative times, typing indicators (onDisconnect +
+      4 s idle), unread badge per device, "New messages" pill, 300-char limit with counter, quiet system lines (joined,
+      left, signal lost, reconnected, removed, new host, game started, winner)
+- [x] Host: Filter language (whole-word profanity masking at render time, default off) and Clear chat; last 100 kept
+- [x] Rules: members only (kicked lose access at once), own messages, server time, ≤ 300 chars, 800 ms rate limit; offline
+      sends queue and deliver, rejected ones show tap-to-retry; keyboard-aware sheet (visualViewport), swipe to close
+- [x] Chat code loads lazily and lives outside the app store — no effect on game frame pacing or first paint
+
 ## Future ideas
 - **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,
   daily challenge hole with a room leaderboard, replays of everyone's best shot at the end.

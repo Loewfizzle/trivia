@@ -4,7 +4,8 @@ import { h } from './dom.js';
 import { toast } from './toast.js';
 import { settings, updateSettings, onSettings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { state } from '../store.js';
+import { state, isHost } from '../store.js';
+import { dbRef, update } from '../firebase.js';
 import { leaveRoom } from '../room.js';
 import { APP_NAME, APP_VERSION } from '../config.js';
 import { openHelp } from './help.js';
@@ -42,6 +43,30 @@ function toggle(label, key, invert = false) {
   return h('div.set-row.set-toggle', h('span.label', label), btn);
 }
 
+// Host-only chat moderation: "Filter language" (masks profanity on every phone) and "Clear chat".
+function chatHostRows() {
+  if (!state.code || !isHost()) return [];
+  const filterOn = () => !!(state.meta && state.meta.settings && state.meta.settings.chat && state.meta.settings.chat.filter);
+  const sw = h('button.switch', { type: 'button', role: 'switch', 'aria-label': 'Filter language', onclick: () => {
+    const next = !filterOn();
+    sw.setAttribute('aria-checked', String(next));
+    update(dbRef(`rooms/${state.code}/meta/settings`), { chat: { filter: next } }).catch(e => toast(String(e.message || e).toUpperCase(), 'err'));
+  } }, h('i'));
+  sw.setAttribute('aria-checked', String(filterOn()));
+  let armed = 0;
+  const clear = h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => {
+    if (Date.now() - armed < 2500) {
+      clear.firstChild.textContent = 'CLEARING…';
+      import('../chat/chat.js').then(m => m.clearChat()).then(() => { clear.firstChild.textContent = 'CHAT CLEARED'; });
+      return;
+    }
+    armed = Date.now();
+    clear.firstChild.textContent = 'TAP AGAIN TO CLEAR THE CHAT';
+    setTimeout(() => { if (clear.isConnected && Date.now() - armed >= 2500) clear.firstChild.textContent = 'CLEAR CHAT'; }, 2600);
+  } }, h('span', 'CLEAR CHAT'));
+  return [h('div.set-sub', 'CHAT · HOST'), h('div.set-row.set-toggle', h('span.label', 'FILTER LANGUAGE'), sw), clear];
+}
+
 function open() {
   if (sheet) return;
   let leaveArmed = 0;
@@ -69,6 +94,7 @@ function open() {
       toggle('HIT SOUNDS', 'pulseHits'),
       h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); import('../games/pulse/calibrate.js').then(m => m.openCalibration({ reason: 'PULSE · RECALIBRATE (DO THIS AFTER SWITCHING HEADPHONES)' })); } }, h('span', 'RECALIBRATE AUDIO SYNC')),
       h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); openHelp(state.game && state.meta && state.meta.status === 'playing' ? state.game.id : undefined); } }, h('span', 'HOW TO PLAY')),
+      ...chatHostRows(),
       state.code ? h('div.set-room', h('span.label', 'ROOM'), h('strong', state.code)) : null,
       leaveBtn,
       h('p.set-foot.mono', `${APP_NAME} // v${APP_VERSION}`)));

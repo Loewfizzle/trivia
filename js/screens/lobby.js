@@ -82,7 +82,14 @@ export function createLobby() {
         els.hint,
         els.games),
       slot !== '1' ? h('div.lobby-foot', h('span.tag.tag-you', `TEST SLOT ${slot}`)) : null,
+      els.chatSlot = h('div.chat-slot'),
     );
+    // the chat strip (and all chat code) loads after the lobby is up
+    import('../chat/ui.js').then(m => {
+      if (!els.chatSlot || !els.chatSlot.isConnected) return;
+      els.chatStrip = m.createChatStrip();
+      els.chatSlot.replaceChildren(els.chatStrip.el);
+    }).catch(e => console.warn('chat', e));
     buildGames();
     if (!greeted.has(st.code)) { greeted.add(st.code); el.classList.add('greet'); accessGranted(st.code); }
     update(state);
@@ -262,6 +269,7 @@ export function createLobby() {
   function unmount() {
     if (sheet) { sheet.remove(); sheet = null; }
     if (els.ballSub) { els.ballSub(); els.ballSub = null; }
+    if (els.chatStrip) { els.chatStrip.destroy(); els.chatStrip = null; }
   }
 
   return { mount, update, unmount };

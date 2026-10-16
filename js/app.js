@@ -81,6 +81,13 @@ function render(st) {
 }
 
 subscribe(render);
+// Room chat loads the first time we're in a room (never on the first paint): the in-game chat button.
+let chatInstalled = false;
+subscribe(st => {
+  if (chatInstalled || !st.code) return;
+  chatInstalled = true;
+  import('./chat/ui.js').then(m => m.installChatFab()).catch(e => { chatInstalled = false; console.warn('chat', e); });
+});
 
 // ---- connection banner: "reconnecting…" while our own socket is down, "back online" when it returns ----
 let everConnected = false;

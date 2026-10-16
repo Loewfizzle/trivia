@@ -15,6 +15,14 @@ let lastBeat = 0;
 let lastActive = 0;
 let lastClaim = 0;
 let inflight = { sig: '', at: 0 };
+// room chat (system lines, pruning) loads lazily the first time we're in a room
+let chatMod = null;
+let chatLoading = false;
+const withChat = fn => {
+  if (chatMod) return fn(chatMod);
+  if (!chatLoading) { chatLoading = true; import('./chat/chat.js').then(m => { chatMod = m; }).catch(() => { chatLoading = false; }); }
+  return undefined;
+};
 
 export function startHostLoop() {
   setInterval(tick, DIRECTOR_TICK_MS);
@@ -25,6 +33,7 @@ export function startHostLoop() {
 function tick() {
   if (!state.code || !state.meta || !state.connected || !state.uid) return;
   const now = serverNow();
+  withChat(m => m.hostTick());
   if (isHost()) {
     beat(now);
     if (state.meta.status === 'playing' && state.game) direct(now);
@@ -134,6 +143,7 @@ export async function startGame(gameId, settings) {
     'meta/hostBeat': serverTimestamp(),
     [`meta/settings/${gameId}`]: settings,
   });
+  withChat(m => m.announceStart(gameId, matchId));
   return true;
 }
 

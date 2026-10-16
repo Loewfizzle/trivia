@@ -338,3 +338,40 @@ test('golf balls: own node, current hole, play phase only, locked scores and one
   await assertFails(set(ref(db('p2'), P), node), 'no writes during the scorecard');
   await assertSucceeds(remove(ref(db('host'), `${R}/golf`)), 'host wipes on start/end');
 });
+
+test('chat: members only (kicked lose it at once), own messages, server time, ≤ 300 chars, rate limit, host moderation', async () => {
+  await seed(lobbyRoom({ kicked: { gone: true } }));
+  const C = `chats/${CODE}`;
+  const msg = (uid, t = 'hello') => ({ [`m/k${Math.random().toString(36).slice(2, 8)}`]: { u: uid, t, at: serverTimestamp() }, [`rate/${uid}`]: serverTimestamp() });
+  await assertSucceeds(get(ref(db('p2'), `${C}/m`)), 'members read');
+  await assertFails(get(ref(db('stranger'), `${C}/m`)), 'outsiders can’t read');
+  await assertFails(get(ref(db('gone'), `${C}/m`)), 'kicked players can’t read');
+  await assertFails(get(ref(db(null), `${C}/m`)), 'signed-out');
+  await assertSucceeds(update(ref(db('p2'), C), msg('p2', 'gg 🔥')));
+  await assertFails(update(ref(db('stranger'), C), msg('stranger')), 'outsiders can’t write');
+  await assertFails(update(ref(db('p2'), C), msg('host')), 'only as yourself');
+  await new Promise(r => setTimeout(r, 900));
+  await assertFails(update(ref(db('p2'), C), { 'm/x1': { u: 'p2', t: 'no rate stamp', at: serverTimestamp() } }), 'must stamp the rate node');
+  await assertFails(update(ref(db('p2'), C), { 'm/x2': { u: 'p2', t: 'old', at: 5 }, 'rate/p2': serverTimestamp() }), 'server time only');
+  await assertFails(update(ref(db('p2'), C), msg('p2', '')), 'not empty');
+  await assertFails(update(ref(db('p2'), C), msg('p2', 'x'.repeat(301))), '≤ 300 chars');
+  await assertFails(update(ref(db('p2'), C), { 'm/x3': { u: 'p2', t: 'hi', at: serverTimestamp(), color: 'red' }, 'rate/p2': serverTimestamp() }), 'no extra fields');
+  await assertFails(update(ref(db('p2'), C), { 'm/x4': { s: 'join', x: 'fake system line', at: serverTimestamp() }, 'rate/p2': serverTimestamp() }), 'players can’t write system lines');
+  await assertSucceeds(update(ref(db('p2'), C), msg('p2', 'one')));
+  await assertFails(update(ref(db('p2'), C), msg('p2', 'two, too fast')), 'rate limit: 800 ms between messages');
+  await assertSucceeds(set(ref(db('host'), `${C}/m/sys1`), { s: 'join', x: 'TWO joined', at: serverTimestamp() }), 'host writes system lines');
+  await assertFails(remove(ref(db('p2'), `${C}/m/sys1`)), 'players can’t delete');
+  await assertSucceeds(remove(ref(db('host'), `${C}/m/sys1`)), 'host prunes');
+  // typing: own node, server time, removable
+  await assertSucceeds(set(ref(db('p2'), `${C}/typing/p2`), serverTimestamp()));
+  await assertFails(set(ref(db('p2'), `${C}/typing/host`), serverTimestamp()), 'not for others');
+  await assertFails(set(ref(db('gone'), `${C}/typing/gone`), serverTimestamp()), 'kicked can’t type');
+  await assertSucceeds(remove(ref(db('p2'), `${C}/typing/p2`)));
+  await assertFails(remove(ref(db('p2'), `${C}/m`)), 'players can’t clear');
+  await assertSucceeds(remove(ref(db('host'), `${C}/m`)), 'host clears the chat');
+  // kicked mid-session: access ends immediately
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `rooms/${CODE}`), { 'kicked/p2': true, 'players/p2': null }));
+  await assertFails(get(ref(db('p2'), `${C}/m`)));
+  await new Promise(r => setTimeout(r, 900));
+  await assertFails(update(ref(db('p2'), C), msg('p2', 'still here?')));
+});
