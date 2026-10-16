@@ -12,6 +12,11 @@ import { setFallbackRows } from '../js/trivia/bank.js';
 
 for (const n of [5, 6, 7]) setLists(n, JSON.parse(readFileSync(`data/words/answers-${n}.json`, 'utf8')), JSON.parse(readFileSync(`data/words/valid-${n}.json`, 'utf8')));
 setFallbackRows(JSON.parse(readFileSync('data/trivia/fallback.json', 'utf8')).questions);
+const BANKS = {
+  lexicon: JSON.parse(readFileSync('data/oc/lexicon.json', 'utf8')).sets,
+  timeline: JSON.parse(readFileSync('data/oc/timeline.json', 'utf8')).sets,
+  closest: JSON.parse(readFileSync('data/oc/closest.json', 'utf8')).questions,
+};
 
 test('every challenge type is identical for every client given the same seed (Math.random is never used)', () => {
   const trivia = [{ q: 'a?', a: ['1', '2', '3', '4'], c: 0 }, { q: 'b?', a: ['1', '2', '3', '4'], c: 1 }, { q: 'c?', a: ['1', '2', '3', '4'], c: 2 }];
@@ -21,9 +26,9 @@ test('every challenge type is identical for every client given the same seed (Ma
       for (let ci = 0; ci < 24; ci++) {
         const args = { seed: 'room-seed-42', ci, level: ci / 23 };
         Math.random = () => 0.123;
-        const clientA = JSON.stringify(generate(type, args, { answersFor, triviaItems: trivia }));
+        const clientA = JSON.stringify(generate(type, args, { answersFor, triviaItems: trivia, ...BANKS }));
         Math.random = () => 0.987;
-        const clientB = JSON.stringify(generate(type, args, { answersFor, triviaItems: trivia }));
+        const clientB = JSON.stringify(generate(type, args, { answersFor, triviaItems: trivia, ...BANKS }));
         assert.equal(clientA, clientB, `${type} #${ci}`);
         assert.notEqual(clientA, 'null', `${type} generated`);
       }
@@ -50,7 +55,7 @@ test('generated challenges are well-formed', () => {
     q.problems.forEach(p => assert.ok(Number.isInteger(p.ans) && p.ans > 0, p.text));
     const p = generate('pattern', args);
     p.seqs.forEach(s => assert.ok(Number.isInteger(s.ans) && s.shown.length === 5));
-    for (const t of TYPES) if (t !== 'trivia') assert.equal(generate(t, args, { answersFor }).parts, partsFor(t, level));
+    for (const t of TYPES) if (t !== 'trivia') assert.equal(generate(t, args, { answersFor, ...BANKS }).parts, partsFor(t, level));
   }
   assert.equal(generate('trivia', { seed: 's', ci: 0, level: 0 }, { triviaItems: [null, null, null] }), null, 'waits for questions');
   assert.equal(generate('unscramble', { seed: 's', ci: 0, level: 0 }, { answersFor: () => null }), null, 'waits for word lists');
@@ -63,19 +68,36 @@ test('unscramble accepts the word or another valid anagram, nothing else', () =>
   assert.ok(!unscrambleAccepts('aelst', 'stale', isValidGuess), 'not a word');
 });
 
-test('order: trivia keeps one slot in six, the rest spread evenly, never back-to-back', () => {
-  for (const [mode, n] of Object.entries(MODES)) {
-    for (let s = 0; s < 40; s++) {
-      const o = buildOrder(`seed${s}${mode}`, n);
-      assert.equal(o.length, n);
-      assert.equal(o.filter(x => x === 'trivia').length, n / 6);
-      const others = TYPES.filter(t => t !== 'trivia').map(t => o.filter(x => x === t).length);
-      assert.ok(Math.max(...others) - Math.min(...others) <= 1, `even spread: ${others}`);
-      assert.ok(Math.min(...others) >= 1, 'every type shows up');
-      for (let i = 1; i < o.length; i++) assert.notEqual(o[i], o[i - 1]);
-      assert.deepEqual(buildOrder(`seed${s}${mode}`, n), o, 'deterministic');
+test('order: no repeats — all different types up to 14; Marathon at most twice each, never back to back, spread out', () => {
+  assert.equal(TYPES.length, 14);
+  for (const total of [3, 6, 12, 14]) {
+    for (let s = 0; s < 300; s++) {
+      const o = buildOrder(`seed${s}:${total}`, total);
+      assert.equal(o.length, total);
+      assert.equal(new Set(o).size, total, `all different (${total})`);
+      assert.ok(o.every(t => TYPES.includes(t)));
+      assert.deepEqual(buildOrder(`seed${s}:${total}`, total), o, 'deterministic');
     }
   }
+  const seenFirst = new Set();
+  for (let s = 0; s < 500; s++) {
+    const o = buildOrder(`marathon${s}`, MODES.marathon);
+    assert.equal(o.length, 24);
+    seenFirst.add(o[0]);
+    const count = {};
+    o.forEach(t => { count[t] = (count[t] || 0) + 1; });
+    assert.ok(Object.values(count).every(n => n <= 2), 'at most twice');
+    assert.equal(Object.keys(count).length, 14, 'every type shows up in a Marathon');
+    for (let i = 1; i < o.length; i++) assert.notEqual(o[i], o[i - 1], 'never back to back');
+    for (const t of Object.keys(count)) {
+      const at = o.map((x, k) => (x === t ? k : -1)).filter(k => k >= 0);
+      if (at.length === 2) assert.ok(at[1] - at[0] >= 8, `${t} spread out (${at})`);
+    }
+    assert.ok(count.trivia <= 2, 'trivia is just another type now');
+  }
+  assert.ok(seenFirst.size >= 12, 'the opener varies');
+  // standard: 12 different types of 14, trivia at most once
+  for (let s = 0; s < 300; s++) assert.ok(buildOrder(`std${s}`, MODES.standard).filter(t => t === 'trivia').length <= 1);
 });
 
 test('scoring: partial credit, speed bonus only when perfect, final doubles', () => {
@@ -116,7 +138,8 @@ test('full standard gauntlet: rules card on first appearance, standings between,
   let now = 0;
   const game = createGame({ matchId: 'mo', settings: { mode: 'standard' }, participants, now, seed: 'sim-seed', bank, trivia });
   assert.equal(game.total, 12);
-  assert.equal(triviaNeeded(game), 6);
+  assert.equal(triviaNeeded(game), game.order.filter(t => t === 'trivia').length * 3);
+  assert.ok(triviaNeeded(game) <= 3, 'Trivia Lightning at most once in Standard');
   const briefs = [];
   for (let ci = 0; ci < game.total; ci++) {
     assert.equal(game.phase, 'ready');

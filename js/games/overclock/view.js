@@ -12,12 +12,19 @@ import { shuffle } from '../../core/rng.js';
 import { sfx } from '../../audio/sfx.js';
 import { decodeQuestion } from '../../trivia/feed.js';
 import { loadLengths, answersFor, isValidGuess } from '../cipher/words.js';
-import { INFO, generate, unscrambleAccepts, partsFor, STROOP_COLORS, REFLEX_TIMEOUT_MS, reflexCredit } from './challenges.js';
+import {
+  INFO, generate, unscrambleAccepts, partsFor, STROOP_COLORS, REFLEX_TIMEOUT_MS, reflexCredit,
+  lexiconOk, timelineCorrect, closestCredit, rewirePower, rewireOk, REWIRE_SHAPES, LEXICON_PARTS,
+} from './challenges.js';
+import { bankFor, loadBank, preloadFor } from './banks.js';
 import { CHALLENGE_MS, levelOf, totals, standings } from './logic.js';
 
 const GHOST = { name: 'GHOST', color: 'yellow', avatar: 'ghost' };
 // 3, 2.5, 3.47 → '3', '2.5', '3.5' (partial credit)
 const fmtOk = n => (Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toString());
+// 1234.5 → '1,234.5' (Closest Call)
+const fmtVal = v => { const [i, d] = String(v).split('.'); return Number(i).toLocaleString('en-US') + (d != null ? `.${d}` : ''); };
+const BANK_TYPES = ['lexicon', 'timeline', 'closest'];
 
 export function createView() {
   let root, st;
@@ -53,6 +60,14 @@ export function createView() {
     els.overlay = h('div.oc-overlay');
     root.append(els.head, els.timer, els.strip, els.stage, els.overlay);
     loadLengths([5, 6, 7]).then(() => { wordsReady = true; if (st) update(st); }).catch(() => {});
+    if (state.game && state.game.order) preloadFor(state.game.order).then(() => { if (st) update(st); });
+    // test hook (emulator runs only): the E2E compares puzzles across phones and reads progress
+    if (/[?&]emu\b/.test(location.search)) {
+      window.__oc = {
+        spec: () => chal && chal.spec,
+        state: () => chal && { type: chal.spec.type, ok: chal.ok, p: chal.p, done: chal.done, extra: chal.extra },
+      };
+    }
     update(state);
   }
 
@@ -139,7 +154,8 @@ export function createView() {
         return;
       }
       const mine = boardsNow(game)[me()] || {};
-      chal = { key, spec, parts: spec.parts, p: mine.p || 0, ok: mine.ok || 0, done: !!mine.done, ui: null, marks: [], times: [] };
+      chal = { key, spec, parts: spec.parts, p: mine.p || 0, ok: mine.ok || 0, done: !!mine.done, ui: null, marks: [], times: [], extra: {} };
+      for (const f of ['w', 'o', 'g', 'rw']) if (mine[f] != null) chal.extra[f] = mine[f];
       clear(els.stage);
       if (chal.done) showDone();
       else mountChallenge(game);
@@ -159,7 +175,12 @@ export function createView() {
       if (start == null) return null;
       deps.triviaItems = [0, 1, 2].map(i => decodeQuestion(game, st.code, start + i));
     }
-    return generate(type, { seed: game.seed, ci: game.ci, level: levelOf(game.ci, game.total) }, deps);
+    if (BANK_TYPES.includes(type)) {
+      deps[type] = bankFor(type);
+      if (!deps[type]) { loadBank(type).then(() => { if (st) update(st); }).catch(() => {}); return null; }
+    }
+    const occ = game.order.slice(0, game.ci).filter(t => t === type).length;
+    return generate(type, { seed: game.seed, ci: game.ci, level: levelOf(game.ci, game.total), occ }, deps);
   }
 
   // Progress API shared by all challenge UIs. result: true / false, or partial credit 0..1
@@ -189,7 +210,7 @@ export function createView() {
 
   function write(done) {
     const game = g();
-    const data = { p: chal.p, ok: chal.ok, n: chal.parts, done, at: serverTimestamp() };
+    const data = { p: chal.p, ok: chal.ok, n: chal.parts, done, at: serverTimestamp(), ...(chal.extra || {}) };
     if (done) data.doneAt = serverTimestamp();
     set(dbRef(`rooms/${st.code}/oc/${game.matchId}/${game.ci}/${me()}`), data).catch(() => toast('TOO LATE — CHALLENGE CLOSED', 'err'));
   }
@@ -201,6 +222,19 @@ export function createView() {
     clear(els.stage);
     const reflex = chal.spec.type === 'reflex';
     const perfect = chal.ok >= chal.parts;
+    const t = chal.spec.type;
+    if (t === 'closest' || t === 'lexicon' || t === 'timeline' || t === 'rewire') {
+      // (Closest Call never shows how close you were until the reveal)
+      const line = t === 'closest' ? [h('b', fmtVal(chal.extra.g ?? 0)), ` ${chal.spec.unit}`]
+        : t === 'lexicon' ? [h('b', (chal.extra.w || '—').toUpperCase()), ` · ${(chal.extra.w || '').length} letters`]
+          : t === 'timeline' ? [h('b', fmtOk(chal.ok)), ' / 4 in place']
+            : [h('b', String(Math.floor(chal.ok))), ' / 2 circuits'];
+      const top = t === 'closest' ? 'LOCKED IN' : perfect ? 'PERFECT' : t === 'lexicon' ? 'BEST WORD' : 'LOCKED IN';
+      els.stage.append(h('div.oc-done', { class: perfect && t !== 'closest' ? 'is-perfect' : null },
+        h('div.oc-done-mark', top), h('div.oc-done-score', ...line), h('div.oc-done-wait', 'WAITING FOR THE OTHERS…')));
+      if (perfect && t !== 'closest') sfx('solve');
+      return;
+    }
     const hits = chal.times.filter(t => t != null);
     const score = reflex
       ? (hits.length ? [h('b', String(Math.round(hits.reduce((a, b) => a + b, 0) / hits.length))), ' ms avg'] : [h('b', `${Math.round((100 * chal.ok) / chal.parts)}%`), ' speed'])
@@ -225,7 +259,9 @@ export function createView() {
     const ui = {
       unscramble: uiUnscramble, memory: uiMemory, oddone: uiOddOne, math: uiNumeric, pattern: uiNumeric, trivia: uiTrivia,
       stroop: uiStroop, reflex: uiReflex, count: uiCount, truefalse: uiTrueFalse,
+      lexicon: uiLexicon, timeline: uiTimeline, closest: uiClosest, rewire: uiRewire,
     }[s.type](s);
+    if (s.type === 'closest') els.pips.hidden = true; // no hint before the reveal
     chal.ui = ui;
     els.stage.append(ui.el);
   }
@@ -610,6 +646,240 @@ export function createView() {
     return { el: wrap, destroy() { keyHandler = null; } };
   }
 
+  // Shared by the newer challenges: set progress directly (ok/p/extra) and publish; `done` locks it in.
+  function progress(ok, p, extra, done = false, doneDelay = 450) {
+    if (!chal || chal.done) return;
+    chal.ok = Math.round(ok * 100) / 100;
+    chal.p = Math.max(chal.ok, Math.min(chal.parts, p));
+    Object.assign(chal.extra, extra || {});
+    chal.marks = Array.from({ length: chal.parts }, (_, i) => (i < Math.floor(chal.ok) ? 'ok' : ''));
+    paintPips();
+    if (done) { chal.done = true; write(true); setTimeout(showDone, doneDelay); }
+    else write(false);
+  }
+
+  // ---------- LEXICON ----------
+  function uiLexicon(s) {
+    const valid = new Set(s.words);
+    const found = [];
+    let best = chal.extra.w || '';
+    let order = s.letters.map((ch, i) => ({ ch, i }));
+    let picked = [];
+    const word = h('div.lx-word', { 'aria-live': 'polite' });
+    const meter = h('div.lx-meter');
+    const hint = h('div.lx-hint');
+    const grid = h('div.lx-grid');
+    const chips = h('div.lx-found');
+    const paint = () => {
+      word.replaceChildren(...(picked.length ? picked.map(t => h('span.lx-l', t.ch.toUpperCase())) : [h('span.lx-ph', 'TAP LETTERS')]));
+      word.classList.toggle('is-empty', !picked.length);
+      grid.replaceChildren(...order.map(t => fastButton('button.lx-tile', { class: picked.includes(t) ? 'is-used' : null, disabled: picked.includes(t), 'aria-label': t.ch }, () => add(t), t.ch.toUpperCase())));
+      meter.replaceChildren(h('span', 'BEST ', h('b', best ? `${best.length}` : '–')), h('span', 'LONGEST POSSIBLE ', h('b', String(s.max))));
+    };
+    const say = (t, kind = '') => { hint.textContent = t; hint.className = `lx-hint is-on ${kind}`; clearTimeout(say.t); say.t = setTimeout(() => { hint.className = 'lx-hint'; }, 1300); };
+    const add = t => { if (chal.done || picked.includes(t)) return; picked.push(t); sfx('key'); vibrate(5); paint(); };
+    const back = () => { picked.pop(); paint(); };
+    const submit = () => {
+      if (chal.done) return;
+      const w = picked.map(t => t.ch).join('');
+      if (w.length < 3) { say('3+ LETTERS', 'is-warn'); return; }
+      if (!valid.has(w)) { sfx('invalid'); vibrate([30, 30, 30]); pulseClass(word, 'shake', 450); say('NOT IN THE DICTIONARY', 'is-warn'); return; }
+      if (found.includes(w)) { say('ALREADY FOUND', 'is-warn'); picked = []; paint(); return; }
+      found.unshift(w);
+      chips.prepend(h('span.lx-chip', { class: w.length >= best.length ? 'is-best' : null }, w.toUpperCase(), h('small', String(w.length))));
+      picked = [];
+      if (w.length > best.length) {
+        best = w;
+        chips.querySelectorAll('.lx-chip').forEach((c, k) => c.classList.toggle('is-best', k === 0));
+        const max = best.length >= s.max;
+        say(max ? 'LONGEST POSSIBLE!' : `NEW BEST · ${w.length} LETTERS`, 'is-good');
+        sfx(max ? 'solve' : 'ocCorrect');
+        vibrate(max ? [20, 40, 20] : 12);
+        progress(lexiconOk(best.length, s.max), lexiconOk(best.length, s.max), { w: best }, max, 900);
+      } else { say(`+ ${w.toUpperCase()}`, 'is-good'); sfx('ocCorrect'); }
+      paint();
+    };
+    keyHandler = e => {
+      if (/^[a-z]$/i.test(e.key)) { const t = order.find(x => x.ch === e.key.toLowerCase() && !picked.includes(x)); if (t) add(t); }
+      else if (e.key === 'Backspace') back();
+      else if (e.key === 'Enter') submit();
+    };
+    if (best) chips.append(h('span.lx-chip.is-best', best.toUpperCase(), h('small', String(best.length))));
+    paint();
+    const el = h('div.ch.ch-lexicon',
+      h('div.ch-prompt', 'BUILD THE LONGEST WORD'),
+      meter, word, hint, grid,
+      h('div.ch-actions.lx-actions',
+        h('button.btn.btn-ghost.btn-sm', { type: 'button', onclick: () => { order = shuffle(Math.random, order); paint(); } }, 'SHUFFLE'),
+        h('button.btn.btn-ghost.btn-sm', { type: 'button', 'aria-label': 'Delete letter', onclick: back }, '⌫'),
+        h('button.btn.btn-primary.btn-sm.lx-go', { type: 'button', onclick: submit }, 'SUBMIT')),
+      chips);
+    return { el, destroy() { keyHandler = null; clearTimeout(say.t); } };
+  }
+
+  // ---------- TIMELINE ----------
+  function uiTimeline(s) {
+    let picks = [];
+    const [from, to] = s.dir.split('→').map(x => x.trim());
+    const submitBtn = h('button.btn.btn-primary.btn-block.tl-submit', { type: 'button', disabled: true, onclick: () => submit() }, 'LOCK IN ORDER');
+    const rows = s.shown.map((_, idx) => fastButton('button.tm-item', { 'aria-label': s.items[s.shown[idx]].label }, () => tap(idx),
+      h('span.tm-badge'), h('span.tm-label', s.items[s.shown[idx]].label), h('span.tm-val')));
+    const paint = () => {
+      rows.forEach((r, idx) => {
+        const k = picks.indexOf(idx);
+        r.classList.toggle('is-picked', k >= 0);
+        r.querySelector('.tm-badge').textContent = k >= 0 ? String(k + 1) : '';
+      });
+      submitBtn.disabled = picks.length < 4;
+    };
+    const tap = idx => {
+      if (chal.done) return;
+      const k = picks.indexOf(idx);
+      if (k >= 0) picks.splice(k, 1); else if (picks.length < 4) picks.push(idx);
+      sfx(k >= 0 ? 'tap' : 'key');
+      vibrate(6);
+      paint();
+    };
+    const submit = () => {
+      if (chal.done || picks.length < 4) return;
+      const right = timelineCorrect(s, picks);
+      rows.forEach((r, idx) => {
+        const pos = s.shown[idx];
+        r.classList.add(picks.indexOf(idx) === pos ? 'is-right' : 'is-wrong');
+        r.querySelector('.tm-val').textContent = `#${pos + 1} · ${s.items[pos].value}`;
+      });
+      sfx(right === 4 ? 'solve' : right >= 2 ? 'ocCorrect' : 'ocWrong');
+      vibrate(right === 4 ? [20, 40, 20] : 12);
+      progress(right, 4, { o: picks.join('') }, true, 2200);
+    };
+    paint();
+    const el = h('div.ch.ch-timeline',
+      h('div.tm-head', h('span.tm-cat', s.title), h('p.tm-ask', s.ask)),
+      h('div.tm-dir', h('span', '1 = ', h('b', from)), h('i', '→'), h('span', '4 = ', h('b', to))),
+      h('div.tm-list', rows),
+      submitBtn);
+    return { el };
+  }
+
+  // ---------- CLOSEST CALL ----------
+  function uiClosest(s) {
+    let value = '';
+    const display = h('div.cl-display');
+    const unit = h('span.cl-unit', s.unit);
+    const paint = () => {
+      display.replaceChildren(h('span.cl-num', value ? fmtVal(value) : '0'), unit);
+      display.classList.toggle('is-empty', !value);
+      lock.disabled = !value || value === '.';
+    };
+    const press = k => {
+      if (chal.done) return;
+      if (k === '<') value = value.slice(0, -1);
+      else if (k === '.') { if (!value.includes('.') && value.length < 10) value = (value || '0') + '.'; }
+      else if (value.replace('.', '').length < 10) value = value === '0' ? k : value + k;
+      sfx('key');
+      vibrate(5);
+      paint();
+    };
+    const go = () => {
+      if (chal.done || !value || value === '.') return;
+      const g = Number(value);
+      if (!(g >= 0)) return;
+      sfx('lock');
+      vibrate(14);
+      progress(closestCredit(g, s.answer), 1, { g }, true, 350);
+    };
+    const pad = h('div.keypad.cl-pad', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '<'].map(k => fastButton('button.kp', { class: k === '<' ? 'kp-del' : null, 'aria-label': k === '<' ? 'Delete' : k }, () => press(k), k === '<' ? '⌫' : k)));
+    const lock = h('button.btn.btn-primary.btn-block.cl-lock', { type: 'button', disabled: true, onclick: go }, 'LOCK IT IN');
+    keyHandler = e => {
+      if (/^[0-9.]$/.test(e.key)) press(e.key);
+      else if (e.key === 'Backspace') press('<');
+      else if (e.key === 'Enter') go();
+    };
+    paint();
+    const el = h('div.ch.ch-closest',
+      h('div.cl-card', h('span.cl-cat', s.cat.toUpperCase()), h('p.cl-q', s.q)),
+      display, pad, lock);
+    return { el, destroy() { keyHandler = null; } };
+  }
+
+  // ---------- REWIRE ----------
+  function uiRewire(s) {
+    const wrap = h('div.ch.ch-rewire');
+    let idx = Math.min(1, Math.floor(chal.p));
+    let solvedCount = Math.floor(chal.p);
+    let pz, turns, vis, tiles, board, core, src, title;
+    let pending = 0;
+    const pipe = mask => {
+      const seg = [];
+      if (mask & 1) seg.push('<rect x="40" y="-2" width="20" height="52" rx="2"/>');
+      if (mask & 2) seg.push('<rect x="50" y="40" width="52" height="20" rx="2"/>');
+      if (mask & 4) seg.push('<rect x="40" y="50" width="20" height="52" rx="2"/>');
+      if (mask & 8) seg.push('<rect x="-2" y="40" width="52" height="20" rx="2"/>');
+      seg.push('<circle cx="50" cy="50" r="15"/>');
+      return seg.join('');
+    };
+    const tileSvg = shape => `<svg viewBox="0 0 100 100" aria-hidden="true"><g class="rw-dim">${pipe(REWIRE_SHAPES[shape])}</g><g class="rw-lit">${pipe(REWIRE_SHAPES[shape])}</g></svg>`;
+    const save = () => {
+      clearTimeout(pending);
+      pending = setTimeout(() => {
+        const pw = rewirePower(pz, turns);
+        progress(rewireOk(solvedCount, pw.reach), rewireOk(solvedCount, pw.reach), { rw: turns.join('') });
+      }, 400);
+    };
+    const flow = (pw, animate) => {
+      tiles.forEach((t, i) => {
+        const on = pw.lit.has(i);
+        t.style.setProperty('--d', animate && on ? `${pw.depth.get(i) * 70}ms` : '0ms');
+        t.classList.toggle('is-lit', on);
+      });
+      src.classList.toggle('is-on', pw.lit.size > 0);
+      core.classList.toggle('is-on', pw.solved);
+    };
+    const build = () => {
+      pz = s.puzzles[idx];
+      const saved = chal.extra.rw && chal.extra.rw.length === pz.n * pz.n && idx === Math.floor(chal.p) ? [...chal.extra.rw].map(Number) : null;
+      turns = saved || pz.start.slice();
+      vis = turns.slice();
+      tiles = pz.tiles.map((shape, i) => {
+        const t = fastButton('button.rw-tile', { 'aria-label': `Tile ${Math.floor(i / pz.n) + 1}-${(i % pz.n) + 1}` }, () => turn(i));
+        t.innerHTML = tileSvg(shape);
+        t.firstChild.style.transform = `rotate(${vis[i] * 90}deg)`;
+        return t;
+      });
+      board = h('div.rw-grid', { style: { '--n': pz.n } }, tiles);
+      src = h('div.rw-src', { style: { '--r': pz.src, '--n': pz.n }, 'aria-hidden': 'true' }, h('i'));
+      core = h('div.rw-core', { style: { '--r': pz.core, '--n': pz.n }, 'aria-hidden': 'true' }, h('i'), h('span', 'CORE'));
+      title = h('div.ch-prompt', `CIRCUIT ${idx + 1}/2 · ${pz.n}×${pz.n}`);
+      wrap.replaceChildren(title, h('div.rw-frame', src, board, core), h('div.rw-hint', 'TAP A TILE TO ROTATE IT'));
+      pulseClass(wrap, 'q-in');
+      flow(rewirePower(pz, turns), false);
+    };
+    let busy = false;
+    const turn = i => {
+      if (chal.done || busy) return;
+      vis[i] += 1;
+      turns[i] = (turns[i] + 1) % 4;
+      tiles[i].firstChild.style.transform = `rotate(${vis[i] * 90}deg)`;
+      sfx('key');
+      vibrate(5);
+      const pw = rewirePower(pz, turns);
+      flow(pw, true);
+      if (pw.solved) {
+        busy = true;
+        solvedCount += 1;
+        clearTimeout(pending);
+        sfx(solvedCount >= 2 ? 'solve' : 'ocCorrect');
+        vibrate([20, 40, 30]);
+        wrap.classList.add('is-solved');
+        if (solvedCount >= 2) { progress(2, 2, { rw: '' }, true, 1300); return; }
+        progress(rewireOk(1, 0), 1, { rw: '' });
+        setTimeout(() => { busy = false; wrap.classList.remove('is-solved'); idx = 1; chal.extra.rw = ''; build(); }, 1100);
+      } else save();
+    };
+    build();
+    return { el: wrap, destroy() { clearTimeout(pending); } };
+  }
+
   // ---------- overlays ----------
   function buildOverlay(game) {
     cancelAnimationFrame(introRaf);
@@ -654,15 +924,94 @@ export function createView() {
       prevScore: prevMap[r.uid] ? prevMap[r.uid].score : 0,
       prevRank: game.ci > 0 && prevMap[r.uid] ? prevMap[r.uid].rank : null,
       delta: res[r.uid] ? res[r.uid].pts : 0,
-      note: !res[r.uid] ? '' : game.order[game.ci] === 'reflex' ? `REFLEX ${Math.round((100 * res[r.uid].ok) / res[r.uid].parts)}%` : `${fmtOk(res[r.uid].ok)}/${res[r.uid].parts} CORRECT`,
+      note: noteFor(game, res[r.uid], boardsNow(game)[r.uid]),
     }));
     const next = game.order[game.ci + 1];
     const mine = res[me()];
     if (mine) sfx(mine.ok >= mine.parts ? 'correct' : 'roundEnd');
     els.overlay.append(h('div.panel-full.oc-standings',
+      reveal(game),
       h('div.sheet-kicker', `LEADERBOARD // AFTER ${String(game.ci + 1).padStart(2, '0')}`),
       leaderboard(rows, st.players, { me: me(), presence: st.presence }),
       next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null));
+  }
+
+  function noteFor(game, r, b) {
+    if (!r) return '';
+    const type = game.order[game.ci];
+    b = b || {};
+    if (type === 'reflex') return `REFLEX ${Math.round((100 * r.ok) / r.parts)}%`;
+    if (type === 'lexicon') return b.w ? `BEST: ${b.w.toUpperCase()}` : 'NO WORD';
+    if (type === 'timeline') return `${fmtOk(r.ok)}/4 IN PLACE`;
+    if (type === 'rewire') return `${Math.floor(r.ok)}/2 CIRCUITS`;
+    if (type === 'closest') {
+      const spec = chal && chal.spec && chal.spec.type === 'closest' ? chal.spec : buildSpec(game);
+      return b.g == null || !spec ? 'NO GUESS' : `${fmtVal(b.g)} · ${Math.round((100 * Math.abs(b.g - spec.answer)) / spec.answer)}% OFF`;
+    }
+    return `${fmtOk(r.ok)}/${r.parts} CORRECT`;
+  }
+
+  // The reveal above the leaderboard: best words, the right order, or the number line.
+  function reveal(game) {
+    const type = game.order[game.ci];
+    if (!['lexicon', 'timeline', 'closest'].includes(type)) return null;
+    const spec = buildSpec(game);
+    if (!spec) return null;
+    const boards = boardsNow(game);
+    const uids = Object.keys(game.participants || {});
+    if (type === 'lexicon') {
+      const rows = uids.map(uid => ({ uid, w: (boards[uid] && boards[uid].w) || '' })).sort((a, b) => b.w.length - a.w.length);
+      return h('section.rv.rv-lex',
+        h('div.rv-kicker', 'LONGEST POSSIBLE', h('div.rv-best', spec.best.map(w => h('b', w.toUpperCase())), h('small', `${spec.max} LETTERS`))),
+        h('div.rv-words', rows.map((r, k) => {
+          const p = player(r.uid);
+          return h('div.rv-word', { class: r.w.length === spec.max ? 'is-max' : null, style: { '--c': colorHex(p.color), animationDelay: `${300 + k * 90}ms` } },
+            h('span.rv-name', p.name), h('span.rv-w', r.w ? r.w.toUpperCase() : '—'), h('small', r.w ? String(r.w.length) : ''));
+        })));
+    }
+    if (type === 'timeline') {
+      return h('section.rv.rv-tl',
+        h('div.rv-kicker', `${spec.title} · ${spec.dir}`, h('span.rv-ask', spec.ask)),
+        h('ol.rv-order', spec.items.map((it, k) => h('li', { style: { animationDelay: `${250 + k * 220}ms` } },
+          h('span.rv-pos', String(k + 1)), h('span.rv-label', it.label), h('b.rv-val', it.value)))));
+    }
+    return numberLine(spec, boards, uids);
+  }
+
+  function numberLine(spec, boards, uids) {
+    const entries = uids.filter(u => boards[u] && typeof boards[u].g === 'number').map(u => ({ uid: u, g: boards[u].g, err: Math.abs(boards[u].g - spec.answer) / spec.answer }));
+    const vals = [...entries.map(e => e.g), spec.answer];
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const log = lo > 0 && hi / lo > 30;
+    const f = v => (log ? Math.log10(Math.max(v, lo)) : v);
+    let a = f(lo), b = f(hi);
+    if (b - a < 1e-9) { a -= 1; b += 1; }
+    const pad = (b - a) * 0.08;
+    a -= pad; b += pad;
+    const pos = v => Math.max(0, Math.min(1, (f(v) - a) / (b - a)));
+    const best = entries.length ? Math.min(...entries.map(e => e.err)) : null;
+    // labels alternate above / below the line, nudged apart when crowded
+    const sorted = [...entries].sort((x, y) => x.g - y.g);
+    const lanes = [-Infinity, -Infinity, -Infinity, -Infinity];
+    const markers = sorted.map((e, k) => {
+      const x = pos(e.g);
+      let lane = k % 2;
+      if (x - lanes[lane] < 0.18) lane += 2;
+      if (lane > 3) lane = k % 4;
+      lanes[lane] = x;
+      const p = player(e.uid);
+      return h('div.nl-mark', {
+        class: [`lane-${lane}`, e.err === best ? 'is-closest' : ''].join(' '),
+        style: { '--x': x, '--c': colorHex(p.color), animationDelay: `${200 + k * 120}ms` },
+      }, h('i'), h('span.nl-tag', h('b', p.name), h('small', fmtVal(e.g))));
+    });
+    const answer = h('div.nl-answer', { style: { '--x': pos(spec.answer) } }, h('i'), h('span', h('small', 'ANSWER'), h('b', `${fmtVal(spec.answer)} ${spec.unit}`)));
+    const winner = entries.filter(e => e.err === best).map(e => player(e.uid).name);
+    sfx('shimmer');
+    return h('section.rv.rv-cc',
+      h('div.rv-kicker', spec.q),
+      h('div.nl', h('div.nl-track'), h('div.nl-lo', fmtVal(Math.round(log ? 10 ** (a + pad) : lo))), h('div.nl-hi', fmtVal(Math.round(log ? 10 ** (b - pad) : hi))), markers, answer),
+      winner.length ? h('div.nl-win', { style: { animationDelay: '2.3s' } }, 'CLOSEST: ', h('b', winner.join(' & ')), ' · +60') : h('div.nl-win', 'NO GUESSES'));
   }
 
   function buildFinal(game) {

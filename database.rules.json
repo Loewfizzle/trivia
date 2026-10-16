@@ -179,6 +179,18 @@
                 "doneAt": {
                   ".validate": "newData.isNumber() && newData.val() === now"
                 },
+                "w": {
+                  ".validate": "newData.isString() && newData.val().matches(/^[a-z]{0,9}$/)"
+                },
+                "o": {
+                  ".validate": "newData.isString() && newData.val().matches(/^[0-3]{4}$/)"
+                },
+                "g": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000000"
+                },
+                "rw": {
+                  ".validate": "newData.isString() && newData.val().matches(/^[0-3]{0,16}$/)"
+                },
                 "$other": {
                   ".validate": false
                 }

@@ -56,6 +56,7 @@ const evalIn = (page, fn, arg) => page.evaluate(async (src, a) => {
     ch: await import('/js/games/overclock/challenges.js'),
     ocl: await import('/js/games/overclock/logic.js'),
     words: await import('/js/games/cipher/words.js'),
+    banks: await import('/js/games/overclock/banks.js'),
   };
   return new Function('state', 'm', 'arg', `return (${src})(state, m, arg)`)(state, mods, a);
 }, fn.toString(), arg);
@@ -316,6 +317,44 @@ async function solve(page, spec, { mistakes = false } = {}) {
       await clickSel(page, `.qc-opt[data-v="${v}"]`);
       await sleep(1000);
     }
+  } else if (t === 'lexicon') {
+    // (mistakes: settle for a shorter word)
+    const word = mistakes ? spec.words.filter(w => w.length < spec.max).sort((a, b) => b.length - a.length)[0] : spec.best[0];
+    await page.waitForSelector('.lx-tile', { timeout: 5000 });
+    await page.evaluate(w => {
+      for (const ch of w) {
+        const b = [...document.querySelectorAll('.lx-tile')].find(x => !x.disabled && x.textContent.toLowerCase() === ch);
+        b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+      }
+      document.querySelector('.lx-go').click();
+    }, word);
+  } else if (t === 'timeline') {
+    await page.waitForSelector('.tm-item', { timeout: 5000 });
+    const order = [0, 1, 2, 3].map(pos => spec.shown.indexOf(pos));
+    if (mistakes) [order[0], order[1]] = [order[1], order[0]];
+    await page.evaluate(o => {
+      const items = document.querySelectorAll('.tm-item');
+      for (const n of o) items[n].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+      document.querySelector('.tl-submit').click();
+    }, order);
+  } else if (t === 'closest') {
+    await page.waitForSelector('.cl-pad .kp', { timeout: 5000 });
+    const v = String(Math.round(spec.answer * (mistakes ? 1.3 : 1)));
+    await page.evaluate(v => {
+      const keys = [...document.querySelectorAll('.cl-pad .kp')];
+      for (const ch of v) keys[['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'].indexOf(ch)].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+      document.querySelector('.cl-lock').click();
+    }, v);
+  } else if (t === 'rewire') {
+    for (const [k, pz] of spec.puzzles.entries()) {
+      await page.waitForFunction(n => document.querySelectorAll('.rw-tile').length === n * n, { timeout: 6000 }, pz.n);
+      if (mistakes && k === 1) break;
+      await page.evaluate(pz => {
+        const tiles = document.querySelectorAll('.rw-tile');
+        pz.start.forEach((r, i) => { for (let j = 0; j < ((pz.solution[i] - r) % 4 + 4) % 4; j++) tiles[i].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); });
+      }, pz);
+      await sleep(1400);
+    }
   } else if (t === 'truefalse') {
     for (let i = 0; i < spec.items.length; i++) {
       const it = spec.items[i];
@@ -333,7 +372,9 @@ const specOf = page => evalIn(page, async (s, m) => {
   const type = g.order[g.ci];
   const deps = { answersFor: m.words.answersFor };
   if (type === 'trivia') deps.triviaItems = [0, 1, 2].map(i => m.feed.decodeQuestion(g, s.code, g.tq[g.ci] + i));
-  return m.ch.generate(type, { seed: g.seed, ci: g.ci, level: m.ocl.levelOf(g.ci, g.total) }, deps);
+  if (['lexicon', 'timeline', 'closest'].includes(type)) deps[type] = await m.banks.loadBank(type);
+  const occ = g.order.slice(0, g.ci).filter(x => x === type).length;
+  return m.ch.generate(type, { seed: g.seed, ci: g.ci, level: m.ocl.levelOf(g.ci, g.total), occ }, deps);
 });
 
 async function overclockE2E() {

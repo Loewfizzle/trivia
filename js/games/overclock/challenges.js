@@ -3,7 +3,7 @@
 // the challenge order needs to be stored in the room.
 import { rngFrom, randInt, pick, shuffle } from '../../core/rng.js';
 
-export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse'];
+export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'lexicon', 'timeline', 'closest', 'rewire'];
 
 export const INFO = {
   unscramble: { name: 'UNSCRAMBLE', glyph: '⇄', rules: ['Rebuild the scrambled word.', 'Tap letters in order. Wrong guesses only cost time.'] },
@@ -16,13 +16,18 @@ export const INFO = {
   reflex: { name: 'SIGNAL LOCK', glyph: '◎', rules: ['Wait for the screen to flash.', 'Then tap as fast as you can. Too early counts as a miss.'] },
   count: { name: 'QUICK COUNT', glyph: '#', rules: ['Shapes flash for a moment, then vanish.', 'Count the one we ask for. Off by one earns half.'] },
   truefalse: { name: 'TRUE OR FALSE', glyph: '✓', rules: ['Rapid-fire statements: math and facts.', 'True or false? Wrong answers cost points.'] },
+  lexicon: { name: 'LEXICON', glyph: '⌗', rules: ['Nine letters. Tap them in order to build words, then submit.', 'Only your LONGEST word counts — the longest possible earns the speed bonus.'] },
+  timeline: { name: 'TIMELINE', glyph: '↧', rules: ['Four items. Tap them in order, 1 to 4 — tap again to undo.', 'Points for every item in the right place. Submit when you’re sure.'] },
+  closest: { name: 'CLOSEST CALL', glyph: '≈', rules: ['One question, one number. Type your best estimate.', 'The closer you are, the more you score. Closest in the room gets the bonus.'] },
+  rewire: { name: 'REWIRE', glyph: '↯', rules: ['Tap tiles to rotate them and route power to the core.', 'Two circuits: a 3×3 warm-up, then a 4×4.'] },
 };
 
 export const memoryLength = level => 4 + Math.round(level * 4);
 
 // How many scorable parts a challenge has (host needs this without building it).
 export function partsFor(type, level) {
-  return { unscramble: 1, memory: memoryLength(level), oddone: 3, math: 4, pattern: 2, trivia: 3, stroop: 8, reflex: 5, count: 4, truefalse: 8 }[type] || 1;
+  return { unscramble: 1, memory: memoryLength(level), oddone: 3, math: 4, pattern: 2, trivia: 3, stroop: 8, reflex: 5, count: 4, truefalse: 8,
+    lexicon: LEXICON_PARTS, timeline: 4, closest: 1, rewire: 2 }[type] || 1;
 }
 
 export const challengeRng = (seed, ci, type) => rngFrom(`${seed}:${ci}:${type}`);
@@ -216,12 +221,150 @@ export function genTrueFalse(rand) {
   return { type: 'truefalse', parts: 8, items };
 }
 
+// ---------- banks: a per-match shuffled deck per type, so a type that comes twice never repeats an entry ----------
+export function bankIndex(seed, type, occ, size) {
+  const deck = shuffle(rngFrom(`${seed}:${type}:deck`), Array.from({ length: size }, (_, i) => i));
+  return deck[occ % size];
+}
+
+// ---------- lexicon ----------
+// Score: 6 parts. The longest possible word = 6/6; each letter shorter costs one part.
+export const LEXICON_PARTS = 6;
+export const lexiconOk = (best, max) => Math.max(0, Math.min(LEXICON_PARTS, LEXICON_PARTS - (max - best)));
+/** bank: data/oc/lexicon.json sets ([letters, max, "longest", "all words"]) */
+export function genLexicon(rand, level, bank, occ, seed) {
+  if (!bank || !bank.length) return null;
+  const [letters, max, best, all] = bank[bankIndex(seed, 'lexicon', occ, bank.length)];
+  return { type: 'lexicon', parts: LEXICON_PARTS, letters: shuffle(rand, [...letters]), max, best: best.split(' '), words: all.split(' ') };
+}
+
+// ---------- timeline ----------
+/** bank: data/oc/timeline.json sets ([title, ask, direction, [[item, shown] × 4 in order]]) */
+export function genTimeline(rand, level, bank, occ, seed) {
+  if (!bank || !bank.length) return null;
+  const [title, ask, dir, items] = bank[bankIndex(seed, 'timeline', occ, bank.length)];
+  let order = shuffle(rand, [0, 1, 2, 3]);
+  for (let k = 0; k < 8 && order.every((v, i) => v === i); k++) order = shuffle(rand, [0, 1, 2, 3]); // never pre-solved
+  // shown[i] = the correct position of the i-th item on screen
+  return { type: 'timeline', parts: 4, title, ask, dir, items: items.map(([label, value]) => ({ label, value })), shown: order };
+}
+/** How many positions are right: picks = on-screen indexes in the order the player tapped them. */
+export const timelineCorrect = (spec, picks) => picks.reduce((n, shownIdx, pos) => n + (spec.shown[shownIdx] === pos ? 1 : 0), 0);
+
+// ---------- closest call ----------
+/** bank: data/oc/closest.json questions ([category, question, answer, unit]) */
+export function genClosest(rand, level, bank, occ, seed) {
+  if (!bank || !bank.length) return null;
+  const [cat, q, answer, unit] = bank[bankIndex(seed, 'closest', occ, bank.length)];
+  return { type: 'closest', parts: 1, cat, q, answer, unit };
+}
+/** 0..1 from the relative error: within 5% = full marks, sliding smoothly (cosine) to 0 at 60% off. */
+export function closestCredit(guess, answer) {
+  if (!(guess >= 0) || !(answer > 0)) return 0;
+  const rel = Math.abs(guess - answer) / answer;
+  if (rel <= 0.05) return 1;
+  if (rel >= 0.6) return 0;
+  const t = (rel - 0.05) / 0.55;
+  return Math.round(50 * (1 + Math.cos(Math.PI * t))) / 100;
+}
+
+// ---------- rewire ----------
+// Tile openings as a bitmask: N 1, E 2, S 4, W 8. Shapes in their base orientation:
+export const REWIRE_SHAPES = { I: 1 | 4, L: 1 | 2, T: 1 | 2 | 4 };
+const DIRS = [[1, -1, 0], [2, 0, 1], [4, 1, 0], [8, 0, -1]]; // [bit, dRow, dCol]
+const OPP = { 1: 4, 2: 8, 4: 1, 8: 2 };
+export const rotMask = (mask, turns) => { let m = mask; for (let k = 0; k < ((turns % 4) + 4) % 4; k++) m = ((m << 1) | (m >> 3)) & 15; return m; };
+/**
+ * Which cells carry power at the given turns. Power enters (src, 0) from the west; the core sits east of
+ * (core, n-1). Returns { lit: Set, depth: Map index -> steps from the source, solved, reach 0..1 }.
+ */
+export function rewirePower(pz, turns) {
+  const { n, src, core } = pz;
+  const mask = i => rotMask(REWIRE_SHAPES[pz.tiles[i]], turns[i]);
+  const lit = new Set();
+  const depth = new Map();
+  const start = src * n;
+  if (mask(start) & 8) {
+    const q = [start];
+    lit.add(start); depth.set(start, 0);
+    while (q.length) {
+      const i = q.shift();
+      const r = Math.floor(i / n), c = i % n;
+      for (const [bit, dr, dc] of DIRS) {
+        if (!(mask(i) & bit)) continue;
+        const rr = r + dr, cc = c + dc;
+        if (rr < 0 || cc < 0 || rr >= n || cc >= n) continue;
+        const j = rr * n + cc;
+        if (lit.has(j) || !(mask(j) & OPP[bit])) continue;
+        lit.add(j); depth.set(j, depth.get(i) + 1); q.push(j);
+      }
+    }
+  }
+  const end = core * n + n - 1;
+  const solved = lit.has(end) && !!(mask(end) & 2);
+  const dist = i => Math.abs(Math.floor(i / n) - core) + Math.abs((i % n) - (n - 1));
+  const span = dist(start) + 1;
+  let reach = 0;
+  for (const i of lit) reach = Math.max(reach, 1 - dist(i) / span);
+  return { lit, depth, solved, reach: solved ? 1 : Math.min(0.95, reach) };
+}
+function rewirePuzzle(rand, n) {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const src = randInt(rand, 0, n - 1), core = randInt(rand, 0, n - 1);
+    // a random self-avoiding walk from the source cell to the core cell
+    const path = [[src, 0]];
+    const seen = new Set([`${src},0`]);
+    let ok = false;
+    for (let steps = 0; steps < n * n * 3; steps++) {
+      const [r, c] = path[path.length - 1];
+      if (r === core && c === n - 1) { ok = true; break; }
+      const opts = DIRS.map(([, dr, dc]) => [r + dr, c + dc]).filter(([rr, cc]) => rr >= 0 && cc >= 0 && rr < n && cc < n && !seen.has(`${rr},${cc}`));
+      if (!opts.length) break;
+      const [rr, cc] = opts[Math.floor(rand() * opts.length)];
+      path.push([rr, cc]); seen.add(`${rr},${cc}`);
+    }
+    if (!ok || path.length < n + 1) continue;
+    const tiles = Array(n * n).fill(null);
+    const solution = Array(n * n).fill(0);
+    const bitTo = (a, b) => DIRS.find(([, dr, dc]) => a[0] + dr === b[0] && a[1] + dc === b[1])[0];
+    path.forEach((cell, k) => {
+      const prev = k === 0 ? [cell[0], cell[1] - 1] : path[k - 1];
+      const next = k === path.length - 1 ? [cell[0], cell[1] + 1] : path[k + 1];
+      const need = bitTo(cell, prev) | bitTo(cell, next);
+      let shape = need === 5 || need === 10 ? 'I' : 'L';
+      if (rand() < 0.22) shape = 'T'; // some junctions on the path too
+      const i = cell[0] * n + cell[1];
+      tiles[i] = shape;
+      solution[i] = [0, 1, 2, 3].find(t => (rotMask(REWIRE_SHAPES[shape], t) & need) === need);
+    });
+    for (let i = 0; i < n * n; i++) if (!tiles[i]) { tiles[i] = pick(rand, ['I', 'L', 'L', 'T']); solution[i] = randInt(rand, 0, 3); }
+    // scramble: every tile turned at random; never starts solved
+    const turns = tiles.map(() => randInt(rand, 0, 3));
+    const pz = { n, src, core, tiles, start: turns, solution, path: path.map(([r, c]) => r * n + c) };
+    for (let k = 0; k < 20 && rewirePower(pz, turns).solved; k++) { const i = pz.path[k % pz.path.length]; turns[i] = (turns[i] + 1) % 4; }
+    if (rewirePower(pz, turns).solved) continue;
+    if (!rewirePower(pz, solution).solved) continue; // the stored answer must work
+    return pz;
+  }
+  return null;
+}
+export function genRewire(rand) {
+  return { type: 'rewire', parts: 2, puzzles: [rewirePuzzle(rand, 3), rewirePuzzle(rand, 4)] };
+}
+/** ok for a Rewire run: solved puzzles + partial credit (≤ 0.6) for how far the power reaches in the current one. */
+export const rewireOk = (solvedCount, reach) => Math.round((solvedCount + (solvedCount >= 2 ? 0 : 0.6 * reach)) * 100) / 100;
+
 // ---------- build ----------
 // deps: { answersFor(len) -> string[] | null, triviaItems: [3 decoded questions] | null }
 // Returns null if a dependency (word list / questions) isn't ready yet.
-export function generate(type, { seed, ci, level }, deps = {}) {
+// occ = how many times this type already came earlier in the match (bank challenges never repeat an entry).
+export function generate(type, { seed, ci, level, occ = 0 }, deps = {}) {
   const rand = challengeRng(seed, ci, type);
   switch (type) {
+    case 'lexicon': return genLexicon(rand, level, deps.lexicon, occ, seed);
+    case 'timeline': return genTimeline(rand, level, deps.timeline, occ, seed);
+    case 'closest': return genClosest(rand, level, deps.closest, occ, seed);
+    case 'rewire': return genRewire(rand);
     case 'unscramble': return genUnscramble(rand, level, deps.answersFor || (() => null));
     case 'memory': return genMemory(rand, level);
     case 'oddone': return genOddOne(rand, level);
