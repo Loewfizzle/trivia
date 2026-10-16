@@ -154,6 +154,10 @@ closing instantly used to drop the last voter's like.
 leading a/an/the, no trailing punctuation or quotes, number words as digits — so nobody can spot the truth by its casing
 or grammar (a reported exploit). Never render raw option/answer text; `tests/bluff.test.mjs` checks the whole bank.
 
+**Trivia sources (medium difficulty only):** The Trivia API first (categories mixed in each batch, best curated), then
+Open Trivia DB (never its sports category — club nicknames and stats even at medium), then the bundled bank (medium
+rows first). Every API question passes `sources.js#tooSpecific`: no all-years / all-big-number answer sets, no dated
+results ("who won the 2016…"), no sports seasons / scores / drafts / stat records. Tests hold real examples of both.
 **Trivia bank:** questions are appended to `game/bank/{i}` (obfuscated with key `code:matchId:q{i}`). Signal question
 `q` = `bank[q]`; Overclock lightning challenge `ci` uses `bank[tq[ci]]..+2`. The host keeps it topped up (Open Trivia DB
 batches of 20, ≥ 5.2 s apart, session token in `game.trivia.token`); if the API is slow the director waits ~2.5 s, then

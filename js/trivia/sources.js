@@ -38,6 +38,23 @@ export function acceptable(item) {
   return true;
 }
 
+// Party trivia, not a pub-quiz final: drop questions that are pure memorisation or hyper-specific.
+// (Open Trivia DB's harder sports questions are mostly seasons, scores and draft picks.)
+const YEAR = /\b(1[5-9]\d\d|20\d\d)\b/;
+const NUMERIC = /^[\s\d.,:%-]+(?:m|km|kg|cm|mph|km\/h|%|points?|years?)?\s*$/i;
+export function tooSpecific(item) {
+  const answers = [item.correct, ...(item.wrong || [])].map(a => String(a).trim());
+  // every option a year / big number ("In what year…", "How many… 2,857")
+  if (answers.every(a => NUMERIC.test(a) && /\d{3,}/.test(a.replace(/[.,\s]/g, '')))) return true;
+  // "Who won the 2016…", "…in the 1999 final" — dated results, any category
+  if (YEAR.test(item.q) && /\b(won|win|winner|winning|champion|championship|cup|final|scored|award|medal|trophy|season)\b/i.test(item.q)) return true;
+  if (item.cat === 'sports') {
+    if (/\b(scored|top ?scorer|seasons?|drafted|draft pick|jersey|squad number|affiliate|final score|career (?:goals|points|wins)|holds the record|record of)\b/i.test(item.q)) return true;
+    if (/\d{3,}/.test(item.q.replace(/,/g, ''))) return true; // stats in the question itself
+  }
+  return false;
+}
+
 export async function requestOtdbToken(fetchFn = fetch) {
   const r = await fetchFn('https://opentdb.com/api_token.php?command=request');
   const j = await r.json();
@@ -64,13 +81,14 @@ export async function fetchOtdb({ amount = 20, difficulty, category, token, fetc
       d: x.difficulty,
       src: 'otdb',
     }))
-    .filter(x => x.d !== 'easy' && acceptable(x))
+    // its sports pool is club nicknames and stat trivia even at medium: sports come from The Trivia API / the bank
+    .filter(x => x.d === 'medium' && x.cat !== 'sports' && acceptable(x) && !tooSpecific(x))
     .map(x => normalize(x, rand));
   return { code: j.response_code, items };
 }
 
 export async function fetchTriviaApi({ limit = 20, categories = [], fetchFn = fetch, rand = Math.random }) {
-  const p = new URLSearchParams({ limit: String(limit), difficulties: 'medium,hard', types: 'text_choice' });
+  const p = new URLSearchParams({ limit: String(limit), difficulties: 'medium', types: 'text_choice' });
   if (categories.length) p.set('categories', categories.join(','));
   const r = await fetchFn(`https://the-trivia-api.com/v2/questions?${p}`);
   if (!r.ok) throw new Error(`trivia api ${r.status}`);
@@ -84,6 +102,6 @@ export async function fetchTriviaApi({ limit = 20, categories = [], fetchFn = fe
       d: x.difficulty,
       src: 'tapi',
     }))
-    .filter(x => x.d !== 'easy' && acceptable(x))
+    .filter(x => x.d === 'medium' && acceptable(x) && !tooSpecific(x))
     .map(x => normalize(x, rand));
 }

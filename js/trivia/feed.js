@@ -5,8 +5,9 @@
 // it is in the database, a newly promoted host keeps topping up the same bank
 // with the same Open Trivia DB session token.
 //
-// Order of preference: Open Trivia DB (medium/hard, session token, ≥5 s between
-// requests) → The Trivia API → bundled fallback bank.
+// Medium difficulty only. Order of preference: The Trivia API (categories mixed within each batch,
+// better curated) → Open Trivia DB (session token, ≥5 s between requests) → bundled fallback bank.
+// Both APIs pass through sources.js#tooSpecific (no seasons / scores / "who won in 2016…").
 import { dbRef, update, serverNow } from '../firebase.js';
 import { selectedCategories } from './categories.js';
 import { fetchOtdb, fetchTriviaApi, requestOtdbToken } from './sources.js';
@@ -22,9 +23,10 @@ function withTimeout(promise, ms) {
 }
 
 function otdbPlan(trivia) {
-  const ids = selectedCategories(trivia.cats).flatMap(c => c.otdb);
+  const all = selectedCategories(trivia.cats).flatMap(c => c.otdb);
+  const ids = all.filter(id => id !== 21).length ? all.filter(id => id !== 21) : all; // never ask it for sports
   const turn = trivia.turn || 0;
-  return { difficulty: turn % 2 ? 'hard' : 'medium', category: ids[Math.floor(turn / 2) % ids.length] };
+  return { difficulty: 'medium', category: ids[Math.floor(turn / 2) % ids.length] };
 }
 
 
@@ -38,12 +40,12 @@ export async function initialBank({ code, matchId, cats, now, min = 12, roomSeen
   const shell = { matchId, trivia: { n: 0, cats: cats || [], turn: turn0, fails: 0, seen: {} } };
   let items = [];
   try {
-    const res = await withTimeout(fetchOtdb({ amount: BATCH, ...otdbPlan(shell.trivia) }), 4500);
-    items = res.items;
+    items = await withTimeout(fetchTriviaApi({ limit: BATCH, categories: selectedCategories(cats).map(c => c.tapi) }), 4500);
   } catch { /* fall through */ }
   if (items.length < min) {
     try {
-      items = items.concat(await withTimeout(fetchTriviaApi({ limit: BATCH, categories: selectedCategories(cats).map(c => c.tapi) }), 4500));
+      const res = await withTimeout(fetchOtdb({ amount: BATCH, ...otdbPlan(shell.trivia) }), 4500);
+      items = items.concat(res.items);
     } catch { /* fall through */ }
   }
   await loadFallback().catch(() => {});
@@ -88,28 +90,26 @@ export async function topUp(getGame, code, want, getRoomSeen = () => ({})) {
   const ref = dbRef(`rooms/${code}/game`);
   try {
     await update(ref, { 'trivia/lastFetchAt': now });
-    if (!t.token && (t.fails || 0) < 3) {
-      // Session token prevents repeats across batches. It's its own request, so the batch waits a turn.
-      const token = await withTimeout(requestOtdbToken(), 4000).catch(() => '');
-      await update(ref, token ? { 'trivia/token': token } : { 'trivia/fails': (t.fails || 0) + 1 });
-      return;
-    }
     let items = [];
     const patch = {};
-    if ((t.fails || 0) < 3) {
+    // 1) The Trivia API
+    try {
+      items = await withTimeout(fetchTriviaApi({ limit: BATCH, categories: selectedCategories(t.cats).map(c => c.tapi) }), 5000);
+    } catch { /* next */ }
+    patch['trivia/fails'] = items.length ? 0 : (t.fails || 0) + 1;
+    // 2) Open Trivia DB (its session token prevents repeats across batches; fetched on first use)
+    if (!items.length && (t.fails || 0) < 4) {
       try {
-        const res = await withTimeout(fetchOtdb({ amount: BATCH, token: t.token, ...otdbPlan(t) }), 5000);
+        let token = t.token;
+        if (!token) { token = await withTimeout(requestOtdbToken(), 4000).catch(() => ''); if (token) patch['trivia/token'] = token; }
+        const res = await withTimeout(fetchOtdb({ amount: BATCH, token, ...otdbPlan(t) }), 5000);
         if (res.code === 3 || res.code === 4) patch['trivia/token'] = '';
         if (res.code !== 5) patch['trivia/turn'] = (t.turn || 0) + 1;
         items = res.items;
-        patch['trivia/fails'] = items.length ? 0 : (t.fails || 0) + 1;
-      } catch {
-        patch['trivia/fails'] = (t.fails || 0) + 1;
-      }
+        if (items.length) patch['trivia/fails'] = 0;
+      } catch { /* next */ }
     }
-    if (!items.length && (t.fails || 0) >= 2) {
-      try { items = await withTimeout(fetchTriviaApi({ limit: BATCH, categories: selectedCategories(t.cats).map(c => c.tapi) }), 5000); } catch { /* next */ }
-    }
+    // 3) the bundled bank, once the APIs keep failing
     if (!items.length && (t.fails || 0) >= 2) {
       await loadFallback().catch(() => {});
       items = pickFallback(10, { cats: selectedCategories(t.cats).map(c => c.id), seen: { ...getRoomSeen(), ...(t.seen || {}) } }) || [];
