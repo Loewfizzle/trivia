@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { decodeEntities, normalize, acceptable, fetchOtdb, fetchTriviaApi } from '../js/trivia/sources.js';
 import { setFallbackRows, pickFallback, qHash } from '../js/trivia/bank.js';
-import { appendPatch, decodeQuestion } from '../js/trivia/bankdata.js';
+import { appendPatch, decodeQuestion, fallbackPatch, roomUsedPatch } from '../js/trivia/bankdata.js';
 import { encodeJSON, decodeJSON } from '../js/core/obfuscate.js';
 import { selectedCategories } from '../js/trivia/categories.js';
 import { rngFrom } from '../js/core/rng.js';
@@ -101,4 +101,48 @@ test('fallback bank: ≥300 medium/hard questions, unique, picks respect categor
   const seen = Object.fromEntries(picks.map(p => [qHash(p.q), true]));
   const more = pickFallback(10, { cats: ['history'], seen, rand: rngFrom('p') });
   assert.ok(more.every(p => !seen[qHash(p.q)]), 'no repeats');
+});
+
+// Reported: Overclock's trivia repeated a lot across rematches. Questions used by earlier matches in
+// the room (meta/used/trivia) are skipped by every way a question can enter the bank.
+test('room memory: appendPatch skips questions earlier matches in the room already used', () => {
+  const items = [{ q: 'Alpha?', c: 0, a: ['a', 'b', 'c', 'd'] }, { q: 'Bravo?', c: 0, a: ['a', 'b', 'c', 'd'] }];
+  const roomSeen = { [qHash('Alpha?')]: true };
+  const { patch, n } = appendPatch({ matchId: 'm', trivia: { n: 0, seen: {} } }, 'ROOM', items, roomSeen);
+  assert.equal(n, 1);
+  assert.ok(patch[`trivia/seen/${qHash('Bravo?')}`] && !patch[`trivia/seen/${qHash('Alpha?')}`]);
+  assert.deepEqual(roomUsedPatch(patch), { [`meta/used/trivia/${qHash('Bravo?')}`]: true });
+});
+
+test('room memory: fallbackPatch prefers unseen questions, records them for the room, never stalls', () => {
+  setFallbackRows(rows);
+  const all = Object.fromEntries(rows.map(r => [qHash(r[2]), true]));
+  const fresh = fallbackPatch({ matchId: 'm', trivia: { n: 0, seen: {}, cats: [] } }, 'ROOM', 5, {});
+  const added = Object.keys(fresh).filter(k => k.startsWith('trivia/seen/'));
+  assert.equal(added.length, 5);
+  assert.equal(Object.keys(fresh.$room).length, 5, 'the room remembers what was dealt');
+  // a night so long that every bundled question was used: repeats beat a frozen game
+  const late = fallbackPatch({ matchId: 'm2', trivia: { n: 0, seen: {}, cats: [] } }, 'ROOM', 3, all);
+  assert.equal(late['trivia/n'], 3);
+});
+
+test('room memory: a night of back-to-back matches never repeats a question while unseen ones remain', async () => {
+  setFallbackRows(rows);
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = () => Promise.reject(new Error('offline')); // APIs down: everything comes from the bundled bank
+  try {
+    globalThis.location ??= { search: '', hostname: 'test', protocol: 'https:', href: 'https://test/', pathname: '/' };
+    const { initialBank } = await import('../js/trivia/feed.js');
+    const roomSeen = {};
+    const dealt = [];
+    for (let m = 0; m < 20; m++) {
+      const { trivia, $room } = await initialBank({ code: 'ROOM', matchId: `m${m}`, cats: [], now: 0, min: 12, roomSeen });
+      assert.equal(trivia.n, 12);
+      dealt.push(...Object.keys(trivia.seen));
+      for (const k of Object.keys($room)) roomSeen[k.split('/').pop()] = true; // what host.js writes to meta/used/trivia
+    }
+    assert.equal(new Set(dealt).size, dealt.length, `${dealt.length - new Set(dealt).size} repeats across 20 matches`);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

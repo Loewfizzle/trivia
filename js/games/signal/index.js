@@ -5,6 +5,9 @@ import { initialBank, topUp, fallbackPatch, decodeQuestion } from '../../trivia/
 import { loadFallback } from '../../trivia/bank.js';
 import { CATEGORIES } from '../../trivia/categories.js';
 import { state } from '../../store.js';
+
+// Trivia questions already used by earlier matches in this room (never dealt again tonight).
+const roomSeen = () => (state.meta && state.meta.used && state.meta.used.trivia) || {};
 export { createView } from './view.js';
 
 export const MUSIC = 'signal';
@@ -14,15 +17,15 @@ export const livePaths = g => ({ answers: `answers/${g.matchId}/${g.q || 0}`, ta
 
 export async function start({ code, matchId, settings, participants, now }) {
   const s = { ...DEFAULT_SETTINGS, ...settings, cats: [].concat(settings.cats || []) };
-  const { bank, trivia } = await initialBank({ code, matchId, cats: s.cats, now, min: 12 });
-  return createGame({ matchId, settings: s, participants, now, bank, trivia });
+  const { bank, trivia, $room } = await initialBank({ code, matchId, cats: s.cats, now, min: 12, roomSeen: roomSeen() });
+  return { ...createGame({ matchId, settings: s, participants, now, bank, trivia }), $room };
 }
 
 // Host only: keep ~8 questions queued ahead of play, and have the fallback bank ready.
 export function prepare(game, { code, host }) {
   if (!host) return;
   loadFallback().catch(() => {});
-  topUp(() => state.game, code, (game.q || 0) + 8);
+  topUp(() => state.game, code, (game.q || 0) + 8, roomSeen);
 }
 
 export const step = (game, { code, now, live, online }) => nextStep(game, {
@@ -31,7 +34,7 @@ export const step = (game, { code, now, live, online }) => nextStep(game, {
   answers: live.answers || {},
   targets: live.targets || {},
   correctOf: q => { const it = decodeQuestion(game, code, q); return it ? it.c : null; },
-  fallback: n => fallbackPatch(game, code, n),
+  fallback: n => fallbackPatch(game, code, n, roomSeen()),
 });
 
 export const OPTIONS = [
