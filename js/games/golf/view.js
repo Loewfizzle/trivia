@@ -1030,14 +1030,16 @@ export function createView() {
       if (mine && !shown.includes(mine)) shown.push(mine);
     }
     const more = rows.length - shown.length;
-    els.board.replaceChildren(...shown.map(r => {
+    const boardRows = shown.map(r => {
       const p = player(r.uid);
       const off = st.presence[r.uid] && st.presence[r.uid].online === false;
       return h('div.gpb-row', { class: [r.uid === me() ? 'is-me' : '', r.done ? 'is-done' : '', off ? 'is-off' : ''].join(' '), style: { '--c': colorHex(p.color) } },
         h('span.gpb-dot'), h('span.gpb-name', p.name),
         h('span.gpb-s', r.done ? `✓${r.s}` : String(r.s)),
         h('span.gpb-tp', fmtToPar(r.toPar)));
-    }), more > 0 ? h('div.gpb-more', `+${more} MORE`) : null);
+    });
+    if (more > 0) boardRows.push(h('div.gpb-more', `+${more} MORE`)); // (replaceChildren would print a null)
+    els.board.replaceChildren(...boardRows);
     // power-up slot
     const pu = L && L.pu;
     els.pu.hidden = !pu || !play || !participant(game);
@@ -1146,7 +1148,7 @@ export function createView() {
     const extra = h('div.gf-extra',
       h('div.gf-stats',
         h('div.gf-stat', h('b', String(aces)), h('small', aces === 1 ? 'ACE' : 'ACES')),
-        bestRow ? h('div.gf-stat', h('b', bestRow.b.s === 1 ? 'ACE' : scoreName(bestRow.b.s, parOf(game, bestRow.b.hi))), h('small', `BEST HOLE · #${bestRow.b.hi + 1} · ${player(bestRow.uid).name}`)) : null,
+        bestRow ? h('div.gf-stat', h('b', bestRow.b.s === 1 ? 'ACE' : scoreName(bestRow.b.s, parOf(game, bestRow.b.hi))), h('small', `BEST HOLE`, h('br'), `${player(bestRow.uid).name} · #${bestRow.b.hi + 1}`)) : null,
         h('div.gf-stat', h('b', fmtToPar(rows[0] ? rows[0].toPar : 0)), h('small', 'WINNING SCORE'))),
       scorecard(game, game.holes.length));
     final = createFinal({

@@ -89,6 +89,7 @@ try {
   for (let i = 1; i < N; i++) {
     const p = await openPlayer(i, `room=${code}`);
     await p.waitForSelector('.invite-card', { timeout: 20000 });
+    await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 }); // (taps under the boot screen are lost, as on a phone)
     await tapReal(p, '.invite-card');
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
@@ -216,6 +217,7 @@ try {
     // late joiner (IVY) sees the history
     const ivy = await openPlayer(8, `room=${code}`);
     await ivy.waitForSelector('.invite-card', { timeout: 20000 });
+    await ivy.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
     await tapReal(ivy, '.invite-card');
     await ivy.waitForSelector('.input-code');
     await ivy.type('.setup-screen input.input:not(.input-code)', 'IVY');

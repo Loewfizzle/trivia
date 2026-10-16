@@ -1,8 +1,9 @@
-// Trivia sources: Open Trivia DB (primary), The Trivia API (secondary).
+// Trivia sources: The Trivia API (primary), Open Trivia DB (backup).
 // Everything is normalized to { q, a: [4 answers], c: correctIndex, cat, d, src }.
 // fetchFn is injectable so tests can run without the network.
 import { categoryFromOtdbName, categoryFromTapi } from './categories.js';
 import { shuffle } from '../core/rng.js';
+import { hasProfanity } from '../chat/logic.js';
 
 const NAMED = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', shy: '',
@@ -44,6 +45,8 @@ const YEAR = /\b(1[5-9]\d\d|20\d\d)\b/;
 const NUMERIC = /^[\s\d.,:%-]+(?:m|km|kg|cm|mph|km\/h|%|points?|years?)?\s*$/i;
 export function tooSpecific(item) {
   const answers = [item.correct, ...(item.wrong || [])].map(a => String(a).trim());
+  // a party game: no crude words in the question or any option (e.g. "A Bitch" for a female dog)
+  if ([item.q, ...answers].some(hasProfanity)) return true;
   // every option a year / big number ("In what year…", "How many… 2,857")
   if (answers.every(a => NUMERIC.test(a) && /\d{3,}/.test(a.replace(/[.,\s]/g, '')))) return true;
   // "Who won the 2016…", "…in the 1999 final" — dated results, any category

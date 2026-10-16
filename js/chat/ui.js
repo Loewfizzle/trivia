@@ -25,8 +25,8 @@ const typingNames = () => typists(chat.typing, state.uid, serverNow()).map(u => 
 // ---------------------------------------------------------------- lobby strip
 /** The lobby's compact chat: the latest two lines + a message field that opens the full chat. */
 export function createChatStrip() {
-  const lines = h('div.cs-lines');
-  const typing = h('div.cs-typing');
+  const lines = h('span.cs-lines');
+  const typing = h('span.cs-typing');
   const badge = h('span.cs-badge');
   const field = h('span.cs-field', 'Message the room…');
   const el = h('button.chat-strip', { type: 'button', 'aria-label': 'Open room chat', onclick: () => openChat({ focus: true }) },
