@@ -14,24 +14,7 @@ import { slot } from '../identity.js';
 import { openHelp } from '../ui/help.js';
 import { sfx } from '../audio/sfx.js';
 import { prefetch } from '../audio/music.js';
-import { svgEl } from '../ui/dom.js';
-
-// PULSE card art: a neon highway running into a violet horizon, notes riding it (static SVG, no images)
-const PULSE_ART = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
-<linearGradient id="pa-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07051a"/><stop offset="0.42" stop-color="#2a1458"/><stop offset="0.46" stop-color="#4b2a8f"/><stop offset="1" stop-color="#05040d"/></linearGradient>
-<radialGradient id="pa-sun" cx="0.5" cy="0.44" r="0.4"><stop offset="0" stop-color="#c79bff" stop-opacity="0.9"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></radialGradient>
-<linearGradient id="pa-road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d1238"/><stop offset="1" stop-color="#0a0816"/></linearGradient>
-<filter id="pa-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>
-<rect width="120" height="120" fill="url(#pa-sky)"/><rect width="120" height="120" fill="url(#pa-sun)"/>
-<path d="M4 53h8v-14h6v14h5v-22h7v22h6v-9h5v9h8v-17h6v17h4v-26h6v26h6v-12h5v12h8v-19h7v19h8v-10h6v10h4v1H4z" fill="#140c2c"/>
-<path d="M60 53 L-10 120 H130 Z" fill="url(#pa-road)"/>
-<g stroke-linecap="round" fill="none"><path d="M60 53 L-10 120 M60 53 L130 120" stroke="#36e6ff" stroke-width="1.6" filter="url(#pa-glow)" opacity="0.9"/>
-<path d="M60 53 L-10 120 M60 53 L130 120" stroke="#bff6ff" stroke-width="0.7"/>
-<path d="M60 53 L37 120 M60 53 L83 120" stroke="#8a72ff" stroke-width="0.8" opacity="0.7"/></g>
-<g filter="url(#pa-glow)"><rect x="47" y="70" width="11" height="3" rx="1.5" fill="#a374ff"/><rect x="64" y="88" width="17" height="4.5" rx="2.2" fill="#36e6ff"/><rect x="20" y="104" width="24" height="6" rx="3" fill="#a374ff"/></g>
-<rect x="47" y="70" width="11" height="3" rx="1.5" fill="#efe6ff"/><rect x="64" y="88" width="17" height="4.5" rx="2.2" fill="#e8fdff"/><rect x="20" y="104" width="24" height="6" rx="3" fill="#efe6ff"/>
-<path d="M0 53.5h120" stroke="#d9c4ff" stroke-width="0.6" opacity="0.8"/></svg>`;
-const pulseArt = () => h('div.gc-glyph.gc-art', svgEl(PULSE_ART));
+import { gameArt } from '../ui/game-art.js';
 
 const greeted = new Set(); // rooms we've already shown the join effect for (this page load)
 
@@ -136,7 +119,7 @@ export function createLobby() {
         type: 'button', dataset: { theme: g.theme }, class: g.playable ? null : 'is-locked',
         onclick: () => pickGame(g),
       },
-      g.art === 'pulse' ? pulseArt() : h('div.gc-glyph', h('span', g.name.split(' ').map(w => w[0]).join(''))),
+      gameArt(g.id) || h('div.gc-glyph', h('span', g.name.split(' ').map(w => w[0]).join(''))),
       h('div.gc-body',
         h('div.gc-tag', g.tag),
         h('div.gc-name', g.name),

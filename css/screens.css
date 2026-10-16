@@ -347,7 +347,7 @@
 .gc-help { font-family: var(--font-ui); font-size: 18px; font-weight: 700; }
 
 /* PULSE card art + list-style host options (song picker) */
-.gc-glyph.gc-art { padding: 0; overflow: hidden; border-color: rgba(163, 116, 255, 0.6); background: #07051a; }
+.gc-glyph.gc-art { padding: 0; overflow: hidden; border-color: var(--accent); background: #07051a; }
 .gc-glyph.gc-art svg { display: block; width: 100%; height: 100%; }
 .opt-list { display: flex; flex-direction: column; gap: 6px; max-height: 38dvh; overflow-y: auto; }
 .opt-row {

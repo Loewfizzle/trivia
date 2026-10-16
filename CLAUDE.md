@@ -51,6 +51,7 @@ js/core/room-logic.js    PURE: room codes, host election, color picking, name sa
 js/ui/dom.js             h() element helper, misc DOM utils
 js/ui/components.js      avatar, playerChip, createTimer(ticks), countUp, leaderboard(note), burst, glitchFlash, accessGranted, segmented, chips
 js/ui/final.js           shared podium + WINNER reveal + BACK TO LOBBY (host-aware), used by every game
+js/ui/game-art.js        lobby card artwork: one SVG scene per game (ids prefixed per game); GAMES order = lobby order
 js/ui/settings-panel.js  gear button (fixed, every screen) + settings sheet (music/sfx/mute/haptics, room + leave)
 js/ui/help.js            HOW TO PLAY sheet: rules for all four games (tabs). Opened from title, lobby cards (?), options sheet, gear menu
 js/ui/toast.js           toasts
