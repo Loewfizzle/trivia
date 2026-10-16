@@ -295,6 +295,9 @@ async function playBluff(pages) {
     const mult = last ? 3 : 1;
     const names = await evalIn(host, s => Object.fromEntries(Object.entries(s.players).map(([u, p]) => [p.name, u])));
     if (res[names.GRACE].pts !== 1000 * mult) fail(`GRACE missed WRITE but should still score the truth: ${res[names.GRACE].pts}`);
+    // DANA co-wrote the shared fib and fooled nobody: her points are the 6 likes from everyone else (none may be lost
+    // when the last vote closes the round)
+    if (res[names.DANA].likes !== 6) fail(`shared fib should get 6 likes, got ${res[names.DANA].likes} (round ${r})`);
     log(`bluff r${r}`, JSON.stringify(Object.fromEntries(Object.entries(names).map(([n, u]) => [n, res[u] && res[u].pts]))));
     if (!last) {
       // the reveal screenshots above can run into (or past) the 7 s standings phase

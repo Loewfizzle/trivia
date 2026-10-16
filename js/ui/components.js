@@ -58,7 +58,10 @@ export function createTimer({ warnAt = 10_000, ticks = false } = {}) {
 }
 
 // Animated number. Returns a cancel fn.
-export function countUp(el, from, to, ms = 900, fmt = n => String(n)) {
+// Scores: 21,000 rather than 21000 (Neural Bluff totals get big).
+export const fmtNum = n => Number(n || 0).toLocaleString('en-US');
+
+export function countUp(el, from, to, ms = 900, fmt = fmtNum) {
   if (reducedMotion() || from === to) { el.textContent = fmt(to); return () => {}; }
   const t0 = performance.now();
   let raf;
@@ -77,7 +80,7 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
   const list = h('ol.board-list');
   rows.forEach((r, i) => {
     const p = players[r.uid] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
-    const scoreEl = h('span.lb-score', String(r.prevScore ?? r.score));
+    const scoreEl = h('span.lb-score', fmtNum(r.prevScore ?? r.score));
     const move = r.prevRank && r.prevRank !== r.rank ? (r.prevRank > r.rank ? 'up' : 'down') : null;
     const row = h('li.lb-row', {
       class: [r.uid === me ? 'is-me' : '', r.rank === 1 ? 'is-first' : '', move ? `move-${move}` : ''].join(' '),
@@ -87,7 +90,7 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
     avatar(p.avatar, p.color, 30),
     h('span.lb-name', p.name, presence && presence[r.uid] && presence[r.uid].online === false ? h('span.lb-lost', ' ⌁') : null,
       r.note ? h('small.lb-note', r.note) : null),
-    r.delta ? h('span.lb-delta', `+${r.delta}`) : null,
+    r.delta ? h('span.lb-delta', `+${fmtNum(r.delta)}`) : null,
     move ? h('span.lb-move', move === 'up' ? '▲' : '▼') : null,
     scoreEl);
     list.append(row);

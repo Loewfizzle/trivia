@@ -8,6 +8,7 @@ export const VOTE_MS = 30_000;
 export const STANDINGS_MS = 7_000;
 export const FINAL_MS = 120_000;
 export const GRACE_MS = 800;
+export const VOTE_SETTLE_MS = 4_000; // once everyone has voted: time left for likes / changed minds
 export const REVEAL_LEAD_MS = 1_400;
 export const REVEAL_STEP_MS = 3_400;
 export const REVEAL_TRUTH_MS = 4_800;

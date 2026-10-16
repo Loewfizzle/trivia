@@ -2,7 +2,7 @@
 // The reveal is driven by server time since the phase began, so every phone shows
 // the same exhibit at the same moment and a rejoining player lands mid-reveal.
 import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
-import { avatar, createTimer, countUp, leaderboard } from '../../ui/components.js';
+import { avatar, createTimer, countUp, leaderboard, fmtNum } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
 import { dbRef, set, serverTimestamp, serverNow } from '../../firebase.js';
@@ -278,7 +278,11 @@ export function createView() {
     });
     const votes = liveFor(game, 'votes');
     const voted = Object.keys(game.participants || {}).filter(u => votes[u] && votes[u].k).length;
-    els.voteStatus.textContent = !canVote ? 'OBSERVER MODE' : v.k ? `VOTE CAST · change it any time · ${voted}/${Object.keys(game.participants || {}).length} voted` : 'Tap the answer you believe is real.';
+    const total = Object.keys(game.participants || {}).length;
+    els.voteStatus.textContent = !canVote ? 'OBSERVER MODE'
+      : !v.k ? 'Tap the answer you believe is real.'
+      : voted >= total ? 'ALL VOTES IN · last chance to ♥ a lie'
+      : `VOTE CAST · change it any time · ${voted}/${total} voted`;
   }
 
   // ---------- REVEAL ----------
@@ -326,7 +330,7 @@ export function createView() {
         h('div.exhibit-author',
           h('span.redact-lift', { 'aria-hidden': 'true' }),
           h('span.exhibit-by', author),
-          !step.house ? h('span.exhibit-pts', `+${500 * mult * step.voters.length}`) : null),
+          !step.house ? h('span.exhibit-pts', `+${fmtNum(500 * mult * step.voters.length)}`) : null),
         step.likes ? h('div.exhibit-likes', `♥ ${step.likes}`) : null,
         h('div.stamp.stamp-red.exhibit-stamp', 'DECEPTION')));
       sfx('select');
@@ -336,7 +340,7 @@ export function createView() {
       els.revealCard.append(h('article.exhibit.is-truth', { class: found ? 'is-found' : null },
         h('div.exhibit-kicker', 'THE TRUTH'),
         h('div.exhibit-text', step.t),
-        step.voters.length ? voterChips(step.voters, `+${1000 * mult}`) : h('p.nb-hint', 'Nobody found the truth.'),
+        step.voters.length ? voterChips(step.voters, `+${fmtNum(1000 * mult)}`) : h('p.nb-hint', 'Nobody found the truth.'),
         h('div.stamp.stamp-green.exhibit-stamp', 'TRUTH VERIFIED')));
       sfx('correct');
       setTimeout(() => { if (shownStep === idx) { sfx('solve'); if (found) vibrate([20, 40, 80]); } }, 1300);
@@ -353,7 +357,7 @@ export function createView() {
       const bits = [r.truth ? 'FOUND TRUTH' : null, r.fooled ? `FOOLED ${r.fooled}` : null, r.likes ? `♥ ${r.likes}` : null].filter(Boolean).join(' · ') || 'NO POINTS';
       list.append(h('li.nb-tally-row', { class: uid === me() ? 'is-me' : null, style: { '--c': colorHex(p.color), animationDelay: `${i * 80}ms` } },
         avatar(p.avatar, p.color, 28), h('span.nb-tally-name', p.name, h('small', bits)), pts));
-      setTimeout(() => countUp(pts, 0, r.pts, 900, n => `+${n}`), 250 + i * 80);
+      setTimeout(() => countUp(pts, 0, r.pts, 900, n => `+${fmtNum(n)}`), 250 + i * 80);
     });
     sfx('shimmer');
     els.revealCard.append(h('article.exhibit.is-tally',

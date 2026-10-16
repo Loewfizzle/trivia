@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   normalize, displayText, tooClose, optionKey, buildOptions, scoreRound, revealScript, revealDuration, revealStepAt, standings,
-  REVEAL_LEAD_MS, REVEAL_STEP_MS, REVEAL_TRUTH_MS, WRITE_MS, VOTE_MS, INTRO_MS, MODES, POINTS,
+  REVEAL_LEAD_MS, REVEAL_STEP_MS, REVEAL_TRUTH_MS, WRITE_MS, VOTE_MS, VOTE_SETTLE_MS, INTRO_MS, MODES, POINTS,
 } from '../js/games/bluff/logic.js';
 import { createGame, nextStep, questionKey, secretKey, optionsKey } from '../js/games/bluff/director.js';
 import { setBluffRows, pickQuestion } from '../js/games/bluff/bank.js';
@@ -156,8 +156,10 @@ test('a full short match: write → vote → reveal → standings, final ×3, on
     const aK = options.find(o => o.authors.includes('a')).k;
     // c (missed WRITE) finds the truth; b falls for a's lie; a falls for a house lie and likes a's own lie (ignored)
     const houseK = options.find(o => o.house).k;
-    const votes = { c: { k: truthK }, b: { k: aK, like: aK }, a: { k: houseK, like: aK } };
-    applyPatch(game, nextStep(game, ctxFor(game, now + 2000, lies, votes, online)));
+    const votes = { c: { k: truthK, at: now + 1000 }, b: { k: aK, like: aK, at: now + 1500 }, a: { k: houseK, like: aK, at: now + 2000 } };
+    // everyone has voted, but a ♥ (a second tap) may still be on its way: stay open briefly
+    assert.equal(nextStep(game, ctxFor(game, now + 2000 + VOTE_SETTLE_MS - 100, lies, votes, online)), null, 'likes get a moment after the last vote');
+    applyPatch(game, nextStep(game, ctxFor(game, now + 2000 + VOTE_SETTLE_MS, lies, votes, online)));
     assert.equal(game.phase, 'reveal', 'everyone voted → early reveal');
     const res = game.results[r];
     const mult = r === game.rounds - 1 ? 3 : 1;

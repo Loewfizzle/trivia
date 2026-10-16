@@ -324,3 +324,6 @@ body[data-theme='bluff'] .bg-grid { opacity: 0.18; }
   .nb-q { font-size: 18px; }
   .nb-opt { min-height: 48px; }
 }
+
+/* lies are shown to everyone in capitals — type them that way too */
+.nb-input { text-transform: uppercase; }

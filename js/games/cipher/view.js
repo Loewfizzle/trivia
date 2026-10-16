@@ -1,7 +1,7 @@
 // CIPHER BREACH — player view. Renders from mirrored DB state; the only local
 // state is the row being typed and an optimistic copy of my own board.
 import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
-import { avatar, createTimer, countUp, leaderboard, burst } from '../../ui/components.js';
+import { avatar, createTimer, countUp, leaderboard, burst, fmtNum } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
 import { dbRef, set, serverTimestamp, serverNow } from '../../firebase.js';
@@ -391,7 +391,7 @@ export function createView() {
       const detail = r.solved ? `✓ ${r.n}/6 · ${fmtTime(r.t)}` : '✗ NO BREACH';
       els.revealList.append(h('li.rr', { class: uid === st.uid ? 'is-me' : null, style: { '--c': colorHex(p.color), animationDelay: `${700 + i * 90}ms` } },
         avatar(p.avatar, p.color, 28), h('span.rr-name', p.name), h('span.rr-detail', { class: r.solved ? 'ok' : 'bad' }, detail), pts));
-      setTimeout(() => cancelers.push(countUp(pts, 0, r.pts, 900, n => `+${n}`)), 900 + i * 90);
+      setTimeout(() => cancelers.push(countUp(pts, 0, r.pts, 900, n => `+${fmtNum(n)}`)), 900 + i * 90);
     });
   }
 
