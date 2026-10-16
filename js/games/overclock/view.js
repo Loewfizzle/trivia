@@ -954,11 +954,19 @@ export function createView() {
   // The reveal above the leaderboard: best words, the right order, or the number line.
   function reveal(game) {
     const type = game.order[game.ci];
-    if (!['lexicon', 'timeline', 'closest'].includes(type)) return null;
+    if (!['lexicon', 'timeline', 'closest', 'unscramble'].includes(type)) return null;
     const spec = buildSpec(game);
     if (!spec) return null;
     const boards = boardsNow(game);
     const uids = Object.keys(game.participants || {});
+    if (type === 'unscramble') {
+      const res = (game.results && game.results[game.ci]) || {};
+      const solved = uids.filter(u => res[u] && res[u].ok >= 1).length;
+      return h('section.rv.rv-us',
+        h('div.rv-kicker', 'THE WORD WAS',
+          h('div.rv-best', h('b', spec.word.toUpperCase()), h('small', `FROM ${spec.letters.join('').toUpperCase()}`))),
+        h('div.rv-us-count', h('b', `${solved}/${uids.length}`), solved === 1 ? ' PLAYER CRACKED IT' : ' PLAYERS CRACKED IT'));
+    }
     if (type === 'lexicon') {
       const rows = uids.map(uid => ({ uid, w: (boards[uid] && boards[uid].w) || '' })).sort((a, b) => b.w.length - a.w.length);
       return h('section.rv.rv-lex',
