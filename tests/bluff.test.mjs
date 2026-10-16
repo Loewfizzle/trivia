@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  normalize, tooClose, optionKey, buildOptions, scoreRound, revealScript, revealDuration, revealStepAt, standings,
+  normalize, displayText, tooClose, optionKey, buildOptions, scoreRound, revealScript, revealDuration, revealStepAt, standings,
   REVEAL_LEAD_MS, REVEAL_STEP_MS, REVEAL_TRUTH_MS, WRITE_MS, VOTE_MS, INTRO_MS, MODES, POINTS,
 } from '../js/games/bluff/logic.js';
 import { createGame, nextStep, questionKey, secretKey, optionsKey } from '../js/games/bluff/director.js';
@@ -224,4 +224,36 @@ test('question bank: ≥300 strange-but-true questions, blanks, short answers, h
     assert.ok(cat);
   }
   assert.equal(new Set(rows.map(r => optionKey(r[1]))).size, rows.length);
+});
+
+// Reported exploit: the truth came from the bank in lowercase ("wallpaper cleaner") while phones
+// auto-capitalize lies, and lies carried articles/periods the truth didn't. Every option must look alike.
+const looksUniform = t => !/[a-z]/.test(t) && !/^(A|AN|THE) /.test(t) && !/[.,;:!?…"“”']$/.test(t) && t === t.trim();
+
+test('display: truth, lies and house lies are formatted identically (no case / article / punctuation tells)', () => {
+  assert.equal(displayText('wallpaper cleaner'), 'WALLPAPER CLEANER');
+  assert.equal(displayText('Wallpaper cleaner.'), 'WALLPAPER CLEANER');
+  assert.equal(displayText('A pride'), displayText('pride'));
+  assert.equal(displayText('a group of lions'), 'GROUP OF LIONS');
+  assert.equal(displayText('the Bronx'), 'BRONX');
+  assert.equal(displayText('“An old sock!”'), 'OLD SOCK');
+  assert.equal(displayText('Twelve'), displayText('12'));
+  assert.equal(displayText('twenty-five cents'), '25 CENTS');
+  assert.equal(displayText('one eye open'), '1 EYE OPEN');
+  assert.equal(displayText('no one'), 'NO ONE');
+  assert.equal(displayText('The'), 'THE');
+  // the same lie typed differently merges into one option
+  assert.equal(optionKey('A pride.'), optionKey('pride'));
+  assert.equal(optionKey('twelve'), optionKey('12'));
+});
+
+test('display: across the whole bank, a phone-typed lie can never be told apart from the truth by formatting', () => {
+  for (const [, q, a, v, house] of rows) {
+    // what a phone sends: auto-capitalized, often with an article and a full stop
+    const typed = { p1: { t: 'Totally made up thing.' }, p2: { t: 'A strange invention' }, p3: { t: 'the third one' } };
+    const opts = buildOptions({ lies: typed, truth: { a, v }, house, players: 3, seed: q });
+    for (const o of opts) assert.ok(looksUniform(o.t), `${q} → "${o.t}"`);
+    // "an ____" gives away that the truth starts with a vowel
+    assert.ok(!/\ban ____/i.test(q), `"an ____" hints at the answer: ${q}`);
+  }
 });

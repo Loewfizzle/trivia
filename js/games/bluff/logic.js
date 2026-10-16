@@ -18,16 +18,48 @@ export const DEFAULT_SETTINGS = { mode: 'short' };
 export const POINTS = { truth: 1000, fooled: 500, like: 100 };
 export const FINAL_MULTIPLIER = 3;
 
-// Lowercase, strip accents/punctuation/leading articles, collapse spaces.
+// Number words → digits, so "twelve" and "12" look (and compare) the same. For display, "one"
+// only becomes 1 when it counts something ("one eye open" → 1, but "no one", "one of" stay).
+const SMALL = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven',
+  'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+const NUMBER_RE = new RegExp(`\\b(?:(${Object.keys(TENS).join('|')})(?:[- ](${SMALL.slice(1, 10).join('|')}))?|(${SMALL.join('|')}))\\b`, 'gi');
+function digits(text, keepOne) {
+  return text.replace(NUMBER_RE, (m, tens, unit, small, at, all) => {
+    if (tens) return String(TENS[tens.toLowerCase()] + (unit ? SMALL.indexOf(unit.toLowerCase()) : 0));
+    if (keepOne && small.toLowerCase() === 'one') {
+      const before = all.slice(0, at), after = all.slice(at + m.length);
+      if (/\b(no|any|every|some|the|this|that)\s+$/i.test(before) || !/^\s+\S/.test(after) || /^\s+(of|another)\b/i.test(after)) return m;
+    }
+    return String(SMALL.indexOf(small.toLowerCase()));
+  });
+}
+
+/**
+ * How every vote option is shown — the truth, players' lies and house lies alike — so formatting
+ * can never give the truth away: no leading a/an/the, no trailing punctuation or wrapping quotes,
+ * number words as digits, ALL CAPS (phones auto-capitalize lies; the bank's answers are lowercase).
+ */
+export function displayText(text) {
+  let t = String(text || '').replace(/\s+/g, ' ').trim()
+    .replace(/^["'“”‘’«»]+|["'“”‘’«»]+$/g, '')
+    .replace(/[\s.,;:!?…]+$/, '')
+    .trim();
+  const bare = t.replace(/^(the|a|an)\s+/i, '');
+  if (bare) t = bare;
+  return digits(t, true).toLocaleUpperCase('en-US');
+}
+
+// Lowercase, strip accents/punctuation/leading articles, number words → digits, collapse spaces.
 export function normalize(text) {
-  return String(text || '')
+  return digits(String(text || '')
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9 ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(/^(the|a|an) /, '');
+    .replace(/^(the|a|an) /, ''), false);
 }
 
 export function levenshtein(a, b) {
@@ -80,13 +112,13 @@ export function cleanLie(text) {
 export function buildOptions({ lies = {}, truth, house = [], players, seed }) {
   const byKey = new Map();
   const truthKey = optionKey(truth.a);
-  byKey.set(truthKey, { k: truthKey, t: truth.a, truth: true, house: false, authors: [] });
+  byKey.set(truthKey, { k: truthKey, t: displayText(truth.a), truth: true, house: false, authors: [] });
   for (const uid of Object.keys(lies).sort()) {
     const t = cleanLie(lies[uid] && lies[uid].t);
     if (!t || tooClose(t, truth.a, truth.v)) continue;
     const k = optionKey(t);
     if (k === truthKey) continue;
-    if (!byKey.has(k)) byKey.set(k, { k, t, truth: false, house: false, authors: [] });
+    if (!byKey.has(k)) byKey.set(k, { k, t: displayText(t), truth: false, house: false, authors: [] });
     byKey.get(k).authors.push(uid);
   }
   const minimum = players < 4 ? 5 : 4;
@@ -94,7 +126,7 @@ export function buildOptions({ lies = {}, truth, house = [], players, seed }) {
     if (byKey.size >= minimum) break;
     const k = optionKey(h);
     if (byKey.has(k)) { byKey.get(k).house = byKey.get(k).house || byKey.get(k).authors.length === 0; continue; }
-    byKey.set(k, { k, t: h, truth: false, house: true, authors: [] });
+    byKey.set(k, { k, t: displayText(h), truth: false, house: true, authors: [] });
   }
   return shuffle(rngFrom(`${seed}:options`), [...byKey.values()]);
 }
