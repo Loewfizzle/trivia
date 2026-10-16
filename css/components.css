@@ -737,3 +737,8 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
   padding-bottom: 24px;
 }
+
+/* phones: keep toasts clear of the fixed gear button (top-right) */
+@media (max-width: 560px) {
+  .toasts { left: calc(var(--safe-l) + 12px); width: calc(100vw - var(--safe-l) - var(--safe-r) - 78px); transform: none; }
+}

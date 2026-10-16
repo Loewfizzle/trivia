@@ -69,23 +69,24 @@ export async function joinRoom(input, profile) {
 }
 
 // Called on boot: puts a refreshed/returning player straight back into their room.
+// Returns 'ok', 'none' (no saved room), 'gone' (closed / removed / full — forgotten) or
+// 'error' (couldn't reach the room right now — the session is kept so a retry works).
 export async function resumeSession() {
   const session = loadSession();
   const profile = loadProfile();
-  if (!session || !session.code) return false;
+  if (!session || !session.code) return 'none';
+  let room;
+  try { room = await readRoomBasics(session.code); } catch { return 'error'; }
+  const gone = !room.meta || room.kicked
+    || (!room.players[state.uid] && (!profile || Object.keys(room.players).length >= MAX_PLAYERS));
+  if (gone) { saveSession(null); return 'gone'; }
   try {
-    const room = await readRoomBasics(session.code);
-    if (!room.meta || room.kicked) throw new Error('gone');
-    if (!room.players[state.uid]) {
-      // Seat was lost (e.g. left on another device) — rejoin with the saved profile.
-      if (!profile || Object.keys(room.players).length >= MAX_PLAYERS) throw new Error('cannot rejoin');
-      await writePlayer(session.code, profile, room.players);
-    }
+    // Seat was lost (e.g. left on another device) — rejoin with the saved profile.
+    if (!room.players[state.uid]) await writePlayer(session.code, profile, room.players);
     enterRoom(session.code);
-    return true;
+    return 'ok';
   } catch {
-    saveSession(null);
-    return false;
+    return 'error';
   }
 }
 

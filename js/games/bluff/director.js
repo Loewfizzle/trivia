@@ -2,7 +2,7 @@
 // Phases per round: intro -> write -> vote -> reveal -> standings (or final after the last round).
 import { encodeJSON } from '../../core/obfuscate.js';
 import {
-  INTRO_MS, FINAL_INTRO_MS, WRITE_MS, VOTE_MS, STANDINGS_MS, FINAL_MS, GRACE_MS, MODES,
+  INTRO_MS, FINAL_INTRO_MS, WRITE_MS, VOTE_MS, VOTE_SETTLE_MS, STANDINGS_MS, FINAL_MS, GRACE_MS, MODES,
   buildOptions, scoreRound, revealScript, revealDuration,
 } from './logic.js';
 
@@ -75,7 +75,11 @@ export function nextStep(game, ctx) {
 
     case 'vote': {
       const allVoted = active.length > 0 && active.every(u => ctx.votes && ctx.votes[u] && ctx.votes[u].k);
-      if (!allVoted && now < ends + GRACE_MS) return null;
+      // Everyone voted: stay open a moment after the latest vote, so a ♥ (a second tap) or a
+      // changed mind still lands — closing instantly cut off the last voter's like.
+      const lastVoteAt = allVoted ? Math.max(...active.map(u => Number(ctx.votes[u].at) || 0)) : 0;
+      const settled = allVoted && now >= Math.min(ends, lastVoteAt + VOTE_SETTLE_MS);
+      if (!settled && now < ends + GRACE_MS) return null;
       const options = ctx.decodeOptions(game);
       if (!options) return null;
       const votes = ctx.votes || {};

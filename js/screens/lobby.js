@@ -150,7 +150,10 @@ export function createLobby() {
       if (onlineCount() < MIN_PLAYERS) { toast(`NEED ${MIN_PLAYERS}+ CONNECTED PLAYERS`, 'err'); return; }
       startBtn.classList.add('is-busy');
       startBtn.firstChild.textContent = 'BOOTING…';
-      try { await startGame(g.id, settings); close(); }
+      try {
+        if (await startGame(g.id, settings)) close();
+        else { startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
+      }
       catch (e) { toast(String(e.message || e).toUpperCase(), 'err'); startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
     };
     sheet = h('div.modal', { dataset: { theme: g.theme }, onclick: e => { if (e.target === sheet) close(); } },

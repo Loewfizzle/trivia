@@ -123,6 +123,12 @@ async function boot() {
   }, { capture: true, passive: true });
   // Music is lazy: tracks download only after the first tap unlocks audio (see audio/music.js).
   window.__arcade = { musicDebug, state };
+  // Escape closes the top-most sheet (its backdrop click handler does the closing).
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const modal = [...document.querySelectorAll('.modal:not(.out)')].pop();
+    if (modal) modal.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
   // iOS: block pinch-zoom gestures (viewport meta alone is ignored by Safari).
   document.addEventListener('gesturestart', e => e.preventDefault());
   watchDuplicateTabs(() => toast(slot === '1'
@@ -145,9 +151,13 @@ async function boot() {
       if (connected) armPresence();
     });
     setState({ uid });
+    const saved = loadSession();
     const resumed = await resumeSession();
+    if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '' });
+    // Couldn't reach the room (weak signal): keep the seat and offer a one-tap rejoin.
+    else if (resumed === 'error') { setState({ invite: saved.code }); toast('COULD NOT RECONNECT — TAP THE INVITE TO TRY AGAIN', 'warn', 5000); }
     // An invite link to a room that no longer exists: say so up front instead of failing on JOIN.
-    if (!resumed && state.invite && !(await roomExists(state.invite))) setState({ inviteExpired: state.invite, invite: '' });
+    else if (resumed === 'none' && state.invite && !(await roomExists(state.invite))) setState({ inviteExpired: state.invite, invite: '' });
   } catch (e) {
     console.error(e);
     toast('UPLINK FAILED — CHECK CONNECTION', 'err', 5000);

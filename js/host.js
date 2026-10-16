@@ -113,15 +113,16 @@ export function onlineCount() {
   return Object.keys(state.players).filter(uid => isOnline(state.presence, uid)).length;
 }
 
+// Resolves true once the match is written; false (after a toast) when it can't start.
 export async function startGame(gameId, settings) {
   const mod = GAME_MODULES[gameId];
-  if (!mod || !isHost()) return;
+  if (!mod || !isHost()) return false;
   const participants = {};
   for (const uid of Object.keys(state.players)) if (isOnline(state.presence, uid)) participants[uid] = true;
-  if (Object.keys(participants).length < MIN_PLAYERS) { toast(`NEED ${MIN_PLAYERS}+ CONNECTED PLAYERS`, 'err'); return; }
+  if (Object.keys(participants).length < MIN_PLAYERS) { toast(`NEED ${MIN_PLAYERS}+ CONNECTED PLAYERS`, 'err'); return false; }
   const matchId = Math.random().toString(36).slice(2, 8);
   const created = await mod.start({ code: state.code, matchId, settings, participants, now: serverNow() });
-  if (!created) { toast('COULD NOT START — TRY AGAIN', 'err'); return; }
+  if (!created) { toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
   await update(dbRef(`rooms/${state.code}`), {
@@ -133,11 +134,12 @@ export async function startGame(gameId, settings) {
     'meta/hostBeat': serverTimestamp(),
     [`meta/settings/${gameId}`]: settings,
   });
+  return true;
 }
 
 // Same game, same settings, everyone currently connected (late joiners included).
 export function rematch() {
-  if (!isHost() || !state.game) return;
+  if (!isHost() || !state.game) return Promise.resolve(false);
   const id = state.game.id;
   const mod = GAME_MODULES[id];
   const settings = (state.meta.settings && state.meta.settings[id]) || state.game.settings || (mod && mod.DEFAULT_SETTINGS) || {};

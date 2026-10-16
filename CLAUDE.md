@@ -126,6 +126,8 @@ ox (enc full options with authors/truth), reveal{steps,unpicked} (plain, from th
 Option keys are `optionKey(text)` = hash of the normalized text, so identical lies merge and a client can recognize its
 own lie without authorship being public. The reveal is time-driven: `revealStepAt(script, serverNow - phaseStartAt)`.
 Scoring: truth 1000, each victim of your lie 500 (every merged author), each like 100; final round ×3.
+Voting ends early once everyone has voted, but only `VOTE_SETTLE_MS` (4 s) after the latest vote: a ♥ is a second tap, and
+closing instantly used to drop the last voter's like.
 **No formatting tells:** every option (truth, lies, house lies) is shown through `logic.js#displayText` — ALL CAPS, no
 leading a/an/the, no trailing punctuation or quotes, number words as digits — so nobody can spot the truth by its casing
 or grammar (a reported exploit). Never render raw option/answer text; `tests/bluff.test.mjs` checks the whole bank.

@@ -5,6 +5,7 @@ import { avatar, countUp, leaderboard, burst } from './components.js';
 import { colorHex } from '../config.js';
 import { isHost } from '../store.js';
 import { backToLobby, rematch } from '../host.js';
+import { toast } from './toast.js';
 import { sfx } from '../audio/sfx.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
@@ -41,7 +42,14 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     hostShown = host;
     actions.replaceChildren(...(host
       ? [
-        h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: e => { e.currentTarget.classList.add('is-busy'); rematch(); } }, h('span', 'REMATCH')),
+        h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: e => {
+          const btn = e.currentTarget;
+          if (btn.classList.contains('is-busy')) return;
+          btn.classList.add('is-busy');
+          rematch()
+            .catch(err => { toast(`REMATCH FAILED — ${String((err && err.message) || err).toUpperCase()}`, 'err'); return false; })
+            .then(ok => { if (!ok) btn.classList.remove('is-busy'); });
+        } }, h('span', 'REMATCH')),
         h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => backToLobby() }, h('span', 'BACK TO LOBBY')),
       ]
       : [h('div.wait-note', 'WAITING FOR THE HOST — REMATCH OR LOBBY…')]));
