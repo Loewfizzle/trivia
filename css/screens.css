@@ -292,6 +292,7 @@
 .game-card[data-theme='signal'] { --accent: #ff3355; --accent-soft: rgba(255, 51, 85, 0.12); --accent-glow: rgba(255, 51, 85, 0.5); }
 .game-card[data-theme='bluff'] { --accent: #e9e4d4; --accent-soft: rgba(215, 38, 46, 0.12); --accent-glow: rgba(215, 38, 46, 0.5); }
 .game-card[data-theme='overclock'] { --accent: #ffb627; --accent-soft: rgba(255, 43, 214, 0.14); --accent-glow: rgba(255, 182, 39, 0.5); }
+.game-card[data-theme='pulse'] { --accent: #a374ff; --accent-soft: rgba(54, 230, 255, 0.12); --accent-glow: rgba(163, 116, 255, 0.55); }
 .game-card[data-theme='bluff'] .gc-glyph { border-color: #d7262e; color: #e9e4d4; background: #d7262e22; }
 
 .lobby-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 6px; }
@@ -344,3 +345,26 @@
 .gc-help:active { transform: scale(0.92); }
 .game-card-wrap .gc-go { align-self: end; }
 .gc-help { font-family: var(--font-ui); font-size: 18px; font-weight: 700; }
+
+/* PULSE card art + list-style host options (song picker) */
+.gc-glyph.gc-art { padding: 0; overflow: hidden; border-color: rgba(163, 116, 255, 0.6); background: #07051a; }
+.gc-glyph.gc-art svg { display: block; width: 100%; height: 100%; }
+.opt-list { display: flex; flex-direction: column; gap: 6px; max-height: 38dvh; overflow-y: auto; }
+.opt-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.opt-row[aria-checked='true'] { border-color: var(--accent); background: var(--accent-soft); }
+.opt-dot { grid-row: 1 / span 2; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--text-faint); }
+.opt-row[aria-checked='true'] .opt-dot { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 45%, transparent 50%); }
+.opt-label { font-family: var(--font-ui); font-weight: 700; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+.opt-sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-dim); }

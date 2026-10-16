@@ -47,7 +47,8 @@ function makeScreen(key) {
 function musicFor(st) {
   if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game) return ['menu'];
   const mod = GAME_MODULES[st.game.id];
-  const track = (mod && mod.MUSIC) || 'menu';
+  // MUSIC: null = no music during the match (PULSE: the song is the music; menu music fades out)
+  const track = mod && 'MUSIC' in mod ? mod.MUSIC : 'menu';
   return st.game.phase === 'final' ? ['victory', track] : [track];
 }
 
@@ -137,7 +138,9 @@ async function boot() {
 
   setState({ invite: inviteCode() });
   render(state);
-  if (!resuming) dismissBoot(); // title screen is usable before Firebase finishes loading
+  // First-time visitors: show the title first, then start the Firebase SDK (~120 KB) once it has painted —
+  // nothing on the title needs it (HOST/JOIN wait for firebaseReady). Returning players reconnect right away.
+  if (!resuming) { await dismissBoot(); await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); }
   if (!isConfigured) {
     dismissBoot();
     stage.replaceChildren(h('section.screen.screen-in.boot-screen',

@@ -1,7 +1,7 @@
 # NEURAL ARCADE — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each). Static site on Vercel
-(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All three build stages are complete
+(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All four build stages are complete
 (see `ROADMAP.md` for what shipped and the future-ideas list). **Keep this file and ROADMAP.md updated as you work.**
 
 ## Ground rules
@@ -32,6 +32,7 @@ css/cipher.css           CIPHER BREACH
 css/signal.css           LAST SIGNAL (decay layers, hit fx, FLATLINE)
 css/overclock.css        OVERCLOCK (challenge UIs, rules cards)
 css/bluff.css            NEURAL BLUFF (dossiers, stamps, redaction bars, reveal exhibits)
+css/pulse.css            PULSE (HUD, song/Echo cards, countdown, results table, calibration overlay)
 manifest.webmanifest     PWA manifest (standalone, portrait, icons)
 sw.js                    network-first service worker for same-origin static files only (never Firebase/CDNs/audio)
 assets/                  icon set (icon-192/512, maskable, apple-touch, favicon), og.png 1200×630 link preview
@@ -67,6 +68,7 @@ js/trivia/bankdata.js    PURE bank encoding: appendPatch, decodeQuestion, fallba
 js/trivia/feed.js        host-only: initialBank() at start, topUp() keeps questions queued (rate-limit aware)
 js/screens/{title,setup,lobby}.js
 js/games/registry.js     id → game module
+js/games/lazy-view.js    lazyView(): a game's view module loads only when its match is on screen
 js/games/cipher/logic.js     PURE rules: evaluateGuess (duplicates!), keyStates, scoring, results, standings, secret obfuscation
 js/games/cipher/director.js  PURE state machine: createGame(), nextStep()
 js/games/cipher/words.js     word-list loading (lazy, per length), validation, pickWord
@@ -76,12 +78,24 @@ js/games/signal/{logic,director,view,index}.js     LAST SIGNAL (logic.js: damage
 js/games/overclock/challenges.js                   seeded generators for the 10 challenge types + INFO (names/rules)
 js/games/overclock/{logic,director,view,index}.js  OVERCLOCK (logic.js: order, scoring, standings)
 js/games/bluff/{logic,director,bank,view,index}.js  NEURAL BLUFF (logic.js: tooClose, buildOptions, scoreRound, revealScript)
+js/games/pulse/logic.js      PURE: judging windows, tap/expire/resume, combo multiplier, Echo patterns + scoring, standings
+js/games/pulse/director.js   PURE state machine: load -> song -> echo -> standings … final
+js/games/pulse/clock.js      the timing engine (audio output clock), calibration storage, song playback, tones
+js/games/pulse/songs.js      manifest / beat map / audio loading (decode once, keep only the current song)
+js/games/pulse/calibrate.js  "tap along with the beat" overlay (first run + Settings -> Recalibrate)
+js/games/pulse/render.js     canvas renderer: night city + 3D highway, pre-rendered sprites, auto quality tiers
+js/games/pulse/{view,index}.js  HUD, input (multi-touch), song/Echo controllers, overlays; module contract
 data/trivia/fallback.json    333 hand-written medium/hard questions: [category, difficulty, q, correct, w1, w2, w3]
 data/bluff/questions.json    356 strange-but-true questions: [category, "text with ____", answer, [variants], [3 house lies]]
+data/pulse/manifest.json     PULSE songs: id, title, artist, bpm, duration, note counts, trim info (generated)
+data/pulse/pulseN.json       beat map: beats[], energy[] (per beat), downbeat, notes{easy,normal,hard}: [[time, lane], …] (generated)
+audio/pulse/pulseN.mp3       PULSE songs: trimmed, mono 44.1 kHz 96 kbps (generated from ~/Downloads/pulseN.mp3)
 data/words/answers-N.json    answer pools (N = 5,6,7) — fixed-width words concatenated in one JSON string
 data/words/valid-N.json      valid-guess dictionaries
 scripts/build-words.mjs      regenerates data/words from open sources (see header for URLs/licenses)
 scripts/serve.mjs            zero-dep local static server (port 5173)
+scripts/build-beatmaps.py    PULSE song pipeline: trim/encode + beat grid + notes + manifest (see "PULSE" below)
+scripts/check-beatgrid.py    ground truth for the beat grid: synthetic drums at known times through the same pipeline
 database.rules.json          RTDB security rules (paste into Firebase console)
 tests/*.test.mjs             unit + whole-match simulation tests (node --test, no deps)
 tests/integration/           security-rules tests + browser end-to-end tests (need emulator + deps)
@@ -104,6 +118,7 @@ rooms/{CODE}/
   night/{matchId}:   { g: gameId, p: { uid: 3|2|1|0 }, n: { uid: name }, at }  ← host; game-night scoreboard
   meta/used/bluff/{questionId}: true                            ← host; Bluff questions already used in this room
   meta/used/trivia/{qHash}: true                                ← host; trivia questions any match in this room has banked
+  pulse/{matchId}/{uid}: { k: songIndex, ready, s, c, mc, p, g, o, m, n, e, er, at }  ← PULSE, own, current song only
 ```
 All player-writable nodes are listed in `ALL_PLAYER_NODES` (registry.js) and wiped by the host on match start/end.
 CIPHER `game`: `{ id:'cipher', matchId, rounds, lengths[], roundMs, maxGuesses, participants{uid:true},
@@ -147,6 +162,11 @@ via the start `$room`, top-ups in the same room update, director fallbacks via t
 those hashes — so rematches and Last Signal ↔ Overclock never deal the same question twice in one room. The opening batch
 starts at a random category/difficulty. Only if the bundled bank is exhausted does a match allow room repeats (never stall).
 Check with `tests/integration/trivia-rematch.mjs` (six back-to-back matches against the live APIs).
+
+PULSE `game`: `{ id:'pulse', matchId, settings{song,count,diff,echo}, seed, participants, songs[{id,title,artist,bpm,duration}],
+si, sk, phase: load|song|echo|standings|final, songStartAt, echoStartAt, phaseStartAt, phaseEndsAt, results{si:{uid:{s,c,mc,p,g,o,m,n,e}}} }`.
+Players publish their own stats (`pulse/…`, every 500 ms + on song end / Echo rounds); the host snapshots them into
+`results/{si}` at the end of the song (and `results/{si}/{uid}/e` after Echo). Totals = Σ (s + e).
 
 ## Multiplayer mechanics
 - **Identity:** anonymous Firebase user per *slot*. Each slot is a separately-named Firebase app, so its
@@ -193,8 +213,12 @@ Check with `tests/integration/trivia-rematch.mjs` (six back-to-back matches agai
   (`media=print` + onload swap); the three core sheets call `__cssDone()` and the page keeps everything except `#boot`
   hidden until `html.css-ready` — no flash of unstyled content. Per-game sheets load the same way, without gating.
 - `app.js#dismissBoot` fades the boot screen once core CSS is in and fonts are loaded (≤1.5 s wait). Players **without** a
-  saved session get the title screen immediately (Firebase keeps loading in the background; `setup.js` awaits
+  saved session get the title screen first and the Firebase SDK starts loading right after it paints (`setup.js` awaits
   `firebaseReady` on submit). Players resuming a room wait on the boot screen until they're reconnected.
+- The boot screen's plain-HTML wordmark ("NEURAL ARCADE", system font) is the page's LCP element: it paints with the
+  first frame, so LCP never waits for the JS module graph (without it Lighthouse's simulated LCP was ~4.4 s).
+- Game views are lazy (`games/lazy-view.js`): each `index.js` exports `createView = lazyView(() => import('./view.js'))`,
+  so only directors/logic load at startup. PULSE's song list loads when the page is idle.
 - Music never downloads before the first tap (it can't play anyway) — see `audio/music.js#playMusic`.
 - Keep hidden-but-rendered text out of the initial DOM (e.g. the connection banner starts empty) or Lighthouse picks
   it as the LCP element.
@@ -219,6 +243,7 @@ Check with `tests/integration/trivia-rematch.mjs` (six back-to-back matches agai
 ## Adding a game (checklist)
 1. `js/games/<id>/logic.js` + `director.js` (pure, testable) → `createGame()` and `nextStep()`.
 2. `js/games/<id>/view.js` with `createView() → { mount(el, state), update(state), unmount() }`; use `createFinal()` for the podium.
+   Export it lazily from `index.js`: `export const createView = lazyView(() => import('./view.js'));`
 3. `js/games/<id>/index.js` exporting the contract in `registry.js` (start, prepare, step, livePaths, MUSIC, DEFAULT_SETTINGS,
    OPTIONS, estimateMinutes, createView, finalRanks); register it; add new player nodes to `ALL_PLAYER_NODES`.
 4. Add it to `GAMES` (`js/config.js`) with `playable: true`, add `css/<id>.css` + `<link>` in `index.html`, a music id in `audio/music.js`.
@@ -226,7 +251,7 @@ Check with `tests/integration/trivia-rematch.mjs` (six back-to-back matches agai
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (74 tests: rules of all four games, host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (85 tests: rules of all five games, host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -244,6 +269,9 @@ Check with `tests/integration/trivia-rematch.mjs` (six back-to-back matches agai
   - Stage 2 E2E: `node e2e-stage2.mjs "<browser path>" ./shots [signal|overclock|all]`. Covers Last Signal (targeting,
     eliminations, host killed mid-battle, audio unlock / background pause / crossfades / victory track) and Overclock (every
     challenge UI, identical challenges on all clients, refresh mid-challenge), and writes every new screen at 390×844 and 412×915.
+  - PULSE E2E: `node e2e-pulse.mjs "<browser path>" ./shots` (env `N=8 COUNT=2 SONG=pulse3 DIFF=hard ECHO=on`) — calibration
+    (bot taps 40 ms late → ~+55 ms), synced start, bots with different timing (judgment checks), chords, refresh mid-song,
+    backgrounding, quality-tier fallback under 12× CPU, 4× CPU frame pacing (`PROFILE=1` prints a CPU profile), Echo, podium.
   - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
@@ -260,6 +288,54 @@ Check with `tests/integration/trivia-rematch.mjs` (six back-to-back matches agai
 ## Music
 Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 -ar 44100 -ac 2 -b:a 128k`; overclock at
 120k to stay under 4 MB). The originals stay out of the repo.
+
+## PULSE (rhythm game)
+**Timing engine (`clock.js`) — never use Date/setTimeout for game timing.** `heard(perfMs)` maps a performance-clock
+time to the AudioContext time *being heard* (`getOutputTimestamp`, median-smoothed; falls back to currentTime −
+outputLatency). Song position heard = `heard(perf) − origin`, where `origin` = ctx time of song position 0 =
+`ctxAtServer(songStartAt)`. Judged/drawn time subtracts the device calibration. Taps use the pointer event's own
+`timeStamp`. Scheduled sound (song start, countdown ticks, Echo tones) is **never** calibration-shifted — only what the
+player perceives (visuals, taps) is.
+- Sync: the host ends `load` when every online participant reports `ready` (song decoded + sound unlocked + calibrated
+  or skipped) or after 30 s, then sets `songStartAt = now + 5 s` (server time). Each phone schedules its own AudioBuffer
+  so position 0 is heard at that server instant (`playSong`). Late / refreshed / back-from-background phones start
+  mid-song at the right offset; `resume()` restores published stats and counts unaccounted earlier notes as misses.
+- Judging (`logic.js`): PERFECT ±45 ms, GREAT ±90, GOOD ±135, else MISS (`expire`). A tap with no note of that lane
+  within 250 ms is a stray (−10, combo kept); a near-miss just outside GOOD is forgiven. Points 100/70/40 × multiplier
+  (×1 +1 per 10 combo, max ×4). Chords = two notes at one time; each lane is judged independently (multi-touch).
+- Calibration (`calibrate.js`): 100 BPM clicks, 4 count-in + 10 taps, median of (tap heard − click heard); MAD > 70 ms
+  = retry. Stored in `localStorage['na:pulse:calib']` with the output latency at the time; a different latency or a
+  `devicechange` event suggests recalibrating. The highway pauses while the overlay is up.
+- Renderer (`render.js`): sky + 2–4 parallax skyline layers (procedural, seeded), haze, horizon glow, wet road with
+  baked reflections, edge glow, lane flashes, streetlights, notes (+ reflections), pads, particles, rain, bokeh —
+  all pre-rendered once per resize/tier; a frame is drawImage + a few polygons. Tiers (high/mid/low: DPR 2/1.5/1, rain,
+  bokeh, particles, reflections, layers) step down when the p75 frame time > 19.5 ms. Music-reactive via the beat map's
+  `energy` (city brightness, haze colour) and the beat phase (windows, holo signs, edge lights). Preview without a game:
+  `tests/integration/pulse-preview.html?t=34&tier=2&combo=60&fx=1&song=pulse2&diff=hard`.
+- Measured: the renderer alone holds 60 fps at every tier on a 4× CPU-throttled desktop; the full game too (p95 16.8 ms).
+- Hit sounds: `settings.pulseHits` (off by default). Song volume = music bus (Music slider). Menu music fades out for
+  the whole match (`MUSIC = null`); the podium plays the victory track.
+
+**Beat maps (`scripts/build-beatmaps.py`).** The map is computed from the *encoded* file decoded back (so note times
+match exactly what browsers play — verified 0 ms offset in Chromium). Grid: librosa's tracker seeds a search over tempo
+(±4 %, 0.005 BPM) and phase that maximises onset energy over the whole song; a per-quarter drift check falls back to
+the tracked beats for genuinely variable tempo; `ONSET_BIAS` (11 ms) corrects the onset curve's lag — measured with
+`scripts/check-beatgrid.py` (synthetic drums at known times: |error| < 1 ms at 98–165 BPM). Notes sit only on quarter /
+eighth slots, picked per bar by drum strength (HPSS percussive part, low/mid/high band flux) with density scaled by the
+section energy; lanes follow the dominant band (kick left, snare centre, hats right) with a balancing nudge, no 4-in-a-
+row on one lane, no same-lane repeats faster than an eighth (a beat on Easy); chords (Hard) on strong high-energy beats.
+Trims songs > 3:15 to their most energetic ~2:50 (fade in/out), skips intros > 12 s before the beat, 2 s note lead-in.
+
+**Adding PULSE songs** (the owner drops `pulse6.mp3`, `pulse7.mp3`, … into ~/Downloads and asks to "add the new PULSE songs"):
+1. One-time setup (if `~/.cache/neural-arcade/pyenv` is gone): `py -m venv ~/.cache/neural-arcade/pyenv` then
+   `~/.cache/neural-arcade/pyenv/Scripts/python -m pip install librosa imageio-ffmpeg mutagen soundfile`.
+2. `~/.cache/neural-arcade/pyenv/Scripts/python scripts/build-beatmaps.py` — builds only new/changed songs (any
+   `pulse<N>` / `pulse-<N>` mp3/m4a/wav/ogg/flac in ~/Downloads; `--src DIR`, `--only 6,7`, `--force`). It prints BPM,
+   length, trim, steadiness (per-quarter drift should be within a few ms) and how many notes sit on a clear hit.
+3. `node --test tests/pulse.test.mjs` (every map: on the grid, playable lanes, Easy < Normal < Hard).
+4. Look at the song in `pulse-preview.html?song=pulse6` and play it once (an E2E: `SONG=pulse6 N=2 node e2e-pulse.mjs …`).
+5. Commit `audio/pulse/`, `data/pulse/` and push. Titles/artists come from ID3 tags, else "Track 06"; to rename, edit
+   `title`/`artist` in `data/pulse/manifest.json` **and** `data/pulse/pulse6.json` (a rebuild overwrites them).
 
 ## Adding content
 - **Neural Bluff questions:** append rows to `data/bluff/questions.json`:

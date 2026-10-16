@@ -1,0 +1,125 @@
+{
+ "v": 1,
+ "songs": [
+  {
+   "id": "pulse1",
+   "n": 1,
+   "title": "Track 01",
+   "artist": "",
+   "bpm": 108.0,
+   "duration": 157.806,
+   "audio": "audio/pulse/pulse1.mp3",
+   "map": "data/pulse/pulse1.json",
+   "counts": {
+    "easy": 184,
+    "normal": 317,
+    "hard": 497
+   },
+   "trim": {
+    "start": 0.0,
+    "length": 157.81,
+    "sourceLength": 157.81
+   },
+   "source": {
+    "name": "pulse1.mp3",
+    "size": 5049782
+   }
+  },
+  {
+   "id": "pulse2",
+   "n": 2,
+   "title": "Track 02",
+   "artist": "",
+   "bpm": 133.3,
+   "duration": 182.962,
+   "audio": "audio/pulse/pulse2.mp3",
+   "map": "data/pulse/pulse2.json",
+   "counts": {
+    "easy": 281,
+    "normal": 462,
+    "hard": 696
+   },
+   "trim": {
+    "start": 0.0,
+    "length": 182.96,
+    "sourceLength": 182.96
+   },
+   "source": {
+    "name": "pulse2.mp3",
+    "size": 5854772
+   }
+  },
+  {
+   "id": "pulse3",
+   "n": 3,
+   "title": "Track 03",
+   "artist": "",
+   "bpm": 140.0,
+   "duration": 136.288,
+   "audio": "audio/pulse/pulse3.mp3",
+   "map": "data/pulse/pulse3.json",
+   "counts": {
+    "easy": 203,
+    "normal": 356,
+    "hard": 575
+   },
+   "trim": {
+    "start": 28.33,
+    "length": 136.29,
+    "sourceLength": 164.62
+   },
+   "source": {
+    "name": "pulse3.mp3",
+    "size": 5267712
+   }
+  },
+  {
+   "id": "pulse4",
+   "n": 4,
+   "title": "Track 04",
+   "artist": "",
+   "bpm": 120.0,
+   "duration": 170.0,
+   "audio": "audio/pulse/pulse4.mp3",
+   "map": "data/pulse/pulse4.json",
+   "counts": {
+    "easy": 195,
+    "normal": 360,
+    "hard": 601
+   },
+   "trim": {
+    "start": 16.0,
+    "length": 170.0,
+    "sourceLength": 240.04
+   },
+   "source": {
+    "name": "pulse4.mp3",
+    "size": 7681253
+   }
+  },
+  {
+   "id": "pulse5",
+   "n": 5,
+   "title": "Track 05",
+   "artist": "",
+   "bpm": 106.7,
+   "duration": 160.131,
+   "audio": "audio/pulse/pulse5.mp3",
+   "map": "data/pulse/pulse5.json",
+   "counts": {
+    "easy": 136,
+    "normal": 258,
+    "hard": 362
+   },
+   "trim": {
+    "start": 0.0,
+    "length": 160.13,
+    "sourceLength": 160.13
+   },
+   "source": {
+    "name": "pulse5.mp3",
+    "size": 5124179
+   }
+  }
+ ]
+}

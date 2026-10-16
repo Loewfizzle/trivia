@@ -274,3 +274,25 @@ test('game night scoreboard and question history: host only', async () => {
   await assertFails(update(ref(db('p2'), `${R}/meta`), { 'used/bluff/q999': true }));
   await assertFails(update(ref(db('host'), `${R}/meta`), { 'used/bluff/q1': 'yes' }), 'boolean only');
 });
+
+function pulseRoom() {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'pulse', matchId: 'm5', si: 1, sk: '1', phase: 'song', participants: { host: true, p2: true } };
+  return r;
+}
+
+test('pulse stats: own node only, current song, bounded numbers, host wipes', async () => {
+  await seed(pulseRoom());
+  const stats = { k: 1, ready: true, s: 12345, c: 12, mc: 40, p: 30, g: 5, o: 2, m: 3, n: 40, e: 300, er: 1, at: serverTimestamp() };
+  await assertSucceeds(set(ref(db('p2'), `${R}/pulse/m5/p2`), stats));
+  await assertFails(set(ref(db('p2'), `${R}/pulse/m5/host`), stats), 'not someone else');
+  await assertFails(set(ref(db('p2'), `${R}/pulse/m4/p2`), stats), 'old match');
+  await assertFails(set(ref(db('p2'), `${R}/pulse/m5/p2`), { ...stats, k: 0 }), 'stale song index');
+  await assertFails(set(ref(db('p2'), `${R}/pulse/m5/p2`), { ...stats, s: -5 }), 'no negative scores');
+  await assertFails(set(ref(db('p2'), `${R}/pulse/m5/p2`), { ...stats, s: 99999999 }), 'bounded');
+  await assertFails(set(ref(db('p2'), `${R}/pulse/m5/p2`), { ...stats, hack: 1 }), 'no extra fields');
+  await assertFails(set(ref(db('p3'), `${R}/pulse/m5/p3`), stats), 'spectators do not write');
+  await assertFails(remove(ref(db('p2'), `${R}/pulse`)), 'players cannot wipe');
+  await assertSucceeds(remove(ref(db('host'), `${R}/pulse`)), 'host wipes on start/end');
+});

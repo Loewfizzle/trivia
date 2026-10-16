@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PULSE renderer preview</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+// Static/animated preview of the PULSE renderer for screenshot review (no game, no Firebase).
+// ?t=12.3 freezes song time; ?tier=0|1|2; ?combo=60; ?fx=1 fires hit effects; ?song=pulse2&diff=hard
+import { createRenderer } from '/js/games/pulse/render.js';
+const q = new URLSearchParams(location.search);
+const song = q.get('song') || 'pulse1';
+const diff = q.get('diff') || 'normal';
+const map = await (await fetch(`/data/pulse/${song}.json`)).json();
+const r = createRenderer(document.getElementById('c'));
+if (q.has('tier')) { r.autoTier = false; r.setTier(+q.get('tier')); }
+const notes = map.notes[diff];
+const period = (map.beats.at(-1) - map.beats[0]) / (map.beats.length - 1);
+const freeze = q.has('t') ? +q.get('t') : null;
+const combo = +(q.get('combo') || 0);
+const t0 = performance.now();
+window.__frames = 0;
+window.__pulse = r;
+function loop(now) {
+  const t = freeze ?? (now - t0) / 1000 + 10;
+  const bi = Math.max(0, Math.floor((t - map.beats[0]) / period));
+  const ph = ((t - map.beats[0]) / period) % 1;
+  r.frame({ t, notes, done: null, speed: { easy: 6.5, normal: 8, hard: 9.5 }[diff], energy: map.energy[Math.min(bi, map.energy.length - 1)] ?? 0.5,
+    pulse: Math.exp(-ph * 5), down: (bi - map.downbeat) % 4 === 0 ? Math.exp(-ph * 4) : 0, combo, now });
+  window.__frames++;
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+if (q.get('fx')) setTimeout(() => { r.hit(0, 'perfect'); r.hit(1, 'great'); r.hit(2, 'good'); if (combo >= 25) r.surge(); }, 400);
+</script>
+</body>
+</html>

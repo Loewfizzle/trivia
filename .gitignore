@@ -4,3 +4,4 @@ node_modules/
 .vercel
 .DS_Store
 tests/integration/shots/
+__pycache__/

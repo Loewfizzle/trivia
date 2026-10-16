@@ -64,6 +64,10 @@
   --accent: #ffb627; --accent-2: #ff2bd6; --accent-ink: #1c1000;
   --accent-soft: rgba(255, 182, 39, 0.12); --accent-glow: rgba(255, 182, 39, 0.5);
 }
+[data-theme='pulse'] {
+  --accent: #a374ff; --accent-2: #36e6ff; --accent-ink: #0d0420;
+  --accent-soft: rgba(163, 116, 255, 0.14); --accent-glow: rgba(163, 116, 255, 0.5);
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }

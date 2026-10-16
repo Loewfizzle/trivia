@@ -104,13 +104,36 @@ const RULES = {
   },
 };
 
+RULES.pulse = {
+  goal: 'A rhythm race down a neon highway. Everyone plays the same song at the same moment — hit the notes on the beat.',
+  sections: [
+    ['HOW TO PLAY', [
+      'Notes ride the three lanes toward you. Tap a lane the moment its note crosses the glowing line.',
+      'Two notes side by side (Hard): tap both lanes together.',
+      'The first time on a new phone, a 10-second “tap along” check syncs your audio. Switched headphones? Recalibrate in ⚙ settings.',
+    ]],
+    ['TIMING', [
+      'PERFECT within 45 ms, GREAT 90 ms, GOOD 135 ms — later than that is a MISS.',
+      'Random taps with no note nearby cost a few points.',
+    ]],
+    ['SCORING', [
+      'PERFECT 100 · GREAT 70 · GOOD 40 points, times your combo multiplier.',
+      'Every 10 notes in a row raises the multiplier, up to ×4. A miss resets it.',
+    ]],
+    ['ECHO BONUS', [
+      'After each song: the game plays a short rhythm on the lanes. Listen, then play it back from memory.',
+      'Three rounds, each one longer. Right lane + right timing = points.',
+    ]],
+  ],
+};
+
 const LEGEND = [
   ['2', 'A', 'Right letter, right spot'],
   ['1', 'B', 'In the word, wrong spot'],
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC' };
+const TAB = { cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU' };
 
 let sheet = null;
 
