@@ -17,7 +17,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 1 | **CIPHER BREACH** | Competitive Wordle race; opponents' boards live as color-only tiles; word length grows. | terminal green / cyan | ✅ Stage 1 |
 | 2 | **NEURAL BLUFF** | Bluffing trivia: write a convincing lie, find the truth among everyone's lies, score for fooling friends. 356 hand-written strange-but-true questions. | cold "Ministry of Truth" dossiers | ✅ Stage 3 |
 | 3 | **LAST SIGNAL** | Trivia battle royale: HP + shields, strike your target, escalating damage, decaying UI. | alarm red | ✅ Stage 2 |
-| 4 | **OVERCLOCK** | Ten kinds of 30-second mind challenges (Color Clash, Signal Lock, Quick Count and True or False added after launch), identical for everyone from a shared seed. | amber / magenta | ✅ Stage 2 |
+| 4 | **OVERCLOCK** | Fourteen kinds of 30-second mind challenges (Color Clash, Signal Lock, Quick Count, True or False, then Lexicon, Timeline, Closest Call and Rewire added after launch), identical for everyone from a shared seed; no type repeats within a match. | amber / magenta | ✅ Stage 2 |
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 | 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
 
@@ -99,13 +99,22 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
       sends queue and deliver, rejected ones show tap-to-retry; keyboard-aware sheet (visualViewport), swipe to close
 - [x] Chat code loads lazily and lives outside the app store — no effect on game frame pacing or first paint
 
+### ✅ Overclock update — four new challenges, no repeats
+- [x] LEXICON (9 letters, longest word counts; every set has a 7–8 letter word — 320 sets precomputed from the Cipher dictionary sources)
+- [x] TIMELINE (tap-to-order 4 items, partial credit per position; 190 sets from 18 verified fact pools with fairness gaps)
+- [x] CLOSEST CALL (keypad estimate, smooth relative-error curve, +60 to the closest; 175 questions; animated number-line reveal)
+- [x] REWIRE (rotate pipes 3×3 then 4×4, BFS power flow, solvable + scrambled by construction, refresh-safe)
+- [x] Selection: Standard = 12 different types of 14 (no Trivia weighting), Marathon = each type ≤ 2, never adjacent, spread out
+- [x] Reveal panels above the leaderboard (10 s standings for Lexicon/Timeline/Closest Call)
+- [x] Rules: `w/o/g/rw` fields; E2E `tests/integration/e2e-oc-new.mjs` (8 players, host killed mid-challenge, refresh mid-Rewire)
+
 ## Future ideas
 - **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,
   daily challenge hole with a room leaderboard, replays of everyone's best shot at the end.
 - **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host
   option to pick packs; custom word lists for Cipher Breach (kids mode, themed words).
 - **Custom rooms:** host-written Bluff questions typed in before a party ("office edition").
-- **More Overclock challenges:** ~~Stroop, reaction time, quick count, true/false~~ (shipped); next: missing letter, spot the
+- **More Overclock challenges:** ~~Stroop, reaction time, quick count, true/false, Lexicon, Timeline, Closest Call, Rewire~~ (shipped); next: missing letter, spot the
   change, end-of-match awards ("Fastest Fingers"…), a final-round wager, streak bonuses, a Quick 6-challenge mode.
 - **Team modes:** 2v2 / 4v4 variants of Last Signal and Overclock.
 - **TV / big-screen mode:** a read-only "board" view for a laptop on the TV while phones are controllers.

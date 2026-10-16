@@ -1,6 +1,6 @@
 // OVERCLOCK — authority state machine (pure).
 // Phases: ready (rules card the first time a type appears) -> play (30 s) -> standings -> ready … -> final
-import { READY_MS, BRIEF_MS, CHALLENGE_MS, STANDINGS_MS, FINAL_MS, PLAY_GRACE_MS, MODES, buildOrder, computeResults } from './logic.js';
+import { READY_MS, BRIEF_MS, CHALLENGE_MS, FINAL_MS, PLAY_GRACE_MS, MODES, buildOrder, computeResults, standingsMs } from './logic.js';
 
 const TRIVIA_WAIT_MS = 2500;
 
@@ -65,7 +65,7 @@ export function nextStep(game, ctx) {
       return {
         phase: last ? 'final' : 'standings',
         phaseStartAt: now,
-        phaseEndsAt: now + (last ? FINAL_MS : STANDINGS_MS),
+        phaseEndsAt: now + (last ? FINAL_MS : standingsMs(type)),
         [`results/${game.ci}`]: computeResults(game, ctx.boards || {}),
       };
     }

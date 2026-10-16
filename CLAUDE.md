@@ -83,7 +83,8 @@ js/games/cipher/words.js     word-list loading (lazy, per length), validation, p
 js/games/cipher/view.js      player UI: board, keyboard, opponents, intro/reveal/standings/final overlays
 js/games/cipher/index.js     module contract (see registry.js)
 js/games/signal/{logic,director,view,index}.js     LAST SIGNAL (logic.js: damage, targets, resolution, rankings, decay)
-js/games/overclock/challenges.js                   seeded generators for the 10 challenge types + INFO (names/rules)
+js/games/overclock/challenges.js                   seeded generators for the 14 challenge types + INFO (names/rules)
+js/games/overclock/banks.js                        lazy loader for data/oc/*.json (only when the match order needs it)
 js/games/overclock/{logic,director,view,index}.js  OVERCLOCK (logic.js: order, scoring, standings)
 js/games/bluff/{logic,director,bank,view,index}.js  NEURAL BLUFF (logic.js: tooClose, buildOptions, scoreRound, revealScript)
 js/games/pulse/logic.js      PURE: judging windows, tap/expire/resume, combo multiplier, Echo patterns + scoring, standings
@@ -102,6 +103,9 @@ js/games/golf/zones.js       the three worlds (sky, lights, rooftop city + rain,
 js/games/golf/ball.js        ball customization (localStorage) + picker sheet, power-up icons; no three.js (lobby-safe)
 js/games/golf/{view,index}.js  aiming, own-ball simulation + publishing, ghost replay, HUD, cards, ACE, sabotage; contract
 data/trivia/fallback.json    333 hand-written medium/hard questions: [category, difficulty, q, correct, w1, w2, w3]
+data/oc/lexicon.json         320 LEXICON sets: [9 letters, max length, "longest words", "every valid 3+ word"] (generated)
+data/oc/timeline.json        190 TIMELINE sets: [title, ask, "low → high", [[item, shown value] ×4 in correct order]] (generated)
+data/oc/closest.json         175 CLOSEST CALL questions: [category, question naming the unit, answer, unit] (hand-written)
 data/bluff/questions.json    356 strange-but-true questions: [category, "text with ____", answer, [variants], [3 house lies]]
 data/pulse/manifest.json     PULSE songs: id, title, artist, bpm, duration, note counts, trim info (generated)
 data/pulse/pulseN.json       beat map: beats[], energy[] (per beat), downbeat, notes{easy,normal,hard}: [[time, lane], …] (generated)
@@ -109,6 +113,8 @@ audio/pulse/pulseN.mp3       PULSE songs: trimmed, mono 44.1 kHz 96 kbps (genera
 data/words/answers-N.json    answer pools (N = 5,6,7) — fixed-width words concatenated in one JSON string
 data/words/valid-N.json      valid-guess dictionaries
 scripts/build-words.mjs      regenerates data/words from open sources (see header for URLs/licenses)
+scripts/build-lexicon.mjs    regenerates data/oc/lexicon.json from ENABLE + Norvig counts (same sources as build-words)
+scripts/build-timeline.mjs   verified fact pools → data/oc/timeline.json (fairness gaps: years ≥ 5 apart, quantities ≥ 1.3×)
 scripts/serve.mjs            zero-dep local static server (port 5173)
 scripts/build-beatmaps.py    PULSE song pipeline: trim/encode + beat grid + notes + manifest (see "PULSE" below)
 scripts/check-beatgrid.py    ground truth for the beat grid: synthetic drums at known times through the same pipeline
@@ -129,7 +135,8 @@ rooms/{CODE}/
   boards/{matchId}/{round}/{uid}: { g:[enc guesses], p:['01202',…], solved, done, solvedAt, at }  ← CIPHER, own, only during 'play'
   answers/{matchId}/{q}/{uid}:    { c: 0-3, at: server time }   ← SIGNAL, own, once, during 'question', alive only
   targets/{matchId}/{uid}:        uid of another participant    ← SIGNAL, own
-  oc/{matchId}/{ci}/{uid}:        { p, ok, n, done, at, doneAt } ← OVERCLOCK, own, during 'play', locked once done
+  oc/{matchId}/{ci}/{uid}:        { p, ok, n, done, at, doneAt, w?, o?, g?, rw? } ← OVERCLOCK, own, during 'play', locked once done
+                                  (w Lexicon best word, o Timeline order '2031', g Closest Call guess, rw Rewire turns for resume)
   lies/{matchId}/{round}/{uid}:   { t ≤ 40 chars, at }          ← BLUFF, own, during 'write' (editable)
   votes/{matchId}/{round}/{uid}:  { k: optionKey, like?, at }   ← BLUFF, own, during 'vote' (changeable)
   night/{matchId}:   { g: gameId, p: { uid: 3|2|1|0 }, n: { uid: name }, at }  ← host; game-night scoreboard
@@ -160,9 +167,16 @@ phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{
 Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, level})`; no challenge content is stored.
 Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge. `ok` may be fractional
 (Quick Count: off by one = 0.5; Signal Lock: per-round reaction credit 0.1–1, scored as round(160·ok/parts) with no
-separate speed bonus). Order: Trivia Lightning keeps 1 slot in 6, the other 9 types share the rest evenly (`orderBase`).
+separate speed bonus). **Order (`logic.js#buildOrder`, seeded): no type repeats** — Quick/Standard (≤ 14) are all different;
+Marathon (24) uses each type at most twice, never back to back, repeats ≥ 8 apart.
+Newer types: **lexicon** (6 parts; ok = 6 − (max − best length), only the longest word counts, speed bonus only at max),
+**timeline** (4 parts, one per item in the right place), **closest** (1 part, credit = smooth curve: ≤ 5 % off = 1, ≥ 60 % = 0;
+no speed bonus — the closest player(s) get +60 instead, decided in `computeResults` from `ok`), **rewire** (2 parts; ok = solved +
+0.6·reach for the unsolved one; `genRewire` builds a solved path then scrambles, always solvable). Bank-backed types pick
+`bankIndex(seed, type, occ)` from a shuffled per-match deck so a repeat in Marathon never deals the same entry. Standings
+last 10 s for lexicon/timeline/closest (`standingsMs`) to fit the reveal panel.
 Types: unscramble, memory, oddone, math, pattern, trivia, stroop (Color Clash), reflex (Signal Lock), count (Quick Count),
-truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
+lexicon, timeline, closest (Closest Call), rewire, truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
 Signal Lock times taps from the pointerdown event against the frame the flash painted (performance.now clock, local only).
 
 BLUFF `game`: `{ id:'bluff', matchId, settings{mode}, rounds, participants, round, rk, phase: intro|write|vote|reveal|standings|final,
@@ -287,7 +301,7 @@ Totals are derived from `results` (lowest strokes wins).
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (106 tests: rules of all six games incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (111 tests: rules of all six games incl. Overclock's 14 types (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -320,6 +334,9 @@ Totals are derived from `results` (lowest strokes wins).
     sends, grouping, typing indicators, unread + sound, profanity toggle, throttle hint, rules-rejected send → retry,
     offline send, fake-keyboard layout, kick (access lost), late joiner + refresh history, system lines, lock/unlock in
     all six games (badge counts, no sound/toast), golf frame pacing while the room chats, host clear (40 checks).
+  - Overclock new challenges: `node e2e-oc-new.mjs "<browser path>" ./shots` (N=8) — Lexicon/Timeline/Closest Call/Rewire played
+    through the UI, identical puzzles on every phone, scoring vs the host's results, host killed mid-Timeline, refresh
+    mid-Rewire, every new screen + reveal at 390×844 and 412×915.
   - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
@@ -482,6 +499,12 @@ under ~40 % and "random" < 2 %. Then `node --test tests/golf.test.mjs`, and play
   laws, words, pop, sports, misc (labels in `bluff/view.js#CAT`).
 - **Fallback trivia (Last Signal / Overclock):** append `[category, "medium"|"hard", question, correct, wrong1, wrong2, wrong3]`
   to `data/trivia/fallback.json`; categories must match `js/trivia/categories.js`. `tests/trivia.test.mjs` validates it.
+- **Overclock CLOSEST CALL:** append `[category, "Question that names the unit?", answer, "unit"]` to `data/oc/closest.json`.
+  Only stable, well-documented numbers (no populations/records that drift); the unit must be in the question.
+  `tests/overclock-new.test.mjs` checks the shape and count.
+- **Overclock TIMELINE:** add items to a pool (or a new pool) in `scripts/build-timeline.mjs` — `[label, sortValue, "shown value"]`
+  — then `node scripts/build-timeline.mjs`. Avoid disputed dates/measurements; the fairness gaps reject near-ties.
+- **Overclock LEXICON:** `node scripts/build-lexicon.mjs <dir with enable1.txt + count_1w.txt>` (download URLs in its header).
 - **Cipher Breach / Unscramble words:** edit the blocklist or sizes in `scripts/build-words.mjs` and rebuild (below).
 
 ## Word lists

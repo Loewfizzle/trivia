@@ -226,7 +226,16 @@ test('overclock progress: own board during play, consistent counts, locked once 
   await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), prog(2, 3, false)), 'ok cannot exceed p');
   await assertFails(set(ref(db('p2'), `${R}/oc/m3/1/p2`), prog(1, 1, false)), 'not an old challenge');
   await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/host`), prog(1, 1, false)), 'not someone else');
-  await assertSucceeds(set(ref(db('p2'), `${R}/oc/m3/2/p2`), prog(4, 4, true)));
+  // the newer challenges' extra fields: Lexicon best word, Timeline order, Closest Call guess, Rewire turns
+  await assertSucceeds(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(2, 2, false), w: 'compact' }));
+  await assertSucceeds(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(2, 2, false), rw: '0123012301230123' }));
+  await assertSucceeds(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(2, 2, false), g: 305.5 }));
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(2, 2, false), w: 'COMPACT!' }), 'lowercase letters only');
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(2, 2, false), w: 'abcdefghij' }), '9 letters max');
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(2, 2, false), o: '0124' }), 'order uses 0–3');
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(2, 2, false), g: -5 }), 'no negative guesses');
+  await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(2, 2, false), rw: '4' }), 'turns are 0–3');
+  await assertSucceeds(set(ref(db('p2'), `${R}/oc/m3/2/p2`), { ...prog(4, 4, true), o: '2031' }));
   await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), prog(4, 4, true)), 'finished boards are locked');
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'standings'));
   await assertFails(set(ref(db('host'), `${R}/oc/m3/2/host`), prog(1, 1, false)), 'challenge closed');
