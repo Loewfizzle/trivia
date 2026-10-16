@@ -108,6 +108,10 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] Reveal panels above the leaderboard (10 s standings for Lexicon/Timeline/Closest Call)
 - [x] Rules: `w/o/g/rw` fields; E2E `tests/integration/e2e-oc-new.mjs` (8 players, host killed mid-challenge, refresh mid-Rewire)
 
+### ✅ Idle rooms close
+- [x] A room with no game for an hour closes: 10-minute lobby countdown (host can KEEP OPEN), live close for everyone,
+  and phones returning the next day land on the title with a message instead of the stale room
+
 ## Future ideas
 - **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,
   daily challenge hole with a room leaderboard, replays of everyone's best shot at the end.

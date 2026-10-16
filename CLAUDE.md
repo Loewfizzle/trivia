@@ -235,6 +235,13 @@ Totals are derived from `results` (lowest strokes wins).
 - **Room-level side writes:** a director step may carry `$room: { 'meta/used/bluff/ID': true }`; `host.js` strips it and
   writes it in the same atomic room update. When a step enters `final`, `host.js` also writes `night/{matchId}` from
   `module.finalRanks(game)` (idempotent per match).
+- **Idle rooms close after an hour without a game** (`ROOM_IDLE_MS`, `room-logic.js#idleLeft/roomIdle`). `meta/activeAt` is
+  stamped when a game starts / returns to the lobby and every 10 min while one runs (host beat) — never just for sitting in
+  the lobby. The lobby shows ROOM CLOSES IN n MIN for the last 10 min (host: KEEP OPEN re-stamps it). Past the hour the
+  host's tick deletes the room (everyone: ROOM CLOSED — NO GAME FOR AN HOUR); non-hosts leave on their own 90 s later.
+  A phone coming back later (`resumeSession` → `'idle'`) deletes the stale room, drops the session + `?room=` and shows the
+  title with a message; joining an idle room by code fails like a missing one. Rules: anyone may delete a room whose
+  `activeAt` is > 1 h old (`cleanupStaleRooms` uses the same cutoff). E2E: `tests/integration/e2e-idle.mjs`.
 - **Rematch / late joiners:** `rematch()` (host.js) restarts the same game with `meta.settings[gameId]` and every
   connected player — late joiners (who spectate the running game) are dealt in automatically.
 - **Live player data:** each module's `livePaths(game)` names the player-written paths for the current step (e.g. this
