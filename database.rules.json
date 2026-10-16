@@ -229,6 +229,29 @@
             }
           }
         },
+        "pulse": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$match": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'pulse' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + $uid).exists()",
+              ".validate": "newData.hasChildren(['k', 's', 'at']) && newData.child('k').val() === root.child('rooms/' + $code + '/game/si').val()",
+              "k": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9" },
+              "ready": { ".validate": "newData.isBoolean()" },
+              "s": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000" },
+              "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000" },
+              "mc": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000" },
+              "p": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000" },
+              "g": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000" },
+              "o": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000" },
+              "m": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000" },
+              "n": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000" },
+              "e": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 30000" },
+              "er": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10" },
+              "at": { ".validate": "newData.isNumber() && newData.val() === now" },
+              "$other": { ".validate": false }
+            }
+          }
+        },
         "night": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid",
           "$match": {

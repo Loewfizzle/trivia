@@ -15,7 +15,7 @@ const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
  * winnerLine(name): subtitle for a single winner.
  * scoreLabel: small caption under podium scores (e.g. 'HP').
  */
-export function createFinal({ rows, players, me, presence, winnerLine, scoreLabel = '', kicker = 'MATCH COMPLETE' }) {
+export function createFinal({ rows, players, me, presence, winnerLine, scoreLabel = '', kicker = 'MATCH COMPLETE', extra = null }) {
   const cancelers = [];
   const podium = h('div.podium');
   const places = [rows[1], rows[0], rows[2]];
@@ -61,6 +61,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       h('div.winner-name', tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
     podium,
     leaderboard(rows, players, { me, presence, stagger: 60 }),
+    extra,
     actions);
   const t = setTimeout(() => {
     el.classList.add('crowned');

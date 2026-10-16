@@ -12,8 +12,9 @@ import * as cipher from './cipher/index.js';
 import * as signal from './signal/index.js';
 import * as overclock from './overclock/index.js';
 import * as bluff from './bluff/index.js';
+import * as pulse from './pulse/index.js';
 
-export const GAME_MODULES = { cipher, signal, overclock, bluff };
+export const GAME_MODULES = { cipher, signal, overclock, bluff, pulse };
 
 export function livePathsFor(game) {
   const mod = game && GAME_MODULES[game.id];
@@ -26,4 +27,4 @@ export function liveKeyFor(game) {
 }
 
 // Every player-writable node any game uses; wiped when a match starts or ends.
-export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes'];
+export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse'];

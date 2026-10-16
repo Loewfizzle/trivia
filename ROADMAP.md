@@ -10,7 +10,7 @@ returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 Hosted at **trivia.loewfizzle.com** (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
 Backend: Firebase Realtime Database + Anonymous Auth.
 
-## The games — all four are playable
+## The games — all five are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
@@ -18,6 +18,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 2 | **NEURAL BLUFF** | Bluffing trivia: write a convincing lie, find the truth among everyone's lies, score for fooling friends. 356 hand-written strange-but-true questions. | cold "Ministry of Truth" dossiers | ✅ Stage 3 |
 | 3 | **LAST SIGNAL** | Trivia battle royale: HP + shields, strike your target, escalating damage, decaying UI. | alarm red | ✅ Stage 2 |
 | 4 | **OVERCLOCK** | Ten kinds of 30-second mind challenges (Color Clash, Signal Lock, Quick Count and True or False added after launch), identical for everyone from a shared seed. | amber / magenta | ✅ Stage 2 |
+| 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 
 ## Stages
 
@@ -48,6 +49,19 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] 8 players in 8 separate browser contexts played a full game of all four games end to end; 55–60 fps with
       8 players' live updates
 - [x] Consistency pass across every screen
+
+### ✅ Stage 4 — PULSE (multiplayer rhythm game)
+- [x] Song pipeline (`scripts/build-beatmaps.py`): trim/fade/mono re-encode, beat grid searched to 0.005 BPM and
+      verified against synthetic ground truth (< 1 ms), drum-aware notes on quarter/eighth slots, 3 difficulties,
+      musical lane assignment, energy curve, manifest; 5 songs processed
+- [x] Timing engine on the Web Audio output clock; PERFECT/GREAT/GOOD/MISS ±45/90/135 ms, strays, combo ×1–×4, chords
+- [x] First-run calibration (tap along) + Recalibrate in settings + "audio device changed" hint
+- [x] Canvas night drive: 3D wet-road highway, procedural parallax skyline, haze, rain, bokeh, music-reactive city,
+      hit flares, streak lights, milestone surges; automatic quality tiers; 60 fps on a 4× throttled CPU
+- [x] Synced multiplayer start (server time), local judging, throttled live leaderboard, mid-song rejoin/resume
+- [x] Echo bonus rounds (3 per song, growing patterns), song intro card + beat-synced countdown, standings,
+      podium with accuracy / max combo / judgment counts, game-night points, rematch
+- [x] Host options: song (or Random), 1–2 songs, difficulty for everyone, Echo on/off; PULSE card art; hit-sound toggle
 
 ## Future ideas
 - **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host

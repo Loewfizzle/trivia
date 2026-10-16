@@ -84,6 +84,7 @@ export function onUnlock(fn) {
 /** Called whenever the context (re)starts running — e.g. after iOS let it resume. */
 export function onResume(fn) {
   resumeListeners.add(fn);
+  return () => resumeListeners.delete(fn);
 }
 
 // Retry a resume (no-op when already running or not yet unlocked by a gesture).

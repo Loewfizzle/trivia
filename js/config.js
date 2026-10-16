@@ -57,4 +57,5 @@ export const GAMES = [
   { id: 'signal', name: 'LAST SIGNAL', theme: 'signal', tag: 'TRIVIA ROYALE', blurb: '100 HP. Answer fast, strike a rival. Last one standing.', playable: true },
   { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: true },
   { id: 'overclock', name: 'OVERCLOCK', theme: 'overclock', tag: 'MIND GAUNTLET', blurb: 'Rapid 30-second brain spikes. Live leaderboard.', playable: true },
+  { id: 'pulse', name: 'PULSE', theme: 'pulse', tag: 'RHYTHM RUN', blurb: 'The road is the beat. Hit every note, chase the combo.', playable: true, art: 'pulse' },
 ];

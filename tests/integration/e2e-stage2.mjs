@@ -92,6 +92,7 @@ async function makeRoom(sizes, slots = ['a', 'b', 'c']) {
   const join = async (slot, name, size) => {
     const P = await open(slot, `&room=${code}`, size);
     await P.waitForSelector('.invite-card');
+    await P.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 }); // boot screen faded
     await P.bringToFront();
     await P.click('.invite-card');
     await P.waitForSelector('.input-code');
