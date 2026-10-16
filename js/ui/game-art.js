@@ -100,7 +100,35 @@ ${glow('ba-glow', 1.4)}</defs>
 <rect x="67.5" y="83.5" width="33" height="13" fill="none" stroke="#d7262e" stroke-width="1"/>
 <rect x="71" y="87" width="26" height="2.6" fill="#d7262e"/><rect x="74" y="91.6" width="20" height="2" fill="#d7262e" opacity="0.8"/></g></svg>`;
 
-const ART = { overclock, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF };
+// NEON PAR: a rooftop green floating over the night city — teal turf glow, the pink flag, a putt on its way
+const GOLF = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<linearGradient id="ga-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#04060f"/><stop offset="0.5" stop-color="#101a3a"/><stop offset="1" stop-color="#2a1640"/></linearGradient>
+<linearGradient id="ga-turf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d3f40"/><stop offset="1" stop-color="#0a2a2e"/></linearGradient>
+<radialGradient id="ga-cup" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ff4fa3" stop-opacity="0.7"/><stop offset="1" stop-color="#ff4fa3" stop-opacity="0"/></radialGradient>
+<radialGradient id="ga-ball" cx="0.38" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#9ffbe8"/><stop offset="1" stop-color="#16b89c"/></radialGradient>
+${glow('ga-glow', 1.8)}${glow('ga-soft', 3.5)}</defs>
+<rect width="120" height="120" fill="url(#ga-sky)"/>
+<g fill="#0b1124"><path d="M0 70V48h7v-8h6v8h5V34h8v36zM28 70V44h6v-6h7v32zM46 70V52h9V40h6v30zM66 70V36h4v-8h3v8h4v34zM82 70V46h10v24zM96 70V30h9v40zM108 70V50h12v20z"/></g>
+<g fill="#ffcf8a" opacity="0.55"><rect x="9" y="44" width="2" height="2"/><rect x="21" y="38" width="2" height="2"/><rect x="21" y="46" width="2" height="2"/><rect x="36" y="48" width="2" height="2"/><rect x="57" y="44" width="2" height="2"/><rect x="69" y="40" width="2" height="2"/><rect x="69" y="52" width="2" height="2"/><rect x="99" y="36" width="2" height="2"/><rect x="99" y="48" width="2" height="2"/><rect x="85" y="52" width="2" height="2"/><rect x="112" y="56" width="2" height="2"/></g>
+<g fill="#7fe3ff" opacity="0.5"><rect x="31" y="54" width="2" height="2"/><rect x="88" y="58" width="2" height="2"/><rect x="102" y="58" width="2" height="2"/></g>
+<circle cx="71" cy="27" r="1.6" fill="#ff3355" filter="url(#ga-glow)"/><circle cx="71" cy="27" r="0.8" fill="#ffd0d8"/>
+<path d="M30 66 L90 66 L116 112 L4 112 Z" fill="#0a0f1d"/>
+<path d="M33 64 L87 64 L110 104 L10 104 Z" fill="url(#ga-turf)"/>
+<path d="M33 64 L87 64 L110 104 L10 104 Z" fill="none" stroke="#2ff5d2" stroke-width="2.2" filter="url(#ga-soft)" opacity="0.8"/>
+<path d="M33 64 L87 64 L110 104 L10 104 Z" fill="none" stroke="#b9fff2" stroke-width="0.8"/>
+<path d="M10 104 L110 104 L110 108 L10 108 Z" fill="#071a1c"/>
+<g stroke="#2ff5d2" stroke-width="0.4" opacity="0.18"><path d="M45 64 L37 104 M60 64 L60 104 M75 64 L83 104 M24 80 H96 M17 92 H103"/></g>
+<ellipse cx="68" cy="71" rx="9" ry="3.6" fill="url(#ga-cup)"/>
+<ellipse cx="68" cy="71" rx="3.2" ry="1.3" fill="#05030a" stroke="#ff4fa3" stroke-width="0.8"/>
+<path d="M68 71 V46" stroke="#e8ecf6" stroke-width="0.9"/>
+<path d="M68 46 L80 49.5 L68 53 Z" fill="#ff4fa3" filter="url(#ga-glow)"/><path d="M68 46 L80 49.5 L68 53 Z" fill="#ff7fbf"/>
+<g fill="#ff4fa3"><circle cx="64.6" cy="75.5" r="0.9" opacity="0.5"/><circle cx="61" cy="80" r="1.1" opacity="0.65"/><circle cx="56.8" cy="85" r="1.3" opacity="0.8"/><circle cx="52.2" cy="90.3" r="1.5" opacity="0.95"/></g>
+<path d="M50 94 Q41 99 30 101" stroke="#2ff5d2" stroke-width="3" stroke-linecap="round" opacity="0.25" fill="none" filter="url(#ga-glow)"/>
+<circle cx="48" cy="95" r="4.6" fill="#2ff5d2" filter="url(#ga-soft)" opacity="0.8"/>
+<circle cx="48" cy="95" r="3.4" fill="url(#ga-ball)"/>
+<ellipse cx="48.6" cy="99.4" rx="3.6" ry="0.9" fill="#000" opacity="0.4"/></svg>`;
+
+const ART = { overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF };
 
 /** The card's artwork tile, or null for a game without art (falls back to its initials). */
 export function gameArt(id) {

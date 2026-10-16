@@ -139,6 +139,28 @@ const SOUNDS = {
   ocCorrect: () => { tone({ f: hz('E5'), dur: 0.25, gain: 0.035, rev: 0.25 }); tone({ f: hz('B5'), at: 0.05, dur: 0.35, gain: 0.03, rev: 0.3 }); },
   ocWrong: () => { tone({ f: hz('E4'), dur: 0.18, gain: 0.04, lp: 1200, rev: 0.15 }); tone({ f: hz('C4'), at: 0.1, dur: 0.28, gain: 0.04, lp: 900, rev: 0.2 }); },
   node: ({ i = 0 } = {}) => tone({ f: hz(PENTA[i % PENTA.length]), dur: 0.3, gain: 0.03, rev: 0.3, lp: 4000 }),
+  // NEON PAR
+  putt: ({ p = 0.5 } = {}) => { // wooden-ish tock, brighter + louder with power
+    tone({ f: 900 + p * 700, to: 420, dur: 0.07, gain: 0.03 + p * 0.04, type: 'triangle', lp: 2400 + p * 2600, rev: 0.08 });
+    noise({ dur: 0.045, gain: 0.012 + p * 0.02, f: 2600, q: 1.4, rev: 0.05 });
+  },
+  bounce: ({ v = 0.5 } = {}) => tone({ f: 260 + v * 140, to: 150, dur: 0.06, gain: 0.006 + Math.min(1, v) * 0.022, type: 'triangle', lp: 1200, rev: 0.08 }),
+  cup: () => {
+    [0, 0.07, 0.13].forEach((at, i) => tone({ f: 520 - i * 60, to: 300, at, dur: 0.06, gain: 0.03 - i * 0.008, type: 'triangle', lp: 1800, rev: 0.12 }));
+    arp(['E5', 'G5', 'C6'], 0.06, { at: 0.2, dur: 0.5, gain: 0.025, rev: 0.35, dly: 0.12, lp: 4000 });
+  },
+  portal: () => { noise({ dur: 0.45, gain: 0.03, f: 300, to: 3200, q: 2.5, rev: 0.4 }); tone({ f: hz('A4'), to: hz('A5'), dur: 0.4, gain: 0.02, rev: 0.4 }); },
+  boost: () => { tone({ f: 220, to: 880, dur: 0.22, gain: 0.025, type: 'sawtooth', lp: 1800, rev: 0.15 }); noise({ dur: 0.2, gain: 0.012, f: 2000, to: 5000, rev: 0.1 }); },
+  bumper: () => { tone({ f: hz('E6'), dur: 0.12, gain: 0.03, type: 'square', lp: 3000, rev: 0.2 }); tone({ f: hz('B5'), at: 0.03, dur: 0.18, gain: 0.025, type: 'triangle', lp: 3000, rev: 0.25 }); },
+  pickup: () => arp(['C5', 'G5', 'C6', 'E6'], 0.045, { dur: 0.3, gain: 0.025, type: 'triangle', rev: 0.3, dly: 0.15, lp: 5000 }),
+  powerUse: () => { noise({ dur: 0.35, gain: 0.02, f: 800, to: 4000, q: 1.5, rev: 0.3 }); tone({ f: hz('C5'), to: hz('C6'), dur: 0.3, gain: 0.025, rev: 0.3 }); },
+  sabotage: () => { [0, 0.16].forEach(at => tone({ f: hz('E5'), to: hz('B4'), at, dur: 0.14, gain: 0.035, type: 'square', lp: 1600, rev: 0.15 })); noise({ dur: 0.3, gain: 0.015, type: 'lowpass', f: 900, rev: 0.2 }); },
+  respawn: () => { arp(['A5', 'E5', 'A4'], 0.035, { dur: 0.1, gain: 0.02, type: 'square', lp: 2600, rev: 0.1 }); noise({ at: 0.15, dur: 0.25, gain: 0.015, f: 500, to: 3000, q: 3, rev: 0.25 }); },
+  splash: () => noise({ dur: 0.6, gain: 0.02, type: 'lowpass', f: 1400, to: 200, rev: 0.3 }),
+  ace: () => {
+    arp(['C5', 'E5', 'G5', 'C6', 'E6', 'G6'], 0.07, { dur: 0.9, gain: 0.035, type: 'triangle', rev: 0.5, dly: 0.25, lp: 5200 });
+    noise({ dur: 1.4, gain: 0.02, f: 6000, to: 1200, rev: 0.5 });
+  },
   victory: () => {
     arp(['C4', 'G4', 'C5', 'E5', 'G5', 'B5', 'D6'], 0.09, { dur: 1.1, gain: 0.035, type: 'triangle', rev: 0.5, dly: 0.25, lp: 4200 });
     ['C4', 'E4', 'G4', 'B4'].forEach(n => tone({ f: hz(n), at: 0.6, dur: 2.2, gain: 0.012, attack: 0.4, rev: 0.6, lp: 1600 }));

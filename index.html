@@ -53,6 +53,8 @@
   <!-- fonts load without blocking first paint; the boot screen waits briefly for them -->
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap"></noscript>
+  <!-- three.js for NEON PAR: only fetched when a NEON PAR match starts (the golf view imports it) -->
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
   <link rel="modulepreload" href="js/app.js">
   <!-- Core styles load without blocking the inline boot screen; the app stays hidden until all three
        have arrived (html.css-ready), so there is still never a flash of unstyled content. -->
@@ -69,6 +71,7 @@
   <link rel="stylesheet" href="css/overclock.css" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/bluff.css" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/pulse.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="css/golf.css" media="print" onload="this.media='all'">
   <!-- per-game styles aren't needed for the first paint, so they load without blocking it -->
 </head>
 <body>

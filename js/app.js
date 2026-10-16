@@ -48,7 +48,9 @@ function musicFor(st) {
   if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game) return ['menu'];
   const mod = GAME_MODULES[st.game.id];
   // MUSIC: null = no music during the match (PULSE: the song is the music; menu music fades out)
-  const track = mod && 'MUSIC' in mod ? mod.MUSIC : 'menu';
+  // musicFor(game): a track that changes during the match (NEON PAR: one per zone) -> [track, fallback]
+  if (mod && mod.musicFor && st.game.phase !== 'final') return mod.musicFor(st.game);
+  const track = mod && mod.musicFor ? mod.musicFor(st.game)[0] : mod && 'MUSIC' in mod ? mod.MUSIC : 'menu';
   return st.game.phase === 'final' ? ['victory', track] : [track];
 }
 

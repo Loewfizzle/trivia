@@ -1,7 +1,7 @@
 # NEURAL ARCADE — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each). Static site on Vercel
-(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All four build stages are complete
+(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All five build stages are complete
 (see `ROADMAP.md` for what shipped and the future-ideas list). **Keep this file and ROADMAP.md updated as you work.**
 
 ## Ground rules
@@ -33,11 +33,12 @@ css/signal.css           LAST SIGNAL (decay layers, hit fx, FLATLINE)
 css/overclock.css        OVERCLOCK (challenge UIs, rules cards)
 css/bluff.css            NEURAL BLUFF (dossiers, stamps, redaction bars, reveal exhibits)
 css/pulse.css            PULSE (HUD, song/Echo cards, countdown, results table, calibration overlay)
+css/golf.css             NEON PAR (HUD, zone/par cards, scorecard table, ACE cinematic, sabotage sheet, fog, ball picker)
 manifest.webmanifest     PWA manifest (standalone, portrait, icons)
 sw.js                    network-first service worker for same-origin static files only (never Firebase/CDNs/audio)
 assets/                  icon set (icon-192/512, maskable, apple-touch, favicon), og.png 1200×630 link preview
 firebase.json            emulator config for local testing (repo root so it can reference database.rules.json)
-audio/music/*.mp3        music (menu, cipher-breach, last-signal, overclock, neural-bluff, victory), 128 kbps, ~0.3–3.5 MB each
+audio/music/*.mp3        music (menu, cipher-breach, last-signal, overclock, neural-bluff, victory, golf-rooftops/-cyber/-arcade), 112–128 kbps, < 4 MB each
 js/config.js             APP_NAME, limits, timeouts, colors, avatars (SVG paths), GAMES registry metadata
 js/firebase-config.js    the user's Firebase web config (the ONLY place it lives)
 js/firebase.js           init (per identity slot), emulator mode, re-exported db helpers, serverNow()
@@ -86,6 +87,14 @@ js/games/pulse/songs.js      manifest / beat map / audio loading (decode once, k
 js/games/pulse/calibrate.js  "tap along with the beat" overlay (first run + Settings -> Recalibrate)
 js/games/pulse/render.js     canvas renderer: night city + 3D highway, pre-rendered sprites, auto quality tiers
 js/games/pulse/{view,index}.js  HUD, input (multi-touch), song/Echo controllers, overlays; module contract
+js/games/golf/physics.js     PURE 2D ball physics (120 Hz fixed step, swept collision, slopes/boosts/bumpers/portals/gaps/movers/cup)
+js/games/golf/holes/*.js     one file per hole (data only) + index.js (order, ZONES, MODES); shape.js helpers
+js/games/golf/logic.js       PURE: scores, standings, scorecard names, sabotage eligibility/expiry, match stats
+js/games/golf/director.js    PURE state machine: play (countdown, wrap) -> card … final
+js/games/golf/scene.js       three.js renderer: course meshes from hole data, balls/ghosts/trails, camera, fx, quality tiers
+js/games/golf/zones.js       the three worlds (sky, lights, rooftop city + rain, cyberspace grid + data, arcade cabinet)
+js/games/golf/ball.js        ball customization (localStorage) + picker sheet, power-up icons; no three.js (lobby-safe)
+js/games/golf/{view,index}.js  aiming, own-ball simulation + publishing, ghost replay, HUD, cards, ACE, sabotage; contract
 data/trivia/fallback.json    333 hand-written medium/hard questions: [category, difficulty, q, correct, w1, w2, w3]
 data/bluff/questions.json    356 strange-but-true questions: [category, "text with ____", answer, [variants], [3 house lies]]
 data/pulse/manifest.json     PULSE songs: id, title, artist, bpm, duration, note counts, trim info (generated)
@@ -97,6 +106,7 @@ scripts/build-words.mjs      regenerates data/words from open sources (see heade
 scripts/serve.mjs            zero-dep local static server (port 5173)
 scripts/build-beatmaps.py    PULSE song pipeline: trim/encode + beat grid + notes + manifest (see "PULSE" below)
 scripts/check-beatgrid.py    ground truth for the beat grid: synthetic drums at known times through the same pipeline
+scripts/validate-holes.mjs   NEON PAR bot: proves every hole is finishable at/under par, measures ace odds (see NEON PAR)
 database.rules.json          RTDB security rules (paste into Firebase console)
 tests/*.test.mjs             unit + whole-match simulation tests (node --test, no deps)
 tests/integration/           security-rules tests + browser end-to-end tests (need emulator + deps)
@@ -120,6 +130,7 @@ rooms/{CODE}/
   meta/used/bluff/{questionId}: true                            ← host; Bluff questions already used in this room
   meta/used/trivia/{qHash}: true                                ← host; trivia questions any match in this room has banked
   pulse/{matchId}/{uid}: { k: songIndex, ready, s, c, mc, p, g, o, m, n, e, er, at }  ← PULSE, own, current song only
+  golf/{matchId}/{uid}:  { h, s, x, y, st, f?, sh?, b?, pu, pk, ls, le, ri?, rt?, sab?, ball, at }  ← NEON PAR, own, current hole, 'play' only
 ```
 All player-writable nodes are listed in `ALL_PLAYER_NODES` (registry.js) and wiped by the host on match start/end.
 CIPHER `game`: `{ id:'cipher', matchId, rounds, lengths[], roundMs, maxGuesses, participants{uid:true},
@@ -173,6 +184,14 @@ si, sk, phase: load|song|echo|standings|final, songStartAt, echoStartAt, phaseSt
 Players publish their own stats (`pulse/…`, every 500 ms + on song end / Echo rounds); the host snapshots them into
 `results/{si}` at the end of the song (and `results/{si}/{uid}/e` after Echo). Totals = Σ (s + e).
 
+NEON PAR `game`: `{ id:'golf', matchId, settings{mode,power,sabotage}, holes[holeNumbers], participants, hi, hk,
+phase: play|card|final, phaseStartAt, playStartAt, phaseEndsAt, cdEndsAt, wrapAt, results{hi:{uid:{s}}} }`.
+Player node `golf/{matchId}/{uid}`: `h` hole index, `s` strokes, `x,y` rest spot, `st` aim|roll|done, `f` final score (locked
+by the rules; = s, or 7), `sh` the current/last shot `{x,y,a,p,t,pu}` (t = hole clock seconds), `b` the latest ~10 Hz ball
+sample `{x,y,z,vx,vy,t}`, `pu` held power-up, `pk` bitmask of pickups taken this hole, `ls/le` last shot start/end (server ms),
+`ri/rt` riding a moving platform, `sab {h,to,k,at}` the sabotage this player sent this hole (once), `ball {c,f,t}` their look.
+Totals are derived from `results` (lowest strokes wins).
+
 ## Multiplayer mechanics
 - **Identity:** anonymous Firebase user per *slot*. Each slot is a separately-named Firebase app, so its
   auth persists independently. Phones are slot 1.
@@ -213,7 +232,7 @@ Players publish their own stats (`pulse/…`, every 500 ms + on song end / Echo 
 - `window.__arcade.musicDebug()` exposes music state (the E2E asserts crossfades with it).
 - To replace music: drop an MP3 with the same name into `audio/music/` (≈128 kbps, < 4 MB).
 
-## Loading, PWA, previews (Lighthouse mobile: 99 performance / 100 accessibility / 100 best practices / 100 SEO)
+## Loading, PWA, previews (Lighthouse mobile: 98–99 performance / 100 accessibility / 100 best practices / 100 SEO)
 - `index.html` inlines the boot screen styles, so it paints right after the HTML. **All stylesheets are non-blocking**
   (`media=print` + onload swap); the three core sheets call `__cssDone()` and the page keeps everything except `#boot`
   hidden until `html.css-ready` — no flash of unstyled content. Per-game sheets load the same way, without gating.
@@ -256,7 +275,7 @@ Players publish their own stats (`pulse/…`, every 500 ms + on song end / Echo 
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (85 tests: rules of all five games, host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (101 tests: rules of all six games incl. NEON PAR physics + director, host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -277,6 +296,14 @@ Players publish their own stats (`pulse/…`, every 500 ms + on song end / Echo 
   - PULSE E2E: `node e2e-pulse.mjs "<browser path>" ./shots` (env `N=8 COUNT=2 SONG=pulse3 DIFF=hard ECHO=on`) — calibration
     (bot taps 40 ms late → ~+55 ms), synced start, bots with different timing (judgment checks), chords, refresh mid-song,
     backgrounding, quality-tier fallback under 12× CPU, 4× CPU frame pacing (`PROFILE=1` prints a CPU profile), Echo, podium.
+  - NEON PAR E2E: `node e2e-golf.mjs "<browser path>" ./shots` (env `N=8 MODE=full|quick6|quick3 HOLES=n SHOTS=0`) —
+    lobby ball picker, intro cards, a real slingshot drag + cancel, bots that aim with the physics engine, ACE on every
+    phone, ghost smoothness (60 Hz probe), refresh mid-roll (exact replay), host killed mid-hole + rejoin, power-ups,
+    sabotage, the 30 s countdown, scorecards, final, rematch, renderer memory per hole, 4× CPU frame pacing.
+    Validation bot: `node scripts/validate-holes.mjs` (all holes, ~3 min) / `QUICK=1` (coarse).
+    `GPU=1` uses the real GPU (frame pacing; default is software WebGL). Scene-only preview (no Firebase):
+    `tests/integration/golf-preview.html?hole=6&tier=2&ghosts=7&at=tee&fly=1`; render profile of every hole at 4x CPU and
+    phone pixel density: `node golf-profile.mjs "<browser path>" [tier]` (measured: 60 fps on all nine at the high tier).
   - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
@@ -291,6 +318,7 @@ Players publish their own stats (`pulse/…`, every 500 ms + on song end / Echo 
 - Web config goes in `js/firebase-config.js` (public by design; the rules are the security).
 
 ## Music
+NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`) are the owner's, re-encoded at 112 kbps stereo.
 Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 -ar 44100 -ac 2 -b:a 128k`; overclock at
 120k to stay under 4 MB). The originals stay out of the repo.
 
@@ -341,6 +369,65 @@ Trims songs > 3:15 to their most energetic ~2:50 (fade in/out), skips intros > 1
 4. Look at the song in `pulse-preview.html?song=pulse6` and play it once (an E2E: `SONG=pulse6 N=2 node e2e-pulse.mjs …`).
 5. Commit `audio/pulse/`, `data/pulse/` and push. Titles/artists come from ID3 tags, else "Track 06"; to rename, edit
    `title`/`artist` in `data/pulse/manifest.json` **and** `data/pulse/pulse6.json` (a rebuild overwrites them).
+
+## NEON PAR (mini golf)
+**Everyone plays the same hole at once; nothing waits on the network.** Each phone simulates its own ball with
+`physics.js` (pure, deterministic, fixed 1/120 s steps) on the **hole clock** = `(serverNow − game.playStartAt) / 1000`,
+so moving obstacles (functions of that clock) are identical everywhere. A putt writes the shot (`sh`: rounded start,
+angle, power, hole time, power-up) and the stroke count, then ~10 ball samples/s while it rolls.
+- **Ghosts** (`view.js#ghostReplay`): other balls are replayed locally from their `sh` with the same physics — smooth at
+  this phone's frame rate however choppy the owner's phone or network — and corrected by the owner's samples (a small
+  error is blended out, > 2.5 units adopts their state). Without `sh` they fall back to Hermite interpolation of the
+  samples. Ghosts never collide with your ball; they're translucent with a name tag.
+- **Refresh / rejoin mid-roll:** the node's `sh` is re-simulated from its start time up to now, so the ball ends exactly
+  where it would have (E2E-checked to 1e-3). Resting balls restore `x,y` (+ `ri/rt` if riding a platform), strokes, held
+  power-up, pickups taken and the sabotage sent.
+- **Rules:** max 6 strokes, else 7. Out of bounds (no floor under the ball) = +1 and back to where you putted from (or the
+  last solid rest spot if that was a blinking tile / platform). A ball resting on a tile that vanishes respawns free.
+  Director: once > half the participants are in, the rest get 30 s (`cdEndsAt`); offline players never block; when
+  everyone's in, `wrapAt` gives 2.4 s (6 s if someone aced) before the scorecard. Unfinished = 7. A hole hard-caps at 4 min.
+- **Power-ups** (`hole.powerups`, cyber + arcade holes; the host can turn them off): roll over one to take it (one held at
+  a time, per player), tap the HUD slot to arm it for the next shot. GHOST = walls are skipped (gaps/edges still count),
+  STICKY = the first wall contact stops the ball dead, MAGNET = the cup pulls within 5 units and captures faster balls.
+- **Sabotage** (`logic.js#sabotageEarned`): birdie-or-better or the best score on the previous hole earns one use on the
+  next hole. Pick a target + FOG / WOBBLE (aim drifts ±3°) / SHAKE (camera). Active until the target's next shot (started
+  after it arrived) ends, max 8 s (`sabotageActive`). FOG is a vignette around the target's ball with a CUP pin above it:
+  nothing ever hides the cup or makes a shot impossible.
+- **Camera / input:** follow cam (frames ball + cup when resting); slingshot = touch within ~74 px of the ball and drag
+  back (dotted aim line on the ground, power ring; back inside 24 px cancels); one-finger pan / pinch / wheel zoom on empty
+  space, snapping back when you aim. Intro per hole (local, skippable, once per hole per session): zone title card (new
+  zone) → 2.6 s flyover with the par card. ACE = slow-motion replay of the real shot on every phone (~4 s, SKIP).
+- **Renderer** (`scene.js`/`zones.js`): floors are height-following grids (slopes/ramps tilt for real), walls are two
+  instanced meshes (body + neon cap), glow = emissive + additive sprites (no post-processing), blob shadows, a small PMREM
+  env map for chrome/glass/wet. Everything per hole is tracked and disposed on hole change. Tiers high/mid/low (DPR 2/1.5/1,
+  particles, rain, ghost trails) step down when the p75 frame time > 19.5 ms. Zone looks: ROOFTOPS (wet concrete with neon
+  puddles, props, rain, beacons, city + traffic far below), CYBERSPACE (Tron grid void, data particles, monoliths),
+  NEON ARCADE (chrome cabinet, backglass, chasing bulbs). Music: one track per zone (`musicFor(game)`), crossfaded.
+  three.js comes from jsDelivr (pinned `three@0.160.0`, import map in `index.html`) and loads only with the golf view.
+- **Ball looks** (`ball.js`): colour × finish (neon/chrome/glass) × trail (ribbon/sparks/pixels) in `localStorage['na:golfball']`,
+  set from the lobby card's ball button or the in-game ball button; published in the node so ghosts look right.
+
+**Hole format** (`js/games/golf/holes/NN-name.js`, plain data; units ≈ ball diameters, `R = 0.5`; x across, y away from the tee):
+```js
+export default {
+  id: 'dogleg', name: 'DOGLEG', zone: 'rooftops' | 'cyber' | 'arcade', par: 3, tip: 'One line for the par card.',
+  tee: [x, y], cup: [x, y],                       // cup radius CUP_R = 1.05
+  floors: [{ poly: [[x,y]…], h: 0, surface: 'turf'|'wet'|'grid'|'glass'|'chrome' }],   // no floor = out of bounds
+  walls: [{ pts: [[x,y]…], closed?: true, kind?: 'rail'|'rubber'|'laser'|'lip' }],    // 'lip' = low curb, cleared by a jump
+  slopes: [slope(x0, y0, x1, y1, [dx, dy] downhill unit vector, g accel, h0, h1)],     // h0/h1 = visual heights
+  boosts: [{ poly, dir: [dx, dy], power }],       bumpers: [{ c: [x, y], r, kick }],
+  portals: [{ in: [x, y], out: [x, y], r, exitAngle? }],
+  gaps: [{ poly, minSpeed }],                     // flies over if faster than minSpeed, else falls (out of bounds)
+  movers: [ { type: 'laser'|'spinner', pivot, length, arms, speed, inner? },        // rotating bars (rad/s)
+            { type: 'gate', a, b, move: [dx, dy], period },                          // sliding wall
+            { type: 'tile', poly, h, period, on: 0.6, phase },                       // blinking floor
+            { type: 'platform', poly, h, move: [dx, dy], period } ],                 // moving floor (balls ride it)
+  powerups: [{ at: [x, y], kind: 'ghost'|'sticky'|'magnet' }],
+};
+```
+**Adding a hole:** copy a similar file, edit it, add it to `HOLES` in `holes/index.js` (and to `MODES` if Quick 6/3 should
+use it), then run `node scripts/validate-holes.mjs <n>`. It must print OK (best ≤ par); aim for an "aimed" ace chance well
+under ~40 % and "random" < 2 %. Then `node --test tests/golf.test.mjs`, and play it once (`?emu`, two slots).
 
 ## Adding content
 - **Neural Bluff questions:** append rows to `data/bluff/questions.json`:

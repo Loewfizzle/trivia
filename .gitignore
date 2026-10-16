@@ -5,3 +5,4 @@ node_modules/
 .DS_Store
 tests/integration/shots/
 __pycache__/
+tests/integration/shots-*/

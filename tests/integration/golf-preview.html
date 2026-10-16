@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON PAR preview</title>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+// NEON PAR scene preview (no game, no Firebase) for screenshot review and render profiling.
+// ?hole=1..9 · ?tier=0|1|2 · ?ghosts=7 (balls rolling around the course) · ?at=tee|cup|mid · ?fly=1
+// window.__stats() → { calls, triangles, geometries, textures, objects, renderMs }
+import { createScene } from '/js/games/golf/scene.js';
+import { holeByNumber } from '/js/games/golf/holes/index.js';
+import { startShot, step, ballHeight } from '/js/games/golf/physics.js';
+const q = new URLSearchParams(location.search);
+const hole = holeByNumber(+(q.get('hole') || 1));
+const S = createScene(document.getElementById('c'));
+if (q.has('tier')) { S.autoTier = false; S.setTier(+q.get('tier')); }
+S.setHole({ ...hole, powerups: (hole.powerups || []).map((p, i) => ({ ...p, i })) });
+S.setMyBall({ c: '#2ff5d2', f: 'neon', t: 'ribbon' });
+const colors = ['#ff4fa3', '#ffb627', '#a374ff', '#36e6ff', '#ff5a4f', '#c8ff4f', '#f4f4ff'];
+const ghosts = [];
+for (let i = 0; i < +(q.get('ghosts') || 0); i++) {
+  S.setGhost('g' + i, { c: colors[i % 7], f: ['neon', 'chrome', 'glass'][i % 3], t: ['ribbon', 'sparks', 'pixels'][i % 3] }, 'P' + i);
+  ghosts.push({ uid: 'g' + i, s: null });
+}
+if (q.get('fly')) S.flyover(() => {});
+const at = q.get('at') || 'tee';
+const me = at === 'cup' ? [hole.cup[0], hole.cup[1] - 4] : at === 'mid' ? [(hole.tee[0] + hole.cup[0]) / 2, (hole.tee[1] + hole.cup[1]) / 2] : hole.tee;
+const t0 = performance.now();
+const frames = [];
+let last = 0;
+function loop(now) {
+  requestAnimationFrame(loop);
+  if (last) { frames.push(now - last); if (frames.length > 240) frames.shift(); }
+  last = now;
+  const t = (now - t0) / 1000;
+  const g = ghosts.map((gh, i) => {
+    if (!gh.s || gh.s.done) gh.s = startShot(hole, hole.tee, Math.PI / 2 + (i - 3) * 0.12, 0.45 + (i % 4) * 0.12, t);
+    while (!gh.s.done && gh.s.t < t) { step(hole, gh.s); gh.s.events.length = 0; }
+    return { uid: gh.uid, x: gh.s.x, y: gh.s.y, z: ballHeight(hole, gh.s) };
+  });
+  S.frame({ now, t, me: { x: me[0], y: me[1], z: null }, ghosts: g, resting: true });
+}
+requestAnimationFrame(loop);
+window.__S = S;
+window.__stats = () => {
+  const f = [...frames].sort((a, b) => a - b);
+  let objects = 0; S.scene.traverse(() => objects++);
+  const i = S.renderer.info;
+  return { calls: i.render.calls, triangles: i.render.triangles, geometries: i.memory.geometries, textures: i.memory.textures, objects, renderMs: +S.renderMs.toFixed(2), p50: f[f.length >> 1], tier: S.tierName };
+};
+</script>
+</body>
+</html>

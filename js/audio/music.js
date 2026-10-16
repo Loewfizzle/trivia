@@ -12,6 +12,7 @@ import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, onResume }
 const FILES = {
   menu: 'menu', cipher: 'cipher-breach', signal: 'last-signal',
   overclock: 'overclock', bluff: 'neural-bluff', victory: 'victory',
+  'golf-rooftops': 'golf-rooftops', 'golf-cyber': 'golf-cyber', 'golf-arcade': 'golf-arcade',
 };
 export const TRACK_IDS = Object.keys(FILES);
 const XFADE = 1.5;        // seconds, between tracks

@@ -68,6 +68,10 @@
   --accent: #a374ff; --accent-2: #36e6ff; --accent-ink: #0d0420;
   --accent-soft: rgba(163, 116, 255, 0.14); --accent-glow: rgba(163, 116, 255, 0.5);
 }
+[data-theme='golf'] {
+  --accent: #2ff5d2; --accent-2: #ff4fa3; --accent-ink: #00201a;
+  --accent-soft: rgba(47, 245, 210, 0.12); --accent-glow: rgba(47, 245, 210, 0.45);
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }

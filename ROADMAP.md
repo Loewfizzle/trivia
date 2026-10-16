@@ -3,14 +3,14 @@
 > Working title. The name lives in one constant: `APP_NAME` in `js/config.js` (also update `<title>`/meta in `index.html`,
 > `manifest.webmanifest`, and re-render the preview image with `tests/integration/render-assets.mjs`).
 
-One web app, four games, 2–8 players, each on their own phone — same room or different cities.
+One web app, six games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **trivia.loewfizzle.com** (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
 Backend: Firebase Realtime Database + Anonymous Auth.
 
-## The games — all five are playable
+## The games — all six are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
@@ -19,6 +19,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 3 | **LAST SIGNAL** | Trivia battle royale: HP + shields, strike your target, escalating damage, decaying UI. | alarm red | ✅ Stage 2 |
 | 4 | **OVERCLOCK** | Ten kinds of 30-second mind challenges (Color Clash, Signal Lock, Quick Count and True or False added after launch), identical for everyone from a shared seed. | amber / magenta | ✅ Stage 2 |
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
+| 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
 
 ## Stages
 
@@ -63,7 +64,31 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
       podium with accuracy / max combo / judgment counts, game-night points, rematch
 - [x] Host options: song (or Random), 1–2 songs, difficulty for everyone, Echo on/off; PULSE card art; hit-sound toggle
 
+### ✅ Stage 5 — NEON PAR (multiplayer mini golf)
+- [x] Custom 2D physics (`physics.js`): fixed 120 Hz steps, swept circle-vs-segment collision (no tunnelling at full
+      power, any angle, thin walls, moving bars), rolling friction per surface, slopes/ramps, boost strips, bumpers
+      that kick, portals, gaps you jump (or fall into), lasers/spinners/gates/blinking tiles/moving platforms driven
+      by server time, cup capture with lip-outs; unit-tested
+- [x] Nine data-only holes in three zones (pars 2·3·3 / 3·3·3 / 3·3·4 = 27), Full 9 / Quick 6 / Quick 3; a validation
+      bot proves each is finishable at/under par and measures ace odds
+- [x] three.js renderer: height-following floors, instanced neon walls, emissive glow + sprites (no post-processing),
+      blob shadows, env-mapped chrome/glass/wet; ROOFTOPS (wet concrete + neon puddles, rain, props, city + traffic
+      far below), CYBERSPACE (Tron grid void, data particles), NEON ARCADE (chrome cabinet, pulsing playfield inserts,
+      chasing bulbs); quality tiers; geometry disposed per hole
+- [x] Slingshot aiming (dotted ground line, power ring, drag-back cancel), follow camera, pan/pinch, zone title cards,
+      flyover + par card, out-of-bounds respawn effect
+- [x] Everyone simulates their own ball; ghosts replay each other's real shots locally (corrected by 10 Hz samples):
+      smooth with 8 players whatever the network; exact re-simulation on refresh mid-roll; host migration mid-hole
+- [x] Power-ups (GHOST / STICKY / MAGNET), sabotage (FOG / WOBBLE / SHAKE, earned by birdie or best score), ACE
+      cinematic on every phone, birdie/eagle celebrations, 30 s countdown once half are in, golf scorecard, podium with
+      aces + best hole, game-night points, rematch
+- [x] Ball customization (8 colours × neon/chrome/glass × ribbon/sparks/pixels trails), from the lobby or in game
+- [x] Three zone music tracks (crossfaded), synthesized putt / bounce / cup / portal / boost / bumper / pickup /
+      sabotage / respawn / ACE sounds, light haptics
+
 ## Future ideas
+- **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,
+  daily challenge hole with a room leaderboard, replays of everyone's best shot at the end.
 - **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host
   option to pick packs; custom word lists for Cipher Breach (kids mode, themed words).
 - **Custom rooms:** host-written Bluff questions typed in before a party ("office edition").

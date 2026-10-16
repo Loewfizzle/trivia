@@ -704,7 +704,7 @@
 
 /* ---- how to play ---- */
 .sheet.help { max-height: 92dvh; gap: 14px; }
-.help-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.help-tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .help-tab {
   min-height: 44px;
   font-family: var(--font-display);
