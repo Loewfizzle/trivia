@@ -4,6 +4,9 @@ import { DEFAULT_SETTINGS, MODES, CHALLENGE_MS, READY_MS, STANDINGS_MS, standing
 import { initialBank, topUp, fallbackPatch } from '../../trivia/feed.js';
 import { loadFallback } from '../../trivia/bank.js';
 import { state } from '../../store.js';
+
+// Trivia questions already used by earlier matches in this room (never dealt again tonight).
+const roomSeen = () => (state.meta && state.meta.used && state.meta.used.trivia) || {};
 export { createView } from './view.js';
 
 export const MUSIC = 'overclock';
@@ -14,21 +17,21 @@ export const livePaths = g => ({ boards: `oc/${g.matchId}/${g.ci || 0}` });
 export async function start({ code, matchId, settings, participants, now }) {
   const s = { ...DEFAULT_SETTINGS, ...settings };
   const seed = `${matchId}:${Math.random().toString(36).slice(2, 10)}`;
-  const { bank, trivia } = await initialBank({ code, matchId, cats: [], now, min: 12 });
-  return createGame({ matchId, settings: s, participants, now, seed, bank, trivia });
+  const { bank, trivia, $room } = await initialBank({ code, matchId, cats: [], now, min: 12, roomSeen: roomSeen() });
+  return { ...createGame({ matchId, settings: s, participants, now, seed, bank, trivia }), $room };
 }
 
 export function prepare(game, { code, host }) {
   if (!host) return;
   loadFallback().catch(() => {});
-  topUp(() => state.game, code, triviaNeeded(game));
+  topUp(() => state.game, code, triviaNeeded(game), roomSeen);
 }
 
 export const step = (game, { code, now, live, online }) => nextStep(game, {
   now,
   online,
   boards: live.boards || {},
-  fallback: n => fallbackPatch(game, code, n),
+  fallback: n => fallbackPatch(game, code, n, roomSeen()),
 });
 
 export const OPTIONS = [

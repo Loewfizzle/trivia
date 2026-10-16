@@ -103,6 +103,7 @@ rooms/{CODE}/
   votes/{matchId}/{round}/{uid}:  { k: optionKey, like?, at }   ← BLUFF, own, during 'vote' (changeable)
   night/{matchId}:   { g: gameId, p: { uid: 3|2|1|0 }, n: { uid: name }, at }  ← host; game-night scoreboard
   meta/used/bluff/{questionId}: true                            ← host; Bluff questions already used in this room
+  meta/used/trivia/{qHash}: true                                ← host; trivia questions any match in this room has banked
 ```
 All player-writable nodes are listed in `ALL_PLAYER_NODES` (registry.js) and wiped by the host on match start/end.
 CIPHER `game`: `{ id:'cipher', matchId, rounds, lengths[], roundMs, maxGuesses, participants{uid:true},
@@ -136,6 +137,11 @@ or grammar (a reported exploit). Never render raw option/answer text; `tests/blu
 `q` = `bank[q]`; Overclock lightning challenge `ci` uses `bank[tq[ci]]..+2`. The host keeps it topped up (Open Trivia DB
 batches of 20, ≥ 5.2 s apart, session token in `game.trivia.token`); if the API is slow the director waits ~2.5 s, then
 appends from the fallback bank synchronously.
+**No repeats across a night:** every question a match banks is also recorded in `meta/used/trivia/{qHash}` (the opening bank
+via the start `$room`, top-ups in the same room update, director fallbacks via the step's `$room`), and every source skips
+those hashes — so rematches and Last Signal ↔ Overclock never deal the same question twice in one room. The opening batch
+starts at a random category/difficulty. Only if the bundled bank is exhausted does a match allow room repeats (never stall).
+Check with `tests/integration/trivia-rematch.mjs` (six back-to-back matches against the live APIs).
 
 ## Multiplayer mechanics
 - **Identity:** anonymous Firebase user per *slot*. Each slot is a separately-named Firebase app, so its
@@ -215,7 +221,7 @@ appends from the fallback bank synchronously.
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (67 tests: rules of all four games, host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (72 tests: rules of all four games, host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
