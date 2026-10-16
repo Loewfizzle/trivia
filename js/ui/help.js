@@ -1,5 +1,6 @@
 // "How to play" sheet: rules for every game, one tab each. Opened from the title screen,
 // the lobby (game cards + options sheet) and the settings sheet (any screen, mid-game too).
+import { gameArtSvg } from './game-art.js';
 import { h } from './dom.js';
 import { GAMES } from '../config.js';
 
@@ -193,7 +194,7 @@ export function openHelp(gameId = 'cipher') {
     content.scrollTop = 0;
   };
   for (const g of GAMES) {
-    tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id }, onclick: () => show(g.id), 'aria-label': g.name }, TAB[g.id]));
+    tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, gameArtSvg(g.id) || TAB[g.id]));
   }
   sheet = h('div.modal.help-modal', { onclick: e => { if (e.target === sheet) closeHelp(); } },
     h('div.sheet.help', { role: 'dialog', 'aria-label': 'How to play' },

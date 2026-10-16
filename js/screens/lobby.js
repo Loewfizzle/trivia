@@ -65,6 +65,7 @@ export function createLobby() {
     els.hint = h('p.lobby-hint.mono');
     els.night = h('section.lobby-section.night');
     el.append(
+      h('button.btn.btn-ghost.btn-sm.lobby-leave', { type: 'button', onclick: confirmLeave, 'aria-label': 'Leave room' }, '‹ LEAVE ROOM'),
       h('header.lobby-head',
         h('div.lobby-room',
           h('span.label', 'ROOM CODE'),
@@ -80,9 +81,7 @@ export function createLobby() {
         h('div.section-head', h('span.label', 'SELECT PROTOCOL')),
         els.hint,
         els.games),
-      h('div.lobby-foot',
-        h('button.btn.btn-text', { type: 'button', onclick: confirmLeave }, 'LEAVE ROOM'),
-        slot !== '1' ? h('span.tag.tag-you', `TEST SLOT ${slot}`) : null),
+      slot !== '1' ? h('div.lobby-foot', h('span.tag.tag-you', `TEST SLOT ${slot}`)) : null,
     );
     buildGames();
     if (!greeted.has(st.code)) { greeted.add(st.code); el.classList.add('greet'); accessGranted(st.code); }

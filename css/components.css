@@ -618,6 +618,28 @@
 .gear.is-muted { color: var(--red); border-color: rgba(255, 51, 85, 0.5); }
 .gear.is-muted::after { content: ''; position: absolute; width: 26px; height: 2px; background: currentColor; transform: rotate(-45deg); }
 
+/* one-tap music on/off beside the gear — menus only (in a game the HUD owns that corner; use the sheet) */
+.music-btn {
+  position: fixed;
+  z-index: 70;
+  top: calc(var(--safe-t) + 10px);
+  right: max(calc(var(--safe-r) + 62px), calc((100vw - var(--maxw)) / 2 + 62px));
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+  background: rgba(6, 10, 28, 0.72);
+  border: 1px solid var(--line-2);
+  transition: transform 0.12s var(--ease), color 0.2s, opacity 0.2s;
+}
+.music-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.music-btn .slash { opacity: 0; }
+.music-btn.is-off { color: var(--red); border-color: rgba(255, 51, 85, 0.5); }
+.music-btn.is-off .slash { opacity: 1; }
+.music-btn:active { transform: scale(0.92); }
+body[data-theme]:not([data-theme='']) .music-btn { display: none; }
+
 .sheet.settings { gap: 18px; }
 .set-head { display: flex; justify-content: space-between; align-items: flex-start; }
 .set-head .icon-btn { font-size: 28px; }
@@ -717,6 +739,11 @@
   transition: color 0.15s, background-color 0.15s, border-color 0.15s;
 }
 .help-tab[aria-selected='true'] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+/* tabs show each game's lobby artwork; the selected one lights up in its colour */
+.help-tab:has(svg) { padding: 3px; aspect-ratio: 1; min-height: 44px; overflow: hidden; background: #05060f; }
+.help-tab svg { display: block; width: 100%; height: 100%; opacity: 0.5; transition: opacity 0.15s; }
+.help-tab[aria-selected='true']:has(svg) { background: #05060f; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 12px var(--accent-glow); }
+.help-tab[aria-selected='true'] svg { opacity: 1; }
 .help-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px; }
 .help-goal { font-size: 17px; line-height: 1.4; font-weight: 600; color: var(--text); padding-left: 12px; border-left: 3px solid var(--accent); }
 .help-section { display: flex; flex-direction: column; gap: 8px; }

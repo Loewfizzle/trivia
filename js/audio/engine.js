@@ -52,7 +52,7 @@ const curve = v => Math.max(0, Math.min(1, v)) ** 2;
 function applyVolumes(instant) {
   if (!ctx) return;
   const t = ctx.currentTime;
-  const m = settings.muted ? 0 : curve(settings.music);
+  const m = settings.muted || settings.musicOff ? 0 : curve(settings.music);
   const s = settings.muted ? 0 : curve(settings.sfx);
   if (instant) { musicBus.gain.value = m; sfxBus.gain.value = s; return; }
   musicBus.gain.setTargetAtTime(m, t, 0.08);
