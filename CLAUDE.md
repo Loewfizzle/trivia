@@ -53,10 +53,12 @@ js/ui/dom.js             h() element helper, misc DOM utils
 js/ui/components.js      avatar, playerChip, createTimer(ticks), countUp, leaderboard(note), burst, glitchFlash, accessGranted, segmented, chips
 js/ui/final.js           shared podium + WINNER reveal + BACK TO LOBBY (host-aware), used by every game
 js/ui/game-art.js        lobby card artwork: one SVG scene per game (ids prefixed per game); GAMES order = lobby order
-js/ui/settings-panel.js  gear button (fixed, every screen) + settings sheet (music/sfx/mute/haptics, room + leave)
-js/ui/help.js            HOW TO PLAY sheet: rules for all four games (tabs). Opened from title, lobby cards (?), options sheet, gear menu
+js/ui/settings-panel.js  gear button (fixed, every screen) + one-tap music button beside it on menu screens (hidden in games,
+                         where the HUD owns that corner) + settings sheet (music on/off, volumes, mute all, haptics, room + leave)
+js/ui/help.js            HOW TO PLAY sheet: rules for every game; tabs show each game's lobby art (game-art.js#gameArtSvg). Opened from title, lobby cards (?), options sheet, gear menu
 js/ui/toast.js           toasts
-js/audio/settings.js     device-wide prefs { music: .35, sfx: .7, muted, haptics } in localStorage (try/catch)
+js/audio/settings.js     device-wide prefs { music: .35, sfx: .7, muted, musicOff, haptics } in localStorage (try/catch);
+                         musicOff silences the music bus only (PULSE songs too), effects stay
 js/audio/engine.js       AudioContext, music/sfx buses -> limiter, unlock on first gesture, suspend when hidden
 js/audio/music.js        playMusic(id, fallback), prefetch(id), musicDebug(); voice pool, crossfades, loop crossfade
 js/audio/sfx.js          sfx(name, opts): synthesized effects (see SOUNDS for names)

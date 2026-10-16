@@ -130,6 +130,9 @@ ${glow('ga-glow', 1.8)}${glow('ga-soft', 3.5)}</defs>
 
 const ART = { overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF };
 
+/** Just the SVG (e.g. the How to Play tabs). */
+export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);
+
 /** The card's artwork tile, or null for a game without art (falls back to its initials). */
 export function gameArt(id) {
   const make = ART[id];

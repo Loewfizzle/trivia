@@ -369,3 +369,15 @@
 .opt-row[aria-checked='true'] .opt-dot { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 45%, transparent 50%); }
 .opt-label { font-family: var(--font-ui); font-weight: 700; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
 .opt-sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-dim); }
+
+/* lobby: LEAVE ROOM sits top-left, across from the gear (tap twice to confirm) */
+.lobby-leave {
+  align-self: flex-start;
+  min-height: 42px;
+  margin-bottom: -10px;
+  padding: 0 14px;
+  --accent: #ff3355; --accent-glow: rgba(255, 51, 85, 0.45);
+  color: var(--red);
+  border-color: rgba(255, 51, 85, 0.55);
+}
+.lobby-leave:active { transform: scale(0.96); }
