@@ -14,11 +14,21 @@ export const SPEED_BONUS = 60;
 
 export const levelOf = (ci, total) => (total <= 1 ? 0 : ci / (total - 1));
 
-// Each type appears equally often, shuffled from the seed, never twice in a row.
+// Trivia Lightning (a crowd favourite) keeps one slot in six; the other types share the rest
+// as evenly as possible (the leftover slots go to seeded picks). Shuffled, never twice in a row.
+export function orderBase(rand, total) {
+  const trivia = Math.max(1, Math.round(total / 6));
+  const rest = TYPES.filter(t => t !== 'trivia');
+  const each = Math.floor((total - trivia) / rest.length);
+  const base = Array(trivia).fill('trivia');
+  for (const t of rest) for (let k = 0; k < each; k++) base.push(t);
+  for (const t of shuffle(rand, rest).slice(0, total - base.length)) base.push(t);
+  return base;
+}
+
 export function buildOrder(seed, total) {
   const rand = rngFrom(`${seed}:order`);
-  const base = [];
-  for (let i = 0; i < total; i++) base.push(TYPES[i % TYPES.length]);
+  const base = orderBase(rand, total);
   let list = shuffle(rand, base);
   for (let attempt = 0; attempt < 200; attempt++) {
     let bad = -1;
@@ -33,9 +43,11 @@ export function buildOrder(seed, total) {
 }
 
 // Points: up to 100 for accuracy (partial credit), +up to 60 speed bonus for a
-// perfect run, ×2 on the final challenge.
-export function challengeScore({ parts, ok, doneAt, startAt, final }) {
+// perfect run, ×2 on the final challenge. Signal Lock is pure speed: its credit
+// already measures reaction time, so it scales to the same 160 maximum instead.
+export function challengeScore({ parts, ok, doneAt, startAt, final, type }) {
   const acc = parts > 0 ? Math.max(0, Math.min(1, ok / parts)) : 0;
+  if (type === 'reflex') return Math.round((100 + SPEED_BONUS) * acc) * (final ? 2 : 1);
   const base = Math.round(100 * acc);
   const speed = ok >= parts && parts > 0 && typeof doneAt === 'number'
     ? Math.round(SPEED_BONUS * Math.max(0, 1 - (doneAt - startAt) / CHALLENGE_MS))
@@ -51,7 +63,7 @@ export function computeResults(game, boards) {
   for (const uid of Object.keys(game.participants || {})) {
     const b = (boards && boards[uid]) || {};
     const ok = Math.min(parts, Math.max(0, Number(b.ok) || 0));
-    out[uid] = { pts: challengeScore({ parts, ok, doneAt: b.done ? b.doneAt : undefined, startAt: game.playStartAt, final }), ok, parts };
+    out[uid] = { pts: challengeScore({ parts, ok, doneAt: b.done ? b.doneAt : undefined, startAt: game.playStartAt, final, type }), ok, parts };
   }
   return out;
 }

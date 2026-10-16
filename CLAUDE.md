@@ -73,7 +73,7 @@ js/games/cipher/words.js     word-list loading (lazy, per length), validation, p
 js/games/cipher/view.js      player UI: board, keyboard, opponents, intro/reveal/standings/final overlays
 js/games/cipher/index.js     module contract (see registry.js)
 js/games/signal/{logic,director,view,index}.js     LAST SIGNAL (logic.js: damage, targets, resolution, rankings, decay)
-js/games/overclock/challenges.js                   seeded generators for the 6 challenge types + INFO (names/rules)
+js/games/overclock/challenges.js                   seeded generators for the 10 challenge types + INFO (names/rules)
 js/games/overclock/{logic,director,view,index}.js  OVERCLOCK (logic.js: order, scoring, standings)
 js/games/bluff/{logic,director,bank,view,index}.js  NEURAL BLUFF (logic.js: tooClose, buildOptions, scoreRound, revealScript)
 data/trivia/fallback.json    333 hand-written medium/hard questions: [category, difficulty, q, correct, w1, w2, w3]
@@ -119,7 +119,12 @@ Damage: strike = round((30 − 20·elapsed/15 s) × mult), burn = round(10 × mu
 OVERCLOCK `game`: `{ id:'overclock', matchId, settings{mode}, seed, total, order[], participants, ci, ck, brief,
 phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{type}, tq{ci:bankIndex}, tUsed, results{ci:{uid:{pts,ok,parts}}}, bank, trivia }`.
 Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, level})`; no challenge content is stored.
-Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge.
+Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge. `ok` may be fractional
+(Quick Count: off by one = 0.5; Signal Lock: per-round reaction credit 0.1–1, scored as round(160·ok/parts) with no
+separate speed bonus). Order: Trivia Lightning keeps 1 slot in 6, the other 9 types share the rest evenly (`orderBase`).
+Types: unscramble, memory, oddone, math, pattern, trivia, stroop (Color Clash), reflex (Signal Lock), count (Quick Count),
+truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
+Signal Lock times taps from the pointerdown event against the frame the flash painted (performance.now clock, local only).
 
 BLUFF `game`: `{ id:'bluff', matchId, settings{mode}, rounds, participants, round, rk, phase: intro|write|vote|reveal|standings|final,
 phaseStartAt, phaseEndsAt, qx (enc {id,q,a,v,cat}), hx (enc house lies), used{id}, options[{k,t}] (vote phase, no authorship),
@@ -221,7 +226,7 @@ Check with `tests/integration/trivia-rematch.mjs` (six back-to-back matches agai
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (72 tests: rules of all four games, host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (74 tests: rules of all four games, host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
