@@ -155,7 +155,7 @@ export function createView() {
     els.hint = h('p.nb-hint', 'Write a fake answer convincing enough to fool everyone else.');
     els.input = h('input.input.nb-input', {
       type: 'text', maxLength: LIE_MAX, placeholder: 'YOUR FABRICATION', autocomplete: 'off', autocorrect: 'off',
-      autocapitalize: 'sentences', spellcheck: false, enterkeyhint: 'send', 'aria-label': 'Your fake answer', value: draft,
+      autocapitalize: 'none', spellcheck: false, enterkeyhint: 'send', 'aria-label': 'Your fake answer', value: draft,
       oninput: e => { draft = e.target.value; els.hint.classList.remove('is-err'); },
       onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); fileLie(); } },
       onfocus: () => setTimeout(() => els.form && els.form.scrollIntoView({ block: 'end', behavior: reducedMotion() ? 'auto' : 'smooth' }), 260),

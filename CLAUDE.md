@@ -126,6 +126,9 @@ ox (enc full options with authors/truth), reveal{steps,unpicked} (plain, from th
 Option keys are `optionKey(text)` = hash of the normalized text, so identical lies merge and a client can recognize its
 own lie without authorship being public. The reveal is time-driven: `revealStepAt(script, serverNow - phaseStartAt)`.
 Scoring: truth 1000, each victim of your lie 500 (every merged author), each like 100; final round ×3.
+**No formatting tells:** every option (truth, lies, house lies) is shown through `logic.js#displayText` — ALL CAPS, no
+leading a/an/the, no trailing punctuation or quotes, number words as digits — so nobody can spot the truth by its casing
+or grammar (a reported exploit). Never render raw option/answer text; `tests/bluff.test.mjs` checks the whole bank.
 
 **Trivia bank:** questions are appended to `game/bank/{i}` (obfuscated with key `code:matchId:q{i}`). Signal question
 `q` = `bank[q]`; Overclock lightning challenge `ci` uses `bank[tq[ci]]..+2`. The host keeps it topped up (Open Trivia DB
@@ -250,7 +253,8 @@ Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 
   `["category", "Something strange is called ____.", "Real Answer", ["real answer", "other accepted spellings"], ["lie 1", "lie 2", "lie 3"]]`.
   Rules: the fact must be true and surprising; the answer ≤ 4 words; variants cover common spellings; house lies must be
   believable and must not be "too close" (run `node --test tests/bluff.test.mjs` — it rejects any house lie the
-  closeness check would treat as the truth). Categories: brands, inventions, history, science, animals, food, geography,
+  closeness check would treat as the truth). Never put "an" right before the blank (it hints that the answer starts
+  with a vowel); put the article in the answer instead — it is stripped for display. Categories: brands, inventions, history, science, animals, food, geography,
   laws, words, pop, sports, misc (labels in `bluff/view.js#CAT`).
 - **Fallback trivia (Last Signal / Overclock):** append `[category, "medium"|"hard", question, correct, wrong1, wrong2, wrong3]`
   to `data/trivia/fallback.json`; categories must match `js/trivia/categories.js`. `tests/trivia.test.mjs` validates it.
