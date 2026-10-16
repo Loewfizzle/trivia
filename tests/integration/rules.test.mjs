@@ -296,3 +296,45 @@ test('pulse stats: own node only, current song, bounded numbers, host wipes', as
   await assertFails(remove(ref(db('p2'), `${R}/pulse`)), 'players cannot wipe');
   await assertSucceeds(remove(ref(db('host'), `${R}/pulse`)), 'host wipes on start/end');
 });
+
+function golfRoom(phase = 'play') {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'golf', matchId: 'm7', hi: 2, hk: '2', phase, participants: { host: true, p2: true } };
+  return r;
+}
+
+test('golf balls: own node, current hole, play phase only, locked scores and one sabotage per hole', async () => {
+  await seed(golfRoom());
+  const node = { h: 2, s: 1, x: 1.5, y: 10.25, st: 'roll', pu: 'magnet', pk: 1, ls: 1700000000000, le: 0,
+    sh: { x: 0, y: 2, a: 1.5708, p: 0.5, t: 12.5, pu: '' }, b: { x: 1.5, y: 10.25, z: 0, vx: 0.5, vy: 8, t: 1700000001000 },
+    ball: { c: '#2ff5d2', f: 'neon', t: 'ribbon' }, at: serverTimestamp() };
+  const P = `${R}/golf/m7/p2`;
+  await assertSucceeds(set(ref(db('p2'), P), node));
+  await assertFails(set(ref(db('p2'), `${R}/golf/m7/host`), node), 'not someone else');
+  await assertFails(set(ref(db('p2'), `${R}/golf/m6/p2`), node), 'old match');
+  await assertFails(set(ref(db('p2'), P), { ...node, h: 1 }), 'stale hole');
+  await assertFails(set(ref(db('p2'), P), { ...node, st: 'won' }), 'known states only');
+  await assertFails(set(ref(db('p2'), P), { ...node, pu: 'nuke' }), 'known power-ups only');
+  await assertFails(set(ref(db('p2'), P), { ...node, sh: { ...node.sh, p: 3 } }), 'power is 0..1');
+  await assertFails(set(ref(db('p2'), P), { ...node, hack: 1 }), 'no extra fields');
+  await assertFails(set(ref(db('p2'), P), { ...node, s: 3, f: 2 }), 'final score = strokes (or 7)');
+  await assertSucceeds(set(ref(db('p2'), P), { ...node, s: 3, f: 3, st: 'done' }));
+  await assertFails(set(ref(db('p2'), P), { ...node, s: 2, f: 2, st: 'done' }), 'a final score is locked');
+  await seed(golfRoom());
+  await assertSucceeds(set(ref(db('p2'), P), { ...node, s: 6, f: 7, st: 'done', ball: { c: '#ff4fa3', f: 'glass', t: 'pixels' } }), 'maxed out = 7');
+  // sabotage: a participant target, never yourself, and it can't be re-aimed on the same hole
+  await seed(golfRoom());
+  const sab = { h: 2, to: 'host', k: 'fog', at: 1700000000000 };
+  await assertFails(set(ref(db('p2'), P), { ...node, sab: { ...sab, to: 'p2' } }), 'not yourself');
+  await assertFails(set(ref(db('p2'), P), { ...node, sab: { ...sab, to: 'p9' } }), 'participants only');
+  await assertFails(set(ref(db('p2'), P), { ...node, sab: { ...sab, k: 'bomb' } }), 'known effects only');
+  await assertSucceeds(set(ref(db('p2'), P), { ...node, sab }));
+  await assertSucceeds(set(ref(db('p2'), P), { ...node, s: 2, sab }), 'unchanged sabotage rides along');
+  await assertFails(set(ref(db('p2'), P), { ...node, sab: { ...sab, k: 'shake' } }), 'one sabotage per hole');
+  await assertFails(set(ref(db('p3'), `${R}/golf/m7/p3`), node), 'spectators do not write');
+  await assertFails(remove(ref(db('p2'), `${R}/golf`)), 'players cannot wipe');
+  await seed(golfRoom('card'));
+  await assertFails(set(ref(db('p2'), P), node), 'no writes during the scorecard');
+  await assertSucceeds(remove(ref(db('host'), `${R}/golf`)), 'host wipes on start/end');
+});

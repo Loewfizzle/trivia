@@ -127,13 +127,41 @@ RULES.pulse = {
   ],
 };
 
+RULES.golf = {
+  goal: 'Neon mini golf: everyone plays the same hole at the same time. Fewest strokes over the course wins.',
+  sections: [
+    ['HOW TO PUTT', [
+      'Touch your ball and drag back, like a slingshot. The dotted line shows where it goes; the ring shows the power.',
+      'Let go to putt. Drag back onto the ball to cancel.',
+      'Drag anywhere else to look around; pinch to zoom. The camera snaps back when you aim.',
+    ]],
+    ['THE RULES', [
+      'At most 6 strokes per hole. Not in by then = 7.',
+      'Off the edge: +1 stroke, and you’re back where you putted from.',
+      'Once more than half the players are in the cup, everyone else gets 30 seconds.',
+      'The other balls are ghosts: you see them, but they never touch yours.',
+    ]],
+    ['POWER-UPS (ZONE 2+)', [
+      'Roll over one to pick it up. You hold one at a time; tap it to arm it for your next shot.',
+      'GHOST: through walls (not over the edge). STICKY: stops dead at the first wall. MAGNET: the cup pulls the ball in.',
+    ]],
+    ['SABOTAGE', [
+      'Birdie or better, or the best score on a hole, earns one sabotage on the next hole.',
+      'FOG, WOBBLE (their aim drifts) or SHAKE. It lasts until their next shot ends (8 seconds at most).',
+    ]],
+    ['YOUR BALL', [
+      'Pick a color, finish and trail from the lobby or the ball button during a hole. It’s saved on your phone.',
+    ]],
+  ],
+};
+
 const LEGEND = [
   ['2', 'A', 'Right letter, right spot'],
   ['1', 'B', 'In the word, wrong spot'],
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU' };
+const TAB = { cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP' };
 
 let sheet = null;
 
