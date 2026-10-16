@@ -1,5 +1,12 @@
 // Pure room logic (no Firebase, no DOM) so it can be unit-tested in Node.
-import { CODE_ALPHABET, CODE_LENGTH, HOST_TIMEOUT_MS, HOST_CANDIDATE_STAGGER_MS, COLORS, AVATAR_IDS } from '../config.js';
+import { CODE_ALPHABET, CODE_LENGTH, HOST_TIMEOUT_MS, HOST_CANDIDATE_STAGGER_MS, COLORS, AVATAR_IDS, ROOM_IDLE_MS } from '../config.js';
+
+/** ms until the room closes for being idle (≤ 0 = it should close). Infinity when unknown (never close on missing data). */
+export function idleLeft(meta, now) {
+  if (!meta || typeof meta.activeAt !== 'number') return Infinity;
+  return ROOM_IDLE_MS - (now - meta.activeAt);
+}
+export const roomIdle = (meta, now) => idleLeft(meta, now) <= 0;
 
 export function generateCode(rand = Math.random) {
   let s = '';

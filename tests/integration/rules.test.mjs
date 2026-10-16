@@ -161,8 +161,8 @@ test('host migration: frozen host (stale heartbeat) during a game', async () => 
   await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'));
 });
 
-test('stale-room cleanup: query + delete only rooms idle > 6h', async () => {
-  const old = now() - 7 * 3600_000;
+test('stale-room cleanup: query + delete only rooms idle > 1h (no game for an hour)', async () => {
+  const old = now() - 61 * 60_000;
   await seed({
     rooms: {
       OLDD: { meta: { hostId: 'x', status: 'lobby', createdAt: old, activeAt: old } },
@@ -171,7 +171,7 @@ test('stale-room cleanup: query + delete only rooms idle > 6h', async () => {
     },
   });
   const me = db('cleaner');
-  const cutoff = now() - 6 * 3600_000 - 60_000;
+  const cutoff = now() - 3600_000 - 30_000;
   const snap = await assertSucceeds(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), endAt(cutoff), limitToFirst(20))));
   const found = Object.keys(snap.val() || {}).sort();
   assert.deepEqual(found, ['OLDD', 'ORPH']);

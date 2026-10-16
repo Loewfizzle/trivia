@@ -19,8 +19,13 @@ export const HOST_BEAT_MS = 2_000;
 // Director (host game loop) tick.
 export const DIRECTOR_TICK_MS = 250;
 
-// Rooms whose meta/activeAt is older than this are deleted when someone creates a room.
-export const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
+// A room closes after an hour without a game: meta/activeAt is stamped when a game starts / ends (and every
+// 10 min while one runs), so a lobby nobody plays in goes stale. Phones coming back to it land on the title.
+export const ROOM_IDLE_MS = 60 * 60 * 1000;
+// The lobby shows a countdown (and the host a KEEP OPEN button) this long before it closes.
+export const ROOM_IDLE_WARN_MS = 10 * 60 * 1000;
+// Rooms idle longer than this are deleted when someone creates a room (the rules allow it after ROOM_IDLE_MS).
+export const ROOM_TTL_MS = ROOM_IDLE_MS;
 
 export const COLORS = [
   { id: 'cyan', hex: '#00f0ff' },

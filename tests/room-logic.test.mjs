@@ -91,3 +91,15 @@ test('sanitizeName', () => {
   assert.equal(sanitizeName('  <b>Neo</b>   Anderson  ', 12), 'bNeo/b Ander');
   assert.equal(sanitizeName(''), '');
 });
+
+test('idle rooms: an hour without a game closes the room; unknown data never does', async () => {
+  const { idleLeft, roomIdle } = await import('../js/core/room-logic.js');
+  const { ROOM_IDLE_MS } = await import('../js/config.js');
+  const now = 10 * ROOM_IDLE_MS;
+  assert.equal(roomIdle({ status: 'lobby', activeAt: now - 5 * 60_000 }, now), false);
+  assert.equal(idleLeft({ status: 'lobby', activeAt: now - 5 * 60_000 }, now), ROOM_IDLE_MS - 5 * 60_000);
+  assert.equal(roomIdle({ status: 'lobby', activeAt: now - ROOM_IDLE_MS - 1 }, now), true);
+  assert.equal(roomIdle({ status: 'lobby', activeAt: now - 24 * ROOM_IDLE_MS }, now), true, 'the next day');
+  assert.equal(roomIdle(null, now), false);
+  assert.equal(roomIdle({ status: 'lobby' }, now), false, 'no timestamp yet → keep');
+});

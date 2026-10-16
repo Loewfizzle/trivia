@@ -5,7 +5,7 @@ import {
 } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom } from './identity.js';
-import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost } from './core/room-logic.js';
+import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { toast } from './ui/toast.js';
 import { livePathsFor, liveKeyFor } from './games/registry.js';
@@ -59,7 +59,8 @@ export async function joinRoom(input, profile) {
   const code = normalizeCode(input);
   if (!code) throw new Error('Room codes are 4 letters (no I or O).');
   const room = await readRoomBasics(code);
-  if (!room.meta) throw new Error(`No room ${code} found. Check the code, or ask the host for a new invite (rooms close after 6 hours idle).`);
+  if (room.meta && roomIdle(room.meta, serverNow())) { await deleteRoom(code); room.meta = null; }
+  if (!room.meta) throw new Error(`No room ${code} found. Check the code, or ask the host for a new invite (rooms close after an hour without a game).`);
   if (room.kicked) throw new Error('The host removed you from this room.');
   const others = Object.keys(room.players).filter(u => u !== state.uid).length;
   if (!room.players[state.uid] && others >= MAX_PLAYERS) throw new Error(`Room ${code} is full (${MAX_PLAYERS}/${MAX_PLAYERS} players).`);
@@ -78,6 +79,8 @@ export async function resumeSession() {
   if (!session || !session.code) return 'none';
   let room;
   try { room = await readRoomBasics(session.code); } catch { return 'error'; }
+  // Back the next day: the room sat for an hour without a game — close it and start fresh on the title.
+  if (room.meta && roomIdle(room.meta, serverNow())) { await deleteRoom(session.code); saveSession(null); setUrlRoom(null); return 'idle'; }
   const gone = !room.meta || room.kicked
     || (!room.players[state.uid] && (!profile || Object.keys(room.players).length >= MAX_PLAYERS));
   if (gone) { saveSession(null); return 'gone'; }
@@ -101,7 +104,7 @@ function enterRoom(code) {
   const listen = (path, fn) => unsubs.push(onValue(dbRef(`${base}/${path}`), s => fn(s.val()), err => console.warn(path, err)));
 
   listen('meta', meta => {
-    if (!meta) { if (seen.meta) exitRoom('ROOM CLOSED'); return; }
+    if (!meta) { if (seen.meta) exitRoom(roomIdle(state.meta, serverNow()) ? 'ROOM CLOSED — NO GAME FOR AN HOUR' : 'ROOM CLOSED'); return; }
     seen.meta = true;
     setState({ meta });
   });
@@ -208,6 +211,22 @@ export async function kickPlayer(uid) {
 export async function updateMyProfile(profile) {
   if (!state.code) return;
   await writePlayer(state.code, profile, state.players);
+}
+
+// Best effort: the rules allow it for the host, or anyone once the room is idle (no game for ROOM_IDLE_MS).
+async function deleteRoom(code) {
+  try { await remove(dbRef(R(code))); await remove(dbRef(`chats/${code}`)); } catch { /* not allowed / offline: the session is dropped anyway */ }
+}
+
+// An hour without a game (host.js tick): close it for everyone, or at least leave it ourselves.
+let closing = false;
+export async function closeIdleRoom() {
+  const code = state.code;
+  if (!code || closing) return;
+  closing = true;
+  await deleteRoom(code);
+  if (state.code === code) exitRoom('ROOM CLOSED — NO GAME FOR AN HOUR', 'info');
+  closing = false;
 }
 
 // Deletes rooms idle for longer than ROOM_TTL_MS (and orphaned nodes without meta).

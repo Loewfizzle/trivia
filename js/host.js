@@ -6,7 +6,8 @@
 // mirrored database state on each tick, so any client can take over at any time.
 import { dbRef, update, runTransaction, serverTimestamp, serverNow } from './firebase.js';
 import { state, isHost, onlineMap } from './store.js';
-import { shouldClaimHost, isOnline } from './core/room-logic.js';
+import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
+import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS } from './config.js';
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES } from './games/registry.js';
 import { toast } from './ui/toast.js';
@@ -34,6 +35,9 @@ function tick() {
   if (!state.code || !state.meta || !state.connected || !state.uid) return;
   const now = serverNow();
   withChat(m => m.hostTick());
+  // An hour without a game: the host closes the room (every phone gets ROOM CLOSED); everyone else leaves on
+  // their own a little later in case the host's phone is asleep or the room can't be deleted.
+  if (roomIdle(state.meta, now - (isHost() ? 0 : 90_000))) { closeIdleRoom(); return; }
   if (isHost()) {
     beat(now);
     if (state.meta.status === 'playing' && state.game) direct(now);
@@ -47,7 +51,8 @@ function beat(now) {
   if (now - lastBeat < HOST_BEAT_MS) return;
   lastBeat = now;
   const patch = { hostBeat: serverTimestamp() };
-  if (now - lastActive > 10 * 60_000) { lastActive = now; patch.activeAt = serverTimestamp(); }
+  // only a running game keeps the room alive (an idle lobby closes after ROOM_IDLE_MS)
+  if (state.meta.status === 'playing' && now - lastActive > 10 * 60_000) { lastActive = now; patch.activeAt = serverTimestamp(); }
   update(dbRef(`rooms/${state.code}/meta`), patch).catch(() => {});
 }
 

@@ -166,6 +166,7 @@ async function boot() {
     const saved = loadSession();
     const resumed = await resumeSession();
     if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '' });
+    else if (resumed === 'idle') { setState({ invite: '' }); toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
     // Couldn't reach the room (weak signal): keep the seat and offer a one-tap rejoin.
     else if (resumed === 'error') { setState({ invite: saved.code }); toast('COULD NOT RECONNECT — TAP THE INVITE TO TRY AGAIN', 'warn', 5000); }
     // An invite link to a room that no longer exists: say so up front instead of failing on JOIN.

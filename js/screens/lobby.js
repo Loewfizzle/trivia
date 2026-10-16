@@ -6,7 +6,9 @@ import { colorHex } from '../config.js';
 import { toast } from '../ui/toast.js';
 import { APP_NAME, GAMES, MAX_PLAYERS, MIN_PLAYERS } from '../config.js';
 import { isHost } from '../store.js';
-import { playerOrder, isOnline } from '../core/room-logic.js';
+import { playerOrder, isOnline, idleLeft } from '../core/room-logic.js';
+import { ROOM_IDLE_WARN_MS } from '../config.js';
+import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../firebase.js';
 import { leaveRoom, kickPlayer } from '../room.js';
 import { startGame, onlineCount } from '../host.js';
 import { GAME_MODULES } from '../games/registry.js';
@@ -63,6 +65,8 @@ export function createLobby() {
     els.players = h('div.players');
     els.games = h('div.games');
     els.hint = h('p.lobby-hint.mono');
+    els.idle = h('div.lobby-idle', { hidden: true, role: 'status' });
+    els.idleTimer = setInterval(renderIdle, 5000);
     els.night = h('section.lobby-section.night');
     el.append(
       h('button.btn.btn-ghost.btn-sm.lobby-leave', { type: 'button', onclick: confirmLeave, 'aria-label': 'Leave room' }, '‹ LEAVE ROOM'),
@@ -77,6 +81,7 @@ export function createLobby() {
         h('div.section-head', h('span.label', 'OPERATIVES'), els.count),
         els.players),
       els.night,
+      els.idle,
       h('section.lobby-section',
         h('div.section-head', h('span.label', 'SELECT PROTOCOL')),
         els.hint,
@@ -115,6 +120,29 @@ export function createLobby() {
           h('span.night-pts', String(r.points)));
       })),
       h('p.night-foot.mono', '3 / 2 / 1 points for finishing 1st / 2nd / 3rd in each game.'));
+  }
+
+  // Rooms close after an hour without a game; the last 10 minutes show a countdown (host: KEEP OPEN).
+  function renderIdle() {
+    if (!els.idle || !st || !st.meta) return;
+    const left = idleLeft(st.meta, serverNow());
+    const show = left <= ROOM_IDLE_WARN_MS;
+    const mins = Math.max(1, Math.ceil(left / 60_000));
+    const sig = show ? `${mins}|${isHost()}` : '';
+    if (els.idle.dataset.sig === sig) return;
+    els.idle.dataset.sig = sig;
+    els.idle.hidden = !show;
+    if (!show) { els.idle.replaceChildren(); return; }
+    const host = isHost();
+    els.idle.replaceChildren(...[
+      h('p', h('b', `ROOM CLOSES IN ${mins} MIN`), h('span', host ? 'No game for almost an hour. Start one to keep the room.' : 'No game for almost an hour. Starting one keeps the room open.')),
+      host ? h('button.btn.btn-ghost.btn-sm', { type: 'button', onclick: keepOpen }, 'KEEP OPEN') : null,
+    ].filter(Boolean));
+  }
+  function keepOpen() {
+    dbUpdate(dbRef(`rooms/${st.code}/meta`), { activeAt: serverTimestamp() })
+      .then(() => toast('ROOM KEPT OPEN FOR ANOTHER HOUR', 'ok'))
+      .catch(() => toast('COULD NOT REACH THE ROOM', 'err'));
   }
 
   let leaveArmed = 0;
@@ -211,6 +239,7 @@ export function createLobby() {
   function update(state) {
     st = state;
     renderNight();
+    renderIdle();
     const host = isHost();
     const order = playerOrder(st.players);
     els.count.textContent = `${order.length}/${MAX_PLAYERS}`;
@@ -267,6 +296,7 @@ export function createLobby() {
   }
 
   function unmount() {
+    clearInterval(els.idleTimer);
     if (sheet) { sheet.remove(); sheet = null; }
     if (els.ballSub) { els.ballSub(); els.ballSub = null; }
     if (els.chatStrip) { els.chatStrip.destroy(); els.chatStrip = null; }

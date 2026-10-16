@@ -9,7 +9,7 @@
       ],
       "$code": {
         ".read": "auth != null",
-        ".write": "auth != null && data.exists() && !newData.exists() && (data.child('meta/hostId').val() === auth.uid || !data.child('meta').exists() || data.child('meta/activeAt').val() < now - 21600000)",
+        ".write": "auth != null && data.exists() && !newData.exists() && (data.child('meta/hostId').val() === auth.uid || !data.child('meta').exists() || data.child('meta/activeAt').val() < now - 3600000)",
         ".validate": "$code.matches(/^[A-HJ-NP-Z]{4}$/)",
         "meta": {
           ".write": "auth != null && ((!data.exists() && newData.child('hostId').val() === auth.uid) || data.child('hostId').val() === auth.uid)",
