@@ -161,7 +161,10 @@ appends from the fallback bank synchronously.
   `module.MUSIC` in a game, `'victory'` on the final phase with the game track as fallback). Same track = no-op (never
   restarts). Tracks load lazily (`prefetch` when the host opens a game's options or a match starts). Three `<audio>`
   voices -> MediaElementSource -> per-voice gain -> music bus; they are activated inside the unlock gesture so iOS lets
-  them play later. Loops crossfade 1.8 s into a fresh copy before the end. A missing file marks the track missing and
+  them play later. Loops crossfade 1.8 s into a fresh copy before the end. iOS often refuses
+  resumes after an app switch or pauses the track around the system keyboard: `engine.js` retries on every
+  tap/keystroke/focus/pageshow and fires `onResume`; `music.js#watchLoop` restarts a current track the OS paused
+  (regression test: `tests/integration/audio-resume.mjs`). A missing file marks the track missing and
   falls back or stays silent, with no errors.
 - SFX: `sfx(name, opts)`, names in `SOUNDS` (tap, key, select, lock, join, playerJoined, flip{state,i}, correct, present,
   absent, solve, invalid, tick{last}, roundEnd, shimmer, strike, hit, shieldBreak, eliminate, challenge, ocCorrect, ocWrong,

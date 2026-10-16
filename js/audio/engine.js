@@ -3,7 +3,9 @@
 // Mobile rules handled here:
 //  - iOS/Chrome only allow audio after a user gesture: the context is created and
 //    resumed on the first tap/key (and re-resumed on later taps if iOS suspended it).
-//  - Audio pauses when the page is hidden and resumes when it comes back.
+//  - Audio pauses when the page is hidden and resumes when it comes back. iOS often refuses
+//    that resume (or 'interrupts' the context, e.g. around the system keyboard), so every
+//    later tap/keystroke/focus retries, and onResume listeners restart playback.
 //  - navigator.audioSession.type = 'ambient' (iOS 17+): mixes politely with other
 //    apps' audio and respects the ring/silent switch.
 import { settings, onSettings } from './settings.js';
@@ -14,6 +16,7 @@ let sfxBus = null;
 let unlocked = false;
 const unlockListeners = new Set();
 const visibilityListeners = new Set();
+const resumeListeners = new Set();
 
 export const getContext = () => ctx;
 export const getMusicBus = () => musicBus;
@@ -25,6 +28,9 @@ function createContext() {
   if (!AC) return null;
   try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch { /* unsupported */ }
   ctx = new AC({ latencyHint: 'interactive' });
+  ctx.onstatechange = () => {
+    if (ctx.state === 'running') resumeListeners.forEach(fn => { try { fn(); } catch (e) { console.warn(e); } });
+  };
   const limiter = ctx.createDynamicsCompressor();
   limiter.threshold.value = -12;
   limiter.knee.value = 8;
@@ -75,12 +81,27 @@ export function onUnlock(fn) {
   if (unlocked) fn();
 }
 
+/** Called whenever the context (re)starts running — e.g. after iOS let it resume. */
+export function onResume(fn) {
+  resumeListeners.add(fn);
+}
+
+// Retry a resume (no-op when already running or not yet unlocked by a gesture).
+function kick() {
+  if (!ctx || !unlocked || document.visibilityState !== 'visible') return;
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});
+}
+
 export function onVisibility(fn) {
   visibilityListeners.add(fn);
 }
 
 export function installAudio() {
   for (const ev of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(ev, unlock, { capture: true, passive: true });
+  // typing on the iOS system keyboard / focusing inputs / coming back to the app: try again
+  for (const ev of ['input', 'focusin', 'touchstart']) document.addEventListener(ev, kick, { capture: true, passive: true });
+  window.addEventListener('pageshow', kick);
+  window.addEventListener('focus', kick);
   document.addEventListener('visibilitychange', () => {
     const visible = document.visibilityState === 'visible';
     if (ctx) {

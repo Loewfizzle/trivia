@@ -7,7 +7,7 @@
 // activated inside the first user gesture, which lets iOS start them later
 // without another tap. A missing file just marks the track missing — the game
 // stays silent (or uses the fallback track) with no errors.
-import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked } from './engine.js';
+import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, onResume } from './engine.js';
 
 const FILES = {
   menu: 'menu', cipher: 'cipher-breach', signal: 'last-signal',
@@ -123,10 +123,17 @@ function apply() {
 }
 
 // Loop watcher: crossfade into a fresh copy before the end.
+let lastNudge = 0;
 function watchLoop() {
   if (!current || !visible) return;
   const { voice, id } = current;
   const el = voice.el;
+  // Self-heal: the OS paused our track behind our back (iOS keyboard, app switch, call).
+  if (el.paused && isUnlocked() && performance.now() - lastNudge > 1500) {
+    lastNudge = performance.now();
+    el.play().catch(() => {});
+    return;
+  }
   if (!el.duration || !isFinite(el.duration) || el.paused) return;
   if (el.currentTime < el.duration - LOOP_XFADE - 0.15) return;
   const next = freeVoice(voice);
@@ -172,6 +179,13 @@ export function musicDebug() {
 onUnlock(() => {
   makeVoices();
   if (desired) { prefetch(desired.id); if (desired.fallback) prefetch(desired.fallback); }
+  apply();
+});
+// The context came back (often only on the next tap after iOS refused a resume): the
+// current voice may have been paused by the OS meanwhile, so start it again.
+onResume(() => {
+  if (!visible) return;
+  if (current && current.voice.el.paused) current.voice.el.play().catch(() => {});
   apply();
 });
 onVisibility(v => {
