@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { decodeEntities, normalize, acceptable, fetchOtdb, fetchTriviaApi } from '../js/trivia/sources.js';
+import { decodeEntities, normalize, acceptable, tooSpecific, fetchOtdb, fetchTriviaApi } from '../js/trivia/sources.js';
 import { setFallbackRows, pickFallback, qHash } from '../js/trivia/bank.js';
 import { appendPatch, decodeQuestion, fallbackPatch, roomUsedPatch } from '../js/trivia/bankdata.js';
 import { encodeJSON, decodeJSON } from '../js/core/obfuscate.js';
@@ -38,13 +38,14 @@ test('acceptable() filters awkward questions', () => {
 
 const mockFetch = body => async () => ({ status: 200, ok: true, json: async () => body });
 
-test('Open Trivia DB results are decoded, normalized, and easy questions dropped', async () => {
+test('Open Trivia DB results are decoded, normalized, and only medium questions kept', async () => {
   const res = await fetchOtdb({
     fetchFn: mockFetch({
       response_code: 0,
       results: [
-        { category: 'Science &amp; Nature', type: 'multiple', difficulty: 'hard', question: 'What is &quot;H2O&quot;?', correct_answer: 'Water', incorrect_answers: ['Salt', 'Air', 'Fire'] },
+        { category: 'Science &amp; Nature', type: 'multiple', difficulty: 'medium', question: 'What is &quot;H2O&quot;?', correct_answer: 'Water', incorrect_answers: ['Salt', 'Air', 'Fire'] },
         { category: 'Entertainment: Film', type: 'multiple', difficulty: 'easy', question: 'Too easy question?', correct_answer: 'A', incorrect_answers: ['B', 'C', 'D'] },
+        { category: 'Sports', type: 'multiple', difficulty: 'hard', question: 'Too hard question?', correct_answer: 'A', incorrect_answers: ['B', 'C', 'D'] },
       ],
     }),
   });
@@ -145,4 +146,44 @@ test('room memory: a night of back-to-back matches never repeats a question whil
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+// Reported: questions felt ridiculously specific, sports especially. These are real Open Trivia DB
+// questions (hard/medium sports) that must never reach a party game, next to fair ones that must.
+test('tooSpecific(): drops pub-quiz-final questions, keeps party trivia', () => {
+  const q = (cat, text, correct, wrong) => ({ cat, q: text, correct, wrong });
+  const out = [
+    q('sports', 'Who scored the injury time winning goal in the 1999 UEFA Champions League final between Manchester United and Bayern Munich?', 'Ole Gunnar Solskjaer', ['Teddy Sheringham', 'Dwight Yorke', 'Andy Cole']),
+    q('sports', 'The AHL affiliate team of the Boston Bruins is named what?', 'Providence Bruins', ['Hershey Bears', 'Rochester Americans', 'Hartford Wolf Pack']),
+    q('sports', 'Which player holds the NHL record of 2,857 points?', 'Wayne Gretzky', ['Mario Lemieux', 'Jaromir Jagr', 'Gordie Howe']),
+    q('sports', 'In the 2014 FIFA World Cup, what was the final score in the match Brazil - Germany?', '1-7', ['0-3', '2-5', '1-4']),
+    q('sports', 'In 2016, who won the Formula 1 World Constructor\'s Championship for the third time in a row?', 'Mercedes-AMG Petronas', ['Red Bull', 'Ferrari', 'McLaren']),
+    q('screen', 'Who won the 2018 Academy Award for Best Supporting Actor for playing Dr. Donald Shirley?', 'Mahershala Ali', ['Sam Elliott', 'Adam Driver', 'Richard E. Grant']),
+    q('history', 'In which year did the Battle of Hastings take place?', '1066', ['1086', '1166', '1016']),
+  ];
+  const keep = [
+    q('sports', 'With which sport is Rafael Nadal associated?', 'Tennis', ['Golf', 'Squash', 'Cricket']),
+    q('sports', 'In what sport is a "shuttlecock" used?', 'Badminton', ['Tennis', 'Squash', 'Table tennis']),
+    q('sports', 'Which Grand Slam tennis tournament is played on grass?', 'Wimbledon', ['US Open', 'French Open', 'Australian Open']),
+    q('science', 'What is the chemical symbol for gold?', 'Au', ['Ag', 'Go', 'Gd']),
+    q('geography', 'How many continents are there?', '7', ['5', '6', '8']),
+    q('screen', 'Which actor played Vito Corleone in The Godfather?', 'Marlon Brando', ['Al Pacino', 'Robert De Niro', 'James Caan']),
+  ];
+  for (const it of out) assert.ok(tooSpecific(it), `should drop: ${it.q}`);
+  for (const it of keep) assert.ok(!tooSpecific(it), `should keep: ${it.q}`);
+});
+
+test('the APIs are asked for medium only, and specific questions are filtered out of it', async () => {
+  let url = '';
+  await fetchTriviaApi({ fetchFn: async u => { url = u; return { ok: true, json: async () => [] }; } });
+  assert.match(url, /difficulties=medium(&|$)/);
+  const res = await fetchOtdb({
+    fetchFn: async () => ({ status: 200, json: async () => ({ response_code: 0, results: [
+      { category: 'Sports', type: 'multiple', difficulty: 'medium', question: 'Edson Arantes do Nascimento is the full name of which footballer?', correct_answer: 'Pele', incorrect_answers: ['Ronaldo', 'Zico', 'Garrincha'] },
+      { category: 'Sports', type: 'multiple', difficulty: 'medium', question: 'Which soccer team won the Copa America Centenario 2016?', correct_answer: 'Chile', incorrect_answers: ['Argentina', 'Mexico', 'USA'] },
+      { category: 'Sports', type: 'multiple', difficulty: 'easy', question: 'In what sport is a shuttlecock used?', correct_answer: 'Badminton', incorrect_answers: ['Tennis', 'Squash', 'Golf'] },
+      { category: 'Science: Computers', type: 'multiple', difficulty: 'hard', question: 'What does the acronym SCSI stand for?', correct_answer: 'Small Computer System Interface', incorrect_answers: ['A', 'B', 'C'] },
+    ] }) }),
+  });
+  assert.deepEqual(res.items.map(i => i.a[i.c]), [], 'Open Trivia DB sports never pass (club-nickname / stat trivia even at medium)');
 });
