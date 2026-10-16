@@ -62,11 +62,16 @@ const WORDS = [
   'bitch(?:es|y|ing)?', 'son of a bitch',
   'cunts?', 'twats?', 'wank(?:er|ers|ing)?', 'bollocks',
   'ass(?:es)?', 'asshole(?:s)?', 'arsehole(?:s)?', 'dumbass', 'jackass', 'asshat',
-  'bastards?', 'dick(?:s|head|heads)?', 'cocksucker(?:s)?', 'pussy', 'pussies',
+  'bastards?', 'dickheads?', 'cocksucker(?:s)?', 'pussy', 'pussies',
   'sluts?', 'slutty', 'whores?', 'piss(?:ed)?',
-  'fag(?:s|got|gots)?', 'nigg(?:er|ers|a|as)', 'retard(?:s|ed)?', 'spics?', 'chinks?', 'kikes?', 'trann(?:y|ies)',
+  'fag(?:s|got|gots)?', 'nigg(?:er|ers|a|as)', 'retard(?:s|ed)?', 'spics?', 'kikes?', 'trann(?:y|ies)',
 ];
-const RE = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${WORDS.join('|')})(?![\\p{L}\\p{N}_])`, 'giu');
+// (left out on purpose — too often innocent: "dick" (Moby-Dick, Philip K. Dick), "chink" (in the armor), "cock")
+// A hyphen or apostrophe inside a word keeps it one word ("Moby-Dick", "Hell's").
+const RE = new RegExp(`(?<![\\p{L}\\p{N}_'’-])(?:${WORDS.join('|')})(?![\\p{L}\\p{N}_'’-])`, 'giu');
+
+/** Does the text contain a word the filter would mask? (also used to keep crude trivia answers out) */
+export const hasProfanity = text => { RE.lastIndex = 0; const hit = RE.test(String(text)); RE.lastIndex = 0; return hit; };
 
 /** "what the fuck" -> "what the f***" (keeps the first letter and the length). */
 export function maskProfanity(text) {

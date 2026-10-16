@@ -75,7 +75,7 @@
 .chat-fab.is-locked .cf-badge { background: #8a2a70; }
 
 /* game timers sit right under the gear: keep their numbers clear of the chat button */
-body.chat-fab-on .timer { padding-right: 48px; }
+body.chat-fab-on .timer { padding-right: 48px; margin-bottom: 10px; } /* and clear its lower edge */
 
 /* ---- chat sheet ---- */
 .chat-modal { z-index: 80; }
@@ -173,3 +173,8 @@ body.chat-fab-on .timer { padding-right: 48px; }
 @media (prefers-reduced-motion: reduce) {
   .chat-pill { animation: none; }
 }
+
+/* results podium: the WINNER / DEADLOCK title stays clear of the chat button (and centred) */
+body.chat-fab-on .winner { padding: 0 50px; }
+body.chat-fab-on .winner-title { font-size: clamp(38px, 12.2vw, 66px); }
+body.chat-fab-on .winner-title.is-tied { font-size: clamp(28px, 8.8vw, 54px); }

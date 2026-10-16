@@ -287,7 +287,7 @@ Totals are derived from `results` (lowest strokes wins).
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (105 tests: rules of all six games incl. NEON PAR physics + director, chat locks + profanity filter, host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (106 tests: rules of all six games incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -404,7 +404,7 @@ Trims songs > 3:15 to their most energetic ~2:50 (fade in/out), skips intros > 1
   closes when the next round starts. `body.chat-fab-on .timer` leaves room for the button under the gear.
 - **System lines** (host, quiet style): joined, left, signal lost (after 6 s offline), reconnected, removed by the host,
   new host (written by the new host), "<GAME> started" (`s-start-{matchId}`), winner (`s-win-{matchId}`, ties summarized).
-- **Profanity:** `meta/settings/chat/filter` (host, gear → FILTER LANGUAGE, default off) masks at render time on every
+- **Profanity:** (also keeps crude API trivia out — `sources.js#tooSpecific` uses `hasProfanity`) `meta/settings/chat/filter` (host, gear → FILTER LANGUAGE, default off) masks at render time on every
   phone (past lines too). Whole words with common endings only (`maskProfanity`; tests keep Scunthorpe/assassin/class).
 - **UI:** lobby strip (latest 2 lines + typing + a message field → opens the sheet focused, so the keyboard comes up);
   sheet with grouped lines (same sender < 3 min), own lines right/accent, relative times, "New messages" pill when

@@ -44,7 +44,7 @@ test('profanity is masked as whole words only', () => {
   assert.equal(maskProfanity('FUCKING hell, shit!'), 'F****** hell, s***!');
   assert.equal(maskProfanity('you absolute bastard'), 'you absolute b******');
   assert.equal(maskProfanity('dumbass move'), 'd****** move');
-  for (const ok of ['Scunthorpe', 'assassin', 'class', 'classic', 'passage', 'cocktail', 'Dickens', 'therapist', 'grass', 'bass', 'shitake', 'Matsushita', 'cockpit', 'pushit', 'analysis', 'hello']) {
+  for (const ok of ['Moby-Dick', 'Philip K. Dick', 'a chink in the armor', 'Scunthorpe', 'assassin', 'class', 'classic', 'passage', 'cocktail', 'Dickens', 'therapist', 'grass', 'bass', 'shitake', 'Matsushita', 'cockpit', 'pushit', 'analysis', 'hello']) {
     assert.equal(maskProfanity(`${ok} ok`), `${ok} ok`, ok);
   }
   assert.equal(maskProfanity('emoji 🔥 fuck 🔥'), 'emoji 🔥 f*** 🔥');
@@ -69,4 +69,15 @@ test('text cleanup + helpers', () => {
   assert.equal(continues({ u: 'a', at: 0 }, { u: 'a', at: 60_000 }), true);
   assert.equal(continues({ u: 'a', at: 0 }, { u: 'a', at: 400_000 }), false);
   assert.equal(continues({ u: 'a', at: 0 }, { u: 'b', at: 1 }), false);
+});
+
+test('no crude words anywhere in the question banks; crude API trivia is skipped', async () => {
+  const { hasProfanity } = await import('../js/chat/logic.js');
+  const { tooSpecific } = await import('../js/trivia/sources.js');
+  const { readFileSync } = await import('node:fs');
+  const read = p => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'));
+  for (const row of read('../data/trivia/fallback.json').questions) assert.ok(!row.some(c => typeof c === 'string' && hasProfanity(c)), `fallback: ${row[2]}`);
+  for (const row of read('../data/bluff/questions.json').questions) assert.ok(![row[1], row[2], ...row[4]].some(hasProfanity) /* (row[3] = hidden accepted spellings) */, `bluff: ${row[1]}`);
+  assert.equal(tooSpecific({ q: 'What is the word for a female goose?', correct: 'A Gander', wrong: ['A Leopardess', 'A Hembra', 'A Bitch'], cat: 'language' }), true);
+  assert.equal(hasProfanity('class assassin Scunthorpe'), false);
 });
