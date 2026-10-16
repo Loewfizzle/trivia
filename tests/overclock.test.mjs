@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { TYPES, generate, partsFor, unscrambleAccepts, memoryLength } from '../js/games/overclock/challenges.js';
+import { TYPES, generate, partsFor, unscrambleAccepts, memoryLength, STROOP_COLORS, reflexCredit, TF_FACTS } from '../js/games/overclock/challenges.js';
 import { buildOrder, challengeScore, computeResults, standings, levelOf, CHALLENGE_MS, MODES, BRIEF_MS, READY_MS, STANDINGS_MS } from '../js/games/overclock/logic.js';
 import { createGame, nextStep, triviaNeeded } from '../js/games/overclock/director.js';
 import { setLists, answersFor, isValidGuess } from '../js/games/cipher/words.js';
@@ -63,12 +63,15 @@ test('unscramble accepts the word or another valid anagram, nothing else', () =>
   assert.ok(!unscrambleAccepts('aelst', 'stale', isValidGuess), 'not a word');
 });
 
-test('order: each type equally often, never back-to-back', () => {
+test('order: trivia keeps one slot in six, the rest spread evenly, never back-to-back', () => {
   for (const [mode, n] of Object.entries(MODES)) {
     for (let s = 0; s < 40; s++) {
       const o = buildOrder(`seed${s}${mode}`, n);
       assert.equal(o.length, n);
-      for (const t of TYPES) assert.equal(o.filter(x => x === t).length, n / TYPES.length);
+      assert.equal(o.filter(x => x === 'trivia').length, n / 6);
+      const others = TYPES.filter(t => t !== 'trivia').map(t => o.filter(x => x === t).length);
+      assert.ok(Math.max(...others) - Math.min(...others) <= 1, `even spread: ${others}`);
+      assert.ok(Math.min(...others) >= 1, 'every type shows up');
       for (let i = 1; i < o.length; i++) assert.notEqual(o[i], o[i - 1]);
       assert.deepEqual(buildOrder(`seed${s}${mode}`, n), o, 'deterministic');
     }
@@ -212,4 +215,50 @@ test('standings → ready assigns lightning question indices and timing', () => 
   const all = (game.order[0] === 'trivia' ? [0] : []).concat(starts);
   assert.deepEqual(all, all.map((_, i) => i * 3), 'consecutive, non-overlapping question blocks');
   assert.ok(STANDINGS_MS > 0);
+});
+
+test('new challenges: color clash, signal lock, quick count, true or false are well-formed', () => {
+  for (let ci = 0; ci < 60; ci++) {
+    const level = (ci % 12) / 11;
+    const args = { seed: `n${ci}`, ci, level };
+    const st = generate('stroop', args);
+    assert.equal(st.items.length, 8);
+    for (const it of st.items) {
+      assert.ok(STROOP_COLORS[it.ink] && STROOP_COLORS[it.word]);
+      assert.equal(it.order.length, 4);
+      assert.ok(it.order.includes(it.ink) && it.order.includes(it.word), 'the answer is always a button');
+    }
+    assert.ok(st.items.filter(it => it.word !== it.ink).length >= 4, 'mostly mismatched');
+    const rx = generate('reflex', args);
+    assert.equal(rx.delays.length, 5);
+    assert.ok(rx.delays.every(d => d >= 1100 && d <= 2600));
+    const qc = generate('count', args);
+    for (const it of qc.items) {
+      assert.equal(it.cells.length, it.size * it.size);
+      assert.equal(it.cells.filter(c => c === it.target).length, it.ans, 'the grid really has ans targets');
+      assert.equal(it.options.length, 4);
+      assert.ok(it.options.includes(it.ans) && new Set(it.options).size === 4 && it.options.every(v => v > 0));
+    }
+    const tf = generate('truefalse', args);
+    assert.equal(tf.items.length, 8);
+    for (const it of tf.items.filter((_, i) => i % 2 === 0)) {
+      // math statements: evaluate them and check the label
+      const m = it.text.replace(/×/g, '*').replace(/÷/g, '/').replace(/(\d+)²/g, '($1**2)').replace(/(\d+)% of (\d+)/, '($1*$2/100)').replace(/ = /, ' === ');
+      assert.equal(Function(`return (${m})`)(), it.truth, it.text);
+    }
+  }
+  assert.ok(TF_FACTS.every(([t, f]) => t && f && t !== f));
+});
+
+test('signal lock: reaction-time credit and scoring on the same 160-point scale', () => {
+  assert.equal(reflexCredit(200), 1);
+  assert.equal(reflexCredit(230), 1);
+  assert.ok(reflexCredit(400) < 1 && reflexCredit(400) > reflexCredit(600));
+  assert.equal(reflexCredit(5000), 0.1, 'a slow tap still beats a miss');
+  assert.equal(reflexCredit(NaN), 0);
+  assert.equal(challengeScore({ type: 'reflex', parts: 5, ok: 5, final: false }), 160);
+  assert.equal(challengeScore({ type: 'reflex', parts: 5, ok: 2.5, final: true }), 160);
+  // fractional credit (quick count halves) flows through the normal scoring
+  const game = { order: ['count'], ci: 0, total: 1, participants: { a: true }, playStartAt: 0 };
+  assert.equal(computeResults(game, { a: { ok: 3.5, p: 4, done: true, doneAt: 30_000 } }).a.pts, Math.round(100 * 3.5 / 4) * 2);
 });

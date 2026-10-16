@@ -292,6 +292,37 @@ async function solve(page, spec, { mistakes = false } = {}) {
       await clickSel(page, `.tl-opt:nth-child(${pick + 1})`);
       await sleep(mistakes && i === spec.questions.length - 1 ? 1000 : 550);
     }
+  } else if (t === 'stroop') {
+    for (let i = 0; i < spec.items.length; i++) {
+      const it = spec.items[i];
+      await page.waitForSelector('.cc-opt', { timeout: 5000 });
+      const c = mistakes && i === 0 ? it.order.find(x => x !== it.ink) : it.ink;
+      await clickSel(page, `.cc-opt[data-c="${c}"]`);
+      await sleep(mistakes && i === 0 ? 800 : 320);
+    }
+  } else if (t === 'reflex') {
+    for (let r = 0; r < spec.delays.length; r++) {
+      if (mistakes && r === 0) { await page.waitForSelector('.rx-pad.is-wait', { timeout: 6000 }); await clickSel(page, '.rx-pad'); await sleep(1100); continue; } // jump the gun once
+      await page.waitForSelector('.rx-pad.is-go', { timeout: 6000 });
+      await clickSel(page, '.rx-pad');
+      await sleep(1100);
+    }
+  } else if (t === 'count') {
+    for (let i = 0; i < spec.items.length; i++) {
+      const it = spec.items[i];
+      await page.waitForSelector('.qc-opt', { timeout: 6000 });
+      const v = mistakes && i === 0 ? it.options.find(o => Math.abs(o - it.ans) === 1) || it.ans : it.ans;
+      await clickSel(page, `.qc-opt[data-v="${v}"]`);
+      await sleep(1000);
+    }
+  } else if (t === 'truefalse') {
+    for (let i = 0; i < spec.items.length; i++) {
+      const it = spec.items[i];
+      await page.waitForSelector('.tf-btn', { timeout: 5000 });
+      const v = mistakes && i === 0 ? !it.truth : it.truth;
+      await clickSel(page, v ? '.tf-true' : '.tf-false');
+      await sleep(mistakes && i === 0 ? 900 : 360);
+    }
   }
 }
 

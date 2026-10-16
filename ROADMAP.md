@@ -17,7 +17,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 1 | **CIPHER BREACH** | Competitive Wordle race; opponents' boards live as color-only tiles; word length grows. | terminal green / cyan | ✅ Stage 1 |
 | 2 | **NEURAL BLUFF** | Bluffing trivia: write a convincing lie, find the truth among everyone's lies, score for fooling friends. 356 hand-written strange-but-true questions. | cold "Ministry of Truth" dossiers | ✅ Stage 3 |
 | 3 | **LAST SIGNAL** | Trivia battle royale: HP + shields, strike your target, escalating damage, decaying UI. | alarm red | ✅ Stage 2 |
-| 4 | **OVERCLOCK** | Six kinds of 30-second mind challenges, identical for everyone from a shared seed. | amber / magenta | ✅ Stage 2 |
+| 4 | **OVERCLOCK** | Ten kinds of 30-second mind challenges (Color Clash, Signal Lock, Quick Count and True or False added after launch), identical for everyone from a shared seed. | amber / magenta | ✅ Stage 2 |
 
 ## Stages
 
@@ -53,7 +53,8 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host
   option to pick packs; custom word lists for Cipher Breach (kids mode, themed words).
 - **Custom rooms:** host-written Bluff questions typed in before a party ("office edition").
-- **More Overclock challenges:** color-word Stroop test, quick estimation, flag/shape matching, reaction time.
+- **More Overclock challenges:** ~~Stroop, reaction time, quick count, true/false~~ (shipped); next: missing letter, spot the
+  change, end-of-match awards ("Fastest Fingers"…), a final-round wager, streak bonuses, a Quick 6-challenge mode.
 - **Team modes:** 2v2 / 4v4 variants of Last Signal and Overclock.
 - **TV / big-screen mode:** a read-only "board" view for a laptop on the TV while phones are controllers.
 - **Profiles:** optional persistent stats and achievements across nights (would need a non-anonymous sign-in).

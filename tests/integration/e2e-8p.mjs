@@ -211,6 +211,14 @@ async function solveOC(page, spec) {
       for (const v of answers) { const keys = [...document.querySelectorAll('.kp')]; for (const d of String(v)) keys.find(k => k.textContent === d).click(); keys.find(k => k.classList.contains('kp-go')).click(); await sleep(450); }
     } else if (t === 'trivia') {
       for (const q of spec.questions) { for (let i = 0; i < 20 && !document.querySelector('.tl-opt'); i++) await sleep(60); document.querySelector(`.tl-opt:nth-child(${q.c + 1})`).click(); await sleep(520); }
+    } else if (t === 'stroop') {
+      for (const it of spec.items) { for (let i = 0; i < 20 && !document.querySelector('.cc-opt'); i++) await sleep(50); document.querySelector(`.cc-opt[data-c="${it.ink}"]`).click(); await sleep(300); }
+    } else if (t === 'reflex') {
+      for (let r = 0; r < spec.delays.length; r++) { for (let i = 0; i < 200 && !document.querySelector('.rx-pad.is-go'); i++) await sleep(15); const pad = document.querySelector('.rx-pad.is-go'); pad && pad.click(); await sleep(400); }
+    } else if (t === 'count') {
+      for (const it of spec.items) { for (let i = 0; i < 80 && !document.querySelector('.qc-opt'); i++) await sleep(50); document.querySelector(`.qc-opt[data-v="${it.ans}"]`).click(); await sleep(520); }
+    } else if (t === 'truefalse') {
+      for (const it of spec.items) { for (let i = 0; i < 20 && !document.querySelector('.tf-btn'); i++) await sleep(50); document.querySelector(it.truth ? '.tf-true' : '.tf-false').click(); await sleep(340); }
     }
   }, spec);
 }

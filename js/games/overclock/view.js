@@ -12,10 +12,12 @@ import { shuffle } from '../../core/rng.js';
 import { sfx } from '../../audio/sfx.js';
 import { decodeQuestion } from '../../trivia/feed.js';
 import { loadLengths, answersFor, isValidGuess } from '../cipher/words.js';
-import { INFO, generate, unscrambleAccepts, partsFor } from './challenges.js';
+import { INFO, generate, unscrambleAccepts, partsFor, STROOP_COLORS, REFLEX_TIMEOUT_MS, reflexCredit } from './challenges.js';
 import { CHALLENGE_MS, levelOf, totals, standings } from './logic.js';
 
 const GHOST = { name: 'GHOST', color: 'yellow', avatar: 'ghost' };
+// 3, 2.5, 3.47 → '3', '2.5', '3.5' (partial credit)
+const fmtOk = n => (Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toString());
 
 export function createView() {
   let root, st;
@@ -137,7 +139,7 @@ export function createView() {
         return;
       }
       const mine = boardsNow(game)[me()] || {};
-      chal = { key, spec, parts: spec.parts, p: mine.p || 0, ok: mine.ok || 0, done: !!mine.done, ui: null };
+      chal = { key, spec, parts: spec.parts, p: mine.p || 0, ok: mine.ok || 0, done: !!mine.done, ui: null, marks: [], times: [] };
       clear(els.stage);
       if (chal.done) showDone();
       else mountChallenge(game);
@@ -160,15 +162,18 @@ export function createView() {
     return generate(type, { seed: game.seed, ci: game.ci, level: levelOf(game.ci, game.total) }, deps);
   }
 
-  // Progress API shared by all challenge UIs.
-  function part(correct, quiet = false) {
+  // Progress API shared by all challenge UIs. result: true / false, or partial credit 0..1
+  // (Quick Count's off-by-one, Signal Lock's reaction time).
+  function part(result, quiet = false) {
     if (!chal || chal.done) return;
+    const credit = result === true ? 1 : result === false ? 0 : Math.max(0, Math.min(1, Number(result) || 0));
+    chal.marks[chal.p] = credit >= 1 ? 'ok' : credit > 0 ? 'half' : 'miss';
     chal.p += 1;
-    if (correct) chal.ok += 1;
+    chal.ok = Math.round((chal.ok + credit) * 100) / 100;
     paintPips();
     if (!quiet) {
-      sfx(correct ? 'ocCorrect' : 'ocWrong');
-      vibrate(correct ? 12 : [20, 30, 20]);
+      sfx(credit >= 0.5 ? 'ocCorrect' : 'ocWrong');
+      vibrate(credit >= 0.5 ? 12 : [20, 30, 20]);
     }
     if (chal.p >= chal.parts) finish();
     else write(false);
@@ -194,10 +199,15 @@ export function createView() {
     if (chal.ui && chal.ui.destroy) chal.ui.destroy();
     chal.ui = null;
     clear(els.stage);
+    const reflex = chal.spec.type === 'reflex';
     const perfect = chal.ok >= chal.parts;
+    const hits = chal.times.filter(t => t != null);
+    const score = reflex
+      ? (hits.length ? [h('b', String(Math.round(hits.reduce((a, b) => a + b, 0) / hits.length))), ' ms avg'] : [h('b', `${Math.round((100 * chal.ok) / chal.parts)}%`), ' speed'])
+      : [h('b', fmtOk(chal.ok)), ` / ${chal.parts}`];
     els.stage.append(h('div.oc-done', { class: perfect ? 'is-perfect' : null },
       h('div.oc-done-mark', perfect ? 'PERFECT' : 'LOCKED IN'),
-      h('div.oc-done-score', h('b', String(chal.ok)), ` / ${chal.parts}`),
+      h('div.oc-done-score', ...score),
       h('div.oc-done-wait', 'WAITING FOR THE OTHERS…')));
     if (perfect) sfx('solve');
   }
@@ -212,7 +222,10 @@ export function createView() {
       h('div.ch-hero-text', h('b', info.name), h('small', isFinal ? 'FINAL · DOUBLE POINTS' : `CHALLENGE ${game.ci + 1} OF ${game.total}`)),
       els.pips));
     paintPips();
-    const ui = { unscramble: uiUnscramble, memory: uiMemory, oddone: uiOddOne, math: uiNumeric, pattern: uiNumeric, trivia: uiTrivia }[s.type](s);
+    const ui = {
+      unscramble: uiUnscramble, memory: uiMemory, oddone: uiOddOne, math: uiNumeric, pattern: uiNumeric, trivia: uiTrivia,
+      stroop: uiStroop, reflex: uiReflex, count: uiCount, truefalse: uiTrueFalse,
+    }[s.type](s);
     chal.ui = ui;
     els.stage.append(ui.el);
   }
@@ -220,7 +233,7 @@ export function createView() {
   function paintPips() {
     if (!els.pips || !chal) return;
     [...els.pips.children].forEach((pip, i) => {
-      pip.className = i < chal.ok ? 'ok' : i < chal.p ? 'miss' : '';
+      pip.className = chal.marks[i] || (i < Math.floor(chal.ok) ? 'ok' : i < chal.p ? 'miss' : '');
     });
   }
 
@@ -444,6 +457,159 @@ export function createView() {
     return { el: wrap };
   }
 
+  // Buttons that react on touch-down (a click waits for the finger to lift — too slow for these).
+  const fastButton = (sel, attrs, onPress, ...kids) => h(sel, {
+    type: 'button', dataset: { sfx: 'none', ...(attrs.dataset || {}) }, ...attrs,
+    onpointerdown: e => { e.preventDefault(); onPress(e); },
+    onclick: e => { if (e.detail === 0) onPress(e); }, // keyboard / assistive activation
+  }, ...kids);
+
+  // ---------- COLOR CLASH ----------
+  function uiStroop(s) {
+    const wrap = h('div.ch.ch-stroop');
+    let locked = false;
+    let btns = [];
+    const show = () => {
+      if (chal.p >= s.items.length) return;
+      const it = s.items[chal.p];
+      const word = h('div.cc-word', { style: { '--ink': STROOP_COLORS[it.ink].hex }, 'aria-label': `The word ${STROOP_COLORS[it.word].name}` }, STROOP_COLORS[it.word].name);
+      btns = it.order.map((id, k) => fastButton('button.cc-opt', { dataset: { c: id }, 'aria-label': `${STROOP_COLORS[id].name} ink` }, () => choose(id), h('span.cc-key', String(k + 1)), STROOP_COLORS[id].name));
+      wrap.replaceChildren(h('div.ch-prompt', `TAP THE INK COLOR · ${chal.p + 1}/${s.items.length}`), word, h('div.cc-opts', btns));
+      pulseClass(word, 'q-in');
+    };
+    const choose = id => {
+      if (locked || chal.done) return;
+      locked = true;
+      const it = s.items[chal.p];
+      const right = id === it.ink;
+      btns.find(b => b.dataset.c === it.ink).classList.add('is-correct');
+      if (!right) btns.find(b => b.dataset.c === id).classList.add('is-wrong');
+      part(right);
+      setTimeout(() => { locked = false; if (!chal.done) show(); }, right ? 220 : 650);
+    };
+    keyHandler = e => { const k = Number(e.key); if (k >= 1 && k <= 4 && s.items[chal.p]) choose(s.items[chal.p].order[k - 1]); };
+    show();
+    return { el: wrap, destroy() { keyHandler = null; } };
+  }
+
+  // ---------- SIGNAL LOCK ----------
+  function uiReflex(s) {
+    const label = h('div.rx-label', 'GET READY');
+    const sub = h('div.rx-sub', `ROUND ${chal.p + 1}/${s.parts}`);
+    const pad = fastButton('button.rx-pad', { 'aria-label': 'Reaction pad' }, e => tap(e), label, sub);
+    const log = h('div.rx-log', Array.from({ length: s.parts }, (_, i) => h('span.rx-chip', { class: i < chal.p ? 'is-done' : null }, i < chal.p ? '✓' : '—')));
+    let mode = 'idle';
+    let goAt = 0;
+    let timers = [];
+    const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+    const startRound = () => {
+      if (chal.done || chal.p >= s.parts) return;
+      mode = 'wait';
+      pad.className = 'rx-pad is-wait';
+      label.textContent = 'WAIT…';
+      sub.textContent = `ROUND ${chal.p + 1}/${s.parts}`;
+      later(go, s.delays[chal.p]);
+    };
+    const go = () => {
+      mode = 'go';
+      goAt = performance.now();
+      pad.className = 'rx-pad is-go';
+      label.textContent = 'TAP!';
+      sfx('select');
+      // time from the frame the flash actually paints
+      requestAnimationFrame(() => { if (mode === 'go') goAt = performance.now(); });
+      later(() => { if (mode === 'go') record(null, 'TOO SLOW'); }, REFLEX_TIMEOUT_MS);
+    };
+    const tap = e => {
+      if (mode === 'wait') record(null, 'TOO EARLY');
+      else if (mode === 'go') record(Math.max(0, (e && e.timeStamp ? e.timeStamp : performance.now()) - goAt));
+    };
+    const record = (ms, why) => {
+      mode = 'shown';
+      timers.forEach(clearTimeout);
+      timers = [];
+      const i = chal.p;
+      chal.times[i] = ms;
+      pad.className = `rx-pad ${ms == null ? 'is-miss' : 'is-hit'}`;
+      label.textContent = ms == null ? why : `${Math.round(ms)} ms`;
+      const chip = log.children[i];
+      if (chip) { chip.textContent = ms == null ? '✕' : String(Math.round(ms)); chip.className = `rx-chip ${ms == null ? 'is-miss' : 'is-hit'}`; }
+      part(ms == null ? 0 : reflexCredit(ms));
+      if (!chal.done) later(startRound, 950);
+    };
+    later(startRound, 900);
+    keyHandler = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); tap(e); } };
+    return { el: h('div.ch.ch-reflex', h('div.ch-prompt', 'TAP THE MOMENT IT FLASHES'), pad, log), destroy() { timers.forEach(clearTimeout); keyHandler = null; } };
+  }
+
+  // ---------- QUICK COUNT ----------
+  const SHAPE_NAME = { tri: 'triangle', dot: 'circle', sq: 'square', dia: 'diamond' };
+  const shape = id => h('i.qc-shape', { dataset: { s: id }, 'aria-label': SHAPE_NAME[id] });
+  function uiCount(s) {
+    const wrap = h('div.ch.ch-count');
+    let timer = 0;
+    let locked = false;
+    const show = () => {
+      if (chal.p >= s.items.length) return;
+      const it = s.items[chal.p];
+      locked = false;
+      const grid = h('div.qc-grid', { style: { '--n': it.size } }, it.cells.map(c => h('span.qc-cell', c ? shape(c) : null)));
+      wrap.replaceChildren(h('div.ch-prompt', `MEMORIZE · ${chal.p + 1}/${s.items.length}`), grid);
+      timer = setTimeout(() => ask(it), it.flashMs);
+    };
+    const ask = it => {
+      const opts = it.options.map(v => fastButton('button.qc-opt', { dataset: { v: String(v) } }, () => choose(v, it, opts), String(v)));
+      wrap.replaceChildren(
+        h('div.ch-prompt', `HOW MANY? · ${chal.p + 1}/${s.items.length}`),
+        h('div.qc-ask', 'HOW MANY ', shape(it.target), ' ?'),
+        h('div.qc-opts', opts));
+    };
+    const choose = (v, it, opts) => {
+      if (locked || chal.done) return;
+      locked = true;
+      const credit = v === it.ans ? 1 : Math.abs(v - it.ans) === 1 ? 0.5 : 0;
+      opts.find(b => Number(b.dataset.v) === it.ans).classList.add('is-correct');
+      if (credit < 1) opts.find(b => Number(b.dataset.v) === v).classList.add(credit ? 'is-close' : 'is-wrong');
+      part(credit);
+      timer = setTimeout(() => { if (!chal.done) show(); }, credit === 1 ? 420 : 900);
+    };
+    show();
+    return { el: wrap, destroy() { clearTimeout(timer); } };
+  }
+
+  // ---------- TRUE OR FALSE ----------
+  function uiTrueFalse(s) {
+    const wrap = h('div.ch.ch-tf');
+    let locked = false;
+    let yes, no;
+    const show = () => {
+      if (chal.p >= s.items.length) return;
+      const it = s.items[chal.p];
+      const text = h('p.tf-q', it.text);
+      yes = fastButton('button.tf-btn.tf-true', {}, () => choose(true), 'TRUE');
+      no = fastButton('button.tf-btn.tf-false', {}, () => choose(false), 'FALSE');
+      wrap.replaceChildren(h('div.ch-prompt', `TRUE OR FALSE · ${chal.p + 1}/${s.items.length}`), text, h('div.tf-btns', no, yes));
+      pulseClass(text, 'q-in');
+    };
+    const choose = v => {
+      if (locked || chal.done) return;
+      locked = true;
+      const it = s.items[chal.p];
+      const right = v === it.truth;
+      (it.truth ? yes : no).classList.add('is-correct');
+      if (!right) (v ? yes : no).classList.add('is-wrong');
+      part(right);
+      setTimeout(() => { locked = false; if (!chal.done) show(); }, right ? 260 : 800);
+    };
+    keyHandler = e => {
+      const k = e.key.toLowerCase();
+      if (k === 't' || k === 'arrowright') choose(true);
+      else if (k === 'f' || k === 'arrowleft') choose(false);
+    };
+    show();
+    return { el: wrap, destroy() { keyHandler = null; } };
+  }
+
   // ---------- overlays ----------
   function buildOverlay(game) {
     cancelAnimationFrame(introRaf);
@@ -488,7 +654,7 @@ export function createView() {
       prevScore: prevMap[r.uid] ? prevMap[r.uid].score : 0,
       prevRank: game.ci > 0 && prevMap[r.uid] ? prevMap[r.uid].rank : null,
       delta: res[r.uid] ? res[r.uid].pts : 0,
-      note: res[r.uid] ? `${res[r.uid].ok}/${res[r.uid].parts} CORRECT` : '',
+      note: !res[r.uid] ? '' : game.order[game.ci] === 'reflex' ? `REFLEX ${Math.round((100 * res[r.uid].ok) / res[r.uid].parts)}%` : `${fmtOk(res[r.uid].ok)}/${res[r.uid].parts} CORRECT`,
     }));
     const next = game.order[game.ci + 1];
     const mine = res[me()];
