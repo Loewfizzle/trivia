@@ -125,6 +125,19 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] A room with no game for an hour closes: 10-minute lobby countdown (host can KEEP OPEN), live close for everyone,
   and phones returning the next day land on the title with a message instead of the stale room
 
+## Next up (agreed plan, in order — not started)
+1. **Smoke test on a normal phone tab.** The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
+   test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
+2. **Split `js/games/overclock/view.js`** (~1,600 lines) into one file per challenge plus shared helpers. Code-only, no data or
+   Firebase changes.
+3. **New game: imposter word game** (3–8 players, text-only, no voice call needed — fewer steps = more play).
+   Everyone gets a secret word except the imposter (who sees only the category) → clue round: everyone types one word at
+   once, all revealed together → second clue round → accuse: tap a suspect + optional one-line reason, shown with the votes →
+   reveal; a caught imposter can steal the win by guessing the word. ~2–3 min per round, new imposter each round, nobody
+   eliminated. Keep the role/word off the readable room data (like Cipher's obfuscated secret). Room chat stays open.
+4. **Overclock QUICK mode: 6 challenges** for shorter games (next to Standard 12 / Marathon 24). Six all-different types with the
+   usual category spread; update `MODES`, the options, the time estimate, tests.
+
 ## Future ideas
 - **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,
   daily challenge hole with a room leaderboard, replays of everyone's best shot at the end.
@@ -133,7 +146,7 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - **Custom rooms:** host-written Bluff questions typed in before a party ("office edition").
 - **More Overclock challenges:** ~~Stroop, reaction time, quick count, true/false, Lexicon, Timeline, Closest Call, Rewire, Missing Link,
   Spellcheck, Make 24, Compass, Sort It, Higher or Lower~~ (shipped); next: missing letter, spot the
-  change, end-of-match awards ("Fastest Fingers"…), a final-round wager, streak bonuses, a Quick 6-challenge mode.
+  change, end-of-match awards ("Fastest Fingers"…), a final-round wager, streak bonuses (Quick 6 mode: see Next up).
 - **Team modes:** 2v2 / 4v4 variants of Last Signal and Overclock.
 - **TV / big-screen mode** (discussed Oct 2026, not started): a read-only "board" view on the TV while phones stay controllers.
   - How: `?room=CODE&tv` (plus a short `/tv` page where you type only the room code — typing URLs with a TV remote is painful).
