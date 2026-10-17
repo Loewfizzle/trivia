@@ -3,7 +3,18 @@
 // the challenge order needs to be stored in the room.
 import { rngFrom, randInt, pick, shuffle } from '../../core/rng.js';
 
-export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'lexicon', 'timeline', 'closest', 'rewire'];
+export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'lexicon', 'timeline', 'closest', 'rewire',
+  'missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower'];
+
+// What kind of brain each challenge works — the match order spreads these out (logic.js#buildOrder).
+export const CATEGORY = {
+  unscramble: 'words', lexicon: 'words', missinglink: 'words', spellcheck: 'words',
+  math: 'numbers', pattern: 'numbers', rewire: 'numbers', make24: 'numbers',
+  memory: 'memory', compass: 'memory',
+  oddone: 'visual', count: 'visual',
+  trivia: 'knowledge', truefalse: 'knowledge', timeline: 'knowledge', closest: 'knowledge', higherlower: 'knowledge',
+  stroop: 'reflex', reflex: 'reflex', sortit: 'reflex',
+};
 
 export const INFO = {
   unscramble: { name: 'UNSCRAMBLE', glyph: '⇄', rules: ['Rebuild the scrambled word.', 'Tap letters in order. Wrong guesses only cost time.'] },
@@ -12,7 +23,7 @@ export const INFO = {
   math: { name: 'QUICK MATH', glyph: '±', rules: ['Four rapid calculations.', 'Normal order of operations. Type the answer.'] },
   pattern: { name: 'PATTERN LOCK', glyph: '∴', rules: ['Two number sequences.', 'Enter the next number in each.'] },
   trivia: { name: 'TRIVIA LIGHTNING', glyph: 'ϟ', rules: ['Three rapid-fire questions.', 'One shot each. Speed matters.'] },
-  stroop: { name: 'COLOR CLASH', glyph: '◐', rules: ['A color word, printed in a different ink.', 'Tap the color of the INK — not the word.'] },
+  stroop: { name: 'COLOR CLASH', glyph: '◐', rules: ['A color word, shown in a different color.', 'Tap the COLOR OF THE TEXT — not what the word says.'] },
   reflex: { name: 'SIGNAL LOCK', glyph: '◎', rules: ['Wait for the screen to flash.', 'Then tap as fast as you can. Too early counts as a miss.'] },
   count: { name: 'QUICK COUNT', glyph: '#', rules: ['Shapes flash for a moment, then vanish.', 'Count the one we ask for. Off by one earns half.'] },
   truefalse: { name: 'TRUE OR FALSE', glyph: '✓', rules: ['Rapid-fire statements: math and facts.', 'True or false? Wrong answers cost points.'] },
@@ -20,6 +31,12 @@ export const INFO = {
   timeline: { name: 'TIMELINE', glyph: '↧', rules: ['Four items. Tap them in order, 1 to 4 — tap again to undo.', 'Points for every item in the right place. Submit when you’re sure.'] },
   closest: { name: 'CLOSEST CALL', glyph: '≈', rules: ['One question, one number. Type your best estimate.', 'The closer you are, the more you score. Closest in the room gets the bonus.'] },
   rewire: { name: 'REWIRE', glyph: '↯', rules: ['Tap tiles to rotate them and route power to the core.', 'Two circuits: a 3×3 warm-up, then a 4×4.'] },
+  missinglink: { name: 'MISSING LINK', glyph: '⊸', rules: ['Three words share one hidden word, before or after each.', 'COTTAGE · SWISS · CAKE → CHEESE. Two puzzles — guess as often as you like.'] },
+  spellcheck: { name: 'SPELLCHECK', glyph: '✎', rules: ['Four spellings. Exactly one is right.', 'Five words, one tap each — no second chances.'] },
+  make24: { name: 'MAKE 24', glyph: '⁂', rules: ['Tap a number, an operator, then another number to merge them.', 'Use all four tiles to make exactly 24. Two puzzles: easy, then hard.'] },
+  compass: { name: 'COMPASS', glyph: '✣', rules: ['Note where you face, then follow the turns in your head.', 'When they vanish, tap the way you face now. Five rounds, each longer.'] },
+  sortit: { name: 'SORT IT', glyph: '⇆', rules: ['Swipe each card left or right — or tap that side of the screen.', 'Wrong sorts cost a little. The cards come faster and faster.'] },
+  higherlower: { name: 'HIGHER OR LOWER', glyph: '⇅', rules: ['Two things, one stat. Tap the winner — read the question!', 'Build a streak of 10. One wrong answer ends your run.'] },
 };
 
 export const memoryLength = level => 4 + Math.round(level * 4);
@@ -27,7 +44,8 @@ export const memoryLength = level => 4 + Math.round(level * 4);
 // How many scorable parts a challenge has (host needs this without building it).
 export function partsFor(type, level) {
   return { unscramble: 1, memory: memoryLength(level), oddone: 3, math: 4, pattern: 2, trivia: 3, stroop: 8, reflex: 5, count: 4, truefalse: 8,
-    lexicon: LEXICON_PARTS, timeline: 4, closest: 1, rewire: 2 }[type] || 1;
+    lexicon: LEXICON_PARTS, timeline: 4, closest: 1, rewire: 2,
+    missinglink: 2, spellcheck: 5, make24: 2, compass: 5, sortit: SORT_CARDS, higherlower: HL_PAIRS }[type] || 1;
 }
 
 export const challengeRng = (seed, ci, type) => rngFrom(`${seed}:${ci}:${type}`);
@@ -354,6 +372,185 @@ export function genRewire(rand) {
 /** ok for a Rewire run: solved puzzles + partial credit (≤ 0.6) for how far the power reaches in the current one. */
 export const rewireOk = (solvedCount, reach) => Math.round((solvedCount + (solvedCount >= 2 ? 0 : 0.6 * reach)) * 100) / 100;
 
+// ---------- missing link ----------
+/** bank: data/oc/missinglink.json puzzles ([word, word, word, ANSWER, "OTHER|SPELLINGS" or ""]) */
+export function genMissingLink(rand, bank, occ, seed) {
+  if (!bank || !bank.length) return null;
+  const puzzles = [0, 1].map(k => {
+    const [a, b, c, answer, alt] = bank[bankIndex(seed, 'missinglink', occ * 2 + k, bank.length)];
+    return { words: shuffle(rand, [a, b, c]), answer, alt: alt ? alt.split('|') : [] };
+  });
+  return { type: 'missinglink', parts: 2, puzzles };
+}
+export const normWord = s => String(s || '').toUpperCase().replace(/[^A-Z]/g, '');
+/** The answer, a listed variant, or a plain plural of either (case and spaces ignored). */
+export function linkAccepts(guess, pz) {
+  const g = normWord(guess);
+  if (!g) return false;
+  const forms = new Set([pz.answer, ...(pz.alt || [])].map(normWord));
+  for (const f of [...forms]) {
+    forms.add(`${f}S`);
+    forms.add(`${f}ES`);
+    if (/[^AEIOU]Y$/.test(f)) forms.add(`${f.slice(0, -1)}IES`);
+  }
+  return forms.has(g);
+}
+
+// ---------- spellcheck ----------
+/** bank: data/oc/spellcheck.json words ([correct, most common misspelling, wrong, wrong]) */
+export function genSpellcheck(rand, bank, occ, seed) {
+  if (!bank || !bank.length) return null;
+  const items = Array.from({ length: 5 }, (_, k) => {
+    const row = bank[bankIndex(seed, 'spellcheck', occ * 5 + k, bank.length)];
+    const order = shuffle(rand, [0, 1, 2, 3]);
+    return { options: order.map(i => row[i]), ans: order.indexOf(0), word: row[0], common: row[1] };
+  });
+  return { type: 'spellcheck', parts: 5, items };
+}
+
+// ---------- make 24 ----------
+// Exact fractions [numerator, denominator] (denominator > 0, lowest terms), so 8 ÷ 3 stays exact.
+const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; };
+export const frac = (n, d = 1) => { if (d < 0) { n = -n; d = -d; } const g = gcd(n, d); return [n / g, d / g]; };
+export function applyOp(a, op, b) {
+  if (op === '+') return frac(a[0] * b[1] + b[0] * a[1], a[1] * b[1]);
+  if (op === '-') return frac(a[0] * b[1] - b[0] * a[1], a[1] * b[1]);
+  if (op === '*') return frac(a[0] * b[0], a[1] * b[1]);
+  if (op === '/') return b[0] === 0 ? null : frac(a[0] * b[1], a[1] * b[0]);
+  return null;
+}
+export const OP_SIGN = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+const PREC = { '+': 1, '-': 1, '*': 2, '/': 2 };
+/**
+ * Every way to combine the numbers pairwise with + − × ÷ (exact fractions).
+ * Returns { count: solutions found, intCount: solutions that never leave the whole numbers ≥ 0, expr: one solution }.
+ * `expr` prefers an all-whole-number solution and uses as few brackets as it can.
+ */
+export function solve24(nums, target = 24) {
+  let count = 0, intCount = 0, expr = null, intExpr = null;
+  const wrap = (x, need) => (need ? `(${x.e})` : x.e);
+  const rec = items => {
+    if (items.length === 1) {
+      const [x] = items;
+      if (x.v[1] === 1 && x.v[0] === target) {
+        count++;
+        if (!expr) expr = x.e;
+        if (x.int) { intCount++; if (!intExpr) intExpr = x.e; }
+      }
+      return;
+    }
+    for (let i = 0; i < items.length; i++) {
+      for (let j = 0; j < items.length; j++) {
+        if (i === j) continue;
+        const rest = items.filter((_, k) => k !== i && k !== j);
+        const a = items[i], b = items[j];
+        for (const op of ['+', '-', '*', '/']) {
+          if ((op === '+' || op === '*') && i > j) continue; // commutative: once is enough
+          const v = applyOp(a.v, op, b.v);
+          if (!v) continue;
+          const p = PREC[op];
+          const e = `${wrap(a, a.p < p)} ${OP_SIGN[op]} ${wrap(b, b.p < p || (b.p === p && (op === '-' || op === '/')))}`;
+          rec([...rest, { v, e, p, int: a.int && b.int && v[1] === 1 && v[0] >= 0 }]);
+        }
+      }
+    }
+  };
+  rec(nums.map(n => ({ v: [n, 1], e: String(n), p: 3, int: true })));
+  return { count, intCount, expr: intExpr || expr };
+}
+/** bank: data/oc/make24.json { easy: [["1238", "solution"], …], hard: [...] } — every set verified by scripts/build-make24.mjs */
+export function genMake24(rand, bank) {
+  if (!bank || !bank.easy || !bank.hard) return null;
+  const one = list => { const [d, sol] = pick(rand, list); return { nums: shuffle(rand, [...d].map(Number)), sol }; };
+  return { type: 'make24', parts: 2, puzzles: [one(bank.easy), one(bank.hard)] };
+}
+
+// ---------- compass ----------
+export const COMPASS_DIRS = ['N', 'E', 'S', 'W'];
+export const COMPASS_TURN = { R: 1, L: 3, A: 2 };
+export const COMPASS_LENGTHS = [3, 4, 5, 6, 7];
+// Instruction pace per round (each is on screen this long, with a short blink between): 25 turns have to fit in 30 s.
+export const COMPASS_STEP_MS = [760, 700, 640, 590, 550];
+export const COMPASS_GAP_MS = 80;
+export const COMPASS_START_MS = [1000, 500, 500, 500, 500];
+export const COMPASS_FLASH_MS = 450;
+// Time the script itself takes (start cards, instructions, feedback between rounds): the speed bonus only counts the rest.
+export const COMPASS_SCRIPT_MS = COMPASS_START_MS.reduce((a, b) => a + b, 0)
+  + COMPASS_LENGTHS.reduce((a, n, k) => a + n * (COMPASS_STEP_MS[k] + COMPASS_GAP_MS), 0)
+  + (COMPASS_LENGTHS.length - 1) * COMPASS_FLASH_MS;
+export const compassFace = (start, turns) => [...turns].reduce((d, t) => (d + COMPASS_TURN[t]) % 4, start);
+export function genCompass(rand) {
+  const rounds = COMPASS_LENGTHS.map(n => {
+    const start = randInt(rand, 0, 3);
+    let turns = '';
+    while (turns.length < n) {
+      const t = rand() < 0.18 && !turns.endsWith('A') ? 'A' : rand() < 0.5 ? 'L' : 'R';
+      turns += t;
+    }
+    return { start, turns, ans: compassFace(start, turns) };
+  });
+  return { type: 'compass', parts: 5, rounds };
+}
+
+// ---------- sort it ----------
+export const SORT_CARDS = 12;
+export const SORT_FULL = 10; // net correct sorts (right − ½ × wrong) that already score the full 100
+/** How long card i stays up before it counts as a miss: 2.6 s at first, down to 1.2 s. */
+export const sortWindowMs = i => Math.round(2600 - (1400 * Math.min(i, SORT_CARDS - 1)) / (SORT_CARDS - 1));
+export const sortOk = (right, wrong) => Math.max(0, Math.round((right - 0.5 * wrong) * 100) / 100);
+/** bank: data/oc/sortit.json sets ([left label, right label, [left items], [right items]]) */
+export function genSortIt(rand, bank, occ, seed) {
+  if (!bank || !bank.length) return null;
+  const [left, right, L, R] = bank[bankIndex(seed, 'sortit', occ, bank.length)];
+  const nl = randInt(rand, 5, 7);
+  const pickCards = () => shuffle(rand, [
+    ...shuffle(rand, L).slice(0, nl).map(t => ({ t, s: 0 })),
+    ...shuffle(rand, R).slice(0, SORT_CARDS - nl).map(t => ({ t, s: 1 })),
+  ]);
+  let cards = pickCards();
+  // no long runs on one side (it would feel rigged)
+  const runs = cs => cs.some((c, i) => i >= 3 && cs.slice(i - 3, i + 1).every(x => x.s === c.s));
+  for (let k = 0; k < 12 && runs(cards); k++) cards = shuffle(rand, cards);
+  return { type: 'sortit', parts: SORT_CARDS, left, right, cards };
+}
+
+// ---------- higher or lower ----------
+export const HL_PAIRS = 10;
+/** Fair pairs only: years at least 10 apart, anything else at least 1.2× apart. */
+export const hlFair = (unit, a, b) => (unit === 'year' ? Math.abs(a - b) >= 10 : Math.min(a, b) > 0 && Math.max(a, b) / Math.min(a, b) >= 1.2);
+const hlClear = (unit, a, b) => (unit === 'year' ? Math.abs(a - b) >= 40 : Math.max(a, b) / Math.min(a, b) >= 2);
+/**
+ * bank: data/oc/higherlower.json stats ([stat, question, unit, 'max'|'min', [[item, value, "shown"?], …]]).
+ * Ten pairs, each from one stat; the first few are clear-cut, later ones closer. ans = index of the winner.
+ */
+export function genHigherLower(rand, bank) {
+  if (!bank || !bank.length) return null;
+  const used = new Set();
+  const pairs = [];
+  let last = -1;
+  for (let k = 0; k < HL_PAIRS; k++) {
+    let pair = null;
+    for (let tries = 0; tries < 400 && !pair; tries++) {
+      const si = randInt(rand, 0, bank.length - 1);
+      if (si === last && tries < 300) continue;
+      const [stat, ask, unit, win, items] = bank[si];
+      const i = randInt(rand, 0, items.length - 1), j = randInt(rand, 0, items.length - 1);
+      if (i === j || used.has(`${si}:${i}`) || used.has(`${si}:${j}`)) continue;
+      const a = items[i][1], b = items[j][1];
+      if (!hlFair(unit, a, b)) continue;
+      const clear = hlClear(unit, a, b);
+      if (tries < 300 && (k < 3 ? !clear : k >= 6 && clear)) continue;
+      used.add(`${si}:${i}`); used.add(`${si}:${j}`);
+      last = si;
+      const side = x => ({ name: x[0], v: x[1], shown: x[2] || null });
+      const ans = (win === 'max') === (a > b) ? 0 : 1;
+      pair = { stat, ask, unit, a: side(items[i]), b: side(items[j]), ans };
+    }
+    pairs.push(pair);
+  }
+  return { type: 'higherlower', parts: HL_PAIRS, pairs };
+}
+
 // ---------- build ----------
 // deps: { answersFor(len) -> string[] | null, triviaItems: [3 decoded questions] | null }
 // Returns null if a dependency (word list / questions) isn't ready yet.
@@ -365,6 +562,12 @@ export function generate(type, { seed, ci, level, occ = 0 }, deps = {}) {
     case 'timeline': return genTimeline(rand, level, deps.timeline, occ, seed);
     case 'closest': return genClosest(rand, level, deps.closest, occ, seed);
     case 'rewire': return genRewire(rand);
+    case 'missinglink': return genMissingLink(rand, deps.missinglink, occ, seed);
+    case 'spellcheck': return genSpellcheck(rand, deps.spellcheck, occ, seed);
+    case 'make24': return genMake24(rand, deps.make24);
+    case 'compass': return genCompass(rand);
+    case 'sortit': return genSortIt(rand, deps.sortit, occ, seed);
+    case 'higherlower': return genHigherLower(rand, deps.higherlower);
     case 'unscramble': return genUnscramble(rand, level, deps.answersFor || (() => null));
     case 'memory': return genMemory(rand, level);
     case 'oddone': return genOddOne(rand, level);

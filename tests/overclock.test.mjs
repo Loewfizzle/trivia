@@ -16,6 +16,11 @@ const BANKS = {
   lexicon: JSON.parse(readFileSync('data/oc/lexicon.json', 'utf8')).sets,
   timeline: JSON.parse(readFileSync('data/oc/timeline.json', 'utf8')).sets,
   closest: JSON.parse(readFileSync('data/oc/closest.json', 'utf8')).questions,
+  missinglink: JSON.parse(readFileSync('data/oc/missinglink.json', 'utf8')).puzzles,
+  spellcheck: JSON.parse(readFileSync('data/oc/spellcheck.json', 'utf8')).words,
+  make24: JSON.parse(readFileSync('data/oc/make24.json', 'utf8')),
+  sortit: JSON.parse(readFileSync('data/oc/sortit.json', 'utf8')).sets,
+  higherlower: JSON.parse(readFileSync('data/oc/higherlower.json', 'utf8')).stats,
 };
 
 test('every challenge type is identical for every client given the same seed (Math.random is never used)', () => {
@@ -68,9 +73,9 @@ test('unscramble accepts the word or another valid anagram, nothing else', () =>
   assert.ok(!unscrambleAccepts('aelst', 'stale', isValidGuess), 'not a word');
 });
 
-test('order: no repeats — all different types up to 14; Marathon at most twice each, never back to back, spread out', () => {
-  assert.equal(TYPES.length, 14);
-  for (const total of [3, 6, 12, 14]) {
+test('order: no repeats — all different types up to 20; Marathon at most twice each, never back to back, spread out', () => {
+  assert.equal(TYPES.length, 20);
+  for (const total of [3, 6, 12, 14, 20]) {
     for (let s = 0; s < 300; s++) {
       const o = buildOrder(`seed${s}:${total}`, total);
       assert.equal(o.length, total);
@@ -87,7 +92,7 @@ test('order: no repeats — all different types up to 14; Marathon at most twice
     const count = {};
     o.forEach(t => { count[t] = (count[t] || 0) + 1; });
     assert.ok(Object.values(count).every(n => n <= 2), 'at most twice');
-    assert.equal(Object.keys(count).length, 14, 'every type shows up in a Marathon');
+    assert.equal(Object.keys(count).length, 20, 'every type shows up in a Marathon');
     for (let i = 1; i < o.length; i++) assert.notEqual(o[i], o[i - 1], 'never back to back');
     for (const t of Object.keys(count)) {
       const at = o.map((x, k) => (x === t ? k : -1)).filter(k => k >= 0);
@@ -96,7 +101,7 @@ test('order: no repeats — all different types up to 14; Marathon at most twice
     assert.ok(count.trivia <= 2, 'trivia is just another type now');
   }
   assert.ok(seenFirst.size >= 12, 'the opener varies');
-  // standard: 12 different types of 14, trivia at most once
+  // standard: 12 different types of 20, trivia at most once
   for (let s = 0; s < 300; s++) assert.ok(buildOrder(`std${s}`, MODES.standard).filter(t => t === 'trivia').length <= 1);
 });
 

@@ -17,7 +17,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 1 | **CIPHER BREACH** | Competitive Wordle race; opponents' boards live as color-only tiles; word length grows. | terminal green / cyan | ✅ Stage 1 |
 | 2 | **NEURAL BLUFF** | Bluffing trivia: write a convincing lie, find the truth among everyone's lies, score for fooling friends. 356 hand-written strange-but-true questions. | cold "Ministry of Truth" dossiers | ✅ Stage 3 |
 | 3 | **LAST SIGNAL** | Trivia battle royale: HP + shields, strike your target, escalating damage, decaying UI. | alarm red | ✅ Stage 2 |
-| 4 | **OVERCLOCK** | Fourteen kinds of 30-second mind challenges (Color Clash, Signal Lock, Quick Count, True or False, then Lexicon, Timeline, Closest Call and Rewire added after launch), identical for everyone from a shared seed; no type repeats within a match. | amber / magenta | ✅ Stage 2 |
+| 4 | **OVERCLOCK** | Twenty kinds of 30-second mind challenges (Lexicon, Timeline, Closest Call, Rewire, then Missing Link, Spellcheck, Make 24, Compass, Sort It and Higher or Lower added after launch), identical for everyone from a shared seed; no type repeats within a match and categories never come back to back. | amber / magenta | ✅ Stage 2 |
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 | 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
 
@@ -108,6 +108,19 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] Reveal panels above the leaderboard (10 s standings for Lexicon/Timeline/Closest Call)
 - [x] Rules: `w/o/g/rw` fields; E2E `tests/integration/e2e-oc-new.mjs` (8 players, host killed mid-challenge, refresh mid-Rewire)
 
+### ✅ Overclock update 2 — six more challenges, category spread
+- [x] MISSING LINK (three clues, one hidden word; typed answer with letter boxes, plurals/variants accepted, iOS-keyboard layout; 283 puzzles)
+- [x] SPELLCHECK (four spellings, one right, five words; 434 American-spelling words, every wrong option dictionary-checked)
+- [x] MAKE 24 (merge tiles with + − × ÷, exact fractions, UNDO/RESET; 209 easy + 47 hard sets, all proven solvable)
+- [x] COMPASS (follow 3 → 7 turns in your head, tap the heading; animated replay of every round in the reveal)
+- [x] SORT IT (swipe cards with tilt/fling physics or tap a side, cards speed up; 48 category pairs)
+- [x] HIGHER OR LOWER (ten fair pairs, one miss ends the streak; 597 stable values in 18 stats)
+- [x] Reveal panel after each of the six; first-time rules cards; HOW TO PLAY updated
+- [x] Order: Standard = 12 different of 20, Marathon = all 20 + 4 spread repeats; no two of the same category back to back
+- [x] Tests: tests/overclock-2.test.mjs (banks, solvability, scoring, 8-player director run, thousands of orders) +
+      E2E tests/integration/e2e-oc-2.mjs (8 players, touch swipes, refresh mid-Make 24, host killed mid-Sort It)
+- [x] Color Clash now asks for the TEXT color (the word "ink" confused people)
+
 ### ✅ Idle rooms close
 - [x] A room with no game for an hour closes: 10-minute lobby countdown (host can KEEP OPEN), live close for everyone,
   and phones returning the next day land on the title with a message instead of the stale room
@@ -118,7 +131,8 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host
   option to pick packs; custom word lists for Cipher Breach (kids mode, themed words).
 - **Custom rooms:** host-written Bluff questions typed in before a party ("office edition").
-- **More Overclock challenges:** ~~Stroop, reaction time, quick count, true/false, Lexicon, Timeline, Closest Call, Rewire~~ (shipped); next: missing letter, spot the
+- **More Overclock challenges:** ~~Stroop, reaction time, quick count, true/false, Lexicon, Timeline, Closest Call, Rewire, Missing Link,
+  Spellcheck, Make 24, Compass, Sort It, Higher or Lower~~ (shipped); next: missing letter, spot the
   change, end-of-match awards ("Fastest Fingers"…), a final-round wager, streak bonuses, a Quick 6-challenge mode.
 - **Team modes:** 2v2 / 4v4 variants of Last Signal and Overclock.
 - **TV / big-screen mode:** a read-only "board" view for a laptop on the TV while phones are controllers.

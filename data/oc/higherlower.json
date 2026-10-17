@@ -1,0 +1,112 @@
+{"note":"OVERCLOCK HIGHER OR LOWER: [stat, question, unit, 'max'|'min' (which value wins), [[item, value, 'shown value'?], ...]]. Rounded, stable values. Pairs are only dealt when they differ by at least 1.2x (years: at least 10 apart). Checked by tests/overclock-2.test.mjs.","stats":[
+["HEIGHT","WHICH IS TALLER?","m","max",[
+ ["Burj Khalifa",828],["Shanghai Tower",632],["CN Tower",553],["One World Trade Center",541],["Taipei 101",508],["Petronas Towers",452],
+ ["Willis Tower (to the tip)",527],["Empire State Building (to the tip)",443],["Eiffel Tower",330],["Chrysler Building",319],["Burj Al Arab",321],
+ ["The Shard",310],["Golden Gate Bridge (towers)",227],["Gateway Arch",192],["Space Needle",184],["Statue of Unity",182],["Washington Monument",169],
+ ["Great Pyramid of Giza",139],["St. Peter’s Basilica",137],["London Eye",135],["Sydney Harbour Bridge (arch)",134],["Big Ben’s tower",96],
+ ["Statue of Liberty (ground to torch)",93],["Tower Bridge",65],["Leaning Tower of Pisa",56],["Arc de Triomphe",50],["Colosseum",48],
+ ["Christ the Redeemer (with pedestal)",38],["Brandenburg Gate",26]]],
+["MOUNTAIN HEIGHT","WHICH PEAK IS HIGHER?","m","max",[
+ ["Mount Everest",8849],["K2",8611],["Aconcagua",6961],["Denali",6190],["Kilimanjaro",5895],["Mount Elbrus",5642],["Mount Kenya",5199],
+ ["Mount Ararat",5137],["Mount Vinson",4892],["Mont Blanc",4806],["Matterhorn",4478],["Mount Whitney",4421],["Mount Rainier",4392],["Pikes Peak",4302],
+ ["Mauna Kea (above sea level)",4207],["Mount Fuji",3776],["Aoraki / Mount Cook",3724],["Mount Teide",3715],["Mount Olympus",2918],["Mount Sinai",2285],
+ ["Mount Kosciuszko",2228],["Mount Washington",1917],["Ben Nevis",1345],["Mount Vesuvius",1281],["Table Mountain",1085]]],
+["POPULATION","WHICH HAS MORE PEOPLE?","million","max",[
+ ["India",1440],["United States",340],["Indonesia",280],["Pakistan",245],["Nigeria",230],["Brazil",212],["Bangladesh",172],["Russia",144],["Mexico",130],
+ ["Japan",124],["Philippines",115],["Vietnam",100],["Iran",90],["Turkey",86],["Germany",84],["Thailand",72],["United Kingdom",69],["France",68],
+ ["South Africa",63],["Italy",59],["Kenya",56],["Colombia",53],["South Korea",52],["Spain",48],["Argentina",46],["Canada",41],["California",39],
+ ["Poland",37],["Texas",31],["Australia",27],["Florida",23],["New York State",19.6],["Netherlands",18],["Sweden",10.6],["Greece",10.3],["Switzerland",9],
+ ["Norway",5.6],["Ireland",5.3],["Alaska",0.74],["Vermont",0.65],["Wyoming",0.58],["Iceland",0.39]]],
+["AREA","WHICH IS BIGGER?","km²","max",[
+ ["Russia",17100000],["Canada",9980000],["China",9600000],["Brazil",8510000],["Australia",7690000],["India",3290000],["Argentina",2780000],
+ ["Algeria",2380000],["Greenland",2170000],["Mexico",1960000],["Alaska",1720000],["Mongolia",1560000],["Peru",1290000],["Egypt",1000000],
+ ["Texas",696000],["France (mainland)",552000],["Sweden",450000],["California",424000],["Japan",378000],["Germany",357000],["Italy",301000],
+ ["New Zealand",268000],["United Kingdom",244000],["Iceland",103000],["Ireland",70000],["Switzerland",41300],["Belgium",30700],["Israel",22100],
+ ["Jamaica",11000],["Rhode Island",4000],["Luxembourg",2590],["Singapore",735],["Malta",316],["Monaco",2.0],["Vatican City",0.49]]],
+["INVENTED","WHICH CAME FIRST?","year","min",[
+ ["Gutenberg’s printing press",1440],["Telescope",1608],["Newcomen steam engine",1712],["Hot-air balloon flight",1783],["Smallpox vaccine",1796],
+ ["Parachute jump",1797],["Electric battery",1800],["Stethoscope",1816],["Photograph",1826],["Colt revolver",1836],["Fax machine",1843],
+ ["Morse telegraph message",1844],["Safety pin",1849],["Safety elevator",1852],["Dynamite",1867],["Typewriter",1868],["Blue jeans",1873],
+ ["Telephone",1876],["Edison’s light bulb",1879],["Coca-Cola",1886],["Ferris wheel",1893],["Radio",1895],["X-rays discovered",1895],
+ ["Wright brothers’ airplane",1903],["Zipper",1913],["Television",1927],["Penicillin",1928],["Sliced bread",1928],["Nylon",1935],["Monopoly",1935],
+ ["Jet engine",1937],["Ballpoint pen",1938],["Super Glue",1942],["Microwave oven",1945],["Transistor",1947],["Polaroid camera",1948],["Credit card",1950],
+ ["LEGO brick",1958],["Barbie",1959],["Three-point seat belt",1959],["Laser",1960],["ATM",1967],["Email",1971],["Pong",1972],["Mobile phone call",1973],
+ ["Rubik’s Cube",1974],["Post-it note",1980],["Compact disc",1982],["Tetris",1984],["World Wide Web",1989],["DVD",1995],["iPod",2001],["YouTube",2005],
+ ["iPhone",2007],["Bitcoin",2009],["Instagram",2010]]],
+["BUILT","WHICH WAS BUILT FIRST?","year","min",[
+ ["Great Pyramid of Giza",-2560,"c. 2560 BC"],["Colosseum",80,"80 AD"],["Hagia Sophia",537,"537 AD"],["Angkor Wat",1150,"c. 1150"],["Notre-Dame de Paris",1345],
+ ["Leaning Tower of Pisa",1372],["Machu Picchu",1450,"c. 1450"],["St. Peter’s Basilica",1626],["Taj Mahal",1653],["White House",1800],["Arc de Triomphe",1836],
+ ["Big Ben’s tower",1859],["London Underground",1863],["Suez Canal",1869],["Brooklyn Bridge",1883],["Washington Monument",1884],["Statue of Liberty",1886],
+ ["Eiffel Tower",1889],["Tower Bridge",1894],["Paris Métro",1900],["New York City Subway",1904],["Panama Canal",1914],["Hollywood Sign",1923],
+ ["Empire State Building",1931],["Hoover Dam",1936],["Golden Gate Bridge",1937],["Mount Rushmore",1941],["Disneyland",1955],["Berlin Wall",1961],
+ ["Space Needle",1962],["Gateway Arch",1965],["Walt Disney World",1971],["Sydney Opera House",1973],["CN Tower",1976],["Louvre Pyramid",1989],
+ ["Channel Tunnel",1994],["Petronas Towers",1998],["Taipei 101",2004],["Burj Khalifa",2010]]],
+["FILM","WHICH CAME OUT FIRST?","year","min",[
+ ["Snow White and the Seven Dwarfs",1937],["Gone with the Wind",1939],["Fantasia",1940],["Citizen Kane",1941],["Casablanca",1942],["Bambi",1942],
+ ["Singin’ in the Rain",1952],["Some Like It Hot",1959],["Breakfast at Tiffany’s",1961],["Lawrence of Arabia",1962],["Dr. No",1962],["Mary Poppins",1964],
+ ["The Sound of Music",1965],["The Godfather",1972],["The Exorcist",1973],["Jaws",1975],["Rocky",1976],["Star Wars",1977],["Grease",1978],["Alien",1979],
+ ["The Shining",1980],["Raiders of the Lost Ark",1981],["E.T.",1982],["The Breakfast Club",1985],["Back to the Future",1985],["Top Gun",1986],
+ ["Die Hard",1988],["Home Alone",1990],["Goodfellas",1990],["Pretty Woman",1990],["Terminator 2",1991],["Jurassic Park",1993],["Pulp Fiction",1994],
+ ["Forrest Gump",1994],["Toy Story",1995],["Titanic",1997],["The Matrix",1999],["Fight Club",1999],["Gladiator",2000],["Shrek",2001],["Spirited Away",2001],
+ ["Finding Nemo",2003],["The Dark Knight",2008],["Avatar",2009],["Inception",2010],["Frozen",2013],["Black Panther",2018],["Avengers: Endgame",2019],
+ ["Barbie",2023]]],
+["BOOK","WHICH WAS PUBLISHED FIRST?","year","min",[
+ ["Don Quixote",1605],["Robinson Crusoe",1719],["Gulliver’s Travels",1726],["Pride and Prejudice",1813],["Frankenstein",1818],["Oliver Twist",1838],
+ ["A Christmas Carol",1843],["Jane Eyre",1847],["Moby-Dick",1851],["On the Origin of Species",1859],["Les Misérables",1862],
+ ["Alice’s Adventures in Wonderland",1865],["Little Women",1868],["War and Peace",1869],["Treasure Island",1883],["Adventures of Huckleberry Finn",1884],
+ ["A Study in Scarlet (first Sherlock Holmes)",1887],["The Picture of Dorian Gray",1890],["Dracula",1897],["The Great Gatsby",1925],["Brave New World",1932],
+ ["The Hobbit",1937],["Of Mice and Men",1937],["The Grapes of Wrath",1939],["Animal Farm",1945],["Nineteen Eighty-Four",1949],
+ ["The Lion, the Witch and the Wardrobe",1950],["The Catcher in the Rye",1951],["Fahrenheit 451",1953],["Lord of the Flies",1954],
+ ["The Fellowship of the Ring",1954],["The Cat in the Hat",1957],["To Kill a Mockingbird",1960],["Catch-22",1961],["Where the Wild Things Are",1963],
+ ["Charlie and the Chocolate Factory",1964],["The Very Hungry Caterpillar",1969],["Slaughterhouse-Five",1969],["The Handmaid’s Tale",1985],["Beloved",1987],
+ ["Matilda",1988],["The first Harry Potter book",1997],["The Da Vinci Code",2003],["The Kite Runner",2003],["Twilight",2005],["The Road",2006],
+ ["The Hunger Games",2008],["Gone Girl",2012]]],
+["DIAMETER","WHICH IS BIGGER ACROSS?","km","max",[
+ ["The Sun",1392000],["Jupiter",139820],["Saturn",116460],["Uranus",50724],["Neptune",49244],["Earth",12742],["Venus",12104],["Mars",6779],
+ ["Ganymede",5268],["Titan",5150],["Mercury",4879],["Callisto",4821],["Io",3643],["The Moon",3474],["Europa",3122],["Triton",2707],["Pluto",2377],
+ ["Charon",1212],["Ceres",940]]],
+["ATOMIC NUMBER","WHICH HAS THE HIGHER ATOMIC NUMBER?","","max",[
+ ["Hydrogen",1],["Helium",2],["Lithium",3],["Carbon",6],["Nitrogen",7],["Oxygen",8],["Neon",10],["Sodium",11],["Magnesium",12],["Aluminum",13],
+ ["Silicon",14],["Sulfur",16],["Chlorine",17],["Potassium",19],["Calcium",20],["Titanium",22],["Iron",26],["Nickel",28],["Copper",29],["Zinc",30],
+ ["Krypton",36],["Silver",47],["Tin",50],["Iodine",53],["Xenon",54],["Tungsten",74],["Platinum",78],["Gold",79],["Mercury",80],["Lead",82],["Radon",86],
+ ["Uranium",92],["Plutonium",94]]],
+["TEAM SIZE","WHICH SPORT HAS MORE PLAYERS PER SIDE?","players","max",[
+ ["Soccer",11],["Basketball",5],["Volleyball",6],["Beach volleyball",2],["Rugby union",15],["Rugby league",13],["Ice hockey",6],["Baseball",9],
+ ["American football",11],["Water polo",7],["Handball",7],["Netball",7],["Cricket",11],["Field lacrosse (men’s)",10],["Polo",4],
+ ["Australian rules football",18],["Gaelic football",15],["Ultimate frisbee",7],["Curling",4],["Field hockey",11],["Softball",9]]],
+["FOUNDED","WHICH COMPANY WAS FOUNDED FIRST?","year","min",[
+ ["Beretta",1526],["Twinings",1706],["Guinness",1759],["Colgate",1806],["Procter & Gamble",1837],["Hermès",1837],["Tiffany & Co.",1837],
+ ["Levi Strauss & Co.",1853],["Louis Vuitton",1854],["Heineken",1864],["Nokia",1865],["Johnson & Johnson",1886],["Nintendo",1889],
+ ["The Coca-Cola Company",1892],["Hershey",1894],["Ford",1903],["Harley-Davidson",1903],["Kellogg’s",1906],["Chanel",1910],["IBM",1911],["BMW",1916],
+ ["Mazda",1920],["Disney",1923],["Hasbro",1923],["Porsche",1931],["LEGO",1932],["Toyota",1937],["Volkswagen",1937],["Samsung",1938],["IKEA",1943],
+ ["Mattel",1945],["Sony",1946],["LG",1947],["Honda",1948],["Puma",1948],["Adidas",1949],["Subaru",1953],["Walmart",1962],["Lamborghini",1963],
+ ["Intel",1968],["Starbucks",1971],["Microsoft",1975],["Apple",1976],["Nvidia",1993],["Amazon",1994],["Yahoo",1994],["eBay",1995],["Netflix",1997],
+ ["Google",1998],["PayPal",1998],["Tesla",2003],["Facebook",2004],["Spotify",2006],["Twitter",2006],["Airbnb",2008],["Uber",2009]]],
+["OSCARS","WHICH FILM WON MORE OSCARS?","Oscars","max",[
+ ["Ben-Hur (1959)",11],["Titanic",11],["The Return of the King",11],["West Side Story (1961)",10],["Gigi",9],["The Last Emperor",9],["The English Patient",9],
+ ["Gone with the Wind",8],["On the Waterfront",8],["My Fair Lady",8],["Cabaret",8],["Gandhi",8],["Amadeus",8],["Slumdog Millionaire",8],
+ ["Schindler’s List",7],["Lawrence of Arabia",7],["Dances with Wolves",7],["Gravity",7],["Oppenheimer",7],["Everything Everywhere All at Once",7],
+ ["The Sting",7],["Mad Max: Fury Road",6],["La La Land",6],["Forrest Gump",6],["Chicago",6],["The Hurt Locker",6],["The Silence of the Lambs",5],
+ ["One Flew Over the Cuckoo’s Nest",5],["Gladiator",5],["Braveheart",5],["American Beauty",5],["The Sound of Music",5],["Anora",5],["Parasite",4],
+ ["Inception",4],["The Departed",4],["E.T.",4],["Rain Man",4],["The Shape of Water",4],["The Godfather",3],["Casablanca",3],["Rocky",3],["Jaws",3],
+ ["Avatar",3],["Black Panther",3],["Moonlight",3],["Argo",3],["Joker",2],["Spotlight",2],["Pulp Fiction",1],["Citizen Kane",1]]],
+["LAKE AREA","WHICH LAKE IS BIGGER?","km²","max",[
+ ["Caspian Sea",371000],["Lake Superior",82100],["Lake Victoria",68800],["Lake Huron",59600],["Lake Michigan",58000],["Lake Tanganyika",32900],
+ ["Lake Baikal",31500],["Great Bear Lake",31000],["Lake Malawi",29600],["Lake Erie",25700],["Lake Winnipeg",24500],["Lake Ontario",18960],
+ ["Lake Ladoga",17700],["Lake Titicaca",8370],["Lake Nicaragua",8260],["Lake Geneva",580],["Lake Tahoe",496],["Lake Como",146],["Loch Ness",56]]],
+["ISLAND AREA","WHICH ISLAND IS BIGGER?","km²","max",[
+ ["Greenland",2130000],["New Guinea",786000],["Borneo",743000],["Madagascar",587000],["Baffin Island",507000],["Sumatra",473000],["Honshu",228000],
+ ["Great Britain",209000],["Cuba",105000],["Ireland",84000],["Hokkaido",78000],["Sri Lanka",65600],["Sicily",25700],["Sardinia",24100],["Jamaica",11000],
+ ["Hawaii’s Big Island",10400],["Cyprus",9250],["Puerto Rico",9100],["Crete",8450],["Bali",5780],["Mallorca",3640],["Long Island",3600],["Tahiti",1045],
+ ["Isle of Wight",380],["Malta",246],["Manhattan",59]]],
+["RIVER LENGTH","WHICH RIVER IS LONGER?","km","max",[
+ ["Nile",6650],["Amazon",6400],["Yangtze",6300],["Yellow River",5460],["Congo",4700],["Mekong",4350],["Niger",4180],["Mississippi",3730],["Volga",3530],
+ ["Yukon",3190],["Indus",3180],["Rio Grande",3050],["Danube",2850],["Euphrates",2800],["Zambezi",2570],["Ganges",2520],["Murray",2510],["Colorado",2330],
+ ["Orinoco",2140],["Ohio",1580],["Rhine",1230],["Elbe",1090],["Loire",1010],["Seine",777],["Po",652],["Hudson",507],["Tiber",406],["Shannon",360],
+ ["Thames",346],["Jordan",251]]],
+["BOARD SPACES","WHICH HAS MORE SPACES?","spaces","max",[
+ ["Go board (points)",361],["Scrabble board",225],["Chinese checkers board (holes)",121],["Battleship grid (one player)",100],["Sudoku grid",81],
+ ["Chessboard",64],["Connect Four grid",42],["Monopoly board",40],["Backgammon board (points)",24],["Tic-tac-toe grid",9]]],
+["DISTANCE FROM THE SUN","WHICH IS FARTHER FROM THE SUN?","million km","max",[
+ ["Mercury",58],["Venus",108],["Earth",150],["Mars",228],["Jupiter",778],["Saturn",1430],["Uranus",2870],["Neptune",4500],["Pluto",5900]]]
+]}
