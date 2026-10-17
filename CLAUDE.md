@@ -180,7 +180,7 @@ Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, lev
 Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge. `ok` may be fractional
 (Quick Count: off by one = 0.5; Signal Lock: per-round reaction credit 0.1–1, scored as round(160·ok/parts) with no
 separate speed bonus). **Order (`logic.js#buildOrder`, seeded): no type repeats** — up to 20 challenges are all different
-(Standard = 12 of the 20); Marathon (24) has every type once plus 4 repeats, never back to back, repeats ≥ 8 apart.
+(Quick = 6, Standard = 12 of the 20 — `MODES` in logic.js, picked from a list in the options sheet); Marathon (24) has every type once plus 4 repeats, never back to back, repeats ≥ 8 apart.
 **Category spread:** every type has a `CATEGORY` (words, numbers, memory, visual, knowledge, reflex); the order never puts two
 of the same category next to each other unless impossible (`categoryClashes(order)` is 0 for every generated match — tested
 over thousands of seeds). Short matches draw types on the fly so they can avoid clashes too.

@@ -352,3 +352,31 @@ test('8 players play all six new challenges through the director; a rejoin and a
   assert.equal(table.length, 8);
   assert.ok(table[0].score >= table[7].score);
 });
+
+test('QUICK mode: 6 different challenges, categories spread, the 6th is the ×2 final', () => {
+  assert.equal(MODES.quick, 6);
+  // (index.js needs a browser; its option list is checked as text)
+  const idx = readFileSync('js/games/overclock/index.js', 'utf8');
+  assert.match(idx, /value: 'quick'[\s\S]*value: 'standard'[\s\S]*value: 'marathon'/,'QUICK · STANDARD · MARATHON in the options');
+  for (let s = 0; s < 500; s++) {
+    const game = createGame({ matchId: `q${s}`, settings: { mode: 'quick' }, participants: P8, now: 0, seed: `quick${s}`, bank: {}, trivia: { n: 0 } });
+    assert.equal(game.total, 6);
+    assert.equal(game.order.length, 6);
+    assert.equal(new Set(game.order).size, 6);
+    assert.equal(categoryClashes(game.order), 0);
+  }
+  // play one through: standings after 1–5, then the final; the last challenge doubles
+  let now = 0;
+  const game = createGame({ matchId: 'qq', settings: { mode: 'quick' }, participants: { a: true }, now, seed: 'quick-run', bank: {}, trivia: { n: 0 } });
+  for (let ci = 0; ci < 6; ci++) {
+    now = game.phaseEndsAt;
+    applyPatch(game, nextStep(game, { now, boards: {}, online: { a: true }, fallback: () => null }));
+    assert.equal(game.phase, 'play');
+    const parts = partsFor(game.order[ci], ci / 5);
+    now = game.playStartAt + 5000;
+    applyPatch(game, nextStep(game, { now, boards: { a: { p: parts, ok: parts, n: parts, done: true, doneAt: now } }, online: { a: true }, fallback: () => null }));
+    assert.equal(game.phase, ci === 5 ? 'final' : 'standings');
+    if (ci === 5) assert.ok(game.results[5].a.pts >= 200, 'final counts double');
+    else { now = game.phaseEndsAt; applyPatch(game, nextStep(game, { now, boards: {}, online: { a: true }, fallback: () => null })); }
+  }
+});

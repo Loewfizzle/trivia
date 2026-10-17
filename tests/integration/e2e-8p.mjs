@@ -408,7 +408,7 @@ try {
   // ---- OVERCLOCK ----
   if (want('overclock')) {
   await openOptions(host, 'overclock');
-  await click(host, '.modal .seg-btn[data-v="standard"]');
+  await click(host, '.modal .opt-row[data-v="standard"]');
   await initiate(host);
   await all(pages, p => p.waitForSelector('.oc', { timeout: 30000 }));
   await playOverclock(pages);

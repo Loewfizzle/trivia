@@ -130,9 +130,10 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
 2. ✅ **Split `js/games/overclock/view.js`** (was ~1,600 lines) into `ui/<type>.js` (one per challenge), `reveals.js`, `shared.js`;
    view.js is now the ~450-line shell (done).
-3. **Overclock QUICK mode: 6 challenges** for shorter games (next to Standard 12 / Marathon 24). Six all-different types with the
-   usual category spread; update `MODES`, the options, the time estimate, tests.
-4. **New game: imposter word game** (3–8 players, text-only, no voice call needed — fewer steps = more play).
+3. ✅ **Overclock QUICK mode: 6 challenges** (≈ 3 min) next to Standard 12 / Marathon 24; the modes are now a list with a
+   sub-line, like Neon Par's course picker (done).
+4. **New game: imposter word game — working name GLITCH** (the imposter is "the Glitch"; lime + magenta CRT-glitch look;
+   proposal only — waiting for the owner's go-ahead) (3–8 players, text-only, no voice call needed — fewer steps = more play).
    Everyone gets a secret word except the imposter (who sees only the category) → clue round: everyone types one word at
    once, all revealed together → second clue round → accuse: tap a suspect + optional one-line reason, shown with the votes →
    reveal; a caught imposter can steal the win by guessing the word. ~2–3 min per round, new imposter each round, nobody

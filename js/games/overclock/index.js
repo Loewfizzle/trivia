@@ -37,7 +37,11 @@ export const step = (game, { code, now, live, online }) => nextStep(game, {
 });
 
 export const OPTIONS = [
-  { key: 'mode', label: 'MODE', choices: [{ value: 'standard', label: `STANDARD · ${MODES.standard}` }, { value: 'marathon', label: `MARATHON · ${MODES.marathon}` }] },
+  { key: 'mode', label: 'MODE', type: 'list', choices: [
+    { value: 'quick', label: `QUICK · ${MODES.quick}`, sub: 'Six different challenges' },
+    { value: 'standard', label: `STANDARD · ${MODES.standard}`, sub: 'Twelve different challenges' },
+    { value: 'marathon', label: `MARATHON · ${MODES.marathon}`, sub: 'All twenty, plus a few repeats' },
+  ] },
 ];
 
 export function estimateMinutes(s) {

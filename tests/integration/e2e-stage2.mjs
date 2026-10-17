@@ -454,7 +454,7 @@ async function overclockE2E() {
   log('=== OVERCLOCK ===');
   const { A, B, C } = await makeRoom([SIZES[1], SIZES[1], SIZES[0]], ['d', 'e', 'f']);
   await startFromLobby(A, 'overclock', async host => {
-    await host.click('.modal .seg-btn[data-v="standard"]');
+    await host.click(`.modal .opt-row[data-v="${process.env.OC_MODE || 'standard'}"]`); // OC_MODE=quick|standard|marathon
     await sleep(250);
     await shotBoth(host, 's2-20-oc-options');
   });
@@ -527,7 +527,7 @@ async function overclockE2E() {
   await shotBoth(A, 's2-25-oc-final');
   const final = await evalIn(A, (s, m) => m.ocl.standings(s.game).map(r => [s.players[r.uid].name, r.score]));
   log('final', JSON.stringify(final));
-  if (!rejoined) fail('rejoin scenario never ran');
+  if (!rejoined && total >= 12) fail('rejoin scenario never ran'); // (a 6-challenge Quick game may not deal a multi-part type after #2)
   await clickText(A, 'BACK TO LOBBY');
   await A.waitForSelector('.lobby-screen', { timeout: 15000 });
   await shotBoth(A, 's2-26-lobby-unlocked');

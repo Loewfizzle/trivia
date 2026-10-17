@@ -87,7 +87,7 @@ const RULES = {
       ['GOOD TO KNOW', [
         'Each challenge type explains itself the first time it shows up.',
         'No challenge type repeats within a match (Marathon: at most twice, never back to back).',
-        'Standard mode is 12 challenges; Marathon is 24.',
+        'Quick mode is 6 challenges, Standard 12, Marathon 24.',
         'The leaderboard updates between every challenge.',
       ]],
     ],

@@ -12,7 +12,7 @@ export const REVEALS = new Set(['lexicon', 'timeline', 'closest', 'missinglink',
 export const standingsMs = type => (REVEALS.has(type) ? REVEAL_STANDINGS_MS : STANDINGS_MS);
 export const FINAL_MS = 120_000;
 export const PLAY_GRACE_MS = 700;
-export const MODES = { standard: 12, marathon: 24 };
+export const MODES = { quick: 6, standard: 12, marathon: 24 };
 export const DEFAULT_SETTINGS = { mode: 'standard' };
 export const SPEED_BONUS = 60;
 
