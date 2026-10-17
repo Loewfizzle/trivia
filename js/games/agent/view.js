@@ -554,7 +554,7 @@ export function createView() {
         if (els.talkCount) els.talkCount.textContent = String(Math.max(0, Math.ceil((gm.phaseEndsAt - serverNow()) / 1000)));
       },
     };
-    if (room) { const t = setInterval(() => { if (els.debate && g().phase === 'debate') els.debate.refresh(g()); else clearInterval(t); }, 500); }
+    if (room) { const t = setInterval(() => { const gm = g(); if (els.debate && gm && gm.phase === 'debate') els.debate.refresh(gm); else clearInterval(t); }, 500); }
   }
 
   // a big, readable chat for the REMOTE debate (the room chat's data, rules and filter)

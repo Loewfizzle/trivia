@@ -469,6 +469,7 @@ export function save(g) {
     cb: g.combo, mc: g.maxCombo, bb: g.b2b ? 1 : 0, bc: g.b2bCount, se: g.sent, fr: Math.round(g.frac * 1000) / 1000,
     pd: g.pending.map(q => [q.n, q.g, q.from || '', q.id || '']), sd: g.sd, best: g.best ? g.best.k : '',
     st: [g.stats.pieces, g.stats.quads, g.stats.twists, g.stats.pcs],
+    ct: g.cur ? g.cur.t : 0, // the piece in play (after a hold swap it isn't the queue's piece n)
   };
 }
 
@@ -483,5 +484,5 @@ export function restore(g, s) {
   g.stats = { pieces: st[0] || 0, quads: st[1] || 0, twists: st[2] || 0, pcs: st[3] || 0 };
   g.over = false;
   g.cur = null;
-  return spawn(g);
+  return spawn(g, s.ct || null);
 }

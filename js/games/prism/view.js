@@ -58,6 +58,9 @@ export function createView() {
   let attackCursor = '';
   let qRef = null;
   let lastAttacker = null;
+  let lastHit = null;       // { from, at } the last junk that actually landed on my board (KO credit)
+  let resumeT = null;       // after a refresh: the piece that was in play
+  let lastStatsT = 0;
   let attackersRecent = []; // [{ uid, at }]
   // targeting
   let tMode = (() => { try { const m = localStorage.getItem(TKEY); return TARGET_MODES.includes(m) ? m : 'random'; } catch { return 'random'; } })();
@@ -191,7 +194,7 @@ export function createView() {
 
   function resetMatch() {
     eng = null; engFor = null; restored = false;
-    attackSeen = new Set(); attackCursor = ''; lastAttacker = null; attackersRecent = [];
+    attackSeen = new Set(); attackCursor = ''; lastAttacker = null; lastHit = null; resumeT = null; attackersRecent = [];
     pub = { b: null, p: null, stats: null, tg: null, lastB: 0, lastP: 0, lastSave: 0, ev: null };
     seenOut = { ...(game.out || {}) }; seenEv = {}; lastAlive = null; duelShown = !!game.duelAt; suddenShown = false;
     countScheduled = {}; finaleScheduled = false; endShown = false; callShownFor = null; miniSig = {};
@@ -229,22 +232,27 @@ export function createView() {
     const node = myNode();
     eng = E.createEngine({ seed: game.seed, mode: game.settings.mode, level: 1 });
     engFor = game.matchId;
-    if (node && node.st === 'out' && !rush()) { eng.over = true; restored = true; return; }
+    if (node && node.st === 'out' && !rush()) {
+      if (node.b) E.loadBoard(eng, node.b);
+      eng.over = true; restored = true;
+      showKO();
+      return;
+    }
     if (node && node.sv) {
       E.restore(eng, node.sv);
       attackCursor = node.sv.ak || '';
       restored = true;
       lastLevel = eng.level;
-      eng.cur = null; // spawns on the next frame if the match is live
-      eng.n = node.sv.n || 0;
-      if (game.phase === 'play' || game.phase === 'count') E.spawn(eng);
+      resumeT = eng.cur ? eng.cur.t : null; // the piece in play when the save was made
+      eng.cur = null;                        // startIfDue spawns it at/after GO
+      E.takeEvents(eng);
     }
   }
 
   function startIfDue() {
     if (!eng || eng.over || eng.cur || game.phase === 'final') return;
     if (serverNow() >= game.playStartAt && (game.phase === 'play' || game.phase === 'count') && !rushOver()) {
-      if (!restored && eng.n === 0 && !eng.stats.pieces) E.start(eng); else if (!eng.cur) E.spawn(eng);
+      if (!restored && eng.n === 0 && !eng.stats.pieces) E.start(eng); else if (!eng.cur) { E.spawn(eng, resumeT); resumeT = null; }
     }
   }
   const rushOver = () => rush() && game.endAt && serverNow() >= game.endAt;
@@ -325,6 +333,7 @@ export function createView() {
         case 'incoming': synth.play('incoming'); vibrate(8); break;
         case 'junk':
           if (ev.n) { synth.play('junk'); board.glitch(160); fxs.glitch = 1; vibrate([12, 30, 18]); }
+          if (ev.n && ev.from) lastHit = { from: ev.from, at: performance.now() };
           break;
         case 'topout': onTopOut(); break;
         default: break;
@@ -422,7 +431,8 @@ export function createView() {
       return;
     }
     // battle: out — tell everyone who sent the junk that finished us (KO credit)
-    const by = lastAttacker && lastAttacker !== me() ? lastAttacker : null;
+    // KO credit: whoever's junk landed on this board in the last 20 s (sudden-death rows and your own stacking: nobody)
+    const by = lastHit && lastHit.from !== me() && performance.now() - lastHit.at < 20_000 ? lastHit.from : null;
     dbUpdate(dbRef(nodePath()), { st: 'out', by, at: serverTimestamp(), b: E.boardString(eng), sv: { ...E.save(eng), ak: attackCursor } }).catch(() => {});
     showKO();
   }
@@ -485,6 +495,7 @@ export function createView() {
     }
     songPlayer.setDanger(eng && !eng.over ? dangerOf() : 0);
     songPlayer.tick();
+    if (t - lastStatsT > 250) { lastStatsT = t; renderStats(); }
     watchWorld(now);
     watchMatch(now);
     drawAll(dt, t);
@@ -589,7 +600,7 @@ export function createView() {
     }
     fxs.duel += ((game.duelAt && game.phase !== 'final' ? 1 : 0) - fxs.duel) * 0.03;
     // KO'd: Call the Winner
-    if (participant() && game.out && game.out[me()] && callShownFor !== game.matchId && !rush() && game.phase === 'play') {
+    if (participant() && game.out && game.out[me()] && callShownFor !== game.matchId && !rush() && game.phase === 'play' && liveReady()) {
       callShownFor = game.matchId;
       showCall();
     }
@@ -801,6 +812,10 @@ export function createView() {
     const alive = aliveOf(game).filter(u => u !== me());
     if (alive.length < 2) return; // nothing to call
     const endsAt = ((game.out[me()] && game.out[me()].at) || serverNow()) + CALL_MS;
+    // back after a refresh: the call is already locked in (or the window has closed)
+    const made = st.live && st.live.calls && st.live.calls[me()];
+    if (made) { els.ui.dataset.call = `YOUR CALL · ${player(made.w).name}`; layoutSig = ''; return; }
+    if (serverNow() > endsAt - 1500) { els.ui.dataset.call = 'NO CALL'; layoutSig = ''; return; }
     let picked = null;
     const bar = h('i');
     const grid = h('div.pd-call-grid', alive.map(uid => {

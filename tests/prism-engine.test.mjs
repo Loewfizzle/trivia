@@ -272,6 +272,20 @@ test('save/restore: board, score, queue position and pending junk survive', () =
   assert.equal(E.pendingTotal(h), 2);
 });
 
+test('save/restore after a hold swap brings back the piece that was in play', () => {
+  const g = E.createEngine({ seed: 'swap', mode: 'battle' });
+  E.start(g);
+  E.holdPiece(g);           // hold the first piece, the second comes in
+  E.hardDrop(g);
+  E.holdPiece(g);           // swap: the first piece comes back out of hold
+  const inPlay = g.cur.t;
+  const h = E.createEngine({ seed: 'swap', mode: 'battle' });
+  E.restore(h, JSON.parse(JSON.stringify(E.save(g))));
+  assert.equal(h.cur.t, inPlay);
+  assert.equal(h.hold, g.hold);
+  assert.equal(h.held, true);
+});
+
 test('gravity speeds up with the level', () => {
   assert.equal(Math.round(E.gravityMs(1)), 1000);
   assert.ok(E.gravityMs(5) < E.gravityMs(4));
