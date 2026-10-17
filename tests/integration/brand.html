@@ -41,7 +41,7 @@ if (kind === 'og') {
   const sign = document.createElement('div'); sign.className = 'sign';
   sign.innerHTML = `<div class="nd-logo-wrap">${logoSvg({ id: 'og', lit: true, blur: 1.1 })}</div><div class="nd-word">SPEAKEASY</div><div class="tag">${TAGLINE}</div>`;
   root.append(sign);
-  const ACC = { slip: '#ffc46b', overclock: '#ffb627', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
+  const ACC = { gridlock: '#7fb2ff', slip: '#ffc46b', overclock: '#ffb627', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
   const foot = document.createElement('div'); foot.className = 'foot';
   foot.innerHTML = GAMES.map(g => `<span style="--c:${ACC[g.id]}"><i></i>${g.name}</span>`).join('');
   root.append(foot);

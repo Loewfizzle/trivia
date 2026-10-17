@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GRIDLOCK preview</title>
+<!-- The war table without Firebase: N fake boards, your fleet, a looping volley (beams → hits/misses → a sink → a power-down).
+     ?n=4&size=8&tier=2&focus=me|overview|<index>&volley=1&still=1  (window.__state for tests) -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/gridlock.css">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #04050f; } .gl { position: fixed; } .nd-backdrop { position: fixed; inset: 0; z-index: 0; } .nd-backdrop canvas { width: 100%; height: 100%; object-fit: cover; }</style>
+</head>
+<body class="gl-on">
+<div class="nd-backdrop is-shown is-on" aria-hidden="true"><canvas></canvas></div>
+<div class="gl" id="gl"><canvas class="gl-canvas"></canvas></div>
+<script type="module">
+import { createScene } from '/js/games/gridlock/scene.js';
+import { randomLayout, fleetFor } from '/js/games/gridlock/logic.js';
+import { rngFrom } from '/js/core/rng.js';
+import { createDistrict } from '/js/screens/district/scene.js';
+import { GAMES } from '/js/config.js';
+
+const q = new URLSearchParams(location.search);
+const n = Number(q.get('n') || 4), size = Number(q.get('size') || (n <= 3 ? 10 : 8)), tier = Number(q.get('tier') ?? 2);
+// the city behind (one frame, like district/backdrop.js keeps)
+const bd = document.querySelector('.nd-backdrop canvas');
+const off = document.createElement('canvas'); off.style.cssText = 'position:fixed;inset:0;width:100vw;height:100dvh;visibility:hidden'; document.body.append(off);
+const dist = createDistrict(off, { games: GAMES, tier: 1 });
+dist.set({ wave: 1, lit: 1, bill: 1, logo: 0, motion: 0 });
+setTimeout(() => { bd.width = off.width; bd.height = off.height; bd.getContext('2d').drawImage(off, 0, 0); dist.destroy(); off.remove(); }, 1200);
+
+const root = document.getElementById('gl');
+const scene = createScene(root.querySelector('.gl-canvas'), { size });
+scene.setTier(tier);
+scene.resize(innerWidth, innerHeight);
+addEventListener('resize', () => scene.resize(innerWidth, innerHeight));
+const COLORS = ['#ff2bd6', '#00f0ff', '#f3ff3a', '#3dff8b', '#ff8c1a', '#a66bff', '#ff3355', '#3d7bff'];
+const uids = Array.from({ length: n }, (_, i) => `p${i}`);
+scene.layout(uids, Object.fromEntries(uids.map((u, i) => [u, COLORS[i]])));
+const fleet = randomLayout(size, fleetFor(size), rngFrom('preview'));
+scene.setShips('p0', fleet);
+// some history on every board
+const cells = {};
+for (const u of uids) { cells[u] = {}; const r = rngFrom(u); for (let k = 0; k < 6; k++) cells[u][`${Math.floor(r() * size)},${Math.floor(r() * size)}`] = { by: uids[Math.floor(r() * n)], h: r() < 0.4 ? 1 : 0 }; scene.setMarks(u, cells[u], null, b => COLORS[uids.indexOf(b)]); }
+scene.setBounty('p1');
+const f = q.get('focus') || 'me';
+scene.focus(f === 'me' ? 'p0' : f === 'overview' ? 'overview' : uids[Number(f)] || 'p0', { instant: true });
+scene.reticle('p1', 3, 4);
+
+let last = 0; const frames = [];
+function frame(now) { requestAnimationFrame(frame); const w0 = performance.now(); scene.frame(now); frames.push([performance.now() - w0, last ? now - last : 16]); if (frames.length > 300) frames.shift(); last = now; }
+requestAnimationFrame(frame);
+window.__perf = frames; window.__scene = scene; window.__state = { n, size, tier };
+
+// a looping volley unless ?still=1
+if (q.get('volley') !== '0' && !q.get('still')) {
+  const r = rngFrom('v');
+  const loop = () => {
+    const t = uids[1 + Math.floor(r() * (n - 1))];
+    scene.focus(t, { speed: 3.2 });
+    const shots = uids.filter(u => u !== t).slice(0, Math.min(3, n - 1));
+    shots.forEach((by, i) => setTimeout(() => {
+      const rr = Math.floor(r() * size), cc = Math.floor(r() * size);
+      scene.fire({ from: by, to: t, r: rr, c: cc, hex: COLORS[uids.indexOf(by)] }, () => { if (i < 2) scene.hit(t, rr, cc, COLORS[uids.indexOf(by)]); else scene.miss(t, rr, cc); cells[t][`${rr},${cc}`] = { by, h: i < 2 ? 1 : 0 }; scene.setMarks(t, cells[t], null, b => COLORS[uids.indexOf(b)]); });
+    }, 500 + i * 330));
+    setTimeout(() => { scene.focus(t, { push: 1, speed: 3 }); scene.sink(t, { r: 2, c: 1, len: 3, d: 0 }, 1); }, 2400);
+    if (r() < 0.3) setTimeout(() => { scene.eliminate(t); setTimeout(() => scene.setPower(t, 1), 3000); }, 4200);
+    setTimeout(loop, 6500);
+  };
+  setTimeout(loop, 1200);
+}
+</script>
+</body>
+</html>

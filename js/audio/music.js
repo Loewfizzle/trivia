@@ -24,7 +24,8 @@ export const TRACK_IDS = Object.keys(FILES);
 // stale; it keeps its place while you play a game and continues from there in the lobby.
 const shuffled = a => { const o = a.slice(); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } return o; };
 // 'victory' (every podium) is four short fanfares, shuffled per visit; each new podium moves on to the next one.
-const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'], menu: shuffled(['menu1', 'menu2', 'menu3', 'menu4']), victory: shuffled(['victory1', 'victory2', 'victory3', 'victory4']) };
+const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'], menu: shuffled(['menu1', 'menu2', 'menu3', 'menu4']), victory: shuffled(['victory1', 'victory2', 'victory3', 'victory4']),
+  gridlock: ['spy1', 'spy2', 'spy3', 'signal'] };   // GRIDLOCK: re-ordered per room by the view (setPlaylist)
 const FRESH_EACH_TIME = new Set(['victory']);
 const ONE_SHOT = new Set(['victory']);         // lists whose track plays once and then leaves silence (a fanfare)   // lists that start on their next track whenever they're asked for again
 const listPlayed = {};
@@ -57,6 +58,35 @@ function silentWavUrl() {
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
 }
 
+// one low-pass between the voices and the music bus: filterMusic() pulls it down for a moment (GRIDLOCK's impacts)
+let toneNode = null;
+function tone() {
+  if (toneNode) return toneNode;
+  const ctx = getContext();
+  toneNode = ctx.createBiquadFilter();
+  toneNode.type = 'lowpass';
+  toneNode.frequency.value = 20000;
+  toneNode.Q.value = 0.5;
+  toneNode.connect(getMusicBus());
+  return toneNode;
+}
+
+/** Low-pass the music to `hz` over `seconds` (20000 = open). */
+export function filterMusic(hz, seconds = 0.4) {
+  const ctx = getContext();
+  if (!ctx || !toneNode) return;
+  toneNode.frequency.cancelScheduledValues(ctx.currentTime);
+  toneNode.frequency.setTargetAtTime(Math.max(200, Math.min(20000, hz)), ctx.currentTime, Math.max(0.02, seconds / 3));
+}
+
+/** Re-order a playlist (e.g. a seeded order every phone in a room shares). Keeps the track playing if it is in the new list. */
+export function setPlaylist(id, ids) {
+  if (!PLAYLISTS[id] || !ids || !ids.length) return;
+  PLAYLISTS[id] = ids.slice();
+  if (current && current.list === id) listPos[id] = Math.max(0, ids.indexOf(current.id));
+  else if (!(id in listPos)) listPos[id] = 0;
+}
+
 function makeVoices() {
   const ctx = getContext();
   if (!ctx || voices.length) return;
@@ -69,7 +99,7 @@ function makeVoices() {
     const gain = ctx.createGain();
     gain.gain.value = 0;
     try { ctx.createMediaElementSource(el).connect(gain); } catch { continue; }
-    gain.connect(getMusicBus());
+    gain.connect(tone());
     const voice = { el, gain, id: null, busyUntil: 0 };
     el.addEventListener('error', () => {
       if (voice.id && el.src.includes('/audio/music/')) { status[voice.id] = 'missing'; voice.id = null; if (current && current.voice === voice) current = null; apply(); }

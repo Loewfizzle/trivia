@@ -4,14 +4,14 @@
 > (`js/ui/logo.js` → `scripts/build-boot-logo.mjs`) and the icons/preview (`tests/integration/render-assets.mjs`).
 > It was NEURAL ARCADE until October 2026.
 
-NEON SPEAKEASY — *game night, after dark.* One web app, nine games, 2–8 players, each on their own phone — same room or different cities.
+NEON SPEAKEASY — *game night, after dark.* One web app, ten games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **neonspeakeasy.com** (since Oct 2026; games.loewfizzle.com and trivia.loewfizzle.com permanently redirect here) (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
 Backend: Firebase Realtime Database + Anonymous Auth.
 
-## The games — all nine are playable
+## The games — all ten are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
@@ -22,6 +22,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 | 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
 | 8 | **PRISM DROP** | Falling-block battle set to music: BATTLE (junk attacks, KO badges, final duel, call the winner, sudden death) or SCORE RUSH (one song, highest score). Identical pieces for everyone, every phone runs its own board; WebGL worlds per song; sound effects in the song's key, on its beat. | luminous prism: white light, spectral edges, jewel glass | ✅ Stage 8 |
+| 10 | **GRIDLOCK** | Fleet battle on a holographic war table: hide your fleet, call your shots. CLASSIC (turns, 2–4) or BATTLE ROYALE (everyone fires at once, 4–8, TARGET LOCK warnings, a bounty on the leader). Private fleets, public hits, cinematic volleys in three.js. | tactical steel-blue, signal-orange fire | ✅ Stage 11 (Part 1) |
 | 9 | **SLIPSTREAM** | Multiplayer survival ride: everyone on the same seeded course at once, one thumb (hold = dive, release = fly, tap = flip), clean landings boost, hazards ramp up (gaps, laser gates, low ceilings, crumbling ground, gravity flips, boost rings), lives + rewinds, LAST RIDERS, sudden death; ghosts, five biomes with adaptive music. | sunset gold into deep blue; a single line of light | ✅ Stage 10 |
 | 7 | **DOUBLE AGENT** | Social deduction for 4–8: everyone gets the same secret word except the double agent(s); one-word clues in turn, a debate (chat, or out loud in SAME ROOM mode), a vote, a dramatic unmasking and a last chance to steal the round by naming the word. 41 categories × 15–18 words. | corrupted surveillance feed: graphite / silver, player colours only | ✅ Stage 7 |
 
@@ -211,7 +212,25 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] Setup, lobby, every sheet (options, settings, help), chat and toasts in the title's neon glass, over a still of the lit
       district; player avatars as neon glass emblems with a different shape each; colour swatches as glass orbs
 
+### ✅ Stage 11 — GRIDLOCK, Part 1 (fleet battle: core + CLASSIC + BATTLE ROYALE)
+- [x] Core: 10×10 / 5 ships for 2–3, 8×8 / 4 ships for 4+; drag-and-drop placement with rotate, invalid glow, AUTO-PLACE, READY,
+      a timer that places the rest; public hits/misses on every board, ships revealed only when sunk; eliminations; results
+      (placement, accuracy, hits, sunk, eliminations), podium, rematch, game-night points
+- [x] CLASSIC: turns in a seeded order, one shot, pick a target + cell + FIRE (confirm step), 20 s timer → a random shot, offline
+      players skipped; everyone watches each shot land
+- [x] BATTLE ROYALE: 20 s aim phase with locked-in secret cells, TARGET LOCK warning (who, not where), simultaneous cinematic
+      resolution with same-cell credit, points (10 / 30 / 50) and a BOUNTY on the leader (×1.5), 25-round safety cap
+- [x] Privacy + stability: fleets in an owner+host-readable node outside the room, resolution on the target's phone with a 4 s host
+      fallback, rejoin restores everything, host migration in every phase, late joiners spectate, Call the Winner
+- [x] Look: three.js holographic boards (grid/rim/shimmer/radar-sweep shader), ships as etched light-forms, beams, impact rings +
+      fractured marks, shatter-and-sink, power-down, cinematic camera, the district below; tiers; menu accent steel-blue/orange
+- [x] Audio: a seeded playlist of spy1-3 + last-signal with ducked/filtered volleys; synth SFX (snap, rotate, lock, TARGET LOCK,
+      beam, impact, ripple, shatter, power-down, bounty)
+- [x] Rules for glready/glshot/glres/glcall/fleets + 3 rules tests; 14 unit tests incl. whole matches; E2E `tests/integration/e2e-gridlock.mjs`
+
 ## Next up (agreed plan, in order)
+0. **GRIDLOCK Part 2:** SALVO mode (several shots per volley — `shotsPerVolley`, lists everywhere already) and ARCADE mode
+   (special abilities as one more player node + `ev` kinds the cinematic plays).
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
 2. ✅ **Split `js/games/overclock/view.js`** (was ~1,600 lines) into `ui/<type>.js` (one per challenge), `reveals.js`, `shared.js`;

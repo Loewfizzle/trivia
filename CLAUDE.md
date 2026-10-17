@@ -1,6 +1,6 @@
 # NEON SPEAKEASY — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Static site on Vercel
+Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Ten games. Static site on Vercel
 (**neonspeakeasy.com**; the old games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth.
 The app is NEON SPEAKEASY (it was NEURAL ARCADE, then NEON DISTRICT, both Oct 2026; the games kept their names; the title's
 city is still "the district" in code: `js/screens/district/`, the `nd-` class prefix). All nine build stages are complete
@@ -42,6 +42,7 @@ css/pulse.css            PULSE (HUD, song/Echo cards, countdown, results table, 
 css/chat.css             room chat (lobby strip, chat sheet, in-game chat button)
 css/golf.css             NEON PAR (HUD, zone/par cards, scorecard table, ACE cinematic, sabotage sheet, fog, ball picker)
 css/prism.css            PRISM DROP (HUD, glass board frame, mini-boards, buttons layout, count/title cards, Call the Winner, results)
+css/gridlock.css         GRIDLOCK (HUD, chips, tray, action bar, TARGET LOCK, cards, Call the Winner, results)
 css/slip.css             SLIPSTREAM (progress bar, announcements, hints, biome titles, countdown, LAST RIDERS, spectate, Call the Winner, results, ride picker)
 css/agent.css            DOUBLE AGENT (surveillance chrome, grain, RGB split, classified file states, dossier tiles, unmasking, case file)
 manifest.webmanifest     PWA manifest (standalone, portrait, icons)
@@ -140,6 +141,12 @@ js/games/prism/audio.js      song player on the server clock (danger low-pass, d
 js/games/prism/worlds.js     WebGL world shaders (aurora, city, nebula, crystal, sunset × 3 variants) + shared post (beat, bloom, waves, danger)
 js/games/prism/{board,fx,input,bot,view}.js  glass block sprites + board/minis, shards, gestures/buttons/keys, test bot, the view
 data/prism/prismN.json       PRISM DROP song analysis: beats, energy, tonic + mode, lastBeat, mood, world (generated; manifest.json)
+js/games/gridlock/logic.js   PURE rules: boards + fleets, placement, resolveVolley (privacy!), applyResolution, points + bounty, standings, smartShot (bots)
+js/games/gridlock/director.js PURE state machine: place -> (turn | aim) -> resolve -> show -> … -> end -> final
+js/games/gridlock/index.js   contract + host duties (fleets for phones that never placed, resolving shots for absent owners)
+js/games/gridlock/scene.js   three.js war table: board shader (grid/rim/sweep/ripple/bounty), ship shader (etching + rim), hit/miss instanced marks,
+                             beams, impact rings, shatter shards, power-down, camera (focus / overview), picking, tiers
+js/games/gridlock/{view,audio}.js  HUD, placement drag/rotate, aiming + confirm, lock warnings, the cinematic, spectate/calls/results; synth SFX
 js/games/slip/course.js      PURE seeded course: spline terrain (DX 0.25 m), crests tuned to launch speeds, biomes, hazards sized by probe rides
 js/games/slip/physics.js     PURE rider: 120 Hz steps, dive/launch/flight/flips/landing, hazards, gravity-flip mirroring, crash -> rewind -> respawn
 js/games/slip/bot.js         PURE rollout bot (tests prove courses survivable; the E2E rides with it)
@@ -217,9 +224,16 @@ rooms/{CODE}/meta/settings/chat: { filter: bool }                 ← host; "Fil
   prismq/{matchId}/{target}/{push}: { f, n ≤ 30, g 0-9, at }   ← PRISM DROP junk attack, from yourself, battle only, once
   prismcall/{matchId}/{uid}: { w, at }            ← Call the Winner: only when out, ≤ 12 s after, a live player, once
   meta/slip: { seed, n }                          ← host; SLIPSTREAM room playlist
+  glready/{matchId}/{uid}: { at }                 ← GRIDLOCK: fleet placed (own, during 'place')
+  glshot/{matchId}/{rk}/{uid}: { t, r, c | x, at } ← GRIDLOCK: Classic = the current player on their turn (plain cell); Royale = anyone
+                                                    alive while aiming (t public for TARGET LOCK, the cell obfuscated as x); once per volley
+  glres/{matchId}/{rk}/{target}: { r: {shooter: [{h 0|1|2, s?}]}, k: {slot: "r,c,len,d"}, by?: 'host', at }  ← the target (or the host), once
+  glcall/{matchId}/{uid}: { w, at }               ← GRIDLOCK Call the Winner (as prismcall)
   slip/{matchId}/{uid}: { st: ride|rewind|out, t, x, y, a, g ±1, v, n (on ground), l (lives), i (shimmer), c (combo), rd (ride code
                           b|c + r|s|w), d, bc, fl, ln, cl, bi, rg, at (out only) }  ← SLIPSTREAM, own, ~10 Hz, count/play/end; out is final
   slipcall/{matchId}/{uid}: { w, at }             ← SLIPSTREAM Call the Winner (same rules as prismcall)
+fleets/{CODE}/{matchId}/{uid}: { s: "r,c,len,d;…", at }   ← top level, GRIDLOCK fleets. read: that player + the current host;
+                                       write: the player (while placing, or until they have one) or the host when none exists.
 spy/{CODE}/                            ← top level, DOUBLE AGENT secrets (never inside rooms/{CODE})
   key/{matchId}: { seed }      read/write: the CURRENT host only (rules check rooms/{CODE}/meta/hostId)
   card/{uid}:    { m, rk, cat, word|null, agent }   read: that player only; write: host only
@@ -310,6 +324,13 @@ Totals are derived from `results` (lowest strokes wins).
 PRISM DROP `game`: `{ id:'prism', matchId, settings{mode: battle|rush}, participants, seed, songs[ids], sd[ms], pl0 (playlist
 position), phase: count|play|end|final, songStartAt, playStartAt (= a downbeat of song 0), endAt (rush: the song's last beat),
 n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd}}, calls{uid:{w,ok,bonus}} }`.
+
+GRIDLOCK `game`: `{ id:'gridlock', matchId, settings{mode: classic|royale, placeSec, turnSec}, mode, participants, names, size (10 for 2–3
+players, 8 for 4+), fleet [lengths], n0, order[] (seeded Classic turn order), phase: place|turn|aim|resolve|show|end|final, phaseStartAt,
+phaseEndsAt, v (volley number), rk (= String(v), the key under glshot/glres), round (Royale), ti, cur (Classic shooter), fire{uid:[{t,r,c}]}
+(the volley being resolved / shown), ev[] (the volley's events: shot/sunk/elim/pts — every phone plays them on the server clock),
+boards{uid:{cells{"r,c":{by,h}}, sunk{slot:"r,c,len,d"}, left}}, pts{uid}, stats{uid:{sh,hi,sk,el}}, out{uid:{at,place,rem,by,cap?}}, bounty,
+done, winner, capped, results{uid:{pts,sh,hi,sk,el,acc}}, calls }`. Unhit ships are never in it.
 
 SLIPSTREAM `game`: `{ id:'slip', matchId, settings{lives}, participants, seed (the course), songs[ids], sd[ms], pl0, phase:
 count|play|end|final, songStartAt, playStartAt (GO), phaseEndsAt (play: GO + 9 min), n0, out{uid:{at,place,rem,d,gone?,time?}},
@@ -442,7 +463,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (200 tests: rules of all nine games (SLIPSTREAM: slip + slip-course, incl. bot rides proving courses survivable) (DOUBLE AGENT: tests/agent.test.mjs; PRISM DROP: prism-engine + prism) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (214 tests: rules of all ten games (GRIDLOCK: tests/gridlock.test.mjs — placement, private resolution, points + bounty, Classic 2/3/4 + Royale 8 whole matches, the cap; SLIPSTREAM: slip + slip-course, incl. bot rides proving courses survivable) (DOUBLE AGENT: tests/agent.test.mjs; PRISM DROP: prism-engine + prism) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -491,6 +512,13 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
     finale on the last beat, results), refresh after a KO, no stray "null" (41 checks). Scene preview without Firebase:
     `tests/integration/prism-preview.html?world=city&v=2&tier=1&bot=1&fx=1&danger=0.5`; worlds + per-tier timings:
     `node prism-shots.mjs "<browser>" ./shots-prism [cpu]` (measured with GPU=1 at 4× CPU: 16.7 ms median at all tiers).
+  - GRIDLOCK E2E: `node e2e-gridlock.mjs "<browser path>" ./shots-gridlock` (env N=8, SHOTS=0, GPU=1, PERF=0, CPU=4) — CLASSIC with 2:
+    lobby card/options, a real touch drag from the tray onto the 10×10 grid, tap to rotate, an invalid drop (red ghost, snaps back),
+    AUTO-PLACE keeps your ships, READY, privacy (another player's read of your fleet is denied), an aimed shot through the HUD
+    (tap a cell → reticle → FIRE), turns alternate, a timed-out turn fires a random shot, refresh mid-match (fleet + marks back),
+    bots to the end, results. ROYALE with 8: 8×8, a phone that never placed gets a host fleet, TARGET LOCK (who, not where),
+    two players on one cell, an absent owner's board resolved by the host, the bounty on the points leader, eliminations, Call
+    the Winner, the host killed mid-match, a finish; frame pacing per tier at 4× CPU. Screens at 390×844, 412×915, 1440×900.
   - SLIPSTREAM E2E: `node e2e-slip.mjs "<browser path>" ./shots-slip` (env N=8, SHOTS=0, GPU=1; frame pacing on its own:
     `PERF_ONLY=1 GPU=1 N=2` at CPU=4 — measured 16.7 ms median / 17 ms p95 at every tier, 4–5 ms of work a frame) — lobby card/options/ride picker, the same course on every phone, real touch (hold keeps you down, a tap
     in the air flips), bots ride, ghosts + their looks, equal look-ahead portrait/landscape + rotating mid-ride, every biome's
@@ -752,6 +780,43 @@ the street outside: the district, the sign over the door.
    in `WORLDS` + its mood target in `build-prism.py#WORLDS`, then `--reworld`. Override by editing `"world"` in the song's JSON (kept on rebuilds).
 4. `node --test tests/prism.test.mjs`; look at it in `prism-preview.html?world=…`; play a Score Rush (`?emu`, two slots).
 5. Commit `audio/music/prism*.mp3` + `data/prism/` and push.
+
+## GRIDLOCK (fleet battle)
+A fleet battle on a holographic war table: hide your ships, call your shots, the last fleet standing wins. Two modes share one
+director: CLASSIC (turns, one shot) and BATTLE ROYALE (everyone aims at once, all shots resolve together). Part 2 will add
+SALVO (several shots per volley) and ARCADE (abilities).
+- **A VOLLEY** is one set of shots resolved together. Classic: `turn` (cur fires, turnSec; offline cur skipped after 3 s; a slow
+  cur gets a seeded random shot). Royale: `aim` (everyone alive locks `glshot/{m}/{rk}/{uid}` = { t, x }; x = the cell through
+  `core/obfuscate` with `shotKey(code, m, rk, uid)`, so the HUD can warn WHO locked on without WHERE). Ends when every alive online
+  player has locked or at the timer; nobody who didn't lock fires.
+- **Resolution is private.** `resolve`: `game.fire` names each shot; the TARGET's own client runs `logic.js#resolveVolley(fleet,
+  board, shots)` against its fleet and writes `glres/{m}/{rk}/{target}` — hits/misses/"already hit" per shooter, and only the
+  geometry of ships SUNK this volley. The host (which may read every fleet) does the same after 4 s, or at once for an offline
+  owner (`index.js#prepare`). The director folds results into the public `boards` (`applyResolution`), credits hits/sinks/
+  eliminations, moves to `show`. 15 s cap: a missing resolution counts as misses.
+- **Points** (`POINTS`): hit 10, sink 30, elimination 50; on the bounty holder hits and sinks ×1.5. The bounty = the alive
+  player strictly ahead on points. Eliminations in one volley place weaker-first (fewer points). Safety cap: Royale 25 rounds /
+  Classic size²·players volleys → most cells afloat wins, points break ties (`capped`).
+- **Fleets:** `fleets/{code}/{m}/{uid}` (see Data model). READY writes the fleet + `glready`; placement ends early when all are
+  ready. A phone that never placed gets a seeded layout from the host at the first non-place tick (`loadFleets`). The owner's
+  client loads its fleet on mount → a refresh restores ships / placement. Fleets are wiped at match start and with the room.
+- **Cinematic** (`view.js#buildTimeline`): from `ev`, per target: camera to the board, one beam per shot (350 ms apart, 0.75 s
+  flight), impact (hit flash + shockwave + fractured mark, or a ripple), then each sink (wreck glows, shatters into shards that
+  fall through the table), then the power-down, then a summary line. Items run against `phaseStartAt` on the server clock; a
+  phone joining > 1.8 s late applies marks silently. Music ducks + low-passes for the volley (`duckMusic`, `filterMusic`).
+  Marks of the current volley stay hidden (`pending`) until their impact.
+- **Scene** (`scene.js`): boards on a ring (yours at the front), each one draw call of board shader + instanced hit/miss marks +
+  ship meshes (own board) + a label texture; camera focuses a board (fit by the screen's aspect; portrait looks a little past
+  the board so it sits lower) or the overview; `pick(x, y)` raycasts to a cell. Tiers 2/1/0 (DPR 2/1.5/1, ambient points,
+  trail length, shard count, sweep) step down at p75 > 19.5 ms. Reduced effects: no shake, no points.
+- **Music:** `PLAYLISTS.gridlock` = spy1-3 + last-signal; the view calls `setPlaylist('gridlock', musicOrder(code))` (seeded by the
+  room code so every phone shares the order; the position continues across matches on a phone). Victory on the podium.
+- **Chat lock:** while placing (until READY), on your Classic turn, while aiming (until locked in).
+- **Part 2 hooks:** `shotsPerVolley(game, uid)` (Salvo: raise it; `fire[uid]` is already a list and `glres.r[shooter]` an array),
+  `resolveVolley` takes lists, `ev` is an open event list the cinematic plays (new kinds: add a case in `buildTimeline`), and
+  abilities would be one more player node + an `ev` kind; rules per node.
+- Test hooks: `window.__gridlock` (fleet, place, setReady, autoPlace, rotate, aim, fire, bot({delay, seed, force}), forceNext,
+  locks, announcements, sfxLog, timeline, camera, pick, tier/fps/work/stats).
 
 ## SLIPSTREAM (survival ride)
 Everyone rides the same seeded course at once; calm, then faster and harder; the last rider still riding wins (2–8, lives 1/2/3).

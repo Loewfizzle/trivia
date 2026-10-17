@@ -58,6 +58,7 @@ export const AVATAR_IDS = Object.keys(AVATARS);
 
 // Game registry metadata (UI + availability). Logic lives in js/games/<id>/.
 export const GAMES = [ // lobby order
+  { id: 'gridlock', name: 'GRIDLOCK', theme: 'gridlock', tag: 'FLEET BATTLE', blurb: 'Place your fleet. Call your shots. Last fleet standing.', playable: true },
   { id: 'slip', name: 'SLIPSTREAM', theme: 'slip', tag: 'SURVIVAL RIDE', blurb: 'One seeded course, everyone at once. Dive, fly, flip. Last rider riding wins.', playable: true },
   { id: 'prism', name: 'PRISM DROP', theme: 'prism', tag: 'FALLING-BLOCK BATTLE', blurb: 'Clear lines to the beat. Bury your rivals in junk — or race the song.', playable: true },
   { id: 'overclock', name: 'OVERCLOCK', theme: 'overclock', tag: 'MIND GAUNTLET', blurb: 'Rapid 30-second brain spikes. Live leaderboard.', playable: true },

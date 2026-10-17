@@ -229,7 +229,36 @@ ${glow('sl-glow', 1.8)}${glow('sl-glow2', 4)}</defs>
 </svg>`;
 }
 
-const ART = { slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+// GRIDLOCK: a tilted holographic tactical grid over the night city, two ships of light, a beam arcing in from
+// off-screen and a bright impact ring where it lands; steel-blue glass, signal-orange fire
+function gridlock() {
+  const lines = [];
+  for (let i = 0; i <= 8; i++) {
+    const t = i / 8;
+    lines.push(`<line x1="${20 + t * 80}" y1="46" x2="${8 + t * 104}" y2="106"/>`);
+    const y = 46 + t * 60, xl = 20 - t * 12, xr = 100 + t * 12;
+    lines.push(`<line x1="${xl}" y1="${y}" x2="${xr}" y2="${y}"/>`);
+  }
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<radialGradient id="gl-bg" cx="0.5" cy="0.2" r="0.95"><stop offset="0" stop-color="#15224a"/><stop offset="0.6" stop-color="#070b1e"/><stop offset="1" stop-color="#03040c"/></radialGradient>
+<linearGradient id="gl-glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb2ff" stop-opacity="0.22"/><stop offset="1" stop-color="#7fb2ff" stop-opacity="0.05"/></linearGradient>
+<linearGradient id="gl-beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff7a2a" stop-opacity="0"/><stop offset="1" stop-color="#ffd0a0"/></linearGradient>
+${glow('gl-glow', 2)}${glow('gl-glow2', 4)}</defs>
+<rect width="120" height="120" fill="url(#gl-bg)"/>
+<g fill="#ffd9a0" opacity="0.5">${[[8, 112], [20, 108], [34, 114], [52, 110], [70, 115], [88, 109], [104, 113], [114, 108]].map(([x, y]) => `<rect x="${x}" y="${y}" width="2" height="2"/>`).join('')}</g>
+<polygon points="20,46 100,46 112,106 8,106" fill="url(#gl-glass)" stroke="#9fc3ff" stroke-width="1.2" stroke-opacity="0.9" filter="url(#gl-glow)"/>
+<g stroke="#7fb2ff" stroke-opacity="0.35" stroke-width="0.7">${lines.join('')}</g>
+<g filter="url(#gl-glow)"><rect x="30" y="58" width="28" height="6" rx="2" fill="#0b1230" stroke="#8fd8ff" stroke-width="1.2"/><rect x="33" y="60.5" width="22" height="1" fill="#8fd8ff" opacity="0.9"/>
+<rect x="62" y="82" width="7" height="18" rx="2" fill="#0b1230" stroke="#8fd8ff" stroke-width="1.2"/><rect x="65" y="85" width="1" height="12" fill="#8fd8ff" opacity="0.9"/></g>
+<path d="M-4 22C30 6 62 20 84 70" stroke="url(#gl-beam)" stroke-width="2.4" fill="none" stroke-linecap="round" filter="url(#gl-glow)"/>
+<circle cx="84" cy="70" r="9" fill="none" stroke="#ff9a5c" stroke-width="1.4" opacity="0.8" filter="url(#gl-glow2)"/>
+<circle cx="84" cy="70" r="3.5" fill="#fff1e0" filter="url(#gl-glow2)"/>
+<g stroke="#ff7a2a" stroke-width="1.2" stroke-linecap="round" opacity="0.9"><path d="M78 64l-5-5M90 64l5-5M78 76l-5 5M90 76l5 5"/></g>
+<rect x="18" y="26" width="30" height="3" rx="1" fill="#7fb2ff" opacity="0.28"/><rect x="52" y="26" width="14" height="3" rx="1" fill="#7fb2ff" opacity="0.18"/>
+</svg>`;
+}
+
+const ART = { gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);
