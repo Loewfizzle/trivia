@@ -238,8 +238,8 @@ async function signalE2E() {
   await B.bringToFront();
   await waitFor(B, () => {
     const d = window.__arcade.musicDebug();
-    const v = d.voices.find(x => x.id === 'victory' && !x.paused);
-    return d.playing === 'victory' && v && v.gain > 0.95;
+    const v = d.voices.find(x => /^victory[1-4]$/.test(x.id) && !x.paused);
+    return /^victory[1-4]$/.test(d.playing) && v && v.gain > 0.95;
   }, 'victory music fully faded in', 8000);
   log('victory track playing (crossfaded in)');
   await clickText(B, 'BACK TO LOBBY');

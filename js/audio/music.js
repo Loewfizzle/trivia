@@ -11,7 +11,8 @@ import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, onResume }
 
 const FILES = {
   menu1: 'menu', menu2: 'menu2', menu3: 'menu3', menu4: 'menu4', cipher: 'cipher-breach', signal: 'last-signal',
-  overclock: 'overclock', bluff: 'neural-bluff', victory: 'victory',
+  overclock: 'overclock', bluff: 'neural-bluff',
+  victory1: 'victory', victory2: 'victory2', victory3: 'victory3', victory4: 'victory4',
   'golf-rooftops': 'golf-rooftops', 'golf-cyber': 'golf-cyber', 'golf-arcade': 'golf-arcade',
   spy1: 'spy1', spy2: 'spy2', spy3: 'spy3',
 };
@@ -22,7 +23,10 @@ export const TRACK_IDS = Object.keys(FILES);
 // 'menu' (title, setup, lobby) is the four menu tracks in a fresh random order on every visit, so it never goes
 // stale; it keeps its place while you play a game and continues from there in the lobby.
 const shuffled = a => { const o = a.slice(); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } return o; };
-const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'], menu: shuffled(['menu1', 'menu2', 'menu3', 'menu4']) };
+// 'victory' (every podium) is four short fanfares, shuffled per visit; each new podium moves on to the next one.
+const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'], menu: shuffled(['menu1', 'menu2', 'menu3', 'menu4']), victory: shuffled(['victory1', 'victory2', 'victory3', 'victory4']) };
+const FRESH_EACH_TIME = new Set(['victory']);   // lists that start on their next track whenever they're asked for again
+const listPlayed = {};
 const listPos = {}; // list id -> index of the track playing / next to play
 const XFADE = 1.5;        // seconds, between tracks
 const LOOP_XFADE = 1.8;   // seconds, track into itself
@@ -201,7 +205,10 @@ function watchLoop() {
 /** Ask for a track. Same track = no-op (keeps playing seamlessly). */
 export function playMusic(id, fallback = null) {
   if (desired && desired.id === id && desired.fallback === fallback) { apply(); return; }
-  if (!desired || desired.id !== id) duckLevel = 1; // a new track never starts ducked
+  if (!desired || desired.id !== id) {
+    duckLevel = 1; // a new track never starts ducked
+    if (FRESH_EACH_TIME.has(id)) { if (listPlayed[id]) listPos[id] = ((listPos[id] || 0) + 1) % PLAYLISTS[id].length; listPlayed[id] = true; }
+  }
   desired = id ? { id, fallback } : null;
   // Nothing can play before the first tap, so don't spend the player's bandwidth until then.
   if (isUnlocked()) { if (id) prefetch(id); if (fallback) prefetch(fallback); }
