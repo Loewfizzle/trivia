@@ -86,7 +86,8 @@ export function createLobby() {
         h('div.section-head', h('span.label', 'SELECT PROTOCOL')),
         els.hint,
         els.games),
-      slot !== '1' ? h('div.lobby-foot', h('span.tag.tag-you', `TEST SLOT ${slot}`)) : null,
+      // (native append() would print a null as the text "null")
+      ...(slot !== '1' ? [h('div.lobby-foot', h('span.tag.tag-you', `TEST SLOT ${slot}`))] : []),
       els.chatSlot = h('div.chat-slot'),
     );
     // the chat strip (and all chat code) loads after the lobby is up

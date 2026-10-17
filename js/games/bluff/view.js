@@ -218,7 +218,7 @@ export function createView() {
     els.voteList = h('div.nb-options', { role: 'radiogroup', 'aria-label': 'Which is the truth?' });
     els.voteStatus = h('p.nb-hint');
     els.stage.append(
-      q ? h('article.dossier.is-compact', questionEl(q, true)) : null,
+      ...(q ? [h('article.dossier.is-compact', questionEl(q, true))] : []),
       h('div.nb-vote-head', h('span.label', 'WHICH IS THE TRUTH?'), h('span.nb-like-hint', '♥ = funniest lie')),
       els.voteList,
       els.voteStatus);

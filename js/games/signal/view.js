@@ -425,7 +425,7 @@ export function createView() {
     });
     if (!ev.length) lines.append(h('li.feed-note', 'NO SIGNAL EXCHANGED'));
     els.qFeed.replaceChildren(
-      item ? h('p.ls-q-recap', item.q) : null,
+      ...(item ? [h('p.ls-q-recap', item.q)] : []),
       h('div.ls-q-cat', 'CORRECT ANSWER'),
       h('div.ls-answer', item && log.c != null ? item.a[log.c] : '—'),
       lines);
