@@ -19,7 +19,7 @@ import { getContext, getMusicBus, getSfxBus } from '../../audio/engine.js';
 import { serverNow } from '../../firebase.js';
 import { settings } from '../../audio/settings.js';
 import { ctxAtServer } from '../pulse/clock.js';
-import { songStarts, XF_MS } from './logic.js';
+import { createSyncedSongs } from '../../audio/synced-songs.js';
 import { songUrl, beatClock } from './songs.js';
 
 const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
@@ -27,149 +27,35 @@ const PENT = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
 // ================================================================ songs
-const LOOKAHEAD_MS = 45_000; // decode the next song this long before its crossfade
-const END_FADE = 1.5;        // seconds: the very end of the last song fades out
-
-function decode(url) {
-  return fetch(url).then(r => { if (!r.ok) throw new Error(`song ${r.status}`); return r.arrayBuffer(); }).then(ab => {
-    // an offline context decodes without an unlocked (tapped) audio context
-    const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    const c = new AC(2, 1, 44100);
-    return new Promise((resolve, reject) => c.decodeAudioData(ab, resolve, reject));
-  });
-}
-
 export function createSongPlayer() {
   let chain = null;      // { filter, lift, out }
   let game = null;
   let danger = 0;
   let duelAt = null;
   let duelDone = false;
-  let stopped = false;
   let finaleAt = null;
-  let lastCheck = 0;
-  let restarts = 0;
-  const bufs = new Map();    // `${matchId}:${i}` -> { buf, failed }
-  const voices = new Map();  // song index -> { src, gain, origin, startedAt }
-  const done = new Set();    // song indexes that played to their end (never restart)
-
-  const keyOf = i => `${game.matchId}:${i}`;
-
-  function build(ctx) {
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 20000;
-    filter.Q.value = 0.7;
-    const lift = ctx.createGain();
-    lift.gain.value = 1;
-    const out = ctx.createGain();
-    out.gain.value = 1;
-    filter.connect(lift).connect(out).connect(getMusicBus());
-    return { filter, lift, out };
-  }
-
-  function load(i) {
-    const k = keyOf(i);
-    if (bufs.has(k)) return;
-    const e = { buf: null, failed: false };
-    bufs.set(k, e);
-    decode(songUrl(game.songs[i])).then(b => { e.buf = b; }).catch(err => { e.failed = true; console.warn('prism song', err && err.message); });
-  }
-
-  // which songs matter at server time t: the one playing, the next (close to its turn), the previous (still fading)
-  function wanted(t, starts) {
-    let cur = 0;
-    while (cur + 1 < starts.length && t >= starts[cur + 1]) cur++;
-    const w = [cur];
-    if (cur + 1 < starts.length && starts[cur + 1] - t < LOOKAHEAD_MS) w.push(cur + 1);
-    if (cur > 0 && t < starts[cur] + XF_MS) w.push(cur - 1);
-    return w;
-  }
-
-  function start(ctx, i, starts) {
-    const e = bufs.get(keyOf(i));
-    if (!e || !e.buf) return;
-    const buf = e.buf;
-    const origin = ctxAtServer(starts[i]);             // ctx time at which position 0 is heard
-    const at = Math.max(ctx.currentTime + 0.05, origin);
-    const off = at - origin;
-    if (off >= buf.duration - 0.25) { done.add(i); return; }
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const gain = ctx.createGain();
-    src.connect(gain).connect(chain.filter);
-    const g = gain.gain;
-    const ctxOf = ms => origin + (ms - starts[i]) / 1000;
-    // fade in: a crossfade from the previous song, or a short ramp when joining mid-song
-    if (i > 0 && off < XF_MS / 1000) {
-      g.setValueAtTime(0, at);
-      g.linearRampToValueAtTime(Math.min(1, (off + 0.001) / (XF_MS / 1000)), at + 0.001);
-      g.linearRampToValueAtTime(1, origin + XF_MS / 1000);
-    } else if (off > 0.02) {
-      g.setValueAtTime(0, at);
-      g.linearRampToValueAtTime(1, at + 0.15);
-    } else {
-      g.setValueAtTime(1, at);
-    }
-    // fade out: into the next song, or at the very end of the last one
-    const end = origin + buf.duration;
-    if (i + 1 < starts.length) {
-      const x0 = Math.max(at + 0.2, ctxOf(starts[i + 1]));
-      g.setValueAtTime(1, x0);
-      g.linearRampToValueAtTime(0, Math.max(x0 + 0.05, ctxOf(starts[i + 1] + XF_MS)));
-    } else if (end - END_FADE > at + 0.2) {
-      g.setValueAtTime(1, end - END_FADE);
-      g.linearRampToValueAtTime(0, end);
-    }
-    src.onended = () => { if (voices.get(i) && voices.get(i).src === src) { voices.delete(i); done.add(i); } };
-    src.start(at, off);
-    voices.set(i, { src, gain, origin, startedAt: ctx.currentTime });
-  }
-
-  function stopVoice(ctx, i, fade = 0.12) {
-    const v = voices.get(i);
-    if (!v) return;
-    voices.delete(i);
-    const t = ctx.currentTime;
-    try {
-      v.gain.gain.cancelScheduledValues(t);
-      v.gain.gain.setValueAtTime(v.gain.gain.value, t);
-      v.gain.gain.linearRampToValueAtTime(0, t + fade);
-      v.src.stop(t + fade + 0.02);
-    } catch { /* never started */ }
-  }
+  const songs = createSyncedSongs({
+    urlFor: songUrl,
+    label: 'prism song',
+    connect(ctx) {
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 20000;
+      filter.Q.value = 0.7;
+      const lift = ctx.createGain();
+      lift.gain.value = 1;
+      const out = ctx.createGain();
+      out.gain.value = 1;
+      filter.connect(lift).connect(out).connect(getMusicBus());
+      chain = { filter, lift, out };
+      return filter;
+    },
+  });
 
   function tick() {
-    if (!game || stopped || !game.songs || !game.songs.length) return;
+    const ctx = songs.tick();
+    if (!ctx || !chain) return;
     const t = serverNow();
-    const starts = songStarts(game);
-    const want = wanted(t, starts);
-    for (const i of want) load(i);
-    // drop decoded songs we no longer need (a decoded song is tens of MB)
-    for (const k of [...bufs.keys()]) {
-      const [m, si] = k.split(':');
-      if (m !== game.matchId || (!want.includes(Number(si)) && !voices.has(Number(si)))) bufs.delete(k);
-    }
-    const ctx = getContext();
-    if (!ctx || ctx.state !== 'running') return;
-    if (!chain) chain = build(ctx);
-    for (const i of want) {
-      if (voices.has(i) || done.has(i)) continue;
-      if (t > starts[i] + game.sd[i] - 300) { done.add(i); continue; }
-      start(ctx, i, starts);
-    }
-    // after a suspension (background, a call, the iOS keyboard) the ctx clock stopped while the server clock ran
-    // on: if a song is no longer where the server clock says, restart it there (checked twice a second)
-    if (performance.now() - lastCheck > 500) {
-      lastCheck = performance.now();
-      for (const [i, v] of [...voices]) {
-        if (Math.abs(v.origin - ctxAtServer(starts[i])) > 0.12 && ctx.currentTime - v.startedAt > 0.5) {
-          restarts++;
-          stopVoice(ctx, i, 0.08);
-          start(ctx, i, starts);
-        }
-      }
-    }
     // danger: the music sinks under water as the stack nears the top
     const target = danger > 0.01 ? 20000 * Math.pow(600 / 20000, Math.min(1, danger)) : 20000;
     if (!duelAt || duelDone) chain.filter.frequency.setTargetAtTime(target, ctx.currentTime, 0.25);
@@ -191,31 +77,19 @@ export function createSongPlayer() {
   }
 
   return {
-    setGame(g) {
-      if (game && g && game.matchId !== g.matchId) { const ctx = getContext(); if (ctx) for (const i of [...voices.keys()]) stopVoice(ctx, i, 0.3); done.clear(); }
-      game = g;
-      duelAt = g && g.duelAt ? g.duelAt : duelAt;
-    },
+    setGame(g) { songs.setGame(g); game = g; duelAt = g && g.duelAt ? g.duelAt : duelAt; },
     setDanger(d) { danger = Math.max(0, Math.min(1, d)); },
     setDuel(at) { if (at && !duelAt) duelAt = at; },
     /** fade the songs out (results) from server time `at` */
     fadeOutAt(at) { finaleAt = at; },
     tick,
-    /** is song i decoded and ready? (the view waits on it for the countdown) */
-    ready(i = 0) { const e = game && bufs.get(keyOf(i)); return !!(e && e.buf); },
+    ready: i => songs.ready(i),
     debug() {
-      const ctx = getContext();
-      return {
-        ready: !!chain, filter: chain ? Math.round(chain.filter.frequency.value) : null, lift: chain ? +chain.lift.gain.value.toFixed(3) : 1,
-        decoded: [...bufs].filter(([, e]) => e.buf).map(([k]) => k), restarts,
-        slots: [...voices].map(([i, v]) => ({ id: game.songs[i], i, t: ctx ? +(ctx.currentTime - v.origin).toFixed(2) : 0, paused: false, gain: +v.gain.gain.value.toFixed(3) })),
-      };
+      return { ready: !!chain, filter: chain ? Math.round(chain.filter.frequency.value) : null, lift: chain ? +chain.lift.gain.value.toFixed(3) : 1, ...songs.debug() };
     },
     stop() {
-      stopped = true;
-      const ctx = getContext();
-      if (ctx) for (const i of [...voices.keys()]) stopVoice(ctx, i, 0.6);
-      bufs.clear();
+      songs.stop();
+      void game;
       if (chain) setTimeout(() => { try { chain.filter.disconnect(); chain.lift.disconnect(); chain.out.disconnect(); } catch { /* fine */ } }, 900);
     },
   };

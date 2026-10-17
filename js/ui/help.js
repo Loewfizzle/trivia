@@ -178,6 +178,37 @@ RULES.prism = {
   ],
 };
 
+RULES.slip = {
+  goal: 'A survival ride: everyone rides the same course (new every match) at the same time. Calm at first, then faster and harder. The last rider still riding wins. 2–8 players.',
+  sections: [
+    ['ONE THUMB', [
+      'HOLD to dive: you press into the ground and pick up speed on the downhills.',
+      'RELEASE to fly: let go near the top of a hill and you launch off it.',
+      'In the air, TAP for a full flip (tap again for another). HOLD in the air to come down faster.',
+      'Land level with the slope: a clean landing after flips gives a speed boost, and flips in a row build a combo.',
+      'Land badly and you crash. A plain jump with no flips always lands clean.',
+    ]],
+    ['HAZARDS (EACH ONE IS SHOWN BEFORE IT ARRIVES)', [
+      'GAPS: you need speed — dive down the slope before them.',
+      'LASER GATES: jump through the opening. Later on, the low beam blinks.',
+      'LOW CEILINGS: stay low; the electric line above you zaps you.',
+      'CRUMBLING GROUND: keep moving, it falls away behind you.',
+      'GRAVITY FLIP: the world turns over for a few seconds and you ride the ceiling.',
+      'BOOST RINGS: fly through them for speed.',
+    ]],
+    ['LIVES', [
+      'The host picks 1, 2 or 3 lives (2 by default). A crash rewinds you a little and you ride on, shimmering and safe for 2 seconds.',
+      'Out of lives = out. If the last riders crash at the same moment, the one who got farther wins.',
+      'After about 6 minutes: SUDDEN DEATH — faster and denser until someone wins. At 9 minutes the farthest rider wins.',
+    ]],
+    ['WHILE YOU WATCH', [
+      'Out? Follow any rider (‹ ›) and call the winner within 10 seconds — a right call earns game-night points.',
+      'Pick your ride (HOVERBOARD or LIGHT-CYCLE) and trail before the start. They handle exactly the same.',
+      'Landscape gives the widest view, but everyone sees the same distance ahead.',
+    ]],
+  ],
+};
+
 RULES.pulse = {
   goal: 'A rhythm race down a neon highway. Everyone plays the same song at the same moment — hit the notes on the beat.',
   sections: [
@@ -235,7 +266,7 @@ const LEGEND = [
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
+const TAB = { slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
 
 let sheet = null;
 

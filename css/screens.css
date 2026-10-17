@@ -204,6 +204,8 @@
 .game-card[data-theme='bluff'] { --accent: #e9e4d4; --accent-soft: rgba(215, 38, 46, 0.12); --accent-glow: rgba(215, 38, 46, 0.5); }
 .game-card[data-theme='overclock'] { --accent: #ffb627; --accent-soft: rgba(255, 43, 214, 0.14); --accent-glow: rgba(255, 182, 39, 0.5); }
 .game-card[data-theme='golf'] { --accent: #2ff5d2; --accent-soft: rgba(255, 79, 163, 0.12); --accent-glow: rgba(47, 245, 210, 0.5); }
+.game-card[data-theme='slip'] { --accent: #ffc46b; --accent-soft: rgba(255, 196, 107, 0.1); --accent-glow: rgba(255, 170, 90, 0.45); }
+.game-card[data-theme='slip'] .gc-tag { background: linear-gradient(90deg, #ffd27a, #ff8a5c 45%, #8fa6ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .game-card[data-theme='prism'] { --accent: #f4f7ff; --accent-soft: rgba(143, 216, 255, 0.1); --accent-glow: rgba(190, 210, 255, 0.5); }
 .game-card[data-theme='prism'] .gc-tag { background: linear-gradient(90deg, #ff6a95, #ffc14d, #6dffb8, #5fd8ff, #a58bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .game-card[data-theme='agent'] { --accent: #eceff4; --accent-soft: rgba(236, 239, 244, 0.08); --accent-glow: rgba(236, 239, 244, 0.35); }

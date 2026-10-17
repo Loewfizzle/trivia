@@ -76,6 +76,10 @@
   --accent: #f4f7ff; --accent-2: #8fd8ff; --accent-ink: #070912;
   --accent-soft: rgba(244, 247, 255, 0.08); --accent-glow: rgba(190, 210, 255, 0.4);
 }
+[data-theme='slip'] { /* SLIPSTREAM: sunset gold fading into deep blue */
+  --accent: #ffc46b; --accent-2: #6f8dff; --accent-ink: #1a0f04;
+  --accent-soft: rgba(255, 196, 107, 0.1); --accent-glow: rgba(255, 170, 90, 0.42);
+}
 [data-theme='agent'] { /* DOUBLE AGENT: a monochrome surveillance feed — the players are the only colour */
   --accent: #e6e9ef; --accent-2: #9aa3b5; --accent-ink: #0b0d12;
   --accent-soft: rgba(230, 233, 239, 0.08); --accent-glow: rgba(230, 233, 239, 0.28);
