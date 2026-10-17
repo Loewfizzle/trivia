@@ -6,8 +6,8 @@
 //   2. POWER-ON: windows light up in a sweep from the street up, billboards boot, the haze takes the colour.
 //   3. The sign powers on like real neon: a flicker per letter with a hum and crackle, then a steady glow,
 //      its light shimmering on the wet street.
-//   4. The menu eases in.  Full sequence ≈ 3.4 s; a returning visit ≈ 1.2 s (no gate); coming back to the title
-//      in the same session: instant. Any tap skips. Reduced effects / prefers-reduced-motion: simple fades.
+//   4. The menu eases in.  The full sequence (≈ 3.4 s) plays on every visit — the TAP TO ENTER gate only on a
+//      device's first visit; stepping back from the name / profile screen gets a quick ≈ 1.2 s re-light. Any tap skips. Reduced effects / prefers-reduced-motion: simple fades.
 // Menu: HOST GAME (the one glowing element), JOIN with four code boxes (auto-advance, paste, auto-join on the
 // 4th letter, ?room= pre-fills), REJOIN when a saved room couldn't be reached, "Welcome back" with the saved
 // profile, and a drifting showcase of the games (tap one for a preview sheet).
@@ -30,7 +30,7 @@ import { createDistrict } from './district/scene.js';
 
 const ACC = { overclock: '#ffb627', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
-const SHOWN = 'nd:title-shown'; // sessionStorage: the title already played its intro this session
+const BACK = 'nd:back';          // sessionStorage: just stepped back from the name / profile screen (a quick re-light)
 const store = (s, k, v) => { try { if (v === undefined) return s.getItem(k); s.setItem(k, v); } catch { /* private mode */ } return null; };
 
 // the sequences (seconds from the start). wave = window lights climbing, lit = the city's glow, bill = billboards,
@@ -86,13 +86,18 @@ export function createTitle() {
     // local test runs (?emu) skip the intro unless they ask for it (&intro=1) — every other E2E just needs the menu
     const testSkip = useEmulator && !/[?&]intro(?![a-z])/.test(location.search);
     const first = !testSkip && !store(localStorage, SEEN);
-    const again = testSkip || store(sessionStorage, SHOWN);
+    // every visit gets the full power-on (the tap screen only the first time: it's there to unlock sound);
+    // stepping back from the name / profile screen a moment later gets the quick version
+    const back = store(sessionStorage, BACK) === '1';
+    try { sessionStorage.removeItem(BACK); } catch { /* fine */ }
     if (first) {
       el.classList.add('is-gated');
       requestAnimationFrame(() => els.gate.classList.add('is-in'));
     } else {
       els.gate.remove();
-      run(again ? INSTANT : SHORT, again ? 'instant' : 'short');
+      if (testSkip) run(INSTANT, 'instant');
+      else if (back) run(SHORT, 'short');
+      else { if (!reduced()) cityPowerOn(); run(FULL, 'full'); }
     }
     update(state);
   }
@@ -117,7 +122,6 @@ export function createTitle() {
 
   function run(plan, kind) {
     const r = reduced();
-    store(sessionStorage, SHOWN, '1');
     tl = { plan: r ? { ...INSTANT, end: 0.7 } : plan, kind: r ? 'reduced' : kind, t0: performance.now(), done: false, marks: {} };
     const root = els.sign.closest('.nd');
     root.classList.add(`seq-${tl.kind}`);

@@ -1,7 +1,7 @@
 // NEON DISTRICT title screen end to end (needs the emulators + scripts/serve.mjs).
 //   node e2e-title.mjs "<browser path>" ./shots-title        (env SHOTS=0, VIDEO=0, CPU=4, GPU=1)
 // First visit (gate -> tap -> full power-on, audio unlocked by that tap), returning visit (short, no gate),
-// same-session revisit (instant), skip by tapping, reduced effects; HOST with a saved profile (straight into a
+// back from the name screen (quick re-light), skip by tapping, reduced effects; HOST with a saved profile (straight into a
 // room), JOIN by typing (auto-join on the 4th letter), by pasting an invite link, an invalid code, I/O typed,
 // a ?room= link (pre-filled; with and without a profile), REJOIN, Welcome back + EDIT, the showcase preview
 // sheets (+ HOW TO PLAY), quality tiers + frame pacing, memory cleanup when leaving the title, the lobby's
@@ -159,7 +159,17 @@ try {
   const audioAfter = await ev(A.page, `import('/js/audio/engine.js').then(m => m.getContext() && m.getContext().state)`);
   ok(!audioBefore && audioAfter === 'running', `AUDIO: the TAP TO ENTER tap unlocks audio (${audioAfter})`);
   const music = await ev(A.page, 'window.__arcade.musicDebug()');
-  ok(music.desired === 'menu', `AUDIO: the menu music is asked for (${JSON.stringify({ desired: music.desired, playing: music.playing })})`);
+  ok(music.desired === 'menu' && /^menu[1-4]$/.test(music.playing || '') && music.list === 'menu', `AUDIO: one of the four menu tracks plays, as a shuffled playlist (${JSON.stringify({ desired: music.desired, playing: music.playing, list: music.list })})`);
+  // across fresh page loads the starting track varies
+  const starts = new Set();
+  for (let k = 0; k < 8; k++) {
+    const pp = await A.ctx.newPage();
+    await pp.goto(`${BASE}/?emu&slot=m${k}`);
+    await pp.waitForFunction(() => window.__arcade && window.__arcade.musicDebug, { timeout: 10000 });
+    starts.add(await pp.evaluate(() => window.__arcade.musicDebug().menuOrder[0]));
+    await pp.close();
+  }
+  ok(starts.size >= 2, `AUDIO: the menu playlist starts on a different track across visits (${[...starts].join(', ')})`);
   const ph = await phase(A.page);
   ok(ph.kind === 'full' && ph.done, `FIRST VISIT: the full sequence ran and finished (${ph.kind}, ${ph.t.toFixed(2)} s)`);
   const sc = await ev(A.page, 'window.__district.scene()');
@@ -169,28 +179,33 @@ try {
   ok(await ev(A.page, `getComputedStyle(document.querySelector('.nd-host')).opacity === '1'`), 'MENU: eased in');
   await shotAll(A.page, 'n-02-menu-new-player');
 
-  // ================================================================ 2. returning visit (new tab, same device): short, no gate
+  // ================================================================ 2. returning visit (new tab, same device): the full boot, no gate
   const A2 = await open({ slot: 'a2', ctx: A.ctx, view: [390, 844] });
   await waitFor(A2.page, '!!window.__district', 'title (returning)');
   ok(!(await A2.page.$('.nd-gate')), 'RETURNING: no gate');
-  ok((await phase(A2.page)).kind === 'short', `RETURNING: the short sequence (${(await phase(A2.page)).kind})`);
-  await waitFor(A2.page, 'window.__district.phase().done', 'short done', 5000);
-  const shortT = (await phase(A2.page)).t;
-  ok(shortT < 1.6, `RETURNING: done in ${shortT.toFixed(2)} s`);
+  ok((await phase(A2.page)).kind === 'full', `RETURNING: the full city boot again (${(await phase(A2.page)).kind})`);
+  await waitFor(A2.page, 'window.__district.phase().done', 'full done', 6000);
+  const fullT = (await phase(A2.page)).t;
+  ok(fullT > 3 && fullT < 3.9, `RETURNING: done in ${fullT.toFixed(2)} s`);
+  // back from the name screen a moment later: the quick re-light
+  await A2.page.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'setup', setupMode: 'host' })));
+  await A2.page.waitForSelector('.setup-screen .icon-btn', { timeout: 5000 });
+  await sleep(500);
+  await A2.page.evaluate(() => document.querySelector('.setup-screen .icon-btn').click());
+  await waitFor(A2.page, '!!window.__district && window.__district.phase().kind !== "gate"', 'title again', 5000);
+  ok((await phase(A2.page)).kind === 'short', `BACK FROM THE NAME SCREEN: the quick re-light (${(await phase(A2.page)).kind})`);
   await A2.page.close();
   if (VIDEO) {
-    const A3 = await open({ slot: 'a3', ctx: A.ctx, view: [390, 844], page: await A.ctx.newPage() }).catch(() => null);
-    if (A3) { await A3.page.close(); }
     // record the returning version on a fresh tab (the screencast must start before the intro does)
     const p = await A.ctx.newPage();
     await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-    await record(p, 'intro-returning-visit', async () => { await p.goto(`${BASE}/?emu&intro=1&slot=a4`); }, { ms: 2600 });
+    await record(p, 'intro-returning-visit', async () => { await p.goto(`${BASE}/?emu&intro=1&slot=a4`); }, { ms: 4300 });
     await p.close();
   }
-  // same tab, reload: instant
+  // same tab, reload: the full boot again
   await A.page.reload();
   await waitFor(A.page, '!!window.__district', 'title (reload)');
-  ok((await phase(A.page)).kind === 'instant', `SAME SESSION: instant (${(await phase(A.page)).kind})`);
+  ok((await phase(A.page)).kind === 'full', `RELOAD: the full city boot (${(await phase(A.page)).kind})`);
 
   // ================================================================ 3. skipping, reduced effects
   const S = await open({ slot: 's', view: [390, 844] });

@@ -55,7 +55,7 @@ export function createSetup() {
 
     el.append(
       h('header.bar',
-        h('button.icon-btn', { type: 'button', 'aria-label': 'Back', onclick: () => setState({ view: 'title' }) }, '‹'),
+        h('button.icon-btn', { type: 'button', 'aria-label': 'Back', onclick: () => { try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); } }, '‹'),
         h('div.bar-title', mode === 'host' ? 'HOST // NEW ROOM' : mode === 'edit' ? 'PROFILE // EDIT' : 'JOIN // ENTER CODE')),
       h('div.form',
         mode === 'join' ? h('label.field', h('span.label', 'ROOM CODE'), els.code) : null,
@@ -97,7 +97,7 @@ export function createSetup() {
     }
     const p = { ...profile, name };
     saveProfile(p);
-    if (mode === 'edit') { sfx('lock'); setState({ view: 'title' }); return; }
+    if (mode === 'edit') { sfx('lock'); try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); return; }
     busy = true;
     els.go.classList.add('is-busy');
     els.go.firstChild.textContent = mode === 'host' ? 'ALLOCATING…' : 'CONNECTING…';
