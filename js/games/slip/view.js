@@ -248,7 +248,7 @@ export function createView() {
 
   function runBot() {
     if (rider.st !== 'ride' || rider.t < bot.next) return;
-    bot.next = rider.t + 0.1;
+    bot.next = rider.t + 0.05;
     const d = decide(rider, course, { flips: bot.flips, rnd: bot.rnd, skill: bot.skill, flipRate: bot.flipRate, mem: bot.mem, pressT: bot.pressT });
     bot.hold = d.hold;
     if (d.tap) input.taps++;

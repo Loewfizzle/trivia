@@ -25,7 +25,8 @@ export const TRACK_IDS = Object.keys(FILES);
 const shuffled = a => { const o = a.slice(); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } return o; };
 // 'victory' (every podium) is four short fanfares, shuffled per visit; each new podium moves on to the next one.
 const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'], menu: shuffled(['menu1', 'menu2', 'menu3', 'menu4']), victory: shuffled(['victory1', 'victory2', 'victory3', 'victory4']) };
-const FRESH_EACH_TIME = new Set(['victory']);   // lists that start on their next track whenever they're asked for again
+const FRESH_EACH_TIME = new Set(['victory']);
+const ONE_SHOT = new Set(['victory']);         // lists whose track plays once and then leaves silence (a fanfare)   // lists that start on their next track whenever they're asked for again
 const listPlayed = {};
 const listPos = {}; // list id -> index of the track playing / next to play
 const XFADE = 1.5;        // seconds, between tracks
@@ -177,7 +178,8 @@ function watchLoop() {
   const { voice, id } = current;
   const el = voice.el;
   // Self-heal: the OS paused our track behind our back (iOS keyboard, app switch, call).
-  if (el.paused && isUnlocked() && performance.now() - lastNudge > 1500) {
+  if (current.ended) return;              // a one-shot fanfare that has finished: stay quiet
+  if (el.paused && !el.ended && isUnlocked() && performance.now() - lastNudge > 1500) {
     lastNudge = performance.now();
     el.play().catch(() => {});
     return;
@@ -186,6 +188,7 @@ function watchLoop() {
   if (el.currentTime < el.duration - LOOP_XFADE - 0.15) return;
   // a playlist moves on to its next track; anything else loops into a fresh copy of itself
   const list = current.list;
+  if (list && ONE_SHOT.has(list)) { current.ended = true; return; }
   const nid = list ? nextInList(list, id) : id;
   const next = freeVoice(voice);
   next.el.preload = 'auto';

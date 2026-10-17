@@ -68,7 +68,7 @@ export function createMusic() {
       return lp;
     },
   });
-  let finaleAt = null;
+  let finaleAt = null, faded = false;   // once the ride's music has faded out (results) it stays out
   let lastApply = 0;
 
   function tick(nowServer) {
@@ -92,8 +92,8 @@ export function createMusic() {
     ch.echo.delayTime.setTargetAtTime(want.echoT, t, 0.8);
     const dip = pn < dipUntil;
     ch.swell.gain.setTargetAtTime(dip ? 0.18 : 1 + react.swell * 0.1 + (lr ? 0.08 : 0), t, dip ? 0.015 : 0.25);
-    if (finaleAt && nowServer >= finaleAt) { ch.out.gain.setTargetAtTime(0, t, 0.9); finaleAt = null; }
-    else if (!finaleAt) ch.out.gain.setTargetAtTime(want.gain, t, 0.5);
+    if (finaleAt && nowServer >= finaleAt) { faded = true; finaleAt = null; }
+    ch.out.gain.setTargetAtTime(faded ? 0 : want.gain, t, faded ? 0.9 : 0.5);
   }
 
   return {
@@ -115,7 +115,7 @@ export function createMusic() {
     ready: i => songs.ready(i),
     debug() {
       return {
-        ready: !!ch, want: { ...want, lp: Math.round(want.lp) }, lp: ch ? Math.round(ch.lp.frequency.value) : null,
+        ready: !!ch, out: ch ? +ch.out.gain.value.toFixed(3) : null, faded, want: { ...want, lp: Math.round(want.lp) }, lp: ch ? Math.round(ch.lp.frequency.value) : null,
         swell: ch ? +ch.swell.gain.value.toFixed(3) : 1, rev: ch ? +ch.revSend.gain.value.toFixed(3) : 0, lastRiders: react.lastRiders,
         ...songs.debug(),
       };

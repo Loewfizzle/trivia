@@ -17,7 +17,8 @@ import { rngFrom, shuffle } from '../../core/rng.js';
 
 export const DX = 0.25;
 export const LENGTH = 22000;         // metres generated (a long ride at sudden-death speeds is ~16 km)
-export const G = 20;                 // game gravity (m/s²)
+export const G = 20;                 // game gravity (m/s²) on the ground
+export const AIR_FLOAT = 0.62;       // in the air, not holding: lighter gravity (floaty flights; holding pulls you down hard)
 export const BIOME_S = 45;
 export const SPACE_T = 315;
 export const SUDDEN_T = 360;
@@ -255,7 +256,7 @@ export function probe(c, x0, v, gateX = null) {
       if (gateX != null && x < gateX && nx >= gateX) return { ...(best || {}), atGate: null, onGround: true };
       x = nx; y = floorAt(c, x);
     } else {
-      vy -= G * dt;
+      vy -= G * AIR_FLOAT * dt;
       const nx = x + vx * dt, ny = y + vy * dt;
       if (gateX != null && x < gateX && nx >= gateX) atGate = y + (ny - y) * (gateX - x) / (nx - x);
       x = nx; y = ny;

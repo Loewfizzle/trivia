@@ -45,7 +45,7 @@ for (let k = 1; k <= 8; k++) PLANS.push({ window: 0.8, hold: t => t >= k * 0.1 }
  */
 export function decide(r, c, opts = {}) {
   if (r.st !== 'ride') return { hold: false, tap: false };
-  const horizon = 2.4;
+  const horizon = 3.2;   // long enough to see a whole flight land (flights are floaty: AIR_FLOAT)
   const mem = opts.mem || {};
   const cands = PLANS.slice();
   // the plan in progress, continued from where it is
