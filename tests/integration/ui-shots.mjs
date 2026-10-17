@@ -1,0 +1,63 @@
+// Menus look review: setup, lobby (2 players), the game options sheet, settings, chat, at phone sizes + desktop.
+//   node ui-shots.mjs "<browser>" ./shots-ui [sizes=0,1]
+import puppeteer from 'puppeteer-core';
+import { mkdirSync } from 'node:fs';
+const [,, BROWSER, OUTA = './shots-ui'] = process.argv;
+const OUT = OUTA.replace(/\/?$/, '/'); mkdirSync(OUT, { recursive: true });
+const SIZES = [[390, 844], [412, 915], [1440, 900]];
+const sizesArg = (process.argv.find(a => a.startsWith('sizes=')) || '').slice(6).split(',').filter(Boolean).map(Number);
+const sizes = sizesArg.length ? sizesArg.map(i => SIZES[i]) : SIZES.slice(0, 2);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const b = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : [] });
+for (const [w, h] of sizes) {
+  const ctx = await b.createBrowserContext();
+  const p = await ctx.newPage();
+  p.on('pageerror', e => console.log('PAGEERROR', e.message));
+  await p.setViewport({ width: w, height: h, deviceScaleFactor: w > 1000 ? 1 : 2, isMobile: w < 1000, hasTouch: w < 1000 });
+  await p.goto('http://localhost:5173/?emu&slot=ui1');
+  await p.waitForSelector('.nd-host', { timeout: 20000 });
+  await sleep(4500);
+  await p.click('.nd-host');
+  await p.waitForSelector('.setup-screen input.input', { timeout: 10000 });
+  await sleep(900);
+  await p.screenshot({ path: `${OUT}ui-setup-${w}.png` });
+  await p.type('.setup-screen input.input', 'ALICE');
+  await p.click('.form-cta .btn-primary');
+  await p.waitForSelector('.lobby-screen .room-code', { timeout: 20000 });
+  const code = await p.evaluate(() => window.__arcade.state.code);
+  // a second player
+  const ctx2 = await b.createBrowserContext();
+  const q = await ctx2.newPage();
+  await q.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await q.goto(`http://localhost:5173/?emu&slot=ui2&room=${code}`);
+  await q.waitForSelector('.nd-go', { timeout: 20000 });
+  await q.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
+  await q.click('.nd-go');
+  await q.waitForSelector('.input-code');
+  await q.type('.setup-screen input.input:not(.input-code)', 'BOB');
+  await q.click('.form-cta .btn-primary');
+  await q.waitForSelector('.lobby-screen', { timeout: 20000 });
+  await sleep(2600);
+  await p.screenshot({ path: `${OUT}ui-lobby-${w}.png` });
+  await p.evaluate(() => { const s = document.querySelector('.lobby-screen'); s.scrollTop = s.scrollHeight; });
+  await sleep(500);
+  await p.screenshot({ path: `${OUT}ui-lobby-games-${w}.png` });
+  await p.evaluate(() => document.querySelector('.game-card').click());
+  await p.waitForSelector('.modal .sheet.options');
+  await sleep(700);
+  await p.screenshot({ path: `${OUT}ui-options-${w}.png` });
+  await p.evaluate(() => document.querySelector('.modal .btn-text.btn-block').click());
+  await sleep(500);
+  await p.click('.gear');
+  await p.waitForSelector('.sheet.settings');
+  await sleep(700);
+  await p.screenshot({ path: `${OUT}ui-settings-${w}.png` });
+  await p.keyboard.press('Escape');
+  await sleep(500);
+  await q.evaluate(() => import('/js/chat/chat.js').then(m => m.send && m.send('hey everyone! ready?')).catch(() => {}));
+  await p.evaluate(() => { const s = document.querySelector('.chat-strip'); s && s.click(); });
+  await sleep(900);
+  await p.screenshot({ path: `${OUT}ui-chat-${w}.png` });
+  await ctx.close(); await ctx2.close();
+}
+await b.close();

@@ -97,7 +97,7 @@ function open() {
       slider('SWIPE SENSITIVITY', 'prismSens'),
       slider('BUTTON SIZE', 'prismBtn'),
       h('div.set-sub', 'SLIPSTREAM'),
-      h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); const me = state.players && state.players[state.uid]; import('../games/slip/ride.js').then(m => m.openRidePicker({ color: colorHex(me ? me.color : 'cyan') })); } }, h('span', 'YOUR RIDE · HOVERBOARD / LIGHT-CYCLE')),
+      h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); const me = state.players && state.players[state.uid]; import('../games/slip/ride.js').then(m => m.openRidePicker({ color: colorHex(me ? me.color : 'cyan') })); } }, h('span', 'YOUR RIDE')),
       h('div.set-sub', 'PULSE'),
       toggle('HIT SOUNDS', 'pulseHits'),
       h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); import('../games/pulse/calibrate.js').then(m => m.openCalibration({ reason: 'PULSE · RECALIBRATE (DO THIS AFTER SWITCHING HEADPHONES)' })); } }, h('span', 'RECALIBRATE AUDIO SYNC')),

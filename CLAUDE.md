@@ -84,6 +84,7 @@ js/trivia/bankdata.js    PURE bank encoding: appendPatch, decodeQuestion, fallba
 js/trivia/feed.js        host-only: initialBank() at start, topUp() keeps questions queued (rate-limit aware)
 js/screens/title.js      the front door: opening sequence, HOST, inline JOIN code boxes, REJOIN, welcome back, game showcase + previews
 js/screens/district/scene.js  the title's city: Canvas 2D night skyline (4 parallax layers, power-on wave, billboards, reflections, rain)
+js/screens/district/backdrop.js  the city behind setup + lobby: a still kept from the title (or rendered once, hidden), dimmed, slow CSS drift
 js/audio/ambience.js     title ambience: neon hum + crackles, the city power-on swell, a low rain bed (SFX bus)
 js/screens/{setup,lobby}.js  setup = name / colour / avatar (host, join, or edit = profile only)
 js/chat/logic.js         PURE chat rules: chatLocked(game, uid, live) per game, maskProfanity, cleanText, typing line, unread
@@ -413,6 +414,11 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
   `segmented()`, `chips()` (multi-select), `.modal > .sheet`, `toast(msg, 'ok'|'warn'|'err'|'info')`, `burst()`,
   `glitchFlash()`, `accessGranted()`, `createFinal()` (ui/final.js), `.game-head` (game header that leaves room for the gear).
 - Game screens fill `.screen` with `overflow: hidden`; the fixed gear sits top-right (headers use `padding-right: 52px`).
+- **NEON GLASS** (end of components.css + chat.css): the title's language everywhere a menu appears — rounded frosted glass,
+  soft white edges, the accent as light. `body.nd-glass` (set by app.js on setup + lobby) restyles buttons, inputs, labels,
+  room code boxes, player chips, game cards, swatches (glass orbs), tags, and shows `.nd-backdrop` (the district still);
+  sheets (options, settings, help, chat) and the chat strip are glass on every screen (in a game they take its accent).
+  Main actions carry their own light (accent gradient + glow). Review: `node tests/integration/ui-shots.mjs "<browser>" ./shots-ui [sizes=0,1,2]`.
 - Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)` — custom properties are supported.
 - **Player emblems** (`components.js#avatar(id, color, size)`): each of the 12 avatars has its own silhouette that matches its
   icon (shield, almond, diamond, hexagon, ghost arch, pentagon, octagon, circle, rounded square, down-point, notched ticket,
