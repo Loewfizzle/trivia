@@ -7,7 +7,7 @@ import { sfx } from '../audio/sfx.js';
 import { state, isHost } from '../store.js';
 import { dbRef, update } from '../firebase.js';
 import { leaveRoom } from '../room.js';
-import { APP_NAME, APP_VERSION, colorHex } from '../config.js';
+import { colorHex } from '../config.js';
 import { openHelp } from './help.js';
 import { segmented } from './components.js';
 
@@ -104,8 +104,7 @@ function open() {
       h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); openHelp(state.game && state.meta && state.meta.status === 'playing' ? state.game.id : undefined); } }, h('span', 'HOW TO PLAY')),
       ...chatHostRows(),
       state.code ? h('div.set-room', h('span.label', 'ROOM'), h('strong', state.code)) : null,
-      leaveBtn,
-      h('p.set-foot.mono', `${APP_NAME} // v${APP_VERSION}`)));
+      leaveBtn));
   document.body.append(sheet);
 }
 
