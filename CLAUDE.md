@@ -752,9 +752,9 @@ Everyone rides the same seeded course at once; calm, then faster and harder; the
   ceilings 4.6–5.8 m over the hills. Biomes every ~45 s: DUSK DUNES, then CRYSTAL CANYON / FLOATING CITY / LIGHTNING STORM
   shuffled twice (never the same twice in a row), OPEN SPACE from 5:15; 3 sky variants each, all from the seed.
 - **Rider** (`physics.js`, pure, 1/120 s): on the ground speed follows the slope (× 2.1 when holding downhill, × 1.35 uphill); a
-  release where s²κ > g·cosθ launches; in the air gravity is lighter ( 0.62 — floaty flights, shared with
-   so hazards are sized for it) and × 2.3 while held > 0.18 s; a tap (< 0.2 s press, counted on release)
-  queues a full flip (0.48 s). Landings keep momentum: at least  (60 %) of the flight speed even meeting an upslope at a steep angle
+  release where s²κ > g·cosθ launches; in the air gravity is lighter (`AIR_FLOAT` 0.62 — floaty flights, shared with
+  `probe()` so hazards are sized for it) and × 2.3 while held > 0.18 s; a tap (< 0.2 s press, counted on release)
+  queues a full flip (0.48 s). Landings keep momentum: at least `LAND_KEEP` (60 %) of the flight speed even meeting an upslope at a steep angle
   (a strict projection lost ~75 % and made the ride feel slow). Landing within 40° of the slope = clean (flips -> boost 2.2 + 1.6/flip + 0.55·combo; consecutive
   flipped landings build the combo; a plain jump always lands clean thanks to the attitude assist), else a crash. Gravity-flip
   zones run the rider in a mirrored frame against a ceiling track. Crash with lives left: 0.9 s rewind, respawn a little behind
