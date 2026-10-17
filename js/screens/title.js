@@ -27,6 +27,7 @@ import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, startRain, cityPowerOn } from '../audio/ambience.js';
 import { createDistrict } from './district/scene.js';
+import { captureBackdrop } from './district/backdrop.js';
 
 const ACC = { overclock: '#ffb627', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
@@ -438,6 +439,7 @@ export function createTitle() {
     if (stopRain) stopRain(0.6);
     document.body.classList.remove('nd-on');
     const wrap = els.sceneWrap;
+    captureBackdrop(els.canvas);   // the menus keep a still of the city
     const sc = scene;
     scene = null;
     wrap.classList.add('is-out');

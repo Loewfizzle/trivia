@@ -17,6 +17,7 @@ import { installAudio } from './audio/engine.js';
 import { playMusic, musicDebug } from './audio/music.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
+import { showBackdrop } from './screens/district/backdrop.js';
 import { settings, onSettings } from './audio/settings.js';
 
 document.title = APP_NAME;
@@ -64,6 +65,9 @@ function render(st) {
   document.body.dataset.theme = theme || '';
   keepAwake(!!(st.code && st.meta && st.meta.status === 'playing'));
   renderConnection(st);
+  // the menus (setup, lobby) sit on glass over the lit district, like the title
+  const glass = key.startsWith('setup') || key.startsWith('lobby');
+  if (document.body.classList.contains('nd-glass') !== glass) { document.body.classList.toggle('nd-glass', glass); showBackdrop(glass); }
 
   if (current && current.key === key) { current.screen.update && current.screen.update(st); return; }
   const old = current;

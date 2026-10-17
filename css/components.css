@@ -783,3 +783,247 @@ body[data-theme]:not([data-theme='']) .music-btn { display: none; }
 .gear.is-muted::after { width: 22px; height: 1.5px; border-radius: 1px; }
 .chat-fab.is-locked { color: rgba(236, 240, 255, 0.5); opacity: 0.7; }
 .cf-lock { border-radius: 4px; background: rgba(12, 14, 34, 0.9); }
+
+/* ==========================================================================
+   NEON GLASS — the title's language everywhere a menu appears
+   Rounded frosted glass, soft white edges, the neon accent as light (not as flat fill). Sheets and chat use it on
+   every screen; the menus (setup + lobby: body.nd-glass) sit on a still of the lit district (district/backdrop.js).
+   Only transform/opacity animate; backdrop-filter is kept to sheets, inputs and a few small panels.
+   ========================================================================== */
+
+/* ---- the backdrop behind the menus ---- */
+.nd-backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #03040b; opacity: 0; transition: opacity 0.6s ease; pointer-events: none; }
+.nd-backdrop.is-shown.is-on { opacity: 1; }
+.nd-backdrop canvas { position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover; animation: nd-drift 70s ease-in-out infinite alternate; }
+.nd-backdrop::after { content: ''; position: absolute; inset: 0; background: radial-gradient(120% 70% at 50% 0%, rgba(3, 4, 12, 0.45), rgba(3, 4, 12, 0.78) 60%, rgba(3, 4, 12, 0.92)); }
+@keyframes nd-drift { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.05) translate3d(-1.6%, -1.2%, 0); } }
+body.nd-glass .bg, body.nd-glass #stage::before, body.nd-glass #stage::after { display: none; }
+body.nd-glass .gear, body.nd-glass .music-btn { right: calc(var(--safe-r) + 12px); }
+body.nd-glass .music-btn { right: calc(var(--safe-r) + 62px); }
+
+/* ---- menu tokens: the title's pink light on white glass ---- */
+body.nd-glass {
+  --accent: #ff7ccb; --accent-2: #8fd8ff; --accent-ink: #fff;
+  --accent-soft: rgba(255, 110, 200, 0.12); --accent-glow: rgba(255, 80, 180, 0.4);
+}
+:root {
+  --gl-bg: rgba(10, 11, 30, 0.58);
+  --gl-bg-2: rgba(14, 15, 38, 0.72);
+  --gl-line: rgba(255, 255, 255, 0.13);
+  --gl-line-2: rgba(255, 255, 255, 0.24);
+  --gl-text: rgba(236, 240, 255, 0.94);
+  --gl-dim: rgba(222, 228, 255, 0.76);
+  --gl-pink: #ff7ccb;
+}
+
+/* ---- buttons ---- */
+body.nd-glass .btn, .sheet .btn { clip-path: none; border-radius: 16px; }
+body.nd-glass .btn-primary, .sheet .btn-primary {
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06) 48%, color-mix(in srgb, var(--accent) 16%, transparent));
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -10px 24px color-mix(in srgb, var(--accent) 14%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent), 0 12px 38px color-mix(in srgb, var(--accent) 30%, transparent);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 80%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+}
+body.nd-glass .btn-primary::after, .sheet .btn-primary::after { mix-blend-mode: normal; background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.16) 50%, transparent 65%); z-index: 0; }
+body.nd-glass .btn-primary > *, .sheet .btn-primary > * { position: relative; z-index: 1; }
+body.nd-glass .btn-ghost, .sheet .btn-ghost {
+  color: var(--gl-text);
+  background: var(--gl-bg);
+  border: 1px solid var(--gl-line-2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+body.nd-glass .btn-ghost::before, .sheet .btn-ghost::before { display: none; }
+body.nd-glass .btn-sm { border-radius: 999px; padding: 0 16px; }
+body.nd-glass .btn-xl { min-height: 62px; border-radius: 18px; font-weight: 900; letter-spacing: 0.26em; }
+body.nd-glass .btn-text, .sheet .btn-text { color: var(--gl-dim); }
+.sheet .btn-danger { color: #ffb3c4; background: rgba(255, 51, 85, 0.08); border: 1px solid rgba(255, 110, 140, 0.45); box-shadow: none; text-shadow: none; }
+.sheet .btn-danger::before { display: none; }
+
+/* round glass icon buttons (back, close) — the same family as the corner buttons */
+body.nd-glass .icon-btn, .sheet .icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: var(--gl-text);
+  background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%), rgba(12, 14, 34, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 18px rgba(0, 0, 0, 0.32);
+}
+
+/* ---- labels, headers ---- */
+body.nd-glass .label, .sheet .label { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.24em; color: var(--gl-dim); }
+body.nd-glass .bar-title { color: #fff; letter-spacing: 0.24em; text-shadow: 0 0 16px rgba(255, 110, 200, 0.55); }
+body.nd-glass .mono.dim { color: var(--gl-dim); }
+
+/* ---- inputs ---- */
+body.nd-glass .input, .sheet .input {
+  border-radius: 14px;
+  color: #fff;
+  background: rgba(8, 9, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+body.nd-glass .input:focus, .sheet .input:focus { border-color: color-mix(in srgb, var(--accent) 85%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 25%, transparent); }
+body.nd-glass .input::placeholder { color: rgba(222, 228, 255, 0.4); }
+
+/* ---- tags: small pills ---- */
+body.nd-glass .tag, .sheet .tag { border-radius: 999px; padding: 2px 8px; border-color: currentColor; background: color-mix(in srgb, currentColor 10%, transparent); }
+
+/* ==================== SETUP ==================== */
+body.nd-glass .form { gap: 22px; }
+body.nd-glass .form-cta { background: linear-gradient(transparent, rgba(3, 4, 12, 0.88) 38%); }
+/* colours: glass orbs lit from inside */
+body.nd-glass .swatch {
+  clip-path: none;
+  border-radius: 50%;
+  min-height: 34px;
+  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.85), color-mix(in srgb, var(--c) 92%, #fff) 16%, var(--c) 42%, color-mix(in srgb, var(--c) 45%, #000) 100%);
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.18);
+  opacity: 0.55;
+  transform: scale(0.78);
+}
+body.nd-glass .swatch[aria-checked='true'] {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 5px color-mix(in srgb, var(--c) 35%, transparent), 0 0 22px color-mix(in srgb, var(--c) 70%, transparent);
+}
+body.nd-glass .preview-card {
+  border-radius: 18px;
+  border: 1px solid var(--gl-line);
+  background: radial-gradient(160px 90px at 40px 50%, color-mix(in srgb, var(--c) 24%, transparent), transparent), var(--gl-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+body.nd-glass .preview-card strong { text-shadow: 0 0 14px color-mix(in srgb, var(--c) 55%, transparent); }
+body.nd-glass .form-error { border-radius: 12px; border: 1px solid rgba(255, 110, 140, 0.4); border-left-width: 1px; background: rgba(255, 51, 85, 0.1); }
+
+/* ==================== LOBBY ==================== */
+body.nd-glass .lobby-leave {
+  min-height: 40px;
+  color: #ffb3c4;
+  background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 60%), rgba(12, 14, 34, 0.42);
+  border: 1px solid rgba(255, 140, 170, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+body.nd-glass .room-code { gap: 10px; }
+body.nd-glass .room-code span {
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 50%), rgba(8, 9, 26, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 0 0 1px rgba(255, 90, 180, 0.14), 0 12px 32px rgba(255, 50, 160, 0.16);
+  text-shadow: 0 0 18px rgba(255, 120, 205, 0.85), 0 0 2px rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+body.nd-glass .lobby-actions { gap: 10px; }
+body.nd-glass .lobby-actions .btn { min-height: 44px; font-size: 11.5px; }
+body.nd-glass .count { color: #fff; text-shadow: 0 0 12px rgba(255, 120, 205, 0.6); }
+body.nd-glass .lobby-hint { color: var(--gl-dim); }
+/* players */
+body.nd-glass .chip {
+  border-radius: 18px;
+  border: 1px solid var(--gl-line);
+  border-left-width: 1px;
+  background: radial-gradient(180px 90px at 36px 50%, color-mix(in srgb, var(--c) 20%, transparent), transparent), var(--gl-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 3px 0 0 color-mix(in srgb, var(--c) 85%, transparent);
+}
+body.nd-glass .chip-name { color: #fff; }
+body.nd-glass .slot-empty { border-radius: 18px; border: 1px dashed rgba(255, 255, 255, 0.14); background: rgba(8, 9, 26, 0.32); color: rgba(222, 228, 255, 0.5); }
+body.nd-glass .kick { width: 42px; min-width: 42px; height: 42px; padding: 0; border-radius: 50%; color: var(--gl-dim); background: rgba(12, 14, 34, 0.42); border: 1px solid rgba(255, 255, 255, 0.16); }
+/* game cards */
+body.nd-glass .game-card {
+  border-radius: 20px;
+  border: 1px solid var(--gl-line);
+  border-left-width: 1px;
+  background: radial-gradient(220px 120px at 40px 50%, var(--accent-soft), transparent), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%), var(--gl-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 3px 0 0 color-mix(in srgb, var(--accent) 80%, transparent), 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+body.nd-glass .gc-glyph, body.nd-glass .gc-glyph.gc-art { border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 22%, transparent); }
+body.nd-glass .gc-name { color: #fff; }
+body.nd-glass .gc-blurb { color: var(--gl-dim); }
+body.nd-glass .gc-go { color: #fff; text-shadow: 0 0 12px var(--accent-glow); }
+body.nd-glass .gc-help {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--gl-dim);
+  background: rgba(12, 14, 34, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+/* game night + idle notice */
+body.nd-glass .night-row { border-radius: 14px; border: 1px solid var(--gl-line); border-left-width: 1px; background: var(--gl-bg); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 85%, transparent); }
+body.nd-glass .night-row.is-leader { border-color: rgba(255, 230, 140, 0.4); background: radial-gradient(200px 80px at 20px 50%, rgba(255, 220, 110, 0.14), transparent), var(--gl-bg); }
+body.nd-glass .lobby-idle { border-radius: 16px; border: 1px solid rgba(255, 210, 61, 0.4); border-left-width: 1px; background: rgba(40, 32, 8, 0.5); }
+
+/* ==================== SHEETS (every screen) ==================== */
+.modal { background: rgba(2, 3, 10, 0.55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.sheet {
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 120px), rgba(10, 11, 28, 0.88);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--accent) 40%, transparent), 0 -18px 60px color-mix(in srgb, var(--accent) 16%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  backdrop-filter: blur(22px) saturate(140%);
+}
+.sheet-grip { width: 40px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); }
+.sheet-kicker { color: color-mix(in srgb, var(--accent) 85%, #fff); }
+.sheet-title { color: #fff; }
+.sheet-text { color: var(--gl-dim); }
+.sheet.settings > .set-head { background: rgba(14, 15, 36, 0.96); border-radius: 26px 26px 0 0; }
+.set-room { border-top-color: var(--gl-line); }
+.set-room strong { color: #fff; text-shadow: 0 0 12px var(--accent-glow); }
+.set-sub { color: var(--gl-dim); }
+.est, .set-val { color: #fff; text-shadow: 0 0 12px var(--accent-glow); }
+/* segmented choices: a glass track with a lit pill */
+.seg { gap: 4px; padding: 4px; border-radius: 16px; background: rgba(6, 7, 20, 0.6); border: 1px solid var(--gl-line); }
+.seg-btn { min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--gl-dim); }
+.seg-btn.is-on {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06)), color-mix(in srgb, var(--accent) 26%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+/* list options (song picker, modes) */
+.sheet .opt-row { border-radius: 14px; border: 1px solid var(--gl-line); background: rgba(8, 9, 26, 0.45); }
+.sheet .opt-row[aria-checked='true'] { border-color: color-mix(in srgb, var(--accent) 65%, transparent); background: color-mix(in srgb, var(--accent) 12%, rgba(8, 9, 26, 0.6)); box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 18%, transparent); }
+.sheet .opt-row[aria-checked='true'] .opt-dot { box-shadow: 0 0 10px var(--accent-glow); }
+/* chips (multi-select) */
+.chip-btn { border-radius: 999px; border: 1px solid var(--gl-line-2); background: rgba(8, 9, 26, 0.45); color: var(--gl-dim); }
+.chip-btn[aria-pressed='true'] { color: #fff; background: color-mix(in srgb, var(--accent) 28%, transparent); border-color: color-mix(in srgb, var(--accent) 70%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 25%, transparent); }
+/* switch: a glass pill with a glowing knob */
+.switch { border-radius: 999px; background: rgba(6, 7, 20, 0.6); border: 1px solid var(--gl-line-2); }
+.switch i { border-radius: 50%; background: rgba(222, 228, 255, 0.6); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); }
+.switch[aria-checked='true'] { background: color-mix(in srgb, var(--accent) 30%, rgba(6, 7, 20, 0.6)); border-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+.switch[aria-checked='true'] i { background: #fff; box-shadow: 0 0 12px var(--accent), 0 2px 6px rgba(0, 0, 0, 0.3); }
+/* sliders: a soft track with a round, glowing knob */
+.range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) var(--p), rgba(255, 255, 255, 0.1) var(--p)); }
+.range::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; transform: none; background: radial-gradient(circle at 35% 30%, #fff, #e8ecff 45%, #b9c2e8); border: 0; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 16px var(--accent-glow), 0 2px 6px rgba(0, 0, 0, 0.4); }
+.range::-moz-range-track { height: 6px; border-radius: 3px; }
+.range::-moz-range-progress { height: 6px; border-radius: 3px; }
+.range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; transform: none; border: 0; background: #fff; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 16px var(--accent-glow); }
+
+
+/* ---- refine pass: the main action carries its own light (over a dark sheet it can't borrow the city's) ---- */
+body.nd-glass .btn-primary, .sheet .btn-primary {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.07) 50%, rgba(255, 255, 255, 0.02)),
+    radial-gradient(120% 140% at 50% 120%, color-mix(in srgb, var(--accent) 55%, transparent), transparent 70%),
+    color-mix(in srgb, var(--accent) 22%, rgba(18, 14, 40, 0.92));
+  border-color: color-mix(in srgb, var(--accent) 45%, rgba(255, 255, 255, 0.5));
+}
+.seg-btn.is-on { background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.06)), color-mix(in srgb, var(--accent) 42%, rgba(18, 14, 40, 0.9)); }
+.set-sub { border-top-color: var(--gl-line); }
+/* settings: the pinned title row is part of the sheet's top, not a second layer */
+.sheet.settings { padding-top: 0; }
+.sheet.settings > .set-head { top: 0; margin: 0 calc(-1 * var(--gutter)); padding: 16px var(--gutter) 12px; border-radius: 26px 26px 0 0; background: linear-gradient(180deg, rgba(30, 31, 54, 0.98), rgba(14, 15, 36, 0.98)); box-shadow: 0 1px 0 var(--gl-line); }
+body.nd-glass .bar { padding-right: 112px; }
+.sheet.settings { padding-top: 10px; }
+.sheet.settings > .set-head { border-radius: 0; background: rgba(13, 14, 34, 0.97); box-shadow: 0 1px 0 var(--gl-line), 0 10px 14px -10px rgba(0, 0, 0, 0.6); }
+.sheet.settings { background: rgba(13, 14, 34, 0.97); }
