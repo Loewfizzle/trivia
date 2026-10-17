@@ -278,7 +278,9 @@ void main(){
 }`;
 
 const hex3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
-const TIERS = [0.33, 0.45, 0.6];
+// world resolution per tier, as a fraction of the screen's real pixels (DPR capped at 2): soft backgrounds
+// don't need full resolution, but on a 3× phone the old CSS-pixel scale came out blurry
+const TIERS = [0.24, 0.34, 0.45];
 
 export function createWorlds(canvas) {
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' });
@@ -323,12 +325,18 @@ export function createWorlds(canvas) {
     return programs[id];
   }
 
+  // measured once and on resize — never per frame (reading layout every frame forces a style + layout pass)
+  let cssW = 0, cssH = 0;
+  const measure = () => { const r = canvas.getBoundingClientRect(); cssW = r.width; cssH = r.height; w = 0; };
+  measure();
+  const ro = new ResizeObserver(measure);
+  ro.observe(canvas);
   function resize() {
-    const r = canvas.getBoundingClientRect();
-    const s = TIERS[tier];
-    const nw = Math.max(64, Math.round(r.width * s));
-    const nh = Math.max(64, Math.round(r.height * s));
-    if (nw !== w || nh !== hgt) { w = nw; hgt = nh; canvas.width = w; canvas.height = hgt; }
+    if (w) return;
+    const s = TIERS[tier] * Math.min(2, window.devicePixelRatio || 1);
+    w = Math.max(64, Math.round(cssW * s));
+    hgt = Math.max(64, Math.round(cssH * s));
+    canvas.width = w; canvas.height = hgt;
   }
 
   function draw(world, alpha, time) {
@@ -389,6 +397,7 @@ export function createWorlds(canvas) {
       }
     },
     destroy() {
+      ro.disconnect();
       for (const k of Object.keys(programs)) gl.deleteProgram(programs[k].p);
       const ext = gl.getExtension('WEBGL_lose_context');
       if (ext) ext.loseContext();

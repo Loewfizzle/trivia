@@ -147,8 +147,8 @@ try {
   await first.evaluate(() => document.querySelector('.game-card[data-theme="golf"]').scrollIntoView({ block: 'center' }));
   await sleep(500);
   await shotBoth(first, 'g-01-lobby-card');
-  // ball picker from the lobby (BOB: pink chrome sparks)
-  await click(pages[1], '.gc-ball');
+  // the ball picker (BOB: pink chrome sparks) — opened the way the in-game ball button does
+  await pages[1].evaluate(() => import('/js/games/golf/ball.js').then(m => m.openBallPicker()));
   await pages[1].waitForSelector('.gb-sheet', { timeout: 5000 });
   await sleep(450);
   await click(pages[1], '.gb-color[data-v="#ff4fa3"]');

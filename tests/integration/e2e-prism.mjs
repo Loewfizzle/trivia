@@ -41,6 +41,7 @@ let code = '';
 async function openPlayer(i, qs = '') {
   const ctx = ctxs[i] || (ctxs[i] = await browser.createBrowserContext());
   const page = await ctx.newPage();
+  page.on('console', m => { if (m.type() === 'warning' && /game view/.test(m.text())) errors.push(`game view failed to load: ${m.text()}`); });
   page.on('pageerror', e => { errors.push(`${NAMES[i]} pageerror: ${e.message}`); log(`${NAMES[i]} PAGEERROR`, e.message); });
   page.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|Client is offline|net::/i.test(t)) { errors.push(`${NAMES[i]}: ${t}`); log(`${NAMES[i]} console.error`, t); } });
   await page.setViewport(VIEW);
@@ -142,6 +143,7 @@ async function perfRun(p) {
   }
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   log('frame pacing', JSON.stringify(perf));
+  log('audio', JSON.stringify(await P(p, 'window.__prism.audio()')));
   writeFileSync(`${OUT}perf.json`, JSON.stringify(perf, null, 1));
   ok(perf.every(x => x.p50 <= 17.5 && x.after === x.tier), `PERF: ${CPU}× CPU — 60 fps median at every tier, no step-down (${perf.map(x => `t${x.tier}: p50 ${x.p50} / p95 ${x.p95} ms`).join(' · ')})`);
 }
@@ -153,7 +155,7 @@ try {
     await waitFor(host, s => s.game && s.game.phase === 'play', 'GO', 40000);
     await Promise.all(alive().map(i => pages[i].waitForFunction(() => window.__prism.engine() && window.__prism.engine().cur, { timeout: 15000 })));
     for (const i of alive()) await P(pages[i], `window.__prism.bot({ skill: 0.9, every: 140, seed: ${i + 3} })`);
-    await sleep(3000);
+    await sleep(Number(process.env.WARM || 3000));
     await perfRun(pages[alive().length - 1]);
     throw new Error('PERF_ONLY done');
   }
@@ -175,7 +177,10 @@ try {
   const gA = await game(host);
   log('songs', gA.songs.join(','), 'go in', gA.playStartAt - gA.songStartAt, 'ms of song');
   ok(gA.songs.length >= 2 && gA.songs.every(Boolean), 'BATTLE: a playlist of songs is dealt for the match');
-  await Promise.all(alive().map(i => pages[i].waitForFunction(() => window.__prism && window.__prism.world() && window.__prism.clock() && window.__prism.clock().doc, { timeout: 20000 })));
+  await Promise.all(alive().map(i => pages[i].waitForFunction(() => window.__prism && window.__prism.world() && window.__prism.clock() && window.__prism.clock().doc, { timeout: 20000 }).catch(async e => {
+    const d = await pages[i].evaluate(() => { try { const p = window.__prism; return p ? { world: p.world(), clock: !!p.clock(), doc: !!(p.clock() && p.clock().doc), audio: p.audio() } : 'no hook'; } catch (err) { return 'ERR ' + err.message; } });
+    throw new Error(`${NAMES[i]}: world not ready ${JSON.stringify(d)}`);
+  })));
   const worlds = await Promise.all(alive().map(i => P(pages[i], 'JSON.stringify(window.__prism.world())')));
   ok(new Set(worlds).size === 1, `BATTLE: every phone shows the same world + variant (${worlds[0]})`);
   await sleep(1200);
@@ -190,7 +195,8 @@ try {
   ok(new Set(seqs).size === 1, 'BATTLE: the 7-bag sequence is identical across clients');
   const logA = await P(host, 'window.__prism.synthLog()');
   const go = logA.filter(x => x.name === 'count' || x.name === 'go');
-  ok(go.length >= 1, `AUDIO: countdown ticks scheduled (${go.map(x => x.name).join(',')})`);
+  const ctxState = await P(host, `import('/js/audio/engine.js').then(m => m.getContext() && m.getContext().state)`);
+  ok(go.length >= 1, `AUDIO: countdown ticks scheduled (${go.map(x => x.name).join(',')}; audio ${ctxState}; log ${logA.length})`);
 
   // ---------------------------------------------------------------- real gestures on ALICE's phone
   const A = host;
@@ -214,22 +220,27 @@ try {
   await touch(A, line(bx, by - 60, bx, by - 60 + cell * 3.2, 24), 45);
   const e4 = await engOf(A);
   ok(e4.n === e3.n && yBefore - e4.cur.y >= 2, `GESTURE: a slow drag down soft-drops (${yBefore - e4.cur.y} rows), no hard drop`);
-  // flick down: hard drop
+  // flick down: hard drop (counted from the hard-drop sound: the soft-dropped piece may have landed on its own by now)
+  const hard0 = await P(A, "window.__prism.synthLog().filter(x => x.name === 'hard').length");
   await touch(A, line(bx, by - 80, bx + 4, by - 80 + cell * 4, 5), 12);
   const e5 = await engOf(A);
-  ok(e5.n === e4.n + 1, 'GESTURE: a fast flick down hard-drops');
+  const hard1 = await P(A, "window.__prism.synthLog().filter(x => x.name === 'hard').length");
+  ok(hard1 === hard0 + 1, `GESTURE: a fast flick down hard-drops (${hard1 - hard0})`);
   // swipe up: hold
   await touch(A, line(bx, by + 40, bx + 2, by + 40 - cell * 3.2, 6), 16);
   const e6 = await engOf(A);
   ok(e6.hold && e6.hold === e5.cur.t, 'GESTURE: a swipe up holds the piece');
-  // sideways swipes with downward drift: never a hard drop
+  // sideways swipes with downward drift: never a hard drop (counted from the hard-drop sound, so a piece that
+  // simply lands on its own doesn't count; starts from a fresh piece at the top)
+  await P(A, "window.__prism.act({ a: 'hard' })");
+  await sleep(150);
+  const hards = () => P(A, "window.__prism.synthLog().filter(x => x.name === 'hard').length");
   let accidental = 0;
   for (let k = 0; k < 8; k++) {
-    const before = await engOf(A);
+    const before = await hards();
     const dir = k % 2 ? -1 : 1;
     await touch(A, line(bx - dir * 50, by, bx + dir * 70, by + 26, 7), 9);
-    const after = await engOf(A);
-    if (after.n !== before.n) accidental++;
+    if ((await hards()) !== before) accidental++;
   }
   ok(accidental === 0, `GESTURE: 8 fast sideways swipes with downward drift, ${accidental} accidental hard drops`);
   await shotBoth(A, 'pd-03-play');
@@ -237,7 +248,8 @@ try {
   // ---------------------------------------------------------------- bots + battle
   // CHARLIE plays best (the test lets them win and calls it); everyone else is human-ish
   const skills = [0.85, 0.8, 0.98, 0.7, 0.6, 0.75, 0.65, 0.55];
-  for (const i of alive()) await P(pages[i], `window.__prism.bot({ skill: ${skills[i]}, every: ${i === 0 ? 70 : 90 + i * 8}, seed: ${i + 1} })`);
+  // human-ish pace (a few moves a second), so the battle lasts long enough to test knockouts and calls
+  for (const i of alive()) await P(pages[i], `window.__prism.bot({ skill: ${skills[i]}, every: ${i === 0 ? 160 : 220 + i * 15}, seed: ${i + 1} })`);
   // targeting modes
   await P(pages[1], "window.__prism.setTargetMode('danger')");
   await P(pages[2], "window.__prism.setTargetMode('attackers')");
@@ -285,13 +297,18 @@ try {
   const h0 = await hostIdx();
   const g1 = await game(pages[h0]);
   const w0 = await P(pages[h0], 'window.__prism.world()');
-  await pages[h0].evaluate(async (c, at) => { const f = await import('/js/firebase.js'); await f.update(f.dbRef(`rooms/${c}/game`), { songStartAt: at }); }, code, g1.songStartAt - (g1.sd[0] - 6000));
+  const nextSong = await pages[h0].evaluate(async (c, g) => {
+    const f = await import('/js/firebase.js'); const L = await import('/js/games/prism/logic.js');
+    const now = f.serverNow(); const cur = L.songAt(g, now).i; const st = L.songStarts(g);
+    await f.update(f.dbRef(`rooms/${c}/game`), { songStartAt: g.songStartAt - (st[cur + 1] - (now + 2000)) });
+    return cur + 1;
+  }, code, g1);
   await sleep(7500);
-  const w1s = await Promise.all(alive().map(i => P(pages[i], 'JSON.stringify(window.__prism.world())')));
+  const w1s = await Promise.all(alive().map(i => P(pages[i], '(() => { const w = window.__prism.world(); return JSON.stringify({ id: w.id, variant: w.variant }); })()')));
   const w1 = JSON.parse(w1s[0]);
   ok(new Set(w1s).size === 1 && (w1.id !== w0.id || w1.variant !== w0.variant || w1.mixing), `SONGS: the second song transforms the world on every phone (${w0.id}/${w0.variant} → ${w1.id}/${w1.variant})`);
   const a2 = await P(pages[h0], 'window.__prism.audio()');
-  ok(a2.slots.some(s => s.id === g1.songs[1] && !s.paused && s.gain > 0.3), `SONGS: the next song crossfades in (${JSON.stringify(a2.slots.map(s => [s.id, s.gain, s.t]))})`);
+  ok(a2.slots.some(s => s.id === g1.songs[nextSong] && s.t > 0 && s.gain > 0.3), `SONGS: the next song crossfades in (${JSON.stringify(a2.slots.map(s => [s.id, s.gain, s.t]))})`);
   await shotBoth(pages[3], 'pd-05-new-world');
 
   // ---------------------------------------------------------------- the host's phone dies
@@ -341,6 +358,7 @@ try {
     }
     await sleep(800);
   }
+  ok(caller != null, 'CALL THE WINNER: a knocked-out player got the picker (the battle was still on)');
   const gK = await game(anyPage());
   const kos = Object.values(gK.ko || {}).reduce((a, b) => a + b, 0);
   ok(kos === Object.values(gK.out).filter(o => o.by).length, `KO: credit recorded for every knockout with an attacker (${kos})`);
@@ -372,7 +390,7 @@ try {
   ok(gF.winner === uids[keepA], `BATTLE: ${NAMES[keepA]} is the last one standing`);
   if (caller != null) ok(gF.calls && gF.calls[uids[caller]] && gF.calls[uids[caller]].ok && gF.calls[uids[caller]].bonus > 0, `CALL THE WINNER: the right call earns ${gF.calls[uids[caller]] && gF.calls[uids[caller]].bonus} game-night points`);
   const night = await evalIn(anyPage(), (s, m) => s.night && s.night[m], gF.matchId);
-  ok(night && night.b && Object.keys(night.b).length >= 1, `GAME NIGHT: the bonus is on the scoreboard (${JSON.stringify(night && night.b)})`);
+  if (caller != null) ok(night && night.b && Object.keys(night.b).length >= 1, `GAME NIGHT: the bonus is on the scoreboard (${JSON.stringify(night && night.b)})`);
   await sleep(3200);
   await shotBoth(pages[keepA], 'pd-12-final');
   await pages[keepA].evaluate(() => document.querySelector('.pd-res').scrollIntoView({ block: 'center' }));

@@ -54,6 +54,7 @@ export function setUrlRoom(code) {
   if (code) p.set('room', code);
   if (slot !== '1') p.set('slot', slot);
   if (useEmulator) p.set('emu', '');
+  if (params.has('pdperf')) p.set('pdperf', ''); // PRISM DROP's on-screen performance readout
   const qs = p.toString();
   history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : ''));
 }

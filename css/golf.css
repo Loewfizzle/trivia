@@ -590,20 +590,6 @@
 .gb-tr-icon.gti-pixels { background: linear-gradient(90deg, transparent 0 20%, currentColor 20% 35%, transparent 35% 50%, currentColor 50% 70%, transparent 70% 78%, currentColor 78%); height: 7px; }
 .gb-note { margin: 0; font-size: 13px; line-height: 1.4; color: var(--text-dim); }
 
-/* lobby: the NEON PAR card's ball button */
-.gc-ball {
-  position: absolute;
-  top: 8px;
-  right: 50px;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line-2);
-  background: rgba(4, 5, 13, 0.6);
-  transition: transform 0.1s;
-}
-.gc-ball:active { transform: scale(0.92); }
 
 .gp-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center; color: var(--text-dim); }
 .gp-error b { font-family: var(--font-display); color: #fff; letter-spacing: 0.1em; }

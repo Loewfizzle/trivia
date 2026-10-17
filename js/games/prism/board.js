@@ -132,9 +132,10 @@ export const clearSprites = () => sprites.clear();
  * The main board. view: { cell (css px) }. Draws the engine state + effects each frame.
  */
 export function createBoardView(canvas) {
-  const ctx = canvas.getContext('2d');
+  let ctx = canvas.getContext('2d');
   let cell = 24, dpr = 1, px = 24;
   let gridLayer = null;
+  let stack = null, stackCtx = null, stackSig = '';
   const fx = { flashes: [], sweeps: [], glitch: 0, lockFlash: [] };
 
   function size(cssCell, tierDpr) {
@@ -145,6 +146,10 @@ export function createBoardView(canvas) {
     canvas.height = px * VISIBLE;
     canvas.style.width = `${cell * W}px`;
     canvas.style.height = `${cell * VISIBLE}px`;
+    stack = document.createElement('canvas');
+    stack.width = canvas.width; stack.height = canvas.height;
+    stackCtx = stack.getContext('2d');
+    stackSig = '';
     gridLayer = document.createElement('canvas');
     gridLayer.width = canvas.width;
     gridLayer.height = canvas.height;
@@ -193,26 +198,37 @@ export function createBoardView(canvas) {
       ctx.drawImage(gridLayer, 0, 0);
       const glitching = now < fx.glitch;
       const grey = Math.min(0.85, danger * 0.9) + (frozen ? 0.6 : 0);
-      // stack (glow pass first, then blocks: glows never cover a neighbour's face)
+      // the settled stack: a cached layer, redrawn only when a cell / the danger tint / the glow changes
       const cells = g.cells;
-      if (glow > 0) {
-        ctx.globalCompositeOperation = 'lighter';
-        for (let y = 0; y < VISIBLE; y++) for (let x = 0; x < W; x++) {
-          const t = cells[y * W + x];
-          if (t && t !== 8) { const gs = sprite(px, 'glow', t); const o = (gs.width - px) / 2; ctx.globalAlpha = glow * (1 - grey * 0.7); ctx.drawImage(gs, x * px - o, sy(y) - o); }
+      const sig = `${String.fromCharCode(...cells.subarray(0, W * VISIBLE).map(c => c + 48))}|${grey.toFixed(2)}|${glow}`;
+      if (sig !== stackSig) {
+        stackSig = sig;
+        const main = ctx;
+        ctx = stackCtx; // drawCell draws into ctx
+        ctx.clearRect(0, 0, stack.width, stack.height);
+        if (glow > 0) {
+          ctx.globalCompositeOperation = 'lighter';
+          for (let y = 0; y < VISIBLE; y++) for (let x = 0; x < W; x++) {
+            const t = cells[y * W + x];
+            if (t && t !== 8) { const gs = sprite(px, 'glow', t); const o = (gs.width - px) / 2; ctx.globalAlpha = glow * (1 - grey * 0.7); ctx.drawImage(gs, x * px - o, sy(y) - o); }
+          }
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = 'source-over';
         }
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
-      }
-      for (let y = 0; y < VISIBLE; y++) {
-        const shift = glitching && Math.random() < 0.18 ? Math.round((Math.random() - 0.5) * px * 0.5) : 0;
-        if (shift) ctx.translate(shift, 0);
-        for (let x = 0; x < W; x++) {
+        for (let y = 0; y < VISIBLE; y++) for (let x = 0; x < W; x++) {
           const t = cells[y * W + x];
           if (t) drawCell(x, y, t, grey, 0);
         }
-        if (shift) ctx.translate(-shift, 0);
+        ctx = main;
       }
+      if (glitching) {
+        // junk glitch: the stack's rows jump sideways for a moment
+        const band = Math.max(1, Math.round(px * 2));
+        for (let y0 = 0; y0 < canvas.height; y0 += band) {
+          const shift = Math.random() < 0.3 ? Math.round((Math.random() - 0.5) * px * 0.5) : 0;
+          ctx.drawImage(stack, 0, y0, stack.width, band, shift, y0, stack.width, band);
+        }
+      } else ctx.drawImage(stack, 0, 0);
       // ghost + active piece
       if (g.cur && !frozen) {
         if (showGhost) {
