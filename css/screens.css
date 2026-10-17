@@ -51,16 +51,32 @@
 .swatch[aria-checked='true'] { opacity: 1; transform: scale(1.06); }
 .avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .avatar-pick {
+  position: relative;
   display: grid;
   place-items: center;
   aspect-ratio: 1;
   min-height: 44px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.02);
-  opacity: 0.5;
-  transition: opacity 0.15s, transform 0.15s;
+  border: 0;
+  background: none;
+  opacity: 0.42;
+  transition: opacity 0.15s, transform 0.2s var(--ease-back);
 }
-.avatar-pick[aria-checked='true'] { opacity: 1; border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); transform: scale(1.04); }
+/* the chosen emblem: full brightness, a little larger, a pool of its colour underneath */
+.avatar-pick::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 4%;
+  height: 10%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 70%, transparent), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.avatar-pick[aria-checked='true'] { opacity: 1; transform: scale(1.12); }
+.avatar-pick[aria-checked='true']::after { opacity: 1; }
+.avatar-pick:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
 .preview { display: flex; flex-direction: column; gap: 8px; }
 .preview .mono { font-size: 10px; letter-spacing: 0.24em; }
 .preview-card {

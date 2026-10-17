@@ -158,32 +158,13 @@
   --s: 40px;
   position: relative;
   flex: none;
-  display: grid;
-  place-items: center;
+  display: block;
   width: var(--s);
   height: var(--s);
   color: var(--c);
-  background: color-mix(in srgb, var(--c) 14%, transparent);
-  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
 }
-.avatar::before {       /* hex outline */
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--c);
-  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%, 2px 50%, calc(25% + 1px) calc(100% - 2px), calc(75% - 1px) calc(100% - 2px), calc(100% - 2px) 50%, calc(75% - 1px) 2px, calc(25% + 1px) 2px, 2px 50%, 0 50%);
-  opacity: 0.9;
-}
-.avatar svg {
-  width: 56%;
-  height: 56%;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 4px var(--c));
-}
+/* the emblem (js/ui/components.js#avatar): its glow reaches a little past the box */
+.avatar svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
 .chip {
   display: flex;

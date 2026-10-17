@@ -414,6 +414,11 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
   `glitchFlash()`, `accessGranted()`, `createFinal()` (ui/final.js), `.game-head` (game header that leaves room for the gear).
 - Game screens fill `.screen` with `overflow: hidden`; the fixed gear sits top-right (headers use `padding-right: 52px`).
 - Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)` — custom properties are supported.
+- **Player emblems** (`components.js#avatar(id, color, size)`): each of the 12 avatars has its own silhouette that matches its
+  icon (shield, almond, diamond, hexagon, ghost arch, pentagon, octagon, circle, rounded square, down-point, notched ticket,
+  capsule) so players differ by shape as well as colour. Built like the neon sign: dark glass lit from inside, a tube rim
+  (glow, colour, white core), a sheen, the icon as a tube; below 34 px the inner ring is dropped. Static SVG, no filters.
+  Size them with `--s` (or the size argument), never by sizing the inner svg. Preview: `tests/integration/avatars-preview.html`.
 
 ## Adding a game (checklist)
 1. `js/games/<id>/logic.js` + `director.js` (pure, testable) → `createGame()` and `nextStep()`.

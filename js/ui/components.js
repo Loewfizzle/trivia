@@ -4,10 +4,56 @@ import { AVATARS, colorHex } from '../config.js';
 import { serverNow } from '../firebase.js';
 import { sfx } from '../audio/sfx.js';
 
+// Player emblems: every avatar has its own silhouette (the frame belongs to the icon — ghost → arch, crown → pentagon,
+// wave → capsule…), so players are told apart by shape as well as colour, even tiny or colour-blind. Each is built
+// like the NEON sign: dark glass lit from inside in the player's colour, a neon-tube rim (glow, colour, white-hot core),
+// a soft sheen across the top, and the icon drawn as a tube too. Static SVG (no filters, nothing animated): cheap to
+// draw anywhere, however many are on screen. viewBox 48×48 with room around it for the glow.
+const oct = (r = 21) => { const a = Math.PI / 8; return 'M' + Array.from({ length: 8 }, (_, i) => `${(24 + r * Math.cos(a + i * Math.PI / 4)).toFixed(2)} ${(24 + r * Math.sin(a + i * Math.PI / 4)).toFixed(2)}`).join('L') + 'Z'; };
+const FRAMES = {
+  // frame path, icon centre (x, y) and size (px of the 24-grid icon)
+  bolt: ['M24 3L42 9V23C42 34 34 41 24 45C14 41 6 34 6 23V9Z', 24, 22.5, 24],                     // shield
+  eye: ['M3 24C10 11 17 6.5 24 6.5S38 11 45 24C38 37 31 41.5 24 41.5S10 37 3 24Z', 24, 24, 24],   // almond
+  diamond: ['M24 2L46 24L24 46L2 24Z', 24, 24, 21],                                               // diamond
+  hex: ['M24 2L43 13V35L24 46L5 35V13Z', 24, 24, 24],                                             // hexagon
+  ghost: ['M8 43V22A16 16 0 0 1 40 22V43L34.7 39.5L29.3 43L24 39.5L18.7 43L13.3 39.5Z', 24, 24, 23], // arch
+  crown: ['M24 3L45 18.5L37 44H11L3 18.5Z', 24, 27.5, 22.5],                                          // pentagon
+  star: [oct(21.5), 24, 24, 25],                                                                  // octagon
+  moon: ['M24 2.5A21.5 21.5 0 1 1 23.99 2.5Z', 24, 24, 25],                                       // circle
+  cube: ['M11 4H37A7 7 0 0 1 44 11V37A7 7 0 0 1 37 44H11A7 7 0 0 1 4 37V11A7 7 0 0 1 11 4Z', 24, 24, 25], // rounded square
+  alien: ['M7 6.5Q3.6 6.5 5.3 9.6L21.2 41.5Q24 46 26.8 41.5L42.7 9.6Q44.4 6.5 41 6.5Z', 24, 19.5, 19.5], // shield-point (down)
+  target: ['M11 4H37A6.5 6.5 0 0 0 44 11V37A6.5 6.5 0 0 0 37 44H11A6.5 6.5 0 0 0 4 37V11A6.5 6.5 0 0 0 11 4Z', 24, 24, 25], // notched ticket
+  wave: ['M15 10.5H33A13.5 13.5 0 0 1 33 37.5H15A13.5 13.5 0 0 1 15 10.5Z', 24, 24, 24],           // capsule
+};
+let avatarSeq = 0;
+
 export function avatar(avatarId, colorId, size = 40) {
-  const path = AVATARS[avatarId] || AVATARS.bolt;
-  const el = h('span.avatar', { style: { '--c': colorHex(colorId), '--s': `${size}px` } });
-  el.append(svgEl(`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`));
+  const id = AVATARS[avatarId] ? avatarId : 'bolt';
+  const icon = AVATARS[id];
+  const c = colorHex(colorId);
+  const [frame, cx, cy, is] = FRAMES[id] || FRAMES.bolt;
+  const k = is / 24;
+  const n = `av${++avatarSeq}`;
+  const iconT = `translate(${(cx - is / 2).toFixed(2)} ${(cy - is / 2).toFixed(2)}) scale(${k.toFixed(3)})`;
+  const inset = 'translate(24 24) scale(0.83) translate(-24 -24)';
+  const el = h('span.avatar', { 'data-av': id, style: { '--c': c, '--s': `${size}px` } });
+  el.append(svgEl(`<svg viewBox="-4 -4 56 56" aria-hidden="true">
+<defs>
+<radialGradient id="${n}b" cx="0.5" cy="0.28" r="0.8"><stop offset="0" stop-color="${c}" stop-opacity="0.5"/><stop offset="0.5" stop-color="#0c1030" stop-opacity="0.96"/><stop offset="1" stop-color="#03040c"/></radialGradient>
+<linearGradient id="${n}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.32"/><stop offset="0.42" stop-color="#fff" stop-opacity="0.04"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="${n}c"><path d="${frame}"/></clipPath>
+</defs>
+<path d="${frame}" fill="none" stroke="${c}" stroke-opacity="0.22" stroke-width="7" stroke-linejoin="round"/>
+<path d="${frame}" fill="url(#${n}b)"/>
+<g clip-path="url(#${n}c)"><ellipse cx="24" cy="6" rx="30" ry="20" fill="url(#${n}s)"/></g>
+${size >= 34 ? `<path d="${frame}" transform="${inset}" fill="none" stroke="${c}" stroke-opacity="0.32" stroke-width="1" stroke-linejoin="round"/>` : ''}
+<path d="${frame}" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round"/>
+<path d="${frame}" fill="none" stroke="#fff" stroke-opacity="0.6" stroke-width="0.8" stroke-linejoin="round"/>
+<g transform="${iconT}" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="${icon}" stroke="${c}" stroke-opacity="${size >= 34 ? 0.35 : 0.22}" stroke-width="${(5 / k).toFixed(2)}"/>
+<path d="${icon}" stroke="${c}" stroke-width="${((size >= 34 ? 2.6 : 3) / k).toFixed(2)}"/>
+<path d="${icon}" stroke="#fff" stroke-opacity="0.92" stroke-width="${(1 / k).toFixed(2)}"/>
+</g></svg>`));
   return el;
 }
 

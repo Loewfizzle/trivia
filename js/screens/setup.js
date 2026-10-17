@@ -71,7 +71,7 @@ export function createSetup() {
   function renderPicks() {
     for (const b of els.colors.children) b.setAttribute('aria-checked', String(b.dataset.id === profile.color));
     for (const b of els.avatars.children) {
-      b.replaceChildren(avatar(b.dataset.id, profile.color, 30));
+      b.replaceChildren(avatar(b.dataset.id, profile.color, 38));
       b.setAttribute('aria-checked', String(b.dataset.id === profile.avatar));
     }
     els.avatars.style.setProperty('--c', colorHex(profile.color));
