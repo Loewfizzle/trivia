@@ -17,7 +17,7 @@ import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
 import { logoSvg, TAGLINE } from '../ui/logo.js';
 import { openHelp } from '../ui/help.js';
-import { APP_NAME, APP_VERSION, GAMES, MIN_PLAYERS, MAX_PLAYERS, CODE_ALPHABET, colorHex } from '../config.js';
+import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, CODE_ALPHABET, colorHex } from '../config.js';
 import { setState } from '../store.js';
 import { slot, loadProfile, useEmulator } from '../identity.js';
 import { createRoom, joinRoom } from '../room.js';
@@ -74,7 +74,7 @@ export function createTitle() {
       h('span.nd-gate-txt', 'TAP TO ENTER'),
       h('span.nd-gate-sub', 'BEST WITH SOUND ON'));
     el.append(
-      h('div.nd-corner', h('span.nd-ver', `v${APP_VERSION}`), slot !== '1' ? h('span.tag.tag-you', `TEST SLOT ${slot}`) : null),
+      h('div.nd-corner', slot !== '1' ? h('span.tag.tag-you', `TEST SLOT ${slot}`) : null),
       els.sign,
       h('div.nd-city'),
       els.show,
