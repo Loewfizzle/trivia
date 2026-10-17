@@ -40,7 +40,8 @@
       padding-top: calc(env(safe-area-inset-top, 0px) + 12px + clamp(40px, 8.5vh, 96px)); /* = the title's sign */
       background: radial-gradient(90% 40% at 50% 66%, rgba(70, 40, 120, .22), transparent 70%), linear-gradient(180deg, #03040b 0%, #05061a 40%, #0b0b26 56%, #141236 66.5%, #0c0b22 66.6%, #030309 100%);
       color: #8f97c8; font: 700 10px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .32em; transition: opacity .5s ease; }
-    #boot.out { opacity: 0; pointer-events: none; }
+    #boot { pointer-events: none; } /* nothing to tap here: an early tap reaches the title's TAP TO ENTER */
+    #boot.out { opacity: 0; }
     html:not(.css-ready) body > *:not(#boot):not(script) { visibility: hidden !important; }
     #boot .boot-logo { width: min(82vw, 330px); height: auto; overflow: visible; opacity: .9; }
     #boot .boot-name { margin-top: -2px; padding-left: .66em; font: 700 clamp(13px, 3.9vw, 17px)/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: .66em; color: rgba(236, 240, 255, .32); }

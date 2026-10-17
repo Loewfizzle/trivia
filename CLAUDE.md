@@ -45,7 +45,7 @@ manifest.webmanifest     PWA manifest (standalone, portrait, icons)
 sw.js                    network-first service worker for same-origin static files only (never Firebase/CDNs/audio)
 assets/                  icon set (icon-192/512, maskable, apple-touch, favicon), og.png 1200×630 link preview
 firebase.json            emulator config for local testing (repo root so it can reference database.rules.json)
-audio/music/*.mp3        music (menu, cipher-breach, last-signal, overclock, neural-bluff, victory, golf-rooftops/-cyber/-arcade, spy1-3, prism1-5 = PRISM DROP songs), 112–128 kbps, < 4 MB each
+audio/music/*.mp3        music (menu, menu2-4, cipher-breach, last-signal, overclock, neural-bluff, victory, golf-rooftops/-cyber/-arcade, spy1-3, prism1-5 = PRISM DROP songs), 112–128 kbps, < 4 MB each
 js/config.js             APP_NAME, limits, timeouts, colors, avatars (SVG paths), GAMES registry metadata
 js/firebase-config.js    the user's Firebase web config (the ONLY place it lives)
 js/firebase.js           init (per identity slot), emulator mode, re-exported db helpers, serverNow()
@@ -352,7 +352,9 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
   node{i}, victory). Buttons get a soft `tap` automatically; add `data-sfx="none"` to opt out.
 - `window.__arcade.musicDebug()` exposes music state (the E2E asserts crossfades with it).
 - To replace music: drop an MP3 with the same name into `audio/music/` (≈128 kbps, < 4 MB).
-- **Playlists:** `PLAYLISTS = { spy: ['spy1','spy2','spy3'] }` — `playMusic('spy')` plays them in order with crossfades and
+- **Menu music** is a playlist of four tracks (`menu1..4` = files menu, menu2, menu3, menu4), shuffled fresh on every page load
+  (`PLAYLISTS.menu`); it keeps its place during a game and carries on in the lobby. A fallback may be a playlist (NEON PAR → menu).
+- **Playlists:** `PLAYLISTS = { spy: ['spy1','spy2','spy3'], menu: shuffled }` — `playMusic('spy')` plays them in order with crossfades and
   keeps going across rounds (same id = no-op). `duckMusic(level, seconds)` lowers the music bus for a moment (DOUBLE AGENT's
   unmasking); a track change resets it.
 
@@ -624,7 +626,8 @@ NEON DISTRICT is a night city where every game is a venue; the title is your fir
   unlocks audio — iPhone needs it — and starts menu.mp3 through the normal music system) → POWER-ON: windows light up in a
   wave from the street up (ease-out, ≈1.6 s), billboards boot, the haze takes the colour, a low swell (`ambience.js#cityPowerOn`)
   → the SIGN: each tube letter flickers on with crackles + a mains hum, then holds → the menu eases in (staggered). ≈3.4 s.
-  RETURNING (same device): no gate, ≈1.2 s. Back to the title in the same session (`sessionStorage nd:title-shown`): instant.
+  Every later visit plays the same full boot without the gate; stepping back from the name / profile screen gets a quick
+  ≈1.2 s re-light (`sessionStorage nd:back`, set by setup.js). The boot screen never takes taps (`#boot { pointer-events: none }`).
   A tap anywhere skips. REDUCED EFFECTS (settings, now global: `settings.reducedFx`, also PRISM DROP) or prefers-reduced-motion:
   a 0.7 s fade, no drift / rain motion / vehicles / showcase drift. Every ~20–40 s one letter gives a tiny flicker.
 - **Scene** (`district/scene.js`, Canvas 2D like PULSE): sky + 4 skyline layers far→near (each pre-rendered DARK + LIT, the

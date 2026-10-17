@@ -10,7 +10,7 @@
 import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, onResume } from './engine.js';
 
 const FILES = {
-  menu: 'menu', cipher: 'cipher-breach', signal: 'last-signal',
+  menu1: 'menu', menu2: 'menu2', menu3: 'menu3', menu4: 'menu4', cipher: 'cipher-breach', signal: 'last-signal',
   overclock: 'overclock', bluff: 'neural-bluff', victory: 'victory',
   'golf-rooftops': 'golf-rooftops', 'golf-cyber': 'golf-cyber', 'golf-arcade': 'golf-arcade',
   spy1: 'spy1', spy2: 'spy2', spy3: 'spy3',
@@ -19,9 +19,11 @@ export const TRACK_IDS = Object.keys(FILES);
 // Playlists: ask for the list's id and its tracks play in order, crossfading into the next one at
 // each track's end (then back to the first). The position survives re-asks, so a game that keeps
 // asking for the same list never restarts it.
-const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'] };
+// 'menu' (title, setup, lobby) is the four menu tracks in a fresh random order on every visit, so it never goes
+// stale; it keeps its place while you play a game and continues from there in the lobby.
+const shuffled = a => { const o = a.slice(); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } return o; };
+const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'], menu: shuffled(['menu1', 'menu2', 'menu3', 'menu4']) };
 const listPos = {}; // list id -> index of the track playing / next to play
-const listOf = id => (PLAYLISTS[id] ? id : null);
 const XFADE = 1.5;        // seconds, between tracks
 const LOOP_XFADE = 1.8;   // seconds, track into itself
 const urlFor = id => new URL(`../../audio/music/${FILES[id]}.mp3`, import.meta.url).href;
@@ -113,7 +115,7 @@ function startTrack(id) {
   voice.el.play().then(() => { status[id] = status[id] || 'ok'; }).catch(() => {});
   fade(voice, duckLevel, XFADE);
   const prev = current;
-  current = { id, voice, list: desired && listOf(desired.id) };
+  current = { id, voice, list: listFor(id) };
   if (current.list) prefetch(nextInList(current.list, id));
   if (prev) stopVoice(prev.voice, XFADE);
 }
@@ -142,9 +144,14 @@ function resolveTrack() {
     const t = listTrack(desired.id);
     if (t) return t;
   } else if (status[desired.id] !== 'missing') return desired.id;
+  // a fallback can be a playlist too (NEON PAR falls back to the menu music)
+  if (desired.fallback && PLAYLISTS[desired.fallback]) return listTrack(desired.fallback);
   if (desired.fallback && status[desired.fallback] !== 'missing') return desired.fallback;
   return null;
 }
+// the playlist a resolved track belongs to (the asked-for list, or a playlist fallback)
+const listFor = id => (desired && PLAYLISTS[desired.id] && PLAYLISTS[desired.id].includes(id) ? desired.id
+  : desired && desired.fallback && PLAYLISTS[desired.fallback] && PLAYLISTS[desired.fallback].includes(id) ? desired.fallback : null);
 
 function apply() {
   if (!isUnlocked() || !visible || !voices.length) return;
@@ -221,6 +228,7 @@ export function musicDebug() {
     desired: desired && desired.id,
     playing: current && current.id,
     list: current && current.list,
+    menuOrder: PLAYLISTS.menu.slice(),
     duck: duckLevel,
     status: { ...status },
     voices: voices.map(v => ({ id: v.id, gain: +v.gain.gain.value.toFixed(3), paused: v.el.paused, t: +(v.el.currentTime || 0).toFixed(2) })),
