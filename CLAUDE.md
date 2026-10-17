@@ -342,6 +342,10 @@ Totals are derived from `results` (lowest strokes wins).
   (`firebase.json` lives at the repo root — firebase-tools refuses rules files outside its project directory.)
   - Rules tests: `node --test rules.test.mjs`
   - App against emulators: `node scripts/serve.mjs` then open `http://localhost:5173/?emu` (add `&slot=2` …). `?emu` only works on localhost.
+  - **Smoke test first (~2 min):** `node e2e-smoke.mjs "<browser path>" ./shots` — two REGULAR phone tabs (no `?slot=`; every
+    other suite uses test slots, which once hid a lobby bug that printed "null" only on a real phone): create/join, lobby, HOW TO
+    PLAY, all six games started and watched, back to the lobby. Fails on visible "null"/"undefined"/"NaN"/"[object Object]",
+    page errors or console errors. Native `append()`/`replaceChildren()` print a `null` argument as text — `h()` skips it.
   - E2E (3 headless tabs play a full match incl. host loss + refresh + kick): `node e2e.mjs "<path to chrome/edge>" ./shots`
   - Same E2E against production (real Firebase): `E2E_BASE=https://trivia.loewfizzle.com node e2e.mjs "<browser path>" ./shots`
   - Stage 2 E2E: `node e2e-stage2.mjs "<browser path>" ./shots [signal|overclock|all]`. Covers Last Signal (targeting,
