@@ -355,6 +355,54 @@ async function solve(page, spec, { mistakes = false } = {}) {
       }, pz);
       await sleep(1400);
     }
+  } else if (t === 'missinglink') {
+    for (let k = 0; k < 2; k++) {
+      await page.waitForFunction(n => (document.querySelector('.ch-link .ch-prompt') || {}).textContent?.includes(`${n}/2`), { timeout: 6000 }, k + 1);
+      if (mistakes && k === 0) { await press(page, '.ml-skip'); await sleep(1500); continue; }
+      await page.evaluate(a => { const i = document.querySelector('.ml-input'); i.value = a; i.dispatchEvent(new Event('input')); }, spec.puzzles[k].answer);
+      await sleep(1100);
+    }
+  } else if (t === 'spellcheck') {
+    for (let i = 0; i < spec.items.length; i++) {
+      await page.waitForSelector('.sp-opt', { timeout: 5000 });
+      const it = spec.items[i];
+      await press(page, '.sp-opt', mistakes && i === 0 ? (it.ans + 1) % 4 : it.ans);
+      await sleep(mistakes && i === 0 ? 1200 : 600);
+    }
+  } else if (t === 'make24') {
+    for (let k = 0; k < 2; k++) {
+      await page.waitForFunction(n => (document.querySelector('.ch-m24 .ch-prompt') || {}).textContent?.includes(`${n}/2`), { timeout: 6000 }, k + 1);
+      if (mistakes && k === 0) { await press(page, '.m24-actions .btn', 2); await sleep(2000); continue; } // SKIP
+      for (const [i, o, j] of planMerges(spec.puzzles[k].nums)) {
+        if (!(await page.$$eval('.m24-tile', (tl, n) => !!(tl[n] && tl[n].classList.contains('is-sel')), i))) await press(page, '.m24-tile', i);
+        await press(page, `.m24-op[data-op="${o}"]`);
+        await press(page, '.m24-tile', j);
+        await sleep(80);
+      }
+      await sleep(1200);
+    }
+  } else if (t === 'compass') {
+    for (let r = 0; r < spec.rounds.length; r++) {
+      await page.waitForFunction(() => document.querySelector('.ch-compass.is-asking'), { timeout: 12000, polling: 50 });
+      const R = spec.rounds[r];
+      await press(page, `.cp-${'nesw'[mistakes && r === 0 ? (R.ans + 1) % 4 : R.ans]}`);
+      await sleep(300);
+    }
+  } else if (t === 'sortit') {
+    for (let c = 0; c < spec.cards.length; c++) {
+      await page.waitForFunction(n => window.__oc && window.__oc.state() && window.__oc.state().p === n && document.querySelector('.st-card.is-in:not(.is-out)'), { timeout: 6000, polling: 40 }, c);
+      const side = mistakes && c === 0 ? 1 - spec.cards[c].s : spec.cards[c].s;
+      await page.keyboard.press(side ? 'ArrowRight' : 'ArrowLeft');
+    }
+  } else if (t === 'higherlower') {
+    for (let k = 0; k < spec.pairs.length; k++) {
+      await page.waitForSelector('.hl-opt:not(.is-shown)', { timeout: 6000 });
+      const P = spec.pairs[k];
+      const miss = mistakes && k === 3;
+      await press(page, '.hl-opt', miss ? 1 - P.ans : P.ans);
+      if (miss) break;
+      await sleep(1350);
+    }
   } else if (t === 'truefalse') {
     for (let i = 0; i < spec.items.length; i++) {
       const it = spec.items[i];
@@ -366,13 +414,38 @@ async function solve(page, spec, { mistakes = false } = {}) {
   }
 }
 
+// a finger press (these buttons react on pointerdown)
+const press = (page, sel, nth = 0) => page.evaluate(([s, n]) => {
+  const el = document.querySelectorAll(s)[n];
+  if (el) el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch' }));
+}, [sel, nth]);
+// Make 24 bot: merges [a, op, b] in the UI's tile layout (the result replaces b, a disappears)
+function planMerges(nums) {
+  const F = (n, d = 1) => { if (d < 0) { n = -n; d = -d; } const g = (x, y) => (y ? g(y, x % y) : Math.abs(x) || 1); const k = g(n, d); return [n / k, d / k]; };
+  const ap = (a, o, b) => (o === '+' ? F(a[0] * b[1] + b[0] * a[1], a[1] * b[1]) : o === '-' ? F(a[0] * b[1] - b[0] * a[1], a[1] * b[1]) : o === '*' ? F(a[0] * b[0], a[1] * b[1]) : b[0] === 0 ? null : F(a[0] * b[1], a[1] * b[0]));
+  const rec = tiles => {
+    if (tiles.length === 1) return tiles[0][0] === 24 && tiles[0][1] === 1 ? [] : null;
+    for (let i = 0; i < tiles.length; i++) for (let j = 0; j < tiles.length; j++) {
+      if (i === j) continue;
+      for (const o of ['+', '-', '*', '/']) {
+        const v = ap(tiles[i], o, tiles[j]);
+        if (!v) continue;
+        const rest = rec(tiles.flatMap((t, k) => (k === i ? [] : k === j ? [v] : [t])));
+        if (rest) return [[i, o, j], ...rest];
+      }
+    }
+    return null;
+  };
+  return rec(nums.map(n => [n, 1]));
+}
+
 const specOf = page => evalIn(page, async (s, m) => {
   await m.words.loadLengths([5, 6, 7]);
   const g = s.game;
   const type = g.order[g.ci];
   const deps = { answersFor: m.words.answersFor };
   if (type === 'trivia') deps.triviaItems = [0, 1, 2].map(i => m.feed.decodeQuestion(g, s.code, g.tq[g.ci] + i));
-  if (['lexicon', 'timeline', 'closest'].includes(type)) deps[type] = await m.banks.loadBank(type);
+  if (m.banks.BANK_TYPES.includes(type)) deps[type] = await m.banks.loadBank(type);
   const occ = g.order.slice(0, g.ci).filter(x => x === type).length;
   return m.ch.generate(type, { seed: g.seed, ci: g.ci, level: m.ocl.levelOf(g.ci, g.total), occ }, deps);
 });
@@ -386,6 +459,16 @@ async function overclockE2E() {
     await shotBoth(host, 's2-20-oc-options');
   });
   for (const p of [A, B, C]) await p.waitForSelector('.oc', { timeout: 20000 });
+  // OC_FIRST=memory,stroop,… puts those challenge types first (to cover specific screens)
+  if (process.env.OC_FIRST) {
+    const first = process.env.OC_FIRST.split(',');
+    await A.evaluate(f => {
+      const s = window.__arcade.state;
+      const order = [...f, ...s.game.order.filter(t => !f.includes(t))].slice(0, s.game.total);
+      return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { [f[0]]: true }, tq: {}, tUsed: 0 }));
+    }, first);
+    await waitFor(A, (s, m, f) => s.game.order[0] === f, 'forced order', 10000, first[0]);
+  }
   const total = await evalIn(A, s => s.game.total);
   const shotTypes = new Set();
   let rejoined = false;

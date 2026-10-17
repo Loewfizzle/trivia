@@ -85,7 +85,13 @@ js/games/cipher/index.js     module contract (see registry.js)
 js/games/signal/{logic,director,view,index}.js     LAST SIGNAL (logic.js: damage, targets, resolution, rankings, decay)
 js/games/overclock/challenges.js                   seeded generators for the 20 challenge types + INFO (names/rules) + CATEGORY (words/numbers/memory/visual/knowledge/reflex)
 js/games/overclock/banks.js                        lazy loader for data/oc/*.json (only when the match order needs it)
-js/games/overclock/{logic,director,view,index}.js  OVERCLOCK (logic.js: order, scoring, standings)
+js/games/overclock/{logic,director,index}.js       OVERCLOCK (logic.js: order, scoring, standings)
+js/games/overclock/view.js                         shell: header, progress strip, rules cards, standings, podium; the progress API
+                                                   (part/progress/step/finish) handed to each challenge screen as `api`
+js/games/overclock/ui/<type>.js                    one challenge screen per file: `export default (spec, api) => ({ el, destroy })`;
+                                                   api.chal (state), api.part/progress/step/finish, api.key = keyboard handler, api.game()
+js/games/overclock/reveals.js                      reveal panels above the leaderboard (`buildReveal`, `hasReveal`)
+js/games/overclock/shared.js                       formatters + fastButton (reacts on pointerdown) shared by the above
 js/games/bluff/{logic,director,bank,view,index}.js  NEURAL BLUFF (logic.js: tooClose, buildOptions, scoreRound, revealScript)
 js/games/pulse/logic.js      PURE: judging windows, tap/expire/resume, combo multiplier, Echo patterns + scoring, standings
 js/games/pulse/director.js   PURE state machine: load -> song -> echo -> standings … final
@@ -348,7 +354,8 @@ Totals are derived from `results` (lowest strokes wins).
     page errors or console errors. Native `append()`/`replaceChildren()` print a `null` argument as text — `h()` skips it.
   - E2E (3 headless tabs play a full match incl. host loss + refresh + kick): `node e2e.mjs "<path to chrome/edge>" ./shots`
   - Same E2E against production (real Firebase): `E2E_BASE=https://trivia.loewfizzle.com node e2e.mjs "<browser path>" ./shots`
-  - Stage 2 E2E: `node e2e-stage2.mjs "<browser path>" ./shots [signal|overclock|all]`. Covers Last Signal (targeting,
+  - Stage 2 E2E: `node e2e-stage2.mjs "<browser path>" ./shots [signal|overclock|all]` (env `OC_FIRST=memory,stroop,…` puts
+    those Overclock types first — its bots play all 20). Covers Last Signal (targeting,
     eliminations, host killed mid-battle, audio unlock / background pause / crossfades / victory track) and Overclock (every
     challenge UI, identical challenges on all clients, refresh mid-challenge), and writes every new screen at 390×844 and 412×915.
   - PULSE E2E: `node e2e-pulse.mjs "<browser path>" ./shots` (env `N=8 COUNT=2 SONG=pulse3 DIFF=hard ECHO=on`) — calibration

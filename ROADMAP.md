@@ -128,8 +128,8 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 ## Next up (agreed plan, in order)
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
-2. **Split `js/games/overclock/view.js`** (~1,600 lines) into one file per challenge plus shared helpers. Code-only, no data or
-   Firebase changes.
+2. ✅ **Split `js/games/overclock/view.js`** (was ~1,600 lines) into `ui/<type>.js` (one per challenge), `reveals.js`, `shared.js`;
+   view.js is now the ~450-line shell (done).
 3. **Overclock QUICK mode: 6 challenges** for shorter games (next to Standard 12 / Marathon 24). Six all-different types with the
    usual category spread; update `MODES`, the options, the time estimate, tests.
 4. **New game: imposter word game** (3–8 players, text-only, no voice call needed — fewer steps = more play).
