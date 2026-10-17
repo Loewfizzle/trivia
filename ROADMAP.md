@@ -135,7 +135,17 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
   Spellcheck, Make 24, Compass, Sort It, Higher or Lower~~ (shipped); next: missing letter, spot the
   change, end-of-match awards ("Fastest Fingers"…), a final-round wager, streak bonuses, a Quick 6-challenge mode.
 - **Team modes:** 2v2 / 4v4 variants of Last Signal and Overclock.
-- **TV / big-screen mode:** a read-only "board" view for a laptop on the TV while phones are controllers.
+- **TV / big-screen mode** (discussed Oct 2026, not started): a read-only "board" view on the TV while phones stay controllers.
+  - How: `?room=CODE&tv` (plus a short `/tv` page where you type only the room code — typing URLs with a TV remote is painful).
+    Joins as a watcher: never a participant, never host, never waited on; only *reads* the room (every screen already
+    renders from DB state, so it's new landscape views of existing data). No rules changes; room chat would not show (members-only).
+  - Shows: lobby with a giant room code + QR to join; per game the shared drama (Overclock progress race + reveals, Last Signal
+    HP arena, Bluff lies + the reveal, Cipher boards side by side, PULSE leaderboard, Neon Par whole-hole view + ACE replay).
+    Phones keep private controls; PULSE's highway stays on phones (timing). Optionally music/big moments play from the TV.
+  - Getting it on a TV: Apple TV has no browser → AirPlay from a Mac (best, "separate display") or a spare iPad in landscape.
+    Built-in browsers: Samsung and LG yes, Fire TV via Silk; Google TV / Roku / Vizio mostly no (cast a Chrome tab instead).
+    TV browsers are slow: keep the board light, Neon Par's 3D as an optional upgrade with a 2D fallback.
+  - Build order: lobby + Overclock first, then Bluff and Last Signal, then the rest. A native tvOS app is out of scope.
 - **Profiles:** optional persistent stats and achievements across nights (would need a non-anonymous sign-in).
 - **Localization:** Spanish/French/German UI and question banks.
 - **Haptics on iOS:** not possible from the web today; revisit if Safari adds an API.
