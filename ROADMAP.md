@@ -1,9 +1,10 @@
-# NEURAL ARCADE — Roadmap
+# NEON DISTRICT — Roadmap
 
-> Working title. The name lives in one constant: `APP_NAME` in `js/config.js` (also update `<title>`/meta in `index.html`,
-> `manifest.webmanifest`, and re-render the preview image with `tests/integration/render-assets.mjs`).
+> The name lives in `APP_NAME` (`js/config.js`), plus `<title>`/meta in `index.html`, `manifest.webmanifest`, the logo
+> (`js/ui/logo.js` → `scripts/build-boot-logo.mjs`) and the icons/preview (`tests/integration/render-assets.mjs`).
+> It was NEURAL ARCADE until October 2026.
 
-One web app, eight games, 2–8 players, each on their own phone — same room or different cities.
+NEON DISTRICT — *game night, after dark.* One web app, eight games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
@@ -170,6 +171,21 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
       badge shimmer, FINAL DUEL hit, countdown on the beat
 - [x] Rules for `prism/prismq/prismcall/meta.prism`; tests: engine + match/director/gestures/8-bot battles, 4 rules tests,
       E2E `tests/integration/e2e-prism.mjs` (8 players, 40 checks)
+
+### ✅ Stage 9 — NEON DISTRICT (rebrand + the front door)
+- [x] Renamed NEURAL ARCADE → NEON DISTRICT everywhere (name, titles, manifest, boot screen, lobby header, share text, link
+      previews, docs); the games keep their names; same domain
+- [x] A neon-tube logotype (`js/ui/logo.js`) reused in the title, lobby header, boot screen, app icons and the link preview;
+      new icon set + 1200×630 preview rendered from the real scene
+- [x] The title is a living night district: 4 parallax skyline layers, power-on light wave, holographic billboards showing
+      the games, searchlights, flying traffic, rain, a wet street reflecting everything, tilt/mouse parallax
+- [x] Opening sequence: TAP TO ENTER (unlocks audio) → the city wakes → the sign powers on (flicker, hum, crackle) → the menu;
+      ≈3.4 s first time, ≈1.2 s returning, instant within a session, skippable, reduced-effects fade
+- [x] Menu: one-tap HOST, inline 4-box JOIN (type / paste / invite links / auto-join), REJOIN, welcome back + EDIT, a game
+      showcase with preview sheets; settings gear + version in the corners; wide-screen layout
+- [x] Synth ambience (hum, crackles, power-on swell, a low rain bed); 60 fps at every tier on a 4× throttled CPU; full cleanup
+- [x] E2E `tests/integration/e2e-title.mjs` (41 checks, 3 sizes, intro videos); every older E2E updated for the new title
+      (`?emu` pages skip the intro)
 
 ## Next up (agreed plan, in order)
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute

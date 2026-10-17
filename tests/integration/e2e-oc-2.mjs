@@ -126,9 +126,9 @@ async function playMake24(page, nums) {
 try {
   // ---------------- lobby
   const host = await openPlayer(0);
-  await host.waitForSelector('.title-actions .btn-primary', { timeout: 20000 });
+  await host.waitForSelector('.nd-host', { timeout: 20000 });
   for (let k = 0; k < 5 && !(await host.$('.setup-screen input.input')); k++) {
-    await tapReal(host, '.title-actions .btn-primary').catch(() => {});
+    await tapReal(host, '.nd-host').catch(() => {});
     await host.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {});
   }
   await host.type('.setup-screen input.input', NAMES[0]);
@@ -138,9 +138,9 @@ try {
   log('room', code);
   for (let i = 1; i < N; i++) {
     const p = await openPlayer(i, `room=${code}`);
-    await p.waitForSelector('.invite-card', { timeout: 20000 });
+    await p.waitForSelector('.nd-go', { timeout: 20000 });
     await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
-    await tapReal(p, '.invite-card');
+    await tapReal(p, '.nd-go');
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
     await tapReal(p, '.form-cta .btn-primary');

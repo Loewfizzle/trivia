@@ -120,9 +120,9 @@ async function botHole(i, hi, { maxPutts = 6 } = {}) {
 try {
   // ---------------- lobby
   const first = await openPlayer(0);
-  await first.waitForSelector('.title-actions .btn-primary', { timeout: 20000 });
+  await first.waitForSelector('.nd-host', { timeout: 20000 });
   for (let k = 0; k < 5 && !(await first.$('.setup-screen input.input')); k++) {
-    await tapReal(first, '.title-actions .btn-primary').catch(() => {});
+    await tapReal(first, '.nd-host').catch(() => {});
     await first.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {});
   }
   await first.type('.setup-screen input.input', NAMES[0]);
@@ -132,9 +132,9 @@ try {
   log('room', code);
   for (let i = 1; i < N; i++) {
     const p = await openPlayer(i, `room=${code}`);
-    await p.waitForSelector('.invite-card', { timeout: 20000 });
+    await p.waitForSelector('.nd-go', { timeout: 20000 });
     await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 }); // (taps under the boot screen are lost, as on a phone)
-    await tapReal(p, '.invite-card');
+    await tapReal(p, '.nd-go');
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
     await tapReal(p, '.form-cta .btn-primary');

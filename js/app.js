@@ -17,6 +17,7 @@ import { installAudio } from './audio/engine.js';
 import { playMusic, musicDebug } from './audio/music.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
+import { settings, onSettings } from './audio/settings.js';
 
 document.title = APP_NAME;
 const stage = $('#stage');
@@ -26,6 +27,7 @@ let current = null; // { key, screen, el }
 // Players with a saved room wait on the boot screen while we reconnect them; everyone else
 // gets the title screen straight away (it doesn't need Firebase until they tap HOST/JOIN).
 const resuming = !!(loadSession() && loadSession().code);
+if (resuming) { const s = document.querySelector('#boot .boot-status'); if (s) s.textContent = 'REJOINING YOUR ROOM'; }
 
 function routeKey(st) {
   if (!st.ready && (resuming || st.code)) return 'boot';
@@ -118,7 +120,8 @@ async function dismissBoot() {
   if (!el) return;
   // wait for the core stylesheets (never show unstyled UI) and briefly for the web fonts
   await new Promise(r => { const check = () => (document.documentElement.classList.contains('css-ready') ? r() : setTimeout(check, 30)); check(); });
-  try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]); } catch { /* old browser */ }
+  // (the title's TAP TO ENTER should be up within ~1 s, so it waits less for the fonts)
+  try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, resuming ? 1500 : 700))]); } catch { /* old browser */ }
   el.classList.add('out');
   setTimeout(() => el.remove(), 500);
 }
@@ -126,6 +129,9 @@ async function dismissBoot() {
 async function boot() {
   installAudio();
   installSettingsPanel();
+  const fxClass = () => document.body.classList.toggle('reduced-fx', !!settings.reducedFx);
+  fxClass();
+  onSettings(fxClass);
   // Soft UI tick on every button press (game keyboards opt out with data-sfx="none").
   document.addEventListener('pointerdown', e => {
     const b = e.target.closest && e.target.closest('button');
@@ -167,8 +173,8 @@ async function boot() {
     const resumed = await resumeSession();
     if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '' });
     else if (resumed === 'idle') { setState({ invite: '' }); toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
-    // Couldn't reach the room (weak signal): keep the seat and offer a one-tap rejoin.
-    else if (resumed === 'error') { setState({ invite: saved.code }); toast('COULD NOT RECONNECT — TAP THE INVITE TO TRY AGAIN', 'warn', 5000); }
+    // Couldn't reach the room (weak signal): keep the seat and offer a one-tap REJOIN on the title.
+    else if (resumed === 'error') setState({ rejoin: saved.code });
     // An invite link to a room that no longer exists: say so up front instead of failing on JOIN.
     else if (resumed === 'none' && state.invite && !(await roomExists(state.invite))) setState({ inviteExpired: state.invite, invite: '' });
   } catch (e) {

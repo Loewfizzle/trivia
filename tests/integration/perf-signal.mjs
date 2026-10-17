@@ -12,8 +12,8 @@ async function player(name, code) {
   const p = await ctx.newPage();
   await p.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
   await p.goto(code ? `${BASE}&room=${code}` : BASE);
-  await p.waitForSelector(code ? '.invite-card' : '.title-actions');
-  await p.evaluate(sel => document.querySelector(sel).click(), code ? '.invite-card' : '.title-actions .btn-primary');
+  await p.waitForSelector(code ? '.nd-go' : '.nd-actions');
+  await p.evaluate(sel => document.querySelector(sel).click(), code ? '.nd-go' : '.nd-host');
   await p.waitForSelector('.setup-screen input.input:not(.input-code)');
   await p.type('.setup-screen input.input:not(.input-code)', name);
   await p.evaluate(() => document.querySelector('.form-cta .btn-primary').click());

@@ -56,9 +56,9 @@ async function shotBoth(page, name) {
 }
 async function makeRoom(n) {
   const host = await openPlayer(0);
-  await host.waitForSelector('.title-actions .btn-primary', { timeout: 20000 });
+  await host.waitForSelector('.nd-host', { timeout: 20000 });
   for (let k = 0; k < 5 && !(await host.$('.setup-screen input.input')); k++) {
-    await tapReal(host, '.title-actions .btn-primary').catch(() => {});
+    await tapReal(host, '.nd-host').catch(() => {});
     await host.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {});
   }
   await host.type('.setup-screen input.input', NAMES[0]);
@@ -67,9 +67,9 @@ async function makeRoom(n) {
   const code = await evalIn(host, s => s.code);
   for (let i = 1; i < n; i++) {
     const p = await openPlayer(i, `room=${code}`);
-    await p.waitForSelector('.invite-card', { timeout: 20000 });
+    await p.waitForSelector('.nd-go', { timeout: 20000 });
     await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
-    await tapReal(p, '.invite-card');
+    await tapReal(p, '.nd-go');
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
     await tapReal(p, '.form-cta .btn-primary');
@@ -119,7 +119,7 @@ try {
   await waitFor(bob, s => s.ready && s.view === 'title', 'title after the night', 20000);
   ok(!(await evalIn(bob, s => s.code)), 'the next day: not dropped back into the stale room');
   ok(await bob.evaluate(() => document.body.innerText.includes('AN HOUR WITHOUT A GAME')), 'told the room closed');
-  ok(!(await bob.$('.invite-card:not(.is-expired)')), 'no stale invite card to rejoin');
+  ok(!(await bob.$('.nd-go.is-ready')), 'no stale invite card to rejoin');
   await shotBoth(bob, 'idle-04-next-day');
   ok(await roomGone(code2), 'the stale room was deleted by the returning (non-host) player');
 } catch (e) {

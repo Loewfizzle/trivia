@@ -1,10 +1,15 @@
 // Device-wide audio/haptics preferences (not per identity slot).
 const KEY = 'na:settings';
-const DEFAULTS = { music: 0.35, sfx: 0.7, muted: false, musicOff: false, haptics: true, pulseHits: false, prismScheme: 'gesture', prismSens: 0.5, prismBtn: 0.5, prismReduced: false }; // musicOff: silent music, effects stay // PULSE hit sounds: off by default
+const DEFAULTS = { music: 0.35, sfx: 0.7, muted: false, musicOff: false, haptics: true, pulseHits: false, prismScheme: 'gesture', prismSens: 0.5, prismBtn: 0.5, reducedFx: false }; // reducedFx: calmer effects everywhere (title intro, PRISM DROP) // musicOff: silent music, effects stay // PULSE hit sounds: off by default
 const listeners = new Set();
 
 function load() {
-  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { ...DEFAULTS }; }
+  try {
+    const s = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
+    if (s.prismReduced && !s.reducedFx) s.reducedFx = true; // the old PRISM-only switch became the global one
+    delete s.prismReduced;
+    return s;
+  } catch { return { ...DEFAULTS }; }
 }
 
 export const settings = load();

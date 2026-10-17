@@ -3,30 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#04050d">
+  <meta name="theme-color" content="#03040b">
   <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apple-mobile-web-app-title" content="ARCADE">
-  <meta name="application-name" content="NEURAL ARCADE">
-  <meta name="description" content="Four neon multiplayer party games for 2–8 players. One phone each — same room or across cities.">
+  <meta name="apple-mobile-web-app-title" content="Neon District">
+  <meta name="application-name" content="Neon District">
+  <meta name="description" content="Neon District: eight multiplayer party games for 2–8 players, one phone each — same room or across cities. Game night, after dark.">
   <!-- link previews (iMessage, WhatsApp, Slack, Discord, X…) -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="NEURAL ARCADE">
-  <meta property="og:title" content="NEURAL ARCADE — you’re invited">
-  <meta property="og:description" content="Four neon party games for 2–8 players. Tap the link on your phone to join the room.">
+  <meta property="og:site_name" content="Neon District">
+  <meta property="og:title" content="NEON DISTRICT — you’re invited">
+  <meta property="og:description" content="Game night, after dark. Eight party games for 2–8 players — tap the link on your phone to join the room.">
   <meta property="og:url" content="https://trivia.loewfizzle.com/">
   <meta property="og:image" content="https://trivia.loewfizzle.com/assets/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="NEURAL ARCADE — Cipher Breach, Last Signal, Overclock, Neural Bluff">
+  <meta property="og:image:alt" content="NEON DISTRICT — a neon sign over a city at night, with the eight games on its billboards">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="NEURAL ARCADE — you’re invited">
-  <meta name="twitter:description" content="Four neon party games for 2–8 players. Tap the link to join.">
+  <meta name="twitter:title" content="NEON DISTRICT — you’re invited">
+  <meta name="twitter:description" content="Game night, after dark. Eight party games for 2–8 players — tap the link to join.">
   <meta name="twitter:image" content="https://trivia.loewfizzle.com/assets/og.png">
-  <title>NEURAL ARCADE</title>
+  <title>NEON DISTRICT</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/favicon-64.png" type="image/png" sizes="64x64">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
@@ -34,18 +34,21 @@
   <style>
     /* Inline boot screen: paints instantly, before any stylesheet, so there is never unstyled content. */
     html, body { margin: 0; background: #04050d; }
-    #boot { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
-      background: radial-gradient(60% 40% at 50% 38%, rgba(0, 240, 255, .14), transparent 70%), #04050d;
-      color: #8b9cc4; font: 700 11px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .32em; transition: opacity .45s ease; }
+    /* the boot screen is the district before the lights come on: night sky, the unlit sign, the street */
+    html, body { background: #03040b; }
+    #boot { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0;
+      padding-top: calc(env(safe-area-inset-top, 0px) + 12px + clamp(40px, 8.5vh, 96px)); /* = the title's sign */
+      background: radial-gradient(90% 40% at 50% 66%, rgba(70, 40, 120, .22), transparent 70%), linear-gradient(180deg, #03040b 0%, #05061a 40%, #0b0b26 56%, #141236 66.5%, #0c0b22 66.6%, #030309 100%);
+      color: #8f97c8; font: 700 10px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .32em; transition: opacity .5s ease; }
     #boot.out { opacity: 0; pointer-events: none; }
     html:not(.css-ready) body > *:not(#boot):not(script) { visibility: hidden !important; }
-    #boot svg { width: 84px; height: 84px; overflow: visible; animation: boot-pulse 1.6s ease-in-out infinite; }
-    #boot .boot-name { margin-top: -6px; font: 800 clamp(22px, 7vw, 30px)/1.1 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: .28em; padding-left: .28em; color: #eaf8ff; text-shadow: 0 0 18px rgba(0, 240, 255, .35); }
-    #boot .bar { position: relative; width: 140px; height: 2px; background: rgba(120, 220, 255, .15); overflow: hidden; }
-    #boot .bar i { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #00f0ff, #ff2bd6, transparent); animation: boot-run 1.1s ease-in-out infinite; }
-    @keyframes boot-pulse { 50% { opacity: .55; transform: scale(.94); } }
-    @keyframes boot-run { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
-    @media (prefers-reduced-motion: reduce) { #boot svg, #boot .bar i { animation: none; } }
+    #boot .boot-logo { width: min(82vw, 330px); height: auto; overflow: visible; opacity: .9; }
+    #boot .boot-name { margin-top: -2px; padding-left: .66em; font: 700 clamp(13px, 3.9vw, 17px)/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: .66em; color: rgba(236, 240, 255, .32); }
+    #boot .boot-status { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 26vh); text-align: center; padding-left: .32em; animation: boot-breathe 2.4s ease-in-out infinite; }
+    @keyframes boot-breathe { 0%, 100% { opacity: .35; } 50% { opacity: .85; } }
+    @media (max-height: 720px) { #boot { padding-top: calc(env(safe-area-inset-top, 0px) + 38px); } #boot .boot-logo { width: min(70vw, 270px); } }
+    @media (min-width: 900px) and (min-height: 640px) { #boot { padding-top: calc(12px + clamp(56px, 11vh, 120px)); background: radial-gradient(90% 40% at 50% 74%, rgba(70, 40, 120, .22), transparent 70%), linear-gradient(180deg, #03040b 0%, #05061a 45%, #0b0b26 62%, #141236 74%, #0c0b22 74.1%, #030309 100%); } #boot .boot-logo { width: min(40vw, 470px); } #boot .boot-name { font-size: 21px; } }
+    @media (prefers-reduced-motion: reduce) { #boot .boot-status { animation: none; } }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,16 +59,17 @@
   <!-- three.js for NEON PAR: only fetched when a NEON PAR match starts (the golf view imports it) -->
   <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
   <link rel="modulepreload" href="js/app.js">
-  <!-- Core styles load without blocking the inline boot screen; the app stays hidden until all three
+  <!-- Core styles load without blocking the inline boot screen; the app stays hidden until all four
        have arrived (html.css-ready), so there is still never a flash of unstyled content. -->
   <script>
     window.__css = 0;
-    window.__cssDone = function () { if (++window.__css >= 3) document.documentElement.classList.add('css-ready'); };
+    window.__cssDone = function () { if (++window.__css >= 4) document.documentElement.classList.add('css-ready'); };
   </script>
   <link rel="stylesheet" href="css/base.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
   <link rel="stylesheet" href="css/components.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
   <link rel="stylesheet" href="css/screens.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
-  <noscript><link rel="stylesheet" href="css/base.css"><link rel="stylesheet" href="css/components.css"><link rel="stylesheet" href="css/screens.css"></noscript>
+  <link rel="stylesheet" href="css/title.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
+  <noscript><link rel="stylesheet" href="css/base.css"><link rel="stylesheet" href="css/components.css"><link rel="stylesheet" href="css/screens.css"><link rel="stylesheet" href="css/title.css"></noscript>
   <link rel="stylesheet" href="css/cipher.css" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/signal.css" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/overclock.css" media="print" onload="this.media='all'">
@@ -79,10 +83,9 @@
 </head>
 <body>
   <div id="boot" role="status" aria-label="Loading">
-    <svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,6 88,28 88,72 50,94 12,72 12,28" fill="rgba(0,240,255,.06)" stroke="#00f0ff" stroke-width="5" stroke-linejoin="round"/><path d="M34 64V36l32 28V36" fill="none" stroke="#ff2bd6" stroke-width="6" stroke-linecap="square"/></svg>
-    <div class="boot-name">NEURAL ARCADE</div>
-    <div class="bar"><i></i></div>
-    <div>ESTABLISHING UPLINK</div>
+    <svg class="boot-logo" viewBox="-26 -30 384 160" role="img" aria-label="NEON" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g class="ndl ndl-1" transform="translate(0 0)"><path class="ndl-glass" d="M0 100 V10 Q0 0 7 7 L57 93 Q64 100 64 90 V0" stroke="#40243a" stroke-width="11"/><circle cx="0" cy="100" r="4.5" fill="#2a1626"/><circle cx="64" cy="0" r="4.5" fill="#2a1626"/></g><g class="ndl ndl-2" transform="translate(92 0)"><path class="ndl-glass" d="M62 0 H11 Q0 0 0 11 V89 Q0 100 11 100 H62 M9 50 H50" stroke="#40243a" stroke-width="11"/><circle cx="62" cy="0" r="4.5" fill="#2a1626"/><circle cx="62" cy="100" r="4.5" fill="#2a1626"/><circle cx="9" cy="50" r="4.5" fill="#2a1626"/><circle cx="50" cy="50" r="4.5" fill="#2a1626"/></g><g class="ndl ndl-3" transform="translate(176 0)"><path class="ndl-glass" d="M37 100 C55 100 64 85 64 68 V32 C64 14 50 0 32 0 C14 0 0 14 0 32 V68 C0 86 12 100 27 100" stroke="#40243a" stroke-width="11"/><circle cx="37" cy="100" r="4.5" fill="#2a1626"/><circle cx="27" cy="100" r="4.5" fill="#2a1626"/></g><g class="ndl ndl-4" transform="translate(268 0)"><path class="ndl-glass" d="M0 100 V10 Q0 0 7 7 L57 93 Q64 100 64 90 V0" stroke="#40243a" stroke-width="11"/><circle cx="0" cy="100" r="4.5" fill="#2a1626"/><circle cx="64" cy="0" r="4.5" fill="#2a1626"/></g><rect x="-1.5" y="23.5" width="3" height="13" rx="1" fill="#1c1019" opacity="0.75"/><rect x="62.5" y="63.5" width="3" height="13" rx="1" fill="#1c1019" opacity="0.75"/><rect x="90.5" y="23.5" width="3" height="13" rx="1" fill="#1c1019" opacity="0.75"/><rect x="90.5" y="69.5" width="3" height="13" rx="1" fill="#1c1019" opacity="0.75"/><rect x="174.5" y="43.5" width="3" height="13" rx="1" fill="#1c1019" opacity="0.75"/><rect x="238.5" y="43.5" width="3" height="13" rx="1" fill="#1c1019" opacity="0.75"/><rect x="266.5" y="23.5" width="3" height="13" rx="1" fill="#1c1019" opacity="0.75"/><rect x="330.5" y="63.5" width="3" height="13" rx="1" fill="#1c1019" opacity="0.75"/></g></svg>
+    <div class="boot-name">DISTRICT</div>
+    <div class="boot-status">ENTERING THE DISTRICT</div>
   </div>
   <div class="bg" aria-hidden="true">
     <div class="bg-glow"></div>

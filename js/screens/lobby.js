@@ -17,6 +17,7 @@ import { openHelp } from '../ui/help.js';
 import { sfx } from '../audio/sfx.js';
 import { prefetch } from '../audio/music.js';
 import { gameArt } from '../ui/game-art.js';
+import { logoSvg } from '../ui/logo.js';
 
 const greeted = new Set(); // rooms we've already shown the join effect for (this page load)
 
@@ -64,6 +65,7 @@ export function createLobby() {
     el.append(
       h('button.btn.btn-ghost.btn-sm.lobby-leave', { type: 'button', onclick: confirmLeave, 'aria-label': 'Leave room' }, '‹ LEAVE ROOM'),
       h('header.lobby-head',
+        h('div.nd-mini', { 'aria-label': APP_NAME, role: 'img' }, h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndl', lit: true, clips: false, blur: 0.7 }) }), h('div.nd-word', 'DISTRICT')),
         h('div.lobby-room',
           h('span.label', 'ROOM CODE'),
           els.code),

@@ -6,8 +6,9 @@ export const state = {
 
   // local navigation while not in a room: 'title' | 'setup'
   view: 'title',
-  setupMode: 'host',      // 'host' | 'join'
+  setupMode: 'host',      // 'host' | 'join' | 'edit' (profile only, back to the title)
   invite: '',             // room code from ?room=
+  rejoin: '',             // a saved room we couldn't reach on boot: the title offers REJOIN
   busy: false,
 
   // room mirror (null when not in a room)

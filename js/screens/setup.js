@@ -51,12 +51,12 @@ export function createSetup() {
     }
     els.preview = h('div.preview');
     els.go = h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: submit },
-      h('span', mode === 'host' ? 'CREATE ROOM' : 'CONNECT'));
+      h('span', mode === 'host' ? 'CREATE ROOM' : mode === 'edit' ? 'SAVE' : 'CONNECT'));
 
     el.append(
       h('header.bar',
         h('button.icon-btn', { type: 'button', 'aria-label': 'Back', onclick: () => setState({ view: 'title' }) }, '‹'),
-        h('div.bar-title', mode === 'host' ? 'HOST // NEW ROOM' : 'JOIN // ENTER CODE')),
+        h('div.bar-title', mode === 'host' ? 'HOST // NEW ROOM' : mode === 'edit' ? 'PROFILE // EDIT' : 'JOIN // ENTER CODE')),
       h('div.form',
         mode === 'join' ? h('label.field', h('span.label', 'ROOM CODE'), els.code) : null,
         h('label.field', h('span.label', 'CALLSIGN'), els.name),
@@ -97,6 +97,7 @@ export function createSetup() {
     }
     const p = { ...profile, name };
     saveProfile(p);
+    if (mode === 'edit') { sfx('lock'); setState({ view: 'title' }); return; }
     busy = true;
     els.go.classList.add('is-busy');
     els.go.firstChild.textContent = mode === 'host' ? 'ALLOCATING…' : 'CONNECTING…';

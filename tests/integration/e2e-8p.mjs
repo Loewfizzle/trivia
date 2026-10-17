@@ -110,8 +110,8 @@ async function endPerf(page, label) {
 
 async function join(i, code) {
   const P = await openPlayer(i, `room=${code}`);
-  await P.waitForSelector('.invite-card', { timeout: 20000 });
-  await click(P, '.invite-card');
+  await P.waitForSelector('.nd-go', { timeout: 20000 });
+  await click(P, '.nd-go');
   await P.waitForSelector('.input-code');
   await P.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
   await click(P, `.swatch[data-id="${COLORS[i]}"]`);
@@ -322,10 +322,10 @@ async function playBluff(pages) {
 // ---------------------------------------------------------------- run
 try {
   const host = await openPlayer(0);
-  await host.waitForSelector('.title-screen .logo', { timeout: 20000 });
+  await host.waitForSelector('.title-screen .nd-sign', { timeout: 20000 });
   await sleep(900);
   await shotBoth(host, 's3-01-title');
-  await click(host, '.title-actions .btn-primary');
+  await click(host, '.nd-host');
   await host.waitForSelector('.setup-screen input.input');
   await host.type('.setup-screen input.input', NAMES[0]);
   await click(host, `.swatch[data-id="${COLORS[0]}"]`);
@@ -337,7 +337,7 @@ try {
 
   // expired invite + full room messages
   const probe = await openPlayer(1, 'room=ZZZZ');
-  await probe.waitForSelector('.invite-card.is-expired', { timeout: 20000 });
+  await probe.waitForSelector('.nd-msg[data-kind="warn"]', { timeout: 20000 });
   await shotBoth(probe, 's3-02-invite-expired');
   await probe.ctx.close();
 
@@ -361,8 +361,8 @@ try {
   let late = hal;
   if (!late) {
     late = await openPlayer(7, `room=${code}`);
-    await late.waitForSelector('.invite-card');
-    await click(late, '.invite-card');
+    await late.waitForSelector('.nd-go');
+    await click(late, '.nd-go');
     await late.waitForSelector('.input-code');
     await late.type('.setup-screen input.input:not(.input-code)', NAMES[7]);
     await click(late, `.swatch[data-id="${COLORS[7]}"]`);

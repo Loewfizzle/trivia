@@ -11,12 +11,12 @@ async function player(slot, name) {
   p.on('pageerror', e => errors.push(`${name}: ${e.message}`));
   await p.setViewport({ width: 390, height: 844, isMobile: true });
   await p.goto(`${BASE}&slot=t${slot}`);
-  await p.waitForSelector('.title-actions .btn-primary');
+  await p.waitForSelector('.nd-host');
   await sleep(800);
   return p;
 }
 const host = await player(1, 'HOST');
-await host.evaluate(() => document.querySelector('.title-actions .btn-primary').click());
+await host.evaluate(() => document.querySelector('.nd-host').click());
 await host.waitForSelector('.setup-screen input.input');
 await host.type('.setup-screen input.input', 'HOST');
 await host.evaluate(() => document.querySelector('.form-cta .btn-primary').click());
@@ -27,8 +27,8 @@ const guest = await ctx2.newPage();
 guest.on('pageerror', e => errors.push('GUEST: ' + e.message));
 await guest.setViewport({ width: 390, height: 844, isMobile: true });
 await guest.goto(`${BASE}&slot=t2&room=${code}`);
-await guest.waitForSelector('.invite-card', { timeout: 20000 });
-await guest.evaluate(() => document.querySelector('.invite-card').click());
+await guest.waitForSelector('.nd-go', { timeout: 20000 });
+await guest.evaluate(() => document.querySelector('.nd-go').click());
 await guest.waitForSelector('.input-code');
 await guest.type('.setup-screen input.input:not(.input-code)', 'GUEST');
 await guest.evaluate(() => document.querySelector('.form-cta .btn-primary').click());

@@ -1,7 +1,7 @@
-# NEURAL ARCADE — developer guide
+# NEON DISTRICT — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Static site on Vercel
-(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All eight build stages are complete
+(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. The app is NEON DISTRICT (it was NEURAL ARCADE until Oct 2026; the games kept their names). All nine build stages are complete
 (see `ROADMAP.md` for what shipped and the future-ideas list). **Keep this file and ROADMAP.md updated as you work.**
 
 ## Ground rules
@@ -20,14 +20,18 @@ Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGEN
 - Contrast: all text ≥ 4.5:1 on its background (`--text-faint` is the dimmest allowed text color).
 - The app name is `APP_NAME` in `js/config.js` (plus `<title>`/meta tags in `index.html`).
 - **Audio is polish, never a dependency.** Everything must work silently: missing files, locked iOS audio, muted. SFX stay quiet — felt more than heard after 20 minutes.
-- **Visual review:** every new screen gets screenshot-reviewed at 390×844 and 412×915 (see Testing → E2E) with at least two refine passes.
+- **Visual review:** every new screen gets screenshot-reviewed at 390×844 and 412×915 (see Testing → E2E) with at least two refine passes
+  (the title screen also at 1440×900).
+- **Class names:** prefix new CSS classes per feature (`nd-`, `ndl-`, `pd-`, `da-`…). A bare `.nl-hi` once collided with
+  Overclock's number line and shoved the logo's highlights sideways.
 
 ## File layout
 ```
 index.html               shell: background layers, #stage, connection badge
 css/base.css             tokens (:root), game themes ([data-theme]), reset, background, screen transitions
 css/components.css       design system: buttons, inputs, panels, chips/avatars, timer, toasts, seg control, sheet, leaderboard, fx
-css/screens.css          title, setup, lobby
+css/screens.css          setup, lobby
+css/title.css            NEON DISTRICT title: the sign, the gate, the showcase, the menu, the opening sequence (a core sheet: gates css-ready)
 css/cipher.css           CIPHER BREACH
 css/signal.css           LAST SIGNAL (decay layers, hit fx, FLATLINE)
 css/overclock.css        OVERCLOCK (challenge UIs, rules cards)
@@ -55,6 +59,7 @@ js/core/room-logic.js    PURE: room codes, host election, color picking, name sa
 js/ui/dom.js             h() element helper, misc DOM utils
 js/ui/components.js      avatar, playerChip, createTimer(ticks), countUp, leaderboard(note), burst, glitchFlash, accessGranted, segmented, chips
 js/ui/final.js           shared podium + WINNER reveal + BACK TO LOBBY (host-aware), used by every game
+js/ui/logo.js            the NEON DISTRICT logotype (neon-tube "NEON" as SVG markup, + the tube-N monogram) and TAGLINE
 js/ui/game-art.js        lobby card artwork: one SVG scene per game (ids prefixed per game); GAMES order = lobby order
 js/ui/settings-panel.js  gear button (fixed, every screen) + one-tap music button beside it on menu screens (hidden in games,
                          where the HUD owns that corner) + settings sheet (music on/off, volumes, mute all, haptics, room + leave)
@@ -74,7 +79,10 @@ js/trivia/sources.js     fetch + normalize (OTDB, The Trivia API), entity decodi
 js/trivia/bank.js        bundled fallback bank loader + picker
 js/trivia/bankdata.js    PURE bank encoding: appendPatch, decodeQuestion, fallbackPatch
 js/trivia/feed.js        host-only: initialBank() at start, topUp() keeps questions queued (rate-limit aware)
-js/screens/{title,setup,lobby}.js
+js/screens/title.js      the front door: opening sequence, HOST, inline JOIN code boxes, REJOIN, welcome back, game showcase + previews
+js/screens/district/scene.js  the title's city: Canvas 2D night skyline (4 parallax layers, power-on wave, billboards, reflections, rain)
+js/audio/ambience.js     title ambience: neon hum + crackles, the city power-on swell, a low rain bed (SFX bus)
+js/screens/{setup,lobby}.js  setup = name / colour / avatar (host, join, or edit = profile only)
 js/chat/logic.js         PURE chat rules: chatLocked(game, uid, live) per game, maskProfanity, cleanText, typing line, unread
 js/chat/chat.js          chat data layer (own store, lazy): listeners, send/outbox/retry, typing, unread, host system lines + prune + clear
 js/chat/ui.js            chat UI: lobby strip, chat sheet (visualViewport keyboard, swipe), in-game chat button with lock + badge
@@ -147,6 +155,7 @@ scripts/build-lexicon.mjs    regenerates data/oc/lexicon.json from ENABLE + Norv
 scripts/build-make24.mjs     every 1–9 tile set solved exactly → data/oc/make24.json (easy: many whole-number routes; hard: needs ÷ or ≤ 2 routes)
 scripts/build-timeline.mjs   verified fact pools → data/oc/timeline.json (fairness gaps: years ≥ 5 apart, quantities ≥ 1.3×)
 scripts/serve.mjs            zero-dep local static server (port 5173)
+scripts/build-boot-logo.mjs  re-inlines the unlit sign into index.html's boot screen from js/ui/logo.js (run after logo changes)
 scripts/build-prism.py       PRISM DROP song pipeline: encode + beat grid + key + energy + world (see "PRISM DROP")
 scripts/build-beatmaps.py    PULSE song pipeline: trim/encode + beat grid + notes + manifest (see "PULSE" below)
 scripts/check-beatgrid.py    ground truth for the beat grid: synthetic drums at known times through the same pipeline
@@ -351,11 +360,13 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 - `index.html` inlines the boot screen styles, so it paints right after the HTML. **All stylesheets are non-blocking**
   (`media=print` + onload swap); the three core sheets call `__cssDone()` and the page keeps everything except `#boot`
   hidden until `html.css-ready` — no flash of unstyled content. Per-game sheets load the same way, without gating.
-- `app.js#dismissBoot` fades the boot screen once core CSS is in and fonts are loaded (≤1.5 s wait). Players **without** a
+- `app.js#dismissBoot` fades the boot screen once core CSS is in and fonts are loaded (≤0.7 s wait for new visitors, so TAP
+  TO ENTER is up within ~1 s; 1.5 s when resuming a room). Players **without** a
   saved session get the title screen first and the Firebase SDK starts loading right after it paints (`setup.js` awaits
   `firebaseReady` on submit). Players resuming a room wait on the boot screen until they're reconnected.
-- The boot screen's plain-HTML wordmark ("NEURAL ARCADE", system font) is the page's LCP element: it paints with the
-  first frame, so LCP never waits for the JS module graph (without it Lighthouse's simulated LCP was ~4.4 s).
+- The boot screen is the district before the lights come on: the unlit NEON sign (inline SVG, glass tubes only, generated by
+  `scripts/build-boot-logo.mjs`) + "DISTRICT" in a system font — the page's LCP element, painted with the first frame.
+  It sits exactly where the title's sign sits, so the hand-off doesn't jump. title.css is the fourth core sheet.
 - Game views are lazy (`games/lazy-view.js`): each `index.js` exports `createView = lazyView(() => import('./view.js'))`,
   so only directors/logic load at startup. PULSE's song list loads when the page is idle.
 - Music never downloads before the first tap (it can't play anyway) — see `audio/music.js#playMusic`.
@@ -364,7 +375,8 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 - Service worker registers only on https non-localhost. It is network-first with cache fallback, skips cross-origin,
   `/audio/` and range requests. Bump `CACHE` in `sw.js` only if you need to purge old offline copies.
 - Link previews use absolute URLs to `https://trivia.loewfizzle.com/assets/og.png` — update if the domain changes.
-- Re-render icons/preview after design changes: `cd tests/integration && node render-assets.mjs "<browser path>"`.
+- Re-render icons/preview after design changes: `cd tests/integration && node render-assets.mjs "<browser path>"` (needs
+  scripts/serve.mjs; renders `tests/integration/brand.html`: the real city + logo). `assets/icon.svg` is the tube N on night blue.
 
 ## Design system
 - Tokens in `css/base.css :root`: backgrounds `--bg-0..3`, `--text/-dim/-faint`, neon `--cyan --magenta --yellow --green --red --orange --violet`,
@@ -450,6 +462,13 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
   - The E2E harness uses `puppeteer-core` with a locally installed Chrome/Edge (no browser download).
+  - Title screen E2E: `node e2e-title.mjs "<browser path>" ./shots-title` (env `GPU=1` for real frame pacing, `SHOTS=0 VIDEO=0`) —
+    first visit (gate → full power-on, audio unlocked by the tap, timing measured in the page), returning visit (short),
+    same-session (instant), skip, reduced effects, HOST with a saved profile, JOIN by typing / paste / ?room= (with and
+    without a profile), invalid code, I/O note, REJOIN, EDIT, showcase previews + HOW TO PLAY, tiers at 4× CPU, memory
+    across title↔setup cycles, hidden-tab pause; screenshots at 390×844 / 412×915 / 1440×900 and MP4s of the first and
+    returning intro (CDP screencast + ffmpeg from the PULSE venv). `title-shots.mjs` = quick sequence stills + the bare boot screen.
+    The E2E suites open `?emu` pages, where the title skips its intro (add `&intro=1` to see it).
   - Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"`
     (`scripts/serve.mjs` gzips like Vercel so the numbers are representative).
 
@@ -598,6 +617,36 @@ export default {
 **Adding a hole:** copy a similar file, edit it, add it to `HOLES` in `holes/index.js` (and to `MODES` if Quick 6/3 should
 use it), then run `node scripts/validate-holes.mjs <n>`. It must print OK (best ≤ par); aim for an "aimed" ace chance well
 under ~40 % and "random" < 2 %. Then `node --test tests/golf.test.mjs`, and play it once (`?emu`, two slots).
+
+## The title screen (NEON DISTRICT)
+NEON DISTRICT is a night city where every game is a venue; the title is your first look at it.
+- **Sequence** (`title.js`): FIRST VISIT on a device (`localStorage nd:entered`): the dark district + rain + TAP TO ENTER (the tap
+  unlocks audio — iPhone needs it — and starts menu.mp3 through the normal music system) → POWER-ON: windows light up in a
+  wave from the street up (ease-out, ≈1.6 s), billboards boot, the haze takes the colour, a low swell (`ambience.js#cityPowerOn`)
+  → the SIGN: each tube letter flickers on with crackles + a mains hum, then holds → the menu eases in (staggered). ≈3.4 s.
+  RETURNING (same device): no gate, ≈1.2 s. Back to the title in the same session (`sessionStorage nd:title-shown`): instant.
+  A tap anywhere skips. REDUCED EFFECTS (settings, now global: `settings.reducedFx`, also PRISM DROP) or prefers-reduced-motion:
+  a 0.7 s fade, no drift / rain motion / vehicles / showcase drift. Every ~20–40 s one letter gives a tiny flicker.
+- **Scene** (`district/scene.js`, Canvas 2D like PULSE): sky + 4 skyline layers far→near (each pre-rendered DARK + LIT, the
+  lit one with a baked bloom), haze at each layer's feet, beacons, two searchlights, flying-vehicle light trails, holographic
+  billboards cycling the games' own art (one per side per near layer), the wet street with the whole city reflected and
+  rippling, light streaks under the billboards and the sign, puddle ripples, two rain layers, a vignette. Once fully on, each
+  layer + its haze and the street + its reflection are BAKED into one image each (~35 drawImage calls a frame); every
+  gradient is a cached sprite. Parallax: a slow drift + device tilt (deviceorientation, never asks for permission — iOS just
+  doesn't send it) + the mouse on desktop. Tiers 2/1/0 (DPR 2/1.5/1, rain layers, shimmer, vehicles, ripples) step down when
+  the p75 frame > 19.5 ms; rendering stops while the tab is hidden; `destroy()` zeroes every canvas when the title leaves
+  (the scene element lives on <body>, behind #stage). Measured: 60 fps at every tier at 4× CPU (GPU); 6 title↔setup
+  cycles leave one scene and no heap growth.
+- **Logo** (`ui/logo.js`): "NEON" as four bent glass tubes (glass, wide + near glow, body, white-hot core, a hairline highlight,
+  electrode caps, mounting clips), "DISTRICT" in Orbitron with wide tracking, the tagline `TAGLINE`. The same markup is used lit
+  in the lobby header (small), unlit in the boot screen, and by `brand.html` for the icons (the tube N) and the link preview.
+- **Menu:** HOST GAME (the one glowing element: glass with a slow light sheen; with a saved profile it opens a room in one tap,
+  otherwise the name/avatar screen first), JOIN (one real input under four boxes: native keyboard, auto-caps, paste of a code
+  or a whole invite link, auto-join on the 4th letter, a note when I/O are typed, inline errors for no room / full / removed),
+  `?room=` pre-fills it (› glows), REJOIN [CODE] when a saved room couldn't be reached on boot (`state.rejoin`), "Welcome back,
+  NAME" + EDIT (setup in `edit` mode: profile only, back to the title), a drifting showcase of the games (tap → a preview sheet
+  with art, blurb, player count from MIN_PLAYERS, length from `estimateMinutes(DEFAULT_SETTINGS)`, HOW TO PLAY). Version bottom-left.
+- Wide screens: the skyline sits lower and wider, the sign larger, the showcase shows every game; the menu stays a 400 px column.
 
 ## PRISM DROP (falling-block battle)
 **Never use the words "Tetris", "tetromino" or "T-spin" anywhere** (UI, text, assets, code comments shown to players). Pieces are

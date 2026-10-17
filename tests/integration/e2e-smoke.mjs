@@ -83,12 +83,12 @@ const tap = async (page, sel) => { const el = await page.waitForSelector(sel, { 
 try {
   // ---- title + create (host) — a brand-new phone
   const host = await open(0);
-  await host.waitForSelector('.title-actions .btn-primary', { timeout: 20000 });
+  await host.waitForSelector('.nd-host', { timeout: 20000 });
   await host.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
   ok(await host.evaluate(() => !/[?&]slot=/.test(location.search)), 'host is a regular phone tab (no test slot)');
   await check('title');
   for (let k = 0; k < 5 && !(await host.$('.setup-screen input.input')); k++) {
-    await tap(host, '.title-actions .btn-primary').catch(() => {});
+    await tap(host, '.nd-host').catch(() => {});
     await host.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {});
   }
   await check('setup');
@@ -100,10 +100,10 @@ try {
 
   // ---- join (guest) through the invite link, also a regular phone
   const guest = await open(1, `&room=${code}`);
-  await guest.waitForSelector('.invite-card', { timeout: 20000 });
+  await guest.waitForSelector('.nd-go', { timeout: 20000 });
   await guest.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
   await check('invite');
-  await tap(guest, '.invite-card');
+  await tap(guest, '.nd-go');
   await guest.waitForSelector('.input-code');
   await guest.type('.setup-screen input.input:not(.input-code)', NAMES[1]);
   await tap(guest, '.form-cta .btn-primary');
