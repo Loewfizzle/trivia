@@ -287,15 +287,15 @@ export function createTitle() {
     els.boxes = [0, 1, 2, 3].map(i => h('span.nd-box', { style: { '--i': i } }));
     els.go = h('button.nd-go', { type: 'button', 'aria-label': 'Join room', onclick: () => (els.code.value.length === 4 ? join(els.code.value) : els.code.focus()) }, '›');
     els.msg = h('p.nd-msg', { role: 'status', 'aria-live': 'polite' });
+    // under the code boxes, one line: a join message when there is one, otherwise "Welcome back"
     return h('section.nd-actions',
-      els.welcome,
       els.rejoin,
       els.host,
       h('div.nd-join',
         h('span.nd-join-label', 'JOIN'),
         h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
         els.go),
-      els.msg);
+      h('div.nd-foot', els.msg, els.welcome));
   }
 
   function update(state) {

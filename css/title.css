@@ -363,7 +363,10 @@ body.nd-on .music-btn { right: calc(var(--safe-r) + 62px); }
   transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 .nd-go.is-ready { color: #fff; border-color: rgba(255, 90, 180, 0.8); box-shadow: 0 0 18px rgba(255, 60, 170, 0.35); }
-.nd-msg { margin: 0; min-height: 34px; font-size: 12.5px; line-height: 1.4; color: rgba(222, 228, 255, 0.82); }
+.nd-foot { display: flex; justify-content: center; align-items: center; min-height: 36px; }
+.nd-msg { margin: 0; font-size: 12.5px; line-height: 1.4; color: rgba(222, 228, 255, 0.82); }
+.nd-msg:empty { display: none; }
+.nd-msg:not(:empty) + .nd-welcome { display: none; }
 .nd-msg[data-kind='warn'] { color: #ffc2d6; }
 
 /* ---- preview sheet ---- */
