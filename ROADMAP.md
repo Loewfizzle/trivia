@@ -8,7 +8,7 @@ NEON DISTRICT — *game night, after dark.* One web app, eight games, 2–8 play
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
-Hosted at **trivia.loewfizzle.com** (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
+Hosted at **games.loewfizzle.com** (since Oct 2026; the old trivia.loewfizzle.com permanently redirects here) (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
 Backend: Firebase Realtime Database + Anonymous Auth.
 
 ## The games — all eight are playable

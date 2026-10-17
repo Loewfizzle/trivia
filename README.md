@@ -1,7 +1,7 @@
 # NEON DISTRICT
 
 *Game night, after dark.* Eight neon multiplayer party games for 2–8 players — one phone each, same room or across
-cities. Live at **trivia.loewfizzle.com**.
+cities. Live at **games.loewfizzle.com**.
 
 - **OVERCLOCK** — twenty kinds of 30-second mind challenges, identical for everyone
 - **PRISM DROP** — falling-block battle (or Score Rush) set to music

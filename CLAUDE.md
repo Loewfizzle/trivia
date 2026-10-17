@@ -1,7 +1,7 @@
 # NEON DISTRICT — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Static site on Vercel
-(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. The app is NEON DISTRICT (it was NEURAL ARCADE until Oct 2026; the games kept their names). All nine build stages are complete
+(games.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. The app is NEON DISTRICT (it was NEURAL ARCADE until Oct 2026; the games kept their names). All nine build stages are complete
 (see `ROADMAP.md` for what shipped and the future-ideas list). **Keep this file and ROADMAP.md updated as you work.**
 
 ## Ground rules
@@ -376,7 +376,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
   it as the LCP element.
 - Service worker registers only on https non-localhost. It is network-first with cache fallback, skips cross-origin,
   `/audio/` and range requests. Bump `CACHE` in `sw.js` only if you need to purge old offline copies.
-- Link previews use absolute URLs to `https://trivia.loewfizzle.com/assets/og.png` — update if the domain changes.
+- Link previews use absolute URLs to `https://games.loewfizzle.com/assets/og.png` — update if the domain changes.
 - Re-render icons/preview after design changes: `cd tests/integration && node render-assets.mjs "<browser path>"` (needs
   scripts/serve.mjs; renders `tests/integration/brand.html`: the real city + logo). `assets/icon.svg` is the tube N on night blue.
 
@@ -422,7 +422,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
     PLAY, all six games started and watched, back to the lobby. Fails on visible "null"/"undefined"/"NaN"/"[object Object]",
     page errors or console errors. Native `append()`/`replaceChildren()` print a `null` argument as text — `h()` skips it.
   - E2E (3 headless tabs play a full match incl. host loss + refresh + kick): `node e2e.mjs "<path to chrome/edge>" ./shots`
-  - Same E2E against production (real Firebase): `E2E_BASE=https://trivia.loewfizzle.com node e2e.mjs "<browser path>" ./shots`
+  - Same E2E against production (real Firebase): `E2E_BASE=https://games.loewfizzle.com node e2e.mjs "<browser path>" ./shots`
   - Stage 2 E2E: `node e2e-stage2.mjs "<browser path>" ./shots [signal|overclock|all]` (env `OC_FIRST=memory,stroop,…` puts
     those Overclock types first — its bots play all 20). Covers Last Signal (targeting,
     eliminations, host killed mid-battle, audio unlock / background pause / crossfades / victory track) and Overclock (every
@@ -477,7 +477,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 ## Firebase setup notes
 - Console → Build → Realtime Database (create), Authentication → Sign-in method → **Anonymous: enable**.
 - Paste `database.rules.json` into Realtime Database → Rules → Publish.
-- Authentication → Settings → Authorized domains: add `trivia.loewfizzle.com`.
+- Authentication → Settings → Authorized domains: `games.loewfizzle.com` (plus the old `trivia.loewfizzle.com`, which now redirects to it).
 - Web config goes in `js/firebase-config.js` (public by design; the rules are the security).
 
 ## Music
