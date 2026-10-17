@@ -1,0 +1,419 @@
+/* ==========================================================================
+   NEON DISTRICT — the title screen (scene: js/screens/district/scene.js, logo: js/ui/logo.js)
+   The city is a fixed canvas behind #stage; this sheet styles the sign, the menu and the opening sequence.
+   Only transform + opacity animate. backdrop-filter is used on two small panels only (the city behind moves).
+   ========================================================================== */
+
+/* the city */
+.nd-scene { position: fixed; inset: 0; z-index: 0; background: #03040b; transition: opacity 0.4s ease; }
+.nd-scene canvas { display: block; width: 100%; height: 100%; }
+.nd-scene.is-out { opacity: 0; }
+body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: none; }
+/* on the title the corner buttons sit in the real corner (elsewhere they hug the phone-width column) */
+body.nd-on .gear { right: calc(var(--safe-r) + 12px); }
+body.nd-on .music-btn { right: calc(var(--safe-r) + 62px); }
+
+/* the screen */
+.title-screen.nd {
+  max-width: 560px;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  text-align: center;
+  padding-top: calc(var(--safe-t) + 12px);
+  padding-bottom: calc(var(--safe-b) + 16px);
+  overflow: hidden;
+}
+.nd-corner {
+  position: fixed;
+  top: calc(var(--safe-t) + 22px);
+  left: calc(var(--safe-l) + var(--gutter));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(214, 220, 255, 0.5);
+}
+.nd-city { flex: 1 1 auto; min-height: 24px; }
+
+/* ---- the sign ---- */
+.nd-sign {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: clamp(40px, 8.5vh, 96px);
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+.nd-sign.is-off { opacity: 0; }
+.nd-logo-wrap { width: min(82vw, 330px); }
+.nd-logo-wrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+.nd-logo .ndl-glass { opacity: 0.85; }
+.nd-logo .ndl-light { opacity: 0; }
+.nd-logo .ndl.on .ndl-light { opacity: 1; }
+.nd-logo .ndl-glow2 { opacity: 0.42; transition: opacity 0.9s ease; }
+.nd-logo .ndl-glow1 { opacity: 0.7; transition: opacity 0.9s ease; }
+.is-warm .nd-logo .ndl-glow2, .nd-logo.is-lit .ndl-glow2 { opacity: 0.78; }
+.is-warm .nd-logo .ndl-glow1, .nd-logo.is-lit .ndl-glow1 { opacity: 1; }
+.nd-logo.is-lit .ndl-light { opacity: 1; }
+.nd-word {
+  margin-top: -2px;
+  padding-left: 0.66em; /* letter-spacing trails the last letter: keep the word optically centred */
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(13px, 3.9vw, 17px);
+  letter-spacing: 0.66em;
+  color: #edf0ff;
+  text-shadow: 0 0 14px rgba(150, 170, 255, 0.45);
+  opacity: 0.3;
+  text-shadow: none;
+  transition: opacity 0.8s ease 0.1s, text-shadow 0.8s ease 0.1s;
+}
+.nd-tag {
+  margin-top: 14px;
+  padding-left: 0.36em;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.36em;
+  color: rgba(226, 230, 255, 0.8);
+  text-shadow: 0 0 10px rgba(3, 3, 12, 0.95), 0 0 2px rgba(3, 3, 12, 0.9);
+  opacity: 0;
+  transition: opacity 0.9s ease 0.45s;
+}
+.nd-sign.is-steady .nd-word { opacity: 1; text-shadow: 0 0 14px rgba(150, 170, 255, 0.45); }
+.nd-sign.is-steady .nd-tag { opacity: 1; }
+
+/* ---- menu (eases in, staggered) ---- */
+.nd-corner, .nd-show, .nd-actions > * {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.7s ease, transform 0.8s var(--ease);
+}
+.nd.is-menu .nd-corner, .nd.is-menu .nd-show, .nd.is-menu .nd-actions > * { opacity: 1; transform: none; }
+.nd.is-menu .nd-show { transition-delay: 0s; }
+.nd.is-menu .nd-actions > :nth-child(1) { transition-delay: 0.12s; }
+.nd.is-menu .nd-actions > :nth-child(2) { transition-delay: 0.18s; }
+.nd.is-menu .nd-actions > :nth-child(3) { transition-delay: 0.24s; }
+.nd.is-menu .nd-actions > :nth-child(4) { transition-delay: 0.34s; }
+.nd.is-menu .nd-actions > :nth-child(5) { transition-delay: 0.42s; }
+.nd.is-menu .nd-corner { transition-delay: 0.5s; }
+.nd.seq-short .nd-sign .nd-word, .nd.seq-short .nd-sign .nd-tag { transition-delay: 0s; }
+.nd.seq-short.is-menu .nd-actions > * { transition-duration: 0.5s, 0.6s; }
+.nd.seq-instant .nd-sign, .nd.seq-reduced .nd-sign,
+.nd.seq-instant .nd-corner, .nd.seq-instant .nd-show, .nd.seq-instant .nd-actions > *,
+.nd.seq-instant .nd-word, .nd.seq-instant .nd-tag,
+.nd.is-skip .nd-sign, .nd.is-skip .nd-corner, .nd.is-skip .nd-show, .nd.is-skip .nd-actions > *, .nd.is-skip .nd-word, .nd.is-skip .nd-tag {
+  transition-duration: 0.3s !important;
+  transition-delay: 0s !important;
+}
+.nd.seq-reduced .nd-corner, .nd.seq-reduced .nd-show, .nd.seq-reduced .nd-actions > *, .nd.seq-reduced .nd-word { transform: none; transition-delay: 0s !important; }
+
+/* ---- the gate ---- */
+.nd-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding-bottom: calc(var(--safe-b) + 26vh);
+  background: transparent;
+  border: 0;
+  color: #eef1ff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.nd-gate.is-in { opacity: 1; }
+.nd-gate.is-out { opacity: 0; pointer-events: none; transition-duration: 0.45s; }
+.nd-gate-txt {
+  position: relative;
+  padding-left: 0.62em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.62em;
+  text-shadow: 0 0 18px rgba(180, 190, 255, 0.6);
+  animation: nd-breathe 3.2s ease-in-out infinite;
+}
+.nd-gate-txt::before, .nd-gate-txt::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(220, 225, 255, 0.6));
+}
+.nd-gate-txt::before { right: calc(100% + 14px); }
+.nd-gate-txt::after { left: calc(100% + 6px); transform: scaleX(-1); }
+.nd-gate-sub { font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.3em; color: rgba(210, 216, 255, 0.5); }
+@keyframes nd-breathe { 0%, 100% { opacity: 0.42; } 50% { opacity: 1; } }
+.nd.is-gated .nd-corner { opacity: 0; }
+
+/* ---- showcase: a slow drifting row of glass cards ---- */
+.nd-show {
+  position: relative;
+  margin: 0 calc(-1 * var(--gutter)) 18px;
+  padding: 8px 0 10px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.nd-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  padding-right: 12px; /* the two halves must be equal for a seamless loop */
+  animation: nd-drift 80s linear infinite;
+}
+.nd-show:hover .nd-track, .nd-show:active .nd-track { animation-play-state: paused; }
+@keyframes nd-drift { to { transform: translateX(-50%); } }
+.nd-card {
+  --acc: #d6f0ff;
+  position: relative;
+  flex: 0 0 auto;
+  width: 92px;
+  height: 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 6px 8px;
+  color: #eef1ff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(8, 9, 26, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.35);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s var(--ease), border-color 0.2s;
+}
+.nd-card::after { /* a hairline of the game's colour along the bottom */
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -1px;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, var(--acc), transparent);
+  opacity: 0.85;
+}
+.nd-card:active { transform: scale(0.95); }
+.nd-card .gc-art, .nd-card .gc-glyph { width: 56px; height: 56px; border: 0; border-radius: 10px; overflow: hidden; background: transparent; }
+.nd-card .gc-art svg { width: 100%; height: 100%; }
+.nd-card-name { min-height: 2.4em; display: flex; align-items: center; font-family: var(--font-display); font-weight: 700; font-size: 8.5px; letter-spacing: 0.1em; line-height: 1.2; text-align: center; }
+
+/* ---- actions (the thumb zone) ---- */
+.nd-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+.nd-welcome {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 5px 4px 8px;
+  font-size: 13.5px;
+  color: rgba(236, 240, 255, 0.92);
+  background: rgba(6, 7, 20, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.nd-welcome[hidden], .nd-rejoin[hidden] { display: none; }
+.nd-welcome b { font-weight: 700; letter-spacing: 0.04em; }
+.nd-edit {
+  margin-left: 4px;
+  padding: 3px 8px;
+  min-height: 24px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgba(222, 228, 255, 0.78);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+}
+
+/* the primary: a glass panel catching the city light (the one glowing element) */
+.nd-host, .nd-rejoin-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 62px;
+  width: 100%;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06) 48%, rgba(255, 110, 200, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -10px 24px rgba(255, 70, 170, 0.12),
+    0 0 0 1px rgba(255, 80, 180, 0.22),
+    0 12px 42px rgba(255, 50, 160, 0.32);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s var(--ease), box-shadow 0.3s;
+}
+.nd-host:active, .nd-rejoin-btn:active { transform: scale(0.98); }
+.nd-host-label {
+  position: relative;
+  padding-left: 0.3em;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 0.3em;
+  text-shadow: 0 0 16px rgba(255, 110, 200, 0.75);
+}
+.nd-host-sheen { position: absolute; inset: 0; pointer-events: none; }
+.nd-host-sheen::before { /* the city's light sliding across the glass */
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: -60%;
+  width: 45%;
+  height: 180%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.16) 45%, rgba(255, 200, 240, 0.08) 60%, transparent);
+  transform: translateX(0) rotate(8deg);
+  animation: nd-sheen 6.5s ease-in-out infinite;
+}
+@keyframes nd-sheen { 0%, 55% { transform: translateX(0) rotate(8deg); } 100% { transform: translateX(420%) rotate(8deg); } }
+.nd-host.is-busy { opacity: 0.8; }
+.nd-host.is-quiet { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 26px rgba(0, 0, 0, 0.4); }
+.nd-host.is-quiet .nd-host-label { text-shadow: none; }
+.nd-rejoin-btn { height: auto; padding: 12px 10px 13px; gap: 3px; border-color: rgba(120, 230, 255, 0.5); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 1px rgba(80, 220, 255, 0.25), 0 12px 40px rgba(60, 200, 255, 0.3); }
+.nd-rejoin-k { font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.24em; color: rgba(200, 240, 255, 0.85); }
+.nd-rejoin-l { padding-left: 0.26em; font-family: var(--font-display); font-weight: 900; font-size: 17px; letter-spacing: 0.26em; text-shadow: 0 0 16px rgba(110, 230, 255, 0.8); }
+
+/* join: four code boxes */
+.nd-join { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.nd-join-label { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.24em; color: rgba(225, 230, 255, 0.75); }
+.nd-codebox { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; cursor: text; }
+.nd-code-in {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  font-size: 16px; /* never triggers iOS zoom */
+  color: transparent;
+  caret-color: transparent;
+  background: transparent;
+  border: 0;
+  opacity: 0.01;
+  text-transform: uppercase;
+}
+.nd-box {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 58px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 24px;
+  color: #fff;
+  background: rgba(8, 9, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s, transform 0.18s var(--ease);
+}
+.nd-box.is-filled { border-color: rgba(255, 255, 255, 0.4); text-shadow: 0 0 12px rgba(255, 150, 220, 0.6); }
+.nd-box.is-filled { animation: nd-pop 0.22s var(--ease); }
+.nd-box.is-caret { border-color: rgba(255, 90, 180, 0.85); box-shadow: 0 0 0 1px rgba(255, 90, 180, 0.35), 0 0 18px rgba(255, 60, 170, 0.25); }
+.nd-box.is-caret::after { content: ''; width: 2px; height: 24px; background: #ff7cc6; border-radius: 1px; animation: nd-caret 1s steps(1) infinite; }
+@keyframes nd-caret { 50% { opacity: 0; } }
+@keyframes nd-pop { 40% { transform: scale(1.08); } }
+.nd-codebox.is-busy .nd-box { animation: nd-wait 0.9s ease-in-out infinite; animation-delay: calc(var(--i) * 0.12s); }
+@keyframes nd-wait { 50% { opacity: 0.45; } }
+.nd-codebox.is-shake { animation: nd-shake 0.42s ease; }
+@keyframes nd-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.nd-go {
+  width: 50px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  line-height: 1;
+  color: rgba(235, 240, 255, 0.6);
+  background: rgba(8, 9, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 13px;
+  transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.nd-go.is-ready { color: #fff; border-color: rgba(255, 90, 180, 0.8); box-shadow: 0 0 18px rgba(255, 60, 170, 0.35); }
+.nd-msg { margin: 0; min-height: 34px; font-size: 12.5px; line-height: 1.4; color: rgba(222, 228, 255, 0.82); }
+.nd-msg[data-kind='warn'] { color: #ffc2d6; }
+
+/* ---- preview sheet ---- */
+.nd-preview { --acc: #d6f0ff; text-align: center; }
+.nd-pv-art { width: 132px; height: 132px; margin: 6px auto 14px; border-radius: 22px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 14px 50px color-mix(in srgb, var(--acc) 30%, transparent); }
+.nd-pv-art svg { display: block; width: 100%; height: 100%; }
+.nd-pv-body .gc-tag { color: var(--acc); }
+.nd-pv-name { margin: 6px 0 8px; font-family: var(--font-display); font-weight: 900; font-size: 26px; letter-spacing: 0.08em; color: #fff; }
+.nd-pv-blurb { margin: 0 auto 14px; max-width: 30ch; font-size: 15px; line-height: 1.45; color: var(--text-dim); }
+.nd-pv-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
+.nd-pv-meta span { padding: 6px 10px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; color: #eef1ff; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; }
+.nd-pv-actions { display: flex; flex-direction: column; gap: 6px; }
+
+/* ---- small sign (lobby header) ---- */
+.nd-mini { display: flex; flex-direction: column; align-items: center; gap: 0; pointer-events: none; }
+.nd-mini .nd-logo-wrap { width: 112px; }
+.nd-mini .nd-word { opacity: 1; transform: none; font-size: 7.5px; letter-spacing: 0.62em; padding-left: 0.62em; margin-top: -3px; text-shadow: none; color: rgba(236, 240, 255, 0.8); }
+
+/* ---- phones with little height ---- */
+@media (max-height: 720px) {
+  .nd-sign { margin-top: 26px; }
+  .nd-logo-wrap { width: min(70vw, 270px); }
+  .nd-tag { margin-top: 8px; }
+  .nd-card { width: 80px; height: 96px; }
+  .nd-card .gc-art { width: 46px; height: 46px; }
+  .nd-show { margin-bottom: 10px; }
+  .nd-host { height: 54px; }
+  .nd-box, .nd-go { height: 50px; }
+}
+
+/* ---- wide screens: the scene opens up, the menu stays a calm column ---- */
+@media (min-width: 900px) and (min-height: 640px) {
+  .title-screen.nd { max-width: 1180px; }
+  .nd-sign { margin-top: clamp(56px, 11vh, 120px); }
+  .nd-logo-wrap { width: min(40vw, 470px); }
+  .nd-word { font-size: 21px; }
+  .nd-tag { font-size: 11px; margin-top: 18px; }
+  .nd-show { margin: 0 auto 24px; width: min(100%, 980px); }
+  .nd-card { width: 112px; height: 132px; }
+  .nd-card .gc-art { width: 68px; height: 68px; }
+  .nd-card-name { font-size: 9.5px; }
+  .nd-gate { padding-bottom: 22vh; }
+}
+
+/* reduced effects / motion: no drift, no sheen, no breathing — a plain, still menu */
+@media (prefers-reduced-motion: reduce) {
+  .nd-track { animation: none; }
+  .nd-show { overflow-x: auto; }
+  .nd-host-sheen::before, .nd-gate-txt { animation: none; }
+}
+body.reduced-fx .nd-track { animation: none; }
+body.reduced-fx .nd-show { overflow-x: auto; }
+body.reduced-fx .nd-host-sheen::before, body.reduced-fx .nd-gate-txt { animation: none; }

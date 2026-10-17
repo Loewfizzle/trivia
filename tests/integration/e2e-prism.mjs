@@ -75,9 +75,9 @@ const engOf = page => P(page, `(() => { const e = window.__prism && window.__pri
 
 async function joinAll() {
   const host = await openPlayer(0);
-  await host.waitForSelector('.title-actions .btn-primary', { timeout: 20000 });
+  await host.waitForSelector('.nd-host', { timeout: 20000 });
   for (let k = 0; k < 5 && !(await host.$('.setup-screen input.input')); k++) {
-    await host.click('.title-actions .btn-primary').catch(() => {});
+    await host.click('.nd-host').catch(() => {});
     await host.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {});
   }
   await host.type('.setup-screen input.input', NAMES[0]);
@@ -87,9 +87,9 @@ async function joinAll() {
   log('room', code);
   for (let i = 1; i < N; i++) {
     const p = await openPlayer(i, `room=${code}`);
-    await p.waitForSelector('.invite-card', { timeout: 20000 });
+    await p.waitForSelector('.nd-go', { timeout: 20000 });
     await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
-    await p.click('.invite-card');
+    await p.click('.nd-go');
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
     await p.click('.form-cta .btn-primary');

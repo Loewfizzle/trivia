@@ -1,14 +1,14 @@
 {
-  "name": "NEURAL ARCADE",
-  "short_name": "ARCADE",
-  "description": "Four neon multiplayer party games for 2–8 players. One phone each.",
+  "name": "Neon District",
+  "short_name": "Neon District",
+  "description": "Eight neon multiplayer party games for 2–8 players. One phone each — same room or across cities.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#04050d",
-  "theme_color": "#04050d",
+  "background_color": "#03040b",
+  "theme_color": "#03040b",
   "categories": [
     "games",
     "entertainment"

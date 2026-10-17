@@ -1,7 +1,7 @@
 // Global constants. Change APP_NAME here to rebrand the whole site.
-export const APP_NAME = 'NEURAL ARCADE';
+export const APP_NAME = 'NEON DISTRICT';
 export const APP_TAGLINE = 'four minds // one signal';
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
 
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;

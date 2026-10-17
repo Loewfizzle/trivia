@@ -113,8 +113,8 @@ const BOT = `(style) => {
 try {
   // ---------------- lobby
   const host = await openPlayer(0);
-  await host.waitForSelector('.title-actions .btn-primary', { timeout: 20000 });
-  await tapReal(host, '.title-actions .btn-primary');
+  await host.waitForSelector('.nd-host', { timeout: 20000 });
+  await tapReal(host, '.nd-host');
   await host.waitForSelector('.setup-screen input.input');
   await host.type('.setup-screen input.input', NAMES[0]);
   await tapReal(host, '.form-cta .btn-primary');
@@ -123,8 +123,8 @@ try {
   log('room', code);
   for (let i = 1; i < N; i++) {
     const p = await openPlayer(i, `room=${code}`);
-    await p.waitForSelector('.invite-card', { timeout: 20000 });
-    await tapReal(p, '.invite-card');
+    await p.waitForSelector('.nd-go', { timeout: 20000 });
+    await tapReal(p, '.nd-go');
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
     await tapReal(p, '.form-cta .btn-primary');

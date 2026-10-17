@@ -103,7 +103,7 @@ export function createView() {
   const liveReady = () => game && st.liveKey === liveKeyFor(game);
   const rush = () => game && game.settings.mode === 'rush';
   const isOut = () => !!(game && game.out && game.out[me()]) || (eng && eng.over && !rush());
-  const reduced = () => settings.prismReduced || reducedMotion();
+  const reduced = () => settings.reducedFx || reducedMotion();
   const nodePath = () => `rooms/${st.code}/prism/${game.matchId}/${me()}`;
 
   // ================================================================ mount

@@ -1,12 +1,16 @@
-# NEURAL ARCADE
+# NEON DISTRICT
 
-Neon cyberpunk multiplayer party games for 2–8 players — one phone each, same room or across cities.
-Live at **trivia.loewfizzle.com**.
+*Game night, after dark.* Eight neon multiplayer party games for 2–8 players — one phone each, same room or across
+cities. Live at **trivia.loewfizzle.com**.
 
-- **CIPHER BREACH** — competitive Wordle race with live color-only opponent boards *(playable)*
-- **LAST SIGNAL** — trivia battle royale *(coming soon)*
-- **NEURAL BLUFF** — bluffing trivia *(coming soon)*
-- **OVERCLOCK** — rapid-fire mind gauntlet *(coming soon)*
+- **OVERCLOCK** — twenty kinds of 30-second mind challenges, identical for everyone
+- **PRISM DROP** — falling-block battle (or Score Rush) set to music
+- **NEON PAR** — mini golf: everyone plays the same hole at once
+- **DOUBLE AGENT** — one of you doesn't know the word; find the leak
+- **PULSE** — multiplayer rhythm game on a neon highway
+- **CIPHER BREACH** — competitive word race
+- **LAST SIGNAL** — trivia battle royale
+- **NEURAL BLUFF** — bluffing trivia
 
 Static HTML/CSS/JS (no build step) + Firebase Realtime Database. See [CLAUDE.md](CLAUDE.md) for
 architecture and testing, [ROADMAP.md](ROADMAP.md) for the plan.

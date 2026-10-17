@@ -73,9 +73,9 @@ const clickText = async (page, text) => { await page.bringToFront(); return page
 
 async function makeRoom(sizes, slots = ['a', 'b', 'c']) {
   const A = await open(slots[0], '', sizes[0]);
-  await A.waitForSelector('.title-screen .logo', { timeout: 15000 });
+  await A.waitForSelector('.title-screen .nd-sign', { timeout: 15000 });
   await A.bringToFront();
-  await A.click('.title-actions .btn-primary');
+  await A.click('.nd-host');
   await A.waitForSelector('.setup-screen input.input');
   await sleep(1500);
   const menuAtSetup = await A.evaluate(() => (window.__arcade.musicDebug().voices.find(v => v.id === 'menu') || {}).t || 0);
@@ -92,10 +92,10 @@ async function makeRoom(sizes, slots = ['a', 'b', 'c']) {
   const code = (await A.$eval('.room-code', el => el.textContent)).trim();
   const join = async (slot, name, size) => {
     const P = await open(slot, `&room=${code}`, size);
-    await P.waitForSelector('.invite-card');
+    await P.waitForSelector('.nd-go');
     await P.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 }); // boot screen faded
     await P.bringToFront();
-    await P.click('.invite-card');
+    await P.click('.nd-go');
     await P.waitForSelector('.input-code');
     await P.type('.setup-screen input.input:not(.input-code)', name);
     await clickText(P, 'CONNECT');

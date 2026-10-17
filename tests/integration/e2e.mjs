@@ -65,7 +65,7 @@ const toastText = page => page.evaluate(() => [...document.querySelectorAll('.to
 try {
   // ---------- host creates a room ----------
   const A = await open(1);
-  await A.waitForSelector('.title-screen .logo', { timeout: 15000 });
+  await A.waitForSelector('.title-screen .nd-sign', { timeout: 15000 });
   await sleep(1200);
   await shot(A, '01-title');
   await clickText(A, 'HOST GAME');
@@ -85,9 +85,9 @@ try {
 
   // ---------- two friends join via invite link ----------
   const B = await open(2, `&room=${code}`);
-  await B.waitForSelector('.invite-card');
+  await B.waitForSelector('.nd-go');
   await shot(B, '04-title-invite');
-  await B.click('.invite-card');
+  await B.click('.nd-go');
   await B.waitForSelector('.input-code');
   if ((await B.$eval('.input-code', el => el.value)) !== code) fail('invite code not prefilled');
   await B.type('.setup-screen input.input:not(.input-code)', 'BOB');
@@ -97,9 +97,10 @@ try {
 
   const C = await open(3);
   await C.waitForSelector('.title-screen');
-  await clickText(C, 'JOIN GAME');
+  // a new player types the code into the title's boxes: no profile yet, so the name screen follows with the code
+  await C.waitForSelector('.nd-code-in');
+  await C.type('.nd-code-in', code.toLowerCase());
   await C.waitForSelector('.input-code');
-  await C.type('.input-code', code.toLowerCase());
   await C.type('.setup-screen input.input:not(.input-code)', 'CHARLIE-THE-LONG-NAME');
   await clickText(C, 'CONNECT');
   await C.waitForSelector('.lobby-screen');
