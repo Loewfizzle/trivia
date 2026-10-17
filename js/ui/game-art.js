@@ -152,7 +152,51 @@ ${head(22, 'url(#da-fig)')}${head(47, 'url(#da-fig)')}${head(98, 'url(#da-fig)')
 <rect x="18" y="100" width="30" height="3" rx="1" fill="#e6e9ef" opacity="0.28"/><rect x="52" y="100" width="18" height="3" rx="1" fill="#e6e9ef" opacity="0.18"/></svg>`;
 }
 
-const ART = { overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+// PRISM DROP: a beam of white light through a glass prism splits into a spectrum over a stack of jewel blocks;
+// one row is clearing into light, a falling piece above, shards drifting off
+function prism() {
+  const C = { I: '#2be4f0', O: '#ffc93a', T: '#b46bff', S: '#2fe07a', Z: '#ff4d6d', J: '#4a86ff', L: '#ff9b3d', X: '#59617a' };
+  const s = 9.2;
+  const ox = 14, oy = 108;
+  const block = (cx, cy, col, a = 1) => {
+    const x = ox + cx * s, y = oy - (cy + 1) * s;
+    return `<g opacity="${a}"><rect x="${x + 0.5}" y="${y + 0.5}" width="${s - 1}" height="${s - 1}" rx="1.6" fill="${col}"/>`
+      + `<path d="M${x + 0.8} ${y + 0.8}h${s * 0.7}l-${s * 0.55} ${s * 0.7}z" fill="#fff" opacity="0.28"/>`
+      + `<rect x="${x + 0.5}" y="${y + 0.5}" width="${s - 1}" height="${s - 1}" rx="1.6" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="0.6"/></g>`;
+  };
+  const rows = [
+    'JJXZZSSXLL',
+    'JIIIITTTLX',
+    'OOSS..TZZL',
+    'OO.SSI..ZZ',
+  ];
+  let stack = '';
+  rows.forEach((r, i) => [...r].forEach((c, x) => { if (c !== '.') stack += block(x, i, C[c] || C.X); }));
+  // the clearing row (row 4): light
+  const cy = oy - 5 * s;
+  const clear = `<rect x="${ox}" y="${cy}" width="${s * 10}" height="${s}" fill="url(#pr-row)" filter="url(#pr-glow)"/>`;
+  // falling piece (T, amethyst) + its ghost
+  const fall = [[4, 9], [5, 9], [6, 9], [5, 8]].map(([x, y]) => block(x, y, C.T)).join('');
+  const ghost = [[4, 4], [5, 4], [6, 4], [5, 3]].map(([x, y]) => `<rect x="${ox + x * s + 1}" y="${oy - (y + 1) * s + 1}" width="${s - 2}" height="${s - 2}" rx="1.4" fill="none" stroke="${C.T}" stroke-opacity="0.65" stroke-width="0.8"/>`).join('');
+  const shard = (x, y, r, col, sc = 1) => `<path transform="translate(${x} ${y}) rotate(${r}) scale(${sc})" d="M0 -4L3.4 2.6L-3 1.8Z" fill="${col}" opacity="0.9"/>`;
+  const spec = ['#ff5f8f', '#ffb347', '#fff27a', '#5fffb0', '#4fd8ff', '#8a7dff'];
+  const rays = spec.map((c, i) => `<path d="M60 30L120 ${8 + i * 7}L120 ${12 + i * 7}Z" fill="${c}" opacity="0.55"/>`).join('');
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<radialGradient id="pr-bg" cx="0.55" cy="0.25" r="0.9"><stop offset="0" stop-color="#1d2452"/><stop offset="0.55" stop-color="#0a0d22"/><stop offset="1" stop-color="#04050c"/></radialGradient>
+<linearGradient id="pr-row" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff7aa8"/><stop offset="0.3" stop-color="#fff"/><stop offset="0.6" stop-color="#bff7ff"/><stop offset="1" stop-color="#a58bff"/></linearGradient>
+<linearGradient id="pr-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#9fd8ff" stop-opacity="0.12"/></linearGradient>
+${glow('pr-glow', 2.4)}</defs>
+<rect width="120" height="120" fill="url(#pr-bg)"/>
+<path d="M0 34L60 30" stroke="#fff" stroke-width="2.2" opacity="0.9" filter="url(#pr-glow)"/>
+${rays}
+<path d="M50 40L60 18L70 40Z" fill="url(#pr-glass)" stroke="#fff" stroke-width="0.9" stroke-opacity="0.9"/>
+<rect x="${ox - 2}" y="${oy - 10 * s - 2}" width="${s * 10 + 4}" height="${s * 10 + 4}" rx="3" fill="#05070f" fill-opacity="0.55" stroke="#ffffff" stroke-opacity="0.22"/>
+${ghost}${stack}${clear}${fall}
+${shard(10, 66, 20, '#ff4d6d')}${shard(112, 62, -30, '#2be4f0', 0.8)}${shard(108, 76, 60, '#ffc93a', 0.7)}${shard(8, 80, -50, '#b46bff', 0.6)}
+</svg>`;
+}
+
+const ART = { prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

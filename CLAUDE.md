@@ -1,7 +1,7 @@
 # NEURAL ARCADE — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Static site on Vercel
-(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All seven build stages are complete
+(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All eight build stages are complete
 (see `ROADMAP.md` for what shipped and the future-ideas list). **Keep this file and ROADMAP.md updated as you work.**
 
 ## Ground rules
@@ -35,12 +35,13 @@ css/bluff.css            NEURAL BLUFF (dossiers, stamps, redaction bars, reveal 
 css/pulse.css            PULSE (HUD, song/Echo cards, countdown, results table, calibration overlay)
 css/chat.css             room chat (lobby strip, chat sheet, in-game chat button)
 css/golf.css             NEON PAR (HUD, zone/par cards, scorecard table, ACE cinematic, sabotage sheet, fog, ball picker)
+css/prism.css            PRISM DROP (HUD, glass board frame, mini-boards, buttons layout, count/title cards, Call the Winner, results)
 css/agent.css            DOUBLE AGENT (surveillance chrome, grain, RGB split, classified file states, dossier tiles, unmasking, case file)
 manifest.webmanifest     PWA manifest (standalone, portrait, icons)
 sw.js                    network-first service worker for same-origin static files only (never Firebase/CDNs/audio)
 assets/                  icon set (icon-192/512, maskable, apple-touch, favicon), og.png 1200×630 link preview
 firebase.json            emulator config for local testing (repo root so it can reference database.rules.json)
-audio/music/*.mp3        music (menu, cipher-breach, last-signal, overclock, neural-bluff, victory, golf-rooftops/-cyber/-arcade, spy1-3), 112–128 kbps, < 4 MB each
+audio/music/*.mp3        music (menu, cipher-breach, last-signal, overclock, neural-bluff, victory, golf-rooftops/-cyber/-arcade, spy1-3, prism1-5 = PRISM DROP songs), 112–128 kbps, < 4 MB each
 js/config.js             APP_NAME, limits, timeouts, colors, avatars (SVG paths), GAMES registry metadata
 js/firebase-config.js    the user's Firebase web config (the ONLY place it lives)
 js/firebase.js           init (per identity slot), emulator mode, re-exported db helpers, serverNow()
@@ -114,6 +115,17 @@ js/games/agent/logic.js      PURE: settings, clue rules (clueProblem), guessRigh
 js/games/agent/director.js   PURE state machine: intro -> briefing -> clues -> debate -> vote -> unmask -> [last] -> scores … final
 js/games/agent/index.js      contract + host secrets (spy/{code}/key seed, writes each player's card), MIN_PLAYERS 4, OPTIONS
 js/games/agent/view.js       file card (press & hold), clue board, my-turn input, debate chat / TALK IT OUT, vote, unmasking, case file
+js/games/prism/engine.js     PURE falling-block engine: 10×40 board, 7 shapes + standard rotation/wall kicks, seeded 7-bag
+                             (pieceAt), hold, ghost, lock delay 500 ms / 15 resets, gravity curve, twists (3-corner rule),
+                             scoring, attack table, countering, badges, junk, save/restore; fixed 1/120 s steps (update(ms))
+js/games/prism/logic.js      PURE match rules: room playlist (playlistAt), song schedule + crossfades, battle speed/sudden death,
+                             targeting, comeback delay, KO badges, Call the Winner bonus, standings
+js/games/prism/director.js   PURE state machine: count -> play -> end -> final (KOs, badges, duel, results, calls, night bonus)
+js/games/prism/{index,songs}.js  contract (start deals the songs + GO beat) / song JSON + beat clock
+js/games/prism/audio.js      song player on the server clock (danger low-pass, duel lift, crossfades) + musical SFX synth (key/scale, 16th grid)
+js/games/prism/worlds.js     WebGL world shaders (aurora, city, nebula, crystal, sunset × 3 variants) + shared post (beat, bloom, waves, danger)
+js/games/prism/{board,fx,input,bot,view}.js  glass block sprites + board/minis, shards, gestures/buttons/keys, test bot, the view
+data/prism/prismN.json       PRISM DROP song analysis: beats, energy, tonic + mode, lastBeat, mood, world (generated; manifest.json)
 data/agent/words.json        DOUBLE AGENT bank: { categories: [[CATEGORY, [words…]], …] } (41 × 15–18, unique, family-friendly)
 data/trivia/fallback.json    333 hand-written medium/hard questions: [category, difficulty, q, correct, w1, w2, w3]
 data/oc/lexicon.json         320 LEXICON sets: [9 letters, max length, "longest words", "every valid 3+ word"] (generated)
@@ -135,6 +147,7 @@ scripts/build-lexicon.mjs    regenerates data/oc/lexicon.json from ENABLE + Norv
 scripts/build-make24.mjs     every 1–9 tile set solved exactly → data/oc/make24.json (easy: many whole-number routes; hard: needs ÷ or ≤ 2 routes)
 scripts/build-timeline.mjs   verified fact pools → data/oc/timeline.json (fairness gaps: years ≥ 5 apart, quantities ≥ 1.3×)
 scripts/serve.mjs            zero-dep local static server (port 5173)
+scripts/build-prism.py       PRISM DROP song pipeline: encode + beat grid + key + energy + world (see "PRISM DROP")
 scripts/build-beatmaps.py    PULSE song pipeline: trim/encode + beat grid + notes + manifest (see "PULSE" below)
 scripts/check-beatgrid.py    ground truth for the beat grid: synthetic drums at known times through the same pipeline
 scripts/validate-holes.mjs   NEON PAR bot: proves every hole is finishable at/under par, measures ace odds (see NEON PAR)
@@ -175,6 +188,11 @@ rooms/{CODE}/meta/settings/chat: { filter: bool }                 ← host; "Fil
   agvote/{matchId}/{rk}/{uid}:  { s, lock?, at }  ← vote phase, changeable until locked
   agguess/{matchId}/{rk}/{uid}: { t, at }         ← last chance, only a caught agent, once
   meta/used/agent/{wordKey}: true                 ← host; DOUBLE AGENT words already dealt in this room
+  meta/prism: { seed, n }                         ← host; PRISM DROP room playlist (seeded shuffle, next position)
+  prism/{matchId}/{uid}: { st: play|out, at, b (board string), h, p ("t,r,x,y"), sc, ln, lv, mc, se, pd, best, tg, by?, ev?, sv }
+                                                  ← PRISM DROP, own, count/play/end; out is final (by = who KO'd you)
+  prismq/{matchId}/{target}/{push}: { f, n ≤ 30, g 0-9, at }   ← PRISM DROP junk attack, from yourself, battle only, once
+  prismcall/{matchId}/{uid}: { w, at }            ← Call the Winner: only when out, ≤ 12 s after, a live player, once
 spy/{CODE}/                            ← top level, DOUBLE AGENT secrets (never inside rooms/{CODE})
   key/{matchId}: { seed }      read/write: the CURRENT host only (rules check rooms/{CODE}/meta/hostId)
   card/{uid}:    { m, rk, cat, word|null, agent }   read: that player only; write: host only
@@ -262,6 +280,10 @@ sample `{x,y,z,vx,vy,t}`, `pu` held power-up, `pk` bitmask of pickups taken this
 `ri/rt` riding a moving platform, `sab {h,to,k,at}` the sabotage this player sent this hole (once), `ball {c,f,t}` their look.
 Totals are derived from `results` (lowest strokes wins).
 
+PRISM DROP `game`: `{ id:'prism', matchId, settings{mode: battle|rush}, participants, seed, songs[ids], sd[ms], pl0 (playlist
+position), phase: count|play|end|final, songStartAt, playStartAt (= a downbeat of song 0), endAt (rush: the song's last beat),
+n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd}}, calls{uid:{w,ok,bonus}} }`.
+
 DOUBLE AGENT `game`: `{ id:'agent', matchId, settings{rounds,mode,agents,clueSec,debateSec,passes}, participants, seat[] (this
 round's players), names{uid}, round, v (re-deals), rk = "round-v", phase: intro|briefing|clues|debate|vote|unmask|last|scores|final,
 phaseStartAt, phaseEndsAt, order[], turn, cur, pass, turnEndsAt, board{pass:{uid:clue|''}}, debateEnd, tally, accused[],
@@ -286,6 +308,8 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
   `module.step(game, {code, now, live, online})`, writing the returned patch. A per-transition in-flight guard prevents duplicate writes.
 - **Per-game minimum:** a module may export `MIN_PLAYERS` (DOUBLE AGENT: 4); host.js and the lobby use `max(MIN_PLAYERS, mod.MIN_PLAYERS)`.
   An option with `when(onlineCount)` (DOUBLE AGENT's 2 agents: 7+) only shows/applies when true; otherwise its default is used.
+- **Game-night bonus:** a module may export `nightBonus(game)` → `{ uid: points }`; host.js stores it as `night/{m}/b`, and
+  `core/night.js` adds it to the total (not a win). PRISM DROP's Call the Winner uses it.
 - **Room-level side writes:** a director step may carry `$room: { 'meta/used/bluff/ID': true }`; `host.js` strips it and
   writes it in the same atomic room update. When a step enters `final`, `host.js` also writes `night/{matchId}` from
   `module.finalRanks(game)` (idempotent per match).
@@ -366,7 +390,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (140 tests: rules of all seven games (DOUBLE AGENT: tests/agent.test.mjs) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (176 tests: rules of all eight games (DOUBLE AGENT: tests/agent.test.mjs; PRISM DROP: prism-engine + prism) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -407,6 +431,14 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
   - Overclock update 2: `node e2e-oc-2.mjs "<browser path>" ./shots` (N=8) — Missing Link typed (wrong guess shakes, plural, keyboard
     layout), Spellcheck, Make 24 (merges, UNDO, refresh between puzzles), Compass, Sort It with real touch swipes + side taps (host
     killed mid-challenge), Higher or Lower; identical puzzles everywhere, every player's points vs the scoring rule, all screens at both sizes.
+  - PRISM DROP E2E: `node e2e-prism.mjs "<browser path>" ./shots-prism` (env N=8, RUSH=0, CPU=4; `PERF_ONLY=1 GPU=1 N=2`
+    = frame pacing only) — 8 players: same song/world/7-bag on every phone, real CDP touch gestures (drag 3 cells, taps,
+    soft drop, flick, swipe up, sideways swipes never hard-drop), bots battle, junk attacks, targeting, notes in key + clears
+    on the 16th grid, refresh mid-battle, song change mid-match (world + crossfade), host killed, 30 s offline = out, Call
+    the Winner, KO credit + badges, FINAL DUEL + music lift, game-night bonus, Score Rush (next playlist song, reboot,
+    finale on the last beat, results), no stray "null" (40 checks). Scene preview without Firebase:
+    `tests/integration/prism-preview.html?world=city&v=2&tier=1&bot=1&fx=1&danger=0.5`; worlds + per-tier timings:
+    `node prism-shots.mjs "<browser>" ./shots-prism [cpu]` (measured with GPU=1 at 4× CPU: 16.7 ms median at all tiers).
   - DOUBLE AGENT E2E: `node e2e-agent.mjs "<browser path>" ./shots-agent` — 8 players: REMOTE match (card privacy per
     player, deal, reveal styles, refresh mid-clues, keyboard layout, blocked clue, timeout + offline skips, pins, debate
     chat, host killed mid-debate, tie = escape, agent leaves → void + re-deal, last-chance steal, final, game night) and a
@@ -428,7 +460,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 - Web config goes in `js/firebase-config.js` (public by design; the rules are the security).
 
 ## Music
-NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`) and DOUBLE AGENT's `spy1-3` are the owner's, re-encoded at 112 kbps stereo.
+NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`), DOUBLE AGENT's `spy1-3` and PRISM DROP's `prism1-5` are the owner's, re-encoded at 112 kbps stereo.
 Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 -ar 44100 -ac 2 -b:a 128k`; overclock at
 120k to stay under 4 MB). The originals stay out of the repo.
 
@@ -493,7 +525,7 @@ Trims songs > 3:15 to their most energetic ~2:50 (fade in/out), skips intros > 1
   key). Offline: Firebase queues the write; the line shows SENDING… until the server confirms.
 - **Locks** (`logic.js#chatLocked`, unit-tested): chat opens in the lobby and every break; it is locked only during your
   own active play — Cipher guessing (until solved/out), Last Signal answering (eliminated = always open), Overclock
-  challenge (until done), Bluff write/vote, PULSE song/Echo, Neon Par until you hole out, DOUBLE AGENT
+  challenge (until done), Bluff write/vote, PULSE song/Echo, Neon Par until you hole out, PRISM DROP while your board is live (knocked out = open), DOUBLE AGENT
   briefing + clues (in SAME ROOM mode also debate → last chance: the debate happens out loud). Spectators can always chat.
   While locked: the button shows a small lock, the badge keeps counting, no sound/toast/vibration, and an open sheet
   closes when the next round starts. `body.chat-fab-on .timer` leaves room for the button under the gear.
@@ -566,6 +598,56 @@ export default {
 **Adding a hole:** copy a similar file, edit it, add it to `HOLES` in `holes/index.js` (and to `MODES` if Quick 6/3 should
 use it), then run `node scripts/validate-holes.mjs <n>`. It must print OK (best ≤ par); aim for an "aimed" ace chance well
 under ~40 % and "random" < 2 %. Then `node --test tests/golf.test.mjs`, and play it once (`?emu`, two slots).
+
+## PRISM DROP (falling-block battle)
+**Never use the words "Tetris", "tetromino" or "T-spin" anywhere** (UI, text, assets, code comments shown to players). Pieces are
+"pieces"/"prisms", spins are "twists". Own identity: luminous glass jewels, white light with spectral edges.
+- **Every phone runs its own board** (`engine.js`, pure, fixed 1/120 s steps — frame rate never changes play). Same pieces for
+  everyone: `pieceAt(game.seed, n)` = 7-bags shuffled from the match seed. What leaves the phone: a ~5 Hz snapshot (`prism/…`: board
+  string "0–8" per cell from the bottom row, active piece, stats, target), a full save every 3 s (`sv`: board, queue position n,
+  hold, combo/b2b, pending junk, last attack key) — a refresh restores from it — and attacks (`prismq/{target}`, pushed at once
+  with server time; the target's phone applies them: `receive()` with delay = 1 s, or 2.5 s when its stack is ≥ 16 rows tall,
+  minus how long the attack was in flight). Junk lands on the next lock without a clear; a clear cancels pending junk first.
+- **Battle:** attack table 1→0, 2→1, 3→2, 4→4; twist single/double/triple 2/4/6; mini twist (double) 1; back-to-back +1;
+  combo bonus `COMBO_ATTACK`; perfect clear 10 (+b2b) + combo; × (1 + badge bonus) with the fraction carried (`frac`).
+  Speed: level = 1 + minutes played (cap 12). Sudden death: after 5 min, one junk row every 10 s (gap from the seed). A top-out
+  writes `st:'out'` + `by` (the sender of the last junk received = KO credit); the director orders knockouts by time, moves badges
+  (`applyKo`: killer gets victim's + 1), counts KOs, sets `duelAt` when 2 of ≥ 3 remain, ends when ≤ 1. Offline > 30 s = out.
+  Targeting (`chooseTarget`): RANDOM (re-picks every ~8 s), ATTACKERS (who hit you in the last 15 s / targets you), DANGER
+  (tallest stack). Call the Winner: 10 s after you're out (rules: 12 s); bonus = `callBonus(rem)` = 0.4 × (players left − 1).
+- **Score Rush:** no attacks; the match = one song (`endAt` = the song's analysed last strong beat); levels every 10 lines; a
+  top-out clears the board (score kept); the finale (chord + the board shattering) is scheduled on that beat.
+- **Songs:** `meta/prism` holds the room's playlist seed + position. `playlistAt(seed, k, ids)` = per-cycle seeded shuffles, a cycle
+  never starts with the song the last one ended on, so nothing repeats until all have played. A match takes the next song(s)
+  (battle deals 5 in a row; if it outlasts a song the next crossfades in over 4 s and the world transforms); the final step
+  advances `meta/prism/n` by the songs used. The song plays from two pre-activated audio elements (`music.js#gameVoices`) on the
+  server clock (drift-corrected), through a low-pass (DANGER: stack ≥ 13 rows sinks it toward 600 Hz) and a lift gain (DUEL).
+  Menu music is off during the match (`MUSIC = null`); the podium plays victory.
+- **Musical SFX** (`audio.js#createSynth`): every note comes from the current song's scale (`tonic` + `mode`); line-clear phrases,
+  twists, KO, level-up are quantized to the song's next 16th note (beat clock from the analysis); combos climb the scale; the
+  countdown ticks are scheduled on the beats before GO. Synth: soft plucks, FM bells, a detuned pad, one convolver reverb.
+  `window.__prism.synthLog()` records every note (the E2E checks key + grid).
+- **Visuals:** the board is Canvas 2D with pre-rendered glass sprites (`board.js`); the world is one WebGL fragment shader per
+  world at 0.33–0.6 of screen resolution (`worlds.js`; uniforms: beat, energy, bloom, hue, combo, wave, danger, duel, glitch) and
+  shards are a capped canvas particle layer (`fx.js`) between them. Quality tiers 2/1/0 (world scale, fbm octaves, DPR 2/1.5/1,
+  particle cap 200/110/50, glow) step down when the p75 frame > 19.5 ms. "Reduced effects" (settings) + prefers-reduced-motion
+  turn off shards, hue drift, beat pulses and camera pulses.
+- **Controls** (`input.js#makeGesture`, pure + unit-tested with 2000 random swipes): drag = follow the finger by distance (no
+  overshoot), tap = rotate by screen half, slow drag down = soft drop row by row, flick (≥ ~1.15 px/ms over 70 ms, steep, ≥ 0.9
+  cell) = hard drop, swipe up = hold. Settings: GESTURES/BUTTONS, swipe sensitivity, button size, reduced effects (`audio/settings.js`
+  `prismScheme/prismSens/prismBtn/prismReduced`). Keys: ← → ↓ space ↑/X Z C/shift.
+
+**Adding PRISM DROP songs** (the owner drops `prism6.mp3`, `prism7.mp3`, … into ~/Downloads and asks to "add the new PRISM DROP songs"):
+1. PULSE's Python venv (see PULSE step 1).
+2. `~/.cache/neural-arcade/pyenv/Scripts/python scripts/build-prism.py` — encodes new/changed songs to `audio/music/prismN.mp3`
+   (112 kbps stereo, full length), analyses beat grid / key / energy / last beat, picks a world from the song's mood (tempo,
+   energy, brightness, major/minor; unused worlds first) and rewrites `data/prism/manifest.json`. A file named just `prism.mp3`
+   gets the lowest free number. `--only 6,7`, `--force`, `--reworld` (re-pick all worlds).
+3. Worlds: five exist (aurora, city, nebula, crystal, sunset) × 3 variants. Once every world is taken, a new song reuses the
+   best-fitting one. For a song that deserves its own world, add a shader body to `worlds.js#BODY` + an entry with 3 variants
+   in `WORLDS` + its mood target in `build-prism.py#WORLDS`, then `--reworld`. Override by editing `"world"` in the song's JSON (kept on rebuilds).
+4. `node --test tests/prism.test.mjs`; look at it in `prism-preview.html?world=…`; play a Score Rush (`?emu`, two slots).
+5. Commit `audio/music/prism*.mp3` + `data/prism/` and push.
 
 ## DOUBLE AGENT (social deduction)
 - **Privacy:** `rooms/{code}` is readable by every signed-in user, so nothing secret goes there. `index.js#start` writes a

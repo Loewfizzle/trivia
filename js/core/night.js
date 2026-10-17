@@ -1,4 +1,5 @@
-// PURE: game-night standings from rooms/{code}/night/{matchId} = { g, p: { uid: points }, n: { uid: name } }.
+// PURE: game-night standings from rooms/{code}/night/{matchId} = { g, p: { uid: points }, n: { uid: name }, b?: { uid: bonus } }.
+// b = bonus points that aren't a placing (PRISM DROP's Call the Winner): they add to the total but never count as a win.
 export function nightStandings(night, players = {}) {
   const t = {};
   for (const entry of Object.values(night || {})) {
@@ -9,6 +10,10 @@ export function nightStandings(night, players = {}) {
       row.games += 1;
       if (pts >= 3) row.wins += 1;
       if (entry.n && entry.n[uid]) row.name = entry.n[uid];
+    }
+    for (const [uid, pts] of Object.entries(entry.b || {})) {
+      const row = t[uid] || (t[uid] = { uid, points: 0, wins: 0, games: 0, name: (entry.n && entry.n[uid]) || 'GHOST' });
+      row.points = Math.round((row.points + (pts || 0)) * 10) / 10;
     }
   }
   const rows = Object.values(t).sort((a, b) => b.points - a.points || b.wins - a.wins || (a.uid < b.uid ? -1 : 1));

@@ -1,0 +1,119 @@
+<!doctype html>
+<!-- PRISM DROP scene preview (no Firebase): a world + a bot-played board + effects.
+     ?world=aurora|city|nebula|crystal|sunset &v=0..2 &tier=0..2 &bot=1 &danger=0..1 &fx=1 (big clears on a loop) &t=seconds
+     Used for the visual review and for frame-time profiling (golf-profile.mjs style). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prism preview</title>
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/components.css">
+<link rel="stylesheet" href="../../css/prism.css">
+<style>html,body{background:#000;height:100%;margin:0} .pd{position:fixed}</style>
+</head>
+<body data-theme="prism">
+<div class="pd" id="root" data-mode="battle">
+  <canvas class="pd-world" id="world"></canvas>
+  <canvas class="pd-fx" id="fx"></canvas>
+  <div class="pd-ui" id="ui" style="--topH:52px;--minisH:96px;--btnH:0px">
+    <div class="pd-top"><div class="pd-info"><b class="pd-mode">BATTLE</b><span class="pd-sub">5 LEFT</span></div><div class="pd-announce"></div></div>
+    <div class="pd-main"><div class="pd-play">
+      <aside class="pd-side pd-left"><div class="pd-card"><small>HOLD</small><canvas id="hold"></canvas></div>
+        <div class="pd-badges"><small>BADGES</small><div class="pd-pips"><i class="on"></i><i class="on"></i><i></i></div><b>+25%</b></div>
+        <button class="pd-target" style="--c:#ff4d6d"><small>TARGET</small><span class="pd-tnone">◎</span><b>DANGER</b></button>
+        <div class="pd-stats"><small>LINES</small><b id="ln">0</b><small>SENT</small><b>4</b><small>SPEED</small><b>2</b></div></aside>
+      <div class="pd-center"><div class="pd-board" id="bw"><div class="pd-meter" style="--n:5"><i></i></div><div class="pd-board-glass"></div><canvas class="pd-board-c" id="board"></canvas><div class="pd-board-over"></div></div></div>
+      <aside class="pd-side pd-right"><div class="pd-card pd-nextcard"><small>NEXT</small><canvas id="n0"></canvas><canvas id="n1"></canvas><canvas id="n2"></canvas><canvas id="n3"></canvas><canvas id="n4"></canvas></div><div class="pd-opp"></div></aside>
+    </div>
+    <div class="pd-minis" id="minis"></div></div>
+    <div class="pd-buttons"></div>
+  </div>
+</div>
+<script type="module">
+import * as E from '../../js/games/prism/engine.js';
+import { createWorlds } from '../../js/games/prism/worlds.js';
+import { createBoardView, drawPiece, drawMini, JEWEL } from '../../js/games/prism/board.js';
+import { createFx } from '../../js/games/prism/fx.js';
+import { chooseMove } from '../../js/games/prism/bot.js';
+import { rngFrom } from '../../js/core/rng.js';
+const q = new URLSearchParams(location.search);
+const tier = Number(q.get('tier') ?? 2);
+const root = document.getElementById('root');
+const W0 = root.clientWidth, H0 = root.clientHeight;
+const side = Math.round(Math.max(40, Math.min(64, W0 * 0.115)));
+const cell = Math.floor(Math.min((W0 - 2 * side - 26) / 10, (H0 - 52 - 96 - 20) / 20, 40));
+const minisH = Math.max(96, Math.min(150, H0 - 52 - cell * 20 - 30)); root.style.setProperty('--minisH', minisH + 'px');
+root.style.setProperty('--cell', cell + 'px'); root.style.setProperty('--sideL', side + 'px'); root.style.setProperty('--sideR', side + 'px');
+const world = createWorlds(document.getElementById('world'));
+world.setTier(tier);
+world.setWorld(q.get('world') || 'aurora', Number(q.get('v') || 0), 0);
+const fx = createFx(document.getElementById('fx')); fx.resize([1, 1.5, 2][tier]); fx.setCap([50, 110, 200][tier]);
+const board = createBoardView(document.getElementById('board')); board.size(cell, [1, 1.5, 2][tier]);
+const g = E.createEngine({ seed: q.get('seed') || 'preview', mode: 'battle' });
+E.start(g);
+const rnd = rngFrom('p');
+// a believable mid-game stack
+const pre = Number(q.get('stack') ?? 8);
+for (let i = 0; i < pre && g.cur; i++) { const m = chooseMove(g, { skill: 0.6, rnd }); while (g.cur && g.cur.r !== m.r) if (!E.rotate(g, 1)) break; while (g.cur && g.cur.x !== m.x) if (!E.move(g, Math.sign(m.x - g.cur.x))) break; E.hardDrop(g); }
+E.takeEvents(g);
+const minis = document.getElementById('minis');
+const names = ['ALICE', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE'];
+const cols = ['#ff4d6d', '#2be4f0', '#ff6ad5', '#ffd23a', '#2fe07a', '#ff9b3d', '#a374ff'];
+const mc = Math.max(2, Math.min(5, Math.floor(Math.min((minisH - 20) / 20, (W0 - 24) / 7 / 13))));
+names.forEach((n, i) => {
+  const o = E.createEngine({ seed: 'preview', mode: 'battle' }); E.start(o);
+  const r = rngFrom(n);
+  for (let k = 0; k < 6 + i * 3 && o.cur; k++) { const m = chooseMove(o, { skill: 0.5, rnd: r }); if (m) { while (o.cur && o.cur.r !== m.r) if (!E.rotate(o, 1)) break; while (o.cur && o.cur.x !== m.x) if (!E.move(o, Math.sign(m.x - o.cur.x))) break; } E.hardDrop(o); }
+  if (i === 3) E.insertJunk(o, 5, 3);
+  const card = document.createElement('div'); card.className = 'pd-mini' + (i === 2 ? ' is-target' : '') + (i === 4 ? ' is-attacker' : '') + (i === 6 ? ' is-ko' : '');
+  card.style.setProperty('--c', cols[i]);
+  card.innerHTML = `<canvas></canvas><div class="pd-mini-pips">${'<i></i>'.repeat(i === 1 ? 3 : i === 4 ? 1 : 0)}</div><span class="pd-mini-name"><b>${n}</b></span><span class="pd-mini-ko">KO</span>`;
+  minis.append(card);
+  drawMini(card.querySelector('canvas'), E.boardString(o), o.cur ? `${o.cur.t},${o.cur.r},${o.cur.x},${o.cur.y}` : '', { cell: mc, ko: i === 6 });
+});
+const danger = Number(q.get('danger') || 0);
+const bot = q.get('bot') === '1';
+const loopFx = q.get('fx') === '1';
+let last = performance.now(), t0 = last, nextMove = 0, nextBig = 800;
+const frames = [];
+const fxs = { bloom: 0, hue: 0, waveT: -1, wz: 0 };
+function bigClear() {
+  const r = document.getElementById('board').getBoundingClientRect(), rf = document.getElementById('fx').getBoundingClientRect();
+  const cells = []; for (let y = 2; y < 6; y++) for (let x = 0; x < 10; x++) { const [cx, cy] = board.cellCenter(x, y); cells.push({ x: r.left - rf.left + cx, y: r.top - rf.top + cy, color: JEWEL[1 + ((x + y) % 7)] }); }
+  fx.shatter(cells, { cx: r.left - rf.left + r.width / 2, cy: r.top - rf.top + r.height / 2 });
+  fx.ring(r.left - rf.left + r.width / 2, r.top - rf.top + r.height * 0.75, { size: r.width * 1.6 });
+  board.flashRows([2, 3, 4, 5], 1, 200);
+  fxs.waveT = 0; fxs.bloom = 0.9; fxs.hue += 0.3; fxs.wz = Math.random();
+}
+window.__preview = { frames, bigClear, world, setTier: t => { world.setTier(t); }, glitch: () => board.glitch(200) };
+function frame(t) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(100, t - last); last = t;
+  frames.push(dt); if (frames.length > 600) frames.shift();
+  if (bot && g.cur && t > nextMove) {
+    nextMove = t + 420;
+    const m = chooseMove(g, { skill: 0.85, rnd });
+    if (m) { while (g.cur && g.cur.r !== m.r) if (!E.rotate(g, 1)) break; while (g.cur && g.cur.x !== m.x) if (!E.move(g, Math.sign(m.x - g.cur.x))) break; }
+    E.hardDrop(g);
+  }
+  E.update(g, dt);
+  for (const ev of E.takeEvents(g)) if (ev.e === 'clear') board.flashRows(ev.rows, ev.lines >= 4 ? 1 : 0.6, 160);
+  if (loopFx && t - t0 > nextBig) { nextBig += 2600; bigClear(); }
+  fxs.bloom *= Math.pow(0.12, dt / 1000); fxs.hue *= Math.pow(0.55, dt / 1000);
+  if (fxs.waveT >= 0) { fxs.waveT += dt / 1500; if (fxs.waveT > 1) fxs.waveT = -1; }
+  const sec = (t - t0) / 1000 + Number(q.get('t') || 0);
+  const beat = Math.exp(-((sec % 0.48) / 0.48) * 5);
+  world.set({ beat: beat * 0.8, energy: 0.7, bloom: fxs.bloom, hue: fxs.hue, danger, duel: Number(q.get('duel') || 0), wave: fxs.waveT >= 0 ? [-0.2 + fxs.waveT * 1.6, Math.sin(Math.PI * fxs.waveT), fxs.wz] : [0, 0, 0] });
+  world.render(sec);
+  fx.draw(dt);
+  board.draw(g, { danger, glow: tier === 0 ? 0 : 0.32 });
+  drawPiece(document.getElementById('hold'), 3, { cell: Math.round(cell * 0.36) });
+  E.nextQueue(g).forEach((p, i) => drawPiece(document.getElementById('n' + i), p, { cell: Math.round(cell * (i ? 0.3 : 0.38)) }));
+  document.getElementById('ln').textContent = g.lines;
+  document.getElementById('root').style.setProperty('--danger', danger);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -655,6 +655,8 @@ body[data-theme]:not([data-theme='']) .music-btn { display: none; }
 .set-head .icon-btn { font-size: 28px; }
 .set-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px 12px; }
 .set-row .range { grid-column: 1 / -1; }
+.set-row.set-seg .seg { justify-self: end; min-width: 0; }
+.set-row.set-seg .seg-btn { padding: 0 12px; }
 .set-val { font-family: var(--font-num); font-weight: 700; font-size: 16px; color: var(--accent); font-variant-numeric: tabular-nums; }
 .set-toggle { grid-template-columns: 1fr auto; min-height: 44px; }
 .set-room { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 0; border-top: 1px solid var(--line); }

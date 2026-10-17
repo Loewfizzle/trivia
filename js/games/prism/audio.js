@@ -1,0 +1,518 @@
+// PRISM DROP audio.
+//
+// SONGS. Each match plays the room playlist's songs on the server clock: song i starts at songStarts(game)[i],
+// so everyone (and anyone who rejoins) hears the same moment. Songs stream through two audio elements that
+// were activated in the first tap (music.js#gameVoices — iOS needs that), each into its own gain, then one
+// low-pass filter (DANGER: the stack near the top pulls it down to an "underwater" ~600 Hz) and a lift gain
+// (FINAL DUEL: a filter sweep + a small swell), into the music bus (so the Music slider still rules).
+// A drift check keeps each element within ~40 ms of where the server clock says it should be.
+//
+// MUSICAL SFX. Every effect is synthesized in the current song's key and scale (data/prism/prismN.json:
+// tonic + mode), soft and round, with a shared reverb, on the SFX bus. Line clears wait for the next 16th
+// note of the song so they land in time; combos climb the scale. Without a song (missing file, muted, no tap
+// yet) the same virtual clock keeps them in time anyway.
+import { getContext, getMusicBus, getSfxBus } from '../../audio/engine.js';
+import { gameVoices } from '../../audio/music.js';
+import { serverNow } from '../../firebase.js';
+import { settings } from '../../audio/settings.js';
+import { songStarts, XF_MS } from './logic.js';
+import { songUrl, beatClock } from './songs.js';
+
+const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+const PENT = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+
+// ================================================================ songs
+export function createSongPlayer() {
+  let chain = null;      // { filter, lift, out, slots: [{ el, source, gain, id, i }] }
+  let game = null;
+  let danger = 0;
+  let duelAt = null;
+  let duelDone = false;
+  let stopped = false;
+  let finaleAt = null;
+
+  function build() {
+    const ctx = getContext();
+    const voices = gameVoices();
+    if (!ctx || voices.length < 2) return null;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 20000;
+    filter.Q.value = 0.8;
+    const lift = ctx.createGain();
+    lift.gain.value = 1;
+    const out = ctx.createGain();
+    out.gain.value = 1;
+    filter.connect(lift).connect(out).connect(getMusicBus());
+    const slots = voices.slice(0, 2).map(v => {
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      try { v.source.disconnect(); } catch { /* not connected */ }
+      v.source.connect(gain).connect(filter);
+      return { el: v.el, source: v.source, gain, id: null, i: -1, lastSeek: 0 };
+    });
+    return { filter, lift, out, slots };
+  }
+
+  function want(slot, i, id) {
+    if (slot.i === i && slot.id === id) return;
+    slot.i = i;
+    slot.id = id;
+    slot.el.preload = 'auto';
+    slot.el.src = songUrl(id);
+    slot.el.load();
+  }
+
+  // gain for song i at server time t: crossfades in (after song 0) and out (into the next song)
+  function envelope(i, t, starts) {
+    const start = starts[i];
+    const end = start + game.sd[i];
+    if (t < start || t > end) return 0;
+    let g = 1;
+    if (i > 0 && t < start + XF_MS) g = Math.min(g, (t - start) / XF_MS);
+    if (i + 1 < starts.length && t > starts[i + 1]) g = Math.min(g, 1 - (t - starts[i + 1]) / XF_MS);
+    if (end - t < 1500) g = Math.min(g, (end - t) / 1500); // the very end of the last song fades
+    return Math.max(0, Math.min(1, g));
+  }
+
+  function tick() {
+    if (!game || stopped) return;
+    if (!chain) { chain = build(); if (!chain) return; }
+    const ctx = getContext();
+    if (!ctx || ctx.state !== 'running') return;
+    const t = serverNow();
+    const starts = songStarts(game);
+    // the song playing now and (near a crossfade) the next one
+    let cur = 0;
+    while (cur + 1 < starts.length && t >= starts[cur + 1]) cur++;
+    const active = [cur];
+    if (cur + 1 < starts.length && starts[cur + 1] - t < 30_000) active.push(cur + 1);
+    if (cur > 0 && t < starts[cur] + XF_MS) active.push(cur - 1);
+    for (const i of active) {
+      const slot = chain.slots[i % 2];
+      want(slot, i, game.songs[i]);
+    }
+    for (const slot of chain.slots) {
+      if (slot.i < 0) continue;
+      const i = slot.i;
+      const g = envelope(i, t, starts);
+      const pos = (t - starts[i]) / 1000;
+      const ramp = Math.max(0.05, Math.min(0.25, 0.25));
+      slot.gain.gain.setTargetAtTime(g, ctx.currentTime, ramp / 3);
+      const el = slot.el;
+      const shouldPlay = pos > -0.05 && pos < game.sd[i] / 1000 && (g > 0 || pos < 0.2);
+      if (!shouldPlay) {
+        if (!el.paused && (pos >= game.sd[i] / 1000 || pos < -1)) el.pause();
+        continue;
+      }
+      if (el.readyState < 2) { if (el.paused) el.play().catch(() => {}); continue; }
+      if (el.paused) {
+        try { el.currentTime = Math.max(0, pos + 0.03); } catch { /* not seekable yet */ }
+        el.play().catch(() => {});
+        slot.lastSeek = performance.now();
+        continue;
+      }
+      // drift: small = nudge the rate, large = seek
+      const drift = el.currentTime - pos;
+      if (Math.abs(drift) > 0.18 && performance.now() - slot.lastSeek > 1200) {
+        try { el.currentTime = pos + 0.03; } catch { /* fine */ }
+        slot.lastSeek = performance.now();
+        el.playbackRate = 1;
+      } else if (Math.abs(drift) > 0.03) {
+        el.playbackRate = drift > 0 ? 0.97 : 1.03;
+      } else if (el.playbackRate !== 1) {
+        el.playbackRate = 1;
+      }
+    }
+    // danger: the music sinks under water as the stack nears the top
+    const target = danger > 0.01 ? 20000 * Math.pow(600 / 20000, Math.min(1, danger)) : 20000;
+    chain.filter.frequency.setTargetAtTime(target, ctx.currentTime, 0.25);
+    // final duel: one sweep up from a muffled 350 Hz + a small swell that stays
+    if (duelAt && !duelDone && t >= duelAt) {
+      duelDone = true;
+      const now = ctx.currentTime;
+      chain.filter.frequency.cancelScheduledValues(now);
+      chain.filter.frequency.setValueAtTime(350, now);
+      chain.filter.frequency.exponentialRampToValueAtTime(20000, now + 2.6);
+      chain.lift.gain.cancelScheduledValues(now);
+      chain.lift.gain.setValueAtTime(chain.lift.gain.value, now);
+      chain.lift.gain.linearRampToValueAtTime(1.22, now + 2.6);
+    }
+    if (finaleAt && t >= finaleAt) {
+      const now = ctx.currentTime;
+      chain.out.gain.setTargetAtTime(0, now, 0.9);
+      finaleAt = null;
+    }
+  }
+
+  return {
+    setGame(g) { game = g; duelAt = g && g.duelAt ? g.duelAt : duelAt; },
+    setDanger(d) { danger = Math.max(0, Math.min(1, d)); },
+    setDuel(at) { if (at && !duelAt) duelAt = at; },
+    /** fade the songs out (results) from server time `at` */
+    fadeOutAt(at) { finaleAt = at; },
+    tick,
+    debug() {
+      if (!chain) return { ready: false, voices: gameVoices().length };
+      return {
+        ready: true, filter: Math.round(chain.filter.frequency.value), lift: +chain.lift.gain.value.toFixed(3),
+        slots: chain.slots.map(s => ({ id: s.id, i: s.i, t: +(s.el.currentTime || 0).toFixed(2), paused: s.el.paused, gain: +s.gain.gain.value.toFixed(3), rate: s.el.playbackRate })),
+      };
+    },
+    stop() {
+      stopped = true;
+      if (!chain) return;
+      const ctx = getContext();
+      for (const s of chain.slots) {
+        try { s.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.2); } catch { /* fine */ }
+        setTimeout(() => { s.el.pause(); s.el.playbackRate = 1; try { s.source.disconnect(); } catch { /* fine */ } }, 900);
+      }
+      setTimeout(() => { try { chain.filter.disconnect(); chain.lift.disconnect(); chain.out.disconnect(); } catch { /* fine */ } }, 950);
+    },
+  };
+}
+
+// ================================================================ musical sfx
+export function createSynth() {
+  let ctx = null;
+  let bus = null;
+  let dry = null;
+  let verb = null;
+  let tonic = 0;
+  let mode = 'minor';
+  let walk = 2;
+  let lastMove = 0;
+  let clockFn = null; // () => { pos (song seconds now), clk (beatClock) } | null
+  const log = []; // test hook: what was played, in which key, when (song position)
+
+  function ensure() {
+    const c = getContext();
+    if (!c) return false;
+    if (ctx === c) return true;
+    ctx = c;
+    bus = ctx.createGain();
+    bus.gain.value = 0.9;
+    bus.connect(getSfxBus());
+    dry = ctx.createGain();
+    dry.gain.value = 1;
+    dry.connect(bus);
+    verb = ctx.createConvolver();
+    verb.buffer = impulse(ctx, 2.6, 2.4);
+    const wet = ctx.createGain();
+    wet.gain.value = 0.55;
+    verb.connect(wet).connect(bus);
+    return true;
+  }
+
+  function impulse(c, seconds, decay) {
+    const len = Math.floor(c.sampleRate * seconds);
+    const buf = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      let lp = 0;
+      for (let i = 0; i < len; i++) {
+        const t = i / len;
+        lp = lp * 0.72 + (Math.random() * 2 - 1) * 0.28; // a soft, dark tail
+        d[i] = lp * Math.pow(1 - t, decay) * (i < 64 ? i / 64 : 1);
+      }
+    }
+    return buf;
+  }
+
+  // scale degree -> MIDI note (deg 0 = tonic in octave `oct`, C4 = 60)
+  const note = (deg, oct = 5, pent = false) => {
+    const sc = pent ? PENT[mode] : SCALES[mode];
+    const n = sc.length;
+    const o = Math.floor(deg / n);
+    return 12 * (oct + 1) + tonic + sc[((deg % n) + n) % n] + 12 * o;
+  };
+
+  function out(node, rev) {
+    node.connect(dry);
+    if (rev > 0) { const s = ctx.createGain(); s.gain.value = rev; node.connect(s).connect(verb); }
+  }
+
+  function pluck(midi, at, { gain = 0.08, dur = 0.18, bright = 2200, rev = 0.25, type = 'triangle' } = {}) {
+    const f = mtof(midi);
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f, at);
+    const o2 = ctx.createOscillator();
+    o2.type = 'sine';
+    o2.frequency.setValueAtTime(f * 2.0, at);
+    const g2 = ctx.createGain();
+    g2.gain.value = 0.18;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(bright, at);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(200, bright * 0.25), at + dur);
+    lp.Q.value = 0.4;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(gain, at + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0005, at + dur);
+    o.connect(lp);
+    o2.connect(g2).connect(lp);
+    lp.connect(g);
+    out(g, rev);
+    o.start(at); o2.start(at);
+    o.stop(at + dur + 0.05); o2.stop(at + dur + 0.05);
+  }
+
+  // crystalline FM bell
+  function bell(midi, at, { gain = 0.06, dur = 1.2, rev = 0.5, ratio = 3.5 } = {}) {
+    const f = mtof(midi);
+    const c = ctx.createOscillator();
+    c.type = 'sine';
+    c.frequency.setValueAtTime(f, at);
+    const m = ctx.createOscillator();
+    m.type = 'sine';
+    m.frequency.setValueAtTime(f * ratio, at);
+    const mg = ctx.createGain();
+    mg.gain.setValueAtTime(f * 1.6, at);
+    mg.gain.exponentialRampToValueAtTime(f * 0.05, at + dur * 0.6);
+    m.connect(mg).connect(c.frequency);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(gain, at + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0004, at + dur);
+    c.connect(g);
+    out(g, rev);
+    c.start(at); m.start(at);
+    c.stop(at + dur + 0.05); m.stop(at + dur + 0.05);
+  }
+
+  // warm detuned pad (chords)
+  function pad(midis, at, { gain = 0.05, attack = 0.12, hold = 0.6, release = 2.2, rev = 0.6, bright = 2600 } = {}) {
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(bright * 0.4, at);
+    lp.frequency.linearRampToValueAtTime(bright, at + attack + 0.2);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(300, bright * 0.3), at + attack + hold + release);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(gain, at + attack);
+    g.gain.setValueAtTime(gain, at + attack + hold);
+    g.gain.exponentialRampToValueAtTime(0.0004, at + attack + hold + release);
+    lp.connect(g);
+    out(g, rev);
+    const end = at + attack + hold + release + 0.05;
+    for (const m of midis) for (const det of [-7, 7]) {
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(mtof(m), at);
+      o.detune.setValueAtTime(det, at);
+      const og = ctx.createGain();
+      og.gain.value = 1 / (midis.length * 2);
+      o.connect(og).connect(lp);
+      o.start(at);
+      o.stop(end);
+    }
+  }
+
+  function thump(at, { gain = 0.22, from = 130, to = 42, dur = 0.22 } = {}) {
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(from, at);
+    o.frequency.exponentialRampToValueAtTime(to, at + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(gain, at + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0005, at + dur + 0.08);
+    o.connect(g);
+    out(g, 0.08);
+    o.start(at);
+    o.stop(at + dur + 0.12);
+  }
+
+  function noise(at, { gain = 0.06, dur = 0.25, from = 3000, to = 300, q = 0.7 } = {}) {
+    const len = Math.floor(ctx.sampleRate * dur);
+    const b = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const s = ctx.createBufferSource();
+    s.buffer = b;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.Q.value = q;
+    f.frequency.setValueAtTime(from, at);
+    f.frequency.exponentialRampToValueAtTime(to, at + dur);
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    s.connect(f).connect(g);
+    out(g, 0.3);
+    s.start(at);
+  }
+
+  // the next 16th note of the song (ctx time) — so clears land in time
+  function q16(extra = 0) {
+    const now = ctx.currentTime;
+    const c = clockFn && clockFn();
+    if (!c || !c.clk) return { at: now + 0.01, step: 0.12 };
+    const { pos, clk } = c;
+    const p = clk.period;
+    const step = p / 4;
+    const bi = clk.indexAt(pos);
+    const bt = clk.timeOf(bi);
+    const k = Math.ceil((pos - bt + 0.015) / step);
+    const tNext = bt + k * step + extra * step;
+    return { at: now + Math.max(0.005, Math.min(step + 0.03, tNext - pos)) + Math.max(0, extra) * 0, step, songAt: tNext };
+  }
+
+  const record = (name, notes, songAt) => { if (log.length < 400) log.push({ name, notes, songAt, key: tonic, mode }); };
+
+  const SOUNDS = {
+    move() {
+      const now = ctx.currentTime;
+      if (now - lastMove < 0.035) return;
+      lastMove = now;
+      walk = Math.max(0, Math.min(9, walk + (Math.random() < 0.5 ? -1 : 1)));
+      const m = note(walk, 5, true);
+      pluck(m, now + 0.002, { gain: 0.03, dur: 0.07, bright: 2400, rev: 0.12 });
+      record('move', [m]);
+    },
+    rotate({ dir = 1 } = {}) {
+      const m = note(walk + (dir > 0 ? 2 : 1), 5, true);
+      pluck(m, ctx.currentTime + 0.002, { gain: 0.04, dur: 0.09, bright: 3200, rev: 0.16 });
+      record('rotate', [m]);
+    },
+    lock() {
+      const m = note(0, 3);
+      pluck(m, ctx.currentTime + 0.002, { gain: 0.07, dur: 0.14, bright: 900, rev: 0.1 });
+      record('lock', [m]);
+    },
+    hard() {
+      const at = ctx.currentTime + 0.002;
+      thump(at, { gain: 0.2 });
+      const m = note(0, 2);
+      pluck(m, at, { gain: 0.1, dur: 0.22, bright: 700, rev: 0.08 });
+      record('hard', [m]);
+    },
+    hold() {
+      const m = note(4, 6, true);
+      bell(m, ctx.currentTime + 0.002, { gain: 0.03, dur: 0.6, rev: 0.4, ratio: 2.01 });
+      record('hold', [m]);
+    },
+    clear({ lines = 1, combo = 0 } = {}) {
+      const q = q16();
+      const base = 2 + Math.min(10, Math.max(0, combo)); // combos climb the scale
+      let degs;
+      if (lines >= 4) degs = [0, 1, 2, 3, 4, 5, 6, 7].map(d => base + d);
+      else if (lines === 3) degs = [base, base + 2, base + 4];
+      else if (lines === 2) degs = [base, base + 2];
+      else degs = [base];
+      const notes = degs.map(d => note(d, 5));
+      notes.forEach((m, i) => pluck(m, q.at + i * q.step, { gain: 0.085, dur: 0.32, bright: 3800, rev: 0.35 }));
+      if (lines >= 4) {
+        const top = q.at + notes.length * q.step;
+        [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.035, dur: 1.8, rev: 0.7 }));
+      }
+      record('clear', notes, q.songAt);
+    },
+    twist() {
+      const q = q16();
+      const a = note(7, 6), b = note(11, 6);
+      bell(a, q.at, { gain: 0.07, dur: 1.6, rev: 0.6 });
+      bell(b, q.at + q.step / 2, { gain: 0.05, dur: 1.8, rev: 0.6 });
+      record('twist', [a, b], q.songAt);
+    },
+    pc() {
+      const q = q16();
+      const notes = [0, 2, 4, 8, 9 + 2].map((d, i) => note(d, i < 3 ? 4 : 5));
+      pad(notes, q.at, { gain: 0.07, attack: 0.15, hold: 0.8, release: 2.6, rev: 0.7 });
+      [7, 9, 11, 14, 16].forEach((d, i) => bell(note(d, 5), q.at + 0.06 * i, { gain: 0.03, dur: 2, rev: 0.7 }));
+      record('pc', notes, q.songAt);
+    },
+    incoming() {
+      const at = ctx.currentTime + 0.01;
+      const a = note(0, 2), b = note(1, 2);
+      for (let i = 0; i < 3; i++) {
+        pluck(a, at + i * 0.11, { gain: 0.06 - i * 0.012, dur: 0.12, bright: 500, rev: 0.05, type: 'sawtooth' });
+        pluck(b, at + i * 0.11, { gain: 0.035 - i * 0.008, dur: 0.12, bright: 500, rev: 0.05, type: 'sawtooth' });
+      }
+      record('incoming', [a, b]);
+    },
+    junk() {
+      const at = ctx.currentTime + 0.002;
+      noise(at, { gain: 0.09, dur: 0.2, from: 600, to: 120, q: 0.9 });
+      thump(at, { gain: 0.14, from: 90, to: 38, dur: 0.18 });
+      record('junk', []);
+    },
+    ko() {
+      const q = q16();
+      const notes = [9, 7, 4, 0].map(d => note(d, 5));
+      notes.forEach((m, i) => bell(m, q.at + i * q.step * 0.75, { gain: 0.06, dur: 0.9, rev: 0.5 }));
+      noise(q.at, { gain: 0.035, dur: 0.6, from: 6000, to: 400 });
+      record('ko', notes, q.songAt);
+    },
+    badge() {
+      const at = ctx.currentTime + 0.01;
+      const notes = [0, 1, 2, 3, 4, 5].map(d => note(d + 5, 6, true));
+      notes.forEach((m, i) => bell(m, at + i * 0.045, { gain: 0.03, dur: 0.7, rev: 0.6, ratio: 2.76 }));
+      record('badge', notes);
+    },
+    duel() {
+      const at = ctx.currentTime + 0.01;
+      thump(at, { gain: 0.26, from: 110, to: 32, dur: 0.5 });
+      const notes = [note(0, 2), note(4, 2), note(7, 2), note(0, 3)];
+      pad(notes, at, { gain: 0.08, attack: 0.02, hold: 0.4, release: 3.2, rev: 0.8, bright: 1800 });
+      noise(at, { gain: 0.05, dur: 1.4, from: 200, to: 6000 });
+      record('duel', notes);
+    },
+    count({ go = false, at = null } = {}) {
+      const t = at != null ? at : ctx.currentTime + 0.005;
+      if (go) {
+        const notes = [note(0, 4), note(2, 4), note(4, 4), note(7, 5)];
+        pad(notes, t, { gain: 0.06, attack: 0.01, hold: 0.25, release: 1.6, rev: 0.6 });
+        bell(note(7, 6), t, { gain: 0.05, dur: 1.4, rev: 0.6 });
+        record('go', notes);
+      } else {
+        const m = note(4, 5);
+        bell(m, t, { gain: 0.05, dur: 0.6, rev: 0.4 });
+        record('count', [m]);
+      }
+    },
+    finale({ at = null } = {}) {
+      const t = at != null ? at : ctx.currentTime + 0.01;
+      const notes = [note(0, 3), note(4, 3), note(0, 4), note(2, 4), note(4, 4), note(7, 4)];
+      pad(notes, t, { gain: 0.08, attack: 0.02, hold: 1.2, release: 3.5, rev: 0.8 });
+      [0, 2, 4, 7, 9, 11, 14].forEach((d, i) => bell(note(d, 5), t + i * 0.07, { gain: 0.035, dur: 2.4, rev: 0.75 }));
+      thump(t, { gain: 0.2, from: 100, to: 36, dur: 0.6 });
+      record('finale', notes);
+    },
+    topout() {
+      const at = ctx.currentTime + 0.01;
+      const notes = [note(4, 4), note(2, 4), note(0, 4), note(-3, 4)];
+      notes.forEach((m, i) => pluck(m, at + i * 0.13, { gain: 0.07, dur: 0.5, bright: 1400 - i * 250, rev: 0.5 }));
+      record('topout', notes);
+    },
+    level() {
+      const q = q16();
+      const notes = [note(4, 5), note(7, 5)];
+      notes.forEach((m, i) => bell(m, q.at + i * q.step, { gain: 0.04, dur: 1, rev: 0.5 }));
+      record('level', notes, q.songAt);
+    },
+  };
+
+  return {
+    setKey(t, m) { tonic = ((t | 0) % 12 + 12) % 12; mode = m === 'major' ? 'major' : 'minor'; },
+    setClock(fn) { clockFn = fn; },
+    play(name, opts) {
+      if (settings.muted || !ensure() || ctx.state !== 'running') return;
+      const fn = SOUNDS[name];
+      if (fn) { try { fn(opts); } catch (e) { console.warn('prism sfx', name, e && e.message); } }
+    },
+    /** ctx time for a song position (seconds) of the current song, for scheduling the countdown on the beat */
+    ctxAt(songSec) {
+      if (!ensure()) return null;
+      const c = clockFn && clockFn();
+      if (!c) return null;
+      return ctx.currentTime + (songSec - c.pos);
+    },
+    scale: () => ({ tonic, mode, notes: SCALES[mode].map(s => (tonic + s) % 12) }),
+    log,
+  };
+}
+
+export { beatClock };

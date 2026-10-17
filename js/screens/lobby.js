@@ -120,7 +120,8 @@ export function createLobby() {
           h('span.night-name', p.name, h('small', `${r.wins} WIN${r.wins === 1 ? '' : 'S'} · ${r.games} PLAYED`)),
           h('span.night-pts', String(r.points)));
       })),
-      h('p.night-foot.mono', '3 / 2 / 1 points for finishing 1st / 2nd / 3rd in each game.'));
+      h('p.night-foot.mono', '3 / 2 / 1 points for finishing 1st / 2nd / 3rd in each game.'
+        + (Object.values(st.night || {}).some(e => e && e.b) ? ' Plus PRISM DROP bonuses for calling the winner.' : '')));
   }
 
   // Rooms close after an hour without a game; the last 10 minutes show a countdown (host: KEEP OPEN).

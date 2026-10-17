@@ -3,14 +3,14 @@
 > Working title. The name lives in one constant: `APP_NAME` in `js/config.js` (also update `<title>`/meta in `index.html`,
 > `manifest.webmanifest`, and re-render the preview image with `tests/integration/render-assets.mjs`).
 
-One web app, seven games, 2–8 players, each on their own phone — same room or different cities.
+One web app, eight games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **trivia.loewfizzle.com** (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
 Backend: Firebase Realtime Database + Anonymous Auth.
 
-## The games — all seven are playable
+## The games — all eight are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
@@ -20,6 +20,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 4 | **OVERCLOCK** | Twenty kinds of 30-second mind challenges (Lexicon, Timeline, Closest Call, Rewire, then Missing Link, Spellcheck, Make 24, Compass, Sort It and Higher or Lower added after launch), identical for everyone from a shared seed; no type repeats within a match and categories never come back to back. | amber / magenta | ✅ Stage 2 |
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 | 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
+| 8 | **PRISM DROP** | Falling-block battle set to music: BATTLE (junk attacks, KO badges, final duel, call the winner, sudden death) or SCORE RUSH (one song, highest score). Identical pieces for everyone, every phone runs its own board; WebGL worlds per song; sound effects in the song's key, on its beat. | luminous prism: white light, spectral edges, jewel glass | ✅ Stage 8 |
 | 7 | **DOUBLE AGENT** | Social deduction for 4–8: everyone gets the same secret word except the double agent(s); one-word clues in turn, a debate (chat, or out loud in SAME ROOM mode), a vote, a dramatic unmasking and a last chance to steal the round by naming the word. 41 categories × 15–18 words. | corrupted surveillance feed: graphite / silver, player colours only | ✅ Stage 7 |
 
 ## Stages
@@ -148,6 +149,28 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] Tests: tests/agent.test.mjs (rules + 8-player match simulations), 4 rules tests, E2E
       tests/integration/e2e-agent.mjs (8 players, both modes, 1 and 2 agents, 31 checks)
 
+### ✅ Stage 8 — PRISM DROP (falling-block battle, the showpiece)
+- [x] Engine: 10×20 + buffer, the 7 shapes with standard rotation + wall kicks (unit-tested against the reference states),
+      seeded 7-bag (identical on every phone), hold, 5 next, ghost, 500 ms lock delay with 15 resets, soft/hard drop,
+      twist detection (3-corner rule, minis), modern scoring (level, combos, back-to-back, perfect clears), fixed 120 Hz steps
+- [x] BATTLE: attack table, countering, junk with one gap per attack + incoming meter + ~1 s delay (2.5 s near the top),
+      RANDOM / ATTACKERS / DANGER targeting, speed every minute, sudden death after 5 min, KO credit, KO badges (+25–100 %),
+      FINAL DUEL (title card, darker world, music lift, the rival's board enlarged), announcements, Call the Winner (10 s,
+      game-night bonus scaled by players left), results with KOs / badges / lines sent / combo / best clear / calls
+- [x] SCORE RUSH: one song, live leaderboard, reboot on top-out, finale on the song's final beat
+- [x] Controls: drag/tap/soft/flick/swipe-up gestures tuned so sideways swipes never hard-drop (2000-swipe unit test + real
+      touch E2E), optional button layout, sensitivity + button size + reduced effects, light haptics, no scroll/zoom
+- [x] Five owner songs analysed (BPM, beat grid, key, energy, final beat) with `scripts/build-prism.py`; a seeded room playlist
+      that never repeats until all have played and continues across matches; songs crossfade mid-battle
+- [x] Five WebGL worlds × 3 variants (aurora ocean, neon city, deep nebula, crystal cave, synth sunset), beat/energy-reactive,
+      bloom + hue drift on combos, colour waves + prismatic shards on big clears, danger drain + vignette + underwater music,
+      junk glitch; quality tiers (60 fps at all tiers on a 4× throttled CPU at phone density)
+- [x] Musical SFX synthesized in each song's key: moves/rotates, lock pluck, hard-drop thump, clears quantized to the next 16th
+      (1 note → a full rising run), twist chimes, combos climbing the scale, perfect-clear chord, junk warning/impact, KO,
+      badge shimmer, FINAL DUEL hit, countdown on the beat
+- [x] Rules for `prism/prismq/prismcall/meta.prism`; tests: engine + match/director/gestures/8-bot battles, 4 rules tests,
+      E2E `tests/integration/e2e-prism.mjs` (8 players, 40 checks)
+
 ## Next up (agreed plan, in order)
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
@@ -165,6 +188,8 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
   in every phase; drawings stored as strokes (tiny); server-clock timers; an offline player's step becomes "(ran out of ink)".
   Optional tap-voted awards ("Best drawing", "Most lost in translation") and a shareable image of the funniest chain.
   ~10–15 min a game — pairs well with DOUBLE AGENT (quick suspicion vs. slower laughs).
+- **PRISM DROP:** more songs (drop prism6.mp3… in Downloads — see CLAUDE.md), more worlds, a solo marathon / daily seed,
+  2v2 team battle, replays of the best clear.
 - **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,
   daily challenge hole with a room leaderboard, replays of everyone's best shot at the end.
 - **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host
