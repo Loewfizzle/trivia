@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avatars preview</title>
+<!-- Every player emblem in every colour at the sizes the app uses (js/ui/components.js#avatar). -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<style>
+  html, body { background: #05061a; color: #fff; margin: 0; }
+  main { padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  h2 { font: 700 11px var(--font-mono); letter-spacing: 0.2em; color: #9aa3c7; margin: 0; }
+</style>
+</head>
+<body>
+<main id="m"></main>
+<script type="module">
+import { avatar, playerChip } from '/js/ui/components.js';
+import { AVATAR_IDS, COLORS } from '/js/config.js';
+const m = document.getElementById('m');
+const row = (title, kids) => { const h = document.createElement('h2'); h.textContent = title; const r = document.createElement('div'); r.className = 'row'; r.append(...kids); m.append(h, r); };
+row('84 px', AVATAR_IDS.slice(0, 4).map((id, i) => avatar(id, COLORS[i].id, 84)));
+row('48 px — every emblem', AVATAR_IDS.map((id, i) => avatar(id, COLORS[i % COLORS.length].id, 48)));
+row('36 px', AVATAR_IDS.map((id, i) => avatar(id, COLORS[(i + 3) % COLORS.length].id, 36)));
+row('24 px', AVATAR_IDS.map((id, i) => avatar(id, COLORS[(i + 5) % COLORS.length].id, 24)));
+const chips = document.createElement('div'); chips.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+[['ALICE', 'cyan', 'bolt', { host: true, you: true }], ['BOB', 'magenta', 'ghost', {}], ['CHARLIE', 'green', 'crown', {}], ['DANA', 'orange', 'wave', { offline: true }]]
+  .forEach(([name, color, av, o]) => chips.append(playerChip({ name, color, avatar: av }, o)));
+const h = document.createElement('h2'); h.textContent = 'chips'; m.append(h, chips);
+</script>
+</body>
+</html>

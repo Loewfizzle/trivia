@@ -322,7 +322,7 @@ body.da-inline-chat .chat-fab { display: none; }
 /* debate: the board docks at the top, the chat takes the rest */
 .da-phase.is-debate .da-board { max-height: 40dvh; }
 .da-phase.is-debate .da-tile { min-height: 0; padding: 8px 9px 8px 10px; gap: 4px; }
-.da-phase.is-debate .da-tile .avatar svg { width: 22px; height: 22px; }
+.da-phase.is-debate .da-tile .avatar { --s: 24px !important; }
 .da-phase.is-debate .da-clue { font-size: 13px; min-height: 0; }
 .da-chat { flex: 1 1 auto; min-height: 140px; display: flex; flex-direction: column; gap: 6px; padding: 10px; background: var(--da-glass); border: 1px solid var(--da-line); border-radius: 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .da-chat-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; overscroll-behavior: contain; }
@@ -355,7 +355,7 @@ body.da-inline-chat .chat-fab { display: none; }
 .da-phase.is-vote .da-board { flex: 1 1 auto; min-height: 0; align-content: start; }
 .da-phase.is-vote .da-tile { min-height: 116px; padding: 12px; align-items: center; text-align: center; }
 .da-phase.is-vote .da-tile-id { flex-direction: column; gap: 6px; }
-.da-phase.is-vote .da-tile .avatar svg { width: 40px; height: 40px; }
+.da-phase.is-vote .da-tile .avatar { --s: 46px !important; }
 .da-phase.is-vote .da-clues { align-items: center; }
 .da-phase.is-vote .da-clue { font-size: 13px; }
 .da-phase.is-vote .da-pins { justify-content: center; }
