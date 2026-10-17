@@ -7,7 +7,7 @@ import { sfx } from '../audio/sfx.js';
 import { state, isHost } from '../store.js';
 import { dbRef, update } from '../firebase.js';
 import { leaveRoom } from '../room.js';
-import { APP_NAME, APP_VERSION } from '../config.js';
+import { APP_NAME, APP_VERSION, colorHex } from '../config.js';
 import { openHelp } from './help.js';
 import { segmented } from './components.js';
 
@@ -96,6 +96,8 @@ function open() {
       h('div.set-row.set-seg', h('span.label', 'CONTROLS'), segmented([{ value: 'gesture', label: 'GESTURES' }, { value: 'buttons', label: 'BUTTONS' }], settings.prismScheme || 'gesture', v => updateSettings({ prismScheme: v }))),
       slider('SWIPE SENSITIVITY', 'prismSens'),
       slider('BUTTON SIZE', 'prismBtn'),
+      h('div.set-sub', 'SLIPSTREAM'),
+      h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); const me = state.players && state.players[state.uid]; import('../games/slip/ride.js').then(m => m.openRidePicker({ color: colorHex(me ? me.color : 'cyan') })); } }, h('span', 'YOUR RIDE · HOVERBOARD / LIGHT-CYCLE')),
       h('div.set-sub', 'PULSE'),
       toggle('HIT SOUNDS', 'pulseHits'),
       h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); import('../games/pulse/calibrate.js').then(m => m.openCalibration({ reason: 'PULSE · RECALIBRATE (DO THIS AFTER SWITCHING HEADPHONES)' })); } }, h('span', 'RECALIBRATE AUDIO SYNC')),

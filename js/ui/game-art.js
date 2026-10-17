@@ -196,7 +196,40 @@ ${shard(10, 66, 20, '#ff4d6d')}${shard(112, 62, -30, '#2be4f0', 0.8)}${shard(108
 </svg>`;
 }
 
-const ART = { prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+// SLIPSTREAM: a dusk sky from sunset gold into deep blue, a low sun, layered dunes, the track a single line of
+// light; a rider mid-flip off a crest trailing a ribbon of light, light-birds and the first stars
+function slip() {
+  const track = 'M0 92C14 90 22 78 34 78S52 96 66 96S86 70 98 66S114 70 120 74';
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<linearGradient id="sl-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1440"/><stop offset="0.38" stop-color="#2a2a7a"/><stop offset="0.62" stop-color="#a0457e"/><stop offset="0.8" stop-color="#ff8a5c"/><stop offset="1" stop-color="#ffc46b"/></linearGradient>
+<radialGradient id="sl-sun" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff4cf"/><stop offset="0.35" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff8a5c" stop-opacity="0"/></radialGradient>
+<linearGradient id="sl-d1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a3a62"/><stop offset="1" stop-color="#3a1a4a"/></linearGradient>
+<linearGradient id="sl-d2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1a3e"/><stop offset="1" stop-color="#120818"/></linearGradient>
+<linearGradient id="sl-rib" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffc46b" stop-opacity="0"/><stop offset="1" stop-color="#ffe6bf"/></linearGradient>
+${glow('sl-glow', 1.8)}${glow('sl-glow2', 4)}</defs>
+<rect width="120" height="120" fill="url(#sl-sky)"/>
+<g fill="#fff">${[[12, 10, 0.8], [30, 22, 0.5], [52, 8, 0.7], [78, 16, 0.6], [100, 9, 0.9], [110, 28, 0.5], [66, 30, 0.4], [20, 36, 0.4]].map(([x, y, a]) => `<circle cx="${x}" cy="${y}" r="0.7" opacity="${a}"/>`).join('')}</g>
+<circle cx="84" cy="72" r="26" fill="url(#sl-sun)"/>
+<circle cx="84" cy="72" r="9" fill="#fff1c4" opacity="0.95"/>
+<path d="M0 82C20 70 36 74 52 80S90 70 120 76V120H0Z" fill="url(#sl-d1)" opacity="0.9"/>
+<path d="${track}V120H0Z" fill="url(#sl-d2)"/>
+<path d="${track}" stroke="#ff9a5c" stroke-width="5" fill="none" opacity="0.35" filter="url(#sl-glow2)"/>
+<path d="${track}" stroke="#ffe6bf" stroke-width="1.6" fill="none" filter="url(#sl-glow)"/>
+<path d="${track}" stroke="#fff6e6" stroke-width="0.9" fill="none"/>
+<path d="M44 86C52 70 60 58 72 50" stroke="url(#sl-rib)" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#sl-glow)"/>
+<g transform="translate(76 46) rotate(-150)">
+  <ellipse cx="0" cy="1.6" rx="9" ry="2.6" fill="#ffc46b" opacity="0.55" filter="url(#sl-glow2)"/>
+  <path d="M-7 0.4Q-8 1.8 -6.4 2.4H6.4Q8 2.4 8.2 0.6Z" fill="#0b0e20" stroke="#ffe6bf" stroke-width="0.7"/>
+  <rect x="-5.6" y="1.6" width="11.2" height="0.7" fill="#ffc46b"/>
+  <g stroke="#0b0e20" stroke-linecap="round" fill="none"><path d="M-2 0.4L-1 -3.4L1 -5.6" stroke-width="2.2"/><path d="M2.6 0.4L3 -3.2L1 -5.6" stroke-width="2.2"/><path d="M1 -5.6L2.6 -9" stroke-width="3"/></g>
+  <circle cx="3.6" cy="-10.6" r="2" fill="#0b0e20" stroke="#ffe6bf" stroke-width="0.6"/>
+</g>
+<g stroke="#ffe6bf" stroke-width="0.8" fill="none" opacity="0.85" stroke-linecap="round"><path d="M20 46l3 1.6 3-1.6"/><path d="M28 40l2.4 1.3 2.4-1.3"/><path d="M14 40l2 1.1 2-1.1"/></g>
+<rect x="18" y="104" width="30" height="3" rx="1" fill="#ffc46b" opacity="0.32"/><rect x="52" y="104" width="16" height="3" rx="1" fill="#ffc46b" opacity="0.2"/>
+</svg>`;
+}
+
+const ART = { slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

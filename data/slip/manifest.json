@@ -1,0 +1,68 @@
+{
+ "songs": [
+  {
+   "id": "slip1",
+   "title": "Track 01",
+   "artist": "",
+   "bpm": 126.0,
+   "duration": 137.353,
+   "meanEnergy": 0.655
+  },
+  {
+   "id": "slip2",
+   "title": "Track 02",
+   "artist": "",
+   "bpm": 160.0,
+   "duration": 133.538,
+   "meanEnergy": 0.737
+  },
+  {
+   "id": "slip3",
+   "title": "Track 03",
+   "artist": "",
+   "bpm": 130.0,
+   "duration": 183.771,
+   "meanEnergy": 0.473
+  },
+  {
+   "id": "slip4",
+   "title": "Track 04",
+   "artist": "",
+   "bpm": 100.0,
+   "duration": 162.072,
+   "meanEnergy": 0.563
+  },
+  {
+   "id": "slip5",
+   "title": "Track 05",
+   "artist": "",
+   "bpm": 115.0,
+   "duration": 144.072,
+   "meanEnergy": 0.76
+  },
+  {
+   "id": "slip6",
+   "title": "Track 06",
+   "artist": "",
+   "bpm": 108.0,
+   "duration": 155.64,
+   "meanEnergy": 0.781
+  },
+  {
+   "id": "slip7",
+   "title": "Track 07",
+   "artist": "",
+   "bpm": 92.0,
+   "duration": 229.944,
+   "meanEnergy": 0.748
+  },
+  {
+   "id": "slip8",
+   "title": "Track 08",
+   "artist": "",
+   "bpm": 130.0,
+   "duration": 276.95,
+   "meanEnergy": 0.812
+  }
+ ]
+}

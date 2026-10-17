@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SLIPSTREAM preview</title>
+<!-- The SLIPSTREAM world without Firebase: a bot rides the course (plus ghost bots), the real sky + scene + rider art.
+     ?seed=abc&biome=storm (or &x=1200)&tier=2&ghosts=5&ride=cycle&trail=wall&flip=1 (start before a gravity flip)
+     &perf=1 (frame times in window.__perf). Used by slip-shots.mjs for screenshots of every biome at every size. -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/slip.css">
+<style>html, body { margin: 0; height: 100%; background: #000; overflow: hidden; } .sl { position: fixed; }</style>
+</head>
+<body>
+<div class="sl" id="sl"><canvas class="sl-sky"></canvas><canvas class="sl-world"></canvas><div class="sl-vignette"></div></div>
+<script type="module">
+import { createCourse, floorAt, biomeAt, baseSpeed, SUDDEN_T, ceilAt } from '/js/games/slip/course.js';
+import { createRider, step, pose, tidy, STEP } from '/js/games/slip/physics.js';
+import { decide } from '/js/games/slip/bot.js';
+import { createSky } from '/js/games/slip/sky.js';
+import { createScene } from '/js/games/slip/scene.js';
+import { rngFrom } from '/js/core/rng.js';
+
+const q = new URLSearchParams(location.search);
+const seed = q.get('seed') || 'preview';
+const course = createCourse(seed);
+const root = document.getElementById('sl');
+const sky = createSky(root.querySelector('.sl-sky'));
+const scene = createScene(root.querySelector('.sl-world'), course);
+const tier = Number(q.get('tier') ?? 2);
+scene.setTier(tier); sky && sky.setTier(tier);
+let x0 = Number(q.get('x') || 0);
+const want = q.get('biome');
+if (want) { const b = course.biomes.find(b => b.id === want); if (b) x0 = b.x0 + 150; }
+if (q.get('flip')) { const z = course.hz.flips[0]; if (z) x0 = z.x0 - 70; }
+const t0 = x0 ? course.timeAt(x0) : 0;
+const COLORS = ['#3fe0ff', '#ff3fb0', '#f3ff3a', '#3dff8b', '#ff8a3d', '#a374ff', '#ff4466', '#ffffff'];
+const riders = Array.from({ length: 1 + Number(q.get('ghosts') ?? 5) }, (_, i) => {
+  const r = createRider({ lives: 3, x: Math.max(6, x0 - i * 9), t: t0, course });
+  r.inv = 0;
+  return { r, mem: {}, rnd: rngFrom(`p${i}`), hold: false, pressT: 0, next: 0, color: COLORS[i], ride: i === 0 ? (q.get('ride') || 'board') : (i % 2 ? 'cycle' : 'board'), trail: i === 0 ? (q.get('trail') || 'ribbon') : ['ribbon', 'sparks', 'wall'][i % 3], pts: [], name: ['YOU', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE', 'HAL'][i] };
+});
+let look = 34, camY = null, flipK = 0, last = performance.now(), clock = t0;
+const frames = [];
+window.__perf = frames;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const w0 = performance.now();
+  clock += dt;
+  for (const p of riders) {
+    const r = p.r;
+    const input = { hold: false, pressT: 0, taps: 0 };
+    while (r.t + STEP <= clock) {
+      if (r.st === 'ride' && r.t >= p.next) { p.next = r.t + 0.1; const d = decide(r, course, { flips: true, flipRate: 0.5, rnd: p.rnd, mem: p.mem, pressT: p.pressT }); p.hold = d.hold; if (d.tap) input.taps++; }
+      input.hold = p.hold; p.pressT = p.hold ? p.pressT + STEP : 0; input.pressT = p.pressT;
+      r.t += STEP; step(r, course, input);
+      r.events.length = 0;
+      if (r.st === 'out') { r.st = 'ride'; r.lives = 3; }
+    }
+    tidy(r, course);
+    const ps = pose(r);
+    p.pts.push([ps.x, ps.y, ps.g, clock]); while (p.pts.length && clock - p.pts[0][3] > 0.55) p.pts.shift();
+  }
+  const me = riders[0], P = pose(me.r);
+  const W = root.clientWidth, H = root.clientHeight;
+  const g = P.g;
+  const surf = xx => { if (g < 0) { const c = ceilAt(course, xx); if (!Number.isNaN(c)) return c; } return floorAt(course, xx); };
+  let lo = Infinity, hi = -Infinity;
+  for (let k = -0.15; k <= 0.75; k += 0.1) { const yy = surf(P.x + look * k); lo = Math.min(lo, yy); hi = Math.max(hi, yy); }
+  const top = Math.max(P.y, hi), bot = Math.min(P.y, lo);
+  const wantL = Math.max(22 + me.r.sp * 0.6, ((top - bot) + 7) / 0.6);
+  look += (wantL - look) * Math.min(1, dt * 2);
+  const ax = W * 0.22, scale = (W - ax) / look, ayK = H > W ? 0.6 : 0.52;
+  const cy = (top + bot) / 2;
+  camY = camY == null ? cy : camY + (cy - camY) * Math.min(1, dt * 3);
+  flipK += Math.sign((g < 0 ? 1 : 0) - flipK) * Math.min(Math.abs((g < 0 ? 1 : 0) - flipK), dt / 0.38);
+  const bi = biomeAt(course, P.x);
+  if (sky) { sky.setBiomes(bi); sky.set({ hor: scene.horizon, cam: P.x * 10, beat: 0, energy: 0.6, flash: 0, flip: flipK, boost: 0, danger: clock > SUDDEN_T ? 0.22 : 0 }); sky.render(now / 1000); }
+  scene.resize([1, 1.5, 2][tier]);
+  scene.draw({ camX: P.x, camY, scale, ax, ay: H * ayK, flip: Math.cos(flipK * Math.PI), t: clock, speed: me.r.sp, flash: 0, reduced: false, touched: me.r.touched,
+    riders: riders.map((p, i) => { const ps = pose(p.r); return { x: ps.x, y: ps.y, a: ps.a, g: ps.g, color: p.color, ride: p.ride, trail: p.trail, ghost: i > 0, crouch: p.r.gnd ? (p.hold ? 0.8 : 0.25) : 0.1, tuck: p.r.spin > 0 ? 1 : 0, inv: 0, name: i ? p.name : null, st: p.r.st === 'out' ? 'out' : 'ride', pts: p.pts }; }) });
+  frames.push([performance.now() - w0, dt * 1000]); if (frames.length > 300) frames.shift();
+  window.__state = { x: P.x, biome: bi.a.id, variant: bi.a.variant, t: clock, sp: me.r.sp };
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

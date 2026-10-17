@@ -53,6 +53,17 @@
             "$other": {
               ".validate": false
             }
+          },
+          "slip": {
+            "seed": {
+              ".validate": "newData.isString() && newData.val().length <= 64"
+            },
+            "n": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         },
         "players": {
@@ -644,6 +655,96 @@
           "$match": {
             "$uid": {
               ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms/' + $code + '/game/id').val() === 'prism' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/phase').val() === 'play' && root.child('rooms/' + $code + '/game/out/' + $uid).exists() && now <= root.child('rooms/' + $code + '/game/out/' + $uid + '/at').val() + 12000",
+              ".validate": "newData.hasChildren(['w', 'at'])",
+              "w": {
+                ".validate": "newData.isString() && newData.val() !== $uid && root.child('rooms/' + $code + '/game/participants/' + newData.val()).exists() && !root.child('rooms/' + $code + '/game/out/' + newData.val()).exists()"
+              },
+              "at": {
+                ".validate": "newData.isNumber() && newData.val() <= now"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        },
+        "slip": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$match": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'slip' && root.child('rooms/' + $code + '/game/matchId').val() === $match && (root.child('rooms/' + $code + '/game/phase').val() === 'count' || root.child('rooms/' + $code + '/game/phase').val() === 'play' || root.child('rooms/' + $code + '/game/phase').val() === 'end') && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && data.child('st').val() !== 'out'",
+              ".validate": "newData.hasChildren(['st']) && (newData.child('st').val() !== 'out' || newData.hasChild('at'))",
+              "st": {
+                ".validate": "newData.val() === 'ride' || newData.val() === 'rewind' || newData.val() === 'out'"
+              },
+              "at": {
+                ".validate": "newData.isNumber() && newData.val() <= now"
+              },
+              "t": {
+                ".validate": "newData.isNumber() && newData.val() >= -10 && newData.val() <= 3600"
+              },
+              "x": {
+                ".validate": "newData.isNumber() && newData.val() >= -100 && newData.val() <= 100000"
+              },
+              "y": {
+                ".validate": "newData.isNumber() && newData.val() >= -100000 && newData.val() <= 100000"
+              },
+              "a": {
+                ".validate": "newData.isNumber() && newData.val() >= -4 && newData.val() <= 4"
+              },
+              "g": {
+                ".validate": "newData.val() === 1 || newData.val() === -1"
+              },
+              "v": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 500"
+              },
+              "n": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+              },
+              "l": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3"
+              },
+              "i": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+              },
+              "c": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+              },
+              "rd": {
+                ".validate": "newData.isString() && newData.val().matches(/^[bc][rsw]$/)"
+              },
+              "d": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+              },
+              "bc": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+              },
+              "fl": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+              },
+              "ln": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+              },
+              "cl": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+              },
+              "bi": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20"
+              },
+              "rg": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        },
+        "slipcall": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$match": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms/' + $code + '/game/id').val() === 'slip' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/phase').val() === 'play' && root.child('rooms/' + $code + '/game/out/' + $uid).exists() && now <= root.child('rooms/' + $code + '/game/out/' + $uid + '/at').val() + 12000",
               ".validate": "newData.hasChildren(['w', 'at'])",
               "w": {
                 ".validate": "newData.isString() && newData.val() !== $uid && root.child('rooms/' + $code + '/game/participants/' + newData.val()).exists() && !root.child('rooms/' + $code + '/game/out/' + newData.val()).exists()"

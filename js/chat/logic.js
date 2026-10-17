@@ -38,6 +38,13 @@ export function chatLocked(game, uid, live) {
       // DOUBLE AGENT: no chat while files are read or clues are given; SAME ROOM talks out loud (no chat until the scores)
       if (game.phase === 'briefing' || game.phase === 'clues') return true;
       return game.settings && game.settings.mode === 'room' && ['debate', 'vote', 'unmask', 'last'].includes(game.phase);
+    case 'slip': {
+      // SLIPSTREAM: locked while you ride; out of lives = watch and talk
+      if (game.phase !== 'count' && game.phase !== 'play') return false;
+      if (game.out && game.out[uid]) return false;
+      const n = mine('riders');
+      return !(n && n.st === 'out');
+    }
     case 'prism': {
       // PRISM DROP: locked while your board is live; knocked out (battle) = watch and talk
       if (game.phase !== 'count' && game.phase !== 'play') return false;

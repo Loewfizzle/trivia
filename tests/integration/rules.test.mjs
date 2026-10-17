@@ -531,3 +531,46 @@ test('prism room playlist: host only', async () => {
   await assertFails(update(ref(db('p2'), `${R}/meta`), { prism: { seed: 'mine', n: 0 } }));
   await assertFails(update(ref(db('host'), `${R}/meta`), { prism: { seed: 'abc', n: 2, x: 1 } }), 'no extra fields');
 });
+
+// ---------------------------------------------------------------- SLIPSTREAM
+function slipRoom(game = {}) {
+  const r = prismRoom();
+  r.rooms[CODE].game = { id: 'slip', matchId: 'm1', phase: 'play', settings: { lives: 2 }, participants: { host: true, p2: true, p3: true }, ...game };
+  return r;
+}
+const snode = (extra = {}) => ({ st: 'ride', t: 12.5, x: 210.4, y: -3.2, a: 0.31, g: 1, v: 18.2, n: 1, l: 2, i: 0, c: 3, rd: 'bw', d: 210, bc: 4, fl: 9, ln: 10, cl: 9, bi: 1, rg: 2, ...extra });
+
+test('slip riders: own node while riding; fields checked; out needs a time and is final', async () => {
+  await seed(slipRoom());
+  const N = `${R}/slip/m1`;
+  await assertSucceeds(set(ref(db('p2'), `${N}/p2`), snode()));
+  await assertSucceeds(update(ref(db('p2'), `${N}/p2`), { st: 'rewind', x: 205, l: 1 }), 'partial updates');
+  await assertFails(set(ref(db('p2'), `${N}/p3`), snode()), 'not someone else\'s rider');
+  await assertFails(set(ref(db('outsider'), `${N}/outsider`), snode()), 'not a participant');
+  await assertFails(set(ref(db('p2'), `${N}/p2`), snode({ l: 7 })), 'lives 0-3');
+  await assertFails(set(ref(db('p2'), `${N}/p2`), snode({ g: 0 })), 'gravity ±1');
+  await assertFails(set(ref(db('p2'), `${N}/p2`), snode({ rd: 'xx' })), 'ride code');
+  await assertFails(set(ref(db('p2'), `${N}/p2`), snode({ hack: 1 })), 'no extra fields');
+  await assertFails(update(ref(db('p2'), `${N}/p2`), { st: 'out' }), 'out needs a time');
+  await assertSucceeds(update(ref(db('p2'), `${N}/p2`), { st: 'out', at: serverTimestamp(), l: 0, d: 400 }));
+  await assertFails(update(ref(db('p2'), `${N}/p2`), { st: 'ride', l: 2 }), 'out is final');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'final'));
+  await assertFails(set(ref(db('p3'), `${N}/p3`), snode()), 'not after the match');
+});
+
+test('slip call the winner: once, only when out, within the window, a live rider', async () => {
+  await seed(slipRoom({ out: { p2: { at: now() - 2000, place: 3, rem: 2 } } }));
+  const C = `${R}/slipcall/m1`;
+  await assertFails(set(ref(db('p3'), `${C}/p3`), { w: 'host', at: serverTimestamp() }), 'still riding: no call');
+  await assertSucceeds(set(ref(db('p2'), `${C}/p2`), { w: 'host', at: serverTimestamp() }));
+  await assertFails(set(ref(db('p2'), `${C}/p2`), { w: 'p3', at: serverTimestamp() }), 'locked once made');
+  await seed(slipRoom({ out: { p2: { at: now() - 20_000, place: 3, rem: 2 } } }));
+  await assertFails(set(ref(db('p2'), `${C}/p2`), { w: 'host', at: serverTimestamp() }), 'after the window');
+  await assertFails(set(ref(db('p2'), `${R}/prismcall/m1/p2`), { w: 'host', at: serverTimestamp() }), 'prism calls are for prism');
+});
+
+test('slip room playlist: host only', async () => {
+  await seed(slipRoom());
+  await assertSucceeds(update(ref(db('host'), `${R}/meta`), { slip: { seed: 'abc123', n: 4 } }));
+  await assertFails(update(ref(db('p2'), `${R}/meta`), { slip: { seed: 'mine', n: 0 } }));
+});

@@ -4,14 +4,14 @@
 > (`js/ui/logo.js` → `scripts/build-boot-logo.mjs`) and the icons/preview (`tests/integration/render-assets.mjs`).
 > It was NEURAL ARCADE until October 2026.
 
-NEON DISTRICT — *game night, after dark.* One web app, eight games, 2–8 players, each on their own phone — same room or different cities.
+NEON DISTRICT — *game night, after dark.* One web app, nine games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **games.loewfizzle.com** (since Oct 2026; the old trivia.loewfizzle.com permanently redirects here) (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
 Backend: Firebase Realtime Database + Anonymous Auth.
 
-## The games — all eight are playable
+## The games — all nine are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
@@ -22,6 +22,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 | 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
 | 8 | **PRISM DROP** | Falling-block battle set to music: BATTLE (junk attacks, KO badges, final duel, call the winner, sudden death) or SCORE RUSH (one song, highest score). Identical pieces for everyone, every phone runs its own board; WebGL worlds per song; sound effects in the song's key, on its beat. | luminous prism: white light, spectral edges, jewel glass | ✅ Stage 8 |
+| 9 | **SLIPSTREAM** | Multiplayer survival ride: everyone on the same seeded course at once, one thumb (hold = dive, release = fly, tap = flip), clean landings boost, hazards ramp up (gaps, laser gates, low ceilings, crumbling ground, gravity flips, boost rings), lives + rewinds, LAST RIDERS, sudden death; ghosts, five biomes with adaptive music. | sunset gold into deep blue; a single line of light | ✅ Stage 10 |
 | 7 | **DOUBLE AGENT** | Social deduction for 4–8: everyone gets the same secret word except the double agent(s); one-word clues in turn, a debate (chat, or out loud in SAME ROOM mode), a vote, a dramatic unmasking and a last chance to steal the round by naming the word. 41 categories × 15–18 words. | corrupted surveillance feed: graphite / silver, player colours only | ✅ Stage 7 |
 
 ## Stages
@@ -187,6 +188,23 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] E2E `tests/integration/e2e-title.mjs` (41 checks, 3 sizes, intro videos); every older E2E updated for the new title
       (`?emu` pages skip the intro)
 
+### ✅ Stage 10 — SLIPSTREAM (survival ride)
+- [x] Seeded spline courses: crests tuned to launch speeds, a calm start, hazards unlocking in order and sized by probe rides,
+      sudden death from 6:00, a 9:00 hard stop; biomes DUSK DUNES -> shuffled CRYSTAL CANYON / FLOATING CITY / LIGHTNING STORM ->
+      OPEN SPACE, 3 variants each; a rollout bot proves whole courses and every hazard section survivable (unit tests)
+- [x] One-thumb physics at 120 Hz: dive, launch, flips, landing tolerance + assist, flip boosts + combos, gravity-flip mirroring,
+      crumbling tiles, crash -> 0.9 s rewind -> respawn with 2 s shimmer; lives 1/2/3
+- [x] Multiplayer: local sim on the server clock, ~10 Hz publishing, interpolated ghosts with name tags + their rides/trails,
+      progress bar with lives, announcements (eliminations, combos, the lead), LAST RIDERS cinematic + music, spectate any
+      rider, Call the Winner, rejoin near your last spot, host migration, late joiners spectate, same-moment crashes by distance
+- [x] Look: WebGL biome skies, Canvas 2D world (parallax silhouettes, light-line track, hazards, trails, shards, flashes,
+      lightning, light-birds / meteors / airship), quality tiers; equal look-ahead in portrait and landscape, a rotate hint
+- [x] Rides: HOVERBOARD / LIGHT-CYCLE × RIBBON / SPARKS / LIGHT WALL (looks only), picker in the countdown + settings
+- [x] Eight owner songs (slip1–8) analysed with `scripts/build-slip.py`; the shared room playlist; adaptive biome treatments,
+      airtime swell, near-crash dip, crash muffle; synth SFX
+- [x] Rules for `slip/slipcall/meta.slip` + 3 rules tests; unit tests (22); E2E `tests/integration/e2e-slip.mjs` (8 players, 35 checks), look preview
+      `slip-preview.html` + `slip-shots.mjs`; 60 fps at every tier at 4× CPU (4–5 ms of work a frame)
+
 ## Next up (agreed plan, in order)
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
@@ -204,6 +222,8 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
   in every phase; drawings stored as strokes (tiny); server-clock timers; an offline player's step becomes "(ran out of ink)".
   Optional tap-voted awards ("Best drawing", "Most lost in translation") and a shareable image of the funniest chain.
   ~10–15 min a game — pairs well with DOUBLE AGENT (quick suspicion vs. slower laughs).
+- **SLIPSTREAM:** more songs (drop slip9.mp3… in Downloads — see CLAUDE.md), a daily seed with a room leaderboard, more
+  hazards (wind gusts, moving platforms), ghost replays of the winning run, more ride looks.
 - **PRISM DROP:** more songs (drop prism6.mp3… in Downloads — see CLAUDE.md), more worlds, a solo marathon / daily seed,
   2v2 team battle, replays of the best clear.
 - **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,

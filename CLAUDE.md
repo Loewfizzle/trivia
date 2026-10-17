@@ -40,12 +40,13 @@ css/pulse.css            PULSE (HUD, song/Echo cards, countdown, results table, 
 css/chat.css             room chat (lobby strip, chat sheet, in-game chat button)
 css/golf.css             NEON PAR (HUD, zone/par cards, scorecard table, ACE cinematic, sabotage sheet, fog, ball picker)
 css/prism.css            PRISM DROP (HUD, glass board frame, mini-boards, buttons layout, count/title cards, Call the Winner, results)
+css/slip.css             SLIPSTREAM (progress bar, announcements, hints, biome titles, countdown, LAST RIDERS, spectate, Call the Winner, results, ride picker)
 css/agent.css            DOUBLE AGENT (surveillance chrome, grain, RGB split, classified file states, dossier tiles, unmasking, case file)
 manifest.webmanifest     PWA manifest (standalone, portrait, icons)
 sw.js                    network-first service worker for same-origin static files only (never Firebase/CDNs/audio)
 assets/                  icon set (icon-192/512, maskable, apple-touch, favicon), og.png 1200×630 link preview
 firebase.json            emulator config for local testing (repo root so it can reference database.rules.json)
-audio/music/*.mp3        music (menu, menu2-4, cipher-breach, last-signal, overclock, neural-bluff, victory, golf-rooftops/-cyber/-arcade, spy1-3, prism1-5 = PRISM DROP songs), 112–128 kbps, < 4 MB each
+audio/music/*.mp3        music (menu, menu2-4, cipher-breach, last-signal, overclock, neural-bluff, victory, victory2-4, golf-rooftops/-cyber/-arcade, spy1-3, prism1-5 = PRISM DROP songs), 112–128 kbps, < 4 MB each
 js/config.js             APP_NAME, limits, timeouts, colors, avatars (SVG paths), GAMES registry metadata
 js/firebase-config.js    the user's Firebase web config (the ONLY place it lives)
 js/firebase.js           init (per identity slot), emulator mode, re-exported db helpers, serverNow()
@@ -72,6 +73,8 @@ js/audio/music.js        playMusic(id, fallback), prefetch(id), musicDebug(); vo
                          PLAYLISTS (an id that plays several tracks in order, e.g. 'spy'), duckMusic(level, seconds)
 js/audio/sfx.js          sfx(name, opts): synthesized effects (see SOUNDS for names; `chat` = the soft message blip)
 js/core/rng.js           PURE seeded RNG (mulberry32), hashString, shuffle, pick
+js/core/playlist.js      PURE room playlist (playlistAt: seeded per-cycle shuffles, no repeats), songStarts/songAt/songsUsed, callBonus (PRISM DROP + SLIPSTREAM)
+js/audio/synced-songs.js songs on the server clock: decode once, schedule with ctxAtServer, crossfade, re-place after suspends (PRISM DROP + SLIPSTREAM)
 js/core/obfuscate.js     PURE unicode-safe XOR+base64 for data that must not be readable in plain sight
 js/core/night.js         PURE game-night standings from rooms/{code}/night
 js/trivia/categories.js  host categories <-> Open Trivia DB ids <-> The Trivia API slugs
@@ -134,6 +137,13 @@ js/games/prism/audio.js      song player on the server clock (danger low-pass, d
 js/games/prism/worlds.js     WebGL world shaders (aurora, city, nebula, crystal, sunset × 3 variants) + shared post (beat, bloom, waves, danger)
 js/games/prism/{board,fx,input,bot,view}.js  glass block sprites + board/minis, shards, gestures/buttons/keys, test bot, the view
 data/prism/prismN.json       PRISM DROP song analysis: beats, energy, tonic + mode, lastBeat, mood, world (generated; manifest.json)
+js/games/slip/course.js      PURE seeded course: spline terrain (DX 0.25 m), crests tuned to launch speeds, biomes, hazards sized by probe rides
+js/games/slip/physics.js     PURE rider: 120 Hz steps, dive/launch/flight/flips/landing, hazards, gravity-flip mirroring, crash -> rewind -> respawn
+js/games/slip/bot.js         PURE rollout bot (tests prove courses survivable; the E2E rides with it)
+js/games/slip/{logic,director,index}.js  match rules (placement, same-moment crashes, time limit) / state machine / contract
+js/games/slip/{sky,scene,ride,audio,view}.js  WebGL biome skies / Canvas 2D world + riders + trails + fx / ride looks + picker /
+                             adaptive music chain + synth SFX / the view (input, local sim, ghosts, camera, HUD, spectate, calls, results)
+data/slip/slipN.json         SLIPSTREAM song analysis: BPM, beats, per-beat energy, duration (generated; manifest.json)
 data/agent/words.json        DOUBLE AGENT bank: { categories: [[CATEGORY, [words…]], …] } (41 × 15–18, unique, family-friendly)
 data/trivia/fallback.json    333 hand-written medium/hard questions: [category, difficulty, q, correct, w1, w2, w3]
 data/oc/lexicon.json         320 LEXICON sets: [9 letters, max length, "longest words", "every valid 3+ word"] (generated)
@@ -157,6 +167,7 @@ scripts/build-timeline.mjs   verified fact pools → data/oc/timeline.json (fair
 scripts/serve.mjs            zero-dep local static server (port 5173)
 scripts/build-boot-logo.mjs  re-inlines the unlit sign into index.html's boot screen from js/ui/logo.js (run after logo changes)
 scripts/build-prism.py       PRISM DROP song pipeline: encode + beat grid + key + energy + world (see "PRISM DROP")
+scripts/build-slip.py        SLIPSTREAM song pipeline: encode + BPM + beat grid + energy (see "SLIPSTREAM")
 scripts/build-beatmaps.py    PULSE song pipeline: trim/encode + beat grid + notes + manifest (see "PULSE" below)
 scripts/check-beatgrid.py    ground truth for the beat grid: synthetic drums at known times through the same pipeline
 scripts/validate-holes.mjs   NEON PAR bot: proves every hole is finishable at/under par, measures ace odds (see NEON PAR)
@@ -202,6 +213,10 @@ rooms/{CODE}/meta/settings/chat: { filter: bool }                 ← host; "Fil
                                                   ← PRISM DROP, own, count/play/end; out is final (by = who KO'd you)
   prismq/{matchId}/{target}/{push}: { f, n ≤ 30, g 0-9, at }   ← PRISM DROP junk attack, from yourself, battle only, once
   prismcall/{matchId}/{uid}: { w, at }            ← Call the Winner: only when out, ≤ 12 s after, a live player, once
+  meta/slip: { seed, n }                          ← host; SLIPSTREAM room playlist
+  slip/{matchId}/{uid}: { st: ride|rewind|out, t, x, y, a, g ±1, v, n (on ground), l (lives), i (shimmer), c (combo), rd (ride code
+                          b|c + r|s|w), d, bc, fl, ln, cl, bi, rg, at (out only) }  ← SLIPSTREAM, own, ~10 Hz, count/play/end; out is final
+  slipcall/{matchId}/{uid}: { w, at }             ← SLIPSTREAM Call the Winner (same rules as prismcall)
 spy/{CODE}/                            ← top level, DOUBLE AGENT secrets (never inside rooms/{CODE})
   key/{matchId}: { seed }      read/write: the CURRENT host only (rules check rooms/{CODE}/meta/hostId)
   card/{uid}:    { m, rk, cat, word|null, agent }   read: that player only; write: host only
@@ -293,6 +308,10 @@ PRISM DROP `game`: `{ id:'prism', matchId, settings{mode: battle|rush}, particip
 position), phase: count|play|end|final, songStartAt, playStartAt (= a downbeat of song 0), endAt (rush: the song's last beat),
 n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd}}, calls{uid:{w,ok,bonus}} }`.
 
+SLIPSTREAM `game`: `{ id:'slip', matchId, settings{lives}, participants, seed (the course), songs[ids], sd[ms], pl0, phase:
+count|play|end|final, songStartAt, playStartAt (GO), phaseEndsAt (play: GO + 9 min), n0, out{uid:{at,place,rem,d,gone?,time?}},
+lastAt (LAST RIDERS), winner, timeUp, results{uid:{d,bc,fl,ln,cl,bi,rg}}, calls{uid:{w,ok,bonus}} }`.
+
 DOUBLE AGENT `game`: `{ id:'agent', matchId, settings{rounds,mode,agents,clueSec,debateSec,passes}, participants, seat[] (this
 round's players), names{uid}, round, v (re-deals), rk = "round-v", phase: intro|briefing|clues|debate|vote|unmask|last|scores|final,
 phaseStartAt, phaseEndsAt, order[], turn, cur, pass, turnEndsAt, board{pass:{uid:clue|''}}, debateEnd, tally, accused[],
@@ -351,9 +370,12 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
   absent, solve, invalid, tick{last}, roundEnd, shimmer, strike, hit, shieldBreak, eliminate, challenge, ocCorrect, ocWrong,
   node{i}, victory). Buttons get a soft `tap` automatically; add `data-sfx="none"` to opt out.
 - `window.__arcade.musicDebug()` exposes music state (the E2E asserts crossfades with it).
-- To replace music: drop an MP3 with the same name into `audio/music/` (≈128 kbps, < 4 MB).
+- To replace music: drop an MP3 with the same name into `audio/music/` (≈128 kbps, < 4 MB). Browsers cache `/audio/` for a week
+  (vercel.json), so **bump that file's number in `music.js#REV`** (it adds `?v=N`) or phones keep playing the old copy.
 - **Menu music** is a playlist of four tracks (`menu1..4` = files menu, menu2, menu3, menu4), shuffled fresh on every page load
-  (`PLAYLISTS.menu`); it keeps its place during a game and carries on in the lobby. A fallback may be a playlist (NEON PAR → menu).
+  (`PLAYLISTS.menu`); it keeps its place during a game and carries on in the lobby.
+- **Victory music** (every podium) is a playlist of four short fanfares (`victory1..4` = victory, victory2-4), shuffled per page
+  load; `FRESH_EACH_TIME` makes each new podium start on the next one. A fallback may be a playlist (NEON PAR → menu).
 - **Playlists:** `PLAYLISTS = { spy: ['spy1','spy2','spy3'], menu: shuffled }` — `playMusic('spy')` plays them in order with crossfades and
   keeps going across rounds (same id = no-op). `duckMusic(level, seconds)` lowers the music bus for a moment (DOUBLE AGENT's
   unmasking); a track change resets it.
@@ -404,7 +426,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (177 tests: rules of all eight games (DOUBLE AGENT: tests/agent.test.mjs; PRISM DROP: prism-engine + prism) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (200 tests: rules of all nine games (SLIPSTREAM: slip + slip-course, incl. bot rides proving courses survivable) (DOUBLE AGENT: tests/agent.test.mjs; PRISM DROP: prism-engine + prism) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -453,6 +475,15 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
     finale on the last beat, results), refresh after a KO, no stray "null" (41 checks). Scene preview without Firebase:
     `tests/integration/prism-preview.html?world=city&v=2&tier=1&bot=1&fx=1&danger=0.5`; worlds + per-tier timings:
     `node prism-shots.mjs "<browser>" ./shots-prism [cpu]` (measured with GPU=1 at 4× CPU: 16.7 ms median at all tiers).
+  - SLIPSTREAM E2E: `node e2e-slip.mjs "<browser path>" ./shots-slip` (env N=8, SHOTS=0, GPU=1; frame pacing on its own:
+    `PERF_ONLY=1 GPU=1 N=2` at CPU=4 — measured 16.7 ms median / 17 ms p95 at every tier, 4–5 ms of work a frame) — lobby card/options/ride picker, the same course on every phone, real touch (hold keeps you down, a tap
+    in the air flips), bots ride, ghosts + their looks, equal look-ahead portrait/landscape + rotating mid-ride, every biome's
+    audio treatment, refresh mid-ride, crash -> rewind -> respawn, eliminations + announcements, Call the Winner, ghost
+    smoothness while spectating, host killed, LAST RIDERS, winner, results, rematch (playlist moves on, new course).
+    Look review without Firebase: `slip-preview.html?biome=storm&ghosts=5&tier=2` (+ `flip=1`, `ride=cycle`, `trail=wall`) and
+    `node slip-shots.mjs "<browser>" ./shots-slip [seed] [only=dunes,flip] [sizes=0,2]` (every biome at every size; PERF=1 prints tier timings).
+    Perf lesson: never read layout (getBoundingClientRect / clientWidth) in the frame loop — the HUD changes every frame, so it
+    forces a full layout (that alone cost ~10 ms a frame at 4× CPU); sizes come from ResizeObservers. Screens at 390×844, 412×915, 844×390, 915×412, 1440×900.
   - DOUBLE AGENT E2E: `node e2e-agent.mjs "<browser path>" ./shots-agent` — 8 players: REMOTE match (card privacy per
     player, deal, reveal styles, refresh mid-clues, keyboard layout, blocked clue, timeout + offline skips, pins, debate
     chat, host killed mid-debate, tie = escape, agent leaves → void + re-deal, last-chance steal, final, game night) and a
@@ -704,6 +735,51 @@ NEON DISTRICT is a night city where every game is a venue; the title is your fir
    in `WORLDS` + its mood target in `build-prism.py#WORLDS`, then `--reworld`. Override by editing `"world"` in the song's JSON (kept on rebuilds).
 4. `node --test tests/prism.test.mjs`; look at it in `prism-preview.html?world=…`; play a Score Rush (`?emu`, two slots).
 5. Commit `audio/music/prism*.mp3` + `data/prism/` and push.
+
+## SLIPSTREAM (survival ride)
+Everyone rides the same seeded course at once; calm, then faster and harder; the last rider still riding wins (2–8, lives 1/2/3).
+- **Course** (`course.js#createCourse(seed)`, ~200 ms): control points -> cosine-interpolated heights every 0.25 m. Each hill's crest
+  curvature κ = g / vL² is tuned to a launch speed vL near the base speed for that moment, so diving down the slope before it is
+  what gets you airborne. Nominal time along the course (`nominalSpeed` = 1.5 × `baseSpeed`, 12 -> 26 m/s at 6:00, faster after)
+  decides difficulty and biomes. Hazards unlock in order (rings 20 s, gaps 45, low ceilings 75, laser gates 100, crumbling 130,
+  gravity flips 160 then every 52–70 s) and are sized by **probe rides** (`probe()`, the same launch rule + ballistics): gap
+  length from a launch at 1.02–1.12 × vL, laser openings from probe heights at 1.2–2.6 × vL (blinking low beams from 3:20),
+  ceilings 4.6–5.8 m over the hills. Biomes every ~45 s: DUSK DUNES, then CRYSTAL CANYON / FLOATING CITY / LIGHTNING STORM
+  shuffled twice (never the same twice in a row), OPEN SPACE from 5:15; 3 sky variants each, all from the seed.
+- **Rider** (`physics.js`, pure, 1/120 s): on the ground speed follows the slope (× 2.1 when holding downhill, × 1.35 uphill); a
+  release where s²κ > g·cosθ launches; in the air gravity × 2.3 while held > 0.18 s; a tap (< 0.2 s press, counted on release)
+  queues a full flip (0.48 s). Landing within 40° of the slope = clean (flips -> boost 2.2 + 1.6/flip + 0.55·combo; consecutive
+  flipped landings build the combo; a plain jump always lands clean thanks to the attitude assist), else a crash. Gravity-flip
+  zones run the rider in a mirrored frame against a ceiling track. Crash with lives left: 0.9 s rewind, respawn a little behind
+  on plain ground, 2 s invulnerable (shimmer). Out of lives = `st:'out'` with server time + distance.
+- **Bot** (`bot.js`): rollouts of hold/release plans with the real physics; `tests/slip-course.test.mjs` rides whole courses on
+  several seeds to sudden death and checks every hazard section from a minimum-speed respawn.
+- **Match** (`director.js`): count (5.2 s, songs start under it) -> play -> out detection from rider nodes (or offline > 30 s);
+  riders out within 600 ms of each other are ranked by distance; LAST RIDERS (`lastAt`) at two of ≥ 3; end at ≤ 1 alive or
+  9:00 (the farthest wins) -> final with results + Call the Winner (`callBonus`, as PRISM DROP) + `meta/slip/n` advanced.
+- **View** (`view.js`): the rider is simulated locally on the match clock (`serverNow() − playStartAt`), publishing ~10 Hz; ghosts
+  are drawn 0.14 s behind, interpolated between samples (ground-following when both samples are on the ground). Camera: the
+  rider sits 28 % from the left and the screen shows exactly `look` metres ahead — `look` = 24 + 0.62 × speed, widened to fit the
+  vertical span with a fixed reference aspect — so portrait (zoomed out) and landscape see the same distance ahead.
+  Refresh / rejoin / > 1.2 s in the background = back near the last position with the same lives (a respawn, no life lost).
+- **Look** (`sky.js`: a WebGL1 shader per biome at 0.22–0.42 of screen pixels; `scene.js`: Canvas 2D): 3 parallax silhouette
+  layers per biome, layered ground, the track as a glowing line, hazards (gap lips, laser beams, zap lines, cracks, flip arch +
+  ceiling, rings), ghosts with name tags, trails, shards, flashes, speed lines, lightning, seeded events (light-birds, meteors,
+  airship). Tiers 2/1/0 (DPR 2/1.5/1, glow passes, layers, particles, speed lines, sky resolution) step down at p75 > 19.5 ms.
+- **Rides** (`ride.js`, `localStorage na:slipride`): HOVERBOARD or LIGHT-CYCLE × RIBBON / SPARKS / LIGHT WALL trail — drawing only,
+  identical physics + hitbox. Picker: the countdown's YOUR RIDE button or ⚙ -> SLIPSTREAM.
+- **Audio** (`audio.js`): songs via `synced-songs.js` through low-pass -> high-shelf -> dry/reverb/echo -> swell; `TREAT` per biome
+  (blended with the biome mix); airtime swell, near-crash dip (140 ms), crash muffle (0.9 s at 520 Hz), LAST RIDERS opens it up.
+  Synth SFX: wind with speed, laser hum near gates, launch, flip, a landing chime up a pentatonic scale with the combo, crash,
+  rewind, respawn, ring, gate, gravity flip, countdown.
+- Test hooks: `window.__slip` (rider, course, bot, crash, teleport, camera, audio, announcements, tier, fps, ghostProbe…).
+
+**Adding SLIPSTREAM songs** (the owner drops `slip9.mp3`, `slip10.mp3`, … into ~/Downloads and asks to "add the new SLIPSTREAM songs"):
+1. PULSE's Python venv (see PULSE step 1).
+2. `~/.cache/neural-arcade/pyenv/Scripts/python scripts/build-slip.py` — encodes new/changed songs to `audio/music/slipN.mp3`
+   (112 kbps stereo, full length), analyses BPM / beat grid / energy, rewrites `data/slip/manifest.json` (`--only 9,10`, `--force`).
+3. `node --test tests/slip.test.mjs` (songs data + the no-repeat playlist), then ride once (`?emu`, two slots).
+4. Commit `audio/music/slip*.mp3` + `data/slip/` and push. New songs join the room playlist automatically.
 
 ## DOUBLE AGENT (social deduction)
 - **Privacy:** `rooms/{code}` is readable by every signed-in user, so nothing secret goes there. `index.js#start` writes a

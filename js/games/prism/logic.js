@@ -8,13 +8,12 @@ export const DEFAULT_SETTINGS = { mode: 'battle' };
 export const MIN_PLAYERS = 2;
 export const LEAD_MS = 4500;          // match created -> song starts (title card, everyone loads)
 export const COUNT_MIN_MS = 3200;     // at least this much song before GO (the 3-2-1 lands on beats)
-export const XF_MS = 4000;            // crossfade between songs when a battle outlasts one
+export { XF_MS, CALL_MS, callBonus } from '../../core/playlist.js';
 export const SPEED_STEP_MS = 60_000;  // battle: gravity up every minute
 export const SUDDEN_MS = 300_000;     // battle: sudden death after 5 minutes …
 export const SUDDEN_EVERY_MS = 10_000; // … a junk row rises every 10 s
 export const OFFLINE_OUT_MS = 30_000; // battle: gone this long = eliminated
 export const END_MS = 4200;           // the last KO / the finale before the results
-export const CALL_MS = 10_000;        // Call the Winner window after you're knocked out
 export const JUNK_DELAY_MS = 1000;
 export const JUNK_DELAY_DANGER_MS = 2500; // comeback breathing room
 export const DANGER_ROWS = 16;        // stack this high (of 20 visible) = "within the top ~4 rows"
@@ -24,47 +23,8 @@ export function cleanSettings(s = {}) {
   return { mode: MODES.includes(s.mode) ? s.mode : DEFAULT_SETTINGS.mode };
 }
 
-// ---------------------------------------------------------------- playlist
-/**
- * Song for playlist position k (0, 1, 2 … across the whole room session). Each cycle through the songs is
- * its own seeded shuffle, and a cycle never starts with the song the previous one ended on — so no song
- * repeats until every song has played, and never twice in a row.
- */
-export function playlistAt(seed, k, ids) {
-  if (!ids.length) return null;
-  const n = ids.length;
-  const order = cycle => {
-    const o = shuffle(rngFrom(`${seed}:cycle:${cycle}`), ids.slice().sort());
-    if (cycle > 0 && n > 1) {
-      const prev = order(cycle - 1);
-      if (o[0] === prev[n - 1]) [o[0], o[1]] = [o[1], o[0]];
-    }
-    return o;
-  };
-  return order(Math.floor(k / n))[k % n];
-}
-
-/** Song start times (server ms) for a match: each next song starts XF_MS before the previous one ends. */
-export function songStarts(game) {
-  const out = [];
-  let t = game.songStartAt;
-  for (let i = 0; i < (game.songs || []).length; i++) {
-    out.push(t);
-    t += (game.sd[i] || 180_000) - XF_MS;
-  }
-  return out;
-}
-
-/** Which song is playing at server time t: { i, start, end } (end = that song's last sample). */
-export function songAt(game, t) {
-  const starts = songStarts(game);
-  let i = 0;
-  while (i + 1 < starts.length && t >= starts[i + 1]) i++;
-  return { i, start: starts[i], end: starts[i] + (game.sd[i] || 180_000) };
-}
-
-/** How many songs a match has used by server time t (advances the room playlist). */
-export const songsUsed = (game, t) => songAt(game, t).i + 1;
+// ---------------------------------------------------------------- playlist (shared: core/playlist.js)
+export { playlistAt, songStarts, songAt, songsUsed } from '../../core/playlist.js';
 
 // ---------------------------------------------------------------- battle pacing
 export const battleLevel = elapsed => Math.min(12, 1 + Math.floor(Math.max(0, elapsed) / SPEED_STEP_MS));
@@ -108,8 +68,6 @@ export function applyKo(badges, killer, victim) {
 }
 
 // ---------------------------------------------------------------- Call the Winner
-/** Game-night bonus for a right call made with `remaining` players still alive (6 left ≈ a 2nd place). */
-export const callBonus = remaining => Math.max(0, Math.round((remaining - 1) * 0.4 * 10) / 10);
 
 // ---------------------------------------------------------------- standings
 /**
