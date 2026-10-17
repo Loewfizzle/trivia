@@ -65,7 +65,7 @@ export function createLobby() {
     el.append(
       h('button.btn.btn-ghost.btn-sm.lobby-leave', { type: 'button', onclick: confirmLeave, 'aria-label': 'Leave room' }, '‹ LEAVE ROOM'),
       h('header.lobby-head',
-        h('div.nd-mini', { 'aria-label': APP_NAME, role: 'img' }, h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndl', lit: true, clips: false, blur: 0.7 }) }), h('div.nd-word', 'DISTRICT')),
+        h('div.nd-mini', { 'aria-label': APP_NAME, role: 'img' }, h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndl', lit: true, clips: false, blur: 0.7 }) }), h('div.nd-word', 'SPEAKEASY')),
         h('div.lobby-room',
           h('span.label', 'ROOM CODE'),
           els.code),
@@ -142,11 +142,17 @@ export function createLobby() {
       .catch(() => toast('COULD NOT REACH THE ROOM', 'err'));
   }
 
-  let leaveArmed = 0;
-  function confirmLeave() {
-    if (Date.now() - leaveArmed < 2500) { leaveRoom(); return; }
+  // the button itself asks for the second tap (it lights up red for a moment), no pop-up
+  let leaveArmed = 0, leaveTimer = 0;
+  function confirmLeave(e) {
+    const btn = e && e.currentTarget;
+    if (Date.now() - leaveArmed < 2600) { leaveRoom(); return; }
     leaveArmed = Date.now();
-    toast('TAP AGAIN TO LEAVE', 'warn', 2400);
+    if (!btn) return;
+    btn.classList.add('is-armed');
+    btn.textContent = 'TAP AGAIN TO LEAVE';
+    clearTimeout(leaveTimer);
+    leaveTimer = setTimeout(() => { leaveArmed = 0; btn.classList.remove('is-armed'); btn.textContent = '‹ LEAVE ROOM'; }, 2600);
   }
 
   function buildGames() {

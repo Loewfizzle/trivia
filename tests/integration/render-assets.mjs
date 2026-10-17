@@ -1,4 +1,4 @@
-// Renders the NEON DISTRICT app icons and the 1200×630 link-preview image with a local Chrome/Edge, from the real
+// Renders the NEON SPEAKEASY app icons and the 1200×630 link-preview image with a local Chrome/Edge, from the real
 // title scene and logo (tests/integration/brand.html). Needs scripts/serve.mjs running on :5173.
 //   cd tests/integration && node render-assets.mjs "<browser path>"
 // Writes to /assets. Re-run after changing the logo, the city or the game list.

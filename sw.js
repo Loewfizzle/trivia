@@ -1,4 +1,4 @@
-// NEON DISTRICT service worker — deliberately minimal.
+// NEON SPEAKEASY service worker — deliberately minimal.
 // Network-first for our own static files (so players always get the newest version);
 // the cache is only a fallback when the network is down. Firebase, fonts, CDNs and the
 // music files are never touched: cross-origin requests and /audio pass straight through.

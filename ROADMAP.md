@@ -1,14 +1,14 @@
-# NEON DISTRICT — Roadmap
+# NEON SPEAKEASY — Roadmap
 
 > The name lives in `APP_NAME` (`js/config.js`), plus `<title>`/meta in `index.html`, `manifest.webmanifest`, the logo
 > (`js/ui/logo.js` → `scripts/build-boot-logo.mjs`) and the icons/preview (`tests/integration/render-assets.mjs`).
 > It was NEURAL ARCADE until October 2026.
 
-NEON DISTRICT — *game night, after dark.* One web app, nine games, 2–8 players, each on their own phone — same room or different cities.
+NEON SPEAKEASY — *game night, after dark.* One web app, nine games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
-Hosted at **games.loewfizzle.com** (since Oct 2026; the old trivia.loewfizzle.com permanently redirects here) (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
+Hosted at **neonspeakeasy.com** (since Oct 2026; games.loewfizzle.com and trivia.loewfizzle.com permanently redirect here) (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
 Backend: Firebase Realtime Database + Anonymous Auth.
 
 ## The games — all nine are playable
@@ -204,6 +204,12 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
       airtime swell, near-crash dip, crash muffle; synth SFX
 - [x] Rules for `slip/slipcall/meta.slip` + 3 rules tests; unit tests (22); E2E `tests/integration/e2e-slip.mjs` (8 players, 35 checks), look preview
       `slip-preview.html` + `slip-shots.mjs`; 60 fps at every tier at 4× CPU (4–5 ms of work a frame)
+
+### ✅ NEON SPEAKEASY (rename + menus in the title's language)
+- [x] Renamed NEON DISTRICT → NEON SPEAKEASY on its own domain (neonspeakeasy.com): name, titles, manifest, boot screen, the sign
+      ("SPEAKEASY" framed by Art Deco rules with diamonds), lobby header, link previews (re-rendered og.png + icons), docs
+- [x] Setup, lobby, every sheet (options, settings, help), chat and toasts in the title's neon glass, over a still of the lit
+      district; player avatars as neon glass emblems with a different shape each; colour swatches as glass orbs
 
 ## Next up (agreed plan, in order)
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute

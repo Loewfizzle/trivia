@@ -1,4 +1,4 @@
-// NEON DISTRICT title screen end to end (needs the emulators + scripts/serve.mjs).
+// NEON SPEAKEASY title screen end to end (needs the emulators + scripts/serve.mjs).
 //   node e2e-title.mjs "<browser path>" ./shots-title        (env SHOTS=0, VIDEO=0, CPU=4, GPU=1)
 // First visit (gate -> tap -> full power-on, audio unlocked by that tap), returning visit (short, no gate),
 // back from the name screen (quick re-light), skip by tapping, reduced effects; HOST with a saved profile (straight into a
@@ -265,7 +265,7 @@ try {
   await cdpH.send('HeapProfiler.collectGarbage');
   const heap1 = (await cdpH.send('Runtime.getHeapUsage')).usedSize;
   log('heap', Math.round(heap0 / 1e6), '->', Math.round(heap1 / 1e6), 'MB');
-  ok(await ev(H.page, `!!document.querySelector('.lobby-head .nd-mini svg')`), 'LOBBY: the small NEON DISTRICT sign in the header');
+  ok(await ev(H.page, `!!document.querySelector('.lobby-head .nd-mini svg')`), 'LOBBY: the small NEON SPEAKEASY sign in the header');
   await shotAll(H.page, 'n-05-lobby');
 
   // ================================================================ 5. JOIN by typing (auto-join on the 4th letter)
@@ -298,7 +298,7 @@ try {
   await C.page.evaluate(u => {
     const dt = new DataTransfer(); dt.setData('text/plain', u);
     document.querySelector('.nd-code-in').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
-  }, `https://games.loewfizzle.com/?room=${code}`);
+  }, `https://neonspeakeasy.com/?room=${code}`);
   await waitFor(C.page, '!!window.__arcade.state.code', 'C joined by paste', 20000);
   ok((await state(C.page)).code === code, 'JOIN: pasting an invite link joins');
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEON DISTRICT brand renders (used by render-assets.mjs; needs scripts/serve.mjs):
+<!-- NEON SPEAKEASY brand renders (used by render-assets.mjs; needs scripts/serve.mjs):
        ?kind=og                    1200×630 link preview: the district at night, the sign, the tagline, the games
        ?kind=icon&size=512&pad=.14 app icon: the tube "N" glowing over a night skyline (pad: maskable safe zone) -->
 <html lang="en">
@@ -39,9 +39,9 @@ if (kind === 'og') {
   const c = document.createElement('canvas');
   root.append(c);
   const sign = document.createElement('div'); sign.className = 'sign';
-  sign.innerHTML = `<div class="nd-logo-wrap">${logoSvg({ id: 'og', lit: true, blur: 1.1 })}</div><div class="nd-word">DISTRICT</div><div class="tag">${TAGLINE}</div>`;
+  sign.innerHTML = `<div class="nd-logo-wrap">${logoSvg({ id: 'og', lit: true, blur: 1.1 })}</div><div class="nd-word">SPEAKEASY</div><div class="tag">${TAGLINE}</div>`;
   root.append(sign);
-  const ACC = { overclock: '#ffb627', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
+  const ACC = { slip: '#ffc46b', overclock: '#ffb627', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
   const foot = document.createElement('div'); foot.className = 'foot';
   foot.innerHTML = GAMES.map(g => `<span style="--c:${ACC[g.id]}"><i></i>${g.name}</span>`).join('');
   root.append(foot);

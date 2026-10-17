@@ -8,7 +8,7 @@ import { mkdirSync } from 'node:fs';
 
 const BROWSER = process.argv[2] || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const SHOTS = process.argv[3] || './shots';
-// E2E_BASE=https://games.loewfizzle.com runs against production (real Firebase, no ?emu).
+// E2E_BASE=https://neonspeakeasy.com runs against production (real Firebase, no ?emu).
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const EMU = BASE.includes('localhost') ? 'emu&' : '';
 mkdirSync(SHOTS, { recursive: true });

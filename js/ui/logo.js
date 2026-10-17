@@ -1,11 +1,11 @@
-// NEON DISTRICT logotype. Pure markup (no DOM), so the title, the lobby header, the boot screen, the app icons
+// NEON SPEAKEASY logotype. Pure markup (no DOM), so the title, the lobby header, the boot screen, the app icons
 // and the link preview (tests/integration/render-assets.mjs) all draw the exact same sign.
 //
 // "NEON" is a real neon sign: each letter is one bent glass tube (a single stroke with rounded bends), drawn as
 //   glass (unlit tube) -> wide glow -> near glow -> tube body -> hot white core -> a thin glass highlight,
 // with blacked-out connector tubes between the letters, electrode caps at the tube ends and small mounting
 // clips — the way a sign shop builds one. Each letter is its own group (.ndl-1 … .ndl-4) so it can flicker alone.
-// "DISTRICT" is set in the display face, wide and quiet, under the sign (HTML, see title.js / lobby.js).
+// "SPEAKEASY" is set in the display face, wide and quiet, under the sign (HTML, see title.js / lobby.js).
 
 const TUBE = 9;
 // letter paths in a 0..64 × 0..100 box (y down), placed by x offset
