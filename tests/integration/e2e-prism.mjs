@@ -331,6 +331,13 @@ try {
       const call = await evalIn(pages[victim], (s, u) => s.live && s.live.calls && s.live.calls[u], uids[victim]);
       ok(call && call.w === uids[keepA], `CALL THE WINNER: ${NAMES[victim]} called ${NAMES[keepA]} (locked in)`);
       await shotBoth(pages[victim], 'pd-07-spectate');
+      // refresh after being knocked out: still out, spectating, the call still locked in (no second picker)
+      await pages[victim].reload();
+      await pages[victim].waitForSelector('.pd-spec-head', { timeout: 25000 });
+      await sleep(1200);
+      const head = await pages[victim].evaluate(() => document.querySelector('.pd-spec-head').textContent);
+      const picker = await pages[victim].$('.pd-call-pick');
+      ok(/YOUR CALL/.test(head) && head.includes(NAMES[keepA]) && !picker, `REJOIN: a knocked-out player who refreshes keeps spectating with their call ("${head}")`);
     }
     await sleep(800);
   }
@@ -401,6 +408,7 @@ try {
     await P(r, 'window.__prism.bot({ skill: 0.8, every: 120, seed: 77 })');
     // jump to the end of the song (host moves the clock), so the test doesn't wait a whole song
     const hr = pages[await hostIdx()];
+    await touchTap(hr); // this phone's player has touched the screen (sound unlocks on the first tap)
     const gNow = await game(hr);
     const now = await hr.evaluate(async () => (await import('/js/firebase.js')).serverNow());
     const shift = gNow.endAt - (now + 9000);
