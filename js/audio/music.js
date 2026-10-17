@@ -26,7 +26,10 @@ const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'], menu: shuffled(['menu1', 'men
 const listPos = {}; // list id -> index of the track playing / next to play
 const XFADE = 1.5;        // seconds, between tracks
 const LOOP_XFADE = 1.8;   // seconds, track into itself
-const urlFor = id => new URL(`../../audio/music/${FILES[id]}.mp3`, import.meta.url).href;
+// Browsers keep audio for a week (vercel.json). When a file is REPLACED under the same name, bump its number here so every
+// phone fetches the new one instead of playing its cached copy.
+const REV = { menu: 2, menu3: 2, menu4: 2 };
+const urlFor = id => new URL(`../../audio/music/${FILES[id]}.mp3${REV[FILES[id]] ? `?v=${REV[FILES[id]]}` : ''}`, import.meta.url).href;
 
 const status = {};        // id -> 'ok' | 'missing' (unknown if absent)
 const positions = {};     // id -> seconds to resume from
