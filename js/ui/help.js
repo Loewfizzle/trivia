@@ -150,6 +150,34 @@ RULES.agent = {
   ],
 };
 
+RULES.prism = {
+  goal: 'A falling-block battle set to music. Everyone gets the same pieces in the same order. 2–8 players.',
+  sections: [
+    ['CONTROLS (GESTURES)', [
+      'Drag sideways: the piece follows your finger, one column at a time.',
+      'Tap the right half to rotate clockwise, the left half to rotate counter-clockwise.',
+      'Drag down slowly to soft drop. Flick down fast to drop it instantly. Swipe up to hold a piece for later.',
+      'Prefer buttons? ⚙ settings → PRISM DROP → BUTTONS (and the swipe sensitivity / button size).',
+    ]],
+    ['BATTLE', [
+      'Clearing lines sends junk rows to your target: 2 lines = 1, 3 = 2, 4 = 4. Twists hit harder, back-to-back and combos add more, a perfect clear sends 10.',
+      'Incoming junk shows on the red bar beside your board and lands about a second later — clear lines first to cancel it.',
+      'Tap TARGET to choose: RANDOM, ATTACKERS (whoever is hitting you) or DANGER (whoever is closest to the top).',
+      'Knock someone out and you take their badges plus one. Badges make your attacks stronger.',
+      'Fill your board to the top and you’re out. Last one standing wins. It speeds up every minute; after 5 minutes junk rises on its own.',
+      'Out? Call the winner within 10 seconds — a right call earns game-night points (more the earlier you call it).',
+    ]],
+    ['SCORE RUSH', [
+      'No attacks — everyone plays for points for exactly one song. The match ends on the song’s final beat.',
+      'Bigger clears, twists, combos and back-to-back clears score more; every 10 lines the level (and speed) goes up.',
+      'Top out and your board resets — your score stays.',
+    ]],
+    ['TWISTS', [
+      'Rotate the T-shaped piece into a tight slot (three of its corners blocked) to score a twist.',
+    ]],
+  ],
+};
+
 RULES.pulse = {
   goal: 'A rhythm race down a neon highway. Everyone plays the same song at the same moment — hit the notes on the beat.',
   sections: [
@@ -207,7 +235,7 @@ const LEGEND = [
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
+const TAB = { prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
 
 let sheet = null;
 

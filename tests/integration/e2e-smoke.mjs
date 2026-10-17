@@ -20,6 +20,7 @@ const GAMES = [
   ['bluff', {}],
   ['pulse', { count: 1 }],
   ['golf', { mode: 'quick3' }],
+  ['prism', { mode: 'battle' }],
 ];
 const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
 const t0 = Date.now();

@@ -463,3 +463,71 @@ test('double agent last chance: only a caught agent, once, in the last phase', a
   await assertFails(set(ref(db('p2'), `${G}/p2`), { t: 'pasta', at: serverTimestamp() }), 'one guess');
   await assertSucceeds(remove(ref(db('host'), `${R}/agguess`)), 'host wipes');
 });
+
+// ---------------------------------------------------------------- PRISM DROP
+function prismRoom(game = {}) {
+  const r = lobbyRoom();
+  const room = r.rooms[CODE];
+  room.meta.status = 'playing';
+  room.players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
+  room.game = { id: 'prism', matchId: 'm1', phase: 'play', settings: { mode: 'battle' }, participants: { host: true, p2: true, p3: true }, ...game };
+  return r;
+}
+const pnode = (extra = {}) => ({ st: 'play', at: serverTimestamp(), b: '1111000000', h: 1, p: '3,0,4,18', sc: 120, ln: 1, lv: 1, mc: 0, se: 0, pd: 0, best: 'single', tg: 'p3', ...extra });
+
+test('prism boards: own node during the match; out is final; sizes checked', async () => {
+  await seed(prismRoom());
+  const N = `${R}/prism/m1`;
+  await assertSucceeds(set(ref(db('p2'), `${N}/p2`), pnode()));
+  await assertFails(set(ref(db('p2'), `${N}/p3`), pnode()), 'not someone else\'s board');
+  await assertFails(set(ref(db('outsider'), `${N}/outsider`), pnode()), 'not a participant');
+  await assertFails(set(ref(db('p2'), `${N}/p2`), pnode({ b: '12x' })), 'board string: digits 0-8 only');
+  await assertFails(set(ref(db('p2'), `${N}/p2`), pnode({ b: '1'.repeat(401) })), 'board string length');
+  await assertFails(set(ref(db('p2'), `${N}/p2`), pnode({ hack: 1 })), 'no extra fields');
+  await assertSucceeds(update(ref(db('p2'), `${N}/p2`), { sv: { b: '1111', n: 12, ak: '-Nabc', h: 3, sc: 5, pd: [[2, 4, 'p3', '-Nk']] } }), 'full save');
+  // topping out: credit must name another participant; out can't be undone
+  await assertFails(update(ref(db('p2'), `${N}/p2`), { st: 'out', by: 'p2', at: serverTimestamp() }), 'no self credit');
+  await assertSucceeds(update(ref(db('p2'), `${N}/p2`), { st: 'out', by: 'p3', at: serverTimestamp() }));
+  await assertFails(update(ref(db('p2'), `${N}/p2`), { st: 'play', at: serverTimestamp() }), 'cannot come back after topping out');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'final'));
+  await assertFails(update(ref(db('p3'), `${N}/p3`), pnode()), 'not after the match');
+});
+
+test('prism junk: only from yourself, to another live participant, during a battle, once', async () => {
+  await seed(prismRoom());
+  const Q = `${R}/prismq/m1`;
+  const atk = (from, extra = {}) => ({ f: from, n: 2, g: 4, at: serverTimestamp(), ...extra });
+  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/k1`), atk('p2')));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/k1`), atk('p2')), 'written once');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/k2`), atk('host')), 'cannot forge the sender');
+  await assertFails(set(ref(db('p2'), `${Q}/p2/k3`), atk('p2')), 'not at yourself');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/k4`), atk('p2', { n: 99 })), 'at most 30 rows');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/k5`), atk('p2', { g: 10 })), 'gap column 0-9');
+  await assertFails(set(ref(db('outsider'), `${Q}/p3/k6`), atk('outsider')));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/p2`), { at: now(), place: 3, rem: 2 }));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/k7`), atk('p2')), 'knocked out players can\'t attack');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/settings/mode`), 'rush'));
+  await assertFails(set(ref(db('p3'), `${Q}/host/k8`), atk('p3')), 'no attacks in Score Rush');
+});
+
+test('prism call the winner: once, only when out, within the window, a live player', async () => {
+  await seed(prismRoom({ out: { p2: { at: now() - 2000, place: 3, rem: 2 } } }));
+  const C = `${R}/prismcall/m1`;
+  await assertFails(set(ref(db('p3'), `${C}/p3`), { w: 'host', at: serverTimestamp() }), 'still alive: no call');
+  await assertFails(set(ref(db('p2'), `${C}/p2`), { w: 'p2', at: serverTimestamp() }), 'not yourself');
+  await assertSucceeds(set(ref(db('p2'), `${C}/p2`), { w: 'host', at: serverTimestamp() }));
+  await assertFails(set(ref(db('p2'), `${C}/p2`), { w: 'p3', at: serverTimestamp() }), 'locked once made');
+  // too late
+  await seed(prismRoom({ out: { p2: { at: now() - 20_000, place: 3, rem: 2 } } }));
+  await assertFails(set(ref(db('p2'), `${C}/p2`), { w: 'host', at: serverTimestamp() }), 'after the 10 s window');
+  // can't pick someone already out
+  await seed(prismRoom({ out: { p2: { at: now() - 1000, place: 3, rem: 2 }, p3: { at: now() - 500, place: 2, rem: 1 } } }));
+  await assertFails(set(ref(db('p2'), `${C}/p2`), { w: 'p3', at: serverTimestamp() }), 'pick a player still in');
+});
+
+test('prism room playlist: host only', async () => {
+  await seed(prismRoom());
+  await assertSucceeds(update(ref(db('host'), `${R}/meta`), { prism: { seed: 'abc123', n: 2 } }));
+  await assertFails(update(ref(db('p2'), `${R}/meta`), { prism: { seed: 'mine', n: 0 } }));
+  await assertFails(update(ref(db('host'), `${R}/meta`), { prism: { seed: 'abc', n: 2, x: 1 } }), 'no extra fields');
+});

@@ -108,7 +108,11 @@ function roomPatch(game, step) {
       p[r.uid] = NIGHT_POINTS[r.rank] || 0;
       n[r.uid] = (state.players[r.uid] && state.players[r.uid].name) || 'GHOST';
     }
-    patch[`night/${game.matchId}`] = { g: game.id, at: serverTimestamp(), p, n };
+    const entry = { g: game.id, at: serverTimestamp(), p, n };
+    // bonus points that aren't a placing (PRISM DROP's Call the Winner): added to the total, never a win
+    const b = mod.nightBonus ? mod.nightBonus(finished) : null;
+    if (b && Object.keys(b).length) entry.b = b;
+    patch[`night/${game.matchId}`] = entry;
   }
   return patch;
 }
