@@ -130,15 +130,22 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
 2. **Split `js/games/overclock/view.js`** (~1,600 lines) into one file per challenge plus shared helpers. Code-only, no data or
    Firebase changes.
-3. **New game: imposter word game** (3–8 players, text-only, no voice call needed — fewer steps = more play).
+3. **Overclock QUICK mode: 6 challenges** for shorter games (next to Standard 12 / Marathon 24). Six all-different types with the
+   usual category spread; update `MODES`, the options, the time estimate, tests.
+4. **New game: imposter word game** (3–8 players, text-only, no voice call needed — fewer steps = more play).
    Everyone gets a secret word except the imposter (who sees only the category) → clue round: everyone types one word at
    once, all revealed together → second clue round → accuse: tap a suspect + optional one-line reason, shown with the votes →
    reveal; a caught imposter can steal the win by guessing the word. ~2–3 min per round, new imposter each round, nobody
    eliminated. Keep the role/word off the readable room data (like Cipher's obfuscated secret). Room chat stays open.
-4. **Overclock QUICK mode: 6 challenges** for shorter games (next to Standard 12 / Marathon 24). Six all-different types with the
-   usual category spread; update `MODES`, the options, the time estimate, tests.
 
 ## Future ideas
+- **New game: drawing telephone** (like Gartic Phone / Telestrations; 4–8 players, works with 3; no voice needed).
+  Everyone types a secret prompt → the next player draws it on their phone (finger canvas: a few colours, 2 brush sizes,
+  undo/clear, ~60–90 s) → the next sees only the drawing and types a guess → draw ↔ guess alternate until every chain has gone
+  around → the reveal plays each chain step by step for everyone (drawings replayed stroke by stroke). Everyone works at once
+  in every phase; drawings stored as strokes (tiny); server-clock timers; an offline player's step becomes "(ran out of ink)".
+  Optional tap-voted awards ("Best drawing", "Most lost in translation") and a shareable image of the funniest chain.
+  ~10–15 min a game — pairs well with the imposter game (quick suspicion vs. slower laughs).
 - **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,
   daily challenge hole with a room leaderboard, replays of everyone's best shot at the end.
 - **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host
