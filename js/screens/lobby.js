@@ -17,13 +17,6 @@ import { openHelp } from '../ui/help.js';
 import { sfx } from '../audio/sfx.js';
 import { prefetch } from '../audio/music.js';
 import { gameArt } from '../ui/game-art.js';
-// NEON PAR's ball picker loads on first tap (keeps it out of the startup module graph)
-const golfBall = () => import('../games/golf/ball.js');
-function ballDot() { // the lobby card's preview of your saved ball (same look as ball.js#ballPreview)
-  let s = {};
-  try { s = JSON.parse(localStorage.getItem('na:golfball') || '{}') || {}; } catch { /* default */ }
-  return h('span.gb-ball', { class: `gb-${/^(neon|chrome|glass)$/.test(s.f) ? s.f : 'neon'}`, style: { '--c': /^#[0-9a-f]{6}$/i.test(s.c) ? s.c : '#2ff5d2', '--s': '20px' } }, h('i'));
-}
 
 const greeted = new Set(); // rooms we've already shown the join effect for (this page load)
 
@@ -169,12 +162,7 @@ export function createLobby() {
         h('div.gc-blurb', g.blurb)),
       g.playable ? h('div.gc-go', '›') : h('div.gc-lock', h('span', 'LOCKED'), h('small', 'COMING SOON')));
       const wrap = h('div.game-card-wrap', card,
-        h('button.gc-help', { type: 'button', 'aria-label': `How to play ${g.name}`, onclick: () => openHelp(g.id) }, '?'),
-        // NEON PAR: everyone can pick their ball while the host chooses
-        g.id === 'golf' ? h('button.gc-ball', { type: 'button', 'aria-label': 'Customize your golf ball', onclick: () => golfBall().then(m => {
-          if (!els.ballSub) els.ballSub = m.onStyle(() => { const b = els.games.querySelector('.gc-ball'); if (b) b.replaceChildren(ballDot()); });
-          m.openBallPicker();
-        }) }, ballDot()) : null);
+        h('button.gc-help', { type: 'button', 'aria-label': `How to play ${g.name}`, onclick: () => openHelp(g.id) }, '?'));
       els.gameCards[g.id] = card;
       els.games.append(wrap);
     }
@@ -304,7 +292,6 @@ export function createLobby() {
   function unmount() {
     clearInterval(els.idleTimer);
     if (sheet) { sheet.remove(); sheet = null; }
-    if (els.ballSub) { els.ballSub(); els.ballSub = null; }
     if (els.chatStrip) { els.chatStrip.destroy(); els.chatStrip = null; }
   }
 

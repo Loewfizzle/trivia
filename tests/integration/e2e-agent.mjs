@@ -36,6 +36,7 @@ let code = '';
 async function openPlayer(i, qs = '') {
   const ctx = ctxs[i] || (ctxs[i] = await browser.createBrowserContext());
   const page = await ctx.newPage();
+  page.on('console', m => { if (m.type() === 'warning' && /game view/.test(m.text())) errors.push(`game view failed to load: ${m.text()}`); });
   page.on('pageerror', e => { errors.push(`${NAMES[i]} pageerror: ${e.message}`); log(`${NAMES[i]} PAGEERROR`, e.message); });
   page.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|TOO LATE|Client is offline/i.test(t)) { errors.push(`${NAMES[i]}: ${t}`); log(`${NAMES[i]} console.error`, t); } });
   await page.setViewport(VIEW);

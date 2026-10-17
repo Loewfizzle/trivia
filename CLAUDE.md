@@ -620,8 +620,10 @@ under ~40 % and "random" < 2 %. Then `node --test tests/golf.test.mjs`, and play
 - **Songs:** `meta/prism` holds the room's playlist seed + position. `playlistAt(seed, k, ids)` = per-cycle seeded shuffles, a cycle
   never starts with the song the last one ended on, so nothing repeats until all have played. A match takes the next song(s)
   (battle deals 5 in a row; if it outlasts a song the next crossfades in over 4 s and the world transforms); the final step
-  advances `meta/prism/n` by the songs used. The song plays from two pre-activated audio elements (`music.js#gameVoices`) on the
-  server clock (drift-corrected), through a low-pass (DANGER: stack ≥ 13 rows sinks it toward 600 Hz) and a lift gain (DUEL).
+  advances `meta/prism/n` by the songs used. Like PULSE, each song is decoded once into an AudioBuffer and scheduled on the audio clock
+  (`pulse/clock.js#ctxAtServer`) — never streamed through an <audio> element and "corrected" (that version warbled and
+  stuttered on phones). Only the playing song + the next (≤ 45 s before its turn) stay decoded; after a suspension the song
+  is restarted once at the right spot. It plays through a low-pass (DANGER: stack ≥ 13 rows sinks it toward 600 Hz) and a lift gain (DUEL).
   Menu music is off during the match (`MUSIC = null`); the podium plays victory.
 - **Musical SFX** (`audio.js#createSynth`): every note comes from the current song's scale (`tonic` + `mode`); line-clear phrases,
   twists, KO, level-up are quantized to the song's next 16th note (beat clock from the analysis); combos climb the scale; the
@@ -632,6 +634,8 @@ under ~40 % and "random" < 2 %. Then `node --test tests/golf.test.mjs`, and play
   shards are a capped canvas particle layer (`fx.js`) between them. Quality tiers 2/1/0 (world scale, fbm octaves, DPR 2/1.5/1,
   particle cap 200/110/50, glow) step down when the p75 frame > 19.5 ms. "Reduced effects" (settings) + prefers-reduced-motion
   turn off shards, hue drift, beat pulses and camera pulses.
+- **Checking a real phone:** add `?pdperf` to the address (it survives joining a room): a corner readout of fps, frame
+  CPU time, quality tier, world resolution, audio state/latency and the songs playing.
 - **Controls** (`input.js#makeGesture`, pure + unit-tested with 2000 random swipes): drag = follow the finger by distance (no
   overshoot), tap = rotate by screen half, slow drag down = soft drop row by row, flick (≥ ~1.15 px/ms over 70 ms, steep, ≥ 0.9
   cell) = hard drop, swipe up = hold. Settings: GESTURES/BUTTONS, swipe sensitivity, button size, reduced effects (`audio/settings.js`

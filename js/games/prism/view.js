@@ -12,6 +12,7 @@ import { toast } from '../../ui/toast.js';
 import { dbRef, update as dbUpdate, onValue, off, push, serverNow, serverTimestamp } from '../../firebase.js';
 import { liveKeyFor } from '../registry.js';
 import { settings, onSettings } from '../../audio/settings.js';
+import { getContext } from '../../audio/engine.js';
 import { hashString, rngFrom } from '../../core/rng.js';
 import * as E from './engine.js';
 import {
@@ -61,6 +62,11 @@ export function createView() {
   let lastHit = null;       // { from, at } the last junk that actually landed on my board (KO credit)
   let resumeT = null;       // after a refresh: the piece that was in play
   let lastStatsT = 0;
+  let lastDanger = '';
+  let lastMeter = '';
+  let tierUpBlocked = -1;  // a tier that already failed this match is not retried
+  let goodSince = 0;
+  const workTimes = [];      // CPU time per frame (dt alone can't show headroom on a 60 Hz screen)
   let attackersRecent = []; // [{ uid, at }]
   // targeting
   let tMode = (() => { try { const m = localStorage.getItem(TKEY); return TARGET_MODES.includes(m) ? m : 'random'; } catch { return 'random'; } })();
@@ -157,6 +163,7 @@ export function createView() {
     unsubSettings = onSettings(() => { layoutSig = ''; applyLayout(); });
     new ResizeObserver(() => { layoutSig = ''; applyLayout(); }).observe(root);
     setupTestHook();
+    if (/[?&]pdperf\b/.test(location.search)) startPerfReadout();
     update(state);
     lastFrame = performance.now();
     raf = requestAnimationFrame(frame);
@@ -219,7 +226,7 @@ export function createView() {
     const t = serverNow();
     const s = songAt(game, t);
     const doc = docOf(s.i);
-    return { i: s.i, pos: (t - s.start) / 1000, doc, clk: doc ? beatClock(doc) : null };
+    return { i: s.i, start: s.start, pos: (t - s.start) / 1000, doc, clk: doc ? beatClock(doc) : null };
   }
 
   function variantOf(i) { return hashString(`${game.seed}:world:${i}`) % 3; }
@@ -470,6 +477,7 @@ export function createView() {
     const dt = Math.min(100, t - lastFrame);
     lastFrame = t;
     if (!game || destroyed) return;
+    const w0 = performance.now();
     trackPerf(dt);
     const now = serverNow();
     // engine
@@ -499,6 +507,8 @@ export function createView() {
     watchWorld(now);
     watchMatch(now);
     drawAll(dt, t);
+    workTimes.push(performance.now() - w0);
+    if (workTimes.length > 90) workTimes.shift();
   }
 
   function dangerOf() {
@@ -514,7 +524,13 @@ export function createView() {
     if (frameTimes.length < 90 || document.visibilityState !== 'visible') return;
     const s = [...frameTimes].sort((a, b) => a - b);
     const p75 = s[Math.floor(s.length * 0.75)];
-    if (p75 > 19.5 && tier > 0) { setTier(tier - 1); tierCool = 120; frameTimes.length = 0; }
+    if (p75 > 19.5 && tier > 0) { tierUpBlocked = tier; setTier(tier - 1); tierCool = 120; frameTimes.length = 0; goodSince = 0; return; }
+    // plenty of headroom for ~4 s: try one tier up again (never back to one that already struggled)
+    const w = [...workTimes].sort((a, b) => a - b)[Math.floor(workTimes.length * 0.75)] || 99;
+    if (p75 < 17.5 && w < 6 && tier < 2 && tier + 1 !== tierUpBlocked) {
+      if (!goodSince) goodSince = performance.now();
+      else if (performance.now() - goodSince > 4000) { setTier(tier + 1); tierCool = 120; frameTimes.length = 0; goodSince = 0; }
+    } else goodSince = 0;
   }
   function setTier(t) {
     tier = Math.max(0, Math.min(2, t));
@@ -626,7 +642,8 @@ export function createView() {
       });
       world.render(t / 1000);
     }
-    root.style.setProperty('--danger', danger.toFixed(3));
+    const dq = danger.toFixed(2);
+    if (dq !== lastDanger) { lastDanger = dq; root.style.setProperty('--danger', dq); }
     if (fx) fx.draw(dt);
     if (eng && board) {
       const frozen = !!(game.out && game.out[me()]);
@@ -645,8 +662,9 @@ export function createView() {
       E.nextQueue(eng).forEach((t, i) => drawPiece(els.next[i], t, { cell: Math.max(6, Math.round(board.cell * (i ? 0.3 : 0.38))) }));
     }
     const pend = E.pendingTotal(eng);
-    els.meter.style.setProperty('--n', String(Math.min(20, pend)));
-    els.meter.classList.toggle('is-hot', eng.pending.some(q => q.at <= eng.clock));
+    const hot = eng.pending.some(q => q.at <= eng.clock);
+    const ms = `${Math.min(20, pend)}|${hot}`;
+    if (ms !== lastMeter) { lastMeter = ms; els.meter.style.setProperty('--n', String(Math.min(20, pend))); els.meter.classList.toggle('is-hot', hot); }
   }
 
   // ================================================================ layout
@@ -1063,6 +1081,25 @@ export function createView() {
     if (eng.cur.r !== bot.plan.r) { act({ a: 'rotate', dir: 1 }); return; }
     if (eng.cur.x !== bot.plan.x) { const ok = E.move(eng, Math.sign(bot.plan.x - eng.cur.x)); if (!ok) bot.plan.x = eng.cur.x; handleEvents(); return; }
     act({ a: 'hard' });
+  }
+
+  // ================================================================ ?pdperf: a live readout for checking a real phone
+  function startPerfReadout() {
+    const el = h('div.pd-perf', { 'aria-hidden': 'true' });
+    root.append(el);
+    const iv = setInterval(() => {
+      if (destroyed) { clearInterval(iv); return; }
+      const q = (a, p) => { const x = [...a].sort((m, n) => m - n); return x.length ? x[Math.floor(x.length * p)] : 0; };
+      const dt = q(frameTimes, 0.5);
+      const a = songPlayer.debug();
+      const ctx = getContext();
+      el.textContent = [
+        `${dt ? Math.round(1000 / dt) : 0} fps · p95 ${q(frameTimes, 0.95).toFixed(1)} ms · cpu ${q(workTimes, 0.75).toFixed(1)} ms`,
+        `tier ${tier} · dpr ${window.devicePixelRatio} · world ${els.world.width}×${els.world.height}`,
+        `audio ${ctx ? ctx.state : 'none'} · out ${ctx ? Math.round(((ctx.outputLatency || 0) + (ctx.baseLatency || 0)) * 1000) : 0} ms`,
+        `songs ${a.slots.map(x => `${x.id}@${x.t}s g${x.gain}`).join(' ') || '—'} · decoded ${a.decoded.length}`,
+      ].join('\n');
+    }, 500);
   }
 
   // ================================================================ test hook

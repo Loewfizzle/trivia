@@ -30,7 +30,6 @@ const status = {};        // id -> 'ok' | 'missing' (unknown if absent)
 const positions = {};     // id -> seconds to resume from
 const prefetching = {};
 let voices = [];
-let gameEls = [];       // extra activated voices a game routes itself (PRISM DROP's synced songs)
 let current = null;       // { id, voice }
 let desired = null;       // { id, fallback }
 let visible = true;
@@ -70,26 +69,8 @@ function makeVoices() {
     el.play().then(() => el.pause()).catch(() => {});
     voices.push(voice);
   }
-  // two more, activated in the same gesture but not routed: a game borrows them with gameVoices()
-  for (let i = 0; i < 2; i++) {
-    const el = new Audio();
-    el.preload = 'none';
-    el.crossOrigin = 'anonymous';
-    el.setAttribute('playsinline', '');
-    let source = null;
-    try { source = ctx.createMediaElementSource(el); } catch { continue; }
-    el.src = silent;
-    el.play().then(() => el.pause()).catch(() => {});
-    gameEls.push({ el, source });
-  }
 }
 
-/**
- * Audio elements already activated inside the unlock gesture (iOS won't let a fresh element play without one),
- * each with its MediaElementSource: [{ el, source }]. Empty before the first tap. The caller connects
- * source -> its own chain -> getMusicBus() and owns the element until it disconnects.
- */
-export function gameVoices() { return gameEls; }
 
 function freeVoice(exclude) {
   const now = getContext().currentTime;
