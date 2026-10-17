@@ -318,3 +318,7 @@ body.gl-on .gear, body.gl-on .chat-fab { right: calc(var(--safe-r) + 12px); }
 .gl-final .btn-primary::after { mix-blend-mode: normal; background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.16) 50%, transparent 65%); }
 .gl-final .btn-ghost { color: var(--gl-dim); background: rgba(10, 11, 30, 0.58); border: 1px solid rgba(255, 255, 255, 0.24); }
 .gl-final .btn-ghost::before { display: none; }
+/* announcements sit under the corner buttons, never behind them */
+.gl-ann { top: calc(var(--safe-t) + 112px); }
+.gl-lock { top: calc(var(--safe-t) + 154px); }
+@media (orientation: landscape) and (max-height: 520px) { .gl-ann { top: calc(var(--safe-t) + 100px); } .gl-lock { top: calc(var(--safe-t) + 138px); } }
