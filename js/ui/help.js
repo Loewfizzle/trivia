@@ -178,6 +178,31 @@ RULES.prism = {
   ],
 };
 
+RULES.gridlock = {
+  goal: 'A fleet battle on a holographic war table. Hide your ships, call your shots, sink everyone else. The last fleet standing wins. 2–8 players.',
+  sections: [
+    ['DEPLOY (60 s)', [
+      'Drag each ship from the tray onto your grid; tap a placed ship to turn it. Ships can touch but never overlap.',
+      'AUTO-PLACE fills the rest for you. READY locks your fleet in. When the timer ends, anything unplaced is placed for you.',
+      '10×10 with 5 ships for 2–3 players; 8×8 with 4 ships for 4 or more.',
+    ]],
+    ['CLASSIC (TURNS)', [
+      'Players shoot in turn, one shot each. Pick an opponent (tap their chip or their board), tap a cell, then FIRE to confirm.',
+      'Take too long and a shot is fired for you. Everyone watches every shot land.',
+    ]],
+    ['BATTLE ROYALE (EVERYONE AT ONCE)', [
+      'Each round everyone secretly picks a target and a cell and LOCKS IN. All shots fire together in one cinematic volley.',
+      'When someone locks onto your board you get a TARGET LOCK warning: who, never where.',
+      'Points: 10 a hit, 30 a sink, 50 an elimination. The points leader wears a BOUNTY — hits and sinks on them pay 1.5×.',
+      'After 25 rounds the fleet with the most cells afloat wins (points break ties).',
+    ]],
+    ['HITS, SINKS, ELIMINATIONS', [
+      'Every hit and miss is public on every board, but nobody sees a ship until it is sunk.',
+      'Hitting a ship’s last cell sinks it and reveals it. Lose every ship and you are out — then spectate and CALL THE WINNER within 10 seconds for game-night points.',
+    ]],
+  ],
+};
+
 RULES.slip = {
   goal: 'A survival ride: everyone rides the same course (new every match) at the same time. Calm at first, then faster and harder. The last rider still riding wins. 2–8 players.',
   sections: [
@@ -266,7 +291,7 @@ const LEGEND = [
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
+const TAB = { gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
 
 let sheet = null;
 

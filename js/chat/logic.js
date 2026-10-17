@@ -45,6 +45,14 @@ export function chatLocked(game, uid, live) {
       const n = mine('riders');
       return !(n && n.st === 'out');
     }
+    case 'gridlock': {
+      // GRIDLOCK: locked while it is your move — placing (until READY), your Classic turn, aiming (until locked in)
+      if (game.out && game.out[uid]) return false;
+      if (game.phase === 'place') return !mine('ready');
+      if (game.phase === 'turn') return game.cur === uid;
+      if (game.phase === 'aim') return !mine('shots');
+      return false;
+    }
     case 'prism': {
       // PRISM DROP: locked while your board is live; knocked out (battle) = watch and talk
       if (game.phase !== 'count' && game.phase !== 'play') return false;

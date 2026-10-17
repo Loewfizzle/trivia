@@ -17,7 +17,7 @@ const TIERS = [
   { dpr: 1.5, rain: 1, shimmer: true, vehicles: true, ripples: false },
   { dpr: 2, rain: 2, shimmer: true, vehicles: true, ripples: true },
 ];
-const ACCENT = { overclock: '#ffb627', slip: '#ffc46b', prism: '#c9ecff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
+const ACCENT = { overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#c9ecff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const WARM = ['#ffd8a0', '#ffcf8a', '#ffe2b8', '#ffc27a'];
 const COOL = ['#9fd8ff', '#b8e4ff', '#8fc2ff', '#c9b8ff'];
 const NEON = ['#ff3fb0', '#3fe0ff', '#a65bff', '#ff6a6a'];

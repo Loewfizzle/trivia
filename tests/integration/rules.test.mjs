@@ -574,3 +574,59 @@ test('slip room playlist: host only', async () => {
   await assertSucceeds(update(ref(db('host'), `${R}/meta`), { slip: { seed: 'abc123', n: 4 } }));
   await assertFails(update(ref(db('p2'), `${R}/meta`), { slip: { seed: 'mine', n: 0 } }));
 });
+
+// ---------------------------------------------------------------- GRIDLOCK
+function glRoom(game = {}) {
+  const r = prismRoom();
+  r.rooms[CODE].game = { id: 'gridlock', matchId: 'm1', phase: 'place', rk: '0', size: 8, settings: { mode: 'royale' }, participants: { host: true, p2: true, p3: true }, ...game };
+  return r;
+}
+
+test('gridlock fleets are private: only the owner (and the host) can read; owner writes while placing, host only fills a gap', async () => {
+  await seed(glRoom());
+  const F = `fleets/${CODE}/m1`;
+  const fleet = { s: '0,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp() };
+  await assertSucceeds(set(ref(db('p2'), `${F}/p2`), fleet));
+  await assertFails(set(ref(db('p2'), `${F}/p3`), fleet), 'not someone else\'s fleet');
+  await assertFails(set(ref(db('p2'), `${F}/p2`), { s: 'bad', at: serverTimestamp() }), 'shape checked');
+  await assertFails(set(ref(db('p2'), `${F}/p2`), { s: '0,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp(), extra: 1 }), 'no extra fields');
+  await assertSucceeds(get(ref(db('p2'), `${F}/p2`)), 'owner reads own fleet');
+  await assertFails(get(ref(db('p3'), `${F}/p2`)), 'another player can\'t read it');
+  await assertSucceeds(get(ref(db('host'), `${F}/p2`)), 'the host can (to resolve shots for an absent owner)');
+  await assertSucceeds(get(ref(db('host'), F)), 'the host reads them all at once');
+  await assertFails(get(ref(db('p2'), F)), 'nobody else reads them all');
+  await assertFails(set(ref(db('host'), `${F}/p2`), fleet), 'the host can\'t overwrite a fleet that exists');
+  await assertSucceeds(set(ref(db('host'), `${F}/p3`), fleet), 'the host fills in a missing one (auto-place)');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'aim'));
+  await assertFails(set(ref(db('p2'), `${F}/p2`), fleet), 'no re-placing once the match is under way');
+  await assertSucceeds(remove(ref(db('host'), `fleets/${CODE}`)), 'the host wipes fleets for a new match');
+});
+
+test('gridlock shots: your turn only (Classic); everyone alive while aiming (Royale), once, at a living opponent', async () => {
+  await seed(glRoom({ phase: 'turn', rk: '3', cur: 'p2', settings: { mode: 'classic' } }));
+  const S = `${R}/glshot/m1/3`;
+  await assertFails(set(ref(db('p3'), `${S}/p3`), { t: 'p2', r: 1, c: 1, at: serverTimestamp() }), 'not your turn');
+  await assertFails(set(ref(db('p2'), `${S}/p2`), { t: 'p2', r: 1, c: 1, at: serverTimestamp() }), 'not yourself');
+  await assertFails(set(ref(db('p2'), `${R}/glshot/m1/2/p2`), { t: 'p3', r: 1, c: 1, at: serverTimestamp() }), 'wrong volley');
+  await assertSucceeds(set(ref(db('p2'), `${S}/p2`), { t: 'p3', r: 1, c: 1, at: serverTimestamp() }));
+  await assertFails(set(ref(db('p2'), `${S}/p2`), { t: 'p3', r: 2, c: 2, at: serverTimestamp() }), 'one shot');
+  await seed(glRoom({ phase: 'aim', rk: '4', out: { p3: { at: 1, place: 3, rem: 2 } } }));
+  const A = `${R}/glshot/m1/4`;
+  await assertSucceeds(set(ref(db('p2'), `${A}/p2`), { t: 'host', x: 'abcdef==', at: serverTimestamp() }), 'an obfuscated aim');
+  await assertFails(set(ref(db('host'), `${A}/host`), { t: 'p3', x: 'abcdef==', at: serverTimestamp() }), 'not at an eliminated player');
+  await assertFails(set(ref(db('p3'), `${A}/p3`), { t: 'host', x: 'abcdef==', at: serverTimestamp() }), 'eliminated players don\'t fire');
+});
+
+test('gridlock resolutions: the target or the host, once, while resolving; calls as in PRISM DROP', async () => {
+  await seed(glRoom({ phase: 'resolve', rk: '4', fire: { p2: [{ t: 'host', r: 1, c: 1 }] } }));
+  const X = `${R}/glres/m1/4`;
+  const res = { r: { p2: [{ h: 1, s: 0 }] }, k: { 0: '1,1,2,0' }, at: serverTimestamp() };
+  await assertFails(set(ref(db('p3'), `${X}/host`), res), 'a bystander can\'t resolve someone\'s board');
+  await assertSucceeds(set(ref(db('host'), `${X}/host`), res), 'the owner resolves their own board');
+  await assertFails(set(ref(db('host'), `${X}/host`), res), 'once');
+  await assertSucceeds(set(ref(db('host'), `${X}/p2`), { ...res, by: 'host' }), 'the host resolves for an absent owner');
+  await assertFails(set(ref(db('p2'), `${X}/p3`), res), 'p2 is not the host');
+  await seed(glRoom({ phase: 'show', rk: '4', out: { p3: { at: now() - 2000, place: 3, rem: 2 } } }));
+  await assertSucceeds(set(ref(db('p3'), `${R}/glcall/m1/p3`), { w: 'host', at: serverTimestamp() }));
+  await assertFails(set(ref(db('p2'), `${R}/glcall/m1/p2`), { w: 'host', at: serverTimestamp() }), 'still in: no call');
+});
