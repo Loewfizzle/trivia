@@ -15,7 +15,7 @@
 // CRASH with lives left: a 0.9 s rewind, then a respawn a little behind the last safe ground with 2 s of
 //   invulnerability (hazards ignored, gaps and crumbled tiles hold you up). Out of lives = out.
 import {
-  DX, G, baseSpeed, maxSpeed, floorAt, floorSlope, floorCurv, ceilAt, isSolid, firstAfter,
+  DX, G, AIR_FLOAT, baseSpeed, maxSpeed, floorAt, floorSlope, floorCurv, ceilAt, isSolid, firstAfter,
 } from './course.js';
 
 export const STEP = 1 / 120;
@@ -25,6 +25,7 @@ export const DIVE_UP = 1.35;
 export const AIR_DIVE = 2.3;
 export const AIR_HOLD_AFTER = 0.18;         // a press in the air counts as a dive only after this long (a tap = flip)
 export const FLIP_TIME = 0.48;
+export const LAND_KEEP = 0.6;              // share of the flight speed a landing keeps even at a bad angle (see land())
 export const REWIND_S = 0.9;
 export const INVULN_S = 2;
 export const RADIUS = 0.45;                 // hitbox (the same for both rides)
@@ -133,7 +134,7 @@ export function step(r, c, input, dt = STEP) {
   }
   if (!r.gnd) {
     const hold = !!input.hold && input.pressT > AIR_HOLD_AFTER;
-    r.vy -= G * (hold ? AIR_DIVE : 1) * dt;
+    r.vy -= G * (hold ? AIR_DIVE : AIR_FLOAT) * dt;
     r.x += r.vx * dt;
     r.y += r.vy * dt;
     r.airT += dt;
@@ -147,10 +148,13 @@ export function step(r, c, input, dt = STEP) {
       if (r.spin < 1e-4) { r.spin = 0; r.phi = wrap(r.phi); }
     } else {
       // assist: settle toward the slope we're about to meet
-      const ahead = r.x + r.vx * 0.22;
+      // aim at solid ground just ahead (never at the bottom of a gap); settle faster as the ground comes up
+      let ahead = r.x + r.vx * 0.22;
+      if (!standable(c, r, ahead)) ahead = standable(c, r, r.x) ? r.x : ahead;
       const want = Math.atan(slope(c, ahead, r.g));
       const d = wrap(want - r.phi);
-      r.phi = wrap(r.phi + Math.sign(d) * Math.min(Math.abs(d), 4.2 * dt));
+      const near = r.y - surf(c, r.x, r.g) < 4;
+      r.phi = wrap(r.phi + Math.sign(d) * Math.min(Math.abs(d), (near ? 6.5 : 4.2) * dt));
     }
     if (r.y - (surf(c, r.x, r.g)) > r.maxAir) r.maxAir = r.y - surf(c, r.x, r.g);
   }
@@ -193,7 +197,13 @@ function land(r, c, fy, vb) {
   const diff = Math.abs(wrap(r.phi - th));
   if (diff > TOL && r.inv <= 0) { crash(r, c, 'landing', diff); return; }
   const flips = Math.floor(r.airRot / TAU + 0.12);
-  let sp = r.vx * Math.cos(th) + r.vy * Math.sin(th);
+  // momentum carries through a landing: a landing along the slope keeps almost all of it; meeting the slope at an angle
+  // (coming down onto an upslope) costs a share — never everything (a strict projection threw away ~75% and made the
+  // ride feel slow)
+  const vmag = Math.hypot(r.vx, r.vy) || 0;
+  const along = r.vx * Math.cos(th) + r.vy * Math.sin(th);
+  const ca = vmag ? Math.max(0, Math.min(1, along / vmag)) : 1;
+  let sp = Math.max(along, vmag * (LAND_KEEP + (1 - LAND_KEEP) * ca));
   sp = Math.max(vb, sp);
   let boost = 0;
   if (flips > 0) {

@@ -66,7 +66,7 @@ function ride(c, r, { until, maxCrashes = Infinity, flips = false } = {}) {
   const events = [];
   const mem = {};
   while (r.st !== 'out' && until(r)) {
-    if (r.t >= next) { const d = decide(r, c, { flips, mem, pressT: input.pressT }); input.hold = d.hold; if (d.tap) input.taps++; next = r.t + 0.1; }
+    if (r.t >= next) { const d = decide(r, c, { flips, mem, pressT: input.pressT }); input.hold = d.hold; if (d.tap) input.taps++; next = r.t + 0.05; }
     input.pressT = input.hold ? input.pressT + STEP : 0;
     r.t += STEP;
     step(r, c, input);

@@ -408,6 +408,8 @@ try {
     await waitFor(pages[0], s => s.game.phase === 'final', 'final', 20000);
     await sleep(4200);
     await cleanText(pages[0], 'final');
+    const fa = await S(pages[0], 'window.__slip.audio()');
+    ok(fa.faded && (fa.out === null || fa.out < 0.05), `MUSIC: the ride's songs stay faded out under the results (gain ${fa.out})`);
     await shotAll(pages[0], 'sl-12-final');
     const gf = await game(pages[0]);
     ok(gf.results && Object.keys(gf.results).length === N, 'RESULTS: every rider has a distance / combo / flips / clean % / biomes row');
