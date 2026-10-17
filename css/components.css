@@ -336,6 +336,14 @@
 .modal.out .sheet { transform: translateY(40px); transition: transform 0.25s; }
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes sheet-up { from { transform: translateY(100%); } }
+/* A sheet never grows past the screen (short phones, browser bars, extra room rows): it scrolls inside
+   instead, so its top (and close button) can't end up above the screen edge. */
+.modal > .sheet:not(.chat-sheet):not(.help) {
+  max-height: calc(100dvh - var(--safe-t) - 10px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .sheet {
   position: relative;
   width: 100%;
@@ -642,6 +650,8 @@ body[data-theme]:not([data-theme='']) .music-btn { display: none; }
 
 .sheet.settings { gap: 18px; }
 .set-head { display: flex; justify-content: space-between; align-items: flex-start; }
+/* settings: the title row (with ×) stays pinned while the sheet scrolls */
+.sheet.settings > .set-head { position: sticky; top: -14px; z-index: 2; margin: -10px calc(-1 * var(--gutter)) 0; padding: 10px var(--gutter) 10px; background: var(--bg-2); box-shadow: 0 10px 12px -10px rgba(0, 0, 0, 0.7); }
 .set-head .icon-btn { font-size: 28px; }
 .set-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px 12px; }
 .set-row .range { grid-column: 1 / -1; }
