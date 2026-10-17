@@ -298,7 +298,7 @@ try {
   await C.page.evaluate(u => {
     const dt = new DataTransfer(); dt.setData('text/plain', u);
     document.querySelector('.nd-code-in').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
-  }, `https://trivia.loewfizzle.com/?room=${code}`);
+  }, `https://games.loewfizzle.com/?room=${code}`);
   await waitFor(C.page, '!!window.__arcade.state.code', 'C joined by paste', 20000);
   ok((await state(C.page)).code === code, 'JOIN: pasting an invite link joins');
 
