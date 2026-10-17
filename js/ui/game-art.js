@@ -128,7 +128,31 @@ ${glow('ga-glow', 1.8)}${glow('ga-soft', 3.5)}</defs>
 <circle cx="48" cy="95" r="3.4" fill="url(#ga-ball)"/>
 <ellipse cx="48.6" cy="99.4" rx="3.6" ry="0.9" fill="#000" opacity="0.4"/></svg>`;
 
-const ART = { overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF };
+// DOUBLE AGENT: a surveillance frame on four suspects — one of them doesn't hold the signal (RGB split)
+function agent() {
+  const head = (x, fill) => `<g transform="translate(${x} 0)"><circle cx="0" cy="62" r="8.5" fill="${fill}"/><path d="M-15 92c0-11 6.5-17 15-17s15 6 15 17z" fill="${fill}"/></g>`;
+  let lines = '';
+  for (let y = 2; y < 120; y += 3) lines += `<path d="M0 ${y}h120" stroke="#ffffff" stroke-opacity="0.035" stroke-width="1"/>`;
+  const br = 'stroke="#c9ced8" stroke-width="1.6" fill="none" stroke-linecap="square"';
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<radialGradient id="da-bg" cx="0.5" cy="0.45" r="0.8"><stop offset="0" stop-color="#262a33"/><stop offset="1" stop-color="#08090c"/></radialGradient>
+<linearGradient id="da-fig" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa1ae"/><stop offset="1" stop-color="#4a505c"/></linearGradient>
+<clipPath id="da-top"><rect x="0" y="0" width="120" height="69"/></clipPath><clipPath id="da-bot"><rect x="0" y="69" width="120" height="51"/></clipPath>
+${glow('da-glow', 2)}</defs>
+<rect width="120" height="120" fill="url(#da-bg)"/>
+${lines}
+<path d="M10 22v-10h10M110 22v-10h-10M10 98v10h10M110 98v10h-10" ${br}/>
+<circle cx="17" cy="30" r="2.2" fill="#e6e9ef"/><rect x="22" y="28.2" width="12" height="3.6" rx="1" fill="#e6e9ef" opacity="0.75"/>
+<rect x="80" y="28.6" width="23" height="2.8" rx="1" fill="#e6e9ef" opacity="0.35"/>
+${head(22, 'url(#da-fig)')}${head(47, 'url(#da-fig)')}${head(98, 'url(#da-fig)')}
+<g opacity="0.7">${head(70.5, '#ff2e63')}</g><g opacity="0.7">${head(75.5, '#2ee6ff')}</g>
+<g clip-path="url(#da-top)">${head(73, '#f4f6fa')}</g><g clip-path="url(#da-bot)" transform="translate(4 0)">${head(73, '#f4f6fa')}</g>
+<rect x="56" y="67.5" width="36" height="1.4" fill="#ffffff" opacity="0.8" filter="url(#da-glow)"/>
+<path d="M58 54h-6v6M88 54h6v6M58 96h-6v-6M88 96h6v-6" stroke="#f4f6fa" stroke-width="1.4" fill="none"/>
+<rect x="18" y="100" width="30" height="3" rx="1" fill="#e6e9ef" opacity="0.28"/><rect x="52" y="100" width="18" height="3" rx="1" fill="#e6e9ef" opacity="0.18"/></svg>`;
+}
+
+const ART = { overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

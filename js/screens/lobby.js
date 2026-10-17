@@ -202,12 +202,16 @@ export function createLobby() {
     prefetch(mod.MUSIC);
     const saved = (st.meta && st.meta.settings && st.meta.settings[g.id]) || {};
     const settings = { ...mod.DEFAULT_SETTINGS, ...saved };
+    // an option with when(players) only shows (and only applies) with that many connected players
+    const shownOptions = mod.OPTIONS.filter(o => !o.when || o.when(onlineCount()));
+    for (const o of mod.OPTIONS) if (!shownOptions.includes(o)) settings[o.key] = mod.DEFAULT_SETTINGS[o.key];
     const est = h('span.est');
     const renderEst = () => { est.textContent = `≈ ${mod.estimateMinutes(settings)} MIN`; };
     const startBtn = h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button' }, h('span', 'INITIATE'));
     const close = () => { if (!sheet) return; sheet.classList.add('out'); const s = sheet; sheet = null; setTimeout(() => s.remove(), 260); };
     startBtn.onclick = async () => {
-      if (onlineCount() < MIN_PLAYERS) { toast(`NEED ${MIN_PLAYERS}+ CONNECTED PLAYERS`, 'err'); return; }
+      const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
+      if (onlineCount() < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return; }
       startBtn.classList.add('is-busy');
       startBtn.firstChild.textContent = 'BOOTING…';
       try {
@@ -223,7 +227,7 @@ export function createLobby() {
         h('h2.sheet-title', g.name),
         h('p.sheet-text', g.blurb),
         h('button.btn.btn-text.help-link', { type: 'button', onclick: () => openHelp(g.id) }, 'HOW TO PLAY ›'),
-        mod.OPTIONS.map(o => h('div.field',
+        shownOptions.map(o => h('div.field',
           h('span.label', o.label, o.hint ? h('small.field-hint', ` · ${o.hint}`) : null),
           o.type === 'multi'
             ? chipSelect(o.choices, [].concat(settings[o.key] || []), v => { settings[o.key] = v; renderEst(); })

@@ -12,7 +12,7 @@ const OUT = (process.argv[3] || './shots').replace(/\/?$/, '/');
 mkdirSync(OUT, { recursive: true });
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const WATCH_MS = Number(process.env.WATCH_MS || 14000);
-// quick settings so each game reaches real play fast
+// quick settings so each game reaches real play fast (DOUBLE AGENT needs 4 players — e2e-agent.mjs covers it)
 const GAMES = [
   ['cipher', { rounds: 3 }],
   ['signal', {}],

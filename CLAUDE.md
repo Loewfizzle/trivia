@@ -1,7 +1,7 @@
 # NEURAL ARCADE — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each). Static site on Vercel
-(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All six build stages are complete
+Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Static site on Vercel
+(trivia.loewfizzle.com) + Firebase Realtime Database + Anonymous Auth. All seven build stages are complete
 (see `ROADMAP.md` for what shipped and the future-ideas list). **Keep this file and ROADMAP.md updated as you work.**
 
 ## Ground rules
@@ -35,11 +35,12 @@ css/bluff.css            NEURAL BLUFF (dossiers, stamps, redaction bars, reveal 
 css/pulse.css            PULSE (HUD, song/Echo cards, countdown, results table, calibration overlay)
 css/chat.css             room chat (lobby strip, chat sheet, in-game chat button)
 css/golf.css             NEON PAR (HUD, zone/par cards, scorecard table, ACE cinematic, sabotage sheet, fog, ball picker)
+css/agent.css            DOUBLE AGENT (surveillance chrome, grain, RGB split, classified file states, dossier tiles, unmasking, case file)
 manifest.webmanifest     PWA manifest (standalone, portrait, icons)
 sw.js                    network-first service worker for same-origin static files only (never Firebase/CDNs/audio)
 assets/                  icon set (icon-192/512, maskable, apple-touch, favicon), og.png 1200×630 link preview
 firebase.json            emulator config for local testing (repo root so it can reference database.rules.json)
-audio/music/*.mp3        music (menu, cipher-breach, last-signal, overclock, neural-bluff, victory, golf-rooftops/-cyber/-arcade), 112–128 kbps, < 4 MB each
+audio/music/*.mp3        music (menu, cipher-breach, last-signal, overclock, neural-bluff, victory, golf-rooftops/-cyber/-arcade, spy1-3), 112–128 kbps, < 4 MB each
 js/config.js             APP_NAME, limits, timeouts, colors, avatars (SVG paths), GAMES registry metadata
 js/firebase-config.js    the user's Firebase web config (the ONLY place it lives)
 js/firebase.js           init (per identity slot), emulator mode, re-exported db helpers, serverNow()
@@ -61,7 +62,8 @@ js/ui/toast.js           toasts
 js/audio/settings.js     device-wide prefs { music: .35, sfx: .7, muted, musicOff, haptics } in localStorage (try/catch);
                          musicOff silences the music bus only (PULSE songs too), effects stay
 js/audio/engine.js       AudioContext, music/sfx buses -> limiter, unlock on first gesture, suspend when hidden
-js/audio/music.js        playMusic(id, fallback), prefetch(id), musicDebug(); voice pool, crossfades, loop crossfade
+js/audio/music.js        playMusic(id, fallback), prefetch(id), musicDebug(); voice pool, crossfades, loop crossfade;
+                         PLAYLISTS (an id that plays several tracks in order, e.g. 'spy'), duckMusic(level, seconds)
 js/audio/sfx.js          sfx(name, opts): synthesized effects (see SOUNDS for names; `chat` = the soft message blip)
 js/core/rng.js           PURE seeded RNG (mulberry32), hashString, shuffle, pick
 js/core/obfuscate.js     PURE unicode-safe XOR+base64 for data that must not be readable in plain sight
@@ -108,6 +110,11 @@ js/games/golf/scene.js       three.js renderer: course meshes from hole data, ba
 js/games/golf/zones.js       the three worlds (sky, lights, rooftop city + rain, cyberspace grid + data, arcade cabinet)
 js/games/golf/ball.js        ball customization (localStorage) + picker sheet, power-up icons; no three.js (lobby-safe)
 js/games/golf/{view,index}.js  aiming, own-ball simulation + publishing, ghost replay, HUD, cards, ACE, sabotage; contract
+js/games/agent/logic.js      PURE: settings, clue rules (clueProblem), guessRight, deal (seeded), turnOrder, tallyVotes, scoreRound, standings
+js/games/agent/director.js   PURE state machine: intro -> briefing -> clues -> debate -> vote -> unmask -> [last] -> scores … final
+js/games/agent/index.js      contract + host secrets (spy/{code}/key seed, writes each player's card), MIN_PLAYERS 4, OPTIONS
+js/games/agent/view.js       file card (press & hold), clue board, my-turn input, debate chat / TALK IT OUT, vote, unmasking, case file
+data/agent/words.json        DOUBLE AGENT bank: { categories: [[CATEGORY, [words…]], …] } (41 × 15–18, unique, family-friendly)
 data/trivia/fallback.json    333 hand-written medium/hard questions: [category, difficulty, q, correct, w1, w2, w3]
 data/oc/lexicon.json         320 LEXICON sets: [9 letters, max length, "longest words", "every valid 3+ word"] (generated)
 data/oc/timeline.json        190 TIMELINE sets: [title, ask, "low → high", [[item, shown value] ×4 in correct order]] (generated)
@@ -162,6 +169,16 @@ chats/{CODE}/                          ← top level (rooms/{CODE} is readable b
   (read/write: members only — player node exists and not kicked. Host: system lines, prune, clear.)
 rooms/{CODE}/meta/settings/chat: { filter: bool }                 ← host; "Filter language" (default off)
   golf/{matchId}/{uid}:  { h, s, x, y, st, f?, sh?, b?, pu, pk, ls, le, ri?, rt?, sab?, ball, at }  ← NEON PAR, own, current hole, 'play' only
+  agclue/{matchId}/{rk}/{pass}/{uid}: { t ≤ 20 letters/hyphen, at }  ← DOUBLE AGENT, own, only on your turn (game/cur), once
+  agready/{matchId}/{rk}/{uid}: { b?, d? }      ← briefing READY (b) / debate READY TO VOTE (d)
+  agpin/{matchId}/{rk}/{uid}:   suspect uid      ← debate + vote, movable, not yourself
+  agvote/{matchId}/{rk}/{uid}:  { s, lock?, at }  ← vote phase, changeable until locked
+  agguess/{matchId}/{rk}/{uid}: { t, at }         ← last chance, only a caught agent, once
+  meta/used/agent/{wordKey}: true                 ← host; DOUBLE AGENT words already dealt in this room
+spy/{CODE}/                            ← top level, DOUBLE AGENT secrets (never inside rooms/{CODE})
+  key/{matchId}: { seed }      read/write: the CURRENT host only (rules check rooms/{CODE}/meta/hostId)
+  card/{uid}:    { m, rk, cat, word|null, agent }   read: that player only; write: host only
+  (deleted by the host, or by anyone once the room is gone; room.js removes it with the room)
 ```
 All player-writable nodes are listed in `ALL_PLAYER_NODES` (registry.js) and wiped by the host on match start/end.
 CIPHER `game`: `{ id:'cipher', matchId, rounds, lengths[], roundMs, maxGuesses, participants{uid:true},
@@ -245,6 +262,15 @@ sample `{x,y,z,vx,vy,t}`, `pu` held power-up, `pk` bitmask of pickups taken this
 `ri/rt` riding a moving platform, `sab {h,to,k,at}` the sabotage this player sent this hole (once), `ball {c,f,t}` their look.
 Totals are derived from `results` (lowest strokes wins).
 
+DOUBLE AGENT `game`: `{ id:'agent', matchId, settings{rounds,mode,agents,clueSec,debateSec,passes}, participants, seat[] (this
+round's players), names{uid}, round, v (re-deals), rk = "round-v", phase: intro|briefing|clues|debate|vote|unmask|last|scores|final,
+phaseStartAt, phaseEndsAt, order[], turn, cur, pass, turnEndsAt, board{pass:{uid:clue|''}}, debateEnd, tally, accused[],
+agents, caught, ballots, word, cat, stolen, guesses, burned{wordKey}, voided, lastCat, history{round:{word,cat}},
+results{round:{uid:{pts,agent,escaped?,stole?,caught?,spotted?}}} }`. The secret word and the agents are never in it until
+they're revealed (agents at the vote's end, word/cat at the scores): they're **derived** from the host-only seed
+(`logic.js#deal(seed, round, v, seat…)`), so a new host recomputes the same deal; each player's card is written to
+`spy/{code}/card/{uid}`. Totals derive from `results`.
+
 ## Multiplayer mechanics
 - **Identity:** anonymous Firebase user per *slot*. Each slot is a separately-named Firebase app, so its
   auth persists independently. Phones are slot 1.
@@ -258,6 +284,8 @@ Totals are derived from `results` (lowest strokes wins).
   (+4 s per rank) via a transaction on `meta/hostId`; the rules only allow the claim under those conditions.
 - **Director:** `host.js` ticks every 250 ms; if host, calls `module.prepare()` (asset/trivia top-ups) and
   `module.step(game, {code, now, live, online})`, writing the returned patch. A per-transition in-flight guard prevents duplicate writes.
+- **Per-game minimum:** a module may export `MIN_PLAYERS` (DOUBLE AGENT: 4); host.js and the lobby use `max(MIN_PLAYERS, mod.MIN_PLAYERS)`.
+  An option with `when(onlineCount)` (DOUBLE AGENT's 2 agents: 7+) only shows/applies when true; otherwise its default is used.
 - **Room-level side writes:** a director step may carry `$room: { 'meta/used/bluff/ID': true }`; `host.js` strips it and
   writes it in the same atomic room update. When a step enters `final`, `host.js` also writes `night/{matchId}` from
   `module.finalRanks(game)` (idempotent per match).
@@ -291,6 +319,9 @@ Totals are derived from `results` (lowest strokes wins).
   node{i}, victory). Buttons get a soft `tap` automatically; add `data-sfx="none"` to opt out.
 - `window.__arcade.musicDebug()` exposes music state (the E2E asserts crossfades with it).
 - To replace music: drop an MP3 with the same name into `audio/music/` (≈128 kbps, < 4 MB).
+- **Playlists:** `PLAYLISTS = { spy: ['spy1','spy2','spy3'] }` — `playMusic('spy')` plays them in order with crossfades and
+  keeps going across rounds (same id = no-op). `duckMusic(level, seconds)` lowers the music bus for a moment (DOUBLE AGENT's
+  unmasking); a track change resets it.
 
 ## Loading, PWA, previews (Lighthouse mobile: 98–99 performance / 100 accessibility / 100 best practices / 100 SEO)
 - `index.html` inlines the boot screen styles, so it paints right after the HTML. **All stylesheets are non-blocking**
@@ -335,7 +366,7 @@ Totals are derived from `results` (lowest strokes wins).
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (125 tests: rules of all six games incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (140 tests: rules of all seven games (DOUBLE AGENT: tests/agent.test.mjs) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -376,6 +407,10 @@ Totals are derived from `results` (lowest strokes wins).
   - Overclock update 2: `node e2e-oc-2.mjs "<browser path>" ./shots` (N=8) — Missing Link typed (wrong guess shakes, plural, keyboard
     layout), Spellcheck, Make 24 (merges, UNDO, refresh between puzzles), Compass, Sort It with real touch swipes + side taps (host
     killed mid-challenge), Higher or Lower; identical puzzles everywhere, every player's points vs the scoring rule, all screens at both sizes.
+  - DOUBLE AGENT E2E: `node e2e-agent.mjs "<browser path>" ./shots-agent` — 8 players: REMOTE match (card privacy per
+    player, deal, reveal styles, refresh mid-clues, keyboard layout, blocked clue, timeout + offline skips, pins, debate
+    chat, host killed mid-debate, tie = escape, agent leaves → void + re-deal, last-chance steal, final, game night) and a
+    SAME ROOM match with 2 agents (agent vs innocent card measured identical: size, colour, luma, animation, sound, haptic).
   - Overclock new challenges: `node e2e-oc-new.mjs "<browser path>" ./shots` (N=8) — Lexicon/Timeline/Closest Call/Rewire played
     through the UI, identical puzzles on every phone, scoring vs the host's results, host killed mid-Timeline, refresh
     mid-Rewire, every new screen + reveal at 390×844 and 412×915.
@@ -393,7 +428,7 @@ Totals are derived from `results` (lowest strokes wins).
 - Web config goes in `js/firebase-config.js` (public by design; the rules are the security).
 
 ## Music
-NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`) are the owner's, re-encoded at 112 kbps stereo.
+NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`) and DOUBLE AGENT's `spy1-3` are the owner's, re-encoded at 112 kbps stereo.
 Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 -ar 44100 -ac 2 -b:a 128k`; overclock at
 120k to stay under 4 MB). The originals stay out of the repo.
 
@@ -458,7 +493,8 @@ Trims songs > 3:15 to their most energetic ~2:50 (fade in/out), skips intros > 1
   key). Offline: Firebase queues the write; the line shows SENDING… until the server confirms.
 - **Locks** (`logic.js#chatLocked`, unit-tested): chat opens in the lobby and every break; it is locked only during your
   own active play — Cipher guessing (until solved/out), Last Signal answering (eliminated = always open), Overclock
-  challenge (until done), Bluff write/vote, PULSE song/Echo, Neon Par until you hole out. Spectators can always chat.
+  challenge (until done), Bluff write/vote, PULSE song/Echo, Neon Par until you hole out, DOUBLE AGENT
+  briefing + clues (in SAME ROOM mode also debate → last chance: the debate happens out loud). Spectators can always chat.
   While locked: the button shows a small lock, the badge keeps counting, no sound/toast/vibration, and an open sheet
   closes when the next round starts. `body.chat-fab-on .timer` leaves room for the button under the gear.
 - **System lines** (host, quiet style): joined, left, signal lost (after 6 s offline), reconnected, removed by the host,
@@ -530,6 +566,24 @@ export default {
 **Adding a hole:** copy a similar file, edit it, add it to `HOLES` in `holes/index.js` (and to `MODES` if Quick 6/3 should
 use it), then run `node scripts/validate-holes.mjs <n>`. It must print OK (best ≤ par); aim for an "aimed" ace chance well
 under ~40 % and "random" < 2 %. Then `node --test tests/golf.test.mjs`, and play it once (`?emu`, two slots).
+
+## DOUBLE AGENT (social deduction)
+- **Privacy:** `rooms/{code}` is readable by every signed-in user, so nothing secret goes there. `index.js#start` writes a
+  random seed to `spy/{code}/key/{matchId}` (host-only rules); `prepare()` (host) loads the seed + bank and writes every
+  seated player's card (idempotent per `rk`). The view subscribes to its own card only. A rules test proves another
+  player can't read your card or the seed.
+- **Turns:** `turnOrder` shuffles from the seed, then swaps the first non-agent to the front (the agent never opens). The
+  host validates each clue with `clueProblem` (the client shows the same message first); a blocked, offline or timed-out
+  turn writes '' = NO SIGNAL. GRACE_MS (700 ms) lets a last-moment clue land.
+- **Void:** an agent whose player node is gone mid-round → `v+1`, the word is burned, a new deal (`rk` changes, so all
+  per-round player nodes start fresh). Fewer than 3 present → final.
+- **Votes:** most votes are accused; a tie for the last spot = nobody (the agent escapes). With 2 agents the top 2 are
+  unmasked. Scoring in `logic.js#scoreRound` (PTS).
+- **Same-room fairness:** the agent and normal cards share size, timing, animation (`da-jitter`), sound (`daReveal`) and
+  haptic (30 ms); only the text differs. Never give one an effect the other lacks — the E2E measures it.
+- **Adding words:** append to a category (or add `[CATEGORY, [words]]`) in `data/agent/words.json`: concrete, well-known,
+  family-friendly, one clear meaning, similar to the others in the category, unique across the whole bank, letters and spaces only.
+  Run `node --test tests/agent.test.mjs`.
 
 ## Adding content
 - **Neural Bluff questions:** append rows to `data/bluff/questions.json`:

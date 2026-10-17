@@ -64,4 +64,5 @@ export const GAMES = [ // lobby order
   { id: 'cipher', name: 'CIPHER BREACH', theme: 'cipher', tag: 'WORD RACE', blurb: 'Same hidden word. Everyone races. Watch their boards light up.', playable: true },
   { id: 'signal', name: 'LAST SIGNAL', theme: 'signal', tag: 'TRIVIA ROYALE', blurb: '100 HP. Answer fast, strike a rival. Last one standing.', playable: true },
   { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: true },
+  { id: 'agent', name: 'DOUBLE AGENT', theme: 'agent', tag: 'SOCIAL DEDUCTION · 4–8', blurb: 'One of you doesn’t know the word. Find the leak.', playable: true },
 ];

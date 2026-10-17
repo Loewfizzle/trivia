@@ -133,7 +133,8 @@ export async function startGame(gameId, settings) {
   if (!mod || !isHost()) return false;
   const participants = {};
   for (const uid of Object.keys(state.players)) if (isOnline(state.presence, uid)) participants[uid] = true;
-  if (Object.keys(participants).length < MIN_PLAYERS) { toast(`NEED ${MIN_PLAYERS}+ CONNECTED PLAYERS`, 'err'); return false; }
+  const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
+  if (Object.keys(participants).length < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return false; }
   const matchId = Math.random().toString(36).slice(2, 8);
   const created = await mod.start({ code: state.code, matchId, settings, participants, now: serverNow() });
   if (!created) { toast('COULD NOT START — TRY AGAIN', 'err'); return false; }

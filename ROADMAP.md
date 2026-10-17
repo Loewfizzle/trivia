@@ -3,14 +3,14 @@
 > Working title. The name lives in one constant: `APP_NAME` in `js/config.js` (also update `<title>`/meta in `index.html`,
 > `manifest.webmanifest`, and re-render the preview image with `tests/integration/render-assets.mjs`).
 
-One web app, six games, 2–8 players, each on their own phone — same room or different cities.
+One web app, seven games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **trivia.loewfizzle.com** (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
 Backend: Firebase Realtime Database + Anonymous Auth.
 
-## The games — all six are playable
+## The games — all seven are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
@@ -20,6 +20,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 4 | **OVERCLOCK** | Twenty kinds of 30-second mind challenges (Lexicon, Timeline, Closest Call, Rewire, then Missing Link, Spellcheck, Make 24, Compass, Sort It and Higher or Lower added after launch), identical for everyone from a shared seed; no type repeats within a match and categories never come back to back. | amber / magenta | ✅ Stage 2 |
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 | 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
+| 7 | **DOUBLE AGENT** | Social deduction for 4–8: everyone gets the same secret word except the double agent(s); one-word clues in turn, a debate (chat, or out loud in SAME ROOM mode), a vote, a dramatic unmasking and a last chance to steal the round by naming the word. 41 categories × 15–18 words. | corrupted surveillance feed: graphite / silver, player colours only | ✅ Stage 7 |
 
 ## Stages
 
@@ -125,6 +126,28 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] A room with no game for an hour closes: 10-minute lobby countdown (host can KEEP OPEN), live close for everyone,
   and phones returning the next day land on the title with a message instead of the stale room
 
+### ✅ Stage 7 — DOUBLE AGENT (social deduction)
+- [x] Host options: 3/5/7 rounds, REMOTE (debate in chat) or SAME ROOM (talk out loud), 1 or 2 agents (2 only with 7+
+      players; they don't know each other), clue timer 15/20/30 s, debate 60/90/120 s, 1 or 2 clue rounds
+- [x] Round: BRIEFING (press-and-hold classified file; remote agent = inverted card, RGB split, shake, darker sound,
+      stronger buzz; SAME ROOM = every reveal identical in size, brightness, animation, sound and haptic — checked
+      numerically by the E2E) → CLUES (random order, agent never first; dossier tiles decode letter by letter; one word,
+      blocks the secret word / plurals / containing it / repeats with a gentle message; timeout = NO SIGNAL) → DEBATE
+      (full-screen chat or TALK IT OUT; movable suspicion pins in the pinner's colour; host ends early) → VOTE (30 s,
+      changeable until locked, votes appear as pins; tie = agent escapes; 2 agents = top 2 unmasked) → UNMASKING (static,
+      surveillance zoom, INNOCENT stamp or a fracturing DOUBLE AGENT; real agents always revealed; music ducks) →
+      LAST CHANCE (20 s to type the word) → case-file round scores
+- [x] Scoring: escape +200, caught but named the word +150, caught + missed = 0 and every innocent +100, +50 for each
+      innocent who voted for an agent; podium, rematch, game-night points
+- [x] Secrets never in the open room data: `spy/{code}/key` (host-only seed, the deal is derived from it so a new host
+      deals identically) and `spy/{code}/card/{uid}` (readable only by that player); clue checks enforced by the host
+- [x] Stability: offline on your turn = skipped, an agent who leaves for good voids and re-deals the round, rejoin and host
+      migration in every phase, late joiners spectate and are dealt in next round; no word repeats within a room
+- [x] Three owner tracks (spy1–3) as a crossfaded in-order playlist across rounds; synthesized reveal / agent / decode /
+      pin / vote / unmask / stolen sounds
+- [x] Tests: tests/agent.test.mjs (rules + 8-player match simulations), 4 rules tests, E2E
+      tests/integration/e2e-agent.mjs (8 players, both modes, 1 and 2 agents, 31 checks)
+
 ## Next up (agreed plan, in order)
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
@@ -132,12 +155,7 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
    view.js is now the ~450-line shell (done).
 3. ✅ **Overclock QUICK mode: 6 challenges** (≈ 3 min) next to Standard 12 / Marathon 24; the modes are now a list with a
    sub-line, like Neon Par's course picker (done).
-4. **New game: imposter word game — working name GLITCH** (the imposter is "the Glitch"; lime + magenta CRT-glitch look;
-   proposal only — waiting for the owner's go-ahead) (3–8 players, text-only, no voice call needed — fewer steps = more play).
-   Everyone gets a secret word except the imposter (who sees only the category) → clue round: everyone types one word at
-   once, all revealed together → second clue round → accuse: tap a suspect + optional one-line reason, shown with the votes →
-   reveal; a caught imposter can steal the win by guessing the word. ~2–3 min per round, new imposter each round, nobody
-   eliminated. Keep the role/word off the readable room data (like Cipher's obfuscated secret). Room chat stays open.
+4. ✅ **New game: imposter word game** — shipped as **DOUBLE AGENT** (Stage 7 above).
 
 ## Future ideas
 - **New game: drawing telephone** (like Gartic Phone / Telestrations; 4–8 players, works with 3; no voice needed).
@@ -146,7 +164,7 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
   around → the reveal plays each chain step by step for everyone (drawings replayed stroke by stroke). Everyone works at once
   in every phase; drawings stored as strokes (tiny); server-clock timers; an offline player's step becomes "(ran out of ink)".
   Optional tap-voted awards ("Best drawing", "Most lost in translation") and a shareable image of the funniest chain.
-  ~10–15 min a game — pairs well with the imposter game (quick suspicion vs. slower laughs).
+  ~10–15 min a game — pairs well with DOUBLE AGENT (quick suspicion vs. slower laughs).
 - **NEON PAR:** more holes / a fourth zone (the format is data-only — see CLAUDE.md "Adding a hole"), a hole editor,
   daily challenge hole with a room leaderboard, replays of everyone's best shot at the end.
 - **More content:** a question-pack format for Neural Bluff (themed packs: 90s, science, local in-jokes) and a host

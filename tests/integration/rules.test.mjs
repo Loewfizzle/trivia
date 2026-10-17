@@ -384,3 +384,82 @@ test('chat: members only (kicked lose it at once), own messages, server time, â‰
   await new Promise(r => setTimeout(r, 900));
   await assertFails(update(ref(db('p2'), C), msg('p2', 'still here?')));
 });
+
+// ---------------------------------------------------------------- DOUBLE AGENT
+function agentRoom(game) {
+  const r = lobbyRoom();
+  const room = r.rooms[CODE];
+  room.meta.status = 'playing';
+  room.players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
+  room.players.p4 = { name: 'FOUR', color: 'yellow', avatar: 'hex', joinedAt: 4 };
+  room.game = { id: 'agent', matchId: 'm1', round: 0, rk: '0-0', participants: { host: true, p2: true, p3: true, p4: true }, ...game };
+  r.spy = { [CODE]: {
+    key: { m1: { seed: 'supersecretseed01' } },
+    card: { host: { m: 'm1', rk: '0-0', cat: 'FOOD', word: 'pizza', agent: false }, p2: { m: 'm1', rk: '0-0', cat: 'FOOD', agent: true } },
+  } };
+  return r;
+}
+
+test('double agent secrets: your file is yours alone; only the host reads the seed and writes the files', async () => {
+  await seed(agentRoom({ phase: 'briefing' }));
+  const S = `spy/${CODE}`;
+  await assertSucceeds(get(ref(db('p2'), `${S}/card/p2`)));
+  await assertFails(get(ref(db('p2'), `${S}/card/host`)), 'cannot read another player\'s file');
+  await assertFails(get(ref(db('p3'), `${S}/card/p2`)), 'cannot learn who the agent is');
+  await assertFails(get(ref(db('p3'), `${S}/card`)), 'cannot list the files');
+  await assertFails(get(ref(db('p3'), `${S}`)));
+  await assertFails(get(ref(db('p3'), `${S}/key/m1`)), 'players cannot read the seed');
+  await assertSucceeds(get(ref(db('host'), `${S}/key/m1`)), 'the host can');
+  await assertFails(get(ref(db('outsider'), `${S}/card/p2`)));
+  await assertFails(set(ref(db('p3'), `${S}/card/p3`), { m: 'm1', rk: '0-0', cat: 'X', word: 'y', agent: false }), 'players cannot forge a file');
+  await assertFails(set(ref(db('p3'), `${S}/key/m1`), { seed: 'mine-mine-mine-mine' }));
+  await assertSucceeds(set(ref(db('host'), `${S}/card/p3`), { m: 'm1', rk: '0-0', cat: 'FOOD', word: 'pizza', agent: false }));
+  // a new host takes over: now they can read the seed, the old host can't
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/meta/hostId`), 'p3'));
+  await assertSucceeds(get(ref(db('p3'), `${S}/key/m1`)));
+  await assertFails(get(ref(db('host'), `${S}/key/m1`)));
+  // cleanup: the host (or anyone once the room is gone) may delete it all
+  await assertFails(remove(ref(db('p2'), S)));
+  await assertSucceeds(remove(ref(db('p3'), S)));
+});
+
+test('double agent clues: only on your turn, the current pass, once, one clean word', async () => {
+  await seed(agentRoom({ phase: 'clues', cur: 'p2', pass: 0, turn: 1, order: ['host', 'p2', 'p3', 'p4'] }));
+  const C = `${R}/agclue/m1/0-0`;
+  const clue = t => ({ t, at: serverTimestamp() });
+  await assertFails(set(ref(db('p3'), `${C}/0/p3`), clue('cheese')), 'not your turn');
+  await assertFails(set(ref(db('p3'), `${C}/0/p2`), clue('cheese')), 'not your node');
+  await assertFails(set(ref(db('p2'), `${C}/1/p2`), clue('cheese')), 'wrong pass');
+  await assertFails(set(ref(db('p2'), `${C}/0/p2`), clue('two words')), 'one word');
+  await assertFails(set(ref(db('p2'), `${C}/0/p2`), clue('x'.repeat(21))), '20 max');
+  await assertSucceeds(set(ref(db('p2'), `${C}/0/p2`), clue('deep-dish')));
+  await assertFails(set(ref(db('p2'), `${C}/0/p2`), clue('again')), 'once');
+  await assertFails(set(ref(db('p2'), `${R}/agclue/m1/9-0/0/p2`), clue('old')), 'not another round');
+});
+
+test('double agent ready, pins and votes: phase-gated, own node, never yourself, locked votes stay locked', async () => {
+  await seed(agentRoom({ phase: 'debate' }));
+  const P = `${R}/agpin/m1/0-0`, V = `${R}/agvote/m1/0-0`, RD = `${R}/agready/m1/0-0`;
+  await assertSucceeds(set(ref(db('p2'), `${P}/p2`), 'p3'));
+  await assertSucceeds(remove(ref(db('p2'), `${P}/p2`)), 'unpin');
+  await assertFails(set(ref(db('p2'), `${P}/p2`), 'p2'), 'not yourself');
+  await assertFails(set(ref(db('p2'), `${P}/p2`), 'stranger'), 'a player in the game');
+  await assertFails(set(ref(db('p3'), `${P}/p2`), 'p4'), 'own pin only');
+  await assertSucceeds(set(ref(db('p2'), `${RD}/p2`), { b: true, d: true }));
+  await assertFails(set(ref(db('p2'), `${V}/p2`), { s: 'p3', at: serverTimestamp() }), 'not voting yet');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'vote'));
+  await assertSucceeds(set(ref(db('p2'), `${V}/p2`), { s: 'p3', lock: false, at: serverTimestamp() }));
+  await assertSucceeds(set(ref(db('p2'), `${V}/p2`), { s: 'p4', lock: true, at: serverTimestamp() }), 'change, then lock');
+  await assertFails(set(ref(db('p2'), `${V}/p2`), { s: 'p3', lock: true, at: serverTimestamp() }), 'locked');
+  await assertFails(set(ref(db('p3'), `${V}/p3`), { s: 'p3', at: serverTimestamp() }), 'not yourself');
+  await assertFails(set(ref(db('p2'), `${RD}/p2`), { b: true }), 'no ready flag during the vote');
+});
+
+test('double agent last chance: only a caught agent, once, in the last phase', async () => {
+  await seed(agentRoom({ phase: 'last', caught: { p2: true } }));
+  const G = `${R}/agguess/m1/0-0`;
+  await assertFails(set(ref(db('p3'), `${G}/p3`), { t: 'pizza', at: serverTimestamp() }), 'not caught');
+  await assertSucceeds(set(ref(db('p2'), `${G}/p2`), { t: 'pizza', at: serverTimestamp() }));
+  await assertFails(set(ref(db('p2'), `${G}/p2`), { t: 'pasta', at: serverTimestamp() }), 'one guess');
+  await assertSucceeds(remove(ref(db('host'), `${R}/agguess`)), 'host wipes');
+});

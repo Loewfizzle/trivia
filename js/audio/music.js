@@ -13,8 +13,15 @@ const FILES = {
   menu: 'menu', cipher: 'cipher-breach', signal: 'last-signal',
   overclock: 'overclock', bluff: 'neural-bluff', victory: 'victory',
   'golf-rooftops': 'golf-rooftops', 'golf-cyber': 'golf-cyber', 'golf-arcade': 'golf-arcade',
+  spy1: 'spy1', spy2: 'spy2', spy3: 'spy3',
 };
 export const TRACK_IDS = Object.keys(FILES);
+// Playlists: ask for the list's id and its tracks play in order, crossfading into the next one at
+// each track's end (then back to the first). The position survives re-asks, so a game that keeps
+// asking for the same list never restarts it.
+const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'] };
+const listPos = {}; // list id -> index of the track playing / next to play
+const listOf = id => (PLAYLISTS[id] ? id : null);
 const XFADE = 1.5;        // seconds, between tracks
 const LOOP_XFADE = 1.8;   // seconds, track into itself
 const urlFor = id => new URL(`../../audio/music/${FILES[id]}.mp3`, import.meta.url).href;
@@ -26,6 +33,7 @@ let voices = [];
 let current = null;       // { id, voice }
 let desired = null;       // { id, fallback }
 let visible = true;
+let duckLevel = 1;        // 1 = full; duckMusic() lowers the current track (e.g. a tense reveal)
 
 function silentWavUrl() {
   const n = 800;
@@ -102,15 +110,37 @@ function startTrack(id) {
   try { voice.el.currentTime = at; } catch { /* not seekable yet */ }
   voice.gain.gain.value = 0;
   voice.el.play().then(() => { status[id] = status[id] || 'ok'; }).catch(() => {});
-  fade(voice, 1, XFADE);
+  fade(voice, duckLevel, XFADE);
   const prev = current;
-  current = { id, voice };
+  current = { id, voice, list: desired && listOf(desired.id) };
+  if (current.list) prefetch(nextInList(current.list, id));
   if (prev) stopVoice(prev.voice, XFADE);
+}
+
+// The playlist track to play now: the saved position, skipping missing files.
+function listTrack(list) {
+  const ids = PLAYLISTS[list];
+  for (let k = 0; k < ids.length; k++) {
+    const i = ((listPos[list] || 0) + k) % ids.length;
+    if (status[ids[i]] !== 'missing') { listPos[list] = i; return ids[i]; }
+  }
+  return null;
+}
+function nextInList(list, id) {
+  const ids = PLAYLISTS[list];
+  for (let k = 1; k <= ids.length; k++) {
+    const nid = ids[(ids.indexOf(id) + k) % ids.length];
+    if (status[nid] !== 'missing') return nid;
+  }
+  return id;
 }
 
 function resolveTrack() {
   if (!desired) return null;
-  if (status[desired.id] !== 'missing') return desired.id;
+  if (PLAYLISTS[desired.id]) {
+    const t = listTrack(desired.id);
+    if (t) return t;
+  } else if (status[desired.id] !== 'missing') return desired.id;
   if (desired.fallback && status[desired.fallback] !== 'missing') return desired.fallback;
   return null;
 }
@@ -119,6 +149,8 @@ function apply() {
   if (!isUnlocked() || !visible || !voices.length) return;
   const id = resolveTrack();
   if (current && current.id === id) return; // already playing: never restart
+  // a playlist keeps going on its own (watchLoop moves it to the next track)
+  if (current && current.list && desired && current.list === desired.id && PLAYLISTS[current.list].includes(current.id)) return;
   if (!id) { if (current) { stopVoice(current.voice, XFADE); current = null; } return; }
   startTrack(id);
 }
@@ -137,22 +169,28 @@ function watchLoop() {
   }
   if (!el.duration || !isFinite(el.duration) || el.paused) return;
   if (el.currentTime < el.duration - LOOP_XFADE - 0.15) return;
+  // a playlist moves on to its next track; anything else loops into a fresh copy of itself
+  const list = current.list;
+  const nid = list ? nextInList(list, id) : id;
   const next = freeVoice(voice);
   next.el.preload = 'auto';
-  if (next.id !== id || !next.el.src.includes(FILES[id])) next.el.src = urlFor(id);
-  next.id = id;
+  if (next.id !== nid || !next.el.src.includes(FILES[nid])) next.el.src = urlFor(nid);
+  next.id = nid;
   try { next.el.currentTime = 0; } catch { /* fine */ }
   next.gain.gain.value = 0;
   next.el.play().catch(() => {});
-  fade(next, 1, LOOP_XFADE);
-  current = { id, voice: next };
+  fade(next, duckLevel, LOOP_XFADE);
+  current = { id: nid, voice: next, list };
   positions[id] = 0;
+  positions[nid] = 0;
+  if (list) { listPos[list] = PLAYLISTS[list].indexOf(nid); prefetch(nextInList(list, nid)); }
   stopVoice(voice, LOOP_XFADE);
 }
 
 /** Ask for a track. Same track = no-op (keeps playing seamlessly). */
 export function playMusic(id, fallback = null) {
   if (desired && desired.id === id && desired.fallback === fallback) { apply(); return; }
+  if (!desired || desired.id !== id) duckLevel = 1; // a new track never starts ducked
   desired = id ? { id, fallback } : null;
   // Nothing can play before the first tap, so don't spend the player's bandwidth until then.
   if (isUnlocked()) { if (id) prefetch(id); if (fallback) prefetch(fallback); }
@@ -161,6 +199,7 @@ export function playMusic(id, fallback = null) {
 
 /** Warm the HTTP cache for a track (called when a game is chosen). */
 export function prefetch(id) {
+  if (PLAYLISTS[id]) { prefetch(PLAYLISTS[id][listPos[id] || 0]); return; }
   if (!FILES[id] || prefetching[id] || status[id] === 'missing') return;
   prefetching[id] = fetch(urlFor(id), { priority: 'low' })
     .then(r => { status[id] = r.ok ? 'ok' : 'missing'; return r.ok ? r.blob() : null; })
@@ -168,10 +207,20 @@ export function prefetch(id) {
     .catch(() => { delete prefetching[id]; });
 }
 
+/** Lower (or restore) the current music: level 0..1 over `seconds`. Reset when the track changes. */
+export function duckMusic(level, seconds = 0.6) {
+  const to = Math.max(0, Math.min(1, level));
+  if (to === duckLevel) return;
+  duckLevel = to;
+  if (current && getContext()) fade(current.voice, duckLevel, seconds);
+}
+
 export function musicDebug() {
   return {
     desired: desired && desired.id,
     playing: current && current.id,
+    list: current && current.list,
+    duck: duckLevel,
     status: { ...status },
     voices: voices.map(v => ({ id: v.id, gain: +v.gain.gain.value.toFixed(3), paused: v.el.paused, t: +(v.el.currentTime || 0).toFixed(2) })),
   };
@@ -193,6 +242,6 @@ onVisibility(v => {
   visible = v;
   if (!current) { apply(); return; }
   if (!v) { positions[current.id] = current.voice.el.currentTime || 0; voices.forEach(x => x.el.pause()); }
-  else { current.voice.el.play().catch(() => {}); fade(current.voice, 1, 0.6); apply(); }
+  else { current.voice.el.play().catch(() => {}); fade(current.voice, duckLevel, 0.6); apply(); }
 });
 setInterval(watchLoop, 200);
