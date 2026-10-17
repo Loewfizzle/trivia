@@ -1,5 +1,5 @@
 // Global constants. Change APP_NAME here to rebrand the whole site.
-export const APP_NAME = 'NEON DISTRICT';
+export const APP_NAME = 'NEON SPEAKEASY';
 export const APP_TAGLINE = 'four minds // one signal';
 export const APP_VERSION = '1.1.0';
 

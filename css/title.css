@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NEON DISTRICT — the title screen (scene: js/screens/district/scene.js, logo: js/ui/logo.js)
+   NEON SPEAKEASY — the title screen (scene: js/screens/district/scene.js, logo: js/ui/logo.js)
    The city is a fixed canvas behind #stage; this sheet styles the sign, the menu and the opening sequence.
    Only transform + opacity animate. backdrop-filter is used on two small panels only (the city behind moves).
    ========================================================================== */
@@ -420,3 +420,16 @@ body.nd-on .music-btn { right: calc(var(--safe-r) + 62px); }
 body.reduced-fx .nd-track { animation: none; }
 body.reduced-fx .nd-show { overflow-x: auto; }
 body.reduced-fx .nd-host-sheen::before, body.reduced-fx .nd-gate-txt { animation: none; }
+
+/* SPEAKEASY: framed by Art Deco rules ending in a diamond — the bar's era, in the district's light */
+.nd-word { display: flex; align-items: center; justify-content: center; gap: 0.55em; }
+.nd-word::before, .nd-word::after {
+  content: '';
+  flex: none;
+  width: 2.7em;
+  height: 0.6em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10'%3E%3Cpath d='M0 5H48' stroke='%23edf0ff' stroke-opacity='.55' stroke-width='1.2'/%3E%3Cpath d='M0 7.5H40' stroke='%23edf0ff' stroke-opacity='.25' stroke-width='.8'/%3E%3Cpath d='M55 1l4 4-4 4-4-4z' fill='%23edf0ff'/%3E%3C/svg%3E") center / contain no-repeat;
+  opacity: 0.85;
+}
+/* the trailing letter-spacing sits before ::after; pull it back so both ornaments are the same distance away */
+.nd-word::after { transform: scaleX(-1); margin-left: -0.66em; }

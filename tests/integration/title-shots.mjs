@@ -1,4 +1,4 @@
-// NEON DISTRICT title: screenshots of the opening sequence (first visit) at a given size, for the visual review.
+// NEON SPEAKEASY title: screenshots of the opening sequence (first visit) at a given size, for the visual review.
 //   node title-shots.mjs "<browser path>" ./shots-title [390x844,412x915,1440x900]   (env GPU=1, RETURN=1)
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';

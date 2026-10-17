@@ -1027,3 +1027,52 @@ body.nd-glass .bar { padding-right: 112px; }
 .sheet.settings { padding-top: 10px; }
 .sheet.settings > .set-head { border-radius: 0; background: rgba(13, 14, 34, 0.97); box-shadow: 0 1px 0 var(--gl-line), 0 10px 14px -10px rgba(0, 0, 0, 0.6); }
 .sheet.settings { background: rgba(13, 14, 34, 0.97); }
+
+/* ---- toasts: small glass pills with a glowing mark (the corner buttons' family) ---- */
+.toasts { align-items: center; }
+.toast {
+  --tc: #8fd8ff;
+  align-self: center;
+  max-width: 100%;
+  gap: 10px;
+  padding: 7px 18px 7px 7px;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.02)), rgba(12, 13, 32, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-left-width: 1px;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 1px color-mix(in srgb, var(--tc) 22%, transparent), 0 0 26px color-mix(in srgb, var(--tc) 20%, transparent), 0 10px 30px rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+.toast-ok { --tc: #5dffb0; } .toast-warn { --tc: #ffd27a; } .toast-err { --tc: #ff7a95; }
+.toasts .toast-glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: #0a0b1c;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--tc) 62%);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tc) 80%, transparent);
+}
+/* lobby: LEAVE ROOM asks for the second tap itself */
+body.nd-glass .lobby-leave.is-armed {
+  color: #fff;
+  background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 60%), rgba(255, 51, 85, 0.32);
+  border-color: rgba(255, 130, 160, 0.85);
+  box-shadow: 0 0 0 1px rgba(255, 90, 130, 0.35), 0 0 24px rgba(255, 60, 100, 0.45);
+  text-shadow: 0 0 10px rgba(255, 140, 170, 0.9);
+}
+/* toasts sit just under the corner-button row, so they never cover LEAVE / the gear */
+.toasts { top: calc(var(--safe-t) + 62px); }

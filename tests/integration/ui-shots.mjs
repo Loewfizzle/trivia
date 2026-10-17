@@ -39,6 +39,11 @@ for (const [w, h] of sizes) {
   await q.waitForSelector('.lobby-screen', { timeout: 20000 });
   await sleep(2600);
   await p.screenshot({ path: `${OUT}ui-lobby-${w}.png` });
+  await p.evaluate(() => document.querySelector('.lobby-leave').click());
+  await p.evaluate(() => import('/js/ui/toast.js').then(m => { m.toast('INVITE LINK COPIED', 'ok'); m.toast('BOB LEFT THE ROOM', 'info'); }));
+  await sleep(500);
+  await p.screenshot({ path: `${OUT}ui-leave-toast-${w}.png` });
+  await sleep(2600);
   await p.evaluate(() => { const s = document.querySelector('.lobby-screen'); s.scrollTop = s.scrollHeight; });
   await sleep(500);
   await p.screenshot({ path: `${OUT}ui-lobby-games-${w}.png` });

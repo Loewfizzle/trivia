@@ -1,4 +1,4 @@
-// NEON DISTRICT — the front door.
+// NEON SPEAKEASY — the front door.
 //
 // A night city (district/scene.js) behind a neon sign and a short menu. The opening sequence:
 //   1. TAP TO ENTER (first visit on this device): the district in near-darkness, rain, a few dim lights.
@@ -67,7 +67,7 @@ export function createTitle() {
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
       h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME }) }),
-      h('div.nd-word', 'DISTRICT'),
+      h('div.nd-word', 'SPEAKEASY'),
       h('div.nd-tag', TAGLINE));
     els.show = buildShowcase();
     els.actions = buildActions();

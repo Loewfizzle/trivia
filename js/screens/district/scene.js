@@ -1,4 +1,4 @@
-// NEON DISTRICT — the title screen's city (Canvas 2D, PULSE-style: everything expensive is pre-rendered).
+// NEON SPEAKEASY — the title screen's city (the neon district outside the bar) (Canvas 2D, PULSE-style: everything expensive is pre-rendered).
 //
 //   sky (+ stars, horizon glow) -> 4 skyline layers far→near, each with haze at its feet -> beacons, billboards,
 //   flying-vehicle light trails -> the wet street: the whole city reflected (flipped, squashed, streaked,
