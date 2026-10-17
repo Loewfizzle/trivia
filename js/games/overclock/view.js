@@ -15,8 +15,10 @@ import { loadLengths, answersFor, isValidGuess } from '../cipher/words.js';
 import {
   INFO, generate, unscrambleAccepts, partsFor, STROOP_COLORS, REFLEX_TIMEOUT_MS, reflexCredit,
   lexiconOk, timelineCorrect, closestCredit, rewirePower, rewireOk, REWIRE_SHAPES, LEXICON_PARTS,
+  linkAccepts, normWord, applyOp, OP_SIGN, COMPASS_DIRS, COMPASS_TURN, COMPASS_STEP_MS, COMPASS_GAP_MS, COMPASS_START_MS, COMPASS_FLASH_MS,
+  SORT_CARDS, sortWindowMs, sortOk,
 } from './challenges.js';
-import { bankFor, loadBank, preloadFor } from './banks.js';
+import { bankFor, loadBank, preloadFor, BANK_TYPES } from './banks.js';
 import { CHALLENGE_MS, levelOf, totals, standings } from './logic.js';
 
 const GHOST = { name: 'GHOST', color: 'yellow', avatar: 'ghost' };
@@ -24,7 +26,40 @@ const GHOST = { name: 'GHOST', color: 'yellow', avatar: 'ghost' };
 const fmtOk = n => (Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toString());
 // 1234.5 → '1,234.5' (Closest Call)
 const fmtVal = v => { const [i, d] = String(v).split('.'); return Number(i).toLocaleString('en-US') + (d != null ? `.${d}` : ''); };
-const BANK_TYPES = ['lexicon', 'timeline', 'closest'];
+// Higher or Lower values: 39 million, 1.44 billion, 0.49 km², 1876, c. 2560 BC
+function fmtStat(unit, v, shown) {
+  if (shown) return shown;
+  if (unit === 'year') return String(v);
+  if (unit === 'million' && v >= 1000) return `${(v / 1000).toFixed(2).replace(/0$/, '')} billion`;
+  if (unit === 'million' && v < 1) return `${Math.round(v * 1000)} thousand`;
+  return unit ? `${fmtVal(v)} ${unit}` : fmtVal(v);
+}
+// Sort It only stores the net score (right − ½ wrong) and how many cards were sorted; this recovers right/wrong.
+const sortSplit = (ok, p) => { const wrong = Math.max(0, Math.round((p - ok) / 1.5)); return { right: p - wrong, wrong }; };
+// Make 24 tiles: whole numbers, or an exact fraction drawn stacked
+const fmtSigned = n => (n < 0 ? `−${-n}` : String(n));
+const fracEl = v => (v[1] === 1 ? h('span.m24-int', fmtSigned(v[0])) : h('span.m24-frac', h('b', fmtSigned(v[0])), h('i'), h('b', String(v[1]))));
+// Compass rose (static) and needle (turned with a CSS transform)
+const ROSE_SVG = (() => {
+  const p = (r, a) => { const t = (a * Math.PI) / 180; return [(100 + r * Math.sin(t)).toFixed(1), (100 - r * Math.cos(t)).toFixed(1)]; };
+  const ticks = [];
+  for (let a = 0; a < 360; a += 10) {
+    const big = a % 90 === 0, mid = a % 45 === 0;
+    const [x1, y1] = p(92, a), [x2, y2] = p(big ? 78 : mid ? 82 : 87, a);
+    ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${big ? 'tk-b' : 'tk'}"/>`);
+  }
+  const star = (r1, r2, rot) => Array.from({ length: 8 }, (_, i) => p(i % 2 ? r2 : r1, i * 45 + rot).join(',')).join(' ');
+  return `<svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="96" class="ring"/><circle cx="100" cy="100" r="70" class="ring2"/>${ticks.join('')}`
+    + `<polygon points="${star(64, 16, 0)}" class="star"/><polygon points="${star(42, 11, 22.5)}" class="star2"/></svg>`;
+})();
+const NEEDLE_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><polygon points="100,24 113,100 87,100" class="nd-n"/><polygon points="100,176 113,100 87,100" class="nd-s"/><circle cx="100" cy="100" r="8" class="nd-hub"/></svg>';
+const DIR_NAME = { N: 'NORTH', E: 'EAST', S: 'SOUTH', W: 'WEST' };
+const TURN_TEXT = { L: 'TURN LEFT', R: 'TURN RIGHT', A: 'TURN AROUND' };
+const TURN_SVG = {
+  R: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 40V22a8 8 0 0 1 8-8h14"/><path d="M30 6l8 8-8 8"/></svg>',
+  L: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M34 40V22a8 8 0 0 0-8-8H12"/><path d="M18 6l-8 8 8 8"/></svg>',
+  A: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 40V20a10 10 0 0 1 20 0v14"/><path d="M26 28l8 8 8-8"/></svg>',
+};
 
 export function createView() {
   let root, st;
@@ -36,6 +71,8 @@ export function createView() {
   let final = null;
   let lastScore = 0;
   let wordsReady = false;
+  let vvHandler = null;
+  let revealTimers = [];
 
   const g = () => st.game;
   const me = () => st.uid;
@@ -59,13 +96,24 @@ export function createView() {
     els.stage = h('section.oc-stage');
     els.overlay = h('div.oc-overlay');
     root.append(els.head, els.timer, els.strip, els.stage, els.overlay);
+    // iOS keyboard (Missing Link): keep the answer above it
+    if (window.visualViewport) {
+      vvHandler = () => {
+        const vv = window.visualViewport;
+        const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        root.style.setProperty('--kb', `${Math.round(kb)}px`);
+        root.classList.toggle('kb-open', kb > 80);
+      };
+      window.visualViewport.addEventListener('resize', vvHandler);
+      window.visualViewport.addEventListener('scroll', vvHandler);
+    }
     loadLengths([5, 6, 7]).then(() => { wordsReady = true; if (st) update(st); }).catch(() => {});
     if (state.game && state.game.order) preloadFor(state.game.order).then(() => { if (st) update(st); });
     // test hook (emulator runs only): the E2E compares puzzles across phones and reads progress
     if (/[?&]emu\b/.test(location.search)) {
       window.__oc = {
         spec: () => chal && chal.spec,
-        state: () => chal && { type: chal.spec.type, ok: chal.ok, p: chal.p, done: chal.done, extra: chal.extra },
+        state: () => chal && { type: chal.spec.type, ok: chal.ok, p: chal.p, done: chal.done, extra: chal.extra, local: chal.local },
       };
     }
     update(state);
@@ -77,6 +125,11 @@ export function createView() {
     if (chal && chal.ui && chal.ui.destroy) chal.ui.destroy();
     if (final) final.destroy();
     window.removeEventListener('keydown', onKey);
+    revealTimers.forEach(clearTimeout);
+    if (vvHandler && window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', vvHandler);
+      window.visualViewport.removeEventListener('scroll', vvHandler);
+    }
   }
 
   function update(state) {
@@ -154,7 +207,7 @@ export function createView() {
         return;
       }
       const mine = boardsNow(game)[me()] || {};
-      chal = { key, spec, parts: spec.parts, p: mine.p || 0, ok: mine.ok || 0, done: !!mine.done, ui: null, marks: [], times: [], extra: {} };
+      chal = { key, spec, parts: spec.parts, p: mine.p || 0, ok: mine.ok || 0, done: !!mine.done, ui: null, marks: [], times: [], extra: {}, local: {} };
       for (const f of ['w', 'o', 'g', 'rw']) if (mine[f] != null) chal.extra[f] = mine[f];
       clear(els.stage);
       if (chal.done) showDone();
@@ -223,6 +276,18 @@ export function createView() {
     const reflex = chal.spec.type === 'reflex';
     const perfect = chal.ok >= chal.parts;
     const t = chal.spec.type;
+    const NEW_DONE = {
+      missinglink: () => [h('b', fmtOk(chal.ok)), ' / 2 linked'],
+      make24: () => [h('b', fmtOk(chal.ok)), ' / 2 solved'],
+      sortit: () => [h('b', String(sortSplit(chal.ok, chal.p).right)), ` / ${SORT_CARDS} sorted right`],
+      higherlower: () => ['STREAK ', h('b', String(Math.floor(chal.ok)))],
+    };
+    if (NEW_DONE[t]) {
+      els.stage.append(h('div.oc-done', { class: perfect ? 'is-perfect' : null },
+        h('div.oc-done-mark', perfect ? 'PERFECT' : t === 'higherlower' ? 'RUN OVER' : 'LOCKED IN'), h('div.oc-done-score', ...NEW_DONE[t]()), h('div.oc-done-wait', 'WAITING FOR THE OTHERS…')));
+      if (perfect) sfx('solve');
+      return;
+    }
     if (t === 'closest' || t === 'lexicon' || t === 'timeline' || t === 'rewire') {
       // (Closest Call never shows how close you were until the reveal)
       const line = t === 'closest' ? [h('b', fmtVal(chal.extra.g ?? 0)), ` ${chal.spec.unit}`]
@@ -260,6 +325,7 @@ export function createView() {
       unscramble: uiUnscramble, memory: uiMemory, oddone: uiOddOne, math: uiNumeric, pattern: uiNumeric, trivia: uiTrivia,
       stroop: uiStroop, reflex: uiReflex, count: uiCount, truefalse: uiTrueFalse,
       lexicon: uiLexicon, timeline: uiTimeline, closest: uiClosest, rewire: uiRewire,
+      missinglink: uiMissingLink, spellcheck: uiSpellcheck, make24: uiMake24, compass: uiCompass, sortit: uiSortIt, higherlower: uiHigherLower,
     }[s.type](s);
     if (s.type === 'closest') els.pips.hidden = true; // no hint before the reveal
     chal.ui = ui;
@@ -509,8 +575,8 @@ export function createView() {
       if (chal.p >= s.items.length) return;
       const it = s.items[chal.p];
       const word = h('div.cc-word', { style: { '--ink': STROOP_COLORS[it.ink].hex }, 'aria-label': `The word ${STROOP_COLORS[it.word].name}` }, STROOP_COLORS[it.word].name);
-      btns = it.order.map((id, k) => fastButton('button.cc-opt', { dataset: { c: id }, 'aria-label': `${STROOP_COLORS[id].name} ink` }, () => choose(id), h('span.cc-key', String(k + 1)), STROOP_COLORS[id].name));
-      wrap.replaceChildren(h('div.ch-prompt', `TAP THE INK COLOR · ${chal.p + 1}/${s.items.length}`), word, h('div.cc-opts', btns));
+      btns = it.order.map((id, k) => fastButton('button.cc-opt', { dataset: { c: id }, 'aria-label': `${STROOP_COLORS[id].name} text` }, () => choose(id), h('span.cc-key', String(k + 1)), STROOP_COLORS[id].name));
+      wrap.replaceChildren(h('div.ch-prompt', `TAP THE TEXT COLOR · ${chal.p + 1}/${s.items.length}`), word, h('div.cc-opts', btns));
       pulseClass(word, 'q-in');
     };
     const choose = id => {
@@ -880,9 +946,533 @@ export function createView() {
     return { el: wrap, destroy() { clearTimeout(pending); } };
   }
 
+  // Newer challenges that grade each step themselves: set ok/p, colour this step's pip, publish.
+  function step(ok, p, mark, done = false, doneDelay = 450) {
+    if (!chal || chal.done) return;
+    if (mark) chal.marks[chal.p] = mark;
+    chal.ok = Math.round(ok * 100) / 100;
+    chal.p = Math.min(chal.parts, Math.max(chal.ok, p));
+    paintPips();
+    if (done || chal.p >= chal.parts) { chal.done = true; write(true); setTimeout(showDone, doneDelay); }
+    else write(false);
+  }
+
+  // ---------- MISSING LINK ----------
+  function uiMissingLink(s) {
+    const wrap = h('div.ch.ch-link');
+    let idx = Math.min(1, Math.floor(chal.p));
+    let busy = false;
+    const input = h('input.ml-input', {
+      type: 'text', inputmode: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off',
+      spellcheck: 'false', enterkeyhint: 'go', 'aria-label': 'Your answer',
+    });
+    const blanks = h('div.ml-blanks', { 'aria-hidden': 'true' });
+    const field = h('label.ml-field', blanks, input);
+    const hint = h('div.ml-hint');
+    const title = h('div.ch-prompt');
+    const words = h('div.ml-words');
+    const pz = () => s.puzzles[idx];
+    const len = () => normWord(pz().answer).length;
+    const go = fastButton('button.btn.btn-primary.ml-go', {}, () => submit(), 'ENTER');
+    const skip = fastButton('button.btn.btn-ghost.ml-skip', {}, () => doSkip(), 'SKIP →');
+    const paint = () => {
+      const v = normWord(input.value);
+      const cells = Math.max(len(), v.length);
+      const focused = document.activeElement === input;
+      blanks.style.setProperty('--n', cells);
+      blanks.replaceChildren(...Array.from({ length: cells }, (_, i) => h('span.ml-cell', {
+        class: [i < v.length ? 'is-full' : '', i >= len() ? 'is-extra' : '', focused && i === Math.min(v.length, cells - 1) ? 'is-caret' : ''].join(' '),
+      }, v[i] || '')));
+      field.classList.toggle('is-focus', focused);
+    };
+    const say = (t, cls = '') => { hint.textContent = t; hint.className = `ml-hint ${cls}`; };
+    const show = () => {
+      title.textContent = `PUZZLE ${idx + 1}/2 · ${len()} LETTERS`;
+      words.replaceChildren(...pz().words.map((w, k) => h('div.ml-word', { style: { animationDelay: `${k * 90}ms` } }, w)));
+      input.value = '';
+      input.maxLength = len() + 3;
+      skip.hidden = idx > 0;
+      wrap.classList.remove('is-solved');
+      say(matchMedia('(pointer: coarse)').matches ? 'TAP THE BOXES TO TYPE' : 'TYPE YOUR ANSWER · ENTER');
+      paint();
+    };
+    const advance = () => { busy = false; if (chal.done) return; idx = 1; show(); };
+    const success = () => {
+      busy = true;
+      wrap.classList.add('is-solved');
+      blanks.replaceChildren(...[...normWord(pz().answer)].map((c, i) => h('span.ml-cell.is-full.is-win', { style: { animationDelay: `${i * 45}ms` } }, c)));
+      say('LINKED!', 'is-good');
+      part(true);
+      if (!chal.done) setTimeout(advance, 950);
+    };
+    const submit = () => {
+      if (busy || chal.done) return;
+      const v = normWord(input.value);
+      if (!v) { say('TYPE YOUR ANSWER FIRST', 'is-warn'); input.focus({ preventScroll: true }); return; }
+      if (linkAccepts(v, pz())) { success(); return; }
+      sfx('invalid');
+      vibrate([30, 30, 30]);
+      pulseClass(field, 'shake', 450);
+      say('NOT IT — TRY AGAIN', 'is-warn');
+      input.focus({ preventScroll: true });
+      input.select();
+    };
+    const doSkip = () => {
+      if (busy || chal.done || idx > 0) return;
+      busy = true;
+      say(`IT WAS ${normWord(pz().answer)}`, 'is-warn');
+      part(false, true);
+      setTimeout(advance, 1300);
+    };
+    input.addEventListener('input', () => {
+      const clean = input.value.toUpperCase().replace(/[^A-Z]/g, '');
+      if (clean !== input.value) input.value = clean;
+      if (busy) return;
+      sfx('key');
+      paint();
+      // the exact answer locks in by itself; anything else (a plural, a wrong guess) waits for ENTER
+      if (normWord(input.value).length === len() && linkAccepts(input.value, pz())) success();
+    });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+    input.addEventListener('focus', paint);
+    input.addEventListener('blur', paint);
+    show();
+    // desktop: type straight away (a phone needs a tap to raise its keyboard)
+    if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => input.focus({ preventScroll: true }), 60);
+    wrap.append(title, words, field, hint, h('div.ml-actions', skip, go));
+    return { el: wrap, destroy() { input.blur(); } };
+  }
+
+  // ---------- SPELLCHECK ----------
+  function uiSpellcheck(s) {
+    const wrap = h('div.ch.ch-spell');
+    let locked = false;
+    let btns = [];
+    const show = () => {
+      if (chal.p >= s.items.length) return;
+      const it = s.items[chal.p];
+      btns = it.options.map((w, k) => fastButton('button.sp-opt', { 'aria-label': w }, () => choose(k), h('span.sp-key', String(k + 1)), h('span.sp-word', w)));
+      wrap.replaceChildren(h('div.ch-prompt', `WHICH IS SPELLED RIGHT? · ${chal.p + 1}/${s.items.length}`), h('div.sp-opts', btns));
+      pulseClass(wrap, 'q-in');
+    };
+    const choose = k => {
+      if (locked || chal.done) return;
+      locked = true;
+      const it = s.items[chal.p];
+      const right = k === it.ans;
+      btns[it.ans].classList.add('is-correct');
+      if (!right) btns[k].classList.add('is-wrong');
+      btns.forEach((b, i) => { if (i !== it.ans && i !== k) b.classList.add('is-dim'); });
+      part(right);
+      setTimeout(() => { locked = false; if (!chal.done) show(); }, right ? 480 : 1100);
+    };
+    keyHandler = e => { const k = Number(e.key); if (k >= 1 && k <= 4) choose(k - 1); };
+    show();
+    return { el: wrap, destroy() { keyHandler = null; } };
+  }
+
+  // ---------- MAKE 24 ----------
+  function uiMake24(s) {
+    const wrap = h('div.ch.ch-m24');
+    let idx = Math.min(1, Math.floor(chal.p));
+    let tiles = [], history = [], sel = null, op = null, busy = false, uid = 0;
+    const title = h('div.ch-prompt');
+    const tileRow = h('div.m24-tiles');
+    const status = h('div.m24-status');
+    const OPS = { '+': 'Plus', '-': 'Minus', '*': 'Times', '/': 'Divided by' };
+    const opBtns = Object.keys(OPS).map(o => fastButton('button.m24-op', { dataset: { op: o }, 'aria-label': OPS[o] }, () => pickOp(o), OP_SIGN[o]));
+    const undoBtn = fastButton('button.btn.btn-ghost.btn-sm', {}, () => undo(), '↶ UNDO');
+    const resetBtn = fastButton('button.btn.btn-ghost.btn-sm', {}, () => reset(), 'RESET');
+    const skipBtn = fastButton('button.btn.btn-ghost.btn-sm', {}, () => doSkip(), 'SKIP →');
+    const fmtV = v => (v[1] === 1 ? fmtSigned(v[0]) : `${fmtSigned(v[0])}/${v[1]}`);
+    const say = (t, cls = '') => { status.textContent = t; status.className = `m24-status ${cls}`; };
+    const paint = fresh => {
+      tileRow.style.setProperty('--n', tiles.length);
+      tileRow.replaceChildren(...tiles.map((t, k) => fastButton('button.m24-tile', {
+        class: [t.id === sel ? 'is-sel' : '', t.id === fresh ? 'is-new' : ''].join(' '), 'aria-label': `Tile ${fmtV(t.v)}`, dataset: { k: String(k) },
+      }, () => pickTile(t.id), fracEl(t.v))));
+      opBtns.forEach(b => b.classList.toggle('is-on', b.dataset.op === op));
+      wrap.classList.toggle('has-sel', sel != null);
+      undoBtn.disabled = !history.length;
+      resetBtn.disabled = !history.length;
+    };
+    const show = () => {
+      tiles = s.puzzles[idx].nums.map(n => ({ id: uid++, v: [n, 1] }));
+      history = []; sel = null; op = null;
+      title.textContent = `PUZZLE ${idx + 1}/2 · ${idx ? 'HARD' : 'EASY'}`;
+      skipBtn.hidden = idx > 0;
+      wrap.classList.remove('is-solved');
+      say('NUMBER → OPERATOR → NUMBER');
+      paint();
+      pulseClass(tileRow, 'q-in');
+    };
+    const next = () => { busy = false; if (chal.done) return; idx = 1; show(); };
+    const pickTile = id => {
+      if (busy || chal.done) return;
+      if (sel == null || (op == null && sel !== id)) { sel = id; sfx('key'); vibrate(5); paint(); return; }
+      if (sel === id) { sel = null; op = null; sfx('tap'); paint(); return; }
+      merge(sel, op, id);
+    };
+    const pickOp = o => {
+      if (busy || chal.done) return;
+      if (sel == null) { say('PICK A NUMBER FIRST', 'is-warn'); pulseClass(tileRow, 'nudge', 400); return; }
+      op = op === o ? null : o;
+      sfx('tap');
+      vibrate(5);
+      paint();
+    };
+    const merge = (aId, o, bId) => {
+      const a = tiles.find(t => t.id === aId), b = tiles.find(t => t.id === bId);
+      const v = applyOp(a.v, o, b.v);
+      if (!v) { sfx('invalid'); pulseClass(tileRow, 'shake', 450); say('YOU CAN’T DIVIDE BY ZERO', 'is-warn'); op = null; paint(); return; }
+      history.push(tiles.map(t => ({ ...t })));
+      const t = { id: uid++, v };
+      tiles = tiles.flatMap(x => (x.id === aId ? [] : x.id === bId ? [t] : [x]));
+      sel = tiles.length > 1 ? t.id : null; // keep going from the result
+      op = null;
+      sfx('select');
+      vibrate(8);
+      paint(t.id);
+      if (tiles.length > 1) { say(`${fmtV(a.v)} ${OP_SIGN[o]} ${fmtV(b.v)} = ${fmtV(v)}`); return; }
+      if (v[0] === 24 && v[1] === 1) {
+        busy = true;
+        wrap.classList.add('is-solved');
+        say('24 — SOLVED!', 'is-good');
+        part(true);
+        if (!chal.done) setTimeout(next, 1000);
+      } else {
+        sfx('invalid');
+        pulseClass(tileRow, 'shake', 450);
+        say(`THAT MAKES ${fmtV(v)} — UNDO OR RESET`, 'is-warn');
+      }
+    };
+    const undo = () => { if (busy || !history.length) return; tiles = history.pop(); sel = null; op = null; sfx('tap'); say('UNDONE'); paint(); };
+    const reset = () => { if (busy || !history.length) return; tiles = history[0]; history = []; sel = null; op = null; sfx('tap'); say('BACK TO THE START'); paint(); };
+    const doSkip = () => {
+      if (busy || chal.done || idx > 0) return;
+      busy = true;
+      say(`ONE WAY: ${s.puzzles[0].sol}`, 'is-warn');
+      part(false, true);
+      setTimeout(next, 1800);
+    };
+    keyHandler = e => {
+      if (OPS[e.key] || e.key === 'x') pickOp(e.key === 'x' ? '*' : e.key);
+      else if (/^[1-4]$/.test(e.key) && tiles[Number(e.key) - 1]) pickTile(tiles[Number(e.key) - 1].id);
+      else if (e.key === 'Backspace') undo();
+      else if (e.key === 'Escape') reset();
+    };
+    show();
+    wrap.append(title, h('div.m24-target', h('small', 'MAKE'), h('b', '24')), tileRow, h('div.m24-ops', opBtns), status, h('div.ch-actions.m24-actions', undoBtn, resetBtn, skipBtn));
+    return { el: wrap, destroy() { keyHandler = null; } };
+  }
+
+  // ---------- COMPASS ----------
+  function uiCompass(s) {
+    const wrap = h('div.ch.ch-compass');
+    const timers = [];
+    const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+    let r = chal.p;
+    let mode = 'idle';
+    let rot = 0;
+    const needle = h('div.cp-needle', { html: NEEDLE_SVG });
+    const rose = h('div.cp-rose', { html: ROSE_SVG }, needle);
+    const card = h('div.cp-card');
+    const dots = h('div.cp-dots');
+    const title = h('div.ch-prompt');
+    const btns = COMPASS_DIRS.map((d, i) => fastButton(`button.cp-dir.cp-${d.toLowerCase()}`, { disabled: true, 'aria-label': DIR_NAME[d] }, () => answer(i), d));
+    const point = dir => { rot += ((((dir * 90 - rot) % 360) + 540) % 360) - 180; needle.style.transform = `rotate(${rot}deg)`; };
+    const setDirs = on => btns.forEach(b => { b.disabled = !on; b.classList.remove('is-correct', 'is-wrong'); });
+    const round = () => {
+      if (chal.done || r >= s.rounds.length) return;
+      const R = s.rounds[r];
+      mode = 'start';
+      title.textContent = `ROUND ${r + 1}/${s.rounds.length} · ${R.turns.length} TURNS`;
+      setDirs(false);
+      wrap.classList.remove('is-asking');
+      needle.classList.remove('is-hidden');
+      point(R.start);
+      card.className = 'cp-card is-start';
+      card.replaceChildren(h('small', 'YOU’RE FACING'), h('b', DIR_NAME[COMPASS_DIRS[R.start]]));
+      pulseClass(card, 'tick');
+      dots.replaceChildren(...[...R.turns].map(() => h('i')));
+      sfx('select');
+      let t = COMPASS_START_MS[r];
+      [...R.turns].forEach((turn, k) => {
+        later(() => {
+          mode = 'turns';
+          needle.classList.add('is-hidden');
+          card.className = 'cp-card is-turn';
+          card.replaceChildren(h('span.cp-ico', { html: TURN_SVG[turn] }), h('b', TURN_TEXT[turn]));
+          pulseClass(card, 'tick');
+          dots.children[k] && dots.children[k].classList.add('on');
+          sfx('node', { i: k % 9 });
+        }, t);
+        t += COMPASS_STEP_MS[r];
+        later(() => { card.className = 'cp-card is-gap'; }, t);
+        t += COMPASS_GAP_MS;
+      });
+      later(() => {
+        mode = 'ask';
+        (chal.local.askAt ||= [])[r] = Math.round(serverNow() - g().playStartAt); // E2E: when each question came up
+        card.className = 'cp-card is-ask';
+        card.replaceChildren(h('b', 'WHICH WAY NOW?'));
+        wrap.classList.add('is-asking');
+        setDirs(true);
+      }, t);
+    };
+    const answer = d => {
+      if (mode !== 'ask' || chal.done) return;
+      mode = 'shown';
+      const R = s.rounds[r];
+      const right = d === R.ans;
+      setDirs(false);
+      wrap.classList.remove('is-asking');
+      btns[R.ans].classList.add('is-correct');
+      if (!right) btns[d].classList.add('is-wrong');
+      needle.classList.remove('is-hidden');
+      point(R.ans);
+      card.className = `cp-card ${right ? 'is-right' : 'is-miss'}`;
+      card.replaceChildren(h('b', right ? 'CORRECT' : `IT WAS ${DIR_NAME[COMPASS_DIRS[R.ans]]}`));
+      part(right);
+      r = chal.p;
+      if (!chal.done) later(round, COMPASS_FLASH_MS);
+    };
+    keyHandler = e => {
+      const k = { arrowup: 0, n: 0, arrowright: 1, e: 1, arrowdown: 2, s: 2, arrowleft: 3, w: 3 }[e.key.toLowerCase()];
+      if (k != null) { e.preventDefault(); answer(k); }
+    };
+    wrap.append(title, card, dots, h('div.cp-grid', btns[0], btns[3], rose, btns[1], btns[2]));
+    later(round, 350);
+    return { el: wrap, destroy() { timers.forEach(clearTimeout); keyHandler = null; } };
+  }
+
+  // ---------- SORT IT ----------
+  function uiSortIt(s) {
+    const wrap = h('div.ch.ch-sort');
+    const loc = chal.local.sort || (chal.local.sort = { ...sortSplit(chal.ok, chal.p), log: [] });
+    let i = chal.p;
+    let busy = true;
+    let card = null;
+    let timer = 0;
+    let drag = null;
+    const sideL = h('div.st-side.st-left', h('i', '←'), h('b', s.left));
+    const sideR = h('div.st-side.st-right', h('b', s.right), h('i', '→'));
+    const flashL = h('div.st-flash.st-flash-l');
+    const flashR = h('div.st-flash.st-flash-r');
+    const deck = h('div.st-deck');
+    const fill = h('i');
+    const bar = h('div.st-bar', fill);
+    const count = h('div.st-count');
+    const hint = h('div.st-hint', 'SWIPE THE CARD — OR TAP A SIDE');
+    const paintCount = () => count.replaceChildren(
+      h('span', `CARD ${Math.min(i + 1, s.cards.length)}/${s.cards.length}`),
+      h('span.st-tally', h('b.is-ok', `✓ ${loc.right}`), h('b.is-bad', `✕ ${loc.wrong}`)));
+    const deal = () => {
+      if (chal.done || i >= s.cards.length) return;
+      card = h('div.st-card.is-in', h('span', s.cards[i].t));
+      deck.replaceChildren(...(i + 1 < s.cards.length ? [h('div.st-card.is-back')] : []), card);
+      const ms = sortWindowMs(i);
+      fill.style.transition = 'none';
+      fill.style.transform = 'scaleX(1)';
+      void fill.offsetWidth;
+      fill.style.transition = `transform ${ms}ms linear`;
+      fill.style.transform = 'scaleX(0)';
+      clearTimeout(timer);
+      timer = setTimeout(() => commit(null), ms);
+      busy = false;
+      paintCount();
+    };
+    const commit = side => {
+      if (busy || chal.done || !card) return;
+      busy = true;
+      clearTimeout(timer);
+      const c = s.cards[i];
+      const ok = side === c.s;
+      if (ok) loc.right += 1; else loc.wrong += 1;
+      loc.log[i] = side;
+      const el = card;
+      card = null;
+      const dir = side == null ? 0 : side === 0 ? -1 : 1;
+      el.classList.remove('is-in', 'is-drag');
+      el.classList.add(ok ? 'is-right' : 'is-wrong', 'is-out');
+      el.style.transform = dir ? `translateX(${dir * 135}%) rotate(${dir * 20}deg)` : 'translateY(45%) scale(0.85)';
+      const fl = (side ?? c.s) === 0 ? flashL : flashR;
+      fl.classList.remove('is-ok', 'is-bad');
+      fl.classList.add(ok ? 'is-ok' : 'is-bad');
+      pulseClass(fl, 'on', 450);
+      hint.textContent = ok ? 'SWIPE THE CARD — OR TAP A SIDE' : side == null ? `TOO SLOW — ${c.s ? s.right : s.left}` : `NOPE — ${c.s ? s.right : s.left}`;
+      hint.classList.toggle('is-warn', !ok);
+      sfx(ok ? 'ocCorrect' : 'ocWrong');
+      vibrate(ok ? 10 : [20, 30, 20]);
+      i += 1;
+      step(sortOk(loc.right, loc.wrong), i, ok ? 'ok' : 'miss', i >= s.cards.length, 600);
+      paintCount();
+      if (i < s.cards.length) setTimeout(deal, 230);
+    };
+    const springBack = () => { if (card) { card.classList.remove('is-drag'); card.style.transform = ''; card.style.removeProperty('--lean'); } sideL.classList.remove('is-hot'); sideR.classList.remove('is-hot'); };
+    wrap.addEventListener('pointerdown', e => {
+      if (busy || !card || chal.done || drag) return;
+      e.preventDefault();
+      const now = performance.now();
+      drag = { id: e.pointerId, x: e.clientX, t: now, dx: 0, moved: false, lx: e.clientX, lt: now, vx: 0 };
+      try { wrap.setPointerCapture(e.pointerId); } catch { /* synthetic events */ }
+      card.classList.add('is-drag');
+    });
+    wrap.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id || !card) return;
+      const now = performance.now();
+      drag.dx = e.clientX - drag.x;
+      if (now > drag.lt) { drag.vx = (e.clientX - drag.lx) / (now - drag.lt); drag.lx = e.clientX; drag.lt = now; }
+      if (Math.abs(drag.dx) > 8) drag.moved = true;
+      card.style.transform = `translateX(${drag.dx}px) rotate(${drag.dx / 16}deg)`;
+      card.style.setProperty('--lean', Math.min(1, Math.abs(drag.dx) / 90).toFixed(2));
+      card.dataset.lean = drag.dx < 0 ? 'l' : 'r';
+      sideL.classList.toggle('is-hot', drag.dx < -30);
+      sideR.classList.toggle('is-hot', drag.dx > 30);
+    });
+    wrap.addEventListener('pointerup', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const d = drag;
+      drag = null;
+      if (!card) return;
+      const box = wrap.getBoundingClientRect();
+      if (Math.abs(d.dx) > 70 || (Math.abs(d.dx) > 24 && Math.abs(d.vx) > 0.45)) { springBack(); commit(d.dx < 0 ? 0 : 1); }
+      else if (!d.moved && performance.now() - d.t < 450) { springBack(); commit(e.clientX < box.left + box.width / 2 ? 0 : 1); }
+      else springBack();
+    });
+    wrap.addEventListener('pointercancel', () => { drag = null; springBack(); });
+    keyHandler = e => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); commit(0); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); commit(1); }
+    };
+    wrap.append(h('div.st-sides', sideL, sideR), count, h('div.st-table', flashL, deck, flashR), bar, hint);
+    paintCount();
+    setTimeout(deal, 300);
+    return { el: wrap, destroy() { clearTimeout(timer); keyHandler = null; } };
+  }
+
+  // ---------- HIGHER OR LOWER ----------
+  function uiHigherLower(s) {
+    const wrap = h('div.ch.ch-hl');
+    let k = Math.floor(chal.ok);
+    let locked = false;
+    let opts = [];
+    const streak = h('div.hl-streak');
+    const paintStreak = () => streak.replaceChildren(h('small', 'STREAK'), h('b', String(k)), h('span', `/${s.pairs.length}`));
+    const show = () => {
+      if (chal.done || k >= s.pairs.length) return;
+      const P = s.pairs[k];
+      opts = [P.a, P.b].map((x, side) => fastButton('button.hl-opt', { 'aria-label': x.name }, () => choose(side), h('span.hl-name', x.name), h('span.hl-val')));
+      wrap.replaceChildren(
+        h('div.hl-head', h('span.hl-stat', P.stat), streak),
+        h('p.hl-ask', P.ask),
+        h('div.hl-opts', opts[0], h('div.hl-vs', 'VS'), opts[1]));
+      paintStreak();
+      pulseClass(wrap, 'q-in');
+    };
+    const choose = side => {
+      if (locked || chal.done) return;
+      locked = true;
+      const P = s.pairs[k];
+      const right = side === P.ans;
+      [P.a, P.b].forEach((x, j) => { opts[j].querySelector('.hl-val').textContent = fmtStat(P.unit, x.v, x.shown); opts[j].classList.add('is-shown'); });
+      opts[P.ans].classList.add('is-correct');
+      opts[1 - P.ans].classList.add(right ? 'is-dim' : 'is-wrong');
+      sfx(right ? 'ocCorrect' : 'ocWrong');
+      vibrate(right ? 12 : [20, 30, 20]);
+      if (!right) { step(k, k + 1, 'miss', true, 1700); return; }
+      k += 1;
+      paintStreak();
+      pulseClass(streak, 'tick');
+      step(k, k, 'ok', k >= s.pairs.length, 1200);
+      if (k < s.pairs.length) setTimeout(() => { locked = false; show(); }, 1250);
+    };
+    keyHandler = e => { if (e.key === '1' || e.key === 'ArrowUp') choose(0); else if (e.key === '2' || e.key === 'ArrowDown') choose(1); };
+    show();
+    return { el: wrap, destroy() { keyHandler = null; } };
+  }
+
+  // ---------- reveals for the newest six ----------
+  const solvedBoth = (game, uids) => { const res = (game.results && game.results[game.ci]) || {}; return uids.filter(u => res[u] && res[u].ok >= 2).length; };
+  function revealLink(spec, game, boards, uids) {
+    const both = solvedBoth(game, uids);
+    return h('section.rv.rv-ml',
+      h('div.rv-kicker', 'THE MISSING LINKS', h('span.rv-ask', 'Each word joins the answer, before or after.')),
+      spec.puzzles.map((p, k) => h('div.rv-ml-row', { style: { animationDelay: `${250 + k * 350}ms` } },
+        h('span.rv-ml-words', p.words.join(' · ')), h('i', '→'), h('b', normWord(p.answer)))),
+      h('div.rv-us-count', h('b', `${both}/${uids.length}`), ' LINKED BOTH'));
+  }
+  function revealSpell(spec) {
+    return h('section.rv.rv-sp',
+      h('div.rv-kicker', 'THE RIGHT SPELLINGS', h('span.rv-ask', 'Next to the usual mistake, crossed out.')),
+      h('ol.rv-sp-list', spec.items.map((it, k) => h('li', { style: { animationDelay: `${200 + k * 150}ms` } },
+        h('b', it.word), h('s', it.common)))));
+  }
+  function revealM24(spec, game, boards, uids) {
+    const both = solvedBoth(game, uids);
+    return h('section.rv.rv-m24',
+      h('div.rv-kicker', 'ONE WAY TO MAKE 24', h('span.rv-ask', 'There’s often more than one.')),
+      spec.puzzles.map((p, k) => h('div.rv-m24-row', { style: { animationDelay: `${250 + k * 350}ms` } },
+        h('span.rv-m24-tiles', [...p.nums].sort((a, b) => a - b).map(n => h('i', String(n)))),
+        h('b.rv-m24-sol', `${p.sol} = 24`),
+        h('small', k ? 'HARD' : 'EASY'))),
+      h('div.rv-us-count', h('b', `${both}/${uids.length}`), ' SOLVED BOTH'));
+  }
+  function revealCompass(spec) {
+    const TURN_CHIP = { L: 'L', R: 'R', A: '180°' };
+    const rows = spec.rounds.map((R, k) => {
+      const needle = h('i.rv-cp-needle');
+      const turns = h('div.rv-cp-turns', [...R.turns].map(t => h('span', TURN_CHIP[t])));
+      const out = h('b.rv-cp-out', COMPASS_DIRS[R.ans]);
+      let rot = R.start * 90;
+      needle.style.transform = `rotate(${rot}deg)`;
+      [...R.turns].forEach((t, j) => revealTimers.push(setTimeout(() => {
+        rot += COMPASS_TURN[t] === 3 ? -90 : COMPASS_TURN[t] * 90;
+        needle.style.transform = `rotate(${rot}deg)`;
+        turns.children[j].classList.add('on');
+        if (j === R.turns.length - 1) out.classList.add('on');
+      }, 700 + k * 90 + j * 420)));
+      return h('div.rv-cp-row', { style: { animationDelay: `${120 + k * 90}ms` } },
+        h('span.rv-cp-start', COMPASS_DIRS[R.start]), h('div.rv-cp-rose', needle), turns, out);
+    });
+    return h('section.rv.rv-cp', h('div.rv-kicker', 'THE TURNS, PLAYED OUT', h('span.rv-ask', 'Where you started, every turn, where you ended.')), h('div.rv-cp-list', rows));
+  }
+  function revealSort(spec, game) {
+    const mine = chal && chal.key === ckey(game) && chal.local.sort ? chal.local.sort.log : null;
+    const col = side => h('div.rv-st-col',
+      h('div.rv-st-label', side ? spec.right : spec.left),
+      spec.cards.map((c, i) => ({ c, i })).filter(x => x.c.s === side).map(({ c, i }) => h('span.rv-st-chip', {
+        class: mine && i in mine && mine[i] !== side ? 'is-miss' : null,
+        style: { animationDelay: `${200 + i * 60}ms` },
+      }, c.t)));
+    return h('section.rv.rv-st',
+      h('div.rv-kicker', 'WHERE THEY BELONG', h('span.rv-ask', 'All twelve cards, on the right side.')),
+      h('div.rv-st-cols', col(0), col(1)),
+      mine && mine.some((v, i) => v !== spec.cards[i].s) ? h('div.rv-st-note', 'RED = YOU SORTED IT THE OTHER WAY') : null);
+  }
+  function revealHL(spec, game, boards, uids) {
+    const res = (game.results && game.results[game.ci]) || {};
+    const runs = uids.map(u => ({ u, s: Math.floor((res[u] && res[u].ok) || 0), p: (boards[u] && boards[u].p) || 0 }));
+    const best = Math.max(0, ...runs.map(x => x.s));
+    const leaders = runs.filter(x => best > 0 && x.s === best).map(x => player(x.u).name);
+    // the pair that ended the most runs (a run that ended on a miss has p = streak + 1)
+    const ends = {};
+    for (const x of runs) if (x.p > x.s) ends[x.s] = (ends[x.s] || 0) + 1;
+    const worst = Object.entries(ends).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
+    const pair = P => h('div.rv-hl-pair',
+      h('div.rv-hl-ask', P.ask),
+      [P.a, P.b].map((x, i) => h('div.rv-hl-item', { class: i === P.ans ? 'is-win' : null }, h('span', x.name), h('b', fmtStat(P.unit, x.v, x.shown)))));
+    return h('section.rv.rv-hl',
+      h('div.rv-kicker', best ? `LONGEST STREAK · ${best}` : 'NO STREAKS THIS TIME', leaders.length ? h('span.rv-ask', leaders.join(' & ')) : null),
+      worst ? [h('div.rv-hl-sub', `THE ONE THAT TRIPPED UP ${worst[1]} ${worst[1] === 1 ? 'PLAYER' : 'PLAYERS'}`), pair(spec.pairs[Number(worst[0])])]
+        : best >= spec.pairs.length ? h('div.rv-hl-sub', 'A PERFECT 10 — NOBODY SLIPPED') : null);
+  }
+
   // ---------- overlays ----------
   function buildOverlay(game) {
     cancelAnimationFrame(introRaf);
+    revealTimers.forEach(clearTimeout);
+    revealTimers = [];
     clear(els.overlay);
     els.overlay.className = `oc-overlay ov-${game.phase}`;
     if (game.phase === 'ready') buildReady(game);
@@ -944,6 +1534,10 @@ export function createView() {
     if (type === 'lexicon') return b.w ? `BEST: ${b.w.toUpperCase()}` : 'NO WORD';
     if (type === 'timeline') return `${fmtOk(r.ok)}/4 IN PLACE`;
     if (type === 'rewire') return `${Math.floor(r.ok)}/2 CIRCUITS`;
+    if (type === 'missinglink') return `${fmtOk(r.ok)}/2 LINKED`;
+    if (type === 'make24') return `${fmtOk(r.ok)}/2 SOLVED`;
+    if (type === 'higherlower') return `STREAK ${Math.floor(r.ok)}`;
+    if (type === 'sortit') return b.p ? `${sortSplit(r.ok, b.p).right}/${SORT_CARDS} SORTED RIGHT` : 'NO SORTS';
     if (type === 'closest') {
       const spec = chal && chal.spec && chal.spec.type === 'closest' ? chal.spec : buildSpec(game);
       return b.g == null || !spec ? 'NO GUESS' : `${fmtVal(b.g)} · ${Math.round((100 * Math.abs(b.g - spec.answer)) / spec.answer)}% OFF`;
@@ -954,11 +1548,13 @@ export function createView() {
   // The reveal above the leaderboard: best words, the right order, or the number line.
   function reveal(game) {
     const type = game.order[game.ci];
-    if (!['lexicon', 'timeline', 'closest', 'unscramble'].includes(type)) return null;
+    const NEW_REVEAL = { missinglink: revealLink, spellcheck: revealSpell, make24: revealM24, compass: revealCompass, sortit: revealSort, higherlower: revealHL };
+    if (!NEW_REVEAL[type] && !['lexicon', 'timeline', 'closest', 'unscramble'].includes(type)) return null;
     const spec = buildSpec(game);
     if (!spec) return null;
     const boards = boardsNow(game);
     const uids = Object.keys(game.participants || {});
+    if (NEW_REVEAL[type]) return NEW_REVEAL[type](spec, game, boards, uids);
     if (type === 'unscramble') {
       const res = (game.results && game.results[game.ci]) || {};
       const solved = uids.filter(u => res[u] && res[u].ok >= 1).length;

@@ -83,7 +83,7 @@ js/games/cipher/words.js     word-list loading (lazy, per length), validation, p
 js/games/cipher/view.js      player UI: board, keyboard, opponents, intro/reveal/standings/final overlays
 js/games/cipher/index.js     module contract (see registry.js)
 js/games/signal/{logic,director,view,index}.js     LAST SIGNAL (logic.js: damage, targets, resolution, rankings, decay)
-js/games/overclock/challenges.js                   seeded generators for the 14 challenge types + INFO (names/rules)
+js/games/overclock/challenges.js                   seeded generators for the 20 challenge types + INFO (names/rules) + CATEGORY (words/numbers/memory/visual/knowledge/reflex)
 js/games/overclock/banks.js                        lazy loader for data/oc/*.json (only when the match order needs it)
 js/games/overclock/{logic,director,view,index}.js  OVERCLOCK (logic.js: order, scoring, standings)
 js/games/bluff/{logic,director,bank,view,index}.js  NEURAL BLUFF (logic.js: tooClose, buildOptions, scoreRound, revealScript)
@@ -106,6 +106,11 @@ data/trivia/fallback.json    333 hand-written medium/hard questions: [category, 
 data/oc/lexicon.json         320 LEXICON sets: [9 letters, max length, "longest words", "every valid 3+ word"] (generated)
 data/oc/timeline.json        190 TIMELINE sets: [title, ask, "low → high", [[item, shown value] ×4 in correct order]] (generated)
 data/oc/closest.json         175 CLOSEST CALL questions: [category, question naming the unit, answer, unit] (hand-written)
+data/oc/missinglink.json     283 MISSING LINK puzzles: [word, word, word, ANSWER, "OTHER|ACCEPTED" or ""] (hand-written)
+data/oc/spellcheck.json      434 SPELLCHECK words: [correct (US), most common misspelling, wrong, wrong] (hand-written, dictionary-checked)
+data/oc/make24.json          MAKE 24 tile sets { easy: [[tiles, solution]…] (209), hard: […] (47) } (generated, every set solvable)
+data/oc/sortit.json          48 SORT IT pairs: [left label, right label, [left items], [right items]] (hand-written; 6 are computed sets)
+data/oc/higherlower.json     18 HIGHER OR LOWER stats, 597 items: [stat, question, unit, 'max'|'min', [[item, value, "shown"?]…]]
 data/bluff/questions.json    356 strange-but-true questions: [category, "text with ____", answer, [variants], [3 house lies]]
 data/pulse/manifest.json     PULSE songs: id, title, artist, bpm, duration, note counts, trim info (generated)
 data/pulse/pulseN.json       beat map: beats[], energy[] (per beat), downbeat, notes{easy,normal,hard}: [[time, lane], …] (generated)
@@ -114,6 +119,7 @@ data/words/answers-N.json    answer pools (N = 5,6,7) — fixed-width words conc
 data/words/valid-N.json      valid-guess dictionaries
 scripts/build-words.mjs      regenerates data/words from open sources (see header for URLs/licenses)
 scripts/build-lexicon.mjs    regenerates data/oc/lexicon.json from ENABLE + Norvig counts (same sources as build-words)
+scripts/build-make24.mjs     every 1–9 tile set solved exactly → data/oc/make24.json (easy: many whole-number routes; hard: needs ÷ or ≤ 2 routes)
 scripts/build-timeline.mjs   verified fact pools → data/oc/timeline.json (fairness gaps: years ≥ 5 apart, quantities ≥ 1.3×)
 scripts/serve.mjs            zero-dep local static server (port 5173)
 scripts/build-beatmaps.py    PULSE song pipeline: trim/encode + beat grid + notes + manifest (see "PULSE" below)
@@ -167,8 +173,11 @@ phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{
 Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, level})`; no challenge content is stored.
 Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge. `ok` may be fractional
 (Quick Count: off by one = 0.5; Signal Lock: per-round reaction credit 0.1–1, scored as round(160·ok/parts) with no
-separate speed bonus). **Order (`logic.js#buildOrder`, seeded): no type repeats** — Quick/Standard (≤ 14) are all different;
-Marathon (24) uses each type at most twice, never back to back, repeats ≥ 8 apart.
+separate speed bonus). **Order (`logic.js#buildOrder`, seeded): no type repeats** — up to 20 challenges are all different
+(Standard = 12 of the 20); Marathon (24) has every type once plus 4 repeats, never back to back, repeats ≥ 8 apart.
+**Category spread:** every type has a `CATEGORY` (words, numbers, memory, visual, knowledge, reflex); the order never puts two
+of the same category next to each other unless impossible (`categoryClashes(order)` is 0 for every generated match — tested
+over thousands of seeds). Short matches draw types on the fly so they can avoid clashes too.
 Newer types: **lexicon** (6 parts; ok = 6 − (max − best length), only the longest word counts, speed bonus only at max),
 **timeline** (4 parts, one per item in the right place), **closest** (1 part, credit = smooth curve: ≤ 5 % off = 1, ≥ 60 % = 0;
 no speed bonus — the closest player(s) get +60 instead, decided in `computeResults` from `ok`), **rewire** (2 parts; ok = solved +
@@ -176,8 +185,19 @@ no speed bonus — the closest player(s) get +60 instead, decided in `computeRes
 `bankIndex(seed, type, occ)` from a shuffled per-match deck so a repeat in Marathon never deals the same entry. Standings
 last 10 s for lexicon/timeline/closest (`standingsMs`) to fit the reveal panel. Unscramble also gets a reveal (the word,
 the scrambled letters, how many cracked it) within the normal 6 s.
+Update 2 types (all reveal for 10 s): **missinglink** (2 parts, 50 each; typed answer via an invisible input over letter boxes,
+`linkAccepts`: case/spaces ignored, plurals + listed variants accepted; the exact answer locks in as typed; SKIP on puzzle 1;
+`.oc.kb-open` + `--kb` from visualViewport keep it above the iOS keyboard), **spellcheck** (5 parts, one tap each),
+**make24** (2 parts: an easy then a hard set from data/oc/make24.json; tiles merge with exact fractions `[n,d]` via `applyOp`,
+UNDO/RESET, SKIP on puzzle 1; the reveal shows the stored solution), **compass** (5 rounds of 3→7 turns, generated; instructions
+at 760→550 ms each so 25 turns fit in 30 s — `COMPASS_SCRIPT_MS` ≈ 22.5 s is the scripted time, and the speed bonus only counts
+time past it; the reveal animates every round's turns on mini compasses), **sortit** (12 cards, 5–7 per side, card window
+2.6 s → 1.2 s; swipe (pointer events, velocity or 70 px) or tap a screen half or ←/→; ok = right − ½·wrong ≥ 0, scored
+round(100·min(1, ok/10)), speed bonus only for 12/12 — `ok` reaches `parts` only then), **higherlower** (10 pairs, ok = streak,
+a miss ends the run with p = streak + 1; pairs only within one stat, ≥ 1.2× apart or ≥ 10 years; first 3 pairs ≥ 2× / 40 years,
+from pair 7 on the closer ones). No new DB fields: everything fits `p/ok/n ≤ 12`.
 Types: unscramble, memory, oddone, math, pattern, trivia, stroop (Color Clash), reflex (Signal Lock), count (Quick Count),
-lexicon, timeline, closest (Closest Call), rewire, truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
+lexicon, timeline, closest (Closest Call), rewire, missinglink, spellcheck, make24, compass, sortit, higherlower, truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
 Signal Lock times taps from the pointerdown event against the frame the flash painted (performance.now clock, local only).
 
 BLUFF `game`: `{ id:'bluff', matchId, settings{mode}, rounds, participants, round, rk, phase: intro|write|vote|reveal|standings|final,
@@ -309,7 +329,7 @@ Totals are derived from `results` (lowest strokes wins).
 6. Tests: pure logic + a match simulation (see `tests/signal.test.mjs`) and an E2E like `tests/integration/e2e-stage2.mjs`.
 
 ## Testing
-- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (111 tests: rules of all six games incl. Overclock's 14 types (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
+- **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (125 tests: rules of all six games incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
   Each slot is a separate anonymous user + saved session; the slot sticks to the tab across refreshes.
@@ -342,6 +362,9 @@ Totals are derived from `results` (lowest strokes wins).
     sends, grouping, typing indicators, unread + sound, profanity toggle, throttle hint, rules-rejected send → retry,
     offline send, fake-keyboard layout, kick (access lost), late joiner + refresh history, system lines, lock/unlock in
     all six games (badge counts, no sound/toast), golf frame pacing while the room chats, host clear (40 checks).
+  - Overclock update 2: `node e2e-oc-2.mjs "<browser path>" ./shots` (N=8) — Missing Link typed (wrong guess shakes, plural, keyboard
+    layout), Spellcheck, Make 24 (merges, UNDO, refresh between puzzles), Compass, Sort It with real touch swipes + side taps (host
+    killed mid-challenge), Higher or Lower; identical puzzles everywhere, every player's points vs the scoring rule, all screens at both sizes.
   - Overclock new challenges: `node e2e-oc-new.mjs "<browser path>" ./shots` (N=8) — Lexicon/Timeline/Closest Call/Rewire played
     through the UI, identical puzzles on every phone, scoring vs the host's results, host killed mid-Timeline, refresh
     mid-Rewire, every new screen + reveal at 390×844 and 412×915.
@@ -512,6 +535,19 @@ under ~40 % and "random" < 2 %. Then `node --test tests/golf.test.mjs`, and play
   `tests/overclock-new.test.mjs` checks the shape and count.
 - **Overclock TIMELINE:** add items to a pool (or a new pool) in `scripts/build-timeline.mjs` — `[label, sortValue, "shown value"]`
   — then `node scripts/build-timeline.mjs`. Avoid disputed dates/measurements; the fairness gaps reject near-ties.
+- **Overclock MISSING LINK:** append `["WORD", "WORD", "WORD", "ANSWER", ""]` to `data/oc/missinglink.json` (put other accepted
+  spellings in the last field as `"GREY|GRAY"`; plurals are automatic). The answer must join all three clues (before or after) and
+  NO other word may fit all three — try "fire / stone / paper": WALL works, but so does WORK, so it was changed. Answers are unique.
+- **Overclock SPELLCHECK:** append `["correct", "common misspelling", "wrong", "wrong"]` (lowercase, American spelling) to
+  `data/oc/spellcheck.json`. Skip words with two accepted spellings, and make sure no "wrong" option is a real word or variant
+  (e.g. *calender*, *florescent* and *publically* are in dictionaries). Check new rows against ENABLE + Hunspell en_US/en_GB.
+- **Overclock MAKE 24:** `node scripts/build-make24.mjs` (tweak the easy/hard rules at its top).
+- **Overclock SORT IT:** add a pair `["LEFT", "RIGHT", [left items], [right items]]` (≥ 25 items, ≥ 7 per side) or items to a pair in
+  `data/oc/sortit.json`. Only items nobody argues about (no tomato-is-a-fruit; watch ownership changes like Fox → Disney). The
+  number/word pairs (PRIME, MULTIPLE OF 7, roman MORE THAN 50, MORE THAN ½, PALINDROME, LETTERS IN A–Z ORDER) are recomputed by the test.
+- **Overclock HIGHER OR LOWER:** add `[item, value]` (or `[item, value, "shown"]` for things like "c. 2560 BC") to a stat in
+  `data/oc/higherlower.json`, or a new stat `[STAT, "QUESTION?", unit ('year' for years), 'max'|'min', items]`. Rounded, stable
+  values only (no fast-changing records); the 1.2× / 10-year pairing rule absorbs small source differences.
 - **Overclock LEXICON:** `node scripts/build-lexicon.mjs <dir with enable1.txt + count_1w.txt>` (download URLs in its header).
 - **Cipher Breach / Unscramble words:** edit the blocklist or sizes in `scripts/build-words.mjs` and rebuild (below).
 
