@@ -34,6 +34,10 @@ export function chatLocked(game, uid, live) {
       return game.phase === 'write' || game.phase === 'vote';
     case 'pulse':
       return game.phase === 'song' || game.phase === 'echo';
+    case 'agent':
+      // DOUBLE AGENT: no chat while files are read or clues are given; SAME ROOM talks out loud (no chat until the scores)
+      if (game.phase === 'briefing' || game.phase === 'clues') return true;
+      return game.settings && game.settings.mode === 'room' && ['debate', 'vote', 'unmask', 'last'].includes(game.phase);
     case 'golf': {
       if (game.phase !== 'play') return false;
       const n = mine('nodes');

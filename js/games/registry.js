@@ -7,6 +7,7 @@
 //   DEFAULT_SETTINGS, OPTIONS, estimateMinutes(settings)  (lobby options sheet)
 //   MUSIC                    -> music track id (js/audio/music.js)
 //   finalRanks(game)         -> [{ uid, rank }] for the game-night scoreboard
+//   MIN_PLAYERS (optional)   -> more than the app-wide minimum (DOUBLE AGENT needs 4)
 // A director step may include `$room: { 'path/under/room': value }` for room-level side writes.
 import * as cipher from './cipher/index.js';
 import * as signal from './signal/index.js';
@@ -14,8 +15,9 @@ import * as overclock from './overclock/index.js';
 import * as bluff from './bluff/index.js';
 import * as pulse from './pulse/index.js';
 import * as golf from './golf/index.js';
+import * as agent from './agent/index.js';
 
-export const GAME_MODULES = { cipher, signal, overclock, bluff, pulse, golf };
+export const GAME_MODULES = { cipher, signal, overclock, bluff, pulse, golf, agent };
 
 export function livePathsFor(game) {
   const mod = game && GAME_MODULES[game.id];
@@ -28,4 +30,4 @@ export function liveKeyFor(game) {
 }
 
 // Every player-writable node any game uses; wiped when a match starts or ends.
-export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf'];
+export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess'];

@@ -48,6 +48,7 @@ export async function createRoom(profile) {
       await set(metaRef, { hostId: state.uid, status: 'lobby', createdAt: serverTimestamp(), activeAt: serverTimestamp(), hostBeat: serverTimestamp() });
     } catch { continue; } // lost a race for this code
     await remove(dbRef(`chats/${code}`)).catch(() => {}); // a fresh room starts with a fresh chat
+    await remove(dbRef(`spy/${code}`)).catch(() => {}); // …and no old DOUBLE AGENT secrets
     await writePlayer(code, profile, {});
     enterRoom(code);
     return code;
@@ -193,6 +194,7 @@ export async function leaveRoom() {
       } else {
         await remove(dbRef(R(code))); // last one out turns off the lights
         await remove(dbRef(`chats/${code}`)).catch(() => {});
+        await remove(dbRef(`spy/${code}`)).catch(() => {});
         exitRoom();
         return;
       }
@@ -215,7 +217,7 @@ export async function updateMyProfile(profile) {
 
 // Best effort: the rules allow it for the host, or anyone once the room is idle (no game for ROOM_IDLE_MS).
 async function deleteRoom(code) {
-  try { await remove(dbRef(R(code))); await remove(dbRef(`chats/${code}`)); } catch { /* not allowed / offline: the session is dropped anyway */ }
+  try { await remove(dbRef(R(code))); await remove(dbRef(`chats/${code}`)); await remove(dbRef(`spy/${code}`)); } catch { /* not allowed / offline: the session is dropped anyway */ }
 }
 
 // An hour without a game (host.js tick): close it for everyone, or at least leave it ourselves.
@@ -234,7 +236,7 @@ export async function cleanupStaleRooms() {
   const cutoff = serverNow() - ROOM_TTL_MS - 60_000;
   const snap = await get(query(dbRef('rooms'), orderByChild('meta/activeAt'), endAt(cutoff), limitToFirst(20)));
   const jobs = [];
-  snap.forEach(child => { jobs.push(remove(child.ref).then(() => remove(dbRef(`chats/${child.key}`))).catch(() => {})); });
+  snap.forEach(child => { jobs.push(remove(child.ref).then(() => remove(dbRef(`chats/${child.key}`))).then(() => remove(dbRef(`spy/${child.key}`))).catch(() => {})); });
   await Promise.all(jobs);
 }
 

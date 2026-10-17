@@ -298,6 +298,7 @@
 .game-card[data-theme='bluff'] { --accent: #e9e4d4; --accent-soft: rgba(215, 38, 46, 0.12); --accent-glow: rgba(215, 38, 46, 0.5); }
 .game-card[data-theme='overclock'] { --accent: #ffb627; --accent-soft: rgba(255, 43, 214, 0.14); --accent-glow: rgba(255, 182, 39, 0.5); }
 .game-card[data-theme='golf'] { --accent: #2ff5d2; --accent-soft: rgba(255, 79, 163, 0.12); --accent-glow: rgba(47, 245, 210, 0.5); }
+.game-card[data-theme='agent'] { --accent: #eceff4; --accent-soft: rgba(236, 239, 244, 0.08); --accent-glow: rgba(236, 239, 244, 0.35); }
 .game-card[data-theme='pulse'] { --accent: #a374ff; --accent-soft: rgba(54, 230, 255, 0.12); --accent-glow: rgba(163, 116, 255, 0.55); }
 .game-card[data-theme='bluff'] .gc-glyph { border-color: #d7262e; color: #e9e4d4; background: #d7262e22; }
 

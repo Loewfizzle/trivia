@@ -119,6 +119,37 @@ const RULES = {
   },
 };
 
+RULES.agent = {
+  goal: 'Everyone gets the same secret word — except the Double Agent, who only knows the category. Find the leak. 4–8 players.',
+  sections: [
+    ['1 · YOUR CLASSIFIED FILE', [
+      'Press and hold your file to read it; let go and it hides again.',
+      'You see the secret word — or YOU ARE THE DOUBLE AGENT and only the category.',
+      'Tap READY when you have it.',
+    ]],
+    ['2 · CLUES', [
+      'One at a time, everyone types ONE word linked to the secret word.',
+      'Too obvious and the agent learns the word. Too vague and you look like the agent.',
+      'You can’t say the word itself (or a word containing it), or repeat a clue. Run out of time and your clue is — NO SIGNAL —.',
+    ]],
+    ['3 · DEBATE & VOTE', [
+      'REMOTE: argue it out in the debate chat. SAME ROOM: talk it out loud.',
+      'Tap a player to pin them as suspicious — everyone sees your pin.',
+      'Then vote for the agent (not yourself). Most votes is accused; a tie means the agent slips away.',
+    ]],
+    ['4 · THE UNMASKING', [
+      'The accused is revealed: INNOCENT, or DOUBLE AGENT.',
+      'A caught agent gets 20 seconds to name the secret word and steal the round.',
+    ]],
+    ['SCORING', [
+      'Agent escapes: +200. Caught, but names the word: +150.',
+      'Agent caught and misses: every innocent player +100.',
+      'Every innocent who voted for the agent: +50 more.',
+      'Each round has a new word and a new agent. Most points after the last round wins.',
+    ]],
+  ],
+};
+
 RULES.pulse = {
   goal: 'A rhythm race down a neon highway. Everyone plays the same song at the same moment — hit the notes on the beat.',
   sections: [
@@ -176,7 +207,7 @@ const LEGEND = [
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP' };
+const TAB = { cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
 
 let sheet = null;
 

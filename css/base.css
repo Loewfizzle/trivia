@@ -72,6 +72,10 @@
   --accent: #2ff5d2; --accent-2: #ff4fa3; --accent-ink: #00201a;
   --accent-soft: rgba(47, 245, 210, 0.12); --accent-glow: rgba(47, 245, 210, 0.45);
 }
+[data-theme='agent'] { /* DOUBLE AGENT: a monochrome surveillance feed — the players are the only colour */
+  --accent: #e6e9ef; --accent-2: #9aa3b5; --accent-ink: #0b0d12;
+  --accent-soft: rgba(230, 233, 239, 0.08); --accent-glow: rgba(230, 233, 239, 0.28);
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }

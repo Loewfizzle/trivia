@@ -163,6 +163,36 @@ const SOUNDS = {
     arp(['C5', 'E5', 'G5', 'C6', 'E6', 'G6'], 0.07, { dur: 0.9, gain: 0.035, type: 'triangle', rev: 0.5, dly: 0.25, lp: 5200 });
     noise({ dur: 1.4, gain: 0.02, f: 6000, to: 1200, rev: 0.5 });
   },
+  // ---- DOUBLE AGENT
+  // the classified-file reveal: a short static crackle + a soft low chord (same for every player in SAME ROOM mode)
+  daReveal: () => {
+    noise({ dur: 0.22, gain: 0.03, f: 2600, to: 900, q: 0.7, rev: 0.25 });
+    noise({ at: 0.05, dur: 0.12, gain: 0.018, f: 5200, q: 2, rev: 0.1 });
+    tone({ f: hz('A3'), at: 0.12, dur: 0.9, gain: 0.028, attack: 0.05, lp: 1400, rev: 0.45 });
+    tone({ f: hz('E4'), at: 0.16, dur: 0.8, gain: 0.018, attack: 0.05, lp: 1800, rev: 0.45 });
+  },
+  // the agent's reveal in REMOTE mode: a dark detuned impact with a heavier crackle
+  daAgent: () => {
+    noise({ dur: 0.5, gain: 0.05, f: 1800, to: 120, q: 0.6, rev: 0.4 });
+    tone({ f: 82, to: 41, dur: 1.2, gain: 0.13, lp: 380, rev: 0.35 });
+    tone({ f: hz('C#4'), to: hz('C4'), at: 0.08, dur: 1.1, gain: 0.03, type: 'sawtooth', lp: 900, rev: 0.5 });
+    tone({ f: hz('G3'), at: 0.08, dur: 1.1, gain: 0.03, type: 'sawtooth', lp: 700, rev: 0.5 });
+  },
+  daDecode: ({ i = 0 } = {}) => tone({ f: 1800 + (i % 5) * 160, dur: 0.035, gain: 0.008, type: 'square', lp: 4200, rev: 0.04 }),
+  daPin: () => { tone({ f: 1500, to: 900, dur: 0.05, gain: 0.02, type: 'triangle', lp: 3000, rev: 0.08 }); noise({ dur: 0.04, gain: 0.008, f: 3000, q: 3, rev: 0 }); },
+  daVote: () => { tone({ f: 180, to: 90, dur: 0.16, gain: 0.07, lp: 600, rev: 0.12 }); noise({ dur: 0.08, gain: 0.012, type: 'lowpass', f: 1200, rev: 0.05 }); },
+  daUnmask: () => {
+    noise({ dur: 0.9, gain: 0.04, f: 600, to: 4800, q: 1.2, rev: 0.4 });
+    tone({ f: 55, to: 46, at: 0.85, dur: 1.6, gain: 0.14, lp: 300, rev: 0.4 });
+    tone({ f: hz('D#4'), at: 0.85, dur: 1.4, gain: 0.028, type: 'sawtooth', lp: 1100, rev: 0.55 });
+    tone({ f: hz('A4'), at: 0.85, dur: 1.4, gain: 0.02, type: 'sawtooth', lp: 1300, rev: 0.55 });
+  },
+  daInnocent: () => { tone({ f: hz('E4'), dur: 0.5, gain: 0.03, lp: 1600, rev: 0.4 }); tone({ f: hz('B3'), at: 0.08, dur: 0.6, gain: 0.025, lp: 1200, rev: 0.45 }); },
+  daStolen: () => {
+    noise({ dur: 0.35, gain: 0.04, f: 900, to: 5200, q: 1.5, rev: 0.3 });
+    arp(['A4', 'C5', 'D#5', 'A5'], 0.06, { dur: 0.5, gain: 0.035, type: 'sawtooth', lp: 2400, rev: 0.45, dly: 0.2 });
+    tone({ f: 98, to: 49, at: 0.25, dur: 1.2, gain: 0.1, lp: 420, rev: 0.4 });
+  },
   victory: () => {
     arp(['C4', 'G4', 'C5', 'E5', 'G5', 'B5', 'D6'], 0.09, { dur: 1.1, gain: 0.035, type: 'triangle', rev: 0.5, dly: 0.25, lp: 4200 });
     ['C4', 'E4', 'G4', 'B4'].forEach(n => tone({ f: hz(n), at: 0.6, dur: 2.2, gain: 0.012, attack: 0.4, rev: 0.6, lp: 1600 }));
