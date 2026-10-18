@@ -6,6 +6,7 @@ import { route, send, ApiError } from './_lib/http.js';
 import { topRows, TOP_N } from './_lib/lb.js';
 import { boardDef } from '../js/core/boards.js';
 import { weekEndsAt } from '../js/core/week.js';
+import { activity } from './_lib/activity.js';
 
 export async function boardQuery(q, now = Date.now()) {
   const b = String(q.b || '');
@@ -19,5 +20,7 @@ export async function boardQuery(q, now = Date.now()) {
 
 export default route(['GET'], async (req, res) => {
   const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams);
+  // ?active=1: which games are played most (THE BOARD opens on the busiest one)
+  if (q.active) { send(res, 200, await activity(), { 'Cache-Control': 'public, max-age=60, s-maxage=120, stale-while-revalidate=600' }); return; }
   send(res, 200, await boardQuery(q), { 'Cache-Control': 'public, max-age=10, s-maxage=20, stale-while-revalidate=60' });
 });

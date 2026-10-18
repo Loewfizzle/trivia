@@ -9,6 +9,7 @@ import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
 import { ensureProfile, pidOf } from './_lib/profiles.js';
 import { applyMatch } from './_lib/stats.js';
+import { bumpPlayed } from './_lib/activity.js';
 import { extractMatch, unreportable } from '../js/core/match-report.js';
 
 const NIGHT_POINTS = { 1: 3, 2: 2, 3: 1 };   // host.js — what a placing is worth on the game-night board
@@ -76,6 +77,7 @@ export async function processReport(uid, body, now = Date.now()) {
     pids[u] = pid;
   }));
   const outcomes = await applyMatch(key, ex, pids, now);
+  await bumpPlayed(ex.gid, now).catch(e => console.warn('activity', e && e.message));
   await ref(`results/${key}`).set({ st: 'done', at: now, g: ex.gid, mode: ex.mode || null, n: ex.n, src, by: uid, rej: ex.rejected.length || null, o: outcomes });
   if (ex.rejected.length) console.warn('rejected records', key, JSON.stringify(ex.rejected));
   return { ok: true, status: 'counted', outcome: outcomes[pids[uid]] || null, rejected: ex.rejected.filter(r => r.uid === uid).map(r => r.board) };

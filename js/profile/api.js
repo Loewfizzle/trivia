@@ -52,3 +52,9 @@ export async function board(b, p = 'week', { start = 0, n = 100, fresh = false }
 }
 
 export const clearBoardCache = () => cache.clear();
+
+/** Games by activity: { week, all, order } (most played this week first). Null when /api is unreachable. */
+let activeP = null;
+export function activeGames() {
+  return (activeP ||= fetchJson('/api/board?active=1', { timeout: 5000 }).catch(() => { activeP = null; return null; }));
+}

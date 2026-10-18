@@ -17,7 +17,7 @@ import { boardDef, recordBoards, careerBoards, fmtValue, BOARD_GAMES, PULSE_DIFF
 import { weekEndsAt } from '../core/week.js';
 import { fmtTag } from '../core/names.js';
 import { RANKS } from '../core/ranks.js';
-import { board as fetchBoard } from '../profile/api.js';
+import { board as fetchBoard, activeGames } from '../profile/api.js';
 import { createHall } from './scene.js';
 import { boardSfx } from './audio.js';
 import { settings } from '../audio/settings.js';
@@ -30,7 +30,9 @@ export const GAME_LIGHT = {
 };
 const PAGE = 25;
 const MEDAL = ['', 'gold', 'silver', 'bronze'];
-const games = () => GAMES.filter(g => BOARD_GAMES.includes(g.id));
+// the games in board order: the most played first (from /api/board?active=1), the rest in lobby order
+let activeOrder = [];
+const games = () => { const list = GAMES.filter(g => BOARD_GAMES.includes(g.id)); const rank = id => { const i = activeOrder.indexOf(id); return i < 0 ? 999 : i; }; return list.slice().sort((a, b) => rank(a.id) - rank(b.id)); };
 const gameName = id => (GAMES.find(g => g.id === id) || { name: id.toUpperCase() }).name;
 const store = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch { /* fine */ } return null; };
 
@@ -41,7 +43,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   const pub = mode === 'public';
   const reduced = () => !!settings.reducedFx || reducedMotion();
   const S = {
-    game: initial.game || store('bd:game') || games()[0].id,
+    game: initial.game || null,   // null: the busiest game (picked once the activity loads; a tab tap is for this visit only)
     cat: initial.cat || null,
     period: initial.period || store('bd:period') || 'week',
     board: initial.board || null,
@@ -52,6 +54,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     loading: false,
     token: 0,
   };
+  const explicitGame = !!initial.game;
   if (!BOARD_GAMES.includes(S.game)) S.game = games()[0].id;
   let songs = [];
   let hall = null, ro = null, io = null, tintFlip = false, destroyed = false, cascadeSound = false;
@@ -162,7 +165,6 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   function pickGame(id) {
     if (id === S.game) return;
     S.game = id; S.cat = null; S.board = null;
-    store('bd:game', id);
     boardSfx('tab');
     renderTabs();
     relight();
@@ -341,6 +343,10 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) more(); }, { root: els.rows.parentElement, rootMargin: '200px' });
     io.observe(els.sentinel);
     paintMeBtn();
+    // open on the most played game (this week, then all time) unless a game was asked for
+    const act = await Promise.race([activeGames(), new Promise(r => setTimeout(() => r(null), 2500))]);
+    if (destroyed) return;
+    if (act && Array.isArray(act.order)) { activeOrder = act.order.filter(id => BOARD_GAMES.includes(id)); if (!explicitGame && activeOrder.length) S.game = activeOrder[0]; }
     renderTabs();
     relight();
     songs = await pulseSongs();
