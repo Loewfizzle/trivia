@@ -6,113 +6,15 @@
 // two players on the same cell both credited, the bounty, the owner-offline fallback (a target's phone is closed:
 // the host resolves within ~4 s), host killed mid-round, Call the Winner, a finish, results; frame pacing per tier.
 //   node e2e-gridlock.mjs "<browser path>" ./shots-gridlock     (env N=8, SHOTS=0, GPU=1, PERF=0, CPU=4)
-import puppeteer from 'puppeteer-core';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { createHarness, REVIEW_SIZES } from './kit/harness.mjs';
 
-const BROWSER = process.argv[2];
-const OUT = (process.argv[3] || './shots-gridlock').replace(/\/?$/, '/');
-mkdirSync(OUT, { recursive: true });
-const BASE = process.env.E2E_BASE || 'http://localhost:5173';
-const N = Number(process.env.N || 8);
-const SHOTS = process.env.SHOTS !== '0';
-const CPU = Number(process.env.CPU || 4);
-const NAMES = ['ALICE', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE', 'HAL'];
-const t0 = Date.now();
-const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const errors = [];
-const checks = [];
-const ok = (cond, what) => { checks.push({ what, ok: !!cond }); log(cond ? 'OK  ' : 'FAIL', what); if (!cond) errors.push(`check failed: ${what}`); };
-const fail = m => { throw new Error(m); };
-const VIEW = { width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true };
-const SIZES = [[390, 844], [412, 915], [1440, 900]];
-
-const browser = await puppeteer.launch({
-  executablePath: BROWSER, headless: true,
-  args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])],
-});
-const pages = [];
-const ctxs = [];
-const dead = new Set();
-const uids = [];
+const H = await createHarness({ name: 'gridlock', slot: 'g', hook: '__gridlock', sizes: REVIEW_SIZES, warnPattern: /game view|gridlock cinematic/ });
+const { N, SHOTS, CPU, OUT, VIEW, NAMES, pages, uids, dead, errors, checks, log, sleep, ok, fail, evalIn, waitFor, alive, idx, game, G, join, hostIdx, touch, line, shotAll } = H;
+const SIZES = REVIEW_SIZES;
 let code = '';
-
-async function openPlayer(i, qs = '') {
-  const ctx = ctxs[i] || (ctxs[i] = await browser.createBrowserContext());
-  const page = await ctx.newPage();
-  page.on('pageerror', e => { const m = `${NAMES[i]} pageerror: ${e.message}`; if (errors.includes(m)) return; errors.push(m); log(`${NAMES[i]} PAGEERROR`, e.message); });
-  page.on('console', m => { const t = m.text(); if (m.type() === 'warning' && /game view|gridlock cinematic/.test(t)) errors.push(`${NAMES[i]}: ${t}`); if (m.type() === 'error' && !/ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|Client is offline|net::|WebGL|GPU stall/i.test(t)) { errors.push(`${NAMES[i]}: ${t}`); log(`${NAMES[i]} console.error`, t); } });
-  await page.setViewport(VIEW);
-  await page.goto(`${BASE}/?emu&slot=g${i}${qs ? '&' + qs : ''}`);
-  pages[i] = page;
-  return page;
-}
-async function shotAll(page, name, sizes = SIZES) {
-  if (!SHOTS) return;
-  for (const [w, h] of sizes) {
-    await page.setViewport({ width: w, height: h, deviceScaleFactor: w >= 1200 ? 1 : 2, isMobile: true, hasTouch: true });
-    await sleep(700);
-    await page.screenshot({ path: `${OUT}${name}-${w}x${h}.png` });
-  }
-  await page.setViewport(VIEW);
-  await sleep(250);
-}
-const evalIn = (page, fn, arg) => page.evaluate(`(async () => { const s = window.__arcade.state; return (${fn})(s, ${JSON.stringify(arg ?? null)}); })()`);
-async function waitFor(page, fn, what, timeout = 30000, arg) {
-  const end = Date.now() + timeout;
-  while (Date.now() < end) { try { if (await evalIn(page, fn, arg)) return true; } catch { /* busy */ } await sleep(150); }
-  fail(`timeout: ${what}`);
-}
-const alive = () => pages.map((p, i) => i).filter(i => pages[i] && !dead.has(i));
-const idx = uid => uids.indexOf(uid);
-const game = page => evalIn(page, s => s.game);
-const G = (page, js) => page.evaluate(js.includes(';') ? `window.__gridlock && (function () { ${js} }())` : `window.__gridlock && (${js})`);
-const name = uid => NAMES[idx(uid)] || uid;
-
-async function joinAll(n) {
-  const host = await openPlayer(0);
-  await host.waitForSelector('.nd-host', { timeout: 20000 });
-  for (let k = 0; k < 5 && !(await host.$('.setup-screen input.input')); k++) { await host.click('.nd-host').catch(() => {}); await host.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {}); }
-  await host.type('.setup-screen input.input', NAMES[0]);
-  await host.click('.form-cta .btn-primary');
-  await host.waitForSelector('.lobby-screen .room-code', { timeout: 20000 });
-  code = await evalIn(host, s => s.code);
-  log('room', code);
-  for (let i = 1; i < n; i++) await join(i);
-  await waitFor(host, (s, k) => Object.keys(s.players).length === k, `${n} players`, 30000, n);
-  for (let i = 0; i < n; i++) uids[i] = await evalIn(pages[i], s => s.uid);
-  return host;
-}
-async function join(i) {
-  const p = await openPlayer(i, `room=${code}`);
-  await p.waitForSelector('.nd-go', { timeout: 20000 });
-  await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
-  await p.click('.nd-go');
-  await p.waitForSelector('.input-code');
-  await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
-  await p.click('.form-cta .btn-primary');
-  await p.waitForSelector('.lobby-screen', { timeout: 20000 });
-  return p;
-}
-async function hostIdx() { for (const i of alive()) { try { if (await evalIn(pages[i], s => s.meta && s.meta.hostId === s.uid)) return i; } catch { /* */ } } return alive()[0]; }
-// a real finger: down, a path of moves, up (CDP touch events)
-async function touch(page, pts, dtMs = 16) {
-  const c = await page.target().createCDPSession();
-  const base = Date.now() / 1000; let k = 0;
-  const ev = (type, [x, y]) => c.send('Input.dispatchTouchEvent', { type, timestamp: base + (k++) * dtMs / 1000, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
-  await ev('touchStart', pts[0]);
-  for (const p of pts.slice(1)) { await ev('touchMove', p); await sleep(dtMs); }
-  await ev('touchEnd', pts[pts.length - 1]);
-  await c.detach();
-  await sleep(150);
-}
-const line = (x0, y0, x1, y1, n) => Array.from({ length: n + 1 }, (_, i) => [x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]);
-const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
-const cleanText = async (page, where) => {
-  const t = await page.evaluate(() => (document.querySelector('.gl') || document.body).innerText);
-  const m = t.match(BAD);
-  ok(!m, `TEXT: no stray "null"/"undefined" on screen (${where}${m ? `: …${t.slice(Math.max(0, m.index - 30), m.index + 20).replace(/\s+/g, ' ')}…` : ''})`);
-};
+const joinAll = async n => { const host = await H.joinAll(n); code = H.code; return host; };
+const name = uid => H.nameOf(uid);
+const cleanText = (page, where) => H.cleanText(page, where, '.gl');
 // the camera glides to its goal: wait until it has stopped before measuring where things are on screen
 async function settle(page) { let last = ''; for (let k = 0; k < 40; k++) { const c = JSON.stringify(await G(page, 'window.__gridlock.camera()')); if (c === last) return; last = c; await sleep(150); } }
 // screen position of a cell on a board: project through the scene's picker by scanning (cheap: the picker is exact)
@@ -127,7 +29,7 @@ async function cellXY(page, uid, r, c) {
     return best && [best.x, best.y];
   }, uid, r, c);
 }
-
+let fatal = null;
 try {
   // ================================================================ MATCH A — CLASSIC, 2 players
   const host = await joinAll(process.env.SKIP_A ? N : 2);
@@ -304,6 +206,7 @@ try {
   const gO = await game(pages[hi]);
   const firstOut = Object.keys(gO.out)[0];
   const op = pages[idx(firstOut)];
+  let callMade = false;
   const canCall = Object.keys(gO.participants).length - Object.keys(gO.out).length >= 2;   // a call needs two fleets still in
   if (!canCall) log('no call possible: the first elimination left fewer than two fleets', JSON.stringify(gO.out));
   if (op && !dead.has(idx(firstOut)) && canCall) {
@@ -315,6 +218,7 @@ try {
     await sleep(600);
     const call = await evalIn(op, (s, u) => s.live.calls && s.live.calls[u], firstOut);
     ok(!!(call && call.w), 'CALL: the pick is saved');
+    callMade = !!(call && call.w);
     await sleep(800);
     await shotAll(op, 'gl-14-spectate', SIZES.slice(0, 1));
   }
@@ -331,7 +235,8 @@ try {
   const gF = await game(pages[w]);
   const places = Object.values(gF.out).map(o => o.place).sort((a, b) => a - b);
   ok(gF.winner && places.length === N - 1 && places[0] === 2, `ROYALE: a finish — ${name(gF.winner)} wins, places ${places.join(',')}${gF.capped ? ' (round cap)' : ''}`);
-  ok(Object.values(gF.calls || {}).length >= 1, `CALL: calls scored (${JSON.stringify(gF.calls)})`);
+  if (callMade) ok(Object.values(gF.calls || {}).length >= 1, `CALL: calls scored (${JSON.stringify(gF.calls)})`);
+  else log('no call was made this match (small N): the scoring check is skipped');
   await sleep(4000);
   await cleanText(pages[w], 'royale final');
   await shotAll(pages[w], 'gl-15-royale-final', SIZES.slice(0, 1).concat(SIZES.slice(2)));
@@ -345,29 +250,9 @@ try {
     for (const i of alive()) await G(pages[i], 'window.__gridlock.autoPlace(); window.__gridlock.setReady(); window.__gridlock.bot({ delay: 300, seed: ' + (i + 5) + ' })');
     const p = pages[alive().at(-1)];
     for (const i of alive()) if (pages[i] !== p) await G(pages[i], 'window.__gridlock.setTier(0)');
-    const cdp = await p.target().createCDPSession();
-    await p.setViewport({ ...VIEW, deviceScaleFactor: process.env.GPU ? 2.75 : 1 });
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
-    const perf = [];
-    for (const t of [2, 1, 0]) {
-      await G(p, `window.__gridlock.setTier(${t})`);
-      await sleep(5000);
-      const f = await G(p, 'window.__gridlock.fps()'); const wk = await G(p, 'window.__gridlock.work()');
-      const s2 = [...f].sort((a, b) => a - b), w2 = [...wk].sort((a, b) => a - b);
-      perf.push({ tier: t, p50: +s2[Math.floor(s2.length * 0.5)].toFixed(1), p95: +s2[Math.floor(s2.length * 0.95)].toFixed(1), work75: +w2[Math.floor(w2.length * 0.75)].toFixed(1), stats: await G(p, 'window.__gridlock.stats()') });
-    }
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-    log('frame pacing', JSON.stringify(perf));
-    writeFileSync(`${OUT}perf.json`, JSON.stringify(perf, null, 1));
-    ok(perf.every(x => x.p50 <= 17.5), `PERF: ${CPU}× CPU — 60 fps median at every tier (${perf.map(x => `t${x.tier}: p50 ${x.p50} / p95 ${x.p95} / work ${x.work75} ms / ${x.stats.calls} calls`).join(' · ')})`);
+    await H.perfRun(p, { viewport: { width: 390, height: 844 }, settle: 5000, extra: page => G(page, 'window.__gridlock.stats()') });
   }
 } catch (e) {
-  errors.push(`FATAL: ${e.message}`); log('FATAL', e.stack);
-} finally {
-  const passed = checks.filter(c => c.ok).length;
-  log(`checks ${passed}/${checks.length} passed`);
-  log('errors:', errors.length ? `\n  ${errors.join('\n  ')}` : 'none');
-  writeFileSync(`${OUT}result.json`, JSON.stringify({ checks, errors }, null, 1));
-  await browser.close();
-  process.exit(errors.length ? 1 : 0);
+  fatal = e;
 }
+await H.finish(fatal);

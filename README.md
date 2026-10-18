@@ -12,7 +12,7 @@ cities. Live at **neonspeakeasy.com**.
 - **LAST SIGNAL** — trivia battle royale
 - **NEURAL BLUFF** — bluffing trivia
 
-Static HTML/CSS/JS (no build step) + Firebase Realtime Database. See [CLAUDE.md](CLAUDE.md) for
+Static HTML/CSS/JS (no build step) + Firebase Realtime Database. See [CLAUDE.md](CLAUDE.md) (the short guide; deep-dives in [docs/](docs/)) for
 architecture and testing, [ROADMAP.md](ROADMAP.md) for the plan.
 
 Word lists: ENABLE (public domain), SCOWL/Hunspell en_US (SCOWL license), Peter Norvig's word counts (MIT).

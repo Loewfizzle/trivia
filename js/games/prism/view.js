@@ -8,12 +8,12 @@ import { h, vibrate, reducedMotion } from '../../ui/dom.js';
 import { avatar } from '../../ui/components.js';
 import { colorHex } from '../../config.js';
 import { createFinal } from '../../ui/final.js';
-import { toast } from '../../ui/toast.js';
 import { dbRef, update as dbUpdate, onValue, off, push, serverNow, serverTimestamp } from '../../firebase.js';
 import { liveKeyFor } from '../registry.js';
 import { settings, onSettings } from '../../audio/settings.js';
 import { getContext } from '../../audio/engine.js';
 import { hashString, rngFrom } from '../../core/rng.js';
+import { showCall as kitCall, reportPanel, ordinal } from '../kit/index.js';
 import * as E from './engine.js';
 import {
   songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, chooseTarget, TARGET_MODES, standings,
@@ -827,42 +827,14 @@ export function createView() {
   }
 
   function showCall() {
-    const alive = aliveOf(game).filter(u => u !== me());
-    if (alive.length < 2) return; // nothing to call
-    const endsAt = ((game.out[me()] && game.out[me()].at) || serverNow()) + CALL_MS;
-    // back after a refresh: the call is already locked in (or the window has closed)
-    const made = st.live && st.live.calls && st.live.calls[me()];
-    if (made) { els.ui.dataset.call = `YOUR CALL · ${player(made.w).name}`; layoutSig = ''; return; }
-    if (serverNow() > endsAt - 1500) { els.ui.dataset.call = 'NO CALL'; layoutSig = ''; return; }
-    let picked = null;
-    const bar = h('i');
-    const grid = h('div.pd-call-grid', alive.map(uid => {
-      const p = player(uid);
-      return h('button.pd-call-pick', { type: 'button', style: { '--c': colorHex(p.color) }, onclick: () => pick(uid) },
-        avatar(p.avatar, p.color, 44), h('b', p.name), h('small', `${(game.bd && game.bd[uid]) || 0} BADGES`));
-    }));
-    const el = h('div.pd-call', h('div.pd-kicker', 'CALL THE WINNER'), h('p', `Tap who wins. ${alive.length} left — a right call earns game-night points.`),
-      grid, h('div.pd-call-bar', bar));
-    els.overlay.append(el);
-    function pick(uid) {
-      if (picked || serverNow() > endsAt) return;
-      picked = uid;
-      synth.play('hold');
-      vibrate(12);
-      dbUpdate(dbRef(`rooms/${st.code}/prismcall/${game.matchId}/${me()}`), { w: uid, at: serverTimestamp() }).catch(e => toast(String(e.message || e).toUpperCase(), 'err'));
-      close(`YOUR CALL · ${player(uid).name}`);
-    }
-    function close(msg) {
-      el.classList.add('is-done');
-      setTimeout(() => el.remove(), 300);
-      els.ui.dataset.call = msg || 'NO CALL';
-      layoutSig = '';
-    }
-    const iv = setInterval(() => {
-      const left = endsAt - serverNow();
-      bar.style.transform = `scaleX(${Math.max(0, left / CALL_MS)})`;
-      if (left <= 0 || picked || destroyed || game.phase !== 'play') { clearInterval(iv); if (!picked) close('NO CALL'); }
-    }, 100);
+    kitCall({
+      overlay: els.overlay, prefix: 'pd', game, st, me: me(), player, candidates: aliveOf(game).filter(u => u !== me()), avatarSize: 44,
+      path: `rooms/${st.code}/prismcall/${game.matchId}/${me()}`,
+      line: uid => `${(game.bd && game.bd[uid]) || 0} BADGES`,
+      intro: n => `Tap who wins. ${n} left — a right call earns game-night points.`,
+      sfx: () => synth.play('hold'), ended: () => game.phase !== 'play', isDestroyed: () => destroyed,
+      onState: msg => { els.ui.dataset.call = msg; layoutSig = ''; },
+    });
   }
 
   function renderSpectator() {
@@ -1009,32 +981,19 @@ export function createView() {
 
   function resultsPanel() {
     const res = game.results || {};
-    const rows = standings(game);
-    const head = rush()
-      ? ['', 'SCORE', 'LINES', 'LEVEL', 'MAX COMBO']
-      : ['', 'PLACE', 'KOs', 'BADGES', 'SENT', 'COMBO', 'BEST'];
-    const body = rows.map(r => {
-      const x = res[r.uid] || {};
-      const p = player(r.uid);
-      const cells = rush()
-        ? [(x.sc || 0).toLocaleString('en-US'), x.ln || 0, x.lv || 1, x.mc || 0]
-        : [ordinal(r.rank), x.ko || 0, x.bd || 0, x.se || 0, x.mc || 0, x.best ? (CLEAR_NAME[x.best] || '').replace('CLEAR', '').trim() || '—' : '—'];
-      return h('tr', { class: r.uid === me() ? 'is-me' : null, style: { '--c': colorHex(p.color) } }, h('th', p.name), ...cells.map(c => h('td', String(c))));
+    return reportPanel({
+      prefix: 'pd', title: rush() ? 'SONG RESULTS' : 'BATTLE REPORT', calls: game.calls, player, showCalls: !rush(),
+      head: rush() ? ['SCORE', 'LINES', 'LEVEL', 'MAX COMBO'] : ['PLACE', 'KOs', 'BADGES', 'SENT', 'COMBO', 'BEST'],
+      rows: standings(game).map(r => {
+        const x = res[r.uid] || {};
+        const p = player(r.uid);
+        const cells = rush()
+          ? [(x.sc || 0).toLocaleString('en-US'), x.ln || 0, x.lv || 1, x.mc || 0]
+          : [ordinal(r.rank), x.ko || 0, x.bd || 0, x.se || 0, x.mc || 0, x.best ? (CLEAR_NAME[x.best] || '').replace('CLEAR', '').trim() || '—' : '—'];
+        return { uid: r.uid, name: p.name, color: p.color, me: r.uid === me(), cells };
+      }),
     });
-    const table = h('div.pd-res', h('div.pd-kicker', rush() ? 'SONG RESULTS' : 'BATTLE REPORT'),
-      h('div.pd-res-scroll', h('table', h('thead', h('tr', ...head.map(x => h('th', x)))), h('tbody', ...body))));
-    if (!rush()) {
-      const calls = game.calls || {};
-      const items = Object.entries(calls).map(([uid, c]) => {
-        const p = player(uid), w = player(c.w);
-        return h('li', { class: c.ok ? 'is-ok' : 'is-miss' }, h('b', { style: { color: colorHex(p.color) } }, p.name), ' called ',
-          h('b', { style: { color: colorHex(w.color) } }, w.name), h('em', c.ok ? ` ✓ +${c.bonus} night pts` : ' ✗'));
-      });
-      table.append(h('div.pd-kicker', 'CALL THE WINNER'), items.length ? h('ul.pd-calls', ...items) : h('p.pd-none', 'Nobody made a call.'));
-    }
-    return table;
   }
-  const ordinal = n => `${n}${['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : Math.min(n % 10, 4) % 4] || 'th'}`;
 
   // ================================================================ announcements
   function announce(text, kind = 'world') {

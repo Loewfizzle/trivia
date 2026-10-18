@@ -7,10 +7,8 @@
 // Fairness: the camera shows the same distance ahead on every phone (LOOK metres from the rider to the right edge),
 // whatever the orientation — a portrait phone simply zooms out. Rotating mid-ride only changes the drawing.
 import { h, vibrate } from '../../ui/dom.js';
-import { avatar } from '../../ui/components.js';
 import { colorHex } from '../../config.js';
 import { createFinal } from '../../ui/final.js';
-import { toast } from '../../ui/toast.js';
 import { dbRef, update as dbUpdate, serverNow, serverTimestamp } from '../../firebase.js';
 import { liveKeyFor } from '../registry.js';
 import { settings } from '../../audio/settings.js';
@@ -20,11 +18,12 @@ import {
 } from './course.js';
 import { createRider, step, pose, tidy, safeNear, STEP, REWIND_S, INVULN_S, AIR_HOLD_AFTER, laserOn } from './physics.js';
 import { decide } from './bot.js';
-import { aliveOf, standings, songAt, CALL_MS, fmtDist } from './logic.js';
+import { aliveOf, standings, songAt, fmtDist } from './logic.js';
 import { createSky, SKIES } from './sky.js';
 import { createScene } from './scene.js';
 import { createMusic, createSfx } from './audio.js';
 import { loadRide, rideCode, decodeRide, onRide, openRidePicker } from './ride.js';
+import { createAnnouncer, createCards, showCall as kitCall, reportPanel, ordinal, createTiers, installTestHook, removeTestHook } from '../kit/index.js';
 
 const GHOST = { name: 'RIDER', color: 'cyan', avatar: 'ghost' };
 const put = (el, ...kids) => el.replaceChildren(...kids.flat().filter(k => k != null && k !== false));
@@ -41,7 +40,6 @@ const HINTS = {
 };
 const lerp = (a, b, k) => a + (b - a) * k;
 const wrapA = a => { a = (a + Math.PI) % (Math.PI * 2); if (a < 0) a += Math.PI * 2; return a - Math.PI; };
-const ordinal = n => `${n}${['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : Math.min(n % 10, 4) % 4] || 'th'}`;
 
 export function createView() {
   let root, st, game;
@@ -54,8 +52,8 @@ export function createView() {
   const input = { hold: false, pressT: 0, taps: 0 };
   let pressing = false, pressStart = 0, pointerId = null;
   let raf = 0, lastFrame = 0, destroyed = false;
-  let tier = 2, tierCool = 0, tierFailed = -1, goodSince = 0;
-  const frameTimes = [], workTimes = [];
+  const tiers = createTiers({ apply: t => { if (scene) scene.setTier(t); if (sky) sky.setTier(t); } });
+  const tier = () => tiers.get();
   let look = 34, speedS = 12, camY = 0, camYReady = false, flipK = 0, shake = 0, boost = 0, flash = 0, nextBolt = 0, boltSeed = 1;
   let follow = null;
   const ghosts = {};           // uid -> { s: [samples], trail: [], last }
@@ -67,8 +65,7 @@ export function createView() {
   let myRide = loadRide();
   let unsubRide = null;
   // announcements / moments
-  let annQ = [], annBusy = 0;
-  const annLog = [];
+  let ann = null, cards = null;
   const momentLog = [];         // tests: the big moments this phone showed (last, victory, end)
   let seenOut = {}, seenCombo = {}, leader = null, leaderSince = 0, lastLeadAnn = 0;
   let lastBiomeIdx = -1, suddenShown = false, lastShown = false, endShown = false, callShownFor = null;
@@ -114,6 +111,8 @@ export function createView() {
     els.biome = h('div.sl-biome');
     els.ui = h('div.sl-ui', h('div.sl-top', els.bar, els.ann), els.stats, els.hint, els.biome, els.spec);
     els.overlay = h('div.sl-overlay');
+    ann = createAnnouncer(els.ann, { prefix: 'sl', holdMs: 1900, queueMax: 4, logMax: 50 });
+    cards = createCards(els.overlay, { prefix: 'sl' });
     els.vignette = h('div.sl-vignette');
     root.append(els.sky, els.world, els.vignette, els.ui, els.overlay);
     el.append(root);
@@ -167,14 +166,14 @@ export function createView() {
     courseFor = game.matchId;
     if (scene) scene.destroy();
     scene = createScene(els.world, course);
-    scene.setTier(tier);
+    scene.setTier(tier());
     rider = null; riderFor = null; outLocal = false; bot = null;
     for (const k of Object.keys(ghosts)) delete ghosts[k];
     myTrail = []; hist.length = 0; ringsTaken.clear();
     seenOut = { ...(game.out || {}) }; seenCombo = {}; leader = null; lastLeadAnn = 0;
     lastBiomeIdx = -1; suddenShown = false; lastShown = !!game.lastAt; endShown = game.phase === 'final'; callShownFor = null;
     hintsShown.clear(); rotateShown = false; camYReady = false; flipK = 0;
-    annQ = []; follow = null; pubAt = 0; lastPub = ''; endPublished = false;
+    if (ann) ann.clear(); follow = null; pubAt = 0; lastPub = ''; endPublished = false;
     if (finalView) { finalView.destroy(); finalView = null; }
     els.overlay.replaceChildren();
     root.classList.remove('is-final', 'is-out', 'is-spec');
@@ -392,9 +391,8 @@ export function createView() {
     audioTick();
     const work = performance.now() - w0;
     partT.push([w1 - w0, w2 - w1, w3 - w2, performance.now() - w3]); if (partT.length > 120) partT.shift();
-    frameTimes.push(dtF * 1000); workTimes.push(work);
-    if (frameTimes.length > 120) { frameTimes.shift(); workTimes.shift(); }
-    autoTier(now);
+    tiers.sample(now, work);
+    tiers.tick(now);
   }
   let endPublished = false;
 
@@ -512,7 +510,7 @@ export function createView() {
       sky.set({ hor: scene.horizon, cam: f.x * 10, beat: reduced() ? 0 : bt.beat, energy: bt.energy, flash, flip: flipK, boost, danger: t > SUDDEN_T ? 0.22 : 0 });
       sky.render(now / 1000);
     }
-    scene.resize([1, 1.5, 2][tier]);
+    scene.resize([1, 1.5, 2][tier()]);
     scene.draw({
       camX: f.x + ox / scale, camY: camY + oy / scale, scale, ax, ay: H * (H > W ? 0.6 : 0.52), flip: flipS, t, riders: list,
       speed: speedS, flash, boltSeed, reduced: reduced(), touched: f.mine ? rider.touched : [], ringsTaken: f.mine ? ringsTaken : null,
@@ -701,31 +699,8 @@ export function createView() {
   }
 
   // ================================================================ announcements (max one visible)
-  function announce(text, kind = 'info') {
-    annLog.push(text); if (annLog.length > 50) annLog.shift();
-    if (annQ.length > 3) annQ.shift();
-    annQ.push({ text, kind });
-    pump();
-  }
-  function pump() {
-    const now = performance.now();
-    if (!annQ.length) return;
-    if (annBusy > now) { setTimeout(pump, annBusy - now + 20); return; }
-    const a = annQ.shift();
-    const el = h(`div.sl-ann-in.is-${a.kind}`, a.text);
-    els.ann.replaceChildren(el);
-    annBusy = now + 1900;
-    setTimeout(() => el.classList.add('is-out'), 1700);
-    setTimeout(() => { if (el.isConnected) el.remove(); }, 2100);
-    if (annQ.length) setTimeout(pump, 1920);
-  }
-
-  function card(title, sub, ms, kind) {
-    els.overlay.querySelectorAll('.sl-card').forEach(e => e.remove());
-    const el = h(`div.sl-card.is-${kind}`, h('b', { 'data-text': title }, title), sub ? h('small', sub) : null);
-    els.overlay.append(el);
-    setTimeout(() => { el.classList.add('is-out'); setTimeout(() => el.remove(), 500); }, ms);
-  }
+  const announce = (text, kind = 'info') => ann.announce(text, kind);
+  const card = (title, sub, ms, kind) => cards.card(title, sub, ms, kind);
 
   function popCombo(flips, combo) {
     const el = h('div.sl-pop', h('b', flips > 1 ? `${flips}× FLIP` : 'FLIP'), combo >= 2 ? h('small', `COMBO ${combo}`) : null);
@@ -766,42 +741,15 @@ export function createView() {
 
   // ================================================================ Call the Winner
   function showCall() {
-    const alive = aliveOf(game).filter(u => u !== me());
-    if (alive.length < 2 || game.phase !== 'play') return;
-    const endsAt = ((game.out[me()] && game.out[me()].at) || serverNow()) + CALL_MS;
-    const made = st.live && st.live.calls && st.live.calls[me()];
-    if (made) { els.ui.dataset.call = `YOUR CALL · ${player(made.w).name}`; return; }
-    if (serverNow() > endsAt - 1500) { els.ui.dataset.call = 'NO CALL'; return; }
-    let picked = null;
-    const bar = h('i');
-    const grid = h('div.sl-call-grid', alive.map(uid => {
-      const p = player(uid);
-      const n = riders()[uid] || {};
-      return h('button.sl-call-pick', { type: 'button', style: { '--c': colorHex(p.color) }, onclick: () => pick(uid) },
-        avatar(p.avatar, p.color, 40), h('b', p.name), h('small', `${fmtDist(Math.max(0, (n.x || 6) - 6))} · ${n.l ?? '?'}♦`));
-    }));
-    const el = h('div.sl-call', { 'data-nogesture': '' }, h('div.sl-kicker', 'CALL THE WINNER'),
-      h('p', `${alive.length} still riding — a right call earns game-night points.`), grid, h('div.sl-call-bar', bar));
-    els.overlay.append(el);
-    function pick(uid) {
-      if (picked || serverNow() > endsAt) return;
-      picked = uid;
-      sfx.play('ring');
-      vibrate(12);
-      dbUpdate(dbRef(`rooms/${st.code}/slipcall/${game.matchId}/${me()}`), { w: uid, at: serverTimestamp() }).catch(e => toast(String(e.message || e).toUpperCase(), 'err'));
-      close(`YOUR CALL · ${player(uid).name}`);
-    }
-    function close(msg) {
-      el.classList.add('is-done');
-      setTimeout(() => el.remove(), 300);
-      els.ui.dataset.call = msg || 'NO CALL';
-      els.spec.dataset.sig = '';
-    }
-    const iv = setInterval(() => {
-      const left = endsAt - serverNow();
-      bar.style.transform = `scaleX(${Math.max(0, left / CALL_MS)})`;
-      if (left <= 0 || picked || destroyed || game.phase !== 'play') { clearInterval(iv); if (!picked) close('NO CALL'); }
-    }, 100);
+    if (game.phase !== 'play') return;
+    kitCall({
+      overlay: els.overlay, prefix: 'sl', game, st, me: me(), player, candidates: aliveOf(game).filter(u => u !== me()),
+      path: `rooms/${st.code}/slipcall/${game.matchId}/${me()}`,
+      line: uid => { const n = riders()[uid] || {}; return `${fmtDist(Math.max(0, (n.x || 6) - 6))} · ${n.l ?? '?'}♦`; },
+      intro: n => `${n} still riding — a right call earns game-night points.`,
+      sfx: () => sfx.play('ring'), ended: () => game.phase !== 'play', isDestroyed: () => destroyed,
+      onState: msg => { els.ui.dataset.call = msg; els.spec.dataset.sig = ''; },
+    });
   }
 
   // ================================================================ results
@@ -826,22 +774,15 @@ export function createView() {
   }
   function resultsPanel() {
     const res = game.results || {};
-    const body = standings(game).map(r => {
-      const x = res[r.uid] || {};
-      const p = player(r.uid);
-      const pct = x.ln ? `${Math.round(100 * (x.cl || 0) / x.ln)}%` : '—';
-      return h('tr', { class: r.uid === me() ? 'is-me' : null, style: { '--c': colorHex(p.color) } }, h('th', p.name),
-        ...[ordinal(r.rank), fmtDist(Math.max(0, (x.d || r.score) - 6)), x.bc || 0, x.fl || 0, pct, String(x.bi || 1)].map(c => h('td', String(c))));
+    return reportPanel({
+      prefix: 'sl', title: 'RIDE REPORT', head: ['PLACE', 'DISTANCE', 'COMBO', 'FLIPS', 'CLEAN', 'BIOMES'], calls: game.calls, player,
+      rows: standings(game).map(r => {
+        const x = res[r.uid] || {};
+        const p = player(r.uid);
+        const pct = x.ln ? `${Math.round(100 * (x.cl || 0) / x.ln)}%` : '—';
+        return { uid: r.uid, name: p.name, color: p.color, me: r.uid === me(), cells: [ordinal(r.rank), fmtDist(Math.max(0, (x.d || r.score) - 6)), x.bc || 0, x.fl || 0, pct, String(x.bi || 1)] };
+      }),
     });
-    const panel = h('div.sl-res', h('div.sl-kicker', 'RIDE REPORT'),
-      h('div.sl-res-scroll', h('table', h('thead', h('tr', ...['', 'PLACE', 'DISTANCE', 'COMBO', 'FLIPS', 'CLEAN', 'BIOMES'].map(x => h('th', x)))), h('tbody', ...body))));
-    const items = Object.entries(game.calls || {}).map(([uid, c]) => {
-      const p = player(uid), w = player(c.w);
-      return h('li', { class: c.ok ? 'is-ok' : 'is-miss' }, h('b', { style: { color: colorHex(p.color) } }, p.name), ' called ',
-        h('b', { style: { color: colorHex(w.color) } }, w.name), h('em', c.ok ? ` ✓ +${c.bonus} night pts` : ' ✗'));
-    });
-    panel.append(h('div.sl-kicker', 'CALL THE WINNER'), items.length ? h('ul.sl-calls', ...items) : h('p.sl-none', 'Nobody made a call.'));
-    return panel;
   }
 
   // ================================================================ audio
@@ -861,23 +802,8 @@ export function createView() {
     sfx.loops({ speed: on ? Math.min(1, (rider.sp - 8) / 40) : 0, hum, on });
   }
 
-  // ================================================================ tiers
-  function autoTier(now) {
-    if (frameTimes.length < 90 || now < tierCool) return;
-    const q = (a, p) => { const x = [...a].sort((m, n) => m - n); return x[Math.floor(x.length * p)]; };
-    const p75 = q(frameTimes, 0.75), work = q(workTimes, 0.75);
-    if (p75 > 19.5 && tier > 0) { tierFailed = tier; setTier(tier - 1); tierCool = now + 2500; goodSince = 0; return; }
-    if (p75 < 17.2 && work < 6 && tier < 2 && tier + 1 !== tierFailed) {
-      if (!goodSince) goodSince = now;
-      else if (now - goodSince > 8000) { setTier(tier + 1); tierCool = now + 4000; goodSince = 0; }
-    } else goodSince = 0;
-  }
-  function setTier(t) {
-    tier = Math.max(0, Math.min(2, t));
-    if (scene) scene.setTier(tier);
-    if (sky) sky.setTier(tier);
-    frameTimes.length = 0; workTimes.length = 0;
-  }
+  // ================================================================ tiers (kit: createTiers)
+  const setTier = t => tiers.set(t);
 
   // ================================================================ input: one thumb (pointer events, touch-action: none)
   const onDown = e => {
@@ -930,7 +856,7 @@ export function createView() {
   // ================================================================ test hook
   const api = { mount, update, unmount };
   function setupTestHook() {
-    window.__slip = {
+    installTestHook('__slip', {
       view: api,
       rider: () => rider && { x: rider.x, y: rider.y, g: rider.g, st: rider.st, lives: rider.lives, sp: rider.sp, gnd: rider.gnd, t: rider.t, inv: rider.inv, combo: rider.combo, best: rider.best, flips: rider.flips, clean: rider.clean, crashes: rider.crashes, rings: rider.rings },
       course: () => course && { sig: course.sig, seed: game.seed, biomes: course.biomes.map(b => [b.id, b.variant, Math.round(b.x0)]), counts: Object.fromEntries(Object.entries(course.hz).map(([k, v]) => [k, v.length])), hz: course.hz },
@@ -943,12 +869,12 @@ export function createView() {
       camera: () => lastView && { ...lastView },
       audio: () => music.debug(),
       sfxLog: () => sfx.log.slice(),
-      announcements: () => annLog.slice(),
+      announcements: () => ann.log.slice(),
       moments: () => momentLog.slice(),
-      tier: () => tier,
+      tier: () => tier(),
       setTier: t => setTier(t),
-      fps: () => [...frameTimes],
-      work: () => [...workTimes],
+      fps: () => tiers.fps(),
+      work: () => tiers.work(),
       follow: () => follow,
       setFollow: u => { follow = u; },
       ghostProbe: () => ghostProbe.slice(),
@@ -958,7 +884,7 @@ export function createView() {
       draw: on => { noDraw = !on; },
       parts: () => { const q = i => { const a = partT.map(p => p[i]).sort((x, y) => x - y); return +(a[Math.floor(a.length * 0.75)] || 0).toFixed(1); }; return { sim: q(0), render: q(1), hud: q(2), audio: q(3) }; },
       input: () => ({ ...inDbg, pressing, taps: input.taps }),
-    };
+    }, { always: true });
   }
 
   return api;

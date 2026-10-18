@@ -6,117 +6,17 @@
 // mid-ride; refresh mid-ride (rejoin near the last spot, lives kept, shimmer); crashes + rewind; eliminations and
 // announcements; Call the Winner; the host's phone dies (a new host carries on); LAST RIDERS; the winner; results;
 // rematch (the room playlist moves on, no repeats); frame pacing at every tier under CPU throttling.
-import puppeteer from 'puppeteer-core';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
+import { createHarness } from './kit/harness.mjs';
 
-const BROWSER = process.argv[2];
-const OUT = (process.argv[3] || './shots-slip').replace(/\/?$/, '/');
-mkdirSync(OUT, { recursive: true });
-const BASE = process.env.E2E_BASE || 'http://localhost:5173';
-const N = Number(process.env.N || 8);
-const SHOTS = process.env.SHOTS !== '0';
-const CPU = Number(process.env.CPU || 4);
-const NAMES = ['ALICE', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE', 'HAL'];
-const t0 = Date.now();
-const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const errors = [];
-const checks = [];
-const ok = (cond, what) => { checks.push({ what, ok: !!cond }); log(cond ? 'OK  ' : 'FAIL', what); if (!cond) errors.push(`check failed: ${what}`); };
-const fail = m => { throw new Error(m); };
-const VIEW = { width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true };
 const SIZES = [[390, 844], [412, 915], [844, 390], [915, 412], [1440, 900]];
-
-const browser = await puppeteer.launch({
-  executablePath: BROWSER, headless: true,
-  args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])],
-});
-const pages = [];
-const ctxs = [];
-const dead = new Set();
-const uids = [];
+const H = await createHarness({ name: 'slip', slot: 's', hook: '__slip', sizes: SIZES, warnPattern: /game view|sky shader|slip publish/ });
+const { N, SHOTS, CPU, OUT, VIEW, NAMES, pages, uids, dead, errors, checks, log, sleep, ok, fail, evalIn, waitFor, alive, idx, game, join, openPlayer, hostIdx, press, shotAll } = H;
 let code = '';
-
-async function openPlayer(i, qs = '') {
-  const ctx = ctxs[i] || (ctxs[i] = await browser.createBrowserContext());
-  const page = await ctx.newPage();
-  page.on('console', m => { if (m.type() === 'warning' && /claim host/.test(m.text())) log(NAMES[i], m.text()); if (m.type() === 'warning' && /game view|sky shader|slip publish/.test(m.text())) errors.push(`${NAMES[i]}: ${m.text()}`); });
-  page.on('pageerror', e => { const m = `${NAMES[i]} pageerror: ${e.message}`; if (errors.includes(m)) return; errors.push(m); log(`${NAMES[i]} PAGEERROR`, e.message); });
-  page.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|Client is offline|net::/i.test(t)) { errors.push(`${NAMES[i]}: ${t}`); log(`${NAMES[i]} console.error`, t); } });
-  await page.setViewport(VIEW);
-  await page.goto(`${BASE}/?emu&slot=s${i}${qs ? '&' + qs : ''}`);
-  pages[i] = page;
-  return page;
-}
-async function shotAll(page, name, sizes = SIZES) {
-  if (!SHOTS) return;
-  for (const [w, h] of sizes) {
-    const desk = w >= 1200;
-    // isMobile stays on: toggling it makes puppeteer reload the page
-    await page.setViewport({ width: w, height: h, deviceScaleFactor: desk ? 1 : 2, isMobile: true, hasTouch: true });
-    await sleep(600);
-    await page.screenshot({ path: `${OUT}${name}-${w}x${h}.png` });
-  }
-  await page.setViewport(VIEW);
-  await sleep(200);
-}
-const evalIn = (page, fn, arg) => page.evaluate(`(async () => { const s = window.__arcade.state; return (${fn})(s, ${JSON.stringify(arg ?? null)}); })()`);
-async function waitFor(page, fn, what, timeout = 30000, arg) {
-  const end = Date.now() + timeout;
-  while (Date.now() < end) { try { if (await evalIn(page, fn, arg)) return true; } catch { /* busy */ } await sleep(150); }
-  fail(`timeout: ${what}`);
-}
-const alive = () => pages.map((p, i) => i).filter(i => pages[i] && !dead.has(i));
-const idx = uid => uids.indexOf(uid);
-const game = page => evalIn(page, s => s.game);
+const joinAll = async () => { const host = await H.joinAll(N); code = H.code; return host; };
 const P = (page, js) => page.evaluate(js);
 const S = (page, js) => page.evaluate(`window.__slip && (${js})`);
-
-async function joinAll() {
-  const host = await openPlayer(0);
-  await host.waitForSelector('.nd-host', { timeout: 20000 });
-  for (let k = 0; k < 5 && !(await host.$('.setup-screen input.input')); k++) {
-    await host.click('.nd-host').catch(() => {});
-    await host.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {});
-  }
-  await host.type('.setup-screen input.input', NAMES[0]);
-  await host.click('.form-cta .btn-primary');
-  await host.waitForSelector('.lobby-screen .room-code', { timeout: 20000 });
-  code = await evalIn(host, s => s.code);
-  log('room', code);
-  for (let i = 1; i < N; i++) {
-    const p = await openPlayer(i, `room=${code}`);
-    await p.waitForSelector('.nd-go', { timeout: 20000 });
-    await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
-    await p.click('.nd-go');
-    await p.waitForSelector('.input-code');
-    await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
-    await p.click('.form-cta .btn-primary');
-    await p.waitForSelector('.lobby-screen', { timeout: 20000 });
-  }
-  await waitFor(host, (s, n) => Object.keys(s.players).length === n, `${N} players`, 30000, N);
-  for (let i = 0; i < N; i++) uids[i] = await evalIn(pages[i], s => s.uid);
-  return host;
-}
-async function hostIdx() {
-  for (const i of alive()) { try { if (await evalIn(pages[i], s => s.meta && s.meta.hostId === s.uid)) return i; } catch { /* */ } }
-  return alive()[0];
-}
-// a real finger through CDP: down, held for ms, up
-async function press(page, ms, x = 200, y = 600) {
-  const c = await page.target().createCDPSession();
-  await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
-  await sleep(ms);
-  await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await c.detach();
-}
-const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
-const cleanText = async (page, where) => {
-  const t = await page.evaluate(() => (document.querySelector('.sl') || document.body).innerText);
-  const m = t.match(BAD);
-  const near = m ? `: …${t.slice(Math.max(0, m.index - 30), m.index + 20).replace(/\s+/g, ' ')}…` : '';
-  ok(!m, `TEXT: no stray "null"/"undefined" on screen (${where}${near})`);
-};
+const cleanText = (page, where) => H.cleanText(page, where, '.sl');
 const rider = page => S(page, 'window.__slip.rider()');
 // with 8 browsers on one CPU, only the phones a step looks at draw frames (the rest ride, publish and play on)
 const watch = async (...keep) => { for (const i of alive()) await S(pages[i], `window.__slip.draw(${keep.includes(i)})`).catch(() => {}); };
@@ -154,7 +54,7 @@ async function perfRun(p) {
   writeFileSync(`${OUT}perf.json`, JSON.stringify(perf, null, 1));
   ok(perf.every(x => x.p50 <= 17.5), `PERF: ${CPU}× CPU — 60 fps median at every tier (${perf.map(x => `t${x.tier}: p50 ${x.p50} / p95 ${x.p95} / work ${x.work75} ms`).join(' · ')})`);
 }
-
+let fatal = null;
 try {
   const host = await joinAll();
   if (process.env.PERF_ONLY) {
@@ -164,7 +64,7 @@ try {
     await botAll('{ flips: true }');
     await sleep(4000);
     await perfRun(pages[alive().length - 1]);
-    throw new Error('PERF_ONLY done');
+    throw new Error('done');
   }
 
   // ---------------------------------------------------------------- lobby card, options, ride picker
@@ -410,6 +310,7 @@ try {
     await cleanText(pages[0], 'final');
     const fa = await S(pages[0], 'window.__slip.audio()');
     ok(fa.faded && (fa.out === null || fa.out < 0.05), `MUSIC: the ride's songs stay faded out under the results (gain ${fa.out})`);
+    if (!fa.faded) log('audio at the final', JSON.stringify(fa));
     await shotAll(pages[0], 'sl-12-final');
     const gf = await game(pages[0]);
     ok(gf.results && Object.keys(gf.results).length === N, 'RESULTS: every rider has a distance / combo / flips / clean % / biomes row');
@@ -440,12 +341,6 @@ try {
     }
   }
 } catch (e) {
-  if (!/PERF_ONLY done/.test(e.message)) { errors.push(`FATAL: ${e.message}`); log('FATAL', e.stack); }
-} finally {
-  const passed = checks.filter(c => c.ok).length;
-  log(`checks ${passed}/${checks.length} passed`);
-  log('errors:', errors.length ? `\n  ${errors.join('\n  ')}` : '');
-  writeFileSync(`${OUT}result.json`, JSON.stringify({ checks, errors }, null, 1));
-  await browser.close();
-  process.exit(errors.length ? 1 : 0);
+  fatal = e;
 }
+await H.finish(fatal);

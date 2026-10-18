@@ -1,0 +1,129 @@
+/* Match kit — the shared match UI (js/games/kit): announcement lane, title cards, Call the Winner, the report under
+   the podium. A game themes it by setting --mk-* on its root (defaults below = the app accent); games with their own
+   prefixed CSS (sl-, pd-, gl-) don't use these classes. Animations use transform/opacity only. */
+.mk-root, .mk-theme {
+  --mk-accent: var(--accent, #7fb2ff);
+  --mk-accent-2: var(--accent-2, #ff8c42);
+  --mk-grad: linear-gradient(90deg, var(--mk-accent), var(--mk-accent-2));
+  --mk-ink: rgba(8, 9, 26, 0.72);
+  --mk-line: rgba(255, 255, 255, 0.16);
+  --mk-line-2: rgba(255, 255, 255, 0.28);
+  --mk-dim: rgba(220, 228, 255, 0.72);
+  --mk-faint: rgba(220, 228, 255, 0.5);
+}
+
+/* ---------------------------------------------------------------- announcements (one visible) */
+.mk-ann { display: flex; justify-content: center; min-height: 30px; pointer-events: none; }
+.mk-ann-in {
+  max-width: 100%;
+  padding: 6px 14px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--mk-ink);
+  border: 1px solid var(--mk-line);
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  animation: mk-ann-in 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.mk-ann-in.is-out { animation: mk-ann-out 0.4s ease both; }
+.mk-ann-in.is-me, .mk-ann-in.is-good { border-color: color-mix(in srgb, var(--mk-accent-2) 60%, transparent); }
+.mk-ann-in.is-lead, .mk-ann-in.is-world { border-color: color-mix(in srgb, var(--mk-accent) 60%, transparent); }
+.mk-ann-in.is-ko, .mk-ann-in.is-danger, .mk-ann-in.is-bad { border-color: rgba(255, 110, 140, 0.6); color: #ffd6df; }
+@keyframes mk-ann-in { from { opacity: 0; transform: translateY(-8px) scale(0.96); } }
+@keyframes mk-ann-out { to { opacity: 0; transform: translateY(-6px); } }
+
+/* ---------------------------------------------------------------- title cards */
+.mk-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  pointer-events: none;
+  animation: mk-card-in 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.mk-card b { font-family: var(--font-display); font-weight: 900; font-size: clamp(24px, 7.5vw, 40px); letter-spacing: 0.12em; color: #fff; text-shadow: 0 0 26px color-mix(in srgb, var(--mk-accent) 80%, transparent); padding: 0 12px; }
+.mk-card small { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: #fff; padding: 4px 10px; background: var(--mk-ink); border-radius: 6px; }
+.mk-card.is-win b { background: var(--mk-grad); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 20px color-mix(in srgb, var(--mk-accent-2) 60%, transparent)); text-shadow: none; }
+.mk-card.is-gone b, .mk-card.is-crash b, .mk-card.is-bad b { text-shadow: 0 0 26px rgba(255, 110, 140, 0.85); }
+.mk-card.is-out { animation: mk-card-out 0.5s ease both; }
+@keyframes mk-card-in { from { opacity: 0; transform: scale(1.18); letter-spacing: 0.3em; } }
+@keyframes mk-card-out { to { opacity: 0; transform: scale(0.96); } }
+
+/* ---------------------------------------------------------------- Call the Winner */
+.mk-kicker { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.24em; color: var(--mk-accent); }
+.mk-call {
+  position: absolute;
+  left: max(12px, calc(50% - 260px));
+  right: max(12px, calc(50% - 260px));
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 14px 14px;
+  background: rgba(8, 9, 26, 0.9);
+  border: 1px solid var(--mk-line-2);
+  border-radius: 18px;
+  box-shadow: 0 0 40px color-mix(in srgb, var(--mk-accent) 18%, transparent);
+  pointer-events: auto;
+  animation: mk-card-in 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.mk-call.is-done { animation: mk-card-out 0.3s ease both; }
+.mk-call p { margin: 0; color: var(--mk-dim); font-size: 14px; }
+.mk-call-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.mk-call-pick {
+  --c: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 92px;
+  padding: 10px 4px;
+  color: #fff;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
+  border-radius: 12px;
+}
+.mk-call-pick b { font-family: var(--font-display); font-size: 12px; color: var(--c); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mk-call-pick small { font-family: var(--font-num); font-size: 11px; color: var(--mk-dim); }
+.mk-call-pick:active { transform: scale(0.96); background: color-mix(in srgb, var(--c) 20%, transparent); }
+.mk-call-bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.mk-call-bar i { display: block; height: 100%; background: var(--mk-grad); transform-origin: 0 50%; transition: transform 0.1s linear; }
+
+/* ---------------------------------------------------------------- the report under the podium */
+.mk-res { display: flex; flex-direction: column; gap: 10px; padding: 14px 12px; background: rgba(10, 10, 30, 0.8); border: 1px solid var(--mk-line); border-radius: 14px; }
+.mk-res-scroll { overflow-x: auto; touch-action: pan-x pan-y; }
+.mk-res table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.mk-res th, .mk-res td { padding: 6px 5px; text-align: right; white-space: nowrap; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+.mk-res thead th { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; color: var(--mk-dim); font-weight: 700; }
+.mk-res tbody th { text-align: left; font-family: var(--font-display); font-weight: 700; color: var(--c); max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+.mk-res td { font-family: var(--font-num); font-weight: 700; color: #fff; }
+.mk-res tr.is-me { background: color-mix(in srgb, var(--mk-accent) 10%, transparent); }
+.mk-calls { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--mk-dim); }
+.mk-calls em { font-style: normal; font-family: var(--font-mono); font-size: 11px; }
+.mk-calls .is-ok em { color: #6bffb0; }
+.mk-calls .is-miss em { color: #ff9db0; }
+.mk-none { margin: 0; color: var(--mk-faint); font-size: 13px; }
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .mk-card { top: 28%; }
+  .mk-call { top: calc(var(--safe-t) + 46px); bottom: calc(var(--safe-b) + 8px); transform: none; overflow-y: auto; }
+  .mk-call-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .mk-call-pick { min-height: 72px; flex-direction: row; justify-content: center; flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mk-ann-in, .mk-card, .mk-call { animation-duration: 0.01s; }
+}

@@ -228,9 +228,22 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
       beam, impact, ripple, shatter, power-down, bounty)
 - [x] Rules for glready/glshot/glres/glcall/fleets + 3 rules tests; 14 unit tests incl. whole matches; E2E `tests/integration/e2e-gridlock.mjs`
 
+### ✅ The match kit + the docs split (Oct 2026)
+- [x] `js/games/kit/`: announcer lane, title cards, Call the Winner, the report under the podium, quality tiers, test hooks —
+      extracted from PRISM DROP / SLIPSTREAM / GRIDLOCK, which now use them (zero visual change: each keeps its own prefixed CSS);
+      `css/kit.css` gives a new game the look with no CSS of its own (`docs/match-kit.md`)
+- [x] `tests/integration/kit/harness.mjs`: the E2E harness (N phones, room create/join, screenshots at the review sizes, real touch,
+      kill the host, refresh, frame pacing, the report) — e2e-slip and e2e-gridlock run on it
+- [x] CLAUDE.md cut from 100 KB to 18 KB: ground rules, layout, the shared core, the checklist; every deep-dive moved verbatim to
+      `docs/*.md` (read on demand) — a large fixed cost off every session and every context compaction
+
 ## Next up (agreed plan, in order)
-0. **GRIDLOCK Part 2:** SALVO mode (several shots per volley — `shotsPerVolley`, lists everywhere already) and ARCADE mode
-   (special abilities as one more player node + `ev` kinds the cinematic plays).
+0. **GRIDLOCK presentation rebuild** (before Part 2): the Part 1 play-test found the tilted three.js ring hard to read on a phone
+   (cells trapezoid, labels off the grid, hits under the hulls). Rebuild the view flat on the match kit — one big straight-on
+   holographic board in Canvas 2D + a strip of mini-boards, exact label alignment, hit scars burned into ships, 2D beams/shatters —
+   keeping the rules, director, privacy model, rules file and tests as they are.
+1. **GRIDLOCK Part 2:** SALVO (one shot per ship afloat) and ARCADE (ability cards). The pure rules are drafted locally
+   (abilities.js, a rewritten director, tests/gridlock-2.test.mjs — 22/23 passing) and wait for the new presentation.
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
 2. ✅ **Split `js/games/overclock/view.js`** (was ~1,600 lines) into `ui/<type>.js` (one per challenge), `reveals.js`, `shared.js`;

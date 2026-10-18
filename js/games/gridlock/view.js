@@ -15,16 +15,16 @@ import { settings } from '../../audio/settings.js';
 import { setPlaylist, duckMusic, filterMusic } from '../../audio/music.js';
 import { rngFrom } from '../../core/rng.js';
 import { showBackdrop } from '../../screens/district/backdrop.js';
+import { createAnnouncer, createCards, showCall as kitCall, reportPanel, ordinal, createTiers, installTestHook, removeTestHook } from '../kit/index.js';
 import {
   aliveOf, boardOf, isShot, canPlace, validLayout, randomLayout, encodeFleet, decodeFleet, resolveVolley, encodeAim, shotKey,
-  randomShot, smartShot, shipName, cellName, standings, musicOrder, CALL_MS,
+  randomShot, smartShot, shipName, cellName, standings, musicOrder,
 } from './logic.js';
 import { createScene } from './scene.js';
 import { createSfx } from './audio.js';
 
 const GHOST = { name: 'RIDER', color: 'cyan', avatar: 'ghost' };
 const put = (el, ...kids) => el.replaceChildren(...kids.flat().filter(k => k != null && k !== false));
-const ordinal = n => `${n}${['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : Math.min(n % 10, 4) % 4] || 'th'}`;
 
 export function createView() {
   let root, st, game;
@@ -32,8 +32,8 @@ export function createView() {
   let scene = null, sceneFor = null;
   const sfx = createSfx();
   let raf = 0, destroyed = false, ro = null;
-  let tier = 2, tierCool = 0, tierFailed = -1, goodSince = 0;
-  const workTimes = [];
+  const tiers = createTiers({ apply: t => { if (scene) scene.setTier(t); } });
+  const tier = () => tiers.get();
   // my fleet
   let fleet = null, fleetFor = null, fleetLoading = false, ready = false, readyWritten = false;
   // placement
@@ -46,7 +46,7 @@ export function createView() {
   let timeline = null;        // { rk, items: [{ at, fn, done }], pending: { uid: Set }, startAt }
   let resolvedFor = null;
   // moments
-  let annQ = [], annBusy = 0; const annLog = [];
+  let ann = null, cards = null;
   let seenOut = {}, seenLocks = new Set(), lastBounty = null, lastCur = null, turnAnnounced = null;
   let callShownFor = null, finalView = null, endShown = false;
   let bot = null;
@@ -77,6 +77,8 @@ export function createView() {
     els.spec = h('div.gl-spec', { 'data-nogesture': '' });
     els.ui = h('div.gl-ui', els.top, els.ann, els.lock, els.chips, els.tray, els.action, els.spec);
     els.overlay = h('div.gl-overlay');
+    ann = createAnnouncer(els.ann, { prefix: 'gl', holdMs: 1800, queueMax: 4 });
+    cards = createCards(els.overlay, { prefix: 'gl' });
     root.append(els.canvas, els.ui, els.overlay);
     el.append(root);
     document.body.classList.add('gl-on');
@@ -100,7 +102,7 @@ export function createView() {
     if (finalView) finalView.destroy();
     showBackdrop(false);
     document.body.classList.remove('gl-on');
-    if (window.__gridlock && window.__gridlock.view === api) delete window.__gridlock;
+    removeTestHook('__gridlock', hook);
   }
 
   // ================================================================ state
@@ -121,7 +123,7 @@ export function createView() {
   function resetMatch() {
     if (scene) scene.destroy();
     scene = createScene(els.canvas, { size: game.size, reduced: reduced() });
-    scene.setTier(tier);
+    scene.setTier(tier());
     scene.resize(root.clientWidth || 390, root.clientHeight || 844);
     scene.onSweep(() => sfx.play('sweep'));
     sceneFor = game.matchId;
@@ -129,7 +131,7 @@ export function createView() {
     target = null; aimCell = null; fired = false; firedFor = null; volleyFor = null; watching = null;
     timeline = null; resolvedFor = null;
     seenOut = { ...(game.out || {}) }; seenLocks = new Set(); lastBounty = game.bounty || null; lastCur = null; turnAnnounced = null;
-    callShownFor = null; endShown = game.phase === 'final'; annQ = [];
+    callShownFor = null; endShown = game.phase === 'final'; if (ann) ann.clear();
     if (finalView) { finalView.destroy(); finalView = null; }
     els.overlay.replaceChildren(); els.lock.hidden = true;
     root.classList.remove('is-final', 'is-out', 'is-placing', 'is-aiming', 'is-spec');
@@ -426,29 +428,8 @@ export function createView() {
   }
 
   // ================================================================ announcements / cards
-  function announce(text, kind = 'info') {
-    annLog.push(text); if (annLog.length > 60) annLog.shift();
-    if (annQ.length > 3) annQ.shift();
-    annQ.push({ text, kind }); pump();
-  }
-  function pump() {
-    const now = performance.now();
-    if (!annQ.length) return;
-    if (annBusy > now) { setTimeout(pump, annBusy - now + 20); return; }
-    const a = annQ.shift();
-    const el = h(`div.gl-ann-in.is-${a.kind}`, a.text);
-    els.ann.replaceChildren(el);
-    annBusy = now + 1800;
-    setTimeout(() => el.classList.add('is-out'), 1600);
-    setTimeout(() => { if (el.isConnected) el.remove(); }, 2000);
-    if (annQ.length) setTimeout(pump, 1820);
-  }
-  function card(title, sub, ms, kind) {
-    els.overlay.querySelectorAll('.gl-card').forEach(e => e.remove());
-    const el = h(`div.gl-card.is-${kind}`, h('b', { 'data-text': title }, title), sub ? h('small', sub) : null);
-    els.overlay.append(el);
-    setTimeout(() => { el.classList.add('is-out'); setTimeout(() => el.remove(), 500); }, ms);
-  }
+  const announce = (text, kind = 'info') => ann.announce(text, kind);
+  const card = (title, sub, ms, kind) => cards.card(title, sub, ms, kind);
   function showEnd() {
     const w = game.winner;
     if (w === me()) { card('LAST FLEET STANDING', game.capped ? 'MOST OF YOUR FLEET AFLOAT' : 'VICTORY', 3600, 'win'); sfx.play('win'); vibrate([20, 40, 20, 40, 60]); }
@@ -458,32 +439,14 @@ export function createView() {
 
   // ================================================================ Call the Winner
   function showCall() {
-    const alive = aliveOf(game).filter(u => u !== me());
-    if (alive.length < 2) return;
-    const endsAt = ((game.out[me()] && game.out[me()].at) || serverNow()) + CALL_MS;
-    const made = st.live && st.live.calls && st.live.calls[me()];
-    if (made) { els.ui.dataset.call = `YOUR CALL · ${player(made.w).name}`; hudSig = ''; renderHud(); return; }
-    if (serverNow() > endsAt - 1500) { els.ui.dataset.call = 'NO CALL'; hudSig = ''; renderHud(); return; }
-    let picked = null;
-    const bar = h('i');
-    const grid = h('div.gl-call-grid', alive.map(uid => {
-      const p = player(uid);
-      return h('button.gl-call-pick', { type: 'button', style: { '--c': colorHex(p.color) }, onclick: () => pick(uid) }, avatar(p.avatar, p.color, 40), h('b', p.name), h('small', `${shipsLeft(uid)} SHIP${shipsLeft(uid) === 1 ? '' : 'S'} · ${(game.pts && game.pts[uid]) || 0} PTS`));
-    }));
-    const el = h('div.gl-call', { 'data-nogesture': '' }, h('div.gl-kicker', 'CALL THE WINNER'), h('p', `${alive.length} fleets left — a right call earns game-night points.`), grid, h('div.gl-call-bar', bar));
-    els.overlay.append(el);
-    function pick(uid) {
-      if (picked || serverNow() > endsAt) return;
-      picked = uid; sfx.play('lock'); vibrate(12);
-      dbUpdate(dbRef(`rooms/${st.code}/glcall/${game.matchId}/${me()}`), { w: uid, at: serverTimestamp() }).catch(e => toast(String(e.message || e).toUpperCase(), 'err'));
-      close(`YOUR CALL · ${player(uid).name}`);
-    }
-    function close(msg) { el.classList.add('is-done'); setTimeout(() => el.remove(), 300); els.ui.dataset.call = msg || 'NO CALL'; hudSig = ''; renderHud(); }
-    const iv = setInterval(() => {
-      const left = endsAt - serverNow();
-      bar.style.transform = `scaleX(${Math.max(0, left / CALL_MS)})`;
-      if (left <= 0 || picked || destroyed || game.phase === 'final' || game.phase === 'end') { clearInterval(iv); if (!picked) close('NO CALL'); }
-    }, 100);
+    kitCall({
+      overlay: els.overlay, prefix: 'gl', game, st, me: me(), player, candidates: aliveOf(game).filter(u => u !== me()),
+      path: `rooms/${st.code}/glcall/${game.matchId}/${me()}`,
+      line: uid => `${shipsLeft(uid)} SHIP${shipsLeft(uid) === 1 ? '' : 'S'} · ${(game.pts && game.pts[uid]) || 0} PTS`,
+      intro: n => `${n} fleets left — a right call earns game-night points.`,
+      sfx: () => sfx.play('lock'), ended: () => game.phase === 'final' || game.phase === 'end', isDestroyed: () => destroyed,
+      onState: msg => { els.ui.dataset.call = msg; hudSig = ''; renderHud(); },
+    });
   }
 
   // ================================================================ results
@@ -503,14 +466,10 @@ export function createView() {
   const noteFor = uid => { const r = (game.results && game.results[uid]) || {}; const b = boardOf(game, uid); return game.capped && !(game.out && game.out[uid] && !game.out[uid].cap) ? `${b.left} CELLS AFLOAT · ${r.acc || 0}% ACCURACY` : `${r.acc || 0}% ACCURACY · ${r.sk || 0} SUNK`; };
   function resultsPanel() {
     const res = game.results || {};
-    const body = standings(game).map(r => {
-      const x = res[r.uid] || {}; const p = player(r.uid);
-      return h('tr', { class: r.uid === me() ? 'is-me' : null, style: { '--c': colorHex(p.color) } }, h('th', p.name), ...[ordinal(r.rank), x.pts || 0, `${x.acc || 0}%`, x.hi || 0, x.sk || 0, x.el || 0].map(c => h('td', String(c))));
+    return reportPanel({
+      prefix: 'gl', title: 'BATTLE REPORT', head: ['PLACE', 'PTS', 'ACCURACY', 'HITS', 'SUNK', 'ELIMS'], calls: game.calls, player,
+      rows: standings(game).map(r => { const x = res[r.uid] || {}; const p = player(r.uid); return { uid: r.uid, name: p.name, color: p.color, me: r.uid === me(), cells: [ordinal(r.rank), x.pts || 0, `${x.acc || 0}%`, x.hi || 0, x.sk || 0, x.el || 0] }; }),
     });
-    const panel = h('div.gl-res', h('div.gl-kicker', 'BATTLE REPORT'), h('div.gl-res-scroll', h('table', h('thead', h('tr', ...['', 'PLACE', 'PTS', 'ACCURACY', 'HITS', 'SUNK', 'ELIMS'].map(x => h('th', x)))), h('tbody', ...body))));
-    const items = Object.entries(game.calls || {}).map(([uid, c]) => { const p = player(uid), w = player(c.w); return h('li', { class: c.ok ? 'is-ok' : 'is-miss' }, h('b', { style: { color: colorHex(p.color) } }, p.name), ' called ', h('b', { style: { color: colorHex(w.color) } }, w.name), h('em', c.ok ? ` ✓ +${c.bonus} night pts` : ' ✗')); });
-    panel.append(h('div.gl-kicker', 'CALL THE WINNER'), items.length ? h('ul.gl-calls', ...items) : h('p.gl-none', 'Nobody made a call.'));
-    return panel;
   }
 
   // ================================================================ frame
@@ -523,18 +482,10 @@ export function createView() {
     runTimeline();
     scene.frame(now);
     renderTimer();
-    workTimes.push(performance.now() - w0); if (workTimes.length > 120) workTimes.shift();
-    autoTier(now);
+    tiers.sample(now, performance.now() - w0);
+    tiers.tick(now, scene.fps);
   }
-  function autoTier(now) {
-    const f = scene.fps;
-    if (f.length < 90 || now < tierCool) return;
-    const q = (a, p) => { const x = [...a].sort((m, n) => m - n); return x[Math.floor(x.length * p)]; };
-    const p75 = q(f, 0.75), work = q(workTimes, 0.75);
-    if (p75 > 19.5 && tier > 0) { tierFailed = tier; setTier(tier - 1); tierCool = now + 2500; goodSince = 0; return; }
-    if (p75 < 17.2 && work < 6 && tier < 2 && tier + 1 !== tierFailed) { if (!goodSince) goodSince = now; else if (now - goodSince > 8000) { setTier(tier + 1); tierCool = now + 4000; goodSince = 0; } } else goodSince = 0;
-  }
-  function setTier(t) { tier = Math.max(0, Math.min(2, t)); if (scene) scene.setTier(tier); workTimes.length = 0; }
+  const setTier = t => tiers.set(t);
 
   // ================================================================ input (pointer: drag ships, tap cells / boards)
   const pt = e => { const r = root.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -638,8 +589,9 @@ export function createView() {
 
   // ================================================================ test hook
   const api = { mount, update, unmount };
+  let hook = null;
   function setupTestHook() {
-    window.__gridlock = {
+    hook = installTestHook('__gridlock', {
       view: api,
       fleet: () => fleet && fleet.slice(),
       ready: () => ready,
@@ -657,14 +609,14 @@ export function createView() {
       camera: () => scene && scene.camera(),
       focus: uid => scene.focus(uid, {}),
       locks: () => [...els.lock.querySelectorAll('.gl-lock-dots i')].length,
-      announcements: () => annLog.slice(),
+      announcements: () => ann.log.slice(),
       sfxLog: () => sfx.log.slice(),
       timeline: () => timeline && { rk: timeline.rk, n: timeline.items.length, done: timeline.items.filter(i => i.done).length },
       evLog: () => evLog.slice(),
-      tier: () => tier, setTier, fps: () => scene.fps, work: () => workTimes.slice(), stats: () => scene.stats(),
+      tier: () => tier(), setTier, fps: () => scene.fps, work: () => tiers.work(), stats: () => scene.stats(),
       drag: () => drag && { idx: drag.idx, valid: drag.valid, cell: drag.cell },
       pick: (x, y) => scene.pick(x, y),
-    };
+    }, { always: true });
   }
   return api;
 }
