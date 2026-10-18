@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HIGH STAKES preview</title>
+<!-- The real HIGH STAKES view without Firebase, at any moment of a match:
+     ?n=4&round=2&at=intro|cat|dd|allin|bet|locked|q|answered|show|final-show|stand|final|spec&tier=2&loan=1 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/kit.css">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/stakes.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #030403; } #stage { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; }</style>
+</head>
+<body data-theme="stakes">
+<div id="stage"><div class="screen screen-in" id="screen"></div></div>
+<script type="module">
+import { createView } from '/js/games/stakes/view.js';
+import { createGame, showPatch } from '/js/games/stakes/director.js';
+import { addItems } from '/js/games/stakes/questions.js';
+import { MS, FINAL, pickQuestion, minBet, ledger } from '/js/games/stakes/logic.js';
+import { rngFrom } from '/js/core/rng.js';
+import { installEmblems } from '/js/ui/emblems.js';
+
+const q = new URLSearchParams(location.search);
+const n = Math.max(2, Math.min(8, Number(q.get('n') || 4)));
+const at = q.get('at') || 'bet';
+const COLORS = ['magenta', 'cyan', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'];
+const NAMES = ['BENNY', 'DEX', 'LUNA', 'ROOK', 'JUNO', 'VEE', 'KAI', 'NOVA'];
+const AV = ['crown', 'bolt', 'moon', 'diamond', 'star', 'eye', 'ghost', 'hex'];
+const uids = Array.from({ length: n }, (_, i) => `u${i}`);
+const me = at === 'spec' ? 'watcher' : uids[0];
+const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], color: COLORS[i], avatar: AV[i], joinedAt: i }]));
+if (at === 'spec') players.watcher = { name: 'LATE', color: 'blue', avatar: 'wave', joinedAt: 99 };
+const presence = Object.fromEntries(Object.keys(players).map(u => [u, { online: true, lastSeen: Date.now() }]));
+await document.fonts.ready;
+const now = Date.now() + Number(q.get('t') || 0);
+const game = createGame({ matchId: 'pvw', participants: Object.fromEntries(uids.map(u => [u, true])), now });
+const Q = [
+  ['science', 'Which element has the chemical symbol "Au"?', ['Gold', 'Silver', 'Argon', 'Aluminium']],
+  ['history', 'Which empire built the city of Machu Picchu?', ['The Inca', 'The Aztec', 'The Maya', 'The Olmec']],
+  ['geography', 'What is the capital city of Australia?', ['Canberra', 'Sydney', 'Melbourne', 'Perth']],
+  ['film', 'Who directed the 1975 thriller "Jaws"?', ['Steven Spielberg', 'George Lucas', 'Brian De Palma', 'Martin Scorsese']],
+  ['music', 'Which instrument has 88 keys on a standard model?', ['Piano', 'Organ', 'Harpsichord', 'Accordion']],
+  ['arts', 'Who wrote the novel "Moby-Dick"?', ['Herman Melville', 'Mark Twain', 'Nathaniel Hawthorne', 'Jack London']],
+  ['tech', 'What does the "S" in HTTPS stand for?', ['Secure', 'Server', 'Socket', 'Standard']],
+  ['nature', 'What is the largest species of shark?', ['Whale shark', 'Great white shark', 'Basking shark', 'Tiger shark']],
+  ['myth', 'In Greek mythology, who is the messenger of the gods?', ['Hermes', 'Apollo', 'Ares', 'Hephaestus']],
+  ['general', 'How many sides does a heptagon have?', ['Seven', 'Six', 'Eight', 'Nine']],
+];
+const OTDB = { science: 'Science & Nature', history: 'History', geography: 'Geography', film: 'Entertainment: Film', music: 'Entertainment: Music', arts: 'Art', tech: 'Science: Computers', nature: 'Animals', myth: 'Mythology', general: 'General Knowledge' };
+const items = [];
+for (const d of ['medium', 'hard']) for (const [cat, text, ans] of Q) items.push({ q: d === 'hard' ? `For the high rollers: ${text.charAt(0).toLowerCase()}${text.slice(1)}` : text, a: ans, c: 0, d, src: 'otdb', cn: OTDB[cat] });
+const apply = (o, p) => { for (const [k, v] of Object.entries(p)) { if (k === '$room') continue; const parts = k.split('/'); let x = o; for (const s of parts.slice(0, -1)) x = (x[s] ??= {}); if (v === null) delete x[parts.at(-1)]; else x[parts.at(-1)] = v; } return o; };
+apply(game, addItems(game, 'PVW1', items).patch);
+// history: rounds already played (some wins, some losses, a loan if asked)
+let round = at.startsWith('final') || at === 'allin' ? FINAL : at === 'dd' ? 3 : Number(q.get('round') || 2);
+const R = rngFrom('pv-hist');
+for (let r = 0; r < round; r++) {
+  const p = pickQuestion(game, r); game.plan[r] = p;
+  game.round = r; game.rk = String(r);
+  const hidden = {};
+  uids.forEach((u, i) => { const st = ledger(game, r)[u].stack; const all = q.has('loan') && i === 3 && r === 1; hidden[u] = { b: { b: all ? st : Math.round(st * (0.15 + R() * 0.4)) }, a: { a: R() < 0.55 - i * 0.05 ? 0 : 1 + (i % 3), at: now } }; });
+  apply(game, showPatch(game, hidden, 0, now));
+}
+game.round = round; game.rk = String(round);
+game.plan[round] = pickQuestion(game, round);
+const phase = { intro: 'intro', cat: 'cat', dd: 'cat', allin: 'cat', bet: 'bet', locked: 'bet', q: 'q', answered: 'q', show: 'show', 'final-show': 'show', stand: 'stand', final: 'final', spec: 'q' }[at] || 'bet';
+const live = { lock: {} };
+if (phase === 'bet') uids.slice(1).forEach((u, i) => { if (i % 2 === 0) live.lock[u] = { b: now - 2000 }; });
+if (phase === 'q') uids.forEach((u, i) => { live.lock[u] = { b: now - 9000, ...(i % 2 ? { a: now - 1000 } : {}) }; });
+Object.assign(game, { phase, phaseStartAt: now - (phase === 'cat' ? 0 : 1200), phaseEndsAt: now + (phase === 'bet' ? MS.bet - 4000 : phase === 'q' ? MS.q - 6000 : 6000), qStartAt: now - 1200 });
+if (phase === 'show' || phase === 'stand' || phase === 'final') {
+  const hidden = {};
+  uids.forEach((u, i) => { const st = ledger(game, round)[u].stack; hidden[u] = { b: { b: round === FINAL && i % 2 === 0 ? st : Math.max(minBet(st), Math.round(st * (0.2 + i * 0.07))) }, a: { a: i % 3 === 0 ? 0 : 2, at: now - 4000 } }; });
+  apply(game, showPatch(game, hidden, 0, now));
+  if (phase === 'show') { const pe = game.phaseEndsAt; game.phaseEndsAt = pe + 400; game.phaseStartAt = now - 900; }
+}
+if (phase === 'final') { game.phase = 'final'; for (let r = round + 1; r <= FINAL; r++) { game.round = r; game.plan[r] = pickQuestion(game, r); const hid = {}; uids.forEach((u, i) => { hid[u] = { b: { b: 100 }, a: { a: i === 0 ? 0 : 1, at: now } }; }); apply(game, showPatch(game, hid, 0, now)); } game.phase = 'final'; }
+installEmblems();
+const state = { uid: me, code: 'PVW1', players, presence, game, live, liveKey: 'x', meta: { hostId: uids[0] } };
+const view = createView();
+view.mount(document.getElementById('screen'), state);
+setTimeout(() => { if (q.has('tier')) window.__stakes.setTier(Number(q.get('tier'))); if (at === 'locked') window.__stakes.bet(250); if (at === 'answered') window.__stakes.answer(2); }, 60);
+window.__preview = { state, push: () => view.update({ ...state, game: { ...state.game } }) };
+</script>
+</body>
+</html>

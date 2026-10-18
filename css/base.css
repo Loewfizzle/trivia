@@ -48,6 +48,10 @@
 }
 
 /* Game identities */
+[data-theme='stakes'] {
+  --accent: #3fd49a; --accent-2: #f2c869; --accent-ink: #04140c;
+  --accent-soft: rgba(63, 212, 154, 0.12); --accent-glow: rgba(242, 200, 105, 0.42);
+}
 [data-theme='cipher'] {
   --accent: #3dff8b; --accent-2: #00f0ff; --accent-ink: #001a0b;
   --accent-soft: rgba(61, 255, 139, 0.12); --accent-glow: rgba(61, 255, 139, 0.45);

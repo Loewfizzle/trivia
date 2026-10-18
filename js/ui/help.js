@@ -6,6 +6,31 @@ import { GAMES } from '../config.js';
 
 // Each game: a one-line goal, then short scannable sections. Keep them phone-sized.
 const RULES = {
+  stakes: {
+    goal: 'Wager trivia in the back room. You see the category first — bet on what you know, then answer.',
+    sections: [
+      ['EACH ROUND', [
+        'A card turns over: the category and how hard it is (MEDIUM or HARD).',
+        'Bet chips in secret (15 s): at least 10 % of your stack, up to ALL IN. Nobody sees your bet until the showdown.',
+        'Then the question (20 s): four answers, one tap. No time bonus — take a breath.',
+        'Showdown: the right answer lights up and every bet turns over, one by one.',
+      ]],
+      ['THE MONEY', [
+        'Everyone starts with 1,000 chips.',
+        'Right on MEDIUM wins your bet. Right on HARD wins twice your bet. Wrong (or no answer) loses it.',
+        'DOUBLE DOWN (rounds 4 and 8): every payout is doubled.',
+        'Run out of time to bet? You bet the minimum.',
+      ]],
+      ['THE HOUSE', [
+        'Hit zero and the house loans you 200 so you stay in (as often as you need).',
+        'Loans come off your final total — you can’t win on borrowed money.',
+      ]],
+      ['ALL IN', [
+        'After 10 rounds, the final: always HARD, bet up to everything you have.',
+        'The showdown goes from last place to first. Most chips (minus loans) wins; a tie goes to whoever answered faster overall.',
+      ]],
+    ],
+  },
   cipher: {
     goal: 'Everyone gets the same secret word. Crack it before your friends do.',
     sections: [
@@ -303,7 +328,7 @@ const LEGEND = [
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
+const TAB = { stakes: 'HS', gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
 
 let sheet = null;
 

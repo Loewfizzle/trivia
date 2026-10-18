@@ -1,5 +1,7 @@
 // Finished matches of every game, shaped like the real `game` nodes at phase 'final' (docs/data-model.md), for the
 // profile / board tests. finalGame(id, uids, opts) — uids[0] wins, uids[1] is second, and so on.
+import { minBet, payout, START, LOAN } from '../../js/games/stakes/logic.js';
+
 export const T0 = Date.UTC(2026, 9, 14, 23, 0, 0); // a Wednesday evening, Eastern
 
 const parts = uids => Object.fromEntries(uids.map(u => [u, true]));
@@ -54,6 +56,24 @@ export function finalGame(id, uids, opts = {}) {
       const out = Object.fromEntries(uids.slice(1).map((u, k) => [u, { at: T0 + 300_000 - k, place: k + 2, rem: k + 1, by: uids[0] }]));
       return { ...base, mode, settings: { mode, placeSec: 60, turnSec: 20 }, out, winner: uids[0], pts: byRank(uids, i => 900 - i * 100),
         results: byRank(uids, i => ({ pts: 900 - i * 100, sh: 30, hi: 12, sk: i ? 1 : 5, el: i === 0 ? n - 1 : 0, acc: 40, ab: 0, bl: 0, bp: 0 })) };
+    }
+    case 'stakes': {
+      // uids[0] answers right every round, the others wrong; everyone bets the minimum (the real limits and payouts)
+      const plan = {}, res = {};
+      const stack = Object.fromEntries(uids.map(u => [u, START]));
+      for (let r = 0; r <= 10; r++) {
+        plan[r] = { i: r, cat: ['science', 'history'][r % 2], d: r % 3 === 1 || r === 10 ? 'hard' : 'medium' };
+        res[r] = {};
+        uids.forEach((u, i) => {
+          const b = minBet(stack[u]);
+          const ok = i === 0;
+          const d = ok ? b * payout(plan[r].d, r) : -b;
+          res[r][u] = { b, a: ok ? 1 : 0, ok, d, t: 3000 + i * 500 };
+          stack[u] += d;
+          if (stack[u] <= 0) stack[u] += LOAN;
+        });
+      }
+      return { ...base, round: 10, rk: '10', plan, res, reveal: {}, n0: n };
     }
     default: throw new Error(`no fixture for ${id}`);
   }

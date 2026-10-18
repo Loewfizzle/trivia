@@ -60,6 +60,7 @@ export async function createRoom(profile) {
     await remove(dbRef(`spy/${code}`)).catch(() => {}); // …and no old DOUBLE AGENT secrets
     await remove(dbRef(`fleets/${code}`)).catch(() => {}); // …or GRIDLOCK fleets
     await remove(dbRef(`glsonar/${code}`)).catch(() => {});
+    await remove(dbRef(`hsbet/${code}`)).catch(() => {});
     await writePlayer(code, profile, {});
     enterRoom(code);
     return code;
@@ -210,6 +211,7 @@ export async function leaveRoom() {
         await remove(dbRef(`spy/${code}`)).catch(() => {});
         await remove(dbRef(`fleets/${code}`)).catch(() => {});
         await remove(dbRef(`glsonar/${code}`)).catch(() => {});
+        await remove(dbRef(`hsbet/${code}`)).catch(() => {});
         exitRoom();
         return;
       }
@@ -232,7 +234,7 @@ export async function updateMyProfile(profile) {
 
 // Best effort: the rules allow it for the host, or anyone once the room is idle (no game for ROOM_IDLE_MS).
 async function deleteRoom(code) {
-  try { await remove(dbRef(R(code))); await remove(dbRef(`chats/${code}`)); await remove(dbRef(`spy/${code}`)); await remove(dbRef(`fleets/${code}`)); await remove(dbRef(`glsonar/${code}`)); } catch { /* not allowed / offline: the session is dropped anyway */ }
+  try { await remove(dbRef(R(code))); await remove(dbRef(`chats/${code}`)); await remove(dbRef(`spy/${code}`)); await remove(dbRef(`fleets/${code}`)); await remove(dbRef(`glsonar/${code}`)); await remove(dbRef(`hsbet/${code}`)); } catch { /* not allowed / offline: the session is dropped anyway */ }
 }
 
 // An hour without a game (host.js tick): close it for everyone, or at least leave it ourselves.
@@ -251,7 +253,7 @@ export async function cleanupStaleRooms() {
   const cutoff = serverNow() - ROOM_TTL_MS - 60_000;
   const snap = await get(query(dbRef('rooms'), orderByChild('meta/activeAt'), endAt(cutoff), limitToFirst(20)));
   const jobs = [];
-  snap.forEach(child => { jobs.push(remove(child.ref).then(() => remove(dbRef(`chats/${child.key}`))).then(() => remove(dbRef(`spy/${child.key}`))).then(() => remove(dbRef(`fleets/${child.key}`))).then(() => remove(dbRef(`glsonar/${child.key}`))).catch(() => {})); });
+  snap.forEach(child => { jobs.push(remove(child.ref).then(() => remove(dbRef(`chats/${child.key}`))).then(() => remove(dbRef(`spy/${child.key}`))).then(() => remove(dbRef(`fleets/${child.key}`))).then(() => remove(dbRef(`glsonar/${child.key}`))).then(() => remove(dbRef(`hsbet/${child.key}`))).catch(() => {})); });
   await Promise.all(jobs);
 }
 

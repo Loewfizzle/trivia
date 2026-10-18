@@ -15,10 +15,12 @@ import { standings as prismStandings } from '../games/prism/logic.js';
 import { standings as slipStandings } from '../games/slip/logic.js';
 import { maxSpeed } from '../games/slip/course.js';
 import { standings as gridlockStandings } from '../games/gridlock/logic.js';
+import { standings as stakesStandings, ledger as stakesLedger, minBet as stakesMinBet, payout as stakesPayout, START as STAKES_START, LOAN as STAKES_LOAN } from '../games/stakes/logic.js';
 
 const STANDINGS = {
   cipher: cipherStandings, signal: signalRankings, overclock: ocStandings, bluff: bluffStandings, pulse: pulseStandings,
   golf: golfStandings, agent: agentStandings, prism: prismStandings, slip: slipStandings, gridlock: gridlockStandings,
+  stakes: stakesStandings,
 };
 export const REPORT_GAMES = Object.keys(STANDINGS);
 const num = v => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
@@ -172,7 +174,30 @@ function gridlockExtra(game, uid, out, row, ctx, win) {
   if (win && ['classic', 'salvo', 'royale', 'arcade'].includes(mode)) out.c[`w_${mode}`] = 1;
 }
 
-const EXTRA = { cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra };
+/** HIGH STAKES: every round replayed — each bet within the table's limits, each result the bet × the payout. */
+function stakesExtra(game, uid, out) {
+  let stack = STAKES_START;
+  const rounds = Object.keys(game.res || {}).map(Number).sort((a, b) => a - b);
+  for (const r of rounds) {
+    const x = game.res[r] && game.res[r][uid];
+    if (!x) continue;
+    const plan = (game.plan || {})[r] || {};
+    const okD = ['medium', 'hard'].includes(plan.d);
+    const want = x.ok ? x.b * stakesPayout(plan.d, r) : -x.b;
+    if (!okD || !Number.isInteger(x.b) || x.b < Math.min(stakesMinBet(stack), stack) || x.b > stack || x.d !== want) {
+      out.rejected.push({ uid, board: 'stakes-chips', v: x.d });
+      return;
+    }
+    stack += x.d;
+    if (stack <= 0) stack += STAKES_LOAN;
+  }
+  const L = stakesLedger(game)[uid];
+  if (!L) return;
+  if (L.net > 0) out.rec['stakes-chips'] = L.net;
+  if (L.best > 0) out.rec['stakes-big'] = L.best;
+}
+
+const EXTRA = { cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra };
 
 /** Is this a finished match we can count? (null = yes, else the reason) */
 export function unreportable(game) {

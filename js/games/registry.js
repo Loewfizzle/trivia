@@ -20,8 +20,9 @@ import * as agent from './agent/index.js';
 import * as prism from './prism/index.js';
 import * as slip from './slip/index.js';
 import * as gridlock from './gridlock/index.js';
+import * as stakes from './stakes/index.js';
 
-export const GAME_MODULES = { cipher, signal, overclock, bluff, pulse, golf, agent, prism, slip, gridlock };
+export const GAME_MODULES = { cipher, signal, overclock, bluff, pulse, golf, agent, prism, slip, gridlock, stakes };
 
 export function livePathsFor(game) {
   const mod = game && GAME_MODULES[game.id];
@@ -34,4 +35,4 @@ export function liveKeyFor(game) {
 }
 
 // Every player-writable node any game uses; wiped when a match starts or ends.
-export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall'];
+export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock'];

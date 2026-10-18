@@ -26,6 +26,7 @@ export const GAME_BOARDS = {
   agent: { records: [], career: [car('agent-esc', 'ESCAPES', { stat: 'esc' }), car('agent-spot', 'AGENTS CAUGHT', { stat: 'spot', short: 'CAUGHT' })] },
   signal: { records: [], career: [car('signal-el', 'ELIMINATIONS', { stat: 'el', short: 'ELIMS' })] },
   bluff: { records: [], career: [car('bluff-fool', 'PLAYERS FOOLED', { stat: 'fool', short: 'FOOLED' })] },
+  stakes: { records: [rec('stakes-chips', 'BEST FINAL STACK', 'int', { short: 'CHIPS' }), rec('stakes-big', 'BIGGEST SINGLE HAND', 'int', { short: 'WON' })], career: [] },
 };
 export const BOARD_GAMES = Object.keys(GAME_BOARDS);
 export const PULSE_DIFFS = ['easy', 'normal', 'hard'];

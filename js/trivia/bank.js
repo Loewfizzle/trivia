@@ -22,12 +22,13 @@ export const fallbackReady = () => !!rows;
 
 // Picks n unused questions (preferring the selected categories). Returns
 // normalized items, or null if the bank hasn't loaded on this client yet.
-export function pickFallback(n, { cats = null, seen = {}, rand = Math.random } = {}) {
+// d: the difficulty wanted (default medium; HIGH STAKES also asks for hard).
+export function pickFallback(n, { cats = null, seen = {}, rand = Math.random, d = 'medium' } = {}) {
   if (!rows) return null;
   const want = cats && cats.length ? new Set(cats) : null;
   // medium questions only, unless a very long night has used them all up
   const unseen = rows.filter(r => !seen[qHash(r[2])]);
-  const mediums = unseen.filter(r => r[1] === 'medium');
+  const mediums = unseen.filter(r => r[1] === d);
   const fresh = mediums.length >= n ? mediums : unseen;
   let pool = want ? fresh.filter(r => want.has(r[0])) : fresh;
   if (pool.length < n) pool = fresh.length >= n ? fresh : rows; // widen rather than stall

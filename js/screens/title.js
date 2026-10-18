@@ -31,7 +31,7 @@ import { neonPowerOn, neonTick, startRain, cityPowerOn } from '../audio/ambience
 import { createDistrict } from './district/scene.js';
 import { captureBackdrop } from './district/backdrop.js';
 
-const ACC = { overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
+const ACC = { stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
 const BACK = 'nd:back';          // sessionStorage: just stepped back from the name / profile screen (a quick re-light)
 const store = (s, k, v) => { try { if (v === undefined) return s.getItem(k); s.setItem(k, v); } catch { /* private mode */ } return null; };

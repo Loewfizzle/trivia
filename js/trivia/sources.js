@@ -24,9 +24,11 @@ export function decodeEntities(str) {
     .trim();
 }
 
-export function normalize({ q, correct, wrong, cat, d, src }, rand = Math.random) {
+export function normalize({ q, correct, wrong, cat, d, src, cn }, rand = Math.random) {
   const answers = shuffle(rand, [correct, ...wrong]);
-  return { q, a: answers, c: answers.indexOf(correct), cat, d, src };
+  const out = { q, a: answers, c: answers.indexOf(correct), cat, d, src };
+  if (cn) out.cn = cn;   // the source's own category name (HIGH STAKES maps it to its table categories)
+  return out;
 }
 
 // Questions that read badly on a phone or as multiple choice are skipped.
@@ -67,7 +69,8 @@ export async function requestOtdbToken(fetchFn = fetch) {
 
 // Returns { code, items }. code mirrors OTDB's response_code (0 ok, 1 no results,
 // 3/4 token invalid/exhausted, 5 rate limited).
-export async function fetchOtdb({ amount = 20, difficulty, category, token, fetchFn = fetch, rand = Math.random }) {
+// accept: the difficulties kept (HIGH STAKES asks for medium and hard; everything else stays medium-only).
+export async function fetchOtdb({ amount = 20, difficulty, category, token, fetchFn = fetch, rand = Math.random, accept = ['medium'] }) {
   const p = new URLSearchParams({ amount: String(amount), type: 'multiple' });
   if (difficulty) p.set('difficulty', difficulty);
   if (category) p.set('category', String(category));
@@ -83,15 +86,16 @@ export async function fetchOtdb({ amount = 20, difficulty, category, token, fetc
       cat: categoryFromOtdbName(x.category),
       d: x.difficulty,
       src: 'otdb',
+      cn: x.category,
     }))
     // its sports pool is club nicknames and stat trivia even at medium: sports come from The Trivia API / the bank
-    .filter(x => x.d === 'medium' && x.cat !== 'sports' && acceptable(x) && !tooSpecific(x))
+    .filter(x => accept.includes(x.d) && x.cat !== 'sports' && acceptable(x) && !tooSpecific(x))
     .map(x => normalize(x, rand));
   return { code: j.response_code, items };
 }
 
-export async function fetchTriviaApi({ limit = 20, categories = [], fetchFn = fetch, rand = Math.random }) {
-  const p = new URLSearchParams({ limit: String(limit), difficulties: 'medium', types: 'text_choice' });
+export async function fetchTriviaApi({ limit = 20, categories = [], fetchFn = fetch, rand = Math.random, accept = ['medium'] }) {
+  const p = new URLSearchParams({ limit: String(limit), difficulties: accept.join(','), types: 'text_choice' });
   if (categories.length) p.set('categories', categories.join(','));
   const r = await fetchFn(`https://the-trivia-api.com/v2/questions?${p}`);
   if (!r.ok) throw new Error(`trivia api ${r.status}`);
@@ -104,7 +108,8 @@ export async function fetchTriviaApi({ limit = 20, categories = [], fetchFn = fe
       cat: categoryFromTapi(x.category),
       d: x.difficulty,
       src: 'tapi',
+      cn: x.category,
     }))
-    .filter(x => x.d === 'medium' && acceptable(x) && !tooSpecific(x))
+    .filter(x => accept.includes(x.d) && acceptable(x) && !tooSpecific(x))
     .map(x => normalize(x, rand));
 }

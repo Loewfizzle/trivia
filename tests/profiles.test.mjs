@@ -122,7 +122,7 @@ test('board catalog: every game has WINS + WIN RATE; records, pulse songs, sort 
 
 test('every game reports its finished match: placings, wins, highlights, records', () => {
   assert.deepEqual([...REPORT_GAMES].sort(), GAMES.map(g => g.id).sort());
-  const expectRec = { cipher: ['cipher-score', 'cipher-fast5'], overclock: ['overclock-std'], pulse: ['pulse-pulse1-normal'], golf: ['golf-par9'], slip: ['slip-dist'] };
+  const expectRec = { cipher: ['cipher-score', 'cipher-fast5'], overclock: ['overclock-std'], pulse: ['pulse-pulse1-normal'], golf: ['golf-par9'], slip: ['slip-dist'], stakes: ['stakes-chips', 'stakes-big'] };
   const expectC = { signal: 'el', bluff: 'fool', agent: 'esc', prism: 'ko', gridlock: 'sunk' };
   for (const id of REPORT_GAMES) {
     const ex = extractMatch(finalGame(id, U), { pulseCounts });

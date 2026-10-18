@@ -258,7 +258,29 @@ ${glow('gl-glow', 2)}${glow('gl-glow2', 4)}</defs>
 </svg>`;
 }
 
-const ART = { gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+// HIGH STAKES: the back room — emerald felt under a warm lamp, a gold-edged card turned up, a stack of chips
+const STAKES = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<radialGradient id="ha-felt" cx="0.5" cy="0.35" r="0.85"><stop offset="0" stop-color="#17855a"/><stop offset="0.55" stop-color="#0a4a30"/><stop offset="1" stop-color="#021009"/></radialGradient>
+<radialGradient id="ha-lamp" cx="0.5" cy="0.1" r="0.6"><stop offset="0" stop-color="#ffe2a8" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb860" stop-opacity="0"/></radialGradient>
+<linearGradient id="ha-card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#e8dcbc"/></linearGradient>
+<linearGradient id="ha-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1c8"/><stop offset="0.5" stop-color="#f2c869"/><stop offset="1" stop-color="#a8731f"/></linearGradient>
+<linearGradient id="ha-back" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f6a44"/><stop offset="1" stop-color="#062a1a"/></linearGradient>
+${glow('ha-glow', 1.8)}</defs>
+<rect width="120" height="120" fill="url(#ha-felt)"/><rect width="120" height="120" fill="url(#ha-lamp)"/>
+<path d="M28 0h64l-8 9H36z" fill="#16100a"/><ellipse cx="60" cy="9" rx="24" ry="3.5" fill="#ffe8b8" filter="url(#ha-glow)"/>
+<g transform="rotate(-14 46 62)"><rect x="27" y="34" width="38" height="54" rx="4" fill="url(#ha-back)" stroke="url(#ha-gold)" stroke-width="1.6"/>
+<path d="M31 38l30 46M61 38L31 84" stroke="#f2c869" stroke-opacity="0.25" stroke-width="0.8"/></g>
+<g transform="rotate(9 68 60)"><rect x="49" y="31" width="38" height="54" rx="4" fill="url(#ha-card)" stroke="url(#ha-gold)" stroke-width="1.8"/>
+<rect x="52" y="34" width="32" height="48" rx="2.5" fill="none" stroke="#c99234" stroke-width="0.7"/>
+<path d="M68 45c6 6 9 9 9 13a5 5 0 0 1-8 4l2 6h-6l2-6a5 5 0 0 1-8-4c0-4 3-7 9-13z" fill="#0f6a44"/>
+<text x="55" y="42" font-family="Georgia,serif" font-size="7" font-weight="700" fill="#8a2c4c">H</text></g>
+<g filter="url(#ha-glow)" opacity="0.5"><ellipse cx="88" cy="99" rx="15" ry="5" fill="#f2c869"/></g>
+<g>${[0, 1, 2, 3, 4].map(i => `<ellipse cx="88" cy="${104 - i * 4.4}" rx="14" ry="4.6" fill="${i % 2 ? '#16161a' : '#6d1f3a'}" stroke="#f2c869" stroke-width="0.9" stroke-dasharray="3 2.4"/>`).join('')}
+<ellipse cx="88" cy="86.4" rx="14" ry="4.6" fill="#d9a93a" stroke="#fff4d2" stroke-width="0.9" stroke-dasharray="3 2.4"/><ellipse cx="88" cy="86.4" rx="7" ry="2.3" fill="#f6d27a"/></g>
+<g>${[0, 1, 2].map(i => `<ellipse cx="22" cy="${106 - i * 4.4}" rx="12" ry="4" fill="#0f6e48" stroke="#f4efe0" stroke-width="0.8" stroke-dasharray="2.6 2.2"/>`).join('')}</g>
+</svg>`;
+
+const ART = { stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

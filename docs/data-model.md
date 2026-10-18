@@ -181,3 +181,12 @@ results/{code}_{matchId}: { st: busy|done, at, g, mode, n, src: room|snap, by, r
 audit/{push}:     { at, by (admin pid), act, pid, … }                                                  server only
 rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid})
 ```
+
+## HIGH STAKES (`docs/stakes.md`)
+```
+game: { id:'stakes', matchId, participants, n0, dplan[11], round, rk, phase: intro|cat|bet|q|show|stand|final, phaseStartAt, phaseEndsAt,
+        qStartAt, plan{round:{i, cat, d}}, res{round:{uid:{b, a (-1 none), ok, d, t}}}, reveal{round: correctIndex}, order[] (final reveal),
+        bank{i: enc}, qmeta{i: "cat|d"} (public), trivia{n, token, lastFetchAt, fails, seen} }
+rooms/{CODE}/hslock/{m}/{rk}/{uid}: { b?: server time, a?: server time }   ← own, public flags only, only with the hidden value behind them
+hsbet/{CODE}/{m}/{rk}/{uid}: { b: { b, at }, a: { a 0-3, at } }            ← top level; owner reads; the host from 'show' on; once each, in phase
+```

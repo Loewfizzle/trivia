@@ -25,3 +25,4 @@ export async function initFirebase() { return null; }
 export const getDb = () => null;
 export const dbRef = path => ({ path });
 export const serverNow = () => Date.now();
+export const idToken = () => Promise.reject(new Error('preview: no sign-in'));

@@ -1,6 +1,6 @@
 # NEON SPEAKEASY — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Ten games. Static site on Vercel
+Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Eleven games. Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
 plus four Vercel serverless functions in `/api` (profiles, server-verified results, THE BOARD — `docs/profiles.md`).
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
@@ -19,7 +19,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/chat.md` | room chat (data, locks per game, system lines, profanity filter) |
 | `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
 | `docs/profiles.md` | profiles, name tags + keys, `/api`, result reporting, THE BOARD, XP ranks, emblems, `/board`, `/admin`, the Vercel setup |
-| `docs/pulse.md` `docs/golf.md` `docs/prism.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` | that game |
+| `docs/pulse.md` `docs/golf.md` `docs/prism.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` | that game |
 
 ## Ground rules
 - **No build step.** Plain HTML/CSS/ES modules. No npm deps in the shipped site (the root `package.json` only gives the `/api`
@@ -51,6 +51,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   seconds; run the E2E once the look is right.
 - **Profiles are polish too:** joining and playing must work with `/api` down or unconfigured (no tags, no emblems, results queue).
   Clients never write boards, stats, XP or ranks (server-only in the rules); board ids use dashes (`cipher-score`), never dots.
+- **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
 - **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
 
 ## Working efficiently (what cost the most in past sessions)
@@ -71,7 +72,7 @@ package.json                                             only firebase-admin for
 css/base.css components.css screens.css title.css        tokens + themes, the design system (+ NEON GLASS), setup/lobby, the title
 css/kit.css                                              the match kit's default look (announcements, cards, Call the Winner, report)
 css/board.css admin.css                                  THE BOARD, the membership card, podium plaques + rank-up; the admin page
-css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent) + css/chat.css
+css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow()
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
 js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js   PURE: room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
@@ -106,7 +107,7 @@ rooms/{CODE}/
   game:      host-only; per-game shape; totals are always DERIVED from results (never stored) so a replayed step can't double-score
   night/{matchId}:   { g, p: { uid: 3|2|1|0 }, n: { uid: name }, b?: { uid: bonus }, at }  ← host; game-night scoreboard
   <game nodes>/{matchId}/…/{uid}                              ← a player's own data for the current step, phase-gated by the rules
-chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not
+chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   hsbet/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not
 profiles/{pid} (public)  uids/{uid} (own)  pstats/{pid} (owner)  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ (server only)   ← docs/profiles.md
 ```
 Rules of thumb: a player writes only under their own uid; anything secret (fleets, agent cards) lives outside `rooms/`; the host
@@ -135,7 +136,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **Live player data:** each module's `livePaths(game)` names the player-written paths for the current step.
   `room.js` mirrors them into `state.live` and sets `state.liveKey` only once all have loaded.
   Directors and views must check `liveKey` before trusting `live` (a refresh must never look like "no progress").
-- **Privacy pattern** (GRIDLOCK, DOUBLE AGENT): secrets in a top-level node readable by the owner (+ the host when it must act);
+- **Privacy pattern** (GRIDLOCK, DOUBLE AGENT, HIGH STAKES — whose host may read the hidden bets only once the phase is `show`): secrets in a top-level node readable by the owner (+ the host when it must act);
   the owner's client does the private computation and publishes only the public result; the host falls back after a few seconds
   or at once when the owner is offline; a rules test proves another player cannot read it.
 
@@ -180,7 +181,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
    counts, and write `docs/<id>.md`.
 
 ## Testing (the short version; every suite and flag: `docs/testing.md`)
-- `node --test tests/*.test.mjs` — unit + whole-match simulations of all ten games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
+- `node --test tests/*.test.mjs` — unit + whole-match simulations of all eleven games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
 - `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
 - Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;
   app: `node scripts/serve.mjs` → `http://localhost:5173/?emu` (`&slot=2`… for more players on one computer).

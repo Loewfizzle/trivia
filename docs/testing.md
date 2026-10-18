@@ -18,6 +18,9 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - App against emulators: `node scripts/serve.mjs --emu` then open `http://localhost:5173/?emu` (add `&slot=2` …). `?emu` only works on localhost.
     `--emu` also runs the `/api` functions on the emulators (`npm install` at the repo root once, for firebase-admin); env
     `MATCH_GAP_MS=0` lets the E2E suites count back-to-back matches, `ADMIN_PIDS=<pid>` opens `/admin` for that profile.
+  - HIGH STAKES: `node --test ../stakes.test.mjs`; `FAST=1 node e2e-stakes.mjs "<browser>" ./shots-stakes` (≈ 4 min, a whole match with
+    bots); the full run (`N=4..8`) adds a refresh mid-bet, the host killed, a late joiner, music + mute and frame pacing. Look without
+    Firebase: `stakes-preview.html?at=bet&n=6` (see docs/stakes.md).
   - **Profiles + boards** (`docs/profiles.md`): `node --test ../profiles.test.mjs` (pure: week keys, XP, name filter, keys, catalog, every
     game's results + plausibility, with `tests/fixtures/finals.mjs`); `node --test server.test.mjs` (the `/api` functions on the
     emulators: creation, migration, restore, regen, renames on every board, opt-out, forged / impossible / duplicate / offline

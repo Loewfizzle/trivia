@@ -65,7 +65,8 @@ function musicFor(st) {
   // musicFor(game): a track that changes during the match (NEON PAR: one per zone) -> [track, fallback]
   if (mod && mod.musicFor && st.game.phase !== 'final') return mod.musicFor(st.game);
   const track = mod && mod.musicFor ? mod.musicFor(st.game)[0] : mod && 'MUSIC' in mod ? mod.MUSIC : 'menu';
-  return st.game.phase === 'final' ? ['victory', track] : [track];
+  // FINAL_MUSIC: a game's own podium music (HIGH STAKES: victory.mp3, never the other fanfares)
+  return st.game.phase === 'final' ? [(mod && mod.FINAL_MUSIC) || 'victory', track] : [track];
 }
 
 function render(st) {

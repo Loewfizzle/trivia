@@ -4,7 +4,7 @@
 > (`js/ui/logo.js` → `scripts/build-boot-logo.mjs`) and the icons/preview (`tests/integration/render-assets.mjs`).
 > It was NEURAL ARCADE until October 2026.
 
-NEON SPEAKEASY — *game night, after dark.* One web app, ten games, 2–8 players, each on their own phone — same room or different cities.
+NEON SPEAKEASY — *game night, after dark.* One web app, eleven games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
@@ -12,10 +12,11 @@ Hosted at **neonspeakeasy.com** (since Oct 2026; games.loewfizzle.com and trivia
 Backend: Firebase Realtime Database + Anonymous Auth, and four Vercel serverless functions (`/api`, firebase-admin) for profiles,
 server-verified results and THE BOARD.
 
-## The games — all ten are playable
+## The games — all eleven are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
+| 11 | **HIGH STAKES** | Wager trivia in the high-roller back room: see only the category and difficulty, bet chips in secret, then answer. MEDIUM pays 1×, HARD 2×, DOUBLE DOWN doubles it; house loans that come off your total; an ALL IN final revealed last place to first. | emerald felt and gold under a single lamp | ✅ Stage 13 |
 | 1 | **CIPHER BREACH** | Competitive Wordle race; opponents' boards live as color-only tiles; word length grows. | terminal green / cyan | ✅ Stage 1 |
 | 2 | **NEURAL BLUFF** | Bluffing trivia: write a convincing lie, find the truth among everyone's lies, score for fooling friends. 356 hand-written strange-but-true questions. | cold "Ministry of Truth" dossiers | ✅ Stage 3 |
 | 3 | **LAST SIGNAL** | Trivia battle royale: HP + shields, strike your target, escalating damage, decaying UI. | alarm red | ✅ Stage 2 |
@@ -281,6 +282,23 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
       21 % accuracy; people hunt better and lock in faster)
 - [x] New SFX in the layered style (marker, volley, card draw / arm / play, sonar + its answers, cluster split, torpedo, fizzle, shield up,
       shield block, relocate); help text for both modes; E2E matches C (Salvo) and D (Arcade) on the harness
+- [x] **The rules file changed: re-publish `database.rules.json` in the Firebase console.**
+
+### ✅ Stage 13 — HIGH STAKES (wager trivia, the signature room) (Oct 2026) — `docs/stakes.md`
+- [x] Rules first: chips, bets (min 10 % / at least 10, max all in, timeout = the minimum), payouts (MEDIUM 1×, HARD 2×, DOUBLE DOWN
+      rounds 4 and 8 ×2), house loans (200, repeatable, subtracted at the end), ties by total answer time, ALL IN last-to-first —
+      all derived from the round results; whole-match tests with 2 and 8 players and a host replay
+- [x] Questions: Open Trivia DB (session token, batches of 50, rate-limited) → The Trivia API → the bundled bank; MEDIUM and HARD only;
+      eleven table categories, never the same one twice in a row; a seeded difficulty plan, the final always HARD; obfuscated in the room
+- [x] Hidden bets and answers in a top-level node only their owner reads (the host only from the showdown on); public lock flags;
+      rules tests; rejoin restores your locked bet and answer; host migration in every phase; late joiners watch
+- [x] The back room: a baked Canvas 2D room (frosted-glass neon, emerald felt with a woven texture and printed gold, a polished rail),
+      the lamp's warm pool and sway, haze in the lamplight, chips flying in weighted arcs, the 3D gold-foil category card, the cream
+      and gold question card, a bet dock with a chip slider and draggable chips, showdown cards flipping in sequence, DOUBLE DOWN flare +
+      gold sweep, ALL IN darkness and a spotlight, the winner's slow chip rain; quality tiers; reduced effects
+- [x] Music: the owner's high1–3 (seeded per room, crossfading), ducking for showdowns, near-silence for ALL IN, victory.mp3 on the
+      podium (a new per-game `FINAL_MUSIC`); tactile synth SFX (chip clacks, stacks, flip, lock, chime, slide, accent, drone, tick)
+- [x] THE BOARD: best final stack and biggest single hand (records), wins (career), every round replayed by the server
 - [x] **The rules file changed: re-publish `database.rules.json` in the Firebase console.**
 
 ### ✅ Profiles, THE BOARD and SPEAKEASY RANKS (Oct 2026) — `docs/profiles.md`

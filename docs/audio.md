@@ -54,7 +54,7 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
 
 
 ## Music
-NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`), DOUBLE AGENT's `spy1-3` and PRISM DROP's `prism1-5` are the owner's, re-encoded at 112 kbps stereo.
+HIGH STAKES' `high1-3` (lo-fi, the owner's, 112 kbps; playlist `stakes`, seeded per room) and NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`), DOUBLE AGENT's `spy1-3` and PRISM DROP's `prism1-5` are the owner's, re-encoded at 112 kbps stereo.
 Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 -ar 44100 -ac 2 -b:a 128k`; overclock at
 120k to stay under 4 MB). The originals stay out of the repo.
 

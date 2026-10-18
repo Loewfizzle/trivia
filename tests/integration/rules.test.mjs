@@ -699,3 +699,37 @@ test('profiles + boards: public profiles, private stats and keys, nothing a clie
   await assertFails(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), pid: 'pmike0000000' }), 'claiming someone else\'s profile');
   await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), player('TWO')), 'no profile id is fine (the server may be down)');
 });
+
+test('HIGH STAKES: bets and answers are hidden until the showdown, once each, in their phase', async () => {
+  const base = lobbyRoom();
+  base.rooms[CODE].players.p3 = { name: 'THREE', color: 'cyan', avatar: 'bolt', joinedAt: 3 };
+  base.rooms[CODE].presence.p3 = { online: true, lastSeen: now() };
+  base.rooms[CODE].meta.status = 'playing';
+  const room = phase => { const r = structuredClone(base); r.rooms[CODE].game = { id: 'stakes', matchId: 'm1', round: 2, rk: '2', phase, participants: { host: true, p2: true, p3: true } }; return r; };
+  const B = `hsbet/${CODE}/m1/2`;
+  const LK = `${R}/hslock/m1/2`;
+  await seed(room('bet'));
+  await assertFails(set(ref(db('p2'), `${LK}/p2/b`), serverTimestamp()), 'no lock without the hidden bet behind it');
+  await assertSucceeds(set(ref(db('p2'), `${B}/p2/b`), { b: 250, at: serverTimestamp() }), 'a bet, privately');
+  await assertFails(set(ref(db('p2'), `${B}/p2/b`), { b: 999, at: serverTimestamp() }), 'once');
+  await assertFails(set(ref(db('p3'), `${B}/p2/b`), { b: 1, at: serverTimestamp() }), 'not for someone else');
+  await assertFails(set(ref(db('p2'), `${B}/p2/a`), { a: 1, at: serverTimestamp() }), 'no answer while betting');
+  await assertSucceeds(set(ref(db('p2'), `${LK}/p2/b`), serverTimestamp()), 'the public lock flag (no amount)');
+  await assertFails(set(ref(db('p2'), `${LK}/p2/b`), 250), 'a lock flag carries no amount');
+  await assertSucceeds(get(ref(db('p2'), `${B}/p2`)), 'the owner reads their bet');
+  await assertFails(get(ref(db('p3'), `${B}/p2`)), 'another player can\'t');
+  await assertFails(get(ref(db('host'), B)), 'nor the host, before the showdown');
+  await assertFails(get(ref(db('p3'), `${R}/game`)).then(() => get(ref(db('p3'), `hsbet/${CODE}`))), 'nobody reads the whole node');
+  await seed(room('q'));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${B}/p2/b`), { b: 250, at: 1 }));
+  await assertFails(set(ref(db('p2'), `${B}/p2/a`), { a: 7, at: serverTimestamp() }), 'answers are 0–3');
+  await assertSucceeds(set(ref(db('p2'), `${B}/p2/a`), { a: 2, at: serverTimestamp() }), 'an answer, privately');
+  await assertFails(set(ref(db('p2'), `${B}/p2/a`), { a: 1, at: serverTimestamp() }), 'one tap locks it');
+  await assertFails(set(ref(db('p3'), `${B}/p3/b`), { b: 100, at: serverTimestamp() }), 'too late to bet');
+  await assertFails(get(ref(db('host'), B)), 'still hidden from the host while answering');
+  await seed(room('show'));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${B}/p2`), { b: { b: 250, at: 1 }, a: { a: 2, at: 2 } }));
+  await assertSucceeds(get(ref(db('host'), B)), 'the host reads the round to resolve the showdown');
+  await assertFails(get(ref(db('p3'), `${B}/p2`)), 'players still can\'t (the results are published in the room)');
+  await assertFails(set(ref(db('outsider'), `hsbet/${CODE}/m1/2/outsider/b`), { b: 1, at: serverTimestamp() }), 'not in the match');
+});
