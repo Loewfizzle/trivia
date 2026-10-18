@@ -382,8 +382,11 @@ body.nd-on .music-btn { right: calc(var(--safe-r) + 62px); }
 
 /* ---- small sign (lobby header) ---- */
 .nd-mini { display: flex; flex-direction: column; align-items: center; gap: 0; pointer-events: none; }
-.nd-mini .nd-logo-wrap { width: 112px; }
-.nd-mini .nd-word { opacity: 1; transform: none; font-size: 7.5px; letter-spacing: 0.62em; padding-left: 0.62em; margin-top: -3px; text-shadow: none; color: rgba(236, 240, 255, 0.8); }
+.nd-mini .nd-logo-wrap { width: 168px; }
+.nd-mini .nd-word { opacity: 1; transform: none; font-size: 10.5px; letter-spacing: 0.62em; padding-left: 0.62em; margin-top: -4px; text-shadow: 0 0 10px rgba(150, 170, 255, 0.35); color: rgba(236, 240, 255, 0.85); }
+/* a lit sign's rare flicker (lobby.js toggles .off on one letter, like the title does with .on) */
+.nd-logo.is-lit .ndl.off .ndl-light { opacity: 0.08; }
+.nd-logo.is-lit .ndl.off .ndl-glow1, .nd-logo.is-lit .ndl.off .ndl-glow2 { opacity: 0.2; transition: none; }
 
 /* ---- phones with little height ---- */
 @media (max-height: 720px) {

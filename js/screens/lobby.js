@@ -1,5 +1,6 @@
 // Lobby: room code + invite, live player list, host game picker.
-import { h, clear } from '../ui/dom.js';
+import { h, clear, reducedMotion } from '../ui/dom.js';
+import { neonTick } from '../audio/ambience.js';
 import { playerChip, segmented, chips as chipSelect, accessGranted, avatar } from '../ui/components.js';
 import { nightStandings } from '../core/night.js';
 import { colorHex } from '../config.js';
@@ -61,11 +62,12 @@ export function createLobby() {
     els.hint = h('p.lobby-hint.mono');
     els.idle = h('div.lobby-idle', { hidden: true, role: 'status' });
     els.idleTimer = setInterval(renderIdle, 5000);
+    flickerStop = false; scheduleFlicker();
     els.night = h('section.lobby-section.night');
     el.append(
       h('button.btn.btn-ghost.btn-sm.lobby-leave', { type: 'button', onclick: confirmLeave, 'aria-label': 'Leave room' }, '‹ LEAVE ROOM'),
       h('header.lobby-head',
-        h('div.nd-mini', { 'aria-label': APP_NAME, role: 'img' }, h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndl', lit: true, clips: false, blur: 0.7 }) }), h('div.nd-word', 'SPEAKEASY')),
+        (els.sign = h('div.nd-mini', { 'aria-label': APP_NAME, role: 'img' }, h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndl', lit: true, clips: false, blur: 0.7 }) }), h('div.nd-word', 'SPEAKEASY'))),
         h('div.lobby-room',
           h('span.label', 'ROOM CODE'),
           els.code),
@@ -297,7 +299,26 @@ export function createLobby() {
     setTimeout(() => { if (kickArmed.uid === uid) { kickArmed = { uid: null, at: 0 }; update(st); } }, 3000);
   }
 
+  // every ~20–40 s one letter of the sign gives a tiny, realistic flicker (the title does the same)
+  let flickerTimer = 0, flickerStop = false;
+  function scheduleFlicker() {
+    if (reducedMotion()) return;
+    clearTimeout(flickerTimer);
+    flickerTimer = setTimeout(() => {
+      if (flickerStop || !els.sign || !els.sign.isConnected) return;
+      const letters = [...els.sign.querySelectorAll('.ndl')];
+      const l = letters[Math.floor(Math.random() * letters.length)];
+      if (l) {
+        const seq = [0, 60, 95, 130, 190];
+        seq.forEach((ms, k) => setTimeout(() => { if (!flickerStop) l.classList.toggle('off', !(k % 2 === 1 || k === seq.length - 1)); }, ms));
+        neonTick();
+      }
+      scheduleFlicker();
+    }, 20000 + Math.random() * 20000);
+  }
+
   function unmount() {
+    flickerStop = true; clearTimeout(flickerTimer);
     clearInterval(els.idleTimer);
     if (sheet) { sheet.remove(); sheet = null; }
     if (els.chatStrip) { els.chatStrip.destroy(); els.chatStrip = null; }
