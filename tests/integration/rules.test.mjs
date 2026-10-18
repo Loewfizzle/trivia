@@ -661,3 +661,41 @@ test('gridlock resolutions: the target or the host, once, while resolving; calls
   await assertSucceeds(set(ref(db('p3'), `${R}/glcall/m1/p3`), { w: 'host', at: serverTimestamp() }));
   await assertFails(set(ref(db('p2'), `${R}/glcall/m1/p2`), { w: 'host', at: serverTimestamp() }), 'still in: no call');
 });
+
+test('profiles + boards: public profiles, private stats and keys, nothing a client can write', async () => {
+  await seed({
+    ...lobbyRoom(),
+    profiles: { pmike0000000: { n: 'Mike', nk: 'mike', t: '4821', a: 'bolt', c: 'cyan', x: 300, r: 1, at: 1 } },
+    uids: { host: 'pmike0000000' },
+    pstats: { pmike0000000: { xp: 300, g: { cipher: { p: 3, w: 1 } } } },
+    ppriv: { pmike0000000: { kh: 'abc', nameAt: 0 } },
+    pkeys: { abc: 'pmike0000000' },
+    tags: { mike: { 4821: 'pmike0000000' } },
+    lb: { 'cipher-wins': { all: { pmike0000000: 1 } } },
+    results: { ABCD_m1: { st: 'done' } },
+    audit: { a1: { act: 'hide' } },
+  });
+  // public: names, tags, emblems (the lobby and chat show them)
+  await assertSucceeds(get(ref(db('p2'), 'profiles/pmike0000000')));
+  await assertSucceeds(get(ref(db(null), 'profiles/pmike0000000')), 'even without signing in');
+  // private: the device link and the stats are the owner's; keys, tags, private fields, results and the audit log nobody's
+  await assertSucceeds(get(ref(db('host'), 'uids/host')));
+  await assertFails(get(ref(db('p2'), 'uids/host')));
+  await assertSucceeds(get(ref(db('host'), 'pstats/pmike0000000')), 'the owner reads their stats');
+  await assertFails(get(ref(db('p2'), 'pstats/pmike0000000')), 'nobody else does');
+  for (const path of ['ppriv/pmike0000000', 'pkeys', 'pkeys/abc', 'tags/mike', 'lb', 'lb/cipher-wins/all', 'results/ABCD_m1', 'audit', 'rl']) {
+    await assertFails(get(ref(db('host'), path)), `read ${path}`);
+  }
+  // server-write only: no client writes a profile, stats, XP, rank, board entry or link
+  const writes = [
+    ['profiles/pmike0000000/x', 99999], ['profiles/pmike0000000/r', 4], ['profiles/pmike0000000/n', 'Mikey'], ['profiles/pnew00000000', { n: 'X', t: '1111' }],
+    ['uids/host', 'pother000000'], ['uids/p2', 'pmike0000000'], ['pstats/pmike0000000/xp', 1e9], ['pstats/pmike0000000/g/cipher/w', 50],
+    ['lb/cipher-wins/all/pmike0000000', 999], ['lb/slip-dist/all/pmike0000000', 1e7], ['pkeys/zzz', 'pmike0000000'], ['ppriv/pmike0000000/opt', true],
+    ['tags/mike/1234', 'pmike0000000'], ['results/ABCD_m2', { st: 'done' }], ['audit/x', { act: 'x' }],
+  ];
+  for (const [path, v] of writes) await assertFails(set(ref(db('host'), path), v), `write ${path}`);
+  // a room player node may carry the player's OWN profile id, and nobody else's
+  await assertSucceeds(set(ref(db('host'), `${R}/players/host`), { ...player('HOST'), pid: 'pmike0000000' }));
+  await assertFails(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), pid: 'pmike0000000' }), 'claiming someone else\'s profile');
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), player('TWO')), 'no profile id is fine (the server may be down)');
+});

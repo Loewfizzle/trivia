@@ -15,7 +15,19 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   ```
   (`firebase.json` lives at the repo root — firebase-tools refuses rules files outside its project directory.)
   - Rules tests: `node --test rules.test.mjs`
-  - App against emulators: `node scripts/serve.mjs` then open `http://localhost:5173/?emu` (add `&slot=2` …). `?emu` only works on localhost.
+  - App against emulators: `node scripts/serve.mjs --emu` then open `http://localhost:5173/?emu` (add `&slot=2` …). `?emu` only works on localhost.
+    `--emu` also runs the `/api` functions on the emulators (`npm install` at the repo root once, for firebase-admin); env
+    `MATCH_GAP_MS=0` lets the E2E suites count back-to-back matches, `ADMIN_PIDS=<pid>` opens `/admin` for that profile.
+  - **Profiles + boards** (`docs/profiles.md`): `node --test ../profiles.test.mjs` (pure: week keys, XP, name filter, keys, catalog, every
+    game's results + plausibility, with `tests/fixtures/finals.mjs`); `node --test server.test.mjs` (the `/api` functions on the
+    emulators: creation, migration, restore, regen, renames on every board, opt-out, forged / impossible / duplicate / offline
+    reports, weekly vs all-time, rank outside the top 100, XP rank-ups, admin, the name filter, every game + every GRIDLOCK mode, the
+    HTTP layer with real ID tokens); `node e2e-profiles.mjs "<browser>" ./shots-profiles` (the flow in browsers: automatic profiles,
+    migration, emblems in the lobby, podium plaques + XP + RANK UP, an unreachable server's queued report delivered once, the key
+    reminder, restore in a fresh browser, a new key retiring the old, THE BOARD with the pinned rank, opt-out, the public /board).
+    Looks without a server: `board-preview.html` (`?mode=public&g=pulse&c=records&p=all&far=1&anon=1&empty=1&err=1`),
+    `results-preview.html` (`?case=first|top10|world|pb|merged|rankup|legend`), `emblems-preview.html`; `og-board.html` renders the
+    /board link preview (`render-assets.mjs` writes assets/og-board.jpg).
   - **Smoke test first (~2 min):** `node e2e-smoke.mjs "<browser path>" ./shots` — two REGULAR phone tabs (no `?slot=`; every
     other suite uses test slots, which once hid a lobby bug that printed "null" only on a real phone): create/join, lobby, HOW TO
     PLAY, all six games started and watched, back to the lobby. Fails on visible "null"/"undefined"/"NaN"/"[object Object]",

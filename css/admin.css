@@ -1,0 +1,56 @@
+/* /admin — simpler than the public screens, still on-brand: dark glass, warm brass, the board's type. Prefix ad-. */
+body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--font-ui); background: radial-gradient(80% 60% at 50% 0%, rgba(255, 170, 90, 0.08), transparent 70%), linear-gradient(180deg, #0d0709, #050305); }
+.ad { box-sizing: border-box; max-width: 1240px; margin: 0 auto; padding: calc(var(--safe-t) + 20px) 16px 40px; }
+.ad-wait { padding: 40px; text-align: center; color: var(--bd-dim); font: 700 11px/1 var(--font-mono); letter-spacing: 0.3em; }
+.ad-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; }
+.ad-head h1, .ad-denied h1 { margin: 4px 0 0; font: 900 30px/1 var(--font-display); letter-spacing: 0.14em; color: #fff6e6; text-shadow: 0 0 18px rgba(255, 170, 80, 0.5); }
+.ad-kicker { font: 700 10px/1 var(--font-mono); letter-spacing: 0.4em; color: rgba(242, 200, 105, 0.85); }
+.ad-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 1000px) { .ad-grid { grid-template-columns: 340px 1fr; } .ad-audit { grid-column: 1 / -1; } }
+.ad-card { border-radius: 18px; padding: 16px; background: linear-gradient(180deg, rgba(30, 17, 20, 0.88), rgba(12, 7, 11, 0.94)); border: 1px solid rgba(255, 214, 150, 0.2); box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.14), 0 20px 50px rgba(0, 0, 0, 0.5); }
+.ad-card h2 { margin: 0 0 12px; font: 900 13px/1 var(--font-display); letter-spacing: 0.2em; color: #fff3dc; }
+.ad-card h3 { margin: 18px 0 8px; font: 700 10px/1 var(--font-mono); letter-spacing: 0.26em; color: rgba(242, 200, 105, 0.85); }
+.ad-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ad-row .input { flex: 1; min-width: 180px; }
+.ad-between { justify-content: space-between; }
+.ad-dim { color: var(--bd-dim); font-size: 13px; }
+.ad-btn { min-height: 40px; padding: 0 14px; border-radius: 999px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.12em; color: #f6ecd8; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 220, 180, 0.28); }
+.ad-btn.is-primary { color: #1a1007; background: linear-gradient(180deg, #ffe9b8, #f2c869 55%, #c99234); border: 0; }
+.ad-btn.is-danger { color: #ffc2cf; border-color: rgba(255, 110, 140, 0.5); }
+.ad-btn.is-armed { color: #fff; background: rgba(255, 51, 85, 0.35); border-color: rgba(255, 110, 140, 0.8); }
+.ad-btn:disabled { opacity: 0.5; }
+.ad-results { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; max-height: 60vh; overflow-y: auto; }
+.ad-hit { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 10px; border-radius: 12px; text-align: left; color: inherit; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 220, 180, 0.1); }
+.ad-hit:hover, .ad-hit:focus-visible { border-color: rgba(242, 200, 105, 0.5); }
+.ad-hit-n { flex: 1; display: flex; flex-direction: column; font-weight: 600; }
+.ad-hit-n small, .ad-who-n small { font: 600 11px/1.3 var(--font-num); color: var(--bd-faint); }
+.ad-tag { padding: 4px 7px; border-radius: 6px; font: 700 9px/1 var(--font-mono); letter-spacing: 0.14em; color: #c8f5d8; border: 1px solid rgba(120, 230, 160, 0.4); }
+.ad-tag.is-hidden { color: #ffe0a0; border-color: rgba(255, 200, 100, 0.5); }
+.ad-tag.is-bad { color: #ffc2cf; border-color: rgba(255, 110, 140, 0.55); }
+.ad-who { display: flex; align-items: center; gap: 14px; }
+.ad-who > div { flex: 1; min-width: 0; }
+.ad-who-n { display: flex; gap: 8px; align-items: baseline; font: 700 22px/1.2 var(--font-ui); }
+.ad-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ad-boards { display: flex; flex-direction: column; gap: 8px; }
+.ad-board { padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 220, 180, 0.1); display: flex; flex-direction: column; gap: 8px; }
+.ad-board-h { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.ad-board-h code, .ad-pidbox code { font: 600 11px/1.3 var(--font-mono); color: var(--bd-faint); }
+.ad-board-v { display: flex; gap: 18px; font: 700 10px/1.2 var(--font-mono); letter-spacing: 0.12em; color: var(--bd-dim); }
+.ad-board-v b { font: 700 14px/1 var(--font-num); color: #fff; letter-spacing: 0; }
+.ad-games { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--bd-dim); }
+.ad-games b { color: #fff; }
+.ad-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ad-log li { display: grid; grid-template-columns: 130px 110px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 38px; border-top: 1px solid rgba(255, 220, 180, 0.07); font-size: 13px; }
+@media (max-width: 760px) { .ad-log li { grid-template-columns: 1fr 1fr; padding: 6px 0; } }
+.ad-when { font: 600 11px/1 var(--font-mono); color: var(--bd-faint); }
+.ad-linkbtn { text-align: left; color: #f2c869; min-height: 32px; }
+.ad-link { color: #f2c869; font: 700 12px/1 var(--font-ui); letter-spacing: 0.12em; text-decoration: none; }
+.ad-denied { max-width: 560px; margin: 8vh auto 0; display: flex; flex-direction: column; gap: 14px; }
+.ad-denied p { margin: 0; line-height: 1.5; color: var(--bd-dim); }
+.ad-pidbox { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px; border-radius: 12px; border: 1px dashed rgba(242, 200, 105, 0.5); }
+.ad-pidbox span { font: 700 10px/1 var(--font-mono); letter-spacing: 0.2em; color: var(--bd-faint); }
+.ad-pidbox code { font-size: 15px; color: #fff3dc; }
+.ad-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--bd-dim); line-height: 1.5; }
+.ad-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; padding: 10px 16px; border-radius: 999px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.1em; color: #1a1007; background: #f2c869; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transition: opacity 0.3s; }
+.ad-toast.is-err { color: #fff; background: #c2304c; }
+.ad-toast.is-out { opacity: 0; }

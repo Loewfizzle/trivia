@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Results moments preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/board.css">
+<style>html, body { margin: 0; background: #04050d; } #stage { position: relative; height: 100dvh; }</style>
+</head>
+<body data-theme="slip">
+<div id="stage"><section class="screen screen-in"></section></div>
+<script type="module">
+  // The podium with the global-board moments, no server: ?case=first|top10|pb|world|rankup|legend|merged
+  import { setState } from '/js/store.js';
+  import { createFinal } from '/js/ui/final.js';
+  import { installEmblems } from '/js/ui/emblems.js';
+  const q = new URLSearchParams(location.search);
+  const kind = q.get('case') || 'merged';
+  const xp = (from, to, parts) => ({ gain: to - from, from, to, parts: parts || [{ k: 'played', label: 'MATCH PLAYED', v: 30 }, { k: 'win', label: 'VICTORY', v: 52 }, { k: 'pb', label: 'PERSONAL BEST', v: 20 }] });
+  const OUT = {
+    first: { gid: 'slip', xp: xp(1200, 1302), rk: { from: 1, to: 1 }, pbs: [{ b: 'slip-dist', v: 9412, prev: 8700 }], ranks: [{ b: 'slip-dist', all: { rank: 3, prev: 5 }, week: { rank: 1, prev: 2 } }] },
+    top10: { gid: 'slip', xp: xp(1200, 1302), rk: { from: 1, to: 1 }, pbs: [{ b: 'slip-dist', v: 6120, prev: 5400 }], ranks: [{ b: 'slip-dist', all: { rank: 8, prev: 23 }, week: { rank: 4, prev: 9 } }] },
+    world: { gid: 'slip', xp: xp(1200, 1282), rk: { from: 1, to: 1 }, pbs: [{ b: 'slip-dist', v: 3120, prev: 2900 }], ranks: [{ b: 'slip-dist', all: { rank: 214, prev: 400 }, week: { rank: 31, prev: 50 } }] },
+    pb: { gid: 'slip', xp: xp(1200, 1250), rk: { from: 1, to: 1 }, pbs: [{ b: 'slip-dist', v: 2120, prev: 1980 }], ranks: [] },
+    merged: { gid: 'cipher', xp: xp(1200, 1310), rk: { from: 1, to: 1 }, pbs: [{ b: 'cipher-score', v: 897, prev: 640 }, { b: 'cipher-fast5', v: 9420, prev: 12100 }], ranks: [{ b: 'cipher-score', all: { rank: 1, prev: 4 }, week: { rank: 1 } }, { b: 'cipher-fast5', all: { rank: 1, prev: 2 }, week: { rank: 1 } }, { b: 'cipher-wins', all: { rank: 6, prev: 12 }, week: { rank: 1 } }] },
+    rankup: { gid: 'slip', xp: xp(230, 312), rk: { from: 0, to: 1 }, pbs: [{ b: 'slip-dist', v: 2120, first: true }], ranks: [{ b: 'slip-dist', all: { rank: 57, prev: null }, week: { rank: 6, prev: null } }] },
+    legend: { gid: 'slip', xp: xp(24950, 25040), rk: { from: 3, to: 4 }, pbs: [], ranks: [] },
+  };
+  installEmblems();
+  const players = { me: { name: 'BENNY', color: 'magenta', avatar: 'crown', pid: 'pmeeeeeeeeee' }, u2: { name: 'DEX', color: 'cyan', avatar: 'bolt' }, u3: { name: 'LUNA', color: 'yellow', avatar: 'moon' } };
+  setState({ code: 'ABCD', uid: 'me', players, game: { id: 'slip', matchId: `m${kind}`, phase: 'final', participants: { me: true, u2: true, u3: true } } });
+  sessionStorage.setItem(`rc:ABCD_m${kind}`, JSON.stringify(OUT[kind]));
+  const rows = [{ uid: 'me', rank: 1, score: 9412 }, { uid: 'u2', rank: 2, score: 8100 }, { uid: 'u3', rank: 3, score: 5200 }];
+  setTimeout(() => {
+    const f = createFinal({ rows, players, me: 'me', presence: {}, winnerLine: n => `${n} RODE THE FARTHEST`, scoreLabel: 'M' });
+    document.querySelector('.screen').append(f.el);
+  }, 50);
+</script>
+</body>
+</html>

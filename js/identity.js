@@ -42,6 +42,22 @@ function write(name, value) {
 export const loadProfile = () => read('profile');
 export const saveProfile = p => write('profile', p);
 
+// The global profile this device is linked to (server-made, see js/profile/me.js):
+// { uid, pid, profile: { n, t, a, c, x, r, h }, at } — pid only counts for the uid it was made for.
+export const loadMe = () => read('me');
+export const saveMe = m => write('me', m);
+// The profile restore key (NEON-XXXX-XXXX-XXXX): only ever on the player's own devices.
+export const loadKey = () => read('pkey');
+export const saveKey = k => write('pkey', k);
+// small per-device notes for the profile UI: { saved (key saved), prompted (times asked), games (matches finished) }
+export const loadNotes = () => read('pnotes') || {};
+export const saveNotes = n => write('pnotes', n);
+// the results queue (js/profile/queue.js)
+export const loadQueue = () => read('rq') || [];
+export const saveQueue = q => write('rq', q && q.length ? q : null);
+export const loadDone = () => read('rdone') || [];
+export const saveDone = d => write('rdone', d);
+
 // { code, at }
 export const loadSession = () => read('session');
 export const saveSession = code => write('session', code ? { code, at: Date.now() } : null);

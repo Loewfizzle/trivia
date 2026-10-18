@@ -78,14 +78,15 @@ async function makeRoom(sizes, slots = ['a', 'b', 'c']) {
   await A.click('.nd-host');
   await A.waitForSelector('.setup-screen input.input');
   await sleep(1500);
-  const menuAtSetup = await A.evaluate(() => (window.__arcade.musicDebug().voices.find(v => v.id === 'menu') || {}).t || 0);
+  // the menu playlist's tracks are menu1…menu4 (shuffled per visit): whichever one is playing
+  const menuAtSetup = await A.evaluate(() => (window.__arcade.musicDebug().voices.find(v => /^menu/.test(v.id || '') && !v.paused) || {}).t || 0);
   await A.type('.setup-screen input.input', 'ALICE');
   await A.click('.avatar-pick[data-id="crown"]');
   await A.click('.swatch[data-id="magenta"]');
   await clickText(A, 'CREATE ROOM');
   await A.waitForSelector('.lobby-screen .room-code');
   await sleep(600);
-  const menuAtLobby = await A.evaluate(() => (window.__arcade.musicDebug().voices.find(v => v.id === 'menu') || {}).t || 0);
+  const menuAtLobby = await A.evaluate(() => (window.__arcade.musicDebug().voices.find(v => /^menu/.test(v.id || '') && !v.paused) || {}).t || 0);
   // title → setup → lobby share the menu track: it must keep playing, never restart
   if (!(menuAtSetup > 0.3 && menuAtLobby > menuAtSetup)) fail(`menu track restarted between screens: setup t=${menuAtSetup}, lobby t=${menuAtLobby}`);
   log(`menu track continuous across screens (setup t=${menuAtSetup}s → lobby t=${menuAtLobby}s)`);
@@ -126,9 +127,9 @@ async function signalE2E() {
 
   // --- audio: unlocked by the taps above, menu track playing ---
   await A.bringToFront();
-  await waitFor(A, () => window.__arcade.musicDebug().playing === 'menu', 'menu music playing', 10000);
+  await waitFor(A, () => (window.__arcade.musicDebug().playing || '').startsWith('menu'), 'menu music playing', 10000);
   // the menu track started on the first tap (title) and was never restarted through setup → lobby
-  const menuVoices = await A.evaluate(() => window.__arcade.musicDebug().voices.filter(v => v.id === 'menu'));
+  const menuVoices = await A.evaluate(() => window.__arcade.musicDebug().voices.filter(v => (v.id || '').startsWith('menu')));
   if (menuVoices.length !== 1) fail(`expected one menu voice, got ${JSON.stringify(menuVoices)}`);
   // A was hidden while the others joined (audio suspends in background) and resumes when visible again
   await waitFor(A, async () => (await import('/js/audio/engine.js')).getContext().state === 'running', 'audio resumes when tab visible', 5000);
@@ -167,7 +168,7 @@ async function signalE2E() {
   await waitFor(A, () => {
     const d = window.__arcade.musicDebug();
     const sig = d.voices.find(v => v.id === 'signal' && !v.paused);
-    const menu = d.voices.find(v => v.id === 'menu');
+    const menu = d.voices.find(v => (v.id || '').startsWith('menu') && !v.paused);
     return d.playing === 'signal' && sig && sig.gain > 0.95 && (!menu || menu.paused);
   }, 'crossfade to signal track completes', 8000);
   log('crossfade menu → signal OK', JSON.stringify(await A.evaluate(() => window.__arcade.musicDebug().voices)));
@@ -246,8 +247,8 @@ async function signalE2E() {
   await B.waitForSelector('.lobby-screen', { timeout: 15000 });
   await waitFor(B, () => {
     const d = window.__arcade.musicDebug();
-    const v = d.voices.find(x => x.id === 'menu' && !x.paused);
-    return d.playing === 'menu' && v && v.gain > 0.95 && d.voices.filter(x => x.id && x !== v).every(x => x.paused);
+    const v = d.voices.find(x => (x.id || '').startsWith('menu') && !x.paused);
+    return (d.playing || '').startsWith('menu') && v && v.gain > 0.95 && d.voices.filter(x => x.id && x !== v).every(x => x.paused);
   }, 'menu music back in lobby', 8000);
   log('back in lobby, menu music again');
   for (const p of [B, C]) await p.close();

@@ -26,6 +26,8 @@ the street outside: the district, the sign over the door.
 - **Logo** (`ui/logo.js`): "NEON" as four bent glass tubes (glass, wide + near glow, body, white-hot core, a hairline highlight,
   electrode caps, mounting clips), "SPEAKEASY" in Orbitron with wide tracking, framed by Art Deco rules ending in a diamond (`.nd-word::before/::after`, an inline SVG), the tagline `TAGLINE`. The same markup is used lit
   in the lobby header (small), unlit in the boot screen, and by `brand.html` for the icons (the tube N) and the link preview.
+- **THE BOARD** (the third door, under JOIN, gold light): the global leaderboards (`docs/profiles.md`); "Welcome back, NAME" carries
+  the rank emblem and opens the membership card; each preview sheet shows the game's top 3 and your rank.
 - **Menu:** HOST GAME (the one glowing element: glass with a slow light sheen; with a saved profile it opens a room in one tap,
   otherwise the name/avatar screen first), JOIN (one real input under four boxes: native keyboard, auto-caps, paste of a code
   or a whole invite link, auto-join on the 4th letter, a note when I/O are typed, inline errors for no room / full / removed),

@@ -1106,3 +1106,11 @@ body.nd-glass .lobby-leave.is-armed {
 .net.is-back { background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.02)), rgba(12, 13, 32, 0.84); border-color: rgba(255, 255, 255, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 1px rgba(93, 255, 176, 0.3), 0 0 26px rgba(93, 255, 176, 0.25), 0 10px 30px rgba(0, 0, 0, 0.4); }
 .net.is-back .net-dot { background: radial-gradient(circle at 35% 30%, #fff, #5dffb0 62%); box-shadow: 0 0 12px rgba(93, 255, 176, 0.9); animation: none; }
 @media (prefers-reduced-motion: reduce) { .net-dot { animation: none; } }
+
+/* ==========================================================================
+   SPEAKEASY RANKS — emblems and name tags next to names (js/ui/emblems.js); THE BOARD's own look is css/board.css
+   ========================================================================== */
+.rk-emb { display: inline-block; flex: none; vertical-align: middle; overflow: visible; }
+.rk-badge { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; vertical-align: -2px; white-space: nowrap; line-height: 1; }
+.rk-tag { font: 600 0.74em/1 var(--font-num); letter-spacing: 0.03em; color: var(--text-faint); font-variant-numeric: tabular-nums; text-shadow: none; }
+.rk-big .rk-emb { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--rk) 42%, transparent)); }

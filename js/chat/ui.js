@@ -9,6 +9,8 @@ import { serverNow } from '../firebase.js';
 import { sfx } from '../audio/sfx.js';
 import { chat, onChat, send, retry, discard, typingPing, stopTyping, markRead, locked } from './chat.js';
 import { maskProfanity, relTime, typingLine, typists, MAX_LEN, continues } from './logic.js';
+import { rankBadge } from '../ui/emblems.js';
+import { pubOf } from '../profile/public.js';
 
 const ICON = {
   chat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>',
@@ -126,7 +128,7 @@ export function openChat({ focus = false } = {}) {
     text.textContent = shown(m.t);
     const time = h('span.cm-time', { dataset: { at: String(m.at) } });
     const el = h('div.cm', { class: mine ? 'is-me' : null, dataset: { k: m.k } },
-      h('div.cm-head', mine ? null : h('b.cm-name', { style: { color: colorOf(m) } }, nameOf(m)), time),
+      h('div.cm-head', mine ? null : h('b.cm-name', { style: { color: colorOf(m) } }, nameOf(m), rankBadge(pubOf(playerOf(m.u)))), time),
       h('div.cm-bubble', { style: { '--c': colorOf(m) } }, text),
       h('div.cm-state'));
     el._m = m;

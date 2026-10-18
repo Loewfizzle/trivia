@@ -269,7 +269,8 @@ export function createLobby() {
       seen.add(uid);
       const p = st.players[uid];
       const offline = !isOnline(st.presence, uid);
-      const sig = JSON.stringify([p.name, p.color, p.avatar, offline, st.meta && st.meta.hostId === uid, host, kickArmed.uid === uid]);
+      const pub = st.pub && p.pid ? st.pub[p.pid] : null;
+      const sig = JSON.stringify([p.name, p.color, p.avatar, offline, st.meta && st.meta.hostId === uid, host, kickArmed.uid === uid, pub && pub.t, pub && pub.r]);
       let entry = chips.get(uid);
       if (!entry || entry.sig !== sig) {
         const kickBtn = host && uid !== st.uid

@@ -65,5 +65,6 @@ export function pulseClass(el, cls, ms) {
 // Light haptics where supported (Android); iOS Safari has no Vibration API — skipped silently.
 export function vibrate(pattern) {
   if (!settings.haptics) return;
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // before the first tap Chrome refuses (and logs it)
   try { navigator.vibrate && navigator.vibrate(pattern); } catch { /* unsupported */ }
 }

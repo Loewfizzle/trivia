@@ -19,6 +19,14 @@ import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
 import { showBackdrop } from './screens/district/backdrop.js';
 import { settings, onSettings } from './audio/settings.js';
+import { lazyView } from './games/lazy-view.js';
+
+// THE BOARD and the profile load only when opened (they're behind the title's buttons)
+const createBoardScreen = lazyView(() => import('./board/screen.js'));
+const createProfileScreen = lazyView(() => import('./screens/profile.js'));
+// profiles + the results queue: loaded once Firebase is up (never on the first paint)
+let profileMods = null;
+const withProfile = () => (profileMods ||= Promise.all([import('./profile/me.js'), import('./profile/queue.js')]).then(([me, queue]) => ({ me, queue })));
 
 document.title = APP_NAME;
 const stage = $('#stage');
@@ -32,7 +40,7 @@ if (resuming) { const s = document.querySelector('#boot .boot-status'); if (s) s
 
 function routeKey(st) {
   if (!st.ready && (resuming || st.code)) return 'boot';
-  if (!st.code) return st.view === 'setup' ? `setup:${st.setupMode}` : 'title';
+  if (!st.code) return st.view === 'setup' ? `setup:${st.setupMode}` : st.view === 'board' ? 'board' : st.view === 'profile' ? 'profile' : 'title';
   if (!st.meta) return 'boot';
   if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id]) return `game:${st.game.id}:${st.game.matchId}`;
   return `lobby:${st.code}`;
@@ -41,6 +49,8 @@ function routeKey(st) {
 function makeScreen(key) {
   if (key === 'title') return createTitle();
   if (key.startsWith('setup')) return createSetup();
+  if (key === 'board') return createBoardScreen();
+  if (key === 'profile') return createProfileScreen();
   if (key.startsWith('lobby')) return createLobby();
   if (key.startsWith('game:')) return GAME_MODULES[key.split(':')[1]].createView();
   return { mount(el) { el.classList.add('boot-screen'); }, update() {} }; // the inline #boot overlay covers this
@@ -48,6 +58,7 @@ function makeScreen(key) {
 
 // Which music track a state should hear. [track, fallbackIfMissing]
 function musicFor(st) {
+  if (!st.code && (st.view === 'board' || st.view === 'profile')) return ['menu1', 'menu']; // menu.mp3 in the board hall
   if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game) return ['menu'];
   const mod = GAME_MODULES[st.game.id];
   // MUSIC: null = no music during the match (PULSE: the song is the music; menu music fades out)
@@ -66,7 +77,7 @@ function render(st) {
   keepAwake(!!(st.code && st.meta && st.meta.status === 'playing'));
   renderConnection(st);
   // the menus (setup, lobby) sit on glass over the lit district, like the title
-  const glass = key.startsWith('setup') || key.startsWith('lobby');
+  const glass = key.startsWith('setup') || key.startsWith('lobby') || key === 'profile';
   if (document.body.classList.contains('nd-glass') !== glass) { document.body.classList.toggle('nd-glass', glass); showBackdrop(glass); }
 
   if (current && current.key === key) { current.screen.update && current.screen.update(st); return; }
@@ -87,6 +98,25 @@ function render(st) {
 }
 
 subscribe(render);
+// A finished match goes to the global boards: every phone in it queues one report when the podium appears
+// (the server counts it once and answers each phone with its own outcome). Back in the lobby, the key reminder.
+let reportedKey = '';
+subscribe(st => {
+  const g = st.game;
+  if (!st.code || !g || g.phase !== 'final' || !g.participants || !g.participants[st.uid]) return;
+  const k = `${st.code}_${g.matchId}`;
+  if (k === reportedKey) return;
+  reportedKey = k;
+  withProfile().then(m => m.queue.queueReport(st.code, g)).catch(() => {});
+});
+let lastStatus = '';
+subscribe(st => {
+  const s = st.code && st.meta ? st.meta.status : '';
+  if (s === lastStatus) return;
+  const back = lastStatus === 'playing' && s === 'lobby';
+  lastStatus = s;
+  if (back) withProfile().then(m => { if (m.me.shouldPromptKey()) import('./screens/profile.js').then(p => setTimeout(() => p.promptKey(), 1400)); }).catch(() => {});
+});
 // Room chat loads the first time we're in a room (never on the first paint): the in-game chat button.
 let chatInstalled = false;
 subscribe(st => {
@@ -173,6 +203,7 @@ async function boot() {
       if (connected) armPresence();
     });
     setState({ uid });
+    withProfile().then(m => { m.me.watchProfile(); m.me.syncMe(); m.queue.startQueue(); }).catch(e => console.warn('profile', e));
     const saved = loadSession();
     const resumed = await resumeSession();
     if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '' });

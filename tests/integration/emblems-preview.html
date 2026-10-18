@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rank emblems</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/board.css">
+<style>
+  :root { color-scheme: dark; }
+  body { background: #07060c; color: #e8f6ff; font-family: var(--font-ui); margin: 0; padding: 24px; }
+  .row { display: flex; align-items: center; gap: 22px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.06); flex-wrap: wrap; }
+  .row b { width: 110px; font-family: var(--font-display); font-size: 11px; letter-spacing: .2em; }
+  .name { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script type="module">
+  import { emblem, rankBadge } from '/js/ui/emblems.js';
+  import { RANKS } from '/js/core/ranks.js';
+  import { h } from '/js/ui/dom.js';
+  const out = document.getElementById('out');
+  RANKS.forEach((r, i) => {
+    out.append(h('div.row', h('b', r.name), emblem(i, 15), emblem(i, 18), emblem(i, 24), emblem(i, 40), emblem(i, 72), h('span.rk-big', emblem(i, 140)),
+      h('span.name', 'Mike', rankBadge({ t: '4821', r: i }))));
+  });
+</script>
+</body>
+</html>

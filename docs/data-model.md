@@ -167,3 +167,17 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 (`logic.js#deal(seed, round, v, seat…)`), so a new host recomputes the same deal; each player's card is written to
 `spy/{code}/card/{uid}`. Totals derive from `results`.
 
+
+## Profiles + THE BOARD (top level, server-written — `docs/profiles.md`)
+```
+profiles/{pid}:   { n, nk (name key), t (tag "4821"), a, c, x (XP), r (rank 0–4), at, h? (off the boards) }   read: anyone
+uids/{uid}:       pid                                     read: that uid. The device ↔ profile link
+pstats/{pid}:     { xp, g{game:{p,w,…counters}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{}},
+                    last, m{matchKey: at} (matches already counted) }                               read: the profile's owner
+ppriv/{pid}:      { kh (key HMAC), keyAt, at, nameAt, opt? (opted out), ban? (admin), uids{uid: at} }  server only
+pkeys/{keyHmac}:  pid          tags/{nameKey}/{tag}: pid          rl/{bucket}: { n, t } (restore attempts)   server only
+lb/{board}/{period}/{pid}: sort value (higher is better; period 'all' | 'w20261012')                 server only (read via /api/board)
+results/{code}_{matchId}: { st: busy|done, at, g, mode, n, src: room|snap, by, rej?, o{pid: outcome} }   server only
+audit/{push}:     { at, by (admin pid), act, pid, … }                                                  server only
+rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid})
+```

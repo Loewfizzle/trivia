@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>og-board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/board.css">
+<style>
+  /* the 1200×630 link preview for neonspeakeasy.com/board (render-assets.mjs → assets/og-board.png) */
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #060307; }
+  .og { position: relative; width: 1200px; height: 630px; overflow: hidden; color: #fff6e6; font-family: var(--font-ui); }
+  .og canvas { position: absolute; inset: 0; width: 1200px; height: 630px; }
+  .og-tint { position: absolute; inset: 0; background: radial-gradient(60% 50% at 50% 10%, rgba(255, 190, 110, 0.16), transparent 70%), radial-gradient(40% 50% at 92% 100%, rgba(255, 124, 203, 0.14), transparent 70%); }
+  .og-left { position: absolute; left: 330px; top: 46px; width: 540px; display: flex; flex-direction: column; align-items: center; }
+  .og-kicker { font: 700 13px/1 var(--font-mono); letter-spacing: 0.55em; padding-left: 0.55em; color: rgba(242, 200, 105, 0.9); }
+  .og-title { margin-top: 14px; font: 900 76px/1 var(--font-display); letter-spacing: 0.14em; padding-left: 0.14em; color: #fff6e6; text-shadow: 0 0 3px #fff, 0 0 16px rgba(255, 196, 110, 0.8), 0 0 46px rgba(255, 150, 60, 0.5); white-space: nowrap; }
+  .og-sub { margin-top: 12px; }
+  .og-card { position: absolute; left: 330px; top: 236px; width: 540px; border-radius: 22px; padding: 14px 0 6px;
+    background: linear-gradient(180deg, rgba(30, 17, 20, 0.92), rgba(12, 7, 11, 0.95)); border: 1px solid rgba(255, 214, 150, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.22), 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 70px rgba(255, 180, 90, 0.14); }
+  .og-card::after { content: ''; position: absolute; top: 0; left: 12%; right: 12%; height: 1px; background: linear-gradient(90deg, transparent, #f2c869, transparent); }
+  .og-row { display: grid; grid-template-columns: 70px 44px 1fr auto; align-items: center; gap: 14px; height: 78px; padding: 0 28px 0 24px; border-bottom: 1px solid rgba(255, 214, 150, 0.07); position: relative; --m: #f2c869;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--m) 15%, transparent), transparent 70%); }
+  .og-row:last-child { border-bottom: 0; }
+  .og-row.is-2 { --m: #d9e3f2; } .og-row.is-3 { --m: #e8a06a; }
+  .og-row::before { content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: linear-gradient(180deg, transparent, var(--m), transparent); box-shadow: 0 0 12px var(--m); }
+  .og-row .bd-medal { width: 40px; height: 40px; font-size: 19px; }
+  .og-bar { height: 16px; border-radius: 8px; background: linear-gradient(90deg, rgba(255, 240, 220, 0.4), rgba(255, 240, 220, 0.1)); width: var(--w); }
+  .og-q { font: 700 26px/1 var(--font-num); color: color-mix(in srgb, var(--m) 60%, #fff); text-shadow: 0 0 14px color-mix(in srgb, var(--m) 50%, transparent); }
+  .og-foot { position: absolute; left: 0; right: 0; bottom: 26px; display: flex; justify-content: center; gap: 18px; font: 700 15px/1 var(--font-mono); letter-spacing: 0.3em; color: rgba(255, 236, 210, 0.85); }
+  .og-foot b { color: #ff9be0; text-shadow: 0 0 12px rgba(255, 124, 203, 0.8); }
+</style>
+</head>
+<body>
+<div class="og">
+  <canvas id="c"></canvas>
+  <div class="og-tint"></div>
+  <div class="og-left">
+    <div class="og-kicker">NEON SPEAKEASY</div>
+    <div class="og-title">THE BOARD</div>
+    <div class="bd-sub og-sub">HALL OF FAME</div>
+  </div>
+  <div class="og-card" id="card"></div>
+  <div class="og-foot"><span>WHO OWNS THE ROOM THIS WEEK?</span><b>NEONSPEAKEASY.COM/BOARD</b></div>
+</div>
+<script type="module">
+  import { createHall } from '/js/board/scene.js';
+  import { emblem, installEmblems } from '/js/ui/emblems.js';
+  import { h } from '/js/ui/dom.js';
+  installEmblems();
+  const hall = createHall(document.getElementById('c'));
+  hall.resize(1200, 630);
+  const card = document.getElementById('card');
+  [[1, 'gold', 4, '62%'], [2, 'silver', 3, '50%'], [3, 'bronze', 3, '41%']].forEach(([n, m, r, w]) => {
+    card.append(h('div.og-row', { class: `is-${n}` }, h('span.bd-medal', { class: `is-${m}` }, String(n)), emblem(r, 40, { mini: false }), h('span.og-bar', { style: { '--w': w } }), h('span.og-q', '???')));
+  });
+  document.fonts.ready.then(() => setTimeout(() => { window.__ready = true; }, 400));
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-// Renders the NEON SPEAKEASY app icons and the 1200×630 link-preview image with a local Chrome/Edge, from the real
+// Renders the NEON SPEAKEASY app icons and the 1200×630 link-preview images (og.png, og-board.jpg) with a local Chrome/Edge, from the real
 // title scene and logo (tests/integration/brand.html). Needs scripts/serve.mjs running on :5173.
 //   cd tests/integration && node render-assets.mjs "<browser path>"
 // Writes to /assets. Re-run after changing the logo, the city or the game list.
@@ -24,4 +24,10 @@ await render('kind=icon&size=512&pad=0.24', 512, 512, 'icon-maskable-512.png');
 await render('kind=icon&size=180&pad=0.14', 180, 180, 'apple-touch-icon.png');
 await render('kind=icon&size=64&pad=0.04&round=1', 64, 64, 'favicon-64.png', { transparent: true });
 await render('kind=og', 1200, 630, 'og.png');
+// THE BOARD's own preview (neonspeakeasy.com/board): tests/integration/og-board.html
+await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
+await page.goto(`${BASE}/tests/integration/og-board.html`, { waitUntil: 'networkidle0', timeout: 60000 });
+await page.waitForFunction(() => window.__ready, { timeout: 30000 });
+await page.screenshot({ path: OUT + 'og-board.jpg', type: 'jpeg', quality: 88, clip: { x: 0, y: 0, width: 1200, height: 630 } });
+console.log('wrote og-board.jpg');
 await browser.close();

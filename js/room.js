@@ -4,11 +4,12 @@ import {
   query, orderByChild, endAt, limitToFirst,
 } from './firebase.js';
 import { state, setState } from './store.js';
-import { saveSession, loadSession, loadProfile, setUrlRoom } from './identity.js';
+import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe } from './identity.js';
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { toast } from './ui/toast.js';
 import { livePathsFor, liveKeyFor } from './games/registry.js';
+import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
 
 const R = code => `rooms/${code}`;
 let unsubs = [];
@@ -25,12 +26,20 @@ function cleanProfile(profile) {
 async function writePlayer(code, profile, players) {
   const p = cleanProfile(profile);
   const existing = players && players[state.uid];
-  await set(dbRef(`${R(code)}/players/${state.uid}`), {
+  const node = {
     name: p.name,
     color: pickColor(p.color, players, state.uid),
     avatar: p.avatar,
     joinedAt: existing && existing.joinedAt ? existing.joinedAt : serverTimestamp(),
-  });
+  };
+  // the global profile (emblem + tag in the lobby and chat). The rules only accept our own profile id; if the link
+  // isn't there (server down, a stale id), we join without it — joining must never depend on profiles.
+  const me = loadMe();
+  const pid = me && me.uid === state.uid ? me.pid : null;
+  if (pid) {
+    try { await set(dbRef(`${R(code)}/players/${state.uid}`), { ...node, pid }); return; } catch { /* without it */ }
+  }
+  await set(dbRef(`${R(code)}/players/${state.uid}`), node);
 }
 
 async function readRoomBasics(code) {
@@ -116,6 +125,7 @@ function enterRoom(code) {
     if (players[state.uid]) seen.self = true;
     else if (seen.self) { exitRoom('YOU WERE DISCONNECTED FROM THE ROOM'); return; }
     setState({ players });
+    watchRoomProfiles(players);
   });
   listen('presence', presence => setState({ presence: presence || {} }));
   listen('night', night => setState({ night: night || {} }));
@@ -166,6 +176,7 @@ export async function armPresence() {
 }
 
 function stopListening() {
+  stopRoomProfiles();
   unsubs.forEach(u => u());
   unsubs = [];
   liveUnsubs.forEach(u => u());

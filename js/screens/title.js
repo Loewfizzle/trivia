@@ -19,7 +19,9 @@ import { logoSvg, TAGLINE } from '../ui/logo.js';
 import { openHelp } from '../ui/help.js';
 import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, CODE_ALPHABET, colorHex } from '../config.js';
 import { setState } from '../store.js';
-import { slot, loadProfile, useEmulator } from '../identity.js';
+import { slot, loadProfile, useEmulator, loadMe } from '../identity.js';
+import { rankBadge } from '../ui/emblems.js';
+import { primaryBoard, fmtValue } from '../core/boards.js';
 import { createRoom, joinRoom } from '../room.js';
 import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
@@ -266,11 +268,36 @@ export function createTitle() {
           h('div.gc-tag', g.tag),
           h('h2.nd-pv-name', g.name),
           h('p.nd-pv-blurb', g.blurb),
-          h('div.nd-pv-meta', h('span', m.players), m.mins ? h('span', m.mins) : null, h('span', 'ONE PHONE EACH'))),
+          h('div.nd-pv-meta', h('span', m.players), m.mins ? h('span', m.mins) : null, h('span', 'ONE PHONE EACH')),
+          topThree(g, () => close())),
         h('div.nd-pv-actions',
           h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); openHelp(g.id); } }, h('span', 'HOW TO PLAY')),
           h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CLOSE'))));
     document.body.append(sheet);
+  }
+
+  // the game's top three on THE BOARD (its first record, else its wins) and your own rank there
+  function topThree(g, close) {
+    const def = primaryBoard(g.id, g.id === 'pulse' ? [{ id: 'pulse1', title: 'Track 01' }] : []);
+    const list = h('ol.nd-pv-top', h('li.nd-pv-wait', 'THE BOARD…'));
+    const mine = h('div.nd-pv-you');
+    const wrap = h('div.nd-pv-board', { style: { '--acc': ACC[g.id] || '#d6f0ff' } },
+      h('div.nd-pv-bh', h('span', 'THE BOARD'), h('span', def.label)),
+      list, mine,
+      h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id }); } }, 'SEE THE FULL BOARD ›'));
+    const MEDALS = ['gold', 'silver', 'bronze'];
+    import('../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })).then(d => {
+      list.replaceChildren(...(d.rows.length ? d.rows.map(r => h('li', h('span.nd-pv-medal', { class: `is-${MEDALS[Math.min(2, r.rank - 1)]}` }, String(r.rank)), h('span.nd-pv-n', r.n, rankBadge(r, { tag: true, size: 13 })), h('b', fmtValue(def, r.v))))
+        : [h('li.nd-pv-wait', 'No one yet — be the first.')]));
+    }).catch(() => { wrap.remove(); });
+    const me = loadMe();
+    if (me && me.pid) {
+      import('../profile/me.js').then(m => m.myRanks([def.id])).then(r => {
+        const x = r[def.id] && r[def.id].all;
+        mine.replaceChildren(h('span', 'YOU'), h('b', x ? `#${x.rank.toLocaleString('en-US')}` : '—'), h('span', x ? fmtValue(def, x.v) : 'NOT RANKED YET'));
+      }).catch(() => {});
+    }
+    return wrap;
   }
 
   // ------------------------------------------------------------------ actions
@@ -288,6 +315,9 @@ export function createTitle() {
     els.boxes = [0, 1, 2, 3].map(i => h('span.nd-box', { style: { '--i': i } }));
     els.go = h('button.nd-go', { type: 'button', 'aria-label': 'Join room', onclick: () => (els.code.value.length === 4 ? join(els.code.value) : els.code.focus()) }, '›');
     els.msg = h('p.nd-msg', { role: 'status', 'aria-live': 'polite' });
+    // the third door: THE BOARD (the global leaderboards)
+    els.board = h('button.nd-board', { type: 'button', onclick: () => { sfx('select'); setState({ view: 'board' }); } },
+      h('span.nd-board-mark', { 'aria-hidden': 'true' }), h('span.nd-board-l', 'THE BOARD'), h('span.nd-board-s', 'HALL OF FAME'));
     // under the code boxes, one line: a join message when there is one, otherwise "Welcome back"
     return h('section.nd-actions',
       els.rejoin,
@@ -296,6 +326,7 @@ export function createTitle() {
         h('span.nd-join-label', 'JOIN'),
         h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
         els.go),
+      els.board,
       h('div.nd-foot', els.msg, els.welcome));
   }
 
@@ -303,12 +334,15 @@ export function createTitle() {
     st = state;
     if (!els.welcome) return;
     const p = loadProfile();
-    const sig = `${p ? `${p.name}|${p.color}|${p.avatar}` : ''}|${state.rejoin || ''}|${state.invite || ''}|${state.inviteExpired || ''}`;
+    const me = loadMe();
+    const pub = me && me.profile && me.uid === state.uid ? me.profile : null;
+    const sig = `${p ? `${p.name}|${p.color}|${p.avatar}` : ''}|${pub ? `${pub.t}|${pub.r}` : ''}|${state.rejoin || ''}|${state.invite || ''}|${state.inviteExpired || ''}`;
     if (sig === els.sig) return;
     els.sig = sig;
     els.welcome.replaceChildren(...(p && p.name ? [
       avatar(p.avatar, p.color, 22),
-      h('span', 'Welcome back, ', h('b', { style: { color: colorHex(p.color) } }, p.name)),
+      h('button.nd-me', { type: 'button', 'aria-label': 'Your membership card', onclick: () => setState({ view: 'profile' }) },
+        h('span', 'Welcome back, ', h('b', { style: { color: colorHex(p.color) } }, p.name)), rankBadge(pub, { tag: false, size: 16 })),
       h('button.nd-edit', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'edit' }) }, 'EDIT'),
     ] : []));
     els.welcome.hidden = !(p && p.name);

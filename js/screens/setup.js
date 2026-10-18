@@ -97,6 +97,7 @@ export function createSetup() {
     }
     const p = { ...profile, name };
     saveProfile(p);
+    import('../profile/me.js').then(m => m.syncMe()).catch(() => {}); // the global profile follows (renames: once a day)
     if (mode === 'edit') { sfx('lock'); try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); return; }
     busy = true;
     els.go.classList.add('is-busy');

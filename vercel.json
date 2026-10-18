@@ -48,6 +48,19 @@
       ]
     },
     {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
@@ -64,5 +77,20 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/report.js": {
+      "maxDuration": 15,
+      "includeFiles": "data/pulse/manifest.json"
+    },
+    "api/profile.js": {
+      "maxDuration": 10
+    },
+    "api/board.js": {
+      "maxDuration": 10
+    },
+    "api/admin.js": {
+      "maxDuration": 15
+    }
+  }
 }

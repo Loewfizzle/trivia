@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>THE BOARD preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/board.css">
+<style>html, body { margin: 0; background: #060307; } #app { position: relative; height: 100dvh; }</style>
+</head>
+<body class="bd-on">
+<div id="app"></div>
+<script type="module">
+  // THE BOARD with a scripted /api/board (no server): ?mode=app|public&g=slip&c=records&p=week&n=100&me=14&empty=1&err=1
+  import { createBoardView } from '/js/board/view.js';
+  import { installEmblems } from '/js/ui/emblems.js';
+  import { boardDef } from '/js/core/boards.js';
+  import { rngFrom } from '/js/core/rng.js';
+  import { AVATAR_IDS, COLORS } from '/js/config.js';
+  const q = new URLSearchParams(location.search);
+  const N = Number(q.get('n') || 100), MY = Number(q.get('me') || 14);
+  const NAMES = ['Mike', 'Ava', 'Dex', 'Luna', 'Rook', 'Juno', 'Vee', 'Kai', 'Nova', 'Zed', 'Iris', 'Bo', 'Remy', 'Sasha', 'Theo', 'Pip', 'Marlowe', 'Quinn', 'Wren', 'Jax', 'Echo', 'Odette', 'Cass', 'Milo'];
+  const ME = { pid: 'pmeeeeeeeeee', profile: { n: 'Benny', t: '4821', a: 'crown', c: 'magenta', x: 2300, r: 2, h: false } };
+  function rows(b) {
+    const def = boardDef(b);
+    const R = rngFrom(b + q.get('p'));
+    let v = def.fmt === 'dist' ? 9400 : def.fmt === 'ms' ? 6100 : def.fmt === 'par' ? -9 : def.fmt === 'pct' ? 8200 : def.id.endsWith('-wins') ? 212 : 99_000;
+    return Array.from({ length: N }, (_, i) => {
+      const step = def.fmt === 'dist' ? 40 + R() * 120 : def.fmt === 'ms' ? 90 + R() * 200 : def.fmt === 'par' ? (R() < 0.3 ? 1 : 0) : def.fmt === 'pct' ? 30 + R() * 60 : def.kind === 'career' ? (R() < 0.6 ? 1 : 0) + (i < 10 ? 6 : 0) : 300 + R() * 900;
+      if (i) v = def.dir === -1 ? v + step : Math.max(1, v - step);
+      const me = i + 1 === MY;
+      return me ? { pid: ME.pid, n: ME.profile.n, t: ME.profile.t, a: ME.profile.a, c: ME.profile.c, r: ME.profile.r, rank: i + 1, v: Math.round(v) }
+        : { pid: `p${i}`, n: NAMES[(i * 7) % NAMES.length] + (i > 23 ? String(i) : ''), t: String(1000 + Math.floor(R() * 9000)), a: AVATAR_IDS[i % AVATAR_IDS.length], c: COLORS[(i * 3) % COLORS.length].id, r: i < 2 ? 4 : i < 6 ? 3 : i < 20 ? 2 : i < 60 ? 1 : 0, rank: i + 1, v: Math.round(v) };
+    });
+  }
+  const realFetch = window.fetch.bind(window);
+  window.fetch = async (url, opts) => {
+    const u = new URL(url, location.href);
+    if (u.pathname === '/api/board') {
+      await new Promise(r => setTimeout(r, 250));
+      if (q.has('err')) return new Response('{"error":"server"}', { status: 503 });
+      const all = q.has('empty') ? [] : rows(u.searchParams.get('b'));
+      const start = Number(u.searchParams.get('start') || 0), n = Number(u.searchParams.get('n') || 100);
+      return new Response(JSON.stringify({ b: u.searchParams.get('b'), p: u.searchParams.get('p'), rows: all.slice(start, start + n), more: all.length > start + n }), { headers: { 'content-type': 'application/json' } });
+    }
+    return realFetch(url, opts);
+  };
+  installEmblems();
+  const pub = q.get('mode') === 'public';
+  const view = createBoardView({
+    mode: pub ? 'public' : 'app',
+    me: () => (q.has('anon') ? null : ME),
+    ranks: async bs => Object.fromEntries(bs.map(b => [b, { all: { v: 4120, rank: q.has('far') ? 1342 : MY }, week: { v: 4120, rank: q.has('far') ? 214 : MY } }])),
+    onBack: () => {}, onProfile: () => {},
+    initial: { game: q.get('g') || 'slip', cat: q.get('c') || undefined, period: q.get('p') || 'week' },
+  });
+  if (pub) view.el.classList.add('is-public');
+  document.getElementById('app').append(view.el);
+  view.start();
+  window.__board = { state: () => view.state(), pick: (g, c, p) => view.pick(g, c, p) };
+</script>
+</body>
+</html>

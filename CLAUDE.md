@@ -1,7 +1,8 @@
 # NEON SPEAKEASY — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Ten games. Static site on Vercel
-(**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth.
+(**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
+plus four Vercel serverless functions in `/api` (profiles, server-verified results, THE BOARD — `docs/profiles.md`).
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
 district" in code (`js/screens/district/`, the `nd-` class prefix). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md and the relevant `docs/*.md` updated as you work.**
@@ -17,10 +18,12 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/title.md` | the title screen, the district scene, the logo, the menu |
 | `docs/chat.md` | room chat (data, locks per game, system lines, profanity filter) |
 | `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
+| `docs/profiles.md` | profiles, name tags + keys, `/api`, result reporting, THE BOARD, XP ranks, emblems, `/board`, `/admin`, the Vercel setup |
 | `docs/pulse.md` `docs/golf.md` `docs/prism.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` | that game |
 
 ## Ground rules
-- **No build step.** Plain HTML/CSS/ES modules. No npm deps in the shipped site. Firebase comes
+- **No build step.** Plain HTML/CSS/ES modules. No npm deps in the shipped site (the root `package.json` only gives the `/api`
+  functions firebase-admin; Vercel installs it, the browser never sees it). Firebase comes
   from `https://www.gstatic.com/firebasejs/11.10.0/…` — loaded with a *dynamic* import inside `initFirebase()`;
   `js/firebase.js` exports thin wrappers (`ref`, `get`, `set`…) that are only valid after `firebaseReady` resolves.
   Never add a static import of the SDK (it would block the first paint on ~450 KB).
@@ -46,6 +49,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
   map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js` (see gridlock-preview.html). Iterate screens there in
   seconds; run the E2E once the look is right.
+- **Profiles are polish too:** joining and playing must work with `/api` down or unconfigured (no tags, no emblems, results queue).
+  Clients never write boards, stats, XP or ranks (server-only in the rules); board ids use dashes (`cipher-score`), never dots.
 - **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
 
 ## Working efficiently (what cost the most in past sessions)
@@ -59,40 +64,50 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 
 ## File layout (top level; each game's files are listed in its doc)
 ```
-index.html / sw.js / manifest.webmanifest / assets/     shell, service worker (network-first, same-origin static only), PWA, icons + og.png
+index.html / sw.js / manifest.webmanifest / assets/     shell, service worker (network-first, same-origin static only, never /api), PWA, icons + og.png
+board.html admin.html                                    THE BOARD for anyone (/board, og-board.jpg) and the admin page (/admin)
+api/ profile.js report.js board.js admin.js + _lib/     Vercel functions (firebase-admin): profiles, verified results, boards, moderation
+package.json                                             only firebase-admin for /api (npm install at the root for local /api)
 css/base.css components.css screens.css title.css        tokens + themes, the design system (+ NEON GLASS), setup/lobby, the title
 css/kit.css                                              the match kit's default look (announcements, cards, Call the Winner, report)
+css/board.css admin.css                                  THE BOARD, the membership card, podium plaques + rank-up; the admin page
 css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow()
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
 js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js   PURE: room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
-js/ui/    dom.js components.js final.js logo.js game-art.js settings-panel.js help.js toast.js   h(), design-system components, the podium, the sign, lobby art, gear + settings, HOW TO PLAY, toasts
+          week.js ranks.js names.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, keys, board catalog, per-game results
+js/profile/ api.js me.js queue.js public.js callouts.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques + rank-up
+js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX
+js/admin/admin.js                                        the /admin page
+js/ui/    dom.js components.js final.js logo.js game-art.js settings-panel.js help.js toast.js emblems.js   h(), design-system components, the podium, the sign, lobby art, gear + settings, HOW TO PLAY, toasts, rank emblems
 js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js   prefs, AudioContext + buses, music + playlists, synth SFX, title ambience, songs on the server clock
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
-js/screens/ title.js setup.js lobby.js district/{scene,backdrop}.js   the front door, name/avatar, the lobby, the city (Canvas 2D) + its still behind menus
+js/screens/ title.js setup.js lobby.js profile.js district/{scene,backdrop}.js   the front door, name/avatar, the lobby, the membership card, the city (Canvas 2D) + its still behind menus
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
 js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view loading
 js/games/kit/                                            THE MATCH KIT: moments (announcer + cards), call, results, tiers, hook   → docs/match-kit.md
 js/games/<id>/  logic.js director.js index.js view.js (+ scene/audio/…)   PURE rules / PURE state machine / contract + host duties / the screen
 data/     trivia bluff oc words agent pulse prism slip    the banks and song analyses (formats in docs/content.md and each game's doc)
 audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs
-scripts/  serve.mjs build-*.{mjs,py} validate-holes.mjs sim-gridlock.mjs   local server (:5173), bank/song/word builders, the NEON PAR hole bot, GRIDLOCK balance sim
+scripts/  serve.mjs build-*.{mjs,py} validate-holes.mjs sim-gridlock.mjs   local server (:5173, `--emu` also runs /api on the emulators), builders, the NEON PAR hole bot, GRIDLOCK balance sim
 database.rules.json                                      RTDB rules — paste into the Firebase console after every change
 tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)
-tests/integration/  kit/harness.mjs e2e-*.mjs rules.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, no-Firebase look previews
+tests/integration/  kit/harness.mjs e2e-*.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
+tests/fixtures/finals.mjs                                finished matches of every game (profile/board tests)
 ```
 
 ## Data model (the shared core; every node and every game's `game` shape: `docs/data-model.md`)
 ```
 rooms/{CODE}/
   meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, settings/{gameId}: {...} }
-  players/{uid}:  { name, color, avatar, joinedAt }          ← written by that player only
+  players/{uid}:  { name, color, avatar, joinedAt, pid? }    ← written by that player only (pid: their own profile id only)
   presence/{uid}: { online, lastSeen }                       ← onDisconnect sets online:false
   kicked/{uid}:   true                                       ← host only
   game:      host-only; per-game shape; totals are always DERIVED from results (never stored) so a replayed step can't double-score
   night/{matchId}:   { g, p: { uid: 3|2|1|0 }, n: { uid: name }, b?: { uid: bonus }, at }  ← host; game-night scoreboard
   <game nodes>/{matchId}/…/{uid}                              ← a player's own data for the current step, phase-gated by the rules
 chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not
+profiles/{pid} (public)  uids/{uid} (own)  pstats/{pid} (owner)  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ (server only)   ← docs/profiles.md
 ```
 Rules of thumb: a player writes only under their own uid; anything secret (fleets, agent cards) lives outside `rooms/`; the host
 wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfuscate.js`) what must not be readable in plain sight.
@@ -153,7 +168,8 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 2. **Contract:** `index.js` exporting what `registry.js` lists (start, prepare, step, livePaths, MUSIC, DEFAULT_SETTINGS, OPTIONS,
    estimateMinutes, finalRanks, nightBonus?, MIN_PLAYERS?) and `createView = lazyView(() => import('./view.js'))`; register it; add player
    nodes to `ALL_PLAYER_NODES`; `GAMES` in `js/config.js`; `css/<id>.css` + `<link>` in `index.html`; lobby art in `ui/game-art.js`;
-   rules in `ui/help.js`; a theme in `css/base.css`; a music id or playlist in `audio/music.js`.
+   rules in `ui/help.js`; a theme in `css/base.css`; a music id or playlist in `audio/music.js`; THE BOARD: its standings + records in
+   `js/core/match-report.js` (with plausibility bounds), its boards in `js/core/boards.js`, its colours in `js/board/view.js#GAME_LIGHT`.
 3. **View on the match kit** (`docs/match-kit.md`): announcer, cards, Call the Winner, the report, tiers, the test hook. The view renders
    purely from `state` (`mount/update/unmount`); write only your own node; check `liveKey`.
 4. **Rules file:** `database.rules.json` (own data only, phase/round-gated) + cases in `tests/integration/rules.test.mjs`. **Remind the owner
@@ -164,7 +180,8 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
    counts, and write `docs/<id>.md`.
 
 ## Testing (the short version; every suite and flag: `docs/testing.md`)
-- `node --test tests/*.test.mjs` — unit + whole-match simulations of all ten games, no deps, seconds.
+- `node --test tests/*.test.mjs` — unit + whole-match simulations of all ten games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
+- `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
 - Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;
   app: `node scripts/serve.mjs` → `http://localhost:5173/?emu` (`&slot=2`… for more players on one computer).
 - Smoke test first: `node e2e-smoke.mjs "<browser path>" ./shots` (two regular phones, every game started, no stray "null").
@@ -175,5 +192,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 ## Firebase setup notes
 - Console → Build → Realtime Database (create), Authentication → Sign-in method → **Anonymous: enable**.
 - Paste `database.rules.json` into Realtime Database → Rules → Publish (after every rules change).
+- Profiles / THE BOARD need Vercel environment variables: `FIREBASE_SERVICE_ACCOUNT` (the service-account key JSON),
+  `FIREBASE_DATABASE_URL`, `ADMIN_PIDS` (your profile id), optional `KEY_PEPPER` (set once, never change) — `docs/profiles.md`.
 - Authentication → Settings → Authorized domains: `neonspeakeasy.com` (keep the old `games.` / `trivia.loewfizzle.com`, which redirect to it).
 - Web config goes in `js/firebase-config.js` (public by design; the rules are the security).

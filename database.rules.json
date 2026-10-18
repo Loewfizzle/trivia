@@ -82,6 +82,9 @@
             "joinedAt": {
               ".validate": "newData.isNumber()"
             },
+            "pid": {
+              ".validate": "newData.isString() && root.child('uids/' + auth.uid).val() === newData.val()"
+            },
             "$other": {
               ".validate": false
             }
@@ -996,6 +999,34 @@
           }
         }
       }
+    },
+    "profiles": {
+      ".read": true,
+      ".indexOn": [
+        "nk"
+      ]
+    },
+    "uids": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
+    },
+    "pstats": {
+      "$pid": {
+        ".read": "auth != null && root.child('uids/' + auth.uid).val() === $pid"
+      }
+    },
+    "lb": {
+      "$board": {
+        "$period": {
+          ".indexOn": ".value"
+        }
+      }
+    },
+    "audit": {
+      ".indexOn": [
+        "at"
+      ]
     }
   }
 }

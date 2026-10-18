@@ -1,7 +1,7 @@
 // NEON SPEAKEASY service worker — deliberately minimal.
 // Network-first for our own static files (so players always get the newest version);
 // the cache is only a fallback when the network is down. Firebase, fonts, CDNs and the
-// music files are never touched: cross-origin requests and /audio pass straight through.
+// music files are never touched: cross-origin requests, /audio and the /api functions pass straight through.
 const CACHE = 'na-static-v1';
 
 self.addEventListener('install', () => self.skipWaiting());
@@ -16,7 +16,7 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/audio/') || req.headers.has('range')) return;
+  if (url.pathname.startsWith('/audio/') || url.pathname.startsWith('/api/') || req.headers.has('range')) return;
   event.respondWith((async () => {
     try {
       const res = await fetch(req, { cache: 'no-cache' });

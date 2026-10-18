@@ -9,7 +9,8 @@ A host creates a room (4-letter code), friends join, the host picks a game. Afte
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **neonspeakeasy.com** (since Oct 2026; games.loewfizzle.com and trivia.loewfizzle.com permanently redirect here) (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
-Backend: Firebase Realtime Database + Anonymous Auth.
+Backend: Firebase Realtime Database + Anonymous Auth, and four Vercel serverless functions (`/api`, firebase-admin) for profiles,
+server-verified results and THE BOARD.
 
 ## The games — all ten are playable
 
@@ -282,6 +283,39 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
       shield block, relocate); help text for both modes; E2E matches C (Salvo) and D (Arcade) on the harness
 - [x] **The rules file changed: re-publish `database.rules.json` in the Firebase console.**
 
+### ✅ Profiles, THE BOARD and SPEAKEASY RANKS (Oct 2026) — `docs/profiles.md`
+- [x] **Automatic profiles, no signup:** made by the server on a device's first contact from the name / avatar / colour it already
+      uses (existing players on their next visit); Name#4821 tags unique per name; live emblems + tags in the lobby, chat, podium
+      and results lists (the room seat carries the profile id; the rules accept only your own)
+- [x] **Profile key** NEON-XXXX-XXXX-XXXX (32-letter alphabet, no O/0/I/1, 60 bits; only an HMAC on the server; restores rate-limited):
+      restore on a new phone / browser (the blank profile it made is removed), view + copy, a new key retires the old; a reminder sheet
+      after the 3rd and 10th match until it's saved; the profile screen explains Safari vs the Home Screen app
+- [x] **Server-verified results** (`/api/report`): every phone reports at the podium; the server reads the match from the room itself
+      (a reporter's snapshot only when the room moved on, and only if it agrees with the host's game-night record), checks every
+      record for plausibility per game, and applies each player exactly once (one transaction per player stats node keyed by match);
+      a localStorage queue retries offline reports; clients can no longer write boards, stats, XP or ranks (rules)
+- [x] **Boards** for every game: records (SLIPSTREAM distance, PULSE per song × difficulty, Score Rush, OVERCLOCK Standard, CIPHER best
+      match + fastest 5-letter solve, NEON PAR 9 holes to par) and career (wins, win rate after 10 games, GRIDLOCK wins per mode +
+      fleets sunk, DOUBLE AGENT escapes + agents caught, LAST SIGNAL eliminations, NEURAL BLUFF players fooled, PRISM DROP KOs);
+      THIS WEEK (keyed by Monday 00:00 Eastern, no reset job) and ALL TIME; top 100 paged + your exact rank anywhere; CDN-cached reads;
+      names joined at read time (a rename shows everywhere, past records too); offensive names read "Player#tag" (always-on filter);
+      renames once a day (the tag follows when free); "Show me on global leaderboards" (off: still counted privately)
+- [x] **SPEAKEASY RANKS:** NEWCOMER → REGULAR (250) → INSIDER (2,000) → MADE (7,500) → LEGEND (25,000), XP on the server for every
+      match (placing, wins scaled by table size, personal bests, a new game tonight, variety); five emblems from a steel token to an
+      ornate sunburst (an SVG sprite, a bold mini drawing for 15 px)
+- [x] **THE BOARD** (the title's third door, and neonspeakeasy.com/board for anyone, with PLAY NOW and its own link preview): the
+      speakeasy's back room in Canvas 2D — mahogany and brass, Art Deco windows onto the night city, a lit back bar, pendant lamps,
+      haze, a slow camera drift — and a luminous scoreboard: game tabs that relight the room in each game's colours, cascading rows,
+      gold / silver / bronze top three, your row pinned in your colour
+- [x] **Results moments** on every podium: NEW PERSONAL BEST / #14 WORLDWIDE / ENTERED THE TOP 10 / #1 THIS WEEK plaques with a light
+      sweep and counting ranks, the XP bar, and a ≈ 3 s RANK UP (the old emblem shatters, the new one forges in light); the title's
+      preview sheets show each game's top 3 + your rank; the membership-card profile screen; premium synth SFX (tab, cascade, chime,
+      flourish, fanfare, forge); menu.mp3 on THE BOARD
+- [x] **/admin** (your profile id in `ADMIN_PIDS`): search, remove a record, reset a board, rename, hide from the boards, audit log
+- [x] Tests: `profiles.test.mjs` (week keys across DST, XP tuning, the name filter, keys, the catalog, every game's results +
+      plausibility), `server.test.mjs` (the functions on the emulators), rules tests for the new nodes, `e2e-profiles.mjs` (the flow)
+- [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
+
 ## Next up (agreed plan, in order)
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
@@ -323,7 +357,8 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
     Built-in browsers: Samsung and LG yes, Fire TV via Silk; Google TV / Roku / Vizio mostly no (cast a Chrome tab instead).
     TV browsers are slow: keep the board light, Neon Par's 3D as an optional upgrade with a 2D fallback.
   - Build order: lobby + Overclock first, then Bluff and Last Signal, then the rest. A native tvOS app is out of scope.
-- **Profiles:** optional persistent stats and achievements across nights (would need a non-anonymous sign-in).
+- **Profiles:** ~~persistent stats across nights~~ (shipped without any sign-in: see Profiles, THE BOARD and SPEAKEASY RANKS);
+  next: achievements, seasonal boards, a friends-only board for a regular group, profile pages for other players.
 - **Localization:** Spanish/French/German UI and question banks.
 - **Haptics on iOS:** not possible from the web today; revisit if Safari adds an API.
 - **Moderation:** a host button to hide an offensive Bluff lie before voting.

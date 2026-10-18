@@ -46,6 +46,9 @@ function paint() {
   el.classList.add('is-on');
 }
 
+/** The still of the lit city the title left behind (a canvas), or null. THE BOARD's windows show it. */
+export const backdropStill = () => snap;
+
 /** Show / hide the backdrop (setup + lobby show it). */
 export function showBackdrop(on) {
   if (!on) { if (el) el.classList.remove('is-shown'); return; }

@@ -3,6 +3,8 @@ import { h, svgEl, reducedMotion } from './dom.js';
 import { AVATARS, colorHex } from '../config.js';
 import { serverNow } from '../firebase.js';
 import { sfx } from '../audio/sfx.js';
+import { rankBadge } from './emblems.js';
+import { pubOf } from '../profile/public.js';
 
 // Player emblems: every avatar has its own silhouette (the frame belongs to the icon — ghost → arch, crown → pentagon,
 // wave → capsule…), so players are told apart by shape as well as colour, even tiny or colour-blind. Each is built
@@ -62,7 +64,7 @@ export function playerChip(p, opts = {}) {
   const el = h('div.chip', { class: opts.offline ? 'is-offline' : null, style: { '--c': colorHex(p.color) } },
     avatar(p.avatar, p.color, opts.size || 36),
     h('div.chip-body',
-      h('div.chip-name', p.name || '???'),
+      h('div.chip-name', p.name || '???', rankBadge(pubOf(p))),
       h('div.chip-tags',
         opts.host && h('span.tag.tag-host', 'HOST'),
         opts.you && h('span.tag.tag-you', 'YOU'),
@@ -134,7 +136,7 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
     },
     h('span.lb-rank', String(r.rank).padStart(2, '0')),
     avatar(p.avatar, p.color, 30),
-    h('span.lb-name', p.name, presence && presence[r.uid] && presence[r.uid].online === false ? h('span.lb-lost', ' ⌁') : null,
+    h('span.lb-name', p.name, rankBadge(pubOf(p)), presence && presence[r.uid] && presence[r.uid].online === false ? h('span.lb-lost', ' ⌁') : null,
       r.note ? h('small.lb-note', r.note) : null),
     r.delta ? h('span.lb-delta', `+${fmtNum(r.delta)}`) : null,
     move ? h('span.lb-move', move === 'up' ? '▲' : '▼') : null,

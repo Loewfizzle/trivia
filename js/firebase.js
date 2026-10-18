@@ -67,6 +67,8 @@ export async function initFirebase(onConnectedChange) {
 }
 
 export const getDb = () => db;
+/** The signed-in user's Firebase ID token (for /api calls; refreshed by the SDK when it expires). */
+export const idToken = () => (auth && auth.currentUser ? auth.currentUser.getIdToken() : Promise.reject(new Error('signed out')));
 export const dbRef = path => ref(db, path);
 // Server-synchronized clock. Use this for every timer.
 export const serverNow = () => Date.now() + offset;
