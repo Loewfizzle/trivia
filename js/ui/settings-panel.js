@@ -146,9 +146,7 @@ export function installSettingsPanel() {
     toast(settings.musicOff ? 'MUSIC OFF — EFFECTS STAY ON' : 'MUSIC ON', 'info', 1600);
   } });
   document.body.append(musicBtn);
-  // HOW TO PLAY for the game on screen: under the music button in a game (components.css hides it elsewhere)
-  const helpBtn = h('button.help-btn', { type: 'button', 'aria-label': 'How to play', title: 'How to play', onclick: () => openHelp(document.body.dataset.theme || 'cipher') }, '?');
-  document.body.append(helpBtn);
+  installGameMenu();
   const paint = () => {
     gear.classList.toggle('is-muted', settings.muted);
     musicBtn.classList.toggle('is-off', settings.musicOff || settings.muted);
@@ -160,3 +158,68 @@ export function installSettingsPanel() {
 }
 
 export function closeSettings() { close(); }
+
+// ---------------------------------------------------------------- the in-game menu
+// In a game the corner holds two buttons: ☰ (this menu) and the music on/off. The menu drops down a glass panel with
+// CHAT (unread count; locked during play in some games), HOW TO PLAY, SETTINGS and THIS GAME (QUIT TO LOBBY, and for
+// the host END GAME FOR EVERYONE). Outside games the title, lobby and THE BOARD keep the gear + music pair.
+let menuBtn = null, menuPanel = null, chatMod = null, chatUi = null;
+function installGameMenu() {
+  const dot = h('i.mb-dot', { hidden: true });
+  menuBtn = h('button.menu-btn', { type: 'button', 'aria-label': 'Menu', 'aria-expanded': 'false', onclick: () => (menuPanel ? closeMenu() : openMenu()) },
+    h('span.mb-bars', h('i'), h('i'), h('i')), dot);
+  document.body.append(menuBtn);
+  import('../chat/chat.js').then(m => {
+    chatMod = m;
+    const paintDot = () => { dot.hidden = !m.chat.unread; };
+    m.onChat(paintDot);
+    paintDot();
+  }).catch(() => {});
+  import('../chat/ui.js').then(m => { chatUi = m; }).catch(() => {});
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+}
+
+function openMenu() {
+  if (menuPanel) return;
+  const inGame = !!(state.code && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId);
+  const item = (label, sub, run, cls = '') => h(`button.gm-item${cls}`, { type: 'button', onclick: run }, h('b', label), sub ? h('span', sub) : null);
+  const armed = (label, armedLabel, sub, run, cls = '') => {
+    let at = 0;
+    const b = item(label, sub, () => {
+      if (Date.now() - at < 2500) { closeMenu(); run(); return; }
+      at = Date.now();
+      b.firstChild.textContent = armedLabel;
+      setTimeout(() => { if (b.isConnected) b.firstChild.textContent = label; }, 2500);
+    }, cls);
+    return b;
+  };
+  const rows = [];
+  // chat (DOUBLE AGENT's same-room mode has its own inline chat)
+  if (!document.body.classList.contains('da-inline-chat') && chatMod && chatUi) {
+    const lock = chatMod.locked();
+    const n = chatMod.chat.unread;
+    rows.push(item(n ? `CHAT · ${Math.min(99, n)} NEW` : 'CHAT', lock ? 'Opens between rounds' : null, () => { if (chatMod.locked()) return; closeMenu(); chatUi.openChat(); }, lock ? '.is-locked' : ''));
+  }
+  rows.push(item('HOW TO PLAY', null, () => { closeMenu(); openHelp(state.game ? state.game.id : undefined); }));
+  rows.push(item('SETTINGS', 'Sound, controls, room', () => { closeMenu(); open(); }));
+  if (inGame) {
+    rows.push(h('div.gm-sep'));
+    rows.push(armed('QUIT TO LOBBY', 'TAP AGAIN TO QUIT', 'The others keep playing', () => { setState({ quit: state.game.matchId }); toast('YOU LEFT THE GAME — YOU’LL BE DEALT INTO THE NEXT ONE', 'info', 3200); }));
+    if (isHost()) rows.push(armed('END GAME FOR EVERYONE', 'TAP AGAIN TO END IT', 'Everyone back to the lobby', () => import('../host.js').then(m => m.backToLobby()), '.is-danger'));
+  }
+  const scrim = h('div.gm-scrim', { onclick: closeMenu });
+  menuPanel = h('div.gm', scrim, h('div.gm-panel', { role: 'menu', 'aria-label': 'Game menu' }, ...rows));
+  document.body.append(menuPanel);
+  menuBtn.setAttribute('aria-expanded', 'true');
+  menuBtn.classList.add('is-open');
+}
+function closeMenu() {
+  if (!menuPanel) return;
+  const m = menuPanel;
+  menuPanel = null;
+  menuBtn.setAttribute('aria-expanded', 'false');
+  menuBtn.classList.remove('is-open');
+  m.classList.add('out');
+  setTimeout(() => m.remove(), 200);
+}
+export { closeMenu };

@@ -11,7 +11,7 @@
   -webkit-user-select: none; user-select: none;
 }
 .screen.hs-screen { max-width: none; padding: 0; overflow: hidden; }
-body.hs-on .gear, body.hs-on .chat-fab, body.hs-on[data-theme] .music-btn, body.hs-on[data-theme] .help-btn { right: calc(var(--safe-r) + 12px); }
+body.hs-on .gear, body.hs-on .chat-fab, body.hs-on[data-theme] .music-btn, body.hs-on[data-theme] .help-btn, body.hs-on[data-theme] .menu-btn, body.hs-on .gm-panel { right: calc(var(--safe-r) + 12px); }
 body.hs-on .bg, body.hs-on #stage::before, body.hs-on #stage::after { display: none; }
 .hs-room, .hs-fx { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .hs-room { animation: hs-drift 70s ease-in-out infinite alternate; transform-origin: 50% 45%; }

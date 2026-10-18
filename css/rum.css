@@ -1,7 +1,7 @@
 /* RUMRUNNER — deco gold and deep burgundy under neon; glass panels over a three.js city. Classes: rr-  */
 .screen.rr-screen { max-width: none; padding: 0; overflow: hidden; }
 /* a full-width screen: the corner column sits at the screen's edge, not the phone column's (the panel leaves 60px for it) */
-body.rr-on .gear, body.rr-on .chat-fab, body.rr-on[data-theme] .music-btn, body.rr-on[data-theme] .help-btn { right: calc(var(--safe-r) + 12px); }
+body.rr-on .gear, body.rr-on .chat-fab, body.rr-on[data-theme] .music-btn, body.rr-on[data-theme] .help-btn, body.rr-on[data-theme] .menu-btn, body.rr-on .gm-panel { right: calc(var(--safe-r) + 12px); }
 .rr-root {
   --gold: #f0c75e; --gold-hi: #ffe9a8; --gold-dim: #d4b05a; --burg: #e0465f; --burg-deep: #5a1424;
   --cream: #f3e8cf; --ink: #140a0e; --glass: rgba(16, 10, 16, 0.62); --glass-2: rgba(22, 14, 22, 0.78); --edge: rgba(240, 199, 94, 0.28);

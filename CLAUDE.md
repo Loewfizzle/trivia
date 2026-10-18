@@ -162,10 +162,11 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   as light. `body.nd-glass` restyles menus; sheets are glass on every screen. Toasts are glass pills; confirm-by-second-tap changes the
   button itself, never a toast. Review: `node tests/integration/ui-shots.mjs "<browser>" ./shots-ui`.
 - **Player emblems** (`avatar(id, color, size)`): 12 shapes built like the neon sign; size with `--s`. Preview: `tests/integration/avatars-preview.html`.
-- Game screens fill `.screen` with `overflow: hidden`; the fixed corner column sits top-right: gear (+10), chat (+58), music on/off (+106),
-  HOW TO PLAY `?` (+154, in a game only — `openHelp(body.dataset.theme)`); headers use `padding-right: 52px`; announcements stay clear of it.
+- Game screens fill `.screen` with `overflow: hidden`; in a game the fixed corner holds two buttons top-right: ☰ menu (+10: CHAT with the
+  unread count, HOW TO PLAY, SETTINGS, QUIT TO LOBBY, host END GAME — settings-panel.js#openMenu) and music on/off (+58, music only, effects
+  stay); headers use `padding-right: 52px`; announcements stay clear of it. Title / lobby / THE BOARD keep gear + music.
   A full-width game (`.screen.<x>-screen { max-width: none }`) must also pin the column to the screen's edge:
-  `body.<x>-on .gear, .chat-fab, [data-theme] .music-btn, [data-theme] .help-btn { right: calc(var(--safe-r) + 12px) }` (gridlock, slip,
+  `body.<x>-on [data-theme] .music-btn, [data-theme] .menu-btn, .gm-panel { right: calc(var(--safe-r) + 12px) }` (gridlock, slip,
   stakes, rum do) — otherwise on desktop the buttons stay at the phone column's edge and land on the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
 
 ## Adding a game (checklist)

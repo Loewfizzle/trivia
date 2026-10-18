@@ -428,7 +428,7 @@
 /* the ride owns the whole screen (landscape and desktop too), corner buttons in the real corner */
 body.sl-on .screen { max-width: none; }
 body.sl-on .bg, body.sl-on #stage::before, body.sl-on #stage::after { display: none; }
-body.sl-on .gear, body.sl-on .chat-fab, body.sl-on[data-theme] .music-btn, body.sl-on[data-theme] .help-btn { right: calc(var(--safe-r) + 12px); }
+body.sl-on .gear, body.sl-on .chat-fab, body.sl-on[data-theme] .music-btn, body.sl-on[data-theme] .help-btn, body.sl-on[data-theme] .menu-btn, body.sl-on .gm-panel { right: calc(var(--safe-r) + 12px); }
 /* the ride picker opens from the lobby / settings too: it carries SLIPSTREAM's gold wherever it appears */
 .sheet.sl-pick { --accent: #ffc46b; --accent-2: #6f8dff; --accent-ink: #1a0f04; --accent-soft: rgba(255, 196, 107, 0.1); --accent-glow: rgba(255, 170, 90, 0.42); border-top-color: #ffc46b; }
 .sheet.sl-pick .sheet-kicker { color: #ffc46b; }

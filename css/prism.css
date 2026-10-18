@@ -30,9 +30,8 @@
   touch-action: none;
 }
 body.pd-on .chat-fab { top: calc(var(--safe-t) + 10px); right: max(calc(var(--safe-r) + 62px), calc((100vw - var(--maxw)) / 2 + 62px)); }
-/* the whole corner set in one row across the top (a column would sit on the NEXT card): gear, chat, music, ? */
-body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .music-btn { top: calc(var(--safe-t) + 10px); right: max(calc(var(--safe-r) + 114px), calc((100vw - var(--maxw)) / 2 + 114px)); }
-body.pd-on[data-theme] .help-btn, body.pd-on[data-theme]:not(.chat-fab-on) .help-btn { top: calc(var(--safe-t) + 10px); right: max(calc(var(--safe-r) + 166px), calc((100vw - var(--maxw)) / 2 + 166px)); }
+/* the in-game pair side by side across the top (a column would sit on the NEXT card): ☰, music */
+body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .music-btn { top: calc(var(--safe-t) + 10px); right: max(calc(var(--safe-r) + 62px), calc((100vw - var(--maxw)) / 2 + 62px)); }
 
 /* ---- top line ---- */
 .pd-top { position: relative; display: flex; align-items: center; padding-right: 112px; min-width: 0; }
