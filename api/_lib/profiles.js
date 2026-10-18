@@ -39,7 +39,7 @@ export async function pidOf(uid) {
 
 export async function publicProfile(pid) {
   const p = await val(`profiles/${pid}`);
-  return p ? { pid, n: p.n, t: p.t, a: p.a, c: p.c, x: p.x || 0, r: p.r || 0, h: !!p.h, at: p.at || 0 } : null;
+  return p ? { pid, n: p.n, t: p.t, a: p.a, c: p.c, x: p.x || 0, r: p.r || 0, h: !!p.h, at: p.at || 0, s: p.s || 0, f: p.f || null, g: p.g || null } : null;
 }
 
 /** Claims a 4-digit tag for a name: `prefer` if it's free under that name, else a random free one. */

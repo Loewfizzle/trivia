@@ -88,6 +88,14 @@ export async function regenKey() {
   return r.key;
 }
 
+/** Wear a finish / a glow from THE VAULT (the server checks it's unlocked). */
+export async function setStyle(patch) {
+  const r = await api('profile', { action: 'style', ...patch });
+  const m = loadMe();
+  if (m && r.profile) { m.profile = { ...m.profile, ...r.profile }; saveMe(m); setState({ me: { pid: m.pid, profile: m.profile } }); }
+  return r.profile;
+}
+
 export async function setShown(on) {
   const r = await api('profile', { action: 'show', on: !!on });
   const m = loadMe();

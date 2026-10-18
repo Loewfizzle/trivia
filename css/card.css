@@ -1,0 +1,144 @@
+/* THE MEMBERSHIP CARD — finishes, name glows, THE VAULT. Classes: pf-c-*, pf-v*, nm-glow-*.
+   Every finish is a set of layers: .pf-c-base (the material), .pf-c-flow (slow-moving light inside it), the engraved
+   guilloche + deco frame (SVG, coloured by --foil), a sheen that crosses now and then, the holo sweep on reveal and a
+   soft light that follows the finger. Only transform and opacity animate. */
+
+.pf-card {
+  --foil: rgba(200, 214, 255, 0.55); --ink: #fff; --ink-dim: rgba(255, 255, 255, 0.72); --track: rgba(255, 255, 255, 0.1);
+  --guil: 0.16; --frame: 0.55; --sheen: rgba(255, 255, 255, 0.22);
+  background: #0b0c1c !important;
+  color: var(--ink);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+.pf-card.is-tilt { transition: transform 0.08s linear; }
+.pf-card::after { display: none; }
+.pf-card::before { display: none; }
+.pf-c-base, .pf-c-sheen, .pf-c-light { position: absolute; inset: 0; pointer-events: none; }
+.pf-c-base { z-index: 0; overflow: hidden; border-radius: inherit; }
+.pf-c-flow { position: absolute; inset: -40%; opacity: 0; }
+.pf-c-guil, .pf-c-frame { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; fill: none; }
+.pf-c-guil { stroke: var(--foil); stroke-width: 0.45; opacity: var(--guil); }
+.pf-c-guil .w { stroke-width: 0.35; opacity: 0.7; }
+.pf-c-frame { stroke: var(--foil); stroke-width: 0.9; opacity: var(--frame); }
+.pf-c-frame .thin { stroke-width: 0.4; opacity: 0.6; }
+.pf-c-sheen { z-index: 2; overflow: hidden; border-radius: inherit; }
+.pf-c-sheen::before { content: ''; position: absolute; top: -50%; bottom: -50%; left: 0; width: 35%; background: linear-gradient(100deg, transparent, var(--sheen), transparent); transform: translateX(-160%) rotate(8deg); animation: pf-sheen 9s cubic-bezier(0.45, 0, 0.25, 1) 2.4s infinite; }
+@keyframes pf-sheen { 0%, 70% { transform: translateX(-160%) rotate(8deg); } 100% { transform: translateX(420%) rotate(8deg); } }
+.pf-c-light { z-index: 2; inset: -30%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.14), transparent 70%); opacity: 0; transition: opacity 0.3s; }
+.pf-card.is-tilt .pf-c-light { opacity: 1; }
+.pf-card .pf-card-top, .pf-card .pf-card-mid, .pf-card .pf-xp { z-index: 3; }
+.pf-card:not(.is-mini) { padding: 20px 24px 18px !important; }
+.pf-card .pf-brand { color: var(--ink); text-shadow: 0 0 10px color-mix(in srgb, var(--foil) 60%, transparent); }
+.pf-card .pf-member { color: var(--ink-dim); border-color: color-mix(in srgb, var(--foil) 60%, transparent); }
+.pf-card .pf-tag, .pf-card .pf-xp-row { color: var(--ink-dim); }
+.pf-card .pf-xp-row b { color: var(--ink); }
+.pf-card .pf-xp-bar { background: var(--track); }
+.pf-card .pf-name { color: var(--ink); }
+
+/* ---- MIDNIGHT: ink and starlight ---- */
+.pf-card[data-fin='midnight'] .pf-c-base { background:
+  radial-gradient(1px 1px at 12% 22%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 33% 68%, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+  radial-gradient(1.4px 1.4px at 58% 18%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 78% 46%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
+  radial-gradient(1px 1px at 88% 80%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 46% 88%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+  radial-gradient(110% 90% at 0% 0%, color-mix(in srgb, var(--c) 28%, transparent), transparent 55%),
+  linear-gradient(150deg, #161b45, #0a0b22 55%, #05060f); }
+.pf-card[data-fin='midnight'] { --foil: rgba(170, 190, 255, 0.7); --guil: 0.14; }
+
+/* ---- BRASS DECO: brushed brass, engraved ---- */
+.pf-card[data-fin='brass'] .pf-c-base { background:
+  repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px),
+  radial-gradient(120% 90% at 20% 0%, rgba(255, 220, 150, 0.35), transparent 60%),
+  linear-gradient(140deg, #3b2610, #7a5520 38%, #a8823e 52%, #5a3c14 70%, #24170a); }
+.pf-card[data-fin='brass'] { --foil: #ffe2a0; --guil: 0.2; --frame: 0.75; --sheen: rgba(255, 230, 170, 0.28); --ink: #fff6e4; --ink-dim: rgba(255, 238, 205, 0.8); --track: rgba(0, 0, 0, 0.3); }
+
+/* ---- SILVER CHROME: mirror chrome, a prism on the edge ---- */
+.pf-card[data-fin='chrome'] .pf-c-base { background:
+  linear-gradient(115deg, transparent 40%, rgba(255, 140, 220, 0.25) 46%, rgba(130, 220, 255, 0.25) 52%, transparent 58%),
+  linear-gradient(160deg, #8b94a8 0%, #eef2f8 22%, #a7afbf 38%, #59606f 52%, #d6dce8 68%, #8c95a7 84%, #e8edf5 100%); }
+.pf-card[data-fin='chrome'] { --foil: #1a2030; --guil: 0.22; --frame: 0.6; --sheen: rgba(255, 255, 255, 0.6); --ink: #0c111c; --ink-dim: rgba(14, 20, 34, 0.78); --track: rgba(10, 16, 30, 0.2); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 0 30px rgba(170, 220, 255, 0.25), 0 26px 60px rgba(0, 0, 0, 0.55) !important; }
+.pf-card[data-fin='chrome'] .pf-brand, .pf-card[data-fin='chrome'] .pf-name { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+.pf-card[data-fin='chrome'] .pf-rank { color: #0f2a4a; text-shadow: none; }
+
+/* ---- AURORA: northern lights under glass ---- */
+.pf-card[data-fin='aurora'] .pf-c-base { background: linear-gradient(170deg, #041018, #07192a 55%, #050714); }
+.pf-card[data-fin='aurora'] .pf-c-flow { opacity: 0.9; background: radial-gradient(40% 30% at 30% 40%, rgba(80, 255, 190, 0.55), transparent 70%), radial-gradient(35% 28% at 62% 55%, rgba(110, 160, 255, 0.5), transparent 70%), radial-gradient(30% 22% at 78% 32%, rgba(200, 120, 255, 0.45), transparent 70%); filter: blur(14px); animation: pf-aur 16s ease-in-out infinite alternate; }
+.pf-card[data-fin='aurora'] .pf-c-flow.b { opacity: 0.6; background: radial-gradient(30% 22% at 50% 30%, rgba(120, 255, 220, 0.5), transparent 70%), radial-gradient(28% 20% at 20% 70%, rgba(150, 110, 255, 0.45), transparent 70%); animation-duration: 22s; animation-direction: alternate-reverse; }
+@keyframes pf-aur { from { transform: translate3d(-8%, 2%, 0) rotate(-4deg) scale(1); } to { transform: translate3d(8%, -3%, 0) rotate(5deg) scale(1.1); } }
+.pf-card[data-fin='aurora'] { --foil: rgba(170, 255, 225, 0.7); --guil: 0.12; --sheen: rgba(200, 255, 240, 0.25); }
+
+/* ---- GOLD FOIL: foil with a pressed sunburst ---- */
+.pf-card[data-fin='gold'] .pf-c-base { background:
+  repeating-conic-gradient(from -90deg at 50% 118%, rgba(255, 255, 255, 0.07) 0 2.5deg, transparent 2.5deg 7deg),
+  linear-gradient(125deg, #7a5418 0%, #e9c46a 18%, #fff0b8 30%, #c9962f 46%, #f7dc8c 62%, #a77a26 80%, #f2d88a 100%); }
+.pf-card[data-fin='gold'] { --foil: #4a3008; --guil: 0.2; --frame: 0.7; --sheen: rgba(255, 255, 240, 0.7); --ink: #2a1904; --ink-dim: rgba(52, 32, 6, 0.8); --track: rgba(60, 36, 4, 0.22); box-shadow: 0 0 0 1px rgba(255, 236, 170, 0.8), 0 0 40px rgba(255, 200, 90, 0.35), 0 26px 60px rgba(0, 0, 0, 0.55) !important; }
+.pf-card[data-fin='gold'] .pf-brand, .pf-card[data-fin='gold'] .pf-name { text-shadow: 0 1px 0 rgba(255, 245, 200, 0.7); }
+.pf-card[data-fin='gold'] .pf-rank { color: #5a2a00; text-shadow: none; }
+
+/* ---- VELVET NOIR: black velvet, a crimson neon edge ---- */
+.pf-card[data-fin='noir'] .pf-c-base { background:
+  radial-gradient(90% 70% at 70% 30%, rgba(120, 10, 40, 0.45), transparent 70%),
+  radial-gradient(60% 60% at 20% 90%, rgba(60, 0, 20, 0.6), transparent 70%),
+  linear-gradient(150deg, #160509, #070204 60%, #120307); }
+.pf-card[data-fin='noir'] { --foil: rgba(255, 70, 110, 0.85); --guil: 0.1; --frame: 0.9; --sheen: rgba(255, 90, 130, 0.22); box-shadow: inset 0 0 0 1.5px rgba(255, 50, 100, 0.85), 0 0 26px rgba(255, 40, 90, 0.45), 0 26px 60px rgba(0, 0, 0, 0.6) !important; }
+.pf-card[data-fin='noir'] .pf-c-frame { filter: drop-shadow(0 0 3px rgba(255, 60, 110, 0.9)); }
+
+/* ---- PRISM LEGEND: the whole spectrum in the foil ---- */
+.pf-card[data-fin='legend'] .pf-c-base { background: linear-gradient(150deg, #120a26, #07081a 60%, #12061c); }
+.pf-card[data-fin='legend'] .pf-c-flow { opacity: 0.75; background: conic-gradient(from 0deg at 50% 50%, #ff6ad5, #ffd36a, #7dffb2, #6ad8ff, #a77bff, #ff6ad5); filter: blur(28px) saturate(1.2); animation: pf-prism 18s linear infinite; }
+.pf-card[data-fin='legend'] .pf-c-flow.b { opacity: 0.5; mix-blend-mode: overlay; background: repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.18) 0 6px, transparent 6px 16px); filter: none; animation: pf-aur 12s ease-in-out infinite alternate; }
+@keyframes pf-prism { to { transform: rotate(360deg); } }
+.pf-card[data-fin='legend'] { --foil: rgba(255, 255, 255, 0.85); --guil: 0.2; --frame: 0.85; --sheen: rgba(255, 255, 255, 0.5); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 0 50px rgba(200, 140, 255, 0.45), 0 26px 60px rgba(0, 0, 0, 0.6) !important; }
+
+/* ---- name glows (the card, the lobby, THE VAULT) ---- */
+.nm-glow-ember { color: #ffe2c4 !important; text-shadow: 0 0 6px rgba(255, 140, 60, 0.9), 0 0 18px rgba(255, 90, 30, 0.6) !important; }
+.nm-glow-ice { color: #eaf8ff !important; text-shadow: 0 0 6px rgba(120, 210, 255, 0.95), 0 0 20px rgba(60, 150, 255, 0.6) !important; }
+.nm-glow-neon { color: #fff !important; text-shadow: 0 0 4px #fff, 0 0 10px #ff4fd8, 0 0 22px #ff4fd8, 0 0 34px rgba(0, 240, 255, 0.7) !important; }
+.nm-glow-gold { background: linear-gradient(180deg, #fff6d0, #f2c869 45%, #b8862b 55%, #ffe9a8) !important; -webkit-background-clip: text !important; background-clip: text !important; color: transparent !important; filter: drop-shadow(0 0 8px rgba(255, 200, 90, 0.55)); text-shadow: none !important; }
+.nm-glow-prism { background: linear-gradient(90deg, #ff6ad5, #ffd36a, #7dffb2, #6ad8ff, #a77bff) !important; -webkit-background-clip: text !important; background-clip: text !important; color: transparent !important; filter: drop-shadow(0 0 8px rgba(200, 140, 255, 0.6)); text-shadow: none !important; }
+
+/* ---- THE VAULT ---- */
+.pf-vault { display: flex; flex-direction: column; gap: 10px; }
+.pf-vault-h { display: flex; justify-content: space-between; align-items: baseline; }
+.pf-vault-h span { font: 700 10px/1 var(--font-mono); letter-spacing: 0.18em; color: var(--text-dim); }
+.pf-vault-next { margin: 0; font-size: 13px; color: var(--text-dim); }
+.pf-vault-next b { color: #fff; letter-spacing: 0.08em; }
+.pf-vh { margin-top: 6px; font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.22em; color: var(--text-dim); }
+.pf-vf-row, .pf-vg-row { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.pf-vf-row::-webkit-scrollbar, .pf-vg-row::-webkit-scrollbar { display: none; }
+.pf-vf { position: relative; flex: 0 0 auto; width: 150px; display: flex; flex-direction: column; gap: 6px; padding: 0; text-align: left; color: #fff; background: none; border: 0; scroll-snap-align: start; }
+.pf-vf .pf-card.is-mini { border-radius: 12px; padding: 0; max-height: none; transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pf-vf:active .pf-card.is-mini { transform: scale(0.97); }
+.pf-vf.is-on .pf-card.is-mini { outline: 2px solid #fff; outline-offset: 3px; }
+.pf-vf-n { font: 800 10px/1.2 var(--font-display); letter-spacing: 0.14em; }
+.pf-vf-s { font: 700 9px/1 var(--font-mono); letter-spacing: 0.16em; color: var(--text-dim); }
+.is-on > .pf-vf-s { color: #8fe3b4; }
+.is-open:not(.is-on) > .pf-vf-s { color: #fff; }
+.pf-vf.is-locked .pf-card.is-mini { filter: grayscale(0.65) brightness(0.45); }
+.pf-vf-lock { display: none; }
+.pf-vf.is-locked .pf-vf-lock { display: grid; place-items: center; position: absolute; left: 0; right: 0; top: 0; aspect-ratio: 1.586; z-index: 4; background: no-repeat center / 26px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E"); opacity: 0.85; }
+.pf-vg { flex: 0 0 auto; min-width: 128px; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; text-align: left; color: #fff; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); scroll-snap-align: start; }
+.pf-vg.is-on { border-color: rgba(255, 255, 255, 0.6); box-shadow: 0 0 18px rgba(255, 255, 255, 0.12); }
+.pf-vg-name { font: 800 17px/1.2 var(--font-ui); letter-spacing: 0.04em; white-space: nowrap; }
+.pf-vg.is-locked .pf-vg-name { opacity: 0.3; filter: blur(0.6px); }
+.pf-vg.is-locked { background: rgba(255, 255, 255, 0.02); }
+
+@media (prefers-reduced-motion: reduce) { .pf-c-flow, .pf-c-sheen::before { animation: none !important; } .pf-card { transition: none; } }
+body.reduced-fx .pf-c-flow, body.reduced-fx .pf-c-sheen::before { animation: none !important; }
+
+/* ---- the podium's UNLOCKED plaque: the thing itself ---- */
+.rc-unlock { display: grid !important; grid-template-columns: 96px 1fr auto; align-items: center; gap: 12px; }
+.rc-ul-show { width: 96px; }
+.rc-ul-show .pf-card.is-mini { border-radius: 9px; }
+.rc-unlock.is-glow .rc-ul-show { display: grid; place-items: center; height: 60px; border-radius: 10px; background: rgba(0, 0, 0, 0.35); }
+.rc-ul-name { font: 800 16px/1 var(--font-ui); white-space: nowrap; max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+
+/* the podium XP strip: the step and what is next stacked on the right, the card button compact */
+.rc-xp-next { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; white-space: nowrap; }
+.rc-xp-next > span:not(.rc-xp-step) { font-size: 9px; letter-spacing: 0.1em; }
+.rc-xp-card { margin-left: 0; padding: 5px 10px; white-space: nowrap; }
+
+.nd-pair .nd-board-l { font-size: 12px; letter-spacing: 0.2em; white-space: nowrap; }
+/* the card screen starts under the corner pair */
+.pf-screen > .pf-scroll { padding-top: 34px; }
+.pf-overlay > .pf-scroll { padding-top: 34px; }

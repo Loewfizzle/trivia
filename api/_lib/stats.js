@@ -3,11 +3,13 @@
 // a second reporter or a crash halfway can never count a match twice.
 //
 //   pstats/{pid}: { xp, g{game:{p,w,…}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records: all-time best,
-//                   this week's best), day{k, g{game:1}}, last (server ms of the last counted match), m{key: at} }
+//                   this week's best), day{k, g{game:1}}, last (server ms of the last counted match), m{key: at},
+//                   st{n, d} (the nightly streak), gd (the week whose goal was paid) }
 import { ref, val } from './fb.js';
 import { boardPaths, rankOf, clearBoardCache } from './lb.js';
 import { boardDef, better, toSort } from '../../js/core/boards.js';
-import { matchXp, rankIndex } from '../../js/core/ranks.js';
+import { matchXp, rankIndex, streakAfter, streakPart, weeklyGoal, goalProgress, GOAL_XP } from '../../js/core/ranks.js';
+import { BOARD_GAMES } from '../../js/core/boards.js';
 import { weekKey, dayKey } from '../../js/core/week.js';
 
 const KEEP_KEYS = 60;
@@ -41,6 +43,13 @@ function step(stats, key, gid, row, n, now) {
     next.b[board] = b;
   }
   const xp = matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
+  // the nightly streak: +10 % a night from the second, up to +40 %
+  next.st = streakAfter(s.st, dk, dayKey(now - 86_400_000));
+  const sp = streakPart(xp.total, next.st.n);
+  if (sp) { xp.parts.push(sp); xp.total += sp.v; }
+  // the weekly goal: paid once, the match that completes it
+  const goal = weeklyGoal(wk, BOARD_GAMES);
+  if (next.gd !== wk && goalProgress(goal, next.gw).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
   const from = s.xp || 0;
   next.xp = from + xp.total;
   next.last = now;
@@ -82,7 +91,7 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
       }));
     }
     const r0 = rankIndex(res.from), r1 = rankIndex(stats.xp);
-    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/r`]: r1, ...boardPaths(pid, stats, { hidden: !!prof.h, now, only: ex.gid }) };
+    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, ...boardPaths(pid, stats, { hidden: !!prof.h, now, only: ex.gid }) };
     await ref('/').update(patch);
     const ranks = [];
     if (!prof.h) {
@@ -97,7 +106,7 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
     outcomes[pid] = {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n,
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
-      rk: { from: r0, to: r1 }, pbs: res.pbs, ranks, hidden: !!prof.h,
+      rk: { from: r0, to: r1 }, pbs: res.pbs, ranks, hidden: !!prof.h, streak: (stats.st && stats.st.n) || 1,
     };
   }));
   clearBoardCache();

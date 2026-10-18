@@ -13,6 +13,7 @@
 // profile, and a drifting showcase of the games (tap one for a preview sheet).
 // Test hook: window.__district.
 import { h, reducedMotion } from '../ui/dom.js';
+import { step } from '../core/ranks.js';
 import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
 import { logoSvg, TAGLINE } from '../ui/logo.js';
@@ -20,7 +21,7 @@ import { openHelp } from '../ui/help.js';
 import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, CODE_ALPHABET, colorHex } from '../config.js';
 import { setState } from '../store.js';
 import { slot, loadProfile, useEmulator, loadMe } from '../identity.js';
-import { rankBadge } from '../ui/emblems.js';
+import { rankBadge, emblem, RANK_COLORS } from '../ui/emblems.js';
 import { primaryBoard, fmtValue } from '../core/boards.js';
 import { createRoom, joinRoom } from '../room.js';
 import { firebaseReady } from '../firebase.js';
@@ -318,6 +319,8 @@ export function createTitle() {
     // the third door: THE BOARD (the global leaderboards)
     els.board = h('button.nd-board', { type: 'button', onclick: () => { sfx('select'); setState({ view: 'board' }); } },
       h('span.nd-board-mark', { 'aria-hidden': 'true' }), h('span.nd-board-l', 'THE BOARD'), h('span.nd-board-s', 'HALL OF FAME'));
+    // YOUR CARD: the membership card, with your rank step and how far to the next
+    els.cardBtn = h('button.nd-card-btn', { type: 'button', 'aria-label': 'Your membership card', onclick: () => { sfx('select'); setState({ view: 'profile' }); } });
     // under the code boxes, one line: a join message when there is one, otherwise "Welcome back"
     return h('section.nd-actions',
       els.rejoin,
@@ -326,7 +329,7 @@ export function createTitle() {
         h('span.nd-join-label', 'JOIN'),
         h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
         els.go),
-      els.board,
+      h('div.nd-pair', els.board, els.cardBtn),
       h('div.nd-foot', els.msg, els.welcome));
   }
 
@@ -336,6 +339,7 @@ export function createTitle() {
     const p = loadProfile();
     const me = loadMe();
     const pub = me && me.profile && me.uid === state.uid ? me.profile : null;
+    paintCardBtn(pub);
     const sig = `${p ? `${p.name}|${p.color}|${p.avatar}` : ''}|${pub ? `${pub.t}|${pub.r}` : ''}|${state.rejoin || ''}|${state.invite || ''}|${state.inviteExpired || ''}`;
     if (sig === els.sig) return;
     els.sig = sig;
@@ -352,6 +356,21 @@ export function createTitle() {
     els.host.classList.toggle('is-quiet', !!state.rejoin);
     if (state.invite && !els.code.value) { els.code.value = clean(state.invite); paintCode(); say(`You’re invited to room ${els.code.value} — tap › to join.`, 'info'); els.go.classList.add('is-ready'); }
     if (state.inviteExpired) say(`Room ${state.inviteExpired} has closed. Host a new game, or ask your friend for a fresh code.`, 'warn');
+  }
+
+  function paintCardBtn(pub) {
+    if (!els.cardBtn) return;
+    const xp = pub ? pub.x || 0 : 0;
+    const sig = `${xp}|${pub ? pub.s : ''}`;
+    if (els.cardBtn.dataset.sig === sig) return;
+    els.cardBtn.dataset.sig = sig;
+    const sp = step(xp);
+    els.cardBtn.style.setProperty('--rk', RANK_COLORS[sp.i]);
+    els.cardBtn.replaceChildren(...[
+      h('span.nd-cb-emb', emblem(sp.i, 26)),
+      h('span.nd-cb-name', pub ? sp.name : 'YOUR CARD'),
+      h('span.nd-cb-bar', h('i', { style: { transform: `scaleX(${pub ? sp.frac : 0})` } })),
+      pub && pub.s >= 2 ? h('span.nd-cb-flame', `${pub.s}🔥`) : null].filter(Boolean));
   }
 
   const clean = v => String(v || '').toUpperCase().replace(/[^A-Z]/g, '');

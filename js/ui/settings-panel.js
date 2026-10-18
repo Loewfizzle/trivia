@@ -194,14 +194,19 @@ function openMenu() {
     return b;
   };
   const rows = [];
-  // chat (DOUBLE AGENT's same-room mode has its own inline chat)
-  if (!document.body.classList.contains('da-inline-chat') && chatMod && chatUi) {
+  const inRoom = !!state.code;
+  const playing = inRoom && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId;
+  // chat (in a game; DOUBLE AGENT's same-room mode has its own inline chat; the lobby has its chat strip)
+  if (playing && !document.body.classList.contains('da-inline-chat') && chatMod && chatUi) {
     const lock = chatMod.locked();
     const n = chatMod.chat.unread;
     rows.push(item(n ? `CHAT · ${Math.min(99, n)} NEW` : 'CHAT', lock ? 'Opens between rounds' : null, () => { if (chatMod.locked()) return; closeMenu(); chatUi.openChat(); }, lock ? '.is-locked' : ''));
   }
-  rows.push(item('HOW TO PLAY', null, () => { closeMenu(); openHelp(state.game ? state.game.id : undefined); }));
-  rows.push(item('SETTINGS', 'Sound, controls, room', () => { closeMenu(); open(); }));
+  // the membership card: the title opens its own screen; in a room it slides over the lobby or the game
+  rows.push(item('YOUR CARD', 'Rank, streak, weekly goal', () => { closeMenu(); if (inRoom) import('../screens/profile.js').then(m => m.openCard()); else setState({ view: 'profile' }); }));
+  if (!inRoom) rows.push(item('THE BOARD', 'Hall of fame', () => { closeMenu(); setState({ view: 'board' }); }));
+  rows.push(item('HOW TO PLAY', null, () => { closeMenu(); openHelp(playing ? state.game.id : undefined); }));
+  rows.push(item('SETTINGS', inRoom ? 'Sound, controls, room' : 'Sound and controls', () => { closeMenu(); open(); }));
   if (inGame) {
     rows.push(h('div.gm-sep'));
     rows.push(armed('QUIT TO LOBBY', 'TAP AGAIN TO QUIT', 'The others keep playing', () => { setState({ quit: state.game.matchId }); toast('YOU LEFT THE GAME — YOU’LL BE DEALT INTO THE NEXT ONE', 'info', 3200); }));

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Card preview</title>
+<!-- The membership card + THE VAULT without Firebase: ?xp=9000&fin=gold&glow=gold&name=KATIE&color=magenta&avatar=crown&s=4&vault=1&all=1 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/card.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; min-height: 100%; background: #05060f; color: #fff; } #stage { max-width: 520px; margin: 0 auto; padding: 24px 16px 40px; display: flex; flex-direction: column; gap: 22px; } .lbl { font: 700 10px/1 'JetBrains Mono', monospace; letter-spacing: 0.2em; color: #9aa3c7; margin-bottom: -12px; }</style>
+</head>
+<body class="nd-glass">
+<div id="stage"></div>
+<script type="module">
+import { memberCard, vault } from '/js/screens/profile.js';
+import { installEmblems } from '/js/ui/emblems.js';
+import { FINISHES, rankIndex } from '/js/core/ranks.js';
+installEmblems();
+const q = new URLSearchParams(location.search);
+const xp = Number(q.get('xp') || 2600);
+const pub = { n: q.get('name') || 'KATIE', t: '4821', a: q.get('avatar') || 'crown', c: q.get('color') || 'magenta', x: xp, r: rankIndex(xp), s: Number(q.get('s') || 3), f: q.get('fin') || null, g: q.get('glow') || null };
+await document.fonts.ready;
+const stage = document.getElementById('stage');
+if (q.has('all')) {
+  for (const f of FINISHES) { stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: f.name })); stage.append(memberCard({ ...pub, f: f.id }, {}, 1e6, { fin: f.id, glow: pub.g || 'none' })); }
+} else {
+  stage.append(memberCard(pub, {}, xp));
+}
+if (q.has('vault')) stage.append(vault({ pub, local: {}, xp, onWear: p => { Object.assign(pub, p); location.search = new URLSearchParams({ ...Object.fromEntries(q), fin: pub.f || '', glow: pub.g || '' }).toString(); } }));
+</script>
+</body>
+</html>

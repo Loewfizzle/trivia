@@ -4,10 +4,11 @@
 // dissolves, the new one forges in light, the name resolves (≈ 3 s, tap to skip).
 // The server's answer can arrive late (a phone offline at the podium): the plaques appear whenever it does.
 import { h, reducedMotion, vibrate } from '../ui/dom.js';
+import { loadMe } from '../identity.js';
 import { countUp } from '../ui/components.js';
 import { emblem, RANK_COLORS } from '../ui/emblems.js';
 import { boardDef, fmtValue } from '../core/boards.js';
-import { RANKS, progress } from '../core/ranks.js';
+import { RANKS, progress, step, stepIndex, unlockedBetween } from '../core/ranks.js';
 import { GAMES } from '../config.js';
 import { onOutcome, outcomeFor, matchKey } from './queue.js';
 import { boardSfx } from '../board/audio.js';
@@ -82,6 +83,9 @@ export function attachCallouts(code, game) {
     const step = reduced() ? 120 : 650;
     list.forEach((p, i) => later(() => plaque(p), i * step));
     if (o.xp && o.xp.gain) later(() => xpLine(o), list.length * step + 150);
+    // THE VAULT: what this match unlocked, shown as the thing itself
+    const ul = o.xp ? unlockedBetween(o.xp.from, o.xp.to) : [];
+    ul.forEach((u, k) => later(() => unlocked(u), list.length * step + 900 + k * 700));
     if (o.rk && o.rk.to > o.rk.from) later(() => rankUp(o.rk.from, o.rk.to), list.length * step + (reduced() ? 300 : 1500));
     if (list.length && !reduced()) vibrate(list[0].k === 'first' ? [30, 50, 30, 50, 90] : [24, 40, 24]);
   }
@@ -103,18 +107,50 @@ export function attachCallouts(code, game) {
   }
 
   function xpLine(o) {
-    const from = progress(o.xp.from), to = progress(o.xp.to);
-    const fill = h('span.rc-xp-fill', { style: { '--f0': String(from.i === to.i ? from.frac : 0), '--f': String(to.frac) } });
+    const from = step(o.xp.from), to = step(o.xp.to);
+    const fill = h('span.rc-xp-fill', { style: { '--f0': String(stepIndex(o.xp.from) === stepIndex(o.xp.to) ? from.frac : 0), '--f': String(to.frac) } });
     const gain = h('b', '+0');
     const line = h('div.rc-xp', { style: { '--rk': RANK_COLORS[to.i] } },
       emblem(to.i, 22),
       h('div.rc-xp-main',
         h('div.rc-xp-top', gain, h('span', ' XP'), h('span.rc-xp-parts', o.xp.parts.map(p => p.label).join(' · '))),
         h('div.rc-xp-bar', fill)),
-      h('span.rc-xp-next', to.next ? `${num(to.need)} TO ${to.next.name}` : RANKS[to.i].name));
+      h('span.rc-xp-next', ...xpNext(o)));
     el.append(line);
     turnOn(line, 'is-in');
     countUp(gain, 0, o.xp.gain, reduced() ? 1 : 900, v => `+${num(v)}`);
+  }
+
+  // under the bar: the new step (a step up inside a rank is its own small moment), the streak, and the card
+  function xpNext(o) {
+    const to = step(o.xp.to);
+    const up = stepIndex(o.xp.to) > stepIndex(o.xp.from) && !(o.rk && o.rk.to > o.rk.from);
+    if (up) { boardSfx('forge'); }
+    return [
+      h('span.rc-xp-step', up ? `NEW: ${to.name}` : to.name),
+      h('span', to.nextName ? `${num(to.need)} TO ${to.nextName}` : ''),
+      o.streak >= 2 ? h('span', `${o.streak}-NIGHT STREAK 🔥`) : null,
+      h('button.rc-xp-card', { type: 'button', onclick: () => import('../screens/profile.js').then(m => m.openCard()) }, 'YOUR CARD'),
+    ];
+  }
+
+  function unlocked(u) {
+    import('../screens/profile.js').then(m => {
+      const me = loadMe();
+      const pub = me && me.profile ? me.profile : null;
+      const show = u.kind === 'finish'
+        ? m.memberCard(pub, {}, 1e9, { fin: u.id, mini: true })
+        : h('span.rc-ul-name', { class: `nm-glow-${u.id}` }, (pub && pub.n) || 'YOU');
+      const item = h('div.rc-plaque.rc-unlock', { class: `is-${u.kind}` },
+        h('span.rc-sweep', { 'aria-hidden': 'true' }),
+        h('div.rc-ul-show', show),
+        h('div.rc-body', h('b.rc-n', `UNLOCKED · ${u.name}`), h('span.rc-sub', u.line)),
+        h('button.rc-xp-card', { type: 'button', onclick: () => m.openCard() }, 'WEAR IT'));
+      el.append(item);
+      turnOn(item, 'is-in');
+      boardSfx('forge');
+      if (!reduced()) vibrate([20, 40, 60]);
+    }).catch(() => {});
   }
 
   function rankUp(from, to) {

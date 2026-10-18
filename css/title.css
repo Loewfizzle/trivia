@@ -10,8 +10,7 @@
 .nd-scene.is-out { opacity: 0; }
 body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: none; }
 /* on the title the corner buttons sit in the real corner (elsewhere they hug the phone-width column) */
-body.nd-on .gear { right: calc(var(--safe-r) + 12px); }
-body.nd-on .music-btn { right: calc(var(--safe-r) + 62px); }
+/* the corner pair (☰ + music) comes from components.css */
 
 /* the screen */
 .title-screen.nd {

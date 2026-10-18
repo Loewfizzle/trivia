@@ -7,7 +7,8 @@
 //   rename  { name }                 → { profile } | 429 { until }
 //   show    { on }                   → { priv }              "Show me on global leaderboards"
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
-import { val } from './_lib/fb.js';
+import { FINISHES, GLOWS, isUnlocked } from '../js/core/ranks.js';
+import { val, ref } from './_lib/fb.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
@@ -45,7 +46,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now()) {
       const [profile, stats, priv] = await Promise.all([publicProfile(pid), val(`pstats/${pid}`), privateInfo(pid)]);
       const s = stats || {};
       const wk = weekKey(now);
-      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk } };
+      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null } };
     }
     case 'ranks': {
       const pid = await mine(uid);
@@ -55,6 +56,16 @@ export async function profileAction(uid, body, ip = '', now = Date.now()) {
     case 'restore': return restore(uid, body.key, ip, now);
     case 'regen': return { key: await newKey(await mine(uid)) };
     case 'rename': return { profile: await rename(await mine(uid), body.name, { now }) };
+    case 'style': {
+      // wear a card finish / a name glow from THE VAULT: only what the player's XP has unlocked
+      const pid = await mine(uid);
+      const xp = (await val(`pstats/${pid}/xp`)) || 0;
+      const patch = {};
+      if (body.f != null) { const it = FINISHES.find(x => x.id === body.f); if (!it || !isUnlocked(it, xp)) throw new ApiError(403, 'locked'); patch[`profiles/${pid}/f`] = it.id; }
+      if (body.g != null) { const it = GLOWS.find(x => x.id === body.g); if (!it || !isUnlocked(it, xp)) throw new ApiError(403, 'locked'); patch[`profiles/${pid}/g`] = it.id; }
+      if (Object.keys(patch).length) await ref('/').update(patch);
+      return { profile: await publicProfile(pid) };
+    }
     case 'show': { const pid = await mine(uid); await setShown(pid, !!body.on); return { priv: await privateInfo(pid) }; }
     default: throw new ApiError(400, 'bad_action');
   }

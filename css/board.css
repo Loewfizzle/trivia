@@ -16,8 +16,7 @@
 /* ---- the screen shell ---- */
 .screen.bd-screen { max-width: none; padding: 0; overflow: hidden; }
 body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: none; }
-body.bd-on .gear { right: calc(var(--safe-r) + 12px); }
-body.bd-on .music-btn { right: calc(var(--safe-r) + 62px); }
+/* the corner pair (☰ + music) comes from components.css */
 .bd { position: relative; width: 100%; height: 100%; color: var(--bd-ink); font-family: var(--font-ui); }
 
 /* ---- the hall: one painted canvas drifting slowly, the game's light, dust in the lamplight ---- */

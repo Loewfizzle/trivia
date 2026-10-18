@@ -190,3 +190,56 @@ test('unfinished, unknown or solo matches are not reportable; a total deadlock i
   assert.ok(!ex.rows.a.win && !ex.rows.b.win);
   assert.equal(T0 % 1000, 0);
 });
+
+
+test('progression: tiers inside ranks, the nightly streak, the weekly goal, per-game mastery', async () => {
+  const R = await import('../js/core/ranks.js');
+  // tiers: three steps inside each rank, LEGEND has none
+  assert.equal(R.step(0).name, 'NEWCOMER I');
+  assert.equal(R.step(249).name, 'NEWCOMER III');
+  assert.equal(R.step(250).name, 'REGULAR I');
+  const ins = R.RANKS.find(r => r.id === 'insider'), made = R.RANKS.find(r => r.id === 'made');
+  const third = (made.xp - ins.xp) / 3;
+  assert.equal(R.step(Math.ceil(ins.xp + third)).name, 'INSIDER II');
+  assert.equal(R.step(made.xp - 1).nextName, 'MADE I');
+  assert.equal(R.step(1e9).name, 'LEGEND'); assert.equal(R.step(1e9).tier, null);
+  assert.ok(R.stepIndex(Math.ceil(ins.xp + third)) === R.stepIndex(ins.xp) + 1, 'a step up inside the rank');
+  for (let x = 0; x < 30000; x += 137) { const st = R.step(x); assert.ok(st.frac >= 0 && st.frac <= 1 && (st.to == null || (x >= st.from && x < st.to))); }
+  // streak
+  assert.deepEqual(R.streakAfter(null, 'd20261018', 'd20261017'), { n: 1, d: 'd20261018' });
+  assert.deepEqual(R.streakAfter({ n: 3, d: 'd20261017' }, 'd20261018', 'd20261017'), { n: 4, d: 'd20261018' });
+  assert.deepEqual(R.streakAfter({ n: 4, d: 'd20261018' }, 'd20261018', 'd20261017'), { n: 4, d: 'd20261018' }, 'a second match the same night keeps it');
+  assert.deepEqual(R.streakAfter({ n: 9, d: 'd20261015' }, 'd20261018', 'd20261017'), { n: 1, d: 'd20261018' }, 'a missed night resets it');
+  assert.equal(R.streakPart(100, 1), null);
+  assert.equal(R.streakPart(100, 2).v, 10);
+  assert.equal(R.streakPart(100, 12).v, 40, 'capped at +40 %');
+  // weekly goal: the same for everyone, measured from this week's counters
+  const g1 = R.weeklyGoal('w20261012', ['cipher', 'slip']), g2 = R.weeklyGoal('w20261012', ['cipher', 'slip']);
+  assert.deepEqual(g1, g2);
+  const kinds = new Set(Array.from({ length: 40 }, (_, k) => R.weeklyGoal(`w2026${String(k).padStart(4, '0')}`, ['cipher']).kind));
+  assert.ok(kinds.size >= 3, 'the goal rotates');
+  assert.ok(R.goalProgress({ kind: 'play', n: 8 }, { cipher: { p: 5 }, slip: { p: 3 } }).done);
+  assert.ok(!R.goalProgress({ kind: 'win', n: 3 }, { cipher: { p: 5, w: 2 } }).done);
+  assert.equal(R.goalProgress({ kind: 'variety', n: 5 }, { a: { p: 1 }, b: { p: 1 }, c: { p: 0 } }).have, 2);
+  assert.ok(R.goalProgress({ kind: 'game', game: 'slip', n: 4 }, { slip: { p: 4 } }).done);
+  // mastery
+  assert.equal(R.mastery({}).lvl, 0);
+  assert.equal(R.mastery({ p: 1 }).lvl, 1);
+  assert.equal(R.mastery({ p: 5, w: 2 }).lvl, 3);
+  assert.ok(R.mastery({ p: 500, w: 200 }).max);
+});
+
+
+test('THE VAULT: unlocks by rank step; what you wear is always something you have', async () => {
+  const R = await import('../js/core/ranks.js');
+  assert.deepEqual(R.worn(0, 'legend', 'prism'), { f: 'midnight', g: 'none' }, 'a newcomer cannot wear what is locked');
+  const made = R.RANKS.find(r => r.id === 'made').xp;
+  assert.equal(R.worn(made, null, null).f, 'gold', 'none chosen: the newest unlocked finish');
+  assert.equal(R.worn(made, 'brass', 'ice').f, 'brass');
+  assert.equal(R.worn(made, 'brass', 'ice').g, 'ice');
+  assert.equal(R.worn(1e9, null, null).f, 'legend');
+  const ul = R.unlockedBetween(R.RANKS[2].xp - 1, R.RANKS[2].xp);
+  assert.deepEqual(ul.map(x => x.id), ['chrome'], 'reaching INSIDER unlocks SILVER CHROME');
+  // every step from REGULAR I on unlocks something (no dry stretch)
+  for (let k = 2; k <= 12; k++) assert.ok([...R.FINISHES, ...R.GLOWS].some(x => x.at === k) || k === 4, `step ${k} (${R.stepNameAt(k)}) unlocks something`);
+});

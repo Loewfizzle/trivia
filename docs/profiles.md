@@ -107,3 +107,24 @@ limit), hide from / return to every board, the audit log. A non-admin sees their
   `rules.test.mjs` (the new nodes), `e2e-profiles.mjs` (the whole flow in browsers). Previews without a server:
   `board-preview.html` (`?mode=public&g=pulse&c=records&p=all&far=1&empty=1&err=1`), `results-preview.html`
   (`?case=first|top10|world|pb|merged|rankup|legend`), `emblems-preview.html`, `og-board.html` (the /board link preview).
+
+## Progression (Oct 2026): steps, the nightly streak, the weekly goal, mastery, THE VAULT
+All pure in `js/core/ranks.js` (shared by the server and the screens); the server awards XP in `api/_lib/stats.js#step`, in the
+same once-per-match transaction.
+- **Steps:** each rank below LEGEND splits into I / II / III (`step(xp)`, `stepIndex`) — a step every evening or two. `profiles.r`
+  (the emblem) is unchanged; screens show the step name (`INSIDER II`) and the bar to the next step.
+- **Nightly streak:** `pstats.st = { n, d }` (Eastern days); from the second night in a row every match earns +10 % per extra night,
+  up to +40 % (`streakPart`); `profiles.s` = n (the lobby / title flame).
+- **Weekly goal:** `weeklyGoal(weekKey, BOARD_GAMES)` — the same for everyone, rotating (play 8 / win 3 / 5 different games / 4 of a
+  featured game), measured from `pstats.gw`; +200 XP once, `pstats.gd` = the week paid.
+- **Mastery:** a level per game from its career counters (`mastery(g)`: a match is a point, a win two more), shown on the card.
+- **THE VAULT:** `FINISHES` (7 card finishes) and `GLOWS` (name glows) unlock by step; `worn(xp, f, g)` = what a player wears
+  (their choice if unlocked, else the newest finish, no glow). `/api/profile { action: 'style', f?, g? }` checks the XP and writes
+  `profiles/{pid}/f|g`; the glow shows on the card and on the name in every lobby. The podium shows each unlock as the thing itself
+  (`callouts.js#unlocked`).
+- **Where it shows:** the title's YOUR CARD button (next to THE BOARD), your lobby row (step, bar, streak, CARD), the ☰ menu
+  (YOUR CARD on every screen), the podium's XP strip (step, next, streak, YOUR CARD) and UNLOCKED plaques, the card screen
+  (streak, goal, THE VAULT, mastery). In a room the card opens as an overlay (`profile.js#openCard`).
+- **The card** (`profile.js#memberCard`, `css/card.css`): finish layers (material, moving light, generated guilloche rosette, deco
+  frame, sheen), a tilt that follows the finger (transforms only). Preview: `tests/integration/card-preview.html?all=1`,
+  `?xp=8200&vault=1&glow=ice`.
