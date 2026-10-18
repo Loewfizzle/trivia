@@ -130,10 +130,11 @@ body[data-theme='bluff'] .bg-grid { opacity: 0.18; }
   background: rgba(5, 5, 7, 0.85);
   caret-color: var(--stamp);
 }
+.nb-input { border-radius: 14px; }
 .nb-input:focus { border-color: var(--bone); }
 .nb-input.shake { animation: shake 0.45s; }
-.nb .btn-primary { --b: var(--bone); color: #111; box-shadow: none; }
-.nb-form.is-filed .nb-file-btn { --b: #2c2d31; color: var(--bone); }
+.nb .btn-primary { --accent: var(--bone); }   /* the dossier's bone, as the glass's light */
+.nb-form.is-filed .nb-file-btn { --accent: #6a6a70; opacity: 0.8; }
 .nb-filed { display: flex; flex-direction: column; gap: 8px; }
 .nb-filed-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .nb-agent { position: relative; opacity: 0.35; filter: grayscale(1); transition: opacity 0.3s, filter 0.3s; }

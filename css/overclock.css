@@ -589,6 +589,7 @@
 .ch-link [hidden], .ch-m24 [hidden] { display: none !important; }
 .ml-words { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
 .ml-word {
+  border-radius: 12px;
   display: grid;
   place-items: center;
   min-height: 48px;
@@ -642,12 +643,14 @@
 .ml-actions { display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; }
 .ml-actions .btn { min-height: 52px; }
 .ml-actions .ml-skip[hidden] + .ml-go { grid-column: 1 / -1; }
-.ch-link.is-solved .ml-word { border-color: var(--accent); }
+.ch-link.is-solved .ml-word {
+  border-radius: 12px; border-color: var(--accent); }
 /* keyboard up (iOS / Android): drop the strip and hero so the words, boxes and buttons stay above it */
 .oc.kb-open { padding-bottom: calc(var(--kb, 0px) + 8px); }
 .oc.kb-open .oc-strip, .oc.kb-open .ch-hero { display: none; }
 .oc.kb-open .ch-link { gap: 8px; }
-.oc.kb-open .ml-word { min-height: 38px; font-size: 18px; }
+.oc.kb-open .ml-word {
+  border-radius: 12px; min-height: 38px; font-size: 18px; }
 
 /* spellcheck */
 .ch-spell { gap: 14px; }
@@ -942,7 +945,8 @@
 .rv-hl-item.is-win span, .rv-hl-item.is-win b { color: var(--green); }
 
 @media (max-height: 700px) {
-  .ml-word { min-height: 40px; }
+  .ml-word {
+  border-radius: 12px; min-height: 40px; }
   .sp-opt { min-height: 54px; }
   .m24-tiles { min-height: 80px; }
   .cp-card { min-height: 66px; }

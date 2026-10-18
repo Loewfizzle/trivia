@@ -309,11 +309,6 @@ body.gl-on .gear, body.gl-on .chat-fab, body.gl-on[data-theme] .music-btn, body.
 .gl-calls .is-miss em { color: #ff9db0; }
 .gl-none { margin: 0; color: rgba(222, 232, 255, 0.55); font-size: 13px; }
 /* the podium's buttons in the same glass as every other menu */
-.gl-final .btn { clip-path: none; border-radius: 16px; }
-.gl-final .btn-primary { color: #fff; background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.07) 50%, rgba(255, 255, 255, 0.02)), radial-gradient(120% 140% at 50% 120%, rgba(127, 178, 255, 0.55), transparent 70%), rgba(30, 50, 110, 0.92); border: 1px solid rgba(190, 215, 255, 0.6); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 1px rgba(127, 178, 255, 0.25), 0 12px 36px rgba(80, 140, 255, 0.3); text-shadow: 0 0 12px rgba(160, 200, 255, 0.9); }
-.gl-final .btn-primary::after { mix-blend-mode: normal; background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.16) 50%, transparent 65%); }
-.gl-final .btn-ghost { color: var(--gl-dim); background: rgba(10, 11, 30, 0.58); border: 1px solid rgba(255, 255, 255, 0.24); }
-.gl-final .btn-ghost::before { display: none; }
 
 /* ---------------------------------------------------------------- desktop: a left column, the board takes the whole height, the fleets on the right */
 @media (min-width: 1000px) and (min-height: 600px) {
