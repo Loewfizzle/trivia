@@ -6,8 +6,9 @@
 //   tap            -> rotate (right half of the screen clockwise, left half counter-clockwise); a second
 //                     finger's tap rotates too
 //   slow drag down -> soft drop, the piece follows the finger down
-//   fast flick down-> hard drop (velocity over the last ~70 ms, steep, at least ~1 cell — so a sideways drag
-//                     with a little downward drift never hard-drops)
+//   SLAM button    -> hard drop (gesture mode's on-screen button: the piece lands exactly where its ghost shows)
+//   fast flick down-> a hard drop ONLY with Settings → SWIPE-DOWN SLAM on (off by default: a flick drifted the piece a
+//                     column just before locking). Off, a downward drag is a soft drop that never moves sideways.
 //   swipe up       -> hold
 // BUTTONS (Settings): left / right (auto-repeat), soft drop (hold), hard drop, rotate ⟲ ⟳, hold.
 // Keyboard (desktop): ← → move, ↓ soft, space hard, ↑/X rotate CW, Z rotate CCW, C/shift hold.
@@ -26,7 +27,8 @@ export const GESTURE = {
 };
 
 /**
- * cfg: { cell (px per board cell), sens (0..1, default .5), midX (screen x splitting CW/CCW taps) }
+ * cfg: { cell (px per board cell), sens (0..1, default .5), midX (screen x splitting CW/CCW taps), flick (default true: a
+ *        fast flick down hard-drops; false: it only soft-drops and a downward drag keeps its column) }
  * Returns { down(x,y,t), move(x,y,t) -> actions[], up(x,y,t) -> actions[] }
  * actions: { a: 'move', dx } | { a: 'soft', n } | { a: 'hard' } | { a: 'hold' } | { a: 'rotate', dir }
  */
@@ -35,6 +37,7 @@ export function makeGesture(cfg) {
   const hx = cfg.cell * (1.22 - 0.6 * sens);            // px per column
   const vy = cfg.cell * (1.05 - 0.3 * sens);             // px per soft-drop row
   const flickV = GESTURE.FLICK_V * (1.25 - 0.5 * sens);   // more sensitive = an easier flick
+  const flick = cfg.flick !== false;
   let s = null;
 
   function velocity(t) {
@@ -63,7 +66,7 @@ export function makeGesture(cfg) {
       }
       const v = velocity(t);
       // hard drop: a fast, steep, downward flick
-      if (v.vy >= flickV && v.dy >= cfg.cell * GESTURE.FLICK_MIN_CELLS && Math.abs(v.vx) < v.vy * GESTURE.STEEP) {
+      if (flick && v.vy >= flickV && v.dy >= cfg.cell * GESTURE.FLICK_MIN_CELLS && Math.abs(v.vx) < v.vy * GESTURE.STEEP) {
         s.done = true;
         s.acted = true;
         out.push({ a: 'hard' });
@@ -77,9 +80,9 @@ export function makeGesture(cfg) {
         out.push({ a: 'hold' });
         return out;
       }
-      // horizontal: follow the finger
+      // horizontal: follow the finger (without the flick, a drag that is going down keeps its column)
       const cols = Math.round((x - s.x0) / hx);
-      if (cols !== s.cols) { out.push({ a: 'move', dx: cols - s.cols }); s.cols = cols; s.acted = true; }
+      if (cols !== s.cols && (flick || s.mode !== 'v')) { out.push({ a: 'move', dx: cols - s.cols }); s.cols = cols; s.acted = true; }
       // a sideways drag turns into a free drag if the finger then clearly heads down
       if (s.mode === 'h' && v.dy > vy * 0.9 && Math.abs(v.dx) < v.dy * 0.5) { s.mode = 'v'; s.baseY = y - v.dy; s.rows = 0; }
       if (s.mode === 'v') {
@@ -107,7 +110,7 @@ export function makeGesture(cfg) {
  * Wires gestures / buttons / keys to a target.
  * act(action) is called with the same action objects; softHeld(bool) for the soft-drop button / key.
  */
-export function attachInput(area, { act, softHeld, cell, sens, enabled, midX }) {
+export function attachInput(area, { act, softHeld, cell, sens, enabled, midX, flick = () => true }) {
   const pointers = new Map(); // id -> { g (gesture) | tap: {x,y,t} }
   let primary = null;
   const opts = { passive: false };
@@ -117,7 +120,7 @@ export function attachInput(area, { act, softHeld, cell, sens, enabled, midX }) 
     try { area.setPointerCapture(e.pointerId); } catch { /* fine */ }
     if (primary == null) {
       primary = e.pointerId;
-      const g = makeGesture({ cell: cell(), sens: sens(), midX: midX() });
+      const g = makeGesture({ cell: cell(), sens: sens(), midX: midX(), flick: flick() });
       g.down(e.clientX, e.clientY, e.timeStamp);
       pointers.set(e.pointerId, { g });
     } else {

@@ -239,6 +239,12 @@ test('gestures: fast sideways drags with downward drift never hard-drop (2000 ra
 test('gestures: a fast flick down hard-drops; a slow drag down soft-drops row by row', () => {
   const flick = trace(makeGesture({ cell: CELL, sens: 0.5, midX: 200 }), line(200, 300, 205, 300 + CELL * 4, 90, 9));
   assert.equal(flick.filter(a => a.a === 'hard').length, 1);
+  // with the swipe-down slam off (the default in the game: the SLAM button drops), a flick only soft-drops and never
+  // shifts the piece's column, even drifting sideways
+  const off = trace(makeGesture({ cell: CELL, sens: 0.5, midX: 200, flick: false }), line(200, 300, 200 + CELL * 1.4, 300 + CELL * 5, 90, 9));
+  assert.ok(!off.some(a => a.a === 'hard'), 'no hard drop without the flick');
+  assert.ok(!off.some(a => a.a === 'move'), 'a downward drag keeps its column');
+  assert.ok(off.some(a => a.a === 'soft'), 'it soft-drops');
   const slow = trace(makeGesture({ cell: CELL, sens: 0.5, midX: 200 }), line(200, 300, 200, 300 + CELL * 4, 1600, 40));
   assert.ok(!slow.some(a => a.a === 'hard'));
   const rows = slow.filter(a => a.a === 'soft').reduce((s, a) => s + a.n, 0);

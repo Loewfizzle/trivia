@@ -96,6 +96,8 @@ function open() {
       h('div.set-row.set-seg', h('span.label', 'CONTROLS'), segmented([{ value: 'gesture', label: 'GESTURES' }, { value: 'buttons', label: 'BUTTONS' }], settings.prismScheme || 'gesture', v => updateSettings({ prismScheme: v }))),
       slider('SWIPE SENSITIVITY', 'prismSens'),
       slider('BUTTON SIZE', 'prismBtn'),
+      h('div.set-row.set-seg', h('span.label', 'SLAM BUTTON'), segmented([{ value: 'left', label: 'LEFT' }, { value: 'right', label: 'RIGHT' }], settings.prismSlam || 'right', v => updateSettings({ prismSlam: v }))),
+      toggle('SWIPE-DOWN SLAM', 'prismFlick'),
       h('div.set-sub', 'SLIPSTREAM'),
       h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); const me = state.players && state.players[state.uid]; import('../games/slip/ride.js').then(m => m.openRidePicker({ color: colorHex(me ? me.color : 'cyan') })); } }, h('span', 'YOUR RIDE')),
       h('div.set-sub', 'PULSE'),

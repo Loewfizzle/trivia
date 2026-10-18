@@ -141,7 +141,9 @@ export function createView() {
         h('button.pd-btn', { type: 'button', 'data-btn': 'CCW', 'aria-label': 'Rotate counter-clockwise' }, '⟲'),
         h('button.pd-btn', { type: 'button', 'data-btn': 'CW', 'aria-label': 'Rotate clockwise' }, '⟳'),
         h('button.pd-btn.pd-btn-hard', { type: 'button', 'data-btn': 'HARD', 'aria-label': 'Hard drop' }, 'DROP')));
-    els.ui = h('div.pd-ui', els.top, h('div.pd-main', els.play, els.minis), els.buttons);
+    // gesture mode's SLAM: one tap, the piece lands where its ghost is (side + size from Settings)
+    els.slam = h('div.pd-slam', { 'data-nogesture': '' }, h('button.pd-btn.pd-btn-slam', { type: 'button', 'data-btn': 'HARD', 'aria-label': 'Slam: drop the piece straight down' }, h('b', 'SLAM'), h('i', '▼')));
+    els.ui = h('div.pd-ui', els.top, h('div.pd-main', els.play, els.minis), els.buttons, els.slam);
     els.overlay = h('div.pd-overlay');
     root.append(els.world, els.fx, els.ui, els.overlay);
     el.append(root);
@@ -157,8 +159,10 @@ export function createView() {
       sens: () => settings.prismSens ?? 0.5,
       enabled: () => !!(eng && eng.cur && !eng.over && game.phase === 'play' && performance.now() > rebootUntil),
       midX: () => window.innerWidth / 2,
+      flick: () => !!settings.prismFlick,
     });
     input.bindButtons(els.buttons);
+    input.bindButtons(els.slam);
     synth.setClock(() => songClock());
     unsubSettings = onSettings(() => { layoutSig = ''; applyLayout(); });
     new ResizeObserver(() => { layoutSig = ''; applyLayout(); }).observe(root);
@@ -675,10 +679,11 @@ export function createView() {
     const scheme = settings.prismScheme === 'buttons' ? 'buttons' : 'gesture';
     const spectating = !participant() || isOut() || game.phase === 'final';
     const duelist = !!game.duelAt && participant() && !isOut() && !rush();
-    const sig = [W0, H0, scheme, spectating, duelist, rush(), settings.prismBtn, aliveOf(game).length, tier].join('|');
+    const sig = [W0, H0, scheme, spectating, duelist, rush(), settings.prismBtn, settings.prismSlam, aliveOf(game).length, tier].join('|');
     if (sig === layoutSig) { renderSide(spectating, duelist); return; }
     layoutSig = sig;
     root.dataset.scheme = scheme;
+    root.dataset.slam = settings.prismSlam === 'left' ? 'left' : 'right';
     root.classList.toggle('is-spectating', spectating);
     root.classList.toggle('is-duelist', duelist);
     const btnScale = settings.prismBtn ?? 0.5;

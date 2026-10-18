@@ -213,8 +213,9 @@ RULES.prism = {
     ['CONTROLS (GESTURES)', [
       'Drag sideways: the piece follows your finger, one column at a time.',
       'Tap the right half to rotate clockwise, the left half to rotate counter-clockwise.',
-      'Drag down slowly to soft drop. Flick down fast to drop it instantly. Swipe up to hold a piece for later.',
-      'Prefer buttons? ⚙ settings → PRISM DROP → BUTTONS (and the swipe sensitivity / button size).',
+      'Tap SLAM (bottom corner) to drop the piece straight down, exactly where its ghost shows.',
+      'Drag down to soft drop (it keeps its column). Swipe up to hold a piece for later.',
+      '⚙ settings → PRISM DROP: move SLAM to the LEFT, turn the old SWIPE-DOWN SLAM back on, or switch to full BUTTONS.',
     ]],
     ['BATTLE', [
       'Clearing lines sends junk rows to your target: 2 lines = 1, 3 = 2, 4 = 4. Twists hit harder, back-to-back and combos add more, a perfect clear sends 10.',
