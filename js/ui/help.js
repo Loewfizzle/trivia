@@ -9,6 +9,12 @@ const RULES = {
   rum: {
     goal: 'Fifteen, twenty or thirty days in a neon-lit Prohibition city. Buy contraband cheap, sell it dear, dodge the feds, pay Mr. Vale. The biggest fortune at dawn wins.',
     sections: [
+      ['YOUR FIRST DAY (QUICK START)', [
+        'You wake up in the Old Quarter with a little cash, an empty truck and a debt to Mr. Vale.',
+        'MARKET: buy what’s cheap here (moonshine). TRAVEL: pick a district where it sells higher. Tap DONE.',
+        'Next dawn you arrive; SELL, buy whatever is cheap there, drive on. Every few days, pay Vale at his office in the Old Quarter.',
+        'Prices in each district lean a certain way (listed under THE CITY). News and rumours tell you where the money is today and tomorrow.',
+      ]],
       ['EVERY DAY', [
         'Dawn: the weather turns, and everyone’s truck arrives in the district they chose. Who’s in your district is your competition in that market.',
         'Events may find you first — federal agents, hijackers, a lucky crate, a rumour, Vale’s men. One tap decides.',
@@ -397,11 +403,13 @@ export function openHelp(gameId = 'cipher') {
       content,
       h('button.btn.btn-primary.btn-block', { type: 'button', onclick: closeHelp }, h('span', 'GOT IT'))));
   document.body.append(sheet);
+  document.body.classList.add('help-open');
   show(current);
 }
 
 export function closeHelp() {
   if (!sheet) return;
+  document.body.classList.remove('help-open');
   const s = sheet;
   sheet = null;
   s.classList.add('out');

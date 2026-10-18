@@ -125,6 +125,9 @@ export function installSettingsPanel() {
     toast(settings.musicOff ? 'MUSIC OFF — EFFECTS STAY ON' : 'MUSIC ON', 'info', 1600);
   } });
   document.body.append(musicBtn);
+  // HOW TO PLAY for the game on screen: under the music button in a game (components.css hides it elsewhere)
+  const helpBtn = h('button.help-btn', { type: 'button', 'aria-label': 'How to play', title: 'How to play', onclick: () => openHelp(document.body.dataset.theme || 'cipher') }, '?');
+  document.body.append(helpBtn);
   const paint = () => {
     gear.classList.toggle('is-muted', settings.muted);
     musicBtn.classList.toggle('is-off', settings.musicOff || settings.muted);

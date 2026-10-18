@@ -126,32 +126,41 @@ export function createCity(canvas, { reduced = false } = {}) {
     { key: 'mansion', tint: '#fff2cc', color: 0x9a948a, lit: 0.5, cols: 5, rows: 4, rough: 0.7, roof: 0x5a3a3a },
     { key: 'shed', tint: '#9fd8ff', color: 0x24303a, lit: 0.22, cols: 5, rows: 4, rough: 0.9, roof: 0x1a2028 },
   ];
-  const plan = [];   // { style, x, z, w, h, d, color }
-  const addBlock = (id, n, style, hmin, hmax, wmin, wmax, spread = 1, tintVar = 0.12) => {
-    const s = SPOTS[id];
-    for (let i = 0; i < n; i++) {
-      const a = r() * Math.PI * 2, d = Math.sqrt(r()) * s.r * spread;
-      const w = wmin + r() * (wmax - wmin), dd = wmin + r() * (wmax - wmin), h = hmin + Math.pow(r(), 1.6) * (hmax - hmin);
-      const x = s.x + Math.cos(a) * d, z = s.z + Math.sin(a) * d * 0.8;
-      if (Math.abs(x) > 31 || Math.abs(z) > 21) continue;
-      if (id !== 'docks' && x < -26) continue;
-      plan.push({ style, x, z, w, h, d: dd, y: id === 'heights' ? 2.6 : 0, v: (r() - 0.5) * tintVar });
-    }
-  };
-  addBlock('docks', 34, 4, 1.2, 3.2, 1.4, 3.4);
-  addBlock('docks', 10, 0, 2, 4.5, 1.2, 2.2, 0.7);
-  addBlock('uptown', 44, 2, 5, 20, 1.6, 3.2, 0.95);
-  addBlock('uptown', 24, 1, 3, 8, 1.4, 2.6, 1.15);
-  addBlock('strip', 40, 1, 1.6, 5, 1.6, 3.2);
-  addBlock('quarter', 54, 0, 1.6, 5.5, 1.2, 2.6);
-  addBlock('rail', 26, 4, 1.2, 3, 1.6, 4.2);
-  addBlock('rail', 8, 1, 2.5, 6, 1.4, 2.4, 0.6);
-  addBlock('heights', 16, 3, 1.4, 3, 1.8, 3.2, 0.72);
-  // filler blocks between districts
-  for (let i = 0; i < 70; i++) {
-    const x = -30 + r() * 60, z = -20 + r() * 40;
-    if (x < -24 && z > 2) continue;
-    plan.push({ style: r() < 0.5 ? 0 : 1, x, z, w: 1.2 + r() * 2, h: 1.2 + r() * 3.5, d: 1.2 + r() * 2, y: 0, v: (r() - 0.5) * 0.1 });
+  // The city on its street grid: streets every 6 units (the ground texture draws them at x = -30 + 6i, z = -20 + 6j),
+  // one block between each pair, buildings on lots inside the block with a sidewalk's margin. Each block takes the style
+  // and the skyline of its nearest district: Uptown's blocks carry one or two towers, the Strip low wide clubs, the Old
+  // Quarter tight brick, the Docks and the Rail Yard sheds, the Heights mansions on the hill — and far from any district
+  // the blocks thin out into low filler, so the districts read from above.
+  const plan = [];   // { style, x, z, w, h, d, y, v }
+  const KIND = { docks: { style: 4, h: [1.2, 3.2], alt: 0, altH: [2, 4.5] }, uptown: { style: 2, h: [6, 20], alt: 1, altH: [3, 8] },
+    strip: { style: 1, h: [1.6, 5], alt: 1, altH: [1.6, 4] }, quarter: { style: 0, h: [1.8, 5.5], alt: 0, altH: [1.8, 4] },
+    rail: { style: 4, h: [1.2, 3], alt: 1, altH: [2.5, 6] }, heights: { style: 3, h: [1.4, 3], alt: 3, altH: [1.4, 3] } };
+  const near = (x, z) => { let best = null, bd = Infinity; for (const id of DIST_IDS) { const sp = SPOTS[id]; const d = Math.hypot(x - sp.x, (z - sp.z) * 1.25); if (d < bd) { bd = d; best = id; } } return { id: best, d: bd }; };
+  const HILL = SPOTS.heights;
+  const lot = (x, z, w, d, style, h, y, v) => plan.push({ style, x, z, w, h, d, y, v });
+  for (let i = 0; i < 10; i++) for (let j = 0; j < 7; j++) {
+    const cx = -27 + i * 6, cz = -17 + j * 6;           // the block's centre; its usable square is 4.4 wide (0.8 sidewalk)
+    if (cx < -24 && cz > 1) continue;                      // the water
+    if (cz > 6.5 && cz < 17 && cx > 5) continue;           // the rail yard's tracks and platforms
+    const dh = Math.hypot(cx - HILL.x, cz - HILL.z);
+    if (dh > 6.3 && dh < 11.8) continue;                   // the slope of the hill
+    const onHill = dh <= 6.3;
+    const { id, d } = near(cx, cz);
+    const K = KIND[id];
+    const far = d > SPOTS[id].r + 2;                       // between districts: low filler
+    const alt = r() < 0.35;
+    let style = far ? (r() < 0.5 ? 0 : 1) : alt ? K.alt : K.style;
+    let [h0, h1] = far ? [1.2, 3.4] : alt ? K.altH : K.h;
+    if (onHill) { style = 3; [h0, h1] = [1.4, 3]; }
+    const y = onHill ? 2.6 : 0;
+    const v = (r() - 0.5) * 0.12;
+    const hgt = () => h0 + Math.pow(r(), id === 'uptown' && !far ? 1.1 : 1.6) * (h1 - h0);
+    const layout = id === 'uptown' && !far && !alt ? (r() < 0.55 ? 'tower' : 'twin') : onHill ? 'twin' : r() < 0.2 ? 'tower' : r() < 0.55 ? 'quad' : r() < 0.8 ? 'twin' : 'row';
+    const g = 0.35;                                        // the gap between lots
+    if (layout === 'tower') { const w = 3.2 + r() * 1.2; lot(cx + (r() - 0.5) * 0.6, cz + (r() - 0.5) * 0.6, w, w * (0.8 + r() * 0.4), style, hgt(), y, v); }
+    else if (layout === 'twin') { const along = r() < 0.5; for (let k = 0; k < 2; k++) { const w = along ? 4.4 : 2.0, d = along ? 2.0 : 4.4; const ox = along ? 0 : (k ? 1.2 : -1.2), oz = along ? (k ? 1.2 : -1.2) : 0; if (r() < 0.12 && !onHill) continue; lot(cx + ox, cz + oz, w - g, d - g, style, hgt(), y, v); } }
+    else if (layout === 'quad') { for (let k = 0; k < 4; k++) { if (r() < 0.15) continue; const ox = k % 2 ? 1.1 : -1.1, oz = k < 2 ? -1.1 : 1.1; lot(cx + ox, cz + oz, 2.2 - g, 2.2 - g, style, hgt(), y, v + (r() - 0.5) * 0.06); } }
+    else { for (let k = 0; k < 3; k++) { if (r() < 0.1) continue; lot(cx - 1.5 + k * 1.5, cz + (r() - 0.5) * 0.4, 1.5 - g, 3.6 + r() * 0.6, style, hgt(), y, v + (r() - 0.5) * 0.06); } }
   }
   const boxGeo = keep(new THREE.BoxGeometry(1, 1, 1));
   boxGeo.translate(0, 0.5, 0);

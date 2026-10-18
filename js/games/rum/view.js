@@ -26,6 +26,7 @@ import { GOOD_ICONS, WEATHER_ICONS, DISTRICT_ICONS, VALE_SVG, svgEl } from './ic
 import { createCity } from './scene.js';
 import { createSfx } from './audio.js';
 import { drawNewspaper, loadPaperFonts, savePage } from './newspaper.js';
+import { openHelp } from '../../ui/help.js';
 
 const num = n => Math.round(n).toLocaleString('en-US');
 const fmtPct = r => { const p = r * 100; return Number.isInteger(p) ? String(p) : p.toFixed(1); };
@@ -227,7 +228,12 @@ export function createView() {
     els.card.replaceChildren(h('div.rr-intro',
       h('div.rr-intro-k', `${game.settings.days} DAYS · ${Object.keys(game.participants).length} RUMRUNNERS`),
       h('div.rr-intro-t', 'RUMRUNNER'),
-      h('div.rr-vale', h('div.rr-vale-sil', svgEl(VALE_SVG)), h('div.rr-vale-lines'))));
+      h('div.rr-vale', h('div.rr-vale-sil', svgEl(VALE_SVG)), h('div.rr-vale-lines')),
+      h('div.rr-primer',
+        h('div.rr-primer-s', h('b', '1'), h('span', 'BUY contraband where it’s cheap')),
+        h('div.rr-primer-s', h('b', '2'), h('span', 'DRIVE to a district that pays more and SELL')),
+        h('div.rr-primer-s', h('b', '3'), h('span', 'PAY Mr. Vale at his office before his men come')),
+        h('button.btn.btn-ghost.btn-sm.rr-howto', { type: 'button', onclick: () => openHelp('rum') }, 'HOW TO PLAY'))));
     typeLines(els.card.querySelector('.rr-vale-lines'), lines, 26);
     root.classList.add('is-card');
   }
@@ -263,13 +269,15 @@ export function createView() {
     else if (n === days - 1) items.push(h('div.rr-news.is-last', h('span.rr-news-k', 'NOTICE'), 'Tomorrow is the last day. Plan your final sale now — unsold cargo is worth nothing.'));
     const me0 = inMatch() ? (d.at && d.at[me()]) || HOME : null;
     const arriving = me0 ? `YOU ARRIVE ${DISTRICT_TEXT[me0].at.toUpperCase()}` : 'WATCHING THE CITY';
+    const primer = n === 1 ? h('div.rr-dawn-primer', 'Each day: handle any events, trade in the MARKET, pick where to drive tomorrow under TRAVEL, then tap DONE. The ? button in the corner has the full rules.') : null;
     els.card.replaceChildren(h('div.rr-dawn',
       h('div.rr-dawn-k', n === days ? 'THE LAST MORNING' : 'A NEW DAY'),
       h('div.rr-dawn-day', h('span', 'DAY'), h('b', String(n)), h('span.rr-dawn-of', `OF ${days}`)),
       h('div.rr-dawn-w', svgEl(WEATHER_ICONS[d.w] || WEATHER_ICONS.clear), h('div', h('b', W.name), h('span', W.effect))),
       h('div.rr-dawn-arr', arriving),
       items.length ? h('div.rr-dawn-news', ...items) : null,
-      d.f && n < days ? h('div.rr-dawn-f', `TOMORROW: ${(WEATHER_TEXT[d.f] || {}).name || ''}`) : null));
+      d.f && n < days ? h('div.rr-dawn-f', `TOMORROW: ${(WEATHER_TEXT[d.f] || {}).name || ''}`) : null,
+      primer));
     root.classList.add('is-card');
     if (n === days) ann.announce('THE LAST MORNING', 'last');
     // the drive
@@ -565,8 +573,10 @@ export function createView() {
         open ? renderTrade(S, g, open) : null);
     });
     const spots = Object.keys(game.participants).filter(u => u !== me() && d.at && d.at[u] === S.dist).map(u => (st.players[u] || {}).name).filter(Boolean);
+    const firstDay = game.day === 1 && !units(S);
     return h('div.rr-market',
       h('div.rr-market-h', h('span', DISTRICT_TEXT[S.dist].tagline), spots.length ? h('span.rr-market-rivals', `ALSO HERE: ${spots.join(', ')}`) : h('span.rr-market-rivals', 'YOU HAVE THE MARKET TO YOURSELF')),
+      firstDay ? h('div.rr-hint', 'Moonshine is cheapest here in the Old Quarter. Buy some, then pick a district under TRAVEL where it sells higher — the Strip or Uptown — and tap DONE.') : null,
       last ? h('div.rr-warn', 'LAST DAY — anything you don’t sell is worth nothing.') : game.day === game.settings.days - 1 ? h('div.rr-warn', 'Tomorrow is the last day: buy only what you can sell tomorrow.') : null,
       ...cards);
   }

@@ -55,14 +55,20 @@ records `rum-f15/20/30` (BIGGEST FORTUNE per length), career wins. Comparisons a
 sorted and drops empty objects, and day-keyed objects come back as arrays with a null at 0.
 
 ## The screen (`view.js`, `scene.js`, `css/rum.css`, `newspaper.js`, `text.js`, `icons.js`, `audio.js`)
-- The city (three.js r160): a 64×44 diorama on a dark base with a gold frame — instanced buildings in five styles with
-  window emissive maps (walls only), Uptown's spired towers, the Strip's signs, the Old Quarter's gas lamps and Vale's green
+- The city (three.js r160): a 64×44 diorama on a dark base with a gold frame. Streets every 6 units (the ground texture draws
+  them); buildings sit on lots inside each block with a sidewalk's margin, and each block takes the style and skyline of its
+  nearest district (Uptown one or two towers a block, the Strip low wide clubs, the Old Quarter tight brick, the Docks and the
+  Rail Yard sheds, mansions on the hill, low filler between districts; the water, the tracks and the hill's slope stay clear).
+  Instanced buildings in five styles with window emissive maps (walls only), Uptown's spired towers, the Strip's signs, the Old Quarter's gas lamps and Vale's green
   window, the Docks' cranes / ship / water, the Rail Yard's train and steam, the mansions on the Heights' hill; searchlights,
   neon point lights, haze sprites, rain points, fog (FogExp2 per weather), lightning (a light spike + a CSS flash + thunder),
   the blue-gold dawn on the last morning (the sky is a CSS gradient behind a transparent canvas). The camera is tilted,
   drifting, framed into the free rectangle (`setFrame`: between the board and the panel on phones, the left column on
   desktop — an off-centre projection), and swoops into a district for an event (`focus`). Trucks in player colours park at
   their districts and drive L-shaped routes at dawn. Tiers 2/1/0: DPR 2/1.5/1, rain 1400/800/320, haze, searchlights.
+- Onboarding: the intro card carries a three-step primer and a HOW TO PLAY button; day 1's dawn card says what a day is; the
+  first market shows a hint (buy moonshine here, pick a district under TRAVEL, DONE); HOW TO PLAY opens with YOUR FIRST DAY;
+  the corner `?` (every game) opens the rules any time.
 - UI: the top bar (day, weather chip with its effect, where you are, the day timer), the live net-worth board (leader gold,
   DONE ticks), the glass panel: wallet strip (cash, debt, stash, cargo bar) → tabs MARKET · VALE (Old Quarter) · STASH ·
   GARAGE (where upgrades are sold) · TRAVEL (+ TIP OFF THE FEDS) → DONE with tomorrow's district. Market cards: price, trend
