@@ -3,3 +3,11 @@ scripts
 *.md
 database.rules.json
 firebase.json
+
+# private keys and secrets
+neon speakeasy leaderboard key.txt
+*leaderboard key*
+*-firebase-adminsdk-*.json
+*serviceAccount*.json
+.env
+.env.*

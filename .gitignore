@@ -6,3 +6,11 @@ node_modules/
 tests/integration/shots/
 __pycache__/
 tests/integration/shots-*/
+
+# private keys and secrets: never commit (and never deploy)
+neon speakeasy leaderboard key.txt
+*leaderboard key*
+*-firebase-adminsdk-*.json
+*serviceAccount*.json
+.env
+.env.*
