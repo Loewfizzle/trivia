@@ -157,7 +157,8 @@ try {
   await pages[hi].evaluate(() => import('/js/host.js').then(m => m.startGame('gridlock', { mode: 'royale', placeSec: 45, turnSec: 15 })));
   await waitFor(pages[hi], s => s.game && s.game.id === 'gridlock' && s.game.mode === 'royale' && s.game.phase === 'place', 'royale placement');
   const gB = await game(pages[hi]);
-  ok(gB.size === 8 && gB.fleet.length === 4, `BOARD: ${N} players → 8×8, 4 ships`);
+  const wantB = N >= 4 ? [8, 4] : [10, 5];
+  ok(gB.size === wantB[0] && gB.fleet.length === wantB[1], `BOARD: ${N} players → ${wantB[0]}×${wantB[0]}, ${wantB[1]} ships`);
   await Promise.all(alive().map(i => pages[i].waitForFunction(() => window.__gridlock && window.__gridlock.fleet(), { timeout: 20000 })));
   // everyone but HAL places (HAL's fleet comes from the host: auto-place for a phone that never placed)
   for (const i of alive()) if (i !== N - 1) await G(pages[i], 'window.__gridlock.autoPlace(); window.__gridlock.setReady();');
