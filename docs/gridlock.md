@@ -31,8 +31,11 @@ SALVO (several shots per volley) and ARCADE (abilities).
   a time, straight on, fitted to the CSS-positioned `.gl-stage` box (the view hands the rect over on resize; never read in the
   frame loop). The coordinates are printed inside the board's frame, centred on their column/row, so a cell is exactly where
   the labels say (`cellXY(uid, r, c)` ⇄ `pick(x, y)`; the E2E asserts they agree). Every other fleet is a mini-board canvas
-  the HUD mounts in a `.gl-mini` button (`miniCanvas(uid)`; phone strip under the board, desktop column on the right, landscape
-  column). Layers: the base (panel, rim light, grid, labels) and the marks (scar / ring sprites) are offscreen canvases rebuilt
+  the HUD mounts in a `.gl-mini` button (`miniCanvas(uid)`). **Layout** (css/gridlock.css): phones = header → mini strip → the
+  board edge to edge (4 px margins, the label band 6 % of the board) → action bar; desktop (≥ 1000×600) = a left column (header,
+  announcements, action, tray) · the board on the whole height · the fleets in a right column; landscape phones = action left,
+  board, fleets right. The stage box is measured with offsets, never bounding rects (the screen slides in with a transform).
+  Layers: the base (panel, rim light, grid, labels) and the marks (scar / ring sprites) are offscreen canvases rebuilt
   only when they change; a frame = 2 drawImage + hulls + effects. Hulls are light-forms (dark glass, colour rim, white spine);
   wrecks are dark hulls with ember cracks under the scars. Tiers 2/1/0 (DPR 2/1.5/1, shards, sparks, trail, the sweep) step
   down at p75 > 19.5 ms; reduced motion: no shake, no glitch, no sweep, fewer shards. Look preview without Firebase:

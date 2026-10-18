@@ -119,7 +119,7 @@ function close() {
 export function installSettingsPanel() {
   gear = h('button.gear', { type: 'button', 'aria-label': 'Settings', onclick: open, html: GEAR });
   document.body.append(gear);
-  // one-tap music on/off next to the gear (title, setup and lobby; in a game it's the first switch in the sheet)
+  // one-tap music on/off: next to the gear on the title, setup and lobby; under the chat button in a game (components.css)
   musicBtn = h('button.music-btn', { type: 'button', html: NOTE, onclick: () => {
     updateSettings({ musicOff: !settings.musicOff });
     toast(settings.musicOff ? 'MUSIC OFF — EFFECTS STAY ON' : 'MUSIC ON', 'info', 1600);

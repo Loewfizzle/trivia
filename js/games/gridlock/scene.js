@@ -201,9 +201,9 @@ export function createScene(canvas, { size, reduced = false } = {}) {
     const S = Math.max(40, Math.floor(Math.min(stage.w, stage.h)));
     geo.S = S;
     geo.bx = Math.round(stage.x + (stage.w - S) / 2);
-    geo.by = Math.round(stage.y + (stage.h - S) * 0.22);   // spare height goes mostly below: the board sits up near the header
-    geo.P = Math.round(S * 0.028);
-    geo.M = Math.round(S * 0.072);
+    geo.by = Math.round(stage.y + (stage.h - S) * 0.4);    // spare height: a little more below than above (nearer the thumb)
+    geo.P = Math.max(5, Math.round(S * 0.022));
+    geo.M = Math.max(16, Math.round(S * 0.062));
     geo.gw = S - geo.M - 2 * geo.P;
     geo.gx = geo.bx + geo.M + geo.P;
     geo.gy = geo.by + geo.M + geo.P;

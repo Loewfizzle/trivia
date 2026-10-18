@@ -112,19 +112,21 @@ export function createView() {
   }
 
   // where the board goes (the CSS-positioned stage box) and where the beams come from (the mini-boards).
-  // Read outside the frame loop only: on resize and after the HUD re-renders.
-  const miniSize = () => (root.clientWidth >= 900 ? 76 : 58);
+  // Read outside the frame loop only: on resize and after the HUD re-renders. Offsets, not bounding rects: the
+  // screen slides in with a transform, and a rect read mid-transition would park the board in the wrong place.
+  const miniSize = () => (root.clientWidth >= 1000 && root.clientHeight >= 600 ? 76 : 46);
+  const offsetIn = el => { let x = 0, y = 0; for (let e = el; e && e !== root; e = e.offsetParent) { x += e.offsetLeft - (e.scrollLeft || 0); y += e.offsetTop - (e.scrollTop || 0); } return [x, y]; };
   function syncStage() {
     if (!scene || !root) return;
-    const rr = root.getBoundingClientRect(), sr = els.stage.getBoundingClientRect();
-    scene.setStage({ x: sr.left - rr.left, y: sr.top - rr.top, w: sr.width, h: sr.height });
+    const [x, y] = offsetIn(els.stage);
+    scene.setStage({ x, y, w: els.stage.offsetWidth, h: els.stage.offsetHeight });
     syncOrigins();
   }
   function syncOrigins() {
     if (!scene) return;
-    const rr = root.getBoundingClientRect();
     const o = {};
-    for (const b of els.minis.querySelectorAll('.gl-mini')) { const r = b.getBoundingClientRect(); o[b.dataset.uid] = { x: r.left - rr.left + r.width / 2, y: r.top - rr.top + r.height * 0.4 }; }
+    const sl = els.minis.scrollLeft || 0, stp = els.minis.scrollTop || 0;
+    for (const b of els.minis.querySelectorAll('.gl-mini')) { const [x, y] = offsetIn(b); o[b.dataset.uid] = { x: x - sl + b.offsetWidth / 2, y: y - stp + b.offsetHeight * 0.4 }; }
     scene.setOrigins(o);
   }
 

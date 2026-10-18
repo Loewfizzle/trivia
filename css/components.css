@@ -627,7 +627,9 @@
 .music-btn.is-off { color: var(--red); border-color: rgba(255, 51, 85, 0.5); }
 .music-btn.is-off .slash { opacity: 1; }
 .music-btn:active { transform: scale(0.92); }
-body[data-theme]:not([data-theme='']) .music-btn { display: none; }
+/* in a game it joins the corner column under the chat button: gear, chat, music */
+body[data-theme]:not([data-theme='']) .music-btn { top: calc(var(--safe-t) + 106px); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); }
+body[data-theme]:not([data-theme='']):not(.chat-fab-on) .music-btn { top: calc(var(--safe-t) + 58px); }
 
 .sheet.settings { gap: 18px; }
 .set-head { display: flex; justify-content: space-between; align-items: flex-start; }

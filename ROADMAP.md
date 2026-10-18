@@ -251,6 +251,10 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
 - [x] Three sizes + landscape reviewed over three passes (board hugs the header, denser scars, wreck visible under them, desktop
       header scale, landscape tray wraps beside the board); `gridlock-preview.html` now mounts the real view (fake-firebase.js)
 - [x] three.js is no longer loaded by GRIDLOCK (NEON PAR still uses it)
+- [x] Play-test fixes: the board grew (phones: edge to edge, the mini strip moved above it, cells 34 px on a 390-wide 10×10 and
+      43 px on 8×8; desktop: the whole height, ~850 px at 1440×900, with the HUD in side columns); the stage is measured with
+      offsets so the board no longer lands where the screen's entry transform put it; a one-tap music button joins the gear and
+      chat in every game's corner column
 
 ## Next up (agreed plan, in order)
 1. **GRIDLOCK Part 2:** SALVO (one shot per ship afloat) and ARCADE (ability cards). The pure rules are drafted locally

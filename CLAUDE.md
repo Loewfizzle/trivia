@@ -144,8 +144,8 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   as light. `body.nd-glass` restyles menus; sheets are glass on every screen. Toasts are glass pills; confirm-by-second-tap changes the
   button itself, never a toast. Review: `node tests/integration/ui-shots.mjs "<browser>" ./shots-ui`.
 - **Player emblems** (`avatar(id, color, size)`): 12 shapes built like the neon sign; size with `--s`. Preview: `tests/integration/avatars-preview.html`.
-- Game screens fill `.screen` with `overflow: hidden`; the fixed gear sits top-right (headers use `padding-right: 52px`); announcements
-  sit under the corner buttons. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
+- Game screens fill `.screen` with `overflow: hidden`; the fixed corner column sits top-right: gear (+10), chat (+58), music on/off (+106)
+  (headers use `padding-right: 52px`); announcements stay clear of it. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
 
 ## Adding a game (checklist)
 1. **Rules:** `js/games/<id>/logic.js` + `director.js` (pure) → `createGame()` and `nextStep(game, ctx)`; a `tests/<id>.test.mjs` with
