@@ -617,6 +617,37 @@ test('gridlock shots: your turn only (Classic); everyone alive while aiming (Roy
   await assertFails(set(ref(db('p3'), `${A}/p3`), { t: 'host', x: 'abcdef==', at: serverTimestamp() }), 'eliminated players don\'t fire');
 });
 
+test('gridlock Part 2: the simultaneous lock-in (ts + x, a card only in Arcade), sonar answers private to the shooter, a relocate rewrites your fleet only with the card in hand', async () => {
+  await seed(glRoom({ phase: 'aim', rk: '4', mode: 'salvo', settings: { mode: 'salvo' } }));
+  const A = `${R}/glshot/m1/4`;
+  await assertSucceeds(set(ref(db('p2'), `${A}/p2`), { ts: { host: true, p3: true }, x: 'abcdef==', at: serverTimestamp() }), 'a Salvo lock-in: who, never where');
+  await assertFails(set(ref(db('p3'), `${A}/p3`), { ts: { p3: true }, x: 'abcdef==', at: serverTimestamp() }), 'not yourself');
+  await assertFails(set(ref(db('host'), `${A}/host`), { ts: { p2: true }, x: 'abcdef==', a: 'torpedo', at: serverTimestamp() }), 'no cards outside Arcade');
+  await assertFails(set(ref(db('host'), `${A}/host`), { ts: { p2: true }, at: serverTimestamp() }), 'the payload is required');
+  await seed(glRoom({ phase: 'aim', rk: '4', mode: 'arcade', settings: { mode: 'arcade' }, hand: { host: ['sonar', 'relocate'], p2: ['shield'], p3: ['double'] } }));
+  await assertSucceeds(set(ref(db('host'), `${A}/host`), { ts: { p2: true }, x: 'abcdef==', a: 'sonar', at: serverTimestamp() }), 'a sonar lock-in');
+  await assertSucceeds(set(ref(db('p2'), `${A}/p2`), { x: 'abcdef==', a: 'shield', at: serverTimestamp() }), 'a shield targets nobody');
+  await assertFails(set(ref(db('p3'), `${A}/p3`), { ts: { p2: true }, x: 'abcdef==', a: 'nuke', at: serverTimestamp() }), 'unknown card');
+  // a relocate: the owner rewrites the fleet while aiming, only with the card and before locking in
+  const F = `fleets/${CODE}/m1`;
+  const fleet = { s: '0,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp() };
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${F}/host`), fleet));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${F}/p2`), fleet));
+  await assertFails(set(ref(db('host'), `${F}/host`), { s: '1,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp() }), 'already locked in this volley');
+  await assertFails(set(ref(db('p2'), `${F}/p2`), { s: '1,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp() }), 'no relocate card');
+  await env.withSecurityRulesDisabled(ctx => remove(ref(ctx.database(), `${A}/host`)));
+  await assertSucceeds(set(ref(db('host'), `${F}/host`), { s: '1,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp() }), 'relocate in hand, not locked in yet');
+  // sonar answers: written by the scanned player (or the host) while resolving, readable by the shooter alone
+  await seed(glRoom({ phase: 'resolve', rk: '4', mode: 'arcade', settings: { mode: 'arcade' }, acts: { host: { a: 'sonar', t: 'p2', r: 1, c: 1 } }, fire: { p3: [{ t: 'p2', r: 0, c: 0 }] } }));
+  const S = `glsonar/${CODE}/m1/host/4`;
+  await assertFails(set(ref(db('p3'), S), { n: 2, at: serverTimestamp() }), 'a bystander can\'t answer');
+  await assertSucceeds(set(ref(db('p2'), S), { n: 2, at: serverTimestamp() }), 'the scanned player answers');
+  await assertFails(set(ref(db('p2'), S), { n: 3, at: serverTimestamp() }), 'once');
+  await assertSucceeds(get(ref(db('host'), S)), 'the shooter reads it');
+  await assertFails(get(ref(db('p2'), S)), 'nobody else does');
+  await assertFails(get(ref(db('p3'), `glsonar/${CODE}/m1/host`)), 'not even the whole branch');
+});
+
 test('gridlock resolutions: the target or the host, once, while resolving; calls as in PRISM DROP', async () => {
   await seed(glRoom({ phase: 'resolve', rk: '4', fire: { p2: [{ t: 'host', r: 1, c: 1 }] } }));
   const X = `${R}/glres/m1/4`;

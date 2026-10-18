@@ -7,7 +7,14 @@ export { CALL_MS, callBonus } from '../../core/playlist.js';
 import { rngFrom, shuffle, hashString } from '../../core/rng.js';
 import { encodeJSON, decodeJSON } from '../../core/obfuscate.js';
 
-export const MODES = ['classic', 'royale'];
+export const MODES = ['classic', 'salvo', 'royale', 'arcade'];
+export const SIMUL = m => m !== 'classic';          // simultaneous volleys (aim phase)
+export const MODE_INFO = {
+  classic: { name: 'CLASSIC', sub: 'Take turns. One shot. Pure strategy.', players: 'BEST FOR 2–4' },
+  salvo: { name: 'SALVO', sub: 'One shot for every ship you have left.', players: '2–8' },
+  royale: { name: 'BATTLE ROYALE', sub: 'Everyone fires at once. Last fleet standing.', players: 'BEST FOR 4–8' },
+  arcade: { name: 'ARCADE', sub: 'Battle Royale with special abilities.', players: '2–8' },
+};
 export const DEFAULT_SETTINGS = { mode: 'classic', placeSec: 60, turnSec: 20 };
 export const PLACE_OPTIONS = [45, 60, 90];
 export const TURN_OPTIONS = [15, 20, 30];
@@ -15,7 +22,15 @@ export const MIN_PLAYERS = 2;
 export const SKIP_OFFLINE_MS = 3000;    // Classic: an offline player's turn is skipped this soon
 export const RESOLVE_CAP_MS = 15_000;   // a volley never waits longer than this for resolutions
 export const END_MS = 4500;
-export const ROYALE_ROUND_CAP = 25;     // safety cap: most ship cells left wins (points break ties)
+export const ROYALE_ROUND_CAP = 25;     // safety cap for every simultaneous mode: most ship cells left wins (points break ties)
+/** The round cap for a match: one shot a round can't sink 17 cells in 25 rounds, so small Royale / Arcade tables get more
+ * (scripts/sim-gridlock.mjs: at 25 every 2–3 player Royale/Arcade match ended on the cap); big Salvo tables need fewer. */
+export function roundCap(game) {
+  const n = game.n0 || Object.keys(game.participants || {}).length;
+  if (game.mode === 'salvo') return n >= 4 ? 22 : ROYALE_ROUND_CAP;
+  return n <= 2 ? 36 : n === 3 ? 30 : ROYALE_ROUND_CAP;
+}
+export const SALVO_AIM_EXTRA_S = 10;    // Salvo has more to place: its aim phase runs this much longer
 export const CLASSIC_VOLLEY_CAP = 100;  // per player (a 10×10 board can never need more shots than its cells)
 export const POINTS = { hit: 10, sunk: 30, elim: 50, bountyMult: 1.5 };
 
@@ -95,12 +110,20 @@ export function shipAt(ships, r, c) {
 /** The obfuscation key for a Battle Royale aim (the cell stays out of plain sight until the volley resolves). */
 export const shotKey = (code, matchId, rk, uid) => { const raw = `${code}:${matchId}:${rk}:${uid}`; return `${hashString(raw).toString(36)}:${raw}`; };
 export const encodeAim = (r, c, key) => encodeJSON([r, c], key);
+/** A whole lock-in (Salvo / Royale / Arcade): shots [[t, r, c], …] + an ability payload, obfuscated as one string. */
+export const encodeLock = (shots, act, key) => encodeJSON({ s: shots.map(s => [s.t, s.r, s.c]), a: act || null }, key);
+export function decodeLock(x, key) {
+  const v = decodeJSON(x, key);
+  if (!v || typeof v !== 'object') return null;
+  const shots = Array.isArray(v.s) ? v.s.filter(s => Array.isArray(s) && typeof s[0] === 'string').map(s => ({ t: s[0], r: s[1], c: s[2] })) : [];
+  return { shots, act: v.a && typeof v.a === 'object' ? v.a : null };
+}
 export function decodeAim(x, key) {
   const v = decodeJSON(x, key);
   return Array.isArray(v) && Number.isInteger(v[0]) && Number.isInteger(v[1]) ? { r: v[0], c: v[1] } : null;
 }
-/** Shots a player fires per volley (Part 2's Salvo raises this). */
-export const shotsPerVolley = () => 1;
+/** Shots a player fires per volley: 1, or one per ship afloat in Salvo (abilities adjust it: abilities.js#allowance). */
+export const shotsPerVolley = (game, uid) => (game.mode === 'salvo' ? Math.max(1, game.fleet.length - Object.keys(boardOf(game, uid).sunk || {}).length) : 1);
 
 export const aliveOf = game => Object.keys(game.participants || {}).filter(u => !(game.out && game.out[u]));
 export const emptyBoard = () => ({ cells: {}, sunk: {}, left: 0 });
@@ -156,13 +179,27 @@ export function smartShot(game, shooter, rnd) {
  * Returns what may be made public: per shooter per shot h (0 miss, 1 hit, 2 already hit) + s (the slot it sank),
  * and the geometry of ships sunk this volley (nothing about unhit ships).
  */
-export function resolveVolley(ships, board, shots) {
+export function resolveVolley(ships, board, shots, shield = null, size = 10) {
   const hitBefore = new Set(Object.entries(board.cells || {}).filter(([, v]) => v && v.h === 1).map(([k]) => k));
   const hitNow = new Set(hitBefore);
+  const shielded = (row, col) => !!shield && row >= shield.r && row < shield.r + 3 && col >= shield.c && col < shield.c + 3;
   const r = {};
   for (const [by, list] of Object.entries(shots)) {
-    r[by] = list.map(({ r: row, c: col }) => {
+    r[by] = list.map(sh => {
+      if (sh.k === 'torpedo') {
+        // runs from the edge: the first cell holding an unhit ship stops it; a shielded cell on the way blocks it
+        for (let k = 0; k < size; k++) {
+          const p = sh.dir > 0 ? k : size - 1 - k;
+          const row = sh.axis ? p : sh.idx, col = sh.axis ? sh.idx : p;
+          if (shielded(row, col)) return { h: 3, cr: row, cc: col };
+          const idx = shipAt(ships, row, col);
+          if (idx >= 0 && !hitBefore.has(`${row},${col}`)) { hitNow.add(`${row},${col}`); return { h: 1, i: idx, cr: row, cc: col }; }
+        }
+        return { h: 0 };
+      }
+      const { r: row, c: col } = sh;
       const key = `${row},${col}`;
+      if (shielded(row, col)) return { h: 3 };
       const idx = shipAt(ships, row, col);
       if (idx < 0) return { h: 0 };
       if (hitBefore.has(key)) return { h: 2 };
@@ -198,12 +235,21 @@ export function applyResolution(game, target, fire, res) {
     shotList.forEach((sh, i) => {
       if (sh.t !== target) return;
       const x = rs[i] || { h: 0 };
-      const key = `${sh.r},${sh.c}`;
       const hit = x.h === 1;
-      if (!board.cells[key]) board.cells[key] = { by, h: hit ? 1 : 0 };
-      else if (hit && board.cells[key].h !== 1) board.cells[key] = { by, h: 1 };
-      if (hit) { cr(by).hits++; }
-      events.push({ k: 'shot', by, t: target, r: sh.r, c: sh.c, h: x.h });
+      if (sh.k === 'torpedo') {
+        // a torpedo marks only the cell it reached (a hit) — a fizzle or a block leaves nothing on the board
+        if (hit) { board.cells[`${x.cr},${x.cc}`] = { by, h: 1 }; cr(by).hits++; }
+        events.push({ k: 'torpedo', by, t: target, axis: sh.axis, idx: sh.idx, dir: sh.dir, h: x.h, ...(x.cr != null ? { r: x.cr, c: x.cc } : {}) });   // a fizzle has no cell (Firebase rejects undefined)
+      } else {
+        const key = `${sh.r},${sh.c}`;
+        if (x.h !== 3) {
+          if (!board.cells[key]) board.cells[key] = { by, h: hit ? 1 : 0 };
+          else if (hit && board.cells[key].h !== 1) board.cells[key] = { by, h: 1 };
+        }
+        if (hit) { cr(by).hits++; }
+        if (x.h === 3) cr(by).blocked = (cr(by).blocked || 0) + 1;
+        events.push({ k: 'shot', by, t: target, r: sh.r, c: sh.c, h: x.h, ...(sh.k ? { a: sh.k } : {}) });
+      }
       if (x.s != null) (sunkBy[x.s] ||= []).push(by);
     });
   }
@@ -230,6 +276,7 @@ export function applyResolution(game, target, fire, res) {
 /** The bounty sits on the alive player strictly ahead on points (none while tied / at zero). */
 export function bountyHolder(game) {
   const alive = aliveOf(game);
+  if ((game.n0 || alive.length) < 3) return null;                      // a bounty needs three or more fleets
   const pts = game.pts || {};
   let best = null, bestV = 0, tie = false;
   for (const u of alive) {
@@ -246,10 +293,15 @@ export function pointsFor(credit, onBounty) {
 
 /** How long the resolution cinematic runs for a volley's events. */
 export function showMs(events) {
-  const shots = events.filter(e => e.k === 'shot').length;
+  const shots = events.filter(e => e.k === 'shot' || e.k === 'torpedo').length;
   const sunk = events.filter(e => e.k === 'sunk').length;
   const elim = events.filter(e => e.k === 'elim').length;
-  return Math.min(14_000, 1900 + shots * 900 + sunk * 1300 + elim * 1600);   // one Classic shot ≈ 2.8 s: enough to watch it land
+  const pre = events.filter(e => e.k === 'shield' || e.k === 'relocate').length;
+  const sonar = events.filter(e => e.k === 'sonar').length;
+  const targets = new Set(events.filter(e => e.k === 'shot' || e.k === 'torpedo' || e.k === 'sonar').map(e => e.t)).size;
+  // many shots in one volley (Salvo) rain faster
+  const per = shots > 8 ? 420 : shots > 4 ? 600 : 900;
+  return Math.min(24_000, 1900 + pre * 1100 + sonar * 1400 + targets * 420 + shots * per + sunk * 1300 + elim * 1600);
 }
 
 /** Standings: placement first (1 = winner), then points. */
@@ -263,7 +315,11 @@ export function standings(game) {
 
 export const estimateMinutes = (s, n = 4) => {
   const st = cleanSettings(s);
-  return st.mode === 'royale' ? 2 + Math.round(ROYALE_ROUND_CAP * 0.5 * (st.turnSec + 8) / 60) : 3 + Math.round(n * 1.5);
+  // simultaneous modes: people lock in at ~60 % of the timer, a volley shows for ~5 s (more in Salvo)
+  const cap = roundCap({ mode: st.mode, n0: n });
+  if (st.mode === 'salvo') return 1 + Math.round(Math.min(cap, n <= 2 ? 18 : cap) * ((st.turnSec + SALVO_AIM_EXTRA_S) * 0.6 + 9) / 60);
+  if (st.mode === 'arcade' || st.mode === 'royale') return 1 + Math.round(cap * 0.85 * (st.turnSec * 0.6 + 6) / 60);
+  return 3 + Math.round(n * 1.5);
 };
 
 /** Seeded, identical for everyone in the room: the GRIDLOCK music order (spy1–3 + last-signal). */

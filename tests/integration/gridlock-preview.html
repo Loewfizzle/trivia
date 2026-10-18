@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GRIDLOCK preview</title>
 <!-- The real GRIDLOCK view without Firebase: a scripted match drives it through placement, aiming, a volley cinematic
-     (beams → scars / rings → a sink → a power-down), the bounty, an elimination, spectating.
-     ?n=4&size=8&tier=2&at=place|aim|reticle|locked|show|sunk|elim|spec|end&still=1&shot=hit|miss  (window.__gridlock for tests) -->
+     (beams → scars / rings → a sink → a power-down), the bounty, an elimination, spectating — and Part 2: SALVO markers,
+     the ARCADE hand, every ability's targeting and cinematic.
+     ?n=4&size=8&tier=2&mode=classic|salvo|royale|arcade&at=place|aim|reticle|locked|show|sunk|elim|spec|end
+       |markers|hand|armed-sonar|armed-cluster|armed-torpedo|armed-shield|armed-relocate|shield|sonar|torpedo|cluster|relocate|blocked
+     &still=1&shot=hit|miss  (window.__gridlock for tests, window.__preview to script more) -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/screens.css">
@@ -19,7 +22,7 @@
 <div id="stage"><div class="screen screen-in" id="screen"></div></div>
 <script type="module">
 import { createView } from '/js/games/gridlock/view.js';
-import { randomLayout, fleetFor, boardSize, encodeFleet, resolveVolley, applyResolution, cellsOf } from '/js/games/gridlock/logic.js';
+import { randomLayout, fleetFor, boardSize, resolveVolley, applyResolution, cellsOf, SIMUL } from '/js/games/gridlock/logic.js';
 import { rngFrom } from '/js/core/rng.js';
 
 const q = new URLSearchParams(location.search);
@@ -28,6 +31,7 @@ const size = Number(q.get('size') || boardSize(n));
 const tier = Number(q.get('tier') ?? 2);
 const at = q.get('at') || 'aim';
 const still = q.get('still') === '1';
+const mode = q.get('mode') || (/^(markers)$/.test(at) ? 'salvo' : /^(hand|armed-|shield|sonar|torpedo|cluster|relocate|blocked)/.test(at) ? 'arcade' : (n > 3 ? 'royale' : 'classic'));
 const COLORS = ['cyan', 'magenta', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'];
 const NAMES = ['YOU', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FRANK', 'GRACE', 'HAL'];
 const AV = ['crown', 'bolt', 'diamond', 'star', 'skull', 'heart', 'eye', 'ghost'];
@@ -35,14 +39,15 @@ const uids = Array.from({ length: n }, (_, i) => `u${i}`);
 const me = uids[0];
 const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], color: COLORS[i], avatar: AV[i], joinedAt: i }]));
 const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: Date.now() }]));
-const fleets = Object.fromEntries(uids.map((u, i) => [u, randomLayout(size, fleetFor(size), rngFrom(`pv:${u}`))]));
+const fleets = Object.fromEntries(uids.map(u => [u, randomLayout(size, fleetFor(size), rngFrom(`pv:${u}`))]));
 const now = Date.now();
 const game = {
-  id: 'gridlock', matchId: 'm1', settings: { mode: n > 3 ? 'royale' : 'classic', placeSec: 60, turnSec: 20 }, mode: n > 3 ? 'royale' : 'classic',
+  id: 'gridlock', matchId: 'm1', settings: { mode, placeSec: 60, turnSec: 20 }, mode,
   participants: Object.fromEntries(uids.map(u => [u, true])), names: Object.fromEntries(uids.map((u, i) => [u, NAMES[i]])),
   size, fleet: fleetFor(size), n0: n, order: uids.slice(), phase: 'place', phaseStartAt: now, phaseEndsAt: now + 60000, v: 0, rk: '0', round: 0, ti: -1, cur: null,
   boards: {}, pts: {}, stats: {},
 };
+if (mode === 'arcade') { game.hand = Object.fromEntries(uids.map(u => [u, ['sonar', 'torpedo', 'shield']])); game.hand[me] = (q.get('hand') || (at.startsWith('armed-') ? ['sonar', at.slice(6), 'double'].filter((a, i, arr) => arr.indexOf(a) === i).slice(0, 3).join(',') : 'sonar,cluster,torpedo')).split(','); game.cardN = Object.fromEntries(uids.map(u => [u, 3])); }
 // a little history on every board: some misses, a few hits (not sinking anything yet)
 const rnd = rngFrom('pv:history');
 for (const u of uids) {
@@ -63,52 +68,78 @@ setTimeout(() => { window.__gridlock.setTier(tier); window.__gridlock.place(flee
 
 const step = (patch) => { Object.assign(game, patch); push(); };
 const wait = ms => new Promise(r => setTimeout(r, ms));
-async function volley({ shooter = uids[1], target = me, hit = true, sinkIt = false, elim = false } = {}) {
-  // one shot (Classic) at a known cell on the target's board, resolved locally like the target's phone would
-  const ship = fleets[target][sinkIt ? 1 : 0];
-  const cells = cellsOf(ship);
-  let cell;
-  if (hit) cell = cells.find(([r, c]) => !(game.boards[target].cells[`${r},${c}`] || {}).h) || cells[0];
-  else { let r, c; do { r = Math.floor(rnd() * size); c = Math.floor(rnd() * size); } while (fleets[target].some(s => cellsOf(s).some(([a, b]) => a === r && b === c)) || game.boards[target].cells[`${r},${c}`]); cell = [r, c]; }
-  if (sinkIt) for (const [r, c] of cells) if (!cell || r !== cell[0] || c !== cell[1]) game.boards[target].cells[`${r},${c}`] = { by: shooter, h: 1 };
-  const fire = { [shooter]: [{ t: target, r: cell[0], c: cell[1] }] };
-  const res = resolveVolley(fleets[target], game.boards[target], { [shooter]: fire[shooter] });
-  const { board, events } = applyResolution(game, target, fire, res);
-  if (elim) { board.left = 0; events.push({ k: 'elim', t: target, by: [shooter] }); }
+const G = window.__gridlock;
+/** One volley resolved locally like the targets' phones would. shots: { by: [{t,r,c}|{t,k:'torpedo',...}] }, acts: { uid: act } */
+function volley({ shots = {}, acts = null, elim = false } = {}) {
+  const targets = [...new Set(Object.values(shots).flat().map(s => s.t))];
+  const events = [];
+  const boards = { ...game.boards };
+  for (const [u, a] of Object.entries(acts || {})) { if (a.a === 'shield') events.push({ k: 'shield', t: u, r: a.r, c: a.c }); else if (a.a === 'relocate') events.push({ k: 'relocate', t: u }); }
+  for (const [u, a] of Object.entries(acts || {})) if (a.a === 'sonar') events.push({ k: 'sonar', by: u, t: a.t, r: a.r, c: a.c });
+  const out = { ...(game.out || {}) };
+  for (const t of targets) {
+    const mine = {};
+    for (const [by, list] of Object.entries(shots)) { const l = list.filter(s => s.t === t); if (l.length) mine[by] = l; }
+    const sh = acts && acts[t] && acts[t].a === 'shield' ? { r: acts[t].r, c: acts[t].c } : null;
+    const res = resolveVolley(fleets[t], game.boards[t], mine, sh, size);
+    const { board, events: ev } = applyResolution(game, t, shots, res);
+    boards[t] = board; events.push(...ev);
+    if (elim && t !== me) { board.left = 0; events.push({ k: 'elim', t, by: Object.keys(mine) }); out[t] = { at: Date.now(), place: n, rem: n - 1, by: Object.keys(mine) }; }
+  }
   const t0 = Date.now();
-  step({ phase: 'show', fire, ev: events, boards: { ...game.boards, [target]: board }, phaseStartAt: t0, phaseEndsAt: t0 + 6000, pts: { ...game.pts, [shooter]: (game.pts[shooter] || 0) + (hit ? 10 : 0) }, out: elim ? { ...(game.out || {}), [target]: { at: t0, place: n, rem: n - 1, by: [shooter] } } : game.out });
+  step({ phase: 'show', fire: shots, acts, ev: events, boards, phaseStartAt: t0, phaseEndsAt: t0 + 9000, out: Object.keys(out).length ? out : undefined });
 }
-window.__preview = { game, state, step, volley, fleets, uids };
+const shipCell = (t, i, k = 0) => { const [r, c] = cellsOf(fleets[t][i])[k]; return { t, r, c }; };
+const freeCell = t => { let r, c; do { r = Math.floor(rnd() * size); c = Math.floor(rnd() * size); } while (fleets[t].some(s => cellsOf(s).some(([a, b]) => a === r && b === c)) || game.boards[t].cells[`${r},${c}`]); return { t, r, c }; };
+const sinkShots = (by, t, i) => cellsOf(fleets[t][i]).map(([r, c]) => ({ t, r, c })).filter(s => !(game.boards[t].cells[`${s.r},${s.c}`] || {}).h);
+window.__preview = { game, state, step, volley, fleets, uids, shipCell, freeCell, sinkShots };
 
 (async () => {
   await wait(120);
   if (at === 'place') return;
-  // first volley: mine
   const t1 = Date.now();
-  step({ phase: game.mode === 'royale' ? 'aim' : 'turn', cur: me, v: 1, rk: '1', round: 1, phaseStartAt: t1, phaseEndsAt: t1 + 20000 });
-  await wait(100);
-  if (at === 'aim') return;
-  window.__gridlock.aim(uids[1], 2, 3);
-  if (at === 'reticle') return;
-  if (at === 'locked') { state.live.shots = { [me]: { t: uids[1], x: 'x' }, [uids[2] || uids[1]]: { t: me, x: 'x' }, ...(uids[3] ? { [uids[3]]: { t: me, x: 'x' } } : {}) }; window.__gridlock.fire(); push(); return; }
-  window.__gridlock.fire();
+  step({ phase: SIMUL(mode) ? 'aim' : 'turn', cur: me, v: 1, rk: '1', round: 1, phaseStartAt: t1, phaseEndsAt: t1 + (mode === 'salvo' ? 30000 : 20000) });
+  await wait(120);
+  const BOB = uids[1];
+  if (at === 'aim' || at === 'hand') return;
+  if (at === 'reticle') { G.aim(BOB, 2, 3); return; }
+  if (at === 'markers') { G.aim(BOB, 2, 3); G.aim(BOB, 5, 6); G.aim(BOB, 7, 1); if (uids[2]) G.aim(uids[2], 1, 1); return; }
+  if (at.startsWith('armed-')) {
+    const a = at.slice(6);
+    G.arm(a);
+    await wait(60);
+    if (a === 'sonar' || a === 'cluster') G.aim(BOB, 3, 4);
+    if (a === 'torpedo') G.aim(BOB, 4, 1);
+    if (a === 'shield') G.aim(null, 2, 2);
+    if (a === 'relocate') { const s = fleets[me][2]; G.reloc(2, { ...s, d: s.d ? 0 : 1 }); }
+    return;
+  }
+  if (at === 'locked') { state.live.shots = { [me]: { ts: { [BOB]: true }, x: 'x' }, [uids[2] || BOB]: { ts: { [me]: true }, x: 'x' }, ...(uids[3] ? { [uids[3]]: { ts: { [me]: true }, x: 'x' } } : {}) }; G.aim(BOB, 2, 3); G.fire(); push(); return; }
+  G.aim(BOB, 2, 3); G.fire();
   await wait(300);
-  if (at === 'show') { await volley({ shooter: me, target: uids[1], hit: q.get('shot') !== 'miss' }); return; }
-  if (at === 'sunk') { await volley({ shooter: me, target: uids[1], hit: true, sinkIt: true }); return; }
-  if (at === 'elim') { await volley({ shooter: me, target: uids[1], hit: true, sinkIt: true, elim: true }); return; }
-  if (at === 'spec') { await volley({ shooter: uids[1], target: me, hit: true, sinkIt: true, elim: true }); await wait(5200); const t2 = Date.now(); step({ phase: 'turn', cur: uids[1], v: 2, rk: '2', fire: null, phaseStartAt: t2, phaseEndsAt: t2 + 20000, bounty: uids[1] }); return; }
-  if (at === 'end') { await volley({ shooter: me, target: uids[1], hit: true, sinkIt: true, elim: true }); await wait(5200); step({ phase: 'end', winner: me, done: true, phaseStartAt: Date.now(), phaseEndsAt: Date.now() + 4500 }); return; }
-  // a loop of volleys: me → BOB, BOB → me, with hits, misses, now and then a sink
+  const hit = q.get('shot') !== 'miss';
+  if (at === 'show') { volley({ shots: { [me]: [hit ? shipCell(BOB, 0) : freeCell(BOB)] } }); return; }
+  if (at === 'sunk') { volley({ shots: { [me]: sinkShots(me, BOB, 1) } }); return; }
+  if (at === 'elim') { volley({ shots: { [me]: sinkShots(me, BOB, 1) }, elim: true }); return; }
+  if (at === 'shield' || at === 'blocked') { volley({ shots: { [BOB]: [{ t: me, r: 1, c: 1 }, { t: me, r: 4, c: 4 }], [me]: [shipCell(BOB, 0)] }, acts: { [me]: { a: 'shield', r: 0, c: 0 } } }); return; }
+  if (at === 'sonar') { volley({ shots: { [BOB]: [freeCell(me)] }, acts: { [me]: { a: 'sonar', t: BOB, r: 2, c: 2 } } }); setTimeout(() => { const ev = document.createEvent('Event'); void ev; }, 0); return; }
+  if (at === 'torpedo') { const [r] = cellsOf(fleets[BOB][0])[0]; volley({ shots: { [me]: [{ t: BOB, k: 'torpedo', axis: 0, idx: r, dir: 1 }] }, acts: { [me]: { a: 'torpedo', t: BOB, axis: 0, idx: r, dir: 1 } } }); return; }
+  if (at === 'cluster') { const [r, c] = cellsOf(fleets[BOB][0])[0]; const rr = Math.min(size - 2, r), cc = Math.min(size - 2, c); volley({ shots: { [me]: [[rr, cc], [rr, cc + 1], [rr + 1, cc], [rr + 1, cc + 1]].map(([a, b]) => ({ t: BOB, r: a, c: b, k: 'cluster' })) }, acts: { [me]: { a: 'cluster', t: BOB, r: rr, c: cc } } }); return; }
+  if (at === 'relocate') { volley({ shots: { [BOB]: [freeCell(me)] }, acts: { [BOB]: { a: 'relocate' } } }); return; }
+  if (at === 'spec') { volley({ shots: { [BOB]: sinkShots(BOB, me, 1) } }); await wait(6000); const t2 = Date.now(); step({ phase: SIMUL(mode) ? 'aim' : 'turn', cur: BOB, v: 2, rk: '2', round: 2, fire: null, acts: null, phaseStartAt: t2, phaseEndsAt: t2 + 20000, bounty: BOB, out: { [me]: { at: t2, place: n, rem: n - 1, by: [BOB] } } }); return; }
+  if (at === 'end') { volley({ shots: { [me]: sinkShots(me, BOB, 1) }, elim: true }); await wait(6000); step({ phase: 'end', winner: me, done: true, phaseStartAt: Date.now(), phaseEndsAt: Date.now() + 4500 }); return; }
   if (still) return;
+  // a loop of volleys: me → BOB, BOB → me, with hits, misses, now and then a sink
   let k = 0;
   for (;;) {
     const mine = k % 2 === 0;
-    await volley({ shooter: mine ? me : uids[1], target: mine ? uids[1] : me, hit: k % 3 !== 2, sinkIt: k % 5 === 4 });
-    await wait(5200);
+    const by = mine ? me : BOB, tg = mine ? BOB : me;
+    volley({ shots: { [by]: k % 5 === 4 ? sinkShots(by, tg, 1) : [k % 3 === 2 ? freeCell(tg) : shipCell(tg, 0, k % 3)] } });
+    await wait(6000);
     const t = Date.now();
-    step({ phase: 'turn', cur: mine ? uids[1] : me, v: k + 2, rk: String(k + 2), fire: null, phaseStartAt: t, phaseEndsAt: t + 20000, bounty: uids[1] });
+    step({ phase: SIMUL(mode) ? 'aim' : 'turn', cur: mine ? BOB : me, v: k + 2, rk: String(k + 2), round: k + 2, fire: null, acts: null, phaseStartAt: t, phaseEndsAt: t + 20000, bounty: n > 2 ? BOB : null });
     await wait(1800);
-    if (!mine) { window.__gridlock.aim(uids[1], Math.floor(rnd() * size), Math.floor(rnd() * size)); await wait(800); window.__gridlock.fire(); await wait(400); }
+    if (!mine) { G.aim(BOB, Math.floor(rnd() * size), Math.floor(rnd() * size)); await wait(800); G.fire(); await wait(400); }
     k++;
   }
 })();

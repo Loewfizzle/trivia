@@ -1,22 +1,24 @@
 // GRIDLOCK — authority state machine (PURE; see cipher/director.js for the pattern).
 //
 //   place ─► (volley) ─► resolve ─► show ─► (volley) … ─► end ─► final
-//   a volley is Classic `turn` (one player, one shot) or Battle Royale `aim` (everyone locks a shot, all resolve together)
+//   a volley is Classic `turn` (one player, one shot) or a simultaneous `aim` (SALVO / BATTLE ROYALE / ARCADE: everyone
+//   locks in, all shots resolve together)
 //
-// The host never sees anyone's unhit ships: shots are resolved by the target's own client (or the host from its
-// private copy as a fallback — index.js#prepare) and arrive as glres/{m}/{rk}/{target}; this director only folds those
-// public results into the boards. Every transition is a pure function of (game, live, now) so a replay is harmless.
+// The host never sees anyone's unhit ships: shots are resolved by the target's own client (or the host from its private
+// copy as a fallback — index.js#prepare) and arrive as glres/{m}/{rk}/{target}; this director only folds those public
+// results into the boards. Every transition is a pure function of (game, live, now) so a replay is harmless.
 import {
-  cleanSettings, boardSize, fleetFor, aliveOf, boardOf, isShot, randomShot, decodeAim, shotKey, applyResolution,
-  bountyHolder, pointsFor, showMs, callBonus, SKIP_OFFLINE_MS, RESOLVE_CAP_MS, END_MS, ROYALE_ROUND_CAP, CLASSIC_VOLLEY_CAP,
+  cleanSettings, boardSize, fleetFor, aliveOf, boardOf, isShot, randomShot, decodeAim, decodeLock, shotKey, applyResolution,
+  bountyHolder, pointsFor, showMs, callBonus, SIMUL, roundCap, SKIP_OFFLINE_MS, RESOLVE_CAP_MS, END_MS, CLASSIC_VOLLEY_CAP, SALVO_AIM_EXTRA_S,
 } from './logic.js';
+import { cleanAct, allowance, expandAttacks, drawCard, HAND_MAX, START_CARDS } from './abilities.js';
 import { rngFrom, shuffle } from '../../core/rng.js';
 
 export function createGame({ matchId, settings, participants, names, now }) {
   const s = cleanSettings(settings);
   const uids = Object.keys(participants);
   const size = boardSize(uids.length);
-  return {
+  const g = {
     id: 'gridlock',
     matchId,
     settings: s,
@@ -36,10 +38,43 @@ export function createGame({ matchId, settings, participants, names, now }) {
     ti: -1,
     cur: null,
   };
+  if (s.mode === 'arcade') {
+    g.hand = {}; g.cardN = {};
+    for (const u of uids) { g.hand[u] = Array.from({ length: START_CARDS }, (_, i) => drawCard(matchId, u, i)); g.cardN[u] = START_CARDS; }
+  }
+  return g;
 }
 
 const validShot = (game, shooter, sh) => !!sh && typeof sh.t === 'string' && sh.t !== shooter && game.participants[sh.t] && !(game.out && game.out[sh.t])
   && Number.isInteger(sh.r) && Number.isInteger(sh.c) && sh.r >= 0 && sh.c >= 0 && sh.r < game.size && sh.c < game.size && !isShot(boardOf(game, sh.t), sh.r, sh.c);
+
+/** Decode one simultaneous lock-in node into { shots, act } the rules allow (invalid parts are dropped). */
+export function readLock(game, code, uid, node) {
+  if (!node) return null;
+  const key = shotKey(code, game.matchId, game.rk, uid);
+  const okTarget = t => typeof t === 'string' && t !== uid && !!game.participants[t] && !(game.out && game.out[t]);
+  let shots = [], act = null;
+  if (node.x && (node.ts || node.a)) {
+    const lock = decodeLock(node.x, key);
+    if (!lock) return { shots: [], act: null };
+    shots = lock.shots;
+    if (node.a) act = cleanAct(game, uid, node.a, lock.act, game.hand && game.hand[uid], okTarget);
+  } else if (node.t) {
+    const cell = node.x ? decodeAim(node.x, key) : { r: node.r, c: node.c };
+    if (cell) shots = [{ t: node.t, r: cell.r, c: cell.c }];
+  }
+  const max = allowance(game, uid, act && act.a);
+  const seen = new Set();
+  const clean = [];
+  for (const sh of shots) {
+    if (clean.length >= max) break;
+    if (!validShot(game, uid, sh)) continue;
+    const k = `${sh.t}:${sh.r},${sh.c}`;
+    if (seen.has(k)) continue;
+    seen.add(k); clean.push(sh);
+  }
+  return { shots: clean, act };
+}
 
 /** ctx: { code, now, online: { uid: bool }, live: { shots, res, ready, calls } } */
 export function nextStep(game, ctx) {
@@ -58,27 +93,32 @@ export function nextStep(game, ctx) {
     case 'turn': {
       const cur = game.cur;
       const sh = (live.shots || {})[cur];
-      if (sh && validShot(game, cur, sh)) return toResolve(game, now, { [cur]: [{ t: sh.t, r: sh.r, c: sh.c }] });
+      if (sh && validShot(game, cur, sh)) return toResolve(game, now, { [cur]: [{ t: sh.t, r: sh.r, c: sh.c }] }, {}, {});
       if (!online[cur] && now - game.phaseStartAt >= SKIP_OFFLINE_MS) return startVolley(game, now, {});   // gone: skipped
       if (now < game.phaseEndsAt) return null;
       const rs = randomShot(game, cur, rngFrom(`${game.matchId}:${game.rk}:auto`));                      // slow: fired for them
-      return rs ? toResolve(game, now, { [cur]: [rs] }) : startVolley(game, now, {});
+      return rs ? toResolve(game, now, { [cur]: [rs] }, {}, {}) : startVolley(game, now, {});
     }
 
     case 'aim': {
       const alive = aliveOf(game);
-      const shots = live.shots || {};
-      const fire = {};
+      const nodes = live.shots || {};
+      const fire = {}, acts = {}, hands = {};
       for (const u of alive) {
-        const n = shots[u];
-        if (!n || !n.t) continue;
-        const cell = n.x ? decodeAim(n.x, shotKey(ctx.code, game.matchId, game.rk, u)) : { r: n.r, c: n.c };
-        const sh = cell && { t: n.t, r: cell.r, c: cell.c };
-        if (validShot(game, u, sh)) fire[u] = [sh];
+        const lock = readLock(game, ctx.code, u, nodes[u]);
+        if (!lock) continue;
+        const attacks = expandAttacks(game, u, lock.shots, lock.act);
+        if (attacks.length) fire[u] = attacks;
+        if (lock.act) {
+          acts[u] = lock.act;
+          const hand = (game.hand && game.hand[u] || []).slice();
+          hand.splice(hand.indexOf(lock.act.a), 1);
+          hands[u] = hand;
+        }
       }
-      const waiting = alive.filter(u => online[u] && !shots[u]);
+      const waiting = alive.filter(u => online[u] && !nodes[u]);
       if (now < game.phaseEndsAt && waiting.length) return null;
-      return Object.keys(fire).length ? toResolve(game, now, fire) : startVolley(game, now, {});
+      return Object.keys(fire).length || Object.keys(acts).length ? toResolve(game, now, fire, acts, hands) : startVolley(game, now, {});
     }
 
     case 'resolve': {
@@ -92,7 +132,7 @@ export function nextStep(game, ctx) {
 
     case 'show': {
       if (now < game.phaseEndsAt) return null;
-      if (game.done) return { phase: 'end', phaseStartAt: now, phaseEndsAt: now + END_MS, fire: null };
+      if (game.done) return { phase: 'end', phaseStartAt: now, phaseEndsAt: now + END_MS, fire: null, acts: null };
       return startVolley(game, now, {});
     }
 
@@ -101,7 +141,7 @@ export function nextStep(game, ctx) {
       const results = {};
       for (const uid of Object.keys(game.participants)) {
         const s = (game.stats && game.stats[uid]) || {};
-        results[uid] = { pts: (game.pts && game.pts[uid]) || 0, sh: s.sh || 0, hi: s.hi || 0, sk: s.sk || 0, el: s.el || 0, acc: s.sh ? Math.round(100 * (s.hi || 0) / s.sh) : 0 };
+        results[uid] = { pts: (game.pts && game.pts[uid]) || 0, sh: s.sh || 0, hi: s.hi || 0, sk: s.sk || 0, el: s.el || 0, acc: s.sh ? Math.round(100 * (s.hi || 0) / s.sh) : 0, ab: s.ab || 0, bl: s.bl || 0, bp: s.bp || 0 };
       }
       const calls = {};
       const winner = game.winner || aliveOf(game)[0] || null;
@@ -125,13 +165,15 @@ function startVolley(game, now, patch) {
   patch.v = v;
   patch.rk = String(v);
   patch.fire = null;
+  patch.acts = null;
   patch.phaseStartAt = now;
-  patch.phaseEndsAt = now + game.settings.turnSec * 1000;
-  if (game.mode === 'royale') {
+  if (SIMUL(game.mode)) {
+    patch.phaseEndsAt = now + (game.settings.turnSec + (game.mode === 'salvo' ? SALVO_AIM_EXTRA_S : 0)) * 1000;
     patch.round = (game.round || 0) + 1;
     patch.phase = 'aim';
     patch.cur = null;
   } else {
+    patch.phaseEndsAt = now + game.settings.turnSec * 1000;
     // the next alive player in the seeded order
     const order = game.order;
     let ti = game.ti == null ? -1 : game.ti;
@@ -146,8 +188,10 @@ function startVolley(game, now, patch) {
   return patch;
 }
 
-function toResolve(game, now, fire) {
-  return { phase: 'resolve', phaseStartAt: now, phaseEndsAt: now + RESOLVE_CAP_MS, fire };
+function toResolve(game, now, fire, acts, hands) {
+  const patch = { phase: 'resolve', phaseStartAt: now, phaseEndsAt: now + RESOLVE_CAP_MS, fire, acts: Object.keys(acts).length ? acts : null };
+  for (const [u, hand] of Object.entries(hands)) patch[`hand/${u}`] = hand;
+  return patch;
 }
 
 function applyVolley(game, now, fire, res, targets) {
@@ -158,8 +202,17 @@ function applyVolley(game, now, fire, res, targets) {
   const events = [];
   const eliminated = [];
   const bounty = game.bounty || null;
+  const acts = game.acts || {};
+  // the pre-attack beats: shields rise and ships relocate before anything flies; sonar sweeps are shown (never their answer)
+  for (const [u, a] of Object.entries(acts)) {
+    st(u).ab = (st(u).ab || 0) + 1;
+    if (a.a === 'shield') events.push({ k: 'shield', t: u, r: a.r, c: a.c });
+    else if (a.a === 'relocate') events.push({ k: 'relocate', t: u });
+  }
+  for (const [u, a] of Object.entries(acts)) if (a.a === 'sonar') events.push({ k: 'sonar', by: u, t: a.t, r: a.r, c: a.c });
   // shots fired
   for (const [by, list] of Object.entries(fire)) st(by).sh += list.length;
+  const hitsThisVolley = {};
   for (const t of targets) {
     const { board, events: ev, credit, eliminated: dead } = applyResolution(game, t, fire, res[t] || { r: {}, k: {} });
     patch[`boards/${t}`] = board;
@@ -168,9 +221,25 @@ function applyVolley(game, now, fire, res, targets) {
       const p = pointsFor(c, t === bounty);
       pts[by] = (pts[by] || 0) + p;
       st(by).hi += c.hits; st(by).sk += c.sunk; st(by).el += c.elim;
+      hitsThisVolley[by] = (hitsThisVolley[by] || 0) + c.hits;
+      if (c.blocked) st(t).bl = (st(t).bl || 0) + c.blocked;
       if (p) events.push({ k: 'pts', by, p, t, bounty: t === bounty });
     }
     if (dead) eliminated.push(t);
+  }
+  for (const [u, h] of Object.entries(hitsThisVolley)) st(u).bp = Math.max(st(u).bp || 0, h);
+  // ARCADE: a sink earns a card (hand ≤ HAND_MAX), dealt from the seeded deck
+  if (game.mode === 'arcade') {
+    const cardN = { ...(game.cardN || {}) };
+    const sunkBy = {};
+    for (const e of events) if (e.k === 'sunk') for (const by of e.by || []) sunkBy[by] = (sunkBy[by] || 0) + 1;
+    for (const [by, n] of Object.entries(sunkBy)) {
+      if (game.out && game.out[by]) continue;
+      const hand = (patch[`hand/${by}`] || (game.hand && game.hand[by]) || []).slice();
+      for (let k = 0; k < n && hand.length < HAND_MAX; k++) { hand.push(drawCard(game.matchId, by, cardN[by] || 0)); cardN[by] = (cardN[by] || 0) + 1; }
+      patch[`hand/${by}`] = hand;
+    }
+    patch.cardN = cardN;
   }
   // eliminations: the weaker (fewer points) goes out first when several fall in one volley
   const out = { ...(game.out || {}) };
@@ -186,7 +255,7 @@ function applyVolley(game, now, fire, res, targets) {
   let done = false, winner = null, capped = false;
   const left = aliveOf(next);
   if (left.length <= 1) { done = true; winner = left[0] || null; }
-  else if ((game.mode === 'royale' && game.round >= ROYALE_ROUND_CAP) || (game.mode !== 'royale' && game.v >= Math.min(CLASSIC_VOLLEY_CAP, game.size * game.size) * game.n0)) {
+  else if ((SIMUL(game.mode) && game.round >= roundCap(game)) || (!SIMUL(game.mode) && game.v >= Math.min(CLASSIC_VOLLEY_CAP, game.size * game.size) * game.n0)) {
     // the safety cap: most ship cells left wins, points break ties
     const boards = { ...(game.boards || {}) };
     for (const t of targets) boards[t] = patch[`boards/${t}`];

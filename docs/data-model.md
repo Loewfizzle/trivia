@@ -141,12 +141,18 @@ PRISM DROP `game`: `{ id:'prism', matchId, settings{mode: battle|rush}, particip
 position), phase: count|play|end|final, songStartAt, playStartAt (= a downbeat of song 0), endAt (rush: the song's last beat),
 n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd}}, calls{uid:{w,ok,bonus}} }`.
 
-GRIDLOCK `game`: `{ id:'gridlock', matchId, settings{mode: classic|royale, placeSec, turnSec}, mode, participants, names, size (10 for 2–3
-players, 8 for 4+), fleet [lengths], n0, order[] (seeded Classic turn order), phase: place|turn|aim|resolve|show|end|final, phaseStartAt,
-phaseEndsAt, v (volley number), rk (= String(v), the key under glshot/glres), round (Royale), ti, cur (Classic shooter), fire{uid:[{t,r,c}]}
-(the volley being resolved / shown), ev[] (the volley's events: shot/sunk/elim/pts — every phone plays them on the server clock),
-boards{uid:{cells{"r,c":{by,h}}, sunk{slot:"r,c,len,d"}, left}}, pts{uid}, stats{uid:{sh,hi,sk,el}}, out{uid:{at,place,rem,by,cap?}}, bounty,
-done, winner, capped, results{uid:{pts,sh,hi,sk,el,acc}}, calls }`. Unhit ships are never in it.
+GRIDLOCK `game`: `{ id:'gridlock', matchId, settings{mode: classic|salvo|royale|arcade, placeSec, turnSec}, mode, participants, names, size
+(10 for 2–3 players, 8 for 4+), fleet [lengths], n0, order[] (seeded Classic turn order), phase: place|turn|aim|resolve|show|end|final,
+phaseStartAt, phaseEndsAt, v (volley number), rk (= String(v), the key under glshot/glres), round (simultaneous modes), ti, cur (Classic
+shooter), fire{uid:[{t,r,c,k?:'cluster'} | {t,k:'torpedo',axis,idx,dir}]} (the volley being resolved / shown), acts{uid:{a,…}} (the cards
+played this volley, public from resolve), ev[] (the volley's events: shield/relocate/sonar/shot/torpedo/sunk/elim/pts — every phone plays
+them on the server clock), boards{uid:{cells{"r,c":{by,h}}, sunk{slot:"r,c,len,d"}, left}}, pts{uid}, stats{uid:{sh,hi,sk,el,ab,bl,bp}},
+hand{uid:[card]} + cardN{uid} (Arcade; cards are public, their aim is not), out{uid:{at,place,rem,by,cap?}}, bounty (3+ fleets only),
+done, winner, capped, results{uid:{pts,sh,hi,sk,el,acc,ab,bl,bp}}, calls }`. Unhit ships are never in it.
+GRIDLOCK player nodes: `glready/{m}/{uid}`; `glshot/{m}/{rk}/{uid}` = Classic `{ t, r, c, at }` or simultaneous `{ ts{target:true}, x
+(obfuscated shots + ability payload), a?, at }`; `glres/{m}/{rk}/{target}` = `{ r{shooter:[{h 0..3, s?, cr?, cc?}]}, k{slot:geo}, by?:'host', at }`;
+`glcall/{m}/{uid}`. Top level: `fleets/{code}/{m}/{uid}` (owner + host read; owner writes while placing, or in Arcade `aim` with a RELOCATE
+card before locking in) and `glsonar/{code}/{m}/{shooter}/{rk} = { n, at }` (written by the scanned player or the host, read by the shooter alone).
 
 SLIPSTREAM `game`: `{ id:'slip', matchId, settings{lives}, participants, seed (the course), songs[ids], sd[ms], pl0, phase:
 count|play|end|final, songStartAt, playStartAt (GO), phaseEndsAt (play: GO + 9 min), n0, out{uid:{at,place,rem,d,gone?,time?}},

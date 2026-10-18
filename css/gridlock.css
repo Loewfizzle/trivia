@@ -371,3 +371,87 @@ body.gl-on .gear, body.gl-on .chat-fab, body.gl-on[data-theme] .music-btn { righ
   .gl-ann-in, .gl-card, .gl-lock, .gl-call { animation-duration: 0.01s; }
   .gl-mini.is-target::after, .gl-bounty, .gl.is-invalid .gl-canvas { animation: none; }
 }
+
+/* ---------------------------------------------------------------- Part 2: SALVO markers, the ARCADE hand, readouts */
+.gl-aimhint { padding: 0 6px; margin-top: -6px; font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: var(--gl-dim); }
+.gl-btn-sm { min-height: 42px; font-size: 11.5px; letter-spacing: 0.14em; padding: 0 12px; border-radius: 14px; }
+.gl-row-sm > * { flex: 1; }
+.gl-ann-in.is-shield, .gl-ann-in.is-sonar { border-color: rgba(159, 232, 255, 0.6); color: #dff6ff; }
+.gl-ann-in.is-card { border-color: rgba(255, 200, 80, 0.6); color: #ffe8b0; }
+/* the hand of ability cards: glass cards fanned above the LOCK IN button (hidden while one is armed) */
+.gl-hand { display: flex; justify-content: center; align-items: flex-end; gap: 10px; padding: 14px 0 6px; }
+.gl-hand:empty { display: none; }
+.gl-abil {
+  --tilt: calc((var(--i) - (var(--n) - 1) / 2) * 5deg);
+  width: 104px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px 9px;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.03) 45%, rgba(127, 178, 255, 0.12)), rgba(10, 12, 34, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 30px rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transform: rotate(var(--tilt));
+  transform-origin: 50% 120%;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s, opacity 0.2s, border-color 0.2s;
+}
+.gl-abil:active { transform: rotate(var(--tilt)) scale(0.97); }
+.gl-abil-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--gl-steel); background: radial-gradient(circle, rgba(127, 178, 255, 0.22), transparent 70%); }
+.gl-abil-icon svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.gl-abil b { font-family: var(--font-display); font-weight: 800; font-size: 10.5px; letter-spacing: 0.12em; }
+.gl-abil small { font-size: 9.5px; line-height: 1.3; color: var(--gl-dim); }
+.gl-abil.is-armed { transform: rotate(0) translateY(-10px) scale(1.06); border-color: rgba(255, 190, 150, 0.9); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 1px rgba(255, 122, 42, 0.35), 0 12px 36px rgba(255, 110, 40, 0.35); }
+.gl-abil.is-armed .gl-abil-icon { color: #ffd8bf; background: radial-gradient(circle, rgba(255, 122, 42, 0.3), transparent 70%); }
+.gl-abil.is-dim { opacity: 0.5; }
+/* the armed card as a chip on the aim line */
+.gl-armed { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 6px; margin-right: 8px; font-family: var(--font-display); font-size: 10px; letter-spacing: 0.12em; color: #ffd8bf; background: rgba(255, 122, 42, 0.14); border: 1px solid rgba(255, 170, 110, 0.6); border-radius: 999px; vertical-align: middle; }
+.gl-armed svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* the stage makes room for the hand (3 cards) or an armed card's controls */
+.gl.is-aiming.has-hand .gl-stage { bottom: calc(var(--safe-b) + 262px); }
+.gl.is-aiming.is-armed .gl-stage { bottom: calc(var(--safe-b) + 206px); }
+/* SONAR's private readout */
+.gl-readout {
+  position: absolute;
+  top: calc(var(--safe-t) + 200px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 14px;
+  background: rgba(8, 11, 30, 0.92);
+  border: 1px solid rgba(159, 232, 255, 0.6);
+  border-radius: 14px;
+  box-shadow: 0 0 30px rgba(159, 232, 255, 0.28);
+  z-index: 2;
+  animation: gl-lock-in 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.gl-readout[hidden] { display: none; }
+.gl-readout-k { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.3em; color: #9fe8ff; }
+.gl-readout b { font-family: var(--font-display); font-weight: 900; font-size: 16px; letter-spacing: 0.12em; color: #fff; white-space: nowrap; }
+.gl-readout.is-hot b { color: #ffd8bf; text-shadow: 0 0 14px rgba(255, 122, 42, 0.6); }
+.gl-readout.is-cold b { color: #cfe6ff; }
+@media (min-width: 1000px) and (min-height: 600px) {
+  .gl.is-aiming.has-hand .gl-stage, .gl.is-aiming.is-armed .gl-stage { bottom: calc(var(--safe-b) + 22px); }
+  .gl-abil { width: 96px; }
+  .gl-readout { top: calc(var(--safe-t) + 210px); left: calc(var(--safe-l) + 28px); transform: none; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .gl.is-aiming.has-hand .gl-stage, .gl.is-aiming.is-armed .gl-stage { bottom: calc(var(--safe-b) + 6px); }
+  .gl-abil { width: 88px; padding: 8px 6px 7px; }
+  .gl-abil small { display: none; }
+  .gl-hand { padding: 6px 0 4px; }
+  .gl-readout { top: calc(var(--safe-t) + 60px); left: 230px; transform: none; }
+}
+/* the aim line never wraps: the kicker gives way, long messages shrink */
+.gl-aimline { gap: 10px; }
+.gl-aimline small { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; }
+.gl-aimline b { flex: none; white-space: nowrap; }
+.gl-aimline b.is-long { font-size: 17px; letter-spacing: 0.12em; }
+@media (min-width: 1000px) and (min-height: 600px) { .gl-aimline b.is-long { font-size: 20px; } }

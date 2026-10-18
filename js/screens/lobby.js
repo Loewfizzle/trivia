@@ -190,6 +190,18 @@ export function createLobby() {
     return wrap;
   }
 
+  // a grid of mode cards: icon, name, a line, the recommended player count (GRIDLOCK's modes)
+  function optionCards(choices, value, onChange) {
+    const wrap = h('div.opt-cards', { role: 'radiogroup' });
+    const paint = () => [...wrap.children].forEach(b => b.setAttribute('aria-checked', String(b.dataset.v === String(value))));
+    for (const c of choices) {
+      wrap.append(h('button.opt-card', { type: 'button', role: 'radio', dataset: { v: String(c.value) }, onclick: () => { value = c.value; paint(); onChange(c.value); } },
+        c.icon ? h('span.opt-card-icon', { html: c.icon }) : null, h('span.opt-card-label', c.label), c.sub ? h('span.opt-card-sub', c.sub) : null, c.meta ? h('span.opt-card-meta', c.meta) : null));
+    }
+    paint();
+    return wrap;
+  }
+
   function pickGame(g) {
     if (!g.playable) { toast(`${g.name} // COMING SOON`, 'info'); return; }
     if (!isHost()) { openHelp(g.id); return; } // guests: read up while the host picks
@@ -232,7 +244,9 @@ export function createLobby() {
             ? chipSelect(o.choices, [].concat(settings[o.key] || []), v => { settings[o.key] = v; renderEst(); })
             : o.type === 'list'
               ? optionList(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); })
-              : segmented(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); }))),
+              : o.type === 'cards'
+                ? optionCards(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); })
+                : segmented(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); }))),
         h('div.options-meta', h('span.mono.dim', 'EST. MATCH LENGTH'), est),
         startBtn,
         h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CANCEL')));

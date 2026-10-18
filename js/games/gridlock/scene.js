@@ -184,8 +184,13 @@ export function createScene(canvas, { size, reduced = false } = {}) {
   function setShips(uid, ships) { const b = board(uid); if (!b) return; b.ships = (ships || []).map((s, i) => (s ? { ...s, idx: i } : null)).filter(Boolean); b.miniDirty = true; }
   function hideShip(uid, idx) { const b = board(uid); if (!b) return; b.ships = b.ships.filter(s => s.idx !== idx); b.miniDirty = true; }
   function setGhost(uid, ship, valid = true) { const b = board(uid); if (!b) return; b.ghost = ship || null; b.ghostValid = valid; }
-  function reticle(uid, r, c) { ret = uid != null && r != null ? { uid, r, c } : null; }
-  let ret = null;
+  /** What the player is lining up on the board that is up: shot markers, an ability's area / torpedo lane, a shield preview. */
+  let plan = null;   // { uid, markers: [{ r, c }], area: { r, c, w, kind }, lane: { axis, idx, dir }, shield: { r, c } }
+  function setPlan(uid, p) { plan = uid && p ? { uid, ...p } : null; }
+  function reticle(uid, r, c) { setPlan(uid, uid != null && r != null ? { markers: [{ r, c }] } : null); }
+  /** EMP SHIELD domes up for this volley (public once the volley resolves). */
+  function shieldUp(uid, r, c) { const b = board(uid); if (!b) return; b.shield = { r, c, t0: clock.t, hit: -9 }; }
+  function clearShields() { for (const b of boards.values()) b.shield = null; }
   function setPower(uid, p) { const b = board(uid); if (!b || b.power === p) return; b.power = p; b.miniDirty = true; }
   function setBounty(uid) { for (const b of boards.values()) { const on = b.uid === uid; if (b.bounty !== on) { b.bounty = on; b.miniDirty = true; if (b.uid === focusUid) base.dirty = true; } } }
   function focus(uid, { instant = false } = {}) {
@@ -315,6 +320,7 @@ export function createScene(canvas, { size, reduced = false } = {}) {
     const L = s.len * cell * 0.9, w = cell * (wreck ? 0.34 : 0.3);
     const cx = ox + (s.d ? s.c + 0.5 : s.c + s.len / 2) * cell, cy = oy + (s.d ? s.r + s.len / 2 : s.r + 0.5) * cell;
     x.save();
+    alpha *= x.globalAlpha;   // the board may be fading in
     x.translate(cx, cy); if (s.d) x.rotate(Math.PI / 2);
     x.globalAlpha = alpha;
     if (!wreck && !ghost) {
@@ -501,6 +507,164 @@ export function createScene(canvas, { size, reduced = false } = {}) {
       return k < 1;
     } });
   }
+  /** A shot meets a shield: it sparks and deflects off the dome; nothing marks the cell. */
+  function block(uid, r, c, hex) {
+    const b = board(uid); if (!b || uid !== focusUid) return;
+    if (b.shield) b.shield.hit = clock.t;
+    const cx = cellX(c), cy = cellY(r), cell = geo.cell;
+    const n = reduced ? 0 : Math.round(TIERS[tier].sparks * 0.8);
+    const sparks = Array.from({ length: n }, () => { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, v = cell * (3 + Math.random() * 5); return { x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.35 + Math.random() * 0.3 }; });
+    const flash = glowSprite('#ffffff', 64), spark = glowSprite(hex, 16);
+    let age = 0;
+    fx.push({ draw(dt, x) {
+      age += dt; const k = age / 0.5;
+      x.globalCompositeOperation = 'lighter';
+      if (k < 1) { const fs = cell * (1.6 + k * 1.4); x.globalAlpha = Math.max(0, 0.9 - k * 1.4); x.drawImage(flash, cx - fs / 2, cy - fs / 2, fs, fs); }
+      let alive = k < 1;
+      for (const p of sparks) { if (age > p.life) continue; alive = true; p.vy += cell * 10 * dt; p.x += p.vx * dt; p.y += p.vy * dt; x.globalAlpha = Math.max(0, 1 - age / p.life); const ps = cell * 0.22; x.drawImage(spark, p.x - ps / 2, p.y - ps / 2, ps, ps); }
+      x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+      return alive;
+    } });
+  }
+  /** SONAR: rings spread across the target's board from the scanned area, which lights for a moment (never the answer). */
+  function sonar(uid, r, c, hex) {
+    if (uid !== focusUid) return;
+    const cell = geo.cell, cx = geo.gx + (c + 1.5) * cell, cy = geo.gy + (r + 1.5) * cell;
+    const { gx, gy, gw } = geo;
+    let age = 0;
+    fx.push({ draw(dt, x) {
+      age += dt; const k = age / 1.5; if (k >= 1) return false;
+      x.save(); x.beginPath(); x.rect(gx, gy, gw, gw); x.clip();
+      x.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 3; i++) { const kk = k - i * 0.14; if (kk <= 0) continue; x.strokeStyle = rgba(hex, 0.7 * (1 - kk)); x.lineWidth = 2.5 - kk * 2; x.beginPath(); x.arc(cx, cy, kk * gw * 1.1, 0, TAU); x.stroke(); }
+      const a = Math.max(0, 1 - k * 1.3) * (0.5 + 0.5 * Math.sin(age * 14));
+      x.fillStyle = rgba(hex, 0.18 * a); x.fillRect(gx + c * cell, gy + r * cell, 3 * cell, 3 * cell);
+      x.strokeStyle = rgba(hex, 0.9 * a); x.lineWidth = 1.5; x.strokeRect(gx + c * cell + 0.5, gy + r * cell + 0.5, 3 * cell - 1, 3 * cell - 1);
+      x.restore();
+      return true;
+    } });
+  }
+  /** TORPEDO: a streak races along a row or column from its edge to the first ship (then onImpact) or clean off the far side. */
+  function torpedo({ to, axis, idx, dir, hit = null, hex, duration = null }, onImpact) {
+    if (to !== focusUid) { onImpact && onImpact(); return; }
+    const cell = geo.cell, { gx, gy, gw } = geo;
+    const lanePos = p => (axis ? [cellX(idx), gy + (p + 0.5) * cell] : [gx + (p + 0.5) * cell, cellY(idx)]);
+    const start = lanePos(dir > 0 ? -1.2 : N + 0.2);
+    const endP = hit ? (axis ? hit.r : hit.c) : (dir > 0 ? N + 1.2 : -2.2);
+    const end = lanePos(endP);
+    const cells = hit ? Math.abs(endP - (dir > 0 ? -1.2 : N + 0.2)) : N + 2.4;
+    const dur = duration || Math.max(0.35, cells * 0.075);
+    const head = glowSprite(hex, 64);
+    let age = 0, done = false;
+    fx.push({ draw(dt, x) {
+      age += dt;
+      const k = Math.min(1, age / dur);
+      const px = start[0] + (end[0] - start[0]) * k, py = start[1] + (end[1] - start[1]) * k;
+      const a = done ? Math.max(0, 1 - (age - dur) / 0.3) : 1;
+      x.save(); x.beginPath(); x.rect(gx - cell, gy - cell, gw + 2 * cell, gw + 2 * cell); x.clip();
+      x.globalCompositeOperation = 'lighter';
+      // the lane wakes behind it
+      x.fillStyle = rgba(hex, 0.08 * a);
+      if (axis) x.fillRect(gx + idx * cell, gy, cell, gw); else x.fillRect(gx, gy + idx * cell, gw, cell);
+      const tl = cell * 2.2, dx = end[0] - start[0], dy = end[1] - start[1], L = Math.hypot(dx, dy) || 1;
+      const g = x.createLinearGradient(px - (dx / L) * tl, py - (dy / L) * tl, px, py);
+      g.addColorStop(0, rgba(hex, 0)); g.addColorStop(1, rgba(hex, 0.95 * a));
+      x.strokeStyle = g; x.lineWidth = cell * 0.22; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(px - (dx / L) * tl, py - (dy / L) * tl); x.lineTo(px, py); x.stroke();
+      x.strokeStyle = `rgba(255,255,255,${0.8 * a})`; x.lineWidth = cell * 0.06; x.stroke();
+      const hs = cell * 1.3; x.globalAlpha = a; x.drawImage(head, px - hs / 2, py - hs / 2, hs, hs); x.globalAlpha = 1;
+      x.restore();
+      if (k >= 1 && !done) { done = true; onImpact && onImpact(); }
+      return age < dur + 0.3;
+    } });
+  }
+  /** CLUSTER: one projectile that splits into four mid-air and rains onto a 2×2. onImpact(i) per cell. */
+  function cluster({ from, to, cells, hex, duration = 0.95 }, onImpact) {
+    if (to !== focusUid) { cells.forEach((_, i) => onImpact && onImpact(i)); return; }
+    const p0 = originOf(from);
+    const pts = cells.map(([r, c]) => ({ x: cellX(c), y: cellY(r) }));
+    const mid = { x: pts.reduce((s, p) => s + p.x, 0) / pts.length, y: pts.reduce((s, p) => s + p.y, 0) / pts.length };
+    const dist = Math.hypot(mid.x - p0.x, mid.y - p0.y);
+    const nx = -(mid.y - p0.y) / (dist || 1), ny = (mid.x - p0.x) / (dist || 1);
+    const side = p0.x < mid.x ? 1 : -1;
+    const split = 0.58;
+    const ps = { x: p0.x + (mid.x - p0.x) * split + nx * dist * 0.2 * side, y: p0.y + (mid.y - p0.y) * split + ny * dist * 0.2 * side };
+    const ctrl = { x: (p0.x + ps.x) / 2 + nx * dist * 0.18 * side, y: (p0.y + ps.y) / 2 + ny * dist * 0.18 * side };
+    const at = k => { const u = 1 - k; return [u * u * p0.x + 2 * u * k * ctrl.x + k * k * ps.x, u * u * p0.y + 2 * u * k * ctrl.y + k * k * ps.y]; };
+    const head = glowSprite(hex, 64), cell = geo.cell;
+    const hist = [], heads = pts.map(() => []);
+    const landed = pts.map(() => false);
+    let age = 0, splitDone = false;
+    fx.push({ draw(dt, x) {
+      age += dt;
+      const k = Math.min(1, age / duration);
+      x.globalCompositeOperation = 'lighter';
+      if (k < split) {
+        const p = at(ease(k / split)); hist.push(p); while (hist.length > TIERS[tier].trail) hist.shift();
+        for (let i = 1; i < hist.length; i++) { const f = i / hist.length; x.strokeStyle = rgba(hex, 0.85 * f); x.lineWidth = 1 + f * cell * 0.26; x.lineCap = 'round'; x.beginPath(); x.moveTo(hist[i - 1][0], hist[i - 1][1]); x.lineTo(hist[i][0], hist[i][1]); x.stroke(); }
+        const hs = cell * 1.7; x.drawImage(head, p[0] - hs / 2, p[1] - hs / 2, hs, hs);
+      } else {
+        if (!splitDone) { splitDone = true; pulseBoard(hex, 0.06); }
+        const kk = (k - split) / (1 - split);
+        pts.forEach((pt, i) => {
+          const e = ease(Math.min(1, kk));
+          const p = [ps.x + (pt.x - ps.x) * e, ps.y + (pt.y - ps.y) * e - Math.sin(e * Math.PI) * cell * 1.2];
+          const h = heads[i]; h.push(p); while (h.length > 8) h.shift();
+          for (let j = 1; j < h.length; j++) { const f = j / h.length; x.strokeStyle = rgba(hex, 0.8 * f); x.lineWidth = 1 + f * cell * 0.14; x.beginPath(); x.moveTo(h[j - 1][0], h[j - 1][1]); x.lineTo(h[j][0], h[j][1]); x.stroke(); }
+          if (kk < 1) { const hs = cell * 1.1; x.drawImage(head, p[0] - hs / 2, p[1] - hs / 2, hs, hs); }
+          else if (!landed[i]) { landed[i] = true; onImpact && onImpact(i); }
+        });
+      }
+      x.globalCompositeOperation = 'source-over';
+      return k < 1;
+    } });
+  }
+  /** RELOCATE as the others see it: a band of light sweeps the board; something moved, nothing shows where. */
+  function shimmer(uid, hex) {
+    if (uid !== focusUid) return;
+    const { gx, gy, gw } = geo;
+    let age = 0;
+    fx.push({ draw(dt, x) {
+      age += dt; const k = age / 0.9; if (k >= 1) return false;
+      x.save(); x.beginPath(); x.rect(gx, gy, gw, gw); x.clip();
+      const p = gx - gw * 0.3 + k * gw * 1.6, bw = gw * 0.16;
+      const g = x.createLinearGradient(p - bw, 0, p + bw, 0);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, rgba(hex, 0.35)); g.addColorStop(0.55, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.fillRect(p - bw, gy, bw * 2, gw);
+      x.restore();
+      return true;
+    } });
+  }
+  /** RELOCATE as its owner sees it: the hull dissolves into particles that stream to the new berth and re-form. */
+  function relocate(uid, from, to, idx) {
+    const b = board(uid); if (!b) return;
+    if (uid !== focusUid || reduced) { b.hidden = null; return; }
+    b.hidden = idx;
+    const cell = geo.cell, { gx, gy } = geo;
+    const centre = s => [gx + (s.d ? s.c + 0.5 : s.c + s.len / 2) * cell, gy + (s.d ? s.r + s.len / 2 : s.r + 0.5) * cell];
+    const n = Math.min(60, TIERS[tier].shards + 20);
+    const sp = glowSprite(b.hex, 16);
+    const a0 = centre(from), a1 = centre(to);
+    const parts = Array.from({ length: n }, () => {
+      const u = Math.random() - 0.5, v = (Math.random() - 0.5) * 0.5;
+      const off = s => (s.d ? [v * cell, u * s.len * cell] : [u * s.len * cell, v * cell]);
+      const o0 = off(from), o1 = off(to);
+      return { x0: a0[0] + o0[0], y0: a0[1] + o0[1], x1: a1[0] + o1[0], y1: a1[1] + o1[1], d: Math.random() * 0.3, s: cell * (0.16 + Math.random() * 0.2) };
+    });
+    let age = 0;
+    fx.push({ draw(dt, x) {
+      age += dt; const k = age / 1.1;
+      if (k >= 1) { b.hidden = null; return false; }
+      x.globalCompositeOperation = 'lighter';
+      for (const p of parts) {
+        const kk = Math.max(0, Math.min(1, (k - p.d) / 0.7)); const e = ease(kk);
+        const px = p.x0 + (p.x1 - p.x0) * e, py = p.y0 + (p.y1 - p.y0) * e - Math.sin(e * Math.PI) * cell * 0.8;
+        x.globalAlpha = 0.9; x.drawImage(sp, px - p.s / 2, py - p.s / 2, p.s, p.s);
+      }
+      x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+      return true;
+    } });
+  }
   /** The board flickers, tears and powers down to dark. */
   function eliminate(uid) {
     const b = board(uid); if (!b) return;
@@ -544,6 +708,7 @@ export function createScene(canvas, { size, reduced = false } = {}) {
       // hulls (your own), wrecks, the ghost while placing
       for (const s of b.ships) {
         if (b.sunk[s.idx] != null && !(b.pendingSunk && b.pendingSunk.has(s.idx))) continue;
+        if (b.hidden === s.idx) continue;
         const hot = b.hot && b.hot.idx === s.idx ? 0.5 + 0.5 * Math.sin(b.hot.t * 40) : 0;
         drawHull(ctx, s, cell, gx, gy, b.hex, { hot });
       }
@@ -568,12 +733,14 @@ export function createScene(canvas, { size, reduced = false } = {}) {
           }
         }
       }
+      // an EMP dome over its 3×3
+      if (b.shield) drawDome(ctx, b, t);
       // a dead board goes dark
       if (b.power < 1) { ctx.fillStyle = `rgba(3,4,12,${(1 - b.power) * 0.82})`; roundRect(ctx, bx, by, S, S, geo.radius); ctx.fill(); }
       // an impact lights the whole panel for a moment
       if (pulse > 0) { pulse = Math.max(0, pulse - dt * 0.6); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba(pulseHex, pulse * 0.6); roundRect(ctx, bx, by, S, S, geo.radius); ctx.fill(); ctx.globalCompositeOperation = 'source-over'; }
-      // the reticle: brackets on the cell, its row and column lit, the labels called out
-      if (ret && ret.uid === b.uid) drawReticle(ctx, t);
+      // what is being lined up: markers (brackets, the labels called out), an ability's area or lane, a shield preview
+      if (plan && plan.uid === b.uid) drawPlan(ctx, b, t);
       ctx.restore();
     }
     // light in the air (screen space)
@@ -582,35 +749,114 @@ export function createScene(canvas, { size, reduced = false } = {}) {
     for (const bb of boards.values()) if (bb.miniDirty && bb.mini.isConnected) drawMini(bb);
     frameTimes.push(dt * 1000); if (frameTimes.length > 120) frameTimes.shift();
   }
-  function drawReticle(x, t) {
-    const { gx, gy, gw, cell, bx, by, P, M } = geo;
-    const cx = cellX(ret.c), cy = cellY(ret.r);
-    const breathe = reduced ? 0 : Math.sin(t * 4) * 0.04;
-    x.save();
-    x.globalCompositeOperation = 'lighter';
-    x.fillStyle = 'rgba(255,255,255,0.05)'; x.fillRect(gx, cy - cell / 2, gw, cell); x.fillRect(cx - cell / 2, gy, cell, gw);
-    x.globalCompositeOperation = 'source-over';
-    // the labels of this cell, lit
+  /** The labels of a cell, lit (the "it is exactly where the letters say" cue). */
+  function litLabels(x, r, c) {
+    const { cell, bx, by, P, M } = geo;
+    const cx = cellX(c), cy = cellY(r);
     x.font = `700 ${geo.font}px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle';
     const ly = by + P + M * 0.52, lx = bx + P + M * 0.5;
     x.fillStyle = 'rgba(255,255,255,0.18)';
     roundRect(x, cx - cell * 0.42, ly - M * 0.36, cell * 0.84, M * 0.72, 4); x.fill();
     roundRect(x, lx - M * 0.4, cy - cell * 0.42, M * 0.8, cell * 0.84, 4); x.fill();
-    x.fillStyle = '#ffffff'; x.fillText(COLS[ret.c], cx, ly); x.fillText(String(ret.r + 1), lx, cy + 0.5);
-    // brackets + crosshair
+    x.fillStyle = '#ffffff'; x.fillText(COLS[c], cx, ly); x.fillText(String(r + 1), lx, cy + 0.5);
+  }
+  /** One shot marker: brackets + crosshair (+ its number when there are several). */
+  function drawMarker(x, r, c, t, n = 0) {
+    const { cell } = geo;
+    const cx = cellX(c), cy = cellY(r);
+    const breathe = reduced ? 0 : Math.sin(t * 4) * 0.04;
     const half = cell * (0.46 + breathe), arm = cell * 0.22;
     x.globalCompositeOperation = 'lighter';
-    const gs = cell * 2.6; x.globalAlpha = 0.55; x.drawImage(glowSprite('#ffffff', 64), cx - gs / 2, cy - gs / 2, gs, gs); x.globalAlpha = 1;
+    const gs = cell * 2.6; x.globalAlpha = 0.5; x.drawImage(glowSprite('#ffffff', 64), cx - gs / 2, cy - gs / 2, gs, gs); x.globalAlpha = 1;
     x.strokeStyle = '#ffffff'; x.lineWidth = 2; x.lineCap = 'round';
     for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { x.beginPath(); x.moveTo(cx + sx * half, cy + sy * (half - arm)); x.lineTo(cx + sx * half, cy + sy * half); x.lineTo(cx + sx * (half - arm), cy + sy * half); x.stroke(); }
     x.lineWidth = 1; x.strokeStyle = 'rgba(255,255,255,0.7)';
     x.beginPath(); x.moveTo(cx - cell * 0.3, cy); x.lineTo(cx + cell * 0.3, cy); x.moveTo(cx, cy - cell * 0.3); x.lineTo(cx, cy + cell * 0.3); x.stroke();
+    x.globalCompositeOperation = 'source-over';
+    if (n) {
+      const bs = Math.max(12, cell * 0.42);
+      x.fillStyle = 'rgba(255,255,255,0.95)'; x.beginPath(); x.arc(cx + half - 2, cy - half + 2, bs / 2, 0, TAU); x.fill();
+      x.fillStyle = '#10142a'; x.font = `800 ${Math.round(bs * 0.72)}px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(n), cx + half - 2, cy - half + 2.5);
+    }
+  }
+  /** A flat-top hexagon path. */
+  function hexPath(x, cx, cy, R) { x.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; i ? x.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R) : x.moveTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); } x.closePath(); }
+  /** The EMP dome: a hexagonal energy field over a 3×3, rising when it comes up, flashing when something hits it. */
+  function drawDome(x, b, t, preview = null) {
+    const sh = preview || b.shield;
+    const { gx, gy, cell } = geo;
+    const cx = gx + (sh.c + 1.5) * cell, cy = gy + (sh.r + 1.5) * cell;
+    const rise = preview ? 1 : Math.min(1, (t - sh.t0) / 0.5);
+    const e = ease(rise);
+    const R = cell * 1.5 * 1.12 * (0.7 + 0.3 * e);
+    const hitK = preview ? 0 : Math.max(0, 1 - (t - sh.hit) / 0.5);
+    const pulse = reduced ? 0 : 0.5 + 0.5 * Math.sin(t * 3);
+    const hex = '#9fe8ff';
+    x.save();
+    x.globalAlpha = x.globalAlpha * e * (preview ? 0.75 : 1);
+    x.globalCompositeOperation = 'lighter';
+    hexPath(x, cx, cy, R);
+    const g = x.createRadialGradient(cx, cy, R * 0.1, cx, cy, R);
+    g.addColorStop(0, rgba(hex, 0.04 + hitK * 0.25)); g.addColorStop(0.7, rgba(hex, 0.1 + pulse * 0.04)); g.addColorStop(1, rgba(hex, 0.28 + hitK * 0.4));
+    x.fillStyle = g; x.fill();
+    x.strokeStyle = rgba('#ffffff', 0.55 + hitK * 0.45); x.lineWidth = 1.5 + hitK * 2; x.stroke();
+    // a honeycomb inside
+    x.strokeStyle = rgba(hex, 0.22 + pulse * 0.08); x.lineWidth = 1;
+    const r2 = R / 3;
+    for (const [i, j] of [[0, 0], [1, 0], [-1, 0], [0.5, 0.87], [-0.5, 0.87], [0.5, -0.87], [-0.5, -0.87]]) { hexPath(x, cx + i * r2 * 1.73, cy + j * r2 * 1.73, r2 * 0.95); x.stroke(); }
+    x.restore();
+  }
+  function drawPlan(x, b, t) {
+    const { gx, gy, gw, cell } = geo;
+    x.save();
+    const ms = plan.markers || [];
+    for (const m of ms) { x.globalCompositeOperation = 'lighter'; x.fillStyle = 'rgba(255,255,255,0.045)'; x.fillRect(gx, cellY(m.r) - cell / 2, gw, cell); x.fillRect(cellX(m.c) - cell / 2, gy, cell, gw); x.globalCompositeOperation = 'source-over'; }
+    for (const m of ms) litLabels(x, m.r, m.c);
+    ms.forEach((m, i) => drawMarker(x, m.r, m.c, t, ms.length > 1 ? i + 1 : 0));
+    if (plan.area) {
+      const a = plan.area, w = a.w || 3, hex = a.kind === 'cluster' ? '#ff7a2a' : '#9fe8ff';
+      const px = gx + a.c * cell, py = gy + a.r * cell, s = w * cell;
+      const pulse = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(t * 5);
+      x.globalCompositeOperation = 'lighter';
+      x.fillStyle = rgba(hex, 0.12 + pulse * 0.08); x.fillRect(px, py, s, s);
+      x.strokeStyle = rgba(hex, 0.95); x.lineWidth = 2; x.setLineDash([6, 4]); x.strokeRect(px + 1, py + 1, s - 2, s - 2); x.setLineDash([]);
+      if (a.kind === 'cluster') for (let i = 0; i < w; i++) for (let j = 0; j < w; j++) { const gs = cell * 1.2; x.globalAlpha = 0.6; x.drawImage(glowSprite(hex, 32), px + (j + 0.5) * cell - gs / 2, py + (i + 0.5) * cell - gs / 2, gs, gs); x.globalAlpha = 1; }
+      if (a.kind === 'sonar') { x.strokeStyle = rgba(hex, 0.6); x.lineWidth = 1; for (let k = 1; k <= 2; k++) { x.beginPath(); x.arc(px + s / 2, py + s / 2, s * (0.3 + 0.25 * k) * (0.9 + 0.1 * pulse), 0, TAU); x.stroke(); } }
+      x.globalCompositeOperation = 'source-over';
+      litLabels(x, a.r, a.c);
+    }
+    if (plan.shield) drawDome(x, b, t, { r: plan.shield.r, c: plan.shield.c });
+    if (plan.lane) {
+      const l = plan.lane, hex = '#ff7a2a';
+      const pulse = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(t * 5);
+      x.globalCompositeOperation = 'lighter';
+      x.fillStyle = rgba(hex, 0.1 + pulse * 0.06);
+      if (l.axis) x.fillRect(gx + l.idx * cell, gy, cell, gw); else x.fillRect(gx, gy + l.idx * cell, gw, cell);
+      // the arrow at the edge it enters from, pointing the way it runs
+      const ex = l.axis ? cellX(l.idx) : (l.dir > 0 ? gx - cell * 0.55 : gx + gw + cell * 0.55);
+      const ey = l.axis ? (l.dir > 0 ? gy - cell * 0.55 : gy + gw + cell * 0.55) : cellY(l.idx);
+      const dx = l.axis ? 0 : l.dir, dy = l.axis ? l.dir : 0;
+      const L = cell * 0.5;
+      x.strokeStyle = rgba(hex, 0.95); x.fillStyle = rgba(hex, 0.95); x.lineWidth = 2.5; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(ex - dx * L, ey - dy * L); x.lineTo(ex + dx * L * 0.4, ey + dy * L * 0.4); x.stroke();
+      x.beginPath(); x.moveTo(ex + dx * L * 0.9, ey + dy * L * 0.9); x.lineTo(ex + dx * L * 0.3 - dy * L * 0.45, ey + dy * L * 0.3 - dx * L * 0.45); x.lineTo(ex + dx * L * 0.3 + dy * L * 0.45, ey + dy * L * 0.3 + dx * L * 0.45); x.closePath(); x.fill();
+      // dashed guide through the lane
+      x.setLineDash([4, 6]); x.strokeStyle = rgba(hex, 0.5); x.lineWidth = 1.5;
+      x.beginPath(); if (l.axis) { x.moveTo(cellX(l.idx), gy); x.lineTo(cellX(l.idx), gy + gw); } else { x.moveTo(gx, cellY(l.idx)); x.lineTo(gx + gw, cellY(l.idx)); } x.stroke(); x.setLineDash([]);
+      x.globalCompositeOperation = 'source-over';
+      // the label of the lane
+      const { bx, by, P, M } = geo;
+      x.font = `700 ${geo.font}px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = 'rgba(255,255,255,0.18)';
+      if (l.axis) { roundRect(x, cellX(l.idx) - cell * 0.42, by + P + M * 0.52 - M * 0.36, cell * 0.84, M * 0.72, 4); x.fill(); x.fillStyle = '#fff'; x.fillText(COLS[l.idx], cellX(l.idx), by + P + M * 0.52); }
+      else { roundRect(x, bx + P + M * 0.5 - M * 0.4, cellY(l.idx) - cell * 0.42, M * 0.8, cell * 0.84, 4); x.fill(); x.fillStyle = '#fff'; x.fillText(String(l.idx + 1), bx + P + M * 0.5, cellY(l.idx) + 0.5); }
+    }
     x.restore();
   }
 
   return {
     layout, miniCanvas, setMiniSize, setOrigins, setStage, resize, setTier,
-    setMarks, setSunk, setShips, hideShip, setGhost, reticle, setPower, setBounty,
+    setMarks, setSunk, setShips, hideShip, setGhost, reticle, setPlan, setPower, setBounty,
+    shieldUp, clearShields, block, sonar, torpedo, cluster, shimmer, relocate,
     miss, hit, fire, sink, eliminate, focus, pick, cellXY, frame,
     get tier() { return tier; },
     get focusUid() { return focusUid; },

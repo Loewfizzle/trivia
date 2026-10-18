@@ -59,6 +59,14 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     bots to the end, results. ROYALE with 8: 8×8, a phone that never placed gets a host fleet, TARGET LOCK (who, not where),
     two players on one cell, an absent owner's board resolved by the host, the bounty on the points leader, eliminations, Call
     the Winner, the host killed mid-match, a finish; frame pacing per tier at 4× CPU. Screens at 390×844, 412×915, 1440×900.
+    Part 2 (`PART2=0` skips): the four mode cards; SALVO with the room (allowance = ships afloat, a marker past it replaces the
+    last, tapping one lifts it, a refresh keeps the unsent markers, the lock-in names who and hides where, every marker fires,
+    results carry shots + accuracy); ARCADE (two cards each, the hand, the first card armed + aimed by kind, a refresh keeps the
+    armed card, the lock-in carries it, its event kind in the volley, the card is public at resolve and leaves the hand, SONAR's
+    private readout + another player denied the answer, bots at 100 % then 60 % abilities, the host killed, a finish with
+    abilities in the results). Balance: `node scripts/sim-gridlock.mjs [matches] [salvo,arcade,royale] [--weights=…]`.
+    A stall under bots: `N=2 SECS=150 MODE=arcade node gl-arcade-probe.mjs "<browser>" ./shots-probe` prints the phase, the lock-ins,
+    the resolutions and every bot's plan every few seconds (this is how a fizzled torpedo's `undefined` cell was found).
     Look preview without Firebase: `gridlock-preview.html?at=place|aim|reticle|locked|show|sunk|elim|spec|end&n=2..8&still=1`
     mounts the real view through an import map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js`
     (no-op writes, empty reads) — the pattern for any game's preview; `window.__preview.volley({…})` plays more volleys.

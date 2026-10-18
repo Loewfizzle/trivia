@@ -169,7 +169,7 @@ try {
   // lock-on warning: BOB + CHARLIE lock onto DANA; DANA sees two locks (who, not where)
   await G(pages[1], `window.__gridlock.aim(${JSON.stringify(uids[3])}, 1, 1); window.__gridlock.fire();`);
   await G(pages[2], `window.__gridlock.aim(${JSON.stringify(uids[3])}, 1, 1); window.__gridlock.fire();`);
-  await waitFor(pages[3], (s, u) => s.live && s.live.shots && Object.values(s.live.shots).filter(x => x.t === u).length === 2, 'two locks on DANA', 10000, uids[3]);
+  await waitFor(pages[3], (s, u) => s.live && s.live.shots && Object.values(s.live.shots).filter(x => x.t === u || (x.ts && x.ts[u])).length === 2, 'two locks on DANA', 10000, uids[3]);
   await sleep(400);
   const locks = await G(pages[3], 'window.__gridlock.locks()');
   ok(locks === 2, `TARGET LOCK: DANA is warned twice (${locks} dots)`);
@@ -237,6 +237,155 @@ try {
   await sleep(4000);
   await cleanText(pages[w], 'royale final');
   await shotAll(pages[w], 'gl-15-royale-final', SIZES.slice(0, 1).concat(SIZES.slice(2)));
+
+  // ================================================================ MATCH C — SALVO, 2 players (markers, the counter, a volley of shots)
+  if (process.env.PART2 !== '0') {
+    const hiC = await hostIdx();
+    const C1 = pages[alive()[0]], C2 = pages[alive()[1]];
+    const u1 = uids[alive()[0]], u2 = uids[alive()[1]];
+    await pages[hiC].evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
+    await waitFor(pages[hiC], s => !s.game, 'lobby', 20000);
+    // the four mode cards in the options sheet
+    await pages[hiC].evaluate(() => document.querySelector('.game-card[data-theme="gridlock"]').click());
+    await pages[hiC].waitForSelector('.modal .sheet.options .opt-cards', { timeout: 8000 });
+    const modeCards = await pages[hiC].$$eval('.opt-card', els => els.map(e => e.querySelector('.opt-card-label').textContent));
+    ok(modeCards.join('|') === 'CLASSIC|SALVO|BATTLE ROYALE|ARCADE', `MODES: four mode cards (${modeCards.join(', ')})`);
+    await sleep(400);
+    await shotAll(pages[hiC], 'gl-20-mode-cards', SIZES.slice(0, 1));
+    await pages[hiC].evaluate(() => document.querySelector('.modal .btn-text.btn-block').click());
+    await sleep(300);
+    // only two phones take part: the rest sit this one out by leaving the room? No — everyone connected is dealt in, so
+    // SALVO runs with everyone alive; the checks below are about the two we drive
+    await pages[hiC].evaluate(() => import('/js/host.js').then(m => m.startGame('gridlock', { mode: 'salvo', placeSec: 45, turnSec: 15 })));
+    await waitFor(pages[hiC], s => s.game && s.game.mode === 'salvo' && s.game.phase === 'place', 'salvo placement');
+    await Promise.all(alive().map(i => pages[i].waitForFunction(() => window.__gridlock && window.__gridlock.fleet(), { timeout: 20000 })));
+    for (const i of alive()) await G(pages[i], 'window.__gridlock.autoPlace(); window.__gridlock.setReady();');
+    await waitFor(pages[hiC], s => s.game.phase === 'aim', 'salvo round 1', 60000);
+    await sleep(500);
+    const gC = await game(pages[hiC]);
+    const allow = await G(C1, 'window.__gridlock.allowance()');
+    ok(allow === gC.fleet.length, `SALVO: one shot per ship afloat (${allow} shots with ${gC.fleet.length} ships)`);
+    // markers: place, lift, replace the last when full
+    for (let k = 0; k < allow + 1; k++) await G(C1, `window.__gridlock.aim(${JSON.stringify(u2)}, ${Math.floor(k / gC.size)}, ${k % gC.size})`);
+    let planC = await G(C1, 'window.__gridlock.plan()');
+    ok(planC.shots.length === allow, `SALVO: a marker past the allowance replaces the last one (${planC.shots.length} markers)`);
+    await G(C1, `window.__gridlock.aim(${JSON.stringify(u2)}, 0, 0)`);
+    planC = await G(C1, 'window.__gridlock.plan()');
+    ok(planC.shots.length === allow - 1 && !planC.shots.some(s => s.r === 0 && s.c === 0), 'SALVO: tapping a marker lifts it');
+    await cleanText(C1, 'salvo aim');
+    await shotAll(C1, 'gl-21-salvo-markers', SIZES.slice(0, 1).concat(SIZES.slice(2)));
+    // a refresh keeps the unsent markers
+    await C1.reload();
+    await C1.waitForFunction(() => window.__gridlock && window.__gridlock.plan() && window.__gridlock.plan().shots.length > 0, { timeout: 30000 }).catch(() => {});
+    const planR = await G(C1, 'window.__gridlock.plan()');
+    ok(!!planR && planR.shots.length === allow - 1, `REJOIN: the unsent markers come back after a refresh (${planR && planR.shots.length})`);
+    await G(C1, 'window.__gridlock.fire()');
+    await waitFor(C1, (s, u) => s.live && s.live.shots && s.live.shots[u], 'salvo lock written', 10000, u1);
+    const nodeC = await evalIn(C1, (s, u) => s.live.shots[u], u1);
+    ok(nodeC && nodeC.ts && nodeC.ts[u2] && nodeC.x && nodeC.t == null && nodeC.r == null, 'SALVO: the lock-in names who (ts) and hides where (x)');
+    for (const i of alive()) if (pages[i] !== C1) await G(pages[i], 'window.__gridlock.bot({ delay: 200, seed: 21 })');
+    await waitFor(pages[hiC], s => s.game.phase === 'show', 'salvo volley', 40000);
+    const gS2 = await game(pages[hiC]);
+    const mineC = (gS2.fire[u1] || []).length;
+    ok(mineC === allow - 1, `SALVO: every marker fired as its own shot (${mineC})`);
+    await sleep(2500);
+    await shotAll(C2, 'gl-22-salvo-volley', SIZES.slice(0, 1));
+    await G(C1, 'window.__gridlock.bot({ delay: 200, seed: 22 })');
+    await waitFor(pages[hiC], s => s.game.phase === 'final', 'salvo final', 600000);
+    const gCF = await game(pages[hiC]);
+    ok(gCF.winner && Object.values(gCF.results).every(r => r.sh > 0 && typeof r.acc === 'number'), `SALVO: a finish with shots + accuracy in the results (${name(gCF.winner)} wins${gCF.capped ? ', round cap' : ''})`);
+    await sleep(4000);
+    await cleanText(pages[hiC], 'salvo final');
+    await shotAll(pages[hiC], 'gl-23-salvo-final', SIZES.slice(0, 1));
+
+    // ================================================================ MATCH D — ARCADE, N players (cards, abilities, sonar privacy, rejoin with cards)
+    const hiD = await hostIdx();
+    await pages[hiD].evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
+    await waitFor(pages[hiD], s => !s.game, 'lobby', 20000);
+    await pages[hiD].evaluate(() => import('/js/host.js').then(m => m.startGame('gridlock', { mode: 'arcade', placeSec: 45, turnSec: 15 })));
+    await waitFor(pages[hiD], s => s.game && s.game.mode === 'arcade' && s.game.phase === 'place', 'arcade placement');
+    await Promise.all(alive().map(i => pages[i].waitForFunction(() => window.__gridlock && window.__gridlock.fleet(), { timeout: 20000 })));
+    for (const i of alive()) await G(pages[i], 'window.__gridlock.autoPlace(); window.__gridlock.setReady();');
+    await waitFor(pages[hiD], s => s.game.phase === 'aim', 'arcade round 1', 60000);
+    await sleep(500);
+    const D1 = pages[alive()[0]], d1 = uids[alive()[0]];
+    const gD = await game(pages[hiD]);
+    ok(Object.values(gD.hand).every(hd => hd.length === 2), 'ARCADE: everyone starts with two cards');
+    const handD = await G(D1, 'window.__gridlock.hand()');
+    ok(handD.length === 2 && (await D1.$$('.gl-abil')).length === 2, `ARCADE: the hand shows the two cards (${handD.join(', ')})`);
+    await cleanText(D1, 'arcade hand');
+    await shotAll(D1, 'gl-24-arcade-hand');
+    // a refresh keeps the cards (they live in the public game) and the armed plan
+    const cardA = handD[0];
+    const others = alive().map(i => uids[i]).filter(u => u !== d1);
+    const aimCard = async (page, a, t) => {
+      await G(page, `window.__gridlock.arm(${JSON.stringify(a)})`);
+      if (a === 'sonar' || a === 'cluster' || a === 'torpedo') await G(page, `window.__gridlock.aim(${JSON.stringify(t)}, 2, 2)`);
+      if (a === 'shield') await G(page, 'window.__gridlock.aim(null, 1, 1)');
+      if (a === 'double') { await G(page, `window.__gridlock.aim(${JSON.stringify(t)}, 1, 1)`); await G(page, `window.__gridlock.aim(${JSON.stringify(t)}, 3, 3)`); }
+      if (a === 'relocate') {
+        const okMove = await page.evaluate(() => { const f = window.__gridlock.fleet(); for (let i = 0; i < f.length; i++) { const s = f[i]; for (const cand of [{ ...s, d: s.d ? 0 : 1 }, { ...s, r: (s.r + 1) % 8, c: (s.c + 1) % 8 }, { ...s, r: 0, c: 0 }, { ...s, r: 0, c: 0, d: 1 }]) if (window.__gridlock.reloc(i, cand)) return i; } return -1; });
+        if (okMove < 0) { await G(page, 'window.__gridlock.arm(null)'); return false; }
+      }
+      return true;
+    };
+    const armedOk = await aimCard(D1, cardA, others[0]);
+    await sleep(300);
+    const planA = await G(D1, 'window.__gridlock.plan()');
+    ok(!armedOk || planA.a === cardA, `ARCADE: ${cardA} armed and aimed (${JSON.stringify({ a: planA.a, act: planA.act, reloc: planA.reloc && planA.reloc.i })})`);
+    await shotAll(D1, `gl-25-arcade-armed-${cardA}`, SIZES.slice(0, 1).concat(SIZES.slice(2)));
+    if (armedOk && cardA !== 'relocate') {
+      await D1.reload();
+      await D1.waitForFunction(() => window.__gridlock && window.__gridlock.plan() && window.__gridlock.plan().a, { timeout: 30000 }).catch(() => {});
+      const planB = await G(D1, 'window.__gridlock.plan()');
+      ok(!!planB && planB.a === cardA && (await G(D1, 'window.__gridlock.hand()')).length === 2, 'REJOIN: the armed card and the hand survive a refresh');
+    }
+    await G(D1, 'window.__gridlock.fire()');
+    await waitFor(D1, (s, u) => s.live && s.live.shots && s.live.shots[u], 'arcade lock written', 10000, d1);
+    const nodeD = await evalIn(D1, (s, u) => s.live.shots[u], d1);
+    ok(!armedOk || nodeD.a === cardA, `ARCADE: the lock-in carries the card (${nodeD.a})`);
+    for (const i of alive()) if (pages[i] !== D1) await G(pages[i], 'window.__gridlock.bot({ delay: 200, seed: 31, abilityRate: 1 })');
+    await waitFor(pages[hiD], s => s.game.phase === 'show', 'arcade volley', 40000);
+    const gDS = await game(pages[hiD]);
+    const kinds = [...new Set(gDS.ev.map(e => e.k))];
+    log('arcade volley', JSON.stringify(gDS.acts), kinds.join(','));
+    if (armedOk) {
+      const expect = { sonar: e => e.k === 'sonar' && e.by === d1, cluster: e => e.k === 'shot' && e.a === 'cluster' && e.by === d1, torpedo: e => e.k === 'torpedo' && e.by === d1, shield: e => e.k === 'shield' && e.t === d1, relocate: e => e.k === 'relocate' && e.t === d1, double: null };
+      if (expect[cardA]) ok(gDS.ev.some(expect[cardA]), `ARCADE: the ${cardA} shows in the volley's events`);
+      else ok((gDS.fire[d1] || []).length === 2, 'ARCADE: DOUBLE TAP fired two shots');
+      ok(gDS.acts && gDS.acts[d1] && gDS.acts[d1].a === cardA, 'ARCADE: the card is public once the volley resolves');
+      ok(!(gDS.hand[d1] || []).includes(cardA) || handD.filter(c => c === cardA).length > 1, 'ARCADE: the card left the hand');
+    }
+    if (armedOk && cardA === 'sonar') {
+      await D1.waitForFunction(() => window.__gridlock.readouts().length > 0, { timeout: 15000 }).catch(() => {});
+      const ro = await G(D1, 'window.__gridlock.readouts()');
+      ok(ro.length > 0 && /SIGNALS? DETECTED/.test(ro[0]), `SONAR: a private readout (${ro[0]})`);
+      await shotAll(D1, 'gl-26-sonar-readout', SIZES.slice(0, 1));
+      const peek = await pages[alive().find(i => uids[i] !== d1)].evaluate((c, u, rk) => import('/js/firebase.js').then(m => m.get(m.dbRef(`glsonar/${c}/${window.__arcade.state.game.matchId}/${u}/${rk}`)).then(() => 'READ', e => String(e.code || e.message))), code, d1, gDS.rk);
+      ok(/permission|denied/i.test(peek), `PRIVACY: another player can't read the sonar answer (${peek})`);
+    }
+    await sleep(2500);
+    await shotAll(pages[alive()[1]], 'gl-27-arcade-volley', SIZES.slice(0, 1).concat(SIZES.slice(2)));
+    // bots to the end (abilities 60 %), the host killed once more
+    for (const i of alive()) await G(pages[i], 'window.__gridlock.bot({ delay: 200, seed: ' + (i + 40) + ' })');
+    await waitFor(pages[hiD], s => s.game.round >= 3, 'a few arcade rounds', 120000);
+    const h3 = await hostIdx();
+    if (alive().length > 2) {
+      log('killing host', NAMES[h3]);
+      await pages[h3].close(); dead.add(h3);
+      const w3 = alive()[0];
+      await waitFor(pages[w3], (s, old) => s.meta && s.meta.hostId && s.meta.hostId !== old, 'a new host (arcade)', 40000, uids[h3]);
+      ok(true, 'HOST: a new host carried the arcade on');
+    }
+    const wD = pages[alive()[0]];
+    await waitFor(wD, s => s.game.phase === 'final', 'arcade final', 900000);
+    const gDF = await game(wD);
+    const anyAb = Object.values(gDF.results).some(r => r.ab > 0);
+    ok(gDF.winner && anyAb, `ARCADE: a finish, abilities in the results (${name(gDF.winner)} wins${gDF.capped ? ', round cap' : ''}; ${JSON.stringify(Object.fromEntries(Object.entries(gDF.results).map(([u, r]) => [name(u), [r.ab, r.bl, r.bp]])))})`);
+    await sleep(4000);
+    await cleanText(wD, 'arcade final');
+    await shotAll(wD, 'gl-28-arcade-final', SIZES.slice(0, 1).concat(SIZES.slice(2)));
+  }
 
   // ================================================================ frame pacing (a quiet phone during a volley)
   if (process.env.PERF !== '0') {

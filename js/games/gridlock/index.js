@@ -8,8 +8,9 @@
 import { createGame, nextStep, nightBonus as bonus } from './director.js';
 import {
   DEFAULT_SETTINGS, MIN_PLAYERS, PLACE_OPTIONS, TURN_OPTIONS, standings, estimateMinutes as estimate, cleanSettings,
-  decodeFleet, encodeFleet, randomLayout, resolveVolley, boardOf, aliveOf,
+  decodeFleet, encodeFleet, randomLayout, resolveVolley, boardOf, aliveOf, MODE_INFO,
 } from './logic.js';
+import { sonarCount } from './abilities.js';
 import { dbRef, get, set, remove, serverTimestamp, serverNow } from '../../firebase.js';
 import { state, onlineMap } from '../../store.js';
 import { rngFrom } from '../../core/rng.js';
@@ -27,7 +28,8 @@ export const livePaths = g => ({
 });
 
 export async function start({ code, matchId, settings, participants, now }) {
-  await remove(dbRef(`fleets/${code}`)).catch(() => {});   // no fleets from an earlier match
+  await remove(dbRef(`fleets/${code}`)).catch(() => {});   // no fleets (or sonar answers) from an earlier match
+  await remove(dbRef(`glsonar/${code}`)).catch(() => {});
   const names = Object.fromEntries(Object.keys(participants).map(u => [u, String((state.players[u] && state.players[u].name) || '').slice(0, 16)]));
   return createGame({ matchId, settings: cleanSettings(settings), participants, names, now });
 }
@@ -67,19 +69,37 @@ export function prepare(game, { code, host }) {
   const res = (state.live && state.live.res) || {};
   const online = onlineMap();
   const targets = [...new Set(Object.values(game.fire).flat().map(s => s.t))];
+  const acts = game.acts || {};
+  const shieldOf = t => (acts[t] && acts[t].a === 'shield' ? { r: acts[t].r, c: acts[t].c } : null);
   for (const t of targets) {
     if (res[t]) continue;
     const key = `${game.matchId}|${game.rk}|${t}`;
     if (resolvedBy.has(key)) continue;
     if (online[t] && now - game.phaseStartAt < FALLBACK_MS) continue;   // the owner's phone is on it
-    const ships = cache[t];
-    if (!ships) continue;
+    if (!cache[t]) continue;
     resolvedBy.add(key);
     const shots = {};
     for (const [by, list] of Object.entries(game.fire)) { const mine = list.filter(s => s.t === t); if (mine.length) shots[by] = mine; }
-    const r = resolveVolley(ships, boardOf(game, t), shots);
-    set(dbRef(`rooms/${code}/glres/${game.matchId}/${game.rk}/${t}`), { ...r, by: 'host', at: serverTimestamp() })
-      .catch(() => { /* the owner got there first: fine */ });
+    // a fresh read: a RELOCATE may have moved this fleet since the cache was filled
+    get(dbRef(`fleets/${code}/${game.matchId}/${t}`)).then(snap => {
+      const ships = decodeFleet(snap.val() && snap.val().s) || cache[t];
+      cache[t] = ships;
+      const r = resolveVolley(ships, boardOf(game, t), shots, shieldOf(t), game.size);
+      return set(dbRef(`rooms/${code}/glres/${game.matchId}/${game.rk}/${t}`), { ...r, by: 'host', at: serverTimestamp() });
+    }).catch(() => { /* the owner got there first: fine */ });
+  }
+  // sonar answers for absent owners (private to the shooter: glsonar/{code}/{m}/{shooter}/{rk})
+  for (const [by, a] of Object.entries(acts)) {
+    if (a.a !== 'sonar') continue;
+    const key = `${game.matchId}|${game.rk}|sonar|${by}`;
+    if (resolvedBy.has(key)) continue;
+    if (online[a.t] && now - game.phaseStartAt < FALLBACK_MS) continue;
+    if (!cache[a.t]) continue;
+    resolvedBy.add(key);
+    get(dbRef(`fleets/${code}/${game.matchId}/${a.t}`)).then(snap => {
+      const ships = decodeFleet(snap.val() && snap.val().s) || cache[a.t];
+      return set(dbRef(`glsonar/${code}/${game.matchId}/${by}/${game.rk}`), { n: sonarCount(ships, a.r, a.c, game.size), at: serverTimestamp() });
+    }).catch(() => { /* the owner answered */ });
   }
 }
 
@@ -88,11 +108,14 @@ export const step = (game, { code, now, live, online }) => nextStep(game, { code
 export const finalRanks = game => standings(game).map(r => ({ uid: r.uid, rank: r.rank }));
 export const nightBonus = bonus;
 
+const MODE_ICONS = {
+  classic: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>',
+  salvo: '<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="3.2"/><circle cx="17" cy="8" r="3.2"/><circle cx="12" cy="16.5" r="3.2"/><path d="M7 5.6v4.8M4.6 8h4.8M17 5.6v4.8M14.6 8h4.8M12 14.1v4.8M9.6 16.5h4.8" opacity=".7"/></svg>',
+  royale: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="4" r="1.6"/><circle cx="12" cy="20" r="1.6"/><circle cx="4" cy="12" r="1.6"/><circle cx="20" cy="12" r="1.6"/><circle cx="6.3" cy="6.3" r="1.3"/><circle cx="17.7" cy="6.3" r="1.3"/><circle cx="6.3" cy="17.7" r="1.3"/><circle cx="17.7" cy="17.7" r="1.3"/><path d="M12 6.2v3.3M12 14.5v3.3M6.2 12h3.3M14.5 12h3.3" opacity=".6"/></svg>',
+  arcade: '<svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="11" height="15" rx="2" transform="rotate(-8 9.5 11)"/><rect x="9" y="5.5" width="11" height="15" rx="2" transform="rotate(8 14.5 13)"/><path d="M14.5 10l1.1 2.3 2.5.3-1.8 1.7.5 2.5-2.3-1.2-2.3 1.2.5-2.5-1.8-1.7 2.5-.3z" fill="currentColor" stroke="none" opacity=".9"/></svg>',
+};
 export const OPTIONS = [
-  { key: 'mode', label: 'MODE', type: 'list', choices: [
-    { value: 'classic', label: 'CLASSIC', sub: 'Turns, one shot each · best with 2–4' },
-    { value: 'royale', label: 'BATTLE ROYALE', sub: 'Everyone fires at once · best with 4–8' },
-  ] },
+  { key: 'mode', label: 'MODE', type: 'cards', choices: ['classic', 'salvo', 'royale', 'arcade'].map(m => ({ value: m, label: MODE_INFO[m].name, sub: MODE_INFO[m].sub, meta: MODE_INFO[m].players, icon: MODE_ICONS[m] })) },
   { key: 'placeSec', label: 'PLACEMENT', choices: PLACE_OPTIONS.map(n => ({ value: n, label: `${n}s` })) },
   { key: 'turnSec', label: 'TURN / AIM TIMER', choices: TURN_OPTIONS.map(n => ({ value: n, label: `${n}s` })) },
 ];

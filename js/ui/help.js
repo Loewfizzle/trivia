@@ -193,8 +193,20 @@ RULES.gridlock = {
     ['BATTLE ROYALE (EVERYONE AT ONCE)', [
       'Each round everyone secretly picks a target and a cell and LOCKS IN. All shots fire together in one cinematic volley.',
       'When someone locks onto your board you get a TARGET LOCK warning: who, never where.',
-      'Points: 10 a hit, 30 a sink, 50 an elimination. The points leader wears a BOUNTY — hits and sinks on them pay 1.5×.',
+      'Points: 10 a hit, 30 a sink, 50 an elimination. With three or more fleets the points leader wears a BOUNTY — hits and sinks on them pay 1.5×.',
       'After 25 rounds the fleet with the most cells afloat wins (points break ties).',
+    ]],
+    ['SALVO', [
+      'Simultaneous rounds like Battle Royale, but you get ONE SHOT PER SHIP YOU STILL HAVE AFLOAT. Lose ships and you lose firepower.',
+      'Set a marker on each cell you want to hit, on any boards, then LOCK IN. Tap a marker to lift it. Two markers can’t share a cell.',
+      'Every shot lands one by one in the volley. With two players this is classic Salvo, played at once.',
+    ]],
+    ['ARCADE (ABILITY CARDS)', [
+      'Battle Royale plus a hand of ability cards: two to start, one more for every ship you sink, three at most.',
+      'Each round you fire a normal shot OR play one card. Tap a card to arm it, aim it on the board, LOCK IN (or CANCEL to put it back).',
+      'SONAR PING: pick a 3×3 on an enemy board and privately learn how many ship cells are in it. CLUSTER SHOT: hit a 2×2 at once. TORPEDO: pick a row or column and a direction; it hits the first ship in its path or runs off the edge.',
+      'EMP SHIELD: protect a 3×3 of your own board this round — shots landing there are BLOCKED. RELOCATE: drag one undamaged ship to a new spot (nobody sees where). DOUBLE TAP: two normal shots this round.',
+      'Shields and relocates resolve first, then every attack together.',
     ]],
     ['HITS, SINKS, ELIMINATIONS', [
       'Every hit and miss is public on every board, but nobody sees a ship until it is sunk.',

@@ -76,7 +76,7 @@ js/games/kit/                                            THE MATCH KIT: moments 
 js/games/<id>/  logic.js director.js index.js view.js (+ scene/audio/…)   PURE rules / PURE state machine / contract + host duties / the screen
 data/     trivia bluff oc words agent pulse prism slip    the banks and song analyses (formats in docs/content.md and each game's doc)
 audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs
-scripts/  serve.mjs build-*.{mjs,py} validate-holes.mjs  local server (:5173), bank/song/word builders, the NEON PAR hole bot
+scripts/  serve.mjs build-*.{mjs,py} validate-holes.mjs sim-gridlock.mjs   local server (:5173), bank/song/word builders, the NEON PAR hole bot, GRIDLOCK balance sim
 database.rules.json                                      RTDB rules — paste into the Firebase console after every change
 tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)
 tests/integration/  kit/harness.mjs e2e-*.mjs rules.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, no-Firebase look previews
@@ -92,7 +92,7 @@ rooms/{CODE}/
   game:      host-only; per-game shape; totals are always DERIVED from results (never stored) so a replayed step can't double-score
   night/{matchId}:   { g, p: { uid: 3|2|1|0 }, n: { uid: name }, b?: { uid: bonus }, at }  ← host; game-night scoreboard
   <game nodes>/{matchId}/…/{uid}                              ← a player's own data for the current step, phase-gated by the rules
-chats/{CODE}/   fleets/{CODE}/   spy/{CODE}/                  ← top level: rooms/{CODE} is readable by any signed-in user, these are not
+chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not
 ```
 Rules of thumb: a player writes only under their own uid; anything secret (fleets, agent cards) lives outside `rooms/`; the host
 wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfuscate.js`) what must not be readable in plain sight.

@@ -779,9 +779,17 @@
             "$rk": {
               "$uid": {
                 ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms/' + $code + '/game/id').val() === 'gridlock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/rk').val() === $rk && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && !root.child('rooms/' + $code + '/game/out/' + $uid).exists() && ((root.child('rooms/' + $code + '/game/phase').val() === 'turn' && root.child('rooms/' + $code + '/game/cur').val() === $uid) || root.child('rooms/' + $code + '/game/phase').val() === 'aim')",
-                ".validate": "newData.hasChildren(['t', 'at']) && (newData.hasChildren(['r', 'c']) || newData.hasChild('x'))",
+                ".validate": "newData.hasChild('at') && ((newData.hasChild('t') && (newData.hasChildren(['r', 'c']) || newData.hasChild('x'))) || (newData.hasChild('x') && (newData.hasChild('ts') || newData.hasChild('a')) && root.child('rooms/' + $code + '/game/phase').val() === 'aim'))",
                 "t": {
                   ".validate": "newData.isString() && newData.val() !== $uid && root.child('rooms/' + $code + '/game/participants/' + newData.val()).exists() && !root.child('rooms/' + $code + '/game/out/' + newData.val()).exists()"
+                },
+                "ts": {
+                  "$target": {
+                    ".validate": "newData.val() === true && $target !== $uid && root.child('rooms/' + $code + '/game/participants/' + $target).exists() && !root.child('rooms/' + $code + '/game/out/' + $target).exists()"
+                  }
+                },
+                "a": {
+                  ".validate": "newData.isString() && root.child('rooms/' + $code + '/game/mode').val() === 'arcade' && (newData.val() === 'sonar' || newData.val() === 'cluster' || newData.val() === 'torpedo' || newData.val() === 'shield' || newData.val() === 'relocate' || newData.val() === 'double')"
                 },
                 "r": {
                   ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9"
@@ -790,7 +798,7 @@
                   ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9"
                 },
                 "x": {
-                  ".validate": "newData.isString() && newData.val().length <= 80"
+                  ".validate": "newData.isString() && newData.val().length <= 600"
                 },
                 "at": {
                   ".validate": "newData.isNumber() && newData.val() <= now"
@@ -819,10 +827,16 @@
                   "$shooter": {
                     "$i": {
                       "h": {
-                        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
+                        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3"
                       },
                       "s": {
                         ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4"
+                      },
+                      "cr": {
+                        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9"
+                      },
+                      "cc": {
+                        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9"
                       },
                       "$other": {
                         ".validate": false
@@ -945,7 +959,7 @@
           ".read": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid",
           "$uid": {
             ".read": "auth != null && auth.uid === $uid",
-            ".write": "auth != null && root.child('rooms/' + $code + '/game/id').val() === 'gridlock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && ((auth.uid === $uid && (root.child('rooms/' + $code + '/game/phase').val() === 'place' || !data.exists())) || (root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !data.exists()))",
+            ".write": "auth != null && root.child('rooms/' + $code + '/game/id').val() === 'gridlock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && ((auth.uid === $uid && (root.child('rooms/' + $code + '/game/phase').val() === 'place' || !data.exists() || (root.child('rooms/' + $code + '/game/mode').val() === 'arcade' && root.child('rooms/' + $code + '/game/phase').val() === 'aim' && !root.child('rooms/' + $code + '/game/out/' + $uid).exists() && !root.child('rooms/' + $code + '/glshot/' + $match + '/' + root.child('rooms/' + $code + '/game/rk').val() + '/' + $uid).exists() && (root.child('rooms/' + $code + '/game/hand/' + $uid + '/0').val() === 'relocate' || root.child('rooms/' + $code + '/game/hand/' + $uid + '/1').val() === 'relocate' || root.child('rooms/' + $code + '/game/hand/' + $uid + '/2').val() === 'relocate')))) || (root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !data.exists()))",
             ".validate": "newData.hasChildren(['s', 'at'])",
             "s": {
               ".validate": "newData.isString() && newData.val().length <= 80 && newData.val().matches(/^[0-9],[0-9],[2-5],[01](;[0-9],[0-9],[2-5],[01])*$/)"
@@ -955,6 +969,29 @@
             },
             "$other": {
               ".validate": false
+            }
+          }
+        }
+      }
+    },
+    "glsonar": {
+      "$code": {
+        ".write": "auth != null && !newData.exists() && (root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid || !root.child('rooms/' + $code + '/meta').exists())",
+        "$match": {
+          "$shooter": {
+            ".read": "auth != null && auth.uid === $shooter",
+            "$rk": {
+              ".write": "auth != null && !data.exists() && root.child('rooms/' + $code + '/game/id').val() === 'gridlock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/rk').val() === $rk && (root.child('rooms/' + $code + '/game/phase').val() === 'resolve' || root.child('rooms/' + $code + '/game/phase').val() === 'show') && root.child('rooms/' + $code + '/game/acts/' + $shooter + '/a').val() === 'sonar' && (root.child('rooms/' + $code + '/game/acts/' + $shooter + '/t').val() === auth.uid || root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid)",
+              ".validate": "newData.hasChildren(['n', 'at'])",
+              "n": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9"
+              },
+              "at": {
+                ".validate": "newData.isNumber() && newData.val() <= now"
+              },
+              "$other": {
+                ".validate": false
+              }
             }
           }
         }

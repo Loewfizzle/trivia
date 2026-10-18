@@ -22,7 +22,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 | 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
 | 8 | **PRISM DROP** | Falling-block battle set to music: BATTLE (junk attacks, KO badges, final duel, call the winner, sudden death) or SCORE RUSH (one song, highest score). Identical pieces for everyone, every phone runs its own board; WebGL worlds per song; sound effects in the song's key, on its beat. | luminous prism: white light, spectral edges, jewel glass | ✅ Stage 8 |
-| 10 | **GRIDLOCK** | Fleet battle on a holographic war table: hide your fleet, call your shots. CLASSIC (turns, 2–4) or BATTLE ROYALE (everyone fires at once, 4–8, TARGET LOCK warnings, a bounty on the leader). Private fleets, public hits, cinematic volleys on a flat holographic board (Canvas 2D). | tactical steel-blue, signal-orange fire | ✅ Stage 11 (Part 1) + flat rebuild |
+| 10 | **GRIDLOCK** | Fleet battle on a holographic war table: hide your fleet, call your shots. CLASSIC (turns, 2–4) or BATTLE ROYALE (everyone fires at once, 4–8, TARGET LOCK warnings, a bounty on the leader). SALVO (one shot per ship afloat) and ARCADE (ability cards: sonar, cluster, torpedo, EMP shield, relocate, double tap). Private fleets, public hits, cinematic volleys on a flat holographic board (Canvas 2D). | tactical steel-blue, signal-orange fire | ✅ Stages 11–12 (complete) |
 | 9 | **SLIPSTREAM** | Multiplayer survival ride: everyone on the same seeded course at once, one thumb (hold = dive, release = fly, tap = flip), clean landings boost, hazards ramp up (gaps, laser gates, low ceilings, crumbling ground, gravity flips, boost rings), lives + rewinds, LAST RIDERS, sudden death; ghosts, five biomes with adaptive music. | sunset gold into deep blue; a single line of light | ✅ Stage 10 |
 | 7 | **DOUBLE AGENT** | Social deduction for 4–8: everyone gets the same secret word except the double agent(s); one-word clues in turn, a debate (chat, or out loud in SAME ROOM mode), a vote, a dramatic unmasking and a last chance to steal the round by naming the word. 41 categories × 15–18 words. | corrupted surveillance feed: graphite / silver, player colours only | ✅ Stage 7 |
 
@@ -256,11 +256,33 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
       offsets so the board no longer lands where the screen's entry transform put it; a one-tap music button joins the gear and
       chat in every game's corner column
 
+### ✅ Stage 12 — GRIDLOCK, Part 2 (SALVO + ARCADE) (Oct 2026)
+- [x] Four modes as mode cards in the options sheet (icon, line, player count): CLASSIC · SALVO · BATTLE ROYALE · ARCADE
+- [x] **SALVO:** one shot per ship afloat, numbered markers across any boards (tap to lift, a tap past the allowance moves the
+      last), a shots-left counter, every marker its own beam in the volley; the aim phase runs 10 s longer
+- [x] **ARCADE:** a fanned hand of glass ability cards (2 to start, +1 per sink, 3 max, seeded deal); arm one and the targeting
+      adapts (3×3 / 2×2 preview, torpedo lane with ROW/COL + FLIP, a dome preview on your own board, drag-to-relocate with the
+      placement rules); a card replaces the shot; CANCEL puts it back. Six cinematics: sonar rings + the lit 3×3 (and a private
+      readout for the scanner), a projectile that splits into four, a streak along the lane that hits or fizzles off the edge, a
+      hexagonal dome that rises and sparks when it blocks, a hull that dissolves and re-forms (others see a shimmer), two rapid beams
+- [x] Rules: one obfuscated lock-in node `{ ts, x, a?, at }` for every simultaneous mode (who is public, where is not), shields and
+      relocates before attacks, blocked shots leave no mark, torpedoes stop at the first unhit cell, sonar answers in a top-level node
+      only the scanner can read, relocates rewrite the private fleet before locking in; `database.rules.json` + rules tests for all of it
+- [x] Results: Salvo shows shots + accuracy, Arcade abilities used / shots blocked / best volley; rejoin keeps cards (public) and the
+      unsent plan (sessionStorage per volley); host migration and the owner-offline fallbacks cover the new nodes (the host re-reads a
+      fleet before resolving, since a relocate may have moved it, and answers sonars for absent owners)
+- [x] Balance (`scripts/sim-gridlock.mjs`, bot vs bot through the real director, 100 matches a cell): the round cap now scales —
+      at 25 every 2–3 player Royale/Arcade match ended on "most cells afloat" (one shot a round can't sink 17 cells); it is 36 / 30 /
+      25 rounds for 2 / 3 / 4+ players in Royale and Arcade, 25 / 22 in Salvo. No seat advantage beyond noise (2p 46–54 %, 8p 5–20 %
+      with 100 samples). No ability dominates: win rates of its users sit within a few points of fair for every card at every table
+      size; RELOCATE swung most with its weight, so it is dealt a little less (0.75) and SONAR a little more (1.2). Bot matches run
+      ≈ 9 min (Salvo 2p), 11–13 (Salvo 4–8p), 9–10 (Arcade 4–8p), and ≈ 12 (Arcade / Royale 2p, mostly to the cap — the bots hunt at
+      21 % accuracy; people hunt better and lock in faster)
+- [x] New SFX in the layered style (marker, volley, card draw / arm / play, sonar + its answers, cluster split, torpedo, fizzle, shield up,
+      shield block, relocate); help text for both modes; E2E matches C (Salvo) and D (Arcade) on the harness
+- [x] **The rules file changed: re-publish `database.rules.json` in the Firebase console.**
+
 ## Next up (agreed plan, in order)
-1. **GRIDLOCK Part 2:** SALVO (one shot per ship afloat) and ARCADE (ability cards). The pure rules are drafted locally
-   (abilities.js, a rewritten director, tests/gridlock-2.test.mjs — 22/23 passing; kept in a git stash "GRIDLOCK Part 2 rules
-   WIP" while the presentation was rebuilt). The flat scene is ready for it: new `ev` kinds are a case in `buildTimeline`,
-   abilities are HUD cards over the stage; the lock-in node shape the draft changed must be matched in `view.js#fireShot`.
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
 2. ✅ **Split `js/games/overclock/view.js`** (was ~1,600 lines) into `ui/<type>.js` (one per challenge), `reveals.js`, `shared.js`;

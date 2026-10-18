@@ -23,6 +23,7 @@ const GAMES = [
   ['prism', { mode: 'battle' }],
   ['slip', { lives: 1 }],
   ['gridlock', { mode: 'classic', placeSec: 45 }],
+  ['gridlock', { mode: 'arcade', placeSec: 45 }],
 ];
 const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
 const t0 = Date.now();

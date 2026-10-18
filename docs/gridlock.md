@@ -50,9 +50,50 @@ SALVO (several shots per volley) and ARCADE (abilities).
 - **After you fire** the board you aimed at stays up until the impact lands (no flip home and back); while someone else aims,
   your own board is up.
 - **Chat lock:** while placing (until READY), on your Classic turn, while aiming (until locked in).
-- **Part 2 hooks:** `shotsPerVolley(game, uid)` (Salvo: raise it; `fire[uid]` is already a list and `glres.r[shooter]` an array),
-  `resolveVolley` takes lists, `ev` is an open event list the cinematic plays (new kinds: add a case in `buildTimeline`), and
-  abilities would be one more player node + an `ev` kind; rules per node.
+## Part 2: SALVO and ARCADE (Oct 2026)
+Four modes share the one director (`MODES`, `MODE_INFO`, `SIMUL(mode)` = everything but Classic aims simultaneously; the lobby shows
+them as mode cards — `OPTIONS` type `cards`, rendered by `lobby.js#optionCards`).
+- **SALVO:** `shotsPerVolley(game, uid)` = ships afloat (min 1); the aim phase runs `turnSec + SALVO_AIM_EXTRA_S` (10 s). The view
+  keeps a **plan** per volley (`{ shots[], a, act, reloc }`): tap a cell = a numbered marker (tap it again to lift it; a tap past the
+  allowance moves the last one), split across boards as you like; the aim line counts shots left; LOCK IN sends them all.
+- **ARCADE:** Royale + a hand (`game.hand[uid]`, public — cards are not secret, their aim is) of `START_CARDS` 2, +1 per ship sunk,
+  `HAND_MAX` 3, dealt from a seeded deck (`drawCard(matchId, uid, n, CARD_WEIGHTS)` — identical on every phone and a new host).
+  A card REPLACES the normal shot (`allowance()`: double = 2, any other card = 0). Tap a card to arm it (the hand hides, the
+  card's controls take its room; CANCEL puts it back): SONAR / CLUSTER = tap the anchor of a 3×3 / 2×2 (clamped inside); TORPEDO =
+  tap a cell → its row (ROW/COL toggles, FLIP reverses; the direction defaults to the nearer edge); EMP SHIELD = a 3×3 on your own
+  board (dome preview); RELOCATE = drag an undamaged ship like placement (`canRelocate`: same length, inside, no overlap, never under
+  an existing mark; tap turns it); DOUBLE TAP = two markers.
+- **The lock-in node** (every simultaneous mode): `glshot/{m}/{rk}/{uid} = { ts: { target: true }, x: encodeLock(shots, act, key),
+  a?: card, at }` — `ts` is public (TARGET LOCK shows who, never where), `x` is obfuscated until `director.js#readLock` decodes and
+  validates it at resolve (`abilities.js#cleanAct`; invalid parts are dropped, the count capped by `allowance`). Classic turns keep
+  `{ t, r, c, at }`. A RELOCATE rewrites `fleets/{code}/{m}/{uid}` first (the rules allow it in `aim`, with the card in hand, before
+  the lock-in exists), then locks in with `act = { i }`.
+- **Resolution order:** shields and relocates first (the shield is published in `game.acts` at `resolve`, so the target's resolver —
+  or the host's fallback, which re-reads the fleet because a relocate may have moved it — applies it: a shot in the 3×3 is
+  `h: 3` BLOCKED, no mark, counted in `stats.bl` for the owner), then every attack together. `expandAttacks` turns a cluster into
+  four cells (`k: 'cluster'`) and a torpedo into `{ k: 'torpedo', axis, idx, dir }`, which `resolveVolley` runs from the edge to the
+  first unhit ship cell (`h: 1, cr, cc`; a shield on the way blocks it, an empty lane fizzles `h: 0`, nothing is marked).
+- **SONAR is private:** the scanned player's phone (or the host after `FALLBACK_MS`) writes `glsonar/{code}/{m}/{shooter}/{rk} =
+  { n, at }` at resolve; only the shooter can read it (rules + a rules test); the view polls it during the show and prints the
+  readout ("2 SIGNALS DETECTED"). Everyone else sees the scan sweep the board, never the answer.
+- **Events / cinematic:** new `ev` kinds `shield { t, r, c }`, `relocate { t }`, `sonar { by, t, r, c }`, `torpedo { by, t, axis, idx,
+  dir, h, r, c }`, and `shot` gains `a: 'cluster'` and `h: 3`. `buildTimeline` plays the pre-beats (dome rises · owner's hull
+  dissolves and re-forms elsewhere, others see a shimmer · sonar rings + the 3×3 lit), then per board: beams (a DOUBLE TAP's second
+  170 ms behind), clusters (one projectile that splits into four), torpedoes (a streak along the lane), blocked shots sparking off
+  the dome and a "X'S SHIELD BLOCKED N SHOTS" line, sinks ("TORPEDOED" when the torpedo did it), eliminations, the summary. Shots
+  per volley above 4 / 8 beat faster (`showMs` caps at 24 s).
+- **Round cap** (`roundCap(game)`): Royale/Arcade 36 rounds with 2 players, 30 with 3, 25 with 4+; Salvo 25 (2–3) / 22 (4+). One
+  shot a round can't sink 17 cells in 25 rounds — at 25, every 2–3 player Royale/Arcade match in the simulation ended on the cap.
+- **Results:** `results[uid]` gains `ab` (abilities used), `bl` (shots your shields blocked), `bp` (best volley: most hits in one);
+  the report shows SHOTS + ACCURACY in Salvo and ABILITIES / BLOCKED / BEST VOLLEY in Arcade.
+- **Rejoin:** cards are in the public game; an unsent plan (markers, an armed card, a relocate being lined up) is kept in
+  `sessionStorage` per volley and restored; a lock-in that exists counts as fired.
+- **Balance** (`node scripts/sim-gridlock.mjs [matches] [modes] [--weights=…]`, bot-vs-bot through the real director — bots hunt
+  at ~21 % accuracy, people do better, so its lengths are upper bounds and its elimination rates lower bounds): see ROADMAP for the
+  numbers behind `CARD_WEIGHTS` (sonar 1.2 · cluster 1 · torpedo 0.9 · shield 1 · relocate 0.75 · double 1) and the caps.
+- **Preview states:** `gridlock-preview.html?at=markers|hand|armed-sonar|armed-cluster|armed-torpedo|armed-shield|armed-relocate|
+  shield|sonar|torpedo|cluster|relocate&n=3`. Hooks added to `window.__gridlock`: `plan, arm, setLane, reloc, hand, readouts,
+  allowance`; `bot({ abilityRate })`.
 - Test hooks: `window.__gridlock` (fleet, place, setReady, autoPlace, rotate, aim, fire, bot({delay, seed, force}), forceNext,
   locks, announcements, sfxLog, timeline, camera ({focus, box, settled}), cellXY, geometry, pick, focus, tier/fps/work/stats).
 

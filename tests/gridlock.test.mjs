@@ -73,7 +73,7 @@ test('applyResolution: public boards, cells left, sink + elimination credit, poi
   assert.equal(L.pointsFor(out.credit.a, false), 90);
   assert.ok(out.events.some(e => e.k === 'sunk' && e.by.length === 2) && out.events.some(e => e.k === 'elim'));
   assert.equal(L.bountyHolder({ participants: { a: true, b: true }, pts: { a: 10, b: 10 } }), null, 'tied: no bounty');
-  assert.equal(L.bountyHolder({ participants: { a: true, b: true }, pts: { a: 20, b: 10 }, out: { a: { place: 2 } } }), 'b', 'only the living carry it');
+  assert.equal(L.bountyHolder({ participants: { a: true, b: true, c: true }, n0: 3, pts: { a: 20, b: 10 }, out: { a: { place: 3 } } }), 'b', 'only the living carry it');
 });
 
 test('aims are obfuscated per player and decode only with the right key', () => {
@@ -183,7 +183,7 @@ test('BATTLE ROYALE with 8 players: simultaneous volleys, same-cell credit, the 
   assert.equal(g.size, 8);
   assert.ok(locks > 30 && sameCellVolley, 'aims locked, one volley had two players on one cell');
   assert.ok(phases.filter(p => p === 'aim').length >= 3);
-  assert.ok(g.round <= L.ROYALE_ROUND_CAP);
+  assert.ok(g.round <= L.roundCap(g));
   assert.equal(L.standings(g)[0].uid, g.winner);
   const outs = Object.values(g.out);
   assert.equal(outs.length, 7);
@@ -220,7 +220,7 @@ test('BATTLE ROYALE: two players hitting the same last cell both get the sink; t
 
 test('BATTLE ROYALE: the safety cap ends the match — most cells left wins, points break ties', () => {
   let g = createGame({ matchId: 'mc', settings: { mode: 'royale', placeSec: 45, turnSec: 20 }, participants: P(3), now: 0 });
-  g = apply(g, { phase: 'resolve', rk: '25', v: 25, round: 25, phaseStartAt: 0, phaseEndsAt: 15_000, fire: { u0: [{ t: 'u1', r: 0, c: 0 }] }, pts: { u2: 30 },
+  g = apply(g, { phase: 'resolve', rk: '30', v: 30, round: 30, phaseStartAt: 0, phaseEndsAt: 15_000, fire: { u0: [{ t: 'u1', r: 0, c: 0 }] }, pts: { u2: 30 },
     boards: { u0: { cells: {}, sunk: {}, left: 17 }, u1: { cells: {}, sunk: {}, left: 17 }, u2: { cells: {}, sunk: {}, left: 17 } } });
   const res = { u1: { r: { u0: [{ h: 0 }] }, k: {} } };
   const p = nextStep(g, { code: 'R', now: 1000, online: on(3), live: { res } });

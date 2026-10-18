@@ -312,3 +312,28 @@
   border-color: rgba(255, 51, 85, 0.55);
 }
 .lobby-leave:active { transform: scale(0.96); }
+
+/* mode cards (GRIDLOCK's four modes): a 2-column grid of glass cards with an icon, a line and the player count */
+.opt-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opt-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 108px;
+  padding: 12px 12px 10px;
+  text-align: left;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-2);
+  border-radius: 16px;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s, transform 0.12s var(--ease);
+}
+.opt-card:active { transform: scale(0.98); }
+.opt-card-icon { display: grid; place-items: center; width: 34px; height: 34px; margin-bottom: 2px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); }
+.opt-card-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.opt-card-label { font-family: var(--font-display); font-weight: 800; font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+.opt-card-sub { font-size: 12px; line-height: 1.3; color: var(--text-dim); }
+.opt-card-meta { margin-top: auto; padding-top: 4px; font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; color: var(--text-faint); }
+.opt-card[aria-checked='true'] { border-color: color-mix(in srgb, var(--accent) 70%, transparent); background: color-mix(in srgb, var(--accent) 12%, rgba(8, 9, 26, 0.6)); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 22%, transparent); }
+.opt-card[aria-checked='true'] .opt-card-meta { color: var(--accent); }

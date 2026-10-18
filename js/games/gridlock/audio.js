@@ -217,6 +217,73 @@ export function createSfx() {
           sub(60, 32, t + 0.1, 1.2, 0.08, { wet: 0.5, verb: 'plate' });
           break;
         }
+        // ---- Part 2: SALVO markers, the ARCADE cards and their abilities
+        case 'marker':   // a shot marker set down: a soft magnetic tick with a rising ping
+          hiss(t, { type: 'lowpass', from: 1800, to: 400, dur: 0.05, a: 0.002, peak: 0.08, q: 0.8, pan });
+          fm(980, t, { ratio: 2, index: 0.8, dec: 0.16, peak: 0.03, slide: 1180, pan, wet: 0.3 });
+          break;
+        case 'volley': {   // several shots locked in: the latch, then a quick rising run of pings
+          hiss(t, { type: 'lowpass', from: 900, to: 180, dur: 0.11, a: 0.003, peak: 0.1, q: 0.6, pan });
+          sub(95, 52, t, 0.28, 0.1, { pan, wet: 0.3 });
+          [660, 830, 990, 1320].forEach((f, i) => fm(f, t + 0.08 + i * 0.055, { ratio: 2, index: 0.9, dec: 0.3, peak: 0.028, pan: (i - 1.5) * 0.2, wet: 0.45, verb: 'plate' }));
+          break;
+        }
+        case 'cardDraw':   // a new card slides into your hand: a paper-glass flick and a soft chime
+          hiss(t, { type: 'bandpass', from: 1200, to: 4200, dur: 0.14, a: 0.01, peak: 0.05, q: 1.2, pan });
+          fm(1568, t + 0.08, { ratio: 3.01, index: 0.7, dec: 0.6, peak: 0.028, pan, wet: 0.5, verb: 'plate' });
+          break;
+        case 'cardArm':   // a card armed: a crisp snap and a short rising tone
+          hiss(t, { type: 'highpass', from: 1800, to: 2600, dur: 0.03, a: 0.002, peak: 0.07, q: 0.7, pan });
+          tone(620, t, { type: 'triangle', dec: 0.14, peak: 0.04, slide: 980, slideDur: 0.1, pan, wet: 0.3 });
+          break;
+        case 'cardPlay': {   // a card played: the latch plus a bright FM flourish
+          hiss(t, { type: 'lowpass', from: 900, to: 180, dur: 0.11, a: 0.003, peak: 0.1, q: 0.6, pan });
+          sub(95, 52, t, 0.28, 0.1, { pan, wet: 0.3 });
+          fm(1320, t + 0.06, { ratio: 1.5, index: 2.2, dec: 0.5, peak: 0.034, slide: 1760, pan, wet: 0.55, verb: 'plate' });
+          fm(2640, t + 0.16, { ratio: 2, index: 0.8, dec: 0.5, peak: 0.02, pan, wet: 0.6, verb: 'plate' });
+          break;
+        }
+        case 'sonar': {   // a ping leaves and comes back off the deep: FM ping, a long wet tail, a second fainter echo
+          fm(1180, t, { ratio: 1.0, index: 0.4, a: 0.004, dec: 1.4, peak: 0.05, slide: 1060, wet: 0.85, verb: 'plate' });
+          fm(1180, t + 0.42, { ratio: 1.0, index: 0.4, a: 0.004, dec: 1.0, peak: 0.022, slide: 1060, wet: 0.9, verb: 'plate', pan: 0.3 });
+          hiss(t, { type: 'bandpass', from: 700, to: 2400, dur: 0.9, a: 0.3, peak: 0.012, q: 3, wet: 0.6, verb: 'plate' });
+          break;
+        }
+        case 'sonarHit': [880, 1108.7, 1318.5].forEach((f, i) => fm(f, t + i * 0.07, { ratio: 2, index: 0.9, dec: 0.5, peak: 0.03, wet: 0.5, verb: 'plate' })); break;   // signals found
+        case 'sonarEmpty': fm(660, t, { ratio: 2, index: 0.6, dec: 0.7, peak: 0.03, slide: 560, wet: 0.6, verb: 'plate' }); break;   // nothing there
+        case 'clusterSplit':   // one projectile becomes four: a crack and four quick pings fanning out
+          hiss(t, { type: 'highpass', from: 2500, to: 1200, dur: 0.08, a: 0.002, peak: 0.08, q: 0.8, pan });
+          [1, 2, 3, 4].forEach(i => fm(1400 + i * 180, t + 0.02 + i * 0.035, { ratio: 2.5, index: 1.2, dec: 0.2, peak: 0.024, pan: (i - 2.5) * 0.35, wet: 0.4 }));
+          break;
+        case 'torpedo': {   // a run along the grid: a rising whine over a long whoosh, a sub rumble under it
+          tone(220, t, { type: 'sawtooth', a: 0.05, hold: 0.5, dec: 0.3, peak: 0.028, slide: 640, slideDur: 0.8, filter: { type: 'lowpass', f0: 900, f1: 2600, dur: 0.8, q: 3 }, pan, wet: 0.4, verb: 'plate' });
+          hiss(t, { type: 'bandpass', from: 500, to: 1800, dur: 0.85, a: 0.2, peak: 0.055, q: 1.1, pan });
+          sub(70, 50, t, 0.9, 0.06, { wet: 0.3 });
+          break;
+        }
+        case 'fizzle':   // a torpedo runs off the far edge: a dying hiss, a dull low tap
+          hiss(t, { type: 'bandpass', from: 1600, to: 300, dur: 0.5, a: 0.02, peak: 0.04, q: 1.4, pan, wet: 0.4, verb: 'plate' });
+          tone(110, t + 0.1, { type: 'triangle', dec: 0.25, peak: 0.035, slide: 70, pan });
+          break;
+        case 'shieldUp': {   // a dome rising: a swelling pad with a bright shimmer on top
+          for (const d of [0, 7, -7]) tone(196, t, { type: 'sawtooth', a: 0.22, hold: 0.25, dec: 0.6, peak: 0.022, detune: d, slide: 262, slideDur: 0.3, filter: { type: 'lowpass', f0: 500, f1: 3200, dur: 0.5, q: 2 }, wet: 0.5, verb: 'plate' });
+          fm(2093, t + 0.25, { ratio: 2, index: 0.6, dec: 0.7, peak: 0.022, wet: 0.7, verb: 'plate' });
+          hiss(t + 0.1, { type: 'highpass', from: 3000, to: 6000, dur: 0.5, a: 0.2, peak: 0.02, q: 0.8, wet: 0.5, verb: 'plate' });
+          break;
+        }
+        case 'shieldBlock': {   // a shot deflects off the dome: an electric zap and a ringing hex
+          hiss(t, { type: 'bandpass', from: 4000, to: 900, dur: 0.16, a: 0.002, peak: 0.1, q: 2, pan });
+          fm(1760, t, { ratio: 1.41, index: 3, dec: 0.35, peak: 0.045, slide: 1320, pan, wet: 0.5, verb: 'plate' });
+          ring(t + 0.01, 420, 0.5, 0.08, 0.72, { pan, wet: 0.5, verb: 'plate' });
+          tone(90, t, { dec: 0.15, peak: 0.05, slide: 60, pan });
+          break;
+        }
+        case 'relocate': {   // a hull dissolves into light and re-forms: a glassy rising-then-falling shimmer
+          for (let i = 0; i < 8; i++) fm(rnd(1500, 3800), t + i * 0.07, { ratio: 1.41, index: 0.9, dec: 0.35, peak: 0.02, pan: -0.6 + i * 0.17, wet: 0.7, verb: 'plate' });
+          tone(330, t, { type: 'triangle', a: 0.2, hold: 0.2, dec: 0.5, peak: 0.02, slide: 660, slideDur: 0.45, filter: { type: 'lowpass', f0: 1200, f1: 3000, dur: 0.5 }, wet: 0.6, verb: 'plate' });
+          hiss(t, { type: 'bandpass', from: 2000, to: 5000, dur: 0.6, a: 0.25, peak: 0.02, q: 1.5, wet: 0.6, verb: 'plate' });
+          break;
+        }
         case 'tick': tone(820, t, { type: 'sine', dec: 0.06, peak: 0.03 }); break;
         case 'sweep': hiss(t, { from: 400, to: 1600, dur: 1.2, peak: 0.006, q: 4 }); break;
         case 'win': {   // last fleet standing: a pad opening up under a rising arpeggio
