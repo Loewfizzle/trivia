@@ -258,6 +258,33 @@ ${glow('gl-glow', 2)}${glow('gl-glow2', 4)}</defs>
 </svg>`;
 }
 
+// RUMRUNNER: a vintage truck under a neon sign, art-deco gold rays, a bottle on the running board
+const RUM = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+  <linearGradient id="rr-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b0b14"/><stop offset="1" stop-color="#0a0609"/></linearGradient>
+  <linearGradient id="rr-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset="0.5" stop-color="#f0c75e"/><stop offset="1" stop-color="#9a7020"/></linearGradient>
+  <radialGradient id="rr-neon" cx="0.5" cy="0.3" r="0.6"><stop offset="0" stop-color="#ff6b86" stop-opacity="0.55"/><stop offset="1" stop-color="#ff6b86" stop-opacity="0"/></radialGradient>
+  <radialGradient id="rr-lamp" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffe9a8" stop-opacity="0.9"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="120" height="120" rx="14" fill="url(#rr-sky)"/>
+<rect width="120" height="120" rx="14" fill="url(#rr-neon)"/>
+<g stroke="url(#rr-gold)" stroke-width="1" opacity="0.5"><path d="M60 26 L20 8 M60 26 L40 4 M60 26 L80 4 M60 26 L100 8"/></g>
+<rect x="30" y="22" width="60" height="18" rx="4" fill="none" stroke="#ff6b86" stroke-width="2" filter="drop-shadow(0 0 4px #ff6b86)"/>
+<text x="60" y="35" text-anchor="middle" font-family="Orbitron, sans-serif" font-size="9" font-weight="700" fill="#ffd1da" letter-spacing="1.5">CLUB VALE</text>
+<rect x="8" y="88" width="104" height="2" fill="#2a1c22"/>
+<ellipse cx="60" cy="90" rx="46" ry="4" fill="url(#rr-lamp)" opacity="0.45"/>
+<g>
+  <path d="M22 84 L22 66 Q22 62 26 62 L48 62 L52 52 Q53 50 56 50 L80 50 Q84 50 84 54 L84 84 Z" fill="#2b2430" stroke="#f0c75e" stroke-width="1.2"/>
+  <rect x="56" y="54" width="22" height="12" rx="2" fill="#0d1a24" stroke="#f0c75e" stroke-width="0.8"/>
+  <rect x="26" y="66" width="22" height="18" rx="1" fill="#3a2e3e" stroke="#f0c75e" stroke-width="0.8"/>
+  <circle cx="36" cy="86" r="7" fill="#15111a" stroke="#f0c75e" stroke-width="1.5"/><circle cx="36" cy="86" r="2.5" fill="#f0c75e"/>
+  <circle cx="76" cy="86" r="7" fill="#15111a" stroke="#f0c75e" stroke-width="1.5"/><circle cx="76" cy="86" r="2.5" fill="#f0c75e"/>
+  <circle cx="86" cy="74" r="3" fill="#fff3c4" filter="drop-shadow(0 0 5px #ffe9a8)"/>
+  <path d="M89 72 L112 64 L112 84 L89 76 Z" fill="#ffe9a8" opacity="0.22"/>
+</g>
+<g transform="translate(14 68)"><rect x="0" y="4" width="7" height="14" rx="2" fill="#5a3a1a" stroke="#f0c75e" stroke-width="0.8"/><rect x="2" y="0" width="3" height="5" fill="#f0c75e"/><rect x="1" y="9" width="5" height="4" fill="#fff0b8" opacity="0.8"/></g>
+<path d="M8 104 H112" stroke="url(#rr-gold)" stroke-width="1.5"/><path d="M20 108 H100" stroke="url(#rr-gold)" stroke-width="0.8" opacity="0.6"/>
+</svg>`;
+
 // HIGH STAKES: the back room — emerald felt under a warm lamp, a gold-edged card turned up, a stack of chips
 const STAKES = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
 <radialGradient id="ha-felt" cx="0.5" cy="0.35" r="0.85"><stop offset="0" stop-color="#17855a"/><stop offset="0.55" stop-color="#0a4a30"/><stop offset="1" stop-color="#021009"/></radialGradient>
@@ -280,7 +307,7 @@ ${glow('ha-glow', 1.8)}</defs>
 <g>${[0, 1, 2].map(i => `<ellipse cx="22" cy="${106 - i * 4.4}" rx="12" ry="4" fill="#0f6e48" stroke="#f4efe0" stroke-width="0.8" stroke-dasharray="2.6 2.2"/>`).join('')}</g>
 </svg>`;
 
-const ART = { stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+const ART = { rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

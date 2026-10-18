@@ -15,12 +15,13 @@ import { standings as prismStandings } from '../games/prism/logic.js';
 import { standings as slipStandings } from '../games/slip/logic.js';
 import { maxSpeed } from '../games/slip/course.js';
 import { standings as gridlockStandings } from '../games/gridlock/logic.js';
+import { standings as rumStandings, replay as rumReplay, verifyDays as rumVerify, fortune as rumFortune, LENGTHS as RUM_LENGTHS } from '../games/rum/logic.js';
 import { standings as stakesStandings, ledger as stakesLedger, minBet as stakesMinBet, payout as stakesPayout, START as STAKES_START, LOAN as STAKES_LOAN } from '../games/stakes/logic.js';
 
 const STANDINGS = {
   cipher: cipherStandings, signal: signalRankings, overclock: ocStandings, bluff: bluffStandings, pulse: pulseStandings,
   golf: golfStandings, agent: agentStandings, prism: prismStandings, slip: slipStandings, gridlock: gridlockStandings,
-  stakes: stakesStandings,
+  stakes: stakesStandings, rum: rumStandings,
 };
 export const REPORT_GAMES = Object.keys(STANDINGS);
 const num = v => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
@@ -197,7 +198,18 @@ function stakesExtra(game, uid, out) {
   if (L.best > 0) out.rec['stakes-big'] = L.best;
 }
 
-const EXTRA = { cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra };
+/** RUMRUNNER: the whole city replayed from the seed and the books — every price, every trade, every roll of the dice. */
+const rumChecked = new WeakMap();
+function rumExtra(game, uid, out, row) {
+  if (!rumChecked.has(game)) rumChecked.set(game, (() => { try { return rumVerify(game); } catch { return false; } })());
+  const R = rumReplay(game, uid, (game.books || {})[uid] || {});
+  const f = rumFortune(R.S);
+  if (!rumChecked.get(game) || !R.valid || f !== row.nw) { out.rejected.push({ uid, board: 'rum', v: f }); return; }
+  const days = game.settings && game.settings.days;
+  if (f > 0 && RUM_LENGTHS.includes(days)) out.rec[`rum-f${days}`] = f;
+}
+
+const EXTRA = { cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };
 
 /** Is this a finished match we can count? (null = yes, else the reason) */
 export function unreportable(game) {

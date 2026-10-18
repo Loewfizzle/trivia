@@ -182,6 +182,15 @@ audit/{push}:     { at, by (admin pid), act, pid, … }                         
 rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid})
 ```
 
+## RUMRUNNER (`docs/rum.md`)
+```
+game: { id:'rum', matchId, participants, n0, settings{days, daySec}, day, dk (day as a string), phase: intro|dawn|day|night|final,
+        phaseStartAt, phaseEndsAt, days{d: { w, f, news[{dist, good, k, m}], p{dist{good: price|0}}, at{uid: dist}, hot{uid: true}, m{dist{good: impact}} }},
+        nw{uid}, nwh{d{uid}}, books{uid{d: log}} (after the last day), final[{uid, rank, nw}] }
+rooms/{CODE}/rrpub/{m}/{d}/{uid}: { nw, done?: server time }                 ← own, during that day; public (the live board, the early end)
+rrp/{CODE}/{m}/{uid}/{d}: { ev{i: choice}, a[[type, …]], dest, at }           ← top level; owner reads; the host at night / final; written only during that day
+```
+
 ## HIGH STAKES (`docs/stakes.md`)
 ```
 game: { id:'stakes', matchId, participants, n0, dplan[11], round, rk, phase: intro|cat|bet|q|show|stand|final, phaseStartAt, phaseEndsAt,

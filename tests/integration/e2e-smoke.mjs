@@ -25,6 +25,7 @@ const GAMES = [
   ['gridlock', { mode: 'classic', placeSec: 45 }],
   ['gridlock', { mode: 'arcade', placeSec: 45 }],
   ['stakes', {}],
+  ['rum', { days: 15, daySec: 30 }],
 ];
 const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
 const t0 = Date.now();

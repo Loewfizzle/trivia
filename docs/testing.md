@@ -18,6 +18,9 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - App against emulators: `node scripts/serve.mjs --emu` then open `http://localhost:5173/?emu` (add `&slot=2` …). `?emu` only works on localhost.
     `--emu` also runs the `/api` functions on the emulators (`npm install` at the repo root once, for firebase-admin); env
     `MATCH_GAP_MS=0` lets the E2E suites count back-to-back matches, `ADMIN_PIDS=<pid>` opens `/admin` for that profile.
+  - RUMRUNNER: `node --test ../rum.test.mjs ../rum-text.test.mjs`; `FAST=1 node e2e-rum.mjs "<browser>" ./shots-rum` (≈ 5 min, a 15-day match with
+    bots); the full run (`N=4..8`) adds a refresh mid-day, the host killed, a late joiner, music + mute and frame pacing. Look without
+    Firebase: `rum-preview.html?at=day&day=7&n=4` (see docs/rum.md). Balance: `node scripts/sim-rum.mjs`.
   - HIGH STAKES: `node --test ../stakes.test.mjs`; `FAST=1 node e2e-stakes.mjs "<browser>" ./shots-stakes` (≈ 4 min, a whole match with
     bots); the full run (`N=4..8`) adds a refresh mid-bet, the host killed, a late joiner, music + mute and frame pacing. Look without
     Firebase: `stakes-preview.html?at=bet&n=6` (see docs/stakes.md).

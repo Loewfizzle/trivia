@@ -16,6 +16,7 @@ const FILES = {
   'golf-rooftops': 'golf-rooftops', 'golf-cyber': 'golf-cyber', 'golf-arcade': 'golf-arcade',
   spy1: 'spy1', spy2: 'spy2', spy3: 'spy3',
   high1: 'high1', high2: 'high2', high3: 'high3',
+  run1: 'run1', run2: 'run2', run3: 'run3', run4: 'run4',
 };
 export const TRACK_IDS = Object.keys(FILES);
 // Playlists: ask for the list's id and its tracks play in order, crossfading into the next one at
@@ -27,7 +28,8 @@ const shuffled = a => { const o = a.slice(); for (let i = o.length - 1; i > 0; i
 // 'victory' (every podium) is four short fanfares, shuffled per visit; each new podium moves on to the next one.
 const PLAYLISTS = { spy: ['spy1', 'spy2', 'spy3'], menu: shuffled(['menu1', 'menu2', 'menu3', 'menu4']), victory: shuffled(['victory1', 'victory2', 'victory3', 'victory4']),
   gridlock: ['spy1', 'spy2', 'spy3', 'signal'],
-  stakes: ['high1', 'high2', 'high3'] };   // HIGH STAKES: a seeded order per room (setPlaylist), each once before any repeats   // GRIDLOCK: re-ordered per room by the view (setPlaylist)
+  stakes: ['high1', 'high2', 'high3'],
+  rum: ['run1', 'run2', 'run3', 'run4'] };   // RUMRUNNER: a seeded order per room (setPlaylist), each once before any repeats   // HIGH STAKES: a seeded order per room (setPlaylist), each once before any repeats   // GRIDLOCK: re-ordered per room by the view (setPlaylist)
 const FRESH_EACH_TIME = new Set(['victory']);
 const ONE_SHOT = new Set(['victory']);         // lists whose track plays once and then leaves silence (a fanfare)   // lists that start on their next track whenever they're asked for again
 const listPlayed = {};

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RUMRUNNER preview</title>
+<!-- The real RUMRUNNER view without Firebase, at any moment of a match. The days before are played by bots so you have a
+     history, cargo and rivals around the city:
+     ?n=4&day=7&days=20&w=rain|fog|storm|clear|dawn&at=intro|dawn|day|vale|stash|garage|travel|trade|done|night|final|podium|spec
+       |event-feds|event-vale|event-hijack|event-find|event-garage|event-rumor&tier=2 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/kit.css">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/rum.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js", "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #07060b; } #stage { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; }</style>
+</head>
+<body data-theme="rum">
+<div id="stage"><div class="screen screen-in" id="screen"></div></div>
+<script type="module">
+import { createView } from '/js/games/rum/view.js';
+import { createGame } from '/js/games/rum/director.js';
+import { botDay, applyPatch } from '/js/games/rum/bot.js';
+import { resolveNight, rollEvents, stateOnArrival, MS, HOME } from '/js/games/rum/logic.js';
+const SECRET = 'preview';
+import { installEmblems } from '/js/ui/emblems.js';
+
+const q = new URLSearchParams(location.search);
+const n = Math.max(2, Math.min(8, Number(q.get('n') || 4)));
+const at = q.get('at') || 'day';
+const days = Number(q.get('days') || 20);
+let dayN = Math.max(1, Math.min(days, Number(q.get('day') || 7)));
+if (at === 'final' || at === 'podium') dayN = days;
+const COLORS = ['magenta', 'cyan', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'];
+const NAMES = ['KATIE', 'MIKE', 'SARAH', 'JAKE', 'ROSE', 'EDDIE', 'NOVA', 'KAI'];
+const AV = ['crown', 'bolt', 'moon', 'diamond', 'star', 'eye', 'ghost', 'hex'];
+const STRATS = ['trader', 'careful', 'gambler', 'mean', 'trader', 'random', 'careful', 'gambler'];
+const uids = Array.from({ length: n }, (_, i) => `u${i}`);
+const me = at === 'spec' ? 'watcher' : uids[0];
+const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], color: COLORS[i], avatar: AV[i], joinedAt: i }]));
+if (at === 'spec') players.watcher = { name: 'LATE', color: 'blue', avatar: 'wave', joinedAt: 99 };
+const presence = Object.fromEntries(Object.keys(players).map(u => [u, { online: true, lastSeen: Date.now() }]));
+await document.fonts.ready;
+const now = Date.now();
+const want = at.startsWith('event-') ? at.slice(6) : null;
+
+// play the days before with bots; for an event scenario, pick a seed where that event finds you today
+function build(k) {
+  let game = createGame({ matchId: `pvw${k}`, participants: Object.fromEntries(uids.map(u => [u, true])), now, settings: { days, daySec: 45 }, secret: SECRET });
+  const logs = Object.fromEntries(uids.map(u => [u, {}]));
+  const upto = at === 'final' || at === 'podium' || at === 'night' ? dayN : dayN - 1;
+  for (let d = 1; d <= upto; d++) {
+    game = { ...game, day: d, dk: String(d), phase: 'day' };
+    uids.forEach((u, i) => { logs[u][d] = botDay(game, u, logs[u], STRATS[i]); });
+    game = { ...game, phase: 'night' };
+    game = applyPatch(game, resolveNight(game, logs, SECRET));
+  }
+  game = { ...game, day: dayN, dk: String(dayN) };
+  return { game, logs };
+}
+let built = build(0);
+if (want && me !== 'watcher') {
+  for (let k = 1; k < 300; k++) {
+    const { game, logs } = built;
+    const { S } = stateOnArrival(game, me, logs[me], dayN);
+    const evs = rollEvents(game.matchId, me, dayN, S, game.days[dayN], days);
+    if (evs.length && evs[0].t === want) break;
+    built = build(k);
+  }
+}
+const { game, logs } = built;
+if (q.get('w') && game.days[dayN]) game.days[dayN].w = q.get('w');
+const phase = { intro: 'intro', dawn: 'dawn', night: 'night', final: 'final', podium: 'final' }[at] || 'day';
+Object.assign(game, { phase, phaseStartAt: now - 800, phaseEndsAt: phase === 'day' ? now + 45000 - 6000 : phase === 'night' ? now + MS.night : phase === 'dawn' ? now + MS.dawn : null });
+if (phase === 'intro') { game.day = 1; game.dk = '1'; }
+const live = { pub: {} };
+if (phase === 'day') uids.slice(1).forEach((u, i) => { live.pub[u] = { nw: (game.nw && game.nw[u]) || 0, ...(i % 2 ? { done: now - 3000 } : {}) }; });
+// today's events answered already unless an event scenario asks for them
+const myLogs = me === 'watcher' ? {} : { ...logs[me] };
+if (phase === 'day' && !want && me !== 'watcher') {
+  const { S } = stateOnArrival(game, me, myLogs, dayN);
+  const evs = rollEvents(game.matchId, me, dayN, S, game.days[dayN], days);
+  myLogs[dayN] = { ev: Object.fromEntries(evs.map((e, i) => [i, e.t === 'feds' ? 'run' : e.t === 'vale' ? 'pay' : e.t === 'hijack' ? 'hand' : e.t === 'garage' ? 'pass' : e.t === 'find' ? 'take' : 'noted'])), a: [], dest: null };
+}
+installEmblems();
+const state = { uid: me, code: 'PVW1', players, presence, game, live, liveKey: 'x', meta: { hostId: uids[0] } };
+const view = createView();
+view.mount(document.getElementById('screen'), state);
+Object.assign(window.__rum.logs(), myLogs);   // what a real phone reads back from rrp/ (the fake get resolves after this)
+setTimeout(() => {
+  const H = window.__rum;
+  if (q.has('tier')) H.setTier(Number(q.get('tier')));
+  if (['vale', 'stash', 'garage', 'travel'].includes(at)) H.tab(at);
+  if (at === 'trade') { const p = H.prices(); const g = Object.keys(p).find(x => p[x] > 0); document.querySelector(`.rr-good[data-g="${g}"] .rr-mini`)?.click(); }
+  if (at === 'done') H.done();
+  if (at === 'podium') setTimeout(() => H.podium(), 1200);
+}, 200);
+window.__preview = { state, game, logs, push: () => view.update({ ...state, game: { ...state.game } }) };
+</script>
+</body>
+</html>

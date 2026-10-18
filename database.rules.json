@@ -895,6 +895,26 @@
               }
             }
           }
+        },
+        "rrpub": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$match": {
+            "$d": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'rum' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/dk').val() === $d && root.child('rooms/' + $code + '/game/phase').val() === 'day' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists()",
+                ".validate": "newData.hasChildren(['nw'])",
+                "nw": {
+                  ".validate": "newData.isNumber()"
+                },
+                "done": {
+                  ".validate": "newData.val() === now || (data.exists() && newData.val() === data.val())"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -1085,6 +1105,61 @@
               }
             }
           }
+        }
+      }
+    },
+    "rrp": {
+      "$code": {
+        ".write": "auth != null && !newData.exists() && (root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid || !root.child('rooms/' + $code + '/meta').exists())",
+        "$match": {
+          ".read": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && root.child('rooms/' + $code + '/game/id').val() === 'rum' && root.child('rooms/' + $code + '/game/matchId').val() === $match && (root.child('rooms/' + $code + '/game/phase').val() === 'night' || root.child('rooms/' + $code + '/game/phase').val() === 'final')",
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid",
+            "$d": {
+              ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'rum' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/dk').val() === $d && root.child('rooms/' + $code + '/game/phase').val() === 'day' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists()",
+              ".validate": "newData.hasChildren(['at']) && $d.matches(/^[0-9]{1,2}$/)",
+              "at": {
+                ".validate": "newData.val() === now"
+              },
+              "dest": {
+                ".validate": "newData.isString() && newData.val().length <= 12"
+              },
+              "ev": {
+                "$i": {
+                  ".validate": "$i.matches(/^[0-9]$/) && newData.isString() && newData.val().length <= 8"
+                }
+              },
+              "a": {
+                "$i": {
+                  "0": {
+                    ".validate": "newData.isString() && newData.val().length === 1"
+                  },
+                  "1": {
+                    ".validate": "newData.isString() || newData.isNumber()"
+                  },
+                  "2": {
+                    ".validate": "newData.isNumber()"
+                  },
+                  ".validate": "$i.matches(/^[0-9]{1,2}$/) && newData.hasChildren(['0'])",
+                  "$other": {
+                    ".validate": false
+                  }
+                }
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "rrsec": {
+      "$code": {
+        ".write": "auth != null && !newData.exists() && (root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid || !root.child('rooms/' + $code + '/meta').exists())",
+        "$match": {
+          ".read": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid",
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !data.exists() && newData.isString() && newData.val().length <= 64"
         }
       }
     }

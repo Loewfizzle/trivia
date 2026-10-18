@@ -215,6 +215,8 @@
 }
 .games.is-guest .game-card:not(.is-locked) { opacity: 0.85; }
 
+.game-card[data-theme='rum'] { --accent: #f0c75e; --accent-soft: rgba(240, 199, 94, 0.12); --accent-glow: rgba(240, 199, 94, 0.5); }
+.game-card[data-theme='rum'] .gc-tag { background: linear-gradient(90deg, #ff8fa3, #f0c75e 60%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .game-card[data-theme='stakes'] { --accent: #f2c869; --accent-soft: rgba(242, 200, 105, 0.12); --accent-glow: rgba(242, 200, 105, 0.5); }
 .game-card[data-theme='stakes'] .gc-tag { background: linear-gradient(90deg, #6ff0b4, #f2c869 55%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .game-card[data-theme='cipher'] { --accent: #3dff8b; --accent-soft: rgba(61, 255, 139, 0.12); --accent-glow: rgba(61, 255, 139, 0.5); }

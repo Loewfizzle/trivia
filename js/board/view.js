@@ -26,7 +26,7 @@ import { settings } from '../audio/settings.js';
 export const GAME_LIGHT = {
   cipher: ['#3dff8b', '#00f0ff'], signal: ['#ff3355', '#ff8c1a'], slip: ['#ffc46b', '#5aa9ff'], prism: ['#9fe8ff', '#ff7ccb'],
   gridlock: ['#7fb2ff', '#ff8c1a'], overclock: ['#ffb627', '#ff2bd6'], golf: ['#2ff5d2', '#a66bff'], agent: ['#e6e9ef', '#ff3355'],
-  pulse: ['#a374ff', '#00f0ff'], bluff: ['#efe6d2', '#d7262e'], stakes: ['#3fd49a', '#f2c869'],
+  pulse: ['#a374ff', '#00f0ff'], bluff: ['#efe6d2', '#d7262e'], stakes: ['#3fd49a', '#f2c869'], rum: ['#f0c75e', '#e0465f'],
 };
 const PAGE = 25;
 const MEDAL = ['', 'gold', 'silver', 'bronze'];
@@ -96,7 +96,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       els.card,
       pub ? h('div.bd-cta',
         h('a.bd-play', { href: '/', onclick: e => { if (onPlay) { e.preventDefault(); onPlay(); } } }, h('span.bd-play-sheen'), h('span.bd-play-l', 'PLAY NOW')),
-        h('span.bd-cta-line', 'Eleven party games · one phone each · no signup')) : null));
+        h('span.bd-cta-line', 'Twelve party games · one phone each · no signup')) : null));
 
   // ------------------------------------------------------------------ controls
   function seg(holder, opts, value, onPick) {

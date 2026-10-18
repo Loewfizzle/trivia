@@ -1,6 +1,7 @@
 // Finished matches of every game, shaped like the real `game` nodes at phase 'final' (docs/data-model.md), for the
 // profile / board tests. finalGame(id, uids, opts) — uids[0] wins, uids[1] is second, and so on.
 import { minBet, payout, START, LOAN } from '../../js/games/stakes/logic.js';
+import { playMatch } from '../../js/games/rum/bot.js';
 
 export const T0 = Date.UTC(2026, 9, 14, 23, 0, 0); // a Wednesday evening, Eastern
 
@@ -74,6 +75,16 @@ export function finalGame(id, uids, opts = {}) {
         });
       }
       return { ...base, round: 10, rk: '10', plan, res, reveal: {}, n0: n };
+    }
+    case 'rum': {
+      // a real bot match (the server replays the whole city); the first player is the trader who wins
+      const pool = ['trader', 'careful', 'random', 'idle', 'gambler', 'mean', 'trader', 'careful'];
+      for (let k = 0; k < 80; k++) {
+        const strategies = Object.fromEntries(uids.map((u, i) => [u, i === 0 ? 'trader' : pool[(i + k) % pool.length]]));
+        const { game } = playMatch({ matchId: `${base.matchId}${k}`, settings: { days: opts.days || 15, daySec: 45 }, strategies });
+        if (game.final[0].uid === uids[0] && game.final[0].nw > 0 && game.final[1].nw < game.final[0].nw) return { ...game, ...base, matchId: game.matchId, phase: 'final' };
+      }
+      throw new Error('no RUMRUNNER fixture where the first player wins');
     }
     default: throw new Error(`no fixture for ${id}`);
   }

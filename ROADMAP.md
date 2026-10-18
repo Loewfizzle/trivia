@@ -4,7 +4,7 @@
 > (`js/ui/logo.js` → `scripts/build-boot-logo.mjs`) and the icons/preview (`tests/integration/render-assets.mjs`).
 > It was NEURAL ARCADE until October 2026.
 
-NEON SPEAKEASY — *game night, after dark.* One web app, eleven games, 2–8 players, each on their own phone — same room or different cities.
+NEON SPEAKEASY — *game night, after dark.* One web app, twelve games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
@@ -12,10 +12,11 @@ Hosted at **neonspeakeasy.com** (since Oct 2026; games.loewfizzle.com and trivia
 Backend: Firebase Realtime Database + Anonymous Auth, and four Vercel serverless functions (`/api`, firebase-admin) for profiles,
 server-verified results and THE BOARD.
 
-## The games — all eleven are playable
+## The games — all twelve are playable
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
+| 12 | **RUMRUNNER** | Prohibition trading (a modern Drug Wars): everyone in the same neon city, day by day — buy contraband cheap in one district, sell high in another, dodge the feds, pay off Mr. Vale, tip off rivals; a shared market, weather, upgrades, the stash; a 3D diorama city; the end-of-game front page of THE NEON GAZETTE. 15 / 20 / 30 days. | deco gold and burgundy, a city of neon in the rain | ✅ Stage 14 |
 | 11 | **HIGH STAKES** | Wager trivia in the high-roller back room: see only the category and difficulty, bet chips in secret, then answer. MEDIUM pays 1×, HARD 2×, DOUBLE DOWN doubles it; house loans that come off your total; an ALL IN final revealed last place to first. | emerald felt and gold under a single lamp | ✅ Stage 13 |
 | 1 | **CIPHER BREACH** | Competitive Wordle race; opponents' boards live as color-only tiles; word length grows. | terminal green / cyan | ✅ Stage 1 |
 | 2 | **NEURAL BLUFF** | Bluffing trivia: write a convincing lie, find the truth among everyone's lies, score for fooling friends. 356 hand-written strange-but-true questions. | cold "Ministry of Truth" dossiers | ✅ Stage 3 |
@@ -282,6 +283,22 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
       21 % accuracy; people hunt better and lock in faster)
 - [x] New SFX in the layered style (marker, volley, card draw / arm / play, sonar + its answers, cluster split, torpedo, fizzle, shield up,
       shield block, relocate); help text for both modes; E2E matches C (Salvo) and D (Arcade) on the harness
+- [x] **The rules file changed: re-publish `database.rules.json` in the Firebase console.**
+
+### ✅ Stage 14 — RUMRUNNER (Prohibition trading, the city diorama) (Oct 2026) — `docs/rum.md`
+- [x] Rules first: six goods × six districts with tendencies, seeded daily prices, news spikes / crashes, rumours (70 % true),
+      weather with effects, a shared market moved by everyone's trades, Vale's compounding debt and his collectors, the stash,
+      six upgrades, tip-offs, the feds / hijackers / lucky finds with pre-rolled dice; a whole day replayed from a private log;
+      whole-match tests at every length, the server replaying the whole city from the books (`verifyDays`)
+- [x] Host picks 15 / 20 / 30 days and a 30 / 45 / 60 s day; the day ends early when everyone's DONE; rejoin re-reads your
+      logs; host migration repeats the night; late joiners watch
+- [x] The city: a three.js diorama (instanced buildings, towers, signs, lamps, cranes, trains, mansions, searchlights, rain, fog,
+      lightning, the dawn of the last morning), trucks in player colours driving at dawn, the camera swooping into events; a
+      deco-gold glass UI: market cards with trends, BUY / SELL drawers, Vale's office with typed dialogue, the stash, the garage,
+      travel + TIP OFF; dawn / night cards; THE NEON GAZETTE drawn on canvas (saveable); the podium + THE LEDGER
+- [x] Music: the owner's run1–4 (calm pair first, then the driving pair, seeded per room), ducking for events, victory.mp3;
+      rain / thunder / city / engine ambience, siren, register, typewriter, printing press, jazz stings
+- [x] THE BOARD: BIGGEST FORTUNE per length (15 / 20 / 30 days), wins; the economy simulator `scripts/sim-rum.mjs`
 - [x] **The rules file changed: re-publish `database.rules.json` in the Firebase console.**
 
 ### ✅ Stage 13 — HIGH STAKES (wager trivia, the signature room) (Oct 2026) — `docs/stakes.md`
