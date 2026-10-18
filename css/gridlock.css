@@ -32,7 +32,7 @@ body.gl-on .gear, body.gl-on .chat-fab, body.gl-on[data-theme] .music-btn { righ
 
 /* ---------------------------------------------------------------- the stage (where the board goes) */
 .gl-stage { position: absolute; left: calc(var(--safe-l) + 4px); right: calc(var(--safe-r) + 4px); top: calc(var(--safe-t) + 148px); bottom: calc(var(--safe-b) + 92px); pointer-events: none; }
-.gl.is-placing .gl-stage { top: calc(var(--safe-t) + 66px); bottom: calc(var(--safe-b) + 166px); }
+.gl.is-placing .gl-stage { bottom: calc(var(--safe-b) + 226px); }   /* room for a two-row tray; the top stays clear of the corner buttons */
 .gl.is-aiming .gl-stage { bottom: calc(var(--safe-b) + 134px); }
 .gl.is-spec .gl-stage { bottom: calc(var(--safe-b) + 70px); }
 
@@ -62,7 +62,6 @@ body.gl-on .gear, body.gl-on .chat-fab, body.gl-on[data-theme] .music-btn { righ
 
 /* announcements ride over the top edge of the board (brief; the board's letters come back under them) */
 .gl-ann { position: absolute; top: calc(var(--safe-t) + 152px); left: 16px; right: 16px; display: flex; justify-content: center; min-height: 32px; z-index: 2; }
-.gl.is-placing .gl-ann { top: calc(var(--safe-t) + 70px); }
 .gl-ann-in {
   max-width: 100%;
   padding: 7px 16px;
@@ -170,8 +169,7 @@ body.gl-on .gear, body.gl-on .chat-fab, body.gl-on[data-theme] .music-btn { righ
 .gl-mini.has-bounty { border-color: rgba(255, 200, 80, 0.55); }
 
 /* ---------------------------------------------------------------- placement tray */
-.gl-tray { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-b) + 92px); display: flex; gap: 8px; padding: 8px 16px; overflow-x: auto; scrollbar-width: none; pointer-events: auto; touch-action: none; }
-.gl-tray::-webkit-scrollbar { display: none; }
+.gl-tray { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-b) + 92px); max-width: 344px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 8px 0; pointer-events: auto; touch-action: none; }   /* five ships wrap 3 + 2 */
 .gl-tray:empty { display: none; }
 .gl-ship {
   --c: #fff;
@@ -203,6 +201,7 @@ body.gl-on .gear, body.gl-on .chat-fab, body.gl-on[data-theme] .music-btn { righ
 .gl.is-showing .gl-action { opacity: 0; pointer-events: none; }
 .gl-row { display: flex; gap: 10px; }
 .gl-row > * { flex: 1; }
+.gl-row .gl-btn { font-size: 12.5px; letter-spacing: 0.14em; padding: 0 10px; white-space: nowrap; }
 .gl-btn {
   min-height: 56px;
   padding: 0 20px;
@@ -324,12 +323,15 @@ body.gl-on .gear, body.gl-on .chat-fab, body.gl-on[data-theme] .music-btn { righ
   .gl-phase-sub { font-size: 12px; }
   .gl-timer { width: 60px; height: 60px; }
   .gl-timer b { font-size: 22px; }
-  .gl-ann, .gl.is-placing .gl-ann { top: calc(var(--safe-t) + 108px); left: calc(var(--safe-l) + 28px); right: auto; width: 320px; justify-content: flex-start; }
+  .gl-ann { top: calc(var(--safe-t) + 108px); left: calc(var(--safe-l) + 28px); right: auto; width: 320px; justify-content: flex-start; }
   .gl-lock { top: calc(var(--safe-t) + 156px); left: calc(var(--safe-l) + 28px); transform: none; }
   @keyframes gl-lock-in { from { opacity: 0; transform: translateY(-6px) scale(0.94); } }
   .gl-action { left: calc(var(--safe-l) + 28px); right: auto; width: 320px; bottom: auto; top: 50%; transform: translateY(-50%); margin: 0; }
-  .gl.is-placing .gl-action { top: calc(50% + 96px); transform: none; }
-  .gl-tray { left: calc(var(--safe-l) + 28px); right: auto; width: 320px; bottom: auto; top: calc(50% - 110px); flex-wrap: wrap; justify-content: center; padding: 0; }
+  .gl.is-placing .gl-stage { bottom: calc(var(--safe-b) + 118px); }   /* the tray sits under the board */
+  .gl-tray { left: calc(var(--safe-l) + 372px); right: calc(var(--safe-r) + 176px); bottom: calc(var(--safe-b) + 22px); flex-wrap: nowrap; gap: 12px; padding: 0; }
+  .gl-ship { min-height: 66px; padding: 10px 18px; gap: 7px; }
+  .gl-ship-cells i { width: 15px; height: 10px; }
+  .gl-ship small { font-size: 10px; }
   .gl-spec { left: calc(var(--safe-l) + 28px); right: auto; width: 320px; bottom: calc(var(--safe-b) + 28px); }
   .gl-aimline b { font-size: 32px; }
   .gl-aimline small { font-size: 12px; }
@@ -350,7 +352,7 @@ body.gl-on .gear, body.gl-on .chat-fab, body.gl-on[data-theme] .music-btn { righ
 /* ---------------------------------------------------------------- landscape phones: action on the left, fleets on the right */
 @media (orientation: landscape) and (max-height: 520px) {
   .gl-top { top: calc(var(--safe-t) + 10px); }
-  .gl-ann, .gl.is-placing .gl-ann { top: calc(var(--safe-t) + 12px); left: 230px; right: 230px; }
+  .gl-ann { top: calc(var(--safe-t) + 12px); left: 230px; right: 230px; }
   .gl-lock { top: calc(var(--safe-t) + 56px); }
   .gl-minis { left: auto; right: calc(var(--safe-r) + 12px); bottom: calc(var(--safe-b) + 8px); top: calc(var(--safe-t) + 60px); width: 92px; flex-direction: column; justify-content: flex-start; overflow-y: auto; overflow-x: hidden; padding: 4px; touch-action: pan-y; }
   .gl-mini:first-child { margin-left: 0; margin-top: auto; }
