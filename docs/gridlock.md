@@ -21,15 +21,23 @@ SALVO (several shots per volley) and ARCADE (abilities).
 - **Fleets:** `fleets/{code}/{m}/{uid}` (see Data model). READY writes the fleet + `glready`; placement ends early when all are
   ready. A phone that never placed gets a seeded layout from the host at the first non-place tick (`loadFleets`). The owner's
   client loads its fleet on mount → a refresh restores ships / placement. Fleets are wiped at match start and with the room.
-- **Cinematic** (`view.js#buildTimeline`): from `ev`, per target: camera to the board, one beam per shot (350 ms apart, 0.75 s
-  flight), impact (hit flash + shockwave + fractured mark, or a ripple), then each sink (wreck glows, shatters into shards that
-  fall through the table), then the power-down, then a summary line. Items run against `phaseStartAt` on the server clock; a
-  phone joining > 1.8 s late applies marks silently. Music ducks + low-passes for the volley (`duckMusic`, `filterMusic`).
-  Marks of the current volley stay hidden (`pending`) until their impact.
-- **Scene** (`scene.js`): boards on a ring (yours at the front), each one draw call of board shader + instanced hit/miss marks +
-  ship meshes (own board) + a label texture; camera focuses a board (fit by the screen's aspect; portrait looks a little past
-  the board so it sits lower) or the overview; `pick(x, y)` raycasts to a cell. Tiers 2/1/0 (DPR 2/1.5/1, ambient points,
-  trail length, shard count, sweep) step down at p75 > 19.5 ms. Reduced effects: no shake, no points.
+- **Cinematic** (`view.js#buildTimeline`): from `ev`, per target: that board comes up, one beam per shot (330 ms apart, 0.75 s
+  flight, from the shooter's mini-board), impact (flash + shockwave + sparks + a scar burnt into the cell, or a ripple), then
+  each sink (the hull burns white, shatters into shards, the wreck stays), then the power-down (flicker, tear, dark), then a
+  summary line. Items run against `phaseStartAt` on the server clock; a phone joining > 1.8 s late applies marks silently.
+  Music ducks + low-passes for the volley (`duckMusic`, `filterMusic`). Marks and wrecks of the current volley stay hidden
+  (`pending` / `pendingSunk`) until their beat.
+- **Scene** (`scene.js`, Canvas 2D — rebuilt flat in Oct 2026 after the three.js ring failed the phone play-test): ONE board at
+  a time, straight on, fitted to the CSS-positioned `.gl-stage` box (the view hands the rect over on resize; never read in the
+  frame loop). The coordinates are printed inside the board's frame, centred on their column/row, so a cell is exactly where
+  the labels say (`cellXY(uid, r, c)` ⇄ `pick(x, y)`; the E2E asserts they agree). Every other fleet is a mini-board canvas
+  the HUD mounts in a `.gl-mini` button (`miniCanvas(uid)`; phone strip under the board, desktop column on the right, landscape
+  column). Layers: the base (panel, rim light, grid, labels) and the marks (scar / ring sprites) are offscreen canvases rebuilt
+  only when they change; a frame = 2 drawImage + hulls + effects. Hulls are light-forms (dark glass, colour rim, white spine);
+  wrecks are dark hulls with ember cracks under the scars. Tiers 2/1/0 (DPR 2/1.5/1, shards, sparks, trail, the sweep) step
+  down at p75 > 19.5 ms; reduced motion: no shake, no glitch, no sweep, fewer shards. Look preview without Firebase:
+  `tests/integration/gridlock-preview.html` mounts the REAL view (import map → `fake-firebase.js`) and scripts a match:
+  `?at=place|aim|reticle|locked|show|sunk|elim|spec|end&n=2..8&still=1`.
 - **Music:** `PLAYLISTS.gridlock` = spy1-3 + last-signal; the view calls `setPlaylist('gridlock', musicOrder(code))` (seeded by the
   room code so every phone shares the order; the position continues across matches on a phone). Victory on the podium.
 - **Chat lock:** while placing (until READY), on your Classic turn, while aiming (until locked in).
@@ -37,5 +45,5 @@ SALVO (several shots per volley) and ARCADE (abilities).
   `resolveVolley` takes lists, `ev` is an open event list the cinematic plays (new kinds: add a case in `buildTimeline`), and
   abilities would be one more player node + an `ev` kind; rules per node.
 - Test hooks: `window.__gridlock` (fleet, place, setReady, autoPlace, rotate, aim, fire, bot({delay, seed, force}), forceNext,
-  locks, announcements, sfxLog, timeline, camera, pick, tier/fps/work/stats).
+  locks, announcements, sfxLog, timeline, camera ({focus, box, settled}), cellXY, geometry, pick, focus, tier/fps/work/stats).
 

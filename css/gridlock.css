@@ -92,21 +92,26 @@ body.gl-on .gear, body.gl-on .chat-fab { right: calc(var(--safe-r) + 12px); }
   animation: gl-lock-in 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) both, gl-lock-pulse 1.2s ease-in-out 0.4s infinite alternate;
 }
 .gl-lock[hidden] { display: none; }
-.gl-lock b { font-family: var(--font-display); font-weight: 900; font-size: 12px; letter-spacing: 0.22em; color: #ffb3b3; }
-.gl-lock small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: rgba(255, 220, 220, 0.8); }
+.gl-lock b { font-family: var(--font-display); font-weight: 900; font-size: 12px; letter-spacing: 0.22em; color: #ffb3b3; white-space: nowrap; }
+.gl-lock small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: rgba(255, 220, 220, 0.8); white-space: nowrap; }
 .gl-lock-dots { display: flex; gap: 5px; }
 .gl-lock-dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
 @keyframes gl-lock-in { from { opacity: 0; transform: translate(-50%, -6px) scale(0.94); } }
 @keyframes gl-lock-pulse { to { box-shadow: 0 0 34px rgba(255, 60, 60, 0.55); border-color: rgba(255, 130, 130, 0.9); } }
 
-/* target chips: your board, each opponent (ships left), the table */
-.gl-chips {
+/* the stage: the box the board fits (the scene reads it on resize); the HUD bands sit above and below it */
+.gl-stage { position: absolute; left: calc(var(--safe-l) + 12px); right: calc(var(--safe-r) + 12px); top: calc(var(--safe-t) + 150px); bottom: calc(var(--safe-b) + 206px); pointer-events: none; }
+.gl.is-placing .gl-stage { bottom: calc(var(--safe-b) + 186px); }
+.gl.is-aiming .gl-stage { bottom: calc(var(--safe-b) + 246px); }
+
+/* mini-boards: yours first, then every other fleet — tap one to aim at it, or to watch it */
+.gl-minis {
   position: absolute;
   left: 0;
   right: 0;
   bottom: calc(var(--safe-b) + 92px);
-  justify-content: center;
   display: flex;
+  justify-content: center;
   gap: 8px;
   padding: 6px 16px;
   overflow-x: auto;
@@ -114,38 +119,62 @@ body.gl-on .gear, body.gl-on .chat-fab { right: calc(var(--safe-r) + 12px); }
   pointer-events: auto;
   touch-action: pan-x;
 }
-.gl-chips::-webkit-scrollbar { display: none; }
-.gl-chips:empty { display: none; }
-.gl-chip {
+.gl-minis::-webkit-scrollbar { display: none; }
+.gl-minis:empty { display: none; }
+/* centred when they fit, scrolling from the first when they don't (justify-content: center would clip the start) */
+.gl-minis { justify-content: flex-start; }
+.gl-mini:first-child { margin-left: auto; }
+.gl-mini:last-child { margin-right: auto; }
+.gl-mini {
   --c: #fff;
   flex: none;
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 6px 12px 6px 7px;
+  gap: 4px;
+  width: 74px;
+  padding: 6px 4px 5px;
   color: #fff;
   background: var(--gl-ink);
   border: 1px solid var(--gl-line);
-  border-radius: 999px;
-  transition: transform 0.15s var(--ease), border-color 0.2s, box-shadow 0.2s;
+  border-radius: 14px;
+  transition: transform 0.15s var(--ease), border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
 }
-.gl-chip:active { transform: scale(0.96); }
-.gl-chip-body { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
-.gl-chip b { font-family: var(--font-display); font-weight: 800; font-size: 11.5px; letter-spacing: 0.08em; max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gl-mini:active { transform: scale(0.96); }
+.gl-mini-canvas { display: block; width: 58px; height: 58px; }
+.gl-mini-cap { display: flex; align-items: center; gap: 4px; max-width: 100%; }
+.gl-mini-cap b { font-family: var(--font-display); font-weight: 800; font-size: 9.5px; letter-spacing: 0.06em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gl-ships { display: flex; gap: 3px; }
-.gl-ships i { width: 7px; height: 4px; border-radius: 1px; background: rgba(255, 255, 255, 0.16); }
+.gl-ships i { width: 7px; height: 3px; border-radius: 1px; background: rgba(255, 255, 255, 0.16); }
 .gl-ships i.on { background: var(--c); box-shadow: 0 0 6px var(--c); }
-.gl-chip.is-target { border-color: color-mix(in srgb, var(--c) 80%, #fff); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), 0 0 20px color-mix(in srgb, var(--c) 40%, transparent); }
-.gl-chip.is-target::after { content: ''; position: absolute; inset: -5px; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--c) 60%, transparent); animation: gl-spin 9s linear infinite; }
-@keyframes gl-spin { to { transform: rotate(360deg); } }
-.gl-chip.is-watch { background: rgba(255, 255, 255, 0.1); }
-.gl-chip.is-me { padding-right: 14px; }
-.gl-chip-table { padding: 6px 16px; }
+.gl-mini-out { font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: #ff9db0; }
+.gl-mini.is-up { border-color: color-mix(in srgb, var(--c) 70%, #fff); background: rgba(255, 255, 255, 0.08); }
+.gl-mini.is-target { border-color: rgba(255, 170, 110, 0.9); box-shadow: 0 0 0 1px rgba(255, 122, 42, 0.5), 0 0 22px rgba(255, 122, 42, 0.35); }
+.gl-mini.is-target::after { content: ''; position: absolute; inset: -5px; border-radius: 18px; border: 1px dashed rgba(255, 170, 110, 0.7); animation: gl-breathe-ring 1.4s ease-in-out infinite alternate; }
+@keyframes gl-breathe-ring { to { transform: scale(1.04); opacity: 0.6; } }
+.gl-mini.is-firing::before { content: ''; position: absolute; top: -4px; left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--gl-orange); box-shadow: 0 0 10px var(--gl-orange); }
+.gl-mini.is-out { opacity: 0.55; }
 .gl-bounty { position: absolute; top: -7px; right: 6px; font-size: 12px; color: #ffd27a; text-shadow: 0 0 10px rgba(255, 200, 80, 0.9); animation: gl-breathe 1.6s ease-in-out infinite alternate; }
 @keyframes gl-breathe { to { transform: scale(1.25); } }
-.gl-chip.has-bounty { border-color: rgba(255, 200, 80, 0.55); }
+.gl-mini.has-bounty { border-color: rgba(255, 200, 80, 0.55); }
+/* desktop: the fleets stand in a column on the right, the board takes the height */
+@media (min-width: 1100px) and (min-height: 600px) {
+  .gl-stage, .gl.is-placing .gl-stage, .gl.is-aiming .gl-stage { right: calc(var(--safe-r) + 170px); bottom: calc(var(--safe-b) + 130px); }
+  .gl-minis { left: auto; right: calc(var(--safe-r) + 24px); top: calc(var(--safe-t) + 150px); bottom: calc(var(--safe-b) + 130px); width: 130px; flex-direction: column; justify-content: flex-start; overflow-x: hidden; overflow-y: auto; padding: 6px; touch-action: pan-y; }
+  .gl.is-spec .gl-minis { bottom: calc(var(--safe-b) + 130px); }
+  .gl-mini { width: 108px; padding: 8px 6px 7px; }
+  .gl-mini-canvas { width: 76px; height: 76px; }
+  .gl-mini-cap b { font-size: 11px; }
+  .gl-top { top: calc(var(--safe-t) + 22px); left: calc(var(--safe-l) + 28px); }
+  .gl-phase-name { font-size: 24px; }
+  .gl-phase-sub { font-size: 12px; }
+  .gl-timer { width: 60px; height: 60px; }
+  .gl-timer b { font-size: 22px; }
+  .gl-ann { top: calc(var(--safe-t) + 100px); }
+  .gl-aimline b { font-size: 32px; }
+  .gl-aimline small { font-size: 12px; }
+}
 
 /* placement tray */
 .gl-tray { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-b) + 92px); display: flex; gap: 8px; padding: 8px 16px; overflow-x: auto; scrollbar-width: none; pointer-events: auto; touch-action: none; }
@@ -177,7 +206,7 @@ body.gl-on .gear, body.gl-on .chat-fab { right: calc(var(--safe-r) + 12px); }
 
 /* the action bar */
 .gl-action { position: absolute; left: calc(var(--safe-l) + 16px); right: calc(var(--safe-r) + 16px); bottom: calc(var(--safe-b) + 18px); max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
-.gl.is-aiming .gl-chips { bottom: calc(var(--safe-b) + 134px); }
+.gl.is-aiming .gl-minis { bottom: calc(var(--safe-b) + 134px); }
 .gl-action:empty { display: none; }
 .gl-row { display: flex; gap: 10px; }
 .gl-row > * { flex: 1; }
@@ -227,7 +256,8 @@ body.gl-on .gear, body.gl-on .chat-fab { right: calc(var(--safe-r) + 12px); }
 .gl-spec:empty { display: none; }
 .gl-spec-head { padding: 6px 14px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; color: #fff; background: var(--gl-ink); border-radius: 999px; white-space: nowrap; }
 .gl-spec-head em { font-style: normal; color: #ffd8bf; }
-.gl.is-spec .gl-chips { bottom: calc(var(--safe-b) + 62px); }
+.gl.is-spec .gl-minis { bottom: calc(var(--safe-b) + 62px); }
+.gl.is-spec .gl-stage { bottom: calc(var(--safe-b) + 176px); }
 
 /* ---------------------------------------------------------------- overlays */
 .gl-overlay { position: absolute; inset: 0; pointer-events: none; }
@@ -293,8 +323,12 @@ body.gl-on .gear, body.gl-on .chat-fab { right: calc(var(--safe-r) + 12px); }
   .gl-top { top: calc(var(--safe-t) + 10px); }
   .gl-ann { top: calc(var(--safe-t) + 58px); }
   .gl-lock { top: calc(var(--safe-t) + 92px); }
-  .gl-chips { left: auto; right: calc(var(--safe-r) + 12px); bottom: calc(var(--safe-b) + 12px); top: calc(var(--safe-t) + 66px); width: 170px; flex-direction: column; overflow-y: auto; overflow-x: hidden; padding: 4px; touch-action: pan-y; }
-  .gl.is-spec .gl-chips { bottom: calc(var(--safe-b) + 12px); }
+  .gl-minis, .gl.is-aiming .gl-minis { left: auto; right: calc(var(--safe-r) + 12px); bottom: calc(var(--safe-b) + 12px); top: calc(var(--safe-t) + 60px); width: 96px; flex-direction: column; justify-content: flex-start; overflow-y: auto; overflow-x: hidden; padding: 4px; touch-action: pan-y; }
+  .gl.is-spec .gl-minis { bottom: calc(var(--safe-b) + 12px); }
+  .gl-stage, .gl.is-placing .gl-stage, .gl.is-aiming .gl-stage, .gl.is-spec .gl-stage { top: calc(var(--safe-t) + 52px); bottom: calc(var(--safe-b) + 8px); left: calc(var(--safe-l) + 340px); right: calc(var(--safe-r) + 118px); }
+  .gl-btn { font-size: 12px; letter-spacing: 0.16em; padding: 0 12px; white-space: nowrap; }
+  .gl-tray { left: calc(var(--safe-l) + 16px); right: auto; width: 320px; bottom: calc(var(--safe-b) + 78px); flex-wrap: wrap; justify-content: center; padding: 0; }
+  .gl-ship { min-height: 50px; padding: 6px 10px; }
   .gl-action { left: calc(var(--safe-l) + 16px); right: auto; width: min(320px, 46vw); bottom: calc(var(--safe-b) + 12px); }
   .gl-tray { left: calc(var(--safe-l) + 8px); right: 190px; bottom: calc(var(--safe-b) + 76px); }
   .gl-spec { justify-content: flex-start; padding-left: calc(var(--safe-l) + 16px); }
@@ -304,12 +338,10 @@ body.gl-on .gear, body.gl-on .chat-fab { right: calc(var(--safe-r) + 12px); }
 
 @media (prefers-reduced-motion: reduce) {
   .gl-ann-in, .gl-card, .gl-lock, .gl-call { animation-duration: 0.01s; }
-  .gl-chip.is-target::after, .gl-bounty, .gl.is-invalid .gl-canvas { animation: none; }
+  .gl-mini.is-target::after, .gl-bounty, .gl.is-invalid .gl-canvas { animation: none; }
 }
 
-/* refine pass 2: during the cinematic the chips drop out of the way of the table; the FLEET DESTROYED card sits high */
-.gl-chips { transition: transform 0.35s var(--ease), opacity 0.3s; }
-.gl.is-showing .gl-chips { transform: translateY(44px); opacity: 0.55; }
+/* during the cinematic the action bar is out of the way; the FLEET DESTROYED card sits high */
 .gl.is-showing .gl-action { opacity: 0; pointer-events: none; }
 .gl-card.is-gone { top: 18%; }
 /* the podium's buttons in the same glass as every other menu */
@@ -321,4 +353,4 @@ body.gl-on .gear, body.gl-on .chat-fab { right: calc(var(--safe-r) + 12px); }
 /* announcements sit under the corner buttons, never behind them */
 .gl-ann { top: calc(var(--safe-t) + 112px); }
 .gl-lock { top: calc(var(--safe-t) + 154px); }
-@media (orientation: landscape) and (max-height: 520px) { .gl-ann { top: calc(var(--safe-t) + 100px); } .gl-lock { top: calc(var(--safe-t) + 138px); } }
+@media (orientation: landscape) and (max-height: 520px) { .gl-ann { top: calc(var(--safe-t) + 12px); left: 230px; right: 230px; } .gl-lock { top: calc(var(--safe-t) + 56px); } }

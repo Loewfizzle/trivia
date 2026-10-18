@@ -22,7 +22,7 @@ Backend: Firebase Realtime Database + Anonymous Auth.
 | 5 | **PULSE** | Multiplayer rhythm game: a neon highway through a procedural night city, beat maps generated from the owner's songs, synced start on server time, per-device calibration, Echo memory bonus rounds. | electric violet / cyan | ✅ Stage 4 |
 | 6 | **NEON PAR** | Multiplayer mini golf: everyone plays the same hole at once with ghost balls; nine holes over three zones (Rooftops, Cyberspace, Neon Arcade); custom 120 Hz physics, power-ups, sabotage, ACE replays, ball customization. three.js. | teal turf glow / hot pink | ✅ Stage 5 |
 | 8 | **PRISM DROP** | Falling-block battle set to music: BATTLE (junk attacks, KO badges, final duel, call the winner, sudden death) or SCORE RUSH (one song, highest score). Identical pieces for everyone, every phone runs its own board; WebGL worlds per song; sound effects in the song's key, on its beat. | luminous prism: white light, spectral edges, jewel glass | ✅ Stage 8 |
-| 10 | **GRIDLOCK** | Fleet battle on a holographic war table: hide your fleet, call your shots. CLASSIC (turns, 2–4) or BATTLE ROYALE (everyone fires at once, 4–8, TARGET LOCK warnings, a bounty on the leader). Private fleets, public hits, cinematic volleys in three.js. | tactical steel-blue, signal-orange fire | ✅ Stage 11 (Part 1) |
+| 10 | **GRIDLOCK** | Fleet battle on a holographic war table: hide your fleet, call your shots. CLASSIC (turns, 2–4) or BATTLE ROYALE (everyone fires at once, 4–8, TARGET LOCK warnings, a bounty on the leader). Private fleets, public hits, cinematic volleys on a flat holographic board (Canvas 2D). | tactical steel-blue, signal-orange fire | ✅ Stage 11 (Part 1) + flat rebuild |
 | 9 | **SLIPSTREAM** | Multiplayer survival ride: everyone on the same seeded course at once, one thumb (hold = dive, release = fly, tap = flip), clean landings boost, hazards ramp up (gaps, laser gates, low ceilings, crumbling ground, gravity flips, boost rings), lives + rewinds, LAST RIDERS, sudden death; ghosts, five biomes with adaptive music. | sunset gold into deep blue; a single line of light | ✅ Stage 10 |
 | 7 | **DOUBLE AGENT** | Social deduction for 4–8: everyone gets the same secret word except the double agent(s); one-word clues in turn, a debate (chat, or out loud in SAME ROOM mode), a vote, a dramatic unmasking and a last chance to steal the round by naming the word. 41 categories × 15–18 words. | corrupted surveillance feed: graphite / silver, player colours only | ✅ Stage 7 |
 
@@ -237,13 +237,26 @@ settings sheet, trivia layer (Open Trivia DB → The Trivia API → 333-question
 - [x] CLAUDE.md cut from 100 KB to 18 KB: ground rules, layout, the shared core, the checklist; every deep-dive moved verbatim to
       `docs/*.md` (read on demand) — a large fixed cost off every session and every context compaction
 
+### ✅ GRIDLOCK presentation rebuild — flat (Oct 2026)
+The Part 1 play-test found the tilted three.js ring hard to read on a phone (cells trapezoid, labels off the grid, hits lost
+under the hulls, the 3D view "weird"). The renderer was replaced; rules, director, privacy model, rules file and tests stayed.
+- [x] `scene.js` rewritten in Canvas 2D: one straight-on holographic board fitted to a CSS stage box, coordinates printed inside
+      its frame and centred on the cells (the E2E asserts `cellXY` ⇄ `pick` agree), edge-lit glass panel, hull light-forms,
+      scars burnt into the cells/hulls (black hole, molten rim in the shooter's colour, cracks), ripple misses, beams from the
+      shooter's mini-board, impact flash + shockwave + sparks + shake, sinks that burn white and shatter into shards leaving a
+      wreck, eliminations that flicker/tear/go dark, a radar sweep; base + marks as cached layers (a frame ≈ 2 drawImage + hulls)
+- [x] Every other fleet is a mini-board (canvas in a `.gl-mini` button: avatar, name, ships-left pips, OUT, bounty ◆; the
+      target gets the orange ring, the board that is up lights, the Classic shooter gets a dot); phone strip / desktop column /
+      landscape column; the strip starts at YOU and scrolls the target into view
+- [x] Three sizes + landscape reviewed over three passes (board hugs the header, denser scars, wreck visible under them, desktop
+      header scale, landscape tray wraps beside the board); `gridlock-preview.html` now mounts the real view (fake-firebase.js)
+- [x] three.js is no longer loaded by GRIDLOCK (NEON PAR still uses it)
+
 ## Next up (agreed plan, in order)
-0. **GRIDLOCK presentation rebuild** (before Part 2): the Part 1 play-test found the tilted three.js ring hard to read on a phone
-   (cells trapezoid, labels off the grid, hits under the hulls). Rebuild the view flat on the match kit — one big straight-on
-   holographic board in Canvas 2D + a strip of mini-boards, exact label alignment, hit scars burned into ships, 2D beams/shatters —
-   keeping the rules, director, privacy model, rules file and tests as they are.
 1. **GRIDLOCK Part 2:** SALVO (one shot per ship afloat) and ARCADE (ability cards). The pure rules are drafted locally
-   (abilities.js, a rewritten director, tests/gridlock-2.test.mjs — 22/23 passing) and wait for the new presentation.
+   (abilities.js, a rewritten director, tests/gridlock-2.test.mjs — 22/23 passing; kept in a git stash "GRIDLOCK Part 2 rules
+   WIP" while the presentation was rebuilt). The flat scene is ready for it: new `ev` kinds are a case in `buildTimeline`,
+   abilities are HUD cards over the stage; the lock-in node shape the draft changed must be matched in `view.js#fireShot`.
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
 2. ✅ **Split `js/games/overclock/view.js`** (was ~1,600 lines) into `ui/<type>.js` (one per challenge), `reveals.js`, `shared.js`;

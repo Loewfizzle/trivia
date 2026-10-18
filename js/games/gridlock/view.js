@@ -1,4 +1,5 @@
-// GRIDLOCK view: the war table (scene.js) under a thin HUD. Placement (drag + rotate), aiming with a confirm-to-fire
+// GRIDLOCK view: the war table (scene.js, Canvas 2D) under a thin HUD. One board at a time, straight on; the other
+// fleets as mini-boards (tap one to aim at it or watch it). Placement (drag + rotate), aiming with a confirm-to-fire
 // step, TARGET LOCK warnings, the resolution cinematic every phone plays from the same `ev` list on the server clock,
 // spectating + Call the Winner, results.
 //
@@ -18,7 +19,7 @@ import { showBackdrop } from '../../screens/district/backdrop.js';
 import { createAnnouncer, createCards, showCall as kitCall, reportPanel, ordinal, createTiers, installTestHook, removeTestHook } from '../kit/index.js';
 import {
   aliveOf, boardOf, isShot, canPlace, validLayout, randomLayout, encodeFleet, decodeFleet, resolveVolley, encodeAim, shotKey,
-  randomShot, smartShot, shipName, cellName, standings, musicOrder,
+  smartShot, shipName, cellName, standings, musicOrder,
 } from './logic.js';
 import { createScene } from './scene.js';
 import { createSfx } from './audio.js';
@@ -31,7 +32,7 @@ export function createView() {
   const els = {};
   let scene = null, sceneFor = null;
   const sfx = createSfx();
-  let raf = 0, destroyed = false, ro = null;
+  let raf = 0, destroyed = false, ro = null, roStage = null;
   const tiers = createTiers({ apply: t => { if (scene) scene.setTier(t); } });
   const tier = () => tiers.get();
   // my fleet
@@ -41,9 +42,9 @@ export function createView() {
   let tapStart = null;
   // aiming
   let target = null, aimCell = null, fired = false, firedFor = null, volleyFor = null;   // volleyFor: the rk the aim state belongs to
-  let watching = null;        // uid whose board the camera is on (null = the target / mine by phase)
+  let watching = null;        // uid whose board is up by choice (null = whatever the phase wants)
   // cinematic
-  let timeline = null;        // { rk, items: [{ at, fn, done }], pending: { uid: Set }, startAt }
+  let timeline = null;        // { rk, items: [{ at, fn, done }], pending: { uid: Set }, pendingSunk: { uid: Set }, elims, startAt }
   let resolvedFor = null;
   // moments
   let ann = null, cards = null;
@@ -62,30 +63,34 @@ export function createView() {
   const opponents = () => aliveOf(game).filter(u => u !== me());
   const myMove = () => participant() && !isOut() && ((game.phase === 'turn' && game.cur === me()) || game.phase === 'aim');
   const shipsLeft = uid => game.fleet.length - Object.keys(boardOf(game, uid).sunk || {}).length;
+  const boardsInOrder = () => [me(), ...game.order.filter(u => u !== me())].filter(u => game.participants[u]);
 
   // ================================================================ mount
   function mount(el, state) {
     st = state; game = state.game;
     root = h('div.gl');
     els.canvas = h('canvas.gl-canvas', { 'aria-hidden': 'true' });
+    els.stage = h('div.gl-stage', { 'aria-hidden': 'true' });
     els.top = h('div.gl-top', h('div.gl-phase', h('b.gl-phase-name'), h('span.gl-phase-sub')), h('div.gl-timer', h('i'), h('b')));
     els.ann = h('div.gl-ann', { 'aria-live': 'polite' });
     els.lock = h('div.gl-lock', { hidden: true });
-    els.chips = h('div.gl-chips', { 'data-nogesture': '' });
+    els.minis = h('div.gl-minis', { 'data-nogesture': '' });
     els.tray = h('div.gl-tray', { 'data-nogesture': '' });
     els.action = h('div.gl-action', { 'data-nogesture': '' });
     els.spec = h('div.gl-spec', { 'data-nogesture': '' });
-    els.ui = h('div.gl-ui', els.top, els.ann, els.lock, els.chips, els.tray, els.action, els.spec);
+    els.ui = h('div.gl-ui', els.top, els.ann, els.lock, els.minis, els.tray, els.action, els.spec);
     els.overlay = h('div.gl-overlay');
     ann = createAnnouncer(els.ann, { prefix: 'gl', holdMs: 1800, queueMax: 4 });
     cards = createCards(els.overlay, { prefix: 'gl' });
-    root.append(els.canvas, els.ui, els.overlay);
+    root.append(els.canvas, els.stage, els.ui, els.overlay);
     el.append(root);
     document.body.classList.add('gl-on');
     showBackdrop(true);
     attachInput();
-    ro = new ResizeObserver(() => { if (scene) scene.resize(root.clientWidth, root.clientHeight); });
+    ro = new ResizeObserver(() => { if (!scene) return; scene.resize(root.clientWidth, root.clientHeight); scene.setMiniSize(miniSize()); syncStage(); });
     ro.observe(root);
+    roStage = new ResizeObserver(() => syncStage());
+    roStage.observe(els.stage);
     setPlaylist('gridlock', musicOrder(st.code));
     setupTestHook();
     update(state);
@@ -96,6 +101,7 @@ export function createView() {
     destroyed = true;
     cancelAnimationFrame(raf);
     if (ro) ro.disconnect();
+    if (roStage) roStage.disconnect();
     detachInput();
     duckMusic(1, 0.8); filterMusic(20000, 0.8);
     if (scene) scene.destroy();
@@ -103,6 +109,23 @@ export function createView() {
     showBackdrop(false);
     document.body.classList.remove('gl-on');
     removeTestHook('__gridlock', hook);
+  }
+
+  // where the board goes (the CSS-positioned stage box) and where the beams come from (the mini-boards).
+  // Read outside the frame loop only: on resize and after the HUD re-renders.
+  const miniSize = () => (root.clientWidth >= 900 ? 76 : 58);
+  function syncStage() {
+    if (!scene || !root) return;
+    const rr = root.getBoundingClientRect(), sr = els.stage.getBoundingClientRect();
+    scene.setStage({ x: sr.left - rr.left, y: sr.top - rr.top, w: sr.width, h: sr.height });
+    syncOrigins();
+  }
+  function syncOrigins() {
+    if (!scene) return;
+    const rr = root.getBoundingClientRect();
+    const o = {};
+    for (const b of els.minis.querySelectorAll('.gl-mini')) { const r = b.getBoundingClientRect(); o[b.dataset.uid] = { x: r.left - rr.left + r.width / 2, y: r.top - rr.top + r.height * 0.4 }; }
+    scene.setOrigins(o);
   }
 
   // ================================================================ state
@@ -125,6 +148,7 @@ export function createView() {
     scene = createScene(els.canvas, { size: game.size, reduced: reduced() });
     scene.setTier(tier());
     scene.resize(root.clientWidth || 390, root.clientHeight || 844);
+    scene.setMiniSize(miniSize());
     scene.onSweep(() => sfx.play('sweep'));
     sceneFor = game.matchId;
     fleet = null; fleetFor = null; ready = false; readyWritten = false; drag = null;
@@ -135,9 +159,11 @@ export function createView() {
     if (finalView) { finalView.destroy(); finalView = null; }
     els.overlay.replaceChildren(); els.lock.hidden = true;
     root.classList.remove('is-final', 'is-out', 'is-placing', 'is-aiming', 'is-spec');
-    const uids = [me(), ...game.order.filter(u => u !== me())].filter(u => game.participants[u]);
-    scene.layout(uids, Object.fromEntries(uids.map(u => [u, colorOf(u)])));
+    const uids = boardsInOrder();
+    scene.layout(uids, Object.fromEntries(uids.map(u => [u, colorOf(u)])), { me: participant() ? me() : null });
     scene.focus(participant() ? me() : uids[0], { instant: true });
+    hudSig = '';
+    syncStage();
     duckMusic(1, 0.5); filterMusic(20000, 0.5);
   }
 
@@ -157,14 +183,14 @@ export function createView() {
     }).catch(() => { fleet = game.fleet.map(() => null); fleetFor = m; renderHud(); }).finally(() => { fleetLoading = false; });
   }
 
-  // every board's public marks (minus the cells this volley's cinematic hasn't shown yet)
+  // every board's public marks + wrecks (minus what this volley's cinematic hasn't shown yet)
   function syncBoards() {
+    const live = timeline && timeline.rk === game.rk ? timeline : null;
     for (const uid of Object.keys(game.participants)) {
       const b = boardOf(game, uid);
-      const pend = timeline && timeline.rk === game.rk ? timeline.pending[uid] : null;
-      scene.setMarks(uid, b.cells, pend, colorOf);
-      if (game.out && game.out[uid] && !(timeline && timeline.rk === game.rk && timeline.elims.has(uid))) scene.setPower(uid, 0.08);
-      // revealed wrecks on other boards stay as marks only (they shattered); yours stay until sunk
+      scene.setMarks(uid, b.cells, live ? live.pending[uid] : null, colorOf);
+      scene.setSunk(uid, b.sunk, live ? live.pendingSunk[uid] : null);
+      if (game.out && game.out[uid] && !(live && live.elims.has(uid))) scene.setPower(uid, 0.08);
     }
     scene.setBounty(game.bounty || null);
   }
@@ -175,12 +201,12 @@ export function createView() {
     root.classList.toggle('is-out', isOut());
     // ---- placement
     if (ph === 'place') {
-      scene.focus(me(), {});
+      scene.focus(participant() ? me() : boardsInOrder()[0]);
       if (participant() && fleet && !ready && serverNow() >= game.phaseEndsAt) autoFinish();
     }
     // ---- a new volley: pick a target, clear the last shot
     if (ph === 'turn' || ph === 'aim') {
-      if (volleyFor !== game.rk) { volleyFor = game.rk; fired = firedFor === game.rk; aimCell = null; scene.reticle(null); }   // a NEW volley clears the aim (never a mere state update mid-turn: the host beat lands every 2 s)
+      if (volleyFor !== game.rk) { volleyFor = game.rk; fired = firedFor === game.rk; aimCell = null; watching = null; scene.reticle(null); }   // a NEW volley clears the aim (never a mere state update mid-turn: the host beat lands every 2 s)
       if (!target || !opponents().includes(target)) target = opponents()[0] || null;
       if (ph === 'turn' && game.cur !== lastCur) {
         lastCur = game.cur;
@@ -188,11 +214,11 @@ export function createView() {
         if (turnAnnounced !== game.rk) { turnAnnounced = game.rk; if (game.cur !== me()) announce(`${player(game.cur).name}'S SHOT`, 'turn'); }
       }
       if (myMove() && !fired) {
-        if (!watching) scene.focus(target || me(), {});
+        if (!watching) scene.focus(target || me());
         root.classList.add('is-aiming');
       } else {
         root.classList.remove('is-aiming');
-        if (!watching) scene.focus(ph === 'turn' && game.cur && game.cur !== me() && opponents().length <= 1 ? me() : (opponents().length > 1 ? 'overview' : (target || me())), {});
+        if (!watching) scene.focus(participant() && !isOut() ? me() : (target || boardsInOrder()[0]));
       }
       // TARGET LOCK: who has locked onto my board
       if (ph === 'aim' && liveReady()) {
@@ -242,7 +268,7 @@ export function createView() {
   function rotateShip(idx) {
     const s = fleet[idx];
     if (!s) return;
-    let cand = { ...s, d: s.d ? 0 : 1 };
+    const cand = { ...s, d: s.d ? 0 : 1 };
     // keep it on the board: slide back if the turn pushes it off
     if (cand.d && cand.r + cand.len > game.size) cand.r = game.size - cand.len;
     if (!cand.d && cand.c + cand.len > game.size) cand.c = game.size - cand.len;
@@ -279,12 +305,13 @@ export function createView() {
   function pickTarget(uid) {
     if (!uid || uid === me() || !game.participants[uid]) return;
     target = uid; watching = null; aimCell = null; scene.reticle(null);
-    scene.focus(uid, {});
+    scene.focus(uid);
     sfx.play('rotate');
     renderHud();
   }
   function pickCell(r, c) {
     if (!myMove() || fired || !target) return;
+    if (scene.focusUid !== target) scene.focus(target);
     if (isShot(boardOf(game, target), r, c)) { sfx.play('repeat'); return; }
     aimCell = { r, c };
     scene.reticle(target, r, c);
@@ -308,8 +335,9 @@ export function createView() {
   // ================================================================ the cinematic
   function buildTimeline() {
     const ev = game.ev || [];
-    const pending = {}; const elims = new Set();
+    const pending = {}, pendingSunk = {}; const elims = new Set();
     for (const e of ev) if (e.k === 'shot') (pending[e.t] ||= new Set()).add(`${e.r},${e.c}`);
+    for (const e of ev) if (e.k === 'sunk') (pendingSunk[e.t] ||= new Set()).add(e.i);
     for (const e of ev) if (e.k === 'elim') elims.add(e.t);
     const items = [];
     let t = 300;
@@ -317,7 +345,7 @@ export function createView() {
     items.push({ at: 0, fn: () => { duckMusic(0.42, 0.35); filterMusic(1100, 0.35); } });
     for (const tg of targets) {
       const shots = ev.filter(e => e.k === 'shot' && e.t === tg);
-      items.push({ at: t, fn: () => { watching = null; scene.focus(tg, { speed: 3.2 }); }, quiet: true });
+      items.push({ at: t, fn: () => { watching = null; scene.focus(tg); }, quiet: true });
       t += 420;
       shots.forEach((e, i) => {
         const at = t + i * 330;
@@ -326,7 +354,7 @@ export function createView() {
       t += 330 * (shots.length - 1) + 1050;
       for (const s of ev.filter(e => e.k === 'sunk' && e.t === tg)) {
         const sunk = s;
-        items.push({ at: t, fn: () => { scene.focus(tg, { push: 1, speed: 3 }); scene.sink(tg, geoOf(sunk.g), sunk.i); sfx.play('shatter'); vibrate([20, 30, 40]); announce(`${names(sunk.by)} SUNK ${possessive(tg)} ${shipName(game.size, sunk.i)}`, 'sunk'); }, instant: () => { scene.hideShip(tg, sunk.i); } });
+        items.push({ at: t, fn: () => { scene.focus(tg); scene.sink(tg, geoOf(sunk.g), sunk.i); sfx.play('shatter'); vibrate([20, 30, 40]); announce(`${names(sunk.by)} SUNK ${possessive(tg)} ${shipName(game.size, sunk.i)}`, 'sunk'); }, instant: () => { scene.hideShip(tg, sunk.i); if (pendingSunk[tg]) pendingSunk[tg].delete(sunk.i); syncBoards(); } });
         t += 1300;
       }
       if (elims.has(tg)) {
@@ -336,8 +364,8 @@ export function createView() {
     }
     const hits = ev.filter(e => e.k === 'shot' && e.h === 1).length, sunk = ev.filter(e => e.k === 'sunk').length, el = ev.filter(e => e.k === 'elim').map(e => player(e.t).name);
     const summary = [`${hits} HIT${hits === 1 ? '' : 'S'}`, sunk ? `${sunk} SHIP${sunk === 1 ? '' : 'S'} SUNK` : null, ...el.map(n => `${n} ELIMINATED`)].filter(Boolean).join(' · ');
-    items.push({ at: t + 200, fn: () => { if (game.mode === 'royale' || sunk || el.length) announce(summary, 'summary'); duckMusic(1, 1.4); filterMusic(20000, 1.2); const w = isOut() || !participant() ? null : (game.done ? null : me()); if (w && opponents().length <= 1) scene.focus(w, { speed: 2.5 }); }, quiet: true });
-    timeline = { rk: game.rk, items, pending, elims, startAt: game.phaseStartAt };
+    items.push({ at: t + 200, fn: () => { if (game.mode === 'royale' || sunk || el.length) announce(summary, 'summary'); duckMusic(1, 1.4); filterMusic(20000, 1.2); }, quiet: true });
+    timeline = { rk: game.rk, items, pending, pendingSunk, elims, startAt: game.phaseStartAt };
     evLog.push({ rk: game.rk, n: ev.length, ms: t });
     syncBoards();
   }
@@ -370,23 +398,38 @@ export function createView() {
     if (!game || !scene) return;
     const ph = game.phase;
     const mine = participant() && !isOut();
+    const up = scene.focusUid;
     // phase line
     const name = ph === 'place' ? 'DEPLOY FLEET' : ph === 'turn' ? (game.cur === me() ? 'YOUR SHOT' : `${player(game.cur).name}'S SHOT`) : ph === 'aim' ? (fired ? 'LOCKED IN' : 'AIM') : ph === 'resolve' ? 'RESOLVING' : ph === 'show' ? 'IMPACT' : ph === 'end' ? 'BATTLE OVER' : '';
     const sub = game.mode === 'royale' && ph !== 'place' ? `ROUND ${game.round || 1}` : (ph === 'turn' || ph === 'show') && game.mode !== 'royale' ? `VOLLEY ${game.v || 1}` : game.mode === 'royale' ? 'BATTLE ROYALE' : 'CLASSIC';
-    const chips = opponents().map(u => `${u}:${shipsLeft(u)}:${game.bounty === u}:${target === u}:${watching === u}`).join('|');
-    const sig = [ph, name, sub, chips, ready, fired, aimCell && `${aimCell.r},${aimCell.c}`, fleet && fleet.map(s => s ? 1 : 0).join(''), drag && drag.idx, mine, isOut(), participant(), game.rk].join('§');
+    const minis = boardsInOrder().map(u => `${u}:${shipsLeft(u)}:${game.bounty === u}:${target === u}:${up === u}:${!!(game.out && game.out[u])}:${ph === 'turn' && game.cur === u}`).join('|');
+    const sig = [ph, name, sub, minis, ready, fired, aimCell && `${aimCell.r},${aimCell.c}`, fleet && fleet.map(s => s ? 1 : 0).join(''), drag && drag.idx, mine, isOut(), participant(), game.rk, els.ui.dataset.call].join('§');
     if (sig === hudSig) return;
     hudSig = sig;
     els.top.querySelector('.gl-phase-name').textContent = name;
     els.top.querySelector('.gl-phase-sub').textContent = sub;
     els.top.querySelector('.gl-timer').hidden = !(ph === 'place' || ph === 'turn' || ph === 'aim');
-    // target chips: opponents with ships left; the bounty marker; your own board as the first chip
-    const chipFor = (u, isMe) => h('button.gl-chip', { type: 'button', class: [target === u && !isMe ? 'is-target' : '', watching === u || (isMe && watching === me()) ? 'is-watch' : '', game.bounty === u ? 'has-bounty' : '', isMe ? 'is-me' : ''].join(' '), style: { '--c': colorOf(u) }, onclick: () => (isMe ? glance(me()) : (ph === 'show' || !mine || fired ? glance(u) : pickTarget(u))) },
-      avatar(player(u).avatar, player(u).color, 26),
-      h('span.gl-chip-body', h('b', isMe ? 'YOU' : player(u).name), h('span.gl-ships', ...Array.from({ length: game.fleet.length }, (_, i) => h('i', { class: i < shipsLeft(u) ? 'on' : '' })))),
+    // the mini-boards: yours first, then every other fleet
+    const aiming = mine && myMove() && !fired;
+    const miniFor = u => {
+      const isMe = u === me(), out = !!(game.out && game.out[u]), p = player(u);
+      return h('button.gl-mini', {
+        type: 'button', dataset: { uid: u }, 'aria-label': `${isMe ? 'Your' : p.name + "'s"} board, ${shipsLeft(u)} ships left`,
+        class: [up === u ? 'is-up' : '', target === u && aiming ? 'is-target' : '', game.bounty === u ? 'has-bounty' : '', isMe ? 'is-me' : '', out ? 'is-out' : '', ph === 'turn' && game.cur === u ? 'is-firing' : ''].join(' '),
+        style: { '--c': colorOf(u) },
+        onclick: () => (isMe || !aiming || out ? glance(u) : pickTarget(u)),
+      },
+      scene.miniCanvas(u),
+      h('span.gl-mini-cap', avatar(p.avatar, p.color, 16), h('b', isMe ? 'YOU' : p.name)),
+      out ? h('span.gl-mini-out', 'OUT') : h('span.gl-ships', ...Array.from({ length: game.fleet.length }, (_, i) => h('i', { class: i < shipsLeft(u) ? 'on' : '' }))),
       game.bounty === u ? h('span.gl-bounty', '◆') : null);
-    if (ph === 'place') put(els.chips);
-    else put(els.chips, participant() && !isOut() ? chipFor(me(), true) : null, ...opponents().map(u => chipFor(u, false)), opponents().length > 1 ? h('button.gl-chip.gl-chip-table', { type: 'button', class: watching === 'overview' ? 'is-watch' : '', onclick: () => glance('overview') }, h('b', 'TABLE')) : null);
+    };
+    if (ph === 'place') put(els.minis);
+    else {
+      put(els.minis, ...boardsInOrder().map(miniFor));
+      const want = els.minis.querySelector(aiming ? '.gl-mini.is-target' : '.gl-mini.is-up');
+      if (want && want.scrollIntoView) want.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
     // placement tray + actions
     if (ph === 'place' && mine && fleet) {
       put(els.tray, ...fleet.map((s, i) => h('button.gl-ship', { type: 'button', class: s ? 'is-placed' : '', dataset: { idx: i }, disabled: ready, style: { '--n': game.fleet[i], '--c': colorOf(me()) } },
@@ -394,7 +437,7 @@ export function createView() {
       put(els.action,
         ready ? h('div.gl-ready', h('b', 'FLEET DEPLOYED'), h('small', 'Waiting for the others…'))
           : h('div.gl-row', h('button.gl-btn.gl-btn-ghost', { type: 'button', onclick: autoPlace }, 'AUTO-PLACE'), h('button.gl-btn.gl-btn-primary', { type: 'button', onclick: setReady, disabled: fleet.some(s => !s) }, 'READY')));
-      put(els.tray.parentNode.querySelector('.gl-spec'));
+      put(els.spec);
     } else {
       put(els.tray);
       if ((ph === 'turn' || ph === 'aim') && mine) {
@@ -402,7 +445,7 @@ export function createView() {
           h('div.gl-aimline', h('small', target ? `TARGET · ${player(target).name}` : 'PICK A TARGET'), h('b', aimCell ? cellName(aimCell.r, aimCell.c) : 'TAP A CELL')),
           h('button.gl-btn.gl-btn-fire', { type: 'button', disabled: !aimCell, onclick: fireShot }, ph === 'aim' ? 'LOCK IN' : 'FIRE'));
         else if (ph === 'aim' && fired) { const n = Object.keys((st.live && st.live.shots) || {}).length; put(els.action, h('div.gl-ready', h('b', 'LOCKED IN'), h('small', `${n} of ${aliveOf(game).length} locked · waiting for the volley`))); }
-        else put(els.action, h('div.gl-ready', h('b', `${player(game.cur).name} IS AIMING`), h('small', 'Watch the table…')));
+        else put(els.action, h('div.gl-ready', h('b', `${player(game.cur).name} IS AIMING`), h('small', 'Watch your board…')));
       } else put(els.action);
       // spectators
       if (root.classList.contains('is-spec')) {
@@ -410,8 +453,9 @@ export function createView() {
         put(els.spec, h('div.gl-spec-head', participant() ? `YOU’RE OUT · ${aliveOf(game).length} FLEETS LEFT` : 'SPECTATING — YOU’RE IN NEXT MATCH', call && participant() ? h('em', ` · ${call}`) : null));
       } else put(els.spec);
     }
+    syncOrigins();
   }
-  function glance(uid) { watching = uid; scene.focus(uid, {}); sfx.play('rotate'); renderHud(); }
+  function glance(uid) { watching = uid; scene.focus(uid); sfx.play('rotate'); renderHud(); }
   function renderLock(shooters) {
     if (!shooters.length) { els.lock.hidden = true; return; }
     els.lock.hidden = false;
@@ -473,6 +517,7 @@ export function createView() {
   }
 
   // ================================================================ frame
+  let lastUp = null;
   function frame(now) {
     raf = requestAnimationFrame(frame);
     if (destroyed || !game || !scene) return;
@@ -481,13 +526,14 @@ export function createView() {
     if (bot) runBot();
     runTimeline();
     scene.frame(now);
+    if (scene.focusUid !== lastUp) { lastUp = scene.focusUid; renderHud(); }   // the mini of the board that is up lights
     renderTimer();
     tiers.sample(now, performance.now() - w0);
     tiers.tick(now, scene.fps);
   }
   const setTier = t => tiers.set(t);
 
-  // ================================================================ input (pointer: drag ships, tap cells / boards)
+  // ================================================================ input (pointer: drag ships, tap cells)
   const pt = e => { const r = root.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   const onDown = e => {
     if (e.target.closest && e.target.closest('button, a, input, .modal, .gl-call, .gl-final')) return;
@@ -532,12 +578,8 @@ export function createView() {
     tapStart = null;
     if (!quick) return;
     const p = scene.pick(x, y);
-    if (!p) return;
-    if ((game.phase === 'turn' || game.phase === 'aim') && myMove() && !fired) {
-      if (p.uid === me()) { glance(me()); return; }
-      if (p.uid !== target) { pickTarget(p.uid); if (scene.focusUid === p.uid && !p.near) pickCell(p.r, p.c); return; }
-      if (!p.near) pickCell(p.r, p.c);
-    } else if (p.uid && !p.near) glance(p.uid);
+    if (!p || p.near) return;
+    if ((game.phase === 'turn' || game.phase === 'aim') && myMove() && !fired && p.uid === target) pickCell(p.r, p.c);
   };
   const cellsHas = (s, r, c) => (s.d ? c === s.c && r >= s.r && r < s.r + s.len : r === s.r && c >= s.c && c < s.c + s.len);
   // tray: drag a ship from its chip onto the board
@@ -582,7 +624,7 @@ export function createView() {
       const sh = bot.force || smartShot(game, me(), bot.rnd);
       bot.force = null;
       if (!sh) return;
-      target = sh.t; scene.focus(target, {}); aimCell = { r: sh.r, c: sh.c }; scene.reticle(target, sh.r, sh.c); renderHud();
+      target = sh.t; scene.focus(target); aimCell = { r: sh.r, c: sh.c }; scene.reticle(target, sh.r, sh.c); renderHud();
       setTimeout(() => { if (!destroyed && myMove() && !fired) fireShot(); }, 300);
     }
   }
@@ -607,7 +649,9 @@ export function createView() {
       forceNext: sh => { if (bot) bot.force = sh; },
       stopBot: () => { bot = null; },
       camera: () => scene && scene.camera(),
-      focus: uid => scene.focus(uid, {}),
+      focus: uid => scene.focus(uid),
+      cellXY: (uid, r, c) => scene.cellXY(uid, r, c),
+      geometry: () => scene.geometry,
       locks: () => [...els.lock.querySelectorAll('.gl-lock-dots i')].length,
       announcements: () => ann.log.slice(),
       sfxLog: () => sfx.log.slice(),

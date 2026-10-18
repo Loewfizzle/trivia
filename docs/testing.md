@@ -59,6 +59,10 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     bots to the end, results. ROYALE with 8: 8×8, a phone that never placed gets a host fleet, TARGET LOCK (who, not where),
     two players on one cell, an absent owner's board resolved by the host, the bounty on the points leader, eliminations, Call
     the Winner, the host killed mid-match, a finish; frame pacing per tier at 4× CPU. Screens at 390×844, 412×915, 1440×900.
+    Look preview without Firebase: `gridlock-preview.html?at=place|aim|reticle|locked|show|sunk|elim|spec|end&n=2..8&still=1`
+    mounts the real view through an import map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js`
+    (no-op writes, empty reads) — the pattern for any game's preview; `window.__preview.volley({…})` plays more volleys.
+  - Lobby header look: `SHOTS=1 node lobby-shot.mjs "<browser path>" ./shots-lobby` (creates a room, screens at the three sizes).
   - SLIPSTREAM E2E: `node e2e-slip.mjs "<browser path>" ./shots-slip` (env N=8, SHOTS=0, GPU=1; frame pacing on its own:
     `PERF_ONLY=1 GPU=1 N=2` at CPU=4 — measured 16.7 ms median / 17 ms p95 at every tier, 4–5 ms of work a frame) — lobby card/options/ride picker, the same course on every phone, real touch (hold keeps you down, a tap
     in the air flips), bots ride, ghosts + their looks, equal look-ahead portrait/landscape + rotating mid-ride, every biome's

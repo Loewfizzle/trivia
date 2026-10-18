@@ -1,600 +1,624 @@
-// GRIDLOCK — the holographic war table (three.js). Boards are tilted tactical displays of light on dark glass,
-// ships are geometric light-forms, shots arc across the table as beams. The canvas is transparent: the lit district
-// (district/backdrop.js) shows through behind and below it.
+// GRIDLOCK — the war table, flat: Canvas 2D (the PRISM DROP / SLIPSTREAM toolkit). One board at a time, straight on,
+// its coordinates printed inside its own frame so a cell is exactly where the letters and numbers say; every other
+// fleet is a mini-board the HUD mounts (miniCanvas). The static parts live in offscreen layers rebuilt only when they
+// change; a frame is a handful of drawImage calls plus whatever light is in the air (beams, impacts, shards).
 //
-// World: boards lie flat on y = 0, each BOARD units wide, arranged on a ring; your board sits at the front (θ = 0),
-// its far edge pointing at the ring's centre. The camera orbits outside the ring looking in at one board (or above the
-// whole table for the overview). Everything expensive is prebuilt once per board; a frame is a handful of draw calls.
-import * as THREE from 'three';
-
-export const BOARD = 10;
+// Coordinates are CSS pixels of the canvas (the game root); the canvas is sized to the root and the board fits the
+// `stage` rect the view hands over (the CSS-positioned box between the HUD's top and bottom bands).
 const TAU = Math.PI * 2;
 const TIERS = [
-  { dpr: 1, points: 0, trail: 10, shards: 20, sweep: false },
-  { dpr: 1.5, points: 220, trail: 18, shards: 36, sweep: true },
-  { dpr: 2, points: 420, trail: 26, shards: 48, sweep: true },
+  { dpr: 1, shards: 18, sparks: 6, trail: 8, sweep: false },
+  { dpr: 1.5, shards: 32, sparks: 12, trail: 12, sweep: true },
+  { dpr: 2, shards: 48, sparks: 18, trail: 16, sweep: true },
 ];
+const COLS = 'ABCDEFGHIJ';
+const GOLD = '#ffd27a';
+const RED = '#ff3355';
+const EMBER = '#ff7a2a';
+const FONT = '"JetBrains Mono", "Chakra Petch", ui-monospace, monospace';
 
-const BOARD_VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-const BOARD_FRAG = `
-precision highp float;
-uniform vec3 uColor; uniform float uN, uTime, uPower, uSweep, uSweepOn, uPulseT, uBounty, uRippleT, uMine;
-uniform vec2 uHover, uRipple;
-varying vec2 vUv;
-void main(){
-  vec2 g = vUv * uN;
-  vec2 f = fract(g);
-  vec2 w = fwidth(g) * 1.1;
-  float lx = smoothstep(w.x, 0., f.x) + smoothstep(w.x, 0., 1. - f.x);
-  float ly = smoothstep(w.y, 0., f.y) + smoothstep(w.y, 0., 1. - f.y);
-  float line = clamp(lx + ly, 0., 1.);
-  vec2 e = min(vUv, 1. - vUv); float edge = min(e.x, e.y);
-  float rim = smoothstep(0.022, 0., edge);
-  float rimSoft = smoothstep(0.14, 0., edge) * 0.3;
-  float sh = 0.5 + 0.5 * sin((vUv.x + vUv.y) * 6. - uTime * 0.55);
-  vec2 p = vUv - 0.5;
-  float ang = atan(p.y, p.x);
-  float s = 1. - fract((uSweep - ang) / 6.2831853);
-  float sweep = pow(s, 7.) * 0.7 * uSweepOn * smoothstep(0.52, 0.3, length(p));
-  vec2 cell = vec2(floor(vUv.x * uN), floor((1. - vUv.y) * uN));
-  float hover = (uHover.x >= 0. && abs(cell.x - uHover.x) < 0.5 && abs(cell.y - uHover.y) < 0.5) ? 1. : 0.;
-  float ring = 0.;
-  if (uRippleT > 0.) {
-    vec2 rc = (uRipple + 0.5) / uN; rc.y = 1. - rc.y;
-    float rd = length(vUv - rc); float age = uTime - uRippleT;
-    ring = exp(-pow((rd - age * 0.55) * 22., 2.)) * exp(-age * 2.4);
-  }
-  float pulse = uPulseT > 0. ? exp(-(uTime - uPulseT) * 3.) * 0.28 : 0.;
-  float vig = smoothstep(0.75, 0.2, length(p));
-  vec3 glass = mix(vec3(0.012, 0.02, 0.06), uColor * 0.06, 0.5) * (0.7 + 0.3 * vig);
-  float scan = 0.5 + 0.5 * sin(vUv.y * 420. + uTime * 1.5);
-  vec3 col = glass + uColor * scan * 0.012;
-  col += uColor * (line * (0.16 + 0.1 * vig) + rim * 1.6 + rimSoft * 0.9 + sh * 0.02 + sweep);
-  col += uColor * (hover * 0.45 + ring * 1.1 + pulse);
-  col += vec3(1.) * (rim * 0.35 + hover * 0.14 + ring * 0.3);
-  vec3 gold = vec3(1., 0.78, 0.32);
-  float bb = uBounty * (0.65 + 0.35 * sin(uTime * 2.2));
-  col = mix(col, gold * (rim * 1.6 + rimSoft * 1.1 + line * 0.2) + glass, bb * 0.85 * clamp(rim + rimSoft + line * 0.3, 0., 1.));
-  float alpha = 0.5 + line * 0.3 + rim * 0.5 + rimSoft * 0.35 + ring * 0.6 + hover * 0.35 + sweep * 0.35 + pulse;
-  float pw = mix(0.12, 1., uPower);
-  gl_FragColor = vec4(col * pw, clamp(alpha, 0., 1.) * pw);
-}`;
-
-const SHIP_VERT = `varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec3 vNl;
-void main(){ vNl = normal; vP = position; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalMatrix * normal; vV = -mv.xyz; gl_Position = projectionMatrix * mv; }`;
-const SHIP_FRAG = `
-precision highp float;
-uniform vec3 uColor; uniform float uTime, uAlpha, uLen, uWid, uHot;
-varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec3 vNl;
-void main(){
-  float fres = pow(1. - abs(dot(normalize(vN), normalize(vV))), 2.2);
-  // circuit etching on the top face: a spine, cross traces every half cell, a few pads
-  float etch = 0.;
-  float top = step(0.5, vNl.y);
-  float x = vP.x / uLen + 0.5, z = vP.z / uWid + 0.5;
-  // a spine of light along the hull, a brighter pulse travelling along it, dotted traces either side
-  float spine = smoothstep(0.07, 0.015, abs(z - 0.5)) * smoothstep(0.0, 0.08, x) * smoothstep(1.0, 0.92, x);
-  float travel = exp(-pow((fract(uTime * 0.35 + vP.x * 0.05) - x) * 6., 2.)) * 0.8;
-  float dots = smoothstep(0.3, 0.1, length(vec2(fract(x * uLen * 3.0) - 0.5, (abs(z - 0.5) - 0.3) * 3.))) * 0.6;
-  float edgeLine = smoothstep(0.1, 0.03, abs(abs(z - 0.5) - 0.44)) * 0.5;
-  etch = top * max(spine * (0.8 + travel), max(dots, edgeLine));
-  float side = 1. - top;
-  float glow = 0.5 + 0.5 * sin(uTime * 2.1 + vP.x * 1.5);
-  vec3 body = vec3(0.02, 0.03, 0.075);
-  vec3 col = body + uColor * (fres * 1.35 + etch * (0.7 + 0.2 * glow) + 0.06 + side * 0.18 + uHot * 0.9);
-  col += vec3(1.) * (fres * 0.35 + spine * top * 0.45 + uHot * 0.3);
-  gl_FragColor = vec4(col, uAlpha);
-}`;
-
-const MARK_VERT = `attribute vec3 aColor; attribute float aSeed; varying vec2 vUv; varying vec3 vColor; varying float vSeed;
-void main(){ vUv = uv; vColor = aColor; vSeed = aSeed; gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0); }`;
-const HIT_FRAG = `
-precision highp float;
-uniform float uTime; varying vec2 vUv; varying vec3 vColor; varying float vSeed;
-float hash(float n){ return fract(sin(n) * 43758.5453); }
-void main(){
-  vec2 p = vUv * 2. - 1.;
-  float gl = step(0.975, hash(floor(uTime * 8.) + vSeed));
-  p.x += gl * 0.14 * (hash(vSeed * 3.1) - 0.5);
-  float r = length(p);
-  float a = atan(p.y, p.x);
-  // a white-hot core, a scorched disc, five jagged cracks radiating out, a thin broken ring
-  float core = exp(-r * r * 9.);
-  float scorch = smoothstep(0.62, 0.1, r) * 0.55;
-  float cracks = 0.;
-  for (int i = 0; i < 5; i++) {
-    float fi = float(i);
-    float ca = hash(vSeed + fi * 7.3) * 6.2831853;
-    float wob = sin(r * 18. + fi * 2.) * 0.12;
-    float d = abs(sin(a - ca + wob));
-    cracks += smoothstep(0.08 + r * 0.05, 0., d) * smoothstep(0.98, 0.2, r) * step(0.18, r) * (0.6 + 0.4 * hash(vSeed + fi));
-  }
-  cracks = min(cracks, 1.);
-  float ring = smoothstep(0.05, 0., abs(r - 0.78)) * step(0.35, fract(a * 1.1 + vSeed)) * 0.6;
-  vec3 col = vColor * (core * 1.3 + scorch * 0.9 + cracks * 1.1 + ring) + vec3(1.) * (core * 0.9 + cracks * 0.25);
-  float alpha = clamp(core * 1.3 + scorch * 0.8 + cracks + ring, 0., 1.) * (1. - gl * 0.6);
-  gl_FragColor = vec4(col, alpha);
-}`;
-const MISS_FRAG = `
-precision highp float;
-varying vec2 vUv; varying vec3 vColor;
-void main(){
-  vec2 p = vUv * 2. - 1.; float r = length(p);
-  float dot_ = exp(-r * r * 14.) * 0.5;
-  float ring = smoothstep(0.08, 0., abs(r - 0.55)) * 0.35;
-  gl_FragColor = vec4(mix(vec3(0.75, 0.8, 1.), vColor, 0.35) * (dot_ + ring), (dot_ + ring) * 0.9);
-}`;
-const TABLE_FRAG = `
-precision highp float;
-uniform float uTime, uR; varying vec2 vUv;
-void main(){
-  vec2 p = (vUv - 0.5) * 2.; float r = length(p);
-  float rings = smoothstep(0.02, 0., abs(fract(r * 7. - uTime * 0.03) - 0.5) - 0.47) * 0.08;
-  float fade = smoothstep(1., 0.35, r);
-  float grid = (smoothstep(0.012, 0., abs(fract(p.x * uR * 0.5) - 0.5) - 0.485) + smoothstep(0.012, 0., abs(fract(p.y * uR * 0.5) - 0.5) - 0.485)) * 0.05;
-  vec3 col = vec3(0.03, 0.05, 0.12) * 0.9 + vec3(0.25, 0.45, 0.9) * (rings + grid);
-  gl_FragColor = vec4(col, (0.5 + rings + grid) * fade);
-}`;
-
-function glowTexture() {
-  const c = document.createElement('canvas'); c.width = c.height = 64;
-  const x = c.getContext('2d');
-  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.25, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+// ---------------------------------------------------------------- colour helpers
+const rgbCache = new Map();
+function rgb(hex) {
+  let v = rgbCache.get(hex);
+  if (v) return v;
+  let h = String(hex || '#ffffff').replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h.slice(0, 6), 16);
+  v = Number.isFinite(n) ? [(n >> 16) & 255, (n >> 8) & 255, n & 255] : [255, 255, 255];
+  rgbCache.set(hex, v);
+  return v;
 }
-function labelTexture(n, color) {
-  const c = document.createElement('canvas'); c.width = c.height = 512;
-  const x = c.getContext('2d');
-  x.clearRect(0, 0, 512, 512);
-  const m = 44, inner = 512 - m * 2, cell = inner / n;
-  x.fillStyle = color; x.globalAlpha = 0.72;
-  x.font = `700 ${Math.round(cell * 0.42)}px "JetBrains Mono", "Chakra Petch", monospace`;
-  x.textAlign = 'center'; x.textBaseline = 'middle';
+const rgba = (hex, a) => { const [r, g, b] = rgb(hex); return `rgba(${r},${g},${b},${a})`; };
+const ease = k => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+const mulberry = seed => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+// ---------------------------------------------------------------- sprites (device pixels, cached)
+const sprites = new Map();
+function cached(key, size, draw) {
+  let c = sprites.get(key);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = c.height = Math.max(2, Math.round(size));
+  draw(c.getContext('2d'), c.width);
+  sprites.set(key, c);
+  if (sprites.size > 400) sprites.delete(sprites.keys().next().value);
+  return c;
+}
+/** A soft round light: white core fading through the colour to nothing. */
+const glowSprite = (hex, px) => cached(`glow|${hex}|${px}`, px, (x, s) => {
+  const g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.18, rgba(hex, 0.8)); g.addColorStop(0.5, rgba(hex, 0.22)); g.addColorStop(1, rgba(hex, 0));
+  x.fillStyle = g; x.fillRect(0, 0, s, s);
+});
+/** A hit: a scorched disc burnt into whatever is under it, a white-hot core, cracks radiating out, a broken ember ring. */
+const scarSprite = (hex, px, seed) => cached(`scar|${hex}|${px}|${seed}`, px, (x, s) => {
+  const c = s / 2, R = s / 2, rnd = mulberry(seed * 7919 + 13);
+  // the burn: a black disc with a ragged edge, eating into whatever is under it
+  // the burn: a black hole with a ragged edge, eating into whatever is under it
+  const hole = [];
+  for (let i = 0; i < 26; i++) hole.push([(i / 26) * TAU, R * (0.5 + rnd() * 0.22)]);
+  const tracePath = scale => { x.beginPath(); hole.forEach(([a, rr], i) => (i ? x.lineTo(c + Math.cos(a) * rr * scale, c + Math.sin(a) * rr * scale) : x.moveTo(c + Math.cos(a) * rr * scale, c + Math.sin(a) * rr * scale))); x.closePath(); };
+  tracePath(1.18); x.fillStyle = 'rgba(2,2,10,0.55)'; x.fill();
+  tracePath(1); x.fillStyle = 'rgba(0,0,0,0.97)'; x.fill();
+  // the molten rim, in the shooter's colour, and a soft glow beyond it
+  x.globalCompositeOperation = 'lighter';
+  const halo = x.createRadialGradient(c, c, R * 0.45, c, c, R);
+  halo.addColorStop(0, rgba(hex, 0.45)); halo.addColorStop(0.45, rgba(hex, 0.12)); halo.addColorStop(1, rgba(hex, 0));
+  x.fillStyle = halo; x.fillRect(0, 0, s, s);
+  x.lineJoin = 'round'; x.lineCap = 'round';
+  tracePath(1); x.strokeStyle = rgba(hex, 0.95); x.lineWidth = Math.max(1.5, s * 0.05); x.stroke();
+  tracePath(1); x.strokeStyle = 'rgba(255,255,255,0.5)'; x.lineWidth = Math.max(0.8, s * 0.018); x.stroke();
+  // a few cracks running out from the rim
+  const n = 4 + Math.floor(rnd() * 2);
   for (let i = 0; i < n; i++) {
-    x.fillText('ABCDEFGHIJ'[i], m + cell * (i + 0.5), m * 0.5);                 // columns along the far edge
-    x.fillText(String(i + 1), m * 0.5, m + cell * (i + 0.5));                    // rows down the left
+    const a0 = (i / n) * TAU + (rnd() - 0.5) * 1.0;
+    const r0 = R * 0.5, len = R * (0.3 + rnd() * 0.25);
+    const pts = [[c + Math.cos(a0) * r0, c + Math.sin(a0) * r0]];
+    const segs = 2 + Math.floor(rnd() * 2);
+    for (let k = 1; k <= segs; k++) { const r = r0 + (k / segs) * len, a = a0 + (rnd() - 0.5) * 0.5; pts.push([c + Math.cos(a) * r, c + Math.sin(a) * r]); }
+    x.strokeStyle = rgba(hex, 0.9); x.lineWidth = Math.max(1.2, s * 0.045);
+    x.beginPath(); pts.forEach(([px2, py], j) => (j ? x.lineTo(px2, py) : x.moveTo(px2, py))); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,0.6)'; x.lineWidth = Math.max(0.6, s * 0.016); x.stroke();
   }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+  // the hot core still glowing in the hole
+  const core = x.createRadialGradient(c, c, 0, c, c, R * 0.4);
+  core.addColorStop(0, 'rgba(255,255,255,0.95)'); core.addColorStop(0.3, rgba(hex, 0.85)); core.addColorStop(0.7, rgba(hex, 0.18)); core.addColorStop(1, rgba(hex, 0));
+  x.fillStyle = core; x.fillRect(0, 0, s, s);
+  x.globalCompositeOperation = 'source-over';
+});
+/** A miss: a cool ring and a dot of spray, dim. */
+const missSprite = px => cached(`miss|${px}`, px, (x, s) => {
+  const c = s / 2;
+  x.strokeStyle = 'rgba(170,195,255,0.38)'; x.lineWidth = Math.max(1, s * 0.04);
+  x.beginPath(); x.arc(c, c, s * 0.22, 0, TAU); x.stroke();
+  const g = x.createRadialGradient(c, c, 0, c, c, s * 0.11);
+  g.addColorStop(0, 'rgba(220,232,255,0.75)'); g.addColorStop(1, 'rgba(220,232,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, s, s);
+});
+const shardSprite = (hex, px) => cached(`shard|${hex}|${px}`, px, (x, s) => {
+  x.translate(s / 2, s / 2);
+  const r = s * 0.42;
+  x.beginPath(); x.moveTo(0, -r); x.lineTo(r * 0.82, r * 0.55); x.lineTo(-r * 0.7, r * 0.42); x.closePath();
+  const g = x.createLinearGradient(-r, -r, r, r);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, hex); g.addColorStop(1, rgba(hex, 0.2));
+  x.fillStyle = g; x.fill();
+  x.lineWidth = Math.max(1, s * 0.04); x.strokeStyle = 'rgba(255,255,255,0.8)'; x.stroke();
+});
+
+/** The hull path: a sleek light-form, pointed bow at +x, squared stern at -x. Local coords, centred. */
+function hullPath(x, L, w) {
+  const nose = Math.min(w * 1.6, L * 0.3);
+  x.beginPath();
+  x.moveTo(-L / 2 + w * 0.4, -w); x.lineTo(L / 2 - nose, -w); x.quadraticCurveTo(L / 2, -w * 0.5, L / 2, 0);
+  x.quadraticCurveTo(L / 2, w * 0.5, L / 2 - nose, w); x.lineTo(-L / 2 + w * 0.4, w);
+  x.quadraticCurveTo(-L / 2, w, -L / 2, w * 0.55); x.lineTo(-L / 2, -w * 0.55); x.quadraticCurveTo(-L / 2, -w, -L / 2 + w * 0.4, -w);
+  x.closePath();
 }
 
 export function createScene(canvas, { size, reduced = false } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
-  renderer.setClearColor(0x000000, 0);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 400);
-  let tier = 2, W = 1, H = 1, portrait = true;
+  const ctx = canvas.getContext('2d');
   const N = size;
-  const CELL = BOARD / N;
+  let tier = 2, dpr = 1, W = 1, H = 1;
+  let stage = { x: 0, y: 0, w: 1, h: 1 };
+  const boards = new Map();
+  let order = [];
+  let me = null;
+  let focusUid = null, fade = 1, fadeFrom = null;
   const clock = { t: 0 };
-  const boards = new Map();   // uid -> board record
-  let ring = 7, order = [];
-  const glow = glowTexture();
-  const disposables = [];
-  let sweepA = 0, sweepOn = 0, sweepNext = 4;
-  let onSweep = null;
+  let sweepT = -1, sweepNext = 5, onSweep = null;
+  let shake = 0, pulse = 0, pulseHex = '#ffffff';
+  const fx = [];
+  const origins = {};
+  // the board's geometry (CSS px): the panel square, the label band, the grid
+  const geo = { bx: 0, by: 0, S: 1, M: 1, P: 1, gx: 0, gy: 0, gw: 1, cell: 1, radius: 1, font: 12 };
+  // offscreen layers for the focused board
+  const base = { canvas: document.createElement('canvas'), uid: null, dirty: true };
+  const marks = { canvas: document.createElement('canvas'), uid: null, dirty: true };
+  let miniSize = 56;
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { base.dirty = true; for (const b of boards.values()) b.miniDirty = true; }).catch(() => {});
 
-  // ---- camera
-  const cam = { pos: new THREE.Vector3(0, 14, 16), look: new THREE.Vector3(0, 0, 0), goalPos: new THREE.Vector3(0, 14, 16), goalLook: new THREE.Vector3(), speed: 4, shake: 0 };
-  let focusUid = 'overview';
-  let focusPush = 0;
-
-  // ---- the table + ambience
-  const tableGeo = new THREE.CircleGeometry(1, 64);
-  const tableMat = new THREE.ShaderMaterial({ vertexShader: BOARD_VERT, fragmentShader: TABLE_FRAG, uniforms: { uTime: { value: 0 }, uR: { value: 1 } }, transparent: true, depthWrite: false });
-  const table = new THREE.Mesh(tableGeo, tableMat); table.rotation.x = -Math.PI / 2; table.position.y = -0.08; scene.add(table);
-  disposables.push(tableGeo, tableMat);
-  let points = null;
-  function buildPoints() {
-    if (points) { scene.remove(points); points.geometry.dispose(); points.material.dispose(); points = null; }
-    const n = reduced ? 0 : TIERS[tier].points;
-    if (!n) return;
-    const pos = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) { const a = Math.random() * TAU, r = 6 + Math.random() * 60; pos[i * 3] = Math.cos(a) * r; pos[i * 3 + 1] = -14 + Math.random() * 22; pos[i * 3 + 2] = Math.sin(a) * r; }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const m = new THREE.PointsMaterial({ size: 0.09, map: glow, color: 0x8fb8ff, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true });
-    points = new THREE.Points(g, m); scene.add(points);
-  }
-  buildPoints();
-
-  // ---- shared geometries
-  const planeGeo = new THREE.PlaneGeometry(BOARD, BOARD);
-  const markGeo = new THREE.PlaneGeometry(CELL * 0.86, CELL * 0.86);
-  const ringGeo = new THREE.RingGeometry(0.7, 0.86, 48);
-  const shardGeo = new THREE.TetrahedronGeometry(CELL * 0.17, 0);
-  const labelGeo = new THREE.PlaneGeometry(BOARD * 512 / 424, BOARD * 512 / 424);
-  disposables.push(planeGeo, markGeo, ringGeo, shardGeo, labelGeo);
-
-  function boardColor(hex) { return new THREE.Color(hex); }
-
-  /** Lay the boards out: uids in order, [0] = this phone's (front). */
-  function layout(uids, colors) {
-    for (const uid of [...boards.keys()]) if (!uids.includes(uid)) removeBoard(uid);
-    order = uids.slice();
-    const n = uids.length;
-    ring = n <= 2 ? 6.8 : n === 3 ? 8.4 : n <= 5 ? 10.5 : 13.5;
-    uids.forEach((uid, i) => {
-      const th = (i / n) * TAU;                     // mine at θ=0 (front, +z), the rest around the ring
-      let b = boards.get(uid);
-      if (!b) { b = makeBoard(uid, colors[uid]); boards.set(uid, b); }
-      b.theta = th;
-      b.group.position.set(Math.sin(th) * ring, 0, Math.cos(th) * ring);
-      b.group.rotation.y = th;
-      b.index = i;
-    });
-    tableMat.uniforms.uR.value = ring;
-    table.scale.setScalar(ring + BOARD * 0.9);
-    refocus(true);
-  }
-
+  // ---------------------------------------------------------------- boards
+  function board(uid) { return boards.get(uid); }
   function makeBoard(uid, hex) {
-    const color = boardColor(hex);
-    const group = new THREE.Group();
-    const mat = new THREE.ShaderMaterial({
-      vertexShader: BOARD_VERT, fragmentShader: BOARD_FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide,
-      uniforms: { uColor: { value: color }, uN: { value: N }, uTime: { value: 0 }, uPower: { value: 1 }, uSweep: { value: 0 }, uSweepOn: { value: 0 }, uPulseT: { value: 0 }, uBounty: { value: 0 }, uRippleT: { value: 0 }, uMine: { value: 0 }, uHover: { value: new THREE.Vector2(-1, -1) }, uRipple: { value: new THREE.Vector2(0, 0) } },
-    });
-    const halo = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ map: glow, color, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending }));
-    halo.rotation.x = -Math.PI / 2; halo.position.y = -0.03; halo.scale.setScalar(1.55); group.add(halo);
-    const plane = new THREE.Mesh(planeGeo, mat); plane.rotation.x = -Math.PI / 2; group.add(plane);
-    const labelTex = labelTexture(N, hex);
-    const labels = new THREE.Mesh(labelGeo, new THREE.MeshBasicMaterial({ map: labelTex, transparent: true, depthWrite: false, opacity: 0.9 }));
-    labels.rotation.x = -Math.PI / 2; labels.position.y = 0.01;
-    // the label canvas has its margin on the far/left sides: shift so the grid lines up
-    const scale = BOARD / 424; labels.position.x = -44 * scale / 2 * 0 - (44 * scale) / 2 + (44 * scale) / 2; labels.position.set(-(44 * scale) / 2, 0.01, -(44 * scale) / 2);
-    group.add(labels);
-    const cap = N * N;
-    const hits = new THREE.InstancedMesh(markGeo, new THREE.ShaderMaterial({ vertexShader: MARK_VERT, fragmentShader: HIT_FRAG, uniforms: { uTime: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), cap);
-    const misses = new THREE.InstancedMesh(markGeo, new THREE.ShaderMaterial({ vertexShader: MARK_VERT, fragmentShader: MISS_FRAG, transparent: true, depthWrite: false }), cap);
-    for (const im of [hits, misses]) {
-      im.geometry = markGeo.clone();
-      im.geometry.setAttribute('aColor', new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3));
-      im.geometry.setAttribute('aSeed', new THREE.InstancedBufferAttribute(new Float32Array(cap), 1));
-      im.count = 0; im.frustumCulled = false; group.add(im);
-    }
-    const reticle = new THREE.Group();
-    const rr = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
-    rr.rotation.x = -Math.PI / 2; rr.scale.setScalar(CELL * 0.62); reticle.add(rr);
-    const cross = new THREE.Group();
-    for (let i = 0; i < 4; i++) {
-      const bar = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 0.26, CELL * 0.05), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false }));
-      bar.rotation.x = -Math.PI / 2; bar.rotation.z = (i * Math.PI) / 2;
-      bar.position.set(Math.cos(i * Math.PI / 2) * CELL * 0.58, 0, -Math.sin(i * Math.PI / 2) * CELL * 0.58);
-      cross.add(bar);
-    }
-    reticle.add(cross); reticle.position.y = 0.06; reticle.visible = false; group.add(reticle);
-    scene.add(group);
-    return { uid, color, hex, group, mat, plane, halo, labels, labelTex, hits, misses, reticle, ships: [], ghost: null, power: 1, shards: [], flickerT: 0, theta: 0, index: 0 };
+    const mini = document.createElement('canvas');
+    mini.className = 'gl-mini-canvas';
+    mini.setAttribute('aria-hidden', 'true');
+    return { uid, hex, cells: {}, pending: null, colorOf: () => hex, ships: [], ghost: null, ghostValid: true, sunk: {}, pendingSunk: null, power: 1, bounty: false, hot: null, glitch: 0, mini, miniDirty: true };
   }
-
-  function removeBoard(uid) {
-    const b = boards.get(uid);
-    if (!b) return;
-    scene.remove(b.group);
-    b.mat.dispose(); b.labelTex.dispose(); b.labels.material.dispose();
-    b.hits.geometry.dispose(); b.hits.material.dispose(); b.misses.geometry.dispose(); b.misses.material.dispose();
-    for (const s of b.ships) { s.mesh.geometry.dispose(); s.mesh.material.dispose(); if (s.pool) s.pool.material.dispose(); }
-    if (b.halo) b.halo.material.dispose();
-    boards.delete(uid);
+  /** The boards in order ([0] = this phone's); colours by uid. */
+  function layout(uids, colors, { me: myUid = null } = {}) {
+    for (const uid of [...boards.keys()]) if (!uids.includes(uid)) boards.delete(uid);
+    order = uids.slice();
+    me = myUid || uids[0] || null;
+    for (const uid of uids) {
+      let b = boards.get(uid);
+      if (!b) { b = makeBoard(uid, colors[uid] || '#7fb2ff'); boards.set(uid, b); }
+      else if (b.hex !== colors[uid]) { b.hex = colors[uid]; b.miniDirty = true; }
+    }
+    if (!focusUid || !boards.has(focusUid)) { focusUid = me || uids[0] || null; fade = 1; }
+    base.dirty = true; marks.dirty = true;
   }
+  const miniCanvas = uid => { const b = board(uid); return b ? b.mini : null; };
+  function setMiniSize(px) { if (px !== miniSize) { miniSize = px; for (const b of boards.values()) b.miniDirty = true; } }
+  /** Where each player's beams come from (the centre of their mini-board on screen, CSS px). */
+  function setOrigins(map) { for (const k of Object.keys(origins)) delete origins[k]; Object.assign(origins, map || {}); }
 
-  const cellLocal = (r, c) => new THREE.Vector3(-BOARD / 2 + (c + 0.5) * CELL, 0, -BOARD / 2 + (r + 0.5) * CELL);
-  const cellWorld = (b, r, c, y = 0) => b.group.localToWorld(cellLocal(r, c).setY(y));
-
-  /** Public marks for a board (hits/misses). `pending` = Set of "r,c" keys not to show yet (this volley's cinematic). */
+  /** Public marks for a board; `pending` = Set of "r,c" keys not to show yet (this volley's cinematic). */
   function setMarks(uid, cells, pending = null, colorOf = () => '#ffffff') {
-    const b = boards.get(uid); if (!b) return;
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), sc = new THREE.Vector3(1, 1, 1);
-    let hi = 0, mi = 0;
-    const hc = b.hits.geometry.getAttribute('aColor'), hs = b.hits.geometry.getAttribute('aSeed');
-    const mc = b.misses.geometry.getAttribute('aColor');
-    const col = new THREE.Color();
-    for (const [key, v] of Object.entries(cells || {})) {
-      if (pending && pending.has(key)) continue;
-      const [r, c] = key.split(',').map(Number);
-      const im = v.h === 1 ? b.hits : b.misses;
-      const i = v.h === 1 ? hi++ : mi++;
-      m.compose(cellLocal(r, c).setY(0.035), q, sc);
-      im.setMatrixAt(i, m);
-      col.set(colorOf(v.by));
-      if (v.h === 1) { hc.setXYZ(i, col.r, col.g, col.b); hs.setX(i, (r * 31 + c * 17) % 97); } else mc.setXYZ(i, col.r, col.g, col.b);
+    const b = board(uid); if (!b) return;
+    const sig = JSON.stringify(cells || {}) + '|' + (pending ? [...pending].sort().join(';') : '');
+    if (b.marksSig === sig) return;
+    b.marksSig = sig;
+    b.cells = cells || {}; b.pending = pending; b.colorOf = colorOf;
+    b.miniDirty = true; if (uid === focusUid) marks.dirty = true;
+  }
+  /** Sunk ships (public geometry) shown as wrecks; `pending` = slot indexes not to show yet. */
+  function setSunk(uid, sunk, pending = null) {
+    const b = board(uid); if (!b) return;
+    const sig = JSON.stringify(sunk || {}) + '|' + (pending ? [...pending].sort().join(';') : '');
+    if (b.sunkSig === sig) return;
+    b.sunkSig = sig; b.sunk = sunk || {}; b.pendingSunk = pending; b.miniDirty = true;
+  }
+  /** The fleet shown on a board (your own). */
+  function setShips(uid, ships) { const b = board(uid); if (!b) return; b.ships = (ships || []).map((s, i) => (s ? { ...s, idx: i } : null)).filter(Boolean); b.miniDirty = true; }
+  function hideShip(uid, idx) { const b = board(uid); if (!b) return; b.ships = b.ships.filter(s => s.idx !== idx); b.miniDirty = true; }
+  function setGhost(uid, ship, valid = true) { const b = board(uid); if (!b) return; b.ghost = ship || null; b.ghostValid = valid; }
+  function reticle(uid, r, c) { ret = uid != null && r != null ? { uid, r, c } : null; }
+  let ret = null;
+  function setPower(uid, p) { const b = board(uid); if (!b || b.power === p) return; b.power = p; b.miniDirty = true; }
+  function setBounty(uid) { for (const b of boards.values()) { const on = b.uid === uid; if (b.bounty !== on) { b.bounty = on; b.miniDirty = true; if (b.uid === focusUid) base.dirty = true; } } }
+  function focus(uid, { instant = false } = {}) {
+    if (!uid || uid === 'overview') uid = me || order[0];
+    if (!boards.has(uid)) return;
+    if (uid === focusUid) return;
+    fadeFrom = focusUid; focusUid = uid; fade = instant || reduced ? 1 : 0;
+    base.dirty = true; marks.dirty = true;
+  }
+
+  // ---------------------------------------------------------------- geometry
+  function layoutBoard() {
+    const S = Math.max(40, Math.floor(Math.min(stage.w, stage.h)));
+    geo.S = S;
+    geo.bx = Math.round(stage.x + (stage.w - S) / 2);
+    geo.by = Math.round(stage.y + (stage.h - S) * 0.22);   // spare height goes mostly below: the board sits up near the header
+    geo.P = Math.round(S * 0.028);
+    geo.M = Math.round(S * 0.072);
+    geo.gw = S - geo.M - 2 * geo.P;
+    geo.gx = geo.bx + geo.M + geo.P;
+    geo.gy = geo.by + geo.M + geo.P;
+    geo.cell = geo.gw / N;
+    geo.radius = Math.round(S * 0.035);
+    geo.font = Math.max(10, Math.min(22, Math.round(geo.cell * 0.4)));
+    base.dirty = true; marks.dirty = true;
+  }
+  const cellX = c => geo.gx + (c + 0.5) * geo.cell;
+  const cellY = r => geo.gy + (r + 0.5) * geo.cell;
+  /** Screen position (CSS px) of a cell on the board that is up, or null. */
+  function cellXY(uid, r, c) { if (uid !== focusUid) return null; return [cellX(c), cellY(r)]; }
+  /** What is under a point: { uid, r, c } on the grid, { …, near: true } in the board's frame, else null. */
+  function pick(x, y, onlyUid = null) {
+    const uid = focusUid;
+    if (!uid || (onlyUid && onlyUid !== uid)) return null;
+    const c = Math.floor((x - geo.gx) / geo.cell), r = Math.floor((y - geo.gy) / geo.cell);
+    if (c >= 0 && r >= 0 && c < N && r < N) return { uid, r, c };
+    if (x >= geo.bx - 8 && y >= geo.by - 8 && x <= geo.bx + geo.S + 8 && y <= geo.by + geo.S + 8) return { uid, r: Math.max(0, Math.min(N - 1, r)), c: Math.max(0, Math.min(N - 1, c)), near: true };
+    return null;
+  }
+  function resize(w, h) {
+    W = Math.max(1, w); H = Math.max(1, h);
+    dpr = Math.min(TIERS[tier].dpr, window.devicePixelRatio || 1);
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    layoutBoard();
+    for (const b of boards.values()) b.miniDirty = true;
+  }
+  function setStage(rect) { stage = { x: rect.x, y: rect.y, w: Math.max(1, rect.w), h: Math.max(1, rect.h) }; layoutBoard(); }
+  function setTier(t) { tier = Math.max(0, Math.min(2, t)); resize(W, H); }
+
+  // ---------------------------------------------------------------- the base layer (panel, labels, grid)
+  function buildBase(b) {
+    const S = geo.S, c = base.canvas;
+    c.width = c.height = Math.round(S * dpr);
+    const x = c.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const hex = b.bounty ? GOLD : b.hex;
+    const rr = geo.radius;
+    // glass panel + rim light
+    x.save();
+    x.shadowColor = rgba(hex, 0.55); x.shadowBlur = S * 0.05;
+    roundRect(x, 0.5, 0.5, S - 1, S - 1, rr);
+    x.fillStyle = 'rgba(6,9,26,0.74)'; x.fill();
+    x.restore();
+    const sheen = x.createLinearGradient(0, 0, S, S);
+    sheen.addColorStop(0, 'rgba(255,255,255,0.07)'); sheen.addColorStop(0.45, 'rgba(255,255,255,0.0)'); sheen.addColorStop(1, rgba(hex, 0.06));
+    roundRect(x, 0.5, 0.5, S - 1, S - 1, rr); x.fillStyle = sheen; x.fill();
+    // the rim light bleeds a little way in, like an edge-lit pane
+    x.save(); roundRect(x, 0.5, 0.5, S - 1, S - 1, rr); x.clip();
+    x.shadowColor = rgba(hex, 0.7); x.shadowBlur = S * 0.045; x.strokeStyle = rgba(hex, 0.9); x.lineWidth = 3;
+    roundRect(x, -2, -2, S + 4, S + 4, rr + 2); x.stroke();
+    x.restore();
+    roundRect(x, 0.5, 0.5, S - 1, S - 1, rr); x.strokeStyle = rgba(hex, 0.8); x.lineWidth = 1.5; x.stroke();
+    roundRect(x, 2, 2, S - 4, S - 4, rr - 1.5); x.strokeStyle = 'rgba(255,255,255,0.12)'; x.lineWidth = 1; x.stroke();
+    // corner ticks
+    x.strokeStyle = rgba(hex, 0.9); x.lineWidth = 2; x.lineCap = 'round';
+    const tk = Math.max(8, S * 0.05), ins = 7;
+    for (const [sx, sy] of [[ins, ins], [S - ins, ins], [ins, S - ins], [S - ins, S - ins]]) {
+      const dx = sx < S / 2 ? 1 : -1, dy = sy < S / 2 ? 1 : -1;
+      x.beginPath(); x.moveTo(sx, sy + dy * tk); x.lineTo(sx, sy); x.lineTo(sx + dx * tk, sy); x.stroke();
     }
-    b.hits.count = hi; b.misses.count = mi;
-    b.hits.instanceMatrix.needsUpdate = true; b.misses.instanceMatrix.needsUpdate = true;
-    hc.needsUpdate = true; hs.needsUpdate = true; mc.needsUpdate = true;
-  }
-
-  function hullGeometry(L, Wd, Ht) {
-    // a sleek hull: a rounded body with a pointed bow (+x) and a squared stern, extruded and bevelled
-    const w = Wd / 2, nose = Math.min(Wd * 0.9, L * 0.28);
-    const shape = new THREE.Shape();
-    shape.moveTo(-L / 2 + w * 0.3, -w); shape.lineTo(L / 2 - nose, -w); shape.quadraticCurveTo(L / 2, -w * 0.55, L / 2, 0);
-    shape.quadraticCurveTo(L / 2, w * 0.55, L / 2 - nose, w); shape.lineTo(-L / 2 + w * 0.3, w);
-    shape.quadraticCurveTo(-L / 2, w, -L / 2, w * 0.6); shape.lineTo(-L / 2, -w * 0.6); shape.quadraticCurveTo(-L / 2, -w, -L / 2 + w * 0.3, -w);
-    const g = new THREE.ExtrudeGeometry(shape, { depth: Ht, bevelEnabled: true, bevelThickness: Ht * 0.35, bevelSize: w * 0.18, bevelSegments: 2, curveSegments: 6 });
-    g.rotateX(-Math.PI / 2);                       // extrude along +y
-    g.translate(0, -Ht * 0.35, 0);
-    g.computeVertexNormals();
-    return g;
-  }
-  function shipMesh(b, s, { alpha = 1, hot = 0 } = {}) {
-    const L = s.len * CELL * 0.9, Wd = CELL * 0.6;
-    const geo = hullGeometry(L, Wd, CELL * 0.22);
-    const mat = new THREE.ShaderMaterial({ vertexShader: SHIP_VERT, fragmentShader: SHIP_FRAG, transparent: true, depthWrite: alpha >= 1,
-      uniforms: { uColor: { value: b.color.clone() }, uTime: { value: 0 }, uAlpha: { value: alpha }, uLen: { value: L }, uWid: { value: Wd }, uHot: { value: hot } } });
-    const mesh = new THREE.Mesh(geo, mat);
-    placeShipMesh(mesh, s);
-    return mesh;
-  }
-  function placeShipMesh(mesh, s) {
-    const cx = -BOARD / 2 + (s.d ? s.c + 0.5 : s.c + s.len / 2) * CELL;
-    const cz = -BOARD / 2 + (s.d ? s.r + s.len / 2 : s.r + 0.5) * CELL;
-    mesh.position.set(cx, 0.26, cz);
-    mesh.rotation.y = s.d ? Math.PI / 2 : 0;
-  }
-
-  /** The fleet shown on a board (your own, or revealed wrecks). */
-  function setShips(uid, ships) {
-    const b = boards.get(uid); if (!b) return;
-    for (const s of b.ships) { b.group.remove(s.mesh); s.mesh.geometry.dispose(); s.mesh.material.dispose(); if (s.pool) { b.group.remove(s.pool); s.pool.material.dispose(); } }
-    b.ships = [];
-    (ships || []).forEach((s, i) => {
-      if (!s) return;
-      const mesh = shipMesh(b, s);
-      const pool = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ map: glow, color: b.color, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending }));
-      pool.rotation.x = -Math.PI / 2; pool.position.copy(mesh.position).setY(0.045); pool.rotation.z = s.d ? Math.PI / 2 : 0;
-      pool.scale.set((s.len * CELL * 1.25) / BOARD, (CELL * 1.6) / BOARD, 1);
-      b.group.add(mesh, pool);
-      b.ships.push({ mesh, pool, ship: s, idx: i, phase: i * 1.7 });
-    });
-  }
-  function hideShip(uid, idx) {
-    const b = boards.get(uid); if (!b) return;
-    const s = b.ships.find(x => x.idx === idx);
-    if (s) { b.group.remove(s.mesh); s.mesh.geometry.dispose(); s.mesh.material.dispose(); if (s.pool) { b.group.remove(s.pool); s.pool.material.dispose(); } b.ships = b.ships.filter(x => x !== s); }
-  }
-  /** Placement preview: a ship ghost (valid = player colour, invalid = red). */
-  function setGhost(uid, ship, valid) {
-    const b = boards.get(uid); if (!b) return;
-    if (b.ghost) { b.group.remove(b.ghost); b.ghost.geometry.dispose(); b.ghost.material.dispose(); b.ghost = null; }
-    if (!ship) return;
-    const g = shipMesh(b, ship, { alpha: 0.55, hot: valid ? 0.25 : 0 });
-    if (!valid) g.material.uniforms.uColor.value.set('#ff3355');
-    g.position.y = 0.42;
-    b.group.add(g); b.ghost = g;
-  }
-
-  function hover(uid, r, c) { for (const b of boards.values()) b.mat.uniforms.uHover.value.set(b.uid === uid && r != null ? c : -1, b.uid === uid && r != null ? r : -1); }
-  function reticle(uid, r, c) {
-    for (const b of boards.values()) {
-      const on = b.uid === uid && r != null;
-      b.reticle.visible = on;
-      if (on) b.reticle.position.copy(cellLocal(r, c).setY(0.06));
+    // the grid
+    const gx = geo.gx - geo.bx, gy = geo.gy - geo.by, gw = geo.gw, cell = geo.cell;
+    x.fillStyle = rgba(hex, 0.045); x.fillRect(gx, gy, gw, gw);
+    const vig = x.createRadialGradient(gx + gw / 2, gy + gw / 2, gw * 0.1, gx + gw / 2, gy + gw / 2, gw * 0.75);
+    vig.addColorStop(0, rgba(hex, 0.07)); vig.addColorStop(1, rgba(hex, 0));
+    x.fillStyle = vig; x.fillRect(gx, gy, gw, gw);
+    x.strokeStyle = rgba(hex, 0.22); x.lineWidth = 1;
+    x.beginPath();
+    for (let i = 1; i < N; i++) { const p = Math.round(gx + i * cell) + 0.5; x.moveTo(p, gy); x.lineTo(p, gy + gw); const q = Math.round(gy + i * cell) + 0.5; x.moveTo(gx, q); x.lineTo(gx + gw, q); }
+    x.stroke();
+    x.strokeStyle = rgba(hex, 0.6); x.lineWidth = 1.25; x.strokeRect(gx + 0.5, gy + 0.5, gw - 1, gw - 1);
+    // the labels, centred on their column / row inside the frame
+    x.font = `700 ${geo.font}px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = rgba(hex, 0.9);
+    for (let i = 0; i < N; i++) {
+      x.fillText(COLS[i], gx + (i + 0.5) * cell, geo.P + geo.M * 0.52);
+      x.fillText(String(i + 1), geo.P + geo.M * 0.5, gy + (i + 0.5) * cell + 0.5);
     }
+    base.uid = b.uid; base.dirty = false;
   }
-  function setPower(uid, p) { const b = boards.get(uid); if (b) { b.power = p; b.mat.uniforms.uPower.value = p; } }
-  function setBounty(uid) { for (const b of boards.values()) b.mat.uniforms.uBounty.value = b.uid === uid ? 1 : 0; }
+  function roundRect(x, px, py, w, h, r) {
+    x.beginPath(); x.moveTo(px + r, py); x.lineTo(px + w - r, py); x.quadraticCurveTo(px + w, py, px + w, py + r); x.lineTo(px + w, py + h - r);
+    x.quadraticCurveTo(px + w, py + h, px + w - r, py + h); x.lineTo(px + r, py + h); x.quadraticCurveTo(px, py + h, px, py + h - r); x.lineTo(px, py + r); x.quadraticCurveTo(px, py, px + r, py); x.closePath();
+  }
+  // ---------------------------------------------------------------- the marks layer (hits burn in, misses ring)
+  function buildMarks(b) {
+    const c = marks.canvas, gw = geo.gw;
+    c.width = c.height = Math.round(gw * dpr);
+    const x = c.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cell = geo.cell;
+    const scarPx = Math.round(cell * 1.2 * dpr), missPx = Math.round(cell * dpr);
+    for (const [key, v] of Object.entries(b.cells)) {
+      if (!v || (b.pending && b.pending.has(key))) continue;
+      const [r, cc] = key.split(',').map(Number);
+      const cx = (cc + 0.5) * cell, cy = (r + 0.5) * cell;
+      if (v.h === 1) { const sp = scarSprite(b.colorOf(v.by), scarPx, (r * 31 + cc * 17) % 7); x.drawImage(sp, cx - cell * 0.6, cy - cell * 0.6, cell * 1.2, cell * 1.2); }
+      else { const sp = missSprite(missPx); x.drawImage(sp, cx - cell / 2, cy - cell / 2, cell, cell); }
+    }
+    marks.uid = b.uid; marks.dirty = false;
+  }
 
-  // ---- effects
-  const fx = [];   // { update(dt, t) -> alive }
+  // ---------------------------------------------------------------- hulls
+  /** Draw a ship (grid coords) on the current context; cell = cell size, (ox, oy) = grid origin. */
+  function drawHull(x, s, cell, ox, oy, hex, { alpha = 1, hot = 0, wreck = false, ghost = false } = {}) {
+    const L = s.len * cell * 0.9, w = cell * (wreck ? 0.34 : 0.3);
+    const cx = ox + (s.d ? s.c + 0.5 : s.c + s.len / 2) * cell, cy = oy + (s.d ? s.r + s.len / 2 : s.r + 0.5) * cell;
+    x.save();
+    x.translate(cx, cy); if (s.d) x.rotate(Math.PI / 2);
+    x.globalAlpha = alpha;
+    if (!wreck && !ghost) {
+      // the pool of light under the hull
+      x.globalCompositeOperation = 'lighter';
+      x.globalAlpha = alpha * (0.3 + hot * 0.3);
+      x.drawImage(glowSprite(hex, 64), -L * 0.75, -w * 3.2, L * 1.5, w * 6.4);
+      x.globalCompositeOperation = 'source-over';
+      x.globalAlpha = alpha;
+    }
+    hullPath(x, L, w);
+    if (wreck) { x.fillStyle = 'rgba(14,14,22,0.94)'; x.fill(); x.strokeStyle = 'rgba(170,180,210,0.7)'; x.lineWidth = 1.5; x.stroke(); }
+    else {
+      const g = x.createLinearGradient(0, -w, 0, w);
+      g.addColorStop(0, rgba(hex, ghost ? 0.3 : 0.55)); g.addColorStop(0.5, ghost ? rgba(hex, 0.12) : 'rgba(8,12,34,0.92)'); g.addColorStop(1, rgba(hex, ghost ? 0.3 : 0.4));
+      x.fillStyle = g; x.fill();
+      x.strokeStyle = ghost ? rgba(hex, 0.9) : rgba(hex, 0.95); x.lineWidth = ghost ? 1.5 : 1.5; if (ghost) x.setLineDash([4, 3]); x.stroke(); x.setLineDash([]);
+      if (hot > 0) { x.globalCompositeOperation = 'lighter'; x.fillStyle = `rgba(255,255,255,${0.5 * hot})`; x.fill(); x.globalCompositeOperation = 'source-over'; }
+      // the spine, cross traces at every cell, pads
+      x.globalCompositeOperation = 'lighter';
+      x.strokeStyle = `rgba(255,255,255,${ghost ? 0.35 : 0.75})`; x.lineWidth = Math.max(1, cell * 0.05); x.lineCap = 'round';
+      x.beginPath(); x.moveTo(-L / 2 + w * 0.6, 0); x.lineTo(L / 2 - w * 1.4, 0); x.stroke();
+      x.strokeStyle = rgba(hex, ghost ? 0.4 : 0.8); x.lineWidth = 1;
+      for (let i = 1; i < s.len; i++) { const px = -L / 2 + (i / s.len) * L; x.beginPath(); x.moveTo(px, -w * 0.62); x.lineTo(px, w * 0.62); x.stroke(); }
+      x.fillStyle = `rgba(255,255,255,${ghost ? 0.3 : 0.85})`;
+      for (let i = 0; i < s.len; i++) { const px = -L / 2 + ((i + 0.5) / s.len) * L; x.beginPath(); x.arc(px, 0, Math.max(1, cell * 0.055), 0, TAU); x.fill(); }
+      x.globalCompositeOperation = 'source-over';
+    }
+    if (wreck) {
+      // ember cracks across the dead hull
+      x.globalCompositeOperation = 'lighter';
+      x.strokeStyle = rgba(EMBER, 0.75); x.lineWidth = Math.max(1, cell * 0.04); x.lineCap = 'round';
+      const rnd = mulberry(s.r * 131 + s.c * 17 + s.len);
+      for (let i = 0; i < s.len + 1; i++) { const px = -L / 2 + (0.15 + rnd() * 0.7) * L; x.beginPath(); x.moveTo(px, -w * (0.3 + rnd() * 0.6)); x.lineTo(px + (rnd() - 0.5) * w, w * (0.2 + rnd() * 0.6)); x.stroke(); }
+      x.fillStyle = rgba(EMBER, 0.9);
+      for (let i = 0; i < s.len; i++) { const px = -L / 2 + ((i + 0.5) / s.len) * L; x.beginPath(); x.arc(px, (rnd() - 0.5) * w, Math.max(1, cell * 0.04), 0, TAU); x.fill(); }
+      x.globalCompositeOperation = 'source-over';
+    }
+    x.restore();
+  }
+  const geoOf = g => { const [r, c, len, d] = String(g).split(',').map(Number); return { r, c, len, d }; };
+
+  // ---------------------------------------------------------------- the mini-boards
+  function drawMini(b) {
+    const c = b.mini, px = Math.round(miniSize * dpr);
+    if (c.width !== px) { c.width = c.height = px; }
+    const x = c.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.clearRect(0, 0, miniSize, miniSize);
+    const hex = b.bounty ? GOLD : b.hex;
+    const S = miniSize, pad = 3, gw = S - pad * 2, cell = gw / N, r0 = Math.max(4, S * 0.1);
+    x.globalAlpha = 0.25 + b.power * 0.75;
+    roundRect(x, 0.5, 0.5, S - 1, S - 1, r0); x.fillStyle = 'rgba(6,9,26,0.8)'; x.fill();
+    x.strokeStyle = rgba(hex, 0.7); x.lineWidth = 1; x.stroke();
+    x.fillStyle = rgba(hex, 0.16);
+    for (let r = 0; r < N; r++) for (let cc = 0; cc < N; cc++) x.fillRect(pad + cc * cell + cell * 0.36, pad + r * cell + cell * 0.36, cell * 0.28, cell * 0.28);
+    // ships (own) + wrecks
+    for (const s of b.ships) {
+      if (b.sunk[s.idx] != null && !(b.pendingSunk && b.pendingSunk.has(s.idx))) continue;
+      x.fillStyle = rgba(hex, 0.75);
+      const cells = s.d ? [cell * 0.72, s.len * cell - cell * 0.28] : [s.len * cell - cell * 0.28, cell * 0.72];
+      roundRect(x, pad + s.c * cell + cell * 0.14, pad + s.r * cell + cell * 0.14, cells[0], cells[1], cell * 0.3); x.fill();
+    }
+    for (const [idx, g] of Object.entries(b.sunk)) {
+      if (b.pendingSunk && b.pendingSunk.has(Number(idx))) continue;
+      const s = geoOf(g);
+      const cells = s.d ? [cell * 0.72, s.len * cell - cell * 0.28] : [s.len * cell - cell * 0.28, cell * 0.72];
+      roundRect(x, pad + s.c * cell + cell * 0.14, pad + s.r * cell + cell * 0.14, cells[0], cells[1], cell * 0.3);
+      x.fillStyle = 'rgba(12,12,18,0.95)'; x.fill(); x.strokeStyle = rgba(EMBER, 0.7); x.lineWidth = 1; x.stroke();
+    }
+    for (const [key, v] of Object.entries(b.cells)) {
+      if (!v || (b.pending && b.pending.has(key))) continue;
+      const [r, cc] = key.split(',').map(Number);
+      const mx = pad + (cc + 0.5) * cell, my = pad + (r + 0.5) * cell;
+      if (v.h === 1) { x.fillStyle = b.colorOf(v.by); x.beginPath(); x.arc(mx, my, cell * 0.34, 0, TAU); x.fill(); x.fillStyle = 'rgba(255,255,255,0.9)'; x.beginPath(); x.arc(mx, my, cell * 0.14, 0, TAU); x.fill(); }
+      else { x.fillStyle = 'rgba(170,195,255,0.45)'; x.beginPath(); x.arc(mx, my, cell * 0.16, 0, TAU); x.fill(); }
+    }
+    x.globalAlpha = 1;
+    b.miniDirty = false;
+  }
+
+  // ---------------------------------------------------------------- effects
+  const originOf = uid => origins[uid] || (uid === me ? { x: W / 2, y: H + 60 } : { x: W / 2, y: -60 });
+  function pulseBoard(hex, k = 0.16) { pulse = Math.max(pulse, k); pulseHex = hex; }
   function miss(uid, r, c) {
-    const b = boards.get(uid); if (!b) return;
-    b.mat.uniforms.uRipple.value.set(c, r); b.mat.uniforms.uRippleT.value = clock.t;
+    if (uid !== focusUid) return;
+    const cx = cellX(c), cy = cellY(r), cell = geo.cell;
+    let age = 0;
+    fx.push({ draw(dt, x) {
+      age += dt; const k = age / 0.7; if (k >= 1) return false;
+      x.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 2; i++) { const kk = Math.max(0, k - i * 0.18); x.strokeStyle = `rgba(170,200,255,${0.6 * (1 - kk)})`; x.lineWidth = 2 - kk; x.beginPath(); x.arc(cx, cy, cell * (0.15 + kk * 1.4), 0, TAU); x.stroke(); }
+      x.globalCompositeOperation = 'source-over';
+      return true;
+    } });
   }
   function hit(uid, r, c, hex) {
-    const b = boards.get(uid); if (!b) return;
-    b.mat.uniforms.uPulseT.value = clock.t;
-    const p = cellWorld(b, r, c, 0.08);
-    const col = new THREE.Color(hex);
-    // flash + shockwave ring
-    const flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: col, transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending }));
-    flash.position.copy(p); flash.scale.setScalar(CELL * 2.4); scene.add(flash);
-    const rg = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
-    rg.rotation.x = -Math.PI / 2; rg.position.copy(p); rg.scale.setScalar(CELL * 0.3); scene.add(rg);
+    if (uid !== focusUid) return;
+    const cx = cellX(c), cy = cellY(r), cell = geo.cell;
+    const n = reduced ? 0 : TIERS[tier].sparks;
+    const sparks = Array.from({ length: n }, () => { const a = Math.random() * TAU, v = cell * (2 + Math.random() * 5); return { x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - cell * 2, life: 0.45 + Math.random() * 0.35 }; });
+    const flash = glowSprite(hex, 128), spark = glowSprite('#ffffff', 16);
     let age = 0;
-    fx.push({ update(dt) { age += dt; const k = age / 0.55; flash.material.opacity = Math.max(0, 1 - k * 1.6); flash.scale.setScalar(CELL * (2.4 + k * 2)); rg.scale.setScalar(CELL * (0.3 + k * 3.4)); rg.material.opacity = Math.max(0, 0.95 - k); if (k >= 1) { scene.remove(flash, rg); flash.material.dispose(); rg.material.dispose(); return false; } return true; } });
-    if (!reduced) cam.shake = Math.max(cam.shake, 0.35);
+    pulseBoard(hex, 0.18);
+    if (!reduced) shake = Math.max(shake, 0.4);
+    fx.push({ draw(dt, x) {
+      age += dt; const k = age / 0.6;
+      x.globalCompositeOperation = 'lighter';
+      if (k < 1) {
+        const fs = cell * (2.2 + k * 3); x.globalAlpha = Math.max(0, 1 - k * 1.5); x.drawImage(flash, cx - fs / 2, cy - fs / 2, fs, fs);
+        x.globalAlpha = Math.max(0, 0.9 - k); x.strokeStyle = hex; x.lineWidth = Math.max(1, 3 * (1 - k)); x.beginPath(); x.arc(cx, cy, cell * (0.3 + k * 3.2), 0, TAU); x.stroke();
+        x.strokeStyle = '#ffffff'; x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, cell * (0.2 + k * 2.4), 0, TAU); x.stroke();
+      }
+      let alive = k < 1;
+      for (const p of sparks) {
+        if (age > p.life) continue;
+        alive = true;
+        p.vy += cell * 18 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        x.globalAlpha = Math.max(0, 1 - age / p.life); const ps = cell * 0.28; x.drawImage(spark, p.x - ps / 2, p.y - ps / 2, ps, ps);
+      }
+      x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+      return alive;
+    } });
   }
-  /** A beam from one board to a cell on another. Resolves (calls onImpact) when it lands. */
+  /** A beam from a player's mini-board to a cell on the board that is up. Calls onImpact when it lands. */
   function fire({ from, to, r, c, hex, duration = 0.75 }, onImpact) {
-    const a = boards.get(from), b = boards.get(to);
-    if (!a || !b) { onImpact && onImpact(); return; }
-    const p0 = a.group.position.clone().setY(0.9), p2 = cellWorld(b, r, c, 0.1);
-    const dist = p0.distanceTo(p2);
-    const p1 = p0.clone().lerp(p2, 0.5).setY(Math.max(p0.y, p2.y) + dist * 0.38 + 2.5);
-    const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
-    const col = new THREE.Color(hex);
-    const head = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    head.scale.setScalar(CELL * 1.1); scene.add(head);
-    const nTrail = TIERS[tier].trail;
-    const tg = new THREE.BufferGeometry(); const tp = new Float32Array(nTrail * 3); tg.setAttribute('position', new THREE.BufferAttribute(tp, 3));
-    const trail = new THREE.Line(tg, new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending }));
-    trail.frustumCulled = false; scene.add(trail);
-    let age = 0, done = false;
+    if (to !== focusUid) { onImpact && onImpact(); return; }
+    const p0 = originOf(from), p2 = { x: cellX(c), y: cellY(r) };
+    const dist = Math.hypot(p2.x - p0.x, p2.y - p0.y);
+    const nx = -(p2.y - p0.y) / (dist || 1), ny = (p2.x - p0.x) / (dist || 1);
+    const side = p0.x < p2.x ? 1 : -1;
+    const p1 = { x: (p0.x + p2.x) / 2 + nx * dist * 0.22 * side, y: (p0.y + p2.y) / 2 + ny * dist * 0.22 * side };
+    const at = k => { const u = 1 - k; return [u * u * p0.x + 2 * u * k * p1.x + k * k * p2.x, u * u * p0.y + 2 * u * k * p1.y + k * k * p2.y]; };
+    const head = glowSprite(hex, 64), nTrail = TIERS[tier].trail, cell = geo.cell;
     const hist = [];
-    fx.push({ update(dt) {
+    let age = 0, done = false;
+    fx.push({ draw(dt, x) {
       age += dt;
-      const k = Math.min(1, age / duration);
-      const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;   // ease in-out
-      const p = curve.getPoint(e);
-      head.position.copy(p);
-      hist.push(p.clone()); while (hist.length > nTrail) hist.shift();
-      for (let i = 0; i < nTrail; i++) { const q = hist[Math.max(0, hist.length - 1 - (nTrail - 1 - i))] || p; tp[i * 3] = q.x; tp[i * 3 + 1] = q.y; tp[i * 3 + 2] = q.z; }
-      tg.attributes.position.needsUpdate = true;
+      const k = Math.min(1, age / duration), e = ease(k);
+      const p = at(e);
+      hist.push(p); while (hist.length > nTrail) hist.shift();
+      const a = done ? Math.max(0, 1 - (age - duration) / 0.25) : 1;
+      x.globalCompositeOperation = 'lighter';
+      for (let i = 1; i < hist.length; i++) {
+        const f = i / hist.length;
+        x.strokeStyle = rgba(hex, 0.85 * f * a); x.lineWidth = 1 + f * cell * 0.22; x.lineCap = 'round';
+        x.beginPath(); x.moveTo(hist[i - 1][0], hist[i - 1][1]); x.lineTo(hist[i][0], hist[i][1]); x.stroke();
+      }
+      if (hist.length > 1) { x.strokeStyle = `rgba(255,255,255,${0.7 * a})`; x.lineWidth = 1; x.beginPath(); x.moveTo(hist[Math.max(0, hist.length - 4)][0], hist[Math.max(0, hist.length - 4)][1]); x.lineTo(p[0], p[1]); x.stroke(); }
+      const hs = cell * 1.5; x.globalAlpha = a; x.drawImage(head, p[0] - hs / 2, p[1] - hs / 2, hs, hs); x.globalAlpha = 1;
+      x.globalCompositeOperation = 'source-over';
       if (k >= 1 && !done) { done = true; onImpact && onImpact(); }
-      if (age > duration + 0.25) { scene.remove(head, trail); head.material.dispose(); tg.dispose(); trail.material.dispose(); return false; }
-      if (done) { head.material.opacity = Math.max(0, 1 - (age - duration) / 0.25); trail.material.opacity = head.material.opacity * 0.75; }
-      return true;
+      return age < duration + 0.25;
     } });
   }
-  /** A ship reveals, cracks and shatters into shards that sink through the table. */
+  /** A ship burns white, then shatters into shards that fly out and fade; the wreck stays. */
   function sink(uid, ship, idx) {
-    const b = boards.get(uid); if (!b) return;
-    hideShip(uid, idx);
-    const wreck = shipMesh(b, ship, { alpha: 1, hot: 1 });
-    b.group.add(wreck);
-    b.mat.uniforms.uPulseT.value = clock.t;
-    const n = Math.min(TIERS[tier].shards, ship.len * 9 + 6);
-    const im = new THREE.InstancedMesh(shardGeo, new THREE.MeshBasicMaterial({ color: b.color, transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending }), n);
-    im.frustumCulled = false;
-    const parts = [];
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(1, 1, 1);
-    const centre = wreck.position.clone();
-    for (let i = 0; i < n; i++) {
-      const along = (Math.random() - 0.5) * ship.len * CELL * 0.9;
-      const pos = ship.d ? new THREE.Vector3(centre.x + (Math.random() - 0.5) * CELL * 0.5, 0.3, centre.z + along) : new THREE.Vector3(centre.x + along, 0.3, centre.z + (Math.random() - 0.5) * CELL * 0.5);
-      parts.push({ pos, vel: new THREE.Vector3((Math.random() - 0.5) * 2.2, 1.2 + Math.random() * 2.4, (Math.random() - 0.5) * 2.2), rot: new THREE.Vector3(Math.random() * 6, Math.random() * 6, 0), spin: (Math.random() - 0.5) * 9 });
-    }
-    let age = 0;
-    fx.push({ update(dt) {
+    const b = board(uid); if (!b) return;
+    if (uid !== focusUid) { hideShip(uid, idx); if (b.pendingSunk) b.pendingSunk.delete(idx); b.miniDirty = true; return; }
+    b.hot = { ship, idx, t: 0 };
+    const cell = geo.cell;
+    const cx = cellX(ship.d ? ship.c : ship.c + (ship.len - 1) / 2), cy = cellY(ship.d ? ship.r + (ship.len - 1) / 2 : ship.r);
+    const n = reduced ? 10 : Math.min(TIERS[tier].shards, ship.len * 9 + 6);
+    const sp = shardSprite(b.hex, 32), flash = glowSprite(b.hex, 128);
+    const parts = Array.from({ length: n }, () => {
+      const along = (Math.random() - 0.5) * ship.len * cell * 0.9, across = (Math.random() - 0.5) * cell * 0.5;
+      const px = ship.d ? cx + across : cx + along, py = ship.d ? cy + along : cy + across;
+      const a = Math.atan2(py - cy, px - cx) + (Math.random() - 0.5) * 1.2, v = cell * (2.5 + Math.random() * 6);
+      return { x: px, y: py, vx: Math.cos(a) * v, vy: Math.sin(a) * v - cell * 3, rot: Math.random() * TAU, spin: (Math.random() - 0.5) * 12, s: cell * (0.22 + Math.random() * 0.3) };
+    });
+    let age = 0, burst = false;
+    fx.push({ draw(dt, x) {
       age += dt;
-      if (age < 0.5) { wreck.material.uniforms.uHot.value = 1 + Math.sin(age * 40) * 0.5; wreck.position.y = 0.22 + Math.sin(age * 60) * 0.03; return true; }
-      if (wreck.parent) { b.group.remove(wreck); wreck.geometry.dispose(); wreck.material.dispose(); b.group.add(im); if (!reduced) cam.shake = Math.max(cam.shake, 0.7); }
-      const t2 = age - 0.5;
-      parts.forEach((p, i) => {
-        p.vel.y -= 7 * dt; p.pos.addScaledVector(p.vel, dt); p.rot.x += p.spin * dt; p.rot.y += p.spin * 0.7 * dt;
-        e.set(p.rot.x, p.rot.y, 0); q.setFromEuler(e);
-        const s = Math.max(0.05, 1 - t2 / 1.6); sc.setScalar(s);
-        m.compose(p.pos, q, sc); im.setMatrixAt(i, m);
-      });
-      im.instanceMatrix.needsUpdate = true;
-      im.material.opacity = Math.max(0, 1 - t2 / 1.6);
-      if (t2 > 1.6) { b.group.remove(im); im.material.dispose(); im.dispose(); return false; }
-      return true;
+      if (age < 0.5) { b.hot.t = age; return true; }
+      if (!burst) { burst = true; b.hot = null; hideShip(uid, idx); if (b.pendingSunk) b.pendingSunk.delete(idx); b.miniDirty = true; pulseBoard(b.hex, 0.3); if (!reduced) shake = Math.max(shake, 0.8); }
+      const t2 = age - 0.5, k = t2 / 1.6;
+      x.globalCompositeOperation = 'lighter';
+      if (t2 < 0.5) { const fs = cell * (3 + t2 * 8); x.globalAlpha = 1 - t2 * 2; x.drawImage(flash, cx - fs / 2, cy - fs / 2, fs, fs); x.globalAlpha = 1; }
+      for (const p of parts) {
+        p.vy += cell * 16 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.spin * dt;
+        x.save(); x.translate(p.x, p.y); x.rotate(p.rot); x.globalAlpha = Math.max(0, 1 - k); const s = p.s * (1 - k * 0.5); x.drawImage(sp, -s / 2, -s / 2, s, s); x.restore();
+      }
+      x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+      return k < 1;
     } });
   }
-  /** The whole board flickers, glitches and powers down to dark. */
+  /** The board flickers, tears and powers down to dark. */
   function eliminate(uid) {
-    const b = boards.get(uid); if (!b) return;
+    const b = board(uid); if (!b) return;
     for (const s of b.ships.slice()) hideShip(uid, s.idx);
     let age = 0;
-    fx.push({ update(dt) {
-      age += dt;
-      const k = age / 1.4;
-      const flicker = Math.random() < 0.5 ? 1 : 0.25;
-      setPower(uid, k < 1 ? Math.max(0.08, (1 - k) * flicker + 0.08) : 0.08);
-      b.group.position.x = Math.sin(b.theta) * ring + (k < 1 ? (Math.random() - 0.5) * 0.12 * (1 - k) : 0);
-      if (k >= 1) { setPower(uid, 0.08); b.group.position.x = Math.sin(b.theta) * ring; return false; }
+    fx.push({ draw(dt) {
+      age += dt; const k = age / 1.4;
+      if (k >= 1) { b.glitch = 0; setPower(uid, 0.08); return false; }
+      b.glitch = reduced ? 0 : 1 - k;
+      b.power = Math.max(0.08, (1 - k) * (Math.random() < 0.5 ? 1 : 0.3) + 0.08); b.miniDirty = true;
       return true;
     } });
   }
 
-  // ---- camera
-  function fitDistance(span, aspectFactor = 1) {
-    const vfov = (camera.fov * Math.PI) / 180;
-    const hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
-    const dw = (span * (portrait ? 0.63 : 0.56) * aspectFactor) / Math.tan(hfov / 2);
-    const dh = (span * (portrait ? 0.74 : 0.92)) / Math.tan(vfov / 2);
-    return Math.max(dw, dh);
-  }
-  function refocus(instant = false) {
-    const elev = portrait ? 0.98 : 0.86;   // radians above the table
-    if (focusUid === 'overview' || !boards.has(focusUid)) {
-      const span = ring * 2 + BOARD * 1.1;
-      const d = fitDistance(span, 0.95) * 0.78;
-      const mine = boards.get(order[0]);
-      const th = mine ? mine.theta : 0;
-      cam.goalPos.set(Math.sin(th) * Math.cos(elev + 0.25) * d, Math.sin(elev + 0.25) * d, Math.cos(th) * Math.cos(elev + 0.25) * d);
-      cam.goalLook.set(0, -1.5, 0);
-    } else {
-      const b = boards.get(focusUid);
-      const d = fitDistance(BOARD * (1 + focusPush * -0.18)) * (portrait ? 1 : 0.94);
-      const out = new THREE.Vector3(Math.sin(b.theta), 0, Math.cos(b.theta));
-      const pos = b.group.position.clone().addScaledVector(out, Math.cos(elev) * d).setY(Math.sin(elev) * d);
-      cam.goalPos.copy(pos);
-      // look a little past the board (inward) in portrait so it sits lower, leaving the top for the HUD
-      cam.goalLook.copy(b.group.position).addScaledVector(out, portrait ? -BOARD * 0.22 : BOARD * 0.08);
-    }
-    if (instant) { cam.pos.copy(cam.goalPos); cam.look.copy(cam.goalLook); }
-  }
-  function focus(uid, { instant = false, push = 0, speed = 4 } = {}) { focusUid = uid; focusPush = push; cam.speed = speed; refocus(instant); }
-
-  // ---- picking
-  const ray = new THREE.Raycaster();
-  const ndc = new THREE.Vector2();
-  const planeY = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  function pick(x, y, onlyUid = null) {
-    ndc.set((x / W) * 2 - 1, -(y / H) * 2 + 1);
-    ray.setFromCamera(ndc, camera);
-    const hitP = new THREE.Vector3();
-    if (!ray.ray.intersectPlane(planeY, hitP)) return null;
-    let best = null;
-    for (const b of boards.values()) {
-      if (onlyUid && b.uid !== onlyUid) continue;
-      const local = b.group.worldToLocal(hitP.clone());
-      const c = Math.floor((local.x + BOARD / 2) / CELL), r = Math.floor((local.z + BOARD / 2) / CELL);
-      const inside = c >= 0 && r >= 0 && c < N && r < N;
-      if (inside) return { uid: b.uid, r, c };
-      const d = Math.max(Math.abs(local.x), Math.abs(local.z));
-      if (!best || d < best.d) best = { uid: b.uid, d, r: Math.max(0, Math.min(N - 1, r)), c: Math.max(0, Math.min(N - 1, c)) };
-    }
-    return best && best.d < BOARD * 0.75 ? { uid: best.uid, r: best.r, c: best.c, near: true } : null;
-  }
-
-  // ---- frame
+  // ---------------------------------------------------------------- the frame
   let last = 0;
   const frameTimes = [];
   function frame(now) {
     const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016);
-    last = now;
-    clock.t += dt;
+    last = now; clock.t += dt;
     const t = clock.t;
-    // radar sweep: a pass every ~9 s
-    if (TIERS[tier].sweep && !reduced) {
-      if (t > sweepNext) { sweepOn = 1; sweepA = 0; sweepNext = t + 9 + Math.random() * 3; if (onSweep) onSweep(); }
-      if (sweepOn) { sweepA += dt * (TAU / 2.6); if (sweepA >= TAU) { sweepOn = 0; sweepA = 0; } }
+    ctx.clearRect(0, 0, W, H);
+    const b = focusUid && boards.get(focusUid);
+    if (b) {
+      if (fade < 1) fade = Math.min(1, fade + dt / 0.28);
+      if (base.dirty || base.uid !== b.uid) buildBase(b);
+      if (marks.dirty || marks.uid !== b.uid) buildMarks(b);
+      shake = Math.max(0, shake - dt * 2.4);
+      const sh = shake * shake * 9;
+      const ox = sh ? (Math.random() - 0.5) * sh : 0, oy = sh ? (Math.random() - 0.5) * sh : 0;
+      const f = ease(fade);
+      ctx.save();
+      ctx.globalAlpha = f;
+      ctx.translate(ox, oy + (1 - f) * 14);
+      const { bx, by, S, gx, gy, gw, cell } = geo;
+      // the panel (torn into slices while a board dies)
+      if (b.glitch > 0) {
+        const slices = 7, hgt = S / slices;
+        for (let i = 0; i < slices; i++) { const off = (Math.random() - 0.5) * 18 * b.glitch; if (Math.random() < 0.12 * b.glitch) continue; ctx.drawImage(base.canvas, 0, i * hgt * dpr, S * dpr, hgt * dpr, bx + off, by + i * hgt, S, hgt); }
+      } else ctx.drawImage(base.canvas, bx, by, S, S);
+      // hulls (your own), wrecks, the ghost while placing
+      for (const s of b.ships) {
+        if (b.sunk[s.idx] != null && !(b.pendingSunk && b.pendingSunk.has(s.idx))) continue;
+        const hot = b.hot && b.hot.idx === s.idx ? 0.5 + 0.5 * Math.sin(b.hot.t * 40) : 0;
+        drawHull(ctx, s, cell, gx, gy, b.hex, { hot });
+      }
+      for (const [idx, g] of Object.entries(b.sunk)) { if (b.pendingSunk && b.pendingSunk.has(Number(idx))) continue; drawHull(ctx, geoOf(g), cell, gx, gy, b.hex, { wreck: true }); }
+      if (b.ghost) drawHull(ctx, b.ghost, cell, gx, gy, b.ghostValid ? b.hex : RED, { ghost: true, alpha: 0.9 });
+      // marks
+      ctx.drawImage(marks.canvas, gx, gy, gw, gw);
+      // the sweep: a band of light crossing the grid now and then
+      if (TIERS[tier].sweep && !reduced) {
+        if (sweepT < 0 && t > sweepNext) { sweepT = 0; sweepNext = t + 9 + Math.random() * 4; if (onSweep) onSweep(); }
+        if (sweepT >= 0) {
+          sweepT += dt / 1.7;
+          if (sweepT > 1) sweepT = -1;
+          else {
+            ctx.save(); ctx.beginPath(); ctx.rect(gx, gy, gw, gw); ctx.clip();
+            ctx.translate(gx + gw / 2, gy + gw / 2); ctx.rotate(-Math.PI / 4);
+            const p = -gw + sweepT * gw * 2, bw = gw * 0.22;
+            const g = ctx.createLinearGradient(0, p - bw, 0, p + bw);
+            g.addColorStop(0, rgba(b.hex, 0)); g.addColorStop(0.5, rgba(b.hex, 0.16)); g.addColorStop(1, rgba(b.hex, 0));
+            ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(-gw, p - bw, gw * 2, bw * 2);
+            ctx.restore();
+          }
+        }
+      }
+      // a dead board goes dark
+      if (b.power < 1) { ctx.fillStyle = `rgba(3,4,12,${(1 - b.power) * 0.82})`; roundRect(ctx, bx, by, S, S, geo.radius); ctx.fill(); }
+      // an impact lights the whole panel for a moment
+      if (pulse > 0) { pulse = Math.max(0, pulse - dt * 0.6); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba(pulseHex, pulse * 0.6); roundRect(ctx, bx, by, S, S, geo.radius); ctx.fill(); ctx.globalCompositeOperation = 'source-over'; }
+      // the reticle: brackets on the cell, its row and column lit, the labels called out
+      if (ret && ret.uid === b.uid) drawReticle(ctx, t);
+      ctx.restore();
     }
-    for (const b of boards.values()) {
-      const lit = focusUid === b.uid ? 0.9 : focusUid === 'overview' ? 0.45 : 0.0;   // other boards face away: their labels would read mirrored
-      b.labels.material.opacity += (lit - b.labels.material.opacity) * Math.min(1, dt * 5);
-      if (b.halo) b.halo.material.opacity = 0.22 * b.power;
-      b.mat.uniforms.uTime.value = t; b.mat.uniforms.uSweep.value = sweepA; b.mat.uniforms.uSweepOn.value = sweepOn;
-      b.hits.material.uniforms.uTime.value = t;
-      for (const s of b.ships) { s.mesh.material.uniforms.uTime.value = t; s.mesh.position.y = 0.26 + Math.sin(t * 1.3 + s.phase) * 0.04; if (s.pool) s.pool.material.opacity = 0.26 + Math.sin(t * 1.3 + s.phase) * 0.06; }
-      if (b.ghost) b.ghost.material.uniforms.uTime.value = t;
-    }
-    tableMat.uniforms.uTime.value = t;
-    if (points) points.rotation.y = t * 0.012;
-    for (let i = fx.length - 1; i >= 0; i--) if (!fx[i].update(dt, t)) fx.splice(i, 1);
-    // camera: smooth pursuit + a little shake on impacts
-    const k = 1 - Math.exp(-dt * cam.speed);
-    cam.pos.lerp(cam.goalPos, k); cam.look.lerp(cam.goalLook, k);
-    cam.shake = Math.max(0, cam.shake - dt * 2.2);
-    const sh = cam.shake * cam.shake * 0.25;
-    camera.position.copy(cam.pos); if (sh) camera.position.x += (Math.random() - 0.5) * sh, camera.position.y += (Math.random() - 0.5) * sh;
-    camera.lookAt(cam.look);
-    renderer.render(scene, camera);
+    // light in the air (screen space)
+    for (let i = fx.length - 1; i >= 0; i--) { let keep = true; try { keep = fx[i].draw(dt, ctx); } catch { keep = false; } if (!keep) fx.splice(i, 1); }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    for (const bb of boards.values()) if (bb.miniDirty && bb.mini.isConnected) drawMini(bb);
     frameTimes.push(dt * 1000); if (frameTimes.length > 120) frameTimes.shift();
   }
-
-  function resize(w, h) {
-    W = w; H = h; portrait = h > w;
-    const dpr = Math.min(TIERS[tier].dpr, window.devicePixelRatio || 1);
-    renderer.setPixelRatio(dpr);
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h; camera.updateProjectionMatrix();
-    refocus(false);
+  function drawReticle(x, t) {
+    const { gx, gy, gw, cell, bx, by, P, M } = geo;
+    const cx = cellX(ret.c), cy = cellY(ret.r);
+    const breathe = reduced ? 0 : Math.sin(t * 4) * 0.04;
+    x.save();
+    x.globalCompositeOperation = 'lighter';
+    x.fillStyle = 'rgba(255,255,255,0.05)'; x.fillRect(gx, cy - cell / 2, gw, cell); x.fillRect(cx - cell / 2, gy, cell, gw);
+    x.globalCompositeOperation = 'source-over';
+    // the labels of this cell, lit
+    x.font = `700 ${geo.font}px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    const ly = by + P + M * 0.52, lx = bx + P + M * 0.5;
+    x.fillStyle = 'rgba(255,255,255,0.18)';
+    roundRect(x, cx - cell * 0.42, ly - M * 0.36, cell * 0.84, M * 0.72, 4); x.fill();
+    roundRect(x, lx - M * 0.4, cy - cell * 0.42, M * 0.8, cell * 0.84, 4); x.fill();
+    x.fillStyle = '#ffffff'; x.fillText(COLS[ret.c], cx, ly); x.fillText(String(ret.r + 1), lx, cy + 0.5);
+    // brackets + crosshair
+    const half = cell * (0.46 + breathe), arm = cell * 0.22;
+    x.globalCompositeOperation = 'lighter';
+    const gs = cell * 2.6; x.globalAlpha = 0.55; x.drawImage(glowSprite('#ffffff', 64), cx - gs / 2, cy - gs / 2, gs, gs); x.globalAlpha = 1;
+    x.strokeStyle = '#ffffff'; x.lineWidth = 2; x.lineCap = 'round';
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { x.beginPath(); x.moveTo(cx + sx * half, cy + sy * (half - arm)); x.lineTo(cx + sx * half, cy + sy * half); x.lineTo(cx + sx * (half - arm), cy + sy * half); x.stroke(); }
+    x.lineWidth = 1; x.strokeStyle = 'rgba(255,255,255,0.7)';
+    x.beginPath(); x.moveTo(cx - cell * 0.3, cy); x.lineTo(cx + cell * 0.3, cy); x.moveTo(cx, cy - cell * 0.3); x.lineTo(cx, cy + cell * 0.3); x.stroke();
+    x.restore();
   }
-  function setTier(t) { tier = Math.max(0, Math.min(2, t)); buildPoints(); resize(W, H); }
 
   return {
-    layout, setMarks, setShips, hideShip, setGhost, hover, reticle, setPower, setBounty, miss, hit, fire, sink, eliminate,
-    focus, pick, frame, resize, setTier,
+    layout, miniCanvas, setMiniSize, setOrigins, setStage, resize, setTier,
+    setMarks, setSunk, setShips, hideShip, setGhost, reticle, setPower, setBounty,
+    miss, hit, fire, sink, eliminate, focus, pick, cellXY, frame,
     get tier() { return tier; },
     get focusUid() { return focusUid; },
     get fps() { return frameTimes.slice(); },
+    get geometry() { return { ...geo }; },
     onSweep(fn) { onSweep = fn; },
-    camera: () => ({ pos: cam.pos.toArray().map(v => +v.toFixed(2)), look: cam.look.toArray().map(v => +v.toFixed(2)), focus: focusUid }),
-    stats: () => ({ boards: boards.size, fx: fx.length, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
-    destroy() {
-      for (const uid of [...boards.keys()]) removeBoard(uid);
-      for (const d of disposables) d.dispose();
-      if (points) { points.geometry.dispose(); points.material.dispose(); }
-      glow.dispose();
-      renderer.dispose();
-      try { renderer.forceContextLoss(); } catch { /* fine */ }
-    },
+    camera: () => ({ focus: focusUid, box: [geo.bx, geo.by, geo.S], settled: fade >= 1 }),
+    stats: () => ({ boards: boards.size, fx: fx.length, dpr, sprites: sprites.size }),
+    destroy() { fx.length = 0; for (const b of boards.values()) b.mini.remove(); boards.clear(); },
   };
 }

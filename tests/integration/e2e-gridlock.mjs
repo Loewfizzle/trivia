@@ -15,19 +15,15 @@ let code = '';
 const joinAll = async n => { const host = await H.joinAll(n); code = H.code; return host; };
 const name = uid => H.nameOf(uid);
 const cleanText = (page, where) => H.cleanText(page, where, '.gl');
-// the camera glides to its goal: wait until it has stopped before measuring where things are on screen
-async function settle(page) { let last = ''; for (let k = 0; k < 40; k++) { const c = JSON.stringify(await G(page, 'window.__gridlock.camera()')); if (c === last) return; last = c; await sleep(150); } }
-// screen position of a cell on a board: project through the scene's picker by scanning (cheap: the picker is exact)
+// the board fades in when it changes: wait until it has settled before measuring where things are on screen
+async function settle(page) { for (let k = 0; k < 40; k++) { const c = await G(page, 'window.__gridlock.camera()'); if (c && c.settled) return; await sleep(100); } }
+// screen position of a cell on the board that is up (the scene's geometry is exact; the picker agrees with it)
 async function cellXY(page, uid, r, c) {
-  return page.evaluate((u, rr, cc) => {
-    const W = innerWidth, H = innerHeight;
-    let best = null;
-    for (let y = 40; y < H - 40; y += 6) for (let x = 20; x < W - 20; x += 6) {
-      const p = window.__gridlock.pick(x, y);
-      if (p && p.uid === u && !p.near && p.r === rr && p.c === cc) { const d = Math.hypot(x - W / 2, y - H / 2); if (!best || d < best.d) best = { x, y, d }; }
-    }
-    return best && [best.x, best.y];
-  }, uid, r, c);
+  const xy = await G(page, `window.__gridlock.cellXY(${JSON.stringify(uid)}, ${r}, ${c})`);
+  if (!xy) return null;
+  const back = await G(page, `window.__gridlock.pick(${xy[0]}, ${xy[1]})`);
+  if (!back || back.uid !== uid || back.r !== r || back.c !== c || back.near) fail(`GEOMETRY: cell ${r},${c} of ${name(uid)} is not where the scene says (${JSON.stringify(back)})`);
+  return xy;
 }
 let fatal = null;
 try {

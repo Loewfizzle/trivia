@@ -4,73 +4,114 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GRIDLOCK preview</title>
-<!-- The war table without Firebase: N fake boards, your fleet, a looping volley (beams → hits/misses → a sink → a power-down).
-     ?n=4&size=8&tier=2&focus=me|overview|<index>&volley=1&still=1  (window.__state for tests) -->
+<!-- The real GRIDLOCK view without Firebase: a scripted match drives it through placement, aiming, a volley cinematic
+     (beams → scars / rings → a sink → a power-down), the bounty, an elimination, spectating.
+     ?n=4&size=8&tier=2&at=place|aim|reticle|locked|show|sunk|elim|spec|end&still=1&shot=hit|miss  (window.__gridlock for tests) -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/kit.css">
 <link rel="stylesheet" href="/css/gridlock.css">
-<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
-<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #04050f; } .gl { position: fixed; } .nd-backdrop { position: fixed; inset: 0; z-index: 0; } .nd-backdrop canvas { width: 100%; height: 100%; object-fit: cover; }</style>
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #04050f; } #stage { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; } .nd-backdrop { position: fixed; inset: 0; z-index: 0; } .nd-backdrop canvas { width: 100%; height: 100%; object-fit: cover; }</style>
 </head>
-<body class="gl-on">
-<div class="nd-backdrop is-shown is-on" aria-hidden="true"><canvas></canvas></div>
-<div class="gl" id="gl"><canvas class="gl-canvas"></canvas></div>
+<body data-theme="gridlock">
+<div id="stage"><div class="screen screen-in" id="screen"></div></div>
 <script type="module">
-import { createScene } from '/js/games/gridlock/scene.js';
-import { randomLayout, fleetFor } from '/js/games/gridlock/logic.js';
+import { createView } from '/js/games/gridlock/view.js';
+import { randomLayout, fleetFor, boardSize, encodeFleet, resolveVolley, applyResolution, cellsOf } from '/js/games/gridlock/logic.js';
 import { rngFrom } from '/js/core/rng.js';
-import { createDistrict } from '/js/screens/district/scene.js';
-import { GAMES } from '/js/config.js';
 
 const q = new URLSearchParams(location.search);
-const n = Number(q.get('n') || 4), size = Number(q.get('size') || (n <= 3 ? 10 : 8)), tier = Number(q.get('tier') ?? 2);
-// the city behind (one frame, like district/backdrop.js keeps)
-const bd = document.querySelector('.nd-backdrop canvas');
-const off = document.createElement('canvas'); off.style.cssText = 'position:fixed;inset:0;width:100vw;height:100dvh;visibility:hidden'; document.body.append(off);
-const dist = createDistrict(off, { games: GAMES, tier: 1 });
-dist.set({ wave: 1, lit: 1, bill: 1, logo: 0, motion: 0 });
-setTimeout(() => { bd.width = off.width; bd.height = off.height; bd.getContext('2d').drawImage(off, 0, 0); dist.destroy(); off.remove(); }, 1200);
-
-const root = document.getElementById('gl');
-const scene = createScene(root.querySelector('.gl-canvas'), { size });
-scene.setTier(tier);
-scene.resize(innerWidth, innerHeight);
-addEventListener('resize', () => scene.resize(innerWidth, innerHeight));
-const COLORS = ['#ff2bd6', '#00f0ff', '#f3ff3a', '#3dff8b', '#ff8c1a', '#a66bff', '#ff3355', '#3d7bff'];
-const uids = Array.from({ length: n }, (_, i) => `p${i}`);
-scene.layout(uids, Object.fromEntries(uids.map((u, i) => [u, COLORS[i]])));
-const fleet = randomLayout(size, fleetFor(size), rngFrom('preview'));
-scene.setShips('p0', fleet);
-// some history on every board
-const cells = {};
-for (const u of uids) { cells[u] = {}; const r = rngFrom(u); for (let k = 0; k < 6; k++) cells[u][`${Math.floor(r() * size)},${Math.floor(r() * size)}`] = { by: uids[Math.floor(r() * n)], h: r() < 0.4 ? 1 : 0 }; scene.setMarks(u, cells[u], null, b => COLORS[uids.indexOf(b)]); }
-scene.setBounty('p1');
-const f = q.get('focus') || 'me';
-scene.focus(f === 'me' ? 'p0' : f === 'overview' ? 'overview' : uids[Number(f)] || 'p0', { instant: true });
-scene.reticle('p1', 3, 4);
-
-let last = 0; const frames = [];
-function frame(now) { requestAnimationFrame(frame); const w0 = performance.now(); scene.frame(now); frames.push([performance.now() - w0, last ? now - last : 16]); if (frames.length > 300) frames.shift(); last = now; }
-requestAnimationFrame(frame);
-window.__perf = frames; window.__scene = scene; window.__state = { n, size, tier };
-
-// a looping volley unless ?still=1
-if (q.get('volley') !== '0' && !q.get('still')) {
-  const r = rngFrom('v');
-  const loop = () => {
-    const t = uids[1 + Math.floor(r() * (n - 1))];
-    scene.focus(t, { speed: 3.2 });
-    const shots = uids.filter(u => u !== t).slice(0, Math.min(3, n - 1));
-    shots.forEach((by, i) => setTimeout(() => {
-      const rr = Math.floor(r() * size), cc = Math.floor(r() * size);
-      scene.fire({ from: by, to: t, r: rr, c: cc, hex: COLORS[uids.indexOf(by)] }, () => { if (i < 2) scene.hit(t, rr, cc, COLORS[uids.indexOf(by)]); else scene.miss(t, rr, cc); cells[t][`${rr},${cc}`] = { by, h: i < 2 ? 1 : 0 }; scene.setMarks(t, cells[t], null, b => COLORS[uids.indexOf(b)]); });
-    }, 500 + i * 330));
-    setTimeout(() => { scene.focus(t, { push: 1, speed: 3 }); scene.sink(t, { r: 2, c: 1, len: 3, d: 0 }, 1); }, 2400);
-    if (r() < 0.3) setTimeout(() => { scene.eliminate(t); setTimeout(() => scene.setPower(t, 1), 3000); }, 4200);
-    setTimeout(loop, 6500);
-  };
-  setTimeout(loop, 1200);
+const n = Math.max(2, Math.min(8, Number(q.get('n') || 2)));
+const size = Number(q.get('size') || boardSize(n));
+const tier = Number(q.get('tier') ?? 2);
+const at = q.get('at') || 'aim';
+const still = q.get('still') === '1';
+const COLORS = ['cyan', 'magenta', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'];
+const NAMES = ['YOU', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FRANK', 'GRACE', 'HAL'];
+const AV = ['crown', 'bolt', 'diamond', 'star', 'skull', 'heart', 'eye', 'ghost'];
+const uids = Array.from({ length: n }, (_, i) => `u${i}`);
+const me = uids[0];
+const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], color: COLORS[i], avatar: AV[i], joinedAt: i }]));
+const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: Date.now() }]));
+const fleets = Object.fromEntries(uids.map((u, i) => [u, randomLayout(size, fleetFor(size), rngFrom(`pv:${u}`))]));
+const now = Date.now();
+const game = {
+  id: 'gridlock', matchId: 'm1', settings: { mode: n > 3 ? 'royale' : 'classic', placeSec: 60, turnSec: 20 }, mode: n > 3 ? 'royale' : 'classic',
+  participants: Object.fromEntries(uids.map(u => [u, true])), names: Object.fromEntries(uids.map((u, i) => [u, NAMES[i]])),
+  size, fleet: fleetFor(size), n0: n, order: uids.slice(), phase: 'place', phaseStartAt: now, phaseEndsAt: now + 60000, v: 0, rk: '0', round: 0, ti: -1, cur: null,
+  boards: {}, pts: {}, stats: {},
+};
+// a little history on every board: some misses, a few hits (not sinking anything yet)
+const rnd = rngFrom('pv:history');
+for (const u of uids) {
+  const b = { cells: {}, sunk: {}, left: game.fleet.reduce((a, c) => a + c, 0) };
+  for (let k = 0; k < 5; k++) { const r = Math.floor(rnd() * size), c = Math.floor(rnd() * size); if (fleets[u].some(s => cellsOf(s).some(([a, bb]) => a === r && bb === c))) continue; b.cells[`${r},${c}`] = { by: uids[(uids.indexOf(u) + 1) % n], h: 0 }; }
+  const ship = fleets[u][1]; const [r, c] = cellsOf(ship)[0]; b.cells[`${r},${c}`] = { by: uids[(uids.indexOf(u) + 1) % n], h: 1 }; b.left--;
+  game.boards[u] = b;
 }
+const state = { uid: me, code: 'PVW1', players, presence, game, live: { shots: {}, res: {}, ready: {}, calls: {} }, liveKey: null };
+import('/js/games/registry.js').then(m => { state.liveKey = m.liveKeyFor(game); push(); });
+
+const view = createView();
+const screen = document.getElementById('screen');
+let mounted = false;
+function push() { if (!mounted) { view.mount(screen, state); mounted = true; } else view.update({ ...state, game: { ...state.game } }); }
+push();
+setTimeout(() => { window.__gridlock.setTier(tier); window.__gridlock.place(fleets[me]); }, 50);
+
+const step = (patch) => { Object.assign(game, patch); push(); };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function volley({ shooter = uids[1], target = me, hit = true, sinkIt = false, elim = false } = {}) {
+  // one shot (Classic) at a known cell on the target's board, resolved locally like the target's phone would
+  const ship = fleets[target][sinkIt ? 1 : 0];
+  const cells = cellsOf(ship);
+  let cell;
+  if (hit) cell = cells.find(([r, c]) => !(game.boards[target].cells[`${r},${c}`] || {}).h) || cells[0];
+  else { let r, c; do { r = Math.floor(rnd() * size); c = Math.floor(rnd() * size); } while (fleets[target].some(s => cellsOf(s).some(([a, b]) => a === r && b === c)) || game.boards[target].cells[`${r},${c}`]); cell = [r, c]; }
+  if (sinkIt) for (const [r, c] of cells) if (!cell || r !== cell[0] || c !== cell[1]) game.boards[target].cells[`${r},${c}`] = { by: shooter, h: 1 };
+  const fire = { [shooter]: [{ t: target, r: cell[0], c: cell[1] }] };
+  const res = resolveVolley(fleets[target], game.boards[target], { [shooter]: fire[shooter] });
+  const { board, events } = applyResolution(game, target, fire, res);
+  if (elim) { board.left = 0; events.push({ k: 'elim', t: target, by: [shooter] }); }
+  const t0 = Date.now();
+  step({ phase: 'show', fire, ev: events, boards: { ...game.boards, [target]: board }, phaseStartAt: t0, phaseEndsAt: t0 + 6000, pts: { ...game.pts, [shooter]: (game.pts[shooter] || 0) + (hit ? 10 : 0) }, out: elim ? { ...(game.out || {}), [target]: { at: t0, place: n, rem: n - 1, by: [shooter] } } : game.out });
+}
+window.__preview = { game, state, step, volley, fleets, uids };
+
+(async () => {
+  await wait(120);
+  if (at === 'place') return;
+  // first volley: mine
+  const t1 = Date.now();
+  step({ phase: game.mode === 'royale' ? 'aim' : 'turn', cur: me, v: 1, rk: '1', round: 1, phaseStartAt: t1, phaseEndsAt: t1 + 20000 });
+  await wait(100);
+  if (at === 'aim') return;
+  window.__gridlock.aim(uids[1], 2, 3);
+  if (at === 'reticle') return;
+  if (at === 'locked') { state.live.shots = { [me]: { t: uids[1], x: 'x' }, [uids[2] || uids[1]]: { t: me, x: 'x' }, ...(uids[3] ? { [uids[3]]: { t: me, x: 'x' } } : {}) }; window.__gridlock.fire(); push(); return; }
+  window.__gridlock.fire();
+  await wait(300);
+  if (at === 'show') { await volley({ shooter: me, target: uids[1], hit: q.get('shot') !== 'miss' }); return; }
+  if (at === 'sunk') { await volley({ shooter: me, target: uids[1], hit: true, sinkIt: true }); return; }
+  if (at === 'elim') { await volley({ shooter: me, target: uids[1], hit: true, sinkIt: true, elim: true }); return; }
+  if (at === 'spec') { await volley({ shooter: uids[1], target: me, hit: true, sinkIt: true, elim: true }); await wait(5200); const t2 = Date.now(); step({ phase: 'turn', cur: uids[1], v: 2, rk: '2', fire: null, phaseStartAt: t2, phaseEndsAt: t2 + 20000, bounty: uids[1] }); return; }
+  if (at === 'end') { await volley({ shooter: me, target: uids[1], hit: true, sinkIt: true, elim: true }); await wait(5200); step({ phase: 'end', winner: me, done: true, phaseStartAt: Date.now(), phaseEndsAt: Date.now() + 4500 }); return; }
+  // a loop of volleys: me → BOB, BOB → me, with hits, misses, now and then a sink
+  if (still) return;
+  let k = 0;
+  for (;;) {
+    const mine = k % 2 === 0;
+    await volley({ shooter: mine ? me : uids[1], target: mine ? uids[1] : me, hit: k % 3 !== 2, sinkIt: k % 5 === 4 });
+    await wait(5200);
+    const t = Date.now();
+    step({ phase: 'turn', cur: mine ? uids[1] : me, v: k + 2, rk: String(k + 2), fire: null, phaseStartAt: t, phaseEndsAt: t + 20000, bounty: uids[1] });
+    await wait(1800);
+    if (!mine) { window.__gridlock.aim(uids[1], Math.floor(rnd() * size), Math.floor(rnd() * size)); await wait(800); window.__gridlock.fire(); await wait(400); }
+    k++;
+  }
+})();
 </script>
 </body>
 </html>
