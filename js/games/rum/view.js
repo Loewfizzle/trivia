@@ -389,13 +389,14 @@ export function createView() {
     if (!inMatch() || !my.S) return;
     const d = game.day, m = game.matchId;
     // a net-worth update never erases a DONE flag already there
-    const write = () => safe(() => (done || my.done ? set(dbRef(`rooms/${st.code}/rrpub/${m}/${d}/${me()}`), { nw: fortune(my.S), done: serverTimestamp() }) : dbUpdate(dbRef(`rooms/${st.code}/rrpub/${m}/${d}/${me()}`), { nw: fortune(my.S) })), 'rum pub');
+    const nw = () => { const R = replay(game, me(), my.logs, d); const H = R.hist[R.hist.length - 1]; return H ? H.nw : fortune(my.S); };
+    const write = () => safe(() => (done || my.done ? set(dbRef(`rooms/${st.code}/rrpub/${m}/${d}/${me()}`), { nw: nw(), done: serverTimestamp() }) : dbUpdate(dbRef(`rooms/${st.code}/rrpub/${m}/${d}/${me()}`), { nw: nw() })), 'rum pub');
     if (done) { clearTimeout(my.pubT); write(); return; }
     clearTimeout(my.pubT); my.pubT = setTimeout(write, 500);
   }
   /** One action from the panel: validated locally the way the replay will, then appended to the log. */
   function act(a) {
-    if (!inMatch() || game.phase !== 'day' || my.done || !my.S) return null;
+    if (!inMatch() || game.phase !== 'day' || my.done || !my.S || my.evIdx < my.events.length) return null;
     if (game.phaseEndsAt && game.phaseEndsAt - serverNow() < 700) { sfx.tap(); return null; }   // too late to land before night
     if (my.log && my.log.a.length >= MAX_ACTS) { ann.announce('THAT’S ENOUGH DEALS FOR ONE DAY', 'warn'); return null; }
     const S = snapshot(my.S);
@@ -412,14 +413,14 @@ export function createView() {
     return rec;
   }
   function setDest(id) {
-    if (!inMatch() || game.phase !== 'day' || my.done || !my.S) return;
+    if (!inMatch() || game.phase !== 'day' || my.done || !my.S || my.evIdx < my.events.length) return;
     if (!DIST[id]) return;
     if (DIST[id].fee && id !== myDist() && my.S.cash < DIST[id].fee) { sfx.tap(); return; }
     ensureLog().dest = id === myDist() ? null : id;
     writeLog(); sfx.tap(); renderPanel();
   }
   function finishDay() {
-    if (!inMatch() || game.phase !== 'day' || my.done || !my.S) return;
+    if (!inMatch() || game.phase !== 'day' || my.done || !my.S || my.evIdx < my.events.length) return;
     my.done = true;
     if (my.log) { clearTimeout(my.writeT); const d = game.day, m = game.matchId; safe(() => set(dbRef(`rrp/${st.code}/${m}/${me()}/${d}`), { ev: my.log.ev, a: my.log.a, dest: my.log.dest || null, at: serverTimestamp() }), 'rum done'); }
     publishNw(true);

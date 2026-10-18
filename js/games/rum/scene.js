@@ -337,7 +337,8 @@ export function createCity(canvas, { reduced = false } = {}) {
     // haze breathes; neon flickers a little
     hazes.forEach((hz, i) => { hz.sp.visible = i < T.haze; hz.sp.material.opacity = hz.base + Math.sin(t * 0.6 + hz.ph) * 0.02 + rainAmt * 0.03; });
     lightsT += dt;
-    neonLights.forEach((l, i) => { l.intensity = (T.lights ? 70 : 45) * (0.85 + 0.15 * Math.sin(t * 2.1 + i * 1.7)) * (1 - dawnT * 0.6); });
+    // the low tier keeps three neon lights (the Strip, Uptown, the Docks), the rest go dark
+    neonLights.forEach((l, i) => { l.intensity = (T.lights ? 70 : i % 2 ? 0 : 55) * (0.85 + 0.15 * Math.sin(t * 2.1 + i * 1.7)) * (1 - dawnT * 0.6); });
     if (!reduced) signs.forEach((m, i) => { if (m.material.opacity != null) m.material.opacity = (i % 7 === 3 && Math.sin(t * 13) > 0.92 ? 0.3 : 1) * (m.isSprite ? 0.55 : 0.95); });
     // steam from the engine
     for (const s of steams) { s.t += dt * 0.25; if (s.t > 1) { s.t -= 1; } s.sp.position.set(12.6 + s.t * 1.5 + Math.sin(s.t * 9) * 0.3, 2.6 + s.t * 4, 11.2 + s.t * 0.8); const k = 0.6 + s.t * 2.4; s.sp.scale.set(k, k, 1); s.sp.material.opacity = 0.22 * (1 - s.t) * (1 - dawnT * 0.3); }

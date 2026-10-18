@@ -57,6 +57,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 ## Working efficiently (what cost the most in past sessions)
 - **Edits:** use the Edit tool or a script file in the scratchpad. Never put code with backticks, `$` or `\b` inside an inline
   `node -e "…"` / heredoc — the shell mangles it and the repair costs more than the edit.
+- **Names:** a view's own `update(state)` shadows Firebase's `update` — import it as `dbUpdate` (RUMRUNNER lost its DONE writes to this; the
+  failure was silent because the view's update() just returned).
 - **Tests, in order:** `node --test tests/*.test.mjs` (seconds) → the game's `FAST=1` E2E (≈ 2 min) → the full suite once before
   committing. Don't re-run a 20-minute suite to check one fix. Run E2E suites with absolute paths and from `tests/integration`.
 - **A new game = rules first.** Pure `logic.js` + `director.js` with a whole-match simulation test before any pixel; then the view on the

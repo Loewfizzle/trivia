@@ -41,6 +41,8 @@ await H.run(async () => {
   await waitFor(pages[0], () => window.__rum && window.__rum.state().loaded && !!window.__rum.state().S, 'the books are open', 15000);
   await sleep(600);
   ok(await pages[0].$('.rr-panel .rr-good'), 'the market: a card per good');
+  // a rumour may already be waiting on day 1: answer it (nothing else is allowed while an event is up)
+  for (let k = 0; k < 2 && (await my(pages[0])).showing; k++) { const c = await G(pages[0], 'window.__rum.choices()'); await G(pages[0], `window.__rum.choose(${JSON.stringify(c[0])})`); await sleep(300); await pages[0].evaluate(() => { const b = document.querySelector('.rr-choice.is-go'); if (b) b.click(); }); await sleep(300); }
   const cash0 = (await my(pages[0])).S.cash;
   ok(cash0 === START_CASH, `starting cash $${START_CASH} (${cash0})`);
   const tip = await G(pages[0], `window.__rum.act(['x', ${JSON.stringify(uids[1])}])`);
