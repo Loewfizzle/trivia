@@ -37,7 +37,7 @@ export function createView() {
   const inMatch = () => !!(game && game.participants && game.participants[me()]);
   let pos = { seats: {}, pot: null, house: null, dock: null };
   // per round, on this phone
-  let local = { rk: null, bet: null, lockedBet: null, answer: null, answeredAt: 0, shownCat: false, played: new Set(), betPreview: null };
+  let local = { rk: null, bet: null, lockedBet: null, answer: null, answeredAt: 0, shownCat: false, played: new Set(), betPreview: null, potIn: new Set() };
   let lastPhaseKey = '';
   let showT0 = 0;
   let botTimer = 0, bot = null;
@@ -133,8 +133,16 @@ export function createView() {
   }
 
   function resetMatch() {
-    local = { rk: null, bet: null, lockedBet: null, answer: null, answeredAt: 0, played: new Set(), betPreview: null };
+    local = { rk: null, bet: null, lockedBet: null, answer: null, answeredAt: 0, played: new Set(), betPreview: null, potIn: new Set() };
     lastPhaseKey = '';
+    // 3. nothing from the last match carries over: its timers, the rain, the spotlight, the dealt cards
+    for (const t of timers.values()) clearTimeout(t);
+    timers.clear();
+    if (room) room.setRain(false);
+    els.spot.classList.remove('is-on');
+    root.classList.remove('is-dealt', 'is-flare');
+    els.show.dataset.sig = ''; els.show.classList.remove('is-dealt');
+    sfx.tension(false);
     if (finalView) { finalView.destroy(); finalView = null; }
     els.final.replaceChildren();
     root.classList.remove('is-final');
@@ -142,15 +150,17 @@ export function createView() {
 
   function newRound() {
     local.rk = game.rk;
-    local.bet = null; local.lockedBet = null; local.answer = null; local.answeredAt = 0; local.played = new Set(); local.betPreview = null;
+    local.bet = null; local.lockedBet = null; local.answer = null; local.answeredAt = 0; local.played = new Set(); local.betPreview = null; local.potIn = new Set();
     // refresh / rejoin: what this phone already sent this round (readable by its owner only)
     if (inMatch() && ['bet', 'q', 'show'].includes(game.phase)) {
       const rk = game.rk, m = game.matchId;
       get(dbRef(`hsbet/${st.code}/${m}/${rk}/${me()}`)).then(s => {
         const v = s.val();
         if (!v || !game || game.rk !== rk || game.matchId !== m) return;
-        if (v.b) local.lockedBet = v.b.b;
-        if (v.a) local.answer = v.a.a;
+        // a flag missing behind a saved value (the phone dropped between the two writes) is raised again
+        const own = (st.liveKey && locks()[me()]) || null;
+        if (v.b) { local.lockedBet = v.b.b; if (st.liveKey && !(own && own.b)) raiseFlag('b', m, rk); }
+        if (v.a) { local.answer = v.a.a; if (st.liveKey && !(own && own.a)) raiseFlag('a', m, rk); }
         renderDock(); renderQuestion(true);
       }).catch(() => {});
     }
@@ -221,7 +231,7 @@ export function createView() {
     const lead = Object.entries(V).sort((a, b) => b[1].net - a[1].net)[0];
     const leader = lead && game.round > 0 && lead[1].net > START ? lead[0] : null;
     const lk = locks();
-    const sig = JSON.stringify([order, order.map(u => [V[u] && V[u].stack, V[u] && V[u].loanN, lk[u], (st.players[u] || {}).name, st.presence[u] && st.presence[u].online, pubOf(st.players[u]) && pubOf(st.players[u]).r]), leader, game.phase]);
+    const sig = JSON.stringify([local.lockedBet, local.answer, order, order.map(u => [V[u] && V[u].stack, V[u] && V[u].loanN, lk[u], (st.players[u] || {}).name, st.presence[u] && st.presence[u].online, pubOf(st.players[u]) && pubOf(st.players[u]).r]), leader, game.phase]);
     if (els.seats.dataset.sig === sig) return;
     const first = !els.seats.dataset.sig;
     els.seats.dataset.sig = sig;
@@ -231,7 +241,7 @@ export function createView() {
     els.seats.replaceChildren(...order.map(uid => {
       const p = st.players[uid] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
       const v = V[uid] || { stack: START, loanN: 0 };
-      const l = lk[uid] || {};
+      const l = uid === me() ? { ...(lk[uid] || {}), ...(local.lockedBet != null ? { b: 1 } : {}), ...(local.answer != null ? { a: 1 } : {}) } : (lk[uid] || {});
       const status = game.phase === 'bet' ? (l.b ? 'LOCKED' : 'BETTING') : game.phase === 'q' ? (l.a ? 'ANSWERED' : 'THINKING') : '';
       const off = st.presence[uid] && st.presence[uid].online === false;
       const count = h('b.hs-seat-n', num(prev[uid] ?? v.stack));
@@ -310,7 +320,7 @@ export function createView() {
   // ================================================================ the pot
   function renderPot() {
     const lk = locks();
-    const n = Object.values(lk).filter(x => x && x.b).length;
+    const n = Object.entries(lk).filter(([u, x]) => x && x.b && u !== me()).length + (local.lockedBet != null || (lk[me()] && lk[me()].b) ? 1 : 0);
     const pile = els.pot.querySelector('.hs-pot-pile');
     if (Number(pile.dataset.n) === n) return;
     const before = Number(pile.dataset.n || 0);
@@ -320,8 +330,8 @@ export function createView() {
     if (n > before && before >= 0 && game.phase === 'bet') {
       // someone else locked: their chips slide in from their seat
       for (const [uid, x] of Object.entries(lk)) {
-        if (!x || !x.b || uid === me() || pile.dataset[`u${uid}`]) continue;
-        pile.dataset[`u${uid}`] = '1';
+        if (!x || !x.b || uid === me() || local.potIn.has(uid)) continue;
+        local.potIn.add(uid);
         room.chips(pos.seats[uid], pos.pot, 150, { kind: 'bet', max: 5 });
         sfx.play('chips', { n: 4, pan: 0 });
       }
@@ -334,8 +344,11 @@ export function createView() {
     const phase = game.phase;
     const mine = inMatch();
     const stack = myStack();
-    const sig = JSON.stringify([phase, game.round, stack, local.lockedBet, local.answer, mine, locks()[me()] && locks()[me()].b]);
-    if (els.dock.dataset.sig === sig && phase !== 'bet') return;
+    const lk = locks();
+    const counts = ['b', 'a'].map(k => Object.values(lk).filter(x => x && x[k]).length);
+    const editing = phase === 'bet' && local.lockedBet == null && !(lk[me()] && lk[me()].b);
+    // while you're still choosing, the controls stay put (only the round matters); after that the line follows the table
+    const sig = JSON.stringify(editing ? [phase, game.round, stack, mine] : [phase, game.round, stack, local.lockedBet, local.answer, mine, lk[me()] && lk[me()].b, counts]);
     if (els.dock.dataset.sig === sig) return;
     els.dock.dataset.sig = sig;
     root.classList.toggle('is-betting', phase === 'bet' && mine && local.lockedBet == null);
@@ -355,9 +368,10 @@ export function createView() {
   }
 
   function waitingLine(k) {
-    const parts = Object.keys(game.participants || {}).filter(u => !(st.presence[u] && st.presence[u].online === false));
+    // the others still choosing (your own bet / answer is in: you're here because you locked it)
+    const parts = Object.keys(game.participants || {}).filter(u => u !== me() && !(st.presence[u] && st.presence[u].online === false));
     const left = parts.filter(u => !(locks()[u] && locks()[u][k])).length;
-    return left ? `WAITING FOR ${left}` : 'ALL IN';
+    return left ? `WAITING ON ${left} ${left === 1 ? 'PLAYER' : 'PLAYERS'}` : 'EVERYONE’S IN';
   }
 
   /** The stack in front of you: columns of chips by value, believable heights. */
@@ -385,7 +399,7 @@ export function createView() {
     }
     const amount = h('b.hs-bet-n', num(local.bet));
     const win = h('span.hs-bet-win');
-    const step = max > 200 ? 10 : 1;
+    const step = max - min > 600 ? 10 : max - min > 150 ? 5 : 1;
     const slider = h('input.hs-slider', { type: 'range', min: String(min), max: String(max), step: String(step), value: String(local.bet), 'aria-label': 'Your bet',
       oninput: e => setBet(Number(e.target.value), false) });
     const paint = () => {
@@ -454,11 +468,12 @@ export function createView() {
     vibrate(18);
     room.chips(pos.dock, pos.pot, bet, { kind: 'bet', max: 10 });
     setTimeout(() => sfx.play('chips', { n: Math.min(10, breakdown(bet, 10).length) }), 300);
-    renderDock();
+    renderDock(); renderSeats(); renderPot();
     try {
       await set(dbRef(`hsbet/${st.code}/${m}/${rk}/${me()}/b`), { b: bet, at: serverTimestamp() });
-      await set(dbRef(`rooms/${st.code}/hslock/${m}/${rk}/${me()}/b`), serverTimestamp());
-    } catch (e) { console.warn('bet', e); if (game && game.rk === rk) { local.lockedBet = null; renderDock(); } }
+    } catch (e) { console.warn('bet', e); if (game && game.rk === rk) { local.lockedBet = null; renderDock(); } return; }
+    // the bet is in (and can't be written twice): only the public flag may still need retries
+    raiseFlag('b', m, rk);
   }
 
   // ================================================================ the question
@@ -490,11 +505,21 @@ export function createView() {
     const rk = game.rk, m = game.matchId;
     local.answer = i;
     sfx.play('lock');
-    renderQuestion(true); renderDock();
+    renderQuestion(true); renderDock(); renderSeats();
     try {
       await set(dbRef(`hsbet/${st.code}/${m}/${rk}/${me()}/a`), { a: i, at: serverTimestamp() });
-      await set(dbRef(`rooms/${st.code}/hslock/${m}/${rk}/${me()}/a`), serverTimestamp());
-    } catch (e) { console.warn('answer', e); if (game && game.rk === rk) { local.answer = null; renderQuestion(true); } }
+    } catch (e) { console.warn('answer', e); if (game && game.rk === rk) { local.answer = null; renderQuestion(true); } return; }
+    raiseFlag('a', m, rk);
+  }
+
+  // the public "locked / answered" flag, retried while that phase lasts (the hidden value behind it is already saved)
+  async function raiseFlag(k, m, rk, tries = 6) {
+    for (let t = 0; t < tries; t++) {
+      if (!game || game.matchId !== m || game.rk !== rk || game.phase !== (k === 'b' ? 'bet' : 'q')) return;
+      if (locks()[me()] && locks()[me()][k]) return;
+      try { await set(dbRef(`rooms/${st.code}/hslock/${m}/${rk}/${me()}/${k}`), serverTimestamp()); return; }
+      catch (e) { if (/permission/i.test(String(e && (e.code || e.message)))) return; await new Promise(r => setTimeout(r, 600 * (t + 1))); }
+    }
   }
 
   // ================================================================ the showdown
@@ -628,7 +653,7 @@ export function createView() {
       els.timer.style.setProperty('--f', f.toFixed(4));
       const s = Math.ceil(left / 1000);
       const b = els.timer.lastChild;
-      if (b.textContent !== String(s)) { b.textContent = String(s); els.timer.classList.toggle('is-low', s <= 5); if (s <= 5 && s > 0) sfx.play('tick'); }
+      if (b.textContent !== String(s)) { b.textContent = String(s); els.timer.classList.toggle('is-low', s <= 5); if (s <= 5 && s > 0 && mustAct()) sfx.play('tick'); }
       const bar = els.qcard.querySelector('.hs-q-bar i');
       if (bar) bar.style.transform = `scaleX(${f.toFixed(4)})`;
     }
@@ -636,6 +661,12 @@ export function createView() {
     tiers.sample(now, work);
     tiers.tick(now);
     // the bot (tests)
+  }
+
+  function mustAct() {
+    if (!inMatch()) return false;
+    const l = locks()[me()] || {};
+    return game.phase === 'bet' ? local.lockedBet == null && !l.b : game.phase === 'q' ? local.answer == null && !l.a : false;
   }
 
   // ================================================================ test hook

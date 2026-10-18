@@ -50,7 +50,7 @@ async function resolve(game, code) {
   const snap = await get(dbRef(`hsbet/${code}/${game.matchId}/${game.rk}`));
   const now = serverNow();
   const live = state.game;
-  if (!live || live.matchId !== game.matchId || live.phase !== 'show' || (live.res && live.res[live.round])) return;
+  if (!live || live.matchId !== game.matchId || live.rk !== game.rk || live.phase !== 'show' || (live.res && live.res[live.round])) return;
   const patch = showPatch(live, snap.val() || {}, q.c, now);
   const w = {};
   for (const [k, v] of Object.entries(patch)) w[`game/${k}`] = v;
