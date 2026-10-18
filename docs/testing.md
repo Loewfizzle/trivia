@@ -63,6 +63,8 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     mounts the real view through an import map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js`
     (no-op writes, empty reads) — the pattern for any game's preview; `window.__preview.volley({…})` plays more volleys.
   - Lobby header look: `SHOTS=1 node lobby-shot.mjs "<browser path>" ./shots-lobby` (creates a room, screens at the three sizes).
+  - SFX without speakers: `sfx-probe.html?game=<id>&names=a,b,c` renders a game's `createSfx()` effects in an OfflineAudioContext
+    (import map → `fake-engine.js`) and prints peak / RMS / length per effect — nothing silent, nothing clipping, the mix sensible.
   - SLIPSTREAM E2E: `node e2e-slip.mjs "<browser path>" ./shots-slip` (env N=8, SHOTS=0, GPU=1; frame pacing on its own:
     `PERF_ONLY=1 GPU=1 N=2` at CPU=4 — measured 16.7 ms median / 17 ms p95 at every tier, 4–5 ms of work a frame) — lobby card/options/ride picker, the same course on every phone, real touch (hold keeps you down, a tap
     in the air flips), bots ride, ghosts + their looks, equal look-ahead portrait/landscape + rotating mid-ride, every biome's

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SFX probe</title>
+<!-- Renders a game's synthesized SFX offline and measures them (peak, RMS, length): a sanity check that nothing clips,
+     nothing is silent and the mix is sensible. ?game=gridlock  → window.__probe (array of rows) when done -->
+<script type="importmap">{ "imports": { "/js/audio/engine.js": "/tests/integration/fake-engine.js" } }</script>
+</head>
+<body>
+<pre id="out"></pre>
+<script type="module">
+import { setOffline } from '/tests/integration/fake-engine.js';
+const q = new URLSearchParams(location.search);
+const game = q.get('game') || 'gridlock';
+const mod = await import(`/js/games/${game}/audio.js`);
+const names = (q.get('names') || 'snap,rotate,invalid,lock,turn,targetLock,launch,whoosh,hit,miss,repeat,shatter,powerDown,bounty,elimYou,win').split(',');
+const rows = [];
+for (const name of names) {
+  const ctx = new OfflineAudioContext(2, 48000 * 3, 48000);
+  setOffline(ctx);
+  const sfx = mod.createSfx();
+  sfx.play(name);
+  const buf = await ctx.startRendering();
+  let peak = 0, sum = 0, last = 0, first = -1;
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  for (let i = 0; i < L.length; i++) { const v = Math.max(Math.abs(L[i]), Math.abs(R[i])); if (v > peak) peak = v; sum += v * v; if (v > 0.002) { last = i; if (first < 0) first = i; } }
+  rows.push({ name, peak: +peak.toFixed(3), rms: +Math.sqrt(sum / L.length).toFixed(4), ms: Math.round(((last - Math.max(0, first)) / 48000) * 1000) });
+}
+document.getElementById('out').textContent = rows.map(r => `${r.name.padEnd(12)} peak ${r.peak}  rms ${r.rms}  ${r.ms} ms`).join('\n');
+window.__probe = rows;
+</script>
+</body>
+</html>

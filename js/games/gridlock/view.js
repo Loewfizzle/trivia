@@ -220,7 +220,9 @@ export function createView() {
         root.classList.add('is-aiming');
       } else {
         root.classList.remove('is-aiming');
-        if (!watching) scene.focus(participant() && !isOut() ? me() : (target || boardsInOrder()[0]));
+        // after firing, stay on the board you just aimed at: the impact lands there (no flip home and back);
+        // while someone else aims, your own board is up — their shot may be coming for it
+        if (!watching) scene.focus(fired && target ? target : (participant() && !isOut() ? me() : (target || boardsInOrder()[0])));
       }
       // TARGET LOCK: who has locked onto my board
       if (ph === 'aim' && liveReady()) {

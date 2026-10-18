@@ -43,6 +43,12 @@ SALVO (several shots per volley) and ARCADE (abilities).
   `?at=place|aim|reticle|locked|show|sunk|elim|spec|end&n=2..8&still=1`.
 - **Music:** `PLAYLISTS.gridlock` = spy1-3 + last-signal; the view calls `setPlaylist('gridlock', musicOrder(code))` (seeded by the
   room code so every phone shares the order; the position continues across matches on a phone). Victory on the podium.
+- **SFX** (`audio.js`): synthesized in layers like a sound designer would mix a sample — a sub body that drops in pitch, a
+  swept noise burst, FM "metal" partials, a comb ring — through a short room or a long plate reverb and a soft compressor on
+  the game's own bus, with a little random detune/pan per hit. Measure them without speakers: `tests/integration/sfx-probe.html`
+  (`?game=gridlock`; renders each effect in an OfflineAudioContext via `fake-engine.js` and prints peak / RMS / length).
+- **After you fire** the board you aimed at stays up until the impact lands (no flip home and back); while someone else aims,
+  your own board is up.
 - **Chat lock:** while placing (until READY), on your Classic turn, while aiming (until locked in).
 - **Part 2 hooks:** `shotsPerVolley(game, uid)` (Salvo: raise it; `fire[uid]` is already a list and `glres.r[shooter]` an array),
   `resolveVolley` takes lists, `ev` is an open event list the cinematic plays (new kinds: add a case in `buildTimeline`), and
