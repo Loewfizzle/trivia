@@ -111,6 +111,7 @@ function open() {
       toggle('MUTE ALL', 'muted'),
       toggle('HAPTICS', 'haptics'),
       toggle('REDUCED EFFECTS', 'reducedFx'),
+      toggle('ALWAYS NIGHT', 'alwaysNight'),
       h('div.set-sub', 'PRISM DROP'),
       h('div.set-row.set-seg', h('span.label', 'CONTROLS'), segmented([{ value: 'gesture', label: 'GESTURES' }, { value: 'buttons', label: 'BUTTONS' }], settings.prismScheme || 'gesture', v => updateSettings({ prismScheme: v }))),
       slider('SWIPE SENSITIVITY', 'prismSens'),

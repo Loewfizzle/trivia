@@ -36,3 +36,30 @@ the street outside: the district, the sign over the door.
   with art, blurb, player count from MIN_PLAYERS, length from `estimateMinutes(DEFAULT_SETTINGS)`, HOW TO PLAY). No version on the title (it lives in the settings sheet footer).
 - Wide screens: the skyline sits lower and wider, the sign larger, the showcase shows every game; the menu stays a 400 px column.
 
+
+## LIVING CITY (Oct 2026): time of day, seasons, holidays, sky events
+- **The sky** (`js/core/sky.js`, pure, tested in `tests/sky.test.mjs`): the player's own time zone (Intl) → a representative
+  lat/lon (`ZONES`, else the UTC offset + the region; never a location prompt) → the real sun (NOAA algorithm; sunrise/sunset
+  within a few minutes) and moon (phase + position). `look(ms, tz, { alwaysNight })` returns time-of-day weights driven by
+  the sun's elevation (`night`, `late` (00:30–05:00), `dawn` (mornings), `day`, `golden` (evenings)), the season (blended at
+  the edges, flipped in the south), the holiday with its build-up (`holidayOf`: Halloween, Thanksgiving, Christmas (all of
+  December builds up), New Year's Eve, Valentine's, St. Patrick's, Easter (computed), the Fourth), meteor showers on their
+  peaks (±1 day) and a rare single star on any clear night, rare winter aurora nights (seeded by date: the same for everyone),
+  rainy hours (seeded per 4-hour block), snow in winter (and always on the Christmas nights), and the NYE countdown / finale
+  (the last 10 minutes before the local midnight, the first 5 after).
+- **The palette** (`district/palette.js`): a full colour set per look (night, late, dawn, a hazy matinee day, golden hour),
+  blended by the weights, then tinted by the season and the holiday. **The effects** (`district/fx.js`): the sun's disc and
+  glow (low sun only), the moon at its phase with a halo (kept clear of the sign), aurora curtains low over the skyline,
+  shooting stars, fireworks (NYE, the Fourth; a finale after midnight), the sleigh across the moon (very rare, Christmas
+  nights), Christmas string lights (more as December goes on), glowing window glyphs (pumpkins, hearts, eggs), the neon
+  pumpkin / shamrock rooftop signs, snow, spring petals, autumn leaves, summer fireflies, Halloween bats (a small flock every
+  2.5–5 min). Particle caps per tier; Reduced effects stops what moves (the colours stay).
+- **The scene** (`district/scene.js`) asks for the look every 2.5 s; when its key changes it repaints the sky and rebuilds
+  the reflection; each skyline layer's composite (the hour's tint on the silhouettes, the sun-side rim light, frosted roofs,
+  the windows lit right now — they switch on/off one by one with the hour — the trims after dark) is cached by that key.
+- **The sign** (`title.js#watchSky`): lit after dusk, dark glass by day; it flickers off at dawn and comes back tube by tube
+  at dusk; cobwebs (Halloween), a Santa hat (Christmas), rose / green / candle tubes, the countdown in the tagline on NYE.
+- **ALWAYS NIGHT** (settings, off by default): the classic night look all day; seasons, holidays, the moon and sky events stay.
+- **Where:** the title; the menus' backdrop and THE BOARD's windows show the still the title leaves behind (same hour).
+- **Preview switch** (any page, test only): `?when=2026-10-31T21:30&tz=America/New_York` starts the clock at that local
+  time; `&force=bats,meteor,aurora,sleigh,fireworks` makes the rare moments happen now.

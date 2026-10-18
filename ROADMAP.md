@@ -4,7 +4,7 @@
 > (`js/ui/logo.js` → `scripts/build-boot-logo.mjs`) and the icons/preview (`tests/integration/render-assets.mjs`).
 > It was NEURAL ARCADE until October 2026.
 
-NEON SPEAKEASY — *game night, after dark.* One web app, twelve games, 2–8 players, each on their own phone — same room or different cities.
+NEON SPEAKEASY — *your friends are already inside.* One web app, twelve games, 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
@@ -284,6 +284,13 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
 - [x] New SFX in the layered style (marker, volley, card draw / arm / play, sonar + its answers, cluster split, torpedo, fizzle, shield up,
       shield block, relocate); help text for both modes; E2E matches C (Salvo) and D (Arcade) on the harness
 - [x] **The rules file changed: re-publish `database.rules.json` in the Firebase console.**
+
+### ✅ LIVING CITY (Oct 2026) — `docs/title.md`
+- [x] The title city follows the player's real local sky: dawn, a hazy matinee day, golden hour, night, the small hours, driven by the
+      real sun; the real moon phase; seasons (snow, petals, fireflies, leaves; flipped in the south); holidays with build-ups
+      (Halloween cobwebs, bats and a neon pumpkin; Christmas lights, a Santa hat, snow and a rare sleigh; NYE countdown and fireworks;
+      Valentine's, St. Patrick's, Easter, Thanksgiving, the Fourth); meteor showers on their peaks; rare aurora nights; ALWAYS NIGHT
+- [x] A new tagline: YOUR FRIENDS ARE ALREADY INSIDE.
 
 ### ✅ Stage 14 — RUMRUNNER (Prohibition trading, the city diorama) (Oct 2026) — `docs/rum.md`
 - [x] Rules first: six goods × six districts with tendencies, seeded daily prices, news spikes / crashes, rumours (70 % true),

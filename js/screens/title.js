@@ -46,6 +46,17 @@ const smooth = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a
 // the light wave answers the tap at once and slows as it reaches the rooftops
 const easeOut = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a || 1e-6))); return 1 - Math.pow(1 - t, 2.4); };
 
+// Halloween: fine cobwebs in the sign's two top corners, catching the neon
+const WEBS = `<svg viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="rgba(235,225,255,0.55)" stroke-width="0.7" stroke-linecap="round">
+<g transform="translate(8 8)"><path d="M0 0 L70 6 M0 0 L52 40 M0 0 L22 64 M0 0 L4 74"/><path d="M14 1 Q14 9 10 12 Q6 15 3 15"/><path d="M28 2 Q27 16 21 24 Q13 30 6 30"/><path d="M44 4 Q42 24 33 36 Q22 46 10 47"/><path d="M60 5 Q56 30 44 46 Q30 60 16 62"/></g>
+<g transform="translate(392 8) scale(-1 1)"><path d="M0 0 L58 4 M0 0 L44 34 M0 0 L16 56"/><path d="M14 1 Q13 10 8 14 Q4 16 2 16"/><path d="M30 2 Q28 18 20 26 Q12 32 6 32"/><path d="M46 3 Q42 26 32 38 Q20 48 9 48"/><path d="M2 46 L0 0"/></g>
+<path d="M66 9 L66 34" stroke-width="0.6"/><circle cx="66" cy="36" r="2.2" fill="rgba(30,10,40,0.9)" stroke="rgba(255,150,60,0.8)"/></g></svg>`;
+// Christmas: a Santa hat tipped on the first N, fur trim catching the pink light
+const HAT = `<svg viewBox="0 0 120 100" aria-hidden="true"><defs><linearGradient id="nhr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a6a"/><stop offset="0.6" stop-color="#c8102e"/><stop offset="1" stop-color="#7a0716"/></linearGradient><radialGradient id="nhw" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9dde8"/></radialGradient></defs>
+<path d="M18 74 C30 40 52 14 86 8 C96 6 104 14 98 24 C92 34 84 30 80 38 C74 52 76 64 80 74 Z" fill="url(#nhr)"/>
+<path d="M30 40 C46 22 64 14 84 11" stroke="rgba(255,255,255,0.25)" stroke-width="2" fill="none"/>
+<circle cx="99" cy="22" r="10" fill="url(#nhw)"/><rect x="12" y="68" width="76" height="16" rx="8" fill="url(#nhw)"/></svg>`;
+
 export function createTitle() {
   const els = {};
   let scene = null;
@@ -74,6 +85,7 @@ export function createTitle() {
       h('div.nd-tag', TAGLINE));
     els.show = buildShowcase();
     els.actions = buildActions();
+    if (!scene.signOn()) els.sign.classList.add('is-day');
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },
       h('span.nd-gate-txt', 'TAP TO ENTER'),
       h('span.nd-gate-sub', 'BEST WITH SOUND ON'));
@@ -169,6 +181,9 @@ export function createTitle() {
     s.classList.remove('is-off');
     s.classList.add('is-glass');
     const letters = [...s.querySelectorAll('.ndl')];
+    // daylight: the sign rests (glass and brackets, unlit) until dusk
+    if (scene && !scene.signOn()) { s.classList.add('is-day'); return; }
+    s.classList.remove('is-day');
     const kind = tl.kind;
     if (kind === 'instant' || kind === 'reduced') {
       letters.forEach(l => l.classList.add('on'));
@@ -212,6 +227,51 @@ export function createTitle() {
     scene.set({ wave: 1, lit: 1, bill: 1, logo: 1 });
     trackLogo();
     scheduleFlicker();
+    watchSky();
+  }
+
+  // LIVING CITY: the sign follows the hour (off at dawn like closing time, back on at dusk tube by tube) and wears the
+  // holiday (cobwebs, a Santa hat, the New Year countdown, rose / green tubes)
+  function watchSky() {
+    if (destroyed || !scene) return;
+    const want = scene.signOn();
+    const lit = els.sign.classList.contains('is-steady');
+    if (want && !lit) { tl.kind = 'full'; signOn(); scene.set({ logo: 1 }); }
+    else if (!want && lit) signOff();
+    dressSign(scene.look());
+    els.skyTimer = setTimeout(watchSky, 1000);
+  }
+  function signOff() {
+    const s = els.sign;
+    const letters = [...s.querySelectorAll('.ndl')];
+    s.classList.remove('is-warm');
+    letters.forEach((l, i) => {
+      const at = 300 * i + Math.random() * 120;
+      [0, 70, 120, 260].forEach((ms, k) => setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 1 && k < 3); }, at + ms));
+    });
+    setTimeout(() => { if (!destroyed) { s.classList.remove('is-steady'); s.classList.add('is-day'); letters.forEach(l => l.classList.remove('on')); } }, 300 * letters.length + 400);
+    neonTick();
+  }
+  let dressKey = '';
+  function dressSign(L) {
+    const hol = L && L.holiday;
+    const n = L && L.nye;
+    const key = `${hol ? hol.id + (hol.full ? 'F' : '') : ''}|${n ? (n.countdown != null ? 'c' + n.countdown : 'f') : ''}`;
+    if (key === dressKey) return;
+    dressKey = key;
+    const s = els.sign;
+    const full = hol && hol.full ? hol.id : null;
+    s.classList.toggle('is-rose', full === 'valentine');
+    s.classList.toggle('is-shamrock', full === 'stpatrick');
+    s.classList.toggle('is-candle', full === 'thanksgiving');
+    s.querySelectorAll('.nd-dress').forEach(e => e.remove());
+    const wrap = s.querySelector('.nd-logo-wrap');
+    if (full === 'halloween') wrap.append(h('div.nd-dress.nd-webs', { 'aria-hidden': 'true', html: WEBS }));
+    if (full === 'christmas') wrap.append(h('div.nd-dress.nd-hat', { 'aria-hidden': 'true', html: HAT }));
+    const tag = s.querySelector('.nd-tag');
+    if (n && n.countdown != null) { const m = Math.floor(n.countdown / 60), sec = n.countdown % 60; tag.textContent = `${m}:${String(sec).padStart(2, '0')} TO MIDNIGHT`; tag.classList.add('nd-count'); }
+    else if (n && n.finale != null) { tag.textContent = 'HAPPY NEW YEAR'; tag.classList.add('nd-count'); }
+    else { tag.textContent = TAGLINE; tag.classList.remove('nd-count'); }
   }
 
   // keep the sign's light in the scene in sync with layout (resizes, the keyboard)
@@ -489,6 +549,7 @@ export function createTitle() {
     if (tl) cancelAnimationFrame(tl.raf);
     clearTimeout(flickerTimer);
     clearTimeout(els.logoTimer);
+    clearTimeout(els.skyTimer);
     if (stopRain) stopRain(0.6);
     document.body.classList.remove('nd-on');
     const wrap = els.sceneWrap;

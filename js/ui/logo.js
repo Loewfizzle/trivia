@@ -85,4 +85,4 @@ export function monogramSvg({ id = 'ndm', size = 100, blur = 1 } = {}) {
 </svg>`;
 }
 
-export const TAGLINE = 'GAME NIGHT, AFTER DARK.';
+export const TAGLINE = 'YOUR FRIENDS ARE ALREADY INSIDE.';

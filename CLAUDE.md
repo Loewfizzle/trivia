@@ -15,7 +15,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/data-model.md` | the database: every node, every game's `game` shape, rules |
 | `docs/testing.md` | running / writing tests: emulators, smoke test, each game's E2E and its env flags, previews, Lighthouse |
 | `docs/audio.md` | music, playlists, SFX, the audio engine; loading, PWA, service worker, link previews |
-| `docs/title.md` | the title screen, the district scene, the logo, the menu |
+| `docs/title.md` | the title screen, the district scene, the logo, the menu, LIVING CITY (time of day, seasons, holidays, sky events; `?when=&tz=&force=`) |
 | `docs/chat.md` | room chat (data, locks per game, system lines, profanity filter) |
 | `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
 | `docs/profiles.md` | profiles, name tags + keys, `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
@@ -77,7 +77,7 @@ css/board.css admin.css                                  THE BOARD, the membersh
 css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow()
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
-js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js   PURE: room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
+js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js sky.js   PURE (sky.js: the real sun, moon, seasons, holidays, sky events): room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
           week.js ranks.js names.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, keys, board catalog, per-game results
 js/profile/ api.js me.js queue.js public.js callouts.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques + rank-up
 js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX
