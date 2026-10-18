@@ -6,6 +6,7 @@ export const state = {
 
   // local navigation while not in a room: 'title' | 'setup'
   view: 'title',
+  quit: null,             // a matchId this phone quit to the lobby (QUIT GAME); the next match deals it back in
   setupMode: 'host',      // 'host' | 'join' | 'edit' (profile only, back to the title)
   invite: '',             // room code from ?room=
   rejoin: '',             // a saved room we couldn't reach on boot: the title offers REJOIN

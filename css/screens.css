@@ -341,3 +341,12 @@
 .opt-card-meta { margin-top: auto; padding-top: 4px; font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; color: var(--text-faint); }
 .opt-card[aria-checked='true'] { border-color: color-mix(in srgb, var(--accent) 70%, transparent); background: color-mix(in srgb, var(--accent) 12%, rgba(8, 9, 26, 0.6)); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 22%, transparent); }
 .opt-card[aria-checked='true'] .opt-card-meta { color: var(--accent); }
+
+/* the lobby while a game runs without you (QUIT TO LOBBY) */
+.lobby-live { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)), rgba(14, 16, 38, 0.66); border: 1px solid rgba(255, 255, 255, 0.18); }
+.lobby-live[hidden] { display: none; }
+.lobby-live-t { display: flex; flex-direction: column; gap: 3px; }
+.lobby-live-t b { font-family: var(--font-display); font-size: 15px; letter-spacing: 0.12em; color: #fff; }
+.lobby-live p { grid-column: 1; margin: 0; font-size: 13px; color: var(--text-dim); }
+.lobby-live .btn { grid-column: 2; grid-row: 1 / span 2; }
+.games.is-locked { opacity: 0.45; pointer-events: none; }

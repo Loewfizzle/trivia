@@ -67,7 +67,7 @@ export function installChatFab() {
   document.body.append(fab);
   let was = '';
   const paint = () => {
-    const show = !!(state.code && state.meta && state.meta.status === 'playing' && state.game);
+    const show = !!(state.code && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId);   // (a phone that quit the game has the lobby's chat strip)
     const lock = show && locked();
     const s = `${show}|${lock}|${chat.unread}`;
     if (s === was) return;

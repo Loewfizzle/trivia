@@ -4,7 +4,7 @@ import { h } from './dom.js';
 import { toast } from './toast.js';
 import { settings, updateSettings, onSettings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { state, isHost } from '../store.js';
+import { state, isHost, setState } from '../store.js';
 import { dbRef, update } from '../firebase.js';
 import { leaveRoom } from '../room.js';
 import { colorHex } from '../config.js';
@@ -81,11 +81,30 @@ function open() {
     },
   }, h('span', 'LEAVE ROOM')) : null;
 
+  // THIS GAME: back to the lobby without leaving the room
+  const inGame = !!(state.code && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId);
+  const armBtn = (label, armedLabel, run, cls = '') => {
+    let armed = 0;
+    const b = h(`button.btn.btn-ghost.btn-block${cls}`, { type: 'button', onclick: () => {
+      if (Date.now() - armed < 2500) { close(); run(); return; }
+      armed = Date.now();
+      b.firstChild.textContent = armedLabel;
+      setTimeout(() => { if (b.isConnected) b.firstChild.textContent = label; }, 2500);
+    } }, h('span', label));
+    return b;
+  };
+  const gameRows = inGame ? [
+    h('div.set-sub.set-sub-first', 'THIS GAME'),
+    armBtn('QUIT TO LOBBY', 'TAP AGAIN — THE OTHERS KEEP PLAYING', () => { setState({ quit: state.game.matchId }); toast('YOU LEFT THE GAME — YOU’LL BE DEALT INTO THE NEXT ONE', 'info', 3200); }),
+    isHost() ? armBtn('END GAME FOR EVERYONE', 'TAP AGAIN TO END IT FOR ALL', () => import('../host.js').then(m => m.backToLobby()), '.btn-danger') : null,
+  ] : [];
+
   sheet = h('div.modal', { onclick: e => { if (e.target === sheet) close(); } },
     h('div.sheet.settings', { role: 'dialog', 'aria-label': 'Settings' },
       h('div.sheet-grip'),
       h('div.set-head', h('div', h('div.sheet-kicker', 'SYSTEM'), h('h2.sheet-title', 'AUDIO // FEEDBACK')),
         h('button.icon-btn', { type: 'button', 'aria-label': 'Close settings', onclick: close }, '×')),
+      ...gameRows,
       toggle('MUSIC', 'musicOff', true),
       slider('MUSIC VOLUME', 'music'),
       slider('EFFECTS', 'sfx'),

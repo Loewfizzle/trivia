@@ -42,7 +42,7 @@ function routeKey(st) {
   if (!st.ready && (resuming || st.code)) return 'boot';
   if (!st.code) return st.view === 'setup' ? `setup:${st.setupMode}` : st.view === 'board' ? 'board' : st.view === 'profile' ? 'profile' : 'title';
   if (!st.meta) return 'boot';
-  if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id]) return `game:${st.game.id}:${st.game.matchId}`;
+  if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id] && st.quit !== st.game.matchId) return `game:${st.game.id}:${st.game.matchId}`;
   return `lobby:${st.code}`;
 }
 
@@ -59,7 +59,7 @@ function makeScreen(key) {
 // Which music track a state should hear. [track, fallbackIfMissing]
 function musicFor(st) {
   if (!st.code && (st.view === 'board' || st.view === 'profile')) return ['menu1', 'menu']; // menu.mp3 in the board hall
-  if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game) return ['menu'];
+  if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId) return ['menu'];
   const mod = GAME_MODULES[st.game.id];
   // MUSIC: null = no music during the match (PULSE: the song is the music; menu music fades out)
   // musicFor(game): a track that changes during the match (NEON PAR: one per zone) -> [track, fallback]
@@ -73,7 +73,7 @@ function render(st) {
   const key = routeKey(st);
   if (st.ready || !st.code) { const [track, fallback] = musicFor(st); playMusic(track, fallback); }
   // theme follows the active game
-  const theme = st.game && st.meta && st.meta.status === 'playing' ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
+  const theme = st.game && st.meta && st.meta.status === 'playing' && st.quit !== st.game.matchId ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
   document.body.dataset.theme = theme || '';
   keepAwake(!!(st.code && st.meta && st.meta.status === 'playing'));
   renderConnection(st);

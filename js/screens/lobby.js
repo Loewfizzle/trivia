@@ -6,7 +6,7 @@ import { nightStandings } from '../core/night.js';
 import { colorHex } from '../config.js';
 import { toast } from '../ui/toast.js';
 import { APP_NAME, GAMES, MAX_PLAYERS, MIN_PLAYERS } from '../config.js';
-import { isHost } from '../store.js';
+import { isHost, setState } from '../store.js';
 import { playerOrder, isOnline, idleLeft } from '../core/room-logic.js';
 import { ROOM_IDLE_WARN_MS } from '../config.js';
 import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../firebase.js';
@@ -64,6 +64,7 @@ export function createLobby() {
     els.idleTimer = setInterval(renderIdle, 5000);
     flickerStop = false; scheduleFlicker();
     els.night = h('section.lobby-section.night');
+    els.live = h('div.lobby-live', { hidden: true, role: 'status' });
     el.append(
       h('button.btn.btn-ghost.btn-sm.lobby-leave', { type: 'button', onclick: confirmLeave, 'aria-label': 'Leave room' }, '‹ LEAVE ROOM'),
       h('header.lobby-head',
@@ -74,6 +75,7 @@ export function createLobby() {
         h('div.lobby-actions',
           h('button.btn.btn-primary.btn-sm', { type: 'button', onclick: share }, '⇪ SHARE INVITE'),
           h('button.btn.btn-ghost.btn-sm', { type: 'button', onclick: () => copy(inviteUrl()) }, 'COPY LINK'))),
+      els.live,
       h('section.lobby-section',
         h('div.section-head', h('span.label', 'OPERATIVES'), els.count),
         els.players),
@@ -254,8 +256,25 @@ export function createLobby() {
     document.body.append(sheet);
   }
 
+  // a match is running and this phone stepped out of it: say so, offer to watch, keep the game list closed
+  function renderLive() {
+    const live = !!(st.meta && st.meta.status === 'playing' && st.game);
+    els.live.hidden = !live;
+    els.games.classList.toggle('is-locked', live);
+    if (!live) return;
+    const g = GAMES.find(x => x.id === st.game.id);
+    const sig = st.game.matchId;
+    if (els.live.dataset.sig === sig) return;
+    els.live.dataset.sig = sig;
+    els.live.replaceChildren(
+      h('div.lobby-live-t', h('span.label', 'GAME IN PROGRESS'), h('b', g ? g.name : 'A GAME')),
+      h('p', 'You stepped out. You’ll be dealt into the next game.'),
+      h('button.btn.btn-ghost.btn-sm', { type: 'button', onclick: () => setState({ quit: null }) }, 'WATCH'));
+  }
+
   function update(state) {
     st = state;
+    renderLive();
     renderNight();
     renderIdle();
     const host = isHost();
