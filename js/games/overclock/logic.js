@@ -5,9 +5,10 @@ import { TYPES, CATEGORY, partsFor, SORT_FULL, COMPASS_SCRIPT_MS } from './chall
 export const CHALLENGE_MS = 30_000;
 export const READY_MS = 3_200;
 export const BRIEF_MS = 7_000;
-export const STANDINGS_MS = 6_000;
+export const STANDINGS_MS = 8_000;          // the round's ranking, then the race (ROUND_STAGE_MS before the end it becomes the leaderboard)
 // challenges with a reveal (best words, the right order, the number line) hold the leaderboard a little longer
-export const REVEAL_STANDINGS_MS = 10_000;
+export const REVEAL_STANDINGS_MS = 12_000;
+export const OVERALL_STAGE_MS = 4_400;       // the last part of standings: the rows slide into the overall order
 export const REVEALS = new Set(['lexicon', 'timeline', 'closest', 'missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower']);
 export const standingsMs = type => (REVEALS.has(type) ? REVEAL_STANDINGS_MS : STANDINGS_MS);
 export const FINAL_MS = 120_000;

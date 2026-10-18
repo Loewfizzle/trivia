@@ -2,8 +2,8 @@
 // Challenges are generated locally from the room seed; each challenge's screen lives in ui/<type>.js and the reveal
 // panels in reveals.js. Progress (parts done / correct) is written to oc/{match}/{ci}/{uid} after every step so a
 // refresh resumes mid-challenge.
-import { h, clear, pulseClass, vibrate } from '../../ui/dom.js';
-import { avatar, createTimer, countUp, leaderboard } from '../../ui/components.js';
+import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
+import { avatar, createTimer, countUp, leaderboard, fmtNum } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
 import { dbRef, set, serverTimestamp, serverNow } from '../../firebase.js';
@@ -35,7 +35,9 @@ import uiCompass from './ui/compass.js';
 import uiSortIt from './ui/sortit.js';
 import uiHigherLower from './ui/higherlower.js';
 import { bankFor, loadBank, preloadFor, BANK_TYPES } from './banks.js';
-import { CHALLENGE_MS, levelOf, totals, standings } from './logic.js';
+import { CHALLENGE_MS, OVERALL_STAGE_MS, levelOf, totals, standings } from './logic.js';
+
+
 
 const GHOST = { name: 'GHOST', color: 'yellow', avatar: 'ghost' };
 // challenge type → its screen (ui/*.js)
@@ -409,11 +411,77 @@ export function createView() {
     const next = game.order[game.ci + 1];
     const mine = res[me()];
     if (mine) sfx(mine.ok >= mine.parts ? 'correct' : 'roundEnd');
-    els.overlay.append(h('div.panel-full.oc-standings',
+    const panel = h('div.panel-full.oc-standings',
       reveal(game),
-      h('div.sheet-kicker', `LEADERBOARD // AFTER ${String(game.ci + 1).padStart(2, '0')}`),
-      leaderboard(rows, st.players, { me: me(), presence: st.presence }),
-      next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null));
+      roundBoard(game, rows),
+      next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null);
+    els.overlay.append(panel);
+  }
+
+  // The round, then the race: one list of rows ranked by this challenge's points (bars, a crown on the round's winner),
+  // then — OVERALL_STAGE_MS before the end — the same rows slide into the overall order while the totals count up.
+  // Timed from phaseStartAt / phaseEndsAt (server time), so a refresh mid-way lands on the right stage.
+  function roundBoard(game, rows) {
+    const type = game.order[game.ci];
+    const final = game.ci === game.total - 1;
+    const res = (game.results && game.results[game.ci]) || {};
+    const pts = u => (res[u] ? res[u].pts : 0);
+    const byRound = rows.slice().sort((a, b) => pts(b.uid) - pts(a.uid) || a.rank - b.rank);
+    const top = Math.max(0, ...rows.map(r => pts(r.uid)));
+    const winners = top > 0 ? byRound.filter(r => pts(r.uid) === top) : [];
+    const roundPos = Object.fromEntries(byRound.map((r, i) => [r.uid, i]));
+    const totalPos = Object.fromEntries(rows.map((r, i) => [r.uid, i]));
+    const roundRank = {};
+    byRound.forEach((r, i) => { roundRank[r.uid] = i > 0 && pts(r.uid) === pts(byRound[i - 1].uid) ? roundRank[byRound[i - 1].uid] : i + 1; });
+    const ROW = 58;
+    const list = h('div.oc-rb-list', { style: { height: `${rows.length * ROW}px` } });
+    const items = rows.map(r => {
+      const p = st.players[r.uid] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
+      const off = st.presence[r.uid] && st.presence[r.uid].online === false;
+      const crown = winners.some(w => w.uid === r.uid);
+      const rank = h('span.lb-rank', String(roundRank[r.uid]));
+      const score = h('span.lb-score.oc-rb-score', `+${fmtNum(pts(r.uid))}`);
+      const bar = h('i.oc-rb-bar', { style: { transform: `scaleX(${top > 0 ? Math.max(0.02, pts(r.uid) / top) : 0.02})` } });
+      const el = h('div.lb-row.oc-rb-row', { class: [r.uid === me() ? 'is-me' : '', crown ? 'is-crown' : '', off ? 'is-off' : ''].join(' '), style: { '--c': colorHex(p.color), transform: `translateY(${roundPos[r.uid] * ROW}px)` } },
+        bar, rank, avatar(p.avatar, p.color, 28),
+        h('span.lb-name', p.name, crown ? h('i.oc-rb-crown', { 'aria-label': 'won the round' }, '♛') : null, r.note ? h('small.lb-note', r.note) : null),
+        h('span.oc-rb-delta', `+${fmtNum(pts(r.uid))}`),
+        score);
+      return { r, el, rank, score };
+    });
+    list.append(...items.map(x => x.el));
+    const n2 = String(game.ci + 1).padStart(2, '0');
+    const kicker = h('div.sheet-kicker.oc-rb-kicker', `CHALLENGE ${n2} // THIS ROUND`);
+    const tags = [];
+    if (final) tags.push('×2 POINTS');
+    if (type === 'closest' && winners.length) tags.push('CLOSEST GUESS BONUS');
+    const head = winners.length
+      ? h('div.oc-rb-head',
+        h('span.oc-rb-head-k', winners.length > 1 ? 'SHARED ROUND' : 'ROUND WINNER'),
+        h('b', winners.map(w => (st.players[w.uid] || {}).name || '—').join(' · ')),
+        h('span.oc-rb-head-pts', `+${fmtNum(top)}`),
+        ...tags.map(t => h('span.oc-rb-tag', t)))
+      : h('div.oc-rb-head.is-none', h('b', 'NOBODY CRACKED IT'), ...tags.map(t => h('span.oc-rb-tag', t)));
+    const box = h('div.oc-rb', head, kicker, list);
+    const toOverall = (animate) => {
+      box.classList.add('is-overall');
+      if (!animate) box.classList.add('is-instant');
+      kicker.textContent = `LEADERBOARD // AFTER ${n2}`;
+      for (const x of items) {
+        x.el.style.transform = `translateY(${totalPos[x.r.uid] * ROW}px)`;
+        x.rank.textContent = String(x.r.rank);
+        x.el.classList.toggle('is-first', x.r.rank === 1);
+        x.el.classList.toggle(x.r.prevRank && x.r.prevRank > x.r.rank ? 'move-up' : 'x', true);
+        if (animate && !reducedMotion()) countUp(x.score, x.r.prevScore || 0, x.r.score, 900);
+        else x.score.textContent = fmtNum(x.r.score);
+      }
+      if (animate) sfx('shimmer');
+    };
+    const at = Math.max(game.phaseStartAt + 1500, game.phaseEndsAt - OVERALL_STAGE_MS);
+    const wait = at - serverNow();
+    if (wait <= 0) toOverall(false);
+    else revealTimers.push(setTimeout(() => { if (box.isConnected) toOverall(true); }, wait));
+    return box;
   }
 
   function reveal(game) {

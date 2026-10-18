@@ -957,3 +957,26 @@
   .hl-opt.is-shown .hl-val, .rv-ml-row, .rv-sp-list li, .rv-m24-row, .rv-cp-row, .rv-st-chip, .rv-hl-pair, .rv-cp-out.on { animation: none !important; }
   .cp-needle, .rv-cp-needle, .st-card { transition-duration: 0.01s !important; }
 }
+
+/* ---- the round, then the race (standings) ---- */
+.oc-rb { display: flex; flex-direction: column; gap: 10px; }
+.oc-rb-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)), color-mix(in srgb, var(--accent) 12%, rgba(12, 10, 28, 0.85)); border: 1px solid color-mix(in srgb, var(--accent) 40%, rgba(255, 255, 255, 0.12)); animation: q-in 0.35s var(--ease) both; }
+.oc-rb-head-k { width: 100%; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.22em; color: var(--accent); }
+.oc-rb-head b { font-family: var(--font-display); font-weight: 900; font-size: 22px; letter-spacing: 0.08em; color: #fff; text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent); }
+.oc-rb-head-pts { font-family: var(--font-num); font-weight: 700; font-size: 20px; color: var(--yellow); }
+.oc-rb-head.is-none b { font-size: 16px; color: var(--text-dim); text-shadow: none; }
+.oc-rb-tag { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.16em; padding: 3px 8px; border-radius: 999px; color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 14%, transparent); }
+.oc-rb-list { position: relative; }
+.oc-rb-row { position: absolute; left: 0; right: 0; top: 0; height: 50px; min-height: 0; overflow: hidden; transition: transform 0.7s var(--ease); will-change: transform; animation: none; }
+.oc-rb-row > :not(.oc-rb-bar) { position: relative; }
+.oc-rb-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; transform-origin: left center; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 30%, transparent), color-mix(in srgb, var(--c) 6%, transparent)); transition: opacity 0.6s ease; pointer-events: none; }
+.oc-rb-crown { margin-left: 6px; font-style: normal; color: var(--yellow); text-shadow: 0 0 10px rgba(255, 220, 90, 0.6); }
+.oc-rb-row.is-crown { border-color: color-mix(in srgb, var(--yellow) 45%, rgba(255, 255, 255, 0.1)); }
+.oc-rb-row.is-off { opacity: 0.55; }
+.oc-rb-delta { display: none; font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--green); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--green) 14%, transparent); }
+.oc-rb-score { color: var(--yellow); }
+.oc-rb.is-overall .oc-rb-bar { opacity: 0; }
+.oc-rb.is-overall .oc-rb-delta { display: inline-block; }
+.oc-rb.is-overall .oc-rb-score { color: var(--text); }
+.oc-rb.is-instant .oc-rb-row, .oc-rb.is-instant .oc-rb-bar { transition: none; }
+@media (prefers-reduced-motion: reduce) { .oc-rb-row, .oc-rb-bar { transition: none; } }
