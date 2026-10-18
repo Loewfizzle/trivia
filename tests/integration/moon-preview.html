@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8"><title>Moon phases</title>
+<body style="margin:0;background:#0b0c22;display:flex;flex-wrap:wrap;gap:8px;padding:12px">
+<script type="module">
+import { createFx } from '/js/screens/district/fx.js';
+const fx = createFx();
+fx.resize(200, 200, 150);
+for (const ph of [0.03, 0.12, 0.25, 0.37, 0.5, 0.63, 0.75, 0.88]) {
+  const c = document.createElement('canvas'); c.width = 140; c.height = 160; const x = c.getContext('2d');
+  x.fillStyle = '#1a1c3a'; x.fillRect(0, 0, 140, 160);
+  const s = { L: { w: { night: 1, late: 0, dawn: 0, day: 0, golden: 0 }, sun: { el: -30, az: 0 }, moon: { el: 30, az: 180, phase: ph, illum: (1 - Math.cos(ph * 2 * Math.PI)) / 2 }, clear: true, meteors: 0, holiday: null, aurora: false }, P: { sun: 0, moonA: 1, sunCol: [255, 200, 140] }, t: 0, dt: 16, tier: 2, motion: 0, force: new Set(), skyPos: () => ({ x: 70, y: 70 }), signRect: null };
+  fx.back(x, s);
+  x.fillStyle = '#fff'; x.font = '12px sans-serif'; x.fillText(String(ph), 50, 150);
+  document.body.append(c);
+}
+</script></body>
