@@ -85,7 +85,12 @@ export function memberCard(pub, local, xp, opts = {}) {
       h('div.pf-xp-row',
         h('span', h('b', num(X)), ' XP'),
         h('span', sp.nextName ? `${num(sp.need)} TO ${sp.nextName}` : 'THE TOP OF THE HOUSE'))));
-  requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('is-lit')));
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    card.classList.add('is-lit');
+    // a long name shrinks to fit (measured once, when the card is on screen)
+    const nm = card.querySelector('.pf-name');
+    if (nm && nm.isConnected) { let fs = parseFloat(getComputedStyle(nm).fontSize) || 24; while (nm.scrollWidth > nm.clientWidth + 1 && fs > 13) { fs -= 1; nm.style.fontSize = `${fs}px`; } }
+  }));
   // the tilt: the card leans toward the finger and the light follows it (transforms only; measured once per press)
   if (opts.tilt !== false && !opts.mini && !reduced()) {
     let rect = null;

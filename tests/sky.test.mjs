@@ -94,3 +94,20 @@ test('the moon crosses the screen from moonrise (0) to moonset (1)', () => {
   let x = t0; while (moonArc(x + 600000, lat, lon) != null) x += 600000;
   assert.ok(moonArc(x, lat, lon) > 0.97, 'just before moonset: the right edge');
 });
+
+test('the night sky: real star positions turn with the sky', async () => {
+  const { galToEq, altAz, lst } = await import('../js/screens/district/stars.js');
+  const gc = galToEq(0, 0);
+  assert.ok(Math.abs(gc.ra - 266.4) < 0.5 && Math.abs(gc.dec + 28.94) < 0.5, `galactic centre at RA ${gc.ra.toFixed(1)} Dec ${gc.dec.toFixed(1)}`);
+  // Polaris sits at the observer's latitude, due north, all night
+  const lat = 40.7, lon = -74;
+  for (const h of [0, 6]) {
+    const p = altAz(37.95, 89.26, lat, lst(Date.parse('2026-10-19T02:00:00Z') + h * 3600000, lon));
+    assert.ok(Math.abs(p.alt - lat) < 1.2 && (p.az < 2 || p.az > 358), `Polaris alt ${p.alt.toFixed(1)} az ${p.az.toFixed(1)}`);
+  }
+  // Orion's Betelgeuse: high in the south on a January evening in New York, below the horizon on a July evening
+  const jan = altAz(5.919 * 15, 7.41, lat, lst(Date.parse('2027-01-15T03:00:00Z'), lon));
+  const jul = altAz(5.919 * 15, 7.41, lat, lst(Date.parse('2026-07-15T03:00:00Z'), lon));
+  assert.ok(jan.alt > 40 && jan.az > 140 && jan.az < 220, `January: alt ${jan.alt.toFixed(0)} az ${jan.az.toFixed(0)}`);
+  assert.ok(jul.alt < 0, 'July evening: below the horizon');
+});

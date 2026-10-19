@@ -350,3 +350,7 @@
 .lobby-live p { grid-column: 1; margin: 0; font-size: 13px; color: var(--text-dim); }
 .lobby-live .btn { grid-column: 2; grid-row: 1 / span 2; }
 .games.is-locked { opacity: 0.45; pointer-events: none; }
+
+/* the callsign field and its preview show exactly what was typed (mixed case allowed) */
+.input.input-name { text-transform: none; font-family: var(--font-ui); letter-spacing: 0.04em; }
+.preview-card strong { text-transform: none; }

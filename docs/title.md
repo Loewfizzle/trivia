@@ -158,3 +158,11 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   coordinates, gradients instead of filters.
 - The neon trims on the blade towers and the rooftop billboard's edge use soft wide strokes, never a per-frame shadow blur
   (that cost 50 ms frames at 4× CPU).
+- **The night sky** (district/stars.js): the real brightest stars (~85, with the real constellations), ~780 faint ones (denser
+  along the galactic plane) and the Milky Way band (galactic longitude samples, brightest toward Sagittarius, a dust lane),
+  turned to the player's estimated place and time and projected facing south (north in the south). Re-rendered every 20 s
+  (the sky turns 15°/h — never visibly), a few bright stars twinkle. The Milky Way shows every clear night, richer late,
+  washed by a bright moon, hidden by rain; stars fade by day (palette stars). Tested in tests/sky.test.mjs.
+- **More neon on the buildings:** every row now carries some (near 55%, far 22%): full outlines, corner + roof, roof lines,
+  vertical strips, double bands; thinner and softer further back.
+- The welcome line has no EDIT button (the card has EDIT PROFILE).

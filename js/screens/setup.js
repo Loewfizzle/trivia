@@ -29,8 +29,8 @@ export function createSetup() {
       maxLength: 4, placeholder: '····', 'aria-label': 'Room code', value: st.invite || '',
       oninput: e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); },
     });
-    els.name = h('input.input', {
-      type: 'text', maxLength: NAME_MAX, placeholder: 'CALLSIGN', autocomplete: 'nickname', autocapitalize: 'characters',
+    els.name = h('input.input.input-name', {
+      type: 'text', maxLength: NAME_MAX, placeholder: 'Callsign', autocomplete: 'nickname', autocapitalize: 'off',
       spellcheck: false, value: profile.name, 'aria-label': 'Display name',
       oninput: e => { profile.name = e.target.value; renderPreview(); },
       onkeydown: e => { if (e.key === 'Enter') e.target.blur(); },

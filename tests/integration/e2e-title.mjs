@@ -238,7 +238,7 @@ try {
   await H.page.waitForSelector('.nd-games .nd-gtile', { timeout: 4000 });
   ok(await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length === window.__arcade ? true : true`) && await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length`) >= 12, 'GAMES: the sheet lists every game');
   ok(await ev(H.page, `document.querySelector('.nd-sub').hidden`), 'RETURNING PLAYER: just the tagline (the explainer line is for first visits)');
-  ok(await ev(H.page, `!document.querySelector('.nd-card-btn') && document.querySelectorAll('.nd-links .nd-link').length === 2`), 'RETURNING PLAYER: the links are THE BOARD and GAMES (the rank lives in the welcome line)');
+  ok(await ev(H.page, `!document.querySelector('.nd-card-btn') && document.querySelectorAll('.nd-links .nd-link').length === 2 && !document.querySelector('.nd-edit')`), 'RETURNING PLAYER: the links are THE BOARD and GAMES (the rank lives in the welcome line, no EDIT button)');
   await H.page.evaluate(() => document.querySelector('.nd-gtile[data-id="prism"]').click());
   await H.page.waitForSelector('.nd-preview', { timeout: 4000 });
   await sleep(500);
@@ -374,9 +374,12 @@ try {
   ok((await ev(F.page, `document.querySelector('.nd-rejoin-btn').textContent`)).includes(`REJOIN ${code}`), `REJOIN: a saved room shows a prominent REJOIN ${code}`);
   await shotAll(F.page, 'n-09-rejoin');
   // edit the profile first, then rejoin
-  await tap(F.page, '.nd-edit');
-  await F.page.waitForSelector('.setup-screen', { timeout: 4000 });
-  ok((await ev(F.page, `document.querySelector('.bar-title').textContent`)).includes('PROFILE'), 'EDIT: the profile screen opens');
+  // (no EDIT button on the title: the name opens the card, which has EDIT PROFILE)
+  await tap(F.page, '.nd-me');
+  await F.page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent.includes('EDIT PROFILE')), { timeout: 8000 });
+  await F.page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('EDIT PROFILE')).click());
+  await F.page.waitForFunction(() => [...document.querySelectorAll('.setup-screen .bar-title')].some(b => b.textContent.includes('EDIT')), { timeout: 6000 }).catch(() => {});
+  ok(await ev(F.page, `[...document.querySelectorAll('.setup-screen .bar-title')].some(b => b.textContent.includes('PROFILE // EDIT'))`), 'EDIT: the profile screen opens (from the card)');
   await F.page.evaluate(() => { const i = document.querySelector('.setup-screen input.input'); i.value = 'FAYE'; i.dispatchEvent(new Event('input', { bubbles: true })); });
   await F.page.evaluate(() => document.querySelector('.form-cta .btn-primary').click());
   await waitFor(F.page, '!!window.__district && document.querySelector(".nd-welcome") && document.querySelector(".nd-welcome").textContent.includes("FAYE")', 'back on the title with the new name', 6000);

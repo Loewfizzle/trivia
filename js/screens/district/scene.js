@@ -15,6 +15,7 @@
 // Quality tiers (DPR 2 / 1.5 / 1, rain, shimmer, vehicles, ripples) step down when frames run slow; rendering
 // pauses while the tab is hidden; destroy() releases every canvas.
 import { createSigns } from './signs.js';
+import { createStars } from './stars.js';
 import { look as skyLook, skyClock } from '../../core/sky.js';
 import { paletteFor, css } from './palette.js';
 import { createFx } from './fx.js';
@@ -50,6 +51,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let sky = null, skyLit = null, street = null, refl = null, reflLit = null, rainTile = null, vignette = null;
   let layers = [];
   const signs = createSigns({ games: withSigns ? games : [] });
+  const stars = createStars();
   let beacons = [];
   let vehicles = [];
   let ripples = [];
@@ -187,7 +189,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     x.fillStyle = hg; x.fillRect(0, 0, W, HZ);
     // stars, high up and few (fewer as the sky brightens)
     const sr = rng(seed + 7);
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 0; i++) {   // (the stars are the real sky now: stars.js)
       const sx = sr() * W, sy = sr() * HZ * 0.5, big = sr() < 0.12, a = (0.15 + sr() * 0.55) * (1 - sy / (HZ * 0.55)) * Math.min(1.2, P.stars);
       if (a <= 0.01) continue;
       x.fillStyle = `rgba(220,230,255,${Math.min(1, a)})`;
@@ -292,14 +294,21 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       }
     }
     // neon trims on near buildings (vertical light strips / roof outlines) — lit only
-    if (li >= 2 && !isSetback && rand() < (L.edges ? 0.5 : 0.3)) {
+    // neon on the buildings: outlines, roof lines, corner strips — near rows most, the far rows too (thinner, softer)
+    const neonP = [0.22, 0.32, 0.42, 0.55][li];
+    if (!isSetback && rand() < neonP && w > 10) {
       const col = NEON[Math.floor(rand() * NEON.length)];
+      const lw = [0.7, 0.9, 1.2, 1.4][li], blur = [3, 4, 6, 8][li], a = [0.6, 0.7, 0.8, 0.85][li];
       lx.save();
-      lx.shadowColor = col; lx.shadowBlur = 8;
-      lx.strokeStyle = rgba(col, 0.85); lx.lineWidth = 1.4;
+      lx.shadowColor = col; lx.shadowBlur = blur;
+      lx.strokeStyle = rgba(col, a); lx.lineWidth = lw; lx.lineJoin = 'round';
       lx.beginPath();
-      if (rand() < 0.5) { lx.moveTo(x + 2, y + h); lx.lineTo(x + 2, y + 2); lx.lineTo(x + w - 2, y + 2); }
-      else { const sx = x + w * (0.2 + rand() * 0.6); lx.moveTo(sx, y + h * 0.15); lx.lineTo(sx, y + h * 0.85); }
+      const kind = rand(), i0 = lw + 0.6;
+      if (kind < 0.3) { lx.moveTo(x + i0, y + h); lx.lineTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); lx.lineTo(x + w - i0, y + h); }      // full outline
+      else if (kind < 0.55) { lx.moveTo(x + i0, y + h); lx.lineTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); }                            // corner + roof
+      else if (kind < 0.75) { lx.moveTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); }                                                       // roof line
+      else if (kind < 0.9) { const sx = x + w * (0.2 + rand() * 0.6); lx.moveTo(sx, y + h * 0.12); lx.lineTo(sx, y + h * 0.88); }              // a vertical strip
+      else { const yy = y + h * (0.15 + rand() * 0.3); lx.moveTo(x + i0, yy); lx.lineTo(x + w - i0, yy); lx.moveTo(x + i0, yy + 4); lx.lineTo(x + w - i0, yy + 4); }   // two bands
       lx.stroke();
       lx.restore();
     }
@@ -402,6 +411,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     // sky
     c.globalAlpha = 1;
     c.drawImage(skyLit, 0, cam.y * 0.1, W, HZ);
+    // the real night sky: stars and the Milky Way, turning over the night (richer late, washed by a bright moon, hidden by rain)
+    { const dk = LK.w.night + LK.w.late, moonWash = LK.moon.el > 0 ? 1 - 0.5 * LK.moon.illum : 1;
+      const milky = LK.rain ? 0 : clamp01((dk - 0.5) * 2) * (0.6 + 0.4 * clamp01(LK.w.late / Math.max(0.01, dk))) * moonWash;
+      stars.draw(c, W, HZ, LK, clock.now(), P.stars * (LK.rain ? 0.15 : 1), milky, t, S.motion, cam.y * 0.1); }
     // the sun, the moon, aurora, shooting stars, fireworks (behind the skyline)
     fx.back(c, fs);
     // the neon sign lights the haze around it (after dark)

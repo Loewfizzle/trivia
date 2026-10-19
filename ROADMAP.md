@@ -296,6 +296,8 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
       the sign, the moon, a rooftop cat, a UFO, a satellite train); Christmas lights as lit rooflines; THE BOARD plays menu3
 - [x] The city's signs replace the billboards: a rooftop art-deco marquee, a blade sign, neon icon signs (a tube mark for every game)
       and a dot-matrix ticker; rotating one at a time, off by day, holiday dress, tappable → HOW TO PLAY; the rank in the welcome line
+- [x] Two blades + a rooftop billboard, neon on many more buildings, Christmas bulbs wrapped round the sign, the real night sky
+      (stars + the Milky Way turning over the night), mixed-case callsigns
 
 ### ✅ Stage 14 — RUMRUNNER (Prohibition trading, the city diorama) (Oct 2026) — `docs/rum.md`
 - [x] Rules first: six goods × six districts with tendencies, seeded daily prices, news spikes / crashes, rumours (70 % true),

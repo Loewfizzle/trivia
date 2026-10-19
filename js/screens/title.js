@@ -619,7 +619,6 @@ export function createTitle() {
       h('button.nd-me', { type: 'button', 'aria-label': 'Your membership card', onclick: () => { sfx('select'); setState({ view: 'profile' }); } },
         h('span', 'Welcome back, ', h('b', { style: { color: colorHex(p.color) } }, p.name)),
         ...(pub ? (() => { const sp = step(pub.x || 0); return [h('span.nd-me-dot', '·'), h('span.nd-me-rank', { style: { '--rk': RANK_COLORS[sp.i] } }, emblem(sp.i, 15), h('span', sp.name))]; })() : [])),
-      h('button.nd-edit', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'edit' }) }, 'EDIT'),
     ] : []));
     els.welcome.hidden = !(p && p.name);
     if (els.sub) els.sub.hidden = !!(p && p.name);

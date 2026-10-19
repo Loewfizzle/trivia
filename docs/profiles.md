@@ -128,3 +128,5 @@ same once-per-match transaction.
 - **The card** (`profile.js#memberCard`, `css/card.css`): finish layers (material, moving light, generated guilloche rosette, deco
   frame, sheen), a tilt that follows the finger (transforms only). Preview: `tests/integration/card-preview.html?all=1`,
   `?xp=8200&vault=1&glow=ice`.
+
+- Callsigns keep their case (the setup field no longer forces caps, `.input-name`); the card's name shrinks to fit a long name.
