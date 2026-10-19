@@ -365,8 +365,8 @@ export function createSigns({ games: allGames = [] } = {}) {
       if (roofDone) break;
       const vx0 = Math.max(b.x, 26), vx1 = Math.min(b.x + b.w, W - 26), vw = vx1 - vx0;
       for (const kk of [1, 0.86, 0.74]) {
-        const pw = Math.min(vw * 0.86, 64 * sc * kk), ph = pw * 0.78, legs = 8 * sc;
-        if (pw < 40 * sc) break;
+        const pw = Math.min(vw * 0.6, b.w * 0.6, 46 * sc * kk), ph = pw * 0.74, legs = 6 * sc;   // a rooftop billboard is a fraction of its roof
+        if (pw < 30 * sc) break;
         const x = vx0 + (vw - pw) / 2;
         const box = { x, y: b.y - ph - legs + 1, w: pw, h: ph + legs };
         if (!free(box, bli, 6)) continue;
