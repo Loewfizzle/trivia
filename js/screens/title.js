@@ -414,7 +414,6 @@ export function createTitle() {
     if (!hit) return;
     if (hit.kind === 'billboard') { sfx('select'); openHelp(hit.id); }
     else if (hit.kind === 'window') sfx('tap');
-    else if (hit.kind === 'moon') sfx('moonBell');
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
   }

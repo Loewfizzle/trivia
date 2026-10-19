@@ -94,10 +94,10 @@ export function startRain() {
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3800;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.009, t + 3);   // felt more than heard (was 0.022: too loud)
+  g.gain.linearRampToValueAtTime(0.0081, t + 3);   // felt more than heard (was 0.022: too loud; 0.009 → 10% quieter)
   // a slow breath in the rain (an LFO on the level) so it never sounds like a hiss
   const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
-  const lg = ctx.createGain(); lg.gain.value = 0.0025;
+  const lg = ctx.createGain(); lg.gain.value = 0.00225;
   lfo.connect(lg).connect(g.gain);
   src.connect(hp).connect(lp).connect(g).connect(getSfxBus());
   src.start(t); lfo.start(t);

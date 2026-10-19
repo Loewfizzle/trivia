@@ -80,7 +80,7 @@ the street outside: the district, the sign over the door.
   leaving the sign and the living city. Any touch brings them back and presses nothing (the waking tap is swallowed); on
   desktop moving the mouse wakes it. Not while a sheet is open, the code boxes are open or a room is being made. Local test
   runs (`?emu`) only fade when asked (`&idle=1` or `__district.idle()`).
-- **Easter eggs** (taps on the city — from pointerdown/pointerup, not click, which iOS never sends to the city — `scene.hit(x, y)` → `fx.hit`; the moon rings a soft far-off bell, `sfx('moonBell')`):
+- **Easter eggs** (taps on the city — from pointerdown/pointerup, not click, which iOS never sends to the city — `scene.hit(x, y)` → `fx.hit`; the moon is silent):
   - windows: tap one to switch its light on or off (it stays that way);
   - the sign: tap a letter and that tube stutters (by day it sparks to life for a moment);
   - the moon: a soft swell of light and circling sparkles; three taps in five seconds send a shooting star off it;
