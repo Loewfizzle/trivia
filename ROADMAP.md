@@ -355,6 +355,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ LIVE WEATHER + the city's life (Oct 19, 2026) — `docs/title.md`
+- [x] Real local weather: `/api/sky` (Vercel IP location, rounded ~35 miles, Open-Meteo, 15-min cache per area); the sun, moon and
+      stars from the real place; the seeded fake rain removed (no weather = a dry city)
+- [x] Clouds (noise shapes, light from above and from the city below, an overcast deck), rain in depth with wind, splashes and
+      rings, storms (sky flashes, bolts, every drop lit, the glass flickers, synthesized thunder), fog banks, real snow settling
+      on roofs and the sign's tubes, a first-snow hush; a deep freeze (frost ferns at the screen's edges, icicles, rime, frosted
+      windows) on really cold days
+- [x] HOST / JOIN glass takes the sky's light; rain on the glass
+- [x] Birds: geese V's in the migrations, summer swifts, rooftop pigeons (tap: they scatter and come back), a rare heron
+- [x] The street: traffic by the clock (rush hours), an elevated train, steam on cold days
+- [x] The planets in their real places, real lunar eclipses (a blood moon); the sign by day as empty glass tubes; the two
+      blade signs never the same colour; the sign's day flicker no longer leaves letters lit
+- [ ] Recorded thunder / rain (the owner may supply royalty-free files: `RECORDED` in ambience.js)
+
 ### ✅ Safety net (Oct 19, 2026) — from the project review's top items (`docs/testing.md`, `docs/profiles.md`, `docs/audio.md`)
 - [x] **Errors from phones:** js/errlog.js → `POST /api/log` → grouped `errlog/` entries → "Errors from phones" on /admin (count,
       devices, browsers, screen, build, stack; clear one / all; 30-day prune). Noise filtered, no ids sent, rate-limited
@@ -445,6 +459,9 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 4. ✅ **New game: imposter word game** — shipped as **DOUBLE AGENT** (Stage 7 above).
 
 ## Future ideas
+- **The city shows the real crowd** (LIVING CITY, agreed Oct 19 2026 — wait until there are enough players that it looks full,
+  not empty): a lit window per player in a room right now, a rooftop neon "37 INSIDE", searchlights that switch on when it's really
+  busy — the tagline made literal. Needs a tiny public, cached count (admin STATS already computes it: `insights.js#liveRooms`).
 - **Holiday music moods** (not built): a Halloween-night mood, Christmas music through December's build-up, NYE party — the same
   system as MOOD MUSIC (data/mood-music.json gains holiday lists; core/sky.js already knows the holidays and their build-ups).
 - **New game: drawing telephone** (like Gartic Phone / Telestrations; 4–8 players, works with 3; no voice needed).

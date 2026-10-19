@@ -71,3 +71,12 @@ test('rotation: a sign only takes the games it can show (the blade: names that f
   assert.equal(r.shown[1] % 2, 0);
   for (let t = 0; t <= 300; t += 0.5) { r = rotate(r, 12, t, ok).r; assert.equal(r.shown[1] % 2, 0, 'the blade keeps to names that fit'); assert.equal(new Set(r.shown).size, 3); }
 });
+
+test('the two blade signs never wear the same colour at once', async () => {
+  const { distinctFrom } = await import('../js/screens/district/signs.js');
+  const { hexRgb } = await import('../js/screens/district/marks.js');
+  const d = (a, b) => { const p = hexRgb(a), q = hexRgb(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); };
+  const COLS = ['#3dff8b', '#f3e3bd', '#ff4466', '#ffb627', '#a374ff', '#eafffb', '#e6e9ef', '#d6f0ff', '#ffc46b', '#7fb2ff', '#ffd86b', '#f0c75e', '#ff4f8a', '#2bff86'];
+  for (const a of COLS) for (const b of COLS) assert.ok(d(distinctFrom(a, b), b) >= 120, `${a} next to ${b}`);
+  assert.equal(distinctFrom('#3dff8b', '#ff4466'), '#3dff8b', 'distinct colours stay their own');
+});

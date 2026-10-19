@@ -40,6 +40,14 @@ const FONT = {};
 const BULB = '#ffd9a0';
 const PASTEL = ['#ffb3de', '#a8dcff', '#d2b8ff', '#ffe7a0'];
 const RWB = ['#ff3048', '#f4f6ff', '#3d7bff'];
+// vivid neons a blade can switch to so the two never match
+const VIVID = ['#ff4fb4', '#3fe0ff', '#a65bff', '#3dff8b', '#ff4466', '#ffb627'];
+const rgbDist = (a, b) => { const p = hexRgb(a), q = hexRgb(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); };
+/** PURE: col, unless it's too close to other — then the vivid neon furthest from other. */
+export function distinctFrom(col, other, min = 120) {
+  if (!other || rgbDist(col, other) >= min) return col;
+  return VIVID.slice().sort((a, b) => rgbDist(b, other) - rgbDist(a, other))[0];
+}
 function tubeOverride(L) {
   const hol = L.holiday;
   if (!hol || !hol.full) return null;
@@ -151,8 +159,13 @@ export function createSigns({ games: allGames = [] } = {}) {
   function bladeImages(s, g) {
     const bw = s.w, H = s.h, dir = s.dir, pad = Math.round(bw * 0.9), br = Math.round(bw * 0.5);
     const m = markFor(games[g]), word = bladeWord(games[g]);
-    const col = s.over ? s.over(m.tubes[0].col, 0, s.idx) : m.tubes[0].col;
-    const trim = s.over ? s.over(m.tubes[0].col, 1, s.idx) : (m.tubes[1] ? m.tubes[1].col : mixHex(col, '#ffffff', 0.35));
+    // the two blades never wear the same colour at once: if this one would be close to the other's, it takes the vivid neon
+    // furthest from it (several games share a white or a gold; the holidays' colours too)
+    const other = signs.find(o => o !== s && o.type === 'blade' && o.bladeCol);
+    const want = s.over ? s.over(m.tubes[0].col, 0, s.idx) : m.tubes[0].col;
+    const col = other ? distinctFrom(want, other.bladeCol) : want;
+    s.bladeCol = col;
+    const trim = col !== want ? mixHex(col, '#ffffff', 0.35) : s.over ? s.over(m.tubes[0].col, 1, s.idx) : (m.tubes[1] ? m.tubes[1].col : mixHex(col, '#ffffff', 0.35));
     const cw = (bw + pad * 2 + br) * R, ch = (H + pad * 2) * R;
     const ox = pad + (dir < 0 ? br : 0);   // brackets go toward the wall (dir: the wall's side)
     const capH = bw * 0.5, finH = bw * 0.42, top = capH, area = H - capH - finH;

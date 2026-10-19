@@ -94,6 +94,9 @@
     },
     "api/log.js": {
       "maxDuration": 5
+    },
+    "api/sky.js": {
+      "maxDuration": 8
     }
   }
 }

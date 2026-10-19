@@ -5,7 +5,10 @@
 // projected facing south (north in the Southern Hemisphere). Rendered into an offscreen canvas every 20 s (the sky turns
 // 15°/hour: the change is far too small to see) and when the screen or the look changes; a frame just draws that canvas.
 
+import { planetsAt } from '../../core/sky.js';
+
 const D = Math.PI / 180;
+const PLANET_COL = { venus: [255, 250, 236], mars: [255, 168, 116], jupiter: [255, 240, 214], saturn: [242, 224, 186] };
 const CATALOG = [
   [6.752, -16.72, -1.46], [6.399, -52.7, -0.74], [14.261, 19.18, -0.05], [18.616, 38.78, 0.03], [5.278, 46, 0.08], [5.242, -8.2, 0.13],
   [7.655, 5.22, 0.34], [5.919, 7.41, 0.5], [1.629, -57.24, 0.46], [19.846, 8.87, 0.76], [4.599, 16.51, 0.85], [16.49, -26.43, 0.96],
@@ -62,7 +65,7 @@ export function createStars() {
       band.push({ ...e, w: (0.35 + 0.65 * core) * Math.exp(-(b * b) / 50) * (0.75 + rnd() * 0.5), lane: Math.abs(b) < 1.5 && core > 0.25, sz: 1 + core * 0.6 });
     }
   }
-  let cv = null, key = '', at = -1e9, bright = [];
+  let cv = null, key = '', at = -1e9, bright = [], planets = [];
   const glowCache = new Map();
   const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glowCache.get(k); if (!c) { c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.4, `rgba(${k},0.35)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); glowCache.set(k, c); } return c; };
 
@@ -95,6 +98,9 @@ export function createStars() {
       }
       x.globalCompositeOperation = 'source-over';
     }
+    // the planets: where they really are tonight (drawn every frame, steady, and visible earlier than the stars)
+    planets = [];
+    for (const pl of planetsAt(ms)) { const p = proj(pl.ra, pl.dec); if (p && p.alt > 2) planets.push({ ...pl, x: p.x, y: p.y, alt: p.alt }); }
     // the stars, by magnitude; the brightest kept for a little twinkle each frame
     bright = [];
     for (const st of stars) {
@@ -114,8 +120,9 @@ export function createStars() {
 
   return {
     /** draw the night sky. vis: how visible stars are now (0 by day); milky: the Milky Way's strength */
-    draw(c, W, HZ, L, ms, vis, milky, t, motion, camY) {
-      if (vis <= 0.02 || L.lat == null) return;
+    draw(c, W, HZ, L, ms, vis, milky, t, motion, camY, twilight = 0) {
+      if ((vis <= 0.02 && twilight <= 0.02) || L.lat == null) return;
+      if (vis <= 0.02) { const k = `${W}|${HZ}|${Math.round(milky * 20)}|${L.south}`; if (k !== key || ms - at > 20000 || ms < at) { key = k; at = ms; render(W, HZ, L, ms, milky); } drawPlanets(c, Math.min(1, twilight), camY); return; }
       const k = `${W}|${HZ}|${Math.round(milky * 20)}|${L.south}`;
       if (k !== key || ms - at > 20000 || ms < at) { key = k; at = ms; render(W, HZ, L, ms, milky); }
       c.globalAlpha = Math.min(1, vis);
@@ -125,7 +132,21 @@ export function createStars() {
         for (const b of bright) { const tw = 0.5 + 0.5 * Math.sin(t * (1.3 + (b.ph % 7) * 0.2) + b.ph); c.globalAlpha = 0.35 * tw * vis; c.drawImage(glow(230, 236, 255), b.x - b.r * 3, b.y - b.r * 3 + camY, b.r * 6, b.r * 6); }
         c.globalCompositeOperation = 'source-over';
       }
+      drawPlanets(c, Math.min(1, Math.max(vis * 2.2, twilight)), camY);
       c.globalAlpha = 1;
     },
+    planets: () => planets.map(p => p.name),
   };
+  function drawPlanets(c, a, camY) {
+    if (a <= 0.02) return;
+    for (const p of planets) {
+      const b = Math.pow(10, -0.4 * (p.mag + 1)), fade = Math.min(1, (p.alt - 2) / 8);
+      const r = Math.max(1.1, Math.min(2.6, 1 + Math.sqrt(b) * 0.9)), col = PLANET_COL[p.name];
+      c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = a * fade * Math.min(0.8, 0.25 + b * 0.3); c.drawImage(glow(...col), p.x - r * 6, p.y - r * 6 + camY, r * 12, r * 12);
+      c.globalCompositeOperation = 'source-over';
+      c.globalAlpha = a * fade; c.fillStyle = `rgb(${col})`; c.beginPath(); c.arc(p.x, p.y + camY, r, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
+  }
 }

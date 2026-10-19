@@ -2,7 +2,8 @@
 //   neonPowerOn({ crackles })  the sign warming up: a warm mains hum that swells and settles, with soft
 //                              electrical crackles at the given offsets (seconds) — one per flicker
 //   neonTick()                 the tiny crackle of a single letter's rare flicker
-//   startRain() -> stop()      a very low rain bed under the music (filtered noise, slowly breathing)
+//   startRain(level) -> stop()  the rain (LIVE WEATHER): a breathing bed, a downpour roar, droplet ticks; stop.level(l)
+//   thunder({ near, delay })     a crack + thump (near) and rolling, reverberant rumble after a lightning flash
 // Everything is quiet by design: felt more than heard.
 import { getContext, getSfxBus, isUnlocked } from './engine.js';
 
@@ -83,32 +84,161 @@ export function neonTick() {
   crackle(ctx, ctx.currentTime + 0.005, 0.009);
 }
 
-export function startRain() {
-  if (!isUnlocked()) return () => {};
+// ---------------------------------------------------------------- weather: the rain and the thunder (LIVE WEATHER)
+// The rain follows the real rain (level 0..1): a soft bed of filtered noise that breathes, a low roar that only heavy rain
+// brings, and fine droplet ticks on the glass and the street. startRain(level) -> stop(fade); stop.level(l) changes it live.
+let brownBuf = null, irBuf = null;
+// RECORDED WEATHER (optional): royalty-free recordings beat any synthesis. Put the files in audio/weather/ and list them here —
+// a thunder file is picked at random per strike (near / far), a rain loop replaces the synthesized bed. Empty = synthesized.
+export const RECORDED = { thunderNear: [], thunderFar: [], rainLoop: null };   // e.g. ['thunder-near1.mp3', …], 'rain.mp3'
+const decoded = new Map();
+function loadRec(ctx, name) {
+  if (!decoded.has(name)) decoded.set(name, fetch(new URL(`../../audio/weather/${name}`, import.meta.url)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status)))).then(b => ctx.decodeAudioData(b)).catch(() => null));
+  return decoded.get(name);
+}
+function brown(ctx) {
+  if (brownBuf && brownBuf.sampleRate === ctx.sampleRate) return brownBuf;
+  const len = ctx.sampleRate * 4;
+  brownBuf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = brownBuf.getChannelData(ch);
+    let last = 0;
+    for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+  }
+  return brownBuf;
+}
+// a big, dark space (thunder rolling between the towers): stereo noise decaying over ~4 s, the highs dying first
+function space(ctx) {
+  if (irBuf && irBuf.sampleRate === ctx.sampleRate) return irBuf;
+  const len = Math.round(ctx.sampleRate * 4.2);
+  irBuf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = irBuf.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / ctx.sampleRate;
+      const k = Math.min(0.6, 0.05 + t * 0.12);
+      lp += k * ((Math.random() * 2 - 1) - lp);
+      d[i] = lp * Math.pow(1 - i / len, 2.2) * (t < 0.02 ? t / 0.02 : 1);
+    }
+  }
+  return irBuf;
+}
+
+export function startRain(level = 0.6) {
+  if (!isUnlocked()) { const f = () => {}; f.level = () => {}; return f; }
   const ctx = getContext();
   const t = ctx.currentTime;
-  const src = ctx.createBufferSource();
-  src.buffer = noise(ctx);
-  src.loop = true;
+  const out = ctx.createGain(); out.gain.setValueAtTime(0, t);
+  out.connect(getSfxBus());
+  // the bed: bright, airy rain, breathing slowly so it never sounds like a hiss (or the recorded loop, when there is one)
+  const src = ctx.createBufferSource(); src.buffer = noise(ctx); src.loop = true;
+  if (RECORDED.rainLoop) loadRec(ctx, RECORDED.rainLoop).then(buf => { if (buf && !stopped) { const r = ctx.createBufferSource(); r.buffer = buf; r.loop = true; const rg = ctx.createGain(); rg.gain.value = 40; r.connect(rg).connect(out); r.start(); bed.gain.value = 0; recSrc = r; } });
+  let recSrc = null;
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700;
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3800;
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.0081, t + 3);   // felt more than heard (was 0.022: too loud; 0.009 → 10% quieter)
-  // a slow breath in the rain (an LFO on the level) so it never sounds like a hiss
+  const bed = ctx.createGain(); bed.gain.value = 1;
   const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
-  const lg = ctx.createGain(); lg.gain.value = 0.00225;
-  lfo.connect(lg).connect(g.gain);
-  src.connect(hp).connect(lp).connect(g).connect(getSfxBus());
-  src.start(t); lfo.start(t);
-  let stopped = false;
-  return (fade = 0.8) => {
-    if (stopped) return;
-    stopped = true;
+  const lg = ctx.createGain(); lg.gain.value = 0.28;
+  lfo.connect(lg).connect(bed.gain);
+  src.connect(hp).connect(lp).connect(bed).connect(out);
+  // the roar of a downpour: low and wide, only when it pours
+  const roarSrc = ctx.createBufferSource(); roarSrc.buffer = brown(ctx); roarSrc.loop = true;
+  const roarLp = ctx.createBiquadFilter(); roarLp.type = 'lowpass'; roarLp.frequency.value = 520;
+  const roar = ctx.createGain(); roar.gain.value = 0;
+  roarSrc.connect(roarLp).connect(roar).connect(out);
+  src.start(t); lfo.start(t); roarSrc.start(t);
+  let lvl = 0, stopped = false;
+  const BASE = 0.0081;                                     // the bed at a medium rain (felt more than heard)
+  function setLevel(l, ramp = 3) {
+    lvl = Math.max(0.1, Math.min(1.2, l));
     const n = ctx.currentTime;
-    g.gain.cancelScheduledValues(n);
-    g.gain.setValueAtTime(g.gain.value, n);
-    g.gain.linearRampToValueAtTime(0, n + fade);
-    src.stop(n + fade + 0.05); lfo.stop(n + fade + 0.05);
+    out.gain.cancelScheduledValues(n); out.gain.setValueAtTime(out.gain.value, n);
+    out.gain.linearRampToValueAtTime(BASE * (0.55 + 0.75 * lvl), n + ramp);
+    roar.gain.cancelScheduledValues(n); roar.gain.setValueAtTime(roar.gain.value, n);
+    roar.gain.linearRampToValueAtTime(Math.max(0, lvl - 0.45) * 1.6, n + ramp);
+  }
+  setLevel(level);
+  // droplet ticks: a few a second on the glass and the street, more as it pours (scheduled a little ahead)
+  let timer = 0;
+  const tickLoop = () => {
+    if (stopped) return;
+    const n = ctx.currentTime, rate = 3 + lvl * 14;
+    for (let tt = 0; tt < 0.25; tt += -Math.log(1 - Math.random()) / rate) droplet(ctx, n + 0.02 + tt, out, 0.5 + Math.random() * 1.1);
+    timer = setTimeout(tickLoop, 250);
   };
+  tickLoop();
+  const stop = (fade = 0.8) => {
+    if (stopped) return;
+    stopped = true; clearTimeout(timer);
+    const n = ctx.currentTime;
+    out.gain.cancelScheduledValues(n); out.gain.setValueAtTime(out.gain.value, n); out.gain.linearRampToValueAtTime(0, n + fade);
+    for (const x of [src, lfo, roarSrc, recSrc]) if (x) x.stop(n + fade + 0.05);
+    setTimeout(() => out.disconnect(), (fade + 0.2) * 1000);
+  };
+  stop.level = l => { if (!stopped && Math.abs(l - lvl) > 0.05) setLevel(l, 4); };
+  return stop;
+}
+// a single droplet: a tiny, bright, pitched tick
+function droplet(ctx, at, dest, gain) {
+  const s = ctx.createBufferSource(); s.buffer = noise(ctx);
+  const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2400 + Math.random() * 5200; f.Q.value = 4 + Math.random() * 6;
+  const g = ctx.createGain(); const dur = 0.012 + Math.random() * 0.03;
+  g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(gain, at + 0.0015); g.gain.exponentialRampToValueAtTime(0.001, at + dur);
+  s.connect(f).connect(g);
+  if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.random() * 1.6 - 0.8; g.connect(p).connect(dest); } else g.connect(dest);
+  s.start(at, Math.random() * 1.5, dur + 0.02);
+}
+
+/** Thunder, a moment after a lightning flash. near: a close strike (sooner, a crack, a deep thump); far: a long low roll.
+ *  delay: seconds after the flash (light outruns sound). On the SFX bus: the Effects volume and mute apply. */
+export function thunder({ near = false, delay = 2 } = {}) {
+  if (!isUnlocked()) return;
+  const ctx = getContext();
+  const t0 = ctx.currentTime + delay;
+  const files = near ? RECORDED.thunderNear : RECORDED.thunderFar;
+  if (files.length) {
+    loadRec(ctx, files[Math.floor(Math.random() * files.length)]).then(buf => {
+      if (!buf) return;
+      const s = ctx.createBufferSource(); s.buffer = buf;
+      const g = ctx.createGain(); g.gain.value = near ? 0.5 : 0.32;
+      s.connect(g).connect(getSfxBus()); s.start(Math.max(ctx.currentTime, t0));
+    });
+    return;
+  }
+  const out = ctx.createGain(); out.gain.value = near ? 1 : 0.62;
+  const verb = ctx.createConvolver(); verb.buffer = space(ctx);
+  const wet = ctx.createGain(); wet.gain.value = near ? 0.55 : 0.85;
+  out.connect(getSfxBus()); out.connect(verb); verb.connect(wet).connect(getSfxBus());
+  const pan = (node, v) => { if (!ctx.createStereoPanner) return node; const p = ctx.createStereoPanner(); p.pan.value = v; node.connect(p); return p; };
+  const side = Math.random() * 1.2 - 0.6;
+  if (near) {
+    // the crack: a tearing burst of bright noise, then a sizzle of smaller cracks
+    const s = ctx.createBufferSource(); s.buffer = noise(ctx);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.075, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.002, t0 + 0.35);
+    s.connect(hp).connect(g); pan(g, side).connect(out);
+    s.start(t0, Math.random(), 0.4);
+    for (let i = 0; i < 9; i++) droplet(ctx, t0 + 0.02 + Math.random() * 0.4, out, 0.05 * (1 - i / 10));
+    // the thump you feel: a low sine dropping in pitch
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(62, t0 + 0.03); o.frequency.exponentialRampToValueAtTime(34, t0 + 0.9);
+    const og = ctx.createGain(); og.gain.setValueAtTime(0, t0); og.gain.linearRampToValueAtTime(0.12, t0 + 0.05); og.gain.exponentialRampToValueAtTime(0.001, t0 + 1.2);
+    o.connect(og).connect(out); o.start(t0); o.stop(t0 + 1.3);
+  }
+  // the roll: several overlapping swells of low rumble, each from a slightly different direction
+  const rolls = near ? 4 + Math.floor(Math.random() * 2) : 3 + Math.floor(Math.random() * 3);
+  let at = t0 + (near ? 0.08 : 0);
+  for (let i = 0; i < rolls; i++) {
+    const s = ctx.createBufferSource(); s.buffer = brown(ctx); s.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = (near ? 260 : 150) * (0.75 + Math.random() * 0.5); lp.Q.value = 0.7;
+    const g = ctx.createGain();
+    const peak = (near ? 0.5 : 0.36) * (i === 0 ? 1 : 0.55 + Math.random() * 0.5), rise = 0.12 + Math.random() * 0.35, fall = 1.4 + Math.random() * 2.4;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(peak, at + rise); g.gain.exponentialRampToValueAtTime(0.0004, at + rise + fall);
+    s.connect(lp).connect(g); pan(g, Math.max(-1, Math.min(1, side + (Math.random() - 0.5) * 0.8))).connect(out);
+    s.start(at, Math.random() * 3, rise + fall + 0.1);
+    at += 0.25 + Math.random() * (near ? 0.7 : 1.1);
+  }
+  setTimeout(() => { out.disconnect(); wet.disconnect(); }, (delay + 9) * 1000);
 }

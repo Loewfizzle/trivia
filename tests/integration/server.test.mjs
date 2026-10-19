@@ -22,6 +22,7 @@ import { adminAction } from '../../api/admin.js';
 import reportHandler from '../../api/report.js';
 import boardHandler from '../../api/board.js';
 import logHandler, { logErrors, errorSig } from '../../api/log.js';
+import skyHandler, { placeOf, skyFor, clearSkyCache } from '../../api/sky.js';
 import { clearBoardCache } from '../../api/_lib/lb.js';
 import { finalGame } from '../fixtures/finals.mjs';
 import { weekKey } from '../../js/core/week.js';
@@ -31,7 +32,7 @@ const NOW = Date.UTC(2026, 9, 14, 23, 0, 0);       // Wed 2026-10-14, 7 pm Easte
 const DAY = 86_400_000;
 let clock = NOW;
 const tick = (ms = 60_000) => (clock += ms);
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx'];
 
 before(async () => {
   await ref('/').update(Object.fromEntries(NODES.map(n => [n, null])));
@@ -518,4 +519,33 @@ test('admin stats: live rooms, games, players and busiest times from the real no
     assert.equal(S.times.grid.length, 7);
     assert.ok(Object.values(S.games.all).reduce((a, b) => a + b, 0) > 0, 'gplay counts');
   } finally { process.env.ADMIN_PIDS = ''; await ref('rooms/STAT').remove(); }
+});
+
+// ---- live weather (api/sky.js): the visitor's area from Vercel's headers, rounded; Open-Meteo cached per area
+test('sky: weather for the visitor\'s rounded area, cached 15 minutes, nothing without a location', async () => {
+  clearSkyCache();
+  await ref('wx').remove();
+  let calls = 0;
+  const fetcher = async url => { calls++; assert.match(url, /latitude=43&longitude=-85\.5/); return { ok: true, json: async () => ({ current: { weather_code: 95, cloud_cover: 100, wind_speed_10m: 9.1, wind_direction_10m: 260, temperature_2m: 18.4, visibility: 12000 } }) }; };
+  const req = { url: '/api/sky', headers: { 'x-vercel-ip-latitude': '42.9634', 'x-vercel-ip-longitude': '-85.6681', 'x-vercel-ip-city': 'Grand%20Rapids' } };
+  const place = placeOf(req);
+  assert.deepEqual([place.lat, place.lon, place.city], [43, -85.5, 'Grand Rapids']);
+  const now = Date.now();
+  const a = await skyFor(place, { now, fetcher });
+  assert.equal(a.kind, 'storm');
+  assert.equal(a.storm, 1);
+  assert.equal(a.city, 'Grand Rapids');
+  await skyFor(place, { now: now + 60_000, fetcher });
+  assert.equal(calls, 1, 'the same area within 15 minutes: no second request');
+  const stored = await val(`wx/${place.key}`);
+  assert.equal(stored.kind, 'storm');
+  assert.equal(stored.city, undefined, 'the stored copy keeps no city, only the rounded area');
+  clearSkyCache();
+  await skyFor(place, { now: now + 120_000, fetcher });
+  assert.equal(calls, 1, 'another instance reads the shared copy');
+  await skyFor(place, { now: now + 16 * 60_000, fetcher });
+  assert.equal(calls, 2, 'stale after 15 minutes');
+  assert.equal(placeOf({ url: '/api/sky', headers: {} }), null);
+  const r = await new Promise(resolve => { const res = { statusCode: 200, setHeader() {}, end: () => resolve(res.statusCode) }; skyHandler({ method: 'GET', url: '/api/sky', headers: {} }, res); });
+  assert.equal(r, 204, 'no location: no answer (the city keeps its own weather)');
 });

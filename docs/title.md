@@ -45,8 +45,8 @@ the street outside: the district, the sign over the door.
   the edges, flipped in the south), the holiday with its build-up (`holidayOf`: Halloween, Thanksgiving, Christmas (all of
   December builds up), New Year's Eve, Valentine's, St. Patrick's, Easter (computed), the Fourth), meteor showers on their
   peaks (±1 day) and a rare single star on any clear night, aurora on about one night in five, any time of year (seeded by date: the same for everyone),
-  rainy hours (seeded per 4-hour block), snow in winter (and always on the Christmas nights), and the NYE countdown / finale
-  (the last 10 minutes before the local midnight, the first 5 after).
+  the weather (LIVE WEATHER below: real rain, snow, storms, fog, cloud, wind and cold — never made up; a little snow on the
+  Christmas nights), and the NYE countdown / finale (the last 10 minutes before the local midnight, the first 5 after).
 - **The palette** (`district/palette.js`): a full colour set per look (night, late, dawn, a hazy matinee day, golden hour),
   blended by the weights, then tinted by the season and the holiday. **The effects** (`district/fx.js`): the sun's disc and
   glow (low sun only), the moon at its phase with a halo (kept clear of the sign), aurora curtains low over the skyline,
@@ -69,6 +69,49 @@ the street outside: the district, the sign over the door.
 - **Where:** the title; the menus' backdrop and THE BOARD's windows show the still the title leaves behind (same hour).
 - **Preview switch** (any page, test only): `?when=2026-10-31T21:30&tz=America/New_York` starts the clock at that local
   time; `&force=bats,witch,meteor,aurora,sleigh,fireworks` makes the rare moments happen now.
+
+## LIVE WEATHER + the city's life (Oct 19, 2026)
+- **Where the weather comes from:** `GET /api/sky` (api/sky.js) reads the visitor's approximate place from Vercel's IP headers
+  (`x-vercel-ip-latitude / -longitude / -city`; no permission prompt, the browser never sees it), rounds it to ~0.5° (≈ 35 miles:
+  the cache key and all that's kept), asks Open-Meteo (free, no key) and caches per area for 15 minutes (memory + `wx/{area}`,
+  server-only). `core/weather.js` (pure) turns WMO codes + cloud cover + visibility + wind + temperature into
+  `{ kind, rain, snow, storm, fog, cloud, wind, windDir, temp, lat, lon }`. The page (`district/live-weather.js`) asks after the
+  first paint, every 15 minutes and when it comes back to the front; the answer is good for 75 minutes. With it, look() also
+  places the sun, moon and stars over the visitor's real area (Grand Rapids sunrises, not New York's). **Without it** (no
+  answer yet, local dev, a failed lookup): a dry city with a few fair-weather clouds — the old seeded "rainy evenings" are gone
+  for good. Previews never use live weather; `&wx=clear|clouds|overcast|fog|drizzle|rain|storm|snow|sleet|freeze` sets it.
+- **Clouds** (`district/weather-fx.js`): fractal-noise shapes (cumulus domes on a flat base, ragged stratus banks low near the
+  skyline, a seamless overcast deck) with light marched through them — from above (sun, sky, moon) and from below (the city's
+  neon on the bellies at night) — re-coloured as the hour changes; built a little each frame after the opening sequence (never a
+  long frame) and faded in; drifting with the real wind. The moon dims behind thick cloud and glows through thin.
+- **Rain** (`district/rain.js`, replaced the old tiled rain): drops at three depths slanted by the wind (a fifth of the near ones
+  catch the neon at night), veils of rain under distant clouds, splashes (a flat ring + droplets) and rings on the street, a
+  low spray in a downpour; the signs' own drops follow it. **Storms:** lightning in clusters — the sky lights up behind the
+  skyline (the towers stand out black), the clouds light from inside, a branching bolt now and then (left or right of the sign),
+  every raindrop flashes, the street brightens, the glass of HOST / JOIN flickers, and thunder rolls in a few seconds later.
+- **Fog:** a veil after each far row (the distance dissolves), noise-shaped banks drifting through the near towers, the sign's
+  halo spreading. **Snow:** real snowfall in depth (big soft flakes up close, a warm tint at night), drifting with the wind,
+  settling on the rooftops and on the sign's tubes (`title.js#snowOnSign`: an SVG of the tubes' top edges, in over a minute);
+  the first snow of each winter (per device) starts with a hush of a few big slow flakes.
+- **Deep freeze** (`district/frost.js`, real cold only: from −4 °C / 25 °F, full by −12 °C / 10 °F): fern-like frost creeping in from
+  the screen's corners and edges (baked once, kept clear of the sign and the buttons), icicles under the nearer roof lines,
+  rime on the roofs, frosted glass on the lit windows.
+- **The glass of the dock** (`title.js#tintGlass`, `--dk-glow / --dk-tint`): the sign's neon after dark (the holiday colour on its
+  days), amber at golden hour, rose at dawn, cool frosted daylight; rain beads and runs down it while it rains. Labels unchanged.
+- **Birds** (`district/wildlife.js`): GEESE in V formations in the migrations (Mar–Apr flying north: out of the haze toward us;
+  Sep–Nov south: away into the distance), wingbeats rippling down the arms, sometimes a straggler; SWIFTS round the rooftops on
+  summer evenings; PIGEONS on a roof at one side by day (bobbing, pecking, turning) — tap them and they burst up, wheel round
+  and land again (they also go on their own every few minutes); a rare HERON crossing near the moon on warm nights.
+- **The street** (`district/street.js`): traffic at the towers' feet following the clock (`trafficAt`: the 8 am and 6 pm rush,
+  weekend evenings, a stray cab at 3 am) — head lights one way, tail lights the other, their light streaked on the wet street, small
+  cars (and cabs) by day; an ELEVATED TRAIN above the low middle roofs of the near row every few minutes (`trainGap`: more in the
+  rush, none 1:30–5 am) with lit windows, a headlight and the odd blue spark; STEAM from roof vents and a manhole when it's cold.
+- **The sky:** the PLANETS (Venus, Mars, Jupiter, Saturn — JPL elements, `core/sky.js#planetsAt`) where they really are, steady,
+  Venus from dusk; LUNAR ECLIPSES on their real dates (`ECLIPSES`, `eclipseAt`) when the moon is up: the shadow crossing, the moon
+  copper-red in totality.
+- **Loading + cost:** these modules load 0.4 s after the first paint (the title never waits); clouds build in ≤ 2 ms slices;
+  every sprite is baked; test-only `&force=no-clouds,no-road,no-birds,no-rain` switches parts off for performance checks.
+- **Preview:** `&force=lightning,geese,swifts,pigeons,heron,train,steam,rush,eclipse,freeze` (+ `&wx=` above).
 
 ## The title, Oct 2026 redesign: the city is the showcase
 - **No game row.** Under the tagline, one line: `N PARTY GAMES · ONE PHONE EACH` (N = the playable games in `GAMES`, so it

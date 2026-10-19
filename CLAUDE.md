@@ -2,7 +2,7 @@
 
 Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Twelve games. Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
-plus five Vercel serverless functions in `/api` (profiles, server-verified results, THE BOARD, admin, errors from phones — `docs/profiles.md`).
+plus six Vercel serverless functions in `/api` (profiles, server-verified results, THE BOARD, admin, errors from phones — `docs/profiles.md`; the live weather — `docs/title.md`).
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
 district" in code (`js/screens/district/`, the `nd-` class prefix). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md and the relevant `docs/*.md` updated as you work.**
@@ -71,7 +71,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 ```
 index.html / sw.js / manifest.webmanifest / assets/     shell, service worker (network-first, same-origin static only, never /api), PWA, icons + og.png
 board.html admin.html                                    THE BOARD for anyone (/board, og-board.jpg) and the admin page (/admin)
-api/ profile.js report.js board.js admin.js log.js + _lib/   Vercel functions (firebase-admin): profiles, verified results, boards, moderation, errors from phones
+api/ profile.js report.js board.js admin.js log.js sky.js + _lib/   Vercel functions (firebase-admin): profiles, verified results, boards, moderation, errors from phones, live weather
 package.json                                             only firebase-admin for /api (npm install at the root for local /api)
 css/base.css components.css screens.css title.css        tokens + themes, the design system (+ NEON GLASS), setup/lobby, the title
 css/kit.css                                              the match kit's default look (announcements, cards, Call the Winner, report)
@@ -79,7 +79,7 @@ css/board.css admin.css                                  THE BOARD, the membersh
 css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow()
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
-js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js sky.js insights.js   PURE (insights.js: the admin STATS) (sky.js: the real sun, moon, seasons, holidays, sky events): room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
+js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js   PURE (sky.js: + planets, eclipses; weather.js: Open-Meteo → the city weather; insights.js: the admin STATS) (sky.js: the real sun, moon, seasons, holidays, sky events): room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
           week.js ranks.js names.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, keys, board catalog, per-game results
 js/profile/ api.js me.js queue.js public.js callouts.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques + rank-up
 js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX
@@ -87,7 +87,7 @@ js/admin/admin.js                                        the /admin page
 js/ui/    dom.js components.js final.js logo.js game-art.js settings-panel.js help.js toast.js emblems.js   h(), design-system components, the podium, the sign, lobby art, gear + settings, HOW TO PLAY, toasts, rank emblems
 js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js   prefs, AudioContext + buses, music + playlists, synth SFX, title ambience, songs on the server clock, MOOD MUSIC
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
-js/screens/ title.js setup.js lobby.js profile.js district/{scene,backdrop,fx,palette,signs,marks,sign-logic}.js   the front door, name/avatar, the lobby, the membership card, the city (Canvas 2D: sky, effects, its signs) + its still behind menus
+js/screens/ title.js setup.js lobby.js profile.js district/{scene,backdrop,fx,palette,signs,marks,sign-logic,stars,weather-fx,rain,frost,wildlife,street,live-weather}.js   the front door, name/avatar, the lobby, the membership card, the city (Canvas 2D: sky, effects, signs, LIVE WEATHER, birds, the street) + its still behind menus
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
 js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
 js/errlog.js                                             errors from players' phones → /api/log → /admin (first import of app.js + board/public.js)

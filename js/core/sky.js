@@ -11,6 +11,8 @@
 //     rain (0..1), snow (0..1), clear, meteors (per minute), aurora (bool), key (changes when the picture should change)
 //   }
 
+import { isFresh, forcedWeather } from './weather.js';
+
 const RAD = Math.PI / 180;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -231,17 +233,77 @@ export function auroraNight(y, m, d, south) {
   void south;
   return hash(`aurora:${y}-${m}-${d}`) % 5 === 0;
 }
-/** Rain: some evenings are wet (seeded by the date and a 4-hour block, the same for everyone in a zone). */
-export function rainOf(y, m, d, h) {
-  const block = Math.floor(h / 4);
-  const r = hash(`rain:${y}-${m}-${d}:${block}`) % 100;
-  return r < 26 ? 1 : 0;   // about one block in four: a rainy evening feels like an occasion
+
+// ---------------------------------------------------------------- the planets (Venus, Mars, Jupiter, Saturn)
+// JPL's approximate Keplerian elements (Standish, J2000, valid 1800–2050): a (AU), e, I, L, long. perihelion, long. node (°)
+// and their rates per century. Good to a fraction of a degree — far finer than a phone screen needs.
+const ELEMENTS = {
+  earth:   [[1.00000261, 0.01671123, -0.00001531, 100.46457166, 102.93768193, 0], [0.00000562, -0.00004392, -0.01294668, 35999.37244981, 0.32327364, 0]],
+  venus:   [[0.72333566, 0.00677672, 3.39467605, 181.97909950, 131.60246718, 76.67984255], [0.00000390, -0.00004107, -0.00078890, 58517.81538729, 0.00268329, -0.27769418]],
+  mars:    [[1.52371034, 0.09339410, 1.84969142, -4.55343205, -23.94362959, 49.55953891], [0.00001847, 0.00007882, -0.00813131, 19140.30268499, 0.44441088, -0.29257343]],
+  jupiter: [[5.20288700, 0.04838624, 1.30439695, 34.39644051, 14.72847983, 100.47390909], [-0.00011607, -0.00013253, -0.00183714, 3034.74612775, 0.21252668, 0.20469106]],
+  saturn:  [[9.53667594, 0.05386179, 2.48599187, 49.95424423, 92.59887831, 113.66242448], [-0.00125060, -0.00050991, 0.00193609, 1222.49362201, -0.41897216, -0.28867794]],
+};
+function helio(name, T) {
+  const [e0, r] = ELEMENTS[name];
+  const [a, e, I, L, wp, O] = e0.map((v, i) => v + r[i] * T);
+  const M = ((L - wp) % 360 + 540) % 360 - 180, w = wp - O;
+  let E = M * RAD + e * Math.sin(M * RAD);
+  for (let k = 0; k < 6; k++) E -= (E - e * Math.sin(E) - M * RAD) / (1 - e * Math.cos(E));
+  const xp = a * (Math.cos(E) - e), yp = a * Math.sqrt(1 - e * e) * Math.sin(E);
+  const cw = Math.cos(w * RAD), sw = Math.sin(w * RAD), cO = Math.cos(O * RAD), sO = Math.sin(O * RAD), cI = Math.cos(I * RAD), sI = Math.sin(I * RAD);
+  return [
+    (cw * cO - sw * sO * cI) * xp + (-sw * cO - cw * sO * cI) * yp,
+    (cw * sO + sw * cO * cI) * xp + (-sw * sO + cw * cO * cI) * yp,
+    (sw * sI) * xp + (cw * sI) * yp,
+  ];
+}
+/** PURE: the planets' geocentric RA / Dec (degrees), distance (AU) and a typical magnitude, at an instant. */
+export function planetsAt(ms) {
+  const T = (ms / 86400000 + 2440587.5 - 2451545) / 36525;
+  const ea = helio('earth', T), eps = 23.43928 * RAD;
+  const MAG = { venus: -4.2, mars: 0.6, jupiter: -2.3, saturn: 0.7 };
+  return Object.keys(MAG).map(name => {
+    const p = helio(name, T);
+    const x = p[0] - ea[0], y = p[1] - ea[1], z = p[2] - ea[2];
+    const ye = y * Math.cos(eps) - z * Math.sin(eps), ze = y * Math.sin(eps) + z * Math.cos(eps);
+    const ra = ((Math.atan2(ye, x) / RAD) + 360) % 360, dec = Math.atan2(ze, Math.hypot(x, ye)) / RAD;
+    const dist = Math.hypot(x, y, z);
+    // Mars swings from bright to faint with its distance; the others barely change on a screen
+    const mag = name === 'mars' ? Math.max(-2.6, Math.min(1.8, -1.5 + 5 * Math.log10(dist / 0.52) * 0.62)) : MAG[name];
+    return { name, ra, dec, dist, mag };
+  });
+}
+
+// ---------------------------------------------------------------- lunar eclipses
+// Total and deep partial eclipses of the moon (NASA's five-millennium catalog: greatest eclipse in UTC, umbral magnitude).
+// The shadow takes ~1¾ hours to cross for a total, a little less for a partial; it is only drawn while the moon is up.
+export const ECLIPSES = [
+  ['2026-03-03T11:34Z', 1.15], ['2026-08-28T04:13Z', 0.93], ['2028-07-06T18:20Z', 0.39], ['2028-12-31T16:52Z', 1.25],
+  ['2029-06-26T03:22Z', 1.84], ['2029-12-20T22:42Z', 1.12], ['2030-06-15T18:33Z', 0.5], ['2032-04-25T15:14Z', 1.19],
+  ['2032-10-18T19:03Z', 1.1], ['2033-04-14T19:13Z', 1.09], ['2033-10-08T10:55Z', 1.35], ['2036-02-11T22:12Z', 1.3],
+  ['2036-08-07T02:52Z', 1.45], ['2037-01-31T14:01Z', 1.21], ['2037-07-27T04:09Z', 0.81],
+].map(([at, mag]) => ({ at: Date.parse(at), mag }));
+/** PURE: the eclipse under way at an instant: { p (−1 entering … 0 greatest … 1 leaving), mag, total } or null. */
+export function eclipseAt(ms) {
+  for (const e of ECLIPSES) {
+    const half = (e.mag >= 1 ? 108 : 70 + 40 * e.mag) * 60000;      // the umbral phase, either side of greatest
+    const d = ms - e.at;
+    if (Math.abs(d) <= half) {
+      const totalHalf = e.mag >= 1 ? (28 + 30 * Math.min(1, (e.mag - 1) / 0.8)) * 60000 : 0;
+      return { p: d / half, mag: e.mag, total: totalHalf > 0 && Math.abs(d) <= totalHalf };
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- the look
-export function look(ms, tz, { alwaysNight = false } = {}) {
+export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   const lp = localParts(ms, tz);
-  const { lat, lon } = placeOf(tz, lp.off);
+  // LIVE WEATHER (core/weather.js): the visitor's real area when /api/sky knew it — the sun, moon and stars from there too
+  const live = isFresh(wx, ms) || (wx && wx.forced) ? wx : null;
+  const place = placeOf(tz, lp.off);
+  const lat = live && live.lat != null ? live.lat : place.lat, lon = live && live.lon != null ? live.lon : place.lon;
   const south = lat < 0;
   const sun = sunPosition(ms, lat, lon);
   const moonP = moonPosition(ms, lat, lon);
@@ -264,11 +326,23 @@ export function look(ms, tz, { alwaysNight = false } = {}) {
   const hol = holidayOf(lp.y, lp.m, lp.d);
   // the evening's date carries a night into the small hours (showers, aurora, rain blocks)
   const ev = lp.h < 6 ? localParts(ms - 6 * 3_600_000, tz) : lp;
-  const wet = rainOf(ev.y, ev.m, ev.d, lp.h);
   const winter = season.winter;
-  const snow = clamp01((winter - 0.35) / 0.4) * (wet ? 1 : 0.45) + (hol && hol.id === 'christmas' && hol.full ? 0.8 : 0);
-  const rain = wet && winter < 0.5 ? 1 : 0;
-  const clear = !rain && snow < 0.6;
+  const xmas = hol && hol.id === 'christmas' && hol.full ? 0.8 : 0;   // a little Christmas magic, unless it's really raining
+  let rain, snow, storm, fog, cloud, wind, windDir;
+  if (live) {
+    rain = live.rain || 0; storm = live.storm ? 1 : 0; fog = live.fog || 0; cloud = live.cloud || 0;
+    snow = Math.max(live.snow || 0, rain ? 0 : xmas * 0.6);
+    wind = live.wind || 0; windDir = live.windDir || 0;
+  } else {
+    // no live weather (yet, or the lookup failed): a dry city — rain, storms, fog and snow only ever come from the real
+    // weather (the old seeded "rainy evenings" are gone). A few fair-weather clouds drift by; Christmas keeps its snow.
+    snow = xmas; rain = 0; storm = 0; fog = 0;
+    cloud = 0.06 + (hash(`cloud:${ev.y}-${ev.m}-${ev.d}:${Math.floor(lp.h / 3)}`) % 100) / 100 * 0.3;
+    wind = 2 + (hash(`wind:${ev.y}-${ev.m}-${ev.d}`) % 40) / 10; windDir = 250;
+  }
+  const clear = !rain && snow < 0.6 && cloud < 0.7 && fog < 0.4;
+  // a deep freeze (real cold only: −4 °C / 25 °F starts it, full by −12 °C / 10 °F): frost, icicles, rime (district/frost.js)
+  const freeze = live && live.temp != null ? clamp01((-4 - live.temp) / 8) : 0;
   const dark = w.night + w.late;
   const met = meteorsOf(ev.y, ev.m, ev.d);
   const meteors = clear && dark > 0.6 ? met.rate : 0;
@@ -278,21 +352,24 @@ export function look(ms, tz, { alwaysNight = false } = {}) {
   if (lp.m === 12 && lp.d === 31 && lp.h === 23 && lp.mi >= 50) nye = { countdown: (60 - lp.mi) * 60 - lp.s };
   else if (lp.m === 1 && lp.d === 1 && lp.h === 0 && lp.mi < 5) nye = { finale: lp.mi * 60 + lp.s };
   const q = v => Math.round(v * 40);
-  const key = [q(w.night), q(w.late), q(w.dawn), q(w.day), q(w.golden), q(season.winter), q(season.autumn), q(season.spring), q(season.summer), hol ? `${hol.id}${hol.full ? 'F' : Math.round(hol.k * 10)}` : '-', rain].join('|');
+  const key = [q(w.night), q(w.late), q(w.dawn), q(w.day), q(w.golden), q(season.winter), q(season.autumn), q(season.spring), q(season.summer), hol ? `${hol.id}${hol.full ? 'F' : Math.round(hol.k * 10)}` : '-', Math.round(rain * 4), Math.round(fog * 4), Math.round(cloud * 5), storm, Math.round(clamp01(snow) * 4), Math.round(freeze * 4)].join('|');
   return {
     local: lp, lat, lon, south, sun, moon: { ...moonP, ...mph, u: moonArc(ms, lat, lon) }, w, season, holiday: hol, nye,
-    rain, snow: clamp01(snow), clear, meteors, shower: met.shower, aurora, key,
+    eclipse: moonP.el > -1 ? eclipseAt(ms) : null,
+    rain, snow: clamp01(snow), storm, fog, cloud, wind, windDir, temp: live ? live.temp : null, freeze, live: !!live, wxKind: live ? live.kind : null, clear, meteors, shower: met.shower, aurora, key,
   };
 }
 
 // ---------------------------------------------------------------- the clock (a preview switch for screenshots)
 /** ?when=2026-10-31T19:30&tz=America/New_York freezes the start of the clock (it still runs from there);
- *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights makes the rare moments happen now. Normal players never pass these. */
+ *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights makes the rare moments happen now; ?wx=storm|rain|snow|fog|clouds|
+ *  overcast|drizzle|sleet|clear sets the weather (instead of the live weather). Normal players never pass these. */
 export function skyClock(search = (typeof location !== 'undefined' ? location.search : '')) {
   const q = new URLSearchParams(search || '');
   const tz = q.get('tz') || deviceZone();
   const when = q.get('when');
   const force = new Set((q.get('force') || '').split(',').filter(Boolean));
+  const wx = q.get('wx') ? { ...forcedWeather(q.get('wx')), forced: true } : null;
   let base = null;
   if (when) {
     // the wall time is in tz: find the UTC instant whose local time in tz matches
@@ -305,5 +382,5 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
     }
   }
   const t0 = Date.now();
-  return { tz, force, preview: !!(when || q.get('tz') || force.size), now: () => (base == null ? Date.now() : base + (Date.now() - t0)) };
+  return { tz, force, wx, preview: !!(when || q.get('tz') || force.size || wx), now: () => (base == null ? Date.now() : base + (Date.now() - t0)) };
 }

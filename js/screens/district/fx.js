@@ -10,7 +10,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-const CAPS = [{ snow: 50, petals: 4, leaves: 3, flies: 10, fw: 70, aurora: 40 }, { snow: 110, petals: 6, leaves: 5, flies: 18, fw: 150, aurora: 64 }, { snow: 190, petals: 8, leaves: 7, flies: 26, fw: 260, aurora: 96 }];
+const CAPS = [{ snow: 90, petals: 4, leaves: 3, flies: 10, fw: 70, aurora: 40 }, { snow: 190, petals: 6, leaves: 5, flies: 18, fw: 150, aurora: 64 }, { snow: 300, petals: 8, leaves: 7, flies: 26, fw: 260, aurora: 96 }];
 
 export function createFx() {
   const sprites = new Map();
@@ -56,6 +56,39 @@ export function createFx() {
       x.restore();
       disc.width = 0;
     });
+  }
+
+  // the moon in the earth's shadow: the full disc, then the umbra (copper-red, darker toward its middle) and the soft penumbra
+  // around it, moving across from one side to the other as the eclipse goes on
+  let ecCv = null;
+  function eclipsed(phase, r, ec) {     // (sprite units: the disc's radius is 52 of 128)
+    const S = 128;
+    if (!ecCv) ecCv = mk(S, S);
+    const x = ecCv.getContext('2d');
+    x.globalCompositeOperation = 'copy'; x.drawImage(moonSprite(phase), 0, 0, S, S);
+    const mr = 52, Rsh = mr * 2.7, cx = 64, cy = 64;
+    const dmin = ec.mag >= 1 ? Math.max(0, Rsh - mr - 2 * mr * (ec.mag - 1)) * 0.55 : Rsh + mr - 2 * mr * ec.mag;
+    const sx = cx + ec.p * (Rsh + mr) * 1.08, sy = cy + dmin;
+    const d = Math.hypot(sx - cx, sy - cy), inside = clamp01((Rsh - d) / (2 * mr));          // 1 = totality
+    x.globalCompositeOperation = 'source-atop';
+    // the penumbra: a gentle dimming well outside the umbra
+    let g = x.createRadialGradient(sx, sy, Rsh * 0.95, sx, sy, Rsh * 1.6);
+    g.addColorStop(0, 'rgba(10,6,12,0.45)'); g.addColorStop(1, 'rgba(10,6,12,0)');
+    x.fillStyle = g; x.fillRect(0, 0, S, S);
+    // the umbra: deep copper inside, its edge a little brighter (sunlight bent through the earth's air)
+    g = x.createRadialGradient(sx, sy, 0, sx, sy, Rsh);
+    g.addColorStop(0, 'rgba(58,12,6,0.88)'); g.addColorStop(0.55, 'rgba(96,26,10,0.8)'); g.addColorStop(0.86, 'rgba(150,52,20,0.72)'); g.addColorStop(0.97, 'rgba(205,104,52,0.6)'); g.addColorStop(1, 'rgba(205,104,52,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(sx, sy, Rsh, 0, TAU); x.fill();
+    // in totality the whole moon glows a soft blood-orange
+    if (inside > 0) {
+      // the limb farthest from the shadow's middle stays a little brighter; the maria still show through the red
+      const ax = cx + (cx - sx) * 0.5, ay = cy + (cy - sy) * 0.5;
+      const rim = x.createRadialGradient(ax, ay, mr * 0.2, ax, ay, mr * 1.3);
+      rim.addColorStop(0, `rgba(255,140,80,${0.32 * inside})`); rim.addColorStop(1, 'rgba(255,120,60,0)');
+      x.fillStyle = rim; x.fillRect(0, 0, S, S);
+    }
+    x.globalCompositeOperation = 'source-over';
+    return ecCv;
   }
 
   // ---------------------------------------------------------------- the neon pumpkin / shamrock signs
@@ -124,10 +157,13 @@ export function createFx() {
       if (L.moon.el > -2 && P.moonA > 0.05) {
         const r = Math.min(26, Math.max(15, W * 0.035));
         const p = moonPlace(L, r, s.signRect);
-        const a = P.moonA * clamp01((L.moon.el + 2) / 5) * (0.35 + 0.65 * clamp01(L.moon.illum * 4));
+        const a = P.moonA * clamp01((L.moon.el + 2) / 5) * (0.35 + 0.65 * clamp01(L.moon.illum * 4)) * (s.moonVeil == null ? 1 : s.moonVeil);
         if (L.clear && dark > 0.4) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 * a * dark; c.drawImage(glow([200, 210, 255]), p.x - r * 5, p.y - r * 5, r * 10, r * 10); c.globalCompositeOperation = 'source-over'; }
         c.globalAlpha = a * (0.55 + 0.45 * dark);
-        c.drawImage(moonSprite(L.moon.phase), p.x - r * 1.23, p.y - r * 1.23, r * 2.46, r * 2.46);
+        // a lunar eclipse (real dates, core/sky.js#eclipseAt): the earth's shadow crossing, the moon copper-red in totality
+        const ec = s.force.has('eclipse') ? { p: ((t % 36) / 36) * 2 - 1, mag: 1.25 } : L.eclipse;
+        if (ec) c.drawImage(eclipsed(L.moon.phase, r, ec), p.x - r * 1.23, p.y - r * 1.23, r * 2.46, r * 2.46);
+        else c.drawImage(moonSprite(L.moon.phase), p.x - r * 1.23, p.y - r * 1.23, r * 2.46, r * 2.46);
         c.globalAlpha = 1;
         s.moonAt = { x: p.x, y: p.y, r };
         // tapped: a soft swell of light and a few sparkles circling it
@@ -324,15 +360,28 @@ export function createFx() {
       const cap = CAPS[tier];
       const sec = dt / 1000;
       // snow: three depths, drifting on a slow wind
-      const want = Math.round(cap.snow * L.snow);
+      // the first snow of the winter comes down gently: a handful of big flakes for ~20 s, then the real snowfall
+      const hush = s.firstSnow ? Math.min(1, (performance.now() - s.firstSnow) / 22000) : 1;
+      const want = Math.round(cap.snow * L.snow * (0.12 + 0.88 * hush * hush));
       while (snow.length < want) snow.push({ x: Math.random() * W, y: Math.random() * H, z: 0.4 + Math.random() * 0.6, ph: Math.random() * TAU });
       if (snow.length > want) snow.length = want;
+      const dark = L.w.night + L.w.late;
       if (snow.length) {
+        // the real wind carries it (facing south: a west wind blows to the left), gusting a little
+        const wx = Math.sin((L.windDir || 250) * Math.PI / 180) * Math.min(14, L.wind || 2) * 3.2 * (0.75 + 0.25 * Math.sin(t * 0.3));
         for (const f of snow) {
-          if (motion) { f.y += (18 + 34 * f.z) * sec; f.x += (Math.sin(t * 0.6 + f.ph) * 10 + 6) * f.z * sec; if (f.y > H + 4) { f.y = -4; f.x = Math.random() * W; } if (f.x > W + 4) f.x = -4; }
-          c.globalAlpha = 0.35 + 0.55 * f.z;
-          const r = 0.8 + 1.6 * f.z;
-          c.drawImage(glow([255, 255, 255]), f.x - r * 2, f.y - r * 2, r * 4, r * 4);
+          if (motion) {
+            f.y += (16 + 30 * f.z) * sec * (f.big ? 1.25 : 1);
+            f.x += (Math.sin(t * 0.6 + f.ph) * 10 * (1 + f.z) + wx * (0.4 + f.z)) * sec;
+            if (f.y > H + 8) { f.y = -8; f.x = Math.random() * W; }
+            if (f.x > W + 10) f.x = -10; else if (f.x < -10) f.x = W + 10;
+          }
+          f.big ??= Math.random() < (hush < 0.6 ? 0.3 : 0.06);
+          // near flakes are big, soft and out of focus; far ones fine and faint
+          const r = f.big ? 3.6 + 1.6 * f.z : 0.9 + 1.9 * f.z;
+          c.globalAlpha = f.big ? 0.32 + 0.06 * Math.sin(t * 2 + f.ph) : 0.45 + 0.5 * f.z;
+          // at night the flakes catch the city: a warm, faintly pink white
+          c.drawImage(glow(dark > 0.4 && f.ph > 4.4 ? [255, 226, 246] : [255, 255, 255]), f.x - r * 2, f.y - r * 2, r * 4, r * 4);
         }
         c.globalAlpha = 1;
       }
@@ -343,7 +392,6 @@ export function createFx() {
       tumble(c, petals, petalsWant, t, sec, (x) => { x.fillStyle = 'rgba(255,190,214,0.9)'; x.beginPath(); x.ellipse(0, 0, 4, 2.3, 0, 0, TAU); x.fill(); x.fillStyle = 'rgba(255,240,246,0.7)'; x.beginPath(); x.ellipse(-1, -0.4, 1.8, 0.8, 0, 0, TAU); x.fill(); }, 0.6);
       tumble(c, leaves, leavesWant, t, sec, (x, f) => { x.fillStyle = f.col; x.beginPath(); x.moveTo(0, -5); x.quadraticCurveTo(5, -1, 0, 6); x.quadraticCurveTo(-5, -1, 0, -5); x.fill(); x.strokeStyle = 'rgba(80,30,10,0.5)'; x.lineWidth = 0.6; x.beginPath(); x.moveTo(0, -4); x.lineTo(0, 5); x.stroke(); }, 0.72);
       // fireflies on warm summer nights, low over the street
-      const dark = L.w.night + L.w.late;
       const fliesWant = Math.round(cap.flies * clamp01((season.summer - 0.4) / 0.4) * clamp01(dark * 1.4) * (L.rain ? 0 : 1));
       while (flies.length < fliesWant) flies.push({ x: Math.random() * W, y: HZ - 10 + Math.random() * (H - HZ) * 0.5, ph: Math.random() * TAU, sp: 0.5 + Math.random() });
       if (flies.length > fliesWant) flies.length = fliesWant;

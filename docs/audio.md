@@ -29,6 +29,18 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
+## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
+- **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
+  level = rain + 0.25 in a storm). A breathing bed of filtered noise, a low roar that only a downpour brings, and droplet ticks
+  (tiny pitched clicks panned across, more as it pours). Felt more than heard: the bed sits at ~0.008 on the SFX bus.
+- **Thunder** (`thunder({ near, delay })`): fired by each lightning strike (weather-fx → `scene.set({ onFlash })`), a few seconds
+  after the flash (light outruns sound: near 0.5–2 s, far 2.5–7.5 s). Near: a tearing crack, a sizzle of smaller cracks and a
+  low thump you feel; always: 3–6 overlapping swells of brown-noise rumble, each panned a little differently, through a 4 s
+  dark stereo space (a generated impulse response) — thunder rolling between the towers.
+- **Recorded sounds (optional):** royalty-free recordings beat synthesis. Put them in `audio/weather/` and list them in
+  `RECORDED` (ambience.js): `thunderNear` / `thunderFar` (one picked at random per strike) and `rainLoop` (replaces the
+  synthesized bed; the roar and droplets stay under it). Empty lists = the synthesized versions; nothing is requested until listed.
+
 ## Loading, PWA, previews (Lighthouse mobile: 98–99 performance / 100 accessibility / 100 best practices / 100 SEO)
 - `index.html` inlines the boot screen styles, so it paints right after the HTML. **All stylesheets are non-blocking**
   (`media=print` + onload swap); the three core sheets call `__cssDone()` and the page keeps everything except `#boot`

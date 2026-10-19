@@ -30,6 +30,7 @@ const GOLDEN = {
 export const LOOKS = { night: NIGHT, late: LATE, dawn: DAWN, day: DAY, golden: GOLDEN };
 
 const mixN = (a, b, t) => a + (b - a) * t;
+const clamp = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 function blendInto(out, P, k) {
   for (const key of Object.keys(P)) {
     const v = P[key];
@@ -65,8 +66,27 @@ export function paletteFor(L) {
     if (hol.id === 'christmas') P.winWarm += 0.2 * k;
   }
   P.winWarm = Math.min(1, P.winWarm);
-  // a rainy hour is a little greyer by day
-  if (L.rain) { P.sky = P.sky.map(c => shiftCol(c, [118, 124, 140], 0.25 * (L.w.day + L.w.dawn * 0.5))); P.cloud[3] = Math.min(0.5, P.cloud[3] * 1.4); P.stars *= 0.2; }
+  // LIVE WEATHER: a grey day under overcast, the city's glow thrown back by low cloud at night, fog softening the distance
+  const dayish = clamp(L.w.day + L.w.dawn * 0.6 + L.w.golden * 0.4), darkish = L.w.night + L.w.late;
+  const over = clamp(((L.cloud || 0) - 0.55) / 0.4) + (L.rain ? 0.35 : 0);
+  if (over > 0) {
+    P.sky = P.sky.map((c, i) => shiftCol(c, [124 + i * 14, 130 + i * 14, 146 + i * 12], Math.min(0.62, over * 0.55) * dayish));
+    // at night low cloud glows with the city: warm magenta at the horizon, a lid of violet above
+    P.sky = P.sky.map((c, i) => shiftCol(c, i >= 2 ? [70, 34, 92] : [26, 20, 50], Math.min(0.5, over * 0.45) * darkish));
+    P.glow = shiftCol(P.glow, [190, 80, 170], 0.3 * over * darkish); P.glow[3] = Math.min(0.6, P.glow[3] * (1 + 0.5 * over * darkish));
+    P.stars *= Math.max(0, 1 - over * 1.1);
+    P.moonA *= Math.max(0.25, 1 - over * 0.6);
+    P.sun *= Math.max(0, 1 - over);
+    P.rim[3] *= Math.max(0, 1 - over);
+  }
+  if (L.rain) { P.hazeA *= 1.12; P.refl = Math.min(1.25, P.refl * 1.25); }   // wet streets shine
+  if (L.fog > 0.05) {
+    const f = L.fog;
+    P.haze = shiftCol(P.haze, darkish > 0.5 ? [120, 96, 150] : [214, 216, 224], 0.45 * f);
+    P.hazeA *= 1 + f * 0.9;
+    P.tintA = Math.min(0.92, P.tintA + f * 0.3); P.tint = shiftCol(P.tint, darkish > 0.5 ? [60, 46, 88] : [170, 174, 186], 0.5 * f);
+    P.stars *= 1 - f; P.refl *= 1 - 0.35 * f;
+  }
   return P;
 }
 

@@ -60,7 +60,9 @@ async function open({ slot = 'x', qs = '', profile = null, seen = false, reduced
       if (red) localStorage.setItem('na:settings', JSON.stringify({ reducedFx: true }));
     } catch { /* fine */ }
   }, slot, profile, seen, reduced);
-  await p.goto(`${BASE}/?emu&intro=1&slot=${slot}${qs ? '&' + qs : ''}`);
+  // a fixed autumn night (the sign lit, clear, no live weather): the checks never depend on when the suite runs
+  const night = /(^|&)when=/.test(qs) ? '' : '&when=2026-10-14T21:30&tz=America/New_York';
+  await p.goto(`${BASE}/?emu&intro=1&slot=${slot}${qs ? '&' + qs : ''}${night}`);
   return { ctx: c, page: p };
 }
 const ev = (p, js) => p.evaluate(js);
@@ -393,7 +395,9 @@ try {
   // ================================================================ 9. quality tiers + frame pacing (CPU throttled), and repeated title<->setup cycles
   // everything else closed first: other open pages would share the CPU being measured
   for (const x of [A, H, B, C, D, F]) await x.ctx.close().catch(() => {});
-  const Q = await open({ slot: 'q', seen: true, view: [390, 844] });
+  // measured at a fixed afternoon (the cost the budget was set for). At night the top tier is heavier — the lit windows, the
+  // trims, the sky — and a 4×-slowed CPU steps down a tier there, as designed (the same before and after LIVE WEATHER).
+  const Q = await open({ slot: 'q', seen: true, view: [390, 844], qs: 'when=2026-10-14T14:00&tz=America/New_York' });
   await waitFor(Q.page, '!!window.__district && window.__district.phase().done', 'title Q');
   await Q.page.bringToFront(); // a background tab doesn't animate (by design)
   const cdpQ = await Q.page.target().createCDPSession();

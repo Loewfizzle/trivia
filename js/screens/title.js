@@ -28,13 +28,14 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, startRain, cityPowerOn } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, startRain, thunder, cityPowerOn } from '../audio/ambience.js';
 import { createDistrict } from './district/scene.js';
 import { captureBackdrop } from './district/backdrop.js';
 
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
 const BACK = 'nd:back';          // sessionStorage: just stepped back from the name / profile screen (a quick re-light)
+const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const store = (s, k, v) => { try { if (v === undefined) return s.getItem(k); s.setItem(k, v); } catch { /* private mode */ } return null; };
 
 // the sequences (seconds from the start). wave = window lights climbing, lit = the city's glow, bill = billboards,
@@ -258,6 +259,8 @@ export function createTitle() {
     document.body.prepend(els.sceneWrap);
     scene = createDistrict(els.canvas, { games: GAMES, tier: (window.devicePixelRatio || 1) > 2.5 && (navigator.hardwareConcurrency || 8) <= 4 ? 1 : 2 });
     scene.set({ motion: reduced() ? 0 : 1 });
+    // a lightning strike: thunder a few seconds later, the glass of the dock catches the flash
+    scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
@@ -431,15 +434,72 @@ export function createTitle() {
     if (want && !lit) { tl.kind = 'full'; signOn(); scene.set({ logo: 1 }); }
     else if (!want && lit) signOff();
     dressSign(scene.look());
+    tintGlass();
+    snowOnSign();
     rainSound();
     els.skyTimer = setTimeout(watchSky, 1000);
+  }
+  // the dock's glass takes the sky's light: the sign's neon after dark (the holiday's colour on its days), amber at golden
+  // hour, rose at dawn, a cool frosted daylight — and rain runs down it while it rains. The labels never change (contrast).
+  let glassKey = '';
+  function tintGlass() {
+    const L = scene.look(), P = scene.palette && scene.palette();
+    if (!L || !P) return;
+    const hex = h6 => [parseInt(h6.slice(1, 3), 16), parseInt(h6.slice(3, 5), 16), parseInt(h6.slice(5, 7), 16)];
+    const neon = hex((scene.signCol && scene.signCol()) || '#ff4fb4');
+    const LIGHT = { night: neon, late: neon, golden: [255, 166, 96], dawn: [255, 160, 186], day: [214, 228, 255] };
+    const mix = [0, 0, 0];
+    let tw = 0;
+    for (const [k, w] of Object.entries(L.w)) { const c = LIGHT[k]; if (!c || w <= 0) continue; tw += w; for (let i = 0; i < 3; i++) mix[i] += c[i] * w; }
+    const glow = mix.map(v => Math.round(v / (tw || 1)));
+    // the glass itself: the sky's low colour, darkened so white labels always read on it
+    const sky = P.sky[2].map(v => Math.round(v * 0.32));
+    const day = clamp01(L.w.day + L.w.dawn * 0.5);
+    const key = `${glow.join(',')}|${sky.join(',')}|${Math.round(day * 10)}`;
+    if (key !== glassKey) {
+      glassKey = key;
+      const st = els.root.style;
+      st.setProperty('--dk-glow', `rgb(${glow.join(',')})`);
+      st.setProperty('--dk-tint', `rgb(${sky.join(',')})`);
+      st.setProperty('--dk-day', String(Math.round(day * 100) / 100));
+    }
+    els.door.classList.toggle('is-rain', !!L.rain && !L.snow);
+  }
+  // LIVE WEATHER: snow settles on the sign's tubes while it snows (fades in over a minute, melts slowly after), drawn from the
+  // tubes themselves (their top edges: the shape minus itself shifted down); the first snow of the winter starts gently
+  function snowOnSign() {
+    const L = scene.look(), logo = els.sign.querySelector('svg.nd-logo');
+    if (!logo) return;
+    const snowing = (L.snow || 0) > 0.25;
+    if (snowing && !els.snowCap) {
+      const paths = [...logo.querySelectorAll('.ndl')].map(g => {
+        const p = g.querySelector('.ndl-glass');
+        return p ? `<path d="${p.getAttribute('d')}" transform="${g.getAttribute('transform') || ''}" stroke="#fff" stroke-width="${p.getAttribute('stroke-width')}"/>` : '';
+      }).join('');
+      els.snowCap = h('div.nd-snowcap', { 'aria-hidden': 'true', html: `<svg viewBox="${logo.getAttribute('viewBox')}" xmlns="http://www.w3.org/2000/svg"><defs><filter id="nd-snow" x="-5%" y="-10%" width="110%" height="120%"><feOffset in="SourceAlpha" dy="2.8" result="o"/><feComposite in="SourceAlpha" in2="o" operator="out" result="top"/><feGaussianBlur in="top" stdDeviation="0.45" result="b"/><feFlood flood-color="#f6f8ff"/><feComposite in2="b" operator="in"/></filter></defs><g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#nd-snow)">${paths}</g></svg>` });
+      logo.parentNode.append(els.snowCap);
+    }
+    els.sign.classList.toggle('is-snowy', snowing);
+    // the first snow of this winter (per device): a hush — a few big, slow flakes before it really comes down
+    if (snowing) {
+      const winter = L.local ? (L.local.m >= 7 ? L.local.y : L.local.y - 1) : 0;
+      if (store(localStorage, 'nd:firstsnow') !== String(winter)) { store(localStorage, 'nd:firstsnow', String(winter)); scene.set({ firstSnow: performance.now() }); }
+    }
   }
   // the rain sound only while it rains on screen: in over ~3 s when a shower starts, out over 4 s when it stops
   function rainSound() {
     if (destroyed || !scene) return;
-    const raining = !!scene.look().rain;
-    if (raining && !stopRain) stopRain = startRain();
-    else if (!raining && stopRain) { stopRain(4); stopRain = null; }
+    const L = scene.look(), level = (L.rain || 0) + (L.storm ? 0.25 : 0);
+    if (level > 0 && !stopRain) stopRain = startRain(level);
+    else if (level > 0 && stopRain && stopRain.level) stopRain.level(level);
+    else if (!level && stopRain) { stopRain(4); stopRain = null; }
+  }
+  let glassT = 0;
+  function flashGlass(near) {
+    if (!els.door) return;
+    els.door.classList.remove('is-flash', 'is-flash-near'); void els.door.offsetWidth;
+    els.door.classList.add('is-flash'); if (near) els.door.classList.add('is-flash-near');
+    clearTimeout(glassT); glassT = setTimeout(() => els.door && els.door.classList.remove('is-flash', 'is-flash-near'), 900);
   }
   function signOff() {
     const s = els.sign;
@@ -647,8 +707,8 @@ export function createTitle() {
   function buildActions() {
     els.welcome = h('div.nd-welcome');
     els.rejoin = h('div.nd-rejoin');
-    els.host = h('button.nd-host', { type: 'button', onclick: host }, h('span.nd-host-sheen'), h('span.nd-host-label', 'HOST'));
-    els.joinBtn = h('button.nd-joinbtn', { type: 'button', onclick: () => openJoin(true, true) }, h('span.nd-joinbtn-l', 'JOIN'));
+    els.host = h('button.nd-host', { type: 'button', onclick: host }, h('span.nd-host-sheen'), h('span.nd-drops', { 'aria-hidden': 'true' }), h('span.nd-strike', { 'aria-hidden': 'true' }), h('span.nd-host-label', 'HOST'));
+    els.joinBtn = h('button.nd-joinbtn', { type: 'button', onclick: () => openJoin(true, true) }, h('span.nd-drops', { 'aria-hidden': 'true' }), h('span.nd-strike', { 'aria-hidden': 'true' }), h('span.nd-joinbtn-l', 'JOIN'));
     // one real input under four boxes: native keyboard, autocapitalise, paste, iOS autofill all just work
     els.code = h('input.nd-code-in', {
       type: 'text', inputmode: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: false,
