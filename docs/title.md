@@ -221,14 +221,14 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   Glows are filtered as one group (a filter per small path clips into visible boxes).
 
 ## AIR TRAFFIC + SATELLITES (Oct 19, 2026) — `district/aircraft.js` (replaced the flying light streaks and the old satellite train)
-- **Planes**, simulated (no flight data, no network): a few minutes apart, by the local hour (`trafficRate`: busiest in the
-  evening, steady by day, quieter late, very rare 2–5 am; ≥ 45 s apart, never bunched); 1–2 on screen on a phone, up to 3 on a
+- **Planes**, simulated (no flight data, no network): every couple of minutes, by the local hour (`trafficRate`: busiest in the
+  evening (≈ 1.5 min), steady by day (≈ 2.5 min), quieter late, very rare 2–5 am; ≥ 30 s apart; the first within ~6–18 s); 1–2 on screen on a phone, up to 3 on a
   desktop (1 at the lowest tier). Each flies its own straight path, never level (climbing or descending a little), either way,
   at its own height (high = small, faint, slow: 20–40 s to cross), some drifting toward or away from us; now and then (≈ 1 in 8,
   6 am–11:30 pm) an APPROACH, bigger and descending, landing lights on.
 - **Where:** in the sky layer, behind the clouds and the skyline, planned through open sky only (`planPath` against the title's
   clear zones: never across the sign, the tagline or the dock; the little round corner buttons don't count). The towers hide
-  everything under the tagline, so most planes (and every approach) use the strip of sky above the sign, the climb fitted to
+  everything under the tagline, so on a portrait phone every plane (and every approach) uses the strip of sky above the sign, the climb fitted to
   its height. Nothing is planned before the sign's place is known.
 - **Look:** night — lights only: red on the left wingtip, green on the right (as seen for its direction, `navLights`: the near
   wingtip a little higher), a white strobe double-flashing about once a second, a slow red beacon; small crisp points on soft

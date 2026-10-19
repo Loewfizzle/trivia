@@ -73,7 +73,7 @@ export function satTwilight(sunEl, hour) {
 // ---------------------------------------------------------------- the module
 export function createAircraft() {
   let W = 1, H = 1, HZ = 1, K = 1;
-  let planes = [], nextPlane = 10 + Math.random() * 25, forcedAt = -1e9;     // the first one soon after the page opens
+  let planes = [], nextPlane = 6 + Math.random() * 12, forcedAt = -1e9;      // the first one soon after the page opens
   let train = null, trainNight = '', sat = null, nextSat = 60 + Math.random() * 180;
   const glows = new Map();
   const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glows.get(k); if (!c) { c = mk(32, 32); const x = c.getContext('2d'); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.28, `rgba(${k},0.45)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); glows.set(k, c); } return c; };
@@ -104,7 +104,8 @@ export function createAircraft() {
     const lowApproach = approach && !sky.strip;      // (low over the skyline only when there's no open strip: the towers hide it elsewhere)
     let top = lowApproach ? sky.low[0] : approach ? sky.strip[0] : skyTop(s), bottom = lowApproach ? Math.min(HZ * 0.78, sky.low[0] + HZ * 0.13) : approach ? sky.strip[1] : HZ * 0.74, minS = approach ? 0.05 : 0.035, maxS = approach ? 0.11 : 0.15;
     if (approach) maxS = Math.min(maxS, (bottom - top - 4) / (W + 120)), minS = Math.min(minS, maxS * 0.6);
-    if (!approach && sky.strip && Math.random() < 0.8) { [top, bottom] = sky.strip; maxS = Math.min(maxS, (bottom - top - 4) / (W + 120)); minS = Math.min(minS, maxS * 0.55); }
+    // (always on a portrait phone — the band under the tagline is hidden there; most of the time on a wide screen)
+    if (!approach && sky.strip && (H > W || Math.random() < 0.8)) { [top, bottom] = sky.strip; maxS = Math.min(maxS, (bottom - top - 4) / (W + 120)); minS = Math.min(minS, maxS * 0.55); }
     const path = planPath({ W, top, bottom, zones, minSlope: Math.max(0.018, minS), maxSlope: Math.max(0.022, maxS) });
     if (!path) return null;
     if (approach && path.y1 < path.y0) { [path.y0, path.y1] = [path.y1, path.y0]; path.slope = (path.y1 - path.y0) / (path.x1 - path.x0); }   // descending toward the field
@@ -138,8 +139,8 @@ export function createAircraft() {
         if (s.motion) q.x += wind * s.dt / 1000;
         const form = smooth(0.15, 1.4, q.age);                         // it forms a little behind the plane
         const fade = Math.pow(1 - q.age / life, 1.4);
-        const r = (1.5 + (s.motion ? q.age * 0.16 : 0)) * sc * (0.8 + 0.4 * (1 - p.alt));   // spreading as it ages
-        c.globalAlpha = 0.26 * form * fade * vis;
+        const r = (1.3 + (s.motion ? q.age * 0.15 : 0)) * Math.max(0.85, sc) * (0.8 + 0.4 * (1 - p.alt));   // spreading as it ages
+        c.globalAlpha = (day > 0.5 ? 0.42 : 0.32) * form * fade * vis;
         c.drawImage(puff(...tc), q.x - r * 2, q.y - r * 2, r * 4, r * 4);
         return true;
       });
@@ -149,10 +150,10 @@ export function createAircraft() {
     // a body by day and at sunset: a small dark silhouette against a bright sky, catching a glint of sun
     const bodyA = clamp01(day + golden + dawn) * (1 - dark) * edge * (wet ? 0.3 : 1);
     if (bodyA > 0.02) {
-      const len = 9 * sc;
+      const len = Math.max(8, 10 * sc);
       c.save(); c.translate(x, y); c.rotate(Math.atan(p.slope)); c.scale(p.dir, 1);
-      c.globalAlpha = bodyA * (day > 0.5 ? 0.55 : 0.85);
-      c.fillStyle = day > 0.5 ? 'rgba(70,78,98,1)' : 'rgba(24,16,30,1)';
+      c.globalAlpha = bodyA * (day > 0.5 ? 0.85 : 0.9);
+      c.fillStyle = day > 0.5 ? 'rgba(46,52,70,1)' : 'rgba(24,16,30,1)';
       c.beginPath(); c.ellipse(0, 0, len * 0.5, len * 0.07, 0, 0, TAU); c.fill();                         // fuselage
       c.beginPath(); c.moveTo(len * 0.06, 0); c.lineTo(-len * 0.16, -len * 0.3); c.lineTo(-len * 0.24, -len * 0.3); c.lineTo(-len * 0.08, 0); c.fill();   // far wing
       c.beginPath(); c.moveTo(len * 0.06, 0); c.lineTo(-len * 0.14, len * 0.22); c.lineTo(-len * 0.22, len * 0.22); c.lineTo(-len * 0.08, 0); c.fill();   // near wing
@@ -249,7 +250,7 @@ export function createAircraft() {
           planes.push(p);
           if (forcedPlane) forcedAt = performance.now();
           // the next one: a few minutes on average at this hour, never bunched (at least 45 s apart)
-          nextPlane = Math.max(45, (150 / Math.max(0.02, rate)) * (0.55 + Math.random() * 0.9));
+          nextPlane = Math.max(30, (90 / Math.max(0.02, rate)) * (0.55 + Math.random() * 0.9));
         } else nextPlane = 5;                                   // no open path right now (a resize, the keyboard): try again soon
       } else if (nextPlane <= 0) nextPlane = 20;
       planes = planes.filter(p => {
