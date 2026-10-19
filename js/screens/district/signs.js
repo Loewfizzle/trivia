@@ -358,10 +358,12 @@ export function createSigns({ games: allGames = [] } = {}) {
     for (const bl of out.filter(o => o.type === 'blade' && o.li === 3).sort((p, q) => p.side - q.side)) {
       if (roofDone) break;
       const b = bl.hostBox;
+      // over the part of the tower that's on screen (a tower cut off by the edge keeps its billboard on its roof)
+      const vx0 = Math.max(b.x, 4), vx1 = Math.min(b.x + b.w, W - 4), vw = vx1 - vx0;
       for (const kk of [1, 0.86, 0.74]) {
-        const pw = Math.min(b.w * 0.95, 86 * sc * kk), ph = pw * 0.8, legs = 9 * sc;
-        if (pw < 50 * sc) break;
-        const x = Math.max(8, Math.min(W - 8 - pw, b.x + (b.w - pw) / 2));
+        const pw = Math.min(vw * 0.82, 64 * sc * kk), ph = pw * 0.78, legs = 8 * sc;
+        if (pw < 40 * sc) break;
+        const x = vx0 + (vw - pw) / 2;
         const box = { x, y: b.y - ph - legs + 1, w: pw, h: ph + legs };
         if (!free(box, 3, 6)) continue;
         out.push({ type: 'roof', li: 3, box, ph, legs }); used.push(box); roofDone = true; break;

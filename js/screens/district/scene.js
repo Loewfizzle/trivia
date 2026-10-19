@@ -295,10 +295,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     }
     // neon trims on near buildings (vertical light strips / roof outlines) — lit only
     // neon on the buildings: outlines, roof lines, corner strips — near rows most, the far rows too (thinner, softer)
-    const neonP = [0.22, 0.32, 0.42, 0.55][li];
-    if (!isSetback && rand() < neonP && w > 10) {
+    const neonP = [0.45, 0.45, 0.45, 0.55][li];
+    if (!isSetback && rand() < neonP && w > 8) {
       const col = NEON[Math.floor(rand() * NEON.length)];
-      const lw = [0.7, 0.9, 1.2, 1.4][li], blur = [3, 4, 6, 8][li], a = [0.6, 0.7, 0.8, 0.85][li];
+      const lw = [1.2, 1.2, 1.25, 1.4][li], blur = [6, 6, 6, 8][li], a = [1, 1, 0.9, 0.85][li];
       lx.save();
       lx.shadowColor = col; lx.shadowBlur = blur;
       lx.strokeStyle = rgba(col, a); lx.lineWidth = lw; lx.lineJoin = 'round';
