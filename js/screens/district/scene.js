@@ -61,7 +61,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight });
   let P = paletteFor(LK);
   let skyKey = '', lookAt = 0, nearRoofs = [];
-  let NX = null;   // the neon canvas of the layer being built
+  let NX = null, HZ0g = 1;   // the neon canvas of the layer being built
   const nightness = () => P.dark;
   const frames = [];
   let cool = 0;
@@ -85,6 +85,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     // the skyline's tops are laid out against HZ0; on a portrait phone the buildings then run further down to HZ (the street
     // and its reflection sit lower, the rooftops don't move), so the city fills the screen above the dock
     const HZ0 = Math.round(H * (W > H ? 0.74 : 0.665));
+    HZ0g = HZ0 * Math.min(1.25, Math.max(0.85, H / 844)) * (W > H ? 0.78 : 1);
     HZ = W > H ? HZ0 : Math.round(H * 0.735);
     const ext = HZ - HZ0;
     const rand = rng(seed);
@@ -297,7 +298,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     }
     // neon trims on near buildings (vertical light strips / roof outlines) — lit only
     // neon on the buildings: outlines, roof lines, corner strips — near rows most, the far rows too (thinner, softer)
-    const neonP = [0.45, 0.45, 0.45, 0.55][li];
+    const tallBack = li <= 1 && h > (L.h[0] + (L.h[1] - L.h[0]) * 0.55) * HZ0g;
+    const neonP = tallBack ? 0.8 : [0.45, 0.45, 0.45, 0.55][li];
     if (!isSetback && rand() < neonP && w > 8) {
       const col = NEON[Math.floor(rand() * NEON.length)];
       const lw = [1.2, 1.2, 1.25, 1.4][li], blur = [6, 6, 6, 8][li], a = [1, 1, 0.9, 0.85][li];
@@ -307,7 +309,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       lx.strokeStyle = rgba(col, a); lx.lineWidth = lw; lx.lineJoin = 'round';
       lx.beginPath();
       const kind = rand(), i0 = lw + 0.6;
-      if (kind < (li <= 1 ? 0.62 : 0.3)) { lx.moveTo(x + i0, y + h); lx.lineTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); lx.lineTo(x + w - i0, y + h); }      // full outline
+      if (kind < (tallBack ? 0.85 : li <= 1 ? 0.62 : 0.3)) { lx.moveTo(x + i0, y + h); lx.lineTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); lx.lineTo(x + w - i0, y + h); }      // full outline
       else if (kind < 0.55) { lx.moveTo(x + i0, y + h); lx.lineTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); }                            // corner + roof
       else if (kind < 0.75) { lx.moveTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); }                                                       // roof line
       else if (kind < 0.9) { const sx = x + w * (0.2 + rand() * 0.6); lx.moveTo(sx, y + h * 0.12); lx.lineTo(sx, y + h * 0.88); }              // a vertical strip
