@@ -2,6 +2,32 @@
    Design-system components
    ========================================================================== */
 
+/* ---- shared by several games (their own stylesheets load only with the game: js/games/lazy-view.js) ---- */
+.screen .is-hidden { visibility: hidden; }
+/* the RGB-split glitch layers on any [data-text] title (DOUBLE AGENT animates them; elsewhere they stay invisible) */
+[data-text] { position: relative; }
+[data-text]::before, [data-text]::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+[data-text]::before { color: var(--da-red); }
+[data-text]::after { color: var(--da-cyan); }
+/* animations several games share */
+@keyframes pop { 50% { transform: scale(1.12); } }
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-7px); }
+  40%, 60% { transform: translateX(7px); }
+}
+@keyframes win { 40% { transform: translateY(-14px); } 70% { transform: translateY(3px); } }
+@keyframes count-tick { from { opacity: 0; transform: scale(1.8); } }
+@keyframes q-in { from { opacity: 0; transform: translateY(10px); } }
+
 /* ---- labels / tags ---- */
 .label {
   font-family: var(--font-mono);

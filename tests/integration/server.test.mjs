@@ -21,6 +21,7 @@ import { boardQuery } from '../../api/board.js';
 import { adminAction } from '../../api/admin.js';
 import reportHandler from '../../api/report.js';
 import boardHandler from '../../api/board.js';
+import logHandler, { logErrors, errorSig } from '../../api/log.js';
 import { clearBoardCache } from '../../api/_lib/lb.js';
 import { finalGame } from '../fixtures/finals.mjs';
 import { weekKey } from '../../js/core/week.js';
@@ -30,7 +31,7 @@ const NOW = Date.UTC(2026, 9, 14, 23, 0, 0);       // Wed 2026-10-14, 7 pm Easte
 const DAY = 86_400_000;
 let clock = NOW;
 const tick = (ms = 60_000) => (clock += ms);
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog'];
 
 before(async () => {
   await ref('/').update(Object.fromEntries(NODES.map(n => [n, null])));
@@ -440,4 +441,62 @@ test('HTTP: every call needs a valid ID token; the board is public and cacheable
   assert.ok(b.body.rows.length > 0);
   assert.equal((await call(boardHandler, { method: 'GET', url: '/api/board?b=nope&p=all' })).status, 400);
   assert.equal((await call(boardHandler, { method: 'POST', url: '/api/board?b=cipher-wins' })).status, 405);
+});
+
+// ---- errors from phones (api/log.js) and the admin's view of them
+test('error log: grouped by error, rate-limited, readable and clearable by admins only', async () => {
+  await ref('/').update({ errlog: null, rl: null });
+  const now = Date.now();
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  const android = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36';
+  const err = { m: "TypeError: Cannot read properties of undefined (reading 'si')", s: 'js/games/pulse/view.js', l: 210, c: 14, k: 'at update (/js/games/pulse/view.js:210:14)', w: 'game:pulse/play' };
+  assert.equal(await logErrors({ p: 'app', e: [err] }, { ip: '1.1.1.1', ua: iphone, now }), 1);
+  assert.equal(await logErrors({ p: 'app', e: [err, { m: 'other', s: 'js/app.js', l: 3 }] }, { ip: '2.2.2.2', ua: android, now: now + 1 }), 2);
+  const all = await val('errlog');
+  assert.equal(Object.keys(all).length, 2, 'the same error from two phones is one entry');
+  const e = all[errorSig(err)];
+  assert.equal(e.n, 2);
+  assert.deepEqual(e.d, { iPhone: 1, Android: 1 });
+  assert.deepEqual(e.b, { Safari: 1, Chrome: 1 });
+  assert.equal(e.w, 'game:pulse/play');
+  // junk and oversized batches
+  assert.equal(await logErrors({ e: 'nope' }, { ip: '3.3.3.3', now }), 0);
+  assert.equal(await logErrors({ e: [{ m: '' }, null, 5] }, { ip: '3.3.3.3', now }), 0);
+  // per-IP limit: 40 an hour
+  const many = Array.from({ length: 10 }, (_, i) => ({ m: `spam ${i}x`, s: 'js/app.js', l: i }));
+  let kept = 0;
+  for (let i = 0; i < 6; i++) kept += await logErrors({ e: many }, { ip: '9.9.9.9', now: now + i });
+  assert.equal(kept, 40);
+  assert.equal(await logErrors({ e: [err] }, { ip: '9.9.9.9', now: now + 3_700_000 }), 1, 'an hour later it is allowed again');
+  // HTTP: no sign-in needed; a text/plain beacon body works; too big is refused
+  const r = await call(logHandler, { body: JSON.stringify({ p: 'board', e: [{ m: 'from the board', s: 'js/board/view.js', l: 1 }] }) });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.kept, 1);
+  const big = await new Promise(resolve => {
+    const res = { statusCode: 200, setHeader() {}, end: t => resolve({ status: res.statusCode, body: JSON.parse(t) }) };
+    logHandler({ method: 'POST', url: '/', headers: { 'content-length': '50000' }, body: '{}' }, res);
+  });
+  assert.equal(big.status, 413);
+  // the admin side
+  const boss = await ensure('u-errboss', 'ErrBoss');
+  await rejects(adminAction('u-errboss', { action: 'errors' }), 403, 'not_admin');
+  process.env.ADMIN_PIDS = boss.pid;
+  try {
+    let list = (await adminAction('u-errboss', { action: 'errors' }, now + 3_800_000)).errors;
+    assert.ok(list.length >= 3);
+    assert.ok(list[0].last >= list[list.length - 1].last, 'newest first');
+    assert.ok(list.some(x => x.p === 'board'));
+    const sig = errorSig(err);
+    list = (await adminAction('u-errboss', { action: 'clearErrors', sig }, now)).errors;
+    assert.ok(!list.some(x => x.sig === sig), 'one cleared');
+    await rejects(adminAction('u-errboss', { action: 'clearErrors', sig: '../profiles' }), 400, 'bad_sig');
+    // entries quiet for 30 days are pruned when the list is read
+    list = (await adminAction('u-errboss', { action: 'errors' }, now + 31 * DAY)).errors;
+    assert.equal(list.length, 0);
+    assert.equal(await val('errlog'), null);
+    await logErrors({ e: [err] }, { ip: '4.4.4.4', now });
+    list = (await adminAction('u-errboss', { action: 'clearErrors' }, now)).errors;
+    assert.equal(list.length, 0, 'all cleared');
+    assert.equal((await adminAction('u-errboss', { action: 'audit' })).log[0].act, 'clearErrors');
+  } finally { process.env.ADMIN_PIDS = ''; }
 });

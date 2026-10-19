@@ -114,14 +114,7 @@
 .tile[data-s='1'] .back { background: var(--present); border-color: var(--present); color: #1d1300; }
 .tile[data-s='2'] .back { background: var(--correct); border-color: var(--correct); color: #00200d; box-shadow: 0 0 16px rgba(61, 255, 139, 0.4); }
 .tile.pop { animation: pop 0.14s var(--ease-back); }
-@keyframes pop { 50% { transform: scale(1.12); } }
 .cb-row.shake { animation: shake 0.45s; }
-@keyframes shake {
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(4px); }
-  30%, 50%, 70% { transform: translateX(-7px); }
-  40%, 60% { transform: translateX(7px); }
-}
 .cb-row.win .tile { animation: win 0.6s var(--ease-back) both; }
 .cb-row.win .tile:nth-child(2) { animation-delay: 0.07s; }
 .cb-row.win .tile:nth-child(3) { animation-delay: 0.14s; }
@@ -129,7 +122,6 @@
 .cb-row.win .tile:nth-child(5) { animation-delay: 0.28s; }
 .cb-row.win .tile:nth-child(6) { animation-delay: 0.35s; }
 .cb-row.win .tile:nth-child(7) { animation-delay: 0.42s; }
-@keyframes win { 40% { transform: translateY(-14px); } 70% { transform: translateY(3px); } }
 
 .cb-msg {
   flex: none;
@@ -210,7 +202,6 @@
   text-shadow: 0 0 30px var(--accent-glow);
 }
 .intro-count.tick { animation: count-tick 0.5s var(--ease) both; }
-@keyframes count-tick { from { opacity: 0; transform: scale(1.8); } }
 
 .sheet.reveal {
   position: absolute;

@@ -4,9 +4,9 @@ import { DEFAULT_SETTINGS, MODES, standings, WRITE_MS, VOTE_MS, INTRO_MS, STANDI
 import { loadBluffBank, pickQuestion } from './bank.js';
 import { decodeJSON } from '../../core/obfuscate.js';
 import { state } from '../../store.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('bluff'));
 
 export const MUSIC = 'bluff';
 export { DEFAULT_SETTINGS };

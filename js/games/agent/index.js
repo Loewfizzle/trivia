@@ -10,9 +10,9 @@ import { createGame, nextStep, dealFor } from './director.js';
 import { DEFAULT_SETTINGS, ROUND_OPTIONS, CLUE_SEC_OPTIONS, DEBATE_SEC_OPTIONS, TWO_AGENTS_MIN, standings, estimateMinutes as estimate } from './logic.js';
 import { dbRef, get, set, update } from '../../firebase.js';
 import { state } from '../../store.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('agent'));
 
 export const MUSIC = 'spy'; // playlist: spy1 → spy2 → spy3 → …
 export const MIN_PLAYERS = 4;

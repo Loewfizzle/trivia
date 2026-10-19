@@ -2,11 +2,11 @@
 import { createGame, nextStep, DEFAULT_SETTINGS } from './director.js';
 import { standings, holeOf } from './logic.js';
 import { ZONES } from './course.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 
 // The view (three.js scene, HUD, aiming — almost all of NEON PAR) and three.js itself load only when
 // a NEON PAR match is on screen.
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('golf'));
 export { DEFAULT_SETTINGS };
 
 // Lobby prefetch uses MUSIC; during the match the track follows the zone (one per zone, crossfaded).

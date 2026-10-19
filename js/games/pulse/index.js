@@ -2,11 +2,11 @@
 import { createGame, nextStep, DEFAULT_SETTINGS } from './director.js';
 import { pickSongs, standings } from './logic.js';
 import { loadManifest, prefetchSong } from './songs.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 
 // The view (renderer, HUD, calibration UI — most of PULSE's code) loads only when a PULSE match is
 // on screen, so the app's first paint never pays for it.
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('pulse'));
 export { DEFAULT_SETTINGS };
 
 // No menu music during a match: the song is the music (and the victory track plays on the podium).

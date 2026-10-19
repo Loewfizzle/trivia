@@ -15,6 +15,7 @@ import { startShot, step, ballHeight, ridePosition, floorAt, heightAt, MAX_STROK
 import { parOf, CAP, scoreName, standings, totals, fmtToPar, sabotageEarned, incomingSabotage, matchStats, nodeScore, SAB_KINDS } from './logic.js';
 import { ZONES, holeByNumber } from './holes/index.js';
 import { loadStyle, onStyle, openBallPicker, powerIconCanvas, POWER_INFO, SAB_INFO, POWER_COLOR, sanitizeStyle } from './ball.js';
+import { reportError } from '../../errlog.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 const holeOf = (game, hi = game.hi) => holeByNumber(game.holes[hi]); // full geometry (logic.holeOf is the lightweight table)
@@ -89,6 +90,7 @@ export function createView() {
       S = createScene(els.canvas);
     } catch (e) {
       console.warn('golf scene', e);
+      reportError(e, 'golf scene');
       els.over.append(h('div.gp-error', h('b', 'WEBGL UNAVAILABLE'), h('span', 'This device can’t draw the course. Try another browser.')));
       return;
     }

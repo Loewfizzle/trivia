@@ -8,9 +8,9 @@ import { decodeQ } from './questions.js';
 import { loadFallback } from '../../trivia/bank.js';
 import { dbRef, get, update, serverNow } from '../../firebase.js';
 import { state } from '../../store.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('stakes'));
 export const MUSIC = 'stakes';   // high1–3, a seeded order per room (the view calls setPlaylist), crossfading
 export const FINAL_MUSIC = 'victory1';   // victory.mp3 for the winner reveal
 export const DEFAULT_SETTINGS = DEFAULTS;

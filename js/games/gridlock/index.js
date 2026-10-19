@@ -14,9 +14,9 @@ import { sonarCount } from './abilities.js';
 import { dbRef, get, set, remove, serverTimestamp, serverNow } from '../../firebase.js';
 import { state, onlineMap } from '../../store.js';
 import { rngFrom } from '../../core/rng.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('gridlock'));
 export const MUSIC = 'gridlock';   // a seeded playlist of spy1-3 + last-signal (audio/music.js#setPlaylist, set by the view)
 export { DEFAULT_SETTINGS, MIN_PLAYERS };
 

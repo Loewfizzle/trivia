@@ -355,6 +355,18 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ Safety net (Oct 19, 2026) — from the project review's top items (`docs/testing.md`, `docs/profiles.md`, `docs/audio.md`)
+- [x] **Errors from phones:** js/errlog.js → `POST /api/log` → grouped `errlog/` entries → "Errors from phones" on /admin (count,
+      devices, browsers, screen, build, stack; clear one / all; 30-day prune). Noise filtered, no ids sent, rate-limited
+- [x] **GitHub checks** on every push (unit, rules, /api, smoke on the emulators) — next to the deploy, never blocking it
+- [x] **Fresh data after a deploy:** `/data` revalidates on every load like the code (was: cached up to a day + a week stale)
+- [x] **Lighter first visit:** the twelve game stylesheets + the match kit's load with their game (index.html links 7 sheets, was 20),
+      in the old cascade order; shared animations and helpers moved to components.css (five keyframes lived in cipher/signal and
+      would have stopped animating OVERCLOCK, BLUFF and DOUBLE AGENT). NEON PAR's stray `.gc-name` rule no longer shrinks the
+      lobby's game names (17 px as designed, scaling down on narrow phones). `e2e-loading.mjs`
+- [ ] Next from the review: a real-phone night (6–8 phones incl. an old Android / Low Power Mode) and a look at the Firebase plan's
+      connection limit (Spark: 100 at once ≈ 12 full rooms)
+
 ### ✅ Stage 14 — RUMRUNNER (Prohibition trading, the city diorama) (Oct 2026) — `docs/rum.md`
 - [x] Rules first: six goods × six districts with tendencies, seeded daily prices, news spikes / crashes, rumours (70 % true),
       weather with effects, a shared market moved by everyone's trades, Vale's compounding debt and his collectors, the stash,

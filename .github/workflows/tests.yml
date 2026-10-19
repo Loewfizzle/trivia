@@ -1,0 +1,75 @@
+# Checks on every push to main (and on pull requests). They run NEXT TO the Vercel deploy, never in front of it: a push
+# goes live as fast as before, and a failure shows as a red ✗ on the commit on GitHub (+ an email to the pusher).
+# Nothing here needs a secret — everything runs against the local Firebase emulators. docs/testing.md "GitHub checks".
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: unit + whole-match simulations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tests/*.test.mjs
+
+  integration:
+    name: rules + /api + smoke test (emulators, headless Chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tests/integration/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install (firebase-admin for /api; emulators, rules testing, puppeteer-core for the tests)
+        run: |
+          npm ci
+          npm ci --prefix tests/integration
+      - name: Cache the emulator downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('tests/integration/package-lock.json') }}
+      - name: Let Chrome use its sandbox (Ubuntu 24.04 restricts user namespaces)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Rules, /api and the smoke test on the emulators
+        working-directory: tests/integration
+        env:
+          CHROME: /usr/bin/google-chrome
+        run: |
+          npx firebase emulators:exec --only database,auth --project demo-arcade --config ../../firebase.json '
+            set -e
+            node --test rules.test.mjs
+            node --test server.test.mjs
+            (cd ../.. && node scripts/serve.mjs --emu > /tmp/serve.log 2>&1 &)
+            for i in $(seq 1 30); do curl -sf http://localhost:5173/ > /dev/null && break; sleep 1; done
+            node e2e-smoke.mjs "$CHROME" ./shots
+          '
+      - name: Smoke-test screenshots (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-shots
+          path: tests/integration/shots/
+          retention-days: 7

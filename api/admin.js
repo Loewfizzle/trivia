@@ -8,6 +8,8 @@
 //   rename { pid, name }           → renames (no daily limit; the tag rule still applies)
 //   hide { pid, on }               → hides the player from (or returns them to) every global board
 //   audit { limit? }               → { log: [...] } newest first
+//   errors                         → { errors: [...] } errors from players' phones (api/log.js), newest first
+//   clearErrors { sig? }           → removes one error (sig) or all of them
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
 import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_lib/profiles.js';
@@ -92,6 +94,18 @@ async function resetBoard(pid, b, now) {
   await syncBoards(pid, { now, only: def.game });
 }
 
+// Errors from players' phones (api/log.js): newest first; entries quiet for 30 days are pruned on the way.
+const ERR_KEEP_MS = 30 * 86_400_000;
+async function errorList(now) {
+  const all = (await val('errlog')) || {};
+  const stale = Object.keys(all).filter(k => !(all[k].last > now - ERR_KEEP_MS));
+  if (stale.length) await ref('errlog').update(Object.fromEntries(stale.map(k => [k, null])));
+  return Object.entries(all).filter(([k]) => !stale.includes(k))
+    .map(([sig, e]) => ({ sig, ...e }))
+    .sort((a, b) => b.last - a.last)
+    .slice(0, 150);
+}
+
 export async function adminAction(uid, body, now = Date.now()) {
   const me = await pidOf(uid);
   const admin = !!me && adminPids().includes(me);
@@ -126,6 +140,14 @@ export async function adminAction(uid, body, now = Date.now()) {
       const names = {};
       await Promise.all([...new Set(log.flatMap(l => [l.by, l.pid]).filter(Boolean))].map(async p => { const x = await publicProfile(p); names[p] = x ? `${x.n}#${x.t}` : p; }));
       return { log, names };
+    }
+    case 'errors': return { errors: await errorList(now) };
+    case 'clearErrors': {
+      const sig = body.sig ? String(body.sig) : null;
+      if (sig && !/^e[0-9a-f]{15}$/.test(sig)) throw new ApiError(400, 'bad_sig');
+      await ref(sig ? `errlog/${sig}` : 'errlog').remove();
+      await audit(me, sig ? 'clearError' : 'clearErrors', null, sig ? { b: sig } : {});
+      return { errors: await errorList(now) };
     }
     default: throw new ApiError(400, 'bad_action');
   }

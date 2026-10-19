@@ -6,9 +6,9 @@ import { createGame, nextStep } from './director.js';
 import { standings, resolveNight, estimateMinutes as estimate, DEFAULT_SETTINGS as DEFAULTS, LENGTHS } from './logic.js';
 import { dbRef, get, set, update } from '../../firebase.js';
 import { state } from '../../store.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('rum'));
 export const MUSIC = 'rum';                 // run1–4, a seeded order per room (the view calls setPlaylist), crossfading
 export const FINAL_MUSIC = 'victory1';      // victory.mp3 for the winner reveal
 export const DEFAULT_SETTINGS = DEFAULTS;

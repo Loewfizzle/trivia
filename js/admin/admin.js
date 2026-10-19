@@ -61,8 +61,15 @@ function shell() {
         h('div.ad-row', q, h('button.ad-btn.is-primary', { type: 'button', onclick: () => search(q.value) }, 'Search')),
         h('div.ad-results', { id: 'ad-results' }, h('p.ad-dim', 'Search by name to start.'))),
       h('section.ad-card.ad-player', { id: 'ad-player' }, h('p.ad-dim', 'Pick a player.')),
+      h('section.ad-card.ad-errors',
+        h('div.ad-row.ad-between', h('h2', 'Errors from phones'),
+          h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: errors }, 'Refresh'),
+            confirmBtn('Clear all', async () => { renderErrors((await call('clearErrors')).errors); toast('Cleared'); audit(); }, 'is-danger'))),
+        h('p.ad-dim', 'Code errors on players’ screens, grouped: the same error from many phones is one line with a count. Quiet for 30 days → removed.'),
+        h('ol.ad-errs', { id: 'ad-errs' }, h('li.ad-dim', 'Loading…'))),
       h('section.ad-card.ad-audit', h('div.ad-row.ad-between', h('h2', 'Audit log'), h('button.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' }))));
   audit();
+  errors();
   setTimeout(() => q.focus(), 50);
 }
 
@@ -123,6 +130,36 @@ async function audit() {
     h('button.ad-linkbtn', { type: 'button', onclick: () => l.pid && open(l.pid) }, names[l.pid] || l.pid || ''),
     h('span.ad-dim', [l.b, l.p, l.from && `${l.from} → ${l.to}`].filter(Boolean).join(' · ')),
     h('span.ad-dim', `by ${names[l.by] || l.by}`))) : [h('li.ad-dim', 'Nothing yet.')]));
+}
+
+async function errors() {
+  if (!document.getElementById('ad-errs')) return;
+  renderErrors((await call('errors')).errors);
+}
+
+const counts = o => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(' · ');
+function renderErrors(list) {
+  const box = document.getElementById('ad-errs');
+  if (!box) return;
+  box.replaceChildren(...(list.length ? list.map(e => {
+    const stack = e.k ? h('pre.ad-stack', e.k) : null;
+    if (stack) stack.hidden = true;
+    return h('li.ad-err',
+      h('div.ad-err-top',
+        h('b.ad-err-n', `×${e.n}`),
+        h('button.ad-err-m', { type: 'button', title: 'Show the stack', onclick: () => { if (stack) stack.hidden = !stack.hidden; } }, e.m),
+        confirmBtn('Clear', async () => { renderErrors((await call('clearErrors', { sig: e.sig })).errors); audit(); })),
+      h('div.ad-err-meta',
+        h('code', `${e.s || '?'}${e.l ? `:${e.l}` : ''}`),
+        e.w ? h('span', e.w) : null,
+        h('span', counts(e.d)),
+        h('span', counts(e.b)),
+        h('span', `last ${when(e.last)}`),
+        e.n > 1 ? h('span', `first ${when(e.first)}`) : null,
+        e.v ? h('span', `build ${e.v}`) : null,
+        e.p === 'board' ? h('span', '/board') : null),
+      stack);
+  }) : [h('li.ad-dim', 'No errors reported. 🎉')]));
 }
 
 async function boot() {

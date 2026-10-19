@@ -2,9 +2,9 @@
 import { createGame, nextStep } from './director.js';
 import { roundLengths, DEFAULT_SETTINGS, ROUND_COUNT_OPTIONS, ROUND_TIME_OPTIONS, PHASE_MS, standings as cipherStandings } from './logic.js';
 import { loadLengths, pickWord } from './words.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('cipher'));
 
 export { nextStep, pickWord, DEFAULT_SETTINGS };
 export const MUSIC = 'cipher';

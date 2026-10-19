@@ -3,9 +3,9 @@ import { createGame, nextStep, nightBonus as bonus } from './director.js';
 import { DEFAULT_SETTINGS, MIN_PLAYERS, LEAD_MS, COUNT_MIN_MS, SONGS_PER_MATCH, playlistAt, standings, estimateMinutes as estimate, cleanSettings } from './logic.js';
 import { loadManifest, loadSong, goBeat } from './songs.js';
 import { state } from '../../store.js';
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('prism'));
 // the match plays its own songs (synced to the server clock, through a filter for the danger/duel effects)
 export const MUSIC = null;
 export { DEFAULT_SETTINGS, MIN_PLAYERS };

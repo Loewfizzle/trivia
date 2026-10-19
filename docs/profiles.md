@@ -91,7 +91,17 @@ REGULAR in the first evening, INSIDER after a few, LEGEND after 40+ evenings (mo
 Signs in with the browser's own anonymous identity (same as the game there). `POST /api/admin` checks the caller's profile id against
 `ADMIN_PIDS` (comma-separated) and writes `audit/{push}` for every change. Actions: search (name prefix, `Name#1234`, profile id),
 view a player (profile, boards with ranks, games), remove a record (all-time / this week / both), reset a career board, rename (no
-limit), hide from / return to every board, the audit log. A non-admin sees their own profile id and the setup steps.
+limit), hide from / return to every board, the audit log, **errors from phones** (below). A non-admin sees their own profile id and the setup steps.
+
+**Errors from phones** (Oct 2026): `js/errlog.js` (the first import of app.js and board/public.js) catches uncaught errors and
+unhandled rejections on players' screens and sends them with `sendBeacon` to `POST /api/log` (no sign-in). It skips the usual noise
+(audio not allowed, lost connections, ResizeObserver, extensions and other sites' scripts), sends each distinct error once and at
+most 8 per page load, and never sends names, ids or room codes — only the message, the file:line in our code, a short stack and the
+screen (`title`, `lobby`, `game:golf/play`…). Code that catches a failure that leaves a player stuck calls `reportError(e, label)`
+(a game screen that couldn't load, NEON PAR without WebGL). The server (`api/log.js`) groups the same error from every phone into
+one `errlog/{sig}` entry with a count, devices, browsers, first / last seen and the build (Vercel's commit); 40 errors an hour per
+IP, 3000 a day in all; `errlog/` is server-only (the rules' default deny). The admin page lists them newest first (tap the message
+for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
 
 ## Setup (production)
 1. Firebase console → Project settings → Service accounts → **Generate new private key** (a JSON file).

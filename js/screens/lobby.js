@@ -15,6 +15,7 @@ import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../fireba
 import { leaveRoom, kickPlayer } from '../room.js';
 import { startGame, onlineCount } from '../host.js';
 import { GAME_MODULES } from '../games/registry.js';
+import { preloadSheets } from '../games/lazy-view.js';
 import { slot } from '../identity.js';
 import { openHelp } from '../ui/help.js';
 import { sfx } from '../audio/sfx.js';
@@ -215,6 +216,7 @@ export function createLobby() {
   function openOptions(g) {
     const mod = GAME_MODULES[g.id];
     prefetch(mod.MUSIC);
+    preloadSheets(g.id);   // its screen's stylesheets, so the match starts styled at once
     const saved = (st.meta && st.meta.settings && st.meta.settings[g.id]) || {};
     const settings = { ...mod.DEFAULT_SETTINGS, ...saved };
     // an option with when(players) only shows (and only applies) with that many connected players

@@ -1,4 +1,5 @@
 // Entry point: boot Firebase, restore session, route state -> screen.
+import { setErrorContext } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
 import { h, $ } from './ui/dom.js';
 import { glitchFlash } from './ui/components.js';
 import { toast } from './ui/toast.js';
@@ -120,6 +121,13 @@ function render(st) {
 }
 
 subscribe(render);
+// error reports say which screen was up — never the room code or match id
+setErrorContext(() => {
+  const k = routeKey(state);
+  if (k.startsWith('lobby')) return 'lobby';
+  if (k.startsWith('game:')) return `game:${k.split(':')[1]}${state.game && state.game.phase ? `/${state.game.phase}` : ''}`;
+  return k;
+});
 // A finished match goes to the global boards: every phone in it queues one report when the podium appears
 // (the server counts it once and answers each phone with its own outcome). Back in the lobby, the key reminder.
 let reportedKey = '';

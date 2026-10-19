@@ -8,9 +8,9 @@ import { state } from '../../store.js';
 
 // Trivia questions already used by earlier matches in this room (never dealt again tonight).
 const roomSeen = () => (state.meta && state.meta.used && state.meta.used.trivia) || {};
-import { lazyView } from '../lazy-view.js';
+import { lazyView, gameSheets } from '../lazy-view.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
-export const createView = lazyView(() => import('./view.js'));
+export const createView = lazyView(() => import('./view.js'), gameSheets('signal'));
 
 export const MUSIC = 'signal';
 export { DEFAULT_SETTINGS };
