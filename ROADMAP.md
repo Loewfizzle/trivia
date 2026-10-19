@@ -355,6 +355,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ THE NEON RING — the title's dock (Oct 19, 2026) — `docs/title.md`
+- [x] One floating smoked-glass tab bar replaces HOST / JOIN, THE BOARD / GAMES and the welcome line: JOIN · BOARD · [HOST] · GAMES · YOU
+- [x] Custom neon line icons (door, trophy, tiles) and YOU as the player's own emblem (a neutral one before a profile)
+- [x] HOST: a raised dark-glass disc in a cradle, a neon tube ring in the sign's own colours (every holiday by itself; four tubes on
+      a multi-colour sign; blends), always lit (softer by day), flickering on with the letters, breathing, reflected on the street
+- [x] JOIN: a glass panel above the bar (all the code-box behaviour; closes by JOIN / outside / swipe / Escape; above the iOS
+      keyboard); REJOIN and notes float above the bar; the bar never moves; no blur on the lowest tier
+- [x] Tests: e2e-title "THE NEON RING" section (19 checks)
+
 ### ✅ THE REAL SUN (Oct 19, 2026) — `docs/title.md`, `district/sun.js`
 - [x] Rises left at the real sunrise, sets right at the real sunset (mirrored in the south), real height by season, framed into the
       open sky: never across the sign, the tagline, the corner buttons or the dock; phones: beside / above the sign like the moon

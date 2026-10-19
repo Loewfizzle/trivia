@@ -67,7 +67,7 @@ the first match of a game today (Eastern), +10 more when it's your 3rd+ differen
 REGULAR in the first evening, INSIDER after a few, LEGEND after 40+ evenings (months of weekly play). Tested in `tests/profiles.test.mjs`.
 
 ## The screens
-- **Title:** THE BOARD is the third door under HOST and JOIN; "Welcome back, NAME" + emblem opens the membership card; each game's
+- **Title:** BOARD in the dock opens THE BOARD; YOU (your emblem) opens the membership card; each game's
   preview sheet shows that game's top 3 (its first record, else WINS) and your rank.
 - **THE BOARD** (`js/board/view.js`): the hall (`scene.js`) is painted once per size — mahogany panels, brass rails, Art Deco arched
   windows onto the city (the title's own still when there is one), a back bar of bottles lit from below, brass pendants, the counter,

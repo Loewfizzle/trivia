@@ -186,7 +186,8 @@ try {
     await sleep(2000);
     const after = await ev(A.page, `[...document.querySelectorAll('.nd-sign .ndl')].map(l => l.classList.contains('on') ? 1 : 0).join('')`);
     ok(mid === '1011' && after === '1111', `SIGN TAP: the E goes dark for a moment, then re-ignites (${mid} → ${after})`); }
-  ok(await ev(A.page, `getComputedStyle(document.querySelector('.nd-host')).opacity === '1'`), 'MENU: eased in');
+  ok(await ev(A.page, `getComputedStyle(document.querySelector('.nd-tab-join')).opacity === '1' && getComputedStyle(document.querySelector('.nd-dk')).opacity === '1'`), 'MENU: eased in');
+  ok(await ev(A.page, `document.querySelector('.nd-tab-you').classList.contains('is-guest') && !document.querySelector('.nd-tab-you .avatar')`), 'DOCK, FIRST VISIT: YOU is a neutral outline emblem');
   await shotAll(A.page, 'n-02-menu-new-player');
 
   // ================================================================ 2. returning visit (new tab, same device): the full boot, no gate
@@ -241,14 +242,14 @@ try {
   // ================================================================ 4. HOST with a saved profile -> straight into a room
   const H = await open({ slot: 'h', profile: PROFILES.ava, seen: true, view: [390, 844] });
   await waitFor(H.page, '!!window.__district && window.__district.phase().done', 'title');
-  ok(await ev(H.page, `document.querySelector('.nd-welcome').textContent.includes('AVA')`), 'RETURNING PLAYER: "Welcome back, AVA"');
+  ok(await ev(H.page, `!!document.querySelector('.nd-tab-you .avatar[data-av="bolt"]') && document.querySelector('.nd-tab-you').getAttribute('aria-label').includes('AVA')`), 'RETURNING PLAYER: YOU is their own emblem (and names them for screen readers)');
   await shotAll(H.page, 'n-03-welcome-back');
   // GAMES: the sheet of every game → a game's preview sheet → HOW TO PLAY
   await tap(H.page, '.nd-link-games');
   await H.page.waitForSelector('.nd-games .nd-gtile', { timeout: 4000 });
   ok(await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length === window.__arcade ? true : true`) && await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length`) >= 12, 'GAMES: the sheet lists every game');
   ok(await ev(H.page, `document.querySelector('.nd-sub').hidden`), 'RETURNING PLAYER: just the tagline (the explainer line is for first visits)');
-  ok(await ev(H.page, `!document.querySelector('.nd-card-btn') && document.querySelectorAll('.nd-links .nd-link').length === 2 && !document.querySelector('.nd-edit')`), 'RETURNING PLAYER: the links are THE BOARD and GAMES (the rank lives in the welcome line, no EDIT button)');
+  ok(await ev(H.page, `!document.querySelector('.nd-welcome, .nd-links, .nd-edit') && [...document.querySelectorAll('.nd-bar > .nd-tab, .nd-bar > .nd-tab-slot')].map(t => (t.querySelector('.nd-tab-l') || { textContent: '[HOST]' }).textContent).join(' ') === 'JOIN BOARD [HOST] GAMES YOU'`), 'DOCK: one bar — JOIN · BOARD · [HOST] · GAMES · YOU (no welcome line, no links)');
   await H.page.evaluate(() => document.querySelector('.nd-gtile[data-id="prism"]').click());
   await H.page.waitForSelector('.nd-preview', { timeout: 4000 });
   await sleep(500);
@@ -274,20 +275,25 @@ try {
   ok(sg.filter(s => s.type === 'blade').length === 2 && sg.some(s => s.type === 'icon' || s.type === 'roof') && sg.some(s => s.type === 'ticker') && sg.length === 4, `SIGNS: two blades, a rooftop billboard and a ticker on a phone (${sg.map(s => s.type + ':' + (s.game || '-')).join(' ')})`);
   const games = sg.filter(s => s.game).map(s => s.game);
   ok(new Set(games).size === games.length, 'SIGNS: no game on two signs at once');
-  for (const s of sg) {
-    await H.page.evaluate(({ x, y }) => {
+  for (let si = 0; si < sg.length; si++) {
+    // where that sign is right now (they're re-placed when the screen's layout changes)
+    const s = (await ev(H.page, 'JSON.stringify(window.__district.scene().signs)').then(JSON.parse))[si] || sg[si];
+    const why = await H.page.evaluate(({ x, y }) => {
       const tgt = document.elementFromPoint(x, y);
       const o = { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerType: 'touch', isPrimary: true };
       tgt.dispatchEvent(new PointerEvent('pointerdown', o)); tgt.dispatchEvent(new PointerEvent('pointerup', o));
+      return { at: typeof tgt.className === 'string' ? tgt.className : tgt.tagName, hit: window.__district.hit(x, y), done: window.__district.phase().done };
     }, { x: s.x + s.w / 2, y: s.y + s.h / 2 });
     await H.page.waitForSelector('.help', { timeout: 3000 }).catch(() => {});
-    ok(await ev(H.page, '!!document.querySelector(".help")'), `SIGNS: tapping the ${s.type} opens HOW TO PLAY`);
+    const opened = await ev(H.page, '!!document.querySelector(".help")');
+    ok(opened, `SIGNS: tapping the ${s.type} opens HOW TO PLAY${opened ? '' : ` (under the finger: ${JSON.stringify(why)})`}`);
     await H.page.keyboard.press('Escape');
     await sleep(450);
     await H.page.evaluate(() => document.querySelectorAll('.modal, .help').forEach(m => m.remove()));
   }
   // the rotation: one sign at a time, spaced out
-  await sleep(25500);
+  // (the first change comes at a random moment; wait for two, then check their spacing)
+  await waitFor(H.page, 'window.__district.scene().changes.length >= 2', 'two sign changes', 40000).catch(() => {});
   const ch = await ev(H.page, 'JSON.stringify(window.__district.scene().changes)').then(JSON.parse);
   ok(ch.length >= 2 && ch.every((c, i) => i === 0 || c.t - ch[i - 1].t >= 11.9), `SIGNS: they rotate one at a time (${ch.map(c => c.sign + '→' + c.game).join(', ')})`);
   // the window easter egg is gone: a tap on a building does nothing
@@ -392,13 +398,107 @@ try {
   ok(await ev(F.page, `[...document.querySelectorAll('.setup-screen .bar-title')].some(b => b.textContent.includes('PROFILE // EDIT'))`), 'EDIT: the profile screen opens (from the card)');
   await F.page.evaluate(() => { const i = document.querySelector('.setup-screen input.input'); i.value = 'FAYE'; i.dispatchEvent(new Event('input', { bubbles: true })); });
   await F.page.evaluate(() => document.querySelector('.form-cta .btn-primary').click());
-  await waitFor(F.page, '!!window.__district && document.querySelector(".nd-welcome") && document.querySelector(".nd-welcome").textContent.includes("FAYE")', 'back on the title with the new name', 6000);
-  ok(true, 'EDIT: saved, back on the title: "Welcome back, FAYE"');
+  await waitFor(F.page, '!!window.__district && document.querySelector(".nd-tab-you") && document.querySelector(".nd-tab-you").getAttribute("aria-label").includes("FAYE")', 'back on the title with the new name', 6000);
+  ok(true, 'EDIT: saved, back on the title (YOU: FAYE)');
   await F.page.evaluate(c => import('/js/store.js').then(m => m.setState({ rejoin: c })), code);
   await F.page.waitForSelector('.nd-rejoin-btn', { timeout: 4000 });
+  // (a person can't tap in the screen's first few hundred ms; Chrome sends a touch's click to the page behind it then)
+  await waitFor(F.page, 'window.__district.phase().done', 'title settled', 6000);
+  await sleep(500);
   await tap(F.page, '.nd-rejoin-btn');
   await waitFor(F.page, '!!window.__arcade.state.code', 'F rejoined', 20000);
   ok((await state(F.page)).code === code, 'REJOIN: one tap back into the room');
+
+  // ================================================================ 8b. THE NEON RING: the dock
+  { const G = await open({ slot: 'g', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'when=2026-10-20T21:30&tz=America/New_York' });
+    await waitFor(G.page, '!!window.__district && window.__district.phase().done', 'title G');
+    // touch targets (≥ 44 px) and labels for screen readers
+    const tg = await ev(G.page, `JSON.stringify([...document.querySelectorAll('.nd-tab, .nd-hostbtn')].map(b => { const r = b.getBoundingClientRect(); return { l: b.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height) }; }))`).then(JSON.parse);
+    ok(tg.length === 5 && tg.every(t => t.w >= 44 && t.h >= 44 && t.l), `DOCK: five targets, each ≥ 44 px with a label (${tg.map(t => `${t.l.split(',')[0]} ${t.w}×${t.h}`).join(' · ')})`);
+    // the ring: lit, wearing the sign's own colours
+    const same = async () => ev(G.page, `(() => { const ls = [...document.querySelectorAll('.nd-sign .ndl')].map(l => getComputedStyle(l.querySelector('.ndl-glow1')).stroke); const h = getComputedStyle(document.querySelector('.nd-hostbtn')); return ls.every((c, i) => h.getPropertyValue('--hg' + (i + 1)).trim() === c); })()`);
+    let ring = await ev(G.page, 'window.__district.dock.ring()');
+    ok(ring.lit && ring.on && await same(), `HOST RING: lit, in the sign's colours (${ring.g[0]})`);
+    // a holiday's colours blend in (registered colours): switch the sign to Valentine's and sample the ring mid-way
+    await G.page.evaluate(() => { document.querySelector('.nd-sign').classList.add('sg-valentine'); window.__district.dock.recolor(); });
+    await sleep(500);
+    const mid = await ev(G.page, `getComputedStyle(document.querySelector('.nd-hostbtn')).getPropertyValue('--hg1').trim()`);
+    await sleep(1400);
+    ring = await ev(G.page, 'window.__district.dock.ring()');
+    ok(ring.g[0] === 'rgb(255, 46, 110)' && mid !== 'rgb(255, 46, 110)' && mid !== 'rgb(255, 46, 151)' && await same(), `HOST RING: a holiday's colour blends in with the sign (${mid} → ${ring.g[0]})`);
+    await G.page.evaluate(() => { document.querySelector('.nd-sign').classList.remove('sg-valentine'); window.__district.dock.recolor(); });
+    // BOARD, GAMES, YOU
+    await tap(G.page, '.nd-tab-games'); await G.page.waitForSelector('.nd-games', { timeout: 4000 });
+    ok(true, 'DOCK: GAMES opens the games sheet');
+    await G.page.evaluate(() => document.querySelectorAll('.modal').forEach(m => m.remove()));
+    // JOIN: the panel opens above the bar (the bar never changes shape) and closes by JOIN, outside, swipe down, Escape
+    const barBox = async () => ev(G.page, `JSON.stringify(document.querySelector('.nd-bar').getBoundingClientRect())`);
+    const bar0 = await barBox();
+    await tap(G.page, '.nd-tab-join'); await sleep(500);
+    const open1 = await ev(G.page, `(() => { const a = document.querySelector('.nd-actions'), p = document.querySelector('.nd-jpanel').getBoundingClientRect(), b = document.querySelector('.nd-bar').getBoundingClientRect(); return a.classList.contains('is-join') && document.querySelector('.nd-tab-join').getAttribute('aria-expanded') === 'true' && getComputedStyle(document.querySelector('.nd-tab-ind')).opacity === '1' && p.bottom < b.top && /ENTER THE CODE/.test(document.querySelector('.nd-jpanel').textContent); })()`);
+    ok(open1 && (await barBox()) === bar0, 'JOIN: a glass panel rises above the bar ("ENTER THE CODE", a cyan light under JOIN); the bar doesn\'t move');
+    await shotAll(G.page, 'n-10-join-panel');
+    await tap(G.page, '.nd-tab-join'); await sleep(450);
+    const isOpen = () => ev(G.page, `document.querySelector('.nd-actions').classList.contains('is-join')`);
+    ok(!(await isOpen()), 'JOIN: tapping JOIN again closes it');
+    await tap(G.page, '.nd-tab-join'); await sleep(450);
+    await G.page.evaluate(() => { const o = { bubbles: true, cancelable: true, clientX: 200, clientY: 200, pointerType: 'touch' }; document.querySelector('.nd-sign').dispatchEvent(new PointerEvent('pointerdown', o)); });
+    await sleep(300);
+    ok(!(await isOpen()), 'JOIN: a tap outside closes it');
+    await tap(G.page, '.nd-tab-join'); await sleep(450);
+    await G.page.evaluate(() => { const p = document.querySelector('.nd-jp-h'), r = p.getBoundingClientRect(); const o = y => ({ bubbles: true, cancelable: true, clientX: r.x + 20, clientY: y, pointerType: 'touch' }); p.dispatchEvent(new PointerEvent('pointerdown', o(r.y))); p.dispatchEvent(new PointerEvent('pointerup', o(r.y + 70))); });
+    await sleep(300);
+    ok(!(await isOpen()), 'JOIN: swiping the panel down closes it');
+    await tap(G.page, '.nd-tab-join'); await sleep(450);
+    await G.page.keyboard.press('Escape'); await sleep(300);
+    ok(!(await isOpen()), 'JOIN: Escape closes it');
+    // the iOS keyboard: the panel stays just above it (a fake keyboard: the visual viewport shrinks)
+    await tap(G.page, '.nd-tab-join'); await sleep(450);
+    const kb = await G.page.evaluate(() => {
+      const H = innerHeight, vv = window.visualViewport;
+      Object.defineProperty(vv, 'height', { get: () => H - 330, configurable: true });
+      Object.defineProperty(vv, 'offsetTop', { get: () => 0, configurable: true });
+      vv.dispatchEvent(new Event('resize'));
+      const p = document.querySelector('.nd-jpanel'); const r = p.getBoundingClientRect();
+      return { kb: p.classList.contains('is-kb'), bottom: Math.round(r.bottom), top: Math.round(r.top), limit: H - 330 };
+    });
+    await sleep(500);
+    const kb2 = await ev(G.page, `JSON.stringify(document.querySelector('.nd-jpanel').getBoundingClientRect())`).then(JSON.parse);
+    ok(kb.kb && kb2.bottom <= kb.limit && kb2.top > 0, `JOIN: with the keyboard up the panel sits just above it (bottom ${Math.round(kb2.bottom)} ≤ ${kb.limit})`);
+    await G.page.keyboard.press('Escape');
+    // BOARD
+    await tap(G.page, '.nd-tab-board');
+    await waitFor(G.page, `window.__arcade.state.view === 'board'`, 'board', 6000);
+    ok(true, 'DOCK: BOARD opens THE BOARD');
+    await G.ctx.close(); }
+  // holidays: the ring matches the sign every time (four colours on a four-colour sign)
+  for (const [when, id, multi] of [['2026-10-31T21:00', 'halloween', '1'], ['2026-12-25T20:00', 'christmas', '1'], ['2027-02-14T20:00', 'valentine', '0'], ['2027-03-17T21:00', 'stpatrick', '0']]) {
+    const X = await open({ slot: 'x' + id.slice(0, 2), profile: PROFILES.ava, seen: true, view: [390, 844], qs: `when=${when}&tz=America/New_York` });
+    await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title ' + id);
+    await sleep(1500);
+    const r = await ev(X.page, `(() => { const ls = [...document.querySelectorAll('.nd-sign .ndl')].map(l => getComputedStyle(l.querySelector('.ndl-glow1')).stroke); const h = getComputedStyle(document.querySelector('.nd-hostbtn')); return { hol: (window.__district.scene().holiday || {}).id, match: ls.every((c, i) => h.getPropertyValue('--hg' + (i + 1)).trim() === c), multi: document.querySelector('.nd-hostbtn').dataset.multi, g: h.getPropertyValue('--hg1').trim() }; })()`);
+    ok(r.hol === id && r.match && r.multi === multi, `HOST RING, ${id.toUpperCase()}: matches the sign (${r.g}${multi === '1' ? ', four tubes' : ''})`);
+    await X.ctx.close();
+  }
+  // by day: still lit, softer; the intro: it flickers on with the letters
+  { const Y = await open({ slot: 'yd', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'when=2026-10-20T13:00&tz=America/New_York' });
+    await waitFor(Y.page, '!!window.__district && window.__district.phase().done', 'title day');
+    const r = await ev(Y.page, `({ lit: document.querySelector('.nd-hostbtn').classList.contains('is-lit'), day: document.querySelector('.nd-actions').classList.contains('is-daylit'), sign: document.querySelector('.nd-sign').classList.contains('is-day') })`);
+    ok(r.lit && r.day && r.sign, 'HOST RING, BY DAY: the sign is dark, the ring stays lit (softer)');
+    await Y.ctx.close(); }
+  { const I = await open({ slot: 'in', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'intro=1&when=2026-10-20T21:30&tz=America/New_York' });
+    await waitFor(I.page, '!!window.__district && window.__district.phase().kind === "full"', 'intro', 8000);
+    const seen = await I.page.evaluate(() => new Promise(res => { const out = []; const t0 = performance.now(); const tick = () => { const h = document.querySelector('.nd-hostbtn'), n = document.querySelector('.nd-sign .ndl-1'); if (h && n) out.push([h.classList.contains('is-lit') ? 1 : 0, n.classList.contains('on') ? 1 : 0]); if (performance.now() - t0 < 3600) requestAnimationFrame(tick); else res(out); }; tick(); }));
+    const ringFlips = seen.reduce((n, s, i) => n + (i && s[0] !== seen[i - 1][0] ? 1 : 0), 0);
+    const firstRing = seen.findIndex(s => s[0]), firstN = seen.findIndex(s => s[1]);
+    ok(ringFlips >= 3 && seen[seen.length - 1][0] === 1 && firstRing >= firstN && firstRing - firstN < 12, `HOST RING, INTRO: flickers on with the letters (${ringFlips} flips, first light ${firstRing - firstN} frames after the N) and holds`);
+    await I.ctx.close(); }
+  // Reduced effects: no breathing
+  { const Rd = await open({ slot: 'rd', profile: PROFILES.ava, seen: true, reduced: true, view: [390, 844], qs: 'when=2026-10-20T21:30&tz=America/New_York' });
+    await waitFor(Rd.page, '!!window.__district && window.__district.phase().done', 'title reduced');
+    const r = await ev(Rd.page, `({ lit: document.querySelector('.nd-hostbtn').classList.contains('is-lit'), anim: getComputedStyle(document.querySelector('.nd-hglow')).animationName })`);
+    ok(r.lit && r.anim === 'none', `REDUCED EFFECTS: the ring is lit, no breathing (${r.anim})`);
+    await Rd.ctx.close(); }
 
   // ================================================================ 9. quality tiers + frame pacing (CPU throttled), and repeated title<->setup cycles
   // everything else closed first: other open pages would share the CPU being measured

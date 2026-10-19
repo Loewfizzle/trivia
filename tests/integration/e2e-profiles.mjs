@@ -37,8 +37,8 @@ await H.run(async () => {
   await p2.waitForFunction(() => !!localStorage.getItem('na:f2:me'), { timeout: 25000 });
   const me2 = await meOf(p2, 'f2');
   ok(me2.profile.n === 'VETERAN' && me2.profile.a === 'star', 'an existing player was migrated with their name and avatar');
-  await p2.waitForSelector('.nd-welcome .rk-badge', { timeout: 10000 });
-  ok(true, 'the title shows the emblem in "Welcome back"');
+  await p2.waitForFunction(() => { const y = document.querySelector('.nd-tab-you'); return y && y.querySelector('.avatar') && /VETERAN, /.test(y.getAttribute('aria-label') || ''); }, { timeout: 10000 });
+  ok(true, 'the title\'s YOU tab shows their emblem (and names their rank)');
 
   // ---- 3. a finished match → the boards, plaques, XP, a rank-up
   // ALICE is 10 XP short of REGULAR; she has played two matches before (the key reminder comes after the third)

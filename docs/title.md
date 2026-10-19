@@ -26,13 +26,13 @@ the street outside: the district, the sign over the door.
 - **Logo** (`ui/logo.js`): "NEON" as four bent glass tubes (glass, wide + near glow, body, white-hot core, a hairline highlight,
   electrode caps, mounting clips), "SPEAKEASY" in Orbitron with wide tracking, framed by Art Deco rules ending in a diamond (`.nd-word::before/::after`, an inline SVG), the tagline `TAGLINE`. The same markup is used lit
   in the lobby header (small), unlit in the boot screen, and by `brand.html` for the icons (the tube N) and the link preview.
-- **THE BOARD** (the third door, under JOIN, gold light): the global leaderboards (`docs/profiles.md`); "Welcome back, NAME" carries
-  the rank emblem and opens the membership card; each preview sheet shows the game's top 3 and your rank.
-- **Menu:** HOST GAME (the one glowing element: glass with a slow light sheen; with a saved profile it opens a room in one tap,
+- **THE BOARD** (BOARD in the dock, gold): the global leaderboards (`docs/profiles.md`); YOU in the dock (your emblem) opens the
+  membership card; each preview sheet shows the game's top 3 and your rank.
+- **Menu** (the dock: THE NEON RING below): HOST (the one glowing element; with a saved profile it opens a room in one tap,
   otherwise the name/avatar screen first), JOIN (one real input under four boxes: native keyboard, auto-caps, paste of a code
   or a whole invite link, auto-join on the 4th letter, a note when I/O are typed, inline errors for no room / full / removed),
-  `?room=` pre-fills it (› glows), REJOIN [CODE] when a saved room couldn't be reached on boot (`state.rejoin`), "Welcome back,
-  NAME" + EDIT (setup in `edit` mode: profile only, back to the title), a drifting showcase of the games (tap → a preview sheet
+  `?room=` pre-fills it (› glows), REJOIN [CODE] when a saved room couldn't be reached on boot (`state.rejoin`), YOU (the card;
+  before a profile, setup in `edit` mode: profile only, back to the title), GAMES: a showcase of the games (tap → a preview sheet
   with art, blurb, player count from MIN_PLAYERS, length from `estimateMinutes(DEFAULT_SETTINGS)`, HOW TO PLAY). No version on the title (it lives in the settings sheet footer).
 - Wide screens: the skyline sits lower and wider, the sign larger, the showcase shows every game; the menu stays a 400 px column.
 
@@ -116,9 +116,7 @@ the street outside: the district, the sign over the door.
 ## The title, Oct 2026 redesign: the city is the showcase
 - **No game row.** Under the tagline, one line: `N PARTY GAMES · ONE PHONE EACH` (N = the playable games in `GAMES`, so it
   updates itself). The city's billboards (bigger now) cycle the game art; **tapping one opens that game's HOW TO PLAY**.
-- **The dock:** HOST and JOIN as clear glass pills (`.nd-host`, `.nd-joinbtn`); JOIN turns the dock into the four code boxes
-  (`.nd-door.is-join`; ‹ goes back). An invite link opens it with the code filled in (› ready, no keyboard popping up).
-  Under it the quiet links: THE BOARD, YOUR CARD (emblem + step), GAMES (a sheet of every game → its preview sheet).
+- **The dock:** THE NEON RING (below) — it replaced the HOST / JOIN pills, the links and the welcome line (Oct 19, 2026).
 - **At rest:** after 15 s without a touch the menu, the tagline, the explainer and the corner buttons fade out (1.8 s),
   leaving the sign and the living city. Any touch brings them back and presses nothing (the waking tap is swallowed); on
   desktop moving the mouse wakes it. Not while a sheet is open, the code boxes are open or a room is being made. Local test
@@ -173,8 +171,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **A new game:** add its mark to `MARKS` (else it gets its initials in tube letters) — it joins the rotation by itself.
 - **Performance:** each sign is drawn once into offscreen canvases (the unlit sign; one canvas per tube); a frame blends
   those plus ~40 bulbs and the ticker's scroll. 60 fps at 4× CPU on the top tier.
-- **Dock cleanup (same pass):** the rank moved into the welcome line ("Welcome back, BEN · ◆ REGULAR I", the whole line opens
-  the card); the links are THE BOARD and GAMES; the explainer line shows only before a profile exists. The window easter
+- **Dock cleanup (same pass, since replaced by THE NEON RING):** the rank moved into the welcome line; the explainer line shows only before a profile exists. The window easter
   egg is gone. On phones the moon arches over the sign (rising beside it at the left edge, setting at the right).
 - **The rain sound** plays only while it rains on screen (title.js#rainSound: in over ~3 s, out over 4 s); clear, snowy and
   daytime skies are silent.
@@ -207,7 +204,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   washed by a bright moon, hidden by rain; stars fade by day (palette stars). Tested in tests/sky.test.mjs.
 - **More neon on the buildings:** every row now carries some (near 55%, far 22%): full outlines, corner + roof, roof lines,
   vertical strips, double bands; thinner and softer further back.
-- The welcome line has no EDIT button (the card has EDIT PROFILE).
+- No EDIT button on the title (the card has EDIT PROFILE).
 - **Searchlights are an occasion** (scene.js#searchOn): Friday and Saturday nights (fading out toward midnight) and holiday
   nights; never while the Milky Way is strong. Rooted near the sides, nearly upright and swaying, never across the sign;
   holiday colours (Christmas red/green, Halloween orange/violet, the Fourth red/blue…). Preview: `&force=searchlights`.
@@ -219,6 +216,41 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **The O dresses up** (title.js#swapO): on Halloween's full days it becomes a neon jack-o'-lantern (gold face, green stem), on
   St. Patrick's a four-leaf clover — bent in the same tube recipe as the letters, so they power on and flicker with the sign.
   Glows are filtered as one group (a filter per small path clips into visible boxes).
+
+## THE NEON RING — the dock (Oct 19, 2026) — `title.js#buildActions`, `css/title.css` (end)
+- **One floating bar** of smoked glass near the bottom (14 px from a phone's sides; centred, max 420 px wide on desktop), above the
+  home indicator / Safari's toolbar (`max(safe-b + 6px, 20px)`): a blur of the city behind it (`.nd-bar-glass`, the sky's colour from
+  `tintGlass`), a hairline catching the city's light along the top, a darker bottom edge, 26 px corners, a soft drop shadow on its
+  own layer (`.nd-bar-shadow`). Five slots: JOIN · BOARD · [HOST] · GAMES · YOU (grid). Weather on the glass carries over (rain
+  beads and runs, lightning's flicker: `.nd-bar.is-rain / .is-flash`).
+- **Icons:** custom neon line icons (`ICON` in title.js), each drawn twice — the tube in its colour, glowing, and a thin white-hot
+  core: JOIN a door (soft white), BOARD a trophy (gold), GAMES a 2×2 of rounded tiles (cyan), YOU the player's own emblem in their
+  colour (`avatar()`; before a profile a neutral outline emblem). Labels in the tagline's type (8.5 px mono, wide tracking). Every
+  slot is ≥ 44 px; a press is a soft pool of the icon's light and a small scale (Reduced effects: none).
+- **HOST** (`.nd-hostbtn`, also `.nd-host` for the tests): a raised dark-glass disc (70 px) sitting in a cradle cut out of the
+  bar's top edge (a mask on the glass + a rim), with a neon tube ring built like the logo's letters (glass tube, two glows, body,
+  white-hot core, highlight, two mounting clips) and HOST inside. **Its colours come from the sign's own tubes**
+  (`ringColors`: the computed glow / body / core of the four letters → `--hg1..4 --hb1..4 --hc1..4` on the button, re-read whenever
+  `dressSign` changes the sign), so every holiday — and any added later — matches by itself; a multi-colour sign (Christmas,
+  Halloween, Easter, the Fourth) makes the ring four tubes, N·E·O·N clockwise from the top, joined by electrode caps. The colours
+  are registered (`@property`), so a change blends over 1.4 s. **Always lit:** off (glass) until the power-on, then it flickers on a
+  beat behind the first N (`ringOn`) and never switches off; by day softer (`.is-daylit`: `--hk`), like a small OPEN sign. A barely
+  noticeable breathing of its glow (`.nd-hglow`, in front of the glass so the blur never re-renders; Reduced effects: still).
+  Its reflection on the wet street under the bar (`.nd-hrefl`, static: it's behind the glass). Busy (opening a room): the glow
+  pulses faster. Same behaviour as before: a saved profile opens a room in one tap, else the name screen.
+- **JOIN** opens a glass panel just above the bar ("ENTER THE CODE"; `.nd-actions.is-join`, a cyan light under JOIN): the four
+  boxes over one real input (native keyboard, auto-caps, paste of a code or an invite link, auto-join on the 4th letter, the I/O
+  note, inline errors). Closes by JOIN again, a tap outside, a swipe down, Escape. With the iOS keyboard up the panel is pinned just
+  above it (`fitKeyboard`: the visual viewport). The panel's glass is its own layer (`::before`; a blur on the panel itself rendered
+  unevenly behind the animated caret). An invite link (`?room=`) opens it filled in, › ready, no keyboard.
+- **Above the bar:** REJOIN [CODE] as a glass pill with a cyan light; notes (a room that couldn't open, an expired invite) as a
+  pill that fades after a few seconds (tap to dismiss). The bar itself never moves. Each piece is rebuilt only when its own data
+  changes (a button replaced between a touch-down and its click loses the click).
+- **Power-on:** the bar comes up with the sign (`is-dock`), the tabs follow with the menu; at rest it fades with the menu.
+- **Lowest quality tier:** `.nd-noblur` (the scene's `tier()` = 0): slightly more opaque glass, no blur.
+- **Tests:** e2e-title.mjs "THE NEON RING" (targets, colours vs the sign incl. a blend and four holidays, by day, the intro flicker,
+  Reduced effects, the JOIN panel's opening / closing / keyboard, BOARD, GAMES, YOU). Test-only hook: `__district.dock`
+  (`join`, `note`, `preview(state)`, `recolor`, `ring`).
 
 ## THE REAL SUN (Oct 19, 2026) — `district/sun.js` (replaced fx.js's low-sun glow)
 - **Path** (`sunPlace`, PURE; the moon's approach): facing south the sun rises on the LEFT at today's real sunrise and sets on

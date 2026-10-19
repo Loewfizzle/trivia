@@ -8,9 +8,9 @@
 //      its light shimmering on the wet street.
 //   4. The menu eases in.  The full sequence (≈ 3.4 s) plays on every visit — the TAP TO ENTER gate only on a
 //      device's first visit; stepping back from the name / profile screen gets a quick ≈ 1.2 s re-light. Any tap skips. Reduced effects / prefers-reduced-motion: simple fades.
-// Menu: HOST GAME (the one glowing element), JOIN with four code boxes (auto-advance, paste, auto-join on the
-// 4th letter, ?room= pre-fills), REJOIN when a saved room couldn't be reached, "Welcome back" with the saved
-// profile, and a drifting showcase of the games (tap one for a preview sheet).
+// The dock — THE NEON RING: one floating glass bar, JOIN · BOARD · [HOST] · GAMES · YOU. HOST is a raised neon ring in
+// the sign's colours (always lit); JOIN opens a glass panel with four code boxes (paste, auto-join on the 4th letter, ?room=
+// pre-fills); REJOIN floats above the bar when a saved room couldn't be reached; YOU opens the membership card.
 // Test hook: window.__district.
 import { h, reducedMotion } from '../ui/dom.js';
 import { step } from '../core/ranks.js';
@@ -237,6 +237,15 @@ function xmasWrapSvg(svg, k) {
 
 
 // the colour each holiday's sign throws on the haze and the wet street
+// the dock's neon line icons, each drawn twice: the tube (its colour, glowing) and a thin white-hot core on top
+const tube = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
+const ICON = {
+  join: tube('<path d="M5.4 21.2V4.7c0-.8.6-1.4 1.4-1.4h10.4c.8 0 1.4.6 1.4 1.4v16.5"/><path d="M5.4 3.6l8 1.5v15.3l-8 .8"/><path d="M3.2 21.2h17.6"/><circle cx="11.5" cy="12.9" r=".55"/>'),
+  board: tube('<path d="M7.6 3.8h8.8v4.4a4.4 4.4 0 0 1-8.8 0z"/><path d="M7.6 5.4H5.3v.9a3 3 0 0 0 2.8 3M16.4 5.4h2.3v.9a3 3 0 0 1-2.8 3"/><path d="M12 12.6v3.5"/><path d="M8.6 20.4h6.8M9.7 20.4l.7-4.3h3.2l.7 4.3"/>'),
+  games: tube('<rect x="4" y="4" width="6.8" height="6.8" rx="1.9"/><rect x="13.2" y="4" width="6.8" height="6.8" rx="1.9"/><rect x="4" y="13.2" width="6.8" height="6.8" rx="1.9"/><rect x="13.2" y="13.2" width="6.8" height="6.8" rx="1.9"/>'),
+  guest: tube('<path d="M12 2.7l7.9 4.55v9.5L12 21.3l-7.9-4.55v-9.5z"/><circle cx="12" cy="10.1" r="2.5"/><path d="M7.7 16.4c1-2.2 2.5-3.3 4.3-3.3s3.3 1.1 4.3 3.3"/>'),
+  go: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5l6.5 6.5-6.5 6.5"/></svg>',
+};
 const SIGN_LIGHT = { halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
 
 export function createTitle() {
@@ -269,7 +278,7 @@ export function createTitle() {
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     els.actions = buildActions();
-    if (!scene.signOn()) els.sign.classList.add('is-day');
+    if (!scene.signOn()) { els.sign.classList.add('is-day'); els.actions.classList.add('is-daylit'); }
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },
       h('span.nd-gate-txt', 'TAP TO ENTER'),
       h('span.nd-gate-sub', 'BEST WITH SOUND ON'));
@@ -281,6 +290,9 @@ export function createTitle() {
       els.gate);
     el.addEventListener('pointerdown', onAnyTap, { capture: true });
     els.root = el;
+    ringColors();
+    requestAnimationFrame(ringColors);
+    if (window.visualViewport) { window.visualViewport.addEventListener('resize', fitKeyboard); window.visualViewport.addEventListener('scroll', fitKeyboard); }
     window.addEventListener('pointerdown', onWake, { capture: true });
     window.addEventListener('click', onWakeClick, { capture: true });
     window.addEventListener('keydown', onWake, { capture: true });
@@ -372,16 +384,19 @@ export function createTitle() {
   // the sign: glass -> per-letter flicker -> steady glow (crackles + hum on the SFX bus)
   function signOn() {
     const s = els.sign;
+    const root = s.closest('.nd');
+    if (root) root.classList.add('is-dock');
     s.classList.remove('is-off');
     s.classList.add('is-glass');
     const letters = [...s.querySelectorAll('.ndl')];
     // daylight: the sign rests (glass and brackets, unlit) until dusk
-    if (scene && !scene.signOn()) { s.classList.add('is-day'); return; }
+    if (scene && !scene.signOn()) { s.classList.add('is-day'); ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); return; }
     s.classList.remove('is-day');
     const kind = tl.kind;
     if (kind === 'instant' || kind === 'reduced') {
       letters.forEach(l => l.classList.add('on'));
       s.classList.add('is-steady', 'is-warm');
+      ringOn(null);
       return;
     }
     const full = kind === 'full';
@@ -399,6 +414,8 @@ export function createTitle() {
     });
     neonPowerOn({ crackles: crackles.slice(0, full ? 7 : 3), dur: full ? 2.4 : 1.4 });
     const steadyIn = ((tl.plan.steady - tl.plan.logo) * 1000);
+    // the ring flickers with the first N (a beat behind it), then holds
+    ringOn([...pattern.map((ms, k) => [base[0] + ms + 30, k % 2 === 0]), [steadyIn, true]]);
     setTimeout(() => { if (!destroyed) { letters.forEach(l => l.classList.add('on')); s.classList.add('is-steady'); } }, steadyIn);
     setTimeout(() => { if (!destroyed) s.classList.add('is-warm'); }, steadyIn + 60);
   }
@@ -409,7 +426,8 @@ export function createTitle() {
     root.classList.add('is-skip');
     if (!tl.marks.logo) { tl.marks.logo = true; tl.kind = 'instant'; signOn(); }
     else { els.sign.querySelectorAll('.ndl').forEach(l => l.classList.add('on')); els.sign.classList.add('is-steady', 'is-warm'); }
-    root.classList.add('is-menu');
+    ringLit = false; ringOn(null);
+    root.classList.add('is-menu', 'is-dock');
     finish();
   }
 
@@ -434,6 +452,8 @@ export function createTitle() {
     if (want && !lit) { tl.kind = 'full'; signOn(); scene.set({ logo: 1 }); }
     else if (!want && lit) signOff();
     dressSign(scene.look());
+    els.actions.classList.toggle('is-daylit', els.sign.classList.contains('is-day'));
+    els.root.classList.toggle('nd-noblur', (scene.tier ? scene.tier() : 2) === 0);
     tintGlass();
     snowOnSign();
     rainSound();
@@ -536,6 +556,7 @@ export function createTitle() {
     if (n && n.countdown != null) { const m = Math.floor(n.countdown / 60), sec = n.countdown % 60; tag.textContent = `${m}:${String(sec).padStart(2, '0')} TO MIDNIGHT`; tag.classList.add('nd-count'); }
     else if (n && n.finale != null) { tag.textContent = 'HAPPY NEW YEAR'; tag.classList.add('nd-count'); }
     else { tag.textContent = TAGLINE; tag.classList.remove('nd-count'); }
+    ringColors();
   }
 
   // keep the sign's light in the scene in sync with layout (resizes, the keyboard)
@@ -638,7 +659,7 @@ export function createTitle() {
   function armIdle() { clearTimeout(idleTimer); if (!destroyed && autoIdle) idleTimer = setTimeout(goIdle, IDLE_MS); }
   function goIdle() {
     if (destroyed || !tl || !tl.done) return;
-    const busyNow = busy || document.querySelector('.modal, .sheet') || document.activeElement === els.code || els.door.classList.contains('is-join');
+    const busyNow = busy || document.querySelector('.modal, .sheet') || document.activeElement === els.code || els.actions.classList.contains('is-join');
     if (busyNow) { armIdle(); return; }
     els.root.classList.add('is-idle');
     document.body.classList.add('nd-idle');
@@ -712,70 +733,199 @@ export function createTitle() {
     return wrap;
   }
 
-  // ------------------------------------------------------------------ actions
+  // ------------------------------------------------------------------ the dock: THE NEON RING (docs/title.md)
+  // One floating bar of smoked glass: JOIN · BOARD · [HOST] · GAMES · YOU. HOST is a raised disc with a neon tube ring that
+  // wears the sign's colours (read from the sign's own tubes: ringColors) and never switches off. JOIN opens a glass panel
+  // above the bar (the four code boxes); REJOIN and notes float above it too, so the bar itself never moves.
   function buildActions() {
-    els.welcome = h('div.nd-welcome');
-    els.rejoin = h('div.nd-rejoin');
-    els.host = h('button.nd-host', { type: 'button', onclick: host }, h('span.nd-host-sheen'), h('span.nd-drops', { 'aria-hidden': 'true' }), h('span.nd-strike', { 'aria-hidden': 'true' }), h('span.nd-host-label', 'HOST'));
-    els.joinBtn = h('button.nd-joinbtn', { type: 'button', onclick: () => openJoin(true, true) }, h('span.nd-drops', { 'aria-hidden': 'true' }), h('span.nd-strike', { 'aria-hidden': 'true' }), h('span.nd-joinbtn-l', 'JOIN'));
-    // one real input under four boxes: native keyboard, autocapitalise, paste, iOS autofill all just work
+    const tab = (cls, label, aria, icon, onclick) => h(`button.nd-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
+      h('span.nd-tab-ic', { html: icon }), h('span.nd-tab-l', label));
+    els.joinTab = tab('nd-tab-join.nd-joinbtn', 'JOIN', 'Join a room', ICON.join, () => { sfx('select'); openJoin(!els.actions.classList.contains('is-join'), true); });
+    els.joinTab.setAttribute('aria-expanded', 'false');
+    els.joinTab.append(h('i.nd-tab-ind', { 'aria-hidden': 'true' }));
+    els.boardTab = tab('nd-tab-board', 'BOARD', 'The Board', ICON.board, () => { sfx('select'); setState({ view: 'board' }); });
+    els.gamesTab = tab('nd-tab-games.nd-link-games', 'GAMES', 'The games', ICON.games, () => { openJoin(false); openGames(); });
+    els.youTab = tab('nd-tab-you.nd-me', 'YOU', 'Your membership card', ICON.guest, () => {
+      sfx('select');
+      const p = loadProfile();
+      setState(p && p.name ? { view: 'profile' } : { view: 'setup', setupMode: 'edit' });
+    });
+    // HOST: a dark glass disc, the neon ring (glass tube → glows → body → white-hot core), the word inside
+    els.host = h('button.nd-hostbtn.nd-host', { type: 'button', 'aria-label': 'Host a game', onclick: host, dataset: { multi: '0' } },
+      h('span.nd-hdisc'),
+      h('span.nd-hglow', { 'aria-hidden': 'true' }),
+      h('span.nd-hring-wrap', { 'aria-hidden': 'true', html: ringSvg('ndr') }),
+      h('span.nd-host-label', { 'aria-hidden': 'true' }, 'HOST'));
+    // the bar: its shadow, the glass (with the HOST cradle cut out), weather on the glass, the ring's reflection on the street
+    els.door = h('nav.nd-bar', { 'aria-label': 'Main menu' },
+      h('span.nd-hrefl', { 'aria-hidden': 'true' }),
+      h('span.nd-bar-shadow', { 'aria-hidden': 'true' }),
+      h('span.nd-bar-glass', { 'aria-hidden': 'true' }, h('span.nd-drops'), h('span.nd-strike')),
+      els.joinTab, els.boardTab, h('span.nd-tab-slot', { 'aria-hidden': 'true' }), els.gamesTab, els.youTab,
+      els.host);
+    // the JOIN panel: one real input under four boxes (native keyboard, autocapitalise, paste, iOS autofill all just work)
     els.code = h('input.nd-code-in', {
       type: 'text', inputmode: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: false,
       maxLength: 24, 'aria-label': 'Room code, 4 letters', enterkeyhint: 'go',
-      oninput: onCode, onpaste: onPaste, onfocus: paintCode, onblur: paintCode,
+      oninput: onCode, onpaste: onPaste, onfocus: () => { paintCode(); fitKeyboard(); }, onblur: paintCode,
       onkeydown: e => { if (e.key === 'Enter' && els.code.value.length === 4) join(els.code.value); if (e.key === 'Escape') openJoin(false); },
     });
     els.boxes = [0, 1, 2, 3].map(i => h('span.nd-box', { style: { '--i': i } }));
-    els.go = h('button.nd-go', { type: 'button', 'aria-label': 'Join room', onclick: () => (els.code.value.length === 4 ? join(els.code.value) : els.code.focus()) }, '›');
+    els.go = h('button.nd-go', { type: 'button', 'aria-label': 'Join room', onclick: () => (els.code.value.length === 4 ? join(els.code.value) : els.code.focus()) },
+      h('span', { html: ICON.go }));
     els.msg = h('p.nd-msg', { role: 'status', 'aria-live': 'polite' });
-    // HOST and JOIN side by side; JOIN turns the dock into the four code boxes (× goes back)
-    els.door = h('div.nd-door',
-      h('div.nd-dock', els.host, els.joinBtn),
-      h('div.nd-join',
-        h('button.nd-join-x', { type: 'button', 'aria-label': 'Back', onclick: () => openJoin(false) }, '‹'),
+    els.jpanel = h('div.nd-jpanel', { role: 'dialog', 'aria-label': 'Enter the room code', onpointerdown: panelDown, onpointerup: panelUp },
+      h('span.nd-jp-grip', { 'aria-hidden': 'true' }),
+      h('h2.nd-jp-h', 'ENTER THE CODE'),
+      els.msg,
+      h('div.nd-jp-row',
         h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
         els.go));
-    // the quiet links: THE BOARD, YOUR CARD, THE GAMES
-    els.board = h('button.nd-link.nd-link-board', { type: 'button', onclick: () => { sfx('select'); setState({ view: 'board' }); } },
-      h('span.nd-board-mark', { 'aria-hidden': 'true' }), h('span', 'THE BOARD'));
-    els.gamesBtn = h('button.nd-link.nd-link-games', { type: 'button', onclick: openGames },
-      h('span.nd-games-mark', { 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i')), h('span', 'GAMES'));
-    return h('section.nd-actions',
-      els.rejoin,
-      els.door,
-      h('div.nd-links', els.board, els.gamesBtn),
-      h('div.nd-foot', els.msg, els.welcome));
+    // above the bar: REJOIN, and a note (a host that couldn't open, an expired invite)
+    els.rejoin = h('div.nd-rejoin');
+    els.note = h('button.nd-note', { type: 'button', role: 'status', 'aria-live': 'polite', onclick: () => note('') });
+    return h('section.nd-actions', h('div.nd-dk', h('div.nd-above', els.note, els.rejoin), els.jpanel, els.door));
+  }
+
+  // the HOST ring: four quarter tubes (N · E · O · N clockwise from the top left, so a multi-colour holiday shows every
+  // colour of the sign) under one whole tube (a one-colour sign: no joints); electrode caps where the quarters meet,
+  // two mounting clips, the glass tube underneath. Colours come in as CSS custom properties (ringColors).
+  function ringSvg(id) {
+    const R = 37, pt = a => `${(R * Math.cos(a)).toFixed(2)} ${(R * Math.sin(a)).toFixed(2)}`;
+    const arcs = [0, 1, 2, 3].map(i => { const a0 = (-135 + 90 * i) * Math.PI / 180; return `M${pt(a0)}A${R} ${R} 0 0 1 ${pt(a0 + Math.PI / 2)}`; });
+    const both = (cls, w) => `<circle class="${cls} u" r="${R}" stroke-width="${w}"/>${arcs.map((d, i) => `<path class="${cls} m r${i + 1}" d="${d}" stroke-width="${w}"/>`).join('')}`;
+    const joints = [-135, -45, 45, 135].map(a => { const r = a * Math.PI / 180; return `<circle cx="${(R * Math.cos(r)).toFixed(2)}" cy="${(R * Math.sin(r)).toFixed(2)}" r="2.7"/>`; }).join('');
+    return `<svg class="nd-hring" viewBox="-50 -50 100 100" xmlns="http://www.w3.org/2000/svg">
+<defs><filter id="${id}-b1" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.2"/></filter>
+<filter id="${id}-b2" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5.5"/></filter></defs>
+<circle class="hr-glass" r="${R}" stroke-width="8"/>
+<g class="hr-light">
+<g class="hr-g2" filter="url(#${id}-b2)">${both('g', 12)}</g>
+<g class="hr-g1" filter="url(#${id}-b1)">${both('g', 6.5)}</g>
+${both('b', 5.4)}${both('c', 1.9)}
+<path class="hr-hi" d="M${pt(Math.PI * 1.05)}A${R} ${R} 0 0 1 ${pt(Math.PI * 1.42)}" transform="translate(-1 -1.1)"/>
+</g>
+<g class="hr-joints">${joints}</g>
+<g class="hr-clips">${[56, 124].map(d => `<rect x="-3.4" y="-0.95" width="6.8" height="1.9" rx="0.8" transform="translate(${(R * Math.cos(d * Math.PI / 180)).toFixed(2)} ${(R * Math.sin(d * Math.PI / 180)).toFixed(2)}) rotate(${d})"/>`).join("")}</g>
+</svg>`;
+  }
+
+  // the ring wears the sign: its four letters' glow / body / core colours, straight from the sign's own tubes (the same CSS
+  // the sign uses — every holiday, now and later, follows by itself); registered colours, so a change blends
+  let ringKey = '';
+  function ringColors() {
+    if (!els.host || !els.sign) return;
+    const letters = [...els.sign.querySelectorAll('.ndl')];
+    if (letters.length < 4) return;
+    const pick = (l, cls) => { const p = l.querySelector(`.${cls}`); return p ? getComputedStyle(p).stroke : ''; };
+    const cols = letters.slice(0, 4).map(l => ({ g: pick(l, 'ndl-glow1'), b: pick(l, 'ndl-body'), c: pick(l, 'ndl-core') }));
+    if (cols.some(c => !c.g || c.g === 'none')) return;
+    const key = cols.map(c => `${c.g}/${c.b}/${c.c}`).join('|');
+    if (key === ringKey) return;
+    ringKey = key;
+    const st = els.host.style;
+    cols.forEach((c, i) => { st.setProperty(`--hg${i + 1}`, c.g); st.setProperty(`--hb${i + 1}`, c.b); st.setProperty(`--hc${i + 1}`, c.c); });
+    els.host.dataset.multi = new Set(cols.map(c => c.g)).size > 1 ? '1' : '0';
+    if (els.door) els.door.style.setProperty('--hg1', cols[0].g);
+  }
+
+  // the ring's light: off (glass) until the power-on, then always lit — it flickers on with the sign's letters
+  let ringLit = false;
+  const ringSet = on => { if (els.host && !destroyed) els.host.classList.toggle('is-lit', on); };
+  function ringOn(times) {
+    if (ringLit) return;
+    ringLit = true;
+    if (!times || !times.length) { ringSet(true); return; }
+    times.forEach(([ms, on]) => setTimeout(() => ringSet(on), ms));
+  }
+
+  // JOIN: the panel above the bar. Tap outside, swipe it down, tap JOIN again or Escape to close
+  let swipe = null;
+  function panelDown(e) { swipe = { y: e.clientY, t: performance.now() }; }
+  function panelUp(e) {
+    const s = swipe; swipe = null;
+    if (s && e.clientY - s.y > 38 && performance.now() - s.t < 700) openJoin(false);
+  }
+  function outsideDown(e) {
+    if (!els.actions.classList.contains('is-join')) return;
+    if (els.jpanel.contains(e.target) || els.joinTab.contains(e.target)) return;
+    openJoin(false);
+  }
+  // the iOS keyboard: keep the panel just above it (the visual viewport shrinks; the layout viewport doesn't)
+  function fitKeyboard() {
+    const vv = window.visualViewport;
+    if (!vv || !els.jpanel) return;
+    const open = els.actions.classList.contains('is-join');
+    const kb = window.innerHeight - vv.height - vv.offsetTop;
+    if (open && kb > 90) {
+      els.jpanel.style.setProperty('--kb-top', `${Math.max(8, vv.offsetTop + vv.height - els.jpanel.offsetHeight - 12)}px`);
+      els.jpanel.classList.add('is-kb');
+    } else els.jpanel.classList.remove('is-kb');
   }
 
   function openJoin(on, focus = false) {
-    els.door.classList.toggle('is-join', on);
-    if (on) { paintCode(); if (focus) setTimeout(() => els.code.focus(), 60); }
-    else { els.code.blur(); say(''); }
+    if (!els.actions) return;
+    const was = els.actions.classList.contains('is-join');
+    els.actions.classList.toggle('is-join', on);
+    els.joinTab.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) {
+      if (!was) say('');
+      paintCode();
+      if (focus) setTimeout(() => els.code.focus(), 60);
+      window.addEventListener('pointerdown', outsideDown, { capture: true });
+    } else {
+      els.code.blur();
+      els.jpanel.classList.remove('is-kb');
+      window.removeEventListener('pointerdown', outsideDown, { capture: true });
+    }
+  }
+
+  // a note floating above the bar (a host that couldn't open, an expired invite); tap it to dismiss
+  let noteT = 0;
+  function note(text, kind = 'info', ms = 6500) {
+    if (!els.note) return;
+    clearTimeout(noteT);
+    els.note.textContent = text;
+    els.note.dataset.kind = kind;
+    els.note.classList.toggle('is-on', !!text);
+    if (text && ms) noteT = setTimeout(() => note(''), ms);
   }
 
   function update(state) {
     st = state;
-    if (!els.welcome) return;
+    if (!els.youTab) return;
     const p = loadProfile();
     const me = loadMe();
     const pub = me && me.profile && me.uid === state.uid ? me.profile : null;
     const sig = `${p ? `${p.name}|${p.color}|${p.avatar}` : ''}|${pub ? `${pub.t}|${pub.r}|${pub.x}` : ''}|${state.rejoin || ''}|${state.invite || ''}|${state.inviteExpired || ''}`;
     if (sig === els.sig) return;
     els.sig = sig;
-    els.welcome.replaceChildren(...(p && p.name ? [
-      avatar(p.avatar, p.color, 22),
-      h('button.nd-me', { type: 'button', 'aria-label': 'Your membership card', onclick: () => { sfx('select'); setState({ view: 'profile' }); } },
-        h('span', 'Welcome back, ', h('b', { style: { color: colorHex(p.color) } }, p.name)),
-        ...(pub ? (() => { const sp = step(pub.x || 0); return [h('span.nd-me-dot', '·'), h('span.nd-me-rank', { style: { '--rk': RANK_COLORS[sp.i] } }, emblem(sp.i, 15), h('span', sp.name))]; })() : [])),
-    ] : []));
-    els.welcome.hidden = !(p && p.name);
+    // YOU: your own emblem in your colour (a neutral outline emblem before there's a profile). Each piece is rebuilt only
+    // when its own data changes: replacing a button between a finger's touch-down and its click loses the click.
+    const youSig = `${p ? `${p.name}|${p.color}|${p.avatar}` : ''}|${pub ? `${pub.r}|${pub.x}` : ''}`;
+    const ic = els.youTab.querySelector('.nd-tab-ic');
+    if (youSig === els.youSig) { /* unchanged */ } else if ((els.youSig = youSig) && p && p.name) {
+      ic.replaceChildren(avatar(p.avatar, p.color, 26));
+      els.youTab.setAttribute('aria-label', `Your membership card, ${p.name}${pub ? `, ${step(pub.x || 0).name}` : ''}`);
+      els.youTab.classList.remove('is-guest');
+    } else {
+      ic.innerHTML = ICON.guest;
+      els.youTab.setAttribute('aria-label', 'Create your player');
+      els.youTab.classList.add('is-guest');
+    }
     if (els.sub) els.sub.hidden = !!(p && p.name);
-    els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', onclick: () => join(state.rejoin, true) },
-      h('span.nd-rejoin-k', 'YOUR ROOM IS STILL OPEN'), h('span.nd-rejoin-l', `REJOIN ${state.rejoin}`))] : []));
+    if ((state.rejoin || '') !== els.rejoinCode) els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', 'aria-label': `Rejoin room ${state.rejoin}`, onclick: () => join(state.rejoin, true) },
+      h('i.nd-rejoin-dot', { 'aria-hidden': 'true' }), h('span.nd-rejoin-l', 'REJOIN'), ' ', h('b.nd-rejoin-c', state.rejoin))] : []));
+    els.rejoinCode = state.rejoin || '';
     els.rejoin.hidden = !state.rejoin;
-    els.host.classList.toggle('is-quiet', !!state.rejoin);
-    if (state.invite && !els.code.value) { openJoin(true); els.code.value = clean(state.invite); paintCode(); say(`You’re invited to room ${els.code.value} — tap › to join.`, 'info'); els.go.classList.add('is-ready'); }
-    if (state.inviteExpired) say(`Room ${state.inviteExpired} has closed. Host a new game, or ask your friend for a fresh code.`, 'warn');
+    if (state.invite && !els.code.value) {
+      openJoin(true);
+      els.code.value = clean(state.invite);
+      paintCode();
+      say(`You’re invited to room ${els.code.value} — tap › to join.`, 'info');
+      els.go.classList.add('is-ready');
+    }
+    if (state.inviteExpired) note(`Room ${state.inviteExpired} has closed. Host a new game, or ask for a fresh code.`, 'warn', 9000);
   }
 
 
@@ -830,8 +980,9 @@ export function createTitle() {
     const p = loadProfile();
     if (!p || !p.name) { setState({ view: 'setup', setupMode: 'host' }); return; }
     busy = true;
+    openJoin(false);
     els.host.classList.add('is-busy');
-    els.host.querySelector('.nd-host-label').textContent = 'OPENING…';
+    els.host.setAttribute('aria-busy', 'true');
     try {
       await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
       await createRoom(p);
@@ -839,8 +990,8 @@ export function createTitle() {
     } catch (e) {
       busy = false;
       els.host.classList.remove('is-busy');
-      els.host.querySelector('.nd-host-label').textContent = 'HOST';
-      say(friendly(e), 'warn');
+      els.host.removeAttribute('aria-busy');
+      note(friendly(e), 'warn');
       sfx('invalid');
     }
   }
@@ -852,7 +1003,8 @@ export function createTitle() {
     busy = true;
     els.code.blur();
     els.code.parentElement.classList.add('is-busy');
-    say(isRejoin ? `Rejoining room ${code}…` : `Joining room ${code}…`, 'info');
+    const tell = els.actions.classList.contains('is-join') ? say : note;
+    tell(isRejoin ? `Rejoining room ${code}…` : `Joining room ${code}…`, 'info');
     try {
       await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
       await joinRoom(code, p);
@@ -860,7 +1012,7 @@ export function createTitle() {
     } catch (e) {
       busy = false;
       els.code.parentElement.classList.remove('is-busy');
-      say(friendly(e, code), 'warn');
+      tell(friendly(e, code), 'warn');
       if (isRejoin) setState({ rejoin: '' });
       sfx('invalid');
       shake();
@@ -891,6 +1043,13 @@ export function createTitle() {
       idle: () => goIdle(),
       isIdle: () => els.root.classList.contains('is-idle'),
       rainSound: () => !!stopRain,
+      dock: {
+        join: openJoin,
+        preview: patch => { els.sig = null; update({ ...st, ...patch }); },   // test-only: show the dock for a state (REJOIN, an invite)
+        note,
+        recolor: () => { ringKey = ''; ringColors(); },
+        ring: () => ({ lit: ringLit, on: !!(els.host && els.host.classList.contains('is-lit')), multi: els.host ? els.host.dataset.multi : null, g: [1, 2, 3, 4].map(i => (els.host ? els.host.style.getPropertyValue(`--hg${i}`) : '')) }),
+      },
     };
   }
 
@@ -908,6 +1067,9 @@ export function createTitle() {
     window.removeEventListener('pointermove', onMouse);
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
+    window.removeEventListener('pointerdown', outsideDown, { capture: true });
+    if (window.visualViewport) { window.visualViewport.removeEventListener('resize', fitKeyboard); window.visualViewport.removeEventListener('scroll', fitKeyboard); }
+    clearTimeout(noteT);
     if (els.probe) els.probe.remove();
     if (stopRain) stopRain(0.6);
     document.body.classList.remove('nd-on');

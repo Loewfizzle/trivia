@@ -707,6 +707,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     get state() { return S; },
     get tier() { return tier; },
     setTier,
+    tier: () => tier,
     frames: () => frames.slice(),
     debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug(), sun: sun.debug() }),
     destroy() {
