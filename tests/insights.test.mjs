@@ -74,6 +74,15 @@ test('games, players and busiest times from counted matches', () => {
   assert.deepEqual(S.players.topXp.map(p => p.n).slice(0, 2), ['Ann', 'Bo']);
   assert.equal(S.players.topAll[0].n, 'Ann');
   assert.equal(S.players.activeWeek, 3);
+  // today (the Eastern day): r1 + r2 only
+  assert.deepEqual(S.today, { matches: 2, players: 3 });
+  assert.deepEqual(S.games.today, { golf: 1, cipher: 1 });
+  assert.deepEqual(S.players.topToday.map(p => [p.n, p.n_matches]), [['Ann', 2], ['Bo', 2], ['Cy', 1]]);
+  assert.equal(S.players.activeToday, 3);
+  // just after midnight Eastern: a new day, nothing yet
+  const T = summarize({ results, profiles, now: NOW + 3 * H });
+  assert.deepEqual(T.today, { matches: 0, players: 0 });
+  assert.deepEqual(T.players.topToday, []);
   assert.equal(S.players.returningWeek, 1, 'Ann played last week too');
   assert.equal(S.players.newByWeek.length, 8);
   assert.equal(S.players.newByWeek[7].wk, weekKey(NOW));

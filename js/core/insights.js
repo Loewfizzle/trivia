@@ -56,14 +56,17 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
 
   // ---- games
   const daily = Object.fromEntries(days30.map(k => [k, 0]));
+  const today = dayKey(now), todayGames = {};
   const last30 = {}, playersSum = {}, playersN = {};
   // ---- players: matches per pid (this week / all time) and the days they played
-  const weekCount = {}, allCount = {}, daysOf = {};
+  const weekCount = {}, allCount = {}, dayCount = {}, daysOf = {};
   // ---- busiest times: weekday × hour, last 90 days
   const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
   for (const r of done) {
     const dk = dayKey(r.at);
     if (day30Set.has(dk)) { daily[dk]++; last30[r.g] = (last30[r.g] || 0) + 1; }
+    const isToday = dk === today;
+    if (isToday) todayGames[r.g] = (todayGames[r.g] || 0) + 1;
     const n = Number(r.n) || Object.keys(r.o || {}).length;
     if (n) { playersSum[r.g] = (playersSum[r.g] || 0) + n; playersN[r.g] = (playersN[r.g] || 0) + 1; }
     if (r.at >= since90) { const p = easternParts(r.at); grid[p.dow][p.h]++; }
@@ -71,6 +74,7 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
     for (const pid of Object.keys(r.o || {})) {
       allCount[pid] = (allCount[pid] || 0) + 1;
       if (thisWeek) weekCount[pid] = (weekCount[pid] || 0) + 1;
+      if (isToday) dayCount[pid] = (dayCount[pid] || 0) + 1;
       (daysOf[pid] ||= new Set()).add(dk);
     }
   }
@@ -82,13 +86,15 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
     return { pid, n: p.n || 'Player', t: p.t || null, a: p.a || null, c: p.c || null, r: p.r || 0, x: p.x || 0, h: !!p.h };
   };
   const topWeek = Object.entries(weekCount).sort((a, b) => b[1] - a[1] || (allCount[b[0]] || 0) - (allCount[a[0]] || 0)).slice(0, topN).map(([pid, n]) => ({ ...who(pid), n_matches: n }));
+  const topToday = Object.entries(dayCount).sort((a, b) => b[1] - a[1] || (allCount[b[0]] || 0) - (allCount[a[0]] || 0)).slice(0, topN).map(([pid, n]) => ({ ...who(pid), n_matches: n }));
   const topAll = Object.entries(allCount).sort((a, b) => b[1] - a[1]).slice(0, topN).map(([pid, n]) => ({ ...who(pid), n_matches: n }));
   const topXp = Object.entries(profiles || {}).filter(([, p]) => p && p.x).sort((a, b) => (b[1].x || 0) - (a[1].x || 0)).slice(0, topN).map(([pid]) => ({ ...who(pid), n_matches: allCount[pid] || 0 }));
   const weeks8 = lastWeeks(now, 8);
   const newByWeek = weeks8.map(k => ({ wk: k, n: 0 }));
   const wIdx = Object.fromEntries(weeks8.map((k, i) => [k, i]));
   for (const p of Object.values(profiles || {})) if (p && p.at && wIdx[weekKey(p.at)] != null) newByWeek[wIdx[weekKey(p.at)]].n++;
-  const activeWeek = Object.keys(weekCount).length;
+  const activeWeek = Object.keys(weekCount).length, activeToday = Object.keys(dayCount).length;
+  const matchesToday = daily[today] || 0;
   // came back: played this week AND on a day before it (a week key is its Monday's date: w20261019 → d20261019)
   const monday = 'd' + wk.slice(1);
   const returningWeek = Object.keys(weekCount).filter(pid => [...(daysOf[pid] || [])].some(d => d < monday)).length;
@@ -98,9 +104,10 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
   return {
     at: now,
     live,
+    today: { matches: matchesToday, players: activeToday },
     totals: { matches: done.length, players: Object.keys(profiles || {}).length, played: Object.keys(allCount).length, multiNight },
-    games: { week: (gplay && gplay.week) || {}, all: (gplay && gplay.all) || {}, last30, avgPlayers, daily: days30.map(k => ({ k, n: daily[k] })) },
-    players: { activeWeek, returningWeek, newByWeek, topWeek, topAll, topXp },
+    games: { today: todayGames, week: (gplay && gplay.week) || {}, all: (gplay && gplay.all) || {}, last30, avgPlayers, daily: days30.map(k => ({ k, n: daily[k] })) },
+    players: { activeToday, activeWeek, returningWeek, newByWeek, topToday, topWeek, topAll, topXp },
     times: { grid, max: Math.max(0, ...grid.flat()), days: 90 },
   };
 }

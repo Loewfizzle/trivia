@@ -96,11 +96,11 @@ limit), hide from / return to every board, the audit log, **errors from phones**
 **Stats** (Oct 2026; `js/core/insights.js#summarize`, PURE, `tests/insights.test.mjs`; action `stats`, cached 30 s): at the top of
 /admin. LIVE NOW (refreshes every 30 s while the page is visible): players in rooms, rooms open, games in progress, a row per room
 (game + phase, online / away, how long it's been open — no codes, no names; title-screen visitors have no connection and aren't
-seen). GAMES PLAYED per game this week / 30 days / all time (gplay counts + results/) with average players; MATCHES PER DAY (30
-days); MOST ACTIVE PLAYERS this week / all time (matches) / XP, each opening the player view; PLAYERS: played this week (+ came back
+seen). GAMES PLAYED per game today / this week / 30 days / all time (today = the Eastern day, from results/) (gplay counts + results/) with average players; MATCHES PER DAY (30
+days); MOST ACTIVE PLAYERS today / this week / all time (matches) / XP, each opening the player view; PLAYERS: played today (+ matches today), played this week (+ came back
 from an earlier week), have played (+ on more than one night), profiles, new players per week (8 weeks); BUSIEST TIMES: weekday ×
 hour heatmap, last 90 days, Eastern. Everything is read from rooms/, results/, gplay/ and profiles/ — only server-verified
-matches count (none before profiles went live). results/ grows with every match: if the panel ever gets slow, keep per-day
+matches count (none before profiles went live). The page scrolls like a normal page (admin.css undoes base.css's game-screen lock: `html.ad-html`; on phones the lower half used to be unreachable). results/ grows with every match: if the panel ever gets slow, keep per-day
 aggregates in /api/report instead of reading it whole.
 
 **Errors from phones** (Oct 2026): `js/errlog.js` (the first import of app.js and board/public.js) catches uncaught errors and

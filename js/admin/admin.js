@@ -181,12 +181,12 @@ function tabs(key, opts, rerender) {
 
 function gamesBlock() {
   const G = S.games;
-  const src = view.games === 'week' ? G.week : view.games === '30' ? G.last30 : G.all;
+  const src = view.games === 'today' ? (G.today || {}) : view.games === 'week' ? G.week : view.games === '30' ? G.last30 : G.all;
   const rows = GAMES.map(g => ({ id: g.id, n: src[g.id] || 0 })).sort((a, b) => b.n - a.n);
   const max = Math.max(1, ...rows.map(r => r.n));
   const total = rows.reduce((a, r) => a + r.n, 0);
   return h('div.ad-block',
-    h('div.ad-row.ad-between', h('h3', 'Games played'), tabs('games', [['week', 'This week'], ['30', '30 days'], ['all', 'All time']], renderStats)),
+    h('div.ad-row.ad-between', h('h3', 'Games played'), tabs('games', [['today', 'Today'], ['week', 'This week'], ['30', '30 days'], ['all', 'All time']], renderStats)),
     h('ol.ad-bars', ...rows.map((r, i) => h('li', { style: { '--c': light(r.id), '--w': `${(r.n / max) * 100}%` } },
       h('span.ad-bar-n', `${i + 1}`),
       h('span.ad-bar-name', gameName(r.id)),
@@ -208,16 +208,17 @@ function dailyBlock() {
 
 function playersBlock() {
   const P = S.players;
-  const list = view.players === 'week' ? P.topWeek : view.players === 'all' ? P.topAll : P.topXp;
+  const list = view.players === 'today' ? (P.topToday || []) : view.players === 'week' ? P.topWeek : view.players === 'all' ? P.topAll : P.topXp;
+  const empty = { today: 'No matches yet today.', week: 'No matches yet this week.', all: 'No matches yet.', xp: 'No XP yet.' }[view.players];
   return h('div.ad-block',
-    h('div.ad-row.ad-between', h('h3', 'Most active players'), tabs('players', [['week', 'This week'], ['all', 'All time'], ['xp', 'XP']], renderStats)),
+    h('div.ad-row.ad-between', h('h3', 'Most active players'), tabs('players', [['today', 'Today'], ['week', 'This week'], ['all', 'All time'], ['xp', 'XP']], renderStats)),
     list.length ? h('ol.ad-top', ...list.map((p, i) => h('li',
       h('span.ad-bar-n', String(i + 1)),
       avatar(p.a, p.c, 26),
       h('button.ad-linkbtn', { type: 'button', onclick: () => open(p.pid) }, p.n, h('small', p.t ? fmtTag(p.t) : '')),
       emblem(p.r, 18),
       p.h ? h('span.ad-tag.is-hidden', 'HIDDEN') : null,
-      h('b', view.players === 'xp' ? `${p.x.toLocaleString()} XP` : `${p.n_matches} ${p.n_matches === 1 ? 'match' : 'matches'}`)))) : h('p.ad-dim', 'No matches yet this week.'));
+      h('b', view.players === 'xp' ? `${p.x.toLocaleString()} XP` : `${p.n_matches} ${p.n_matches === 1 ? 'match' : 'matches'}`)))) : h('p.ad-dim', empty));
 }
 
 function growthBlock() {
@@ -227,6 +228,7 @@ function growthBlock() {
   return h('div.ad-block',
     h('h3', 'Players'),
     h('div.ad-bigs.is-small',
+      big(S.today ? S.today.players : 0, 'played today', S.today ? `${S.today.matches} ${S.today.matches === 1 ? 'match' : 'matches'} today` : null),
       big(P.activeWeek, 'played this week', P.activeWeek ? `${P.returningWeek} came back from an earlier week` : null),
       big(T.played, 'have played', `${T.multiNight} on more than one night`),
       big(T.players, 'profiles')),

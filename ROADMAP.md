@@ -401,6 +401,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       lobby's game names (17 px as designed, scaling down on narrow phones). `e2e-loading.mjs`
 - [x] **Admin STATS:** live now (players in rooms, rooms, games in progress), games played (week / 30 days / all time, avg
       players), matches per day, most active players (week / all time / XP), new + returning players, busiest times heatmap
+- [x] Admin on phones scrolls (it inherited the game screens' page lock); TODAY in games played, most active players and the players box
 - [ ] Next from the review: a real-phone night (6–8 phones incl. an old Android / Low Power Mode) and a look at the Firebase plan's
       connection limit (Spark: 100 at once ≈ 12 full rooms)
 

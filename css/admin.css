@@ -1,4 +1,7 @@
 /* /admin — simpler than the public screens, still on-brand: dark glass, warm brass, the board's type. Prefix ad-. */
+/* base.css locks the page for the game screens (html/body 100 % tall, overflow hidden): the admin page scrolls like a page */
+html.ad-html, html.ad-html body.ad-on { height: auto; overflow: visible; overscroll-behavior: auto; }
+body.ad-on { user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; }
 body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--font-ui); background: radial-gradient(80% 60% at 50% 0%, rgba(255, 170, 90, 0.08), transparent 70%), linear-gradient(180deg, #0d0709, #050305); }
 .ad { box-sizing: border-box; max-width: 1240px; margin: 0 auto; padding: calc(var(--safe-t) + 20px) 16px 40px; }
 .ad-wait { padding: 40px; text-align: center; color: var(--bd-dim); font: 700 11px/1 var(--font-mono); letter-spacing: 0.3em; }
@@ -52,6 +55,7 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-big span { font: 700 10px/1.2 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(242, 200, 105, 0.85); }
 .ad-big small { font-size: 12px; color: var(--bd-dim); }
 .ad-bigs.is-small .ad-big b { font-size: 24px; }
+.ad-bigs.is-small { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* the Players box: today, this week, have played, profiles */
 .ad-rooms { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .ad-rooms li { display: grid; grid-template-columns: minmax(120px, 1.2fr) 1fr 1fr auto; gap: 10px; align-items: center; min-height: 38px; padding-left: 12px; border-left: 3px solid var(--c); border-top: 1px solid rgba(255, 220, 180, 0.07); font-size: 13px; }
 .ad-rooms li b { font: 700 12px/1.2 var(--font-display); letter-spacing: 0.08em; color: #fff3dc; }
@@ -65,7 +69,7 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-block > h3 { margin-bottom: 12px; }
 .ad-subh { margin: 14px 0 8px; font: 700 10px/1 var(--font-mono); letter-spacing: 0.2em; color: var(--bd-faint); text-transform: uppercase; }
 .ad-tabs { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(0, 0, 0, 0.35); }
-.ad-tab { min-height: 32px; padding: 0 12px; border-radius: 999px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.06em; color: var(--bd-dim); }
+.ad-tab { white-space: nowrap; min-height: 32px; padding: 0 12px; border-radius: 999px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.06em; color: var(--bd-dim); }
 .ad-tab.is-on { color: #1a1007; background: #f2c869; }
 .ad-bars, .ad-top { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .ad-bars li { display: grid; grid-template-columns: 22px 118px minmax(0, 1fr) 40px; grid-template-rows: auto auto; column-gap: 8px; align-items: center; min-height: 30px; }
@@ -114,3 +118,4 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; padding: 10px 16px; border-radius: 999px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.1em; color: #1a1007; background: #f2c869; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transition: opacity 0.3s; }
 .ad-toast.is-err { color: #fff; background: #c2304c; }
 .ad-toast.is-out { opacity: 0; }
+@media (max-width: 420px) { .ad-tab { padding: 0 9px; letter-spacing: 0.03em; } }
