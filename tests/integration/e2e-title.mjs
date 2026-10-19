@@ -523,7 +523,9 @@ try {
       ok(target == null || await ev(X.page, `document.querySelectorAll('.nd-sign .ndl')[1].classList.contains('on')`), 'NEON, RAMP: tapping a letter still sparks it'); }
     await X.ctx.close();
     // the catch: fast-forward through it (60×) — the letters lock on, the one sound, the icons on, HOST bright, then the city signs
-    X = await page(`when=2026-10-20T18:03&${NY}&wx=clear&speed=30`);
+    // (start three minutes before this layout's catch, read from the plan)
+    const cw = new Date(plan.catchAt - 3 * 60000).toLocaleString('sv-SE', { timeZone: 'America/New_York' }).slice(0, 16).replace(' ', 'T');
+    X = await page(`when=${cw}&${NY}&wx=clear&speed=10`);
     const s0 = await ev(X.page, 'window.__district.neonSounds()');
     await waitFor(X.page, `window.__district.neon().stage === 'lit'`, 'the catch', 20000);
     await sleep(600);

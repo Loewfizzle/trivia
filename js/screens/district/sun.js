@@ -60,9 +60,10 @@ export function sunPlace(o) {
     const g = Math.sin((Math.PI / 2) * clamp01(el / noonEl));
     let y = lerp(mid, yApex, g);
     // where it goes in / comes out: the nearest x on each side where the disc at the band's bottom is fully behind the towers
-    let xL = r * 0.6, xR = W - r * 0.6;
-    for (let xx = W * 0.5; xx >= -rh; xx -= 3) if (hiddenAt(xx, mid)) { xL = xx; break; }
-    for (let xx = W * 0.5; xx <= W + rh; xx += 3) if (hiddenAt(xx, mid)) { xR = xx; break; }
+    // it starts fully out of frame past the left edge and creeps in (rising from behind the edge towers where they stand in the
+    // way); it ends fully out of frame past the right edge (or sunk behind the right-hand towers before that)
+    const xL = -rh - 4, xR = W + rh + 4;
+    void hiddenAt;
     // and where it is fully out in the open (the edges of the open middle)
     const clearOf = (x, y) => { for (let dx = -rh; dx <= rh; dx += 3) if (roof(x + dx) < y + Math.sqrt(Math.max(0, rh * rh - dx * dx))) return false; return true; };
     let xCL = W * 0.5, xCR = W * 0.5;
@@ -117,8 +118,9 @@ export function sunMoments({ lat, lon, tz, ms, layout }) {
       const p = sunPlace({ ...layout, u: a.u, el, south: lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl });
       return { ...p, r: layout.base * sunShape(el).size };
     };
-    const hidden = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (roof(p.x + dx) > p.y - p.r) return false; return true; };
-    const clear = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (roof(p.x + dx) < p.y + Math.sqrt(Math.max(0, p.r * p.r - dx * dx))) return false; return true; };
+    const out = p => p.x - p.r >= layout.W || p.x + p.r <= 0;
+    const hidden = p => { if (out(p)) return true; for (let dx = -p.r; dx <= p.r; dx += 2) if (p.x + dx >= 0 && p.x + dx <= layout.W && roof(p.x + dx) > p.y - p.r) return false; return true; };
+    const clear = p => { if (p.x - p.r < 0 || p.x + p.r > layout.W) return false; for (let dx = -p.r; dx <= p.r; dx += 2) if (roof(p.x + dx) < p.y + Math.sqrt(Math.max(0, p.r * p.r - dx * dx))) return false; return true; };
     const first = (a, b, test) => { for (let i = 0; i < 12; i++) { const m = (a + b) / 2; if (test(m)) b = m; else a = m; } return b; };
     // evening: walk back from just after sunset to the last moment the disc still showed
     const late = at(set + 20 * 60000);
@@ -284,7 +286,9 @@ export function createSun() {
     // the weather: thick cloud hides the disc (a brighter patch stays), rain and heavy fog hide it, light fog leaves a glow
     const over = smooth(0.62, 0.96, L.cloud || 0);
     const wet = (L.rain || 0) > 0.1 || (L.fog || 0) > 0.6;
-    const vis = wet ? 0 : (1 - over * 0.97) * (1 - smooth(0.15, 0.55, L.fog || 0)) * smooth(-3.5, -0.5, el);
+    // (a phone's sun is out of frame before sunrise and after sunset — no fade: it creeps in / out; a wide screen's sinks below
+    // the rooftops, the fade only a safety under them)
+    const vis = wet ? 0 : (1 - over * 0.97) * (1 - smooth(0.15, 0.55, L.fog || 0)) * (W < 760 || H > W ? 1 : smooth(-3.5, -0.5, el));
     const glowK = wet ? ((L.fog || 0) > 0.6 && !L.rain ? 0.15 : 0) : (L.fog || 0) > 0.15 ? 0.6 : 1;
     let ec = L.solar;
     if (s.force.has('totality')) ec = { obsc: 1, mag: 1, total: true, dx: 0, dy: 0, k: 1.04 };

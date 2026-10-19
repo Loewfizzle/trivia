@@ -413,10 +413,11 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     last = now;
     perf(dt);
     const t = (now - t0) / 1000;
-    // camera: a slow drift + the tilt / pointer target
-    const mo = S.motion;
-    cam.x += ((Math.sin(t * 0.07) * 14 + cam.tx * 26) * mo - cam.x) * 0.04;
-    cam.y += ((Math.sin(t * 0.05 + 1) * 4 + cam.ty * 8) * mo - cam.y) * 0.04;
+    // camera: a slow drift + the pointer target — desktop only. On a phone nothing drives it (iOS sends no tilt), and a city
+    // drifting on its own read as the buildings wobbling (it also moved the towers under the sun): it holds still.
+    const mo = S.motion, phoneCam = W < 760 || H > W ? 0 : 1;
+    cam.x += ((Math.sin(t * 0.07) * 14 * phoneCam + cam.tx * 26) * mo - cam.x) * 0.04;
+    cam.y += ((Math.sin(t * 0.05 + 1) * 4 * phoneCam + cam.ty * 8) * mo - cam.y) * 0.04;
     draw(t, dt);
   }
 
@@ -501,9 +502,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     const hz = hazeKey();
     const winNow = P.win;
     layers.forEach((L, li) => {
-      const ox = -L.margin + cam.x * L.d;
-      L.ox = ox; L.oy = L.top + cam.y * L.d;
-      const oy = L.top + cam.y * L.d;
+      // whole canvas pixels: a row drawn at a fractional offset is resampled differently every frame (a faint shimmer)
+      const ox = Math.round((-L.margin + cam.x * L.d) * dpr) / dpr;
+      const oy = Math.round((L.top + cam.y * L.d) * dpr) / dpr;
+      L.ox = ox; L.oy = oy;
       if (S.wave >= 1) c.drawImage(compose(L, winNow), ox, oy, L.lw, L.lh);
       else {
         // the power-on: windows light up one by one, bottom first, with a flicker as each catches

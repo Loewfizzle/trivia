@@ -91,7 +91,7 @@ test('the path never crosses the sign or the tagline (it may pass behind the cor
     }
     for (let i = 1; i < pts.length; i++) {
       const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-      assert.ok(d < (name === 'desktop' ? 14 : 9), `${name} ${city} ${date} ${hhmm(pts[i].t, CITIES[city].tz)}: a jump of ${d.toFixed(1)} px in a minute`);
+      assert.ok(d < (name === 'desktop' ? 14 : 16), `${name} ${city} ${date} ${hhmm(pts[i].t, CITIES[city].tz)}: a jump of ${d.toFixed(1)} px in a minute`);
     }
   }
 });
@@ -101,7 +101,7 @@ test('phones: the low arc — below the tagline, clear of the buttons, out of / 
     const scr = SCREENS[name];
     for (const city of Object.keys(CITIES)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20']) {
       const pts = day(city, date, scr);
-      const covered = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (scr.roof(p.x + dx) > p.y - p.r) return false; return true; };
+      const covered = p => { if (p.x - p.r >= scr.W || p.x + p.r <= 0) return true; for (let dx = -p.r; dx <= p.r; dx += 2) if (p.x + dx >= 0 && p.x + dx <= scr.W && scr.roof(p.x + dx) > p.y - p.r) return false; return true; };
       const clearOfRoofs = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (scr.roof(p.x + dx) < p.y + Math.sqrt(p.r * p.r - dx * dx) - 1) return false; return true; };
       const tag = scr.logo.y + scr.logo.h;
       for (const p of pts) {
@@ -110,7 +110,9 @@ test('phones: the low arc — below the tagline, clear of the buttons, out of / 
         if (p.el > 6 && p.x > scr.W * 0.3 && p.x < scr.W * 0.7) assert.ok(clearOfRoofs(p), `${name} ${city} ${date} ${hhmm(p.t, CITIES[city].tz)}: never behind a roof in the open middle`);
       }
       const rise = pts.find(p => p.u >= 0), set = [...pts].reverse().find(p => p.u <= 1);
-      assert.ok(covered({ ...rise, r: scr.base }) && covered({ ...set, r: scr.base }), `${name} ${city} ${date}: hidden in the towers at sunrise and sunset`);
+      assert.ok(covered(rise) && covered(set), `${name} ${city} ${date}: out of frame (or behind the towers) at sunrise and sunset`);
+      const offL = p => p.x + p.r <= 3, offR = p => p.x - p.r >= scr.W - 3;
+      assert.ok(CITIES[city].lat > 0 ? offL(rise) && offR(set) : offR(rise) && offL(set), `${name} ${city} ${date}: it creeps in from out of frame at one side and out at the other (${rise.x.toFixed(0)} → ${set.x.toFixed(0)})`);
     }
   }
 });

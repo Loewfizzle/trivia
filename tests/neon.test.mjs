@@ -82,7 +82,7 @@ function placed(c, layout, t) {
   const p = sunPlace({ ...layout, u: a.u, el, south: c.lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl });
   return { ...p, r: layout.base * sunShape(el).size };
 }
-const hidden = (layout, p) => { for (let dx = -p.r; dx <= p.r; dx += 2) if (layout.roof(p.x + dx) > p.y - p.r) return false; return true; };
+const hidden = (layout, p) => { if (p.x - p.r >= layout.W || p.x + p.r <= 0) return true; for (let dx = -p.r; dx <= p.r; dx += 2) if (p.x + dx >= 0 && p.x + dx <= layout.W && layout.roof(p.x + dx) > p.y - p.r) return false; return true; };
 
 test('the catch is the moment the sun is drawn fully behind the rooftops (phones and desktop, summer and winter, north and south)', () => {
   for (const [name, c] of Object.entries(CITY)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20']) for (const [ln, layout] of [['phone', PHONE], ['desktop', DESK]]) {
