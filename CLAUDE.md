@@ -79,7 +79,7 @@ css/board.css admin.css                                  THE BOARD, the membersh
 css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow()
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
-js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js sky.js   PURE (sky.js: the real sun, moon, seasons, holidays, sky events): room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
+js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js sky.js insights.js   PURE (insights.js: the admin STATS) (sky.js: the real sun, moon, seasons, holidays, sky events): room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
           week.js ranks.js names.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, keys, board catalog, per-game results
 js/profile/ api.js me.js queue.js public.js callouts.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques + rank-up
 js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX

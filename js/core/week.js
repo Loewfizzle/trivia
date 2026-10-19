@@ -9,6 +9,11 @@ const parts = ms => {
   for (const p of fmt.formatToParts(new Date(ms))) o[p.type] = p.value;
   return { y: +o.year, m: +o.month, d: +o.day, h: +o.hour % 24, mi: +o.minute, s: +o.second };
 };
+/** Eastern wall-clock parts of an instant: { y, m, d, h, mi, s, dow } (dow: 0 = Monday … 6 = Sunday). */
+export function easternParts(ms) {
+  const p = parts(ms);
+  return { ...p, dow: (new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay() + 6) % 7 };
+}
 const pad = n => String(n).padStart(2, '0');
 const ymd = (y, m, d) => `${y}${pad(m)}${pad(d)}`;
 

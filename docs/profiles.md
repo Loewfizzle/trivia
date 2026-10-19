@@ -93,6 +93,16 @@ Signs in with the browser's own anonymous identity (same as the game there). `PO
 view a player (profile, boards with ranks, games), remove a record (all-time / this week / both), reset a career board, rename (no
 limit), hide from / return to every board, the audit log, **errors from phones** (below). A non-admin sees their own profile id and the setup steps.
 
+**Stats** (Oct 2026; `js/core/insights.js#summarize`, PURE, `tests/insights.test.mjs`; action `stats`, cached 30 s): at the top of
+/admin. LIVE NOW (refreshes every 30 s while the page is visible): players in rooms, rooms open, games in progress, a row per room
+(game + phase, online / away, how long it's been open — no codes, no names; title-screen visitors have no connection and aren't
+seen). GAMES PLAYED per game this week / 30 days / all time (gplay counts + results/) with average players; MATCHES PER DAY (30
+days); MOST ACTIVE PLAYERS this week / all time (matches) / XP, each opening the player view; PLAYERS: played this week (+ came back
+from an earlier week), have played (+ on more than one night), profiles, new players per week (8 weeks); BUSIEST TIMES: weekday ×
+hour heatmap, last 90 days, Eastern. Everything is read from rooms/, results/, gplay/ and profiles/ — only server-verified
+matches count (none before profiles went live). results/ grows with every match: if the panel ever gets slow, keep per-day
+aggregates in /api/report instead of reading it whole.
+
 **Errors from phones** (Oct 2026): `js/errlog.js` (the first import of app.js and board/public.js) catches uncaught errors and
 unhandled rejections on players' screens and sends them with `sendBeacon` to `POST /api/log` (no sign-in). It skips the usual noise
 (audio not allowed, lost connections, ResizeObserver, extensions and other sites' scripts), sends each distinct error once and at

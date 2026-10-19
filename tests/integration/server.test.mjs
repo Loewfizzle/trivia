@@ -500,3 +500,22 @@ test('error log: grouped by error, rate-limited, readable and clearable by admin
     assert.equal((await adminAction('u-errboss', { action: 'audit' })).log[0].act, 'clearErrors');
   } finally { process.env.ADMIN_PIDS = ''; }
 });
+
+test('admin stats: live rooms, games, players and busiest times from the real nodes', async () => {
+  const boss = await ensure('u-statboss', 'StatBoss');
+  await rejects(adminAction('u-statboss', { action: 'stats' }), 403, 'not_admin');
+  const now = Date.now();
+  await ref('rooms/STAT').set({ meta: { hostId: 'u-s1', status: 'playing', createdAt: now - 600_000 }, players: { 'u-s1': { name: 'A' }, 'u-s2': { name: 'B' } }, presence: { 'u-s1': { online: true }, 'u-s2': { online: true } }, game: { id: 'golf', phase: 'play' } });
+  process.env.ADMIN_PIDS = boss.pid;
+  try {
+    const S = await adminAction('u-statboss', { action: 'stats', fresh: true }, now);
+    assert.ok(S.live.rooms >= 1 && S.live.online >= 2);
+    assert.ok(S.live.playing.golf >= 1);
+    assert.ok(!JSON.stringify(S.live).includes('STAT'), 'no room codes');
+    assert.ok(S.totals.matches > 0, 'the matches counted by the tests above');
+    assert.ok(S.totals.players > 0);
+    assert.equal(S.games.daily.length, 30);
+    assert.equal(S.times.grid.length, 7);
+    assert.ok(Object.values(S.games.all).reduce((a, b) => a + b, 0) > 0, 'gplay counts');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('rooms/STAT').remove(); }
+});

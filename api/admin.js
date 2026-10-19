@@ -8,6 +8,7 @@
 //   rename { pid, name }           → renames (no daily limit; the tag rule still applies)
 //   hide { pid, on }               → hides the player from (or returns them to) every global board
 //   audit { limit? }               → { log: [...] } newest first
+//   stats { fresh? }               → STATS (js/core/insights.js#summarize): live rooms, games, players, busiest times
 //   errors                         → { errors: [...] } errors from players' phones (api/log.js), newest first
 //   clearErrors { sig? }           → removes one error (sig) or all of them
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
@@ -17,6 +18,8 @@ import { syncBoards, clearEntry, boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
 import { nameKey } from '../js/core/names.js';
 import { weekKey } from '../js/core/week.js';
+import { summarize } from '../js/core/insights.js';
+import { activity } from './_lib/activity.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -94,6 +97,17 @@ async function resetBoard(pid, b, now) {
   await syncBoards(pid, { now, only: def.game });
 }
 
+// STATS (js/core/insights.js): live rooms, matches per game, the most active players, busiest times. Reads open rooms,
+// counted matches and profiles once per 30 s at most (the page refreshes "live now" while it's open).
+let statsCache = null;
+async function stats(now, fresh = false) {
+  if (!fresh && statsCache && Math.abs(now - statsCache.at) < 30_000) return statsCache.data;
+  const [results, profiles, rooms, gplay] = await Promise.all([val('results'), val('profiles'), val('rooms'), activity(now)]);
+  const data = summarize({ results: results || {}, profiles: profiles || {}, rooms: rooms || {}, gplay, now });
+  statsCache = { at: now, data };
+  return data;
+}
+
 // Errors from players' phones (api/log.js): newest first; entries quiet for 30 days are pruned on the way.
 const ERR_KEEP_MS = 30 * 86_400_000;
 async function errorList(now) {
@@ -141,6 +155,7 @@ export async function adminAction(uid, body, now = Date.now()) {
       await Promise.all([...new Set(log.flatMap(l => [l.by, l.pid]).filter(Boolean))].map(async p => { const x = await publicProfile(p); names[p] = x ? `${x.n}#${x.t}` : p; }));
       return { log, names };
     }
+    case 'stats': return stats(now, !!body.fresh);
     case 'errors': return { errors: await errorList(now) };
     case 'clearErrors': {
       const sig = body.sig ? String(body.sig) : null;

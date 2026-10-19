@@ -364,6 +364,8 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       in the old cascade order; shared animations and helpers moved to components.css (five keyframes lived in cipher/signal and
       would have stopped animating OVERCLOCK, BLUFF and DOUBLE AGENT). NEON PAR's stray `.gc-name` rule no longer shrinks the
       lobby's game names (17 px as designed, scaling down on narrow phones). `e2e-loading.mjs`
+- [x] **Admin STATS:** live now (players in rooms, rooms, games in progress), games played (week / 30 days / all time, avg
+      players), matches per day, most active players (week / all time / XP), new + returning players, busiest times heatmap
 - [ ] Next from the review: a real-phone night (6–8 phones incl. an old Android / Low Power Mode) and a look at the Firebase plan's
       connection limit (Spark: 100 at once ≈ 12 full rooms)
 
