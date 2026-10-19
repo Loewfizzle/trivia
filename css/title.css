@@ -216,6 +216,14 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
 }
 body.reduced-fx .nd-gate-txt { animation: none; }
 
+/* the phone sun behind the words (title.js#sunGlass sets --sunk 0…1 by how close it is): a soft dark edge keeps every letter
+   and the Art Deco rules crisp on the bright disc; nothing when the sun is elsewhere */
+.nd-sign .nd-word.nd-sunbk, .nd-sign .nd-tag.nd-sunbk {
+  text-shadow: 0 0 1px rgba(10, 6, 22, calc(var(--sunk) * 0.95)), 0 0 3px rgba(10, 6, 22, calc(var(--sunk) * 0.9)),
+    0 0 8px rgba(10, 6, 22, calc(var(--sunk) * 0.7)), 0 0 16px rgba(10, 6, 22, calc(var(--sunk) * 0.35));
+}
+.nd-sign .nd-word.nd-sunbk::before, .nd-sign .nd-word.nd-sunbk::after { filter: drop-shadow(0 0 2px rgba(10, 6, 22, calc(var(--sunk) * 0.9))); }
+
 /* SPEAKEASY: framed by Art Deco rules ending in a diamond — the bar's era, in the district's light */
 .nd-word { display: flex; align-items: center; justify-content: center; gap: 0.55em; }
 .nd-word::before, .nd-word::after {

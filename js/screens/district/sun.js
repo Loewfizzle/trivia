@@ -8,8 +8,9 @@
 // The path (sunPlace, PURE): facing south the sun rises on the LEFT at the real sunrise, arcs over, and sets on the RIGHT at
 // the real sunset (mirrored south of the equator); its height is its real elevation (higher in summer), mapped into the open
 // sky so it never crosses the sign or the tagline. A wide screen: the full arc, lifted over the sign where it would cross it.
-// A phone (portrait / narrower than 760 px): the low arc — up from behind the towers on the left, across the band of open sky
-// between the rooftops and the tagline, down behind the towers on the right (sunPlace, phone branch). Colour and size by elevation: deep red-orange, larger and a little squashed at the horizon → warm white at midday.
+// A phone (portrait / narrower than 760 px): THE BIG ARCH — a rainbow from below the rooftops at the far left, up over the
+// left towers, over the top behind SPEAKEASY (summer) or the tagline (winter), down behind the right towers to below the
+// rooftops at the far right (sunPlace, phone branch). The canvas is under the DOM text: it passes behind the words. Colour and size by elevation: deep red-orange, larger and a little squashed at the horizon → warm white at midday.
 // Every disc and glow is a cached sprite; a frame is a handful of drawImage calls. Preview: &force=eclipse-sun, &force=totality.
 
 import { sunPosition, sunArc, sunTimes } from '../../core/sky.js';
@@ -31,16 +32,17 @@ export function sunColor(el) {
 export function sunShape(el) { return { size: lerp(1.38, 1, smooth(0, 14, el)), squash: lerp(0.86, 1, smooth(-1, 7, el)) }; }
 
 /** PURE: where the sun is drawn. o: { W, H, HZ, u (0 sunrise … 1 sunset), el, south, r, block: {x,y,w,h} (the sign + tagline),
- *  buttons: {x,y,w,h} (the corner buttons), safeTop, e1: { el, ua, ub } (phones: the morning / afternoon u where the sun is
- *  E1° up — where it leaves / rejoins the screen edges) }. Returns { x, y }. */
+ *  buttons: {x,y,w,h} (the corner buttons), safeTop, roof(x) (the skyline's top), phones: neon / word / tag {x,y,w,h} (the NEON
+ *  letters, SPEAKEASY, the tagline), season (0 winter solstice … 1 summer solstice, sky.js#sunArc) }. Returns { x, y }. */
 export function sunPlace(o) {
   const { W, H, HZ, el, r } = o;
   const u = o.south ? 1 - o.u : o.u;                      // facing north south of the equator: it rises on the right
   const block = o.block || { x: W * 0.1, y: HZ * 0.2, w: W * 0.8, h: HZ * 0.3 };
   const top = Math.max(26, (o.safeTop || 0) + 14) + r;
   const phone = W < 760 || H > W;
+  if (phone && o.word && o.tag && o.neon) return phoneArch(o, u);
   if (phone) {
-    // THE LOW ARC (all mobile, Oct 19 2026): the skyline is a valley (tall towers at the sides, low in the middle). The sun
+    // THE LOW ARC (all mobile, Oct 19 2026; now only until the sign's text has been measured): the skyline is a valley (tall towers at the sides, low in the middle). The sun
     // crosses the band of open sky between the middle rooftops and the tagline — a little higher toward noon (closer to the
     // tagline in summer) — and rises out of / sets into the tall towers at the sides, moving sideways behind their bodies, the way
     // a low sun slips between skyscrapers. Never behind a roof in the open middle; never near the corner buttons.
@@ -98,6 +100,38 @@ export function sunPlace(o) {
   return { x, y };
 }
 
+/** PURE: THE BIG ARCH (phones, Oct 20 2026). A half ellipse: x = cx − a·cos θ, y = base − h·sin θ with θ = π·u, so it climbs
+ *  steeply at the sides and rounds over the top, at the speed of the real day (u: 0 sunrise, ½ solar noon, 1 sunset). Each end
+ *  sits just fully below its own rooftops at the far left / right edge (the towers hide it rising and setting; the base runs
+ *  straight between the two, so the tallest side never keeps it buried for hours); its top is the centre
+ *  of SPEAKEASY at the summer solstice and the tagline (a touch below) at the winter one, blended by the season — never up
+ *  into the NEON letters, never near the corner buttons. Before sunrise / after sunset it keeps sinking (θ < 0, θ > π). */
+export function phoneArch(o, u) {
+  const { W, el, r } = o;
+  const roof = o.roof || (x => o.HZ * (0.45 + 0.2 * Math.cos(((x / W) - 0.5) * Math.PI)));
+  const rd = r * sunShape(el).size, rh = r * 1.4;                       // drawn now / the largest it is drawn (at the horizon)
+  const x0 = W * 0.075, x1 = W * 0.925, cx = (x0 + x1) / 2, ax = (x1 - x0) / 2;
+  // each end sits just fully hidden under ITS OWN rooftops (fixed for the day: the arch never wobbles), and the base runs
+  // straight from one to the other — so a tall tower on one side doesn't keep the sun buried for hours on the other
+  // the top: SPEAKEASY's centre in summer → the tagline (just below its middle) in winter; never up into the NEON letters
+  const wordY = o.word.y + o.word.h * 0.5, tagY = o.tag.y + o.tag.h * 0.5 + r * 0.35;
+  const s = o.season == null ? clamp01(((o.noonEl == null ? 45 : o.noonEl) - 18) / 50) : o.season;
+  const peak = Math.max(lerp(tagY, wordY, s * s * (3 - 2 * s)), o.neon.y + o.neon.h + rd + 3);
+  // and always a real arch: where the edge towers stand taller than the tagline the ends sink deeper behind them (still
+  // hidden) instead of flattening the curve — the part you see is a true rainbow on every skyline
+  const rise = o.H * 0.17;
+  const endBase = xe => { let low = -Infinity; for (let dx = -rh; dx <= rh; dx += 2) low = Math.max(low, roof(xe + dx)); return Math.max(low + rh + 3, peak + rise); };
+  const bL = endBase(x0), bR = endBase(x1);
+  const base = bL + (bR - bL) * clamp01(u);
+  const th = Math.PI * u;
+  const x = cx - ax * Math.cos(th);
+  let y = base - (base - peak) * Math.sin(th);
+  // the corner buttons (top right): never near them
+  const b = o.buttons;
+  if (b && x > b.x - r - 24 && x < b.x + b.w + r + 24 && y < b.y + b.h + r + 24) y = b.y + b.h + r + 24;
+  return { x, y };
+}
+
 /** PURE: the day's moments for THE NEON COMES ALIVE (district/neon-ramp.js), from where the sun is drawn (sunPlace) — never the
  *  weather. catchAt: the LAST time tonight the disc goes fully behind the rooftops before it sets; clearAt: the first time this
  *  morning it is fully clear of them; startAt: ~10° elevation in the evening. layout: { W, H, HZ, block, buttons, safeTop, roof,
@@ -115,7 +149,7 @@ export function sunMoments({ lat, lon, tz, ms, layout }) {
     const at = t => {
       const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
       if (!a) return null;
-      const p = sunPlace({ ...layout, u: a.u, el, south: lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl });
+      const p = sunPlace({ ...layout, u: a.u, el, south: lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season });
       return { ...p, r: layout.base * sunShape(el).size };
     };
     const out = p => p.x - p.r >= layout.W || p.x + p.r <= 0;
@@ -279,7 +313,9 @@ export function createSun() {
     const buttons = (s.clear || []).filter(z => z.w < 70 && z.y < HZ * 0.4).reduce((a, z) => (a ? { x: Math.min(a.x, z.x), y: Math.min(a.y, z.y), w: Math.max(a.x + a.w, z.x + z.w) - Math.min(a.x, z.x), h: Math.max(a.y + a.h, z.y + z.h) - Math.min(a.y, z.y) } : { ...z }), null);
     const sky = s.skyline;
     const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
-    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1, e4: sa.e4, noonEl: sa.noonEl, roof });
+    const tx = s.textRects || {};
+    if (phone && !(tx.neon && tx.word && tx.tag)) return null;   // (a phone's arch hangs off the words: wait for them)
+    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1, e4: sa.e4, noonEl: sa.noonEl, season: sa.season, roof, neon: tx.neon, word: tx.word, tag: tx.tag });
     void layout;
     // never a jump: it eases toward its place (and settles at once on a new layout)
     if (!pos || Math.hypot(pos.x - p.x, pos.y - p.y) > W * 0.5) pos = { ...p }; else { pos.x += (p.x - pos.x) * 0.06; pos.y += (p.y - pos.y) * 0.06; }
@@ -309,7 +345,8 @@ export function createSun() {
     const buttons = (s.clear || []).filter(z => z.w < 70 && z.y < HZ * 0.4).reduce((a, z) => (a ? { x: Math.min(a.x, z.x), y: Math.min(a.y, z.y), w: Math.max(a.x + a.w, z.x + z.w) - Math.min(a.x, z.x), h: Math.max(a.y + a.h, z.y + z.h) - Math.min(a.y, z.y) } : { ...z }), null);
     const sky = s.skyline;
     const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
-    return block && roof ? { W, H, HZ, block, buttons, safeTop: s.safeTop, roof, base: phone ? 16.5 : 26, sky } : null;
+    const tx = s.textRects || {};
+    return block && roof ? { W, H, HZ, block, buttons, safeTop: s.safeTop, roof, base: phone ? 16.5 : 26, sky, neon: tx.neon, word: tx.word, tag: tx.tag } : null;
   }
 
   return {
@@ -318,7 +355,7 @@ export function createSun() {
     moments(ms, tz, lat, lon) {
       if (lat == null || lon == null) return null;
       const day = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(ms));
-      const lk = layout ? `${W}|${H}|${Math.round(layout.block.y)}|${Math.round(layout.block.h)}|${layout.sky.length}|${Math.round(layout.sky[Math.floor(layout.sky.length / 2)])}` : 'none';
+      const lk = layout ? `${W}|${H}|${Math.round(layout.block.y)}|${Math.round(layout.block.h)}|${layout.sky.length}|${Math.round(layout.sky[Math.floor(layout.sky.length / 2)])}|${layout.word ? Math.round(layout.word.y) : '-'}` : 'none';
       const key = `${day}|${tz}|${lat.toFixed(2)}|${lon.toFixed(2)}|${lk}`;
       if (key !== momentsKey) { momentsKey = key; momentsVal = sunMoments({ lat, lon, tz, ms, layout }); }
       return momentsVal;

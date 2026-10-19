@@ -77,9 +77,24 @@ try {
     const { ctx, s, sun } = await sunOf(`when=2026-10-20T10:30&${NY}&wx=clear`, { view });
     const sign = (s.clear || []).find(z => z.w > s.W * 0.2 && z.y < s.H * 0.5);
     ok(sun && sun.vis > 0.9, `SUN (${view[0]}): in the sky on a clear morning (${JSON.stringify(sun)})`);
-    ok(sun && sign && !(sun.x > sign.x + 20 && sun.x < sign.x + sign.w - 20 && sun.y > sign.y + 10 && sun.y < sign.y + sign.h - 10), `SUN (${view[0]}): clear of the sign and the tagline`);
+    if (view[0] > 800) ok(sun && sign && !(sun.x > sign.x + 20 && sun.x < sign.x + sign.w - 20 && sun.y > sign.y + 10 && sun.y < sign.y + sign.h - 10), `SUN (${view[0]}): clear of the sign and the tagline`);
+    else { const n = s.textRects && s.textRects.neon; ok(sun && n && !(sun.x + sun.r > n.x && sun.x - sun.r < n.x + n.w && sun.y - sun.r < n.y + n.h), `SUN (${view[0]}): never over the NEON letters (${sun && sun.x},${sun && sun.y})`); }
     await ctx.close();
   }
+  // phones, THE BIG ARCH: a June noon sits behind SPEAKEASY (below the NEON letters), and the word keeps a soft dark edge
+  { const { ctx, page, s, sun } = await sunOf(`when=2026-06-21T12:57&${NY}&wx=clear`);
+    const tr = s.textRects;
+    ok(sun && tr && sun.y - sun.r > tr.neon.y + tr.neon.h && Math.abs(sun.y - (tr.word.y + tr.word.h / 2)) < 8 && Math.abs(sun.x - s.W / 2) < 12, `SUN, PHONE: a June noon behind SPEAKEASY (${sun && sun.x},${sun && sun.y})`);
+    await sleep(800);
+    const edge = await page.evaluate(() => { const w = document.querySelector('.nd-word'); return w.classList.contains('nd-sunbk') && parseFloat(w.style.getPropertyValue('--sunk')) > 0.5; });
+    ok(edge, 'SUN, PHONE: SPEAKEASY keeps a soft dark edge while the sun is behind it');
+    await H.shot(page, 'sun-phone-noon'); await ctx.close(); }
+  { const { ctx, page, s, sun } = await sunOf(`when=2026-12-21T11:55&${NY}&wx=clear`);
+    const tr = s.textRects;
+    ok(sun && tr && sun.y > tr.tag.y && sun.y < tr.tag.y + tr.tag.h + sun.r, `SUN, PHONE: a December noon lower, at the tagline (${sun && sun.y} vs ${tr && Math.round(tr.tag.y)})`);
+    const edge = await page.evaluate(() => document.querySelector('.nd-word').classList.contains('nd-sunbk'));
+    ok(true, `(SPEAKEASY's edge in December: ${edge})`);
+    await ctx.close(); }
   { const { ctx, page, sun } = await sunOf(`when=2026-10-20T18:05&${NY}&wx=clear`);
     ok(sun && sun.el < 1 && sun.col[1] < 110 && sun.r > 20, `SUN: at sunset low, large and red-orange (${JSON.stringify(sun)})`);
     await H.shot(page, 'sun-sunset'); await ctx.close(); }

@@ -136,7 +136,10 @@ export function sunArc(ms, tz, lat, lon) {
     sunDayCache.set(key, day);
   }
   if (!day) return null;
-  return { u: (ms - day.rise) / (day.set - day.rise), noonEl: day.noonEl, rise: day.rise, set: day.set, e1: day.e1, e4: day.e4 };
+  // the season for this place: 0 = today's noon is as low as the winter solstice's, 1 = as high as the summer solstice's
+  const ax = Math.abs(lat), wNoon = Math.max(0, 90 - ax - 23.44), sNoon = Math.min(90, 90 - ax + 23.44);
+  const season = Math.max(0, Math.min(1, (day.noonEl - wNoon) / Math.max(1, sNoon - wNoon)));
+  return { u: (ms - day.rise) / (day.set - day.rise), noonEl: day.noonEl, season, rise: day.rise, set: day.set, e1: day.e1, e4: day.e4 };
 }
 
 // ---------------------------------------------------------------- solar eclipses, from the geometry itself

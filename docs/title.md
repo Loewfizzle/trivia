@@ -240,9 +240,11 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
     letters drop out and come back, die one by one, the last hangs on alone — then the daytime glass look.
   - Never more than one flash every 0.7 s. ALWAYS NIGHT: lit at all times. Reduced effects: no sputters — the sign fades in over
     the ramp (`.is-fade`, `--rf`) and out in the goodbye; the city signs fade on / off one at a time.
-- **The phone sun's pacing** (for these moments): it slides out of the side towers between sunrise and ~4° (`sunArc().e4`), crosses
-  the open middle through the day, and slides back in after ~4° — so the morning clear is ~20 min after sunrise and the catch is a
-  few minutes before sunset (desktop: when its disc sinks behind the skyline).
+- **The phone sun's timing** (THE BIG ARCH, Oct 20 2026): it climbs straight up behind the tall left towers and comes down behind
+  the right ones, so the moments follow the city: on today's Grand Rapids skyline at 390×844 the morning clear is ~1 h 40 min after
+  sunrise (the left towers are tall) and the catch ~14 min before sunset; a tower it dips behind and comes back out of never fires
+  the catch early (the walk back from after sunset finds the LAST disappearance; `tests/neon.test.mjs`). Desktop: when its disc
+  sinks behind the skyline.
 - **The intro** adapts: after the catch it plays exactly as before; before the catch (and in the morning goodbye) the city boots
   but the sign isn't forced on — it joins its stage. **The dock:** icons dark through the ramp, lit from the catch until the last
   letter dies; HOST never sputters — it brightens at the catch and softens (no flicker) when the last letter dies.
@@ -304,14 +306,21 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   the RIGHT at the real sunset (mirrored south of the equator: facing north). Across = `sunArc(ms, tz, lat, lon).u` (core/sky.js:
   0 at sunrise, ½ at solar noon, 1 at sunset, cached per day); height = its real elevation (higher in summer). It never crosses the
   sign or the tagline. **Wide screens:** the full arc, clearing the towers' tops in its first ~10°, lifted gently over the sign
-  where it would cross it, under the corner buttons. **Phones** (portrait / < 760 px) — THE LOW ARC (Oct 19, 2026): the
-  skyline is a valley (tall towers at the sides, low in the middle); the sun crosses the band of open sky between the middle rooftops
-  and the tagline, a little higher toward noon (closer to the tagline in summer: `noonEl`). It starts fully out of frame past the
-  left edge and creeps in over / from behind the edge rooftops between sunrise and ~4° (`sunArc().e4`), crosses the open middle
-  through the day, and creeps out of frame past the right edge after ~4° (sinking behind the towers there) — no fading in or out on a
-  phone (Oct 19; `fs.skyline` → `roof(x)` keeps it clear of roofs in the open middle); never behind a roof in the open middle, never
-  near the corner buttons; the moon keeps its arc above the logo. (Before: up the left edge beside the sign, across the strip above
-  it, down the right edge past the buttons.) Should it ever pass behind the corner buttons it stays at full brightness: `title.js#sunGlass`
+  where it would cross it, under the corner buttons. **Phones** (portrait / < 760 px) — THE BIG ARCH (Oct 20, 2026; `phoneArch`):
+  one rainbow over the whole open sky. A half ellipse, x = cx − a·cos θ, y = base − h·sin θ with θ = π·u (steep at the sides,
+  round on top, at the real day's pace): it rises from BELOW the rooftops at the far left (x ≈ 7.5 % of the width), climbs over the
+  left towers, crosses the top centred at solar noon, and sinks behind the right towers to below the rooftops at the far right
+  (≈ 92.5 %). Each end sits just fully hidden under its own rooftops (the base runs straight between the two, so a tall side never
+  buries it for hours), with at least 17 % of the screen height between the ends and the top — where the edge towers stand taller
+  than the tagline the ends sink deeper rather than flattening the curve. The top follows the season (`sunArc().season`: 0 at the
+  winter solstice's noon height for this latitude, 1 at the summer's): behind the middle of SPEAKEASY in summer, the tagline (a
+  touch below its middle) in winter, smoothly in between; never up into the NEON letters (`fs.textRects`: neon / word / tag, from
+  `title.js#textRects`; the sun isn't drawn on a phone until they're measured), never near the corner buttons. The canvas is under
+  the DOM: it passes BEHIND the words, the Art Deco rules and the tagline; while it's there `title.js#sunGlass` gives them a soft
+  dark edge (`.nd-sunbk`, `--sunk` by distance, every 500 ms; nothing the rest of the time) so every letter stays readable on the
+  bright disc. Buildings hide it wherever it passes behind them (rising, setting, the tall right tower), with the rooftop glow.
+  Mirrored south of the equator. The moon keeps its arc above the logo. (Before, Oct 19: THE LOW ARC — creeping in past the left
+  edge, across the band under the tagline, out past the right.) Should it ever pass behind the corner buttons it stays at full brightness: `title.js#sunGlass`
   paints its light into their glass where it is behind them, in its colour and as strong as the overlap (`--sun-x/y/c/k/r`, every
   500 ms), with the glass a touch darker and a tight dark edge on the icon (≥ 4.5:1); the rest of the time the buttons are unchanged
   (the ☰ button gets no backdrop blur on the title: it cost a frame in two at 4× CPU). Eased at 6 % a frame: never a jump.

@@ -355,6 +355,14 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ Phones: THE SUN'S BIG ARCH (Oct 20, 2026) — `docs/title.md` (THE REAL SUN)
+- [x] One rainbow over the whole sky: up from below the far-left rooftops, over the top, down behind the far-right towers;
+      position = the real day (`sunArc` u), the top behind SPEAKEASY at a summer noon and at the tagline at a winter one
+- [x] Behind buildings at both ends and wherever it lines up with a tower; behind the words (never the NEON letters), which keep
+      a soft dark edge while it's there; never near the corner buttons; desktop unchanged
+- [x] THE NEON COMES ALIVE follows the drawn arch (a tower it dips behind never fires the catch early); &speed= previews glide
+- [x] Tests: sun.test.mjs (the arch at many dates, north + south), neon.test.mjs (the tall-tower case), e2e-sky (noon behind the word)
+
 ### ✅ HUSH WORDS (Oct 19, 2026) — `docs/content.md`, `docs/data-model.md`
 - [x] Room codes are common 4-letter words: 798 hand-curated (no homophones, nothing rude / gloomy / tricky to spell), built and
       checked by `scripts/build-hushwords.mjs`; a word rests 24 h after its room closes (`hush/`), claimed by a transaction

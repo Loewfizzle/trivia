@@ -300,7 +300,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   }
 
   function refreshLook(now) {
-    if (now - lookAt < 2500 && skyKey) return;
+    // (fast-forward previews, &speed=: refresh 10× as often, so the sun glides instead of stepping 25 minutes at a time)
+    if (now - lookAt < ((clock.speed || 1) > 1 ? 250 : 2500) && skyKey) return;
     lookAt = now;
     LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
     P = paletteFor(LK);
@@ -460,7 +461,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     refreshLook(performance.now());
     const lit = S.lit;
     const night = nightness();
-    const fs = { skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV };
+    const fs = { skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV };
     // sky
     c.globalAlpha = 1;
     c.drawImage(skyLit, 0, cam.y * 0.1, W, HZ);

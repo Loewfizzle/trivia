@@ -74,15 +74,36 @@ test('Reduced effects: no sputters — a fade over the ramp, all on at the catch
 
 // ---- the moments: where the sun is drawn, not the weather
 const valley = (W, mid, edge) => x => mid - (mid - edge) * Math.pow(Math.min(1, Math.abs(x - W / 2) / (W / 2)), 2.5);
-const PHONE = { W: 390, H: 844, HZ: 690, block: { x: 29, y: 78, w: 332, h: 191 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 330, 215), base: 16.5 };
+const PHONE = { W: 390, H: 844, HZ: 690, block: { x: 29, y: 78, w: 332, h: 191 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 330, 215), base: 16.5,
+  neon: { x: 57, y: 108, w: 275, h: 85 }, word: { x: 45, y: 215, w: 299, h: 21 }, tag: { x: 40, y: 249, w: 311, h: 14 } };
 const DESK = { W: 1440, H: 900, HZ: 666, block: { x: 504, y: 129, w: 432, h: 272 }, buttons: { x: 1380, y: 10, w: 44, h: 90 }, safeTop: 0, roof: x => 300 + 60 * Math.sin(x / 37), base: 26 };
 const CITY = { ny: { tz: 'America/New_York', lat: 40.71, lon: -74.01 }, sydney: { tz: 'Australia/Sydney', lat: -33.87, lon: 151.21 }, gr: { tz: 'America/Detroit', lat: 42.96, lon: -85.67 } };
 function placed(c, layout, t) {
   const el = sunPosition(t, c.lat, c.lon).el, a = sunArc(t, c.tz, c.lat, c.lon);
-  const p = sunPlace({ ...layout, u: a.u, el, south: c.lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl });
+  const p = sunPlace({ ...layout, u: a.u, el, south: c.lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season });
   return { ...p, r: layout.base * sunShape(el).size };
 }
 const hidden = (layout, p) => { if (p.x - p.r >= layout.W || p.x + p.r <= 0) return true; for (let dx = -p.r; dx <= p.r; dx += 2) if (p.x + dx >= 0 && p.x + dx <= layout.W && layout.roof(p.x + dx) > p.y - p.r) return false; return true; };
+
+test('phones, THE BIG ARCH: a tall tower the setting sun dips behind and comes back out of never fires the catch early', () => {
+  const c = CITY.gr, ms = Date.parse('2026-10-20T17:00:00Z');
+  const base = PHONE.roof;
+  // an hour before the skyline itself takes the sun, stand a tower just wide and tall enough to hide the disc there
+  const m0 = sunMoments({ ...c, ms, layout: PHONE });
+  const tAt = m0.catchAt - 60 * MIN;
+  const p0 = placed(c, PHONE, tAt);
+  const towerTop = p0.y - p0.r - 4, x0 = p0.x - p0.r - 3, x1 = p0.x + p0.r + 3;
+  const roof = x => (x > x0 && x < x1 ? Math.min(base(x), towerTop) : base(x));
+  const L = { ...PHONE, roof };
+  const m = sunMoments({ ...c, ms, layout: L });
+  assert.ok(hidden(L, placed(c, L, tAt)), 'the tower hides it mid-afternoon');
+  const back = [];
+  for (let t = tAt; t < m.set; t += 60000) back.push(!hidden(L, placed(c, L, t)));
+  assert.ok(back.some(Boolean), 'it comes back out past the tower');
+  assert.ok(m.catchAt > tAt + 10 * MIN, `the catch waits for the last time it goes behind (${new Date(m.catchAt).toISOString()} vs the tower ${new Date(tAt).toISOString()})`);
+  for (let t = m.catchAt + 60000; t < m.set; t += 120000) assert.ok(hidden(L, placed(c, L, t)), 'and stays hidden after');
+  assert.ok(!hidden(L, placed(c, L, m.catchAt - 60000)), 'showing a minute before');
+});
 
 test('the catch is the moment the sun is drawn fully behind the rooftops (phones and desktop, summer and winter, north and south)', () => {
   for (const [name, c] of Object.entries(CITY)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20']) for (const [ln, layout] of [['phone', PHONE], ['desktop', DESK]]) {
@@ -96,6 +117,7 @@ test('the catch is the moment the sun is drawn fully behind the rooftops (phones
     assert.ok(m.clearAt >= m.rise - 10 * MIN && m.clearAt < m.rise + 4 * 3600000, `${name} ${date} ${ln}: the morning clear after sunrise`);
     assert.ok(m.startAt < m.catchAt - 20 * MIN, `${name} ${date} ${ln}: the ramp starts well before the catch`);
   }
+  // (and below: a phone whose arch dips behind a tall tower on the right and comes back out before it sets)
   // no layout yet: the real sunset / sunrise
   const f = sunMoments({ ...CITY.ny, ms: Date.parse('2026-10-20T16:00:00Z'), layout: null });
   assert.equal(f.catchAt, f.set); assert.equal(f.clearAt, f.rise);

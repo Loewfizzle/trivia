@@ -63,8 +63,11 @@ test('sunArc: 0 at the real sunrise, ½ at solar noon, 1 at sunset; higher at no
 function valley(W, mid, edge) { return x => mid - (mid - edge) * Math.pow(Math.min(1, Math.abs(x - W / 2) / (W / 2)), 2.5); }
 const SCREENS = {
   // phones: the sign + tagline end at y ≈ 263 (+59 with a notch); the skyline is a valley (tall at the sides, low in the middle)
-  phone: { W: 390, H: 844, HZ: 690, base: 16.5, logo: { x: 35, y: 84, w: 320, h: 179 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 330, 215) },
-  notch: { W: 390, H: 844, HZ: 680, base: 16.5, logo: { x: 35, y: 143, w: 320, h: 179 }, buttons: { x: 334, y: 69, w: 44, h: 90 }, safeTop: 59, roof: valley(390, 380, 262) },
+  // (neon / word / tag: the NEON letters, SPEAKEASY and the tagline, measured on the real title at 390×844)
+  phone: { W: 390, H: 844, HZ: 690, base: 16.5, logo: { x: 35, y: 84, w: 320, h: 179 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 330, 215),
+    neon: { x: 57, y: 108, w: 275, h: 85 }, word: { x: 45, y: 215, w: 299, h: 21 }, tag: { x: 40, y: 249, w: 311, h: 14 } },
+  notch: { W: 390, H: 844, HZ: 680, base: 16.5, logo: { x: 35, y: 143, w: 320, h: 179 }, buttons: { x: 334, y: 69, w: 44, h: 90 }, safeTop: 59, roof: valley(390, 380, 262),
+    neon: { x: 57, y: 167, w: 275, h: 85 }, word: { x: 45, y: 274, w: 299, h: 21 }, tag: { x: 40, y: 308, w: 311, h: 14 } },
   desktop: { W: 1440, H: 900, HZ: 900 * 0.74, base: 26, logo: { x: 510, y: 135, w: 420, h: 260 }, buttons: { x: 1380, y: 10, w: 44, h: 90 }, safeTop: 0 },
 };
 const block = l => ({ x: l.x - 6, y: l.y - 6, w: l.w + 12, h: l.h + 12 });
@@ -75,18 +78,18 @@ function day(city, date, scr) {
   const out = [];
   for (let t = a0.rise - 20 * 60000; t <= a0.set + 20 * 60000; t += 60000) {
     const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
-    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1, e4: a.e4, noonEl: a.noonEl, roof: scr.roof });
+    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season, roof: scr.roof, neon: scr.neon, word: scr.word, tag: scr.tag });
     out.push({ t, el, u: a.u, ...p, r: scr.base * sunShape(el).size });
   }
   return out;
 }
 
-test('the path never crosses the sign or the tagline (it may pass behind the corner buttons), and never jumps', () => {
+test('the path never crosses the sign (phones: never the NEON letters — it passes behind SPEAKEASY and the tagline), and never jumps', () => {
   for (const [name, scr] of Object.entries(SCREENS)) for (const city of Object.keys(CITIES)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20']) {
     const pts = day(city, date, scr);
     for (const p of pts) {
       if (p.el < -1) continue;                                          // set: behind the skyline
-      assert.ok(!hitsRect(p.x, p.y, p.r, scr.logo), `${name} ${city} ${date} ${hhmm(p.t, CITIES[city].tz)}: the disc (${p.x.toFixed(0)},${p.y.toFixed(0)} r${p.r.toFixed(0)}) is on the sign`);
+      assert.ok(!hitsRect(p.x, p.y, p.r, scr.neon || scr.logo), `${name} ${city} ${date} ${hhmm(p.t, CITIES[city].tz)}: the disc (${p.x.toFixed(0)},${p.y.toFixed(0)} r${p.r.toFixed(0)}) is on the sign`);
       assert.ok(p.y > -p.r && p.y < scr.HZ, `${name} ${city} ${date}: on screen above the street (${p.y.toFixed(0)})`);
     }
     for (let i = 1; i < pts.length; i++) {
@@ -96,23 +99,35 @@ test('the path never crosses the sign or the tagline (it may pass behind the cor
   }
 });
 
-test('phones: the low arc — below the tagline, clear of the buttons, out of / into the side towers, never behind a roof in the open middle', () => {
+test('phones: THE BIG ARCH — under the rooftops at both edges, behind SPEAKEASY at a summer noon, near the tagline at a winter one', () => {
   for (const name of ['phone', 'notch']) {
     const scr = SCREENS[name];
-    for (const city of Object.keys(CITIES)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20']) {
+    const wordY = scr.word.y + scr.word.h / 2, tagY = scr.tag.y + scr.tag.h / 2;
+    for (const city of Object.keys(CITIES)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20', '2026-03-20']) {
       const pts = day(city, date, scr);
-      const covered = p => { if (p.x - p.r >= scr.W || p.x + p.r <= 0) return true; for (let dx = -p.r; dx <= p.r; dx += 2) if (p.x + dx >= 0 && p.x + dx <= scr.W && scr.roof(p.x + dx) > p.y - p.r) return false; return true; };
-      const clearOfRoofs = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (scr.roof(p.x + dx) < p.y + Math.sqrt(p.r * p.r - dx * dx) - 1) return false; return true; };
-      const tag = scr.logo.y + scr.logo.h;
+      const north = CITIES[city].lat > 0, tz = CITIES[city].tz;
+      const covered = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (scr.roof(p.x + dx) > p.y - p.r) return false; return true; };
       for (const p of pts) {
         assert.ok(!hitsRect(p.x, p.y, p.r, scr.buttons), `${name} ${city} ${date}: never near the corner buttons`);
-        if (p.el > 0) assert.ok(p.y - p.r >= tag, `${name} ${city} ${date} ${hhmm(p.t, CITIES[city].tz)}: below the tagline (top ${(p.y - p.r).toFixed(0)} vs ${tag})`);
-        if (p.el > 6 && p.x > scr.W * 0.3 && p.x < scr.W * 0.7) assert.ok(clearOfRoofs(p), `${name} ${city} ${date} ${hhmm(p.t, CITIES[city].tz)}: never behind a roof in the open middle`);
+        assert.ok(!hitsRect(p.x, p.y, p.r + 2, scr.neon), `${name} ${city} ${date} ${hhmm(p.t, tz)}: never over the NEON letters`);
+        assert.ok(p.x - p.r > 0 && p.x + p.r < scr.W, `${name} ${city} ${date}: inside the frame (${p.x.toFixed(0)})`);
       }
+      // sunrise and sunset: fully under the rooftops at the far edges
       const rise = pts.find(p => p.u >= 0), set = [...pts].reverse().find(p => p.u <= 1);
-      assert.ok(covered(rise) && covered(set), `${name} ${city} ${date}: out of frame (or behind the towers) at sunrise and sunset`);
-      const offL = p => p.x + p.r <= 3, offR = p => p.x - p.r >= scr.W - 3;
-      assert.ok(CITIES[city].lat > 0 ? offL(rise) && offR(set) : offR(rise) && offL(set), `${name} ${city} ${date}: it creeps in from out of frame at one side and out at the other (${rise.x.toFixed(0)} → ${set.x.toFixed(0)})`);
+      assert.ok(covered(rise) && covered(set), `${name} ${city} ${date}: hidden behind the buildings at sunrise and sunset`);
+      assert.ok(north ? rise.x < scr.W * 0.12 && set.x > scr.W * 0.88 : rise.x > scr.W * 0.88 && set.x < scr.W * 0.12, `${name} ${city} ${date}: rises at the far ${north ? 'left' : 'right'}, sets at the far ${north ? 'right' : 'left'} (${rise.x.toFixed(0)} → ${set.x.toFixed(0)})`);
+      // one smooth arch: sideways one way all day, up until noon and down after
+      const day0 = pts.filter(p => p.u >= 0 && p.u <= 1), top = day0.reduce((a, b) => (b.y < a.y ? b : a));
+      for (let i = 1; i < day0.length; i++) {
+        assert.ok(north ? day0[i].x >= day0[i - 1].x - 0.01 : day0[i].x <= day0[i - 1].x + 0.01, `${name} ${city} ${date}: always moving the same way`);
+        if (day0[i].t <= top.t) assert.ok(day0[i].y <= day0[i - 1].y + 0.01, `${name} ${city} ${date}: climbing until noon`);
+        else assert.ok(day0[i].y >= day0[i - 1].y - 0.01, `${name} ${city} ${date}: sinking after noon`);
+      }
+      assert.ok(Math.abs(top.u - 0.5) < 0.01 && Math.abs(top.x - scr.W / 2) < 3, `${name} ${city} ${date}: highest at solar noon, centred (${top.x.toFixed(0)})`);
+      const summer = north ? date === '2026-06-21' : date === '2026-12-21', winter = north ? date === '2026-12-21' : date === '2026-06-21';
+      if (summer) assert.ok(Math.abs(top.y - wordY) < 4, `${name} ${city} ${date}: a summer noon behind SPEAKEASY (${top.y.toFixed(0)} vs ${wordY})`);
+      if (winter) assert.ok(top.y > tagY - 2 && top.y < scr.tag.y + scr.tag.h + scr.base, `${name} ${city} ${date}: a winter noon at the tagline (${top.y.toFixed(0)} vs ${tagY})`);
+      if (!summer && !winter) assert.ok(top.y > wordY && top.y < tagY + scr.base, `${name} ${city} ${date}: in between (${top.y.toFixed(0)})`);
     }
   }
 });

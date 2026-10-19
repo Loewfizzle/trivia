@@ -641,9 +641,15 @@ export function createTitle() {
     document.querySelectorAll('.menu-btn, .music-btn').forEach(add);
     return out;
   }
+  // the NEON letters, SPEAKEASY and the tagline, for the phone sun's arch (it passes behind the words, never the letters)
+  function textRects() {
+    const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return r.width && r.height ? { x: r.left, y: r.top, w: r.width, h: r.height } : null; };
+    const neon = logoRect(), word = box(els.sign.querySelector('.nd-word')), tag = box(els.sign.querySelector('.nd-tag'));
+    return neon && word && tag ? { neon, word, tag } : null;
+  }
   function trackLogo() {
     if (destroyed) return;
-    scene.set({ logoRect: logoRect(), clear: clearZones() });
+    scene.set({ logoRect: logoRect(), clear: clearZones(), textRects: textRects() });
     sunGlass();
     els.logoTimer = setTimeout(trackLogo, 500);
   }
@@ -667,6 +673,18 @@ export function createTitle() {
         st.setProperty('--sun-r', `${Math.round(sn.r * 2.4)}px`);
       }
       b.classList.toggle('nd-sunlit', k > 0.02);
+    });
+    // the words the sun passes behind keep a soft dark edge while it's there (readable on the bright disc), barely any otherwise
+    [els.sign.querySelector('.nd-word'), els.sign.querySelector('.nd-tag')].forEach(t => {
+      if (!t) return;
+      let k = 0;
+      if (sn && sn.vis > 0.15) {
+        const r = t.getBoundingClientRect(), R = sn.r * 2.2;
+        const dx = Math.max(r.left - sn.x, 0, sn.x - r.right), dy = Math.max(r.top - sn.y, 0, sn.y - r.bottom);
+        k = clamp01(1 - Math.hypot(dx, dy) / R) * Math.min(1, sn.vis);
+      }
+      t.style.setProperty('--sunk', k.toFixed(2));
+      t.classList.toggle('nd-sunbk', k > 0.02);
     });
   }
 

@@ -539,7 +539,9 @@ try {
     ok(sg >= 1 && sg < 4, `NEON, THE CITY ANSWERS: one sign at a time after the catch (${sg} on so far)`);
     await X.ctx.close();
     // the morning goodbye: the city signs already off, the logo faltering, the icons still lit
-    X = await page(`when=2026-10-20T07:41&${NY}&wx=clear`); r = await look(X);
+    // (3 min after this layout's morning clear — on a phone the arch climbs behind the tall left towers first)
+    const clearLocal = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(plan.clearAt + 3 * 60000)).replace(' ', 'T');
+    X = await page(`when=${clearLocal}&${NY}&wx=clear`); r = await look(X);
     ok(r.n.stage === 'goodbye' && (r.n.signs || []).every(x => !x) && r.icons.every(Boolean) && !r.daylit, `NEON, MORNING: the city signs are off, the logo falters (${r.n.letters.map(Number).join('')}), the dock stays lit until the last letter`);
     await X.ctx.close();
     // the weather never moves the timing; the same plan on reload
