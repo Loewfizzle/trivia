@@ -334,7 +334,7 @@ export function createTitle() {
     const wrap = s.querySelector('.nd-logo-wrap');
     if (full === 'halloween') {
       wrap.append(h('div.nd-dress.nd-webs', { 'aria-hidden': 'true', html: WEBS }));
-      wrap.append(h('div.nd-dress.nd-spider', { 'aria-hidden': 'true' }, h('i.nd-silk'), h('div.nd-spider-b', { html: SPIDER })));
+      wrap.append(h('div.nd-dress.nd-spider', { 'aria-hidden': 'true' }, h('div.nd-spider-b', h('i.nd-silk'), h('div.nd-spider-s', { html: SPIDER }))));
     }
     if (full === 'christmas') wrap.append(h('div.nd-dress.nd-hat', { 'aria-hidden': 'true', html: HAT }));
     const tag = s.querySelector('.nd-tag');

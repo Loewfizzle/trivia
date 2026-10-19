@@ -478,15 +478,16 @@ body.reduced-fx .nd-host-sheen::before, body.reduced-fx .nd-gate-txt { animation
 .nd-dress { position: absolute; pointer-events: none; }
 .nd-webs { left: -3.5%; top: -12%; width: 27%; }
 .nd-webs svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 1.5px rgba(255, 140, 210, 0.7)); }
-/* the spider hangs from the top of the E on a silk line: drops, waits, climbs back (transforms only) */
-.nd-spider { left: 41%; top: 6%; width: 5.4%; height: 26%; }
-.nd-silk { position: absolute; left: 50%; top: 0; width: 0.6px; height: 100%; margin-left: -0.3px; background: linear-gradient(rgba(255, 220, 240, 0.85), rgba(255, 220, 240, 0.5)); transform-origin: 50% 0; transform: scaleY(0.04); animation: nd-silk 28s cubic-bezier(0.45, 0, 0.3, 1) infinite; }
-.nd-spider-b { position: absolute; left: 0; top: 0; width: 100%; transform: translate(0, -40%); animation: nd-spider 28s cubic-bezier(0.45, 0, 0.3, 1) infinite; }
-.nd-spider-b svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 3px rgba(255, 90, 180, 0.65)); animation: nd-sway 3.4s ease-in-out infinite; transform-origin: 50% -30%; }
-@keyframes nd-silk { 0%, 8% { transform: scaleY(0.04); } 22%, 62% { transform: scaleY(1); } 30% { transform: scaleY(0.86); } 38% { transform: scaleY(1); } 78%, 100% { transform: scaleY(0.04); } }
-@keyframes nd-spider { 0%, 8% { transform: translate(0, -40%); } 22%, 62% { transform: translate(0, 330%); } 30% { transform: translate(0, 270%); } 38% { transform: translate(0, 330%); } 78%, 100% { transform: translate(0, -40%); } }
+/* the spider hangs from the underside of the E's top tube (measured: the E spans 30.7–46.9% of the sign, its top tube's
+   centre at 18.8% of the height). The box starts just under the tube and clips the thread there; the thread rides on the
+   spider (one element moves), so it always reaches exactly from the tube to the spider. Transforms only. */
+.nd-spider { left: 38.6%; top: 21%; width: 5.4%; height: 64%; overflow: hidden; }
+.nd-spider-b { position: absolute; left: 0; top: 0; width: 100%; transform: translateY(-8%); animation: nd-spider 28s cubic-bezier(0.45, 0, 0.3, 1) infinite; }
+.nd-silk { position: absolute; left: 50%; bottom: 82%; width: 0.7px; height: 900%; margin-left: -0.35px; background: rgba(255, 225, 242, 0.75); }
+.nd-spider-s svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 3px rgba(255, 90, 180, 0.65)); animation: nd-sway 3.4s ease-in-out infinite; transform-origin: 50% -40%; }
+@keyframes nd-spider { 0%, 8% { transform: translateY(-8%); } 22%, 62% { transform: translateY(240%); } 30% { transform: translateY(190%); } 38% { transform: translateY(240%); } 78%, 100% { transform: translateY(-8%); } }
 @keyframes nd-sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
-@media (prefers-reduced-motion: reduce) { .nd-silk { animation: none; transform: scaleY(0.6); } .nd-spider-b { animation: none; transform: translate(0, 380%); } .nd-spider-b svg { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .nd-spider-b { animation: none; transform: translateY(150%); } .nd-spider-s svg { animation: none; } }
 .nd-hat { left: -1%; top: -9%; width: 27%; transform: rotate(-8deg); filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55)); }
 .nd-hat svg { width: 100%; display: block; }
 /* holiday tubes: each letter's glow / body / core (glass stays) */
