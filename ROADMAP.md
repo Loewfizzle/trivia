@@ -355,6 +355,12 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ Mobile skyline + the sun's low arc (Oct 19, 2026) — `docs/title.md`
+- [x] Portrait phones: the street comes down to just above the dock, the rooftops only a little — taller towers, a valley skyline
+- [x] The sun's phone path: across the open band under the tagline (higher in summer), rising out of / setting into the side towers;
+      never near the corner buttons; the moon unchanged; desktop unchanged
+- [x] The dock's icons are tubes of the same sign (on with the power-on / dusk, off at dawn, empty glass by day)
+
 ### ✅ THE NEON RING — the title's dock (Oct 19, 2026) — `docs/title.md`
 - [x] One floating smoked-glass tab bar replaces HOST / JOIN, THE BOARD / GAMES and the welcome line: JOIN · BOARD · [HOST] · GAMES · YOU
 - [x] Custom neon line icons (door, trophy, tiles) and YOU as the player's own emblem (a neutral one before a profile)

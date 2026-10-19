@@ -301,8 +301,10 @@ export function createTitle() {
     window.addEventListener('pointerdown', onCityDown, { passive: true });
     window.addEventListener('pointerup', onCityUp, { passive: true });
     els.probe = h('div', { style: { position: 'fixed', top: '0', left: '0', width: '1px', height: 'var(--safe-t)', visibility: 'hidden', pointerEvents: 'none' } });
-    document.body.append(els.probe);
+    els.probeB = h('div', { style: { position: 'fixed', bottom: '0', left: '0', width: '1px', height: 'var(--safe-b)', visibility: 'hidden', pointerEvents: 'none' } });
+    document.body.append(els.probe, els.probeB);
     scene.safeTop(els.probe.offsetHeight);
+    scene.safeBottom(els.probeB.offsetHeight);
     setupHook();
 
     // local test runs (?emu) skip the intro unless they ask for it (&intro=1) — every other E2E just needs the menu
@@ -1107,6 +1109,7 @@ ${both('b', 5.4)}${both('c', 1.9)}
     if (window.visualViewport) { window.visualViewport.removeEventListener('resize', fitKeyboard); window.visualViewport.removeEventListener('scroll', fitKeyboard); }
     clearTimeout(noteT);
     if (els.probe) els.probe.remove();
+    if (els.probeB) els.probeB.remove();
     if (stopRain) stopRain(0.6);
     document.body.classList.remove('nd-on');
     const wrap = els.sceneWrap;

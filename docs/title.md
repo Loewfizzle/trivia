@@ -175,8 +175,10 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   egg is gone. On phones the moon arches over the sign (rising beside it at the left edge, setting at the right).
 - **The rain sound** plays only while it rains on screen (title.js#rainSound: in over ~3 s, out over 4 s); clear, snowy and
   daytime skies are silent.
-- **Phones:** the buildings run further down the screen (the horizon at 73.5% instead of 66.5%, rooftops unchanged), so the
-  city meets the dock and the blade has room for readable names. Wide screens with no room for a blade get a third icon.
+- **Phones:** the buildings run further down the screen, so the city meets the dock and the blade has room for readable names.
+  Since Oct 19, 2026 (all mobile, portrait): the street comes down to just above THE NEON RING (`dockTop` from the bottom safe area,
+  measured by title.js → `scene.safeBottom`; a 56–64 px strip for the road, the cars and their reflection), the rooftops come down
+  only 3.6 % of the height (`drop`), so the towers are ~40 px taller; the far rows dip in the middle (a valley for the sun's low arc). Wide screens with no room for a blade get a third icon.
 - **Rain** falls in about one 4-hour block in four (sky.js#rainOf), random by date, the same for everyone; not the real weather.
 - **No marquee (Oct 2026):** it looked out of place in the neon city. Phones now get two neon blades (one each side), an icon
   and the ticker; each blade's tower has its roofline and blade-side edge lined in neon in the blade's colour. Wide screens:
@@ -262,9 +264,13 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   the RIGHT at the real sunset (mirrored south of the equator: facing north). Across = `sunArc(ms, tz, lat, lon).u` (core/sky.js:
   0 at sunrise, ½ at solar noon, 1 at sunset, cached per day); height = its real elevation (higher in summer). It never crosses the
   sign or the tagline. **Wide screens:** the full arc, clearing the towers' tops in its first ~10°, lifted gently over the sign
-  where it would cross it, under the corner buttons. **Phones** (portrait / < 760 px): up the left edge beside the sign until it
-  is E1 (12°) up (`sunArc().e1`), across the strip above the sign, down the right edge; low (below the tagline) it comes in over
-  the lower middle rooftops. It passes behind the corner buttons at full brightness (they stay on top): `title.js#sunGlass`
+  where it would cross it, under the corner buttons. **Phones** (portrait / < 760 px) — THE LOW ARC (Oct 19, 2026): the
+  skyline is a valley (tall towers at the sides, low in the middle); the sun crosses the band of open sky between the middle rooftops
+  and the tagline, a little higher toward noon (closer to the tagline in summer: `noonEl`), and rises out of / sets into the tall
+  side towers moving sideways behind their bodies (where it goes in and out: the nearest x where the disc at the band's bottom is
+  fully behind the roofs, from scene.js's skyline outline `fs.skyline` → `roof(x)`); never behind a roof in the open middle, never
+  near the corner buttons; the moon keeps its arc above the logo. (Before: up the left edge beside the sign, across the strip above
+  it, down the right edge past the buttons.) Should it ever pass behind the corner buttons it stays at full brightness: `title.js#sunGlass`
   paints its light into their glass where it is behind them, in its colour and as strong as the overlap (`--sun-x/y/c/k/r`, every
   500 ms), with the glass a touch darker and a tight dark edge on the icon (≥ 4.5:1); the rest of the time the buttons are unchanged
   (the ☰ button gets no backdrop blur on the title: it cost a frame in two at 4× CPU). Eased at 6 % a frame: never a jump.

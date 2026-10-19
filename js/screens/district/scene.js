@@ -69,7 +69,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let frost = { resize: NOOP, pane: NOOP, decorate: NOOP, debug: () => ({}), destroy: NOOP };
   let air = { resize: NOOP, draw: NOOP, debug: () => ({}) };      // planes + satellites (aircraft.js)
   const sun = createSun();           // the real sun (sun.js): loaded with the first paint (a morning title shows it at once)
-  let safeTopV = 0;
+  let safeTopV = 0, safeBotV = 0;
   setTimeout(() => {
     Promise.all([import('./weather-fx.js'), import('./rain.js'), import('./wildlife.js'), import('./street.js'), import('./live-weather.js'), import('./frost.js'), import('./aircraft.js')]).then(([a, b, c, d, e, f, g]) => {
       if (destroyed) return;
@@ -106,12 +106,17 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     W = Math.max(320, r.width); H = Math.max(480, r.height);
     dpr = Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    // the skyline's tops are laid out against HZ0; on a portrait phone the buildings then run further down to HZ (the street
-    // and its reflection sit lower, the rooftops don't move), so the city fills the screen above the dock
+    // the skyline's tops are laid out against HZ0. On a portrait phone (all mobile, Oct 19 2026) the rooftops come down a little
+    // (`drop`) and the street comes down to just above the dock (a strip for the road, the cars and their reflection), so the
+    // towers grow taller: more skyline, and a band of open sky between the rooftops and the tagline for the sun (sun.js)
     const HZ0 = Math.round(H * (W > H ? 0.74 : 0.665));
     HZ0g = HZ0 * Math.min(1.25, Math.max(0.85, H / 844)) * (W > H ? 0.78 : 1);
-    HZ = W > H ? HZ0 : Math.round(H * 0.735);
-    const ext = HZ - HZ0;
+    const portrait = W <= H;
+    const dockTop = H - Math.max(safeBotV + 6, 20) - 64;          // the dock bar's top (css/title.css: the bar is 64 px)
+    HZ = portrait ? Math.round(Math.min(H * 0.84, Math.max(H * 0.735, dockTop - Math.max(56, H * 0.075)))) : HZ0;
+    const drop = portrait ? Math.round(H * 0.036) : 0;
+    const T0 = HZ0 + drop;                                        // the rooftops' reference line
+    const ext = HZ - T0;
     const rand = rng(seed);
     // building scale follows the screen height; on wide screens the skyline sits lower so the sign floats in clear sky
     const k = Math.min(1.25, Math.max(0.85, H / 844)) * (W > H ? 0.78 : 1);
@@ -123,7 +128,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     signs.reset();
     LAYERS.forEach((L, li) => {
       const lw = W + margin * 2;
-      const top = Math.round(HZ0 - HZ0 * L.h[1] * k * 1.02);
+      const top = Math.round(T0 - HZ0 * L.h[1] * k * 1.02);
       const lh = HZ - top + 2;
       const dark = mk(lw * dpr, lh * dpr), lit = mk(lw * dpr, lh * dpr), neon = mk(lw * dpr, lh * dpr);
       const dx = dark.getContext('2d'), lx = lit.getContext('2d');
@@ -139,6 +144,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
         // near layer frames the view: tall at the sides, low in the middle (the logo glows above it)
         if (L.edges) { const c = Math.abs(cx - W / 2) / (W / 2); hf = L.h[0] + (L.h[1] - L.h[0]) * Math.pow(clamp01(c * 1.1), 1.6) * (0.6 + rand() * 0.4); }
         else if (li === 2) hf *= 0.75 + 0.35 * Math.abs(cx - W / 2) / (W / 2);
+        // portrait: the far rows dip in the middle too, so the sun's low arc crosses open sky under the tagline (sun.js)
+        if (portrait && li <= 1) hf *= 0.6 + 0.52 * Math.pow(clamp01(Math.abs(cx - W / 2) / (W / 2)), 1.3);
         const bh = HZ0 * hf * k + ext;
         const by = lh - bh; // y in layer space
         drawBuilding(dx, lx, x, by, bw, bh, L, li, rand, windows, false, rects);
@@ -704,11 +711,13 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     signCol: () => S.signCol || null,
     refresh: () => { lookAt = 0; skyKey = ''; },
     safeTop: v => { safeTopV = v || 0; fx.safeTop(v); },
+    safeBottom: v => { const n = v || 0; if (n !== safeBotV) { safeBotV = n; if (W <= H) build(); } },
     get state() { return S; },
     get tier() { return tier; },
     setTier,
     tier: () => tier,
     sun: () => sun.debug(),
+    skyline: () => (skyline ? Array.from(skyline) : null),
     frames: () => frames.slice(),
     debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug(), sun: sun.debug() }),
     destroy() {

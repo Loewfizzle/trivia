@@ -59,9 +59,12 @@ test('sunArc: 0 at the real sunrise, ½ at solar noon, 1 at sunset; higher at no
 });
 
 // the framed path: sample a whole day, each minute, on a phone and a desktop
+// a valley skyline (rooftop y at x): low in the middle (mid), tall at the sides (edge)
+function valley(W, mid, edge) { return x => mid - (mid - edge) * Math.pow(Math.min(1, Math.abs(x - W / 2) / (W / 2)), 2.5); }
 const SCREENS = {
-  phone: { W: 390, H: 844, HZ: 844 * 0.735, base: 16.5, logo: { x: 35, y: 84, w: 320, h: 207 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0 },
-  notch: { W: 390, H: 844, HZ: 844 * 0.735, base: 16.5, logo: { x: 35, y: 143, w: 320, h: 207 }, buttons: { x: 334, y: 69, w: 44, h: 90 }, safeTop: 59 },
+  // phones: the sign + tagline end at y ≈ 263 (+59 with a notch); the skyline is a valley (tall at the sides, low in the middle)
+  phone: { W: 390, H: 844, HZ: 690, base: 16.5, logo: { x: 35, y: 84, w: 320, h: 179 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 330, 215) },
+  notch: { W: 390, H: 844, HZ: 680, base: 16.5, logo: { x: 35, y: 143, w: 320, h: 179 }, buttons: { x: 334, y: 69, w: 44, h: 90 }, safeTop: 59, roof: valley(390, 380, 262) },
   desktop: { W: 1440, H: 900, HZ: 900 * 0.74, base: 26, logo: { x: 510, y: 135, w: 420, h: 260 }, buttons: { x: 1380, y: 10, w: 44, h: 90 }, safeTop: 0 },
 };
 const block = l => ({ x: l.x - 6, y: l.y - 6, w: l.w + 12, h: l.h + 12 });
@@ -72,7 +75,7 @@ function day(city, date, scr) {
   const out = [];
   for (let t = a0.rise - 20 * 60000; t <= a0.set + 20 * 60000; t += 60000) {
     const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
-    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1 });
+    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1, noonEl: a.noonEl, roof: scr.roof });
     out.push({ t, el, u: a.u, ...p, r: scr.base * sunShape(el).size });
   }
   return out;
@@ -89,6 +92,25 @@ test('the path never crosses the sign or the tagline (it may pass behind the cor
     for (let i = 1; i < pts.length; i++) {
       const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
       assert.ok(d < (name === 'desktop' ? 14 : 9), `${name} ${city} ${date} ${hhmm(pts[i].t, CITIES[city].tz)}: a jump of ${d.toFixed(1)} px in a minute`);
+    }
+  }
+});
+
+test('phones: the low arc — below the tagline, clear of the buttons, out of / into the side towers, never behind a roof in the open middle', () => {
+  for (const name of ['phone', 'notch']) {
+    const scr = SCREENS[name];
+    for (const city of Object.keys(CITIES)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20']) {
+      const pts = day(city, date, scr);
+      const covered = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (scr.roof(p.x + dx) > p.y - p.r) return false; return true; };
+      const clearOfRoofs = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (scr.roof(p.x + dx) < p.y + Math.sqrt(p.r * p.r - dx * dx) - 1) return false; return true; };
+      const tag = scr.logo.y + scr.logo.h;
+      for (const p of pts) {
+        assert.ok(!hitsRect(p.x, p.y, p.r, scr.buttons), `${name} ${city} ${date}: never near the corner buttons`);
+        if (p.el > 0) assert.ok(p.y - p.r >= tag, `${name} ${city} ${date} ${hhmm(p.t, CITIES[city].tz)}: below the tagline (top ${(p.y - p.r).toFixed(0)} vs ${tag})`);
+        if (p.el > 6 && p.x > scr.W * 0.3 && p.x < scr.W * 0.7) assert.ok(clearOfRoofs(p), `${name} ${city} ${date} ${hhmm(p.t, CITIES[city].tz)}: never behind a roof in the open middle`);
+      }
+      const rise = pts.find(p => p.u >= 0), set = [...pts].reverse().find(p => p.u <= 1);
+      assert.ok(covered({ ...rise, r: scr.base }) && covered({ ...set, r: scr.base }), `${name} ${city} ${date}: hidden in the towers at sunrise and sunset`);
     }
   }
 });

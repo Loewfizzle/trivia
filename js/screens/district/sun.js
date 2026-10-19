@@ -8,8 +8,8 @@
 // The path (sunPlace, PURE): facing south the sun rises on the LEFT at the real sunrise, arcs over, and sets on the RIGHT at
 // the real sunset (mirrored south of the equator); its height is its real elevation (higher in summer), mapped into the open
 // sky so it never crosses the sign or the tagline. A wide screen: the full arc, lifted over the sign where it would cross it.
-// A phone (portrait / narrower than 760 px): up the left edge beside the sign, across the strip above it, down the right edge
-// (passing behind the two round corner buttons there, glowing through their frosted glass), setting behind the skyline. Colour and size by elevation: deep red-orange, larger and a little squashed at the horizon → warm white at midday.
+// A phone (portrait / narrower than 760 px): the low arc — up from behind the towers on the left, across the band of open sky
+// between the rooftops and the tagline, down behind the towers on the right (sunPlace, phone branch). Colour and size by elevation: deep red-orange, larger and a little squashed at the horizon → warm white at midday.
 // Every disc and glow is a cached sprite; a frame is a handful of drawImage calls. Preview: &force=eclipse-sun, &force=totality.
 
 const TAU = Math.PI * 2;
@@ -38,24 +38,33 @@ export function sunPlace(o) {
   const top = Math.max(26, (o.safeTop || 0) + 14) + r;
   const phone = W < 760 || H > W;
   if (phone) {
-    const stripBot = Math.max(top + 4, block.y - r - 8);
-    const horizon = Math.min(HZ * 0.72, block.y + block.h + r * 2.2);
-    const edgeL = r * 0.45, edgeR = W - r * 0.45;
-    const e1 = o.e1 || { el: 12, ua: 0.15, ub: 0.85 };
-    const morning = o.u < 0.5;
-    if (el < e1.el) {
-      // up (or down) the screen's edge beside the sign
-      const k = smooth(-2.5, e1.el, el);
-      const left = o.south ? !morning : morning;
-      const y = lerp(horizon + r, stripBot, k);
-      // beside the sign it hugs the edge; lower than the tagline nothing is in the way: the whole disc comes on screen
-      const below = block.y + block.h;
-      const inset = lerp(lerp(r * 0.45, r * 1.25, smooth(below - r * 0.2, below + r * 1.2, y)), W * 0.2, smooth(below + r * 1.2, horizon + r, y));
-      return { x: left ? inset : W - inset, y };
-    }
-    const p = clamp01((o.u - e1.ua) / Math.max(1e-6, e1.ub - e1.ua));
-    const pp = o.south ? 1 - p : p;
-    return { x: lerp(edgeL, edgeR, pp), y: lerp(stripBot, top, smooth(e1.el, 72, el)) };
+    // THE LOW ARC (all mobile, Oct 19 2026): the skyline is a valley (tall towers at the sides, low in the middle). The sun
+    // crosses the band of open sky between the middle rooftops and the tagline — a little higher toward noon (closer to the
+    // tagline in summer) — and rises out of / sets into the tall towers at the sides, moving sideways behind their bodies, the way
+    // a low sun slips between skyscrapers. Never behind a roof in the open middle; never near the corner buttons.
+    // roof(x): the skyline's top at x (scene.js's outline).
+    const roof = o.roof || (x => HZ * (0.45 + 0.2 * Math.cos(((x / W) - 0.5) * Math.PI)));
+    // the highest the disc's centre may sit at x and still clear every roof under it (a circle resting on the skyline: smooth)
+    const clearAt = x => { let m = Infinity; for (let dx = -r; dx <= r; dx += 2) m = Math.min(m, roof(x + dx) - Math.sqrt(Math.max(0, r * r - dx * dx))); return m - 3; };
+    // fully behind the towers at (x, y): every roof under the disc is above its top
+    const hiddenAt = (x, y) => { for (let dx = -r; dx <= r; dx += 3) if (roof(x + dx) > y - r - 1) return false; return true; };
+    const tagBot = block.y + block.h;
+    let mid = Infinity; for (let xx = W * 0.35; xx <= W * 0.65; xx += 6) mid = Math.min(mid, clearAt(xx));
+    const yTop = Math.min(tagBot + r + 4, mid);                  // (no room under the tagline: it may slip behind the logo)
+    const season = clamp01(((o.noonEl == null ? 45 : o.noonEl) - 18) / 50);
+    const yApex = lerp(mid, yTop, 0.3 + 0.7 * season);
+    const noonEl = Math.max(4, o.noonEl == null ? 45 : o.noonEl);
+    const g = Math.sin((Math.PI / 2) * clamp01(el / noonEl));
+    let y = lerp(mid, yApex, g);
+    // where it goes in / comes out: the nearest x on each side where the disc at the band's bottom is fully behind the towers
+    let xL = r * 0.6, xR = W - r * 0.6;
+    for (let xx = W * 0.5; xx >= -r; xx -= 3) if (hiddenAt(xx, mid)) { xL = xx; break; }
+    for (let xx = W * 0.5; xx <= W + r; xx += 3) if (hiddenAt(xx, mid)) { xR = xx; break; }
+    const x = lerp(xL, xR, u);
+    // in the open middle never behind a roof (rest on the skyline where a tower pokes up); at the sides the towers take it
+    const open = smooth(xL + r * 2, xL + r * 4, x) * (1 - smooth(xR - r * 4, xR - r * 2, x));
+    y -= (y - Math.min(y, clearAt(x))) * open;
+    return { x, y };
   }
   // a wide screen: the full arc, its height the real elevation, lifted over the sign where it would cross it
   // it clears the towers' tops (≈ HZ·0.42) within its first ~10°, then climbs the open sky by its real elevation
@@ -210,7 +219,9 @@ export function createSun() {
     const lr = s.signRect, cl = (s.clear || []).find(z => z.w > W * 0.5 && z.y < HZ);
     const block = lr ? { x: lr.x - 6, y: lr.y - 6, w: lr.w + 12, h: cl ? cl.y + cl.h - 34 + 6 - (lr.y - 6) : lr.h + 60 } : null;
     const buttons = (s.clear || []).filter(z => z.w < 70 && z.y < HZ * 0.4).reduce((a, z) => (a ? { x: Math.min(a.x, z.x), y: Math.min(a.y, z.y), w: Math.max(a.x + a.w, z.x + z.w) - Math.min(a.x, z.x), h: Math.max(a.y + a.h, z.y + z.h) - Math.min(a.y, z.y) } : { ...z }), null);
-    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1 });
+    const sky = s.skyline;
+    const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
+    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1, noonEl: sa.noonEl, roof });
     // never a jump: it eases toward its place (and settles at once on a new layout)
     if (!pos || Math.hypot(pos.x - p.x, pos.y - p.y) > W * 0.5) pos = { ...p }; else { pos.x += (p.x - pos.x) * 0.06; pos.y += (p.y - pos.y) * 0.06; }
     // the weather: thick cloud hides the disc (a brighter patch stays), rain and heavy fog hide it, light fog leaves a glow
