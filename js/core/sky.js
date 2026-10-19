@@ -125,6 +125,27 @@ export function moonPhase(ms) {
   void NEW_MOON_JD; void SYNODIC;
   return { phase, illum, waxing: phase < 0.5 };
 }
+/** How far the moon is through tonight's pass, 0 at moonrise → 1 at moonset (null when it's down). Found by stepping back to
+ *  the rise and forward to the set (20-min steps + bisection); cached for two minutes (look() runs every few seconds). */
+const arcCache = new Map();
+export function moonArc(ms, lat, lon) {
+  const key = `${Math.floor(ms / 120000)}|${lat.toFixed(2)}|${lon.toFixed(2)}`;
+  if (arcCache.has(key)) return arcCache.get(key);
+  const TH = -0.3, STEP = 20 * 60000, MAX = 30 * 3600000;
+  const el = t => moonPosition(t, lat, lon).el;
+  let u = null;
+  if (el(ms) > TH) {
+    const cross = (a, b) => { for (let i = 0; i < 18; i++) { const m = (a + b) / 2; if ((el(m) > TH) === (el(b) > TH)) b = m; else a = m; } return (a + b) / 2; };
+    let a = ms; while (el(a - STEP) > TH && ms - a < MAX) a -= STEP;
+    let b = ms; while (el(b + STEP) > TH && b - ms < MAX) b += STEP;
+    const rise = cross(a - STEP, a), set = cross(b + STEP, b);
+    u = Math.max(0, Math.min(1, (ms - rise) / Math.max(1, set - rise)));
+  }
+  if (arcCache.size > 200) arcCache.clear();
+  arcCache.set(key, u);
+  return u;
+}
+
 export function moonPosition(ms, lat, lon) {
   const d = julian(ms) - 2451545;
   const L = (218.316 + 13.176396 * d) * RAD, M = (134.963 + 13.064993 * d) * RAD, F = (93.272 + 13.22935 * d) * RAD;
@@ -258,7 +279,7 @@ export function look(ms, tz, { alwaysNight = false } = {}) {
   const q = v => Math.round(v * 40);
   const key = [q(w.night), q(w.late), q(w.dawn), q(w.day), q(w.golden), q(season.winter), q(season.autumn), q(season.spring), q(season.summer), hol ? `${hol.id}${hol.full ? 'F' : Math.round(hol.k * 10)}` : '-', rain].join('|');
   return {
-    local: lp, lat, lon, south, sun, moon: { ...moonP, ...mph }, w, season, holiday: hol, nye,
+    local: lp, lat, lon, south, sun, moon: { ...moonP, ...mph, u: moonArc(ms, lat, lon) }, w, season, holiday: hol, nye,
     rain, snow: clamp01(snow), clear, meteors, shower: met.shower, aurora, key,
   };
 }

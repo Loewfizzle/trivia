@@ -1,7 +1,7 @@
 // LIVING CITY — the sky: the sun against real sunrise / sunset, the moon against real phases, the calendar.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sunTimes, placeOf, localParts, moonPhase, easter, thanksgiving, holidayOf, seasonOf, look, meteorsOf, auroraNight, skyClock } from '../js/core/sky.js';
+import { moonArc, sunTimes, placeOf, localParts, moonPhase, easter, thanksgiving, holidayOf, seasonOf, look, meteorsOf, auroraNight, skyClock } from '../js/core/sky.js';
 
 const at = (tz, y, m, d, h = 12, mi = 0) => { const c = skyClock(`?when=${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}&tz=${tz}`); return c.now(); };
 const hm = (ms, tz) => { const p = localParts(ms, tz); return p.h * 60 + p.mi; };
@@ -82,4 +82,15 @@ test('sky events: shower peaks, rare single stars, rare aurora nights', () => {
   assert.ok(n / total > 0.15 && n / total < 0.25, `aurora on ${n} of ${total} nights`);
   let summer = 0; for (let d = 1; d <= 31; d++) if (auroraNight(2026, 7, d, false)) summer++;
   assert.ok(summer > 0, 'summer nights get aurora too');
+});
+
+test('the moon crosses the screen from moonrise (0) to moonset (1)', () => {
+  const lat = 40.7, lon = -74;
+  const t0 = Date.parse('2026-10-19T01:30:00Z');   // 9:30 pm in New York, a first-quarter moon in the south-west
+  const a = moonArc(t0, lat, lon), b = moonArc(t0 + 3600000, lat, lon);
+  assert.ok(a > 0.5 && a < 1 && b > a, `moving toward its set (${a.toFixed(2)} → ${b.toFixed(2)})`);
+  assert.equal(moonArc(t0 + 8 * 3600000, lat, lon), null, 'down after moonset');
+  // near the set it's close to 1
+  let x = t0; while (moonArc(x + 600000, lat, lon) != null) x += 600000;
+  assert.ok(moonArc(x, lat, lon) > 0.97, 'just before moonset: the right edge');
 });

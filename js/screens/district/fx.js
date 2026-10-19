@@ -656,14 +656,16 @@ export function createFx() {
   }
 
   // ---------------------------------------------------------------- where the moon sits
-  // Its real path, framed for the screen: how far along its arc it is comes from its true azimuth (rising on the left,
-  // setting on the right, mirrored in the south where it crosses the northern sky), how high comes from its true
+  // Its real path, framed for the screen: how far along its arc it is comes from how far it is between tonight's real moonrise
+  // and moonset (rising at the left edge, setting at the right, mirrored in the south), how high comes from its true
   // elevation, mapped into the open sky above the rooftops. It only reaches the skyline at real moonrise / moonset and
   // never sits behind the sign (it passes over it); it glides to a new spot instead of jumping.
   let moonPos = null, moonSafeTop = 0;
   function moonPlace(L, r, sign) {
     const az = L.moon.az, el = L.moon.el;
-    const u = L.south ? clamp01((((az + 180) % 360) - 60) / 240) : clamp01((az - 60) / 240);
+    // how far through tonight's pass (moonrise → moonset); facing south it rises on the left, in the south (facing north) on the right
+    const arc = L.moon.u != null ? L.moon.u : clamp01((az - 60) / 240);
+    const u = L.south ? 1 - arc : arc;
     const k = clamp01((el + 2) / 40), e = 1 - (1 - k) * (1 - k);
     const top = r + 24, low = HZ * 0.4;
     let x = r + 16 + (W - 2 * r - 32) * u, y = low + (top - low) * e;
