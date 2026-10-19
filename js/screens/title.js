@@ -390,12 +390,13 @@ export function createTitle() {
     s.classList.add('is-glass');
     const letters = [...s.querySelectorAll('.ndl')];
     // daylight: the sign rests (glass and brackets, unlit) until dusk
-    if (scene && !scene.signOn()) { s.classList.add('is-day'); ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); return; }
+    if (scene && !scene.signOn()) { s.classList.add('is-day'); dockAll(false); ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); return; }
     s.classList.remove('is-day');
     const kind = tl.kind;
     if (kind === 'instant' || kind === 'reduced') {
       letters.forEach(l => l.classList.add('on'));
       s.classList.add('is-steady', 'is-warm');
+      dockAll(true);
       ringOn(null);
       return;
     }
@@ -409,6 +410,7 @@ export function createTitle() {
       pat.forEach((ms, k) => {
         const at = base[i] + ms;
         setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 0); }, at);
+        setTimeout(() => dockLight(i, k % 2 === 0), at + 40);
         if (k % 2 === 0 && (k < 3 || i === 2)) crackles.push(at / 1000);
       });
     });
@@ -416,7 +418,7 @@ export function createTitle() {
     const steadyIn = ((tl.plan.steady - tl.plan.logo) * 1000);
     // the ring flickers with the first N (a beat behind it), then holds
     ringOn([...pattern.map((ms, k) => [base[0] + ms + 30, k % 2 === 0]), [steadyIn, true]]);
-    setTimeout(() => { if (!destroyed) { letters.forEach(l => l.classList.add('on')); s.classList.add('is-steady'); } }, steadyIn);
+    setTimeout(() => { if (!destroyed) { letters.forEach(l => l.classList.add('on')); s.classList.add('is-steady'); dockAll(true); } }, steadyIn);
     setTimeout(() => { if (!destroyed) s.classList.add('is-warm'); }, steadyIn + 60);
   }
 
@@ -427,6 +429,7 @@ export function createTitle() {
     if (!tl.marks.logo) { tl.marks.logo = true; tl.kind = 'instant'; signOn(); }
     else { els.sign.querySelectorAll('.ndl').forEach(l => l.classList.add('on')); els.sign.classList.add('is-steady', 'is-warm'); }
     ringLit = false; ringOn(null);
+    dockAll(!els.sign.classList.contains('is-day'));
     root.classList.add('is-menu', 'is-dock');
     finish();
   }
@@ -527,9 +530,9 @@ export function createTitle() {
     s.classList.remove('is-warm');
     letters.forEach((l, i) => {
       const at = 300 * i + Math.random() * 120;
-      [0, 70, 120, 260].forEach((ms, k) => setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 1 && k < 3); }, at + ms));
+      [0, 70, 120, 260].forEach((ms, k) => setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 1 && k < 3); dockLight(i, k % 2 === 1 && k < 3); }, at + ms));
     });
-    setTimeout(() => { if (!destroyed) { s.classList.remove('is-steady'); s.classList.add('is-day'); letters.forEach(l => l.classList.remove('on')); } }, 300 * letters.length + 400);
+    setTimeout(() => { if (!destroyed) { s.classList.remove('is-steady'); s.classList.add('is-day'); letters.forEach(l => l.classList.remove('on')); dockAll(false); } }, 300 * letters.length + 400);
     neonTick();
   }
   let dressKey = '';
@@ -609,8 +612,9 @@ export function createTitle() {
       const letters = [...els.sign.querySelectorAll('.ndl')].filter((_, i) => !buzzing.has(i));
       if (!letters.length) { scheduleFlicker(); return; }
       const l = letters[Math.floor(Math.random() * letters.length)];
+      const li = [...els.sign.querySelectorAll('.ndl')].indexOf(l);
       const seq = [0, 60, 95, 130, 190];
-      seq.forEach((ms, k) => setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 1 || k === seq.length - 1); }, ms));
+      seq.forEach((ms, k) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', k % 2 === 1 || k === seq.length - 1); dockLight(li, k % 2 === 1 || k === seq.length - 1); }, ms));
       neonTick();
       scene.set({ logo: 0.8 }); setTimeout(() => scene && scene.set({ logo: 1 }), 200);
       scheduleFlicker();
@@ -852,6 +856,13 @@ ${both('b', 5.4)}${both('c', 1.9)}
     if (els.door) els.door.style.setProperty('--hg1', cols[0].g);
   }
 
+  // the dock's icons are tubes of the same sign: each answers a letter (JOIN·N, BOARD·E, GAMES·O, YOU·N) — on with the power-on
+  // and at dusk, off at dawn, catching the sign's rare flicker; dark glass by day. Driven explicitly (dockLight), so how the sign
+  // is driven can change without the dock guessing.
+  const dockTabs = () => [els.joinTab, els.boardTab, els.gamesTab, els.youTab];
+  function dockLight(i, on) { const t = dockTabs()[i]; if (t && !destroyed) t.classList.toggle('is-lit', !!on); }
+  function dockAll(on) { for (let i = 0; i < 4; i++) dockLight(i, on); }
+
   // the ring's light: off (glass) until the power-on, then always lit — it flickers on with the sign's letters
   let ringLit = false;
   const ringSet = on => { if (els.host && !destroyed) els.host.classList.toggle('is-lit', on); };
@@ -1071,6 +1082,7 @@ ${both('b', 5.4)}${both('c', 1.9)}
         preview: patch => { els.sig = null; update({ ...st, ...patch }); },   // test-only: show the dock for a state (REJOIN, an invite)
         note,
         recolor: () => { ringKey = ''; ringColors(); },
+        icons: () => dockTabs().map(t => !!(t && t.classList.contains('is-lit'))),
         ring: () => ({ lit: ringLit, on: !!(els.host && els.host.classList.contains('is-lit')), multi: els.host ? els.host.dataset.multi : null, g: [1, 2, 3, 4].map(i => (els.host ? els.host.style.getPropertyValue(`--hg${i}`) : '')) }),
       },
     };

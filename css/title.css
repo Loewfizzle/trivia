@@ -386,6 +386,7 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 @property --hc2 { syntax: '<color>'; inherits: true; initial-value: #fff1f8; }
 @property --hc3 { syntax: '<color>'; inherits: true; initial-value: #fff1f8; }
 @property --hc4 { syntax: '<color>'; inherits: true; initial-value: #fff1f8; }
+@property --hk { syntax: '<number>'; inherits: true; initial-value: 1; }
 
 /* the bar floats near the bottom: above the home indicator (and Safari's toolbar), ~14 px from the sides on a phone */
 .title-screen.nd { padding-bottom: max(calc(var(--safe-b) + 6px), 20px); }
@@ -395,9 +396,7 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 /* the power-on: the bar comes up with the sign (its ring flickers on with the letters); the tabs follow with the menu */
 .nd.is-dock .nd-actions > .nd-dk { opacity: 1; transform: none; transition: opacity 0.6s ease, transform 0.7s var(--ease); transition-delay: 0s; }
 .nd-tab, .nd-above { opacity: 0; transition: opacity 0.6s ease; }
-.nd.is-menu .nd-tab, .nd.is-menu .nd-above { opacity: 1; }
-.nd.is-menu .nd-tab-join, .nd.is-menu .nd-tab-you { transition-delay: 0.16s; }
-.nd.is-menu .nd-tab-board, .nd.is-menu .nd-tab-games { transition-delay: 0.08s; }
+.nd.is-dock .nd-tab, .nd.is-menu .nd-above { opacity: 1; }
 .nd.is-menu .nd-above { transition-delay: 0.3s; }
 .nd.seq-instant .nd-actions > .nd-dk, .nd.seq-reduced .nd-actions > .nd-dk, .nd.is-skip .nd-actions > .nd-dk,
 .nd.seq-instant .nd-tab, .nd.seq-reduced .nd-tab, .nd.is-skip .nd-tab, .nd.seq-instant .nd-above, .nd.seq-reduced .nd-above, .nd.is-skip .nd-above {
@@ -456,6 +455,12 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-tab-ic .t { stroke: var(--ic); stroke-width: 1.65; }
 .nd-tab-ic .c { stroke: color-mix(in srgb, var(--ic) 22%, #ffffff); stroke-width: 0.55; opacity: 0.95; }
 .nd-tab-l { padding-left: 0.24em; font: 700 8.5px/1 var(--font-mono); letter-spacing: 0.24em; white-space: nowrap; }
+/* unlit (by day, before the power-on, between flickers): empty glass tubes, like the sign's by day — no glow, a pale glass
+   tube with a thin highlight; the label stays as it is (contrast) */
+.nd-tab:not(.is-lit) .nd-tab-ic svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
+.nd-tab:not(.is-lit) .nd-tab-ic .t { stroke: color-mix(in srgb, var(--ic) 14%, rgba(150, 146, 178, 0.5)); }
+.nd-tab:not(.is-lit) .nd-tab-ic .c { stroke: rgba(255, 255, 255, 0.26); opacity: 1; }
+.nd-tab:not(.is-lit) .avatar { filter: saturate(0.25) brightness(0.72); }
 .nd-tab-join { --ic: #eef1ff; }
 .nd-tab-board { --ic: #f2c869; }
 .nd-tab-games { --ic: #5fe3ff; }
@@ -475,7 +480,7 @@ body.reduced-fx .nd-xb-tw { animation: none; }
   width: var(--disc); height: var(--disc); margin-left: calc(var(--disc) / -2);
   display: grid; place-items: center; border-radius: 50%; -webkit-tap-highlight-color: transparent;
   transition: transform 0.18s var(--ease), --hg1 1.4s ease, --hg2 1.4s ease, --hg3 1.4s ease, --hg4 1.4s ease,
-    --hb1 1.4s ease, --hb2 1.4s ease, --hb3 1.4s ease, --hb4 1.4s ease, --hc1 1.4s ease, --hc2 1.4s ease, --hc3 1.4s ease, --hc4 1.4s ease;
+    --hb1 1.4s ease, --hb2 1.4s ease, --hb3 1.4s ease, --hb4 1.4s ease, --hc1 1.4s ease, --hc2 1.4s ease, --hc3 1.4s ease, --hc4 1.4s ease, --hk 2.4s ease;
 }
 .nd-hostbtn:active { transform: scale(0.94); transition-duration: 0.08s; --hk: 1.3; }
 .nd-hdisc { position: absolute; inset: 0; border-radius: 50%;

@@ -246,7 +246,12 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **Above the bar:** REJOIN [CODE] as a glass pill with a cyan light; notes (a room that couldn't open, an expired invite) as a
   pill that fades after a few seconds (tap to dismiss). The bar itself never moves. Each piece is rebuilt only when its own data
   changes (a button replaced between a touch-down and its click loses the click).
-- **Power-on:** the bar comes up with the sign (`is-dock`), the tabs follow with the menu; at rest it fades with the menu.
+- **Power-on:** the bar and its tabs come up with the sign (`is-dock`); at rest it fades with the menu.
+- **The icons are tubes of the same sign** (Oct 19): each answers a letter (JOIN·N, BOARD·E, GAMES·O, YOU·N) through `dockLight(i, on)`
+  / `dockAll` — they stutter on a beat behind their letters in the power-on, go dark with them when the sign shuts off at dawn, re-light
+  at dusk, and catch the sign's rare flicker (not letter taps). By day / unlit: empty glass tubes (a pale tube and a thin highlight,
+  no glow; the YOU emblem desaturated); the labels never change. HOST follows the sign's timing but not its off state: softly lit by
+  day, its brighten / soften eases over 2.4 s (`--hk`, registered).
 - **Lowest quality tier:** `.nd-noblur` (the scene's `tier()` = 0): slightly more opaque glass, no blur.
 - **Tests:** e2e-title.mjs "THE NEON RING" (targets, colours vs the sign incl. a blend and four holidays, by day, the intro flicker,
   Reduced effects, the JOIN panel's opening / closing / keyboard, BOARD, GAMES, YOU). Test-only hook: `__district.dock`

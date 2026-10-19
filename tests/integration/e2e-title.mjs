@@ -419,6 +419,7 @@ try {
     const same = async () => ev(G.page, `(() => { const ls = [...document.querySelectorAll('.nd-sign .ndl')].map(l => getComputedStyle(l.querySelector('.ndl-glow1')).stroke); const h = getComputedStyle(document.querySelector('.nd-hostbtn')); return ls.every((c, i) => h.getPropertyValue('--hg' + (i + 1)).trim() === c); })()`);
     let ring = await ev(G.page, 'window.__district.dock.ring()');
     ok(ring.lit && ring.on && await same(), `HOST RING: lit, in the sign's colours (${ring.g[0]})`);
+    ok((await ev(G.page, 'window.__district.dock.icons()')).every(Boolean), 'DOCK ICONS, AT NIGHT: lit with the sign');
     // a holiday's colours blend in (registered colours): switch the sign to Valentine's and sample the ring mid-way
     await G.page.evaluate(() => { document.querySelector('.nd-sign').classList.add('sg-valentine'); window.__district.dock.recolor(); });
     await sleep(500);
@@ -485,12 +486,15 @@ try {
     await waitFor(Y.page, '!!window.__district && window.__district.phase().done', 'title day');
     const r = await ev(Y.page, `({ lit: document.querySelector('.nd-hostbtn').classList.contains('is-lit'), day: document.querySelector('.nd-actions').classList.contains('is-daylit'), sign: document.querySelector('.nd-sign').classList.contains('is-day') })`);
     ok(r.lit && r.day && r.sign, 'HOST RING, BY DAY: the sign is dark, the ring stays lit (softer)');
+    ok((await ev(Y.page, 'window.__district.dock.icons()')).every(x => !x), 'DOCK ICONS, BY DAY: empty glass tubes, like the sign');
     await Y.ctx.close(); }
   { const I = await open({ slot: 'in', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'intro=1&when=2026-10-20T21:30&tz=America/New_York' });
     await waitFor(I.page, '!!window.__district && window.__district.phase().kind === "full"', 'intro', 8000);
-    const seen = await I.page.evaluate(() => new Promise(res => { const out = []; const t0 = performance.now(); const tick = () => { const h = document.querySelector('.nd-hostbtn'), n = document.querySelector('.nd-sign .ndl-1'); if (h && n) out.push([h.classList.contains('is-lit') ? 1 : 0, n.classList.contains('on') ? 1 : 0]); if (performance.now() - t0 < 3600) requestAnimationFrame(tick); else res(out); }; tick(); }));
+    const seen = await I.page.evaluate(() => new Promise(res => { const out = []; const t0 = performance.now(); const tick = () => { const h = document.querySelector('.nd-hostbtn'), n = document.querySelector('.nd-sign .ndl-1'); const ic = document.querySelector('.nd-tab-join'); if (h && n) out.push([h.classList.contains('is-lit') ? 1 : 0, n.classList.contains('on') ? 1 : 0, ic && ic.classList.contains('is-lit') ? 1 : 0]); if (performance.now() - t0 < 3600) requestAnimationFrame(tick); else res(out); }; tick(); }));
     const ringFlips = seen.reduce((n, s, i) => n + (i && s[0] !== seen[i - 1][0] ? 1 : 0), 0);
     const firstRing = seen.findIndex(s => s[0]), firstN = seen.findIndex(s => s[1]);
+    const icFlips = seen.reduce((n, x, i) => n + (i && x[2] !== seen[i - 1][2] ? 1 : 0), 0);
+    ok(icFlips >= 3 && seen[seen.length - 1][2] === 1, `DOCK ICONS, INTRO: JOIN flickers on with its letter (${icFlips} flips) and holds`);
     ok(ringFlips >= 3 && seen[seen.length - 1][0] === 1 && firstRing >= firstN && firstRing - firstN < 12, `HOST RING, INTRO: flickers on with the letters (${ringFlips} flips, first light ${firstRing - firstN} frames after the N) and holds`);
     await I.ctx.close(); }
   // Reduced effects: no breathing
