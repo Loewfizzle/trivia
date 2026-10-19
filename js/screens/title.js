@@ -168,7 +168,12 @@ export function createTitle() {
     window.addEventListener('click', onWakeClick, { capture: true });
     window.addEventListener('keydown', onWake, { capture: true });
     window.addEventListener('pointermove', onMouse, { passive: true });
-    window.addEventListener('click', onCityTap);
+    // city taps come from the touch itself (iOS Safari never sends 'click' to plain page areas like the city)
+    window.addEventListener('pointerdown', onCityDown, { passive: true });
+    window.addEventListener('pointerup', onCityUp, { passive: true });
+    els.probe = h('div', { style: { position: 'fixed', top: '0', left: '0', width: '1px', height: 'var(--safe-t)', visibility: 'hidden', pointerEvents: 'none' } });
+    document.body.append(els.probe);
+    scene.safeTop(els.probe.offsetHeight);
     setupHook();
 
     // local test runs (?emu) skip the intro unless they ask for it (&intro=1) — every other E2E just needs the menu
@@ -392,6 +397,13 @@ export function createTitle() {
   // ------------------------------------------------------------------ the living city: taps, and the screen at rest
   // a tap on the city: a billboard opens that game's HOW TO PLAY; windows switch on and off; the moon, the UFO, the
   // cat answer (fx.js); a tap on the sign makes that tube buzz
+  let down = null;
+  function onCityDown(e) { down = swallowed ? null : { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target }; }
+  function onCityUp(e) {
+    const d = down; down = null;
+    if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || performance.now() - d.t > 600) return;
+    onCityTap({ target: d.target, clientX: e.clientX, clientY: e.clientY });
+  }
   function onCityTap(e) {
     if (destroyed || !scene || !tl || !tl.done || swallowed) return;
     if (e.target.closest('button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel')) return;
@@ -402,7 +414,7 @@ export function createTitle() {
     if (!hit) return;
     if (hit.kind === 'billboard') { sfx('select'); openHelp(hit.id); }
     else if (hit.kind === 'window') sfx('tap');
-    else if (hit.kind === 'moon') sfx('shimmer');
+    else if (hit.kind === 'moon') sfx('moonBell');
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
   }
@@ -705,7 +717,9 @@ export function createTitle() {
     window.removeEventListener('click', onWakeClick, { capture: true });
     window.removeEventListener('keydown', onWake, { capture: true });
     window.removeEventListener('pointermove', onMouse);
-    window.removeEventListener('click', onCityTap);
+    window.removeEventListener('pointerdown', onCityDown);
+    window.removeEventListener('pointerup', onCityUp);
+    if (els.probe) els.probe.remove();
     if (stopRain) stopRain(0.6);
     document.body.classList.remove('nd-on');
     const wrap = els.sceneWrap;

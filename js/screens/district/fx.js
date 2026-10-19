@@ -102,7 +102,9 @@ export function createFx() {
 
   // ---------------------------------------------------------------- per-frame
   const api = {
-    resize(w, h, hz) { W = w; H = h; HZ = hz; lightsKey = ''; },
+    resize(w, h, hz) { W = w; H = h; HZ = hz; lightsKey = ''; moonPos = null; },
+    /** the notch / status bar height (css px): the moon stays below it */
+    safeTop(v) { moonSafeTop = v || 0; },
     /** behind the skyline. s: the scene's frame state { t, dt, L (look), P (palette), cam, tier, motion, force } */
     back(c, s) {
       const { L, P, t, dt, tier, motion } = s;
@@ -658,18 +660,19 @@ export function createFx() {
   // setting on the right, mirrored in the south where it crosses the northern sky), how high comes from its true
   // elevation, mapped into the open sky above the rooftops. It only reaches the skyline at real moonrise / moonset and
   // never sits behind the sign (it passes over it); it glides to a new spot instead of jumping.
-  let moonPos = null;
+  let moonPos = null, moonSafeTop = 0;
   function moonPlace(L, r, sign) {
     const az = L.moon.az, el = L.moon.el;
     const u = L.south ? clamp01((((az + 180) % 360) - 60) / 240) : clamp01((az - 60) / 240);
     const k = clamp01((el + 2) / 40), e = 1 - (1 - k) * (1 - k);
     const top = r + 24, low = HZ * 0.4;
     let x = r + 16 + (W - 2 * r - 32) * u, y = low + (top - low) * e;
-    // phones: the sign spans the screen, so the moon keeps to the open band above it (left to right through the night,
-    // fading in at moonrise and out at moonset), clear of the corner buttons
-    if (sign && sign.w > W * 0.6) {
+    // phones (a portrait screen: the sign spans it): the moon keeps to the open band above the sign, left to right through
+    // the night, fading in at moonrise and out at moonset, clear of the corner buttons and under the notch / status bar
+    if (W < 760 || H > W) {
+      const safe = moonSafeTop;
       x = r + 16 + (W - 2 * r - 86) * u;
-      y = Math.max(r + 14, Math.min(top + 4, sign.y - 52 - r));
+      y = Math.max(safe + r + 8, Math.min(safe + top + 4, sign ? sign.y - r - 12 : safe + top));
     } else if (sign) {
       const sr = { x: sign.x - 34, y: sign.y - 44, w: sign.w + 68, h: sign.h + 50 };
       if (x > sr.x - r && x < sr.x + sr.w + r && y > sr.y - r && y < sr.y + sr.h + r) {

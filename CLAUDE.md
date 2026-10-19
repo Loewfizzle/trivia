@@ -36,6 +36,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   Never read layout (getBoundingClientRect / clientWidth) in a frame loop — sizes come from ResizeObservers. Everything respects `prefers-reduced-motion`.
 - Mobile: `100dvh`, safe-area insets, inputs ≥ 16px, touch targets ≥ 44px. No zoom: `body { touch-action: pan-x pan-y }` +
   iOS `gesturestart` block (the viewport meta deliberately has no `user-scalable=no` — Lighthouse penalizes it).
+- **Taps on plain page areas** (a canvas, an empty div): listen to pointerdown + pointerup, never `click` — iOS Safari does not
+  send `click` to elements it doesn't consider clickable (the title's city taps worked on desktop and silently did nothing on iPhone).
 - Contrast: all text ≥ 4.5:1 on its background (`--text-faint` is the dimmest allowed text color).
 - The app name is `APP_NAME` in `js/config.js` (plus `<title>`/meta tags in `index.html`).
 - **Audio is polish, never a dependency.** Everything must work silently: missing files, locked iOS audio, muted. SFX stay quiet — felt more than heard after 20 minutes.

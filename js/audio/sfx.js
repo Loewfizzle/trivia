@@ -128,6 +128,8 @@ const SOUNDS = {
   invalid: () => { tone({ f: 150, to: 70, dur: 0.18, gain: 0.06, lp: 380, rev: 0.05 }); noise({ dur: 0.08, gain: 0.01, type: 'lowpass', f: 400, rev: 0 }); },
   tick: ({ last = false } = {}) => tone({ f: hz(last ? 'E5' : 'A5'), dur: 0.06, gain: last ? 0.03 : 0.02, lp: 2400, rev: 0.12 }),
   roundEnd: () => ['G4', 'E4', 'C4'].forEach((n, i) => tone({ f: hz(n), at: i * 0.11, dur: 0.9, gain: 0.03, rev: 0.45, dly: 0.1, lp: 1800 })),
+  // the moon: a small glass bell far away — a bell's own partials (1, 2.76, 5.4), long and quiet, deep in the reverb
+  moonBell: () => { [[1, 0.011, 2.6], [2.756, 0.005, 1.7], [5.404, 0.0022, 1.1]].forEach(([k, g, d], i) => tone({ f: hz('E5') * k, at: i * 0.004, dur: d, gain: g, attack: 0.004, lp: 7000, rev: 0.75, dly: 0.22 })); tone({ f: hz('B5') * 1.0015, at: 0.42, dur: 2.2, gain: 0.006, attack: 0.004, lp: 6000, rev: 0.8, dly: 0.25 }); },
   shimmer: () => arp(['C6', 'D6', 'E6', 'G6', 'A6'], 0.04, { dur: 0.25, gain: 0.012, rev: 0.3, dly: 0.25, lp: 7000 }),
   // Last Signal
   strike: () => { noise({ dur: 0.28, gain: 0.04, f: 3200, to: 500, q: 0.9, rev: 0.25 }); tone({ f: 120, to: 50, at: 0.12, dur: 0.3, gain: 0.09, lp: 500, rev: 0.15 }); },

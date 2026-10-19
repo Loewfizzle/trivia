@@ -729,11 +729,12 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     },
     signOn: () => P.sign > 0.5,
     refresh: () => { lookAt = 0; skyKey = ''; },
+    safeTop: v => fx.safeTop(v),
     get state() { return S; },
     get tier() { return tier; },
     setTier,
     frames: () => frames.slice(),
-    debug: () => ({ tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), billboards: billboards.length, textures: textures.filter(Boolean).length, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, moon: LK.moon, fx: fx.debug() }),
+    debug: () => ({ bills: billboards.filter(b => b.gid).map(b => ({ x: b.sx, y: b.sy, w: b.w, h: b.h, id: b.gid })), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), billboards: billboards.length, textures: textures.filter(Boolean).length, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, moon: LK.moon, fx: fx.debug() }),
     destroy() {
       destroyed = true;
       stop();

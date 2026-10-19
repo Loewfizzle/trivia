@@ -80,7 +80,7 @@ the street outside: the district, the sign over the door.
   leaving the sign and the living city. Any touch brings them back and presses nothing (the waking tap is swallowed); on
   desktop moving the mouse wakes it. Not while a sheet is open, the code boxes are open or a room is being made. Local test
   runs (`?emu`) only fade when asked (`&idle=1` or `__district.idle()`).
-- **Easter eggs** (taps on the city, `scene.hit(x, y)` → `fx.hit`):
+- **Easter eggs** (taps on the city — from pointerdown/pointerup, not click, which iOS never sends to the city — `scene.hit(x, y)` → `fx.hit`; the moon rings a soft far-off bell, `sfx('moonBell')`):
   - windows: tap one to switch its light on or off (it stays that way);
   - the sign: tap a letter and that tube stutters (by day it sparks to life for a moment);
   - the moon: a soft swell of light and circling sparkles; three taps in five seconds send a shooting star off it;
@@ -96,6 +96,6 @@ the street outside: the district, the sign over the door.
 - THE BOARD plays menu3.mp3 (app.js#musicFor).
 - **The moon's place** (fx.js#moonPlace): its real path, framed. How far along its arc comes from the true azimuth (rising
   left, setting right; mirrored in the south), how high from the true elevation, mapped into the open sky above the rooftops
-  (desktop: the full arc, passing over the sign, never behind it). On phones the sign spans the screen, so the moon keeps to
-  the band above it, moving left to right through the night and fading in / out at moonrise / moonset, clear of the corner
+  (desktop: the full arc, passing over the sign, never behind it). On phones (any portrait screen, or narrower than 760 px — not judged by the sign's size, which shrinks on short screens) the moon keeps to
+  the band above it, below the notch, moving left to right through the night and fading in / out at moonrise / moonset, clear of the corner
   buttons. It glides to a new spot instead of jumping.
