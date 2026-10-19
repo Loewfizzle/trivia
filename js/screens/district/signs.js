@@ -473,17 +473,21 @@ export function createSigns({ games: allGames = [] } = {}) {
       env = { W: o.W, H: o.H, HZ: o.HZ };
       if (!games.length) return;
       const key = `${o.W}|${o.H}|${(o.clear || []).map(z => `${Math.round(z.x / 40)},${Math.round(z.y / 40)},${Math.round(z.w / 40)},${Math.round(z.h / 40)}`).join(';')}`;
-      if (key !== placedKey && o.clear) {
+      if (key !== placedKey && o.clear && o.bill > 0.01) {
         placedKey = key;
         signs = place(o.layers, o.clear);
         const flips = signs.filter(s => s.type !== 'ticker');
         canShow = (i, g) => flips[i].type !== 'blade' || bladeWord(games[g]).length <= flips[i].cap;
         rot = { ...createRotation(flips.length, games.length, Math.floor(Math.random() * games.length), canShow), at: t };
-        flips.forEach((s, i) => { setup(s, o.L); dress(s, rot.shown[i]); });
-        signs.filter(s => s.type === 'ticker').forEach(s => setup(s, o.L));
+        flips.forEach((s, i) => { s.pendingGame = rot.shown[i]; });
+        signs.forEach(s => { s.pending = true; });
         lastOn = false; tickerMsg = '';
         overKey = '';
       }
+      // one sign's images per frame (they're the expensive part; the first frames stay smooth)
+      const nx = signs.find(s => s.pending);
+      if (nx) { setup(nx, o.L); if (nx.type !== 'ticker') dress(nx, nx.pendingGame); nx.pending = false; if (signs.some(s => s.pending)) { api._t = t; api._motion = o.motion; api._tier = o.tier; return; } overKey = ''; }
+      if (signs.some(s => s.pending) || !signs.length) { api._t = t; return; }
       // holiday dress: re-render the tubes when the holiday's colours change
       const ok = `${o.L.holiday ? o.L.holiday.id + (o.L.holiday.full ? 'F' : '') : ''}`;
       if (ok !== overKey) {
@@ -527,7 +531,7 @@ export function createSigns({ games: allGames = [] } = {}) {
     drawLayer(c, li, ox, oy, night) {
       const t = api._t || 0, motion = api._motion;
       for (const s of signs) {
-        if (s.li !== li) continue;
+        if (s.li !== li || s.pending) continue;
         const x = ox + s.x, y = oy + s.y;
         s.sx = x; s.sy = y;
         const depth = NEAR_ALPHA[li];
