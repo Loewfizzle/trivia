@@ -78,7 +78,8 @@ test('sky events: shower peaks, rare single stars, rare aurora nights', () => {
   assert.ok(meteorsOf(2026, 8, 12).rate > meteorsOf(2026, 8, 13).rate && meteorsOf(2026, 8, 13).rate > meteorsOf(2026, 9, 2).rate);
   assert.ok(meteorsOf(2026, 9, 2).rate <= 0.15, 'an ordinary night: a rare shooting star');
   let n = 0, total = 0;
-  for (let y = 2026; y < 2030; y++) for (const m of [12, 1, 2]) for (let d = 1; d <= 28; d++) { total++; if (auroraNight(y, m, d, false)) n++; }
-  assert.ok(n / total > 0.04 && n / total < 0.15, `aurora on ${n} of ${total} winter nights`);
-  assert.equal(auroraNight(2026, 7, 10, false), false, 'never in the northern summer');
+  for (let y = 2026; y < 2030; y++) for (let m = 1; m <= 12; m++) for (let d = 1; d <= 28; d++) { total++; if (auroraNight(y, m, d, false)) n++; }
+  assert.ok(n / total > 0.15 && n / total < 0.25, `aurora on ${n} of ${total} nights`);
+  let summer = 0; for (let d = 1; d <= 31; d++) if (auroraNight(2026, 7, d, false)) summer++;
+  assert.ok(summer > 0, 'summer nights get aurora too');
 });

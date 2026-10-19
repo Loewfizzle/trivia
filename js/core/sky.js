@@ -205,10 +205,10 @@ export function meteorsOf(y, m, d) {
   }
   return { rate: 0.1, shower: null };
 }
-/** A rare aurora night: winter nights, ~1 in 11, the same night for everyone (seeded by the date). */
+/** An aurora night: any time of year, about 1 night in 5, the same night for everyone (seeded by the date). */
 export function auroraNight(y, m, d, south) {
-  const winter = south ? m >= 5 && m <= 8 : m === 11 || m === 12 || m <= 2;
-  return winter && hash(`aurora:${y}-${m}-${d}`) % 11 === 0;
+  void south;
+  return hash(`aurora:${y}-${m}-${d}`) % 5 === 0;
 }
 /** Rain: some evenings are wet (seeded by the date and a 4-hour block, the same for everyone in a zone). */
 export function rainOf(y, m, d, h) {

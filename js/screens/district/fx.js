@@ -10,7 +10,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-const CAPS = [{ snow: 50, petals: 4, leaves: 3, flies: 10, fw: 70, aurora: 0 }, { snow: 110, petals: 6, leaves: 5, flies: 18, fw: 150, aurora: 36 }, { snow: 190, petals: 8, leaves: 7, flies: 26, fw: 260, aurora: 64 }];
+const CAPS = [{ snow: 50, petals: 4, leaves: 3, flies: 10, fw: 70, aurora: 40 }, { snow: 110, petals: 6, leaves: 5, flies: 18, fw: 150, aurora: 64 }, { snow: 190, petals: 8, leaves: 7, flies: 26, fw: 260, aurora: 96 }];
 
 export function createFx() {
   const sprites = new Map();
@@ -476,7 +476,13 @@ export function createFx() {
 
   function aurora(c, t, strips, motion, dark) {
     if (!strips) return;
-    const band = sprite('aur', 8, 128, (x, w, h) => { const g = x.createLinearGradient(0, h, 0, 0); g.addColorStop(0, 'rgba(60,255,170,0)'); g.addColorStop(0.08, 'rgba(70,255,170,0.85)'); g.addColorStop(0.45, 'rgba(90,230,200,0.35)'); g.addColorStop(0.8, 'rgba(170,110,255,0.22)'); g.addColorStop(1, 'rgba(170,110,255,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+    // one soft strand: the curtain's colour bottom to top, feathered to nothing at both sides so neighbours melt together
+    const band = sprite('aur2', 48, 128, (x, w, h) => {
+      const g = x.createLinearGradient(0, h, 0, 0); g.addColorStop(0, 'rgba(60,255,170,0)'); g.addColorStop(0.08, 'rgba(70,255,170,0.85)'); g.addColorStop(0.45, 'rgba(90,230,200,0.35)'); g.addColorStop(0.8, 'rgba(170,110,255,0.22)'); g.addColorStop(1, 'rgba(170,110,255,0)');
+      x.fillStyle = g; x.fillRect(0, 0, w, h);
+      const m = x.createLinearGradient(0, 0, w, 0); m.addColorStop(0, 'rgba(0,0,0,0)'); m.addColorStop(0.5, 'rgba(0,0,0,1)'); m.addColorStop(1, 'rgba(0,0,0,0)');
+      x.globalCompositeOperation = 'destination-in'; x.fillStyle = m; x.fillRect(0, 0, w, h);
+    });
     c.globalCompositeOperation = 'lighter';
     const tt = motion ? t : 0;
     for (const [base, amp, ph, sp, a] of [[0.72, 0.06, 0, 0.11, 0.5], [0.62, 0.05, 2.2, 0.08, 0.34]]) {
@@ -485,8 +491,9 @@ export function createFx() {
         const x = u * W * 1.1 - W * 0.05;
         const y = HZ * (base + amp * Math.sin(u * 7 + tt * sp * 3 + ph) + 0.03 * Math.sin(u * 23 + tt * sp * 7));
         const hgt = HZ * (0.22 + 0.1 * Math.sin(u * 5 + tt * sp * 2 + ph));
-        c.globalAlpha = a * dark * (0.72 + 0.28 * Math.sin(u * 5 + tt * 0.6 + ph)) * Math.sin(Math.PI * u);
-        c.drawImage(band, x, y - hgt, W / strips * 3.2, hgt);
+        const bw = W / strips * 7;   // wide, overlapping strands: the sum is one smooth curtain
+        c.globalAlpha = a * dark * 0.75 * (0.72 + 0.28 * Math.sin(u * 5 + tt * 0.6 + ph)) * Math.sin(Math.PI * u);
+        c.drawImage(band, x - bw / 2, y - hgt, bw, hgt);
       }
     }
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';

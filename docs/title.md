@@ -44,7 +44,7 @@ the street outside: the district, the sign over the door.
   the sun's elevation (`night`, `late` (00:30–05:00), `dawn` (mornings), `day`, `golden` (evenings)), the season (blended at
   the edges, flipped in the south), the holiday with its build-up (`holidayOf`: Halloween, Thanksgiving, Christmas (all of
   December builds up), New Year's Eve, Valentine's, St. Patrick's, Easter (computed), the Fourth), meteor showers on their
-  peaks (±1 day) and a rare single star on any clear night, rare winter aurora nights (seeded by date: the same for everyone),
+  peaks (±1 day) and a rare single star on any clear night, aurora on about one night in five, any time of year (seeded by date: the same for everyone),
   rainy hours (seeded per 4-hour block), snow in winter (and always on the Christmas nights), and the NYE countdown / finale
   (the last 10 minutes before the local midnight, the first 5 after).
 - **The palette** (`district/palette.js`): a full colour set per look (night, late, dawn, a hazy matinee day, golden hour),
