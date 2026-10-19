@@ -84,10 +84,30 @@ export function createAircraft() {
   // sky), never below the towers' tops where they'd only be hidden; the top stays clear of the status bar / notch
   const skyTop = s => Math.max(26, (s.safeTop || 0) + 14);
   const skyBottom = () => HZ * (W > H ? 0.55 : 0.5);
+  function aboveRoofs(p, sky, upTo) {
+    if (!sky) return true;
+    for (let k = 0; k <= upTo; k += 0.02) {
+      const x = p.x0 + (p.x1 - p.x0) * k, y = p.y0 + (p.y1 - p.y0) * k;
+      const i = Math.round(x / 4);
+      if (i >= 0 && i < sky.length && y > sky[i] - 12) return false;
+    }
+    return true;
+  }
   function spawnPlane(s, approach) {
     // cruise: anywhere in the sky; approach: the lower part of it, always descending, landing lights on
     const top = approach ? Math.max(skyTop(s), HZ * 0.22) : skyTop(s), bottom = skyBottom();
-    const path = planPath({ W, top, bottom, minSlope: approach ? 0.05 : 0.03, maxSlope: approach ? 0.12 : 0.15 });
+    // a path that stays above the rooftops all the way across (an approach: until its last quarter, where it may sink behind
+    // the towers toward the field) — on a portrait phone the side towers reach up beside the tagline, and a plane low
+    // there would only be seen going behind them. The highest roof is the fallback ceiling.
+    let path = null;
+    for (let i = 0; i < 14 && !path; i++) {
+      const p = planPath({ W, top, bottom, minSlope: approach ? 0.05 : 0.03, maxSlope: approach ? 0.12 : 0.15 });
+      if (p && aboveRoofs(p, s.skyline, approach ? 0.75 : 1)) path = p;
+    }
+    if (!path && s.skyline) {
+      let hi = HZ; for (const y of s.skyline) if (y < hi) hi = y;
+      if (hi - 12 > top + 20) path = planPath({ W, top, bottom: hi - 12, minSlope: 0.03, maxSlope: 0.15 });
+    }
     if (!path) return null;
     if (approach && path.y1 < path.y0) { [path.y0, path.y1] = [path.y1, path.y0]; path.slope = (path.y1 - path.y0) / (path.x1 - path.x0); }   // descending toward the field
     const alt = approach ? 0 : 0.35 + Math.random() * 0.65;          // 1 = high and far
@@ -121,7 +141,7 @@ export function createAircraft() {
         const form = smooth(0.15, 1.4, q.age);                         // it forms a little behind the plane
         const fade = Math.pow(1 - q.age / life, 1.4);
         const r = (1.3 + (s.motion ? q.age * 0.15 : 0)) * Math.max(0.85, sc) * (0.8 + 0.4 * (1 - p.alt));   // spreading as it ages
-        c.globalAlpha = (day > 0.5 ? 0.42 : 0.32) * form * fade * vis;
+        c.globalAlpha = (day > 0.5 ? 0.55 : 0.36) * form * fade * vis;
         c.drawImage(puff(...tc), q.x - r * 2, q.y - r * 2, r * 4, r * 4);
         return true;
       });
@@ -131,10 +151,15 @@ export function createAircraft() {
     // a body by day and at sunset: a small dark silhouette against a bright sky, catching a glint of sun
     const bodyA = clamp01(day + golden + dawn) * (1 - dark) * edge * (wet ? 0.3 : 1);
     if (bodyA > 0.02) {
-      const len = Math.max(8, 10 * sc);
+      // by day, up in the deep blue, a plane is lit by the sun: a silver body (a dark speck there all but vanishes); down in the
+      // pale haze over the rooftops it reads as a dark silhouette. At sunset / dawn the sky is bright: a silhouette.
+      const len = Math.max(W < 760 ? 12 : 9, (W < 760 ? 12.5 : 10) * sc);
+      const high = 1 - smooth(skyTop(s) + 30, skyBottom() * 0.95, y);
+      const silver = day > 0.5 ? high * clamp01((day - golden - dawn) * 1.5) : 0;
+      const col = [46 + (226 - 46) * silver, 52 + (232 - 52) * silver, 70 + (242 - 70) * silver].map(Math.round);
       c.save(); c.translate(x, y); c.rotate(Math.atan(p.slope)); c.scale(p.dir, 1);
-      c.globalAlpha = bodyA * (day > 0.5 ? 0.85 : 0.9);
-      c.fillStyle = day > 0.5 ? 'rgba(46,52,70,1)' : 'rgba(24,16,30,1)';
+      c.globalAlpha = bodyA * (day > 0.5 ? 0.92 : 0.9);
+      c.fillStyle = day > 0.5 ? `rgb(${col})` : 'rgba(24,16,30,1)';
       c.beginPath(); c.ellipse(0, 0, len * 0.5, len * 0.07, 0, 0, TAU); c.fill();                         // fuselage
       c.beginPath(); c.moveTo(len * 0.06, 0); c.lineTo(-len * 0.16, -len * 0.3); c.lineTo(-len * 0.24, -len * 0.3); c.lineTo(-len * 0.08, 0); c.fill();   // far wing
       c.beginPath(); c.moveTo(len * 0.06, 0); c.lineTo(-len * 0.14, len * 0.22); c.lineTo(-len * 0.22, len * 0.22); c.lineTo(-len * 0.08, 0); c.fill();   // near wing
@@ -142,7 +167,7 @@ export function createAircraft() {
       c.restore();
       // the sun on its skin: a tiny bright glint (gold at sunset)
       const glint = (day * 0.9 + (golden + dawn) * 0.5) * edge * (0.75 + 0.25 * Math.sin(t * 0.8 + p.ph));
-      if (glint > 0.03) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = glint * 0.8; const g = day > 0.5 ? [255, 252, 238] : [255, 214, 160]; c.drawImage(glow(...g), x - 3 * sc, y - 3 * sc, 6 * sc, 6 * sc); c.globalCompositeOperation = 'source-over'; }
+      if (glint > 0.03) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, glint * (0.8 + 0.4 * silver)); const g = day > 0.5 ? [255, 252, 238] : [255, 214, 160]; c.drawImage(glow(...g), x - 3 * sc, y - 3 * sc, 6 * sc, 6 * sc); c.globalCompositeOperation = 'source-over'; }
       c.globalAlpha = 1;
     }
     // the lights: after dusk (faint in rain, soft in fog)
