@@ -12,14 +12,14 @@ the street outside: the district, the sign over the door.
   Every later visit plays the same full boot without the gate; stepping back from the name / profile screen gets a quick
   ≈1.2 s re-light (`sessionStorage nd:back`, set by setup.js). The boot screen never takes taps (`#boot { pointer-events: none }`).
   A tap anywhere skips. REDUCED EFFECTS (settings, now global: `settings.reducedFx`, also PRISM DROP) or prefers-reduced-motion:
-  a 0.7 s fade, no drift / rain motion / vehicles / showcase drift. Every ~20–40 s one letter gives a tiny flicker.
+  a 0.7 s fade, no drift / rain motion / showcase drift. Every ~20–40 s one letter gives a tiny flicker.
 - **Scene** (`district/scene.js`, Canvas 2D like PULSE): sky + 4 skyline layers far→near (each pre-rendered DARK + LIT, the
-  lit one with a baked bloom), haze at each layer's feet, beacons, two searchlights, flying-vehicle light trails, holographic
+  lit one with a baked bloom), haze at each layer's feet, beacons, two searchlights, planes and satellites (aircraft.js), holographic
   billboards cycling the games' own art (one per side per near layer), the wet street with the whole city reflected and
   rippling, light streaks under the billboards and the sign, puddle ripples, two rain layers, a vignette. Once fully on, each
   layer + its haze and the street + its reflection are BAKED into one image each (~35 drawImage calls a frame); every
   gradient is a cached sprite. Parallax: a slow drift + device tilt (deviceorientation, never asks for permission — iOS just
-  doesn't send it) + the mouse on desktop. Tiers 2/1/0 (DPR 2/1.5/1, rain layers, shimmer, vehicles, ripples) step down when
+  doesn't send it) + the mouse on desktop. Tiers 2/1/0 (DPR 2/1.5/1, rain layers, shimmer, ripples) step down when
   the p75 frame > 19.5 ms; rendering stops while the tab is hidden; `destroy()` zeroes every canvas when the title leaves
   (the scene element lives on <body>, behind #stage). Measured: 60 fps at every tier at 4× CPU (GPU); 6 title↔setup
   cycles leave one scene and no heap growth.
@@ -131,8 +131,7 @@ the street outside: the district, the sign over the door.
     neon; tap it and it springs away (back in a few minutes);
   - the UFO: on clear nights every 8–18 min a polished saucer glides in, hovers over a rooftop and lowers a beam (motes
     drift up it), then zips off with afterimages; tap it and it leaves at once;
-  - a satellite train: rarely (every 15–30 min on clear nights) a line of points glides across the sky, each fading in and
-    out of the earth's shadow.
+  - satellites: see AIR TRAFFIC + SATELLITES below (the old satellite train was replaced).
   - Force them in a preview: `&force=ufo,cat,satellites`.
 - **Christmas lights** are now rooflines outlined in bulbs, strings down corners and between close roofs (5 buildings on
   Dec 1 → 18 on the 24th), baked once into a canvas with a few bulbs twinkling on top.
@@ -220,3 +219,27 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **The O dresses up** (title.js#swapO): on Halloween's full days it becomes a neon jack-o'-lantern (gold face, green stem), on
   St. Patrick's a four-leaf clover — bent in the same tube recipe as the letters, so they power on and flicker with the sign.
   Glows are filtered as one group (a filter per small path clips into visible boxes).
+
+## AIR TRAFFIC + SATELLITES (Oct 19, 2026) — `district/aircraft.js` (replaced the flying light streaks and the old satellite train)
+- **Planes**, simulated (no flight data, no network): a few minutes apart, by the local hour (`trafficRate`: busiest in the
+  evening, steady by day, quieter late, very rare 2–5 am; ≥ 45 s apart, never bunched); 1–2 on screen on a phone, up to 3 on a
+  desktop (1 at the lowest tier). Each flies its own straight path, never level (climbing or descending a little), either way,
+  at its own height (high = small, faint, slow: 20–40 s to cross), some drifting toward or away from us; now and then (≈ 1 in 8,
+  6 am–11:30 pm) an APPROACH, bigger and descending, landing lights on.
+- **Where:** in the sky layer, behind the clouds and the skyline, planned through open sky only (`planPath` against the title's
+  clear zones: never across the sign, the tagline or the dock; the little round corner buttons don't count). The towers hide
+  everything under the tagline, so most planes (and every approach) use the strip of sky above the sign, the climb fitted to
+  its height. Nothing is planned before the sign's place is known.
+- **Look:** night — lights only: red on the left wingtip, green on the right (as seen for its direction, `navLights`: the near
+  wingtip a little higher), a white strobe double-flashing about once a second, a slow red beacon; small crisp points on soft
+  glows. Sunset / dawn — a small dark silhouette, a contrail catching the pink-gold light; day — a glint of sun, a thin white
+  contrail; contrails form a little behind the plane, spread and fade over ~25 s and drift with the wind. Weather: behind the
+  clouds; rain — fewer, lights only and faint; fog — softer, blurred lights; no contrails in rain or under overcast (and nothing
+  seen by day above an overcast).
+- **Satellites:** only in the twilight hours (`satTwilight`: the sun 6–18° down — a dark sky, satellites still sunlit), clear
+  skies: a single faint steady point every 5–10 min; on about one evening / morning in four or five (`starlinkNight`, seeded by
+  the date: the same nights for everyone) a STARLINK TRAIN once — 20–40 evenly spaced steady points on a straight gentle
+  diagonal, fading into the earth's shadow partway across in the evening (out of it before dawn); hidden where they cross the moon.
+- **Reduced effects:** fewer planes, steady lights (no strobe), contrails that don't spread; satellites as usual.
+- **Preview:** `&force=planes` (a plane every ~9 s), `&force=approach`, `&force=satellites` (a train now), `&force=sat`;
+  `&force=no-planes` switches them off (performance checks). Tests: `tests/aircraft.test.mjs`, `tests/integration/e2e-sky.mjs`.

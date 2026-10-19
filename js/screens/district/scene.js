@@ -1,7 +1,7 @@
 // NEON SPEAKEASY — the title screen's city (the neon district outside the bar) (Canvas 2D, PULSE-style: everything expensive is pre-rendered).
 //
 //   sky (+ stars, horizon glow) -> 4 skyline layers far→near, each with haze at its feet -> beacons, the signs,
-//   flying-vehicle light trails -> the wet street: the whole city reflected (flipped, squashed, streaked,
+//   planes and satellites (aircraft.js) -> the wet street: the whole city reflected (flipped, squashed, streaked,
 //   rippling), sign + logo light spilling onto it, puddle ripples -> rain over everything.
 //
 // Every skyline layer is drawn once into two offscreen canvases: DARK (silhouettes, unlit window glass) and LIT
@@ -12,7 +12,7 @@
 // hour, night, the small hours; the real sun and moon; the season, holidays and sky events (fx.js). The look is
 // recomputed every few seconds; the sky, each layer's composite (tinted silhouettes + the windows lit right now) and the
 // reflection are re-baked only when it visibly changes (look.key / the window count), so a steady frame stays cheap.
-// Quality tiers (DPR 2 / 1.5 / 1, rain, shimmer, vehicles, ripples) step down when frames run slow; rendering
+// Quality tiers (DPR 2 / 1.5 / 1, rain, shimmer, ripples) step down when frames run slow; rendering
 // pauses while the tab is hidden; destroy() releases every canvas.
 import { createSigns } from './signs.js';
 import { createStars } from './stars.js';
@@ -22,9 +22,9 @@ import { createFx } from './fx.js';
 import { settings } from '../../audio/settings.js';
 
 const TIERS = [
-  { dpr: 1, rain: 0, shimmer: false, vehicles: false, ripples: false },
-  { dpr: 1.5, rain: 1, shimmer: true, vehicles: true, ripples: false },
-  { dpr: 2, rain: 2, shimmer: true, vehicles: true, ripples: true },
+  { dpr: 1, rain: 0, shimmer: false, ripples: false },
+  { dpr: 1.5, rain: 1, shimmer: true, ripples: false },
+  { dpr: 2, rain: 2, shimmer: true, ripples: true },
 ];
 const WARM = ['#ffd8a0', '#ffcf8a', '#ffe2b8', '#ffc27a'];
 const COOL = ['#9fd8ff', '#b8e4ff', '#8fc2ff', '#c9b8ff'];
@@ -53,7 +53,6 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   const signs = createSigns({ games: withSigns ? games : [] });
   const stars = createStars();
   let beacons = [];
-  let vehicles = [];
   let raf = 0, last = 0, running = false, destroyed = false;
   // the living sky
   const fx = createFx();
@@ -66,11 +65,13 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let birds = { resize: NOOP, sky: NOOP, low: NOOP, mid: NOOP, hit: () => null, debug: () => ({}) };
   let liveWeather = () => null;
   let frost = { resize: NOOP, pane: NOOP, decorate: NOOP, debug: () => ({}), destroy: NOOP };
+  let air = { resize: NOOP, draw: NOOP, debug: () => ({}) };      // planes + satellites (aircraft.js)
+  let safeTopV = 0;
   setTimeout(() => {
-    Promise.all([import('./weather-fx.js'), import('./rain.js'), import('./wildlife.js'), import('./street.js'), import('./live-weather.js'), import('./frost.js')]).then(([a, b, c, d, e, f]) => {
+    Promise.all([import('./weather-fx.js'), import('./rain.js'), import('./wildlife.js'), import('./street.js'), import('./live-weather.js'), import('./frost.js'), import('./aircraft.js')]).then(([a, b, c, d, e, f, g]) => {
       if (destroyed) return;
-      wfx = a.createWeatherFx({ onFlash: ev => { if (S.onFlash) S.onFlash(ev); } }); rain = b.createRain(); birds = c.createWildlife(); road = d.createStreet(); frost = f.createFrost();
-      for (const m of [wfx, rain, birds, road, frost]) m.resize(W, H, HZ);
+      wfx = a.createWeatherFx({ onFlash: ev => { if (S.onFlash) S.onFlash(ev); } }); rain = b.createRain(); birds = c.createWildlife(); road = d.createStreet(); frost = f.createFrost(); air = g.createAircraft();
+      for (const m of [wfx, rain, birds, road, frost, air]) m.resize(W, H, HZ);
       if (LK.freeze > 0.02) for (const L of layers) L.compKey = '';      // re-bake the rows for the icicles (only on a freezing day)
       if (!clock.preview) e.startWeather();
       liveWeather = e.liveWeather;
@@ -91,7 +92,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     bill: 0,                 // 0..1 the signs booting
     logo: 0,                 // 0..1 the neon sign's glow (its light on the haze and the street)
     logoRect: null,          // { x, y, w, h } in css px
-    motion: 1,               // 0 = reduced effects (no drift, no rain motion, no vehicles)
+    motion: 1,               // 0 = reduced effects (no drift, no rain motion; planes fewer, lights steady)
   };
   let cam = { x: 0, y: 0, tx: 0, ty: 0 };
   const t0 = performance.now();
@@ -178,13 +179,12 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     refl = null; reflLit = reflection(true);
     nearRoofs = layers[layers.length - 1].rects.filter(r => r.h > HZ * 0.08);
     fx.resize(W, H, HZ);
-    wfx.resize(W, H, HZ); rain.resize(W, H, HZ); birds.resize(W, H, HZ); road.resize(W, H, HZ); frost.resize(W, H);
+    wfx.resize(W, H, HZ); rain.resize(W, H, HZ); birds.resize(W, H, HZ); road.resize(W, H, HZ); frost.resize(W, H); air.resize(W, H, HZ);
     vignette = mk(W * dpr / 2, H * dpr / 2);
     const vx = vignette.getContext('2d');
     const vg = vx.createRadialGradient(vignette.width / 2, vignette.height * 0.42, Math.min(vignette.width, vignette.height) * 0.3, vignette.width / 2, vignette.height * 0.45, Math.max(vignette.width, vignette.height) * 0.75);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(1,1,6,0.62)');
     vx.fillStyle = vg; vx.fillRect(0, 0, vignette.width, vignette.height);
-    vehicles = [];
   }
 
   function paintSky() {
@@ -429,7 +429,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     refreshLook(performance.now());
     const lit = S.lit;
     const night = nightness();
-    const fs = { L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, firstSnow: S.firstSnow || 0 };
+    const fs = { L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV };
     // sky
     c.globalAlpha = 1;
     c.drawImage(skyLit, 0, cam.y * 0.1, W, HZ);
@@ -443,6 +443,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     fs.moonVeil = wfx.moonVeil(LK);       // thick cloud swallows the moon's disc (weather-fx draws its glow through it)
     fx.back(c, fs);
     // the weather behind the skyline: clouds (the moon through them), lightning, distant shafts of rain
+    // planes and satellites: in the sky, behind the clouds and the skyline, never across the sign or the buttons
+    if (!clock.force.has('no-planes')) air.draw(c, fs);
     const off = clock.force;           // test only: &force=no-clouds,no-road,no-birds,no-rain (performance checks)
     if (!off.has('no-clouds')) wfx.sky(c, fs);
     if (!off.has('no-rain')) rain.veils(c, fs);
@@ -458,9 +460,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       c.globalAlpha = 1;
       c.globalCompositeOperation = 'source-over';
     }
-    // two searchlights sweep slowly behind the skyline; vehicles fly between the far layers (after dark)
+    // two searchlights sweep slowly behind the skyline (after dark)
     if (lit > 0.2 && night > 0.1) { const sl = searchOn(); if (sl > 0.01) searchlights(c, t, lit * night * sl); }
-    if (TIERS[tier].vehicles && S.motion && lit > 0.5 && night > 0.3) vehiclesStep(t, dt, night);
     // the signs: placement (around the title's clear zones), power, rotation, the ticker
     signs.tick(t, dt, { W, H, HZ, layers, clear: S.clear, L: LK, P, bill: S.bill, motion: S.motion, tier });
     // skyline layers + haze
@@ -619,27 +620,6 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     }
   }
 
-  function vehiclesStep(t, dt, a) {
-    if (vehicles.length < 2 && Math.random() < dt / 7000) {
-      const dir = Math.random() < 0.5 ? 1 : -1;
-      vehicles.push({ x: dir > 0 ? -80 : W + 80, y: HZ * (0.25 + Math.random() * 0.35), v: (40 + Math.random() * 70) * dir, d: 0.2 + Math.random() * 0.3, len: 50 + Math.random() * 90 });
-    }
-    const c = ctx;
-    c.globalCompositeOperation = 'lighter';
-    vehicles = vehicles.filter(v => {
-      v.x += v.v * dt / 1000;
-      const x = v.x + cam.x * v.d, y = v.y + cam.y * v.d + Math.sin(t * 0.8 + v.len) * 2;
-      const tail = x - Math.sign(v.v) * v.len;
-      const g = c.createLinearGradient(tail, 0, x, 0);
-      g.addColorStop(0, 'rgba(255,220,180,0)'); g.addColorStop(1, `rgba(255,226,190,${0.5 * a})`);
-      c.strokeStyle = g; c.lineWidth = 1.2; c.beginPath(); c.moveTo(tail, y); c.lineTo(x, y); c.stroke();
-      c.fillStyle = `rgba(255,250,240,${0.9 * a})`; c.fillRect(x - 1.2, y - 1.2, 2.4, 2.4);
-      if ((t * 2 + v.len) % 1 < 0.15) { c.fillStyle = 'rgba(255,60,80,0.9)'; c.fillRect(x - Math.sign(v.v) * 5 - 1, y + 1, 2, 2); }
-      return v.x > -200 && v.x < W + 200;
-    });
-    c.globalCompositeOperation = 'source-over';
-  }
-
   function perf(dt) {
     frames.push(dt);
     if (frames.length > 90) frames.shift();
@@ -696,12 +676,12 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     palette: () => P,
     signCol: () => S.signCol || null,
     refresh: () => { lookAt = 0; skyKey = ''; },
-    safeTop: v => fx.safeTop(v),
+    safeTop: v => { safeTopV = v || 0; fx.safeTop(v); },
     get state() { return S; },
     get tier() { return tier; },
     setTier,
     frames: () => frames.slice(),
-    debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug() }),
+    debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug() }),
     destroy() {
       destroyed = true;
       stop();

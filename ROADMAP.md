@@ -355,6 +355,16 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ AIR TRAFFIC + SATELLITES (Oct 19, 2026) — `docs/title.md`, `district/aircraft.js`
+- [x] The old flying light streaks and the old satellite train removed
+- [x] Simulated planes by the local hour (busiest evenings, very rare 2–5 am, minutes apart), never level, at their own heights
+      and speeds, behind the clouds and the skyline, never across the sign / tagline / dock (on phones: the strip above the sign)
+- [x] Night: red / green nav lights correct for the direction, a double-flash strobe, a red beacon; approach planes with landing
+      lights; sunset / dawn silhouettes and day glints with contrails that spread and fade; rain / fog / overcast respected
+- [x] Satellites only in twilight on clear skies: single faint points; a Starlink train on about one evening in four or five
+      (seeded by date), fading into the earth's shadow; Reduced effects: fewer planes, steady lights
+- [x] Preview: `&force=planes,approach,satellites,sat`; tests: aircraft.test.mjs + e2e-sky.mjs (incl. 60 fps at 4× CPU)
+
 ### ✅ LIVE WEATHER + the city's life (Oct 19, 2026) — `docs/title.md`
 - [x] Real local weather: `/api/sky` (Vercel IP location, rounded ~35 miles, Open-Meteo, 15-min cache per area); the sun, moon and
       stars from the real place; the seeded fake rain removed (no weather = a dry city)

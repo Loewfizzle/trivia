@@ -23,7 +23,6 @@ export function createFx() {
   let ufo = null, nextUfo = 180 + Math.random() * 360, ufoBits = [];
   let cat = null, catGone = 0;
   let lastMoon = null, shimmer = 0, moonTaps = [];
-  let sats = null, nextSats = 300 + Math.random() * 900;
   const BAT_NEON = [[190, 90, 255], [255, 140, 50], [80, 255, 140], [255, 80, 190], [80, 220, 255], [255, 230, 90]];
   let W = 1, H = 1, HZ = 1;
   let lights = null, lightsKey = '';
@@ -200,31 +199,6 @@ export function createFx() {
           return true;
         });
         c.globalCompositeOperation = 'source-over';
-      }
-      // a satellite train: rarely, on clear nights, a line of evenly spaced points gliding across the sky; each one
-      // brightens as it leaves the earth's shadow and fades as it goes back in
-      if (motion && (s.force.has('satellites') && !s.satsDone || (dark > 0.6 && L.clear && !sats && (nextSats -= dt / 1000) <= 0))) {
-        if (!sats) {
-          s.satsDone = true; nextSats = 900 + Math.random() * 900;
-          const dir = Math.random() < 0.5 ? 1 : -1, n = 22 + Math.floor(Math.random() * 14);
-          const y0 = HZ * (0.06 + Math.random() * 0.2), y1 = y0 + HZ * (0.12 + Math.random() * 0.22);
-          sats = { k: 0, dur: 38 + Math.random() * 14, dir, y0, y1, n, gap: 0.016 + Math.random() * 0.006, list: Array.from({ length: n }, () => ({ b: 0.6 + Math.random() * 0.4, ph: Math.random() * TAU })) };
-        }
-      }
-      if (sats) {
-        sats.k += dt / 1000 / sats.dur;
-        c.globalCompositeOperation = 'lighter';
-        for (let i = 0; i < sats.n; i++) {
-          const u = sats.k * (1 + sats.n * sats.gap) - i * sats.gap;     // each one a little behind the one ahead
-          if (u <= 0 || u >= 1) continue;
-          const fade = Math.min(1, u / 0.12, (1 - u) / 0.12);
-          const x = sats.dir > 0 ? -10 + u * (W + 20) : W + 10 - u * (W + 20), y = sats.y0 + (sats.y1 - sats.y0) * u;
-          const p = sats.list[i], a = fade * p.b * (0.85 + 0.15 * Math.sin(t * 3 + p.ph)) * dark;
-          c.globalAlpha = 0.5 * a; c.drawImage(glow([220, 232, 255]), x - 4, y - 4, 8, 8);
-          c.globalAlpha = a; c.fillStyle = '#f4f7ff'; c.fillRect(x - 0.6, y - 0.6, 1.2, 1.2);
-        }
-        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-        if (sats.k >= 1) sats = null;
       }
       // fireworks behind the skyline (New Year, the Fourth of July) — only after dark
       const hol = L.holiday;
@@ -467,7 +441,7 @@ export function createFx() {
       }
       return null;
     },
-    debug: () => ({ sats: !!sats, ufo: ufo ? ufo.st : null, cat: cat ? (cat.at ? 'here' : 'placed') : null, snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sparks: sparks.length, sleigh: !!sleigh, lights: lights ? lights.length : 0 }),
+    debug: () => ({ ufo: ufo ? ufo.st : null, cat: cat ? (cat.at ? 'here' : 'placed') : null, snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sparks: sparks.length, sleigh: !!sleigh, lights: lights ? lights.length : 0 }),
     destroy() { for (const c of sprites.values()) { c.width = 0; c.height = 0; } sprites.clear(); },
   };
 
