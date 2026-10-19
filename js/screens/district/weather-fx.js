@@ -46,7 +46,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
   let deckShape = null, deckJob = null;     // the overcast deck is only built when a grey sky asks for it
   let colourKey = '';
   let deck = [];                                         // clouds on screen: { s (shape index), x, y, w, h, z, a }
-  let deckX = 0, born = 0, lastDeckA = 0, lastAppear = 0, lastCloud = 0;
+  let deckX = 0, born = 0, lastDeckA = 0, lastAppear = 0, lastCloud = 0, forcedStrike = false;
   let strike = null, nextStrike = 3 + Math.random() * 5, boltCv = null;
   let fogShape = null;
   const glowCache = new Map();
@@ -259,6 +259,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
     sky(c, s) {
       const { L, P, dt, motion } = s;
       const sec = dt / 1000;
+      lastDeckA = 0; lastAppear = 0; lastCloud = 0;           // (coverAt: no clouds drawn this frame = nothing covers the sky)
       wantShapes();
       if (deckJob && L.cloud > 0.5 && !jobs.includes(deckJob) && !deckShape) jobs.push(deckJob);
       runJobs();
@@ -314,8 +315,8 @@ export function createWeatherFx({ onFlash = null } = {}) {
       // lightning
       if (L.storm && motion) {
         nextStrike -= sec;
-        if (!strike && (nextStrike <= 0 || (s.force.has('lightning') && !s.lightningDone))) {
-          s.lightningDone = true;
+        if (!strike && (nextStrike <= 0 || (s.force.has('lightning') && !forcedStrike))) {
+          forcedStrike = true;                                 // (module state: the frame's object is new every frame)
           nextStrike = Math.random() < 0.3 ? 1.2 + Math.random() * 2 : 6 + Math.random() * 14;   // clusters, then a pause
           newStrike();
         }

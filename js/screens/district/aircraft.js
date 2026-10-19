@@ -229,7 +229,8 @@ export function createAircraft() {
   }
 
   return {
-    resize(w, h, hz) { W = w; H = h; HZ = hz; K = Math.max(0.9, Math.min(1.35, w / 390)); planes = []; train = null; sat = null; },
+    // a rebuild at the same size (a quality step, iOS's no-change resize events) keeps what's in the sky
+    resize(w, h, hz) { if (w === W && h === H && hz === HZ) return; W = w; H = h; HZ = hz; K = Math.max(0.9, Math.min(1.35, w / 390)); planes = []; train = null; sat = null; },
     draw(c, s) {
       const { L, dt, force, motion, tier } = s;
       const sec = dt / 1000;

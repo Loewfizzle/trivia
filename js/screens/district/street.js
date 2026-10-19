@@ -59,7 +59,7 @@ export function createStreet() {
   }
 
   return {
-    resize(w, h, hz) { W = w; H = h; HZ = hz; K = Math.max(0.9, Math.min(1.4, w / 390)); cars = []; trains = []; puffs = []; viaKey = ''; ventKey = ''; },
+    resize(w, h, hz) { if (w === W && h === H && hz === HZ) return; W = w; H = h; HZ = hz; K = Math.max(0.9, Math.min(1.4, w / 390)); cars = []; trains = []; puffs = []; viaKey = ''; ventKey = ''; },   // same size: keep the traffic
     /** the elevated line (after the mid row of towers) */
     train(c, s, railY) {
       const { L, P, dt, t, motion, force } = s;

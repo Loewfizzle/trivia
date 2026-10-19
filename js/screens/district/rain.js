@@ -68,7 +68,7 @@ export function createRain() {
   }
 
   return {
-    resize(w, h, hz) { W = w; H = h; HZ = hz; drops = []; splashes = []; rings = []; },
+    resize(w, h, hz) { if (w === W && h === H && hz === HZ) return; W = w; H = h; HZ = hz; drops = []; splashes = []; rings = []; },
     /** behind the skyline: distant shafts of rain under the clouds */
     veils(c, s) {
       const { L, t } = s;

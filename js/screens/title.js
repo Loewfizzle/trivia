@@ -561,7 +561,9 @@ export function createTitle() {
       if (destroyed) return;
       // only a lit sign flickers (by day the tubes are dark: a flicker there used to leave a letter switched on)
       if (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day')) { scheduleFlicker(); return; }
-      const letters = [...els.sign.querySelectorAll('.ndl')];
+      // never a letter someone just tapped (its own animation is running)
+      const letters = [...els.sign.querySelectorAll('.ndl')].filter((_, i) => !buzzing.has(i));
+      if (!letters.length) { scheduleFlicker(); return; }
       const l = letters[Math.floor(Math.random() * letters.length)];
       const seq = [0, 60, 95, 130, 190];
       seq.forEach((ms, k) => setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 1 || k === seq.length - 1); }, ms));
@@ -624,7 +626,7 @@ export function createTitle() {
     const plan = day
       ? [[1, 0], [0, 60], [1, 110], [0, 170], [1, 230], [0, 1850], [1, 1910], [0, 1990]]          // sparks on … glows … flickers out
       : [[0, 0], [1, 50], [0, 95], [1, 150], [0, 200], [1, 1600], [0, 1660], [1, 1720], [0, 1800], [1, 1900]];   // out … dark … re-ignites
-    plan.forEach(([on, ms], k) => set(!!on, ms, k === 0 || (day ? k === 5 : k === 5)));
+    plan.forEach(([on, ms], k) => set(!!on, ms, k === 0 || k === 5));        // a tick as it changes, and as it restarts
     setTimeout(() => { buzzing.delete(i); if (!destroyed) l.classList.toggle('on', !day); }, plan[plan.length - 1][1] + 40);
   }
 

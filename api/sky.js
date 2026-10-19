@@ -3,7 +3,7 @@
 // IP address — no permission prompt, the browser never sees it). It is rounded to ~0.5° (≈ 35 miles) at once: that area is
 // the cache key and all this function ever keeps. Weather: Open-Meteo (free, no key), cached per area for 15 minutes in
 // memory and in wx/{area} (server-only), so a busy night costs a few requests an hour per area.
-// Without Vercel's headers (local dev, some networks): ?lat=&lon= (tests), else 204 — the city keeps its seeded weather.
+// Without Vercel's headers (local dev, some networks): ?lat=&lon= (tests), else 204 — the city stays dry (no weather drawn).
 import { route, send } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
 import { normalize, areaOf } from '../js/core/weather.js';

@@ -133,7 +133,7 @@ export function startRain(level = 0.6) {
   out.connect(getSfxBus());
   // the bed: bright, airy rain, breathing slowly so it never sounds like a hiss (or the recorded loop, when there is one)
   const src = ctx.createBufferSource(); src.buffer = noise(ctx); src.loop = true;
-  if (RECORDED.rainLoop) loadRec(ctx, RECORDED.rainLoop).then(buf => { if (buf && !stopped) { const r = ctx.createBufferSource(); r.buffer = buf; r.loop = true; const rg = ctx.createGain(); rg.gain.value = 40; r.connect(rg).connect(out); r.start(); bed.gain.value = 0; recSrc = r; } });
+  if (RECORDED.rainLoop) loadRec(ctx, RECORDED.rainLoop).then(buf => { if (buf && !stopped) { const r = ctx.createBufferSource(); r.buffer = buf; r.loop = true; const rg = ctx.createGain(); rg.gain.value = 40; r.connect(rg).connect(out); r.start(); lg.disconnect(); bed.gain.value = 0; recSrc = r; } });   // the recording replaces the synthesized bed (its breathing too)
   let recSrc = null;
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700;
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3800;

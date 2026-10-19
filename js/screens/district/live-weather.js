@@ -1,6 +1,6 @@
 // LIVE WEATHER on the page: asks /api/sky (the visitor's area, never a location prompt) a moment after the title paints, then
 // every 15 minutes while the page is open and when it comes back to the front. The last answer is kept for the session so
-// the menus and a reload don't wait. Polish, never a dependency: no answer = the city's seeded weather (core/sky.js).
+// the menus and a reload don't wait. Polish, never a dependency: no answer = a dry city (core/sky.js).
 import { isFresh } from '../../core/weather.js';
 
 const KEY = 'nd:wx';
@@ -26,7 +26,8 @@ async function load() {
 export function startWeather() {
   if (started || typeof window === 'undefined') return;
   started = true;
-  const kick = () => { if (Date.now() - at > EVERY || !wx) load(); };
+  // every 15 minutes, whatever the last answer was (no location → 204: ask again in 15 minutes, not every minute)
+  const kick = () => { if (Date.now() - at > EVERY) load(); };
   // after the first paint, when the page is idle: the title never waits for the weather
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
   idle(() => kick(), { timeout: 2500 });
