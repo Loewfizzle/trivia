@@ -58,8 +58,14 @@ the street outside: the district, the sign over the door.
   the reflection; each skyline layer's composite (the hour's tint on the silhouettes, the sun-side rim light, frosted roofs,
   the windows lit right now — they switch on/off one by one with the hour — the trims after dark) is cached by that key.
 - **The sign** (`title.js#watchSky`): lit after dusk, dark glass by day; it flickers off at dawn and comes back tube by tube
-  at dusk; cobwebs (Halloween), a Santa hat (Christmas), rose / green / candle tubes, the countdown in the tagline on NYE.
+  at dusk. On a holiday's full days the tubes change colour per letter (`.sg-<holiday>` in title.css: Halloween orange/violet,
+  Christmas red/green, NYE gold, Valentine's rose, St. Patrick's green, Easter pastels, Thanksgiving amber, the Fourth red/white/blue)
+  and the scene's sign light follows (`scene.set({ signCol })`). Halloween: an orb web with dew beads in the corner and a spider
+  that drops from the E on its silk and climbs back; Christmas: a velvet Santa hat on the N; NYE: the countdown in the tagline.
+- **Rare flyers** (fx.js): bat flocks in a random neon (sometimes mixed); a witch on her broom with a spark trail (Halloween
+  nights, every 6–11 min); Santa's sleigh with Rudolph's nose and a gold trail above the sign (Christmas nights, every 7–17 min).
+  Force them in a preview: `&force=bats,witch,sleigh`.
 - **ALWAYS NIGHT** (settings, off by default): the classic night look all day; seasons, holidays, the moon and sky events stay.
 - **Where:** the title; the menus' backdrop and THE BOARD's windows show the still the title leaves behind (same hour).
 - **Preview switch** (any page, test only): `?when=2026-10-31T21:30&tz=America/New_York` starts the clock at that local
-  time; `&force=bats,meteor,aurora,sleigh,fireworks` makes the rare moments happen now.
+  time; `&force=bats,witch,meteor,aurora,sleigh,fireworks` makes the rare moments happen now.

@@ -46,16 +46,83 @@ const smooth = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a
 // the light wave answers the tap at once and slows as it reaches the rooftops
 const easeOut = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a || 1e-6))); return 1 - Math.pow(1 - t, 2.4); };
 
-// Halloween: fine cobwebs in the sign's two top corners, catching the neon
-const WEBS = `<svg viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="rgba(235,225,255,0.55)" stroke-width="0.7" stroke-linecap="round">
-<g transform="translate(8 8)"><path d="M0 0 L70 6 M0 0 L52 40 M0 0 L22 64 M0 0 L4 74"/><path d="M14 1 Q14 9 10 12 Q6 15 3 15"/><path d="M28 2 Q27 16 21 24 Q13 30 6 30"/><path d="M44 4 Q42 24 33 36 Q22 46 10 47"/><path d="M60 5 Q56 30 44 46 Q30 60 16 62"/></g>
-<g transform="translate(392 8) scale(-1 1)"><path d="M0 0 L58 4 M0 0 L44 34 M0 0 L16 56"/><path d="M14 1 Q13 10 8 14 Q4 16 2 16"/><path d="M30 2 Q28 18 20 26 Q12 32 6 32"/><path d="M46 3 Q42 26 32 38 Q20 48 9 48"/><path d="M2 46 L0 0"/></g>
-<path d="M66 9 L66 34" stroke-width="0.6"/><circle cx="66" cy="36" r="2.2" fill="rgba(30,10,40,0.9)" stroke="rgba(255,150,60,0.8)"/></g></svg>`;
-// Christmas: a Santa hat tipped on the first N, fur trim catching the pink light
-const HAT = `<svg viewBox="0 0 120 100" aria-hidden="true"><defs><linearGradient id="nhr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a6a"/><stop offset="0.6" stop-color="#c8102e"/><stop offset="1" stop-color="#7a0716"/></linearGradient><radialGradient id="nhw" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9dde8"/></radialGradient></defs>
-<path d="M18 74 C30 40 52 14 86 8 C96 6 104 14 98 24 C92 34 84 30 80 38 C74 52 76 64 80 74 Z" fill="url(#nhr)"/>
-<path d="M30 40 C46 22 64 14 84 11" stroke="rgba(255,255,255,0.25)" stroke-width="2" fill="none"/>
-<circle cx="99" cy="22" r="10" fill="url(#nhw)"/><rect x="12" y="68" width="76" height="16" rx="8" fill="url(#nhw)"/></svg>`;
+// Halloween: a fine orb web in the sign's corner, its dew beads catching the pink neon, and a spider on a silk line that
+// drops from the tube, hangs a while and climbs back (built once, here, as SVG: spokes + a sagging spiral + beads)
+function orbWeb() {
+  const C = [58, 50], spokes = [];
+  const anchors = [[0, 0], [30, 0], [68, 0], [112, 0], [160, 0], [0, 30], [0, 74], [0, 118], [48, 128], [104, 110], [150, 64]];
+  for (const [x, y] of anchors) spokes.push([x, y, Math.atan2(y - C[1], x - C[0])]);
+  spokes.sort((p, q) => p[2] - q[2]);
+  let d = spokes.map(([x, y]) => `M${C[0]} ${C[1]}L${x} ${y}`).join('');
+  const beads = [];
+  for (let k = 1; k <= 9; k++) {
+    const f = k / 10.4;
+    const pts = spokes.map(([x, y]) => [C[0] + (x - C[0]) * f, C[1] + (y - C[1]) * f]);
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], q = pts[(i + 1) % pts.length];
+      if (Math.abs(spokes[i][2] - spokes[(i + 1) % pts.length][2]) > Math.PI * 0.9) continue;
+      const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+      const cx = mx + (C[0] - mx) * 0.12, cy = my + (C[1] - my) * 0.12 + 1.2;
+      d += `M${p[0].toFixed(1)} ${p[1].toFixed(1)}Q${cx.toFixed(1)} ${cy.toFixed(1)} ${q[0].toFixed(1)} ${q[1].toFixed(1)}`;
+      if ((k * 7 + i * 3) % 5 === 0) beads.push([mx * 0.6 + cx * 0.4, my * 0.6 + cy * 0.4, 0.9 + ((k + i) % 3) * 0.35]);
+    }
+  }
+  return `<svg viewBox="0 0 170 140" aria-hidden="true"><defs><radialGradient id="ndw-b"><stop offset="0" stop-color="#fff"/><stop offset="0.45" stop-color="#ffd2ec"/><stop offset="1" stop-color="#ff5fb4" stop-opacity="0"/></radialGradient>
+<linearGradient id="ndw-s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#ffc6e8" stop-opacity="0.25"/></linearGradient></defs>
+<path d="${d}" fill="none" stroke="url(#ndw-s)" stroke-width="0.42" stroke-linecap="round"/>
+${beads.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r * 1.9).toFixed(2)}" fill="url(#ndw-b)" opacity="0.8"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r * 0.45).toFixed(2)}" fill="#fff"/>`).join('')}
+</svg>`;
+}
+const WEBS = orbWeb();
+// the spider: a glossy black body, eight jointed legs, two tiny ember eyes
+const SPIDER = `<svg viewBox="-20 -20 40 44" aria-hidden="true"><defs><radialGradient id="nds-a" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#4a3a5a"/><stop offset="0.35" stop-color="#14101c"/><stop offset="1" stop-color="#050308"/></radialGradient></defs>
+<g fill="none" stroke="#0c0910" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M-3 0 L-10 -7 L-16 -2"/><path d="M-3 2 L-12 -2 L-18 5"/><path d="M-3 4 L-11 6 L-16 14"/><path d="M-2 5 L-7 11 L-10 19"/>
+<path d="M3 0 L10 -7 L16 -2"/><path d="M3 2 L12 -2 L18 5"/><path d="M3 4 L11 6 L16 14"/><path d="M2 5 L7 11 L10 19"/></g>
+<ellipse cx="0" cy="11" rx="6.4" ry="8" fill="url(#nds-a)"/><ellipse cx="0" cy="1" rx="4.2" ry="3.8" fill="url(#nds-a)"/>
+<ellipse cx="-1.8" cy="7.6" rx="1.6" ry="2.4" fill="#fff" opacity="0.18"/>
+<circle cx="-1.3" cy="-1.6" r="0.75" fill="#ff7a3a"/><circle cx="1.3" cy="-1.6" r="0.75" fill="#ff7a3a"/></svg>`;
+// Christmas: a velvet Santa hat slung over the first N, its tip flopping over the side; folds in the velvet, a fluffy
+// fur brim and pom-pom built from soft tufts, the pink neon catching its edge, snow resting in the creases
+function santaHat() {
+  // fur tufts along the brim and around the pom-pom (deterministic)
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const tufts = [];
+  for (let i = 0; i <= 26; i++) {
+    const u = i / 26, x = 10 + u * 104, y = 98 - Math.sin(u * Math.PI) * 9 + (rnd() - 0.5) * 2;
+    for (const dy of [-6, 0, 6]) tufts.push([x + (rnd() - 0.5) * 3, y + dy + (rnd() - 0.5) * 3, 5.2 + rnd() * 2.6]);
+  }
+  for (let i = 0; i < 22; i++) { const a = rnd() * Math.PI * 2, d = rnd() * 8; tufts.push([150 + Math.cos(a) * d, 80 + Math.sin(a) * d, 4.6 + rnd() * 2.8]); }
+  const fur = tufts.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"/>`).join('');
+  const hi = tufts.filter((_, i) => i % 3 === 0).map(([x, y, r]) => `<circle cx="${(x - r * 0.3).toFixed(1)}" cy="${(y - r * 0.35).toFixed(1)}" r="${(r * 0.45).toFixed(1)}"/>`).join('');
+  return `<svg viewBox="0 0 170 128" aria-hidden="true"><defs>
+<linearGradient id="nh-v" x1="0.1" y1="0.1" x2="0.8" y2="1"><stop offset="0" stop-color="#e2253f"/><stop offset="0.45" stop-color="#b0102c"/><stop offset="1" stop-color="#5e0614"/></linearGradient>
+<linearGradient id="nh-f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.6" stop-color="#eef0f6"/><stop offset="1" stop-color="#b9bfd2"/></linearGradient>
+<radialGradient id="nh-p" cx="0.38" cy="0.32" r="0.75"><stop offset="0" stop-color="#ffffff"/><stop offset="0.7" stop-color="#e8ebf3"/><stop offset="1" stop-color="#aeb5ca"/></radialGradient>
+<filter id="nh-soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="0.6"/></filter>
+<filter id="nh-rim" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
+<g transform="translate(0 0)">
+<!-- the crown: a slouched cone, the tip flopping over to the right -->
+<path d="M14 98 C18 56 46 20 88 14 C118 10 146 30 152 64 C153 70 148 74 144 70 C138 54 126 44 118 54 C113 64 114 84 116 98 Z" fill="url(#nh-v)"/>
+<!-- the underside of the flop, in shadow -->
+<path d="M118 54 C126 44 138 54 144 70 C134 60 124 56 118 62 Z" fill="#6a0618" opacity="0.5"/>
+<!-- folds and the velvet's sheen -->
+<path d="M64 22 C58 46 60 74 66 96" stroke="#4a0410" stroke-width="8" opacity="0.3" fill="none" filter="url(#nh-rim)"/>
+<path d="M36 72 C44 46 62 28 92 20" stroke="#ff8a9a" stroke-width="3.4" opacity="0.4" fill="none" filter="url(#nh-rim)"/>
+<path d="M104 18 C124 20 140 34 146 52" stroke="#ff9aa8" stroke-width="2.4" opacity="0.35" fill="none" filter="url(#nh-rim)"/>
+<!-- the sign's light on the left edge -->
+<path d="M14 98 C18 56 46 20 88 14" stroke="#ff4fb0" stroke-width="3" opacity="0.7" fill="none" filter="url(#nh-rim)"/>
+<!-- the fur brim and the pom-pom -->
+<g fill="url(#nh-f)" filter="url(#nh-soft)">${fur}</g>
+<g fill="#ffffff" opacity="0.55" filter="url(#nh-soft)">${hi}</g>
+<circle cx="150" cy="80" r="9" fill="url(#nh-p)" opacity="0.9" filter="url(#nh-soft)"/>
+<path d="M10 100 C40 112 84 114 116 100" stroke="#ff4fb0" stroke-width="2.4" opacity="0.45" fill="none" filter="url(#nh-rim)"/>
+</g></svg>`;
+}
+const HAT = santaHat();
+// the colour each holiday's sign throws on the haze and the wet street
+const SIGN_LIGHT = { halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
 
 export function createTitle() {
   const els = {};
@@ -261,12 +328,14 @@ export function createTitle() {
     dressKey = key;
     const s = els.sign;
     const full = hol && hol.full ? hol.id : null;
-    s.classList.toggle('is-rose', full === 'valentine');
-    s.classList.toggle('is-shamrock', full === 'stpatrick');
-    s.classList.toggle('is-candle', full === 'thanksgiving');
+    for (const k of ['halloween', 'christmas', 'nye', 'valentine', 'stpatrick', 'easter', 'thanksgiving', 'july4']) s.classList.toggle(`sg-${k}`, full === k);
+    if (scene) scene.set({ signCol: SIGN_LIGHT[full] || null });
     s.querySelectorAll('.nd-dress').forEach(e => e.remove());
     const wrap = s.querySelector('.nd-logo-wrap');
-    if (full === 'halloween') wrap.append(h('div.nd-dress.nd-webs', { 'aria-hidden': 'true', html: WEBS }));
+    if (full === 'halloween') {
+      wrap.append(h('div.nd-dress.nd-webs', { 'aria-hidden': 'true', html: WEBS }));
+      wrap.append(h('div.nd-dress.nd-spider', { 'aria-hidden': 'true' }, h('i.nd-silk'), h('div.nd-spider-b', { html: SPIDER })));
+    }
     if (full === 'christmas') wrap.append(h('div.nd-dress.nd-hat', { 'aria-hidden': 'true', html: HAT }));
     const tag = s.querySelector('.nd-tag');
     if (n && n.countdown != null) { const m = Math.floor(n.countdown / 60), sec = n.countdown % 60; tag.textContent = `${m}:${String(sec).padStart(2, '0')} TO MIDNIGHT`; tag.classList.add('nd-count'); }

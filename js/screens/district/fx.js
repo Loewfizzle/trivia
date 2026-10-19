@@ -18,6 +18,8 @@ export function createFx() {
   const glow = (col, a = 1) => sprite(`g|${col}|${a}`, 64, 64, (x) => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, rgba(col, a)); g.addColorStop(0.35, rgba(col, a * 0.35)); g.addColorStop(1, rgba(col, 0)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); });
   let snow = [], petals = [], leaves = [], flies = [], bats = null, meteors = [], rockets = [], sparks = [], sleigh = null;
   let nextBats = 60 + Math.random() * 120, nextSleigh = 90 + Math.random() * 300, nextRocket = 0;
+  let witch = null, nextWitch = 45 + Math.random() * 90, trail = [], sleighTrail = [];
+  const BAT_NEON = [[190, 90, 255], [255, 140, 50], [80, 255, 140], [255, 80, 190], [80, 220, 255], [255, 230, 90]];
   let W = 1, H = 1, HZ = 1;
   let lights = null, lightsKey = '';
 
@@ -136,7 +138,7 @@ export function createFx() {
         const r = Math.min(26, Math.max(15, W * 0.035));
         p.x = Math.max(r + 10, Math.min(W - r - 10, p.x));
         // never hidden behind the sign: slide out to the nearer side of it
-        const sr = s.signRect;
+        const sr = s.signRect && { x: s.signRect.x - 34, y: s.signRect.y - 44, w: s.signRect.w + 68, h: s.signRect.h + 44 };
         if (sr && p.y > sr.y - r && p.y < sr.y + sr.h + r && p.x > sr.x - r && p.x < sr.x + sr.w + r) {
           if (sr.y - r - 10 > r + 14) { p.y = sr.y - r - 10; p.x = Math.max(r + 10, Math.min(W - r - 70, p.x)); }
           else p.x = p.x < sr.x + sr.w / 2 ? Math.max(r + 6, sr.x - r - 4) : Math.min(W - r - 6, sr.x + sr.w + r + 4);
@@ -203,15 +205,23 @@ export function createFx() {
         c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       }
       // the sleigh: very rarely, a silhouette crossing the moon on the Christmas nights
-      if (motion && s.moonAt && dark > 0.5 && ((hol && hol.id === 'christmas' && hol.full) || s.force.has('sleigh'))) {
+      if (motion && dark > 0.5 && ((hol && hol.id === 'christmas' && hol.full) || s.force.has('sleigh'))) {
         nextSleigh -= dt / 1000;
         if (!sleigh && (nextSleigh <= 0 || (s.force.has('sleigh') && !s.sleighDone))) { sleigh = { k: 0 }; s.sleighDone = true; nextSleigh = 420 + Math.random() * 600; }
       }
-      if (sleigh && s.moonAt) {
-        sleigh.k += dt / 9000;
-        const m = s.moonAt;
-        const x = m.x - m.r * 6 + sleigh.k * m.r * 12, y = m.y + Math.sin(sleigh.k * Math.PI) * -m.r * 0.9 + m.r * 0.3;
-        drawSleigh(c, x, y, m.r * 0.06);
+      if (sleighTrail.length) {
+        c.globalCompositeOperation = 'lighter';
+        sleighTrail = sleighTrail.filter(p => { p.life += dt / 1000; if (p.life > p.max) return false; p.x += p.vx * dt / 1000; p.y += p.vy * dt / 1000; const k = 1 - p.life / p.max; c.globalAlpha = 0.85 * k * (0.6 + 0.4 * Math.sin(p.life * 20 + p.x)); c.drawImage(glow([255, 214, 140]), p.x - p.sz, p.y - p.sz, p.sz * 2, p.sz * 2); return true; });
+        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+      }
+      if (sleigh) {
+        sleigh.k += dt / 12000;
+        const sc = Math.min(1.05, Math.max(0.6, W * 0.46 / 200));
+        const top = s.signRect ? s.signRect.y : HZ * 0.3;
+        const x0 = -200 * sc, x1 = W + 40 * sc, x = x0 + (x1 - x0) * sleigh.k;
+        const y = Math.max(34 * sc + 8, top - 24 - sleigh.k * 30 * sc) + Math.sin(sleigh.k * 7) * 3;
+        if (Math.random() < 0.95) sleighTrail.push({ x: x - 34 * sc, y: y + 12 * sc, vx: -10 - Math.random() * 16, vy: 4 + Math.random() * 10, life: 0, max: 1 + Math.random() * 1.1, sz: 3 + Math.random() * 4 });
+        drawSleigh(c, x, y, sc, t);
         if (sleigh.k >= 1) sleigh = null;
       }
     },
@@ -311,20 +321,46 @@ export function createFx() {
         if (!bats && (nextBats <= 0 || (s.force.has('bats') && !s.batsDone))) {
           s.batsDone = true; nextBats = 150 + Math.random() * 180;
           const dir = Math.random() < 0.5 ? 1 : -1, n = 5 + Math.floor(Math.random() * 5);
-          bats = { k: 0, dir, y: HZ * (0.18 + Math.random() * 0.3), list: Array.from({ length: n }, () => ({ dx: Math.random() * 140, dy: (Math.random() - 0.5) * 70, s: 0.7 + Math.random() * 0.6, ph: Math.random() * TAU })) };
+          // each flock has its own neon (now and then a mixed flock)
+          const base = BAT_NEON[Math.floor(Math.random() * BAT_NEON.length)];
+          const mixed = Math.random() < 0.3;
+          bats = { k: 0, dir, y: HZ * (0.18 + Math.random() * 0.3), list: Array.from({ length: n }, () => ({ dx: Math.random() * 140, dy: (Math.random() - 0.5) * 70, s: 0.7 + Math.random() * 0.6, ph: Math.random() * TAU, col: mixed ? BAT_NEON[Math.floor(Math.random() * BAT_NEON.length)] : base })) };
         }
+      }
+      // the witch: once every several minutes on the Halloween nights, across the moon when it's up, a trail of sparks
+      if (motion && dark > 0.4 && ((hol && hol.id === 'halloween' && hol.full) || s.force.has('witch'))) {
+        nextWitch -= sec;
+        if (!witch && (nextWitch <= 0 || (s.force.has('witch') && !s.witchDone))) {
+          s.witchDone = true; nextWitch = 360 + Math.random() * 300;
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          const m = s.moonAt;
+          witch = { k: 0, dir, y: m ? Math.max(HZ * 0.08, Math.min(HZ * 0.3, m.y)) : HZ * (0.1 + Math.random() * 0.14), size: Math.max(26, Math.min(44, W * 0.085)) };
+        }
+      }
+      if (witch || trail.length) {
+        let wx = 0, wy = 0;
+        if (witch) {
+          witch.k += sec / 11;
+          wx = witch.dir > 0 ? -90 + witch.k * (W + 180) : W + 90 - witch.k * (W + 180);
+          wy = witch.y + Math.sin(witch.k * 5) * 10 - witch.k * 18;
+          if (Math.random() < 0.9) trail.push({ x: wx - witch.dir * witch.size * 0.9, y: wy + witch.size * 0.18, vx: -witch.dir * (10 + Math.random() * 20), vy: 6 + Math.random() * 14, life: 0, max: 0.9 + Math.random() * 0.8, col: Math.random() < 0.5 ? [255, 160, 60] : [140, 255, 120] });
+        }
+        c.globalCompositeOperation = 'lighter';
+        trail = trail.filter(p => { p.life += sec; if (p.life > p.max) return false; p.x += p.vx * sec; p.y += p.vy * sec; const k = 1 - p.life / p.max; c.globalAlpha = 0.8 * k; c.drawImage(glow(p.col), p.x - 3, p.y - 3, 6, 6); return true; });
+        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        if (witch) { drawWitch(c, wx, wy, witch.size, t, witch.dir); if (witch.k >= 1) witch = null; }
       }
       if (bats) {
         bats.k += sec / 9;
         const x0 = bats.dir > 0 ? -160 + bats.k * (W + 320) : W + 160 - bats.k * (W + 320);
         for (const b of bats.list) {
           const x = x0 - bats.dir * b.dx, y = bats.y + b.dy + Math.sin(bats.k * 9 + b.ph) * 14;
-          drawBat(c, x, y, 9 * b.s, Math.sin(t * 18 + b.ph), bats.dir);
+          drawBat(c, x, y, 9 * b.s, Math.sin(t * 18 + b.ph), bats.dir, b.col);
         }
         if (bats.k >= 1) bats = null;
       }
     },
-    debug: () => ({ snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, meteors: meteors.length, sparks: sparks.length, sleigh: !!sleigh, lights: lights ? lights.length : 0 }),
+    debug: () => ({ snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sparks: sparks.length, sleigh: !!sleigh, lights: lights ? lights.length : 0 }),
     destroy() { for (const c of sprites.values()) { c.width = 0; c.height = 0; } sprites.clear(); },
   };
 
@@ -340,7 +376,7 @@ export function createFx() {
     c.globalAlpha = 1;
   }
 
-  function drawBat(c, x, y, s, flap, dir) {
+  function drawBat(c, x, y, s, flap, dir, col = [190, 90, 255]) {
     const up = flap * 0.9;
     c.save(); c.translate(x, y); c.scale(dir * s / 10, s / 10);
     c.beginPath();
@@ -351,22 +387,90 @@ export function createFx() {
     c.bezierCurveTo(5, 3, 7, 2, 9, 4); c.bezierCurveTo(12, 2, 14, 0, 18, -2 - up * 12);
     c.bezierCurveTo(10, -6 - up * 10, 4, -2 - up * 6, 0, 0);
     c.closePath();
-    c.shadowColor = 'rgba(190,90,255,0.9)'; c.shadowBlur = 8;
+    c.shadowColor = rgba(col, 0.95); c.shadowBlur = 9;
     c.fillStyle = '#0a0612'; c.fill();
     c.shadowBlur = 0;
-    c.strokeStyle = 'rgba(255,140,60,0.75)'; c.lineWidth = 0.8; c.stroke();
+    c.strokeStyle = rgba(col.map(v => Math.min(255, v + 60)), 0.85); c.lineWidth = 0.9; c.stroke();
     c.restore();
   }
 
-  function drawSleigh(c, x, y, s) {
+  // a witch on a broom, in silhouette with a cool moonlit rim; her cape and hair stream back, the broom's bristles flare
+  function drawWitch(c, x, y, size, t, dir) {
+    const s = size / 40;
+    c.save(); c.translate(x, y); c.scale(dir * s, s); c.rotate(-0.08 + Math.sin(t * 2.2) * 0.04);
+    const flap = Math.sin(t * 7);
+    c.beginPath();
+    // the broom: a long handle and a bundle of bristles behind
+    c.moveTo(34, 6); c.lineTo(-24, 10); c.lineTo(-24, 12.4); c.lineTo(34, 8.4); c.closePath();
+    c.moveTo(-22, 8); c.quadraticCurveTo(-34, 2, -46, -2); c.lineTo(-44, 6); c.quadraticCurveTo(-48, 12, -47, 20); c.quadraticCurveTo(-34, 17, -22, 14); c.closePath();
+    // the cape: from the shoulders, streaming back, a scalloped flutter
+    c.moveTo(4, -14); c.quadraticCurveTo(-12, -14 + flap * 2, -30, -8 + flap * 4); c.lineTo(-26, -3 + flap * 3); c.lineTo(-32, 0 + flap * 5); c.quadraticCurveTo(-14, 4, -2, 8); c.closePath();
+    // the body, seated, a knee forward
+    c.moveTo(-4, 8); c.quadraticCurveTo(-6, -8, 2, -16); c.quadraticCurveTo(10, -14, 12, -4); c.quadraticCurveTo(18, 2, 16, 8); c.closePath();
+    // the boot
+    c.moveTo(14, 6); c.lineTo(20, 14); c.lineTo(26, 14); c.lineTo(24, 11); c.lineTo(18, 7); c.closePath();
+    // the head, the hair streaming back
+    c.moveTo(9, -20); c.arc(5, -20, 4.6, 0, TAU);
+    c.moveTo(2, -22); c.quadraticCurveTo(-8, -24 + flap * 2, -16, -18 + flap * 3); c.quadraticCurveTo(-6, -18, 1, -17); c.closePath();
+    // the hat: a wide brim and a crooked tall crown, its tip bent back
+    c.moveTo(-6, -23); c.quadraticCurveTo(5, -27, 17, -23); c.quadraticCurveTo(6, -21, -6, -23); c.closePath();
+    c.moveTo(-1, -24); c.quadraticCurveTo(2, -34, 0, -40); c.quadraticCurveTo(-4, -44, -10, -42); c.quadraticCurveTo(-4, -40, -3, -36); c.quadraticCurveTo(4, -32, 11, -24.4); c.closePath();
+    c.shadowColor = 'rgba(170,200,255,0.9)'; c.shadowBlur = 7;
+    c.fillStyle = '#07060e'; c.fill();
+    c.shadowBlur = 0;
+    c.strokeStyle = 'rgba(200,220,255,0.45)'; c.lineWidth = 0.7; c.stroke();
+    c.restore();
+  }
+
+  // Santa's sleigh and four pairs of reindeer, in silhouette against the moon: galloping legs (two poses), antlers,
+  // reins, the sleigh's curled runners and scrollwork, Santa with his hat and the sack; a faint moonlit rim
+  function drawSleigh(c, x, y, s, t = 0) {
     c.save(); c.translate(x, y); c.scale(s, s);
-    c.fillStyle = '#05060f';
-    // reindeer in a line, then the sleigh
-    for (let i = 0; i < 4; i++) { const rx = 60 + i * 34; c.beginPath(); c.ellipse(rx, 0, 12, 5, 0, 0, TAU); c.fill(); c.fillRect(rx - 9, 3, 2, 9); c.fillRect(rx + 7, 3, 2, 9); c.beginPath(); c.moveTo(rx + 10, -2); c.lineTo(rx + 18, -10); c.lineTo(rx + 20, -6); c.fill(); c.fillRect(rx + 15, -18, 1.5, 8); c.fillRect(rx + 18, -17, 1.5, 7); }
-    c.fillRect(-4, 0, 66, 1.4);
-    c.beginPath(); c.moveTo(-30, -8); c.lineTo(0, -8); c.quadraticCurveTo(6, -8, 6, 0); c.lineTo(-26, 4); c.quadraticCurveTo(-34, 2, -30, -8); c.fill();
-    c.fillRect(-34, 6, 44, 2); c.beginPath(); c.arc(-34, 4, 3, Math.PI / 2, Math.PI * 1.5); c.fill();
-    c.beginPath(); c.arc(-16, -14, 6, 0, TAU); c.fill();
+    c.fillStyle = '#05060d'; c.strokeStyle = '#05060d'; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.shadowColor = 'rgba(200,215,255,0.95)'; c.shadowBlur = 6;
+    const deer = (dx, dy, ph) => {
+      const g = Math.sin(t * 9 + ph) > 0;   // gallop: stretched / tucked
+      c.save(); c.translate(dx, dy);
+      c.beginPath(); c.ellipse(0, 0, 11, 5, -0.05, 0, Math.PI * 2); c.fill();                 // body
+      c.beginPath(); c.moveTo(7, -2); c.quadraticCurveTo(11, -7, 14, -11); c.lineTo(17, -10); c.quadraticCurveTo(13, -5, 10, 1); c.fill(); // neck
+      c.beginPath(); c.ellipse(16.5, -11.5, 4.4, 2.4, -0.35, 0, Math.PI * 2); c.fill();       // head
+      c.beginPath(); c.ellipse(20, -12.6, 1.6, 1.2, -0.3, 0, Math.PI * 2); c.fill();            // muzzle
+      c.lineWidth = 0.9;
+      c.beginPath(); c.moveTo(14.5, -13); c.lineTo(11, -20); c.lineTo(8, -23); c.moveTo(11, -20); c.lineTo(13, -24); c.moveTo(12.6, -16.6); c.lineTo(9.5, -17.5);
+      c.moveTo(16, -13.5); c.lineTo(14, -21); c.lineTo(12.5, -25); c.moveTo(14, -21); c.lineTo(16.5, -24); c.stroke();  // antlers
+      c.beginPath(); c.moveTo(-10.5, -2); c.lineTo(-13.5, -4.5); c.lineTo(-11, -0.5); c.fill();  // tail
+      c.lineWidth = 1.7;
+      c.beginPath();
+      if (g) { c.moveTo(7, 3); c.lineTo(14, 5); c.lineTo(18, 3); c.moveTo(5, 3); c.lineTo(11, 7); c.lineTo(15, 7); c.moveTo(-7, 3); c.lineTo(-14, 6); c.lineTo(-18, 8); c.moveTo(-5, 3); c.lineTo(-11, 7); c.lineTo(-15, 10); }
+      else { c.moveTo(7, 3); c.lineTo(9, 9); c.lineTo(6, 12); c.moveTo(5, 3); c.lineTo(4, 9); c.lineTo(7, 12); c.moveTo(-7, 3); c.lineTo(-6, 9); c.lineTo(-9, 12); c.moveTo(-5, 3); c.lineTo(-3, 9); c.lineTo(-1, 12); }
+      c.stroke();
+      c.restore();
+    };
+    // the team (front pair first so the rear ones overlap them a touch)
+    for (let i = 3; i >= 0; i--) { deer(70 + i * 30, -6 - i * 3, i * 1.3); deer(76 + i * 30, -2 - i * 3, i * 1.3 + 0.7); }
+    // Rudolph's nose on the lead reindeer
+    c.shadowBlur = 0; c.globalCompositeOperation = 'lighter';
+    const nx = 76 + 0 * 30 + 21, ny = -2 - 12.6;
+    c.globalAlpha = 0.9 + 0.1 * Math.sin(t * 6); c.drawImage(glow([255, 60, 60]), nx - 7, ny - 7, 14, 14);
+    c.fillStyle = '#ff6a5a'; c.beginPath(); c.arc(nx, ny, 1.4, 0, Math.PI * 2); c.fill();
+    c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; c.fillStyle = '#05060d';
+    c.shadowColor = 'rgba(200,215,255,0.95)'; c.shadowBlur = 6;
+    // reins from the sleigh to the team
+    c.lineWidth = 0.6; c.beginPath(); c.moveTo(16, -12); c.quadraticCurveTo(50, -2, 70, -8); c.lineTo(160, -18); c.stroke();
+    // the sleigh: a tall scrolled back, a curved body, runners curling up at the front
+    c.beginPath();
+    c.moveTo(-34, -16); c.quadraticCurveTo(-40, -22, -34, -26); c.quadraticCurveTo(-28, -28, -28, -20);
+    c.lineTo(-26, -4); c.quadraticCurveTo(-4, -2, 10, -6); c.quadraticCurveTo(22, -10, 24, -18); c.quadraticCurveTo(28, -22, 30, -16);
+    c.quadraticCurveTo(30, -4, 18, 2); c.quadraticCurveTo(-6, 8, -30, 6); c.quadraticCurveTo(-38, 2, -34, -16); c.fill();
+    c.lineWidth = 1.6; c.beginPath(); c.moveTo(-34, 12); c.lineTo(22, 12); c.quadraticCurveTo(34, 12, 34, 4); c.quadraticCurveTo(34, -2, 29, -1);
+    c.moveTo(-22, 6); c.lineTo(-24, 12); c.moveTo(10, 4); c.lineTo(10, 12); c.stroke();
+    // Santa: round body, a beard, the hat flying back with its bobble; the sack behind him
+    c.beginPath(); c.ellipse(-8, -12, 9, 9, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(-4, -24, 5, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.moveTo(-8, -27); c.quadraticCurveTo(-16, -34, -24, -30); c.quadraticCurveTo(-16, -29, -9, -23); c.fill();
+    c.beginPath(); c.arc(-25, -30, 2.4, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.moveTo(-26, -6); c.quadraticCurveTo(-34, -22, -22, -26); c.quadraticCurveTo(-14, -22, -16, -8); c.fill();
+    c.lineWidth = 1.2; c.beginPath(); c.moveTo(0, -14); c.quadraticCurveTo(8, -14, 14, -11); c.stroke();
     c.restore();
   }
 

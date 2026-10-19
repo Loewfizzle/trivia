@@ -451,7 +451,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       const cx = r.x + r.w / 2, cy = r.y + r.h / 2, rad = r.w * 0.9;
       c.globalCompositeOperation = 'lighter';
       c.globalAlpha = signLight;
-      c.drawImage(radial('#ff3caa', [[0, 0.16], [0.5, 0.06], [1, 0]]), cx - rad, cy - rad, rad * 2, rad * 2);
+      c.drawImage(radial(S.signCol || '#ff3caa', [[0, 0.16], [0.5, 0.06], [1, 0]]), cx - rad, cy - rad, rad * 2, rad * 2);
       c.globalAlpha = 1;
       c.globalCompositeOperation = 'source-over';
     }
@@ -525,7 +525,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     }
     if (signLight > 0 && S.logoRect) {
       const r = S.logoRect;
-      streak(c, r.x + r.w / 2, r.w * 0.85, (H - HZ) * 0.95, '#ff3fae', 0.22 * signLight, t, 0.5);
+      streak(c, r.x + r.w / 2, r.w * 0.85, (H - HZ) * 0.95, S.signCol || '#ff3fae', 0.22 * signLight, t, 0.5);
     }
     c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
