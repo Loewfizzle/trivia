@@ -299,10 +299,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     // neon trims on near buildings (vertical light strips / roof outlines) — lit only
     // neon on the buildings: outlines, roof lines, corner strips — near rows most, the far rows too (thinner, softer)
     const tallBack = li <= 1 && h > (L.h[0] + (L.h[1] - L.h[0]) * 0.55) * HZ0g;
-    const neonP = tallBack ? 0.8 : [0.45, 0.45, 0.45, 0.55][li];
+    const neonP = tallBack ? 0.6 : [0.38, 0.4, 0.45, 0.55][li];
     if (!isSetback && rand() < neonP && w > 8) {
       const col = NEON[Math.floor(rand() * NEON.length)];
-      const lw = [1.2, 1.2, 1.25, 1.4][li], blur = [6, 6, 6, 8][li], a = [1, 1, 0.9, 0.85][li];
+      const lw = [0.9, 1, 1.2, 1.4][li], blur = [5, 5, 6, 8][li], a = [1, 1, 0.9, 0.85][li];
       const lx = NX;
       lx.save();
       lx.shadowColor = col; lx.shadowBlur = blur;
@@ -467,7 +467,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       c.drawImage(hazeBand(L, false), 0, HZ - hh, W, hh + 1);
       if (lit > 0) { c.globalAlpha = lit * Math.min(1, P.hazeA); c.drawImage(hazeBand(L, hz), 0, HZ - hh, W, hh + 1); }
       // the buildings' neon outlines, over the fog (a little softer further back), at full strength all night
-      const na = (S.wave >= 1 ? 1 : smooth(0.82, 1, S.wave)) * P.trims * [0.72, 0.82, 0.92, 1][li];
+      const na = (S.wave >= 1 ? 1 : smooth(0.82, 1, S.wave)) * P.trims * [0.42, 0.56, 0.85, 1][li];
       if (na > 0.02) { c.globalAlpha = na; c.drawImage(L.neon, ox, oy, L.lw, L.lh); }
       c.globalAlpha = 1;
       // beacons on this layer

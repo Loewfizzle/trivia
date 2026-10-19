@@ -355,18 +355,22 @@ export function createSigns({ games: allGames = [] } = {}) {
     }
     // the rooftop billboard: a framed panel on legs on top of the left blade's tower (else the right one's), the game's mark in it
     let roofDone = false;
-    for (const bl of out.filter(o => o.type === 'blade' && o.li === 3).sort((p, q) => p.side - q.side)) {
+    // any near (then mid) tower whose roof is well on screen — kept 26 px from the edges so the tilt / drift can't push it off;
+    // the blades' towers first, then the rest, the left side before the right
+    const blades = out.filter(o => o.type === 'blade').map(o => o.hostBox);
+    const cands = [...near.rects.map(r => [scr(near, r), 3]), ...mid.rects.map(r => [scr(mid, r), 2])]
+      .filter(([b]) => b.h > HZ * 0.1)
+      .sort((p, q) => (blades.includes(q[0]) - blades.includes(p[0])) || (q[1] - p[1]) || (p[0].x - q[0].x));
+    for (const [b, bli] of cands) {
       if (roofDone) break;
-      const b = bl.hostBox;
-      // over the part of the tower that's on screen (a tower cut off by the edge keeps its billboard on its roof)
-      const vx0 = Math.max(b.x, 4), vx1 = Math.min(b.x + b.w, W - 4), vw = vx1 - vx0;
+      const vx0 = Math.max(b.x, 26), vx1 = Math.min(b.x + b.w, W - 26), vw = vx1 - vx0;
       for (const kk of [1, 0.86, 0.74]) {
-        const pw = Math.min(vw * 0.82, 64 * sc * kk), ph = pw * 0.78, legs = 8 * sc;
+        const pw = Math.min(vw * 0.86, 64 * sc * kk), ph = pw * 0.78, legs = 8 * sc;
         if (pw < 40 * sc) break;
         const x = vx0 + (vw - pw) / 2;
         const box = { x, y: b.y - ph - legs + 1, w: pw, h: ph + legs };
-        if (!free(box, 3, 6)) continue;
-        out.push({ type: 'roof', li: 3, box, ph, legs }); used.push(box); roofDone = true; break;
+        if (!free(box, bli, 6)) continue;
+        out.push({ type: 'roof', li: bli, box, ph, legs }); used.push(box); roofDone = true; break;
       }
     }
     // the icon: mid skyline, near the middle (only when there's no rooftop billboard)
