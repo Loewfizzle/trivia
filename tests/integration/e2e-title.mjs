@@ -261,7 +261,7 @@ try {
   // the city's signs: four on a phone, spread out, each opening its game's HOW TO PLAY on a phone-style tap (pointer
   // events only: iOS never sends click to the city)
   const sg = await ev(H.page, 'JSON.stringify(window.__district.scene().signs)').then(JSON.parse);
-  ok(['marquee', 'blade', 'icon', 'ticker'].every(k => sg.some(s => s.type === k)) && sg.length === 4, `SIGNS: a marquee, a blade, an icon and a ticker on a phone (${sg.map(s => s.type + ':' + (s.game || '-')).join(' ')})`);
+  ok(sg.filter(s => s.type === 'blade').length === 2 && sg.some(s => s.type === 'icon') && sg.some(s => s.type === 'ticker') && sg.length === 4, `SIGNS: two blades, an icon and a ticker on a phone (${sg.map(s => s.type + ':' + (s.game || '-')).join(' ')})`);
   const games = sg.filter(s => s.game).map(s => s.game);
   ok(new Set(games).size === games.length, 'SIGNS: no game on two signs at once');
   for (const s of sg) {

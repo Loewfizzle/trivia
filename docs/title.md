@@ -122,7 +122,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   for half a minute or more). The blade only takes names that fit at a readable size (about 15 px tall on a phone; longer
   names show on the marquee, the icon and the ticker); its letters have a softer glow so they read on a phone. Icons and blades power down and buzz back tube by tube; the marquee flips; the ticker just scrolls.
 - **The living city:** off by day (glass tubes and brackets visible), tube by tube on at dusk (and at the title's boot),
-  off together at dawn. Holidays: Halloween cobwebs + orange/violet bulbs, Thanksgiving amber, Christmas red/green bulbs
+  off together at dawn. Holidays: orange/violet tubes, Thanksgiving amber, Christmas red/green bulbs
   (more each December day), New Year's gold + the countdown on the ticker, Valentine's rose tubes, St. Patrick's green,
   Easter pastels, the Fourth red/white/blue. Light spills on the walls and into the wet street; rain streaks catch it;
   a rare small flicker. Reduced effects: no chase, no flicker, plain fades.
@@ -139,3 +139,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **Phones:** the buildings run further down the screen (the horizon at 73.5% instead of 66.5%, rooftops unchanged), so the
   city meets the dock and the blade has room for readable names. Wide screens with no room for a blade get a third icon.
 - **Rain** falls in about one 4-hour block in four (sky.js#rainOf), random by date, the same for everyone; not the real weather.
+- **No marquee (Oct 2026):** it looked out of place in the neon city. Phones now get two neon blades (one each side), an icon
+  and the ticker; each blade's tower has its roofline and blade-side edge lined in neon in the blade's colour. Wide screens:
+  as many blades as fit plus icons, five signs. The ticker's dots are bigger, bolder and brighter (full brightness wherever
+  it sits). The marquee code is still in signs.js but nothing places it.

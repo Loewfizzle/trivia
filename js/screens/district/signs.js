@@ -275,8 +275,8 @@ export function createSigns({ games: allGames = [] } = {}) {
     const W = cols.length * s.p;
     const c = mk(W * R, s.h * R), x = c.getContext('2d');
     x.setTransform(R, 0, 0, R, 0, 0);
-    const halo = rgba(col, 0.28);
-    cols.forEach((cl, i) => { if (!cl) return; cl.forEach((on, row) => { if (!on) return; const px = i * s.p + s.p / 2, py = s.p * 1.2 + row * s.p; x.fillStyle = halo; x.beginPath(); x.arc(px, py, s.p * 0.62, 0, TAU); x.fill(); x.fillStyle = col; x.beginPath(); x.arc(px, py, s.p * 0.34, 0, TAU); x.fill(); x.fillStyle = 'rgba(255,255,255,0.55)'; x.beginPath(); x.arc(px - s.p * 0.08, py - s.p * 0.08, s.p * 0.12, 0, TAU); x.fill(); }); });
+    const halo = rgba(col, 0.42);
+    cols.forEach((cl, i) => { if (!cl) return; cl.forEach((on, row) => { if (!on) return; const px = i * s.p + s.p / 2, py = s.p * 1.2 + row * s.p; x.fillStyle = halo; x.beginPath(); x.arc(px, py, s.p * 0.72, 0, TAU); x.fill(); x.fillStyle = col; x.beginPath(); x.arc(px, py, s.p * 0.44, 0, TAU); x.fill(); x.fillStyle = mixHex(col, '#ffffff', 0.7); x.beginPath(); x.arc(px, py, s.p * 0.22, 0, TAU); x.fill(); }); });
     // the columns each game's name covers
     const spans = [];
     let from = Math.max(0, text.indexOf('NOW PLAYING'));
@@ -304,39 +304,28 @@ export function createSigns({ games: allGames = [] } = {}) {
     const out = [];
     const near = layers[3], mid = layers[2], far = layers[1];
     const towers = near.rects.map(r => scr(near, r)).filter(b => b.h > HZ * 0.08 && b.w > 40 * sc);
-    // the marquee: crowns a near tower top (or its setback) off to one side, fully on screen, clear of everything
-    let mq = null;
-    const overlapArea = (p, q) => Math.max(0, Math.min(p.x + p.w, q.x + q.w) - Math.max(p.x, q.x)) * Math.max(0, Math.min(p.y + p.h, q.y + q.h) - Math.max(p.y, q.y));
-    for (const kk of [1, 0.86, 0.74]) { if (mq) break;
-    for (const b of near.rects.map(r => scr(near, r)).filter(t => t.w > 30 * sc).sort((p, q) => p.y - q.y)) {
-      const vx0 = Math.max(b.x, 6), vx1 = Math.min(b.x + b.w, W - 6);
-      if (vx1 - vx0 < 46 * sc) continue;
-      const cxm = (vx0 + vx1) / 2;
-      if (Math.abs(cxm - W / 2) < W * 0.14) continue;
-      const mw = Math.max(108 * sc * kk, Math.min(150 * sc * kk, (vx1 - vx0) * 1.45)), mh = mw * 0.64;
-      const x = Math.max(14, Math.min(W - 14 - mw, cxm - mw / 2));
-      const box = { x, y: b.y - mh + 2, w: mw, h: mh };
-      if (!free(box, 3, 8)) continue;
-      if (near.rects.some(r => r !== b.r && overlapArea(box, scr(near, r)) > box.w * box.h * 0.12)) continue;
-      mq = { type: 'marquee', li: 3, box, side: cxm < W / 2 ? -1 : 1 }; break;
-    } }
-    if (mq) { out.push(mq); used.push(mq.box); }
-    // the blade: off the inner edge of a near tower on the other side
-    let bladeDone = false;
-    for (const bside of [mq ? -mq.side : 1, mq ? mq.side : -1]) for (const kk of [1, 0.88, 0.76, 0.66]) { if (bladeDone) break; const bw = 30 * sc * kk;
+    // the blades: one off the inner edge of a near tower on each side (the outer edge if the inner one is taken); the host
+    // tower's roofline and its blade-side edge are lined with a neon trim in the blade's colour
     const midTowers = mid.rects.map(r => scr(mid, r)).filter(b => b.h > HZ * 0.12);
-    for (const [b, bli] of [...towers.map(t => [t, 3]), ...(W >= 760 ? midTowers.map(t => [t, 2]) : [])].filter(([t]) => (t.x + t.w / 2 < W / 2 ? -1 : 1) === bside).sort((a, b2) => a[1] === b2[1] ? a[0].y - b2[0].y : b2[1] - a[1])) {
-      const top = b.y + 10, bottom = Math.min(HZ - 14, b.y + b.h - 8), h = Math.min(bottom - top, 210 * Math.min(sc, 1.15) * kk);
-      if (h < 100 * Math.min(sc, 1.15) * kk) continue;
-      const x = bside < 0 ? b.x + b.w + 5 : b.x - bw - 5;
-      const box = { x, y: top, w: bw, h };
-      if (!free(box, bli, 6)) continue;
-      // how many letters fit at a readable size (≈ 15 px tall on a phone): longer names go to the other signs
-      const area = h - bw * 0.5 - bw * 0.42, cap = Math.floor((area - 3.2 * 4) / (15 * Math.min(sc, 1.15) * 1.24));
-      if (cap < 5) continue;
-      if (W >= 760 && box.x + box.w / 2 > W * 0.3 && box.x + box.w / 2 < W * 0.7) continue;
-      out.push({ type: 'blade', li: bli, box, dir: bside < 0 ? -1 : 1, cap }); used.push(box); bladeDone = true; break;
-    } }
+    for (const bside of [-1, 1]) {
+      let done = false;
+      for (const kk of [1, 0.88, 0.76, 0.66]) { if (done) break; const bw = 30 * sc * kk;
+        for (const [b, bli] of [...towers.map(t => [t, 3]), ...(W >= 760 ? midTowers.map(t => [t, 2]) : [])].filter(([t]) => (t.x + t.w / 2 < W / 2 ? -1 : 1) === bside).sort((p, q) => p[1] === q[1] ? p[0].y - q[0].y : q[1] - p[1])) {
+          const top = b.y + 10, bottom = Math.min(HZ - 14, b.y + b.h - 8), h = Math.min(bottom - top, 210 * Math.min(sc, 1.15) * kk);
+          if (h < 100 * Math.min(sc, 1.15) * kk) continue;
+          const area = h - bw * 0.5 - bw * 0.42, cap = Math.floor((area - 3.2 * 4) / (15 * Math.min(sc, 1.15) * 1.24));
+          if (cap < 5) continue;
+          for (const edge of [bside, -bside]) {        // the edge it hangs from: inner first
+            const x = edge < 0 ? b.x + b.w + 5 : b.x - bw - 5;
+            const box = { x, y: top, w: bw, h };
+            if (!free(box, bli, 6)) continue;
+            if (W >= 760 && box.x + box.w / 2 > W * 0.3 && box.x + box.w / 2 < W * 0.7) continue;
+            out.push({ type: 'blade', li: bli, box, dir: edge < 0 ? -1 : 1, cap, host: b.r }); used.push(box); done = true; break;
+          }
+          if (done) break;
+        }
+      }
+    }
     // the icon: mid skyline, near the middle
     const iconAt = (L, li, Smax, pref) => {
       const cands = [];
@@ -357,7 +346,7 @@ export function createSigns({ games: allGames = [] } = {}) {
     const ib = iconAt(mid, 2, S1, centred) || iconAt(mid, 2, S1 * 0.78, centred) || iconAt(mid, 2, S1 * 0.62, centred);
     if (ib) { out.push({ type: 'icon', li: 2, box: ib }); used.push(ib); }
     // the ticker: a band near the top of a building, as far from the others as possible
-    const p = Math.max(1.9, Math.min(2.5, 2.0 * sc));
+    const p = Math.max(2.3, Math.min(2.9, 2.4 * sc));
     const th = p * 9.4;
     let best = null;
     for (const [L, li] of [[mid, 2], [far, 1], [near, 3]]) for (const r of L.rects) {
@@ -381,7 +370,7 @@ export function createSigns({ games: allGames = [] } = {}) {
       const b2 = iconAt(far, 1, S2, spreadOf) || iconAt(mid, 2, S2, spreadOf) || iconAt(far, 1, S2 * 0.75, spreadOf) || iconAt(mid, 2, S2 * 0.75, spreadOf);
       if (b2) { const li2 = far.rects.some(r => { const b = scr(far, r); return b2.x >= b.x - 1 && b2.x + b2.w <= b.x + b.w + 1 && b2.y >= b.y; }) ? 1 : 2; out.push({ type: 'icon', li: li2, box: b2 }); used.push(b2); }
       // no room for a readable blade (wide but short screens): one more icon keeps five signs
-      if (!out.some(o => o.type === 'blade')) {
+      if (out.filter(o => o.type === 'blade').length < 2) {
         const b3 = iconAt(mid, 2, S2, spreadOf) || iconAt(far, 1, S2, spreadOf) || iconAt(mid, 2, S2 * 0.75, spreadOf);
         if (b3) { const li3 = mid.rects.some(r => { const b = scr(mid, r); return b3.x >= b.x - 1 && b3.x + b3.w <= b.x + b.w + 1 && b3.y >= b.y; }) ? 2 : 1; out.push({ type: 'icon', li: li3, box: b3 }); used.push(b3); }
       }
@@ -500,6 +489,21 @@ export function createSigns({ games: allGames = [] } = {}) {
         const x = ox + s.x, y = oy + s.y;
         s.sx = x; s.sy = y;
         const depth = NEAR_ALPHA[li];
+        if (s.type === 'blade' && s.host && s.img) {
+          const hr = s.host, hx = ox + hr.x, hy = oy + hr.y, edgeX = s.dir < 0 ? hx + hr.w - 1 : hx + 1;
+          const tl = segAlpha(s, 0, 1, t, motion) * depth;
+          const col = s.img.col;
+          c.save(); c.lineCap = 'round';
+          const path = () => { c.beginPath(); c.moveTo(hx + 1, hy + 1); c.lineTo(hx + hr.w - 1, hy + 1); c.moveTo(edgeX, hy + 1); c.lineTo(edgeX, Math.min(hy + hr.h, env.HZ) - 2); };
+          c.globalAlpha = 0.5 * depth; c.strokeStyle = mixHex(col, '#120c18', 0.75); c.lineWidth = 2; path(); c.stroke();
+          if (tl > 0.02) {
+            c.globalCompositeOperation = 'lighter';
+            c.globalAlpha = 0.35 * tl; c.strokeStyle = col; c.lineWidth = 5; c.shadowColor = col; c.shadowBlur = 8; path(); c.stroke();
+            c.shadowBlur = 0; c.globalAlpha = 0.95 * tl; c.lineWidth = 1.4; path(); c.stroke();
+            c.globalAlpha = 0.8 * tl; c.strokeStyle = mixHex(col, '#ffffff', 0.8); c.lineWidth = 0.6; path(); c.stroke();
+          }
+          c.restore(); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        }
         if (s.type === 'icon' || s.type === 'blade') {
           const im = s.img; if (!im) continue;
           const bx = x - (s.type === 'blade' ? im.ox : im.pad), by = y - im.pad, bwid = im.base.width / R, bh = im.base.height / R;
@@ -573,11 +577,11 @@ export function createSigns({ games: allGames = [] } = {}) {
           s.lit = a1;
         } else if (s.type === 'ticker') {
           if (!s.strip) continue;
-          const tdepth = li === 3 ? 0.78 : depth;
+          const tdepth = 1;
           const a = segAlpha(s, 0, 1, t, motion) * tdepth;
           c.globalAlpha = tdepth; c.drawImage(s.base, x, y, s.w, s.h);
           if (a > 0.01) {
-            if (a > 0.05) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 * a; c.drawImage(glow(s.col), x - s.w * 0.1, y - s.h * 2, s.w * 1.2, s.h * 5); c.globalCompositeOperation = 'source-over'; }
+            if (a > 0.05) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.24 * a; c.drawImage(glow(s.col), x - s.w * 0.1, y - s.h * 2, s.w * 1.2, s.h * 5); c.globalCompositeOperation = 'source-over'; }
             c.save(); c.beginPath(); c.rect(x + 1, y, s.w - 2, s.h); c.clip();
             const off = s.off % s.strip.w, sx = x + s.w - off;
             c.globalAlpha = a;
