@@ -7,7 +7,8 @@ export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;
 export const NAME_MAX = 12;
 
-// Room codes: 4 letters, no confusing glyphs (no I, O — and no digits at all).
+// Room codes are HUSH WORDS (data/hushwords.json, js/core/hush.js) — any 4 letters A–Z when typed. The old random codes
+// (no I, O) are only the last-resort fallback when the word list can't load.
 export const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 export const CODE_LENGTH = 4;
 

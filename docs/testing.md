@@ -119,10 +119,14 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
   - The E2E harness uses `puppeteer-core` with a locally installed Chrome/Edge (no browser download).
+  - HUSH WORDS E2E: `node e2e-hush.mjs "<browser path>" ./shots-hush` (env `SHOTS=0`; run rules.test.mjs first) — a hush
+    word on the host's card, JOIN by typing and by invite, LOCK THE DOOR (a new phone refused, a refresh and a dropped phone keep
+    their seats), unlock, an old random-code room + its invite link, closing rests the word, picking with every other word
+    resting / every word resting, the guessing guard; the card + JOIN panel at 390×844, 430×932, 412×915, 1440×900.
   - Title screen E2E: `node e2e-title.mjs "<browser path>" ./shots-title` (env `GPU=1` for real frame pacing, `SHOTS=0 VIDEO=0`) —
     first visit (gate → full power-on, audio unlocked by the tap, timing measured in the page), returning visit (short),
     same-session (instant), skip, reduced effects, HOST with a saved profile, JOIN by typing / paste / ?room= (with and
-    without a profile), invalid code, I/O note, REJOIN, EDIT, showcase previews + HOW TO PLAY, tiers at 4× CPU, memory
+    without a profile), a word with no room, digits ignored, REJOIN, EDIT, showcase previews + HOW TO PLAY, tiers at 4× CPU, memory
     across title↔setup cycles, hidden-tab pause; screenshots at 390×844 / 412×915 / 1440×900 and MP4s of the first and
     returning intro (CDP screencast + ffmpeg from the PULSE venv). `title-shots.mjs` = quick sequence stills + the bare boot screen.
     The E2E suites open `?emu` pages, where the title skips its intro (add `&intro=1` to see it).

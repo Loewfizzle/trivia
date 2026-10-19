@@ -1,4 +1,4 @@
-// Lobby: room code + invite, live player list, host game picker.
+// Lobby: the hush word (the room's code, on a password card) + invite + LOCK THE DOOR (host), live player list, host game picker.
 import { h, clear, reducedMotion } from '../ui/dom.js';
 import { RANK_COLORS } from '../ui/emblems.js';
 import { step } from '../core/ranks.js';
@@ -12,7 +12,7 @@ import { isHost, setState } from '../store.js';
 import { playerOrder, isOnline, idleLeft } from '../core/room-logic.js';
 import { ROOM_IDLE_WARN_MS } from '../config.js';
 import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../firebase.js';
-import { leaveRoom, kickPlayer } from '../room.js';
+import { leaveRoom, kickPlayer, setDoorLocked } from '../room.js';
 import { startGame, onlineCount } from '../host.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { preloadSheets } from '../games/lazy-view.js';
@@ -23,6 +23,8 @@ import { prefetch } from '../audio/music.js';
 import { gameArt } from '../ui/game-art.js';
 import { logoSvg } from '../ui/logo.js';
 
+// a small padlock (the hush-word card's LOCKED tag and the LOCK THE DOOR row)
+const LOCK_SVG = '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>';
 const greeted = new Set(); // rooms we've already shown the join effect for (this page load)
 
 export function createLobby() {
@@ -37,7 +39,7 @@ export function createLobby() {
 
   async function share() {
     const url = inviteUrl();
-    const text = `Join my ${APP_NAME} room ${st.code}`;
+    const text = `Get in here — the hush word is ${st.code}`;
     if (navigator.share) {
       try { await navigator.share({ title: APP_NAME, text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
     }
@@ -57,8 +59,16 @@ export function createLobby() {
   function mount(el, state) {
     st = state;
     el.classList.add('lobby-screen');
-    els.code = h('button.room-code', { type: 'button', 'aria-label': `Room code ${st.code}, tap to copy invite link`, onclick: () => copy(inviteUrl()) },
+    els.code = h('button.room-code', { type: 'button', 'aria-label': `The hush word is ${st.code}. Tap to copy the invite link`, onclick: () => copy(inviteUrl()) },
       [...st.code].map((ch, i) => h('span', { style: { '--i': i } }, ch)));
+    // LOCK THE DOOR (host only): new players can't get in with the word; everyone already inside keeps their seat
+    els.lock = h('button.switch.hw-switch', { type: 'button', role: 'switch', 'aria-checked': 'false', 'aria-labelledby': 'hw-lock-l', onclick: toggleLock }, h('i'));
+    els.lockRow = h('div.hw-lockrow', { hidden: true },
+      h('span.hw-lock-ic', { 'aria-hidden': 'true', html: LOCK_SVG }),
+      h('span.hw-lock-l', { id: 'hw-lock-l' }, 'LOCK THE DOOR'),
+      els.lockNote = h('span.hw-lock-note', 'ANYONE WITH THE WORD'),
+      els.lock);
+    els.lockTag = h('span.hw-tag', { hidden: true, role: 'status' }, h('span', { 'aria-hidden': 'true', html: LOCK_SVG }), 'LOCKED');
     els.count = h('span.count');
     els.players = h('div.players');
     els.games = h('div.games');
@@ -72,9 +82,11 @@ export function createLobby() {
       h('button.btn.btn-ghost.btn-sm.lobby-leave', { type: 'button', onclick: confirmLeave, 'aria-label': 'Leave room' }, '‹ LEAVE ROOM'),
       h('header.lobby-head',
         (els.sign = h('div.nd-mini', { 'aria-label': APP_NAME, role: 'img' }, h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndl', lit: true, clips: false, blur: 0.7 }) }), h('div.nd-word', 'SPEAKEASY'))),
-        h('div.lobby-room',
-          h('span.label', 'ROOM CODE'),
-          els.code),
+        els.card = h('div.lobby-room.hw-card',
+          h('div.hw-top', h('span.hw-label', 'THE HUSH WORD'), els.lockTag),
+          els.code,
+          h('span.hw-hint', 'TAP THE WORD TO COPY THE LINK'),
+          els.lockRow),
         h('div.lobby-actions',
           h('button.btn.btn-primary.btn-sm', { type: 'button', onclick: share }, '⇪ SHARE INVITE'),
           h('button.btn.btn-ghost.btn-sm', { type: 'button', onclick: () => copy(inviteUrl()) }, 'COPY LINK'))),
@@ -276,8 +288,31 @@ export function createLobby() {
       h('button.btn.btn-ghost.btn-sm', { type: 'button', onclick: () => setState({ quit: null }) }, 'WATCH'));
   }
 
+  // LOCK THE DOOR: one tap; the rules make it real (a refused seat is the only proof that matters)
+  let lockBusy = false;
+  async function toggleLock() {
+    if (lockBusy || !isHost()) return;
+    lockBusy = true;
+    const on = !(st.meta && st.meta.locked === true);
+    els.lock.setAttribute('aria-checked', String(on)); // feels instant; update() repaints from the room if it didn't stick
+    sfx(on ? 'lock' : 'tap');
+    try { await setDoorLocked(on); toast(on ? 'DOOR LOCKED' : 'DOOR OPEN', 'ok'); }
+    catch (e) { toast('COULDN’T REACH THE DOOR — TRY AGAIN', 'err'); }
+    lockBusy = false;
+    renderLock();
+  }
+  function renderLock() {
+    const locked = !!(st.meta && st.meta.locked === true);
+    els.card.classList.toggle('is-locked', locked);
+    els.lockTag.hidden = !locked;
+    els.lockRow.hidden = !isHost();
+    if (!lockBusy) els.lock.setAttribute('aria-checked', String(locked));
+    els.lockNote.textContent = locked ? 'NO NEW PLAYERS' : 'ANYONE WITH THE WORD';
+  }
+
   function update(state) {
     st = state;
+    renderLock();
     renderLive();
     renderNight();
     renderIdle();
@@ -329,7 +364,7 @@ export function createLobby() {
 
     const online = onlineCount();
     els.hint.textContent = host
-      ? online < MIN_PLAYERS ? `> NEED ${MIN_PLAYERS}+ CONNECTED PLAYERS. SHARE THE CODE.` : '> YOU ARE HOST. PICK A GAME.'
+      ? online < MIN_PLAYERS ? `> NEED ${MIN_PLAYERS}+ CONNECTED PLAYERS. SHARE THE HUSH WORD.` : '> YOU ARE HOST. PICK A GAME.'
       : `> WAITING FOR ${(st.players[st.meta && st.meta.hostId] || {}).name || 'HOST'} TO PICK A GAME…`;
     els.games.classList.toggle('is-guest', !host);
     if (!host && sheet) { sheet.remove(); sheet = null; }

@@ -4,9 +4,11 @@ Every node in the Realtime Database and every game's `game` shape.
 
 ## Data model (RTDB)
 ```
-rooms/{CODE}/
-  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, settings/{gameId}: {...} }
-  players/{uid}:  { name, color, avatar, joinedAt }          ← written by that player only
+rooms/{CODE}/                                                ← CODE = the room's HUSH WORD (data/hushwords.json); old random codes still open
+  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...} }
+             locked: true = LOCK THE DOOR (host): the rules refuse a NEW players/{uid}; existing nodes (refresh, rejoin,
+             a dropped phone coming back, leaving) are untouched; kicked stays kicked either way
+  players/{uid}:  { name, color, avatar, joinedAt }          ← written by that player only (a new node only while unlocked)
   presence/{uid}: { online, lastSeen }                       ← onDisconnect sets online:false
   kicked/{uid}:   true                                       ← host only
   game:      host-only; per-game shape (CIPHER below)
@@ -21,6 +23,14 @@ rooms/{CODE}/
   meta/used/bluff/{questionId}: true                            ← host; Bluff questions already used in this room
   meta/used/trivia/{qHash}: true                                ← host; trivia questions any match in this room has banked
   pulse/{matchId}/{uid}: { k: songIndex, ready, s, c, mc, p, g, o, m, n, e, er, at }  ← PULSE, own, current song only
+hush/{WORD}: { closedAt }               ← HUSH WORDS cooldown: written ONLY in the same update that deletes rooms/{WORD} (rules:
+                                         the room existed before, is gone after; closedAt = server time) — a client can't rest
+                                         words at will. Readable by any signed-in user (the host reads it to pick a word).
+                                         Entries older than 24 h may be deleted by anyone (createRoom sweeps up to 50).
+                                         Picking (js/core/hush.js): a random word with no entry younger than 24 h, claimed by a
+                                         transaction on rooms/{WORD}/meta (two hosts never share one); all resting → the oldest
+                                         rested word; no list → the old random code. Every close path (leave as the last one,
+                                         idle close, the stale-room sweep) goes through room.js#closeRoom.
 chats/{CODE}/                          ← top level (rooms/{CODE} is readable by any signed-in user; chat isn't)
   m/{key}:      { u, n, t ≤ 300, at } player line (own uid, server time) | { s, x ≤ 80, at } system line (host only)
   rate/{uid}:   server time of that player's last message (rules: ≥ 800 ms apart; written in the same update)

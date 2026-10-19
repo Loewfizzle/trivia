@@ -178,7 +178,7 @@ export function glitchFlash() {
 export function accessGranted(code) {
   const el = h('div.access', { 'aria-hidden': 'true' },
     h('div.access-ring'), h('div.access-ring.r2'), h('div.access-ring.r3'),
-    h('div.access-text', h('small', 'UPLINK ESTABLISHED'), h('strong', 'ACCESS GRANTED'), h('small.mono', `ROOM ${code}`)));
+    h('div.access-text', h('small', 'UPLINK ESTABLISHED'), h('strong', 'ACCESS GRANTED'), h('small.mono', `HUSH WORD ${code}`)));
   document.body.append(el);
   sfx('join');
   setTimeout(() => el.classList.add('out'), reducedMotion() ? 600 : 1300);

@@ -9,7 +9,9 @@ test('room codes avoid confusing glyphs', () => {
   for (const ch of 'IO01') assert.ok(!CODE_ALPHABET.includes(ch));
   for (let i = 0; i < 500; i++) assert.match(generateCode(), /^[A-HJ-NP-Z]{4}$/);
   assert.equal(normalizeCode(' ab-cd '), 'ABCD');
-  assert.equal(normalizeCode('abio'), null);
+  assert.equal(normalizeCode('abio'), 'ABIO', 'hush words use every letter');
+  assert.equal(normalizeCode('mint'), 'MINT');
+  assert.equal(normalizeCode('ab1o'), null);
   assert.equal(normalizeCode('abc'), null);
 });
 

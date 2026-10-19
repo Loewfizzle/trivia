@@ -9,7 +9,7 @@
 //   4. The menu eases in.  The full sequence (≈ 3.4 s) plays on every visit — the TAP TO ENTER gate only on a
 //      device's first visit; stepping back from the name / profile screen gets a quick ≈ 1.2 s re-light. Any tap skips. Reduced effects / prefers-reduced-motion: simple fades.
 // The dock — THE NEON RING: one floating glass bar, JOIN · BOARD · [HOST] · GAMES · YOU. HOST is a raised neon ring in
-// the sign's colours (always lit); JOIN opens a glass panel with four code boxes (paste, auto-join on the 4th letter, ?room=
+// the sign's colours (always lit); JOIN opens a glass panel with four hush-word boxes (paste, auto-join on the 4th letter, ?room=
 // pre-fills); REJOIN floats above the bar when a saved room couldn't be reached; YOU opens the membership card.
 // Test hook: window.__district.
 import { h, reducedMotion } from '../ui/dom.js';
@@ -18,7 +18,7 @@ import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
 import { logoSvg, TAGLINE } from '../ui/logo.js';
 import { openHelp } from '../ui/help.js';
-import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, CODE_ALPHABET, colorHex } from '../config.js';
+import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, colorHex } from '../config.js';
 import { setState } from '../store.js';
 import { slot, loadProfile, useEmulator, loadMe } from '../identity.js';
 import { rankBadge, emblem, RANK_COLORS } from '../ui/emblems.js';
@@ -862,17 +862,17 @@ export function createTitle() {
     // the JOIN panel: one real input under four boxes (native keyboard, autocapitalise, paste, iOS autofill all just work)
     els.code = h('input.nd-code-in', {
       type: 'text', inputmode: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: false,
-      maxLength: 24, 'aria-label': 'Room code, 4 letters', enterkeyhint: 'go',
+      maxLength: 24, 'aria-label': 'Hush word, 4 letters', enterkeyhint: 'go',
       oninput: onCode, onpaste: onPaste, onfocus: () => { paintCode(); fitKeyboard(); }, onblur: paintCode,
       onkeydown: e => { if (e.key === 'Enter' && els.code.value.length === 4) join(els.code.value); if (e.key === 'Escape') openJoin(false); },
     });
     els.boxes = [0, 1, 2, 3].map(i => h('span.nd-box', { style: { '--i': i } }));
-    els.go = h('button.nd-go', { type: 'button', 'aria-label': 'Join room', onclick: () => (els.code.value.length === 4 ? join(els.code.value) : els.code.focus()) },
+    els.go = h('button.nd-go', { type: 'button', 'aria-label': 'Join with the hush word', onclick: () => (els.code.value.length === 4 ? join(els.code.value) : els.code.focus()) },
       h('span', { html: ICON.go }));
     els.msg = h('p.nd-msg', { role: 'status', 'aria-live': 'polite' });
-    els.jpanel = h('div.nd-jpanel', { role: 'dialog', 'aria-label': 'Enter the room code', onpointerdown: panelDown, onpointerup: panelUp },
+    els.jpanel = h('div.nd-jpanel', { role: 'dialog', 'aria-label': 'Enter the hush word', onpointerdown: panelDown, onpointerup: panelUp },
       h('span.nd-jp-grip', { 'aria-hidden': 'true' }),
-      h('h2.nd-jp-h', 'ENTER THE CODE'),
+      h('h2.nd-jp-h', 'ENTER THE HUSH WORD'),
       els.msg,
       h('div.nd-jp-row',
         h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
@@ -1025,29 +1025,27 @@ ${both('b', 5.4)}${both('c', 1.9)}
       openJoin(true);
       els.code.value = clean(state.invite);
       paintCode();
-      say(`You’re invited to room ${els.code.value} — tap › to join.`, 'info');
+      say(`You’re invited — the hush word is ${els.code.value}. Tap › to join.`, 'info');
       els.go.classList.add('is-ready');
     }
-    if (state.inviteExpired) note(`Room ${state.inviteExpired} has closed. Host a new game, or ask for a fresh code.`, 'warn', 9000);
+    if (state.inviteExpired) note(`The room behind ${state.inviteExpired} has closed. Host a new game, or ask for a fresh hush word.`, 'warn', 9000);
   }
 
 
   const clean = v => String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
 
   function onCode() {
-    const raw = clean(els.code.value);
-    const bad = [...raw].some(ch => !CODE_ALPHABET.includes(ch));
-    const v = [...raw].filter(ch => CODE_ALPHABET.includes(ch)).join('').slice(0, 4);
+    // any letter A–Z (hush words use them all; the old codes are letters too) — digits and symbols just don't type
+    const v = clean(els.code.value).slice(0, 4);
     els.code.value = v;
     paintCode();
     els.go.classList.toggle('is-ready', v.length === 4);
-    if (bad) say('Room codes never use I or O.', 'warn');
-    else if (v.length < 4) say('');
+    if (v.length < 4) say('');
     if (v.length === 4) join(v);
   }
 
   function onPaste(e) {
-    // pasting an invite link works too: take the code out of it
+    // pasting an invite link (or "the hush word is MINT") works too: take the word out of it
     const text = (e.clipboardData || window.clipboardData).getData('text') || '';
     const m = /[?&]room=([A-Za-z]{4})\b/.exec(text) || /\b([A-Za-z]{4})\b/.exec(text.trim());
     if (!m) return;
@@ -1107,7 +1105,7 @@ ${both('b', 5.4)}${both('c', 1.9)}
     els.code.blur();
     els.code.parentElement.classList.add('is-busy');
     const tell = els.actions.classList.contains('is-join') ? say : note;
-    tell(isRejoin ? `Rejoining room ${code}…` : `Joining room ${code}…`, 'info');
+    tell(isRejoin ? `Rejoining ${code}…` : `Knocking: ${code}…`, 'info');
     try {
       await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
       await joinRoom(code, p);
@@ -1125,8 +1123,10 @@ ${both('b', 5.4)}${both('c', 1.9)}
 
   function friendly(e, code = '') {
     const m = String((e && e.message) || e);
-    if (/No room/i.test(m)) return `There’s no room ${code} right now. Check the code, or ask for a fresh invite.`;
-    if (/full/i.test(m)) return `Room ${code} is full — 8 players is the limit.`;
+    if (/No room/i.test(m)) return `No room behind ${code} right now. Check the hush word, or ask for a fresh invite.`;
+    if (/door’s locked/i.test(m)) return m;
+    if (/wrong words/i.test(m)) return m;
+    if (/full/i.test(m)) return `That room is full — 8 players is the limit.`;
     if (/removed you/i.test(m)) return 'The host removed you from that room.';
     if (/permission|network|unavailable|offline/i.test(m)) return 'Couldn’t reach the game servers. Check your connection and try again.';
     return m;

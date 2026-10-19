@@ -29,8 +29,9 @@ the street outside: the district, the sign over the door.
 - **THE BOARD** (BOARD in the dock, gold): the global leaderboards (`docs/profiles.md`); YOU in the dock (your emblem) opens the
   membership card; each preview sheet shows the game's top 3 and your rank.
 - **Menu** (the dock: THE NEON RING below): HOST (the one glowing element; with a saved profile it opens a room in one tap,
-  otherwise the name/avatar screen first), JOIN (one real input under four boxes: native keyboard, auto-caps, paste of a code
-  or a whole invite link, auto-join on the 4th letter, a note when I/O are typed, inline errors for no room / full / removed),
+  otherwise the name/avatar screen first), JOIN (one real input under four boxes: native keyboard, auto-caps, paste of a HUSH WORD
+  or a whole invite link, auto-join on the 4th letter, any letter A–Z, inline errors for no room / locked door / full / removed /
+  too many wrong words),
   `?room=` pre-fills it (› glows), REJOIN [CODE] when a saved room couldn't be reached on boot (`state.rejoin`), YOU (the card;
   before a profile, setup in `edit` mode: profile only, back to the title), GAMES: a showcase of the games (tap → a preview sheet
   with art, blurb, player count from MIN_PLAYERS, length from `estimateMinutes(DEFAULT_SETTINGS)`, HOW TO PLAY). No version on the title (it lives in the settings sheet footer).
@@ -275,9 +276,12 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   noticeable breathing of its glow (`.nd-hglow`, in front of the glass so the blur never re-renders; Reduced effects: still).
   Its reflection on the wet street under the bar (`.nd-hrefl`, static: it's behind the glass). Busy (opening a room): the glow
   pulses faster. Same behaviour as before: a saved profile opens a room in one tap, else the name screen.
-- **JOIN** opens a glass panel just above the bar ("ENTER THE CODE"; `.nd-actions.is-join`, a cyan light under JOIN): the four
-  boxes over one real input (native keyboard, auto-caps, paste of a code or an invite link, auto-join on the 4th letter, the I/O
-  note, inline errors). Closes by JOIN again, a tap outside, a swipe down, Escape. With the iOS keyboard up the panel is pinned just
+- **JOIN** opens a glass panel just above the bar ("ENTER THE HUSH WORD"; `.nd-actions.is-join`, a cyan light under JOIN): the
+  four boxes over one real input (native keyboard, auto-caps, paste of a word or an invite link, auto-join on the 4th letter, any
+  letter A–Z — digits and symbols don't type, inline errors: "No room behind MINT…", "The door's locked. Ask the host to let you
+  in.", "Easy there — too many wrong words. Try again in 30 s." after five misses in a minute on one device). Since HUSH WORDS
+  (Oct 19, 2026) the empty line reads "the 4-letter word on the host's screen"; an invite says "You're invited — the hush word is
+  MINT. Tap › to join." Closes by JOIN again, a tap outside, a swipe down, Escape. With the iOS keyboard up the panel is pinned just
   above it (`fitKeyboard`: the visual viewport). The panel's glass is its own layer (`::before`; a blur on the panel itself rendered
   unevenly behind the animated caret). An invite link (`?room=`) opens it filled in, › ready, no keyboard.
 - **Above the bar:** REJOIN [CODE] as a glass pill with a cyan light; notes (a room that couldn't open, an expired invite) as a

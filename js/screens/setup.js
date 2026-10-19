@@ -1,4 +1,4 @@
-// Host / join form: name, color, avatar (+ room code when joining).
+// Host / join form: name, color, avatar (+ the hush word when joining).
 import { h } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
@@ -26,7 +26,7 @@ export function createSetup() {
 
     els.code = h('input.input.input-code', {
       type: 'text', inputmode: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: false,
-      maxLength: 4, placeholder: '····', 'aria-label': 'Room code', value: st.invite || '',
+      maxLength: 4, placeholder: '····', 'aria-label': 'Hush word', value: st.invite || '',
       oninput: e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); },
     });
     els.name = h('input.input.input-name', {
@@ -58,7 +58,7 @@ export function createSetup() {
         h('button.icon-btn', { type: 'button', 'aria-label': 'Back', onclick: () => { try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); } }, '‹'),
         h('div.bar-title', mode === 'host' ? 'HOST // NEW ROOM' : mode === 'edit' ? 'PROFILE // EDIT' : 'JOIN // ENTER CODE')),
       h('div.form',
-        mode === 'join' ? h('label.field', h('span.label', 'ROOM CODE'), els.code) : null,
+        mode === 'join' ? h('label.field', h('span.label', 'HUSH WORD'), els.code) : null,
         h('label.field', h('span.label', 'CALLSIGN'), els.name),
         h('div.field', h('span.label', 'SIGNAL COLOR'), els.colors),
         h('div.field', h('span.label', 'AVATAR'), els.avatars),
@@ -93,7 +93,7 @@ export function createSetup() {
     let code = null;
     if (mode === 'join') {
       code = normalizeCode(els.code.value);
-      if (!code) { toast('ROOM CODES ARE 4 LETTERS', 'err'); els.code.focus(); return; }
+      if (!code) { toast('THE HUSH WORD IS 4 LETTERS', 'err'); els.code.focus(); return; }
     }
     const p = { ...profile, name };
     saveProfile(p);

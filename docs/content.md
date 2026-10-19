@@ -34,6 +34,22 @@ How to add questions, puzzles and words to every bank, and how the word lists ar
 - **Cipher Breach / Unscramble words:** edit the blocklist or sizes in `scripts/build-words.mjs` and rebuild (below).
 
 
+## HUSH WORDS (room codes)
+The room code is a common 4-letter word, the HUSH WORD. Source: `scripts/hushwords/words.txt` (one block per letter);
+`node scripts/build-hushwords.mjs` checks it and writes `data/hushwords.json` (sorted), or lists every problem and writes
+nothing (`--check` only checks). `tests/hush.test.mjs` runs the same checks on the JSON. 798 words (Oct 19, 2026).
+- **Every word:** exactly 4 letters, common, spellable by a kid and a grandparent, family-friendly; concrete and upbeat
+  preferred, a light speakeasy flavour welcome (JAZZ, GOLD, MINT, LIME, WINK, HUSH).
+- **Never:** anything in `scripts/hushwords/blocked.txt` — rude, crude, sexual, violent, drugs / alcohol / gambling,
+  religious, political, slurs or words used as one, slang that turns rude, words with a common rude reading, names, brands,
+  abbreviations, tricky spellings (silent letters, two accepted spellings), and gloomy words. Add to it whenever you cut a word.
+- **No homophones:** `scripts/hushwords/homophones.txt` lists groups that sound alike (PAIR PARE PEAR, KNOT NOT, ROSE ROWS,
+  MARK MARC…); no 4-letter member of any group may be a hush word, because said across a room it could be spelled the other
+  way. US pronunciation; the common US mergers count (WALK/WOK, wine/whine); proper nouns count (ROSY/ROSIE, STEW/STU).
+- **Adding words:** add to words.txt, run the builder, then read the list again with fresh eyes — when in doubt, leave it out.
+  Why not ~1,500: after the homophones, the rude/gloomy readings and the tricky spellings, about 800 common words are left —
+  plenty with the 24-hour rest (`docs/data-model.md` → hush/).
+
 ## Word lists
 Built by `scripts/build-words.mjs` from ENABLE (public domain), the SCOWL-derived Hunspell en_US
 dictionary (filters to real, non-proper-noun base words) and Peter Norvig's word-frequency counts (MIT).

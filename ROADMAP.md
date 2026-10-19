@@ -5,7 +5,7 @@
 > It was NEURAL ARCADE until October 2026.
 
 NEON SPEAKEASY — *your friends are already inside.* One web app, twelve games, 2–8 players, each on their own phone — same room or different cities.
-A host creates a room (4-letter code), friends join, the host picks a game. After a match everyone
+A host creates a room (its HUSH WORD — a common 4-letter word), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **neonspeakeasy.com** (since Oct 2026; games.loewfizzle.com and trivia.loewfizzle.com permanently redirect here) (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
@@ -354,6 +354,14 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Lobbies play ONE song for everyone on the server clock, chosen by the host's clock; late joiners and host changes carry on
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
+
+### ✅ HUSH WORDS (Oct 19, 2026) — `docs/content.md`, `docs/data-model.md`
+- [x] Room codes are common 4-letter words: 798 hand-curated (no homophones, nothing rude / gloomy / tricky to spell), built and
+      checked by `scripts/build-hushwords.mjs`; a word rests 24 h after its room closes (`hush/`), claimed by a transaction
+- [x] JOIN accepts any 4 letters (I and O too); old random-code rooms and their invite links keep working until they close
+- [x] LOCK THE DOOR (host, lobby): no new players; anyone already inside rejoins; enforced in the rules
+- [x] The lobby's password card; "HUSH WORD" everywhere; share text "Get in here — the hush word is MINT"; a light guessing guard
+- [x] Tests: hush.test.mjs, rules (lock, claim race, hush/ abuse), e2e-hush.mjs (22 checks)
 
 ### ✅ THE NEON COMES ALIVE (Oct 19, 2026) — `docs/title.md`
 - [x] The sign sputters to life through the golden hour (silent, seeded, growing, letters sticking) and catches — the only sound —

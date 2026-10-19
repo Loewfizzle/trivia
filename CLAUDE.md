@@ -79,7 +79,7 @@ css/board.css admin.css                                  THE BOARD, the membersh
 css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow()
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
-js/core/  room-logic.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js   PURE (sky.js: + planets, eclipses; weather.js: Open-Meteo → the city weather; insights.js: the admin STATS) (sky.js: the real sun, moon, seasons, holidays, sky events): room codes + host election, seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
+js/core/  room-logic.js hush.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js   PURE (sky.js: + planets, eclipses; weather.js: Open-Meteo → the city weather; insights.js: the admin STATS) (sky.js: the real sun, moon, seasons, holidays, sky events): room codes + host election, HUSH WORDS (picking a word, the guessing guard), seeded RNG, XOR+base64, game-night standings, room playlists + callBonus
           week.js ranks.js names.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, keys, board catalog, per-game results
 js/profile/ api.js me.js queue.js public.js callouts.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques + rank-up
 js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX
@@ -94,6 +94,7 @@ js/errlog.js                                             errors from players' ph
 js/games/kit/                                            THE MATCH KIT: moments (announcer + cards), call, results, tiers, hook   → docs/match-kit.md
 js/games/<id>/  logic.js director.js index.js view.js (+ scene/audio/…)   PURE rules / PURE state machine / contract + host duties / the screen
 data/     trivia bluff oc words agent pulse prism slip    the banks and song analyses (formats in docs/content.md and each game's doc)
+data/hushwords.json  scripts/hushwords/                  HUSH WORDS (room codes): built + checked by scripts/build-hushwords.mjs (docs/content.md)
 audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs
 scripts/  serve.mjs build-*.{mjs,py} validate-holes.mjs sim-gridlock.mjs   local server (:5173, `--emu` also runs /api on the emulators), builders, the NEON PAR hole bot, GRIDLOCK balance sim
 database.rules.json                                      RTDB rules — paste into the Firebase console after every change
@@ -104,8 +105,8 @@ tests/fixtures/finals.mjs                                finished matches of eve
 
 ## Data model (the shared core; every node and every game's `game` shape: `docs/data-model.md`)
 ```
-rooms/{CODE}/
-  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, settings/{gameId}: {...} }
+rooms/{CODE}/       ← CODE = the HUSH WORD (a common 4-letter word; docs/content.md); hush/{WORD}: { closedAt } rests it 24 h after closing
+  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...} }   ← locked: LOCK THE DOOR (no new player nodes)
   players/{uid}:  { name, color, avatar, joinedAt, pid? }    ← written by that player only (pid: their own profile id only)
   presence/{uid}: { online, lastSeen }                       ← onDisconnect sets online:false
   kicked/{uid}:   true                                       ← host only

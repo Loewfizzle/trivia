@@ -2,7 +2,7 @@
 //   node e2e-title.mjs "<browser path>" ./shots-title        (env SHOTS=0, VIDEO=0, CPU=4, GPU=1)
 // First visit (gate -> tap -> full power-on, audio unlocked by that tap), returning visit (short, no gate),
 // back from the name screen (quick re-light), skip by tapping, reduced effects; HOST with a saved profile (straight into a
-// room), JOIN by typing (auto-join on the 4th letter), by pasting an invite link, an invalid code, I/O typed,
+// room), JOIN by typing (auto-join on the 4th letter), by pasting an invite link, an invalid word, digits ignored,
 // a ?room= link (pre-filled; with and without a profile), REJOIN, Welcome back + EDIT, the showcase preview
 // sheets (+ HOW TO PLAY), quality tiers + frame pacing, memory cleanup when leaving the title, the lobby's
 // small sign; screenshots at 390×844, 412×915, 1440×900; videos of the first and the returning intro.
@@ -338,8 +338,8 @@ try {
   const two = await ev(B.page, `[...document.querySelectorAll('.nd-box')].map(b => b.textContent).join('')`);
   ok(two === code.slice(0, 2), `JOIN: letters appear in the boxes, capitalised (${two})`);
   await shotAll(B.page, 'n-06-typing');
-  await B.page.keyboard.type('i', { delay: 60 });
-  ok((await ev(B.page, `document.querySelector('.nd-msg').textContent`)).includes('I or O'), 'JOIN: an I or O gets a gentle note (codes never use them)');
+  await B.page.keyboard.type('7-', { delay: 60 });
+  ok((await ev(B.page, `[...document.querySelectorAll('.nd-box')].map(b => b.textContent).join('')`)) === code.slice(0, 2), 'JOIN: digits and symbols don\'t type (hush words are letters; I and O are fine)');
   await B.page.keyboard.type(code.slice(2).toLowerCase(), { delay: 90 });
   await waitFor(B.page, '!!window.__arcade.state.code', 'B joined', 20000);
   ok((await state(B.page)).code === code, 'JOIN: joins automatically after the 4th letter');
@@ -436,8 +436,8 @@ try {
     const barBox = async () => ev(G.page, `JSON.stringify(document.querySelector('.nd-bar').getBoundingClientRect())`);
     const bar0 = await barBox();
     await tap(G.page, '.nd-tab-join'); await sleep(500);
-    const open1 = await ev(G.page, `(() => { const a = document.querySelector('.nd-actions'), p = document.querySelector('.nd-jpanel').getBoundingClientRect(), b = document.querySelector('.nd-bar').getBoundingClientRect(); return a.classList.contains('is-join') && document.querySelector('.nd-tab-join').getAttribute('aria-expanded') === 'true' && getComputedStyle(document.querySelector('.nd-tab-ind')).opacity === '1' && p.bottom < b.top && /ENTER THE CODE/.test(document.querySelector('.nd-jpanel').textContent); })()`);
-    ok(open1 && (await barBox()) === bar0, 'JOIN: a glass panel rises above the bar ("ENTER THE CODE", a cyan light under JOIN); the bar doesn\'t move');
+    const open1 = await ev(G.page, `(() => { const a = document.querySelector('.nd-actions'), p = document.querySelector('.nd-jpanel').getBoundingClientRect(), b = document.querySelector('.nd-bar').getBoundingClientRect(); return a.classList.contains('is-join') && document.querySelector('.nd-tab-join').getAttribute('aria-expanded') === 'true' && getComputedStyle(document.querySelector('.nd-tab-ind')).opacity === '1' && p.bottom < b.top && /ENTER THE HUSH WORD/.test(document.querySelector('.nd-jpanel').textContent); })()`);
+    ok(open1 && (await barBox()) === bar0, 'JOIN: a glass panel rises above the bar ("ENTER THE HUSH WORD", a cyan light under JOIN); the bar doesn\'t move');
     await shotAll(G.page, 'n-10-join-panel');
     await tap(G.page, '.nd-tab-join'); await sleep(450);
     const isOpen = () => ev(G.page, `document.querySelector('.nd-actions').classList.contains('is-join')`);

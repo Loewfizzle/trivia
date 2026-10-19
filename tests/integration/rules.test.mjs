@@ -67,6 +67,56 @@ test('creating a room: only as yourself, never over an existing room', async () 
   await assertSucceeds(set(ref(db('a'), `rooms/WXYZ/meta`), meta('a')));
   await assertFails(set(ref(db('b'), `rooms/WXYZ/meta`), meta('b')), 'cannot hijack an existing room');
   await assertFails(set(ref(db('a'), `rooms/WX10/meta`), meta('a')), 'invalid code chars');
+  await assertSucceeds(set(ref(db('a'), `rooms/MINT/meta`), meta('a')), 'hush words use every letter (I, O too)');
+  await assertFails(set(ref(db('a'), `rooms/mint/meta`), meta('a')), 'upper case only');
+});
+
+test('HUSH WORDS: two hosts claiming the same word at once — exactly one gets it', async () => {
+  const meta = uid => ({ hostId: uid, status: 'lobby', createdAt: serverTimestamp(), activeAt: serverTimestamp(), hostBeat: serverTimestamp() });
+  // the same transaction as js/room.js#claimRoom
+  const claim = uid => runTransaction(ref(db(uid), 'rooms/JAZZ/meta'), cur => (cur == null ? meta(uid) : undefined), { applyLocally: false })
+    .then(r => r.committed && r.snapshot.child('hostId').val() === uid).catch(() => false);
+  const wins = await Promise.all(['a', 'b', 'c', 'd'].map(claim));
+  assert.equal(wins.filter(Boolean).length, 1, `one winner (${wins})`);
+  assert.equal(await claim('e'), false, 'a later claim on an open room fails');
+});
+
+test('LOCK THE DOOR: host only; new players are refused, players already in rejoin; kicked stay kicked', async () => {
+  await seed(lobbyRoom({ kicked: { k1: true } }));
+  await assertFails(update(ref(db('p2'), `${R}/meta`), { locked: true }), 'only the host locks');
+  await assertFails(update(ref(db('host'), `${R}/meta`), { locked: 'yes' }), 'a boolean');
+  await assertSucceeds(update(ref(db('host'), `${R}/meta`), { locked: true }));
+  await assertFails(set(ref(db('p3'), `${R}/players/p3`), player('NEW')), 'a new player cannot join a locked room');
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), player('TWO')), 'a player already in rewrites their node (refresh / rejoin)');
+  await assertSucceeds(update(ref(db('p2'), `${R}/players/p2`), { name: 'TWO B' }), '…and edits it');
+  await assertSucceeds(set(ref(db('p2'), `${R}/presence/p2`), { online: true, lastSeen: serverTimestamp() }), '…and comes back online');
+  await assertFails(set(ref(db('k1'), `${R}/players/k1`), player('KICKED')), 'kicked stays kicked (locked)');
+  await assertSucceeds(update(ref(db('host'), `${R}/meta`), { locked: null }));
+  await assertSucceeds(set(ref(db('p3'), `${R}/players/p3`), player('NEW')), 'unlocked: the new player gets in');
+  await assertFails(set(ref(db('k1'), `${R}/players/k1`), player('KICKED')), 'kicked stays kicked (unlocked)');
+  // leaving a locked room still works
+  await assertSucceeds(update(ref(db('host'), `${R}/meta`), { locked: true }));
+  await assertSucceeds(update(ref(db('p3'), R), { 'players/p3': null, 'presence/p3': null }), 'leaving a locked room');
+});
+
+test('HUSH WORDS: hush/{WORD} only with the room it closes; anyone may sweep entries older than 24 h', async () => {
+  await seed(lobbyRoom());
+  const closed = { closedAt: serverTimestamp() };
+  await assertSucceeds(get(ref(db('anyone'), 'hush')), 'any signed-in phone reads the cooldowns');
+  await assertFails(get(ref(db(null), 'hush')));
+  await assertFails(set(ref(db('host'), `hush/${CODE}`), closed), 'not while the room is open');
+  await assertFails(set(ref(db('evil'), 'hush/MINT'), closed), 'not for a word with no room (cannot cool down words at will)');
+  await assertFails(update(ref(db('p2')), { [R]: null, [`hush/${CODE}`]: closed }), 'a player cannot close the host\'s room');
+  await assertFails(update(ref(db('host')), { [R]: null, [`hush/${CODE}`]: { closedAt: 5 } }), 'closedAt must be server time');
+  await assertFails(update(ref(db('host')), { [R]: null, [`hush/${CODE}`]: { ...closed, x: 1 } }), 'no extra fields');
+  await assertSucceeds(update(ref(db('host')), { [R]: null, [`hush/${CODE}`]: closed }), 'the host closes the room and the word rests');
+  await assertFails(set(ref(db('host'), `hush/${CODE}`), closed), 'no rewriting it once the room is gone');
+  await assertFails(remove(ref(db('anyone'), `hush/${CODE}`)), 'a fresh entry cannot be deleted');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), 'hush/OLDY'), { closedAt: now() - 25 * 3600_000 }));
+  await assertSucceeds(update(ref(db('anyone')), { 'hush/OLDY': null }), 'an entry older than 24 h can be swept');
+  // an idle room (anyone may close it) records its word too
+  const idle = lobbyRoom(); idle.rooms[CODE].meta.activeAt = now() - 2 * 3600_000; await seed(idle);
+  await assertSucceeds(update(ref(db('stranger')), { [R]: null, [`hush/${CODE}`]: closed }), 'closing an idle room records its word');
 });
 
 test('players write only their own node; host can remove others', async () => {

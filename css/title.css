@@ -587,7 +587,7 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-jp-grip { display: block; width: 34px; height: 4px; margin: 0 auto 10px; border-radius: 2px; background: rgba(255, 255, 255, 0.2); }
 .nd-jp-h { margin: 0; padding-left: 0.34em; font: 900 11px/1 var(--font-display); letter-spacing: 0.34em; color: #f2f4ff; }
 .nd-msg { min-height: 18px; margin: 8px 4px 12px; font: 500 12.5px/1.4 var(--font-ui); color: rgba(224, 230, 255, 0.82); }
-.nd-msg:empty::before { content: '4 letters · from the host’s screen'; font: 700 9px/18px var(--font-mono); letter-spacing: 0.2em; color: rgba(214, 220, 255, 0.64); text-transform: uppercase; }
+.nd-msg:empty::before { content: 'the 4-letter word on the host’s screen'; font: 700 9px/18px var(--font-mono); letter-spacing: 0.2em; color: rgba(214, 220, 255, 0.64); text-transform: uppercase; }
 .nd-msg[data-kind='warn'] { color: #ffccdb; }
 .nd-jp-row { display: grid; grid-template-columns: 1fr 52px; gap: 8px; align-items: center; }
 .nd-codebox { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; cursor: text; }

@@ -14,12 +14,11 @@ export function generateCode(rand = Math.random) {
   return s;
 }
 
-// Normalizes user input; returns null unless it is a well-formed code.
+// Normalizes user input; returns null unless it is 4 letters. Any A–Z: hush words use every letter (I and O too), and the
+// old random codes (no I / O) are A–Z as well, so rooms made before HUSH WORDS still join.
 export function normalizeCode(input) {
   const s = String(input || '').toUpperCase().replace(/[^A-Z]/g, '');
-  if (s.length !== CODE_LENGTH) return null;
-  for (const ch of s) if (!CODE_ALPHABET.includes(ch)) return null;
-  return s;
+  return s.length === CODE_LENGTH ? s : null;
 }
 
 export function isOnline(presence, uid) {

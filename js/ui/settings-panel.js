@@ -1,5 +1,5 @@
 // Gear button (fixed, every screen) + settings sheet: music / SFX volume, mute,
-// haptics, and — while in a room — the room code and LEAVE ROOM.
+// haptics, and — while in a room — the hush word and LEAVE ROOM.
 import { h } from './dom.js';
 import { toast } from './toast.js';
 import { settings, updateSettings, onSettings } from '../audio/settings.js';
@@ -126,7 +126,7 @@ function open() {
       h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); import('../games/pulse/calibrate.js').then(m => m.openCalibration({ reason: 'PULSE · RECALIBRATE (DO THIS AFTER SWITCHING HEADPHONES)' })); } }, h('span', 'RECALIBRATE AUDIO SYNC')),
       h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); openHelp(state.game && state.meta && state.meta.status === 'playing' ? state.game.id : undefined); } }, h('span', 'HOW TO PLAY')),
       ...chatHostRows(),
-      state.code ? h('div.set-room', h('span.label', 'ROOM'), h('strong', state.code)) : null,
+      state.code ? h('div.set-room', h('span.label', 'HUSH WORD'), h('strong', state.code)) : null,
       leaveBtn));
   document.body.append(sheet);
 }

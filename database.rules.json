@@ -10,7 +10,7 @@
       "$code": {
         ".read": "auth != null",
         ".write": "auth != null && data.exists() && !newData.exists() && (data.child('meta/hostId').val() === auth.uid || !data.child('meta').exists() || data.child('meta/activeAt').val() < now - 3600000)",
-        ".validate": "$code.matches(/^[A-HJ-NP-Z]{4}$/)",
+        ".validate": "$code.matches(/^[A-Z]{4}$/)",
         "meta": {
           ".write": "auth != null && ((!data.exists() && newData.child('hostId').val() === auth.uid) || data.child('hostId').val() === auth.uid)",
           ".validate": "newData.hasChildren(['hostId', 'status', 'createdAt'])",
@@ -26,6 +26,9 @@
           },
           "activeAt": {
             ".validate": "newData.isNumber()"
+          },
+          "locked": {
+            ".validate": "newData.isBoolean()"
           },
           "hostBeat": {
             ".validate": "newData.isNumber()"
@@ -71,7 +74,7 @@
         },
         "players": {
           "$uid": {
-            ".write": "auth != null && ((auth.uid === $uid && root.child('rooms/' + $code + '/meta').exists() && !root.child('rooms/' + $code + '/kicked/' + $uid).exists()) || (!newData.exists() && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid))",
+            ".write": "auth != null && ((auth.uid === $uid && root.child('rooms/' + $code + '/meta').exists() && !root.child('rooms/' + $code + '/kicked/' + $uid).exists() && (data.exists() || root.child('rooms/' + $code + '/meta/locked').val() !== true)) || (!newData.exists() && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid))",
             ".validate": "newData.hasChildren(['name', 'color', 'avatar', 'joinedAt'])",
             "name": {
               ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16"
@@ -918,6 +921,19 @@
               }
             }
           }
+        }
+      }
+    },
+    "hush": {
+      ".read": "auth != null",
+      "$word": {
+        ".write": "auth != null && ((newData.exists() && root.child('rooms/' + $word + '/meta').exists() && !newData.parent().parent().child('rooms/' + $word).exists()) || (!newData.exists() && data.exists() && data.child('closedAt').val() < now - 86400000))",
+        ".validate": "$word.matches(/^[A-Z]{4}$/) && newData.hasChildren(['closedAt'])",
+        "closedAt": {
+          ".validate": "newData.isNumber() && newData.val() === now"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     },
