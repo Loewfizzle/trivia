@@ -147,3 +147,5 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   smaller letters (12.5 px), so phones with the browser bars showing still get both blades.
 - **The city winds down:** windows go out one by one from about 10 pm (≈90% at 10:30, 70% near midnight, 50% at 12:30, a
   third from 2 am until dawn) — sky.js lateK + palette LATE.win.
+- **The phone moon** rides a wide arch over the sign: rising beside the first N (it may slip partly past the screen edge),
+  over the top, setting beside the last N. It may pass behind the corner buttons; while it does, it isn't tappable.

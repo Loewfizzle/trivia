@@ -406,7 +406,7 @@ export function createFx() {
       const d = (a, b) => Math.hypot(x - a, y - b);
       if (ufo && ufo.st !== 'out' && ufo.at && d(ufo.at.x, ufo.at.y) < ufo.sw * 0.75) { ufo.st = 'out'; ufo.k = 0; ufo.flash = 1; return 'ufo'; }
       if (cat && cat.at && !cat.hop && d(cat.at.x, cat.at.y - cat.at.s * 0.5) < Math.max(20, cat.at.s * 1.3)) { cat.hop = { k: 0 }; return 'cat'; }
-      if (lastMoon && d(lastMoon.x, lastMoon.y) < lastMoon.r * 2) {
+      if (lastMoon && !moonUnderButtons && d(lastMoon.x, lastMoon.y) < lastMoon.r * 2) {
         shimmer = 1;
         const now = performance.now();
         moonTaps = moonTaps.filter(m => now - m < 5000).concat(now);
@@ -660,7 +660,7 @@ export function createFx() {
   // and moonset (rising at the left edge, setting at the right, mirrored in the south), how high comes from its true
   // elevation, mapped into the open sky above the rooftops. It only reaches the skyline at real moonrise / moonset and
   // never sits behind the sign (it passes over it); it glides to a new spot instead of jumping.
-  let moonPos = null, moonSafeTop = 0;
+  let moonPos = null, moonSafeTop = 0, moonUnderButtons = false;
   function moonPlace(L, r, sign) {
     const az = L.moon.az, el = L.moon.el;
     // how far through tonight's pass (moonrise → moonset); facing south it rises on the left, in the south (facing north) on the right
@@ -672,15 +672,14 @@ export function createFx() {
     // phones (a portrait screen: the sign spans it): the moon arches over the sign through the night, fading in at moonrise
     // and out at moonset, clear of the corner buttons and under the notch / status bar
     if (W < 760 || H > W) {
-      // an arch over the sign: low at the left edge beside it at moonrise, over the top, down the right side at moonset,
-      // stepping around the corner buttons (it moves over hours, so the step never shows)
+      // a wide arch over the sign: rising beside the first N, over the top, setting beside the last N (it may pass behind
+      // the corner buttons; it isn't tappable there)
       const safe = moonSafeTop;
-      const apex = safe + r + 10, base = sign ? sign.y + sign.h * 0.62 : HZ * 0.3;
-      const cx = W / 2, ax = W / 2 - r - 8;
-      x = cx - ax * Math.cos(Math.PI * u);
+      const x0 = sign ? Math.max(r * 0.2, sign.x - r - 12) : r + 10, x1 = sign ? Math.min(W - r * 0.2, sign.x + sign.w + r + 12) : W - r - 10;   // it may slip past the screen edge at rise / set
+      const apex = safe + r + 8, base = sign ? sign.y + sign.h * 0.8 : HZ * 0.3;
+      x = x0 + (x1 - x0) * (1 - Math.cos(Math.PI * u)) / 2;
       y = base - (base - apex) * Math.sin(Math.PI * u);
-      const btnX = W - 74 - r, btnY = safe + 118;
-      if (y < btnY && x > btnX) x = btnX;
+      moonUnderButtons = x > W - 80 - r * 0.5 && y < safe + 130;
     } else if (sign) {
       const sr = { x: sign.x - 34, y: sign.y - 44, w: sign.w + 68, h: sign.h + 50 };
       if (x > sr.x - r && x < sr.x + sr.w + r && y > sr.y - r && y < sr.y + sr.h + r) {
