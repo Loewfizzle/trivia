@@ -226,10 +226,9 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   desktop (1 at the lowest tier). Each flies its own straight path, never level (climbing or descending a little), either way,
   at its own height (high = small, faint, slow: 20–40 s to cross), some drifting toward or away from us; now and then (≈ 1 in 8,
   6 am–11:30 pm) an APPROACH, bigger and descending, landing lights on.
-- **Where:** in the sky layer, behind the clouds and the skyline, planned through open sky only (`planPath` against the title's
-  clear zones: never across the sign, the tagline or the dock; the little round corner buttons don't count). The towers hide
-  everything under the tagline, so on a portrait phone every plane (and every approach) uses the strip of sky above the sign, the climb fitted to
-  its height. Nothing is planned before the sign's place is known.
+- **Where:** anywhere in the sky, like the birds — in the sky layer, so behind the clouds, the skyline, the sign and the
+  tagline (the page sits in front of the sky; a plane crossing behind the NEON letters is what you would see) — from under the
+  status bar / notch down to the towers' tops (below that they would only be hidden). Satellites the same.
 - **Look:** night — lights only: red on the left wingtip, green on the right (as seen for its direction, `navLights`: the near
   wingtip a little higher), a white strobe double-flashing about once a second, a slow red beacon; small crisp points on soft
   glows. Sunset / dawn — a small dark silhouette, a contrail catching the pink-gold light; day — a glint of sun, a thin white

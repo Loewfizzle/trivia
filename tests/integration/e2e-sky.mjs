@@ -36,9 +36,10 @@ try {
     const ps = s.air.planes;
     ok(ps.length >= 1, `PLANES (${view[0]}): ${ps.length} in the sky with &force=planes`);
     ok(ps.every(p => Math.abs(p.slope) >= 0.017), `PLANES (${view[0]}): never level (${ps.map(p => p.slope).join(', ')})`);
-    let through = 0;
-    for (const p of ps) for (let x = -20; x <= s.W + 20; x += 6) { const y = p.y0 + (p.y1 - p.y0) * ((x - p.x0) / (p.x1 - p.x0)); if (zones.some(z => inside(x, y, z))) through++; }
-    ok(through === 0, `PLANES (${view[0]}): no path crosses the sign, the tagline or the dock`);
+    // the whole sky, like the birds (behind the sign is fine): never below the towers' tops, never under the status bar
+    const HZ = s.H * (s.W > s.H ? 0.74 : 0.735), bottom = HZ * (s.W > s.H ? 0.55 : 0.5);
+    ok(ps.every(p => Math.max(p.y0, p.y1) <= bottom + 1 && Math.min(p.y0, p.y1) >= 25), `PLANES (${view[0]}): in the sky above the towers (${ps.map(p => Math.round(p.y0) + '→' + Math.round(p.y1)).join(', ')})`);
+    void zones; void inside;
     await ctx.close();
   }
   // ---- an approach

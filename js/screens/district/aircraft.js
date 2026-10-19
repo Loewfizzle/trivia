@@ -2,8 +2,8 @@
 //   draw(c, s)   in the sky layer, behind the clouds and the skyline (scene.js draws it right after the sun / moon):
 //     PLANES     a few minutes apart, busiest in the evening, rare in the small hours (trafficRate); never level — each climbs
 //                or descends a little on its own heading, at its own height and speed (high ones small, faint and slow; some
-//                drift toward or away from us); planned through open sky only, never across the sign, the tagline or the
-//                buttons (planPath). Night: just the lights — red on the left wingtip, green on the right (as seen for its
+//                drift toward or away from us); anywhere in the sky, like the birds — behind the sign and the tagline
+//                (the page sits in front of the sky), above the towers' tops (planPath). Night: just the lights — red on the left wingtip, green on the right (as seen for its
 //                direction: navLights), a white strobe double-flashing about once a second, a slow red beacon; an APPROACH
 //                plane, low and closer, adds its landing lights. Sunset / dawn: a small dark silhouette, its contrail catching
 //                the light; day: a glint of sun and a thin white contrail, spreading and fading. Rain: fewer, lights only, faint;
@@ -80,33 +80,14 @@ export function createAircraft() {
   const puffs = new Map();
   const puff = (r, g, b) => { const k = `${r},${g},${b}`; let c = puffs.get(k); if (!c) { c = mk(32, 32); const x = c.getContext('2d'); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},0.55)`); gr.addColorStop(0.6, `rgba(${k},0.18)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); puffs.set(k, c); } return c; };
 
-  // the sign (+ the tagline under it) and the dock are off limits; the little round corner buttons are not (a plane passing
-  // behind one is fine, and on a phone they sit in the only open strip of sky above the sign)
-  const zonesOf = s => (s.clear || []).filter(z => z.y < HZ && z.w >= 70);
+  // the whole sky, like the birds: planes and satellites pass behind the sign and the tagline (the page sits in front of the
+  // sky), never below the towers' tops where they'd only be hidden; the top stays clear of the status bar / notch
   const skyTop = s => Math.max(26, (s.safeTop || 0) + 14);
-
-  // the open sky: the strip above the sign (on a phone the only sky the towers don't hide) and the band under the tagline
-  function openSky(s) {
-    const zones = zonesOf(s), wide = zones.filter(z => z.w > W * 0.5);
-    const top = skyTop(s);
-    const stripB = wide.length ? Math.min(...wide.map(z => z.y)) - 14 : HZ * 0.4;
-    const lowT = wide.length ? Math.max(...wide.map(z => z.y + z.h)) + 14 : HZ * 0.45;
-    return { zones, strip: stripB - top >= 22 ? [top, stripB] : null, low: [Math.min(lowT, HZ * 0.7), HZ * 0.74] };
-  }
+  const skyBottom = () => HZ * (W > H ? 0.55 : 0.5);
   function spawnPlane(s, approach) {
-    const zones = zonesOf(s);
-    // approach: low over the skyline (it may slip behind the towers), always descending; cruise: anywhere in the open sky
-    // cruise: mostly the open strip above the sign (on a phone it's the only sky the towers don't hide), the angle fitted to
-    // its height; otherwise anywhere open (a desktop has room; low ones slip behind the towers)
-    const sky = openSky(s);
-    // approach: low, just over the far towers' tops (its landing lights show over the roofs); cruise: mostly the strip
-    // (the towers hide everything under the tagline on every screen: the approach comes down through the strip)
-    const lowApproach = approach && !sky.strip;      // (low over the skyline only when there's no open strip: the towers hide it elsewhere)
-    let top = lowApproach ? sky.low[0] : approach ? sky.strip[0] : skyTop(s), bottom = lowApproach ? Math.min(HZ * 0.78, sky.low[0] + HZ * 0.13) : approach ? sky.strip[1] : HZ * 0.74, minS = approach ? 0.05 : 0.035, maxS = approach ? 0.11 : 0.15;
-    if (approach) maxS = Math.min(maxS, (bottom - top - 4) / (W + 120)), minS = Math.min(minS, maxS * 0.6);
-    // (always on a portrait phone — the band under the tagline is hidden there; most of the time on a wide screen)
-    if (!approach && sky.strip && (H > W || Math.random() < 0.8)) { [top, bottom] = sky.strip; maxS = Math.min(maxS, (bottom - top - 4) / (W + 120)); minS = Math.min(minS, maxS * 0.55); }
-    const path = planPath({ W, top, bottom, zones, minSlope: Math.max(0.018, minS), maxSlope: Math.max(0.022, maxS) });
+    // cruise: anywhere in the sky; approach: the lower part of it, always descending, landing lights on
+    const top = approach ? Math.max(skyTop(s), HZ * 0.22) : skyTop(s), bottom = skyBottom();
+    const path = planPath({ W, top, bottom, minSlope: approach ? 0.05 : 0.03, maxSlope: approach ? 0.12 : 0.15 });
     if (!path) return null;
     if (approach && path.y1 < path.y0) { [path.y0, path.y1] = [path.y1, path.y0]; path.slope = (path.y1 - path.y0) / (path.x1 - path.x0); }   // descending toward the field
     const alt = approach ? 0 : 0.35 + Math.random() * 0.65;          // 1 = high and far
@@ -198,9 +179,7 @@ export function createAircraft() {
   // ---------------------------------------------------------------- satellites
   function newTrain(s, mode) {
     const n = 20 + Math.floor(Math.random() * 21);
-    const sky = openSky(s), band = sky.strip || [skyTop(s), HZ * 0.62];
-    const maxS = Math.min(0.3, (band[1] - band[0] - 4) / (W + 120));
-    const path = planPath({ W, top: band[0], bottom: band[1], zones: sky.zones, minSlope: Math.max(0.02, Math.min(0.08, maxS * 0.6)), maxSlope: Math.max(0.025, maxS), margin: 18 });
+    const path = planPath({ W, top: skyTop(s), bottom: skyBottom(), minSlope: 0.08, maxSlope: 0.3 });
     if (!path) return null;
     const gap = (9 + Math.random() * 3) * K;
     const len = Math.hypot(path.x1 - path.x0, path.y1 - path.y0);
@@ -209,9 +188,7 @@ export function createAircraft() {
     return { ...path, n, gap, len, dur, k: 0, mode, shadow: 0.45 + Math.random() * 0.3 };
   }
   function newSat(s, mode) {
-    const sky = openSky(s), band = sky.strip || [skyTop(s), HZ * 0.66];
-    const maxS = Math.min(0.55, (band[1] - band[0] - 4) / (W + 120));
-    const path = planPath({ W, top: band[0], bottom: band[1], zones: sky.zones, minSlope: Math.max(0.02, Math.min(0.04, maxS * 0.5)), maxSlope: Math.max(0.025, maxS), margin: 12 });
+    const path = planPath({ W, top: skyTop(s), bottom: skyBottom(), minSlope: 0.04, maxSlope: 0.55 });
     if (!path) return null;
     return { ...path, dur: 80 + Math.random() * 40, k: 0, mode, shadow: 0.4 + Math.random() * 0.45, b: 0.45 + Math.random() * 0.25 };
   }
@@ -222,7 +199,6 @@ export function createAircraft() {
   }
   function drawSatPoint(c, x, y, a, zones, moon) {
     if (moon && Math.hypot(x - moon.x, y - moon.y) < moon.r * 1.15) return;     // too small to see against the moon's disc
-    for (const z of zones) if (x > z.x - 10 && x < z.x + z.w + 10 && y > z.y - 10 && y < z.y + z.h + 10) return;
     c.globalAlpha = a * 0.55; c.drawImage(glow(225, 234, 255), x - 3, y - 3, 6, 6);
     c.globalAlpha = a; c.fillStyle = '#f2f6ff'; c.fillRect(x - 0.55, y - 0.55, 1.1, 1.1);
   }
@@ -271,7 +247,7 @@ export function createAircraft() {
         sat = newSat(s, force.has('sat') ? (mode || 'evening') : mode);
         nextSat = 300 + Math.random() * 300;
       }
-      const zones = zonesOf(s);
+      const zones = [];
       const satVis = clamp01(look.dark * 1.4);
       if (train || sat) c.globalCompositeOperation = 'lighter';
       if (train) {
