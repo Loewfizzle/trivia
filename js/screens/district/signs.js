@@ -100,7 +100,7 @@ export function createSigns({ games: allGames = [] } = {}) {
       x.translate(-OFF, 0); x.shadowOffsetX = OFF * k; x.shadowColor = col; x.shadowBlur = blur * k;
       x.globalAlpha = alpha; x.strokeStyle = col; x.lineWidth = width; x.stroke(t.p); x.restore();
     };
-    if (soft) { pass(t.col, w * 2.2, w * 3.2, 0.3); pass(t.col, w * 1.4, w * 1.0, 0.55); }
+    if (soft) { pass(t.col, w * 3.4, w * 5.2, 0.5); pass(t.col, w * 2.0, w * 2.0, 0.85); }
     else { pass(t.col, w * 3.2, w * 5.5, 0.45); pass(t.col, w * 2.4, w * 2.8, 0.9); pass(t.col, w * 1.35, w * 1.0, 1); }
     x.strokeStyle = t.col; x.lineWidth = w; x.stroke(t.p);
     x.strokeStyle = mixHex(t.col, '#ffffff', 0.84); x.lineWidth = w * (soft ? 0.46 : 0.36); x.stroke(t.p);
@@ -153,7 +153,7 @@ export function createSigns({ games: allGames = [] } = {}) {
     const border = prep(`M${inset + 3} ${top + inset} H${bw - inset - 3} Q${bw - inset} ${top + inset} ${bw - inset} ${top + inset + 3} V${top + area - inset - 3} Q${bw - inset} ${top + area - inset} ${bw - inset - 3} ${top + area - inset} H${inset + 3} Q${inset} ${top + area - inset} ${inset} ${top + area - inset - 3} V${top + inset + 3} Q${inset} ${top + inset} ${inset + 3} ${top + inset} Z`, trim);
     const n = word.length;
     const lh = Math.min(bw * 0.66, (area - inset * 4) / (n * 1.24));
-    const sc = lh / 14, lw = Math.max(1.4, lh * 0.12) / sc;
+    const sc = lh / 14, lw = Math.max(1.8, lh * 0.15) / sc;
     const y0 = top + inset * 2 + (area - inset * 4 - n * lh * 1.24) / 2;
     const letters = [...word].map((ch, i) => ({ ...prep(LETTERS[ch] || LETTERS.O, col), ox: (bw - 10 * sc) / 2, oy: y0 + i * lh * 1.24 + lh * 0.12 }));
     // glass
