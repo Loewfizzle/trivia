@@ -317,7 +317,17 @@ body.reduced-fx .nd-gate-txt { animation: none; }
 /* the screen at rest: just the sign and the city */
 .nd.is-idle .nd-actions { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
 .nd.is-idle .nd-sign .nd-tag:not(.nd-count), .nd.is-idle .nd-sign .nd-sub, .nd.is-idle .nd-corner { opacity: 0; transition: opacity 1.8s ease; }
-body.nd-on .menu-btn, body.nd-on .music-btn { transition: transform 0.12s var(--ease), opacity 0.45s ease; }
+body.nd-on .menu-btn, body.nd-on .music-btn { transition: transform 0.12s var(--ease), opacity 0.45s ease, background-color 1.2s ease; }
+/* the sun passes behind the corner buttons (title.js#sunGlass): its light is painted into the glass where it is behind the
+   button, in its colour (the ☰ button has no backdrop blur: on the title it cost a frame in two at 4× CPU); the glass darkens a
+   touch and the icon gets a tight dark edge, so it stays readable (≥ 4.5:1) — the rest of the time the buttons are unchanged */
+body.nd-on .menu-btn.nd-sunlit, body.nd-on .music-btn.nd-sunlit {
+  background-color: rgba(10, 11, 26, 0.46);
+  background-image:
+    radial-gradient(circle var(--sun-r, 40px) at var(--sun-x, 50%) var(--sun-y, 50%), rgba(var(--sun-c, 255, 240, 220), calc(var(--sun-k, 0) * 0.78)), rgba(var(--sun-c, 255, 240, 220), calc(var(--sun-k, 0) * 0.66)) 40%, rgba(var(--sun-c, 255, 240, 220), calc(var(--sun-k, 0) * 0.2)) 70%, rgba(var(--sun-c, 255, 240, 220), 0) 100%),
+    radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%);
+}
+body.nd-on .nd-sunlit svg, body.nd-on .nd-sunlit .mb-bars { filter: drop-shadow(0 0 0.8px rgba(4, 4, 12, 0.95)) drop-shadow(0 0 1.6px rgba(4, 4, 12, 0.85)) drop-shadow(0 0 5px rgba(4, 4, 12, 0.45)); }
 body.nd-idle .menu-btn, body.nd-idle .music-btn { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
 
 @media (max-height: 720px) {

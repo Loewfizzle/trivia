@@ -9,8 +9,7 @@
 // the real sunset (mirrored south of the equator); its height is its real elevation (higher in summer), mapped into the open
 // sky so it never crosses the sign or the tagline. A wide screen: the full arc, lifted over the sign where it would cross it.
 // A phone (portrait / narrower than 760 px): up the left edge beside the sign, across the strip above it, down the right edge
-// (it slips behind the two round corner buttons there — the only way past the sign on a portrait phone), setting behind the
-// skyline. Colour and size by elevation: deep red-orange, larger and a little squashed at the horizon → warm white at midday.
+// (passing behind the two round corner buttons there, glowing through their frosted glass), setting behind the skyline. Colour and size by elevation: deep red-orange, larger and a little squashed at the horizon → warm white at midday.
 // Every disc and glow is a cached sprite; a frame is a handful of drawImage calls. Preview: &force=eclipse-sun, &force=totality.
 
 const TAU = Math.PI * 2;
@@ -32,13 +31,6 @@ export function sunShape(el) { return { size: lerp(1.38, 1, smooth(0, 14, el)), 
 /** PURE: where the sun is drawn. o: { W, H, HZ, u (0 sunrise … 1 sunset), el, south, r, block: {x,y,w,h} (the sign + tagline),
  *  buttons: {x,y,w,h} (the corner buttons), safeTop, e1: { el, ua, ub } (phones: the morning / afternoon u where the sun is
  *  E1° up — where it leaves / rejoins the screen edges) }. Returns { x, y }. */
-/** PURE: how far the disc has slipped out of sight near the corner buttons (0 clear … 1 hidden): it fades before it would
- *  touch them and comes back once past (a portrait phone has no other way from the top strip down the right edge). */
-export function buttonHide(x, y, r, b) {
-  if (!b) return 0;
-  const dx = Math.max(b.x - x, 0, x - (b.x + b.w)), dy = Math.max(b.y - y, 0, y - (b.y + b.h));
-  return 1 - smooth(r + 2, r + 22, Math.hypot(dx, dy));
-}
 export function sunPlace(o) {
   const { W, H, HZ, el, r } = o;
   const u = o.south ? 1 - o.u : o.u;                      // facing north south of the equator: it rises on the right
@@ -224,8 +216,7 @@ export function createSun() {
     // the weather: thick cloud hides the disc (a brighter patch stays), rain and heavy fog hide it, light fog leaves a glow
     const over = smooth(0.62, 0.96, L.cloud || 0);
     const wet = (L.rain || 0) > 0.1 || (L.fog || 0) > 0.6;
-    const hide = buttonHide(pos.x, pos.y, r, buttons);
-    const vis = wet ? 0 : (1 - hide) * (1 - over * 0.97) * (1 - smooth(0.15, 0.55, L.fog || 0)) * smooth(-3.5, -0.5, el);
+    const vis = wet ? 0 : (1 - over * 0.97) * (1 - smooth(0.15, 0.55, L.fog || 0)) * smooth(-3.5, -0.5, el);
     const glowK = wet ? ((L.fog || 0) > 0.6 && !L.rain ? 0.15 : 0) : (L.fog || 0) > 0.15 ? 0.6 : 1;
     let ec = L.solar;
     if (s.force.has('totality')) ec = { obsc: 1, mag: 1, total: true, dx: 0, dy: 0, k: 1.04 };

@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sunArc, sunTimes, sunPosition, solarEclipse, look } from '../js/core/sky.js';
-import { sunPlace, sunColor, sunShape, buttonHide } from '../js/screens/district/sun.js';
+import { sunPlace, sunColor, sunShape } from '../js/screens/district/sun.js';
 
 const CITIES = {
   nyc: { tz: 'America/New_York', lat: 40.71, lon: -74.0 },
@@ -78,13 +78,12 @@ function day(city, date, scr) {
   return out;
 }
 
-test('the path never crosses the sign or the tagline, never shows over the corner buttons, and never jumps', () => {
+test('the path never crosses the sign or the tagline (it may pass behind the corner buttons), and never jumps', () => {
   for (const [name, scr] of Object.entries(SCREENS)) for (const city of Object.keys(CITIES)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20']) {
     const pts = day(city, date, scr);
     for (const p of pts) {
       if (p.el < -1) continue;                                          // set: behind the skyline
       assert.ok(!hitsRect(p.x, p.y, p.r, scr.logo), `${name} ${city} ${date} ${hhmm(p.t, CITIES[city].tz)}: the disc (${p.x.toFixed(0)},${p.y.toFixed(0)} r${p.r.toFixed(0)}) is on the sign`);
-      if (hitsRect(p.x, p.y, p.r, scr.buttons)) assert.equal(buttonHide(p.x, p.y, p.r, scr.buttons), 1, `${name} ${city} ${date}: shown over the buttons`);
       assert.ok(p.y > -p.r && p.y < scr.HZ, `${name} ${city} ${date}: on screen above the street (${p.y.toFixed(0)})`);
     }
     for (let i = 1; i < pts.length; i++) {

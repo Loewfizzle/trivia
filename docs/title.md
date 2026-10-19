@@ -259,8 +259,11 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   sign or the tagline. **Wide screens:** the full arc, clearing the towers' tops in its first ~10°, lifted gently over the sign
   where it would cross it, under the corner buttons. **Phones** (portrait / < 760 px): up the left edge beside the sign until it
   is E1 (12°) up (`sunArc().e1`), across the strip above the sign, down the right edge; low (below the tagline) it comes in over
-  the lower middle rooftops. Near the corner buttons the disc fades out and back (`buttonHide`) — a portrait phone has no
-  other way past them. Eased at 6 % a frame: never a jump. ALWAYS NIGHT: no sun.
+  the lower middle rooftops. It passes behind the corner buttons at full brightness (they stay on top): `title.js#sunGlass`
+  paints its light into their glass where it is behind them, in its colour and as strong as the overlap (`--sun-x/y/c/k/r`, every
+  500 ms), with the glass a touch darker and a tight dark edge on the icon (≥ 4.5:1); the rest of the time the buttons are unchanged
+  (the ☰ button gets no backdrop blur on the title: it cost a frame in two at 4× CPU). Eased at 6 % a frame: never a jump.
+  ALWAYS NIGHT: no sun.
 - **Look:** colour by elevation (`sunColor`: deep red-orange → orange → gold → a soft warm white), larger and a little squashed
   near the horizon (`sunShape`); a soft-limbed disc and two smooth blooms (no rays, no flare) — all cached sprites, a frame is a
   few drawImage calls. Drawn in the sky layer, so the clouds, the planes' sky, every row of towers and the sign are in front:

@@ -572,7 +572,30 @@ export function createTitle() {
   function trackLogo() {
     if (destroyed) return;
     scene.set({ logoRect: logoRect(), clear: clearZones() });
+    sunGlass();
     els.logoTimer = setTimeout(trackLogo, 500);
+  }
+
+  // the sun passing behind the corner buttons (☰, music): it glows through their frosted glass; while it's there the glass
+  // darkens a touch and the icon gets a soft dark edge, so the icon stays readable (≥ 4.5:1) — the rest of the time, unchanged
+  function sunGlass() {
+    const sn = scene && scene.sun ? scene.sun() : null;
+    document.querySelectorAll('.menu-btn, .music-btn').forEach(b => {
+      let k = 0;
+      const r = b.getBoundingClientRect();
+      if (sn && sn.vis > 0.15 && r.width > 0) {
+        const br = r.width / 2, d = Math.hypot(sn.x - (r.left + br), sn.y - (r.top + br));
+        k = clamp01((br + sn.r * 1.3 - d) / (sn.r * 1.3)) * Math.min(1, sn.vis);   // how much of the sun (and its halo) is behind it
+        // the sun's light in the glass: where it is behind the button, in its own colour, as strong as it is close
+        const st = b.style;
+        st.setProperty('--sun-x', `${Math.round(sn.x - r.left)}px`);
+        st.setProperty('--sun-y', `${Math.round(sn.y - r.top)}px`);
+        st.setProperty('--sun-c', (sn.col || [255, 240, 220]).join(', '));
+        st.setProperty('--sun-k', k.toFixed(2));
+        st.setProperty('--sun-r', `${Math.round(sn.r * 2.4)}px`);
+      }
+      b.classList.toggle('nd-sunlit', k > 0.02);
+    });
   }
 
   // every ~20–40 s one letter gives a tiny, realistic flicker
@@ -1061,6 +1084,7 @@ ${both('b', 5.4)}${both('c', 1.9)}
     clearTimeout(els.skyTimer);
     clearTimeout(idleTimer);
     document.body.classList.remove('nd-idle');
+    document.querySelectorAll('.nd-sunlit').forEach(b => b.classList.remove('nd-sunlit'));
     window.removeEventListener('pointerdown', onWake, { capture: true });
     window.removeEventListener('click', onWakeClick, { capture: true });
     window.removeEventListener('keydown', onWake, { capture: true });
