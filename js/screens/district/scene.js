@@ -79,7 +79,11 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     W = Math.max(320, r.width); H = Math.max(480, r.height);
     dpr = Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    HZ = Math.round(H * (W > H ? 0.74 : 0.665));
+    // the skyline's tops are laid out against HZ0; on a portrait phone the buildings then run further down to HZ (the street
+    // and its reflection sit lower, the rooftops don't move), so the city fills the screen above the dock
+    const HZ0 = Math.round(H * (W > H ? 0.74 : 0.665));
+    HZ = W > H ? HZ0 : Math.round(H * 0.735);
+    const ext = HZ - HZ0;
     const rand = rng(seed);
     // building scale follows the screen height; on wide screens the skyline sits lower so the sign floats in clear sky
     const k = Math.min(1.25, Math.max(0.85, H / 844)) * (W > H ? 0.78 : 1);
@@ -91,7 +95,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     signs.reset();
     LAYERS.forEach((L, li) => {
       const lw = W + margin * 2;
-      const top = Math.round(HZ - HZ * L.h[1] * k * 1.02);
+      const top = Math.round(HZ0 - HZ0 * L.h[1] * k * 1.02);
       const lh = HZ - top + 2;
       const dark = mk(lw * dpr, lh * dpr), lit = mk(lw * dpr, lh * dpr);
       const dx = dark.getContext('2d'), lx = lit.getContext('2d');
@@ -106,12 +110,12 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
         // near layer frames the view: tall at the sides, low in the middle (the logo glows above it)
         if (L.edges) { const c = Math.abs(cx - W / 2) / (W / 2); hf = L.h[0] + (L.h[1] - L.h[0]) * Math.pow(clamp01(c * 1.1), 1.6) * (0.6 + rand() * 0.4); }
         else if (li === 2) hf *= 0.75 + 0.35 * Math.abs(cx - W / 2) / (W / 2);
-        const bh = HZ * hf * k;
+        const bh = HZ0 * hf * k + ext;
         const by = lh - bh; // y in layer space
         drawBuilding(dx, lx, x, by, bw, bh, L, li, rand, windows, false, rects);
         // roofline extras: setbacks, spires (with beacons), antennas
         if (rand() < 0.35) {
-          const sw = bw * (0.45 + rand() * 0.3), sh = bh * (0.06 + rand() * 0.1);
+          const sw = bw * (0.45 + rand() * 0.3), sh = (bh - ext) * (0.06 + rand() * 0.1);
           drawBuilding(dx, lx, x + (bw - sw) / 2, by - sh, sw, sh, L, li, rand, windows, true, rects);
           if (rand() < 0.6) spire(dx, x + bw / 2, by - sh, 10 + rand() * 26 * k, L, li, rand);
         } else if (rand() < 0.25) spire(dx, x + bw * (0.3 + rand() * 0.4), by, 8 + rand() * 18 * k, L, li, rand);

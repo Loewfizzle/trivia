@@ -106,7 +106,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **Four kinds**, all in the main sign's language (glass tube, white-hot core, two blurred glow layers, electrode caps,
   mounting clips, brackets):
   - **Marquee** (the showpiece): an art-deco crown on a near tower — sunburst fan, stepped pediment, "NOW PLAYING" in red
-    neon, a theater letter board with the game's name, chasing bulbs all round. A change flips the board column by column.
+    neon, a theater letter board with the game's name, chasing bulbs all round. A change runs like a split-flap board: cells cascade left to right, each top half folding down on its hinge.
   - **Blade**: a lacquered vertical cabinet off the edge of a near tower on brackets, a border tube and the game's word in
     stacked tube letters (`MARKS[id].blade`).
   - **Icon**: the game's mark (`MARKS[id].tubes`, a 0..100 box) mounted on a mid-skyline wall, with a little transformer.
@@ -136,3 +136,6 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   egg is gone. On phones the moon arches over the sign (rising beside it at the left edge, setting at the right).
 - **The rain sound** plays only while it rains on screen (title.js#rainSound: in over ~3 s, out over 4 s); clear, snowy and
   daytime skies are silent.
+- **Phones:** the buildings run further down the screen (the horizon at 73.5% instead of 66.5%, rooftops unchanged), so the
+  city meets the dock and the blade has room for readable names. Wide screens with no room for a blade get a third icon.
+- **Rain** falls in about one 4-hour block in four (sky.js#rainOf), random by date, the same for everyone; not the real weather.

@@ -235,7 +235,7 @@ export function auroraNight(y, m, d, south) {
 export function rainOf(y, m, d, h) {
   const block = Math.floor(h / 4);
   const r = hash(`rain:${y}-${m}-${d}:${block}`) % 100;
-  return r < 42 ? 1 : 0;
+  return r < 26 ? 1 : 0;   // about one block in four: a rainy evening feels like an occasion
 }
 
 // ---------------------------------------------------------------- the look

@@ -307,33 +307,35 @@ export function createSigns({ games: allGames = [] } = {}) {
     // the marquee: crowns a near tower top (or its setback) off to one side, fully on screen, clear of everything
     let mq = null;
     const overlapArea = (p, q) => Math.max(0, Math.min(p.x + p.w, q.x + q.w) - Math.max(p.x, q.x)) * Math.max(0, Math.min(p.y + p.h, q.y + q.h) - Math.max(p.y, q.y));
+    for (const kk of [1, 0.86, 0.74]) { if (mq) break;
     for (const b of near.rects.map(r => scr(near, r)).filter(t => t.w > 30 * sc).sort((p, q) => p.y - q.y)) {
       const vx0 = Math.max(b.x, 6), vx1 = Math.min(b.x + b.w, W - 6);
       if (vx1 - vx0 < 46 * sc) continue;
       const cxm = (vx0 + vx1) / 2;
       if (Math.abs(cxm - W / 2) < W * 0.14) continue;
-      const mw = Math.max(108 * sc, Math.min(150 * sc, (vx1 - vx0) * 1.45)), mh = mw * 0.64;
+      const mw = Math.max(108 * sc * kk, Math.min(150 * sc * kk, (vx1 - vx0) * 1.45)), mh = mw * 0.64;
       const x = Math.max(14, Math.min(W - 14 - mw, cxm - mw / 2));
       const box = { x, y: b.y - mh + 2, w: mw, h: mh };
       if (!free(box, 3, 8)) continue;
       if (near.rects.some(r => r !== b.r && overlapArea(box, scr(near, r)) > box.w * box.h * 0.12)) continue;
       mq = { type: 'marquee', li: 3, box, side: cxm < W / 2 ? -1 : 1 }; break;
-    }
+    } }
     if (mq) { out.push(mq); used.push(mq.box); }
     // the blade: off the inner edge of a near tower on the other side
-    const bside = mq ? -mq.side : 1;
     let bladeDone = false;
-    for (const kk of [1, 0.88, 0.76]) { if (bladeDone) break; const bw = 30 * sc * kk;
-    for (const b of towers.filter(t => (t.x + t.w / 2 < W / 2 ? -1 : 1) === bside).sort((a, b2) => a.y - b2.y)) {
-      const top = b.y + 10, bottom = Math.min(HZ - 14, b.y + b.h - 8), h = Math.min(bottom - top, 210 * sc * kk);
-      if (h < 100 * sc * kk) continue;
+    for (const bside of [mq ? -mq.side : 1, mq ? mq.side : -1]) for (const kk of [1, 0.88, 0.76, 0.66]) { if (bladeDone) break; const bw = 30 * sc * kk;
+    const midTowers = mid.rects.map(r => scr(mid, r)).filter(b => b.h > HZ * 0.12);
+    for (const [b, bli] of [...towers.map(t => [t, 3]), ...(W >= 760 ? midTowers.map(t => [t, 2]) : [])].filter(([t]) => (t.x + t.w / 2 < W / 2 ? -1 : 1) === bside).sort((a, b2) => a[1] === b2[1] ? a[0].y - b2[0].y : b2[1] - a[1])) {
+      const top = b.y + 10, bottom = Math.min(HZ - 14, b.y + b.h - 8), h = Math.min(bottom - top, 210 * Math.min(sc, 1.15) * kk);
+      if (h < 100 * Math.min(sc, 1.15) * kk) continue;
       const x = bside < 0 ? b.x + b.w + 5 : b.x - bw - 5;
       const box = { x, y: top, w: bw, h };
-      if (!free(box, 3, 6)) continue;
+      if (!free(box, bli, 6)) continue;
       // how many letters fit at a readable size (≈ 15 px tall on a phone): longer names go to the other signs
-      const area = h - bw * 0.5 - bw * 0.42, cap = Math.floor((area - 3.2 * 4) / (15 * sc * 1.24));
+      const area = h - bw * 0.5 - bw * 0.42, cap = Math.floor((area - 3.2 * 4) / (15 * Math.min(sc, 1.15) * 1.24));
       if (cap < 5) continue;
-      out.push({ type: 'blade', li: 3, box, dir: bside < 0 ? -1 : 1, cap }); used.push(box); bladeDone = true; break;
+      if (W >= 760 && box.x + box.w / 2 > W * 0.3 && box.x + box.w / 2 < W * 0.7) continue;
+      out.push({ type: 'blade', li: bli, box, dir: bside < 0 ? -1 : 1, cap }); used.push(box); bladeDone = true; break;
     } }
     // the icon: mid skyline, near the middle
     const iconAt = (L, li, Smax, pref) => {
@@ -378,6 +380,11 @@ export function createSigns({ games: allGames = [] } = {}) {
       const spreadOf = box => -Math.min(...used.map(u => Math.hypot(u.x + u.w / 2 - box.x - box.w / 2, u.y + u.h / 2 - box.y - box.h / 2)));
       const b2 = iconAt(far, 1, S2, spreadOf) || iconAt(mid, 2, S2, spreadOf) || iconAt(far, 1, S2 * 0.75, spreadOf) || iconAt(mid, 2, S2 * 0.75, spreadOf);
       if (b2) { const li2 = far.rects.some(r => { const b = scr(far, r); return b2.x >= b.x - 1 && b2.x + b2.w <= b.x + b.w + 1 && b2.y >= b.y; }) ? 1 : 2; out.push({ type: 'icon', li: li2, box: b2 }); used.push(b2); }
+      // no room for a readable blade (wide but short screens): one more icon keeps five signs
+      if (!out.some(o => o.type === 'blade')) {
+        const b3 = iconAt(mid, 2, S2, spreadOf) || iconAt(far, 1, S2, spreadOf) || iconAt(mid, 2, S2 * 0.75, spreadOf);
+        if (b3) { const li3 = mid.rects.some(r => { const b = scr(mid, r); return b3.x >= b.x - 1 && b3.x + b3.w <= b.x + b.w + 1 && b3.y >= b.y; }) ? 2 : 1; out.push({ type: 'icon', li: li3, box: b3 }); used.push(b3); }
+      }
     }
     return out.map((o, i) => ({ ...o, idx: i, x: o.box.x + layers[o.li].margin, y: o.box.y - layers[o.li].top, w: o.box.w, h: o.box.h }));
   }
@@ -471,7 +478,7 @@ export function createSigns({ games: allGames = [] } = {}) {
       for (const s of flips) {
         if (s.tr && t - s.tr.t0 >= 0.34 && s.game !== s.tr.to) dress(s, s.tr.to);
         if (s.tr && t - s.tr.t0 > 3) s.tr = null;
-        if (s.flip && t - s.flip.t0 > 1.6) s.flip = null;
+        if (s.flip && t - s.flip.t0 > 1.4) s.flip = null;
         if (o.motion && t > s.fl) { s.flick = t; s.fl = t + 25 + Math.random() * 45; }
       }
       // the ticker's message
@@ -514,12 +521,38 @@ export function createSigns({ games: allGames = [] } = {}) {
           const paint = (img, a, sx, sw, scaleY) => { if (a <= 0.01 || scaleY <= 0.01) return; c.globalAlpha = a; c.drawImage(img, sx * R, 0, sw * R, img.height, bX + sx, bY + bd.bh * (1 - scaleY) / 2, sw, bd.bh * scaleY); };
           const COLS = 9, cw = bd.bw / COLS;
           if (!s.flip) { c.globalAlpha = 1; c.drawImage(bd.dark, bX, bY, bd.bw, bd.bh); if (a1 > 0.01) { c.globalAlpha = a1; c.drawImage(bd.lit, bX, bY, bd.bw, bd.bh); } }
-          else for (let k = 0; k < COLS; k++) {
-            let img = bd, sy = 1;
-            if (s.flip) { const p = clamp01((t - s.flip.t0 - k * 0.07) / (motion ? 0.5 : 0.3)); if (p < 0.5) { img = s.flip.from; sy = motion ? 1 - p * 2 : 1 - p * 2; } else sy = (p - 0.5) * 2; }
-            c.globalAlpha = 1; c.fillStyle = '#100c14'; c.fillRect(bX + k * cw, bY, cw, bd.bh);
-            paint(img.dark, 1, k * cw, cw + 0.5, sy);
-            paint(img.lit, a1, k * cw, cw + 0.5, sy);
+          else {
+            // split-flap: cells cascade left to right; in each, the old top half folds down over its hinge (darkening as it
+            // turns away), then the new bottom half falls into place (brightening as it faces you), with a fine split line
+            const half = bd.bh / 2, from = s.flip.from;
+            const piece = (img, a, sx, top, h, y, hh) => { if (a <= 0.01 || hh <= 0.2) return; c.globalAlpha = a; c.drawImage(img, sx * R, (top ? 0 : half) * R, cw * R, h * R, bX + sx, y, cw, hh); };
+            for (let k = 0; k < COLS; k++) {
+              const sx = k * cw;
+              const p = motion ? clamp01((t - s.flip.t0 - k * 0.075) / 0.42) : clamp01((t - s.flip.t0) / 0.35);
+              c.globalAlpha = 1; c.fillStyle = '#100c14'; c.fillRect(bX + sx, bY, cw, bd.bh);
+              for (const [kind, a] of [['dark', 1], ['lit', a1]]) {
+                if (a <= 0.01) continue;
+                const NEW = bd[kind], OLD = from[kind];
+                if (p <= 0) { piece(OLD, a, sx, true, half, bY, half); piece(OLD, a, sx, false, half, bY + half, half); continue; }
+                if (p >= 1) { piece(NEW, a, sx, true, half, bY, half); piece(NEW, a, sx, false, half, bY + half, half); continue; }
+                // behind the flaps: the new top, the old bottom
+                piece(NEW, a, sx, true, half, bY, half);
+                if (p < 0.5) {
+                  piece(OLD, a, sx, false, half, bY + half, half);
+                  const f = Math.cos(p * Math.PI);                 // the old top folding down to the hinge
+                  piece(OLD, a, sx, true, half, bY + half - half * f, half * f);
+                  if (kind === 'dark') { c.globalAlpha = 0.55 * (1 - f); c.fillStyle = '#000'; c.fillRect(bX + sx, bY + half - half * f, cw, half * f); }
+                } else {
+                  piece(OLD, a, sx, false, half, bY + half, half);
+                  const f = -Math.cos(p * Math.PI);                // the new bottom falling from the hinge
+                  piece(NEW, a, sx, false, half, bY + half, half * f);
+                  if (kind === 'dark') { c.globalAlpha = 0.45 * (1 - f); c.fillStyle = '#000'; c.fillRect(bX + sx, bY + half, cw, half * f); }
+                }
+              }
+              // the cell's edges while it turns
+              c.globalAlpha = 0.6; c.fillStyle = '#0a070d'; c.fillRect(bX + sx + cw - 0.6, bY, 0.6, bd.bh);
+            }
+            c.globalAlpha = 0.7; c.fillStyle = '#0a070d'; c.fillRect(bX, bY + half - 0.35, bd.bw, 0.7);
           }
           c.globalAlpha = a0; c.drawImage(fr.lit, bx, by, fw, fh);
           // the bulbs: a chase of light around the board
