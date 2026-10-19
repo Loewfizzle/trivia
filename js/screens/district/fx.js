@@ -141,17 +141,7 @@ export function createFx() {
     back(c, s) {
       const { L, P, t, dt, tier, motion } = s;
       const dark = L.w.night + L.w.late;
-      // the sun: a soft disc and a wide warm glow, low over the skyline at dawn and golden hour, hidden higher by day haze
-      // a high sun melts into the day's haze: only the low sun (dawn, golden hour) shows as a disc
-      const sunA = P.sun * clamp01(1 - (L.sun.el - 12) / 16);
-      if (sunA > 0.01 && L.sun.el > -7) {
-        const p = s.skyPos(L.sun.az, L.sun.el);
-        const r = 26 + 10 * clamp01(1 - (L.sun.el + 4) / 20);
-        c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = sunA * 0.55; c.drawImage(glow(P.sunCol.map(Math.round)), p.x - r * 9, p.y - r * 6, r * 18, r * 12);
-        c.globalAlpha = sunA * 0.9; c.drawImage(glow([255, 250, 236]), p.x - r * 1.6, p.y - r * 1.6, r * 3.2, r * 3.2);
-        c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-      }
+      // (the sun: district/sun.js)
       // the moon at its phase, a halo on clear nights
       if (L.moon.el > -2 && P.moonA > 0.05) {
         const r = Math.min(26, Math.max(15, W * 0.035));

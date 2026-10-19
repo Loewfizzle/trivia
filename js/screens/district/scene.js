@@ -19,6 +19,7 @@ import { createStars } from './stars.js';
 import { look as skyLook, skyClock } from '../../core/sky.js';
 import { paletteFor, css } from './palette.js';
 import { createFx } from './fx.js';
+import { createSun } from './sun.js';
 import { settings } from '../../audio/settings.js';
 import { reportError } from '../../errlog.js';
 
@@ -67,6 +68,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let liveWeather = () => null;
   let frost = { resize: NOOP, pane: NOOP, decorate: NOOP, debug: () => ({}), destroy: NOOP };
   let air = { resize: NOOP, draw: NOOP, debug: () => ({}) };      // planes + satellites (aircraft.js)
+  const sun = createSun();           // the real sun (sun.js): loaded with the first paint (a morning title shows it at once)
   let safeTopV = 0;
   setTimeout(() => {
     Promise.all([import('./weather-fx.js'), import('./rain.js'), import('./wildlife.js'), import('./street.js'), import('./live-weather.js'), import('./frost.js'), import('./aircraft.js')]).then(([a, b, c, d, e, f, g]) => {
@@ -82,7 +84,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   const wxNow = () => clock.wx || (clock.preview ? null : liveWeather());
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
   let P = paletteFor(LK);
-  let skyKey = '', lookAt = 0, nearRoofs = [];
+  let skyKey = '', lookAt = 0, nearRoofs = [], skyline = null;
   let NX = null, HZ0g = 1;   // the neon canvas of the layer being built
   const nightness = () => P.dark;
   const frames = [];
@@ -179,8 +181,14 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     }
     refl = null; reflLit = reflection(true);
     nearRoofs = layers[layers.length - 1].rects.filter(r => r.h > HZ * 0.08);
+    // the skyline's outline on screen (the highest roof over every 4 px): the planes keep their whole path above it
+    skyline = new Float32Array(Math.ceil(W / 4) + 1).fill(HZ);
+    for (const L of layers) for (const r of L.rects) {
+      const y = L.top + r.y, a = Math.max(0, Math.floor((r.x - L.margin) / 4)), b = Math.min(skyline.length - 1, Math.ceil((r.x + r.w - L.margin) / 4));
+      for (let i = a; i <= b; i++) if (y < skyline[i]) skyline[i] = y;
+    }
     fx.resize(W, H, HZ);
-    wfx.resize(W, H, HZ); rain.resize(W, H, HZ); birds.resize(W, H, HZ); road.resize(W, H, HZ); frost.resize(W, H); air.resize(W, H, HZ);
+    wfx.resize(W, H, HZ); rain.resize(W, H, HZ); birds.resize(W, H, HZ); road.resize(W, H, HZ); frost.resize(W, H); air.resize(W, H, HZ); sun.resize(W, H, HZ);
     vignette = mk(W * dpr / 2, H * dpr / 2);
     const vx = vignette.getContext('2d');
     const vg = vx.createRadialGradient(vignette.width / 2, vignette.height * 0.42, Math.min(vignette.width, vignette.height) * 0.3, vignette.width / 2, vignette.height * 0.45, Math.max(vignette.width, vignette.height) * 0.75);
@@ -233,7 +241,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     const ta = P.tintA * (1.15 - L.d * 0.7);
     if (ta > 0.01) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = css(P.tint, Math.min(0.92, ta)); x.fillRect(0, 0, L.comp.width, L.comp.height); }
     // the light on the sun-facing edges (dawn, day, golden hour)
-    if (P.rim[3] > 0.08) { x.fillStyle = css(P.rim, P.rim[3] * 0.6); for (const r of L.rects) x.fillRect((r.x + r.w - 1.2) * dpr, r.y * dpr, 1.2 * dpr, r.h * dpr); }
+    const sunLeft = (LK.sun.az < 180) !== !!LK.south;          // facing south, the morning sun is on the left
+    if (P.rim[3] > 0.08) { x.fillStyle = css(P.rim, P.rim[3] * 0.6); for (const r of L.rects) x.fillRect((sunLeft ? r.x : r.x + r.w - 1.2) * dpr, r.y * dpr, 1.2 * dpr, r.h * dpr); }
     // winter: a line of frost on the roofs
     // (and real snow settles on them: a thicker, brighter line while it snows)
     const frostK = Math.max(Math.max(0, (LK.season.winter - 0.5) * 2) * 0.55, (LK.snow || 0) * 0.85, (LK.freeze || 0) * 0.8);
@@ -254,6 +263,19 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       x.fillStyle = `rgba(226,238,255,${0.2 * fz})`;
       for (const w of L.windows) if (w.order <= winOn) x.fillRect(w.x, w.y, w.w, w.h);
       frost.decorate(x, L.rects, LAYERS.indexOf(LAYERS.find(q => q.d === L.d)), fz, P);
+    }
+    // a low sun on a clear morning / evening: a few windows on the sun-facing side of the nearer towers flash gold
+    const glint = (LK.w.golden + LK.w.dawn) * (LK.sun.el > 0 && LK.sun.el < 14 ? 1 : 0) * (1 - Math.min(1, (LK.cloud || 0) * 1.4)) * (LK.rain ? 0 : 1);
+    if (glint > 0.2 && L.d >= 0.4) {
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      for (const r of L.rects) {
+        const x0 = sunLeft ? r.x : r.x + r.w * 0.72, x1 = sunLeft ? r.x + r.w * 0.28 : r.x + r.w;
+        for (const w of L.windows) {
+          if (w.x < x0 || w.x > x1 || w.y < r.y || w.y > r.y + r.h) continue;
+          if (((w.x * 7.3 + w.y * 3.1) | 0) % 23 !== 0) continue;                 // a sparse, fixed few
+          x.fillStyle = `rgba(255,214,150,${0.75 * glint})`; x.fillRect(w.x, w.y, w.w, w.h);
+        }
+      }
     }
     // trims, rooftop signs, the bloom: with the evening
     const tr = P.trims * Math.min(1, Math.max(winOn, P.dark) * 1.5);
@@ -430,7 +452,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     refreshLook(performance.now());
     const lit = S.lit;
     const night = nightness();
-    const fs = { L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV };
+    const fs = { skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV };
     // sky
     c.globalAlpha = 1;
     c.drawImage(skyLit, 0, cam.y * 0.1, W, HZ);
@@ -444,10 +466,13 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     fs.moonVeil = wfx.moonVeil(LK);       // thick cloud swallows the moon's disc (weather-fx draws its glow through it)
     fx.back(c, fs);
     // the weather behind the skyline: clouds (the moon through them), lightning, distant shafts of rain
+    // the sun: its disc and bloom (behind the planes, the clouds and the skyline)
+    sun.draw(c, fs);
     // planes and satellites: in the sky, behind the clouds and the skyline, never across the sign or the buttons
     if (!clock.force.has('no-planes')) air.draw(c, fs);
     const off = clock.force;           // test only: &force=no-clouds,no-road,no-birds,no-rain (performance checks)
     if (!off.has('no-clouds')) wfx.sky(c, fs);
+    sun.through(c, fs, (x, y) => wfx.coverAt ? wfx.coverAt(x, y) : 0);   // glowing through thin cloud
     if (!off.has('no-rain')) rain.veils(c, fs);
     if (!off.has('no-birds')) birds.sky(c, fs);              // geese in the migrations, the heron across the moon
     // the neon sign lights the haze around it (after dark)
@@ -507,7 +532,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       c.globalAlpha = 1;
       // this layer's signs (the haze at its feet is drawn after, so far signs sit back in it)
       signs.drawLayer(c, li, ox, oy, night);
-      if (li === 1) birds.low(c, fs);   // swifts over the far rows on summer evenings   // swifts over the far rows on summer evenings
+      if (li === 1) { sun.halo(c, fs); sun.rays(c, fs); birds.low(c, fs); }   // low sun over the far rooftops; swifts   // swifts over the far rows on summer evenings   // swifts over the far rows on summer evenings
       // live fog: a veil after each far row (the distance dissolves), banks drifting through the near towers
       wfx.fogLayer(c, fs, li, t);
       // the near layer: string lights, window glyphs, holiday neon signs
@@ -558,6 +583,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     wfx.flash(c);
     // a deep freeze: frost creeping in from the edges of the screen
     frost.pane(c, fs);
+    sun.dim(c, fs);                    // the light of a total eclipse
     c.globalAlpha = 0.55 + 0.45 * night;
     c.drawImage(vignette, 0, 0, W, H);
     c.globalAlpha = 1;
@@ -682,7 +708,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     get tier() { return tier; },
     setTier,
     frames: () => frames.slice(),
-    debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug() }),
+    debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug(), sun: sun.debug() }),
     destroy() {
       destroyed = true;
       stop();
@@ -692,7 +718,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       window.removeEventListener('resize', onResize);
       // release the pixel memory right away (mobile browsers keep canvases until GC otherwise)
       for (const L of layers) for (const c of [L.dark, L.lit, L.comp, L.neon]) if (c) { c.width = 0; c.height = 0; }
-      fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy();
+      fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy(); sun.destroy();
       for (const c of [sky, skyLit, street, refl, reflLit, vignette, canvas, ...sprites.values()]) if (c) { c.width = 0; c.height = 0; }
       sprites.clear();
       signs.destroy();

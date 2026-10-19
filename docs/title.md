@@ -220,6 +220,33 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   St. Patrick's a four-leaf clover — bent in the same tube recipe as the letters, so they power on and flicker with the sign.
   Glows are filtered as one group (a filter per small path clips into visible boxes).
 
+## THE REAL SUN (Oct 19, 2026) — `district/sun.js` (replaced fx.js's low-sun glow)
+- **Path** (`sunPlace`, PURE; the moon's approach): facing south the sun rises on the LEFT at today's real sunrise and sets on
+  the RIGHT at the real sunset (mirrored south of the equator: facing north). Across = `sunArc(ms, tz, lat, lon).u` (core/sky.js:
+  0 at sunrise, ½ at solar noon, 1 at sunset, cached per day); height = its real elevation (higher in summer). It never crosses the
+  sign or the tagline. **Wide screens:** the full arc, clearing the towers' tops in its first ~10°, lifted gently over the sign
+  where it would cross it, under the corner buttons. **Phones** (portrait / < 760 px): up the left edge beside the sign until it
+  is E1 (12°) up (`sunArc().e1`), across the strip above the sign, down the right edge; low (below the tagline) it comes in over
+  the lower middle rooftops. Near the corner buttons the disc fades out and back (`buttonHide`) — a portrait phone has no
+  other way past them. Eased at 6 % a frame: never a jump. ALWAYS NIGHT: no sun.
+- **Look:** colour by elevation (`sunColor`: deep red-orange → orange → gold → a soft warm white), larger and a little squashed
+  near the horizon (`sunShape`); a soft-limbed disc and two smooth blooms (no rays, no flare) — all cached sprites, a frame is a
+  few drawImage calls. Drawn in the sky layer, so the clouds, the planes' sky, every row of towers and the sign are in front:
+  at sunrise / sunset it sits behind the skyline, clipped by the rooftops, with a halo spilling over the far rows (`halo`).
+  Low sun: a warm rim light on the sun-facing tower edges (east in the morning, west in the evening), a sparse fixed few windows
+  on that side glinting gold (scene.js compose); barely-there beams at golden hour, clear or partly cloudy only (`rays`).
+- **Weather:** clouds drift in front; through thin cloud it glows (`through`, using `wfx.coverAt`), overcast hides the disc and
+  leaves a brighter patch; no sun in rain or heavy fog, a faint warm glow in light fog.
+- **Solar eclipses, real:** `solarEclipse(ms, lat, lon)` (core/sky.js) — the sun (NOAA) against the moon from Meeus' full lunar
+  series (ch. 47, ~10″, ΔT applied), topocentric (the moon's ~1° parallax), the sun's size by the earth's distance. No table:
+  on a real eclipse at the visitor's place the moon covers what it really covers (Indianapolis 8 Apr 2024: 225 s of totality vs
+  the real 226 s; New York 0.91). A partial: a bright crescent sun; totality: a black disc, a pearly corona with fine streamers,
+  the whole scene darkened.
+- **Reduced effects:** no rays; the sun still moves and changes colour. **Performance:** golden hour at 4× CPU, 60 fps.
+- **Preview:** `?when=&tz=` shows the sun there and then; `&force=eclipse-sun` (a partial now, the moon gliding across),
+  `&force=totality`. Tests: `tests/sun.test.mjs` (rise / noon / set for N + S cities in summer and winter, the path against the
+  sign / buttons, smoothness, colour + size, eclipses, ALWAYS NIGHT), the sun checks in `tests/integration/e2e-sky.mjs`.
+
 ## AIR TRAFFIC + SATELLITES (Oct 19, 2026) — `district/aircraft.js` (replaced the flying light streaks and the old satellite train)
 - **Planes**, simulated (no flight data, no network): every couple of minutes, by the local hour (`trafficRate`: busiest in the
   evening (≈ 1.5 min), steady by day (≈ 2.5 min), quieter late, very rare 2–5 am; ≥ 30 s apart; the first within ~6–18 s); 1–2 on screen on a phone, up to 3 on a
@@ -229,10 +256,13 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **Where:** anywhere in the sky, like the birds — in the sky layer, so behind the clouds, the skyline, the sign and the
   tagline (the page sits in front of the sky; a plane crossing behind the NEON letters is what you would see) — from under the
   status bar / notch down to the towers' tops (below that they would only be hidden). Satellites the same.
+  Every path stays above the real skyline all the way across (scene.js bakes the roofs' outline, `fs.skyline`; an approach may
+  sink behind the towers in its last quarter) — on a portrait phone the side towers reach up beside the tagline.
 - **Look:** night — lights only: red on the left wingtip, green on the right (as seen for its direction, `navLights`: the near
   wingtip a little higher), a white strobe double-flashing about once a second, a slow red beacon; small crisp points on soft
-  glows. Sunset / dawn — a small dark silhouette, a contrail catching the pink-gold light; day — a glint of sun, a thin white
-  contrail; contrails form a little behind the plane, spread and fade over ~25 s and drift with the wind. Weather: behind the
+  glows. Sunset / dawn — a small dark silhouette, a contrail catching the pink-gold light; day — sunlit SILVER up in the deep
+  blue (a dark speck vanished there on phones), a dark silhouette only low in the pale haze, a glint of sun, a white
+  contrail; a little larger on phones; contrails form a little behind the plane, spread and fade over ~25 s and drift with the wind. Weather: behind the
   clouds; rain — fewer, lights only and faint; fog — softer, blurred lights; no contrails in rain or under overcast (and nothing
   seen by day above an overcast).
 - **The Milky Way** (stars.js, revised Oct 19): seen from a city — a faint, smooth glow plus ~2,600 tiny faint stars crowded

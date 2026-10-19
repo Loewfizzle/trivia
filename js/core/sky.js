@@ -112,6 +112,139 @@ export function sunTimes(ms, tz, lat, lon) {
   return { rise, set };
 }
 
+/** The sun's pass today: u = how far between today's real sunrise (0) and sunset (1) — it runs a little below 0 / above 1
+ *  just outside them (the sun under the horizon) — and noonEl, its highest elevation today (the season: higher in summer).
+ *  null when the sun doesn't rise or set (polar day / night). Cached per local day and place. */
+const sunDayCache = new Map();
+export function sunArc(ms, tz, lat, lon) {
+  const lp = localParts(ms, tz);
+  const key = `${lp.y}-${lp.m}-${lp.d}|${lat.toFixed(2)}|${lon.toFixed(2)}`;
+  let day = sunDayCache.get(key);
+  if (!day) {
+    const { rise, set } = sunTimes(ms, tz, lat, lon);
+    if (rise != null && set != null && set > rise) {
+      const noon = (rise + set) / 2, noonEl = sunPosition(noon, lat, lon).el;
+      // where the sun is E1° up, morning and afternoon (a phone's sun leaves / rejoins the screen's edge there)
+      const E1 = noonEl >= 16 ? 12 : noonEl * 0.75;
+      const at = (a, b, up) => { for (let i = 0; i < 24; i++) { const m = (a + b) / 2; if ((sunPosition(m, lat, lon).el < E1) === up) a = m; else b = m; } return (a + b) / 2; };
+      const ta = at(rise, noon, true), tb = at(noon, set, false);
+      day = { rise, set, noonEl, e1: { el: E1, ua: (ta - rise) / (set - rise), ub: (tb - rise) / (set - rise) } };
+    } else day = null;
+    if (sunDayCache.size > 60) sunDayCache.clear();
+    sunDayCache.set(key, day);
+  }
+  if (!day) return null;
+  return { u: (ms - day.rise) / (day.set - day.rise), noonEl: day.noonEl, rise: day.rise, set: day.set, e1: day.e1 };
+}
+
+// ---------------------------------------------------------------- solar eclipses, from the geometry itself
+// The moon to ~0.02° (Meeus' principal periodic terms) seen from the viewer's place (topocentric: the moon's parallax is
+// nearly 1°, larger than the sun), against the sun (NOAA, above). An eclipse is simply the two discs overlapping — no
+// table of dates needed: on a real eclipse date and time, at the viewer's estimated location, the moon covers the sun by the
+// amount it really does (and on any other day it can't).
+// Meeus, Astronomical Algorithms ch. 47 (ELP-2000/82 truncated, ~10″): rows of D, M, M′, F, Σl (1e-6°), Σr (m)
+const ML = [
+  0,0,1,0,6288774,-20905355, 2,0,-1,0,1274027,-3699111, 2,0,0,0,658314,-2955968, 0,0,2,0,213618,-569925, 0,1,0,0,-185116,48888,
+  0,0,0,2,-114332,-3149, 2,0,-2,0,58793,246158, 2,-1,-1,0,57066,-152138, 2,0,1,0,53322,-170733, 2,-1,0,0,45758,-204586,
+  0,1,-1,0,-40923,-129620, 1,0,0,0,-34720,108743, 0,1,1,0,-30383,104755, 2,0,0,-2,15327,10321, 0,0,1,2,-12528,0,
+  0,0,1,-2,10980,79661, 4,0,-1,0,10675,-34782, 0,0,3,0,10034,-23210, 4,0,-2,0,8548,-21636, 2,1,-1,0,-7888,24208,
+  2,1,0,0,-6766,30824, 1,0,-1,0,-5163,-8379, 1,1,0,0,4987,-16675, 2,-1,1,0,4036,-12831, 2,0,2,0,3994,-10445,
+  4,0,0,0,3861,-11650, 2,0,-3,0,3665,14403, 0,1,-2,0,-2689,-7003, 2,0,-1,2,-2602,0, 2,-1,-2,0,2390,10056,
+  1,0,1,0,-2348,6322, 2,-2,0,0,2236,-9884, 0,1,2,0,-2120,5751, 0,2,0,0,-2069,0, 2,-2,-1,0,2048,-4950,
+  2,0,1,-2,-1773,4130, 2,0,0,2,-1595,0, 4,-1,-1,0,1215,-3958, 0,0,2,2,-1110,0, 3,0,-1,0,-892,3258,
+  2,1,1,0,-810,2616, 4,-1,-2,0,759,-1897, 0,2,-1,0,-713,-2117, 2,2,-1,0,-700,2354, 2,1,-2,0,691,0,
+  2,-1,0,-2,596,0, 4,0,1,0,549,-1423, 0,0,4,0,537,-1117, 4,-1,0,0,520,-1571, 1,0,-2,0,-487,-1739,
+  2,1,0,-2,-399,0, 0,0,2,-2,-381,-4421, 1,1,1,0,351,0, 3,0,-2,0,-340,0, 4,0,-3,0,330,0,
+  2,-1,2,0,327,0, 0,2,1,0,-323,1165, 1,1,-1,0,299,0, 2,0,3,0,294,0, 2,0,-1,-2,0,8752,
+];
+// rows of D, M, M′, F, Σb (1e-6°)
+const MB = [
+  0,0,0,1,5128122, 0,0,1,1,280602, 0,0,1,-1,277693, 2,0,0,-1,173237, 2,0,-1,1,55413, 2,0,-1,-1,46271, 2,0,0,1,32573,
+  0,0,2,1,17198, 2,0,1,-1,9266, 0,0,2,-1,8822, 2,-1,0,-1,8216, 2,0,-2,-1,4324, 2,0,1,1,4200, 2,1,0,-1,-3359,
+  2,-1,-1,1,2463, 2,-1,0,1,2211, 2,-1,-1,-1,2065, 0,1,-1,-1,-1870, 4,0,-1,-1,1828, 0,1,0,1,-1794, 0,0,0,3,-1749,
+  0,1,-1,1,-1565, 1,0,0,1,-1491, 0,1,1,1,-1475, 0,1,1,-1,-1410, 0,1,0,-1,-1344, 1,0,0,-1,-1335, 0,0,3,1,1107,
+  4,0,0,-1,1021, 4,0,-1,1,833, 0,0,1,-3,777, 4,0,-2,1,671, 2,0,0,-3,607, 2,0,2,-1,596, 2,-1,1,-1,491,
+  2,0,-2,1,-451, 0,0,3,-1,439, 2,0,2,1,422, 2,0,-3,-1,421, 2,1,-1,1,-366, 2,1,0,1,-351, 4,0,0,1,331,
+  2,-1,1,1,315, 2,-2,0,-1,302, 0,0,1,3,-283, 2,1,1,-1,-229, 1,1,0,-1,223, 1,1,0,1,223, 0,1,-2,-1,-220,
+  2,1,-1,-1,-220, 1,0,1,1,-185, 2,-1,-2,-1,181, 0,1,2,1,-177, 4,0,-2,-1,176, 4,-1,-1,-1,166, 1,0,1,-1,-164,
+  4,0,1,-1,132, 1,0,-1,-1,-119, 4,-1,0,-1,115, 2,-2,0,1,107,
+];
+const DELTA_T_S = 69.2;                     // TT − UT (seconds) for the 2020s; the moon moves ~0.01° in that time
+function moonPrecise(ms) {
+  const T = (julian(ms + DELTA_T_S * 1000) - 2451545) / 36525, T2 = T * T, T3 = T2 * T, T4 = T3 * T;
+  const Lp = 218.3164477 + 481267.88123421 * T - 0.0015786 * T2 + T3 / 538841 - T4 / 65194000;
+  const D = 297.8501921 + 445267.1114034 * T - 0.0018819 * T2 + T3 / 545868 - T4 / 113065000;
+  const M = 357.5291092 + 35999.0502909 * T - 0.0001536 * T2 + T3 / 24490000;
+  const Mp = 134.9633964 + 477198.8675055 * T + 0.0087414 * T2 + T3 / 69699 - T4 / 14712000;
+  const F = 93.2720950 + 483202.0175233 * T - 0.0036539 * T2 - T3 / 3526000 + T4 / 863310000;
+  const A1 = 119.75 + 131.849 * T, A2 = 53.09 + 479264.29 * T, A3 = 313.45 + 481266.484 * T;
+  const E = 1 - 0.002516 * T - 0.0000074 * T2;
+  let sl = 0, sr = 0, sb = 0;
+  for (let i = 0; i < ML.length; i += 6) {
+    const a = (ML[i] * D + ML[i + 1] * M + ML[i + 2] * Mp + ML[i + 3] * F) * RAD, e = ML[i + 1] ? E ** Math.abs(ML[i + 1]) : 1;
+    sl += ML[i + 4] * e * Math.sin(a); sr += ML[i + 5] * e * Math.cos(a);
+  }
+  for (let i = 0; i < MB.length; i += 5) {
+    const a = (MB[i] * D + MB[i + 1] * M + MB[i + 2] * Mp + MB[i + 3] * F) * RAD, e = MB[i + 1] ? E ** Math.abs(MB[i + 1]) : 1;
+    sb += MB[i + 4] * e * Math.sin(a);
+  }
+  sl += 3958 * Math.sin(A1 * RAD) + 1962 * Math.sin((Lp - F) * RAD) + 318 * Math.sin(A2 * RAD);
+  sb += -2235 * Math.sin(Lp * RAD) + 382 * Math.sin(A3 * RAD) + 175 * Math.sin((A1 - F) * RAD) + 175 * Math.sin((A1 + F) * RAD) + 127 * Math.sin((Lp - Mp) * RAD) - 115 * Math.sin((Lp + Mp) * RAD);
+  // apparent: nutation in longitude and the true obliquity (as the sun's NOAA position above)
+  const omega = 125.04452 - 1934.136261 * T;
+  const lon = Lp + sl / 1e6 - 0.00478 * Math.sin(omega * RAD), lat = sb / 1e6, dist = 385000.56 + sr / 1000;
+  const e = (23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60 + 0.00256 * Math.cos(omega * RAD)) * RAD;
+  const l = lon * RAD, b = lat * RAD;
+  const ra = Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l));
+  const dec = Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l));
+  return { ra, dec, dist };
+}
+/** PURE: the moon's topocentric elevation / azimuth (degrees) and its distance (km) from a place on the ground. */
+export function moonTopo(ms, latDeg, lonDeg) {
+  const m = moonPrecise(ms);
+  const d = julian(ms) - 2451545, T = d / 36525;
+  const gmst = 280.46061837 + 360.98564736629 * d + 0.000387933 * T * T;
+  const lst = (gmst + lonDeg) * RAD;
+  const H = lst - m.ra, phi = latDeg * RAD;
+  // the observer on the ellipsoid (geocentric ρ·sinφ′, ρ·cosφ′), then the parallax in right ascension and declination
+  const u = Math.atan(0.99664719 * Math.tan(phi)), rs = 0.99664719 * Math.sin(u), rc = Math.cos(u);
+  const sp = 6378.14 / m.dist;
+  const dRa = Math.atan2(-rc * sp * Math.sin(H), Math.cos(m.dec) - rc * sp * Math.cos(H));
+  const Ht = H - dRa;
+  const decT = Math.atan2((Math.sin(m.dec) - rs * sp) * Math.cos(dRa), Math.cos(m.dec) - rc * sp * Math.cos(H));
+  const el = Math.asin(Math.sin(phi) * Math.sin(decT) + Math.cos(phi) * Math.cos(decT) * Math.cos(Ht)) / RAD;
+  const az = (Math.atan2(Math.sin(Ht), Math.cos(Ht) * Math.sin(phi) - Math.tan(decT) * Math.cos(phi)) / RAD + 180) % 360;
+  // the distance from the observer (for the moon's apparent size)
+  const dObs = Math.sqrt(m.dist ** 2 + 6378.14 ** 2 - 2 * m.dist * 6378.14 * (Math.cos(m.dec) * rc * Math.cos(H) + Math.sin(m.dec) * rs));
+  return { el, az, dist: dObs };
+}
+/** PURE: a solar eclipse as seen from a place right now, or null. Returns { mag (fraction of the sun's diameter covered),
+ *  obsc (fraction of its area), total, annular, dx, dy (the moon's centre from the sun's, in sun radii: +x toward a higher
+ *  azimuth, +y up), k (moon radius / sun radius) }. */
+export function solarEclipse(ms, lat, lon) {
+  const s = sunPosition(ms, lat, lon);
+  if (s.el < -2) return null;
+  const m = moonTopo(ms, lat, lon);
+  const a1 = s.el * RAD, a2 = m.el * RAD, dz = (m.az - s.az) * RAD;
+  const sep = Math.acos(Math.max(-1, Math.min(1, Math.sin(a1) * Math.sin(a2) + Math.cos(a1) * Math.cos(a2) * Math.cos(dz)))) / RAD;
+  // the sun's apparent radius changes ~3% over the year (the earth's distance: nearest in January)
+  const Ms = (357.52911 + 35999.05029 * ((julian(ms) - 2451545) / 36525)) * RAD;
+  const rs = 0.26664 / (1.00014 - 0.01671 * Math.cos(Ms) - 0.00014 * Math.cos(2 * Ms)), rm = Math.asin(1737.4 / m.dist) / RAD;
+  if (sep >= rs + rm) return null;
+  const k = rm / rs, sr = sep / rs;
+  // the covered fraction of the area: the lens where two circles overlap
+  let obsc;
+  if (sr <= k - 1) obsc = 1;
+  else if (sr <= 1 - k) obsc = k * k;
+  else {
+    const r1 = 1, r2 = k, dd = sr;
+    const p1 = Math.acos(Math.max(-1, Math.min(1, (dd * dd + r1 * r1 - r2 * r2) / (2 * dd * r1)))), p2 = Math.acos(Math.max(-1, Math.min(1, (dd * dd + r2 * r2 - r1 * r1) / (2 * dd * r2))));
+    obsc = (r1 * r1 * p1 + r2 * r2 * p2 - 0.5 * Math.sqrt(Math.max(0, (-dd + r1 + r2) * (dd + r1 - r2) * (dd - r1 + r2) * (dd + r1 + r2)))) / Math.PI;
+  }
+  let dzd = ((m.az - s.az) + 540) % 360 - 180;
+  return { mag: Math.min(1, (rs + rm - sep) / (2 * rs)), obsc: Math.min(1, obsc), total: sr <= k - 1, annular: k < 1 && sr <= 1 - k, dx: (dzd * Math.cos(a1)) / rs, dy: (m.el - s.el) / rs, k };
+}
+
 // ---------------------------------------------------------------- the moon (low precision: phase, position)
 const SYNODIC = 29.530588853;
 const NEW_MOON_JD = 2451550.1;   // 2000-01-06 18:14 UTC
@@ -352,10 +485,11 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   if (lp.m === 12 && lp.d === 31 && lp.h === 23 && lp.mi >= 50) nye = { countdown: (60 - lp.mi) * 60 - lp.s };
   else if (lp.m === 1 && lp.d === 1 && lp.h === 0 && lp.mi < 5) nye = { finale: lp.mi * 60 + lp.s };
   const q = v => Math.round(v * 40);
-  const key = [q(w.night), q(w.late), q(w.dawn), q(w.day), q(w.golden), q(season.winter), q(season.autumn), q(season.spring), q(season.summer), hol ? `${hol.id}${hol.full ? 'F' : Math.round(hol.k * 10)}` : '-', Math.round(rain * 4), Math.round(fog * 4), Math.round(cloud * 5), storm, Math.round(clamp01(snow) * 4), Math.round(freeze * 4)].join('|');
+  const key = [q(w.night), q(w.late), q(w.dawn), q(w.day), q(w.golden), q(season.winter), q(season.autumn), q(season.spring), q(season.summer), hol ? `${hol.id}${hol.full ? 'F' : Math.round(hol.k * 10)}` : '-', Math.round(rain * 4), Math.round(fog * 4), Math.round(cloud * 5), storm, Math.round(clamp01(snow) * 4), Math.round(freeze * 4), sun.az < 180 ? 'E' : 'W'].join('|');
   return {
-    local: lp, lat, lon, south, sun, moon: { ...moonP, ...mph, u: moonArc(ms, lat, lon) }, w, season, holiday: hol, nye,
+    local: lp, lat, lon, south, sun, alwaysNight, moon: { ...moonP, ...mph, u: moonArc(ms, lat, lon) }, w, season, holiday: hol, nye,
     eclipse: moonP.el > -1 ? eclipseAt(ms) : null,
+    sunArc: sunArc(ms, tz, lat, lon), solar: sun.el > -2 ? solarEclipse(ms, lat, lon) : null,
     rain, snow: clamp01(snow), storm, fog, cloud, wind, windDir, temp: live ? live.temp : null, freeze, live: !!live, wxKind: live ? live.kind : null, clear, meteors, shower: met.shower, aurora, key,
   };
 }

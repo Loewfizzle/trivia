@@ -355,6 +355,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ THE REAL SUN (Oct 19, 2026) — `docs/title.md`, `district/sun.js`
+- [x] Rises left at the real sunrise, sets right at the real sunset (mirrored in the south), real height by season, framed into the
+      open sky: never across the sign, the tagline, the corner buttons or the dock; phones: beside / above the sign like the moon
+- [x] Colour and size by elevation (red-orange, large, squashed at the horizon → warm white), cached disc + bloom, no flare
+- [x] Sunrise / sunset behind the skyline with a halo; warm rim light and gold window glints on the sun-facing side; faint golden-hour beams
+- [x] Thin cloud glows, overcast hides it (a brighter patch), none in rain / heavy fog
+- [x] Real solar eclipses from the geometry (Meeus lunar series, topocentric): partial crescents, totality with a corona and a dark sky
+- [x] Preview: `&force=eclipse-sun,totality`; tests: sun.test.mjs + e2e-sky.mjs (incl. 60 fps at golden hour, 4× CPU)
+
 ### ✅ AIR TRAFFIC + SATELLITES (Oct 19, 2026) — `docs/title.md`, `district/aircraft.js`
 - [x] The old flying light streaks and the old satellite train removed
 - [x] Simulated planes by the local hour (busiest evenings, very rare 2–5 am, minutes apart), never level, at their own heights
@@ -364,6 +373,8 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Satellites only in twilight on clear skies: single faint points; a Starlink train on about one evening in four or five
       (seeded by date), fading into the earth's shadow; Reduced effects: fewer planes, steady lights
 - [x] Preview: `&force=planes,approach,satellites,sat`; tests: aircraft.test.mjs + e2e-sky.mjs (incl. 60 fps at 4× CPU)
+- [x] Fix (iPhone): high planes were dark specks on the deep blue — now sunlit silver by day, larger on phones; every path kept
+      above the real rooftops (low ones used to slip behind the side towers)
 
 ### ✅ LIVE WEATHER + the city's life (Oct 19, 2026) — `docs/title.md`
 - [x] Real local weather: `/api/sky` (Vercel IP location, rounded ~35 miles, Open-Meteo, 15-min cache per area); the sun, moon and

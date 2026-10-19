@@ -46,7 +46,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
   let deckShape = null, deckJob = null;     // the overcast deck is only built when a grey sky asks for it
   let colourKey = '';
   let deck = [];                                         // clouds on screen: { s (shape index), x, y, w, h, z, a }
-  let deckX = 0, born = 0;
+  let deckX = 0, born = 0, lastDeckA = 0, lastAppear = 0, lastCloud = 0;
   let strike = null, nextStrike = 3 + Math.random() * 5, boltCv = null;
   let fogShape = null;
   const glowCache = new Map();
@@ -279,6 +279,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
         const fl = flashNow();
         // the overcast deck: a seamless sheet across the top of the sky
         const deckA = smooth(0.5, 0.92, L.cloud) * appear;
+        lastDeckA = deckA; lastAppear = appear; lastCloud = L.cloud;
         if (deckA > 0.01 && deckShape) {
           deckX = (deckX + drift * 0.25 * sec) % deckShape.w;
           const dw = deckShape.w, dh = deckShape.h;
@@ -366,6 +367,12 @@ export function createWeatherFx({ onFlash = null } = {}) {
       c.globalAlpha = f * (strike && strike.near ? 0.15 : 0.06);
       c.fillStyle = 'rgb(170,175,230)'; c.fillRect(0, 0, W, H);
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    },
+    /** how much cloud covers a point of the sky (0..1): the clouds' boxes there and the overcast deck */
+    coverAt(px, py) {
+      let a = lastDeckA;
+      for (const d of deck) if (px > d.x + d.w * 0.1 && px < d.x + d.w * 0.9 && Math.abs(py - d.y) < d.h * 0.32) a = Math.max(a, d.a * lastAppear * clamp01(lastCloud * 1.8));
+      return a;
     },
     /** how much the moon disc shows through the cloud right now (the moon is drawn before the clouds) */
     moonVeil: L => 1 - smooth(0.6, 0.97, L.cloud) * 0.92,
