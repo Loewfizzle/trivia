@@ -540,8 +540,9 @@ export function createSigns({ games: allGames = [] } = {}) {
           c.globalAlpha = 0.5 * depth; c.strokeStyle = mixHex(col, '#120c18', 0.75); c.lineWidth = 2; path(); c.stroke();
           if (tl > 0.02) {
             c.globalCompositeOperation = 'lighter';
-            c.globalAlpha = 0.35 * tl; c.strokeStyle = col; c.lineWidth = 5; c.shadowColor = col; c.shadowBlur = 8; path(); c.stroke();
-            c.shadowBlur = 0; c.globalAlpha = 0.95 * tl; c.lineWidth = 1.4; path(); c.stroke();
+            c.strokeStyle = col; c.globalAlpha = 0.14 * tl; c.lineWidth = 8; path(); c.stroke();
+            c.globalAlpha = 0.3 * tl; c.lineWidth = 4; path(); c.stroke();
+            c.globalAlpha = 0.95 * tl; c.lineWidth = 1.4; path(); c.stroke();
             c.globalAlpha = 0.8 * tl; c.strokeStyle = mixHex(col, '#ffffff', 0.8); c.lineWidth = 0.6; path(); c.stroke();
           }
           c.restore(); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
@@ -554,7 +555,8 @@ export function createSigns({ games: allGames = [] } = {}) {
           c.globalAlpha = 1; c.drawImage(pn.c, x - pn.pad, y - pn.pad, pn.c.width / R, pn.c.height / R);
           if (lit > 0.02) {
             c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 * lit; c.fillStyle = im.col; c.fillRect(x + 2.5, y + 2.5, s.w - 5, s.ph - 5);
-            c.save(); c.shadowColor = im.col; c.shadowBlur = 6; c.globalAlpha = 0.85 * lit; c.strokeStyle = im.col; c.lineWidth = 1.2; c.strokeRect(x + 1.2, y + 1.2, s.w - 2.4, s.ph - 2.4); c.restore();
+            c.strokeStyle = im.col; c.globalAlpha = 0.18 * lit; c.lineWidth = 5; c.strokeRect(x + 1.2, y + 1.2, s.w - 2.4, s.ph - 2.4);
+            c.globalAlpha = 0.85 * lit; c.lineWidth = 1.2; c.strokeRect(x + 1.2, y + 1.2, s.w - 2.4, s.ph - 2.4);
             c.globalAlpha = 0.6 * lit; c.strokeStyle = mixHex(im.col, '#ffffff', 0.8); c.lineWidth = 0.5; c.strokeRect(x + 1.2, y + 1.2, s.w - 2.4, s.ph - 2.4);
             c.globalCompositeOperation = 'source-over';
           }

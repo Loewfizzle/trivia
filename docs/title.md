@@ -152,3 +152,9 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **Rooftop billboard:** on top of the left blade's tower (else the right one's) a framed panel on steel legs with a catwalk
   and two lamps shows the game's neon mark, its edge lit in the mark's colour. On phones it replaces the wall icon (which
   stays as the fallback when no rooftop has room). It rotates and is tappable like the other signs.
+- **Christmas lights on the sign** (title.js#xmasLightsSvg): a dark-green wire wrapped round NEON (swags across the top and
+  bottom, down both ends) strung with glass C9 bulbs in red, green, gold, blue and warm white. More light each December night
+  (holiday k), all of them from Christmas Eve; a few twinkle (opacity only); unlit bulbs hang dark. SVG in the logo's
+  coordinates, gradients instead of filters.
+- The neon trims on the blade towers and the rooftop billboard's edge use soft wide strokes, never a per-frame shadow blur
+  (that cost 50 ms frames at 4× CPU).

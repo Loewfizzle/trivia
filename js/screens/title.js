@@ -121,6 +121,44 @@ function santaHat() {
 </g></svg>`;
 }
 const HAT = santaHat();
+
+// Christmas: the sign wrapped in a string of glass C9 bulbs — swags across the top and along the bottom, down both ends.
+// Drawn in the logo's own coordinates (logo.js: viewBox -26 -30 384 160) so it sits exactly on the tubes. k (0..1): how
+// many bulbs are lit — a few on Dec 1, more each night, all of them from Christmas Eve. No filters: glows are gradients.
+function xmasLightsSvg(k) {
+  const pts = [];
+  const swag = (x0, y0, x1, y1, sag, dir) => { const n = Math.max(3, Math.round(Math.hypot(x1 - x0, y1 - y0) / 13)); const d = [];
+    for (let i = 0; i <= n; i++) { const t = i / n; d.push([x0 + (x1 - x0) * t, y0 + (y1 - y0) * t + Math.sin(Math.PI * t) * sag * dir]); } return d; };
+  const wire = [];
+  const add = (seg, hang) => { wire.push(seg); seg.forEach((p, i) => { if (i < seg.length - 1) pts.push({ x: p[0], y: p[1], hang }); }); };
+  // across the top: tied at each letter's top corner, sagging between
+  const topX = [-16, 32, 92, 140, 176, 222, 268, 316, 348];
+  for (let i = 0; i < topX.length - 1; i++) add(swag(topX[i], -6, topX[i + 1], -6, 9, 1), 'down');
+  // down the right end, along the bottom (sagging below), up the left end
+  add(swag(348, -6, 350, 106, 0, 1), 'right');
+  const botX = [350, 300, 250, 200, 150, 100, 50, -18];
+  for (let i = 0; i < botX.length - 1; i++) add(swag(botX[i], 106, botX[i + 1], 106, 8, 1), 'down');
+  add(swag(-18, 106, -16, -6, 0, 1), 'left');
+  const COLS = [['#ff3b4e', '#7a1018'], ['#2fe07a', '#0f4a26'], ['#ffc94a', '#6a4a10'], ['#4ea3ff', '#123a6a'], ['#fff1d6', '#6a5e4a']];
+  const order = pts.map((_, i) => ((i * 7919 + 13) % 97) / 97);
+  const ang = h => (h === 'down' ? 0 : h === 'right' ? -90 : h === 'left' ? 90 : 180);
+  const wires = wire.map(seg => `<path d="M${seg.map(p => p.map(v => v.toFixed(1)).join(' ')).join(' L')}" />`).join('');
+  const bulbs = pts.map((p, i) => {
+    const [hot, dark] = COLS[i % COLS.length];
+    const on = order[i] < k;
+    const tw = on && i % 5 === 2 ? ` class="nd-xb-tw" style="animation-delay:${(-((i * 1.37) % 4)).toFixed(2)}s"` : '';
+    return `<g transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${ang(p.hang) + ((i % 3) - 1) * 9})">
+${on ? `<circle cx="0" cy="7.5" r="11" fill="url(#ndxg${i % COLS.length})"${tw}/>` : ''}
+<rect x="-1.9" y="0" width="3.8" height="3.6" rx="0.8" fill="#16351f"/>
+<path d="M-2.4 3.4 C-3.6 6 -3.2 9.5 0 11.6 C3.2 9.5 3.6 6 2.4 3.4 Z" fill="${on ? `url(#ndxb${i % COLS.length})` : dark}"${on ? '' : ' opacity="0.9"'}/>
+<ellipse cx="-0.9" cy="6" rx="0.6" ry="1.6" fill="#fff" opacity="${on ? 0.85 : 0.25}"/></g>`;
+  }).join('');
+  const defs = COLS.map(([hot], i) => `<radialGradient id="ndxb${i}" cx="0.4" cy="0.35" r="0.75"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="${hot}"/><stop offset="1" stop-color="${hot}" stop-opacity="0.85"/></radialGradient>
+<radialGradient id="ndxg${i}"><stop offset="0" stop-color="${hot}" stop-opacity="0.55"/><stop offset="0.4" stop-color="${hot}" stop-opacity="0.18"/><stop offset="1" stop-color="${hot}" stop-opacity="0"/></radialGradient>`).join('');
+  return `<svg viewBox="-26 -30 384 160" aria-hidden="true"><defs>${defs}</defs>
+<g fill="none" stroke="#0e2414" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${wires}</g>${bulbs}</svg>`;
+}
+
 // the colour each holiday's sign throws on the haze and the wet street
 const SIGN_LIGHT = { halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
 
@@ -342,7 +380,7 @@ export function createTitle() {
   function dressSign(L) {
     const hol = L && L.holiday;
     const n = L && L.nye;
-    const key = `${hol ? hol.id + (hol.full ? 'F' : '') : ''}|${n ? (n.countdown != null ? 'c' + n.countdown : 'f') : ''}`;
+    const key = `${hol ? hol.id + (hol.full ? 'F' : '') + Math.round((hol.k || 0) * 40) : ''}|${n ? (n.countdown != null ? 'c' + n.countdown : 'f') : ''}`;
     if (key === dressKey) return;
     dressKey = key;
     const s = els.sign;
@@ -355,6 +393,7 @@ export function createTitle() {
       wrap.append(h('div.nd-dress.nd-webs', { 'aria-hidden': 'true', html: WEBS }));
       wrap.append(h('div.nd-dress.nd-spider', { 'aria-hidden': 'true' }, h('div.nd-spider-b', h('i.nd-silk'), h('div.nd-spider-s', { html: SPIDER }))));
     }
+    if (hol && hol.id === 'christmas') wrap.append(h('div.nd-dress.nd-xlights', { 'aria-hidden': 'true', html: xmasLightsSvg(hol.full ? 1 : hol.k) }));
     if (full === 'christmas') wrap.append(h('div.nd-dress.nd-hat', { 'aria-hidden': 'true', html: HAT }));
     const tag = s.querySelector('.nd-tag');
     if (n && n.countdown != null) { const m = Math.floor(n.countdown / 60), sec = n.countdown % 60; tag.textContent = `${m}:${String(sec).padStart(2, '0')} TO MIDNIGHT`; tag.classList.add('nd-count'); }

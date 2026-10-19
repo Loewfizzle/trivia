@@ -564,3 +564,12 @@ body.nd-idle .menu-btn, body.nd-idle .music-btn { opacity: 0; pointer-events: no
 .nd-me-dot { margin: 0 6px; color: rgba(236, 240, 255, 0.5); }
 .nd-me-rank { display: inline-flex; align-items: center; gap: 5px; font: 700 10px/1 var(--font-mono); letter-spacing: 0.14em; color: var(--rk, #eef1ff); }
 .nd-sub[hidden] { display: none; }
+
+/* Christmas: the bulbs wrapped round the sign (title.js#xmasLightsSvg); a few twinkle (opacity only) */
+.nd-xlights { inset: 0; }
+.nd-xlights svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.nd-xb-tw { animation: nd-xtw 4s ease-in-out infinite; }
+@keyframes nd-xtw { 0%, 100% { opacity: 1; } 45% { opacity: 0.35; } 55% { opacity: 0.35; } }
+.nd-sign.is-day .nd-xlights { opacity: 0.85; }
+@media (prefers-reduced-motion: reduce) { .nd-xb-tw { animation: none; } }
+body.reduced-fx .nd-xb-tw { animation: none; }
