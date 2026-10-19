@@ -122,6 +122,47 @@ function santaHat() {
 }
 const HAT = santaHat();
 
+// Halloween / St. Patrick's: the O of NEON becomes a neon jack-o'-lantern / a four-leaf clover, bent in the same glass tube
+// as the letters (glass, two glows, body, white-hot core, highlight, electrode caps), so it powers on, flickers and takes the
+// holiday colours like them. Drawn in the O's own box (0..64 × 0..100). Parts: [d, width, colour-vars | null]
+const O_ALT = {
+  halloween: [
+    // the body: a squat pumpkin with a dimple at the top, and two rib lines
+    ['M32 30 C26 24 14 25 7 36 C0 47 0 74 9 87 C16 97 26 100 32 97 C38 100 48 97 55 87 C64 74 64 47 57 36 C50 25 38 24 32 30', 7, null],
+    ['M24 31 C17 45 17 82 25 97 M40 31 C47 45 47 82 39 97', 3.2, null],
+    // the carved face: triangle eyes, a nose, a toothy grin
+    ['M14 55 L22 45 L28 57 Z M50 55 L42 45 L36 57 Z', 3.6, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8'],
+    ['M30 66 L32 61 L34 66 Z', 3, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8'],
+    ['M13 72 Q32 90 51 72 L47 79 L42 74 L37 81 L32 75 L27 81 L22 74 L17 79 Z', 3.4, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8'],
+    // the stem and a curling vine
+    ['M31 29 C30 20 33 12 39 8 M34 18 C40 21 47 18 50 11 C52 7 49 4 46 6', 4.2, '--g:#3ddc6a;--b:#7dff9c;--c:#efffe9'],
+  ],
+  stpatrick: [
+    // four heart-shaped leaves round the centre, a slender stem
+    ...[45, 135, 225, 315].map(a => [`M32 54 C27 47 15 44 15 34 C15 26 25 24 29 31 C30 33 31 34 32 36 C33 34 34 33 35 31 C39 24 49 26 49 34 C49 44 37 47 32 54`, 5.2, null, `translate(32 54) scale(1.32) translate(-32 -54) rotate(${a} 32 54)`]),
+    ['M32 58 C35 72 31 86 21 99', 5.4, null],
+  ],
+};
+function swapO(svg, kind) {
+  const g = svg && svg.querySelector('.ndl-3');
+  if (!g) return;
+  if (!g.dataset.orig) g.dataset.orig = g.innerHTML;
+  if (!kind) { if (g.dataset.kind) { g.innerHTML = g.dataset.orig; delete g.dataset.kind; } return; }
+  if (g.dataset.kind === kind) return;
+  const filt = (g.querySelector('.ndl-glow1') || {}).getAttribute ? g.querySelector('.ndl-glow1').getAttribute('filter') : '';
+  const filt2 = g.querySelector('.ndl-glow2') ? g.querySelector('.ndl-glow2').getAttribute('filter') : '';
+  const parts = O_ALT[kind];
+  const paths = (cls, extra) => parts.map(([d, w, vars, tf]) => `<path class="${cls}" d="${d}" ${tf ? `transform="${tf}"` : ''} ${vars ? `style="${vars}"` : ''} stroke-width="${extra(w)}"/>`).join('');
+  const tube = (cls, extra) => cls.includes('glow') ? `<g filter="${cls.includes('glow1') ? filt : filt2}"><rect x="-30" y="-30" width="124" height="160" fill="none" stroke="none"/>${paths(cls, extra)}</g>` : paths(cls, extra);
+  g.innerHTML = `<g class="ndl-glass-g">${parts.map(([d, w, v, tf]) => `<path class="ndl-glass" d="${d}" ${tf ? `transform="${tf}"` : ''} stroke="#40243a" stroke-width="${w + 2}"/>`).join('')}</g>
+<g class="ndl-light">${tube('ndl-glow2', w => w + 12)}${tube('ndl-glow1', w => w + 3.5)}${tube('ndl-body', w => w)}${tube('ndl-core', w => w * 0.36)}
+${parts.map(([d, w, v, tf]) => `<path class="ndl-hi" d="${d}" ${tf ? `transform="${tf}"` : ''} stroke="#ffffff" stroke-width="0.6" opacity="0.3"/>`).join('')}</g>`;
+  // inline colour vars on the parts that need them (eyes, stem): set on the <path>s, which read var(--g/--b/--c)
+  g.querySelectorAll('path[style]').forEach(p => { p.style.cssText = p.getAttribute('style'); });
+  g.dataset.kind = kind;
+}
+
+
 // Christmas: a string of glass C9 bulbs wound round the sign's own tubes. The wire spirals along each letter's tube path
 // (traced from the live SVG), passing in front of the glass and behind it; at every turn a bulb hangs off the side of the
 // tube, drooping a little under its weight; between letters the wire sags in a swag with a few bulbs. k: how many are lit.
@@ -423,6 +464,7 @@ export function createTitle() {
     for (const k of ['halloween', 'christmas', 'nye', 'valentine', 'stpatrick', 'easter', 'thanksgiving', 'july4']) s.classList.toggle(`sg-${k}`, full === k);
     if (scene) scene.set({ signCol: SIGN_LIGHT[full] || null });
     s.querySelectorAll('.nd-dress').forEach(e => e.remove());
+    swapO(s.querySelector('svg.nd-logo'), full === 'halloween' || full === 'stpatrick' ? full : null);
     const wrap = s.querySelector('.nd-logo-wrap');
     if (full === 'halloween') {
       wrap.append(h('div.nd-dress.nd-webs', { 'aria-hidden': 'true', html: WEBS }));

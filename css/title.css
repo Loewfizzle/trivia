@@ -573,3 +573,11 @@ body.nd-idle .menu-btn, body.nd-idle .music-btn { opacity: 0; pointer-events: no
 .nd-sign.is-day .nd-xlights { opacity: 0.85; }
 @media (prefers-reduced-motion: reduce) { .nd-xb-tw { animation: none; } }
 body.reduced-fx .nd-xb-tw { animation: none; }
+
+/* the O as a jack-o'-lantern / a clover: its parts carry their own colour vars (the face gold, the stem green) */
+.nd-sign .ndl-3 path[style] { stroke: var(--b); }
+.nd-sign .ndl-3 .ndl-glow1[style], .nd-sign .ndl-3 .ndl-glow2[style] { stroke: var(--g); }
+.nd-sign .ndl-3 .ndl-core[style] { stroke: var(--c); }
+.nd-sign .ndl-3 .ndl-glass[style] { stroke: #40243a; }
+.sg-halloween .ndl-3 { --g: #ff7a12; --b: #ffa040; --c: #fff4e0; }
+.sg-stpatrick .ndl-3 { --g: #18e070; --b: #5dff9e; --c: #f0fff6; }

@@ -174,3 +174,6 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - The Halloween / St. Patrick's rooftop neon sign sits on a roof near the middle (the sides hold the blades and billboard).
 - **Neon outlines get their own pass** (each layer's `neon` canvas, drawn after its fog) so far buildings show whole outlines,
   not just a roof line; and the neon stays at full strength when the windows wind down at night (it had been tied to them).
+- **The O dresses up** (title.js#swapO): on Halloween's full days it becomes a neon jack-o'-lantern (gold face, green stem), on
+  St. Patrick's a four-leaf clover — bent in the same tube recipe as the letters, so they power on and flicker with the sign.
+  Glows are filtered as one group (a filter per small path clips into visible boxes).
