@@ -19,6 +19,11 @@ export function createFx() {
   let snow = [], petals = [], leaves = [], flies = [], bats = null, meteors = [], rockets = [], sparks = [], sleigh = null;
   let nextBats = 60 + Math.random() * 120, nextSleigh = 90 + Math.random() * 300, nextRocket = 0;
   let witch = null, nextWitch = 45 + Math.random() * 90, trail = [], sleighTrail = [];
+  // easter eggs: the UFO, the rooftop cat, the moon you can tap
+  let ufo = null, nextUfo = 180 + Math.random() * 360, ufoBits = [];
+  let cat = null, catGone = 0;
+  let lastMoon = null, shimmer = 0, moonTaps = [];
+  let sats = null, nextSats = 300 + Math.random() * 900;
   const BAT_NEON = [[190, 90, 255], [255, 140, 50], [80, 255, 140], [255, 80, 190], [80, 220, 255], [255, 230, 90]];
   let W = 1, H = 1, HZ = 1;
   let lights = null, lightsKey = '';
@@ -51,25 +56,6 @@ export function createFx() {
       x.restore();
       disc.width = 0;
     });
-  }
-
-  // ---------------------------------------------------------------- string lights (Christmas): catenaries between near rooftops
-  function buildLights(roofs, count, seed) {
-    const R = rng(seed);
-    const pairs = [];
-    const sorted = roofs.slice().sort((a, b) => a.x - b.x);
-    for (let i = 0; i < sorted.length - 1 && pairs.length < count; i++) {
-      const a = sorted[i], b = sorted[i + 1];
-      if (b.x - (a.x + a.w) > 40 || Math.abs(a.y - b.y) > 120) continue;
-      const x0 = a.x + a.w * (0.6 + R() * 0.3), y0 = a.y + 6 + R() * 20, x1 = b.x + b.w * (0.1 + R() * 0.3), y1 = b.y + 6 + R() * 20;
-      const sag = 14 + R() * 26;
-      const n = Math.max(6, Math.round((x1 - x0) / 7));
-      const bulbs = [];
-      const COLS = [[255, 70, 80], [255, 210, 90], [90, 220, 140], [90, 160, 255], [255, 140, 220]];
-      for (let k = 0; k <= n; k++) { const t = k / n; bulbs.push({ t, col: COLS[Math.floor(R() * COLS.length)], ph: R() * TAU }); }
-      pairs.push({ x0, y0, x1, y1, sag, bulbs });
-    }
-    return pairs;
   }
 
   // ---------------------------------------------------------------- the neon pumpkin / shamrock signs
@@ -149,7 +135,21 @@ export function createFx() {
         c.drawImage(moonSprite(L.moon.phase), p.x - r * 1.23, p.y - r * 1.23, r * 2.46, r * 2.46);
         c.globalAlpha = 1;
         s.moonAt = { x: p.x, y: p.y, r };
+        // tapped: a soft swell of light and a few sparkles circling it
+        if (shimmer > 0) {
+          shimmer = Math.max(0, shimmer - dt / 1600);
+          const k = Math.sin(Math.PI * Math.min(1, (1 - shimmer) * 1.4));
+          c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = 0.45 * k; c.drawImage(glow([210, 225, 255]), p.x - r * 6, p.y - r * 6, r * 12, r * 12);
+          for (let i = 0; i < 7; i++) {
+            const a = i / 7 * TAU + (1 - shimmer) * 2.4, d = r * (1.5 + (1 - shimmer) * 1.2);
+            c.globalAlpha = 0.9 * k * (0.5 + 0.5 * Math.sin(i * 2.1 + t * 9));
+            c.drawImage(glow([255, 250, 230]), p.x + Math.cos(a) * d - 3, p.y + Math.sin(a) * d - 3, 6, 6);
+          }
+          c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        }
       } else s.moonAt = null;
+      lastMoon = s.moonAt;
       // the aurora: slow curtains of green and violet light over the skyline
       if (L.aurora || s.force.has('aurora')) aurora(c, t, CAPS[tier].aurora, motion, dark || 1);
       // shooting stars (a rare one any clear night, many on a shower's peak)
@@ -169,6 +169,31 @@ export function createFx() {
           return true;
         });
         c.globalCompositeOperation = 'source-over';
+      }
+      // a satellite train: rarely, on clear nights, a line of evenly spaced points gliding across the sky; each one
+      // brightens as it leaves the earth's shadow and fades as it goes back in
+      if (motion && (s.force.has('satellites') && !s.satsDone || (dark > 0.6 && L.clear && !sats && (nextSats -= dt / 1000) <= 0))) {
+        if (!sats) {
+          s.satsDone = true; nextSats = 900 + Math.random() * 900;
+          const dir = Math.random() < 0.5 ? 1 : -1, n = 22 + Math.floor(Math.random() * 14);
+          const y0 = HZ * (0.06 + Math.random() * 0.2), y1 = y0 + HZ * (0.12 + Math.random() * 0.22);
+          sats = { k: 0, dur: 38 + Math.random() * 14, dir, y0, y1, n, gap: 0.016 + Math.random() * 0.006, list: Array.from({ length: n }, () => ({ b: 0.6 + Math.random() * 0.4, ph: Math.random() * TAU })) };
+        }
+      }
+      if (sats) {
+        sats.k += dt / 1000 / sats.dur;
+        c.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < sats.n; i++) {
+          const u = sats.k * (1 + sats.n * sats.gap) - i * sats.gap;     // each one a little behind the one ahead
+          if (u <= 0 || u >= 1) continue;
+          const fade = Math.min(1, u / 0.12, (1 - u) / 0.12);
+          const x = sats.dir > 0 ? -10 + u * (W + 20) : W + 10 - u * (W + 20), y = sats.y0 + (sats.y1 - sats.y0) * u;
+          const p = sats.list[i], a = fade * p.b * (0.85 + 0.15 * Math.sin(t * 3 + p.ph)) * dark;
+          c.globalAlpha = 0.5 * a; c.drawImage(glow([220, 232, 255]), x - 4, y - 4, 8, 8);
+          c.globalAlpha = a; c.fillStyle = '#f4f7ff'; c.fillRect(x - 0.6, y - 0.6, 1.2, 1.2);
+        }
+        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        if (sats.k >= 1) sats = null;
       }
       // fireworks behind the skyline (New Year, the Fourth of July) — only after dark
       const hol = L.holiday;
@@ -229,37 +254,40 @@ export function createFx() {
     mid(c, s, g) {
       const { L, t } = s;
       const hol = L.holiday;
-      if (!hol || !g) return;
+      if (!g) return;
       const night = clamp01(L.w.night + L.w.late + L.w.golden * 0.6 + L.w.dawn * 0.3);
-      // Christmas lights: a few strings early in December, many by the 24th
+      catStep(c, s, g, night);
+      if (!hol) return;
+      // Christmas lights: rooflines outlined in bulbs and strings down a few corners — a handful of buildings on the 1st,
+      // most of the skyline by the 24th. Baked once into a canvas (glow and all); a few bulbs twinkle on top.
       if (hol.id === 'christmas') {
-        const count = Math.round(hol.full ? 9 : 1 + hol.k * 7);
-        const key = `${count}|${W}|${H}`;
-        if (key !== lightsKey) { lights = buildLights(g.roofs, count, 1225); lightsKey = key; }
-        c.globalCompositeOperation = 'lighter';
-        for (const p of lights) {
-          for (const b of p.bulbs) {
-            const x = g.ox + p.x0 + (p.x1 - p.x0) * b.t, y = g.oy + p.y0 + (p.y1 - p.y0) * b.t + Math.sin(b.t * Math.PI) * p.sag;
-            const tw = 0.65 + 0.35 * Math.sin(t * 1.6 + b.ph);
-            if (s.tier || (b.t * 20 | 0) % 2 === 0) { c.globalAlpha = (0.35 + 0.65 * night) * tw; c.drawImage(glow(b.col), x - 5, y - 5, 10, 10); }
-            c.globalAlpha = 0.9 * (0.4 + 0.6 * night); c.fillStyle = rgba(b.col, 1); c.fillRect(x - 0.9, y - 0.9, 1.8, 1.8);
+        const count = Math.round(hol.full ? 18 : 4 + hol.k * 12);
+        const key = `${count}|${W}|${H}|${g.roofs.length}`;
+        if (key !== lightsKey) { lights = bakeLights(g, count); lightsKey = key; }
+        if (lights) {
+          c.globalAlpha = 0.4 + 0.6 * night;
+          c.drawImage(lights.c, g.ox + lights.x0, g.oy + lights.y0, lights.w, lights.h);
+          c.globalCompositeOperation = 'lighter';
+          for (const b of lights.tw) {
+            c.globalAlpha = (0.3 + 0.7 * night) * Math.max(0, Math.sin(t * 1.7 + b.ph));
+            c.drawImage(glow(b.col), g.ox + b.x - 6, g.oy + b.y - 6, 12, 12);
           }
+          c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
         }
-        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       }
       // window glyphs: carved pumpkins, hearts, decorated eggs
       const kind = hol.id === 'halloween' ? 'pumpkin' : hol.id === 'valentine' && hol.full ? 'heart' : hol.id === 'easter' && hol.full ? 'egg' : null;
-      const seen = g.windows.filter(w => g.oy + w.y < HZ - H * 0.16 && g.oy + w.y > HZ * 0.45);
+      const seen = g.windows.filter(w => g.top + w.y < HZ - 10 && g.top + w.y > HZ * 0.42 && w.x - g.margin > 10 && w.x - g.margin < W - 10);
       if (kind && seen.length) {
         const n = hol.full ? 12 : Math.round(4 + hol.k * 7);
         // one per column of the skyline, so they spread out instead of piling on one tower
         const R = rng(hol.id.length * 97);
         const cols = new Map();
-        for (const w of seen) { const k = Math.floor((g.ox + w.x) / (W / 14)); if (!cols.has(k) || R() < 0.3) cols.set(k, w); }
+        for (const w of seen) { const k = Math.floor((w.x - g.margin) / (W / 14)); if (!cols.has(k) || R() < 0.3) cols.set(k, w); }
         const picks = [...cols.values()].sort(() => R() - 0.5).slice(0, n);
         const tint = kind === 'pumpkin' ? [255, 140, 40] : kind === 'heart' ? [255, 80, 140] : [220, 200, 255];
         picks.forEach((w, i) => {
-          const sz = Math.max(9, Math.min(12, W * 0.026));
+          const sz = Math.max(10, Math.min(13, W * 0.028));
           const x = Math.round(g.ox + w.x + w.w / 2), y = Math.round(g.oy + w.y + w.h / 2);
           const fl = kind === 'pumpkin' ? 0.82 + 0.18 * Math.sin(t * 9 + i * 3) * Math.sin(t * 3.7 + i) : 1;
           // the window it sits in: a warm lit pane with a dark frame
@@ -367,6 +395,7 @@ export function createFx() {
         c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
         if (witch) { drawWitch(c, wx, wy, witch.size, t, witch.dir); if (witch.k >= 1) witch = null; }
       }
+      ufoStep(c, s, sec);
       if (bats) {
         bats.k += sec / 9;
         const x0 = bats.dir > 0 ? -160 + bats.k * (W + 320) : W + 160 - bats.k * (W + 320);
@@ -377,7 +406,24 @@ export function createFx() {
         if (bats.k >= 1) bats = null;
       }
     },
-    debug: () => ({ snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sparks: sparks.length, sleigh: !!sleigh, lights: lights ? lights.length : 0 }),
+    /** a tap at (x, y): the UFO zips off, the cat hops away, the moon shimmers (three taps: a shooting star). Returns what was hit. */
+    hit(x, y) {
+      const d = (a, b) => Math.hypot(x - a, y - b);
+      if (ufo && ufo.st !== 'out' && ufo.at && d(ufo.at.x, ufo.at.y) < ufo.sw * 0.75) { ufo.st = 'out'; ufo.k = 0; ufo.flash = 1; return 'ufo'; }
+      if (cat && cat.at && !cat.hop && d(cat.at.x, cat.at.y - cat.at.s * 0.5) < Math.max(20, cat.at.s * 1.3)) { cat.hop = { k: 0 }; return 'cat'; }
+      if (lastMoon && d(lastMoon.x, lastMoon.y) < lastMoon.r * 2) {
+        shimmer = 1;
+        const now = performance.now();
+        moonTaps = moonTaps.filter(m => now - m < 5000).concat(now);
+        if (moonTaps.length >= 3) {
+          moonTaps = [];
+          meteors.push({ x: lastMoon.x + 10, y: lastMoon.y + 4, a: Math.PI * 0.18, v: 620, life: 0, max: 0.9 });
+        }
+        return 'moon';
+      }
+      return null;
+    },
+    debug: () => ({ sats: !!sats, ufo: ufo ? ufo.st : null, cat: cat ? (cat.at ? 'here' : 'placed') : null, snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sparks: sparks.length, sleigh: !!sleigh, lights: lights ? lights.length : 0 }),
     destroy() { for (const c of sprites.values()) { c.width = 0; c.height = 0; } sprites.clear(); },
   };
 
@@ -391,6 +437,227 @@ export function createFx() {
       c.globalAlpha = 0.85; paint(c, f); c.restore();
     }
     c.globalAlpha = 1;
+  }
+
+  // ---------------------------------------------------------------- Christmas lights, baked
+  function bakeLights(g, count) {
+    const R = rng(1225);
+    const roofs = g.roofs.filter(r => g.top + r.y > HZ * 0.34 && g.top + r.y < HZ - 14 && r.w >= 22 && r.x - g.margin > -10 && r.x - g.margin < W + 10)
+      .sort(() => R() - 0.5).slice(0, count);
+    if (!roofs.length) return null;
+    const WARM = [255, 214, 150], COLS = [[255, 70, 80], [255, 200, 80], [80, 230, 140], [90, 160, 255], [255, 130, 220]];
+    const bulbs = [];
+    for (const r of roofs) {
+      const multi = R() < 0.55;
+      const pick = () => (multi ? COLS[Math.floor(R() * COLS.length)] : WARM);
+      // the roofline
+      for (let x = r.x + 2; x <= r.x + r.w - 2; x += 4.6) bulbs.push({ x, y: r.y + 1.4, col: pick() });
+      // a string down one corner, sometimes both
+      if (R() < 0.5) { const sx = R() < 0.5 ? r.x + 1.6 : r.x + r.w - 1.6, run = Math.min(r.h - 6, 30 + R() * 50); for (let y = r.y + 6; y < r.y + run; y += 4.6) bulbs.push({ x: sx, y, col: pick() }); }
+      // a sagging string from this roof to the next, when they're close
+      const nb = g.roofs.find(o => o !== r && o.x > r.x + r.w - 2 && o.x - (r.x + r.w) < 40 && Math.abs(o.y - r.y) < 60);
+      if (nb && R() < 0.6) {
+        const x0 = r.x + r.w - 3, y0 = r.y + 4, x1 = nb.x + 3, y1 = nb.y + 4, n = Math.max(5, Math.round((x1 - x0) / 5)), sag = 8 + R() * 10;
+        for (let k = 1; k < n; k++) { const tt = k / n; bulbs.push({ x: x0 + (x1 - x0) * tt, y: y0 + (y1 - y0) * tt + Math.sin(tt * Math.PI) * sag, col: pick() }); }
+      }
+    }
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const b of bulbs) { x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x); y1 = Math.max(y1, b.y); }
+    x0 -= 8; y0 -= 8; x1 += 8; y1 += 8;
+    const sc = Math.min(2, window.devicePixelRatio || 1);
+    const cv = mk((x1 - x0) * sc, (y1 - y0) * sc), x = cv.getContext('2d');
+    x.scale(sc, sc);
+    x.globalCompositeOperation = 'lighter';
+    for (const b of bulbs) { x.globalAlpha = 0.55; x.drawImage(glow(b.col), b.x - x0 - 5.5, b.y - y0 - 5.5, 11, 11); }
+    x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    for (const b of bulbs) {
+      x.fillStyle = rgba(b.col, 1); x.beginPath(); x.arc(b.x - x0, b.y - y0, 1.15, 0, TAU); x.fill();
+      x.fillStyle = 'rgba(255,255,255,0.85)'; x.beginPath(); x.arc(b.x - x0 - 0.3, b.y - y0 - 0.3, 0.45, 0, TAU); x.fill();
+    }
+    const tw = bulbs.filter((_, i) => i % 6 === 0).map(b => ({ ...b, ph: R() * TAU }));
+    if (lights && lights.c) lights.c.width = 0;
+    return { c: cv, x0, y0, w: x1 - x0, h: y1 - y0, tw, length: bulbs.length };
+  }
+
+  // ---------------------------------------------------------------- the cat
+  // Some nights (about one in three, the same for everyone) a cat sits on a rooftop, tail swishing, eyes catching the neon.
+  // Tap it and it springs away over the roofs; it comes back a few minutes later.
+  function catNight(L) { const p = L.local || {}; const n = ((p.y * 372 + p.m * 31 + p.d) * 2654435761) >>> 0; return n % 3 === 0; }
+  function catStep(c, s, g, night) {
+    const { L, t, dt, motion } = s;
+    const want = (s.force.has('cat') || (catNight(L) && night > 0.35)) && performance.now() > catGone;
+    if (!want) { if (cat && !cat.hop) cat = null; if (!cat) return; }
+    if (!cat) {
+      const R = rng(((L.local && L.local.d) || 1) * 131 + 7);
+      const spots = g.roofs.filter(r => r.w > 28 && g.top + r.y > HZ * 0.48 && g.top + r.y < HZ - 26 && ((r.x - g.margin > W * 0.06 && r.x - g.margin + r.w < W * 0.42) || (r.x - g.margin > W * 0.58 && r.x - g.margin + r.w < W * 0.94)));
+      if (!spots.length) return;
+      const r = spots[Math.floor(R() * spots.length)];
+      cat = { r, u: 0.2 + R() * 0.6, face: r.x - g.margin < W / 2 ? 1 : -1, blink: 0, look: 0 };
+    }
+    const sz = Math.max(11, Math.min(18, W * 0.034));
+    let x = g.ox + cat.r.x + cat.r.w * cat.u, y = g.oy + cat.r.y + 0.5, a = 1;
+    if (cat.hop) {
+      cat.hop.k += dt / 900;
+      const k = Math.min(1, cat.hop.k);
+      x += cat.face * -k * sz * 5; y += -Math.sin(k * Math.PI) * sz * 2.2 + k * k * sz * 1.5; a = 1 - k * k;
+      if (cat.hop.k >= 1) { cat = null; catGone = performance.now() + 180000; return; }
+    }
+    cat.at = { x, y, s: sz };
+    // eyes: a slow blink every few seconds; brighter just after a tap
+    const bl = (t % 5.3) < 0.14 ? 0 : 1;
+    c.globalAlpha = a;
+    drawCat(c, x, y, sz, motion ? t : 0, cat.face, bl * (0.5 + 0.5 * night), !!cat.hop);
+    c.globalAlpha = 1;
+  }
+  function drawCat(c, x, y, s, t, face, eyes, startled) {
+    c.save(); c.translate(x, y); c.scale(face * s / 20, s / 20);
+    c.shadowColor = 'rgba(255,120,210,0.55)'; c.shadowBlur = 5;
+    c.fillStyle = '#05040a';
+    // the body, sitting: haunch, back, neck, head with two ears, chest down to the paws
+    c.beginPath();
+    c.moveTo(-7, 0);
+    c.bezierCurveTo(-9.5, -5, -8, -11, -3.5, -12.6);
+    c.bezierCurveTo(-0.5, -13.6, 1.4, -13, 2.6, -12.2);
+    c.bezierCurveTo(1.4, -14.8, 1.9, -17.4, 3.2, -18.3);
+    c.lineTo(3.3, -21.4); c.lineTo(5.2, -19.1);
+    c.quadraticCurveTo(6.4, -19.4, 7.6, -19.1);
+    c.lineTo(9.5, -21.4); c.lineTo(9.6, -18.2);
+    c.bezierCurveTo(11, -16.8, 10.9, -14, 9, -12.8);
+    c.bezierCurveTo(8.2, -11, 7, -8, 6.6, -4);
+    c.lineTo(7.2, 0); c.closePath();
+    c.fill();
+    // the tail curls along the roof and swishes
+    const sw = Math.sin(t * 1.5) * 2.6 + Math.sin(t * 0.37) * 1.4;
+    c.shadowBlur = 4;
+    c.strokeStyle = '#05040a'; c.lineWidth = 2.1; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(-6.5, -1); c.bezierCurveTo(-12, -0.5, -14 + sw * 0.4, -4, -12.5 + sw, -9 + Math.abs(sw) * 0.4); c.stroke();
+    c.shadowBlur = 0;
+    // a whisker of rim light along the back
+    c.strokeStyle = 'rgba(255,150,220,0.35)'; c.lineWidth = 0.6;
+    c.beginPath(); c.moveTo(-8.6, -6); c.bezierCurveTo(-7.6, -10.6, -5, -12.4, -2.4, -12.9); c.stroke();
+    // the eyes
+    if (eyes > 0.05) {
+      c.globalCompositeOperation = 'lighter';
+      const ec = startled ? [255, 255, 160] : [190, 255, 110];
+      for (const ex of [5.4, 8]) { c.globalAlpha *= 1; c.fillStyle = rgba(ec, eyes); c.beginPath(); c.ellipse(ex, -16, 0.9, startled ? 0.9 : 0.55, 0, 0, TAU); c.fill(); }
+      c.globalCompositeOperation = 'source-over';
+    }
+    c.restore();
+  }
+
+  // ---------------------------------------------------------------- the UFO
+  // On clear nights, every 8–18 minutes: a polished saucer glides in, hovers over a rooftop, lowers a soft beam (things
+  // drift up it), then zips away with afterimages. Tap it and it leaves at once.
+  const saucer = () => sprite('ufo', 360, 180, (x) => {
+    x.scale(3, 3); // a 120 × 60 box; the hull's centre is (60, 33)
+    let g = x.createLinearGradient(0, 33, 0, 47); g.addColorStop(0, '#47506a'); g.addColorStop(1, '#10131d');
+    x.fillStyle = g; x.beginPath(); x.ellipse(60, 38.5, 30, 8.2, 0, 0, TAU); x.fill();
+    g = x.createLinearGradient(0, 21, 0, 45);
+    g.addColorStop(0, '#fbfcff'); g.addColorStop(0.32, '#c4cbdc'); g.addColorStop(0.55, '#7a839c'); g.addColorStop(0.8, '#3a4156'); g.addColorStop(1, '#1b1f2c');
+    x.fillStyle = g; x.beginPath(); x.ellipse(60, 33, 52, 11, 0, 0, TAU); x.fill();
+    // brushed rings
+    x.strokeStyle = 'rgba(255,255,255,0.5)'; x.lineWidth = 0.6; x.beginPath(); x.ellipse(60, 31.6, 49, 9, 0, Math.PI * 1.04, Math.PI * 1.96); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,0.18)'; x.lineWidth = 0.5; x.beginPath(); x.ellipse(60, 30.4, 40, 6.6, 0, Math.PI * 1.06, Math.PI * 1.94); x.stroke();
+    x.strokeStyle = 'rgba(12,14,24,0.7)'; x.lineWidth = 0.9; x.beginPath(); x.ellipse(60, 34.6, 51.4, 9.2, 0, 0.04, Math.PI - 0.04); x.stroke();
+    // a specular sweep across the hull
+    const sp = x.createRadialGradient(38, 27, 0, 38, 27, 26); sp.addColorStop(0, 'rgba(255,255,255,0.8)'); sp.addColorStop(0.5, 'rgba(255,255,255,0.18)'); sp.addColorStop(1, 'rgba(255,255,255,0)');
+    x.save(); x.beginPath(); x.ellipse(60, 33, 52, 11, 0, 0, TAU); x.clip(); x.fillStyle = sp; x.fillRect(8, 18, 70, 24);
+    // the city's magenta caught on the lower rim
+    const rim = x.createLinearGradient(0, 38, 0, 44); rim.addColorStop(0, 'rgba(255,90,190,0)'); rim.addColorStop(1, 'rgba(255,90,190,0.45)');
+    x.fillStyle = rim; x.fillRect(8, 36, 104, 10); x.restore();
+    // the dome: tinted glass, a small pilot inside, a highlight
+    x.save(); x.beginPath(); x.ellipse(60, 25.5, 19, 15.5, 0, Math.PI, 0); x.closePath(); x.clip();
+    g = x.createRadialGradient(55, 15, 1, 60, 25, 21); g.addColorStop(0, 'rgba(215,252,255,0.92)'); g.addColorStop(0.5, 'rgba(100,200,235,0.62)'); g.addColorStop(1, 'rgba(26,62,120,0.85)');
+    x.fillStyle = g; x.fillRect(38, 8, 44, 19);
+    x.fillStyle = 'rgba(14,34,38,0.9)'; x.beginPath(); x.ellipse(61.5, 18.6, 5.2, 6.2, 0, 0, TAU); x.fill(); x.fillRect(55.5, 22, 12, 5);
+    x.fillStyle = 'rgba(170,255,210,1)'; x.beginPath(); x.ellipse(59.6, 18.2, 1.4, 0.75, -0.35, 0, TAU); x.fill(); x.beginPath(); x.ellipse(63.5, 18.2, 1.4, 0.75, 0.35, 0, TAU); x.fill();
+    x.strokeStyle = 'rgba(255,255,255,0.85)'; x.lineWidth = 1.2; x.lineCap = 'round'; x.beginPath(); x.arc(56, 23, 11.5, Math.PI * 1.13, Math.PI * 1.42); x.stroke();
+    x.restore();
+    x.strokeStyle = 'rgba(225,245,255,0.55)'; x.lineWidth = 0.6; x.beginPath(); x.ellipse(60, 25.5, 19, 15.5, 0, Math.PI, 0); x.stroke();
+  });
+  function ufoStep(c, s, sec) {
+    const { L, t, motion } = s;
+    const dark = L.w.night + L.w.late;
+    if (!ufo && motion && s.mid && (s.force.has('ufo') && !s.ufoDone || (dark > 0.5 && !L.rain && (nextUfo -= sec) <= 0))) {
+      s.ufoDone = true; nextUfo = 480 + Math.random() * 600;
+      const g = s.mid;
+      const roofs = g.rects.filter(r => r.x - g.margin + r.w / 2 > W * 0.3 && r.x - g.margin + r.w / 2 < W * 0.7 && g.top + r.y > HZ * 0.45 && g.top + r.y < HZ - 20);
+      const r = roofs.length ? roofs[Math.floor(Math.random() * roofs.length)] : null;
+      const sw = Math.max(56, Math.min(104, W * 0.16));
+      const ty = r ? g.top + r.y : HZ * 0.82;
+      const hx = r ? r.x - g.margin + r.w / 2 : W * 0.5;
+      ufo = { st: 'in', k: 0, dir: Math.random() < 0.5 ? 1 : -1, hx, hy: Math.max(sw * 0.6 + 20, ty - Math.max(70, sw * 1.15)), ty, sw, beam: 0, ghosts: [], flash: 0 };
+    }
+    if (!ufo) { if (ufoBits.length) ufoBits = []; return; }
+    const u = ufo;
+    let x, y, tilt = 0, scale = 1;
+    if (u.st === 'in') {
+      u.k += sec / 3.4;
+      const k = Math.min(1, u.k), e = 1 - Math.pow(1 - k, 3);
+      x = u.hx + u.dir * -(W * 0.75) * (1 - e); y = u.hy - Math.sin(e * Math.PI) * 26 - (1 - e) * 60;
+      tilt = u.dir * 0.22 * (1 - e);
+      if (u.k >= 1) { u.st = 'hover'; u.k = 0; }
+    } else if (u.st === 'hover') {
+      u.k += sec / 8;
+      x = u.hx + Math.sin(t * 0.8) * 5; y = u.hy + Math.sin(t * 2.1) * 3; tilt = Math.sin(t * 1.3) * 0.04;
+      u.beam = Math.min(1, Math.max(0, Math.min((u.k - 0.18) / 0.08, (0.78 - u.k) / 0.08)));
+      if (u.k >= 1) { u.st = 'out'; u.k = 0; }
+    } else {
+      u.k += sec / 1.1;
+      const k = Math.min(1, u.k), e = k * k * k;
+      const sx = u.ox ?? (u.ox = u.at ? u.at.x : u.hx), sy = u.oy ?? (u.oy = u.at ? u.at.y : u.hy);
+      x = sx + u.dir * e * W * 1.3; y = sy - e * HZ * 0.9; tilt = -u.dir * 0.3 * Math.min(1, k * 3); scale = 1 - 0.65 * e;
+      u.beam = Math.max(0, u.beam - sec * 6);
+      u.ghosts.unshift({ x, y, scale, tilt }); if (u.ghosts.length > 6) u.ghosts.pop();
+      if (u.k >= 1) { ufo = null; ufoBits = []; return; }
+    }
+    u.at = { x, y };
+    const sw = u.sw * scale, sh = sw / 2;
+    // the beam: a soft cone to the rooftop, bands of light rising, motes drifting up
+    if (u.beam > 0.01) {
+      const top = y + sw * 0.1, bot = u.ty, hw0 = sw * 0.16, hw1 = sw * 0.55;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const bg = c.createLinearGradient(0, top, 0, bot); bg.addColorStop(0, `rgba(170,255,235,${0.42 * u.beam})`); bg.addColorStop(1, `rgba(150,240,255,${0.06 * u.beam})`);
+      c.fillStyle = bg; c.beginPath(); c.moveTo(x - hw0, top); c.lineTo(x + hw0, top); c.lineTo(x + hw1, bot); c.lineTo(x - hw1, bot); c.closePath(); c.fill();
+      c.clip();
+      for (let j = 0; j < 5; j++) { const yy = bot - ((t * 34 + j * (bot - top) / 5) % (bot - top)); c.globalAlpha = 0.16 * u.beam; c.fillStyle = '#c8fff0'; c.fillRect(x - hw1, yy, hw1 * 2, 1.2); }
+      c.restore();
+      c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.5 * u.beam; c.drawImage(glow([160, 255, 230]), x - hw1 * 1.3, bot - hw1 * 0.35, hw1 * 2.6, hw1 * 0.7);
+      if (motion && Math.random() < 0.6) ufoBits.push({ x: x + (Math.random() - 0.5) * hw1 * 1.4, y: bot - 2, life: 0, max: 1.4 + Math.random() });
+      ufoBits = ufoBits.filter(p => { p.life += sec; if (p.life > p.max) return false; const k = p.life / p.max; p.y -= sec * (bot - top) / p.max; p.x += (x - p.x) * sec * 1.2; c.globalAlpha = 0.9 * Math.sin(Math.PI * k) * u.beam; c.drawImage(glow([230, 255, 245]), p.x - 2.5, p.y - 2.5, 5, 5); return true; });
+      c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    }
+    // afterimages as it leaves
+    if (u.ghosts.length > 1) for (let i = 1; i < u.ghosts.length; i++) { const gh = u.ghosts[i]; c.globalAlpha = 0.22 * (1 - i / u.ghosts.length); drawSaucer(c, gh.x, gh.y, u.sw * gh.scale, gh.tilt, t, 0); }
+    c.globalAlpha = 1;
+    // the light under it, then the saucer, then its chase lights
+    c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = 0.45 + 0.25 * Math.sin(t * 3); c.drawImage(glow([120, 240, 255]), x - sw * 0.45, y + sh * 0.05, sw * 0.9, sh * 0.6);
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    drawSaucer(c, x, y, sw, tilt, t, 1);
+    if (u.flash > 0) { u.flash = Math.max(0, u.flash - sec * 2.5); c.globalCompositeOperation = 'lighter'; c.globalAlpha = u.flash * 0.8; c.drawImage(glow([235, 250, 255]), x - sw, y - sw * 0.7, sw * 2, sw * 1.4); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
+  }
+  function drawSaucer(c, x, y, sw, tilt, t, lightsOn) {
+    const sh = sw / 2;
+    c.save(); c.translate(x, y); c.rotate(tilt);
+    c.drawImage(saucer(), -sw / 2, -sh * 0.55, sw, sh);
+    if (lightsOn) {
+      // chase lights around the rim: only the ones on the near side show
+      const COLS = [[90, 245, 255], [255, 90, 210], [255, 220, 90], [130, 255, 150]];
+      c.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 12; i++) {
+        const a = i / 12 * TAU + t * 1.6;
+        const sn = Math.sin(a); if (sn < -0.05) continue;
+        const lx = Math.cos(a) * sw * 0.41, ly = sh * 0.02 + sn * sh * 0.13;
+        const b = 0.35 + 0.65 * Math.max(0, Math.sin(t * 7 - i * 0.9));
+        const col = COLS[i % COLS.length];
+        c.globalAlpha = b * (0.5 + 0.5 * sn); c.drawImage(glow(col), lx - 5, ly - 5, 10, 10);
+        c.globalAlpha = Math.min(1, b + 0.2); c.fillStyle = rgba(col.map(v => Math.min(255, v + 80)), 1); c.beginPath(); c.arc(lx, ly, Math.max(0.9, sw * 0.012), 0, TAU); c.fill();
+      }
+      c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    }
+    c.restore();
   }
 
   function drawBat(c, x, y, s, flap, dir, col = [190, 90, 255]) {

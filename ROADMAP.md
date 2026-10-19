@@ -291,6 +291,9 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
       (Halloween cobwebs, bats and a neon pumpkin; Christmas lights, a Santa hat, snow and a rare sleigh; NYE countdown and fireworks;
       Valentine's, St. Patrick's, Easter, Thanksgiving, the Fourth); meteor showers on their peaks; rare aurora nights; ALWAYS NIGHT
 - [x] A new tagline: YOUR FRIENDS ARE ALREADY INSIDE.
+- [x] The title redesigned around the city: no game row (tappable billboards → HOW TO PLAY, a GAMES sheet, an auto-counted
+      explainer line), a slim HOST / JOIN dock, the screen fades to just the sign and the city after 15 s; easter eggs (windows,
+      the sign, the moon, a rooftop cat, a UFO, a satellite train); Christmas lights as lit rooflines; THE BOARD plays menu3
 
 ### ✅ Stage 14 — RUMRUNNER (Prohibition trading, the city diorama) (Oct 2026) — `docs/rum.md`
 - [x] Rules first: six goods × six districts with tendencies, seeded daily prices, news spikes / crashes, rumours (70 % true),

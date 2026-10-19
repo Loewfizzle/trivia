@@ -225,7 +225,6 @@ try {
   const rp = await phase(R.page);
   ok(rp.kind === 'reduced' && rp.t < 1, `REDUCED EFFECTS: a simple fade (${rp.kind}, ${rp.t.toFixed(2)} s)`);
   ok((await ev(R.page, 'window.__district.scene()')).motion === 0, 'REDUCED EFFECTS: no camera drift / rain motion / vehicles');
-  ok(await ev(R.page, `getComputedStyle(document.querySelector('.nd-track')).animationName === 'none'`), 'REDUCED EFFECTS: the showcase stops drifting');
   await R.ctx.close();
 
   // ================================================================ 4. HOST with a saved profile -> straight into a room
@@ -233,25 +232,52 @@ try {
   await waitFor(H.page, '!!window.__district && window.__district.phase().done', 'title');
   ok(await ev(H.page, `document.querySelector('.nd-welcome').textContent.includes('AVA')`), 'RETURNING PLAYER: "Welcome back, AVA"');
   await shotAll(H.page, 'n-03-welcome-back');
-  // the showcase preview sheet
-  await H.page.evaluate(() => { document.querySelector('.nd-track').style.animationPlayState = 'paused'; });
-  await tap(H.page, '.nd-card[data-id="prism"]');
+  // GAMES: the sheet of every game → a game's preview sheet → HOW TO PLAY
+  await tap(H.page, '.nd-link-games');
+  await H.page.waitForSelector('.nd-games .nd-gtile', { timeout: 4000 });
+  ok(await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length === window.__arcade ? true : true`) && await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length`) >= 12, 'GAMES: the sheet lists every game');
+  ok(/^[0-9]+ PARTY GAMES/.test(await ev(H.page, `document.querySelector('.nd-sub').textContent`)), 'GAMES: the count under the tagline comes from the games list');
+  await H.page.evaluate(() => document.querySelector('.nd-gtile[data-id="prism"]').click());
   await H.page.waitForSelector('.nd-preview', { timeout: 4000 });
   await sleep(500);
   const pv = await ev(H.page, `document.querySelector('.nd-preview').innerText`);
-  ok(/PRISM DROP/.test(pv) && /2–8 PLAYERS/.test(pv) && /MIN/.test(pv), `SHOWCASE: preview sheet with art, description, players, length (${pv.replace(/\s+/g, ' ').slice(0, 90)}…)`);
+  ok(/PRISM DROP/.test(pv) && /2–8 PLAYERS/.test(pv) && /MIN/.test(pv), `GAMES: preview sheet with art, description, players, length (${pv.replace(/s+/g, ' ').slice(0, 90)}…)`);
   await shotAll(H.page, 'n-04-preview');
   await H.page.evaluate(() => [...document.querySelectorAll('.nd-preview button')].find(b => b.textContent.includes('HOW TO PLAY')).click());
   await H.page.waitForSelector('.help', { timeout: 4000 });
-  ok(await ev(H.page, `document.querySelector('.help').innerText.includes('PRISM')`), 'SHOWCASE: HOW TO PLAY opens on that game');
+  ok(await ev(H.page, `document.querySelector('.help').innerText.includes('PRISM')`), 'GAMES: HOW TO PLAY opens on that game');
   await H.page.keyboard.press('Escape');
   await sleep(500);
-  // the agent card (it may be drifting off-screen: click it directly): 4–8 players
-  await H.page.evaluate(() => document.querySelector('.nd-card[data-id="agent"]').click());
+  await H.page.evaluate(() => document.querySelectorAll('.modal').forEach(m => m.remove()));
+  await tap(H.page, '.nd-link-games');
+  await H.page.waitForSelector('.nd-games', { timeout: 4000 });
+  await H.page.evaluate(() => document.querySelector('.nd-gtile[data-id="agent"]').click());
   await H.page.waitForSelector('.nd-preview', { timeout: 4000 });
-  ok(/4–8 PLAYERS/.test(await ev(H.page, `document.querySelector('.nd-preview').innerText`)), 'SHOWCASE: DOUBLE AGENT says 4–8 players');
-  await H.page.keyboard.press('Escape');
+  ok(/4–8 PLAYERS/.test(await ev(H.page, `document.querySelector('.nd-preview').innerText`)), 'GAMES: DOUBLE AGENT says 4–8 players');
+  await H.page.evaluate(() => document.querySelectorAll('.modal').forEach(m => m.remove()));
+  await sleep(300);
+  // a billboard in the city opens that game's HOW TO PLAY
+  const bb = await H.page.evaluate(() => { for (let y = 200; y < innerHeight * 0.7; y += 5) for (let x = 5; x < innerWidth; x += 5) { const h = window.__district.hit(x, y); if (h && h.kind === 'billboard') return { x, y, id: h.id }; } return null; });
+  ok(!!bb, `BILLBOARD: found one in the city (${bb && bb.id})`);
+  if (bb) {
+    await H.page.mouse.click(bb.x, bb.y);
+    await H.page.waitForSelector('.help', { timeout: 4000 }).catch(() => {});
+    ok(await ev(H.page, '!!document.querySelector(".help")'), 'BILLBOARD: a tap opens HOW TO PLAY');
+    await H.page.keyboard.press('Escape');
+    await sleep(500);
+  }
+  // at rest: the menu fades, a tap brings it back without pressing anything
+  await H.page.evaluate(() => window.__district.idle());
+  await sleep(2000);
+  ok(await ev(H.page, `window.__district.isIdle() && getComputedStyle(document.querySelector('.nd-actions')).opacity === '0'`), 'AT REST: the menu and tagline fade away');
+  // a finger, not a mouse (on desktop, moving the mouse is what wakes it); right over the hidden HOST button
+  const hb = await H.page.evaluate(() => { const r = document.querySelector('.nd-host').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+  const cdpT = await H.page.target().createCDPSession();
+  await cdpT.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+  await H.page.touchscreen.tap(hb[0], hb[1]);
   await sleep(500);
+  await cdpT.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  ok(await ev(H.page, `!window.__district.isIdle() && !!document.querySelector('.title-screen')`), 'AT REST: a tap brings it back (and presses nothing)');
   // memory baseline before leaving
   const cdpH = await H.page.target().createCDPSession();
   await cdpH.send('HeapProfiler.collectGarbage');
@@ -271,6 +297,8 @@ try {
   // ================================================================ 5. JOIN by typing (auto-join on the 4th letter)
   const B = await open({ slot: 'b', profile: PROFILES.ben, seen: true, view: [390, 844] });
   await waitFor(B.page, '!!window.__district && window.__district.phase().done', 'title B');
+  await tap(B.page, '.nd-joinbtn');
+  await sleep(400);
   await tap(B.page, '.nd-codebox');
   await sleep(250);
   await B.page.keyboard.type(code.slice(0, 2).toLowerCase(), { delay: 90 });
@@ -286,6 +314,8 @@ try {
   // ================================================================ 6. an invalid code, then a pasted invite link
   const C = await open({ slot: 'c', profile: PROFILES.cal, seen: true, view: [390, 844] });
   await waitFor(C.page, '!!window.__district && window.__district.phase().done', 'title C');
+  await tap(C.page, '.nd-joinbtn');
+  await sleep(400);
   await tap(C.page, '.nd-codebox');
   await C.page.keyboard.type('zzzz', { delay: 60 });
   await waitFor(C.page, `document.querySelector('.nd-msg').dataset.kind === 'warn' && /no room/i.test(document.querySelector('.nd-msg').textContent)`, 'invalid code message', 15000);

@@ -60,7 +60,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   const fx = createFx();
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight });
   let P = paletteFor(LK);
-  let skyKey = '', lookAt = 0, nearRoofs = [];
+  let skyKey = '', lookAt = 0, nearRoofs = [], pokes = 0;
   const nightness = () => P.dark;
   const frames = [];
   let cool = 0;
@@ -119,7 +119,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
         // billboards: on mid / near buildings big enough, away from the centre column
         const side = cx < W / 2 ? 'l' : 'r';
         if (withBillboards && L.billboards && billboards.filter(b => b.li === li).length < L.billboards && !billboards.some(b => b.li === li && b.side === side) && bw > 46 && bh > HZ * 0.14 && Math.abs(cx - W / 2) > W * 0.16 && cx > 30 && cx < W - 30 && rand() < 0.85) {
-          const bbw = Math.min(bw * 0.84, 62 * k + li * 16), bbh = bbw * 0.62;
+          const bbw = Math.min(bw * 0.9, 76 * k + li * 22), bbh = bbw * 0.62;
           billboards.push({ li, side, x: x + (bw - bbw) / 2, y: by + Math.min(bh * (0.1 + rand() * 0.14), bh - bbh - 8), w: bbw, h: bbh, idx: billboards.length * 3, phase: rand() * 6, on: rand() * 0.35 });
         }
         x += bw + (L.gap[0] * 0.4) + rand() * 6;
@@ -210,7 +210,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   // each layer's look right now: the silhouettes tinted by the hour (atmospheric perspective by day) and frosted roofs in
   // winter, the windows lit right now (one by one as the hour changes), the trims and rooftop signs after dark
   function compose(L, winOn) {
-    const k = `${skyKey}|${Math.round(winOn * 60)}`;
+    const k = `${skyKey}|${Math.round(winOn * 60)}|${pokes}`;
     if (L.compKey === k && L.comp) return L.comp;
     if (!L.comp || L.comp.width !== L.dark.width || L.comp.height !== L.dark.height) { if (L.comp) L.comp.width = 0; L.comp = mk(L.dark.width, L.dark.height); }
     const x = L.comp.getContext('2d');
@@ -231,7 +231,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
     const warm = P.winWarm || 0;
     for (const w of L.windows) {
-      if (w.order > winOn) continue;
+      if ((w.order > winOn) !== !!w.flip) continue;
       x.fillStyle = warm > 0.05 && !w.neon ? mixHex(w.col, '#ffc27a', warm * 0.6, w.a) : rgba(w.col, w.a);
       x.fillRect(w.x, w.y, w.w, w.h);
     }
@@ -378,7 +378,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
         x.fillStyle = 'rgba(0,0,0,0.28)';
         for (let yy = 0; yy < th; yy += 3) x.fillRect(0, yy, tw, 1);
         x.strokeStyle = rgba(acc, 0.8); x.lineWidth = 2; x.strokeRect(1, 1, tw - 2, th - 2);
-        textures[i] = { c, acc };
+        textures[i] = { c, acc, id: g.id };
       };
       img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`;
     }
@@ -463,6 +463,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     const winNow = P.win;
     layers.forEach((L, li) => {
       const ox = -L.margin + cam.x * L.d;
+      L.ox = ox; L.oy = L.top + cam.y * L.d;
       const oy = L.top + cam.y * L.d;
       if (S.wave >= 1) c.drawImage(compose(L, winNow), ox, oy, L.lw, L.lh);
       else {
@@ -497,7 +498,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       // billboards on this layer (dimmer in daylight)
       for (const b of billboards) if (b.li === li) drawBillboard(c, b, ox, oy, t, 0.55 + 0.45 * night);
       // the near layer: string lights, window glyphs, holiday neon signs
-      if (li === layers.length - 2) fx.mid(c, fs, { roofs: L.rects.filter(r => r.h > HZ * 0.06), windows: L.windows.filter(w => w.order <= Math.max(0.35, winNow) && w.h >= 2.6), ox, oy });
+      if (li === layers.length - 2) {
+        fs.mid = { rects: L.rects, ox, oy, top: L.top, margin: L.margin };
+        fx.mid(c, fs, { roofs: L.rects.filter(r => r.h > HZ * 0.06), windows: L.windows.filter(w => w.order <= Math.max(0.35, winNow) && w.h >= 2.6), ox, oy, top: L.top, margin: L.margin });
+      }
     });
     // a soft dimming behind the sign + tagline so they always read cleanly over the windows (and the bright day sky)
     if (S.logoRect) {
@@ -594,6 +598,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
 
   function drawBillboard(c, b, ox, oy, t, day = 1) {
     const x = ox + b.x, y = oy + b.y;
+    b.sx = x; b.sy = y;
     const on = clamp01((S.bill - b.on) / 0.4);
     if (on <= 0) return; // before it boots the billboard is just part of the dark facade
     // the panel's frame fades in with it
@@ -604,6 +609,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     const slot = Math.floor((t + b.phase) / 7);
     const k = ((t + b.phase) % 7) / 7;
     const tx = textures[(b.idx + slot) % n];
+    b.gid = tx && on > 0.5 ? tx.id : null;
     // boot / change: a short glitch (scan bars) instead of a hard cut
     const changing = k > 0.965 || k < 0.03;
     const booting = on < 1;
@@ -702,6 +708,25 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     set(v) { Object.assign(S, v); },
     /** the sky right now (core/sky.js#look) and whether the sign should be lit at this hour */
     look: () => LK,
+    /** a tap on the city: the UFO / cat / moon (fx), a billboard (→ { kind: 'billboard', id }), a window (turns its light
+     *  on or off). Returns { kind, id? } or null. */
+    hit(x, y) {
+      const f = fx.hit(x, y);
+      if (f) return { kind: f };
+      for (const b of billboards) if (b.gid && x >= b.sx - 8 && x <= b.sx + b.w + 8 && y >= b.sy - 8 && y <= b.sy + b.h + 8) return { kind: 'billboard', id: b.gid };
+      for (let li = layers.length - 1; li >= 0; li--) {
+        const L = layers[li];
+        if (L.ox == null) continue;
+        const px = x - L.ox, py = y - L.oy;
+        if (!L.rects.some(r => px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h)) continue;
+        let best = null, bd = 9;
+        for (const w of L.windows) { const d = Math.hypot(px - (w.x + w.w / 2), py - (w.y + w.h / 2)); if (d < bd) { bd = d; best = w; } }
+        if (!best) return { kind: 'building' };
+        best.flip = !best.flip; pokes++; refl = null;
+        return { kind: 'window', on: (best.order <= P.win) !== best.flip };
+      }
+      return null;
+    },
     signOn: () => P.sign > 0.5,
     refresh: () => { lookAt = 0; skyKey = ''; },
     get state() { return S; },

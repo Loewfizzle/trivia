@@ -87,13 +87,12 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
 .nd-sign.is-steady .nd-tag { opacity: 1; }
 
 /* ---- menu (eases in, staggered) ---- */
-.nd-corner, .nd-show, .nd-actions > * {
+.nd-corner, .nd-actions > * {
   opacity: 0;
   transform: translateY(16px);
   transition: opacity 0.7s ease, transform 0.8s var(--ease);
 }
-.nd.is-menu .nd-corner, .nd.is-menu .nd-show, .nd.is-menu .nd-actions > * { opacity: 1; transform: none; }
-.nd.is-menu .nd-show { transition-delay: 0s; }
+.nd.is-menu .nd-corner, .nd.is-menu .nd-actions > * { opacity: 1; transform: none; }
 .nd.is-menu .nd-actions > :nth-child(1) { transition-delay: 0.12s; }
 .nd.is-menu .nd-actions > :nth-child(2) { transition-delay: 0.18s; }
 .nd.is-menu .nd-actions > :nth-child(3) { transition-delay: 0.24s; }
@@ -103,13 +102,13 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
 .nd.seq-short .nd-sign .nd-word, .nd.seq-short .nd-sign .nd-tag { transition-delay: 0s; }
 .nd.seq-short.is-menu .nd-actions > * { transition-duration: 0.5s, 0.6s; }
 .nd.seq-instant .nd-sign, .nd.seq-reduced .nd-sign,
-.nd.seq-instant .nd-corner, .nd.seq-instant .nd-show, .nd.seq-instant .nd-actions > *,
+.nd.seq-instant .nd-corner, .nd.seq-instant .nd-actions > *,
 .nd.seq-instant .nd-word, .nd.seq-instant .nd-tag,
-.nd.is-skip .nd-sign, .nd.is-skip .nd-corner, .nd.is-skip .nd-show, .nd.is-skip .nd-actions > *, .nd.is-skip .nd-word, .nd.is-skip .nd-tag {
+.nd.is-skip .nd-sign, .nd.is-skip .nd-corner, .nd.is-skip .nd-actions > *, .nd.is-skip .nd-word, .nd.is-skip .nd-tag {
   transition-duration: 0.3s !important;
   transition-delay: 0s !important;
 }
-.nd.seq-reduced .nd-corner, .nd.seq-reduced .nd-show, .nd.seq-reduced .nd-actions > *, .nd.seq-reduced .nd-word { transform: none; transition-delay: 0s !important; }
+.nd.seq-reduced .nd-corner, .nd.seq-reduced .nd-actions > *, .nd.seq-reduced .nd-word { transform: none; transition-delay: 0s !important; }
 
 /* ---- the gate ---- */
 .nd-gate {
@@ -155,59 +154,6 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
 .nd-gate-sub { font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.3em; color: rgba(210, 216, 255, 0.5); }
 @keyframes nd-breathe { 0%, 100% { opacity: 0.42; } 50% { opacity: 1; } }
 .nd.is-gated .nd-corner { opacity: 0; }
-
-/* ---- showcase: a slow drifting row of glass cards ---- */
-.nd-show {
-  position: relative;
-  margin: 0 calc(-1 * var(--gutter)) 18px;
-  padding: 8px 0 10px;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-}
-.nd-track {
-  display: flex;
-  gap: 12px;
-  width: max-content;
-  padding-right: 12px; /* the two halves must be equal for a seamless loop */
-  animation: nd-drift 80s linear infinite;
-}
-.nd-show:hover .nd-track, .nd-show:active .nd-track { animation-play-state: paused; }
-@keyframes nd-drift { to { transform: translateX(-50%); } }
-.nd-card {
-  --acc: #d6f0ff;
-  position: relative;
-  flex: 0 0 auto;
-  width: 92px;
-  height: 112px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 10px 6px 8px;
-  color: #eef1ff;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(8, 9, 26, 0.76);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.35);
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.2s var(--ease), border-color 0.2s;
-}
-.nd-card::after { /* a hairline of the game's colour along the bottom */
-  content: '';
-  position: absolute;
-  left: 18%;
-  right: 18%;
-  bottom: -1px;
-  height: 1.5px;
-  background: linear-gradient(90deg, transparent, var(--acc), transparent);
-  opacity: 0.85;
-}
-.nd-card:active { transform: scale(0.95); }
-.nd-card .gc-art, .nd-card .gc-glyph { width: 56px; height: 56px; border: 0; border-radius: 10px; overflow: hidden; background: transparent; }
-.nd-card .gc-art svg { width: 100%; height: 100%; }
-.nd-card-name { min-height: 2.4em; display: flex; align-items: center; font-family: var(--font-display); font-weight: 700; font-size: 8.5px; letter-spacing: 0.1em; line-height: 1.2; text-align: center; }
 
 /* ---- actions (the thumb zone) ---- */
 .nd-actions {
@@ -426,9 +372,6 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
   .nd-sign { margin-top: 26px; }
   .nd-logo-wrap { width: min(70vw, 270px); }
   .nd-tag { margin-top: 8px; }
-  .nd-card { width: 80px; height: 96px; }
-  .nd-card .gc-art { width: 46px; height: 46px; }
-  .nd-show { margin-bottom: 10px; }
   .nd-host { height: 54px; }
   .nd-box, .nd-go { height: 50px; }
 }
@@ -440,21 +383,13 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
   .nd-logo-wrap { width: min(40vw, 470px); }
   .nd-word { font-size: 21px; }
   .nd-tag { font-size: 11px; margin-top: 18px; }
-  .nd-show { margin: 0 auto 24px; width: min(100%, 980px); }
-  .nd-card { width: 112px; height: 132px; }
-  .nd-card .gc-art { width: 68px; height: 68px; }
-  .nd-card-name { font-size: 9.5px; }
   .nd-gate { padding-bottom: 22vh; }
 }
 
 /* reduced effects / motion: no drift, no sheen, no breathing — a plain, still menu */
 @media (prefers-reduced-motion: reduce) {
-  .nd-track { animation: none; }
-  .nd-show { overflow-x: auto; }
   .nd-host-sheen::before, .nd-gate-txt { animation: none; }
 }
-body.reduced-fx .nd-track { animation: none; }
-body.reduced-fx .nd-show { overflow-x: auto; }
 body.reduced-fx .nd-host-sheen::before, body.reduced-fx .nd-gate-txt { animation: none; }
 
 /* SPEAKEASY: framed by Art Deco rules ending in a diamond — the bar's era, in the district's light */
@@ -508,3 +443,119 @@ body.reduced-fx .nd-host-sheen::before, body.reduced-fx .nd-gate-txt { animation
 .sg-july4 .ndl-2 { --g: #e8eeff; --b: #ffffff; --c: #ffffff; }
 .sg-july4 .ndl-3 { --g: #2e6bff; --b: #5a8cff; --c: #f0f5ff; }
 .nd-tag.nd-count { font-family: var(--font-num); font-size: 15px; letter-spacing: 0.24em; color: #fff; text-shadow: 0 0 10px #ff4fd8, 0 0 22px #ff4fd8; }
+
+/* ==========================================================================
+   The title, Nov 2026: the city is the showcase. The explainer line under the tagline, a slim dock (HOST / JOIN as
+   clear glass pills; JOIN turns into the code boxes), quiet links, and the screen at rest (.is-idle after 15 s).
+   ========================================================================== */
+.nd-sub {
+  margin-top: 9px;
+  padding-left: 0.3em;
+  font: 700 9.5px/1.3 var(--font-mono);
+  letter-spacing: 0.3em;
+  color: rgba(226, 230, 255, 0.7);
+  text-shadow: 0 0 10px rgba(3, 3, 12, 0.95), 0 0 2px rgba(3, 3, 12, 0.9);
+  opacity: 0;
+  transition: opacity 0.9s ease 0.7s;
+}
+.nd-sign.is-steady .nd-sub, .nd-sign.is-day .nd-sub { opacity: 1; }
+.nd.seq-instant .nd-sub, .nd.is-skip .nd-sub, .nd.seq-short .nd-sub { transition-delay: 0s; }
+
+.nd-actions { gap: 10px; max-width: 380px; transition: opacity 0.45s ease; }
+.nd-door { position: relative; height: 52px; }
+.nd-dock, .nd-join { position: absolute; inset: 0; transition: opacity 0.3s ease, transform 0.35s var(--ease); }
+.nd-dock { display: grid; grid-template-columns: 1.3fr 1fr; gap: 10px; }
+.nd-join { display: grid; grid-template-columns: 44px 1fr 48px; align-items: center; gap: 8px; opacity: 0; transform: translateY(8px); pointer-events: none; }
+.nd-door.is-join .nd-dock { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+.nd-door.is-join .nd-join { opacity: 1; transform: none; pointer-events: auto; }
+
+/* HOST: clear glass with the neon's light at its edge; JOIN: the same glass, no glow */
+.nd-host, .nd-joinbtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 52px;
+  width: 100%;
+  overflow: hidden;
+  color: #fff;
+  border-radius: 999px;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-backdrop-filter: blur(5px) saturate(140%);
+  backdrop-filter: blur(5px) saturate(140%);
+  transition: transform 0.15s var(--ease), box-shadow 0.3s, border-color 0.3s;
+}
+.nd-host {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 55%, rgba(255, 110, 200, 0.1)), rgba(12, 8, 26, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 1px rgba(255, 80, 180, 0.22), 0 8px 30px rgba(255, 50, 160, 0.24);
+}
+.nd-joinbtn {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.02)), rgba(10, 10, 26, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+.nd-host:active, .nd-joinbtn:active { transform: scale(0.97); }
+.nd-host-label, .nd-joinbtn-l { position: relative; padding-left: 0.34em; font: 900 14px/1 var(--font-display); letter-spacing: 0.34em; }
+.nd-host-label { text-shadow: 0 0 14px rgba(255, 110, 200, 0.8); }
+.nd-joinbtn-l { color: rgba(240, 243, 255, 0.92); }
+.nd-host.is-quiet { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3); }
+.nd-join .nd-box, .nd-join .nd-go { height: 52px; }
+.nd-join .nd-go { width: 48px; }
+.nd-join-x {
+  width: 44px; height: 44px; display: grid; place-items: center; font-size: 26px; line-height: 1; color: rgba(235, 240, 255, 0.8);
+  background: rgba(10, 10, 26, 0.3); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 50%;
+}
+
+/* the quiet links */
+.nd-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 0 -8px; }
+.nd-link {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 11px;
+  font: 700 9px/1 var(--font-mono); letter-spacing: 0.14em; color: rgba(236, 240, 255, 0.86);
+  background: rgba(8, 8, 22, 0.3); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 999px;
+  -webkit-tap-highlight-color: transparent; transition: transform 0.15s var(--ease), border-color 0.2s;
+}
+.nd-link:active { transform: scale(0.96); }
+.nd-link .nd-board-mark { width: 16px; height: 16px; filter: drop-shadow(0 0 4px rgba(242, 200, 105, 0.6)); }
+.nd-link-board { color: #ffe9bf; border-color: rgba(255, 214, 150, 0.22); }
+.nd-links .nd-card-btn { display: inline-flex; grid-template-columns: none; height: auto; width: auto; padding: 0 11px; min-height: 40px; gap: 6px; }
+.nd-links .nd-card-btn .nd-cb-emb { grid-row: auto; }
+.nd-links .nd-cb-name { font: 700 9px/1 var(--font-mono); letter-spacing: 0.14em; color: var(--rk, #eef1ff); }
+.nd-links .nd-cb-flame { position: static; font-size: 9.5px; }
+.nd-games-mark { display: grid; grid-template-columns: 5px 5px; gap: 2px; }
+.nd-games-mark i { width: 5px; height: 5px; border-radius: 1.5px; background: #9fd8ff; box-shadow: 0 0 4px rgba(120, 200, 255, 0.7); }
+.nd-games-mark i:nth-child(2) { background: #ff7cc6; box-shadow: 0 0 4px rgba(255, 110, 200, 0.7); }
+.nd-games-mark i:nth-child(3) { background: #ffd36a; box-shadow: 0 0 4px rgba(255, 200, 90, 0.7); }
+.nd-games-mark i:nth-child(4) { background: #6cff9e; box-shadow: 0 0 4px rgba(90, 255, 150, 0.7); }
+.nd-foot { min-height: 28px; }
+
+/* the games sheet */
+.nd-games { text-align: center; }
+.nd-games-h h2 { margin: 4px 0 4px; font: 900 20px/1.1 var(--font-display); letter-spacing: 0.16em; color: #fff; }
+.nd-games-h p { margin: 0 0 14px; font: 700 10px/1.4 var(--font-mono); letter-spacing: 0.14em; color: var(--text-dim); }
+.nd-games-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-bottom: 8px; }
+.nd-gtile {
+  --acc: #d6f0ff; position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 126px; padding: 10px 6px 9px;
+  color: #eef1ff; background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015)), rgba(8, 9, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; -webkit-tap-highlight-color: transparent; transition: transform 0.15s var(--ease);
+}
+.nd-gtile::after { content: ''; position: absolute; left: 20%; right: 20%; bottom: -1px; height: 1.5px; background: linear-gradient(90deg, transparent, var(--acc), transparent); }
+.nd-gtile:active { transform: scale(0.96); }
+.nd-gtile .gc-art, .nd-gtile .gc-glyph { width: 58px; height: 58px; border: 0; border-radius: 12px; overflow: hidden; background: transparent; }
+.nd-gtile .gc-art svg { width: 100%; height: 100%; }
+.nd-gtile-n { font: 700 9px/1.2 var(--font-display); letter-spacing: 0.08em; }
+.nd-gtile-t { font: 600 8.5px/1.25 var(--font-mono); letter-spacing: 0.06em; color: var(--text-dim); }
+@media (min-width: 700px) { .nd-games-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* the screen at rest: just the sign and the city */
+.nd.is-idle .nd-actions { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
+.nd.is-idle .nd-sign .nd-tag:not(.nd-count), .nd.is-idle .nd-sign .nd-sub, .nd.is-idle .nd-corner { opacity: 0; transition: opacity 1.8s ease; }
+body.nd-on .menu-btn, body.nd-on .music-btn { transition: transform 0.12s var(--ease), opacity 0.45s ease; }
+body.nd-idle .menu-btn, body.nd-idle .music-btn { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
+
+@media (max-height: 720px) {
+  .nd-door, .nd-host, .nd-joinbtn, .nd-join .nd-box, .nd-join .nd-go { height: 48px; }
+  .nd-sub { margin-top: 6px; }
+}
+@media (min-width: 900px) and (min-height: 640px) {
+  .nd-sub { font-size: 10.5px; margin-top: 12px; }
+}

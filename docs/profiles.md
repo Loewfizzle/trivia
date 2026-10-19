@@ -85,7 +85,7 @@ REGULAR in the first evening, INSIDER after a few, LEGEND after 40+ evenings (mo
   with a light sweep and a counting rank, then the XP line filling the bar, then the **rank-up** (≈ 3 s, tap to skip): the old emblem
   dissolves into shards, a ring of light, the new emblem forges in with rays behind it, the rank name resolves letter by letter.
 - **Sounds** (`js/board/audio.js`, SFX bus): tab, rows, pb (bell triad), top10 (rising flourish), first (short brass fanfare over a
-  timpani), forge (swell → anvil strike in inharmonic partials → a bloom). THE BOARD and the profile play menu.mp3.
+  timpani), forge (swell → anvil strike in inharmonic partials → a bloom). THE BOARD plays menu3.mp3; the membership card plays menu.mp3.
 
 ## Admin (`/admin`)
 Signs in with the browser's own anonymous identity (same as the game there). `POST /api/admin` checks the caller's profile id against

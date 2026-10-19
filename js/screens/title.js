@@ -149,8 +149,8 @@ export function createTitle() {
     els.sign = h('div.nd-sign', { class: 'is-glass' },
       h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME }) }),
       h('div.nd-word', 'SPEAKEASY'),
-      h('div.nd-tag', TAGLINE));
-    els.show = buildShowcase();
+      h('div.nd-tag', TAGLINE),
+      h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     els.actions = buildActions();
     if (!scene.signOn()) els.sign.classList.add('is-day');
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },
@@ -160,10 +160,15 @@ export function createTitle() {
       h('div.nd-corner', slot !== '1' ? h('span.tag.tag-you', `TEST SLOT ${slot}`) : null),
       els.sign,
       h('div.nd-city'),
-      els.show,
       els.actions,
       els.gate);
     el.addEventListener('pointerdown', onAnyTap, { capture: true });
+    els.root = el;
+    window.addEventListener('pointerdown', onWake, { capture: true });
+    window.addEventListener('click', onWakeClick, { capture: true });
+    window.addEventListener('keydown', onWake, { capture: true });
+    window.addEventListener('pointermove', onMouse, { passive: true });
+    window.addEventListener('click', onCityTap);
     setupHook();
 
     // local test runs (?emu) skip the intro unless they ask for it (&intro=1) — every other E2E just needs the menu
@@ -295,6 +300,7 @@ export function createTitle() {
     trackLogo();
     scheduleFlicker();
     watchSky();
+    armIdle();
   }
 
   // LIVING CITY: the sign follows the hour (off at dawn like closing time, back on at dusk tube by tube) and wears the
@@ -365,15 +371,77 @@ export function createTitle() {
     }, 20000 + Math.random() * 20000);
   }
 
-  // ------------------------------------------------------------------ showcase
-  function buildShowcase() {
-    const card = (g, dup) => h('button.nd-card', {
-      type: 'button', 'aria-label': `${g.name} — preview`, tabindex: dup ? '-1' : null, 'aria-hidden': dup ? 'true' : null,
-      dataset: { theme: g.theme, id: g.id }, style: { '--acc': ACC[g.id] || '#d6f0ff' }, onclick: () => preview(g),
-    }, gameArt(g.id) || h('div.gc-glyph'), h('span.nd-card-name', g.name));
+  // ------------------------------------------------------------------ the games (a sheet; the city's billboards show them too)
+  function openGames() {
+    sfx('select');
     const games = GAMES.filter(g => g.playable);
-    return h('section.nd-show', { 'aria-label': 'The games' },
-      h('div.nd-track', ...games.map(g => card(g, false)), ...games.map(g => card(g, true))));
+    let sheet;
+    const close = () => { sheet.classList.add('out'); setTimeout(() => sheet.remove(), 260); };
+    sheet = h('div.modal', { onclick: e => { if (e.target === sheet) close(); } },
+      h('div.sheet.nd-games', { role: 'dialog', 'aria-label': 'The games' },
+        h('div.sheet-grip'),
+        h('div.nd-games-h', h('h2', 'THE GAMES'), h('p', `${games.length} party games · ${MIN_PLAYERS}–${MAX_PLAYERS} players · one phone each`)),
+        h('div.nd-games-grid', ...games.map(g => h('button.nd-gtile', {
+          type: 'button', dataset: { id: g.id, theme: g.theme }, style: { '--acc': ACC[g.id] || '#d6f0ff' },
+          onclick: () => { close(); preview(g); },
+        }, gameArt(g.id) || h('div.gc-glyph'), h('span.nd-gtile-n', g.name), h('span.nd-gtile-t', g.tag)))),
+        h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CLOSE')));
+    document.body.append(sheet);
+  }
+
+  // ------------------------------------------------------------------ the living city: taps, and the screen at rest
+  // a tap on the city: a billboard opens that game's HOW TO PLAY; windows switch on and off; the moon, the UFO, the
+  // cat answer (fx.js); a tap on the sign makes that tube buzz
+  function onCityTap(e) {
+    if (destroyed || !scene || !tl || !tl.done || swallowed) return;
+    if (e.target.closest('button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel')) return;
+    const x = e.clientX, y = e.clientY;
+    const r = logoRect();
+    if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
+    const hit = scene.hit(x, y);
+    if (!hit) return;
+    if (hit.kind === 'billboard') { sfx('select'); openHelp(hit.id); }
+    else if (hit.kind === 'window') sfx('tap');
+    else if (hit.kind === 'moon') sfx('shimmer');
+    else if (hit.kind === 'ufo') sfx('portal');
+    else if (hit.kind === 'cat') sfx('key');
+  }
+  function buzz(i) {
+    const l = els.sign.querySelectorAll('.ndl')[i];
+    if (!l) return;
+    const day = els.sign.classList.contains('is-day');
+    const seq = day ? [0, 70, 120, 200, 260, 380] : [0, 50, 90, 140, 200, 300];
+    // lit: the tube stutters off and back on; by day: it sparks to life for a moment and dies again
+    seq.forEach((ms, k) => setTimeout(() => { if (!destroyed) l.classList.toggle('on', day ? k % 2 === 0 && k < seq.length - 1 : k % 2 === 1 || k === seq.length - 1); }, ms));
+    neonTick();
+  }
+
+  // after 15 s without a touch the menu and the tagline fade away — just the sign and the city; any touch brings them back
+  const IDLE_MS = 15000;
+  let idleTimer = 0, swallowed = false, mouseAt = null;
+  // (local test runs don't fade on their own unless they ask with &idle=1 — a slow test step must not hide the buttons)
+  const autoIdle = !(useEmulator && !/[?&]idle(?![a-z])/.test(location.search));
+  function armIdle() { clearTimeout(idleTimer); if (!destroyed && autoIdle) idleTimer = setTimeout(goIdle, IDLE_MS); }
+  function goIdle() {
+    if (destroyed || !tl || !tl.done) return;
+    const busyNow = busy || document.querySelector('.modal, .sheet') || document.activeElement === els.code || els.door.classList.contains('is-join');
+    if (busyNow) { armIdle(); return; }
+    els.root.classList.add('is-idle');
+    document.body.classList.add('nd-idle');
+  }
+  function wake() { els.root.classList.remove('is-idle'); document.body.classList.remove('nd-idle'); }
+  function onWake(e) {
+    if (destroyed) return;
+    // the touch that wakes the screen only wakes it (it doesn't press whatever was under it)
+    if (els.root.classList.contains('is-idle') && e.type === 'pointerdown') { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
+    wake();
+    armIdle();
+  }
+  function onWakeClick(e) { if (swallowed) { e.stopPropagation(); e.preventDefault(); swallowed = false; } }
+  function onMouse(e) {
+    if (e.pointerType !== 'mouse') return;
+    if (!mouseAt) { mouseAt = [e.clientX, e.clientY]; return; }
+    if (Math.hypot(e.clientX - mouseAt[0], e.clientY - mouseAt[1]) > 24) { mouseAt = [e.clientX, e.clientY]; wake(); armIdle(); }
   }
 
   function meta(g) {
@@ -434,32 +502,42 @@ export function createTitle() {
   function buildActions() {
     els.welcome = h('div.nd-welcome');
     els.rejoin = h('div.nd-rejoin');
-    els.host = h('button.nd-host', { type: 'button', onclick: host }, h('span.nd-host-sheen'), h('span.nd-host-label', 'HOST GAME'));
+    els.host = h('button.nd-host', { type: 'button', onclick: host }, h('span.nd-host-sheen'), h('span.nd-host-label', 'HOST'));
+    els.joinBtn = h('button.nd-joinbtn', { type: 'button', onclick: () => openJoin(true, true) }, h('span.nd-joinbtn-l', 'JOIN'));
     // one real input under four boxes: native keyboard, autocapitalise, paste, iOS autofill all just work
     els.code = h('input.nd-code-in', {
       type: 'text', inputmode: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: false,
       maxLength: 24, 'aria-label': 'Room code, 4 letters', enterkeyhint: 'go',
       oninput: onCode, onpaste: onPaste, onfocus: paintCode, onblur: paintCode,
-      onkeydown: e => { if (e.key === 'Enter' && els.code.value.length === 4) join(els.code.value); },
+      onkeydown: e => { if (e.key === 'Enter' && els.code.value.length === 4) join(els.code.value); if (e.key === 'Escape') openJoin(false); },
     });
     els.boxes = [0, 1, 2, 3].map(i => h('span.nd-box', { style: { '--i': i } }));
     els.go = h('button.nd-go', { type: 'button', 'aria-label': 'Join room', onclick: () => (els.code.value.length === 4 ? join(els.code.value) : els.code.focus()) }, '›');
     els.msg = h('p.nd-msg', { role: 'status', 'aria-live': 'polite' });
-    // the third door: THE BOARD (the global leaderboards)
-    els.board = h('button.nd-board', { type: 'button', onclick: () => { sfx('select'); setState({ view: 'board' }); } },
-      h('span.nd-board-mark', { 'aria-hidden': 'true' }), h('span.nd-board-l', 'THE BOARD'), h('span.nd-board-s', 'HALL OF FAME'));
-    // YOUR CARD: the membership card, with your rank step and how far to the next
-    els.cardBtn = h('button.nd-card-btn', { type: 'button', 'aria-label': 'Your membership card', onclick: () => { sfx('select'); setState({ view: 'profile' }); } });
-    // under the code boxes, one line: a join message when there is one, otherwise "Welcome back"
+    // HOST and JOIN side by side; JOIN turns the dock into the four code boxes (× goes back)
+    els.door = h('div.nd-door',
+      h('div.nd-dock', els.host, els.joinBtn),
+      h('div.nd-join',
+        h('button.nd-join-x', { type: 'button', 'aria-label': 'Back', onclick: () => openJoin(false) }, '‹'),
+        h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
+        els.go));
+    // the quiet links: THE BOARD, YOUR CARD, THE GAMES
+    els.board = h('button.nd-link.nd-link-board', { type: 'button', onclick: () => { sfx('select'); setState({ view: 'board' }); } },
+      h('span.nd-board-mark', { 'aria-hidden': 'true' }), h('span', 'THE BOARD'));
+    els.cardBtn = h('button.nd-link.nd-card-btn', { type: 'button', 'aria-label': 'Your membership card', onclick: () => { sfx('select'); setState({ view: 'profile' }); } });
+    els.gamesBtn = h('button.nd-link.nd-link-games', { type: 'button', onclick: openGames },
+      h('span.nd-games-mark', { 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i')), h('span', 'GAMES'));
     return h('section.nd-actions',
       els.rejoin,
-      els.host,
-      h('div.nd-join',
-        h('span.nd-join-label', 'JOIN'),
-        h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
-        els.go),
-      h('div.nd-pair', els.board, els.cardBtn),
+      els.door,
+      h('div.nd-links', els.board, els.cardBtn, els.gamesBtn),
       h('div.nd-foot', els.msg, els.welcome));
+  }
+
+  function openJoin(on, focus = false) {
+    els.door.classList.toggle('is-join', on);
+    if (on) { paintCode(); if (focus) setTimeout(() => els.code.focus(), 60); }
+    else { els.code.blur(); say(''); }
   }
 
   function update(state) {
@@ -483,7 +561,7 @@ export function createTitle() {
       h('span.nd-rejoin-k', 'YOUR ROOM IS STILL OPEN'), h('span.nd-rejoin-l', `REJOIN ${state.rejoin}`))] : []));
     els.rejoin.hidden = !state.rejoin;
     els.host.classList.toggle('is-quiet', !!state.rejoin);
-    if (state.invite && !els.code.value) { els.code.value = clean(state.invite); paintCode(); say(`You’re invited to room ${els.code.value} — tap › to join.`, 'info'); els.go.classList.add('is-ready'); }
+    if (state.invite && !els.code.value) { openJoin(true); els.code.value = clean(state.invite); paintCode(); say(`You’re invited to room ${els.code.value} — tap › to join.`, 'info'); els.go.classList.add('is-ready'); }
     if (state.inviteExpired) say(`Room ${state.inviteExpired} has closed. Host a new game, or ask your friend for a fresh code.`, 'warn');
   }
 
@@ -496,9 +574,8 @@ export function createTitle() {
     const sp = step(xp);
     els.cardBtn.style.setProperty('--rk', RANK_COLORS[sp.i]);
     els.cardBtn.replaceChildren(...[
-      h('span.nd-cb-emb', emblem(sp.i, 26)),
+      h('span.nd-cb-emb', emblem(sp.i, 18)),
       h('span.nd-cb-name', pub ? sp.name : 'YOUR CARD'),
-      h('span.nd-cb-bar', h('i', { style: { transform: `scaleX(${pub ? sp.frac : 0})` } })),
       pub && pub.s >= 2 ? h('span.nd-cb-flame', `${pub.s}🔥`) : null].filter(Boolean));
   }
 
@@ -554,7 +631,7 @@ export function createTitle() {
     if (!p || !p.name) { setState({ view: 'setup', setupMode: 'host' }); return; }
     busy = true;
     els.host.classList.add('is-busy');
-    els.host.querySelector('.nd-host-label').textContent = 'OPENING A ROOM…';
+    els.host.querySelector('.nd-host-label').textContent = 'OPENING…';
     try {
       await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
       await createRoom(p);
@@ -562,7 +639,7 @@ export function createTitle() {
     } catch (e) {
       busy = false;
       els.host.classList.remove('is-busy');
-      els.host.querySelector('.nd-host-label').textContent = 'HOST GAME';
+      els.host.querySelector('.nd-host-label').textContent = 'HOST';
       say(friendly(e), 'warn');
       sfx('invalid');
     }
@@ -610,6 +687,9 @@ export function createTitle() {
       setTier: t => scene && scene.setTier(t),
       frames: () => scene && scene.frames(),
       reduced,
+      hit: (x, y) => scene && scene.hit(x, y),
+      idle: () => goIdle(),
+      isIdle: () => els.root.classList.contains('is-idle'),
     };
   }
 
@@ -619,6 +699,13 @@ export function createTitle() {
     clearTimeout(flickerTimer);
     clearTimeout(els.logoTimer);
     clearTimeout(els.skyTimer);
+    clearTimeout(idleTimer);
+    document.body.classList.remove('nd-idle');
+    window.removeEventListener('pointerdown', onWake, { capture: true });
+    window.removeEventListener('click', onWakeClick, { capture: true });
+    window.removeEventListener('keydown', onWake, { capture: true });
+    window.removeEventListener('pointermove', onMouse);
+    window.removeEventListener('click', onCityTap);
     if (stopRain) stopRain(0.6);
     document.body.classList.remove('nd-on');
     const wrap = els.sceneWrap;

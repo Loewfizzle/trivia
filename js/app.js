@@ -58,7 +58,8 @@ function makeScreen(key) {
 
 // Which music track a state should hear. [track, fallbackIfMissing]
 function musicFor(st) {
-  if (!st.code && (st.view === 'board' || st.view === 'profile')) return ['menu1', 'menu']; // menu.mp3 in the board hall
+  if (!st.code && st.view === 'board') return ['menu3', 'menu'];     // THE BOARD's hall: menu3.mp3
+  if (!st.code && st.view === 'profile') return ['menu1', 'menu'];   // the membership card: menu.mp3
   if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId) return ['menu'];
   const mod = GAME_MODULES[st.game.id];
   // MUSIC: null = no music during the match (PULSE: the song is the music; menu music fades out)

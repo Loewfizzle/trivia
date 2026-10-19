@@ -69,3 +69,28 @@ the street outside: the district, the sign over the door.
 - **Where:** the title; the menus' backdrop and THE BOARD's windows show the still the title leaves behind (same hour).
 - **Preview switch** (any page, test only): `?when=2026-10-31T21:30&tz=America/New_York` starts the clock at that local
   time; `&force=bats,witch,meteor,aurora,sleigh,fireworks` makes the rare moments happen now.
+
+## The title, Oct 2026 redesign: the city is the showcase
+- **No game row.** Under the tagline, one line: `N PARTY GAMES · ONE PHONE EACH` (N = the playable games in `GAMES`, so it
+  updates itself). The city's billboards (bigger now) cycle the game art; **tapping one opens that game's HOW TO PLAY**.
+- **The dock:** HOST and JOIN as clear glass pills (`.nd-host`, `.nd-joinbtn`); JOIN turns the dock into the four code boxes
+  (`.nd-door.is-join`; ‹ goes back). An invite link opens it with the code filled in (› ready, no keyboard popping up).
+  Under it the quiet links: THE BOARD, YOUR CARD (emblem + step), GAMES (a sheet of every game → its preview sheet).
+- **At rest:** after 15 s without a touch the menu, the tagline, the explainer and the corner buttons fade out (1.8 s),
+  leaving the sign and the living city. Any touch brings them back and presses nothing (the waking tap is swallowed); on
+  desktop moving the mouse wakes it. Not while a sheet is open, the code boxes are open or a room is being made. Local test
+  runs (`?emu`) only fade when asked (`&idle=1` or `__district.idle()`).
+- **Easter eggs** (taps on the city, `scene.hit(x, y)` → `fx.hit`):
+  - windows: tap one to switch its light on or off (it stays that way);
+  - the sign: tap a letter and that tube stutters (by day it sparks to life for a moment);
+  - the moon: a soft swell of light and circling sparkles; three taps in five seconds send a shooting star off it;
+  - the cat: about one night in three (the same for everyone) a cat sits on a rooftop, tail swishing, eyes catching the
+    neon; tap it and it springs away (back in a few minutes);
+  - the UFO: on clear nights every 8–18 min a polished saucer glides in, hovers over a rooftop and lowers a beam (motes
+    drift up it), then zips off with afterimages; tap it and it leaves at once;
+  - a satellite train: rarely (every 15–30 min on clear nights) a line of points glides across the sky, each fading in and
+    out of the earth's shadow.
+  - Force them in a preview: `&force=ufo,cat,satellites`.
+- **Christmas lights** are now rooflines outlined in bulbs, strings down corners and between close roofs (5 buildings on
+  Dec 1 → 18 on the 24th), baked once into a canvas with a few bulbs twinkling on top.
+- THE BOARD plays menu3.mp3 (app.js#musicFor).
