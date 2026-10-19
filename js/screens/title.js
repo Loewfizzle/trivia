@@ -139,8 +139,8 @@ const O_ALT = {
   ],
   stpatrick: [
     // four heart-shaped leaves round the centre, a slender stem
-    ...[45, 135, 225, 315].map(a => [`M32 54 C27 47 15 44 15 34 C15 26 25 24 29 31 C30 33 31 34 32 36 C33 34 34 33 35 31 C39 24 49 26 49 34 C49 44 37 47 32 54`, 5.2, null, `translate(32 54) scale(1.32) translate(-32 -54) rotate(${a} 32 54)`]),
-    ['M32 58 C35 72 31 86 21 99', 5.4, null],
+    ...[45, 135, 225, 315].map(a => [`M32 54 C27 47 15 44 15 34 C15 26 25 24 29 31 C30 33 31 34 32 36 C33 34 34 33 35 31 C39 24 49 26 49 34 C49 44 37 47 32 54`, 5.2, null, `translate(32 46) scale(1.72) translate(-32 -54) rotate(${a} 32 54)`]),
+    ['M32 50 C36 66 33 84 22 100', 5.4, null],
   ],
 };
 function swapO(svg, kind) {
