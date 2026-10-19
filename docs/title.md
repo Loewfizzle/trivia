@@ -94,3 +94,8 @@ the street outside: the district, the sign over the door.
 - **Christmas lights** are now rooflines outlined in bulbs, strings down corners and between close roofs (5 buildings on
   Dec 1 → 18 on the 24th), baked once into a canvas with a few bulbs twinkling on top.
 - THE BOARD plays menu3.mp3 (app.js#musicFor).
+- **The moon's place** (fx.js#moonPlace): its real path, framed. How far along its arc comes from the true azimuth (rising
+  left, setting right; mirrored in the south), how high from the true elevation, mapped into the open sky above the rooftops
+  (desktop: the full arc, passing over the sign, never behind it). On phones the sign spans the screen, so the moon keeps to
+  the band above it, moving left to right through the night and fading in / out at moonrise / moonset, clear of the corner
+  buttons. It glides to a new spot instead of jumping.

@@ -120,15 +120,8 @@ export function createFx() {
       }
       // the moon at its phase, a halo on clear nights
       if (L.moon.el > -2 && P.moonA > 0.05) {
-        const p = s.skyPos(L.moon.az, L.moon.el);
         const r = Math.min(26, Math.max(15, W * 0.035));
-        p.x = Math.max(r + 10, Math.min(W - r - 10, p.x));
-        // never hidden behind the sign: slide out to the nearer side of it
-        const sr = s.signRect && { x: s.signRect.x - 34, y: s.signRect.y - 44, w: s.signRect.w + 68, h: s.signRect.h + 44 };
-        if (sr && p.y > sr.y - r && p.y < sr.y + sr.h + r && p.x > sr.x - r && p.x < sr.x + sr.w + r) {
-          if (sr.y - r - 10 > r + 14) { p.y = sr.y - r - 10; p.x = Math.max(r + 10, Math.min(W - r - 70, p.x)); }
-          else p.x = p.x < sr.x + sr.w / 2 ? Math.max(r + 6, sr.x - r - 4) : Math.min(W - r - 6, sr.x + sr.w + r + 4);
-        }
+        const p = moonPlace(L, r, s.signRect);
         const a = P.moonA * clamp01((L.moon.el + 2) / 5) * (0.35 + 0.65 * clamp01(L.moon.illum * 4));
         if (L.clear && dark > 0.4) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 * a * dark; c.drawImage(glow([200, 210, 255]), p.x - r * 5, p.y - r * 5, r * 10, r * 10); c.globalCompositeOperation = 'source-over'; }
         c.globalAlpha = a * (0.55 + 0.45 * dark);
@@ -658,6 +651,36 @@ export function createFx() {
       c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     }
     c.restore();
+  }
+
+  // ---------------------------------------------------------------- where the moon sits
+  // Its real path, framed for the screen: how far along its arc it is comes from its true azimuth (rising on the left,
+  // setting on the right, mirrored in the south where it crosses the northern sky), how high comes from its true
+  // elevation, mapped into the open sky above the rooftops. It only reaches the skyline at real moonrise / moonset and
+  // never sits behind the sign (it passes over it); it glides to a new spot instead of jumping.
+  let moonPos = null;
+  function moonPlace(L, r, sign) {
+    const az = L.moon.az, el = L.moon.el;
+    const u = L.south ? clamp01((((az + 180) % 360) - 60) / 240) : clamp01((az - 60) / 240);
+    const k = clamp01((el + 2) / 40), e = 1 - (1 - k) * (1 - k);
+    const top = r + 24, low = HZ * 0.4;
+    let x = r + 16 + (W - 2 * r - 32) * u, y = low + (top - low) * e;
+    // phones: the sign spans the screen, so the moon keeps to the open band above it (left to right through the night,
+    // fading in at moonrise and out at moonset), clear of the corner buttons
+    if (sign && sign.w > W * 0.6) {
+      x = r + 16 + (W - 2 * r - 86) * u;
+      y = Math.max(r + 14, Math.min(top + 4, sign.y - 52 - r));
+    } else if (sign) {
+      const sr = { x: sign.x - 34, y: sign.y - 44, w: sign.w + 68, h: sign.h + 50 };
+      if (x > sr.x - r && x < sr.x + sr.w + r && y > sr.y - r && y < sr.y + sr.h + r) {
+        const above = sr.y - r - 8;
+        if (above >= top - 6) y = Math.min(y, above);
+        else x = x < sr.x + sr.w / 2 ? Math.max(r + 6, sr.x - r - 4) : Math.min(W - r - 6, sr.x + sr.w + r + 4);
+      }
+    }
+    if (!moonPos || Math.hypot(moonPos.x - x, moonPos.y - y) > W) moonPos = { x, y };
+    else { moonPos.x += (x - moonPos.x) * 0.03; moonPos.y += (y - moonPos.y) * 0.03; }
+    return { x: moonPos.x, y: moonPos.y };
   }
 
   function drawBat(c, x, y, s, flap, dir, col = [190, 90, 255]) {
