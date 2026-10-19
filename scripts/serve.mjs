@@ -50,6 +50,14 @@ createServer(async (req, res) => {
       body = gzipSync(body);
       headers['content-encoding'] = 'gzip';
     }
+    // byte ranges (audio seeking), like Vercel
+    const rg = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (rg && !headers['content-encoding']) {
+      const size = body.length, from = rg[1] ? Number(rg[1]) : size - Number(rg[2]), to = rg[1] && rg[2] ? Math.min(size - 1, Number(rg[2])) : size - 1;
+      res.writeHead(206, { ...headers, 'accept-ranges': 'bytes', 'content-range': `bytes ${from}-${to}/${size}`, 'content-length': to - from + 1 }).end(body.subarray(from, to + 1));
+      return;
+    }
+    headers['accept-ranges'] = 'bytes';
     res.writeHead(200, headers).end(body);
   } catch {
     res.writeHead(404).end('not found');

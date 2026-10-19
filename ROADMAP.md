@@ -299,6 +299,62 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
 - [x] Two blades + a rooftop billboard, neon on many more buildings, Christmas bulbs wrapped round the sign, the real night sky
       (stars + the Milky Way turning over the night), mixed-case callsigns
 
+#### The LIVING CITY thread — decisions made on the fly (Oct 18–19, 2026), for reference
+Everything below lives in `docs/title.md` (how it works) and in js/screens/district/ (scene, fx, palette, stars, signs, marks,
+sign-logic) + js/core/sky.js. This is the *why* and the order things were decided in, so the thread can be picked up later.
+- **The sky is real, never asked for.** Location is estimated from the time zone (no permission prompt, ever). Sun times within
+  ~6 min of published tables; the real moon phase. The `?when=YYYY-MM-DDTHH:MM&tz=Zone&force=…` preview switch drives everything
+  (sky, holidays, events, sign, signs, music) — `force` = bats, witch, sleigh, ufo, cat, satellites, meteor, aurora, fireworks,
+  searchlights. Normal players never pass it.
+- **Five looks blended by the sun's elevation:** dawn, a hazy matinee DAY (sign unlit, glass visible), golden hour, NIGHT (the
+  hero), late night. The windows wind down from 10 pm (≈ 90% at 10:30, 70% near midnight, a third from 2 am); the neon on the
+  buildings stays at full strength all night (it had been tied to the windows — fixed).
+- **Holidays** each have a build-up and full days, and dress the sign itself: per-letter tube colours (Halloween orange/violet,
+  Christmas red/green, NYE gold, Valentine's rose, St. Patrick's green, Easter pastels, Thanksgiving amber, the Fourth red/white/blue).
+  - Halloween: an orb web with dew beads + a spider that drops from the E on its silk (it must hang from the tube, not the sky);
+    the O becomes a full-size neon jack-o'-lantern with its stem above the letters; bats in a random neon (sometimes mixed); a rare
+    witch on a broom; jack-o'-lanterns in lit windows (more each build-up day); a neon pumpkin on a roof near the middle.
+  - Christmas: a wire of glass C9 bulbs wound round the sign's own tubes (a few lit Dec 1, all by Christmas Eve); a velvet Santa
+    hat; lit rooflines across the city; snow; a rare sleigh with Rudolph's nose (it must read on a phone: flown through open sky).
+  - St. Patrick's: the O becomes a four-leaf clover as tall as the letters.
+  - NYE: a countdown in the tagline, then fireworks and HAPPY NEW YEAR.
+- **Sky events:** meteor showers on their real peaks, a rare single star any clear night; aurora about one night in five, any
+  season (too beautiful to be rare; the strips are feathered so it reads as one curtain, not bars); rain in about one 4-hour
+  block in four (random by date, the same for everyone — real weather was rejected: it would need location permission). The
+  rain SOUND plays only while it rains on screen.
+- **The night sky:** the real brightest stars in their constellations + the Milky Way, turning with the sky; every clear night,
+  richer late, washed out by a bright moon.
+- **The moon:** its real path, framed. On phones it arches over the sign from beside the first N (moonrise) to beside the last
+  (moonset), may pass behind the corner buttons (not tappable there); on desktop the full arc.
+- **The title page:** the scrolling game row was removed (it hid the city). A slim HOST / JOIN dock (JOIN opens the code boxes),
+  quiet links (THE BOARD, GAMES), the rank in the welcome line ("Welcome back, BEN · ◆ REGULAR I"; no EDIT button — the card has
+  it), the "12 PARTY GAMES · ONE PHONE EACH" line only for first visits (counted from GAMES). After 15 s untouched the menu fades,
+  leaving the sign and the city; a tap brings it back without pressing anything.
+- **The city's signs** replaced the screenshot billboards (they looked cheap): built in the main sign's tube language, data-driven
+  from GAMES (a mark per game in marks.js). The marquee was tried and removed (it looked out of place in the neon city). Phones:
+  two blade signs (left and right; only names that fit at a readable size; thicker tubes, softer glow), a rooftop billboard with
+  the game's mark (any well-visible roof, ≈ 60% of its width, clear of the edges so the phone tilt can't push it off), and a
+  bright dot-matrix ticker (tapping it opens the name under your finger). One sign changes every 12 s. Every sign is tappable →
+  HOW TO PLAY (pointer events: iOS never sends click to the canvas — that cost a round).
+- **Neon on the buildings** is seeded random (the same city for everyone; widths depend on the screen). Each building rolls a
+  chance per row and a style (outline, roof line, strip, bands); tall back towers that peek over the front rows usually get a full
+  outline (portrait only shows a slice of the back rows). The back rows are thinner and softer so the depth reads — making them as
+  bright as the front made the city feel cramped.
+- **Phones:** the buildings run further down to meet the dock (rooftops unchanged), Safari's shorter visible area is part of the
+  screenshot matrix (390×664, 393×659, 430×739), and the city must work in portrait first.
+- **Searchlights** are an occasion: Friday / Saturday nights and holiday nights, upright at the sides, never across the sign.
+- **Easter eggs:** a tapped sign letter stutters; the moon shimmers (silent; three taps send a shooting star); a rooftop cat on about
+  one night in three; a polished UFO with a tractor beam (clear nights, every 8–18 min); a rare satellite train. The window
+  on/off egg was removed.
+
+### ✅ MOOD MUSIC (Oct 2026) — `docs/audio.md`
+- [x] Menu music follows the time of day: LATE NIGHT (lo-fi), MORNING, DAY, EVENING (night-drive synthwave), PARTY (Fri / Sat 8 pm
+      → 2 am), from the real sunrise / sunset; every screen but the games and their podiums, plus the public /board (after a tap)
+- [x] A mood change waits for the song to end; a shuffle bag per mood (no repeats until all have played)
+- [x] Lobbies play ONE song for everyone on the server clock, chosen by the host's clock; late joiners and host changes carry on
+- [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
+      and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
+
 ### ✅ Stage 14 — RUMRUNNER (Prohibition trading, the city diorama) (Oct 2026) — `docs/rum.md`
 - [x] Rules first: six goods × six districts with tendencies, seeded daily prices, news spikes / crashes, rumours (70 % true),
       weather with effects, a shared market moved by everyone's trades, Vale's compounding debt and his collectors, the stash,
@@ -375,6 +431,8 @@ under the hulls, the 3D view "weird"). The renderer was replaced; rules, directo
 4. ✅ **New game: imposter word game** — shipped as **DOUBLE AGENT** (Stage 7 above).
 
 ## Future ideas
+- **Holiday music moods** (not built): a Halloween-night mood, Christmas music through December's build-up, NYE party — the same
+  system as MOOD MUSIC (data/mood-music.json gains holiday lists; core/sky.js already knows the holidays and their build-ups).
 - **New game: drawing telephone** (like Gartic Phone / Telestrations; 4–8 players, works with 3; no voice needed).
   Everyone types a secret prompt → the next player draws it on their phone (finger canvas: a few colours, 2 brush sizes,
   undo/clear, ~60–90 s) → the next sees only the drawing and types a guess → draw ↔ guess alternate until every chain has gone

@@ -20,7 +20,7 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
 - `window.__arcade.musicDebug()` exposes music state (the E2E asserts crossfades with it).
 - To replace music: drop an MP3 with the same name into `audio/music/` (≈128 kbps, < 4 MB). Browsers cache `/audio/` for a week
   (vercel.json), so **bump that file's number in `music.js#REV`** (it adds `?v=N`) or phones keep playing the old copy.
-- **Menu music** is a playlist of four tracks (`menu1..4` = files menu, menu2, menu3, menu4), shuffled fresh on every page load
+- **Menu music (CLASSIC setting)** is a playlist of four tracks (`menu1..4` = files menu, menu2, menu3, menu4), shuffled fresh on every page load
   (`PLAYLISTS.menu`); it keeps its place during a game and carries on in the lobby.
 - **Victory music** (every podium) is a playlist of four short fanfares (`victory1..4` = victory, victory2-4), shuffled per page
   load; `FRESH_EACH_TIME` makes each new podium start on the next one. A fallback may be a playlist (NEON PAR → menu).
@@ -58,3 +58,49 @@ RUMRUNNER's `run1-4` (the owner's, 112 kbps; playlist `rum`: a seeded calm pair 
 Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 -ar 44100 -ac 2 -b:a 128k`; overclock at
 120k to stay under 4 MB). The originals stay out of the repo.
 
+
+## MOOD MUSIC (Oct 2026) — the menu music follows the time of day
+Files: `js/audio/mood.js` (the moods + the per-device shuffle bag), `js/audio/lobby-music.js` (the room's synced song),
+`data/mood-music.json` (THE song list), `scripts/build-mood-music.py` (import + analysis + sorting), `tests/mood.test.mjs`,
+`tests/integration/e2e-mood.mjs`.
+- **Where:** every screen except a game and its podium: the title (silent until TAP TO ENTER, then it starts with the city),
+  setup, the lobby, THE BOARD, the card and sheets over them, and the public `/board` (starts on the visitor's first tap; its own
+  music button). `/admin` has no audio. A game plays its own music; after the podium the lobby's song comes back.
+- **Moods** (local time; real sunrise / sunset from `core/sky.js`): LATE NIGHT midnight → sunrise · MORNING sunrise → 11 am ·
+  DAY 11 am → sunset · EVENING sunset → midnight · PARTY Fri and Sat 8 pm → 2 am (into Sat / Sun morning; beats evening and
+  late). `mood.js#moodAt` is pure and tested at every boundary. The `?when=&tz=` preview switch drives it.
+- **Outside a room** (`app.js`): `playMusic('mood')`, a provider list in `music.js` (`setListProvider`): the next song is chosen
+  ≈ 45 s before the current one ends, from the mood at that moment — a mood change never cuts a song, it finishes and then
+  crossfades into the new mood. A shuffle bag per mood in localStorage (`nd:moodbag:<mood>`): no repeats until every song in
+  the mood has played, never the same song twice in a row across cycles. Only the playing song (and, near its end, the next)
+  downloads.
+- **In a lobby** (`lobby-music.js`): the HOST's clock decides. The host keeps a queue in `rooms/{code}/meta/lm` = { m, t0,
+  songs, sd, bag } and appends the next song ≈ 40 s before the last one ends (from its mood then; the room's own bag). Every
+  phone plays the queue with the synced-songs player on the server clock — the same song at the same moment; late joiners land
+  in the right spot; a new host just keeps appending (the song playing finishes). While no queue exists (e.g. the rules not
+  yet published) phones fall back to their own mood shuffle. **The rules have a new `meta/lm` child: re-publish
+  database.rules.json in the Firebase console.**
+- **Settings:** MENU MUSIC: TIME OF DAY (default) / CLASSIC (`settings.menuMusic`; CLASSIC = the old menu playlist, THE BOARD's
+  menu3). The music button, MUSIC toggle and volume work as before (everything goes through the music bus).
+- **The song list** (`data/mood-music.json`): `moods` (id lists) + `songs` (mood, keeper, bpm, loudness, brightness, busyness,
+  key, per-mood fit scores). **Move a song:** change its `mood` and move its id to that list (or ask). `keeper: true` = the
+  owner picked it for this system (never retired). Everything else is TEMPORARY (the existing game / menu tracks, until the owner
+  supplies more). Fanfares, files under 75 s and duplicate files (high2 = golf-rooftops) are left out.
+- **Scoring** (features normalised across the pool to 0..1; each song to ONE mood by an optimal assignment that keeps every
+  mood at 5–8 songs):
+
+  | mood | score |
+  | --- | --- |
+  | late | 0.42 calm (low loudness) + 0.28 dark (low centroid) + 0.2 slow + 0.1 sparse |
+  | morning | 0.34 bright + 0.28 major + 0.2 mid tempo + 0.18 gentle (mid loudness) |
+  | day | 0.4 loud + 0.25 bright + 0.2 fast + 0.15 busy |
+  | evening | 0.32 minor + 0.26 mid-high loudness + 0.22 not too bright + 0.2 mid tempo |
+  | party | 0.36 loud + 0.26 busy + 0.2 fast + 0.18 major |
+
+- **Adding the owner's songs:** drop files into ~/Downloads named by mood and number, continuing each mood's numbering:
+  `late3.mp3 …`, `morn1.mp3 …`, `day1.mp3 …`, `eve1.mp3 …`, `party1.mp3 …` (mp3 / m4a / wav / ogg / flac), and ask to "add the
+  new mood songs". That runs `~/.cache/neural-arcade/pyenv/Scripts/python scripts/build-mood-music.py` — it re-encodes them into
+  audio/music/ (stereo 44.1 kHz 112 kbps), adds them to their mood as KEEPERS and re-sorts the temporary songs around them.
+  `--retire-temporary <mood>` drops the temporary picks from a mood once it has enough keepers; `--keep-assignments` leaves every
+  song where it is and only places new ones. Then `node --test tests/mood.test.mjs` and commit `audio/music/` + `data/mood-music.json`.
+- The dev server (`scripts/serve.mjs`) now answers byte ranges like Vercel, so a song can be sought in tests.

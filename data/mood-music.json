@@ -1,0 +1,787 @@
+{
+ "_about": "MOOD MUSIC (docs/audio.md). Move a song: change its \"mood\". keeper=true: the owner chose it (never retired). Rebuilt by scripts/build-mood-music.py (keeps keepers; --keep-assignments keeps every song in place).",
+ "moods": {
+  "late": [
+   "late1",
+   "golf-rooftops",
+   "run2",
+   "run1",
+   "spy2",
+   "menu2",
+   "spy3",
+   "late2"
+  ],
+  "morning": [
+   "overclock",
+   "golf-arcade",
+   "high1",
+   "cipher-breach",
+   "slip2"
+  ],
+  "day": [
+   "prism5",
+   "slip1",
+   "slip3",
+   "last-signal",
+   "prism4",
+   "slip5",
+   "menu",
+   "slip4"
+  ],
+  "evening": [
+   "golf-cyber",
+   "run4",
+   "spy1",
+   "prism3",
+   "slip7",
+   "menu4",
+   "prism2",
+   "run3"
+  ],
+  "party": [
+   "slip6",
+   "slip8",
+   "prism1",
+   "menu3",
+   "neural-bluff",
+   "high3"
+  ]
+ },
+ "songs": {
+  "late1": {
+   "mood": "late",
+   "keeper": true,
+   "dur": 288.08,
+   "bpm": 76.0,
+   "loud": -21.54,
+   "move": 5.9,
+   "busy": 3.37,
+   "bright": 1291,
+   "key": "F# major",
+   "mode": "major",
+   "majorness": 0.146,
+   "score": {
+    "late": 0.86,
+    "morning": 0.36,
+    "day": 0.14,
+    "evening": 0.18,
+    "party": 0.22
+   },
+   "bestFit": "late"
+  },
+  "golf-rooftops": {
+   "mood": "late",
+   "keeper": false,
+   "dur": 216.56,
+   "bpm": 71.8,
+   "loud": -18.09,
+   "move": 2.79,
+   "busy": 3.0,
+   "bright": 869,
+   "key": "F minor",
+   "mode": "minor",
+   "majorness": -0.129,
+   "score": {
+    "late": 0.83,
+    "morning": 0.22,
+    "day": 0.17,
+    "evening": 0.51,
+    "party": 0.18
+   },
+   "bestFit": "late"
+  },
+  "run2": {
+   "mood": "late",
+   "keeper": false,
+   "dur": 191.69,
+   "bpm": 112.3,
+   "loud": -18.7,
+   "move": 4.15,
+   "busy": 1.73,
+   "bright": 377,
+   "key": "F minor",
+   "mode": "minor",
+   "majorness": -0.086,
+   "score": {
+    "late": 0.82,
+    "morning": 0.35,
+    "day": 0.17,
+    "evening": 0.67,
+    "party": 0.22
+   },
+   "bestFit": "late"
+  },
+  "run1": {
+   "mood": "late",
+   "keeper": false,
+   "dur": 203.09,
+   "bpm": 136.0,
+   "loud": -24.15,
+   "move": 4.11,
+   "busy": 1.36,
+   "bright": 471,
+   "key": "A minor",
+   "mode": "minor",
+   "majorness": -0.214,
+   "score": {
+    "late": 0.8,
+    "morning": 0.07,
+    "day": 0.19,
+    "evening": 0.5,
+    "party": 0.19
+   },
+   "bestFit": "late"
+  },
+  "spy2": {
+   "mood": "late",
+   "keeper": false,
+   "dur": 240.04,
+   "bpm": 99.4,
+   "loud": -20.23,
+   "move": 1.58,
+   "busy": 6.38,
+   "bright": 946,
+   "key": "B minor",
+   "mode": "minor",
+   "majorness": -0.131,
+   "score": {
+    "late": 0.76,
+    "morning": 0.3,
+    "day": 0.29,
+    "evening": 0.54,
+    "party": 0.37
+   },
+   "bestFit": "late"
+  },
+  "menu2": {
+   "mood": "late",
+   "keeper": false,
+   "dur": 293.93,
+   "bpm": 80.7,
+   "loud": -16.03,
+   "move": 4.57,
+   "busy": 4.06,
+   "bright": 642,
+   "key": "A# major",
+   "mode": "major",
+   "majorness": 0.033,
+   "score": {
+    "late": 0.75,
+    "morning": 0.36,
+    "day": 0.26,
+    "evening": 0.52,
+    "party": 0.37
+   },
+   "bestFit": "late"
+  },
+  "spy3": {
+   "mood": "late",
+   "keeper": false,
+   "dur": 138.42,
+   "bpm": 80.7,
+   "loud": -16.84,
+   "move": 3.77,
+   "busy": 3.61,
+   "bright": 1060,
+   "key": "D minor",
+   "mode": "minor",
+   "majorness": -0.226,
+   "score": {
+    "late": 0.74,
+    "morning": 0.24,
+    "day": 0.26,
+    "evening": 0.63,
+    "party": 0.22
+   },
+   "bestFit": "late"
+  },
+  "late2": {
+   "mood": "late",
+   "keeper": true,
+   "dur": 144.6,
+   "bpm": 129.2,
+   "loud": -17.71,
+   "move": 4.34,
+   "busy": 2.71,
+   "bright": 371,
+   "key": "C major",
+   "mode": "major",
+   "majorness": 0.18,
+   "score": {
+    "late": 0.71,
+    "morning": 0.42,
+    "day": 0.29,
+    "evening": 0.43,
+    "party": 0.45
+   },
+   "bestFit": "late"
+  },
+  "overclock": {
+   "mood": "morning",
+   "keeper": false,
+   "dur": 253.44,
+   "bpm": 129.2,
+   "loud": -15.55,
+   "move": 2.59,
+   "busy": 5.52,
+   "bright": 2631,
+   "key": "F major",
+   "mode": "major",
+   "majorness": 0.031,
+   "score": {
+    "late": 0.31,
+    "morning": 0.71,
+    "day": 0.69,
+    "evening": 0.48,
+    "party": 0.63
+   },
+   "bestFit": "morning"
+  },
+  "golf-arcade": {
+   "mood": "morning",
+   "keeper": false,
+   "dur": 122.54,
+   "bpm": 117.5,
+   "loud": -13.73,
+   "move": 5.41,
+   "busy": 5.49,
+   "bright": 2138,
+   "key": "E minor",
+   "mode": "minor",
+   "majorness": -0.026,
+   "score": {
+    "late": 0.34,
+    "morning": 0.64,
+    "day": 0.67,
+    "evening": 0.71,
+    "party": 0.63
+   },
+   "bestFit": "evening"
+  },
+  "high1": {
+   "mood": "morning",
+   "keeper": false,
+   "dur": 127.84,
+   "bpm": 136.0,
+   "loud": -17.78,
+   "move": 3.43,
+   "busy": 3.43,
+   "bright": 1269,
+   "key": "D# major",
+   "mode": "major",
+   "majorness": 0.329,
+   "score": {
+    "late": 0.58,
+    "morning": 0.54,
+    "day": 0.42,
+    "evening": 0.27,
+    "party": 0.54
+   },
+   "bestFit": "late"
+  },
+  "cipher-breach": {
+   "mood": "morning",
+   "keeper": false,
+   "dur": 136.49,
+   "bpm": 117.5,
+   "loud": -19.39,
+   "move": 4.04,
+   "busy": 2.34,
+   "bright": 742,
+   "key": "F major",
+   "mode": "major",
+   "majorness": 0.233,
+   "score": {
+    "late": 0.78,
+    "morning": 0.53,
+    "day": 0.22,
+    "evening": 0.37,
+    "party": 0.35
+   },
+   "bestFit": "late"
+  },
+  "slip2": {
+   "mood": "morning",
+   "keeper": false,
+   "dur": 133.54,
+   "bpm": 80.7,
+   "loud": -13.69,
+   "move": 2.5,
+   "busy": 4.34,
+   "bright": 2690,
+   "key": "F minor",
+   "mode": "minor",
+   "majorness": -0.178,
+   "score": {
+    "late": 0.42,
+    "morning": 0.48,
+    "day": 0.56,
+    "evening": 0.63,
+    "party": 0.38
+   },
+   "bestFit": "evening"
+  },
+  "prism5": {
+   "mood": "day",
+   "keeper": false,
+   "dur": 216.97,
+   "bpm": 129.2,
+   "loud": -9.65,
+   "move": 2.34,
+   "busy": 5.62,
+   "bright": 2723,
+   "key": "D major",
+   "mode": "major",
+   "majorness": 0.103,
+   "score": {
+    "late": 0.08,
+    "morning": 0.59,
+    "day": 0.91,
+    "evening": 0.32,
+    "party": 0.85
+   },
+   "bestFit": "day"
+  },
+  "slip1": {
+   "mood": "day",
+   "keeper": false,
+   "dur": 137.35,
+   "bpm": 123.0,
+   "loud": -10.39,
+   "move": 1.85,
+   "busy": 6.02,
+   "bright": 3108,
+   "key": "G minor",
+   "mode": "minor",
+   "majorness": -0.224,
+   "score": {
+    "late": 0.11,
+    "morning": 0.48,
+    "day": 0.89,
+    "evening": 0.61,
+    "party": 0.71
+   },
+   "bestFit": "day"
+  },
+  "slip3": {
+   "mood": "day",
+   "keeper": false,
+   "dur": 183.77,
+   "bpm": 129.2,
+   "loud": -8.0,
+   "move": 1.89,
+   "busy": 3.13,
+   "bright": 2621,
+   "key": "E minor",
+   "mode": "minor",
+   "majorness": -0.23,
+   "score": {
+    "late": 0.14,
+    "morning": 0.37,
+    "day": 0.83,
+    "evening": 0.53,
+    "party": 0.59
+   },
+   "bestFit": "day"
+  },
+  "last-signal": {
+   "mood": "day",
+   "keeper": false,
+   "dur": 167.52,
+   "bpm": 112.3,
+   "loud": -10.28,
+   "move": 2.69,
+   "busy": 4.75,
+   "bright": 3107,
+   "key": "D# minor",
+   "mode": "minor",
+   "majorness": -0.221,
+   "score": {
+    "late": 0.17,
+    "morning": 0.55,
+    "day": 0.82,
+    "evening": 0.67,
+    "party": 0.6
+   },
+   "bestFit": "day"
+  },
+  "prism4": {
+   "mood": "day",
+   "keeper": false,
+   "dur": 126.72,
+   "bpm": 123.0,
+   "loud": -9.92,
+   "move": 2.01,
+   "busy": 5.63,
+   "bright": 1762,
+   "key": "A minor",
+   "mode": "minor",
+   "majorness": -0.157,
+   "score": {
+    "late": 0.22,
+    "morning": 0.35,
+    "day": 0.78,
+    "evening": 0.61,
+    "party": 0.73
+   },
+   "bestFit": "day"
+  },
+  "slip5": {
+   "mood": "day",
+   "keeper": false,
+   "dur": 144.07,
+   "bpm": 117.5,
+   "loud": -8.64,
+   "move": 2.39,
+   "busy": 4.08,
+   "bright": 2078,
+   "key": "C minor",
+   "mode": "minor",
+   "majorness": -0.22,
+   "score": {
+    "late": 0.21,
+    "morning": 0.37,
+    "day": 0.77,
+    "evening": 0.63,
+    "party": 0.61
+   },
+   "bestFit": "day"
+  },
+  "menu": {
+   "mood": "day",
+   "keeper": false,
+   "dur": 300.0,
+   "bpm": 152.0,
+   "loud": -16.0,
+   "move": 3.51,
+   "busy": 5.61,
+   "bright": 2190,
+   "key": "D# minor",
+   "mode": "minor",
+   "majorness": -0.09,
+   "score": {
+    "late": 0.34,
+    "morning": 0.49,
+    "day": 0.67,
+    "evening": 0.49,
+    "party": 0.62
+   },
+   "bestFit": "day"
+  },
+  "slip4": {
+   "mood": "day",
+   "keeper": false,
+   "dur": 162.07,
+   "bpm": 99.4,
+   "loud": -9.37,
+   "move": 6.49,
+   "busy": 2.28,
+   "bright": 1620,
+   "key": "D# minor",
+   "mode": "minor",
+   "majorness": -0.194,
+   "score": {
+    "late": 0.37,
+    "morning": 0.31,
+    "day": 0.59,
+    "evening": 0.63,
+    "party": 0.45
+   },
+   "bestFit": "evening"
+  },
+  "golf-cyber": {
+   "mood": "evening",
+   "keeper": false,
+   "dur": 256.56,
+   "bpm": 107.7,
+   "loud": -14.3,
+   "move": 4.32,
+   "busy": 6.06,
+   "bright": 1053,
+   "key": "F minor",
+   "mode": "minor",
+   "majorness": -0.119,
+   "score": {
+    "late": 0.5,
+    "morning": 0.48,
+    "day": 0.53,
+    "evening": 0.85,
+    "party": 0.58
+   },
+   "bestFit": "evening"
+  },
+  "run4": {
+   "mood": "evening",
+   "keeper": false,
+   "dur": 143.04,
+   "bpm": 99.4,
+   "loud": -11.47,
+   "move": 3.89,
+   "busy": 3.12,
+   "bright": 763,
+   "key": "A minor",
+   "mode": "minor",
+   "majorness": -0.373,
+   "score": {
+    "late": 0.53,
+    "morning": 0.24,
+    "day": 0.46,
+    "evening": 0.8,
+    "party": 0.42
+   },
+   "bestFit": "evening"
+  },
+  "spy1": {
+   "mood": "evening",
+   "keeper": false,
+   "dur": 182.47,
+   "bpm": 89.1,
+   "loud": -13.89,
+   "move": 3.39,
+   "busy": 2.93,
+   "bright": 1307,
+   "key": "G minor",
+   "mode": "minor",
+   "majorness": -0.224,
+   "score": {
+    "late": 0.59,
+    "morning": 0.32,
+    "day": 0.39,
+    "evening": 0.8,
+    "party": 0.3
+   },
+   "bestFit": "evening"
+  },
+  "prism3": {
+   "mood": "evening",
+   "keeper": false,
+   "dur": 141.84,
+   "bpm": 99.4,
+   "loud": -16.14,
+   "move": 1.91,
+   "busy": 6.18,
+   "bright": 1570,
+   "key": "E minor",
+   "mode": "minor",
+   "majorness": -0.201,
+   "score": {
+    "late": 0.54,
+    "morning": 0.47,
+    "day": 0.49,
+    "evening": 0.73,
+    "party": 0.47
+   },
+   "bestFit": "evening"
+  },
+  "slip7": {
+   "mood": "evening",
+   "keeper": false,
+   "dur": 229.94,
+   "bpm": 92.3,
+   "loud": -13.45,
+   "move": 1.72,
+   "busy": 3.01,
+   "bright": 2194,
+   "key": "A minor",
+   "mode": "minor",
+   "majorness": -0.136,
+   "score": {
+    "late": 0.46,
+    "morning": 0.51,
+    "day": 0.51,
+    "evening": 0.7,
+    "party": 0.36
+   },
+   "bestFit": "evening"
+  },
+  "menu4": {
+   "mood": "evening",
+   "keeper": false,
+   "dur": 199.34,
+   "bpm": 143.6,
+   "loud": -13.14,
+   "move": 5.46,
+   "busy": 3.55,
+   "bright": 495,
+   "key": "A minor",
+   "mode": "minor",
+   "majorness": -0.121,
+   "score": {
+    "late": 0.48,
+    "morning": 0.19,
+    "day": 0.53,
+    "evening": 0.69,
+    "party": 0.57
+   },
+   "bestFit": "evening"
+  },
+  "prism2": {
+   "mood": "evening",
+   "keeper": false,
+   "dur": 227.84,
+   "bpm": 83.4,
+   "loud": -13.03,
+   "move": 2.79,
+   "busy": 6.54,
+   "bright": 1209,
+   "key": "E minor",
+   "mode": "minor",
+   "majorness": -0.146,
+   "score": {
+    "late": 0.51,
+    "morning": 0.29,
+    "day": 0.51,
+    "evening": 0.69,
+    "party": 0.54
+   },
+   "bestFit": "evening"
+  },
+  "run3": {
+   "mood": "evening",
+   "keeper": false,
+   "dur": 147.91,
+   "bpm": 80.7,
+   "loud": -13.98,
+   "move": 5.57,
+   "busy": 2.13,
+   "bright": 1497,
+   "key": "C minor",
+   "mode": "minor",
+   "majorness": -0.119,
+   "score": {
+    "late": 0.62,
+    "morning": 0.36,
+    "day": 0.35,
+    "evening": 0.66,
+    "party": 0.26
+   },
+   "bestFit": "evening"
+  },
+  "slip6": {
+   "mood": "party",
+   "keeper": false,
+   "dur": 155.64,
+   "bpm": 107.7,
+   "loud": -10.2,
+   "move": 5.62,
+   "busy": 4.74,
+   "bright": 2243,
+   "key": "C major",
+   "mode": "major",
+   "majorness": 0.19,
+   "score": {
+    "late": 0.25,
+    "morning": 0.7,
+    "day": 0.74,
+    "evening": 0.43,
+    "party": 0.74
+   },
+   "bestFit": "party"
+  },
+  "slip8": {
+   "mood": "party",
+   "keeper": false,
+   "dur": 276.95,
+   "bpm": 129.2,
+   "loud": -11.8,
+   "move": 2.15,
+   "busy": 3.77,
+   "bright": 2041,
+   "key": "F major",
+   "mode": "major",
+   "majorness": 0.103,
+   "score": {
+    "late": 0.28,
+    "morning": 0.56,
+    "day": 0.7,
+    "evening": 0.46,
+    "party": 0.67
+   },
+   "bestFit": "day"
+  },
+  "prism1": {
+   "mood": "party",
+   "keeper": false,
+   "dur": 188.79,
+   "bpm": 83.4,
+   "loud": -9.91,
+   "move": 2.55,
+   "busy": 5.39,
+   "bright": 2101,
+   "key": "C major",
+   "mode": "major",
+   "majorness": 0.029,
+   "score": {
+    "late": 0.32,
+    "morning": 0.42,
+    "day": 0.68,
+    "evening": 0.38,
+    "party": 0.65
+   },
+   "bestFit": "day"
+  },
+  "menu3": {
+   "mood": "party",
+   "keeper": false,
+   "dur": 217.05,
+   "bpm": 80.7,
+   "loud": -12.05,
+   "move": 1.6,
+   "busy": 4.69,
+   "bright": 1089,
+   "key": "A major",
+   "mode": "major",
+   "majorness": 0.294,
+   "score": {
+    "late": 0.54,
+    "morning": 0.46,
+    "day": 0.47,
+    "evening": 0.37,
+    "party": 0.62
+   },
+   "bestFit": "party"
+  },
+  "neural-bluff": {
+   "mood": "party",
+   "keeper": false,
+   "dur": 174.03,
+   "bpm": 99.4,
+   "loud": -9.86,
+   "move": 1.95,
+   "busy": 3.14,
+   "bright": 1314,
+   "key": "G major",
+   "mode": "major",
+   "majorness": 0.05,
+   "score": {
+    "late": 0.41,
+    "morning": 0.43,
+    "day": 0.58,
+    "evening": 0.51,
+    "party": 0.58
+   },
+   "bestFit": "day"
+  },
+  "high3": {
+   "mood": "party",
+   "keeper": false,
+   "dur": 137.42,
+   "bpm": 139.7,
+   "loud": -16.47,
+   "move": 5.45,
+   "busy": 2.75,
+   "bright": 365,
+   "key": "C major",
+   "mode": "major",
+   "majorness": 0.239,
+   "score": {
+    "late": 0.63,
+    "morning": 0.43,
+    "day": 0.37,
+    "evening": 0.37,
+    "party": 0.55
+   },
+   "bestFit": "late"
+  }
+ }
+}

@@ -19,6 +19,12 @@ const FILES = {
   run1: 'run1', run2: 'run2', run3: 'run3', run4: 'run4',
 };
 export const TRACK_IDS = Object.keys(FILES);
+/** Add tracks at run time (MOOD MUSIC registers 'm:<file>' ids from data/mood-music.json). */
+export function registerTracks(map) { Object.assign(FILES, map); }
+// Lists whose next song is chosen by a function, when it's needed (≈ 45 s before the current song ends, so a change of
+// mood never cuts a song off: it finishes, then the next comes from the new mood). provider(prevId) -> next track id.
+const PROVIDERS = {};
+export function setListProvider(id, fn) { PROVIDERS[id] = fn; }
 // Playlists: ask for the list's id and its tracks play in order, crossfading into the next one at
 // each track's end (then back to the first). The position survives re-asks, so a game that keeps
 // asking for the same list never restarts it.
@@ -158,7 +164,7 @@ function startTrack(id) {
   fade(voice, duckLevel, XFADE);
   const prev = current;
   current = { id, voice, list: listFor(id) };
-  if (current.list) prefetch(nextInList(current.list, id));
+  if (current.list && !PROVIDERS[current.list]) prefetch(nextInList(current.list, id));
   if (prev) stopVoice(prev.voice, XFADE);
 }
 
@@ -182,6 +188,11 @@ function nextInList(list, id) {
 
 function resolveTrack() {
   if (!desired) return null;
+  if (PROVIDERS[desired.id]) {
+    if (current && current.list === desired.id) return current.id;
+    for (let k = 0; k < 6; k++) { const t = PROVIDERS[desired.id](null); if (t && status[t] !== 'missing') return t; }
+    return null;
+  }
   if (PLAYLISTS[desired.id]) {
     const t = listTrack(desired.id);
     if (t) return t;
@@ -192,7 +203,7 @@ function resolveTrack() {
   return null;
 }
 // the playlist a resolved track belongs to (the asked-for list, or a playlist fallback)
-const listFor = id => (desired && PLAYLISTS[desired.id] && PLAYLISTS[desired.id].includes(id) ? desired.id
+const listFor = id => (desired && PROVIDERS[desired.id] ? desired.id : desired && PLAYLISTS[desired.id] && PLAYLISTS[desired.id].includes(id) ? desired.id
   : desired && desired.fallback && PLAYLISTS[desired.fallback] && PLAYLISTS[desired.fallback].includes(id) ? desired.fallback : null);
 
 function apply() {
@@ -200,7 +211,7 @@ function apply() {
   const id = resolveTrack();
   if (current && current.id === id) return; // already playing: never restart
   // a playlist keeps going on its own (watchLoop moves it to the next track)
-  if (current && current.list && desired && current.list === desired.id && PLAYLISTS[current.list].includes(current.id)) return;
+  if (current && current.list && desired && current.list === desired.id && (PROVIDERS[current.list] || PLAYLISTS[current.list].includes(current.id))) return;
   if (!id) { if (current) { stopVoice(current.voice, XFADE); current = null; } return; }
   startTrack(id);
 }
@@ -219,11 +230,15 @@ function watchLoop() {
     return;
   }
   if (!el.duration || !isFinite(el.duration) || el.paused) return;
+  if (current.list && PROVIDERS[current.list] && !current.next && el.currentTime > el.duration - 45) {
+    for (let k = 0; k < 6 && !current.next; k++) { const t = PROVIDERS[current.list](id); if (t && status[t] !== 'missing') current.next = t; }
+    if (current.next) prefetch(current.next);
+  }
   if (el.currentTime < el.duration - LOOP_XFADE - 0.15) return;
   // a playlist moves on to its next track; anything else loops into a fresh copy of itself
   const list = current.list;
   if (list && ONE_SHOT.has(list)) { current.ended = true; return; }
-  const nid = list ? nextInList(list, id) : id;
+  const nid = list && PROVIDERS[list] ? (current.next || PROVIDERS[list](id) || id) : list ? nextInList(list, id) : id;
   const next = freeVoice(voice);
   next.el.preload = 'auto';
   if (next.id !== nid || !next.el.src.includes(FILES[nid])) next.el.src = urlFor(nid);
@@ -235,7 +250,7 @@ function watchLoop() {
   current = { id: nid, voice: next, list };
   positions[id] = 0;
   positions[nid] = 0;
-  if (list) { listPos[list] = PLAYLISTS[list].indexOf(nid); prefetch(nextInList(list, nid)); }
+  if (list && PLAYLISTS[list]) { listPos[list] = PLAYLISTS[list].indexOf(nid); prefetch(nextInList(list, nid)); }
   stopVoice(voice, LOOP_XFADE);
 }
 
@@ -254,6 +269,7 @@ export function playMusic(id, fallback = null) {
 
 /** Warm the HTTP cache for a track (called when a game is chosen). */
 export function prefetch(id) {
+  if (PROVIDERS[id]) return;
   if (PLAYLISTS[id]) { prefetch(PLAYLISTS[id][listPos[id] || 0]); return; }
   if (!FILES[id] || prefetching[id] || status[id] === 'missing') return;
   prefetching[id] = fetch(urlFor(id), { priority: 'low' })
@@ -270,11 +286,17 @@ export function duckMusic(level, seconds = 0.6) {
   if (current && getContext()) fade(current.voice, duckLevel, seconds);
 }
 
+/** Test hook: jump the playing track to `secondsFromEnd` before its end. */
+export function musicSeek(secondsFromEnd) { if (current && current.voice.el.duration) current.voice.el.currentTime = Math.max(0, current.voice.el.duration - secondsFromEnd); }
+
 export function musicDebug() {
   return {
     desired: desired && desired.id,
     playing: current && current.id,
     list: current && current.list,
+    next: current && current.next,
+    at: current ? +(current.voice.el.currentTime || 0).toFixed(1) : 0,
+    dur: current ? +(current.voice.el.duration || 0).toFixed(1) : 0,
     menuOrder: PLAYLISTS.menu.slice(),
     duck: duckLevel,
     status: { ...status },

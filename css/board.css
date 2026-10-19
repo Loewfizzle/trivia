@@ -482,3 +482,6 @@ body.reduced-fx .rc-up *, body.reduced-fx .rc-plaque, body.reduced-fx .rc-sweep,
 @media (prefers-reduced-motion: reduce) {
   .rc-up *, .rc-plaque, .rc-sweep, .pf-holo, .pf-xp-glint, .pf-game { animation-duration: 0.01s !important; animation-delay: 0s !important; }
 }
+
+/* the public page's music on/off (mood music starts after the first tap) */
+.music-btn.bd-music { right: calc(var(--safe-r) + 12px); border-radius: 50%; }

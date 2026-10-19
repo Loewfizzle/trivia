@@ -14,7 +14,9 @@ import { createTitle } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { createLobby } from './screens/lobby.js';
 import { installAudio } from './audio/engine.js';
-import { playMusic, musicDebug } from './audio/music.js';
+import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider } from './audio/music.js';
+import { loadMoodMusic, moodNow, nextForDevice } from './audio/mood.js';
+import { lobbyMusicTick, lobbyMusicDebug } from './audio/lobby-music.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
 import { showBackdrop } from './screens/district/backdrop.js';
@@ -56,8 +58,26 @@ function makeScreen(key) {
   return { mount(el) { el.classList.add('boot-screen'); }, update() {} }; // the inline #boot overlay covers this
 }
 
+// MOOD MUSIC (docs/audio.md): every menu screen follows the time of day — this phone's clock outside a room, the host's in a
+// lobby (the room hears one synced song: audio/lobby-music.js). 'mood' is a provider list: the next song is chosen from the
+// mood at that moment, so a mood change waits for the song to end. CLASSIC (settings) keeps the old menu playlist.
+const moodOn = () => settings.menuMusic !== 'classic';
+loadMoodMusic().then(d => {
+  if (!d) return;
+  registerTracks(Object.fromEntries(Object.keys(d.songs).map(id => [`m:${id}`, id])));
+  setListProvider('mood', prev => { const id = nextForDevice(moodNow(), prev && prev.replace(/^m:/, '')); return id ? `m:${id}` : null; });
+  render(state);
+});
+let lobbySynced = false;
+const inLobby = st => !!(st.code && st.meta && (st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId));
+setInterval(() => { const was = lobbySynced; lobbySynced = lobbyMusicTick(state, moodOn() && inLobby(state) && state.ready); if (was !== lobbySynced) render(state); }, 250);
+
 // Which music track a state should hear. [track, fallbackIfMissing]
 function musicFor(st) {
+  if (moodOn() && !(st.code && st.meta && st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId)) {
+    if (lobbySynced && inLobby(st)) return [null];          // the room's synced song is playing (lobby-music.js)
+    return ['mood', 'menu'];
+  }
   if (!st.code && st.view === 'board') return ['menu3', 'menu'];     // THE BOARD's hall: menu3.mp3
   if (!st.code && st.view === 'profile') return ['menu1', 'menu'];   // the membership card: menu.mp3
   if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId) return ['menu'];
@@ -168,13 +188,15 @@ async function boot() {
   const fxClass = () => document.body.classList.toggle('reduced-fx', !!settings.reducedFx);
   fxClass();
   onSettings(fxClass);
+  let lastMM = settings.menuMusic;
+  onSettings(() => { if (settings.menuMusic !== lastMM) { lastMM = settings.menuMusic; render(state); } });
   // Soft UI tick on every button press (game keyboards opt out with data-sfx="none").
   document.addEventListener('pointerdown', e => {
     const b = e.target.closest && e.target.closest('button');
     if (b && !b.closest('[data-sfx="none"]') && !b.disabled) sfx('tap');
   }, { capture: true, passive: true });
   // Music is lazy: tracks download only after the first tap unlocks audio (see audio/music.js).
-  window.__arcade = { musicDebug, state };
+  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, mood: () => moodNow(), state };
   // Escape closes the top-most sheet (its backdrop click handler does the closing).
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;

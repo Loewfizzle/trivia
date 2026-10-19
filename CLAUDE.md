@@ -85,7 +85,7 @@ js/profile/ api.js me.js queue.js public.js callouts.js  /api client, this devic
 js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX
 js/admin/admin.js                                        the /admin page
 js/ui/    dom.js components.js final.js logo.js game-art.js settings-panel.js help.js toast.js emblems.js   h(), design-system components, the podium, the sign, lobby art, gear + settings, HOW TO PLAY, toasts, rank emblems
-js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js   prefs, AudioContext + buses, music + playlists, synth SFX, title ambience, songs on the server clock
+js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js   prefs, AudioContext + buses, music + playlists, synth SFX, title ambience, songs on the server clock, MOOD MUSIC
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
 js/screens/ title.js setup.js lobby.js profile.js district/{scene,backdrop,fx,palette,signs,marks,sign-logic}.js   the front door, name/avatar, the lobby, the membership card, the city (Canvas 2D: sky, effects, its signs) + its still behind menus
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
@@ -145,7 +145,10 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   or at once when the owner is offline; a rules test proves another player cannot read it.
 
 ## Audio (the short version; everything else in `docs/audio.md`)
-- `playMusic(id, fallback)` is driven by `app.js` from state (menu playlist on title/setup/lobby, `module.MUSIC` in a game, `'victory'` on
+- **MOOD MUSIC** (docs/audio.md): menu screens play the time-of-day mood (`audio/mood.js`, songs in `data/mood-music.json`, built by
+  `scripts/build-mood-music.py`; the owner adds songs as late3/morn1/day1/eve1/party1… in ~/Downloads → "add the new mood songs");
+  a lobby plays one synced song for the room (`audio/lobby-music.js`, `meta/lm`, the host's clock). CLASSIC in settings = the old playlist.
+- `playMusic(id, fallback)` is driven by `app.js` from state (mood / menu playlist on title/setup/lobby, `module.MUSIC` in a game, `'victory'` on
   the podium). Same track = no-op. `PLAYLISTS` (menu, victory, spy, gridlock…) play several tracks with crossfades; `setPlaylist(id, ids)`
   for a seeded per-room order; `duckMusic(level, s)` and `filterMusic(hz, s)` for moments. Songs on the server clock: `audio/synced-songs.js`.
 - `sfx(name)` for the shared synth effects; games with their own palette ship a `createSfx()` in `audio.js` (soft, quiet, felt not heard).

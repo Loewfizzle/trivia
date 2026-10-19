@@ -33,6 +33,9 @@
           "settings": {
             ".validate": "newData.hasChildren()"
           },
+          "lm": {
+            ".validate": "newData.hasChildren(['m', 't0', 'songs', 'sd']) && newData.child('t0').isNumber() && newData.child('m').isString() && newData.child('m').val().length < 40"
+          },
           "$other": {
             ".validate": false
           },

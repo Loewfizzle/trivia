@@ -121,3 +121,4 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"`
     (`scripts/serve.mjs` gzips like Vercel so the numbers are representative).
 
+- MOOD MUSIC: `node --test tests/mood.test.mjs` (boundaries, the bag, the song file) and `node e2e-mood.mjs "<browser>"` (title, mood change at a song's end, CLASSIC, every preview mood, lobby sync + late joiner + host migration, a game's own music, the public board's first tap).

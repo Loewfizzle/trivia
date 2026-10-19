@@ -102,6 +102,14 @@ test('game state and meta: host only', async () => {
   await assertFails(update(ref(db('host'), `${R}/meta`), { status: 'banana' }));
 });
 
+test('lobby mood music queue (meta/lm): the host writes it, nobody else', async () => {
+  await seed(lobbyRoom());
+  const lm = { m: 'lm123', t0: 1000, songs: ['late1'], sd: [180000], bag: { mood: 'late', left: ['late2'] } };
+  await assertSucceeds(update(ref(db('host'), `${R}/meta/lm`), lm));
+  await assertFails(update(ref(db('p2'), `${R}/meta/lm`), { songs: ['menu'] }));
+  await assertFails(set(ref(db('host'), `${R}/meta/lm`), { m: 'x' }), 'must be a whole queue');
+});
+
 test('boards: own board, current round, play phase, participants only', async () => {
   await seed(playingRoom('play'));
   const board = { g: ['abc='], p: ['01200'], solved: false, done: false, at: serverTimestamp() };
