@@ -31,6 +31,7 @@ import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, startRain, thunder, cityPowerOn } from '../audio/ambience.js';
 import { createDistrict } from './district/scene.js';
 import { captureBackdrop } from './district/backdrop.js';
+import { neonPlan, neonState, neonNext } from './district/neon-ramp.js';
 
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
@@ -278,7 +279,7 @@ export function createTitle() {
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     els.actions = buildActions();
-    if (!scene.signOn()) { els.sign.classList.add('is-day'); els.actions.classList.add('is-daylit'); }
+    { const st0 = neonNow(); if (!st0.caught) { els.sign.classList.add('is-day'); if (st0.stage !== 'goodbye') els.actions.classList.add('is-daylit'); } }
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },
       h('span.nd-gate-txt', 'TAP TO ENTER'),
       h('span.nd-gate-sub', 'BEST WITH SOUND ON'));
@@ -392,7 +393,10 @@ export function createTitle() {
     s.classList.add('is-glass');
     const letters = [...s.querySelectorAll('.ndl')];
     // daylight: the sign rests (glass and brackets, unlit) until dusk
-    if (scene && !scene.signOn()) { s.classList.add('is-day'); dockAll(false); ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); return; }
+    // before the catch (and in the morning goodbye) the city boots but the sign isn't forced on: it joins its stage of the day
+    const st0 = neonNow();
+    if (!st0.caught) { s.classList.add('is-day'); ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); applyNeon(st0, { quiet: true }); return; }
+    scene.set({ signPow: null });
     s.classList.remove('is-day');
     const kind = tl.kind;
     if (kind === 'instant' || kind === 'reduced') {
@@ -429,9 +433,9 @@ export function createTitle() {
     const root = els.sign.closest('.nd');
     root.classList.add('is-skip');
     if (!tl.marks.logo) { tl.marks.logo = true; tl.kind = 'instant'; signOn(); }
-    else { els.sign.querySelectorAll('.ndl').forEach(l => l.classList.add('on')); els.sign.classList.add('is-steady', 'is-warm'); }
+    else if (neonNow().caught) { els.sign.querySelectorAll('.ndl').forEach(l => l.classList.add('on')); els.sign.classList.add('is-steady', 'is-warm'); dockAll(true); }
+    else applyNeon(neonNow(), { quiet: true });
     ringLit = false; ringOn(null);
-    dockAll(!els.sign.classList.contains('is-day'));
     root.classList.add('is-menu', 'is-dock');
     finish();
   }
@@ -445,6 +449,7 @@ export function createTitle() {
     trackLogo();
     scheduleFlicker();
     watchSky();
+    neonTick();
     armIdle();
   }
 
@@ -452,12 +457,7 @@ export function createTitle() {
   // holiday (cobwebs, a Santa hat, the New Year countdown, rose / green tubes)
   function watchSky() {
     if (destroyed || !scene) return;
-    const want = scene.signOn();
-    const lit = els.sign.classList.contains('is-steady');
-    if (want && !lit) { tl.kind = 'full'; signOn(); scene.set({ logo: 1 }); }
-    else if (!want && lit) signOff();
     dressSign(scene.look());
-    els.actions.classList.toggle('is-daylit', els.sign.classList.contains('is-day'));
     els.root.classList.toggle('nd-noblur', (scene.tier ? scene.tier() : 2) === 0);
     tintGlass();
     snowOnSign();
@@ -526,17 +526,84 @@ export function createTitle() {
     els.door.classList.add('is-flash'); if (near) els.door.classList.add('is-flash-near');
     clearTimeout(glassT); glassT = setTimeout(() => els.door && els.door.classList.remove('is-flash', 'is-flash-near'), 900);
   }
-  function signOff() {
-    const s = els.sign;
-    const letters = [...s.querySelectorAll('.ndl')];
-    s.classList.remove('is-warm');
-    letters.forEach((l, i) => {
-      const at = 300 * i + Math.random() * 120;
-      [0, 70, 120, 260].forEach((ms, k) => setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 1 && k < 3); dockLight(i, k % 2 === 1 && k < 3); }, at + ms));
-    });
-    setTimeout(() => { if (!destroyed) { s.classList.remove('is-steady'); s.classList.add('is-day'); letters.forEach(l => l.classList.remove('on')); dockAll(false); } }, 300 * letters.length + 400);
-    neonTick();
+  // ------------------------------------------------------------------ THE NEON COMES ALIVE (district/neon-ramp.js, docs/title.md)
+  // The sign follows the day's plan: silent sputters that grow through the golden hour, letters sticking, THE CATCH — the crackle +
+  // hum, the only sound — when the sun's disc goes behind the rooftops; the city's signs answer one at a time. At dawn the city
+  // signs go first, then the logo falters and dies letter by letter. The sun's computed place only — never the weather.
+  // The dock: icons dark through the ramp, lit from the catch until the last letter dies; HOST brightens at the catch and softens
+  // (no flicker) when the last letter dies.
+  let neonPlanV = null, neonKey = '', neonT = 0, neonStage = null, neonFromPlan = false, neonSounds = 0;
+  const NEON_LIT = { stage: 'night', letters: [true, true, true, true], signs: null, fade: 1, caught: true };
+  const NEON_DAY = { stage: 'day', letters: [false, false, false, false], signs: null, fade: 0, caught: false };
+  function neonNow() {
+    neonFromPlan = false;
+    if (!scene) return NEON_DAY;
+    const L = scene.look();
+    if (!L) return NEON_DAY;
+    if (L.alwaysNight) return NEON_LIT;
+    const m = scene.neonMoments ? scene.neonMoments() : null;
+    if (!m) return scene.signOn() ? NEON_LIT : NEON_DAY;                    // no sunrise / sunset today (polar): the old rule
+    const nSigns = Math.max(1, scene.signCount ? scene.signCount() : 4), sp = scene.speed ? scene.speed() : 1;
+    const key = `${Math.round(m.catchAt / 10000)}|${Math.round(m.clearAt / 10000)}|${reduced() ? 'r' : ''}|${nSigns}|${sp}`;
+    if (key !== neonKey) {
+      neonKey = key;
+      const day = new Date(m.rise).toISOString().slice(0, 10);
+      neonPlanV = neonPlan({ moments: m, seed: `${day}|${(L.lat || 0).toFixed(1)}|${(L.lon || 0).toFixed(1)}`, signs: nSigns, reduced: reduced(), scale: sp });
+    }
+    const st = neonState(neonPlanV, scene.now());
+    neonFromPlan = !!st;
+    return st || NEON_DAY;
   }
+  function applyNeon(st, opts = {}) {
+    if (!els.sign || !scene) return;
+    const s = els.sign, letters = [...s.querySelectorAll('.ndl')];
+    const prev = neonStage;
+    neonStage = st.stage;
+    scene.set({ signPower: st.signs });
+    // HOST: bright from the catch until the last letter dies; softer by day and through the ramp
+    els.actions.classList.toggle('is-daylit', st.stage === 'day' || st.stage === 'ramp');
+    if (st.caught) {
+      if (!s.classList.contains('is-steady') || s.classList.contains('is-day')) {
+        const isCatch = prev === 'ramp' && !opts.quiet;
+        s.classList.remove('is-day', 'is-fade');
+        letters.forEach((l, i) => { if (!buzzing.has(i)) l.classList.add('on'); });
+        s.classList.add('is-steady');
+        setTimeout(() => { if (!destroyed) s.classList.add('is-warm'); }, 60);
+        dockAll(true);
+        if (isCatch) {
+          // THE CATCH: all four lock on together, the crackle + hum, a soft bloom
+          neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 });
+          neonSounds++;
+          s.classList.add('is-catch');
+          setTimeout(() => { if (!destroyed) s.classList.remove('is-catch'); }, 1500);
+        }
+      }
+      scene.set({ logo: 1, signPow: 1 });
+      return;
+    }
+    // the ramp, the goodbye, the day: the daytime glass look, with whichever letters are lit right now
+    s.classList.remove('is-steady', 'is-warm');
+    s.classList.add('is-day');
+    const fade = !!(neonPlanV && neonPlanV.reduced && (st.stage === 'ramp' || st.stage === 'goodbye'));
+    s.classList.toggle('is-fade', fade);
+    if (fade) s.style.setProperty('--rf', st.fade.toFixed(3));
+    let on = 0;
+    letters.forEach((l, i) => { if (st.letters[i]) on++; if (!buzzing.has(i)) l.classList.toggle('on', !!st.letters[i]); });
+    dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
+    const share = fade ? st.fade : on / 4;
+    scene.set({ logo: share > 0 ? 1 : 0, signPow: share });
+  }
+  function neonTick() {
+    clearTimeout(neonT);
+    if (destroyed || !scene || !tl || !tl.done) return;
+    const st = neonNow();
+    applyNeon(st);
+    const now = scene.now();
+    const next = neonFromPlan ? neonNext(neonPlanV, now) : now + 60000;
+    const sp = scene.speed ? scene.speed() : 1;
+    neonT = setTimeout(neonTick, Math.max(25, Math.min(2000, (next - now) / sp + 8)));
+  }
+
   let dressKey = '';
   function dressSign(L) {
     const hol = L && L.holiday;
@@ -609,7 +676,7 @@ export function createTitle() {
     flickerTimer = setTimeout(() => {
       if (destroyed) return;
       // only a lit sign flickers (by day the tubes are dark: a flicker there used to leave a letter switched on)
-      if (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day')) { scheduleFlicker(); return; }
+      if (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day') || !(neonStage === 'lit' || neonStage === 'night')) { scheduleFlicker(); return; }
       // never a letter someone just tapped (its own animation is running)
       const letters = [...els.sign.querySelectorAll('.ndl')].filter((_, i) => !buzzing.has(i));
       if (!letters.length) { scheduleFlicker(); return; }
@@ -677,7 +744,7 @@ export function createTitle() {
       ? [[1, 0], [0, 60], [1, 110], [0, 170], [1, 230], [0, 1850], [1, 1910], [0, 1990]]          // sparks on … glows … flickers out
       : [[0, 0], [1, 50], [0, 95], [1, 150], [0, 200], [1, 1600], [0, 1660], [1, 1720], [0, 1800], [1, 1900]];   // out … dark … re-ignites
     plan.forEach(([on, ms], k) => set(!!on, ms, k === 0 || k === 5));        // a tick as it changes, and as it restarts
-    setTimeout(() => { buzzing.delete(i); if (!destroyed) l.classList.toggle('on', !day); }, plan[plan.length - 1][1] + 40);
+    setTimeout(() => { buzzing.delete(i); if (destroyed) return; l.classList.toggle('on', !day); if (tl && tl.done) neonTick(); }, plan[plan.length - 1][1] + 40);
   }
 
   // after 15 s without a touch the menu and the tagline fade away — just the sign and the city; any touch brings them back
@@ -1079,6 +1146,9 @@ ${both('b', 5.4)}${both('c', 1.9)}
       idle: () => goIdle(),
       isIdle: () => els.root.classList.contains('is-idle'),
       rainSound: () => !!stopRain,
+      neonAt: t => (neonPlanV ? neonState(neonPlanV, t) : null),
+      neonSounds: () => neonSounds,
+      neon: () => { const p = neonPlanV; return { stage: neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
       dock: {
         join: openJoin,
         preview: patch => { els.sig = null; update({ ...st, ...patch }); },   // test-only: show the dock for a state (REJOIN, an invite)
@@ -1096,6 +1166,7 @@ ${both('b', 5.4)}${both('c', 1.9)}
     clearTimeout(flickerTimer);
     clearTimeout(els.logoTimer);
     clearTimeout(els.skyTimer);
+    clearTimeout(neonT);
     clearTimeout(idleTimer);
     document.body.classList.remove('nd-idle');
     document.querySelectorAll('.nd-sunlit').forEach(b => b.classList.remove('nd-sunlit'));

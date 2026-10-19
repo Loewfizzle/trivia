@@ -488,6 +488,7 @@ export function createSigns({ games: allGames = [] } = {}) {
 
   const api = {
     reset() { placedKey = ''; },
+    count: () => signs.length,
     tick(t, dt, o) {
       env = { W: o.W, H: o.H, HZ: o.HZ };
       if (!games.length) return;
@@ -515,7 +516,11 @@ export function createSigns({ games: allGames = [] } = {}) {
       }
       // power: on after dusk (and once the title's boot has reached the signs), off by day
       const on = o.P.sign > 0.5 && o.bill > 0.4;
-      if (on !== lastOn) { lastOn = on; signs.forEach((s, i) => { s.pw = { on, t0: t + (on ? 0.25 + i * 0.6 : Math.random() * 0.25) }; }); }
+      if (o.signPower) {
+        // THE NEON COMES ALIVE: one sign at a time, each with its own sputter-on / stutter-off (once the title's boot reached them)
+        signs.forEach((s, i) => { const want = !!o.signPower[i % o.signPower.length] && o.bill > 0.4; if (!s.pw || s.pw.on !== want) s.pw = { on: want, t0: t + (want && !lastOn ? 0.25 + i * 0.6 : 0.05) }; });
+        lastOn = signs.some(s => s.pw.on);
+      } else if (on !== lastOn) { lastOn = on; signs.forEach((s, i) => { s.pw = { on, t0: t + (on ? 0.25 + i * 0.6 : Math.random() * 0.25) }; }); }
       // the rotation: one sign changes at a time
       const flips = signs.filter(s => s.type !== 'ticker');
       if (rot && flips.length) {

@@ -126,15 +126,17 @@ export function sunArc(ms, tz, lat, lon) {
       const noon = (rise + set) / 2, noonEl = sunPosition(noon, lat, lon).el;
       // where the sun is E1° up, morning and afternoon (a phone's sun leaves / rejoins the screen's edge there)
       const E1 = noonEl >= 16 ? 12 : noonEl * 0.75;
-      const at = (a, b, up) => { for (let i = 0; i < 24; i++) { const m = (a + b) / 2; if ((sunPosition(m, lat, lon).el < E1) === up) a = m; else b = m; } return (a + b) / 2; };
+      const at = (a, b, up, E = E1) => { for (let i = 0; i < 24; i++) { const m = (a + b) / 2; if ((sunPosition(m, lat, lon).el < E) === up) a = m; else b = m; } return (a + b) / 2; };
       const ta = at(rise, noon, true), tb = at(noon, set, false);
-      day = { rise, set, noonEl, e1: { el: E1, ua: (ta - rise) / (set - rise), ub: (tb - rise) / (set - rise) } };
+      // and where it is E4° up (a phone's sun slides out of / into the side towers before / after that)
+      const E4 = Math.min(4, noonEl * 0.4), t4a = at(rise, noon, true, E4), t4b = at(noon, set, false, E4);
+      day = { rise, set, noonEl, e1: { el: E1, ua: (ta - rise) / (set - rise), ub: (tb - rise) / (set - rise) }, e4: { el: E4, ua: (t4a - rise) / (set - rise), ub: (t4b - rise) / (set - rise) } };
     } else day = null;
     if (sunDayCache.size > 60) sunDayCache.clear();
     sunDayCache.set(key, day);
   }
   if (!day) return null;
-  return { u: (ms - day.rise) / (day.set - day.rise), noonEl: day.noonEl, rise: day.rise, set: day.set, e1: day.e1 };
+  return { u: (ms - day.rise) / (day.set - day.rise), noonEl: day.noonEl, rise: day.rise, set: day.set, e1: day.e1, e4: day.e4 };
 }
 
 // ---------------------------------------------------------------- solar eclipses, from the geometry itself
@@ -516,5 +518,8 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
     }
   }
   const t0 = Date.now();
-  return { tz, force, wx, preview: !!(when || q.get('tz') || force.size || wx), now: () => (base == null ? Date.now() : base + (Date.now() - t0)) };
+  // &speed=60: the clock runs 60× (test-only: watch an hour of dusk in a minute)
+  const speed = Math.max(1, Math.min(3600, Number(q.get('speed')) || 1));
+  const start = base == null ? t0 : base;
+  return { tz, force, wx, speed, preview: !!(when || q.get('tz') || force.size || wx || speed > 1), now: () => (base == null && speed === 1 ? Date.now() : start + (Date.now() - t0) * speed) };
 }

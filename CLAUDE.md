@@ -87,7 +87,7 @@ js/admin/admin.js                                        the /admin page
 js/ui/    dom.js components.js final.js logo.js game-art.js settings-panel.js help.js toast.js emblems.js   h(), design-system components, the podium, the sign, lobby art, gear + settings, HOW TO PLAY, toasts, rank emblems
 js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js   prefs, AudioContext + buses, music + playlists, synth SFX, title ambience, songs on the server clock, MOOD MUSIC
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
-js/screens/ title.js setup.js lobby.js profile.js district/{scene,backdrop,fx,palette,signs,marks,sign-logic,stars,weather-fx,rain,frost,wildlife,street,aircraft,live-weather}.js   the front door, name/avatar, the lobby, the membership card, the city (Canvas 2D: sky, effects, signs, LIVE WEATHER, birds, the street) + its still behind menus
+js/screens/ title.js setup.js lobby.js profile.js district/{scene,backdrop,fx,palette,signs,marks,sign-logic,stars,weather-fx,rain,frost,wildlife,street,aircraft,live-weather,sun,neon-ramp}.js   the front door, name/avatar, the lobby, the membership card, the city (Canvas 2D: sky, effects, signs, LIVE WEATHER, birds, the street) + its still behind menus
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
 js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
 js/errlog.js                                             errors from players' phones → /api/log → /admin (first import of app.js + board/public.js)

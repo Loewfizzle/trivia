@@ -659,3 +659,9 @@ body.reduced-fx .nd-hostbtn:active, body.reduced-fx .nd-tab:active .nd-tab-ic, b
 body.reduced-fx .nd-drops::before, body.reduced-fx .nd-drops::after { animation: none; display: none; }
 body.reduced-fx .nd-box.is-filled { animation: none; }
 @media (max-height: 700px) { .nd-bar { --bar-h: 60px; --disc: 66px; --sock-r: 38px; } .nd-box, .nd-go { height: 50px; } }
+
+/* THE NEON COMES ALIVE (title.js#applyNeon): Reduced effects fade the sign in over the ramp (and out in the goodbye) instead of
+   sputters; the catch's soft bloom (the wide glow surges, then settles to its steady level) */
+.nd-sign.is-fade .ndl.on .ndl-light { opacity: var(--rf, 1); transition: opacity 2s linear; }
+.nd-sign.is-catch .nd-logo .ndl-glow2 { opacity: 1; transition: opacity 0.25s ease; }
+.nd-sign.is-catch .nd-logo .ndl-glow1 { opacity: 1; }

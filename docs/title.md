@@ -57,8 +57,8 @@ the street outside: the district, the sign over the door.
 - **The scene** (`district/scene.js`) asks for the look every 2.5 s; when its key changes it repaints the sky and rebuilds
   the reflection; each skyline layer's composite (the hour's tint on the silhouettes, the sun-side rim light, frosted roofs,
   the windows lit right now — they switch on/off one by one with the hour — the trims after dark) is cached by that key.
-- **The sign** (`title.js#watchSky`): lit after dusk, dark glass by day; it flickers off at dawn and comes back tube by tube
-  at dusk. On a holiday's full days the tubes change colour per letter (`.sg-<holiday>` in title.css: Halloween orange/violet,
+- **The sign** (`title.js#applyNeon`, THE NEON COMES ALIVE below): dark glass by day; it sputters to life through the golden hour
+  and catches when the sun goes behind the rooftops; at dawn it falters and dies letter by letter. On a holiday's full days the tubes change colour per letter (`.sg-<holiday>` in title.css: Halloween orange/violet,
   Christmas red/green, NYE gold, Valentine's rose, St. Patrick's green, Easter pastels, Thanksgiving amber, the Fourth red/white/blue)
   and the scene's sign light follows (`scene.set({ signCol })`). Halloween: an orb web with dew beads in the corner and a spider
   that drops from the E on its silk and climbs back; Christmas: a velvet Santa hat on the N; NYE: the countdown in the tagline.
@@ -161,8 +161,9 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **Rotation:** one sign changes every 12 s, round-robin, always to a game not already showing (each game holds its sign
   for half a minute or more). The blade only takes names that fit at a readable size (about 15 px tall on a phone; longer
   names show on the marquee, the icon and the ticker); its letters have a softer glow so they read on a phone. Icons and blades power down and buzz back tube by tube; the marquee flips; the ticker just scrolls.
-- **The living city:** off by day (glass tubes and brackets visible), tube by tube on at dusk (and at the title's boot),
-  off together at dawn. Holidays: orange/violet tubes, Thanksgiving amber, Christmas red/green bulbs
+- **The living city:** off by day (glass tubes and brackets visible); since Oct 19 2026 each sign is powered on its own by the neon
+  plan (`signs.tick(o.signPower)`): one at a time after the catch, one by one off in the dawn twilight (each with its tube-by-tube
+  sputter-on / stutter-off); without a plan the old rule (`P.sign`: all on after dusk, at the title's boot). Holidays: orange/violet tubes, Thanksgiving amber, Christmas red/green bulbs
   (more each December day), New Year's gold + the countdown on the ticker, Valentine's rose tubes, St. Patrick's green,
   Easter pastels, the Fourth red/white/blue. Light spills on the walls and into the wet street; rain streaks catch it;
   a rare small flicker. Reduced effects: no chase, no flicker, plain fades.
@@ -219,6 +220,37 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   St. Patrick's a four-leaf clover — bent in the same tube recipe as the letters, so they power on and flicker with the sign.
   Glows are filtered as one group (a filter per small path clips into visible boxes).
 
+## THE NEON COMES ALIVE (Oct 19, 2026) — `district/neon-ramp.js` (PURE), `sun.js#sunMoments`, `title.js#applyNeon`
+- **Not the weather:** everything follows where the sun is drawn (`sunPlace`), never clouds, rain or fog. `sunMoments` finds the
+  day's moments on the screen's own layout (the sign + tagline, the buttons, the skyline outline): **catchAt** = the LAST time tonight
+  the disc goes fully behind the rooftops before it sets (walked back from 20 min after sunset; the low phone arc can't fire it early),
+  **clearAt** = the first time this morning it is fully clear of them, **startAt** = ~10° elevation. Before the layout is known: the
+  real sunset / sunrise. Cached per local day and layout; the catch differs per screen size by design (what each player sees).
+- **The plan** (`neonPlan`, seeded by the date + the place, so a reload shows the same sputters; `neonState(plan, t)` gives any instant,
+  `neonNext` the next change — the title schedules timers, it never polls):
+  - EVENING: from startAt single silent sputters (80–150 ms, 20–30 s apart) that grow — more often, longer, sometimes two letters,
+    later sometimes holding 1–2 s; in the last few minutes the letters STICK one by one (still dropping out now and then); at
+    catchAt THE CATCH — all four lock on with the crackle + hum (the only sound) and a soft bloom (`.is-catch`); then the rare
+    random flicker as before. The city's signs answer one at a time, a few minutes apart, within ~15 min.
+  - MORNING: the city signs go off one by one 30–10 min before sunrise; the logo stays on until clearAt, then falters for 6–9 min —
+    letters drop out and come back, die one by one, the last hangs on alone — then the daytime glass look.
+  - Never more than one flash every 0.7 s. ALWAYS NIGHT: lit at all times. Reduced effects: no sputters — the sign fades in over
+    the ramp (`.is-fade`, `--rf`) and out in the goodbye; the city signs fade on / off one at a time.
+- **The phone sun's pacing** (for these moments): it slides out of the side towers between sunrise and ~4° (`sunArc().e4`), crosses
+  the open middle through the day, and slides back in after ~4° — so the morning clear is ~20 min after sunrise and the catch is a
+  few minutes before sunset (desktop: when its disc sinks behind the skyline).
+- **The intro** adapts: after the catch it plays exactly as before; before the catch (and in the morning goodbye) the city boots
+  but the sign isn't forced on — it joins its stage. **The dock:** icons dark through the ramp, lit from the catch until the last
+  letter dies; HOST never sputters — it brightens at the catch and softens (no flicker) when the last letter dies.
+- **Letter taps** still work at every stage (the letter returns to the plan's state after its little show). Holiday decorations
+  follow their letters.
+- **Preview:** `?when=&tz=` shows the right stage for any time; `&speed=60` runs the clock 60× (test-only: the evening in a minute,
+  each sputter at its real length on screen — `neonPlan({ scale })`). Hooks: `__district.neon()`, `neonAt(t)`, `neonSounds()`.
+- **Tests:** `tests/neon.test.mjs` (stages, the ramp's growth, ≤ 3 flashes / s, sticking, the city signs one at a time, the morning
+  order, seeding, Reduced effects, the catch against the drawn sun on phones and desktop, N + S, summer + winter); e2e-title
+  "THE NEON COMES ALIVE" (day, ramp, the catch with its one sound, the city answering, the morning, storms, reload, the intro
+  mid-ramp, a letter tap mid-ramp, ALWAYS NIGHT, Reduced effects).
+
 ## THE NEON RING — the dock (Oct 19, 2026) — `title.js#buildActions`, `css/title.css` (end)
 - **One floating bar** of smoked glass near the bottom (14 px from a phone's sides; centred, max 420 px wide on desktop), above the
   home indicator / Safari's toolbar (`max(safe-b + 6px, 20px)`): a blur of the city behind it (`.nd-bar-glass`, the sky's colour from
@@ -251,7 +283,8 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **Power-on:** the bar and its tabs come up with the sign (`is-dock`); at rest it fades with the menu.
 - **The icons are tubes of the same sign** (Oct 19): each answers a letter (JOIN·N, BOARD·E, GAMES·O, YOU·N) through `dockLight(i, on)`
   / `dockAll` — they stutter on a beat behind their letters in the power-on, go dark with them when the sign shuts off at dawn, re-light
-  at dusk, and catch the sign's rare flicker (not letter taps). By day / unlit: empty glass tubes (a pale tube and a thin highlight,
+  at dusk, and catch the sign's rare flicker (not letter taps). Since THE NEON COMES ALIVE: dark through the ramp, lit from the catch
+  until the last letter dies in the morning. By day / unlit: empty glass tubes (a pale tube and a thin highlight,
   no glow; the YOU emblem desaturated); the labels never change. HOST follows the sign's timing but not its off state: softly lit by
   day, its brighten / soften eases over 2.4 s (`--hk`, registered).
 - **Lowest quality tier:** `.nd-noblur` (the scene's `tier()` = 0): slightly more opaque glass, no blur.

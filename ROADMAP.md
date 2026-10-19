@@ -355,6 +355,14 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ THE NEON COMES ALIVE (Oct 19, 2026) — `docs/title.md`
+- [x] The sign sputters to life through the golden hour (silent, seeded, growing, letters sticking) and catches — the only sound —
+      when the sun's drawn disc goes behind the rooftops; the city signs answer one at a time; never the weather
+- [x] Mornings: the city signs go first in the dawn twilight, then the logo falters and dies letter by letter after the disc clears
+      the rooftops; the dock follows (icons dark through the ramp, HOST never sputters)
+- [x] Opening mid-way shows the right stage; the intro adapts; ALWAYS NIGHT; Reduced effects fade; &speed=60 fast-forward (test-only)
+- [x] Tests: neon.test.mjs + e2e-title (13 checks)
+
 ### ✅ Mobile skyline + the sun's low arc (Oct 19, 2026) — `docs/title.md`
 - [x] Portrait phones: the street comes down to just above the dock, the rooftops only a little — taller towers, a valley skyline
 - [x] The sun's phone path: across the open band under the tagline (higher in summer), rising out of / setting into the side towers;

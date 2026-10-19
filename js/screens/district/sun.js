@@ -12,6 +12,8 @@
 // between the rooftops and the tagline, down behind the towers on the right (sunPlace, phone branch). Colour and size by elevation: deep red-orange, larger and a little squashed at the horizon → warm white at midday.
 // Every disc and glow is a cached sprite; a frame is a handful of drawImage calls. Preview: &force=eclipse-sun, &force=totality.
 
+import { sunPosition, sunArc, sunTimes } from '../../core/sky.js';
+
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -47,7 +49,8 @@ export function sunPlace(o) {
     // the highest the disc's centre may sit at x and still clear every roof under it (a circle resting on the skyline: smooth)
     const clearAt = x => { let m = Infinity; for (let dx = -r; dx <= r; dx += 2) m = Math.min(m, roof(x + dx) - Math.sqrt(Math.max(0, r * r - dx * dx))); return m - 3; };
     // fully behind the towers at (x, y): every roof under the disc is above its top
-    const hiddenAt = (x, y) => { for (let dx = -r; dx <= r; dx += 3) if (roof(x + dx) > y - r - 1) return false; return true; };
+    const rh = r * 1.4;                                          // (the low sun is drawn up to 1.4× larger)
+    const hiddenAt = (x, y) => { for (let dx = -rh; dx <= rh; dx += 3) if (roof(x + dx) > y - rh - 1) return false; return true; };
     const tagBot = block.y + block.h;
     let mid = Infinity; for (let xx = W * 0.35; xx <= W * 0.65; xx += 6) mid = Math.min(mid, clearAt(xx));
     const yTop = Math.min(tagBot + r + 4, mid);                  // (no room under the tagline: it may slip behind the logo)
@@ -58,12 +61,24 @@ export function sunPlace(o) {
     let y = lerp(mid, yApex, g);
     // where it goes in / comes out: the nearest x on each side where the disc at the band's bottom is fully behind the towers
     let xL = r * 0.6, xR = W - r * 0.6;
-    for (let xx = W * 0.5; xx >= -r; xx -= 3) if (hiddenAt(xx, mid)) { xL = xx; break; }
-    for (let xx = W * 0.5; xx <= W + r; xx += 3) if (hiddenAt(xx, mid)) { xR = xx; break; }
-    const x = lerp(xL, xR, u);
+    for (let xx = W * 0.5; xx >= -rh; xx -= 3) if (hiddenAt(xx, mid)) { xL = xx; break; }
+    for (let xx = W * 0.5; xx <= W + rh; xx += 3) if (hiddenAt(xx, mid)) { xR = xx; break; }
+    // and where it is fully out in the open (the edges of the open middle)
+    const clearOf = (x, y) => { for (let dx = -rh; dx <= rh; dx += 3) if (roof(x + dx) < y + Math.sqrt(Math.max(0, rh * rh - dx * dx))) return false; return true; };
+    let xCL = W * 0.5, xCR = W * 0.5;
+    for (let xx = xL; xx <= W * 0.5; xx += 3) if (clearOf(xx, mid)) { xCL = xx; break; }
+    for (let xx = xR; xx >= W * 0.5; xx -= 3) if (clearOf(xx, mid)) { xCR = xx; break; }
+    // the pacing: out of the towers between sunrise and E4° (~25 min), across the open middle through the day, back in after E4°
+    const e4 = o.e4 ? (o.south ? { ua: 1 - o.e4.ub, ub: 1 - o.e4.ua } : o.e4) : { ua: 0.05, ub: 0.95 };
+    const x = u <= e4.ua ? lerp(xL, xCL, clamp01(u / Math.max(1e-6, e4.ua)))
+      : u >= e4.ub ? lerp(xCR, xR, clamp01((u - e4.ub) / Math.max(1e-6, 1 - e4.ub)))
+      : lerp(xCL, xCR, (u - e4.ua) / Math.max(1e-6, e4.ub - e4.ua));
     // in the open middle never behind a roof (rest on the skyline where a tower pokes up); at the sides the towers take it
-    const open = smooth(xL + r * 2, xL + r * 4, x) * (1 - smooth(xR - r * 4, xR - r * 2, x));
+    const open = smooth(xL + rh * 2, xL + rh * 3.5, x) * (1 - smooth(xR - rh * 3.5, xR - rh * 2, x));
     y -= (y - Math.min(y, clearAt(x))) * open;
+    // never touching the tagline, at the size it is drawn (a low sun is up to 1.4× larger) — when there is room under it
+    const rd = r * sunShape(el).size;
+    if (mid >= tagBot + rd + 2) y = Math.max(y, tagBot + rd + 2);
     return { x, y };
   }
   // a wide screen: the full arc, its height the real elevation, lifted over the sign where it would cross it
@@ -80,6 +95,46 @@ export function sunPlace(o) {
   const b = o.buttons;
   if (b && x > b.x - r - 24 && x < b.x + b.w + r + 24 && y < b.y + b.h + r + 24) y = b.y + b.h + r + 24;
   return { x, y };
+}
+
+/** PURE: the day's moments for THE NEON COMES ALIVE (district/neon-ramp.js), from where the sun is drawn (sunPlace) — never the
+ *  weather. catchAt: the LAST time tonight the disc goes fully behind the rooftops before it sets; clearAt: the first time this
+ *  morning it is fully clear of them; startAt: ~10° elevation in the evening. layout: { W, H, HZ, block, buttons, safeTop, roof,
+ *  base } (null: the real sunset / sunrise, −0.8°). ms: any time in the local day. */
+export function sunMoments({ lat, lon, tz, ms, layout }) {
+  const { rise, set } = sunTimes(ms, tz, lat, lon);
+  if (rise == null || set == null) return null;
+  const noon = (rise + set) / 2, noonEl = sunPosition(noon, lat, lon).el;
+  let startAt;
+  if (noonEl <= 10.5) startAt = set - 60 * 60000;
+  else { let a = noon, b = set; for (let i = 0; i < 24; i++) { const m = (a + b) / 2; if (sunPosition(m, lat, lon).el > 10) a = m; else b = m; } startAt = (a + b) / 2; }
+  let catchAt = set, clearAt = rise;
+  if (layout && layout.roof) {
+    const roof = layout.roof;
+    const at = t => {
+      const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
+      if (!a) return null;
+      const p = sunPlace({ ...layout, u: a.u, el, south: lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl });
+      return { ...p, r: layout.base * sunShape(el).size };
+    };
+    const hidden = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (roof(p.x + dx) > p.y - p.r) return false; return true; };
+    const clear = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (roof(p.x + dx) < p.y + Math.sqrt(Math.max(0, p.r * p.r - dx * dx))) return false; return true; };
+    const first = (a, b, test) => { for (let i = 0; i < 12; i++) { const m = (a + b) / 2; if (test(m)) b = m; else a = m; } return b; };
+    // evening: walk back from just after sunset to the last moment the disc still showed
+    const late = at(set + 20 * 60000);
+    if (late && hidden(late)) {
+      for (let t = set + 20 * 60000; t >= set - 5 * 3600000; t -= 2 * 60000) {
+        const p = at(t);
+        if (p && !hidden(p)) { catchAt = first(t, t + 2 * 60000, x => { const q = at(x); return !q || hidden(q); }); break; }
+      }
+    }
+    // morning: the first moment the disc is fully clear of the rooftops
+    for (let t = rise - 10 * 60000; t <= rise + 5 * 3600000; t += 2 * 60000) {
+      const p = at(t);
+      if (p && clear(p)) { clearAt = first(t - 2 * 60000, t, x => { const q = at(x); return !!q && clear(q); }); break; }
+    }
+  }
+  return { rise, set, noonEl, startAt: Math.min(startAt, catchAt - 25 * 60000), catchAt, clearAt };
 }
 
 export function createSun() {
@@ -208,9 +263,10 @@ export function createSun() {
   }
 
   // what the frame knows about the sun: { x, y, r, rx, ry, col, el, vis (0..1 the disc), glow (0..1), eclipse }
-  let now = null;
+  let now = null, layout = null, momentsKey = '', momentsVal = null, lc = 0;
   function state(s) {
     const L = s.L;
+    if (!layout || ++lc % 30 === 0) layout = layoutOf(s);   // (twice a second is plenty)
     if (L.alwaysNight || !L.sunArc || L.sun.el < -3.5) return null;
     const el = L.sun.el, sa = L.sunArc;
     const phone = W < 760 || H > W;
@@ -221,7 +277,8 @@ export function createSun() {
     const buttons = (s.clear || []).filter(z => z.w < 70 && z.y < HZ * 0.4).reduce((a, z) => (a ? { x: Math.min(a.x, z.x), y: Math.min(a.y, z.y), w: Math.max(a.x + a.w, z.x + z.w) - Math.min(a.x, z.x), h: Math.max(a.y + a.h, z.y + z.h) - Math.min(a.y, z.y) } : { ...z }), null);
     const sky = s.skyline;
     const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
-    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1, noonEl: sa.noonEl, roof });
+    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1, e4: sa.e4, noonEl: sa.noonEl, roof });
+    void layout;
     // never a jump: it eases toward its place (and settles at once on a new layout)
     if (!pos || Math.hypot(pos.x - p.x, pos.y - p.y) > W * 0.5) pos = { ...p }; else { pos.x += (p.x - pos.x) * 0.06; pos.y += (p.y - pos.y) * 0.06; }
     // the weather: thick cloud hides the disc (a brighter patch stays), rain and heavy fog hide it, light fog leaves a glow
@@ -240,8 +297,28 @@ export function createSun() {
     return { x: pos.x, y: pos.y, r, rx: r, ry: r * sh.squash, col: sunColor(el), el, vis, glow: glowK, over, eclipse: ec };
   }
 
+  // the placement inputs (the sign + tagline, the corner buttons, the skyline's outline) — for the day's moments
+  function layoutOf(s) {
+    const phone = W < 760 || H > W;
+    const lr = s.signRect, cl = (s.clear || []).find(z => z.w > W * 0.5 && z.y < HZ);
+    const block = lr ? { x: lr.x - 6, y: lr.y - 6, w: lr.w + 12, h: cl ? cl.y + cl.h - 34 + 6 - (lr.y - 6) : lr.h + 60 } : null;
+    const buttons = (s.clear || []).filter(z => z.w < 70 && z.y < HZ * 0.4).reduce((a, z) => (a ? { x: Math.min(a.x, z.x), y: Math.min(a.y, z.y), w: Math.max(a.x + a.w, z.x + z.w) - Math.min(a.x, z.x), h: Math.max(a.y + a.h, z.y + z.h) - Math.min(a.y, z.y) } : { ...z }), null);
+    const sky = s.skyline;
+    const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
+    return block && roof ? { W, H, HZ, block, buttons, safeTop: s.safeTop, roof, base: phone ? 16.5 : 26, sky } : null;
+  }
+
   return {
     resize(w, h, hz) { W = w; H = h; HZ = hz; pos = null; },
+    /** the day's moments for the neon (sunMoments), cached per local day and layout */
+    moments(ms, tz, lat, lon) {
+      if (lat == null || lon == null) return null;
+      const day = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(ms));
+      const lk = layout ? `${W}|${H}|${Math.round(layout.block.y)}|${Math.round(layout.block.h)}|${layout.sky.length}|${Math.round(layout.sky[Math.floor(layout.sky.length / 2)])}` : 'none';
+      const key = `${day}|${tz}|${lat.toFixed(2)}|${lon.toFixed(2)}|${lk}`;
+      if (key !== momentsKey) { momentsKey = key; momentsVal = sunMoments({ lat, lon, tz, ms, layout }); }
+      return momentsVal;
+    },
     draw(c, s) {
       now = state(s);
       s.sunAt = now && now.vis > 0.05 ? { x: now.x, y: now.y, r: now.r } : null;

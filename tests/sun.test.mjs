@@ -75,7 +75,7 @@ function day(city, date, scr) {
   const out = [];
   for (let t = a0.rise - 20 * 60000; t <= a0.set + 20 * 60000; t += 60000) {
     const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
-    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1, noonEl: a.noonEl, roof: scr.roof });
+    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1, e4: a.e4, noonEl: a.noonEl, roof: scr.roof });
     out.push({ t, el, u: a.u, ...p, r: scr.base * sunShape(el).size });
   }
   return out;

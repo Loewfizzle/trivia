@@ -483,7 +483,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     if (!off.has('no-rain')) rain.veils(c, fs);
     if (!off.has('no-birds')) birds.sky(c, fs);              // geese in the migrations, the heron across the moon
     // the neon sign lights the haze around it (after dark)
-    const signLight = S.logo * Math.max(P.sign, 0.15 * night);
+    const signLight = S.logo * (S.signPow != null ? S.signPow : Math.max(P.sign, 0.15 * night));   // signPow: the neon plan's lit share
     if (signLight > 0 && S.logoRect) {
       const r = S.logoRect;
       const cx = r.x + r.w / 2, cy = r.y + r.h / 2, rad = r.w * (0.9 + 0.7 * LK.fog);   // fog and rain spread the neon's halo
@@ -496,7 +496,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     // two searchlights sweep slowly behind the skyline (after dark)
     if (lit > 0.2 && night > 0.1) { const sl = searchOn(); if (sl > 0.01) searchlights(c, t, lit * night * sl); }
     // the signs: placement (around the title's clear zones), power, rotation, the ticker
-    signs.tick(t, dt, { W, H, HZ, layers, clear: S.clear, L: LK, P, bill: S.bill, motion: S.motion, tier });
+    signs.tick(t, dt, { W, H, HZ, layers, clear: S.clear, L: LK, P, bill: S.bill, motion: S.motion, tier, signPower: S.signPower || null });
     // skyline layers + haze
     const hz = hazeKey();
     const winNow = P.win;
@@ -717,6 +717,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     setTier,
     tier: () => tier,
     sun: () => sun.debug(),
+    neonMoments: () => sun.moments(clock.now(), clock.tz, LK.lat, LK.lon),
+    signCount: () => (signs.count ? signs.count() : 4),
+    now: () => clock.now(),
+    speed: () => clock.speed || 1,
     skyline: () => (skyline ? Array.from(skyline) : null),
     frames: () => frames.slice(),
     debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug(), sun: sun.debug() }),

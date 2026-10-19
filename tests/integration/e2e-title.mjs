@@ -504,6 +504,65 @@ try {
     ok(r.lit && r.anim === 'none', `REDUCED EFFECTS: the ring is lit, no breathing (${r.anim})`);
     await Rd.ctx.close(); }
 
+  // ================================================================ 8c. THE NEON COMES ALIVE (the sign follows the sun)
+  { const NY = 'tz=America/New_York';
+    const page = async (qs, o = {}) => { const X = await open({ slot: 'n' + Math.random().toString(36).slice(2, 6), profile: PROFILES.ava, seen: true, view: [390, 844], qs, ...o }); await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title neon'); await sleep(2500); return X; };
+    const look = X => ev(X.page, `({ n: window.__district.neon(), icons: window.__district.dock.icons(), ring: window.__district.dock.ring().on, daylit: document.querySelector('.nd-actions').classList.contains('is-daylit'), day: document.querySelector('.nd-sign').classList.contains('is-day'), steady: document.querySelector('.nd-sign').classList.contains('is-steady'), fade: document.querySelector('.nd-sign').classList.contains('is-fade') })`);
+    // the day, the ramp, the night, the morning goodbye
+    let X = await page(`when=2026-10-20T13:00&${NY}&wx=clear`); let r = await look(X);
+    ok(r.n.stage === 'day' && r.n.letters.every(x => !x) && r.icons.every(x => !x) && r.ring && r.daylit, `NEON, DAY: the sign and the icons are glass, HOST softly lit (${r.n.stage})`);
+    const plan = r.n.plan;
+    ok(plan && plan.catchAt > plan.startAt + 25 * 60000 && plan.clearAt < plan.endAt, 'NEON: the day\'s plan (ramp start, the catch, the morning clear, the goodbye)');
+    await X.ctx.close();
+    X = await page(`when=2026-10-20T17:25&${NY}&wx=clear`); r = await look(X);
+    ok(r.n.stage === 'ramp' && r.icons.every(x => !x) && r.ring && r.day && !r.steady, `NEON, RAMP: before the catch the sign isn't forced on, the icons stay dark, HOST stays lit (${r.n.letters.map(Number).join('')})`);
+    // a letter tap still works mid-ramp
+    { const b = await ev(X.page, `(() => { const r = document.querySelector('svg.nd-logo').getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; })()`);
+      const target = r.n.letters[1] ? null : 1;
+      if (target != null) { await X.page.mouse.click(b.x + b.w * 0.375, b.y + b.h * 0.5); await sleep(400); }
+      ok(target == null || await ev(X.page, `document.querySelectorAll('.nd-sign .ndl')[1].classList.contains('on')`), 'NEON, RAMP: tapping a letter still sparks it'); }
+    await X.ctx.close();
+    // the catch: fast-forward through it (60×) — the letters lock on, the one sound, the icons on, HOST bright, then the city signs
+    X = await page(`when=2026-10-20T18:03&${NY}&wx=clear&speed=30`);
+    const s0 = await ev(X.page, 'window.__district.neonSounds()');
+    await waitFor(X.page, `window.__district.neon().stage === 'lit'`, 'the catch', 20000);
+    await sleep(600);
+    r = await look(X);
+    const s1 = await ev(X.page, 'window.__district.neonSounds()');
+    ok(r.n.letters.every(Boolean) && r.steady && r.icons.every(Boolean) && !r.daylit && s0 === 0 && s1 === 1, `NEON, THE CATCH: all four lock on with the one sound (${s0} → ${s1}), the icons light, HOST brightens`);
+    const sun = await ev(X.page, `(() => { const s = window.__district.scene(), sk = s.skyline || null; return s.sun; })()`);
+    ok(!sun || sun.x > 390 * 0.6, `NEON, THE CATCH: as the sun goes into the right-hand towers (${sun ? sun.x + ',' + sun.y : 'set'})`);
+    await waitFor(X.page, `(window.__district.neon().signs || []).slice(0, 2).some(Boolean)`, 'a city sign', 20000).catch(() => {});
+    const sg = await ev(X.page, 'window.__district.neon().signs.slice(0, 4).filter(Boolean).length');
+    ok(sg >= 1 && sg < 4, `NEON, THE CITY ANSWERS: one sign at a time after the catch (${sg} on so far)`);
+    await X.ctx.close();
+    // the morning goodbye: the city signs already off, the logo faltering, the icons still lit
+    X = await page(`when=2026-10-20T07:41&${NY}&wx=clear`); r = await look(X);
+    ok(r.n.stage === 'goodbye' && (r.n.signs || []).every(x => !x) && r.icons.every(Boolean) && !r.daylit, `NEON, MORNING: the city signs are off, the logo falters (${r.n.letters.map(Number).join('')}), the dock stays lit until the last letter`);
+    await X.ctx.close();
+    // the weather never moves the timing; the same plan on reload
+    const catchOf = async qs => { const Y = await page(qs); const c = (await ev(Y.page, 'window.__district.neon()')).plan; const at = await ev(Y.page, `JSON.stringify(window.__district.neonAt(${Date.UTC(2026, 9, 20, 21, 40)}))`); await Y.ctx.close(); return { c, at }; };
+    const a = await catchOf(`when=2026-10-20T17:30&${NY}&wx=clear`), b = await catchOf(`when=2026-10-20T17:30&${NY}&wx=storm`), c = await catchOf(`when=2026-10-20T17:30&${NY}&wx=clear`);
+    ok(Math.abs(a.c.catchAt - b.c.catchAt) < 15000, `NEON: a storm doesn't move the catch (${new Date(a.c.catchAt).toISOString().slice(11, 19)} vs ${new Date(b.c.catchAt).toISOString().slice(11, 19)})`);
+    ok(a.at === c.at, 'NEON: a reload shows the same sputters at the same moment (seeded)');
+    // the intro before the catch: the city boots, the sign joins its stage (not forced on)
+    X = await page(`intro=1&when=2026-10-20T17:30&${NY}&wx=clear`);
+    await waitFor(X.page, 'window.__district.phase().done', 'intro done', 8000);
+    r = await look(X);
+    ok(r.n.stage === 'ramp' && r.day && !r.steady, 'NEON, INTRO MID-RAMP: the power-on doesn\'t force the sign on');
+    await X.ctx.close();
+    // ALWAYS NIGHT: lit at noon; Reduced effects: a fade instead of sputters
+    X = await open({ slot: 'nan', profile: PROFILES.ava, seen: true, view: [390, 844], qs: `when=2026-10-20T13:00&${NY}&wx=clear` });
+    await X.page.evaluateOnNewDocument(() => { try { localStorage.setItem('na:settings', JSON.stringify({ alwaysNight: true })); } catch {} });
+    await X.page.reload(); await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title always night'); await sleep(2000);
+    r = await look(X);
+    ok(r.n.letters.every(Boolean) && r.steady, `NEON, ALWAYS NIGHT: lit at noon (${r.n.stage})`);
+    await X.ctx.close();
+    X = await page(`when=2026-10-20T17:40&${NY}&wx=clear`, { reduced: true }); r = await look(X);
+    const rf = await ev(X.page, `parseFloat(getComputedStyle(document.querySelector('.nd-sign')).getPropertyValue('--rf'))`);
+    ok(r.n.stage === 'ramp' && r.fade && rf > 0 && rf < 1 && r.n.plan.reduced, `NEON, REDUCED EFFECTS: a fade instead of sputters (${rf.toFixed(2)})`);
+    await X.ctx.close(); }
+
   // ================================================================ 9. quality tiers + frame pacing (CPU throttled), and repeated title<->setup cycles
   // everything else closed first: other open pages would share the CPU being measured
   for (const x of [A, H, B, C, D, F]) await x.ctx.close().catch(() => {});
