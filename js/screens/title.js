@@ -499,6 +499,8 @@ export function createTitle() {
     if (reduced()) return;
     flickerTimer = setTimeout(() => {
       if (destroyed) return;
+      // only a lit sign flickers (by day the tubes are dark: a flicker there used to leave a letter switched on)
+      if (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day')) { scheduleFlicker(); return; }
       const letters = [...els.sign.querySelectorAll('.ndl')];
       const l = letters[Math.floor(Math.random() * letters.length)];
       const seq = [0, 60, 95, 130, 190];
