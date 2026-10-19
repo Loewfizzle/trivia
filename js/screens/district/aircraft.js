@@ -73,7 +73,7 @@ export function satTwilight(sunEl, hour) {
 // ---------------------------------------------------------------- the module
 export function createAircraft() {
   let W = 1, H = 1, HZ = 1, K = 1;
-  let planes = [], nextPlane = 20 + Math.random() * 40, forcedAt = -1e9;
+  let planes = [], nextPlane = 10 + Math.random() * 25, forcedAt = -1e9;     // the first one soon after the page opens
   let train = null, trainNight = '', sat = null, nextSat = 60 + Math.random() * 180;
   const glows = new Map();
   const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glows.get(k); if (!c) { c = mk(32, 32); const x = c.getContext('2d'); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.28, `rgba(${k},0.45)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); glows.set(k, c); } return c; };

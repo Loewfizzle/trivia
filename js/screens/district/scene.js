@@ -20,6 +20,7 @@ import { look as skyLook, skyClock } from '../../core/sky.js';
 import { paletteFor, css } from './palette.js';
 import { createFx } from './fx.js';
 import { settings } from '../../audio/settings.js';
+import { reportError } from '../../errlog.js';
 
 const TIERS = [
   { dpr: 1, rain: 0, shimmer: false, ripples: false },
@@ -76,7 +77,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       if (!clock.preview) e.startWeather();
       liveWeather = e.liveWeather;
       lookAt = 0;                       // pick the live weather up at once
-    }).catch(e => console.warn('city extras', e));
+    }).catch(e => { console.warn('city extras', e); reportError(e, 'city extras'); });   // shows on /admin: Errors from phones
   }, 1200);
   const wxNow = () => clock.wx || (clock.preview ? null : liveWeather());
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
