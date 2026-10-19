@@ -150,7 +150,7 @@ export function createTitle() {
       h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME }) }),
       h('div.nd-word', 'SPEAKEASY'),
       h('div.nd-tag', TAGLINE),
-      h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
+      els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     els.actions = buildActions();
     if (!scene.signOn()) els.sign.classList.add('is-day');
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },
@@ -355,9 +355,18 @@ export function createTitle() {
   }
 
   // keep the sign's light in the scene in sync with layout (resizes, the keyboard)
+  function clearZones() {
+    const out = [];
+    const add = el => { if (!el) return; const r = el.getBoundingClientRect(); if (r.width && r.height) out.push({ x: r.left, y: r.top, w: r.width, h: r.height }); };
+    add(els.sign); add(els.actions);
+    // open sky under the tagline too, so the city frames the sign instead of crowding it
+    if (out[0]) out[0].h += 34;
+    document.querySelectorAll('.menu-btn, .music-btn').forEach(add);
+    return out;
+  }
   function trackLogo() {
     if (destroyed) return;
-    scene.set({ logoRect: logoRect() });
+    scene.set({ logoRect: logoRect(), clear: clearZones() });
     els.logoTimer = setTimeout(trackLogo, 500);
   }
 
@@ -395,8 +404,8 @@ export function createTitle() {
   }
 
   // ------------------------------------------------------------------ the living city: taps, and the screen at rest
-  // a tap on the city: a billboard opens that game's HOW TO PLAY; windows switch on and off; the moon, the UFO, the
-  // cat answer (fx.js); a tap on the sign makes that tube buzz
+  // a tap on the city: a sign opens that game's HOW TO PLAY; the moon, the UFO, the cat answer (fx.js); a tap on the
+  // main sign makes that tube buzz
   let down = null;
   function onCityDown(e) { down = swallowed ? null : { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target }; }
   function onCityUp(e) {
@@ -412,8 +421,7 @@ export function createTitle() {
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
     const hit = scene.hit(x, y);
     if (!hit) return;
-    if (hit.kind === 'billboard') { sfx('select'); openHelp(hit.id); }
-    else if (hit.kind === 'window') sfx('tap');
+    if (hit.kind === 'sign') { sfx('select'); openHelp(hit.id); }
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
   }
@@ -535,13 +543,12 @@ export function createTitle() {
     // the quiet links: THE BOARD, YOUR CARD, THE GAMES
     els.board = h('button.nd-link.nd-link-board', { type: 'button', onclick: () => { sfx('select'); setState({ view: 'board' }); } },
       h('span.nd-board-mark', { 'aria-hidden': 'true' }), h('span', 'THE BOARD'));
-    els.cardBtn = h('button.nd-link.nd-card-btn', { type: 'button', 'aria-label': 'Your membership card', onclick: () => { sfx('select'); setState({ view: 'profile' }); } });
     els.gamesBtn = h('button.nd-link.nd-link-games', { type: 'button', onclick: openGames },
       h('span.nd-games-mark', { 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i')), h('span', 'GAMES'));
     return h('section.nd-actions',
       els.rejoin,
       els.door,
-      h('div.nd-links', els.board, els.cardBtn, els.gamesBtn),
+      h('div.nd-links', els.board, els.gamesBtn),
       h('div.nd-foot', els.msg, els.welcome));
   }
 
@@ -557,17 +564,18 @@ export function createTitle() {
     const p = loadProfile();
     const me = loadMe();
     const pub = me && me.profile && me.uid === state.uid ? me.profile : null;
-    paintCardBtn(pub);
-    const sig = `${p ? `${p.name}|${p.color}|${p.avatar}` : ''}|${pub ? `${pub.t}|${pub.r}` : ''}|${state.rejoin || ''}|${state.invite || ''}|${state.inviteExpired || ''}`;
+    const sig = `${p ? `${p.name}|${p.color}|${p.avatar}` : ''}|${pub ? `${pub.t}|${pub.r}|${pub.x}` : ''}|${state.rejoin || ''}|${state.invite || ''}|${state.inviteExpired || ''}`;
     if (sig === els.sig) return;
     els.sig = sig;
     els.welcome.replaceChildren(...(p && p.name ? [
       avatar(p.avatar, p.color, 22),
-      h('button.nd-me', { type: 'button', 'aria-label': 'Your membership card', onclick: () => setState({ view: 'profile' }) },
-        h('span', 'Welcome back, ', h('b', { style: { color: colorHex(p.color) } }, p.name)), rankBadge(pub, { tag: false, size: 16 })),
+      h('button.nd-me', { type: 'button', 'aria-label': 'Your membership card', onclick: () => { sfx('select'); setState({ view: 'profile' }); } },
+        h('span', 'Welcome back, ', h('b', { style: { color: colorHex(p.color) } }, p.name)),
+        ...(pub ? (() => { const sp = step(pub.x || 0); return [h('span.nd-me-dot', '·'), h('span.nd-me-rank', { style: { '--rk': RANK_COLORS[sp.i] } }, emblem(sp.i, 15), h('span', sp.name))]; })() : [])),
       h('button.nd-edit', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'edit' }) }, 'EDIT'),
     ] : []));
     els.welcome.hidden = !(p && p.name);
+    if (els.sub) els.sub.hidden = !!(p && p.name);
     els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', onclick: () => join(state.rejoin, true) },
       h('span.nd-rejoin-k', 'YOUR ROOM IS STILL OPEN'), h('span.nd-rejoin-l', `REJOIN ${state.rejoin}`))] : []));
     els.rejoin.hidden = !state.rejoin;
@@ -576,19 +584,6 @@ export function createTitle() {
     if (state.inviteExpired) say(`Room ${state.inviteExpired} has closed. Host a new game, or ask your friend for a fresh code.`, 'warn');
   }
 
-  function paintCardBtn(pub) {
-    if (!els.cardBtn) return;
-    const xp = pub ? pub.x || 0 : 0;
-    const sig = `${xp}|${pub ? pub.s : ''}`;
-    if (els.cardBtn.dataset.sig === sig) return;
-    els.cardBtn.dataset.sig = sig;
-    const sp = step(xp);
-    els.cardBtn.style.setProperty('--rk', RANK_COLORS[sp.i]);
-    els.cardBtn.replaceChildren(...[
-      h('span.nd-cb-emb', emblem(sp.i, 18)),
-      h('span.nd-cb-name', pub ? sp.name : 'YOUR CARD'),
-      pub && pub.s >= 2 ? h('span.nd-cb-flame', `${pub.s}🔥`) : null].filter(Boolean));
-  }
 
   const clean = v => String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
 

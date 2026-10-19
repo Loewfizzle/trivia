@@ -174,7 +174,7 @@ try {
   ok(ph.kind === 'full' && ph.done, `FIRST VISIT: the full sequence ran and finished (${ph.kind}, ${ph.t.toFixed(2)} s)`);
   const sc = await ev(A.page, 'window.__district.scene()');
   ok(sc.wave === 1 && sc.lit === 1 && sc.bill === 1 && sc.logo === 1, 'POWER-ON: lights, billboards, sign all fully on at the end');
-  ok(sc.billboards >= 2 && sc.textures >= 6, `SCENE: holographic billboards show the games (${sc.billboards} billboards, ${sc.textures} game textures)`);
+  ok(sc.signs && sc.signs.length >= 4, `SCENE: the city's signs show the games (${sc.signs ? sc.signs.map(s => s.type).join(', ') : 'none'})`);
   ok(await ev(A.page, `document.querySelectorAll('.nd-sign .ndl.on').length === 4 && document.querySelector('.nd-sign').classList.contains('is-warm')`), 'SIGN: all four letters lit and steady');
   ok(await ev(A.page, `getComputedStyle(document.querySelector('.nd-host')).opacity === '1'`), 'MENU: eased in');
   await shotAll(A.page, 'n-02-menu-new-player');
@@ -217,6 +217,7 @@ try {
   const sp = await phase(S.page);
   ok(sp.done && sp.t < 1.3, `SKIP: a tap during the sequence jumps to the end (done at ${sp.t.toFixed(2)} s)`);
   ok(await ev(S.page, `document.querySelector('.nd').classList.contains('is-menu') && document.querySelectorAll('.nd-sign .ndl.on').length === 4`), 'SKIP: menu + sign shown');
+  ok(await ev(S.page, `!document.querySelector('.nd-sub').hidden && /^[0-9]+ PARTY GAMES/.test(document.querySelector('.nd-sub').textContent)`), 'FIRST VISIT: the explainer line shows, counted from the games list');
   await S.ctx.close();
   const R = await open({ slot: 'r', reduced: true, view: [390, 844] });
   await R.page.waitForSelector('.nd-gate.is-in', { timeout: 15000 });
@@ -236,7 +237,8 @@ try {
   await tap(H.page, '.nd-link-games');
   await H.page.waitForSelector('.nd-games .nd-gtile', { timeout: 4000 });
   ok(await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length === window.__arcade ? true : true`) && await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length`) >= 12, 'GAMES: the sheet lists every game');
-  ok(/^[0-9]+ PARTY GAMES/.test(await ev(H.page, `document.querySelector('.nd-sub').textContent`)), 'GAMES: the count under the tagline comes from the games list');
+  ok(await ev(H.page, `document.querySelector('.nd-sub').hidden`), 'RETURNING PLAYER: just the tagline (the explainer line is for first visits)');
+  ok(await ev(H.page, `!document.querySelector('.nd-card-btn') && document.querySelectorAll('.nd-links .nd-link').length === 2`), 'RETURNING PLAYER: the links are THE BOARD and GAMES (the rank lives in the welcome line)');
   await H.page.evaluate(() => document.querySelector('.nd-gtile[data-id="prism"]').click());
   await H.page.waitForSelector('.nd-preview', { timeout: 4000 });
   await sleep(500);
@@ -256,16 +258,31 @@ try {
   ok(/4–8 PLAYERS/.test(await ev(H.page, `document.querySelector('.nd-preview').innerText`)), 'GAMES: DOUBLE AGENT says 4–8 players');
   await H.page.evaluate(() => document.querySelectorAll('.modal').forEach(m => m.remove()));
   await sleep(300);
-  // a billboard in the city opens that game's HOW TO PLAY
-  const bb = await H.page.evaluate(() => { for (let y = 200; y < innerHeight * 0.7; y += 5) for (let x = 5; x < innerWidth; x += 5) { const h = window.__district.hit(x, y); if (h && h.kind === 'billboard') return { x, y, id: h.id }; } return null; });
-  ok(!!bb, `BILLBOARD: found one in the city (${bb && bb.id})`);
-  if (bb) {
-    await H.page.mouse.click(bb.x, bb.y);
-    await H.page.waitForSelector('.help', { timeout: 4000 }).catch(() => {});
-    ok(await ev(H.page, '!!document.querySelector(".help")'), 'BILLBOARD: a tap opens HOW TO PLAY');
+  // the city's signs: four on a phone, spread out, each opening its game's HOW TO PLAY on a phone-style tap (pointer
+  // events only: iOS never sends click to the city)
+  const sg = await ev(H.page, 'JSON.stringify(window.__district.scene().signs)').then(JSON.parse);
+  ok(['marquee', 'blade', 'icon', 'ticker'].every(k => sg.some(s => s.type === k)) && sg.length === 4, `SIGNS: a marquee, a blade, an icon and a ticker on a phone (${sg.map(s => s.type + ':' + (s.game || '-')).join(' ')})`);
+  const games = sg.filter(s => s.game).map(s => s.game);
+  ok(new Set(games).size === games.length, 'SIGNS: no game on two signs at once');
+  for (const s of sg) {
+    await H.page.evaluate(({ x, y }) => {
+      const tgt = document.elementFromPoint(x, y);
+      const o = { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerType: 'touch', isPrimary: true };
+      tgt.dispatchEvent(new PointerEvent('pointerdown', o)); tgt.dispatchEvent(new PointerEvent('pointerup', o));
+    }, { x: s.x + s.w / 2, y: s.y + s.h / 2 });
+    await H.page.waitForSelector('.help', { timeout: 3000 }).catch(() => {});
+    ok(await ev(H.page, '!!document.querySelector(".help")'), `SIGNS: tapping the ${s.type} opens HOW TO PLAY`);
     await H.page.keyboard.press('Escape');
-    await sleep(500);
+    await sleep(450);
+    await H.page.evaluate(() => document.querySelectorAll('.modal, .help').forEach(m => m.remove()));
   }
+  // the rotation: one sign at a time, spaced out
+  await sleep(10500);
+  const ch = await ev(H.page, 'JSON.stringify(window.__district.scene().changes)').then(JSON.parse);
+  ok(ch.length >= 2 && ch.every((c, i) => i === 0 || c.t - ch[i - 1].t >= 4.5), `SIGNS: they rotate one at a time (${ch.map(c => c.sign + '→' + c.game).join(', ')})`);
+  // the window easter egg is gone: a tap on a building does nothing
+  const hits = await H.page.evaluate(() => { const k = new Set(); for (let y = 300; y < innerHeight * 0.66; y += 9) for (let x = 6; x < innerWidth; x += 9) { const h = window.__district.hit(x, y); if (h) k.add(h.kind); } return [...k]; });
+  ok(!hits.includes('window'), `EASTER EGGS: no window switching (taps found: ${hits.join(', ') || 'none'})`);
   // at rest: the menu fades, a tap brings it back without pressing anything
   await H.page.evaluate(() => window.__district.idle());
   await sleep(2000);

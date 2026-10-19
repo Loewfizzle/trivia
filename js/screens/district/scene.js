@@ -1,20 +1,20 @@
 // NEON SPEAKEASY — the title screen's city (the neon district outside the bar) (Canvas 2D, PULSE-style: everything expensive is pre-rendered).
 //
-//   sky (+ stars, horizon glow) -> 4 skyline layers far→near, each with haze at its feet -> beacons, billboards,
+//   sky (+ stars, horizon glow) -> 4 skyline layers far→near, each with haze at its feet -> beacons, the signs,
 //   flying-vehicle light trails -> the wet street: the whole city reflected (flipped, squashed, streaked,
-//   rippling), billboard + logo light spilling onto it, puddle ripples -> rain over everything.
+//   rippling), sign + logo light spilling onto it, puddle ripples -> rain over everything.
 //
 // Every skyline layer is drawn once into two offscreen canvases: DARK (silhouettes, unlit window glass) and LIT
 // (lit windows, neon trims, rooftop signs). The power-on ("the city wakes up") draws the lit windows one by one
 // from the bottom up for ~1.5 s, then hands over to the LIT canvases. Steady state is ~80 drawImage calls.
-// Holographic billboards on some buildings cycle through the games' own art (ui/game-art.js).
+// The city's signs (signs.js): a rooftop marquee, a blade sign, neon icon signs and a ticker, rotating through the games.
 // LIVING CITY: the sky follows the player's real local time (core/sky.js → palette.js): dawn, a hazy matinee day, golden
 // hour, night, the small hours; the real sun and moon; the season, holidays and sky events (fx.js). The look is
 // recomputed every few seconds; the sky, each layer's composite (tinted silhouettes + the windows lit right now) and the
 // reflection are re-baked only when it visibly changes (look.key / the window count), so a steady frame stays cheap.
 // Quality tiers (DPR 2 / 1.5 / 1, rain, shimmer, vehicles, ripples) step down when frames run slow; rendering
 // pauses while the tab is hidden; destroy() releases every canvas.
-import { gameArtSvg } from '../../ui/game-art.js';
+import { createSigns } from './signs.js';
 import { look as skyLook, skyClock } from '../../core/sky.js';
 import { paletteFor, css } from './palette.js';
 import { createFx } from './fx.js';
@@ -25,7 +25,6 @@ const TIERS = [
   { dpr: 1.5, rain: 1, shimmer: true, vehicles: true, ripples: false },
   { dpr: 2, rain: 2, shimmer: true, vehicles: true, ripples: true },
 ];
-const ACCENT = { overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#c9ecff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const WARM = ['#ffd8a0', '#ffcf8a', '#ffe2b8', '#ffc27a'];
 const COOL = ['#9fd8ff', '#b8e4ff', '#8fc2ff', '#c9b8ff'];
 const NEON = ['#ff3fb0', '#3fe0ff', '#a65bff', '#ff6a6a'];
@@ -40,34 +39,33 @@ function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>>
 const LAYERS = [
   { d: 0.12, h: [0.28, 0.66], w: [14, 34], body: '#161b44', top: '#232a5e', win: [1.4, 2.2], gap: [3, 4.5], lit: 0.30, fog: 0.62 },
   { d: 0.26, h: [0.22, 0.56], w: [22, 52], body: '#10143a', top: '#1b2152', win: [1.8, 2.8], gap: [3.6, 5.4], lit: 0.28, fog: 0.42 },
-  { d: 0.46, h: [0.16, 0.46], w: [34, 72], body: '#0b0e2c', top: '#151a44', win: [2.2, 3.4], gap: [4.4, 6.6], lit: 0.26, fog: 0.24, billboards: 2 },
-  { d: 0.78, h: [0.10, 0.34], w: [52, 110], body: '#06081c', top: '#0e1232', win: [2.6, 4.2], gap: [5.4, 8], lit: 0.22, fog: 0.08, edges: true, billboards: 2 },
+  { d: 0.46, h: [0.16, 0.46], w: [34, 72], body: '#0b0e2c', top: '#151a44', win: [2.2, 3.4], gap: [4.4, 6.6], lit: 0.26, fog: 0.24 },
+  { d: 0.78, h: [0.10, 0.34], w: [52, 110], body: '#06081c', top: '#0e1232', win: [2.6, 4.2], gap: [5.4, 8], lit: 0.22, fog: 0.08, edges: true },
 ];
 
-export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [], billboards: withBillboards = true, clock = skyClock() } = {}) {
+export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [], signs: withSigns = true, clock = skyClock() } = {}) {
   const ctx = canvas.getContext('2d', { alpha: false });
   let tier = tier0;
   let W = 0, H = 0, dpr = 1, HZ = 0;
   let sky = null, skyLit = null, street = null, refl = null, reflLit = null, rainTile = null, vignette = null;
   let layers = [];
-  let billboards = [];
+  const signs = createSigns({ games: withSigns ? games : [] });
   let beacons = [];
   let vehicles = [];
   let ripples = [];
-  let textures = [];         // billboard textures, one per game (when its art has loaded)
   let raf = 0, last = 0, running = false, destroyed = false;
   // the living sky
   const fx = createFx();
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight });
   let P = paletteFor(LK);
-  let skyKey = '', lookAt = 0, nearRoofs = [], pokes = 0;
+  let skyKey = '', lookAt = 0, nearRoofs = [];
   const nightness = () => P.dark;
   const frames = [];
   let cool = 0;
   const S = {                // driven by the title's timeline
     wave: 0,                 // 0..1 how far the lights have climbed (bottom -> top)
     lit: 0,                  // 0..1 overall "the city is on" (haze colour, trims, reflections, signs)
-    bill: 0,                 // 0..1 billboards booting
+    bill: 0,                 // 0..1 the signs booting
     logo: 0,                 // 0..1 the neon sign's glow (its light on the haze and the street)
     logoRect: null,          // { x, y, w, h } in css px
     motion: 1,               // 0 = reduced effects (no drift, no rain motion, no vehicles)
@@ -89,7 +87,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     // sky (painted from the palette; repainted when the look changes)
     paintSky();
     // skyline layers
-    layers = []; billboards = []; beacons = [];
+    layers = []; beacons = [];
+    signs.reset();
     LAYERS.forEach((L, li) => {
       const lw = W + margin * 2;
       const top = Math.round(HZ - HZ * L.h[1] * k * 1.02);
@@ -116,12 +115,6 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
           drawBuilding(dx, lx, x + (bw - sw) / 2, by - sh, sw, sh, L, li, rand, windows, true, rects);
           if (rand() < 0.6) spire(dx, x + bw / 2, by - sh, 10 + rand() * 26 * k, L, li, rand);
         } else if (rand() < 0.25) spire(dx, x + bw * (0.3 + rand() * 0.4), by, 8 + rand() * 18 * k, L, li, rand);
-        // billboards: on mid / near buildings big enough, away from the centre column
-        const side = cx < W / 2 ? 'l' : 'r';
-        if (withBillboards && L.billboards && billboards.filter(b => b.li === li).length < L.billboards && !billboards.some(b => b.li === li && b.side === side) && bw > 46 && bh > HZ * 0.14 && Math.abs(cx - W / 2) > W * 0.16 && cx > 30 && cx < W - 30 && rand() < 0.85) {
-          const bbw = Math.min(bw * 0.9, 76 * k + li * 22), bbh = bbw * 0.62;
-          billboards.push({ li, side, x: x + (bw - bbw) / 2, y: by + Math.min(bh * (0.1 + rand() * 0.14), bh - bbh - 8), w: bbw, h: bbh, idx: billboards.length * 3, phase: rand() * 6, on: rand() * 0.35 });
-        }
         x += bw + (L.gap[0] * 0.4) + rand() * 6;
       }
       // bloom: the lit layer, blurred (drawn tiny and scaled back up) and added on top of itself
@@ -210,7 +203,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   // each layer's look right now: the silhouettes tinted by the hour (atmospheric perspective by day) and frosted roofs in
   // winter, the windows lit right now (one by one as the hour changes), the trims and rooftop signs after dark
   function compose(L, winOn) {
-    const k = `${skyKey}|${Math.round(winOn * 60)}|${pokes}`;
+    const k = `${skyKey}|${Math.round(winOn * 60)}`;
     if (L.compKey === k && L.comp) return L.comp;
     if (!L.comp || L.comp.width !== L.dark.width || L.comp.height !== L.dark.height) { if (L.comp) L.comp.width = 0; L.comp = mk(L.dark.width, L.dark.height); }
     const x = L.comp.getContext('2d');
@@ -231,7 +224,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
     const warm = P.winWarm || 0;
     for (const w of L.windows) {
-      if ((w.order > winOn) !== !!w.flip) continue;
+      if (w.order > winOn) continue;
       x.fillStyle = warm > 0.05 && !w.neon ? mixHex(w.col, '#ffc27a', warm * 0.6, w.a) : rgba(w.col, w.a);
       x.fillRect(w.x, w.y, w.w, w.h);
     }
@@ -347,43 +340,6 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     return c;
   }
 
-  // billboard textures from the games' art (SVG -> image -> holo panel)
-  function loadTextures() {
-    // the billboards' names use the display face: wait for it (briefly) so they never render in a fallback font
-    const fontReady = (document.fonts && document.fonts.load ? document.fonts.load('700 16px Orbitron') : Promise.resolve()).catch(() => {});
-    Promise.race([fontReady, new Promise(r => setTimeout(r, 1500))]).then(() => { if (!destroyed) games.forEach(makeTexture); });
-  }
-  function makeTexture(g, i) {
-    {
-      const svg = gameArtSvg(g.id);
-      if (!svg) return;
-      const xml = new XMLSerializer().serializeToString(svg);
-      const img = new Image();
-      img.onload = () => {
-        if (destroyed) return;
-        const tw = 192, th = 120;
-        const c = mk(tw, th), x = c.getContext('2d');
-        const acc = ACCENT[g.id] || '#9fd8ff';
-        x.fillStyle = '#05060f'; x.fillRect(0, 0, tw, th);
-        x.drawImage(img, 6, 6, th - 12, th - 12);
-        x.fillStyle = rgba(acc, 0.9);
-        x.textBaseline = 'middle';
-        const words = g.name.split(' ');
-        const room = tw - th - 8;
-        let fs = 16;
-        x.font = `700 ${fs}px Orbitron, sans-serif`;
-        while (fs > 8 && Math.max(...words.map(wd => x.measureText(wd).width)) > room) { fs -= 1; x.font = `700 ${fs}px Orbitron, sans-serif`; }
-        words.forEach((wd, k) => x.fillText(wd, th + 2, th / 2 + (k - (words.length - 1) / 2) * (fs + 3)));
-        // holo scanlines + an edge glow
-        x.fillStyle = 'rgba(0,0,0,0.28)';
-        for (let yy = 0; yy < th; yy += 3) x.fillRect(0, yy, tw, 1);
-        x.strokeStyle = rgba(acc, 0.8); x.lineWidth = 2; x.strokeRect(1, 1, tw - 2, th - 2);
-        textures[i] = { c, acc, id: g.id };
-      };
-      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`;
-    }
-  }
-
   // ------------------------------------------------------------------ frame
   function frame(now) {
     if (!running) return;
@@ -458,6 +414,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     // two searchlights sweep slowly behind the skyline; vehicles fly between the far layers (after dark)
     if (lit > 0.2 && night > 0.1) searchlights(c, t, lit * night);
     if (TIERS[tier].vehicles && S.motion && lit > 0.5 && night > 0.3) vehiclesStep(t, dt, night);
+    // the signs: placement (around the title's clear zones), power, rotation, the ticker
+    signs.tick(t, dt, { W, H, HZ, layers, clear: S.clear, L: LK, P, bill: S.bill, motion: S.motion, tier });
     // skyline layers + haze
     const hz = hazeKey();
     const winNow = P.win;
@@ -495,8 +453,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
         c.drawImage(radial(b.col, [[0, 0.9], [0.25, 0.35], [1, 0]]), ox + b.x - r5, oy + b.y - r5, r5 * 2, r5 * 2);
       }
       c.globalAlpha = 1;
-      // billboards on this layer (dimmer in daylight)
-      for (const b of billboards) if (b.li === li) drawBillboard(c, b, ox, oy, t, 0.55 + 0.45 * night);
+      // this layer's signs (the haze at its feet is drawn after, so far signs sit back in it)
+      signs.drawLayer(c, li, ox, oy, night);
       // the near layer: string lights, window glyphs, holiday neon signs
       if (li === layers.length - 2) {
         fs.mid = { rects: L.rects, ox, oy, top: L.top, margin: L.margin };
@@ -517,16 +475,9 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     c.drawImage(street, 0, HZ, W, H - HZ);
     if (P.street[3] > 0.01) { c.fillStyle = css(P.street, P.street[3]); c.fillRect(0, HZ, W, H - HZ); }
     drawRefl(c, reflLit, clamp01(lit * 1.1) * (0.35 + 0.65 * P.refl), shimmer, t);
-    // light spilling onto the wet street: billboards + the sign (after dark)
+    // light spilling onto the wet street: the signs + the main sign (after dark)
     c.globalCompositeOperation = 'lighter';
-    for (const b of billboards) {
-      const L = layers[b.li];
-      const a = S.bill * (0.9 + 0.1 * Math.sin(t * 3 + b.phase)) * (0.3 + 0.7 * night);
-      if (a <= 0.02) continue;
-      const tx = textures[(b.idx + Math.floor((t + b.phase) / 7)) % Math.max(1, games.length)];
-      const bx = -L.margin + cam.x * L.d + b.x + b.w / 2;
-      streak(c, bx, b.w * 0.9, (H - HZ) * 0.5, tx ? tx.acc : '#9fd8ff', 0.1 * a, t, b.phase);
-    }
+    signs.reflect((x, w, len, col, al, tt, ph) => streak(c, x, w, len, col, al, tt, ph), H, HZ, t);
     if (signLight > 0 && S.logoRect) {
       const r = S.logoRect;
       streak(c, r.x + r.w / 2, r.w * 0.85, (H - HZ) * 0.95, S.signCol || '#ff3fae', 0.22 * signLight, t, 0.5);
@@ -546,6 +497,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       }
       c.globalAlpha = 1;
     }
+    if (LK.rain && S.motion) signs.rain(c, dt);
     // snow, petals, leaves, fireflies, bats
     fx.front(c, fs);
     c.globalAlpha = 0.55 + 0.45 * night;
@@ -594,41 +546,6 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       c.globalAlpha = Math.max(0, a * (1 - i / bands) * (0.7 + 0.3 * Math.sin(t * 2.3 + i * 2.1 + ph)));
       c.drawImage(img, x - bw / 2, y, bw, len / bands * 0.62);
     }
-  }
-
-  function drawBillboard(c, b, ox, oy, t, day = 1) {
-    const x = ox + b.x, y = oy + b.y;
-    b.sx = x; b.sy = y;
-    const on = clamp01((S.bill - b.on) / 0.4);
-    if (on <= 0) return; // before it boots the billboard is just part of the dark facade
-    // the panel's frame fades in with it
-    c.globalAlpha = Math.min(1, on * 2);
-    c.fillStyle = '#04050c'; c.fillRect(x - 2, y - 2, b.w + 4, b.h + 4);
-    c.globalAlpha = 1;
-    const n = Math.max(1, games.length);
-    const slot = Math.floor((t + b.phase) / 7);
-    const k = ((t + b.phase) % 7) / 7;
-    const tx = textures[(b.idx + slot) % n];
-    b.gid = tx && on > 0.5 ? tx.id : null;
-    // boot / change: a short glitch (scan bars) instead of a hard cut
-    const changing = k > 0.965 || k < 0.03;
-    const booting = on < 1;
-    const flick = booting ? (Math.sin(t * 60 + b.phase * 9) > 0 ? on : on * 0.3) : 1;
-    c.globalCompositeOperation = 'lighter';
-    if (tx) {
-      c.globalAlpha = 0.78 * flick * (changing ? 0.45 : 1) * day;
-      c.drawImage(tx.c, x, y, b.w, b.h);
-      // glow around the panel
-      c.globalAlpha = 0.12 * flick;
-      c.drawImage(radial(tx.acc, [[0, 1], [0.35, 0.6], [1, 0]]), x - b.w * 0.45, y - b.h * 0.7, b.w * 1.9, b.h * 2.4);
-    }
-    if (changing || booting) {
-      c.globalAlpha = 0.5 * flick;
-      c.fillStyle = 'rgba(160,220,255,0.5)';
-      for (let i = 0; i < 4; i++) { const yy = y + ((t * 97 + i * 37 + b.phase * 50) % b.h); c.fillRect(x, yy, b.w, 1.4); }
-    }
-    c.globalAlpha = 1;
-    c.globalCompositeOperation = 'source-over';
   }
 
   function vehiclesStep(t, dt, a) {
@@ -701,30 +618,18 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   function stop() { running = false; cancelAnimationFrame(raf); }
 
   build();
-  loadTextures();
   start();
 
   return {
     set(v) { Object.assign(S, v); },
     /** the sky right now (core/sky.js#look) and whether the sign should be lit at this hour */
     look: () => LK,
-    /** a tap on the city: the UFO / cat / moon (fx), a billboard (→ { kind: 'billboard', id }), a window (turns its light
-     *  on or off). Returns { kind, id? } or null. */
+    /** a tap on the city: the UFO / cat / moon (fx), or a sign (→ { kind: 'sign', id }). Returns { kind, id? } or null. */
     hit(x, y) {
       const f = fx.hit(x, y);
       if (f) return { kind: f };
-      for (const b of billboards) if (b.gid && x >= b.sx - 8 && x <= b.sx + b.w + 8 && y >= b.sy - 8 && y <= b.sy + b.h + 8) return { kind: 'billboard', id: b.gid };
-      for (let li = layers.length - 1; li >= 0; li--) {
-        const L = layers[li];
-        if (L.ox == null) continue;
-        const px = x - L.ox, py = y - L.oy;
-        if (!L.rects.some(r => px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h)) continue;
-        let best = null, bd = 9;
-        for (const w of L.windows) { const d = Math.hypot(px - (w.x + w.w / 2), py - (w.y + w.h / 2)); if (d < bd) { bd = d; best = w; } }
-        if (!best) return { kind: 'building' };
-        best.flip = !best.flip; pokes++; refl = null;
-        return { kind: 'window', on: (best.order <= P.win) !== best.flip };
-      }
+      const sg = signs.hit(x, y);
+      if (sg) return { kind: 'sign', id: sg.id, sign: sg.sign };
       return null;
     },
     signOn: () => P.sign > 0.5,
@@ -734,7 +639,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     get tier() { return tier; },
     setTier,
     frames: () => frames.slice(),
-    debug: () => ({ bills: billboards.filter(b => b.gid).map(b => ({ x: b.sx, y: b.sy, w: b.w, h: b.h, id: b.gid })), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), billboards: billboards.length, textures: textures.filter(Boolean).length, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, moon: LK.moon, fx: fx.debug() }),
+    debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, moon: LK.moon, fx: fx.debug() }),
     destroy() {
       destroyed = true;
       stop();
@@ -747,8 +652,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       fx.destroy();
       for (const c of [sky, skyLit, street, refl, reflLit, rainTile, vignette, canvas, ...sprites.values()]) if (c) { c.width = 0; c.height = 0; }
       sprites.clear();
-      for (const tx of textures) if (tx) { tx.c.width = 0; tx.c.height = 0; }
-      layers = []; textures = []; billboards = []; beacons = [];
+      signs.destroy();
+      layers = []; beacons = [];
     },
   };
 }

@@ -669,12 +669,18 @@ export function createFx() {
     const k = clamp01((el + 2) / 40), e = 1 - (1 - k) * (1 - k);
     const top = r + 24, low = HZ * 0.4;
     let x = r + 16 + (W - 2 * r - 32) * u, y = low + (top - low) * e;
-    // phones (a portrait screen: the sign spans it): the moon keeps to the open band above the sign, left to right through
-    // the night, fading in at moonrise and out at moonset, clear of the corner buttons and under the notch / status bar
+    // phones (a portrait screen: the sign spans it): the moon arches over the sign through the night, fading in at moonrise
+    // and out at moonset, clear of the corner buttons and under the notch / status bar
     if (W < 760 || H > W) {
+      // an arch over the sign: low at the left edge beside it at moonrise, over the top, down the right side at moonset,
+      // stepping around the corner buttons (it moves over hours, so the step never shows)
       const safe = moonSafeTop;
-      x = r + 16 + (W - 2 * r - 86) * u;
-      y = Math.max(safe + r + 8, Math.min(safe + top + 4, sign ? sign.y - r - 12 : safe + top));
+      const apex = safe + r + 10, base = sign ? sign.y + sign.h * 0.62 : HZ * 0.3;
+      const cx = W / 2, ax = W / 2 - r - 8;
+      x = cx - ax * Math.cos(Math.PI * u);
+      y = base - (base - apex) * Math.sin(Math.PI * u);
+      const btnX = W - 74 - r, btnY = safe + 118;
+      if (y < btnY && x > btnX) x = btnX;
     } else if (sign) {
       const sr = { x: sign.x - 34, y: sign.y - 44, w: sign.w + 68, h: sign.h + 50 };
       if (x > sr.x - r && x < sr.x + sr.w + r && y > sr.y - r && y < sr.y + sr.h + r) {

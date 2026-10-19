@@ -559,3 +559,8 @@ body.nd-idle .menu-btn, body.nd-idle .music-btn { opacity: 0; pointer-events: no
 @media (min-width: 900px) and (min-height: 640px) {
   .nd-sub { font-size: 10.5px; margin-top: 12px; }
 }
+
+/* the welcome line carries the rank: "Welcome back, BEN · ◆ REGULAR I" */
+.nd-me-dot { margin: 0 6px; color: rgba(236, 240, 255, 0.5); }
+.nd-me-rank { display: inline-flex; align-items: center; gap: 5px; font: 700 10px/1 var(--font-mono); letter-spacing: 0.14em; color: var(--rk, #eef1ff); }
+.nd-sub[hidden] { display: none; }

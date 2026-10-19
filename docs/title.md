@@ -99,3 +99,36 @@ the street outside: the district, the sign over the door.
   (desktop: the full arc, passing over the sign, never behind it). On phones (any portrait screen, or narrower than 760 px — not judged by the sign's size, which shrinks on short screens) the moon keeps to
   the band above it, below the notch, moving left to right through the night and fading in / out at moonrise / moonset, clear of the corner
   buttons. It glides to a new spot instead of jumping.
+
+## The city's signs (Oct 2026) — replaced the billboards
+Files: `district/signs.js` (drawing, placement, power, holidays, taps), `district/marks.js` (each game's neon mark + a
+single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the ticker's message; `tests/signs.test.mjs`).
+- **Four kinds**, all in the main sign's language (glass tube, white-hot core, two blurred glow layers, electrode caps,
+  mounting clips, brackets):
+  - **Marquee** (the showpiece): an art-deco crown on a near tower — sunburst fan, stepped pediment, "NOW PLAYING" in red
+    neon, a theater letter board with the game's name, chasing bulbs all round. A change flips the board column by column.
+  - **Blade**: a lacquered vertical cabinet off the edge of a near tower on brackets, a border tube and the game's word in
+    stacked tube letters (`MARKS[id].blade`).
+  - **Icon**: the game's mark (`MARKS[id].tubes`, a 0..100 box) mounted on a mid-skyline wall, with a little transformer.
+  - **Ticker**: a dot-matrix band (5×7 font in signs.js) across a building: holiday build-ups ("3 NIGHTS TO HALLOWEEN"),
+    greetings, the New Year countdown (alone in the last minutes), then "NOW PLAYING: …" — never leaderboard content.
+- **How many / where:** phones 4 (marquee, blade, icon, ticker), wide screens 5 (+ a far icon). Placed each layout around
+  the clear zones the title reports (`scene.set({ clear })`: the sign + tagline + 34 px, the dock, the corner buttons): the
+  marquee crowns a near tower to one side, the blade hangs on the other, the icon sits near the middle, the ticker and the
+  far icon go wherever spreads them out most. Never overlapping each other, a clear zone or a nearer building; each sign
+  tries a few sizes and takes the largest that fits. Only the marquee and the blade are bright and close; the rest sit
+  back in the haze (`NEAR_ALPHA`). Re-placed only when the screen or a zone changes by ~40 px.
+- **Rotation:** one sign changes every 4.6 s, round-robin, always to a game not already showing — every game within a
+  minute. Icons and blades power down and buzz back tube by tube; the marquee flips; the ticker just scrolls.
+- **The living city:** off by day (glass tubes and brackets visible), tube by tube on at dusk (and at the title's boot),
+  off together at dawn. Holidays: Halloween cobwebs + orange/violet bulbs, Thanksgiving amber, Christmas red/green bulbs
+  (more each December day), New Year's gold + the countdown on the ticker, Valentine's rose tubes, St. Patrick's green,
+  Easter pastels, the Fourth red/white/blue. Light spills on the walls and into the wet street; rain streaks catch it;
+  a rare small flicker. Reduced effects: no chase, no flicker, plain fades.
+- **Taps:** every sign (thumb-sized areas, pointer events) opens that game's HOW TO PLAY.
+- **A new game:** add its mark to `MARKS` (else it gets its initials in tube letters) — it joins the rotation by itself.
+- **Performance:** each sign is drawn once into offscreen canvases (the unlit sign; one canvas per tube); a frame blends
+  those plus ~40 bulbs and the ticker's scroll. 60 fps at 4× CPU on the top tier.
+- **Dock cleanup (same pass):** the rank moved into the welcome line ("Welcome back, BEN · ◆ REGULAR I", the whole line opens
+  the card); the links are THE BOARD and GAMES; the explainer line shows only before a profile exists. The window easter
+  egg is gone. On phones the moon arches over the sign (rising beside it at the left edge, setting at the right).
