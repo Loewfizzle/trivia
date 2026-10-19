@@ -61,6 +61,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight });
   let P = paletteFor(LK);
   let skyKey = '', lookAt = 0, nearRoofs = [];
+  let NX = null;   // the neon canvas of the layer being built
   const nightness = () => P.dark;
   const frames = [];
   let cool = 0;
@@ -99,8 +100,9 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       const lw = W + margin * 2;
       const top = Math.round(HZ0 - HZ0 * L.h[1] * k * 1.02);
       const lh = HZ - top + 2;
-      const dark = mk(lw * dpr, lh * dpr), lit = mk(lw * dpr, lh * dpr);
+      const dark = mk(lw * dpr, lh * dpr), lit = mk(lw * dpr, lh * dpr), neon = mk(lw * dpr, lh * dpr);
       const dx = dark.getContext('2d'), lx = lit.getContext('2d');
+      NX = neon.getContext('2d'); NX.scale(dpr, dpr);
       dx.scale(dpr, dpr); lx.scale(dpr, dpr);
       const windows = [];
       const rects = [];
@@ -133,7 +135,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
         lx.restore(); b.width = b.height = b2.width = b2.height = 0; }
       // window delays: bottom first, with scatter
       for (const w of windows) { w.delay = clamp01((1 - (w.y / lh)) * 0.82 + rand() * 0.16); w.order = rand(); }
-      layers.push({ ...L, dark, lit, lw, lh, top, windows, margin, rects });
+      layers.push({ ...L, dark, lit, neon, lw, lh, top, windows, margin, rects });
     });
     // street (wet asphalt) + the city's reflection
     const sh = H - HZ + 2;
@@ -235,7 +237,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       x.fillRect(w.x, w.y, w.w, w.h);
     }
     // trims, rooftop signs, the bloom: with the evening
-    const tr = P.trims * Math.min(1, winOn * 1.5);
+    const tr = P.trims * Math.min(1, Math.max(winOn, P.dark) * 1.5);
     if (tr > 0.02) { x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = tr; x.drawImage(L.lit, 0, 0); x.globalAlpha = 1; }
     L.compKey = k;
     return L.comp;
@@ -299,6 +301,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     if (!isSetback && rand() < neonP && w > 8) {
       const col = NEON[Math.floor(rand() * NEON.length)];
       const lw = [1.2, 1.2, 1.25, 1.4][li], blur = [6, 6, 6, 8][li], a = [1, 1, 0.9, 0.85][li];
+      const lx = NX;
       lx.save();
       lx.shadowColor = col; lx.shadowBlur = blur;
       lx.strokeStyle = rgba(col, a); lx.lineWidth = lw; lx.lineJoin = 'round';
@@ -461,6 +464,9 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       c.globalAlpha = Math.min(1, P.hazeA);
       c.drawImage(hazeBand(L, false), 0, HZ - hh, W, hh + 1);
       if (lit > 0) { c.globalAlpha = lit * Math.min(1, P.hazeA); c.drawImage(hazeBand(L, hz), 0, HZ - hh, W, hh + 1); }
+      // the buildings' neon outlines, over the fog (a little softer further back), at full strength all night
+      const na = (S.wave >= 1 ? 1 : smooth(0.82, 1, S.wave)) * P.trims * [0.72, 0.82, 0.92, 1][li];
+      if (na > 0.02) { c.globalAlpha = na; c.drawImage(L.neon, ox, oy, L.lw, L.lh); }
       c.globalAlpha = 1;
       // beacons on this layer
       for (const b of beacons) if (b.li === li) {
@@ -680,7 +686,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('resize', onResize);
       // release the pixel memory right away (mobile browsers keep canvases until GC otherwise)
-      for (const L of layers) for (const c of [L.dark, L.lit, L.comp]) if (c) { c.width = 0; c.height = 0; }
+      for (const L of layers) for (const c of [L.dark, L.lit, L.comp, L.neon]) if (c) { c.width = 0; c.height = 0; }
       fx.destroy();
       for (const c of [sky, skyLit, street, refl, reflLit, rainTile, vignette, canvas, ...sprites.values()]) if (c) { c.width = 0; c.height = 0; }
       sprites.clear();
