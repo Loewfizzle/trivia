@@ -83,7 +83,7 @@ export function sunPlace(o) {
 
 export function createSun() {
   let W = 1, H = 1, HZ = 1;
-  let pos = null, discCv = null, ecCv = null, coronaCv = null, rayCv = null;
+  let pos = null, discCv = null, coronaCv = null, rayCv = null;
   const discs = new Map(), glows = new Map();
   const qc = col => col.map(v => Math.round(v / 6) * 6);
   // the disc: a soft limb, a little brighter at the centre, an anti-aliased edge (per colour, cached)
@@ -147,6 +147,65 @@ export function createSun() {
     return cv;
   })());
 
+  // ---- a partial eclipse, baked per shape (the moon moves ~a sun radius in half an hour; the preview, a little faster):
+  //   cres  the crescent: a hot white-gold disc (a warmer limb) with the moon taken out, crisp, anti-aliased
+  //   halo  its glow: the crescent's own shape blurred (shadowBlur, baked) + the glare around the sun, with the moon's disc
+  //         taken out of both — against the glare the moon shows as a faint dark silhouette, as it does in the sky
+  // 1 sun radius = R px in the bakes; the halo is 4 radii across
+  const R = 44, CS = 112, HS = 4 * R + 16;
+  let art = null, artKey = '';
+  function litOf(ec, south) {
+    // the lit fraction and the lit part's centre (a 16 × 16 sample of the disc: tiny)
+    const mx = (south ? -1 : 1) * (ec.dx || 0), my = -(ec.dy || 0), k = ec.k || 1.02;
+    let n = 0, lit = 0, sx = 0, sy = 0;
+    for (let i = 0; i < 16; i++) for (let j = 0; j < 16; j++) {
+      const px = (i + 0.5) / 8 - 1, py = (j + 0.5) / 8 - 1;
+      if (px * px + py * py > 1) continue;
+      n++;
+      if ((px - mx) ** 2 + (py - my) ** 2 > k * k) { lit++; sx += px; sy += py; }
+    }
+    return { lit: lit / n, obsc: 1 - lit / n, cx: lit ? sx / lit : 0, cy: lit ? sy / lit : 0, mx, my, k };
+  }
+  function eclipseArt(e) {
+    const key = e.mx.toFixed(3) + '|' + e.my.toFixed(3) + '|' + e.k.toFixed(3);
+    if (art && key === artKey) return art;
+    artKey = key;
+    if (!art) art = { cres: mk(CS, CS), halo: mk(HS, HS), tmp: mk(HS, HS) };
+    const cc = CS / 2, hc = HS / 2;
+    // the crescent
+    const x = art.cres.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, CS, CS);
+    const g = x.createRadialGradient(cc, cc, 0, cc, cc, R);
+    g.addColorStop(0, 'rgb(255,255,252)'); g.addColorStop(0.7, 'rgb(255,252,242)'); g.addColorStop(0.92, 'rgb(255,240,214)'); g.addColorStop(1, 'rgb(255,222,184)');
+    x.fillStyle = g; x.beginPath(); x.arc(cc, cc, R, 0, TAU); x.fill();
+    x.globalCompositeOperation = 'destination-out';
+    x.beginPath(); x.arc(cc + e.mx * R, cc + e.my * R, e.k * R, 0, TAU); x.fill();
+    x.globalCompositeOperation = 'source-over';
+    // its glow: the crescent's shape, blurred (drawn far off the canvas so only its shadow lands)
+    const t = art.tmp.getContext('2d');
+    t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-over'; t.clearRect(0, 0, HS, HS);
+    t.shadowOffsetX = 4000; t.shadowColor = 'rgba(255,238,222,1)';
+    t.shadowBlur = 14; t.drawImage(art.cres, hc - cc - 4000, hc - cc);
+    t.shadowBlur = 34; t.drawImage(art.cres, hc - cc - 4000, hc - cc);
+    t.shadowBlur = 0; t.shadowOffsetX = 0;
+    const h = art.halo.getContext('2d');
+    h.setTransform(1, 0, 0, 1, 0, 0); h.globalCompositeOperation = 'source-over'; h.clearRect(0, 0, HS, HS);
+    // the glare around the sun: weaker as less of it is left
+    const e2 = Math.pow(e.lit, 0.6);
+    const gl = h.createRadialGradient(hc, hc, R * 0.8, hc, hc, hc);
+    gl.addColorStop(0, 'rgba(255,240,214,' + (0.55 * e2) + ')'); gl.addColorStop(0.35, 'rgba(255,232,200,' + (0.2 * e2) + ')'); gl.addColorStop(1, 'rgba(255,228,190,0)');
+    h.fillStyle = gl; h.fillRect(0, 0, HS, HS);
+    h.drawImage(art.tmp, 0, 0);
+    // the moon blocks the glare behind it too: its silhouette, softly edged
+    h.globalCompositeOperation = 'destination-out';
+    const mxp = hc + e.mx * R, myp = hc + e.my * R;
+    const mg = h.createRadialGradient(mxp, myp, e.k * R * 0.8, mxp, myp, e.k * R * 1.03);
+    mg.addColorStop(0, 'rgba(0,0,0,0.78)'); mg.addColorStop(1, 'rgba(0,0,0,0)');
+    h.fillStyle = mg; h.beginPath(); h.arc(mxp, myp, e.k * R * 1.05, 0, TAU); h.fill();
+    h.globalCompositeOperation = 'source-over';
+    return art;
+  }
+
   // what the frame knows about the sun: { x, y, r, rx, ry, col, el, vis (0..1 the disc), glow (0..1), eclipse }
   let now = null;
   function state(s) {
@@ -170,7 +229,12 @@ export function createSun() {
     const glowK = wet ? ((L.fog || 0) > 0.6 && !L.rain ? 0.15 : 0) : (L.fog || 0) > 0.15 ? 0.6 : 1;
     let ec = L.solar;
     if (s.force.has('totality')) ec = { obsc: 1, mag: 1, total: true, dx: 0, dy: 0, k: 1.04 };
-    else if (s.force.has('eclipse-sun')) { const ph = ((s.t % 40) / 40) * 2 - 1; ec = { dx: ph * 1.4 + 0.25, dy: 0.35, k: 1.02, total: false }; }
+    else if (s.force.has('eclipse-sun')) {
+      // the moon glides in at a slant, takes ~85 % at the deepest (12 s in), and slides off; the loop is 100 s
+      const along = -2.15 + 4.3 * (((s.t + 38) % 100) / 100), th = -0.38, off = 0.3;
+      ec = { dx: along * Math.cos(th) - off * Math.sin(th), dy: along * Math.sin(th) + off * Math.cos(th), k: 1.03, total: false };
+    }
+    if (ec && !ec.total) ec = { ...ec, ...litOf(ec, s.L.south) };
     return { x: pos.x, y: pos.y, r, rx: r, ry: r * sh.squash, col: sunColor(el), el, vis, glow: glowK, over, eclipse: ec };
   }
 
@@ -183,38 +247,33 @@ export function createSun() {
       const { x, y, rx, ry, col, el, vis, glow: gk, eclipse: ec } = now;
       const day = s.L.w.day, low = 1 - smooth(4, 24, el);
       // a total eclipse: the sky darkens with the coverage (the corona is the brightest thing up there)
-      const tot = ec ? (ec.total ? 1 : smooth(0.85, 1, ec.obsc != null ? ec.obsc : 0)) : 0;
+      const tot = ec ? (ec.total ? 1 : 0.4 * smooth(0.975, 1, ec.obsc != null ? ec.obsc : 0)) : 0;
       if (tot > 0.01) { c.fillStyle = `rgba(6,8,26,${0.78 * tot})`; c.fillRect(0, 0, W, HZ); }
-      const ecDim = ec && !ec.total ? 1 - 0.35 * smooth(0.3, 1, ec.obsc || 0.5) : 1;
+      const part = !!(ec && !ec.total);
+      const ecDim = part ? 0.25 + 0.75 * Math.sqrt(ec.lit) : 1;              // the glare goes as the sliver thins
       c.globalCompositeOperation = 'lighter';
       // the bloom: a wide warm wash low in the sky, gentle at midday (the haze, not a spotlight), then a tighter glow
       const wide = (0.2 + 0.25 * low) * (0.55 + 0.45 * (1 - day)) * gk * (1 - tot) * ecDim;
-      if (wide > 0.01) { c.globalAlpha = wide * (0.4 + 0.6 * vis); c.drawImage(glow(col, 2.2), x - rx * 11, y - rx * 8, rx * 22, rx * 16); }
+      const bx = part ? x + ec.cx * rx * 0.6 : x, by = part ? y + ec.cy * ry * 0.6 : y;      // a partial's light comes from the sliver
+      if (wide > 0.01) { c.globalAlpha = wide * (0.4 + 0.6 * vis); c.drawImage(glow(col, 2.2), bx - rx * 11, by - rx * 8, rx * 22, rx * 16); }
       const mid = (0.28 + 0.2 * low) * gk * (1 - tot) * ecDim;
-      if (mid > 0.01 && vis > 0.02) { c.globalAlpha = mid * vis; c.drawImage(glow(col.map(v => Math.min(255, v + 20)), 1.4), x - rx * 3.4, y - ry * 3.4, rx * 6.8, ry * 6.8); }
+      if (mid > 0.01 && vis > 0.02 && !part) { c.globalAlpha = mid * vis; c.drawImage(glow(col.map(v => Math.min(255, v + 20)), 1.4), x - rx * 3.4, y - ry * 3.4, rx * 6.8, ry * 6.8); }
       c.globalCompositeOperation = 'source-over';
       if (vis < 0.02 && tot < 0.01) { c.globalAlpha = 1; return; }
       // the disc (or, in an eclipse, the disc with the moon across it)
-      if (ec) {
-        if (!ecCv) ecCv = mk(128, 128);
-        const e = ecCv.getContext('2d');
-        e.globalCompositeOperation = 'copy'; e.drawImage(disc(col), 0, 0);
-        e.globalCompositeOperation = 'destination-out';
-        const mx = 64 + (s.L.south ? -1 : 1) * (ec.dx || 0) * 60, my = 64 - (ec.dy || 0) * 60;
-        e.beginPath(); e.arc(mx, my, 60 * (ec.k || 1.02), 0, TAU); e.fill();
-        e.globalCompositeOperation = 'source-over';
-        if (ec.total || tot > 0.5) {
-          c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.85 * tot; c.drawImage(corona(), x - rx * 5.3, y - rx * 5.3, rx * 10.6, rx * 10.6); c.globalCompositeOperation = 'source-over';
-          c.globalAlpha = 1; c.fillStyle = '#05060c'; c.beginPath(); c.ellipse(x, y, rx * 1.02, ry * 1.02, 0, 0, TAU); c.fill();
-        }
-        c.globalAlpha = vis; c.drawImage(ecCv, x - rx * 1.07, y - ry * 1.07, rx * 2.14, ry * 2.14);
-        // a partial: the crescent is still the sun — blinding, so it blooms (its own shape, a little larger, added on)
-        if (!ec.total && vis > 0.05) {
-          c.globalCompositeOperation = 'lighter';
-          c.globalAlpha = 0.55 * vis; c.drawImage(ecCv, x - rx * 1.07, y - ry * 1.07, rx * 2.14, ry * 2.14);
-          c.globalAlpha = 0.3 * vis; c.drawImage(ecCv, x - rx * 1.5, y - ry * 1.5, rx * 3, ry * 3);
-          c.globalCompositeOperation = 'source-over';
-        }
+      if (ec && ec.total) {
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.85 * tot; c.drawImage(corona(), x - rx * 5.3, y - rx * 5.3, rx * 10.6, rx * 10.6); c.globalCompositeOperation = 'source-over';
+        c.globalAlpha = 1; c.fillStyle = '#05060c'; c.beginPath(); c.ellipse(x, y, rx * 1.02, ry * 1.02, 0, 0, TAU); c.fill();
+      } else if (part) {
+        // a partial: the glare and the crescent's glow (the moon's silhouette against it), the crisp hot crescent, its white heat
+        const A = eclipseArt(ec), sx = rx / R, sy = ry / R;
+        c.globalCompositeOperation = 'lighter';
+        c.globalAlpha = 0.9 * vis * gk; c.drawImage(A.halo, x - (HS / 2) * sx, y - (HS / 2) * sy, HS * sx, HS * sy);
+        c.globalCompositeOperation = 'source-over';
+        c.globalAlpha = vis; c.drawImage(A.cres, x - (CS / 2) * sx, y - (CS / 2) * sy, CS * sx, CS * sy);
+        c.globalCompositeOperation = 'lighter';
+        c.globalAlpha = 0.55 * vis; c.drawImage(A.cres, x - (CS / 2) * sx, y - (CS / 2) * sy, CS * sx, CS * sy);
+        c.globalCompositeOperation = 'source-over';
       } else {
         c.globalAlpha = vis; c.drawImage(disc(col), x - rx * 1.07, y - ry * 1.07, rx * 2.14, ry * 2.14);
       }
@@ -260,11 +319,14 @@ export function createSun() {
     /** over everything: the light of a total eclipse */
     dim(c) {
       if (!now || !now.eclipse) return;
-      const ec = now.eclipse, tot = ec.total ? 1 : smooth(0.85, 1, ec.obsc || 0);
-      if (tot < 0.01) return;
-      c.fillStyle = `rgba(4,5,18,${0.4 * tot})`; c.fillRect(0, 0, W, H);
+      const ec = now.eclipse;
+      // totality: night falls; a deep partial: the light goes flat and a little dim, a touch steely (past ~70 %)
+      if (ec.total) { c.fillStyle = 'rgba(4,5,18,0.4)'; c.fillRect(0, 0, W, H); return; }
+      const k = smooth(0.68, 1, ec.obsc || 0) * now.vis;
+      if (k < 0.01) return;
+      c.fillStyle = 'rgba(14,20,44,' + (0.3 * k) + ')'; c.fillRect(0, 0, W, H);
     },
     debug: () => (now ? { x: Math.round(now.x), y: Math.round(now.y), r: +now.r.toFixed(1), el: +now.el.toFixed(1), vis: +now.vis.toFixed(2), col: now.col, eclipse: now.eclipse ? { total: !!now.eclipse.total, obsc: now.eclipse.obsc } : null } : null),
-    destroy() { for (const cv of [discCv, ecCv, coronaCv, rayCv, ...discs.values(), ...glows.values()]) if (cv) cv.width = 0; },
+    destroy() { for (const cv of [discCv, coronaCv, rayCv, art && art.cres, art && art.halo, art && art.tmp, ...discs.values(), ...glows.values()]) if (cv) cv.width = 0; },
   };
 }

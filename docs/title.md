@@ -240,8 +240,10 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **Solar eclipses, real:** `solarEclipse(ms, lat, lon)` (core/sky.js) — the sun (NOAA) against the moon from Meeus' full lunar
   series (ch. 47, ~10″, ΔT applied), topocentric (the moon's ~1° parallax), the sun's size by the earth's distance. No table:
   on a real eclipse at the visitor's place the moon covers what it really covers (Indianapolis 8 Apr 2024: 225 s of totality vs
-  the real 226 s; New York 0.91). A partial: a bright crescent sun; totality: a black disc, a pearly corona with fine streamers,
-  the whole scene darkened.
+  the real 226 s; New York 0.91). A partial (rebuilt Oct 19): a crisp white-hot crescent, its glow baked from its own shape
+  (shadowBlur, per shape), the glare around the sun weakening as the sliver thins, the moon a faint dark silhouette against that
+  glare; past ~70 % the light goes flat, dimmer and a little steely (`dim`). Totality: a black disc, a pearly corona with fine
+  streamers, the whole scene darkened. `&force=eclipse-sun`: the moon glides in at a slant, ~85 % at the deepest (12 s in), 100 s loop.
 - **Reduced effects:** no rays; the sun still moves and changes colour. **Performance:** golden hour at 4× CPU, 60 fps.
 - **Preview:** `?when=&tz=` shows the sun there and then; `&force=eclipse-sun` (a partial now, the moon gliding across),
   `&force=totality`. Tests: `tests/sun.test.mjs` (rise / noon / set for N + S cities in summer and winter, the path against the
