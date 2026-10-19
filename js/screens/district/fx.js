@@ -251,28 +251,45 @@ export function createFx() {
       const kind = hol.id === 'halloween' ? 'pumpkin' : hol.id === 'valentine' && hol.full ? 'heart' : hol.id === 'easter' && hol.full ? 'egg' : null;
       const seen = g.windows.filter(w => g.oy + w.y < HZ - H * 0.16 && g.oy + w.y > HZ * 0.45);
       if (kind && seen.length) {
-        const n = hol.full ? 9 : Math.round(2 + hol.k * 3);
+        const n = hol.full ? 12 : Math.round(4 + hol.k * 7);
+        // one per column of the skyline, so they spread out instead of piling on one tower
         const R = rng(hol.id.length * 97);
-        c.globalCompositeOperation = 'lighter';
-        for (let i = 0; i < n; i++) {
-          const w = seen[Math.floor(R() * seen.length)];
-          const sz = Math.max(7, Math.min(13, w.h * 1.6));
-          const x = g.ox + w.x + w.w / 2, y = g.oy + w.y + w.h / 2;
-          const fl = kind === 'pumpkin' ? 0.8 + 0.2 * Math.sin(t * 9 + i * 3) * Math.sin(t * 3.7 + i) : 1;
-          c.globalAlpha = 0.45 * fl * (0.4 + 0.6 * night); c.drawImage(glow(kind === 'pumpkin' ? [255, 140, 40] : kind === 'heart' ? [255, 80, 140] : [220, 200, 255]), x - sz * 1.4, y - sz * 1.4, sz * 2.8, sz * 2.8);
-          c.globalAlpha = 0.95 * fl; c.drawImage(glyph(kind), x - sz / 2, y - sz / 2, sz, sz);
-        }
+        const cols = new Map();
+        for (const w of seen) { const k = Math.floor((g.ox + w.x) / (W / 14)); if (!cols.has(k) || R() < 0.3) cols.set(k, w); }
+        const picks = [...cols.values()].sort(() => R() - 0.5).slice(0, n);
+        const tint = kind === 'pumpkin' ? [255, 140, 40] : kind === 'heart' ? [255, 80, 140] : [220, 200, 255];
+        picks.forEach((w, i) => {
+          const sz = Math.max(9, Math.min(12, W * 0.026));
+          const x = Math.round(g.ox + w.x + w.w / 2), y = Math.round(g.oy + w.y + w.h / 2);
+          const fl = kind === 'pumpkin' ? 0.82 + 0.18 * Math.sin(t * 9 + i * 3) * Math.sin(t * 3.7 + i) : 1;
+          // the window it sits in: a warm lit pane with a dark frame
+          const ww = sz * 1.25, wh = sz * 1.05;
+          c.globalAlpha = 0.9; c.fillStyle = "rgba(8,6,14,0.9)"; c.fillRect(x - ww / 2 - 1, y - wh / 2 - 1, ww + 2, wh + 2);
+          const pane = c.createLinearGradient(0, y - wh / 2, 0, y + wh / 2);
+          pane.addColorStop(0, kind === 'pumpkin' ? 'rgba(120,52,14,1)' : kind === 'heart' ? 'rgba(110,28,60,1)' : 'rgba(80,66,120,1)');
+          pane.addColorStop(1, kind === 'pumpkin' ? 'rgba(255,150,60,1)' : kind === 'heart' ? 'rgba(255,120,170,1)' : 'rgba(200,180,255,1)');
+          c.globalAlpha = 0.6 * fl * (0.5 + 0.5 * night); c.fillStyle = pane; c.fillRect(x - ww / 2, y - wh / 2, ww, wh);
+          // its light spills out
+          c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = 0.5 * fl * (0.3 + 0.7 * night); c.drawImage(glow(tint), x - sz * 2, y - sz * 2, sz * 4, sz * 4);
+          c.globalCompositeOperation = 'source-over';
+          // the pumpkin / heart / egg on the sill
+          c.globalAlpha = fl; c.drawImage(glyph(kind), x - sz * 0.45, y - wh / 2 + wh * 0.12, sz * 0.9, sz * 0.9);
+        });
         c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       }
       // the neon pumpkin (Halloween) / shamrock (St. Patrick's) sign on a near rooftop
-      const sign = hol.full && hol.id === 'halloween' ? pumpkinSign() : hol.full && hol.id === 'stpatrick' ? shamrockSign() : null;
+      const early = !hol.full && hol.id === 'halloween' && hol.k >= 0.6;
+      const sign = (hol.full || early) && hol.id === 'halloween' ? pumpkinSign() : hol.full && hol.id === 'stpatrick' ? shamrockSign() : null;
       if (sign && g.roofs.length) {
         const right = g.roofs.filter(r => g.ox + r.x + r.w / 2 > W * 0.62 && g.ox + r.x + r.w / 2 < W - 20);
         const roof = (right.length ? right : g.roofs).slice().sort((a, b) => a.y - b.y)[0];
         const sz = Math.min(58, roof.w * 0.78);
         const flick = Math.sin(t * 23) > 0.97 ? 0.4 : 1;
+        const sx = g.ox + roof.x + roof.w / 2, sy = g.oy + roof.y + sz * 0.25 + sz * 0.45;
+        c.globalAlpha = 0.85; c.drawImage(glow([4, 3, 10]), sx - sz * 0.75, sy - sz * 0.7, sz * 1.5, sz * 1.4); c.drawImage(glow([4, 3, 10]), sx - sz * 0.6, sy - sz * 0.55, sz * 1.2, sz * 1.1);
         c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = (0.55 + 0.45 * night) * flick;
+        c.globalAlpha = (0.55 + 0.45 * night) * flick * (early ? 0.6 : 1);
         c.drawImage(sign, g.ox + roof.x + roof.w / 2 - sz / 2, g.oy + roof.y + sz * 0.25, sz, sz * (sign.height / sign.width));
         c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       }

@@ -54,9 +54,9 @@ export function paletteFor(L) {
   if (hol) {
     const k = hol.k;
     if (hol.id === 'halloween') {
-      P.haze = shiftCol(P.haze, [255, 116, 40], (hol.full ? 0.42 : 0.16) * k);
+      P.haze = shiftCol(P.haze, [255, 116, 40], (hol.full ? 0.42 : 0.34) * k);
       P.glow2 = shiftCol(P.glow2, [150, 60, 210], 0.5 * k);
-      P.glow = shiftCol(P.glow, [255, 110, 40], (hol.full ? 0.35 : 0.12) * k);
+      P.glow = shiftCol(P.glow, [255, 110, 40], (hol.full ? 0.35 : 0.24) * k);
     }
     if (hol.id === 'thanksgiving') { P.haze = shiftCol(P.haze, [255, 170, 90], 0.3 * k); P.winWarm += 0.4 * k; }
     if (hol.id === 'valentine') P.glow = shiftCol(P.glow, [255, 90, 140], 0.3 * k);
