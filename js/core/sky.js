@@ -254,7 +254,8 @@ export function look(ms, tz, { alwaysNight = false } = {}) {
   if (morning) { night = 1 - smooth(-16, -5, e); day = smooth(1, 11, e); dawn = Math.max(0, 1 - night - day); }
   else { night = 1 - smooth(-14, -4, e); day = smooth(5, 15, e); golden = Math.max(0, 1 - night - day); }
   // late night: the small hours (fewer windows, a deeper sky)
-  const lateK = hour >= 0.5 && hour < 5 ? smooth(0.5, 1.6, hour) * (1 - smooth(4, 5, hour)) : 0;
+  // the city winds down: windows start going out around 10 pm, fewer by midnight, sparse by 2 am, until dawn
+  const lateK = hour >= 21.5 ? smooth(21.5, 26, hour) : hour < 5 ? smooth(21.5, 26, hour + 24) * (1 - smooth(4, 5, hour)) : 0;
   let late = night * lateK;
   night -= late;
   if (alwaysNight) { night = 1; late = 0; dawn = 0; day = 0; golden = 0; }

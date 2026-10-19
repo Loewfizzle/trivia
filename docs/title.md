@@ -143,3 +143,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   and the ticker; each blade's tower has its roofline and blade-side edge lined in neon in the blade's colour. Wide screens:
   as many blades as fit plus icons, five signs. The ticker's dots are bigger, bolder and brighter (full brightness wherever
   it sits). The marquee code is still in signs.js but nothing places it.
+- **Short Safari screens:** a blade may start lower on its tower (below the clear zone around the tagline) and use slightly
+  smaller letters (12.5 px), so phones with the browser bars showing still get both blades.
+- **The city winds down:** windows go out one by one from about 10 pm (≈90% at 10:30, 70% near midnight, 50% at 12:30, a
+  third from 2 am until dawn) — sky.js lateK + palette LATE.win.

@@ -309,11 +309,15 @@ export function createSigns({ games: allGames = [] } = {}) {
     const midTowers = mid.rects.map(r => scr(mid, r)).filter(b => b.h > HZ * 0.12);
     for (const bside of [-1, 1]) {
       let done = false;
-      for (const kk of [1, 0.88, 0.76, 0.66]) { if (done) break; const bw = 30 * sc * kk;
+      const Lmin = H < 760 ? 12.5 : 15;   // the smallest readable letter (short Safari screens get a little less)
+      for (const kk of [1, 0.88, 0.76, 0.66, 0.58]) { if (done) break; const bw = 30 * sc * kk;
         for (const [b, bli] of [...towers.map(t => [t, 3]), ...(W >= 760 ? midTowers.map(t => [t, 2]) : [])].filter(([t]) => (t.x + t.w / 2 < W / 2 ? -1 : 1) === bside).sort((p, q) => p[1] === q[1] ? p[0].y - q[0].y : q[1] - p[1])) {
-          const top = b.y + 10, bottom = Math.min(HZ - 14, b.y + b.h - 8), h = Math.min(bottom - top, 210 * Math.min(sc, 1.15) * kk);
-          if (h < 100 * Math.min(sc, 1.15) * kk) continue;
-          const area = h - bw * 0.5 - bw * 0.42, cap = Math.floor((area - 3.2 * 4) / (15 * Math.min(sc, 1.15) * 1.24));
+          // start below any clear zone over this tower (the tagline reaches low on short screens)
+          let top = b.y + 10;
+          for (const z of zones) if (z.x < b.x + b.w + bw + 12 && z.x + z.w > b.x - bw - 12 && z.y < top + 20 && z.y + z.h > top - 6) top = Math.max(top, z.y + z.h + 14);
+          const bottom = Math.min(HZ - 14, b.y + b.h - 8), h = Math.min(bottom - top, 210 * Math.min(sc, 1.15) * kk);
+          if (h < 80) continue;
+          const area = h - bw * 0.5 - bw * 0.42, cap = Math.floor((area - 3.2 * 4) / (Lmin * Math.min(sc, 1.15) * 1.24));
           if (cap < 5) continue;
           for (const edge of [bside, -bside]) {        // the edge it hangs from: inner first
             const x = edge < 0 ? b.x + b.w + 5 : b.x - bw - 5;
