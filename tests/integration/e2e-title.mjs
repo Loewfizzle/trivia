@@ -159,7 +159,7 @@ try {
   const audioAfter = await ev(A.page, `import('/js/audio/engine.js').then(m => m.getContext() && m.getContext().state)`);
   ok(!audioBefore && audioAfter === 'running', `AUDIO: the TAP TO ENTER tap unlocks audio (${audioAfter})`);
   const music = await ev(A.page, 'window.__arcade.musicDebug()');
-  ok(music.desired === 'menu' && /^menu[1-4]$/.test(music.playing || '') && music.list === 'menu', `AUDIO: one of the four menu tracks plays, as a shuffled playlist (${JSON.stringify({ desired: music.desired, playing: music.playing, list: music.list })})`);
+  ok(music.desired === 'mood' && /^m:/.test(music.playing || '') && music.list === 'mood', `AUDIO: the time-of-day mood music plays (${JSON.stringify({ desired: music.desired, playing: music.playing, list: music.list })})`);
   // across fresh page loads the starting track varies
   const starts = new Set();
   for (let k = 0; k < 8; k++) {

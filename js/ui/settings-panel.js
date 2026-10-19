@@ -107,7 +107,7 @@ function open() {
       ...gameRows,
       toggle('MUSIC', 'musicOff', true),
       slider('MUSIC VOLUME', 'music'),
-      h('div.set-row.set-seg', h('span.label', 'MENU MUSIC'), segmented([{ value: 'mood', label: 'TIME OF DAY' }, { value: 'classic', label: 'CLASSIC' }], settings.menuMusic || 'mood', v => updateSettings({ menuMusic: v }))),
+      h('div.set-row.set-seg', h('span.label', 'MENU MUSIC'), segmented([{ value: 'mood', label: 'BY TIME' }, { value: 'classic', label: 'CLASSIC' }], settings.menuMusic || 'mood', v => updateSettings({ menuMusic: v }))),
       slider('EFFECTS', 'sfx'),
       toggle('MUTE ALL', 'muted'),
       toggle('HAPTICS', 'haptics'),

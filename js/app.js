@@ -70,7 +70,7 @@ loadMoodMusic().then(d => {
 });
 let lobbySynced = false;
 const inLobby = st => !!(st.code && st.meta && (st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId));
-setInterval(() => { const was = lobbySynced; lobbySynced = lobbyMusicTick(state, moodOn() && inLobby(state) && state.ready); if (was !== lobbySynced) render(state); }, 250);
+setInterval(() => { const was = lobbySynced; const lob = inLobby(state) && state.ready; lobbySynced = lobbyMusicTick(state, moodOn() && lob, lob); if (was !== lobbySynced) render(state); }, 250);
 
 // Which music track a state should hear. [track, fallbackIfMissing]
 function musicFor(st) {

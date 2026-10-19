@@ -484,4 +484,4 @@ body.reduced-fx .rc-up *, body.reduced-fx .rc-plaque, body.reduced-fx .rc-sweep,
 }
 
 /* the public page's music on/off (mood music starts after the first tap) */
-.music-btn.bd-music { right: calc(var(--safe-r) + 12px); border-radius: 50%; }
+html body .music-btn.bd-music { top: calc(var(--safe-t) + 12px) !important; right: calc(var(--safe-r) + 12px) !important; border-radius: 50%; }   /* (beats the app corner rules) */

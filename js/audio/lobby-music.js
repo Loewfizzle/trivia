@@ -48,11 +48,12 @@ function hostDuty(st, now) {
 }
 
 /** Every phone, each tick while in a lobby with mood music on. Returns true while the room's queue is playing here. */
-export function lobbyMusicTick(st, active) {
+export function lobbyMusicTick(st, active, inLobby = active) {
+  // the host keeps the room's queue going even if its own setting is CLASSIC (the others still hear the room song)
+  if (inLobby && st.meta && st.meta.hostId === st.uid && songsFor('late').length) hostDuty(st, serverNow());
+  if (inLobby) loadMoodMusic();
   if (!active) { stopLobbyMusic(); return false; }
-  loadMoodMusic();
   const now = serverNow();
-  if (st.meta.hostId === st.uid) hostDuty(st, now);
   const lm = st.meta.lm;
   if (!lm || !lm.songs || !lm.songs.length || !lm.t0) return false;
   const game = { matchId: lm.m, songs: lm.songs, sd: lm.sd, songStartAt: lm.t0 };

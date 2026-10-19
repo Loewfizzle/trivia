@@ -79,6 +79,13 @@ try {
   ok(c2.id === a2.id && c2.t > 1, `LATE JOINER: lands in the same song, ${c2.t.toFixed(1)} s in`);
   ok(Math.abs((c2.t - c2.wall / 1000) - (a2.t - a2.wall / 1000)) < 0.35, 'LATE JOINER: in step with the room');
 
+  // a host who prefers CLASSIC still keeps the room's song going for everyone else
+  await host.evaluate(() => import('/js/audio/settings.js').then(m => m.updateSettings({ menuMusic: 'classic' })));
+  await waitFor(host, () => window.__arcade.musicDebug().desired === 'menu', 'host on classic', 6000);
+  await host.evaluate(() => { const lm = window.__arcade.state.meta.lm; window.__lmN = lm.songs.length; });
+  ok(await g1.evaluate(() => { const x = window.__arcade.lobbyMusicDebug(); return !!(x && x.slots && x.slots.length); }), 'CLASSIC HOST: the room song keeps playing for the others');
+  await host.evaluate(() => import('/js/audio/settings.js').then(m => m.updateSettings({ menuMusic: 'mood' })));
+
   // ---- 6. a game keeps its own music; the lobby song returns after it
   await H.startGame(host, 'cipher', { rounds: 3 });
   await waitFor(g1, () => window.__arcade.musicDebug().desired === 'cipher', 'game music', 20000);

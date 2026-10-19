@@ -663,6 +663,7 @@ export function createFx() {
   // never sits behind the sign (it passes over it); it glides to a new spot instead of jumping.
   let moonPos = null, moonSafeTop = 0, moonUnderButtons = false;
   function moonPlace(L, r, sign) {
+    moonUnderButtons = false;
     const az = L.moon.az, el = L.moon.el;
     // how far through tonight's pass (moonrise → moonset); facing south it rises on the left, in the south (facing north) on the right
     const arc = L.moon.u != null ? L.moon.u : clamp01((az - 60) / 240);

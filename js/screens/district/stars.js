@@ -73,7 +73,7 @@ export function createStars() {
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height); x.setTransform(dpr, 0, 0, dpr, 0, 0);
     // the view: facing south (north in the south), the horizon at the skyline, about 85° of sky up to the top of the screen;
     // a touch narrower horizontally on a phone so the constellations keep their shapes
-    const kv = HZ / 85, kh = kv * (W < H_(W, HZ) ? 0.8 : 1);
+    const kv = HZ / 85, kh = kv * (W < HZ * 1.2 ? 0.8 : 1);   // a little narrower on a phone so constellations keep their shape
     const az0 = L.south ? 0 : 180, s = lst(ms, L.lon);
     const proj = (ra, dec) => { const p = altAz(ra, dec, L.lat, s); if (p.alt < -1) return null; let d = p.az - az0; d = ((d + 540) % 360) - 180; const px = W / 2 + d * kh, py = HZ - p.alt * kv; if (px < -20 || px > W + 20 || py < -20) return null; return { x: px, y: py, alt: p.alt }; };
     // the Milky Way: soft overlapping glows, then the dust lane carved through its brightest stretch
@@ -111,7 +111,6 @@ export function createStars() {
     }
     x.globalAlpha = 1;
   }
-  const H_ = (W, HZ) => HZ * 1.2;
 
   return {
     /** draw the night sky. vis: how visible stars are now (0 by day); milky: the Milky Way's strength */

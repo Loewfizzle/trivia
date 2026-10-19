@@ -196,7 +196,7 @@ function resolveTrack() {
   if (PLAYLISTS[desired.id]) {
     const t = listTrack(desired.id);
     if (t) return t;
-  } else if (status[desired.id] !== 'missing') return desired.id;
+  } else if (FILES[desired.id] && status[desired.id] !== 'missing') return desired.id;
   // a fallback can be a playlist too (NEON PAR falls back to the menu music)
   if (desired.fallback && PLAYLISTS[desired.fallback]) return listTrack(desired.fallback);
   if (desired.fallback && status[desired.fallback] !== 'missing') return desired.fallback;
