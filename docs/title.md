@@ -236,6 +236,9 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   contrail; contrails form a little behind the plane, spread and fade over ~25 s and drift with the wind. Weather: behind the
   clouds; rain — fewer, lights only and faint; fog — softer, blurred lights; no contrails in rain or under overcast (and nothing
   seen by day above an overcast).
+- **The Milky Way** (stars.js, revised Oct 19): seen from a city — a faint, smooth glow plus ~2,600 tiny faint stars crowded
+  along the band (thickest toward the galactic centre) and a fine dust lane; washed out over the lowest ~35° of sky by the
+  city glow (it used to read as a bright white streak near the skyline). Mars shows orange-red, Jupiter cream-white.
 - **Satellites:** only in the twilight hours (`satTwilight`: the sun 6–18° down — a dark sky, satellites still sunlit), clear
   skies: a single faint steady point every 5–10 min; on about one evening / morning in four or five (`starlinkNight`, seeded by
   the date: the same nights for everyone) a STARLINK TRAIN once — 20–40 evenly spaced steady points on a straight gentle

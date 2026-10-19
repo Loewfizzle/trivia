@@ -57,13 +57,25 @@ export function createStars() {
   const stars = CATALOG.map(([h, dec, mag]) => ({ ra: h * 15, dec, mag }));
   for (let i = 0; i < 420; i++) { const ra = rnd() * 360, dec = Math.asin(rnd() * 2 - 1) / D; stars.push({ ra, dec, mag: 3.6 + rnd() * 2.2 }); }
   for (let i = 0; i < 360; i++) { const l = rnd() * 360, b = (rnd() + rnd() + rnd() - 1.5) * 9; const e = galToEq(l, b); stars.push({ ra: e.ra, dec: e.dec, mag: 4.4 + rnd() * 1.6 }); }
+  // the Milky Way, as it would look from a city: a faint, smooth glow (denser samples, smaller and much dimmer), and — what
+  // makes it read as starlight rather than smoke — thousands of tiny faint stars crowded along the band, thickest toward the
+  // galactic centre, split by a fine dark dust lane
   const band = [];
-  for (let l = 0; l < 360; l += 2.5) {
+  for (let l = 0; l < 360; l += 1.6) {
     const core = Math.exp(-Math.pow(((l + 180) % 360 - 180) / 70, 2));        // brightest toward the galactic centre
-    for (const b of [-9, -5.5, -2.5, 0, 2.5, 5.5, 9]) {
-      const e = galToEq(l + (rnd() - 0.5) * 2, b + (rnd() - 0.5) * 2);
-      band.push({ ...e, w: (0.35 + 0.65 * core) * Math.exp(-(b * b) / 50) * (0.75 + rnd() * 0.5), lane: Math.abs(b) < 1.5 && core > 0.25, sz: 1 + core * 0.6 });
+    for (const b of [-8, -5, -2.5, 0, 2.5, 5, 8]) {
+      const e = galToEq(l + (rnd() - 0.5) * 1.6, b + (rnd() - 0.5) * 1.6);
+      band.push({ ...e, w: (0.3 + 0.7 * core) * Math.exp(-(b * b) / 40) * (0.7 + rnd() * 0.6), lane: Math.abs(b) < 1.3 && core > 0.2, sz: 1 + core * 0.4, core });
     }
+  }
+  const grain = [];
+  for (let i = 0; i < 2600; i++) {
+    let l = rnd() * 360;
+    const core = Math.exp(-Math.pow(((l + 180) % 360 - 180) / 70, 2));
+    if (rnd() > 0.35 + 0.65 * core) { l = rnd() * 360; }                    // more of them toward the centre
+    const b = (rnd() + rnd() + rnd() + rnd() - 2) * 6;                         // a soft band, thickest in the middle
+    const e = galToEq(l, b);
+    grain.push({ ...e, a: 0.1 + rnd() * 0.3, r: 0.35 + rnd() * 0.4, warm: core > 0.5 && rnd() < 0.5 });
   }
   let cv = null, key = '', at = -1e9, bright = [], planets = [];
   const glowCache = new Map();
@@ -82,19 +94,30 @@ export function createStars() {
     // the Milky Way: soft overlapping glows, then the dust lane carved through its brightest stretch
     if (milky > 0.01) {
       x.globalCompositeOperation = 'lighter';
+      // the city's glow washes out the low sky: nothing near the skyline, the full band only well above it
+      const hzOf = alt => { const t = Math.max(0, Math.min(1, (alt - 10) / 28)); return t * t * (3 - 2 * t); };
       for (const m of band) {
         const p = proj(m.ra, m.dec); if (!p) continue;
-        const hz = Math.min(1, p.alt / 14);                                      // lost in the city glow near the skyline
-        const r = 34 * m.sz * (W > 700 ? 1.2 : 1);
-        x.globalAlpha = 0.24 * m.w * milky * hz;
-        x.drawImage(glow(200, 205, 255), p.x - r, p.y - r, r * 2, r * 2);
-        if (m.w > 0.6) { x.globalAlpha = 0.16 * m.w * milky * hz; x.drawImage(glow(255, 228, 200), p.x - r * 0.5, p.y - r * 0.5, r, r); }
+        const hz = hzOf(p.alt); if (hz <= 0) continue;
+        const r = 22 * m.sz * (W > 700 ? 1.2 : 1);
+        x.globalAlpha = 0.085 * m.w * milky * hz;
+        x.drawImage(glow(196, 204, 255), p.x - r, p.y - r, r * 2, r * 2);
+        if (m.core > 0.55) { x.globalAlpha = 0.05 * m.w * milky * hz; x.drawImage(glow(255, 226, 196), p.x - r * 0.6, p.y - r * 0.6, r * 1.2, r * 1.2); }
+      }
+      // the grain: the band's own faint stars
+      x.globalCompositeOperation = 'source-over';
+      for (const g of grain) {
+        const p = proj(g.ra, g.dec); if (!p) continue;
+        const hz = hzOf(p.alt); if (hz <= 0) continue;
+        x.globalAlpha = g.a * milky * hz;
+        x.fillStyle = g.warm ? '#ffe9d6' : '#e6ecff';
+        x.fillRect(p.x - g.r, p.y - g.r, g.r * 2, g.r * 2);
       }
       x.globalCompositeOperation = 'destination-out';
       for (const m of band) {
         if (!m.lane) continue;
         const p = proj(m.ra, m.dec); if (!p) continue;
-        x.globalAlpha = 0.3 * milky; x.drawImage(glow(0, 0, 0), p.x - 12, p.y - 12, 24, 24);
+        x.globalAlpha = 0.32 * milky; x.drawImage(glow(0, 0, 0), p.x - 7, p.y - 7, 14, 14);
       }
       x.globalCompositeOperation = 'source-over';
     }
