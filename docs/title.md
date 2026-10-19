@@ -149,3 +149,6 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   third from 2 am until dawn) — sky.js lateK + palette LATE.win.
 - **The phone moon** rides a wide arch over the sign: rising beside the first N (it may slip partly past the screen edge),
   over the top, setting beside the last N. It may pass behind the corner buttons; while it does, it isn't tappable.
+- **Rooftop billboard:** on top of the left blade's tower (else the right one's) a framed panel on steel legs with a catwalk
+  and two lamps shows the game's neon mark, its edge lit in the mark's colour. On phones it replaces the wall icon (which
+  stays as the fallback when no rooftop has room). It rotates and is tappable like the other signs.

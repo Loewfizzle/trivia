@@ -124,6 +124,29 @@ export function createSigns({ games: allGames = [] } = {}) {
     return { base, segs, pad, col: items[0].col, rows: null };
   }
 
+  // ================================================================== ROOF: a billboard frame on steel legs atop a tower
+  function roofPanel(s) {
+    const pw = s.w, ph = s.ph, legs = s.legs, pad = 6;
+    const c = mk((pw + pad * 2) * R, (s.h + pad * 2) * R), x = c.getContext('2d');
+    x.setTransform(R, 0, 0, R, pad * R, pad * R);
+    // legs, cross-braces and a catwalk
+    x.strokeStyle = '#120f18'; x.lineWidth = 2;
+    for (const lx of [0.2, 0.8]) { x.beginPath(); x.moveTo(pw * lx, ph); x.lineTo(pw * lx, ph + legs); x.stroke(); }
+    x.lineWidth = 0.9; x.beginPath(); x.moveTo(pw * 0.2, ph); x.lineTo(pw * 0.8, ph + legs); x.moveTo(pw * 0.8, ph); x.lineTo(pw * 0.2, ph + legs); x.stroke();
+    x.fillStyle = '#17131f'; x.fillRect(-2, ph + 1, pw + 4, 2);
+    x.strokeStyle = 'rgba(255,255,255,0.12)'; x.lineWidth = 0.6; x.beginPath(); x.moveTo(-2, ph - 3); x.lineTo(pw + 2, ph - 3); x.stroke();
+    // the panel: dark glass in a metal frame
+    const g = x.createLinearGradient(0, 0, 0, ph); g.addColorStop(0, '#15111d'); g.addColorStop(1, '#08060c');
+    x.fillStyle = '#1c1824'; x.fillRect(0, 0, pw, ph);
+    x.fillStyle = g; x.fillRect(2.5, 2.5, pw - 5, ph - 5);
+    x.strokeStyle = 'rgba(210,200,230,0.28)'; x.lineWidth = 0.7; x.strokeRect(0.5, 0.5, pw - 1, ph - 1);
+    // two small lamps on arms over the top edge
+    x.fillStyle = '#100d16'; for (const lx of [0.25, 0.75]) { x.fillRect(pw * lx - 0.6, -5, 1.2, 5); x.fillRect(pw * lx - 2.5, -6.5, 5, 2); }
+    const S = Math.min(pw, ph) * 0.9;
+    s.markBox = { x: (pw - S) / 2, y: (ph - S) / 2, w: S };
+    return { c, pad };
+  }
+
   // ================================================================== BLADE: a vertical cabinet, stacked tube letters, on brackets
   function bladeImages(s, g) {
     const bw = s.w, H = s.h, dir = s.dir, pad = Math.round(bw * 0.9), br = Math.round(bw * 0.5);
@@ -324,13 +347,27 @@ export function createSigns({ games: allGames = [] } = {}) {
             const box = { x, y: top, w: bw, h };
             if (!free(box, bli, 6)) continue;
             if (W >= 760 && box.x + box.w / 2 > W * 0.3 && box.x + box.w / 2 < W * 0.7) continue;
-            out.push({ type: 'blade', li: bli, box, dir: edge < 0 ? -1 : 1, cap, host: b.r }); used.push(box); done = true; break;
+            out.push({ type: 'blade', li: bli, box, dir: edge < 0 ? -1 : 1, cap, host: b.r, hostBox: b, side: bside }); used.push(box); done = true; break;
           }
           if (done) break;
         }
       }
     }
-    // the icon: mid skyline, near the middle
+    // the rooftop billboard: a framed panel on legs on top of the left blade's tower (else the right one's), the game's mark in it
+    let roofDone = false;
+    for (const bl of out.filter(o => o.type === 'blade' && o.li === 3).sort((p, q) => p.side - q.side)) {
+      if (roofDone) break;
+      const b = bl.hostBox;
+      for (const kk of [1, 0.86, 0.74]) {
+        const pw = Math.min(b.w * 0.95, 86 * sc * kk), ph = pw * 0.8, legs = 9 * sc;
+        if (pw < 50 * sc) break;
+        const x = Math.max(8, Math.min(W - 8 - pw, b.x + (b.w - pw) / 2));
+        const box = { x, y: b.y - ph - legs + 1, w: pw, h: ph + legs };
+        if (!free(box, 3, 6)) continue;
+        out.push({ type: 'roof', li: 3, box, ph, legs }); used.push(box); roofDone = true; break;
+      }
+    }
+    // the icon: mid skyline, near the middle (only when there's no rooftop billboard)
     const iconAt = (L, li, Smax, pref) => {
       const cands = [];
       for (const r of L.rects) {
@@ -347,7 +384,7 @@ export function createSigns({ games: allGames = [] } = {}) {
     };
     const S1 = 54 * sc;
     const centred = box => Math.abs(box.x + box.w / 2 - W / 2) + (box.y - HZ * 0.5) * 0.3;
-    const ib = iconAt(mid, 2, S1, centred) || iconAt(mid, 2, S1 * 0.78, centred) || iconAt(mid, 2, S1 * 0.62, centred);
+    const ib = roofDone && W < 760 ? null : iconAt(mid, 2, S1, centred) || iconAt(mid, 2, S1 * 0.78, centred) || iconAt(mid, 2, S1 * 0.62, centred);
     if (ib) { out.push({ type: 'icon', li: 2, box: ib }); used.push(ib); }
     // the ticker: a band near the top of a building, as far from the others as possible
     const p = Math.max(2.3, Math.min(2.9, 2.4 * sc));
@@ -385,7 +422,8 @@ export function createSigns({ games: allGames = [] } = {}) {
   // ================================================================== build a sign's images for a game
   function dress(s, g) {
     s.game = g;
-    if (s.type === 'icon') s.img = iconImages(s, g);
+    if (s.type === 'roof') { if (!s.panel) s.panel = roofPanel(s); const m = s.markBox; s.img = iconImages({ w: m.w, over: s.over, idx: s.idx }, g); }
+    else if (s.type === 'icon') s.img = iconImages(s, g);
     else if (s.type === 'blade') s.img = bladeImages(s, g);
     else if (s.type === 'marquee') s.board = boardImages(s, g);
   }
@@ -507,6 +545,24 @@ export function createSigns({ games: allGames = [] } = {}) {
             c.globalAlpha = 0.8 * tl; c.strokeStyle = mixHex(col, '#ffffff', 0.8); c.lineWidth = 0.6; path(); c.stroke();
           }
           c.restore(); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        }
+        if (s.type === 'roof' && s.panel && s.img) {
+          const pn = s.panel, im = s.img, m = s.markBox;
+          const segs = im.segs, alphas = segs.map((_, i) => segAlpha(s, i, segs.length, t, motion));
+          const lit = alphas.reduce((a2, b2) => a2 + b2, 0) / Math.max(1, segs.length);
+          if (lit > 0.02) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 * lit; const rr = s.w * 0.9; c.drawImage(glow(im.col), x + s.w / 2 - rr, y + s.ph / 2 - rr, rr * 2, rr * 2); c.globalCompositeOperation = 'source-over'; }
+          c.globalAlpha = 1; c.drawImage(pn.c, x - pn.pad, y - pn.pad, pn.c.width / R, pn.c.height / R);
+          if (lit > 0.02) {
+            c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 * lit; c.fillStyle = im.col; c.fillRect(x + 2.5, y + 2.5, s.w - 5, s.ph - 5);
+            c.save(); c.shadowColor = im.col; c.shadowBlur = 6; c.globalAlpha = 0.85 * lit; c.strokeStyle = im.col; c.lineWidth = 1.2; c.strokeRect(x + 1.2, y + 1.2, s.w - 2.4, s.ph - 2.4); c.restore();
+            c.globalAlpha = 0.6 * lit; c.strokeStyle = mixHex(im.col, '#ffffff', 0.8); c.lineWidth = 0.5; c.strokeRect(x + 1.2, y + 1.2, s.w - 2.4, s.ph - 2.4);
+            c.globalCompositeOperation = 'source-over';
+          }
+          const mx = x + m.x - im.pad, my = y + m.y - im.pad, mw = im.base.width / R;
+          c.globalAlpha = 1; c.drawImage(im.base, mx, my, mw, mw);
+          for (let i = 0; i < segs.length; i++) if (alphas[i] > 0.01) { c.globalAlpha = alphas[i]; c.drawImage(segs[i], mx, my, mw, mw); }
+          c.globalAlpha = 1; s.lit = lit;
+          continue;
         }
         if (s.type === 'icon' || s.type === 'blade') {
           const im = s.img; if (!im) continue;
