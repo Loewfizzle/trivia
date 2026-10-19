@@ -178,6 +178,14 @@ try {
   ok(sc.wave === 1 && sc.lit === 1 && sc.bill === 1 && sc.logo === 1, 'POWER-ON: lights, billboards, sign all fully on at the end');
   ok(sc.signs && sc.signs.length >= 4, `SCENE: the city's signs show the games (${sc.signs ? sc.signs.map(s => s.type).join(', ') : 'none'})`);
   ok(await ev(A.page, `document.querySelectorAll('.nd-sign .ndl.on').length === 4 && document.querySelector('.nd-sign').classList.contains('is-warm')`), 'SIGN: all four letters lit and steady');
+  // a tapped letter: by night it goes dark for a moment and re-ignites (by day it sparks on for a moment)
+  { const r = await ev(A.page, `(() => { const b = document.querySelector('svg.nd-logo').getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; })()`);
+    await A.page.mouse.click(r.x + r.w * 0.375, r.y + r.h * 0.5);
+    await sleep(700);
+    const mid = await ev(A.page, `[...document.querySelectorAll('.nd-sign .ndl')].map(l => l.classList.contains('on') ? 1 : 0).join('')`);
+    await sleep(2000);
+    const after = await ev(A.page, `[...document.querySelectorAll('.nd-sign .ndl')].map(l => l.classList.contains('on') ? 1 : 0).join('')`);
+    ok(mid === '1011' && after === '1111', `SIGN TAP: the E goes dark for a moment, then re-ignites (${mid} → ${after})`); }
   ok(await ev(A.page, `getComputedStyle(document.querySelector('.nd-host')).opacity === '1'`), 'MENU: eased in');
   await shotAll(A.page, 'n-02-menu-new-player');
 

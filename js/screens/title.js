@@ -611,14 +611,21 @@ export function createTitle() {
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
   }
+  // a tapped letter: by night it stutters out, stays dark a moment and re-ignites like neon does; by day it sparks to life,
+  // glows for a moment and flickers out again. One tap at a time per letter.
+  const buzzing = new Set();
   function buzz(i) {
     const l = els.sign.querySelectorAll('.ndl')[i];
-    if (!l) return;
-    const day = els.sign.classList.contains('is-day');
-    const seq = day ? [0, 70, 120, 200, 260, 380] : [0, 50, 90, 140, 200, 300];
-    // lit: the tube stutters off and back on; by day: it sparks to life for a moment and dies again
-    seq.forEach((ms, k) => setTimeout(() => { if (!destroyed) l.classList.toggle('on', day ? k % 2 === 0 && k < seq.length - 1 : k % 2 === 1 || k === seq.length - 1); }, ms));
-    neonTick();
+    if (!l || buzzing.has(i)) return;
+    buzzing.add(i);
+    const day = els.sign.classList.contains('is-day') || !els.sign.classList.contains('is-steady');
+    const set = (on, ms, tick) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', on); if (tick) neonTick(); }, ms);
+    // [state, at ms]: the stutter, the hold, the restart flicker
+    const plan = day
+      ? [[1, 0], [0, 60], [1, 110], [0, 170], [1, 230], [0, 1850], [1, 1910], [0, 1990]]          // sparks on … glows … flickers out
+      : [[0, 0], [1, 50], [0, 95], [1, 150], [0, 200], [1, 1600], [0, 1660], [1, 1720], [0, 1800], [1, 1900]];   // out … dark … re-ignites
+    plan.forEach(([on, ms], k) => set(!!on, ms, k === 0 || (day ? k === 5 : k === 5)));
+    setTimeout(() => { buzzing.delete(i); if (!destroyed) l.classList.toggle('on', !day); }, plan[plan.length - 1][1] + 40);
   }
 
   // after 15 s without a touch the menu and the tagline fade away — just the sign and the city; any touch brings them back

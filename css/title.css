@@ -409,12 +409,13 @@ body.reduced-fx .nd-host-sheen::before, body.reduced-fx .nd-gate-txt { animation
 /* by day: empty glass tubes, not grey letters — a dark glass rim (the cylinder's edges), a pale body that lets the sky through,
    a faint tint of the colour inside (the tube's own: pink, or the holiday's), a crisp white highlight along the top, glossy
    electrode caps; a soft shadow lifts it off the sky. Static (no glow): free. */
+/* (only the unlit letters: a tapped letter that sparks to life by day lights up as neon) */
 .nd-sign.is-day .nd-logo .ndl-glass { opacity: 1; stroke: rgba(46, 34, 58, 0.62); filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28)); }
-.nd-sign.is-day .nd-logo .ndl-light { opacity: 1; }
-.nd-sign.is-day .nd-logo .ndl-glow1, .nd-sign.is-day .nd-logo .ndl-glow2 { display: none; }
-.nd-sign.is-day .nd-logo .ndl-body { stroke: rgba(222, 230, 244, 0.4); }
-.nd-sign.is-day .nd-logo .ndl-core { stroke: var(--b, #ff5fb4); stroke-opacity: 0.34; stroke-width: 3.4px; }
-.nd-sign.is-day .nd-logo .ndl-hi { stroke: #ffffff; opacity: 0.88; stroke-width: 1.15px; }
+.nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-light { opacity: 1; }
+.nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-glow1, .nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-glow2 { display: none; }
+.nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-body { stroke: rgba(222, 230, 244, 0.4); }
+.nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-core { stroke: var(--b, #ff5fb4); stroke-opacity: 0.34; stroke-width: 3.4px; }
+.nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-hi { stroke: #ffffff; opacity: 0.88; stroke-width: 1.15px; }
 .nd-sign.is-day .nd-logo .ndl circle { fill: #18121e; stroke: rgba(255, 255, 255, 0.4); stroke-width: 0.7px; }
 .nd-sign.is-day .nd-word { opacity: 1; color: rgba(255, 255, 255, 0.92); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55); }
 .nd-sign.is-day .nd-tag { opacity: 1; color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
