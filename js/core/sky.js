@@ -287,7 +287,7 @@ export function look(ms, tz, { alwaysNight = false } = {}) {
 
 // ---------------------------------------------------------------- the clock (a preview switch for screenshots)
 /** ?when=2026-10-31T19:30&tz=America/New_York freezes the start of the clock (it still runs from there);
- *  ?force=bats,meteor,aurora,sleigh,fireworks makes the rare moments happen now. Normal players never pass these. */
+ *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights makes the rare moments happen now. Normal players never pass these. */
 export function skyClock(search = (typeof location !== 'undefined' ? location.search : '')) {
   const q = new URLSearchParams(search || '');
   const tz = q.get('tz') || deviceZone();

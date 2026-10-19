@@ -305,7 +305,8 @@ export function createFx() {
       const early = !hol.full && hol.id === 'halloween' && hol.k >= 0.6;
       const sign = (hol.full || early) && hol.id === 'halloween' ? pumpkinSign() : hol.full && hol.id === 'stpatrick' ? shamrockSign() : null;
       if (sign && g.roofs.length) {
-        const right = g.roofs.filter(r => g.ox + r.x + r.w / 2 > W * 0.62 && g.ox + r.x + r.w / 2 < W - 20);
+        // a roof near the middle (the sides hold the blades and the rooftop billboard)
+        const right = g.roofs.filter(r => g.ox + r.x + r.w / 2 > W * 0.36 && g.ox + r.x + r.w / 2 < W * 0.64 && g.oy + r.y > HZ * 0.5);
         const roof = (right.length ? right : g.roofs).slice().sort((a, b) => a.y - b.y)[0];
         const sz = Math.min(58, roof.w * 0.78);
         const flick = Math.sin(t * 23) > 0.97 ? 0.4 : 1;

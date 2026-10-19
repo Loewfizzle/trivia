@@ -166,3 +166,9 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **More neon on the buildings:** every row now carries some (near 55%, far 22%): full outlines, corner + roof, roof lines,
   vertical strips, double bands; thinner and softer further back.
 - The welcome line has no EDIT button (the card has EDIT PROFILE).
+- **Searchlights are an occasion** (scene.js#searchOn): Friday and Saturday nights (fading out toward midnight) and holiday
+  nights; never while the Milky Way is strong. Rooted near the sides, nearly upright and swaying, never across the sign;
+  holiday colours (Christmas red/green, Halloween orange/violet, the Fourth red/blue…). Preview: `&force=searchlights`.
+- **Neon on the buildings is seeded random** (the same city for everyone; widths depend on the screen): each building rolls
+  a chance per row (far 45%, near 55%) and a style; in the far rows most are full outlines so they read at a distance.
+- The Halloween / St. Patrick's rooftop neon sign sits on a roof near the middle (the sides hold the blades and billboard).

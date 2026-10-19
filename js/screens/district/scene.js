@@ -304,7 +304,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       lx.strokeStyle = rgba(col, a); lx.lineWidth = lw; lx.lineJoin = 'round';
       lx.beginPath();
       const kind = rand(), i0 = lw + 0.6;
-      if (kind < 0.3) { lx.moveTo(x + i0, y + h); lx.lineTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); lx.lineTo(x + w - i0, y + h); }      // full outline
+      if (kind < (li <= 1 ? 0.62 : 0.3)) { lx.moveTo(x + i0, y + h); lx.lineTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); lx.lineTo(x + w - i0, y + h); }      // full outline
       else if (kind < 0.55) { lx.moveTo(x + i0, y + h); lx.lineTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); }                            // corner + roof
       else if (kind < 0.75) { lx.moveTo(x + i0, y + i0); lx.lineTo(x + w - i0, y + i0); }                                                       // roof line
       else if (kind < 0.9) { const sx = x + w * (0.2 + rand() * 0.6); lx.moveTo(sx, y + h * 0.12); lx.lineTo(sx, y + h * 0.88); }              // a vertical strip
@@ -429,7 +429,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       c.globalCompositeOperation = 'source-over';
     }
     // two searchlights sweep slowly behind the skyline; vehicles fly between the far layers (after dark)
-    if (lit > 0.2 && night > 0.1) searchlights(c, t, lit * night);
+    if (lit > 0.2 && night > 0.1) { const sl = searchOn(); if (sl > 0.01) searchlights(c, t, lit * night * sl); }
     if (TIERS[tier].vehicles && S.motion && lit > 0.5 && night > 0.3) vehiclesStep(t, dt, night);
     // the signs: placement (around the title's clear zones), power, rotation, the ticker
     signs.tick(t, dt, { W, H, HZ, layers, clear: S.clear, L: LK, P, bill: S.bill, motion: S.motion, tier });
@@ -522,18 +522,33 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     c.globalAlpha = 1;
   }
 
+  // searchlights are an occasion: Friday and Saturday nights (fading out toward midnight) and holiday nights; never while
+  // the Milky Way is strong. 0..1
+  function searchOn() {
+    const p = LK.local || {}, hol = LK.holiday;
+    const hr = (p.h || 0) + (p.mi || 0) / 60;
+    const weekend = (p.dow === 5 || p.dow === 6) && hr >= 15 ? 1 - smooth(23, 24, hr) : 0;
+    const holiday = hol && hol.full && hr >= 15 ? 1 - smooth(23.5, 24, hr) : 0;
+    const on = clock.force.has('searchlights') ? 1 : Math.max(weekend, holiday);
+    const dk = LK.w.night + LK.w.late, milky = LK.rain ? 0 : clamp01((dk - 0.5) * 2) * clamp01(LK.w.late / Math.max(0.01, dk));
+    return on * (1 - 0.85 * milky);
+  }
+  const SL_COLS = { christmas: ['255,90,100', '110,255,160'], halloween: ['255,150,60', '190,110,255'], july4: ['255,90,100', '120,160,255'], valentine: ['255,120,170', '255,170,200'], stpatrick: ['110,255,160', '170,255,200'], nye: ['255,220,140', '200,220,255'] };
   function searchlights(c, t, lit) {
     c.globalCompositeOperation = 'lighter';
-    for (const [x0, sp, ph, col] of [[0.28, 0.11, 0, '170,150,255'], [0.74, 0.08, 2.1, '120,200,255']]) {
-      const ang = Math.sin(t * sp + ph) * 0.42 * (S.motion ? 1 : 0);
-      const bx = W * x0 + cam.x * 0.15, by = HZ * 0.9;
-      const len = HZ * 1.2, wid = len * 0.14;
+    const hol = LK.holiday && LK.holiday.full ? SL_COLS[LK.holiday.id] : null;
+    const cols = hol || ['185,170,255', '150,210,255'];
+    // rooted behind the skyline near the sides, nearly upright, swaying slowly — framing the city, never across the sign
+    [[0.07, 0.1, 0, -1], [0.93, 0.08, 2.1, 1]].forEach(([x0, sp, ph, side], i) => {
+      const ang = side * (-0.03 + Math.sin(t * sp + ph) * 0.13 * (S.motion ? 1 : 0));   // nearly upright, swaying
+      const bx = W * x0 + cam.x * 0.15, by = HZ * 0.92;
+      const len = HZ * (W < 700 ? 0.82 : 1.2), wid = len * 0.1;
       c.save();
       c.translate(bx, by); c.rotate(ang);
-      c.globalAlpha = 0.11 * lit;
-      c.drawImage(beam(col), -wid / 2, -len, wid, len);
+      c.globalAlpha = 0.13 * lit;
+      c.drawImage(beam(cols[i]), -wid / 2, -len, wid, len);
       c.restore();
-    }
+    });
     c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
   }
