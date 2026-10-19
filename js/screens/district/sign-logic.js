@@ -1,22 +1,32 @@
 // THE CITY'S SIGNS — the rules (pure, no DOM; tested in tests/signs.test.mjs).
 //   rotation: which sign shows which game. One sign changes at a time, every CHANGE_EVERY seconds, always to a game that
-//             isn't already showing, round-robin through the signs and the games — every game appears within a minute.
+//             isn't already showing (and that the sign can show: a blade only takes names that fit at a readable size),
+//             round-robin through the signs and the games — each game holds its sign for half a minute or more.
 //   ticker:   the scrolling band's message: holiday build-ups and greetings, the New Year countdown, the games playing.
 import { easter, thanksgiving } from '../../core/sky.js';
 
-export const CHANGE_EVERY = 4.6;   // seconds between sign changes (one sign at a time)
+export const CHANGE_EVERY = 12;    // seconds between sign changes (one sign at a time)
 
-export function createRotation(nSigns, nGames, seed = 0) {
+export function createRotation(nSigns, nGames, seed = 0, ok = () => true) {
   const n = Math.min(nSigns, nGames);
-  return { shown: Array.from({ length: n }, (_, i) => (seed + i) % nGames), cursor: (seed + n) % nGames, turn: 0, at: 0 };
+  const shown = [];
+  let cursor = seed % nGames;
+  for (let i = 0; i < n; i++) {
+    let g = cursor, guard = 0;
+    while ((shown.includes(g) || !ok(i, g)) && guard++ < nGames) g = (g + 1) % nGames;
+    shown.push(g);
+    cursor = (g + 1) % nGames;
+  }
+  return { shown, cursor, turn: 0, at: 0 };
 }
 
 /** Advance at time t (s). Returns { r, change: { sign, game } | null }. */
-export function rotate(r, nGames, t) {
+export function rotate(r, nGames, t, ok = () => true) {
   if (!r.shown.length || nGames <= r.shown.length || t - r.at < CHANGE_EVERY) return { r, change: null };
-  let g = r.cursor, guard = 0;
-  while (r.shown.includes(g) && guard++ < nGames) g = (g + 1) % nGames;
   const sign = r.turn % r.shown.length;
+  let g = r.cursor, guard = 0;
+  while ((r.shown.includes(g) || !ok(sign, g)) && guard++ < nGames) g = (g + 1) % nGames;
+  if (guard >= nGames) return { r: { ...r, turn: r.turn + 1, at: t }, change: null };
   const shown = r.shown.slice();
   shown[sign] = g;
   return { r: { shown, cursor: (g + 1) % nGames, turn: r.turn + 1, at: t }, change: { sign, game: g } };

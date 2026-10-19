@@ -218,7 +218,7 @@ export function createTitle() {
     tl = { plan: r ? { ...INSTANT, end: 0.7 } : plan, kind: r ? 'reduced' : kind, t0: performance.now(), done: false, marks: {} };
     const root = els.sign.closest('.nd');
     root.classList.add(`seq-${tl.kind}`);
-    if (!stopRain) stopRain = startRain();
+    rainSound();
     tick();
   }
 
@@ -317,7 +317,15 @@ export function createTitle() {
     if (want && !lit) { tl.kind = 'full'; signOn(); scene.set({ logo: 1 }); }
     else if (!want && lit) signOff();
     dressSign(scene.look());
+    rainSound();
     els.skyTimer = setTimeout(watchSky, 1000);
+  }
+  // the rain sound only while it rains on screen: in over ~3 s when a shower starts, out over 4 s when it stops
+  function rainSound() {
+    if (destroyed || !scene) return;
+    const raining = !!scene.look().rain;
+    if (raining && !stopRain) stopRain = startRain();
+    else if (!raining && stopRain) { stopRain(4); stopRain = null; }
   }
   function signOff() {
     const s = els.sign;
@@ -696,6 +704,7 @@ export function createTitle() {
       hit: (x, y) => scene && scene.hit(x, y),
       idle: () => goIdle(),
       isIdle: () => els.root.classList.contains('is-idle'),
+      rainSound: () => !!stopRain,
     };
   }
 

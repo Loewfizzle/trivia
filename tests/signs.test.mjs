@@ -26,13 +26,13 @@ test('tube geometry: caps at the open ends, none on closed shapes; paths scale',
   assert.equal(scalePath('M1 2 L3 4 H5 V6', 2, 10, 20), 'M12 24 L16 28 H20 V32');
 });
 
-test('rotation: one sign changes at a time, never to a game already showing, every game within a minute', () => {
+test('rotation: one sign changes at a time, never to a game already showing, every game within a few minutes', () => {
   const nGames = GAMES.filter(x => x.playable).length;
   for (const nSigns of [3, 4]) {
     let r = createRotation(nSigns, nGames);
     const seen = new Set(r.shown);
     let last = -Infinity, firstAll = null;
-    for (let t = 0; t <= 60; t += 0.1) {
+    for (let t = 0; t <= 180; t += 0.1) {
       const before = r.shown.slice();
       const out = rotate(r, nGames, t);
       r = out.r;
@@ -46,7 +46,7 @@ test('rotation: one sign changes at a time, never to a game already showing, eve
         if (seen.size === nGames && firstAll == null) firstAll = t;
       }
     }
-    assert.ok(firstAll != null && firstAll <= 60, `${nSigns} signs: every game by ${firstAll} s`);
+    assert.ok(firstAll != null && firstAll <= 150, `${nSigns} signs: every game by ${firstAll} s`);
   }
 });
 
@@ -63,4 +63,11 @@ test('ticker: build-ups count the nights, full days greet, the countdown stands 
   assert.match(tickerText(L({ id: 'halloween', full: true, k: 1 }, { y: 2026, m: 10, d: 31 }), names), /^HAPPY HALLOWEEN .*NOW PLAYING/);
   assert.equal(tickerText(L({ id: 'nye', full: true, k: 1 }, { y: 2026, m: 12, d: 31 }, { countdown: 151 }), names), '2:31 TO MIDNIGHT');
   assert.equal(holidayLine(L({ id: 'nye', full: true, k: 1 }, { y: 2027, m: 1, d: 1 }, { finale: 30 })), 'HAPPY NEW YEAR');
+});
+
+test('rotation: a sign only takes the games it can show (the blade: names that fit)', () => {
+  const ok = (sign, g) => sign !== 1 || g % 2 === 0;    // sign 1 takes even games only
+  let r = createRotation(3, 12, 0, ok);
+  assert.equal(r.shown[1] % 2, 0);
+  for (let t = 0; t <= 300; t += 0.5) { r = rotate(r, 12, t, ok).r; assert.equal(r.shown[1] % 2, 0, 'the blade keeps to names that fit'); assert.equal(new Set(r.shown).size, 3); }
 });

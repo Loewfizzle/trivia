@@ -277,9 +277,9 @@ try {
     await H.page.evaluate(() => document.querySelectorAll('.modal, .help').forEach(m => m.remove()));
   }
   // the rotation: one sign at a time, spaced out
-  await sleep(10500);
+  await sleep(25500);
   const ch = await ev(H.page, 'JSON.stringify(window.__district.scene().changes)').then(JSON.parse);
-  ok(ch.length >= 2 && ch.every((c, i) => i === 0 || c.t - ch[i - 1].t >= 4.5), `SIGNS: they rotate one at a time (${ch.map(c => c.sign + '→' + c.game).join(', ')})`);
+  ok(ch.length >= 2 && ch.every((c, i) => i === 0 || c.t - ch[i - 1].t >= 11.9), `SIGNS: they rotate one at a time (${ch.map(c => c.sign + '→' + c.game).join(', ')})`);
   // the window easter egg is gone: a tap on a building does nothing
   const hits = await H.page.evaluate(() => { const k = new Set(); for (let y = 300; y < innerHeight * 0.66; y += 9) for (let x = 6; x < innerWidth; x += 9) { const h = window.__district.hit(x, y); if (h) k.add(h.kind); } return [...k]; });
   ok(!hits.includes('window'), `EASTER EGGS: no window switching (taps found: ${hits.join(', ') || 'none'})`);

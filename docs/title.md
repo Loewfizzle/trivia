@@ -118,17 +118,21 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   far icon go wherever spreads them out most. Never overlapping each other, a clear zone or a nearer building; each sign
   tries a few sizes and takes the largest that fits. Only the marquee and the blade are bright and close; the rest sit
   back in the haze (`NEAR_ALPHA`). Re-placed only when the screen or a zone changes by ~40 px.
-- **Rotation:** one sign changes every 4.6 s, round-robin, always to a game not already showing — every game within a
-  minute. Icons and blades power down and buzz back tube by tube; the marquee flips; the ticker just scrolls.
+- **Rotation:** one sign changes every 12 s, round-robin, always to a game not already showing (each game holds its sign
+  for half a minute or more). The blade only takes names that fit at a readable size (about 15 px tall on a phone; longer
+  names show on the marquee, the icon and the ticker); its letters have a softer glow so they read on a phone. Icons and blades power down and buzz back tube by tube; the marquee flips; the ticker just scrolls.
 - **The living city:** off by day (glass tubes and brackets visible), tube by tube on at dusk (and at the title's boot),
   off together at dawn. Holidays: Halloween cobwebs + orange/violet bulbs, Thanksgiving amber, Christmas red/green bulbs
   (more each December day), New Year's gold + the countdown on the ticker, Valentine's rose tubes, St. Patrick's green,
   Easter pastels, the Fourth red/white/blue. Light spills on the walls and into the wet street; rain streaks catch it;
   a rare small flicker. Reduced effects: no chase, no flicker, plain fades.
-- **Taps:** every sign (thumb-sized areas, pointer events) opens that game's HOW TO PLAY.
+- **Taps:** every sign (thumb-sized areas, pointer events) opens that game's HOW TO PLAY; on the ticker, the name under the
+  finger (or the nearest one scrolling by).
 - **A new game:** add its mark to `MARKS` (else it gets its initials in tube letters) — it joins the rotation by itself.
 - **Performance:** each sign is drawn once into offscreen canvases (the unlit sign; one canvas per tube); a frame blends
   those plus ~40 bulbs and the ticker's scroll. 60 fps at 4× CPU on the top tier.
 - **Dock cleanup (same pass):** the rank moved into the welcome line ("Welcome back, BEN · ◆ REGULAR I", the whole line opens
   the card); the links are THE BOARD and GAMES; the explainer line shows only before a profile exists. The window easter
   egg is gone. On phones the moon arches over the sign (rising beside it at the left edge, setting at the right).
+- **The rain sound** plays only while it rains on screen (title.js#rainSound: in over ~3 s, out over 4 s); clear, snowy and
+  daytime skies are silent.

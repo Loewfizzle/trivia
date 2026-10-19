@@ -76,6 +76,7 @@ export function createSigns({ games: allGames = [] } = {}) {
   const R = Math.min(2, window.devicePixelRatio || 1);
   const sprites = new Map();
   const glow = col => { let c = sprites.get(col); if (!c) { c = mk(64, 64); const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, rgba(col, 1)); g.addColorStop(0.3, rgba(col, 0.38)); g.addColorStop(1, rgba(col, 0)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); sprites.set(col, c); } return c; };
+  let canShow = () => true;
   let signs = [], placedKey = '', rot = null, lastOn = false, overKey = '', tickerMsg = '', drops = [], log = [];
   let env = { W: 1, H: 1, HZ: 1 };
 
@@ -92,18 +93,17 @@ export function createSigns({ games: allGames = [] } = {}) {
       for (const c of t.clips) { x.save(); x.translate(c.x, c.y); x.rotate(c.ang + Math.PI / 2); x.fillStyle = 'rgba(20,15,26,0.92)'; x.fillRect(-w * 0.28, -w * 1.15, w * 0.56, w * 2.3); x.restore(); }
     }
   }
-  function litTube(x, t, w, k) {
+  function litTube(x, t, w, k, soft = false) {
     x.lineCap = 'round'; x.lineJoin = 'round';
     const pass = (col, width, blur, alpha) => {
       x.save(); const OFF = 6000 / k;
       x.translate(-OFF, 0); x.shadowOffsetX = OFF * k; x.shadowColor = col; x.shadowBlur = blur * k;
       x.globalAlpha = alpha; x.strokeStyle = col; x.lineWidth = width; x.stroke(t.p); x.restore();
     };
-    pass(t.col, w * 3.2, w * 5.5, 0.45);
-    pass(t.col, w * 2.4, w * 2.8, 0.9);
-    pass(t.col, w * 1.35, w * 1.0, 1);
+    if (soft) { pass(t.col, w * 2.2, w * 3.2, 0.3); pass(t.col, w * 1.4, w * 1.0, 0.55); }
+    else { pass(t.col, w * 3.2, w * 5.5, 0.45); pass(t.col, w * 2.4, w * 2.8, 0.9); pass(t.col, w * 1.35, w * 1.0, 1); }
     x.strokeStyle = t.col; x.lineWidth = w; x.stroke(t.p);
-    x.strokeStyle = mixHex(t.col, '#ffffff', 0.84); x.lineWidth = w * 0.36; x.stroke(t.p);
+    x.strokeStyle = mixHex(t.col, '#ffffff', 0.84); x.lineWidth = w * (soft ? 0.46 : 0.36); x.stroke(t.p);
     x.save(); x.translate(-w * 0.18, -w * 0.18); x.globalAlpha = 0.35; x.strokeStyle = '#ffffff'; x.lineWidth = w * 0.12; x.stroke(t.p); x.restore();
   }
   const prep = (d, col) => ({ p: new Path2D(d), col, ...tubeEnds(d) });
@@ -152,7 +152,7 @@ export function createSigns({ games: allGames = [] } = {}) {
     const inset = 3.2, tw = Math.max(1.3, bw * 0.06);
     const border = prep(`M${inset + 3} ${top + inset} H${bw - inset - 3} Q${bw - inset} ${top + inset} ${bw - inset} ${top + inset + 3} V${top + area - inset - 3} Q${bw - inset} ${top + area - inset} ${bw - inset - 3} ${top + area - inset} H${inset + 3} Q${inset} ${top + area - inset} ${inset} ${top + area - inset - 3} V${top + inset + 3} Q${inset} ${top + inset} ${inset + 3} ${top + inset} Z`, trim);
     const n = word.length;
-    const lh = Math.min(bw * 0.62, (area - inset * 4) / (n * 1.24));
+    const lh = Math.min(bw * 0.66, (area - inset * 4) / (n * 1.24));
     const sc = lh / 14, lw = Math.max(1.4, lh * 0.12) / sc;
     const y0 = top + inset * 2 + (area - inset * 4 - n * lh * 1.24) / 2;
     const letters = [...word].map((ch, i) => ({ ...prep(LETTERS[ch] || LETTERS.O, col), ox: (bw - 10 * sc) / 2, oy: y0 + i * lh * 1.24 + lh * 0.12 }));
@@ -161,8 +161,8 @@ export function createSigns({ games: allGames = [] } = {}) {
     for (const L of letters) { x.save(); x.translate(L.ox, L.oy); x.scale(sc, sc); glassTubes(x, [L], lw); x.restore(); }
     // lit: the border, then one canvas row per letter
     const one = (draw) => { const c = mk(cw, ch), y = c.getContext('2d'); y.setTransform(R, 0, 0, R, ox * R, pad * R); draw(y); return c; };
-    const segs = [one(y => litTube(y, border, tw, R))];
-    for (const L of letters) segs.push(one(y => { y.translate(L.ox, L.oy); y.scale(sc, sc); litTube(y, L, lw, R * sc); }));
+    const segs = [one(y => litTube(y, border, tw, R, true))];
+    for (const L of letters) segs.push(one(y => { y.translate(L.ox, L.oy); y.scale(sc, sc); litTube(y, L, lw, R * sc, true); }));
     return { base, segs, pad, ox, col, rows: null };
   }
 
@@ -267,9 +267,9 @@ export function createSigns({ games: allGames = [] } = {}) {
     for (let col = 0; col * s.p < s.w; col++) for (let row = 0; row < 7; row++) { x.beginPath(); x.arc(col * s.p + s.p / 2, s.p * 1.2 + row * s.p, s.p * 0.3, 0, TAU); x.fill(); }
     return c;
   }
-  function tickerStrip(s, text, col) {
-    const cols = [];
-    for (const ch of text.toUpperCase()) { const gl = FONT[ch] || FONT[' ']; const w = gl[0].length; for (let cx = 0; cx < w; cx++) cols.push(gl.map(row => row[cx] === '1')); cols.push(null); }
+  function tickerStrip(s, text, col, names = [], ids = []) {
+    const cols = [], at = [];
+    for (const ch of text.toUpperCase()) { at.push(cols.length); const gl = FONT[ch] || FONT[' ']; const w = gl[0].length; for (let cx = 0; cx < w; cx++) cols.push(gl.map(row => row[cx] === '1')); cols.push(null); }
     const gap = Math.ceil(s.w / s.p * 0.6);
     for (let i = 0; i < gap; i++) cols.push(null);
     const W = cols.length * s.p;
@@ -277,7 +277,11 @@ export function createSigns({ games: allGames = [] } = {}) {
     x.setTransform(R, 0, 0, R, 0, 0);
     const halo = rgba(col, 0.28);
     cols.forEach((cl, i) => { if (!cl) return; cl.forEach((on, row) => { if (!on) return; const px = i * s.p + s.p / 2, py = s.p * 1.2 + row * s.p; x.fillStyle = halo; x.beginPath(); x.arc(px, py, s.p * 0.62, 0, TAU); x.fill(); x.fillStyle = col; x.beginPath(); x.arc(px, py, s.p * 0.34, 0, TAU); x.fill(); x.fillStyle = 'rgba(255,255,255,0.55)'; x.beginPath(); x.arc(px - s.p * 0.08, py - s.p * 0.08, s.p * 0.12, 0, TAU); x.fill(); }); });
-    return { c, w: W };
+    // the columns each game's name covers
+    const spans = [];
+    let from = Math.max(0, text.indexOf('NOW PLAYING'));
+    names.forEach((n, i) => { const k = text.indexOf(n, from); if (k < 0) return; spans.push({ c0: at[k], c1: at[k + n.length - 1] + 5, id: ids[i] }); from = k + n.length; });
+    return { c, w: W, spans, cols: cols.length };
   }
 
   // ================================================================== placement
@@ -319,14 +323,17 @@ export function createSigns({ games: allGames = [] } = {}) {
     // the blade: off the inner edge of a near tower on the other side
     const bside = mq ? -mq.side : 1;
     let bladeDone = false;
-    for (const kk of [1, 0.85, 0.72]) { if (bladeDone) break; const bw = 24 * sc * kk;
+    for (const kk of [1, 0.88, 0.76]) { if (bladeDone) break; const bw = 30 * sc * kk;
     for (const b of towers.filter(t => (t.x + t.w / 2 < W / 2 ? -1 : 1) === bside).sort((a, b2) => a.y - b2.y)) {
       const top = b.y + 10, bottom = Math.min(HZ - 14, b.y + b.h - 8), h = Math.min(bottom - top, 210 * sc * kk);
       if (h < 100 * sc * kk) continue;
       const x = bside < 0 ? b.x + b.w + 5 : b.x - bw - 5;
       const box = { x, y: top, w: bw, h };
       if (!free(box, 3, 6)) continue;
-      out.push({ type: 'blade', li: 3, box, dir: bside < 0 ? -1 : 1 }); used.push(box); bladeDone = true; break;
+      // how many letters fit at a readable size (≈ 15 px tall on a phone): longer names go to the other signs
+      const area = h - bw * 0.5 - bw * 0.42, cap = Math.floor((area - 3.2 * 4) / (15 * sc * 1.24));
+      if (cap < 5) continue;
+      out.push({ type: 'blade', li: 3, box, dir: bside < 0 ? -1 : 1, cap }); used.push(box); bladeDone = true; break;
     } }
     // the icon: mid skyline, near the middle
     const iconAt = (L, li, Smax, pref) => {
@@ -432,7 +439,8 @@ export function createSigns({ games: allGames = [] } = {}) {
         placedKey = key;
         signs = place(o.layers, o.clear);
         const flips = signs.filter(s => s.type !== 'ticker');
-        rot = { ...createRotation(flips.length, games.length, Math.floor(Math.random() * games.length)), at: t };
+        canShow = (i, g) => flips[i].type !== 'blade' || bladeWord(games[g]).length <= flips[i].cap;
+        rot = { ...createRotation(flips.length, games.length, Math.floor(Math.random() * games.length), canShow), at: t };
         flips.forEach((s, i) => { setup(s, o.L); dress(s, rot.shown[i]); });
         signs.filter(s => s.type === 'ticker').forEach(s => setup(s, o.L));
         lastOn = false; tickerMsg = '';
@@ -450,7 +458,7 @@ export function createSigns({ games: allGames = [] } = {}) {
       // the rotation: one sign changes at a time
       const flips = signs.filter(s => s.type !== 'ticker');
       if (rot && flips.length) {
-        const res = rotate(rot, games.length, t);
+        const res = rotate(rot, games.length, t, canShow);
         rot = res.r;
         if (res.change) {
           const s = flips[res.change.sign];
@@ -469,9 +477,10 @@ export function createSigns({ games: allGames = [] } = {}) {
       // the ticker's message
       const ts = signs.find(s => s.type === 'ticker');
       if (ts) {
-        const names = (rot ? [...rot.shown, ...games.map((_, i) => i).filter(i => !rot.shown.includes(i))] : games.map((_, i) => i)).map(i => games[i].name.toUpperCase());
+        const order = rot ? [...rot.shown, ...games.map((_, i) => i).filter(i => !rot.shown.includes(i))] : games.map((_, i) => i);
+        const names = order.map(i => games[i].name.toUpperCase());
         const msg = tickerText(o.L, names) + '|' + tickerColor(o.L);
-        if (msg !== tickerMsg) { tickerMsg = msg; const [text, col] = msg.split('|'); ts.strip = tickerStrip(ts, text, col); ts.col = col; }
+        if (msg !== tickerMsg) { tickerMsg = msg; const [text, col] = msg.split('|'); ts.strip = tickerStrip(ts, text, col, names, order.map(i => games[i].id)); ts.col = col; }
         ts.off += (o.motion ? 24 : 14) * (env.W > 700 ? 1.3 : 1) * dt / 1000;
       }
       api._t = t; api._motion = o.motion; api._tier = o.tier;
@@ -583,7 +592,16 @@ export function createSigns({ games: allGames = [] } = {}) {
         if (s.sx == null) continue;
         const padX = Math.max(10, (44 - s.w) / 2), padY = Math.max(10, (44 - s.h) / 2);
         if (x >= s.sx - padX && x <= s.sx + s.w + padX && y >= s.sy - padY && y <= s.sy + s.h + padY) {
-          if (s.type === 'ticker') { const g = rot ? rot.shown[0] : 0; return { id: games[g].id, sign: 'ticker' }; }
+          if (s.type === 'ticker') {
+            // the name under the finger (or the nearest one scrolling by)
+            const st = s.strip;
+            if (!st || !st.spans.length) return { id: games[rot ? rot.shown[0] : 0].id, sign: 'ticker' };
+            let lx = (x - s.sx - s.w + (s.off % st.w)) % st.w; if (lx < 0) lx += st.w;
+            const col = lx / s.p;
+            const dist = sp => (col >= sp.c0 && col <= sp.c1 ? 0 : Math.min(Math.abs(col - sp.c0), Math.abs(col - sp.c1), st.cols - Math.abs(col - sp.c0), st.cols - Math.abs(col - sp.c1)));
+            const best = st.spans.slice().sort((a, b) => dist(a) - dist(b))[0];
+            return { id: best.id, sign: 'ticker' };
+          }
           return { id: games[s.game].id, sign: s.type };
         }
       }
