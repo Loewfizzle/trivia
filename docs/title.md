@@ -76,7 +76,8 @@ the street outside: the district, the sign over the door.
   (`x-vercel-ip-latitude / -longitude / -city`; no permission prompt, the browser never sees it), rounds it to ~0.5° (≈ 35 miles:
   the cache key and all that's kept), asks Open-Meteo (free, no key) and caches per area for 15 minutes (memory + `wx/{area}`,
   server-only). `core/weather.js` (pure) turns WMO codes + cloud cover + visibility + wind + temperature into
-  `{ kind, rain, snow, storm, fog, cloud, wind, windDir, temp, lat, lon }`. The page (`district/live-weather.js`) asks after the
+  `{ kind, rain, snow, storm, fog, cloud, wind, windDir, temp, lat, lon, wetAt }` (wetAt: when it last really rained, from the
+  past two hours of 15-minute precipitation — RAINBOWS below). The page (`district/live-weather.js`) asks after the
   first paint, every 15 minutes and when it comes back to the front; the answer is good for 75 minutes. With it, look() also
   places the sun, moon and stars over the visitor's real area (Grand Rapids sunrises, not New York's). **Without it** (no
   answer yet, local dev, a failed lookup): a dry city with a few fair-weather clouds — the old seeded "rainy evenings" are gone
@@ -257,6 +258,50 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   order, seeding, Reduced effects, the catch against the drawn sun on phones and desktop, N + S, summer + winter); e2e-title
   "THE NEON COMES ALIVE" (day, ramp, the catch with its one sound, the city answering, the morning, storms, reload, the intro
   mid-ramp, a letter tap mid-ramp, ALWAYS NIGHT, Reduced effects).
+
+## RAINBOWS (Oct 20, 2026) — `core/rainbow.js` (PURE), `district/rainbow.js`, `/api/sky`'s wetAt
+After REAL rain only: a daytime rainbow, a moonbow on ordinary nights, a neon rainbow on PARTY NIGHTS. Rare by nature: the rain
+has to stop where the player is, and the sky has to allow it.
+- **After the rain** (`lastRain`, `bowSchedule`, `bowEnvelope`): `/api/sky` also asks Open-Meteo for the past 8 quarter hours of
+  precipitation (`minutely_15`, no forecast) → `wetAt` = the end of the last quarter hour with ≥ 0.1 mm (`core/weather.js#wetAtOf`;
+  raining now = now). The page remembers it on the device too (`localStorage nd:wet`, `live-weather.js#lastWetAt`): a reload
+  or a visit right after the rain still knows. Never invented: no wetAt, no bow. One appearance per rain, seeded by the quarter
+  hour it stopped (every phone in the area sees the same one): 2–7 min after the last drops, fading in over 1–2 min, holding
+  10–20 min, fading out over 2 min — all within about half an hour. The secondary bow shows on ~40 % of them.
+- **Which bow** (`bowWeights`, each 0..1, times the envelope): the DAY bow with the sun up and under 42° (a real rainbow can't
+  form higher; richer with a low sun: mornings and late afternoons); the MOONBOW after dark with the moon ≥ ~70 % lit and up
+  (under 42° too); the NEON bow on a party night (`party.ramp`, no moon needed), instead of the moonbow. Every one: not under
+  thick cloud (≥ ~0.8) or fog, never while it still rains hard. ALWAYS NIGHT: the night rules (never the day bow). Overlaps blend
+  (the sun setting under a bow, the party starting): the soft bows ease at most a 30th per second, so nothing ever pops.
+- **Where** (`bowGeometry`): a PHONE — the arc's top just under the tagline (12 px; the neon bow 30 px, lower in the scene),
+  steep enough to meet the screen's edges below the roofs there (its ends drop behind the towers on both sides); every row of
+  towers is drawn after it, so they hide it naturally. A WIDE screen — one wide arc OVER the sign (the sign stands under it,
+  never a letter crossed), its feet behind the towers at the screen's edges; the neon bow there rises from behind the sign at
+  SPEAKEASY's height (masked under the text) and runs down behind the towers — under the NEON letters, never over them.
+- **The day bow** (`rainbow.js#bakeSoft`): one radial gradient per band, baked once per layout (≤ 1.25× pixels; it's soft):
+  red outside → violet inside, soft edges, violet faintest; the sky a touch brighter inside; a faint pastel supernumerary inside
+  the violet; the secondary (×1.21 the radius, wider, colours reversed, about a third as strong; on a phone it passes behind
+  SPEAKEASY and the tagline: masked there) with Alexander's darker band between them; strongest at its top, fading toward its
+  ends. Drawn over the sky (source-over: colour and light together). It opens softly around the sun's disc wherever the disc is
+  near the arc (`sunHole`: a cached copy with a soft hole, rebuilt only when the sun moves 2 px).
+- **The moonbow:** the same arc, the colours 72 % of the way to silver, about half as strong, added to the night sky — a ghost.
+- **The neon bow** (`bakeNeon`): six tubes (red, orange, yellow, green, blue, violet) built like the NEON sign: a wide haze, a
+  blurred glow (shadowBlur, once, at bake time), the tube, a white-hot core, small dark clips lined up across the six every ~21°
+  (9° on a wide screen). It POWERS ON like the sign once the bow is due: a silent sputter, tube by tube from the red (0.26 s
+  apart, a couple of stutters each), then holds — one baked canvas per tube only during those two seconds, then a single
+  composite. It breathes with the party's beat (±7 %, `party.breath`), at 0.8 — a touch dimmer than the sign. It POWERS OFF gently
+  (2.6 s) when the bow ends or the party does. Its light in the wet street: a baked, mirrored, blurred, fading copy (tier 1+).
+- **Reduced effects:** the bows fade in and out the same; the neon bow fades on over 1.6 s (no sputter) and holds steady (no
+  breathing). Tier 0: no sputter, no street reflection.
+- **Performance:** a frame is one drawImage per bow (+ one for the neon's reflection); bakes happen once per layout. At 4× CPU
+  in software Chrome the bows cost nothing measurable (`e2e-rainbow.mjs` PERF).
+- **Previews:** `&force=rainbow` (the day bow), `&force=rainbow2` (with the secondary), `&force=moonbow`, `&force=neonbow` — any
+  time, whatever the weather, fading in over 8 s of the clock (combine with `?when=&tz=&at=`). The real path: `&rained=12` says
+  the rain stopped 12 minutes before the clock's start (sets the preview weather's wetAt). Test-only: `&force=no-rainbow`.
+  Hook: `__district.rainbow()` (day, moon, neon state + level + tubes, secondary, geo, edges, neonAlpha, the target).
+- **Tests:** `tests/rainbow.test.mjs` (wetAt, the schedule, the envelope, lastRain, which bow by sun / moon / party / cloud / fog
+  / rain / ALWAYS NIGHT, the after-rain path through skyClock, the geometry at phone and desktop sizes); `server.test.mjs` (the API's
+  wetAt from past quarter hours, never the forecast); `tests/integration/e2e-rainbow.mjs` (below, docs/testing.md).
 
 ## PARTY NIGHTS (Oct 20, 2026) — `core/party.js` (PURE), `district/party-fx.js`, `district/fireworks.js`, `audio/beat.js`
 Friday and Saturday nights the city comes alive on the beat. Built for an iPhone held upright first; a wide screen gets more

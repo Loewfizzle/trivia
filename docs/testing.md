@@ -119,6 +119,11 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
   - The E2E harness uses `puppeteer-core` with a locally installed Chrome/Edge (no browser download).
+  - RAINBOWS E2E: `ONLY=trigger,choice,fade,sun,place,neon,reduced,flags,perf,media node e2e-rainbow.mjs "<browser path>" ./shots-rainbow`
+    (env `SHOTS=0 CPU=4`; no rooms, ~4 min, media adds ~3) — the after-rain trigger through `&rained=` (just ended / still raining /
+    dry / an hour later / overcast), which bow by time, moon, party and ALWAYS NIGHT, the fades (in, out, the neon powering off at
+    60×), the hole around the sun, behind the towers + under the text at 390 / 430 / 412 / 1440, the neon's sputter and breathing,
+    Reduced effects, the preview flags, pacing with and without a bow at 4× CPU. Looks: `shots.mjs --scenes rainbow,rainbow2,moonbow,neonbow --wait 10000`.
   - PARTY NIGHTS E2E: `ONLY=timing,beat,lobby,lights,street,finale,holiday,reduced,perf,media node e2e-party.mjs "<browser path>" ./shots-party`
     (env `SHOTS=0 VIDEO=0 CPU=4 SIZES=390,430,1440`; ~4 min without `media`, which records the review's videos — ~14 min) — the
     window and the phases incl. a June evening (the catch), the beat clock with music / muted / before and after the first tap,

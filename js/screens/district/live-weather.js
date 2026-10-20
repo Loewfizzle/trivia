@@ -4,6 +4,7 @@
 import { isFresh } from '../../core/weather.js';
 
 const KEY = 'nd:wx';
+const WET = 'nd:wet';          // RAINBOWS: when this device last knew it rained here (ms), kept across visits
 const EVERY = 15 * 60_000;
 let wx = null, started = false, at = 0, inflight = null;
 try { const s = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (isFresh(s)) wx = s; } catch { /* private mode */ }
@@ -16,7 +17,11 @@ async function load() {
       const r = await fetch('/api/sky', { cache: 'no-store' });
       if (r.status !== 200) return;
       const j = await r.json();
-      if (j && j.kind) { wx = { ...j, at: j.at || Date.now() }; try { sessionStorage.setItem(KEY, JSON.stringify(wx)); } catch { /* fine */ } }
+      if (j && j.kind) {
+        wx = { ...j, at: j.at || Date.now() };
+        try { sessionStorage.setItem(KEY, JSON.stringify(wx)); } catch { /* fine */ }
+        if (wx.wetAt) rememberWet(wx.wetAt);
+      }
     } catch { /* offline, no /api: seeded weather */ } finally { inflight = null; }
   })();
   return inflight;
@@ -33,6 +38,16 @@ export function startWeather() {
   idle(() => kick(), { timeout: 2500 });
   setInterval(() => { if (document.visibilityState === 'visible') kick(); }, 60_000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') kick(); });
+}
+
+function rememberWet(ms) { try { if (ms > (Number(localStorage.getItem(WET)) || 0)) localStorage.setItem(WET, String(ms)); } catch { /* private mode */ } }
+/** RAINBOWS: when it last really rained here (ms) — the live answer's wetAt, or what this device remembers (a reload, a
+ *  visit right after the rain); null when unknown. Never invented: only ever a time the weather service reported rain. */
+export function lastWetAt() {
+  let m = null;
+  try { m = Number(localStorage.getItem(WET)) || null; } catch { /* private mode */ }
+  const w = wx && wx.wetAt ? wx.wetAt : null;
+  return w && m ? Math.max(w, m) : w || m;
 }
 
 /** The live weather right now (null when unknown or stale). */

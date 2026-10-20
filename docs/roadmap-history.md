@@ -328,6 +328,14 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ RAINBOWS (Oct 20, 2026) — `docs/title.md`
+- [x] /api/sky: the past two hours of 15-minute precipitation → wetAt (when the rain really stopped); the device remembers it
+- [x] One appearance per rain (2–7 min after, 1–2 min in, 10–20 min, 2 min out), seeded so the area's phones agree
+- [x] The day bow (low sun, real colour order, supernumerary, sometimes a secondary + Alexander's band, a hole around the sun),
+      the moonbow (bright moon), the neon bow on party nights (six tubes, clips, sputter on, breathing, power off, street light)
+- [x] Phone: under the tagline, ends behind the towers; desktop: over the sign; Reduced effects; previews &force=… and &rained=
+- [x] Tests: rainbow.test.mjs (7), server.test.mjs (+1), e2e-rainbow.mjs
+
 ### ✅ PARTY NIGHTS (Oct 20, 2026) — `docs/title.md`
 - [x] Fri / Sat 8 pm → 2 am (from the catch), warm-up → peak → after hours; the late-night wind-down waits until 2 am
 - [x] The beat: a clock that eases from a slow breath onto the song (this phone's, or the room's in a lobby) and back

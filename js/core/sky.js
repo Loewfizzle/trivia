@@ -509,7 +509,9 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
 /** ?when=2026-10-31T19:30&tz=America/New_York freezes the start of the clock (it still runs from there);
  *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights,party,finale makes the rare moments happen now; ?wx=storm|rain|snow|fog|clouds|
  *  overcast|drizzle|sleet|clear sets the weather (instead of the live weather); &at=42.96,-85.67 puts the sun, moon and stars
- *  over that place instead of the time zone's city (with clear weather unless &wx= says otherwise). Normal players never pass these. */
+ *  over that place instead of the time zone's city (with clear weather unless &wx= says otherwise); &rained=12 says the rain
+ *  stopped 12 minutes before the clock's start (RAINBOWS: the real after-rain path, core/rainbow.js; &force=rainbow,rainbow2,
+ *  moonbow,neonbow show one at once). Normal players never pass these. */
 export function skyClock(search = (typeof location !== 'undefined' ? location.search : '')) {
   const q = new URLSearchParams(search || '');
   const tz = q.get('tz') || deviceZone();
@@ -517,7 +519,8 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
   const force = new Set((q.get('force') || '').split(',').filter(Boolean));
   const at = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(q.get('at') || '');
   const place = at && Math.abs(+at[1]) <= 90 && Math.abs(+at[2]) <= 180 ? { lat: +at[1], lon: +at[2] } : null;
-  const wx = q.get('wx') || place ? { ...forcedWeather(q.get('wx') || 'clear'), forced: true, ...(place || {}) } : null;
+  const rained = q.get('rained') != null && q.get('rained') !== '' && Number.isFinite(Number(q.get('rained'))) ? Number(q.get('rained')) : null;
+  const wx = q.get('wx') || place || rained != null ? { ...forcedWeather(q.get('wx') || 'clear'), forced: true, ...(place || {}) } : null;
   let base = null;
   if (when) {
     // the wall time is in tz: find the UTC instant whose local time in tz matches
@@ -533,5 +536,6 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
   // &speed=60: the clock runs 60× (test-only: watch an hour of dusk in a minute)
   const speed = Math.max(1, Math.min(3600, Number(q.get('speed')) || 1));
   const start = base == null ? t0 : base;
+  if (wx && rained != null) wx.wetAt = start - rained * 60_000;
   return { tz, force, wx, speed, preview: !!(when || q.get('tz') || force.size || wx || speed > 1), now: () => (base == null && speed === 1 ? Date.now() : start + (Date.now() - t0) * speed) };
 }

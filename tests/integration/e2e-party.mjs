@@ -96,7 +96,7 @@ try {
     ok((await party(F.p)).on === 1, '&force=party: a Thursday afternoon, the party anyway');
     ok(await ev(F.p, `document.querySelector('.nd').classList.contains('is-party')`), '&force=party: the title knows (.is-party)');
     await F.ctx.close();
-    const Sp = await open({ slot: 'tsp', when: '2026-10-23T21:30', tap: false, wait: 3500 });   // (the colour fades in over 1.2 s)
+    const Sp = await open({ slot: 'tsp', when: '2026-10-23T21:30', tap: false, wait: 5200 });   // (the colour cross-fades over 4 s)
     ok(await ev(Sp.p, `getComputedStyle(document.querySelector('.nd-word-g')).textShadow.includes('rgb(255, 46, 151)') && getComputedStyle(document.querySelector('.nd-word-s')).animationName !== 'none'`), 'SPEAKEASY: real neon in the sign\'s colour, a shimmer sweeping it');
     await Sp.ctx.close();
     const T = await open({ slot: 'tt', when: '2026-10-23T22:30', tap: false, wait: 3000 });

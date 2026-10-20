@@ -23,6 +23,8 @@ import { createPartyFx } from './party-fx.js';
 import { createFireworks } from './fireworks.js';
 import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, breathShape, partyPalette, partySeed } from '../../core/party.js';
 import { createSun } from './sun.js';
+import { createRainbow } from './rainbow.js';
+import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainbow.js';
 import { settings } from '../../audio/settings.js';
 import { reportError } from '../../errlog.js';
 
@@ -75,6 +77,9 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let road = { resize: NOOP, train: NOOP, steam: NOOP, traffic: NOOP, debug: () => ({}) };
   let birds = { resize: NOOP, sky: NOOP, low: NOOP, mid: NOOP, hit: () => null, debug: () => ({}) };
   let liveWeather = () => null;
+  let lastWet = () => null;         // RAINBOWS: when it last really rained here (live-weather.js#lastWetAt)
+  const bow = createRainbow();      // RAINBOWS (rainbow.js; the rules: core/rainbow.js)
+  let bowForcedAt = null, bowT = null;
   let frost = { resize: NOOP, pane: NOOP, decorate: NOOP, debug: () => ({}), destroy: NOOP };
   let air = { resize: NOOP, draw: NOOP, debug: () => ({}) };      // planes + satellites (aircraft.js)
   const sun = createSun();           // the real sun (sun.js): loaded with the first paint (a morning title shows it at once)
@@ -87,6 +92,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       if (LK.freeze > 0.02) for (const L of layers) L.compKey = '';      // re-bake the rows for the icicles (only on a freezing day)
       if (!clock.preview) e.startWeather();
       liveWeather = e.liveWeather;
+      lastWet = e.lastWetAt;
       lookAt = 0;                       // pick the live weather up at once
     }).catch(e => { console.warn('city extras', e); reportError(e, 'city extras'); });   // shows on /admin: Errors from phones
   }, 1200);
@@ -205,6 +211,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     }
     fx.resize(W, H, HZ);
     pfx.resize(W, H, HZ, dpr); fw.setTier(tier);
+    bow.resize(W, H, HZ, dpr); bow.setTier(tier);
     wfx.resize(W, H, HZ); rain.resize(W, H, HZ); birds.resize(W, H, HZ); road.resize(W, H, HZ); frost.resize(W, H); air.resize(W, H, HZ); sun.resize(W, H, HZ);
     vignette = mk(W * dpr / 2, H * dpr / 2);
     const vx = vignette.getContext('2d');
@@ -495,6 +502,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     if (!off.has('no-clouds')) wfx.sky(c, fs);
     sun.through(c, fs, (x, y) => wfx.coverAt ? wfx.coverAt(x, y) : 0);   // glowing through thin cloud
     if (!off.has('no-rain')) rain.veils(c, fs);
+    // RAINBOWS: after real rain — the day bow, the moonbow, the neon bow on a party night (behind every row of towers)
+    bowT = bowTarget(t);
+    bow.update(fs, bowT, { t, dt, motion: S.motion, breath: S.motion && party.ramp > 0 ? party.breath * (0.5 + 0.5 * party.energy) * party.ramp : 0 });
+    if (!off.has('no-rainbow')) bow.sky(c, fs);
     if (!off.has('no-birds')) birds.sky(c, fs);              // geese in the migrations, the heron across the moon
     // the neon sign lights the haze around it (after dark)
     const signLight = S.logo * (S.signPow != null ? S.signPow : Math.max(P.sign, 0.15 * night));   // signPow: the neon plan's lit share
@@ -599,6 +610,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     drawRefl(c, reflLit, clamp01(lit * 1.1) * (0.35 + 0.65 * P.refl) * (1 + 0.1 * pb), shimmer, t);
     // PARTY NIGHTS: the party colours in the wet street, pulsing with the beat; the finale's flash on the asphalt
     if (!clock.force.has('no-party-refl')) pfx.reflect(c, layers, party, t);
+    if (!off.has('no-rainbow')) bow.reflect(c);          // the neon bow's colours in the wet street
     { const fl = fw.light(); if (fl.k > 0.01) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.1 * fl.k; c.fillStyle = `rgb(${fl.col.map(Math.round).join(',')})`; c.fillRect(0, HZ, W, (H - HZ) * 0.7); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; } }
     // light spilling onto the wet street: the signs + the main sign (after dark)
     c.globalCompositeOperation = 'lighter';
@@ -624,6 +636,27 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     c.globalAlpha = 0.55 + 0.45 * night;
     c.drawImage(vignette, 0, 0, W, H);
     c.globalAlpha = 1;
+  }
+
+  // ---------------------------------------------------------------- RAINBOWS: what the sky allows this frame
+  // After REAL rain only (the live weather's wetAt, or this device's memory of it; previews: &rained=<minutes ago>), on the
+  // rain's own schedule (core/rainbow.js#bowSchedule). &force=rainbow|rainbow2 (with the secondary)|moonbow|neonbow shows one
+  // at once (fading in over 8 s of the clock), whatever the weather.
+  const BOW0 = { day: 0, moon: 0, neon: 0, secondary: false, strength: 1 };
+  function bowTarget(t) {
+    const f = clock.force, now = clock.now();
+    const forced = f.has('rainbow2') ? 'day2' : f.has('rainbow') ? 'day' : f.has('moonbow') ? 'moon' : f.has('neonbow') ? 'neon' : null;
+    if (forced) {
+      if (bowForcedAt == null) { if (t < 1.2) return BOW0; bowForcedAt = now; }
+      const env = smooth(0, 8000, now - bowForcedAt);
+      return { day: forced.startsWith('day') ? env : 0, moon: forced === 'moon' ? env : 0, neon: forced === 'neon' ? env : 0, secondary: forced === 'day2', strength: 1, forced };
+    }
+    const wet = lastRain(wxNow(), clock.preview ? null : lastWet());
+    if (wet == null) return BOW0;
+    const env = bowEnvelope(now, wet);
+    if (env <= 0) return { ...BOW0, wet };
+    const w = bowWeights(LK, { party: party.ramp });
+    return { day: env * w.day, moon: env * w.moon, neon: env * w.neon, secondary: bowSchedule(wet).secondary, strength: w.strength, wet, env };
   }
 
   // ---------------------------------------------------------------- PARTY NIGHTS: the state for this frame
@@ -817,6 +850,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     finale: () => startFinale(),
     /** the party light alone, for the lobby's backdrop (null when there's no party) */
     partyLight: () => (PT.on > 0 ? pfx.still(layers, cam.x) : null),
+    rainbow: () => ({ ...bow.debug(), target: bowT ? { day: +bowT.day.toFixed(3), moon: +bowT.moon.toFixed(3), neon: +bowT.neon.toFixed(3), secondary: bowT.secondary, wet: bowT.wet || null, env: bowT.env ?? null, forced: bowT.forced || null } : null, sunAt: null }),
     debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug(), sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null }),
     destroy() {
       destroyed = true;

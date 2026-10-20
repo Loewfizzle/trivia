@@ -549,3 +549,20 @@ test('sky: weather for the visitor\'s rounded area, cached 15 minutes, nothing w
   const r = await new Promise(resolve => { const res = { statusCode: 200, setHeader() {}, end: () => resolve(res.statusCode) }; skyHandler({ method: 'GET', url: '/api/sky', headers: {} }, res); });
   assert.equal(r, 204, 'no location: no answer (the city keeps its own weather)');
 });
+
+test('sky: when the rain really stopped (RAINBOWS) — the past quarter hours, never the forecast', async () => {
+  clearSkyCache();
+  await ref('wx').remove();
+  const now = Date.now(), q = Math.floor(now / 900_000) * 900;
+  const times = [-7, -6, -5, -4, -3, -2, -1, 0, 1].map(i => q + i * 900);
+  let url = '';
+  const fetcher = async u => { url = u; return { ok: true, json: async () => ({ current: { weather_code: 1, cloud_cover: 30 }, minutely_15: { time: times, precipitation: [0, 0, 0.4, 1.2, 0.6, 0.2, 0, 0, 3] } }) }; };
+  const place = placeOf({ url: '/api/sky?lat=42.96&lon=-85.67', headers: {} });
+  const a = await skyFor(place, { now, fetcher });
+  assert.match(url, /minutely_15=precipitation&past_minutely_15=8&forecast_minutely_15=0/);
+  assert.equal(a.kind, 'clear');
+  assert.equal(a.wetAt, times[5] * 1000, 'the end of the last wet quarter hour (the next one is a forecast: ignored)');
+  clearSkyCache(); await ref('wx').remove();
+  const dry = await skyFor(place, { now: now + 1, fetcher: async () => ({ ok: true, json: async () => ({ current: { weather_code: 0 }, minutely_15: { time: times, precipitation: times.map(() => 0) } }) }) });
+  assert.equal(dry.wetAt, null, 'dry all along: no rain to follow');
+});

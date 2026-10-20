@@ -660,7 +660,8 @@ export function createTitle() {
   function textRects() {
     const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return r.width && r.height ? { x: r.left, y: r.top, w: r.width, h: r.height } : null; };
     const neon = logoRect(), word = box(els.sign.querySelector('.nd-word')), tag = box(els.sign.querySelector('.nd-tag'));
-    return neon && word && tag ? { neon, word, tag } : null;
+    // (sub: a first visit's "12 PARTY GAMES · ONE PHONE EACH" under the tagline — the rainbow keeps under it too)
+    return neon && word && tag ? { neon, word, tag, sub: box(els.sign.querySelector('.nd-sub')) } : null;
   }
   function trackLogo() {
     if (destroyed) return;
@@ -1103,6 +1104,7 @@ export function createTitle() {
       neonSounds: () => neonSounds,
       neon: () => { const p = neonPlanV; return { stage: neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
       party: () => (scene ? scene.party() : null),
+      rainbow: () => (scene && scene.rainbow ? scene.rainbow() : null),
       finale: () => scene && scene.finale(),
       dock: {
         join: openJoin,

@@ -2,7 +2,8 @@
 // Where: Vercel adds the visitor's approximate location to every request (x-vercel-ip-latitude / -longitude / -city, from the
 // IP address — no permission prompt, the browser never sees it). It is rounded to ~0.5° (≈ 35 miles) at once: that area is
 // the cache key and all this function ever keeps. Weather: Open-Meteo (free, no key), cached per area for 15 minutes in
-// memory and in wx/{area} (server-only), so a busy night costs a few requests an hour per area.
+// memory and in wx/{area} (server-only), so a busy night costs a few requests an hour per area. With it, the past two hours of
+// precipitation in quarter hours → wetAt (when the rain really stopped: RAINBOWS, core/rainbow.js).
 // Without Vercel's headers (local dev, some networks): ?lat=&lon= (tests), else 204 — the city stays dry (no weather drawn).
 import { route, send } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
@@ -25,14 +26,16 @@ export function placeOf(req) {
 
 async function fetchWeather(a, fetcher) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${a.lat}&longitude=${a.lon}`
-    + '&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,visibility,is_day&wind_speed_unit=ms';
+    + '&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,visibility,is_day&wind_speed_unit=ms'
+    // RAINBOWS: the last two hours of precipitation in quarter hours (when the rain really stopped), no forecast
+    + '&minutely_15=precipitation&past_minutely_15=8&forecast_minutely_15=0&timeformat=unixtime';
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 4000);
   try {
     const r = await fetcher(url, { signal: ctl.signal });
     if (!r.ok) throw new Error(`open-meteo ${r.status}`);
     const j = await r.json();
-    return j && j.current ? j.current : null;
+    return j && j.current ? { cur: j.current, m15: j.minutely_15 || null } : null;
   } finally { clearTimeout(timer); }
 }
 
@@ -43,9 +46,9 @@ export async function skyFor(place, { now = Date.now(), fetcher = fetch } = {}) 
   let stored = null;
   try { stored = await val(`wx/${place.key}`); } catch { /* no database: fetch */ }
   if (stored && now - stored.at < SKY_TTL_MS) { mem.set(place.key, stored); return { ...stored, city: place.city }; }
-  const cur = await fetchWeather(place, fetcher);
-  if (!cur) return stored ? { ...stored, city: place.city } : null;
-  const wx = normalize(cur, { lat: place.lat, lon: place.lon }, now);
+  const got = await fetchWeather(place, fetcher);
+  if (!got) return stored ? { ...stored, city: place.city } : null;
+  const wx = normalize(got.cur, { lat: place.lat, lon: place.lon }, now, got.m15);
   mem.set(place.key, wx);
   if (mem.size > 500) mem.delete(mem.keys().next().value);
   try { ref(`wx/${place.key}`).set(wx).catch(() => {}); } catch { /* no database configured: memory only */ }

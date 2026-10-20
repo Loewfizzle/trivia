@@ -1,5 +1,6 @@
 // LIVE WEATHER, PURE (server + client): Open-Meteo's current conditions → the few numbers the city draws with.
-//   { kind, rain 0..1, snow 0..1, storm, fog 0..1, cloud 0..1, wind m/s, windDir °, temp °C, lat, lon, city, at }
+//   { kind, rain 0..1, snow 0..1, storm, fog 0..1, cloud 0..1, wind m/s, windDir °, temp °C, lat, lon, city, at,
+//     wetAt (ms: the last real rain in the past two hours — still raining = at; null = dry) }
 // kind: clear · clouds · overcast · fog · drizzle · rain · storm · snow · sleet. /api/sky fetches it for the visitor's area
 // (Vercel's IP location, rounded); core/sky.js#look draws with it; without it the city keeps its seeded weather.
 
@@ -27,8 +28,23 @@ export function fromWmo(code) {
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const num = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 
-/** PURE: Open-Meteo's `current` block (+ where) → the city's weather. */
-export function normalize(cur, where = {}, at = Date.now()) {
+const WET_KINDS = new Set(['drizzle', 'rain', 'storm', 'sleet']);
+/** PURE: when it last really rained (ms), from Open-Meteo's past 15-minute precipitation ({ time: [unix s], precipitation:
+ *  [mm per 15 min, the sum of the 15 minutes BEFORE the time] }): the end of the last wet quarter hour up to now (≥ 0.1 mm —
+ *  a trace that doesn't wet the street is not rain). Null when the past two hours were dry or the data is missing. */
+export function wetAtOf(m15, nowMs = Date.now()) {
+  if (!m15 || !Array.isArray(m15.time) || !Array.isArray(m15.precipitation)) return null;
+  let wet = null;
+  for (let i = 0; i < m15.time.length; i++) {
+    const t = Number(m15.time[i]) * 1000, p = Number(m15.precipitation[i]);
+    if (!Number.isFinite(t) || t > nowMs + 60_000) continue;          // never a forecast: only quarter hours that have passed
+    if (Number.isFinite(p) && p >= 0.1 && (wet == null || t > wet)) wet = t;
+  }
+  return wet;
+}
+
+/** PURE: Open-Meteo's `current` block (+ where; + its past 15-minute precipitation) → the city's weather. */
+export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
   const w = fromWmo(cur && cur.weather_code);
   const cloud = cur && cur.cloud_cover != null ? clamp01(num(cur.cloud_cover) / 100) : w.cloud;
   // fog from visibility too (Open-Meteo reports metres): under 1 km is fog whatever the code says
@@ -41,6 +57,8 @@ export function normalize(cur, where = {}, at = Date.now()) {
     wind: Math.round(num(cur && cur.wind_speed_10m) * 10) / 10, windDir: Math.round(num(cur && cur.wind_direction_10m)),
     temp: Math.round(num(cur && cur.temperature_2m, 15) * 10) / 10,
     lat: where.lat ?? null, lon: where.lon ?? null, city: where.city || null, at,
+    // RAINBOWS (core/rainbow.js): when it last rained — raining now counts as now
+    wetAt: WET_KINDS.has(w.kind) ? at : wetAtOf(m15, at),
   };
 }
 

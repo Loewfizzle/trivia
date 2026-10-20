@@ -7,7 +7,7 @@
 // --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
-// valentine rejoin sun rain. "first" has no profile; --guest makes every scene a first-time visitor.
+// valentine rejoin sun rain rainbow rainbow2 moonbow neonbow. "first" has no profile; --guest makes every scene a first-time visitor.
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
@@ -32,6 +32,9 @@ const SCENE = {
   dawn: ['2026-10-20T08:20'], first: ['2026-10-19T22:30', { guest: true }], join: ['2026-10-19T22:30', { act: 'join' }],
   halloween: ['2026-10-31T21:30'], christmas: ['2026-12-24T21:30'], valentine: ['2027-02-14T21:00'],
   rejoin: ['2026-10-19T22:30', { act: 'rejoin' }], sun: ['2026-10-19T13:30', { act: 'sun' }], rain: ['2026-10-19T22:30', { qs: 'wx=rain' }],
+  // RAINBOWS (forced: they fade in over 8 s — use --wait 10000; the fade itself: --wait 4500)
+  rainbow: ['2026-10-19T17:15', { qs: 'force=rainbow' }], rainbow2: ['2026-10-19T17:15', { qs: 'force=rainbow2' }],
+  moonbow: ['2026-10-26T22:00', { qs: 'force=moonbow' }], neonbow: ['2026-10-23T22:30', { qs: 'force=neonbow' }],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
   const [name, when] = s.split('=');
