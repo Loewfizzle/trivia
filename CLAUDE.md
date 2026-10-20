@@ -63,6 +63,17 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   failure was silent because the view's update() just returned).
 - **Tests, in order:** `node --test tests/*.test.mjs` (seconds) → the game's `FAST=1` E2E (≈ 2 min) → the full suite once before
   committing. Don't re-run a 20-minute suite to check one fix. Run E2E suites with absolute paths and from `tests/integration`.
+  The title suite runs by group while iterating: `ONLY=dock` (or `gate`, `flow`, `neon`, `perf`, comma-separated) ≈ 1 min instead
+  of ≈ 4.5; the whole suite once before the commit. Untouched areas need no E2E at all (sky / sun work → e2e-sky; a game → its own).
+- **Look reviews:** `node tests/integration/shots.mjs "<browser>" --scenes night,day,halloween --sizes phones --crop dock` (scenes,
+  size sets, Grand Rapids by default, crops of the dock / corner buttons / sign). Never write a one-off screenshot script again —
+  add a scene or a crop preset to shots.mjs instead.
+- **Design rules that may conflict** (e.g. "visible at sunrise" vs "never over the letters" vs "a round arch" on a skyline with tall
+  towers): check feasibility first — a few lines in node against the real numbers — and ask the owner which rule wins BEFORE
+  building. Discovering the conflict through rounds of screenshots cost the most time of anything in Oct 2026.
+- **Waits in tests:** wait for the actual condition (`waitFor(page, js)`), never a fixed sleep "to be safe"; a fixed pause only
+  for something that is itself timed (a measurement window, a colour sampled mid-blend).
+- **Line endings:** LF everywhere (`.gitattributes`); a CRLF working copy breaks exact-match edits.
 - **A new game = rules first.** Pure `logic.js` + `director.js` with a whole-match simulation test before any pixel; then the view on the
   match kit; then one distinctive screen, reviewed at three sizes.
 - Run `git status` before committing: stage the files of this task only (other work may be in the tree).

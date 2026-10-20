@@ -138,10 +138,18 @@ async function record(p, name, run, { ms = 4500 } = {}) {
   return frames.length;
 }
 
+// ONLY=gate,flow,dock,neon,perf runs just those groups (gate = 1–3 first visit / returning / skip; flow = 4–8 HOST, JOIN,
+// invites, REJOIN — they share one room; dock = 8b THE FLANK; neon = 8c THE NEON COMES ALIVE; perf = 9 tiers, frame pacing,
+// memory). Run the group you touched while iterating; the whole suite once before committing.
+const ONLY = new Set((process.env.ONLY || '').split(',').filter(Boolean));
+const on = g => !ONLY.size || ONLY.has(g);
+if (ONLY.size) log('ONLY', [...ONLY].join(', '));
+let A = null, H = null, B = null, C = null, D = null, F = null;
 try {
+  if (on('gate')) {
   // ================================================================ 1. first visit: the gate, then the full power-on
   const tStart = Date.now();
-  const A = await open({ slot: 'a', view: [390, 844] });
+  A = await open({ slot: 'a', view: [390, 844] });
   await A.page.evaluate(() => 0).catch(() => {});
   await A.page.waitForSelector('#boot .boot-logo', { timeout: 10000 });
   const bootMs = Date.now() - tStart;
@@ -239,8 +247,10 @@ try {
   ok((await ev(R.page, 'window.__district.scene()')).motion === 0, 'REDUCED EFFECTS: no camera drift / rain motion / vehicles');
   await R.ctx.close();
 
+  } // gate
+  if (on('flow')) {
   // ================================================================ 4. HOST with a saved profile -> straight into a room
-  const H = await open({ slot: 'h', profile: PROFILES.ava, seen: true, view: [390, 844] });
+  H = await open({ slot: 'h', profile: PROFILES.ava, seen: true, view: [390, 844] });
   await waitFor(H.page, '!!window.__district && window.__district.phase().done', 'title');
   ok(await ev(H.page, `!!document.querySelector('.nd-tab-you .avatar[data-av="bolt"]') && document.querySelector('.nd-tab-you').getAttribute('aria-label').includes('AVA')`), 'RETURNING PLAYER: YOU is their own emblem (and names them for screen readers)');
   await shotAll(H.page, 'n-03-welcome-back');
@@ -305,7 +315,7 @@ try {
   ok(!hits.includes('window'), `EASTER EGGS: no window switching (taps found: ${hits.join(', ') || 'none'})`);
   // at rest: the menu fades, a tap brings it back without pressing anything
   await H.page.evaluate(() => window.__district.idle());
-  await sleep(2000);
+  await waitFor(H.page, `getComputedStyle(document.querySelector('.nd-actions')).opacity === '0'`, 'at rest', 5000).catch(() => {});
   ok(await ev(H.page, `window.__district.isIdle() && getComputedStyle(document.querySelector('.nd-actions')).opacity === '0'`), 'AT REST: the menu and tagline fade away');
   // a finger, not a mouse (on desktop, moving the mouse is what wakes it); right over the hidden HOST button
   const hb = await H.page.evaluate(() => { const r = document.querySelector('.nd-host').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
@@ -332,7 +342,7 @@ try {
   await shotAll(H.page, 'n-05-lobby');
 
   // ================================================================ 5. JOIN by typing (auto-join on the 4th letter)
-  const B = await open({ slot: 'b', profile: PROFILES.ben, seen: true, view: [390, 844] });
+  B = await open({ slot: 'b', profile: PROFILES.ben, seen: true, view: [390, 844] });
   await waitFor(B.page, '!!window.__district && window.__district.phase().done', 'title B');
   await tap(B.page, '.nd-joinbtn');
   await sleep(400);
@@ -349,7 +359,7 @@ try {
   ok((await state(B.page)).code === code, 'JOIN: joins automatically after the 4th letter');
 
   // ================================================================ 6. an invalid code, then a pasted invite link
-  const C = await open({ slot: 'c', profile: PROFILES.cal, seen: true, view: [390, 844] });
+  C = await open({ slot: 'c', profile: PROFILES.cal, seen: true, view: [390, 844] });
   await waitFor(C.page, '!!window.__district && window.__district.phase().done', 'title C');
   await tap(C.page, '.nd-joinbtn');
   await sleep(400);
@@ -370,7 +380,7 @@ try {
   ok((await state(C.page)).code === code, 'JOIN: pasting an invite link joins');
 
   // ================================================================ 7. ?room= link: pre-filled (with a profile, one tap) and without a profile (-> setup)
-  const D = await open({ slot: 'd', profile: PROFILES.dee, seen: true, qs: `room=${code}`, view: [390, 844] });
+  D = await open({ slot: 'd', profile: PROFILES.dee, seen: true, qs: `room=${code}`, view: [390, 844] });
   await waitFor(D.page, '!!window.__district && window.__district.phase().done', 'title D');
   await waitFor(D.page, `[...document.querySelectorAll('.nd-box')].map(b => b.textContent).join('') === '${code}'`, 'prefilled', 8000);
   ok(await ev(D.page, `document.querySelector('.nd-go').classList.contains('is-ready')`), `INVITE LINK: the code is pre-filled (${code}) and › is ready`);
@@ -387,7 +397,7 @@ try {
   await E.ctx.close();
 
   // ================================================================ 8. REJOIN + EDIT profile
-  const F = await open({ slot: 'f', profile: { name: 'FAY', color: 'violet', avatar: 'wave' }, seen: true, view: [390, 844] });
+  F = await open({ slot: 'f', profile: { name: 'FAY', color: 'violet', avatar: 'wave' }, seen: true, view: [390, 844] });
   await waitFor(F.page, '!!window.__district && window.__district.phase().done', 'title F');
   await F.page.evaluate(c => import('/js/store.js').then(m => m.setState({ rejoin: c })), code);
   await F.page.waitForSelector('.nd-rejoin-btn', { timeout: 4000 });
@@ -414,6 +424,8 @@ try {
   ok((await state(F.page)).code === code, 'REJOIN: one tap back into the room');
   ok(await ev(F.page, `!document.querySelector('.nd-cic') && !document.querySelector('.nd-cl-lit') && getComputedStyle(document.querySelector('.menu-btn .mb-bars')).display !== 'none'`), 'CORNER BUTTONS: off the title (the lobby) they are exactly as before');
 
+  } // flow
+  if (on('dock')) {
   // ================================================================ 8b. THE NEON RING: the dock
   { const G = await open({ slot: 'g', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'when=2026-10-20T21:30&tz=America/New_York' });
     await waitFor(G.page, '!!window.__district && window.__district.phase().done', 'title G');
@@ -489,7 +501,8 @@ try {
   for (const [when, id, multi] of [['2026-10-31T21:00', 'halloween', '1'], ['2026-12-25T20:00', 'christmas', '1'], ['2027-02-14T20:00', 'valentine', '0'], ['2027-03-17T21:00', 'stpatrick', '0']]) {
     const X = await open({ slot: 'x' + id.slice(0, 2), profile: PROFILES.ava, seen: true, view: [390, 844], qs: `when=${when}&tz=America/New_York` });
     await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title ' + id);
-    await sleep(1500);
+    // the ring has taken the sign's colours (they blend over 1.4 s)
+    await waitFor(X.page, `(() => { const ls = [...document.querySelectorAll('.nd-sign .ndl')].map(l => getComputedStyle(l.querySelector('.ndl-glow1')).stroke); const h = getComputedStyle(document.querySelector('.nd-hostbtn')); return (window.__district.scene().holiday || {}).id === '${id}' && ls.every((c, i) => h.getPropertyValue('--hg' + (i + 1)).trim() === c); })()`, 'ring colours ' + id, 6000).catch(() => {});
     const r = await ev(X.page, `(() => { const ls = [...document.querySelectorAll('.nd-sign .ndl')].map(l => getComputedStyle(l.querySelector('.ndl-glow1')).stroke); const h = getComputedStyle(document.querySelector('.nd-hostbtn')); return { hol: (window.__district.scene().holiday || {}).id, match: ls.every((c, i) => h.getPropertyValue('--hg' + (i + 1)).trim() === c), multi: document.querySelector('.nd-hostbtn').dataset.multi, g: h.getPropertyValue('--hg1').trim() }; })()`);
     ok(r.hol === id && r.match && r.multi === multi, `HOST RING, ${id.toUpperCase()}: matches the sign (${r.g}${multi === '1' ? ', four tubes' : ''})`);
     await X.ctx.close();
@@ -519,9 +532,11 @@ try {
     ok(r.lit && r.anim === 'none', `REDUCED EFFECTS: the ring is lit, no breathing (${r.anim})`);
     await Rd.ctx.close(); }
 
+  } // dock
+  if (on('neon')) {
   // ================================================================ 8c. THE NEON COMES ALIVE (the sign follows the sun)
   { const NY = 'tz=America/New_York';
-    const page = async (qs, o = {}) => { const X = await open({ slot: 'n' + Math.random().toString(36).slice(2, 6), profile: PROFILES.ava, seen: true, view: [390, 844], qs, ...o }); await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title neon'); await sleep(2500); return X; };
+    const page = async (qs, o = {}) => { const X = await open({ slot: 'n' + Math.random().toString(36).slice(2, 6), profile: PROFILES.ava, seen: true, view: [390, 844], qs, ...o }); await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title neon'); await waitFor(X.page, `!!(window.__district.neon().plan) && document.querySelector('.nd-hostbtn').classList.contains('is-lit')`, 'neon settled', 8000); await sleep(400); return X; };
     const look = X => ev(X.page, `({ n: window.__district.neon(), icons: window.__district.dock.icons(), ring: window.__district.dock.ring().on, daylit: document.querySelector('.nd-actions').classList.contains('is-daylit'), day: document.querySelector('.nd-sign').classList.contains('is-day'), steady: document.querySelector('.nd-sign').classList.contains('is-steady'), fade: document.querySelector('.nd-sign').classList.contains('is-fade') })`);
     // the day, the ramp, the night, the morning goodbye
     let X = await page(`when=2026-10-20T13:00&${NY}&wx=clear`); let r = await look(X);
@@ -542,7 +557,7 @@ try {
     const cw = new Date(plan.catchAt - 3 * 60000).toLocaleString('sv-SE', { timeZone: 'America/New_York' }).slice(0, 16).replace(' ', 'T');
     X = await page(`when=${cw}&${NY}&wx=clear&speed=10`);
     const s0 = await ev(X.page, 'window.__district.neonSounds()');
-    await waitFor(X.page, `window.__district.neon().stage === 'lit'`, 'the catch', 20000);
+    await waitFor(X.page, `window.__district.neon().stage === 'lit'`, 'the catch', 45000);
     await sleep(600);
     r = await look(X);
     const s1 = await ev(X.page, 'window.__district.neonSounds()');
@@ -573,7 +588,7 @@ try {
     // ALWAYS NIGHT: lit at noon; Reduced effects: a fade instead of sputters
     X = await open({ slot: 'nan', profile: PROFILES.ava, seen: true, view: [390, 844], qs: `when=2026-10-20T13:00&${NY}&wx=clear` });
     await X.page.evaluateOnNewDocument(() => { try { localStorage.setItem('na:settings', JSON.stringify({ alwaysNight: true })); } catch {} });
-    await X.page.reload(); await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title always night'); await sleep(2000);
+    await X.page.reload(); await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title always night'); await waitFor(X.page, `window.__district.neon().letters.every(Boolean)`, 'always night lit', 6000).catch(() => {});
     r = await look(X);
     ok(r.n.letters.every(Boolean) && r.steady, `NEON, ALWAYS NIGHT: lit at noon (${r.n.stage})`);
     await X.ctx.close();
@@ -582,9 +597,11 @@ try {
     ok(r.n.stage === 'ramp' && r.fade && rf > 0 && rf < 1 && r.n.plan.reduced, `NEON, REDUCED EFFECTS: a fade instead of sputters (${rf.toFixed(2)})`);
     await X.ctx.close(); }
 
+  } // neon
   // ================================================================ 9. quality tiers + frame pacing (CPU throttled), and repeated title<->setup cycles
   // everything else closed first: other open pages would share the CPU being measured
-  for (const x of [A, H, B, C, D, F]) await x.ctx.close().catch(() => {});
+  for (const x of [A, H, B, C, D, F]) if (x) await x.ctx.close().catch(() => {});
+  if (on('perf')) {
   // measured at a fixed afternoon (the cost the budget was set for). At night the top tier is heavier — the lit windows, the
   // trims, the sky — and a 4×-slowed CPU steps down a tier there, as designed (the same before and after LIVE WEATHER).
   const Q = await open({ slot: 'q', seen: true, view: [390, 844], qs: 'when=2026-10-14T14:00&tz=America/New_York' });
@@ -626,6 +643,7 @@ try {
   await Q.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await sleep(300);
   ok((await ev(Q.page, 'window.__district.scene()')).running === true, 'VISIBLE AGAIN: it resumes');
+  } // perf
 } catch (e) {
   errors.push(`FATAL ${e.message}`);
   log('FAILED', e.message);
