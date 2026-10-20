@@ -28,7 +28,7 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, startRain, thunder, cityPowerOn, fireworkBurst } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource } from '../audio/beat.js';
 import { createDistrict } from './district/scene.js';
 import { captureBackdrop } from './district/backdrop.js';
@@ -783,6 +783,9 @@ export function createTitle() {
     if (hit.kind === 'sign') { sfx('select'); openHelp(hit.id); }
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
+    // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real
+    // way in: enter the hush word), exactly like the JOIN ring. Reduced effects: no flash, the panel still opens.
+    else if (hit.kind === 'door') { knock(); if (!reduced()) scene.knock(); openJoin(true, true); }
   }
   // a tapped letter: by night it stutters out, stays dark a moment and re-ignites like neon does; by day it sparks to life,
   // glows for a moment and flickers out again. One tap at a time per letter.
@@ -1127,6 +1130,8 @@ export function createTitle() {
       party: () => (scene ? scene.party() : null),
       rainbow: () => (scene && scene.rainbow ? scene.rainbow() : null),
       street: () => (scene && scene.street ? scene.street() : null),
+      cost: () => (scene && scene.cost ? scene.cost() : []),
+      door: () => (scene && scene.door ? scene.door() : null),
       finale: () => scene && scene.finale(),
       dock: {
         join: openJoin,

@@ -240,13 +240,20 @@ try {
       const c = await X.p.target().createCDPSession(); await c.send('Emulation.setCPUThrottlingRate', { rate: CPU });
       await ev(X.p, 'window.__district.setTier(2)'); await sleep(9000);
       const f = await ev(X.p, 'window.__district.frames()'); const s = [...f].sort((a, b) => a - b);
+      const cs = await ev(X.p, 'window.__district.cost()'); const draw = cs.reduce((a, b) => a + b, 0) / Math.max(1, cs.length);
       const st = await street(X.p); const bus = !!(st && st.bus);
       await X.close();
-      return { p50: +s[Math.floor(s.length / 2)].toFixed(1), p95: +s[Math.floor(s.length * 0.95)].toFixed(1), bus };
+      return { p50: +s[Math.floor(s.length / 2)].toFixed(1), p95: +s[Math.floor(s.length * 0.95)].toFixed(1), draw: +draw.toFixed(2), bus };
     };
-    const off = await pace('wx=rain&force=partybus,no-street'), onS = await pace('wx=rain&force=partybus,chase');
+    // (a warm-up page, then alternated, two of each, compared by the draw's own cost: frame intervals are quantised to 16.7 ms
+    // ticks, and the first page measured after a warm-up runs slow — the same yardstick as e2e-people)
+    { const Wm = await open({ when: '2026-10-23T23:00', wait: 3000, ready: false }); await Wm.close(); }
+    const r = [];
+    for (const q of ['wx=rain&force=partybus,no-street', 'wx=rain&force=partybus,chase', 'wx=rain&force=partybus,no-street', 'wx=rain&force=partybus,chase']) r.push(await pace(q));
+    const avg = (a, b) => ({ p50: +((a.p50 + b.p50) / 2).toFixed(1), p95: +((a.p95 + b.p95) / 2).toFixed(1), draw: +((a.draw + b.draw) / 2).toFixed(2), bus: a.bus || b.bus });
+    const off = avg(r[0], r[2]), onS = avg(r[1], r[3]);
     log('pacing', JSON.stringify({ off, on: onS }));
-    ok(onS.p50 <= Math.max(17.5, off.p50 * 1.1), `PERF at ${CPU}× CPU, a rainy party peak with the bus (${onS.bus ? 'on screen' : 'passing'}): ${onS.p50}/${onS.p95} ms with the street vs ${off.p50}/${off.p95} without`);
+    ok(onS.draw <= off.draw * 1.25 + 1, `PERF at ${CPU}× CPU, a rainy party peak with the bus (${onS.bus ? 'on screen' : 'passing'}): drawing ${onS.draw} ms a frame with the street vs ${off.draw} without (frames ${onS.p50}/${onS.p95} vs ${off.p50}/${off.p95} without`);
   }
 } catch (e) { errors.push(`crash: ${e && e.stack || e}`); log('CRASH', e && e.message); }
 

@@ -34,7 +34,7 @@ export function createFurniture() {
   const lampLv = [], lampCol = [], lampBoost = [];
   const sprites = new Map();
   let treeBake = [];                           // per tree: { key, night, dayL, dayR, lit, mask: {r,g,b}, branches, branchLit, snow, tips }
-  let falling = [], grounded = [], flies = [];
+  let falling = [], grounded = [], flies = [], leafCv = null, leafKey = '';
   let gust = { t0: -99, dur: 0, next: 6 }, chase = null, chases = 0, midnightAt = null, lastBar = -1;
   let info = { signals: [], shelter: null, lamps: [] };
   let dbg = {};
@@ -44,6 +44,17 @@ export function createFurniture() {
   function sprite(key, w, h, paint) { let s = sprites.get(key); if (!s) { s = mk(w, h); paint(s.getContext('2d'), w, h); sprites.set(key, s); if (sprites.size > 160) sprites.delete(sprites.keys().next().value); } return s; }
   const glow = c => { const k = q16(c); return sprite(`g${k}`, 64, 64, (x) => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, rgba(k, 1)); g.addColorStop(0.3, rgba(k, 0.45)); g.addColorStop(1, rgba(k, 0)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }); };
   const cone = c => { const k = q16(c); return sprite(`c${k}`, 64, 128, (x) => { const g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, rgba(k, 0.55)); g.addColorStop(1, rgba(k, 0)); x.fillStyle = g; x.beginPath(); x.moveTo(26, 0); x.lineTo(38, 0); x.lineTo(64, 128); x.lineTo(0, 128); x.closePath(); x.fill(); }); };
+  // a lamp's whole light baked once per colour: the halo, the hot core under the hood, the downward cone (one draw a frame)
+  const lampLight = col => { const k = q16(col); const hy0 = 15 * K, coneH = (SIZE.lampH - 1.2) * K; return sprite(`ll${k}|${K}|${dpr}`, Math.ceil(30 * K * 2), Math.ceil((hy0 + coneH) * 2), (x, w, h) => {
+    x.scale(2, 2); const cx = 15 * K;
+    const g = x.createRadialGradient(cx, hy0, 0, cx, hy0, 15 * K); g.addColorStop(0, rgba(k, 0.9)); g.addColorStop(0.3, rgba(k, 0.4)); g.addColorStop(1, rgba(k, 0));
+    x.fillStyle = g; x.fillRect(0, 0, 30 * K, hy0 * 2);
+    const cg = x.createLinearGradient(0, hy0, 0, hy0 + coneH); cg.addColorStop(0, rgba(k, 0.12)); cg.addColorStop(1, rgba(k, 0));
+    x.fillStyle = cg; x.beginPath(); x.moveTo(cx - 2 * K, hy0); x.lineTo(cx + 2 * K, hy0); x.lineTo(cx + 14 * K, hy0 + coneH); x.lineTo(cx - 14 * K, hy0 + coneH); x.closePath(); x.fill();
+    const hc = mix(k, [255, 255, 255], 0.6), cg2 = x.createRadialGradient(cx, hy0, 0, cx, hy0, 2.6 * K); cg2.addColorStop(0, rgba(hc, 1)); cg2.addColorStop(1, rgba(hc, 0));
+    x.fillStyle = cg2; x.fillRect(cx - 3 * K, hy0 - 3 * K, 6 * K, 6 * K);
+    void w; void h;
+  }); };
   const blob = () => sprite('blob', 32, 32, (x) => { const g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); });
 
   // ---------------------------------------------------------------- layout (once the blade signs have their places)
@@ -52,12 +63,21 @@ export function createFurniture() {
     if (!bl || !bl.key || bl.list.some(b => !Number.isFinite(b.x))) return false;
     const key = `${W}|${H}|${HZ}|${bl.key}|${fs.signalMode || 'right'}`;
     if (key !== layKey) {
+      dbg.layouts = (dbg.layouts || 0) + 1; dbg.lastKey = key;
       layKey = key;
       const phone = W < 760 || H > W;
-      lay = streetLayout({ W, HZ, K, phone, seed: 'street', blades: bl.list, signal: fs.signalMode || 'right' });
-      shown = 0; treeBake = lay.trees.map(() => null); falling = []; grounded = []; flies = [];
+      const next = streetLayout({ W, HZ, K, phone, seed: 'street', blades: bl.list, signal: fs.signalMode || 'right' });
+      // (the signs re-place when the title's clear zones shift — often to the same places: then nothing changes on the street;
+      // a real move cross-fades from a little lower instead of popping to nothing)
+      const sig = L => JSON.stringify([L.lamps.map(l => Math.round(l.x)), L.trees.map(t => Math.round(t.x)), L.shelter && Math.round(L.shelter.x), L.signals.map(g => Math.round(g.x))]);
+      if (lay && sig(lay) === sig(next)) return true;
+      const had = !!lay;
+      lay = next;
+      shown = had ? Math.min(shown, 0.5) : 0; treeBake = lay.trees.map(() => null); falling = []; grounded = []; flies = [];
       lay.lamps.forEach((l, i) => { lampLv[i] = 0; lampCol[i] = WARM.slice(); lampBoost[i] = 0; l.d = hash(`lamp|${i}|${Math.round(l.x)}`); });
       lay.branches = lay.trees.map((t, i) => bakeBranches(t, i));
+      const obst = [...lay.lamps.map(l => [l.x - 4 * K, l.x + 4 * K]), ...lay.trees.map(t => [t.x - t.w / 2, t.x + t.w / 2]), ...(lay.shelter ? [[lay.shelter.x - lay.shelter.w / 2 - 4 * K, lay.shelter.x + lay.shelter.w / 2 + 4 * K]] : []), ...lay.signals.map(g => [g.x - (SIZE.signalArm + 3) * K, g.x + 3 * K])];
+      lay.doorClear = [Math.max(0, ...obst.filter(o => o[1] < lay.door.x).map(o => o[1])), Math.min(W, ...obst.filter(o => o[0] > lay.door.x).map(o => o[0]))];
     }
     return true;
   }
@@ -137,6 +157,22 @@ export function createFurniture() {
     return nb;
   }
 
+  // the canopy's lit side for a lamp colour, composed once (quantised colours: a party's lamps hold steady, a warm-up blends)
+  function litFor(cb, lc) {
+    const q = q16(lc), key = q.join(',');
+    cb.tints = cb.tints || new Map();
+    let cv = cb.tints.get(key);
+    if (!cv) {
+      const pc = clamp01((Math.abs(q[0] - WARM[0]) + Math.abs(q[1] - WARM[1]) + Math.abs(q[2] - WARM[2])) / 120);
+      cv = mk(cb.lit.width, cb.lit.height); const x = cv.getContext('2d');
+      x.globalAlpha = 0.95 * (1 - 0.55 * pc); x.drawImage(cb.lit, 0, 0);
+      x.globalCompositeOperation = 'lighter';
+      if (pc > 0.01) for (const [ch, v] of [['r', q[0]], ['g', q[1]], ['b', q[2]]]) { x.globalAlpha = Math.min(1, pc * 0.42 * (v / 255)); x.drawImage(cb.mask[ch], 0, 0); }
+      cb.tints.set(key, cv);
+      if (cb.tints.size > 6) { const old = cb.tints.keys().next().value; cb.tints.get(old).width = 0; cb.tints.delete(old); }
+    }
+    return cv;
+  }
   // the lamp post (both arm directions), the shelter, the stop light — dark silhouettes
   const post = side => sprite(`post${side}|${K}|${dpr}`, (SIZE.arm + 8) * K * 2, (SIZE.lampH + 3) * K * 2, (x) => {
     x.scale(2, 2); const h = SIZE.lampH * K, ox = side > 0 ? 3 * K : (SIZE.arm + 5) * K;
@@ -240,6 +276,8 @@ export function createFurniture() {
         return { x: g.x + fs.camX, headX: g.x + fs.camX - SIZE.signalArm * K, ...s };
       }),
       lamps: lay.lamps.map((l, i) => ({ x: l.x + fs.camX, lit: lampLv[i], col: lampCol[i], boost: lampBoost[i] })),
+      // the speakeasy's door (Part 2: district/people.js): its spot and the clear sidewalk either side, up to a lamp / tree / shelter
+      door: { x: lay.door.x + fs.camX, w: lay.door.w, left: lay.doorClear[0] + fs.camX, right: lay.doorClear[1] + fs.camX },
       gust: gustK(t), wind, pushX, snowCover,
     };
   }
@@ -289,10 +327,8 @@ export function createFurniture() {
         if (lampK > 0.02) {
           c.globalCompositeOperation = 'lighter';
           // the lamp's colour on the lamp-facing half: warm white = the leaves' own colours lit; a party colour = tinted
-          const pc = clamp01((Math.abs(lc[0] - WARM[0]) + Math.abs(lc[1] - WARM[1]) + Math.abs(lc[2] - WARM[2])) / 120);
           // (a party colour tints the lamp-facing edge; the leaves keep some of their own colour under it)
-          c.globalAlpha = Math.min(1, shown * lampK * 0.95 * (1 - 0.55 * pc) * Math.min(1.9, lb)); c.drawImage(cb.lit, cx, cy, cb.cw, cb.ch);
-          if (pc > 0.01) for (const [ch, v] of [['r', lc[0]], ['g', lc[1]], ['b', lc[2]]]) { const al = shown * lampK * pc * 0.42 * (v / 255) * Math.min(1.9, lb); if (al > 0.01) { c.globalAlpha = Math.min(1, al); c.drawImage(cb.mask[ch], cx, cy, cb.cw, cb.ch); } }
+          c.globalAlpha = Math.min(1, shown * lampK * Math.min(1.9, lb)); c.drawImage(litFor(cb, lc), cx, cy, cb.cw, cb.ch);
           c.globalCompositeOperation = 'source-over';
         }
         if (snowCover > 0.3 && st.leaf > 0.2) { c.globalAlpha = shown * (snowCover - 0.3) * 0.8; c.fillStyle = 'rgba(236,242,255,0.9)'; c.beginPath(); c.ellipse(0, cy + cb.ch * 0.22, cb.cw * 0.34, 1.6 * K, 0, 0, TAU); c.fill(); }
@@ -332,10 +368,9 @@ export function createFurniture() {
       const hx = x + side * SIZE.arm * K, hy = HZ - SIZE.lampH * K + 1.2 * K;
       const col = lampCol[i], b = 1 + lampBoost[i];
       c.globalCompositeOperation = 'lighter';
-      const hr = 15 * K * (1 + 1.1 * fog) * (1 + 0.35 * lampBoost[i]);
-      c.globalAlpha = Math.min(1, lv * 0.72 * b); c.drawImage(glow(col), hx - hr, hy - hr, hr * 2, hr * 2);
-      c.globalAlpha = Math.min(1, lv * 0.95); c.drawImage(glow(mix(col, [255, 255, 255], 0.55)), hx - 2.4 * K, hy - 1.6 * K, 4.8 * K, 3.2 * K);
-      c.globalAlpha = Math.min(1, lv * 0.16 * b * (1 + fog)); c.drawImage(cone(col), hx - 14 * K, hy, 28 * K, HZ - hy);
+      const sc = (1 + 0.6 * fog) * (1 + 0.3 * lampBoost[i]);
+      const ll = lampLight(col), lw = 30 * K * sc, lh = (HZ - hy + 15 * K);
+      c.globalAlpha = Math.min(1, lv * 0.8 * Math.min(1.7, b)); c.drawImage(ll, hx - lw / 2, hy - 15 * K * sc, lw, lh + 15 * K * (sc - 1));
       c.globalCompositeOperation = 'source-over';
     });
     // the stop light(s): the lamp that's on glows (that's what reads at phone size)
@@ -411,19 +446,29 @@ export function createFurniture() {
     c.globalCompositeOperation = 'source-over';
     // fallen leaves: a small pile at each tree's feet through late autumn, scattered leaves (they stick and darken in rain; the
     // first snow covers them; winter clears them)
+    // (baked into one strip, re-baked only when they change — a pile is dozens of tiny leaves)
     if (snowCover < 0.5) {
-      const dim = clamp01(L.w.night + L.w.late) ? 0.45 : 1;
-      lay.trees.forEach((tr, i) => {
-        const st = states[i]; if (!st || st.ground < 0.05) return;
-        const cb = treeBake[i]; const cols = cb ? cb.cols : [LEAF.gold];
-        const R = rng(`pile|${i}`), n = Math.round(22 * st.ground);
-        for (let k = 0; k < n; k++) {
-          const col = cols[Math.floor(R() * cols.length)];
-          const px = tr.x + ox + (R() - 0.5) * tr.w * 0.9 * (0.5 + R() * 0.5), py = HZ + 0.5 * K + R() * 2.2 * K - (1 - Math.abs(px - tr.x - ox) / tr.w) * 1.2 * K;
-          c.fillStyle = rgba(col.map(v => v * dim * (L.rain ? 0.6 : 1)), 0.95 * shown); c.fillRect(px, py, 1.5 * K, 0.9 * K);
-        }
-      });
-      for (const g of grounded) { c.fillStyle = rgba(g.col.map(v => v * (L.rain ? 0.55 : 0.85) * (clamp01(L.w.night + L.w.late) > 0.5 ? 0.55 : 1)), 0.9 * shown); c.fillRect(g.x + ox, g.y, 1.6 * K, 0.9 * K); }
+      const night = clamp01(L.w.night + L.w.late) > 0.5;
+      const key = `${states.map(s => Math.round((s ? s.ground : 0) * 20)).join(',')}|${grounded.length}|${L.rain ? 1 : 0}|${night ? 1 : 0}|${treeBake.map(b => (b ? b.key : '')).join(';')}`;
+      if (key !== leafKey || !leafCv) {
+        leafKey = key;
+        const s2 = Math.min(dpr, 2), hh = 10 * K;
+        if (!leafCv || leafCv.width !== Math.ceil(W * s2)) leafCv = mk(W * s2, hh * s2);
+        const x = leafCv.getContext('2d'); x.setTransform(s2, 0, 0, s2, 0, 0); x.clearRect(0, 0, W, hh);
+        const dim = (night ? 0.45 : 1) * (L.rain ? 0.6 : 1);
+        lay.trees.forEach((tr, i) => {
+          const st = states[i]; if (!st || st.ground < 0.05) return;
+          const cb = treeBake[i]; const cols = cb ? cb.cols : [LEAF.gold];
+          const R = rng(`pile|${i}`), n = Math.round(22 * st.ground);
+          for (let k = 0; k < n; k++) {
+            const col = cols[Math.floor(R() * cols.length)];
+            const px = tr.x + (R() - 0.5) * tr.w * 0.9 * (0.5 + R() * 0.5), py = 0.5 * K + R() * 2.2 * K - (1 - Math.abs(px - tr.x) / tr.w) * 1.2 * K + 2 * K;
+            x.fillStyle = rgba(col.map(v => v * dim), 0.95); x.fillRect(px, py, 1.5 * K, 0.9 * K);
+          }
+        });
+        for (const g of grounded) { x.fillStyle = rgba(g.col.map(v => v * (L.rain ? 0.55 : 0.85) * (night ? 0.55 : 1)), 0.9); x.fillRect(g.x, g.y - HZ + 2 * K, 1.6 * K, 0.9 * K); }
+      }
+      c.globalAlpha = shown; c.drawImage(leafCv, ox, HZ - 2 * K, W, 10 * K); c.globalAlpha = 1;
     }
     c.restore(); c.globalAlpha = 1;
   }
@@ -499,7 +544,7 @@ export function createFurniture() {
       trees: lay.trees.map((tr, i) => ({ x: Math.round(tr.x), w: Math.round(tr.w), lamp: tr.lamp, cherry: tr.cherry, state: states[i] ? { leaf: +states[i].leaf.toFixed(2), mix: states[i].mix, blossom: +states[i].blossom.toFixed(2), shed: +states[i].shed.toFixed(2), ground: +states[i].ground.toFixed(2), bare: states[i].bare, lights: states[i].lights } : null })),
       shelter: lay.shelter && { x: Math.round(lay.shelter.x), side: lay.shelter.side }, door: { x: Math.round(lay.door.x), w: Math.round(lay.door.w) },
       signals: info.signals.map(g => ({ x: Math.round(g.x), state: g.state })), K, HZ, shown: +shown.toFixed(2),
-      falling: falling.length, grounded: grounded.length, flies: flies.length, gust: +gustK(dbg.t || 0).toFixed(2), wind: info.wind, pushX: info.pushX, chases, snowCover: +snowCover.toFixed(2), shadow: dbg.shadow || 0, shadowDir: dbg.shadowDir || 0,
+      layouts: dbg.layouts || 0, layKey: dbg.lastKey, falling: falling.length, grounded: grounded.length, flies: flies.length, gust: +gustK(dbg.t || 0).toFixed(2), wind: info.wind, pushX: info.pushX, chases, snowCover: +snowCover.toFixed(2), shadow: dbg.shadow || 0, shadowDir: dbg.shadowDir || 0,
     } : null),
     destroy() { for (const cv of sprites.values()) cv.width = 0; sprites.clear(); },
   };

@@ -12,14 +12,27 @@ const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^
 function rng(seed) { let a = Math.floor(hash(String(seed)) * 4294967296) >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 // sizes in points at K = 1 (a 390-pt phone); everything scales with K
-export const SIZE = { lampH: 44, arm: 7, canopyW: 32, canopyH: 26, trunkH: 9, treeGap: 13, shelterW: 22, shelterH: 15, signalH: 40, signalArm: 13, doorW: 30 };
+export const SIZE = { lampH: 44, arm: 7, canopyW: 32, canopyH: 26, trunkH: 9, treeGap: 13, shelterW: 22, shelterH: 15, signalH: 40, signalArm: 13, doorW: 64 };   // (doorW: the speakeasy's door + its doorman, rope and line — Part 2, Oct 21)
 
 /** PURE: the street's furniture. o: { W, HZ, K, phone, seed, blades: [{x,w,bottom}] (the side neon signs), dockTop,
  *  signal: 'right'|'middle' }. Returns { lamps: [{x, side, tree?}], trees: [{x, lamp, cherry, w}], shelter: {x, w, side} | null,
  *  stopSign: {x}, signals: [{x}], door: {x, w} } — x in points, everything standing on the sidewalk line (HZ). */
 export function streetLayout(o) {
+  // a few seeded tries until the minimums hold (2 trees on a phone, 4 on a wide screen, the stop lights) — deterministic
+  const phone = o.phone !== false;
+  let best = null;
+  for (let a = 0; a < 10; a++) {
+    const L = layoutOnce(o, a);
+    const xs = L.lamps.map(l => l.x).sort((p, q) => p - q);
+    const spaced = xs.every((x, i) => !i || x - xs[i - 1] > 28 * (o.K || 1));
+    if (L.trees.length >= (phone ? 2 : 4) && L.signals.length === (phone ? 1 : 2) && L.shelter && spaced) return L;
+    if (!best || L.trees.length > best.trees.length) best = L;
+  }
+  return best;
+}
+function layoutOnce(o, attempt) {
   const { W, HZ, K = 1, phone = true, seed = 'street' } = o;
-  const R = rng(`${seed}|${Math.round(W)}|${Math.round(HZ)}`);
+  const R = rng(`${seed}|${Math.round(W)}|${Math.round(HZ)}${attempt ? '|' + attempt : ''}`);
   const tall = SIZE.lampH * K + 4;
   // the free sidewalk: everything minus the blade signs whose bottoms come down within the tallest piece's reach
   let free = [[4 * K, W - 4 * K]];

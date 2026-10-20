@@ -328,6 +328,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ THE STREET, Part 2: THE PEOPLE (Oct 21, 2026) — `docs/title.md`
+- [x] The speakeasy's door (sconce, peephole, neon glass, doorman), visits, the resting hint, the party line + velvet rope
+- [x] KNOCK on the door → JOIN (a real way in), never over the dock or the city's other taps
+- [x] Pedestrians (alone, couples, dog walkers, at the bus stop), umbrellas in the rain, hoods + footprints in the snow
+- [x] The cab hail, spray in the rain, the small hours' windows (a few kitchens before dawn), holiday figures
+- [x] Perf: streaks 9 → 6 bands; baked leaves, lamp light, canopy tints, door; draw-cost yardstick (`__district.cost()`)
+- [x] Fixed: Part 1's street hidden while a blade sign was pending
+- [x] Tests: people.test.mjs (6), e2e-people.mjs (21), e2e-title "knock" (16)
+
 ### ✅ THE STREET, Part 1 (Oct 20, 2026) — `docs/title.md`
 - [x] Seeded layout clear of the blade signs: lamps, trees beside their own lamps, the shelter, the stop light(s), the door spot
 - [x] Trees through the year (core/trees.js): leaf-out, the Easter cherry, summer, autumn turning per tree, Thanksgiving shedding, winter lights

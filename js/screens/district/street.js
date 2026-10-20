@@ -61,7 +61,7 @@ export function createStreet() {
   }
 
   // ---------------------------------------------------------------- THE STREET: vehicles (shape height + light: paint doesn't read at night)
-  let busDue = false;
+  let busDue = false, spray = [];
   let bus = null, lastBusT = -99, lastSlot = null, lastPlow = null, busN = 0, plowLanes = [], flakes = [];
   const DAYCOL = [[236, 238, 242], [178, 184, 192], [110, 116, 126], [26, 28, 34], [34, 64, 122], [150, 30, 36], [36, 74, 52], [196, 178, 140], [92, 96, 120]];
   // [length, height, roof width, roof height] in K at full size
@@ -138,6 +138,10 @@ export function createStreet() {
       }
       if (v.kind === 'truck') for (let k = 0; k < 5; k++) lights(c, x - bw * 0.4 + k * bw * 0.2, y - bh - 0.4 * K, [255, 170, 40], dark * 0.85, 2.2 * K * sc);   // the amber marker row
       if (v.cab) lights(c, x, y - bh * 1.9, [255, 214, 90], dark * (party ? 1 : 0.8), (party ? 4.2 : 3) * sc);
+      if (v.hail && (v.hstate === 'pickup' || (v.hstate === 'coming' && Math.abs(v.target - x) < 60 * K))) {
+        if ((s.t * 2.4) % 1 < 0.5) { lights(c, x - bw * 0.48, ly, [255, 166, 30], Math.max(0.5, dark), 4 * sc); lights(c, x + bw * 0.48, ly, [255, 166, 30], Math.max(0.5, dark), 4 * sc); }
+        if (v.hstate === 'pickup' && v.doorT < 1.4) lights(c, x, y - bh * 1.1, [255, 222, 160], Math.max(0.6, dark) * (1 - v.doorT / 1.4), 9 * K * sc);
+      }
       if (v.under && party) { const ug = 0.36 * dark * party.ramp * (0.7 + 0.3 * party.breath); c.globalAlpha = ug; c.drawImage(glow(v.under), x - bw * 0.9, y - bh * 0.9, bw * 1.8, bh * 1.8); if (streak) streak(x, bw * 0.9, (H - HZ) * 0.22 * wet, `rgb(${v.under.join(',')})`, ug * 0.5, t, v.ph + 1); }
       c.restore();
     }
@@ -345,6 +349,13 @@ export function createStreet() {
         const ps = Number.isFinite(pg) ? Math.floor(now / 60000 / pg) : null;
         if (ps != null && ps !== lastPlow && !cars.some(v => v.kind === 'plow')) { if (lastPlow != null || force.has('plow')) spawnCar(hr, party, peak, force, 'plow'); }
         lastPlow = ps;
+        // THE CAB HAIL (Part 2): someone at the curb has stepped forward — a cab comes in the curb lane and pulls over for them
+        const hail = s.hail;
+        if (hail && hail.state === 'waiting' && !hail.cab) {
+          const d = DIM.cab, sc = 0.85;
+          cars.push({ kind: 'cab', lane: 0, dir: 1, sc, x: -40 * K, sp: 46 * K, cruise: 46 * K, len: d[0] * K * sc, h: d[1] * K * sc, cab: true, under: null, led: false, col: [214, 170, 40], ph: Math.random() * TAU, beacon: 0, hail: true, hstate: 'coming', target: hail.x });
+          hail.cab = 'coming';
+        }
         // move: car following, the near lane stopping at red, the bus at red and at its stop
         const all = bus ? [...cars, bus] : cars;
         for (const v of all) {
@@ -353,8 +364,8 @@ export function createStreet() {
           let gapAhead = Infinity;
           for (const o of all) { if (o === v || o.lane !== v.lane) continue; const d = v.dir > 0 ? (o.x - o.len / 2) - (v.x + v.len / 2) : (v.x - v.len / 2) - (o.x + o.len / 2); if (d > -v.len * 0.3 && d < gapAhead) gapAhead = d; }
           if (gapAhead < Infinity) want2 = Math.min(want2, Math.max(0, (gapAhead - 3.5 * K) * 2.4));
-          // the stop light: the near lane queues on red (and yellow, if it can stop); the bus obeys it in its lane too
-          if (v.lane === 1 || v === bus) for (const g of info.signals) {
+          // the stop light: the near lane queues on red (and yellow, if it can stop); the bus and a hailed cab obey it in theirs too
+          if (v.lane === 1 || v === bus || v.hail) for (const g of info.signals) {
             const stopAt = v.dir < 0 ? g.headX + 7 * K : g.headX - 7 * K;
             const front = v.x + v.dir * v.len / 2;
             const ahead = v.dir < 0 ? front - stopAt : stopAt - front;
@@ -368,22 +379,47 @@ export function createStreet() {
             if (v.state === 'drive' && d > -2 * K && d < 130 * K) { want2 = Math.min(want2, Math.max(0, d * 1.5)); if (d < 1.6 * K && v.sp < 2 * K) { v.state = 'dwell'; v.dwell = 5; } }
             if (v.state === 'dwell') { want2 = 0; v.dwell -= sec * mot; if (v.dwell <= 0) v.state = 'leave'; }
           }
+          // the hailed cab pulls over at its passenger, hazards flashing; the door opens (its light flicks on), it pulls away
+          if (v.hail && s.hail) {
+            const d = v.target - v.x;
+            if (v.hstate === 'coming' && d > -2 * K && d < 140 * K) { want2 = Math.min(want2, Math.max(0, d * 1.5)); if (d < 1.6 * K && v.sp < 2 * K) { v.hstate = 'pickup'; v.dwell = 3; v.doorT = 0; s.hail.cab = 'stopped'; } }
+            if (v.hstate === 'pickup') { want2 = 0; v.dwell -= sec * mot; v.doorT += sec; if (v.dwell <= 0) { v.hstate = 'leave'; s.hail.cab = 'gone'; } }
+          }
           const acc = want2 > v.sp ? 20 * K : 60 * K;
           v.brake = want2 < v.sp - 1.5 * K || v.sp < 1.5 * K;
           v.sp += Math.max(-acc * sec, Math.min(acc * sec, want2 - v.sp));
           v.x += v.dir * v.sp * sec * mot;
         }
-        cars = cars.filter(v => v.x > -60 * K && v.x < W + 60 * K);
+        cars = cars.filter(v => { const keep = v.x > -60 * K && v.x < W + 60 * K; if (!keep && v.hail && s.hail && s.hail.cab !== 'gone') s.hail.cab = 'gone'; return keep; });
         if (bus && (bus.x > W + 60 * K)) bus = null;
+        if (s.stop) s.stop.dwell = !!(bus && bus.state === 'dwell');
+        // SPRAY (Part 2): when it really rains, the wheels throw a soft fan through the wet street (capped per tier; none in Reduced)
+        const rainK = force.has('spray') ? 0.8 : (L.live || L.rain) ? (L.rain || 0) : 0;
+        if (rainK > 0.12 && tier > 0) {
+          const capS = tier === 2 ? 140 : 70;
+          for (const v of all) {
+            if (v.sp < 8 * K || spray.length >= capS) continue;
+            const y = HZ + (v.lane === 0 ? 3.2 : 7.6) * K;
+            for (const wx of [v.x - v.dir * v.len * 0.34, v.x + v.dir * v.len * 0.3]) if (Math.random() < sec * 26 * rainK * (tier === 2 ? 1 : 0.5) * (v.sp / (50 * K))) spray.push({ x: wx, y: y - 0.4 * K, vx: -v.dir * v.sp * (0.18 + Math.random() * 0.2) + (Math.random() - 0.5) * 8 * K, vy: -(5 + Math.random() * 9) * K * (0.6 + rainK * 0.6), life: 0, max: 0.35 + Math.random() * 0.35, lane: v.lane });
+          }
+        }
       } else { cars = []; bus = null; }
+      if (!motion) spray = [];
       // draw: the far lane, the bus (also in the far lane), then the near lane in front
       for (const v of cars) if (v.lane === 0) drawCar(c, v, s, dark, wet, party, streak);
       if (bus) drawBus(c, bus, s, dark, wet, party, info, streak);
       for (const v of cars) if (v.lane === 1) drawCar(c, v, s, dark, wet, party, streak);
       drawPlowLane(c, s, sec);
+      // the spray, lit by the street (brighter after dark, against the lights)
+      if (spray.length) {
+        c.save(); c.globalCompositeOperation = dark > 0.4 ? 'lighter' : 'source-over';
+        c.fillStyle = dark > 0.4 ? 'rgba(220,226,255,1)' : 'rgba(200,210,226,1)';
+        spray = spray.filter(p => { p.life += sec; if (p.life > p.max) return false; p.vy += 34 * K * sec; p.x += p.vx * sec; p.y += p.vy * sec; const u = p.life / p.max; c.globalAlpha = (dark > 0.4 ? 0.3 : 0.35) * (1 - u); const r = (0.6 + u * 1.4) * K; c.fillRect(p.x - r / 2, p.y - r / 2, r, r); return true; });
+        c.restore();
+      }
     },
     /** the bus on screen (its golden-hour shadow, the tests): { x, w, h, state, route, party, owl } or null */
     busInfo: () => (bus ? { x: bus.x, w: bus.len, h: bus.h, state: bus.state, route: bus.route, party: bus.party, owl: bus.owl } : null),
-    debug: () => ({ cars: cars.length, kinds: cars.reduce((m, v) => { m[v.kind] = (m[v.kind] || 0) + 1; return m; }, {}), queued: cars.filter(v => v.lane === 1 && v.sp < 2 * K).length, braking: cars.filter(v => v.brake).length, bus: bus ? { x: Math.round(bus.x), state: bus.state, route: bus.route, party: bus.party, owl: bus.owl, sp: Math.round(bus.sp) } : null, buses: busN, plowLanes: plowLanes.length, trains: trains.length, puffs: puffs.length }),
+    debug: () => ({ spray: spray.length, hailCab: (cars.find(v => v.hail) || {}).hstate || null, cars: cars.length, kinds: cars.reduce((m, v) => { m[v.kind] = (m[v.kind] || 0) + 1; return m; }, {}), queued: cars.filter(v => v.lane === 1 && v.sp < 2 * K).length, braking: cars.filter(v => v.brake).length, bus: bus ? { x: Math.round(bus.x), state: bus.state, route: bus.route, party: bus.party, owl: bus.owl, sp: Math.round(bus.sp) } : null, buses: busN, plowLanes: plowLanes.length, trains: trains.length, puffs: puffs.length }),
   };
 }

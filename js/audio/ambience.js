@@ -230,6 +230,25 @@ export function thunder({ near = false, delay = 2, level = 1 } = {}) {
   });
 }
 
+/** THE STREET: a soft double knock on the speakeasy's door (wood, felt more than heard) — the title's knock → JOIN. */
+export function knock({ level = 1 } = {}) {
+  if (!isUnlocked()) return;
+  const ctx = getContext();
+  const out = ctx.createGain(); out.gain.value = 0.5 * level; out.connect(getSfxBus());
+  for (const [dt, v] of [[0, 1], [0.16, 0.8]]) {
+    const t0 = ctx.currentTime + 0.02 + dt;
+    // the knuckle on wood: a short low thud and a woody knock above it
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(150, t0); o.frequency.exponentialRampToValueAtTime(82, t0 + 0.08);
+    const og = ctx.createGain(); og.gain.setValueAtTime(0, t0); og.gain.linearRampToValueAtTime(0.32 * v, t0 + 0.004); og.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+    o.connect(og).connect(out); o.start(t0); o.stop(t0 + 0.14);
+    const n = ctx.createBufferSource(); n.buffer = noise(ctx);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 520 + Math.random() * 80; bp.Q.value = 3.5;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0, t0); ng.gain.linearRampToValueAtTime(0.22 * v, t0 + 0.003); ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.07);
+    n.connect(bp).connect(ng).connect(out); n.start(t0, Math.random(), 0.09);
+  }
+  setTimeout(() => { try { out.disconnect(); } catch { /* gone */ } }, 800);
+}
+
 /** A firework, heard from across the city: a soft low thump as it bursts, then a short sparkle of crackles (PARTY NIGHTS'
  *  midnight finale). delay: seconds from now (the burst is in the sky before the sound arrives). Quiet, premium. */
 export function fireworkBurst({ delay = 0.35, level = 1 } = {}) {

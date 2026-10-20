@@ -461,7 +461,10 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   // the city winds down: windows start going out around 10 pm, fewer by midnight, sparse by 2 am, until dawn
   // (PARTY NIGHTS: Fri / Sat the city stays fully lit until 2 am, then winds down over the following hour — core/party.js)
   const pk = partyLateK(lp);
-  const lateK = pk != null ? pk * (hour < 5 && hour >= 2 ? 1 - smooth(4, 5, hour) : 1) : hour >= 21.5 ? smooth(21.5, 26, hour) : hour < 5 ? smooth(21.5, 26, hour + 24) * (1 - smooth(4, 5, hour)) : 0;
+  // (THE STREET, Oct 21: before dawn only a few kitchens light up again — the small hours' sparseness eases a little from 4:30,
+  // and the dawn takes over from there; it used to snap back to every window lit at 5 am)
+  const kitchens = h => 1 - 0.3 * smooth(4.5, 6, h);
+  const lateK = pk != null ? pk * (hour < 9 && hour >= 2 ? kitchens(hour) : 1) : hour >= 21.5 ? smooth(21.5, 26, hour) : hour < 9 ? smooth(21.5, 26, hour + 24) * kitchens(hour) : 0;
   let late = night * lateK;
   night -= late;
   if (alwaysNight) { night = 1; late = 0; dawn = 0; day = 0; golden = 0; }

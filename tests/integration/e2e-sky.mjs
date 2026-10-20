@@ -19,7 +19,7 @@ async function open(q, { reduced = false, view = [390, 844], dpr = 2, night = fa
   await page.evaluateOnNewDocument(n => { try { localStorage.setItem('nd:entered', '1'); if (n) localStorage.setItem('na:settings', JSON.stringify({ alwaysNight: true })); } catch {} }, night);
   if (reduced) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.setViewport({ width: view[0], height: view[1], deviceScaleFactor: dpr, isMobile: view[0] < 800, hasTouch: view[0] < 800 });
-  await page.goto(`${BASE}/?emu&slot=sk&${q}`);
+  await page.goto(`${BASE}/?emu&slot=sk&${q}${process.env.SKY_QS ? '&' + process.env.SKY_QS : ''}`);
   await page.waitForFunction(() => window.__district && window.__district.phase().done, { timeout: 20000 });
   return { ctx, page };
 }
@@ -72,7 +72,14 @@ try {
     await ctx.close(); }
   // ---- THE SUN
   const NY = 'tz=America/New_York&force=no-planes';
-  const sunOf = async (q, o) => { const { ctx, page } = await open(q, o); await sleep(2500); const s = await scene(page); return { ctx, page, s, sun: s.sun }; };
+  // (waits for the sun to settle — faded in and no longer easing toward its place — rather than a fixed pause: on a busy machine
+  // the sign's text settles later and the sun follows it; up to 8 s)
+  const sunOf = async (q, o = {}, until = s => s.sun && s.sun.fade >= 0.97) => {
+    const { ctx, page } = await open(q, o);
+    let s = null;
+    for (let i = 0; i < 40; i++) { await sleep(200); s = await scene(page); if (i >= 4 && until(s)) break; }
+    return { ctx, page, s, sun: s.sun };
+  };
   for (const view of [[390, 844], [1440, 900]]) {
     const { ctx, s, sun } = await sunOf(`when=2026-10-20T10:30&${NY}&wx=clear`, { view });
     const sign = (s.clear || []).find(z => z.w > s.W * 0.2 && z.y < s.H * 0.5);
@@ -82,7 +89,7 @@ try {
     await ctx.close();
   }
   // phones, THE BIG ARCH: a June noon sits behind SPEAKEASY (below the NEON letters), and the word keeps a soft dark edge
-  { const { ctx, page, s, sun } = await sunOf(`when=2026-06-21T12:57&${NY}&wx=clear`);
+  { const { ctx, page, s, sun } = await sunOf(`when=2026-06-21T12:57&${NY}&wx=clear`, {}, x => { const u = x.sun, t = x.textRects; return u && t && u.fade >= 0.97 && Math.abs(u.y - (t.word.y + t.word.h / 2)) < 8 && Math.abs(u.x - x.W / 2) < 12; });
     const tr = s.textRects;
     ok(sun && tr && sun.y - sun.r > tr.neon.y + tr.neon.h && Math.abs(sun.y - (tr.word.y + tr.word.h / 2)) < 8 && Math.abs(sun.x - s.W / 2) < 12, `SUN, PHONE: a June noon behind SPEAKEASY (${sun && sun.x},${sun && sun.y})`);
     await sleep(800);

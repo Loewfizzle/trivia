@@ -333,6 +333,62 @@ lobby will stand guests in front of it).
 - **Tests:** `tests/street.test.mjs` (trees by date incl. the south, Thanksgiving, Easter, the lights; the layout rules at three
   phone sizes + desktop; the bus timetable; the signal; the car mix; plows; the photocells); `tests/integration/e2e-street.mjs`.
 
+## THE STREET, Part 2: THE PEOPLE (Oct 21, 2026) — `core/people.js` (PURE), `district/people.js`, `district/street.js`
+A person is ~10 pt tall (the owner's call: between real scale and the brief's 11–12). Light and colour carry them: a rim of the
+nearest lamp's light on that side, an umbrella's colour, the lit doorway behind them. Part 1's door spot widened to 64 pt for the
+door, its doorman, rope and line (on a 390 phone that leaves 2 trees; every other size keeps its 3).
+- **THE SPEAKEASY'S DOOR** (`people.js#drawDoor`, its own layer; `scene.door()` / `__district.door()` gives its screen position +
+  tap target for the lobby): an unmarked dark door set into the near building's base, a warm sconce, an amber peephole slot at eye
+  level, a brass knob, a tiny pink neon cocktail glass (the only marking), its light on the sidewalk and in the wet street, and a
+  broad doorman rim-lit by the sconce. The sconce washes the wall warm, so the doorman's and the line's silhouettes read against
+  it. Its still parts are baked per light level into two sprites (solids + its lights added). By day: an ordinary dark door, the
+  sconce and the glass unlit, no doorman — you'd walk right past it.
+  - **Visits** (`doorGap` / `visitSlot`, on the clock): every ~4 min by night (rarer 3–6 am), never by day. Someone walks up, the
+    peephole flicks brighter, the door opens a crack (a warm slice and the room's glow), they slip in, it closes.
+  - **The hint** (`hintDue`): once the title has rested 20 s, every ~30 s the peephole flicks open on its own — an invitation.
+  - **Party nights** (and New Year's Eve, 8 pm–2 am, whatever the day): brass posts, a red velvet rope, a line (`lineLength`: 3 in the
+    warm-up → 5 at the peak, 6 on desktop; thinning to nobody after hours) rim-lit in the party's colours against a party-coloured
+    wash; the door admits from the front of the line every ~1 min; the slice pulses faintly, the neon glass breathes on the beat.
+- **KNOCK ON THE DOOR** (an easter egg that's a real way in): a tap on the door (pointerdown + pointerup) → a soft double knock
+  (`ambience.js#knock`, the SFX bus), the peephole slides open with a warm flash, and the JOIN panel opens exactly like the JOIN
+  ring. The target is 44 × 44 pt (46 at 412) and is the LAST thing `scene.hit` checks (never a cat / UFO / moon / sign tap). Taps on
+  the dock and the corner buttons never reach it; at 390 / 402 / 412 it sits ≥ 38 pt above the dock (e2e-title "knock" checks the
+  geometry and every dock button). Reduced effects: no flash, the panel still opens.
+- **The people** (`pedWant` / `pedKind`): 1–3 on an evening, a couple more at rush hour and on party nights, almost nobody 2–5 am,
+  a few by day. Someone alone, a couple, a dog walker, someone waiting at the shelter who boards when the bus stops (now and then
+  someone steps off). Dark silhouettes with a walking stride at night, a rim of the nearest lamp's light on that side (they brighten
+  under a lamp); plainly dressed by day. They fade in and out at the screen's edges and stay on the sidewalk line.
+  - **Rain** (`umbrellaFor`): umbrellas — coloured domes (red, blue, yellow, black, teal, plum) with a scalloped rim and a soft
+    highlight, catching a little light at night, their colour streaked in the wet street; drizzle brings some out, rain nearly all.
+    **Snow**: hoods, slower steps, footprints fading on the sidewalk (40 s).
+- **THE CAB HAIL** (`hailGap`: evenings and nights, more often on party nights): someone walks to the curb and steps toward the
+  street; a cab comes in the curb lane, pulls over with its amber hazards flashing, its interior light flicks on as the door opens
+  (the warm flash is what reads), they get in, it pulls away. The cab obeys the stop light. (`people.hail` ↔ street.js.)
+- **Spray** (street.js): in real rain the wheels throw a soft fan of spray, lit by the street (capped: 140 on tier 2, 70 on tier 1,
+  none on tier 0 or under Reduced effects).
+- **Windows through the night** (core/sky.js `lateK`): already there (fewer from ~10 pm, a third lit by 1:30 am, party nights lit
+  until 2 am); Oct 21 changed the small hours' end: before dawn only a few kitchens light again (~half lit by 6 am, gradually),
+  then the dawn takes over — it used to snap back to every window lit at 5 am.
+- **Holidays on the street** (`holidayStreet`): Halloween evening (5:30–9:30 pm) a small group of trick-or-treaters with glowing
+  jack-o'-lanterns that bob as they walk; New Year's midnight: the line at the door holds sparklers; July 4th after dark: someone
+  with a sparkler; Christmas week (Dec 18–26): a wreath on the door with a few warm bulbs. Rare, never a crowd.
+- **Tiers / Reduced:** tier 1 halves the people (+1) and the spray; tier 0 keeps the door and at most one person, no spray. Reduced
+  effects: people still walk (slowly), the door still opens, no spray, no flash on the knock.
+- **Performance** (`e2e-people.mjs` PERF): the draw's own cost (`__district.cost()`, not the 16.7 ms-quantised frame intervals),
+  alternated with the same scene without the street. The worst real case (a rainy party peak: the bus, the chase, the line,
+  umbrellas, spray, a hail) costs ~49 ms a frame vs ~42 without the street at 4× CPU in software Chrome — the scene's own cost
+  there is already over a frame; on a phone's GPU the street's share is what the test guards. (Oct 21: streaks went from 9
+  bands to 6, the fallen leaves, each lamp's light, each canopy's lit side and the door's still parts are baked.)
+- **Previews:** `&force=door,line,peds,umbrellas,hail,spray,hint,halloween-kids,sparklers,wreath` (+ `&wx=`, `&force=party`,
+  `&speed=` for the people, visits, the hint and the hails). Knock: tap the door. Test-only: `&force=no-people`,
+  `no-pp-door|no-pp-figs|no-pp-ground`. Looks: `shots.mjs --scenes umbrellas,party-line,hail,small-hours,halloween-kids,
+  nye-sparklers,door,door-day --crop street`. Hooks: `__district.street().people`, `__district.door()`, `__district.cost()`.
+- **Fixed on the way (Part 1):** the street furniture waited for every blade sign to have been drawn once; a blade still pending
+  (no game on it yet) kept the whole street hidden. `signs.blades()` now places a blade from its layer before it's drawn; and a
+  re-placement that lands on the same spots no longer fades the street out and in.
+- **Tests:** `tests/people.test.mjs` (who's out when, umbrellas, the door's visits + the hint, hails, the line, the holidays, the
+  windows through the night); `tests/integration/e2e-people.mjs`; e2e-title group "knock".
+
 ## RAINBOWS (Oct 20, 2026) — `core/rainbow.js` (PURE), `district/rainbow.js`, `/api/sky`'s wetAt
 After REAL rain only: a daytime rainbow, a moonbow on ordinary nights, a neon rainbow on PARTY NIGHTS. Rare by nature: the rain
 has to stop where the player is, and the sky has to allow it.

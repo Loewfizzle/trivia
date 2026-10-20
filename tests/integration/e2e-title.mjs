@@ -73,6 +73,13 @@ async function waitFor(p, js, what, timeout = 20000) {
   while (Date.now() < end) { try { if (await ev(p, js)) return true; } catch { /* navigating */ } await sleep(100); }
   throw new Error(`timeout: ${what}`);
 }
+// a finger at a point (the city's taps: pointerdown + pointerup)
+async function tapAt(p, x, y) {
+  const c = await p.target().createCDPSession();
+  await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+  await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await c.detach();
+}
 async function tap(p, sel) {
   const r = await p.evaluate(s => { const el = document.querySelector(s); if (!el) return null; const b = el.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }, sel);
   if (!r) throw new Error(`no ${sel}`);
@@ -605,13 +612,65 @@ try {
     await X.ctx.close(); }
 
   } // neon
+  // ================================================================ 8b. THE STREET: knock on the speakeasy's door (→ JOIN); the dock still works
+  if (on('knock')) {
+    const NIGHT = 'when=2026-10-21T22:00&tz=America/Detroit&at=42.96,-85.67';
+    const rects = p => ev(p, `(() => { const b = s => [...document.querySelectorAll(s)].map(e => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, s }; }).filter(r => r.w); return [...b('.nd-ringbtn'), ...b('.nd-tab'), ...b('.nd-bar'), ...b('.menu-btn'), ...b('.music-btn')]; })()`);
+    const over = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const knocks = p => ev(p, 'window.__district.street().people.knocks');
+    const joinOpen = p => ev(p, "document.querySelector('.nd-actions').classList.contains('is-join')");
+    const doorReady = p => waitFor(p, '!!window.__district && window.__district.phase().done && !!window.__district.door() && !!window.__district.door().rect', 'the door', 25000);
+    for (const view of [[390, 844], [402, 874], [412, 915]]) {
+      const tag = view.join('x');
+      const X = await open({ slot: 'kn' + view[0], profile: PROFILES.ava, seen: true, view, qs: NIGHT });
+      await doorReady(X.page); await sleep(600);
+      const d = await ev(X.page, 'window.__district.door()');
+      const hits = (await rects(X.page)).filter(r => over(d.rect, r));
+      ok(d.rect.w >= 44 && d.rect.h >= 44 && !hits.length, `KNOCK ${tag}: the door's tap target (${Math.round(d.rect.w)}×${Math.round(d.rect.h)} at y ${Math.round(d.rect.y)}–${Math.round(d.rect.y + d.rect.h)}) covers no dock or corner button (${hits.map(h => h.s).join(', ') || 'none'})`);
+      await tapAt(X.page, d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h / 2);
+      await waitFor(X.page, "document.querySelector('.nd-actions').classList.contains('is-join')", 'JOIN from the knock', 4000).catch(() => {});
+      ok(await joinOpen(X.page) && (await knocks(X.page)) === 1, `KNOCK ${tag}: a knock on the door opens the JOIN panel, the peephole slides open`);
+      await X.page.keyboard.press('Escape'); await sleep(500);
+      // the dock still does its own things (and never knocks)
+      await tap(X.page, '.nd-joinring');
+      await waitFor(X.page, "document.querySelector('.nd-actions').classList.contains('is-join')", 'JOIN ring', 4000).catch(() => {});
+      ok(await joinOpen(X.page) && (await knocks(X.page)) === 1, `KNOCK ${tag}: the JOIN ring still opens JOIN`);
+      await X.page.keyboard.press('Escape'); await sleep(500);
+      await tap(X.page, '.nd-tab-games');
+      const games = await X.page.waitForSelector('.nd-games', { timeout: 4000 }).then(() => true).catch(() => false);
+      ok(games && (await knocks(X.page)) === 1, `KNOCK ${tag}: GAMES still opens the games`);
+      await X.page.keyboard.press('Escape'); await sleep(500);
+      if (view[0] === 390) {
+        await tap(X.page, '.nd-tab-board');
+        const board = await waitFor(X.page, "window.__arcade.state.view === 'board'", 'board', 6000).then(() => true).catch(() => false);
+        ok(board, 'KNOCK 390x844: BOARD still opens THE BOARD');
+      }
+      await X.ctx.close();
+    }
+    for (const [sel, what] of [['.nd-hostbtn', 'HOST'], ['.nd-tab-you', 'YOU']]) {
+      const X = await open({ slot: 'kd' + what, profile: PROFILES.ava, seen: true, view: [390, 844], qs: NIGHT });
+      await doorReady(X.page); await sleep(600);
+      await tap(X.page, sel);
+      const left = await waitFor(X.page, "!document.querySelector('.title-screen') || window.__arcade.state.view !== 'title'", what, 6000).then(() => true).catch(() => false);
+      ok(left, `KNOCK: ${what} still does its own thing (${await ev(X.page, 'window.__arcade.state.view')})`);
+      await X.ctx.close();
+    }
+    // Reduced effects: no flash, the panel still opens
+    const R = await open({ slot: 'knr', profile: PROFILES.ava, seen: true, reduced: true, view: [390, 844], qs: NIGHT });
+    await doorReady(R.page); await sleep(600);
+    const rd = await ev(R.page, 'window.__district.door()');
+    await tapAt(R.page, rd.rect.x + rd.rect.w / 2, rd.rect.y + rd.rect.h / 2);
+    await waitFor(R.page, "document.querySelector('.nd-actions').classList.contains('is-join')", 'JOIN (reduced)', 4000).catch(() => {});
+    ok(await joinOpen(R.page) && (await knocks(R.page)) === 0, 'KNOCK, REDUCED EFFECTS: the panel opens, no animation');
+    await R.ctx.close();
+  } // knock
   // ================================================================ 9. quality tiers + frame pacing (CPU throttled), and repeated title<->setup cycles
   // everything else closed first: other open pages would share the CPU being measured
   for (const x of [A, H, B, C, D, F]) if (x) await x.ctx.close().catch(() => {});
   if (on('perf')) {
   // measured at a fixed afternoon (the cost the budget was set for). At night the top tier is heavier — the lit windows, the
   // trims, the sky — and a 4×-slowed CPU steps down a tier there, as designed (the same before and after LIVE WEATHER).
-  const Q = await open({ slot: 'q', seen: true, view: [390, 844], qs: 'when=2026-10-14T14:00&tz=America/New_York' });
+  const Q = await open({ slot: 'q', seen: true, view: [390, 844], qs: 'when=2026-10-14T14:00&tz=America/New_York' + (process.env.TITLE_QS ? '&' + process.env.TITLE_QS : '') });
   await waitFor(Q.page, '!!window.__district && window.__district.phase().done', 'title Q');
   await Q.page.bringToFront(); // a background tab doesn't animate (by design)
   const cdpQ = await Q.page.target().createCDPSession();
@@ -619,7 +678,7 @@ try {
   const perf = [];
   for (const t of [2, 1, 0]) {
     await ev(Q.page, `window.__district.setTier(${t})`);
-    await sleep(3500);
+    await sleep(7500);   // (after the tier's rebuild has settled: at 4× CPU the switch itself stalls ~1.2 s)
     const f = await ev(Q.page, 'window.__district.frames()');
     const s = [...f].sort((a, b) => a - b);
     if (!s.length) s.push(999);

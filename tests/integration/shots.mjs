@@ -8,7 +8,7 @@
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
 // valentine rejoin sun rain rainbow rainbow2 moonbow neonbow blossom summer autumn autumn-night winter plow owl day-bus golden
-// street-party street-rain. --crop street: the street strip (the towers' feet down to the dock). "first" has no profile; --guest makes every scene a first-time visitor.
+// street-party street-rain umbrellas party-line hail small-hours halloween-kids nye-sparklers door door-day. --crop street: the street strip (the towers' feet down to the dock). "first" has no profile; --guest makes every scene a first-time visitor.
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
@@ -41,6 +41,10 @@ const SCENE = {
   'autumn-night': ['2026-10-24T22:00'], winter: ['2026-12-18T19:00'], plow: ['2027-01-15T19:00', { qs: 'wx=snow&force=plow' }],
   owl: ['2026-10-22T01:10', { qs: 'force=owl' }], 'day-bus': ['2026-10-20T11:00', { qs: 'force=bus' }], golden: ['2026-10-20T18:15'],
   'street-party': ['2026-10-23T23:00', { qs: 'force=partybus,chase' }], 'street-rain': ['2026-10-23T23:00', { qs: 'wx=rain&force=partybus' }],
+  // THE STREET, Part 2 (the people)
+  umbrellas: ['2026-10-21T21:30', { qs: 'wx=rain&force=peds,umbrellas' }], 'party-line': ['2026-10-23T23:15', { qs: 'force=line,door' }],
+  hail: ['2026-10-21T21:30', { qs: 'force=hail,peds' }], 'small-hours': ['2026-10-22T03:00'], 'halloween-kids': ['2026-10-31T19:30', { qs: 'force=halloween-kids' }],
+  'nye-sparklers': ['2027-01-01T00:01'], door: ['2026-10-21T22:00', { qs: 'force=door,hint' }], 'door-day': ['2026-10-21T13:00'],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
   const [name, when] = s.split('=');

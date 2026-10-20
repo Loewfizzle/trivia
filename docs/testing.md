@@ -119,6 +119,14 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
   - The E2E harness uses `puppeteer-core` with a locally installed Chrome/Edge (no browser download).
+  - THE PEOPLE E2E: `ONLY=door,line,peds,rain,hail,bus,holidays,reduced,perf node e2e-people.mjs "<browser path>" ./shots-people`
+    (env `SHOTS=0 CPU=4`; ~8 min) — the door's visits, the hint, the party line + its thinning, the people by the hour, umbrellas,
+    spray, snow footprints, the cab hail end to end, boarding the bus, the holidays, Reduced effects, the worst real case's draw cost
+    (`__district.cost()`, alternated with the street off). The knock → JOIN + the dock buttons: e2e-title `ONLY=knock`.
+    Pacing lesson (Oct 21): frame intervals are quantised to 16.7 ms ticks, and the first page measured after a warm-up still runs
+    slow — compare draw costs, alternated. A tier change rebuilds the scene (~1.2 s stall at 4× CPU): read a tier's frames after it
+    settles. Sun checks wait for their condition (the sun follows the sign's text, which settles later on a busy machine).
+    Bisect helpers: `TITLE_QS=…` (e2e-title's pacing page) and `SKY_QS=…` (every e2e-sky page) append preview switches.
   - THE STREET E2E: `ONLY=layout,lamps,trees,bus,signal,cars,plow,shadows,wind,party,reduced,perf node e2e-street.mjs "<browser path>" ./shots-street`
     (env `SHOTS=0 CPU=4`; ~7 min) — the layout at 390 / 412 / 1440 (pairs, clear of the blades, the door spot), the photocells at
     sunset, the trees by season, the bus at the shelter + its timetable + the owl, queues at red, flashing yellow, the car mix,

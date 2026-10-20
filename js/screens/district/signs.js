@@ -490,7 +490,7 @@ export function createSigns({ games: allGames = [] } = {}) {
     reset() { placedKey = ''; },
     count: () => signs.length,
     /** THE STREET: where the blade signs hang (the street furniture keeps clear of their bottoms); key: changes when re-placed */
-    blades: () => ({ key: placedKey, list: signs.filter(s => s.type === 'blade').map(s => ({ x: s.sx, w: s.w, bottom: s.sy + s.h })) }),
+    blades: () => ({ key: placedKey, list: signs.filter(s => s.type === 'blade').map(s => ({ x: s.sx ?? (s.x - (s.lm || 0)), w: s.w, bottom: (s.sy ?? ((s.ltop || 0) + s.y)) + s.h })) }),
     tick(t, dt, o) {
       env = { W: o.W, H: o.H, HZ: o.HZ };
       if (!games.length) return;
@@ -498,6 +498,7 @@ export function createSigns({ games: allGames = [] } = {}) {
       if (key !== placedKey && o.clear && o.bill > 0.01) {
         placedKey = key;
         signs = place(o.layers, o.clear);
+        for (const s of signs) { const L = o.layers[s.li]; if (L) { s.lm = L.margin; s.ltop = L.top; } }   // (THE STREET: where it hangs before it's first drawn)
         const flips = signs.filter(s => s.type !== 'ticker');
         canShow = (i, g) => flips[i].type !== 'blade' || bladeWord(games[g]).length <= flips[i].cap;
         rot = { ...createRotation(flips.length, games.length, Math.floor(Math.random() * games.length), canShow), at: t };
