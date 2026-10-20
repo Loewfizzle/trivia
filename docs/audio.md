@@ -33,10 +33,14 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
   level = rain + 0.25 in a storm). A breathing bed of filtered noise, a low roar that only a downpour brings, and droplet ticks
   (tiny pitched clicks panned across, more as it pours). Felt more than heard: the bed sits at ~0.008 on the SFX bus.
-- **Thunder** (`thunder({ near, delay })`): fired by each lightning strike (weather-fx → `scene.set({ onFlash })`), a few seconds
-  after the flash (light outruns sound: near 0.5–2 s, far 2.5–7.5 s). Near: a tearing crack, a sizzle of smaller cracks and a
-  low thump you feel; always: 3–6 overlapping swells of brown-noise rumble, each panned a little differently, through a 4 s
-  dark stereo space (a generated impulse response) — thunder rolling between the towers.
+- **Thunder** (`thunder({ near, delay, level })`): fired by each lightning strike (weather-fx → `scene.set({ onFlash })`), a few
+  seconds after the flash (light outruns sound: near 0.5–2 s, far 2.5–7.5 s). **Recorded since Oct 20, 2026:**
+  `audio/weather/thunderstrike.mp3` (11 s) and `thunderstrike2.mp3` (15 s, ~7 dB louder — levelled by `REC_GAIN`), one at random
+  per strike: a close strike as recorded, a distant one through a 520–780 Hz low-pass and quieter (far thunder loses its crack);
+  a random pan and ±5 % pitch so repeats differ; at most two sounding at once (a storm never piles up). RUMRUNNER's storm uses
+  the same (`games/rum/audio.js#thunder`: mostly distant, `level` 0.7 under the music). **The synthesized thunder** (a tearing
+  crack, a sizzle and a low thump when near; 3–6 swells of brown-noise rumble through a 4 s dark stereo space) plays when a file
+  can't load or no recordings are listed.
 - **Recorded sounds (optional):** royalty-free recordings beat synthesis. Put them in `audio/weather/` and list them in
   `RECORDED` (ambience.js): `thunderNear` / `thunderFar` (one picked at random per strike) and `rainLoop` (replaces the
   synthesized bed; the roar and droplets stay under it). Empty lists = the synthesized versions; nothing is requested until listed.

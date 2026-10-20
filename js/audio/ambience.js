@@ -3,7 +3,8 @@
 //                              electrical crackles at the given offsets (seconds) — one per flicker
 //   neonTick()                 the tiny crackle of a single letter's rare flicker
 //   startRain(level) -> stop()  the rain (LIVE WEATHER): a breathing bed, a downpour roar, droplet ticks; stop.level(l)
-//   thunder({ near, delay })     a crack + thump (near) and rolling, reverberant rumble after a lightning flash
+//   thunder({ near, delay, level })   real recorded thunder after a lightning flash (audio/weather/: a close strike as recorded,
+//                                     a distant one filtered and quieter); the synthesized crack + roll if a file can't load
 // Everything is quiet by design: felt more than heard.
 import { getContext, getSfxBus, isUnlocked } from './engine.js';
 
@@ -90,7 +91,15 @@ export function neonTick() {
 let brownBuf = null, irBuf = null;
 // RECORDED WEATHER (optional): royalty-free recordings beat any synthesis. Put the files in audio/weather/ and list them here —
 // a thunder file is picked at random per strike (near / far), a rain loop replaces the synthesized bed. Empty = synthesized.
-export const RECORDED = { thunderNear: [], thunderFar: [], rainLoop: null };   // e.g. ['thunder-near1.mp3', …], 'rain.mp3'
+export const RECORDED = {
+  // two close strikes with long rolls (Oct 2026): a distant strike plays the same recordings through a low-pass, quieter
+  thunderNear: ['thunderstrike.mp3', 'thunderstrike2.mp3'],
+  thunderFar: ['thunderstrike.mp3', 'thunderstrike2.mp3'],
+  rainLoop: null,
+};
+// each file's level, so they sit at the same loudness (thunderstrike2 is ~7 dB louder: RMS −18.7 vs −25.6 dB)
+const REC_GAIN = { 'thunderstrike.mp3': 1, 'thunderstrike2.mp3': 0.45 };
+let rolling = 0;            // recorded strikes sounding now (at most two at once: a storm never piles up into a wall)
 const decoded = new Map();
 function loadRec(ctx, name) {
   if (!decoded.has(name)) decoded.set(name, fetch(new URL(`../../audio/weather/${name}`, import.meta.url)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status)))).then(b => ctx.decodeAudioData(b)).catch(() => null));
@@ -192,21 +201,38 @@ function droplet(ctx, at, dest, gain) {
 
 /** Thunder, a moment after a lightning flash. near: a close strike (sooner, a crack, a deep thump); far: a long low roll.
  *  delay: seconds after the flash (light outruns sound). On the SFX bus: the Effects volume and mute apply. */
-export function thunder({ near = false, delay = 2 } = {}) {
+export function thunder({ near = false, delay = 2, level = 1 } = {}) {
   if (!isUnlocked()) return;
   const ctx = getContext();
   const t0 = ctx.currentTime + delay;
   const files = near ? RECORDED.thunderNear : RECORDED.thunderFar;
-  if (files.length) {
-    loadRec(ctx, files[Math.floor(Math.random() * files.length)]).then(buf => {
-      if (!buf) return;
-      const s = ctx.createBufferSource(); s.buffer = buf;
-      const g = ctx.createGain(); g.gain.value = near ? 0.5 : 0.32;
-      s.connect(g).connect(getSfxBus()); s.start(Math.max(ctx.currentTime, t0));
-    });
-    return;
-  }
-  const out = ctx.createGain(); out.gain.value = near ? 1 : 0.62;
+  if (!files.length) { synthThunder(ctx, near, t0, delay, level); return; }
+  if (rolling >= 2) return;
+  const name = files[Math.floor(Math.random() * files.length)];
+  rolling++;
+  loadRec(ctx, name).then(buf => {
+    if (!buf) { rolling--; synthThunder(ctx, near, t0, delay, level); return; }
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    s.playbackRate.value = 0.93 + Math.random() * 0.1;              // a touch of variety: no two strikes quite the same
+    const g = ctx.createGain(); g.gain.value = (near ? 0.5 : 0.3) * (REC_GAIN[name] ?? 1) * level;
+    let node = s;
+    if (!near) {
+      // far away the highs are gone: the crack becomes a deep roll
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520 + Math.random() * 260; lp.Q.value = 0.5;
+      s.connect(lp); node = lp;
+    }
+    node.connect(g);
+    let last = g;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.random() * 1.1 - 0.55; g.connect(p); last = p; }
+    last.connect(getSfxBus());
+    s.onended = () => { rolling--; try { last.disconnect(); } catch { /* gone */ } };
+    s.start(Math.max(ctx.currentTime, t0));
+  });
+}
+
+// the synthesized thunder (no recordings listed, or a file that won't load): a crack + thump (near) and a reverberant roll
+function synthThunder(ctx, near, t0, delay, level = 1) {
+  const out = ctx.createGain(); out.gain.value = (near ? 1 : 0.62) * level;
   const verb = ctx.createConvolver(); verb.buffer = space(ctx);
   const wet = ctx.createGain(); wet.gain.value = near ? 0.55 : 0.85;
   out.connect(getSfxBus()); out.connect(verb); verb.connect(wet).connect(getSfxBus());

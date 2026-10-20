@@ -10,6 +10,7 @@
 //   drive      engine on (start / stop)
 import { getContext, getSfxBus } from '../../audio/engine.js';
 import { settings } from '../../audio/settings.js';
+import { thunder as recordedThunder } from '../../audio/ambience.js';
 
 export function createSfx() {
   let ctx = null, out = null, noise = null, amb = null;
@@ -78,11 +79,11 @@ export function createSfx() {
       a.rain.f.frequency.value = w === 'storm' ? 2200 : 3200;
     },
     drive(on) { const a = ambience(); if (a) a.engine.want = on ? 1 : 0; },
+    // real recorded thunder (audio/weather/), under the game's music: mostly distant, now and then close, a little quieter than
+    // the title's (the city is the backdrop here)
     thunder() {
-      const c = ready(); if (!c) return;
-      const h = hiss({ a: 0.05, d: 1.8 + Math.random(), v: 0.22, hz: 90, q: 0.6, type: 'lowpass' });
-      if (h) h.f.frequency.exponentialRampToValueAtTime(40, c.currentTime + 1.6);
-      tone(38, { type: 'sine', a: 0.08, d: 1.4, v: 0.16, to: 24 });
+      if (!ready()) return;
+      recordedThunder({ near: Math.random() < 0.3, delay: 0.5 + Math.random() * 1.6, level: 0.7 });
     },
     siren() {
       const c = ready(); if (!c) return;
