@@ -119,6 +119,11 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
   - The E2E harness uses `puppeteer-core` with a locally installed Chrome/Edge (no browser download).
+  - PARTY NIGHTS E2E: `ONLY=timing,beat,lobby,lights,street,finale,holiday,reduced,perf,media node e2e-party.mjs "<browser path>" ./shots-party`
+    (env `SHOTS=0 VIDEO=0 CPU=4 SIZES=390,430,1440`; ~4 min without `media`, which records the review's videos — ~14 min) — the
+    window and the phases incl. a June evening (the catch), the beat clock with music / muted / before and after the first tap,
+    two lobby phones breathing to the room's song, the beams by phase and size, the street's traffic, the finale forced / live at
+    midnight / once / not on NYE, Halloween colours with JOIN + corners white, Reduced effects, frame pacing at 4× CPU per tier.
   - THE LOBBY SONG E2E: `node e2e-lobbysong.mjs "<browser path>"` — real audio in headless Chrome: the host's mood song carries on
     into the lobby (same track, position continuous, the queue seeded with it), a joiner crossfades into it at the room's place, a
     joiner already on it doesn't restart, CLASSIC falls back to the room's own queue.

@@ -53,6 +53,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 - ✅ Stage 12 — GRIDLOCK, Part 2 (SALVO + ARCADE) (Oct 2026)
 - ✅ LIVING CITY (Oct 2026)
 - ✅ MOOD MUSIC (Oct 2026)
+- ✅ PARTY NIGHTS (Oct 20, 2026): Fri / Sat 8 pm → 2 am the city breathes to the music — party windows, SPEAKEASY in neon, neon searchlights, the midnight finale, the street — `docs/title.md`
 - ✅ THE FLANK + the title's corner buttons + the lobby song (Oct 20, 2026)
 - ✅ Phones: THE BIG ARCH in step with the real sky (Oct 20, 2026)
 - ✅ Phones: THE SUN'S BIG ARCH (Oct 20, 2026)

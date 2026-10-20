@@ -10,13 +10,15 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+import { createFireworks } from './fireworks.js';
 const CAPS = [{ snow: 90, petals: 4, leaves: 3, flies: 10, fw: 70, aurora: 40 }, { snow: 190, petals: 6, leaves: 5, flies: 18, fw: 150, aurora: 64 }, { snow: 300, petals: 8, leaves: 7, flies: 26, fw: 260, aurora: 96 }];
 
 export function createFx() {
   const sprites = new Map();
   const sprite = (key, w, h, paint) => { let c = sprites.get(key); if (!c) { c = mk(w, h); paint(c.getContext('2d'), w, h); sprites.set(key, c); } return c; };
   const glow = (col, a = 1) => sprite(`g|${col}|${a}`, 64, 64, (x) => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, rgba(col, a)); g.addColorStop(0.35, rgba(col, a * 0.35)); g.addColorStop(1, rgba(col, 0)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); });
-  let snow = [], petals = [], leaves = [], flies = [], bats = null, meteors = [], rockets = [], sparks = [], sleigh = null;
+  let snow = [], petals = [], leaves = [], flies = [], bats = null, meteors = [], sleigh = null;
+  const fwx = createFireworks();   // the holiday fireworks (fireworks.js: the same renderer as PARTY NIGHTS' finale)
   let nextBats = 60 + Math.random() * 120, nextSleigh = 90 + Math.random() * 300, nextRocket = 0;
   let witch = null, nextWitch = 45 + Math.random() * 90, trail = [], sleighTrail = [];
   // easter eggs: the UFO, the rooftop cat, the moon you can tap
@@ -196,34 +198,15 @@ export function createFx() {
       if (fw && motion) {
         const finale = L.nye && L.nye.finale != null;
         nextRocket -= dt / 1000;
-        if (nextRocket <= 0 && sparks.length < CAPS[tier].fw) {
+        fwx.setTier(tier);
+        if (nextRocket <= 0 && fwx.count() < CAPS[tier].fw * 2) {
           const cols = hol && hol.id === 'july4' ? [[255, 70, 80], [250, 250, 255], [80, 130, 255]] : [[255, 210, 110], [255, 90, 190], [120, 220, 255], [180, 255, 140], [255, 255, 255]];
-          rockets.push({ x: W * (0.1 + Math.random() * 0.8), y: HZ, ty: HZ * (0.3 + Math.random() * 0.24), v: 300 + Math.random() * 140, col: cols[Math.floor(Math.random() * cols.length)] });
+          const big = (W < 760 ? Math.min(W * 0.2, 90) : Math.min(W * 0.1, 130)) * (0.7 + Math.random() * 0.6);
+          fwx.launch({ x: W * (0.1 + Math.random() * 0.8), y0: HZ, ty: HZ * (0.26 + Math.random() * 0.28), col: cols[Math.floor(Math.random() * cols.length)], col2: Math.random() < 0.4 ? [255, 255, 255] : null, big });
           nextRocket = finale ? 0.28 + Math.random() * 0.3 : 0.8 + Math.random() * 1.5;
         }
       }
-      if (rockets.length || sparks.length) {
-        c.globalCompositeOperation = 'lighter';
-        rockets = rockets.filter(r => {
-          r.y -= r.v * dt / 1000;
-          c.globalAlpha = 0.8; c.drawImage(glow([255, 220, 180]), r.x - 3, r.y - 3, 6, 6);
-          if (r.y > r.ty) return true;
-          const n = tier ? 36 + Math.floor(Math.random() * 20) : 22 + Math.floor(Math.random() * 10);
-          const big = 0.8 + Math.random() * 0.6;
-          c.globalAlpha = 0.5; c.drawImage(glow(r.col), r.x - 60 * big, r.y - 60 * big, 120 * big, 120 * big);
-          for (let i = 0; i < n; i++) { const a = (i / n) * TAU + Math.random() * 0.2, sp = (70 + Math.random() * 70) * big; sparks.push({ x: r.x, y: r.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 1.4 + Math.random() * 0.9, col: r.col }); }
-          return false;
-        });
-        sparks = sparks.filter(p => {
-          p.life += dt / 1000; if (p.life > p.max) return false;
-          p.vy += 46 * dt / 1000; p.vx *= 0.985; p.vy *= 0.985;
-          p.x += p.vx * dt / 1000; p.y += p.vy * dt / 1000;
-          const k = 1 - p.life / p.max;
-          c.globalAlpha = k * k; c.drawImage(glow(p.col), p.x - 5, p.y - 5, 10, 10); if (tier === 2 && k > 0.6) { c.globalAlpha = (k - 0.6) * 2; c.drawImage(glow([255, 255, 255]), p.x - 2, p.y - 2, 4, 4); }
-          return true;
-        });
-        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-      }
+      fwx.draw(c, dt, motion);
       // the sleigh: very rarely, a silhouette crossing the moon on the Christmas nights
       if (motion && dark > 0.5 && ((hol && hol.id === 'christmas' && hol.full) || s.force.has('sleigh'))) {
         nextSleigh -= dt / 1000;
@@ -431,7 +414,7 @@ export function createFx() {
       }
       return null;
     },
-    debug: () => ({ ufo: ufo ? ufo.st : null, cat: cat ? (cat.at ? 'here' : 'placed') : null, snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sparks: sparks.length, sleigh: !!sleigh, lights: lights ? lights.length : 0 }),
+    debug: () => ({ ufo: ufo ? ufo.st : null, cat: cat ? (cat.at ? 'here' : 'placed') : null, snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sleigh: !!sleigh, lights: lights ? lights.length : 0, sparks: fwx.count() }),
     destroy() { for (const c of sprites.values()) { c.width = 0; c.height = 0; } sprites.clear(); },
   };
 

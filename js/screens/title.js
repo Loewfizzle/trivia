@@ -28,7 +28,8 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, startRain, thunder, cityPowerOn } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, startRain, thunder, cityPowerOn, fireworkBurst } from '../audio/ambience.js';
+import { beatSource } from '../audio/beat.js';
 import { createDistrict } from './district/scene.js';
 import { captureBackdrop } from './district/backdrop.js';
 import { neonPlan, neonState, neonNext } from './district/neon-ramp.js';
@@ -265,11 +266,15 @@ export function createTitle() {
     scene.set({ motion: reduced() ? 0 : 1 });
     // a lightning strike: thunder a few seconds later, the glass of the dock catches the flash
     scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });
+    // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
+    // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
+    scene.set({ beat: beatSource, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
+      h('div.nd-bloom', { 'aria-hidden': 'true' }),   // PARTY NIGHTS: the logo's breath, behind the letters
       h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME }) }),
-      h('div.nd-word', 'SPEAKEASY'),
+      h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'))),
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     els.actions = buildActions();
@@ -573,7 +578,7 @@ export function createTitle() {
           setTimeout(() => { if (!destroyed) s.classList.remove('is-catch'); }, 1500);
         }
       }
-      scene.set({ logo: 1, signPow: 1 });
+      scene.set({ logo: 1, signPow: 1, caught: true });
       return;
     }
     // the ramp, the goodbye, the day: the daytime glass look, with whichever letters are lit right now
@@ -586,7 +591,22 @@ export function createTitle() {
     letters.forEach((l, i) => { if (st.letters[i]) on++; if (!buzzing.has(i)) l.classList.toggle('on', !!st.letters[i]); });
     dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
     const share = fade ? st.fade : on / 4;
-    scene.set({ logo: share > 0 ? 1 : 0, signPow: share });
+    scene.set({ logo: share > 0 ? 1 : 0, signPow: share, caught: false });
+  }
+  // PARTY NIGHTS (scene.js#partyTick, every frame while it's on): --pb the breath 0..1, --pe how hard (the phase's energy, 0
+  // until the start wave has passed), --psw the finale's swell; .is-party while the party is on
+  let partyOn = false;
+  function partyFrame(p) {
+    if (destroyed || !els.root || /no-party-css/.test(location.search)) return;
+    if (!els.root.dataset.pt) { els.root.dataset.pt = '1'; for (const k of ['no-bloom', 'no-ringbreath', 'no-shimmer', 'no-vars']) if (location.search.includes(k)) els.root.classList.add(k); }
+    if (els.root.classList.contains('no-vars')) { els.root.classList.toggle('is-party', p.on > 0); return; }
+    const on = p.on > 0;
+    if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on) { els.root.style.setProperty('--pe', '0'); els.root.style.setProperty('--psw', '0'); } }
+    if (!on) return;
+    const st = els.root.style;
+    st.setProperty('--pb', (reduced() ? 0.5 : p.breath).toFixed(3));
+    st.setProperty('--pe', (p.ramp * p.energy).toFixed(3));
+    st.setProperty('--psw', p.swell.toFixed(3));
   }
   function neonTick() {
     clearTimeout(neonT);
@@ -1082,6 +1102,8 @@ export function createTitle() {
       neonAt: t => (neonPlanV ? neonState(neonPlanV, t) : null),
       neonSounds: () => neonSounds,
       neon: () => { const p = neonPlanV; return { stage: neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
+      party: () => (scene ? scene.party() : null),
+      finale: () => scene && scene.finale(),
       dock: {
         join: openJoin,
         preview: patch => { els.sig = null; update({ ...st, ...patch }); },   // test-only: show the dock for a state (REJOIN, an invite)
@@ -1122,7 +1144,7 @@ export function createTitle() {
     dressCorners(false);
     if (dock) dock.destroy();
     const wrap = els.sceneWrap;
-    captureBackdrop(els.canvas);   // the menus keep a still of the city
+    captureBackdrop(els.canvas, scene.partyLight ? scene.partyLight() : null);   // the menus keep a still of the city (+ the party's light, which breathes on)
     const sc = scene;
     scene = null;
     wrap.classList.add('is-out');

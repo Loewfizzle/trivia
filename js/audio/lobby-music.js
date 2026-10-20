@@ -89,6 +89,9 @@ export function lobbyMusicTick(st, active, inLobby = active) {
   return false;
 }
 
+/** The room's song sounding on this phone right now: { id, at } or null (the title's beat follows it in a lobby). */
+export function lobbyNow() { const n = player ? player.now() : null; return n ? { id: n.id, at: n.at } : null; }
+
 export function stopLobbyMusic() { handed = false; if (player) { player.stop(); player = null; playingId = null; } }
 export function lobbyMusicDebug() { return player ? { id: playingId, ...player.debug() } : null; }
 void firebaseReady;

@@ -118,6 +118,8 @@ export function createDock(on) {
     const st = els.hostSlot.style;
     cols.forEach((c, i) => { st.setProperty(`--hg${i + 1}`, c.g); st.setProperty(`--hb${i + 1}`, c.b); st.setProperty(`--hc${i + 1}`, c.c); });
     els.host.dataset.multi = new Set(cols.map(c => c.g)).size > 1 ? '1' : '0';
+    const root = sign.closest('.nd');
+    if (root) { root.style.setProperty('--pc', cols[0].g); root.style.setProperty('--pcb', cols[0].b); root.style.setProperty('--pcc', cols[0].c); }
   }
 
   // the pill's icons and the title's two corner buttons are tubes of the same sign: each answers a letter (BOARD·N, GAMES·E,

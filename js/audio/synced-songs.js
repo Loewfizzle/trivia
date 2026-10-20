@@ -152,6 +152,14 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     setMinIndex(i) { if (i > minIndex) minIndex = i; },
     /** is a song sounding right now? */
     playing() { return voices.size > 0; },
+    /** the song sounding loudest right now: { i, id, at (s into it) } or null */
+    now() {
+      const ctx = getContext();
+      if (!ctx || !game || !voices.size) return null;
+      let best = null;
+      for (const [i, v] of voices) { const g = v.gain.gain.value; if (!best || g > best.g) best = { i, g, at: ctx.currentTime - v.origin }; }
+      return best && best.g > 0.05 ? { i: best.i, id: game.songs[best.i], at: Math.max(0, best.at) } : null;
+    },
     /** is song i decoded and ready? */
     ready(i = 0) { const e = game && bufs.get(keyOf(i)); return !!(e && e.buf); },
     debug() {

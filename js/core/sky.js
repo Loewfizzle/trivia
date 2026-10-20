@@ -12,6 +12,7 @@
 //   }
 
 import { isFresh, forcedWeather } from './weather.js';
+import { partyLateK, inPartyWindow } from './party.js';
 
 const RAD = Math.PI / 180;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -458,7 +459,9 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   else { night = 1 - smooth(-14, -4, e); day = smooth(5, 15, e); golden = Math.max(0, 1 - night - day); }
   // late night: the small hours (fewer windows, a deeper sky)
   // the city winds down: windows start going out around 10 pm, fewer by midnight, sparse by 2 am, until dawn
-  const lateK = hour >= 21.5 ? smooth(21.5, 26, hour) : hour < 5 ? smooth(21.5, 26, hour + 24) * (1 - smooth(4, 5, hour)) : 0;
+  // (PARTY NIGHTS: Fri / Sat the city stays fully lit until 2 am, then winds down over the following hour — core/party.js)
+  const pk = partyLateK(lp);
+  const lateK = pk != null ? pk * (hour < 5 && hour >= 2 ? 1 - smooth(4, 5, hour) : 1) : hour >= 21.5 ? smooth(21.5, 26, hour) : hour < 5 ? smooth(21.5, 26, hour + 24) * (1 - smooth(4, 5, hour)) : 0;
   let late = night * lateK;
   night -= late;
   if (alwaysNight) { night = 1; late = 0; dawn = 0; day = 0; golden = 0; }
@@ -495,7 +498,7 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   const q = v => Math.round(v * 40);
   const key = [q(w.night), q(w.late), q(w.dawn), q(w.day), q(w.golden), q(season.winter), q(season.autumn), q(season.spring), q(season.summer), hol ? `${hol.id}${hol.full ? 'F' : Math.round(hol.k * 10)}` : '-', Math.round(rain * 4), Math.round(fog * 4), Math.round(cloud * 5), storm, Math.round(clamp01(snow) * 4), Math.round(freeze * 4), sun.az < 180 ? 'E' : 'W'].join('|');
   return {
-    local: lp, lat, lon, south, sun, alwaysNight, moon: { ...moonP, ...mph, u: moonArc(ms, lat, lon) }, w, season, holiday: hol, nye,
+    local: lp, lat, lon, south, sun, alwaysNight, partyNight: inPartyWindow(lp), moon: { ...moonP, ...mph, u: moonArc(ms, lat, lon) }, w, season, holiday: hol, nye,
     eclipse: moonP.el > -1 ? eclipseAt(ms) : null,
     sunArc: sunArc(ms, tz, lat, lon), solar: sun.el > -2 ? solarEclipse(ms, lat, lon) : null,
     rain, snow: clamp01(snow), storm, fog, cloud, wind, windDir, temp: live ? live.temp : null, freeze, live: !!live, wxKind: live ? live.kind : null, clear, meteors, shower: met.shower, aurora, key,
@@ -504,7 +507,7 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
 
 // ---------------------------------------------------------------- the clock (a preview switch for screenshots)
 /** ?when=2026-10-31T19:30&tz=America/New_York freezes the start of the clock (it still runs from there);
- *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights makes the rare moments happen now; ?wx=storm|rain|snow|fog|clouds|
+ *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights,party,finale makes the rare moments happen now; ?wx=storm|rain|snow|fog|clouds|
  *  overcast|drizzle|sleet|clear sets the weather (instead of the live weather); &at=42.96,-85.67 puts the sun, moon and stars
  *  over that place instead of the time zone's city (with clear weather unless &wx= says otherwise). Normal players never pass these. */
 export function skyClock(search = (typeof location !== 'undefined' ? location.search : '')) {
@@ -518,11 +521,11 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
   let base = null;
   if (when) {
     // the wall time is in tz: find the UTC instant whose local time in tz matches
-    const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(when);
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(when);
     if (m) {
-      const [y, mo, d, h = '12', mi = '00'] = m.slice(1);
-      let guess = Date.UTC(+y, +mo - 1, +d, +h, +mi);
-      for (let i = 0; i < 3; i++) guess = Date.UTC(+y, +mo - 1, +d, +h, +mi) - localParts(guess, tz).off * 60000;
+      const [y, mo, d, h = '12', mi = '00', sc = '00'] = m.slice(1);
+      let guess = Date.UTC(+y, +mo - 1, +d, +h, +mi, +sc);
+      for (let i = 0; i < 3; i++) guess = Date.UTC(+y, +mo - 1, +d, +h, +mi, +sc) - localParts(guess, tz).off * 60000;
       base = guess;
     }
   }

@@ -224,6 +224,39 @@ body.reduced-fx .nd-gate-txt { animation: none; }
 }
 .nd-sign .nd-word.nd-sunbk::before, .nd-sign .nd-word.nd-sunbk::after { filter: drop-shadow(0 0 2px rgba(10, 6, 22, calc(var(--sunk) * 0.9))); }
 
+/* ==========================================================================
+   PARTY NIGHTS (scene.js#partyTick → title.js#partyFrame): --pb the breath 0..1 (peaks on the beat), --pe the energy (0 until the
+   start wave has passed), --psw the finale's swell, --pc/--pcb/--pcc the sign's colour (glow / body / core; a holiday's own).
+   Only opacity breathes; the logo's bloom into the haze is the canvas behind it.
+   ========================================================================== */
+.nd { --pb: 0; --pe: 0; --psw: 0; --pc: #ff2e97; --pcb: #ff5fb4; --pcc: #fff1f8; }
+/* the logo's breath: never the SVG's own glow layers (a change there re-runs the blur filters every frame — 100 ms frames at
+   4× CPU); a soft bloom of the sign's colour behind the letters on its own compositor layer (opacity only) + the canvas halo */
+.nd-bloom { position: absolute; left: -12%; right: -12%; top: -30%; bottom: -24%; pointer-events: none; opacity: 0; will-change: opacity;
+  background: radial-gradient(ellipse 50% 50% at 50% 52%, color-mix(in srgb, var(--pc) 42%, transparent), color-mix(in srgb, var(--pc) 14%, transparent) 45%, transparent 72%); }
+.nd.is-party .nd-sign.is-steady .nd-bloom { opacity: calc(0.3 * var(--pb) * var(--pe) + 0.6 * var(--psw)); }
+.nd.is-party .nd-sign.is-steady .nd-logo .ndl-glow2 { opacity: 0.86; }
+/* SPEAKEASY as real neon: a white-hot core in the sign's colour, layered glow; a slow shimmer of light sweeping the letters */
+.nd-word-g { position: relative; display: inline-block; transition: color 4s ease, text-shadow 4s ease; }
+.nd-word-s { position: absolute; inset: 0; opacity: 0; color: transparent; pointer-events: none; will-change: transform; transform: translateZ(0);
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0) 60%) no-repeat;
+  background-size: 240% 100%; background-position: 170% 0; -webkit-background-clip: text; background-clip: text; }
+.nd.is-party .nd-sign.is-steady .nd-word-g { color: var(--pcc);
+  text-shadow: 0 0 1px #fff, 0 0 2px var(--pcb), 0 0 5px var(--pc), 0 0 10px var(--pc), 0 0 18px color-mix(in srgb, var(--pc) 80%, transparent), 0 0 34px color-mix(in srgb, var(--pc) 45%, transparent);
+  transition: color 4s ease, text-shadow 4s ease; }   /* (the 2 am wind-down: a slow cross-fade back to white, never a snap) */
+.nd.is-party .nd-sign.is-steady .nd-word-s { opacity: 1; animation: nd-shimmer 6.5s ease-in-out infinite; }
+@keyframes nd-shimmer { 0% { background-position: 170% 0; } 38%, 100% { background-position: -110% 0; } }
+.nd.is-party .nd-sign.is-steady .nd-word::before, .nd.is-party .nd-sign.is-steady .nd-word::after { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--pc) 80%, transparent)); }
+/* the rings breathe together on the beat (the small icons and the corner buttons stay steady) */
+.nd.is-party .nd-ringbtn { --hk: calc(1 + 0.34 * var(--pb) * var(--pe) + 0.5 * var(--psw));
+  transition: transform 0.18s var(--ease), --hg1 1.4s ease, --hg2 1.4s ease, --hg3 1.4s ease, --hg4 1.4s ease,
+    --hb1 1.4s ease, --hb2 1.4s ease, --hb3 1.4s ease, --hb4 1.4s ease, --hc1 1.4s ease, --hc2 1.4s ease, --hc3 1.4s ease, --hc4 1.4s ease; }
+.nd.is-party .nd-ringbtn.is-lit .nd-hglow { animation: none; opacity: calc(var(--hk) * 0.62); }
+.nd.no-bloom .nd-bloom { display: none; } .nd.no-ringbreath.is-party .nd-ringbtn { --hk: 1; } .nd.no-shimmer .nd-word-s { display: none; }
+/* Reduced effects: the party's colours, calmly — no breathing, no shimmer */
+@media (prefers-reduced-motion: reduce) { .nd-word-s { animation: none !important; opacity: 0 !important; } }
+body.reduced-fx .nd-word-s { animation: none !important; opacity: 0 !important; }
+
 /* SPEAKEASY: framed by Art Deco rules ending in a diamond — the bar's era, in the district's light */
 .nd-word { display: flex; align-items: center; justify-content: center; gap: 0.55em; }
 .nd-word::before, .nd-word::after {

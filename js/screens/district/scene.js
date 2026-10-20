@@ -19,6 +19,9 @@ import { createStars } from './stars.js';
 import { look as skyLook, skyClock } from '../../core/sky.js';
 import { paletteFor, css } from './palette.js';
 import { createFx } from './fx.js';
+import { createPartyFx } from './party-fx.js';
+import { createFireworks } from './fireworks.js';
+import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, breathShape, partyPalette, partySeed } from '../../core/party.js';
 import { createSun } from './sun.js';
 import { settings } from '../../audio/settings.js';
 import { reportError } from '../../errlog.js';
@@ -58,6 +61,12 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let raf = 0, last = 0, running = false, destroyed = false;
   // the living sky
   const fx = createFx();
+  // PARTY NIGHTS (core/party.js decides, party-fx.js draws): the beat clock, the finale's fireworks, this frame's party
+  const pfx = createPartyFx();
+  const fw = createFireworks({ onBurst: e => { PT.swell = Math.min(1, PT.swell + 0.55); PT.bursts++; if (S.onBurst) S.onBurst(e); } });
+  const bc = createBeatClock();
+  const PT = { on: 0, ramp: 0, energy: 0, phase: 0, breath: 0, beat: false, bar: 0, swell: 0, wave: null, waveX: 0, waveT: null, motion: 1, prevOn: 0, lastHour: null, finaleDone: '', finaleForced: false, bursts: 0, name: null };
+  let party = PT;
   // LIVE WEATHER (weather-fx.js: clouds, lightning, fog; rain.js; live-weather.js) and the city's life (wildlife.js, street.js)
   // load right after the first paint — the title never waits for them; until then these stand-ins draw nothing
   const NOOP = () => {};
@@ -195,6 +204,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       for (let i = a; i <= b; i++) if (y < skyline[i]) skyline[i] = y;
     }
     fx.resize(W, H, HZ);
+    pfx.resize(W, H, HZ, dpr); fw.setTier(tier);
     wfx.resize(W, H, HZ); rain.resize(W, H, HZ); birds.resize(W, H, HZ); road.resize(W, H, HZ); frost.resize(W, H); air.resize(W, H, HZ); sun.resize(W, H, HZ);
     vignette = mk(W * dpr / 2, H * dpr / 2);
     const vx = vignette.getContext('2d');
@@ -461,7 +471,9 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     refreshLook(performance.now());
     const lit = S.lit;
     const night = nightness();
-    const fs = { skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV };
+    partyTick(t, dt, lit);
+    const fs = { skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party };
+    const pb = party.ramp * (0.5 + 0.5 * party.energy) * party.breath;   // the sign's breath, 0..1
     // sky
     c.globalAlpha = 1;
     c.drawImage(skyLit, 0, cam.y * 0.1, W, HZ);
@@ -488,15 +500,21 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     const signLight = S.logo * (S.signPow != null ? S.signPow : Math.max(P.sign, 0.15 * night));   // signPow: the neon plan's lit share
     if (signLight > 0 && S.logoRect) {
       const r = S.logoRect;
-      const cx = r.x + r.w / 2, cy = r.y + r.h / 2, rad = r.w * (0.9 + 0.7 * LK.fog);   // fog and rain spread the neon's halo
+      const cx = r.x + r.w / 2, cy = r.y + r.h / 2, rad = r.w * (0.9 + 0.7 * LK.fog) * (1 + 0.12 * pb + 0.2 * party.swell);   // fog and rain spread the neon's halo; the party breathes it
       c.globalCompositeOperation = 'lighter';
-      c.globalAlpha = Math.min(1, signLight * (1 + 0.8 * LK.fog + (LK.rain ? 0.25 : 0)));
+      c.globalAlpha = Math.min(1, signLight * (1 + 0.8 * LK.fog + (LK.rain ? 0.25 : 0)) * (1 + 0.45 * pb + 0.7 * party.swell));
       c.drawImage(radial(S.signCol || '#ff3caa', [[0, 0.16], [0.5, 0.06], [1, 0]]), cx - rad, cy - rad, rad * 2, rad * 2);
       c.globalAlpha = 1;
       c.globalCompositeOperation = 'source-over';
     }
     // two searchlights sweep slowly behind the skyline (after dark)
-    if (lit > 0.2 && night > 0.1) { const sl = searchOn(); if (sl > 0.01) searchlights(c, t, lit * night * sl); }
+    if (lit > 0.2 && night > 0.1) {
+      // PARTY NIGHTS: neon beams sweeping with the music (the weekend's plain beams fade out as the party fades in)
+      if (party.ramp < 1) { const sl = searchOn() * (1 - party.ramp); if (sl > 0.01) searchlights(c, t, lit * night * sl); }
+      if (party.ramp > 0.005 && !clock.force.has('no-party-lights')) pfx.searchlights(c, t, dt, { ...party, on: party.ramp * lit * night }, cam.x, { logoY: S.logoRect ? S.logoRect.y + S.logoRect.h * 0.5 : HZ * 0.3 });
+    }
+    // the finale's fireworks: in the sky, behind the skyline (and under the sign: the canvas is below the DOM)
+    fw.draw(c, dt, S.motion);
     // the signs: placement (around the title's clear zones), power, rotation, the ticker
     signs.tick(t, dt, { W, H, HZ, layers, clear: S.clear, L: LK, P, bill: S.bill, motion: S.motion, tier, signPower: S.signPower || null });
     // skyline layers + haze
@@ -507,7 +525,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       const ox = Math.round((-L.margin + cam.x * L.d) * dpr) / dpr;
       const oy = Math.round((L.top + cam.y * L.d) * dpr) / dpr;
       L.ox = ox; L.oy = oy;
-      if (S.wave >= 1) c.drawImage(compose(L, winNow), ox, oy, L.lw, L.lh);
+      if (S.wave >= 1) { c.drawImage(compose(L, winNow), ox, oy, L.lw, L.lh); if (party.on > 0 && !clock.force.has('no-party-windows')) pfx.windows(c, L, li, ox, oy, party, dt); }
       else {
         // the power-on: windows light up one by one, bottom first, with a flicker as each catches
         c.drawImage(compose(L, 0), ox, oy, L.lw, L.lh);
@@ -529,7 +547,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       c.drawImage(hazeBand(L, false), 0, HZ - hh, W, hh + 1);
       if (lit > 0) { c.globalAlpha = lit * Math.min(1, P.hazeA); c.drawImage(hazeBand(L, hz), 0, HZ - hh, W, hh + 1); }
       // the buildings' neon outlines, over the fog (a little softer further back), at full strength all night
-      const na = (S.wave >= 1 ? 1 : smooth(0.82, 1, S.wave)) * P.trims * [0.42, 0.56, 0.85, 1][li];
+      // (PARTY NIGHTS: the trims breathe with the sign, a beat rippling out through the rows — the near row first)
+      const na = (S.wave >= 1 ? 1 : smooth(0.82, 1, S.wave)) * P.trims * [0.42, 0.56, 0.85, 1][li] * Math.min(1.35, 1 + 0.16 * party.ramp * party.energy * breathShape(party.phase - (3 - li) * 0.07) + 0.3 * party.swell);
       if (na > 0.02) { c.globalAlpha = na; c.drawImage(L.neon, ox, oy, L.lw, L.lh); }
       c.globalAlpha = 1;
       // beacons on this layer
@@ -559,6 +578,11 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       }
       if (li === layers.length - 1 && !off.has('no-road')) road.steam(c, fs, { rects: L.rects, ox, oy, top: L.top, margin: L.margin });
     });
+    // the finale's light on the city: each burst flashes softly onto the buildings and the haze
+    { const fl = fw.light(); if (fl.k > 0.01) { const rr = W * 0.8; c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 * fl.k; c.drawImage(radial(`#${fl.col.map(v => Math.round(v).toString(16).padStart(2, '0')).join('')}`, [[0, 1], [0.45, 0.35], [1, 0]]), fl.x - rr, fl.y - rr, rr * 2, rr * 2); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; } }
+    // PARTY NIGHTS: the party windows' bloom over the whole city (once), the wave of colour sweeping across it as it switches on
+    if (party.on > 0 && !clock.force.has('no-party-windows')) pfx.bloom(c, party);
+    pfx.wave(c, party);
     // a soft dimming behind the sign + tagline so they always read cleanly over the windows (and the bright day sky)
     if (S.logoRect) {
       const r = S.logoRect, cx = r.x + r.w / 2, cy = r.y + r.h * 1.05, rx = r.w * 0.78, ry = r.h * 1.5;
@@ -572,7 +596,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     const shimmer = TIERS[tier].shimmer && S.motion;
     c.drawImage(street, 0, HZ, W, H - HZ);
     if (P.street[3] > 0.01) { c.fillStyle = css(P.street, P.street[3]); c.fillRect(0, HZ, W, H - HZ); }
-    drawRefl(c, reflLit, clamp01(lit * 1.1) * (0.35 + 0.65 * P.refl), shimmer, t);
+    drawRefl(c, reflLit, clamp01(lit * 1.1) * (0.35 + 0.65 * P.refl) * (1 + 0.1 * pb), shimmer, t);
+    // PARTY NIGHTS: the party colours in the wet street, pulsing with the beat; the finale's flash on the asphalt
+    if (!clock.force.has('no-party-refl')) pfx.reflect(c, layers, party, t);
+    { const fl = fw.light(); if (fl.k > 0.01) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.1 * fl.k; c.fillStyle = `rgb(${fl.col.map(Math.round).join(',')})`; c.fillRect(0, HZ, W, (H - HZ) * 0.7); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; } }
     // light spilling onto the wet street: the signs + the main sign (after dark)
     c.globalCompositeOperation = 'lighter';
     signs.reflect((x, w, len, col, al, tt, ph) => streak(c, x, w, len, col, al, tt, ph), H, HZ, t);
@@ -597,6 +624,64 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     c.globalAlpha = 0.55 + 0.45 * night;
     c.drawImage(vignette, 0, 0, W, H);
     c.globalAlpha = 1;
+  }
+
+  // ---------------------------------------------------------------- PARTY NIGHTS: the state for this frame
+  // when (the Fri / Sat window from the catch), how hard (the phase's energy), the beat (this phone's / the room's song, else a
+  // slow breath), the start wave, the midnight finale (once a night, never on New Year's Eve — that night has its own)
+  function partyTick(t, dt, lit) {
+    const hol = LK.holiday && LK.holiday.full ? LK.holiday.id : null;
+    const caught = S.caught != null ? S.caught : P.dark > 0.5;
+    const ps = partyState(LK.local, { caught: caught && lit > 0.5, force: clock.force.has('party') });
+    PT.name = ps.phase;
+    if (ps.on > 0 && PT.prevOn === 0 && t > 2 && S.motion && !ps.forced) PT.waveT = t;   // (opening mid-party: no wave)
+    PT.prevOn = ps.on;
+    const waveK = PT.waveT != null ? clamp01((t - PT.waveT) / 2.6) : 1;
+    if (waveK >= 1) PT.waveT = null;
+    PT.wave = PT.waveT != null ? waveK : null;
+    PT.waveX = -W * 0.15 + W * 1.3 * smooth(0, 1, waveK);
+    PT.on = ps.on;
+    PT.ramp = ps.on * smooth(0, 1, waveK);
+    PT.energy = ps.energy;
+    PT.motion = S.motion;
+    PT.tier = tier;
+    PT.palette = partyPalette(hol);
+    const song = ps.on > 0 && S.beat ? S.beat() : null;
+    advanceBeat(bc, dt, song);
+    PT.phase = bc.phase; PT.beat = bc.beat; PT.bar = bc.bars;
+    PT.breath = S.motion ? bc.breath : 0.5;
+    PT.swell = Math.max(0, PT.swell - dt / 3800);
+    if (ps.on > 0 && layers.length && skyKey) pfx.bake(layers, partySeed(LK.local), partyPalette(hol));
+    // the finale: the moment local midnight passes (once), or &force=finale a moment after the title is up
+    const hr = partyHour(LK.local);
+    const seed = partySeed(LK.local);
+    if (ps.on > 0 && !ps.forced && !LK.nye && PT.finaleDone !== seed && finaleDue(PT.lastHour, hr)) { PT.finaleDone = seed; startFinale(); }
+    PT.lastHour = hr;
+    if (clock.force.has('finale') && !PT.finaleForced && t > 2.5 && lit > 0.5) { PT.finaleForced = true; startFinale(); }
+    party = PT;
+    if (S.onParty && (PT.on > 0 || PT.wasOn)) S.onParty(PT);
+    PT.wasOn = PT.on > 0;
+  }
+  function startFinale() {
+    if (!S.motion) { PT.swell = 1; PT.bursts++; return; }   // Reduced effects: a gentle swell of light only
+    const pal = pfx.palette() || partyPalette(null);
+    const white = [255, 255, 255];
+    const n = W < 760 ? 4 : W < 1200 ? 5 : 6;
+    const tr = S.textRects;
+    const skyTop = skyline ? Math.min(...skyline) : HZ * 0.45;
+    const big = W < 760 ? Math.min(W * 0.18, 74) : Math.min(W * 0.11, 150);
+    // on a phone the shells open between the tagline and the tower tops (the towers occlude their lower edge: fireworks OVER the
+    // city, never a bloom on the sign); a wide screen has free sky either side of the sign
+    const yHi = W < 760 ? (tr ? tr.tag.y + tr.tag.h + big * 0.9 : HZ * 0.34) : (tr ? tr.word.y + tr.word.h * 0.5 : HZ * 0.22);
+    const yLo = Math.max(yHi + 10, Math.min(skyTop + HZ * (W < 760 ? 0.12 : 0.06), HZ * 0.62));
+    const spread = W < 760 ? [0.2, 0.8] : [0.12, 0.88];
+    const heights = [0.5, 0.15, 0.75, 0.3, 0.6, 0.2];
+    const cols = [pal[0], pal[1], pal[2], pal[3] || white, white, pal[0]];
+    for (let i = 0; i < n; i++) {
+      const fx0 = spread[0] + (spread[1] - spread[0]) * ((i + 0.5) / n) + (Math.random() - 0.5) * 0.08;
+      const ty = yHi + (yLo - yHi) * heights[i % heights.length] + (Math.random() - 0.5) * 12;
+      fw.launch({ x: W * fx0, y0: HZ * 0.98, ty, col: cols[i % cols.length], col2: i % 2 ? white : (pal[(i + 1) % pal.length]), big: big * (0.9 + Math.random() * 0.2), delay: i * 0.36 });
+    }
   }
 
   // searchlights are an occasion: Friday and Saturday nights (fading out toward midnight) and holiday nights; never while
@@ -726,6 +811,12 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     speed: () => clock.speed || 1,
     skyline: () => (skyline ? Array.from(skyline) : null),
     frames: () => frames.slice(),
+    /** PARTY NIGHTS right now (test hook + the title's CSS): on, ramp, energy, phase (0..1 of a breath), breath, the beat… */
+    party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, bpm: bc.bpm, rate: bc.rate, locked: bc.locked, swell: PT.swell, wave: PT.wave, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: pfx.debug().beams }),
+    /** the midnight finale, now (a preview / test) */
+    finale: () => startFinale(),
+    /** the party light alone, for the lobby's backdrop (null when there's no party) */
+    partyLight: () => (PT.on > 0 ? pfx.still(layers, cam.x) : null),
     debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug(), sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null }),
     destroy() {
       destroyed = true;

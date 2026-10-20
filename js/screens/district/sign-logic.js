@@ -66,9 +66,17 @@ export function holidayLine(L) {
 }
 
 /** The whole ticker message: the countdown alone in the last minutes of the year; otherwise the holiday, then the games. */
+/** PARTY NIGHTS: the night's name while the window is on (Fri 8 pm → Sat 2 am is Friday night). */
+export function partyLine(L) {
+  if (!L.partyNight || !L.local) return '';
+  const { dow, h } = L.local;
+  const friday = dow === 5 || (dow === 6 && h < 6);
+  return friday ? "IT'S FRIDAY NIGHT" : "IT'S SATURDAY NIGHT";
+}
+
 export function tickerText(L, names) {
   const hol = holidayLine(L);
   if (L.nye && L.nye.countdown != null) return hol;
   const games = `NOW PLAYING: ${names.join(' · ')}`;
-  return hol ? `${hol}   ★   ${games}` : games;
+  return [hol, partyLine(L), games].filter(Boolean).join('   ★   ');
 }

@@ -328,6 +328,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ PARTY NIGHTS (Oct 20, 2026) — `docs/title.md`
+- [x] Fri / Sat 8 pm → 2 am (from the catch), warm-up → peak → after hours; the late-night wind-down waits until 2 am
+- [x] The beat: a clock that eases from a slow breath onto the song (this phone's, or the room's in a lobby) and back
+- [x] The logo's bloom, SPEAKEASY as neon with a shimmer, the rings, the trims rippling, a quarter of the windows in party
+      colours with whole floors, neon volumetric searchlights sweeping with the music, the start wave, the 2 am wind-down
+- [x] The midnight finale on a new fireworks renderer (NYE and the Fourth ride on it too), its light on the city, its sound
+- [x] More traffic with neon underglow; holiday palettes; Reduced effects calm; tiers simplify; the lobby backdrop breathes
+- [x] Tests: party.test.mjs, e2e-party.mjs (36 checks + videos / screenshots)
+
 ### ✅ THE FLANK + the title's corner buttons + the lobby song (Oct 20, 2026) — `docs/title.md`, `docs/audio.md`
 - [x] The new dock: [ JOIN ring ] [ glass pill: BOARD · GAMES · YOU ] [ HOST ring ] — two identical rings mirrored round a compact
       pill of three icons; HOST in the sign's colours, JOIN white neon all year; both always lit, never sputter

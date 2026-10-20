@@ -158,12 +158,16 @@ export function createStreet() {
       const { L, dt, t, motion, force, tier } = s;
       if (!motion) return;
       const sec = dt / 1000, hr = hourOf(L);
-      const flow = force.has('rush') ? 1 : trafficAt(hr, L.local ? L.local.dow : 3);
+      // PARTY NIGHTS: more cars and cabs, a few with a soft neon underglow in the party's colours (never loud: the dock is just below)
+      const party = s.party && s.party.on > 0 ? s.party : null;
+      const flow = Math.min(1, (force.has('rush') ? 1 : trafficAt(hr, L.local ? L.local.dow : 3)) * (party ? 1 + 0.7 * party.ramp * (0.6 + 0.4 * party.energy) : 1));
       const want = Math.round(flow * (tier === 0 ? 6 : 12) * K);
       if (cars.length < want && Math.random() < sec * (0.6 + flow * 2.5)) {
         const lane = Math.random() < 0.5 ? 0 : 1;                // 0: the far lane (tail lights, going right), 1: near (head lights, going left)
         const dir = lane === 0 ? 1 : -1;
-        cars.push({ lane, dir, x: dir > 0 ? -30 : W + 30, v: (40 + Math.random() * 30) * K * dir, cab: Math.random() < 0.12, ph: Math.random() * TAU });
+        const pal = party && s.party.palette ? s.party.palette : null;
+        const under = party && pal && Math.random() < 0.35 * party.ramp ? pal[Math.floor(Math.random() * pal.length)] : null;
+        cars.push({ lane, dir, x: dir > 0 ? -30 : W + 30, v: (40 + Math.random() * 30) * K * dir, cab: Math.random() < (party ? 0.2 : 0.12), ph: Math.random() * TAU, under });
       }
       const dark = clamp01(L.w.night + L.w.late + L.w.golden * 0.7 + L.w.dawn * 0.5 + (L.rain ? 0.3 : 0));
       const wet = L.rain ? 1 : 0.55;
@@ -188,6 +192,8 @@ export function createStreet() {
           c.drawImage(glow(col), lx - car.dir * 0 - 5 * sc + (seeFront ? -car.dir : car.dir) * 3.2 * K * sc, y - bh * 0.6 - 5 * sc, 10 * sc, 10 * sc);
           if (seeFront) { c.globalAlpha = 0.25 * dark; c.drawImage(glow([255, 240, 210]), front + (car.dir > 0 ? 0 : -46 * K), y - 6, 46 * K, 9); }
           if (car.cab) { c.globalAlpha = 0.8 * dark; c.drawImage(glow([255, 214, 90]), car.x - 3, y - bh * 1.9 - 3, 6, 6); }
+          // the neon underglow (PARTY NIGHTS): a soft pool of colour under the car, breathing with the city
+          if (car.under && party) { const ug = 0.34 * dark * party.ramp * (0.75 + 0.25 * party.breath); c.globalAlpha = ug; c.drawImage(glow(car.under), car.x - bw * 0.9, y - bh * 0.9, bw * 1.8, bh * 1.8); c.globalAlpha = ug * 0.5; if (streak) streak(car.x, bw * 0.9, (H - HZ) * 0.22 * wet, `rgb(${car.under.join(',')})`, 0.1 * dark * wet * party.ramp, t, car.ph + 1); }
           // its light streaked down the wet street
           c.globalAlpha = 1;
           if (streak) streak(lx, 7 * sc, (H - HZ) * 0.35 * wet, seeFront ? '#fff1d6' : '#ff3046', (seeFront ? 0.16 : 0.12) * dark * wet, t, car.ph);

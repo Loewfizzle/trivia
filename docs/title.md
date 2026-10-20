@@ -212,7 +212,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
 - **More neon on the buildings:** every row now carries some (near 55%, far 22%): full outlines, corner + roof, roof lines,
   vertical strips, double bands; thinner and softer further back.
 - No EDIT button on the title (the card has EDIT PROFILE).
-- **Searchlights are an occasion** (scene.js#searchOn): Friday and Saturday nights (fading out toward midnight) and holiday
+- **Searchlights are an occasion** (scene.js#searchOn; on PARTY NIGHTS the neon beams below take over): Friday and Saturday nights (fading out toward midnight) and holiday
   nights; never while the Milky Way is strong. Rooted near the sides, nearly upright and swaying, never across the sign;
   holiday colours (Christmas red/green, Halloween orange/violet, the Fourth red/blue…). Preview: `&force=searchlights`.
 - **Neon on the buildings is seeded random** (the same city for everyone; widths depend on the screen): each building rolls
@@ -257,6 +257,82 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   order, seeding, Reduced effects, the catch against the drawn sun on phones and desktop, N + S, summer + winter); e2e-title
   "THE NEON COMES ALIVE" (day, ramp, the catch with its one sound, the city answering, the morning, storms, reload, the intro
   mid-ramp, a letter tap mid-ramp, ALWAYS NIGHT, Reduced effects).
+
+## PARTY NIGHTS (Oct 20, 2026) — `core/party.js` (PURE), `district/party-fx.js`, `district/fireworks.js`, `audio/beat.js`
+Friday and Saturday nights the city comes alive on the beat. Built for an iPhone held upright first; a wide screen gets more
+(four beams, six fireworks). Only opacity breathes; everything is a baked overlay or a pre-rendered sprite.
+- **When** (`partyState`): Fri / Sat 8 pm → 2 am local (the same window as MOOD MUSIC's PARTY mood), starting at 8 pm OR the
+  neon catch, whichever is later (never in daylight: a June Friday starts at the catch, ~9:30 pm). ALWAYS NIGHT keeps the window.
+  At 2 am it winds down over ~1.5 min (`on` 1 → 0). The late-night window wind-down waits for it: lit until 2 am, out over the
+  next hour (`partyLateK` in `core/sky.js#look`). `L.partyNight` carries the window into the look; the ticker rotates
+  "IT'S FRIDAY NIGHT" / "IT'S SATURDAY NIGHT" (`sign-logic.js#partyLine`; Sat 1 am is still Friday night).
+- **The shape of the night** (`partyEnergy`, blended smoothly): WARM-UP 8–10 pm (0.6 → 0.75), PEAK 10 pm–midnight (1), AFTER
+  HOURS midnight–2 am (0.7). The energy scales the breathing, the extra party windows, the searchlights' pace and colour changes.
+- **The beat** (`createBeatClock` / `advanceBeat`; the song from `audio/beat.js#beatSource`: the room's synced song in a lobby,
+  else this phone's mood song — id, bpm from `data/mood-music.json`, position): a breath per beat up to ~84 bpm, every second
+  beat above (never more than ~1.4 breaths / s); the swell rises over the last 14 % of a beat, peaks on it and relaxes
+  (`breathShape`). The clock eases its rate (~2 s) and nudges its phase toward the song's — no jump; without a song (before the
+  first tap, music off / muted, CLASSIC, a song loading) it breathes once every 3.5 s and eases back the same way.
+- **What breathes:** the logo (a soft bloom of the sign's colour behind the letters, `.nd-bloom`, + the canvas halo — never the
+  SVG's own blurred glow layers: changing those re-ran the filters every frame), SPEAKEASY's outer glow, both rings together
+  (`--hk` from `--pb`), the buildings' neon trims (a beat rippling out through the rows, the near row first), the party windows'
+  bloom, the wet street's reflection. The small icons and the corner buttons stay steady. The scene drives it: `partyTick` →
+  `S.onParty(PT)` → `title.js#partyFrame` writes `--pb` (the breath), `--pe` (energy, 0 until the start wave has passed), `--psw`
+  (the finale's swell) on the title root, once a frame.
+- **SPEAKEASY** is real neon on party nights: `.nd-word-g` (a white-hot core in the sign's colour, layered glow via `--pc/--pcb/
+  --pcc` from the sign's first letter, set by `title-dock.js#ringColors`) with a shimmer of light sweeping the letters every
+  6.5 s (`.nd-word-s`, its own compositor layer). Plain white the rest of the time.
+- **Party windows** (`party-fx.js#bake`, seeded by the evening — `partySeed`): about a quarter of each row's lit windows
+  (13 % far back → 26 % in front; ×0.85 on wide screens) in the city's neon — pink, cyan, violet, gold — some as whole floors in
+  one colour (`pickPartyWindows`), baked per row as coloured glass (two bakes: with / without the peak's extras) + ONE bloom for
+  the whole city (every row's tiny bloom, blurred twice) drawn once a frame over the skyline band. At any moment a few turn
+  slowly on or off (~3 s each, never a twinkle, at most a tenth off, never a whole floor). Their light in the wet street is a
+  baked reflection that pulses with the beat (6 ripple strips on tier 2, one blit below).
+- **Neon searchlights** (`party-fx.js#searchlights`; the weekend's plain beams crossfade out as the party fades in): two beams
+  on a phone (rooted at 8 % / 92 %), four on a wide screen; each a soft-edged volumetric beam fading with height (a wide veil,
+  a brighter core, a white-hot heart, a pool of colour where it catches the haze), in the palette's colours. A new target angle
+  every second breath, eased (1.6–4.2 / s): slow graceful leans in the warm-up / after hours, at the peak around the sign's
+  heart so they cross behind the NEON letters; a new colour on the big beats (every fourth breath) at the peak, every ~8 otherwise,
+  blended quickly by drawing the old and the new palette colour over each other (sprites only per palette colour — a blended
+  colour made a new sprite every frame once; two colours added together go muddy halfway, so the blend is short). Each beam comes
+  on already leaning, its light rising over ~0.9 s (never a vertical pillar). Behind the skyline, so the towers occlude them;
+  never over the sign or the dock. (In stills, a sign with a letter out or half its blade lit is the signs' own flicker — an
+  easter egg, not a party bug.)
+- **The start:** a wave of colour sweeps left → right over 2.6 s as the party begins (`pfx.wave`: three ribbons of the palette
+  and a white edge; the party windows and the bloom switch on as the front passes — a clip). Opening the title mid-party: no wave.
+- **The midnight finale** (`startFinale` → `district/fireworks.js`, the same renderer the NYE / Fourth fireworks now use): the
+  moment local midnight passes on a party night (`finaleDue`, once a night, never on New Year's Eve — that night has its own) 4
+  rockets on a phone (5 / 6 on wide screens) launch 0.36 s apart from behind the skyline and burst — on a phone between the
+  tagline and the tower tops (the towers occlude their lower edge: fireworks over the city, never a bloom on the sign), on a wide
+  screen in the free sky either side of it: a short flash in the shell's colour, a round shell of 150 sparks (tier 2; 96 / 46
+  below) with glowing trails and a white-hot heart, a two-tone core on every second one, a wide colour wash into the haze, drag,
+  gravity, glitter in the second half of their life, a few splitting into white pops; the light of each burst on the buildings and
+  the wet street (`fw.light()`); the whole city swells (`PT.swell`: the logo's bloom, the rings, the trims, the windows' bloom).
+  Sound: `audio/ambience.js#fireworkBurst` on the SFX bus (a soft thump + a sparkle of crackles). `&force=finale` plays it
+  2.5 s after the title is up; `__district.finale()` any time.
+- **The street:** up to 70 % more traffic at the peak, more cabs; about a third of the cars carry a soft neon underglow in the
+  party's colours (and its streak on the wet asphalt), breathing with the city — quiet, it sits just above the dock.
+- **Holidays on a party night:** the palette is the holiday's (`PARTY_PALETTES`: Halloween orange / violet, Christmas red /
+  green…) for the windows, the searchlights, the finale; SPEAKEASY and HOST follow the sign; JOIN and the corner buttons stay white.
+- **Reduced effects:** the colours, calmly — the breath holds at 0.5, no shimmer, no window turn-ons, no start wave, steady
+  beams; the midnight moment is a swell of light only (no rockets).
+- **Quality tiers:** the full look is tier 2 (phones). Tier 1 drops the beams' veil and haze pool and the reflection ripple; tier
+  0 drops the bloom and the party reflection too. At 4× CPU in software-rendered headless Chrome (a very slow phone with no
+  GPU) the peak costs about one tier (t2 33 ms, t1 17–33, t0 17 — a plain night 17); the scene steps a tier down by itself.
+- **The lobby:** when the title leaves it hands the backdrop the party's light alone (`scene.partyLight()` — the panes, the bloom,
+  the reflection); `backdrop.js` lays it over the still (`.nd-bd-light`, screen blend) and breathes its opacity to the room's
+  song (`beatSource` → the synced player, so every phone in the room breathes together), slowly on its own before it plays.
+- **Previews:** `?when=2026-10-23T21:00&tz=America/Detroit` (a Friday; `&at=42.96,-85.67` for Grand Rapids' sky), `&force=party`
+  (any time, at the peak), `&force=finale`, `&speed=`; `?when=` now takes seconds (`T23:59:52`). Test-only: `&force=no-party-css|
+  no-party-windows|no-party-lights|no-party-refl`, `no-bloom|no-ringbreath|no-shimmer|no-vars` in the URL (pacing bisects).
+  Hooks: `__district.party()` (on, ramp, energy, name, phase, breath, bpm, rate, locked, swell, wave, finale, sparks, bursts,
+  beams), `__district.finale()`, `__arcade.beat()`.
+- **Tests:** `tests/party.test.mjs` (the window, the phases, 8 pm vs the catch, the 2 am fade, the wind-down through
+  `look()`, the finale's moment, the breath, the beat clock easing on and off a song, the palette, the party windows, the
+  ticker); `tests/integration/e2e-party.mjs` (timing incl. a June evening, the beat with music / muted / before and after the
+  first tap, two lobby phones on the room's song, the beams by phase and size, the street, the finale forced / live at midnight /
+  once / not on NYE, Halloween with white JOIN + corners, Reduced effects, pacing at 4× CPU, and the review's videos +
+  screenshots: `ONLY=media`).
 
 ## THE FLANK — the dock (Oct 20, 2026) — `title.js#buildActions`, `css/title.css` ("THE FLANK")
 - **Layout** (an iPhone held upright first): `[ JOIN ring ]  [ glass pill: BOARD · GAMES · YOU ]  [ HOST ring ]` — centred and

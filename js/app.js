@@ -18,6 +18,7 @@ import { installAudio } from './audio/engine.js';
 import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider } from './audio/music.js';
 import { loadMoodMusic, moodNow, nextForDevice } from './audio/mood.js';
 import { lobbyMusicTick, lobbyMusicDebug } from './audio/lobby-music.js';
+import { beatSource } from './audio/beat.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
 import { showBackdrop } from './screens/district/backdrop.js';
@@ -204,7 +205,7 @@ async function boot() {
     if (b && !b.closest('[data-sfx="none"]') && !b.disabled) sfx('tap');
   }, { capture: true, passive: true });
   // Music is lazy: tracks download only after the first tap unlocks audio (see audio/music.js).
-  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, mood: () => moodNow(), state, serverNow };
+  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, beat: beatSource, mood: () => moodNow(), state, serverNow };
   // Escape closes the top-most sheet (its backdrop click handler does the closing).
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;

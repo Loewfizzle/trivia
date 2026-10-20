@@ -230,6 +230,38 @@ export function thunder({ near = false, delay = 2, level = 1 } = {}) {
   });
 }
 
+/** A firework, heard from across the city: a soft low thump as it bursts, then a short sparkle of crackles (PARTY NIGHTS'
+ *  midnight finale). delay: seconds from now (the burst is in the sky before the sound arrives). Quiet, premium. */
+export function fireworkBurst({ delay = 0.35, level = 1 } = {}) {
+  if (!isUnlocked()) return;
+  const ctx = getContext();
+  const t0 = ctx.currentTime + delay;
+  const out = ctx.createGain(); out.gain.value = 0.55 * level;
+  out.connect(getSfxBus());
+  // the thump: a low sine dropping in pitch, a little body from filtered noise
+  const o = ctx.createOscillator(); o.type = 'sine';
+  o.frequency.setValueAtTime(96, t0); o.frequency.exponentialRampToValueAtTime(42, t0 + 0.32);
+  const og = ctx.createGain(); og.gain.setValueAtTime(0, t0); og.gain.linearRampToValueAtTime(0.22, t0 + 0.012); og.gain.exponentialRampToValueAtTime(0.001, t0 + 0.55);
+  o.connect(og).connect(out); o.start(t0); o.stop(t0 + 0.6);
+  const body = ctx.createBufferSource(); body.buffer = noise(ctx);
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220;
+  const bg = ctx.createGain(); bg.gain.setValueAtTime(0, t0); bg.gain.linearRampToValueAtTime(0.16, t0 + 0.01); bg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.4);
+  body.connect(lp).connect(bg).connect(out); body.start(t0, Math.random(), 0.45);
+  // the crackle: a sparkle of tiny bright pops over the next second and a half, thinning out
+  const n = 10 + Math.floor(Math.random() * 8);
+  for (let i = 0; i < n; i++) {
+    const at = t0 + 0.12 + Math.pow(Math.random(), 0.7) * 1.5;
+    const s = ctx.createBufferSource(); s.buffer = noise(ctx);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800 + Math.random() * 3200; bp.Q.value = 2.5;
+    const g = ctx.createGain(); const a = 0.035 * (1 - (at - t0) / 1.9) * (0.5 + Math.random() * 0.5);
+    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(a, at + 0.003); g.gain.exponentialRampToValueAtTime(0.0005, at + 0.05 + Math.random() * 0.06);
+    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    if (pan) { pan.pan.value = Math.random() * 1.2 - 0.6; s.connect(bp).connect(g).connect(pan).connect(out); } else s.connect(bp).connect(g).connect(out);
+    s.start(at, Math.random() * 2, 0.15);
+  }
+  setTimeout(() => { try { out.disconnect(); } catch { /* gone */ } }, (delay + 2.5) * 1000);
+}
+
 // the synthesized thunder (no recordings listed, or a file that won't load): a crack + thump (near) and a reverberant roll
 function synthThunder(ctx, near, t0, delay, level = 1) {
   const out = ctx.createGain(); out.gain.value = (near ? 1 : 0.62) * level;
