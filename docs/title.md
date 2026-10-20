@@ -465,9 +465,12 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
 - **The rings** (`.nd-ringbtn`): the HOST ring as before (dark glass disc, a neon tube ring in the sign's colours — `ringColors`
   now sets them on its slot `.nd-rslot-host`, so the ring and its reflection share them). **JOIN is the same ring in white neon**
   (`.nd-rslot-join`: a white-hot core in a soft cool-white glow, its glass a cool dark; white all year, holidays too; its halo a
-  touch softer, `nd-hbreathe-w`). Both always lit and never sputter (`ringSet` lights both): softer by day (`.is-daylit`),
-  brightening together at the catch, softening together when the last letter dies at dawn, flickering on together in the power-on
-  (`ringOn`). JOIN's panel open: the ring a touch brighter and a small cyan light under it (`.nd-tab-ind`).
+  touch softer, `nd-hbreathe-w`). Both follow the sign (Oct 21, the owner's call: lit all day they looked the same as at night):
+  lit from the catch through the morning goodbye, **unlit glass by day and through the evening ramp** — going dark (a 0.6 s fade)
+  with the sign's last letter at dawn, together with the small icons, and lighting again at the catch with a short flicker (none
+  under Reduced effects); a night load flickers them on with the letters in the power-on (`ringOn`), a daytime load leaves them
+  glass (`title.js#ringsWanted`, followed in `applyNeon`). Unlit, the label stays crisp (≥ 4.5:1), and a tap gives the dark ring a
+  brief glow (`.is-flash`, `title-dock.js`) so it plainly reads as a button. JOIN's panel open: the ring a touch brighter and a small cyan light under it (`.nd-tab-ind`).
 - **The small icons** (BOARD·N, GAMES·E, YOU·O) and **the title's corner buttons** (☰ + music·N) are tubes of the sign
   (`dockLight` / `dockAll`): dark through the day and the sunset ramp, lit at the catch with the logo, lit all night (catching the
   logo's rare flicker), dark at dawn when the last letter dies. Unlit: empty glass with a slightly brighter outline than the old

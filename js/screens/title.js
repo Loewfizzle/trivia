@@ -397,7 +397,7 @@ export function createTitle() {
     // daylight: the sign rests (glass and brackets, unlit) until dusk
     // before the catch (and in the morning goodbye) the city boots but the sign isn't forced on: it joins its stage of the day
     const st0 = neonNow();
-    if (!st0.caught) { s.classList.add('is-day'); ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); applyNeon(st0, { quiet: true }); return; }
+    if (!st0.caught) { s.classList.add('is-day'); if (ringsWanted(st0)) ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); applyNeon(st0, { quiet: true }); return; }
     scene.set({ signPow: null });
     s.classList.remove('is-day');
     const kind = tl.kind;
@@ -437,7 +437,7 @@ export function createTitle() {
     if (!tl.marks.logo) { tl.marks.logo = true; tl.kind = 'instant'; signOn(); }
     else if (neonNow().caught) { els.sign.querySelectorAll('.ndl').forEach(l => l.classList.add('on')); els.sign.classList.add('is-steady', 'is-warm'); dockAll(true); }
     else applyNeon(neonNow(), { quiet: true });
-    dock.resetRing(); ringOn(null);
+    dock.resetRing(); if (ringsWanted(neonNow())) ringOn(null); else dock.ringSet(false);
     root.classList.add('is-menu', 'is-dock');
     finish();
   }
@@ -565,6 +565,13 @@ export function createTitle() {
     scene.set({ signPower: st.signs });
     // HOST: bright from the catch until the last letter dies; softer by day and through the ramp
     els.actions.classList.toggle('is-daylit', st.stage === 'day' || st.stage === 'ramp');
+    // JOIN / HOST follow the sign (Oct 21): unlit glass by day and through the evening ramp; they go dark with the sign's last
+    // letter at the morning goodbye and light again at the catch with a short flicker (none under Reduced effects)
+    if (tl && tl.done && dock) {
+      const want = ringsWanted(st);
+      if (want && !dock.ringLit()) ringOn(prev === 'ramp' && !opts.quiet && !reduced() ? [[0, true], [70, false], [150, true], [230, false], [340, true]] : null);
+      else if (!want && dock.ringLit()) { dock.resetRing(); dock.ringSet(false); }
+    }
     if (st.caught) {
       if (!s.classList.contains('is-steady') || s.classList.contains('is-day')) {
         const isCatch = prev === 'ramp' && !opts.quiet;
@@ -907,6 +914,8 @@ export function createTitle() {
   const dockLight = (i, on) => dock && dock.light(i, on);
   const dockAll = on => dock && dock.all(on);
   const ringOn = times => dock && dock.ringOn(times);
+  /** JOIN / HOST are lit while the sign is: from the catch through the morning goodbye (dark by day and through the ramp) */
+  const ringsWanted = st => !!st && (st.caught || st.stage === 'goodbye');
 
   // JOIN: the panel above the bar. Tap outside, swipe it down, tap JOIN again or Escape to close
   let swipe = null;

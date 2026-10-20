@@ -547,7 +547,12 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-hring .hr-clips { transition: opacity 1.4s ease; }
 .nd-hring .hr-clips rect { fill: #1d121c; opacity: 0.7; }
 .nd-host-label { position: relative; padding-left: 0.16em; font: 900 9.5px/1 var(--font-display); letter-spacing: 0.16em;
-  color: rgba(150, 132, 168, 0.55); transition: color 0.15s ease, text-shadow 0.15s ease; }
+  color: rgba(222, 218, 234, 0.9); transition: color 0.15s ease, text-shadow 0.15s ease; }   /* (unlit glass by day: still crisp, ≥ 4.5:1) */
+/* JOIN / HOST follow the sign (Oct 21): unlit glass by day — off with the sign's last letter, back at the catch. Going dark
+   fades; a tap on a dark ring gives a brief glow (.is-flash, title-dock.js) */
+.nd-ringbtn:not(.is-lit) .hr-light, .nd-ringbtn:not(.is-lit) .nd-hglow { transition: opacity 0.6s ease; }
+.nd-ringbtn.is-flash:not(.is-lit) .hr-light { opacity: 0.9; transition: opacity 0.06s ease; }
+.nd-ringbtn.is-flash:not(.is-lit) .nd-hglow { opacity: 0.4; transition: opacity 0.06s ease; }
 .nd-ringbtn.is-lit .nd-host-label { color: var(--hc1);
   text-shadow: 0 0 2px var(--hb1), 0 0 7px var(--hg1), 0 0 15px color-mix(in srgb, var(--hg1) 60%, transparent); }
 /* JOIN: the same ring in white neon — a white-hot core in a soft cool-white glow, all year (holidays too) */

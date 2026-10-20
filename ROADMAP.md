@@ -53,6 +53,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 - ✅ Stage 12 — GRIDLOCK, Part 2 (SALVO + ARCADE) (Oct 2026)
 - ✅ LIVING CITY (Oct 2026)
 - ✅ MOOD MUSIC (Oct 2026)
+- ✅ JOIN / HOST follow the sign (Oct 21, 2026): unlit glass by day, lit from the catch to the morning goodbye — `docs/title.md`
 - ✅ THE STREET, Part 1 (Oct 20, 2026): lamps + paired seasonal trees, buses, a stop light, car variety, snowplows, golden-hour shadows, the street's party night — `docs/title.md`
 - ✅ RAINBOWS (Oct 20, 2026): after real rain — a daytime rainbow, a moonbow, a neon rainbow on party nights — `docs/title.md`
 - ✅ PARTY NIGHTS (Oct 20, 2026): Fri / Sat 8 pm → 2 am the city breathes to the music — party windows, SPEAKEASY in neon, neon searchlights, the midnight finale, the street — `docs/title.md`

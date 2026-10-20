@@ -509,13 +509,18 @@ try {
     ok(r.hol === id && r.match && r.multi === multi, `HOST RING, ${id.toUpperCase()}: matches the sign (${r.g}${multi === '1' ? ', four tubes' : ''})`);
     await X.ctx.close();
   }
-  // by day: still lit, softer; the intro: it flickers on with the letters
+  // by day: unlit glass, like the sign (Oct 21), the label still crisp; a tap gives a brief glow; the intro: it flickers on with the letters
   { const Y = await open({ slot: 'yd', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'when=2026-10-20T13:00&tz=America/New_York' });
     await waitFor(Y.page, '!!window.__district && window.__district.phase().done', 'title day');
     const r = await ev(Y.page, `({ lit: document.querySelector('.nd-hostbtn').classList.contains('is-lit'), day: document.querySelector('.nd-actions').classList.contains('is-daylit'), sign: document.querySelector('.nd-sign').classList.contains('is-day') })`);
-    ok(r.lit && r.day && r.sign, 'HOST RING, BY DAY: the sign is dark, the ring stays lit (softer)');
+    ok(!r.lit && r.day && r.sign, 'HOST RING, BY DAY: the sign is dark, and so is the ring (unlit glass)');
+    const lab = await ev(Y.page, "getComputedStyle(document.querySelector('.nd-hostbtn .nd-host-label')).color");
+    const la = /rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)/.exec(lab);
+    ok(la && +la[1] > 200 && +la[2] > 200 && (la[4] == null || +la[4] >= 0.85), `HOST RING, BY DAY: its label stays crisp on the dark glass (${lab})`);
+    await Y.page.evaluate(() => { const b = document.querySelector('.nd-hostbtn'); b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); });
+    ok(await ev(Y.page, "document.querySelector('.nd-hostbtn').classList.contains('is-flash')"), 'HOST RING, BY DAY: a tap gives the dark ring a brief glow');
     ok((await ev(Y.page, 'window.__district.dock.icons()')).every(x => !x), 'DOCK ICONS, BY DAY: empty glass tubes, like the sign (the corner buttons too)');
-    ok(await ev(Y.page, `document.querySelector('.nd-joinring').classList.contains('is-lit')`), 'JOIN RING, BY DAY: lit with HOST (softer)');
+    ok(!(await ev(Y.page, `document.querySelector('.nd-joinring').classList.contains('is-lit')`)), 'JOIN RING, BY DAY: dark with HOST');
     await Y.ctx.close(); }
   { const I = await open({ slot: 'in', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'intro=1&when=2026-10-20T21:30&tz=America/New_York' });
     await waitFor(I.page, '!!window.__district && window.__district.phase().kind === "full"', 'intro', 8000);
@@ -538,16 +543,16 @@ try {
   if (on('neon')) {
   // ================================================================ 8c. THE NEON COMES ALIVE (the sign follows the sun)
   { const NY = 'tz=America/New_York';
-    const page = async (qs, o = {}) => { const X = await open({ slot: 'n' + Math.random().toString(36).slice(2, 6), profile: PROFILES.ava, seen: true, view: [390, 844], qs, ...o }); await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title neon'); await waitFor(X.page, `!!(window.__district.neon().plan) && document.querySelector('.nd-hostbtn').classList.contains('is-lit')`, 'neon settled', 8000); await sleep(400); return X; };
+    const page = async (qs, o = {}) => { const X = await open({ slot: 'n' + Math.random().toString(36).slice(2, 6), profile: PROFILES.ava, seen: true, view: [390, 844], qs, ...o }); await waitFor(X.page, '!!window.__district && window.__district.phase().done', 'title neon'); await waitFor(X.page, `(() => { const n = window.__district.neon(); if (!n.plan || !n.stage) return false; const lit = document.querySelector('.nd-hostbtn').classList.contains('is-lit'); return n.stage === 'day' || n.stage === 'ramp' ? true : lit; })()`, 'neon settled', 8000); await sleep(400); return X; };
     const look = X => ev(X.page, `({ n: window.__district.neon(), icons: window.__district.dock.icons(), ring: window.__district.dock.ring().on, daylit: document.querySelector('.nd-actions').classList.contains('is-daylit'), day: document.querySelector('.nd-sign').classList.contains('is-day'), steady: document.querySelector('.nd-sign').classList.contains('is-steady'), fade: document.querySelector('.nd-sign').classList.contains('is-fade') })`);
     // the day, the ramp, the night, the morning goodbye
     let X = await page(`when=2026-10-20T13:00&${NY}&wx=clear`); let r = await look(X);
-    ok(r.n.stage === 'day' && r.n.letters.every(x => !x) && r.icons.every(x => !x) && r.ring && r.daylit, `NEON, DAY: the sign and the icons are glass, HOST softly lit (${r.n.stage})`);
+    ok(r.n.stage === 'day' && r.n.letters.every(x => !x) && r.icons.every(x => !x) && !r.ring && r.daylit, `NEON, DAY: the sign, the icons and the rings are glass (${r.n.stage})`);
     const plan = r.n.plan;
     ok(plan && plan.catchAt > plan.startAt + 25 * 60000 && plan.clearAt < plan.endAt, 'NEON: the day\'s plan (ramp start, the catch, the morning clear, the goodbye)');
     await X.ctx.close();
     X = await page(`when=2026-10-20T17:25&${NY}&wx=clear`); r = await look(X);
-    ok(r.n.stage === 'ramp' && r.icons.every(x => !x) && r.ring && r.day && !r.steady, `NEON, RAMP: before the catch the sign isn't forced on, the icons stay dark, HOST stays lit (${r.n.letters.map(Number).join('')})`);
+    ok(r.n.stage === 'ramp' && r.icons.every(x => !x) && !r.ring && r.day && !r.steady, `NEON, RAMP: before the catch the sign isn't forced on, the icons and the rings wait for the catch (${r.n.letters.map(Number).join('')})`);
     // a letter tap still works mid-ramp
     { const b = await ev(X.page, `(() => { const r = document.querySelector('svg.nd-logo').getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; })()`);
       const target = r.n.letters[1] ? null : 1;
@@ -563,7 +568,7 @@ try {
     await sleep(600);
     r = await look(X);
     const s1 = await ev(X.page, 'window.__district.neonSounds()');
-    ok(r.n.letters.every(Boolean) && r.steady && r.icons.every(Boolean) && !r.daylit && s0 === 0 && s1 === 1, `NEON, THE CATCH: all four lock on with the one sound (${s0} → ${s1}), the icons light, HOST brightens`);
+    ok(r.n.letters.every(Boolean) && r.steady && r.icons.every(Boolean) && r.ring && !r.daylit && s0 === 0 && s1 === 1, `NEON, THE CATCH: all four lock on with the one sound (${s0} → ${s1}), the icons and the rings light`);
     const sun = await ev(X.page, `(() => { const s = window.__district.scene(), sk = s.skyline || null; return s.sun; })()`);
     ok(!sun || sun.x > 390 * 0.6, `NEON, THE CATCH: as the sun goes into the right-hand towers (${sun ? sun.x + ',' + sun.y : 'set'})`);
     await waitFor(X.page, `(window.__district.neon().signs || []).slice(0, 2).some(Boolean)`, 'a city sign', 20000).catch(() => {});
@@ -574,7 +579,7 @@ try {
     // (3 min after this layout's morning clear — on a phone the arch climbs behind the tall left towers first)
     const clearLocal = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(plan.clearAt + 3 * 60000)).replace(' ', 'T');
     X = await page(`when=${clearLocal}&${NY}&wx=clear`); r = await look(X);
-    ok(r.n.stage === 'goodbye' && (r.n.signs || []).every(x => !x) && r.icons.every(Boolean) && !r.daylit, `NEON, MORNING: the city signs are off, the logo falters (${r.n.letters.map(Number).join('')}), the dock stays lit until the last letter`);
+    ok(r.n.stage === 'goodbye' && (r.n.signs || []).every(x => !x) && r.icons.every(Boolean) && r.ring && !r.daylit, `NEON, MORNING: the city signs are off, the logo falters (${r.n.letters.map(Number).join('')}), the dock and the rings stay lit until the last letter`);
     await X.ctx.close();
     // the weather never moves the timing; the same plan on reload
     const catchOf = async qs => { const Y = await page(qs); const c = (await ev(Y.page, 'window.__district.neon()')).plan; const at = await ev(Y.page, `JSON.stringify(window.__district.neonAt(${Date.UTC(2026, 9, 20, 21, 40)}))`); await Y.ctx.close(); return { c, at }; };

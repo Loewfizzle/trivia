@@ -70,9 +70,12 @@ export function createDock(on) {
     h('span.nd-host-label', { 'aria-hidden': 'true' }, word));
   // (els.joinTab: the JOIN control, whatever it looks like — title.js's openJoin / outsideDown use it)
   els.joinTab = ring('nd-joinring.nd-joinbtn.nd-tab-join', 'ndj', 'JOIN', 'Join a room', on.join);
+  // a tap on a dark ring (by day) gives it a brief glow: it feels alive and plainly tappable
+  const flash = el => el.addEventListener('pointerdown', () => { if (el.classList.contains('is-lit')) return; el.classList.add('is-flash'); setTimeout(() => el.classList.remove('is-flash'), 420); });
   els.joinTab.setAttribute('aria-expanded', 'false');
   els.joinTab.append(h('i.nd-tab-ind', { 'aria-hidden': 'true' }));
   els.host = ring('nd-hostbtn.nd-host', 'ndr', 'HOST', 'Host a game', on.host);
+  flash(els.joinTab); flash(els.host);
   els.joinSlot = h('div.nd-rslot.nd-rslot-join', h('span.nd-hrefl', { 'aria-hidden': 'true' }), els.joinTab);
   els.hostSlot = h('div.nd-rslot.nd-rslot-host', h('span.nd-hrefl', { 'aria-hidden': 'true' }), els.host);
   // the pill: its shadow, the smoked glass (weather on the glass: rain beads, lightning), the three icons
