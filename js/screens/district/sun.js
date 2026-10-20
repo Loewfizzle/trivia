@@ -100,33 +100,103 @@ export function sunPlace(o) {
   return { x, y };
 }
 
-/** PURE: THE BIG ARCH (phones, Oct 20 2026). A half ellipse: x = cx − a·cos θ, y = base − h·sin θ with θ = π·u, so it climbs
- *  steeply at the sides and rounds over the top, at the speed of the real day (u: 0 sunrise, ½ solar noon, 1 sunset). Each end
- *  sits just fully below its own rooftops at the far left / right edge (the towers hide it rising and setting; the base runs
- *  straight between the two, so the tallest side never keeps it buried for hours); its top is the centre
- *  of SPEAKEASY at the summer solstice and the tagline (a touch below) at the winter one, blended by the season — never up
- *  into the NEON letters, never near the corner buttons. Before sunrise / after sunset it keeps sinking (θ < 0, θ > π). */
+/** PURE: THE BIG ARCH (phones, Oct 20 2026), in step with the real sky.
+ *  The path is always the same half ellipse — the rainbow: x = cx ∓ a·cos φ, y = base − A·sin φ, its ends at the rooftops near
+ *  the edges, its top (sin φ = 1) behind SPEAKEASY in summer and at the tagline in winter (never into the NEON letters).
+ *  WHERE on it the sun is follows the REAL ELEVATION: sin φ = h = 1 − (1 − e/N)^k, e = el + 0.83° (0 at the real sunrise and
+ *  sunset: the disc just hidden under the rooftops at the end), N today's noon e (h = 1 at solar noon, centred). k ≥ 1 is the
+ *  smallest that has the disc fully clear of every roof under the path once the real sun is ~4° up — so it peeks over the
+ *  rooftops right at sunrise, is clearly up within ~25 min, and is fully behind them right at sunset; a large k only changes
+ *  the PACE (quick along the low curve after sunrise, slow across the top), never the shape. Morning on the sunrise side (u <
+ *  ½), afternoon on the other. The ends sit at 7.5 % from the edges, or further in (the same both sides: noon stays centred)
+ *  where an edge tower is too tall to clear under the season's top; failing that the top lifts (real timing wins). The fit
+ *  is made once per day and layout (cached; ~5 ms). */
+const archCache = new Map();
 export function phoneArch(o, u) {
   const { W, el, r } = o;
   const roof = o.roof || (x => o.HZ * (0.45 + 0.2 * Math.cos(((x / W) - 0.5) * Math.PI)));
-  const rd = r * sunShape(el).size, rh = r * 1.4;                       // drawn now / the largest it is drawn (at the horizon)
-  const x0 = W * 0.075, x1 = W * 0.925, cx = (x0 + x1) / 2, ax = (x1 - x0) / 2;
-  // each end sits just fully hidden under ITS OWN rooftops (fixed for the day: the arch never wobbles), and the base runs
-  // straight from one to the other — so a tall tower on one side doesn't keep the sun buried for hours on the other
-  // the top: SPEAKEASY's centre in summer → the tagline (just below its middle) in winter; never up into the NEON letters
+  const rd = r * sunShape(el).size;
   const wordY = o.word.y + o.word.h * 0.5, tagY = o.tag.y + o.tag.h * 0.5 + r * 0.35;
   const s = o.season == null ? clamp01(((o.noonEl == null ? 45 : o.noonEl) - 18) / 50) : o.season;
-  const peak = Math.max(lerp(tagY, wordY, s * s * (3 - 2 * s)), o.neon.y + o.neon.h + rd + 3);
-  // and always a real arch: where the edge towers stand taller than the tagline the ends sink deeper behind them (still
-  // hidden) instead of flattening the curve — the part you see is a true rainbow on every skyline
-  const rise = o.H * 0.17;
-  const endBase = xe => { let low = -Infinity; for (let dx = -rh; dx <= rh; dx += 2) low = Math.max(low, roof(xe + dx)); return Math.max(low + rh + 3, peak + rise); };
-  const bL = endBase(x0), bR = endBase(x1);
-  const base = bL + (bR - bL) * clamp01(u);
-  const th = Math.PI * u;
-  const x = cx - ax * Math.cos(th);
-  let y = base - (base - peak) * Math.sin(th);
-  // the corner buttons (top right): never near them
+  const N = Math.max(2, (o.noonEl == null ? 45 : o.noonEl) + 0.83);
+  // across: half the time of day (cos π·u: 1 at sunrise, 0 at noon, −1 at sunset), half the place along the rainbow — the sun
+  // keeps to the clock across the sky while the low curves after sunrise / before sunset stay round
+  const prof = o.prof;
+  const uOf = (e, left) => {
+    if (!prof) { const half = Math.asin(clamp01(e / N)) / Math.PI; return left ? half : 1 - half; }
+    let i = 1; while (i < prof.length - 1 && prof[i][0] < e) i++;
+    const [e0, m0, a0] = prof[i - 1], [e1, m1, a1] = prof[i], f = clamp01((e - e0) / Math.max(1e-6, e1 - e0));
+    return left ? lerp(m0, m1, f) : lerp(a0, a1, f);
+  };
+  // the height along the arch (0 at the ends, 1 at the top) by t = e / N: a quick, smooth lift to rho by the time the real sun
+  // is ~4° up (tau = E / N) — clear of the rooftops — then the rest of the height spread over the climb to noon (a quarter
+  // sine), so the sun keeps climbing all morning and sinking all afternoon. C1 at tau (a Hermite piece meets the sine).
+  const E = Math.min(4.8, N * 0.3), tau = E / N;
+  const curve = (t, rho) => {
+    const s1 = (1 - rho) * (Math.PI / 2) / (1 - tau) * tau;               // the sine's start slope, in the lift's units
+    const m1 = Math.min(s1, 3 * rho), m0 = Math.min(3 * rho, Math.max(rho, 3 * rho - 2 * m1));
+    if (t < 0) return Math.max(-0.6, (t / tau) * m0);                      // before sunrise / after sunset: sinking on
+    if (t < tau) { const v = t / tau; return (v * v * v - 2 * v * v + v) * m0 + (-2 * v * v * v + 3 * v * v) * rho + (v * v * v - v * v) * m1; }
+    return rho + (1 - rho) * Math.sin((Math.PI / 2) * clamp01((t - tau) / (1 - tau)));
+  };
+  const across = (uu, h, left) => 0.5 * Math.cos(Math.PI * uu) + 0.5 * (left ? 1 : -1) * (h > 0 ? Math.sqrt(Math.max(0, 1 - h * h)) : 1);
+  const key = `${prof ? prof[3][1].toFixed(4) + '|' : ''}${W}|${o.H}|${Math.round(o.word.y)}|${Math.round(o.tag.y)}|${Math.round(o.neon.y + o.neon.h)}|${r}|${s.toFixed(3)}|${N.toFixed(2)}|${[0.02, 0.06, 0.1, 0.15, 0.2, 0.28, 0.35, 0.5, 0.65, 0.72, 0.8, 0.85, 0.9, 0.94, 0.98].map(f => Math.round(roof(W * f))).join(',')}`;
+  let A = archCache.get(key);
+  if (!A) {
+    const size = e => r * sunShape(e - 0.83).size;
+    const season = Math.max(lerp(tagY, wordY, s * s * (3 - 2 * s)), o.neon.y + o.neon.h + r + 3);
+    const top = o.neon.y + o.neon.h + r + 3;                                // the highest it may ever go
+    const r0 = size(0);
+    const lowest = (x, rr) => { let v = -Infinity; for (let dx = -rr; dx <= rr; dx += 2) v = Math.max(v, roof(x + dx)); return v; };
+
+    // a fit for ends `ins` from the edges and a top `pk`: { base, k } or null if no k clears every roof once e ≥ E
+    const fit = (ins, pk, strict = true) => {
+      const ax = W / 2 - ins;
+      // each end just hidden under its own rooftops (the two halves meet at the top at noon)
+      const bL = lowest(ins, r0) + r0 + 1, bR = lowest(W - ins, r0) + r0 + 1;
+      if (Math.min(bL, bR) - pk < r * 3) return null;
+      const at = (left, e, k) => {
+        const h = curve(e / N, k), base = left ? bL : bR;
+        return { x: W / 2 - ax * across(uOf(e, left), h, left), y: base - (base - pk) * h, rr: size(e) };
+      };
+      const clears = k => {
+        // peeking all the way from just above the horizon (a tower it slides in front of mustn't swallow it again)
+        if (strict) for (const left of [true, false]) for (let e = 0.4; e < E; e += 0.2) {
+          const { x, y, rr } = at(left, e, k);
+          let peeks = false;
+          for (let dx = -rr; dx <= rr && !peeks; dx += 2) if (roof(x + dx) > y - rr) peeks = true;
+          if (!peeks) return false;
+        }
+        for (const left of [true, false]) for (let i = 0; i <= 90; i++) {
+          const e = E + (N - E) * (i / 90) * (i / 90), h = curve(e / N, k);
+          const base = left ? bL : bR;
+          const x = W / 2 - ax * across(uOf(e, left), h, left), y = base - (base - pk) * h, rr = size(e);
+          for (let dx = -rr; dx <= rr; dx += 2) if (roof(x + dx) < y + Math.sqrt(Math.max(0, rr * rr - dx * dx)) + 2) return false;
+        }
+        return true;
+      };
+      // (k here is rho: the smallest share of the height, reached at ~4°, that clears every roof)
+      let k = Math.min(0.9, tau * 1.2);
+      while (k < 0.97 && !clears(k)) k += 0.02;
+      return k < 0.97 ? { bL, bR, k, peak: pk, ins } : null;
+    };
+    // the ends as near the edges as the season's top allows; then (rarely) the top lifts toward SPEAKEASY
+    A = null;
+    for (let t = W * 0.075; t <= W * 0.3 && !A; t += 4) A = fit(t, season);
+    for (let pk = season - 3; pk >= top && !A; pk -= 3) for (let t = W * 0.075; t <= W * 0.3 && !A; t += 4) A = fit(t, pk);
+    for (let t = W * 0.075; t <= W * 0.3 && !A; t += 4) A = fit(t, season, false);    // (no even ends anywhere: the best we can)
+    for (let pk = season - 3; pk >= top && !A; pk -= 3) for (let t = W * 0.075; t <= W * 0.3 && !A; t += 4) A = fit(t, pk, false);
+    if (!A) A = { bL: lowest(W * 0.075, r0) + r0 + 1, bR: lowest(W * 0.925, r0) + r0 + 1, k: 0.95, peak: top, ins: W * 0.075 };
+    if (archCache.size > 40) archCache.clear();
+    archCache.set(key, A);
+  }
+  const e = el + 0.83, t = e / N;
+  const h = curve(t, A.k);
+  const ax = W / 2 - A.ins, side = u < 0.5 ? -1 : 1;
+  const x = W / 2 - ax * across(u, h, side < 0);
+  const base = side < 0 ? A.bL : A.bR;
+  let y = base - (base - A.peak) * h;
+  y = Math.max(y, o.neon.y + o.neon.h + rd + 3);                       // never into the NEON letters
   const b = o.buttons;
   if (b && x > b.x - r - 24 && x < b.x + b.w + r + 24 && y < b.y + b.h + r + 24) y = b.y + b.h + r + 24;
   return { x, y };
@@ -149,7 +219,7 @@ export function sunMoments({ lat, lon, tz, ms, layout }) {
     const at = t => {
       const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
       if (!a) return null;
-      const p = sunPlace({ ...layout, u: a.u, el, south: lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season });
+      const p = sunPlace({ ...layout, u: a.u, el, south: lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season, prof: a.prof });
       return { ...p, r: layout.base * sunShape(el).size };
     };
     const out = p => p.x - p.r >= layout.W || p.x + p.r <= 0;
@@ -315,7 +385,7 @@ export function createSun() {
     const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
     const tx = s.textRects || {};
     if (phone && !(tx.neon && tx.word && tx.tag)) return null;   // (a phone's arch hangs off the words: wait for them)
-    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1, e4: sa.e4, noonEl: sa.noonEl, season: sa.season, roof, neon: tx.neon, word: tx.word, tag: tx.tag });
+    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1, e4: sa.e4, noonEl: sa.noonEl, season: sa.season, prof: sa.prof, roof, neon: tx.neon, word: tx.word, tag: tx.tag });
     void layout;
     // never a jump: it eases toward its place (and settles at once on a new layout)
     if (!pos || Math.hypot(pos.x - p.x, pos.y - p.y) > W * 0.5) pos = { ...p }; else { pos.x += (p.x - pos.x) * 0.06; pos.y += (p.y - pos.y) * 0.06; }

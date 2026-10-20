@@ -64,9 +64,9 @@ function valley(W, mid, edge) { return x => mid - (mid - edge) * Math.pow(Math.m
 const SCREENS = {
   // phones: the sign + tagline end at y ≈ 263 (+59 with a notch); the skyline is a valley (tall at the sides, low in the middle)
   // (neon / word / tag: the NEON letters, SPEAKEASY and the tagline, measured on the real title at 390×844)
-  phone: { W: 390, H: 844, HZ: 690, base: 16.5, logo: { x: 35, y: 84, w: 320, h: 179 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 330, 215),
+  phone: { W: 390, H: 844, HZ: 690, base: 16.5, logo: { x: 35, y: 84, w: 320, h: 179 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 400, 300),
     neon: { x: 57, y: 108, w: 275, h: 85 }, word: { x: 45, y: 215, w: 299, h: 21 }, tag: { x: 40, y: 249, w: 311, h: 14 } },
-  notch: { W: 390, H: 844, HZ: 680, base: 16.5, logo: { x: 35, y: 143, w: 320, h: 179 }, buttons: { x: 334, y: 69, w: 44, h: 90 }, safeTop: 59, roof: valley(390, 380, 262),
+  notch: { W: 390, H: 844, HZ: 680, base: 16.5, logo: { x: 35, y: 143, w: 320, h: 179 }, buttons: { x: 334, y: 69, w: 44, h: 90 }, safeTop: 59, roof: valley(390, 459, 359),
     neon: { x: 57, y: 167, w: 275, h: 85 }, word: { x: 45, y: 274, w: 299, h: 21 }, tag: { x: 40, y: 308, w: 311, h: 14 } },
   desktop: { W: 1440, H: 900, HZ: 900 * 0.74, base: 26, logo: { x: 510, y: 135, w: 420, h: 260 }, buttons: { x: 1380, y: 10, w: 44, h: 90 }, safeTop: 0 },
 };
@@ -78,7 +78,7 @@ function day(city, date, scr) {
   const out = [];
   for (let t = a0.rise - 20 * 60000; t <= a0.set + 20 * 60000; t += 60000) {
     const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
-    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season, roof: scr.roof, neon: scr.neon, word: scr.word, tag: scr.tag });
+    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season, prof: a.prof, roof: scr.roof, neon: scr.neon, word: scr.word, tag: scr.tag });
     out.push({ t, el, u: a.u, ...p, r: scr.base * sunShape(el).size });
   }
   return out;
@@ -112,18 +112,27 @@ test('phones: THE BIG ARCH — under the rooftops at both edges, behind SPEAKEAS
         assert.ok(!hitsRect(p.x, p.y, p.r + 2, scr.neon), `${name} ${city} ${date} ${hhmm(p.t, tz)}: never over the NEON letters`);
         assert.ok(p.x - p.r > 0 && p.x + p.r < scr.W, `${name} ${city} ${date}: inside the frame (${p.x.toFixed(0)})`);
       }
-      // sunrise and sunset: fully under the rooftops at the far edges
+      // in step with the real sky: hidden just before sunrise / just after sunset, peeking within 5 min of sunrise, showing
+      // 5 min before sunset, fully clear of the roofs whenever the real sun is 5° up
       const rise = pts.find(p => p.u >= 0), set = [...pts].reverse().find(p => p.u <= 1);
-      assert.ok(covered(rise) && covered(set), `${name} ${city} ${date}: hidden behind the buildings at sunrise and sunset`);
-      assert.ok(north ? rise.x < scr.W * 0.12 && set.x > scr.W * 0.88 : rise.x > scr.W * 0.88 && set.x < scr.W * 0.12, `${name} ${city} ${date}: rises at the far ${north ? 'left' : 'right'}, sets at the far ${north ? 'right' : 'left'} (${rise.x.toFixed(0)} → ${set.x.toFixed(0)})`);
-      // one smooth arch: sideways one way all day, up until noon and down after
+      const iR = pts.indexOf(rise), iS = pts.indexOf(set);
+      const clearOf = p => { for (let dx = -p.r; dx <= p.r; dx += 2) if (scr.roof(p.x + dx) < p.y + Math.sqrt(p.r * p.r - dx * dx)) return false; return true; };
+      assert.ok(covered(pts[iR - 2]) && covered(pts[iS + 2]), `${name} ${city} ${date}: hidden before sunrise and after sunset`);
+      assert.ok(!covered(pts[iR + 5]), `${name} ${city} ${date}: peeking over the rooftops 5 min after sunrise`);
+      assert.ok(!covered(pts[iS - 5]), `${name} ${city} ${date}: still showing 5 min before sunset`);
+      for (const p of pts) if (p.el >= 5) assert.ok(clearOf(p), `${name} ${city} ${date} ${hhmm(p.t, tz)}: clear of every roof once 5° up (${p.x.toFixed(0)},${p.y.toFixed(0)})`);
+      // (at the edges, or a little way in where the edge towers are too tall for a low sun to be seen over them)
+      assert.ok(north ? rise.x < scr.W * 0.33 && set.x > scr.W * 0.67 : rise.x > scr.W * 0.67 && set.x < scr.W * 0.33, `${name} ${city} ${date}: rises on the ${north ? 'left' : 'right'}, sets on the ${north ? 'right' : 'left'} (${rise.x.toFixed(0)} → ${set.x.toFixed(0)})`);
+      assert.ok(Math.abs((rise.x + set.x) / 2 - scr.W / 2) < 2, `${name} ${city} ${date}: symmetric about the middle`);
+      // one smooth arch: sideways one way all day, up until noon and down after (it follows the real elevation)
       const day0 = pts.filter(p => p.u >= 0 && p.u <= 1), top = day0.reduce((a, b) => (b.y < a.y ? b : a));
       for (let i = 1; i < day0.length; i++) {
         assert.ok(north ? day0[i].x >= day0[i - 1].x - 0.01 : day0[i].x <= day0[i - 1].x + 0.01, `${name} ${city} ${date}: always moving the same way`);
         if (day0[i].t <= top.t) assert.ok(day0[i].y <= day0[i - 1].y + 0.01, `${name} ${city} ${date}: climbing until noon`);
         else assert.ok(day0[i].y >= day0[i - 1].y - 0.01, `${name} ${city} ${date}: sinking after noon`);
       }
-      assert.ok(Math.abs(top.u - 0.5) < 0.01 && Math.abs(top.x - scr.W / 2) < 3, `${name} ${city} ${date}: highest at solar noon, centred (${top.x.toFixed(0)})`);
+      const noonP = day0.reduce((a, b) => (Math.abs(b.u - 0.5) < Math.abs(a.u - 0.5) ? b : a));
+      assert.ok(noonP.y - top.y < 1 && Math.abs(noonP.x - scr.W / 2) < 3, `${name} ${city} ${date}: at its top at solar noon, centred (${noonP.y.toFixed(1)} vs ${top.y.toFixed(1)})`);
       const summer = north ? date === '2026-06-21' : date === '2026-12-21', winter = north ? date === '2026-12-21' : date === '2026-06-21';
       if (summer) assert.ok(Math.abs(top.y - wordY) < 4, `${name} ${city} ${date}: a summer noon behind SPEAKEASY (${top.y.toFixed(0)} vs ${wordY})`);
       if (winter) assert.ok(top.y > tagY - 2 && top.y < scr.tag.y + scr.tag.h + scr.base, `${name} ${city} ${date}: a winter noon at the tagline (${top.y.toFixed(0)} vs ${tagY})`);

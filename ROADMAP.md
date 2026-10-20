@@ -355,6 +355,13 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ Phones: THE BIG ARCH in step with the real sky (Oct 20, 2026) — `docs/title.md` (THE REAL SUN)
+- [x] Height follows the real elevation: peeks over the rooftops at the real sunrise, fully behind them at the real sunset, never
+      hidden once the sun is ~4° up; a fitted two-piece curve keeps it climbing all morning; the rainbow shape stays round
+- [x] The neon catch at the real sunset (within seconds), the morning goodbye 5–25 min after sunrise; tall edge towers move the
+      ends inward (symmetric) or lift the top (real timing wins)
+- [x] `&at=lat,lon` preview location; tests: four skylines × three cities × three dates
+
 ### ✅ Phones: THE SUN'S BIG ARCH (Oct 20, 2026) — `docs/title.md` (THE REAL SUN)
 - [x] One rainbow over the whole sky: up from below the far-left rooftops, over the top, down behind the far-right towers;
       position = the real day (`sunArc` u), the top behind SPEAKEASY at a summer noon and at the tagline at a winter one

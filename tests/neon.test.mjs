@@ -74,35 +74,38 @@ test('Reduced effects: no sputters — a fade over the ramp, all on at the catch
 
 // ---- the moments: where the sun is drawn, not the weather
 const valley = (W, mid, edge) => x => mid - (mid - edge) * Math.pow(Math.min(1, Math.abs(x - W / 2) / (W / 2)), 2.5);
-const PHONE = { W: 390, H: 844, HZ: 690, block: { x: 29, y: 78, w: 332, h: 191 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 330, 215), base: 16.5,
+const PHONE = { W: 390, H: 844, HZ: 690, block: { x: 29, y: 78, w: 332, h: 191 }, buttons: { x: 334, y: 10, w: 44, h: 90 }, safeTop: 0, roof: valley(390, 400, 300), base: 16.5,
   neon: { x: 57, y: 108, w: 275, h: 85 }, word: { x: 45, y: 215, w: 299, h: 21 }, tag: { x: 40, y: 249, w: 311, h: 14 } };
 const DESK = { W: 1440, H: 900, HZ: 666, block: { x: 504, y: 129, w: 432, h: 272 }, buttons: { x: 1380, y: 10, w: 44, h: 90 }, safeTop: 0, roof: x => 300 + 60 * Math.sin(x / 37), base: 26 };
 const CITY = { ny: { tz: 'America/New_York', lat: 40.71, lon: -74.01 }, sydney: { tz: 'Australia/Sydney', lat: -33.87, lon: 151.21 }, gr: { tz: 'America/Detroit', lat: 42.96, lon: -85.67 } };
 function placed(c, layout, t) {
   const el = sunPosition(t, c.lat, c.lon).el, a = sunArc(t, c.tz, c.lat, c.lon);
-  const p = sunPlace({ ...layout, u: a.u, el, south: c.lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season });
+  const p = sunPlace({ ...layout, u: a.u, el, south: c.lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season, prof: a.prof });
   return { ...p, r: layout.base * sunShape(el).size };
 }
 const hidden = (layout, p) => { if (p.x - p.r >= layout.W || p.x + p.r <= 0) return true; for (let dx = -p.r; dx <= p.r; dx += 2) if (p.x + dx >= 0 && p.x + dx <= layout.W && layout.roof(p.x + dx) > p.y - p.r) return false; return true; };
 
-test('phones, THE BIG ARCH: a tall tower the setting sun dips behind and comes back out of never fires the catch early', () => {
-  const c = CITY.gr, ms = Date.parse('2026-10-20T17:00:00Z');
+test('phones, THE BIG ARCH in step with the real sky: peeks at sunrise, clear soon after, the catch at the real sunset — any skyline', () => {
   const base = PHONE.roof;
-  // an hour before the skyline itself takes the sun, stand a tower just wide and tall enough to hide the disc there
-  const m0 = sunMoments({ ...c, ms, layout: PHONE });
-  const tAt = m0.catchAt - 60 * MIN;
-  const p0 = placed(c, PHONE, tAt);
-  const towerTop = p0.y - p0.r - 4, x0 = p0.x - p0.r - 3, x1 = p0.x + p0.r + 3;
-  const roof = x => (x > x0 && x < x1 ? Math.min(base(x), towerTop) : base(x));
-  const L = { ...PHONE, roof };
-  const m = sunMoments({ ...c, ms, layout: L });
-  assert.ok(hidden(L, placed(c, L, tAt)), 'the tower hides it mid-afternoon');
-  const back = [];
-  for (let t = tAt; t < m.set; t += 60000) back.push(!hidden(L, placed(c, L, t)));
-  assert.ok(back.some(Boolean), 'it comes back out past the tower');
-  assert.ok(m.catchAt > tAt + 10 * MIN, `the catch waits for the last time it goes behind (${new Date(m.catchAt).toISOString()} vs the tower ${new Date(tAt).toISOString()})`);
-  for (let t = m.catchAt + 60000; t < m.set; t += 120000) assert.ok(hidden(L, placed(c, L, t)), 'and stays hidden after');
-  assert.ok(!hidden(L, placed(c, L, m.catchAt - 60000)), 'showing a minute before');
+  const tower = (x0, x1, top) => x => (x > x0 && x < x1 ? Math.min(base(x), top) : base(x));
+  const SKY = {
+    valley: base,
+    'tall right tower': tower(270, 345, 250),            // the 390×844 city's tall tower on the right
+    'tall left towers': tower(0, 80, 262),                // edge towers up to the tagline (like 412×915)
+    'towers both sides': x => Math.min(tower(0, 70, 270)(x), tower(300, 390, 275)(x)),
+  };
+  for (const [sk, roof] of Object.entries(SKY)) for (const [name, c] of Object.entries(CITY)) for (const date of ['2026-06-21', '2026-12-21', '2026-10-20']) {
+    const L = { ...PHONE, roof };
+    const ms = Date.parse(date + 'T12:00:00Z') + (c.lon > 100 ? -10 * 3600000 : 5 * 3600000);
+    const m = sunMoments({ ...c, ms, layout: L });
+    const tag = `${sk} ${name} ${date}`;
+    assert.ok(Math.abs(m.catchAt - m.set) <= 5 * MIN, `${tag}: the catch at the real sunset (${((m.catchAt - m.set) / MIN).toFixed(1)} min)`);
+    assert.ok(m.clearAt - m.rise >= 0 && m.clearAt - m.rise <= 45 * MIN, `${tag}: the morning clear soon after sunrise (${((m.clearAt - m.rise) / MIN).toFixed(0)} min)`);
+    assert.ok(!hidden(L, placed(c, L, m.rise + 5 * MIN)), `${tag}: peeking 5 min after sunrise`);
+    assert.ok(!hidden(L, placed(c, L, m.set - 5 * MIN)), `${tag}: still showing 5 min before sunset`);
+    for (let t = m.rise; t < m.set; t += 4 * MIN) if (sunPosition(t, c.lat, c.lon).el >= 4) assert.ok(!hidden(L, placed(c, L, t)), `${tag}: never hidden while the real sun is 4° up`);
+    for (let t = m.catchAt + MIN; t < m.set + 20 * MIN; t += 2 * MIN) assert.ok(hidden(L, placed(c, L, t)), `${tag}: hidden after the catch (the LAST time it goes behind)`);
+  }
 });
 
 test('the catch is the moment the sun is drawn fully behind the rooftops (phones and desktop, summer and winter, north and south)', () => {
@@ -110,7 +113,7 @@ test('the catch is the moment the sun is drawn fully behind the rooftops (phones
     const ms = Date.parse(date + 'T12:00:00Z') + (c.lon > 100 ? -10 * 3600000 : 5 * 3600000);
     const m = sunMoments({ ...c, ms, layout });
     assert.ok(m, `${name} ${date} ${ln}: moments`);
-    assert.ok(m.catchAt <= m.set + 20 * MIN && m.catchAt > m.set - 3 * 3600000, `${name} ${date} ${ln}: the catch near sunset`);
+    assert.ok(m.catchAt <= m.set + 20 * MIN && m.catchAt > m.set - (ln === 'phone' ? 5 * MIN : 3 * 3600000), `${name} ${date} ${ln}: the catch near sunset`);
     assert.ok(hidden(layout, placed(c, layout, m.catchAt + 5000)), `${name} ${date} ${ln}: hidden just after the catch`);
     assert.ok(!hidden(layout, placed(c, layout, m.catchAt - 60000)), `${name} ${date} ${ln}: still showing a minute before`);
     for (let t = m.catchAt + 60000; t < m.set; t += 120000) assert.ok(hidden(layout, placed(c, layout, t)), `${name} ${date} ${ln}: and it stays hidden (the LAST time it goes behind)`);
