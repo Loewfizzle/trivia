@@ -111,6 +111,27 @@ try {
     ok(sun && sun.eclipse && sun.eclipse.total, 'SUN: the real 8 Apr 2024 eclipse is total in Indianapolis (?when=)'); await ctx.close(); }
   { const { ctx, sun } = await sunOf(`when=2026-10-20T10:30&${NY}&wx=clear`, { reduced: true });
     ok(sun && sun.vis > 0.9, 'SUN: Reduced effects keeps the sun'); await ctx.close(); }
+  // ---- the sun on a phone's load: there during the intro (not only once it ends), fading in — never a pop
+  { const ctx = await browser.createBrowserContext();
+    const page = await ctx.newPage();
+    page.on('pageerror', e => H.errors.push(`pageerror: ${e.message}`));
+    await page.evaluateOnNewDocument(() => { try { localStorage.removeItem('nd:entered'); } catch {} });
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await page.goto(`${BASE}/?emu&slot=sk2&when=2026-10-20T11:00&tz=America/Detroit&at=42.96,-85.67`);
+    await page.waitForFunction(() => !!window.__district, { timeout: 20000 });
+    const seen = [];
+    for (let i = 0; i < 120; i++) {
+      const s = await page.evaluate(() => ({ sun: window.__district.scene().sun, done: window.__district.phase().done }));
+      if (s.sun) seen.push({ fade: s.sun.fade, done: s.done });
+      if (s.done && s.sun && s.sun.fade >= 1) break;
+      await sleep(40);
+    }
+    const first = seen[0], rise = seen.findIndex(s => s.fade >= 1);
+    let maxStep = 0; for (let i = 1; i < seen.length; i++) maxStep = Math.max(maxStep, seen[i].fade - seen[i - 1].fade);
+    ok(first && !first.done, `SUN ON LOAD (phone): placed during the intro, not after it (${seen.length} samples, first while the intro runs: ${first && !first.done})`);
+    ok(first && first.fade < 0.5 && rise > 2 && maxStep < 0.4, `SUN ON LOAD (phone): it fades in (first ${first && first.fade}, full after ${rise} samples, largest step ${maxStep.toFixed(2)}) — never a pop`);
+    await ctx.close(); }
+
   // ---- performance: a mid-range phone (4× CPU), planes + a train up — measured like e2e-title's frame pacing (Chrome's own
   //      renderer at 1×; the harness forces a software GL renderer for the games, which measures the painter, not the scene)
   { const pb = await puppeteer.launch({ executablePath: process.argv[2], headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'] });

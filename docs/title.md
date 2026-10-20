@@ -408,6 +408,9 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
   behaviour (JOIN / HOST / the panel) and hands it in. **Look preview without Firebase:** `tests/integration/title-preview.html`.
 
 ## THE REAL SUN (Oct 19, 2026) — `district/sun.js` (replaced fx.js's low-sun glow)
+- **On load (Oct 20):** the title hands the scene the sign's text boxes as soon as it's laid out (not only after the intro), so a
+  phone's sun is placed while the city powers on, and it fades in over ~0.9 s wherever it first lands (a load, a new layout) —
+  it used to pop in at the end of the intro. `e2e-sky.mjs` SUN ON LOAD checks both.
 - **Path** (`sunPlace`, PURE; the moon's approach): facing south the sun rises on the LEFT at today's real sunrise and sets on
   the RIGHT at the real sunset (mirrored south of the equator: facing north). Across = `sunArc(ms, tz, lat, lon).u` (core/sky.js:
   0 at sunrise, ½ at solar noon, 1 at sunset, cached per day); height = its real elevation (higher in summer). It never crosses the

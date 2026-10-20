@@ -210,6 +210,7 @@ export function sunMoments({ lat, lon, tz, ms, layout }) {
 export function createSun() {
   let W = 1, H = 1, HZ = 1;
   let pos = null, discCv = null, coronaCv = null, rayCv = null;
+  let shown = 0;               // 0..1: the sun fades in when it's first placed (a title load, a new layout) — never a pop
   const discs = new Map(), glows = new Map();
   const qc = col => col.map(v => Math.round(v / 6) * 6);
   // the disc: a soft limb, a little brighter at the centre, an anti-aliased edge (per colour, cached)
@@ -337,7 +338,7 @@ export function createSun() {
   function state(s) {
     const L = s.L;
     if (!layout || ++lc % 30 === 0) layout = layoutOf(s);   // (twice a second is plenty)
-    if (L.alwaysNight || !L.sunArc || L.sun.el < -3.5) return null;
+    if (L.alwaysNight || !L.sunArc || L.sun.el < -3.5) { shown = 0; return null; }
     const el = L.sun.el, sa = L.sunArc;
     const phone = W < 760 || H > W;
     const base = phone ? 16.5 : 26;
@@ -348,11 +349,14 @@ export function createSun() {
     const sky = s.skyline;
     const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
     const tx = s.textRects || {};
-    if (phone && !(tx.neon && tx.word && tx.tag)) return null;   // (a phone's arch hangs off the words: wait for them)
+    if (phone && !(tx.neon && tx.word && tx.tag)) { shown = 0; return null; }   // (a phone's arch hangs off the words: wait for them)
     const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, noonEl: sa.noonEl, season: sa.season, prof: sa.prof, roof, neon: tx.neon, word: tx.word, tag: tx.tag });
     void layout;
     // never a jump: it eases toward its place (and settles at once on a new layout)
-    if (!pos || Math.hypot(pos.x - p.x, pos.y - p.y) > W * 0.5) pos = { ...p }; else { pos.x += (p.x - pos.x) * 0.06; pos.y += (p.y - pos.y) * 0.06; }
+    if (!pos || Math.hypot(pos.x - p.x, pos.y - p.y) > W * 0.5) { pos = { ...p }; shown = 0; } else { pos.x += (p.x - pos.x) * 0.06; pos.y += (p.y - pos.y) * 0.06; }
+    // fade in over ~0.9 s from where it lands (Reduced effects too: a fade is calm)
+    shown = Math.min(1, shown + Math.min(100, s.dt || 16) / 900);
+    const fadeK = shown * shown * (3 - 2 * shown);
     // the weather: thick cloud hides the disc (a brighter patch stays), rain and heavy fog hide it, light fog leaves a glow
     const over = smooth(0.62, 0.96, L.cloud || 0);
     const wet = (L.rain || 0) > 0.1 || (L.fog || 0) > 0.6;
@@ -368,7 +372,7 @@ export function createSun() {
       ec = { dx: along * Math.cos(th) - off * Math.sin(th), dy: along * Math.sin(th) + off * Math.cos(th), k: 1.03, total: false };
     }
     if (ec && !ec.total) ec = { ...ec, ...litOf(ec, s.L.south) };
-    return { x: pos.x, y: pos.y, r, rx: r, ry: r * sh.squash, col: sunColor(el), el, vis, glow: glowK, over, eclipse: ec };
+    return { x: pos.x, y: pos.y, r, rx: r, ry: r * sh.squash, col: sunColor(el), el, vis: vis * fadeK, glow: glowK * fadeK, over, eclipse: ec, fade: fadeK };
   }
 
   // the placement inputs (the sign + tagline, the corner buttons, the skyline's outline) — for the day's moments
@@ -384,7 +388,7 @@ export function createSun() {
   }
 
   return {
-    resize(w, h, hz) { W = w; H = h; HZ = hz; pos = null; },
+    resize(w, h, hz) { W = w; H = h; HZ = hz; pos = null; shown = 0; },
     /** the day's moments for the neon (sunMoments), cached per local day and layout */
     moments(ms, tz, lat, lon) {
       if (lat == null || lon == null) return null;
@@ -480,7 +484,7 @@ export function createSun() {
       if (k < 0.01) return;
       c.fillStyle = 'rgba(14,20,44,' + (0.3 * k) + ')'; c.fillRect(0, 0, W, H);
     },
-    debug: () => (now ? { x: Math.round(now.x), y: Math.round(now.y), r: +now.r.toFixed(1), el: +now.el.toFixed(1), vis: +now.vis.toFixed(2), col: now.col, eclipse: now.eclipse ? { total: !!now.eclipse.total, obsc: now.eclipse.obsc } : null } : null),
+    debug: () => (now ? { x: Math.round(now.x), y: Math.round(now.y), r: +now.r.toFixed(1), el: +now.el.toFixed(1), vis: +now.vis.toFixed(2), fade: +now.fade.toFixed(2), col: now.col, eclipse: now.eclipse ? { total: !!now.eclipse.total, obsc: now.eclipse.obsc } : null } : null),
     destroy() { for (const cv of [discCv, coronaCv, rayCv, art && art.cres, art && art.halo, art && art.tmp, ...discs.values(), ...glows.values()]) if (cv) cv.width = 0; },
   };
 }

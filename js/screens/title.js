@@ -292,6 +292,9 @@ export function createTitle() {
     els.root = el;
     ringColors();
     requestAnimationFrame(ringColors);
+    // the sign's text boxes for the scene at once (not only after the intro): a phone's sun hangs its arch off the words and
+    // the rainbow sits under them — measured once the sign is laid out, then kept in step by trackLogo
+    requestAnimationFrame(() => { if (!destroyed) { const tr = textRects(); if (tr) scene.set({ textRects: tr }); } });
     if (window.visualViewport) { window.visualViewport.addEventListener('resize', fitKeyboard); window.visualViewport.addEventListener('scroll', fitKeyboard); }
     window.addEventListener('pointerdown', onWake, { capture: true });
     window.addEventListener('click', onWakeClick, { capture: true });
@@ -596,15 +599,16 @@ export function createTitle() {
   // PARTY NIGHTS (scene.js#partyTick, every frame while it's on): --pb the breath 0..1, --pe how hard (the phase's energy, 0
   // until the start wave has passed), --psw the finale's swell; .is-party while the party is on
   let partyOn = false;
+  const partyCssOff = /no-party-css/.test(location.search);   // (test-only: pacing bisects)
   function partyFrame(p) {
-    if (destroyed || !els.root || /no-party-css/.test(location.search)) return;
+    if (destroyed || !els.root || partyCssOff) return;
     if (!els.root.dataset.pt) { els.root.dataset.pt = '1'; for (const k of ['no-bloom', 'no-ringbreath', 'no-shimmer', 'no-vars']) if (location.search.includes(k)) els.root.classList.add(k); }
     if (els.root.classList.contains('no-vars')) { els.root.classList.toggle('is-party', p.on > 0); return; }
     const on = p.on > 0;
     if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on) { els.root.style.setProperty('--pe', '0'); els.root.style.setProperty('--psw', '0'); } }
     if (!on) return;
     const st = els.root.style;
-    st.setProperty('--pb', (reduced() ? 0.5 : p.breath).toFixed(3));
+    st.setProperty('--pb', p.breath.toFixed(3));   // (Reduced effects: the scene holds the breath at 0.5)
     st.setProperty('--pe', (p.ramp * p.energy).toFixed(3));
     st.setProperty('--psw', p.swell.toFixed(3));
   }

@@ -257,7 +257,7 @@ export function fireworkBurst({ delay = 0.35, level = 1 } = {}) {
     g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(a, at + 0.003); g.gain.exponentialRampToValueAtTime(0.0005, at + 0.05 + Math.random() * 0.06);
     const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
     if (pan) { pan.pan.value = Math.random() * 1.2 - 0.6; s.connect(bp).connect(g).connect(pan).connect(out); } else s.connect(bp).connect(g).connect(out);
-    s.start(at, Math.random() * 2, 0.15);
+    s.start(at, Math.random() * 1.8, 0.15);   // (the noise buffer is 2 s: an offset past ~1.85 s cut the crackle short or silent)
   }
   setTimeout(() => { try { out.disconnect(); } catch { /* gone */ } }, (delay + 2.5) * 1000);
 }
