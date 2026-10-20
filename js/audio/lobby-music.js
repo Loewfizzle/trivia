@@ -5,13 +5,26 @@
 // have played (the room's bag). A new host just carries on from the queue. Every phone plays the queue with the synced-songs
 // player on the server clock (late joiners land in the right spot). Before the first tap nothing can play; with the room
 // rules not yet published (no queue appears) the lobby falls back to this phone's own mood shuffle.
+// THE SONG DOESN'T CHANGE (Oct 20 2026): a new room's queue starts with the song the host is already hearing, at its place
+// (seedQueue: t0 = server now − position). A phone whose own player is already on the room's current song at the right spot
+// keeps playing it (rideDecision) — nothing restarts — and the synced player takes over from the NEXT song, crossfading in
+// on the server clock. A phone on a different song crossfades into the room's song (~1.8 s) once it is decoded.
 import { createSyncedSongs } from './synced-songs.js';
 import { getMusicBus } from './engine.js';
 import { serverNow, dbRef, update, firebaseReady } from '../firebase.js';
 import { songStarts, XF_MS } from '../core/playlist.js';
 import { moodNow, songsFor, durOf, loadMoodMusic } from './mood.js';
+import { nowPlaying, handoffFade } from './music.js';
+import { rideDecision, seedQueue, JOIN_FADE_S } from '../core/lobby-song.js';
 
-let player = null, playingId = null, lastHostWrite = 0;
+export { rideDecision, seedQueue };
+
+/** For createRoom: the queue to write with the new room (null: today's behaviour — the room picks a song). */
+export function hostSeed(now) {
+  try { return seedQueue(nowPlaying(), now, moodNow(), durOf); } catch { return null; }
+}
+
+let player = null, playingId = null, lastHostWrite = 0, handed = false;
 const urlFor = id => new URL(`../../audio/music/${id}.mp3`, import.meta.url).href;
 
 function pick(lm, mood) {
@@ -61,14 +74,21 @@ export function lobbyMusicTick(st, active, inLobby = active) {
   if (now > starts[starts.length - 1] + lm.sd[lm.sd.length - 1]) return false;   // the queue ran out (a new one is coming)
   if (!player || playingId !== lm.m) {
     if (player) player.stop();
-    player = createSyncedSongs({ urlFor, label: 'lobby song', connect: ctx => { const g = ctx.createGain(); g.gain.value = 1; g.connect(getMusicBus()); return g; } });
+    player = createSyncedSongs({ urlFor, label: 'lobby song', joinFade: JOIN_FADE_S, connect: ctx => { const g = ctx.createGain(); g.gain.value = 1; g.connect(getMusicBus()); return g; } });
     playingId = lm.m;
   }
+  // already on the room's song here (the host who opened the room, a joiner on the same song): keep it — the synced player
+  // only takes the songs after it, and this phone's own player hands over when the next one starts
+  const d = rideDecision(nowPlaying(), lm, now);
+  if (d.riding) player.setMinIndex(d.cur + 1);
   player.setGame(game);
   player.tick();
-  return true;
+  if (d.riding) { handed = false; return false; }
+  // the room's song is sounding here: this phone's own player fades out (a crossfade: long into a next song, ~1.8 s on joining)
+  if (player.playing()) { if (!handed) { handed = true; handoffFade(d.cur > 0 && d.expected < XF_MS / 1000 ? XF_MS / 1000 : JOIN_FADE_S); } return true; }
+  return false;
 }
 
-export function stopLobbyMusic() { if (player) { player.stop(); player = null; playingId = null; } }
+export function stopLobbyMusic() { handed = false; if (player) { player.stop(); player = null; playingId = null; } }
 export function lobbyMusicDebug() { return player ? { id: playingId, ...player.debug() } : null; }
-void firebaseReady; void XF_MS;
+void firebaseReady;

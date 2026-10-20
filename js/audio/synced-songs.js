@@ -27,7 +27,8 @@ function decode(url) {
   });
 }
 
-export function createSyncedSongs({ urlFor, connect, label = 'song' }) {
+export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 0.15 }) {
+  let minIndex = 0;          // songs before this one are not played here (another player has them: the lobby's handoff)
   let dest = null;
   let game = null;
   let stopped = false;
@@ -77,7 +78,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song' }) {
       g.linearRampToValueAtTime(1, origin + XF_MS / 1000);
     } else if (off > 0.02) {
       g.setValueAtTime(0, at);
-      g.linearRampToValueAtTime(1, at + 0.15);
+      g.linearRampToValueAtTime(1, at + joinFade);
     } else {
       g.setValueAtTime(1, at);
     }
@@ -120,7 +121,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song' }) {
       const t = serverNow();
       const starts = songStarts(game);
       const want = wanted(t, starts);
-      for (const i of want) load(i);
+      for (const i of want) if (i >= minIndex) load(i);
       // drop decoded songs we no longer need (a decoded song is tens of MB)
       for (const k of [...bufs.keys()]) {
         const [m, si] = k.split(':');
@@ -130,7 +131,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song' }) {
       if (!ctx || ctx.state !== 'running') return null;
       if (!dest) dest = connect(ctx);
       for (const i of want) {
-        if (voices.has(i) || done.has(i)) continue;
+        if (voices.has(i) || done.has(i) || i < minIndex) continue;
         if (t > starts[i] + game.sd[i] - 300) { done.add(i); continue; }
         start(ctx, i, starts);
       }
@@ -147,6 +148,10 @@ export function createSyncedSongs({ urlFor, connect, label = 'song' }) {
       }
       return ctx;
     },
+    /** never play songs before index i here (it only ever moves forward) */
+    setMinIndex(i) { if (i > minIndex) minIndex = i; },
+    /** is a song sounding right now? */
+    playing() { return voices.size > 0; },
     /** is song i decoded and ready? */
     ready(i = 0) { const e = game && bufs.get(keyOf(i)); return !!(e && e.buf); },
     debug() {

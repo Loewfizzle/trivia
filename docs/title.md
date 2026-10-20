@@ -28,7 +28,7 @@ the street outside: the district, the sign over the door.
   in the lobby header (small), unlit in the boot screen, and by `brand.html` for the icons (the tube N) and the link preview.
 - **THE BOARD** (BOARD in the dock, gold): the global leaderboards (`docs/profiles.md`); YOU in the dock (your emblem) opens the
   membership card; each preview sheet shows the game's top 3 and your rank.
-- **Menu** (the dock: THE NEON RING below): HOST (the one glowing element; with a saved profile it opens a room in one tap,
+- **Menu** (the dock: THE FLANK below, Oct 20 2026; before it THE NEON RING): HOST (the one glowing element; with a saved profile it opens a room in one tap,
   otherwise the name/avatar screen first), JOIN (one real input under four boxes: native keyboard, auto-caps, paste of a HUSH WORD
   or a whole invite link, auto-join on the 4th letter, any letter A–Z, inline errors for no room / locked door / full / removed /
   too many wrong words),
@@ -258,7 +258,31 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   "THE NEON COMES ALIVE" (day, ramp, the catch with its one sound, the city answering, the morning, storms, reload, the intro
   mid-ramp, a letter tap mid-ramp, ALWAYS NIGHT, Reduced effects).
 
-## THE NEON RING — the dock (Oct 19, 2026) — `title.js#buildActions`, `css/title.css` (end)
+## THE FLANK — the dock (Oct 20, 2026) — `title.js#buildActions`, `css/title.css` ("THE FLANK")
+- **Layout** (an iPhone held upright first): `[ JOIN ring ]  [ glass pill: BOARD · GAMES · YOU ]  [ HOST ring ]` — centred and
+  mirrored, two identical rings (76 px; 68 under 360 px wide, 70 on short screens, 86 on wide screens) standing just outside a compact
+  smoked-glass pill (58 px tall) with an even 10 px gap each side (`.nd-flank`: `--disc --pill-h --cell --gap`). The pill holds three
+  icons only (27 px in 52 × 58 targets; each button named for screen readers: The Board, The games, Your membership card / Create
+  your player); the rings are the largest elements. Each ring has its word inside (JOIN / HOST, 9.5 px bold tracked) and its own
+  reflection on the wet street below (`.nd-rslot .nd-hrefl`, wearing the ring's colour). Weather on the glass lives on the pill.
+- **The rings** (`.nd-ringbtn`): the HOST ring as before (dark glass disc, a neon tube ring in the sign's colours — `ringColors`
+  now sets them on its slot `.nd-rslot-host`, so the ring and its reflection share them). **JOIN is the same ring in white neon**
+  (`.nd-rslot-join`: a white-hot core in a soft cool-white glow, its glass a cool dark; white all year, holidays too; its halo a
+  touch softer, `nd-hbreathe-w`). Both always lit and never sputter (`ringSet` lights both): softer by day (`.is-daylit`),
+  brightening together at the catch, softening together when the last letter dies at dawn, flickering on together in the power-on
+  (`ringOn`). JOIN's panel open: the ring a touch brighter and a small cyan light under it (`.nd-tab-ind`).
+- **The small icons** (BOARD·N, GAMES·E, YOU·O) and **the title's corner buttons** (☰ + music·N) are tubes of the sign
+  (`dockLight` / `dockAll`): dark through the day and the sunset ramp, lit at the catch with the logo, lit all night (catching the
+  logo's rare flicker), dark at dawn when the last letter dies. Unlit: empty glass with a slightly brighter outline than the old
+  dock (easy to find, clearly unlit). ALWAYS NIGHT: lit. Reduced effects: no flicker.
+- **The corner buttons on the title only** (`dressCorners`, CSS "THE TITLE'S CORNER BUTTONS"): on mount a white tube icon
+  (`.nd-cic`: three bars / an X while the menu is open; the note / a slash through it while the music is off) is added to the
+  global ☰ and music buttons and their glass becomes the pill's (the city's tint: `tintGlass` also sets `--dk-tint` on the body);
+  lit with `.nd-cl-lit`; white on holidays. Removed on unmount — the lobby, THE BOARD and the games keep their buttons exactly as
+  before. The sun behind them (`sunGlass`) works as before (test hook `__district.dock.sunAt(x, y, r)` places a sun to review it).
+- Everything below (the JOIN panel, REJOIN, notes, the weather, the at-rest fade, the lowest tier) carries over from THE NEON RING.
+
+## THE NEON RING — the dock (Oct 19, 2026; replaced by THE FLANK, Oct 20) — `title.js#buildActions`, `css/title.css` (end)
 - **One floating bar** of smoked glass near the bottom (14 px from a phone's sides; centred, max 420 px wide on desktop), above the
   home indicator / Safari's toolbar (`max(safe-b + 6px, 20px)`): a blur of the city behind it (`.nd-bar-glass`, the sky's colour from
   `tintGlass`), a hairline catching the city's light along the top, a darker bottom edge, 26 px corners, a soft drop shadow on its
@@ -298,9 +322,11 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   no glow; the YOU emblem desaturated); the labels never change. HOST follows the sign's timing but not its off state: softly lit by
   day, its brighten / soften eases over 2.4 s (`--hk`, registered).
 - **Lowest quality tier:** `.nd-noblur` (the scene's `tier()` = 0): slightly more opaque glass, no blur.
-- **Tests:** e2e-title.mjs "THE NEON RING" (targets, colours vs the sign incl. a blend and four holidays, by day, the intro flicker,
-  Reduced effects, the JOIN panel's opening / closing / keyboard, BOARD, GAMES, YOU). Test-only hook: `__district.dock`
-  (`join`, `note`, `preview(state)`, `recolor`, `ring`).
+- **Tests:** e2e-title.mjs "THE NEON RING" section, now THE FLANK (the layout, mirroring and gaps, targets ≥ 48 px and icon sizes,
+  HOST's colours vs the sign incl. a blend and four holidays, JOIN white incl. a holiday, by day, both rings' intro flicker, the
+  icons and corner buttons by night / day, the corner buttons back to normal in the lobby, Reduced effects, the JOIN panel).
+  Test-only hook: `__district.dock` (`join`, `note`, `preview(state)`, `recolor`, `ring` (+ `join`), `icons` = [BOARD, GAMES,
+  YOU, corners], `sunAt`).
 
 ## THE REAL SUN (Oct 19, 2026) — `district/sun.js` (replaced fx.js's low-sun glow)
 - **Path** (`sunPlace`, PURE; the moon's approach): facing south the sun rises on the LEFT at today's real sunrise and sets on

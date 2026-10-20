@@ -101,6 +101,17 @@ Files: `js/audio/mood.js` (the moods + the per-device shuffle bag), `js/audio/lo
   in the right spot; a new host just keeps appending (the song playing finishes). While no queue exists (e.g. the rules not
   yet published) phones fall back to their own mood shuffle. **The rules have a new `meta/lm` child: re-publish
   database.rules.json in the Firebase console.**
+- **The song doesn't change when entering a lobby** (Oct 20, 2026; `core/lobby-song.js` PURE, `lobby-music.js`, `room.js#createRoom`):
+  a new room's queue is SEEDED with the song the host is already hearing (`music.js#nowPlaying`), `t0 = server now − its position`
+  (`seedQueue`), so title → setup → lobby continues with no change at all. A phone whose own player is already on the room's
+  current song within 2.5 s of the room's place keeps playing it (`rideDecision`: nothing restarts) and the synced player only takes
+  the songs after it (`setMinIndex`): at the next song it crossfades in on the server clock while this phone's player fades out over
+  the same 4 s (`handoffFade`). A joiner on a different song crossfades into the room's song at the room's place once it is decoded
+  (the synced player's `joinFade` 1.8 s, this phone's player out over 1.8 s — the old song keeps playing until the new one sounds).
+  The next song still comes from the host's mood ≈ 40 s before the current one ends (a mood change waits). Nothing to carry over
+  (music off, CLASSIC, not unlocked yet, within 5 s of its end) → the room picks its own song as before. Tests:
+  `tests/lobby-song.test.mjs`, `tests/integration/e2e-lobbysong.mjs` (real audio in headless Chrome: the host's song continuous,
+  a joiner's crossfade at the right place, a joiner on the same song not restarting, the CLASSIC fallback).
 - **Settings:** MENU MUSIC: TIME OF DAY (default) / CLASSIC (`settings.menuMusic`; CLASSIC = the old menu playlist, THE BOARD's
   menu3). The music button, MUSIC toggle and volume work as before (everything goes through the music bus).
 - **The song list** (`data/mood-music.json`): `moods` (id lists) + `songs` (mood, keeper, bpm, loudness, brightness, busyness,

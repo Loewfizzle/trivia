@@ -206,13 +206,17 @@ function resolveTrack() {
 const listFor = id => (desired && PROVIDERS[desired.id] ? desired.id : desired && PLAYLISTS[desired.id] && PLAYLISTS[desired.id].includes(id) ? desired.id
   : desired && desired.fallback && PLAYLISTS[desired.fallback] && PLAYLISTS[desired.fallback].includes(id) ? desired.fallback : null);
 
+// a one-off fade length for the next stop (the lobby's handoff to the room's synced song: a real crossfade, not a cut)
+let nextStopFade = 0;
+export function handoffFade(seconds) { nextStopFade = seconds; }
+
 function apply() {
   if (!isUnlocked() || !visible || !voices.length) return;
   const id = resolveTrack();
   if (current && current.id === id) return; // already playing: never restart
   // a playlist keeps going on its own (watchLoop moves it to the next track)
   if (current && current.list && desired && current.list === desired.id && (PROVIDERS[current.list] || PLAYLISTS[current.list].includes(current.id))) return;
-  if (!id) { if (current) { stopVoice(current.voice, XFADE); current = null; } return; }
+  if (!id) { if (current) { stopVoice(current.voice, nextStopFade || XFADE); nextStopFade = 0; current = null; } return; }
   startTrack(id);
 }
 
@@ -288,6 +292,15 @@ export function duckMusic(level, seconds = 0.6) {
 
 /** Test hook: jump the playing track to `secondsFromEnd` before its end. */
 export function musicSeek(secondsFromEnd) { if (current && current.voice.el.duration) current.voice.el.currentTime = Math.max(0, current.voice.el.duration - secondsFromEnd); }
+
+/** The MOOD MUSIC song sounding right now on this phone: { id (without 'm:'), at (s), dur (s) } — or null (music off, CLASSIC,
+ *  not unlocked yet, a game's music, paused). The lobby uses it to carry the host's song into the room unchanged. */
+export function nowPlaying() {
+  if (!current || !current.id || !current.id.startsWith('m:') || current.ended) return null;
+  const el = current.voice.el;
+  if (!el || el.paused || !isFinite(el.currentTime)) return null;
+  return { id: current.id.slice(2), at: el.currentTime || 0, dur: isFinite(el.duration) && el.duration > 0 ? el.duration : 0 };
+}
 
 export function musicDebug() {
   return {

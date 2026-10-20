@@ -412,85 +412,73 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 }
 .nd.seq-reduced .nd-actions > .nd-dk { transform: none; }
 
-/* ---- the bar ---- */
-.nd-bar {
-  --bar-h: 64px; --disc: 70px; --sock-y: 8px; --sock-r: 40px;
-  position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--bar-h); isolation: isolate;
+/* ==========================================================================
+   THE FLANK (Oct 20 2026): [ JOIN ring ]  [ glass pill: BOARD · GAMES · YOU ]  [ HOST ring ] — centred, mirrored, tight.
+   ========================================================================== */
+.nd-bar.nd-flank {
+  --disc: 76px; --pill-h: 58px; --cell: 52px; --gap: 10px;
+  position: relative; display: flex; align-items: center; justify-content: center; gap: var(--gap);
+  height: var(--disc); isolation: isolate;
 }
-.nd-bar-shadow { position: absolute; inset: 0; z-index: 0; border-radius: 26px; pointer-events: none;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.34); }
-/* smoked glass: the city blurred behind it, a hairline catching the city's light along the top, a darker bottom edge; the
-   HOST cradle is cut out of it (a mask: the shadow and the glass stop at the cradle, the disc sits in it) */
+.nd-rslot { position: relative; z-index: 3; flex: none; width: var(--disc); height: var(--disc); }
+/* the pill: smoked glass — the city blurred behind it, a hairline catching the city's light along the top, a darker bottom edge */
+.nd-pill { position: relative; z-index: 2; flex: none; display: flex; align-items: center; height: var(--pill-h); padding: 0 5px; border-radius: 999px; }
+.nd-bar-shadow { position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 4px 10px rgba(0, 0, 0, 0.34); }
 .nd-bar-glass {
-  position: absolute; inset: 0; z-index: 1; border-radius: 26px; overflow: hidden; pointer-events: none;
+  position: absolute; inset: 0; z-index: 1; border-radius: inherit; overflow: hidden; pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.014) 40%, rgba(0, 0, 0, 0.18)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.016) 42%, rgba(0, 0, 0, 0.2)),
     color-mix(in srgb, var(--dk-tint) 52%, rgba(6, 6, 15, 0.6));
   -webkit-backdrop-filter: blur(10px) saturate(165%) brightness(0.82);
   backdrop-filter: blur(10px) saturate(165%) brightness(0.82);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  -webkit-mask: radial-gradient(circle var(--sock-r) at 50% var(--sock-y), transparent calc(var(--sock-r) - 0.75px), #000 var(--sock-r));
-  mask: radial-gradient(circle var(--sock-r) at 50% var(--sock-y), transparent calc(var(--sock-r) - 0.75px), #000 var(--sock-r));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), inset 0 -1px 0 rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
 .nd-bar-glass::before { /* the top hairline: brighter where the city's light catches it, fading at the ends */
-  content: ''; position: absolute; top: 0; left: 20px; right: 20px; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5) 16%, color-mix(in srgb, var(--dk-glow) 45%, rgba(255, 255, 255, 0.55)) 30%, rgba(255, 255, 255, 0.18) 42%,
-    rgba(255, 255, 255, 0.18) 58%, color-mix(in srgb, var(--dk-glow) 45%, rgba(255, 255, 255, 0.55)) 70%, rgba(255, 255, 255, 0.5) 84%, transparent);
-}
-.nd-bar-glass::after { /* the cradle's rim: a hairline round the cut, the glass a touch darker beside it */
-  content: ''; position: absolute; left: 50%; top: var(--sock-y); width: calc(var(--sock-r) * 2 + 1px); height: calc(var(--sock-r) * 2 + 1px);
-  transform: translate(-50%, -50%); border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.11), 0 0 14px 2px rgba(0, 0, 0, 0.42);
+  content: ''; position: absolute; top: 0; left: 22px; right: 22px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5) 18%, color-mix(in srgb, var(--dk-glow) 45%, rgba(255, 255, 255, 0.55)) 38%,
+    color-mix(in srgb, var(--dk-glow) 45%, rgba(255, 255, 255, 0.55)) 62%, rgba(255, 255, 255, 0.5) 82%, transparent);
 }
 
-/* ---- the tabs ---- */
+/* ---- the pill's icons (no labels: the screen reader names each one) ---- */
 .nd-tab {
   --ic: #e8ecff;
-  position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  min-width: 44px; height: 100%; padding: 2px 0 0; color: rgba(232, 236, 255, 0.76); -webkit-tap-highlight-color: transparent;
+  position: relative; z-index: 2; display: grid; place-items: center; width: var(--cell); height: var(--pill-h); padding: 0;
+  color: rgba(232, 236, 255, 0.76); -webkit-tap-highlight-color: transparent;
 }
-.nd-tab-slot { pointer-events: none; }
 .nd-tab::before { /* the press: a soft pool of the icon's light */
-  content: ''; position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -30px 0 0 -28px; border-radius: 50%; pointer-events: none;
+  content: ''; position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, color-mix(in srgb, var(--ic) 24%, transparent), transparent 70%); opacity: 0; transition: opacity 0.4s ease;
 }
 .nd-tab:active::before { opacity: 1; transition-duration: 0.05s; }
-.nd-tab-ic { display: grid; place-items: center; width: 26px; height: 26px; transition: transform 0.18s var(--ease); }
+.nd-tab-ic { display: grid; place-items: center; width: 28px; height: 28px; transition: transform 0.18s var(--ease); }
 .nd-tab:active .nd-tab-ic { transform: scale(0.88); transition-duration: 0.08s; }
 /* the neon line icons: a tube in the item's colour with a thin white-hot core, glowing softly */
-.nd-tab-ic svg { width: 24px; height: 24px; overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round;
+.nd-tab-ic svg, .nd-cic svg { width: 27px; height: 27px; overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round;
   filter: drop-shadow(0 0 2.2px color-mix(in srgb, var(--ic) 85%, transparent)) drop-shadow(0 0 7px color-mix(in srgb, var(--ic) 42%, transparent)); }
-.nd-tab-ic .t { stroke: var(--ic); stroke-width: 1.65; }
-.nd-tab-ic .c { stroke: color-mix(in srgb, var(--ic) 22%, #ffffff); stroke-width: 0.55; opacity: 0.95; }
-.nd-tab-l { padding-left: 0.24em; font: 700 8.5px/1 var(--font-mono); letter-spacing: 0.24em; white-space: nowrap; }
-/* unlit (by day, before the power-on, between flickers): empty glass tubes, like the sign's by day — no glow, a pale glass
-   tube with a thin highlight; the label stays as it is (contrast) */
-.nd-tab:not(.is-lit) .nd-tab-ic svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
-.nd-tab:not(.is-lit) .nd-tab-ic .t { stroke: color-mix(in srgb, var(--ic) 14%, rgba(150, 146, 178, 0.5)); }
-.nd-tab:not(.is-lit) .nd-tab-ic .c { stroke: rgba(255, 255, 255, 0.26); opacity: 1; }
-.nd-tab:not(.is-lit) .avatar { filter: saturate(0.25) brightness(0.72); }
-.nd-tab-join { --ic: #eef1ff; }
+.nd-tab-ic .t, .nd-cic .t { stroke: var(--ic); stroke-width: 1.65; }
+.nd-tab-ic .c, .nd-cic .c { stroke: color-mix(in srgb, var(--ic) 22%, #ffffff); stroke-width: 0.55; opacity: 0.95; }
+/* unlit (by day, through the sunset ramp, between flickers): empty glass tubes, like the sign's by day — a pale glass tube with a
+   thin highlight, a little brighter than the old dock's so they are easy to find; clearly unlit */
+.nd-tab:not(.is-lit) .nd-tab-ic svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); }
+.nd-tab:not(.is-lit) .nd-tab-ic .t { stroke: color-mix(in srgb, var(--ic) 18%, rgba(184, 180, 212, 0.68)); }
+.nd-tab:not(.is-lit) .nd-tab-ic .c { stroke: rgba(255, 255, 255, 0.4); opacity: 1; }
+.nd-tab:not(.is-lit) .avatar { filter: saturate(0.3) brightness(0.8); }
 .nd-tab-board { --ic: #f2c869; }
 .nd-tab-games { --ic: #5fe3ff; }
 .nd-tab-you { --ic: #c9cfee; }
 .nd-tab-you .avatar { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c) 55%, transparent)); }
-.nd-tab-you.is-guest .nd-tab-ic svg { opacity: 0.85; }
-/* JOIN's panel is open: a small cyan light under it */
-.nd-tab-ind { position: absolute; left: 50%; bottom: 6px; width: 16px; height: 2px; margin-left: -8px; border-radius: 2px; pointer-events: none;
-  background: #8ff6ff; box-shadow: 0 0 5px #3fe0ff, 0 0 12px rgba(63, 224, 255, 0.7); opacity: 0; transform: scaleX(0.3); transition: opacity 0.25s ease, transform 0.35s var(--ease); }
-.nd-actions.is-join .nd-tab-ind { opacity: 1; transform: none; }
-.nd-actions.is-join .nd-tab-join { color: #e9fcff; }
+.nd-tab-you.is-guest .nd-tab-ic svg { opacity: 0.9; }
 
-/* ---- HOST: a tiny neon sign ---- */
-.nd-hostbtn {
+/* ---- the rings: a dark glass disc, the neon tube ring, the word inside; always lit, never sputter ---- */
+.nd-ringbtn {
   --hk: 1;
-  position: absolute; z-index: 3; left: 50%; top: calc(var(--sock-y) - var(--disc) / 2);
-  width: var(--disc); height: var(--disc); margin-left: calc(var(--disc) / -2);
+  position: absolute; inset: 0; z-index: 3;
   display: grid; place-items: center; border-radius: 50%; -webkit-tap-highlight-color: transparent;
   transition: transform 0.18s var(--ease), --hg1 1.4s ease, --hg2 1.4s ease, --hg3 1.4s ease, --hg4 1.4s ease,
     --hb1 1.4s ease, --hb2 1.4s ease, --hb3 1.4s ease, --hb4 1.4s ease, --hc1 1.4s ease, --hc2 1.4s ease, --hc3 1.4s ease, --hc4 1.4s ease, --hk 2.4s ease;
 }
-.nd-hostbtn:active { transform: scale(0.94); transition-duration: 0.08s; --hk: 1.3; }
+.nd-ringbtn:active { transform: scale(0.94); transition-duration: 0.08s; --hk: 1.3; }
 .nd-hdisc { position: absolute; inset: 0; border-radius: 50%;
   background: radial-gradient(circle at 50% 30%, rgba(50, 44, 70, 0.96), rgba(15, 13, 27, 0.98) 56%, rgba(6, 5, 12, 0.99));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -3px 8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.07),
@@ -504,14 +492,14 @@ body.reduced-fx .nd-xb-tw { animation: none; }
     var(--hg3) 55%, var(--hg3) 70%, var(--hg4) 80%, var(--hg4) 95%, color-mix(in srgb, var(--hg4) 50%, var(--hg1)) 100%);
   -webkit-mask: radial-gradient(circle closest-side, transparent 42%, rgba(0, 0, 0, 0.55) 48%, #000 54%, rgba(0, 0, 0, 0.26) 64%, transparent 84%);
   mask: radial-gradient(circle closest-side, transparent 42%, rgba(0, 0, 0, 0.55) 48%, #000 54%, rgba(0, 0, 0, 0.26) 64%, transparent 84%); }
-.nd-hostbtn.is-lit .nd-hglow { opacity: calc(var(--hk) * 0.62); animation: nd-hbreathe 7.5s ease-in-out infinite; }
+.nd-ringbtn.is-lit .nd-hglow { opacity: calc(var(--hk) * 0.62); animation: nd-hbreathe 7.5s ease-in-out infinite; }
 @keyframes nd-hbreathe { 0%, 100% { opacity: calc(var(--hk) * 0.5); } 50% { opacity: calc(var(--hk) * 0.66); } }
 .nd-hostbtn.is-busy .nd-hglow { animation-duration: 1.2s; }
 .nd-hring-wrap { position: absolute; inset: 0; display: block; }
 .nd-hring { display: block; width: 100%; height: 100%; overflow: visible; fill: none; }
 .nd-hring .hr-glass { stroke: #3c2236; opacity: 0.9; }
 .nd-hring .hr-light { opacity: 0; }
-.nd-hostbtn.is-lit .hr-light { opacity: 1; }
+.nd-ringbtn.is-lit .hr-light { opacity: 1; }
 .nd-hring .g, .nd-hring .b, .nd-hring .c { stroke-linecap: butt; }
 .nd-hring .hr-g2 { opacity: 0.6; } .nd-hring .hr-g1 { opacity: 0.95; }
 .nd-hring .u.g, .nd-hring .r1.g { stroke: var(--hg1); } .nd-hring .r2.g { stroke: var(--hg2); } .nd-hring .r3.g { stroke: var(--hg3); } .nd-hring .r4.g { stroke: var(--hg4); }
@@ -519,36 +507,85 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-hring .u.c, .nd-hring .r1.c { stroke: var(--hc1); } .nd-hring .r2.c { stroke: var(--hc2); } .nd-hring .r3.c { stroke: var(--hc3); } .nd-hring .r4.c { stroke: var(--hc4); }
 .nd-hring .hr-hi { stroke: #ffffff; stroke-width: 0.9; stroke-linecap: round; opacity: 0.42; }
 .nd-hring .u, .nd-hring .m, .nd-hring .hr-joints { transition: opacity 1.4s ease; }
-.nd-hostbtn[data-multi='1'] .nd-hring .u, .nd-hostbtn[data-multi='0'] .nd-hring .m { opacity: 0; }
-.nd-hring .hr-joints { opacity: 0; } .nd-hostbtn[data-multi='1'] .hr-joints { opacity: 1; }
+.nd-ringbtn[data-multi='1'] .nd-hring .u, .nd-ringbtn[data-multi='0'] .nd-hring .m { opacity: 0; }
+.nd-hring .hr-joints { opacity: 0; } .nd-ringbtn[data-multi='1'] .hr-joints { opacity: 1; }
 .nd-hring .hr-joints circle { fill: #2a1828; stroke: rgba(255, 255, 255, 0.12); stroke-width: 0.5; }
-.nd-hostbtn[data-multi='1'] .hr-clips { opacity: 0; }
+.nd-ringbtn[data-multi='1'] .hr-clips { opacity: 0; }
 .nd-hring .hr-clips { transition: opacity 1.4s ease; }
 .nd-hring .hr-clips rect { fill: #1d121c; opacity: 0.7; }
 .nd-host-label { position: relative; padding-left: 0.16em; font: 900 9.5px/1 var(--font-display); letter-spacing: 0.16em;
   color: rgba(150, 132, 168, 0.55); transition: color 0.15s ease, text-shadow 0.15s ease; }
-.nd-hostbtn.is-lit .nd-host-label { color: var(--hc1);
+.nd-ringbtn.is-lit .nd-host-label { color: var(--hc1);
   text-shadow: 0 0 2px var(--hb1), 0 0 7px var(--hg1), 0 0 15px color-mix(in srgb, var(--hg1) 60%, transparent); }
-/* by day: still lit (a small OPEN sign that's always on), softer */
-.nd-actions.is-daylit .nd-hostbtn { --hk: 0.62; }
-.nd-actions.is-daylit .nd-hostbtn:active { --hk: 0.9; }
+/* JOIN: the same ring in white neon — a white-hot core in a soft cool-white glow, all year (holidays too) */
+.nd-rslot-join { --hg1: #cddcff; --hg2: #cddcff; --hg3: #cddcff; --hg4: #cddcff; --hb1: #eef3ff; --hb2: #eef3ff; --hb3: #eef3ff; --hb4: #eef3ff;
+  --hc1: #ffffff; --hc2: #ffffff; --hc3: #ffffff; --hc4: #ffffff; }
+.nd-joinring .nd-hring .hr-glass { stroke: #2a2e3e; }
+.nd-joinring .nd-hring .hr-clips rect { fill: #151826; }
+.nd-joinring .nd-hring .hr-g2 { opacity: 0.42; }
+.nd-joinring.is-lit .nd-hglow { opacity: calc(var(--hk) * 0.46); animation-name: nd-hbreathe-w; }
+@keyframes nd-hbreathe-w { 0%, 100% { opacity: calc(var(--hk) * 0.38); } 50% { opacity: calc(var(--hk) * 0.5); } }
+/* JOIN's panel is open: the ring a touch brighter and a small cyan light under it */
+.nd-actions.is-join .nd-joinring { --hk: 1.22; }
+.nd-tab-ind { position: absolute; left: 50%; bottom: -9px; width: 16px; height: 2px; margin-left: -8px; border-radius: 2px; pointer-events: none;
+  background: #8ff6ff; box-shadow: 0 0 5px #3fe0ff, 0 0 12px rgba(63, 224, 255, 0.7); opacity: 0; transform: scaleX(0.3); transition: opacity 0.25s ease, transform 0.35s var(--ease); }
+.nd-actions.is-join .nd-tab-ind { opacity: 1; transform: none; }
+/* by day: still lit (two small OPEN signs that are always on), softer */
+.nd-actions.is-daylit .nd-ringbtn { --hk: 0.62; }
+.nd-actions.is-daylit .nd-ringbtn:active { --hk: 0.9; }
 .nd-actions.is-daylit .nd-hring .hr-g2 { opacity: 0.32; }
 .nd-actions.is-daylit .nd-hring .hr-g1 { opacity: 0.7; }
-.nd-actions.is-daylit .nd-hostbtn.is-lit .nd-host-label { text-shadow: 0 0 2px var(--hb1), 0 0 7px color-mix(in srgb, var(--hg1) 60%, transparent); }
-/* the ring's reflection on the wet street under the bar: a soft broken streak of its colour (static: it's behind the glass) */
+.nd-actions.is-daylit .nd-ringbtn.is-lit .nd-host-label { text-shadow: 0 0 2px var(--hb1), 0 0 7px color-mix(in srgb, var(--hg1) 60%, transparent); }
+/* each ring's reflection on the wet street below: a soft broken streak of its colour (static: it's behind the dock) */
 .nd-hrefl {
-  position: absolute; z-index: 0; left: 50%; top: calc(var(--bar-h) - 18px); width: 92px; height: calc(var(--safe-b) + 56px); margin-left: -46px; pointer-events: none;
+  position: absolute; z-index: -1; left: 50%; top: calc(100% - 16px); width: 84px; height: calc(var(--safe-b) + 54px); margin-left: -42px; pointer-events: none;
   background:
     repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.42) 2px 3.5px),
     radial-gradient(ellipse 46% 100% at 50% 0%, color-mix(in srgb, var(--hg1) 80%, transparent), color-mix(in srgb, var(--hg1) 22%, transparent) 45%, transparent 78%);
   -webkit-mask: linear-gradient(180deg, #000 25%, transparent); mask: linear-gradient(180deg, #000 25%, transparent);
   opacity: 0; transition: opacity 0.6s ease;
 }
-.nd-bar:has(.nd-hostbtn.is-lit) .nd-hrefl { opacity: 0.85; }
-.nd-actions.is-daylit .nd-bar:has(.nd-hostbtn.is-lit) .nd-hrefl { opacity: 0.22; }
+.nd-rslot:has(.nd-ringbtn.is-lit) .nd-hrefl { opacity: 0.8; }
+.nd-rslot-join:has(.nd-ringbtn.is-lit) .nd-hrefl { opacity: 0.55; }
+.nd-actions.is-daylit .nd-rslot:has(.nd-ringbtn.is-lit) .nd-hrefl { opacity: 0.2; }
+/* small phones: the group shrinks a little to keep its tight, centred look */
+@media (max-width: 359px) { .nd-bar.nd-flank { --disc: 68px; --pill-h: 54px; --cell: 48px; --gap: 8px; } }
+/* wide screens: the same group, centred, a size up (it reads from further away) */
+@media (min-width: 900px) and (min-height: 640px) {
+  .nd-bar.nd-flank { --disc: 86px; --pill-h: 64px; --cell: 60px; --gap: 14px; }
+  .nd-bar.nd-flank .nd-tab-ic, .nd-bar.nd-flank .nd-tab-ic svg { width: 29px; height: 29px; }
+  .nd-bar.nd-flank .nd-host-label { font-size: 10.5px; }
+}
+
+/* ==========================================================================
+   THE TITLE'S CORNER BUTTONS (☰ + music) match the Flank — on the title only (body.nd-on); everywhere else they are untouched.
+   The pill's smoked glass (no backdrop blur: on the title it cost a frame in two at 4× CPU), white tubes of the sign for icons
+   (title.js#dressCorners: .nd-cic), lit with the pill's icons (.nd-cl-lit), dark glass by day.
+   ========================================================================== */
+body.nd-on .menu-btn, body.nd-on .music-btn, body.nd-on .music-btn.is-off {
+  --ic: #f1f4ff;
+  color: rgba(236, 240, 255, 0.9);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.016) 42%, rgba(0, 0, 0, 0.2)),
+    color-mix(in srgb, var(--dk-tint, rgb(12, 8, 26)) 52%, rgba(6, 6, 15, 0.8));
+  border: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), inset 0 -1px 0 rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 10px 24px rgba(0, 0, 0, 0.45), 0 3px 8px rgba(0, 0, 0, 0.3);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+body.nd-on .menu-btn .mb-bars, body.nd-on .music-btn > svg { display: none; }
+.nd-cic { display: grid; place-items: center; width: 22px; height: 22px; pointer-events: none; }
+body.nd-on .nd-cic svg { width: 22px; height: 22px; }
+body.nd-on :not(.nd-cl-lit) > .nd-cic svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); }
+body.nd-on :not(.nd-cl-lit) > .nd-cic .t { stroke: rgba(196, 194, 222, 0.7); }
+body.nd-on :not(.nd-cl-lit) > .nd-cic .c { stroke: rgba(255, 255, 255, 0.42); opacity: 1; }
+.nd-cic .x { opacity: 0; }
+.menu-btn.is-open .nd-cic .bars { opacity: 0; } .menu-btn.is-open .nd-cic .x { opacity: 1; }
+.nd-cic .sl { opacity: 0; }
+.music-btn.is-off .nd-cic .sl { opacity: 1; }
 
 /* ---- above the bar: REJOIN, notes ---- */
-.nd-above { position: absolute; z-index: 4; left: 0; right: 0; bottom: calc(100% + 38px); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.nd-above { position: absolute; z-index: 4; left: 0; right: 0; bottom: calc(100% + 26px); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
 .nd-above > * { pointer-events: auto; }
 .nd-rejoin[hidden] { display: none; }
 .nd-rejoin-btn {
@@ -575,7 +612,7 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 
 /* ---- the JOIN panel: the bar's glass, rising just above it ---- */
 .nd-jpanel {
-  position: absolute; z-index: 5; left: 0; right: 0; bottom: calc(100% + 38px); padding: 8px 14px 14px; border-radius: 24px; text-align: center; isolation: isolate;
+  position: absolute; z-index: 5; left: 0; right: 0; bottom: calc(100% + 22px); padding: 8px 14px 14px; border-radius: 24px; text-align: center; isolation: isolate;
   opacity: 0; transform: translateY(14px) scale(0.985); visibility: hidden;
   transition: opacity 0.25s ease, transform 0.4s var(--ease), visibility 0s linear 0.4s;
 }
@@ -657,16 +694,16 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 }
 /* ---- Reduced effects: no breathing, no press animations beyond simple fades ---- */
 @media (prefers-reduced-motion: reduce) {
-  .nd-hostbtn.is-lit .nd-hglow { animation: none; }
-  .nd-hostbtn:active, .nd-tab:active .nd-tab-ic, .nd-rejoin-btn:active, .nd-go:active { transform: none; }
+  .nd-ringbtn.is-lit .nd-hglow { animation: none; }
+  .nd-ringbtn:active, .nd-tab:active .nd-tab-ic, .nd-rejoin-btn:active, .nd-go:active { transform: none; }
   .nd-drops::before, .nd-drops::after { animation: none; display: none; } .nd-bar.is-flash .nd-strike { animation: none; }
   .nd-box.is-filled { animation: none; }
 }
-body.reduced-fx .nd-hostbtn.is-lit .nd-hglow { animation: none; }
-body.reduced-fx .nd-hostbtn:active, body.reduced-fx .nd-tab:active .nd-tab-ic, body.reduced-fx .nd-rejoin-btn:active, body.reduced-fx .nd-go:active { transform: none; }
+body.reduced-fx .nd-ringbtn.is-lit .nd-hglow { animation: none; }
+body.reduced-fx .nd-ringbtn:active, body.reduced-fx .nd-tab:active .nd-tab-ic, body.reduced-fx .nd-rejoin-btn:active, body.reduced-fx .nd-go:active { transform: none; }
 body.reduced-fx .nd-drops::before, body.reduced-fx .nd-drops::after { animation: none; display: none; }
 body.reduced-fx .nd-box.is-filled { animation: none; }
-@media (max-height: 700px) { .nd-bar { --bar-h: 60px; --disc: 66px; --sock-r: 38px; } .nd-box, .nd-go { height: 50px; } }
+@media (max-height: 700px) { .nd-bar.nd-flank { --disc: 70px; --pill-h: 54px; } .nd-box, .nd-go { height: 50px; } }
 
 /* THE NEON COMES ALIVE (title.js#applyNeon): Reduced effects fade the sign in over the ramp (and out in the goodbye) instead of
    sputters; the catch's soft bloom (the wide glow surges, then settles to its steady level) */

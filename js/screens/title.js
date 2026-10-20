@@ -246,6 +246,10 @@ const ICON = {
   games: tube('<rect x="4" y="4" width="6.8" height="6.8" rx="1.9"/><rect x="13.2" y="4" width="6.8" height="6.8" rx="1.9"/><rect x="4" y="13.2" width="6.8" height="6.8" rx="1.9"/><rect x="13.2" y="13.2" width="6.8" height="6.8" rx="1.9"/>'),
   guest: tube('<path d="M12 2.7l7.9 4.55v9.5L12 21.3l-7.9-4.55v-9.5z"/><circle cx="12" cy="10.1" r="2.5"/><path d="M7.7 16.4c1-2.2 2.5-3.3 4.3-3.3s3.3 1.1 4.3 3.3"/>'),
   go: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5l6.5 6.5-6.5 6.5"/></svg>',
+  // the title's corner buttons, as white tubes of the same sign: ☰ (three bars; an X while the menu is open) and the music note
+  // (a slash through it while the music is off)
+  menu: tube('<g class="bars"><path d="M5.5 7.5h13M5.5 12h13M5.5 16.5h13"/></g><g class="x"><path d="M7 7l10 10M17 7L7 17"/></g>'),
+  music: tube('<path d="M9.2 17.6V6.3l9.3-2v11.2"/><circle cx="6.8" cy="17.6" r="2.45"/><circle cx="16.1" cy="15.5" r="2.45"/><path class="sl" d="M4.2 4.2l15.6 15.6"/>'),
 };
 const SIGN_LIGHT = { halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
 
@@ -264,6 +268,7 @@ export function createTitle() {
     st = state;
     el.classList.add('title-screen', 'nd');
     document.body.classList.add('nd-on');
+    dressCorners(true);
     // the city: fixed behind everything, full viewport (the screen column is narrower on desktop)
     els.sceneWrap = h('div.nd-scene', { 'aria-hidden': 'true' }, els.canvas = h('canvas'));
     document.body.prepend(els.sceneWrap);
@@ -486,6 +491,7 @@ export function createTitle() {
       const st = els.root.style;
       st.setProperty('--dk-glow', `rgb(${glow.join(',')})`);
       st.setProperty('--dk-tint', `rgb(${sky.join(',')})`);
+      document.body.style.setProperty('--dk-tint', `rgb(${sky.join(',')})`);   // (the corner buttons live on the body)
       st.setProperty('--dk-day', String(Math.round(day * 100) / 100));
     }
     els.door.classList.toggle('is-rain', !!L.rain && !L.snow);
@@ -656,8 +662,9 @@ export function createTitle() {
 
   // the sun passing behind the corner buttons (☰, music): it glows through their frosted glass; while it's there the glass
   // darkens a touch and the icon gets a soft dark edge, so the icon stays readable (≥ 4.5:1) — the rest of the time, unchanged
+  let sunOverride = null;   // test-only: a sun placed by the hook (dock.sunAt) to review the glass
   function sunGlass() {
-    const sn = scene && scene.sun ? scene.sun() : null;
+    const sn = sunOverride || (scene && scene.sun ? scene.sun() : null);
     document.querySelectorAll('.menu-btn, .music-btn').forEach(b => {
       let k = 0;
       const r = b.getBoundingClientRect();
@@ -851,32 +858,39 @@ export function createTitle() {
   // One floating bar of smoked glass: JOIN · BOARD · [HOST] · GAMES · YOU. HOST is a raised disc with a neon tube ring that
   // wears the sign's colours (read from the sign's own tubes: ringColors) and never switches off. JOIN opens a glass panel
   // above the bar (the four code boxes); REJOIN and notes float above it too, so the bar itself never moves.
+  // THE FLANK (Oct 20 2026): [ JOIN ring ] [ glass pill: BOARD · GAMES · YOU ] [ HOST ring ] — two identical neon rings,
+  // mirrored round a compact smoked-glass pill of three icons. HOST wears the sign's colours (ringColors); JOIN is white neon
+  // all year. Both are always lit and never sputter; the pill's icons are tubes of the sign (dockLight).
   function buildActions() {
-    const tab = (cls, label, aria, icon, onclick) => h(`button.nd-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
-      h('span.nd-tab-ic', { html: icon }), h('span.nd-tab-l', label));
-    els.joinTab = tab('nd-tab-join.nd-joinbtn', 'JOIN', 'Join a room', ICON.join, () => { sfx('select'); openJoin(!els.actions.classList.contains('is-join'), true); });
-    els.joinTab.setAttribute('aria-expanded', 'false');
-    els.joinTab.append(h('i.nd-tab-ind', { 'aria-hidden': 'true' }));
-    els.boardTab = tab('nd-tab-board', 'BOARD', 'The Board', ICON.board, () => { sfx('select'); setState({ view: 'board' }); });
-    els.gamesTab = tab('nd-tab-games.nd-link-games', 'GAMES', 'The games', ICON.games, () => { openJoin(false); openGames(); });
-    els.youTab = tab('nd-tab-you.nd-me', 'YOU', 'Your membership card', ICON.guest, () => {
+    const tab = (cls, aria, icon, onclick) => h(`button.nd-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
+      h('span.nd-tab-ic', { html: icon }));
+    els.boardTab = tab('nd-tab-board', 'The Board', ICON.board, () => { sfx('select'); setState({ view: 'board' }); });
+    els.gamesTab = tab('nd-tab-games.nd-link-games', 'The games', ICON.games, () => { openJoin(false); openGames(); });
+    els.youTab = tab('nd-tab-you.nd-me', 'Your membership card', ICON.guest, () => {
       sfx('select');
       const p = loadProfile();
       setState(p && p.name ? { view: 'profile' } : { view: 'setup', setupMode: 'edit' });
     });
-    // HOST: a dark glass disc, the neon ring (glass tube → glows → body → white-hot core), the word inside
-    els.host = h('button.nd-hostbtn.nd-host', { type: 'button', 'aria-label': 'Host a game', onclick: host, dataset: { multi: '0' } },
+    // a ring: a dark glass disc, the neon tube ring (glass tube → glows → body → white-hot core), its word inside; its slot
+    // carries its colours (so the reflection on the street below wears them too)
+    const ring = (cls, id, word, aria, onclick) => h(`button.nd-ringbtn.${cls}`, { type: 'button', 'aria-label': aria, onclick, dataset: { multi: '0' } },
       h('span.nd-hdisc'),
       h('span.nd-hglow', { 'aria-hidden': 'true' }),
-      h('span.nd-hring-wrap', { 'aria-hidden': 'true', html: ringSvg('ndr') }),
-      h('span.nd-host-label', { 'aria-hidden': 'true' }, 'HOST'));
-    // the bar: its shadow, the glass (with the HOST cradle cut out), weather on the glass, the ring's reflection on the street
-    els.door = h('nav.nd-bar', { 'aria-label': 'Main menu' },
-      h('span.nd-hrefl', { 'aria-hidden': 'true' }),
+      h('span.nd-hring-wrap', { 'aria-hidden': 'true', html: ringSvg(id) }),
+      h('span.nd-host-label', { 'aria-hidden': 'true' }, word));
+    // (els.joinTab: the JOIN control, whatever it looks like — openJoin / outsideDown use it)
+    els.joinTab = ring('nd-joinring.nd-joinbtn.nd-tab-join', 'ndj', 'JOIN', 'Join a room', () => { sfx('select'); openJoin(!els.actions.classList.contains('is-join'), true); });
+    els.joinTab.setAttribute('aria-expanded', 'false');
+    els.joinTab.append(h('i.nd-tab-ind', { 'aria-hidden': 'true' }));
+    els.host = ring('nd-hostbtn.nd-host', 'ndr', 'HOST', 'Host a game', host);
+    els.joinSlot = h('div.nd-rslot.nd-rslot-join', h('span.nd-hrefl', { 'aria-hidden': 'true' }), els.joinTab);
+    els.hostSlot = h('div.nd-rslot.nd-rslot-host', h('span.nd-hrefl', { 'aria-hidden': 'true' }), els.host);
+    // the pill: its shadow, the smoked glass (weather on the glass: rain beads, lightning), the three icons
+    els.pill = h('div.nd-pill',
       h('span.nd-bar-shadow', { 'aria-hidden': 'true' }),
       h('span.nd-bar-glass', { 'aria-hidden': 'true' }, h('span.nd-drops'), h('span.nd-strike')),
-      els.joinTab, els.boardTab, h('span.nd-tab-slot', { 'aria-hidden': 'true' }), els.gamesTab, els.youTab,
-      els.host);
+      els.boardTab, els.gamesTab, els.youTab);
+    els.door = h('nav.nd-bar.nd-flank', { 'aria-label': 'Main menu' }, els.joinSlot, els.pill, els.hostSlot);
     // the JOIN panel: one real input under four boxes (native keyboard, autocapitalise, paste, iOS autofill all just work)
     els.code = h('input.nd-code-in', {
       type: 'text', inputmode: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: false,
@@ -895,7 +909,7 @@ export function createTitle() {
       h('div.nd-jp-row',
         h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
         els.go));
-    // above the bar: REJOIN, and a note (a host that couldn't open, an expired invite)
+    // above the dock: REJOIN, and a note (a host that couldn't open, an expired invite)
     els.rejoin = h('div.nd-rejoin');
     els.note = h('button.nd-note', { type: 'button', role: 'status', 'aria-live': 'polite', onclick: () => note('') });
     return h('section.nd-actions', h('div.nd-dk', h('div.nd-above', els.note, els.rejoin), els.jpanel, els.door));
@@ -937,22 +951,37 @@ ${both('b', 5.4)}${both('c', 1.9)}
     const key = cols.map(c => `${c.g}/${c.b}/${c.c}`).join('|');
     if (key === ringKey) return;
     ringKey = key;
-    const st = els.host.style;
+    const st = els.hostSlot.style;
     cols.forEach((c, i) => { st.setProperty(`--hg${i + 1}`, c.g); st.setProperty(`--hb${i + 1}`, c.b); st.setProperty(`--hc${i + 1}`, c.c); });
     els.host.dataset.multi = new Set(cols.map(c => c.g)).size > 1 ? '1' : '0';
-    if (els.door) els.door.style.setProperty('--hg1', cols[0].g);
   }
 
-  // the dock's icons are tubes of the same sign: each answers a letter (JOIN·N, BOARD·E, GAMES·O, YOU·N) — on with the power-on
-  // and at dusk, off at dawn, catching the sign's rare flicker; dark glass by day. Driven explicitly (dockLight), so how the sign
-  // is driven can change without the dock guessing.
-  const dockTabs = () => [els.joinTab, els.boardTab, els.gamesTab, els.youTab];
-  function dockLight(i, on) { const t = dockTabs()[i]; if (t && !destroyed) t.classList.toggle('is-lit', !!on); }
+  // the pill's icons and the title's two corner buttons are tubes of the same sign: each answers a letter (BOARD·N, GAMES·E,
+  // YOU·O, ☰ + music·N) — on with the power-on and at the catch, off when the logo's last letter dies at dawn, catching the
+  // sign's rare flicker; dark glass by day. Driven explicitly (dockLight), so how the sign is driven can change freely.
+  const dockTabs = () => [els.boardTab, els.gamesTab, els.youTab];
+  const corners = () => [...document.querySelectorAll('.menu-btn, .music-btn')];
+  function dockLight(i, on) {
+    if (destroyed) return;
+    if (i < 3) { const t = dockTabs()[i]; if (t) t.classList.toggle('is-lit', !!on); } else corners().forEach(b => b.classList.toggle('nd-cl-lit', !!on));
+  }
   function dockAll(on) { for (let i = 0; i < 4; i++) dockLight(i, on); }
+  // the corner buttons wear the sign's tubes on the title only: a white tube icon is added while the title is up (and removed
+  // with it: the lobby, THE BOARD and the games keep their own buttons exactly as they were)
+  function dressCorners(on) {
+    const mb = document.querySelector('.menu-btn'), mu = document.querySelector('.music-btn');
+    for (const [b, icon] of [[mb, ICON.menu], [mu, ICON.music]]) {
+      if (!b) continue;
+      const have = b.querySelector('.nd-cic');
+      if (on && !have) b.append(h('span.nd-cic', { 'aria-hidden': 'true', html: icon }));
+      if (!on) { if (have) have.remove(); b.classList.remove('nd-cl-lit'); }
+    }
+  }
 
   // the ring's light: off (glass) until the power-on, then always lit — it flickers on with the sign's letters
   let ringLit = false;
-  const ringSet = on => { if (els.host && !destroyed) els.host.classList.toggle('is-lit', on); };
+  // (both rings: JOIN and HOST are always lit together)
+  const ringSet = on => { if (destroyed) return; for (const r of [els.host, els.joinTab]) if (r) r.classList.toggle('is-lit', on); };
   function ringOn(times) {
     if (ringLit) return;
     ringLit = true;
@@ -1026,7 +1055,7 @@ ${both('b', 5.4)}${both('c', 1.9)}
     const youSig = `${p ? `${p.name}|${p.color}|${p.avatar}` : ''}|${pub ? `${pub.r}|${pub.x}` : ''}`;
     const ic = els.youTab.querySelector('.nd-tab-ic');
     if (youSig === els.youSig) { /* unchanged */ } else if ((els.youSig = youSig) && p && p.name) {
-      ic.replaceChildren(avatar(p.avatar, p.color, 26));
+      ic.replaceChildren(avatar(p.avatar, p.color, 27));
       els.youTab.setAttribute('aria-label', `Your membership card, ${p.name}${pub ? `, ${step(pub.x || 0).name}` : ''}`);
       els.youTab.classList.remove('is-guest');
     } else {
@@ -1172,8 +1201,10 @@ ${both('b', 5.4)}${both('c', 1.9)}
         preview: patch => { els.sig = null; update({ ...st, ...patch }); },   // test-only: show the dock for a state (REJOIN, an invite)
         note,
         recolor: () => { ringKey = ''; ringColors(); },
-        icons: () => dockTabs().map(t => !!(t && t.classList.contains('is-lit'))),
-        ring: () => ({ lit: ringLit, on: !!(els.host && els.host.classList.contains('is-lit')), multi: els.host ? els.host.dataset.multi : null, g: [1, 2, 3, 4].map(i => (els.host ? els.host.style.getPropertyValue(`--hg${i}`) : '')) }),
+        sunAt: (x, y, r = 16.5) => { sunOverride = x == null ? null : { x, y, r, vis: 1, col: [255, 236, 200] }; sunGlass(); },
+        // [BOARD, GAMES, YOU, the corner buttons]
+        icons: () => [...dockTabs().map(t => !!(t && t.classList.contains('is-lit'))), corners().length > 0 && corners().every(b => b.classList.contains('nd-cl-lit'))],
+        ring: () => ({ lit: ringLit, on: !!(els.host && els.host.classList.contains('is-lit')), join: !!(els.joinTab && els.joinTab.classList.contains('is-lit')), multi: els.host ? els.host.dataset.multi : null, g: [1, 2, 3, 4].map(i => (els.hostSlot ? els.hostSlot.style.getPropertyValue(`--hg${i}`) : '')) }),
       },
     };
   }
@@ -1201,6 +1232,8 @@ ${both('b', 5.4)}${both('c', 1.9)}
     if (els.probeB) els.probeB.remove();
     if (stopRain) stopRain(0.6);
     document.body.classList.remove('nd-on');
+    document.body.style.removeProperty('--dk-tint');
+    dressCorners(false);
     const wrap = els.sceneWrap;
     captureBackdrop(els.canvas);   // the menus keep a still of the city
     const sc = scene;

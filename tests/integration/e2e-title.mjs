@@ -249,7 +249,11 @@ try {
   await H.page.waitForSelector('.nd-games .nd-gtile', { timeout: 4000 });
   ok(await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length === window.__arcade ? true : true`) && await ev(H.page, `document.querySelectorAll('.nd-games .nd-gtile').length`) >= 12, 'GAMES: the sheet lists every game');
   ok(await ev(H.page, `document.querySelector('.nd-sub').hidden`), 'RETURNING PLAYER: just the tagline (the explainer line is for first visits)');
-  ok(await ev(H.page, `!document.querySelector('.nd-welcome, .nd-links, .nd-edit') && [...document.querySelectorAll('.nd-bar > .nd-tab, .nd-bar > .nd-tab-slot')].map(t => (t.querySelector('.nd-tab-l') || { textContent: '[HOST]' }).textContent).join(' ') === 'JOIN BOARD [HOST] GAMES YOU'`), 'DOCK: one bar — JOIN · BOARD · [HOST] · GAMES · YOU (no welcome line, no links)');
+  { const L = await ev(H.page, `(() => { const f = document.querySelector('.nd-flank'), kids = [...f.children].map(c => c.className.split(' ').find(k => /nd-rslot-|nd-pill/.test(k))); const box = s => document.querySelector(s).getBoundingClientRect(); const j = box('.nd-joinring'), hst = box('.nd-hostbtn'), p = box('.nd-pill'); const ic = [...document.querySelectorAll('.nd-pill .nd-tab')].map(t => t.className.match(/nd-tab-(board|games|you)/)[1]); return { kids, ic, labels: document.querySelectorAll('.nd-pill .nd-tab-l').length, jw: Math.round(j.width), hw: Math.round(hst.width), gapL: Math.round(p.left - j.right), gapR: Math.round(hst.left - p.right), mid: Math.round((j.left + hst.right) / 2 - innerWidth / 2), words: [document.querySelector('.nd-joinring .nd-host-label').textContent, document.querySelector('.nd-hostbtn .nd-host-label').textContent], old: !!document.querySelector('.nd-welcome, .nd-links, .nd-edit, .nd-tab-slot') }; })()`);
+    ok(L.kids.join(' ') === 'nd-rslot-join nd-pill nd-rslot-host' && L.ic.join(' ') === 'board games you' && L.labels === 0 && !L.old && L.words.join(' ') === 'JOIN HOST',
+      `THE FLANK: [ JOIN ring ] [ pill: BOARD · GAMES · YOU, icons only ] [ HOST ring ] (${L.kids.join(' · ')})`);
+    ok(L.jw === L.hw && Math.abs(L.gapL - L.gapR) <= 1 && L.gapL >= 6 && L.gapL <= 16 && Math.abs(L.mid) <= 1,
+      `THE FLANK: the two rings the same size (${L.jw}/${L.hw}), mirrored round the pill with even tight gaps (${L.gapL}/${L.gapR}), centred (${L.mid})`); }
   await H.page.evaluate(() => document.querySelector('.nd-gtile[data-id="prism"]').click());
   await H.page.waitForSelector('.nd-preview', { timeout: 4000 });
   await sleep(500);
@@ -408,18 +412,25 @@ try {
   await tap(F.page, '.nd-rejoin-btn');
   await waitFor(F.page, '!!window.__arcade.state.code', 'F rejoined', 20000);
   ok((await state(F.page)).code === code, 'REJOIN: one tap back into the room');
+  ok(await ev(F.page, `!document.querySelector('.nd-cic') && !document.querySelector('.nd-cl-lit') && getComputedStyle(document.querySelector('.menu-btn .mb-bars')).display !== 'none'`), 'CORNER BUTTONS: off the title (the lobby) they are exactly as before');
 
   // ================================================================ 8b. THE NEON RING: the dock
   { const G = await open({ slot: 'g', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'when=2026-10-20T21:30&tz=America/New_York' });
     await waitFor(G.page, '!!window.__district && window.__district.phase().done', 'title G');
     // touch targets (≥ 44 px) and labels for screen readers
-    const tg = await ev(G.page, `JSON.stringify([...document.querySelectorAll('.nd-tab, .nd-hostbtn')].map(b => { const r = b.getBoundingClientRect(); return { l: b.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height) }; }))`).then(JSON.parse);
-    ok(tg.length === 5 && tg.every(t => t.w >= 44 && t.h >= 44 && t.l), `DOCK: five targets, each ≥ 44 px with a label (${tg.map(t => `${t.l.split(',')[0]} ${t.w}×${t.h}`).join(' · ')})`);
+    const tg = await ev(G.page, `JSON.stringify([...document.querySelectorAll('.nd-ringbtn, .nd-tab')].map(b => { const r = b.getBoundingClientRect(), i = b.querySelector('.nd-tab-ic svg'); return { l: b.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height), ic: i ? Math.round(i.getBoundingClientRect().width) : 0 }; }))`).then(JSON.parse);
+    ok(tg.length === 5 && tg.every(t => t.w >= 48 && t.h >= 48 && t.l), `DOCK: five targets, each ≥ 48 px with a label (${tg.map(t => `${t.l.split(',')[0]} ${t.w}×${t.h}`).join(' · ')})`);
+    const icons = tg.filter(t => t.ic > 0), rings = tg.filter(t => t.ic === 0);
+    ok(icons.length === 3 && rings.length === 2 && icons.every(t => t.ic >= 26 && t.ic <= 29) && rings.every(r => icons.every(t => r.w > t.w)), `DOCK: the pill's icons a comfortable ${icons.map(t => t.ic).join('/')} px; the rings stay the largest`);
     // the ring: lit, wearing the sign's own colours
     const same = async () => ev(G.page, `(() => { const ls = [...document.querySelectorAll('.nd-sign .ndl')].map(l => getComputedStyle(l.querySelector('.ndl-glow1')).stroke); const h = getComputedStyle(document.querySelector('.nd-hostbtn')); return ls.every((c, i) => h.getPropertyValue('--hg' + (i + 1)).trim() === c); })()`);
     let ring = await ev(G.page, 'window.__district.dock.ring()');
     ok(ring.lit && ring.on && await same(), `HOST RING: lit, in the sign's colours (${ring.g[0]})`);
-    ok((await ev(G.page, 'window.__district.dock.icons()')).every(Boolean), 'DOCK ICONS, AT NIGHT: lit with the sign');
+    const white = () => ev(G.page, `(() => { const s = getComputedStyle(document.querySelector('.nd-joinring')); return [s.getPropertyValue('--hg1').trim(), s.getPropertyValue('--hc1').trim(), document.querySelector('.nd-joinring').classList.contains('is-lit')]; })()`);
+    let jw = await white();
+    ok(jw[2] && ring.join && jw[1] === 'rgb(255, 255, 255)' && /^rgb\((2\d\d), (2\d\d), 255\)$/.test(jw[0]), `JOIN RING: lit, white neon (core ${jw[1]}, glow ${jw[0]})`);
+    ok((await ev(G.page, 'window.__district.dock.icons()')).every(Boolean), 'DOCK ICONS, AT NIGHT: the pill\'s icons and the corner buttons lit with the sign');
+    ok(await ev(G.page, `!!document.querySelector('.menu-btn .nd-cic svg') && !!document.querySelector('.music-btn .nd-cic svg') && getComputedStyle(document.querySelector('.menu-btn .mb-bars')).display === 'none'`), 'CORNER BUTTONS (title): white neon tubes in the pill\'s glass');
     // a holiday's colours blend in (registered colours): switch the sign to Valentine's and sample the ring mid-way
     await G.page.evaluate(() => { document.querySelector('.nd-sign').classList.add('sg-valentine'); window.__district.dock.recolor(); });
     await sleep(500);
@@ -427,6 +438,8 @@ try {
     await sleep(1400);
     ring = await ev(G.page, 'window.__district.dock.ring()');
     ok(ring.g[0] === 'rgb(255, 46, 110)' && mid !== 'rgb(255, 46, 110)' && mid !== 'rgb(255, 46, 151)' && await same(), `HOST RING: a holiday's colour blends in with the sign (${mid} → ${ring.g[0]})`);
+    jw = await white();
+    ok(jw[1] === 'rgb(255, 255, 255)' && /, 255\)$/.test(jw[0]), 'JOIN RING: still white on a holiday');
     await G.page.evaluate(() => { document.querySelector('.nd-sign').classList.remove('sg-valentine'); window.__district.dock.recolor(); });
     // BOARD, GAMES, YOU
     await tap(G.page, '.nd-tab-games'); await G.page.waitForSelector('.nd-games', { timeout: 4000 });
@@ -486,15 +499,17 @@ try {
     await waitFor(Y.page, '!!window.__district && window.__district.phase().done', 'title day');
     const r = await ev(Y.page, `({ lit: document.querySelector('.nd-hostbtn').classList.contains('is-lit'), day: document.querySelector('.nd-actions').classList.contains('is-daylit'), sign: document.querySelector('.nd-sign').classList.contains('is-day') })`);
     ok(r.lit && r.day && r.sign, 'HOST RING, BY DAY: the sign is dark, the ring stays lit (softer)');
-    ok((await ev(Y.page, 'window.__district.dock.icons()')).every(x => !x), 'DOCK ICONS, BY DAY: empty glass tubes, like the sign');
+    ok((await ev(Y.page, 'window.__district.dock.icons()')).every(x => !x), 'DOCK ICONS, BY DAY: empty glass tubes, like the sign (the corner buttons too)');
+    ok(await ev(Y.page, `document.querySelector('.nd-joinring').classList.contains('is-lit')`), 'JOIN RING, BY DAY: lit with HOST (softer)');
     await Y.ctx.close(); }
   { const I = await open({ slot: 'in', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'intro=1&when=2026-10-20T21:30&tz=America/New_York' });
     await waitFor(I.page, '!!window.__district && window.__district.phase().kind === "full"', 'intro', 8000);
-    const seen = await I.page.evaluate(() => new Promise(res => { const out = []; const t0 = performance.now(); const tick = () => { const h = document.querySelector('.nd-hostbtn'), n = document.querySelector('.nd-sign .ndl-1'); const ic = document.querySelector('.nd-tab-join'); if (h && n) out.push([h.classList.contains('is-lit') ? 1 : 0, n.classList.contains('on') ? 1 : 0, ic && ic.classList.contains('is-lit') ? 1 : 0]); if (performance.now() - t0 < 3600) requestAnimationFrame(tick); else res(out); }; tick(); }));
+    const seen = await I.page.evaluate(() => new Promise(res => { const out = []; const t0 = performance.now(); const tick = () => { const h = document.querySelector('.nd-hostbtn'), n = document.querySelector('.nd-sign .ndl-1'); const ic = document.querySelector('.nd-tab-board'), j = document.querySelector('.nd-joinring'); if (h && n) out.push([h.classList.contains('is-lit') ? 1 : 0, n.classList.contains('on') ? 1 : 0, ic && ic.classList.contains('is-lit') ? 1 : 0, j && j.classList.contains('is-lit') ? 1 : 0]); if (performance.now() - t0 < 3600) requestAnimationFrame(tick); else res(out); }; tick(); }));
     const ringFlips = seen.reduce((n, s, i) => n + (i && s[0] !== seen[i - 1][0] ? 1 : 0), 0);
     const firstRing = seen.findIndex(s => s[0]), firstN = seen.findIndex(s => s[1]);
     const icFlips = seen.reduce((n, x, i) => n + (i && x[2] !== seen[i - 1][2] ? 1 : 0), 0);
-    ok(icFlips >= 3 && seen[seen.length - 1][2] === 1, `DOCK ICONS, INTRO: JOIN flickers on with its letter (${icFlips} flips) and holds`);
+    ok(icFlips >= 3 && seen[seen.length - 1][2] === 1, `DOCK ICONS, INTRO: BOARD flickers on with its letter (${icFlips} flips) and holds`);
+    ok(seen.every(s => s[3] === s[0]), 'JOIN RING, INTRO: flickers on together with HOST, frame for frame');
     ok(ringFlips >= 3 && seen[seen.length - 1][0] === 1 && firstRing >= firstN && firstRing - firstN < 12, `HOST RING, INTRO: flickers on with the letters (${ringFlips} flips, first light ${firstRing - firstN} frames after the N) and holds`);
     await I.ctx.close(); }
   // Reduced effects: no breathing

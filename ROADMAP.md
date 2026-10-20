@@ -355,6 +355,13 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ THE FLANK + the title's corner buttons + the lobby song (Oct 20, 2026) — `docs/title.md`, `docs/audio.md`
+- [x] The new dock: [ JOIN ring ] [ glass pill: BOARD · GAMES · YOU ] [ HOST ring ] — two identical rings mirrored round a compact
+      pill of three icons; HOST in the sign's colours, JOIN white neon all year; both always lit, never sputter
+- [x] The title's ☰ and music buttons in the pill's glass with white neon tube icons, lit with the sign's tubes (title only)
+- [x] The host's song carries on into the room (the queue seeded at its place); joiners crossfade in; the same song never restarts
+- [x] Tests: e2e-title (the Flank, white JOIN, the corner buttons), lobby-song.test.mjs, e2e-lobbysong.mjs (9 checks)
+
 ### ✅ Phones: THE BIG ARCH in step with the real sky (Oct 20, 2026) — `docs/title.md` (THE REAL SUN)
 - [x] Height follows the real elevation: peeks over the rooftops at the real sunrise, fully behind them at the real sunset, never
       hidden once the sun is ~4° up; a fitted two-piece curve keeps it climbing all morning; the rainbow shape stays round

@@ -8,6 +8,7 @@ import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe } from './ide
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } from './core/hush.js';
+import { hostSeed } from './audio/lobby-music.js';
 import { toast } from './ui/toast.js';
 import { livePathsFor, liveKeyFor } from './games/registry.js';
 import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
@@ -81,6 +82,9 @@ export async function createRoom(profile) {
   const candidates = [...hushCandidates(words, hush, now), ...Array.from({ length: 10 }, () => generateCode())];
   const code = await claimFirst(candidates, claimRoom);
   if (!code) throw new Error('COULDN’T OPEN A ROOM — CHECK YOUR CONNECTION AND TRY AGAIN');
+  // the song the host is hearing carries on into the room, at its place (audio/lobby-music.js) — best effort
+  const lm = hostSeed(serverNow());
+  if (lm) update(dbRef(`${R(code)}/meta/lm`), lm).catch(() => {});
   // a fresh room starts with a fresh chat, and no old DOUBLE AGENT / GRIDLOCK / HIGH STAKES / RUMRUNNER secrets
   for (const n of ROOM_SIDE_NODES) await remove(dbRef(`${n}/${code}`)).catch(() => {});
   await writePlayer(code, profile, {});

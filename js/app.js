@@ -5,7 +5,7 @@ import { glitchFlash } from './ui/components.js';
 import { toast } from './ui/toast.js';
 import { APP_NAME, GAMES } from './config.js';
 import { state, setState, subscribe } from './store.js';
-import { initFirebase, isConfigured } from './firebase.js';
+import { initFirebase, isConfigured, serverNow } from './firebase.js';
 import { inviteCode, watchDuplicateTabs, slot, loadSession } from './identity.js';
 import { resumeSession, armPresence, roomExists } from './room.js';
 import { startHostLoop } from './host.js';
@@ -204,7 +204,7 @@ async function boot() {
     if (b && !b.closest('[data-sfx="none"]') && !b.disabled) sfx('tap');
   }, { capture: true, passive: true });
   // Music is lazy: tracks download only after the first tap unlocks audio (see audio/music.js).
-  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, mood: () => moodNow(), state };
+  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, mood: () => moodNow(), state, serverNow };
   // Escape closes the top-most sheet (its backdrop click handler does the closing).
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
