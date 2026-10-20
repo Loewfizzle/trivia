@@ -3,7 +3,8 @@
 //
 //   node shots.mjs "<browser>" [--scenes night,day,halloween] [--sizes phones|desktop|all|390x844,412x915] [--place gr|ny|none]
 //                  [--crop dock,corner,sign | --crop 0,1400,780,300] [--qs "wx=rain&force=lightning"] [--out ./shots-review]
-//                  [--wait 2600] [--guest]
+//                  [--wait 2600] [--guest] [--preview]
+// --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
 // valentine rejoin sun rain. "first" has no profile; --guest makes every scene a first-time visitor.
@@ -19,6 +20,7 @@ const OUT = String(opt('out', './shots-review')).replace(/\/?$/, '/');
 mkdirSync(OUT, { recursive: true });
 const WAIT = Number(opt('wait', 2600));
 const GUEST = !!opt('guest', false);
+const PREVIEW = !!opt('preview', false);
 const PLACES = { gr: '&tz=America/Detroit&at=42.96,-85.67', ny: '&tz=America/New_York', none: '' };
 const PLACE = PLACES[opt('place', 'gr')] ?? PLACES.gr;
 const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
@@ -53,7 +55,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   await p.evaluateOnNewDocument(guest => {
     try { localStorage.setItem('nd:entered', '1'); if (!guest) localStorage.setItem('na:sh:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, GUEST || !!o.guest);
-  await p.goto(`${BASE}/?emu&slot=sh&when=${when}${PLACE}${o.qs ? `&${o.qs}` : ''}${EXTRA}`);
+  const qs = `when=${when}${PLACE}${o.qs ? `&${o.qs}` : ''}${EXTRA}`;
+  await p.goto(PREVIEW ? `${BASE}/tests/integration/title-preview.html?${qs}${GUEST || o.guest ? '&guest=1' : ''}` : `${BASE}/?emu&slot=sh&${qs}`);
   await p.waitForFunction(() => window.__district && window.__district.phase().done, { timeout: 25000 });
   await sleep(WAIT);
   if (o.act === 'join') { await p.evaluate(() => window.__district.dock.join(true)); await sleep(500); await p.type('.nd-code-in', 'mi'); await sleep(400); }

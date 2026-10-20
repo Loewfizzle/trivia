@@ -40,49 +40,13 @@ export function sunPlace(o) {
   const block = o.block || { x: W * 0.1, y: HZ * 0.2, w: W * 0.8, h: HZ * 0.3 };
   const top = Math.max(26, (o.safeTop || 0) + 14) + r;
   const phone = W < 760 || H > W;
-  if (phone && o.word && o.tag && o.neon) return phoneArch(o, u);
   if (phone) {
-    // THE LOW ARC (all mobile, Oct 19 2026; now only until the sign's text has been measured): the skyline is a valley (tall towers at the sides, low in the middle). The sun
-    // crosses the band of open sky between the middle rooftops and the tagline — a little higher toward noon (closer to the
-    // tagline in summer) — and rises out of / sets into the tall towers at the sides, moving sideways behind their bodies, the way
-    // a low sun slips between skyscrapers. Never behind a roof in the open middle; never near the corner buttons.
-    // roof(x): the skyline's top at x (scene.js's outline).
-    const roof = o.roof || (x => HZ * (0.45 + 0.2 * Math.cos(((x / W) - 0.5) * Math.PI)));
-    // the highest the disc's centre may sit at x and still clear every roof under it (a circle resting on the skyline: smooth)
-    const clearAt = x => { let m = Infinity; for (let dx = -r; dx <= r; dx += 2) m = Math.min(m, roof(x + dx) - Math.sqrt(Math.max(0, r * r - dx * dx))); return m - 3; };
-    // fully behind the towers at (x, y): every roof under the disc is above its top
-    const rh = r * 1.4;                                          // (the low sun is drawn up to 1.4× larger)
-    const hiddenAt = (x, y) => { for (let dx = -rh; dx <= rh; dx += 3) if (roof(x + dx) > y - rh - 1) return false; return true; };
-    const tagBot = block.y + block.h;
-    let mid = Infinity; for (let xx = W * 0.35; xx <= W * 0.65; xx += 6) mid = Math.min(mid, clearAt(xx));
-    const yTop = Math.min(tagBot + r + 4, mid);                  // (no room under the tagline: it may slip behind the logo)
-    const season = clamp01(((o.noonEl == null ? 45 : o.noonEl) - 18) / 50);
-    const yApex = lerp(mid, yTop, 0.3 + 0.7 * season);
-    const noonEl = Math.max(4, o.noonEl == null ? 45 : o.noonEl);
-    const g = Math.sin((Math.PI / 2) * clamp01(el / noonEl));
-    let y = lerp(mid, yApex, g);
-    // where it goes in / comes out: the nearest x on each side where the disc at the band's bottom is fully behind the towers
-    // it starts fully out of frame past the left edge and creeps in (rising from behind the edge towers where they stand in the
-    // way); it ends fully out of frame past the right edge (or sunk behind the right-hand towers before that)
-    const xL = -rh - 4, xR = W + rh + 4;
-    void hiddenAt;
-    // and where it is fully out in the open (the edges of the open middle)
-    const clearOf = (x, y) => { for (let dx = -rh; dx <= rh; dx += 3) if (roof(x + dx) < y + Math.sqrt(Math.max(0, rh * rh - dx * dx))) return false; return true; };
-    let xCL = W * 0.5, xCR = W * 0.5;
-    for (let xx = xL; xx <= W * 0.5; xx += 3) if (clearOf(xx, mid)) { xCL = xx; break; }
-    for (let xx = xR; xx >= W * 0.5; xx -= 3) if (clearOf(xx, mid)) { xCR = xx; break; }
-    // the pacing: out of the towers between sunrise and E4° (~25 min), across the open middle through the day, back in after E4°
-    const e4 = o.e4 ? (o.south ? { ua: 1 - o.e4.ub, ub: 1 - o.e4.ua } : o.e4) : { ua: 0.05, ub: 0.95 };
-    const x = u <= e4.ua ? lerp(xL, xCL, clamp01(u / Math.max(1e-6, e4.ua)))
-      : u >= e4.ub ? lerp(xCR, xR, clamp01((u - e4.ub) / Math.max(1e-6, 1 - e4.ub)))
-      : lerp(xCL, xCR, (u - e4.ua) / Math.max(1e-6, e4.ub - e4.ua));
-    // in the open middle never behind a roof (rest on the skyline where a tower pokes up); at the sides the towers take it
-    const open = smooth(xL + rh * 2, xL + rh * 3.5, x) * (1 - smooth(xR - rh * 3.5, xR - rh * 2, x));
-    y -= (y - Math.min(y, clearAt(x))) * open;
-    // never touching the tagline, at the size it is drawn (a low sun is up to 1.4× larger) — when there is room under it
-    const rd = r * sunShape(el).size;
-    if (mid >= tagBot + rd + 2) y = Math.max(y, tagBot + rd + 2);
-    return { x, y };
+    // the text's rects (title.js#textRects); before they are measured, estimated from the sign's box (the logo's lettering in
+    // its top 52 %, SPEAKEASY under it, the tagline at the bottom) — so a phone has one path, the arch
+    const neon = o.neon || { x: block.x, y: block.y + block.h * 0.08, w: block.w, h: block.h * 0.44 };
+    const word = o.word || { x: block.x, y: block.y + block.h * 0.62, w: block.w, h: block.h * 0.11 };
+    const tag = o.tag || { x: block.x, y: block.y + block.h * 0.84, w: block.w, h: block.h * 0.08 };
+    return phoneArch({ ...o, neon, word, tag }, u);
   }
   // a wide screen: the full arc, its height the real elevation, lifted over the sign where it would cross it
   // it clears the towers' tops (≈ HZ·0.42) within its first ~10°, then climbs the open sky by its real elevation
@@ -219,7 +183,7 @@ export function sunMoments({ lat, lon, tz, ms, layout }) {
     const at = t => {
       const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
       if (!a) return null;
-      const p = sunPlace({ ...layout, u: a.u, el, south: lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season, prof: a.prof });
+      const p = sunPlace({ ...layout, u: a.u, el, south: lat < 0, r: layout.base, noonEl: a.noonEl, season: a.season, prof: a.prof });
       return { ...p, r: layout.base * sunShape(el).size };
     };
     const out = p => p.x - p.r >= layout.W || p.x + p.r <= 0;
@@ -385,7 +349,7 @@ export function createSun() {
     const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
     const tx = s.textRects || {};
     if (phone && !(tx.neon && tx.word && tx.tag)) return null;   // (a phone's arch hangs off the words: wait for them)
-    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, e1: sa.e1, e4: sa.e4, noonEl: sa.noonEl, season: sa.season, prof: sa.prof, roof, neon: tx.neon, word: tx.word, tag: tx.tag });
+    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, noonEl: sa.noonEl, season: sa.season, prof: sa.prof, roof, neon: tx.neon, word: tx.word, tag: tx.tag });
     void layout;
     // never a jump: it eases toward its place (and settles at once on a new layout)
     if (!pos || Math.hypot(pos.x - p.x, pos.y - p.y) > W * 0.5) pos = { ...p }; else { pos.x += (p.x - pos.x) * 0.06; pos.y += (p.y - pos.y) * 0.06; }

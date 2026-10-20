@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Title preview</title>
+<link rel="icon" href="data:,">
+<!-- The REAL title screen (the city, the sign, THE FLANK, the corner buttons) without Firebase or emulators: tweak its look and
+     reload in a second. All the title's own preview switches work: ?when=2026-10-19T22:30&tz=America/Detroit&at=42.96,-85.67
+     &wx=rain&force=lightning&speed=60&intro=1. Plus: &guest=1 (no profile), &act=join|rejoin|sun (the JOIN panel open, a REJOIN
+     pill, the sun behind the music button), &rejoin=MINT. HOST / JOIN do nothing here (no rooms) — use the app for flows.
+     Shots: node shots.mjs "<browser>" --preview --scenes night,day -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/title.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js", "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #04050f; } #app { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; }</style>
+</head>
+<body>
+<div id="app"><section class="screen screen-in" id="screen"></section></div>
+<script type="module">
+const q = new URLSearchParams(location.search);
+// a profile for this preview slot (the title reads it for YOU), unless &guest=1
+try {
+  localStorage.setItem('nd:entered', '1');
+  if (q.get('guest') === '1') localStorage.removeItem('na:pv:profile');
+  else localStorage.setItem('na:pv:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' }));
+} catch { /* fine */ }
+if (!q.get('slot')) { q.set('slot', 'pv'); history.replaceState(null, '', `?${q}`); }
+const { createTitle } = await import('/js/screens/title.js');
+const { installSettingsPanel } = await import('/js/ui/settings-panel.js');
+const { state } = await import('/js/store.js');
+installSettingsPanel();
+const st = { ...state, view: 'title', uid: 'pv', ready: true, rejoin: q.get('rejoin') || '', invite: '' };
+const title = createTitle();
+title.mount(document.getElementById('screen'), st);
+window.__preview = { title, state: st };
+// the extra looks, once the title has come up
+const act = q.get('act');
+if (act) {
+  const until = () => new Promise(r => { const t = setInterval(() => { if (window.__district && window.__district.phase().done) { clearInterval(t); r(); } }, 100); });
+  await until();
+  if (act === 'join') window.__district.dock.join(true);
+  if (act === 'rejoin') window.__district.dock.preview({ rejoin: q.get('rejoin') || 'MINT' });
+  if (act === 'sun') { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }
+}
+</script>
+</body>
+</html>

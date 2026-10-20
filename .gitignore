@@ -6,6 +6,9 @@ node_modules/
 tests/integration/shots/
 __pycache__/
 tests/integration/shots-*/
+shots-*/
+shots-review/
+tests/integration/shots-review/
 
 # private keys and secrets: never commit (and never deploy)
 neon speakeasy leaderboard key.txt

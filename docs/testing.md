@@ -128,7 +128,8 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     resting / every word resting, the guessing guard; the card + JOIN panel at 390×844, 430×932, 412×915, 1440×900.
   - **Look reviews:** `node shots.mjs "<browser>" --scenes night,day,ramp,catch,dawn,first,join,halloween,christmas,valentine,rejoin,sun,rain
     --sizes quick|phones|desktop|all|390x844,… --place gr|ny|none --crop dock,corner,sign|x,y,w,h --qs "…" --guest --out ./shots-review`
-    (any moment: `--scenes name=2026-10-19T19:05`). Each shot in its own context; ~8 s per shot.
+    (any moment: `--scenes name=2026-10-19T19:05`). Each shot in its own context; ~8 s per shot. `--preview` shoots
+    `title-preview.html` instead — the real title without Firebase or the emulators (look reviews; flows need the app).
   - Title screen E2E by group: `ONLY=gate|flow|dock|neon|perf node e2e-title.mjs …` (gate = first visit / returning / skip; flow = HOST,
     JOIN, invites, REJOIN; dock = THE FLANK; neon = THE NEON COMES ALIVE; perf = tiers, frame pacing, memory). `ONLY=dock` ≈ 55 s.
   - Title screen E2E: `node e2e-title.mjs "<browser path>" ./shots-title` (env `GPU=1` for real frame pacing, `SHOTS=0 VIDEO=0`) —

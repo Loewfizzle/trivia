@@ -124,12 +124,7 @@ export function sunArc(ms, tz, lat, lon) {
     const { rise, set } = sunTimes(ms, tz, lat, lon);
     if (rise != null && set != null && set > rise) {
       const noon = (rise + set) / 2, noonEl = sunPosition(noon, lat, lon).el;
-      // where the sun is E1° up, morning and afternoon (a phone's sun leaves / rejoins the screen's edge there)
-      const E1 = noonEl >= 16 ? 12 : noonEl * 0.75;
-      const at = (a, b, up, E = E1) => { for (let i = 0; i < 24; i++) { const m = (a + b) / 2; if ((sunPosition(m, lat, lon).el < E) === up) a = m; else b = m; } return (a + b) / 2; };
-      const ta = at(rise, noon, true), tb = at(noon, set, false);
-      // and where it is E4° up (a phone's sun slides out of / into the side towers before / after that)
-      const E4 = Math.min(4, noonEl * 0.4), t4a = at(rise, noon, true, E4), t4b = at(noon, set, false, E4);
+      const at = (a, b, up, E) => { for (let i = 0; i < 24; i++) { const m = (a + b) / 2; if ((sunPosition(m, lat, lon).el < E) === up) a = m; else b = m; } return (a + b) / 2; };
       // the real climb: for elevations above the sunrise horizon (e = el + 0.83°, 0 … noon), where the sun is in u, morning and
       // afternoon — the phone's arch checks its clearance against the real pace (the climb is no sine near the horizon)
       const N = noonEl + 0.83, prof = [];
@@ -138,7 +133,7 @@ export function sunArc(ms, tz, lat, lon) {
         const tm = at(rise, noon, true, e - 0.83), ta2 = at(noon, set, false, e - 0.83);
         prof.push([e, (tm - rise) / (set - rise), (ta2 - rise) / (set - rise)]);
       }
-      day = { rise, set, noonEl, prof, e1: { el: E1, ua: (ta - rise) / (set - rise), ub: (tb - rise) / (set - rise) }, e4: { el: E4, ua: (t4a - rise) / (set - rise), ub: (t4b - rise) / (set - rise) } };
+      day = { rise, set, noonEl, prof };
     } else day = null;
     if (sunDayCache.size > 60) sunDayCache.clear();
     sunDayCache.set(key, day);
@@ -147,7 +142,7 @@ export function sunArc(ms, tz, lat, lon) {
   // the season for this place: 0 = today's noon is as low as the winter solstice's, 1 = as high as the summer solstice's
   const ax = Math.abs(lat), wNoon = Math.max(0, 90 - ax - 23.44), sNoon = Math.min(90, 90 - ax + 23.44);
   const season = Math.max(0, Math.min(1, (day.noonEl - wNoon) / Math.max(1, sNoon - wNoon)));
-  return { u: (ms - day.rise) / (day.set - day.rise), noonEl: day.noonEl, season, prof: day.prof, rise: day.rise, set: day.set, e1: day.e1, e4: day.e4 };
+  return { u: (ms - day.rise) / (day.set - day.rise), noonEl: day.noonEl, season, prof: day.prof, rise: day.rise, set: day.set };
 }
 
 // ---------------------------------------------------------------- solar eclipses, from the geometry itself

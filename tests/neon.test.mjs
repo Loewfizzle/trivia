@@ -80,7 +80,7 @@ const DESK = { W: 1440, H: 900, HZ: 666, block: { x: 504, y: 129, w: 432, h: 272
 const CITY = { ny: { tz: 'America/New_York', lat: 40.71, lon: -74.01 }, sydney: { tz: 'Australia/Sydney', lat: -33.87, lon: 151.21 }, gr: { tz: 'America/Detroit', lat: 42.96, lon: -85.67 } };
 function placed(c, layout, t) {
   const el = sunPosition(t, c.lat, c.lon).el, a = sunArc(t, c.tz, c.lat, c.lon);
-  const p = sunPlace({ ...layout, u: a.u, el, south: c.lat < 0, r: layout.base, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season, prof: a.prof });
+  const p = sunPlace({ ...layout, u: a.u, el, south: c.lat < 0, r: layout.base, noonEl: a.noonEl, season: a.season, prof: a.prof });
   return { ...p, r: layout.base * sunShape(el).size };
 }
 const hidden = (layout, p) => { if (p.x - p.r >= layout.W || p.x + p.r <= 0) return true; for (let dx = -p.r; dx <= p.r; dx += 2) if (p.x + dx >= 0 && p.x + dx <= layout.W && layout.roof(p.x + dx) > p.y - p.r) return false; return true; };

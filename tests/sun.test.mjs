@@ -51,7 +51,9 @@ test('sunArc: 0 at the real sunrise, ½ at solar noon, 1 at sunset; higher at no
       for (let t = a.rise; t < a.set; t += 60000) { const e = sunPosition(t, lat, lon).el; if (e > bestEl) { bestEl = e; best = t; } }
       assert.ok(Math.abs(sunArc(best, tz, lat, lon).u - 0.5) < 0.01, `${c} ${d}: noon at u ${sunArc(best, tz, lat, lon).u.toFixed(3)}`);
       assert.ok(Math.abs(a.noonEl - bestEl) < 0.2, `${c} ${d}: noonEl`);
-      assert.ok(a.e1.ua > 0 && a.e1.ua < 0.5 && a.e1.ub > 0.5 && a.e1.ub < 1, `${c} ${d}: e1 crossings ${a.e1.ua.toFixed(2)} ${a.e1.ub.toFixed(2)}`);
+      // the real climb (for the phone's arch): from the horizon (u 0 / 1) to noon (u ½), always moving the right way
+      const pr = a.prof;
+      assert.ok(Math.abs(pr[0][1]) < 0.01 && Math.abs(pr[0][2] - 1) < 0.01 && Math.abs(pr[pr.length - 1][1] - 0.5) < 0.03 && pr.every((q, i) => !i || (q[1] >= pr[i - 1][1] - 1e-6 && q[2] <= pr[i - 1][2] + 1e-6)), `${c} ${d}: the climb table`);
     }
     const jun = sunArc(at('2026-06-21T12:00', tz), tz, lat, lon).noonEl, dec = sunArc(at('2026-12-21T12:00', tz), tz, lat, lon).noonEl;
     assert.ok(lat > 0 ? jun > dec + 40 : dec > jun + 40, `${c}: summer noon higher (${jun.toFixed(1)} / ${dec.toFixed(1)})`);
@@ -78,7 +80,7 @@ function day(city, date, scr) {
   const out = [];
   for (let t = a0.rise - 20 * 60000; t <= a0.set + 20 * 60000; t += 60000) {
     const el = sunPosition(t, lat, lon).el, a = sunArc(t, tz, lat, lon);
-    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, e1: a.e1, e4: a.e4, noonEl: a.noonEl, season: a.season, prof: a.prof, roof: scr.roof, neon: scr.neon, word: scr.word, tag: scr.tag });
+    const p = sunPlace({ W: scr.W, H: scr.H, HZ: scr.HZ, u: a.u, el, south: lat < 0, r: scr.base, block: block(scr.logo), buttons: scr.buttons, safeTop: scr.safeTop, noonEl: a.noonEl, season: a.season, prof: a.prof, roof: scr.roof, neon: scr.neon, word: scr.word, tag: scr.tag });
     out.push({ t, el, u: a.u, ...p, r: scr.base * sunShape(el).size });
   }
   return out;
