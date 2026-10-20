@@ -605,13 +605,21 @@ export function createTitle() {
     if (!els.root.dataset.pt) { els.root.dataset.pt = '1'; for (const k of ['no-bloom', 'no-ringbreath', 'no-shimmer', 'no-vars']) if (location.search.includes(k)) els.root.classList.add(k); }
     if (els.root.classList.contains('no-vars')) { els.root.classList.toggle('is-party', p.on > 0); return; }
     const on = p.on > 0;
-    if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on) { els.root.style.setProperty('--pe', '0'); els.root.style.setProperty('--psw', '0'); } }
+    if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on && partyEls) { for (const g of partyEls.glows) g.el.style.opacity = ''; partyEls = null; } }
     if (!on) return;
-    const st = els.root.style;
-    st.setProperty('--pb', p.breath.toFixed(3));   // (Reduced effects: the scene holds the breath at 0.5)
-    st.setProperty('--pe', (p.ramp * p.energy).toFixed(3));
-    st.setProperty('--psw', p.swell.toFixed(3));
+    // the numbers go on the three elements that breathe — never on the root: a custom property there is inherited by the whole
+    // title, and writing it every frame re-styled all of it (100 ms frames on a slow phone). (Reduced: the breath holds at 0.5.)
+    // (the rings breathe through their glow layer's opacity — a compositor change — never the registered --hk, whose 2.4 s
+    // transition restarted on every write and re-styled the whole ring)
+    if (!partyEls || !partyEls.bloom || !partyEls.bloom.isConnected) partyEls = { bloom: els.sign.querySelector('.nd-bloom'), glows: [...els.root.querySelectorAll('.nd-ringbtn')].map(r => ({ el: r.querySelector('.nd-hglow'), ring: r, k: r.classList.contains('nd-joinring') ? 0.46 : 0.62 })).filter(g => g.el), bo: -1, hk: -1 };
+    const pe = p.ramp * p.energy;
+    // the bloom holds a gentle level that moves with the party's phase and the finale's swell (the beat breathes in the canvas's
+    // halo under it): a big layer re-composited every frame cost a slow phone 60+ ms
+    const bo = Math.round((0.2 * pe + 0.6 * p.swell) * 50) / 50, hk = Math.round((1 + 0.34 * p.breath * pe + 0.5 * p.swell) * 50) / 50;
+    if (bo !== partyEls.bo && partyEls.bloom) { partyEls.bo = bo; partyEls.bloom.style.setProperty('--bo', bo); }
+    if (hk !== partyEls.hk) { partyEls.hk = hk; for (const g of partyEls.glows) g.el.style.opacity = g.ring.classList.contains('is-lit') ? String(Math.round(hk * g.k * 250) / 250) : ''; }
   }
+  let partyEls = null;
   function neonTick() {
     clearTimeout(neonT);
     if (destroyed || !scene || !tl || !tl.done) return;
@@ -1109,6 +1117,7 @@ export function createTitle() {
       neon: () => { const p = neonPlanV; return { stage: neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
       party: () => (scene ? scene.party() : null),
       rainbow: () => (scene && scene.rainbow ? scene.rainbow() : null),
+      street: () => (scene && scene.street ? scene.street() : null),
       finale: () => scene && scene.finale(),
       dock: {
         join: openJoin,

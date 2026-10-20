@@ -328,6 +328,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ THE STREET, Part 1 (Oct 20, 2026) — `docs/title.md`
+- [x] Seeded layout clear of the blade signs: lamps, trees beside their own lamps, the shelter, the stop light(s), the door spot
+- [x] Trees through the year (core/trees.js): leaf-out, the Easter cherry, summer, autumn turning per tree, Thanksgiving shedding, winter lights
+- [x] Wind sway + gusts, leaves falling only from the trees, piles and scattered leaves; fx.js's screen-wide leaves/petals/fireflies removed
+- [x] Buses (timetable, the stop, the owl, the party bus), the stop light + queues, car kinds, snowplows, golden-hour shadows
+- [x] The street's party night: lamps into the party colours, breathing, the chase, the midnight sequence
+- [x] Tests: street.test.mjs (10), e2e-street.mjs; shots.mjs street scenes + the street crop
+- Part 2 (next): THE SPEAKEASY'S DOOR, the cab hail
+
 ### ✅ RAINBOWS (Oct 20, 2026) — `docs/title.md`
 - [x] /api/sky: the past two hours of 15-minute precipitation → wetAt (when the rain really stopped); the device remembers it
 - [x] One appearance per rain (2–7 min after, 1–2 min in, 10–20 min, 2 min out), seeded so the area's phones agree

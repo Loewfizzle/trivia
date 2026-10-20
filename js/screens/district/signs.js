@@ -489,6 +489,8 @@ export function createSigns({ games: allGames = [] } = {}) {
   const api = {
     reset() { placedKey = ''; },
     count: () => signs.length,
+    /** THE STREET: where the blade signs hang (the street furniture keeps clear of their bottoms); key: changes when re-placed */
+    blades: () => ({ key: placedKey, list: signs.filter(s => s.type === 'blade').map(s => ({ x: s.sx, w: s.w, bottom: s.sy + s.h })) }),
     tick(t, dt, o) {
       env = { W: o.W, H: o.H, HZ: o.HZ };
       if (!games.length) return;

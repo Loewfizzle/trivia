@@ -1,7 +1,7 @@
 // LIVING CITY — the sky's moving parts and the city's seasonal dress, drawn into the district scene's canvas.
 //   back(c):  behind the skyline — the sun, the moon (real phase), aurora, shooting stars, fireworks, the sleigh
 //   mid(c):   on the near buildings — Christmas string lights, glowing window glyphs, the neon pumpkin / shamrock signs
-//   front(c): over everything — snow, petals, leaves, fireflies, bats
+//   front(c): over everything — snow, bats (leaves, petals, fireflies: the street's trees, district/furniture.js)
 // Particle counts are capped per quality tier; Reduced effects (motion 0) stops what moves (the palette still applies).
 // Rare moments (bats, the sleigh, single shooting stars) are scheduled with long, random gaps — or forced by the preview.
 
@@ -17,7 +17,7 @@ export function createFx() {
   const sprites = new Map();
   const sprite = (key, w, h, paint) => { let c = sprites.get(key); if (!c) { c = mk(w, h); paint(c.getContext('2d'), w, h); sprites.set(key, c); } return c; };
   const glow = (col, a = 1) => sprite(`g|${col}|${a}`, 64, 64, (x) => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, rgba(col, a)); g.addColorStop(0.35, rgba(col, a * 0.35)); g.addColorStop(1, rgba(col, 0)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); });
-  let snow = [], petals = [], leaves = [], flies = [], bats = null, meteors = [], sleigh = null;
+  let snow = [], bats = null, meteors = [], sleigh = null;
   const fwx = createFireworks();   // the holiday fireworks (fireworks.js: the same renderer as PARTY NIGHTS' finale)
   let nextBats = 60 + Math.random() * 120, nextSleigh = 90 + Math.random() * 300, nextRocket = 0;
   let witch = null, nextWitch = 45 + Math.random() * 90, trail = [], sleighTrail = [];
@@ -301,7 +301,7 @@ export function createFx() {
         c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       }
     },
-    /** over everything: snow, petals, leaves, fireflies, bats */
+    /** over everything: snow, bats */
     front(c, s) {
       const { L, t, dt, tier, motion } = s;
       const cap = CAPS[tier];
@@ -332,25 +332,9 @@ export function createFx() {
         }
         c.globalAlpha = 1;
       }
-      // spring petals, autumn leaves: a few at a time, tumbling across
-      const season = L.season, hol = L.holiday;
-      const petalsWant = motion ? Math.round(cap.petals * clamp01((season.spring - 0.4) / 0.4 + (hol && hol.id === 'easter' && hol.full ? 0.6 : 0))) : 0;
-      const leavesWant = motion ? Math.round(cap.leaves * clamp01((season.autumn - 0.4) / 0.4 + (hol && hol.id === 'thanksgiving' && hol.full ? 0.6 : 0))) : 0;
-      tumble(c, petals, petalsWant, t, sec, (x) => { x.fillStyle = 'rgba(255,190,214,0.9)'; x.beginPath(); x.ellipse(0, 0, 4, 2.3, 0, 0, TAU); x.fill(); x.fillStyle = 'rgba(255,240,246,0.7)'; x.beginPath(); x.ellipse(-1, -0.4, 1.8, 0.8, 0, 0, TAU); x.fill(); }, 0.6);
-      tumble(c, leaves, leavesWant, t, sec, (x, f) => { x.fillStyle = f.col; x.beginPath(); x.moveTo(0, -5); x.quadraticCurveTo(5, -1, 0, 6); x.quadraticCurveTo(-5, -1, 0, -5); x.fill(); x.strokeStyle = 'rgba(80,30,10,0.5)'; x.lineWidth = 0.6; x.beginPath(); x.moveTo(0, -4); x.lineTo(0, 5); x.stroke(); }, 0.72);
-      // fireflies on warm summer nights, low over the street
-      const fliesWant = Math.round(cap.flies * clamp01((season.summer - 0.4) / 0.4) * clamp01(dark * 1.4) * (L.rain ? 0 : 1));
-      while (flies.length < fliesWant) flies.push({ x: Math.random() * W, y: HZ - 10 + Math.random() * (H - HZ) * 0.5, ph: Math.random() * TAU, sp: 0.5 + Math.random() });
-      if (flies.length > fliesWant) flies.length = fliesWant;
-      if (flies.length) {
-        c.globalCompositeOperation = 'lighter';
-        for (const f of flies) {
-          if (motion) { f.x += Math.sin(t * f.sp + f.ph) * 8 * sec; f.y += Math.cos(t * f.sp * 0.7 + f.ph) * 5 * sec; }
-          const b = Math.max(0, Math.sin(t * 1.3 * f.sp + f.ph));
-          c.globalAlpha = 0.75 * b * b; c.drawImage(glow([210, 255, 120]), f.x - 7, f.y - 7, 14, 14);
-        }
-        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-      }
+      // (THE STREET, Oct 2026: the screen-wide tumbling petals and leaves and the street-wide fireflies are gone — leaves and petals
+      // fall only from the street's trees and fireflies stay by them: district/furniture.js. Nothing seasonal crosses the sky.)
+      const hol = L.holiday;
       // bats (Halloween): a small flock every few minutes, rim-lit in neon
       if (motion && ((hol && hol.id === 'halloween' && hol.full) || s.force.has('bats'))) {
         nextBats -= sec;
@@ -414,21 +398,9 @@ export function createFx() {
       }
       return null;
     },
-    debug: () => ({ ufo: ufo ? ufo.st : null, cat: cat ? (cat.at ? 'here' : 'placed') : null, snow: snow.length, petals: petals.length, leaves: leaves.length, flies: flies.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sleigh: !!sleigh, lights: lights ? lights.length : 0, sparks: fwx.count() }),
+    debug: () => ({ ufo: ufo ? ufo.st : null, cat: cat ? (cat.at ? 'here' : 'placed') : null, snow: snow.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sleigh: !!sleigh, lights: lights ? lights.length : 0, sparks: fwx.count() }),
     destroy() { for (const c of sprites.values()) { c.width = 0; c.height = 0; } sprites.clear(); },
   };
-
-  function tumble(c, list, want, t, sec, paint, sz) {
-    while (list.length < want) list.push({ x: -20 - Math.random() * W * 0.5, y: Math.random() * H * 0.8, vx: 30 + Math.random() * 40, vy: 14 + Math.random() * 18, r: Math.random() * TAU, vr: (Math.random() - 0.5) * 3, ph: Math.random() * TAU, col: ['#e0702a', '#c8401c', '#e8a33a', '#b8571e'][Math.floor(Math.random() * 4)] });
-    if (list.length > want) list.length = want;
-    for (const f of list) {
-      f.x += f.vx * sec; f.y += (f.vy + Math.sin(t * 1.4 + f.ph) * 16) * sec; f.r += f.vr * sec;
-      if (f.x > W + 20 || f.y > H + 20) { f.x = -20; f.y = Math.random() * H * 0.6; }
-      c.save(); c.translate(f.x, f.y); c.rotate(f.r); c.scale(sz * (0.8 + 0.4 * Math.abs(Math.sin(t + f.ph))), sz);
-      c.globalAlpha = 0.85; paint(c, f); c.restore();
-    }
-    c.globalAlpha = 1;
-  }
 
   // ---------------------------------------------------------------- Christmas lights, baked
   function bakeLights(g, count) {

@@ -511,7 +511,7 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
  *  overcast|drizzle|sleet|clear sets the weather (instead of the live weather); &at=42.96,-85.67 puts the sun, moon and stars
  *  over that place instead of the time zone's city (with clear weather unless &wx= says otherwise); &rained=12 says the rain
  *  stopped 12 minutes before the clock's start (RAINBOWS: the real after-rain path, core/rainbow.js; &force=rainbow,rainbow2,
- *  moonbow,neonbow show one at once). Normal players never pass these. */
+ *  moonbow,neonbow show one at once); &wind=<m/s> sets the wind (THE STREET). Normal players never pass these. */
 export function skyClock(search = (typeof location !== 'undefined' ? location.search : '')) {
   const q = new URLSearchParams(search || '');
   const tz = q.get('tz') || deviceZone();
@@ -520,7 +520,9 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
   const at = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(q.get('at') || '');
   const place = at && Math.abs(+at[1]) <= 90 && Math.abs(+at[2]) <= 180 ? { lat: +at[1], lon: +at[2] } : null;
   const rained = q.get('rained') != null && q.get('rained') !== '' && Number.isFinite(Number(q.get('rained'))) ? Number(q.get('rained')) : null;
-  const wx = q.get('wx') || place || rained != null ? { ...forcedWeather(q.get('wx') || 'clear'), forced: true, ...(place || {}) } : null;
+  // &wind=12: the wind in m/s (THE STREET: the trees' sway, gusts, the falling leaves)
+  const windQ = q.get('wind') != null && Number.isFinite(Number(q.get('wind'))) ? Math.max(0, Number(q.get('wind'))) : null;
+  const wx = q.get('wx') || place || rained != null || windQ != null ? { ...forcedWeather(q.get('wx') || 'clear'), forced: true, ...(place || {}), ...(windQ != null ? { wind: windQ } : {}) } : null;
   let base = null;
   if (when) {
     // the wall time is in tz: find the UTC instant whose local time in tz matches

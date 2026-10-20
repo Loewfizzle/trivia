@@ -119,6 +119,11 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
   - The E2E harness uses `puppeteer-core` with a locally installed Chrome/Edge (no browser download).
+  - THE STREET E2E: `ONLY=layout,lamps,trees,bus,signal,cars,plow,shadows,wind,party,reduced,perf node e2e-street.mjs "<browser path>" ./shots-street`
+    (env `SHOTS=0 CPU=4`; ~7 min) — the layout at 390 / 412 / 1440 (pairs, clear of the blades, the door spot), the photocells at
+    sunset, the trees by season, the bus at the shelter + its timetable + the owl, queues at red, flashing yellow, the car mix,
+    plows only in snow, golden-hour shadows, wind + fallen leaves, the party lamps + chase + party bus + the midnight sequence,
+    Reduced effects, pacing of a rainy party peak with the bus.
   - RAINBOWS E2E: `ONLY=trigger,choice,fade,sun,place,neon,reduced,flags,perf,media node e2e-rainbow.mjs "<browser path>" ./shots-rainbow`
     (env `SHOTS=0 CPU=4`; no rooms, ~4 min, media adds ~3) — the after-rain trigger through `&rained=` (just ended / still raining /
     dry / an hour later / overcast), which bow by time, moon, party and ALWAYS NIGHT, the fades (in, out, the neon powering off at

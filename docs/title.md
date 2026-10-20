@@ -259,6 +259,80 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   "THE NEON COMES ALIVE" (day, ramp, the catch with its one sound, the city answering, the morning, storms, reload, the intro
   mid-ramp, a letter tap mid-ramp, ALWAYS NIGHT, Reduced effects).
 
+## THE STREET, Part 1 (Oct 20, 2026) — `core/trees.js`, `core/street-life.js` (PURE), `district/furniture.js`, `district/street.js`
+The street strip at the towers' feet comes alive. It stays small, darker than the buildings and quieter than the sign, the
+tagline and the dock's rings. On a portrait phone, light, colour and motion carry it (a bus is ~14 pt tall); shapes are dark
+silhouettes baked into sprites, and only lights and moving things redraw. The furniture is its own layer (`furniture.js`: the
+lobby will stand guests in front of it).
+- **Layout** (`streetLayout`, seeded, stable per size): a phone gets 3–4 lamps, 2–3 trees, one bus shelter (a glass box with a
+  softly lit ad panel and a slim stop sign) and one stop light; a wide screen about twice the lamps and trees, the shelter near
+  the middle and two stop lights. Spacing is uneven but never bunched. Everything stands on the sidewalk line (HZ), clear of the
+  blade signs whose bottoms come down within a lamp's height. At 390 those leave the gaps 0–53 / 83–272 / 302–390 pt (the
+  scene reads the real rects: `signs.blades()`). The stop light sits in the right third, its pole clear of the blade, and its
+  wet-street glow stops ~30 pt above the dock (the owner's call, Oct 20: right third with a short glow; `&force=signal-middle`
+  puts it right of the middle instead). A clear spot near the middle is kept for THE SPEAKEASY'S DOOR (Part 2). The layout waits
+  for the signs to be placed and fades in over ~1 s.
+- **Trees + lamps as pairs:** every tree stands beside its own lamp, the trunk 10–16 pt from the post on the side the arm
+  reaches, the head 9 pt above the canopy's near edge (SIZE: lamp 44, canopy 30–34 × 26, trunk 9, all × K). The posts are drawn
+  in front of the leaves. The light falls down through the canopy's top and across its lamp-facing half (a baked lit sprite +
+  the same mask in three colour channels, so any lamp colour can tint it in three additive draws). The bus-shelter tree is one
+  of the pairs, the shelter on its far side.
+- **Trees through the year** (`treeState`, per-tree offsets of a few days; the south shifts half a year): winter bare
+  (fine branching that still reads; snow settles on it while it snows; warm string lights at the tips from Thanksgiving through
+  Jan 6, never blinking); spring buds, then a fresh light-green leaf-out; one cherry (two on desktop) with about two weeks of
+  pale pink blossom fullest around Easter, shedding its petals, then green; summer full and deep green, fireflies only by the
+  trees on warm evenings; autumn turns gradually and differently (each tree's end colour takes turns: gold, orange, red), thins
+  through November, sheds most in Thanksgiving week, bare by December. Halloween week: a few orange / purple bulbs on one tree.
+  Canopies are a few deep lobes under small leaf clusters, re-baked only when `treeKey` changes; by day lit from the real sun's
+  side (left in the morning, right in the evening), at night the season's colour, dark, never black.
+- **Wind and leaves:** the canopies sway with the live wind (`&wind=` in previews), almost still when calm. Gusts (every
+  10–25 s in a breeze) lean the row together, rippling left to right, and spring back. Leaves and petals fall only from the trees, at
+  the tree's shed rate × the wind, flaring as they pass through their lamp's light. They drift with the real wind direction
+  (from the west → left), lift a little in a gust but never up the skyline, and settle on the sidewalk and the street (capped).
+  Small piles build at the trees' feet; on windy days a few skitter across the street. Rain darkens them, snow covers them,
+  winter clears them. fx.js's screen-wide tumbling leaves / petals and street-wide fireflies are gone.
+- **Lamps:** slim dark iron posts with a short arm and a warm head: a soft halo (wider in fog), a downward cone, a pool on the
+  sidewalk, a broken streak in the wet street (stronger in rain). Photocells (`lampLit`): on one by one as the sun drops
+  through ~1.5° … −0.3° (before the neon catch), off one by one after sunrise (~0.5° … 2.3°). ALWAYS NIGHT: on.
+- **Buses** (`busGap` / `busSlot` on the clock): every 5 min at rush hour, 8 by day, 11 in the evening, the near-empty
+  "N1 NIGHT OWL" every 26 min around 1 am, none 2–5 am. At most one on screen; a bus that comes due meanwhile waits its turn.
+  Size: about twice a car's height (the owner's call, Oct 20). Warm windows with rider silhouettes, a headlight, tail and brake
+  lights, an amber LED route sign scrolling softly ("12 UPTOWN"…; rarely "LAST CALL" / "NOT IN SERVICE"), its window band in
+  the wet street; by day a blue-and-white livery with a gold stripe. It's the only vehicle that pulls over: it eases in at the
+  shelter, waits 5 s and pulls away. It obeys the stop light.
+- **The stop light** (`signalAt`): green 20 s, yellow 3 s, red 20 s (seeded phase; a second light offset 9 s); flashing
+  yellow ~1–5 am. A mast arm over the road, a three-lamp head, a small pedestrian signal (orange hand / white walker). Its colour
+  glows and streaks in the wet street, and keeps its real colours on party nights. The near lane slows and queues before it
+  on red (brake lights) and pulls away on green; the far lane flows (cars follow each other at a safe gap).
+- **Car variety** (`carKind` by the hour): sedans, SUVs, compacts, vans, pickups, box trucks (a row of amber marker lights),
+  motorcycles (one headlight, quicker), cabs (roof sign), very rarely a 1920s car with round headlights. Headlights warm halogen
+  or cool LED; real car colours by day. More vans and trucks in the morning, more cabs at night.
+- **Snowplows** (`plowDue`: live snow ≥ 0.2 only): an orange truck with a blade, a slow amber beacon (the part that reads), a
+  curl of snow off the blade, salt sparkling behind, and a darker wet lane that fades over ~90 s. No siren.
+- **Golden hour:** the low sun's warm light rakes across the sidewalk and the street, and the trees, posts, the shelter, the
+  stop light and the bus throw long soft shadows across it. They point away from the real sun (evening: left, morning: right),
+  stretch as it drops (1/tan(elevation)) and fade as it sets, under cloud or in rain.
+- **The street's party night** (inside PARTY NIGHTS' window and phases): the lamps shift one by one into the party's colours in
+  the warm-up (only colours that read against warm white) and ease back by 2 am. At the peak they breathe on the beat (±38 %),
+  and their pools, streaks and trees take the colour. THE CHASE: on the first beat of every 8 at the peak a wave of brightness
+  runs lamp to lamp, alternating directions. Underglow rises from ~35 % to ~50 % of the cars, and the cabs' roof signs glow. The
+  PARTY BUS (most party-night buses) has neon trim in the palette, windows pulsing on the beat and a sign like "PARTY EXPRESS".
+  At midnight every lamp flashes in sequence toward the middle, just before the finale. Reduced effects: steady colours, no
+  chase, no breathing.
+- **Weather + holidays:** rain strengthens the reflections, fog widens the halos, and snow settles on the branches, the
+  shelter's roof and the bus roof.
+- **Tiers:** tier 1 drops the leaves skittering and halves the falling leaves; tier 0 has no falling leaves, sway or chase
+  (and the traffic keeps its old caps). At 4× CPU in software Chrome a rainy party peak with the bus costs the same with and
+  without the street (the suite measures both in one browser; absolute numbers there move with the machine — the pacing gates
+  compare against a plain scene measured alongside, after a warm-up page: a fresh browser's first page runs slow for ~10 s).
+- **Previews:** `&force=bus,partybus,owl,red,green,gust,shed,blossom,lights,chase,plow,moto,truck,vintage`, `&wind=<m/s>`,
+  seasons via `?when=`, the party via `&force=party`, snow via `&wx=snow`; `&speed=` speeds the timetables, the signal, the
+  photocells, shedding and plows (and the traffic up to 3×). Test-only: `&force=no-street`, `signal-middle`, `no-st-trees|no-st-lamps|no-st-ground|no-st-front` (pacing bisects). Looks:
+  `shots.mjs --scenes blossom,summer,autumn,autumn-night,winter,plow,owl,day-bus,golden,street-party,street-rain --crop street`.
+  Hook: `__district.street()`.
+- **Tests:** `tests/street.test.mjs` (trees by date incl. the south, Thanksgiving, Easter, the lights; the layout rules at three
+  phone sizes + desktop; the bus timetable; the signal; the car mix; plows; the photocells); `tests/integration/e2e-street.mjs`.
+
 ## RAINBOWS (Oct 20, 2026) — `core/rainbow.js` (PURE), `district/rainbow.js`, `/api/sky`'s wetAt
 After REAL rain only: a daytime rainbow, a moonbow on ordinary nights, a neon rainbow on PARTY NIGHTS. Rare by nature: the rain
 has to stop where the player is, and the sky has to allow it.
@@ -318,12 +392,14 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
   beat above (never more than ~1.4 breaths / s); the swell rises over the last 14 % of a beat, peaks on it and relaxes
   (`breathShape`). The clock eases its rate (~2 s) and nudges its phase toward the song's — no jump; without a song (before the
   first tap, music off / muted, CLASSIC, a song loading) it breathes once every 3.5 s and eases back the same way.
-- **What breathes:** the logo (a soft bloom of the sign's colour behind the letters, `.nd-bloom`, + the canvas halo — never the
-  SVG's own blurred glow layers: changing those re-ran the filters every frame), SPEAKEASY's outer glow, both rings together
-  (`--hk` from `--pb`), the buildings' neon trims (a beat rippling out through the rows, the near row first), the party windows'
-  bloom, the wet street's reflection. The small icons and the corner buttons stay steady. The scene drives it: `partyTick` →
-  `S.onParty(PT)` → `title.js#partyFrame` writes `--pb` (the breath), `--pe` (energy, 0 until the start wave has passed), `--psw`
-  (the finale's swell) on the title root, once a frame.
+- **What breathes:** the logo (the canvas halo on the beat; the soft DOM bloom of the sign's colour behind the letters,
+  `.nd-bloom`, holds a gentle level that moves only with the phase and the finale's swell — never the SVG's own blurred glow
+  layers: changing those re-ran the filters every frame), SPEAKEASY's outer glow, both rings together (their `.nd-hglow`'s
+  opacity), the buildings' neon trims (a beat rippling out through the rows, the near row first), the party windows' bloom, the
+  wet street's reflection. The small icons and the corner buttons stay steady. The scene drives it: `partyTick` →
+  `S.onParty(PT)` → `title.js#partyFrame` writes `--bo` on the bloom and the rings' glow opacity, only when they change (Oct 21:
+  never a custom property on the title root — it's inherited by the whole title, and writing it each frame re-styled all of it;
+  nor the registered `--hk`, whose 2.4 s transition restarted on every write).
 - **SPEAKEASY** is real neon on party nights: `.nd-word-g` (a white-hot core in the sign's colour, layered glow via `--pc/--pcb/
   --pcc` from the sign's first letter, set by `title-dock.js#ringColors`) with a shimmer of light sweeping the letters every
   6.5 s (`.nd-word-s`, its own compositor layer). Plain white the rest of the time.

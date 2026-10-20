@@ -7,11 +7,13 @@
 //   traffic(c, s)       on the street at the towers' feet: headlights one way, tail lights the other, their light pooled and
 //                       streaked on the wet street; by day small cars catching the light. The flow follows the clock: the
 //                       morning and evening rush, a stray cab at 3 am.
-// Force in a preview: &force=train,steam,rush.
+// Force in a preview: &force=train,steam,rush (THE STREET: bus,partybus,owl,plow,moto,truck,vintage; docs/title.md).
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
+import { busGap, busSlot, busRoute, isOwlHour, carKind, plowDue } from '../../core/street-life.js';
+
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 /** PURE: how busy the streets are at a local hour (0..1): the morning and evening rush, a quiet small hours. */
@@ -58,8 +60,170 @@ export function createStreet() {
     return cv;
   }
 
+  // ---------------------------------------------------------------- THE STREET: vehicles (shape height + light: paint doesn't read at night)
+  let busDue = false;
+  let bus = null, lastBusT = -99, lastSlot = null, lastPlow = null, busN = 0, plowLanes = [], flakes = [];
+  const DAYCOL = [[236, 238, 242], [178, 184, 192], [110, 116, 126], [26, 28, 34], [34, 64, 122], [150, 30, 36], [36, 74, 52], [196, 178, 140], [92, 96, 120]];
+  // [length, height, roof width, roof height] in K at full size
+  const DIM = { sedan: [13, 4.2, 0.56, 0.7], compact: [10.5, 4, 0.6, 0.75], suv: [13.5, 5.6, 0.72, 0.55], van: [14, 7, 0, 0], pickup: [14, 4.4, 0.36, 0.85], truck: [19, 8.6, 0, 0], moto: [6, 3.2, 0, 0], cab: [13, 4.2, 0.56, 0.7], vintage: [13, 4.6, 0.5, 0.8], plow: [17, 8, 0, 0] };
+  function spawnCar(hr, party, peak, force, kindIn) {
+    let kind = kindIn || carKind(Math.random(), hr, { party: !!party });
+    if (!kindIn) for (const f of ['moto', 'truck', 'vintage']) if (force.has(f) && Math.random() < 0.5) kind = f;
+    const lane = kind === 'plow' ? 1 : Math.random() < 0.5 ? 0 : 1;   // 0: the far lane (going right), 1: the near lane (going left)
+    const dir = lane === 0 ? 1 : -1, sc = lane === 0 ? 0.85 : 1;
+    const d = DIM[kind];
+    const pal = party && party.palette ? party.palette : null;
+    const under = kind !== 'plow' && kind !== 'truck' && pal && Math.random() < (0.35 + 0.15 * peak) * party.ramp ? pal[Math.floor(Math.random() * pal.length)] : null;
+    const cruise = (kind === 'plow' ? 24 : kind === 'moto' ? 70 + Math.random() * 25 : kind === 'truck' ? 38 + Math.random() * 12 : 40 + Math.random() * 30) * K * sc;
+    cars.push({ kind, lane, dir, sc, x: dir > 0 ? -40 * K : W + 40 * K, sp: cruise, cruise, len: d[0] * K * sc, h: d[1] * K * sc, cab: kind === 'cab', under, led: Math.random() < 0.4, col: kind === 'vintage' ? (Math.random() < 0.5 ? [92, 22, 30] : [24, 62, 44]) : DAYCOL[Math.floor(Math.random() * DAYCOL.length)], ph: Math.random() * TAU, beacon: Math.random() * TAU });
+  }
+  function spawnBus(hr, party, force) {
+    busN++; lastBusT = performance.now() / 1000;
+    const owl = force.has('owl') || isOwlHour(hr);
+    const isParty = force.has('partybus') || (!!party && party.ramp > 0.3 && Math.random() < 0.8);
+    const sc = 0.92, len = 36 * K * sc, h = 13.5 * K * sc;
+    const nWin = 7;
+    bus = { kind: 'bus', lane: 0, dir: 1, sc, x: -len, sp: 36 * K, cruise: 36 * K, len, h, state: 'drive', dwell: 0, owl, party: isParty,
+      route: busRoute(busN, { party: isParty, owl }), riders: Array.from({ length: nWin }, () => Math.random() < (owl ? 0.15 : isParty ? 0.85 : 0.55)), nWin, scroll: 0 };
+  }
+  // the amber LED destination sign: its text baked once per route, scrolled softly in the sign's window
+  const signCache = new Map();
+  function destSign(text) {
+    let s = signCache.get(text);
+    if (!s) { s = mk(text.length * 7 + 40, 12); const x = s.getContext('2d'); x.font = 'bold 9px "JetBrains Mono", monospace'; x.fillStyle = '#ffb02e'; x.textBaseline = 'middle'; x.fillText(text, 20, 6.5); signCache.set(text, s); }
+    return s;
+  }
+  function lights(c, x, y, col, a, r) { c.globalAlpha = a; c.drawImage(glow(col), x - r, y - r, r * 2, r * 2); }
+  function drawCar(c, v, s, dark, wet, party, streak) {
+    const { t } = s;
+    const y = HZ + (v.lane === 0 ? 3.2 : 7.6) * K, sc = v.sc, bw = v.len, bh = v.h, x = v.x;
+    const night = dark > 0.5, body = v.cab ? (night ? 'rgba(60,46,10,0.92)' : 'rgba(214,170,40,0.96)') : night ? 'rgba(10,10,20,0.93)' : `rgba(${v.col.join(',')},0.96)`;
+    const d = DIM[v.kind];
+    c.fillStyle = body;
+    if (v.kind === 'moto') {
+      c.fillRect(x - bw / 2, y - bh * 0.55, bw, bh * 0.4);                                          // the bike
+      c.fillStyle = night ? 'rgba(14,14,24,0.95)' : 'rgba(40,40,52,0.95)'; c.fillRect(x - bw * 0.12, y - bh * 1.5, bw * 0.24, bh);   // the rider
+    } else if (v.kind === 'van' || v.kind === 'truck' || v.kind === 'plow') {
+      const cabW = v.kind === 'van' ? bw : bw * 0.3, boxH = v.kind === 'van' ? bh : bh;
+      if (v.kind !== 'van') { c.fillStyle = v.kind === 'plow' && !night ? 'rgba(232,124,26,0.97)' : night ? 'rgba(12,12,22,0.94)' : 'rgba(226,228,232,0.97)'; c.fillRect(x - bw / 2 + (v.dir > 0 ? 0 : cabW), y - boxH, bw - cabW, boxH); c.fillStyle = v.kind === 'plow' && !night ? 'rgba(232,124,26,0.97)' : body; }
+      c.fillRect(v.dir > 0 ? x + bw / 2 - cabW : x - bw / 2, y - (v.kind === 'van' ? bh : bh * 0.78), cabW, v.kind === 'van' ? bh : bh * 0.78);
+      if (v.kind === 'plow') { c.fillStyle = night ? 'rgba(40,36,20,0.95)' : 'rgba(250,200,40,0.97)'; c.beginPath(); const fx = x + v.dir * bw / 2; c.moveTo(fx, y); c.lineTo(fx + v.dir * 3.4 * K, y); c.lineTo(fx + v.dir * 1.6 * K, y - bh * 0.55); c.lineTo(fx, y - bh * 0.5); c.fill(); }
+    } else {
+      c.fillRect(x - bw / 2, y - bh, bw, bh);
+      if (d[2]) { const rx = v.kind === 'pickup' ? (v.dir > 0 ? x + bw * 0.08 : x - bw * 0.44) : x - bw * d[2] / 2; c.fillRect(rx, y - bh * (1 + d[3]), bw * d[2], bh * d[3] + 0.5); }
+    }
+    if (!night && v.kind !== 'moto') {
+      c.fillStyle = 'rgba(214,226,244,0.62)';
+      if (v.kind === 'van') c.fillRect(x - bw * 0.42, y - bh * 0.92, bw * 0.84, bh * 0.28);
+      else if (d[2]) c.fillRect(x - bw * d[2] * 0.42 + (v.kind === 'pickup' ? (v.dir > 0 ? bw * 0.26 : -bw * 0.26) : 0), y - bh * (1 + d[3] * 0.85), bw * d[2] * 0.84, bh * d[3] * 0.4);
+      c.fillStyle = 'rgba(12,12,18,0.9)'; c.fillRect(x - bw * 0.36, y - 0.9 * K, 2.2 * K * sc, 1.2 * K); c.fillRect(x + bw * 0.36 - 2.2 * K * sc, y - 0.9 * K, 2.2 * K * sc, 1.2 * K);   // the wheels
+    }
+    if (dark > 0.2) {
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const front = x + v.dir * bw * 0.5, back = x - v.dir * bw * 0.5, ly = y - bh * 0.55;
+      const head = v.kind === 'vintage' ? [255, 214, 150] : v.led ? [226, 238, 255] : [255, 232, 194];
+      // headlights face the way it goes: we see the near lane's fronts and the far lane's backs (+ brake lights when stopping)
+      if (v.lane === 1) {
+        const r = (v.kind === 'vintage' ? 6.2 : 5) * sc;
+        lights(c, front, ly, head, dark * 0.95, r);
+        if (v.kind !== 'moto') lights(c, front - v.dir * 3 * K * sc, ly, head, dark * 0.95, r);
+        c.globalAlpha = 0.25 * dark; c.drawImage(glow(head), front + (v.dir > 0 ? 0 : -46 * K), y - 6, 46 * K, 9);
+        lights(c, back, ly, [255, 40, 60], dark * (v.brake ? 0.85 : 0.25), (v.brake ? 4.6 : 3) * sc);
+        if (streak) streak(front, 7 * sc, (H - HZ) * 0.35 * wet, v.led ? '#e2eeff' : '#fff1d6', 0.16 * dark * wet, t, v.ph);
+      } else {
+        const r = 5 * sc * (v.brake ? 1.2 : 1);
+        lights(c, back, ly, [255, 40, 60], dark * (v.brake ? 1 : 0.8), r);
+        if (v.kind !== 'moto') lights(c, back + v.dir * 3.2 * K * sc, ly, [255, 40, 60], dark * (v.brake ? 1 : 0.8), r);
+        if (streak) streak(back, 7 * sc, (H - HZ) * 0.35 * wet, '#ff3046', (v.brake ? 0.18 : 0.12) * dark * wet, t, v.ph);
+      }
+      if (v.kind === 'truck') for (let k = 0; k < 5; k++) lights(c, x - bw * 0.4 + k * bw * 0.2, y - bh - 0.4 * K, [255, 170, 40], dark * 0.85, 2.2 * K * sc);   // the amber marker row
+      if (v.cab) lights(c, x, y - bh * 1.9, [255, 214, 90], dark * (party ? 1 : 0.8), (party ? 4.2 : 3) * sc);
+      if (v.under && party) { const ug = 0.36 * dark * party.ramp * (0.7 + 0.3 * party.breath); c.globalAlpha = ug; c.drawImage(glow(v.under), x - bw * 0.9, y - bh * 0.9, bw * 1.8, bh * 1.8); if (streak) streak(x, bw * 0.9, (H - HZ) * 0.22 * wet, `rgb(${v.under.join(',')})`, ug * 0.5, t, v.ph + 1); }
+      c.restore();
+    }
+    // the plow: a slow amber beacon (the part that reads), a curl of snow off the blade, salt sparkling behind, a darker wet lane
+    if (v.kind === 'plow') {
+      v.beacon += s.dt / 1000 * 4.2;
+      const k = Math.pow(Math.max(0, Math.sin(v.beacon)), 3);
+      c.save(); c.globalCompositeOperation = 'lighter';
+      lights(c, x + v.dir * bw * 0.38, y - bh * 0.78 - 1.2 * K, [255, 168, 30], 0.35 + 0.65 * k, (3 + 7 * k) * K);
+      if (streak) streak(x + v.dir * bw * 0.38, 5 * K, (H - HZ) * 0.3 * wet, '#ffa81e', 0.12 * k, s.t, v.ph);
+      c.restore();
+      if (s.motion && Math.random() < 0.7) flakes.push({ x: x + v.dir * (bw / 2 + 2.5 * K), y: y - 1.5 * K, vx: v.dir * (8 + Math.random() * 14) * K, vy: -(10 + Math.random() * 10) * K, life: 0, max: 0.6 + Math.random() * 0.4, salt: false });
+      if (s.motion && Math.random() < 0.5) flakes.push({ x: x - v.dir * bw / 2, y: y - 0.6 * K, vx: -v.dir * (2 + Math.random() * 6) * K, vy: (Math.random() - 0.5) * 3 * K, life: 0, max: 0.5 + Math.random() * 0.5, salt: true });
+      let pl = plowLanes.find(p => p.v === v); if (!pl) { pl = { v, x0: x, x1: x, age: 0 }; plowLanes.push(pl); }
+      pl.x0 = Math.min(pl.x0, x); pl.x1 = Math.max(pl.x1, x); pl.age = 0;
+    }
+  }
+  function drawPlowLane(c, s, sec) {
+    // the wet lane it leaves behind, fading as the snow falls again; the snow curl and the salt
+    for (const p of plowLanes) { p.age += sec; c.fillStyle = `rgba(4,6,14,${0.28 * Math.max(0, 1 - p.age / 90)})`; c.fillRect(Math.max(0, p.x0), HZ + 5.4 * K, Math.min(W, p.x1) - Math.max(0, p.x0), 4.6 * K); }
+    plowLanes = plowLanes.filter(p => p.age < 90);
+    flakes = flakes.filter(f => { f.life += sec; if (f.life > f.max) return false; f.vy += 40 * K * sec; f.x += f.vx * sec; f.y += f.vy * sec; const a = 1 - f.life / f.max; c.fillStyle = f.salt ? `rgba(255,255,255,${0.7 * a * (Math.random() < 0.5 ? 1 : 0.3)})` : `rgba(236,242,255,${0.85 * a})`; c.fillRect(f.x, f.y, f.salt ? 0.6 : 1.2 * K, f.salt ? 0.6 : 1.2 * K); return true; });
+    if (flakes.length > 80) flakes.splice(0, flakes.length - 80);
+  }
+  function drawBus(c, b, s, dark, wet, party, info, streak) {
+    const { t } = s;
+    const y = HZ + 3.2 * K, x = b.x, L2 = b.len, h = b.h, x0 = x - L2 / 2, top = y - h;
+    const night = dark > 0.5;
+    // the body: a clean two-tone transit livery by day, a dark shape between its lights at night
+    c.fillStyle = night ? 'rgba(12,14,26,0.96)' : 'rgba(232,238,245,0.98)'; c.fillRect(x0, top, L2, h);
+    if (!night) { c.fillStyle = 'rgba(30,78,140,0.98)'; c.fillRect(x0, top + h * 0.6, L2, h * 0.4); c.fillStyle = 'rgba(236,180,40,0.95)'; c.fillRect(x0, top + h * 0.56, L2, h * 0.05); }
+    c.fillStyle = night ? 'rgba(6,6,12,1)' : 'rgba(14,14,20,0.95)'; c.fillRect(x0 + L2 * 0.16, y - 1.2 * K, 3 * K, 1.6 * K); c.fillRect(x0 + L2 * 0.78, y - 1.2 * K, 3 * K, 1.6 * K);   // the wheels
+    // the row of windows: warm and lit after dark (a few riders), glass by day; the party bus pulses in the party's colours
+    const wy = top + h * 0.16, wh = h * 0.34, ww = (L2 * 0.78) / b.nWin, wx0 = x0 + L2 * 0.06;
+    const pal = b.party && party && party.palette ? party.palette : null;
+    const beat = pal ? 0.6 + 0.5 * party.breath : 1;
+    c.save();
+    for (let i = 0; i < b.nWin; i++) {
+      const wx = wx0 + i * ww;
+      if (night || dark > 0.25) {
+        const col = pal ? pal[(i + (party.bar || 0)) % pal.length] : [255, 222, 166];
+        c.fillStyle = `rgba(${col.map(v => Math.round(v * (pal ? 0.9 : 1))).join(',')},${Math.min(1, (b.owl ? 0.7 : 0.9) * beat * Math.max(dark, 0.4))})`;
+      } else c.fillStyle = 'rgba(70,96,128,0.92)';
+      c.fillRect(wx + 0.4 * K, wy, ww - 0.8 * K, wh);
+      if (b.riders[i]) { c.fillStyle = night ? 'rgba(20,14,22,0.85)' : 'rgba(30,36,48,0.7)'; c.beginPath(); c.arc(wx + ww * 0.5, wy + wh * 0.42, 0.9 * K, 0, TAU); c.fill(); c.fillRect(wx + ww * 0.5 - 1.3 * K, wy + wh * 0.62, 2.6 * K, wh * 0.38); }
+    }
+    // the amber LED destination sign up front, scrolling softly
+    const sx = x + L2 / 2 - 9 * K, sy = top + 0.8 * K, sw = 8 * K, sh = 2.2 * K;
+    c.fillStyle = 'rgba(10,8,6,0.95)'; c.fillRect(sx, sy, sw, sh);
+    b.scroll += s.dt / 1000 * 9;
+    const sp = destSign(b.route), win = sw / sh * 12, off = (b.scroll % (sp.width + 0)) ;
+    c.save(); c.beginPath(); c.rect(sx, sy, sw, sh); c.clip();
+    c.globalAlpha = 0.95; c.drawImage(sp, off, 0, win, 12, sx, sy, sw, sh);
+    if (off + win > sp.width) c.drawImage(sp, 0, 0, off + win - sp.width, 12, sx + sw * (sp.width - off) / win, sy, sw * (off + win - sp.width) / win, sh);
+    c.restore();
+    // the party bus: neon trim along its body in the party's colours
+    if (pal) {
+      c.globalCompositeOperation = 'lighter';
+      const g = c.createLinearGradient(x0, 0, x0 + L2, 0); pal.forEach((col, i) => g.addColorStop(i / Math.max(1, pal.length - 1), `rgba(${col.join(',')},1)`));
+      c.globalAlpha = 0.9 * Math.max(0.5, dark) * beat; c.fillStyle = g; c.fillRect(x0, top + h * 0.56, L2, 0.9 * K); c.fillRect(x0, top - 0.2 * K, L2, 0.7 * K);
+      c.globalAlpha = 0.35 * dark * beat; c.drawImage(glow(pal[0]), x0, top - 3 * K, L2, h * 0.5);
+      c.globalCompositeOperation = 'source-over';
+    }
+    // snow on its roof
+    if (info.snowCover > 0.05) { c.globalAlpha = info.snowCover; c.fillStyle = 'rgba(238,244,255,0.95)'; c.fillRect(x0 + 1 * K, top - 1 * K, L2 - 2 * K, 1.2 * K); }
+    c.globalAlpha = 1;
+    // its lights: the headlight, the tail + brake lights, its window band in the wet street
+    if (dark > 0.2) {
+      c.globalCompositeOperation = 'lighter';
+      lights(c, x + L2 / 2 - 0.6 * K, y - 2.2 * K, [255, 236, 200], dark, 5.4);
+      c.globalAlpha = 0.22 * dark; c.drawImage(glow([255, 240, 210]), x + L2 / 2, y - 6, 50 * K, 9);
+      lights(c, x0 + 0.6 * K, y - 2.4 * K, [255, 40, 60], dark * (b.brake ? 1 : 0.7), b.brake ? 6 : 4.4);
+      if (streak) {
+        const col = pal ? pal[0] : [255, 214, 150];
+        for (let k = 0; k < 3; k++) streak(x0 + L2 * (0.22 + k * 0.28), L2 * 0.22, (H - HZ) * 0.3 * wet, `rgb(${col.join(',')})`, 0.1 * dark * wet * beat, t, k + b.route.length);
+        streak(x0 + 0.6 * K, 6, (H - HZ) * 0.3 * wet, '#ff3046', (b.brake ? 0.2 : 0.1) * dark * wet, t, 9);
+      }
+      c.globalCompositeOperation = 'source-over';
+    }
+    c.restore();
+    c.globalAlpha = 1;
+  }
+
   return {
-    resize(w, h, hz) { if (w === W && h === H && hz === HZ) return; W = w; H = h; HZ = hz; K = Math.max(0.9, Math.min(1.4, w / 390)); cars = []; trains = []; puffs = []; viaKey = ''; ventKey = ''; },   // same size: keep the traffic
+    k: () => K,
+    resize(w, h, hz) { if (w === W && h === H && hz === HZ) return; W = w; H = h; HZ = hz; K = Math.max(0.9, Math.min(1.4, w / 390)); cars = []; trains = []; puffs = []; bus = null; plowLanes = []; flakes = []; viaKey = ''; ventKey = ''; },   // same size: keep the traffic
     /** the elevated line (after the mid row of towers) */
     train(c, s, railY) {
       const { L, P, dt, t, motion, force } = s;
@@ -153,55 +317,73 @@ export function createStreet() {
       void tint; void P;
       c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     },
-    /** cars at the towers' feet, their light on the wet street */
+    /** the street's traffic at the towers' feet: the car mix, queues at the stop light, the bus (+ the PARTY BUS, the night
+     *  owl), the snowplows — their light pooled and streaked on the wet street (THE STREET, docs/title.md) */
     traffic(c, s, streak) {
       const { L, dt, t, motion, force, tier } = s;
-      if (!motion) return;
-      const sec = dt / 1000, hr = hourOf(L);
-      // PARTY NIGHTS: more cars and cabs, a few with a soft neon underglow in the party's colours (never loud: the dock is just below)
+      const sec = Math.min(0.1, dt / 1000), hr = hourOf(L), now = s.now || Date.now();
+      const mot = Math.min(3, s.speed || 1);   // (&speed= previews: the traffic moves up to 3× faster too)
+      const info = s.street || { signals: [], shelter: null, snowCover: 0 };
       const party = s.party && s.party.on > 0 ? s.party : null;
-      const flow = Math.min(1, (force.has('rush') ? 1 : trafficAt(hr, L.local ? L.local.dow : 3)) * (party ? 1 + 0.7 * party.ramp * (0.6 + 0.4 * party.energy) : 1));
-      const want = Math.round(flow * (tier === 0 ? 6 : 12) * K);
-      if (cars.length < want && Math.random() < sec * (0.6 + flow * 2.5)) {
-        const lane = Math.random() < 0.5 ? 0 : 1;                // 0: the far lane (tail lights, going right), 1: near (head lights, going left)
-        const dir = lane === 0 ? 1 : -1;
-        const pal = party && s.party.palette ? s.party.palette : null;
-        const under = party && pal && Math.random() < 0.35 * party.ramp ? pal[Math.floor(Math.random() * pal.length)] : null;
-        cars.push({ lane, dir, x: dir > 0 ? -30 : W + 30, v: (40 + Math.random() * 30) * K * dir, cab: Math.random() < (party ? 0.2 : 0.12), ph: Math.random() * TAU, under });
-      }
+      const peak = party ? (party.energy > 0.85 ? (party.energy - 0.85) / 0.15 : 0) * party.ramp : 0;
       const dark = clamp01(L.w.night + L.w.late + L.w.golden * 0.7 + L.w.dawn * 0.5 + (L.rain ? 0.3 : 0));
       const wet = L.rain ? 1 : 0.55;
-      cars = cars.filter(car => {
-        car.x += car.v * sec;
-        const y = HZ + (car.lane === 0 ? 3.2 : 7.6) * K;
-        const sc = car.lane === 0 ? 0.85 : 1;
-        // the body (seen at night only as a dark shape between its lights; by day a small car catching the light)
-        const bw = 13 * K * sc, bh = 4.2 * K * sc;
-        c.fillStyle = car.cab ? (dark > 0.5 ? 'rgba(60,46,10,0.9)' : 'rgba(214,170,40,0.95)') : dark > 0.5 ? 'rgba(10,10,20,0.92)' : 'rgba(60,66,84,0.92)';
-        c.fillRect(car.x - bw / 2, y - bh, bw, bh);
-        c.fillRect(car.x - bw * 0.28, y - bh * 1.6, bw * 0.56, bh * 0.7);
-        if (dark < 0.5) { c.fillStyle = 'rgba(230,236,250,0.6)'; c.fillRect(car.x - bw * 0.24, y - bh * 1.5, bw * 0.48, bh * 0.25); }
-        if (dark > 0.2) {
-          c.globalCompositeOperation = 'lighter';
-          const front = car.x + car.dir * bw * 0.5, back = car.x - car.dir * bw * 0.5;
-          // headlights face the way it goes; we see the near lane's fronts and the far lane's backs
-          const seeFront = car.lane === 1;
-          const lx = seeFront ? front : back, col = seeFront ? [255, 244, 214] : [255, 40, 60];
-          c.globalAlpha = dark * (seeFront ? 0.95 : 0.85);
-          c.drawImage(glow(col), lx - 5 * sc, y - bh * 0.6 - 5 * sc, 10 * sc, 10 * sc);
-          c.drawImage(glow(col), lx - car.dir * 0 - 5 * sc + (seeFront ? -car.dir : car.dir) * 3.2 * K * sc, y - bh * 0.6 - 5 * sc, 10 * sc, 10 * sc);
-          if (seeFront) { c.globalAlpha = 0.25 * dark; c.drawImage(glow([255, 240, 210]), front + (car.dir > 0 ? 0 : -46 * K), y - 6, 46 * K, 9); }
-          if (car.cab) { c.globalAlpha = 0.8 * dark; c.drawImage(glow([255, 214, 90]), car.x - 3, y - bh * 1.9 - 3, 6, 6); }
-          // the neon underglow (PARTY NIGHTS): a soft pool of colour under the car, breathing with the city
-          if (car.under && party) { const ug = 0.34 * dark * party.ramp * (0.75 + 0.25 * party.breath); c.globalAlpha = ug; c.drawImage(glow(car.under), car.x - bw * 0.9, y - bh * 0.9, bw * 1.8, bh * 1.8); c.globalAlpha = ug * 0.5; if (streak) streak(car.x, bw * 0.9, (H - HZ) * 0.22 * wet, `rgb(${car.under.join(',')})`, 0.1 * dark * wet * party.ramp, t, car.ph + 1); }
-          // its light streaked down the wet street
-          c.globalAlpha = 1;
-          if (streak) streak(lx, 7 * sc, (H - HZ) * 0.35 * wet, seeFront ? '#fff1d6' : '#ff3046', (seeFront ? 0.16 : 0.12) * dark * wet, t, car.ph);
-          c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+      if (motion) {
+        // new cars: the flow follows the clock (and the party); the kind follows the hour
+        const flow = Math.min(1, (force.has('rush') ? 1 : trafficAt(hr, L.local ? L.local.dow : 3)) * (party ? 1 + 0.7 * party.ramp * (0.6 + 0.4 * party.energy) : 1));
+        const want = Math.round(flow * (tier === 0 ? 6 : 12) * K);
+        if (cars.length < want && Math.random() < sec * (0.6 + flow * 2.5)) spawnCar(hr, party, peak, force);
+        // the bus: tied to the clock like the trains (or forced in a preview); at most one on screen
+        const gap = busGap(hr), slot = busSlot(now, gap);
+        const forcedBus = force.has('bus') || force.has('partybus') || force.has('owl');
+        // (a bus that comes due while another is still on screen waits its turn — fast-forward previews keep their buses)
+        if (slot != null && slot !== lastSlot && lastSlot != null) busDue = true;
+        if (slot !== lastSlot) lastSlot = slot;
+        if (!bus && ((forcedBus && t - lastBusT > 8) || busDue)) { busDue = false; spawnBus(hr, party, force); }
+        // the snowplows: real snow only
+        const pg = force.has('plow') ? 0.35 : plowDue(L);
+        const ps = Number.isFinite(pg) ? Math.floor(now / 60000 / pg) : null;
+        if (ps != null && ps !== lastPlow && !cars.some(v => v.kind === 'plow')) { if (lastPlow != null || force.has('plow')) spawnCar(hr, party, peak, force, 'plow'); }
+        lastPlow = ps;
+        // move: car following, the near lane stopping at red, the bus at red and at its stop
+        const all = bus ? [...cars, bus] : cars;
+        for (const v of all) {
+          let want2 = v.cruise;
+          // the vehicle ahead in this lane
+          let gapAhead = Infinity;
+          for (const o of all) { if (o === v || o.lane !== v.lane) continue; const d = v.dir > 0 ? (o.x - o.len / 2) - (v.x + v.len / 2) : (v.x - v.len / 2) - (o.x + o.len / 2); if (d > -v.len * 0.3 && d < gapAhead) gapAhead = d; }
+          if (gapAhead < Infinity) want2 = Math.min(want2, Math.max(0, (gapAhead - 3.5 * K) * 2.4));
+          // the stop light: the near lane queues on red (and yellow, if it can stop); the bus obeys it in its lane too
+          if (v.lane === 1 || v === bus) for (const g of info.signals) {
+            const stopAt = v.dir < 0 ? g.headX + 7 * K : g.headX - 7 * K;
+            const front = v.x + v.dir * v.len / 2;
+            const ahead = v.dir < 0 ? front - stopAt : stopAt - front;
+            if (ahead < -1 || ahead > 95 * K) continue;
+            if (g.state === 'red' || (g.state === 'yellow' && ahead > 12 * K)) want2 = Math.min(want2, Math.max(0, (ahead - 0.5 * K) * 2.2));
+            else if (g.state === 'flash' || g.state === 'dark') want2 = Math.min(want2, v.cruise * 0.7);
+          }
+          // the bus pulls over at the shelter, waits, pulls away
+          if (v === bus && info.shelter) {
+            const d = info.shelter.x - v.x;
+            if (v.state === 'drive' && d > -2 * K && d < 130 * K) { want2 = Math.min(want2, Math.max(0, d * 1.5)); if (d < 1.6 * K && v.sp < 2 * K) { v.state = 'dwell'; v.dwell = 5; } }
+            if (v.state === 'dwell') { want2 = 0; v.dwell -= sec * mot; if (v.dwell <= 0) v.state = 'leave'; }
+          }
+          const acc = want2 > v.sp ? 20 * K : 60 * K;
+          v.brake = want2 < v.sp - 1.5 * K || v.sp < 1.5 * K;
+          v.sp += Math.max(-acc * sec, Math.min(acc * sec, want2 - v.sp));
+          v.x += v.dir * v.sp * sec * mot;
         }
-        return car.x > -50 && car.x < W + 50;
-      });
+        cars = cars.filter(v => v.x > -60 * K && v.x < W + 60 * K);
+        if (bus && (bus.x > W + 60 * K)) bus = null;
+      } else { cars = []; bus = null; }
+      // draw: the far lane, the bus (also in the far lane), then the near lane in front
+      for (const v of cars) if (v.lane === 0) drawCar(c, v, s, dark, wet, party, streak);
+      if (bus) drawBus(c, bus, s, dark, wet, party, info, streak);
+      for (const v of cars) if (v.lane === 1) drawCar(c, v, s, dark, wet, party, streak);
+      drawPlowLane(c, s, sec);
     },
-    debug: () => ({ cars: cars.length, trains: trains.length, puffs: puffs.length }),
+    /** the bus on screen (its golden-hour shadow, the tests): { x, w, h, state, route, party, owl } or null */
+    busInfo: () => (bus ? { x: bus.x, w: bus.len, h: bus.h, state: bus.state, route: bus.route, party: bus.party, owl: bus.owl } : null),
+    debug: () => ({ cars: cars.length, kinds: cars.reduce((m, v) => { m[v.kind] = (m[v.kind] || 0) + 1; return m; }, {}), queued: cars.filter(v => v.lane === 1 && v.sp < 2 * K).length, braking: cars.filter(v => v.brake).length, bus: bus ? { x: Math.round(bus.x), state: bus.state, route: bus.route, party: bus.party, owl: bus.owl, sp: Math.round(bus.sp) } : null, buses: busN, plowLanes: plowLanes.length, trains: trains.length, puffs: puffs.length }),
   };
 }

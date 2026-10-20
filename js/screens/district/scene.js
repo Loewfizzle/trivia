@@ -24,6 +24,7 @@ import { createFireworks } from './fireworks.js';
 import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, breathShape, partyPalette, partySeed } from '../../core/party.js';
 import { createSun } from './sun.js';
 import { createRainbow } from './rainbow.js';
+import { createFurniture } from './furniture.js';
 import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainbow.js';
 import { settings } from '../../audio/settings.js';
 import { reportError } from '../../errlog.js';
@@ -79,6 +80,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   let liveWeather = () => null;
   let lastWet = () => null;         // RAINBOWS: when it last really rained here (live-weather.js#lastWetAt)
   const bow = createRainbow();      // RAINBOWS (rainbow.js; the rules: core/rainbow.js)
+  const furn = createFurniture();   // THE STREET: lamps, trees, the shelter, the stop light (furniture.js; core/trees.js, core/street-life.js)
+  let dockTopV = 0, nowT = 0;
   let bowForcedAt = null, bowT = null;
   let frost = { resize: NOOP, pane: NOOP, decorate: NOOP, debug: () => ({}), destroy: NOOP };
   let air = { resize: NOOP, draw: NOOP, debug: () => ({}) };      // planes + satellites (aircraft.js)
@@ -128,6 +131,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     HZ0g = HZ0 * Math.min(1.25, Math.max(0.85, H / 844)) * (W > H ? 0.78 : 1);
     const portrait = W <= H;
     const dockTop = H - Math.max(safeBotV + 6, 20) - 64;          // the dock bar's top (css/title.css: the bar is 64 px)
+    dockTopV = W <= H ? dockTop : H - 106;                       // (THE STREET: the stop light's glow ends well above it)
     HZ = portrait ? Math.round(Math.min(H * 0.84, Math.max(H * 0.735, dockTop - Math.max(56, H * 0.075)))) : HZ0;
     const drop = portrait ? Math.round(H * 0.036) : 0;
     const T0 = HZ0 + drop;                                        // the rooftops' reference line
@@ -212,6 +216,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     fx.resize(W, H, HZ);
     pfx.resize(W, H, HZ, dpr); fw.setTier(tier);
     bow.resize(W, H, HZ, dpr); bow.setTier(tier);
+    furn.resize(W, H, HZ, dpr, Math.max(0.9, Math.min(1.4, W / 390))); furn.setTier(tier);
     wfx.resize(W, H, HZ); rain.resize(W, H, HZ); birds.resize(W, H, HZ); road.resize(W, H, HZ); frost.resize(W, H); air.resize(W, H, HZ); sun.resize(W, H, HZ);
     vignette = mk(W * dpr / 2, H * dpr / 2);
     const vx = vignette.getContext('2d');
@@ -479,7 +484,10 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     const lit = S.lit;
     const night = nightness();
     partyTick(t, dt, lit);
-    const fs = { skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party };
+    nowT = t;
+    // (THE STREET: the clock (its timetables run on it, &speed= too), where the blade signs hang, the dock, the near row's drift)
+    const nearD = layers.length ? layers[layers.length - 1].d : 0;
+    const fs = { now: clock.now(), speed: clock.speed || 1, blades: signs.blades(), dockTop: dockTopV, camX: cam.x * nearD, signalMode: clock.force.has('signal-middle') ? 'middle' : 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party };
     const pb = party.ramp * (0.5 + 0.5 * party.energy) * party.breath;   // the sign's breath, 0..1
     // sky
     c.globalAlpha = 1;
@@ -589,6 +597,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
       }
       if (li === layers.length - 1 && !off.has('no-road')) road.steam(c, fs, { rects: L.rects, ox, oy, top: L.top, margin: L.margin });
     });
+    // THE STREET: the trees, the lamp posts and their light, the shelter, the stop light — on the sidewalk at the towers' feet
+    if (!off.has('no-street')) { furn.back(c, fs); fs.street = furn.info(); }
     // the finale's light on the city: each burst flashes softly onto the buildings and the haze
     { const fl = fw.light(); if (fl.k > 0.01) { const rr = W * 0.8; c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 * fl.k; c.drawImage(radial(`#${fl.col.map(v => Math.round(v).toString(16).padStart(2, '0')).join('')}`, [[0, 1], [0.45, 0.35], [1, 0]]), fl.x - rr, fl.y - rr, rr * 2, rr * 2); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; } }
     // PARTY NIGHTS: the party windows' bloom over the whole city (once), the wave of colour sweeping across it as it switches on
@@ -607,10 +617,12 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     const shimmer = TIERS[tier].shimmer && S.motion;
     c.drawImage(street, 0, HZ, W, H - HZ);
     if (P.street[3] > 0.01) { c.fillStyle = css(P.street, P.street[3]); c.fillRect(0, HZ, W, H - HZ); }
+    if (!off.has('no-street')) { fs.bus = road.busInfo ? road.busInfo() : null; furn.shadows(c, fs); }   // the golden-hour shadows
     drawRefl(c, reflLit, clamp01(lit * 1.1) * (0.35 + 0.65 * P.refl) * (1 + 0.1 * pb), shimmer, t);
     // PARTY NIGHTS: the party colours in the wet street, pulsing with the beat; the finale's flash on the asphalt
     if (!clock.force.has('no-party-refl')) pfx.reflect(c, layers, party, t);
     if (!off.has('no-rainbow')) bow.reflect(c);          // the neon bow's colours in the wet street
+    if (!off.has('no-street')) furn.ground(c, fs, (x, w, len, col, al, tt, ph) => streak(c, x, w, len, col, al, tt, ph));   // the lamps' pools + streaks, fallen leaves
     { const fl = fw.light(); if (fl.k > 0.01) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.1 * fl.k; c.fillStyle = `rgb(${fl.col.map(Math.round).join(',')})`; c.fillRect(0, HZ, W, (H - HZ) * 0.7); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; } }
     // light spilling onto the wet street: the signs + the main sign (after dark)
     c.globalCompositeOperation = 'lighter';
@@ -626,7 +638,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     // the rain: drops in depth, slanted by the wind, splashes and rings on the street (only when it really rains)
     if (!off.has('no-rain')) rain.drops(c, fs, wfx.flashNow());
     if (LK.rain && S.motion) signs.rain(c, dt);
-    // snow, petals, leaves, fireflies, bats
+    // THE STREET: leaves and petals falling from the trees (only), fireflies by them; then snow, bats
+    if (!off.has('no-street')) furn.front(c, fs);
     fx.front(c, fs);
     // a lightning strike lights the whole street for an instant
     wfx.flash(c);
@@ -696,6 +709,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     PT.wasOn = PT.on > 0;
   }
   function startFinale() {
+    furn.midnight(nowT);                                     // THE STREET: every lamp flashes toward the middle, just before
     if (!S.motion) { PT.swell = 1; PT.bursts++; return; }   // Reduced effects: a gentle swell of light only
     const pal = pfx.palette() || partyPalette(null);
     const white = [255, 255, 255];
@@ -850,6 +864,8 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
     finale: () => startFinale(),
     /** the party light alone, for the lobby's backdrop (null when there's no party) */
     partyLight: () => (PT.on > 0 ? pfx.still(layers, cam.x) : null),
+    /** THE STREET (test hook): the furniture, the lamps, the trees' states, the signals, the traffic, the bus */
+    street: () => ({ ...(furn.debug() || {}), road: road.debug(), bus: road.busInfo ? road.busInfo() : null }),
     rainbow: () => ({ ...bow.debug(), target: bowT ? { day: +bowT.day.toFixed(3), moon: +bowT.moon.toFixed(3), neon: +bowT.neon.toFixed(3), secondary: bowT.secondary, wet: bowT.wet || null, env: bowT.env ?? null, forced: bowT.forced || null } : null, sunAt: null }),
     debug: () => ({ ...signs.debug(), tier, dpr, W, H, running, layers: layers.length, windows: layers.reduce((n, L) => n + L.windows.length, 0), ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: road.debug(), air: air.debug(), sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null }),
     destroy() {

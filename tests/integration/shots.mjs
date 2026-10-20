@@ -7,7 +7,8 @@
 // --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
-// valentine rejoin sun rain rainbow rainbow2 moonbow neonbow. "first" has no profile; --guest makes every scene a first-time visitor.
+// valentine rejoin sun rain rainbow rainbow2 moonbow neonbow blossom summer autumn autumn-night winter plow owl day-bus golden
+// street-party street-rain. --crop street: the street strip (the towers' feet down to the dock). "first" has no profile; --guest makes every scene a first-time visitor.
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
@@ -35,6 +36,11 @@ const SCENE = {
   // RAINBOWS (forced: they fade in over 8 s — use --wait 10000; the fade itself: --wait 4500)
   rainbow: ['2026-10-19T17:15', { qs: 'force=rainbow' }], rainbow2: ['2026-10-19T17:15', { qs: 'force=rainbow2' }],
   moonbow: ['2026-10-26T22:00', { qs: 'force=moonbow' }], neonbow: ['2026-10-23T22:30', { qs: 'force=neonbow' }],
+  // THE STREET (lamps + trees through the year, buses, the stop light, plows, shadows, the street's party night)
+  blossom: ['2026-04-05T20:30'], summer: ['2026-07-10T22:15'], autumn: ['2026-10-24T16:30', { qs: 'wind=11&force=gust' }],
+  'autumn-night': ['2026-10-24T22:00'], winter: ['2026-12-18T19:00'], plow: ['2027-01-15T19:00', { qs: 'wx=snow&force=plow' }],
+  owl: ['2026-10-22T01:10', { qs: 'force=owl' }], 'day-bus': ['2026-10-20T11:00', { qs: 'force=bus' }], golden: ['2026-10-20T18:15'],
+  'street-party': ['2026-10-23T23:00', { qs: 'force=partybus,chase' }], 'street-rain': ['2026-10-23T23:00', { qs: 'wx=rain&force=partybus' }],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
   const [name, when] = s.split('=');
@@ -69,7 +75,9 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (!CROPS.length) { await p.screenshot({ path: `${file}.png` }); n++; }
   for (const c of CROPS) {
     let clip;
-    if (PRESET[c]) {
+    if (c === 'street') {
+      clip = await p.evaluate(() => { const s = window.__district.street(); if (!s || !s.HZ) return null; const k = s.K || 1; const y = Math.max(0, s.HZ - 78 * k); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight - y, 120 * k) }; });
+    } else if (PRESET[c]) {
       clip = await p.evaluate(([sel, pad]) => {
         const rs = [...document.querySelectorAll(sel)].map(e => e.getBoundingClientRect()).filter(r => r.width);
         if (!rs.length) return null;
@@ -79,7 +87,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    await p.screenshot({ path: `${file}-${PRESET[c] ? c : 'crop'}.png`, clip }); n++;
+    await p.screenshot({ path: `${file}-${PRESET[c] || c === 'street' ? c : 'crop'}.png`, clip }); n++;
   }
   await ctx.close();
 }
