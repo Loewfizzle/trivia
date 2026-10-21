@@ -44,7 +44,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   colour and motion, at the size rules (people ~20 pt). Small props are exaggerated, key moments get a visual cue, nothing that
   matters happens on the far pier or out on the water (boats and the wheel read by their lights). Every holiday / story list is
   triaged by size before building: make it bigger or cut it. Never write code for something that can't be seen.
-- **Premium, crafted, never cheap** — above all the lighting (Christmas lights, neon, fireworks are LIGHT).
+- **Premium, crafted, never cheap** — above all the lighting (Christmas lights, neon, fireworks are LIGHT). EVERY moving part and
+  every eye-catching item MUST be rendered premium and stunning; if it can't be made to look great at phone size, say so to the
+  owner instead of shipping something mediocre, and never let it crowd something more important (word towers, needle, wheel).
 - **Weather effects only when it is really happening** where the player is. Never tell players the city is live.
 - **Fixed-time moments run on the clock, not the scheduler's dice** (the NYE countdown + finale, the tree lighting at dusk,
   the Day of the Dead procession, the 9/11 beams, half-staff times) — the scheduler is for random events.
@@ -82,6 +84,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   max 2 colours a building, colour by cluster, a brightness hierarchy, the word faces clear; the two glass towers' LED
   facades (slow, smooth gradients); a calm steady glow most nights with hooks for MOMENTS (party chasers + the beat, holiday
   schemes, a game's colours flashing across the skyline at a game's start, a CITY CONTROL scheme).
+- Word towers (Part 3 fix): both faces fully visible at every phone size, bold bright letters on a dimmed face, a SCROLL
+  (ticker) style for messages of any length. Aircraft beacons on every tall top incl. spire tips, blinking IN SYNC.
+- Owner review notes for the next pass (Part 4 section 0): outlines must follow the Deco setbacks / fins / crown steps, not
+  plain outer rectangles (esp. the cyan towers on the right); the right-hand billboard + small icon signs are too small to read
+  on a phone → bigger or moved onto the stage; give the busy skyline centre (needle, CIPHER, wheel, HOTEL blade) breathing room.
 
 ## Part 4 — water
 - Reflections in perspective; a gold sun path at sunset and a silver moon path at night broken by ripples; every light smeared
@@ -90,6 +97,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 ## Part 5 — harbor hero pieces
 - Ferris wheel (turning, bulbs; seasonal/holiday colours), lighthouse (beam; keeper's cottage), pier, boats: Rosie the
   riverboat with bulbs, a water taxi, a tug, sailboats by day; lit boats for holidays.
+- AN ELEVATED TRAIN along the far waterfront (City 1.0 had one): only if its detail reads on an iPhone and it doesn't take away
+  from anything high-value; a warm ribbon of lit windows at night reflected in the harbor, a sleek crafted shape by day,
+  rush-hour / late-night timing like City 1.0 (trainGap), a lit holiday train in December, maybe a rare vintage steam train.
 
 ## Part 6 — sky hero pieces (existing behaviour, new art)
 - Planes, the BANNER PLANE (1–3 banners: daily challenges, holiday messages, game announcements, CITY CONTROL messages),
@@ -101,6 +111,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Skydivers: a plane drops jumpers who float down and GROW with depth to land on the promenade (crafted canopies; flare,
   a stumble, gather chutes, walk into the speakeasy); smoke flares + canopy lights at night; a giant flag under a jumper on
   July 4th / Memorial / Veterans Day; rare on calm clear days; maybe neon canopies on a legendary party night.
+- HOT AIR BALLOONS: on calm, clear mornings and summer evenings (only when the real wind is low) a crafted striped balloon
+  drifts slowly across the sky; at dusk the burner flame flares and lights it from inside; rarely a small festival of several.
+- THE AURORA must be REAL: today's sky shows it on ~1 night in 5 at random (core/sky.js#auroraNight) — tie it to the real
+  space-weather forecast (NOAA's Kp index) or make it very rare (a few nights a year at Grand Rapids' latitude).
+- Cap the planes' contrail cost (Known issues, Part 2).
 - The Halloween witch (crafted, good-looking, cloak + hat + broom, a trail of drifting neon sparkles; crosses a real full moon).
 - Santa's sleigh across the moon on Christmas Eve. Bats at summer dusk + from a tower crown on Halloween.
 
@@ -109,6 +124,7 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - The ROOFTOP: summer weekend rooftop parties (string lights, dancing figures, a bar cart, someone at the railing); a rooftop
   garden through the year (spring seedlings + a gardener with a watering can, summer lush green with tall sunflowers and red
   tomato clusters, autumn pumpkins, winter beds under snow, string lights left up).
+- WINDOW WASHERS: some weekday mornings, two washers on a hanging platform squeegee the speakeasy's windows (tap → they wave).
 - Leave room for Lobby 2.0's password sign in a window ("TONIGHT'S PASSWORD: <hush word>", letters 14–16 pt).
 
 ## Part 8 — the stage + wildlife
@@ -119,10 +135,33 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   late-night coyote (1–4 am) whose eyes catch the lamplight; a raccoon raiding a trash can late at night; squirrels burying
   acorns in autumn; fireflies around the trees on summer nights; ducks near the railing, a heron on the pilings at dawn, fish
   jumping (ripple rings); a black cat on the speakeasy step (Halloween; maybe a tabby other times).
+- THE TRASH TRUCK: early weekday mornings it stops on the road, a worker tips the curb bins into it, it rumbles off (the raccoon
+  bolts if it's out).
 
 ## Part 9 — seasons + weather (only when real)
 - Trees through the year; snow piling up on everything, snowball fights, snow plows leaving visible plowed lanes + snowbanks,
   visible road salting; rain + puddles; fog; frost; a snowman that grows through a real snowy day and melts when it warms.
+
+## THE CONSTRUCTION TOWER (slot in the layout now; the cycle with the calendar in Part 9; the grand opening uses Part 10's
+## searchlights + neon)
+- ONE dedicated skyline spot: the owner's pick is the tall tower LEFT of the Ferris wheel, behind the JAZZ building (about a
+  quarter across on the iPhone, fully in the clear, its base hidden behind JAZZ + the speakeasy). If that tower is the vertical
+  word tower (wordV), move the vertical-word job to another tall narrow tower that is never demolished first.
+- A ~one-year cycle on the real calendar, the same for everyone: SPRING the old building comes down by IMPLOSION — always — a
+  fixed-time spectacle (the banner plane announces it a few days before, e.g. "DEMOLITION SUNDAY 10 AM"; a siren, flashes down
+  the floors, it drops straight down, a huge dust cloud rolls over the harbor; anyone who missed it sees the rubble + settling
+  dust later); late spring cleanup (excavator, fence, a hole); SUMMER → FALL the new tower rises a few floors a week (a crane
+  swinging by day, work lights at night); TOPPING OUT (a small evergreen + flag on the top beam); LATE FALL the grand-opening
+  night (its neon lights for the first time, searchlights); WINTER it stands finished. Each cycle a different design, so the
+  skyline evolves over the years.
+- The crane may overlap the sign / tagline area (the owner is fine with it) — the sign always draws on top and stays readable;
+  keep the crane's red beacon from blinking right beside the NEON letters.
+- THE SUN MUST NOT BREAK when the building is gone (the owner's catch): the sun's arch fit (`archFor`), the sign's catch time
+  (catchAt: the sun going behind the rooftops) and the god-ray corridors use a FIXED skyline envelope that treats the
+  construction slot as always full height; the actual drawing hides the sun naturally; the slot stays out of SUN_GAPS; beacons,
+  outlines, windows and any searchlight on it follow the building's stage. Test at every stage (standing, rubble/empty lot,
+  half-built frame, finished): the arch, the catch time and the rays stay stable and correct.
+- Small renovations now and then elsewhere: facade scaffolding, a crown being re-tubed with new neon, a billboard repainted.
 
 ## Parts 11a / 11b / 11c — holidays (+ the banner plane's messages)
 (Built AFTER party nights + fireworks, which is now Part 10. 11a = autumn + the shared systems, 11b = Christmas + NYE,
@@ -192,8 +231,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Tap eggs (never explained): the door knock; pigeons scatter; the black cat; a lit window → someone appears and waves; the
   lighthouse 3× → the beam spins; the bus / a boat → its horn; the Ferris wheel → a gondola rocks; the night sky 7× → a shooting
   star; the full moon → the coyote howls. Common → legendary. LEGENDARY once a year: a harbor monster (a dark shape + a fin
-  gliding across), a submarine periscope that rises, turns to look at you and sinks, the UFO hovering over the lighthouse
-  borrowing its light; the ghost ship (Halloween). A few subtle, rare Grand Rapids nods (e.g. the October salmon run leaping).
+  gliding across), a submarine periscope that rises, turns to look at you and sinks, THE UFO ABDUCTION (late at night the
+  promenade lamps flicker and dim, pigeons scatter, the UFO glides in low over the harbor and stops above the promenade, a
+  tractor beam snaps on and 2–3 people float up spinning, arms flailing, one hat falls off and stays on the ground for a while
+  as the only evidence, the UFO zips away, the lamps come back; ONLY background people, never a real player's figure or room
+  guests); the ghost ship (Halloween). A few subtle, rare Grand Rapids nods (e.g. the October salmon run leaping).
 - The music-off soundscape (foghorn, gulls, a far honk, light traffic, a soft city hum; a night version). Sound never relies on
   subtlety (the music is loud): moments use a music change, a duck or crisp on-beat hits, always with a strong visual.
 - The desktop/wide panorama; also make room for a TV camera (see TV mode).
@@ -223,5 +265,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - **BOARD 2.0** (the bar inside the speakeasy, an Art Deco brass + enamel honor board, a live bartender, windows onto the live
   Harbor) and **PROGRESSION 2.0** (levels 1–100, a wardrobe whose pieces turn neon at night, entrances, a birthday on the
   profile so the towers can spell "HAPPY BDAY <NAME>").
+- **THE GAME LIST REVAMP:** quick filters SOLO · ON TV · SAME ROOM · FOR TWO (each game tagged with every way it plays; FOR TWO
+  stars the planned nightly two-player bedtime game).
+- **NEXT NEW GAME IDEA (follow up with the owner):** a multiplayer memory SHOOTING GALLERY — a 3×3 → 4×4 → 5×5 grid of targets
+  flips to show pictures for ~5 s (shorter later), flips back, a picture is called (later 2–3 at once) and the fastest correct
+  tap scores; wrong taps lock you out briefly; twists (swaps, decoys, a golden target); server-clock timing; a 1920s shooting
+  gallery in the speakeasy's back room; fits SAME ROOM, FOR TWO, ON TV (grid on the TV, phones as triggers) and SOLO daily.
 - **Later:** single-player / vs-AI modes and the 3 daily challenges (morning Wordle-style, afternoon Minesweeper, evening
   Overclock ×6) announced by the banner plane; profile pages for other players.
