@@ -12,6 +12,7 @@
 import { winTraits, buildingDice, isLit, winHash, layoutText, normText, scrollColumns, FONT_H } from '../../core/harbor-windows.js';
 import { cellRect, isDeco } from './blocks.js';
 import { project } from '../../core/harbor-layout.js';
+import { SPOTS, towerRoofSign } from '../../core/harbor-neon.js';
 import { fog } from './tones.js';
 import { skyItems } from './skyline.js';
 
@@ -157,6 +158,7 @@ function dots() {
   dotCache = { red: mkDot('255,46,40'), white: mkDot('255,255,255'), warm: mkDot('255,214,150') };
   return dotCache;
 }
+const ROOF_SPOTS = SPOTS.filter(sp => sp.mount === 'tower');
 export function createLights() {
   let L = null, faces = {}, beacons = [], spell = null, toggles = [], nextToggle = 0, sets = new Map();
   let metaFar = newMeta(), metaNear = newMeta();
@@ -168,9 +170,12 @@ export function createLights() {
     let best = null;
     for (const t of l.towers) {
       const top = t.tiers[t.tiers.length - 1], c = top.crown;
-      if (c && NO_BEACON[c.t]) continue;
+      // (a tower carrying a roof sign — Part 5, the owner's call: its beacon blinks on top of the sign's frame, the tallest
+      // thing on it — whatever its crown)
+      const rs = ROOF_SPOTS.find(sp => sp.host === t.id), rw = rs && towerRoofSign(l, rs);
+      if (!rw && c && NO_BEACON[c.t]) continue;
       const tip = top.y0 + top.h + (c ? c.h : 0) + (t.needle || 0);
-      const [x, y] = project(l.cam, (top.x0 + top.x1) / 2, tip, top.z0);
+      const [x, y] = rw ? project(l.cam, rw.beacon[0], rw.beacon[1], rw.z) : project(l.cam, (top.x0 + top.x1) / 2, tip, top.z0);
       const b = { x, y: y + 0.4, r: Math.max(1.1, (t.z0 > 400 ? 1.5 : 2.1) * u), id: t.id };
       beacons.push(b);
       if (!best || y < best.y) best = b;

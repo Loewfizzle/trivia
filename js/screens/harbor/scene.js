@@ -37,9 +37,10 @@ import { SPELL_WORDS } from '../../core/harbor-windows.js';
 import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
 import { createNeon, nightKey } from './neon.js';
 import { waterSteps, createWater, waterBand, axisAt } from './water.js';
-import { pierSteps } from './pier.js';
-import { lighthouseSteps } from './lighthouse.js';
-import { drawBoats } from './boats.js';
+import { pierSteps, pierLamps } from './pier.js';
+import { lighthouseSteps, createBeam } from './lighthouse.js';
+import { createBoats } from './boats.js';
+import { createWheel } from './wheel.js';
 import { roadSteps, signalSteps, drawTraffic } from './road.js';
 import { speakeasySteps } from './speakeasy.js';
 import { promenadeSteps, furnitureSteps, drawPeople, drawLampLight } from './stage.js';
@@ -64,7 +65,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const lights = createLights();
   const neon = createNeon({ games, onContent: () => { lookAt = 0; } });          // THE NEON (Part 3): the signs, the billboards, the outlines on the buildings
   const water = createWater();                    // THE WATER (Part 4): the mirror of the frame above it, ripples, the light columns, the paths
-  let waterMirrors = [];                          // the harbor pieces standing in the water: their screen rects + waterlines (the wheel, the lighthouse)
+  let waterMirrors = [];                          // the harbor pieces standing in the water: their screen rects + waterlines (the lighthouse: baked)
+  const wheel = createWheel();                    // THE HARBOR'S HERO PIECES (Part 5): the Ferris wheel, the lighthouse's beam, the boats
+  const beam = createBeam();
+  const boats = createBoats();
+  let pierLampsAt = [];
   let litFadeFrom = -1, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
   const SPELL_TEXT = qp.get('text') || 'HELLO', SPELL_STYLE = qp.get('style') || 'wipe', SPELL_TOWER = qp.get('tower') || undefined;
@@ -139,9 +144,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     lights.layout(L);
     neon.layout(L, { dpr, tier, night: nightKey(LK.local) }); neon.setTier(tier);
     water.layout(L, { dpr, tier });
-    { const w = L.wheel, [cx, cy] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, deck = project(cam, w.x, L.pier.y, w.z)[1];
-      const l = L.lighthouse, b = L.breakwater, k = L.cottage, [lx0, ly] = project(cam, b.x0, l.h + 5.6, l.z), [lx1] = project(cam, Math.max(b.x1, k.x + k.w + 0.6), 0, l.z);
-      waterMirrors = [{ x: cx - r * 1.06, y: cy - r - 2, w: r * 2.12, h: deck - (cy - r - 2), axis: axisAt(L, w.z) }, { x: lx0, y: ly, w: lx1 - lx0, h: axisAt(L, l.z) - ly, axis: axisAt(L, l.z) }]; }
+    wheel.layout(L, { dpr, tier }); beam.layout(L); boats.layout(L, { dpr, tier, taxi: clock.force.has('taxi') });
+    pierLampsAt = pierLamps(L).map(lp => { const [x, y] = project(cam, lp.x, lp.y, lp.z); return { x, y, s: cam.F / lp.z }; });
+    if (pierLampCv) { pierLampCv.cv.width = 0; pierLampCv = null; }
+    // the lighthouse + its cottage + the breakwater mirror from the baked harbor layer (they stand still); the wheel, the beam
+    // and the boats reflect themselves every frame (water.reflect)
+    { const l = L.lighthouse, b = L.breakwater, k = L.cottage, [lx0, ly] = project(cam, Math.max(b.x0, l.x - 9), l.h + 7.2, l.z), [lx1] = project(cam, Math.min(b.x1, k.x + k.w + 4), 0, l.z);
+      waterMirrors = [{ x: lx0, y: ly, w: lx1 - lx0, h: axisAt(L, l.z) - ly, axis: axisAt(L, l.z) }]; }
     // the baked layers' bands (pt)
     const s = L.speakeasy, w = L.wheel, l = L.lighthouse;
     const yOf = (y, z) => project(cam, 0, y, z)[1];
@@ -321,6 +330,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if ((clock.speed || 1) > 1) return 'speed';
     if (shownAt < 0 || now - shownAt < 900) return 'start';
     if (fadeFrom >= 0 || litFadeFrom >= 0 || wantBake || baker.pending || litBaker.pending || neon.pending) return 'bake';
+    if (boats.busy()) return 'boats';                // (the water taxi zipping across; the rest of the harbor is slow: 30 fps is smooth)
+    if (beam.busy()) return 'beam';                  // (the lighthouse spinning: tapped 3x)
     if ((S.wave != null && S.wave < 1) || (S.lit != null && S.lit < 1)) return 'power-on';
     if (PT.on > 0 || fw.busy()) return 'party';
     if (LK.rain || LK.snow || LK.storm) return 'weather';
@@ -409,7 +420,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const nightK = clamp01((P.dark - 0.25) / 0.5) * fadeIn * lit;
     litLayer('farLit', winK, lx);
     lights.draw(c, 'far', now, nightK, S.motion);
-    const nf = { t, now, night: clamp01((P.dark - 0.2) / 0.5), fade: fadeIn, motion: S.motion, tier, party: PT.on > 0 ? PT : null };
+    const sp0 = lights.spelling;
+    const nf = { t, now, dt, night: clamp01((P.dark - 0.2) / 0.5), fade: fadeIn, motion: S.motion, tier, party: PT.on > 0 ? PT : null, spelling: sp0 ? sp0.towers : null };
     neon.draw(c, 'far', nf);
     const sunNow = sun.debug(), rk = off.has('no-rays') ? 0 : rayStrength(LK, sunNow);
     sun.halo(c, fs); drawRays(c, L, sunNow, rk * fadeIn, t, 'behind', S.motion, tier); if (!off.has('no-birds')) birds.low(c, fs);
@@ -426,11 +438,22 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wfx.fogLayer(c, fs, 2, t);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
     if (beamK > 0.01) drawBeams(c, L, beamK * nightK, t, { fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion });
+    // ---- THE HARBOR'S HERO PIECES (Part 5): their state for this frame, their reflections queued for the water's mirror
+    const hf = harborFrame(t, fadeIn, T);
     layer('water');
     drawWater(c, t, fs, T, fadeIn, sunNow);
+    // far → near: the far boats (behind the lighthouse) → the pier, the lighthouse, the cottage [baked] → the beam → Rosie →
+    // the wheel (+ the pier's lamps) → the water taxi (in front of the pier head)
+    // (&force=no-boats / no-wakes / no-wheel / no-beam: each piece off — the perf A/B of one piece on one page)
+    const noB = off.has('no-boats');
+    if (!noB) boats.draw(c, hf.boat, L.lighthouse.z, 1e9);
     layer('harbor');
+    if (!off.has('no-beam')) beam.draw(c, hf.beam);
+    if (!noB) boats.draw(c, hf.boat, L.wheel.z + L.wheel.frame + 0.5, L.lighthouse.z);
+    if (!off.has('no-wheel')) wheel.draw(c, hf.wheel);
+    drawPierLamps(c, hf.lamps);
+    if (!noB) boats.draw(c, hf.boat, 0, L.wheel.z + L.wheel.frame + 0.5);
     wfx.fogLayer(c, fs, 3, t);
-    if (fadeIn > 0) { c.globalAlpha = fadeIn; drawBoats(c, L, T); c.globalAlpha = 1; }
     layer('road');
     if (fadeIn > 0 && !off.has('no-road')) { c.globalAlpha = fadeIn; drawTraffic(c, L, T, density.road); c.globalAlpha = 1; }
     layer('stage');
@@ -458,8 +481,94 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sun.dim(c, fs);
     drawForeground(c, W, H, vignette, night);
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
+    if (DEBUG) drawReadout(c, now);
+  }
+  // &debug=1: THE FRAME-TIME READOUT (the owner's request: the real speed on her own phone) — top left, under the safe area:
+  // the tier + DPR, frames drawn a second, the scene's work per drawn frame (mean / p95 over the last 90), the frame interval
+  // (p50 / the share of frames over 20 ms), what keeps 60 fps ('calm' = 30); refreshed twice a second
+  let roAt = 0, roText = null, roN = 0, roT0 = 0;
+  function drawReadout(c, now) {
+    roN++;
+    if (now - roAt > 500) {
+      const fps = roT0 ? Math.round(roN * 1000 / (now - roT0)) : 0; roN = 0; roT0 = now; roAt = now;
+      const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);
+      const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
+      const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
+      roText = [`t${tier} · dpr ${dpr} · ${fps} fps`, `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`];
+    }
+    if (!roText) return;
+    c.save();
+    c.font = '600 10px ui-monospace, "JetBrains Mono", monospace';
+    const w = Math.max(...roText.map(t => c.measureText(t).width)) + 12, y = safeTopV + 6;
+    c.fillStyle = 'rgba(0,0,0,0.66)'; c.beginPath(); c.roundRect(8, y, w, 6 + 13 * roText.length, 6); c.fill();
+    c.fillStyle = '#9ff0c8'; roText.forEach((t, i) => c.fillText(t, 14, y + 14 + 13 * i));
+    c.restore();
   }
 
+  // THE HARBOR'S HERO PIECES (Part 5): this frame's look for the wheel, the beam, the boats; their reflections queued for the
+  // water's mirror (read when it is built: 10 times a second — the wheel, Rosie, the tug and the sailboats are slow)
+  let nightCache = new Map();
+  const nightAt = ms => {
+    if (settings.alwaysNight) return true;
+    const k = Math.round(ms / 60000);
+    let v = nightCache.get(k);
+    if (v == null) { if (nightCache.size > 64) nightCache = new Map(); v = sunPosition(k * 60000, LK.lat, LK.lon).el < -6; nightCache.set(k, v); }
+    return v;
+  };
+  let waterQuiet = false;
+  const sch = (name, fb) => (clock.force.has(name) ? qp.get('scheme') || fb : null);
+  function harborFrame(t, fadeIn, T) {
+    const ms = clock.now(), glowK = fadeIn * clamp01((P.dark - 0.3) / 0.45) * (S.lit > 0 ? S.lit : 0);
+    const sunDir = (bakeTones || lookTones()).sunDir || 0, motion = S.motion;
+    // the previews of the colour hooks (Parts 10, 11a-c call wheel.scheme / beam.set / boats.set): &force=wheel-scheme&scheme=...,
+    // &force=beam-green, &force=rosie-lights&scheme=valentine|parade
+    { const ws = sch('wheel-scheme', 'halloween'); if (ws) wheel.scheme(ws); if (clock.force.has('beam-green')) beam.set({ colour: [90, 255, 140] }); const rs = sch('rosie-lights', 'parade'); if (rs) boats.set({ rosie: rs }); }
+    // THE WATER LANE'S QUIET (the owner's call): while a BIG SHOW runs — two of the party peak, the searchlights, a word in the
+    // windows — or a heavy event quiets the water (the scheduler's density), or on tier 1 a party night, the extra boats wait
+    // (boats.js: the taxi skips a crossing, the tug a visit; nobody's look is lowered)
+    const party = PT.on > 0.5 || clock.force.has('neon-party');
+    const show = (party ? 1 : 0) + (beamK > 0.3 ? 1 : 0) + (lights.spelling ? 1 : 0);
+    waterQuiet = show >= 2 || (tier === 1 && party) || density.water < 1;
+    // (reduced motion: the boats hold still where the hour began — no zipping taxi, no wakes)
+    boats.tick(motion ? ms : Math.floor(ms / 3600000) * 3600000, nightAt, { quiet: waterQuiet });
+    const heel = clamp01((LK.wind || 0) / 10) * 0.16;
+    const hw = { t, ms, T, sunDir, lights: glowK, fade: fadeIn, motion, party: PT.on > 0 ? PT : null };
+    const hb = { t, T, lights: glowK, motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes') };
+    const hl = { ms, now: performance.now(), k: fadeIn * Math.max(clamp01((P.dark - 0.35) / 0.4) * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, motion, tier, dim: !!lights.spelling, water };
+    if (fadeIn > 0 && !clock.force.has('no-water')) {
+      if (!clock.force.has('no-wheel')) water.reflect(cx => wheel.reflect(cx, hw), axisAt(L, L.wheel.z));
+      if (!clock.force.has('no-boats')) boats.mirrors(water, hb);
+      if (hl.k > 0.01) water.reflect(cx => beam.reflect(cx, hl), axisAt(L, L.lighthouse.z));
+    }
+    return { wheel: hw, boat: hb, beam: hl, lamps: glowK };
+  }
+  // the pier's lamps (night, with the city's power-on): a warm globe + its halo, a column in the water under each
+  // (all of them in ONE sprite per layout — like the quay lamps — drawn in one call)
+  let pierLampCv = null;
+  function pierLampSprite() {
+    if (!pierLampsAt.length || !glow) return null;
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const lp of pierLampsAt) { const r = lp.s * 1.5; x0 = Math.min(x0, lp.x - r); x1 = Math.max(x1, lp.x + r); y0 = Math.min(y0, lp.y - r); y1 = Math.max(y1, lp.y + r); }
+    const d = Math.min(2, dpr), cv = (pierLampCv && pierLampCv.cv) || document.createElement('canvas');
+    cv.width = Math.ceil((x1 - x0) * d); cv.height = Math.ceil((y1 - y0) * d);
+    const x = cv.getContext('2d');
+    x.setTransform(d, 0, 0, d, -x0 * d, -y0 * d); x.globalCompositeOperation = 'lighter';
+    for (const lp of pierLampsAt) {
+      const r = lp.s * 1.5;
+      x.globalAlpha = 0.85; x.drawImage(glow, lp.x - r, lp.y - r, r * 2, r * 2);
+      x.globalAlpha = 1; x.fillStyle = 'rgb(255,236,200)'; x.beginPath(); x.arc(lp.x, lp.y, Math.max(0.6, lp.s * 0.22), 0, Math.PI * 2); x.fill();
+    }
+    return { cv, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+  function drawPierLamps(c, k) {
+    if (k <= 0.01) return;
+    if (!pierLampCv) pierLampCv = pierLampSprite();
+    if (!pierLampCv) return;
+    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = k;
+    c.drawImage(pierLampCv.cv, pierLampCv.x, pierLampCv.y, pierLampCv.w, pierLampCv.h);
+    c.restore();
+    for (const lp of pierLampsAt) water.light(lp.x, lp.y, [255, 206, 140], k * 0.7, lp.s * 0.6);
+  }
   // THE WATER (Part 4): everything above the waterline is drawn — the water mirrors it (water.js)
   function drawWater(c, t, fs, T, fadeIn, sunNow) {
     if (clock.force.has('no-water')) return;
@@ -544,7 +653,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (s[67] > 19.5 && tier > 0) { setTier(tier - 1); cool = 150; frames.length = 0; }
   }
   let tierHold = 0, perfN = 0;
-  function setTier(t) { tier = Math.max(0, Math.min(2, t)); build(); }
+  function setTier(t) { tier = Math.max(0, Math.min(2, t)); wheel.setTier(tier); boats.setTier(tier); build(); }
 
   const onVis = () => { if (document.visibilityState === 'visible') start(); else stop(); };
   let resizeT = 0, relayT = 0, laneKey = '';
@@ -583,6 +692,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (f) return { kind: f };
       const sg = neon.hit(x, y);
       if (sg) return sg;
+      // the harbor (Part 5; Part 12's eggs): the lighthouse (3 taps: the beam spins), a boat, the wheel
+      if (L && beam.hit(x, y)) return { kind: 'lighthouse', spun: beam.tap() };
+      const bt = L && boats.hit(x, y);
+      if (bt) return { kind: 'boat', id: bt };
+      if (L && wheel.hit(x, y)) return { kind: 'wheel' };
       const r = L && L.door.rect;
       if (r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { kind: 'door' };
       return null;
@@ -621,7 +735,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     harbor: () => (L ? { cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze,
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
-      wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z); return { x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r] }; })(),
+      wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),
+      lighthouse: { ...beam.debug(), set: o => beam.set(o), spin: () => beam.spin() },
+      boats: { ...boats.debug(), set: o => boats.set(o) },
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
       water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },
       neon: neon.debug(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => neon.billboard(id, v), reflections: () => neon.reflections(), beacons: lights.beaconList(),
@@ -635,14 +751,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT);
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('resize', onResize);
-      baker.destroy(); litBaker.destroy(); neon.destroy(); water.destroy();
+      baker.destroy(); litBaker.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
-      for (const c of [skyCv, vignette, glow, ...sigGlow, canvas, quayLamps && quayLamps.cv]) if (c) { c.width = 0; c.height = 0; }
+      for (const c of [skyCv, vignette, glow, ...sigGlow, canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;
     },
   };
   function T0() { return P.dark > 0.5; }
   /** every baked canvas of the scene (the city's layers + the lit windows) against the tier's one budget */
-  function memAll() { const a = baker.mem(), b = litBaker.mem(), w = water.mem(); return { mb: +(a.mb + b.mb + w).toFixed(2), budget: a.budget, tier: a.tier, layers: [...a.layers, ...b.layers, { name: 'water (the mirror, live)', dpr: 1, mb: w }] }; }
+  function memAll() { const a = baker.mem(), b = litBaker.mem(), w = water.mem(), h = wheel.debug().mb + boats.debug().mb; return { mb: +(a.mb + b.mb + w + h).toFixed(2), budget: a.budget, tier: a.tier, layers: [...a.layers, ...b.layers, { name: 'water (the mirror, live)', dpr: 1, mb: w }, { name: 'harbor sprites (the wheel, the boats)', dpr, mb: +h.toFixed(2) }] }; }
 }

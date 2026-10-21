@@ -33,6 +33,14 @@ const SCENES = {
   'np-windy': 'when=2026-10-14T21:30&wx=clear&wind=13&force=no-planes',
   'nw-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes,no-water', 'nw-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water',
   'nw-neon': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water,neon-party,searchlights,spell&text=2027',
+  // CITY 2.0, Part 5: the harbor's worst — the neon's party + searchlights + a word, a real fog (the beam at its widest), the
+  // water taxi crossing non-stop (its wake + its own reflection), the wheel's show, Rosie, the beam
+  'h-worst': 'when=2026-10-17T23:00&wx=fog&force=no-planes,neon-party,searchlights,spell,taxi&text=2027',
+  'h-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi',
+  // (one Part 5 piece off at a time, against h-night: its cost on one page)
+  'h-nb': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-boats', 'h-nw': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-wakes',
+  'h-nwh': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-wheel', 'h-nbm': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-beam',
+  'h-none': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-boats,no-wheel,no-beam', 'h-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes,taxi',
 };
 const names = arg('scenes', 'party,night,day').split(',');
 const sleep = ms => new Promise(r => setTimeout(r, ms));

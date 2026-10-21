@@ -424,7 +424,7 @@ test('word towers (Part 3): both faces fully on screen, nothing nearer over them
   }
 });
 
-test('signs: every game has a sign on every phone (4 named + 8 icons), every spot clear, names fit; desktop too', () => {
+test('signs: every game has a sign on every phone (6 named — 2 of them roof signs — + 6 icons), every spot clear, names fit; desktop too', () => {
   for (const k of Object.keys(SIZES)) {
     const { cam, L } = setup(k);
     const spots = signSpots(L);
@@ -432,7 +432,8 @@ test('signs: every game has a sign on every phone (4 named + 8 icons), every spo
     const pick = assignSigns(GAMES12, spots, '2026-10-21');
     const got = new Set(pick.values());
     if (!cam.wide) {
-      assert.equal(spots.filter(s => s.kind === 'named').length, 4, `${k}: four named spots`);
+      assert.equal(spots.filter(s => s.kind === 'named').length, 6, `${k}: six named spots`);
+      assert.equal(spots.filter(s => s.kind === 'icon').length, 6, `${k}: six icons`);
       assert.equal(got.size, 12, `${k}: all 12 games have a sign`);
     } else if (k === '1440x900') assert.equal(got.size, 12, 'desktop: all 12 games');
     for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(g.short.replace(/ /g, '').length <= s.cap, `${k}: ${g.short} fits ${s.id}`); }
@@ -539,6 +540,25 @@ test('signs (Part 4): the icons read (≥ 19 pt), the billboard is big, the busy
   }
 });
 
+test('signs (Part 5): the two named ROOF SIGNS stand on the word towers in the open sky — under the skyline limit, out of the sun corridors, clear of the faces; their beacons on top', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k), s = cam.F / 600;
+    const spots = signSpots(L), roof = spots.filter(sp => sp.mount === 'tower');
+    if (!cam.wide) assert.equal(roof.length, 2, `${k}: two roof signs`);
+    for (const sp of roof) {
+      const t = L.towers.find(tt => tt.id === sp.host), top = t.tiers[t.tiers.length - 1];
+      assert.ok(t.word, `${k}: ${sp.id} on a word tower`);
+      const [, roofY] = project(cam, 0, top.y0 + top.h + (top.crown ? top.crown.h : 0), top.z0);
+      assert.ok(sp.rect.y + sp.rect.h < roofY - 1 * s, `${k}: ${sp.id} above its tower's crown`);
+      const [, by] = project(cam, sp.w.beacon[0], sp.w.beacon[1], sp.w.z);
+      assert.ok(by >= cam.limitY, `${k}: ${sp.id}'s beacon ${by.toFixed(0)} under the skyline limit ${cam.limitY.toFixed(0)}`);
+      for (const g of L.gaps) assert.ok(sp.rect.x >= g.sx + g.w / 2 + 2.9 || sp.rect.x + sp.rect.w <= g.sx - g.w / 2 - 2.9, `${k}: ${sp.id} out of the corridor at ${g.sx.toFixed(0)}`);
+      assert.ok(sp.rect.w >= 40 * s && sp.rect.h >= 14 * s, `${k}: ${sp.id} reads (${sp.rect.w.toFixed(0)}×${sp.rect.h.toFixed(0)} pt)`);
+      assert.ok(sp.cap >= 7, `${k}: ${sp.id} takes a 7-letter name`);
+    }
+  }
+});
+
 test('the water (Part 4): its band at every size — from just under the far quay to the railing; each object reflects about its own waterline', () => {
   for (const k of Object.keys(SIZES)) {
     const { cam, L } = setup(k), s = cam.F / 600;
@@ -551,5 +571,82 @@ test('the water (Part 4): its band at every size — from just under the far qua
     assert.ok(axisAt(L, L.wheel.z) > axisAt(L, L.lighthouse.z) && axisAt(L, L.lighthouse.z) > y0, `${k}: waterlines by depth`);
     assert.equal(axisAt(L, Z.quay), y0);
     assert.ok(LEVEL < 0 && LEVEL > L.quay.foot);
+  }
+});
+
+// ------------------------------------------------------------------ Part 5: the harbor's hero pieces
+import { boatRoutes, boatAt, cycleOf } from '../js/core/harbor-boats.js';
+
+test('the wheel (Part 5): its A-frames stand ON the pier platform at every size — the feet inside the deck, the platform under the wheel', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k), w = L.wheel, h = L.pier.head;
+    for (const s of [-1, 1]) {
+      const foot = w.x + s * w.leg * w.r;
+      assert.ok(foot > h.x0 + 1 && foot < h.x1 - 1, `${k}: the ${s < 0 ? 'left' : 'right'} foot (x ${foot.toFixed(1)}) on the platform (${h.x0.toFixed(1)}..${h.x1.toFixed(1)})`);
+    }
+    assert.ok(h.z0 < w.z - w.frame && h.z1 > w.z + w.frame, `${k}: both A-frames' feet on the platform's depth`);
+    assert.ok(L.pier.z0 <= h.z0 && L.pier.z1 >= h.z1, `${k}: the platform is part of the pier`);
+    // the platform's left edge still clear of the speakeasy (it stands in the open water, not under the building)
+    const [sx] = project(cam, L.speakeasy.x1, 0, L.speakeasy.z1), [hx] = project(cam, h.x0, L.pier.y, h.z0);
+    if (!cam.wide) assert.ok(hx > sx - 6, `${k}: the platform's left edge ${hx.toFixed(0)} by the speakeasy's corner ${sx.toFixed(0)}`);
+  }
+});
+
+test('the boats (Part 5): on the clock (the same place for the same ms), never through the pier, the taxi across the whole width', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k), R = boatRoutes(L), head = L.pier.head;
+    const headR = project(cam, head.x1, 0, head.z0)[0];
+    for (const r of R) {
+      for (let ms = Date.UTC(2026, 9, 19, 12); ms < Date.UTC(2026, 9, 20, 12); ms += 7919) {
+        const a = boatAt(r, ms), b = boatAt(r, ms);
+        assert.deepEqual(a, b);
+        if (!a.on || r.id === 'taxi') continue;
+        // beyond the pier's head, every boat keeps right of the pier — on screen, right of the platform's front corner
+        const left = project(cam, a.x - r.len / 2, 0, r.z)[0];
+        assert.ok(left >= headR + 2, `${k}: ${r.id} at ${left.toFixed(0)} pt crosses the pier (its platform ends at ${headR.toFixed(0)})`);
+      }
+      if (r.id === 'taxi') {
+        assert.ok(r.z < head.z0, `${k}: the taxi runs in front of the pier head`);
+        assert.ok(project(cam, r.lane[0] + r.len / 2, 0, r.z)[0] < 0 && project(cam, r.lane[1] - r.len / 2, 0, r.z)[0] > cam.W, `${k}: the taxi crosses the whole width`);
+      }
+    }
+  }
+});
+
+test('the boats (Part 5): a day / night boat is decided per cycle (never pops in or out at dusk); docked Rosie stays clear of the lighthouse; the far boats come to the pier while her landing is empty', () => {
+  const { cam, L } = setup('402x874'), R = boatRoutes(L), byId = id => R.find(r => r.id === id);
+  const dusk = Date.UTC(2026, 9, 19, 23, 3), nightAt = ms => ms >= dusk;
+  for (const r of R.filter(r => r.when)) {
+    const c = cycleOf(r, dusk), on = new Set();
+    for (let u = 1; u < r.period - 1; u += 3) on.add(boatAt(r, c.start + u * 1000, nightAt).seg === 'off' ? 'off' : 'in');
+    assert.equal(on.size, 1, `${r.id}: one decision for the whole cycle across dusk`);
+  }
+  const rosie = byId('rosie'), dock = rosie.segs.find(s => s.type === 'hold');
+  const [, , lx0] = [0, 0, project(cam, L.lighthouse.x - L.lighthouse.r0, 0, L.lighthouse.z)[0]];
+  assert.ok(project(cam, dock.xa + rosie.len / 2, 0, rosie.z)[0] < lx0 - 2, 'docked Rosie ends left of the lighthouse');
+  // the tug + the sailboats: when they are near the pier (in the left third of their lane), Rosie is not docked
+  for (const id of ['tug', 'sail', 'sail2']) {
+    const r = byId(id);
+    for (let s = 0; s < 600; s += 5) {
+      const ms = Date.UTC(2026, 9, 19, 12) + s * 1000, a = boatAt(r, ms), ro = boatAt(rosie, ms);
+      if (!a.on || a.x > r.lane[0] + (r.lane[1] - r.lane[0]) * 0.18) continue;
+      assert.notEqual(ro.seg, 'hold', `${id} near the pier while Rosie is docked (t ${s} s)`);
+    }
+  }
+});
+
+test('the boats (Part 5): RUNS for the thinning — the taxi crosses twice a cycle, the tug visits once; an away boat names the run that comes next', () => {
+  const { L } = setup('402x874'), R = boatRoutes(L), taxi = R.find(r => r.id === 'taxi'), tug = R.find(r => r.id === 'tug');
+  assert.equal(taxi.runs, 2); assert.equal(tug.runs, 1);
+  assert.ok(taxi.thin && tug.thin && !R.find(r => r.id === 'rosie').thin, 'only the extra boats thin out');
+  // walking the clock: every away state names the next run, and the next visible state is exactly that run
+  for (const r of [taxi, tug]) {
+    let pending = null, seen = 0;
+    for (let ms = Date.UTC(2026, 9, 19, 12); ms < Date.UTC(2026, 9, 19, 14); ms += 500) {
+      const s = boatAt(r, ms);
+      if (!s.on && s.seg === 'away') { if (pending != null) assert.equal(s.next, pending, `${r.id}: the next run stays the same while away`); pending = s.next; }
+      else if (s.on) { if (pending != null) { assert.equal(s.run, pending, `${r.id}: the run that comes is the one named`); seen++; } pending = null; }
+    }
+    assert.ok(seen > 5, `${r.id}: runs seen ${seen}`);
   }
 });

@@ -136,19 +136,28 @@ try {
     if (SHOTS) await X.page.screenshot({ path: `${OUT}flags-grid-390x844.png` });
     await X.ctx.close(); }
 
-  // ================================================================ 3b. Part 2: the tagline fades, the words, the searchlights, the wheel
-  { const T = await open({ slot: 'h7', qs: `${NIGHT}&tagms=1500&force=spell,searchlights&text=2027` });
+  // ================================================================ 3b. Part 2 (+ Part 5): the tagline rests with the dock, the words, the searchlights, the wheel
+  { const T = await open({ slot: 'h7', qs: `${NIGHT}&force=spell,searchlights&text=2027` });
     // (the city laid out on the title's REAL text rects before the first reading: a sub-pt re-layout after it is not the bug)
     await harborUp(T.page);
     await waitFor(T.page, '(() => { const h = window.__district.harbor(), tr = window.__district.scene().textRects; return h && !h.pending && tr && Math.abs(h.cam.limitY - (tr.tag.y + tr.tag.h + 10)) < 1; })()', 'the city laid out on the real text rects', 9000);
     const h0 = await ev(T.page, 'window.__district.harbor()');
-    await waitFor(T.page, `(() => { const t = document.querySelector('.nd-tag'); return t && getComputedStyle(t).opacity < 0.05 && window.__district.harbor().cam.tagGone; })()`, 'the tagline gone', 9000);
+    // PART 5 (the owner's call): the tagline stays while the dock is up — no timer — and rests WITH the dock
+    await sleep(2500);
+    const up = await ev(T.page, `(() => { const t = document.querySelector('.nd-tag'); return { o: +getComputedStyle(t).opacity, gone: window.__district.harbor().cam.tagGone }; })()`);
+    ok(up.o > 0.9 && !up.gone, `TAGLINE ON ARRIVAL: shown with the dock (opacity ${up.o}), its band not the sky's`);
+    await ev(T.page, 'window.__district.idle()');
+    await waitFor(T.page, `(() => { const t = document.querySelector('.nd-tag'), d = document.querySelector('.nd-actions'); return t && getComputedStyle(t).opacity < 0.05 && getComputedStyle(d).opacity < 0.05 && window.__district.harbor().cam.tagGone; })()`, 'the tagline gone with the dock', 9000);
     await sleep(600);
     const h1 = await ev(T.page, 'window.__district.harbor()');
     // the real bug (fixed in Part 4): a re-layout forgetting the faded tagline — cam.tagGone off again, the lane shrunk back.
     // The positions get 1 pt (a sub-pt re-layout on a slow machine); the tagline's band is ≥ 10 pt, so the lane's move is clear.
     ok(h1.cam.tagGone && h1.lanes['sky-low'].y < h0.lanes['sky-low'].y - 8 && Math.abs(h1.cam.limitY - h0.cam.limitY) < 1 && Math.abs(h1.cam.VPY - h0.cam.VPY) < 1,
-      `TAGLINE: fades out on its timer and stays gone; nothing in the city moves (limit ${h0.cam.limitY.toFixed(1)} → ${h1.cam.limitY.toFixed(1)}, horizon ${h0.cam.VPY.toFixed(1)} → ${h1.cam.VPY.toFixed(1)}), the freed band joins sky-low (${Math.round(h0.lanes['sky-low'].y)} → ${Math.round(h1.lanes['sky-low'].y)})`);
+      `TAGLINE AT REST: fades out together with the dock; nothing in the city moves (limit ${h0.cam.limitY.toFixed(1)} → ${h1.cam.limitY.toFixed(1)}, horizon ${h0.cam.VPY.toFixed(1)} → ${h1.cam.VPY.toFixed(1)}), the freed band joins sky-low (${Math.round(h0.lanes['sky-low'].y)} → ${Math.round(h1.lanes['sky-low'].y)})`);
+    // a touch brings the dock back — and the tagline with it (its band leaves sky-low again)
+    await T.page.touchscreen.tap(20, 200);
+    await waitFor(T.page, `(() => { const t = document.querySelector('.nd-tag'), d = document.querySelector('.nd-actions'); return t && getComputedStyle(t).opacity > 0.9 && getComputedStyle(d).opacity > 0.9 && !window.__district.harbor().cam.tagGone; })()`, 'the tagline back with the dock', 9000);
+    ok(true, 'TAGLINE ON A TAP: back together with the dock, its band the tagline\'s again');
     await waitFor(T.page, '!!(window.__district.harbor().windows.spelling)', 'the word', 9000);
     await sleep(1500);
     const h2 = await ev(T.page, 'window.__district.harbor()');
@@ -167,7 +176,7 @@ try {
     await sleep(5000);
     const h = await ev(N.page, 'window.__district.harbor()'), sc = await ev(N.page, 'window.__district.scene()');
     const games = h.neon.signs.filter(s => s.game).map(s => s.game);
-    ok(new Set(games).size === 12 && h.neon.signs.filter(s => s.kind === 'named').length === 4 && h.neon.signs.every(s => s.on),
+    ok(new Set(games).size === 12 && h.neon.signs.filter(s => s.kind === 'named').length === 6 && h.neon.signs.every(s => s.on),
       `SIGNS: all 12 games in the skyline (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')} named tonight; the rest as tube icons), every sign lit at night`);
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
@@ -235,6 +244,33 @@ try {
     await D.ctx.close();
   }
 
+  // ================================================================ 3e. Part 5: the harbor's hero pieces — the wheel, the lighthouse, the boats, the roof signs
+  { const H = await open({ slot: 'h9', qs: `${NIGHT}&force=taxi` });
+    await harborUp(H.page);
+    await waitFor(H.page, '(() => { const n = window.__district.harbor().neon; return n.items > 20 && n.built >= n.items && !n.queued; })()', 'the neon built', 15000);
+    await sleep(3000);
+    const h = await ev(H.page, 'window.__district.harbor()');
+    const w = h.wheel;
+    ok(w.legs[0] > w.head[0] && w.legs[1] < w.head[1] && w.r > 40 && w.mb > 0,
+      `THE WHEEL ON ITS PIER: the A-frame's feet at ${Math.round(w.legs[0])} + ${Math.round(w.legs[1])} pt stand on the platform (${Math.round(w.head[0])}..${Math.round(w.head[1])}); r ${Math.round(w.r)} pt, its sprites ${w.mb} MB`);
+    const on = h.boats.boats.filter(b => b.on).map(b => b.id);
+    ok(on.includes('taxi') && !on.includes('sail') && !on.includes('sail2') && h.rate.fast !== '' && h.mem.layers.some(l => /harbor sprites/.test(l.name)) && h.mem.mb <= h.mem.budget,
+      `THE BOATS AT NIGHT: ${on.join(', ')} on the water (no sailboats after dark); the taxi keeps 60 fps (${h.rate.fast}); memory ${h.mem.mb} of ${h.mem.budget} MB`);
+    // the lighthouse: three quick taps spin the beam (Part 12's egg hook)
+    const lx = h.lighthouse.x, ly = h.lighthouse.y + 40;
+    const taps = [];
+    for (let i = 0; i < 3; i++) taps.push(await ev(H.page, `window.__district.hit(${lx}, ${ly})`));
+    const spin = await ev(H.page, 'window.__district.harbor().lighthouse');
+    ok(taps.every(t => t && t.kind === 'lighthouse') && taps[2].spun && spin.spinning, `THE LIGHTHOUSE: tapped 3× → the beam spins (${taps.map(t => t && t.kind).join(', ')})`);
+    // the roof signs' frames carry the word towers' beacons; the wheel's colour hook
+    const rs = h.neon.signs.filter(s => /^n-roof[AB]$/.test(s.id));
+    const bc = rs.map(s => h.beacons.find(b => Math.abs(b.x - (s.rect.x + s.rect.w / 2)) < 2 && b.y < s.rect.y && b.y > s.rect.y - 12));
+    const sch = await ev(H.page, `window.__district.harbor().wheel.scheme('halloween')`);
+    ok(rs.length === 2 && bc.every(Boolean) && rs.every(s => s.rect.y > h.cam.limitY) && sch === 'halloween',
+      `ROOF SIGNS + HOOKS: ${rs.map(s => `${s.id} ${s.game}`).join(', ')} over the word towers, under the limit, their towers' beacons on top; the wheel's scheme hook → ${sch}`);
+    if (SHOTS) await H.page.screenshot({ path: `${OUT}part5-harbor-390x844.png` });
+    await H.ctx.close();
+  }
   // ================================================================ 4. the dock: HOST, JOIN, the knock on the door
   const H = await open({ slot: 'hh', qs: NIGHT });
   await harborUp(H.page);

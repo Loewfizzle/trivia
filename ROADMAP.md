@@ -59,6 +59,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 - ✅ CITY 2.0 — THE HARBOR, Part 3 of 12: NEON + SIGNS + BILLBOARDS (Oct 21, 2026): sign-shop neon, every game's sign (a new pick of named signs each night), neon outlines on the buildings + the NEON NEEDLE, LED facades, billboards, synced beacons, the scroll, the premium logo, each game's tube logo — `docs/harbor.md`
 - ✅ CITY 2.0 — THE HARBOR, cleanup pass 1 (Oct 21, 2026): clean A-B-B-A numbers, battery (30 fps when calm, a full stop when hidden), the logo's catch cheap to paint + THE NEON BUZZ, the right-hand signs re-spaced, the Parts 1–4 code review fixed, the full title suite — `docs/harbor.md`
 - ✅ CITY 2.0 — THE HARBOR, Part 4 of 12: THE WATER (+ Part 3 touch-ups) (Oct 21, 2026): a live mirror of the city in perspective, neon smeared into shimmering columns, ripples from the real wind, the sun's gold + the moon's silver paths, lit quay lamps; Deco-tracing outlines, bigger icons + billboard, a calmer centre — `docs/harbor.md`
+- ✅ CITY 2.0 — THE HARBOR, Part 5 of 12: THE HARBOR'S HERO PIECES (Oct 21, 2026): the Ferris wheel (turning steel, level gondolas, a bulb show, its A-frames on a pier platform), the pier, the lighthouse + its sweeping beam (wide in real fog) + the keeper's cottage, Rosie + the water taxi + the tug + the sailboats on the clock with wakes and reflections; the tagline rests with the dock; two named roof signs on the word towers — `docs/harbor.md`
 - ✅ THE STREET, Part 2: THE PEOPLE (Oct 21, 2026): the speakeasy's door (knock → JOIN), pedestrians + umbrellas, the cab hail, spray, the small hours' windows, holiday figures — `docs/title.md`
 - ✅ JOIN / HOST follow the sign (Oct 21, 2026): unlit glass by day, lit from the catch to the morning goodbye — `docs/title.md`
 - ✅ THE STREET, Part 1 (Oct 20, 2026): lamps + paired seasonal trees, buses, a stop light, car variety, snowplows, golden-hour shadows, the street's party night — `docs/title.md`
@@ -81,7 +82,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 
 ## Next up (agreed plan, in order)
 
-- **CITY 2.0 — THE HARBOR, Parts 5–12** (`docs/harbor.md`, the order: `docs/harbor/plan.md`): 5 harbor hero pieces ·
+- **CITY 2.0 — THE HARBOR, Parts 6–12** (`docs/harbor.md`, the order: `docs/harbor/plan.md`):
   6 sky hero pieces · 7 the speakeasy · 8 the stage · 9 seasons + weather · 10 holidays + the banner plane · 11 party nights ·
   12 easter eggs + sounds + memory + desktop + switch-over.
 - **First-visit speed:** profiled Oct 20 2026 (docs/harbor.md#performance): TAP TO ENTER is up at ~0.5 s cold (the ~2.2 s seen

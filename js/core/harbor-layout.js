@@ -393,8 +393,12 @@ export function harborLayout(cam, seed = 1924) {
   const wz = 132, wr = 12.6, legK = 0.42;
   const speakBack = project(cam, speakeasy.x1, 0, speakeasy.z1)[0];
   const wheelX = Math.max((cam.wide ? -30 : -24) * k * wz / 165, xAt(cam, speakBack + 12 + legK * cam.F * wr / wz, wz));
-  const wheel = { x: wheelX, y: wr + 5.4, z: wz, r: wr, leg: legK };
-  const pier = { x0: wheelX - 3.2, x1: wheelX + 3.6, z0: 118, z1: Z.quay, y: 2.4 };
+  // (Part 5) the wheel's two A-frames stand in front of and behind it (± 1.7), 16 gondolas; THE PIER widens into a platform
+  // under it (the HEAD: the A-frames' feet at ± leg · r stand on its deck, 1.4 units in from its edges) — the walkway behind
+  // it runs on to the quay
+  const wheel = { x: wheelX, y: wr + 5.4, z: wz, r: wr, leg: legK, frame: 1.7, cars: 16 };
+  const headHalf = legK * wr + 1.4;
+  const pier = { x0: wheelX - 3.2, x1: wheelX + 3.6, z0: 118, z1: Z.quay, y: 2.4, head: { x0: wheelX - headHalf, x1: wheelX + headHalf, z0: wz - 6, z1: wz + 6 } };
   const breakwater = { x0: lighthouse.x - 20, x1: lighthouse.x + 34, z: 150, h: 1.6 };
   const cottage = { x: lighthouse.x + 3.4, z: 150, w: 5, h: 4.6, roof: 6.6 };
   // ---- the boats (the riverboat "Rosie" with her bulbs, a water taxi, a tug at night, sailboats by day), re-spaced around
@@ -403,9 +407,9 @@ export function harborLayout(cam, seed = 1924) {
   const boats = [
     { id: 'rosie', x: bx(0.73, 142), z: 142, len: 24, h: 10, dir: -1 },
     { id: 'taxi', x: bx(0.88, 94), z: 94, len: 6, h: 2.2, dir: 1 },
-    { id: 'tug', x: bx(0.585, 214), z: 214, len: 8, h: 4.6, dir: 1, when: 'night' },
-    { id: 'sail', x: bx(0.585, 214), z: 214, len: 6, h: 9, dir: 1, when: 'day' },
-    { id: 'sail2', x: bx(0.92, 205), z: 205, len: 6, h: 9, dir: -1, when: 'day' },
+    { id: 'tug', x: bx(0.585, 214), z: 214, len: 9.5, h: 5.2, dir: 1, when: 'night' },
+    { id: 'sail', x: bx(0.585, 214), z: 214, len: 6.5, h: 10, dir: 1, when: 'day' },
+    { id: 'sail2', x: bx(0.92, 205), z: 205, len: 6.5, h: 10, dir: -1, when: 'day' },
   ];
   const face = speakeasy.x1, rel = dx => face + dx;            // the phone's stage, relative to the face (−5.6 on the phone)
   const rail = { z: Z.rail, y: 1.1 };

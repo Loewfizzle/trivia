@@ -44,7 +44,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     const s = cam.F / 600;
     // the signs (named, icons, the fixed ones); the billboards
     for (const sp of spots) {
-      const roofY = sp.mount === 'roof' ? roofUnder(sp) : 0;
+      const roofY = sp.mount === 'roof' || sp.mount === 'tower' ? roofUnder(sp) : 0;
       if (sp.kind === 'billboard') {
         // tonight's billboard advertises a game that has no named sign tonight (an icon one), never the one up the street
         const named = new Set(spots.filter(x => x.kind === 'named').map(x => pick.get(x.id)));
@@ -53,7 +53,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       }
       const g = sp.kind === 'fixed' ? null : games.find(x => x.id === pick.get(sp.id));
       if (sp.kind !== 'fixed' && !g) continue;
-      signs.push(buildSign(sp, g, { W, s, roofY }));
+      signs.push(buildSign(sp, g, { W, s, roofY, frame: frameOf(sp) }));
     }
     // the outlines, projected + cut (the far group and the near group: each against its own nearer buildings)
     const signRects = new Map();
@@ -79,9 +79,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       pending = null; dropComp();
     });
   }
-  // the screen y a roof-mounted sign's scaffold stands on: the highest roof under it, among the near band
+  // the screen y a roof-mounted sign's scaffold stands on: the highest roof under it, among the near band (a sign on a
+  // tower's roof: that roof)
   function roofUnder(sp) {
     const R = sp.rect;
+    if (sp.mount === 'tower') return project(cam, 0, sp.w.roof, sp.w.z)[1];
     let y = Infinity;
     for (const b of [...L.bands.find(b => b.id === 'near').blocks, ...L.heroes]) {
       const [a, ty] = project(cam, b.x0, b.h, b.z0), [c] = project(cam, b.x1, 0, b.z0);
@@ -91,6 +93,12 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   }
 
   // ---------------------------------------------------------------- the outlines: project + cut
+  // a tower's roof sign (Part 5): its steel frame on screen — the legs on the roof's edges, the beacon's post on top
+  function frameOf(sp) {
+    if (sp.mount !== 'tower') return null;
+    const w = sp.w, P = (x, y) => project(cam, x, y, w.z);
+    return { roofY: P(0, w.roof)[1], legs: w.legs.map(x => P(x, 0)[0]), beacon: P(w.beacon[0], w.beacon[1]), host: sp.host };
+  }
   function silhouette(b) {
     const y0 = b.y0 || 0, y1 = y0 + b.h, [a, ty] = project(cam, b.x0, y1, b.z0), [c] = project(cam, b.x1, y0, b.z0);
     let x0 = a, x1 = c;
@@ -165,7 +173,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   function housingStep(group, T) {
     return x => {
       const set = pending || { signs, boards };
-      for (const sg of set.signs) if (groupOf(sg.spot) === group) drawHousing(x, sg, T, { roofY: sg.spot.mount === 'roof' ? roofUnder(sg.spot) : 0 });
+      for (const sg of set.signs) if (groupOf(sg.spot) === group) drawHousing(x, sg, T, { roofY: sg.spot.mount === 'roof' || sg.spot.mount === 'tower' ? roofUnder(sg.spot) : 0, frame: sg.frame });
       for (const b of set.boards) if (groupOf(b.spot) === group) { x.save(); b.dayDraw(x, T); x.restore(); }
     };
   }
@@ -242,6 +250,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     if (group === 'far' && f.night > 0.05 && tier > 1) for (const gf of glassFaces) ledFacade(c, gf, t, f, partyK);
     else if (group === 'far' && f.night > 0.05 && tier === 1 && glassFaces.length) ledStill(c, f, partyK);
     // TIER 0 (the calm city): once the group's neon is steady (all on, the boot done, no moment running) it is one image
+    if (tier === 0 && f.spelling && f.spelling.length) for (const it of items) dimOf(it, f);
     if (tier === 0 && steady(group, t, partyK)) {
       if (!comp[group]) comp[group] = composite(group);
       if (comp[group]) { const cp = comp[group]; c.globalAlpha = f.fade * (group === 'far' ? Math.max(0.05, f.night) : 1); c.drawImage(cp.c, cp.x, cp.y, cp.w, cp.h); boardsLit(c, group, t, motion, f); }
@@ -253,7 +262,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       if (!it.ready || (!it.lit && it.kind !== 'board')) continue;
       if (it.kind === 'outline') { if (it.o.group !== group) continue; }
       else if (groupOf(it.kind === 'sign' ? it.sg.spot : it.b.spot) !== group) continue;
-      const base = f.fade * (flutter ? 0.965 + 0.035 * Math.sin(t * 11 + it.i * 2.3) * Math.sin(t * 3.1 + it.i) : 1);
+      const base = f.fade * (flutter ? 0.965 + 0.035 * Math.sin(t * 11 + it.i * 2.3) * Math.sin(t * 3.1 + it.i) : 1) * dimOf(it, f);
       if (it.kind === 'board') {
         const a = alpha(it, 0, t, motion) * base * f.night;
         if (a > 0.01 && it.night) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(it.night.c, it.night.x, it.night.y, it.night.w, it.night.h); c.globalCompositeOperation = 'lighter'; }
@@ -280,8 +289,20 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     c.restore();
   }
   const groupOf = sp => (sp.z >= 300 ? 'far' : 'near');
+  // A TOWER SPELLING A WORD: its roof sign sinks to a low glow (over ~1 s) so the message is the star, and comes back after
+  // (f.spelling: the towers spelling now — lights.spelling.towers)
+  const SPELL_DIM = 0.22;
+  function dimOf(it, f) {
+    if (it.kind !== 'sign' || it.sg.spot.mount !== 'tower') return 1;
+    const want = f.spelling && f.spelling.includes(it.sg.spot.host) ? SPELL_DIM : 1;
+    const k = f.motion ? Math.min(1, (f.dt || 16.7) / 900) * 3 : 1;
+    it.dim = it.dim == null ? want : it.dim + (want - it.dim) * Math.min(1, k);
+    if (Math.abs(it.dim - want) < 0.004) it.dim = want;
+    return it.dim;
+  }
   const inGroup = (it, group) => (it.kind === 'outline' ? it.o.group : groupOf(it.kind === 'sign' ? it.sg.spot : it.b.spot)) === group;
   function steady(group, t, partyK) {
+    if (items.some(it => it.kind === 'sign' && it.sg.spot.mount === 'tower' && it.dim != null && it.dim !== 1 && inGroup(it, group))) return false;
     if (partyK > 0.05 || moment.flash || queue.length) return false;
     for (const it of items) if (inGroup(it, group) && (!it.ready || !it.pw || !it.pw.on || t - it.pw.t0 < 2.5)) return false;
     return true;

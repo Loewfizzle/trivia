@@ -89,12 +89,44 @@ export function buildSign(spot, game, ctx) {
   // the tubes, ready to draw (uneven light, electrodes at the open ends)
   for (const p of parts) p.t = p.tubes.map(pl => tube(pl.pts, pl.closed, p.w));
   if (border) border.t = [tube(border.pts, true, tw * 0.75, [false, false])];
-  const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type };
+  const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type, frame: ctx.frame || null };
   sign.lit = (dpr, scheme) => litSprites(sign, dpr);
   return sign;
 }
 
 // ------------------------------------------------------------------ the housing (per look)
+/** a roof sign's steel frame (screen pt): fr = { roofY, legs: [x0, x1], beacon: [x, y] } */
+function roofFrame(x, sg, fr, day, sd) {
+  const R = sg.rect, gy = R.y + R.h, foot = fr.roofY, k = Math.max(0.5, R.h / 18);
+  const steel = mix([20, 16, 28], [96, 84, 78], day), lit = mix([34, 28, 44], [168, 150, 128], day), dark = mix([10, 8, 16], [52, 44, 44], day);
+  const [l0, l1] = fr.legs;
+  // the girder under the cabinet (a little wider than it), its shadow side
+  x.fillStyle = rgba(steel); x.fillRect(R.x - 0.8 * k, gy - 0.2, R.w + 1.6 * k, 1.1 * k);
+  x.fillStyle = rgba(dark); x.fillRect(R.x - 0.8 * k, gy + 0.9 * k - 0.2, R.w + 1.6 * k, 0.35 * k);
+  // the legs: lattice columns (two rails + zigzag lacing) from the roof to the girder, raking out to the cabinet's ends
+  const tops = [R.x + R.w * 0.1, R.x + R.w * 0.9];
+  x.lineCap = 'butt';
+  [l0, l1].forEach((lx, i) => {
+    const tx = tops[i], cw = 1.3 * k;
+    x.strokeStyle = rgba(i === (sd > 0 ? 1 : 0) ? lit : steel); x.lineWidth = Math.max(0.35, 0.32 * k);
+    x.beginPath(); x.moveTo(lx - cw / 2, foot); x.lineTo(tx - cw / 2, gy + 0.8 * k); x.moveTo(lx + cw / 2, foot); x.lineTo(tx + cw / 2, gy + 0.8 * k); x.stroke();
+    x.lineWidth = Math.max(0.25, 0.2 * k); x.beginPath();
+    const n = Math.max(3, Math.round((foot - gy) / (1.6 * k)));
+    for (let j = 0; j < n; j++) { const a = j / n, b = (j + 1) / n, xa = lx + (tx - lx) * (1 - a), ya = foot + (gy + 0.8 * k - foot) * a, xb = lx + (tx - lx) * (1 - b), yb = foot + (gy + 0.8 * k - foot) * b; x.moveTo(xa + (j % 2 ? cw : -cw) / 2, ya); x.lineTo(xb + (j % 2 ? -cw : cw) / 2, yb); }
+    x.stroke();
+  });
+  // the X braces between the legs, the catwalk rail just under the girder
+  x.strokeStyle = rgba(steel, 0.85); x.lineWidth = Math.max(0.25, 0.22 * k);
+  const mY = (foot + gy) / 2;
+  x.beginPath(); x.moveTo(l0, foot - 0.6); x.lineTo((tops[1] + l1) / 2, mY); x.moveTo(l1, foot - 0.6); x.lineTo((tops[0] + l0) / 2, mY); x.stroke();
+  x.strokeStyle = rgba(lit, 0.8); x.lineWidth = Math.max(0.25, 0.18 * k);
+  x.beginPath(); x.moveTo(R.x + 1, gy + 2.2 * k); x.lineTo(R.x + R.w - 1, gy + 2.2 * k); for (let px = R.x + 2; px < R.x + R.w - 1; px += 3.2 * k) { x.moveTo(px, gy + 1.1 * k); x.lineTo(px, gy + 2.2 * k); } x.stroke();
+  // the beacon's post on top of the cabinet (+ its little cage)
+  const [bx, by] = fr.beacon;
+  x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.35, 0.36 * k);
+  x.beginPath(); x.moveTo(bx, R.y); x.lineTo(bx, by + 0.6 * k); x.stroke();
+  x.fillStyle = rgba(dark); x.beginPath(); x.arc(bx, by + 0.4 * k, 0.75 * k, 0, Math.PI * 2); x.fill();
+}
 /** the housing drawn straight into a context (the facade bake: the signs' cabinets are static per look) */
 export function drawHousing(x, sg, T, ctx) {
   const R = sg.rect, day = Math.min(1, T.day + 0.8 * T.gold), sd = T.sunDir || 0;
@@ -102,6 +134,10 @@ export function drawHousing(x, sg, T, ctx) {
     const enamelDay = sg.game ? mix(mix(sg.col, [40, 36, 48], 0.72), [92, 84, 80], 0.25) : [70, 32, 34];
     const enamel = mix([14, 11, 22], enamelDay, day);
     const trim = mix([40, 34, 50], [214, 196, 160], day);
+    // A TOWER'S ROOF SIGN (Part 5): a riveted steel frame on the tower's roof — two lattice legs on the roof's edges, a girder
+    // under the cabinet, X braces, a catwalk; the beacon's post on top (the tower's beacon blinks there: lights.js)
+    const fr = sg.spot.mount === 'tower' && ctx.frame;
+    if (fr) roofFrame(x, sg, fr, day, sd);
     // the scaffold to the roof (a roof mount): two legs + a cross brace
     if (sg.spot.mount === 'roof' && ctx.roofY > R.y + R.h) {
       x.strokeStyle = rgba(mix([22, 18, 30], [70, 60, 58], day), 1); x.lineWidth = Math.max(0.5, R.w * 0.05);
@@ -111,11 +147,11 @@ export function drawHousing(x, sg, T, ctx) {
     if (sg.panel) {
       const P = sg.panel;
       // the cast shadow on the wall (day)
-      if (day > 0.05) { x.fillStyle = `rgba(20,14,30,${0.25 * day})`; x.beginPath(); x.roundRect(P.x + (sd > 0 ? -1.2 : 1.2), P.y + 1.6, P.w, P.h, P.r); x.fill(); }
+      if (day > 0.05 && !fr) { x.fillStyle = `rgba(20,14,30,${0.25 * day})`; x.beginPath(); x.roundRect(P.x + (sd > 0 ? -1.2 : 1.2), P.y + 1.6, P.w, P.h, P.r); x.fill(); }
       // the brackets (wall side): two arms
       x.fillStyle = rgba(mix([18, 14, 24], [60, 52, 52], day));
       const bx = sg.mid ? P.x + P.w : P.x - 1.6;
-      for (const f of [0.12, 0.88]) x.fillRect(bx, P.y + P.h * f - 0.5, 1.6, 1);
+      if (!fr) for (const f of [0.12, 0.88]) x.fillRect(bx, P.y + P.h * f - 0.5, 1.6, 1);
       // the depth: the cabinet's side toward the middle
       const dw = Math.max(0.8, Math.min(2, P.w * 0.14));
       x.fillStyle = rgba(mix(enamel, [0, 0, 0], 0.4)); x.beginPath(); x.roundRect(sg.mid ? P.x + P.w - 0.5 : P.x - dw + 0.5, P.y + 0.6, dw, P.h - 0.6, P.r * 0.5); x.fill();

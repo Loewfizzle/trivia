@@ -459,15 +459,24 @@ export function createTitle() {
     document.addEventListener('visibilitychange', onVisTitle);
   }
 
-  // CITY 2.0 (docs/harbor.md): the tagline fades out 15 s after the title appears (armed in run(): the power-on's start) and stays gone (opacity only: its rect, and
-  // so the city, never move). Its band becomes THE TAGLINE SLOT: tagSlot(text, ms) brings a line back there briefly (later
-  // parts: holidays, the countdown). &tagms=N sets the delay (tests).
+  // CITY 2.0 (docs/harbor.md): THE TAGLINE follows the screen at rest (Part 5, the owner's call): shown on arrival, it fades out
+  // together with the dock when the screen goes to rest and comes back with the dock on a tap (opacity only: its rect, and so the
+  // city, never move — the scene only hands its band to the sky-low lane while it is gone). Its band is THE TAGLINE SLOT:
+  // tagSlot(text, ms) shows a special line there for a while, even at rest (holidays, the countdown, CITY CONTROL).
+  // &tagms=N (dev + shots): the tagline alone fades N ms in, as if at rest.
   function armTagline() {
     if (!createHarbor || destroyed) return;
-    const ms = +((location.search.match(/[?&]tagms=(\d+)/) || [])[1] || 15000);
+    const ms = +((location.search.match(/[?&]tagms=(\d+)/) || [])[1] || 0);
     clearTimeout(els.tagTimer);
-    els.tagTimer = setTimeout(() => { if (destroyed) return; els.sign.classList.add('nd-tag-gone'); scene.set({ tagGone: true }); }, ms);
+    if (ms) els.tagTimer = setTimeout(() => { if (destroyed) return; els.sign.classList.add('nd-tag-gone'); scene.set({ tagGone: true }); }, ms);
     scene.set({ tagSlot });
+  }
+  /** City 2.0: the tagline's band is the sky's while the tagline is hidden (at rest, or faded by &tagms) and no message shows */
+  function tagState() {
+    if (!createHarbor || destroyed || !scene) return;
+    const tag = els.sign.querySelector('.nd-tag');
+    const msg = tag && tag.classList.contains('nd-tag-msg');
+    scene.set({ tagGone: !msg && (els.root.classList.contains('is-idle') || els.sign.classList.contains('nd-tag-gone')) });
   }
   function tagSlot(text, ms = 6000) {
     if (destroyed || !createHarbor) return false;
@@ -475,11 +484,18 @@ export function createTitle() {
     if (!tag || tag.classList.contains('nd-count')) return false;
     clearTimeout(els.tagSlotTimer);
     tag.textContent = text;
-    els.sign.classList.remove('nd-tag-gone'); scene.set({ tagGone: false });
+    tag.classList.add('nd-tag-msg');
+    els.sign.classList.remove('nd-tag-gone'); tagState();
     els.tagSlotTimer = setTimeout(() => {
       if (destroyed) return;
-      els.sign.classList.add('nd-tag-gone'); scene.set({ tagGone: true });
-      els.tagSlotTimer = setTimeout(() => { if (!destroyed && !tag.classList.contains('nd-count')) tag.textContent = TAGLINE; }, 2600);
+      // the message fades out; then the tagline is back in its place (shown with the dock, hidden at rest)
+      els.sign.classList.add('nd-tag-gone');
+      els.tagSlotTimer = setTimeout(() => {
+        if (destroyed) return;
+        tag.classList.remove('nd-tag-msg');
+        if (!tag.classList.contains('nd-count')) tag.textContent = TAGLINE;
+        els.sign.classList.remove('nd-tag-gone'); tagState();
+      }, 2600);
     }, ms);
     return true;
   }
@@ -883,8 +899,9 @@ export function createTitle() {
     if (busyNow) { armIdle(); return; }
     els.root.classList.add('is-idle');
     document.body.classList.add('nd-idle');
+    tagState();
   }
-  function wake() { els.root.classList.remove('is-idle'); document.body.classList.remove('nd-idle'); }
+  function wake() { const was = els.root.classList.contains('is-idle'); els.root.classList.remove('is-idle'); document.body.classList.remove('nd-idle'); if (was) tagState(); }
   function onWake(e) {
     if (destroyed) return;
     // the touch that wakes the screen only wakes it (it doesn't press whatever was under it)

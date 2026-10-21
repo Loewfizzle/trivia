@@ -328,6 +328,24 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE HARBOR, Part 5 of 12: THE HARBOR'S HERO PIECES (Oct 21, 2026) — `docs/harbor.md`
+- THE FERRIS WHEEL (`screens/harbor/wheel.js`): real steel (two rims + their truss, crossing tension spokes, struts, the hub) turning
+  on the real clock, 16 gondolas hanging level and swaying, bulbs on the rim + spokes + a star round the hub with a 48 s show
+  (steady → a chase → rings pulsing out → a sparkle), colour schemes for the holidays + party nights; its A-frames stand on a new
+  PIER PLATFORM (the owner's catch: the legs stuck out past the pier).
+- THE PIER (baked): pilings + braces, planks, railings, the boarding plinth, a ticket booth, lamp posts lit at night (+ their columns
+  in the water). THE LIGHTHOUSE: a crafted banded tower shaded to the real sun, the gallery, a glazed lantern, the copper dome, the
+  rubble breakwater, the keeper's cottage; THE BEAM: two cones turning on the clock, a flare when one faces us, reflected, bright
+  and wide in real fog; 3 taps spin it (Part 12's egg); the Halloween-green hook.
+- THE BOATS (`core/harbor-boats.js`, pure + tested; `boats.js`): on the clock, never through the pier — Rosie (decks, twin stacks,
+  her turning paddlewheel, bulb strings at night) docks beside the platform; the yellow water taxi zips across in front of the
+  pier head; the tug at night; sailboats by day heeling in the real wind; the far boats phased against docked Rosie; wakes from
+  each boat's own past path; reflections; running lights.
+- The small fixes: the tagline rests with the dock (and comes back on a tap); two named ROOF SIGNS on the word towers (the owner's
+  call: under the skyline limit, out of the sun corridors, the beacons on their frames, dimmed while the tower spells a word).
+- THE ELEVATED TRAIN: size-checked and not built (7 pt cars under the signs, mostly hidden behind the wheel + Rosie) — the owner's
+  choice of options in `docs/harbor.md`.
+
 ### ✅ CITY 2.0 — THE HARBOR, Part 1 of 12: foundation + blockout (Oct 20, 2026) — `docs/harbor.md`
 - Rollback point: the tag `city-1.0` (ba51ee2), pushed. Everything new behind `?city=2` (never saved; a normal visit never loads a
   harbor file); title.js gains one import line + one gated line (+ `__district.harbor()`).

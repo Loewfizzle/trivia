@@ -26,6 +26,8 @@ const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const OUT = String(opt('out', './shots-review')).replace(/\/?$/, '/');
 mkdirSync(OUT, { recursive: true });
 const WAIT = Number(opt('wait', 2600));
+// --every ms --count n: a burst of n shots of each scene, ms apart (motion: the lighthouse's beam, the wheel's bulb show, a boat)
+const EVERY = Number(opt('every', 0)), COUNT = EVERY ? Number(opt('count', 4)) : 1;
 const GUEST = !!opt('guest', false);
 const PREVIEW = !!opt('preview', false);
 const PLACES = { gr: '&tz=America/Detroit&at=42.96,-85.67', ny: '&tz=America/New_York', none: '' };
@@ -89,7 +91,9 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (o.act === 'join') { await p.evaluate(() => window.__district.dock.join(true)); await sleep(500); await p.type('.nd-code-in', 'mi'); await sleep(400); }
   if (o.act === 'rejoin') { await p.evaluate(() => window.__district.dock.preview({ rejoin: 'MINT' })); await sleep(700); }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
-  const file = `${OUT}${name}-${w}x${h}`;
+  for (let shot = 0; shot < COUNT; shot++) {
+  if (shot) await sleep(EVERY);
+  const file = `${OUT}${name}-${w}x${h}${COUNT > 1 ? `-${shot}` : ''}`;
   if (!CROPS.length) { await p.screenshot({ path: `${file}.png` }); n++; }
   for (const c of CROPS) {
     let clip;
@@ -109,6 +113,14 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam;
         if (cc === 'logo') { const r = document.querySelector('.nd-logo-wrap').getBoundingClientRect(); return { x: Math.max(0, r.left - 20), y: Math.max(0, r.top - 30), width: Math.min(innerWidth, r.width + 40), height: r.height + 60 }; }
         const y = Math.max(0, c.limitY - 24), hh = c.VPY + c.F * c.CAMH / 230 + 14 - y, w = innerWidth / 2; return { x: cc === 'skyl' ? 0 : w, y, width: w, height: hh }; }, c);
+    } else if (['wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c)) {
+      // CITY 2.0 (Part 5): close-ups of the harbor's hero pieces — the wheel (with its legs on the pier), the lighthouse (+ the
+      // beam's sweep), Rosie (wherever she is now), the harbor strip (the wheel's top to the road)
+      clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb || !hb.wheel) return null; const w = hb.wheel, k = hb.cam.F / 600, box = (x, y, ww, hh) => ({ x: Math.max(0, x), y: Math.max(0, y), width: Math.min(innerWidth - Math.max(0, x), ww), height: Math.min(innerHeight - Math.max(0, y), hh) });
+        if (cc === 'wheel') return box(w.x - w.r * 1.35, w.y - w.r * 1.2, w.r * 2.7, w.deck - w.y + w.r * 1.2 + 40 * k);
+        if (cc === 'lighthouse') { const l = hb.lighthouse; return box(l.x - 90 * k, l.y - 60 * k, 180 * k, 190 * k); }
+        if (cc === 'rosie') { const b = hb.boats.boats.find(o => o.id === 'rosie'); return b ? box(b.x - 75 * k, w.y - 10 * k, 150 * k, 120 * k) : null; }
+        return box(0, w.y - w.r - 12, innerWidth, hb.water.y1 + 10 - (w.y - w.r - 12)); }, c);
     } else if (PRESET[c]) {
       clip = await p.evaluate(([sel, pad]) => {
         const rs = [...document.querySelectorAll(sel)].map(e => e.getBoundingClientRect()).filter(r => r.width);
@@ -119,7 +131,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    await p.screenshot({ path: `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'skyl', 'skyr', 'logo', 'water'].includes(c) ? c : 'crop'}.png`, clip }); n++;
+    await p.screenshot({ path: `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'skyl', 'skyr', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c) ? c : 'crop'}.png`, clip }); n++;
+  }
   }
   await ctx.close();
 }

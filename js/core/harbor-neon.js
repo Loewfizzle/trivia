@@ -183,13 +183,17 @@ export const SPOTS = [
   { id: 'hotel', kind: 'fixed', type: 'vbox', host: 'hotel', text: 'HOTEL', col: [255, 72, 64], x: [253, 263], y: [478, 536], z: 229.4 },
   { id: 'jazz', kind: 'fixed', type: 'script', host: 'jazz', text: 'JAZZ', col: [255, 176, 46], x: [74, 100], y: [494, 506], z: 229.4 },
   { id: 'i-par', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [493, 513], z: 233.6 },
-  { id: 'i-par2', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [523, 543], z: 233.6 },
   { id: 'i-jazz', kind: 'icon', type: 'icon', host: 'jazz', x: [77, 98], y: [509, 530], z: 229.4 },
   { id: 'i-left', kind: 'icon', type: 'icon', host: 'near', mount: 'roof', x: [1, 21], y: [459, 479], z: 238 },
   { id: 'i-c1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [266, 286], y: [492, 512], z: 232.1 },
-  { id: 'i-c2', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [266, 286], y: [524, 544], z: 232.1 },
   { id: 'i-r1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [356, 377], y: [494, 515], z: 235.1 },
   { id: 'i-r2', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [380, 401], y: [524, 545], z: 235.1 },
+  // Part 5 (the owner's call): two NAMED ROOF SIGNS on the word towers' roofs, in the open sky above their crowns (they took
+  // i-c2 + i-par2 off the crowded right wall) — under the skyline limit, out of the sun corridors, the towers' beacons on top
+  // of their frames; while a tower spells a word its roof sign dims (the message is the star). Placed from the tower's own
+  // top roof (towerRoofSign), not from reference pt: wpt × hpt is the cabinet at the reference scale.
+  { id: 'n-roofA', kind: 'named', type: 'box', host: 'wordA', mount: 'tower', wpt: 52, hpt: 18, cap: 7 },
+  { id: 'n-roofB', kind: 'named', type: 'box', host: 'wordB', mount: 'tower', wpt: 52, hpt: 18, cap: 7 },
   { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'wall', x: [3, 69], y: [490, 522], z: 233.1, show: 'rum' },
 ];
 let refCam = null;
@@ -205,7 +209,7 @@ export function spotWorld(sp) {
  * rect, rect: screen rect (pt) }.
  */
 export function signSpots(L, { all = false } = {}) {
-  const cam = L.cam, out = SPOTS.map(sp => ({ ...sp, w: spotWorld(sp) }));
+  const cam = L.cam, out = SPOTS.map(sp => ({ ...sp, w: sp.mount === 'tower' ? towerRoofSign(L, sp) : spotWorld(sp) })).filter(sp => sp.w);
   // a sign on a tower hangs down the middle of its shaft, never past a setback: centred on the tower, as wide as the narrowest
   // tier it crosses allows
   for (const sp of out) {
@@ -239,6 +243,41 @@ export function signSpots(L, { all = false } = {}) {
 }
 const groundOf = (cam, z) => cam.VPY + cam.F * cam.CAMH / z;
 const ovr = (a, b, m = 0) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
+/** the margin (pt) a roof sign keeps from a sun corridor's edge */
+export const CORRIDOR_PAD = 3;
+/**
+ * A NAMED ROOF SIGN on a tower's top roof (Part 5): its cabinet in world units { x0, x1, y0, y1, z, roof, legs: [x0, x1],
+ * beacon: [x, y] } — centred over the roof, in the open sky above the crown (a clearance over the crown's tip for the frame),
+ * narrowed so it keeps CORRIDOR_PAD pt clear of every sun corridor, shrunk so its beacon stays under the skyline limit; null
+ * when it cannot stand there (less than 60 % of its width or height left).
+ */
+export function towerRoofSign(L, sp) {
+  const cam = L.cam, t = L.towers.find(tt => tt.id === sp.host);
+  if (!t || !t.tiers) return null;
+  const top = t.tiers[t.tiers.length - 1], roof = top.y0 + top.h, z = top.z0 + Math.min(1.2, (top.z1 - top.z0) * 0.4);
+  const crownH = top.crown ? top.crown.h : t.crown ? t.crown.h : 0;
+  const u = z / 600;                                  // world units per reference pt at this depth (the city's scale)
+  const w = sp.wpt * u;
+  let h = sp.hpt * u;
+  const cx = (top.x0 + top.x1) / 2;
+  let x0 = cx - w / 2, x1 = cx + w / 2;
+  // out of the sun corridors (screen): trim the side that reaches into one, then the other side to match (centred on the roof)
+  const sxOf = x => project(cam, x, 0, z)[0], xOf = sx => (sx - cam.VPX) * z / cam.F;
+  for (const g of L.gaps || []) {
+    const a = g.sx - g.w / 2 - CORRIDOR_PAD, b = g.sx + g.w / 2 + CORRIDOR_PAD;
+    if (sxOf(x1) <= a || sxOf(x0) >= b) continue;
+    if (g.sx < sxOf(cx)) x0 = Math.max(x0, xOf(b)); else x1 = Math.min(x1, xOf(a));
+  }
+  const half = Math.min(cx - x0, x1 - cx); x0 = cx - half; x1 = cx + half;
+  if (x1 - x0 < w * 0.6) return null;
+  // the frame lifts it 4 ref pt over the crown's tip; the beacon's post (3 ref pt) stays under the skyline limit
+  const y0 = roof + crownH + 4 * u, post = 3 * u;
+  const yLimit = cam.CAMH - (cam.limitY + 2 - cam.VPY) * z / cam.F;          // the world height whose top lands on the limit
+  if (y0 + h + post > yLimit) h = yLimit - post - y0;
+  if (h < sp.hpt * u * 0.6) return null;
+  return { x0, x1, y0, y1: y0 + h, z, roof, legs: [top.x0 + 0.4, top.x1 - 0.4], beacon: [cx, y0 + h + post] };
+}
+
 /** what a spot conflicts with (→ [] when it is clear): off screen, a word face, the lighthouse, the wheel (an icon may sit
  *  behind its spokes), another spot, anything nearer standing in front of it */
 export function spotConflicts(L, sp, spots = []) {
