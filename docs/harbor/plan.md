@@ -49,6 +49,10 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   owner instead of shipping something mediocre, and never let it crowd something more important (word towers, needle, wheel).
 - **Never quietly lower the look:** if staying inside the speed budget would mean a visible sacrifice (especially on older phones /
   tier 1), stop and tell the owner what you'd simplify and let her decide.
+- **Real phones decide the budget:** the laptop's 4×-CPU, no-GPU test is an EARLY WARNING, not the verdict. On the owner's iPhone
+  (Oct 21, &debug=1) a party night costs 1–3 ms of work at a steady 60 fps, while the laptop said ~6.4 — so when the laptop says
+  "slightly over", check a real phone (&debug=1) before cutting anything. Measure once while building + ONE careful A-B-B-A round
+  at the end (only the scenes that changed); if over, one fix attempt + one re-measure, then report and ask — no loops.
 - **Performance + battery:** every part stays within the frame and memory budgets; the cleanup passes double as performance
   checks; cleanup pass 1 adds battery/heat care (a lower frame rate when little is moving, a full stop when the page is hidden).
   New ideas fit the existing systems (lanes, events, windows, holidays) rather than adding big new machinery.
@@ -101,6 +105,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   plain outer rectangles (esp. the cyan towers on the right); the right-hand billboard + small icon signs are too small to read
   on a phone → bigger or moved onto the stage; give the busy skyline centre (needle, CIPHER, wheel, HOTEL blade) breathing room.
 
+- SIGN PLACEMENT RULE (Oct 21): no sign may cover a hero tower's face or neon outline. The vertical named game sign that sat on
+  the central hero tower moves into the HOTEL blade's spot (the HOTEL sign is removed — its thin letters don't read on a phone);
+  the game blade takes over the projecting build + chasing bulbs, glance-tested. Game signs never go on the speakeasy (it stays
+  secret and unmarked).
+
 ## Part 4 — water
 - Reflections in perspective; a gold sun path at sunset and a silver moon path at night broken by ripples; every light smeared
   in the water; fireworks doubled in the harbor (Part 11).
@@ -109,11 +118,16 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Ferris wheel (turning, bulbs; seasonal/holiday colours; its A-frame legs must stand ON the pier deck — today they stick out past
   both sides of the pier; widen the pier under the wheel or bring the feet in), lighthouse (beam; keeper's cottage), pier, boats: Rosie the
   riverboat with bulbs, a water taxi, a tug, sailboats by day; lit boats for holidays.
-- AN ELEVATED TRAIN along the far waterfront (City 1.0 had one): only if its detail reads on an iPhone and it doesn't take away
-  from anything high-value; a warm ribbon of lit windows at night reflected in the harbor, a sleek crafted shape by day,
+- AN ELEVATED TRAIN along the far waterfront (City 1.0 had one) — DESKTOP + TV ONLY (decided after Part 5: on a phone its cars
+  would be ~7 pt and ~60% hidden by the wheel and Rosie); built with the desktop pass in Part 12; a warm ribbon of lit windows at night reflected in the harbor, a sleek crafted shape by day,
   rush-hour / late-night timing like City 1.0 (trainGap), a lit holiday train in December, maybe a rare vintage steam train.
 
-## Part 6 — sky hero pieces (existing behaviour, new art)
+- Part 5 built: the wheel on a pier platform (legs on the deck), the lighthouse + beam (a cone in real fog), Rosie (bulb strings,
+  paddlewheel, a lit "ROSIE" name board), the water taxi, the tug, sailboats, wakes; tier 0 calmer; the heavy-event quiet thins
+  extra boats during big shows. Note: on a normal night the wheel's warm bulbs blend into the windows behind it — give it more
+  contrast (Part 6 section 0).
+
+## Part 6 — sky hero pieces (existing behaviour, new art) — SPLIT into 6a (everyday sky) + 6b (special-occasion sky)
 - Planes, the BANNER PLANE (1–3 banners: daily challenges, holiday messages, game announcements, CITY CONTROL messages),
   helicopter, jets, birds/gulls, the UFO, satellites.
 - The sun and moon art: big amber moonrise turning silver, earthshine on the crescent, a halo only in real haze; rare harvest
@@ -174,6 +188,30 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Road, bus, cars, two BIG bright stop lights, the promenade, lamps (rich light at night), trees, bench, planters, the seasonal
   vendor cart, people (hats/coats readable), a FLAGPOLE with an American flag (waves in the real wind, lit at night,
   half-staff on official days — see Part 10).
+- THE PROMENADE LAYOUT PLAN FIRST (the owner approves grey-box screenshots at her iPhone size before anything is built): three
+  bands — THE CURB by the road (tall double-head Art Deco street lamps, trees in iron grates between them, the two stop lights, a
+  glass BUS STOP SHELTER), THE PLAZA in the middle (open ground in front of the speakeasy door for Lobby 2.0's up-to-8 guests,
+  the party-night line, crowds; a reserved CENTREPIECE SPOT just right of the door marked by an Art Deco medallion inlaid in the
+  paving, where the BIG seasonal pieces go — the giant Christmas tree, a towering jack-o'-lantern pyramid, a harvest display, a
+  July 4th stage, a Valentine's arch of roses — big but never covering the word towers or the needle; no fountain), THE FRONT
+  WALK nearest the viewer (short warm globe lamps, ~5–6 trees in total big enough to read the seasons and never cut off at the
+  corners, the bench under one, the cart, big stone FLOWER PLANTERS that change with the seasons); nothing under the dock;
+  COBBLESTONE + PAVER ground that catches lamplight and shows rain, puddles and snow.
+- NIGHT LIGHT: clear pools from the two kinds of lamps (tall cooler street lamps by the road, short warm globes on the paths),
+  OVERLAPPING enough that every walking path is lit, DIM (never black) shadows between; warm spill from the speakeasy's windows
+  and door, the cart's string lights and the neon; people always readable as silhouettes with a rim of lamplight.
+- PEOPLE (crafted 2D figures placed in the 3D stage): they move in ALL directions — left/right, toward/away (scaling ~15–25 pt),
+  crossing the road at the crosswalk waiting for the green, walking up to the door / bench (sitting) / cart / railing — with
+  FOUR facing views (left, right, toward, away); correct overlap with lamps, trees, the bench and each other; walkable zones +
+  paths (never through the cart, into the water or under the dock). The crowd FOLLOWS THE CLOCK (quiet early morning, a lunch
+  rush, busy evening, near-empty ~3 am) plus more when more real players are online. Behaviours: groups walking together,
+  stopping to chat, waving across; errands (the cart, a jogger, a delivery worker with a dolly); weather (umbrellas, hurrying in
+  snow, coats + scarves in the cold, slower in heat); watching the view (leaning on the railing, photographing the skyline,
+  pointing at boats) — all as big readable poses. Reactions: everyone stops and looks up at fireworks, the implosion, skywriting,
+  the UFO; during the raid they casually freeze or scatter; they nod or step aside when your own figure walks to the door. No tap
+  reaction on people. DOGS: 1–2 dog walkers at a time, medium/big breeds with clear silhouettes (big shaggy, a greyhound, a
+  dachshund), drawn ~1.3× real size, trotting / sniffing a lamp post / pulling ahead, a contrasting leash line, on the nearer
+  promenade.
 - Wildlife: pigeons that strut/peck and scatter (bus, walkers, a tap); gulls on the railing by day (huddled in real rain); a rare
   late-night coyote (1–4 am) whose eyes catch the lamplight; a raccoon raiding a trash can late at night; squirrels burying
   acorns in autumn; fireflies around the trees on summer nights; ducks near the railing, a heron on the pilings at dawn, fish
