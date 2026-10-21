@@ -47,6 +47,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - **Premium, crafted, never cheap** — above all the lighting (Christmas lights, neon, fireworks are LIGHT). EVERY moving part and
   every eye-catching item MUST be rendered premium and stunning; if it can't be made to look great at phone size, say so to the
   owner instead of shipping something mediocre, and never let it crowd something more important (word towers, needle, wheel).
+- **Performance + battery:** every part stays within the frame and memory budgets; the cleanup passes double as performance
+  checks; cleanup pass 1 adds battery/heat care (a lower frame rate when little is moving, a full stop when the page is hidden).
+  New ideas fit the existing systems (lanes, events, windows, holidays) rather than adding big new machinery.
 - **Weather effects only when it is really happening** where the player is. Never tell players the city is live.
 - **Fixed-time moments run on the clock, not the scheduler's dice** (the NYE countdown + finale, the tree lighting at dusk,
   the Day of the Dead procession, the 9/11 beams, half-staff times) — the scheduler is for random events.
@@ -124,6 +127,33 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - The ROOFTOP: summer weekend rooftop parties (string lights, dancing figures, a bar cart, someone at the railing); a rooftop
   garden through the year (spring seedlings + a gardener with a watering can, summer lush green with tall sunflowers and red
   tomato clusters, autumn pumpkins, winter beds under snow, string lights left up).
+- THE SPEAKEASY WINDOWS (its own section — the closest, biggest windows in the city, ~25 pt on a phone; figures inside are
+  12–16 pt SILHOUETTES, so they read by light, shape and big motion — the glance test on every window):
+  - Rooms (share the ~6 visible windows; assign by what's visible at every iPhone size): THE BAR (the one CLEAR window straight
+    in: glowing bottle shelves as colour, the bartender's big arm-pump shake, patrons leaning on the bar); THE JAZZ ROOM (a sax
+    player swaying behind the shade, couples dancing on busy nights); THE BACK ROOM (a pool of lamplight over a table with 3–4
+    heads around it — no cards; at most a soft haze, no smoke detail); THE UPSTAIRS APARTMENT (the cat as a LARGE sitting
+    silhouette with a flicking tail on the sill; the TV). Everything else silhouettes behind warm amber shades.
+  - THE TV GLOW (an owner favourite): a soft, IRREGULAR blue flicker like real TV light changing scenes, from ~10 pm until
+    ~3 am — on above the still-busy bar from 10, then as City 1.0's bedtime turns the city's windows off it stands out more and
+    more; late at night the speakeasy is dark except that window (now and then a head on a couch, the cat beside it). Plus a
+    handful of lone blue-flickering windows across the dark skyline at the same hours (Part 2's window system).
+  - Day vs night: by day the shades up, the glass reflecting the sky and street, rooms dim, someone stocking the bar, the cat
+    sunning; at night the amber glow and silhouettes; a daily rhythm (quiet day → filling evening → packed party nights → one
+    lamp and someone sweeping late).
+  - Real weather (only when real): frost creeping in from the corners below freezing, steamed edges on cold busy nights, snow on
+    the sills; raindrops running down the panes, catching the inside light and blurring the silhouettes; on hot days a sash
+    raised halfway, a curtain blowing out, a fan turning.
+  - Taps: a curtain twitches / a head peeks out; tap the cat → it leaps off the sill.
+  - THE RAID: a convoy of 4 premium-crafted 1920s-style black-and-white patrol cars rolls down the waterside road, red/blue light
+    washing over the facades, the wet road and the harbor; the instant they appear EVERY speakeasy light cuts out and the shades
+    snap shut; they slow outside, one stops and an officer's flashlight beam sweeps the dark windows; they roll on; a beat later
+    one window flickers back, then another, and the party returns (on a party night, even louder). SCHEDULE: 2 raid nights a
+    week (the same for everyone, seeded by the date) — one guaranteed party night (Fri or Sat at random) + one random weeknight;
+    on a raid night the first raid at a random moment 6–10 pm, then about every 3 hours until ~5 am; NEVER during big holiday
+    moments (NYE countdown, Christmas Eve, the tree lighting, the Day of the Dead procession) or a party night's midnight finale.
+    The car bodies come with the other vehicles (Part 8); the raid with the speakeasy (Part 7).
+  - Plus what's planned elsewhere: holiday window scenes, the password sign, busier windows when more players are online.
 - WINDOW WASHERS: some weekday mornings, two washers on a hanging platform squeegee the speakeasy's windows (tap → they wave).
 - Leave room for Lobby 2.0's password sign in a window ("TONIGHT'S PASSWORD: <hush word>", letters 14–16 pt).
 
@@ -141,6 +171,15 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 ## Part 9 — seasons + weather (only when real)
 - Trees through the year; snow piling up on everything, snowball fights, snow plows leaving visible plowed lanes + snowbanks,
   visible road salting; rain + puddles; fog; frost; a snowman that grows through a real snowy day and melts when it warms.
+- SNOW LIKE A REAL WINTER (the owner is in Michigan): snow STAYS on the ground until it really melts — never only on the days
+  it snows. Use the real SNOW ON THE GROUND at the player's place (Open-Meteo's snow depth, through the existing /api/sky), with
+  a fallback snowpack model from the real snowfall + temperatures (adds when it snows, melts slowly only above freezing). The
+  stages read by COLOUR + COVERAGE over big areas (the glance test): FRESH = bright pure white on everything incl. branches and
+  sign tops; OLDER = duller off-white, mostly off the branches, wide darker footpaths worn into the promenade; PLOWED BANKS =
+  grey-brown mounds along the road that last longest; THAW = slush, a dark shiny wet road, puddles reflecting the lights,
+  icicles on the speakeasy's roof edge; SPRING = white patches on dark ground, the last dirty piles in the shade. No snow
+  anywhere it isn't really on the ground (Florida never, Colorado comes and goes). Don't build texture differences (crusty vs
+  fluffy) or drips — too small to read.
 
 ## THE CONSTRUCTION TOWER (slot in the layout now; the cycle with the calendar in Part 9; the grand opening uses Part 10's
 ## searchlights + neon)
