@@ -156,8 +156,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     vignette = makeVignette(W, H);
     if (!glow) glow = radial('255,214,150');
     // the stale layers keep showing until this bake lands; during a crossfade it waits (its source is the canvas a bake draws into)
-    if (fadeFrom >= 0) wantBake = true; else rebake();
+    if (fadeFrom >= 0 || waitRects()) wantBake = true; else rebake();
   }
+  // the very first bake waits (≤ 300 ms) for the title's real text rects: a bake on the estimates would be thrown away a frame
+  // later (the re-layout), and the city + its windows would land late in the title's power-on
+  const waitRects = () => !S.textRects && performance.now() - t0 < 300;
   // THE SUN'S + THE MOON'S ARCHES (Part 2; the behaviour unchanged, the arch re-fit): they rise and set BEHIND the skyline — the
   // arch fits the base's roofline (the bands + the quay), so they may pass behind the towers, the wheel, the lighthouse — and
   // the top of the arch stays clear under the tagline (summer) / lower among the crowns (winter: the low sun reads as behind the
@@ -223,7 +226,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }
     if (LK.key !== skyKey) { skyKey = LK.key; paintSky(skyCv, W, HZ, dpr, P); }
     // (never during a crossfade: its source is the canvas the next bake draws into)
-    if (L && bakeKey() !== baker.key && !baker.pending && fadeFrom < 0) rebake();
+    if (L && bakeKey() !== baker.key && !baker.pending && fadeFrom < 0 && !waitRects()) rebake();
     if (L && lightKey() !== litBaker.key && !litBaker.pending && litFadeFrom < 0) rebakeLights();
   }
 
@@ -297,15 +300,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     refreshLook(performance.now());
     nowT = t;
     // bake a little of the next look (never more than a few ms a frame)
-    if (baker.pump(shownAt < 0 ? TIERS[tier].bakeMs + 2 : TIERS[tier].bakeMs)) {
+    // (the first bake: nothing but the sky draws yet, so it may take a bigger slice of the frame — the city and its windows are
+    // ready early in the title's power-on wave)
+    if (baker.pump(shownAt < 0 ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
       if (shownAt < 0) { shownAt = now; baker.settle(); } else fadeFrom = now;   // (the first bake has no fade: its spare canvases settle at once)
       liveTones = bakeTones;
       if (DEBUG) console.info('[harbor] baked', baker.key, `${baker.busyMs.toFixed(1)} ms in total`, baker.mem());
     }
     // the lit windows bake behind it (never in the same frame as a facade step: the frame's budget is shared); a new light key
     // (the timeline's next step, a re-layout) starts at once, never during the lit layer's own crossfade
-    if (L && !litBaker.pending && litFadeFrom < 0 && lightKey() !== litBaker.key) rebakeLights();
-    if (!baker.pending && litBaker.pump(TIERS[tier].bakeMs)) {
+    if (L && !litBaker.pending && litFadeFrom < 0 && lightKey() !== litBaker.key && !waitRects()) rebakeLights();
+    if ((!baker.pending || litBaker.bakes === 0) && litBaker.pump(TIERS[tier].bakeMs * (litBaker.bakes === 0 ? 2 : 1))) {
       if (litBaker.bakes > 1) litFadeFrom = now; else litBaker.settle();
       lights.swap(litMeta.far, litMeta.near);
     }
@@ -339,7 +344,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const fadeIn = shownAt < 0 ? 0 : smooth(0, 700, now - shownAt);
     const xf = fadeFrom < 0 ? 1 : smooth(0, 1200, now - fadeFrom);
     if (xf >= 1 && fadeFrom >= 0) { fadeFrom = -1; if (!baker.pending) baker.settle(); }
-    if (wantBake && fadeFrom < 0) { wantBake = false; rebake(); }
+    if (wantBake && fadeFrom < 0 && !waitRects()) { wantBake = false; rebake(); }
     const T = liveTones || tones(TW);
     // a layer: its current canvas in the band it was baked for (a re-layout keeps drawing the stale one there — stretched into
     // the new band after a resize or a tier change — until the new bake swaps in; then the crossfade from the old one)
@@ -407,9 +412,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function litLayer(name, k, lx) {
     const g = litBaker.group(name);
     if (!g || !g.ready || k <= 0) return;
+    // while the city powers on (the title's tap), City 1.0's window by window wave instead of the baked layer
     const wave = S.wave == null ? 1 : S.wave;
+    if (wave < 1 && lights.drawWave(ctx, name === 'farLit' ? 'far' : 'near', wave, k)) return;
     c0save();
-    if (wave < 1) { const yW = HZ - (HZ - cam.limitY + 20) * clamp01(wave * 1.15); ctx.beginPath(); ctx.rect(0, yW, W, H); ctx.clip(); }
     if (lx < 1 && g.prev) { ctx.globalAlpha = k * (1 - lx); ctx.drawImage(g.next, 0, g.prev.y0, W, g.prev.h); }
     ctx.globalAlpha = k * (g.prev && lx < 1 ? lx : 1);
     ctx.drawImage(g.cur, 0, g.show.y0, W, g.show.h);

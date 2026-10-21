@@ -375,7 +375,10 @@ fixed; 1, 4, 5 are Part 2's (below).
   1), the season's warmth toward amber. Tungsten mostly, ~6 % TV-blue, ~10 % curtained, a rare neon; the glass towers' floors
   cool white, their crowns' thin light lines. Far windows are glitter (a few flare now and then); near ones show a hint of the
   room (the ceiling's light, furniture low, curtains). Every 6–15 s a light somewhere goes off (or one comes on) for a minute or
-  three. While the city powers on at the title's tap the bottom rows light first (`S.wave`).
+  three. THE POWER-ON at the title's tap is City 1.0's exactly (`lights.js#drawWave`, while `S.wave` < 1): each lit window comes
+  on by itself — bottom first with scatter (delay = (1 − height)·0.82 + rand·0.16), over 0.07 of the wave, flickering as it
+  catches — then the baked layer takes over. So it lands early in the wave, the very first bake waits (≤ 300 ms) for the
+  title's real text rects and takes a bigger slice of the frame while only the sky draws (the lit layer bakes alongside it).
 - **The rays** (rays.js): at golden hour / dawn with the sun low (−1.5..14°) and clear air: from the sun through each corridor
   within reach, a fan between the directions to the slot's top and its floor, broken into shafts, falling off along their
   length; behind the near buildings (after the far layer) and a fainter veil over the city. Contained in the air over the city.

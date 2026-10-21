@@ -59,7 +59,14 @@ export function litSteps(L, look, group, meta) {
 function drawLit(x, cam, it, look, meta, group, idx) {
   const { b, o } = it;
   x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000';
-  meta.boxes.push({ ...silhouette(x, cam, b), idx });
+  const sil = silhouette(x, cam, b);
+  meta.boxes.push({ ...sil, idx });
+  // the power-on wave's list: what this building hides of the windows already listed is out of it (8 pt bins along x)
+  const wv = meta.wave;
+  for (let bi = Math.floor(sil.x0 / 8); bi <= Math.floor(sil.x1 / 8); bi++) {
+    const bin = wv.bins.get(bi); if (!bin) continue;
+    for (const w of bin) if (w.vis && w.x < sil.x1 && w.x + w.w > sil.x0 && w.y < sil.y1 && w.y + w.h > sil.y0) w.vis = 0;
+  }
   x.globalCompositeOperation = 'source-over';
   const g = b.win;
   if (!g || g.rows <= 0) return;
@@ -77,6 +84,10 @@ function drawLit(x, cam, it, look, meta, group, idx) {
     const col = colourOf(tr, look.warm), a = tr.a * depthK;
     const [wx, wy, ww, wh] = rect;
     x.fillStyle = rgba(col, a); x.fillRect(wx, wy, Math.max(0.6, ww), Math.max(0.6, wh));
+    // City 1.0's power-on (district/scene.js): bottom first, with scatter — delay = (1 − height) · 0.82 + rand · 0.16
+    { const yn = Math.max(0, Math.min(1, (wy - cam.limitY) / Math.max(1, cam.VPY + cam.F * cam.CAMH / 230 - cam.limitY)));
+      const w = { x: wx, y: wy, w: Math.max(0.6, ww), h: Math.max(0.6, wh), d: Math.min(1, Math.max(0, (1 - yn) * 0.82 + winHash(b.seed, t, c, r, 16) * 0.16)), s: x.fillStyle, vis: 1 };
+      wv.list.push(w); const bi = Math.floor(wx / 8); let bin = wv.bins.get(bi); if (!bin) wv.bins.set(bi, bin = []); bin.push(w); }
     if (room) {
       // a hint of the room: the ceiling's light at the top, the furniture's shadow low, a curtain drawn
       x.fillStyle = rgba(mixc(col, [255, 255, 255], 0.35), a * 0.55); x.fillRect(wx, wy, ww, wh * 0.22);
@@ -104,7 +115,7 @@ function finish(meta) {
   meta.tv = meta.tv.filter(w => !covered(w.rect, w.idx));
   meta.done = true;
 }
-export const newMeta = () => ({ twinkle: [], tv: [], cands: [], boxes: [], done: false });
+export const newMeta = () => ({ twinkle: [], tv: [], cands: [], boxes: [], wave: { list: [], bins: new Map() }, done: false });
 
 /** the word towers' faces on screen: { id: { cols, rows, cell(col, rowFromTop) → rect } } */
 export function wordFaces(L) {
@@ -251,8 +262,27 @@ export function createLights() {
     }
   }
 
+  /**
+   * THE POWER-ON (the title's tap; City 1.0's exactly): while S.wave < 1 the lit windows come on one by one instead of the
+   * baked layer — bottom first with scatter, each over 0.07 of the wave, flickering as it catches (sin(k·31 + x) > −0.2).
+   */
+  function drawWave(c, group, wave, k) {
+    const meta = group === 'far' ? metaFar : metaNear;
+    if (!meta.done) return false;
+    c.save();
+    for (const w of meta.wave.list) {
+      if (!w.vis) continue;
+      const k2 = (wave - w.d) / 0.07;
+      if (k2 <= 0) continue;
+      c.globalAlpha = k * (k2 >= 1 ? 1 : Math.sin(k2 * 31 + w.x) > -0.2 ? k2 : 0.15);
+      c.fillStyle = w.s; c.fillRect(w.x, w.y, w.w, w.h);
+    }
+    c.restore();
+    return true;
+  }
+
   return {
-    layout, set, draw,
+    layout, set, draw, drawWave,
     spell: spellIt,
     clear: clearSpell,
     /** a finished bake's metadata swaps in with its layer */
