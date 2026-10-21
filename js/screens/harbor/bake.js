@@ -84,13 +84,11 @@ export function createBaker() {
     get key() { return key; },
     get pending() { return queue.length > 0; },
     get bakes() { return bakes; },
-    get doneAt() { return doneAt; },
     get busyMs() { return busyMs; },
     /** MB the current plan holds at its steady state (both sets) */
     get planned() { return planned; },
     /** the current canvas of a group (+ the previous one, still in `next`, for the crossfade) */
     group: name => groups.find(g => g.name === name) || null,
-    groups: () => groups,
     destroy() { for (const g of groups) { g.cur.width = g.cur.height = g.next.width = g.next.height = 0; } groups = []; queue = []; },
   };
 }

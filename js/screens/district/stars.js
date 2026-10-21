@@ -159,6 +159,7 @@ export function createStars() {
       c.globalAlpha = 1;
     },
     planets: () => planets.map(p => p.name),
+    destroy() { if (cv) { cv.width = cv.height = 0; cv = null; key = ''; } },
   };
   function drawPlanets(c, a, camY) {
     if (a <= 0.02) return;

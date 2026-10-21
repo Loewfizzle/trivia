@@ -68,7 +68,8 @@ export function logoSvg({ id = 'nd', pad = 26, lit = false, blur = 1, clips = tr
 <defs>
   <filter id="${id}-b1" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${3.2 * blur}"/></filter>
   <filter id="${id}-b2" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="${11 * blur}"/></filter>
-  ${premium ? `<filter id="${id}-b0" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="1.6"/></filter>` : ''}
+  ${premium ? `<radialGradient id="${id}-hot"><stop offset="0" stop-color="#fff6fb"/><stop offset="0.45" stop-color="#fff6fb" stop-opacity="0.8"/><stop offset="1" stop-color="#fff6fb" stop-opacity="0"/></radialGradient>
+  <radialGradient id="${id}-dim"><stop offset="0" stop-color="#5a1d44"/><stop offset="0.5" stop-color="#5a1d44" stop-opacity="0.75"/><stop offset="1" stop-color="#5a1d44" stop-opacity="0"/></radialGradient>` : ''}
 </defs>
 <g fill="none" stroke-linecap="round" stroke-linejoin="round"${premium ? ' class="ndp"' : ''}>
   ${links}
@@ -105,9 +106,10 @@ function premiumBits(L, id, light) {
   const { hot, ends } = letterLight(L);
   // the glass wall: the tube's own thickness — a pale rim around the gas (by day it reads as clear glass)
   const wall = `<path class="ndl-wall" d="${L.d}" stroke="#ffe3f1" stroke-width="${TUBE + 2.6}"/><path class="ndl-wall2" d="${L.d}" stroke="#2a1626" stroke-width="${TUBE - 0.6}"/>`;
-  // hotter on the bends, dimmer near the electrodes
-  const hotC = hot.map(([x, y, d]) => `<circle class="ndl-hot" cx="${x}" cy="${y}" r="${(TUBE * (0.42 + Math.min(0.3, d * 0.18))).toFixed(1)}" fill="#fff6fb" filter="url(#${id}-b0)"/>`).join('');
-  const dim = ends.map(([x, y]) => `<circle class="ndl-dim" cx="${x}" cy="${y}" r="${TUBE * 0.95}" fill="#5a1d44" filter="url(#${id}-b0)"/>`).join('');
+  // hotter on the bends, dimmer near the electrodes — soft dots from radial gradients, NOT filters (cleanup pass 1: a blur filter
+  // per spot made every repaint of the sign ~3× dearer, and the catch's 1.5 s glow animation repaints it every frame)
+  const hotC = hot.map(([x, y, d]) => `<circle class="ndl-hot" cx="${x}" cy="${y}" r="${(TUBE * (0.42 + Math.min(0.3, d * 0.18)) * 1.9).toFixed(1)}" fill="url(#${id}-hot)"/>`).join('');
+  const dim = ends.map(([x, y]) => `<circle class="ndl-dim" cx="${x}" cy="${y}" r="${(TUBE * 0.95 * 1.5).toFixed(1)}" fill="url(#${id}-dim)"/>`).join('');
   // sun glints on the glass (day only): a few bright points on the bends toward the light
   const glint = hot.filter((_, i) => i % 2 === 0).slice(0, 3).map(([x, y]) => `<circle class="ndl-glint" cx="${(x + light * 1.6).toFixed(1)}" cy="${(y - 1.8).toFixed(1)}" r="1.1" fill="#ffffff"/>`).join('');
   // the highlight leans toward the light (the sun's side by day; the title moves it as the day goes)

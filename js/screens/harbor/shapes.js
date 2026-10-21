@@ -29,18 +29,6 @@ export function box(x, cam, b, col, { y0 = 0, light = 1, top = true, sideK = 0.1
   return { x: a, y: b2, w: c - a, h: d - b2 };
 }
 
-/** a placeholder crown on a tower top: spire / pyramid / dome / mast / sunburst */
-export function crown(x, cam, cx, y, z, w, c, col) {
-  const [sx, sy] = project(cam, cx, y, z), s = cam.F / z, hw = (w / 2) * s, hh = c.h * s;
-  x.fillStyle = rgb(col); x.strokeStyle = rgb(col); x.lineWidth = Math.max(0.6, s * 0.18);
-  x.beginPath();
-  if (c.t === 'pyramid') { x.moveTo(sx - hw, sy); x.lineTo(sx, sy - hh); x.lineTo(sx + hw, sy); x.fill(); }
-  else if (c.t === 'dome') { x.ellipse(sx, sy, hw * 0.72, Math.max(1, hh * 0.9), 0, Math.PI, 0); x.fill(); x.fillRect(sx - 0.4, sy - hh * 1.5, 0.8, hh * 0.6); }
-  else if (c.t === 'spire') { x.moveTo(sx - hw * 0.36, sy); x.lineTo(sx, sy - hh * 0.62); x.lineTo(sx + hw * 0.36, sy); x.fill(); x.fillRect(sx - 0.4, sy - hh, 0.8, hh * 0.4); }
-  else if (c.t === 'mast') { x.fillRect(sx - Math.max(0.5, s * 0.15), sy - hh, Math.max(1, s * 0.3), hh); }
-  else if (c.t === 'sunburst') { for (let i = 0; i < 3; i++) { const r = hw * (1 - 0.22 * i); x.beginPath(); x.ellipse(sx, sy - i * hh * 0.24, r, r * 0.7, 0, Math.PI, 0); x.fill(); } x.fillRect(sx - 0.5, sy - hh, 1, hh * 0.4); }
-}
-
 /** a placeholder person: legs, a coat, a head (+ a hat), ~h world units tall, standing at (x, 0, z) */
 export function person(x, cam, p, col, { hat = col, rim = null } = {}) {
   const [sx, sy] = project(cam, p.x, 0, p.z), s = cam.F / p.z, hh = p.h * s, w = hh * 0.28;

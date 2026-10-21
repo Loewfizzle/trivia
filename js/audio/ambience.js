@@ -79,6 +79,40 @@ export function cityPowerOn() {
   n.start(t, 0, 1.7);
 }
 
+/**
+ * CITY 2.0 — THE NEON BUZZ (docs/harbor.md): the sign's sputters at the dusk warm-up and the morning fade, one per flicker.
+ * on: the tube STRIKES — a crisp tick (a bright click + a tiny zap chirping down) and then the buzz while the gas holds (120 Hz
+ * and its harmonics through a bandpass: the electrode's rattle, its level unsteady, gone with the flash) for dur s;
+ * off: the tube drops out — a softer tick. level scales it. On the SFX bus like everything here: it follows the Effects slider
+ * and Mute, and nothing relies on it (the visual stays the moment).
+ */
+export function neonBuzz({ on = true, dur = 0.4, level = 1 } = {}) {
+  if (!isUnlocked()) return;
+  const ctx = getContext(), t = ctx.currentTime + 0.005, bus = getSfxBus();
+  crackle(ctx, t, (on ? 0.028 : 0.014) * level);
+  { const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(on ? 3600 : 2400, t); o.frequency.exponentialRampToValueAtTime(on ? 900 : 600, t + 0.018);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime((on ? 0.02 : 0.009) * level, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0003, t + 0.03);
+    o.connect(g).connect(bus); o.start(t); o.stop(t + 0.04); }
+  if (!on || dur <= 0.05) return;
+  const d = Math.min(1.4, dur), out = ctx.createGain(), peak = 0.016 * level;
+  out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(peak, t + 0.012);
+  for (let k = 1; k < 8; k++) out.gain.linearRampToValueAtTime(peak * (0.6 + Math.random() * 0.5) * (1 - 0.5 * k / 8), t + d * k / 8);
+  out.gain.exponentialRampToValueAtTime(0.0003, t + d + 0.03);
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1400; bp.Q.value = 0.8;
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 220;
+  bp.connect(hp).connect(out).connect(bus);
+  for (const [f, type, a] of [[120, 'sawtooth', 0.5], [240, 'square', 0.12], [60, 'sawtooth', 0.3]]) {
+    const o = ctx.createOscillator(); o.type = type; o.frequency.value = f * (1 + (Math.random() - 0.5) * 0.01);
+    const g = ctx.createGain(); g.gain.value = a; o.connect(g).connect(bp); o.start(t); o.stop(t + d + 0.1);
+  }
+  // a faint hiss of the gas under it
+  const n = ctx.createBufferSource(); n.buffer = noise(ctx);
+  const nb = ctx.createBiquadFilter(); nb.type = 'bandpass'; nb.frequency.value = 5200; nb.Q.value = 1.2;
+  const ng = ctx.createGain(); ng.gain.value = 0.25;
+  n.connect(nb).connect(ng).connect(out); n.start(t, Math.random(), d + 0.1);
+}
+
 export function neonTick() {
   if (!isUnlocked()) return;
   const ctx = getContext();

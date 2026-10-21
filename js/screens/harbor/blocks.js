@@ -11,7 +11,7 @@
 // are their own layer (lights.js), addressable and re-drawn on the light timeline.
 import { project } from '../../core/harbor-layout.js';
 import { winHash } from '../../core/harbor-windows.js';
-import { rgb, mix, shade, clamp01 } from './shapes.js';
+import { rgb, mix, shade } from './shapes.js';
 import { fog } from './tones.js';
 
 // materials: day front · the sunlit side · the shade side · trim (cornices, piers) · night front · night side
@@ -389,14 +389,6 @@ export function drawShadow(x, sh) {
   x.beginPath(); sh.pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.fill();
 }
 
-/** a band's blocks, far first, in chunks of n per step */
-export function bandSteps(cam, blocks, T, n = 8, o = {}) {
-  const sorted = [...blocks].sort((a, b) => b.z0 - a.z0);
-  const steps = [];
-  for (let i = 0; i < sorted.length; i += n) { const part = sorted.slice(i, i + n); steps.push(x => { for (const b of part) skyBlock(x, cam, b, T, { rank: o.rank || 'band' }); }); }
-  return steps;
-}
-
 /** a haze veil at a band's feet (the distance dissolves): from the ground line up `up` pt, in the haze colour */
 export function hazeVeil(x, cam, z, up, T, a) {
   const y = cam.VPY + cam.F * cam.CAMH / z;
@@ -404,4 +396,3 @@ export function hazeVeil(x, cam, z, up, T, a) {
   g.addColorStop(0, rgb(T.haze, 0)); g.addColorStop(1, rgb(T.haze, a));
   x.fillStyle = g; x.fillRect(0, y - up, cam.W, up + 2);
 }
-export { clamp01 };

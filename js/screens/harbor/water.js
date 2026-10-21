@@ -72,7 +72,7 @@ export function createWater() {
   const src = mk(), bright = mk(), sm = mk(), R = mk(), wc = mk(), cols = new Map();
   const tex = [mk(), mk()];
   let L = null, cam = null, W = 0, y0 = 0, y1 = 0, Hw = 0, top = 0, sh = 0, dpr = 1, rr = 1, tier = 2, A0 = 0;
-  let strips = [], dashes = [], glints = [], texKey = '', frame = 0, lastT = 0, updAt = -1e9, ready = false, set0 = { rain: 0, fog: 0 };
+  let strips = [], dashes = [], glints = [], texKey = '', lastT = 0, updAt = -1e9, ready = false, set0 = { rain: 0, fog: 0 };
   let queue = [], mirrors = [], wakes = [], stats = { strips: 0, copies: 0, lights: 0, paths: '' };
 
   function size(cv, w, h) { const cw = Math.max(1, Math.ceil(w)), ch = Math.max(1, Math.ceil(h)); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; } return cv.getContext('2d'); }
@@ -151,16 +151,14 @@ export function createWater() {
    */
   function draw(c, main, f) {
     if (!ready || f.fade <= 0 || set0.off) { queue = []; mirrors = []; return; }
-    frame++;
     const still = !f.motion || tier === 0, now = performance.now();
     if (still) { if (now - updAt > 1000 || !composed) { build(main, f, lastT, true); compose(f, lastT, true); updAt = now; } }
     else {
-      // a 6-frame cycle: the mirror's SOURCE is re-read once (10 a second — the city's lights change slowly, the ripples hide
-      // the rest), the ripples composed on every other frame at tier 2 (30 a second) or every third at tier 1 (20); never both
-      // in one frame
-      const ph = frame % 6;
-      if (!built || ph === 0) build(main, f, f.t, false);
-      else if (tier === 2 ? ph % 2 === 1 : ph % 3 === 1) compose(f, f.t, false);
+      // the cycle ON THE CLOCK (cleanup pass 1: the scene draws at 30 fps when the city is calm — the water keeps its rates):
+      // the mirror's SOURCE is re-read 10 times a second (the city's lights change slowly, the ripples hide the rest), the
+      // ripples composed 30 times a second at tier 2 (20 at tier 1); never both in one frame
+      if (!built || now - builtAt >= 95) { build(main, f, f.t, false); builtAt = now; }
+      else if (now - composedAt >= (tier === 2 ? 30 : 46)) { compose(f, f.t, false); composedAt = now; }
       lastT = f.t;
     }
     queue = []; mirrors = [];
@@ -171,7 +169,7 @@ export function createWater() {
   }
   // (the steps' cost, smoothed: harbor().water.ms — tests + the perf budget)
   const ema = (k, v) => { const m = stats.ms || (stats.ms = {}); m[k] = +((m[k] || 0) * 0.92 + v * 0.08).toFixed(3); };
-  let built = false, composed = false;
+  let built = false, composed = false, builtAt = -1e9, composedAt = -1e9;
   const roughOf = f => clamp01(smooth(1.2, 11, Math.max(0, f.wind || 0)) + 0.35 * (f.rain || set0.rain || 0));
 
   // BUILD: the mirror (R) from the frame above the waterline, the objects in the water, the light columns
@@ -376,7 +374,6 @@ export function createWater() {
     wake(o) { wakes.push(o); if (wakes.length > 16) wakes.shift(); },
     /** HOOK (Part 9): { rain: 0..1 (roughens the mirror now; the rings: Part 9), fog: 0..1 (the fog over the water: Part 9) } */
     set(o) { Object.assign(set0, o || {}); },
-    setTier(t) { tier = t; },
     band: () => ({ y0, y1 }),
     mem: () => +([src, bright, sm, R, wc, ...tex, ...cols.values()].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2),
     debug: () => ({ y0: +y0.toFixed(1), y1: +y1.toFixed(1), strips: stats.strips, copies: stats.copies, lights: stats.lights, paths: stats.paths.trim(), rough: stats.rough, ms: stats.ms, rr, tier, wakes: wakes.length, mb: +([src, bright, sm, R, wc, ...tex].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2) }),

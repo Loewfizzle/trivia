@@ -72,4 +72,3 @@ export const sunKey = sl => `${sl.sunDir}${sl.sunEl}`;
 
 /** atmospheric depth: 0 at the quay, 1 far away (mixed into the haze) */
 export const fog = z => Math.max(0, Math.min(1, (z - 230) / 770));
-export const hazed = (T, col, z, k = 0.66) => mix(col, T.haze, fog(z) * k);

@@ -156,7 +156,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     it.ready = true; built++;
     mbSprites = items.reduce((s, x) => s + (x.lit ? x.lit.reduce((a, sp) => a + sp.mb, 0) : 0) + (x.night ? x.night.mb : 0), 0);
   }
-  function freeItem(it) { if (it.lit) it.lit.forEach(free); free(it.night); it.lit = null; }
+  function freeItem(it) { if (it.lit) it.lit.forEach(free); free(it.night); if (it.b) free(it.b.nightS); it.lit = null; it.night = null; }
   /**
    * The signs' HOUSINGS + the billboards' painted boards, baked with the facades (static per look: the cabinets, brackets,
    * scaffolds, the unlit glass): one bake step at the end of a group (nothing nearer stands in front of a sign: tested).
@@ -378,6 +378,13 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     /** the number of power items (the neon plan's "signs": title.js#neonNow) */
     count: () => items.length || 16,
     get pending() { return queue.length > 0; },
+    /** is the neon moving right now (the calm frame rate, scene.js): an item booting or going dark (its sputter), a flicker
+     *  within the last third of a second, a moment (party, flash, chase), sprites still building */
+    busy(t) {
+      if (queue.length || moment.flash || moment.chase || moment.party > 0.05) return true;
+      for (const it of items) if (it.pw && t - it.pw.t0 < 2.5) return true;      // (the rare flicker is a dip, not motion)
+      return false;
+    },
     setTier(t) { tier = t; dropComp(); },
     /** tonight's pick changes only while the neon is dark (never while you watch); key: nightKey(local) */
     night(k) { if (k !== assignKey && !items.some(it => it.pw && it.pw.on)) { assignKey = k; return true; } return false; },
@@ -407,7 +414,6 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     reflections: () => items.filter(it => it.ready && it.pw && it.pw.on).map(it => { const R = it.kind === 'sign' ? it.sg.rect : it.kind === 'board' ? it.b.rect : null; if (R) return { id: it.id, x: R.x, y: R.y, w: R.w, h: R.h, col: it.kind === 'sign' ? it.sg.col : [255, 214, 150], a: 1 }; const s = it.lit && it.lit[0]; return s ? { id: it.id, x: s.x, y: s.y, w: s.w, h: s.h, col: roleColour(it.o.roles[0], scheme), a: it.o.st.a } : null; }).filter(Boolean),
     debug: () => ({ signs: signs.map(sg => ({ id: sg.id, game: sg.game, kind: sg.kind, type: sg.type, rect: { x: +sg.rect.x.toFixed(1), y: +sg.rect.y.toFixed(1), w: +sg.rect.w.toFixed(1), h: +sg.rect.h.toFixed(1) }, on: !!(items.find(i => i.sg === sg) || {}).pw?.on })), boards: boards.map(b => ({ id: b.id, show: b.content.title })), outlines: outs.map(o2 => ({ id: o2.id, group: o2.group, strength: o2.strength, runs: o2.runs.length, roles: o2.roles })), items: items.length, built, queued: queue.length, mb: +(mbSprites + (comp.far ? comp.far.mb : 0) + (comp.near ? comp.near.mb : 0)).toFixed(2), comp: { far: !!comp.far, near: !!comp.near }, tier, night: assignKey, scheme, led: glassFaces.length, moment: { party: moment.party, chase: moment.chase, flash: !!moment.flash } }),
     destroy() { for (const it of [...items, ...(pending ? pending.items : [])]) freeItem(it); items = []; pending = null; queue = []; dropComp(); free({ c: dot }); },
-    _reset() { glassFaces = []; },
   };
 }
 export { nightKey };

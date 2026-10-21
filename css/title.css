@@ -281,7 +281,7 @@ body.reduced-fx .nd-word-s { animation: none !important; opacity: 0 !important; 
 .nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-body { stroke: rgba(222, 230, 244, 0.4); }
 .nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-core { stroke: var(--b, #ff5fb4); stroke-opacity: 0.34; stroke-width: 3.4px; }
 .nd-sign.is-day .nd-logo .ndl:not(.on) .ndl-hi { stroke: #ffffff; opacity: 0.88; stroke-width: 1.15px; }
-.nd-sign.is-day .nd-logo .ndl circle { fill: #18121e; stroke: rgba(255, 255, 255, 0.4); stroke-width: 0.7px; }
+.nd-sign.is-day .nd-logo .ndl > circle:not(.ndl-glint) { fill: #18121e; stroke: rgba(255, 255, 255, 0.4); stroke-width: 0.7px; }   /* the electrode caps only (the premium logo's glints + hot spots keep their own fills) */
 .nd-sign.is-day .nd-word { opacity: 1; color: rgba(255, 255, 255, 0.92); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55); }
 .nd-sign.is-day .nd-tag { opacity: 1; color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
 .nd-logo-wrap { position: relative; }
@@ -416,6 +416,7 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-sign.is-day .nd-logo .ndp .ndl-wall2 { opacity: 0.22; }
 .nd-sign.is-day .nd-logo .ndp .ndl-glint { opacity: 0.95; }
 .nd-sign.is-day .nd-logo .ndp .ndl:not(.on) .ndl-hi { opacity: 0.95; }
+.nd-sign.is-day .nd-logo .ndp .ndl:not(.on) .ndl-dim { opacity: 0; }   /* (the electrodes' shade is a lit-tube thing: clear glass by day) */
 .nd-anchors { position: absolute; inset: 0; width: 100%; height: auto; pointer-events: none; overflow: visible; }
 .nd-sign.is-snowy:not(.is-day) .nd-snowcap { opacity: 0.8; }
 

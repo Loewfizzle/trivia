@@ -138,12 +138,16 @@ try {
 
   // ================================================================ 3b. Part 2: the tagline fades, the words, the searchlights, the wheel
   { const T = await open({ slot: 'h7', qs: `${NIGHT}&tagms=1500&force=spell,searchlights&text=2027` });
-    await sleep(500);
+    // (the city laid out on the title's REAL text rects before the first reading: a sub-pt re-layout after it is not the bug)
+    await harborUp(T.page);
+    await waitFor(T.page, '(() => { const h = window.__district.harbor(), tr = window.__district.scene().textRects; return h && !h.pending && tr && Math.abs(h.cam.limitY - (tr.tag.y + tr.tag.h + 10)) < 1; })()', 'the city laid out on the real text rects', 9000);
     const h0 = await ev(T.page, 'window.__district.harbor()');
     await waitFor(T.page, `(() => { const t = document.querySelector('.nd-tag'); return t && getComputedStyle(t).opacity < 0.05 && window.__district.harbor().cam.tagGone; })()`, 'the tagline gone', 9000);
     await sleep(600);
     const h1 = await ev(T.page, 'window.__district.harbor()');
-    ok(Math.abs(h1.cam.limitY - h0.cam.limitY) < 0.01 && Math.abs(h1.cam.VPY - h0.cam.VPY) < 0.01 && h1.lanes['sky-low'].y < h0.lanes['sky-low'].y,
+    // the real bug (fixed in Part 4): a re-layout forgetting the faded tagline — cam.tagGone off again, the lane shrunk back.
+    // The positions get 1 pt (a sub-pt re-layout on a slow machine); the tagline's band is ≥ 10 pt, so the lane's move is clear.
+    ok(h1.cam.tagGone && h1.lanes['sky-low'].y < h0.lanes['sky-low'].y - 8 && Math.abs(h1.cam.limitY - h0.cam.limitY) < 1 && Math.abs(h1.cam.VPY - h0.cam.VPY) < 1,
       `TAGLINE: fades out on its timer and stays gone; nothing in the city moves (limit ${h0.cam.limitY.toFixed(1)} → ${h1.cam.limitY.toFixed(1)}, horizon ${h0.cam.VPY.toFixed(1)} → ${h1.cam.VPY.toFixed(1)}), the freed band joins sky-low (${Math.round(h0.lanes['sky-low'].y)} → ${Math.round(h1.lanes['sky-low'].y)})`);
     await waitFor(T.page, '!!(window.__district.harbor().windows.spelling)', 'the word', 9000);
     await sleep(1500);
@@ -298,6 +302,23 @@ try {
   await Q.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await sleep(300);
   ok((await ev(Q.page, 'window.__district.scene()')).running === true, 'VISIBLE AGAIN: it resumes');
+
+  // ================================================================ 5b. BATTERY (cleanup pass 1): a calm night draws every other frame; a hidden page draws none
+  { const C = await open({ slot: 'hc', qs: `${NIGHT}&force=no-planes,no-birds` });
+    await harborUp(C.page);
+    await waitFor(C.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 15000);
+    await waitFor(C.page, "window.__district.harbor().rate.fast === ''", 'the city calm (the neon booted)', 20000);   // (the boot's sputters count as motion)
+    await sleep(500);
+    const r0 = await ev(C.page, 'window.__district.harbor().rate'); await sleep(3000); const r1 = await ev(C.page, 'window.__district.harbor().rate');
+    const fps = (r1.drawn - r0.drawn) / 3;
+    ok(r1.fast === '' && fps > 22 && fps < 40, `BATTERY: a calm night draws ${fps.toFixed(0)} frames a second (every other rAF; fast: '${r1.fast || 'calm'}')`);
+    await C.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+    await sleep(400); const h0 = await ev(C.page, 'window.__district.harbor().rate'); await sleep(600); const h1 = await ev(C.page, 'window.__district.harbor().rate');
+    ok(h1.drawn === h0.drawn && h1.running === false, `BATTERY: hidden, nothing is drawn (${h0.drawn} → ${h1.drawn})`);
+    await C.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+    await sleep(600); const v = await ev(C.page, 'window.__district.harbor().rate');
+    ok(v.running && v.drawn > h1.drawn + 20 && v.fast !== '', `BATTERY: visible again, it resumes at 60 fps for a moment (fast: ${v.fast})`);
+    await C.ctx.close(); }
   await Q.ctx.close();
 } catch (e) {
   errors.push(`FATAL ${e.message}`);

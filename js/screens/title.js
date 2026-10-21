@@ -28,7 +28,7 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, neonBuzz, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource } from '../audio/beat.js';
 import { createDistrict } from './district/scene.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded
@@ -456,6 +456,7 @@ export function createTitle() {
     watchSky();
     neonTick();
     armIdle();
+    document.addEventListener('visibilitychange', onVisTitle);
   }
 
   // CITY 2.0 (docs/harbor.md): the tagline fades out 15 s after the title appears (armed in run(): the power-on's start) and stays gone (opacity only: its rect, and
@@ -487,6 +488,8 @@ export function createTitle() {
   // holiday (cobwebs, a Santa hat, the New Year countdown, rose / green tubes)
   function watchSky() {
     if (destroyed || !scene) return;
+    // (a hidden page — the phone locked, another app in front — does none of this; visibilitychange re-arms it at once)
+    if (document.visibilityState !== 'visible') { els.skyTimer = setTimeout(watchSky, 5000); return; }
     dressSign(scene.look());
     premiumLogo(scene.look());
     els.root.classList.toggle('nd-noblur', (scene.tier ? scene.tier() : 2) === 0);
@@ -628,7 +631,8 @@ export function createTitle() {
         setTimeout(() => { if (!destroyed) s.classList.add('is-warm'); }, 60);
         dockAll(true);
         if (isCatch) {
-          // THE CATCH: all four lock on together, the crackle + hum, a soft bloom
+          // THE CATCH: all four lock on together, the crackle + hum, a soft bloom (City 2.0: the city holds its tier through it)
+          if (scene.hold) scene.hold(3000);
           neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 });
           neonSounds++;
           s.classList.add('is-catch');
@@ -644,8 +648,21 @@ export function createTitle() {
     const fade = !!(neonPlanV && neonPlanV.reduced && (st.stage === 'ramp' || st.stage === 'goodbye'));
     s.classList.toggle('is-fade', fade);
     if (fade) s.style.setProperty('--rf', st.fade.toFixed(3));
-    let on = 0;
-    letters.forEach((l, i) => { if (st.letters[i]) on++; if (!buzzing.has(i)) l.classList.toggle('on', !!st.letters[i]); });
+    let on = 0, struck = 0, dropped = 0;
+    letters.forEach((l, i) => {
+      if (st.letters[i]) on++;
+      if (buzzing.has(i)) return;
+      const was = l.classList.contains('on');
+      l.classList.toggle('on', !!st.letters[i]);
+      if (was !== !!st.letters[i]) { if (st.letters[i]) struck++; else dropped++; }
+    });
+    // CITY 2.0 — THE NEON BUZZ (ambience.js#neonBuzz): a crisp tick on every flicker of the warm-up and the morning fade, the
+    // buzz for as long as this flash holds (the plan's next change); never on the first paint, never under Reduced effects
+    if (createHarbor && prev && !opts.quiet && !fade && (struck || dropped) && (st.stage === 'ramp' || st.stage === 'goodbye')) {
+      const now = scene.now(), sp = scene.speed ? scene.speed() : 1;
+      const hold = neonFromPlan ? (neonNext(neonPlanV, now) - now) / 1000 / sp : 0.3;
+      neonBuzz({ on: struck > 0, dur: hold, level: struck + dropped > 1 ? 1.15 : 1 });
+    }
     dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
     const share = fade ? st.fade : on / 4;
     scene.set({ logo: share > 0 ? 1 : 0, signPow: share, caught: false });
@@ -729,8 +746,11 @@ export function createTitle() {
     // (sub: a first visit's "12 PARTY GAMES · ONE PHONE EACH" under the tagline — the rainbow keeps under it too)
     return neon && word && tag ? { neon, word, tag, sub: box(els.sign.querySelector('.nd-sub')) } : null;
   }
+  // BATTERY: the title's loops (the sign's rects, the sky watch) idle while the page is hidden and pick up at once when it shows
+  function onVisTitle() { if (destroyed || !tl || !tl.done || document.visibilityState !== 'visible') return; clearTimeout(els.logoTimer); clearTimeout(els.skyTimer); trackLogo(); watchSky(); neonTick(); }
   function trackLogo() {
     if (destroyed) return;
+    if (document.visibilityState !== 'visible') { els.logoTimer = setTimeout(trackLogo, 5000); return; }
     scene.set({ logoRect: logoRect(), clear: clearZones(), textRects: textRects() });
     sunGlass();
     els.logoTimer = setTimeout(trackLogo, 500);
@@ -1210,6 +1230,7 @@ export function createTitle() {
     window.removeEventListener('pointermove', onMouse);
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
+    document.removeEventListener('visibilitychange', onVisTitle);
     window.removeEventListener('pointerdown', outsideDown, { capture: true });
     if (window.visualViewport) { window.visualViewport.removeEventListener('resize', fitKeyboard); window.visualViewport.removeEventListener('scroll', fitKeyboard); }
     clearTimeout(noteT);

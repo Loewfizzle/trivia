@@ -298,6 +298,8 @@ export function createAircraft() {
       }
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     },
+    /** anything crossing the sky right now (City 2.0's calm frame rate: a plane, the train or a satellite keeps 60 fps) */
+    busy: () => planes.some(p => p.k < 1) || !!train || !!sat,
     debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, alt: +p.alt.toFixed(2), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, nextPlane: Math.round(nextPlane) }),
   };
 }

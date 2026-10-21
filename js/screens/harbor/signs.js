@@ -45,7 +45,7 @@ const roundRectPts = (x, y, w, h, r) => {
 /**
  * Build a sign: spot (core/harbor-neon.js#signSpots, with .rect on screen), game (or null for a fixed sign), ctx: { W, dpr,
  * roofY (for a roof mount: the screen y its scaffold stands on), s (pt per reference pt: the city's scale) }.
- * → { id, game, rect, parts: [{ tubes, col, w }], border, bulbs?, housing(T) → sprite, lit() → [sprites], billboard? }
+ * → { id, game, rect, parts: [{ tubes, col, w }], border, bulbs?, lit() → [sprites], billboard? }
  */
 export function buildSign(spot, game, ctx) {
   const R = spot.rect, k = ctx.s || 1, mid = R.x + R.w / 2 < ctx.W / 2;     // (the side face toward the middle shows)
@@ -90,19 +90,11 @@ export function buildSign(spot, game, ctx) {
   for (const p of parts) p.t = p.tubes.map(pl => tube(pl.pts, pl.closed, p.w));
   if (border) border.t = [tube(border.pts, true, tw * 0.75, [false, false])];
   const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type };
-  sign.housing = (T, dpr) => housing(sign, T, dpr, ctx);
   sign.lit = (dpr, scheme) => litSprites(sign, dpr);
   return sign;
 }
 
 // ------------------------------------------------------------------ the housing (per look)
-function housing(sg, T, dpr, ctx) {
-  const R = sg.rect, day = Math.min(1, T.day + 0.8 * T.gold), night = T.night, sd = T.sunDir || 0;
-  const all = [...sg.parts.flatMap(p => p.t), ...(sg.border ? sg.border.t : [])];
-  const b = all.length ? bbox(all) : { x0: R.x, y0: R.y, x1: R.x + R.w, y1: R.y + R.h };
-  const box = { x0: Math.min(b.x0, R.x) - 3, y0: Math.min(b.y0, R.y) - 3, x1: Math.max(b.x1, R.x + R.w) + 3, y1: Math.max(b.y1, R.y + R.h, ctx.roofY || 0) + 3 };
-  return sprite(box, 2, dpr, x => drawHousing(x, sg, T, ctx));
-}
 /** the housing drawn straight into a context (the facade bake: the signs' cabinets are static per look) */
 export function drawHousing(x, sg, T, ctx) {
   const R = sg.rect, day = Math.min(1, T.day + 0.8 * T.gold), sd = T.sunDir || 0;
@@ -237,7 +229,6 @@ export function buildBillboard(spot, content, ctx) {
   };
   const box = { x0: R.x - 2, y0: R.y - LH * 0.5, x1: R.x + R.w + 2, y1: Math.max(R.y + R.h + 4, ctx.roofY || 0) };
   // day: painted + weathered + the sun's shading
-  const dayS = T => sprite(box, 3, dpr, x => dayDraw(x, T));
   const dayDraw = (x, T) => {
     const day = Math.min(1, T.day + 0.8 * T.gold);
     if (day > 0.05) { x.fillStyle = `rgba(20,14,30,${0.25 * day})`; x.fillRect(R.x + 1.5, R.y + 2, R.w, R.h); }
@@ -260,6 +251,6 @@ export function buildBillboard(spot, content, ctx) {
     frame(x, 0);
     for (const l of lamps) { const g = x.createRadialGradient(l.x + LH * 0.15, l.y + LH * 0.08, 0, l.x + LH * 0.15, l.y + LH * 0.08, LH * 0.25); g.addColorStop(0, 'rgba(255,240,210,1)'); g.addColorStop(1, 'rgba(255,200,130,0)'); x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.fillRect(l.x - LH * 0.2, l.y - LH * 0.2, LH * 0.7, LH * 0.6); }
   });
-  return { id: spot.id, spot, rect: R, content, dayS, dayDraw, nightS, lamps };
+  return { id: spot.id, spot, rect: R, content, dayDraw, nightS, lamps };
 }
 export { MARKS };

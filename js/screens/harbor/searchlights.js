@@ -9,7 +9,9 @@ import { rgb, mix } from './shapes.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** where the lights stand: world points on three roofs (from the layout) + their sweep */
+const SPOTS_OF = new WeakMap();           // (per layout: the same three roofs every frame)
 export function searchlightSpots(L) {
+  if (SPOTS_OF.has(L)) return SPOTS_OF.get(L);
   const spots = [];
   const tw = id => L.towers.find(t => t.id === id);
   const e = tw('empire'), hotel = L.heroes.find(h => h.id === 'hotel'), b = tw('wordB');
@@ -18,6 +20,7 @@ export function searchlightSpots(L) {
   if (b) { const tr = b.tiers[b.tiers.length - 1]; spots.push({ x: (tr.x0 + tr.x1) / 2, y: tr.y0 + tr.h + (tr.crown ? tr.crown.h * 0.4 : 0), z: tr.z0 + 1, base: 0.3, amp: 0.38, sp: 0.27, ph: 4.4 }); }
   // a panorama: two more further out
   for (const t of L.towers.filter(t => t.rank === 'pano').slice(0, 2)) { const tr = t.tiers[t.tiers.length - 1]; spots.push({ x: (tr.x0 + tr.x1) / 2, y: tr.y0 + tr.h, z: tr.z0, base: t.x0 < 0 ? -0.2 : 0.2, amp: 0.4, sp: 0.21, ph: t.seed % 7 }); }
+  SPOTS_OF.set(L, spots);
   return spots;
 }
 

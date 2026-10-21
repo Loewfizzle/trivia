@@ -202,6 +202,7 @@ export function createLights() {
   function spellIt(text, opts = {}) {
     if (!L) return false;
     const base = { opts, colour: opts.colour || [255, 226, 168], t0: opts.at ?? performance.now(), until: opts.ms ? (opts.at ?? performance.now()) + opts.ms : Infinity, out: -1 };
+    dropSpell();                                   // (a word replacing a word: its sprite goes)
     // THE SCROLL: asked for, or a message too long for the faces — it tickers across one face (wordA unless asked), any length
     const t = normText(text);
     const p = opts.style === 'scroll' || !t ? null : place(t, opts);
@@ -214,7 +215,7 @@ export function createLights() {
     spell = { ...base, text: t, ...p, style: opts.style || 'wipe' };
     return true;
   }
-  function clearSpell(fade = true) { if (spell) { if (fade) spell.out = performance.now(); else spell = null; } }
+  function clearSpell(fade = true) { if (spell) { if (fade) spell.out = performance.now(); else dropSpell(); } }
 
   /** a window by its address: set(id, tier, col, row, { col: [r,g,b], a }) or null to give it back to the timeline */
   function set(id, tier, col, row, v) { const k = `${id}|${tier}|${col}|${row}`; if (v) sets.set(k, { ...v, id, tier, col, row }); else sets.delete(k); }
@@ -312,7 +313,7 @@ export function createLights() {
     const sp = spell, el = now - sp.t0, D = dots();
     if (now > sp.until && sp.out < 0) sp.out = sp.until;
     const fadeIn = Math.min(1, el / 1200), fadeOut = sp.out >= 0 ? Math.max(0, 1 - (now - sp.out) / 1600) : 1;
-    if (fadeOut <= 0) { spell = null; return; }
+    if (fadeOut <= 0) { dropSpell(); return; }
     const env = fadeIn * fadeOut * k;
     if (sp.scroll) {
       // THE SCROLL: one window-column a step, right to left, like a Times Square ticker (slower under Reduced motion)
@@ -327,21 +328,41 @@ export function createLights() {
       }
       return;
     }
-    for (const p of sp.parts) {
-      // the rest of the tower's face dims, so the message reads
-      dimFace(c, p.face, env);
-      // the letters: the wipe climbs floor by floor from the bottom; the twinkle breathes window by window
-      const rows = p.rows;
-      for (let i = 0; i < p.cells.length; i++) {
-        const cl = p.cells[i];
-        let a = 1;
-        if (sp.style === 'wipe' && motion) a = Math.max(0, Math.min(1, (el - (rows - 1 - cl.rr) * 160) / 260));
-        else if (sp.style === 'twinkle' && motion) a = 0.72 + 0.28 * Math.sin(now / 420 + i * 1.7);
-        if (a <= 0) continue;
-        letter(c, cl.rect, sp.colour, a * fadeOut * k, D);
+    // the rest of each tower's face dims, so the message reads
+    for (const p of sp.parts) dimFace(c, p.face, env);
+    // THE LETTERS AS ONE SPRITE (cleanup pass 1): drawn into an offscreen only when their state changes — the wipe 25 times a
+    // second while it climbs, the twinkle 10 a second, a steady word once — and blitted with the fade (≈ 0.3 ms a frame at tier 0)
+    const wipeMs = (Math.max(1, ...sp.parts.map(p => p.rows)) - 1) * 160 + 260;
+    const stateKey = sp.style === 'wipe' && motion ? (el < wipeMs ? Math.floor(el / 40) : -1) : sp.style === 'twinkle' && motion ? Math.floor(now / 100) : -1;
+    if (!sp.sprite) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, pad = 0;
+      for (const p of sp.parts) for (const cl of p.cells) { const [x, y, ww, wh] = cl.rect; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + ww); y1 = Math.max(y1, y + wh); pad = Math.max(pad, Math.max(ww, wh) * 2.5); }
+      if (x0 === Infinity) return;
+      sp.sprite = { cv: document.createElement('canvas'), x0: x0 - pad, y0: y0 - pad, w: x1 - x0 + pad * 2, h: y1 - y0 + pad * 2, key: null };
+    }
+    const S = sp.sprite, dpr = c.getTransform().a || 1;
+    if (S.key !== stateKey) {
+      S.key = stateKey;
+      const cw = Math.ceil(S.w * dpr), ch = Math.ceil(S.h * dpr);
+      if (S.cv.width !== cw || S.cv.height !== ch) { S.cv.width = cw; S.cv.height = ch; }
+      const x = S.cv.getContext('2d');
+      x.setTransform(dpr, 0, 0, dpr, -S.x0 * dpr, -S.y0 * dpr); x.clearRect(S.x0, S.y0, S.w, S.h);
+      for (const p of sp.parts) {
+        // the letters: the wipe climbs floor by floor from the bottom; the twinkle breathes window by window
+        const rows = p.rows;
+        for (let i = 0; i < p.cells.length; i++) {
+          const cl = p.cells[i];
+          let a = 1;
+          if (sp.style === 'wipe' && motion) a = Math.max(0, Math.min(1, (el - (rows - 1 - cl.rr) * 160) / 260));
+          else if (sp.style === 'twinkle' && motion) a = 0.72 + 0.28 * Math.sin(now / 420 + i * 1.7);
+          if (a <= 0) continue;
+          letter(x, cl.rect, sp.colour, a, D);
+        }
       }
     }
+    c.globalAlpha = fadeOut * k; c.drawImage(S.cv, S.x0, S.y0, S.w, S.h); c.globalAlpha = 1;
   }
+  const dropSpell = () => { if (spell && spell.sprite) spell.sprite.cv.width = spell.sprite.cv.height = 0; spell = null; };
 
   /**
    * THE POWER-ON (the title's tap; City 1.0's exactly): while S.wave < 1 the lit windows come on one by one instead of the

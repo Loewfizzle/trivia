@@ -347,6 +347,26 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   hidden tab), `title-perf.mjs` (both cities, any scene, per tier); `shots.mjs --city 2 --safe --sizes harbor --crop stage` +
   party / snow scenes. Reviewed: six scenes × six sizes, two refine passes.
 
+### ✅ CITY 2.0 — THE HARBOR, cleanup pass 1 (after Parts 1–4) (Oct 21, 2026) — `docs/harbor.md`
+- Clean measurements A-B-B-A against the commit before Part 4 on a quiet machine (the table in docs/harbor.md); the full default-city
+  title suite + the Harbor E2E + the unit suite.
+- BATTERY + HEAT: the Harbor draws every other frame when nothing fast is on screen (30 fps; 20 under reduced motion) and is back
+  at 60 the moment anything moves (a plane, birds, the party, rain, the neon booting, a bake, a tap; `wake(ms)` for later parts);
+  hidden = a full stop, now including the title's own loops; the water keeps its rates on the clock; `hold(ms)` keeps the tier
+  through the title's catch.
+- THE CATCH: no dark frame in a 6× CPU screencast of either city, but City 2.0's premium sign cost a 50–70 ms repaint every frame
+  of the catch's glow (24 blur filters on the hot spots + electrodes) — now gradient dots, zero long tasks, every time unchanged;
+  THE NEON BUZZ: a crisp tick + the gas's buzz on each flicker of the warm-up and the morning fade (City 2.0, the SFX bus); a day
+  bug fixed (the premium glints filled dark).
+- The signs: the right side re-spaced into two even columns + a diagonal pair (the wall arithmetic: ~240 pt of wall for ~262 pt
+  of signs — the owner asked which rule gives).
+- The review of Parts 1–4: a billboard sprite leak, the stars' canvas, per-frame searchlight spots, the scheduler's replay in the
+  first frame, dead code in seven files, a flaky tagline check, seven stale doc claims — fixed.
+- Perf (4× CPU, A-B-B-A against the commit before Part 4; t2 / t1 / t0): day 4.4 / 3.5 / 2.4 · night 5.7 / 4.7 / 3.1 · golden 6.7 /
+  4.7 / 3.7 · party 6.7 / 5.3 / 3.6 · the worst case 6.9 / 5.5 / 3.9 — within 8 / 6 / 4 everywhere (tier 0's worst case was 0.5 over:
+  the spelled word is one sprite now). Tests: unit 411, `harbor.test.mjs` 45, `e2e-harbor.mjs` 43/43 (+ 3 battery checks),
+  `e2e-title.mjs` 118/118 (the full default-city suite).
+
 ### ✅ CITY 2.0 — THE HARBOR, Part 4 of 12: THE WATER (+ Part 3 touch-ups) (Oct 21, 2026) — `docs/harbor.md`
 - Behind `?city=2`. The owner's Part 3 review first: the neon outlines now FOLLOW THE DECO SHAPES (one bent tube a side climbing
   every setback and over the crown's steps, thin fins on the upper tiers — the cyan word towers read as stepped ziggurats); the

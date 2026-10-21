@@ -235,7 +235,8 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   `neonNext` the next change — the title schedules timers, it never polls):
   - EVENING: from startAt single silent sputters (80–150 ms, 20–30 s apart) that grow — more often, longer, sometimes two letters,
     later sometimes holding 1–2 s; in the last few minutes the letters STICK one by one (still dropping out now and then); at
-    catchAt THE CATCH — all four lock on with the crackle + hum (the only sound) and a soft bloom (`.is-catch`); then the rare
+    catchAt THE CATCH — all four lock on with the crackle + hum (the only sound; City 2.0: the sputters tick + buzz too —
+    docs/audio.md, and the city holds its tier through the catch: `scene.hold`) and a soft bloom (`.is-catch`); then the rare
     random flicker as before. The city's signs answer one at a time, a few minutes apart, within ~15 min.
   - MORNING: the city signs go off one by one 30–10 min before sunrise; the logo stays on until clearAt, then falters for 6–9 min —
     letters drop out and come back, die one by one, the last hangs on alone — then the daytime glass look.

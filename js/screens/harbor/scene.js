@@ -69,7 +69,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const qp = new URLSearchParams(q);
   const SPELL_TEXT = qp.get('text') || 'HELLO', SPELL_STYLE = qp.get('style') || 'wipe', SPELL_TOWER = qp.get('tower') || undefined;
   let spellBy = null;                             // who lit the current word: 'force' | an event's seed
-  let raf = 0, last = 0, running = false, destroyed = false, t0 = performance.now();
+  let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now();
+  let drawn = 0, fastUntil = 0, fastWhy = '';      // BATTERY: the frames actually drawn; what keeps the city at 60 fps right now
   let shownAt = -1;                         // when the first bake came in (the city fades in from the sky)
   let fadeFrom = -1;                        // the crossfade of a re-bake
   const frames = [], costs = [];
@@ -87,11 +88,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const NOOP = () => {};
   let wfx = { resize: NOOP, sky: NOOP, fogLayer: NOOP, flash: NOOP, flashNow: () => 0, moonVeil: () => 1, debug: () => ({}), destroy: NOOP };
   let rain = { resize: NOOP, veils: NOOP, drops: NOOP, debug: () => ({}), destroy: NOOP };
-  let birds = { resize: NOOP, sky: NOOP, low: NOOP, mid: NOOP, hit: () => null, debug: () => ({}) };
+  let birds = { resize: NOOP, sky: NOOP, low: NOOP, mid: NOOP, hit: () => null, busy: () => false, debug: () => ({}) };
   let frost = { resize: NOOP, pane: NOOP, debug: () => ({}), destroy: NOOP };
-  let air = { resize: NOOP, draw: NOOP, debug: () => ({}) };
+  let air = { resize: NOOP, draw: NOOP, busy: () => false, debug: () => ({}) };
   let liveWeather = () => null, lastWet = () => null;
-  setTimeout(() => {
+  const extrasT = setTimeout(() => {
     Promise.all([import('../district/weather-fx.js'), import('../district/rain.js'), import('../district/wildlife.js'), import('../district/live-weather.js'), import('../district/frost.js'), import('../district/aircraft.js')]).then(([a, b, c, e, f, g]) => {
       if (destroyed) return;
       wfx = a.createWeatherFx({ onFlash: ev => { if (S.onFlash) S.onFlash(ev); } }); rain = b.createRain(); birds = c.createWildlife(); frost = f.createFrost(); air = g.createAircraft();
@@ -155,7 +156,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     ], Math.min(2, dpr), tier);
     // the lit windows: the same bands as the skyline's two groups (their budget is the rest of the tier's: bake.js#MEM_BUDGET_MB)
     litBaker.plan(W, [{ name: 'farLit', y0: top, h: groundY(cam, Z.mid[0]) + 3 - top }, { name: 'nearLit', y0: top, h: yOf(L.quay.foot, Z.quay) + 3 - top }], Math.min(2, dpr), tier, baker.planned);
-    litKey = '';
     if (DEBUG) console.info('[harbor] layout', { W, H, F: +cam.F.toFixed(1), CAMH: +cam.CAMH.toFixed(2), VPY: +cam.VPY.toFixed(1), limitY: cam.limitY, squeeze: +L.squeeze.toFixed(2), mem: memAll() });
     paintSky(skyCv, W, HZ, dpr, P);
     skyKey = LK.key;
@@ -204,7 +204,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     });
     bakeTones = T;
   }
-  let bakeTones = null, liveTones = null, wantBake = false, litKey = '';
+  let bakeTones = null, liveTones = null, wantBake = false;
   // THE LIGHT KEY: City 1.0's timeline — the hour's share of windows (P.win) in 1/60 steps, the season's warmth
   const lightKey = () => `${Math.round((P.win || 0) * 60)}|${Math.round((P.winWarm || 0) * 10)}|${P.dark > 0.2 ? 1 : 0}|${camSig}`;
   function rebakeLights() {
@@ -230,7 +230,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     P = paletteFor(LK);
     TW = toneWeights(LK);
     // THE SCHEDULER: made once, anchored at the local midnight a day back and replayed to now; then only new slots are decided
-    if (!sched) {
+    // (after the first bake has landed: the replay is ~1000 slots of dice + sun positions, never in the first frame)
+    if (!sched && shownAt >= 0) {
       // ctx: a function of ms only (the replay asks about the past): the night there and then from the real sun
       const lat = LK.lat, lon = LK.lon, an = !!settings.alwaysNight;
       sched = createScheduler(HARBOR_EVENTS, t => ({ ms: t, force: clock.force, night: an || sunPosition(t, lat, lon).el < -6 }), { seed, forced: ['demo', 'searchlights'].filter(id => clock.force.has(id)), anchor: anchorFor(ms, LK.local) });
@@ -297,13 +298,40 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function frame(now) {
     if (!running) return;
     raf = requestAnimationFrame(frame);
+    perf(Math.min(100, now - lastRaf || 16.7));          // (the frame intervals the tiering watches: every rAF, drawn or not)
+    lastRaf = now;
+    // BATTERY + HEAT (cleanup pass 1): when nothing fast is on screen — a calm day, a quiet night, ALWAYS NIGHT with no events —
+    // the city draws every other frame (30 fps; every third under reduced motion), and comes back to 60 the moment anything
+    // fast appears: a plane, birds, the party, fireworks, rain, the neon booting or flickering, a bake or a crossfade, a tap.
+    // The rAF keeps running (it is what notices the change — and it costs nothing when the draw is skipped).
+    fastWhy = fastNow(now);
+    const gap = fastWhy ? 0 : S.motion ? 33.3 : 50;
+    if (gap && now - last < gap - 4) return;
     const dt = Math.min(100, now - last || 16.7);
     last = now;
-    perf(dt);
     const t = (now - t0) / 1000;
     const c0 = performance.now();
     draw(t, dt, now);
+    drawn++;
     costs.push(performance.now() - c0); if (costs.length > 90) costs.shift();
+  }
+  /** what keeps the city at 60 fps right now ('' = calm: every other frame is enough). Cheap: flags of the last draw. */
+  function fastNow(now) {
+    if (now < fastUntil) return 'wake';
+    if ((clock.speed || 1) > 1) return 'speed';
+    if (shownAt < 0 || now - shownAt < 900) return 'start';
+    if (fadeFrom >= 0 || litFadeFrom >= 0 || wantBake || baker.pending || litBaker.pending || neon.pending) return 'bake';
+    if ((S.wave != null && S.wave < 1) || (S.lit != null && S.lit < 1)) return 'power-on';
+    if (PT.on > 0 || fw.busy()) return 'party';
+    if (LK.rain || LK.snow || LK.storm) return 'weather';
+    if (wfx.flashNow() > 0) return 'lightning';
+    if (neon.busy(nowT)) return 'neon';
+    if (beamK > 0.01) return 'beams';
+    if (now - knockAt < 1200) return 'knock';
+    for (const e of events.active) if (e.id !== 'spell') return 'event';
+    if (air.busy()) return 'sky';
+    if (birds.busy()) return 'birds';
+    return '';
   }
 
   function draw(t, dt, now) {
@@ -510,10 +538,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     frames.push(dt);
     if (frames.length > 90) frames.shift();
     if (cool > 0) { cool--; return; }
-    if (frames.length < 90 || document.visibilityState !== 'visible') return;
+    if (frames.length < 90 || document.visibilityState !== 'visible' || performance.now() < tierHold) return;
+    if (++perfN % 30) return;                 // (the sort every half second, not every frame)
     const s = [...frames].sort((a, b) => a - b);
     if (s[67] > 19.5 && tier > 0) { setTier(tier - 1); cool = 150; frames.length = 0; }
   }
+  let tierHold = 0, perfN = 0;
   function setTier(t) { tier = Math.max(0, Math.min(2, t)); build(); }
 
   const onVis = () => { if (document.visibilityState === 'visible') start(); else stop(); };
@@ -521,7 +551,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const onResize = () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (!destroyed) build(); }, 180); };
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('resize', onResize);
-  function start() { if (running || destroyed) return; running = true; last = performance.now(); raf = requestAnimationFrame(frame); }
+  function start() { if (running || destroyed) return; running = true; last = lastRaf = performance.now(); fastUntil = last + 1500; raf = requestAnimationFrame(frame); }
   function stop() { running = false; cancelAnimationFrame(raf); }
   // the title reports the sign's and the dock's real rects a frame after mount (and every 500 ms): a moved rect re-lays the city
   function maybeRelayout() {
@@ -548,6 +578,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     look: () => LK,
     /** a tap: the moon / UFO / cat (fx), the birds, then the speakeasy's door (last). { kind } or null */
     hit(x, y) {
+      fastUntil = performance.now() + 1500;        // (a tap: whatever answers it moves at 60 fps)
       const f = fx.hit(x, y) || birds.hit(x, y);
       if (f) return { kind: f };
       const sg = neon.hit(x, y);
@@ -579,6 +610,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** THE STAGE (test hook): the layout's stage pieces + the knocks */
     street: () => (L ? { city: 2, HZ: Math.round(groundY(cam, Z.road[1])), K: cam.F / 600, lamps: L.lamps.map(l => ({ x: project(cam, l.x, 0, l.z)[0], lit: T0(), tree: false })), trees: L.trees.length, signals: L.signals.map(s => ({ x: project(cam, s.x, 0, s.z)[0], state: s.state })), door: { ...L.door }, people: { knocks, peds: L.people.length } } : null),
     knock: () => { knockAt = performance.now(); knocks++; },
+    /** BATTERY: keep 60 fps for ms (a later part starting something fast: a boat casting off, a bird landing on the sign) */
+    wake: (ms = 1500) => { fastUntil = Math.max(fastUntil, performance.now() + ms); },
+    /** don't step the tier down for ms: the title's own moment (the sign's catch animates the filtered SVG every frame for
+     *  1.5 s — a transient the city must not answer with a re-layout + rebake at the most-watched second of the day) */
+    hold: (ms = 2500) => { tierHold = Math.max(tierHold, performance.now() + ms); fastUntil = Math.max(fastUntil, performance.now() + ms); },
     door: () => (L ? { ...L.door, rect: { ...L.door.rect } } : null),
     rainbow: () => ({ ...bow.debug(), target: bowT ? { day: +bowT.day.toFixed(3), moon: +bowT.moon.toFixed(3), neon: +bowT.neon.toFixed(3), secondary: bowT.secondary, wet: bowT.wet || null, env: bowT.env ?? null, forced: bowT.forced || null } : null, sunAt: null }),
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
@@ -587,19 +623,21 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z); return { x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r] }; })(),
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
-      water: { ...water.debug(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },
+      water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },
       neon: neon.debug(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => neon.billboard(id, v), reflections: () => neon.reflections(), beacons: lights.beaconList(),
-      spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(), main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
+      spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(),
+      // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
+      rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: {}, air: air.debug(), sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {
       destroyed = true;
       stop();
-      clearTimeout(resizeT); clearTimeout(relayT);
+      clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT);
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('resize', onResize);
       baker.destroy(); litBaker.destroy(); neon.destroy(); water.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
-      fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy();
+      fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
       for (const c of [skyCv, vignette, glow, ...sigGlow, canvas, quayLamps && quayLamps.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;
     },

@@ -314,6 +314,8 @@ export function createWildlife() {
       const side = flock.at && flock.at.x < W / 2 ? 1 : -1;          // out over the middle of the view, then back
       for (const b of flock.birds) b.fly = { delay: Math.random() * (calm ? 0.8 : 0.25), loop: (calm ? 9 : 7) + Math.random() * 3, side };
     },
+    /** anything on the wing right now (City 2.0's calm frame rate: birds keep 60 fps; a sitting flock doesn't) */
+    busy: () => !!(geese || heron || swifts || (flock && flock.st !== 'sit')),
     debug: () => ({ geese: !!geese, heron: !!heron, swifts: !!swifts, pigeons: flock ? flock.st : null }),
   };
   return api;
