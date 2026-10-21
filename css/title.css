@@ -404,6 +404,19 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-snowcap { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 60s linear; }
 .nd-snowcap svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .nd-sign.is-snowy .nd-snowcap { opacity: 0.92; transition-duration: 50s; }
+/* CITY 2.0 (?city=2): the premium logo (logo.js#premiumBits) — the glass wall's thickness, hot bends, dim electrodes, the
+   highlight leaning toward the light (--hix: title.js#premiumLogo), sun glints by day; &force=anchors shows the dressings' anchors */
+.nd-logo .ndp .ndl-wall { opacity: 0.12; }
+.nd-logo .ndp .ndl-wall2 { opacity: 0; }
+.nd-logo .ndp .ndl-hot { opacity: 0.6; }
+.nd-logo .ndp .ndl-dim { opacity: 0.45; }
+.nd-logo .ndp .ndl-glint { opacity: 0; }
+.nd-logo .ndp .ndl-hi { transform: translate(var(--hix, -1.4px), -1.4px); opacity: 0.45; }
+.nd-sign.is-day .nd-logo .ndp .ndl-wall { opacity: 0.62; }
+.nd-sign.is-day .nd-logo .ndp .ndl-wall2 { opacity: 0.22; }
+.nd-sign.is-day .nd-logo .ndp .ndl-glint { opacity: 0.95; }
+.nd-sign.is-day .nd-logo .ndp .ndl:not(.on) .ndl-hi { opacity: 0.95; }
+.nd-anchors { position: absolute; inset: 0; width: 100%; height: auto; pointer-events: none; overflow: visible; }
 .nd-sign.is-snowy:not(.is-day) .nd-snowcap { opacity: 0.8; }
 
 /* ==========================================================================

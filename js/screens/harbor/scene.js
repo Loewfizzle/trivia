@@ -35,6 +35,7 @@ import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
 import { SPELL_WORDS } from '../../core/harbor-windows.js';
 import { quaySteps } from './quay.js';
+import { createNeon, nightKey } from './neon.js';
 import { waterSteps } from './water.js';
 import { pierSteps } from './pier.js';
 import { lighthouseSteps } from './lighthouse.js';
@@ -51,7 +52,7 @@ const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t
 const GROUPS = ['far', 'near', 'water', 'harbor', 'road', 'stage'];
 const LIT_GROUPS = ['farLit', 'nearLit'];          // the lit windows: their own baker, keyed on the light timeline
 
-export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = skyClock() } = {}) {
+export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = skyClock(), games = [] } = {}) {
   const ctx = canvas.getContext('2d', { alpha: false });
   const q = typeof location !== 'undefined' ? location.search : '';
   const GRID = /[?&]grid=1(?:&|$)/.test(q), DEBUG = /[?&]debug=1(?:&|$)/.test(q);
@@ -61,6 +62,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const baker = createBaker();
   const litBaker = createBaker();                 // THE LIT WINDOWS (lights.js): re-baked on the light key, crossfaded on their own
   const lights = createLights();
+  const neon = createNeon({ games, onContent: () => { lookAt = 0; } });          // THE NEON (Part 3): the signs, the billboards, the outlines on the buildings
   let litFadeFrom = -1, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
   const SPELL_TEXT = qp.get('text') || 'HELLO', SPELL_STYLE = qp.get('style') || 'wipe', SPELL_TOWER = qp.get('tower') || undefined;
@@ -131,6 +133,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     skyline = roofline(L);
     archFor();
     lights.layout(L);
+    neon.layout(L, { dpr, tier, night: nightKey(LK.local) }); neon.setTier(tier);
     // the baked layers' bands (pt)
     const s = L.speakeasy, w = L.wheel, l = L.lighthouse;
     const yOf = (y, z) => project(cam, 0, y, z)[1];
@@ -179,13 +182,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let ARCH = null, MOON = null;
   // the facades' look: the tone weights + the real sun's side and height (+ the sky the glass mirrors)
   const lookTones = () => ({ ...tones(TW), ...sunLook(LK, P) });
-  const bakeKey = () => `${toneKey(TW)}|${sunKey(sunLook(LK, P))}|${camSig}`;
+  const bakeKey = () => `${toneKey(TW)}|${sunKey(sunLook(LK, P))}|${camSig}|${neon.rev}`;
   function rebake() {
     wantBake = false;
     const T = lookTones();
     baker.start(bakeKey(), {
-      far: facadeSteps(L, T, 'far'),
-      near: [...facadeSteps(L, T, 'near'), searchlightStep(L, T), ...quaySteps(L, T)],
+      far: [...facadeSteps(L, T, 'far', 6, neon.glass), neon.housingStep('far', T)],
+      near: [...facadeSteps(L, T, 'near', 6, neon.glass), neon.housingStep('near', T), searchlightStep(L, T), ...quaySteps(L, T)],
       water: waterSteps(L, T),
       harbor: [...pierSteps(L, T), ...lighthouseSteps(L, T)],
       road: roadSteps(L, T),
@@ -225,6 +228,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       sched = createScheduler(HARBOR_EVENTS, t => ({ ms: t, force: clock.force, night: an || sunPosition(t, lat, lon).el < -6 }), { seed, forced: ['demo', 'searchlights'].filter(id => clock.force.has(id)), anchor: anchorFor(ms, LK.local) });
     }
     if (LK.key !== skyKey) { skyKey = LK.key; paintSky(skyCv, W, HZ, dpr, P); }
+    if (L && neon.night(nightKey(LK.local))) layout();          // (tonight's signs: a new pick, only while they are dark)
     // (never during a crossfade: its source is the canvas the next bake draws into)
     if (L && bakeKey() !== baker.key && !baker.pending && fadeFrom < 0 && !waitRects()) rebake();
     if (L && lightKey() !== litBaker.key && !litBaker.pending && litFadeFrom < 0) rebakeLights();
@@ -314,8 +318,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (litBaker.bakes > 1) litFadeFrom = now; else litBaker.settle();
       lights.swap(litMeta.far, litMeta.near);
     }
+    // the neon's sprites build a few a frame (behind the facades' bake: never in the same frame as its first bake)
+    if (!baker.pending || shownAt >= 0) neon.pump(baker.pending ? 1 : TIERS[tier].bakeMs);
     const lit = S.lit, night = P.dark;
     partyTick(t, dt, lit);
+    neon.powerTick(t, S, P);
+    neonMoments(t);
     if (sched && now - eventsAt > 500) { eventsAt = now; events = sched.at(clock.now()); density = densityOf(events.quiet); }
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
     const fs = { arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
@@ -328,6 +336,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const twilight = clamp01((-LK.sun.el - 1) / 5) * (1 - smooth(0.55, 0.92, LK.cloud || 0)) * (LK.rain ? 0.1 : 1);
       stars.draw(c, W, HZ, LK, clock.now(), P.stars * (LK.rain ? 0.15 : 1), milky, t, S.motion, 0, twilight); }
     fs.moonVeil = wfx.moonVeil(LK);
+    logoHaze(c);
     fx.back(c, fs);
     sun.draw(c, fs);
     if (!off.has('no-planes')) air.draw(c, fs);
@@ -364,6 +373,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const nightK = clamp01((P.dark - 0.25) / 0.5) * fadeIn * lit;
     litLayer('farLit', winK, lx);
     lights.draw(c, 'far', now, nightK, S.motion);
+    const nf = { t, now, night: clamp01((P.dark - 0.2) / 0.5), fade: fadeIn, motion: S.motion, tier, party: PT.on > 0 ? PT : null };
+    neon.draw(c, 'far', nf);
     const sunNow = sun.debug(), rk = off.has('no-rays') ? 0 : rayStrength(LK, sunNow);
     sun.halo(c, fs); drawRays(c, L, sunNow, rk * fadeIn, t, 'behind', S.motion, tier); if (!off.has('no-birds')) birds.low(c, fs);
     wfx.fogLayer(c, fs, 1, t);
@@ -371,6 +382,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     litLayer('nearLit', winK, lx);
     eventsTick(now, nightK);
     lights.draw(c, 'near', now, nightK, S.motion);
+    neon.draw(c, 'near', nf);
+    lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
@@ -408,6 +421,27 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
   }
 
+  // THE NEON logo's glow in the night air (Part 3): a soft haze of its colour around the sign, as strong as the sign is lit
+  let hazeCv = null, hazeCol = '';
+  function logoHaze(c) {
+    const r = S.logoRect, k = clamp01((P.dark - 0.3) / 0.5) * (S.logo || 0) * (S.caught === false ? 0.6 : 1);
+    if (!r || k <= 0.01) return;
+    const col = S.signCol || '#ff4fb4';
+    if (col !== hazeCol || !hazeCv) { hazeCol = col; if (hazeCv) hazeCv.width = 0; const n = parseInt(col.slice(1), 16); hazeCv = radial(`${n >> 16},${(n >> 8) & 255},${n & 255}`); }
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2, rw = r.w * 0.95, rh = r.h * 1.7;
+    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.16 * k;
+    c.drawImage(hazeCv, cx - rw, cy - rh, rw * 2, rh * 2);
+    c.restore();
+  }
+  // the neon's MOMENTS, previewed now (later parts call harbor().neon.moment): &force=neon-party (chasers + the beat + colour
+  // shifts), &force=neon-flash&game=pulse (a game's colours sweeping the skyline, every 6 s), &force=neon-scheme&scheme=halloween
+  let flashAt = -1e9;
+  function neonMoments(t) {
+    const f = clock.force;
+    if (f.has('neon-party')) { neon.moment('party', 1); neon.moment('chase', true); }
+    if (f.has('neon-flash') && t - flashAt > 6 && t > 2.5) { flashAt = t; neon.moment('flash', { game: qp.get('game') || 'pulse' }); }
+    if (f.has('neon-scheme')) neon.moment('scheme', qp.get('scheme') || 'halloween');
+  }
   // a lit layer: its canvas (+ the previous one in its crossfade); while the city powers on, the bottom rows light first
   function litLayer(name, k, lx) {
     const g = litBaker.group(name);
@@ -492,6 +526,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     hit(x, y) {
       const f = fx.hit(x, y) || birds.hit(x, y);
       if (f) return { kind: f };
+      const sg = neon.hit(x, y);
+      if (sg) return sg;
       const r = L && L.door.rect;
       if (r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { kind: 'door' };
       return null;
@@ -507,7 +543,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     tier: () => tier,
     sun: () => sun.debug(),
     neonMoments: () => sun.moments(clock.now(), clock.tz, LK.lat, LK.lon),
-    signCount: () => 0,                       // the city's signs: Part 3
+    signCount: () => neon.count(),            // the neon plan's items: the signs, the billboards, each building's outline
     now: () => clock.now(),
     speed: () => clock.speed || 1,
     skyline: () => (skyline ? Array.from(skyline) : null),
@@ -527,15 +563,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z); return { x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r] }; })(),
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
+      neon: neon.debug(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => neon.billboard(id, v), reflections: () => neon.reflections(), beacons: lights.beaconList(),
       spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(), main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
-    debug: () => ({ city: 2, signs: [], changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: {}, air: air.debug(), sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
+    debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: {}, air: air.debug(), sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {
       destroyed = true;
       stop();
       clearTimeout(resizeT); clearTimeout(relayT);
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('resize', onResize);
-      baker.destroy(); litBaker.destroy();
+      baker.destroy(); litBaker.destroy(); neon.destroy();
+      if (hazeCv) hazeCv.width = hazeCv.height = 0;
       fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy();
       for (const c of [skyCv, vignette, glow, ...sigGlow, canvas]) if (c) { c.width = 0; c.height = 0; }
       L = null;

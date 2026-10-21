@@ -119,7 +119,7 @@ export const REF_TITLE = { W: 402, H: 874, tag: { y: 319, h: 14 }, dock: { x: 14
  * one dense wall: a band's block there is CLIPPED (its piece in the corridor is lowered to the floor), never dropped, and
  * the farther, hazier bands stand a little higher behind it — never a hole through the city.
  */
-export const SUN_GAPS = [{ f: 0.046, w: 6 }, { f: 0.19, w: 9 }, { f: 0.322, w: 8 }, { f: 0.669, w: 6 }, { f: 0.851, w: 6 }];
+export const SUN_GAPS = [{ f: 0.046, w: 6 }, { f: 0.19, w: 9 }, { f: 0.322, w: 8 }, { f: 0.669, w: 6 }, { f: 0.84, w: 6 }];
 const GAP_PAD = 2;            // a side face intrudes up to ~1.5 pt: the corridor keeps this much more on each side
 /** a corridor's floor (the dense base's top) and how much higher each farther band stands behind it, as heights above the
  *  waterline in reference pt (× F / REF.F on any camera) */
@@ -138,9 +138,9 @@ const CROWNS = ['spire', 'pyramid', 'dome', 'stepped', 'tank'];
 export const TOWERS = [
   { id: 'sunburst', f: 0.622, z: 258, w: 12.5, h: 96, mat: 'lime', form: 'sunburst', crown: { t: 'sunburst', h: 17 }, gold: true, rank: 'hero' },
   { id: 'empire', f: 0.105, z: 266, w: 15, h: 90, mat: 'lime', form: 'empire', crown: { t: 'mast', h: 15 }, rank: 'hero' },
-  { id: 'needle', f: 0.49, z: 286, w: 8.5, h: 80, mat: 'cream', form: 'needle', crown: { t: 'spire', h: 18 }, rank: 'hero' },
-  { id: 'wordA', f: 0.765, z: 247, cols: 19, pu: 1.25, pv: 1.95, h: 66, mat: 'cream', form: 'deco', crown: { t: 'deco', h: 4 }, rank: 'word', word: 'h', rows: 12 },
-  { id: 'wordB', f: 0.94, z: 247, cols: 15, pu: 1.25, pv: 1.95, h: 62, mat: 'terra', form: 'deco', crown: { t: 'deco', h: 4 }, rank: 'word', word: 'h', rows: 12 },
+  { id: 'needle', f: 0.49, z: 286, w: 8.5, h: 80, mat: 'cream', form: 'needle', crown: { t: 'spire', h: 18 }, rank: 'hero', needle: 7 },   // (needle: THE NEON NEEDLE's tube above the spire, Part 3)
+  { id: 'wordA', f: 0.759, z: 247, cols: 19, pu: 1.1, pv: 1.95, h: 66, mat: 'cream', form: 'deco', crown: { t: 'deco', h: 4 }, rank: 'word', word: 'h', rows: 12 },
+  { id: 'wordB', f: 0.928, z: 247, cols: 15, pu: 1.1, pv: 1.95, h: 62, mat: 'terra', form: 'deco', crown: { t: 'deco', h: 4 }, rank: 'word', word: 'h', rows: 12 },
   { id: 'wordV', f: 0.25, z: 258, cols: 5, pu: 2.0, pv: 1.95, h: 92, mat: 'cream', form: 'slab', crown: { t: 'spire', h: 9 }, rank: 'word', word: 'v', rows: 24 },
   // the middle tier: clusters (left edge, behind the wheel, right), varied heights, breathing room between them
   { id: 'm-edge', f: -0.012, z: 300, w: 10, h: 62, mat: 'terra', form: 'stepped', crown: { t: 'pyramid', h: 8 }, rank: 'mid' },
@@ -306,6 +306,19 @@ function skylineOf(cam, seed) {
   return { bands, towers, heroes, cuts, all: [...bands.flatMap(b => b.blocks), ...towers, ...heroes] };
 }
 
+/** the lighthouse's parts as world boxes (x0, x1, y0, y1 at its z): the tapered tower (its widest, at the foot), the gallery,
+ *  the lantern, the dome — what may cover a word face, the screen checks, the drawing (lighthouse.js) */
+export function lighthouseBoxes(l) {
+  const g = l.gallery || l.r1 + 1;
+  return [
+    // the tapered tower in four slices (each as wide as its foot)
+    ...[0, 0.25, 0.5, 0.75].map(f => { const r = l.r0 + (l.r1 - l.r0) * f; return { id: `tower${f}`, x0: l.x - r, x1: l.x + r, y0: l.h * f, y1: l.h * (f + 0.25), z0: l.z }; }),
+    { id: 'gallery', x0: l.x - g, x1: l.x + g, y0: l.h, y1: l.h + 0.45, z0: l.z },
+    { id: 'lantern', x0: l.x - l.r1 * 0.7, x1: l.x + l.r1 * 0.7, y0: l.h + 0.45, y1: l.h + 3.4, z0: l.z },
+    { id: 'dome', x0: l.x - l.r1, x1: l.x + l.r1, y0: l.h + 3.4, y1: l.h + 5.1, z0: l.z },
+  ];
+}
+
 /** The whole layout for a camera: every piece at its final position and size (world units), plus screen-space checks. */
 export function harborLayout(cam, seed = 1924) {
   const sky = skylineOf(cam, seed);
@@ -321,7 +334,7 @@ export function harborLayout(cam, seed = 1924) {
   const sq = (h, z) => (sqRef ? Math.min(sqRef(h, z), sqLoc(h, z)) : sqLoc(h, z));
   for (const b of sky.all) {
     const t0 = top(b), t1 = sq(t0, b.z0), r = t1 / t0;
-    b.h *= r; if (b.crown) b.crown = { ...b.crown, h: b.crown.h * r };
+    b.h *= r; if (b.crown) b.crown = { ...b.crown, h: b.crown.h * r }; if (b.needle) b.needle *= r;
     b.squeeze = r;
   }
   const hUnit = cam.F / REF.F, HZq = groundY(cam, Z.quay);
@@ -331,13 +344,23 @@ export function harborLayout(cam, seed = 1924) {
   // the towers' tiers + window grids (after the squeeze); every block gets its grid
   for (const t of sky.towers) t.tiers = tiersOf(t);
   for (const b of [...sky.bands.flatMap(d => d.blocks), ...sky.heroes]) b.win = grid(b.x1 - b.x0, b.h, PITCH[0], PITCH[1], b.kind === 'hero' ? 2.2 : 0.9);
-  // the word towers' faces stay clear: anything nearer in front of one stands below its word rows
+  const k = Math.max(1, Math.min(2.2, cam.spread * 0.5));           // the harbor pieces spread out on a panorama
+  // THE LIGHTHOUSE (Part 3: moved for the word towers, the owner's review): on a phone it stands in the slot between the two
+  // horizontal word towers (in front of the sunset corridor, its gallery between their faces) — both faces fully on screen and
+  // uncovered; a wide screen keeps it out to the right (46 · k)
+  const lighthouse = { x: cam.wide ? 46 * k : fxAt(0.8502, 150), z: 150, h: 26, r0: 2.4, r1: 1.7, gallery: 2.3 };
+  // the word towers' faces stay clear: anything nearer in front of one stands below its word rows (the hero blocks, the
+  // lighthouse's tower + gallery + lantern)
+  const lhBoxes = lighthouseBoxes(lighthouse);
   for (const t of sky.towers.filter(t => t.word)) {
     const tr = t.tiers[0], g = tr.win;
     const [s0, s1] = spanOf(cam, tr.x0, tr.x1, tr.z0, tr.z1);
     // the hero blocks on the quay stay as they are (their signs: Part 3): the face's rows start above them
     let cover = 1e9;
     for (const b of sky.heroes) { const [b0, b1] = spanOf(cam, b.x0, b.x1, b.z0, b.z1); if (b1 > s0 + 1 && b0 < s1 - 1) cover = Math.min(cover, project(cam, 0, b.h, b.z0)[1]); }
+    // (against the face itself — its front; the lighthouse may stand in front of a word tower's side face)
+    const f0 = project(cam, tr.x0, 0, tr.z0)[0], f1 = project(cam, tr.x1, 0, tr.z0)[0];
+    for (const b of lhBoxes) { const b0 = project(cam, b.x0, 0, b.z0)[0], b1 = project(cam, b.x1, 0, b.z0)[0]; if (b1 > f0 + 1 && b0 < f1 - 1) cover = Math.min(cover, project(cam, 0, b.y1, b.z0)[1]); }
     const rowY = r => project(cam, 0, tr.y0 + g.v0 + r * g.pitch[1] - 0.3, tr.z0)[1];
     let r0 = Math.max(0, g.rows - t.rows);
     while (r0 < g.rows && rowY(r0) > cover - 1) r0++;
@@ -353,7 +376,6 @@ export function harborLayout(cam, seed = 1924) {
   }
   const { bands, towers, heroes } = sky;
   const landmarks = towers;          // (the Part 1 name: the hand-placed towers)
-  const k = Math.max(1, Math.min(2.2, cam.spread * 0.5));           // the harbor pieces spread out on a panorama
   // ---- the far bank and the quay, the water
   const quay = { z: Z.quay, top: 0.4, foot: -1.2 };
   const water = { z0: Z.rail, z1: Z.quay };
@@ -373,7 +395,6 @@ export function harborLayout(cam, seed = 1924) {
   const wheelX = Math.max((cam.wide ? -30 : -24) * k * wz / 165, xAt(cam, speakBack + 12 + legK * cam.F * wr / wz, wz));
   const wheel = { x: wheelX, y: wr + 5.4, z: wz, r: wr, leg: legK };
   const pier = { x0: wheelX - 3.2, x1: wheelX + 3.6, z0: 118, z1: Z.quay, y: 2.4 };
-  const lighthouse = { x: 46 * k, z: 150, h: 26, r0: 2.4, r1: 1.7 };
   const breakwater = { x0: lighthouse.x - 20, x1: lighthouse.x + 34, z: 150, h: 1.6 };
   const cottage = { x: lighthouse.x + 3.4, z: 150, w: 5, h: 4.6, roof: 6.6 };
   // ---- the boats (the riverboat "Rosie" with her bulbs, a water taxi, a tug at night, sailboats by day), re-spaced around

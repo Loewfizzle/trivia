@@ -157,6 +157,37 @@ try {
     void sp;
     await T.ctx.close();
   }
+  // ================================================================ 3c. Part 3: the neon — signs, outlines, billboards, beacons, the scroll, moments
+  { const N = await open({ slot: 'h8', qs: NIGHT });
+    await waitFor(N.page, '(() => { const n = window.__district.harbor().neon; return n.items > 20 && n.built >= n.items && !n.queued; })()', 'the neon built', 15000);
+    await sleep(5000);
+    const h = await ev(N.page, 'window.__district.harbor()'), sc = await ev(N.page, 'window.__district.scene()');
+    const games = h.neon.signs.filter(s => s.game).map(s => s.game);
+    ok(new Set(games).size === 12 && h.neon.signs.filter(s => s.kind === 'named').length === 4 && h.neon.signs.every(s => s.on),
+      `SIGNS: all 12 games in the skyline (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')} named tonight; the rest as tube icons), every sign lit at night`);
+    ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
+      `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
+    const sg = h.neon.signs.find(s => s.game), hit = await ev(N.page, `window.__district.hit(${sg.rect.x + sg.rect.w / 2}, ${sg.rect.y + sg.rect.h / 2})`);
+    ok(hit && hit.kind === 'sign' && hit.id === sg.game, `A TAP ON A SIGN: ${sg.id} → ${hit && hit.kind} ${hit && hit.id} (its HOW TO PLAY)`);
+    const sigs = await ev(N.page, '(window.__district.scene().signPower || []).length');
+    ok(sigs === h.neon.items, `THE NEON PLAN: one power state per sign + outline (${sigs} of ${h.neon.items})`);
+    const scroll = await ev(N.page, "(() => { const hb = window.__district.harbor(); const okk = hb.spell('HAPPY BIRTHDAY SAMANTHA', { style: 'scroll' }); return okk && window.__district.harbor().windows.spelling; })()");
+    ok(scroll && scroll.style === 'scroll' && scroll.towers[0] === 'wordA', `THE SCROLL: a long message tickers across ${scroll && scroll.towers}`);
+    await ev(N.page, "window.__district.harbor().moment('flash', { game: 'pulse' }), window.__district.harbor().billboard('bb-right', { game: 'rum' })");
+    await sleep(300);
+    const h2 = await ev(N.page, 'window.__district.harbor()');
+    ok(h2.neon.moment.flash && h2.neon.boards[0].show === 'RUMRUNNER', `MOMENTS + BILLBOARDS: a game's flash sweeps the skyline; a billboard shows ${h2.neon.boards[0].show}`);
+    ok(h2.mem.mb + h2.neon.mb <= h2.mem.budget, `MEMORY (neon): the sprites ${h2.neon.mb} MB + the baked layers ${h2.mem.mb} MB ≤ ${h2.mem.budget}`);
+    if (SHOTS) await N.page.screenshot({ path: `${OUT}part3-neon-390x844.png` });
+    void sc;
+    await N.ctx.close();
+  }
+  { const D = await open({ slot: 'h9', qs: `when=2026-10-21T13:00${GR}` });
+    await sleep(3000);
+    const h = await ev(D.page, 'window.__district.harbor()');
+    ok(h.neon.signs.every(s => !s.on), 'BY DAY: the neon is off (the signs + outlines as unlit glass)');
+    await D.ctx.close();
+  }
 
   // ================================================================ 4. the dock: HOST, JOIN, the knock on the door
   const H = await open({ slot: 'hh', qs: NIGHT });

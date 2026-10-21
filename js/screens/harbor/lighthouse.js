@@ -15,7 +15,7 @@ export function lighthouseSteps(L, T) {
     tower(2.2, l.h, T.light);
     tower(l.h * 0.25, l.h * 0.38, T.lightBand);
     tower(l.h * 0.6, l.h * 0.73, T.lightBand);
-    box(x, cam, { x0: l.x - l.r1 - 1, x1: l.x + l.r1 + 1, z0: l.z, z1: l.z + 0.5, h: 0.45 }, shade(T.lamp, 0.1), { y0: l.h, top: false });
+    box(x, cam, { x0: l.x - (l.gallery || l.r1 + 1), x1: l.x + (l.gallery || l.r1 + 1), z0: l.z, z1: l.z + 0.5, h: 0.45 }, shade(T.lamp, 0.1), { y0: l.h, top: false });
     box(x, cam, { x0: l.x - l.r1 * 0.7, x1: l.x + l.r1 * 0.7, z0: l.z, z1: l.z + 0.5, h: 2.95 }, T.night > 0.4 ? [255, 236, 190] : shade(T.light, -0.25), { y0: l.h + 0.45, top: false });
     poly(x, cam, [[l.x - l.r1, l.h + 3.4, l.z], [l.x, l.h + 5.1, l.z], [l.x + l.r1, l.h + 3.4, l.z]], rgb(shade(T.lamp, 0.15)));
   }];

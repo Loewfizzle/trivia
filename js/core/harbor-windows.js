@@ -67,8 +67,8 @@ const ALIAS = { '<3': '♥', '*': '★', HEART: '♥', STAR: '★', FLAG: '⚑' 
 /** the glyph of a character (unknown characters are skipped) */
 export const glyph = ch => G[ch] || G[String(ch).toUpperCase()] || null;
 /** normalise a message: upper case, the aliases (<3 → ♥, * → ★, [flag] → ⚑) */
-export function normText(s) {
-  let t = String(s || '').toUpperCase().slice(0, 40);
+export function normText(s, max = 40) {
+  let t = String(s || '').toUpperCase().slice(0, max);
   t = t.replace(/<3/g, '♥').replace(/\*/g, '★').replace(/\[FLAG\]/g, '⚑').replace(/\[HEART\]/g, '♥').replace(/\[STAR\]/g, '★');
   return [...t].filter(ch => G[ch]).join('');
 }
@@ -137,6 +137,15 @@ export function layoutText(text, towers, opts = {}) {
     if (onA) return [onA, onB];
   }
   return vertical(V);
+}
+
+/** a message as columns for THE SCROLL (a ticker across a tower's face): one bitmask per column (bit r = row r from the top),
+ *  1 blank column between glyphs; up to 120 characters */
+export function scrollColumns(text) {
+  const t = normText(text, 120);
+  const w = t ? lineWidth(t) : 0, cols = new Array(w).fill(0);
+  for (const [c, r] of lineCells(t)) cols[c] |= 1 << r;
+  return { text: t, cols };
 }
 
 /** the words the scheduler's random `spell` event may light (night only; rare — never the same two nights running) */

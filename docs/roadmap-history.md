@@ -347,6 +347,22 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   hidden tab), `title-perf.mjs` (both cities, any scene, per tier); `shots.mjs --city 2 --safe --sizes harbor --crop stage` +
   party / snow scenes. Reviewed: six scenes × six sizes, two refine passes.
 
+### ✅ CITY 2.0 — THE HARBOR, Part 3 of 12: NEON + SIGNS + BILLBOARDS + BUILDING NEON + THE NEON LOGO (Oct 21, 2026) — `docs/harbor.md`
+- Behind `?city=2`. The owner's Part 2 review first: far + mid windows are fine irregular glitter; the word towers narrowed a
+  little (pitch 1.1) and the lighthouse moved into the slot between them (both faces whole + uncovered at every phone size, tested;
+  bolder, fuller, warmer letters on a darkened face); THE SCROLL (any length, a Times Square ticker); the tagline's 15 s start when
+  the title appears; aircraft beacons on every tall top, blinking in sync (white strobe on the tallest by day).
+- One crafted tube system (tubes.js: glass, near + wide gaussian glow, white-hot core, highlight, caps, clips; uneven light from
+  core/tube-path.js) for the signs (signs.js: vertical + horizontal cabinets, icon signs, the HOTEL blade with chaser bulbs, JAZZ,
+  two painted billboards with gooseneck lamps) and the NEON OUTLINES on the buildings (core/harbor-neon.js: heroes fully, the
+  middle tier on its setbacks, faint threads far; ~8 colours in roles; the NEON NEEDLE; LED facades on the glass towers).
+- The owner's call on the signs (asked): every game has a sign; 4 named spots on a phone get a new pick each night (never while
+  lit), the rest are tube icons; a game list that changes just fills more or fewer spots. Desktop: 9 named + icons.
+- Moments as hooks (`&force=neon-party`, `neon-flash&game=`, `neon-scheme&scheme=`), the premium NEON logo (glass wall, hot
+  bends, dim electrodes, a highlight toward the sun, glints by day, ANCHORS for 11a–c: `&force=anchors`), every game's TUBE LOGO
+  (ui/tube-logo.js; `tests/integration/logos-preview.html`).
+- Tests: `harbor.test.mjs` 42, `e2e-harbor.mjs` 31; perf within 8 / 6 / 4 ms at every tier (4× CPU), the neon's sprites ~2 MB.
+
 ### ✅ CITY 2.0 — THE HARBOR, Part 2 of 12: THE SKYLINE (Oct 21, 2026) — `docs/harbor.md`
 - Behind `?city=2`. The owner's iPhone review first: a recomposed skyline (the SUNBURST — the one gold crown — and the stepped
   EMPIRE dominant, the needle third, the middle tier in clusters, the bands low and packed, two glass towers far back); one

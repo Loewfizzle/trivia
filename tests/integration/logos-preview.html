@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tube logos</title>
+<!-- CITY 2.0, Part 3: every game's TUBE LOGO (js/ui/tube-logo.js), built like the NEON logo — night (lit) and day (unlit glass).
+     Open /tests/integration/logos-preview.html (no Firebase). ?day=1 shows only the day row, ?night=1 only the night one. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/title.css">
+<style>
+  html, body { margin: 0; background: #0b0a1a; color: #e8e6f4; font-family: 'Chakra Petch', sans-serif; }
+  h1 { font: 900 15px Orbitron, sans-serif; letter-spacing: 0.2em; margin: 18px 16px 6px; }
+  h2 { font: 600 12px 'Chakra Petch', sans-serif; letter-spacing: 0.18em; opacity: 0.8; margin: 18px 16px 8px; }
+  .tlp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; padding: 0 16px 20px; }
+  .tlp-cell { border-radius: 14px; padding: 10px 8px 6px; }
+  .tlp-night .tlp-cell { background: radial-gradient(120% 100% at 50% 40%, #1d1638, #0b0a1a); }
+  .tlp-day { background: linear-gradient(#6f9ad0, #b9d0ea); padding: 1px 0 6px; }
+  .tlp-day .tlp-cell { background: rgba(255, 255, 255, 0.08); }
+  .tlp-cell svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .tlp-cell span { display: block; text-align: center; font-size: 11px; letter-spacing: 0.14em; opacity: 0.7; margin-top: 4px; }
+  .tlp-day .tlp-cell span { color: #10182a; opacity: 0.75; }
+</style>
+</head>
+<body>
+<h1>TUBE LOGOS</h1>
+<div id="night" class="tlp-night"><h2>NIGHT · LIT</h2><div class="tlp-grid"></div></div>
+<div id="day" class="tlp-day"><h2 style="color:#10182a">DAY · UNLIT GLASS</h2><div class="tlp-grid nd-sign is-day"></div></div>
+<script type="module">
+  import { GAMES } from '../../js/config.js';
+  import { gameLogoSvg } from '../../js/ui/tube-logo.js';
+  const q = new URLSearchParams(location.search);
+  const games = GAMES.filter(g => g.playable);
+  const fill = (sel, lit) => { const el = document.querySelector(`${sel} .tlp-grid`); el.innerHTML = games.map(g => `<div class="tlp-cell">${gameLogoSvg(g, { id: `${sel.slice(1)}-${g.id}`, lit, premium: !lit })}<span>${g.name}</span></div>`).join(''); };
+  if (!q.has('day')) fill('#night', true); else document.querySelector('#night').remove();
+  if (!q.has('night')) fill('#day', false); else document.querySelector('#day').remove();
+  window.__logos = { count: document.querySelectorAll('svg.tube-logo').length };
+</script>
+</body>
+</html>

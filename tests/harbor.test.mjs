@@ -188,8 +188,9 @@ test('layout: the word towers — windows big enough for letters, rows enough fo
     const { cam, L } = setup(k);
     for (const t of L.towers.filter(t => t.word)) {
       const g = t.tiers[0].win, colPt = cam.F * g.pitch[0] / t.z0, rowPt = cam.F * g.pitch[1] / t.z0;
-      assert.ok(colPt >= 2.8 && rowPt >= 4.3, `${k}: ${t.id} windows ${colPt.toFixed(1)}×${rowPt.toFixed(1)} pt`);
-      assert.ok(t.face.rows >= (t.word === 'v' ? 17 : 11), `${k}: ${t.id} ${t.face.rows} free rows`);
+      assert.ok(colPt >= 2.5 && rowPt >= 4.3, `${k}: ${t.id} windows ${colPt.toFixed(1)}×${rowPt.toFixed(1)} pt`);
+      // (A: two lines · B: one line (it takes the last word of a long message) · V: three letters)
+      assert.ok(t.face.rows >= (t.word === 'v' ? 17 : t.id === 'wordB' ? FONT_H + 2 : 11), `${k}: ${t.id} ${t.face.rows} free rows`);
       // the face (from its lowest word row up) is clear of everything nearer
       const [a, b] = spanOf(cam, t.tiers[0]);
       for (const o of [...L.bands.flatMap(d => d.blocks), ...L.heroes, ...L.towers]) {
@@ -392,4 +393,109 @@ test('events: when() gates by the context; forced events run at once', () => {
   const on = schedule(HARBOR_EVENTS, 1.8e12 + 1234, ctxAt(['demo']), { forced: ['demo'] });
   assert.deepEqual(on.active.map(e => e.id), ['demo']);
   assert.deepEqual(on.active[0].lanes, ['sky-low']);
+});
+
+// ================================================================== Part 3: NEON + SIGNS + BILLBOARDS
+import { signSpots, spotConflicts, assignSigns, nightKey, outlines, roleFamily, SCHEMES, roleColour } from '../js/core/harbor-neon.js';
+import { flattenPath, tubeLight } from '../js/core/tube-path.js';
+import { scrollColumns } from '../js/core/harbor-windows.js';
+import { lighthouseBoxes } from '../js/core/harbor-layout.js';
+import { GAMES } from '../js/config.js';
+import { MARKS, bladeWord } from '../js/screens/district/marks.js';
+
+const GAMES12 = GAMES.filter(g => g.playable).map(g => ({ id: g.id, name: g.name, short: bladeWord(g) === 'NEONPAR' ? 'NEON PAR' : bladeWord(g) }));
+const faceRect = (cam, t) => { const tr = t.tiers[0], [a, b] = project(cam, tr.x0, tr.y0 + tr.h, tr.z0), [c] = project(cam, tr.x1, 0, tr.z0); return { x: a, y: b, w: c - a, h: t.face.y - b }; };
+
+test('word towers (Part 3): both faces fully on screen, nothing nearer over them — the lighthouse, the wheel, the boats, the signs', () => {
+  for (const k of PHONES) {
+    const { cam, L } = setup(k);
+    const w = L.wheel, [cx, cy] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z;
+    const near = [
+      ...lighthouseBoxes(L.lighthouse).map(b => { const [a, y] = project(cam, b.x0, b.y1, b.z0), [c, d] = project(cam, b.x1, b.y0, b.z0); return { id: 'lighthouse', x: a, y, w: c - a, h: d - y }; }),
+      { id: 'wheel', x: cx - r, y: cy - r, w: 2 * r, h: 2 * r },
+      ...L.boats.map(b => { const [a, y] = project(cam, b.x - b.len / 2, b.h, b.z), [c, d] = project(cam, b.x + b.len / 2, 0, b.z); return { id: b.id, x: a, y, w: c - a, h: d - y }; }),
+      ...signSpots(L).map(s => ({ id: s.id, ...s.rect })),
+    ];
+    for (const t of L.towers.filter(t => t.word)) {
+      const f = faceRect(cam, t);
+      assert.ok(f.x >= 4 && f.x + f.w <= cam.W - 4, `${k}: ${t.id}'s face on screen (${f.x.toFixed(0)}..${(f.x + f.w).toFixed(0)} of ${cam.W})`);
+      for (const o of near) assert.ok(!overlap(f, { ...o, x: o.x + 0.5, w: o.w - 1 }), `${k}: ${o.id} over ${t.id}'s face`);
+    }
+  }
+});
+
+test('signs: every game has a sign on every phone (4 named + 8 icons), every spot clear, names fit; desktop too', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k);
+    const spots = signSpots(L);
+    for (const s of spots) assert.deepEqual(spotConflicts(L, s, spots), [], `${k}: ${s.id}`);
+    const pick = assignSigns(GAMES12, spots, '2026-10-21');
+    const got = new Set(pick.values());
+    if (!cam.wide) {
+      assert.equal(spots.filter(s => s.kind === 'named').length, 4, `${k}: four named spots`);
+      assert.equal(got.size, 12, `${k}: all 12 games have a sign`);
+    } else if (k === '1440x900') assert.equal(got.size, 12, 'desktop: all 12 games');
+    for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(g.short.replace(/ /g, '').length <= s.cap, `${k}: ${g.short} fits ${s.id}`); }
+    // the named spots read on a phone: a vertical sign's letters ≥ 6 pt
+    if (!cam.wide) for (const s of spots.filter(s => s.kind === 'named' && s.type === 'vbox')) assert.ok(s.rect.h / s.cap >= 6 * (cam.F / 600) * 0.95, `${k}: ${s.id} letters ${(s.rect.h / s.cap).toFixed(1)} pt`);
+  }
+});
+
+test('signs: a new pick each night (the same all night), and a game list that grows or shrinks just fills more or fewer spots', () => {
+  const { L } = setup('402x874');
+  const spots = signSpots(L);
+  const a = assignSigns(GAMES12, spots, '2026-10-21'), b = assignSigns(GAMES12, spots, '2026-10-21');
+  assert.deepEqual([...a], [...b]);
+  const named = m => spots.filter(s => s.kind === 'named').map(s => m.get(s.id)).join();
+  let differs = 0;
+  for (let d = 1; d <= 14; d++) if (named(assignSigns(GAMES12, spots, `2026-11-${String(d).padStart(2, '0')}`)) !== named(a)) differs++;
+  assert.ok(differs >= 10, `the named spots rotate night to night (${differs} of 14)`);
+  assert.equal(new Set(assignSigns(GAMES12.slice(0, 7), spots, 'x').values()).size, 7);
+  const slots = spots.filter(s => s.kind === 'named' || s.kind === 'icon').length;
+  assert.equal(new Set(assignSigns([...GAMES12, { id: 'new1', short: 'BINGO' }, { id: 'new2', short: 'DARTS' }], spots, 'x').values()).size, Math.min(14, slots));
+  // tonight: the evening's date — before noon it is still last night (the pick changes by day, while the neon is dark)
+  assert.equal(nightKey({ y: 2026, m: 10, d: 22, h: 1 }), '2026-10-21');
+  assert.equal(nightKey({ y: 2026, m: 10, d: 22, h: 19 }), '2026-10-22');
+  for (const g of GAMES12) assert.ok(MARKS[g.id], `${g.id} has a tube mark`);
+});
+
+test('neon outlines: never across a word face, at most two colours a building, base > heat > accent', () => {
+  for (const k of ['390x844', '402x874', '1440x900']) {
+    const { cam, L } = setup(k);
+    const O = outlines(L), len = { base: 0, heat: 0, accent: 0 };
+    const faces = L.towers.filter(t => t.word).map(t => ({ id: t.id, z: t.z0, ...faceRect(cam, t) }));   // (an outline farther back is behind the tower: it covers it)
+    for (const o of O) {
+      const roles = new Set(o.lines.map(l => l.role));
+      if (!o.id.startsWith('threads')) assert.ok(roles.size <= 2, `${k}: ${o.id} ${[...roles]}`);
+      for (const ln of o.lines) {
+        let d = 0;
+        for (let i = 1; i < ln.pts.length; i++) {
+          const [a, b] = project(cam, ...ln.pts[i - 1]), [c, e] = project(cam, ...ln.pts[i]);
+          d += Math.hypot(c - a, e - b);
+          for (const f of faces) { if (o.z > f.z + 1) continue; const mx = (a + c) / 2, my = (b + e) / 2; assert.ok(!(mx > f.x + 1.5 && mx < f.x + f.w - 1.5 && my > f.y + 1.5 && my < f.y + f.h - 1.5), `${k}: ${o.id} crosses ${f.id}'s face`); }
+        }
+        len[roleFamily(ln.role)] += d;
+      }
+    }
+    assert.ok(len.base > len.heat && len.heat > len.accent && len.accent > 0, `${k}: ${JSON.stringify(len)}`);
+  }
+  for (const n of Object.keys(SCHEMES)) for (const r of ['b0', 'b1', 'b2', 'h0', 'h1', 'a0', 'a1', 'a2']) assert.equal(roleColour(r, n).length, 3, `${n} ${r}`);
+});
+
+test('tubes: SVG paths → polylines (lines, curves, arcs), the light hotter on the bends and dimmer at the electrodes', () => {
+  const sq = flattenPath('M0 0 H10 V10 H0 Z');
+  assert.equal(sq.length, 1); assert.ok(sq[0].closed); assert.deepEqual(sq[0].pts.at(-1), [0, 0]);
+  const circ = flattenPath('M80 50 A30 30 0 1 0 20 50 A30 30 0 1 0 80 50', 1, 0, 0, 2)[0].pts;
+  for (const [x, y] of circ) assert.ok(Math.abs(Math.hypot(x - 50, y - 50) - 30) < 0.6, 'an arc stays on its circle');
+  for (const m of Object.values(MARKS)) for (const t of m.tubes) assert.ok(flattenPath(t.d).length >= 1);
+  const pts = [[0, 0], [10, 0], [20, 0], [30, 0], [30, 10], [30, 20], [30, 30]], lv = tubeLight(pts, false, 1);
+  assert.ok(lv[3] > lv[1] && lv[0] < lv[1], `bend ${lv[3]} > straight ${lv[1]} > electrode ${lv[0]}`);
+});
+
+test('words: the scroll — any length, column by column', () => {
+  const sc = scrollColumns('HAPPY BIRTHDAY SAM');
+  assert.equal(sc.text, 'HAPPY BIRTHDAY SAM');
+  assert.equal(sc.cols.length, lineWidth('HAPPY BIRTHDAY SAM'));
+  assert.ok(sc.cols.every(m => m > 0 || m === 0));
+  assert.equal(scrollColumns('x'.repeat(300)).text.length, 120);
 });

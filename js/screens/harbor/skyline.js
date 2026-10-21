@@ -40,7 +40,7 @@ export function skyItems(L) {
 }
 
 /** the facade bake steps of a group (n buildings a step); cast shadows are drawn right after their building */
-export function facadeSteps(L, T, group, n = 6) {
+export function facadeSteps(L, T, group, n = 6, after = null) {
   const cam = L.cam, items = skyItems(L)[group];
   const sh = shadowsFor(cam, items.filter(it => it.b).map(it => it.b), T);
   const steps = [];
@@ -51,6 +51,7 @@ export function facadeSteps(L, T, group, n = 6) {
         if (it.veil) { hazeVeil(x, cam, it.veil.z, it.veil.up * cam.F / 600, T, it.veil.a); continue; }
         skyBlock(x, cam, it.b, T, it.o);
         drawShadow(x, sh.get(it.b));
+        if (after) after(x, it, T);          // (Part 3: its neon outline's glass, so whatever stands nearer covers it)
       }
     });
   }

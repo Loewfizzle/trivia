@@ -71,6 +71,17 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   a faint core flutter), real glass thickness + a moving highlight, its glow tinting the night haze; by day (it is OFF by day)
   clear sunlit glass, glints, caps/clips, soft shadow. Shown only with ?city=2 until the switch-over. Position + night look kept.
 - The neon boot-up sequence + flicker timing = City 1.0's.
+- **Signs (asked + decided Oct 21 2026):** 12 readable named signs don't fit a phone's skyline (the word faces, the wheel, the
+  lighthouse take the wall space) — so MIXED SIZES: every game always has its own sign; ~4–5 big NAMED spots whose games rotate
+  (a new pick each night or visit, never a sign changing while you watch); the other games as tube ICON signs (mark + colours).
+  Built so games can be added or removed without redesigning the skyline.
+- **Building neon (the owner, Oct 21 2026):** real tubes tracing the Deco shapes, LAYERED (heroes + landmarks fully outlined,
+  the middle tier on rooflines / setbacks, the far bands a few faint threads); THE NEON NEEDLE (the needle's spire one tall
+  glowing tube, its synced beacon at the tip); COLOUR like Shenzhen but designed — ~8 colours in roles: base ~60 % (electric
+  blue, cyan, ice white), heat ~30 % (the NEON pink, violet; mostly heroes), accent ~10 % (amber, signal red, acid green);
+  max 2 colours a building, colour by cluster, a brightness hierarchy, the word faces clear; the two glass towers' LED
+  facades (slow, smooth gradients); a calm steady glow most nights with hooks for MOMENTS (party chasers + the beat, holiday
+  schemes, a game's colours flashing across the skyline at a game's start, a CITY CONTROL scheme).
 
 ## Part 4 — water
 - Reflections in perspective; a gold sun path at sunset and a silver moon path at night broken by ripples; every light smeared

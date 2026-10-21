@@ -23,6 +23,11 @@ const SCENES = {
   snow: 'when=2026-12-15T21:30&wx=snow',
   // CITY 2.0's worst night so far: the searchlights sweeping + a word in the windows
   show: 'when=2026-10-14T21:30&wx=clear&force=searchlights,spell&text=2027',
+  // CITY 2.0, Part 3: the neon's party moment (chasers + the beat + the LED facades) on top of the show; and the plain scenes
+  // without the planes (their contrail grows the cost over a pass: docs/harbor.md Known issues) — np-party, np-night, np-day
+  neon: 'when=2026-10-17T23:00&wx=clear&force=no-planes,neon-party,searchlights,spell&text=2027',
+  'np-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes', 'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
+  'np-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes', 'np-golden': 'when=2026-10-14T18:30&wx=clear&force=no-planes',
 };
 const names = arg('scenes', 'party,night,day').split(',');
 const sleep = ms => new Promise(r => setTimeout(r, ms));

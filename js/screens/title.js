@@ -16,7 +16,7 @@ import { h, reducedMotion } from '../ui/dom.js';
 import { step } from '../core/ranks.js';
 import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
-import { logoSvg, TAGLINE } from '../ui/logo.js';
+import { logoSvg, anchorsSvg, TAGLINE } from '../ui/logo.js';
 import { openHelp } from '../ui/help.js';
 import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, colorHex } from '../config.js';
 import { setState } from '../store.js';
@@ -275,7 +275,7 @@ export function createTitle() {
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
       h('div.nd-bloom', { 'aria-hidden': 'true' }),   // PARTY NIGHTS: the logo's breath, behind the letters
-      h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME }) }),
+      h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: !!createHarbor }) + (createHarbor && /[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
       h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'))),
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
@@ -355,6 +355,7 @@ export function createTitle() {
     const root = els.sign.closest('.nd');
     root.classList.add(`seq-${tl.kind}`);
     rainSound();
+    armTagline();     // (CITY 2.0: the tagline's 15 s count from the moment the title appears, not from the end of its power-on)
     tick();
   }
 
@@ -455,10 +456,9 @@ export function createTitle() {
     watchSky();
     neonTick();
     armIdle();
-    armTagline();
   }
 
-  // CITY 2.0 (docs/harbor.md): the tagline fades out ~15 s after the title appears and stays gone (opacity only: its rect, and
+  // CITY 2.0 (docs/harbor.md): the tagline fades out 15 s after the title appears (armed in run(): the power-on's start) and stays gone (opacity only: its rect, and
   // so the city, never move). Its band becomes THE TAGLINE SLOT: tagSlot(text, ms) brings a line back there briefly (later
   // parts: holidays, the countdown). &tagms=N sets the delay (tests).
   function armTagline() {
@@ -488,11 +488,30 @@ export function createTitle() {
   function watchSky() {
     if (destroyed || !scene) return;
     dressSign(scene.look());
+    premiumLogo(scene.look());
     els.root.classList.toggle('nd-noblur', (scene.tier ? scene.tier() : 2) === 0);
     tintGlass();
     snowOnSign();
     rainSound();
     els.skyTimer = setTimeout(watchSky, 1000);
+  }
+  // CITY 2.0's premium logo (logo.js#premiumBits): the glass highlight leans toward the light — the real sun's side by day, a
+  // little left at night — moving with the sun through the day; a faint flutter now and then in one lit tube's core (rare and
+  // brief: each is one repaint of the sign)
+  let hiKey = '';
+  function premiumLogo(L) {
+    if (!createHarbor || !L) return;
+    const svg = els.sign.querySelector('svg.nd-logo');
+    if (!svg) return;
+    const az = L.sun ? L.sun.az : 180, el = L.sun ? L.sun.el : -10, side = el > -2 ? Math.max(-1, Math.min(1, (((az - 180 + 540) % 360) - 180) / 70)) : -0.6;
+    const k = (side * 1.5).toFixed(2);
+    if (k !== hiKey) { hiKey = k; svg.style.setProperty('--hix', `${k}px`); }
+    if (reduced() || Math.random() > 0.22 || !els.sign.classList.contains('is-steady')) return;
+    const lit = [...svg.querySelectorAll('.ndl.on .ndl-core')];
+    const core = lit[Math.floor(Math.random() * lit.length)];
+    if (!core) return;
+    core.style.opacity = '0.8';
+    setTimeout(() => { core.style.opacity = ''; }, 70 + Math.random() * 60);
   }
   // the dock's glass takes the sky's light: the sign's neon after dark (the holiday's colour on its days), amber at golden
   // hour, rose at dawn, a cool frosted daylight — and rain runs down it while it rains. The labels never change (contrast).
