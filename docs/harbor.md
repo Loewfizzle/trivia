@@ -4,6 +4,11 @@ The title's new city, replacing today's district (`js/screens/district/`). A onc
 quality bar, in 12 parts. **Every later part follows this file.** Until Part 12 switches it over, the Harbor lives behind
 `?city=2` only; a normal visit gets today's city, exactly as before. Rollback point: the git tag **`city-1.0`** (pushed Oct 20 2026).
 
+**THE MASTER PLAN: [`docs/harbor/plan.md`](harbor/plan.md)** — the owner's decisions for every part (the big picture: what each
+part builds and what comes later). Every part reads it first. It is a READ-ONLY reference: each part builds only what its own
+prompt asks, leaves room for what comes later and never contradicts it; if the prompt and the plan disagree, the prompt wins —
+then tell the owner. The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) stay in this file.
+
 ## The vision
 A 1920s Art Deco city in heavy neon, across a harbor, that is LIVE to the player's own place and time — their real sun, moon,
 stars, weather, seasons, holidays, party nights — and **we never tell them; they discover it.** Weather effects only when it is
