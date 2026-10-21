@@ -63,8 +63,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   stepped tower (our own design); 2 modern glass towers in the back/haze layers only. Sun gaps only in the TOPS — no holes.
 - The Ferris wheel ~45% across, a bit smaller, its legs + pier + water visible (never reads as on a roof), clear of the word
   towers and hero crowns. Same skyline on every phone; taller phones get extra sky (no stretching). Water strip: camera kept.
-- The tagline "YOUR FRIENDS ARE ALREADY INSIDE." fades after ~15 s and stays gone; its band = sky-low + a TAGLINE SLOT for
-  special messages only (holidays, the NYE countdown, CITY CONTROL).
+- The tagline "YOUR FRIENDS ARE ALREADY INSIDE." (the owner likes it): shown on arrival, fades out TOGETHER WITH THE DOCK when the
+  title's screen goes to rest, comes back with the dock on a tap; on special days the TAGLINE SLOT shows the special message
+  instead (holidays, the NYE countdown, CITY CONTROL's custom-typed messages). The skyline never grows into its space.
 - Thousands of glitter windows; ADDRESSABLE windows on every building; 2–3 word towers (horizontal + vertical) with a pixel font
   (letters, digits, heart, star, flag) — used for "2027", the 10→1 countdown, a heart, "BOO", "JOY", birthdays, admin words.
 - Searchlights: 2–3 crafted rooftop searchlights (party nights, holidays, rare "grand opening" nights; dramatic in real fog/cloud).
@@ -105,7 +106,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   in the water; fireworks doubled in the harbor (Part 11).
 
 ## Part 5 — harbor hero pieces
-- Ferris wheel (turning, bulbs; seasonal/holiday colours), lighthouse (beam; keeper's cottage), pier, boats: Rosie the
+- Ferris wheel (turning, bulbs; seasonal/holiday colours; its A-frame legs must stand ON the pier deck — today they stick out past
+  both sides of the pier; widen the pier under the wheel or bring the feet in), lighthouse (beam; keeper's cottage), pier, boats: Rosie the
   riverboat with bulbs, a water taxi, a tug, sailboats by day; lit boats for holidays.
 - AN ELEVATED TRAIN along the far waterfront (City 1.0 had one): only if its detail reads on an iPhone and it doesn't take away
   from anything high-value; a warm ribbon of lit windows at night reflected in the harbor, a sleek crafted shape by day,
@@ -126,6 +128,10 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - THE AURORA must be REAL: today's sky shows it on ~1 night in 5 at random (core/sky.js#auroraNight) — tie it to the real
   space-weather forecast (NOAA's Kp index) or make it very rare (a few nights a year at Grand Rapids' latitude).
 - Cap the planes' contrail cost (Known issues, Part 2).
+- SKYWRITING + SKYTYPING: on clear, low-wind days a plane writes a word or two in huge smoke letters stroke by stroke; for longer
+  messages (HAPPY BIRTHDAY STEVE, HAPPY NEW YEAR, MERRY CHRISTMAS, HAPPY THANKSGIVING) a line of planes SKYTYPES dot-matrix
+  letters (~16 a line, up to 2 lines on a phone); the real wind drifts and blurs them until they fade. Flies in the sky-high /
+  sky-low lanes, never over the sign or tagline. Selectable from CITY CONTROL; used by holidays and birthdays.
 - The Halloween witch (crafted, good-looking, cloak + hat + broom, a trail of drifting neon sparkles; crosses a real full moon).
 - Santa's sleigh across the moon on Christmas Eve. Bats at summer dusk + from a tower crown on Halloween.
 
@@ -333,5 +339,16 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   flips to show pictures for ~5 s (shorter later), flips back, a picture is called (later 2–3 at once) and the fastest correct
   tap scores; wrong taps lock you out briefly; twists (swaps, decoys, a golden target); server-clock timing; a 1920s shooting
   gallery in the speakeasy's back room; fits SAME ROOM, FOR TWO, ON TV (grid on the TV, phones as triggers) and SOLO daily.
+- **BITCOIN NODS (the owner is a big fan; subtle, rare, never explained, never prices or ads):** a ₿ glyph in the window font;
+  JAN 3 (the genesis block, Bitcoin's birthday) an orange ₿ glows on a word tower at night; OCT 31 (the whitepaper's anniversary)
+  one jack-o'-lantern on the speakeasy steps is carved with a ₿; MAY 22 (Bitcoin Pizza Day) a pizza delivery scooter pulls up to
+  the speakeasy door and a small ₿ glows in one window.
+- **BIRTHDAYS (once a player can add one, Progression 2.0):** celebrated ONLY for that player and their room — HAPPY BDAY <NAME>
+  skytyped or lit on the word towers on their screen and their friends' screens in the room; never public.
+- **DAY + NIGHT GAME SKINS (after City 2.0, game by game where it makes sense — GRIDLOCK, NEON PAR, SLIPSTREAM first):** night =
+  super neon and bright, day = calmer and sunlit; a GLOBAL setting AUTO (default: follows the real day/night and respects ALWAYS
+  NIGHT) / ALWAYS DAY / ALWAYS NIGHT with a per-game override; on AUTO the skin LOCKS at match start (never switches mid-game);
+  light seasonal / holiday touches that never change gameplay; gameplay identical in both, both readable, each player sees their
+  own; one shared day/night helper from the city's sky code; the walk-in from the city into a game matches the skin.
 - **Later:** single-player / vs-AI modes and the 3 daily challenges (morning Wordle-style, afternoon Minesweeper, evening
   Overclock ×6) announced by the banner plane; profile pages for other players.
