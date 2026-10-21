@@ -9,7 +9,7 @@
 //   --sizes harbor = the six review sizes (four phones upright, a phone sideways, desktop); --safe emulates the iPhone's
 //   safe areas (62 / 34 pt upright, 21 pt at the bottom sideways); --crop stage = the near stage (the road to the dock);
 //   --crop skyline = the skyline close up (above the crowns to the far quay); skyl / skyr = its left / right half (signs + neon
-//   up close); logo = the NEON logo.
+//   up close); logo = the NEON logo; water = the harbor's water close up (Part 4: from 60 pt above the waterline to the road).
 //   e.g. node shots.mjs "<browser>" --preview --city 2 --safe --sizes harbor --scenes day,golden,night,party,rain,snow
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
@@ -54,6 +54,9 @@ const SCENE = {
   hail: ['2026-10-21T21:30', { qs: 'force=hail,peds' }], 'small-hours': ['2026-10-22T03:00'], 'halloween-kids': ['2026-10-31T19:30', { qs: 'force=halloween-kids' }],
   // party nights (a Saturday at the peak) and real snow — both cities
   party: ['2026-10-24T23:00'], snow: ['2026-12-18T21:00', { qs: 'wx=snow' }],
+  // THE WATER (City 2.0, Part 4): a calm night (a crisp mirror), a windy one (broken columns), the moon's path (a waxing gibbous
+  // high in the south-east at 21:00 on Oct 24), sunset's gold path
+  calm: ['2026-10-19T22:30', { qs: 'wind=0.5' }], windy: ['2026-10-19T22:30', { qs: 'wind=13' }], moon: ['2026-10-25T20:30', { qs: 'wind=3' }], sunset: ['2026-10-20T18:30', { qs: 'wind=3' }],
   'nye-sparklers': ['2027-01-01T00:01'], door: ['2026-10-21T22:00', { qs: 'force=door,hint' }], 'door-day': ['2026-10-21T13:00'],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
@@ -98,6 +101,9 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else if (c === 'skyline') {
       // CITY 2.0: the skyline close up — from above the tallest crown down to the far quay
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, y = Math.max(0, c.limitY - 24); return { x: 0, y, width: innerWidth, height: c.VPY + c.F * c.CAMH / 230 + 14 - y }; });
+    } else if (c === 'water') {
+      // CITY 2.0: the water close up — the city's foot (what it mirrors) down to the road
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb || !hb.water) return null; const y = Math.max(0, hb.water.y0 - 60); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight, hb.water.y1 + 12) - y }; });
     } else if (c === 'skyl' || c === 'skyr' || c === 'logo') {
       // CITY 2.0: close-ups — the skyline's left / right half (its signs + neon up close), the NEON logo
       clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam;
@@ -113,7 +119,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    await p.screenshot({ path: `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'skyl', 'skyr', 'logo'].includes(c) ? c : 'crop'}.png`, clip }); n++;
+    await p.screenshot({ path: `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'skyl', 'skyr', 'logo', 'water'].includes(c) ? c : 'crop'}.png`, clip }); n++;
   }
   await ctx.close();
 }

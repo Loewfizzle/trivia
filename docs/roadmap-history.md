@@ -347,6 +347,21 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   hidden tab), `title-perf.mjs` (both cities, any scene, per tier); `shots.mjs --city 2 --safe --sizes harbor --crop stage` +
   party / snow scenes. Reviewed: six scenes × six sizes, two refine passes.
 
+### ✅ CITY 2.0 — THE HARBOR, Part 4 of 12: THE WATER (+ Part 3 touch-ups) (Oct 21, 2026) — `docs/harbor.md`
+- Behind `?city=2`. The owner's Part 3 review first: the neon outlines now FOLLOW THE DECO SHAPES (one bent tube a side climbing
+  every setback and over the crown's steps, thin fins on the upper tiers — the cyan word towers read as stepped ziggurats); the
+  icon signs ~21 pt (were 11–18) on calm walls and the billboard half as big again (66×32, a big stacked name) on the left; the
+  busy centre cleared (no icon on the needle, the dome, the step tower, the hotel or behind the wheel) so the NEON NEEDLE leads;
+  the construction tower's spot (wordV) kept free of signs.
+- THE WATER (screens/harbor/water.js): the frame above the waterline — sky, skyline, lit windows, neon, beacons, searchlights,
+  the quay lamps (now lit) — mirrored in perspective every other frame; a bright-pass smeared into light columns (high lights
+  reach the near water, calm = short, wind = long + broken); rippled row by row on the REAL wind (glassy calm → choppy); Fresnel +
+  depth (a mirror far, the water's own colour near: blue-green by day, orange at golden hour, black at night); wavelets; the sun's
+  gold path when low, the moon's silver path at night (real place + phase, none behind real cloud), sun glints by day; the near
+  edge lapping. Hooks: reflect() (the wheel + the lighthouse now; boats Part 5), light() (fireworks, Part 10), wake(), set().
+- Perf (4× CPU, tier 2): night 6.4 · party 7.5 · the worst case 7.9 ms (≤ 8); the water's real main-thread cost +0.8 ms a frame
+  (the work split over two frames). Tests: `harbor.test.mjs` 45, `e2e-harbor.mjs` 40 (+ 9 water checks).
+
 ### ✅ CITY 2.0 — THE HARBOR, Part 3 of 12: NEON + SIGNS + BILLBOARDS + BUILDING NEON + THE NEON LOGO (Oct 21, 2026) — `docs/harbor.md`
 - Behind `?city=2`. The owner's Part 2 review first: far + mid windows are fine irregular glitter; the word towers narrowed a
   little (pitch 1.1) and the lighthouse moved into the slot between them (both faces whole + uncovered at every phone size, tested;

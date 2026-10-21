@@ -499,3 +499,57 @@ test('words: the scroll — any length, column by column', () => {
   assert.ok(sc.cols.every(m => m > 0 || m === 0));
   assert.equal(scrollColumns('x'.repeat(300)).text.length, 120);
 });
+
+// ------------------------------------------------------------------ Part 4: the touch-ups (the owner's review) + THE WATER
+import { waterBand, axisAt, LEVEL } from '../js/screens/harbor/water.js';
+
+test('neon outlines (Part 4): each tower is one bent tube a side that steps in at every setback, fins on the upper tiers', () => {
+  for (const k of ['390x844', '402x874', '1440x900']) {
+    const { L } = setup(k);
+    const O = outlines(L);
+    for (const t of L.towers.filter(t => t.rank === 'hero' || t.rank === 'word')) {
+      const o = O.find(q => q.id === t.id), contour = o.lines.filter(l => !l.thin && !l.needle && l.role === o.roles[0]).sort((a, b) => b.pts.length - a.pts.length)[0];
+      // the contour visits every tier's edge (left + right): the steps, never one plain rectangle
+      for (const tr of t.tiers) for (const ex of [tr.x0, tr.x1]) assert.ok(contour.pts.some(p => Math.abs(p[0] - ex) < 1e-6), `${k}: ${t.id}'s contour reaches the edge ${ex.toFixed(1)} of a tier`);
+      assert.ok(contour.pts.length >= 2 * t.tiers.length + 4, `${k}: ${t.id}'s contour bends (${contour.pts.length} points)`);
+      // the Deco fins: thin piers on the tiers above the shaft
+      if (t.tiers.length > 1) assert.ok(o.lines.some(l => l.thin), `${k}: ${t.id} has fins`);
+    }
+    // the word towers' crowns: the Deco ziggurat traced (the parapet + two steps on each side)
+    const wa = O.find(q => q.id === 'wordA').lines.filter(l => !l.thin)[0];
+    const tops = new Set(wa.pts.map(p => p[1].toFixed(2)));
+    assert.ok(tops.size >= 6, `${k}: wordA's outline steps up through ${tops.size} heights`);
+  }
+});
+
+test('signs (Part 4): the icons read (≥ 19 pt), the billboard is big, the busy centre + the construction tower stay clear', () => {
+  for (const k of ['390x844', '402x874', '412x915', '430x932']) {
+    const { cam, L } = setup(k), s = cam.F / 600;
+    const spots = signSpots(L);
+    for (const sp of spots.filter(x => x.kind === 'icon')) assert.ok(Math.min(sp.rect.w, sp.rect.h) >= 19 * s, `${k}: ${sp.id} ${sp.rect.w.toFixed(1)}×${sp.rect.h.toFixed(1)} pt`);
+    const bb = spots.find(x => x.kind === 'billboard');
+    assert.ok(bb && bb.rect.w >= 60 * s && bb.rect.h >= 30 * s, `${k}: the billboard ${bb && bb.rect.w.toFixed(0)}×${bb && bb.rect.h.toFixed(0)}`);
+    // the centre breathes: no sign but the sunburst's + the HOTEL blade between the wheel's left edge and the sunburst
+    const nd = L.towers.find(t => t.id === 'needle'), nx = project(cam, (nd.x0 + nd.x1) / 2, 0, nd.z0)[0];
+    for (const sp of spots) if (!['n-sunburst', 'hotel'].includes(sp.id)) assert.ok(Math.abs(sp.rect.x + sp.rect.w / 2 - nx) > 50 * s, `${k}: ${sp.id} crowds the NEON NEEDLE`);
+    // the construction tower's spot (wordV, left of the wheel, behind JAZZ): no sign on it (plan.md)
+    const v = L.towers.find(t => t.id === 'wordV'), [vx0] = project(cam, v.x0, 0, v.z0), [vx1] = project(cam, v.x1, 0, v.z0);
+    for (const sp of spots.filter(x => x.host === 'wordV')) assert.fail(`${k}: ${sp.id} hangs on the construction tower`);
+    for (const sp of spots) if (sp.w.z > 250 && sp.rect.x < vx1 && sp.rect.x + sp.rect.w > vx0) assert.fail(`${k}: ${sp.id} over the construction tower`);
+  }
+});
+
+test('the water (Part 4): its band at every size — from just under the far quay to the railing; each object reflects about its own waterline', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k), s = cam.F / 600;
+    const { y0, y1 } = waterBand(L), HZ = groundY(cam, Z.quay);
+    // the far quay's wall shows above the water (its foot ~2–3 pt), the near edge is the railing's foot (the road covers below it)
+    assert.ok(y0 - HZ > 0.8 * s && y0 - HZ < 4 * s, `${k}: the waterline ${(y0 - HZ).toFixed(1)} pt under the quay's top`);
+    assert.equal(y1, groundY(cam, Z.rail));
+    if (!cam.wide) assert.ok(y1 - y0 >= 80 * s, `${k}: the water ${(y1 - y0).toFixed(0)} pt tall`);
+    // nearer things meet the water lower on screen (the wheel, the lighthouse, the boats each flip about their own line)
+    assert.ok(axisAt(L, L.wheel.z) > axisAt(L, L.lighthouse.z) && axisAt(L, L.lighthouse.z) > y0, `${k}: waterlines by depth`);
+    assert.equal(axisAt(L, Z.quay), y0);
+    assert.ok(LEVEL < 0 && LEVEL > L.quay.foot);
+  }
+});

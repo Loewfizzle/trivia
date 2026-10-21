@@ -84,7 +84,7 @@ really happening.
 | 1 | **foundation + blockout** ✅ | the flag, the projector + per-size camera, the layout, baking + the memory budget, lanes + events, the &grid overlay, a grey box of the whole approved layout, tests, this file |
 | 2 | **skyline** ✅ | the composition (hero towers, word towers, clusters, the newer city's glass), the far bands, the facades (real stone / terracotta / brick / glass by day, glitter at night), the haze, the landmark towers' full craft + floodlit crowns, the golden-hour rays through the sun gaps, addressable windows + words in the windows, the searchlights, the sun's + the moon's arches re-fit, the tagline fade |
 | 3 | **neon + signs + billboards** ✅ | the tube signs (each game's own), the hotel's blade, JAZZ, billboards; the neon outlines on the buildings + the NEON NEEDLE + the LED facades; the premium NEON logo + its anchors; each game's tube logo; unlit by day |
-| 4 | water | reflections in perspective, ripples, the lights' smears, the quay lamps in the water, wakes |
+| 4 | **water** ✅ | reflections in perspective, ripples, the lights' smears, the quay lamps in the water (+ Part 3 touch-ups); wakes: hooks for 5 |
 | 5 | harbor hero pieces | the Ferris wheel (turning, bulbs), the lighthouse (the beam), the pier, the boats (Rosie and her bulbs, the taxi, the tug, the sailboats) — the landmark towers moved to Part 2 |
 | 6 | sky hero pieces | planes, the banner plane, the helicopter, jets, birds / gulls, the UFO, satellites — the existing systems' behaviour, new artwork |
 | 7 | the speakeasy | the facade, rooms you can see into, the door + the knock, the awning "EST. 1924", the rooftop (planters, string lights, people) |
@@ -130,7 +130,9 @@ js/screens/harbor/tubes.js       (Part 3) THE TUBE: lit (glows, body, core, high
 js/screens/harbor/signs.js       (Part 3) the signs' art (cabinets, icons, HOTEL, JAZZ) + the billboards
 js/screens/harbor/neon.js        (Part 3) the manager: spots → signs, outlines projected + cut, sprites built a few a frame, power, moments
 js/screens/harbor/sky.js          the sky's gradient + horizon glow (the real sky on it = the district's sky modules)
-js/screens/harbor/quay.js water.js pier.js lighthouse.js boats.js road.js speakeasy.js stage.js foreground.js   the layers, far → near
+js/screens/harbor/water.js        (Part 4) THE WATER: the base (baked) + the live mirror of the frame above it, the light columns, the ripples
+                                  on the real wind, the paths, the edge; hooks reflect / light / wake / set
+js/screens/harbor/quay.js pier.js lighthouse.js boats.js road.js speakeasy.js stage.js foreground.js   the layers, far → near
 js/screens/harbor/grid.js         the &grid=1 overlay
 ```
 - **The same public API as `createDistrict`** (title.js / title-dock.js / backdrop.js use it): `set, look, hit, signOn, palette,
@@ -144,8 +146,8 @@ js/screens/harbor/grid.js         the &grid=1 overlay
 - **Draw order:** the sky (gradient, stars, the moon + sky fx, the sun, planes, clouds, rain veils, the rainbow, birds,
   fireworks) → **far** (haze band, far band + the glass towers, mid band + the middle tier) → **farLit** + glitter → the far NEON (Part 3: the middle tier, the threads, the LED facades, the far icons) → the sun's
   halo + the rays (behind), swifts, fog → **near** (the hand-placed towers, the near band, hero blocks, the searchlights'
-  hardware, the quay + its lamps) → **nearLit** + the TVs, switched lights, words → the near NEON (Part 3) → the beacons → the rays' veil → fog → the
-  searchlights' beams → **water** → **harbor** (pier, wheel, breakwater, lighthouse, cottage) → boats → **road** → traffic →
+  hardware, the quay + its lamps) → **nearLit** + the TVs, switched lights, words → the near NEON (Part 3) → the quay lamps (Part 4: lit) → the beacons → the rays' veil → fog → the
+  searchlights' beams → **water** (the base) → THE WATER (Part 4: the frame above the waterline mirrored, rippled; water.js) → **harbor** (pier, wheel, breakwater, lighthouse, cottage) → boats → **road** → traffic →
   **stage** (promenade, stop lights, speakeasy, lamps, trees, bench, planters, cart) → people → lights (lamps, stop lights, the
   knock) → rain drops, snow, the flash, frost, the eclipse → the vignette → &grid. **Bold** = baked.
 - **Baking:** each baked layer is a full-width band of the screen (only its rows), drawn per LOOK KEY (Part 1: the tone weights in
@@ -315,12 +317,15 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
 | the word towers' faces carry no signs; the searchlights' party / holiday use, holiday windows (`set()`), party windows | the API + the events | 10, 11 |
 | the sky's artwork (the moon's art: Part 2 only fits its path) | the arches | 6 |
 | ~~the hero blocks' signs~~ — done in Part 3 | | ✅ 3 |
-| the neon's REFLECTIONS in the harbor (`harbor().reflections()` lists every lit sign / outline: rect, colour, power) | the hook | 4 |
+| ~~the neon's REFLECTIONS in the harbor~~ — done in Part 4 (the water mirrors the frame itself; `reflections()` stays for later parts) | | ✅ 4 |
 | holiday schemes on the outlines + the sign dressings (`moment('scheme', id)`; `LOGO_ANCHORS`) | hooks + previews | 11a–c |
 | party nights' neon (`moment('party', k)`, chasers, the beat via PT.breath) | hooks + `&force=neon-party` | 10 |
 | a game's colours across the skyline at its start (`moment('flash', { game })`), the sign swap (`gameLogoSvg`) | hooks | Lobby 2.0 |
 | a billboard's content, a skyline scheme (`billboard(id, show)`, `moment('scheme', …)`) | hooks | CITY CONTROL |
-| the water: a flat band | no reflections | 4 |
+| ~~the water: a flat band~~ — done in Part 4 (the live mirror, the columns, the ripples, the paths) | | ✅ 4 |
+| the hero pieces' reflections (`water.reflect(fn, axisY)`: Rosie, the boats, the train, the beam; the wheel + the lighthouse use it with their grey box) + wakes (`water.wake()`: stored, not drawn) | hooks | 5 |
+| rain rings on the water, the fog over it (`water.set({ rain, fog })`: rain roughens the mirror now) | hooks | 9 |
+| fireworks doubled in the harbor (low ones reflect already; high ones: `water.light()`), the ghost ship's glow (11a) | hooks | 10, 11a |
 | the wheel, the lighthouse, the pier, the boats (the landmark towers: done in Part 2) | grey boxes, still (the pier: planks + railing) | 5 |
 | the sky's artwork (planes, birds, the UFO — `fx.mid` is not called, so the cat / UFO / window glyphs don't show yet) | the district's art | 6 |
 | the speakeasy (rooms, the door's craft, the knock's peephole: a warm flash only) | grey box | 7 |
@@ -481,7 +486,7 @@ floor must not stand in one. Measure with `title-perf.mjs --city 2 --scenes "…
   end of the near / far facade bake, `neon.housingStep`) — nothing nearer stands in front of a sign (tested), so no occlusion is
   lost; the lit parts are sprites (border, mark, name: they boot one by one).
 - **THE SPOTS** (`SPOTS`, designed on the reference phone in pt at a depth, converted to world units once — every upright phone
-  the same; tower signs centred on the shaft, as wide as the narrowest tier they cross): **4 named** — the SUNBURST's shaft
+  the same; tower signs centred on the shaft, as wide as the narrowest tier they cross): **4 named** (Part 4 moved the icons + the billboard: see Part 4) — the SUNBURST's shaft
   (vertical, ≤ 10 letters), a rooftop box over the near band left (≤ 9), NEON PAR's facade (vertical, ≤ 6), the EMPIRE's main
   shaft (vertical, ≤ 5) · **8 icons** — on the hotel, behind the wheel on PULSE's facade, on PAR, under JAZZ, the needle, the dome,
   the stepped tower, the near band left · **fixed** HOTEL + JAZZ · **1 billboard** on a wall right of the lighthouse. Each checked
@@ -546,11 +551,120 @@ tier-0 composites, ≤ 1 MB), the baked layers unchanged (22.9 MB of 64 at 390×
 - The logo's core flutter is a rare dip, not a continuous shimmer (a per-frame animation on the filtered SVG costs a repaint
   of the whole sign every frame).
 
-### Handoff → Part 4 (water)
+### Handoff → Part 4 (water) — done, below
 The lights to put in the water: `neon.reflections()` (every lit sign / billboard / outline: its rect, colour, power), the lit
 windows' layers (`farLit`, `nearLit`), the beacons (`lights.beaconList()`), the quay lamps (quay.js), the logo's haze is sky only.
 The water band is the `water` baked group (z 64–230). The lighthouse moved (f 0.8502 on a phone): its reflection + beam (Part 5)
 start there. Measure with `title-perf.mjs --city 2 --scenes np-night,np-party,neon` before and after.
+
+## Part 4 — THE WATER (+ Part 3 touch-ups) (Oct 21 2026)
+- [x] 0. The owner's Part 3 review: the outlines follow the Deco shapes · the icons + the billboard read · the centre breathes.
+- [x] 1. The water: the mirror in perspective, the light columns, the ripples on the real wind, day / golden / night, the sun's +
+  the moon's paths, the lapping edge, the quay lamps lit; hooks for Parts 5, 9, 10, 11a.
+- [x] 2. Perf + memory (below). 3. Review: day, golden, sunset, night (calm), night (windy), the moon, party — at 390 / 402 / 412 /
+  430 / 874 / 1440 + the water close up (`--crop water`) + the neon close up (`skyl, skyr`); two refine passes. Docs.
+
+### The touch-ups, as built
+- **THE OUTLINES FOLLOW THE DECO SHAPES** (`core/harbor-neon.js#outlines`): a tower's outline is ONE BENT TUBE A SIDE — up the
+  shaft (from 45 % up: the foot is behind the base), stepping in along every setback, up each tier, over the crown's own steps when
+  the crown is the building's colour (the word towers: the parapet bar + the two-step ziggurat; a stepped top, a pyramid, a dome,
+  the mast's drum + lantern + spire), down the other side; a crown in an accent colour is its own tube (`crownPath`); the middle
+  tier from its shaft's top (its stepped cap). **Deco FINS**: thin tubes (0.6×, `thin`) up every tier above the shaft (2–4 by the
+  tier's width), never where a sign hangs (`outlines(L, signRects)`: host → the signs' world rects). Tested: every tier's edges on
+  the contour, the bends, the fins, the word towers' ziggurat (≥ 6 heights), never across a word face.
+- **THE SIGNS READ** (`SPOTS`): the icons ~20–21 pt (were 11–18; tested ≥ 19 pt at every phone) on calm walls — the near band's
+  corners left (i-left) and right (i-r1, i-r2, i-r3: a small sign wall right of the lighthouse), under wordA's face (i-c1, i-c2),
+  on JAZZ and PAR; **the billboard** moved to the left near band's wall and half as big again (66×32: `bb-left`), its name as big
+  as the board allows (two words stack), the tag line only if it reads, its gooseneck lamps kept at their real size. (The stage
+  option was weighed: a billboard there would crowd Part 7 / 8's stage and the water; the skyline wall reads at 66 pt.)
+- **THE CENTRE BREATHES**: no icon on the needle, the dome, the step tower, the hotel or PULSE (behind the wheel) — the NEON NEEDLE,
+  the sunburst's named sign, the wheel and the HOTEL blade stand alone (tested: no other sign within 50 pt of the needle). The
+  word towers + the construction tower's spot unmoved; **no sign on wordV** (tested).
+
+### THE WATER, as built (`screens/harbor/water.js`)
+- **The surface** is world y = `LEVEL` (−0.8): the far quay's wall shows ~2–3 pt of stone above it (its lamps on top); the band
+  runs from there (`waterBand(L).y0`) to the railing's foot (`y1` = the road's far edge; the road covers below it).
+  `axisAt(L, z)`: where the water meets something standing in it at depth z (its reflection flips about that line).
+- **The mirror = the frame itself.** Everything above the waterline is drawn before the water (the sky, the far + near city, their
+  lit windows, the neon, the beacons, the rays, the fog, the searchlights' beams, the quay lamps), so the water copies THAT region
+  of the frame (one `drawImage` of the scene's own canvas, 1 px a pt) and flips it about the waterline. Every light that is or
+  ever will be drawn there reflects for free and stays in step — the neon's power + flicker, a word in the windows, a holiday
+  scheme, the construction tower at whatever stage it is (Part 9), the searchlights. (`neon.reflections()`, `lights.beaconList()`
+  are not needed for it; they stay for later parts.)
+- **The light columns** (night × how dark): a bright-pass of that copy (src³ — `multiply` twice: only the lights survive, neon
+  colours saturate) drawn as stretched, flipped copies (half resolution, additive): a light e pt above the waterline lands between
+  s0·e and s1·e below it — a sign by the quay makes a short column, a crown light a long one reaching the near water. Calm: s 0.6–1.1,
+  5 copies; windy: 0.24–1.28, 10 copies (a little sideways wobble each).
+- **The ripples**: the mirror is drawn ROW BY ROW (strips 0.7 pt far → ~3.4 pt near; 59 at 402×874 tier 2) — one wave phase per
+  depth (a wavefront is a line parallel to the shore): a sideways wobble, a vertical break (rows sample a little above / below) and
+  a crest / trough brightness per row, all growing toward us and with the wind — so every reflected light breaks into shimmering
+  bands. **FRESNEL + DEPTH**: each row's opacity = a mirror at the grazing far end (0.93) → the water's own colour looking down near
+  us (the baked base under it: blue-green by day, orange at golden hour, near-black at night), less of a mirror in wind.
+- **The wind** is the real one (`LK.wind`, m/s; `&wind=` in previews): roughness 0 under ~1.2 m/s (a glassy, crisp mirror) → 1
+  at 11+ (choppy: bigger wobble, broken rows, longer columns, denser wavelets); real rain adds 0.35 (Part 9 adds the rings).
+- **The wavelets**: two baked textures of perspective dashes (sky-lit crests in the hour's colour, dark troughs; their density per
+  wind bucket) sliding against each other.
+- **The paths** (additive): the SUN's gold glitter path toward us while it is low (−2..16°, the sun's drawn x; fades with real
+  cloud): a hot soft column by the quay widening toward us + ~200 twinkling dashes; the MOON's silver path at night (its drawn place
+  + phase, `fx`'s moonAt; P.moonA × its height × its phase × `moonVeil` — none when it is down or behind real cloud): mostly glints;
+  BY DAY sun glints across the water, thicker toward the sun's side.
+- **The near edge**: a slow surge (~7 s) lapping at the near quay wall's foot behind the railing — a wet band + a thin crest line.
+- **The quay lamps** (`quay.js#drawQuayLamps`): lit at night with the city's power-on (a hot head, a halo, a pool on the quay's
+  edge) — their warm columns run down into the water.
+- **Cost**: the work is split over frames — one frame BUILDS the mirror (the copy, the flip, the objects in the water, the
+  columns), the next COMPOSES the water (the rows, the wavelets, the paths, the edge) into its canvas; every frame shows that canvas
+  (tier 2: 30 water frames a second; tier 1: 20, wider rows, fewer copies, one wavelet texture). **Tier 0 and reduced motion**: a
+  calm baked mirror — built + composed about once a second with the ripples still (the lights still follow the city).
+
+### The water's API + HOOKS (`harbor().water`)
+| hook | what | used by |
+| --- | --- | --- |
+| `reflect(fn, axisY)` | this frame, `fn(ctx)` draws an object (screen coordinates) flipped about its own waterline `axisY` (`axisAt(L, z)`) into the mirror | the wheel + the lighthouse now (`scene.js#waterMirrors`: their rects of the baked harbor layer); **Part 5**: Rosie + her bulbs, the taxi, the tug, the sailboats, the train, the beam |
+| `light(x, y, col, a, w)` | this frame, a light NOT in the frame above the waterline as a column in the water | **Part 10**: fireworks high over the city (the finale's sparks), **11a**: the ghost ship's glow |
+| `wake({ x, z, len, dir, k })` | a boat's wake (stored, max 16) | **Part 5** draws them |
+| `set({ rain, fog })` | rain roughens the mirror now; the rings on the water + the fog over it | **Part 9** |
+| `band()`, `debug()` | `{ y0, y1, strips, copies, lights, paths, rough, ms: { build, compose }, tier, mb }` | tests |
+Fireworks low enough to be in the frame above the waterline, Part 5's lit wheel and the train on the far waterfront (when drawn
+before the water) reflect without any call. `&force=no-water` turns the live water off (perf before / after).
+
+### Performance + memory (Part 4, `title-perf.mjs --city 2`, 390×844, 4× CPU, mean ms of scene work t2 / t1 / t0)
+np-night 6.4 / 6.8 / 3.6 · np-party 7.5 / 6.9 / 3.4 · the worst case (`neon`) 7.9 / 7.3 / 4.4 · np-windy 6.4 / 6.1 / 3.6 · np-golden
+6.5 / 5.9 / 3.7 · np-day 4.4 / 4.2 / 3.1; frames 16.7 ms everywhere. The same bench without the live water (`nw-`: Part 3's cost
+measured today — this machine runs ~15 % slower than on Part 3's day): night 5.0 / 4.7 / 3.7 · party 5.9 / 5.3 / 3.8 · neon 6.4 /
+6.1 / 4.6. Chrome's own task time per frame (party, t2): +0.8 ms with the water. (Tier 1 was measured before its 3-frame cycle:
+expect ~0.4 ms less. All of these come from one quiet hour; at the end of the session the machine ran ~3× slower for everything —
+the previous commit measured 18.9 ms at the party peak then, vs 5.9 when Part 3 shipped — so the final E2E's perf + 20-cycle memory
+checks failed on it (the slow frames step the tier down, which changes the memory); re-measure at cleanup pass 1.) Tier 2 is within 8 everywhere; tier 1 is ~0.5–1.3
+over its 6 and tier 0's worst case at the 4 line (both were at their lines before the water — Known issues). Memory: the water's
+canvases ~2.4 MB at 390×844 tier 2 (in `harbor().mem`, a layer of its own) — 25.4 MB of 64 in all.
+
+### Known issues (Part 4)
+- **Re-measure perf on a quiet machine at cleanup pass 1** (see above): the E2E's PERF and 20-cycle MEMORY checks failed only in the
+  session's slow last hour; the E2E's TAGLINE check compares the city to 0.01 pt and fails when the title's first real text rects
+  land after its first snapshot (a sub-pt re-layout; seen on the slow machine). Its real bug was fixed here: a re-layout forgot
+  the faded tagline (`cam.tagGone`), so sky-low lost the freed band.
+- **The copy forces a raster flush mid-frame**: reading the scene's own canvas makes the browser rasterise what is drawn so far
+  inside the water's build (in headless Chrome ~1 ms at 4× — mostly work that used to happen after the scene's timer). Measured as
+  real main-thread time: +0.8 ms a frame. If a phone shows otherwise, the fallback is to compose the copy from the baked layers +
+  the neon instead (the beacons and beams would need their own draw).
+- **Tier 1 runs 0.5–1.3 ms over its 6 ms** on party / neon nights (and tier 0's worst case sits on 4) — over or at the line before
+  the water too (`nw-` numbers). Cleanup pass 1: thin tier 1 (the LED facades, the neon flutter, the rays) — not the water.
+- The far half of a light column is a stretched copy, not a true glitter column (a light high on a tower reflects compressed toward
+  the quay); it reads right at phone size.
+- The wheel's + the lighthouse's reflections come from the baked harbor layer's grey-box art (Part 5 replaces both through
+  `reflect()`); the pier is not reflected (its deck spans many depths) — Part 5.
+- The moon's path follows the moon as drawn (its framed place in the sky), not its true elevation (the moon's art + place:
+  Part 6).
+
+### Handoff → Part 5 (harbor hero pieces)
+Draw each hero piece's reflection with `harbor().water.reflect(ctx => draw(ctx), axisAt(L, z))` every frame (Rosie at z 142, the
+taxi z 94, the tug / sailboats z 205–214, the wheel z 132 on its pier, the lighthouse z 150) — then drop the grey-box mirrors in
+`scene.js#waterMirrors`. Rosie's bulbs and the wheel's bulbs: draw them in the reflected art (they then ripple with the water);
+`light()` only for lights outside the frame above the waterline. Wakes: `water.wake()` stores them — draw them in `water.js`
+(after the rows, before the paths: a V of foam dashes in perspective + a darker trough) or in the boats' layer. The ELEVATED TRAIN
+on the far waterfront: draw it before the water (with the near group) and its lit windows reflect for free. The lighthouse beam:
+a beam drawn before the water reflects; a beam sweeping over the water itself is a `light()` sweep or its own pass. Measure with
+`title-perf.mjs --city 2 --scenes np-night,np-party,neon` before and after (`nw-` = without the live water).
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against

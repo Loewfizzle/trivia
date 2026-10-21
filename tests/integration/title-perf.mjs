@@ -28,6 +28,11 @@ const SCENES = {
   neon: 'when=2026-10-17T23:00&wx=clear&force=no-planes,neon-party,searchlights,spell&text=2027',
   'np-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes', 'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
   'np-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes', 'np-golden': 'when=2026-10-14T18:30&wx=clear&force=no-planes',
+  // CITY 2.0, Part 4: the water — a windy night (the most light-column copies + the broken mirror); nw- = the same scenes without
+  // the live water (only its baked base: Part 3's cost), for a before / after
+  'np-windy': 'when=2026-10-14T21:30&wx=clear&wind=13&force=no-planes',
+  'nw-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes,no-water', 'nw-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water',
+  'nw-neon': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water,neon-party,searchlights,spell&text=2027',
 };
 const names = arg('scenes', 'party,night,day').split(',');
 const sleep = ms => new Promise(r => setTimeout(r, ms));

@@ -188,7 +188,9 @@ export function billboardContent(show, games) {
 /** a billboard's sprites: day (painted, weathered, sunlit), night (lit by its gooseneck lamps), the lamps' light */
 export function buildBillboard(spot, content, ctx) {
   const R = spot.rect, dpr = ctx.dpr;
-  const lamps = [0.18, 0.5, 0.82].map(f => ({ x: R.x + R.w * f, y: R.y - R.h * 0.34 }));
+  // (the lamps keep their real size on a bigger board: an arm ~7 pt, a head ~4 pt — Part 4)
+  const LH = Math.min(R.h, 22);
+  const lamps = [0.18, 0.5, 0.82].map(f => ({ x: R.x + R.w * f, y: R.y - LH * 0.34 }));
   const paint = x => {
     // the board: the paper's ground, seams, the art
     x.fillStyle = rgba(content.bg); x.fillRect(R.x, R.y, R.w, R.h);
@@ -201,14 +203,18 @@ export function buildBillboard(spot, content, ctx) {
       for (const t of m.tubes) { x.strokeStyle = t.col; x.lineWidth = 9; x.stroke(new Path2D(t.d)); }
       x.restore();
     }
+    // the name as big as the board allows (the glance test, Part 4): two words stack on two lines; the tag line only if it reads
     const tx = R.x + (content.game ? R.h * 0.12 + ms + R.h * 0.1 : R.w * 0.06), tw = R.x + R.w - R.w * 0.04 - tx;
-    let fs = R.h * 0.36;
-    x.font = `900 ${fs}px Orbitron, "Chakra Petch", sans-serif`;
-    while (fs > 3 && x.measureText(content.title).width > tw) { fs *= 0.92; x.font = `900 ${fs}px Orbitron, "Chakra Petch", sans-serif`; }
-    x.fillStyle = rgba(content.ink); x.textBaseline = 'alphabetic'; x.fillText(content.title, tx, R.y + R.h * 0.5 + fs * 0.35);
-    let fs2 = R.h * 0.17; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`;
+    const words = String(content.title).split(' '), lines = words.length > 1 ? [words[0], words.slice(1).join(' ')] : words;
+    const fitFs = (txt, fs0, wt) => { let fs = fs0; x.font = `${wt} ${fs}px Orbitron, "Chakra Petch", sans-serif`; while (fs > 3 && x.measureText(txt).width > tw) { fs *= 0.94; x.font = `${wt} ${fs}px Orbitron, "Chakra Petch", sans-serif`; } return fs; };
+    const fs = Math.min(...lines.map(l => fitFs(l, R.h * (lines.length > 1 ? 0.33 : 0.4), 900)));
+    let fs2 = R.h * 0.15; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`;
     while (fs2 > 2 && x.measureText(content.sub).width > tw) { fs2 *= 0.92; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; }
-    x.fillStyle = rgba(mix(content.ink, content.bg, 0.25)); x.fillText(content.sub, tx, R.y + R.h * 0.84);
+    const sub = fs2 >= 3.4 && content.sub;
+    const blockH = lines.length * fs * 1.05 + (sub ? fs2 * 1.5 : 0), top = R.y + (R.h - blockH) / 2;
+    x.font = `900 ${fs}px Orbitron, "Chakra Petch", sans-serif`; x.fillStyle = rgba(content.ink); x.textBaseline = 'alphabetic';
+    lines.forEach((l, i) => x.fillText(l, tx, top + fs * (0.86 + i * 1.05)));
+    if (sub) { x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; x.fillStyle = rgba(mix(content.ink, content.bg, 0.25)); x.fillText(content.sub, tx, top + lines.length * fs * 1.05 + fs2 * 1.15); }
     // the paper's seams + a peeled corner
     x.fillStyle = 'rgba(0,0,0,0.14)'; for (const f of [0.34, 0.67]) x.fillRect(R.x + R.w * f, R.y, 0.35, R.h);
     x.fillStyle = 'rgba(232,224,206,0.7)'; x.beginPath(); x.moveTo(R.x + R.w, R.y + R.h); x.lineTo(R.x + R.w - R.h * 0.18, R.y + R.h); x.lineTo(R.x + R.w, R.y + R.h - R.h * 0.2); x.fill();
@@ -225,11 +231,11 @@ export function buildBillboard(spot, content, ctx) {
     // the gooseneck lamps: an arm curving out over the board, a shade pointing down at it
     x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.45, R.h * 0.035);
     for (const l of lamps) {
-      x.beginPath(); x.moveTo(l.x, R.y); x.quadraticCurveTo(l.x, l.y, l.x + R.h * 0.12, l.y); x.stroke();
-      x.fillStyle = rgba(mix([24, 20, 30], [60, 70, 66], day)); x.beginPath(); x.moveTo(l.x + R.h * 0.04, l.y - 0.4); x.lineTo(l.x + R.h * 0.26, l.y + R.h * 0.08); x.lineTo(l.x + R.h * 0.02, l.y + R.h * 0.1); x.fill();
+      x.beginPath(); x.moveTo(l.x, R.y); x.quadraticCurveTo(l.x, l.y, l.x + LH * 0.12, l.y); x.stroke();
+      x.fillStyle = rgba(mix([24, 20, 30], [60, 70, 66], day)); x.beginPath(); x.moveTo(l.x + LH * 0.04, l.y - 0.4); x.lineTo(l.x + LH * 0.26, l.y + LH * 0.08); x.lineTo(l.x + LH * 0.02, l.y + LH * 0.1); x.fill();
     }
   };
-  const box = { x0: R.x - 2, y0: R.y - R.h * 0.5, x1: R.x + R.w + 2, y1: Math.max(R.y + R.h + 4, ctx.roofY || 0) };
+  const box = { x0: R.x - 2, y0: R.y - LH * 0.5, x1: R.x + R.w + 2, y1: Math.max(R.y + R.h + 4, ctx.roofY || 0) };
   // day: painted + weathered + the sun's shading
   const dayS = T => sprite(box, 3, dpr, x => dayDraw(x, T));
   const dayDraw = (x, T) => {
@@ -252,7 +258,7 @@ export function buildBillboard(spot, content, ctx) {
     x.globalCompositeOperation = 'multiply'; x.drawImage(lightC, R.x, R.y, R.w, R.h); lightC.width = lightC.height = 0;
     x.globalCompositeOperation = 'source-over';
     frame(x, 0);
-    for (const l of lamps) { const g = x.createRadialGradient(l.x + R.h * 0.15, l.y + R.h * 0.08, 0, l.x + R.h * 0.15, l.y + R.h * 0.08, R.h * 0.25); g.addColorStop(0, 'rgba(255,240,210,1)'); g.addColorStop(1, 'rgba(255,200,130,0)'); x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.fillRect(l.x - R.h * 0.2, l.y - R.h * 0.2, R.h * 0.7, R.h * 0.6); }
+    for (const l of lamps) { const g = x.createRadialGradient(l.x + LH * 0.15, l.y + LH * 0.08, 0, l.x + LH * 0.15, l.y + LH * 0.08, LH * 0.25); g.addColorStop(0, 'rgba(255,240,210,1)'); g.addColorStop(1, 'rgba(255,200,130,0)'); x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.fillRect(l.x - LH * 0.2, l.y - LH * 0.2, LH * 0.7, LH * 0.6); }
   });
   return { id: spot.id, spot, rect: R, content, dayS, dayDraw, nightS, lamps };
 }

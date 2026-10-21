@@ -59,34 +59,51 @@ const ROLES = {
 export const STRENGTH = { hero: { w: 1.5, glow: 7, a: 1 }, word: { w: 1.25, glow: 5.5, a: 0.92 }, mid: { w: 1.0, glow: 4.5, a: 0.8 }, quay: { w: 1.1, glow: 5, a: 0.88 }, far: { w: 0.7, glow: 3.2, a: 0.5 }, pano: { w: 1.2, glow: 5.5, a: 0.9 } };
 
 /**
- * The outlines: [{ id, group: 'far'|'near', strength, roles: [main, accent], z, lines: [{ pts: [[x,y,z]…], role, closed? }],
- * power (the boot-up index group: one per building) }]. World units; the renderer projects them.
+ * The outlines: [{ id, group: 'far'|'near', strength, roles: [main, accent], z, lines: [{ pts: [[x,y,z]…], role, closed?,
+ * thin? }], power (the boot-up index group: one per building) }]. World units; the renderer projects them.
+ *
+ * Part 4 (the owner's review): the outlines FOLLOW THE DECO SHAPES. A tower's outline is one bent tube a side — up the shaft,
+ * stepping in at every setback, over the crown's steps when the crown shares its colour, down the other side — so the
+ * silhouette reads as stepped, not as stacked rectangles; thin vertical FINS (the Deco piers) run up every tier above the
+ * shaft (never where a sign hangs: signRects, host → world rects); the crown is traced by its own shape.
  */
-export function outlines(L, signHosts = new Set()) {
+export function outlines(L, signRects = new Map()) {
   const out = [];
   const add = (o) => { if (o.lines.length) out.push(o); };
-  const col = (t, i) => (ROLES[t.id] || [])[i];
+  const signsOn = id => (signRects instanceof Map ? signRects.get(id) || [] : signRects.has && signRects.has(id) ? [{ x0: -1e9, x1: 1e9, y0: -1e9, y1: 1e9 }] : []);
   // the towers: the heroes + the landmarks + the word towers fully, the middle tier on the setbacks + crowns, the glass towers' roofs
   for (const t of L.towers) {
     const pano = t.rank === 'pano', hero = t.rank === 'hero' || pano, word = t.rank === 'word', mid = t.rank === 'mid', modern = t.rank === 'modern';
     const k = pano ? Math.abs(t.seed) % 4 : 0;
     const roles = ROLES[t.id] || (modern ? ['b1', 'b1'] : pano ? [['b0', 'b1'], ['h0', 'a0'], ['b2', 'b0'], ['h1', 'b1']][k] : ['b0', 'b0']);
-    const lines = [];
-    t.tiers.forEach((tr, i) => {
-      const y0 = tr.y0, y1 = tr.y0 + tr.h, z = tr.z0 - 0.05;
-      const top = i === t.tiers.length - 1;
-      if (modern) { if (top) lines.push({ pts: [[tr.x0, y1, z], [tr.x1, y1, z]], role: roles[0] }); return; }
-      // the edges (heroes, word towers: every tier — the word towers' frame, never across the face)
-      if (hero || word) {
-        const from = i === 0 ? y0 + Math.min(tr.h * 0.45, 30) : y0;      // (the foot is behind the base; the lit part starts up the shaft)
-        lines.push({ pts: [[tr.x0, from, z], [tr.x0, y1, z]], role: roles[0] }, { pts: [[tr.x1, from, z], [tr.x1, y1, z]], role: roles[0] });
-      }
-      // the ledge (each setback's edge; the roofline)
-      if (hero || word || mid || i > 0) lines.push({ pts: [[tr.x0, y1, z], [tr.x1, y1, z]], role: mid && !top ? roles[0] : roles[0] });
-      // Deco fins on the heroes' top tier: two vertical lines up the middle
-      if (hero && top && tr.x1 - tr.x0 > 5 && !signHosts.has(t.id)) { const w = tr.x1 - tr.x0; for (const f of [0.34, 0.66]) lines.push({ pts: [[tr.x0 + w * f, y0 + tr.h * 0.25, z], [tr.x0 + w * f, y1, z]], role: roles[0] }); }
-      if (top && tr.crown) lines.push(...crownLines(t, tr, roles[1] || roles[0]));
-    });
+    const lines = [], n = t.tiers.length, topT = t.tiers[n - 1];
+    if (modern) { const y1 = topT.y0 + topT.h, z = topT.z0 - 0.05; lines.push({ pts: [[topT.x0, y1, z], [topT.x1, y1, z]], role: roles[0] }); }
+    else {
+      // THE CONTOUR: the heroes + the word towers from up the shaft (the foot is behind the base); the middle tier from its shaft's
+      // top (its stepped cap)
+      const full = hero || word, left = [], right = [];
+      t.tiers.forEach((tr, i) => {
+        const y1 = tr.y0 + tr.h, z = tr.z0 - 0.05;
+        if (i === 0 && !full) { left.push([tr.x0, y1, z]); right.push([tr.x1, y1, z]); return; }
+        const from = i === 0 ? tr.y0 + Math.min(tr.h * 0.45, 30) : tr.y0;
+        left.push([tr.x0, from, z], [tr.x0, y1, z]); right.push([tr.x1, from, z], [tr.x1, y1, z]);
+      });
+      const cr = topT.crown ? crownPath(t, topT) : null;
+      const one = cr && cr.path && (roles[1] || roles[0]) === roles[0];
+      // one continuous tube when the crown is the building's own colour; else the contour closes over the roof and the crown is its own tube
+      const over = one ? cr.path : [[topT.x0, topT.y0 + topT.h, topT.z0 - 0.05], [topT.x1, topT.y0 + topT.h, topT.z0 - 0.05]];
+      const pts = dedupe([...left, ...over, ...right.reverse()]);
+      if (pts.length > 1) lines.push({ pts, role: roles[0] });
+      if (cr) { if (cr.path && !one) lines.push({ pts: cr.path, role: roles[1] || roles[0] }); for (const e of cr.extras) lines.push({ ...e, role: e.needle ? e.role : roles[1] || roles[0] }); }
+      // DECO FINS: thin piers up every tier above the shaft (the heroes', the word towers' + the panorama's), never under a sign
+      if (full) t.tiers.forEach((tr, i) => {
+        if (i === 0) return;
+        const w = tr.x1 - tr.x0, z = tr.z0 - 0.05, y0 = tr.y0 + tr.h * 0.08, y1 = tr.y0 + tr.h;
+        if (w < 3.2 || signsOn(t.id).some(r => r.y1 > tr.y0 && r.y0 < y1)) return;
+        const fr = w >= 9 ? [0.2, 0.4, 0.6, 0.8] : w >= 5.5 ? [0.27, 0.5, 0.73] : [0.34, 0.66];
+        for (const f of fr) lines.push({ pts: [[tr.x0 + w * f, y0, z], [tr.x0 + w * f, y1, z]], role: roles[0], thin: true });
+      });
+    }
     add({ id: t.id, group: t.z0 >= 300 ? 'far' : 'near', strength: hero ? 'hero' : word ? 'word' : modern ? 'far' : pano ? 'pano' : 'mid', roles, z: t.z0, lines });
   }
   // the hero blocks on the quay: their rooflines (their signs are the signs)
@@ -106,38 +123,44 @@ export function outlines(L, signHosts = new Set()) {
   }
   return out;
 }
-// the crowns' lines (world units; the shapes of blocks.js#crown)
-function crownLines(t, tr, role) {
+const dedupe = pts => pts.filter((p, i) => !i || Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) > 1e-6);
+/** a crown traced (world units; the shapes of blocks.js#crown): path = from the top tier's left roof corner over the crown's
+ *  steps to its right one (null when the crown is not a closed silhouette), extras = its other tubes (the sunburst's inner
+ *  arch + needle, the mast's antenna, THE NEON NEEDLE) */
+function crownPath(t, tr) {
   const c = tr.crown, y = tr.y0 + tr.h, z = tr.z0 - 0.05, cx = (tr.x0 + tr.x1) / 2, hw = (tr.x1 - tr.x0) / 2, H = c.h;
-  const L = [];
+  const extras = [];
   const arc = (rx, ry, yc, n = 14) => { const p = []; for (let i = 0; i <= n; i++) { const a = Math.PI + Math.PI * i / n; p.push([cx + Math.cos(a) * rx, yc - Math.sin(a) * ry, z]); } return p; };
+  const L0 = [cx - hw, y, z], R0 = [cx + hw, y, z];
+  const sym = (half, apex) => [...half, ...(apex ? [apex] : []), ...half.map(([x, yy]) => [2 * cx - x, yy, z]).reverse()];
+  let path = null;
   if (c.t === 'sunburst') {
-    for (const i of [0, 2]) { const rx = hw * (1 - 0.2 * i), ry = Math.min(rx * 0.95, H * 0.3 * (1 - 0.1 * i)); L.push({ pts: arc(rx, ry, y + i * H * 0.11), role }); }
-    L.push({ pts: [[cx, y + H * 0.3, z], [cx, y + H, z]], role });
+    path = [L0, ...arc(hw, Math.min(hw * 0.95, H * 0.3), y).slice(1, -1), R0];
+    const rx = hw * 0.6; extras.push({ pts: arc(rx, Math.min(rx * 0.95, H * 0.3 * 0.8), y + 2 * H * 0.11) });
+    extras.push({ pts: [[cx, y + H * 0.3, z], [cx, y + H, z]] });
   } else if (c.t === 'spire') {
     const bw = hw * 0.62;
-    L.push({ pts: [[cx - bw, y, z], [cx, y + H * 0.8, z], [cx + bw, y, z]], role });
-    if (t.id === 'needle') L.push({ pts: [[cx, y - 1, z - 0.1], [cx, y + H + (t.needle || 0), z - 0.1]], role: (ROLES.needle || [])[1] || role, needle: true });
+    path = [L0, [cx - bw, y, z], [cx, y + H * 0.8, z], [cx + bw, y, z], R0];
+    if (t.id === 'needle') extras.push({ pts: [[cx, y - 1, z - 0.1], [cx, y + H + (t.needle || 0), z - 0.1]], role: (ROLES.needle || [])[1], needle: true });
   } else if (c.t === 'mast') {
     const dw = hw * 0.62;
-    L.push({ pts: [[cx - dw, y, z], [cx - dw, y + H * 0.22, z], [cx + dw, y + H * 0.22, z], [cx + dw, y, z]], role });
-    L.push({ pts: [[cx - dw * 0.5, y + H * 0.42, z], [cx, y + H * 0.78, z], [cx + dw * 0.5, y + H * 0.42, z]], role });
-    L.push({ pts: [[cx, y + H * 0.78, z], [cx, y + H, z]], role });
+    path = sym([L0, [cx - dw, y, z], [cx - dw, y + H * 0.22, z], [cx - dw * 0.72, y + H * 0.22, z], [cx - dw * 0.72, y + H * 0.42, z], [cx - dw * 0.5, y + H * 0.42, z]], [cx, y + H * 0.78, z]);
+    extras.push({ pts: [[cx, y + H * 0.78, z], [cx, y + H, z]] });
   } else if (c.t === 'pyramid') {
-    L.push({ pts: [[cx - hw, y, z], [cx - hw * 0.3, y + H * 0.81, z], [cx, y + H, z], [cx + hw * 0.3, y + H * 0.81, z], [cx + hw, y, z]], role });
+    path = [L0, [cx - hw * 0.72, y + H * 0.27, z], [cx - hw * 0.52, y + H * 0.54, z], [cx - hw * 0.3, y + H * 0.81, z], [cx, y + H, z], [cx + hw * 0.3, y + H * 0.81, z], [cx + hw * 0.52, y + H * 0.54, z], [cx + hw * 0.72, y + H * 0.27, z], R0];
   } else if (c.t === 'dome') {
-    L.push({ pts: arc(hw * 0.74, Math.max(0.5, H * 0.62), y), role });
+    path = [L0, [cx - hw * 0.82, y, z], ...arc(hw * 0.74, Math.max(0.5, H * 0.62), y), [cx + hw * 0.82, y, z], R0];
   } else if (c.t === 'stepped') {
-    const p = [];
+    const p = [L0];
     for (let i = 0; i < 3; i++) { const w0 = hw * (0.9 - i * 0.24); p.push([cx - w0, y + i * H * 0.24, z], [cx - w0, y + (i + 1) * H * 0.24, z]); }
-    const q = p.map(([x, yy]) => [2 * cx - x, yy, z]).reverse();
-    L.push({ pts: [...p, ...q], role });
+    path = sym(p);
   } else if (c.t === 'deco') {
-    L.push({ pts: [[cx - hw * 0.5, y + H * 0.4, z], [cx - hw * 0.5, y + H * 0.75, z], [cx - hw * 0.2, y + H * 0.75, z], [cx - hw * 0.2, y + H, z], [cx + hw * 0.2, y + H, z], [cx + hw * 0.2, y + H * 0.75, z], [cx + hw * 0.5, y + H * 0.75, z], [cx + hw * 0.5, y + H * 0.4, z]], role });
+    // the word towers' parapet: the full-width bar, the stepped centre (the Deco ziggurat)
+    path = sym([L0, [cx - hw, y + H * 0.4, z], [cx - hw * 0.5, y + H * 0.4, z], [cx - hw * 0.5, y + H * 0.75, z], [cx - hw * 0.2, y + H * 0.75, z], [cx - hw * 0.2, y + H, z]]);
   } else if (c.t === 'slant') {
-    L.push({ pts: [[cx - hw, y + H, z], [cx + hw, y + H * 0.25, z]], role });
+    extras.push({ pts: [[cx - hw, y + H, z], [cx + hw, y + H * 0.25, z]] });
   }
-  return L;
+  return { path: path && dedupe(path), extras };
 }
 
 // ------------------------------------------------------------------ THE SIGNS' SPOTS
@@ -148,22 +171,26 @@ function crownLines(t, tr, role) {
 // nearer in front.
 //   kind: named (a game's NAME + mark; cap = the longest name it takes) · icon (a game's tube mark) · fixed (HOTEL, JAZZ) ·
 //   billboard (painted, gooseneck lamps; CITY CONTROL changes what it shows). type: vbox (vertical) · box · icon · script.
+// Part 4 (the owner's review): the icons are ~20–21 pt (they read at a glance; were 11–18) and stand on the calm walls — the
+// near band's corners left and right, under the word tower, on JAZZ + PAR — never in the busy centre (the NEON NEEDLE, the
+// sunburst's sign, the wheel, the HOTEL blade breathe), never on the construction tower's spot (wordV, behind JAZZ); the
+// billboard is half as big again (66×32) on the left near band's wall.
 export const SPOTS = [
   { id: 'n-sunburst', kind: 'named', type: 'vbox', host: 'sunburst', x: [244, 255], y: [385, 468], z: 257.4, cap: 10 },
-  { id: 'n-roof', kind: 'named', type: 'box', host: 'near', mount: 'roof', x: [20, 70], y: [458, 478], z: 240, cap: 9 },
-  { id: 'n-par', kind: 'named', type: 'vbox', host: 'par', x: [302, 313], y: [494, 545], z: 233.6, cap: 6 },
+  { id: 'n-roof', kind: 'named', type: 'box', host: 'near', mount: 'roof', x: [23, 71], y: [458, 478], z: 240, cap: 9 },
+  { id: 'n-par', kind: 'named', type: 'vbox', host: 'par', x: [298.5, 309], y: [494, 545], z: 233.6, cap: 6 },
   { id: 'n-empire', kind: 'named', type: 'vbox', host: 'empire', x: [38, 49], y: [418, 455], z: 265.4, cap: 5 },
   { id: 'hotel', kind: 'fixed', type: 'vbox', host: 'hotel', text: 'HOTEL', col: [255, 72, 64], x: [253, 263], y: [478, 536], z: 229.4 },
   { id: 'jazz', kind: 'fixed', type: 'script', host: 'jazz', text: 'JAZZ', col: [255, 176, 46], x: [74, 100], y: [494, 506], z: 229.4 },
-  { id: 'i-hotel', kind: 'icon', type: 'icon', host: 'hotel', x: [240, 251], y: [482, 494], z: 229.4 },
-  { id: 'i-pulse', kind: 'icon', type: 'icon', host: 'pulse', x: [174, 192], y: [500, 517], z: 232.4 },
-  { id: 'i-par', kind: 'icon', type: 'icon', host: 'par', x: [317, 330], y: [494, 507], z: 233.6 },
-  { id: 'i-jazz', kind: 'icon', type: 'icon', host: 'jazz', x: [79, 95], y: [511, 527], z: 229.4 },
-  { id: 'i-needle', kind: 'icon', type: 'icon', host: 'needle', x: [191, 203], y: [434, 450], z: 284 },
-  { id: 'i-dome', kind: 'icon', type: 'icon', host: 'm-dome', x: [151, 166], y: [443, 457], z: 303.4 },
-  { id: 'i-step', kind: 'icon', type: 'icon', host: 'm-step', x: [223, 235], y: [459, 471], z: 311.4 },
-  { id: 'i-left', kind: 'icon', type: 'icon', host: 'near', mount: 'roof', x: [2, 17], y: [462, 477], z: 238 },
-  { id: 'bb-right', kind: 'billboard', type: 'billboard', host: 'near', mount: 'wall', x: [354, 398], y: [508, 530], z: 235.2, show: 'rum' },
+  { id: 'i-par', kind: 'icon', type: 'icon', host: 'par', x: [311, 331], y: [494, 514], z: 233.6 },
+  { id: 'i-jazz', kind: 'icon', type: 'icon', host: 'jazz', x: [77, 98], y: [509, 530], z: 229.4 },
+  { id: 'i-left', kind: 'icon', type: 'icon', host: 'near', mount: 'roof', x: [1, 21], y: [459, 479], z: 238 },
+  { id: 'i-c1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [266, 286], y: [492, 512], z: 232.1 },
+  { id: 'i-c2', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [266, 286], y: [517, 537], z: 232.1 },
+  { id: 'i-r1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [357, 378], y: [498, 519], z: 235.1 },
+  { id: 'i-r2', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [380, 401], y: [498, 519], z: 235.1 },
+  { id: 'i-r3', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [368, 389], y: [524, 545], z: 235.1 },
+  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'wall', x: [3, 69], y: [490, 522], z: 233.1, show: 'rum' },
 ];
 let refCam = null;
 const ref = () => refCam || (refCam = cameraFor(REF_TITLE.W, REF_TITLE.H, { tag: REF_TITLE.tag, dock: REF_TITLE.dock }, REF_TITLE.safe));

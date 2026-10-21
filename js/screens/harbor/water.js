@@ -1,17 +1,367 @@
-// CITY 2.0 — THE HARBOR: the water between the far quay (z 230) and the railing (z 64). Part 1: a flat band, darker toward
-// us, with the horizon's light on it. Part 4 builds the real harbor: reflections in perspective, ripples, the lights' smears.
+// CITY 2.0 — THE HARBOR, Part 4: THE WATER (docs/harbor.md#the-water). The harbor between the far quay (z 230) and the railing
+// (z 64) is a real, deep body of water: a MIRROR of everything above it, in perspective, broken by ripples from the real wind.
+//
+//   the base (baked: waterSteps)   the water's own colour + depth — blue-green and paler where it meets the far quay by day,
+//                                  orange-pink at golden hour, near-black at night so the neon pops; darker toward the viewer
+//   the mirror (every frame)       the frame ABOVE the waterline, as drawn this frame (the sky, the skyline, its lit windows, the
+//                                  neon, the beacons, the searchlights, the quay lamps — whatever later parts add too, and the
+//                                  construction tower at whatever stage it is), copied once, flipped about the waterline
+//   the light columns (night)      a bright-pass of that copy (src³: only the lights survive) smeared into vertical columns by
+//                                  stretched copies — a light high on a tower reflects as a long column reaching into the near
+//                                  water, a low sign as a short one by the quay; calm = short and crisp, wind = long and broken
+//   the ripples                    the mirror drawn row by row (strips thin far, thick near) with a sideways wobble + a vertical
+//                                  break per row (waves are wavefronts parallel to the shore: one phase per depth), the rows'
+//                                  brightness flickering crest / trough — so every reflected light breaks into shimmering bands
+//   the wavelets                   two baked textures of perspective dashes (sky-lit crests, dark troughs) sliding against each
+//                                  other; their density follows the wind
+//   the paths                      the SUN's gold glitter path toward us when it is low (golden hour / dawn), the MOON's silver
+//                                  one at night (its real place + phase; none when down or behind real cloud), sun glints by day
+//   the near edge                  the water lapping at the foot of the near quay wall, behind the railing
+//
+// Cost: the work is split over frames — one BUILDS the mirror, the next COMPOSES the water (tier 2: 30 water frames a second;
+// tier 1: 20, wider strips, fewer copies); tier 0 and reduced motion = a calm baked mirror, re-drawn about once a second with the
+// ripples still (the lights still follow the city). HOOKS for later parts (docs/harbor.md
+// "stubs"): reflect(fn, axisY) — an object standing in the water drawn flipped about its own waterline (the wheel + the
+// lighthouse use it now; Part 5's boats, Rosie, the train, the beam) · light(x, y, col, a, w) — a light that is not in the frame
+// above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · wake(o) — Part 5
+// draws boat wakes · set({ rain, fog }) — Part 9 (rain roughens the mirror now; the rings + the fog over the water: Part 9).
 import { rgb, mix } from './shapes.js';
-import { groundY } from '../../core/harbor-layout.js';
+import { groundY, project } from '../../core/harbor-layout.js';
 
-export function waterSteps(L, T) {
+/** the water's surface (world y): the far quay wall stands 1.2 above it (its stones show between the lamps + the water) */
+export const LEVEL = -0.8;
+const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+const fract = v => v - Math.floor(v);
+const hash = n => fract(Math.sin(n * 127.1 + 311.7) * 43758.5453);
+
+/** the water's screen band (pt): top = the waterline at the far quay, bottom = the near edge (the road covers below it) */
+export function waterBand(L) {
   const cam = L.cam;
+  return { y0: project(cam, 0, LEVEL, L.water.z1)[1], y1: groundY(cam, L.water.z0) };
+}
+/** the screen y where the water meets something standing in it at depth z (the axis its reflection flips about) */
+export const axisAt = (L, z) => project(L.cam, 0, LEVEL, z)[1];
+
+// the water's own colour: far (grazing: the low sky's light on it), middle, near (looking down into it)
+const TINT = {
+  day: [[128, 170, 184], [40, 110, 132], [12, 60, 86]],
+  gold: [[226, 146, 108], [150, 76, 82], [58, 28, 56]],
+  night: [[22, 18, 46], [9, 9, 26], [3, 3, 11]],
+};
+export function waterTint(T) {
+  const out = [0, 1, 2].map(i => [0, 1, 2].map(c => TINT.day[i][c] * T.day + TINT.gold[i][c] * T.gold + TINT.night[i][c] * T.night));
+  return out;
+}
+
+/** THE BASE (baked with the look): the water's colour + depth, the shadow along the far quay's foot */
+export function waterSteps(L, T) {
+  const cam = L.cam, { y0, y1 } = waterBand(L), [far, mid, near] = waterTint(T);
   return [x => {
-    const y0 = groundY(cam, L.water.z1) - 1, y1 = groundY(cam, L.water.z0) + 1;
-    const g = x.createLinearGradient(0, y0, 0, y1);
-    g.addColorStop(0, rgb(mix(T.water, T.haze, 0.35))); g.addColorStop(0.25, rgb(T.water)); g.addColorStop(1, rgb(T.waterLo));
-    x.fillStyle = g; x.fillRect(0, y0, cam.W, y1 - y0);
-    // a few flat ripple lines (grey box): the water reads as water, not a floor
-    x.fillStyle = rgb(mix(T.water, T.haze, 0.5), 0.35);
-    for (let i = 0; i < 18; i++) { const f = i / 18, y = y0 + (y1 - y0) * f * f; x.fillRect((i * 97) % cam.W, y, 20 + 60 * f, 0.7 + f); }
+    const g = x.createLinearGradient(0, y0, 0, y1 + 8);
+    g.addColorStop(0, rgb(far)); g.addColorStop(0.18, rgb(mix(far, mid, 0.7))); g.addColorStop(0.55, rgb(mid)); g.addColorStop(1, rgb(near));
+    x.fillStyle = g; x.fillRect(0, y0, cam.W, y1 + 8 - y0);
+    // the quay wall's foot: wet, dark stone just above the water + a contact shadow on the water under it
+    x.fillStyle = rgb(mix(near, [0, 0, 0], 0.4), 0.55); x.fillRect(0, y0, cam.W, 0.8);
   }];
+}
+
+/** THE REFLECTION ENGINE (per frame): see the top of this file */
+export function createWater() {
+  const mk = () => document.createElement('canvas');
+  const src = mk(), bright = mk(), sm = mk(), R = mk(), wc = mk(), cols = new Map();
+  const tex = [mk(), mk()];
+  let L = null, cam = null, W = 0, y0 = 0, y1 = 0, Hw = 0, top = 0, sh = 0, dpr = 1, rr = 1, tier = 2, A0 = 0;
+  let strips = [], texKey = '', frame = 0, lastT = 0, updAt = -1e9, ready = false, set0 = { rain: 0, fog: 0 };
+  let queue = [], mirrors = [], wakes = [], stats = { strips: 0, copies: 0, lights: 0, paths: '' };
+
+  function size(cv, w, h) { const cw = Math.max(1, Math.ceil(w)), ch = Math.max(1, Math.ceil(h)); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; } return cv.getContext('2d'); }
+  /** the layout: the band, the canvases, the strips (thin far, thick near: one wave phase per depth) */
+  function layout(l, o) {
+    L = l; cam = l.cam; W = cam.W; tier = o.tier ?? 2; dpr = Math.min(2, o.dpr || 1);
+    ({ y0, y1 } = waterBand(L)); Hw = Math.max(4, y1 - y0);
+    A0 = y0;
+    top = Math.max(0, cam.limitY - 12); sh = Math.max(Hw + 4, y0 - top);
+    rr = 1;                                       // (a reflection is soft: the mirror at 1 px a pt, the light columns at half)
+    size(src, W * rr, sh * rr); size(bright, W * rr * 0.5, sh * rr * 0.5); size(sm, W * rr * 0.5, (Hw + 6) * rr * 0.5);
+    size(R, W * rr, (Hw + 6) * rr);
+    size(wc, W * dpr, (Hw + 2) * dpr);
+    strips = [];
+    const k = tier === 2 ? 1 : 1.55;
+    for (let y = y0; y < y1;) {
+      const u = (y - y0) / Hw, h = Math.min(y1 - y, (0.7 + 2.7 * Math.pow(u, 1.25)) * k * (cam.F / 600));
+      const yc = y + h / 2, z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, yc - cam.VPY);
+      strips.push({ y, h, u, z, s: cam.F / z, seed: hash(strips.length + 1) });
+      y += h;
+    }
+    texKey = ''; ready = true; updAt = -1e9; built = composed = false;
+  }
+
+  // ---------------------------------------------------------------- the wavelets: two perspective dash textures
+  function bakeTex(T, rough) {
+    const key = `${Math.round(T.day * 6)}${Math.round(T.gold * 6)}${Math.round(T.night * 6)}|${Math.round(rough * 4)}|${W}|${dpr}`;
+    if (key === texKey) return;
+    texKey = key;
+    const crest = mix(mix([214, 232, 244], [255, 196, 140], T.gold / Math.max(0.01, T.day + T.gold)), [150, 140, 210], T.night);
+    tex.forEach((cv, n) => {
+      const x = size(cv, W * dpr, (Hw + 2) * dpr);
+      x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, Hw + 2);
+      let sd = 17 + n * 101;
+      const R1 = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+      const count = Math.round((W / 402) * (260 + 360 * rough) * (n ? 0.7 : 1));
+      for (let i = 0; i < count; i++) {
+        const u = Math.pow(R1(), 0.75), y = u * Hw, z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, y + y0 - cam.VPY), s = cam.F / z;
+        const len = s * (0.6 + R1() * (1.6 + 2.4 * rough)), th = Math.max(0.35, s * (0.05 + 0.04 * rough));
+        const lightK = R1() < 0.55;
+        x.fillStyle = lightK ? rgb(crest, (0.18 + 0.4 * R1()) * (0.55 + 0.45 * u)) : `rgba(0,0,8,${(0.12 + 0.22 * R1()) * (0.5 + 0.5 * u)})`;
+        x.fillRect(R1() * W, y + (lightK ? 0 : th * 0.9), len, th);
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------- a light's column sprite (per colour, white-hot core)
+  function column(col) {
+    const key = col.map(v => v >> 3).join(',');
+    if (cols.has(key)) return cols.get(key);
+    const c = mk(), x = size(c, 16, 96);
+    for (let y = 0; y < 96; y++) {
+      const v = y / 96, a = Math.pow(1 - v, 1.4) * (0.55 + 0.45 * hash(y * 3.7 + col[0]));
+      const g = x.createLinearGradient(0, 0, 16, 0);
+      g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(0.5, `rgba(${mix(col, [255, 255, 255], 0.35).map(Math.round)},${a})`); g.addColorStop(1, `rgba(${col},0)`);
+      x.fillStyle = g; x.fillRect(0, y, 16, 1);
+    }
+    if (cols.size > 24) { const [k0, c0] = cols.entries().next().value; c0.width = 0; cols.delete(k0); }
+    cols.set(key, c);
+    return c;
+  }
+
+  /**
+   * Draw the water. c: the scene's context (dpr transform), main: the scene's canvas (the frame so far — everything above the
+   * waterline is drawn), f: { t, T (tones), night (0..1 dark), fade, motion, wind (m/s), cloud, rain, sun: sun.debug(), moon:
+   * { x, y, r, k } | null, mirrors: [{ cv, sx, sy, sw, sh (device px), x, y, w, h (pt), axis }] }
+   * The work is split over two frames (30 water frames a second, an even cost every frame; tier 1: three, 20 a second): one
+   * frame BUILDS the mirror (the copy of the frame above the waterline, the objects in the water, the light columns), the next
+   * COMPOSES the water from it (the ripples, the wavelets, the paths, the lapping) into its canvas; every frame shows it. Tier 0 and reduced
+   * motion: a still mirror, built + composed about once a second.
+   */
+  function draw(c, main, f) {
+    if (!ready || f.fade <= 0) { queue = []; mirrors = []; return; }
+    frame++;
+    const still = !f.motion || tier === 0, now = performance.now();
+    if (still) { if (now - updAt > 1000 || !composed) { build(main, f, lastT, true); compose(f, lastT, true); updAt = now; } }
+    else {
+      // (tier 2: build, compose — 30 water frames a second; tier 1: build, compose, rest — 20)
+      const ph = frame % (tier === 2 ? 2 : 3);
+      if (!built || ph === 0) build(main, f, f.t, false); else if (ph === 1) compose(f, f.t, false);
+      lastT = f.t;
+    }
+    queue = []; mirrors = [];
+    if (!composed) return;
+    c.save(); c.globalAlpha = f.fade; c.drawImage(wc, 0, y0, W, Hw + 2); c.restore();
+  }
+  let built = false, composed = false;
+  const roughOf = f => clamp01(smooth(1.2, 11, Math.max(0, f.wind || 0)) + 0.35 * (f.rain || set0.rain || 0));
+
+  // BUILD: the mirror (R) from the frame above the waterline, the objects in the water, the light columns
+  function build(main, f, t, still) {
+    const md = main.width / W;
+    // ROUGHNESS from the real wind (m/s): glassy under ~1.5, choppy past ~11; real rain roughens it too (Part 9 adds the rings)
+    const rough = roughOf(f);
+    stats.rough = +rough.toFixed(2);
+    // 1. the frame above the waterline, as drawn (one copy, at the mirror's resolution)
+    const tm0 = performance.now();
+    const sx = src.getContext('2d');
+    sx.setTransform(1, 0, 0, 1, 0, 0); sx.globalCompositeOperation = 'copy'; sx.globalAlpha = 1;
+    sx.drawImage(main, 0, top * md, W * md, sh * md, 0, 0, src.width, src.height);
+    sx.globalCompositeOperation = 'source-over';
+    // 2. the mirror: flipped about the waterline (an R row r pt below it ↔ the frame r pt above it)
+    const rx = R.getContext('2d');
+    rx.setTransform(1, 0, 0, 1, 0, 0); rx.globalAlpha = 1; rx.globalCompositeOperation = 'copy';
+    rx.setTransform(rr, 0, 0, -rr, 0, rr * A0);
+    rx.drawImage(src, 0, (sh - Hw - 6) * rr, src.width, (Hw + 6) * rr, 0, A0 - Hw - 6, W, Hw + 6);
+    rx.globalCompositeOperation = 'source-over';
+    // objects standing in the water, each about its own waterline (the wheel, the lighthouse; Part 5: the boats, Rosie, the train)
+    for (const m of [...(f.mirrors || []), ...mirrors]) {
+      rx.setTransform(rr, 0, 0, -rr, 0, rr * (2 * m.axis - A0));
+      if (m.fn) m.fn(rx); else if (m.cv && m.sw > 0 && m.sh > 0) rx.drawImage(m.cv, m.sx, m.sy, m.sw, m.sh, m.x, m.y, m.w, m.h);
+    }
+    // 3. the lights' columns (night): src³ keeps only the lights; stretched copies (at half resolution: they are soft) smear
+    //    each into a column — a light high on a tower reaches into the near water, a low sign stays by the quay; calm: short +
+    //    crisp, wind: long + broken
+    const lk = clamp01(f.night) * (tier === 0 ? 0.85 : 1);
+    stats.copies = 0;
+    if (lk > 0.03) {
+      const bx = bright.getContext('2d'), bw = bright.width, bh = bright.height;
+      bx.setTransform(1, 0, 0, 1, 0, 0); bx.globalAlpha = 1; bx.globalCompositeOperation = 'copy';
+      bx.drawImage(src, 0, 0, bw, bh);
+      bx.globalCompositeOperation = 'multiply'; bx.drawImage(src, 0, 0, bw, bh); bx.drawImage(src, 0, 0, bw, bh);
+      const smx = sm.getContext('2d'), h2 = rr * 0.5;
+      smx.setTransform(1, 0, 0, 1, 0, 0); smx.globalAlpha = 1; smx.globalCompositeOperation = 'source-over'; smx.clearRect(0, 0, sm.width, sm.height);
+      const K = tier === 2 ? Math.round(5 + 5 * rough) : tier === 1 ? Math.round(3 + 3 * rough) : 4;
+      const s0 = 0.6 - 0.36 * rough, s1 = 1.12 + 0.16 * rough;
+      smx.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < K; k++) {
+        const q = K > 1 ? k / (K - 1) : 1, s = s0 + (s1 - s0) * q, near1 = 1 - Math.min(1, Math.abs(s - 1) / Math.max(0.2, 1 - s0));
+        const dx = still ? 0 : Math.sin(t * 1.7 + k * 2.1) * (0.4 + 1.2 * rough);
+        smx.globalAlpha = lk * (0.24 + 0.46 * near1) * (0.95 - 0.2 * rough);
+        smx.setTransform(h2, 0, 0, -h2 * s, h2 * dx, h2 * s * A0);
+        // (only the rows that land in the water: a light e pt up lands s·e pt down)
+        const eMax = (Hw + 6) / s, y1s = Math.max(top, A0 - eMax);
+        smx.drawImage(bright, 0, (y1s - top) / sh * bh, bw, (A0 - y1s) / sh * bh, 0, y1s, W, A0 - y1s);
+        stats.copies++;
+      }
+      rx.setTransform(1, 0, 0, 1, 0, 0); rx.globalAlpha = 1; rx.globalCompositeOperation = 'lighter';
+      rx.drawImage(sm, 0, 0, R.width, R.height);
+    }
+    // lights that are not in the frame above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow): columns
+    rx.globalCompositeOperation = 'lighter';
+    for (const p of queue) {
+      const e = A0 - p.y, r = Math.max(2, e * 0.95), len = Math.max(10, Math.min(Hw * 1.2, e * (0.5 + rough)));
+      rx.setTransform(rr, 0, 0, rr, 0, -rr * A0); rx.globalAlpha = clamp01(p.a);
+      const w = Math.max(2, p.w || 3) * 2.4;
+      rx.drawImage(column(p.col), p.x - w / 2, A0 + r - len * 0.35, w, len);
+    }
+    stats.lights = queue.length;
+    rx.globalAlpha = 1; rx.globalCompositeOperation = 'source-over';
+    built = true;
+    const tm2 = performance.now(), m = stats.ms || (stats.ms = { build: 0, compose: 0 });
+    m.build = +(m.build * 0.9 + (tm2 - tm0) * 0.1).toFixed(2);
+  }
+
+  // COMPOSE: the water's canvas from the mirror — the ripples, the wavelets, the paths, the lapping (screen coordinates)
+  function compose(f, t, still) {
+    if (!built) return;
+    const tm2 = performance.now(), T = f.T, rough = roughOf(f), fa = 1;
+    const x = size(wc, W * dpr, (Hw + 2) * dpr);
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, wc.width, wc.height);
+    x.setTransform(dpr, 0, 0, dpr, 0, -dpr * y0);
+    // 4. the ripples: the mirror row by row (one wave phase per depth: a sideways wobble, a vertical break, crest / trough)
+    const dayK = Math.min(1, T.day + T.gold * 0.6);
+    const amp = 0.05 + 0.3 * rough, jit = 0.03 + 0.22 * rough;
+    for (const st of strips) {
+      const ph = st.z * 0.92 - t * 1.35, ph2 = st.z * 2.37 + t * 1.9 + st.seed * 6.28;
+      const A = amp * st.s, dx = A * (0.66 * Math.sin(ph) + 0.34 * Math.sin(ph2));
+      const dy = jit * st.s * Math.sin(st.z * 1.71 + t * 1.1 + st.seed * 3);
+      // FRESNEL + DEPTH: a mirror at the grazing far end; looking down near us more of the water's own colour (the base under
+      // it: blue-green by day, orange at golden hour, black at night) — so it darkens toward us; the wind breaks it up
+      const fres = (0.93 - (0.42 + 0.26 * dayK) * Math.pow(st.u, 0.8)) * (1 - 0.3 * rough) * (1 - 0.26 * dayK);
+      const crest = 0.5 + 0.5 * Math.sin(st.z * 1.21 - t * 1.6 + st.seed * 2);
+      const sk = 0.12 + 0.38 * rough + 0.1 * st.u;
+      x.globalAlpha = clamp01(fres * (1 - sk + sk * crest)) * fa;
+      const ry = Math.max(0, Math.min(Hw + 6 - st.h, st.y - y0 + dy));
+      const pad = Math.abs(A) + 1;
+      x.drawImage(R, 0, ry * rr, R.width, Math.max(1, st.h * rr), dx - pad, st.y, W + pad * 2, st.h + 0.02);
+    }
+    stats.strips = strips.length;
+    x.globalAlpha = 1;
+    // 5. the wavelets: sky-lit crests + dark troughs sliding against each other (their density follows the wind)
+    bakeTex(T, rough);
+    const ta = (0.95 * dayK + 0.45 * T.night) * (0.55 + 0.45 * rough) * fa;
+    if (ta > 0.01) {
+      const o1 = still ? 0 : ((t * (3 + 9 * rough)) % W + W) % W, o2 = still ? W * 0.37 : ((-t * (2 + 6 * rough)) % W + W) % W;
+      for (const [cv, o, al] of [[tex[0], o1, ta], [tex[1], o2, ta * 0.8]].slice(0, tier === 2 ? 2 : 1)) {
+        x.globalAlpha = al;
+        // (the texture wraps: its two pieces, each drawn once)
+        if (o > 0.5) x.drawImage(cv, (W - o) * dpr, 0, o * dpr, cv.height, 0, y0, o, Hw + 2);
+        if (W - o > 0.5) x.drawImage(cv, 0, 0, (W - o) * dpr, cv.height, o, y0, W - o, Hw + 2);
+      }
+      x.globalAlpha = 1;
+    }
+    // 6. the paths: the sun's gold (low: golden hour, dawn), the moon's silver (night), the sun's glints by day
+    x.globalCompositeOperation = 'lighter';
+    stats.paths = '';
+    const sun = f.sun, cloud = clamp01(f.cloud || 0);
+    if (sun && sun.vis > 0.02 && sun.el > -2 && sun.el < 16) {
+      const k = smooth(16, 3, sun.el) * smooth(-2, 0.5, sun.el) * Math.min(1, sun.vis * 1.2) * (1 - 0.85 * smooth(0.55, 0.95, cloud)) * fa;
+      if (k > 0.02) { glitter(x, sun.x, k, [255, 196, 120], [255, 240, 200], t, still, rough, 1); stats.paths += 'sun '; }
+    }
+    if (f.moon && f.moon.k > 0.02) { glitter(x, f.moon.x, f.moon.k * T.night * fa, [178, 192, 236], [238, 242, 255], t, still, rough, 0.62); stats.paths += 'moon '; }
+    if (T.day > 0.05 && sun && sun.vis > 0.1) { sparkle(x, sun.x, T.day * (1 - 0.8 * smooth(0.4, 0.9, cloud)) * fa, t, still, rough); stats.paths += 'glints '; }
+    x.globalCompositeOperation = 'source-over';
+    // 7. the near edge: the water lapping at the near quay wall, behind the railing (a slow surge)
+    x.globalAlpha = fa; lap(x, T, t, still, rough); x.globalAlpha = 1;
+    composed = true;
+    stats.ms.compose = +(stats.ms.compose * 0.9 + (performance.now() - tm2) * 0.1).toFixed(2);
+  }
+
+  /** a glitter path toward us from x: a soft column + broken dashes twinkling, wider near; k strength */
+  function glitter(x, sx, k, col, hot, t, still, rough, size) {
+    const n = Math.round((tier === 2 ? 200 : tier === 1 ? 110 : 80) * size);
+    // the soft column under the dashes
+    const g = x.createLinearGradient(0, y0, 0, y1);
+    // (the sun's path has a hot core by the quay; the moon's is mostly its glints — a solid bar reads as a light, not a path)
+    const ck = size >= 1 ? 1 : 0.32;
+    g.addColorStop(0, rgb(hot, Math.min(1, 0.85 * k * ck))); g.addColorStop(0.3, rgb(col, 0.42 * k * ck)); g.addColorStop(1, rgb(col, 0.1 * k * ck));
+    x.fillStyle = g;
+    for (const [wTop, wBot, a] of [[3, 18, 1], [6, 36, 0.55], [10, 64, 0.25]]) {
+      const wt = wTop * size * (1 + rough), wb = wBot * size * (0.7 + rough);
+      x.globalAlpha = a; x.beginPath(); x.moveTo(sx - wt, y0); x.lineTo(sx + wt, y0); x.lineTo(sx + wb, y1); x.lineTo(sx - wb, y1); x.fill();
+    }
+    x.globalAlpha = 1;
+    const hotS = rgb(hot), colS = rgb(col);
+    let lastHot = null;
+    for (let i = 0; i < n; i++) {
+      const u = Math.pow(hash(i * 1.37 + 0.5), 0.85), y = y0 + u * Hw, z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, y - cam.VPY), s = cam.F / z;
+      const spread = (4 + 44 * u) * Math.sqrt(size) * (0.65 + 1.1 * rough);
+      const xx = sx + (hash(i * 2.11 + 7) - 0.5) * 2 * spread * (0.4 + 0.6 * hash(i * 5.3));
+      const tw = still ? 0.35 + 0.65 * hash(i * 9.1) : Math.pow(Math.max(0, Math.sin(t * (2.2 + 3.5 * hash(i * 4.7)) + hash(i * 8.3) * 6.28)), 3);
+      const centre = 1 - Math.min(1, Math.abs(xx - sx) / Math.max(1, spread));
+      const a = k * (0.25 + 1.1 * tw) * (0.3 + 0.7 * centre);
+      if (a < 0.03) continue;
+      const hotK = centre * tw > 0.45;
+      if (hotK !== lastHot) { x.fillStyle = hotK ? hotS : colS; lastHot = hotK; }
+      x.globalAlpha = Math.min(1, a);
+      const len = s * (0.5 + 1.6 * hash(i * 3.3)) * (0.6 + 0.6 * rough), th = Math.max(0.45, s * 0.07);
+      x.fillRect(xx - len / 2, y, len, th);
+    }
+    x.globalAlpha = 1;
+  }
+  /** sun glints by day: sparkles across the water, thicker toward the sun's side */
+  function sparkle(x, sx, k, t, still, rough) {
+    const n = tier === 2 ? 110 : tier === 1 ? 60 : 40;
+    for (let i = 0; i < n; i++) {
+      const u = Math.pow(hash(i * 3.91 + 2), 0.9), y = y0 + 2 + u * (Hw - 3), z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, y - cam.VPY), s = cam.F / z;
+      const xx = hash(i * 1.7) < 0.55 ? sx + (hash(i * 6.1) - 0.5) * (60 + 180 * u) : hash(i * 7.7) * W;
+      const tw = still ? (hash(i * 2.9) > 0.6 ? 0.8 : 0) : Math.pow(Math.max(0, Math.sin(t * (3 + 4 * hash(i * 5.5)) + hash(i * 8.8) * 6.28)), 8);
+      const a = k * tw * (0.7 + 0.3 * rough);
+      if (a < 0.04) continue;
+      x.fillStyle = 'rgb(255,252,236)'; x.globalAlpha = Math.min(1, a);
+      const len = s * (0.3 + 0.7 * hash(i * 4.1)), th = Math.max(0.5, s * 0.08);
+      x.fillRect(xx - len / 2, y, len, th);
+    }
+    x.globalAlpha = 1;
+  }
+  /** the near edge: a slow surge lapping at the wall's foot behind the railing (a wet band + a bright crest line) */
+  function lap(x, T, t, still, rough) {
+    const surge = still ? 0.5 : 0.5 + 0.5 * Math.sin(t * 0.85), sN = cam.F / 64;
+    const base = y1 - (0.18 + 0.12 * surge + 0.08 * rough) * sN;
+    const wave = xx => base - (0.06 + 0.07 * rough) * sN * Math.sin(xx * 0.05 + t * 1.25) - 0.04 * sN * Math.sin(xx * 0.13 - t * 0.8);
+    x.beginPath(); x.moveTo(0, y1 + 2);
+    for (let xx = 0; xx <= W + 6; xx += 6) x.lineTo(xx, wave(xx));
+    x.lineTo(W, y1 + 2); x.closePath();
+    const [, , near] = waterTint(T);
+    x.fillStyle = rgb(mix(near, [0, 0, 0], 0.35), 0.5); x.fill();
+    const crest = mix(mix([226, 238, 246], [255, 206, 150], T.gold / Math.max(0.01, T.day + T.gold)), [255, 206, 150], T.night);
+    x.strokeStyle = rgb(crest, (0.28 * (T.day + T.gold) + 0.2 * T.night) * (0.7 + 0.3 * surge)); x.lineWidth = Math.max(0.6, 0.06 * sN);
+    x.beginPath(); for (let xx = 0; xx <= W + 6; xx += 6) { const yy = wave(xx); if (xx) x.lineTo(xx, yy); else x.moveTo(xx, yy); } x.stroke();
+  }
+
+  return {
+    layout, draw,
+    /** HOOK: an object standing in the water, drawn flipped about its own waterline axisY (screen pt) this frame: fn(ctx) draws
+     *  it in screen coordinates (Part 5: the boats, Rosie and her bulbs, the train, the lighthouse beam) */
+    reflect(fn, axisY) { mirrors.push({ fn, axis: axisY }); },
+    /** HOOK: a light not in the frame above the waterline (fireworks high up — Part 10; the ghost ship's glow — 11a): its
+     *  column in the water this frame. x, y: the light on screen (pt), col [r,g,b], a 0..1, w its size (pt) */
+    light(x, y, col, a = 1, w = 3) { if (queue.length < 400) queue.push({ x, y, col, a, w }); },
+    /** HOOK (Part 5): a boat's wake — { x, z, len, dir, k } world units; stored, not yet drawn */
+    wake(o) { wakes.push(o); if (wakes.length > 16) wakes.shift(); },
+    /** HOOK (Part 9): { rain: 0..1 (roughens the mirror now; the rings: Part 9), fog: 0..1 (the fog over the water: Part 9) } */
+    set(o) { Object.assign(set0, o || {}); },
+    setTier(t) { tier = t; },
+    band: () => ({ y0, y1 }),
+    mem: () => +([src, bright, sm, R, wc, ...tex, ...cols.values()].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2),
+    debug: () => ({ y0: +y0.toFixed(1), y1: +y1.toFixed(1), strips: stats.strips, copies: stats.copies, lights: stats.lights, paths: stats.paths.trim(), rough: stats.rough, ms: stats.ms, rr, tier, wakes: wakes.length, mb: +([src, bright, sm, R, wc, ...tex].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2) }),
+    destroy() { for (const cv of [src, bright, sm, R, wc, ...tex, ...cols.values()]) { cv.width = 0; cv.height = 0; } cols.clear(); ready = false; },
+  };
 }

@@ -34,9 +34,9 @@ import { litSteps, createLights, newMeta } from './lights.js';
 import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
 import { SPELL_WORDS } from '../../core/harbor-windows.js';
-import { quaySteps } from './quay.js';
+import { quaySteps, drawQuayLamps } from './quay.js';
 import { createNeon, nightKey } from './neon.js';
-import { waterSteps } from './water.js';
+import { waterSteps, createWater, waterBand, axisAt } from './water.js';
 import { pierSteps } from './pier.js';
 import { lighthouseSteps } from './lighthouse.js';
 import { drawBoats } from './boats.js';
@@ -63,6 +63,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const litBaker = createBaker();                 // THE LIT WINDOWS (lights.js): re-baked on the light key, crossfaded on their own
   const lights = createLights();
   const neon = createNeon({ games, onContent: () => { lookAt = 0; } });          // THE NEON (Part 3): the signs, the billboards, the outlines on the buildings
+  const water = createWater();                    // THE WATER (Part 4): the mirror of the frame above it, ripples, the light columns, the paths
+  let waterMirrors = [];                          // the harbor pieces standing in the water: their screen rects + waterlines (the wheel, the lighthouse)
   let litFadeFrom = -1, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
   const SPELL_TEXT = qp.get('text') || 'HELLO', SPELL_STYLE = qp.get('style') || 'wipe', SPELL_TOWER = qp.get('tower') || undefined;
@@ -126,6 +128,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function layout() {
     const rr = rects();
     cam = cameraFor(W, H, rr, { top: safeTopV, bottom: safeBotV });
+    cam.tagGone = !!S.tagGone;                    // (a re-layout keeps the faded tagline: its band stays sky-low's)
     camSig = [W, H, Math.round(cam.dock.y), Math.round(cam.limitY), tier].join('|');
     L = harborLayout(cam, seed);
     HZ = Math.round(groundY(cam, Z.quay));
@@ -134,6 +137,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     archFor();
     lights.layout(L);
     neon.layout(L, { dpr, tier, night: nightKey(LK.local) }); neon.setTier(tier);
+    water.layout(L, { dpr, tier });
+    { const w = L.wheel, [cx, cy] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, deck = project(cam, w.x, L.pier.y, w.z)[1];
+      const l = L.lighthouse, b = L.breakwater, k = L.cottage, [lx0, ly] = project(cam, b.x0, l.h + 5.6, l.z), [lx1] = project(cam, Math.max(b.x1, k.x + k.w + 0.6), 0, l.z);
+      waterMirrors = [{ x: cx - r * 1.06, y: cy - r - 2, w: r * 2.12, h: deck - (cy - r - 2), axis: axisAt(L, w.z) }, { x: lx0, y: ly, w: lx1 - lx0, h: axisAt(L, l.z) - ly, axis: axisAt(L, l.z) }]; }
     // the baked layers' bands (pt)
     const s = L.speakeasy, w = L.wheel, l = L.lighthouse;
     const yOf = (y, z) => project(cam, 0, y, z)[1];
@@ -141,7 +148,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     baker.plan(W, [
       { name: 'far', y0: top, h: groundY(cam, Z.mid[0]) + 3 - top },
       { name: 'near', y0: top, h: yOf(L.quay.foot, Z.quay) + 3 - top },
-      { name: 'water', y0: groundY(cam, Z.quay) - 3, h: groundY(cam, Z.rail) - groundY(cam, Z.quay) + 6 },
+      { name: 'water', y0: waterBand(L).y0 - 3, h: waterBand(L).y1 - waterBand(L).y0 + 12 },
       { name: 'harbor', y0: Math.min(yOf(w.y + w.r + 1, w.z), yOf(l.h + 7, l.z)), h: yOf(-3.2, L.pier.z0) - Math.min(yOf(w.y + w.r + 1, w.z), yOf(l.h + 7, l.z)) + 4 },
       { name: 'road', y0: yOf(L.rail.y + 0.4, Z.rail) - 3, h: groundY(cam, Z.road[0]) - yOf(L.rail.y + 0.4, Z.rail) + 6 },
       { name: 'stage', y0: Math.min(yOf(s.h + 5, s.tower.z), yOf(L.signals[0].h + 2, L.signals[0].z)) - 6, h: H - Math.min(yOf(s.h + 5, s.tower.z), yOf(L.signals[0].h + 2, L.signals[0].z)) + 6 },
@@ -383,12 +390,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     eventsTick(now, nightK);
     lights.draw(c, 'near', now, nightK, S.motion);
     neon.draw(c, 'near', nf);
+    // the far quay's lamps (Part 4: lit at night, with the city's power-on; their light runs down into the water)
+    drawQuayLamps(c, L, fadeIn * clamp01((P.dark - 0.3) / 0.45) * lit, glow);
     lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
     if (beamK > 0.01) drawBeams(c, L, beamK * nightK, t, { fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion });
     layer('water');
+    drawWater(c, t, fs, T, fadeIn, sunNow);
     layer('harbor');
     wfx.fogLayer(c, fs, 3, t);
     if (fadeIn > 0) { c.globalAlpha = fadeIn; drawBoats(c, L, T); c.globalAlpha = 1; }
@@ -421,6 +431,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
   }
 
+  // THE WATER (Part 4): everything above the waterline is drawn — the water mirrors it (water.js)
+  function drawWater(c, t, fs, T, fadeIn, sunNow) {
+    if (clock.force.has('no-water')) return;
+    const hg = baker.group('harbor');
+    const mirrors = [];
+    if (hg && hg.ready) for (const m of waterMirrors) {
+      // (the piece's rect inside the harbor layer's band, in the layer's own pixels)
+      const x0 = Math.max(0, m.x), x1 = Math.min(W, m.x + m.w), ya = Math.max(m.y, hg.show.y0), yb = Math.min(m.y + m.h, hg.show.y0 + hg.show.h), k = hg.cur.width / W;
+      if (x1 - x0 > 1 && yb - ya > 1) mirrors.push({ cv: hg.cur, sx: x0 * k, sy: (ya - hg.show.y0) * k, sw: (x1 - x0) * k, sh: (yb - ya) * k, x: x0, y: ya, w: x1 - x0, h: yb - ya, axis: m.axis });
+    }
+    const mo = fs.moonAt, moonK = mo && LK.moon.el > -1 ? (P.moonA || 0) * clamp01((LK.moon.el + 1) / 4) * (0.3 + 0.7 * clamp01(LK.moon.illum * 3)) * (fs.moonVeil == null ? 1 : fs.moonVeil) : 0;
+    water.draw(c, canvas, { t, T, night: clamp01((P.dark - 0.15) / 0.5), fade: fadeIn, motion: S.motion, wind: LK.wind, cloud: LK.cloud, rain: clamp01(+LK.rain || 0), sun: sunNow && LK.sun.el > -3 ? { ...sunNow, el: LK.sun.el } : null, moon: moonK > 0.02 ? { x: mo.x, y: mo.y, k: moonK } : null, mirrors });
+  }
   // THE NEON logo's glow in the night air (Part 3): a soft haze of its colour around the sign, as strong as the sign is lit
   let hazeCv = null, hazeCol = '';
   function logoHaze(c) {
@@ -563,6 +586,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z); return { x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r] }; })(),
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
+      water: { ...water.debug(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },
       neon: neon.debug(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => neon.billboard(id, v), reflections: () => neon.reflections(), beacons: lights.beaconList(),
       spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(), main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: {}, air: air.debug(), sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
@@ -572,7 +596,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       clearTimeout(resizeT); clearTimeout(relayT);
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('resize', onResize);
-      baker.destroy(); litBaker.destroy(); neon.destroy();
+      baker.destroy(); litBaker.destroy(); neon.destroy(); water.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy();
       for (const c of [skyCv, vignette, glow, ...sigGlow, canvas]) if (c) { c.width = 0; c.height = 0; }
@@ -581,5 +605,5 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   };
   function T0() { return P.dark > 0.5; }
   /** every baked canvas of the scene (the city's layers + the lit windows) against the tier's one budget */
-  function memAll() { const a = baker.mem(), b = litBaker.mem(); return { mb: +(a.mb + b.mb).toFixed(2), budget: a.budget, tier: a.tier, layers: [...a.layers, ...b.layers] }; }
+  function memAll() { const a = baker.mem(), b = litBaker.mem(), w = water.mem(); return { mb: +(a.mb + b.mb + w).toFixed(2), budget: a.budget, tier: a.tier, layers: [...a.layers, ...b.layers, { name: 'water (the mirror, live)', dpr: 1, mb: w }] }; }
 }

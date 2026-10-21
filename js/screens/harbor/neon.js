@@ -18,6 +18,8 @@ import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHo
 import { hexRgb, markFor } from '../district/marks.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+const THIN = 0.6;                                  // the Deco fins: thinner tubes than the contour (Part 4)
+const lineK = ln => (ln.needle ? 1.5 : ln.thin ? THIN : 1);
 
 export function createNeon({ games: allGames = [], onContent = () => {} } = {}) {
   const games = allGames.filter(g => g.playable !== false).map(g => ({ ...g, short: signName(g) }));
@@ -54,7 +56,9 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       signs.push(buildSign(sp, g, { W, s, roofY }));
     }
     // the outlines, projected + cut (the far group and the near group: each against its own nearer buildings)
-    outs = outlines(L, new Set(spots.filter(sp => sp.kind !== 'icon').map(sp => sp.host))).map(o2 => ({ ...o2, st: STRENGTH[o2.strength] || STRENGTH.mid }));
+    const signRects = new Map();
+    for (const sp of spots) if (sp.kind !== 'icon' && sp.w) { if (!signRects.has(sp.host)) signRects.set(sp.host, []); signRects.get(sp.host).push(sp.w); }
+    outs = outlines(L, signRects).map(o2 => ({ ...o2, st: STRENGTH[o2.strength] || STRENGTH.mid }));
     glassFaces = [];
     cutOutlines();
     // the power items: the signs, the billboards, then each building's outline (the boot-up order: the neon plan's)
@@ -110,12 +114,12 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
         for (const ln of o2.lines) {
           const z0 = ln.pts[0][2];
           const pts = ln.pts.map(([x, y, z]) => project(cam, x, y, z ?? z0));
-          const tb = tube(pts, !!ln.closed, o2.st.w * (cam.F / 600) * (ln.needle ? 1.5 : 1), [false, false]);
+          const tb = tube(pts, !!ln.closed, o2.st.w * (cam.F / 600) * lineK(ln), [false, false]);
           // keep the runs above the envelope (what nearer buildings leave visible); the light of each point kept from the whole
           let run = null;
           tb.pts.forEach(([x, y], i) => {
             const xi = Math.round(x), vis = x >= -4 && x <= W + 4 && (xi < 0 || xi >= env.length || y < env[xi] - 0.4);
-            if (vis) { if (!run) { run = { pts: [], lv: [], role: ln.role, needle: !!ln.needle, block: ln.block }; runs.push(run); } run.pts.push([x, y]); run.lv.push(tb.lv[i]); }
+            if (vis) { if (!run) { run = { pts: [], lv: [], role: ln.role, needle: !!ln.needle, thin: !!ln.thin, block: ln.block }; runs.push(run); } run.pts.push([x, y]); run.lv.push(tb.lv[i]); }
             else run = null;
           });
         }
@@ -137,14 +141,14 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     else if (it.kind === 'board') { it.night = it.b.nightS; }
     else {
       const o2 = it.o, k = cam.F / 600;
-      const tubes = o2.runs.map(r => ({ pts: r.pts, lv: r.lv, closed: false, ends: [false, false], role: r.role, needle: r.needle }));
+      const tubes = o2.runs.map(r => ({ pts: r.pts, lv: r.lv, closed: false, ends: [false, false], role: r.role, needle: r.needle, thin: r.thin }));
       const byRole = new Map();
-      for (const t of tubes) { const kk = `${t.role}|${t.needle ? 1 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
+      for (const t of tubes) { const kk = `${t.role}|${t.needle ? 1 : t.thin ? 2 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
       const b = bbox(tubes), glow = o2.st.glow * k;
       it.lit = [sprite(b, glow * 2.6, dpr, x => {
         for (const [kk, ts] of byRole) {
           const [role, nd] = kk.split('|');
-          drawLit(x, ts, roleColour(role, scheme), { w: o2.st.w * k * (nd === '1' ? 1.5 : 1), glow: glow * (nd === '1' ? 1.6 : 1), a: o2.st.a, dpr });
+          drawLit(x, ts, roleColour(role, scheme), { w: o2.st.w * k * (nd === '1' ? 1.5 : nd === '2' ? THIN : 1), glow: glow * (nd === '1' ? 1.6 : nd === '2' ? 0.7 : 1), a: o2.st.a * (nd === '2' ? 0.85 : 1), dpr });
         }
       })];
       it.tubes = tubes;
@@ -187,11 +191,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     const ls = lines || o2.lines;
     if (!ls.length) return;
     const byRole = new Map();
-    for (const ln of ls) { const z0 = ln.pts[0][2]; const t = tube(ln.pts.map(([xx, y, z]) => project(cam, xx, y, z ?? z0)), false, w, [false, false]); const kk = `${ln.role}|${ln.needle ? 1 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
+    for (const ln of ls) { const z0 = ln.pts[0][2]; const t = tube(ln.pts.map(([xx, y, z]) => project(cam, xx, y, z ?? z0)), false, w, [false, false]); const kk = `${ln.role}|${ln.needle ? 1 : ln.thin ? 2 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
     for (const [kk, ts] of byRole) {
       const [role, nd] = kk.split('|');
       if (nd === '1') { x.strokeStyle = rgba(mix([30, 26, 40], [120, 116, 120], T.day + T.gold)); x.lineWidth = Math.max(0.4, w * 0.5); x.beginPath(); for (const t of ts) { x.moveTo(t.pts[0][0] + w * 0.6, t.pts[0][1]); x.lineTo(t.pts.at(-1)[0] + w * 0.6, t.pts.at(-1)[1]); } x.stroke(); }
-      drawGlass(x, ts, roleColour(role, scheme), T, { w: w * (nd === '1' ? 1.5 : 1), clipEvery: 30, faint: true });
+      drawGlass(x, ts, roleColour(role, scheme), T, { w: w * (nd === '1' ? 1.5 : nd === '2' ? THIN : 1), clipEvery: 30, faint: true });
     }
   }
 

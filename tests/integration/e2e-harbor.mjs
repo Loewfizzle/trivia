@@ -173,7 +173,7 @@ try {
     ok(sigs === h.neon.items, `THE NEON PLAN: one power state per sign + outline (${sigs} of ${h.neon.items})`);
     const scroll = await ev(N.page, "(() => { const hb = window.__district.harbor(); const okk = hb.spell('HAPPY BIRTHDAY SAMANTHA', { style: 'scroll' }); return okk && window.__district.harbor().windows.spelling; })()");
     ok(scroll && scroll.style === 'scroll' && scroll.towers[0] === 'wordA', `THE SCROLL: a long message tickers across ${scroll && scroll.towers}`);
-    await ev(N.page, "window.__district.harbor().moment('flash', { game: 'pulse' }), window.__district.harbor().billboard('bb-right', { game: 'rum' })");
+    await ev(N.page, "window.__district.harbor().moment('flash', { game: 'pulse' }), window.__district.harbor().billboard('bb-left', { game: 'rum' })");
     await sleep(300);
     const h2 = await ev(N.page, 'window.__district.harbor()');
     ok(h2.neon.moment.flash && h2.neon.boards[0].show === 'RUMRUNNER', `MOMENTS + BILLBOARDS: a game's flash sweeps the skyline; a billboard shows ${h2.neon.boards[0].show}`);
@@ -186,6 +186,48 @@ try {
     await sleep(3000);
     const h = await ev(D.page, 'window.__district.harbor()');
     ok(h.neon.signs.every(s => !s.on), 'BY DAY: the neon is off (the signs + outlines as unlit glass)');
+    await D.ctx.close();
+  }
+
+  // ================================================================ 3d. Part 4: the water — the mirror, the light columns, the wind, the paths
+  { const N = await open({ slot: 'hw', qs: `${NIGHT}&wind=0.5` });
+    await harborUp(N.page);
+    await waitFor(N.page, 'window.__district.harbor().neon.signs.every(s => s.on)', 'the neon on', 15000);
+    await sleep(800);
+    const h = await ev(N.page, 'window.__district.harbor()');
+    ok(h.water.strips > 30 && h.water.copies > 0, `THE WATER: the mirror rippled row by row (${h.water.strips} rows), the lights' columns at night (${h.water.copies} copies)`);
+    ok(h.water.rough < 0.05, `A CALM NIGHT (wind 0.5 m/s): a glassy mirror (roughness ${h.water.rough})`);
+    // the HOTEL's red neon shows in the water below it (its mirror image: as far under the waterline as the sign is above it)
+    const hot = h.neon.signs.find(s => s.id === 'hotel');
+    const red = await ev(N.page, `(() => { const cv = document.querySelector('canvas'), x = cv.getContext('2d'), k = cv.width / innerWidth, y0 = ${h.water.y0}, y1 = ${h.water.y1};
+      const cx = ${hot.rect.x + hot.rect.w / 2}, my = Math.min(y1 - 4, 2 * y0 - (${hot.rect.y + hot.rect.h * 0.8}));
+      let best = 0; for (let dx = -4; dx <= 4; dx += 2) for (let dy = -8; dy <= 8; dy += 2) { const d = x.getImageData((cx + dx) * k, (my + dy) * k, 1, 1).data; best = Math.max(best, d[0] - Math.max(d[1], d[2]) * 0.5); }
+      return best; })()`);
+    ok(red > 40, `THE NEON IN THE WATER: the HOTEL's red mirrored under it (red excess ${Math.round(red)})`);
+    ok(await ev(N.page, "['reflect', 'light', 'wake', 'set'].every(k => typeof window.__district.harbor().water[k] === 'function')"), 'THE HOOKS: reflect (boats, Part 5), light (fireworks, Part 10), wake (Part 5), set (rain + fog, Part 9)');
+    ok(h.mem.mb + h.neon.mb <= h.mem.budget, `MEMORY (the water): ${h.mem.layers.find(l => /mirror/.test(l.name)).mb} MB in the ${h.mem.mb} MB of layers + the neon ${h.neon.mb} MB ≤ ${h.mem.budget}`);
+    await ev(N.page, 'window.__district.setTier(0)'); await sleep(2500);
+    const h0 = await ev(N.page, 'window.__district.harbor()');
+    ok(h0.water.tier === 0 && h0.water.strips > 0, `TIER 0: the calm baked mirror (${h0.water.strips} rows, re-drawn once a second)`);
+    if (SHOTS) await N.page.screenshot({ path: `${OUT}part4-water-calm-390x844.png` });
+    await N.ctx.close();
+  }
+  { const N = await open({ slot: 'hx', qs: `${NIGHT}&wind=13` });
+    await harborUp(N.page); await sleep(1500);
+    const h = await ev(N.page, 'window.__district.harbor()');
+    ok(h.water.rough > 0.85 && h.water.copies >= 8, `A WINDY NIGHT (13 m/s): choppy (roughness ${h.water.rough}), longer broken columns (${h.water.copies} copies)`);
+    if (SHOTS) await N.page.screenshot({ path: `${OUT}part4-water-windy-390x844.png` });
+    await N.ctx.close();
+  }
+  { const G = await open({ slot: 'hy', qs: `when=2026-10-20T18:30${GR}&wind=3` });
+    await harborUp(G.page); await sleep(1500);
+    const g = await ev(G.page, 'window.__district.harbor().water');
+    ok(/sun/.test(g.paths), `GOLDEN HOUR: the sun's gold path on the water (${g.paths})`);
+    await G.ctx.close();
+    const D = await open({ slot: 'hz', qs: `when=2026-10-21T13:00${GR}` });
+    await harborUp(D.page); await sleep(1500);
+    const d = await ev(D.page, 'window.__district.harbor().water');
+    ok(/glints/.test(d.paths) && d.copies === 0, `BY DAY: sun glints on the water, no light columns (${d.paths}; ${d.copies} copies)`);
     await D.ctx.close();
   }
 
