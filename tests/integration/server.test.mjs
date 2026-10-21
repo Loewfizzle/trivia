@@ -553,7 +553,8 @@ test('sky: weather for the visitor\'s rounded area, cached 15 minutes, nothing w
 test('sky: when the rain really stopped (RAINBOWS) — the past quarter hours, never the forecast', async () => {
   clearSkyCache();
   await ref('wx').remove();
-  const now = Date.now(), q = Math.floor(now / 900_000) * 900;
+  // (5 minutes into a quarter hour: within a minute of the next one, wetAtOf's grace counts it as past — a flake in CI, Oct 21 2026)
+  const now = Math.floor(Date.now() / 900_000) * 900_000 + 300_000, q = Math.floor(now / 900_000) * 900;
   const times = [-7, -6, -5, -4, -3, -2, -1, 0, 1].map(i => q + i * 900);
   let url = '';
   const fetcher = async u => { url = u; return { ok: true, json: async () => ({ current: { weather_code: 1, cloud_cover: 30 }, minutely_15: { time: times, precipitation: [0, 0, 0.4, 1.2, 0.6, 0.2, 0, 0, 3] } }) }; };
