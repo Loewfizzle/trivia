@@ -38,10 +38,12 @@ export function signalSteps(L, T) {
   });
 }
 
-/** the traffic: the bus (~110 pt) and the cars (~55 pt), far lane first */
-export function drawTraffic(c, L, T) {
+/** the traffic: the bus (~110 pt) and the cars (~55 pt), far lane first. density (fs.density.road): a heavy event elsewhere
+ *  thins the road to that share of its vehicles (the bus stays) */
+export function drawTraffic(c, L, T, density = 1) {
   const cam = L.cam, night = T.night > 0.5;
-  const vs = [{ ...L.bus, bus: true }, ...L.cars].sort((a, b) => b.z - a.z);
+  const cars = density >= 1 ? L.cars : L.cars.slice(0, Math.floor(L.cars.length * density));
+  const vs = [{ ...L.bus, bus: true }, ...cars].sort((a, b) => b.z - a.z);
   for (const v of vs) {
     if (Math.abs(v.x) > cam.hw(v.z) + v.len) continue;
     vehicle(c, cam, v, v.bus ? T.bus : v.id === 'suv' ? shade(T.car, -0.3) : T.car, { bus: !!v.bus, win: night ? [255, 220, 160] : shade(T.glass, 0.2), cabin: v.bus ? 0 : 0.55 });

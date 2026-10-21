@@ -20,8 +20,8 @@ import { createFireworks } from '../district/fireworks.js';
 import { createRainbow } from '../district/rainbow.js';
 import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, partyPalette, partySeed } from '../../core/party.js';
 import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainbow.js';
-import { cameraFor, harborLayout, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
-import { schedule, HARBOR_EVENTS } from '../../core/harbor-events.js';
+import { cameraFor, harborLayout, laneRects, roofline, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
+import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core/harbor-events.js';
 import { settings } from '../../audio/settings.js';
 import { reportError } from '../../errlog.js';
 import { createBaker } from './bake.js';
@@ -90,7 +90,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const wxNow = () => clock.wx || (clock.preview ? null : liveWeather());
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
   let P = paletteFor(LK), skyKey = '', lookAt = 0, TW = toneWeights(LK);
-  let events = { active: [], quiet: [] }, eventsAt = 0;
+  let events = { active: [], quiet: [] }, eventsAt = 0, sched = null, density = densityOf([]);
 
   // ------------------------------------------------------------------ the camera + the layout + the bake plan
   function rects() {
@@ -98,7 +98,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const tag = tr && tr.tag && tr.tag.h > 0 ? tr.tag : null;
     // the dock: the lowest wide clear zone the title reports (.nd-actions)
     const dock = (S.clear || []).filter(r => r.y > H * 0.5 && r.w > 120).sort((a, b) => b.y - a.y)[0] || null;
-    return { tag, dock };
+    // the corner buttons (☰ + music): the small clear zones up in the right corner, as one rect (the lanes keep clear)
+    const cb = (S.clear || []).filter(r => r.w < 70 && r.h < 70 && r.x > W * 0.6 && r.y < H * 0.4);
+    const corner = cb.length ? cb.reduce((a, r) => { const x = Math.min(a.x, r.x), y = Math.min(a.y, r.y); return { x, y, w: Math.max(a.x + a.w, r.x + r.w) - x, h: Math.max(a.y + a.h, r.y + r.h) - y }; }) : null;
+    return { tag, dock, neon: tr && tr.neon ? tr.neon : null, word: tr && tr.word ? tr.word : null, corner };
   }
   function build() {
     const r = canvas.getBoundingClientRect();
@@ -114,11 +117,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     L = harborLayout(cam, seed);
     HZ = Math.round(groundY(cam, Z.quay));
     // the roofline (the highest roof over every 4 pt): the sun fits its arch to it, the planes keep above it
-    skyline = new Float32Array(Math.ceil(W / 4) + 1).fill(HZ);
-    for (const b of screenBoxes(L)) if (b.kind === 'sky') {
-      const a = Math.max(0, Math.floor(b.x / 4)), e = Math.min(skyline.length - 1, Math.ceil((b.x + b.w) / 4));
-      for (let i = a; i <= e; i++) if (b.y < skyline[i]) skyline[i] = b.y;
-    }
+    skyline = roofline(L);
     // the baked layers' bands (pt)
     const s = L.speakeasy, w = L.wheel, l = L.lighthouse;
     const yOf = (y, z) => project(cam, 0, y, z)[1];
@@ -140,9 +139,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (vignette) vignette.width = vignette.height = 0;
     vignette = makeVignette(W, H);
     if (!glow) glow = radial('255,214,150');
-    rebake();
+    // the stale layers keep showing until this bake lands; during a crossfade it waits (its source is the canvas a bake draws into)
+    if (fadeFrom >= 0) wantBake = true; else rebake();
   }
   function rebake() {
+    wantBake = false;
     const T = tones(TW);
     baker.start(`${toneKey(TW)}|${camSig}`, {
       far: [...farSteps(L, T), ...midSteps(L, T)],
@@ -154,7 +155,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     });
     bakeTones = T;
   }
-  let bakeTones = null, liveTones = null;
+  let bakeTones = null, liveTones = null, wantBake = false;
   const sigGlow = [];
   function radial(col) {
     const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -167,12 +168,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function refreshLook(now) {
     if (now - lookAt < ((clock.speed || 1) > 1 ? 250 : 2500) && skyKey) return;
     lookAt = now;
-    LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
+    const ms = clock.now();
+    LK = skyLook(ms, clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
     P = paletteFor(LK);
     TW = toneWeights(LK);
+    // THE SCHEDULER: made once, anchored at the local midnight a day back and replayed to now; then only new slots are decided
+    if (!sched) sched = createScheduler(HARBOR_EVENTS, t => ({ ms: t, force: clock.force }), { seed, forced: clock.force.has('demo') ? ['demo'] : [], anchor: anchorFor(ms, LK.local) });
     if (LK.key !== skyKey) { skyKey = LK.key; paintSky(skyCv, W, HZ, dpr, P); }
     const k = `${toneKey(TW)}|${camSig}`;
-    if (L && k !== baker.key && !(baker.pending)) rebake();
+    // (never during a crossfade: its source is the canvas the next bake draws into)
+    if (L && k !== baker.key && !baker.pending && fadeFrom < 0) rebake();
   }
 
   // where a body in the sky (azimuth, elevation) appears: facing south, east on the left, the horizon at the quay
@@ -246,14 +251,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     nowT = t;
     // bake a little of the next look (never more than a few ms a frame)
     if (baker.pump(shownAt < 0 ? TIERS[tier].bakeMs + 2 : TIERS[tier].bakeMs)) {
-      if (shownAt < 0) shownAt = now; else fadeFrom = now;
+      if (shownAt < 0) { shownAt = now; baker.settle(); } else fadeFrom = now;   // (the first bake has no fade: its spare canvases settle at once)
       liveTones = bakeTones;
       if (DEBUG) console.info('[harbor] baked', baker.key, `${baker.busyMs.toFixed(1)} ms in total`, baker.mem());
     }
     const lit = S.lit, night = P.dark;
     partyTick(t, dt, lit);
-    if (now - eventsAt > 500) { eventsAt = now; events = schedule(HARBOR_EVENTS, clock.now(), ms => ({ ms, force: clock.force, night: night > 0.5 }), { seed, forced: clock.force.has('demo') ? ['demo'] : [] }); }
-    const fs = { now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
+    if (sched && now - eventsAt > 500) { eventsAt = now; events = sched.at(clock.now()); density = densityOf(events.quiet); }
+    // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
+    const fs = { density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, skyPos, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // ---- the sky
     c.globalAlpha = 1;
@@ -278,14 +284,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // ---- the city: the baked layers, far → near, with the moving things between them
     const fadeIn = shownAt < 0 ? 0 : smooth(0, 700, now - shownAt);
     const xf = fadeFrom < 0 ? 1 : smooth(0, 1200, now - fadeFrom);
-    if (xf >= 1) fadeFrom = -1;
+    if (xf >= 1 && fadeFrom >= 0) { fadeFrom = -1; if (!baker.pending) baker.settle(); }
+    if (wantBake && fadeFrom < 0) { wantBake = false; rebake(); }
     const T = liveTones || tones(TW);
+    // a layer: its current canvas in the band it was baked for (a re-layout keeps drawing the stale one there — stretched into
+    // the new band after a resize or a tier change — until the new bake swaps in; then the crossfade from the old one)
     const layer = name => {
       const g = baker.group(name);
       if (!g || !g.ready || fadeIn <= 0) return;
-      if (xf < 1) { c.globalAlpha = fadeIn; c.drawImage(g.next, 0, g.y0, W, g.h); c.globalAlpha = fadeIn * xf; }
+      if (xf < 1 && g.prev) { c.globalAlpha = fadeIn; c.drawImage(g.next, 0, g.prev.y0, W, g.prev.h); c.globalAlpha = fadeIn * xf; }
       else c.globalAlpha = fadeIn;
-      c.drawImage(g.cur, 0, g.y0, W, g.h);
+      c.drawImage(g.cur, 0, g.show.y0, W, g.show.h);
       c.globalAlpha = 1;
     };
     layer('far');
@@ -298,7 +307,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wfx.fogLayer(c, fs, 3, t);
     if (fadeIn > 0) { c.globalAlpha = fadeIn; drawBoats(c, L, T); c.globalAlpha = 1; }
     layer('road');
-    if (fadeIn > 0 && !off.has('no-road')) { c.globalAlpha = fadeIn; drawTraffic(c, L, T); c.globalAlpha = 1; }
+    if (fadeIn > 0 && !off.has('no-road')) { c.globalAlpha = fadeIn; drawTraffic(c, L, T, density.road); c.globalAlpha = 1; }
     layer('stage');
     if (fadeIn > 0 && !off.has('no-people')) { c.globalAlpha = fadeIn; drawPeople(c, L, T); c.globalAlpha = 1; }
     // ---- the lights (every frame): the lamps' light on the promenade, the knock's warm flash at the door
@@ -330,9 +339,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function drawEvents(c, where) {
     for (const e of events.active) {
       if (e.id !== 'demo' || where !== 'sky') continue;
-      const x = W * (0.1 + 0.8 * e.k), y = (cam.limitY + (S.textRects && S.textRects.tag ? S.textRects.tag.y + 20 : cam.limitY - 40)) / 2 + 40;
+      const ln = L.lanes['sky-low'], x = ln.x + ln.w * (0.1 + 0.8 * e.k), y = ln.y + ln.h / 2;
       c.fillStyle = 'rgba(255,190,90,0.95)'; c.beginPath(); c.arc(x, y, 5, 0, Math.PI * 2); c.fill();
-      c.font = '600 9px "Chakra Petch", system-ui, sans-serif'; c.fillText(`EVENT demo · lane sky · ${Math.round(e.k * 100)}%`, Math.min(W - 150, x + 9), y + 3);
+      c.font = '600 9px "Chakra Petch", system-ui, sans-serif'; c.fillText(`EVENT demo · lane sky-low · ${Math.round(e.k * 100)}%`, Math.min(W - 150, x + 9), y + 3);
     }
   }
 
@@ -347,7 +356,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function setTier(t) { tier = Math.max(0, Math.min(2, t)); build(); }
 
   const onVis = () => { if (document.visibilityState === 'visible') start(); else stop(); };
-  let resizeT = 0, relayT = 0;
+  let resizeT = 0, relayT = 0, laneKey = '';
   const onResize = () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (!destroyed) build(); }, 180); };
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('resize', onResize);
@@ -358,7 +367,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!cam) return;
     const rr = rects();
     const moved = (rr.dock && Math.abs(rr.dock.y - cam.dock.y) > 1) || (rr.tag && Math.abs(rr.tag.y + rr.tag.h + 10 - cam.limitY) > 1);
-    if (moved) { clearTimeout(relayT); relayT = setTimeout(() => { if (!destroyed) layout(); }, 60); }
+    if (moved) { clearTimeout(relayT); relayT = setTimeout(() => { if (!destroyed) layout(); }, 60); return; }
+    // the sign or the corner buttons moved, the city didn't: only the lanes follow (no bake)
+    const sig = r => (r ? `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}` : '-');
+    const lk = [rr.neon, rr.word, rr.corner].map(sig).join('|');
+    if (lk !== laneKey) { laneKey = lk; if (rr.neon) cam.neon = rr.neon; if (rr.word) cam.word = rr.word; if (rr.corner) cam.corner = rr.corner; L.lanes = laneRects(L); }
   }
 
   build();
@@ -401,7 +414,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     door: () => (L ? { ...L.door, rect: { ...L.door.rect } } : null),
     rainbow: () => ({ ...bow.debug(), target: bowT ? { day: +bowT.day.toFixed(3), moon: +bowT.moon.toFixed(3), neon: +bowT.neon.toFixed(3), secondary: bowT.secondary, wet: bowT.wet || null, env: bowT.env ?? null, forced: bowT.forced || null } : null, sunAt: null }),
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
-    harbor: () => (L ? { cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock }, squeeze: L.squeeze, boxes: screenBoxes(L), door: L.door, mem: baker.mem(), main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
+    harbor: () => (L ? { cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock }, squeeze: L.squeeze, boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0, mem: baker.mem(), main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: [], changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: birds.debug(), road: {}, air: air.debug(), sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: baker.mem(), bakes: baker.bakes }),
     destroy() {
       destroyed = true;

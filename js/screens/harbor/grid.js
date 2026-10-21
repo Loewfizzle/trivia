@@ -31,12 +31,17 @@ export function drawGrid(c, L, S, roof, sunNow) {
   if (sunNow && sunNow.vis > 0) { c.strokeStyle = 'rgba(255,210,90,1)'; c.beginPath(); c.arc(sunNow.x, sunNow.y, sunNow.r + 4, 0, Math.PI * 2); c.stroke(); }
   c.fillStyle = 'rgba(255,210,90,0.22)';
   for (const g of L.gaps) c.fillRect(g.sx - g.w / 2, cam.limitY, g.w, groundY(cam, Z.quay) - cam.limitY);
-  // the lanes: sky, skyline, water, road, promenade (+ windows and rooftop on the speakeasy)
-  const bands = [['sky', cam.safeTop, cam.limitY], ['skyline', cam.limitY, groundY(cam, Z.quay)], ['water', groundY(cam, Z.quay), groundY(cam, Z.rail)], ['road', groundY(cam, Z.rail), groundY(cam, Z.road[0])], ['promenade', groundY(cam, Z.road[0]), cam.dock.y]];
-  bands.forEach(([n, y0, y1], i) => { c.fillStyle = `hsla(${i * 64},90%,60%,0.9)`; c.fillRect(W - 6, y0, 6, y1 - y0); c.save(); c.translate(W - 8, y0 + 4); c.rotate(Math.PI / 2); c.fillText(n.toUpperCase(), 0, 0); c.restore(); });
-  const s = L.speakeasy, [wx0, wy0] = project(cam, s.x0, s.h, s.z0), [wx1, wy1] = project(cam, s.x1, 3.9, s.z0);
-  c.strokeStyle = 'hsla(300,90%,70%,0.9)'; c.strokeRect(wx0, wy0, wx1 - wx0, wy1 - wy0); c.fillStyle = 'hsla(300,90%,70%,1)'; c.fillText('WINDOWS', Math.max(2, wx0 + 30), wy0 + 4);
-  const [rx0, ry] = project(cam, s.x0, s.h + 4.6, s.z0 + 2); c.fillText('ROOFTOP', Math.max(2, rx0 + 30), ry);
+  // the lanes (core/harbor-layout.js#laneRects): each one's rect, dashed, its name on the right (they overlap where a lane's
+  // things stand in front of the next: the water's boats over the skyline's feet, the parade's floats over the road)
+  c.setLineDash([5, 3]); c.lineWidth = 1;
+  Object.entries(L.lanes || {}).forEach(([n, r], i) => {
+    const col = `hsla(${(i * 47 + 170) % 360},90%,65%,`;
+    c.fillStyle = col + '0.07)'; c.fillRect(r.x, r.y, r.w, r.h);
+    c.strokeStyle = col + '0.95)'; c.strokeRect(r.x + 0.5 + i % 3, r.y + 0.5, r.w - 1 - 2 * (i % 3), r.h - 1);
+    c.fillStyle = col + '1)'; const tw = c.measureText(n.toUpperCase()).width; c.fillText(n.toUpperCase(), Math.max(r.x + 3, r.x + r.w - tw - 8), n === 'sky-low' ? r.y + r.h - 12 : r.y + 3);   // (sky-low's name at its foot: its top meets the skyline's)
+    if (r.y0NoTag != null) { c.beginPath(); c.moveTo(r.x, r.y0NoTag); c.lineTo(r.x + r.w, r.y0NoTag); c.stroke(); }
+  });
+  c.setLineDash([]);
   // size checks on the stage: a 20 pt person at z 47, a 110 pt bus at z 60 (outlines at the exact reference sizes)
   const chk = (u, hU, z, x, label) => { const [a, y0] = project(cam, x, hU, z), [b, y1] = project(cam, x + u, 0, z); c.strokeStyle = 'rgba(120,255,140,1)'; c.lineWidth = 1; c.strokeRect(a, y0, b - a, y1 - y0); c.fillStyle = 'rgba(120,255,140,1)'; c.fillText(`${label} ${Math.round(y1 - y0)}×${Math.round(b - a)} pt`, a, y1 + 2); };
   const p = units('person'), bus = units('bus');

@@ -54,6 +54,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 - ✅ LIVING CITY (Oct 2026)
 - ✅ MOOD MUSIC (Oct 2026)
 - ✅ CITY 2.0 — THE HARBOR, Part 1 of 12: foundation + blockout (Oct 20, 2026): behind `?city=2`; the camera, the layout, baking + the memory budget, lanes + events, the grey box — `docs/harbor.md` (rollback tag `city-1.0`)
+- ✅ CITY 2.0 — THE HARBOR, Part 1.5: foundation fixes (Oct 21, 2026): the scheduler as state, re-layouts never blank, lane rects + density, landmark tiers, `city=2` kept in the URL — `docs/harbor.md`
 - ✅ THE STREET, Part 2: THE PEOPLE (Oct 21, 2026): the speakeasy's door (knock → JOIN), pedestrians + umbrellas, the cab hail, spray, the small hours' windows, holiday figures — `docs/title.md`
 - ✅ JOIN / HOST follow the sign (Oct 21, 2026): unlit glass by day, lit from the catch to the morning goodbye — `docs/title.md`
 - ✅ THE STREET, Part 1 (Oct 20, 2026): lamps + paired seasonal trees, buses, a stop light, car variety, snowplows, golden-hour shadows, the street's party night — `docs/title.md`

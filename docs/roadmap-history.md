@@ -347,6 +347,21 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   hidden tab), `title-perf.mjs` (both cities, any scene, per tier); `shots.mjs --city 2 --safe --sizes harbor --crop stage` +
   party / snow scenes. Reviewed: six scenes × six sizes, two refine passes.
 
+### ✅ CITY 2.0 — THE HARBOR, Part 1.5: foundation fixes (Oct 21, 2026) — `docs/harbor.md`
+- Plumbing only, behind `?city=2`: review findings 2, 3, 6, 7, 8 fixed (1, 4, 5 → Part 2). No new visuals except the `&grid=1`
+  lane rects; every Part 1 number and size kept.
+- The scheduler is state (`createScheduler`): replayed once from the local midnight a day back, then advanced one slot at a time
+  — the past is never re-decided, so a long event can't pop in mid-flight or vanish (the sliding window did, 5217 / 9000 samples
+  in the review's contended case).
+- A re-layout (tier step, resize, the sign's rects moving) never blanks the city: the stale baked layer keeps drawing (stretched
+  after a size change) until the new bake swaps in and crossfades; bakes wait for a running crossfade.
+- Lanes are places: `laneRects` (sky-high / sky-low split, water, road, promenade, the speakeasy's windows + rooftop), tested
+  clear of the sign, the corner buttons and the dock at six sizes; a heavy event's `quiet` reaches the planes, birds, swifts and
+  cars as `fs.density`.
+- The landmark tiers are projected in the world (`y0` through `box()`); `city=2` survives `setUrlRoom` (refresh / rejoin).
+- Tests: `tests/harbor.test.mjs` 27, `e2e-harbor.mjs` 20 (+ lanes vs the real sign, `setTier(1)` never blanks the stage, the URL
+  keeps the flag); the default city's title `dock` + `flow` groups pass.
+
 ### ✅ THE STREET, Part 2: THE PEOPLE (Oct 21, 2026) — `docs/title.md`
 - [x] The speakeasy's door (sconce, peephole, neon glass, doorman), visits, the resting hint, the party line + velvet rope
 - [x] KNOCK on the door → JOIN (a real way in), never over the dock or the city's other taps

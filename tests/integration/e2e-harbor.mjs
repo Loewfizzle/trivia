@@ -77,6 +77,39 @@ try {
   await A.page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await sleep(800);
 
+  // ================================================================ 1b. the lanes (real rects); a re-layout never blanks the city
+  { const h1 = await ev(A.page, 'window.__district.harbor()'), sc = await ev(A.page, 'window.__district.scene()');
+    const tr = sc.textRects || {}, corners = (sc.clear || []).filter(r => r.w < 70 && r.h < 70);
+    const hit = Object.entries(h1.lanes).filter(([, r]) => [tr.neon, tr.word, tr.tag, ...corners].some(z => z && r.x < z.x + z.w && z.x < r.x + r.w && r.y < z.y + z.h && z.y < r.y + r.h)).map(([n]) => n);
+    ok(!!tr.neon && hit.length === 0 && h1.lanes['sky-high'].h >= 40 && h1.lanes['sky-low'].h >= 24, `LANES: ${Object.keys(h1.lanes).length} lane rects, clear of the real sign + corner buttons (sky-high ${Math.round(h1.lanes['sky-high'].h)} pt, sky-low ${Math.round(h1.lanes['sky-low'].h)} pt${hit.length ? `; over: ${hit}` : ''})`); }
+  { const D = await open({ slot: 'hd', qs: `when=2026-10-21T13:00${GR}` });
+    await harborUp(D.page);
+    await waitFor(D.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 15000);
+    // every frame from just before setTier(1) until the new bake has landed and faded: the speakeasy's wall (stage band) and
+    // the bottom of the sky, sampled after the scene drew
+    const run = await ev(D.page, `new Promise(res => {
+      const cv = document.querySelector('.nd-scene canvas'), d = window.__district.door(), hb = window.__district.harbor();
+      const f = d.w / 1.5, px = d.x - 6.3 * f, py = d.y - 1.5 * f, sy = hb.cam.VPY - 30;
+      const x = cv.getContext('2d');
+      const read = (X, Y) => { const k = cv.width / cv.clientWidth; return Array.from(x.getImageData(Math.round(X * k), Math.round(Y * k), 1, 1).data).slice(0, 3); };
+      const before = read(px, py), sky = read(4, sy), out = [];
+      let n = 0, sawPending = false;
+      const bakes0 = hb.bakes;
+      const tick = () => {
+        out.push(read(px, py)); n++;
+        if (n === 3) window.__district.setTier(1);
+        const h = window.__district.harbor();
+        if (n >= 3 && h.pending) sawPending = true;
+        if ((n > 6 && h.bakes > bakes0 && !h.pending && !h.fading) || n > 900) return res({ before, sky, out, n, sawPending, baked: h.bakes > bakes0 && !h.pending, tier: window.__district.scene().tier });
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    })`);
+    const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    const worst = Math.max(...run.out.map(p => dist(p, run.before))), nearSky = run.out.filter(p => dist(p, run.sky) < 12).length, black = run.out.filter(p => p[0] + p[1] + p[2] < 24).length;
+    ok(run.baked && run.tier <= 1 && worst < 60 && !nearSky && !black, `RE-LAYOUT: setTier(1) mid-session (then t${run.tier}: the per-frame reads slow it, so the scene may step down again) — over ${run.n} frames (bake + crossfade) the stage-band pixel never went blank (worst Δ ${Math.round(worst)} from rgb(${run.before}); bare sky ${nearSky}×, black ${black}×)`);
+    await D.ctx.close(); }
+
   // ================================================================ 2. the flag is never saved; a normal visit is today's city
   const stored = await ev(A.page, `JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }) + document.cookie`);
   ok(!/city/i.test(stored), 'NEVER SAVED: ?city=2 leaves nothing in localStorage, sessionStorage or cookies');
@@ -109,6 +142,10 @@ try {
   await waitFor(H.page, '!!window.__arcade.state.code && !!document.querySelector(".lobby-screen")', 'lobby after HOST', 20000);
   const code = await ev(H.page, 'window.__arcade.state.code');
   ok(!!code, `HOST (city 2): one tap opens room ${code}`);
+  ok(/[?&]city=2(&|$)/.test(await ev(H.page, 'location.search')) && /room=/.test(await ev(H.page, 'location.search')), `THE FLAG IN THE URL: the room's address keeps city=2 (${await ev(H.page, 'location.search')})`);
+  await H.page.reload();
+  await waitFor(H.page, '!!window.__arcade && window.__arcade.state.code === ' + JSON.stringify(code), 'rejoin after a refresh', 20000);
+  ok(/[?&]city=2(&|$)/.test(await ev(H.page, 'location.search')), 'THE FLAG IN THE URL: a refresh in the lobby rejoins and stays on city=2');
   const B = await open({ slot: 'hb', qs: NIGHT, view: [402, 874] });
   await harborUp(B.page);
   const door = await ev(B.page, 'window.__district.door()');
@@ -141,7 +178,7 @@ try {
   writeFileSync(`${OUT}perf.json`, JSON.stringify(perf, null, 1));
   ok(perf.every(p => p.cost <= BUDGET_MS && p.p50 <= 18), `PERF (city 2, party peak, ${CPU}× CPU): scene work ${perf.map(p => `t${p.tier}: ${p.cost} ms/frame, p50 ${p.p50}`).join(' · ')} (budget ${BUDGET_MS} ms)`);
   await setTierBack();
-  async function setTierBack() { await ev(Q.page, 'window.__district.setTier(2)'); await waitFor(Q.page, '!window.__district.harbor().pending', 're-bake', 15000); }
+  async function setTierBack() { await ev(Q.page, 'window.__district.setTier(2)'); await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 're-bake', 15000); }
   const mem0 = (await ev(Q.page, 'window.__district.harbor()')).mem.mb;
   await cdp.send('HeapProfiler.collectGarbage');
   const q0 = (await cdp.send('Runtime.getHeapUsage')).usedSize;
@@ -153,6 +190,7 @@ try {
   }
   await waitFor(Q.page, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'back on the title', 15000);
   await sleep(800);
+  await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled (the memory is read between crossfades)', 15000);
   await cdp.send('HeapProfiler.collectGarbage');
   const q1 = (await cdp.send('Runtime.getHeapUsage')).usedSize;
   const mem1 = (await ev(Q.page, 'window.__district.harbor()')).mem.mb;

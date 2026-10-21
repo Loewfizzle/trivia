@@ -161,8 +161,10 @@ export function createWildlife() {
       const sec = dt / 1000;
       if (!motion) return;
       const ink = inks(L, P);
+      // (City 2.0: fs.density — while a heavy event runs in another lane, no new flocks start in a quiet sky)
+      const calm = !s.density || Math.min(s.density['sky-high'], s.density['sky-low']) >= 1;
       // geese
-      if (!geese && ((force.has('geese') && !s.geeseDone) || (migrating(L) && !rough(L) && (nextGeese -= sec) <= 0))) {
+      if (!geese && ((force.has('geese') && !s.geeseDone) || (calm && migrating(L) && !rough(L) && (nextGeese -= sec) <= 0))) {
         s.geeseDone = true; nextGeese = 160 + Math.random() * 260;
         geese = newGeese(L, force.has('geese'));
       }
@@ -190,7 +192,7 @@ export function createWildlife() {
       }
       // the heron: a slow crossing near the moon (spring to autumn nights)
       const m = month(L), warm = m >= 4 && m <= 10;
-      if (!heron && ((force.has('heron') && !s.heronDone) || (warm && ink.dark > 0.6 && s.moonAt && !rough(L) && (nextHeron -= sec) <= 0))) {
+      if (!heron && ((force.has('heron') && !s.heronDone) || (calm && warm && ink.dark > 0.6 && s.moonAt && !rough(L) && (nextHeron -= sec) <= 0))) {
         s.heronDone = true; nextHeron = 700 + Math.random() * 900;
         const mo = s.moonAt || { x: W * 0.6, y: HZ * 0.2, r: 20 };
         const dir = Math.random() < 0.5 ? 1 : -1;
@@ -213,7 +215,7 @@ export function createWildlife() {
       const sec = dt / 1000;
       const evening = L.w.golden + L.w.dawn * 0.4 + (L.w.night > 0.2 && L.w.night < 0.7 ? 0.4 : 0);
       const summer = (L.season.summer || 0) > 0.45;
-      if (!swifts && ((force.has('swifts') && !s.swiftsDone) || (summer && evening > 0.3 && !L.rain && (nextSwifts -= sec) <= 0))) {
+      if (!swifts && ((force.has('swifts') && !s.swiftsDone) || ((!s.density || s.density.skyline >= 1) && summer && evening > 0.3 && !L.rain && (nextSwifts -= sec) <= 0))) {
         s.swiftsDone = true; nextSwifts = 90 + Math.random() * 150;
         const n = 5 + Math.floor(Math.random() * 6), dir = Math.random() < 0.5 ? 1 : -1;
         swifts = { k: 0, dur: 16 + Math.random() * 8, dir, y: HZ * (0.42 + Math.random() * 0.16), birds: Array.from({ length: n }, () => ({ a: Math.random() * 3, b: Math.random() * TAU, r: 30 + Math.random() * 70, fq: 0.8 + Math.random() * 0.9, ph: Math.random() * TAU })) };

@@ -71,6 +71,7 @@ export function setUrlRoom(code) {
   if (slot !== '1') p.set('slot', slot);
   if (useEmulator) p.set('emu', '');
   if (params.has('pdperf')) p.set('pdperf', ''); // PRISM DROP's on-screen performance readout
+  if (params.get('city') === '2') p.set('city', '2'); // CITY 2.0 (dev flag): a refresh / rejoin stays on the Harbor; never saved
   const qs = p.toString();
   history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : ''));
 }

@@ -18,12 +18,7 @@ export function tiersOf(t) {
 export function landmarkSteps(L, T) {
   const cam = L.cam;
   return [...L.landmarks].sort((a, b) => b.z0 - a.z0).map(t => x => {
-    for (const tr of tiersOf(t)) {
-      // a tier stands on the one below: drawn as a box lifted by y0 (its crown on top of the whole tower)
-      x.save();
-      x.translate(0, -cam.F * tr.y0 / tr.z0);
-      skyBlock(x, cam, { ...tr, h: tr.h }, T, 'landmark');
-      x.restore();
-    }
+    // a tier stands on the one below: a box from y0 to y0 + h, projected in the world (its side faces lean correctly)
+    for (const tr of tiersOf(t)) skyBlock(x, cam, tr, T, 'landmark');
   });
 }

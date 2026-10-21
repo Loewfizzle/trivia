@@ -7,18 +7,18 @@ import { project } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
 
 export function skyBlock(x, cam, b, T, tone) {
-  const col = hazed(T, T[tone], b.z0);
-  box(x, cam, b, col, { light: 1, sideK: 0.1 });
-  if (b.crown) crown(x, cam, (b.x0 + b.x1) / 2, b.h, b.z0, b.x1 - b.x0, b.crown, hazed(T, T.crown, b.z0, 0.5));
+  const col = hazed(T, T[tone], b.z0), y0 = b.y0 || 0, top = y0 + b.h;   // y0: a landmark's upper tier stands on the one below
+  box(x, cam, b, col, { y0, light: 1, sideK: 0.1 });
+  if (b.crown) crown(x, cam, (b.x0 + b.x1) / 2, top, b.z0, b.x1 - b.x0, b.crown, hazed(T, T.crown, b.z0, 0.5));
   // the top edge catches the sky (a hairline: the silhouettes read against each other)
-  const [a, y] = project(cam, b.x0, b.h, b.z0), [c] = project(cam, b.x1, b.h, b.z0);
+  const [a, y] = project(cam, b.x0, top, b.z0), [c] = project(cam, b.x1, top, b.z0);
   x.fillStyle = rgb(shade(col, 0.18)); x.fillRect(a, y, c - a, 0.8);
   // night: a few lit windows as glitter (the share by depth: nearer rows show more)
   if (T.winA > 0.02) {
     const r = rngFrom(Math.round(b.x0 * 131 + b.z0 * 71 + b.h * 31));
     const s = cam.F / b.z0, fh = 3 * s, cw = 2.3 * s;
     if (fh < 1.2) return;
-    const [x0, yTop] = project(cam, b.x0, b.h, b.z0), [x1, yBot] = project(cam, b.x1, 0, b.z0);
+    const [x0, yTop] = project(cam, b.x0, top, b.z0), [x1, yBot] = project(cam, b.x1, y0, b.z0);
     const share = 0.18 + 0.12 * Math.min(1, 280 / b.z0);
     for (let yy = yTop + fh * 0.6; yy < yBot - fh; yy += fh) for (let xx = x0 + cw * 0.4; xx < x1 - cw * 0.6; xx += cw) {
       if (r() > share) continue;

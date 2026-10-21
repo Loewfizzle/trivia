@@ -34,7 +34,7 @@ const UNDER_TAG = 10;      // the tallest crown stops this far under the tagline
 const KNEE_B = 24;         // the knee's softness, pt
 
 /**
- * The camera for a screen. rects: { tag: {y, h}, dock: {x, y, w, h} } from the real title (fall back to estimates
+ * The camera for a screen. rects: { tag: {y, h}, dock: {x, y, w, h}, neon?, word?, corner? } from the real title (fall back to estimates
  * before the title reports them); safe: { top, bottom } insets.
  */
 export function cameraFor(W, H, rects = {}, safe = {}) {
@@ -56,7 +56,11 @@ export function cameraFor(W, H, rects = {}, safe = {}) {
     CAMH = Math.min(REF.CAMH, (room > 250 ? 0.55 : 0.4) * room * Z.front / F);
   }
   const VPY = front - F * CAMH / Z.front;
-  const cam = { W, H, wide, F, CAMH, VPX: W / 2, VPY, dock, tag, limitY: tagB + UNDER_TAG, front, safeTop: safe.top || 0, safeBottom: sb };
+  // the neon letters, SPEAKEASY, the corner buttons (☰ + music): only for the lanes (laneRects), never for the camera
+  const neon = rects.neon || { x: W / 2 - 140, y: tag.y - (wide ? (W >= 1000 ? 205 : 121) : 141), w: 280, h: 85 };
+  const word = rects.word || { x: W / 2 - 150, y: tag.y - 34, w: 300, h: 21 };
+  const corner = rects.corner || { x: W - 56, y: (safe.top || 0) + 10, w: 44, h: 90 };
+  const cam = { W, H, wide, F, CAMH, VPX: W / 2, VPY, dock, tag, neon, word, corner, limitY: tagB + UNDER_TAG, front, safeTop: safe.top || 0, safeBottom: sb };
   // the visible half-width at a depth, in world units, and the panorama factor (1 on a phone)
   cam.hw = z => (W / 2) * z / F;
   cam.spread = cam.hw(100) / (0.335 * 100);
@@ -261,6 +265,7 @@ export function harborLayout(cam, seed = 1924) {
   }
   const L = { cam, seed, bands, landmarks, heroes, quay, water, pier, wheel, lighthouse, breakwater, cottage, boats, rail, road, signals, bus, cars, prom, lamps, trees, bench, planters, cart, people, speakeasy, roof, squeeze: sq.s, knee: sq.knee, gaps: cam.gaps };
   L.door = doorRect(L);
+  L.lanes = laneRects(L);
   return L;
 }
 
@@ -288,3 +293,58 @@ export function screenBoxes(L) {
   for (const s of L.signals) out.push(box(`signal:${s.id}`, 'still', s.x - 0.3, s.x + 0.3, 0, s.h, s.z));
   return out;
 }
+/** the roofline: the highest roof (crowns included) over every 4 pt of the width — the sun fits its arch to it, the planes keep above it */
+export function roofline(L) {
+  const c = L.cam, HZ = Math.round(groundY(c, Z.quay));
+  const out = new Float32Array(Math.ceil(c.W / 4) + 1).fill(HZ);
+  for (const b of screenBoxes(L)) if (b.kind === 'sky') {
+    const a = Math.max(0, Math.floor(b.x / 4)), e = Math.min(out.length - 1, Math.ceil((b.x + b.w) / 4));
+    for (let i = a; i <= e; i++) if (b.y < out[i]) out[i] = b.y;
+  }
+  return out;
+}
+
+/** each lane's minimum height (pt) — what has to fit: a banner plane up high, a flock / a balloon low, a parade float */
+export const LANE_MIN = { 'sky-high': 40, 'sky-low': 24, skyline: 60, water: 40, road: 24, promenade: 36, windows: 20, rooftop: 12 };
+/** a lane's minimum on this camera: the sky's in screen pt, the world's lanes scale with the city (a phone sideways: smaller) */
+export const laneMin = (cam, id) => LANE_MIN[id] * (id.startsWith('sky-') ? 1 : Math.min(1, cam.F / REF.F));
+const PAD = 4;   // a lane keeps this far from the sign's rects and the corner buttons
+
+/**
+ * THE LANES as places: a screen rect (pt) per lane, where its events draw. Re-computed when the sign moves (cheap; no bake).
+ *   sky-high   safe top .. the neon's top, left of the corner buttons (the banner plane's strip)
+ *   sky-low    the tagline's bottom .. the roofline's median (things here pass BEHIND the taller roofs); `y0NoTag` = from the
+ *              word's bottom, for when Part 2 fades the tagline out
+ *   skyline    the skyline limit .. the far quay
+ *   water      the tallest boat's top .. the railing
+ *   road       a bus's top on the far lane .. the road's near kerb
+ *   promenade  a two-person float's top at the far edge .. the dock's top (never under the dock)
+ *   windows / rooftop   the speakeasy's upper front face (its windows) and the space over its roof (clipped to the screen)
+ */
+export function laneRects(L) {
+  const c = L.cam, W = c.W, P = (x, y, z) => project(c, x, y, z), yOf = (y, z) => P(0, y, z)[1];
+  const rect = (y0, y1, x0 = 0, x1 = W) => {
+    x0 = Math.max(0, x0); x1 = Math.min(W, x1);
+    const r = { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
+    // the corner buttons: a lane that would reach them stops short on the left
+    if (c.corner && r.y < c.corner.y + c.corner.h + PAD && r.y + r.h > c.corner.y - PAD && r.x + r.w > c.corner.x - PAD) r.w = Math.max(0, c.corner.x - PAD - r.x);
+    return r;
+  };
+  const roof = Array.from(roofline(L)).sort((a, b) => a - b), roofMed = roof[roof.length >> 1];
+  const tagB = c.tag.y + c.tag.h, wordB = c.word ? c.word.y + c.word.h : tagB;
+  const s = L.speakeasy, [wx0, wy0] = P(s.x0, s.h, s.z0), [wx1, wy1] = P(s.x1, 3.9, s.z0);
+  const tallBoat = Math.min(...L.boats.map(b => yOf(b.h, b.z)));
+  const personPt = ptAt(c, units('person'), Z.ref);
+  const lanes = {
+    'sky-high': rect(c.safeTop + PAD, c.neon.y - PAD),
+    'sky-low': { ...rect(tagB + PAD, roofMed), y0NoTag: wordB + PAD },
+    skyline: rect(c.limitY, groundY(c, Z.quay)),
+    water: rect(tallBoat, groundY(c, Z.rail)),
+    road: rect(yOf(L.bus.h, Z.road[1]), groundY(c, Z.road[0])),
+    promenade: rect(Math.min(yOf(units('person') * 2.2, Z.prom[1]), c.dock.y - 2 * personPt), c.dock.y),
+    windows: rect(wy0, wy1, wx0, wx1),
+    rooftop: rect(yOf(s.h + 4.6, s.z0 + 2), yOf(s.h, s.z0), wx0, wx1),
+  };
+  return lanes;
+}
+

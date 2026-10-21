@@ -93,10 +93,12 @@ really happening.
 - `?city=2` is a plain URL flag only. It is read once in `js/screens/title.js` (one top-level line: the harbor module is imported
   only when the flag is in the URL — a normal visit never requests a harbor file) and the scene is created with one gated line:
   `scene = (createHarbor || createDistrict)(…)`. Never saved to localStorage, cookies, the profile or Firebase; never in a menu;
+  kept in the address bar by `identity.js#setUrlRoom` (like `pdperf`), so a dev session stays on the Harbor across a refresh, a
+  rejoin and back to the title;
   the service worker caches files by URL and never a default path (`sw.js` is network-first, no precache list — nothing to change).
 - Every title flag works with it: `&when &tz &at &wx &rained &wind &speed &force` (core/sky.js#skyClock), `&intro &idle` (under `?emu`).
 - Harbor-only flags: **`&grid=1`** (the dev overlay: the safe areas, the sign + tagline, the skyline limit + the squeeze, the
-  sun's arch band + the roofline + the sun now, the sun gaps, the lanes, the speakeasy's windows + rooftop, the door's tap target,
+  sun's arch band + the roofline + the sun now, the sun gaps, the eight lane rects (dashed, named), the door's tap target,
   size boxes: a 20 pt person at z 47 and a 110 pt bus at z 60), **`&debug=1`** (logs the camera, the layout and every bake with the
   memory per layer), **`&force=demo`** (the demo event, end to end).
 - Previews: `tests/integration/title-preview.html?city=2&…` (no Firebase); shots: `node shots.mjs "<browser>" --preview --city 2
@@ -104,8 +106,8 @@ really happening.
 
 ## The architecture (Part 1)
 ```
-js/core/harbor-layout.js   PURE  the projector, the camera per screen, the SIZE table, the squeeze, the sun gaps, the whole layout, screen boxes
-js/core/harbor-events.js   PURE  lanes + events, the deterministic scheduler (budgets, rarity, heavy events), the built-in events
+js/core/harbor-layout.js   PURE  the projector, the camera per screen, the SIZE table, the squeeze, the sun gaps, the whole layout, screen boxes, the roofline, the lane rects
+js/core/harbor-events.js   PURE  lanes + events, the stateful scheduler (anchor + replay, budgets, rarity, heavy events → density), the built-in events
 js/screens/harbor/scene.js        createHarbor(): the district's API; the frame; the sky modules wired in; rainbows + party rules; the dock's rects
 js/screens/harbor/bake.js         the baker: two sets of canvases, chunked steps, the crossfade, the memory budget
 js/screens/harbor/tones.js        Part 1's day / sunset / night tints (from the real sky's weights) + the haze by depth
@@ -132,7 +134,13 @@ js/screens/harbor/grid.js         the &grid=1 overlay
   sixths + the camera) in small steps — `TIERS[tier].bakeMs` (2 / 3 / 4 ms) a frame, never a blocked frame — into the second set,
   then crossfaded in over 1.2 s and swapped. Progressive start: the sky draws from the first frame; the city fades in (0.7 s)
   when its first bake is done (≈ 6–10 frames). A moved rect (the title reports the sign's and the dock's real rects a frame after
-  mount and every 500 ms), a resize or a tier change re-lays the city.
+  mount and every 500 ms), a resize or a tier change re-lays the city. **A re-layout never blanks it:** `plan()` keeps each
+  group's current canvas and `ready`, with the band it was baked for (`show`); the scene draws that stale layer — in its old band
+  when the pixel size is unchanged, stretched into the new band after a resize or a tier change — until the new bake swaps in,
+  then the crossfade (from `prev`). Only `next` (the bake target) is resized, when a bake starts; `settle()` gives the spare
+  canvas its group's size again after the crossfade (and after the first bake), so the steady state is two sets at the current
+  size. A bake never starts during a crossfade (its source is `next`): the look's rebake waits, a re-layout's bake is queued
+  (`wantBake`). The sign or the corner buttons moving without the city moving only re-computes the lanes (no bake).
 - **Memory budget** (`bake.js#MEM_BUDGET_MB`): all baked layers (both sets) ≤ **24 / 40 / 64 MB** at tier 0 / 1 / 2. Baked layers
   are capped at DPR 2 (the main canvas's own DPR: tier 2 = 2, so DPR 3 bakes would be downsampled anyway; a DPR-3 stage is possible
   later only together with a DPR-3 main canvas — measure first). Over budget, the tallest layers step down to DPR 1.5, then 1.
@@ -184,17 +192,49 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
   the corner buttons — tested at every size).
 
 ## Lanes + events (`js/core/harbor-events.js`)
-- **Lanes:** `sky, skyline, water, road, promenade, windows, rooftop`.
+- **Lanes:** `sky-high, sky-low, skyline, water, road, promenade, windows, rooftop` — each a PLACE: `core/harbor-layout.js#laneRects`
+  gives every lane a screen rect (`L.lanes`, pt), where its events draw:
+
+| lane | rect | 390×844 (iPhone safe areas) |
+| --- | --- | --- |
+| `sky-high` | safe top + 4 .. the neon's top − 4, stopping 4 pt left of the corner buttons — the banner plane's strip | 0,66 · 330×100 |
+| `sky-low` | the tagline's bottom + 4 .. the roofline's median (things here pass BEHIND the taller roofs); `y0NoTag` = the word's bottom + 4, for when Part 2 fades the tagline | 0,329 · 390×≈80 |
+| `skyline` | the skyline limit .. the far quay | full width |
+| `water` | the tallest boat's top .. the railing | full width |
+| `road` | a bus's top on the far lane .. the near kerb | full width |
+| `promenade` | a float two people tall at the far edge .. the dock's top (never under it) | full width |
+| `windows` / `rooftop` | the speakeasy's upper front face / the space over its roof (clipped to the screen) | — |
+
+  The lanes overlap where one lane's things stand in front of the next (boats over the skyline's feet, floats over the road).
+  `LANE_MIN` / `laneMin(cam, id)`: sky-high ≥ 40 pt, sky-low ≥ 24 (screen pt); the world lanes scale with the city (a phone
+  sideways: smaller). Tested at the six sizes: on screen, tall enough, clear of the neon, the word, the tagline, the corner
+  buttons and the dock; the E2E checks them against the real sign. The sign's rects come from the title (`textRects`, the
+  corner buttons from `clear`); when they move and the city doesn't, only the lanes are re-computed (no bake).
 - **An event:** `{ id, lanes, when(ctx), rarity: common | weekly | rare | legendary, duration (≤ 8 slots), cost (ms/frame), heavy?, seed }`
-  — `defineEvent()` checks it. ctx is whatever the scene knows (date, local time, weather, season, holiday, party phase, force).
-- **The scheduler** (`schedule(events, ms, ctxAt, { seed, forced })`): time is cut into 90 s slots; each slot rolls its own dice
-  from the slot number + the seed, so the same moment gives the same city on every phone and a refresh never reshuffles. An
-  eligible event starts in a slot with chance `slot / period` (common: every ~4 slots; weekly: once a week; rare: once a month;
-  legendary: once a year). Rarer first; never two events in one lane at once; one of each at a time; the frame budget `BUDGET`
-  (2.5 ms in all, 1.5 per lane) holds; a HEAVY event quiets every other lane (`quiet`: the scene thins out what runs there);
-  only one heavy event at a time. Forced ids (previews) start in every slot, first.
-- **Part 1's only event:** `demo` (sky lane, debug-only, `&force=demo`) — a labelled lantern crossing the sky lane, proving the
-  pipeline end to end (scene → scheduler every 500 ms → `harbor().events` → drawn in its lane).
+  — `defineEvent()` checks it. ctx = `ctxAt(ms)` — **a function of ms only** (the replay asks it about the past): Part 1.5 has
+  `{ ms, force }`; Part 6 adds the sun / season / holiday at that moment from core/sky.js.
+- **The scheduler is STATE** (`createScheduler(events, ctxAt, { seed, forced, anchor })`): time is cut into 90 s slots; each slot
+  rolls its own dice from the slot number + the seed. What slot n admits depends on what still runs from earlier slots, so the
+  past is decided ONCE: the scene makes one scheduler when it first reads the look, anchored at **the local midnight one day
+  back** (`anchorFor(ms, LK.local)`), replays to now once (≤ 1920 slots, a fraction of a ms per slot), then `at(clock.now())`
+  every 500 ms decides only the new slots (`&speed` just decides them faster; a jump of more than two days starts over a day
+  back). Schedulers with different anchors (a session that crossed midnight vs. a fresh load) agree from the first slot both find
+  the lanes free — tested: identical an hour after midnight. `schedule(events, ms, ctxAt)` is the from-scratch form (tests,
+  previews; anchor = the UTC midnight a day back). Rules per slot: an eligible event starts with chance `slot / period`
+  (common: every ~4 slots; weekly: once a week; rare: once a month; legendary: once a year). Rarer first; never two events in
+  one lane at once; one of each at a time; the frame budget `BUDGET` (2.5 ms in all, 1.5 per lane) holds; only one heavy event
+  at a time. Forced ids (previews) start in every slot, first.
+- **Heavy events thin the others:** a heavy event quiets every lane it does not use (`quiet`); the scene turns that into
+  `fs.density` (`densityOf`: 1, or `QUIET` = 0.3 in a quiet lane). The district's modules read it when the scene passes it (the
+  default city never does, so nothing changes there): the planes (`aircraft.js`: max planes × density — no new plane in a quiet
+  sky), the geese + the heron (no new flock while the sky is quiet), the swifts (the skyline lane), the cars (`drawTraffic`: that
+  share of the cars; the bus stays).
+- **Part 1's only event:** `demo` (lane `sky-low`, debug-only, `&force=demo`) — a labelled lantern crossing the middle of the
+  sky-low rect, proving the pipeline end to end (scene → scheduler → `harbor().events` → drawn in its lane).
+- Tests (`tests/harbor.test.mjs`): `schedule(t)` and `schedule(t − SLOT_MS)` agree on every event spanning both; the stateful
+  scheduler sampled every 30 s for 3000 slots of a contended case (5 sky events of 4 slots, 5 water events of 6, 3 heavy
+  parade-length events of 8 in the promenade) never pops an event in or drops one, and matches a fresh replay; anchors a day
+  apart agree; lanes, budget, heavy, rarity, `when()`, forced.
 
 ## Performance
 - **Baseline: today's city** (`title-perf.mjs`, 390×844 at DPR 3 capped to the tier, Chrome, 4× CPU, Oct 20 2026), the scene's own
@@ -240,8 +280,25 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
 - [x] Review: six scenes × six sizes, two refine passes (the wide front row, night water; the lamps' pools, the stop lights' glow).
 - [x] `shots.mjs --city 2 --safe --sizes harbor --crop stage` + party / snow scenes; `e2e-harbor.mjs` (16 checks).
 - [x] Docs: this file, CLAUDE.md, ROADMAP.md, roadmap-history.md, testing.md.
-- Next: **Part 2 — the skyline.** Start from `far.js / mid.js / blocks.js / landmarks.js / quay.js` and the `SUN_GAPS`; keep the
+- (Superseded by Part 1.5's handoff below.) Next: **Part 2 — the skyline.** Start from `far.js / mid.js / blocks.js / landmarks.js / quay.js` and the `SUN_GAPS`; keep the
   squeeze and the camera; measure with `title-perf.mjs --city 2` before and after.
+
+## Part 1.5 — foundation fixes (Oct 21 2026)
+Plumbing only, no new visuals (the `&grid=1` lane rects aside); every Part 1 number and size kept. Review findings 2, 3, 6, 7, 8
+fixed; 1, 4, 5 are Part 2's (below).
+- [x] #2 the scheduler is state (`createScheduler`), replayed once from the local midnight a day back, advanced slot by slot.
+- [x] #3 a re-layout keeps the stale layers drawn until the new bake swaps in; rebakes wait for the crossfade.
+- [x] #6 lane rects in the layout (`L.lanes`, `laneRects`), tested; `fs.density` thins the planes, birds, swifts and cars.
+- [x] #7 landmark tiers projected in the world (`skyBlock` takes `y0`).
+- [x] #8 `city=2` stays in the URL through `setUrlRoom` (refresh, rejoin, back to the title).
+- Tests: `tests/harbor.test.mjs` 27 (+ the scheduler's pop-in, span, anchor and density tests, the lanes at six sizes);
+  `e2e-harbor.mjs` 20 checks (+ the lanes against the real sign, `setTier(1)` never blanks the stage, the URL keeps the flag).
+- **Next: Part 2 — the skyline.** Start with findings **1** (choose the sun gaps against the whole silhouette: bands + landmarks +
+  heroes + the panorama's mirrored landmarks, and test that), **4** (clip the blocks at a corridor, don't drop them; pad 2 pt) and
+  **5** (a per-building window grid `win: { cols, rows, u0, v0, pitch }` and a lit pass outside the look-key bake; drop `h` from
+  the glitter seed). Then `far.js / mid.js / blocks.js / landmarks.js / quay.js`; keep the squeeze and the camera; measure with
+  `title-perf.mjs --city 2` before and after. Events that need a moment's sky (night, season) add it to the scene's `ctxAt` as a
+  function of ms only (the replay asks about the past).
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against
@@ -249,7 +306,7 @@ title.js / title-dock.js / backdrop.js, the baker + the budget, the scheduler, t
 table above checks out at every size (F, VPY, the squeeze, people, the bus); the API matches every call the title makes; the flag
 is never saved; the 22 tests pass. Ranked, real problems only (what Part 2 already plans is left out):
 
-1. **The landmark towers and a hero block stand ON three of the seven sun gaps, on every phone** — the claim above ("the landmarks
+1. **→ Part 2.** **The landmark towers and a hero block stand ON three of the seven sun gaps, on every phone** — the claim above ("the landmarks
    and hero blocks stand clear of them") is false and the test only checks the bands (`harbor-layout.js#harborLayout`: only
    `band()` calls `inGap`; `tests/harbor.test.mjs` "the sun gaps stay clear"). At 390×844 the sunburst (x 249–278) covers the gap
    at 273 (f 0.70), the needle (300–323) and NEON PAR (290–334) cover 308 (f 0.79), the mast (45–69) covers 51 (f 0.13); at
@@ -258,7 +315,7 @@ is never saved; the 22 tests pass. Ranked, real problems only (what Part 2 alrea
    corridors against the whole silhouette (bands + landmarks + heroes + the panorama's mirrored landmarks): e.g. 0.13 → ~0.19,
    0.70 → ~0.73 (12 pt free between the sunburst's 278 and PAR's 290 at 390), drop or move 0.79; and test
    `[...bands, ...landmarks, ...heroes]`, not `L.bands`.
-2. **The scheduler re-decides the past as its window slides: events pop in mid-flight and vanish** (`harbor-events.js#schedule`,
+2. **FIXED (Part 1.5):** `createScheduler` keeps `running` as state from a fixed anchor (the local midnight a day back), replayed once, advanced once per slot; tested (t vs t − SLOT, a contended parade case, anchors a day apart). **The scheduler re-decides the past as its window slides: events pop in mid-flight and vanish** (`harbor-events.js#schedule`,
    `n0 = n1 − ceil(longest / SLOT)`). A slot's admissions depend on lane conflicts with the slots before it; every 90 s the window
    drops its first slot, so the next slot is re-decided without the event that blocked it, and an event that was "blocked" a minute
    ago is "running at k ≈ 0.8" now. Measured with 5 sky events of 4 slots + 5 water events of 6 slots, all common, 9000 samples
@@ -267,7 +324,7 @@ is never saved; the 22 tests pass. Ranked, real problems only (what Part 2 alrea
    cannot see it. **Fix (before Part 6's first real event):** keep `running` as state advanced one slot at a time from a fixed anchor
    (replay from local midnight − 1 day at load, ≤ 1920 slots, once), advanced in the scene once per slot instead of recomputed from
    scratch every 500 ms; add a test that `schedule(t)` and `schedule(t − SLOT_MS)` agree on every event spanning both.
-3. **Every re-layout blanks the whole city until the next bake lands.** `bake.js#plan` sets `ready: false` on every group (the
+3. **FIXED (Part 1.5):** `plan()` keeps the baked canvases + `ready`; the stale layer draws (stretched after a resize / tier change) until the swap; rebakes wait for the crossfade; E2E: `setTier(1)` never blanks a stage pixel. **Every re-layout blanks the whole city until the next bake lands.** `bake.js#plan` sets `ready: false` on every group (the
    canvases keep their pixels, `scene.js#layer` skips them), and `layout() → plan()` runs on a tier step-down (exactly when frames
    are already slow — bake steps of 2–3 ms mean 10–20 frames of sky, boats and people over nothing), a desktop resize, `safeBottom`,
    and any measured dock / tag rect moving > 1 pt (`maybeRelayout`, e.g. the sign reflowing when the Google fonts swap in after
@@ -277,12 +334,12 @@ is never saved; the 22 tests pass. Ranked, real problems only (what Part 2 alrea
    draw the stale `cur` until the swap (then the existing 1.2 s crossfade); on a resize / tier change draw the old `cur` stretched
    into the new band rather than nothing; gate `rebake()` on the crossfade being done. E2E: `setTier(1)` mid-session and assert a
    stage-band pixel is never the bare sky colour.
-4. **The gap-skip tears whole blocks out: the "corridors" are 13–94 pt holes, different in every band and at every size** (`band()`
+4. **→ Part 2.** **The gap-skip tears whole blocks out: the "corridors" are 13–94 pt holes, different in every band and at every size** (`band()`
    drops any block touching a gap and advances by the block's width). Measured clear width at the gaps (planned 6–10 pt): haze
    14–22, far 13–61, mid 22–92, near 46–72. Part 2's skyline inherits missing teeth where it wants narrow slots for the rays.
    **Fix:** clip, don't drop — end the block at the corridor's left edge and resume at its right (two blocks); pad the corridor by
    2 pt because a side face intrudes up to ~1.5 pt (z1 − z0 = 12–14).
-5. **Nothing can address a window.** `blocks.js#skyBlock` rolls the glitter from `rngFrom(round(x0·131 + z0·71 + h·31))` straight
+5. **→ Part 2.** **Nothing can address a window.** `blocks.js#skyBlock` rolls the glitter from `rngFrom(round(x0·131 + z0·71 + h·31))` straight
    into the `far` / `near` bakes; no block carries rows, columns or a lit set, and the only windows with identity are the
    speakeasy's six. Part 2 (facades), Part 7 (rooms), Part 10 (flags in windows, a word lit across a facade), Part 11 (party
    windows, the small hours going dark) and the `windows` lane all need a per-building grid and a lit layer that is not in the
@@ -290,7 +347,7 @@ is never saved; the 22 tests pass. Ranked, real problems only (what Part 2 alrea
    block / landmark / hero `win: { cols, rows, u0, v0, pitch }` (world units, from the seed) and draw "which are lit" in its own
    cheap pass — a `lights` group re-baked on its own key (per minute) or sprites per frame — so a word, a wave or a flag is
    addressed by (building, col, row).
-6. **Lanes are names, not places; the sky has two schedulers; `quiet` reaches nobody.** The scene never reads `events.quiet`
+6. **FIXED (Part 1.5):** `laneRects` gives eight lanes real rects (sky-high / sky-low split), tested at six sizes against the sign, the corner buttons and the dock; `quiet` → `fs.density`, read by the planes, the birds, the swifts and the cars; drawn in `&grid=1`. **Lanes are names, not places; the sky has two schedulers; `quiet` reaches nobody.** The scene never reads `events.quiet`
    (it only returns it), and the district's aircraft / wildlife / fx modules keep their own clocks, so a Part 6 / 10 banner plane in
    the `sky` lane can meet a regular plane in the same strip and a heavy parade cannot thin the birds or the traffic. No lane has
    geometry: the grid draws `sky` as safeTop..limitY with the sign inside it (under the tagline there are exactly 10 pt), so a
@@ -298,11 +355,11 @@ is never saved; the 22 tests pass. Ranked, real problems only (what Part 2 alrea
    (`sky-high`: safeTop..the neon's top, `sky-low`: the tagline's bottom..the roofline, water, road, promenade, the speakeasy's
    windows + rooftop) with tests like the door's (clear of the sign and the corner buttons, tall enough for a banner), and route
    `quiet` into `fs` as a density factor the aircraft / wildlife / traffic read.
-7. **The landmark tiers are projected wrong** (`landmarks.js#landmarkSteps`): each tier is lifted with a screen translate of
+7. **FIXED (Part 1.5):** `skyBlock` passes `y0` to `box()` (and lifts the crown, the hairline and the windows); no screen translate. **The landmark tiers are projected wrong** (`landmarks.js#landmarkSteps`): each tier is lifted with a screen translate of
    −F·y0 / z0, but its far edge is at z1, so a side face's top-far corner lands F·y0·(1/z0 − 1/z1) ≈ 8–9 pt too high on the
    sunburst's top tier; the setbacks' side faces lean. Invisible in grey, wrong under Part 5's shading and Part 4's reflections.
    **Fix:** pass `y0` to `box()` (it already supports it) and drop the translate.
-8. **`setUrlRoom` strips `city=2` from the address bar the moment a room is entered** (`identity.js#setUrlRoom` keeps only
+8. **FIXED (Part 1.5):** `setUrlRoom` keeps `city=2` like `pdperf` (E2E: HOST → the URL keeps it → a refresh rejoins on it). **`setUrlRoom` strips `city=2` from the address bar the moment a room is entered** (`identity.js#setUrlRoom` keeps only
    `room / slot / emu / pdperf`). The page keeps the Harbor (the import was bound at load), but a refresh in the lobby, a rejoin,
    or the title after a refresh is today's city — a HOST → refresh test flow silently switches cities. "Never saved" holds; keep the
    flag in the URL the way `pdperf` is kept (one line) so a dev session stays on the Harbor across refreshes.

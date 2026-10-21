@@ -240,12 +240,14 @@ export function createAircraft() {
         wet: (L.rain || 0) > 0.1, fog: L.fog || 0, overcast: (L.cloud || 0) > 0.78,
       };
       // ---- planes
-      const max = tier === 0 ? 1 : W > 800 ? 3 : 2;
+      // (City 2.0: fs.density — a heavy event in another lane thins the sky to that share: no new planes below ~0.5)
+      const dens = s.density ? Math.min(s.density['sky-high'], s.density['sky-low']) : 1;
+      const max = Math.floor((tier === 0 ? 1 : W > 800 ? 3 : 2) * dens);
       const rate = trafficRate(hr) * (look.wet ? 0.5 : 1) * (motion ? 1 : 0.6);
       nextPlane -= sec;
       const forcedPlane = (force.has('planes') || force.has('approach')) && performance.now() - forcedAt > 9000;
       const known = !!(s.clear && s.clear.length);            // never plan a path before the sign's place is known
-      if ((forcedPlane || nextPlane <= 0) && planes.length < max && known) {
+      if ((forcedPlane || nextPlane <= 0) && planes.length < (forcedPlane ? Math.max(1, max) : max) && known) {
         const approach = force.has('approach') ? true : force.has('planes') ? false : Math.random() < 0.12 && hr > 6 && hr < 23.5;
         const p = spawnPlane(s, approach);
         if (p) {

@@ -12,8 +12,8 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   reaches `errlog/` once, noise doesn't, two phones share one entry.
 - **The title city's looks** (LIVE WEATHER, birds, the street — docs/title.md): `?when=…&tz=…` + `&wx=clear|clouds|overcast|fog|drizzle|rain|storm|snow|sleet|freeze` + `&force=lightning,geese,swifts,pigeons,heron,train,steam,rush,eclipse`; previews never use the live weather. `&force=no-clouds,no-road,no-birds,no-rain` switches parts off for performance checks. `e2e-title.mjs` runs at a fixed autumn night (the sign checks) and measures frame pacing at a fixed afternoon: at night the top tier is heavier and a 4×-slowed CPU steps down a tier there, as designed (measured the same before and after LIVE WEATHER). Anything under the dock's glass (backdrop blur) must not render when unused — an invisible animated layer there cost 80 ms frames.
 - **CITY 2.0 — THE HARBOR** (`docs/harbor.md`, `?city=2`): `node --test tests/harbor.test.mjs` (the camera + layout at six sizes, the
-  scheduler); `node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 75 s, emulators: load + every flag, never saved, a normal visit
-  untouched, HOST / JOIN / the knock, frame pacing at 4× CPU vs the 8 ms budget, 20 title ↔ setup cycles' memory); the look:
+  lane rects, the stateful scheduler: no pop-ins, anchors, density); `node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 75 s, emulators: load + every flag, never saved, a normal visit
+  untouched, HOST / JOIN / the knock, `city=2` kept in the URL through a refresh, the lanes vs the real sign, `setTier(1)` never blanking the stage, frame pacing at 4× CPU vs the 8 ms budget, 20 title ↔ setup cycles' memory); the look:
   `node shots.mjs "<browser>" --preview --city 2 --safe --sizes harbor --scenes day,golden,night,party,rain,snow` (`--crop stage`,
   `--qs grid=1`); cost per scene + tier for either city: `node title-perf.mjs "<browser>" [--city 2] [--scenes party,night,day] [--cpu 4]`
   (no emulators). The emulators need Java: if `java` is not on the PATH, the project's own JRE is at
