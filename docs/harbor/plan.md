@@ -47,6 +47,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - **Premium, crafted, never cheap** — above all the lighting (Christmas lights, neon, fireworks are LIGHT). EVERY moving part and
   every eye-catching item MUST be rendered premium and stunning; if it can't be made to look great at phone size, say so to the
   owner instead of shipping something mediocre, and never let it crowd something more important (word towers, needle, wheel).
+- **Never quietly lower the look:** if staying inside the speed budget would mean a visible sacrifice (especially on older phones /
+  tier 1), stop and tell the owner what you'd simplify and let her decide.
 - **Performance + battery:** every part stays within the frame and memory budgets; the cleanup passes double as performance
   checks; cleanup pass 1 adds battery/heat care (a lower frame rate when little is moving, a full stop when the page is hidden).
   New ideas fit the existing systems (lanes, events, windows, holidays) rather than adding big new machinery.
@@ -75,7 +77,12 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - The NEON logo premium pass, letter shapes identical: uneven light along the tube (hotter on bends, dimmer at the electrodes,
   a faint core flutter), real glass thickness + a moving highlight, its glow tinting the night haze; by day (it is OFF by day)
   clear sunlit glass, glints, caps/clips, soft shadow. Shown only with ?city=2 until the switch-over. Position + night look kept.
-- The neon boot-up sequence + flicker timing = City 1.0's.
+- The neon boot-up sequence + flicker timing = City 1.0's. THE CATCH must FLOW on like City 1.0's (the owner: City 2.0's catch
+  goes dark for half a second then snaps on — fix in cleanup pass 1); every TIME stays exactly as it is, only the animation.
+- NEON BUZZ: crisp, high-quality buzz / tick sounds on each flicker during the dusk warm-up and morning fade, a soft hum at the
+  catch — always when sound effects are on (never relied on; the visual stays the moment).
+- THE LOGO'S COLOUR: pink is home most nights (the brand: app icon, link previews); other colours (purple, electric blue…) only on
+  special nights — holidays, party peaks, game starts, CITY CONTROL.
 - **Signs (asked + decided Oct 21 2026):** 12 readable named signs don't fit a phone's skyline (the word faces, the wheel, the
   lighthouse take the wall space) — so MIXED SIZES: every game always has its own sign; ~4–5 big NAMED spots whose games rotate
   (a new pick each night or visit, never a sign changing while you watch); the other games as tube ICON signs (mark + colours).
@@ -171,6 +178,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 ## Part 9 — seasons + weather (only when real)
 - Trees through the year; snow piling up on everything, snowball fights, snow plows leaving visible plowed lanes + snowbanks,
   visible road salting; rain + puddles; fog; frost; a snowman that grows through a real snowy day and melts when it warms.
+- WEATHER AROUND THE NEON SIGN (only when real): falling SNOW lit by the sign's glow as it drifts past (flakes turning pink near
+  the tubes); RAIN as lit streaks near the tubes; raindrops dripping off the bottom of the tubes with glints, day or night.
 - SNOW LIKE A REAL WINTER (the owner is in Michigan): snow STAYS on the ground until it really melts — never only on the days
   it snows. Use the real SNOW ON THE GROUND at the player's place (Open-Meteo's snow depth, through the existing /api/sky), with
   a fallback snowpack model from the real snowfall + temperatures (adds when it snows, melts slowly only above freezing). The
@@ -203,6 +212,12 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Small renovations now and then elsewhere: facade scaffolding, a crown being re-tubed with new neon, a billboard repainted.
 
 ## Parts 11a / 11b / 11c — holidays (+ the banner plane's messages)
+- THE SIGN DECORATION SYSTEM (built in 11a, used by every holiday + special event; hangs on Part 3's LOGO_ANCHORS):
+  WRAPPED + GROWING (garlands, string lights, cobwebs, spring ivy / flowers wound round the tubes, growing day by day where a
+  build-up calls for it); PERCHED ON TOP (snow caps, a pumpkin on the O, a hat on the N, a bird landing); ADD-ON TUBE PIECES (a
+  heart, a shamrock, "2027", a firework burst, a crown — built like the logo's tubes); SPARKLE + PARTICLES (glitter, confetti);
+  VISITORS (a cat walking along the top, a bird perching, the spider, the witch flying past). Anything that dangles has VARYING
+  lengths. (Not a general system: tube makeovers — but the Christmas candy-cane tubes stay; no draped bunting; no glows behind.)
 (Built AFTER party nights + fireworks, which is now Part 10. 11a = autumn + the shared systems, 11b = Christmas + NYE,
 11c = Valentine's, St. Patrick's, Easter, Memorial Day, July 4th, 9/11, Veterans Day.)
 - **Halloween (Oct 1→31 build-up):** the spider's web on the NEON sign grows every day over the tubes (hero-quality silk, dew
@@ -296,6 +311,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   colour, outfit) every phone reads; those players appear as figures in their outfits, tap → name + card; players in a game
   are "inside" (busier windows); picks rotate every few minutes; density follows how many are online, never dead; an "Appear in
   the city" setting (on by default); only public BOARD info. Readable: ~20–30 people on a phone, 40–60 as a packed crowd.
+- **LOBBY CHAT BUBBLES (Lobby 2.0):** a sent chat message pops up as a speech bubble above that guest's figure and fades after
+  ~5 s (longer for long messages, up to ~8 s); crisp app text ~13–15 pt, never covering the figure, clear of the dock; first line
+  or two then "…", tap → the chat at that message; one bubble per person (a new one replaces the old), older ones fade faster when
+  many are up and bubbles nudge apart; the profanity setting applies; the full history stays in the chat window; builds on the
+  existing typing dots.
 - **TV MODE (after Lobby 2.0):** neonspeakeasy.com/tv shows a short code + QR; the host pairs via SHARE TO TV on their phone (no
   typing on the TV); the TV is a viewer, phones are controllers; the TV plays the music + big moments, phones go quiet (tiny
   taps only); a TV camera with a bigger stage so people read from the couch, gentle slow drift, push-ins on moments; step 1 the
@@ -304,6 +324,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - **BOARD 2.0** (the bar inside the speakeasy, an Art Deco brass + enamel honor board, a live bartender, windows onto the live
   Harbor) and **PROGRESSION 2.0** (levels 1–100, a wardrobe whose pieces turn neon at night, entrances, a birthday on the
   profile so the towers can spell "HAPPY BDAY <NAME>").
+- **MENUS 2.0 (after Part 12's switch-over, judged over the real Harbor — the menus' glass sits over a still of today's city
+  until then):** one pass for settings, chat, help, the game list, the profile card and toasts together: calm, classy warm glass +
+  brass + a touch of neon that lets the city shine through; readable and fast, never as flashy as the city.
 - **THE GAME LIST REVAMP:** quick filters SOLO · ON TV · SAME ROOM · FOR TWO (each game tagged with every way it plays; FOR TWO
   stars the planned nightly two-player bedtime game).
 - **NEXT NEW GAME IDEA (follow up with the owner):** a multiplayer memory SHOOTING GALLERY — a 3×3 → 4×4 → 5×5 grid of targets
