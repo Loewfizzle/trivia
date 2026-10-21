@@ -359,8 +359,11 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   depth (a mirror far, the water's own colour near: blue-green by day, orange at golden hour, black at night); wavelets; the sun's
   gold path when low, the moon's silver path at night (real place + phase, none behind real cloud), sun glints by day; the near
   edge lapping. Hooks: reflect() (the wheel + the lighthouse now; boats Part 5), light() (fireworks, Part 10), wake(), set().
-- Perf (4× CPU, tier 2): night 6.4 · party 7.5 · the worst case 7.9 ms (≤ 8); the water's real main-thread cost +0.8 ms a frame
-  (the work split over two frames). Tests: `harbor.test.mjs` 45, `e2e-harbor.mjs` 40 (+ 9 water checks).
+- Perf (4× CPU, A-B-B-A against the previous commit; t2 / t1 / t0): night 5.7 / 4.6 / 3.5 · party 6.4 / 5.4 / 3.6 · the worst case
+  6.9 / 5.8 / 4.5 (tier 0 was already over before Part 4) · golden 5.9 / 4.9 / 3.8 — the live water +1.1 ms at tier 2, +0.5–0.7 at
+  tier 1 (its mirror re-read 10 a second; tier 1's LED facades still + no neon flutter; the quay lamps one sprite). The first
+  commit's water cost +2.4–2.9 ms (party 8.7, worst case 8.8 — over budget), fixed the same day. Tests: `harbor.test.mjs` 45,
+  `e2e-harbor.mjs` 40/40 (+ 9 water checks).
 
 ### ✅ CITY 2.0 — THE HARBOR, Part 3 of 12: NEON + SIGNS + BILLBOARDS + BUILDING NEON + THE NEON LOGO (Oct 21, 2026) — `docs/harbor.md`
 - Behind `?city=2`. The owner's Part 2 review first: far + mid windows are fine irregular glitter; the word towers narrowed a

@@ -18,11 +18,28 @@ export function quaySteps(L, T) {
   ];
 }
 
-/** the quay's lamps lit (night, every frame: k = how lit — the night × the city's power-on): a warm head, its halo, the pool of
- *  light on the quay's edge. The water mirrors them (water.js): long warm columns from the far bank. glow: a radial sprite */
-export function drawQuayLamps(c, L, k, glow) {
-  if (k <= 0.01 || !glow) return;
-  const cam = L.cam, q = L.quay, hw = cam.hw(q.z) * 1.05, s = cam.F / (q.z + 1);
+/** the quay's lamps lit (night: k = how lit — the night × the city's power-on): a warm head, its halo, the pool of light on the
+ *  quay's edge, all baked once per layout into ONE sprite (quayLampSprite) and drawn additively with k (one drawImage a frame).
+ *  The water mirrors them (water.js): long warm columns from the far bank. */
+export function drawQuayLamps(c, sp, k) {
+  if (k <= 0.01 || !sp) return;
+  c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, k);
+  c.drawImage(sp.cv, 0, sp.y, sp.w, sp.h);
+  c.restore();
+}
+/** the lamps' sprite: { cv, y, w, h } (screen pt) — glow: a radial sprite; dpr: the scene's */
+export function quayLampSprite(L, glow, dpr, old = null) {
+  const cam = L.cam, q = L.quay, s = cam.F / (q.z + 1);
+  const [, yh] = project(cam, 0, 3.25, q.z + 1.15), [, yq] = project(cam, 0, q.top, q.z);
+  const y = Math.floor(yh - s * 1.6), h = Math.ceil(yq + s * 0.8 - y), cv = old || document.createElement('canvas');
+  cv.width = Math.ceil(cam.W * dpr); cv.height = Math.ceil(h * dpr);
+  const x = cv.getContext('2d');
+  x.setTransform(dpr, 0, 0, dpr, 0, -y * dpr);
+  drawLamps(x, L, glow);
+  return { cv, y, w: cam.W, h };
+}
+function drawLamps(c, L, glow) {
+  const cam = L.cam, q = L.quay, hw = cam.hw(q.z) * 1.05, s = cam.F / (q.z + 1), k = 1;
   c.save(); c.globalCompositeOperation = 'lighter';
   for (let wx = -Math.floor(hw / 11) * 11; wx < hw; wx += 11) {
     const [x, y] = project(cam, wx, 3.25, q.z + 1.15);

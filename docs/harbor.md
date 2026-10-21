@@ -512,11 +512,11 @@ floor must not stand in one. Measure with `title-perf.mjs --city 2 --scenes "…
   tier by cluster, threads by screen fraction (tested: base > heat > accent by length). STRENGTH = the brightness hierarchy
   (tube 1.5 / 1.25 / 1.0 / 0.7 pt at the reference scale, glow 7 → 3.2, alpha 1 → 0.5: heroes → word → mid → far).
 - **THE LED FACADES** (glassL, glassR): per frame, clipped to the face's part above the nearer buildings — slow vertical
-  gradients (cyan → violet → blue, 26 s a cycle) + a band of light climbing every 9 s + thin floor lines; party colours at a party.
+  gradients (cyan → violet → blue, 26 s a cycle) + a band of light climbing every 9 s + thin floor lines; party colours at a party (tier 2; Part 4: held still at tier 1 — one cached image).
 - **POWER** (City 1.0's, `neon.powerTick`): the neon plan's per-item states (title.js#neonNow: `signCount()` = the items: the
   signs, the billboard, every outline) → each its sputter-on / stutter-off (`alpha`, City 1.0's segAlpha: tube by tube), the
   boot stagger 0.25 + i · min(0.6, 4.5 / n) s (≈ 4.5 s for the whole city), a rare flicker (25–70 s), a faint core flutter
-  (tier ≥ 1). By day everything is unlit glass. A re-layout never blanks the neon: the new set builds behind the old one and
+  (tier 2; Part 4: off at tier 1). By day everything is unlit glass. A re-layout never blanks the neon: the new set builds behind the old one and
   takes over its power states (like the baker).
 - **MOMENTS** (hooks; `harbor().moment(name, v)`): `party` (k: the chasers — coloured runs racing along the heroes' + word
   towers' + panorama's tubes while their tubes sink back, the outlines breathing with PT.breath, the LED facades in party
@@ -610,11 +610,15 @@ start there. Measure with `title-perf.mjs --city 2 --scenes np-night,np-party,ne
   BY DAY sun glints across the water, thicker toward the sun's side.
 - **The near edge**: a slow surge (~7 s) lapping at the near quay wall's foot behind the railing — a wet band + a thin crest line.
 - **The quay lamps** (`quay.js#drawQuayLamps`): lit at night with the city's power-on (a hot head, a halo, a pool on the quay's
-  edge) — their warm columns run down into the water.
-- **Cost**: the work is split over frames — one frame BUILDS the mirror (the copy, the flip, the objects in the water, the
-  columns), the next COMPOSES the water (the rows, the wavelets, the paths, the edge) into its canvas; every frame shows that canvas
-  (tier 2: 30 water frames a second; tier 1: 20, wider rows, fewer copies, one wavelet texture). **Tier 0 and reduced motion**: a
-  calm baked mirror — built + composed about once a second with the ripples still (the lights still follow the city).
+  edge; all the lamps baked into ONE sprite per layout — `quayLampSprite` — and drawn additively, one draw a frame) — their warm
+  columns run down into the water.
+- **Cost**: the work is spread over a 6-frame cycle and never two steps in one frame — one frame BUILDS the mirror (re-reads the
+  frame above the waterline, flips it, the objects in the water, the light columns: the SOURCE, 10 times a second — the city's
+  lights change slowly and the ripples hide the steps), the others COMPOSE the water from it (the rows, the wavelets, the paths,
+  the edge) into its canvas: 30 times a second at tier 2, 20 at tier 1 (wider rows, fewer copies, one wavelet texture); every
+  frame shows that canvas. The glitter paths' + the day glints' dice are computed once per layout (only their twinkle per
+  compose). **Tier 0 and reduced motion**: a calm baked mirror — built + composed about once a second with the ripples still (the
+  lights still follow the city).
 
 ### The water's API + HOOKS (`harbor().water`)
 | hook | what | used by |
@@ -623,32 +627,43 @@ start there. Measure with `title-perf.mjs --city 2 --scenes np-night,np-party,ne
 | `light(x, y, col, a, w)` | this frame, a light NOT in the frame above the waterline as a column in the water | **Part 10**: fireworks high over the city (the finale's sparks), **11a**: the ghost ship's glow |
 | `wake({ x, z, len, dir, k })` | a boat's wake (stored, max 16) | **Part 5** draws them |
 | `set({ rain, fog })` | rain roughens the mirror now; the rings on the water + the fog over it | **Part 9** |
-| `band()`, `debug()` | `{ y0, y1, strips, copies, lights, paths, rough, ms: { build, compose }, tier, mb }` | tests |
+| `set({ off: true })` | the live water off (the baked base stays) — perf A/B on one page | tests |
+| `band()`, `debug()` | `{ y0, y1, strips, copies, lights, paths, rough, ms: { copy, mirror, columns, build, strips, tex, paths, compose, blit }, tier, mb }` | tests |
 Fireworks low enough to be in the frame above the waterline, Part 5's lit wheel and the train on the far waterfront (when drawn
 before the water) reflect without any call. `&force=no-water` turns the live water off (perf before / after).
 
-### Performance + memory (Part 4, `title-perf.mjs --city 2`, 390×844, 4× CPU, mean ms of scene work t2 / t1 / t0)
-np-night 6.4 / 6.8 / 3.6 · np-party 7.5 / 6.9 / 3.4 · the worst case (`neon`) 7.9 / 7.3 / 4.4 · np-windy 6.4 / 6.1 / 3.6 · np-golden
-6.5 / 5.9 / 3.7 · np-day 4.4 / 4.2 / 3.1; frames 16.7 ms everywhere. The same bench without the live water (`nw-`: Part 3's cost
-measured today — this machine runs ~15 % slower than on Part 3's day): night 5.0 / 4.7 / 3.7 · party 5.9 / 5.3 / 3.8 · neon 6.4 /
-6.1 / 4.6. Chrome's own task time per frame (party, t2): +0.8 ms with the water. (Tier 1 was measured before its 3-frame cycle:
-expect ~0.4 ms less. All of these come from one quiet hour; at the end of the session the machine ran ~3× slower for everything —
-the previous commit measured 18.9 ms at the party peak then, vs 5.9 when Part 3 shipped — so the final E2E's perf + 20-cycle memory
-checks failed on it (the slow frames step the tier down, which changes the memory); re-measure at cleanup pass 1.) Tier 2 is within 8 everywhere; tier 1 is ~0.5–1.3
-over its 6 and tier 0's worst case at the 4 line (both were at their lines before the water — Known issues). Memory: the water's
-canvases ~2.4 MB at 390×844 tier 2 (in `harbor().mem`, a layer of its own) — 25.4 MB of 64 in all.
+### Performance + memory (Part 4 — the clean comparison, Oct 21 2026)
+Measured A-B-B-A against the previous commit (9d3fd7e = Part 3's code) on the same quiet machine, one after the other: previous,
+Part 4, Part 4, previous — `title-perf.mjs --city 2`, 390×844 (DPR 3 capped to the tier), 4× CPU, mean ms of scene work, each
+number the mean of its two runs; frames 16.7 ms everywhere:
+
+| scene | tier 2 (≤ 8) | tier 1 (≤ 6) | tier 0 (≤ 4) |
+| --- | --- | --- | --- |
+| night (`np-night`) | 4.7 → 5.7 | 4.7 → 4.6 | 3.3 → 3.5 |
+| party (`np-party`) | 5.6 → 6.4 | 5.1 → 5.4 | 3.5 → 3.6 |
+| the worst case (`neon`: the party moment + searchlights + a word) | 5.9 → 6.9 | 5.7 → 5.8 | 4.2 → **4.5** |
+| golden hour (`np-golden`) | 4.9 → 5.9 | 4.6 → 4.9 | 3.5 → 3.8 |
+| day (`np-day`) | 3.0 → 4.2 | 3.0 → 3.7 | 2.7 → 3.0 |
+
+Every scene is within 8 / 6 / 4 except the worst case at tier 0, which was already over on the previous commit (4.1–4.3 in this
+run; Known issues). The live water alone, on one page with `set({ off })` toggled (party, 4× CPU): +1.1 ms at tier 2, +0.5–0.7 at
+tier 1, +0.15 at tier 0. To get there (the first Part 4 commit measured +2.4–2.9 at tier 2 against the previous commit — the party
+night 8.7 and the worst case 8.8, over budget): the mirror's source re-read 10 times a second instead of 30, the glitter's dice
+cached; **tier 1 (Part 3's neon)**: the core flutter off, the glass towers' LED facades held still (one cached image; the sweep +
+the climbing band at tier 2 only); the quay lamps one sprite. The water's look is unchanged. Memory: the water's canvases ~2.4 MB
+at 390×844 tier 2 (in `harbor().mem`, a layer of its own) — 25.4 MB of 64 in all. (Earlier in the session the machine ran ~3×
+slower for everything for an hour — the previous commit measured 18.9 ms at the party peak — so only same-run comparisons count.)
 
 ### Known issues (Part 4)
-- **Re-measure perf on a quiet machine at cleanup pass 1** (see above): the E2E's PERF and 20-cycle MEMORY checks failed only in the
-  session's slow last hour; the E2E's TAGLINE check compares the city to 0.01 pt and fails when the title's first real text rects
-  land after its first snapshot (a sub-pt re-layout; seen on the slow machine). Its real bug was fixed here: a re-layout forgot
-  the faded tagline (`cam.tagGone`), so sky-low lost the freed band.
+- **The worst case at tier 0 is ~0.5 ms over its 4 ms** (4.5; the previous commit 4.1–4.3 — over before Part 4; Part 4 adds ~0.2,
+  the still water ~0.15 of it). Cleanup pass 1: thin tier 0's worst case (Part 3's neon / searchlights / the word), not the water.
+- The E2E's TAGLINE check compares the city to 0.01 pt; on a slow machine the title's first real text rects can land after its
+  first snapshot (a sub-pt re-layout). Its real bug was fixed in Part 4: a re-layout forgot the faded tagline (`cam.tagGone`).
 - **The copy forces a raster flush mid-frame**: reading the scene's own canvas makes the browser rasterise what is drawn so far
-  inside the water's build (in headless Chrome ~1 ms at 4× — mostly work that used to happen after the scene's timer). Measured as
-  real main-thread time: +0.8 ms a frame. If a phone shows otherwise, the fallback is to compose the copy from the baked layers +
-  the neon instead (the beacons and beams would need their own draw).
-- **Tier 1 runs 0.5–1.3 ms over its 6 ms** on party / neon nights (and tier 0's worst case sits on 4) — over or at the line before
-  the water too (`nw-` numbers). Cleanup pass 1: thin tier 1 (the LED facades, the neon flutter, the rays) — not the water.
+  inside the water's build (~0.7–1.4 ms at 4× in headless Chrome, once every 6 frames now). If a phone shows otherwise, the fallback
+  is to compose the copy from the baked layers + the neon instead (the beacons and beams would need their own draw).
+- Fast lights reflect at the source's 10 a second (the party chasers, the game-start flash); fine on rippled water. Part 10's
+  fireworks in the frame above the waterline would step — use `light()` per frame for the bursts, or raise the source rate then.
 - The far half of a light column is a stretched copy, not a true glitter column (a light high on a tower reflects compressed toward
   the quay); it reads right at phone size.
 - The wheel's + the lighthouse's reflections come from the baked harbor layer's grey-box art (Part 5 replaces both through

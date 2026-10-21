@@ -72,7 +72,7 @@ export function createWater() {
   const src = mk(), bright = mk(), sm = mk(), R = mk(), wc = mk(), cols = new Map();
   const tex = [mk(), mk()];
   let L = null, cam = null, W = 0, y0 = 0, y1 = 0, Hw = 0, top = 0, sh = 0, dpr = 1, rr = 1, tier = 2, A0 = 0;
-  let strips = [], texKey = '', frame = 0, lastT = 0, updAt = -1e9, ready = false, set0 = { rain: 0, fog: 0 };
+  let strips = [], dashes = [], glints = [], texKey = '', frame = 0, lastT = 0, updAt = -1e9, ready = false, set0 = { rain: 0, fog: 0 };
   let queue = [], mirrors = [], wakes = [], stats = { strips: 0, copies: 0, lights: 0, paths: '' };
 
   function size(cv, w, h) { const cw = Math.max(1, Math.ceil(w)), ch = Math.max(1, Math.ceil(h)); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; } return cv.getContext('2d'); }
@@ -94,6 +94,11 @@ export function createWater() {
       strips.push({ y, h, u, z, s: cam.F / z, seed: hash(strips.length + 1) });
       y += h;
     }
+    // the paths' dashes + the day's glints: their dice once (the compose only twinkles them)
+    const at = u => { const y = y0 + u * Hw, z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, y - cam.VPY); return { y, s: cam.F / z }; };
+    dashes = Array.from({ length: 200 }, (_, i) => { const u = Math.pow(hash(i * 1.37 + 0.5), 0.85), p = at(u); return { u, y: p.y, s: p.s, off: (hash(i * 2.11 + 7) - 0.5) * 2 * (0.4 + 0.6 * hash(i * 5.3)), fr: 2.2 + 3.5 * hash(i * 4.7), ph: hash(i * 8.3) * 6.28, st: 0.35 + 0.65 * hash(i * 9.1), len: 0.5 + 1.6 * hash(i * 3.3), th: Math.max(0.45, p.s * 0.07) }; });
+    glints = Array.from({ length: 110 }, (_, i) => { const u = Math.pow(hash(i * 3.91 + 2), 0.9), y = y0 + 2 + u * (Hw - 3), z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, y - cam.VPY), sc = cam.F / z;
+      return { u, y, near: hash(i * 1.7) < 0.55, off: hash(i * 6.1) - 0.5, wx: hash(i * 7.7) * W, fr: 3 + 4 * hash(i * 5.5), ph: hash(i * 8.8) * 6.28, st: hash(i * 2.9) > 0.6 ? 0.8 : 0, len: sc * (0.3 + 0.7 * hash(i * 4.1)), th: Math.max(0.5, sc * 0.08) }; });
     texKey = ''; ready = true; updAt = -1e9; built = composed = false;
   }
 
@@ -145,20 +150,27 @@ export function createWater() {
    * motion: a still mirror, built + composed about once a second.
    */
   function draw(c, main, f) {
-    if (!ready || f.fade <= 0) { queue = []; mirrors = []; return; }
+    if (!ready || f.fade <= 0 || set0.off) { queue = []; mirrors = []; return; }
     frame++;
     const still = !f.motion || tier === 0, now = performance.now();
     if (still) { if (now - updAt > 1000 || !composed) { build(main, f, lastT, true); compose(f, lastT, true); updAt = now; } }
     else {
-      // (tier 2: build, compose — 30 water frames a second; tier 1: build, compose, rest — 20)
-      const ph = frame % (tier === 2 ? 2 : 3);
-      if (!built || ph === 0) build(main, f, f.t, false); else if (ph === 1) compose(f, f.t, false);
+      // a 6-frame cycle: the mirror's SOURCE is re-read once (10 a second — the city's lights change slowly, the ripples hide
+      // the rest), the ripples composed on every other frame at tier 2 (30 a second) or every third at tier 1 (20); never both
+      // in one frame
+      const ph = frame % 6;
+      if (!built || ph === 0) build(main, f, f.t, false);
+      else if (tier === 2 ? ph % 2 === 1 : ph % 3 === 1) compose(f, f.t, false);
       lastT = f.t;
     }
     queue = []; mirrors = [];
     if (!composed) return;
+    const tb = performance.now();
     c.save(); c.globalAlpha = f.fade; c.drawImage(wc, 0, y0, W, Hw + 2); c.restore();
+    ema('blit', performance.now() - tb);
   }
+  // (the steps' cost, smoothed: harbor().water.ms — tests + the perf budget)
+  const ema = (k, v) => { const m = stats.ms || (stats.ms = {}); m[k] = +((m[k] || 0) * 0.92 + v * 0.08).toFixed(3); };
   let built = false, composed = false;
   const roughOf = f => clamp01(smooth(1.2, 11, Math.max(0, f.wind || 0)) + 0.35 * (f.rain || set0.rain || 0));
 
@@ -174,6 +186,7 @@ export function createWater() {
     sx.setTransform(1, 0, 0, 1, 0, 0); sx.globalCompositeOperation = 'copy'; sx.globalAlpha = 1;
     sx.drawImage(main, 0, top * md, W * md, sh * md, 0, 0, src.width, src.height);
     sx.globalCompositeOperation = 'source-over';
+    const tm1 = performance.now(); ema('copy', tm1 - tm0);
     // 2. the mirror: flipped about the waterline (an R row r pt below it ↔ the frame r pt above it)
     const rx = R.getContext('2d');
     rx.setTransform(1, 0, 0, 1, 0, 0); rx.globalAlpha = 1; rx.globalCompositeOperation = 'copy';
@@ -188,6 +201,7 @@ export function createWater() {
     // 3. the lights' columns (night): src³ keeps only the lights; stretched copies (at half resolution: they are soft) smear
     //    each into a column — a light high on a tower reaches into the near water, a low sign stays by the quay; calm: short +
     //    crisp, wind: long + broken
+    const tmM = performance.now(); ema('mirror', tmM - tm1);
     const lk = clamp01(f.night) * (tier === 0 ? 0.85 : 1);
     stats.copies = 0;
     if (lk > 0.03) {
@@ -202,7 +216,7 @@ export function createWater() {
       smx.globalCompositeOperation = 'lighter';
       for (let k = 0; k < K; k++) {
         const q = K > 1 ? k / (K - 1) : 1, s = s0 + (s1 - s0) * q, near1 = 1 - Math.min(1, Math.abs(s - 1) / Math.max(0.2, 1 - s0));
-        const dx = still ? 0 : Math.sin(t * 1.7 + k * 2.1) * (0.4 + 1.2 * rough);
+        const dx = Math.sin(k * 2.1) * (0.4 + 1.2 * rough);
         smx.globalAlpha = lk * (0.24 + 0.46 * near1) * (0.95 - 0.2 * rough);
         smx.setTransform(h2, 0, 0, -h2 * s, h2 * dx, h2 * s * A0);
         // (only the rows that land in the water: a light e pt up lands s·e pt down)
@@ -224,8 +238,7 @@ export function createWater() {
     stats.lights = queue.length;
     rx.globalAlpha = 1; rx.globalCompositeOperation = 'source-over';
     built = true;
-    const tm2 = performance.now(), m = stats.ms || (stats.ms = { build: 0, compose: 0 });
-    m.build = +(m.build * 0.9 + (tm2 - tm0) * 0.1).toFixed(2);
+    const tm2 = performance.now(); ema('columns', tm2 - tmM); ema('build', tm2 - tm0);
   }
 
   // COMPOSE: the water's canvas from the mirror — the ripples, the wavelets, the paths, the lapping (screen coordinates)
@@ -254,6 +267,7 @@ export function createWater() {
     }
     stats.strips = strips.length;
     x.globalAlpha = 1;
+    const tS = performance.now(); ema('strips', tS - tm2);
     // 5. the wavelets: sky-lit crests + dark troughs sliding against each other (their density follows the wind)
     bakeTex(T, rough);
     const ta = (0.95 * dayK + 0.45 * T.night) * (0.55 + 0.45 * rough) * fa;
@@ -267,6 +281,7 @@ export function createWater() {
       }
       x.globalAlpha = 1;
     }
+    const tT = performance.now(); ema('tex', tT - tS);
     // 6. the paths: the sun's gold (low: golden hour, dawn), the moon's silver (night), the sun's glints by day
     x.globalCompositeOperation = 'lighter';
     stats.paths = '';
@@ -278,15 +293,16 @@ export function createWater() {
     if (f.moon && f.moon.k > 0.02) { glitter(x, f.moon.x, f.moon.k * T.night * fa, [178, 192, 236], [238, 242, 255], t, still, rough, 0.62); stats.paths += 'moon '; }
     if (T.day > 0.05 && sun && sun.vis > 0.1) { sparkle(x, sun.x, T.day * (1 - 0.8 * smooth(0.4, 0.9, cloud)) * fa, t, still, rough); stats.paths += 'glints '; }
     x.globalCompositeOperation = 'source-over';
+    const tP = performance.now(); ema('paths', tP - tT);
     // 7. the near edge: the water lapping at the near quay wall, behind the railing (a slow surge)
     x.globalAlpha = fa; lap(x, T, t, still, rough); x.globalAlpha = 1;
     composed = true;
-    stats.ms.compose = +(stats.ms.compose * 0.9 + (performance.now() - tm2) * 0.1).toFixed(2);
+    ema('compose', performance.now() - tm2);
   }
 
   /** a glitter path toward us from x: a soft column + broken dashes twinkling, wider near; k strength */
   function glitter(x, sx, k, col, hot, t, still, rough, size) {
-    const n = Math.round((tier === 2 ? 200 : tier === 1 ? 110 : 80) * size);
+    const n = Math.min(dashes.length, Math.round((tier === 2 ? 200 : tier === 1 ? 110 : 80) * size));
     // the soft column under the dashes
     const g = x.createLinearGradient(0, y0, 0, y1);
     // (the sun's path has a hot core by the quay; the moon's is mostly its glints — a solid bar reads as a light, not a path)
@@ -300,34 +316,36 @@ export function createWater() {
     x.globalAlpha = 1;
     const hotS = rgb(hot), colS = rgb(col);
     let lastHot = null;
+    const sw = Math.sqrt(size) * (0.65 + 1.1 * rough), lk = 0.6 + 0.6 * rough;
     for (let i = 0; i < n; i++) {
-      const u = Math.pow(hash(i * 1.37 + 0.5), 0.85), y = y0 + u * Hw, z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, y - cam.VPY), s = cam.F / z;
-      const spread = (4 + 44 * u) * Math.sqrt(size) * (0.65 + 1.1 * rough);
-      const xx = sx + (hash(i * 2.11 + 7) - 0.5) * 2 * spread * (0.4 + 0.6 * hash(i * 5.3));
-      const tw = still ? 0.35 + 0.65 * hash(i * 9.1) : Math.pow(Math.max(0, Math.sin(t * (2.2 + 3.5 * hash(i * 4.7)) + hash(i * 8.3) * 6.28)), 3);
+      const d = dashes[i], s = d.s, y = d.y;
+      const spread = (4 + 44 * d.u) * sw;
+      const xx = sx + d.off * spread;
+      const sn = still ? 0 : Math.sin(t * d.fr + d.ph), tw = still ? d.st : sn > 0 ? sn * sn * sn : 0;
       const centre = 1 - Math.min(1, Math.abs(xx - sx) / Math.max(1, spread));
       const a = k * (0.25 + 1.1 * tw) * (0.3 + 0.7 * centre);
       if (a < 0.03) continue;
       const hotK = centre * tw > 0.45;
       if (hotK !== lastHot) { x.fillStyle = hotK ? hotS : colS; lastHot = hotK; }
       x.globalAlpha = Math.min(1, a);
-      const len = s * (0.5 + 1.6 * hash(i * 3.3)) * (0.6 + 0.6 * rough), th = Math.max(0.45, s * 0.07);
-      x.fillRect(xx - len / 2, y, len, th);
+      const len = s * d.len * lk;
+      x.fillRect(xx - len / 2, y, len, d.th);
     }
     x.globalAlpha = 1;
   }
   /** sun glints by day: sparkles across the water, thicker toward the sun's side */
   function sparkle(x, sx, k, t, still, rough) {
-    const n = tier === 2 ? 110 : tier === 1 ? 60 : 40;
+    const n = Math.min(glints.length, tier === 2 ? 110 : tier === 1 ? 60 : 40), kk = k * (0.7 + 0.3 * rough);
+    x.fillStyle = 'rgb(255,252,236)';
     for (let i = 0; i < n; i++) {
-      const u = Math.pow(hash(i * 3.91 + 2), 0.9), y = y0 + 2 + u * (Hw - 3), z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, y - cam.VPY), s = cam.F / z;
-      const xx = hash(i * 1.7) < 0.55 ? sx + (hash(i * 6.1) - 0.5) * (60 + 180 * u) : hash(i * 7.7) * W;
-      const tw = still ? (hash(i * 2.9) > 0.6 ? 0.8 : 0) : Math.pow(Math.max(0, Math.sin(t * (3 + 4 * hash(i * 5.5)) + hash(i * 8.8) * 6.28)), 8);
-      const a = k * tw * (0.7 + 0.3 * rough);
+      const g = glints[i];
+      let tw = g.st;
+      if (!still) { const sn = Math.sin(t * g.fr + g.ph); if (sn <= 0.67) continue; const q = sn * sn; tw = q * q * q * q; }   // (sin⁸ < 0.04 below 0.67)
+      const a = kk * tw;
       if (a < 0.04) continue;
-      x.fillStyle = 'rgb(255,252,236)'; x.globalAlpha = Math.min(1, a);
-      const len = s * (0.3 + 0.7 * hash(i * 4.1)), th = Math.max(0.5, s * 0.08);
-      x.fillRect(xx - len / 2, y, len, th);
+      const xx = g.near ? sx + g.off * (60 + 180 * g.u) : g.wx;
+      x.globalAlpha = Math.min(1, a);
+      x.fillRect(xx - g.len / 2, g.y, g.len, g.th);
     }
     x.globalAlpha = 1;
   }

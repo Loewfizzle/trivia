@@ -34,7 +34,7 @@ import { litSteps, createLights, newMeta } from './lights.js';
 import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
 import { SPELL_WORDS } from '../../core/harbor-windows.js';
-import { quaySteps, drawQuayLamps } from './quay.js';
+import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
 import { createNeon, nightKey } from './neon.js';
 import { waterSteps, createWater, waterBand, axisAt } from './water.js';
 import { pierSteps } from './pier.js';
@@ -165,6 +165,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (vignette) vignette.width = vignette.height = 0;
     vignette = makeVignette(W, H);
     if (!glow) glow = radial('255,214,150');
+    quayLamps = quayLampSprite(L, glow, Math.min(2, dpr), quayLamps && quayLamps.cv);
     // the stale layers keep showing until this bake lands; during a crossfade it waits (its source is the canvas a bake draws into)
     if (fadeFrom >= 0 || waitRects()) wantBake = true; else rebake();
   }
@@ -186,7 +187,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const mr = Math.min(26, Math.max(15, W * 0.035)), x0 = W * (cam.wide ? 0.05 : 0.1), x1 = W * (cam.wide ? 0.95 : 0.9);
     MOON = { x0, x1, base: Math.max(at(x0), at(x1)) + mr + 2, apex: cam.wide ? cam.safeTop + mr + 24 : tagB + mr + 8 };
   }
-  let ARCH = null, MOON = null;
+  let ARCH = null, MOON = null, quayLamps = null;
   // the facades' look: the tone weights + the real sun's side and height (+ the sky the glass mirrors)
   const lookTones = () => ({ ...tones(TW), ...sunLook(LK, P) });
   const bakeKey = () => `${toneKey(TW)}|${sunKey(sunLook(LK, P))}|${camSig}|${neon.rev}`;
@@ -391,7 +392,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     lights.draw(c, 'near', now, nightK, S.motion);
     neon.draw(c, 'near', nf);
     // the far quay's lamps (Part 4: lit at night, with the city's power-on; their light runs down into the water)
-    drawQuayLamps(c, L, fadeIn * clamp01((P.dark - 0.3) / 0.45) * lit, glow);
+    drawQuayLamps(c, quayLamps, fadeIn * clamp01((P.dark - 0.3) / 0.45) * lit);
     lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
@@ -599,7 +600,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       baker.destroy(); litBaker.destroy(); neon.destroy(); water.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy();
-      for (const c of [skyCv, vignette, glow, ...sigGlow, canvas]) if (c) { c.width = 0; c.height = 0; }
+      for (const c of [skyCv, vignette, glow, ...sigGlow, canvas, quayLamps && quayLamps.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;
     },
   };

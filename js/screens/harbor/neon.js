@@ -233,13 +233,14 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
    */
   function draw(c, group, f) {
     if (!L) return;
-    const t = f.t, motion = f.motion, flutter = motion && tier > 0;
+    const t = f.t, motion = f.motion, flutter = motion && tier > 1;      // (tier 1: no core flutter — Part 4's budget)
     c.save();
     c.globalCompositeOperation = 'lighter';
     // (tier 0, the calm city: the party's motion — the chasers, the beat — is dropped; the neon stays lit, steady)
     const pe = f.party ? f.party.ramp * (f.party.energy || 0) : 0, partyK = tier === 0 ? 0 : Math.max(pe, moment.party);
     // the glass towers' LED facades (far): slow, smooth colour gradients sweeping across the face (a calm night: subtle)
-    if (group === 'far' && f.night > 0.05 && tier > 0) for (const gf of glassFaces) ledFacade(c, gf, t, f, partyK);
+    if (group === 'far' && f.night > 0.05 && tier > 1) for (const gf of glassFaces) ledFacade(c, gf, t, f, partyK);
+    else if (group === 'far' && f.night > 0.05 && tier === 1 && glassFaces.length) ledStill(c, f, partyK);
     // TIER 0 (the calm city): once the group's neon is steady (all on, the boot done, no moment running) it is one image
     if (tier === 0 && steady(group, t, partyK)) {
       if (!comp[group]) comp[group] = composite(group);
@@ -298,7 +299,20 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       for (const it of items) if (inGroup(it, group) && it.kind === 'sign' && it.sg.bulbs) it.sg.bulbs.forEach(([bx, by], i) => { x.globalAlpha = i % 3 === 0 ? 1 : 0.28; const r = i % 3 === 0 ? 2.6 : 1.6; x.drawImage(D, bx - r, by - r, r * 2, r * 2); });
     });
   }
-  function dropComp() { for (const g of ['far', 'near']) { free(comp[g]); comp[g] = null; } }
+  function dropComp() { for (const g of ['far', 'near']) { free(comp[g]); comp[g] = null; } free(led.sp); led.sp = null; led.key = ''; }
+  // tier 1 (Part 4's budget): the LED facades held still — one cached image of their gradients (the party's colours or the calm
+  // ones), drawn with the night's strength; the slow sweep + the climbing band run at tier 2 only
+  const led = { key: '', sp: null };
+  function ledStill(c, f, partyK) {
+    const key = `${partyK > 0.3 ? 1 : 0}|${glassFaces.length}`;
+    if (key !== led.key || !led.sp) {
+      free(led.sp); led.key = key;
+      const b = { x0: Math.min(...glassFaces.map(g => g.x0)), y0: Math.min(...glassFaces.map(g => g.y0)), x1: Math.max(...glassFaces.map(g => g.x1)), y1: Math.max(...glassFaces.map(g => g.y1)) };
+      led.sp = sprite(b, 0, dpr, x => { x.globalCompositeOperation = 'lighter'; for (const gf of glassFaces) ledFacade(x, gf, 0, { motion: false, night: 1, fade: 1 }, partyK > 0.3 ? 1 : 0); });
+    }
+    const a = f.night * f.fade;
+    if (a > 0.01 && led.sp) { c.globalAlpha = a; c.drawImage(led.sp.c, led.sp.x, led.sp.y, led.sp.w, led.sp.h); c.globalAlpha = 1; }
+  }
   function boardsLit(c, group, t, motion, f) {
     for (const it of items) if (it.kind === 'board' && inGroup(it, group) && it.night) { const a = alpha(it, 0, t, motion) * f.fade * f.night; if (a > 0.01) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(it.night.c, it.night.x, it.night.y, it.night.w, it.night.h); } }
   }
