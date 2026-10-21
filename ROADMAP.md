@@ -53,6 +53,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 - ✅ Stage 12 — GRIDLOCK, Part 2 (SALVO + ARCADE) (Oct 2026)
 - ✅ LIVING CITY (Oct 2026)
 - ✅ MOOD MUSIC (Oct 2026)
+- ✅ CITY 2.0 — THE HARBOR, Part 1 of 12: foundation + blockout (Oct 20, 2026): behind `?city=2`; the camera, the layout, baking + the memory budget, lanes + events, the grey box — `docs/harbor.md` (rollback tag `city-1.0`)
 - ✅ THE STREET, Part 2: THE PEOPLE (Oct 21, 2026): the speakeasy's door (knock → JOIN), pedestrians + umbrellas, the cab hail, spray, the small hours' windows, holiday figures — `docs/title.md`
 - ✅ JOIN / HOST follow the sign (Oct 21, 2026): unlit glass by day, lit from the catch to the morning goodbye — `docs/title.md`
 - ✅ THE STREET, Part 1 (Oct 20, 2026): lamps + paired seasonal trees, buses, a stop light, car variety, snowplows, golden-hour shadows, the street's party night — `docs/title.md`
@@ -75,9 +76,12 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 
 ## Next up (agreed plan, in order)
 
-- **First-visit speed:** TAP TO ENTER appears ~2.2 s after navigation on a cold start (target 1.5 s). The modules are loaded
-  by ~0.35 s and the gate built by ~0.6 s; the first frame after that is blocked ~1.6 s (the city's first build or the sky
-  shader compiling — profile it). Warm: 0.6 s. e2e-title guards it at 2.6 s.
+- **CITY 2.0 — THE HARBOR, Parts 2–12** (`docs/harbor.md`): 2 skyline · 3 neon + signs + billboards · 4 water · 5 harbor hero pieces ·
+  6 sky hero pieces · 7 the speakeasy · 8 the stage · 9 seasons + weather · 10 holidays + the banner plane · 11 party nights ·
+  12 easter eggs + sounds + memory + desktop + switch-over.
+- **First-visit speed:** profiled Oct 20 2026 (docs/harbor.md#performance): TAP TO ENTER is up at ~0.5 s cold (the ~2.2 s seen
+  earlier does not reproduce; at 4× CPU 1.4 s, the city's first build being one ~0.65 s task). City 2.0 bakes after the first
+  frame. e2e-title guards it at 2.6 s.
 1. ✅ **Smoke test on a normal phone tab** (`tests/integration/e2e-smoke.mjs`, done). The E2E suites only use `?slot=` test tabs, which hid the lobby "null" bug. A ~1-minute
    test: plain tab (slot 1), lobby, one round of each game, and fail on any visible "null"/"undefined" text.
 2. ✅ **Split `js/games/overclock/view.js`** (was ~1,600 lines) into `ui/<type>.js` (one per challenge), `reveals.js`, `shared.js`;

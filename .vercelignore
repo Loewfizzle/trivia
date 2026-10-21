@@ -11,3 +11,6 @@ neon speakeasy leaderboard key.txt
 *serviceAccount*.json
 .env
 .env.*
+
+# City 2.0 reference mockups: owner-approved look, never served
+docs/harbor/ref

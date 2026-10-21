@@ -11,6 +11,13 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   game stylesheet; a game's sheets load with its screen, in the old cascade order; the lobby warms them; an error thrown in our code
   reaches `errlog/` once, noise doesn't, two phones share one entry.
 - **The title city's looks** (LIVE WEATHER, birds, the street — docs/title.md): `?when=…&tz=…` + `&wx=clear|clouds|overcast|fog|drizzle|rain|storm|snow|sleet|freeze` + `&force=lightning,geese,swifts,pigeons,heron,train,steam,rush,eclipse`; previews never use the live weather. `&force=no-clouds,no-road,no-birds,no-rain` switches parts off for performance checks. `e2e-title.mjs` runs at a fixed autumn night (the sign checks) and measures frame pacing at a fixed afternoon: at night the top tier is heavier and a 4×-slowed CPU steps down a tier there, as designed (measured the same before and after LIVE WEATHER). Anything under the dock's glass (backdrop blur) must not render when unused — an invisible animated layer there cost 80 ms frames.
+- **CITY 2.0 — THE HARBOR** (`docs/harbor.md`, `?city=2`): `node --test tests/harbor.test.mjs` (the camera + layout at six sizes, the
+  scheduler); `node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 75 s, emulators: load + every flag, never saved, a normal visit
+  untouched, HOST / JOIN / the knock, frame pacing at 4× CPU vs the 8 ms budget, 20 title ↔ setup cycles' memory); the look:
+  `node shots.mjs "<browser>" --preview --city 2 --safe --sizes harbor --scenes day,golden,night,party,rain,snow` (`--crop stage`,
+  `--qs grid=1`); cost per scene + tier for either city: `node title-perf.mjs "<browser>" [--city 2] [--scenes party,night,day] [--cpu 4]`
+  (no emulators). The emulators need Java: if `java` is not on the PATH, the project's own JRE is at
+  `~/.cache/neural-arcade/jre/jdk-21.0.12.1+1-jre/bin` (prepend it to PATH before `npm run emulators`).
 - **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (214 tests: rules of all ten games (GRIDLOCK: tests/gridlock.test.mjs — placement, private resolution, points + bounty, Classic 2/3/4 + Royale 8 whole matches, the cap; SLIPSTREAM: slip + slip-course, incl. bot rides proving courses survivable) (DOUBLE AGENT: tests/agent.test.mjs; PRISM DROP: prism-engine + prism) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).

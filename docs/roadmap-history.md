@@ -328,6 +328,25 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE HARBOR, Part 1 of 12: foundation + blockout (Oct 20, 2026) — `docs/harbor.md`
+- Rollback point: the tag `city-1.0` (ba51ee2), pushed. Everything new behind `?city=2` (never saved; a normal visit never loads a
+  harbor file); title.js gains one import line + one gated line (+ `__district.harbor()`).
+- The owner's decisions recorded in docs/harbor.md (the vision, the reference as the floor, the size rules, hero pieces, signs,
+  holidays, sound, modes, future growth, the 12 parts). Asked before building: the mockup's towers rose 23–63 pt into the real
+  tagline → the skyline is squeezed (tall towers shrink most, landmarks stay tallest, the freed sky is the sun's arch); a phone
+  sideways shows the whole city smaller.
+- `core/harbor-layout.js` (the projector, the camera per screen from the real sign + dock rects, the SIZE table, the squeeze, the
+  sun gaps, the whole layout), `core/harbor-events.js` (lanes, events, the deterministic scheduler with budgets + rarity + heavy
+  events, the `&force=demo` event), `screens/harbor/*` (createHarbor with the district's API, the district's sky modules reused,
+  the chunked baker with two canvas sets + a crossfade + a per-tier memory budget, 13 layer modules in grey box with day / sunset /
+  night tints, `&grid=1`, `&debug=1`).
+- Perf: today's city at a party peak, 4× CPU: 8.9 ms of drawing a frame at tier 2 (the baseline); the Harbor 3–4.5 ms (budget 8).
+  Baked layers 15.6 MB at 390×844 (budget 64). First visit profiled: 0.49 s cold (the target is met).
+- Tests: `tests/harbor.test.mjs` (22: the projector, SIZE, the squeeze, every size's reserved zones + sizes, the sun gaps, the
+  scheduler), `e2e-harbor.mjs` (16: load + flags, never saved, a normal visit, HOST / JOIN / the knock, perf, 20-cycle memory,
+  hidden tab), `title-perf.mjs` (both cities, any scene, per tier); `shots.mjs --city 2 --safe --sizes harbor --crop stage` +
+  party / snow scenes. Reviewed: six scenes × six sizes, two refine passes.
+
 ### ✅ THE STREET, Part 2: THE PEOPLE (Oct 21, 2026) — `docs/title.md`
 - [x] The speakeasy's door (sconce, peephole, neon glass, doorman), visits, the resting hint, the party line + velvet rope
 - [x] KNOCK on the door → JOIN (a real way in), never over the dock or the city's other taps

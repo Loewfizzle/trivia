@@ -16,6 +16,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/testing.md` | running / writing tests: emulators, smoke test, each game's E2E and its env flags, previews, Lighthouse |
 | `docs/audio.md` | music, playlists, SFX, the audio engine; loading, PWA, service worker, link previews |
 | `docs/title.md` | the title screen, the district scene, the logo, the menu, LIVING CITY (time of day, seasons, holidays, sky events, the real sun + solar eclipses; `?when=&tz=&at=&force=`), PARTY NIGHTS (Fri / Sat on the beat), RAINBOWS (after real rain), THE STREET (lamps, trees, buses, the stop light; the people, the speakeasy's door + the knock), the dock, the screen at rest, the easter eggs |
+| `docs/harbor.md` | **CITY 2.0 — THE HARBOR** (the title's new city, behind `?city=2`, 12 parts): the bible (the owner's decisions, size rules, hero pieces), the camera + layout numbers, baking + the memory budget, lanes + events, `&grid=1`, the performance budgets, what each part builds |
 | `docs/chat.md` | room chat (data, locks per game, system lines, profanity filter) |
 | `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
 | `docs/profiles.md` | profiles, name tags + keys, `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
@@ -91,7 +92,7 @@ css/board.css admin.css                                  THE BOARD, the membersh
 css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow()
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
-js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js trees.js street-life.js people.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js   PURE: room codes + host election, HUSH WORDS, the lobby song handoff, PARTY NIGHTS (the window, the beat clock), RAINBOWS (after real rain: when, which bow, where), THE STREET (trees through the year; the street's layout, buses, signal, cars, plows; the people, the door, hails), seeded RNG, XOR+base64, game-night standings, room playlists + callBonus; sky.js the real sun, moon, seasons, holidays, planets, eclipses; weather.js Open-Meteo → the city weather; insights.js the admin STATS
+js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js trees.js street-life.js people.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js harbor-layout.js harbor-events.js   PURE: room codes + host election, HUSH WORDS, the lobby song handoff, PARTY NIGHTS (the window, the beat clock), RAINBOWS (after real rain: when, which bow, where), THE STREET (trees through the year; the street's layout, buses, signal, cars, plows; the people, the door, hails), seeded RNG, XOR+base64, game-night standings, room playlists + callBonus; sky.js the real sun, moon, seasons, holidays, planets, eclipses; weather.js Open-Meteo → the city weather; insights.js the admin STATS; harbor-layout.js / harbor-events.js CITY 2.0's camera + layout and its event scheduler (docs/harbor.md)
           week.js ranks.js names.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, keys, board catalog, per-game results
 js/profile/ api.js me.js queue.js public.js callouts.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques + rank-up
 js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX
@@ -100,6 +101,7 @@ js/ui/    dom.js components.js final.js logo.js game-art.js settings-panel.js he
 js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js beat.js   prefs, AudioContext + buses, music + playlists, synth SFX, title ambience (+ thunder, fireworks), songs on the server clock, MOOD MUSIC, the beat the city breathes to
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
 js/screens/ title.js title-dock.js setup.js lobby.js profile.js district/{scene,backdrop,fx,party-fx,fireworks,rainbow,furniture,people,palette,signs,marks,sign-logic,stars,weather-fx,rain,frost,wildlife,street,aircraft,live-weather,sun,neon-ramp}.js   the front door, name/avatar, the lobby, the membership card, the city (Canvas 2D: sky, effects, signs, LIVE WEATHER, birds, the street) + its still behind menus
+js/screens/harbor/{scene,bake,tones,shapes,blocks,sky,far,mid,landmarks,quay,water,pier,lighthouse,boats,road,speakeasy,stage,foreground,grid}.js   CITY 2.0 — THE HARBOR (?city=2 only; docs/harbor.md)
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
 js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
 js/errlog.js                                             errors from players' phones → /api/log → /admin (first import of app.js + board/public.js)
@@ -111,7 +113,7 @@ audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; b
 scripts/  serve.mjs build-*.{mjs,py} validate-holes.mjs sim-gridlock.mjs   local server (:5173, `--emu` also runs /api on the emulators), builders, the NEON PAR hole bot, GRIDLOCK balance sim
 database.rules.json                                      RTDB rules — paste into the Firebase console after every change
 tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)
-tests/integration/  kit/harness.mjs e2e-*.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
+tests/integration/  kit/harness.mjs e2e-*.mjs title-perf.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
 tests/fixtures/finals.mjs                                finished matches of every game (profile/board tests)
 ```
 

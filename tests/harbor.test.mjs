@@ -1,0 +1,173 @@
+// CITY 2.0 — THE HARBOR: the camera, the layout per screen size, the SIZE rules and the events scheduler (pure; docs/harbor.md).
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { REF, Z, SIZE, units, ptAt, cameraFor, project, xAt, groundY, squeeze, harborLayout, screenBoxes, SUN_GAPS } from '../js/core/harbor-layout.js';
+import { LANES, SLOT_MS, RARITY, BUDGET, defineEvent, schedule, startChance, HARBOR_EVENTS } from '../js/core/harbor-events.js';
+
+// the title's real rects at each size (measured from the real title, Oct 20 2026, with iPhone safe areas)
+const SIZES = {
+  '390x844': { W: 390, H: 844, tag: { y: 296, h: 14 }, dock: { x: 14, y: 728, w: 362, h: 76 }, safe: { top: 47, bottom: 34 } },
+  '402x874': { W: 402, H: 874, tag: { y: 319, h: 14 }, dock: { x: 14, y: 758, w: 374, h: 76 }, safe: { top: 62, bottom: 34 } },
+  '412x915': { W: 412, H: 915, tag: { y: 308, h: 14 }, dock: { x: 14, y: 799, w: 384, h: 76 }, safe: { top: 47, bottom: 34 } },
+  '430x932': { W: 430, H: 932, tag: { y: 322, h: 14 }, dock: { x: 14, y: 816, w: 402, h: 76 }, safe: { top: 59, bottom: 34 } },
+  '874x402': { W: 874, H: 402, tag: { y: 179, h: 14 }, dock: { x: 227, y: 305, w: 420, h: 70 }, safe: { top: 0, bottom: 21 } },
+  '1440x900': { W: 1440, H: 900, tag: { y: 351, h: 15 }, dock: { x: 510, y: 794, w: 420, h: 86 }, safe: { top: 0, bottom: 0 } },
+};
+const setup = k => { const s = SIZES[k]; const cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe); return { s, cam, L: harborLayout(cam) }; };
+const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+test('the projector: the mockup camera at the reference phone', () => {
+  const cam = { W: 402, H: 874, VPX: 201, VPY: REF.VPY, F: REF.F, CAMH: REF.CAMH };
+  assert.deepEqual(project(cam, 0, REF.CAMH, 100), [201, 540]);              // eye height sits on the horizon
+  const [x, y] = project(cam, 10, 0, 50);
+  assert.equal(x, 201 + 600 * 10 / 50); assert.equal(y, 540 + 600 * 13.5 / 50);
+  assert.ok(Math.abs(xAt(cam, x, 50) - 10) < 1e-9);
+  assert.equal(groundY(cam, 50), y);
+  // the mockup's reference sizes: the 11-unit bus at z 60 is 110 pt
+  assert.equal(ptAt(cam, 11, 60), 110);
+});
+
+test('SIZE rules: world units ↔ pt at the reference phone', () => {
+  const cam = { F: REF.F };
+  for (const [name, r] of Object.entries(SIZE)) assert.ok(Math.abs(ptAt(cam, units(name), r.z) - r.pt) < 1e-9, name);
+  assert.ok(units('person') > 1.4 && units('person') < 1.7);
+  assert.ok(Math.abs(units('bus') - 11) < 0.01);
+});
+
+test('the squeeze: monotonic, the tallest lands on the limit, low roofs untouched', () => {
+  const { cam } = setup('402x874');
+  const yMax = cam.VPY + cam.F * (cam.CAMH - 125) / 255;
+  const sq = squeeze(cam, yMax);
+  assert.ok(sq.s < 1 && sq.s > 0.3);
+  const top = h => cam.VPY + cam.F * (cam.CAMH - sq(h, 255)) / 255;
+  assert.ok(Math.abs(top(125) - cam.limitY) < 0.5, 'the tallest crown stops at the limit');
+  let prev = -1;
+  for (let h = 0; h <= 125; h += 2.5) { const v = sq(h, 255); assert.ok(v >= prev - 1e-9, 'taller stays taller'); prev = v; }
+  assert.equal(sq(10, 255), 10, 'a low roof is not squeezed');
+  // the tall shrink more than the low: the ratio falls with height
+  assert.ok(sq(125, 255) / 125 < sq(70, 255) / 70);
+});
+
+for (const k of Object.keys(SIZES)) {
+  test(`layout ${k}: no reserved zone violated`, () => {
+    const { s, cam, L } = setup(k);
+    const boxes = screenBoxes(L);
+    // the skyline stops under the tagline (crowns included)
+    for (const b of boxes.filter(b => b.kind === 'sky')) assert.ok(b.y >= cam.limitY - 0.6, `${b.id} top ${b.y.toFixed(1)} above the limit ${cam.limitY}`);
+    assert.ok(cam.limitY >= s.tag.y + s.tag.h + 9.5);
+    // the landmarks stay the tallest (a landmark's top is the highest on screen)
+    const sky = boxes.filter(b => b.kind === 'sky');
+    const best = sky.reduce((a, b) => (b.y < a.y ? b : a));
+    assert.ok(L.landmarks.some(l => l.id === best.id), `the highest is ${best.id}`);
+    // nothing alive under the dock
+    for (const b of boxes.filter(b => b.kind === 'alive')) assert.ok(!overlap(b, { ...s.dock, h: s.H }), `${b.id} under the dock`);
+    // the door: on screen, ≥ 44 pt, clear of the dock and the corner buttons
+    const d = L.door.rect;
+    assert.ok(d.w >= 44 && d.h >= 44);
+    assert.ok(d.x >= 0 && d.x + d.w <= s.W && d.y >= 0, 'the door is on screen');
+    assert.ok(!overlap(d, s.dock), 'the door clear of the dock');
+    assert.ok(!overlap(d, { x: s.W - 60, y: 0, w: 60, h: 160 }), 'the door clear of the corner buttons');
+    // the bands keep their order and some depth: the water and the promenade are visible
+    assert.ok(groundY(cam, Z.rail) - groundY(cam, Z.quay) > (cam.wide && s.H < 500 ? 12 : 40), 'the water reads');
+    assert.ok(cam.dock.y - groundY(cam, Z.road[0]) > (s.H < 500 ? 10 : 40), 'the promenade reads');
+    // the speakeasy bleeds off the left edge
+    assert.ok(project(cam, L.speakeasy.x0, 0, L.speakeasy.z0)[0] < 0);
+    assert.ok(project(cam, L.speakeasy.x1, 0, L.speakeasy.z0)[0] > 40);
+  });
+
+  test(`layout ${k}: the sizes`, () => {
+    const { s, cam, L } = setup(k);
+    const person = ptAt(cam, units('person'), SIZE.person.z), bus = ptAt(cam, L.bus.len, L.bus.z);
+    if (!cam.wide) {
+      // the SIZE rules on a phone held upright (390–430 pt follow the width)
+      const f = s.W / REF.W;
+      assert.ok(person > 17 * f && person < 23 * f, `person ${person}`);
+      assert.ok(bus > 100 * f && bus < 120 * f, `bus ${bus}`);
+      assert.ok(ptAt(cam, L.cars[0].len, L.cars[0].z) > 48 * f && ptAt(cam, L.cars[0].len, L.cars[0].z) < 62 * f);
+      assert.ok(ptAt(cam, L.lamps[0].h, L.lamps[0].z) > 45 * f && ptAt(cam, L.lamps[0].h, L.lamps[0].z) < 55 * f);
+      assert.ok(ptAt(cam, L.trees[0].r * 2, L.trees[0].z) > 36 * f && ptAt(cam, L.trees[0].r * 2, L.trees[0].z) < 44 * f);
+      assert.ok(ptAt(cam, L.signals[0].h, L.signals[0].z) > 50 * f && ptAt(cam, L.signals[0].h, L.signals[0].z) < 60 * f);
+    } else if (s.H < 500) {
+      assert.ok(person >= 8.5, `sideways people ${person}`);   // the owner's call: the whole city, smaller
+    } else {
+      assert.ok(person > 17 && person < 23, `desktop person ${person}`);
+      assert.ok(cam.spread > 2, 'a panorama, not a stretched phone');
+    }
+  });
+}
+
+test('layout: the sun gaps stay clear through every skyline band', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k);
+    for (const bd of L.bands) for (const b of bd.blocks) {
+      const s0 = project(cam, b.x0, 0, b.z0)[0], s1 = project(cam, b.x1, 0, b.z0)[0];
+      for (const g of L.gaps) assert.ok(!(s1 > g.sx - g.w / 2 && s0 < g.sx + g.w / 2), `${k}: a ${bd.id} block in the gap at ${g.sx}`);
+    }
+    assert.equal(L.gaps.length, SUN_GAPS.length);
+  }
+});
+
+test('layout: deterministic (the same seed, the same city)', () => {
+  const a = setup('402x874').L, b = setup('402x874').L;
+  assert.deepEqual(a.bands.map(x => x.blocks.length), b.bands.map(x => x.blocks.length));
+  assert.deepEqual(a.bands[1].blocks[3], b.bands[1].blocks[3]);
+});
+
+// ---------------------------------------------------------------- events
+const ctxAt = force => ms => ({ ms, force: new Set(force), night: true });
+
+test('events: definitions are checked', () => {
+  assert.throws(() => defineEvent({ id: 'x', lanes: ['moon'], rarity: 'common', duration: 1000 }));
+  assert.throws(() => defineEvent({ id: 'x', lanes: ['sky'], rarity: 'often', duration: 1000 }));
+  assert.throws(() => defineEvent({ id: 'x', lanes: ['sky'], rarity: 'common', duration: 0 }));
+  assert.equal(LANES.length, 7);
+  assert.ok(startChance(defineEvent({ id: 'l', lanes: ['sky'], rarity: 'legendary', duration: 1000 })) < startChance(defineEvent({ id: 'c', lanes: ['sky'], rarity: 'common', duration: 1000 })));
+});
+
+test('events: deterministic — the same time gives the same schedule (a refresh never reshuffles)', () => {
+  const evs = ['a', 'b', 'c', 'd'].map((id, i) => defineEvent({ id, lanes: [LANES[i % 3]], rarity: 'common', duration: 40000 }));
+  for (let ms = 1.8e12; ms < 1.8e12 + 30 * SLOT_MS; ms += 13000) {
+    assert.deepEqual(schedule(evs, ms, ctxAt([])), schedule(evs, ms, ctxAt([])));
+  }
+});
+
+test('events: two events never share a lane; the budget holds; heavy events quiet the other lanes', () => {
+  const evs = [
+    ...Array.from({ length: 6 }, (_, i) => defineEvent({ id: `sky${i}`, lanes: ['sky'], rarity: 'common', duration: 2 * SLOT_MS })),
+    ...Array.from({ length: 6 }, (_, i) => defineEvent({ id: `w${i}`, lanes: ['water', 'road'], rarity: 'common', duration: SLOT_MS, cost: 1 })),
+    defineEvent({ id: 'parade', lanes: ['promenade', 'road'], rarity: 'common', duration: SLOT_MS, heavy: true, cost: 1.2 }),
+  ];
+  let sawQuiet = false, sawTwo = false;
+  for (let ms = 1.8e12; ms < 1.8e12 + 400 * SLOT_MS; ms += SLOT_MS / 3) {
+    const { active, quiet } = schedule(evs, ms, ctxAt([]));
+    const lanes = active.flatMap(e => e.lanes);
+    assert.equal(new Set(lanes).size, lanes.length, 'a lane taken twice');
+    assert.ok(active.reduce((s, e) => s + e.cost, 0) <= BUDGET.total + 1e-9, 'over budget');
+    for (const e of active) assert.ok(e.k >= 0 && e.k < 1);
+    if (active.some(e => e.heavy)) { sawQuiet = true; assert.ok(quiet.includes('sky') && !quiet.includes('promenade')); }
+    if (active.length >= 2) sawTwo = true;
+  }
+  assert.ok(sawQuiet && sawTwo);
+});
+
+test('events: rarity — common is common, legendary is rare', () => {
+  const evs = [defineEvent({ id: 'c', lanes: ['sky'], rarity: 'common', duration: 20000 }), defineEvent({ id: 'l', lanes: ['water'], rarity: 'legendary', duration: 20000 }), defineEvent({ id: 'w', lanes: ['road'], rarity: 'weekly', duration: 20000 })];
+  const seen = { c: 0, l: 0, w: 0 }, starts = new Set();
+  const day = 864e5, step = SLOT_MS;
+  // (an event of 20 s inside a 90 s slot: sample the slot every 10 s and count each start once)
+  for (let ms = 1.8e12; ms < 1.8e12 + 14 * day; ms += step) for (let o = 0; o < step; o += 10000) for (const e of schedule(evs, ms + o, ctxAt([])).active) { const k = `${e.id}|${e.start}`; if (!starts.has(k)) { starts.add(k); seen[e.id]++; } }
+  const slots = 14 * day / SLOT_MS;
+  assert.ok(seen.c > slots / RARITY.common * SLOT_MS * 0.7 && seen.c < slots / RARITY.common * SLOT_MS * 1.3, `common ${seen.c}`);
+  assert.ok(seen.w >= 0 && seen.w <= 8, `weekly ${seen.w}`);
+  assert.ok(seen.l <= 2, `legendary ${seen.l}`);
+});
+
+test('events: when() gates by the context; forced events run at once', () => {
+  const evs = [defineEvent({ id: 'snowy', lanes: ['promenade'], rarity: 'common', duration: 20000, when: c => c.snow })];
+  for (let ms = 1.8e12; ms < 1.8e12 + 50 * SLOT_MS; ms += SLOT_MS / 2) assert.equal(schedule(evs, ms, ms2 => ({ ms: ms2, snow: false })).active.length, 0);
+  // the demo: only with &force=demo, and then it is running right away
+  assert.equal(schedule(HARBOR_EVENTS, 1.8e12, ctxAt([])).active.length, 0);
+  const on = schedule(HARBOR_EVENTS, 1.8e12 + 1234, ctxAt(['demo']), { forced: ['demo'] });
+  assert.deepEqual(on.active.map(e => e.id), ['demo']);
+  assert.deepEqual(on.active[0].lanes, ['sky']);
+});

@@ -3,12 +3,16 @@
 //
 //   node shots.mjs "<browser>" [--scenes night,day,halloween] [--sizes phones|desktop|all|390x844,412x915] [--place gr|ny|none]
 //                  [--crop dock,corner,sign | --crop 0,1400,780,300] [--qs "wx=rain&force=lightning"] [--out ./shots-review]
-//                  [--wait 2600] [--guest] [--preview]
+//                  [--wait 2600] [--guest] [--preview] [--city 2] [--safe]
 // --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
+// --city 2: CITY 2.0, THE HARBOR (docs/harbor.md): adds &city=2 (any extra flag via --qs, e.g. "grid=1" or "force=demo");
+//   --sizes harbor = the six review sizes (four phones upright, a phone sideways, desktop); --safe emulates the iPhone's
+//   safe areas (62 / 34 pt upright, 21 pt at the bottom sideways); --crop stage = the near stage (the road to the dock).
+//   e.g. node shots.mjs "<browser>" --preview --city 2 --safe --sizes harbor --scenes day,golden,night,party,rain,snow
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
 // valentine rejoin sun rain rainbow rainbow2 moonbow neonbow blossom summer autumn autumn-night winter plow owl day-bus golden
-// street-party street-rain umbrellas party-line hail small-hours halloween-kids nye-sparklers door door-day. --crop street: the street strip (the towers' feet down to the dock). "first" has no profile; --guest makes every scene a first-time visitor.
+// street-party street-rain umbrellas party-line hail small-hours halloween-kids nye-sparklers door door-day party snow. --crop street: the street strip (the towers' feet down to the dock). "first" has no profile; --guest makes every scene a first-time visitor.
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
@@ -24,8 +28,10 @@ const GUEST = !!opt('guest', false);
 const PREVIEW = !!opt('preview', false);
 const PLACES = { gr: '&tz=America/Detroit&at=42.96,-85.67', ny: '&tz=America/New_York', none: '' };
 const PLACE = PLACES[opt('place', 'gr')] ?? PLACES.gr;
+const CITY = opt('city', '') ? `&city=${opt('city')}` : '';
+const SAFE = !!opt('safe', false);
 const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
-const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900' };
+const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900', harbor: '390x844,402x874,412x915,430x932,874x402,1440x900' };
 const SIZES = String(SIZE_SETS[opt('sizes', 'quick')] || opt('sizes')).split(',').map(s => s.split('x').map(Number));
 // [when, options] — dates are Grand Rapids' 19 Oct 2026 unless the scene is a holiday
 const SCENE = {
@@ -44,6 +50,8 @@ const SCENE = {
   // THE STREET, Part 2 (the people)
   umbrellas: ['2026-10-21T21:30', { qs: 'wx=rain&force=peds,umbrellas' }], 'party-line': ['2026-10-23T23:15', { qs: 'force=line,door' }],
   hail: ['2026-10-21T21:30', { qs: 'force=hail,peds' }], 'small-hours': ['2026-10-22T03:00'], 'halloween-kids': ['2026-10-31T19:30', { qs: 'force=halloween-kids' }],
+  // party nights (a Saturday at the peak) and real snow — both cities
+  party: ['2026-10-24T23:00'], snow: ['2026-12-18T21:00', { qs: 'wx=snow' }],
   'nye-sparklers': ['2027-01-01T00:01'], door: ['2026-10-21T22:00', { qs: 'force=door,hint' }], 'door-day': ['2026-10-21T13:00'],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
@@ -63,12 +71,13 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   const ctx = await browser.createBrowserContext();
   const p = await ctx.newPage();
   p.on('pageerror', e => console.log(`${name} ${w}x${h} PAGEERROR`, e.message));
-  const mobile = w < 800;
+  const mobile = w < 1000;
   await p.setViewport({ width: w, height: h, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile });
+  if (SAFE) await p.evaluateOnNewDocument((st, sb) => { document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.textContent = `:root{--safe-t:${st}px !important;--safe-b:${sb}px !important}`; document.head.appendChild(s); }); }, mobile && h > w ? 62 : 0, mobile ? (h > w ? 34 : 21) : 0);
   await p.evaluateOnNewDocument(guest => {
     try { localStorage.setItem('nd:entered', '1'); if (!guest) localStorage.setItem('na:sh:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, GUEST || !!o.guest);
-  const qs = `when=${when}${PLACE}${o.qs ? `&${o.qs}` : ''}${EXTRA}`;
+  const qs = `when=${when}${PLACE}${o.qs ? `&${o.qs}` : ''}${CITY}${EXTRA}`;
   await p.goto(PREVIEW ? `${BASE}/tests/integration/title-preview.html?${qs}${GUEST || o.guest ? '&guest=1' : ''}` : `${BASE}/?emu&slot=sh&${qs}`);
   await p.waitForFunction(() => window.__district && window.__district.phase().done, { timeout: 25000 });
   await sleep(WAIT);
@@ -81,6 +90,9 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     let clip;
     if (c === 'street') {
       clip = await p.evaluate(() => { const s = window.__district.street(); if (!s || !s.HZ) return null; const k = s.K || 1; const y = Math.max(0, s.HZ - 78 * k); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight - y, 120 * k) }; });
+    } else if (c === 'stage') {
+      // CITY 2.0: the near stage — from above the road's stop lights down to the dock's top
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, k = c.F / 600; const y = Math.max(0, c.VPY + c.F * c.CAMH / 64 - 70 * k); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight, c.dock.y + 8) - y }; });
     } else if (PRESET[c]) {
       clip = await p.evaluate(([sel, pad]) => {
         const rs = [...document.querySelectorAll(sel)].map(e => e.getBoundingClientRect()).filter(r => r.width);
@@ -91,7 +103,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    await p.screenshot({ path: `${file}-${PRESET[c] || c === 'street' ? c : 'crop'}.png`, clip }); n++;
+    await p.screenshot({ path: `${file}-${PRESET[c] || c === 'street' || c === 'stage' ? c : 'crop'}.png`, clip }); n++;
   }
   await ctx.close();
 }

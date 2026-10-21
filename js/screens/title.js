@@ -31,6 +31,8 @@ import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource } from '../audio/beat.js';
 import { createDistrict } from './district/scene.js';
+// CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded
+const createHarbor = /[?&]city=2(?:&|$)/.test(location.search) ? (await import('./harbor/scene.js')).createHarbor : null;
 import { captureBackdrop } from './district/backdrop.js';
 import { neonPlan, neonState, neonNext } from './district/neon-ramp.js';
 import { createDock, dressCorners, ICON } from './title-dock.js';
@@ -262,7 +264,7 @@ export function createTitle() {
     // the city: fixed behind everything, full viewport (the screen column is narrower on desktop)
     els.sceneWrap = h('div.nd-scene', { 'aria-hidden': 'true' }, els.canvas = h('canvas'));
     document.body.prepend(els.sceneWrap);
-    scene = createDistrict(els.canvas, { games: GAMES, tier: (window.devicePixelRatio || 1) > 2.5 && (navigator.hardwareConcurrency || 8) <= 4 ? 1 : 2 });
+    scene = (createHarbor || createDistrict)(els.canvas, { games: GAMES, tier: (window.devicePixelRatio || 1) > 2.5 && (navigator.hardwareConcurrency || 8) <= 4 ? 1 : 2 });
     scene.set({ motion: reduced() ? 0 : 1 });
     // a lightning strike: thunder a few seconds later, the glass of the dock catches the flash
     scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });
@@ -1131,6 +1133,7 @@ export function createTitle() {
       rainbow: () => (scene && scene.rainbow ? scene.rainbow() : null),
       street: () => (scene && scene.street ? scene.street() : null),
       cost: () => (scene && scene.cost ? scene.cost() : []),
+      harbor: () => (scene && scene.harbor ? scene.harbor() : null),     // CITY 2.0 only (?city=2): camera, layout, bake + memory
       door: () => (scene && scene.door ? scene.door() : null),
       finale: () => scene && scene.finale(),
       dock: {
