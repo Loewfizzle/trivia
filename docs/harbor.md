@@ -77,10 +77,10 @@ really happening.
 | # | part | what |
 | --- | --- | --- |
 | 1 | **foundation + blockout** ✅ | the flag, the projector + per-size camera, the layout, baking + the memory budget, lanes + events, the &grid overlay, a grey box of the whole approved layout, tests, this file |
-| 2 | skyline | the far bands, the mid band, the facades (glitter windows, real brick/stone/glass by day), the haze, the floodlit crowns, the golden-hour rays through the sun gaps |
+| 2 | **skyline** ✅ | the composition (hero towers, word towers, clusters, the newer city's glass), the far bands, the facades (real stone / terracotta / brick / glass by day, glitter at night), the haze, the landmark towers' full craft + floodlit crowns, the golden-hour rays through the sun gaps, addressable windows + words in the windows, the searchlights, the sun's + the moon's arches re-fit, the tagline fade |
 | 3 | neon + signs + billboards | the tube signs (each game's own), the hotel's blade, the roof tubes (JAZZ, PULSE, NEON PAR…), billboards; unlit by day |
 | 4 | water | reflections in perspective, ripples, the lights' smears, the quay lamps in the water, wakes |
-| 5 | harbor hero pieces | the Ferris wheel (turning, bulbs), the lighthouse (the beam), the pier, the landmark towers, the boats (Rosie and her bulbs, the taxi, the tug, the sailboats) |
+| 5 | harbor hero pieces | the Ferris wheel (turning, bulbs), the lighthouse (the beam), the pier, the boats (Rosie and her bulbs, the taxi, the tug, the sailboats) — the landmark towers moved to Part 2 |
 | 6 | sky hero pieces | planes, the banner plane, the helicopter, jets, birds / gulls, the UFO, satellites — the existing systems' behaviour, new artwork |
 | 7 | the speakeasy | the facade, rooms you can see into, the door + the knock, the awning "EST. 1924", the rooftop (planters, string lights, people) |
 | 8 | the stage | the promenade, lamps, trees, bench, planters, the cart, people who walk, the road, the bus, cars, stop lights (cycle, wet reflections) |
@@ -108,13 +108,19 @@ really happening.
 ```
 js/core/harbor-layout.js   PURE  the projector, the camera per screen, the SIZE table, the squeeze, the sun gaps, the whole layout, screen boxes, the roofline, the lane rects
 js/core/harbor-events.js   PURE  lanes + events, the stateful scheduler (anchor + replay, budgets, rarity, heavy events → density), the built-in events
+js/core/harbor-windows.js  PURE  (Part 2) every window's dice + the light timeline (City 1.0's), the pixel font, layoutText (words on the word towers)
 js/screens/harbor/scene.js        createHarbor(): the district's API; the frame; the sky modules wired in; rainbows + party rules; the dock's rects
 js/screens/harbor/bake.js         the baker: two sets of canvases, chunked steps, the crossfade, the memory budget
-js/screens/harbor/tones.js        Part 1's day / sunset / night tints (from the real sky's weights) + the haze by depth
+js/screens/harbor/tones.js        the day / golden / night tints (from the real sky's weights), the haze by depth, the real sun's side + height (sunLook)
 js/screens/harbor/shapes.js       world-space drawing: boxes (the faces the camera sees), crowns, people, vehicles
-js/screens/harbor/blocks.js       a skyline building (grey box + glitter windows), a band in chunks, a haze veil
+js/screens/harbor/blocks.js       (Part 2) a skyline building crafted: materials, Deco piers + spandrels, cornices, setbacks, weathering, the glass,
+                                  the sun's side + cast shadows, the street's glow, floodlights, every crown; cellRect (a window's pane on screen)
+js/screens/harbor/skyline.js      (Part 2) the two skyline groups ('far', 'near'), far → near, with their veils; the facades' bake steps
+js/screens/harbor/lights.js       (Part 2) THE LIT WINDOWS: their own bake (the light key) + what changes every frame (glitter, TVs, a light switched
+                                  off / on, the beacons, the words: spell / set)
+js/screens/harbor/rays.js searchlights.js   (Part 2) the golden-hour rays through the sun gaps; the rooftop searchlights (hardware + beams)
 js/screens/harbor/sky.js          the sky's gradient + horizon glow (the real sky on it = the district's sky modules)
-js/screens/harbor/far.js mid.js landmarks.js quay.js water.js pier.js lighthouse.js boats.js road.js speakeasy.js stage.js foreground.js   the layers, far → near
+js/screens/harbor/quay.js water.js pier.js lighthouse.js boats.js road.js speakeasy.js stage.js foreground.js   the layers, far → near
 js/screens/harbor/grid.js         the &grid=1 overlay
 ```
 - **The same public API as `createDistrict`** (title.js / title-dock.js / backdrop.js use it): `set, look, hit, signOn, palette,
@@ -126,8 +132,10 @@ js/screens/harbor/grid.js         the &grid=1 overlay
   same frame object (`fs`) the district builds, incl. `skyline` (the Harbor's roofline: the sun fits its arch to it, the planes
   keep above it).
 - **Draw order:** the sky (gradient, stars, the moon + sky fx, the sun, planes, clouds, rain veils, the rainbow, birds,
-  fireworks) → **far** (haze band, far band, mid band) → the sun's halo + rays, swifts, fog → **near** (landmarks, near band, hero
-  blocks, the quay + its lamps) → **water** → **harbor** (pier, wheel, breakwater, lighthouse, cottage) → boats → **road** → traffic →
+  fireworks) → **far** (haze band, far band + the glass towers, mid band + the middle tier) → **farLit** + glitter → the sun's
+  halo + the rays (behind), swifts, fog → **near** (the hand-placed towers, the near band, hero blocks, the searchlights'
+  hardware, the quay + its lamps) → **nearLit** + the TVs, switched lights, words, beacons → the rays' veil → fog → the
+  searchlights' beams → **water** → **harbor** (pier, wheel, breakwater, lighthouse, cottage) → boats → **road** → traffic →
   **stage** (promenade, stop lights, speakeasy, lamps, trees, bench, planters, cart) → people → lights (lamps, stop lights, the
   knock) → rain drops, snow, the flash, frost, the eclipse → the vignette → &grid. **Bold** = baked.
 - **Baking:** each baked layer is a full-width band of the screen (only its rows), drawn per LOOK KEY (Part 1: the tone weights in
@@ -156,12 +164,14 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
 
 | size | F | VPY | squeeze s | person | bus |
 | --- | --- | --- | --- | --- | --- |
-| 390×844 | 582 | 509 | 0.55 | 19.2 pt | 107 pt |
-| 402×874 | 600 | 532 | 0.52 | 19.8 pt | 110 pt |
-| 412×915 | 615 | 568 | 0.76 | 20.3 pt | 113 pt |
-| 430×932 | 642 | 575 | 0.66 | 21.1 pt | 118 pt |
-| 874×402 (sideways) | 270 | 262 | 0.28 | 8.9 pt | 50 pt |
-| 1440×900 | 604 | 566 | 0.52 | 19.9 pt | 111 pt |
+| 390×844 | 582 | 509 | 0.65 | 19.2 pt | 107 pt |
+| 402×874 | 600 | 532 | 0.65 | 19.8 pt | 110 pt |
+| 412×915 | 615 | 568 | 0.65 | 20.3 pt | 113 pt |
+| 430×932 | 642 | 575 | 0.65 | 21.1 pt | 118 pt |
+| 874×402 (sideways) | 270 | 262 | 0.33 | 8.9 pt | 50 pt |
+| 1440×900 | 604 | 566 | 0.65 | 19.9 pt | 111 pt |
+
+(Squeeze: Part 2 numbers. Part 1 measured 0.55 / 0.52 / 0.76 / 0.66 / 0.28 / 0.52 — very different drama per phone.)
 
 - **Wide (desktop, sideways):** room = dock top − 4 − tagline bottom − 10; F = max(600 · room / 411, people ≥ 9 pt), CAMH =
   min(13.5, 0.55 (0.4 when the room is short) · room · 36.5 / F). A panorama: the harbor pieces spread (× up to 2.2), the skyline
@@ -169,25 +179,45 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
   (z 28–33: lamp + tree pairs, benches, people) lives either side of the dock (never under it).
 - **The squeeze** (`squeeze(cam, yMax)`): above a knee (55 % of the way from the limit down to the horizon; lower for a short
   strip of sky) the height above the knee is scaled by s with a soft start, so the highest top (crown included) lands on the limit.
-  Monotonic (taller stays taller), low roofs untouched.
+  Monotonic (taller stays taller), low roofs untouched. **Part 2 (the owner's call, Oct 21 2026: "same skyline, extra sky"):** an
+  upright phone uses the REFERENCE phone's squeeze (`REF_TITLE`, 402×874 — the tightest) — the composition is placed by screen
+  fraction (`fxAt(f, z)`), so every phone shows exactly the same skyline scaled to its width, s = 0.65 everywhere; a roomier phone
+  (412×915: ~30 pt) keeps more sky above the crowns; a phone tighter than the reference falls back to its own limit (min of
+  the two). A wide screen fits its own.
 - **Depths:** haze band z 620–820; far band 380–560; mid band 300–360; landmarks 255–290 (+14 deep, tiers step in 26 % and back
   1.3); near band 232–250; hero blocks + the far quay 230 (top 0.4, foot −1.2; lamps every 11); water 64–230; railing z 64 (y 1.1);
   road z 54–64 (lane at 59); promenade z 30–54; the speakeasy z 44–60, 10.5 tall, 11.2 wide, its x0 28 pt past the left edge.
-- **Landmarks** (x, w, z, h + crown): sunburst 30/13/255/112+13 · needle 56/11/280/100+18 (spire) · pyramid 4/10/290/86+10 ·
-  dome −26/11/280/78+6 (2 tiers) · mast −64/11/270/92+14. **Hero blocks:** hotel 12..26 z230 h36 (blade sign) · PULSE −14..2
-  z233 h28 · NEON PAR 38..56 z234 h32 · JAZZ −50..−38 z230 h30 (roof tubes).
-- **Harbor:** pier x −34..−20 (× spread) z 140–230, deck y 2.4, pilings every 6, lamps every 9; Ferris wheel (−24, 23, z 165) r 17,
-  18 spokes, 18 gondolas; breakwater around the lighthouse z 150; lighthouse x 46 z 150 h 26 (r 2.4 → 1.7, bands at 25–38 % and
-  60–73 %, gallery, lantern, dome); the keeper's cottage beside it. Boats: Rosie x 4 z 128 (26 long, decks, the stack), taxi
-  (32, z 100), the tug at night / a sailboat by day (−60, z 190), a second sailboat by day (70, z 200).
+- **The towers** (Part 2, `TOWERS`: screen fraction f, z, width, height + crown, before the squeeze): the two dominant ones —
+  the SUNBURST 0.622/258/12.5/96+17 (the city's one gold crown) and the EMPIRE 0.105/266/15/90+15 (five setbacks, the mooring
+  mast; our own design) — and the slimmer NEEDLE 0.49/286/8.5/80+18; the WORD towers wordA 0.765/247 (19 cols × 1.25, rows 1.95)
+  and wordB 0.94/247 (15 cols) side by side for horizontal words, wordV 0.25/258 (5 cols × 2.0, rows 1.95) for vertical ones; the
+  middle tier in clusters (m-edge −0.012, m-dome 0.395, m-twin 0.44, m-step 0.565, m-right 0.99; 46–62 tall); the newer city's
+  glass glassL 0.364/470 and glassR 0.79/540 (far, hazy). Forms (tiers + insets): sunburst, empire, needle, deco, slab, stepped,
+  dome, modern. On screen above the waterline (402×874): sunburst 222 pt · EMPIRE 205 · wordV 205 · needle 187 · glass 160–168 ·
+  word towers 154–160 · middle tier 103–143 · the bands ≤ 142. A panorama adds towers both sides (forms cycle, every fourth a
+  glass tower), with corridors between them on screen. **Hero blocks:** hotel 10..24 z230 h36 (blade sign; Part 2 moved it 2 left,
+  clear of the corridor beside the sunburst) · PULSE −14..2 z233 h28 · NEON PAR 38..56 z234 h30 · JAZZ −50..−38 z230 h30 (roof tubes).
+- **The bands** (haze z 620–820 h 52–96 · far 380–560 h 44–80 · mid 300–360 h 26–46 · near 232–250 h 20–34, packed: neighbours
+  overlap 0.6), shaped by the middle tier's clusters (f 0.03, 0.4, 0.56, 0.98); brick only in the near band.
+- **Harbor:** THE WHEEL STANDS ON ITS PIER OVER WATER (Part 2, the owner's review): z 132, r 12.6, its hub r + 5.4 up, its A-frame
+  legs ±0.42 r; on a phone its x is the first where the left leg is ≥ 12 pt clear of the speakeasy's back corner (≈ 45 % across:
+  the speakeasy hides the water left of ~36 %); its deck lands ~10 pt below the speakeasy's roofline, never level with it (tested
+  at six sizes); a wide screen keeps it at −30·k (z-scaled). The pier runs under it from z 118 to the quay (7 wide: pilings,
+  planks, a railing, lamps). Clear of the word towers and the hero crowns. Breakwater around the lighthouse z 150; lighthouse x 46 z 150 h 26 (r 2.4 → 1.7, bands at 25–38 % and
+  60–73 %, gallery, lantern, dome); the keeper's cottage beside it. Boats (Part 2: re-spaced so the harbor stays open around the pier; by screen fraction):
+  Rosie 0.73 z 142 (24 long), the taxi 0.88 z 94, the tug at night / a sailboat by day 0.585 z 214, a second sailboat by day 0.92 z 205.
 - **Stage** (positions relative to the speakeasy's right face, −5.6 on the phone): stop lights at +2.6 (dir 1) and +18.1 (dir −1),
   z 54.6; the bus +13.6 z 60; cars +20.1 z 57.5, −2.4 z 57, −9.4 z 61; lamps +2 / +11 / +18.2 z 47 and +14.2 z 37; trees +4.4 / +15.4
   z 47.3, the front corners at z 37.4 (right: 84 % of the half-width; left: −6); bench +12.8 z 47.8; planters +0.2 / +6 z 43; the
   cart +9.2 z 37.6; people: at the cart, the doorman by the door, a couple, a dog walker, the cab hail, a stroller, a walker.
 - **The SIZE table** (`SIZE`, pt at the reference phone at the thing's usual depth → `units(name)` world units): person 20 @ z 47
   (1.57 u), car 55 @ 58, bus 110 @ 60 (11 u), lamp 50 @ 47, canopy 40 @ 47, stop light 55 @ 54.6.
-- **The sun gaps** (`SUN_GAPS`, screen fraction / width pt): 0.06/7, 0.13/9, 0.31/6, 0.70/6, 0.79/9, 0.90/8, 0.97/6 — no skyline
-  band block covers one (tested); the landmarks and hero blocks stand clear of them.
+- **The sun gaps** (`SUN_GAPS`, Part 2, screen fraction / width pt × the city's scale): 0.046/6, 0.19/9, 0.322/8 (sunrise side) ·
+  0.669/6, 0.851/6 (sunset side) — chosen against the WHOLE silhouette: no tower tier, landmark, hero crown or panorama tower
+  stands in one (tested at six sizes, side faces included); a panorama adds corridors midway between its towers. Below a
+  corridor's FLOOR the city stays one dense wall: a band's block there is CLIPPED (split; the piece in the corridor lowered to
+  its band's floor: near 78, mid 84, far 100, haze 122 ref pt above the waterline — the farther bands stand higher behind), never
+  dropped (tested: no hole through the base); a hero block may stand under one only if its roof is at the floor (JAZZ).
 - **The door:** the front face's u 9.05–10.55, 2.6 tall; the tap target ≥ 44 × 44 pt around it (on screen, clear of the dock and
   the corner buttons — tested at every size).
 
@@ -198,7 +228,8 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
 | lane | rect | 390×844 (iPhone safe areas) |
 | --- | --- | --- |
 | `sky-high` | safe top + 4 .. the neon's top − 4, stopping 4 pt left of the corner buttons — the banner plane's strip | 0,66 · 330×100 |
-| `sky-low` | the tagline's bottom + 4 .. the roofline's median (things here pass BEHIND the taller roofs); `y0NoTag` = the word's bottom + 4, for when Part 2 fades the tagline | 0,329 · 390×≈80 |
+| `sky-low` | the tagline's bottom + 4 .. the roofline's median (things here pass BEHIND the taller roofs); once the tagline has faded (`cam.tagGone`, Part 2) from the word's bottom + 4 (`y0NoTag`): the freed band joins the lane (banner plane, fireworks, the moon) | 0,329 · 390×≈80 |
+| `tagline` | the tagline's own band ± 3 pt: THE TAGLINE SLOT (Part 2) — later parts bring a line back there briefly (holidays, the countdown) with `S.tagSlot(text, ms)` (title.js); their events claim this lane | the tag's rect |
 | `skyline` | the skyline limit .. the far quay | full width |
 | `water` | the tallest boat's top .. the railing | full width |
 | `road` | a bus's top on the far lane .. the near kerb | full width |
@@ -231,6 +262,10 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
   share of the cars; the bus stays).
 - **Part 1's only event:** `demo` (lane `sky-low`, debug-only, `&force=demo`) — a labelled lantern crossing the middle of the
   sky-low rect, proving the pipeline end to end (scene → scheduler → `harbor().events` → drawn in its lane).
+- **Part 2's events:** `searchlights` (lane `skyline`, rare — a "grand opening" night, 12 min; `&force=searchlights`) and `spell`
+  (lane `windows`, weekly, 6 min: a word from `SPELL_WORDS` — ♥, ★, HI, JAZZ, NEON, JOY; `&force=spell&text=…`). Both night only:
+  the scene's `ctxAt(ms)` now carries `night` (the real sun under −6° at that moment, `sunPosition` — a function of ms only;
+  ALWAYS NIGHT: always). The `windows` lane now means every addressable window (the skyline's + the speakeasy's).
 - Tests (`tests/harbor.test.mjs`): `schedule(t)` and `schedule(t − SLOT_MS)` agree on every event spanning both; the stateful
   scheduler sampled every 30 s for 3000 slots of a contended case (5 sky events of 4 slots, 5 water events of 6, 3 heavy
   parade-length events of 8 in the promenade) never pops an event in or drops one, and matches a fresh replay; anchors a day
@@ -246,6 +281,12 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
   75th-percentile frame passes 19.5 ms (like the district). Each later part measures before it builds and keeps these.
 - **Part 1 measured:** t2 3.2 ms · t1 3.1 · t0 2.9 (party), 3.0 / 2.8 / 2.7 (day) on the same bench; the E2E's party peak at 4×
   CPU: t2 4.5 · t1 3.9 · t0 3.7 ms — 60 fps at every tier.
+- **Part 2 measured** (`title-perf.mjs --city 2`, 390×844, 4× CPU, `&force=no-planes` — see Known issues), mean ms of scene work
+  t2 / t1 / t0: party 3.2 / 3.6 / 3.5 · night 3.2 / 3.2 / 2.9 · day 2.6 / 2.7 / 2.5 · golden (the rays) 4.0 / 3.8 / 3.4 ·
+  searchlights 3.6 / 3.8 / 3.5 · searchlights + a word 3.8 / 4.2 / 3.2 — within 8 / 6 / 4 everywhere, frames 16.7 ms. The E2E's
+  party peak: t2 4.7 · t1 4.1 · t0 4.3. Memory: 22.9 MB of 64 at 390×844 tier 2 (the lit windows' two layers ≈ 2.3 MB of it).
+  The rays thin out by tier (tier 0: the shafts behind the city only, 3 per corridor); the lit windows bake on the light key
+  only (a few times an hour at dusk / bedtime), never in a frame that bakes a facade step.
 - **First visit** (ROADMAP "First-visit speed"): profiled Oct 20 2026 — TAP TO ENTER is up at **0.49 s** cold in e2e-title (the
   1.5 s target is met; the ~2.2 s noted on Oct 20 does not reproduce — the commits of that week note absolute timings moving with
   the machine's load). At 4× CPU a cold start: today's city 1.40 s (its first build + frame is one 645 ms task), the Harbor 1.21 s
@@ -258,15 +299,17 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
 | API / piece | Part 1 | built in |
 | --- | --- | --- |
 | `signCount()` → 0, `debug().signs` [], `hit` never returns `sign` | the neon ramp plans the logo only | 3 |
+| the word towers' faces carry no signs; the searchlights' party / holiday use, holiday windows (`set()`), party windows | the API + the events | 10, 11 |
+| the sky's artwork (the moon's art: Part 2 only fits its path) | the arches | 6 |
 | the hero blocks' signs (a frame where each goes) | outline | 3 |
 | the water: a flat band | no reflections | 4 |
-| the wheel, the lighthouse, the pier, the boats, the landmarks | grey boxes, still | 5 |
+| the wheel, the lighthouse, the pier, the boats (the landmark towers: done in Part 2) | grey boxes, still (the pier: planks + railing) | 5 |
 | the sky's artwork (planes, birds, the UFO — `fx.mid` is not called, so the cat / UFO / window glyphs don't show yet) | the district's art | 6 |
 | the speakeasy (rooms, the door's craft, the knock's peephole: a warm flash only) | grey box | 7 |
 | `street()` → the stage's layout (lamps, signals, door, knocks); people + traffic still | placeholders | 8 |
 | seasons on the trees, snow on the city, puddles | autumn always | 9 |
 | holidays (the sky fx's holiday pieces already run) | — | 10 |
-| `partyLight()` → null, no party searchlights / windows (the party's numbers + the finale's fireworks + `onParty` work) | rules only | 11 |
+| `partyLight()` → null, no party windows; party nights don't yet call the searchlights (the party's numbers + the finale's fireworks + `onParty` work) | rules only | 11 |
 | the menus' backdrop (`district/backdrop.js` still images today's city when no title was shown) | today's city | 12 |
 | the music-off soundscape, the easter eggs, the switch-over | — | 12 |
 
@@ -293,12 +336,96 @@ fixed; 1, 4, 5 are Part 2's (below).
 - [x] #8 `city=2` stays in the URL through `setUrlRoom` (refresh, rejoin, back to the title).
 - Tests: `tests/harbor.test.mjs` 27 (+ the scheduler's pop-in, span, anchor and density tests, the lanes at six sizes);
   `e2e-harbor.mjs` 20 checks (+ the lanes against the real sign, `setTier(1)` never blanks the stage, the URL keeps the flag).
-- **Next: Part 2 — the skyline.** Start with findings **1** (choose the sun gaps against the whole silhouette: bands + landmarks +
+- (Done in Part 2, below.) Part 2 started with findings **1** (choose the sun gaps against the whole silhouette: bands + landmarks +
   heroes + the panorama's mirrored landmarks, and test that), **4** (clip the blocks at a corridor, don't drop them; pad 2 pt) and
   **5** (a per-building window grid `win: { cols, rows, u0, v0, pitch }` and a lit pass outside the look-key bake; drop `h` from
   the glitter seed). Then `far.js / mid.js / blocks.js / landmarks.js / quay.js`; keep the squeeze and the camera; measure with
   `title-perf.mjs --city 2` before and after. Events that need a moment's sky (night, season) add it to the scene's `ctxAt` as a
   function of ms only (the replay asks about the past).
+
+## Part 2 — THE SKYLINE (Oct 21 2026)
+- [x] 0. The owner's iPhone review first: the hierarchy (two dominant towers + the needle, the middle tier in clusters, the
+  bands low; one gold crown; the EMPIRE stepped tower; two glass towers far back); the wheel on its pier over water; the tagline
+  fade; one squeeze for every phone; the water strip checked (89–98 pt, as the approved mockup — kept; the owner: "keep the camera").
+- [x] Findings 1, 4, 5 (above) fixed and tested.
+- [x] The facades (blocks.js), the two skyline groups (skyline.js), the lit windows (lights.js + core/harbor-windows.js), the rays
+  (rays.js), the searchlights (searchlights.js), the sun's + the moon's arches (district/sun.js + fx.js: opt-in fields, City 1.0
+  unchanged), the tagline fade + slot (title.js / title.css).
+- [x] Tests: `tests/harbor.test.mjs` 36 (+ the corridors vs the whole silhouette, the dense base, one skyline on every phone, the
+  hierarchy, the wheel, the word faces, stable grids, the light timeline, the font + layout, night-only events);
+  `e2e-harbor.mjs` 23 (+ the tagline fading with nothing moving, the words + the searchlights, the wheel + the lit layer).
+- [x] Review: day, golden, night, 1:30 am, searchlights, spell=2027 at 390 / 402 / 412 / 430 / 1440 + skyline close-ups; two refine
+  passes (the rays: a fan per corridor, contained under the sign; the beams' soft body; the far bands raised for depth; the Deco
+  piers + terracotta spandrels, the faces' turn, the ledges, the glints).
+
+### The skyline, as built
+- **Day vs night — two cities.** Day: limestone, cream, terracotta, granite, slate; brick only in the near band; the glass towers
+  mirror the sky (a sheen, mullions). The towers are Deco: piers rising past recessed terracotta spandrels, the pier's edge toward
+  the sun lit and the other in shade, cornices, setback ledges with their shadows, weathering under the sills (near), a mottling,
+  brick courses near. The real sun (`tones.js#sunLook`, in the bake key: a few re-bakes a day): we face south, so a morning sun
+  lights the faces turned east (the right half's side faces), an afternoon sun the west; each front turns from its sunlit edge to
+  shade; a taller neighbour on the sun's side throws a slanted shadow across a front (long when the sun is low). Distant windows
+  by day are dark glass with a cool glint — never light. Golden hour: the backlit city (fronts dusky), the faces toward the sun
+  glowing, a rim of light on every edge and crown toward it, panes flashing orange; the RAYS. Night: the facades go dark (the far
+  ones bluer and softer: the haze by depth), the street's glow at their feet, the crowns floodlit (the sunburst gold, the EMPIRE
+  white, the needle cool, the dome warm: cones from the setback with falloff), red beacons blinking on the tallest crowns.
+- **The lit windows** (lights.js; the timeline: core/harbor-windows.js): City 1.0's exact rule — each window that can light has
+  one uniform order and is lit when order ≤ the palette's `P.win` (NIGHT 1, LATE 0.32, DAWN 0.22, GOLDEN 0.5, DAY 0; sky.js#lateK:
+  fewer from ~10 pm, a third from 2 am, party nights lit till 2 am, the few kitchens before dawn, off in the morning; ALWAYS NIGHT
+  1), the season's warmth toward amber. Tungsten mostly, ~6 % TV-blue, ~10 % curtained, a rare neon; the glass towers' floors
+  cool white, their crowns' thin light lines. Far windows are glitter (a few flare now and then); near ones show a hint of the
+  room (the ceiling's light, furniture low, curtains). Every 6–15 s a light somewhere goes off (or one comes on) for a minute or
+  three. While the city powers on at the title's tap the bottom rows light first (`S.wave`).
+- **The rays** (rays.js): at golden hour / dawn with the sun low (−1.5..14°) and clear air: from the sun through each corridor
+  within reach, a fan between the directions to the slot's top and its floor, broken into shafts, falling off along their
+  length; behind the near buildings (after the far layer) and a fainter veil over the city. Contained in the air over the city.
+- **The searchlights** (searchlights.js): three on the roofs (the EMPIRE's first setback, the hotel, wordB's top; a panorama two
+  more): drum, yoke, fins, lens — dark metal by day. Running: soft beams (a wide body, a core) sweeping slowly and crossing;
+  above the city's fog, so a foggy / low-cloud night is the dramatic one (brighter, wider, the cloud base lit where they hit).
+- **The arches** (scene.js#archFor → `fs.arch` / `fs.moonArch`; the district never passes them): the sun keeps its real timing,
+  path, season and phase; on a phone its arch fits the BASE's roofline (the bands + the quay) — it rises and sets behind the
+  city and may pass behind the towers, the wheel, the lighthouse — and its top stays clear under the tagline (summer: tag bottom
+  + r + 6) or lower among the crowns (winter: 42 % of the way from the limit to the base's median roofline). A wide screen keeps
+  the district's arch over the sign but rises from behind the base and clears the towers by ~10°. The moon: from behind the base
+  at its ends (10–90 % across) to under the tagline (a wide screen: over the sign), half the pass, half its real elevation.
+- **The tagline** (title.js#armTagline, City 2.0 only): fades out 15 s after the title appears (`&tagms=N`) and stays gone —
+  opacity only (its rect, and so the city, never move: tested); `scene.set({ tagGone })` hands its band to `sky-low`;
+  `S.tagSlot(text, ms)` brings a line back briefly (the NYE countdown's own dressing is untouched).
+
+### ADDRESSABLE WINDOWS + WORDS IN THE WINDOWS (the API)
+- Every band block, tower tier and hero block has `win = { cols, rows, u0, v0, pitch: [pu, pv] }` (world units from the face's
+  left edge and its foot) and a `seed` from its id (the band + its index; a tower's id) — never from its size or place: a relayout
+  never re-rolls a window. A window = (building id, tier, col, row); `winHash(seed, tier, col, row, channel)` its dice,
+  `winTraits()` its character (can it light, its order, its colour class, its brightness), `isLit(traits, share)`.
+- `blocks.js#cellRect(cam, box, col, row, deco)` → its pane on screen (the facade's glass and the lit layer use the same).
+- The word towers: `harbor().windows.faces` → { wordA: { cols 19, rows 11 }, wordB: { 15, 12 }, wordV: { 5, 18 }, rect } (the
+  face = the rows nothing nearer covers, tested); windows 3.0 × 4.7 pt (A, B) and 4.7 × 4.6 pt (V) at 402 — a letter 9 × 23 pt /
+  14 × 23 pt.
+- The font (`harbor-windows.js#FONT`): 5 rows, digits + A–Z (M, N, W, Q wider), ♥ ★ ⚑ (`<3`, `*`, `[flag]`). `layoutText(text,
+  towers, { tower, vertical })`: a short word of letters down wordV (one letter under the other: "JOY", "BOO", "USA"); else one
+  line on wordA, else two lines on A, else across A + B ("HAPPY NEW YEAR" = HAPPY / NEW on A, YEAR on B); null if it can't fit
+  (never a cut word).
+- `harbor().spell(text, { tower, style: 'steady'|'wipe'|'twinkle', colour, ms, at })` (lights.spell) — the rest of that tower's
+  face dims, the letters light (the wipe climbs floor by floor from the bottom); night only (× the night); `clearSpell()`.
+  Random words go through the scheduler (`spell` event); fixed-time ones (a countdown 10 → 1, NYE) call it on the clock.
+- `harbor().setWindow(towerId, tier, col, row, { col: [r,g,b], a } | null)` — any window by its address, drawn every frame over
+  the lit layer (flags, party waves, holiday windows; null gives it back to the timeline).
+- Preview: `&force=spell&text=HELLO` (`&style=wipe|steady|twinkle`, `&tower=wordA|wordB|wordV`), also `2027`, `BOO`.
+
+### Known issues (Part 2)
+- **A plane's contrail grows the frame cost** (the district's `aircraft.js`, reused as is): its puffs accumulate across the sky
+  for the plane's whole pass — measured 3.3 → 5.6 ms of scene work at 4× CPU over 40 s at a fixed tier (the profile: `drawImage`
+  in `aircraft.js` ~ line 137, `puff` line 80). It makes `title-perf.mjs`'s later tiers look slower (it measures t2 → t1 → t0 in
+  order: measure with `&force=no-planes`). Not Part 2's code; **Part 6** rebuilds the planes' artwork — cap the trail there.
+- The desktop panorama's extra towers are a little uniform in height (a wall from 1440 wide); Part 12's desktop pass.
+- The day sky at noon in summer sits the sun just under the tagline on a phone; with the tagline gone that band is open sky —
+  check it in June (the arch's summer peak: `archFor`).
+
+### Handoff → Part 3 (neon + signs + billboards)
+Start from `quay.js` (the hero blocks' sign frames), `blocks.js#crown` (the crowns the roof tubes stand by) and the word towers
+(never put a sign on their faces: `harbor().windows.faces`). Lit windows are their own layers: a sign's glow is drawn after
+`nearLit`. The hotel moved 2 units left (10..24). Keep the corridors clear (`L.cuts`; tested): a roof sign taller than the base's
+floor must not stand in one. Measure with `title-perf.mjs --city 2 --scenes "…&force=no-planes"` before and after.
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against
@@ -306,7 +433,7 @@ title.js / title-dock.js / backdrop.js, the baker + the budget, the scheduler, t
 table above checks out at every size (F, VPY, the squeeze, people, the bus); the API matches every call the title makes; the flag
 is never saved; the 22 tests pass. Ranked, real problems only (what Part 2 already plans is left out):
 
-1. **→ Part 2.** **The landmark towers and a hero block stand ON three of the seven sun gaps, on every phone** — the claim above ("the landmarks
+1. **FIXED (Part 2):** the corridors are chosen against the whole silhouette and tested so (towers, heroes, the panorama, side faces). **The landmark towers and a hero block stand ON three of the seven sun gaps, on every phone** — the claim above ("the landmarks
    and hero blocks stand clear of them") is false and the test only checks the bands (`harbor-layout.js#harborLayout`: only
    `band()` calls `inGap`; `tests/harbor.test.mjs` "the sun gaps stay clear"). At 390×844 the sunburst (x 249–278) covers the gap
    at 273 (f 0.70), the needle (300–323) and NEON PAR (290–334) cover 308 (f 0.79), the mast (45–69) covers 51 (f 0.13); at
@@ -334,12 +461,12 @@ is never saved; the 22 tests pass. Ranked, real problems only (what Part 2 alrea
    draw the stale `cur` until the swap (then the existing 1.2 s crossfade); on a resize / tier change draw the old `cur` stretched
    into the new band rather than nothing; gate `rebake()` on the crossfade being done. E2E: `setTier(1)` mid-session and assert a
    stage-band pixel is never the bare sky colour.
-4. **→ Part 2.** **The gap-skip tears whole blocks out: the "corridors" are 13–94 pt holes, different in every band and at every size** (`band()`
+4. **FIXED (Part 2):** blocks are clipped at a corridor (the piece in it lowered to its band's floor), never dropped; tested: no hole in the base. **The gap-skip tears whole blocks out: the "corridors" are 13–94 pt holes, different in every band and at every size** (`band()`
    drops any block touching a gap and advances by the block's width). Measured clear width at the gaps (planned 6–10 pt): haze
    14–22, far 13–61, mid 22–92, near 46–72. Part 2's skyline inherits missing teeth where it wants narrow slots for the rays.
    **Fix:** clip, don't drop — end the block at the corridor's left edge and resume at its right (two blocks); pad the corridor by
    2 pt because a side face intrudes up to ~1.5 pt (z1 − z0 = 12–14).
-5. **→ Part 2.** **Nothing can address a window.** `blocks.js#skyBlock` rolls the glitter from `rngFrom(round(x0·131 + z0·71 + h·31))` straight
+5. **FIXED (Part 2):** every block / tower tier / hero has `win`; the lit windows are their own layers (lights.js) on the light key; `set()` and `spell()` address windows by (building, tier, col, row). **Nothing can address a window.** `blocks.js#skyBlock` rolls the glitter from `rngFrom(round(x0·131 + z0·71 + h·31))` straight
    into the `far` / `near` bakes; no block carries rows, columns or a lit set, and the only windows with identity are the
    speakeasy's six. Part 2 (facades), Part 7 (rooms), Part 10 (flags in windows, a word lit across a facade), Part 11 (party
    windows, the small hours going dark) and the `windows` lane all need a per-building grid and a lit layer that is not in the

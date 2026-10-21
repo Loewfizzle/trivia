@@ -13,12 +13,13 @@ const mk = () => document.createElement('canvas');
 export function createBaker() {
   let groups = [];            // [{ name, y0, h, dpr, cur, next }]
   let queue = [], key = '', pendingKey = '', W = 0, tier = 2;
-  let doneAt = -1, bakes = 0, busyMs = 0;
+  let doneAt = -1, bakes = 0, busyMs = 0, planned = 0;
 
-  /** (re)plan the canvases for a screen: groups = [{ name, y0, h }] in pt; maxDpr from the tier */
-  function plan(w, gs, maxDpr, t) {
+  /** (re)plan the canvases for a screen: groups = [{ name, y0, h }] in pt; maxDpr from the tier; usedMb: what another baker
+   *  of the same scene already holds (the budget is the scene's, shared) */
+  function plan(w, gs, maxDpr, t, usedMb = 0) {
     W = w; tier = t;
-    const budget = MEM_BUDGET_MB[tier] * 1e6;
+    const budget = (MEM_BUDGET_MB[tier] - usedMb) * 1e6;
     const want = gs.map(g => ({ ...g, y0: Math.floor(g.y0), h: Math.max(1, Math.ceil(g.h)), dpr: maxDpr }));
     const bytes = () => want.reduce((s, g) => s + 2 * Math.ceil(W * g.dpr) * Math.ceil(g.h * g.dpr) * 4, 0);
     // over budget: the biggest layers come down a step at a time
@@ -39,6 +40,7 @@ export function createBaker() {
     });
     for (const o of old.values()) if (!groups.some(g => g.name === o.name)) { o.cur.width = o.cur.height = o.next.width = o.next.height = 0; }
     key = ''; queue = [];
+    planned = bytes() / 1e6;
   }
 
   /** start baking a look: jobs = { [group]: [step(x), …] } (each step draws a small part, in screen pt) */
@@ -84,6 +86,8 @@ export function createBaker() {
     get bakes() { return bakes; },
     get doneAt() { return doneAt; },
     get busyMs() { return busyMs; },
+    /** MB the current plan holds at its steady state (both sets) */
+    get planned() { return planned; },
     /** the current canvas of a group (+ the previous one, still in `next`, for the crossfade) */
     group: name => groups.find(g => g.name === name) || null,
     groups: () => groups,

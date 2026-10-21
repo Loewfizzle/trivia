@@ -1,18 +1,14 @@
-// CITY 2.0 — THE HARBOR: the far quay — the near band of buildings along the far bank (z 232–250), the four hero blocks on the
-// quay (the hotel with its blade sign, the PULSE, NEON PAR and JAZZ roofs: their signs come with Part 3), the quay wall and its
-// row of lamps. Part 1: grey boxes, the hero blocks a little warmer so they read as the city's front row.
-import { bandSteps, skyBlock } from './blocks.js';
+// CITY 2.0 — THE HARBOR: the far quay — the sign frames on the four hero blocks (the hotel's blade, the PULSE, NEON PAR and JAZZ
+// roofs: their signs come with Part 3; the blocks themselves are skyline.js's near group), the quay wall and its row of lamps.
 import { box, rgb, shade } from './shapes.js';
 import { project } from '../../core/harbor-layout.js';
 
 export function quaySteps(L, T) {
   const cam = L.cam, q = L.quay;
   return [
-    ...bandSteps(cam, L.bands.find(b => b.id === 'near').blocks, T, 'near', 8),
     x => { for (const b of [...L.heroes].sort((a, c) => c.z0 - a.z0)) {
-      skyBlock(x, cam, b, T, 'hero');
       // the sign's place (Part 3): a blade on the hotel, a scaffold + tube on the roofs — a frame only
-      x.strokeStyle = rgb(shade(T.hero, T.night > 0.5 ? 0.3 : -0.3), 0.8); x.lineWidth = 0.8;
+      x.strokeStyle = rgb(shade(T.hero, T.night > 0.5 ? 0.3 : -0.3), 0.55); x.lineWidth = 0.7;
       if (b.sign === 'blade') { const [a, y0] = project(cam, b.x0 + 3, b.h * 0.95, b.z0 - 1.4), [c, y1] = project(cam, b.x0 + 7.6, b.h * 0.15, b.z0 - 1.4); x.strokeRect(a, y0, c - a, y1 - y0); }
       else { const [a, y0] = project(cam, b.x0 + 1, b.h + 6, b.z0), [c, y1] = project(cam, b.x1 - 1, b.h, b.z0); x.strokeRect(a, y0, c - a, y1 - y0); }
     } },

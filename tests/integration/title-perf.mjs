@@ -21,6 +21,8 @@ const SCENES = {
   golden: 'when=2026-10-14T18:30&wx=clear',
   rain: 'when=2026-10-14T21:30&wx=rain',
   snow: 'when=2026-12-15T21:30&wx=snow',
+  // CITY 2.0's worst night so far: the searchlights sweeping + a word in the windows
+  show: 'when=2026-10-14T21:30&wx=clear&force=searchlights,spell&text=2027',
 };
 const names = arg('scenes', 'party,night,day').split(',');
 const sleep = ms => new Promise(r => setTimeout(r, ms));

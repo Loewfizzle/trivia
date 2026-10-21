@@ -39,7 +39,9 @@ export function sunPlace(o) {
   const u = o.south ? 1 - o.u : o.u;                      // facing north south of the equator: it rises on the right
   const block = o.block || { x: W * 0.1, y: HZ * 0.2, w: W * 0.8, h: HZ * 0.3 };
   const top = Math.max(26, (o.safeTop || 0) + 14) + r;
-  const phone = W < 760 || H > W;
+  // o.arch (CITY 2.0 only — City 1.0 never passes it): { phone: use the arch on every screen, peak / low: the top of the arch
+  // in summer / winter (screen y), top: the highest it may ever go } — the Harbor keeps its sun under the sign
+  const phone = o.arch && o.arch.phone ? true : W < 760 || H > W;
   if (phone) {
     // the text's rects (title.js#textRects); before they are measured, estimated from the sign's box (the logo's lettering in
     // its top 52 %, SPEAKEASY under it, the tagline at the bottom) — so a phone has one path, the arch
@@ -50,7 +52,7 @@ export function sunPlace(o) {
   }
   // a wide screen: the full arc, its height the real elevation, lifted over the sign where it would cross it
   // it clears the towers' tops (≈ HZ·0.42) within its first ~10°, then climbs the open sky by its real elevation
-  const horizon = HZ * 0.82, skyline = HZ * 0.42;
+  const horizon = o.arch && o.arch.horizon != null ? o.arch.horizon : HZ * 0.82, skyline = o.arch && o.arch.skyline != null ? o.arch.skyline : HZ * 0.42;
   const x = lerp(W * 0.06, W * 0.94, u);
   const natural = el < 10 ? lerp(horizon, skyline, smooth(-2, 10, el) * 0.6 + clamp01((el + 2) / 12) * 0.4) : lerp(skyline, top, clamp01((el - 10) / 62));
   const pad = r + 26, ramp = Math.max(r * 3, W * 0.13);   // a gentle climb over the sign (a low winter sun has far to rise)
@@ -104,12 +106,13 @@ export function phoneArch(o, u) {
     return rho + (1 - rho) * Math.sin((Math.PI / 2) * clamp01((t - tau) / (1 - tau)));
   };
   const across = (uu, h, left) => 0.5 * Math.cos(Math.PI * uu) + 0.5 * (left ? 1 : -1) * (h > 0 ? Math.sqrt(Math.max(0, 1 - h * h)) : 1);
-  const key = `${prof ? prof[3][1].toFixed(4) + '|' : ''}${W}|${o.H}|${Math.round(o.word.y)}|${Math.round(o.tag.y)}|${Math.round(o.neon.y + o.neon.h)}|${r}|${s.toFixed(3)}|${N.toFixed(2)}|${[0.02, 0.06, 0.1, 0.15, 0.2, 0.28, 0.35, 0.5, 0.65, 0.72, 0.8, 0.85, 0.9, 0.94, 0.98].map(f => Math.round(roof(W * f))).join(',')}`;
+  const key = `${o.arch ? `${Math.round(o.arch.peak)},${Math.round(o.arch.low)},${Math.round(o.arch.top)}|` : ''}${prof ? prof[3][1].toFixed(4) + '|' : ''}${W}|${o.H}|${Math.round(o.word.y)}|${Math.round(o.tag.y)}|${Math.round(o.neon.y + o.neon.h)}|${r}|${s.toFixed(3)}|${N.toFixed(2)}|${[0.02, 0.06, 0.1, 0.15, 0.2, 0.28, 0.35, 0.5, 0.65, 0.72, 0.8, 0.85, 0.9, 0.94, 0.98].map(f => Math.round(roof(W * f))).join(',')}`;
   let A = archCache.get(key);
   if (!A) {
     const size = e => r * sunShape(e - 0.83).size;
-    const season = Math.max(lerp(tagY, wordY, s * s * (3 - 2 * s)), o.neon.y + o.neon.h + r + 3);
-    const top = o.neon.y + o.neon.h + r + 3;                                // the highest it may ever go
+    const ar = o.arch && o.arch.peak != null ? o.arch : null;
+    const season = ar ? lerp(ar.low ?? ar.peak, ar.peak, s * s * (3 - 2 * s)) : Math.max(lerp(tagY, wordY, s * s * (3 - 2 * s)), o.neon.y + o.neon.h + r + 3);
+    const top = ar ? (ar.top ?? ar.peak) : o.neon.y + o.neon.h + r + 3;     // the highest it may ever go
     const r0 = size(0);
     const lowest = (x, rr) => { let v = -Infinity; for (let dx = -rr; dx <= rr; dx += 2) v = Math.max(v, roof(x + dx)); return v; };
 
@@ -346,11 +349,11 @@ export function createSun() {
     const lr = s.signRect, cl = (s.clear || []).find(z => z.w > W * 0.5 && z.y < HZ);
     const block = lr ? { x: lr.x - 6, y: lr.y - 6, w: lr.w + 12, h: cl ? cl.y + cl.h - 34 + 6 - (lr.y - 6) : lr.h + 60 } : null;
     const buttons = (s.clear || []).filter(z => z.w < 70 && z.y < HZ * 0.4).reduce((a, z) => (a ? { x: Math.min(a.x, z.x), y: Math.min(a.y, z.y), w: Math.max(a.x + a.w, z.x + z.w) - Math.min(a.x, z.x), h: Math.max(a.y + a.h, z.y + z.h) - Math.min(a.y, z.y) } : { ...z }), null);
-    const sky = s.skyline;
+    const sky = s.arch && s.arch.roof ? s.arch.roof : s.skyline;
     const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
     const tx = s.textRects || {};
-    if (phone && !(tx.neon && tx.word && tx.tag)) { shown = 0; return null; }   // (a phone's arch hangs off the words: wait for them)
-    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, noonEl: sa.noonEl, season: sa.season, prof: sa.prof, roof, neon: tx.neon, word: tx.word, tag: tx.tag });
+    if ((phone || s.arch) && !(tx.neon && tx.word && tx.tag)) { shown = 0; return null; }   // (a phone's arch hangs off the words: wait for them)
+    const p = sunPlace({ W, H, HZ, u: sa.u, el, south: L.south, r: base, block, buttons, safeTop: s.safeTop, noonEl: sa.noonEl, season: sa.season, prof: sa.prof, roof, neon: tx.neon, word: tx.word, tag: tx.tag, arch: s.arch });
     void layout;
     // never a jump: it eases toward its place (and settles at once on a new layout)
     if (!pos || Math.hypot(pos.x - p.x, pos.y - p.y) > W * 0.5) { pos = { ...p }; shown = 0; } else { pos.x += (p.x - pos.x) * 0.06; pos.y += (p.y - pos.y) * 0.06; }
@@ -381,10 +384,10 @@ export function createSun() {
     const lr = s.signRect, cl = (s.clear || []).find(z => z.w > W * 0.5 && z.y < HZ);
     const block = lr ? { x: lr.x - 6, y: lr.y - 6, w: lr.w + 12, h: cl ? cl.y + cl.h - 34 + 6 - (lr.y - 6) : lr.h + 60 } : null;
     const buttons = (s.clear || []).filter(z => z.w < 70 && z.y < HZ * 0.4).reduce((a, z) => (a ? { x: Math.min(a.x, z.x), y: Math.min(a.y, z.y), w: Math.max(a.x + a.w, z.x + z.w) - Math.min(a.x, z.x), h: Math.max(a.y + a.h, z.y + z.h) - Math.min(a.y, z.y) } : { ...z }), null);
-    const sky = s.skyline;
+    const sky = s.arch && s.arch.roof ? s.arch.roof : s.skyline;
     const roof = sky ? x => sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : null;
     const tx = s.textRects || {};
-    return block && roof ? { W, H, HZ, block, buttons, safeTop: s.safeTop, roof, base: phone ? 16.5 : 26, sky, neon: tx.neon, word: tx.word, tag: tx.tag } : null;
+    return block && roof ? { W, H, HZ, block, buttons, safeTop: s.safeTop, roof, base: phone ? 16.5 : 26, sky, neon: tx.neon, word: tx.word, tag: tx.tag, arch: s.arch } : null;
   }
 
   return {

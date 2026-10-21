@@ -8,7 +8,7 @@
 // runs there: fs.density).
 import { hashString, rngFrom } from './rng.js';
 
-export const LANES = ['sky-high', 'sky-low', 'skyline', 'water', 'road', 'promenade', 'windows', 'rooftop'];
+export const LANES = ['sky-high', 'sky-low', 'skyline', 'water', 'road', 'promenade', 'windows', 'rooftop', 'tagline'];
 export const SLOT_MS = 90 * 1000;
 const DAY = 864e5;
 /** how often, on average, an eligible event starts (the period in ms): common = every few slots … legendary = once a year */
@@ -22,8 +22,8 @@ export const QUIET = 0.3;
 /**
  * An event: { id, lanes: [...LANES], when(ctx) → bool, rarity: 'common'|'weekly'|'rare'|'legendary', duration (ms),
  * cost?: ms per frame (default 0.5), heavy?: bool, seed?: number }.
- * ctx (from ctxAt(ms)): what is known about that moment — { ms, force: Set, … }. A function of ms ONLY: the replay asks it
- * about the past (Part 6 adds the sun, the season, the holiday from core/sky.js).
+ * ctx (from ctxAt(ms)): what is known about that moment — { ms, force: Set, night (the sun under −6° there and then) }. A
+ * function of ms ONLY: the replay asks it about the past (Part 6 adds the season, the holiday from core/sky.js).
  */
 export function defineEvent(e) {
   if (!e || !e.id || !Array.isArray(e.lanes) || !e.lanes.length) throw new Error('event: id + lanes');
@@ -118,7 +118,10 @@ export const anchorFor = (ms, local) => ms - (((local.h * 60 + local.mi) * 60 + 
 /** what each lane keeps of its usual traffic right now: 1, or QUIET while a heavy event runs elsewhere */
 export const densityOf = quiet => Object.fromEntries(LANES.map(l => [l, quiet.includes(l) ? QUIET : 1]));
 
-/** The built-in events. Part 1 has one debug-only demo (&force=demo) that proves the pipeline end to end. */
+/** The built-in events: the debug-only demo (&force=demo, Part 1); Part 2's searchlights (a rare "grand opening" night — party
+ *  nights and holidays use them too, later) and a word in the windows (a heart, a star, HI… — never by day). */
 export const HARBOR_EVENTS = [
   defineEvent({ id: 'demo', lanes: ['sky-low'], rarity: 'legendary', duration: SLOT_MS, cost: 0.1, when: ctx => !!(ctx.force && ctx.force.has('demo')) }),
+  defineEvent({ id: 'searchlights', lanes: ['skyline'], rarity: 'rare', duration: 8 * SLOT_MS, cost: 0.6, when: ctx => !!ctx.night }),
+  defineEvent({ id: 'spell', lanes: ['windows'], rarity: 'weekly', duration: 4 * SLOT_MS, cost: 0.3, when: ctx => !!ctx.night }),
 ];

@@ -55,6 +55,21 @@ export function tones(tw) {
   return T;
 }
 
+/**
+ * The real sun on the facades (Part 2): which side the light comes from (we face south: −1 = a morning sun in the east, on the
+ * left; 1 = an afternoon sun in the west; 0 = around noon, straight behind the city) and how high (bucketed: a few re-bakes a
+ * day), plus the sky's colours the glass mirrors. sunKey goes into the bake key.
+ */
+export function sunLook(LK, P) {
+  const az = LK && LK.sun ? LK.sun.az : 180, el = LK && LK.sun ? LK.sun.el : 30;
+  const d = ((az - 180 + 540) % 360) - 180;
+  const sunDir = Math.abs(d) < 14 ? 0 : d > 0 ? 1 : -1;
+  const sunEl = el < 8 ? 6 : el < 18 ? 12 : el < 34 ? 25 : 45;
+  const col = c => (Array.isArray(c) ? c : null);
+  return { sunDir, sunEl, skyHi: col(P && P.sky && P.sky[1]), skyLo: col(P && P.sky && P.sky[3]) };
+}
+export const sunKey = sl => `${sl.sunDir}${sl.sunEl}`;
+
 /** atmospheric depth: 0 at the quay, 1 far away (mixed into the haze) */
 export const fog = z => Math.max(0, Math.min(1, (z - 230) / 770));
 export const hazed = (T, col, z, k = 0.66) => mix(col, T.haze, fog(z) * k);

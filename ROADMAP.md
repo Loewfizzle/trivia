@@ -55,6 +55,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 - ✅ MOOD MUSIC (Oct 2026)
 - ✅ CITY 2.0 — THE HARBOR, Part 1 of 12: foundation + blockout (Oct 20, 2026): behind `?city=2`; the camera, the layout, baking + the memory budget, lanes + events, the grey box — `docs/harbor.md` (rollback tag `city-1.0`)
 - ✅ CITY 2.0 — THE HARBOR, Part 1.5: foundation fixes (Oct 21, 2026): the scheduler as state, re-layouts never blank, lane rects + density, landmark tiers, `city=2` kept in the URL — `docs/harbor.md`
+- ✅ CITY 2.0 — THE HARBOR, Part 2 of 12: THE SKYLINE (Oct 21, 2026): the composition, crafted facades by day and night, lit windows on City 1.0's timeline, words in the windows, golden-hour rays, searchlights, the wheel on its pier, the tagline fade — `docs/harbor.md`
 - ✅ THE STREET, Part 2: THE PEOPLE (Oct 21, 2026): the speakeasy's door (knock → JOIN), pedestrians + umbrellas, the cab hail, spray, the small hours' windows, holiday figures — `docs/title.md`
 - ✅ JOIN / HOST follow the sign (Oct 21, 2026): unlit glass by day, lit from the catch to the morning goodbye — `docs/title.md`
 - ✅ THE STREET, Part 1 (Oct 20, 2026): lamps + paired seasonal trees, buses, a stop light, car variety, snowplows, golden-hour shadows, the street's party night — `docs/title.md`
@@ -77,7 +78,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 
 ## Next up (agreed plan, in order)
 
-- **CITY 2.0 — THE HARBOR, Parts 2–12** (`docs/harbor.md`): 2 skyline · 3 neon + signs + billboards · 4 water · 5 harbor hero pieces ·
+- **CITY 2.0 — THE HARBOR, Parts 3–12** (`docs/harbor.md`): 3 neon + signs + billboards · 4 water · 5 harbor hero pieces ·
   6 sky hero pieces · 7 the speakeasy · 8 the stage · 9 seasons + weather · 10 holidays + the banner plane · 11 party nights ·
   12 easter eggs + sounds + memory + desktop + switch-over.
 - **First-visit speed:** profiled Oct 20 2026 (docs/harbor.md#performance): TAP TO ENTER is up at ~0.5 s cold (the ~2.2 s seen

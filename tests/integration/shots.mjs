@@ -7,7 +7,8 @@
 // --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
 // --city 2: CITY 2.0, THE HARBOR (docs/harbor.md): adds &city=2 (any extra flag via --qs, e.g. "grid=1" or "force=demo");
 //   --sizes harbor = the six review sizes (four phones upright, a phone sideways, desktop); --safe emulates the iPhone's
-//   safe areas (62 / 34 pt upright, 21 pt at the bottom sideways); --crop stage = the near stage (the road to the dock).
+//   safe areas (62 / 34 pt upright, 21 pt at the bottom sideways); --crop stage = the near stage (the road to the dock);
+//   --crop skyline = the skyline close up (above the crowns to the far quay).
 //   e.g. node shots.mjs "<browser>" --preview --city 2 --safe --sizes harbor --scenes day,golden,night,party,rain,snow
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
@@ -93,6 +94,9 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else if (c === 'stage') {
       // CITY 2.0: the near stage — from above the road's stop lights down to the dock's top
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, k = c.F / 600; const y = Math.max(0, c.VPY + c.F * c.CAMH / 64 - 70 * k); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight, c.dock.y + 8) - y }; });
+    } else if (c === 'skyline') {
+      // CITY 2.0: the skyline close up — from above the tallest crown down to the far quay
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, y = Math.max(0, c.limitY - 24); return { x: 0, y, width: innerWidth, height: c.VPY + c.F * c.CAMH / 230 + 14 - y }; });
     } else if (PRESET[c]) {
       clip = await p.evaluate(([sel, pad]) => {
         const rs = [...document.querySelectorAll(sel)].map(e => e.getBoundingClientRect()).filter(r => r.width);
@@ -103,7 +107,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    await p.screenshot({ path: `${file}-${PRESET[c] || c === 'street' || c === 'stage' ? c : 'crop'}.png`, clip }); n++;
+    await p.screenshot({ path: `${file}-${PRESET[c] || c === 'street' || c === 'stage' || c === 'skyline' ? c : 'crop'}.png`, clip }); n++;
   }
   await ctx.close();
 }

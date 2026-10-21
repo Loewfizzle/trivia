@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { REF, Z, SIZE, units, ptAt, cameraFor, project, xAt, groundY, squeeze, harborLayout, screenBoxes, SUN_GAPS, LANE_MIN, laneMin, roofline } from '../js/core/harbor-layout.js';
+import { winHash, winTraits, buildingDice, isLit, layoutText, lineWidth, glyph, FONT_H } from '../js/core/harbor-windows.js';
 import { LANES, SLOT_MS, RARITY, BUDGET, QUIET, defineEvent, schedule, createScheduler, anchorFor, densityOf, startChance, HARBOR_EVENTS } from '../js/core/harbor-events.js';
 
 // the title's real rects at each size (measured from the real title, Oct 20 2026, with iPhone safe areas)
@@ -99,15 +100,155 @@ for (const k of Object.keys(SIZES)) {
   });
 }
 
-test('layout: the sun gaps stay clear through every skyline band', () => {
+// the screen span of a box (its side face toward the middle included)
+const spanOf = (cam, b) => { const a = project(cam, b.x0, 0, b.z0)[0], c = project(cam, b.x1, 0, b.z0)[0]; return [b.x0 > 0 ? project(cam, b.x0, 0, b.z1)[0] : a, b.x1 < 0 ? project(cam, b.x1, 0, b.z1)[0] : c]; };
+const topOf = (cam, b) => project(cam, 0, (b.y0 || 0) + b.h + (b.crown ? b.crown.h : 0), b.z0)[1];
+const PHONES = ['390x844', '402x874', '412x915', '430x932'];
+
+test('layout: the sun gaps are clear against the WHOLE silhouette (towers, landmarks, heroes, the panorama) — finding 1', () => {
   for (const k of Object.keys(SIZES)) {
     const { cam, L } = setup(k);
-    for (const bd of L.bands) for (const b of bd.blocks) {
-      const s0 = project(cam, b.x0, 0, b.z0)[0], s1 = project(cam, b.x1, 0, b.z0)[0];
-      for (const g of L.gaps) assert.ok(!(s1 > g.sx - g.w / 2 && s0 < g.sx + g.w / 2), `${k}: a ${bd.id} block in the gap at ${g.sx}`);
+    assert.ok(L.gaps.length >= SUN_GAPS.length, `${k}: every corridor`);
+    for (const g of L.gaps) {
+      const g0 = g.sx - g.w / 2, g1 = g.sx + g.w / 2;
+      for (const t of L.towers) for (const tr of t.tiers) { const [a, b] = spanOf(cam, tr); assert.ok(b <= g0 || a >= g1, `${k}: ${t.id} stands in the corridor at ${g.sx.toFixed(0)}`); }
+      // a hero block on the quay is the base itself: under a corridor only if its roof is no higher than the base's floor
+      const HZ = groundY(cam, Z.quay), u = cam.F / REF.F;
+      for (const h of L.heroes) { const [a, b] = spanOf(cam, h); assert.ok(b <= g0 || a >= g1 || topOf(cam, h) >= HZ - 78 * u - 1, `${k}: the ${h.id} block stands in the corridor at ${g.sx.toFixed(0)}`); }
     }
-    assert.equal(L.gaps.length, SUN_GAPS.length);
   }
+});
+
+test('layout: a corridor clips the bands, never drops them — the base under it stays one dense wall, a farther band fills in — finding 4', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k);
+    const HZ = groundY(cam, Z.quay), u = cam.F / REF.F;
+    for (const g of L.cuts) {
+      const g0 = g.sx - g.w / 2, g1 = g.sx + g.w / 2;
+      for (const bd of L.bands) {
+        // nothing of the band rises above its floor inside the corridor
+        for (const b of bd.blocks) { const [a, c] = spanOf(cam, b); if (c > g0 + 0.5 && a < g1 - 0.5) assert.ok(topOf(cam, b) >= HZ - g.floor[bd.id] * u - 0.6, `${k}: a ${bd.id} block rises into the corridor at ${g.sx.toFixed(0)}`); }
+      }
+      // …and the near band covers the corridor's whole width (no hole through the city), its floor well above the quay
+      if (g.sx < 4 || g.sx > cam.W - 4) continue;
+      for (let sx = Math.max(0, g0); sx <= Math.min(cam.W, g1); sx += 1) {
+        const cover = [...L.bands.find(b => b.id === 'near').blocks, ...L.heroes].some(b => { const [a, c] = spanOf(cam, b); return a <= sx + 0.01 && c >= sx - 0.01 && topOf(cam, b) < HZ - 20 * u; });
+        assert.ok(cover, `${k}: a hole in the base at x ${sx.toFixed(1)} (the corridor at ${g.sx.toFixed(0)})`);
+      }
+    }
+  }
+});
+
+test('layout: every upright phone shows the same skyline (one squeeze), the crown at the limit on the tightest, never past it', () => {
+  const ref = setup('402x874');
+  for (const k of PHONES) {
+    const { cam, L } = setup(k);
+    assert.ok(Math.abs(L.squeeze - ref.L.squeeze) < 1e-9, `${k}: squeeze ${L.squeeze} vs ${ref.L.squeeze}`);
+    for (const t of L.towers) { const r = ref.L.towers.find(x => x.id === t.id); assert.ok(Math.abs(t.h - r.h) < 1e-6 && Math.abs(t.x0 - r.x0) < 1e-6, `${k}: ${t.id} as on the reference phone`); }
+    const top = Math.min(...screenBoxes(L).filter(b => b.kind === 'sky').map(b => b.y));
+    assert.ok(top >= cam.limitY - 0.6, `${k}: the tallest crown ${top.toFixed(1)} past the limit ${cam.limitY}`);
+    if (k === '402x874') assert.ok(top - cam.limitY < 2.5, `the tallest crown lands on the limit on the reference phone (${top.toFixed(1)} vs ${cam.limitY})`);
+  }
+  assert.ok(ref.L.squeeze > 0.55 && ref.L.squeeze < 0.85, `a gentle squeeze keeps the peaks apart (${ref.L.squeeze.toFixed(2)})`);
+});
+
+test('layout: the hierarchy — the sunburst tallest, the EMPIRE second, one gold crown, the middle tier and the bands well under them', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k);
+    const top = id => topOf(cam, L.towers.find(t => t.id === id).tiers.at(-1));
+    const centre = L.towers.filter(t => !t.id.startsWith('pano'));
+    const order = [...centre].sort((a, b) => topOf(cam, a.tiers.at(-1)) - topOf(cam, b.tiers.at(-1))).map(t => t.id);
+    assert.equal(order[0], 'sunburst', `${k}: ${order.join(' ')}`);
+    assert.ok(top('empire') <= Math.min(...centre.filter(t => !['sunburst', 'empire'].includes(t.id)).map(t => topOf(cam, t.tiers.at(-1)))) + 1, `${k}: the EMPIRE second`);
+    assert.equal(L.towers.filter(t => t.gold).length, 1, 'one gold crown');
+    const bandTop = Math.min(...L.bands.flatMap(b => b.blocks).map(b => topOf(cam, b)));
+    assert.ok(bandTop > top('needle') + 10, `${k}: the bands stay under the towers (${bandTop.toFixed(0)} vs the needle ${top('needle').toFixed(0)})`);
+  }
+});
+
+test('layout: the Ferris wheel stands on its pier over water — legs clear of the speakeasy, its deck below the roofline, clear of the word towers and the hero crowns', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k);
+    const w = L.wheel, s = L.speakeasy, [cx, cy] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z);
+    const back = project(cam, s.x1, 0, s.z1)[0], roof = project(cam, s.x1, s.h, s.z0)[1];
+    assert.ok(cx - w.leg * r >= back + 10, `${k}: the left leg ${(cx - w.leg * r).toFixed(0)} vs the speakeasy ${back.toFixed(0)}`);
+    assert.ok(deck >= roof + 6, `${k}: the deck ${deck.toFixed(0)} is not level with the roofline ${roof.toFixed(0)}`);
+    assert.ok(deck < groundY(cam, Z.rail) - 20 * cam.F / REF.F, `${k}: water in front of the pier`);
+    const wheelBox = { x: cx - r, y: cy - r, w: 2 * r, h: 2 * r };
+    for (const t of L.towers) {
+      const tr = t.tiers.at(-1);
+      if (t.word) { const f = t.tiers[0]; const [a, b] = spanOf(cam, f); assert.ok(!overlap(wheelBox, { x: a, y: t.face.y - 200, w: b - a, h: 200 }), `${k}: the wheel over ${t.id}`); }
+      if (t.rank === 'hero' && tr.crown) { const [a, b] = spanOf(cam, tr); const y1 = topOf(cam, tr), y0 = project(cam, 0, tr.y0 + tr.h, tr.z0)[1]; assert.ok(!overlap(wheelBox, { x: a, y: y1, w: b - a, h: y0 - y1 }), `${k}: the wheel over the ${t.id}'s crown`); }
+    }
+  }
+});
+
+test('layout: the word towers — windows big enough for letters, rows enough for two lines (A, B) and three letters (V), nothing in front of the face', () => {
+  for (const k of PHONES) {
+    const { cam, L } = setup(k);
+    for (const t of L.towers.filter(t => t.word)) {
+      const g = t.tiers[0].win, colPt = cam.F * g.pitch[0] / t.z0, rowPt = cam.F * g.pitch[1] / t.z0;
+      assert.ok(colPt >= 2.8 && rowPt >= 4.3, `${k}: ${t.id} windows ${colPt.toFixed(1)}×${rowPt.toFixed(1)} pt`);
+      assert.ok(t.face.rows >= (t.word === 'v' ? 17 : 11), `${k}: ${t.id} ${t.face.rows} free rows`);
+      // the face (from its lowest word row up) is clear of everything nearer
+      const [a, b] = spanOf(cam, t.tiers[0]);
+      for (const o of [...L.bands.flatMap(d => d.blocks), ...L.heroes, ...L.towers]) {
+        if (o === t || o.z0 >= t.z0) continue;
+        const boxes = o.tiers || [o];
+        for (const ob of boxes) { const [c, d] = spanOf(cam, ob); if (d > a + 1 && c < b - 1) assert.ok(topOf(cam, ob) >= t.face.y - 0.6, `${k}: ${o.id} covers ${t.id}'s words`); }
+      }
+    }
+  }
+});
+
+test('windows: every building has a grid; the grids and the dice survive a relayout (finding 5)', () => {
+  const a = setup('402x874').L;
+  const s = SIZES['402x874'], cam2 = cameraFor(s.W, s.H, { tag: { y: s.tag.y + 3, h: 14 }, dock: s.dock, ...signOf(s) }, s.safe), b = harborLayout(cam2);
+  for (const bd of a.bands) for (const blk of bd.blocks) assert.ok(blk.win && blk.win.cols >= 1 && Number.isFinite(blk.win.u0), `${blk.id} has a grid`);
+  for (const t of a.towers) for (const tr of t.tiers) assert.ok(tr.win && tr.win.pitch.length === 2, `${t.id} tier has a grid`);
+  const ids = L => L.bands.flatMap(d => d.blocks.map(x => `${x.id}:${x.seed}`));
+  assert.deepEqual(ids(a), ids(b), 'the same buildings, the same seeds');
+  const tw = id => a.towers.find(t => t.id === id), tw2 = id => b.towers.find(t => t.id === id);
+  assert.equal(tw('wordA').seed, tw2('wordA').seed);
+  assert.equal(tw('wordA').tiers[0].win.cols, tw2('wordA').tiers[0].win.cols);
+});
+
+test('windows: the light timeline is City 1.0\'s — each window one order; more of the night = a superset of the lit set', () => {
+  const dice = buildingDice(12345, 'band');
+  const lit = share => { const out = []; for (let r = 0; r < 30; r++) for (let c = 0; c < 8; c++) { const t = winTraits(12345, 0, c, r, dice); if (isLit(t, share)) out.push(`${c},${r}`); } return out; };
+  const l3 = lit(0.32), l9 = lit(0.9), l1 = lit(1);
+  assert.ok(l3.every(w => l9.includes(w)) && l9.every(w => l1.includes(w)), 'nested: dusk lights them in one order, the night puts them out in reverse');
+  assert.ok(l3.length > 0 && l3.length < l1.length);
+  assert.deepEqual(lit(0.5), lit(0.5), 'deterministic');
+  assert.equal(lit(0).length, 0, 'none by day');
+  assert.equal(winHash(1, 2, 3, 4), winHash(1, 2, 3, 4));
+});
+
+test('windows: words — the font, one line, two lines, across two towers, down the tall tower', () => {
+  const towers = { wordA: { cols: 19, rows: 11, word: 'h' }, wordB: { cols: 15, rows: 12, word: 'h' }, wordV: { cols: 5, rows: 18, word: 'v' } };
+  const one = layoutText('HELLO', towers);
+  assert.equal(one.length, 1); assert.equal(one[0].tower, 'wordA'); assert.equal(one[0].rows, FONT_H);
+  assert.ok(one[0].cells.every(([c, r]) => c >= 0 && c < 19 && r >= 0 && r < 11));
+  assert.equal(layoutText('2027', towers)[0].tower, 'wordA');
+  const boo = layoutText('BOO', towers);
+  assert.equal(boo[0].tower, 'wordV'); assert.equal(boo[0].rows, 17);
+  const hny = layoutText('HAPPY NEW YEAR', towers);
+  assert.deepEqual(hny.map(p => p.tower), ['wordA', 'wordB']);
+  assert.equal(hny[0].rows, 2 * FONT_H + 1);
+  assert.ok(layoutText('<3', towers)[0].cells.length > 10, 'a heart');
+  assert.equal(layoutText('ABCDEFGHIJKLMNOPQRSTUVWXYZ', towers), null, 'too long: nothing, never a cut word');
+  assert.equal(lineWidth('2027'), 15);
+  for (const ch of '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ♥★⚑') assert.ok(glyph(ch) && glyph(ch).length === FONT_H, `glyph ${ch}`);
+});
+
+test('events: the searchlights and the words in the windows run only at night', () => {
+  const day = ms => ({ ms, force: new Set(), night: false }), night = ms => ({ ms, force: new Set(), night: true });
+  const t = Date.UTC(2026, 9, 21, 12), runs = (ctx) => { const sc = createScheduler(HARBOR_EVENTS, ctx, { anchor: t }); const seen = new Set(); for (let ms = t; ms < t + 60 * 864e5; ms += SLOT_MS) for (const e of sc.at(ms).active) if (e.id === 'searchlights' || e.id === 'spell') seen.add(`${e.id}@${e.start}`); return [...seen]; };
+  assert.equal(runs(day).length, 0, 'never by day');
+  const n = runs(night);
+  assert.ok(n.some(s => s.startsWith('spell')), 'a word now and then (weekly)');
+  assert.ok(n.filter(s => s.startsWith('spell')).length < 30, 'not every night');
+  assert.ok(HARBOR_EVENTS.find(e => e.id === 'searchlights').lanes.includes('skyline'));
 });
 
 test('layout: the lanes are places — on screen, clear of the sign and the corner buttons, tall enough for what runs there', () => {
@@ -118,7 +259,7 @@ test('layout: the lanes are places — on screen, clear of the sign and the corn
     for (const [id, r] of Object.entries(L.lanes)) {
       assert.ok(r.x >= 0 && r.x + r.w <= s.W + 0.01 && r.y >= cam.safeTop && r.y + r.h <= s.H, `${k}: ${id} on screen`);
       assert.ok(r.h >= laneMin(cam, id), `${k}: ${id} ${r.h.toFixed(1)} pt tall (≥ ${laneMin(cam, id).toFixed(1)})`);
-      for (const [n, z] of [['neon', sign.neon], ['word', sign.word], ['tag', s.tag], ['corner buttons', sign.corner], ['dock', s.dock]]) assert.ok(!overlap(r, { w: s.W, ...z }), `${k}: ${id} over the ${n}`);
+      for (const [n, z] of [['neon', sign.neon], ['word', sign.word], ['tag', s.tag], ['corner buttons', sign.corner], ['dock', s.dock]]) if (!(id === 'tagline' && n === 'tag')) assert.ok(!overlap(r, { w: s.W, ...z }), `${k}: ${id} over the ${n}`);
     }
     // a banner plane needs a long strip; a parade needs the promenade's whole width; sky-low grows when the tagline goes
     assert.ok(L.lanes['sky-high'].w >= s.W * 0.6, `${k}: sky-high ${L.lanes['sky-high'].w} wide`);
@@ -142,7 +283,7 @@ test('events: definitions are checked', () => {
   assert.throws(() => defineEvent({ id: 'x', lanes: ['moon'], rarity: 'common', duration: 1000 }));
   assert.throws(() => defineEvent({ id: 'x', lanes: ['sky-high'], rarity: 'often', duration: 1000 }));
   assert.throws(() => defineEvent({ id: 'x', lanes: ['sky-high'], rarity: 'common', duration: 0 }));
-  assert.equal(LANES.length, 8);
+  assert.equal(LANES.length, 9);
   assert.ok(startChance(defineEvent({ id: 'l', lanes: ['sky-high'], rarity: 'legendary', duration: 1000 })) < startChance(defineEvent({ id: 'c', lanes: ['sky-high'], rarity: 'common', duration: 1000 })));
 });
 

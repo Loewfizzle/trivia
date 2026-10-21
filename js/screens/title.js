@@ -455,6 +455,32 @@ export function createTitle() {
     watchSky();
     neonTick();
     armIdle();
+    armTagline();
+  }
+
+  // CITY 2.0 (docs/harbor.md): the tagline fades out ~15 s after the title appears and stays gone (opacity only: its rect, and
+  // so the city, never move). Its band becomes THE TAGLINE SLOT: tagSlot(text, ms) brings a line back there briefly (later
+  // parts: holidays, the countdown). &tagms=N sets the delay (tests).
+  function armTagline() {
+    if (!createHarbor || destroyed) return;
+    const ms = +((location.search.match(/[?&]tagms=(\d+)/) || [])[1] || 15000);
+    clearTimeout(els.tagTimer);
+    els.tagTimer = setTimeout(() => { if (destroyed) return; els.sign.classList.add('nd-tag-gone'); scene.set({ tagGone: true }); }, ms);
+    scene.set({ tagSlot });
+  }
+  function tagSlot(text, ms = 6000) {
+    if (destroyed || !createHarbor) return false;
+    const tag = els.sign.querySelector('.nd-tag');
+    if (!tag || tag.classList.contains('nd-count')) return false;
+    clearTimeout(els.tagSlotTimer);
+    tag.textContent = text;
+    els.sign.classList.remove('nd-tag-gone'); scene.set({ tagGone: false });
+    els.tagSlotTimer = setTimeout(() => {
+      if (destroyed) return;
+      els.sign.classList.add('nd-tag-gone'); scene.set({ tagGone: true });
+      els.tagSlotTimer = setTimeout(() => { if (!destroyed && !tag.classList.contains('nd-count')) tag.textContent = TAGLINE; }, 2600);
+    }, ms);
+    return true;
   }
 
   // LIVING CITY: the sign follows the hour (off at dawn like closing time, back on at dusk tube by tube) and wears the
@@ -1156,7 +1182,7 @@ export function createTitle() {
     clearTimeout(els.logoTimer);
     clearTimeout(els.skyTimer);
     clearTimeout(neonT);
-    clearTimeout(idleTimer);
+    clearTimeout(idleTimer); clearTimeout(els.tagTimer); clearTimeout(els.tagSlotTimer);
     document.body.classList.remove('nd-idle');
     document.querySelectorAll('.nd-sunlit').forEach(b => b.classList.remove('nd-sunlit'));
     window.removeEventListener('pointerdown', onWake, { capture: true });

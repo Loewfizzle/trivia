@@ -347,6 +347,21 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   hidden tab), `title-perf.mjs` (both cities, any scene, per tier); `shots.mjs --city 2 --safe --sizes harbor --crop stage` +
   party / snow scenes. Reviewed: six scenes × six sizes, two refine passes.
 
+### ✅ CITY 2.0 — THE HARBOR, Part 2 of 12: THE SKYLINE (Oct 21, 2026) — `docs/harbor.md`
+- Behind `?city=2`. The owner's iPhone review first: a recomposed skyline (the SUNBURST — the one gold crown — and the stepped
+  EMPIRE dominant, the needle third, the middle tier in clusters, the bands low and packed, two glass towers far back); one
+  squeeze for every phone (0.65; roomier phones keep more sky); the Ferris wheel moved onto its pier over open water (its legs
+  ≥ 12 pt clear of the speakeasy, its deck ~10 pt under the roofline), Rosie and the boats re-spaced; the tagline fades 15 s in
+  and stays gone (its band joins sky-low; a tagline slot for later parts).
+- Review findings 1, 4, 5: corridors chosen against the whole silhouette, blocks clipped (not dropped) at them over a dense base,
+  every building's window grid + a lit layer of its own.
+- The facades crafted (stone, terracotta, brick near, glass; Deco piers + spandrels, setbacks, shadows from the real sun, glints;
+  night silhouettes, floodlit crowns, beacons); the lit windows on City 1.0's exact timeline (glitter far, rooms near, TVs, a light
+  switched off now and then); the golden-hour rays through the corridors; three crafted searchlights (`&force=searchlights`,
+  dramatic in fog); words in the windows (a 5-row font, `spell()`, `&force=spell&text=2027`); the sun's + the moon's arches re-fit
+  (opt-in fields in district/sun.js + fx.js, City 1.0 unchanged).
+- Tests: `harbor.test.mjs` 36, `e2e-harbor.mjs` 23; perf within 8 / 6 / 4 ms at every tier (4× CPU); 22.9 MB of 64.
+
 ### ✅ CITY 2.0 — THE HARBOR, Part 1.5: foundation fixes (Oct 21, 2026) — `docs/harbor.md`
 - Plumbing only, behind `?city=2`: review findings 2, 3, 6, 7, 8 fixed (1, 4, 5 → Part 2). No new visuals except the `&grid=1`
   lane rects; every Part 1 number and size kept.

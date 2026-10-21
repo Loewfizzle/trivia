@@ -355,6 +355,9 @@ body.reduced-fx .nd-word-s { animation: none !important; opacity: 0 !important; 
 .nd-gtile-t { font: 600 8.5px/1.25 var(--font-mono); letter-spacing: 0.06em; color: var(--text-dim); }
 @media (min-width: 700px) { .nd-games-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
+/* CITY 2.0: the tagline fades ~15 s in and stays gone (title.js#armTagline; the countdown and the tagline slot keep theirs) */
+.nd-sign.nd-tag-gone .nd-tag:not(.nd-count) { opacity: 0 !important; transition: opacity 2.4s ease !important; }
+
 /* the screen at rest: just the sign and the city */
 .nd.is-idle .nd-actions { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
 .nd.is-idle .nd-sign .nd-tag:not(.nd-count), .nd.is-idle .nd-sign .nd-sub, .nd.is-idle .nd-corner { opacity: 0; transition: opacity 1.8s ease; }

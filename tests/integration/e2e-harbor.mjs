@@ -80,7 +80,8 @@ try {
   // ================================================================ 1b. the lanes (real rects); a re-layout never blanks the city
   { const h1 = await ev(A.page, 'window.__district.harbor()'), sc = await ev(A.page, 'window.__district.scene()');
     const tr = sc.textRects || {}, corners = (sc.clear || []).filter(r => r.w < 70 && r.h < 70);
-    const hit = Object.entries(h1.lanes).filter(([, r]) => [tr.neon, tr.word, tr.tag, ...corners].some(z => z && r.x < z.x + z.w && z.x < r.x + r.w && r.y < z.y + z.h && z.y < r.y + r.h)).map(([n]) => n);
+    // (the tagline lane IS the tagline's band: the slot later parts bring a line back in — it is checked against the rest)
+    const hit = Object.entries(h1.lanes).filter(([n, r]) => [tr.neon, tr.word, n === 'tagline' ? null : tr.tag, ...corners].some(z => z && r.x < z.x + z.w && z.x < r.x + r.w && r.y < z.y + z.h && z.y < r.y + r.h)).map(([n]) => n);
     ok(!!tr.neon && hit.length === 0 && h1.lanes['sky-high'].h >= 40 && h1.lanes['sky-low'].h >= 24, `LANES: ${Object.keys(h1.lanes).length} lane rects, clear of the real sign + corner buttons (sky-high ${Math.round(h1.lanes['sky-high'].h)} pt, sky-low ${Math.round(h1.lanes['sky-low'].h)} pt${hit.length ? `; over: ${hit}` : ''})`); }
   { const D = await open({ slot: 'hd', qs: `when=2026-10-21T13:00${GR}` });
     await harborUp(D.page);
@@ -134,6 +135,28 @@ try {
       `FLAGS: &when &tz &at (day), &wx=rain (rain ${s.rain}), &speed=60 (+${Math.round((sp2 - sp) / 1000)} s of clock in ~1.2 s), &force=demo (the demo event in lane ${h2.events.map(e => e.lanes).join()}), &grid=1, &debug=1 — no errors`);
     if (SHOTS) await X.page.screenshot({ path: `${OUT}flags-grid-390x844.png` });
     await X.ctx.close(); }
+
+  // ================================================================ 3b. Part 2: the tagline fades, the words, the searchlights, the wheel
+  { const T = await open({ slot: 'h7', qs: `${NIGHT}&tagms=1500&force=spell,searchlights&text=2027` });
+    await sleep(500);
+    const h0 = await ev(T.page, 'window.__district.harbor()');
+    await waitFor(T.page, `(() => { const t = document.querySelector('.nd-tag'); return t && getComputedStyle(t).opacity < 0.05 && window.__district.harbor().cam.tagGone; })()`, 'the tagline gone', 9000);
+    await sleep(600);
+    const h1 = await ev(T.page, 'window.__district.harbor()');
+    ok(Math.abs(h1.cam.limitY - h0.cam.limitY) < 0.01 && Math.abs(h1.cam.VPY - h0.cam.VPY) < 0.01 && h1.lanes['sky-low'].y < h0.lanes['sky-low'].y,
+      `TAGLINE: fades out on its timer and stays gone; nothing in the city moves (limit ${h0.cam.limitY.toFixed(1)} → ${h1.cam.limitY.toFixed(1)}, horizon ${h0.cam.VPY.toFixed(1)} → ${h1.cam.VPY.toFixed(1)}), the freed band joins sky-low (${Math.round(h0.lanes['sky-low'].y)} → ${Math.round(h1.lanes['sky-low'].y)})`);
+    await waitFor(T.page, '!!(window.__district.harbor().windows.spelling)', 'the word', 9000);
+    await sleep(1500);
+    const h2 = await ev(T.page, 'window.__district.harbor()');
+    ok(h2.windows.spelling.text === '2027' && h2.windows.spelling.cells > 30 && h2.beams > 0.3 && h2.windows.share > 0.9,
+      `WORDS + SEARCHLIGHTS: "${h2.windows.spelling.text}" lit on ${h2.windows.spelling.towers} (${h2.windows.spelling.cells} windows), beams ${h2.beams}, the night's share ${h2.windows.share}`);
+    const w = h2.wheel, sp = await ev(T.page, 'window.__district.door()');
+    ok(w.legs[0] > 0 && w.deck > w.y && h2.mem.layers.some(l => l.name === 'nearLit') && h2.mem.mb <= h2.mem.budget,
+      `WHEEL + LIT LAYER: the wheel's legs at ${Math.round(w.legs[0])}–${Math.round(w.legs[1])} pt, deck ${Math.round(w.deck)}; lit windows baked in their own layers (${h2.mem.mb} of ${h2.mem.budget} MB)`);
+    if (SHOTS) await T.page.screenshot({ path: `${OUT}part2-words-390x844.png` });
+    void sp;
+    await T.ctx.close();
+  }
 
   // ================================================================ 4. the dock: HOST, JOIN, the knock on the door
   const H = await open({ slot: 'hh', qs: NIGHT });

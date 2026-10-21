@@ -147,7 +147,7 @@ export function createFx() {
       // the moon at its phase, a halo on clear nights
       if (L.moon.el > -2 && P.moonA > 0.05) {
         const r = Math.min(26, Math.max(15, W * 0.035));
-        const p = moonPlace(L, r, s.signRect);
+        const p = moonPlace(L, r, s.signRect, s.moonArch);
         const a = P.moonA * clamp01((L.moon.el + 2) / 5) * (0.35 + 0.65 * clamp01(L.moon.illum * 4)) * (s.moonVeil == null ? 1 : s.moonVeil);
         if (L.clear && dark > 0.4) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 * a * dark; c.drawImage(glow([200, 210, 255]), p.x - r * 5, p.y - r * 5, r * 10, r * 10); c.globalCompositeOperation = 'source-over'; }
         c.globalAlpha = a * (0.55 + 0.45 * dark);
@@ -629,7 +629,7 @@ export function createFx() {
   // elevation, mapped into the open sky above the rooftops. It only reaches the skyline at real moonrise / moonset and
   // never sits behind the sign (it passes over it); it glides to a new spot instead of jumping.
   let moonPos = null, moonSafeTop = 0, moonUnderButtons = false;
-  function moonPlace(L, r, sign) {
+  function moonPlace(L, r, sign, arch = null) {
     moonUnderButtons = false;
     const az = L.moon.az, el = L.moon.el;
     // how far through tonight's pass (moonrise → moonset); facing south it rises on the left, in the south (facing north) on the right
@@ -638,6 +638,12 @@ export function createFx() {
     const k = clamp01((el + 2) / 40), e = 1 - (1 - k) * (1 - k);
     const top = r + 24, low = HZ * 0.4;
     let x = r + 16 + (W - 2 * r - 32) * u, y = low + (top - low) * e;
+    // CITY 2.0 only (City 1.0 never passes it): its own arch { x0, x1, base, apex } — rising and setting behind the skyline,
+    // its height half the pass, half the real elevation; it may pass behind the towers, the wheel, the lighthouse
+    if (arch) {
+      x = arch.x0 + (arch.x1 - arch.x0) * (1 - Math.cos(Math.PI * u)) / 2;
+      y = arch.base - (arch.base - arch.apex) * clamp01(0.45 * Math.sin(Math.PI * u) + 0.55 * e);
+    } else
     // phones (a portrait screen: the sign spans it): the moon arches over the sign through the night, fading in at moonrise
     // and out at moonset, clear of the corner buttons and under the notch / status bar
     if (W < 760 || H > W) {
