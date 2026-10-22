@@ -40,6 +40,13 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 ?city=2&tz=America/Detroit&at=42.96,-85.67.
 
 ## Rules that apply to everything
+- **The beat must be felt (the owner):** anything that pulses to the music pulses HARD — a fast attack to a clearly brighter
+  peak (a big swing in brightness + glow, not a few percent), then a quick decay, harder on downbeats / drops — obvious on an
+  iPhone at a glance; still never full-screen flashing or hard on/off across large areas.
+- **The "does it make physical sense" check (every moving piece):** review each one across its WHOLE path (a burst of frames
+  from start to end, not one still), and check depth: what it passes in front of / behind, and that its light, beam, shadow,
+  reflection and glow land where the thing really is (a helicopter behind the towers can't light the water in front of them;
+  drones can't fly behind the moon). List each piece's depth in the review notes.
 - **The glance test:** anything meant to be seen must read on an iPhone held upright in 3 seconds, from silhouette, pose,
   colour and motion, at the size rules (people ~20 pt). Small props are exaggerated, key moments get a visual cue, nothing that
   matters happens on the far pier or out on the water (boats and the wheel read by their lights). Every holiday / story list is
@@ -118,14 +125,6 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   reflected in the harbor; nearer buildings warmer — pink, amber, red — towers cooler); drone colours; real neon SFX from the
   owner's picks.
 
-- NEON PASS 3 (Oct 22, the owner's answers — these REPLACE the palette rules above where they differ): BOLD BUT DESIGNED — many
-  colours across the city (pink, magenta, violet, electric blue, cyan, teal, green, amber, red, gold, white), up to 2–3 colours a
-  building, neighbours contrasting, warmer near / cooler far for depth, never a random rainbow smear; ALMOST EVERY building gets neon
-  (a few stay quiet only where it makes the neighbours pop); A LITTLE MOTION EVERY NIGHT (a few signs blink or spell on, slow
-  chasers, a sign cycling its colour, the odd flicker — calm and sparse); the party peak a BIG SPECTACLE but never strobe-like.
-  DEPTH through the neon (thick, bright, crisp near → thin, soft, hazy far, ≥ 3 steps), varied tube weights on one building,
-  colours through the night (rotations, schemes by evening / late night / small hours), a BURNT-OUT LETTER ~once a month for 2 days.
-
 ## Part 4 — water
 - Reflections in perspective; a gold sun path at sunset and a silver moon path at night broken by ripples; every light smeared
   in the water; fireworks doubled in the harbor (Part 11).
@@ -153,10 +152,103 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   (matte black triangle, a glowing red orb at the belly's centre + three orbs at its points, slow silent glide, then impossibly fast
   and gone; a rare night flyover); skydivers (colourful canopies by day, ankle flares + canopy lights at night); the witch; Santa's
   sleigh. Every piece gets day + night versions (golden-hour touches where they help).
+- POLISH LIST (small things, for the cleanup passes): the NEON logo at night — a white-hot glass core inside each pink tube
+  (the colour in the glow around it), a faint pink cast of its light on the haze / clouds behind it, the tiniest uneven
+  brightness along each tube; SPEAKEASY's letters as real thin tubes. Size stays.
+- CITY 2.0 MUSIC (after the Day Pass, before 6b): import the owner's 35 new mood songs (~/Downloads folders day, evening, late,
+  morning, party) as City 2.0's mood lists (City 1.0 keeps its own; victory + game music stay as they are); neighbouring moods may
+  share songs (bigger decks); seasonal songs later; a MUSIC MOOD setting: AUTO (default, follows the time of day) / MORNING /
+  DAY / EVENING / LATE NIGHT / PARTY — in a lobby the room's synced song follows the HOST's setting. Later, once a mood has
+  ~30+ songs: rotate halves week by week (the owner's idea — not before, it would make repeats worse).
+- BUILD ORDER NOW (Oct 22): the Balboni rename → THE PREVIEW PANEL (the owner's test remote: JUST ME / EVERYONE ON CITY 2,
+  admin-only via /api/admin, a server-written city2/live node — the seed of Part 13's CITY CONTROL, which later adds the PIN,
+  the confirm tap and MY ROOM once City 2.0 is the real city) → Neon Pass 4 → the Day Pass → City 2.0 music → 6b.
+- CITY SOUNDS — THE HUNT LIST (the owner collects real recordings; CC0 / royalty-free, e.g. Freesound CC0, Sonniss GDC bundles;
+  WAV 44.1 kHz; the builder trims + levels them like the neon set). The city NEVER goes quiet at night — it gets naturally
+  quieter because it's less busy (fewer cars, people, boats; the hourly bell still rings, just sounding over a calmer city).
+  Loops must be seamless, 1–2 min. Grouped by when they're needed:
+  - PART 7 (the speakeasy + the raid): a muffled club through a wall (crowd murmur + laughter, a party version louder) — the
+    jazz itself is our own music, low-passed; a door opening/closing (heavy wood, a moment of loud jazz); a cat's meow; a TV
+    murmur through a window (late night); 1920s police cars (old engines rolling by, tyres on wet road); a soft distant
+    1920s siren wail (rising and falling).
+  - PART 8 (the promenade, people, vehicles, the city schedule): harbor water lapping at the quay (loop); a distant city hum,
+    day and night versions (loops); light far-off traffic (loop) + single cars passing; a bus's air-brake hiss + idle + pulling
+    away; the HOURLY SHIP'S BELL; the NOON STEAM WHISTLE (1920s steamboat / factory); a big ship's horn (the 7 pm dinner
+    cruise); gulls (several distant calls); a friendly distant dog bark or two; a farmers' market murmur (Saturday); milk
+    bottles clinking / a delivery truck (dawn); a trash truck (Monday).
+  - PART 9 (seasons + weather): morning birdsong (spring/summer); summer-night crickets; autumn wind through leaves; winter
+    wind; snow's muffled hush; a distant FOGHORN (real fog); rain on pavement + on the water (rain + thunder exist already).
+  - PART 10 (party nights + fireworks): real fireworks (launch whoosh, bursts near + far, crackle / glitter); a crowd cheer
+    (fireworks, the NYE countdown); the party yacht's music + a helicopter landing.
+  - 6b + THE SKY: a helicopter (distant + flyby); airliners far up; a prop plane drone (the banner plane, skywriting); jets
+    flyby (the air show); a hot air balloon's burner whoosh; geese honking; the UFO saucer's low hum + the abduction beam; the
+    TR-3B's deep drone + electrical crackle / power-down (the blackout); witch cackle + sleigh bells (holidays).
+  - PART 9's CONSTRUCTION TOWER: a warning siren + horn blasts, the implosion's charges + a long rumble, distant hammering /
+    a crane.
+  - LEGENDARY EVENTS: the ghost ship (creaking wood, a ghostly bell), the harbor monster (a big splash), the party yacht.
+- THE SATURDAY 10 PM DRONE SHOW (the city schedule; ~4–5 min, a different running order each week, the player's local time):
+  the show opens with "NEON SPEAKEASY"; then 3–4 picks from a rotating set — a heart, a star burst, two or three game logos
+  (a different few each week), the week's season (a pumpkin in October, a snowflake + a tree in December, a shamrock in March,
+  a flag on July weekends, flowers in spring), the ₿ now and then (rarely, a nod), a cocktail glass, the lighthouse, a
+  Ferris wheel that turns, "SEE YOU INSIDE" to close; colours per Neon Pass 2. CITY CONTROL can override the running order.
+- THE CITY SCHEDULE (the owner's idea — set-your-watch routines on the player's own clock; built in Part 8 with the people and
+  vehicles, Part 10 adds party nights + the weekly drone show; sounds join the soundscape). iPHONE-FIRST — only what reads on
+  a phone (near promenade, the big skyline, light changes, sound); far-shore detail is desktop / TV only:
+  - PHONE: the street lamps switch ON one by one at sunset and OFF one by one at sunrise; a ship's bell rings each hour; the
+    paddle steamer's STEAM WHISTLE at noon (a white steam plume + the sound); dog walkers at sunrise + sunset (more on
+    weekends); the morning rush (more buses, people with coffee on the promenade); the lunch crowd at the food cart; the
+    office towers going dark in waves after 5–6 pm; the dinner cruise leaving the pier at 7 pm, lit up; the line at the
+    speakeasy door; the last bus at midnight; a few stragglers wandering home after 2 am last call; a newspaper / milk truck
+    on the road at dawn; the Saturday-morning FARMERS' MARKET on the plaza (stalls + awnings); Monday trash day.
+  - PHONE BY LIGHT ONLY: the theatre marquee on the far shore chases brighter at 8 pm showtime and dims after 10:30; the
+    waterfront shops light up in the morning; the fishing boats' lights heading out at dawn and back at dusk.
+  - DESKTOP / TV ONLY: the theatre crowd, shop shutters rolling up, people on the far quay.
+  - THE BIG MOMENTS DUCK THE MUSIC (the owner): for the prominent routine sounds — the noon steam whistle first, also the
+    dinner cruise's horn at 7 pm and the Saturday drone show — the music dips gently (duckMusic) just before, the sound plays
+    clearly, then the music slowly ramps back up over several seconds. The small ones (the hourly bell) play under the music
+    without ducking. Only a few ducks a day, so it stays special.
 - THE DAY PASS (after Neon Pass 2, before 6b; the owner: by day, high noon especially, "it looks pretty rough"): signs read by
   day through PAINTED faces (enamel boards, bold solid letters, tubes faint on top), the skyline lit by the real sun (lit vs
   shaded sides, soft setback shadows, bright ledge lines), real aerial depth, windows reflecting the sky, a real daytime sky +
   clouds, a white-hot sun with bloom, the water by day. Night / dusk / party unchanged.
+- 6b section 0 — THE SIGN MAKES ROOM FOR SKY MESSAGES (the owner's idea): for a drone show or skytyping/skywriting, the NEON
+  sign (and tagline) power down on purpose — a soft dim with a flicker or two, the dropout sound — AND its glass then fades to a
+  faint ghost (~15%), so unlit tubes never cut through the message (by day the sign is already off: the glass just fades out
+  and back in); the message fills the open sky, big and high, readable at a glance; drone shows are night only; it stays fully readable ~15 s after it's complete, then the sign re-ignites (the
+  warm-up + the power-on, the hum fading in 10 s) and the message carries on fading behind it (smoke drifting, drones
+  scattering / landing). The dock never changes. Not for the banner plane (it has its own lane), never during the NYE countdown
+  or the catch; re-scale the drone formations / skytyping for the full sky — after Neon Pass 3 the formation sits in the
+  small band between the skyline and the tagline (the owner: "it only uses a very small part of the sky"); with the sign
+  gone it fills the sky from the crowns up to near the top safe area, big. DRAW ORDER BUG: drones (and smoke, planes,
+  balloons) must draw IN FRONT of the moon, the sun and the stars — never behind them (the moon is far away).
+- 6b — THE TR-3B's POWER INTERFERENCE (the owner's idea): the black triangle crosses the WHOLE screen, big and slow, and the
+  city's lights under it fail as it passes — a moving zone below and around it where windows flicker and go dark, neon
+  stutters and dies, street lamps buzz down, the NEON sign glitches if it passes over; a soft electrical crackle / the hum
+  dropping out, then everything flickers back on behind it, a few lights slow to recover. At night the dark craft is noticed
+  BY the lights dying under it (its three orbs + the red centre the only lights of its own). IT MUST BE CLEARLY VISIBLE (the
+  owner): fly it through the band just above the skyline where the city's coloured glow lights the haze, so it stands out as a
+  sharp black silhouette against the glow; a thin rim of city light along its edges; it blots out stars and the moon as it
+  passes; its orbs bright and pulsing; best at the blue hour or on a hazy / low-cloud night (lit cloud base behind it), never
+  against plain black sky. Cheap: a moving dimming mask
+  over the baked layers + a few individual flickers.
+- 6b section 0 — SHOOTING STARS RARER (the owner: "they happen pretty frequently"): today core/sky.js#meteorsOf gives 0.1 a
+  minute on ANY clear night (one every ~10 min) and 3.2 a minute on a shower's peak, 1.1 a day either side (the Orionids peaked
+  Oct 21, so she saw a lot). City 2.0 only: a normal clear night ~1 every 30–45 min; a shower's peak night ~1 every 2–3 min,
+  ±1 day ~1 every 8–10 min; plus a RARE bright FIREBALL (a big slow green-white streak that breaks up, a few times a year — a
+  City Sightings badge later). Keep the moon's three-tap shooting star. REBUILD THE ART (City 2.0 still uses City 1.0's thin
+  line + dot, district/fx.js): a tapered streak with a hot bright head, a faint colour tint (green, blue-white, a touch of
+  orange), varied speed / length / angle / brightness, the odd one flaring and breaking into sparks, a faint glowing trail that
+  lingers a moment; on a shower night they all fly out from the shower's real radiant point; the bright ones glint on the water.
+- 6b section 0 — THE HELICOPTER's DEPTH (the owner): it flies in sky-low, the lane that passes BEHIND the taller towers, yet
+  its searchlight lands on the harbor in FRONT of the skyline — impossible. Fix: the helicopter flies OVER THE HARBOR, in front
+  of the skyline (a real depth between the far quay and the pier, drawn after the skyline, sized for that distance), so it never
+  slips behind a tower; the beam drops straight down from it to the water below it in perspective, its pool + glint where it
+  lands, reflected; when it leaves it climbs away over the city (smaller) with the light off, or exits past a side.
+- 6b section 0 — FLUFFY CONTRAILS BACK (the owner loved City 1.0's): City 2.0's capped contrails (air.js: 6 batched strokes,
+  ≤ 60 samples, a 22 s life) are cheaper but read thinner / smoother. Bring back City 1.0's soft FLUFFY look — puffy, billowy
+  edges that slowly spread, drift on the real wind and dissolve, a little longer life (~30 s) — while keeping the cost capped
+  (e.g. a soft puff sprite stamped along the path into a small layer, refreshed a few times a second). Same rules (high planes,
+  dry, not overcast, by day / golden hour, pink-gold at sunset).
 - 6b section 0 — THE GEESE MORE REAL (the owner): a V is never perfect — one or two stragglers trail behind with a gap, flapping
   a little harder to catch up; arms of uneven length, birds shifting places, the odd one dropping back now and then.
 - 6b section 0 — THE MOON REDONE (the owner: "the craters look off"): today it reads as a ball with round dark spots. A real
