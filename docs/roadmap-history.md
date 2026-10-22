@@ -328,6 +328,25 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 3: THE WOW PASS (Oct 22, 2026) — `docs/harbor.md#neon-pass-3`
+- The review's fixes: the wheel SEE-THROUGH (no veil; lit struts, a haze ring), THE GAME BLADE readable (bulbs on an outer frame, a dark
+  gap, bigger brighter letters on a near-black panel, a calm chase), THE DRONE SHOW in open sky (under the word, over the tallest crown).
+- The night city spectacular: neon on ALMOST EVERY building (outlines, ledge bands, pilasters, fins, sunbursts, chevrons, trims; setback
+  ledges on the towers), a BOLD BUT DESIGNED palette (five new colours, up to three a building from designed pairings, neighbours
+  contrasting, warm near / cool far), THE LIGHTHOUSE IN NEON (red + white, the keeper's house amber), coloured rooms, the city's
+  violet / teal light on the night air, the pier's bulb strings, a brighter waterfront.
+- DEPTH through the neon (the owner's most important note): four steps by distance — near tubes thick, bright, crisp; landmarks
+  finer; the middle tier softer; the far band thin, soft and sinking into the haze; finer trims than outlines on every building.
+- THE EVERYDAY MOTION: a sign spells on, another blinks, an icon cycles its colour, one or two slow chasers — calm and sparse; a few
+  buildings rotate their colour, a few change scheme through the night (evening → late night → small hours); a BURNT-OUT LETTER on
+  one named sign ~once a month for two days (`&force=burnout`).
+- THE PARTY SHOW (`core/harbor-show.js`, pure + tested; moved up from Part 10): scenes on the beat — ripples, colour sweeps, ledge
+  climbs, fins in sequence, call-and-response, chasers round whole outlines, crowns on the drops; a quarter of the city steady; it
+  builds warm-up → peak (searchlights, the wheel's party colours + sparkle, PARTY WINDOWS) → after; the NEON word on the biggest
+  drops; never strobe-like (tested); tier 1 ≤ 5 effects, tier 0 one breathing image. `&scene=` previews; Part 10's hooks.
+- The neon sounds retuned: a silent warm-up + dawn (the last dropout only), the lit sign's flickers sound, the hum fades out 10 s after
+  the catch, a tap on the sign sounds (dropout / power-on).
+
 ### ✅ CITY 2.0 — THE HARBOR, NEON PASS 2 (Oct 21, 2026) — `docs/harbor.md#neon-pass-2`
 - The building neon fixed from the owner's zoomed iPhone review: each line cut at its own depth against the nearer buildings (a tower's
   contour against a dilated envelope: no tube down a sun corridor), every run ending at an electrode cap, stubs dropped, nothing

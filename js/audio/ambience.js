@@ -170,6 +170,43 @@ export function startNeonHum({ level = 1, fadeIn = 2.5 } = {}) {
   };
 }
 
+/**
+ * NEON PASS 3 (the owner's ears): the hum is no longer a loop all night — it comes up with the power-on, holds until the sign is
+ * fully on (`hold` s), then FADES OUT smoothly over `fade` s (an equal-power curve: no sudden tail) and stops. → stop(fade s).
+ */
+export function neonHumFade({ level = 1, fadeIn = 0.8, hold = 1.5, fade = 10 } = {}) {
+  if (!isUnlocked()) return () => {};
+  const ctx = getContext(), out = ctx.createGain();
+  let src = null, stopped = false, endT = 0;
+  out.gain.setValueAtTime(0, ctx.currentTime);
+  out.connect(getSfxBus());
+  const t0 = ctx.currentTime;
+  neonBuf(ctx, NEON_REC.hum).then(buf => {
+    if (!buf || stopped) return;
+    src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    src.connect(out); src.start();
+    // (the file may arrive late: the curve keeps to the sign's clock, never a full hum after the sign is long settled)
+    const n = ctx.currentTime, top = NEON_GAIN * level, fadeAt = Math.max(n + 0.05, t0 + hold), up = Math.min(fadeIn, Math.max(0.05, fadeAt - n));
+    const left = Math.max(0.5, fade - Math.max(0, n - (t0 + hold)));
+    out.gain.setValueAtTime(0, n); out.gain.linearRampToValueAtTime(top, n + up);
+    const curve = new Float32Array(48);
+    for (let i = 0; i < curve.length; i++) curve[i] = top * Math.cos((i / (curve.length - 1)) * Math.PI / 2);
+    out.gain.setValueCurveAtTime(curve, Math.max(fadeAt, n + up), left);
+    endT = Math.max(fadeAt, n + up) + left;
+    setTimeout(() => { if (stopped) return; stopped = true; try { src.stop(); } catch {} out.disconnect(); }, (endT - n) * 1000 + 150);
+  });
+  return (f = 0.6) => {
+    if (stopped) return; stopped = true;
+    const n = ctx.currentTime;
+    // (mid-curve: hold where it is, then ramp down — setValueAtTime inside a running curve throws in some browsers)
+    try {
+      if (out.gain.cancelAndHoldAtTime) out.gain.cancelAndHoldAtTime(n); else { const v = out.gain.value; out.gain.cancelScheduledValues(0); out.gain.setValueAtTime(v, n); }
+      out.gain.linearRampToValueAtTime(0, n + f);
+    } catch { out.gain.value = 0; }
+    setTimeout(() => { try { if (src) src.stop(); } catch {} out.disconnect(); }, f * 1000 + 100);
+  };
+}
+
 export function neonTick() {
   if (!isUnlocked()) return;
   const ctx = getContext();

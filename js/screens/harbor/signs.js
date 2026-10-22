@@ -20,21 +20,33 @@ const ICE = [214, 240, 255];
 function lettersRow(text, x0, y0, w, h, { skew = 0 } = {}) {
   const ch = [...text], n = ch.length, lh = Math.min(h, (w / Math.max(1, n)) / 0.86 * (14 / 10)), s = lh / 14, lw = 10 * s, gap = Math.max(0, (w - n * lw) / Math.max(1, n));
   const used = n * lw + (n - 1) * Math.min(gap, lw * 0.35), ox = x0 + (w - used) / 2, oy = y0 + (h - lh) / 2;
-  const out = [];
-  ch.forEach((c, i) => { const d = LETTERS[c]; if (!d) return; const lx = ox + i * (lw + Math.min(gap, lw * 0.35)); for (const p of flattenPath(d, s, lx, oy, 1)) out.push(skewP(p, skew, oy + lh)); });
-  return { polys: out, lh };
+  const out = [], boxes = [];
+  ch.forEach((c, i) => { const d = LETTERS[c]; if (!d) return; const lx = ox + i * (lw + Math.min(gap, lw * 0.35)); for (const p of flattenPath(d, s, lx, oy, 1)) out.push(skewP(p, skew, oy + lh)); boxes.push({ x0: lx - 0.6, y0: oy - 0.6, x1: lx + lw + lh * skew + 0.6, y1: oy + lh + 0.6 }); });
+  return { polys: out, lh, boxes };
 }
-function lettersCol(text, x0, y0, w, h) {
-  const ch = [...text], n = ch.length, lh = Math.min(w * 0.64 * 1.4, h / Math.max(1, n) * 0.8), s = lh / 14, lw = 10 * s, step = h / Math.max(1, n);
-  const out = [];
-  ch.forEach((c, i) => { const d = LETTERS[c]; if (!d) return; for (const p of flattenPath(d, s, x0 + (w - lw) / 2, y0 + i * step + (step - lh) / 2, 1)) out.push(p); });
-  return { polys: out, lh };
+function lettersCol(text, x0, y0, w, h, { fill = 0.8, wide = 0.64 } = {}) {
+  const ch = [...text], n = ch.length, lh = Math.min(w * wide * 1.4, h / Math.max(1, n) * fill), s = lh / 14, lw = 10 * s, step = h / Math.max(1, n);
+  const out = [], boxes = [];
+  ch.forEach((c, i) => { const d = LETTERS[c]; if (!d) return; const lx = x0 + (w - lw) / 2, ly = y0 + i * step + (step - lh) / 2; for (const p of flattenPath(d, s, lx, ly, 1)) out.push(p); boxes.push({ x0: lx - 0.6, y0: ly - 0.6, x1: lx + lw + 0.6, y1: ly + lh + 0.6 }); });
+  return { polys: out, lh, boxes };
 }
 const skewP = (p, k, base) => (k ? { ...p, pts: p.pts.map(([x, y]) => [x + (base - y) * k, y]) } : p);
 // a mark (0..100 box) into a square: → [{ polys, col }]
 function markTubes(g, x0, y0, size) {
   const m = markFor(g), s = size / 100;
   return m.tubes.map(t => ({ polys: flattenPath(t.d, s, x0, y0, 1), col: hexRgb(t.col) }));
+}
+/**
+ * THE GAME BLADE's layout (NEON PASS 3, the owner: "the LETTERS must win"): the cabinet R → the bulbs' OUTER FRAME (a ring just
+ * inside the cabinet's edge), the dark PANEL inside it (a clear gap between the bulbs and the panel), the letters' box inside the
+ * panel, and the height six stacked letters stand (pt) — the glance test reads it (tests/harbor.test.mjs).
+ */
+export function bladeLayout(R, n = 6) {
+  const ring = 1.15, gap = ring + 2.15, pad = 1.0;
+  const panel = { x: R.x + gap, y: R.y + gap, w: R.w - gap * 2, h: R.h - gap * 2 };
+  const box = { x: panel.x + pad, y: panel.y + pad * 1.6, w: panel.w - pad * 2, h: panel.h - pad * 3.2 };
+  const lh = Math.min(box.w * 0.82 * 1.4, box.h / Math.max(1, n) * 0.88);
+  return { ring, panel, box, lh, fill: 0.88, wide: 0.82 };
 }
 const roundRectPts = (x, y, w, h, r) => {
   const p = [], seg = (cx, cy, a0) => { for (let i = 0; i <= 4; i++) { const a = a0 + i * Math.PI / 8; p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } };
@@ -55,6 +67,18 @@ export function buildSign(spot, game, ctx) {
   if (spot.type === 'vbox' || spot.type === 'box') {
     const text = spot.text || signName(game);
     panel = { x: R.x, y: R.y, w: R.w, h: R.h, r: Math.min(R.w, R.h) * 0.12 };
+    if (spot.bulbs) {
+      // THE GAME BLADE (NEON PASS 3): the bulbs on the outer frame, a dark gap, the dark panel, big bright letters inside it
+      const bl = bladeLayout(R, [...text.replace(/ /g, '')].length);
+      panel = { ...bl.panel, r: Math.min(bl.panel.w, bl.panel.h) * 0.1, frame: { x: R.x, y: R.y, w: R.w, h: R.h, r: Math.min(R.w, R.h) * 0.14 } };
+      const L2 = lettersCol(text.replace(/ /g, ''), bl.box.x, bl.box.y, bl.box.w, bl.box.h, { fill: bl.fill, wide: bl.wide });
+      tw = Math.max(0.7, Math.min(1.55, L2.lh * 0.14));
+      parts.push({ tubes: L2.polys, col: mix(col, [255, 255, 255], 0.12), w: tw, hot: true, boxes: L2.boxes });
+      bulbs = [];
+      const per = roundRectPts(R.x + bl.ring, R.y + bl.ring, R.w - bl.ring * 2, R.h - bl.ring * 2, Math.min(R.w, R.h) * 0.12);
+      let acc = 0;
+      for (let i = 1; i < per.length; i++) { const [ax, ay] = per[i - 1], [bx, by] = per[i], d = Math.hypot(bx - ax, by - ay); for (let t = 0; t < d; t += 0.5) { acc += 0.5; if (acc >= 3.6 * k) { acc = 0; bulbs.push([ax + (bx - ax) * t / d, ay + (by - ay) * t / d]); } } }
+    } else {
     const pad = Math.min(R.w, R.h) * 0.16;
     border = { pts: roundRectPts(R.x + pad * 0.45, R.y + pad * 0.45, R.w - pad * 0.9, R.h - pad * 0.9, Math.min(R.w, R.h) * 0.1), col: spot.bulbs ? [255, 236, 214] : mix(col, ICE, 0.55) };
     if (spot.type === 'vbox') {
@@ -63,22 +87,16 @@ export function buildSign(spot, game, ctx) {
       if (markH) for (const m of markTubes(game, R.x + (R.w - markH) / 2, R.y + pad * 0.9, markH)) parts.push({ tubes: m.polys, col: m.col, w: tw * 0.85, mark: true });
       const L2 = lettersCol(text.replace(/ /g, ' '), R.x + pad, R.y + pad + (markH ? markH + pad * 0.6 : 0), R.w - pad * 2, R.h - pad * 2 - (markH ? markH + pad * 0.6 : 0));
       tw = Math.max(0.55, Math.min(1.25, L2.lh * 0.13));
-      parts.push({ tubes: L2.polys, col, w: tw });
+      parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
     } else {
       const ms = game ? R.h - pad * 2 : 0;
       if (ms) for (const m of markTubes(game, R.x + pad, R.y + pad, ms)) parts.push({ tubes: m.polys, col: m.col, w: tw * 0.85, mark: true });
       const L2 = lettersRow(text, R.x + pad + (ms ? ms + pad * 0.6 : 0), R.y + pad, R.w - pad * 2 - (ms ? ms + pad * 0.6 : 0), R.h - pad * 2);
       tw = Math.max(0.55, Math.min(1.25, L2.lh * 0.13));
-      parts.push({ tubes: L2.polys, col, w: tw });
+      parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
     }
-    if (spot.bulbs) {
-      // THE GAME BLADE's chaser bulbs (Part 6a; the HOTEL's before): round the panel, every ~3.4 pt
-      bulbs = [];
-      const per = roundRectPts(R.x + 0.9, R.y + 0.9, R.w - 1.8, R.h - 1.8, Math.min(R.w, R.h) * 0.12);
-      let acc = 0;
-      for (let i = 1; i < per.length; i++) { const [ax, ay] = per[i - 1], [bx, by] = per[i], d = Math.hypot(bx - ax, by - ay); for (let t = 0; t < d; t += 0.5) { acc += 0.5; if (acc >= 3.4 * k) { acc = 0; bulbs.push([ax + (bx - ax) * t / d, ay + (by - ay) * t / d]); } } }
-      border = null;
     }
+    if (spot.bulbs) border = null;
   } else if (spot.type === 'icon') {
     const size = Math.min(R.w, R.h);
     for (const m of markTubes(game, R.x + (R.w - size) / 2, R.y + (R.h - size) / 2, size)) parts.push({ tubes: m.polys, col: m.col, w: Math.max(0.6, size * 0.065), mark: true });
@@ -89,7 +107,7 @@ export function buildSign(spot, game, ctx) {
   // the tubes, ready to draw (uneven light, electrodes at the open ends)
   for (const p of parts) p.t = p.tubes.map(pl => tube(pl.pts, pl.closed, p.w));
   if (border) border.t = [tube(border.pts, true, tw * 0.75, [false, false])];
-  const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type, frame: ctx.frame || null };
+  const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type, frame: ctx.frame || null, letterBoxes: (parts.find(p => p.boxes) || {}).boxes || [], nText: [...String(spot.text || (game ? signName(game) : '')).replace(/ /g, '')].length };
   sign.lit = (dpr, scheme) => litSprites(sign, dpr);
   return sign;
 }
@@ -145,7 +163,8 @@ export function drawHousing(x, sg, T, ctx) {
       x.moveTo(R.x + R.w * 0.18, R.y + R.h + 1); x.lineTo(R.x + R.w * 0.82, ctx.roofY); x.stroke();
     }
     if (sg.panel) {
-      const P = sg.panel;
+      // (the game blade: the outer cabinet F carries the bulbs; its dark panel P the letters — NEON PASS 3)
+      const P0 = sg.panel, P = P0.frame || P0;
       // the cast shadow on the wall (day)
       if (day > 0.05 && !fr) { x.fillStyle = `rgba(20,14,30,${0.25 * day})`; x.beginPath(); x.roundRect(P.x + (sd > 0 ? -1.2 : 1.2), P.y + 1.6, P.w, P.h, P.r); x.fill(); }
       // the brackets (wall side): two arms
@@ -158,6 +177,11 @@ export function drawHousing(x, sg, T, ctx) {
       // the face: enamel, the trim, the top catching the light
       x.fillStyle = rgba(enamel); x.beginPath(); x.roundRect(P.x, P.y, P.w, P.h, P.r); x.fill();
       x.strokeStyle = rgba(trim, 0.9); x.lineWidth = Math.max(0.4, P.w * 0.04); x.stroke();
+      if (P0.frame) {
+        // the inner panel: near-black enamel, a fine raised lip — the stage the letters stand on
+        x.fillStyle = rgba(mix(mix([6, 5, 12], enamelDay, day), [0, 0, 0], 0.25)); x.beginPath(); x.roundRect(P0.x, P0.y, P0.w, P0.h, P0.r); x.fill();
+        x.strokeStyle = rgba(mix(trim, [0, 0, 0], 0.35), 0.85); x.lineWidth = Math.max(0.35, P0.w * 0.03); x.stroke();
+      }
       if (day > 0.05) {
         const g = x.createLinearGradient(P.x, P.y, P.x + P.w, P.y + P.h);
         g.addColorStop(0, `rgba(255,248,230,${0.16 * day})`); g.addColorStop(0.6, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(20,10,20,${0.18 * day})`);
@@ -200,9 +224,11 @@ function litSprites(sg, dpr) {
   const marks = sg.parts.filter(p => p.mark), text = sg.parts.filter(p => !p.mark);
   if (marks.length) {
     const all = marks.flatMap(p => p.t), b = bbox(all), glow = Math.max(3, marks[0].w * 5.5);
-    out.push(sprite(b, glow * 2.6, dpr, x => { for (const p of marks) drawLit(x, p.t, p.col, { w: p.w, glow, a: 1, dpr }); }));
+    const ms = sprite(b, glow * 2.6, dpr, x => { for (const p of marks) drawLit(x, p.t, p.col, { w: p.w, glow, a: 1, dpr }); });
+    ms.role = 'mark'; out.push(ms);
   }
-  for (const p of text) if (p.t.length) out.push(one(p.t, p.col, p.w));
+  // (the game blade's letters: a tighter glow — six big letters stacked close must not melt into one bar of light)
+  for (const p of text) if (p.t.length) { const sp = p.hot ? sprite(bbox(p.t), Math.max(2.6, p.w * 3.4) * 2.6, dpr, x => { drawLit(x, p.t, p.col, { w: p.w, glow: Math.max(2.6, p.w * 3.4), a: 1, dpr }); }) : one(p.t, p.col, p.w); sp.role = 'text'; sp.box = bbox(p.t); out.push(sp); }
   return out;
 }
 

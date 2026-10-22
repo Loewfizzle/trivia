@@ -156,16 +156,17 @@ export function createWaterfront() {
       x.save(); x.beginPath(); x.rect(box.x0 - 10, box.y0 - 10, box.x1 - box.x0 + 20, clipY - box.y0 + 10); x.clip();
       for (const f of fronts) {
         const P = parts(f), sh = f.shop, wc = sh.win;
-        const g = x.createLinearGradient(0, P.winY, 0, f.y1); g.addColorStop(0, rgba(wc, 0.6)); g.addColorStop(1, rgba(mix(wc, [255, 240, 220], 0.3), 0.95));
+        const g = x.createLinearGradient(0, P.winY, 0, f.y1); g.addColorStop(0, rgba(wc, 0.78)); g.addColorStop(1, rgba(mix(wc, [255, 240, 220], 0.35), 1));
         x.fillStyle = g; x.fillRect(f.x0 + P.w * 0.05, P.winY + P.winH * 0.06, P.w * 0.9, P.winH * 0.9);
         x.globalCompositeOperation = 'source-over'; x.fillStyle = 'rgba(30,18,24,0.72)';
         const nP = 1 + ((f.seed >>> 7) % 2);
         for (let i = 0; i < nP; i++) { const px = f.x0 + P.w * (0.25 + 0.4 * i + ((f.seed >>> (9 + i)) % 10) / 100), ph = P.winH * 0.66; x.beginPath(); x.ellipse(px, f.y1 - ph * 0.82, ph * 0.1, ph * 0.12, 0, 0, Math.PI * 2); x.fill(); x.fillRect(px - ph * 0.13, f.y1 - ph * 0.68, ph * 0.26, ph * 0.68); }
         x.globalCompositeOperation = 'lighter';
-        // the glow: under the awning, a soft bloom round the window (the ribbon of warm light along the water)
-        x.fillStyle = rgba(wc, 0.22); x.fillRect(f.x0, P.awnY + P.awnH * 0.4, P.w, P.awnH * 0.8);
+        // the glow: under the awning, a soft bloom round the window (the ribbon of warm light along the water) — NEON PASS 3: a
+        // touch brighter, so the strip reads on a phone
+        x.fillStyle = rgba(wc, 0.34); x.fillRect(f.x0, P.awnY + P.awnH * 0.4, P.w, P.awnH * 0.8);
         const gg = x.createRadialGradient((f.x0 + f.x1) / 2, f.y1 - P.winH * 0.4, 0, (f.x0 + f.x1) / 2, f.y1 - P.winH * 0.4, P.w * 0.75);
-        gg.addColorStop(0, rgba(wc, 0.3)); gg.addColorStop(1, rgba(wc, 0)); x.fillStyle = gg; x.fillRect(f.x0 - P.w * 0.3, f.y0 - P.h * 0.2, P.w * 1.6, P.h * 1.3);
+        gg.addColorStop(0, rgba(wc, 0.46)); gg.addColorStop(0.55, rgba(wc, 0.14)); gg.addColorStop(1, rgba(wc, 0)); x.fillStyle = gg; x.fillRect(f.x0 - P.w * 0.3, f.y0 - P.h * 0.2, P.w * 1.6, P.h * 1.3);
         const ts = signTubes(f, P);
         if (ts.length) drawLit(x, ts.map(t => tube(t.pts, false, t.w, [true, true])), sh.col, { w: ts[0].w, glow: Math.max(2.2, P.sign.s * 0.5), a: 1, dpr });
       }

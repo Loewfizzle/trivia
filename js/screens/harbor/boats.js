@@ -140,7 +140,7 @@ export function createBoats() {
       for (let i = 0; i <= n; i++) {
         const t = i / n, sag = Math.sin(Math.PI * t) * Math.min(1.3, Math.abs(a1 - a0) * 0.06), px = X(a0 + (a1 - a0) * t), py = Y(y0 + (y1 - y0) * t - sag);
         if (i) x.lineTo(px, py); else x.moveTo(px, py);
-        if (i % 1 === 0) { x.save(); x.fillStyle = `rgba(250,246,230,${0.7 * day + 0.1})`; x.fillRect(px - 0.3, py - 0.3, 0.6, 0.6); x.restore(); if (g && i > 0 && i < n) { const c = cols[bi++ % cols.length]; bulb(px, py, c.join(','), 0.95, 0.95); g.fillStyle = `rgb(${mix(c, [255, 255, 255], 0.6).map(Math.round)})`; g.beginPath(); g.arc(px, py, Math.max(0.35, u * 0.07), 0, Math.PI * 2); g.fill(); } }
+        if (i % 1 === 0) { x.save(); x.fillStyle = `rgba(250,246,230,${0.7 * day + 0.1})`; x.fillRect(px - 0.3, py - 0.3, 0.6, 0.6); x.restore(); if (g && i > 0 && i < n) { const c = cols[bi++ % cols.length]; bulb(px, py, c.join(','), 1.15, 1); g.fillStyle = `rgb(${mix(c, [255, 255, 255], 0.6).map(Math.round)})`; g.beginPath(); g.arc(px, py, Math.max(0.35, u * 0.07), 0, Math.PI * 2); g.fill(); } }
       }
       x.stroke();
     }

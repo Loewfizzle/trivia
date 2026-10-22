@@ -41,15 +41,20 @@ highpass, a faint 5 kHz hiss, the level stepping unsteadily, ≤ 1.4 s) for as l
 softer tick. On the SFX bus (the Effects slider, Mute); peaks ~0.03 — under the music, never relied on. **Since NEON PASS 2 it is
 the fallback** — City 2.0 plays the recordings below; the synthesized buzz plays only when a file can't load.
 
-**THE RECORDED NEON** (NEON PASS 2, Oct 21 2026 — City 2.0 only; `ambience.js#neonFlicker / neonDropout / neonCatch /
-startNeonHum / neonPreload`, driven by `title.js#applyNeon` + `humSync`): real neon in `audio/sfx/` (mono 44.1 kHz 16-bit WAV, ~770 KB
-in all, nothing fetched until City 2.0 is up and audio unlocks):
+**THE RECORDED NEON** (NEON PASS 2, Oct 21 2026; retuned in NEON PASS 3, Oct 22, after the owner listened on her iPhone — City 2.0
+only; `ambience.js#neonFlicker / neonDropout / neonCatch / neonHumFade / neonPreload`, driven by `title.js#applyNeon`, `#neonOnSound`,
+`#scheduleFlicker` and `#buzz`): real neon in `audio/sfx/` (mono 44.1 kHz 16-bit WAV, ~770 KB in all, nothing fetched until City 2.0 is
+up and audio unlocks). **When it sounds (NEON PASS 3):** the golden-hour WARM-UP is SILENT (its sputters were annoying), the dawn's
+stutters too — only the very last tube's dropout at dawn sounds, softly (0.55); a RANDOM FLICKER of the lit sign (every 20–40 s,
+`scheduleFlicker`) plays a flicker (0.8); THE CATCH plays the power-on and the hum comes up with it and FADES OUT smoothly over the
+10 s after the sign is fully on (`neonHumFade`: an equal-power curve, then it stops — no hum all night); TAPPING THE SIGN: the
+dropout when the tapped letter goes dark, the power-on + the same fading hum when it lights (0.75; none under Reduced effects):
 | file | what | when | level |
 | --- | --- | --- | --- |
-| `neon-flicker-1…4.wav` (0.6–0.8 s) | a tube striking | each strike of the dusk warm-up + the dawn stutters — one at random, never the same twice running, ±3 % pitch | −20 LUFS |
-| `neon-dropout.wav` (0.75 s) | a tube's buzz cutting out | a letter dropping out (the morning goodbye, a warm-up flicker going dark) | −20 LUFS |
-| `neon-power-on.wav` (2.1 s) | the strike settling into the hum | THE CATCH (all four letters lock on) | −20 LUFS |
-| `neon-hum-loop.wav` (3.0 s) | the steady mains hum | loops, very quietly, from the catch to the morning goodbye; fades in over 2.5 s, out when the page hides | −24 LUFS |
+| `neon-flicker-1…4.wav` (0.6–0.8 s) | a tube striking | the lit sign's rare random flicker — one at random, never the same twice running, ±3 % pitch | −20 LUFS |
+| `neon-dropout.wav` (0.75 s) | a tube's buzz cutting out | the last letter dying at dawn (softly); a tapped letter going dark | −20 LUFS |
+| `neon-power-on.wav` (2.1 s) | the strike settling into the hum | THE CATCH (all four letters lock on); a tapped letter re-igniting | −20 LUFS |
+| `neon-hum-loop.wav` (3.0 s) | the steady mains hum | after a power-on only: up with it, held until the sign is fully on (1.5 s), then faded out over 10 s; cut when the page hides | −24 LUFS |
 Cut + levelled by `scripts/build-neon-sfx.py` (BS.1770 K-weighted loudness, a soft peak limiter at −1 dBFS; the hum's loop length
 nudged to where its wave lines up, then crossfaded in phase — the level holds through the seam ±0.4 dB). Sources (Freesound, all
 **CC0**): 500693 *bolkmar* "neon tube light flickering" (flickers 1–2), 202612 *ludwigmueller* "fxlm neon lights flicker bathroom"

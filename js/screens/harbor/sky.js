@@ -3,7 +3,7 @@
 // clouds, rain, birds, fireworks, rainbows) is the district's sky modules, called as they are (docs/harbor.md#sky).
 import { css } from '../district/palette.js';
 
-export function paintSky(cv, W, HZ, dpr, P) {
+export function paintSky(cv, W, HZ, dpr, P, o = {}) {
   const cw = Math.max(1, Math.round(W * dpr)), ch = Math.max(1, Math.round(HZ * dpr));
   if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
   const x = cv.getContext('2d');
@@ -14,5 +14,19 @@ export function paintSky(cv, W, HZ, dpr, P) {
   const hg = x.createRadialGradient(W * 0.5, HZ * 1.02, 0, W * 0.5, HZ * 1.02, Math.max(W, HZ) * 0.9);
   hg.addColorStop(0, css(P.glow)); hg.addColorStop(0.45, css(P.glow2)); hg.addColorStop(1, 'rgba(0,0,0,0)');
   x.fillStyle = hg; x.fillRect(0, 0, W, HZ);
+  // NEON PASS 3 — THE CITY'S LIGHT ON THE NIGHT AIR: a real neon city lights the haze over it — a soft violet bloom over the
+  // middle of the skyline, teal toward the right, a warm magenta hint at the left; low over the roofs (o.roof: the roofline's
+  // median), fading up into the dark. Baked here with the sky (no cost a frame); stronger the darker the night.
+  const k = Math.max(0, Math.min(1, ((P.dark || 0) - 0.3) / 0.5)) * (o.k ?? 1);
+  if (k > 0.01 && o.roof) {
+    const y = o.roof, R = Math.max(W * 0.62, (HZ - y) * 2.2);
+    for (const [fx, col, a, sx, sy] of [[0.5, [150, 70, 235], 0.3, 1.25, 0.62], [0.82, [40, 200, 210], 0.2, 0.75, 0.5], [0.16, [235, 60, 170], 0.16, 0.7, 0.5]]) {
+      x.save(); x.translate(W * fx, y); x.scale(sx, sy);
+      const g = x.createRadialGradient(0, 0, 0, 0, 0, R);
+      g.addColorStop(0, `rgba(${col},${(a * k).toFixed(3)})`); g.addColorStop(0.4, `rgba(${col},${(a * k * 0.4).toFixed(3)})`); g.addColorStop(1, `rgba(${col},0)`);
+      x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.fillRect(-R, -R, R * 2, R * 2); x.restore();
+    }
+    x.globalCompositeOperation = 'source-over';
+  }
   return cv;
 }

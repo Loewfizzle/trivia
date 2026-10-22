@@ -360,6 +360,8 @@ body.reduced-fx .nd-word-s { animation: none !important; opacity: 0 !important; 
 /* CITY 2.0: the tagline rests with the dock (the rule below); a tagline-slot message shows even at rest; nd-tag-gone fades it
    (a message ending, &tagms) — title.js#tagSlot */
 .nd-sign.nd-tag-gone .nd-tag:not(.nd-count) { opacity: 0 !important; transition: opacity 2.4s ease !important; }
+/* (NEON PASS 3: a drone show over the city — the tagline steps aside while the formation fills its band) */
+.nd-sign.nd-tag-hold .nd-tag:not(.nd-count) { opacity: 0 !important; transition: opacity 1.2s ease !important; }
 .nd.is-idle .nd-sign:not(.nd-tag-gone) .nd-tag.nd-tag-msg { opacity: 1; transition: opacity 1.2s ease; }
 
 /* the screen at rest: just the sign and the city */

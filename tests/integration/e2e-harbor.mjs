@@ -321,7 +321,40 @@ try {
     await waitFor(D.page, "(() => { const d = window.__district.harbor().sky.state.drones; return d && d.e > 36.5; })()", 'the message held', 45000);
     const d = (await ev(D.page, 'window.__district.harbor()')).sky.state.drones;
     ok(d.colours === 2 && d.lit > 60, `THE DRONES' COLOURS (&colours=…&by=word): "HI THERE" in ${d.colours} colours, a colour per word (${d.lit} lit)`);
+    // NEON PASS 3 (the owner): the formation in OPEN SKY — under the SPEAKEASY word / the tagline, over the tallest crown
+    const g = await ev(D.page, `(() => { const h = window.__district.harbor(); return { crown: Math.min(...h.boxes.filter(b => b.kind === 'sky').map(b => b.y)), word: document.querySelector('.nd-word').getBoundingClientRect().bottom }; })()`);
+    ok(d.box && d.box[3] < g.crown - 2 && d.box[1] > g.word, `THE DRONES IN OPEN SKY: the formation ${d.box && d.box[1]}–${d.box && d.box[3]} pt, under the word (${Math.round(g.word)}), over the tallest crown (${Math.round(g.crown)})`);
     await D.ctx.close(); }
+  // ================================================================ 3h. NEON PASS 3: the night spectacular, the lighthouse in neon, the party show, the everyday motion
+  { const N = await open({ slot: 'h9', qs: NIGHT, view: [402, 874] });
+    await harborUp(N.page);
+    await waitFor(N.page, 'window.__district.harbor().neon.signs.every(s => s.on) && !!window.__district.harbor().daily', 'the neon on + the motion tonight', 15000);
+    const h = await ev(N.page, 'window.__district.harbor()');
+    const bands = h.neon.outlines.filter(o => o.id.startsWith('threads-near') || o.id.startsWith('threads-mid'));
+    ok(bands.length >= 5 && bands.reduce((a, o) => a + o.runs, 0) >= 20 && h.neon.outlines.some(o => o.id === 'lighthouse' && o.runs >= 6), `THE NIGHT CITY LIT: ${bands.length} neon clusters on the near + mid buildings (${bands.reduce((a, o) => a + o.runs, 0)} runs), the lighthouse in neon (${(h.neon.outlines.find(o => o.id === 'lighthouse') || {}).runs} runs)`);
+    ok(h.daily && h.daily.spell.length === 1 && h.daily.blink.length === 1 && h.daily.cycle && h.daily.chase.length >= 1, `THE EVERYDAY MOTION: ${h.daily.spell} spells on, ${h.daily.blink} blinks, ${h.daily.cycle} cycles its colour, ${h.daily.chase.join(' + ')} chase slowly`);
+    ok(!h.show.scene && h.beams === 0, 'A NORMAL NIGHT: no party show, no searchlights');
+    ok(h.daily.rotate.length >= 1 && h.daily.stages.length >= 1, `COLOURS THROUGH THE NIGHT: ${h.daily.rotate.join(' + ')} rotate slowly, ${h.daily.stages.join(' + ')} change scheme by the hour`);
+    await N.ctx.close(); }
+  { const N = await open({ slot: 'h12', qs: `${NIGHT}&force=burnout`, view: [402, 874] });
+    await harborUp(N.page);
+    await waitFor(N.page, '!!(window.__district.harbor().daily || {}).burnout', 'the burnt-out letter', 15000);
+    const b = (await ev(N.page, 'window.__district.harbor()')).daily.burnout, sg = (await ev(N.page, 'window.__district.harbor()')).neon.signs.find(s => s.id === b.id);
+    ok(sg && sg.kind === 'named', `A BURNT-OUT LETTER (&force=burnout): letter ${b.letter + 1} of ${b.id} is dead tonight (never the NEON logo)`);
+    await N.ctx.close(); }
+  { const Q = await open({ slot: 'h10', qs: `when=2026-10-24T23:00${GR}&scene=climb%2Bcrowns`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, 'window.__district.party().show.scene === "climb+crowns" && window.__district.party().beams > 0.5', 'the party show at its peak', 20000);
+    await waitFor(Q.page, 'window.__district.party().beams > 0.9', 'the searchlights up', 10000);
+    const p = await ev(Q.page, 'window.__district.party()'), ws = await ev(Q.page, 'window.__district.harbor().wheel.scheme()');
+    ok(p.show.moving >= 2 && p.show.lights > 0.9 && ws === 'party', `THE PARTY SHOW (11 pm): scene "${p.show.scene}", ${p.show.moving} buildings running an effect, the searchlights on (${p.beams}), the wheel in party colours`);
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'h11', qs: `when=2026-10-24T21:00${GR}`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, '!!window.__district.party().show.scene', 'the warm-up show', 20000);
+    const p = await ev(Q.page, 'window.__district.party()');
+    ok(p.name === 'warm' && p.show.lights === 0 && ['glow', 'sweep-slow', 'climb-slow', 'chase-heroes'].includes(p.show.scene), `THE WARM-UP (9 pm): a classy scene ("${p.show.scene}"), no searchlights yet`);
+    await Q.ctx.close(); }
   // ================================================================ 4. the dock: HOST, JOIN, the knock on the door
   const H = await open({ slot: 'hh', qs: NIGHT });
   await harborUp(H.page);

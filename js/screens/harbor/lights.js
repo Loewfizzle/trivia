@@ -19,8 +19,10 @@ import { skyItems } from './skyline.js';
 const WARM = [[255, 214, 158], [255, 205, 136], [255, 226, 186], [255, 193, 120], [255, 234, 204]];
 const COOL = [[166, 214, 255], [190, 226, 255], [206, 222, 255]];
 const TV = [128, 160, 255];
-const NEONW = [[255, 96, 190], [96, 224, 255], [178, 112, 255]];
+// the coloured rooms (NEON PASS 3): pink, violet, teal, magenta, cyan — a party lamp, a neon bar sign inside, a coloured shade
+const NEONW = [[255, 96, 190], [178, 112, 255], [64, 236, 200], [236, 70, 255], [96, 224, 255]];
 const AMBER = [255, 194, 122];
+const PARTYW = [[255, 70, 180], [70, 220, 255], [170, 100, 255], [255, 200, 90], [255, 70, 180], [70, 220, 255]];
 const DARK = [8, 8, 20];
 const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const strs = new Map();
@@ -28,7 +30,7 @@ const rgba = (c, a) => { const k = `${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.r
 
 /** a window's colour (the season's warmth leans tungsten further amber, as City 1.0) */
 export function colourOf(tr, warm = 0) {
-  let c = tr.cls === 'cool' ? COOL[Math.floor(tr.tone * 3)] : tr.cls === 'tv' ? TV : tr.cls === 'neon' ? NEONW[Math.floor(tr.tone * 3)] : WARM[Math.floor(tr.tone * 5)];
+  let c = tr.cls === 'cool' ? COOL[Math.floor(tr.tone * 3)] : tr.cls === 'tv' ? TV : tr.cls === 'neon' ? NEONW[Math.floor(tr.tone * NEONW.length)] : WARM[Math.floor(tr.tone * 5)];
   if (warm > 0.05 && (tr.cls === 'warm' || tr.cls === 'curtain')) c = mixc(c, AMBER, warm * 0.6);
   return c;
 }
@@ -83,6 +85,12 @@ function drawLit(x, cam, it, look, meta, group, idx) {
     if (group === 'near' && winHash(b.seed, t, c, r, 12) < 0.05 && meta.cands.length < 220) meta.cands.push({ rect, col: colourOf(tr, look.warm), on, a: tr.a * depthK, idx, id: [b.tower || b.id, t, c, r] });
     if (!on || share <= 0) continue;
     let col = colourOf(tr, look.warm), a = tr.a * depthK;
+    // PARTY WINDOWS (NEON PASS 3, City 1.0's): on a party night ~1 lit window in 5 takes a party colour (pink, cyan, violet, gold),
+    // and now and then a whole floor in one colour — baked with the light key (look.party), so they cost nothing a frame
+    if (look.party && tr.cls !== 'tv') {
+      const fl = winHash(b.seed, t, 0, r, 23) < 0.07;
+      if (fl || winHash(b.seed, t, c, r, 21) < 0.2) { col = PARTYW[Math.floor(winHash(b.seed, t, fl ? 0 : c, r, 22) * PARTYW.length)]; a = Math.min(1, Math.max(a, 0.7) * 1.1); }
+    }
     let [wx, wy, ww, wh] = rect;
     // FAR GLITTER (Part 3, the owner's review): far + mid windows are fine, irregular points of light — each its own size inside
     // its pane, its own place in it, its own brightness (a few bright, most dim), now and then a whole lit floor as a thin strip;
@@ -97,6 +105,8 @@ function drawLit(x, cam, it, look, meta, group, idx) {
       if (j2 > 0.8) col = mixc(col, [255, 250, 240], 0.35);
       a = Math.min(1, a);
     }
+    // (a coloured room glows a little into the night around its pane: its own soft halo — City 1.0's)
+    if (tr.cls === 'neon') { x.fillStyle = rgba(col, a * (group === 'far' ? 0.18 : 0.14)); x.fillRect(wx - 1.2, wy - 1.2, Math.max(0.6, ww) + 2.4, Math.max(0.6, wh) + 2.4); a = Math.min(1, a * 1.15); }
     x.fillStyle = rgba(col, a); x.fillRect(wx, wy, Math.max(0.6, ww), Math.max(0.6, wh));
     // City 1.0's power-on (district/scene.js): bottom first, with scatter — delay = (1 − height) · 0.82 + rand · 0.16
     { const yn = Math.max(0, Math.min(1, (wy - cam.limitY) / Math.max(1, cam.VPY + cam.F * cam.CAMH / 230 - cam.limitY)));

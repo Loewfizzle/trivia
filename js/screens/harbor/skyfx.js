@@ -56,14 +56,26 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     const k = kind === 'skywrite' && t.length > SKYWRITE_MAX ? 'skytype' : kind;
     return smoke.start(k, t, lanes['sky-high'], at);
   }
-  function droneBox() {
+  // THE FORMATION'S BOX (NEON PASS 3, the owner: it sat down among the towers, lost in the city): OPEN SKY ONLY — from under the
+  // tagline (or under the SPEAKEASY word once the tagline has faded: the freed band) down to the TALLEST crown across the box (its
+  // spire + beacon: a margin), never over a tower, a roof sign or the NEON word. The drones still rise from the barge past the
+  // city into it; the formation scales to fit (drones.js). A wide screen keeps the lane's own height.
+  function droneBox(s) {
     const ln = lanes && lanes['sky-low'];
     if (!ln) return null;
-    const h = Math.max(ln.h, Math.min(ln.h * 1.4, waterTop - 26 - ln.y));
-    return { x: ln.x + ln.w * 0.04, y: ln.y + 4, w: ln.w * 0.92, h: h - 6 };
+    const x = ln.x + ln.w * 0.04, w = ln.w * 0.92;
+    // (always the freed band: under the tagline there are only ~10–25 pt — the tagline steps aside while drones are up: skyBusyTag)
+    const y0 = (ln.y0NoTag != null ? ln.y0NoTag : ln.y) + 4;
+    let crown = ln.y + ln.h;
+    const sk = s && s.skyline;
+    if (sk) for (let i = Math.max(0, Math.floor(x / 4)); i <= Math.min(sk.length - 1, Math.ceil((x + w) / 4)); i++) if (sk[i] < crown) crown = sk[i];
+    // (+ the thin spires the roofline leaves out: a crown's needle, THE NEON NEEDLE's tube above the needle tower)
+    if (L && L.towers) for (const t of L.towers) { const tp = t.tiers[t.tiers.length - 1], cx = (tp.x0 + tp.x1) / 2, [sx, sy] = project(L.cam, cx, tp.y0 + tp.h + (tp.crown ? tp.crown.h : 0) + (t.needle || 0), tp.z0); if (sx > x && sx < x + w && sy - 4 < crown) crown = sy - 4; }
+    const y1 = crown - 12;
+    return { x, y: y0, w, h: Math.max(24, y1 - y0) };
   }
   function startDrones(s, specs, at, o = {}) {
-    const box = droneBox();
+    const box = droneBox(s);
     if (!box || !barge || !specs || !specs.length) return false;
     // THE COLOURS (NEON PASS 2; CITY CONTROL's colour picker later): o.colour (one colour for the messages), o.colours + o.by
     // ('word' | 'letter': a colour per word / per letter), o.colour 'rainbow', o.cycle (the colours drift while a formation holds),
@@ -176,6 +188,8 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     quiet() { if (!heavy()) return []; const u = used(); return LANES.filter(l => !u.has(l)); },
     /** anything fast up there (the calm frame rate: 60 fps while it flies) */
     busy: () => air.busy() || banner.on() || smoke.on() || drones.on() || birds.busy() || balloons.on(),
+    /** a drone show holds the freed band under the word: the tagline steps aside (title.js) */
+    holdTag: () => drones.on(),
     // ---- THE API (harbor().sky): each piece starts now, or at o.at (clock ms); → true if it could start
     api: {
       banner: (lines, o = {}) => !!last && startBanner(last, lines, o.at || last.now, o),

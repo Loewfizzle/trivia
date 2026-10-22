@@ -118,6 +118,14 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   reflected in the harbor; nearer buildings warmer — pink, amber, red — towers cooler); drone colours; real neon SFX from the
   owner's picks.
 
+- NEON PASS 3 (Oct 22, the owner's answers — these REPLACE the palette rules above where they differ): BOLD BUT DESIGNED — many
+  colours across the city (pink, magenta, violet, electric blue, cyan, teal, green, amber, red, gold, white), up to 2–3 colours a
+  building, neighbours contrasting, warmer near / cooler far for depth, never a random rainbow smear; ALMOST EVERY building gets neon
+  (a few stay quiet only where it makes the neighbours pop); A LITTLE MOTION EVERY NIGHT (a few signs blink or spell on, slow
+  chasers, a sign cycling its colour, the odd flicker — calm and sparse); the party peak a BIG SPECTACLE but never strobe-like.
+  DEPTH through the neon (thick, bright, crisp near → thin, soft, hazy far, ≥ 3 steps), varied tube weights on one building,
+  colours through the night (rotations, schemes by evening / late night / small hours), a BURNT-OUT LETTER ~once a month for 2 days.
+
 ## Part 4 — water
 - Reflections in perspective; a gold sun path at sunset and a silver moon path at night broken by ripples; every light smeared
   in the water; fireworks doubled in the harbor (Part 11).

@@ -28,7 +28,7 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, startNeonHum, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource } from '../audio/beat.js';
 import { isUnlocked } from '../audio/engine.js';
 import { createDistrict } from './district/scene.js';
@@ -616,15 +616,21 @@ export function createTitle() {
   // The dock: icons dark through the ramp, lit from the catch until the last letter dies; HOST brightens at the catch and softens
   // (no flicker) when the last letter dies.
   let neonPlanV = null, neonKey = '', neonT = 0, neonStage = null, neonFromPlan = false, neonSounds = 0;
-  // CITY 2.0 — THE HUM (NEON PASS 2): the sign's recorded hum loops, very quietly, while it is lit (from the catch to the morning
-  // goodbye). Checked on every neon update, so it also starts once audio unlocks; the files are warmed at the same moment.
+  // CITY 2.0 — THE HUM (NEON PASS 3, the owner's ears): no hum looping all night — the power-on brings it up and it FADES OUT
+  // smoothly over the 10 s after the sign is fully on (ambience.js#neonHumFade); the same after a tapped letter re-ignites. The
+  // files are warmed once audio unlocks (checked on every neon update); a hidden page / the goodbye cut a hum still fading.
   let humStop = null, neonWarm = false;
   function humSync(on) {
     if (!createHarbor) return;
     if (!neonWarm && isUnlocked()) { neonWarm = true; neonPreload(); }
-    if (document.visibilityState !== 'visible') on = false;
-    if (on && !humStop && !destroyed && isUnlocked()) humStop = startNeonHum();
-    else if ((!on || destroyed) && humStop) { humStop(on ? 0.3 : 1.2); humStop = null; }
+    if ((!on || destroyed || document.visibilityState !== 'visible') && humStop) { humStop(0.6); humStop = null; }
+  }
+  /** City 2.0: a power-on (the catch, a tapped letter re-igniting) — the recorded strike + the hum fading out after it */
+  function neonOnSound(level = 1) {
+    if (!createHarbor || destroyed || document.visibilityState !== 'visible') return;
+    neonCatch({ level });
+    if (humStop) humStop(0.3);
+    humStop = neonHumFade({ level });
   }
   const NEON_LIT = { stage: 'night', letters: [true, true, true, true], signs: null, fade: 1, caught: true };
   const NEON_DAY = { stage: 'day', letters: [false, false, false, false], signs: null, fade: 0, caught: false };
@@ -674,7 +680,7 @@ export function createTitle() {
         if (isCatch) {
           // THE CATCH: all four lock on together, the crackle + hum, a soft bloom (City 2.0: the city holds its tier through it)
           if (scene.hold) scene.hold(3000);
-          if (createHarbor) neonCatch(); else neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 });   // (City 2.0: the recorded power-on)
+          if (createHarbor) neonOnSound(); else neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 });   // (City 2.0: the recorded power-on + the hum fading)
           neonSounds++;
           s.classList.add('is-catch');
           setTimeout(() => { if (!destroyed) s.classList.remove('is-catch'); }, 1500);
@@ -697,12 +703,10 @@ export function createTitle() {
       l.classList.toggle('on', !!st.letters[i]);
       if (was !== !!st.letters[i]) { if (st.letters[i]) struck++; else dropped++; }
     });
-    // CITY 2.0 — THE RECORDED NEON (NEON PASS 2; ambience.js): a real flicker when a tube strikes in the warm-up or the dawn's
-    // stutter (never the same twice running), the dropout when one cuts out; never on the first paint, never under Reduced
-    // effects (the synthesized buzz only if a file can't load)
-    if (createHarbor && prev && !opts.quiet && !fade && (struck || dropped) && (st.stage === 'ramp' || st.stage === 'goodbye')) {
-      if (struck > 0) neonFlicker({ level: struck + dropped > 1 ? 1.1 : 1 }); else neonDropout();
-    }
+    // CITY 2.0 — THE RECORDED NEON (NEON PASS 3, the owner's ears): the golden-hour warm-up and the dawn's stutters are SILENT;
+    // only the very last tube cutting out at dawn sounds — the dropout, softly (it lands as the plan turns to 'day'). Never on
+    // the first paint, never under Reduced effects.
+    if (createHarbor && prev === 'goodbye' && st.stage === 'day' && !opts.quiet && !fade && dropped) neonDropout({ level: 0.55 });
     dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
     const share = fade ? st.fade : on / 4;
     scene.set({ logo: share > 0 ? 1 : 0, signPow: share, caught: false });
@@ -726,7 +730,9 @@ export function createTitle() {
     const pe = p.ramp * p.energy;
     // the bloom holds a gentle level that moves with the party's phase and the finale's swell (the beat breathes in the canvas's
     // halo under it): a big layer re-composited every frame cost a slow phone 60+ ms
-    const bo = Math.round((0.2 * pe + 0.6 * p.swell) * 50) / 50, hk = Math.round((1 + 0.34 * p.breath * pe + 0.5 * p.swell) * 50) / 50;
+    // (City 2.0, NEON PASS 3: the NEON word joins the show on its BIGGEST drops only — p.big, a flare easing back)
+    const sw = Math.max(p.swell, 0.8 * (p.big || 0));
+    const bo = Math.round((0.2 * pe + 0.6 * sw) * 50) / 50, hk = Math.round((1 + 0.34 * p.breath * pe + 0.5 * sw) * 50) / 50;
     if (bo !== partyEls.bo && partyEls.bloom) { partyEls.bo = bo; partyEls.bloom.style.setProperty('--bo', bo); }
     if (hk !== partyEls.hk) { partyEls.hk = hk; for (const g of partyEls.glows) g.el.style.opacity = g.ring.classList.contains('is-lit') ? String(Math.round(hk * g.k * 250) / 250) : ''; }
   }
@@ -793,6 +799,8 @@ export function createTitle() {
     if (document.visibilityState !== 'visible') { els.logoTimer = setTimeout(trackLogo, 5000); return; }
     scene.set({ logoRect: logoRect(), clear: clearZones(), textRects: textRects() });
     sunGlass();
+    // (City 2.0, NEON PASS 3: a drone show's formation fills the band under SPEAKEASY — the tagline steps aside while it flies)
+    if (scene.holdTag) { const h = !!scene.holdTag(); if (h !== els.sign.classList.contains('nd-tag-hold')) els.sign.classList.toggle('nd-tag-hold', h); }
     els.logoTimer = setTimeout(trackLogo, 500);
   }
 
@@ -845,6 +853,8 @@ export function createTitle() {
       const li = [...els.sign.querySelectorAll('.ndl')].indexOf(l);
       const seq = [0, 60, 95, 130, 190];
       seq.forEach((ms, k) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', k % 2 === 1 || k === seq.length - 1); dockLight(li, k % 2 === 1 || k === seq.length - 1); }, ms));
+      // (City 2.0: the flicker sounds — rare and random, one of four recordings, never the same twice running)
+      if (createHarbor && document.visibilityState === 'visible') neonFlicker({ level: 0.8 });
       neonTick();
       scene.set({ logo: 0.8 }); setTimeout(() => scene && scene.set({ logo: 1 }), 200);
       scheduleFlicker();
@@ -902,7 +912,10 @@ export function createTitle() {
     if (!l || buzzing.has(i)) return;
     buzzing.add(i);
     const day = els.sign.classList.contains('is-day') || !els.sign.classList.contains('is-steady');
-    const set = (on, ms, tick) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', on); if (tick) neonTick(); }, ms);
+    // (City 2.0, NEON PASS 3: the tap's sounds — the dropout when the letter goes dark, the power-on (+ the hum fading after 10 s)
+    // when it lights; by night: out at once, re-ignites at 1.6 s; by day: sparks on at once, out at 1.85 s)
+    const sound = on => { if (!createHarbor || reduced()) return; if (on) neonOnSound(0.75); else neonDropout({ level: 0.75 }); };
+    const set = (on, ms, tick) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', on); if (tick) { neonTick(); sound(on); } }, ms);
     // [state, at ms]: the stutter, the hold, the restart flicker
     const plan = day
       ? [[1, 0], [0, 60], [1, 110], [0, 170], [1, 230], [0, 1850], [1, 1910], [0, 1990]]          // sparks on … glows … flickers out

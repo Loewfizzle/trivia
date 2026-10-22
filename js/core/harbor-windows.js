@@ -28,7 +28,8 @@ export function winTraits(seed, t, c, r, bl) {
   const can = winHash(seed, t, 0, r, 9) < (bl.floor || 0.07) || winHash(seed, t, c, r, 1) < bl.lit;
   if (!can) return null;
   const k = winHash(seed, t, c, r, 2);
-  const cls = bl.office ? (k < 0.7 ? 'cool' : 'warm') : k < 0.06 ? 'tv' : k < 0.16 ? 'curtain' : k < 0.165 ? 'neon' : 'warm';
+  // (NEON PASS 3: ~6 % COLOURED ROOMS — a pink, a violet, a teal room among the warm ones, like City 1.0's night; offices a few too)
+  const cls = bl.office ? (k < 0.66 ? 'cool' : k < 0.7 ? 'neon' : 'warm') : k < 0.06 ? 'tv' : k < 0.16 ? 'curtain' : k < 0.222 ? 'neon' : 'warm';
   return { order: winHash(seed, t, c, r, 0), cls, a: 0.55 + 0.45 * winHash(seed, t, c, r, 3), tone: winHash(seed, t, c, r, 4) };
 }
 /** a building's own dice (its lit share by depth, as City 1.0's layers: nearer rows show a little less of their windows) */

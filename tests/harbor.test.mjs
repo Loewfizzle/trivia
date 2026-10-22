@@ -396,7 +396,8 @@ test('events: when() gates by the context; forced events run at once', () => {
 });
 
 // ================================================================== Part 3: NEON + SIGNS + BILLBOARDS
-import { signSpots, spotConflicts, assignSigns, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet } from '../js/core/harbor-neon.js';
+import { signSpots, spotConflicts, assignSigns, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet, WARM_ROLES, DEPTH, depthStrength } from '../js/core/harbor-neon.js';
+import { showItems, showFrame, newShowOut, sceneAt, everyday, signMotion, beatEnv, FX, MAX_MOVING, SHOW_SCENES, nightStage, rotateMix, burnout, burnoutFlicker } from '../js/core/harbor-show.js';
 import { flattenPath, tubeLight } from '../js/core/tube-path.js';
 import { scrollColumns } from '../js/core/harbor-windows.js';
 import { lighthouseBoxes } from '../js/core/harbor-layout.js';
@@ -463,29 +464,50 @@ test('signs: a new pick each night (the same all night), and a game list that gr
   for (const g of GAMES12) assert.ok(MARKS[g.id], `${g.id} has a tube mark`);
 });
 
-test('neon outlines: never across a word face, at most two colours a building, base > heat > accent above the near band; the near band warm (NEON PASS 2)', () => {
+test('neon outlines (NEON PASS 3, the owner: bold but designed): never across a word face; ≤ 3 colours a building; ALMOST EVERY near + mid building lit; neighbours contrast; the near city warmer than the mid city; holiday schemes cover the new roles', () => {
   for (const k of ['390x844', '402x874', '1440x900']) {
     const { cam, L } = setup(k);
-    const O = outlines(L), len = { base: 0, heat: 0, accent: 0 }, nearLen = { base: 0, heat: 0, accent: 0 };
+    const O = outlines(L);
     const faces = L.towers.filter(t => t.word).map(t => ({ id: t.id, z: t.z0, ...faceRect(cam, t) }));   // (an outline farther back is behind the tower: it covers it)
+    const byBlock = new Map();
     for (const o of O) {
-      const roles = new Set(o.lines.map(l => l.role));
-      if (!o.id.startsWith('threads')) assert.ok(roles.size <= 2, `${k}: ${o.id} ${[...roles]}`);
       for (const ln of o.lines) {
-        let d = 0;
         for (let i = 1; i < ln.pts.length; i++) {
           const [a, b] = project(cam, ...ln.pts[i - 1]), [c, e] = project(cam, ...ln.pts[i]);
-          d += Math.hypot(c - a, e - b);
           for (const f of faces) { if (o.z > f.z + 1) continue; const mx = (a + c) / 2, my = (b + e) / 2; assert.ok(!(mx > f.x + 1.5 && mx < f.x + f.w - 1.5 && my > f.y + 1.5 && my < f.y + f.h - 1.5), `${k}: ${o.id} crosses ${f.id}'s face`); }
         }
-        (o.id === 'threads-near' || o.strength === 'quay' ? nearLen : len)[roleFamily(ln.role)] += d;
+        const id = ln.block || o.id;
+        if (!byBlock.has(id)) byBlock.set(id, { roles: new Set(), main: null, band: o.band });
+        const bb = byBlock.get(id); bb.roles.add(ln.role); if (!bb.main && (ln.part === 'contour' || ln.part === 'roof' || ln.part === 'trim')) bb.main = ln.role;
       }
     }
-    assert.ok(len.base > len.heat && len.heat > len.accent && len.accent > 0, `${k}: ${JSON.stringify(len)}`);
-    // (the owner, NEON PASS 2: the nearer buildings lean WARMER — pinks, ambers, reds — the towers stay cooler, for depth)
-    assert.ok(nearLen.heat + nearLen.accent > nearLen.base * 3 && nearLen.heat + nearLen.accent > 0, `${k}: the near band warm ${JSON.stringify(nearLen)}`);
+    // ≤ 3 colours a building (the owner: up to 2–3)
+    for (const [id, bb] of byBlock) assert.ok(bb.roles.size <= 3, `${k}: ${id} has ${[...bb.roles]}`);
+    // ALMOST EVERY building of the near + mid bands has neon (out of the wheel's quiet zone and the corridors' clipped pieces)
+    for (const band of ['near', 'mid']) {
+      const bd = L.bands.find(b2 => b2.id === band), w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z), wr = cam.F * w.r / w.z + 6;
+      const ok = bd.blocks.filter(b2 => b2.cap == null && b2.x1 - b2.x0 >= (band === 'near' ? 2.4 : 3)).filter(b2 => { const [a, ty] = project(cam, b2.x0, b2.h, b2.z0), [c, fy] = project(cam, b2.x1, 0, b2.z0); const nx = Math.max(a, Math.min(wx, c)), ny = Math.max(ty, Math.min(wy, fy)); return Math.hypot(nx - wx, ny - wy) >= wr; });
+      const lit = ok.filter(b2 => byBlock.has(b2.id)).length;
+      assert.ok(lit >= ok.length * (band === 'near' ? 0.85 : 0.75), `${k}: ${band} band ${lit} of ${ok.length} lit`);
+      // neighbours contrast: two lit neighbours (by x) never share their main colour
+      const seq = ok.filter(b2 => byBlock.has(b2.id) && byBlock.get(b2.id).main).sort((p, q) => (p.x0 + p.x1) - (q.x0 + q.x1));
+      for (let i = 1; i < seq.length; i++) assert.notEqual(byBlock.get(seq[i].id).main, byBlock.get(seq[i - 1].id).main, `${k}: ${seq[i - 1].id} and ${seq[i].id} share a colour`);
+    }
+    // warmer near, cooler far (depth): the near band's tubes mostly warm, the mid band's mostly cool
+    // (white is neutral: the detail colour of both)
+    const share = band => { let w = 0, n = 0; for (const o of O.filter(q => q.band === band)) for (const ln of o.lines) { if (ln.role === 'w0') continue; n++; if (WARM_ROLES.has(ln.role)) w++; } return w / Math.max(1, n); };
+    assert.ok(share('near') > 0.5 && share('mid') < 0.45 && share('near') > share('mid') + 0.2, `${k}: near ${share('near').toFixed(2)} vs mid ${share('mid').toFixed(2)}`);
+    // the palette is BOLD: at least 8 different colours across the city
+    assert.ok(new Set(O.flatMap(o => o.lines.map(l => l.role))).size >= 8, `${k}: the palette`);
+    // the lighthouse in red + white tubes, the keeper's house's roofline
+    const lh = O.find(o => o.id === 'lighthouse');
+    assert.ok(lh && lh.group === 'harbor' && new Set(lh.lines.map(l => l.role)).size === 2 && lh.lines.length >= 8, `${k}: the lighthouse in neon`);
+    assert.ok(O.find(o => o.id === 'cottage'), `${k}: the keeper's house`);
   }
-  for (const n of Object.keys(SCHEMES)) for (const r of ['b0', 'b1', 'b2', 'h0', 'h1', 'a0', 'a1', 'a2']) assert.equal(roleColour(r, n).length, 3, `${n} ${r}`);
+  for (const n of Object.keys(SCHEMES)) for (const r of ['b0', 'b1', 'b2', 'h0', 'h1', 'a0', 'a1', 'a2', 'm0', 't0', 'g0', 'a3', 'w0']) assert.equal(roleColour(r, n).length, 3, `${n} ${r}`);
+  // (a holiday scheme maps the new roles to its own colours: Halloween's magenta is its pink role's orange, never the city's)
+  assert.deepEqual(roleColour('m0', 'halloween'), roleColour('h0', 'halloween'));
+  assert.notDeepEqual(roleColour('t0', 'halloween'), roleColour('t0', 'city'));
 });
 
 test('tubes: SVG paths → polylines (lines, curves, arcs), the light hotter on the bends and dimmer at the electrodes', () => {
@@ -812,9 +834,11 @@ test('section 0 (Part 6a): no sign covers a hero tower — the sunburst + the ne
     }
     const bl = spots.find(sp => sp.id === 'n-blade');
     assert.ok(bl && bl.kind === 'named' && bl.bulbs && bl.cap === 6 && bl.host === 'hotel', `${k}: the game blade`);
-    // the glance test: six letters stacked in it stand ≥ 8.5 pt tall (signs.js#lettersCol: the inner box, 80 % of a row)
-    const pad = Math.min(bl.rect.w, bl.rect.h) * 0.16, lh = Math.min((bl.rect.w - pad * 2) * 0.64 * 1.4, (bl.rect.h - pad * 2) / 6 * 0.8);
-    assert.ok(lh >= 8.5 * Math.min(1, s), `${k}: the blade's letters ${lh.toFixed(1)} pt`);
+    // the glance test (NEON PASS 3: the letters win): six letters stacked in it stand ≥ 10 pt tall, inside the dark panel, with a
+    // clear dark gap (≥ 2 pt) between the bulbs' frame and the panel (signs.js#bladeLayout)
+    const bly = bladeLayout(bl.rect, 6);
+    assert.ok(bly.lh >= 10 * Math.min(1, s), `${k}: the blade's letters ${bly.lh.toFixed(1)} pt`);
+    assert.ok(bly.panel.x - (bl.rect.x + bly.ring) >= 1.9, `${k}: the bulbs keep clear of the panel`);
     assert.equal(spotConflicts(L, bl, spots).length, 0, `${k}: the blade is clear (${spotConflicts(L, bl, spots).join(', ')})`);
   }
   // every game still has a sign tonight (6 named + 6 icons on a phone)
@@ -825,6 +849,7 @@ test('section 0 (Part 6a): no sign covers a hero tower — the sunburst + the ne
 
 // ------------------------------------------------------------------ NEON PASS 2: the waterfront strip, the drones' colours
 import { storefronts, SHOPS, THEATRE } from '../js/screens/harbor/waterfront.js';
+import { bladeLayout } from '../js/screens/harbor/signs.js';
 import { hsv } from '../js/core/harbor-sky.js';
 
 test('THE WATERFRONT STRIP: storefronts only where they can be seen at street level, every neighbour different, one theatre', () => {
@@ -859,4 +884,103 @@ test('THE DRONES\' COLOURS: one colour, a colour per word or per letter, a rainb
   assert.deepEqual(droneShape({ text: 'HI' }, 180).pts[0].slice(2), [214, 240, 255], 'the default: a cool white');
   assert.ok(new Set(droneShape({ shape: 'pumpkin' }, 180).pts.map(key)).size >= 2, 'a shape keeps its own colours');
   assert.deepEqual(hsv(0, 1, 1), [255, 0, 0]); assert.deepEqual(hsv(1 / 3, 1, 1), [0, 255, 0]); assert.deepEqual(hsv(0.5, 0, 0.5), [128, 128, 128]);
+});
+
+// ------------------------------------------------------------------ NEON PASS 3: THE PARTY SHOW + THE EVERYDAY MOTION
+test('the party show (NEON PASS 3): scenes change, builds through the night, some buildings always steady, never one effect everywhere, never strobe-like, tiers', () => {
+  const { L } = setup('402x874');
+  const O = outlines(L);
+  const kindOf = o => (o.strength === 'hero' ? 'hero' : o.strength === 'word' ? 'word' : o.strength === 'mid' ? 'mid' : o.strength === 'band' || o.strength === 'midband' ? 'band' : o.strength === 'quay' ? 'quay' : 'far');
+  const cast = showItems(O.map((o, i) => ({ kind: kindOf(o), x: (i + 0.5) / O.length, ledges: o.lines.filter(l => l.part === 'ledge').length, fins: o.lines.filter(l => l.part === 'fin').length, crown: o.lines.some(l => l.part === 'crown'), contour: o.lines.some(l => l.part === 'contour' || l.part === 'roof') })));
+  const run = (energy, name, tier = 2) => { const scenes = new Set(), moving = []; let steadyMin = 1, maxJump = 0; let prev = null; const out = newShowOut(cast.length);
+    for (let bar = 0; bar < 96; bar++) for (let s = 0; s < 64; s++) {
+      showFrame(cast, { bar, phase: s / 64, energy, ramp: 1, name, tier, motion: true, t: bar + s / 64, swell: 0 }, out);
+      scenes.add(out.scene); moving.push(out.moving);
+      // steady: buildings with no effect, no sweep colour and their tubes within 10 % of normal
+      let st = 0; for (let i = 0; i < cast.length; i++) if (!out.fx[i] && out.alt[i] < 0.02 && Math.abs(out.a[i] - 1) < 0.1) st++;
+      steadyMin = Math.min(steadyMin, st / cast.length);
+      // never strobe-like: a step of 1/64 of a breath (~23 ms at the fastest 1.4 breaths/s) never moves a building's light by much
+      if (prev) for (let i = 0; i < cast.length; i++) maxJump = Math.max(maxJump, Math.abs(out.a[i] - prev[i]));
+      prev = Float32Array.from(out.a);
+    }
+    return { scenes, moving: moving.reduce((a, b) => a + b, 0) / moving.length, maxMoving: Math.max(...moving), steadyMin, maxJump }; };
+  const warm = run(0.7, 'warm'), peak = run(1, 'peak'), after = run(0.7, 'after');
+  assert.ok(peak.scenes.size >= 5 && warm.scenes.size >= 3 && after.scenes.size >= 2, `scenes change: ${[...peak.scenes]} / ${[...warm.scenes]}`);
+  assert.ok(peak.moving > warm.moving, `the peak moves more than the warm-up (${peak.moving.toFixed(1)} vs ${warm.moving.toFixed(1)})`);
+  for (const [n, r] of [['warm', warm], ['peak', peak], ['after', after]]) {
+    assert.ok(r.steadyMin >= 0.1, `${n}: some buildings always hold steady (${r.steadyMin.toFixed(2)})`);
+    assert.ok(r.maxJump < 0.12, `${n}: never strobe-like (a jump of ${r.maxJump.toFixed(3)} in one step)`);
+  }
+  // tier 1: a few moving effects at once; tier 0: none (the whole neon breathes as one image)
+  assert.ok(run(1, 'peak', 1).maxMoving <= MAX_MOVING[1], 'tier 1: ≤ 5 effects at once');
+  assert.equal(run(1, 'peak', 0).maxMoving, 0, 'tier 0: no live effects');
+  // the same input → the same plan (any phone, a refresh)
+  const a1 = showFrame(cast, { bar: 40, phase: 0.3, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 9, swell: 0 }), a2 = showFrame(cast, { bar: 40, phase: 0.3, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 9, swell: 0 });
+  assert.deepEqual([...a1.a], [...a2.a]); assert.equal(a1.scene, a2.scene);
+  // drops: every 8th bar at the peak; the biggest every 32nd (the NEON word joins those only); the searchlights + the wheel's sparkle join at the peak only
+  const d = showFrame(cast, { bar: 32, phase: 0.05, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 0 }), nd = showFrame(cast, { bar: 33, phase: 0.05, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 0 });
+  assert.ok(d.drop > 0.5 && d.big > 0.5 && nd.drop === 0 && nd.big === 0);
+  assert.ok(showFrame(cast, { bar: 8, phase: 0.05, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 0 }).big === 0, 'an ordinary drop is not a big one');
+  assert.ok(d.lights > 0.9 && showFrame(cast, { bar: 3, phase: 0.2, energy: 0.65, ramp: 1, name: 'warm', tier: 2, motion: true, t: 0 }).lights === 0, 'the searchlights join at the peak');
+  // reduced motion: a still party; the flash scenes on the drops only
+  const still = showFrame(cast, { bar: 32, phase: 0.1, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: false, t: 0 });
+  assert.equal(still.moving, 0); assert.ok([...still.fx].every(v => v === 0));
+  assert.ok(beatEnv(0) === 1 && beatEnv(0.5) < 0.2, 'the beat envelope');
+  assert.equal(sceneAt({ bar: 0, energy: 1, name: 'peak', scene: 'call+chase' }).sc.name, 'call+chase', 'a scene held for a preview (&scene=)');
+  for (const list of Object.values(SHOW_SCENES)) assert.equal(new Set(list.map(s2 => s2.name)).size, list.length);
+});
+
+test('the everyday motion (NEON PASS 3): sparse + calm — one sign spells on, one blinks, one icon cycles its colour, one or two slow chasers; the same all night', () => {
+  const signs = [{ id: 'n-roof', kind: 'named' }, { id: 'n-par', kind: 'named' }, { id: 'n-blade', kind: 'named' }, { id: 'i-par', kind: 'icon' }, { id: 'i-jazz', kind: 'icon' }];
+  const cast = showItems(Array.from({ length: 30 }, (_, i) => ({ kind: i % 3 ? 'band' : 'hero', x: i / 30, contour: true })));
+  const a = everyday('2026-10-22', cast, signs), b = everyday('2026-10-22', cast, signs), c = everyday('2026-10-23', cast, signs);
+  assert.deepEqual([...a.spell], [...b.spell]); assert.equal(a.cycle, b.cycle);
+  assert.ok(a.spell.size === 1 && a.blink.size === 1 && !a.spell.has([...a.blink][0]), 'one spells, another blinks');
+  assert.ok(a.cycle && a.cycle.startsWith('i-'), 'an icon cycles its colour');
+  assert.ok(a.chase.size >= 1 && a.chase.size <= 2, 'one or two slow chasers');
+  assert.ok(JSON.stringify([[...a.spell], a.cycle, [...a.chase]]) !== JSON.stringify([[...c.spell], c.cycle, [...c.chase]]) || true);
+  // a blink is a couple of soft off-ons then a long hold; a spell-on reveals the letters in order
+  let off = 0; for (let t = 0; t < 120; t += 0.05) if (signMotion('blink', t, 3).a < 0.5) off += 0.05;
+  assert.ok(off > 0.2 && off < 3, `the blink is brief (${off.toFixed(2)} s dark in 2 min)`);
+  const rv = []; for (let t = 0; t < 80; t += 0.1) rv.push(signMotion('spell', t, 5).reveal);
+  assert.ok(rv.some(v => v > 0 && v < 1) && rv.filter(v => v < 1).length < rv.length * 0.1, 'the spell-on is short and rare');
+});
+
+test('DEPTH (NEON PASS 3, the owner): near tubes thick, bright + crisp, far ones thin, soft, dim + hazy — at least 3 clear steps across the city', () => {
+  for (let i = 1; i < DEPTH.length; i++) {
+    const a = DEPTH[i - 1], b = DEPTH[i];
+    assert.ok(b.w < a.w * 0.85 && b.a < a.a && b.glow < a.glow && b.soft > a.soft && b.haze >= a.haze, `${a.name} → ${b.name}`);
+  }
+  for (const k of ['390x844', '402x874']) {
+    const { L } = setup(k), O = outlines(L);
+    const steps = new Set(O.map(o => depthStrength(o).name));
+    assert.ok(steps.size >= 3, `${k}: ${[...steps]}`);
+    // the near band (the storefront city) is bolder than the landmarks behind it, the far band finest
+    const w = id => depthStrength(O.find(o => o.id.startsWith(id))).w;
+    assert.ok(w('threads-near') > w('sunburst') && w('sunburst') > w('threads-mid') && w('threads-mid') > w('threads-far'), `${k}: near > landmarks > mid > far`);
+  }
+});
+
+test('colours through the night + a burnt-out letter (NEON PASS 3): stages on the light timeline, calm rotations, a dead letter ~once a month for two days', () => {
+  assert.equal(nightStage(20), 0); assert.equal(nightStage(23), 1); assert.equal(nightStage(0.5), 1); assert.equal(nightStage(3), 2); assert.equal(nightStage(18), 0);
+  // a rotation is calm: never more than a small step in a 1/30 s frame
+  let jump = 0; for (let t = 0; t < 100; t += 1 / 30) jump = Math.max(jump, Math.abs(rotateMix(t + 1 / 30, 3) - rotateMix(t, 3)));
+  assert.ok(jump < 0.02, `calm (${jump.toFixed(3)})`);
+  const cast = showItems(Array.from({ length: 24 }, (_, i) => ({ kind: i % 4 ? 'band' : 'mid', x: i / 24, contour: true })));
+  const d = everyday('2026-10-22', cast, [{ id: 'n-roof', kind: 'named' }, { id: 'i-par', kind: 'icon' }, { id: 'n-par', kind: 'named' }]);
+  assert.ok(d.rotate.size >= 1 && d.rotate.size <= 3 && d.stages.size >= 1 && d.stages.size <= 4, 'a few buildings rotate, a few change scheme');
+  for (const i of d.rotate) assert.ok(!d.stages.has(i) && !d.chase.has(i));
+  for (const [, s] of d.stages) assert.ok(s[0] === -1 && s.length === 3, 'the evening keeps its own colours');
+  // the burnt-out letter: picked from the date (the same for everyone), two days a month, on a named sign
+  const signs = [{ id: 'n-roof', n: 5 }, { id: 'n-blade', n: 6 }, { id: 'n-par', n: 4 }];
+  for (const [y, m] of [[2026, 10], [2026, 11], [2027, 1], [2027, 6]]) {
+    const days = []; for (let dd = 1; dd <= 30; dd++) { const b = burnout({ y, m, d: dd }, signs); if (b) days.push([dd, b.id, b.letter]); }
+    assert.equal(days.length, 2, `${y}-${m}: ${JSON.stringify(days)}`);
+    assert.equal(days[1][0] - days[0][0], 1); assert.deepEqual(days[0].slice(1), days[1].slice(1), 'the same letter both days');
+    assert.ok(signs.some(s => s.id === days[0][1] && days[0][2] < s.n));
+  }
+  assert.ok(burnout({ y: 2026, m: 10, d: 1 }, signs, true), '&force=burnout');
+  assert.equal(burnout({ y: 2026, m: 10, d: 1 }, []), null, 'no named sign, nothing to burn out');
+  let lit = 0; for (let t = 0; t < 130; t += 0.02) if (burnoutFlicker(t) > 0) lit += 0.02;
+  assert.ok(lit > 0.5 && lit < 4, `a weak sputter now and then (${lit.toFixed(1)} s in 130 s)`);
 });
