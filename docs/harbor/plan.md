@@ -22,7 +22,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | P | the PREVIEW PANEL (JUST ME / EVERYONE ON CITY 2) ✅ | Opus 5.5 high | done |
 | N4 | Neon Pass 4 — the neon in motion (racing party lights, the hard beat, sky beams, string lights, the wheel, fixes) ✅ | Opus 5.5 high | done |
 | N5 | Neon Pass 5 — Safari (WebKit) fix + testing, the real beat, party colours, the wheel showpiece, sign sizes, faster tests, panel fixes ✅ | Opus 5.5 high | done |
-| N6 | Neon Pass 6 — night touch-ups (flowing racing, the beams' soft foot, the wheel's glow + its backdrop, 3D outlines, ledge bands, icons removed, the lighthouse, the NEON logo race + the catch's surge, the crowns under the roof signs, the iOS beat, rest at 10 s) ✅ | Opus 5.5 high | done |
+| N6 | Neon Pass 6 — night touch-ups (flowing racing, soft beams, the wheel's glow + its backdrop, 3D outlines, ledge bands, icons removed, the lighthouse, the NEON logo race, the iOS beat) ✅ | Opus 5.5 high | done |
 | D | the Day Pass (the city by daylight, painted day signs, sunlit 3D skyline, sky, sun, water) ← NEXT | Opus 5.5 high | 90–120 min |
 | M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
@@ -50,6 +50,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 ?city=2&tz=America/Detroit&at=42.96,-85.67.
 
 ## Rules that apply to everything
+- **The night is the bar for everything (the owner, Oct 22):** the night + party city after Neon Passes 2–6 is "stunningly
+  beautiful, crisp, colorful, high detail, premium". Every other look — day, golden hour, rain, snow, holidays, the desktop,
+  the promenade, the speakeasy — must reach that same level, checked side by side with the night at phone size.
 - **The whole sky is free — behind the sign (the owner, Oct 22; replaces "never across the NEON sign or the tagline"):**
   every sky object (planes, the banner plane, helicopters, jets, birds, bats, balloons, UFOs, drones, smoke, meteors) may use
   the WHOLE sky from the top safe area down to the skyline, passing BEHIND the NEON sign and the tagline (they always draw
@@ -115,8 +118,6 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   lighthouse take the wall space) — so MIXED SIZES: every game always has its own sign; ~4–5 big NAMED spots whose games rotate
   (a new pick each night or visit, never a sign changing while you watch); the other games as tube ICON signs (mark + colours).
   Built so games can be added or removed without redesigning the skyline.
-  CHANGED (the owner, Oct 22 2026 — Neon Pass 6): the small tube ICON signs are GONE ("distracting"); the games are carried by the
-  NAMED signs + the billboard, and the nightly shuffle rotates which games hang, so every game shows over a few nights.
 - **Building neon (the owner, Oct 21 2026):** real tubes tracing the Deco shapes, LAYERED (heroes + landmarks fully outlined,
   the middle tier on rooflines / setbacks, the far bands a few faint threads); THE NEON NEEDLE (the needle's spire one tall
   glowing tube, its synced beacon at the tip); COLOUR like Shenzhen but designed — ~8 colours in roles: base ~60 % (electric
