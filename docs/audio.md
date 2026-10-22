@@ -34,6 +34,27 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
 (`lobby-music.js#lobbyNow`, the synced player's loudest voice), else this phone's mood song (`music.js#nowPlaying`); bpm from
 `data/mood-music.json`. null when nothing can be followed (music off or muted, CLASSIC menu music, not unlocked yet, a song
 loading) — the city then breathes slowly on its own. The title's scene polls it every frame; the lobby backdrop too.
+
+**NEON PASS 5 (City 2.0 — the owner: "the way it interacts with the beat just is a little off… not very impressive")** — three layers:
+- **THE GRID** (`scripts/build-mood-music.py`, `grid()`; `--grid-only [--only a,b]` rebuilds just the grids): every mood song's
+  exact tempo + first beat + downbeat from PULSE's beat tracker (`build-beatmaps.py#beat_grid`: tempo to 0.005 BPM + phase on the
+  percussive part, kept in 90–180) and the kick band's strongest of the four beats → `data/mood-music.json` `songs[id].grid =
+  { bpm, t0 (s), down (0..3), steady, drift }`. The old `bpm` (librosa's coarse tempo bins, no offset) was WRONG for many songs —
+  measured as the onset energy on the beats vs between them: the grid 4–100× (e.g. spy2 133.33 BPM: 13.6×), the old value ~1.0, no
+  better than chance (spy2's stored 99.4). `beatSource()` now returns `{ id, bpm, pos, grid }` with `pos` AS HEARD (minus the
+  context's `outputLatency + baseLatency`, ≤ 0.35 s). The lobby's synced song uses the same grid on the server clock.
+- **THE SOUND** (`beatKick()`): the music bus → a 150 Hz low-pass → an AnalyserNode → a silent gain → the destination (WebKit only
+  runs nodes that reach it), built the first time a party asks. Each frame the RMS of its last window → `core/harbor-beat.js#
+  onsetStep` (spectral-flux style: the rise vs the recent rises' mean + 1.5 σ, ≥ 0.18 s apart, ≥ 30 % of the peak of the last ~45 s)
+  → a kick and its strength, released after the output latency (the light lands when the sound does). `{ hit, live }` or null
+  (music off / muted / no Web Audio).
+- **THE CLOCK** (`core/harbor-beat.js#advanceHarborBeat`, City 2.0 only — City 1.0 keeps `core/party.js#advanceBeat`): locks to the
+  grid (bars on the real downbeats, a new song re-locks at once, the bar count never runs backwards); the pulse HALF-TIME (beats 1 +
+  3, the downbeat hardest, a 50 ms attack, a 0.24 s decay); a kick heard on a strong beat sets how hard the city punches (a quiet
+  passage or a breakdown with no kick calms it), a kick between them is a small hit of its own; a song with no grid punches on
+  every real kick; no music: a calm 120 bpm of its own. Checked on real songs in headless Chrome (overclock, late2, slip5): locked
+  to the grid, the analyser live 97–100 %, 63–78 % of the kicks it hears within ±0.15 beat of the grid's beats (chance: ~30 %).
+  The `&debug=1` readout shows `beat grid 130.0 · bar 12 · 3/4 · kick 0.86` on a party night.
 **THE NEON BUZZ** (`ambience.js#neonBuzz({ on, dur, level })`, City 2.0 only — docs/harbor.md cleanup pass 1): the main sign's
 sputters at the dusk warm-up and the morning fade, one per flicker — a tube striking: a crisp tick (a 25–75 ms band-passed click + a
 sine zap 3.6 → 0.9 kHz in 18 ms) then the gas's buzz (120 Hz saw + 240 square + 60 saw through a 1.4 kHz bandpass and a 220 Hz

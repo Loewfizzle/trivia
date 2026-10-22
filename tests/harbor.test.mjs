@@ -425,7 +425,7 @@ test('word towers (Part 3): both faces fully on screen, nothing nearer over them
   }
 });
 
-test('signs: every game has a sign on every phone (5 named — 2 of them roof signs — + 7 icons; NEON PASS 2: none on a hero tower), every spot clear + inside the screen, names fit; desktop too', () => {
+test('signs: 4 named (3 of them stacked roof signs) + 6 icons on a phone — 10 of the 12 games a night, the billboard a third, the rest the next nights (NEON PASS 5); none on a hero tower, every spot clear + inside the screen, names fit; desktop too', () => {
   for (const k of Object.keys(SIZES)) {
     const { cam, L } = setup(k);
     const spots = signSpots(L);
@@ -433,13 +433,15 @@ test('signs: every game has a sign on every phone (5 named — 2 of them roof si
     const pick = assignSigns(GAMES12, spots, '2026-10-21');
     const got = new Set(pick.values());
     if (!cam.wide) {
-      assert.equal(spots.filter(s => s.kind === 'named').length, 5, `${k}: five named spots`);
-      assert.equal(spots.filter(s => s.kind === 'icon').length, 7, `${k}: seven icons`);
+      assert.equal(spots.filter(s => s.kind === 'named').length, 4, `${k}: four named spots`);
+      assert.equal(spots.filter(s => s.kind === 'icon').length, 6, `${k}: six icons`);
       // (NEON PASS 2) never on a hero tower; never clipped by the screen's edge
       for (const s of spots) assert.ok(!L.towers.some(t => t.rank === 'hero' && t.id === s.host), `${k}: ${s.id} on a hero tower`);
       for (const s of spots) assert.ok(s.rect.x >= 3 && s.rect.x + s.rect.w <= cam.W - 3, `${k}: ${s.id} inside the screen (${s.rect.x.toFixed(1)}..${(s.rect.x + s.rect.w).toFixed(1)})`);
-      assert.equal(got.size, 12, `${k}: all 12 games have a sign`);
-    } else if (k === '1440x900') assert.equal(got.size, 12, 'desktop: all 12 games');
+      assert.equal(got.size, 10, `${k}: 10 games have a sign tonight`);
+      const all = new Set(); for (const n of NIGHTS) for (const g of assignSigns(GAMES12, spots, n).values()) all.add(g);
+      assert.equal(all.size, 12, `${k}: over the nights every game has its sign (the nightly shuffle)`);
+    } else if (k === '1440x900') assert.ok(got.size >= 10, `desktop: ${got.size} games`);
     for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(g.short.replace(/ /g, '').length <= s.cap, `${k}: ${g.short} fits ${s.id}`); }
     // the named spots read on a phone: a vertical sign's letters ≥ 6 pt
     if (!cam.wide) for (const s of spots.filter(s => s.kind === 'named' && s.type === 'vbox')) assert.ok(s.rect.h / s.cap >= 6 * (cam.F / 600) * 0.95, `${k}: ${s.id} letters ${(s.rect.h / s.cap).toFixed(1)} pt`);
@@ -588,7 +590,7 @@ test('signs (Part 5): the two named ROOF SIGNS stand on the word towers in the o
       assert.ok(by >= cam.limitY, `${k}: ${sp.id}'s beacon ${by.toFixed(0)} under the skyline limit ${cam.limitY.toFixed(0)}`);
       for (const g of L.gaps) assert.ok(sp.rect.x >= g.sx + g.w / 2 + 2.9 || sp.rect.x + sp.rect.w <= g.sx - g.w / 2 - 2.9, `${k}: ${sp.id} out of the corridor at ${g.sx.toFixed(0)}`);
       assert.ok(sp.rect.w >= 40 * s && sp.rect.h >= 14 * s, `${k}: ${sp.id} reads (${sp.rect.w.toFixed(0)}×${sp.rect.h.toFixed(0)} pt)`);
-      assert.ok(sp.cap >= 7, `${k}: ${sp.id} takes a 7-letter name`);
+      assert.ok(sp.cap === 6 && sp.stack, `${k}: ${sp.id} stacked, up to 6 letters (NEON PASS 5: the glance test)`);
     }
   }
 });
@@ -841,10 +843,10 @@ test('section 0 (Part 6a): no sign covers a hero tower — the sunburst + the ne
     assert.ok(bly.panel.x - (bl.rect.x + bly.ring) >= 1.9, `${k}: the bulbs keep clear of the panel`);
     assert.equal(spotConflicts(L, bl, spots).length, 0, `${k}: the blade is clear (${spotConflicts(L, bl, spots).join(', ')})`);
   }
-  // every game still has a sign tonight (6 named + 6 icons on a phone)
-  const { L } = setup('402x874'), spots = signSpots(L), games = GAMES.map(g => ({ id: g.id, name: g.name, short: bladeWord(g) }));
+  // (NEON PASS 5) 10 of the games have a sign tonight (4 named + 6 icons on a phone); the nightly shuffle rotates the rest
+  const { L } = setup('402x874'), spots = signSpots(L), games = GAMES.filter(g => g.playable).map(g => ({ id: g.id, name: g.name, short: bladeWord(g) }));
   const pick = assignSigns(games, spots, '2026-10-21');
-  assert.equal(new Set(pick.values()).size, games.length);
+  assert.equal(new Set(pick.values()).size, 10);
 });
 
 // ------------------------------------------------------------------ NEON PASS 2: the waterfront strip, the drones' colours
@@ -892,7 +894,8 @@ test('the party show (NEON PASS 4): racing light on most buildings, a HARD beat 
   const O = outlines(L);
   const kindOf = o => (o.strength === 'hero' ? 'hero' : o.strength === 'word' ? 'word' : o.strength === 'mid' ? 'mid' : o.strength === 'band' || o.strength === 'midband' ? 'band' : o.strength === 'quay' ? 'quay' : 'far');
   const cast = showItems(O.map((o, i) => ({ kind: kindOf(o), x: (i + 0.5) / O.length, ledges: o.lines.filter(l => l.part === 'ledge').length, fins: o.lines.filter(l => l.part === 'fin').length, crown: o.lines.some(l => l.part === 'crown'), contour: o.lines.some(l => l.part === 'contour' || l.part === 'roof') })));
-  const T = 0.5, frame = (bar, s, energy, name, tier = 2, extra = {}) => { const bu = (s / 64) * 2 % 1; return { bar, phase: s / 64, energy, ramp: 1, name, tier, motion: true, t: bar + s / 64, swell: 0, beatU: bu, beatT: T, beatIdx: s < 32 ? 0 : 1, beats: bar * 2 + (s < 32 ? 0 : 1), ...extra }; };
+  // (NEON PASS 5: a bar is 4 beats — the song's grid; s: 64ths of the bar)
+  const T = 0.5, frame = (bar, s, energy, name, tier = 2, extra = {}) => { const b = s / 16, bu = b % 1; return { bar, phase: s / 64, energy, ramp: 1, name, tier, motion: true, t: bar * 2 + s / 32, swell: 0, beatU: bu, beatT: T, beatIdx: Math.floor(b), beats: bar * 4 + Math.floor(b), beatsF: bar * 4 + b, ...extra }; };
   const run = (energy, name, tier = 2) => { const scenes = new Set(), moving = [], racing = []; let steadyMin = 1, minA = 9, maxA = 0, maxStrobe = 0; const out = newShowOut(cast.length);
     for (let bar = 0; bar < 96; bar++) for (let s = 0; s < 64; s++) {
       showFrame(cast, frame(bar, s, energy, name, tier), out);
@@ -917,8 +920,11 @@ test('the party show (NEON PASS 4): racing light on most buildings, a HARD beat 
     assert.ok(step <= 0.16, `the attack takes ≥ 40 ms at ${bt} s a beat (a 5 ms step moves it ${step.toFixed(3)})`);
     assert.equal(punchEnv(0, bt), 1); assert.ok(punchEnv(0.15 / bt, bt) < 0.4, 'a quick decay');
   }
-  const down = showFrame(cast, frame(9, 0, 1, 'peak'), newShowOut(cast.length)).punch, up = showFrame(cast, frame(9, 32, 1, 'peak'), newShowOut(cast.length)).punch;
-  assert.ok(down > up * 1.2 && down > 0.7, `harder on the downbeat (${down.toFixed(2)} vs ${up.toFixed(2)})`);
+  // (NEON PASS 5 — HALF-TIME: the punch lands on beats 1 + 3, the downbeat hardest; beats 2 + 4 stay calm)
+  const pAt = sx => showFrame(cast, frame(9, sx, 1, 'peak'), newShowOut(cast.length)).punch;
+  const down = pAt(0), b3 = pAt(32), b2 = pAt(16), b4 = pAt(48);
+  assert.ok(down > b3 * 1.2 && down > 0.7, `harder on the downbeat (${down.toFixed(2)} vs beat 3 ${b3.toFixed(2)})`);
+  assert.ok(b3 > 0.45 && b2 < 0.25 && b4 < 0.25, `half-time: beat 3 punches (${b3.toFixed(2)}), beats 2 + 4 don't (${b2.toFixed(2)}, ${b4.toFixed(2)})`);
   // tier 1: a few effects + a few racers at once; tier 0: none (the whole neon punches as one image)
   const t1 = run(1, 'peak', 1);
   assert.ok(t1.maxMoving <= MAX_MOVING[1] && t1.maxRacing <= MAX_RACE[1], `tier 1: ≤ ${MAX_MOVING[1]} effects + ≤ ${MAX_RACE[1]} racing (${t1.maxMoving} + ${t1.maxRacing})`);
@@ -1116,7 +1122,8 @@ test('NEON PASS 4 — no sign is ever clipped: every cabinet inside the screen, 
         const g = GAMES.find(x => x.id === gid), sg = buildSign(sp, g, { W, s, roofY: 0, frame: null }), R = sp.rect;
         // (an icon has no cabinet: its mark fills its square, a tube's half-width may round its edge)
         // (a boxed sign: inside its border tube — the tube runs 0.45 pad in from the cabinet's edge, pad = 16 % of its short side)
-        const bi = Math.min(R.w, R.h) * 0.16 * 0.45 + 0.4;
+        // (NEON PASS 5: a STACKED roof sign keeps its border tube 0.55 pt in — the name takes the whole width inside it)
+        const bi = sp.stack ? 0.55 + 0.6 : Math.min(R.w, R.h) * 0.16 * 0.45 + 0.4;
         const box = sg.panel && sg.panel.frame ? sg.panel : sp.type === 'icon' ? { x: R.x - 0.8, y: R.y - 0.8, w: R.w + 1.6, h: R.h + 1.6 } : { x: R.x + bi, y: R.y + bi, w: R.w - 2 * bi, h: R.h - 2 * bi };
         for (const p of sg.parts) for (const t of p.tubes) for (const [x, y] of t.pts) {
           const hw = p.w / 2;
@@ -1199,20 +1206,22 @@ test('NEON PASS 4 — the JAZZ sign is gone: the old club is plain city with NEO
   assert.ok(!SPOTS_ALL().some(sp => sp.id === 'jazz' || sp.host === 'jazz' || /JAZZ/.test(sp.text || '')), 'no JAZZ sign, nothing on the old club');
   for (const k of PHONES) {
     const { cam, L } = setup(k), s = cam.F / 600, spots = signSpots(L);
-    assert.equal(spots.filter(sp => sp.kind === 'named').length, 5, `${k}: five named`);
-    assert.equal(spots.filter(sp => sp.kind === 'icon').length, 7, `${k}: seven icons`);
+    assert.equal(spots.filter(sp => sp.kind === 'named').length, 4, `${k}: four named`);
+    assert.equal(spots.filter(sp => sp.kind === 'icon').length, 6, `${k}: six icons`);
     assert.equal(spots.filter(sp => sp.kind === 'fixed').length, 0, `${k}: no fixed text sign`);
-    for (const night of NIGHTS) assert.equal(new Set(assignSigns(GAMES12, spots, night).values()).size, 12, `${k} ${night}: all 12 games have a sign`);
-    // the moved icon: a calm wall — ≥ 24 pt from every other sign, off the wheel's quiet zone, out of the sun corridors, off the
-    // hero towers, with a wall behind it (a roof over its top), nothing nearer in front
-    const ic = spots.find(sp => sp.id === 'i-mid'), R = ic.rect;
+    for (const night of NIGHTS) assert.equal(new Set(assignSigns(GAMES12, spots, night).values()).size, 10, `${k} ${night}: 10 games have a sign`);
+    // (NEON PASS 5, the owner: the small icon left of the Ferris wheel — i-mid — is gone; the checks below stay for the day it
+    // comes back)
+    assert.ok(!spots.some(sp => sp.id === 'i-mid'), `${k}: no icon left of the wheel`);
+    const ic = null;
+    if (ic) { const R = ic.rect;
     assert.deepEqual(spotConflicts(L, ic, spots), [], `${k}: i-mid clear`);
     for (const o of spots) if (o !== ic) { const d = Math.hypot(Math.max(o.rect.x - (R.x + R.w), 0, R.x - (o.rect.x + o.rect.w)), Math.max(o.rect.y - (R.y + R.h), 0, R.y - (o.rect.y + o.rect.h))); assert.ok(d >= 24 * s, `${k}: i-mid ${d.toFixed(1)} pt from ${o.id}`); }
     const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z), wr = cam.F * w.r / w.z;
     assert.ok(Math.hypot(Math.max(R.x - wx, 0, wx - (R.x + R.w)), Math.max(R.y - wy, 0, wy - (R.y + R.h))) > wr + 5, `${k}: i-mid off the wheel's quiet zone`);
     for (const g of L.gaps) assert.ok(R.x + R.w < g.sx - g.w / 2 - 3 || R.x > g.sx + g.w / 2 + 3, `${k}: i-mid out of the corridor at ${g.sx.toFixed(0)}`);
     const behind = roofline(L, b => b.z <= ic.w.z + 40);
-    for (let x = R.x; x <= R.x + R.w; x += 2) assert.ok(behind[Math.round(x / 4)] <= R.y, `${k}: a wall behind i-mid at ${x.toFixed(0)}`);
+    for (let x = R.x; x <= R.x + R.w; x += 2) assert.ok(behind[Math.round(x / 4)] <= R.y, `${k}: a wall behind i-mid at ${x.toFixed(0)}`); }
     // the old club's neon: like its neighbours in the near band (NEON PASS 3) — a band item of its own, several tubes, ≤ 3 colours
     const jz = outlines(L).find(o => o.id === 'jazz');
     assert.ok(jz && jz.strength === 'band' && jz.lines.length >= 3 && new Set(jz.lines.map(l => l.role)).size <= 3, `${k}: the old club's trims (${jz && jz.lines.length} tubes)`);
@@ -1236,4 +1245,132 @@ test('NEON PASS 4: a name at the screen edge never spells on (its dark letters w
   const cast = showItems(Array.from({ length: 30 }, (_, i) => ({ kind: i % 3 ? 'band' : 'hero', x: i / 30, contour: true })));
   const signs = [{ id: 'n-roofB', kind: 'named', edge: true }, { id: 'n-par', kind: 'named' }, { id: 'n-blade', kind: 'named' }, { id: 'i-par', kind: 'icon' }];
   for (let d = 1; d <= 60; d++) assert.ok(!everyday(`2026-11-${d}`, cast, signs).spell.has('n-roofB'), `night ${d}`);
+});
+
+// ------------------------------------------------------------------ NEON PASS 5: the real beat, the palette, the signs, the tired tube
+import { createHarborBeat, advanceHarborBeat, halfTime, createOnsets, onsetStep, CALM_BPM } from '../js/core/harbor-beat.js';
+import { PARTY_PAL, partyColours, tiredLetters } from '../js/core/harbor-show.js';
+
+test('NEON PASS 5 — THE BEAT locks to the song\'s grid: bars on the real downbeats, a new song re-locks at once, the bar count never runs backwards', () => {
+  const grid = { bpm: 128, t0: 0.37, down: 2 }, spb = 60 / grid.bpm, hb = createHarborBeat(0.3);
+  let pos = 20, bars = [];
+  for (let i = 0; i < 600; i++) { pos += 0.016; advanceHarborBeat(hb, 16, { bpm: 128, pos, grid }, null); bars.push(hb.bar); }
+  // the song's beat k (from t0) is a downbeat when (k - down) % 4 === 0: the clock's beats are 0 mod 4 there
+  const k = (pos - grid.t0) / spb, want = (k - grid.down) % 4, got = hb.beats % 4;
+  assert.ok(Math.min(Math.abs(want - got), 4 - Math.abs(want - got)) < 0.03, `the bar's phase follows the grid (${want.toFixed(3)} vs ${got.toFixed(3)})`);
+  assert.equal(hb.src, 'grid');
+  assert.ok(Math.abs(hb.T - spb) < 0.002, `a beat lasts ${hb.T.toFixed(4)} s (the song's ${spb.toFixed(4)})`);
+  for (let i = 1; i < bars.length; i++) assert.ok(bars[i] >= bars[i - 1], 'the bar count never goes back');
+  // a new song (another phase): re-locked within a frame or two
+  const g2 = { bpm: 96, t0: 1.1, down: 0 };
+  let p2 = 50; for (let i = 0; i < 5; i++) { p2 += 0.016; advanceHarborBeat(hb, 16, { bpm: 96, pos: p2, grid: g2 }, null); }
+  const k2 = (p2 - g2.t0) * 96 / 60; let d2 = (((k2 - hb.beats) % 4) + 4) % 4; if (d2 > 2) d2 -= 4;
+  assert.ok(Math.abs(d2) < 0.2, `a new song re-locks at once (${d2.toFixed(3)} beats off)`);
+  // no music: a calm 120 bpm of its own
+  const c = createHarborBeat(0); for (let i = 0; i < 400; i++) advanceHarborBeat(c, 16, null, null);
+  assert.ok(Math.abs(1 / c.T - CALM_BPM / 60) < 0.02 && c.src === 'calm', 'no song: the calm pulse');
+});
+
+test('NEON PASS 5 — HALF-TIME: the punch on beats 1 + 3 (the downbeat hardest), a ≥ 40 ms attack before the beat, a longer decay; nothing on 2 + 4', () => {
+  const at = b => { const h = halfTime(b, 0.5); return h.env * h.strong; };
+  assert.equal(at(0), 1); assert.ok(Math.abs(at(2) - 0.72) < 1e-9, 'beat 3: 0.72');
+  assert.ok(at(1) < 0.15 && at(3) < 0.15, `beats 2 + 4 calm (${at(1).toFixed(2)}, ${at(3).toFixed(2)})`);
+  assert.ok(at(0.25) > 0.25 && at(0.25) < 0.75, `a decay you can see (${at(0.25).toFixed(2)} an eighth later)`);
+  let step = 0; for (let ms = 0; ms < 2000; ms += 5) step = Math.max(step, Math.abs(at((ms + 5) / 500) - at(ms / 500)));
+  assert.ok(step <= 0.16, `never a hard on (a 5 ms step moves it ${step.toFixed(3)})`);
+});
+
+test('NEON PASS 5 — THE SOUND: kicks on the strong beats set how hard the city punches; a breakdown with no kick calms it; a song with no grid punches on every real kick', () => {
+  const grid = { bpm: 120, t0: 0, down: 0 }, hb = createHarborBeat(0);
+  let pos = 0; const run = (n, kickAt) => { const out = []; for (let i = 0; i < n; i++) { pos += 1 / 60; const b = pos * 2, hit = kickAt(b); advanceHarborBeat(hb, 1000 / 60, { bpm: 120, pos, grid }, { hit, live: true }); out.push(hb.punch); } return out; };
+  // loud kicks on 1 + 3
+  const loud = run(600, b => (Math.abs(b - Math.round(b)) < 0.017 && Math.round(b) % 2 === 0 ? 1 : 0));
+  const lvLoud = hb.level;
+  // quiet kicks
+  run(600, b => (Math.abs(b - Math.round(b)) < 0.017 && Math.round(b) % 2 === 0 ? 0.35 : 0));
+  const lvQuiet = hb.level;
+  // a breakdown: no kicks at all
+  run(600, () => 0);
+  assert.ok(lvLoud > 0.85 && lvQuiet < 0.5 && hb.level <= 0.3, `the level follows the song (loud ${lvLoud.toFixed(2)}, quiet ${lvQuiet.toFixed(2)}, breakdown ${hb.level.toFixed(2)})`);
+  assert.ok(Math.max(...loud) > 0.9, 'a loud downbeat punches fully');
+  // no grid, kicks heard: every kick is a hit (the attack at the kick: a song we know nothing about)
+  const k2 = createHarborBeat(0); let hit = 0;
+  for (let i = 0; i < 120; i++) { advanceHarborBeat(k2, 16, null, { hit: i % 30 === 0 ? 0.9 : 0, live: true }); if (i % 30 === 0) hit = Math.max(hit, k2.punch); }
+  assert.ok(k2.src === 'kick' && hit > 0.85, `no grid: the kicks themselves (${hit.toFixed(2)})`);
+});
+
+test('NEON PASS 5 — ONSETS: synthetic kicks over a bass line + noise are found (≥ 95 %), no false ones, their strength follows the loudness', () => {
+  const o = createOnsets(); let found = 0, extra = 0, strengths = [];
+  let seed = 7; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
+  for (let f = 0; f < 60 * 30; f++) {
+    const t = f / 60, beat = t * 2, ph = beat - Math.floor(beat), kickOn = ph < 1 / 30;
+    const loud = t < 15 ? 1 : 0.4;
+    const e = loud * 0.5 * Math.exp(-ph * 0.5 / 0.09) + 0.06 + 0.03 * Math.sin(t * 9) + 0.02 * rnd();
+    const h = onsetStep(o, e, t);
+    if (h > 0) { if (kickOn) { found++; strengths.push([t, h]); } else extra++; }
+  }
+  const kicks = 30 * 2;
+  assert.ok(found >= kicks * 0.95 && extra === 0, `found ${found} of ${kicks} kicks, ${extra} false`);
+  const a = strengths.filter(([t]) => t > 3 && t < 15).map(s => s[1]), b = strengths.filter(([t]) => t > 21).map(s => s[1]);
+  const mean = v => v.reduce((x, y) => x + y, 0) / v.length;
+  assert.ok(mean(a) > mean(b) * 1.3, `a quiet passage hits softer (${mean(a).toFixed(2)} → ${mean(b).toFixed(2)})`);
+});
+
+test('NEON PASS 5 — every mood song has an exact BEAT GRID (data/mood-music.json: bpm 90–180, the first beat, the downbeat)', () => {
+  const d = JSON.parse(readFileSync(new URL('../data/mood-music.json', import.meta.url), 'utf8'));
+  for (const [id, s] of Object.entries(d.songs)) {
+    const g = s.grid;
+    assert.ok(g && g.bpm >= 90 && g.bpm < 181 && g.t0 >= 0 && g.t0 < 60 / g.bpm + 0.01 && [0, 1, 2, 3].includes(g.down), `${id}: ${JSON.stringify(g)}`);
+  }
+});
+
+test('NEON PASS 5 — THE PARTY PALETTE rotates: six bright main colours + white accents (pink one of seven), neighbours never share a main colour, every scene a new colour for every building', () => {
+  assert.equal(PARTY_PAL.length, 7);
+  const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 40;
+  assert.equal(PARTY_PAL.filter(c => near(c, [255, 46, 151]) || near(c, [255, 40, 210])).length, 1, 'pink is one colour of seven');
+  for (let n = 0; n < 14; n++) {
+    const mains = Array.from({ length: 40 }, (_, r) => partyColours(r, n)[0]);
+    for (let r = 1; r < 40; r++) assert.notEqual(mains[r], mains[r - 1], `scene ${n}: neighbours ${r - 1} + ${r} differ`);
+    assert.equal(new Set(mains).size, 6, `scene ${n}: all six bright colours on the skyline (white: an accent)`);
+    assert.ok(!mains.includes(5), 'white is never a main colour');
+    for (let r = 0; r < 40; r++) { assert.notEqual(partyColours(r, n)[0], partyColours(r, n + 1)[0], `building ${r}: a new colour in scene ${n + 1}`); const [m, a] = partyColours(r, n); assert.notEqual(m, a, 'main ≠ accent'); }
+  }
+  // the show: a sweep crosses the skyline over the scene's last fifth — every building wears the next colours by the scene's end
+  const cast = showItems(Array.from({ length: 30 }, (_, i) => ({ kind: i % 5 ? 'band' : 'hero', x: i / 29, contour: true, ledges: 3 })));
+  const f = (bar, ph) => ({ bar, phase: ph, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: bar, beatU: 0, beatT: 0.5, beatIdx: 0, beats: bar * 4, beatsF: bar * 4, rate: 0.5 });
+  const len = sceneAt(f(0, 0)).len, early = showFrame(cast, f(1, 0.5)), mid = showFrame(cast, f(len - 2, 0.5)), end = showFrame(cast, f(len - 1, 0.99));
+  assert.ok([...early.cm].every(v => v === 0) && [...end.cm].every(v => v > 0.97) && [...mid.cm].some(v => v > 0.5) && [...mid.cm].some(v => v < 0.5), 'the sweep: none early, a front mid-way, all by the end');
+  assert.equal(showFrame(cast, f(len, 0.1)).cn, early.cn + 1, 'the next scene wears the next colours');
+});
+
+test('NEON PASS 5 — the RACING LIGHT: every hero + word tower races its whole border at the peak (the owner saw none on her phone); tier 1 races the towers first', () => {
+  const cast = showItems([...Array.from({ length: 24 }, (_, i) => ({ kind: 'band', x: i / 24, contour: true })), ...Array.from({ length: 6 }, (_, i) => ({ kind: i < 3 ? 'hero' : 'word', x: 0.1 + i * 0.15, contour: true }))]);
+  for (const tier of [2, 1]) for (let bar = 0; bar < 200; bar += 7) {
+    const out = showFrame(cast, { bar, phase: 0.3, energy: 1, ramp: 1, name: 'peak', tier, motion: true, t: bar, beatU: 0.3, beatT: 0.5, beatIdx: 0, beats: bar * 4, beatsF: bar * 4 + 0.3, rate: 0.5 });
+    for (let i = 24; i < 30; i++) assert.ok(out.race[i] > 0.3, `tier ${tier} bar ${bar}: tower ${i} races`);
+  }
+});
+
+test('NEON PASS 5 — THE TIRED TUBE rotates: any letter, sometimes none, sometimes two, never the same letter two blocks running (the O was always the one)', () => {
+  const seen = [0, 0, 0, 0]; let none = 0, two = 0, prev = null;
+  for (let d = 1; d <= 90; d++) for (let h = 0; h < 24; h += 3) {
+    const t = tiredLetters({ y: 2026, m: 10 + Math.floor((d - 1) / 31), d: ((d - 1) % 31) + 1, h });
+    if (!t.length) none++; if (t.length === 2) two++;
+    for (const i of t) { seen[i]++; if (prev) assert.ok(!prev.includes(i), `letter ${i} twice running (day ${d} ${h} h)`); }
+    prev = t;
+  }
+  assert.ok(seen.every(n => n > 60) && none > 100 && two > 30, `every letter takes a turn (${seen}), none ${none}, two ${two}`);
+  assert.deepEqual(tiredLetters({ y: 2026, m: 10, d: 24, h: 23 }), tiredLetters({ y: 2026, m: 10, d: 24, h: 22 }), 'the same through a 3-hour block (every phone the same)');
+});
+
+test('NEON PASS 5 — THE GLANCE TEST: every named sign\'s letters ≥ 10 pt on every phone (the roof signs stacked: the mark on top, the name across the cabinet)', () => {
+  for (const k of PHONES) {
+    const { cam, L } = setup(k), spots = signSpots(L);
+    for (const sp of spots.filter(x => x.kind === 'named')) for (const g of GAMES12) {
+      if (g.short.replace(/ /g, '').length > sp.cap) continue;
+      const gg = GAMES.find(x => x.id === g.id), sg = buildSign(sp, gg, { W: cam.W, s: cam.F / 600 }), p = sg.parts.find(q => q.boxes);
+      const lh = Math.min(...p.boxes.map(b => b.y1 - b.y0 - 1.2));
+      assert.ok(lh >= 10, `${k}: ${sp.id} "${g.short}" letters ${lh.toFixed(1)} pt`);
+    }
+  }
 });

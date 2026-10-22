@@ -151,7 +151,10 @@ export function createBirds() {
       // GEESE: about 1.5 V's an hour in the migrations (a few in the rest of the year), in a free lane
       nextGeese -= sec;
       if (!geese && motion && (force.has('geese') || (nextGeese <= 0 && who.geese > 0.05 && dens >= 1))) {
-        const id = free['sky-high'] && (!free['sky-low'] || Math.random() < 0.55) ? 'sky-high' : free['sky-low'] ? 'sky-low' : null;
+        // (NEON PASS 5 — the owner: from the panel the geese often didn't show: planes held both lanes for half a minute. A FORCED
+        // flock overrides the gate: it takes a lane anyway)
+        let id = free['sky-high'] && (!free['sky-low'] || Math.random() < 0.55) ? 'sky-high' : free['sky-low'] ? 'sky-low' : null;
+        if (!id && force.has('geese')) id = Math.random() < 0.5 ? 'sky-high' : 'sky-low';
         if (id && s.textRects && s.textRects.neon) geese = newGeese(L, s.lanes[id], force.has('geese'));
         nextGeese = force.has('geese') ? 6 : rnd(1200, 3600) / Math.max(0.1, who.geese);
       }
@@ -174,7 +177,7 @@ export function createBirds() {
       const mn = L.local ? L.local.m : 6;
       nextHeron -= sec;
       if (!heron && motion && (force.has('heron') || (nextHeron <= 0 && ink.dark > 0.6 && mn >= 4 && mn <= 10))) {
-        const lane = s.lanes && (free['sky-low'] ? s.lanes['sky-low'] : free['sky-high'] ? s.lanes['sky-high'] : null);
+        const lane = s.lanes && (free['sky-low'] ? s.lanes['sky-low'] : free['sky-high'] ? s.lanes['sky-high'] : force.has('heron') ? s.lanes['sky-low'] : null);   // (forced: a lane anyway)
         if (lane) { const dir = Math.random() < 0.5 ? 1 : -1; heron = { x: dir > 0 ? -40 : W + 40, y: lane.y + lane.h * 0.45, dir, v: 13 * K, t: 0 }; }
         nextHeron = rnd(900, 2400);
       }

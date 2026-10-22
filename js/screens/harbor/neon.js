@@ -16,7 +16,7 @@ import { skyItems } from './skyline.js';
 import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from './tubes.js';
 import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHousing } from './signs.js';
 import { hexRgb, markFor } from '../district/marks.js';
-import { showItems, showFrame, newShowOut, FX, everyday, signMotion, nightStage, rotateMix, burnout, burnoutFlicker } from '../../core/harbor-show.js';
+import { showItems, showFrame, newShowOut, FX, everyday, signMotion, nightStage, rotateMix, burnout, burnoutFlicker, PARTY_PAL, partyColours } from '../../core/harbor-show.js';
 // NEON PASS 4: the racing light's head (white-hot) and the shimmer's glints
 const HOT = [255, 250, 244];
 // the party's colour sweep: each building's second colour (one that contrasts with its own main colour)
@@ -48,6 +48,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   // NEON PASS 4: THE PARTY SCHEME — on a party night the outlines are re-lit in the bold party colours (rebuilt a few a frame,
   // left → right: the colour rolls across the skyline as the party starts); an explicit scheme (a holiday, a preview) wins
   let schemeX = null, partyLook = false;
+  let palBase = null;
 
   // ---------------------------------------------------------------- the layout
   function layout(l, o) {
@@ -65,9 +66,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     for (const sp of spots) {
       const roofY = sp.mount === 'roof' || sp.mount === 'tower' ? roofUnder(sp) : 0;
       if (sp.kind === 'billboard') {
-        // tonight's billboard advertises a game that has no named sign tonight (an icon one), never the one up the street
-        const named = new Set(spots.filter(x => x.kind === 'named').map(x => pick.get(x.id)));
-        const ad = games.filter(g => !named.has(g.id)), show = ad.length ? ad[(boards.length + assignKey.length + assignKey.charCodeAt(assignKey.length - 1)) % ad.length].id : sp.show;
+        // tonight's billboard advertises the game with NO sign tonight (NEON PASS 5: 11 signs for 12 games — the nightly shuffle
+        // picks which), else one with no named sign (an icon one), never the one up the street
+        const named = new Set(spots.filter(x => x.kind === 'named').map(x => pick.get(x.id))), signed = new Set(pick.values());
+        const none = games.filter(g => !signed.has(g.id)), ad = none.length ? none : games.filter(g => !named.has(g.id));
+        const show = ad.length ? ad[(boards.length + assignKey.length + assignKey.charCodeAt(assignKey.length - 1)) % ad.length].id : sp.show;
         boards.push({ ...buildBillboard(sp, billboardContent({ game: show }, games), { dpr, roofY }), roofY, item: true }); continue;
       }
       const g = sp.kind === 'fixed' ? null : games.find(x => x.id === pick.get(sp.id));
@@ -221,6 +224,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       it.tubes = tubes;
       free(it.alt); it.alt = null; it.altQ = false;
       if (it.vars) { for (const v of it.vars.values()) free(v); it.vars = null; }
+      freePal(it);
       // the party show's live runs (screen pt): the ledges bottom → top, the fins left → right, the crowns, the chase (the whole
       // outline but the thin details)
       const P2 = r => { const p = new Path2D(); p.moveTo(r.pts[0][0], r.pts[0][1]); for (let i = 1; i < r.pts.length; i++) p.lineTo(r.pts[i][0], r.pts[i][1]); return p; };
@@ -229,8 +233,10 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       it.fx = { ledges: fx('ledge', yOf, true), fins: fx('fin', xOf), crown: fx('crown', yOf), chase: tubes.filter(r => !r.thin || r.part === 'trim').map(r => ({ p: P2(r), role: r.role, thin: r.thin })) };
       // (NEON PASS 4: THE RACING LIGHT — the whole outline as one path per colour role: a few strokes a building, not one a run)
       const byR = new Map();
-      for (const r of tubes) if (!r.thin || r.part === 'trim') { if (!byR.has(r.role)) byR.set(r.role, new Path2D()); const p = byR.get(r.role); p.moveTo(r.pts[0][0], r.pts[0][1]); for (let j = 1; j < r.pts.length; j++) p.lineTo(r.pts[j][0], r.pts[j][1]); }
+      let rl = 0;
+      for (const r of tubes) if (!r.thin || r.part === 'trim') { if (!byR.has(r.role)) byR.set(r.role, new Path2D()); const p = byR.get(r.role); p.moveTo(r.pts[0][0], r.pts[0][1]); for (let j = 1; j < r.pts.length; j++) { p.lineTo(r.pts[j][0], r.pts[j][1]); rl += Math.hypot(r.pts[j][0] - r.pts[j - 1][0], r.pts[j][1] - r.pts[j - 1][1]); } }
       it.fx.race = [...byR].map(([role, p]) => ({ role, p }));
+      it.raceLen = rl;
       // (the shimmer's glints: a few points along the tubes)
       // (at most 28 a building, spread along its tubes — chosen once here: the shimmer's cost is per glint)
       { const all = []; for (const r of tubes) for (let j = 0; j < r.pts.length; j += 2) all.push(r.pts[j]); const st = Math.max(1, Math.ceil(all.length / 28)); it.glints = all.filter((_, j) => j % st === 0).map((p, j) => [p[0], p[1], j * 2.7 + it.i]); }
@@ -240,7 +246,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     it.ready = true; built++;
     mbSprites = items.reduce((s, x) => s + (x.lit ? x.lit.reduce((a, sp) => a + sp.mb, 0) : 0) + (x.night ? x.night.mb : 0), 0);
   }
-  function freeItem(it) { if (it.lit) it.lit.forEach(free); free(it.night); if (it.b) free(it.b.nightS); free(it.alt); if (it.cyc) it.cyc.forEach(free); if (it.vars) for (const v of it.vars.values()) free(v); it.lit = null; it.night = null; it.alt = null; it.cyc = null; it.vars = null; }
+  function freeItem(it) { if (it.lit) it.lit.forEach(free); free(it.night); if (it.b) free(it.b.nightS); free(it.alt); if (it.cyc) it.cyc.forEach(free); if (it.vars) for (const v of it.vars.values()) free(v); freePal(it); it.lit = null; it.night = null; it.alt = null; it.cyc = null; it.vars = null; }
+  function freePal(it) { if (it.ps) for (const v of it.ps.values()) free(v); it.ps = null; }
   // a tube's colour at its building's depth: the far ones sink toward the night haze (aerial perspective)
   const colOf = (role, o2) => { const c = roleColour(role, scheme); return o2 && o2.st && o2.st.haze ? mix(c, HAZE, o2.st.haze) : c; };
   // THE CAST (the party show): one descriptor per outline item, in the items' order (the show's arrays are indexed by item)
@@ -283,6 +290,45 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     });
     return null;
   }
+  // THE ROTATING PARTY PALETTE (NEON PASS 5): a building's tubes in a [main, accent] pair of PARTY_PAL (its first colour role in
+  // the main, the rest in the accent), built a few a frame — the next scene's pair is requested from the scene's start, so it's
+  // ready long before the sweep reaches it; a building keeps only the pairs it wears now (its cur + next)
+  const palCol = (o2, i) => mix(PARTY_PAL[i % PARTY_PAL.length], HAZE, o2.st.haze || 0);
+  function partySprite(it, pair, keep) {
+    const key = pair[0] * 8 + pair[1];
+    it.ps = it.ps || new Map();
+    if (it.ps.has(key)) return it.ps.get(key);
+    it.ps.set(key, null);
+    queue.push(() => {
+      if (!it.tubes || !it.ps || !it.ps.has(key)) return;
+      for (const [k2, v] of it.ps) if (k2 !== key && !keep.includes(k2) && v) { free(v); it.ps.delete(k2); }
+      const o2 = it.o, k = cam.F / 600, b = bbox(it.tubes), glow = o2.st.glow * k;
+      const byRole = new Map();
+      for (const t of it.tubes) { const kk = `${t.role}|${t.needle ? 1 : t.thin ? 2 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
+      const sp = sprite(b, glow * 2.6, dpr, x => {
+        for (const [kk, ts] of byRole) {
+          const [role, nd] = kk.split('|'), tw = o2.st.w * k * (nd === '1' ? 1.5 : nd === '2' ? THIN : 1);
+          drawLit(x, ts, palCol(o2, role === o2.roles[0] ? pair[0] : pair[1]), { w: tw, glow: glow * (nd === '1' ? 1.6 : nd === '2' ? 0.7 : 1), a: o2.st.a * (nd === '2' ? 0.85 : 1), dpr, soft: o2.st.soft });
+          caps(x, ts, tw, 0);
+        }
+        x.globalCompositeOperation = 'destination-out'; x.globalAlpha = 1; x.fillStyle = '#000';
+        for (const r of solidRects(o2.group)) x.fillRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
+        x.globalCompositeOperation = 'source-over';
+      });
+      sp.at = performance.now();
+      it.ps.set(key, sp);
+      mbSprites += sp.mb;
+    });
+    return null;
+  }
+  /** this frame's palette pairs for an outline item (scene n's + the next) and the mix between them (the sweep / the strobe) */
+  function palOf(it) {
+    const cs = cast[it.i] || { rank: it.i, h: 0 }, n = showOut.cn;
+    return { A: partyColours(cs.rank, n, cs.h), B: partyColours(cs.rank, n + 1, cs.h), m: showOut.cm[it.i] || 0 };
+  }
+  const usePal = () => showOn && !schemeX && tier > 0;
+  const palMb = () => items.reduce((a, it) => a + (it.ps ? [...it.ps.values()].reduce((b, v) => b + (v ? v.mb : 0), 0) : 0), 0);
+  const palDebug = () => { const cols = new Set(); let built = 0; for (const it of items) if (it.ps) for (const [k, v] of it.ps) if (v) { built++; cols.add(k >> 3); } return { on: usePal(), scene: showOut.cn || 0, built, mains: cols.size }; };
   // the burnt-out letter's sign text: the dead letter cut out (its unlit glass shows from the housing), a weak sputter now and then
   function deadText(c, it, s, a, dm, t) {
     const bx = it.sg.letterBoxes[burn.letter];
@@ -315,7 +361,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   }
   /** the scheme the outlines wear now: an explicit one (a holiday, a preview), else the party's on a party night, else the city's */
   function applyScheme() {
-    const want = schemeX || (partyLook ? 'party' : 'city');
+    // (NEON PASS 5: the baked party scheme is tier 0's still party; tiers 1–2 wear THE ROTATING PALETTE — partySprite)
+    const want = schemeX || (partyLook && tier === 0 ? 'party' : 'city');
     if (want === scheme) return;
     scheme = want; dropComp();
     // (rebuilt left → right, a few a frame: the new colours roll across the skyline)
@@ -461,8 +508,25 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       if (it.kind === 'sign' && showOn) beat = 0.9 + 0.55 * showState.punch;
       if (it.kind === 'outline' && showOn) {
         const fx = showOut.fx[it.i];
-        beat = showOut.a[it.i] * (showOut.race[it.i] > 0.05 ? 0.82 : 1) * (fx === FX.ledges || fx === FX.fins ? 0.72 : 1);
+        beat = showOut.a[it.i] * (showOut.race[it.i] > 0.05 ? 0.68 : 1) * (fx === FX.ledges || fx === FX.fins ? 0.72 : 1);   // (NEON PASS 5: the tubes sink a little more under the racing light: it reads as colour, not a white wash)
         alt = showOut.alt[it.i];
+        if (usePal() && it.tubes) {
+          // THE ROTATING PALETTE (NEON PASS 5): scene n's pair, crossfading to the next as the sweep front passes (or a colour sweep /
+          // a strobe flashes it early); the building's own colours until its pair is built (then a 1 s fade into it)
+          const pl = palOf(it), kA = pl.A[0] * 8 + pl.A[1], kB = pl.B[0] * 8 + pl.B[1];
+          const A = partySprite(it, pl.A, [kA, kB]), B = partySprite(it, pl.B, [kA, kB]);
+          const s0 = it.lit[0], SA = A || s0, SB = B || SA, fa = A ? clamp01((performance.now() - A.at) / 1000) : 0;
+          const m = Math.max(pl.m, alt), a = alpha(it, 0, t, motion) * base * beat;
+          if (a > 0.01) {
+            const draw2 = (S2, k2) => { if (k2 > 0.004) { c.globalAlpha = Math.min(1, k2); c.drawImage(S2.c, S2.x, S2.y, S2.w, S2.h); } };
+            // (now = its own colours → scene n's pair as the pair comes in; → scene n + 1's by m)
+            draw2(s0, a * (1 - fa) * (1 - m));
+            if (A) draw2(SA, a * fa * (1 - m));
+            draw2(SB, a * m);
+            if (a > 1.01 && !noPunch) draw2(m > 0.5 ? SB : fa > 0.5 ? SA : s0, a - 1);     // (THE PUNCH: brighter than lit)
+          }
+          continue;
+        }
         if (alt > 0.02 && !it.alt && !it.altQ) { it.altQ = true; queue.push(() => buildAlt(it)); }
         if (!it.alt) alt = 0;
       }
@@ -569,7 +633,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     for (let i = gf.floor.length - 1; i >= 0; i--) c.lineTo(gf.floor[i][0], gf.floor[i][1]);
     c.closePath(); c.clip();
     const h = gf.y1 - gf.y0, ph = (tt / 26 + (gf.seed % 100) / 100) % 1;
-    const cols = partyK > 0.3 ? [[255, 46, 151], [46, 230, 255], [168, 82, 255]] : [[46, 200, 255], [120, 90, 255], [46, 123, 255]];
+    const n = showOut.cn || 0, cols = partyK > 0.3 ? [PARTY_PAL[(n * 2) % 7], PARTY_PAL[(n * 2 + 3) % 7], PARTY_PAL[(n * 2 + 5) % 7]] : [[46, 200, 255], [120, 90, 255], [46, 123, 255]];
     const g = c.createLinearGradient(0, gf.y0 - h * ph * 2, 0, gf.y0 + h * 2 - h * ph * 2);
     for (let i = 0; i <= 6; i++) g.addColorStop(i / 6, rgba(cols[i % 3], (0.13 + 0.05 * (i % 2)) * k));
     c.fillStyle = g; c.fillRect(gf.x0, gf.y0, gf.x1 - gf.x0, h);
@@ -588,17 +652,22 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     // (tier 0: no live effects, but the show's still cues — the searchlights at the peak, the wheel, the NEON word's big drops)
     if (!showOn && tier === 0 && P && P.ramp > 0.05) {
       castFor();
-      showFrame(cast, { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell, tier: 0, motion: f.motion, t: f.t, finale: f.finale, beatU: P.beatU, beatT: P.beatT, beatIdx: P.beatIdx, beats: P.beats, rate: P.rate }, showOut);
+      showFrame(cast, { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell, tier: 0, motion: f.motion, t: f.t, finale: f.finale, beatU: P.beatU, beatT: P.beatT, beatIdx: P.beatIdx, beats: P.beats, beatsF: P.beatsF, rate: P.rate, punchAt: P.punchAt }, showOut);
       Object.assign(showState, { lights: showOut.lights, sparkle: showOut.sparkle, big: showOut.big, drop: showOut.drop, scene: showOut.scene, moving: 0, peak: showOut.peak, punch: P.punch || 0, beams: showOut.beams, shimmer: 0, racing: 0 });
       return;
     }
     if (!showOn) { showState.lights = 0; showState.sparkle = 0; showState.big = 0; showState.drop = 0; showState.scene = ''; showState.moving = 0; showState.peak = 0; showState.punch = 0; showState.beams = 0; showState.shimmer = 0; showState.racing = 0; return; }
     castFor();
     // (the &force=neon-party preview keeps its own 120 bpm: a beat every 0.5 s, a breath of two)
-    const fr = forced ? { bar: Math.floor(f.t), phase: f.t % 1, energy: 1, ramp: moment.party, name: 'peak', swell: 0, beatU: (f.t / 0.5) % 1, beatT: 0.5, beatIdx: Math.floor(f.t / 0.5) % 2, beats: Math.floor(f.t / 0.5), rate: 1 }
-      : { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell, beatU: P.beatU, beatT: P.beatT, beatIdx: P.beatIdx, beats: P.beats, rate: P.rate };
-    showFrame(cast, { ...fr, tier, motion: f.motion, t: f.t, finale: f.finale, scene: moment.scene }, showOut);
-    Object.assign(showState, { lights: showOut.lights, sparkle: showOut.sparkle, big: showOut.big, drop: showOut.drop, scene: showOut.scene, moving: showOut.moving, peak: showOut.peak, punch: showOut.punch, beams: showOut.beams, shimmer: showOut.shimmer, racing: showOut.racing });
+    // (NEON PASS 5: real bars — 4 beats — from the song's grid; the punch half-time, read late for the ripple: P.punchAt)
+    const fr = forced ? { bar: Math.floor(f.t / 2), phase: (f.t / 2) % 1, energy: 1, ramp: moment.party, name: 'peak', swell: 0, beatU: (f.t / 0.5) % 1, beatT: 0.5, beatIdx: Math.floor(f.t / 0.5) % 4, beats: Math.floor(f.t / 0.5), beatsF: f.t / 0.5, rate: 0.5 }
+      : { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell, beatU: P.beatU, beatT: P.beatT, beatIdx: P.beatIdx, beats: P.beats, beatsF: P.beatsF, rate: P.rate, punchAt: P.punchAt };
+    showState.beatsF = fr.beatsF ?? 0;
+    // (NEON PASS 5: the palette starts from the local half-hour — fixed once a page load, so a 9 pm visit and a 1 am one wear
+    // different colours, and nothing jumps mid-show)
+    if (palBase == null) palBase = Math.floor((f.hour ?? 0) * 2);
+    showFrame(cast, { ...fr, tier, motion: f.motion, t: f.t, finale: f.finale, scene: moment.scene, cnBase: palBase }, showOut);
+    Object.assign(showState, { lights: showOut.lights, sparkle: showOut.sparkle, big: showOut.big, drop: showOut.drop, scene: showOut.scene, moving: showOut.moving, peak: showOut.peak, punch: showOut.punch, beams: showOut.beams, shimmer: showOut.shimmer, racing: showOut.racing, cn: showOut.cn });
   }
   // a run set stroked as live light: a soft glow (tier 2) + a bright core, in each tube's own colour (k: 0..1+)
   function strokeRuns(c, rs, w, k, white = 0.45, o2 = null) {
@@ -646,27 +715,48 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     }
   }
   /**
-   * THE RACING LIGHT along a building's whole outline: a dash pattern moving along the pre-built paths (one per colour role) —
-   * a soft coloured glow (tier 2), the coloured tail, a hot white HEAD at the leading end. party: fast, a pulse every ~38 pt, its
-   * speed surging on the beat, its direction the director's (some reverse every two bars); otherwise: slow, every ~90 pt, soft.
-   * The offset is integrated per building, so a reversal never jumps.
+   * THE RACING LIGHT along a building's whole outline: a dash pattern moving along the pre-built paths (one per colour role).
+   * NEON PASS 5 (the owner: "far too fast", and on her phone "I don't see any of the lights racing"): a party night races a FEW
+   * LONG PULSES a border — 2–7 (one every ~130 pt), each a hot-white HEAD, a long tail in the building's colour fading behind it,
+   * a soft glow (tier 2) — LOCKED TO THE BAR: the pattern moves one spacing a bar (≈ half Neon Pass 4's speed: ~65 pt/s at 120
+   * bpm), easing ahead on the strong beats (1 + 3), slower between; a third reverse every two bars. A normal night's slow chasers
+   * keep Neon Pass 4's look (a soft pulse every ~90 pt, 16 pt/s). The offset is integrated per building (a reversal never jumps).
    */
   function race(c, it, w, k, f, party) {
     if (!it.fx.race || !it.fx.race.length) return;
     const K = cam.F / 600, dt = Math.min(0.05, (f.dt || 16.7) / 1000);
-    const P = (party ? 38 : 92) * K, tail = P * (party ? 0.42 : 0.3), head = Math.max(1.4, w * 1.2);
+    const len = it.raceLen || 200 * K, n = Math.max(2, Math.min(7, Math.round(len / (130 * K))));
+    const P = party ? len / n : 92 * K, tail = P * (party ? 0.56 : 0.3), head = party ? Math.max(3.4 * K, w * 2.6) : Math.max(1.4, w * 1.2);
     const dir = party ? showOut.dir[it.i] || 1 : (it.i % 2 ? 1 : -1);
-    const v = party ? (70 + 55 * (showOut.sp[it.i] || 1)) * K * (1 + 1.4 * showState.punch) : 16 * K;
     // (once a frame: the harbor group is drawn twice when the water mirrors it)
-    if (it.raceT !== f.t) { it.raceT = f.t; it.raceO = ((it.raceO || 0) - dir * v * dt) % (P * 1000); }
-    const o = it.raceO, oHead = dir > 0 ? o - tail + head : o;
+    if (it.raceT !== f.t) {
+      it.raceT = f.t;
+      if (party) {
+        // the pattern's phase in bars: one spacing a bar, easing ahead on the strong beats (y = the half-bar: beats 1 + 3)
+        const y = (showState.beatsF || 0) / 2, ph = (y + 0.12 * Math.sin(2 * Math.PI * y)) / 2 * (showOut.sp[it.i] || 1);
+        let d = it.racePh == null ? 0 : ph - it.racePh; if (d < 0 || d > 0.25) d = 0;    // (a re-lock / a new song: no jump)
+        it.racePh = ph;
+        it.raceO = ((it.raceO || 0) - dir * P * d) % (P * 1000);
+      } else { it.racePh = null; it.raceO = ((it.raceO || 0) - dir * 16 * K * dt) % (P * 1000); }
+    }
+    const o = it.raceO, lead = L2 => (dir > 0 ? o - tail + L2 : o);       // (a dash of length L2 ending at the pulse's leading end)
+    const pal = party && usePal() ? palOf(it) : null;
     for (const r of it.fx.race) {
-      const col = colOf(r.role, it.o);
-      c.setLineDash([tail, P - tail]); c.lineDashOffset = o;
-      if (tier > 1) { c.strokeStyle = rgba(col, Math.min(1, 0.3 * k)); c.lineWidth = w * (party ? 5.2 : 4); c.stroke(r.p); }
-      c.strokeStyle = rgba(mix(col, WHITE3, 0.18), Math.min(1, 0.9 * k)); c.lineWidth = w * 1.6; c.stroke(r.p);
-      c.setLineDash([head, P - head]); c.lineDashOffset = oHead;
-      c.strokeStyle = rgba(HOT, Math.min(1, (party ? 1 : 0.8) * k)); c.lineWidth = w * (party ? 2 : 1.6); c.stroke(r.p);
+      const col = pal ? palCol(it.o, (pal.m > 0.5 ? pal.B : pal.A)[r.role === it.o.roles[0] ? 0 : 1]) : colOf(r.role, it.o);
+      if (party) {
+        // the glow (tier 2) · the long tail · its brighter last third · the head's halo · the white-hot head
+        const t3 = tail * 0.38;
+        if (tier > 1) { c.setLineDash([t3, P - t3]); c.lineDashOffset = lead(t3); c.strokeStyle = rgba(col, Math.min(1, 0.34 * k)); c.lineWidth = w * 6.4; c.stroke(r.p); }   // (the glow round the head's third: the perf pass)
+        c.setLineDash([tail, P - tail]); c.lineDashOffset = o; c.strokeStyle = rgba(col, Math.min(1, 0.42 * k)); c.lineWidth = w * 1.9; c.stroke(r.p); c.setLineDash([t3, P - t3]); c.lineDashOffset = lead(t3); c.strokeStyle = rgba(mix(col, WHITE3, 0.05), Math.min(1, 0.85 * k)); c.lineWidth = w * 2.3; c.stroke(r.p);
+        const hh = head * 2.2; c.setLineDash([hh, P - hh]); c.lineDashOffset = lead(hh); c.strokeStyle = rgba(mix(col, WHITE3, 0.2), Math.min(1, 0.45 * k)); c.lineWidth = w * 5; c.stroke(r.p);
+        c.setLineDash([head, P - head]); c.lineDashOffset = lead(head); c.strokeStyle = rgba(HOT, Math.min(1, k)); c.lineWidth = w * 2.3; c.stroke(r.p);
+      } else {
+        c.setLineDash([tail, P - tail]); c.lineDashOffset = o;
+        if (tier > 1) { c.strokeStyle = rgba(col, Math.min(1, 0.3 * k)); c.lineWidth = w * 4; c.stroke(r.p); }
+        c.strokeStyle = rgba(mix(col, WHITE3, 0.18), Math.min(1, 0.9 * k)); c.lineWidth = w * 1.6; c.stroke(r.p);
+        c.setLineDash([head, P - head]); c.lineDashOffset = lead(head);
+        c.strokeStyle = rgba(HOT, Math.min(1, 0.8 * k)); c.lineWidth = w * 1.6; c.stroke(r.p);
+      }
     }
     c.setLineDash([]);
   }
@@ -762,7 +852,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       for (const it of items) if (it.pw && t - it.pw.t0 < 2.5) return true;      // (the rare flicker is a dip, not motion)
       return false;
     },
-    setTier(t) { tier = t; dropComp(); },
+    setTier(t) { tier = t; dropComp(); applyScheme(); },
     /** tonight's pick changes only while the neon is dark (never while you watch); key: nightKey(local) */
     night(k) { if (k !== assignKey && !items.some(it => it.pw && it.pw.on)) { assignKey = k; return true; } return false; },
     /** a moment: 'party' (k 0..1: chasers + beat + colour shifts), 'chase' (on/off), 'flash' ({ game } | { cols }: the game's
@@ -794,12 +884,15 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     /** NEON PASS 4: the solid signs' rects on screen (a sky beam rises from above the roof sign on its tower) */
     signRects: () => signs.filter(sg => sg.rect).map(sg => sg.rect),
     /** NEON PASS 4: the sky beams' colours — each tower's own neon colour (its party colour while a sweep / strobe holds it) */
-    beamCols: ids => ids.map(id => { const it = items.find(x => x.kind === 'outline' && x.id === id); if (!it || !it.o) return [255, 255, 255]; if (showOn && showOut.alt[it.i] > 0.5 && it.altCol) return it.altCol; return roleColour(it.o.roles[0], scheme); }),
+    beamCols: ids => ids.map(id => { const it = items.find(x => x.kind === 'outline' && x.id === id); if (!it || !it.o) return [255, 255, 255];
+      // (NEON PASS 5: on a party night the tower's colour in THE ROTATING PALETTE — it changes with the show, scene by scene)
+      if (usePal()) { const pl = palOf(it), m = Math.max(pl.m, showOut.alt[it.i] || 0); return mix(PARTY_PAL[pl.A[0]], PARTY_PAL[pl.B[0]], m).map(Math.round); }
+      if (showOn && showOut.alt[it.i] > 0.5 && it.altCol) return it.altCol; return roleColour(it.o.roles[0], scheme); }),
     /** the party show's state this frame (the scene reads it: the searchlights, the wheel's sparkle, the NEON word's big drops) */
     show: () => showState,
     /** tonight's everyday motion (debug) */
     daily: () => (daily ? { spell: [...daily.spell], blink: [...daily.blink], cycle: daily.cycle, chase: [...daily.chase].map(i => items[i] && items[i].id), rotate: [...daily.rotate].map(i => items[i] && items[i].id), stages: [...daily.stages.keys()].map(i => items[i] && items[i].id), burnout: burn ? { ...burn } : null } : null),
-    debug: () => ({ signs: signs.map(sg => ({ id: sg.id, game: sg.game, kind: sg.kind, type: sg.type, rect: { x: +sg.rect.x.toFixed(1), y: +sg.rect.y.toFixed(1), w: +sg.rect.w.toFixed(1), h: +sg.rect.h.toFixed(1) }, on: !!(items.find(i => i.sg === sg) || {}).pw?.on })), boards: boards.map(b => ({ id: b.id, show: b.content.title })), outlines: outs.map(o2 => ({ id: o2.id, group: o2.group, strength: o2.strength, runs: o2.runs.length, roles: o2.roles })), items: items.length, built, queued: queue.length, mb: +(mbSprites + (comp.far ? comp.far.mb : 0) + (comp.near ? comp.near.mb : 0)).toFixed(2), comp: { far: !!comp.far, near: !!comp.near }, tier, night: assignKey, scheme, led: glassFaces.length, moment: { party: moment.party, chase: moment.chase, flash: !!moment.flash }, partyLook, show: { ...showState } }),
+    debug: () => ({ signs: signs.map(sg => ({ id: sg.id, game: sg.game, kind: sg.kind, type: sg.type, rect: { x: +sg.rect.x.toFixed(1), y: +sg.rect.y.toFixed(1), w: +sg.rect.w.toFixed(1), h: +sg.rect.h.toFixed(1) }, on: !!(items.find(i => i.sg === sg) || {}).pw?.on })), boards: boards.map(b => ({ id: b.id, show: b.content.title })), outlines: outs.map(o2 => ({ id: o2.id, group: o2.group, strength: o2.strength, runs: o2.runs.length, roles: o2.roles })), items: items.length, built, queued: queue.length, mb: +(mbSprites + palMb() + (comp.far ? comp.far.mb : 0) + (comp.near ? comp.near.mb : 0)).toFixed(2), pal: palDebug(), comp: { far: !!comp.far, near: !!comp.near }, tier, night: assignKey, scheme, led: glassFaces.length, moment: { party: moment.party, chase: moment.chase, flash: !!moment.flash }, partyLook, show: { ...showState } }),
     destroy() { for (const it of [...items, ...(pending ? pending.items : [])]) freeItem(it); items = []; pending = null; queue = []; dropComp(); free({ c: dot }); },
   };
 }

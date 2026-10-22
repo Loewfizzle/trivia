@@ -328,6 +328,25 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 5: SAFARI, THE REAL BEAT + THE PARTY POLISHED (Oct 22, 2026) — `docs/harbor.md#neon-pass-5`
+- [x] Faster harbor tests, nothing dropped: e2e-harbor in GROUPS (`ONLY=…`), three parallel shards + panel + perf alone, the fixed
+      sleeps → waits for the real condition (223 s → ~190–200 s, 87 → 99 checks)
+- [x] THE iPHONE SHOWED LESS: a 30 Hz frame rate (Low Power Mode) stepped the city to tier 0 (no racing) — a step down is a probe now
+      (no faster frames → back up, "capped 30 Hz"); one sky beam → every hero + word tower's beam, behind the sign (the whole-sky rule);
+      a leftover JUST ME state replaced a link's flags → a fresh link wins, the pill shows JUST ME + a ✕; Safari-safe canvas
+      (`ui/canvas-safe.js`: no filter without a pixel test, clipped source rects, no thrown frame out of canvas memory). WebKit itself
+      couldn't be installed here (logged)
+- [x] Sign names ≥ 10 pt at 390 (were 4–9): STACKED roof signs (the mark on top, the name across), a bigger billboard with the name
+      across it, the blade's letters closer; PAR's narrow name + the icon left of the wheel removed (10 signs a night + the billboard)
+- [x] THE REAL BEAT: every mood song's exact grid (bpm, first beat, downbeat — the old BPMs were wrong), an AnalyserNode hearing the
+      kicks (their strength sets the punch; a breakdown calms it), latency-compensated, half-time (beats 1 + 3), a calm pulse without music
+- [x] The party: a ROTATING PALETTE (six colours + white accents, a new pair every scene in a sweep), racing at ~half speed locked to
+      the bar with big white heads + long tails on every tower, every beam in its tower's changing colour, THE WHEEL a showpiece
+      (bigger bulbs, halo, warm gondolas; a colour wave + spirals on normal nights, clock hands / spirals / bursts on party nights),
+      THE NEON LOGO punching (gentler), the tired tube rotating (the O got its hot spots), random flickers; the roof string lights off
+- [x] The panel: every sky event fired from it appears (forced pieces override the lane + cooldown gates; the satellite train repeats
+      + jumps to dusk; ☾ events + PARTY ON by day jump to tonight; the sheet peeks); tests per event
+
 ### ✅ CITY 2.0 — THE HARBOR, NEON PASS 4: THE NEON IN MOTION (Oct 22, 2026) — `docs/harbor.md#neon-pass-4`
 - [x] A party night obvious in one frame: the outlines re-lit in the bold PARTY SCHEME (rolling in left → right), a warmer pink-violet
       city glow, SKY BEAMS from the tall towers (2–3 on a phone, 4–5 on desktop; fading under the tagline, free ones to the top;

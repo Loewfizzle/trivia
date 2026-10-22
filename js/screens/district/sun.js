@@ -14,6 +14,7 @@
 // Every disc and glow is a cached sprite; a frame is a handful of drawImage calls. Preview: &force=eclipse-sun, &force=totality.
 
 import { sunPosition, sunArc, sunTimes } from '../../core/sky.js';
+import { blurWorks } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -251,14 +252,20 @@ export function createSun() {
     x.translate(160, 160);
     let a = 0x3c6ef3; const R = () => { a = (a * 1103515245 + 12345) >>> 0; return a / 4294967296; };
     // fine streamers, longer along the sun's equator (left / right), soft and slightly curved
-    x.save(); x.filter = 'blur(2.2px)'; x.lineCap = 'round';
+    // (NEON PASS 5 — Safari before 18 has no canvas filters: without one, each streamer is drawn three times, wide + faint to
+    // narrow + full — the same soft look; ui/canvas-safe.js)
+    const soft = blurWorks();
+    x.save(); if (soft) x.filter = 'blur(2.2px)'; x.lineCap = 'round';
     for (let i = 0; i < 70; i++) {
       const eq = R() < 0.65, ang = eq ? (R() < 0.5 ? 0 : Math.PI) + (R() - 0.5) * 1.1 : R() * Math.PI * 2;
       const len = (eq ? 70 : 35) + R() * (eq ? 85 : 45), bend = (R() - 0.5) * 0.35;
       const x0 = Math.cos(ang) * 30, y0 = Math.sin(ang) * 30, x1 = Math.cos(ang + bend) * (30 + len), y1 = Math.sin(ang + bend) * (30 + len);
       const g = x.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, 'rgba(250,250,255,0.32)'); g.addColorStop(1, 'rgba(220,228,255,0)');
-      x.strokeStyle = g; x.lineWidth = 1 + R() * 2.4;
-      x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo(Math.cos(ang) * (30 + len * 0.5), Math.sin(ang) * (30 + len * 0.5), x1, y1); x.stroke();
+      x.strokeStyle = g; const lw = 1 + R() * 2.4;
+      x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo(Math.cos(ang) * (30 + len * 0.5), Math.sin(ang) * (30 + len * 0.5), x1, y1);
+      if (soft) { x.lineWidth = lw; x.stroke(); }
+      else for (const [w2, a2] of [[lw + 4.4, 0.22], [lw + 2.2, 0.4], [lw, 0.55]]) { x.lineWidth = w2; x.globalAlpha = a2; x.stroke(); }
+      x.globalAlpha = 1;
     }
     x.restore();
     // the pearly inner corona

@@ -6,6 +6,7 @@
 // Lit tubes are drawn into SPRITES (small canvases sized to the tube + its glow) once, then drawn every frame additively with
 // their power (the boot-up, the flicker, the moments).
 import { tubeLight } from '../../core/harbor-neon.js';
+import { ctx2d } from '../../ui/canvas-safe.js';
 
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const rgba = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, Math.min(1, a)).toFixed(3)})`;
@@ -152,7 +153,9 @@ export function sprite(box, pad, dpr, draw) {
   const x0 = Math.floor(box.x0 - pad), y0 = Math.floor(box.y0 - pad), w = Math.ceil(box.x1 + pad) - x0, h = Math.ceil(box.y1 + pad) - y0;
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.ceil(w * dpr)); c.height = Math.max(1, Math.ceil(h * dpr));
-  const x = c.getContext('2d');
+  // (iOS out of canvas memory: no context — an empty 1 × 1 sprite, never a thrown frame: ui/canvas-safe.js)
+  const x = ctx2d(c);
+  if (!x) { c.width = c.height = 1; return { c, x: x0, y: y0, w: 0.01, h: 0.01, mb: 0 }; }
   x.setTransform(dpr, 0, 0, dpr, -x0 * dpr, -y0 * dpr);
   draw(x);
   return { c, x: x0, y: y0, w, h, mb: c.width * c.height * 4 / 1e6 };

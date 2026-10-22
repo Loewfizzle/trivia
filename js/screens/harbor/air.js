@@ -122,7 +122,7 @@ function chopper(len, look, dir, dpr) {
 // ------------------------------------------------------------------ the module
 export function createAir() {
   let W = 1, H = 1, HZ = 1, K = 1, dpr = 2, tier = 2;
-  let planes = [], nextPlane = 6 + Math.random() * 12, forcedAt = -1e9;
+  let planes = [], nextPlane = 6 + Math.random() * 12, forcedAt = -1e9, trainGone = -1e9, forcedKind = '';
   let train = null, trainNight = '', sat = null, nextSat = 60 + Math.random() * 180;
   let heli = null;
   const glows = new Map();
@@ -350,13 +350,19 @@ export function createAir() {
       // ---- planes: the district's traffic by the hour, on the free lanes (a sky event's lane is never shared; a heavy event
       // elsewhere thins the sky: fs.density)
       const dens = s.density ? Math.min(s.density['sky-high'], s.density['sky-low']) : 1;
-      const lanes = ['sky-high', 'sky-low'].filter(id => free[id] && s.lanes && s.lanes[id] && s.lanes[id].h >= 24);
+      // (NEON PASS 5 — the owner: from the panel the planes "often don't show up": a forced plane waited 9 s after the last forced one
+      // — PLANES then PLANE ON APPROACH got nothing — and for a free lane. A preview switched on resets the wait; a forced plane may
+      // join a held lane and the planes already up)
+      const fk = (force.has('planes') ? 'p' : '') + (force.has('approach') ? 'a' : '');
+      if (fk !== forcedKind) { forcedKind = fk; forcedAt = -1e9; }
+      let lanes = ['sky-high', 'sky-low'].filter(id => free[id] && s.lanes && s.lanes[id] && s.lanes[id].h >= 24);
+      if (fk && !lanes.length) lanes = ['sky-high', 'sky-low'].filter(id => s.lanes && s.lanes[id] && s.lanes[id].h >= 24);
       const max = Math.floor((tier === 0 ? 1 : W > 800 ? 3 : 2) * dens);
       const rate = trafficRate(hr) * (look.wet ? 0.5 : 1) * (motion ? 1 : 0.6);
       nextPlane -= sec;
-      const forcedPlane = (force.has('planes') || force.has('approach')) && performance.now() - forcedAt > 9000;
+      const forcedPlane = !!fk && performance.now() - forcedAt > 9000;
       const known = !!(s.textRects && s.textRects.neon);              // never plan a path before the sign's place is known
-      if ((forcedPlane || nextPlane <= 0) && lanes.length && planes.filter(p => p.k < 1).length < (forcedPlane ? Math.max(1, max) : max) && known) {
+      if ((forcedPlane || nextPlane <= 0) && lanes.length && planes.filter(p => p.k < 1).length < (forcedPlane ? Math.max(1, max) + 1 : max) && known) {
         const approach = force.has('approach') ? true : force.has('planes') ? false : Math.random() < 0.12 && hr > 6 && hr < 23.5;
         // (an approach comes in low: sky-low when it is free; a cruise takes either, the high lane twice as often)
         const pickL = approach && lanes.includes('sky-low') ? 'sky-low' : lanes[lanes.length > 1 && Math.random() < 0.35 ? 1 : 0];
@@ -375,17 +381,21 @@ export function createAir() {
       // ---- satellites: twilight only, clear skies (the district's)
       const mode = satTwilight(L.sun.el, hr), clear = L.clear && (L.cloud || 0) < 0.45 && !look.wet;
       const night = L.local ? `${L.local.y}-${L.local.m}-${L.local.d}-${mode}` : '';
-      if (known && free['sky-high'] && !train && (force.has('satellites') && trainNight !== 'forced' || (mode && clear && L.local && starlinkNight(L.local.y, L.local.m, L.local.d) && trainNight !== night && Math.random() < sec / 40))) {
-        train = newTrain(s, force.has('satellites') ? (mode || 'evening') : mode); trainNight = force.has('satellites') ? 'forced' : night;
+      // (NEON PASS 5 — the owner: "the SATELLITE TRAIN button does nothing": a forced train flew ONCE a page load — invisible by
+      // day, where it burned its one go. Now a forced train comes again a few seconds after each pass, and shows in any sky)
+      const trainForced = force.has('satellites');
+      if (!trainForced && trainNight === 'forced') trainNight = '';
+      if (known && free['sky-high'] && !train && (trainForced && performance.now() - trainGone > 3000 || (mode && clear && L.local && starlinkNight(L.local.y, L.local.m, L.local.d) && trainNight !== night && Math.random() < sec / 40))) {
+        train = newTrain(s, trainForced ? (mode || 'evening') : mode); train.forced = trainForced; trainNight = trainForced ? 'forced' : night;
       }
       if (known && free['sky-high'] && !sat && ((force.has('sat') && Math.random() < sec / 2) || (mode && clear && (nextSat -= sec) <= 0))) { sat = newSat(s, force.has('sat') ? (mode || 'evening') : mode); nextSat = 300 + Math.random() * 300; }
-      const satVis = clamp01(look.dark * 1.4);
+      const satVis = clamp01(look.dark * 1.4), trainVis = train && train.forced ? Math.max(0.85, satVis) : satVis;
       if (train || sat) c.globalCompositeOperation = 'lighter';
       if (train) {
         train.k += sec / train.dur;
         const span = train.n * train.gap;
-        for (let i = 0; i < train.n; i++) { const u = (train.k * (train.len + span) - i * train.gap) / train.len; if (u < 0 || u > 1) continue; satPoint(c, train.x0 + (train.x1 - train.x0) * u, train.y0 + (train.y1 - train.y0) * u, 0.78 * satVis * satAlpha(u, train.mode, train.shadow) * Math.min(1, u / 0.03, (1 - u) / 0.03), s.moonAt); }
-        if (train.k * (train.len + span) - span > train.len) train = null;
+        for (let i = 0; i < train.n; i++) { const u = (train.k * (train.len + span) - i * train.gap) / train.len; if (u < 0 || u > 1) continue; satPoint(c, train.x0 + (train.x1 - train.x0) * u, train.y0 + (train.y1 - train.y0) * u, 0.78 * trainVis * (train.forced ? Math.max(0.7, satAlpha(u, train.mode, train.shadow)) : satAlpha(u, train.mode, train.shadow)) * Math.min(1, u / 0.03, (1 - u) / 0.03), s.moonAt); }
+        if (train.k * (train.len + span) - span > train.len) { train = null; trainGone = performance.now(); }
       }
       if (sat) { sat.k += sec / sat.dur; const u = sat.k; satPoint(c, sat.x0 + (sat.x1 - sat.x0) * u, sat.y0 + (sat.y1 - sat.y0) * u, sat.b * satVis * satAlpha(u, sat.mode, sat.shadow) * Math.min(1, u / 0.04, (1 - u) / 0.04), s.moonAt); if (sat.k >= 1) sat = null; }
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;

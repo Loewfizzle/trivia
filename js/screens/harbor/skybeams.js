@@ -1,10 +1,10 @@
 // CITY 2.0 — THE HARBOR, NEON PASS 4: THE SKY BEAMS (the owner's idea — the Luxor sky-beam look; docs/harbor.md#neon-pass-4).
-// On party nights 3–5 of the tall towers each shoot a STATIONARY VERTICAL BEAM straight up from the crown, in that tower's own
-// neon colour: the clearest "it's a party" sign in a single frame. A soft volumetric beam (a bright core + a wide soft glow,
-// brighter on a hazy night), fading out with height:
-//   - under the sign's width it is gone by the tagline's bottom (it never cuts across the NEON word or the tagline);
-//   - a tower outside the sign's width (the left edge's tower, the right word tower; the desktop's side towers) rises to the
-//     top of the screen — clear of the corner buttons;
+// On party nights EVERY hero + word tower shoots a STATIONARY VERTICAL BEAM straight up from the crown, in that tower's colour
+// (on a party night its colour in the rotating palette: it changes with the show): the clearest "it's a party" sign in a single
+// frame. A soft volumetric beam (a bright core + a wide soft glow, brighter on a hazy night), fading out with height, rising to the
+// top of the screen. NEON PASS 5 (the owner's whole-sky rule, plan.md): the beams rise BEHIND the NEON sign and the tagline (the
+// sign is the page above the canvas: it always draws on top); only the corner buttons keep a clear column above them. (Neon Pass
+// 4 stopped a beam under the sign at the tagline, so a phone showed 2–3 — the owner's iPhone, one.)
 // it PULSES on the beat (the hard pulse), takes the show's colour sweeps, switches on one by one through the warm-up and stands
 // together from the 11 pm peak; the sweeping searchlights take turns with it (core/harbor-show.js: out.beams / out.lights).
 // A REUSABLE SYSTEM: set({ count, colours, ids, width }) — holidays (red / white / blue on July 4th) and the Sept 11 Tribute in
@@ -13,6 +13,7 @@
 //   draw(c, f)   f: { signs ([rects]: a roof sign over a crown — the beam rises from above it), k (0..1 strength), on (how many are on, fractional: one by one), cols(ids) → [rgb] per beam, punch,
 //                haze (0..1), motion, tier, fade }
 import { project } from '../../core/harbor-layout.js';
+import { ctx2d } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -27,7 +28,9 @@ export function createSkyBeams() {
     const key = col.join(',');
     if (sprites.has(key)) return sprites.get(key);
     const w = 64, h = 256, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    const x = cv.getContext('2d'), img = x.createImageData(w, h), d = img.data;
+    const x = ctx2d(cv);
+    if (!x) { cv.width = 0; return null; }                          // (iOS out of canvas memory: no beam, never a thrown frame)
+    const img = x.createImageData(w, h), d = img.data;
     for (let j = 0; j < h; j++) {
       const v = 1 - j / (h - 1);                                    // 0 at the base (the bottom row) → 1 at the top
       // (bright for most of its height, then a long soft fade — gone at the top)
@@ -59,11 +62,6 @@ export function createSkyBeams() {
 
   function layout(L, o) {
     const cam = L.cam; K = cam.F / 600;
-    const tr = o.textRects || {}, tag = tr.tag && tr.tag.h > 0 ? tr.tag : null, neon = tr.neon || null, word = tr.word || null;
-    // the sign's span (the NEON word, SPEAKEASY, the tagline) + a margin: a beam under it stops at the tagline's bottom
-    const spans = [neon, word, tag].filter(Boolean);
-    const sx0 = spans.length ? Math.min(...spans.map(r => r.x)) - 9 * K : cam.W * 0.15, sx1 = spans.length ? Math.max(...spans.map(r => r.x + r.w)) + 9 * K : cam.W * 0.85;
-    const stopY = tag ? tag.y + tag.h + 6 : neon ? neon.y + neon.h + 40 : cam.H * 0.3;
     const corner = o.corner || null;
     cand = [];
     for (const t of L.towers) {
@@ -71,9 +69,9 @@ export function createSkyBeams() {
       const tp = t.tiers[t.tiers.length - 1], cx = (tp.x0 + tp.x1) / 2;
       const [x, y] = project(cam, cx, tp.y0 + tp.h + (tp.crown ? tp.crown.h : 0) + (t.needle || 0), tp.z0);
       if (x < 6 || x > cam.W - 6) continue;
-      const under = x > sx0 && x < sx1;
-      let top = under ? stopY : 0;
-      if (!under && corner && x > corner.x - 10 && x < corner.x + corner.w + 10) top = corner.y + corner.h + 12;
+      const under = false;
+      let top = 0;
+      if (corner && x > corner.x - 10 && x < corner.x + corner.w + 10) top = corner.y + corner.h + 12;
       if (y - top < 40 * K) continue;                                // (too little sky above it: no beam)
       cand.push({ id: t.id, x, y, top, under, len: y - top });
     }
@@ -86,7 +84,7 @@ export function createSkyBeams() {
   }
   function pick() {
     const list = cfg.ids ? cfg.ids.map(id => cand.find(c => c.id === id)).filter(Boolean) : cand;
-    const n = cfg.count != null ? cfg.count : Math.max(3, Math.min(5, list.length));
+    const n = cfg.count != null ? cfg.count : list.length;            // (NEON PASS 5: every hero + word tower)
     beams = list.slice(0, n);
     // (the switch-on order: the beams that rise free of the sign first, then the rest — left to right)
     beams.sort((a, b) => (a.under - b.under) || a.x - b.x);
@@ -96,7 +94,7 @@ export function createSkyBeams() {
     if (!beams.length || f.k <= 0.004) return;
     const cols = f.cols ? f.cols(beams.map(b => b.id)) : beams.map(() => [255, 255, 255]);
     const haze = 1 + 0.7 * clamp01(f.haze || 0);
-    const pulse = 0.62 + 0.62 * (f.punch || 0);
+    const pulse = 0.55 + 0.75 * (f.punch || 0);                       // (NEON PASS 5: a clear punch on the strong beats)
     c.save(); c.globalCompositeOperation = 'lighter';
     const rs = f.signs || [];
     beams.forEach((b, i) => {
@@ -109,6 +107,7 @@ export function createSkyBeams() {
       if (a < 0.01) return;
       const col = (cfg.colours && cfg.colours[i % cfg.colours.length]) || cols[i] || [255, 255, 255];
       const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.92 + 0.2 * (f.punch || 0));
+      if (!sp) return;
       c.globalAlpha = Math.min(1, a * pulse * haze * 0.95);
       c.drawImage(sp, b.x - gw / 2, b.top, gw, y0 - b.top + 2);
       // the beam's root: a bright flare where it leaves the crown (it punches on the beat)
@@ -121,6 +120,7 @@ export function createSkyBeams() {
 
   return {
     layout, draw,
+    count: () => beams.length,
     /** holidays / CITY CONTROL / the tribute: { count, colours: [[r,g,b]…], ids: [tower ids], width } (null resets each) */
     set(o = {}) { for (const k of ['count', 'colours', 'ids', 'width']) if (k in o) cfg[k] = o[k] == null ? (k === 'width' ? 1 : null) : o[k]; pick(); },
     debug: () => ({ beams: beams.map(b => ({ id: b.id, x: Math.round(b.x), y: Math.round(b.y), top: Math.round(b.top), under: b.under })), cand: cand.length, cfg: { ...cfg } }),

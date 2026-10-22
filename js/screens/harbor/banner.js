@@ -7,6 +7,7 @@
 // Its flight is a function of the time since it started (every phone sees the same pass); a pass takes ~30 s; `passes` = 2
 // comes back the other way. API (screens/harbor/skyfx.js): banner(lines, { colour, passes }) — daily challenges, holiday
 // messages, game announcements, later CITY CONTROL; the scheduler's random `banner` event; &force=banner&text=A | B.
+import { blit } from '../../ui/canvas-safe.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
@@ -132,7 +133,7 @@ export function createBanner() {
           const sx = back > 0 ? x0 + j * sw : x0 - (j + 1) * sw;
           // (the art reads left to right whichever way the plane flies: slice j of the art goes to its place along the train)
           const ax = back > 0 ? j * sw : pn.w - (j + 1) * sw;
-          c.drawImage(pn.cv, ax * d, 0, sw * d + 0.5, pn.h * d, sx, by - pn.h / 2 + dy, sw + 0.35, pn.h);
+          blit(c, pn.cv, ax * d, 0, sw * d + 0.5, pn.h * d, sx, by - pn.h / 2 + dy, sw + 0.35 + 0.5 / d, pn.h);   // (blit: the last slice runs 0.5 px past the panel — WebKit drew nothing)
           const sh = slope * (p.dir > 0 ? 1 : -1);
           if (sh > 0.02) { c.fillStyle = `rgba(60,40,50,${Math.min(0.32, sh * 0.5) * (0.6 + 0.4 * day)})`; c.fillRect(sx, by - pn.h / 2 + dy, sw + 0.35, pn.h); }
           else if (sh < -0.02) { c.fillStyle = `rgba(255,${gold > 0.3 ? 214 : 250},${gold > 0.3 ? 170 : 240},${Math.min(0.22, -sh * 0.35) * day})`; c.fillRect(sx, by - pn.h / 2 + dy, sw + 0.35, pn.h); }

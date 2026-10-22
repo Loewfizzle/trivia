@@ -249,6 +249,23 @@ body.reduced-fx .nd-gate-txt { animation: none; }
 .nd.is-party .nd-sign.is-steady .nd-word-s { opacity: 1; animation: nd-shimmer 6.5s ease-in-out infinite; }
 /* (City 2.0, NEON PASS 4 — THE HARD BEAT: SPEAKEASY punches on every beat — a second glow layer in the party colour, its opacity
    written per frame on this small element alone: title.js#partyFrame) */
+/* (City 2.0, NEON PASS 5 — THE NEON LOGO PUNCHES TOO: its light alone over the sign — ui/logo.js#logoGlowSvg — faded in on the beat by
+   its opacity (title.js#partyFrame), gentler than the skyline so the word stays readable; a letter that's out stays out) */
+.nd-logo-wrap svg.nd-logo-glow { position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; will-change: opacity; }
+.nd-logo-glow .ndg-w { stroke: var(--pc); opacity: 0.85; }
+.nd-logo-glow .ndg-n { stroke: var(--pcb); }
+.nd-logo-glow .ndg-c { stroke: #ffffff; opacity: 0.75; }
+.nd-logo-glow .ndg.off { display: none; }
+.nd:not(.is-party) .nd-logo-glow, .nd-sign:not(.is-steady) .nd-logo-glow, .nd-sign.is-day .nd-logo-glow { display: none; }
+@media (prefers-reduced-motion: reduce) { .nd-logo-glow { display: none; } }
+body.reduced-fx .nd-logo-glow { display: none; }
+/* (City 2.0, NEON PASS 5 — THE TIRED TUBE: a letter or two looking a little worn for a few hours — a weaker core, a softer glow, no hot
+   spots — chosen anew every few hours: title.js#tiredTick) */
+.nd-logo .ndl.is-tired .ndl-core { opacity: 0.6; transition: opacity 2s ease; }
+.nd-logo .ndl.is-tired .ndl-body { opacity: 0.84; transition: opacity 2s ease; }
+.nd-logo .ndp .ndl.is-tired .ndl-hot { opacity: 0.12; }
+.nd-logo .ndl.is-tired .ndl-glow2, .is-warm .nd-logo .ndl.is-tired .ndl-glow2 { opacity: 0.5; }
+.nd-logo .ndl.is-tired .ndl-glow1, .is-warm .nd-logo .ndl.is-tired .ndl-glow1 { opacity: 0.72; }
 .nd-word-p { position: absolute; inset: 0; opacity: 0; pointer-events: none; will-change: opacity; color: #fff;
   text-shadow: 0 0 2px #fff, 0 0 6px var(--pcb), 0 0 14px var(--pc), 0 0 28px var(--pc), 0 0 46px color-mix(in srgb, var(--pc) 70%, transparent); }
 .nd:not(.is-party) .nd-word-p, .nd-sign:not(.is-steady) .nd-word-p { display: none; }

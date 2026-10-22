@@ -16,7 +16,7 @@ import { h, reducedMotion } from '../ui/dom.js';
 import { step } from '../core/ranks.js';
 import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
-import { logoSvg, anchorsSvg, TAGLINE } from '../ui/logo.js';
+import { logoSvg, logoGlowSvg, anchorsSvg, TAGLINE } from '../ui/logo.js';
 import { openHelp } from '../ui/help.js';
 import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, colorHex } from '../config.js';
 import { setState } from '../store.js';
@@ -29,7 +29,8 @@ import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
-import { beatSource } from '../audio/beat.js';
+import { beatSource, beatKick } from '../audio/beat.js';
+import { tiredLetters } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { createDistrict } from './district/scene.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded
@@ -252,7 +253,14 @@ export function createTitle() {
   let stopRain = null;
   let tl = null;                 // { plan, t0, raf, kind }
   let remote = null, remoteT = 0;  // CITY 2.0 only: THE PREVIEW PANEL (harbor/remote.js), loaded after the first paint
-  let flickerTimer = 0;
+  let flickerTimer = 0, lastFlick = -1, tiredT = 0, tiredKey = '';
+  function tiredTick() {
+    if (destroyed || !scene || !els.sign) return;
+    const L = scene.look ? scene.look() : null, t = tiredLetters(L && L.local), k = t.join(',');
+    if (k === tiredKey) return;
+    tiredKey = k;
+    els.sign.querySelectorAll('.nd-logo .ndl').forEach((l, i) => l.classList.toggle('is-tired', t.includes(i)));
+  }
   let destroyed = false;
   let busy = false;
   let st = null;
@@ -274,7 +282,10 @@ export function createTitle() {
     scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
-    scene.set({ beat: beatSource, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
+    scene.set({ beat: beatSource, kick: createHarbor ? beatKick : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
+    // CITY 2.0 — THE TIRED TUBE (NEON PASS 5): one or two letters of the NEON logo look tired for a few hours (core/harbor-show.js
+    // #tiredLetters — any letter, sometimes none, always changing; it was always the O)
+    if (createHarbor) { tiredTick(); tiredT = setInterval(tiredTick, 30000); }
     // CITY 2.0: THE PREVIEW PANEL (docs/harbor.md) — everyone on ?city=2 follows the owner's city2/live; she gets the TEST pill.
     // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
     if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) remote = m.createRemote({ scene: () => scene }); }).catch(e => console.warn('preview panel', e)); }, 1500);
@@ -282,7 +293,7 @@ export function createTitle() {
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
       h('div.nd-bloom', { 'aria-hidden': 'true' }),   // PARTY NIGHTS: the logo's breath, behind the letters
-      h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: !!createHarbor }) + (createHarbor && /[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
+      h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: !!createHarbor }) + (createHarbor ? logoGlowSvg({ id: 'ndtg' }) : '') + (createHarbor && /[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
       h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'), createHarbor ? h('span.nd-word-p', { 'aria-hidden': 'true' }, 'SPEAKEASY') : null)),
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
@@ -419,17 +430,18 @@ export function createTitle() {
       return;
     }
     const full = kind === 'full';
-    // on/off toggles per letter (ms after the sign starts); the O stutters a little longer
+    // on/off toggles per letter (ms after the sign starts); one letter stutters a little longer (NEON PASS 5: City 2.0 picks it at
+    // random each time — it was always the O)
     const base = full ? [0, 70, 150, 220] : [0, 40, 80, 120];
     const pattern = full ? [0, 45, 110, 150, 250, 290, 400] : [0, 40, 90];
-    const crackles = [];
+    const crackles = [], slow = createHarbor ? Math.floor(Math.random() * letters.length) : 2;
     letters.forEach((l, i) => {
-      const pat = i === 2 && full ? [...pattern.slice(0, -1), 470, 520, 600] : pattern;
+      const pat = i === slow && full ? [...pattern.slice(0, -1), 470, 520, 600] : pattern;
       pat.forEach((ms, k) => {
         const at = base[i] + ms;
         setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 0); }, at);
         setTimeout(() => dockLight(i, k % 2 === 0), at + 40);
-        if (k % 2 === 0 && (k < 3 || i === 2)) crackles.push(at / 1000);
+        if (k % 2 === 0 && (k < 3 || i === slow)) crackles.push(at / 1000);
       });
     });
     neonPowerOn({ crackles: crackles.slice(0, full ? 7 : 3), dur: full ? 2.4 : 1.4 });
@@ -740,13 +752,13 @@ export function createTitle() {
     if (!els.root.dataset.pt) { els.root.dataset.pt = '1'; for (const k of ['no-bloom', 'no-ringbreath', 'no-shimmer', 'no-vars']) if (location.search.includes(k)) els.root.classList.add(k); }
     if (els.root.classList.contains('no-vars')) { els.root.classList.toggle('is-party', p.on > 0); return; }
     const on = p.on > 0;
-    if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on && partyEls) { for (const g of partyEls.glows) g.el.style.opacity = ''; if (partyEls.word) partyEls.word.style.opacity = ''; partyEls = null; } }
+    if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on && partyEls) { for (const g of partyEls.glows) g.el.style.opacity = ''; if (partyEls.word) partyEls.word.style.opacity = ''; if (partyEls.logo) partyEls.logo.style.opacity = ''; partyEls = null; } }
     if (!on) return;
     // the numbers go on the three elements that breathe — never on the root: a custom property there is inherited by the whole
     // title, and writing it every frame re-styled all of it (100 ms frames on a slow phone). (Reduced: the breath holds at 0.5.)
     // (the rings breathe through their glow layer's opacity — a compositor change — never the registered --hk, whose 2.4 s
     // transition restarted on every write and re-styled the whole ring)
-    if (!partyEls || !partyEls.bloom || !partyEls.bloom.isConnected) partyEls = { bloom: els.sign.querySelector('.nd-bloom'), word: els.sign.querySelector('.nd-word-p'), glows: [...els.root.querySelectorAll('.nd-ringbtn')].map(r => ({ el: r.querySelector('.nd-hglow'), ring: r, k: r.classList.contains('nd-joinring') ? 0.46 : 0.62 })).filter(g => g.el), bo: -1, hk: -1, wp: -1 };
+    if (!partyEls || !partyEls.bloom || !partyEls.bloom.isConnected) partyEls = { bloom: els.sign.querySelector('.nd-bloom'), word: els.sign.querySelector('.nd-word-p'), logo: els.sign.querySelector('.nd-logo-glow'), lp: -1, lk: '', glows: [...els.root.querySelectorAll('.nd-ringbtn')].map(r => ({ el: r.querySelector('.nd-hglow'), ring: r, k: r.classList.contains('nd-joinring') ? 0.46 : 0.62 })).filter(g => g.el), bo: -1, hk: -1, wp: -1 };
     const pe = p.ramp * p.energy;
     // the bloom holds a gentle level that moves with the party's phase and the finale's swell (the beat breathes in the canvas's
     // halo under it): a big layer re-composited every frame cost a slow phone 60+ ms
@@ -756,6 +768,14 @@ export function createTitle() {
     // decay — through opacity alone: the rings' glow layer, SPEAKEASY's extra glow layer; the big bloom keeps its gentle level)
     const bo = Math.round((0.2 * pe + 0.6 * sw) * 50) / 50, hk = Math.round((createHarbor ? 0.78 + 0.95 * (p.punch || 0) + 0.5 * sw : 1 + 0.34 * p.breath * pe + 0.5 * sw) * 50) / 50;
     if (createHarbor && partyEls.word) { const wp = Math.round(Math.min(1, (p.punch || 0) * 1.15 + 0.6 * sw) * 40) / 40; if (wp !== partyEls.wp) { partyEls.wp = wp; partyEls.word.style.opacity = String(wp); } }
+    // (NEON PASS 5 — the owner: THE NEON LOGO PULSES TOO, with the city: a clear but gentler punch than the skyline so the word stays
+    // readable — its light alone (.nd-logo-glow, opacity only), on the letters that are lit right now)
+    if (createHarbor && partyEls.logo) {
+      const lk = [...els.sign.querySelectorAll('.nd-logo .ndl')].map(l => (l.classList.contains('on') ? 1 : 0)).join('');
+      if (lk !== partyEls.lk) { partyEls.lk = lk; partyEls.logo.querySelectorAll('.ndg').forEach((g, i) => g.classList.toggle('off', lk[i] !== '1')); }
+      const lp = Math.round(Math.min(0.8, (p.punch || 0) * 0.78 + 0.45 * sw) * 40) / 40;
+      if (lp !== partyEls.lp) { partyEls.lp = lp; partyEls.logo.style.opacity = String(lp); }
+    }
     if (bo !== partyEls.bo && partyEls.bloom) { partyEls.bo = bo; partyEls.bloom.style.setProperty('--bo', bo); }
     if (hk !== partyEls.hk) { partyEls.hk = hk; for (const g of partyEls.glows) g.el.style.opacity = g.ring.classList.contains('is-lit') ? String(Math.round(hk * g.k * 250) / 250) : ''; }
   }
@@ -870,12 +890,23 @@ export function createTitle() {
       // only a lit sign flickers (by day the tubes are dark: a flicker there used to leave a letter switched on)
       if (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day') || !(neonStage === 'lit' || neonStage === 'night')) { scheduleFlicker(); return; }
       // never a letter someone just tapped (its own animation is running)
-      const letters = [...els.sign.querySelectorAll('.ndl')].filter((_, i) => !buzzing.has(i));
+      const all = [...els.sign.querySelectorAll('.nd-logo .ndl')];
+      let letters = all.filter((_, i) => !buzzing.has(i));
+      // (NEON PASS 5, City 2.0 — the owner: any letter, at random, never the same one twice running; sometimes two at once; rarely a
+      // whole letter dropping out for a second before it strikes back)
+      if (createHarbor && letters.length > 1) letters = letters.filter(l => all.indexOf(l) !== lastFlick);
       if (!letters.length) { scheduleFlicker(); return; }
-      const l = letters[Math.floor(Math.random() * letters.length)];
-      const li = [...els.sign.querySelectorAll('.ndl')].indexOf(l);
-      const seq = [0, 60, 95, 130, 190];
-      seq.forEach((ms, k) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', k % 2 === 1 || k === seq.length - 1); dockLight(li, k % 2 === 1 || k === seq.length - 1); }, ms));
+      const pickL = () => letters.splice(Math.floor(Math.random() * letters.length), 1)[0];
+      const roll = createHarbor ? Math.random() : 1;
+      const picks = [pickL()];
+      if (roll < 0.22 && letters.length) picks.push(pickL());
+      lastFlick = all.indexOf(picks[0]);
+      const drop = roll > 0.92;
+      for (const l of picks) {
+        const li = all.indexOf(l), off = 140 * Math.random() * (picks.length > 1 ? 1 : 0);
+        const seq = drop ? [0, 50, 90, 1050, 1110, 1160, 1230] : [0, 60, 95, 130, 190];
+        seq.forEach((ms, k) => setTimeout(() => { if (destroyed) return; const on = k % 2 === 1 || k === seq.length - 1; l.classList.toggle('on', on); dockLight(li, on); }, ms + off));
+      }
       // (City 2.0: the flicker sounds — rare and random, one of four recordings, never the same twice running)
       if (createHarbor && document.visibilityState === 'visible') neonFlicker({ level: 0.8 });
       neonTick();
@@ -1263,6 +1294,7 @@ export function createTitle() {
       enter,
       setTier: t => scene && scene.setTier(t),
       frames: () => scene && scene.frames(),
+      tiering: () => (scene && scene.tiering ? scene.tiering() : null),            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),
       idle: () => goIdle(),
@@ -1297,7 +1329,7 @@ export function createTitle() {
     destroyed = true;
     humSync(false);
     if (tl) cancelAnimationFrame(tl.raf);
-    clearTimeout(flickerTimer);
+    clearTimeout(flickerTimer); clearInterval(tiredT);
     clearTimeout(els.logoTimer);
     clearTimeout(els.skyTimer);
     clearTimeout(neonT);

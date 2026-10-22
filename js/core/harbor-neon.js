@@ -36,9 +36,10 @@ export const SCHEMES = {
   nye: { b0: [255, 216, 122], b1: [236, 240, 255], b2: [255, 248, 230], h0: [255, 196, 74], h1: [220, 226, 255], a0: [255, 196, 74], a1: [255, 240, 200], a2: [236, 240, 255] },
   thanksgiving: { b0: [255, 138, 30], b1: [255, 176, 80], b2: [255, 230, 190], h0: [255, 138, 30], h1: [200, 90, 40], a0: 'amber', a1: [220, 70, 40], a2: [255, 200, 100] },
   easter: { b0: [138, 216, 255], b1: [255, 179, 224], b2: [255, 240, 200], h0: [255, 138, 208], h1: [180, 138, 255], a0: [255, 216, 106], a1: [255, 138, 208], a2: [160, 255, 190] },
-  // NEON PASS 4 — THE PARTY SCHEME (the owner: bold party colours in any single frame): magenta, hot pink, gold, electric blue,
-  // violet, lime — every role re-lit, so a party night reads at a glance
-  party: { b0: [255, 40, 210], b1: [255, 46, 151], b2: [40, 120, 255], h0: [255, 46, 151], h1: [150, 70, 255], a0: [255, 200, 60], a1: [150, 255, 60], a2: [40, 120, 255], m0: [255, 40, 210], t0: [150, 255, 60], g0: [150, 255, 60], a3: [255, 200, 60], w0: [255, 236, 250] },
+  // NEON PASS 4 — THE PARTY SCHEME (the owner: bold party colours in any single frame). NEON PASS 5 (the owner: "I don't want
+  // them to just be pink the whole time"): tiers 1–2 wear THE ROTATING PALETTE (core/harbor-show.js#PARTY_PAL, a new colour pair
+  // every scene); this baked scheme is tier 0's still party — the same seven colours, pink one of many
+  party: { b0: [40, 120, 255], b1: [255, 196, 50], b2: [160, 70, 255], h0: [255, 44, 64], h1: [50, 255, 120], a0: [255, 244, 236], a1: [255, 46, 151], a2: [40, 120, 255], m0: [160, 70, 255], t0: [50, 255, 120], g0: [255, 196, 50], a3: [255, 196, 50], w0: [255, 244, 236] },
 };
 /** a role's colour in a scheme: [r, g, b] */
 export function roleColour(role, scheme = 'city') {
@@ -379,9 +380,11 @@ function crownPath(t, tr) {
 // sunburst's sign, the wheel, the HOTEL blade breathe), never on the construction tower's face (wordV); the billboard is half
 // as big again (66×32) on the left near band's wall. NEON PASS 4: the JAZZ sign is gone (the left corner was cluttered).
 export const SPOTS = [
-  { id: 'n-roof', kind: 'named', type: 'box', host: 'near', mount: 'roof', x: [27, 75], y: [458, 478], z: 240, cap: 9 },
-  // (NEON PASS 4: from just under PAR's roof down to 2 pt over docked Rosie's stacks — nothing nearer stands in front of a sign)
-  { id: 'n-par', kind: 'named', type: 'vbox', host: 'par', x: [294.5, 305], y: [491.5, 537.5], z: 233.6, cap: 6 },
+  // (NEON PASS 5 — the owner's glance test: every name >= 10 pt at 390 wide. The roof signs are STACKED — the mark on top, the name
+  // across the whole cabinet under it — and take names of up to 6 letters; the longer ones hang as icons or on the billboard)
+  { id: 'n-roof', kind: 'named', type: 'box', stack: true, host: 'near', mount: 'roof', x: [29, 85], y: [446, 478], z: 240, cap: 6 },
+  // (NEON PASS 5: n-par — PAR's narrow vertical name, 10.5 pt wide between PAR's roof and docked Rosie — is gone: six stacked letters
+  // stood 5.7 pt there, and no taller box fits; PAR keeps its two icons)
   // Part 6a (the owner's SIGN PLACEMENT RULE: no sign covers a hero tower's face or outline): the sunburst's named sign is gone
   // and the HOTEL blade with it (its thin letters didn't read) — THE GAME BLADE takes the hotel's spot: a projecting vertical
   // cabinet with chasing bulbs, tonight's game (≤ 6 letters: they stand ~9 pt tall on a phone, the glance test)
@@ -393,11 +396,8 @@ export const SPOTS = [
   // hotel's roof): every letter clear, still ≥ 10 pt (signs.js#bladeLayout) — tested against her docked silhouette
   { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6 },
   { id: 'i-par', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [493, 513], z: 233.6 },
-  // NEON PASS 4 (the owner: "remove the JAZZ sign … the game icon inside its frame moves to a calmer spot"): the JAZZ script + the
-  // icon under it are gone from the old club's facade; the icon hangs on its own on the next wall to the right — under the
-  // construction tower's face, ≥ 26 pt from every other sign, clear of the wheel's quiet zone (the one calm wall a phone has
-  // left: tests/harbor.test.mjs)
-  { id: 'i-mid', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [97, 117], y: [496, 516], z: 229.4 },
+  // (NEON PASS 5, the owner: the small icon left of the Ferris wheel — i-mid, Neon Pass 4's — is gone: 5 named + 6 icons; the
+  // game the night leaves without a sign is the one the billboard advertises, and the nightly shuffle rotates it)
   { id: 'i-left', kind: 'icon', type: 'icon', host: 'near', mount: 'roof', x: [5, 25], y: [459, 479], z: 238 },
   { id: 'i-c1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [269, 289], y: [517, 537], z: 232.1 },
   { id: 'i-r1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [356, 377], y: [494, 515], z: 235.1 },
@@ -409,9 +409,11 @@ export const SPOTS = [
   // i-c2 + i-par2 off the crowded right wall) — under the skyline limit, out of the sun corridors, the towers' beacons on top
   // of their frames; while a tower spells a word its roof sign dims (the message is the star). Placed from the tower's own
   // top roof (towerRoofSign), not from reference pt: wpt × hpt is the cabinet at the reference scale.
-  { id: 'n-roofA', kind: 'named', type: 'box', host: 'wordA', mount: 'tower', wpt: 52, hpt: 18, cap: 7 },
-  { id: 'n-roofB', kind: 'named', type: 'box', host: 'wordB', mount: 'tower', wpt: 52, hpt: 18, cap: 7 },
-  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'wall', x: [5, 71], y: [490, 522], z: 233.1, show: 'rum' },
+  { id: 'n-roofA', kind: 'named', type: 'box', stack: true, host: 'wordA', mount: 'tower', wpt: 55, hpt: 31, cap: 6 },
+  { id: 'n-roofB', kind: 'named', type: 'box', stack: true, host: 'wordB', mount: 'tower', wpt: 55, hpt: 31, cap: 6 },
+  // (NEON PASS 5 — the owner: the billboard's name was small beside its icon: a bigger board, the mark small in its corner, the NAME
+  // across the whole board: signs.js#buildBillboard)
+  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'wall', x: [6, 71], y: [483, 524], z: 233.1, show: 'rum' },
 ];
 let refCam = null;
 const ref = () => refCam || (refCam = cameraFor(REF_TITLE.W, REF_TITLE.H, { tag: REF_TITLE.tag, dock: REF_TITLE.dock }, REF_TITLE.safe));

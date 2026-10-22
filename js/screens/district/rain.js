@@ -4,6 +4,7 @@
 //   drops(c, s)  over everything: three depths of drops (far: fine and faint, near: long, bright, a little soft), slanted by
 //                the real wind, lit by lightning; splashes and spreading rings on the wet street; a fine spray over it
 // Particles are capped per quality tier; every streak is a pre-baked sprite; Reduced effects shows a still, light rain.
+import { blurWorks } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
@@ -26,7 +27,7 @@ export function createRain() {
     const g = x.createLinearGradient(0, 0, 0, 64);
     g.addColorStop(0, 'rgba(210,225,255,0)'); g.addColorStop(0.7, 'rgba(215,228,255,0.55)'); g.addColorStop(0.94, 'rgba(240,246,255,1)'); g.addColorStop(1, 'rgba(240,246,255,0)');
     x.fillStyle = g;
-    if (i === 2) { x.filter = 'blur(0.8px)'; }
+    if (i === 2 && blurWorks()) { x.filter = 'blur(0.8px)'; }     // (Safari before 18: no canvas filter — the near streak a touch crisper)
     x.beginPath(); x.roundRect ? x.roundRect(2.5, 0, 3, 64, 1.5) : x.rect(2.5, 0, 3, 64); x.fill();
     return cv;
   });

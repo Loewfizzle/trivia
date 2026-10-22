@@ -16,8 +16,19 @@
 //   the reflection                   reflect(ctx): the same wheel, flipped by the water (water.reflect, the mirror's 10 a second)
 //
 // Tier 0 + reduced motion: the bulbs steady (no show); reduced motion also stills the wheel (it stands at its angle).
+//
+// NEON PASS 5 — THE WHEEL AS A SHOWPIECE (the owner: with the dark offices behind it, it can stand out much more): bigger,
+// brighter bulbs, a wider soft halo round the rim, warm-lit gondolas, and its bulbs drawn ONE BY ONE into the 20-a-second cache
+// (a colour + a level each — ~170 small draws 20 times a second, never per frame):
+//   A NORMAL NIGHT   elegant + slow — a gentle colour wave travelling round the rim (gold, rose, ice in turn, ~14 s a lap), a
+//                    slow sparkle, and every ~40 s a spiral running out from the hub along the spokes
+//   A PARTY NIGHT    a light show on the beat in the party palette (core/harbor-show.js#PARTY_PAL, the city's colour scene),
+//                    a new routine every 4 bars — a rainbow chase round the rim, the spokes lighting in sequence like a clock
+//                    hand, spirals, bursts from the hub on the strong beats (and a big one on the drops); the whole wheel
+//                    punching with the city. Smooth envelopes everywhere: one of the party's stars, never a strobe.
 import { project } from '../../core/harbor-layout.js';
 import { mix, rgb, shade, clamp01 } from './shapes.js';
+import { PARTY_PAL } from '../../core/harbor-show.js';
 
 const TURN_S = 150;                         // one turn (s)
 // (NEON PASS 4 — A STRONGER WHEEL, the owner: the spokes read as LINES OF LIGHT — seven bulbs along each, the rim bolder, a
@@ -45,7 +56,7 @@ const DAY_CARS = [[196, 44, 52], [236, 226, 204], [38, 128, 140], [226, 168, 40]
 function canvas(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
 function glowDot(col) {
   const c = canvas(32, 32), x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
-  g.addColorStop(0, `rgba(255,255,255,1)`); g.addColorStop(0.16, `rgba(${col},0.95)`); g.addColorStop(0.42, `rgba(${col},0.32)`); g.addColorStop(1, `rgba(${col},0)`);
+  g.addColorStop(0, `rgba(255,255,255,1)`); g.addColorStop(0.2, `rgba(${col},1)`); g.addColorStop(0.46, `rgba(${col},0.38)`); g.addColorStop(1, `rgba(${col},0)`);
   x.fillStyle = g; x.fillRect(0, 0, 32, 32); return c;
 }
 
@@ -115,7 +126,7 @@ export function createWheel() {
     const cw = 1.3 * u, ch = 1.55 * u, hang = 0.5 * u;
     for (let n = 0; n < 6; n++) {
       const lit = n >= 4 ? 0 : 1, colIdx = n % 4;
-      const body = mix(DAY_CARS[colIdx], [24, 20, 34], night * 0.92), roofC = shade(body, -0.25), win = night > 0.3 ? (lit ? [255, 206, 130] : [16, 14, 24]) : mix([60, 80, 100], [150, 186, 210], day * 0.6);
+      const body = mix(DAY_CARS[colIdx], lit ? [70, 46, 40] : [24, 20, 34], night * 0.88), roofC = shade(body, -0.25), win = night > 0.3 ? (lit ? [255, 222, 160] : [16, 14, 24]) : mix([60, 80, 100], [150, 186, 210], day * 0.6);
       const W = cw + 4, H = ch + hang + 4, cv = canvas(W * dpr, H * dpr), g = cv.getContext('2d');
       g.setTransform(dpr, 0, 0, dpr, (W / 2) * dpr, 2 * dpr);
       // the hanger (from the pivot at 0,0), the roof (a little dome + its rim), the cabin, the window band, the floor
@@ -125,7 +136,7 @@ export function createWheel() {
       g.fillRect(-cw * 0.58, hang + ch * 0.08, cw * 1.16, ch * 0.08);
       g.fillStyle = rgb(body); g.beginPath(); g.roundRect(-cw / 2, hang + ch * 0.15, cw, ch * 0.8, [cw * 0.08, cw * 0.08, cw * 0.28, cw * 0.28]); g.fill();
       g.fillStyle = rgb(win); g.fillRect(-cw * 0.4, hang + ch * 0.26, cw * 0.8, ch * 0.32);
-      if (night > 0.3 && lit) { const gg = g.createRadialGradient(0, hang + ch * 0.42, 0, 0, hang + ch * 0.42, cw * 0.9); gg.addColorStop(0, 'rgba(255,200,120,0.35)'); gg.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = gg; g.fillRect(-cw, hang, cw * 2, ch); }
+      if (night > 0.3 && lit) { const gg = g.createRadialGradient(0, hang + ch * 0.42, 0, 0, hang + ch * 0.42, cw * 1.05); gg.addColorStop(0, 'rgba(255,214,150,0.62)'); gg.addColorStop(0.5, 'rgba(255,190,110,0.22)'); gg.addColorStop(1, 'rgba(255,190,110,0)'); g.globalCompositeOperation = 'lighter'; g.fillStyle = gg; g.fillRect(-cw * 1.1, hang - ch * 0.1, cw * 2.2, ch * 1.2); g.globalCompositeOperation = 'source-over'; }
       g.fillStyle = rgb(shade(body, -0.3)); g.fillRect(-cw * 0.4, hang + ch * 0.42, cw * 0.8, Math.max(0.3, ch * 0.04));      // the window's mullion
       for (const s of [-1, 1]) g.fillRect(s * cw * 0.14 - 0.15, hang + ch * 0.26, 0.3, ch * 0.32);
       if (day > 0.2) { g.fillStyle = `rgba(255,248,232,${0.35 * day})`; g.fillRect(-cw / 2 + 0.2, hang + ch * 0.17, Math.max(0.3, cw * 0.1), ch * 0.7); }
@@ -144,7 +155,7 @@ export function createWheel() {
     if (key === bulbKey && bulbs) return;
     bulbKey = key;
     if (bulbs) for (const b of bulbs) b.width = 0;
-    const S = P * 2, br = Math.max(1.8, r * 0.05);
+    const S = P * 2, br = BR();
     const mk = (pts) => { const cv = canvas(S * dpr, S * dpr), x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter'; for (const [px, py, col, k] of pts) { const rr = br * (k || 1); x.drawImage(dot(col), px - rr, py - rr, rr * 2, rr * 2); } return cv; };
     bulbs = [];
     for (let s = 0; s < 3; s++) { const pts = []; for (let i = s; i < RIM_BULBS; i += 3) { const a = (i / RIM_BULBS) * Math.PI * 2; pts.push([Math.cos(a) * r * 0.97, Math.sin(a) * r * 0.97, sc.rim[s]]); } bulbs.push(mk(pts)); }
@@ -164,7 +175,7 @@ export function createWheel() {
     { const rc = sc.ring || sc.rim[0].map(v => Math.min(255, v + 30));
       ring = ring || canvas(1, 1); ring.width = ring.height = Math.ceil(S * dpr);
       const x = ring.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter';
-      for (const [w, a] of [[r * 0.12, 0.06], [r * 0.06, 0.12], [Math.max(1.1, r * 0.026), 0.3], [Math.max(0.6, r * 0.009), 0.75]]) { x.strokeStyle = `rgba(${rc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * 0.97, 0, Math.PI * 2); x.stroke(); }
+      for (const [w, a] of [[r * 0.26, 0.045], [r * 0.14, 0.08], [r * 0.065, 0.14], [Math.max(1.1, r * 0.026), 0.34], [Math.max(0.6, r * 0.009), 0.8]]) { x.strokeStyle = `rgba(${rc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * 0.97, 0, Math.PI * 2); x.stroke(); }
       // THE HUB MEDALLION: a glowing disc + two bright rings round the axle
       { const hc = sc.hub, g = x.createRadialGradient(0, 0, 0, 0, 0, r * 0.2); g.addColorStop(0, `rgba(${hc},0.55)`); g.addColorStop(0.45, `rgba(${hc},0.22)`); g.addColorStop(1, `rgba(${hc},0)`); x.fillStyle = g; x.beginPath(); x.arc(0, 0, r * 0.2, 0, Math.PI * 2); x.fill();
         for (const [rr, w, a] of [[0.165, Math.max(0.6, r * 0.01), 0.7], [0.1, Math.max(0.5, r * 0.007), 0.6]]) { x.strokeStyle = `rgba(${hc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * rr, 0, Math.PI * 2); x.stroke(); } }
@@ -177,6 +188,94 @@ export function createWheel() {
     if (!pool) { pool = canvas(64, 64); const x = pool.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,236,214,0.55)'); g.addColorStop(0.5, 'rgba(236,226,232,0.16)'); g.addColorStop(1, 'rgba(220,220,240,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }
   }
 
+  const BR = () => Math.max(2.1, r * 0.058);                        // (NEON PASS 5: a little bigger bulbs)
+  // ---------------------------------------------------------------- THE BULBS, one by one (NEON PASS 5): a level + a colour each
+  const TINTS = [[255, 206, 120], [255, 150, 190], [170, 214, 255]];  // a normal night's wave: gold, rose, ice in turn
+  const q6 = (a, b, k) => mix(a, b, Math.round(clamp01(k) * 6) / 6).map(Math.round);     // (colours on 1/6 steps: few glow sprites)
+  const hsh = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const ring01 = v => v - Math.floor(v);
+  const angD = (a, b) => { const d = Math.abs(ring01(a) - ring01(b)); return Math.min(d, 1 - d); };
+  const bell = (d, w) => { const v = Math.max(0, 1 - d / w); return v * v * (3 - 2 * v); };
+  function bulb(c, x, y, rr, col, k) {
+    if (k <= 0.05) return;
+    const D = dot(col), R2 = rr * (0.85 + 0.25 * Math.min(1.6, k));
+    c.globalAlpha = Math.min(1, k); c.drawImage(D, x - R2, y - R2, R2 * 2, R2 * 2);
+    if (k > 1.15) { c.globalAlpha = Math.min(1, k - 1); c.drawImage(D, x - R2 * 1.25, y - R2 * 1.25, R2 * 2.5, R2 * 2.5); }   // (the brightest: a wider bloom)
+  }
+  function drawBulbs(c, f, lights) {
+    const sc = WHEEL_SCHEMES[schemeName] || WHEEL_SCHEMES.city, t = f.t, br = BR();
+    const P2 = f.party, party = !!(P2 && P2.ramp > 0.3 && schemeName === 'party');
+    const pk = party ? P2.punch || 0 : 0, bF = party ? P2.beatsF || 0 : 0, bar = party ? P2.bar || 0 : 0, cn = f.cn || 0, drop = party ? f.drop || 0 : 0;
+    const whole = lights * (party ? 0.82 + 0.45 * pk : 1);
+    const PAL = i => PARTY_PAL[((i % 7) + 7) % 7];
+    const mode = party ? Math.floor(bar / 4) % 4 : -1;
+    // (the perf pass: a normal night is the baked bulbs at their steady level + only the bulbs that differ drawn over them)
+    const base = !party && allBulbs ? 0.84 : 0;
+    if (base) { c.globalAlpha = Math.min(1, whole * base); c.drawImage(allBulbs, -P, -P, P * 2, P * 2); }
+    // ---- the rim (48)
+    for (let i = 0; i < RIM_BULBS; i++) {
+      const u = i / RIM_BULBS, an = u * Math.PI * 2, x = Math.cos(an) * r * 0.97, y = Math.sin(an) * r * 0.97;
+      let k, col;
+      if (party) {
+        if (mode === 0 || mode === 2) {
+          // THE RAINBOW CHASE: the palette round the rim, rolling a step every beat; every third bulb leads, stepping on the beat
+          col = PAL(Math.floor(u * 7 + bF * 0.5) + cn * 2);
+          const lead = ((i + Math.floor(bF * 2)) % 3 + 3) % 3 === 0;
+          k = lead ? 1.25 : 0.5;
+        } else {
+          // the rim in the scene's two colours, a soft wave following the clock hand / the bursts
+          col = PAL(cn * 2 + (i % 2 ? 3 : 0));
+          k = 0.62 + 0.6 * bell(angD(u, bF / 16), 0.12);
+        }
+      } else {
+        // A NORMAL NIGHT: warm white, a gentle colour wave travelling round (one lap ~14 s), a slow sparkle
+        const bc = sc.rim[i % 3], lap = t / 14, w = schemeName === 'city' ? bell(angD(u, lap), 0.16) : 0;
+        col = w > 0.02 ? q6(bc, TINTS[Math.floor(lap) % 3], 0.9 * w) : bc;
+        k = 0.28 * w;                                           // (over the base: the wave's tint)
+        const sl = Math.floor(t * 2.2), sp = hsh(i, sl);
+        if (sp < 0.05) k += 0.55 * Math.sin(Math.PI * (t * 2.2 - sl));
+        if (!base) k += 0.84;
+      }
+      bulb(c, x, y, br, col, k * whole);
+    }
+    // ---- the spokes (16 × 7) and the hub
+    const spiralAt = (t % 40) / 6;                                   // (a normal night: a spiral out from the hub every ~40 s, 6 s long)
+    for (let i = 0; i < CARS; i++) {
+      const an = (i / CARS) * Math.PI * 2, cs = Math.cos(an), sn = Math.sin(an);
+      for (let j = 0; j < NR; j++) {
+        const f2 = SPOKE_RINGS[j], x = cs * r * f2, y = sn * r * f2;
+        let k, col;
+        if (party) {
+          if (mode === 1) {
+            // THE CLOCK HAND: one spoke a beat, lighting hub → rim, the last three fading behind it
+            const d = ring01((bF - i) / 16) * 16;
+            k = 0.32 + 1.1 * Math.max(0, 1 - d / 3.2) * (0.7 + 0.3 * bell(Math.abs((bF % 1) * (NR + 1) - j), 2.4));
+            col = PAL(cn * 2 + Math.floor(i / 4));
+          } else if (mode === 2) {
+            // THE SPIRAL: out from the hub, round and round, a turn a bar
+            const sPos = ring01((bF / 4) - (j / NR) * 0.5);
+            k = 0.32 + 1.0 * bell(angD(i / CARS, sPos), 0.09);
+            col = PAL(cn * 2 + j);
+          } else {
+            // BURSTS from the hub on the strong beats (beats 1 + 3): a ring of light running out to the rim
+            const pos = ((bF % 2) / 2) * (NR + 2) - 0.5;
+            k = 0.35 + 1.05 * bell(Math.abs(j - pos), 1.4) * (mode === 3 ? 1 : 0.6);
+            col = PAL(cn * 2 + 3 + (j % 2));
+          }
+          if (drop > 0.2) k = Math.max(k, 1.2 * drop * bell(Math.abs(j - (1 - drop) * NR), 2.5));   // (a drop: a big burst out from the hub)
+        } else {
+          col = sc.rings[Math.round(j * (sc.rings.length - 1) / (NR - 1))];
+          k = base ? 0 : 0.68;
+          const sp = spiralAt < 1 ? ring01(spiralAt * 1.6 - (j / NR) * 0.45) : -1;
+          if (sp >= 0) { const e = bell(angD(i / CARS, sp), 0.075) * Math.sin(Math.PI * Math.min(1, spiralAt)); k += 0.85 * e; if (e > 0.05 && schemeName === 'city') col = q6(col, TINTS[Math.floor(t / 40) % 3], 0.7 * e); }
+        }
+        bulb(c, x, y, br * 0.86, col, k * whole);
+      }
+    }
+    const hc = party ? PAL(cn * 2 + 5) : sc.hub, hk = (party ? 0.9 + 0.7 * pk : 1) * whole;
+    if (!base) { for (let i = 0; i < HUB_BULBS; i++) { const an = (i / HUB_BULBS) * Math.PI * 2; bulb(c, Math.cos(an) * r * 0.13, Math.sin(an) * r * 0.13, br * 0.8, hc, hk); } bulb(c, 0, 0, br * 1.5, hc, hk); }
+    c.globalAlpha = 1;
+  }
   // ---------------------------------------------------------------- the show: each bulb set's brightness at t (s)
   function show(t, f) {
     const k = new Array(3 + NR + 1).fill(1);
@@ -232,7 +331,7 @@ export function createWheel() {
     for (let i = 0; i < CARS; i++) {
       const ai = a + (i / CARS) * Math.PI * 2, px = Math.cos(ai) * r * 1.0, py = Math.sin(ai) * r * 1.0;
       const sw = f.motion ? 0.07 * Math.sin(f.t * 0.85 + i * 1.7) + 0.03 * Math.sin(f.t * 2.1 + i) : 0;
-      const cv = cars[f.T.night > 0.3 ? (i % 7 === 3 || i % 11 === 5 ? 4 + (i % 2) : i % 4) : i % 4];
+      const cv = cars[f.T.night > 0.3 ? (i % 8 === 5 ? 4 + (i % 2) : i % 4) : i % 4];     // (NEON PASS 5: 2 of 16 dark, the rest warm-lit)
       const W = cv.width / dpr, H = cv.height / dpr;
       c.save(); c.translate(px, py); if (sw) c.rotate(sw); c.drawImage(cv, -W / 2, -2, W, H); c.restore();
     }
@@ -242,10 +341,9 @@ export function createWheel() {
       c.globalCompositeOperation = 'lighter';
       if (ring) { c.globalAlpha = Math.min(1, f.lights); c.drawImage(ring, -P, -P, P * 2, P * 2); }
       c.save(); c.rotate(a);
-      // (the steady phase: all the sets in one draw, a soft breath for the twinkle)
-      const steady = k.steady || k.every(v => v > 0.88);
-      if (steady && allBulbs) { c.globalAlpha = Math.min(1, f.lights * (k.steady ? 1 : 0.95 + 0.05 * Math.sin(f.t * 1.3))); c.drawImage(allBulbs, -P, -P, P * 2, P * 2); }
-      else bulbs.forEach((b, i) => { const al = f.lights * k[i]; if (al > 0.01) { c.globalAlpha = Math.min(1, al); c.drawImage(b, -P, -P, P * 2, P * 2); if (al > 1.02) { c.globalAlpha = Math.min(1, al - 1); c.drawImage(b, -P, -P, P * 2, P * 2); } } });
+      // (NEON PASS 5: the show bulb by bulb — tier 1–2 with motion; the baked sets for tier 0 + reduced motion: one still image)
+      if (!k.steady) drawBulbs(c, f, Math.min(1.1, f.lights * 1.05));
+      else if (allBulbs) { c.globalAlpha = Math.min(1, f.lights); c.drawImage(allBulbs, -P, -P, P * 2, P * 2); }
       c.restore();
       c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     }
@@ -257,7 +355,8 @@ export function createWheel() {
   let cache = null, cacheAt = -1e9, cacheKey = '', CP = 0;
   function refresh(f) {
     const now = performance.now(), key = `${lookKey}|${bulbKey}|${Math.round(f.lights * 40)}|${f.motion ? 1 : 0}|${f.sparkle > 0 ? 1 : 0}`;
-    const every = !f.motion ? 1e9 : tier === 2 ? 50 : tier === 1 ? 100 : 250;          // (tier 0, the calm city: 4 a second)
+    // (NEON PASS 5: a party night's wheel refreshes 30 times a second at tier 2 — the beat's chases need it; else 20)
+    const every = !f.motion ? 1e9 : tier === 2 ? (f.party && f.party.ramp > 0.3 ? 33 : 50) : tier === 1 ? 100 : 250;          // (tier 0, the calm city: 4 a second)
     if (cache && key === cacheKey && now - cacheAt < every) return;
     cacheAt = now; cacheKey = key;
     CP = Math.ceil(r * 1.22 + 6);
@@ -281,7 +380,7 @@ export function createWheel() {
       // the warm haze the bulbs throw into the night air + their pool on the platform's deck (under the wheel)
       if (f.lights > 0.01) {
         c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = f.fade * f.lights * 0.22; c.drawImage(haze, cx - r * 1.5, cy - r * 1.5, r * 3, r * 3);
+        c.globalAlpha = f.fade * f.lights * 0.3; c.drawImage(haze, cx - r * 1.5, cy - r * 1.5, r * 3, r * 3);
         c.globalAlpha = f.fade * f.lights * 0.5; c.drawImage(pool, cx - r * 0.75, deckY - r * 0.16, r * 1.5, r * 0.32);
         c.globalCompositeOperation = 'source-over'; c.globalAlpha = f.fade;
       }

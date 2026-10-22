@@ -70,8 +70,9 @@ export function bladeLayout(R, n = 6) {
   const ring = 1.15, gap = ring + 2.0, pad = 1.0;
   const panel = { x: R.x + gap, y: R.y + gap, w: R.w - gap * 2, h: R.h - gap * 2 };
   const box = { x: panel.x + pad, y: panel.y + pad, w: panel.w - pad * 2, h: panel.h - pad * 2 };
-  const lh = Math.min(box.w * 0.82 * 1.4, box.h / Math.max(1, n) * 0.88);
-  return { ring, panel, box, lh, fill: 0.88, wide: 0.82 };
+  // (NEON PASS 5: the letters a touch closer — 0.93 of a row each — so six stand >= 10 pt at 390 wide: the glance test)
+  const lh = Math.min(box.w * 0.82 * 1.4, box.h / Math.max(1, n) * 0.93);
+  return { ring, panel, box, lh, fill: 0.93, wide: 0.82 };
 }
 const roundRectPts = (x, y, w, h, r) => {
   const p = [], seg = (cx, cy, a0) => { for (let i = 0; i <= 4; i++) { const a = a0 + i * Math.PI / 8; p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } };
@@ -113,6 +114,15 @@ export function buildSign(spot, game, ctx) {
       const L2 = lettersCol(text.replace(/ /g, ' '), R.x + pad, R.y + pad + (markH ? markH + pad * 0.6 : 0), R.w - pad * 2, R.h - pad * 2 - (markH ? markH + pad * 0.6 : 0));
       tw = Math.max(0.55, Math.min(1.25, L2.lh * 0.13));
       parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
+    } else if (spot.stack) {
+      // NEON PASS 5 — A ROOF SIGN, STACKED (the owner: the names were too small for the glance test): the game's mark centred on
+      // top, the NAME across the cabinet's whole width under it — ≥ 10 pt at 390 wide (tests/harbor.test.mjs), never clipped
+      const px = Math.max(1.6, R.h * 0.06), py = Math.max(1.4, R.h * 0.05), ms = game ? Math.min(R.h * 0.34, R.w * 0.4) : 0, gp = R.h * 0.04;
+      if (ms) for (const m of markTubes(game, R.x + (R.w - ms) / 2, R.y + py + 0.6, ms)) parts.push({ tubes: m.polys, col: m.col, w: Math.max(0.55, tw * 0.75), mark: true });
+      const L2 = lettersRow(text, R.x + px, R.y + py + ms + gp, R.w - px * 2, R.h - py * 2 - ms - gp);
+      tw = tubeWidthFor(L2.lh);
+      parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
+      border = { pts: roundRectPts(R.x + 0.55, R.y + 0.55, R.w - 1.1, R.h - 1.1, Math.min(R.w, R.h) * 0.1), col: mix(col, ICE, 0.55) };
     } else {
       // (NEON PASS 4: the name now fits inside the border — a slightly smaller mark + tighter gaps give the letters the room back;
       // the text box ends 0.8 pad in from the edge: just inside the border tube)
@@ -303,27 +313,27 @@ export function buildBillboard(spot, content, ctx) {
     const g = x.createLinearGradient(0, R.y, 0, R.y + R.h); g.addColorStop(0, 'rgba(255,255,255,0.08)'); g.addColorStop(1, 'rgba(0,0,0,0.16)'); x.fillStyle = g; x.fillRect(R.x, R.y, R.w, R.h);
     // the paper's seams (under the paint: never a line through the lettering)
     x.fillStyle = 'rgba(0,0,0,0.1)'; for (const f of [0.34, 0.67]) x.fillRect(R.x + R.w * f, R.y, 0.35, R.h);
-    // the mark, painted (flat strokes in its colours) on the left; the name + the tag line on the right
-    const ms = R.h * 0.78;
+    // NEON PASS 5 (the owner: the game's name was small beside the icon, hard to read): the mark SMALL in the top-left corner, the
+    // NAME across the whole board under it, as big as the board allows (the condensed UI face: a long name still reads), one line
+    const ms = R.h * 0.3, mx = R.x + R.w * 0.045, my = R.y + R.h * 0.07;
     if (content.game) {
       const m = markFor(content.game), s = ms / 100;
-      x.save(); x.translate(R.x + R.h * 0.12, R.y + (R.h - ms) / 2); x.scale(s, s); x.lineCap = 'round'; x.lineJoin = 'round';
-      for (const t of m.tubes) { x.strokeStyle = t.col; x.lineWidth = 9; x.stroke(new Path2D(t.d)); }
+      x.save(); x.translate(mx, my); x.scale(s, s); x.lineCap = 'round'; x.lineJoin = 'round';
+      for (const t of m.tubes) { x.strokeStyle = t.col; x.lineWidth = 11; x.stroke(new Path2D(t.d)); }
       x.restore();
     }
-    // the name as big as the board allows (the glance test, Part 4): two words stack on two lines; the tag line only if it really
-    // reads (NEON PASS 2: ≥ 6.5 pt — on a phone's 66 × 32 board it doesn't, so the name has the board)
-    const tx = R.x + (content.game ? R.h * 0.12 + ms + R.h * 0.1 : R.w * 0.06), tw = R.x + R.w - R.w * 0.04 - tx;
-    const words = String(content.title).split(' '), lines = words.length > 1 ? [words[0], words.slice(1).join(' ')] : words;
-    const fitFs = (txt, fs0, wt) => { let fs = fs0; x.font = `${wt} ${fs}px Orbitron, "Chakra Petch", sans-serif`; while (fs > 3 && x.measureText(txt).width > tw) { fs *= 0.94; x.font = `${wt} ${fs}px Orbitron, "Chakra Petch", sans-serif`; } return fs; };
-    const fs = Math.min(...lines.map(l => fitFs(l, R.h * (lines.length > 1 ? 0.33 : 0.4), 900)));
-    let fs2 = R.h * 0.15; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`;
-    while (fs2 > 2 && x.measureText(content.sub).width > tw) { fs2 *= 0.92; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; }
+    // (beside the mark, small, the tag line only if it really reads — at least 6.5 pt: on a phone it doesn't, the name has the board)
+    const tx = R.x + R.w * 0.05, tw = R.w * 0.9;
+    const FONT = fs => `700 ${fs}px "Chakra Petch", Orbitron, sans-serif`;
+    const nameTop = content.game ? my + ms + R.h * 0.03 : R.y + R.h * 0.12, nameH = R.y + R.h * 0.95 - nameTop;
+    let fs = nameH * 1.25; x.font = FONT(fs);
+    while (fs > 3 && x.measureText(content.title).width > tw) { fs *= 0.95; x.font = FONT(fs); }
+    let fs2 = R.h * 0.15; const sw = R.x + R.w * 0.96 - (mx + ms + R.w * 0.04); x.font = `600 ${fs2}px "Chakra Petch", sans-serif`;
+    while (fs2 > 2 && x.measureText(content.sub).width > sw) { fs2 *= 0.92; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; }
     const sub = fs2 >= 6.5 && content.sub;
-    const blockH = lines.length * fs * 1.05 + (sub ? fs2 * 1.5 : 0), top = R.y + (R.h - blockH) / 2;
-    x.font = `900 ${fs}px Orbitron, "Chakra Petch", sans-serif`; x.fillStyle = rgba(content.ink); x.textBaseline = 'alphabetic';
-    lines.forEach((l, i) => x.fillText(l, tx, top + fs * (0.86 + i * 1.05)));
-    if (sub) { x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; x.fillStyle = rgba(mix(content.ink, content.bg, 0.25)); x.fillText(content.sub, tx, top + lines.length * fs * 1.05 + fs2 * 1.15); }
+    x.font = FONT(fs); x.fillStyle = rgba(content.ink); x.textBaseline = 'alphabetic';
+    x.fillText(content.title, tx + (tw - x.measureText(content.title).width) / 2, nameTop + (nameH + fs * 0.7) / 2);
+    if (sub) { x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; x.fillStyle = rgba(mix(content.ink, content.bg, 0.25)); x.fillText(content.sub, mx + ms + R.w * 0.04, my + ms * 0.72); }
     // a peeled corner
     x.fillStyle = 'rgba(232,224,206,0.7)'; x.beginPath(); x.moveTo(R.x + R.w, R.y + R.h); x.lineTo(R.x + R.w - R.h * 0.18, R.y + R.h); x.lineTo(R.x + R.w, R.y + R.h - R.h * 0.2); x.fill();
   };

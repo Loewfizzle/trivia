@@ -28,7 +28,23 @@
 //   everyday(key, cast, signs)  tonight's calm motion: blinking / spelling signs, a colour-cycling sign, slow chasers, rotations
 //                    + scheme stages through the night — seeded by the night (the same all night)
 
+import { halfTime } from './harbor-beat.js';
+
 export const FX = { none: 0, chase: 1, ledges: 2, fins: 3, flash: 4 };
+/**
+ * THE PARTY PALETTE (NEON PASS 5 — the owner: "I don't want them to just be pink the whole time"): electric blue, gold, red,
+ * green, violet, white, pink — every building in a main colour + an accent, the whole palette ROTATING scene by scene (every
+ * 20–40 s) in a sweep across the skyline; neighbours never share a main colour; pink is one colour of seven.
+ */
+export const PARTY_PAL = [[40, 120, 255], [255, 196, 50], [255, 44, 64], [50, 255, 120], [160, 70, 255], [255, 244, 236], [255, 46, 151]];
+/** a building's party colours in scene n: [main, accent] (indices into PARTY_PAL). rank: its place left → right among the cast.
+ *  The six bright colours take turns as the MAIN (neighbours always differ); WHITE is an accent only — a white tower read as no
+ *  colour at all under the racing light's white-hot heads (the review) */
+const MAINS = [0, 1, 2, 3, 4, 6];
+export function partyColours(rank, n, h = 0) {
+  const k = (((rank + n * 2) % 6) + 6) % 6, main = MAINS[k];
+  return [main, h > 0.55 ? 5 : MAINS[(k + 3) % 6]];
+}
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 const hash = (a, b = 0) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
@@ -61,7 +77,13 @@ export function harborParty(h) {
 
 /** the cast: the descriptors of the outline items in draw order */
 export function showItems(list) {
-  return list.map((o, i) => ({ i, kind: o.kind, x: clamp01(o.x), ledges: o.ledges | 0, fins: o.fins | 0, crown: !!o.crown, contour: !!o.contour, h: hash(i + 7, 3), h2: hash(i + 11, 5) }));
+  const cast = list.map((o, i) => ({ i, kind: o.kind, x: clamp01(o.x), ledges: o.ledges | 0, fins: o.fins | 0, crown: !!o.crown, contour: !!o.contour, h: hash(i + 7, 3), h2: hash(i + 11, 5), rank: 0 }));
+  // (NEON PASS 5: the hero + word towers first in the racers' line — a tier that races only a few races the towers' whole borders)
+  const top = c => (c.kind === 'hero' || c.kind === 'word' ? 0 : 1);
+  cast.order = [...cast].sort((a, b) => top(a) - top(b) || a.i - b.i).map(c => c.i);
+  // (the party palette's ranks: the outlines left → right; signs keep their own colours)
+  [...cast].filter(c => c.kind !== 'sign').sort((a, b) => a.x - b.x).forEach((c, r) => { c.rank = r; });
+  return cast;
 }
 
 // THE SCENES: effects assigned to classes of buildings, layered over the racing light; ~a quarter of the city holds steady.
@@ -98,7 +120,7 @@ export const MAX_MOVING = [0, 5, 64];
 /** how many items may race at once, by tier */
 export const MAX_RACE = [0, 6, 999];
 
-export function newShowOut(n) { return { scene: '', a: new Float32Array(n), alt: new Float32Array(n), fx: new Uint8Array(n), k: new Float32Array(n), ph: new Float32Array(n), race: new Float32Array(n), dir: new Int8Array(n), sp: new Float32Array(n), punch: 0, drop: 0, big: 0, lights: 0, beams: 0, sparkle: 0, shimmer: 0, moving: 0, racing: 0, peak: 0 }; }
+export function newShowOut(n) { return { scene: '', a: new Float32Array(n), alt: new Float32Array(n), fx: new Uint8Array(n), k: new Float32Array(n), ph: new Float32Array(n), race: new Float32Array(n), dir: new Int8Array(n), sp: new Float32Array(n), cn: 0, cm: new Float32Array(n), punch: 0, drop: 0, big: 0, lights: 0, beams: 0, sparkle: 0, shimmer: 0, moving: 0, racing: 0, peak: 0 }; }
 
 /** which scene list + scene a frame is in (pure: the bar count + the energy); len = bars a scene (20–40 s at the song's rate) */
 export function sceneAt(f) {
@@ -115,7 +137,8 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
   out.moving = 0; out.racing = 0;
   if (!on || !f.motion) {
     // (reduced motion: a still party — the tubes a touch brighter, nothing moves)
-    for (let i = 0; i < n; i++) { out.a[i] = 1 + 0.08 * on; out.alt[i] = 0; out.fx[i] = 0; out.k[i] = 0; out.ph[i] = 0; out.race[i] = 0; out.dir[i] = 1; out.sp[i] = 1; }
+    for (let i = 0; i < n; i++) { out.a[i] = 1 + 0.08 * on; out.alt[i] = 0; out.fx[i] = 0; out.k[i] = 0; out.ph[i] = 0; out.race[i] = 0; out.dir[i] = 1; out.sp[i] = 1; out.cm[i] = 0; }
+    out.cn = 0;
     out.scene = on ? 'still' : ''; out.drop = 0; out.big = 0; out.lights = 0; out.sparkle = 0; out.peak = 0; out.punch = 0; out.shimmer = 0;
     out.beams = on ? 0.6 : 0;
     return out;
@@ -131,6 +154,10 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
   out.drop = Math.max(dropBar ? Math.max(0, 1 - ph * 1.6) : 0, clamp01(f.swell || 0));
   out.big = bigBar ? Math.max(0, 1 - ph * 1.3) : 0;
   out.scene = sc.name; out.peak = peak;
+  // THE PALETTE'S ROTATION: scene n's colours; over the scene's last fifth a sweep front crosses the skyline (left → right, then
+  // right → left) and each building crossfades to scene n + 1's — at the scene's end every building wears the next colours
+  const cn = Math.floor(Math.max(0, bar) / len) + (f.cnBase | 0), cu = (bar % len + ph) / len, front = clamp01((cu - 0.8) / 0.2);
+  out.cn = cn;
   // THE SKY: the searchlights take turns with the sky beams at the peak (the last quarter of every 32 bars), so the sky never
   // gets messy; the beams switch on through the warm-up and stand together from the peak
   const turn = peak > 0.5 ? smooth(23, 24.5, bar % 32 + ph) * (1 - smooth(31, 32, bar % 32 + ph)) : 0;
@@ -138,21 +165,26 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
   out.beams = on * (1 - 0.65 * turn) * (f.name === 'after' ? 0.75 : 1);
   out.sparkle = peak > 0.5 && (dropBar || bar % 4 === 0) ? 1 : 0;
   out.shimmer = on * (0.35 + 0.65 * peak);
-  // THE HARD BEAT: the punch of this beat (harder on the downbeat, harder still on a drop)
-  const T = f.beatT || 0.5, bu = f.beatU ?? ph, strong = (f.beatIdx | 0) === 0 ? 1 : 0.72;
-  const hit = strong * (1 + 0.6 * out.drop) * (sc.pulse ?? 0.6) * amp;
-  out.punch = punchEnv(bu, T) * hit;
+  // THE HARD BEAT (NEON PASS 5): the city's punch (core/harbor-beat.js: half-time, the downbeat hardest, the kicks heard) — read
+  // late across the skyline for the ripple (f.punchAt(s)); without it (the tests, the previews) the half-time beat from the clock
+  const T = f.beatT || 0.5, bu = f.beatU ?? ph;
+  const beatsF = f.beatsF ?? ((f.beats ?? bar * 4) + bu);
+  const ht = halfTime(beatsF, T), strong = ht.strong;
+  const hit = (1 + 0.6 * out.drop) * (sc.pulse ?? 0.6) * amp;
+  const pAt = f.punchAt ? s2 => f.punchAt(s2) : s2 => { const h2 = halfTime(beatsF - s2 / T, T); return h2.env * h2.strong; };
+  out.punch = pAt(0) * hit;
   const maxMove = MAX_MOVING[f.tier ?? 2] ?? 64, maxRace = MAX_RACE[f.tier ?? 2] ?? 999;
   const sweepPos = sc.sweep ? (((bar % sc.sweep.every) + ph) / sc.sweep.every) * 1.5 - 0.25 : 0;
   const beats = f.beats ?? bar, cur = beats % 2, sa = smooth(0, Math.min(0.3, 0.06 / T), bu);       // (the strobe's 60 ms crossfade)
-  for (let i = 0; i < n; i++) {
-    const it = cast[i];
+  const order = cast.order || cast.map(c => c.i);
+  for (let oi = 0; oi < n; oi++) {
+    const i = order[oi] ?? oi, it = cast[i];
     let a = 1, alt = 0, fx = 0, k = 0, p = 0, race = 0;
     // ~a quarter of the city holds steady through any scene (a different quarter each scene): no race, no effect — it still
     // punches on the beat, gently (the whole city in time)
-    const steady = hash(i + 31, Math.floor(bar / len)) < 0.24 && it.kind !== 'hero';
-    const delay = (sc.ripple || 0) * it.x * 0.35;
-    const pe = punchEnv(bu - delay, T) * hit;
+    const steady = hash(i + 31, Math.floor(bar / len)) < 0.24 && it.kind !== 'hero' && it.kind !== 'word';   // (NEON PASS 5: the towers always race)
+    const delay = (sc.ripple || 0) * it.x * 0.35 * T;                      // (seconds: the punch rolling across the screen)
+    const pe = pAt(delay) * hit;
     // the base sinks a little so the punch reads (a big swing, never dark): 0.8 between beats → ~1.8 on a downbeat at the peak
     a = 1 - 0.2 * amp + (steady ? 0.35 : 0.9) * pe;
     if (!steady) {
@@ -166,8 +198,10 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
       // a few towers STROBE colour-to-colour on the beat (a 60 ms crossfade, every beat)
       if (sc.strobe && (it.kind === 'hero' || it.kind === 'word' || it.kind === 'mid') && it.h2 < sc.strobe * 1.6) alt = Math.max(alt, (cur ? sa : 1 - sa) * amp);
       // RACING LIGHT round the whole outline: the towers + most mid buildings, half the bands, some of the quay
-      const racer = it.contour && (it.kind === 'hero' || it.kind === 'word' || (it.kind === 'mid' && it.h2 < 0.85) || (it.kind === 'band' && it.h2 < 0.5) || (it.kind === 'quay' && it.h2 < 0.5));
-      if (racer && it.h < (sc.race ?? 0.6) * 1.15 + (it.kind === 'hero' ? 1 : 0) && out.racing < maxRace) { race = amp * (0.7 + 0.3 * peak); out.racing++; }
+      // (NEON PASS 5: every hero + word tower races its whole border in every scene — the owner couldn't see the racing on her phone)
+      const tower = it.kind === 'hero' || it.kind === 'word';
+      const racer = it.contour && (tower || (it.kind === 'mid' && it.h2 < 0.85) || (it.kind === 'band' && it.h2 < 0.5) || (it.kind === 'quay' && it.h2 < 0.5));
+      if (racer && (tower || it.h < (sc.race ?? 0.6) * 1.15) && out.racing < maxRace) { race = amp * (0.78 + 0.22 * peak); out.racing++; }
       if (out.moving < maxMove) {
         if (sc.climb && it.ledges >= 2 && (!sc.cls || sc.cls.includes(it.kind)) && it.h < 0.85) { fx = FX.ledges; k = sc.climb * amp; p = (inBar * len * 0.5 + it.h) % 1; }
         else if (sc.fins && it.fins >= 2 && sc.fins.includes(it.kind) && it.h < 0.85) { fx = FX.fins; k = amp; p = (ph + bar * 0.25 + it.h) % 1; }
@@ -175,15 +209,16 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
       }
       // FLASHES: the crowns + spires flare on the strong beats (the towers'; every crown on a drop or in a crownsAll scene)
       if (!fx && sc.crowns && it.crown && (sc.crownsAll || out.drop > 0.05 || it.kind === 'hero' || it.kind === 'mid' || it.kind === 'word')) {
-        const fl = Math.max(out.drop, strong > 0.9 ? pe / Math.max(0.01, hit) : 0);
+        const fl = Math.max(out.drop, strong > 0.9 ? pe / Math.max(0.01, hit) : 0);   // (the downbeat: the crowns flare)
         if (fl > 0.03) { fx = FX.flash; k = fl * amp; }
       }
     }
     out.a[i] = 1 + (a - 1) * (0.35 + 0.65 * sk);              // (the scene's envelope eases the effects; the beat never stops)
     out.alt[i] = alt * sk; out.fx[i] = fx; out.k[i] = k * (fx === FX.flash ? 1 : sk); out.ph[i] = p;
     out.race[i] = race * (0.4 + 0.6 * sk);
-    // each racer's own speed + direction; a third of them reverse every two bars (on the downbeat)
-    out.sp[i] = 0.7 + 0.9 * it.h2;
+    // each racer's own pace (a lap of its pattern a bar, × 0.8–1.25) + direction; a third of them reverse every two bars (on the downbeat)
+    out.sp[i] = 0.8 + 0.45 * it.h2;
+    { const d = (cn % 2 ? 1 - it.x : it.x), m = clamp01((front * 1.35 - d) / 0.35); out.cm[i] = m * m * (3 - 2 * m); }
     out.dir[i] = (it.h < 0.5 ? 1 : -1) * (it.h2 < 0.33 && Math.floor(bar / 2) % 2 ? -1 : 1);
     if (race) out.moving++;
   }
@@ -245,6 +280,20 @@ export function burnout(local, signs, force = false) {
   if (!force && !(local.d >= start && local.d <= start + 1)) return null;
   const list = [...signs].sort((a, b) => (a.id < b.id ? -1 : 1)), sg = list[Math.floor(R(2) * list.length) % list.length];
   return { id: sg.id, letter: Math.floor(R(3) * Math.max(1, sg.n)) % Math.max(1, sg.n), start };
+}
+/**
+ * THE TIRED TUBE (NEON PASS 5 — the owner: the O always looked "off", an ageing tube): which of the NEON logo's four letters look
+ * tired — a weaker core, a softer glow — in a 3-hour block of the local clock: none (~30 %), one (~55 %) or two (~15 %), picked
+ * from the date + the block (every phone the same), never a letter the block before had. lc: { y, m, d, h } → [0..3]
+ */
+export function tiredLetters(lc) {
+  if (!lc) return [];
+  const raw = b => { const r = hash(b, 950), a = Math.floor(hash(b, 951) * 4); if (r < 0.3) return []; if (r < 0.85) return [a]; let c = Math.floor(hash(b, 952) * 3); if (c >= a) c++; return [a, c]; };
+  const blk = Math.round(Date.UTC(lc.y, lc.m - 1, lc.d) / 864e5) * 8 + Math.floor(lc.h / 3);
+  // (each block against the one before it, as it was shown: a short chain from a day back)
+  let prev = [];
+  for (let b = blk - 8; b <= blk; b++) { const out = []; for (const i of raw(b)) { let j = i; for (let k = 0; k < 4 && (prev.includes(j) || out.includes(j)); k++) j = (j + 1) % 4; if (!prev.includes(j) && !out.includes(j)) out.push(j); } prev = out; }
+  return prev;
 }
 /** the dead letter's weak flicker at t (s): mostly dark; every ~9–17 s a brief, weak sputter (0..0.35) */
 export function burnoutFlicker(t) {

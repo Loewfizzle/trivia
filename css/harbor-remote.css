@@ -1,13 +1,21 @@
 /* CITY 2.0 — THE PREVIEW PANEL (js/screens/harbor/remote.js): the owner's test remote. Loaded by that module only, for an admin
    on ?city=2 — the default city never requests it. NEON GLASS: frosted glass, soft white edges, the accent as light. */
 
-/* the pill: top left under the safe area, clear of the corner buttons (top right) and the dock (bottom) */
-.hr-pill {
+/* the pill: top left under the safe area, clear of the corner buttons (top right) and the dock (bottom); NEON PASS 5: while JUST ME
+   is on it says what ("JUST ME · PARTY ON · SAT 10/24 23:00", cut with an ellipsis before the corner buttons) + a ✕ beside it */
+.hr-bar {
   position: fixed;
   z-index: 40;
   top: calc(var(--safe-t) + 6px);
   left: calc(var(--safe-l) + 6px);
+  display: flex;
+  align-items: center;
+  max-width: calc(100vw - var(--safe-l) - 150px);
+}
+.hr-pill {
+  position: relative;
   min-width: 44px;
+  max-width: 100%;
   min-height: 44px;
   padding: 0 6px;
   display: flex;
@@ -35,10 +43,16 @@
   backdrop-filter: blur(10px);
 }
 .hr-pill > * { position: relative; }
+.hr-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hr-pill[data-on='me'] .hr-lbl { letter-spacing: 0.08em; color: #d8ffe4; }
+.hr-x { position: relative; flex: none; width: 44px; height: 44px; margin-left: -4px; background: none; border: 0; color: #fff; font: 600 20px/1 var(--font-ui); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hr-x::before { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: rgba(10, 11, 30, 0.6); border: 1px solid rgba(125, 255, 156, 0.55); }
+.hr-x > span { position: relative; }
+.hr-x[hidden] { display: none; }
 .hr-pill:active::before { transform: scale(0.95); }
-.hr-pill.hr-low { top: calc(var(--safe-t) + 74px); }
-.hr-pill.hr-under { top: calc(var(--safe-t) + 34px); }      /* (a dev slot's TEST SLOT tag sits top left: the pill goes under it) */
-.hr-pill.hr-low.hr-under { top: calc(var(--safe-t) + 108px); }
+.hr-bar.hr-low { top: calc(var(--safe-t) + 88px); }      /* (under the &debug=1 readout: NEON PASS 5 gave it a fifth line) */
+.hr-bar.hr-under { top: calc(var(--safe-t) + 34px); }      /* (a dev slot's TEST SLOT tag sits top left: the pill goes under it) */
+.hr-bar.hr-low.hr-under { top: calc(var(--safe-t) + 122px); }
 .hr-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
 .hr-pill[data-on='me'] .hr-dot { background: #7dff9c; box-shadow: 0 0 8px #7dff9c; }
 .hr-pill[data-on='all'] .hr-dot { background: #ff7ccb; box-shadow: 0 0 8px #ff7ccb; }
@@ -47,7 +61,10 @@
 /* (the city stays in view above the sheet: a light veil, the sheet two thirds of the screen at most — the owner watches the
    city change as she taps) */
 .hr-modal { z-index: 80; background: rgba(2, 3, 10, 0.18); }
-.modal.hr-modal > .sheet.hr-sheet { max-height: min(66dvh, calc(100dvh - var(--safe-t) - 10px)); }
+.modal.hr-modal > .sheet.hr-sheet { max-height: min(66dvh, calc(100dvh - var(--safe-t) - 10px)); transition: max-height 0.35s var(--ease, ease); }
+/* (NEON PASS 5: a sky piece just switched on — the sheet PEEKS for a few seconds: the sky lanes stay in view above it; a touch on
+   the sheet brings it back up) */
+.modal.hr-modal > .sheet.hr-sheet.hr-peek { max-height: min(34dvh, calc(100dvh - var(--safe-t) - 10px)); }
 .hr-sheet { --accent: #ff7ccb; --accent-soft: rgba(255, 124, 203, 0.18); gap: 12px; padding-bottom: calc(var(--safe-b) + 14px); }
 .hr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .hr-head .icon-btn { font-size: 28px; flex: none; width: 46px; height: 46px; }

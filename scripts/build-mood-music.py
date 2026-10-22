@@ -101,6 +101,48 @@ def analyse(path):
             'bright': round(cent), 'key': f"{NOTES[best[1]]} {best[2]}", 'mode': best[2], 'majorness': round(maj - mnr, 3)}
 
 
+_BM = None
+
+
+def _beatmaps():
+    """PULSE's beat-grid code (scripts/build-beatmaps.py — a hyphenated file name: loaded by path)."""
+    global _BM
+    if _BM is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('beatmaps', ROOT / 'scripts' / 'build-beatmaps.py')
+        _BM = importlib.util.module_from_spec(spec); spec.loader.exec_module(_BM)
+    return _BM
+
+
+def grid(path):
+    """THE BEAT GRID (NEON PASS 5, the city's party beat — docs/audio.md#the-beat): PULSE's precise steady grid (tempo to
+    0.005 BPM + phase, on the percussive part; its tempo kept in 90-180, where the comb search settles a tracker's half / double
+    guess), and the downbeat (the beat of 4 with the most kick energy).
+    → { bpm, t0 (s: the first beat), down (0..3: beat k is a bar's first when (k - down) % 4 == 0), steady, drift }"""
+    bm = _beatmaps()
+    y = bm.decode(path, bm.SR)
+    _, y_p = librosa.effects.hpss(y)
+    g, bpm, drift, steady = bm.beat_grid(y_p, bm.SR)
+    env, times = bm.band_envelopes(y_p, bm.SR)
+    # (the kick band's max over ±35 ms around any time: one max filter, then a lookup — vectorised window_max)
+    from scipy.ndimage import maximum_filter1d
+    step = float(times[1] - times[0]) if len(times) > 1 else 0.0116
+    low = maximum_filter1d(env['low'], size=max(1, int(round(0.07 / step)) | 1))
+    dur = len(y) / bm.SR
+    at = lambda ts: np.interp(ts, times, low)
+
+    # (NEON PASS 5: PULSE's tracker keeps the beat in 90–180 — measured against the old librosa tempos, its grid puts 4–100× more
+    # onset energy on the beats than between them; the old ones ~1.0, i.e. no better than chance. The city pulses half-time, so a
+    # fast tactus is right for it)
+    bpm2, t0b = bpm, float(g[0])
+    p = 60.0 / bpm2
+    t0b = t0b - p * int(t0b / p)                       # the first beat of the song
+    beats = t0b + p * np.arange(int((dur - t0b) / p))
+    lows = at(beats)
+    down = int(np.argmax([lows[k::4].sum() for k in range(4)])) if len(lows) >= 8 else 0
+    return {'bpm': round(float(bpm2), 3), 't0': round(float(t0b), 4), 'down': down, 'steady': bool(steady), 'drift': drift}
+
+
 def norm(vals):
     a = np.array(vals, dtype=float); lo, hi = np.percentile(a, 5), np.percentile(a, 95)
     return np.clip((a - lo) / max(1e-9, hi - lo), 0, 1)
@@ -150,8 +192,22 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--retire-temporary', default='')
     ap.add_argument('--keep-assignments', action='store_true')
+    ap.add_argument('--grid-only', action='store_true', help='only (re)build every song\'s beat grid; moods untouched')
+    ap.add_argument('--only', default='', help='with --grid-only: these songs only (comma-separated)')
     a = ap.parse_args()
     old = json.loads(OUT.read_text()) if OUT.exists() else {'songs': {}}
+    if a.grid_only:
+        only = set(filter(None, a.only.split(',')))
+        only = set(filter(None, a.only.split(',')))
+        for i, s in old['songs'].items():
+            if only and i not in only:
+                continue
+            if only and i not in only: continue
+            s['grid'] = grid(MUSIC / f'{i}.mp3')
+            gd = s['grid']
+            print(f'  {i:15s} {s["bpm"]:6.1f} -> {gd["bpm"]:8.3f} bpm t0 {gd["t0"]:.3f}  down {gd["down"]}  {"steady" if gd["steady"] else "DRIFTS " + str(gd["drift"])}', flush=True)
+        OUT.write_text(json.dumps(old, indent=1), encoding='utf-8', newline='\n')
+        return
     db = {i: dict(d) for i, d in old.get('songs', {}).items()}
     import_new(db)
     feats = {}
@@ -167,6 +223,7 @@ def main():
         f = analyse(p)
         if f['dur'] < MIN_LEN:
             print(f'  skip {i}: {f["dur"]:.0f} s'); continue
+        f['grid'] = grid(p)
         feats[i] = f
         print(f'  {i:15s} {f["bpm"]:6.1f} bpm  {f["loud"]:6.1f} dB  busy {f["busy"]:4.1f}/s  {f["bright"]:5d} Hz  {f["key"]}')
     sc = scores(feats)
@@ -186,7 +243,7 @@ def main():
         'moods': {m: [i for i in songs if songs[i]['mood'] == m] for m in MOODS},
         'songs': songs,
     }
-    OUT.write_text(json.dumps(doc, indent=1))
+    OUT.write_text(json.dumps(doc, indent=1), encoding='utf-8', newline='\n')
     for m in MOODS:
         print(f'\n{m.upper()}')
         for i in doc['moods'][m]:

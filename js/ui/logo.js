@@ -79,6 +79,27 @@ export function logoSvg({ id = 'nd', pad = 26, lit = false, blur = 1, clips = tr
 </svg>`;
 }
 
+/**
+ * THE PARTY PUNCH LAYER (CITY 2.0, NEON PASS 5): the letters' light alone — a wide glow, a near glow, a hot core — in the same
+ * viewBox as logoSvg, laid over the sign (title.js) and faded in on the beat by its opacity alone (a compositor change: the
+ * blurred layers are rasterised once). Its letters are .ndg (never .ndl: the boot + the flicker query those) — .off hides one.
+ */
+export function logoGlowSvg({ id = 'ndg', pad = 26, blur = 1 } = {}) {
+  const vb = `${-pad} ${-pad - 4} ${LOGO_W + pad * 2} ${LOGO_H + pad * 2 + 8}`;
+  const letters = LETTERS.map((L, i) => `<g class="ndg ndg-${i + 1}" transform="translate(${L.x} 0)">
+  <path class="ndg-w" d="${L.d}" stroke-width="${TUBE + 16}" filter="url(#${id}-b2)"/>
+  <path class="ndg-n" d="${L.d}" stroke-width="${TUBE + 5}" filter="url(#${id}-b1)"/>
+  <path class="ndg-c" d="${L.d}" stroke-width="${TUBE * 0.5}"/>
+</g>`).join('');
+  return `<svg class="nd-logo-glow" viewBox="${vb}" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <filter id="${id}-b1" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${3.6 * blur}"/></filter>
+  <filter id="${id}-b2" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="${12 * blur}"/></filter>
+</defs>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">${letters}</g>
+</svg>`;
+}
+
 // ---- PREMIUM layers (CITY 2.0): per letter, from its own path
 const BENDS = new Map();
 /** a letter's bends (where the tube turns hardest: the hot spots) and its open ends (the electrodes), in its own 0..64 box */
@@ -97,6 +118,23 @@ export function letterLight(L) {
     }
     cand.sort((u, v) => v[2] - u[2]);
     for (const [x, y, d] of cand) if (!hot.some(([hx, hy]) => Math.hypot(hx - x, hy - y) < 10)) hot.push([+x.toFixed(1), +y.toFixed(1), +d.toFixed(2)]);
+  }
+  // (NEON PASS 5 — the owner: the O always looked "off", an ageing tube: all smooth curves, it had NO hot spots while N and E have
+  // two bright bends each. A letter with fewer than two sharp bends takes its gentle ones — the turn over a wider window — so every
+  // letter glows alike; the tired tube is a rotating look of its own now: title.js#tiredLetters)
+  if (hot.length < 2) {
+    const soft = [];
+    for (const pl of flattenPath(L.d, 1, 0, 0, 3)) {
+      const p = pl.pts;
+      for (let i = 1; i < p.length - 1; i++) {
+        const i0 = Math.max(0, i - 8), i1 = Math.min(p.length - 1, i + 8);
+        const a = Math.atan2(p[i][1] - p[i0][1], p[i][0] - p[i0][0]), b = Math.atan2(p[i1][1] - p[i][1], p[i1][0] - p[i][0]);
+        let d = Math.abs(b - a); if (d > Math.PI) d = 2 * Math.PI - d;
+        if (d > 0.7) soft.push([p[i][0], p[i][1], Math.min(1.4, d)]);
+      }
+    }
+    soft.sort((u, v) => v[2] - u[2]);
+    for (const [x, y, d] of soft) if (hot.length < 4 && !hot.some(([hx, hy]) => Math.hypot(hx - x, hy - y) < 22)) hot.push([+x.toFixed(1), +y.toFixed(1), +d.toFixed(2)]);
   }
   const out = { hot, ends: L.ends };
   BENDS.set(L.d, out);

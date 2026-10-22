@@ -6,6 +6,10 @@
 //   the owner (admin)     a small TEST pill top left opens the glass sheet: JUST ME (this phone, live, kept for the tab) or
 //                         EVERYONE ON CITY 2 (a draft, sent with SEND TO EVERYONE); every row comes from core/harbor-remote.js
 // The state on this phone: JUST ME (if any) wins over EVERYONE's; nothing at all = the real city.
+// NEON PASS 5 — A LINK'S OWN SETTINGS WIN (the owner's iPhone: a leftover JUST ME state, kept for the tab, replaced the party link's
+// own &when): opening a link that carries its own preview flags (&when, &force, &speed, &wx, &scene…) drops a stored JUST ME state
+// (a refresh of the same page keeps it, as before); while JUST ME is on the pill says so — "JUST ME · PARTY ON · SAT 10/24 23:00"
+// — with a one-tap ✕ beside it.
 import { h } from '../../ui/dom.js';
 import { toast } from '../../ui/toast.js';
 import { serverNow, firebaseReady, onValue, dbRef } from '../../firebase.js';
@@ -19,13 +23,21 @@ const ss = {
   set(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: fine */ } },
 };
 // (test-only: the panel without an admin profile — the previews and the emulator E2E; never on the real site's pages)
+/** the link's own preview flags (not the tools: &debug, &grid) — a fresh link with any of them wins over a stored JUST ME */
+const linkFlags = () => { try { const q = new URLSearchParams(location.search); return R.REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid' && q.has(k)); } catch { return []; } };
+const navType = () => { try { const e = performance.getEntriesByType('navigation')[0]; return (e && e.type) || 'navigate'; } catch { return 'navigate'; } };
+let linkChecked = false;          // (once a page load: the title mounts the panel again after every visit to a menu)
 const TEST_PANEL = typeof location !== 'undefined' && /[?&]panel=1(?:&|$)/.test(location.search)
   && (location.pathname.includes('/tests/') || /[?&]emu(?:[=&]|$)/.test(location.search));
 
 export function createRemote({ scene, api = apiCall }) {
-  let destroyed = false, live = null, unsub = null, admin = false, chip = null, sheet = null, sendBusy = false, typeT = 0;
+  let destroyed = false, live = null, unsub = null, admin = false, chip = null, bar = null, xb = null, label = null, sheet = null, sendBusy = false, typeT = 0;
   let mode = ss.get(MODE_KEY) === 'all' ? 'all' : 'me';
-  const stored = ss.get(ME_KEY);
+  let stored = ss.get(ME_KEY);
+  if (!linkChecked) {
+    linkChecked = true;
+    if (stored && linkFlags().length && navType() !== 'reload') { ss.set(ME_KEY, null); stored = null; }
+  }
   const mine = { state: R.cleanRemote(stored && stored.state).state, ui: (stored && stored.ui) || {}, at: serverNow() };
   let draft = { state: {}, ui: {} }, mins = R.DEFAULT_MINS;
 
@@ -69,17 +81,23 @@ export function createRemote({ scene, api = apiCall }) {
     if (destroyed || !a) return;
     admin = true;
     if (!document.querySelector('link[data-hr]')) document.head.append(h('link', { rel: 'stylesheet', href: '/css/harbor-remote.css', 'data-hr': '1' }));
-    chip = h('button.hr-pill', { type: 'button', 'aria-label': 'Preview panel', onclick: open }, h('span.hr-dot'), h('span', 'TEST'));
-    document.body.append(chip);
+    chip = h('button.hr-pill', { type: 'button', 'aria-label': 'Preview panel', onclick: open }, h('span.hr-dot'), label = h('span.hr-lbl', 'TEST'));
+    // (JUST ME on: a one-tap clear beside the pill — back to the real city, or the link's own flags)
+    xb = h('button.hr-x', { type: 'button', 'aria-label': 'Clear JUST ME', onclick: () => { mode = 'me'; ss.set(MODE_KEY, 'me'); clearAll(); } }, h('span', '×'));
+    bar = h('div.hr-bar', chip, xb);
+    document.body.append(bar);
     paintChip();
   });
   function paintChip() {
     if (!chip) return;
     const on = !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : '';
     chip.dataset.on = on;
-    chip.classList.toggle('hr-under', !!document.querySelector('.nd-corner .tag'));
+    const txt = on === 'me' ? `JUST ME · ${R.describe(mine.state)}` : on === 'all' ? 'TEST · EVERYONE' : 'TEST';
+    if (label.textContent !== txt) label.textContent = txt;
+    xb.hidden = on !== 'me';
+    bar.classList.toggle('hr-under', !!document.querySelector('.nd-corner .tag'));
     // (the &debug=1 readout sits top left too: the pill steps under it)
-    chip.classList.toggle('hr-low', !!(on === 'me' ? mine.state.debug : on === 'all' ? live.state.debug : /[?&]debug=1/.test(location.search)));
+    bar.classList.toggle('hr-low', !!(on === 'me' ? mine.state.debug : on === 'all' ? live.state.debug : /[?&]debug=1/.test(location.search)));
   }
 
   // ---------------------------------------------------------------- editing
@@ -107,12 +125,28 @@ export function createRemote({ scene, api = apiCall }) {
     if (mode === 'me') { mine.at = serverNow(); ss.set(ME_KEY, R.isEmpty(mine.state) ? null : { state: mine.state, ui: mine.ui }); apply(); }
     if (soft) paintStatus(); else render();
   }
+  // NEON PASS 5 (the owner: from the panel the sky pieces "often don't show up, or barely show"; PARTY ON didn't show what the
+  // party link shows): a NIGHT-ONLY event (☾) or PARTY ON switched on by day, with no time picked, jumps the clock to tonight
+  // (the satellite train: to dusk — it only shows in twilight), like the links do; a sky piece switched on makes the sheet PEEK
+  // (a third of the screen for a few seconds) so it doesn't fly behind it
+  const dayNow = () => { const sc = scene(), L = sc && sc.look ? sc.look() : null; return !!(L && L.sun && L.sun.el > -4); };
+  function toTonight(s, u, t) { if (s.when || u.custom || u.t || !dayNow()) return; u.t = t; retime({ state: s, ui: u }); }
   const toggleForce = id => edit((s, u) => {
-    const f = new Set(s.force || []);
+    const f = new Set(s.force || []), def = R.eventDef(id);
     if (f.has(id)) f.delete(id);
-    else { f.add(id); for (const k of R.eventDef(id).inputs || []) { if (s[k] == null && u.mem && u.mem[k] != null) s[k] = u.mem[k]; if (s[k] == null && R.INPUTS[k].default) s[k] = R.INPUTS[k].default; } }
+    else {
+      f.add(id); for (const k of def.inputs || []) { if (s[k] == null && u.mem && u.mem[k] != null) s[k] = u.mem[k]; if (s[k] == null && R.INPUTS[k].default) s[k] = R.INPUTS[k].default; }
+      if (def.night || id === 'satellites') toTonight(s, u, id === 'satellites' ? 'dusk' : 'night');
+      if (['SKY', 'BIRDS', 'RAINBOWS'].includes(def.group)) peek();
+    }
     s.force = [...f];
   });
+  let peekT = 0;
+  function peek() {
+    const box = sheet && sheet.firstChild; if (!box) return;
+    box.classList.add('hr-peek'); clearTimeout(peekT);
+    peekT = setTimeout(() => { if (box.isConnected) box.classList.remove('hr-peek'); }, 9000);
+  }
 
   async function send() {
     if (sendBusy || !api) return;
@@ -141,7 +175,7 @@ export function createRemote({ scene, api = apiCall }) {
     if (sheet) return;
     if (mode === 'all') draft = { state: liveOn() ? { ...live.state } : {}, ui: {} };
     sheet = h('div.modal.hr-modal', { onclick: e => { if (e.target === sheet) close(); } },
-      h('div.sheet.hr-sheet', { role: 'dialog', 'aria-label': 'Preview panel' }));
+      h('div.sheet.hr-sheet', { role: 'dialog', 'aria-label': 'Preview panel', onpointerdown: e => { if (e.currentTarget.classList.contains('hr-peek') && !e.target.closest('.hr-b')) { e.currentTarget.classList.remove('hr-peek'); clearTimeout(peekT); } } }));
     document.body.append(sheet);
     render();
   }
@@ -185,7 +219,7 @@ export function createRemote({ scene, api = apiCall }) {
     kids.push(sec('EVENTS', opts.length ? h('div.hr-opts', ...opts) : null, h('p.hr-note', '☾ shows at night only · tap again to switch off'), ...evs));
     // PARTY SHOW
     kids.push(sec('PARTY SHOW',
-      h('div.hr-gl', 'PARTY NIGHT'), grid(...[['', 'AUTO'], ['on', 'ON'], ['off', 'OFF']].map(([v, l]) => btn(l, (st.party || '') === v, () => edit(s => { if (v) s.party = v; else delete s.party; })))),
+      h('div.hr-gl', 'PARTY NIGHT'), grid(...[['', 'AUTO'], ['on', 'ON'], ['off', 'OFF']].map(([v, l]) => btn(l, (st.party || '') === v, () => edit((s, u) => { if (v) s.party = v; else delete s.party; if (v === 'on') toTonight(s, u, 'night'); })))),
       h('div.hr-gl', 'HOLD A SCENE'), grid(btn('LET IT RUN', !st.scene, () => edit(s => { delete s.scene; })),
         ...R.SHOW_SCENE_LIST.map(sc => btn(sc.id.toUpperCase(), st.scene === sc.id, () => edit(s => { s.scene = sc.id; }), { cls: `hr-${sc.list}` })))));
     // TIME
@@ -251,11 +285,11 @@ export function createRemote({ scene, api = apiCall }) {
     setMine(st) { mode = 'me'; mine.state = R.cleanRemote(st).state; mine.ui = {}; mine.at = serverNow(); ss.set(ME_KEY, R.isEmpty(mine.state) ? null : { state: mine.state, ui: mine.ui }); apply(); render(); },
     debug: () => ({ mode, admin, mine: mine.state, live, effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
     destroy() {
-      destroyed = true; clearInterval(tick); clearTimeout(typeT);
+      destroyed = true; clearInterval(tick); clearTimeout(typeT); clearTimeout(peekT);
       if (unsub) { try { unsub(); } catch { /* fine */ } }
-      if (chip) chip.remove();
+      if (bar) bar.remove();
       if (sheet) sheet.remove();
-      chip = sheet = null;
+      chip = sheet = bar = xb = null;
     },
   };
 }

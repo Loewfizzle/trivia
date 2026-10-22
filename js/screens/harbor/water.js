@@ -26,6 +26,7 @@
 // above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · wake(o) — Part 5
 // draws boat wakes · set({ rain, fog }) — Part 9 (rain roughens the mirror now; the rings + the fog over the water: Part 9).
 import { rgb, mix } from './shapes.js';
+import { blit } from '../../ui/canvas-safe.js';
 import { groundY, project } from '../../core/harbor-layout.js';
 
 /** the water's surface (world y): the far quay wall stands 1.2 above it (its stones show between the lamps + the water) */
@@ -193,19 +194,19 @@ export function createWater() {
     const tm0 = performance.now();
     const sx = src.getContext('2d');
     sx.setTransform(1, 0, 0, 1, 0, 0); sx.globalCompositeOperation = 'copy'; sx.globalAlpha = 1;
-    sx.drawImage(main, 0, top * md, W * md, sh * md, 0, 0, src.width, src.height);
+    blit(sx, main, 0, top * md, W * md, sh * md, 0, 0, src.width, src.height);
     sx.globalCompositeOperation = 'source-over';
     const tm1 = performance.now(); ema('copy', tm1 - tm0);
     // 2. the mirror: flipped about the waterline (an R row r pt below it ↔ the frame r pt above it)
     const rx = R.getContext('2d');
     rx.setTransform(1, 0, 0, 1, 0, 0); rx.globalAlpha = 1; rx.globalCompositeOperation = 'copy';
     rx.setTransform(rr, 0, 0, -rr, 0, rr * A0);
-    rx.drawImage(src, 0, (sh - Hw - 6) * rr, src.width, (Hw + 6) * rr, 0, A0 - Hw - 6, W, Hw + 6);
+    blit(rx, src, 0, (sh - Hw - 6) * rr, src.width, (Hw + 6) * rr, 0, A0 - Hw - 6, W, Hw + 6);
     rx.globalCompositeOperation = 'source-over';
     // objects standing in the water, each about its own waterline (the wheel, the lighthouse; Part 5: the boats, Rosie, the train)
     for (const m of [...(f.mirrors || []), ...mirrors]) {
       rx.setTransform(rr, 0, 0, -rr, 0, rr * (2 * m.axis - A0));
-      if (m.fn) m.fn(rx); else if (m.cv && m.sw > 0 && m.sh > 0) rx.drawImage(m.cv, m.sx, m.sy, m.sw, m.sh, m.x, m.y, m.w, m.h);
+      if (m.fn) m.fn(rx); else if (m.cv && m.sw > 0 && m.sh > 0) blit(rx, m.cv, m.sx, m.sy, m.sw, m.sh, m.x, m.y, m.w, m.h);
     }
     // 3. the lights' columns (night): src³ keeps only the lights; stretched copies (at half resolution: they are soft) smear
     //    each into a column — a light high on a tower reaches into the near water, a low sign stays by the quay; calm: short +
@@ -230,7 +231,7 @@ export function createWater() {
         smx.setTransform(h2, 0, 0, -h2 * s, h2 * dx, h2 * s * A0);
         // (only the rows that land in the water: a light e pt up lands s·e pt down)
         const eMax = (Hw + 6) / s, y1s = Math.max(top, A0 - eMax);
-        smx.drawImage(bright, 0, (y1s - top) / sh * bh, bw, (A0 - y1s) / sh * bh, 0, y1s, W, A0 - y1s);
+        blit(smx, bright, 0, (y1s - top) / sh * bh, bw, (A0 - y1s) / sh * bh, 0, y1s, W, A0 - y1s);
         stats.copies++;
       }
       rx.setTransform(1, 0, 0, 1, 0, 0); rx.globalAlpha = 1; rx.globalCompositeOperation = 'lighter';
@@ -272,7 +273,7 @@ export function createWater() {
       x.globalAlpha = clamp01(fres * (1 - sk + sk * crest)) * fa;
       const ry = Math.max(0, Math.min(Hw + 6 - st.h, st.y - y0 + dy));
       const pad = Math.abs(A) + 1;
-      x.drawImage(R, 0, ry * rr, R.width, Math.max(1, st.h * rr), (dx - pad) * dpr, st.r, Wd + 2 * pad * dpr, st.hd);
+      blit(x, R, 0, ry * rr, R.width, Math.max(1, st.h * rr), (dx - pad) * dpr, st.r, Wd + 2 * pad * dpr, st.hd);
     }
     stats.strips = strips.length;
     x.globalAlpha = 1;
@@ -287,8 +288,8 @@ export function createWater() {
         x.globalAlpha = al;
         // (the texture wraps: its two pieces, each drawn once, 1:1 — the wrap on a whole device column, so no seam there either)
         const o = Math.round(o0 * dpr) / dpr, th = cv.height / dpr;
-        if (o > 0.5) x.drawImage(cv, (W - o) * dpr, 0, o * dpr, cv.height, 0, oy, o, th);
-        if (W - o > 0.5) x.drawImage(cv, 0, 0, (W - o) * dpr, cv.height, o, oy, W - o, th);
+        if (o > 0.5) blit(x, cv, (W - o) * dpr, 0, o * dpr, cv.height, 0, oy, o, th);
+        if (W - o > 0.5) blit(x, cv, 0, 0, (W - o) * dpr, cv.height, o, oy, W - o, th);
       }
       x.globalAlpha = 1;
     }

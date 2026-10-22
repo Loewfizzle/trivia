@@ -20,8 +20,9 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createRainbow } from '../district/rainbow.js';
-import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, partyPalette, partySeed, breathDiv } from '../../core/party.js';
-import { harborParty, beatOf, punchEnv } from '../../core/harbor-show.js';
+import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, partyPalette, partySeed } from '../../core/party.js';
+import { harborParty, punchEnv } from '../../core/harbor-show.js';
+import { createHarborBeat, advanceHarborBeat } from '../../core/harbor-beat.js';
 import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainbow.js';
 import { cameraFor, harborLayout, laneRects, roofline, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
 import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core/harbor-events.js';
@@ -56,6 +57,8 @@ import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
 import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
 
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
+/** the speakeasy's roof string lights (NEON PASS 4) — off until Parts 7–8 build the speakeasy + the promenade (the owner) */
+const STRINGS_ON = false;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 const GROUPS = ['far', 'near', 'water', 'harbor', 'road', 'stage'];
@@ -106,6 +109,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const bow = createRainbow();
   const fw = createFireworks({ onBurst: e => { PT.swell = Math.min(1, PT.swell + 0.55); PT.bursts++; if (S.onBurst) S.onBurst(e); } });
   const bc = createBeatClock();
+  const hbeat = createHarborBeat(Math.random());     // NEON PASS 5: THE BEAT (the song's grid + the kicks heard: core/harbor-beat.js)
+  const punchHist = new Float32Array(64); let punchI = 0;   // (the punch over the last ~1 s: the show's ripple reads it late across the skyline)
   const PT = { on: 0, ramp: 0, energy: 0, phase: 0, breath: 0.5, beat: false, bar: 0, swell: 0, wave: null, name: null, bursts: 0, finaleDone: '', finaleForced: false, lastHour: null, wasOn: false };
   const NOOP = () => {};
   let wfx = { resize: NOOP, sky: NOOP, fogLayer: NOOP, flash: NOOP, flashNow: () => 0, moonVeil: () => 1, debug: () => ({}), destroy: NOOP };
@@ -328,12 +333,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (NEON PASS 4: the harbor's own night — 9 pm warm-up → 11 pm peak → calming after 1 am; core/party.js keeps the window)
     if (ps.on > 0 && !ps.forced) { const hp = harborParty(partyHour(LK.local)); PT.energy = hp.energy; PT.name = hp.name; }
     PT.palette = partyPalette(hol);
-    advanceBeat(bc, dt, ps.on > 0 && S.beat ? S.beat() : null);
-    PT.phase = bc.phase; PT.beat = bc.beat; PT.bar = bc.bars;
+    const song = ps.on > 0 && S.beat ? S.beat() : null;
+    advanceBeat(bc, dt, song);
     PT.breath = S.motion ? bc.breath : 0.5;
-    // THE HARD BEAT (NEON PASS 4): the beat inside the breath + its punch (a ~50 ms attack, a quick decay; harder on the downbeat)
-    { const bt = beatOf(bc.phase, bc.rate, bc.bpm, breathDiv); PT.beatU = bt.u; PT.beatT = bt.T; PT.beatIdx = bt.idx; PT.beats = bc.bars * bt.div + bt.idx; PT.rate = bc.rate;
-      PT.punch = S.motion && ps.on > 0 ? punchEnv(bt.u, bt.T) * (bt.idx === 0 ? 1 : 0.72) * ps.on * (0.72 + 0.28 * Math.min(1, Math.max(0, (PT.energy - 0.55) / 0.45))) : 0; }
+    // THE BEAT (NEON PASS 5 — core/harbor-beat.js): the song's grid (real bars, the downbeat) + the kicks the analyser hears; the
+    // pulse HALF-TIME (beats 1 + 3, the downbeat hardest); without music a calm 120 bpm of its own
+    advanceHarborBeat(hbeat, dt, song, ps.on > 0 && S.kick ? S.kick() : null);
+    PT.bar = hbeat.bar; PT.phase = hbeat.barU; PT.beat = hbeat.idx === 0 && hbeat.u < 0.25;
+    PT.beatU = hbeat.u; PT.beatT = hbeat.T; PT.beatIdx = hbeat.idx; PT.beats = Math.floor(hbeat.beats); PT.beatsF = hbeat.beats; PT.rate = 1 / (4 * hbeat.T); PT.src = hbeat.src;
+    PT.punch = S.motion && ps.on > 0 ? hbeat.punch * ps.on * (0.72 + 0.28 * Math.min(1, Math.max(0, (PT.energy - 0.55) / 0.45))) : 0;
+    punchHist[punchI = (punchI + 1) & 63] = S.motion ? hbeat.punch : 0;          // (raw: the show scales it by the scene + the night)
+    PT.punchAt = punchAt;
     PT.swell = Math.max(0, PT.swell - dt / 3800);
     const hr = partyHour(LK.local), sd = partySeed(LK.local);
     if (ps.on > 0 && !ps.forced && !LK.nye && PT.finaleDone !== sd && finaleDue(PT.lastHour, hr)) { PT.finaleDone = sd; startFinale(); }
@@ -342,6 +352,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (S.onParty && (PT.on > 0 || PT.wasOn)) S.onParty(PT);
     PT.wasOn = PT.on > 0;
   }
+  /** the city's punch s seconds ago (≤ ~1 s: the frames' history) — the show's ripple rolling across the skyline */
+  function punchAt(s) { const n = Math.min(63, Math.round(s * 1000 / Math.max(8, lastDt))); return punchHist[(punchI - n + 64) & 63]; }
+  let lastDt = 16.7;
   // the midnight finale: shells over the city, never on the sign (Part 11 stages the real one)
   function startFinale() {
     if (!S.motion) { PT.swell = 1; PT.bursts++; return; }
@@ -365,6 +378,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const gap = fastWhy ? 0 : S.motion ? 33.3 : 50;
     if (gap && now - last < gap - 4) return;
     const dt = Math.min(100, now - last || 16.7);
+    lastDt = dt;
     last = now;
     const t = (now - t0) / 1000;
     const c0 = performance.now();
@@ -501,7 +515,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // THE SKY BEAMS (NEON PASS 4): straight up from the tall towers' crowns on a party night — one by one through the warm-up (9 →
     // 11 pm), all from the peak, taking turns with the searchlights; pulsing on the beat; in each tower's colour (the sweeps too)
     { const sh = neon.show(), forced = clock.force.has('beams');
-      const hr = partyHour(LK.local), onN = forced || PT.name === 'peak' || PT.name === 'after' ? 9 : hr == null ? 9 : 1 + 4 * smooth(20.9, 23, hr);
+      // (NEON PASS 5: every tower's beam at the peak — a desktop has a dozen; the warm-up switches them on one by one over 9 → 11 pm)
+      const hr = partyHour(LK.local), nB = skyBeams.count(), onN = forced || PT.name === 'peak' || PT.name === 'after' || hr == null ? nB : 1 + (nB - 1) * smooth(20.9, 23, hr);
       const k = off.has('no-beams') ? 0 : (forced ? 1 : PT.on > 0 ? PT.ramp * (sh.beams || (tier === 0 ? 0.8 : 0)) : 0) * clamp01((P.dark - 0.35) / 0.4) * lit;
       if (k > 0.004) skyBeams.draw(c, { k, on: onN, signs: neon.signRects(), cols: ids => neon.beamCols(ids), punch: PT.punch || 0, haze: Math.max(LK.fog || 0, (LK.cloud || 0) * 0.6), fade: fadeIn, motion: S.motion, tier }); }
     // the party show's drops for the title (the NEON word joins the biggest ones) + the wheel (its sparkle, its party colours)
@@ -548,8 +563,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // ---- the lights (every frame): the lamps' light on the promenade, the knock's warm flash at the door
     const lampK = fadeIn * clamp01(T.night * 1.4) * (lit > 0 ? 1 : 0.3);
     drawLampLight(c, L, lampK, glow);
-    // THE STRING LIGHTS on the speakeasy's roof (NEON PASS 4): warm from dusk; a party night's colours chasing on the beat
-    if (fadeIn > 0 && !off.has('no-strings')) {
+    // THE STRING LIGHTS on the speakeasy's roof (NEON PASS 4): warm from dusk; a party night's colours chasing on the beat.
+    // NEON PASS 5 (the owner): SWITCHED OFF until the promenade + the speakeasy are built (Parts 7–8) — the hook stays
+    // (STRINGS_ON; &force=strings-party still previews them)
+    if (fadeIn > 0 && !off.has('no-strings') && (STRINGS_ON || clock.force.has('strings-party'))) {
       const fp = clock.force.has('strings-party') || clock.force.has('neon-party'), tb = t / 0.5;
       const sp = PT.on > 0 ? { on: PT.ramp, energy: PT.energy, beats: PT.beats, beatU: PT.beatU, punch: PT.punch } : fp ? { on: 1, energy: 1, beats: Math.floor(tb), beatU: tb % 1, punch: S.motion ? punchEnv(tb % 1, 0.5) : 0 } : null;
       strings.draw(c, { k: fadeIn * clamp01((P.dark - 0.3) / 0.4) * (lit > 0 ? lit : 0), day: TW.day || 0, party: sp, t, motion: S.motion, tier });
@@ -587,7 +604,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);
       const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
       const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
-      roText = [`t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}`, `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`];
+      roText = [`t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`, `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...(PT.on > 0 ? [`beat ${hbeat.src}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.bar} · ${hbeat.idx + 1}/4${hbeat.live ? ` · kick ${hbeat.level.toFixed(2)}` : ''}`] : [])];
     }
     if (!roText) return;
     c.save();
@@ -625,7 +642,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (reduced motion: the boats hold still where the hour began — no zipping taxi, no wakes)
     boats.tick(motion ? ms : Math.floor(ms / 3600000) * 3600000, nightAt, { quiet: waterQuiet });
     const heel = clamp01((LK.wind || 0) / 10) * 0.16;
-    const hw = { t, ms, T, sunDir, lights: glowK, fade: fadeIn, motion, party: PT.on > 0 ? PT : null, sparkle: PT.on > 0 ? neon.show().sparkle : 0 };
+    const sh0 = neon.show(), hw = { t, ms, T, sunDir, lights: glowK, fade: fadeIn, motion, party: PT.on > 0 ? PT : null, sparkle: PT.on > 0 ? sh0.sparkle : 0, cn: sh0.cn || 0, drop: sh0.drop || 0 };
     const hb = { t, T, lights: glowK, motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes') };
     const hl = { ms, now: performance.now(), k: fadeIn * Math.max(clamp01((P.dark - 0.35) / 0.4) * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, motion, tier, dim: !!lights.spelling, water };
     if (fadeIn > 0 && !clock.force.has('no-water')) {
@@ -857,16 +874,34 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (frames.length < 90 || document.visibilityState !== 'visible' || now < tierHold || shownAt < 0 || now - shownAt < 2500) return;
     if (++perfN % 30) return;                 // (the sort every half second, not every frame)
     const s = [...frames].sort((a, b) => a - b);
-    if (s[67] > 19.5 && tier > 0) { if (upAt) upLock = true; stepTier(tier - 1); cool = 150; frames.length = 0; return; }
+    // NEON PASS 5 — A CAPPED FRAME RATE IS NOT A SLOW CITY (the owner's iPhone: a party night with NOTHING racing — tier 0): iOS
+    // Low Power Mode (and Safari in some states) runs requestAnimationFrame at 30 Hz however light the page is, so the frames read
+    // ~33 ms and the city stepped 2 → 1 → 0 in ~10 s, dropping the racing light, the effects and the glow, for nothing. Now a
+    // step down is a PROBE: ~4 s later, if the frames didn't get faster (the median interval still ≥ 85 % of before), it was the
+    // phone's cap, not the city — it steps back up and stops stepping down for frame timing (CAPPED; the readout says so); only
+    // a real overload of its own work (mean > 12 ms a frame) still steps it down.
+    if (probe && now - probe.at > 4000) {
+      const p50 = s[45];
+      if (p50 >= probe.p50 * 0.85) { capped = Math.round(1000 / p50); const back = probe.from; probe = null; stepTier(back); cool = 150; frames.length = 0; return; }
+      probe = null;
+    }
+    if (s[67] > 19.5 && tier > 0 && !probe) {
+      const cs = costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : 0;
+      if (capped && cs <= 12) return;
+      if (upAt) upLock = true;
+      if (!capped) probe = { from: tier, p50: s[45], at: now };
+      stepTier(tier - 1); cool = 150; frames.length = 0; return;
+    }
     if (tier < TOP_TIER && !manualTier && !upLock && ups < 2 && now - tierAt > 20000 && costs.length >= 60) {
       const cs = [...costs].sort((a, b) => a - b), mean = cs.reduce((a, b) => a + b, 0) / cs.length, slow = s.filter(v => v > 20).length / s.length;
       if (s[67] <= 17.5 && slow <= 0.05 && mean <= 4.5 && cs[Math.floor(cs.length * 0.95)] <= 8) { ups++; upAt = now; stepTier(tier + 1); cool = 150; frames.length = 0; }
     }
   }
   const TOP_TIER = 2;
-  let tierHold = 0, perfN = 0, tierAt = performance.now(), ups = 0, upAt = 0, upLock = false, manualTier = false;
+  let tierHold = 0, perfN = 0, tierAt = performance.now(), ups = 0, upAt = 0, upLock = false, manualTier = false, probe = null, capped = 0;
   const tierHist = [tier];                      // (the readout shows the steps: 2→1→2)
-  function stepTier(t) { tier = Math.max(0, Math.min(2, t)); tierHist.push(tier); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); build(); if (DEBUG) console.info('[harbor] tier', tier); }
+  function stepTier(t) { fastUntil = Math.max(fastUntil, performance.now() + 1500); tier = Math.max(0, Math.min(2, t));   // (NEON PASS 5: build() clears the canvas — the battery saver must never skip the next draw: a black frame)
+     tierHist.push(tier); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); build(); if (DEBUG) console.info('[harbor] tier', tier); }
   function setTier(t) { manualTier = true; stepTier(t); }
 
   const onVis = () => { if (document.visibilityState === 'visible') start(); else stop(); };
@@ -935,8 +970,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     speed: () => clock.speed || 1,
     skyline: () => (skyline ? Array.from(skyline) : null),
     frames: () => frames.slice(),
+    /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
+    tiering: () => ({ tier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), manual: manualTier }),
     cost: () => costs.slice(),
-    party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, beatU: PT.beatU, beatT: PT.beatT, bpm: bc.bpm, rate: bc.rate, locked: bc.locked, swell: PT.swell, wave: PT.wave, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
+    party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
     finale: () => startFinale(),
     partyLight: () => null,                   // the party's light for the lobby's still: Part 11
     /** THE STAGE (test hook): the layout's stage pieces + the knocks */
@@ -960,7 +997,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       boats: { ...boats.debug(), set: o => boats.set(o) },
       waterfront: waterfront.debug(),
       skyBeams: { ...skyBeams.debug(), set: o => skyBeams.set(o) },
-      strings: { ...strings.debug(), set: o => strings.set(o) },
+      strings: { ...strings.debug(), on: STRINGS_ON || clock.force.has('strings-party'), set: o => strings.set(o) },
       sky: { state: sky.debug(), ...sky.api },
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
       water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },

@@ -20,10 +20,12 @@ export function paintSky(cv, W, HZ, dpr, P, o = {}) {
   const k = Math.max(0, Math.min(1, ((P.dark || 0) - 0.3) / 0.5)) * (o.k ?? 1);
   if (k > 0.01 && o.roof) {
     const y = o.roof, R = Math.max(W * 0.62, (HZ - y) * 2.2);
-    // (NEON PASS 4: a party night's glow — a warmer pink-violet, stronger: the city is lit up for the party; o.party 0..1)
+    // (NEON PASS 4: a party night's glow, stronger: the city is lit up for the party; o.party 0..1. NEON PASS 5 — the owner: "I
+    // don't want them to just be pink": the party's air in the palette's colours — electric blue-violet over the middle, a warm
+    // gold to the right, red to the left — never a pink wash)
     const pa = Math.max(0, Math.min(1, o.party || 0));
     const blend = (a, b) => a.map((v, i) => Math.round(v + (b[i] - v) * pa));
-    for (const [fx, col, a, sx, sy] of [[0.5, blend([150, 70, 235], [215, 60, 230]), 0.3 * (1 + 0.15 * pa), 1.25, 0.62], [0.82, blend([40, 200, 210], [170, 70, 255]), 0.2 * (1 + 0.15 * pa), 0.75, 0.5], [0.16, blend([235, 60, 170], [255, 70, 140]), 0.16 * (1 + 0.4 * pa), 0.7, 0.5]]) {
+    for (const [fx, col, a, sx, sy] of [[0.5, blend([150, 70, 235], [90, 80, 255]), 0.3 * (1 + 0.15 * pa), 1.25, 0.62], [0.82, blend([40, 200, 210], [255, 170, 60]), 0.2 * (1 + 0.1 * pa), 0.75, 0.5], [0.16, blend([235, 60, 170], [255, 60, 70]), 0.16 * (1 + 0.3 * pa), 0.7, 0.5]]) {
       x.save(); x.translate(W * fx, y); x.scale(sx, sy);
       const g = x.createRadialGradient(0, 0, 0, 0, 0, R);
       g.addColorStop(0, `rgba(${col},${(a * k).toFixed(3)})`); g.addColorStop(0.4, `rgba(${col},${(a * k * 0.4).toFixed(3)})`); g.addColorStop(1, `rgba(${col},0)`);

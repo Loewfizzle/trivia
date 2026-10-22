@@ -7,8 +7,15 @@
 // growing heap and the same offscreen memory; a hidden tab stops rendering. Screens at the six review sizes. THE PREVIEW PANEL
 // (JUST ME live + kept for the tab + CLEAR ALL; EVERYONE: city2/live on two phones in sync, a late arrival, until, clear) —
 // ONLY=panel runs just that part.
+//
+// GROUPS (NEON PASS 5 — the suite had grown to ~90 checks and 3 ½ minutes): ONLY=core,flags,skyline,neon,water,harbor,sky,
+// party,panel,dock,perf (comma-separated) runs those groups in this process. With no ONLY the independent groups run in PARALLEL
+// shards (SHARDS=3 child processes, each its own browser — the same checks), then the two that must run alone: panel (it writes
+// the shared city2/live node every ?city=2 page listens to) and perf (CPU-throttled timing). SHARDS=1: everything in this process.
 import puppeteer from 'puppeteer-core';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const BROWSER = process.argv[2];
 const OUT = (process.argv[3] || './shots-harbor').replace(/\/?$/, '/');
@@ -25,9 +32,10 @@ const ok = (cond, what) => { checks.push({ what, ok: !!cond }); log(cond ? 'OK  
 const GR = '&tz=America/Detroit&at=42.96,-85.67';
 const NIGHT = `when=2026-10-21T22:00${GR}`;
 
-const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : [])] });
-async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0 } = {}) {
-  const ctx = await browser.createBrowserContext();
+let browser = null;               // (launched when this process first runs a group itself: a parent that only shards never opens one)
+const launch = async () => browser || (browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : [])] }));
+async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0, init = null } = {}) {
+  const ctx = await (await launch()).createBrowserContext();
   const p = await ctx.newPage();
   const files = [];
   p.on('pageerror', e => { errors.push(`${slot} pageerror: ${e.message}`); log(slot, 'PAGEERROR', e.message); });
@@ -37,6 +45,7 @@ async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profi
   await p.setViewport({ width: w, height: h, deviceScaleFactor: dpr || (mobile ? 2 : 1), isMobile: mobile, hasTouch: mobile });
   // (an iPhone: DPR 3, and iOS reports a capped core count — Part 6a's tier check)
   if (cores) await p.evaluateOnNewDocument(n => { Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => n }); }, cores);
+  if (init) await p.evaluateOnNewDocument(init.fn, init.arg);
   await p.evaluateOnNewDocument((slotName, prof) => {
     try { localStorage.setItem('nd:entered', '1'); if (prof) localStorage.setItem(`na:${slotName}:profile`, JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, slot, profile);
@@ -65,6 +74,7 @@ const harborUp = p => waitFor(p, '!!(window.__district.harbor() && window.__dist
 const DB = 'http://127.0.0.1:9000';
 const dbPut = (path, v) => fetch(`${DB}/${path}.json?ns=demo-arcade-default-rtdb`, { method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify(v) });
 const flags = p => ev(p, 'window.__district.harbor().flags');
+const settled = (p, what = 'settled', ms = 15000) => waitFor(p, '!window.__district.harbor().pending && !window.__district.harbor().fading', what, ms);
 
 // ================================================================ THE PREVIEW PANEL (the owner's test remote; ONLY=panel runs just this)
 async function panelSection() {
@@ -78,6 +88,8 @@ async function panelSection() {
   await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);
   const chip = async label => {
+    // (NEON PASS 5: a sky piece switched on makes the sheet PEEK — wait for its height to settle before measuring a button)
+    await waitFor(O.page, "!document.querySelector('.hr-sheet') || document.querySelector('.hr-sheet').getAnimations().every(x => x.playState !== 'running')", "the sheet still", 3000).catch(() => {});
     const r = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }, label);
     if (!r) throw new Error(`no chip ${label}`);
     await tapAt(O.page, r.x, r.y); await sleep(200);
@@ -152,8 +164,111 @@ async function panelSection() {
   await B.ctx.close(); await C.ctx.close();
 }
 
-try {
-  if (process.env.ONLY === 'panel') { await panelSection(); throw Object.assign(new Error('ONLY=panel'), { only: true }); }
+// ================================================================ NEON PASS 5 — the owner's iPhone view: the party at 11 pm, 402×874
+// (every hero + word tower's sky beam rising behind the sign, the rotating palette, the racing light moving, the beat half-time,
+// the NEON logo punching, the tired tube) + A CAPPED FRAME RATE (iOS Low Power Mode's 30 Hz) keeps the tier
+async function neonPass5Party() {
+  const Q = await open({ slot: 'h13', qs: `when=2026-10-24T23:00${GR}`, view: [402, 874] });
+  await harborUp(Q.page);
+  await ev(Q.page, 'window.__district.setTier(2)');
+  await waitFor(Q.page, "(() => { const p = window.__district.party(), n = window.__district.harbor().neon; return p.show.racing > 0 && n.pal && n.pal.built > 20 && !n.queued && !window.__district.harbor().pending; })()", 'the party + its palette', 25000);
+  const h = await ev(Q.page, 'window.__district.harbor()'), tr = (await ev(Q.page, 'window.__district.scene()')).textRects;
+  const towers = h.towers.filter(t => (t.rank === 'hero' || t.rank === 'word') && t.x + t.w / 2 > 6 && t.x + t.w / 2 < 396).length;
+  const free = h.skyBeams.beams.filter(b => b.top < tr.tag.y);
+  ok(h.skyBeams.beams.length >= Math.min(6, towers) && free.length >= h.skyBeams.beams.length - 1,
+    `THE SKY BEAMS (NEON PASS 5): every hero + word tower's beam (${h.skyBeams.beams.map(b => b.id).join(', ')} — ${h.skyBeams.beams.length} of ${towers} towers), ${free.length} rising behind the sign to the top`);
+  ok(h.neon.pal.on && h.neon.pal.mains >= 5 && h.neon.scheme === 'city', `THE PARTY PALETTE: the rotating palette on (${h.neon.pal.mains} main colours built, scene ${h.neon.pal.scene}) — never one pink scheme`);
+  // the motion at phone size: the share of skyline pixels changing by > 24 between frames 250 ms apart (the racing light, the
+  // sweeps, the beat) + the half-time beat + the NEON logo's punch, sampled together over ~3 s
+  const m = await ev(Q.page, `new Promise(res => {
+    const cv = document.querySelector('.nd-scene canvas'), x = cv.getContext('2d'), k = cv.width / cv.clientWidth, hb = window.__district.harbor();
+    const y0 = Math.round(hb.cam.limitY * k), y1 = Math.round((hb.cam.VPY + 10) * k), w = cv.width;
+    const grab = () => x.getImageData(0, y0, w, y1 - y0).data;
+    const shares = [], beats = [0, 0, 0, 0], lg = document.querySelector('.nd-logo-glow'); let prev = null, lo = 9, hi = 0, t0 = performance.now(), n = 0;
+    const tick = () => {
+      const p = window.__district.party(); if (p.beatIdx % 2 === 0 || (p.beatU > 0.2 && p.beatU < 0.8)) beats[p.beatIdx] = Math.max(beats[p.beatIdx], p.punch);   // (beats 2 + 4: mid-beat — their last 50 ms are the next strong beat's attack)
+      const o = lg ? +getComputedStyle(lg).opacity : -1; lo = Math.min(lo, o); hi = Math.max(hi, o);
+      if (++n % 15 === 0) { const d = grab(); if (prev) { let c = 0, s = 0; for (let i = 0; i < d.length; i += 16) { s++; if (Math.abs(d[i] - prev[i]) + Math.abs(d[i + 1] - prev[i + 1]) + Math.abs(d[i + 2] - prev[i + 2]) > 24) c++; } shares.push(c / s); } prev = d; }
+      if (performance.now() - t0 < 3200) requestAnimationFrame(tick); else res({ shares, beats, lo, hi, tired: document.querySelectorAll('.nd-logo .ndl.is-tired').length });
+    };
+    requestAnimationFrame(tick);
+  })`);
+  const share = m.shares.reduce((a, b) => a + b, 0) / Math.max(1, m.shares.length);
+  ok(share > 0.05, `THE PARTY MOVES at phone size: ${(100 * share).toFixed(1)} % of the skyline's pixels change between frames ~250 ms apart`);
+  ok(m.beats[0] > 0.5 && m.beats[1] < m.beats[0] * 0.35 && m.beats[3] < m.beats[0] * 0.35 && m.beats[2] > m.beats[0] * 0.5,
+    `HALF-TIME: the punch on beats 1 + 3 (${m.beats[0].toFixed(2)}, ${m.beats[2].toFixed(2)}), beats 2 + 4 calm (${m.beats[1].toFixed(2)}, ${m.beats[3].toFixed(2)})`);
+  ok(m.hi > 0.35 && m.lo < 0.15, `THE NEON LOGO PUNCHES with the city: its glow layer ${m.lo.toFixed(2)} → ${m.hi.toFixed(2)} (gentler than the skyline)`);
+  ok(m.tired <= 2, `THE TIRED TUBE: ${m.tired} tired letter(s) right now (0–2, rotating)`);
+  if (SHOTS) await Q.page.screenshot({ path: `${OUT}np5-party-402x874.png` });
+  await Q.ctx.close();
+  // A 30 Hz FRAME RATE (iOS Low Power Mode): the city tries one step down, sees no faster frames, steps back up + stays (the owner's
+  // iPhone ran a party night at tier 0: nothing racing). requestAnimationFrame throttled to 30 Hz in the page.
+  const C = await open({ slot: 'h14', qs: NIGHT, view: [402, 874], init: { fn: () => { const raf = window.requestAnimationFrame.bind(window); let q = [], last = 0, armed = false, id = 0; const pump = t => { if (t - last < 31) { raf(pump); return; } last = t; const run = q; q = []; armed = false; for (const e of run) e[1](t); }; window.requestAnimationFrame = cb => { q.push([++id, cb]); if (!armed) { armed = true; raf(pump); } return id; }; window.cancelAnimationFrame = i => { q = q.filter(e => e[0] !== i); }; }, arg: null } });
+  await harborUp(C.page);
+  await waitFor(C.page, '(() => { const t = window.__district.tiering(); return t.capped > 0 && !t.probe && t.tier === 2; })()', 'the cap found, the tier back', 40000).catch(() => {});
+  const ti = await ev(C.page, 'window.__district.tiering()');
+  ok(ti.tier === 2 && ti.capped >= 24 && ti.capped <= 36, `A 30 Hz PHONE KEEPS ITS TIER: tier ${ti.tier} (${ti.hist.join('→')}), the cap found: ${ti.capped} Hz — no step down for a frame rate the city can't change`);
+  await C.ctx.close();
+}
+
+// ================================================================ NEON PASS 5 — the panel: a link's own settings win, the JUST ME chip,
+// PARTY ON = the party link, every sky event fired from the panel appears
+async function neonPass5Panel() {
+  // a JUST ME state left in the tab (PARTY OFF + rain) and a party link opened in it: the link wins
+  const L1 = await open({ slot: 'hl', qs: `when=2026-10-24T23:00${GR}&panel=1`, view: [402, 874], init: { fn: st => { try { sessionStorage.setItem('nd:hr-me', JSON.stringify({ state: st, ui: {} })); } catch { /* fine */ } }, arg: { party: 'off', wx: 'rain' } } });
+  await harborUp(L1.page);
+  await waitFor(L1.page, '!!window.__district.remote()', 'the panel loaded', 10000);
+  await waitFor(L1.page, 'window.__district.party().on > 0.5', 'the link\'s party', 10000).catch(() => {});
+  const f1 = await flags(L1.page), p1 = await ev(L1.page, 'window.__district.party()');
+  ok(!f1.remote && p1.on > 0.5 && f1.wx !== 'rain', `A LINK'S OWN SETTINGS WIN: a leftover JUST ME (party off, rain) dropped for the party link (party ${p1.on}, wx ${f1.wx})`);
+  // the chip: JUST ME on → the pill says what, the ✕ clears it in one tap
+  await ev(L1.page, "window.__district.remote().setMine({ party: 'on', force: ['aurora'] })");
+  await waitFor(L1.page, "!!document.querySelector('.hr-pill') && /JUST ME/.test(document.querySelector('.hr-lbl').textContent) && !document.querySelector('.hr-x').hidden", 'the JUST ME chip', 6000);
+  const chipTxt = await ev(L1.page, "document.querySelector('.hr-lbl').textContent"), xr = await ev(L1.page, "(() => { const r = document.querySelector('.hr-x').getBoundingClientRect(); return { w: r.width, h: r.height }; })()");
+  await tap(L1.page, '.hr-x');
+  await waitFor(L1.page, '!window.__district.harbor().flags.remote', 'cleared by the ✕', 5000);
+  ok(/AURORA/.test(chipTxt) && xr.w >= 44 && xr.h >= 44, `THE JUST ME CHIP: "${chipTxt}" + a ${Math.round(xr.w)}×${Math.round(xr.h)} pt ✕ — one tap back to the link`);
+  const linkParty = await ev(L1.page, '({ beams: window.__district.harbor().skyBeams.beams.length, pal: window.__district.harbor().neon.pal.on })');
+  await L1.ctx.close();
+  // PARTY ON by day (no time picked) = the party link: the clock jumps to tonight, the same show
+  const D = await open({ slot: 'hd2', qs: `when=2026-10-22T13:00${GR}&panel=1`, view: [402, 874] });
+  await harborUp(D.page);
+  await waitFor(D.page, '!!document.querySelector(".hr-pill")', 'the TEST pill', 10000);
+  await tap(D.page, '.hr-pill');
+  await waitFor(D.page, "!!document.querySelector('.hr-sheet') && document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 6000);
+  const on = await ev(D.page, `(() => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].filter(x => x.textContent.trim() === 'ON')[0]; if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; })()`);
+  await tapAt(D.page, on.x, on.y);
+  await waitFor(D.page, "(() => { const p = window.__district.party(), n = window.__district.harbor().neon; return p.on > 0.5 && n.pal && n.pal.on && window.__district.harbor().skyBeams.beams.length > 0 && window.__district.scene().w.night > 0.6; })()", 'PARTY ON at night', 20000).catch(() => {});
+  const fd = await flags(D.page), pd = await ev(D.page, '({ on: window.__district.party().on, name: window.__district.party().name, night: window.__district.scene().w.night, beams: window.__district.harbor().skyBeams.beams.length, pal: window.__district.harbor().neon.pal.on })');
+  ok(pd.on > 0.5 && pd.night > 0.6 && pd.pal && pd.beams === linkParty.beams && /T2[0-3]:\d\d$/.test(fd.q.when || ''), `PARTY ON BY DAY = THE PARTY LINK: the clock jumps to tonight (${fd.q.when}), the show at its ${pd.name} — ${pd.beams} beams (the link: ${linkParty.beams}), the palette ${pd.pal ? 'on' : 'off'}`);
+  await D.ctx.close();
+  // every sky piece fired from the panel appears within a few seconds (JUST ME; the night pieces at night, the day ones by day)
+  const SKY = [
+    ['banner', 'st.banner'], ['skywrite', 'st.smoke && st.smoke.kind === "skywrite"'], ['skytype', 'st.smoke && st.smoke.kind === "skytype"'], ['helicopter', 'st.air.heli'],
+    ['balloons', 'st.balloons'], ['balloon-festival', 'st.balloons'], ['planes', 'st.air.planes.length > 0'], ['approach', 'st.air.planes.some(p => p.approach)'],
+    ['geese', 'st.birds.geese > 0'], ['swifts', 'st.birds.swifts > 0'], ['bats-dusk', 'st.birds.bats > 0'], ['heron', 'st.birds.heron'],
+  ];
+  const NIGHT_SKY = [['satellites', 'st.air.train'], ['drones', 'st.drones']];
+  for (const [when, list] of [[`when=2026-10-21T13:00${GR}&wind=2`, SKY], [NIGHT, NIGHT_SKY]]) {
+    const P = await open({ slot: `hs${list.length}`, qs: `${when}&panel=1`, view: [402, 874] });
+    await harborUp(P.page);
+    await waitFor(P.page, '!!window.__district.remote() && !!window.__district.scene().textRects', 'the panel + the sign', 10000);
+    const got = [], missing = [];
+    for (const [id, cond] of list) {
+      await ev(P.page, `window.__district.remote().setMine({ force: ['${id}'] })`);
+      const okk = await waitFor(P.page, `(() => { const st = window.__district.harbor().sky.state; return !!(${cond}); })()`, id, 6000).then(() => true).catch(() => false);
+      (okk ? got : missing).push(id);
+      await ev(P.page, 'window.__district.remote().setMine({})');
+      await waitFor(P.page, '!window.__district.harbor().flags.remote', 'cleared', 4000).catch(() => {});
+    }
+    ok(!missing.length, `THE PANEL'S SKY EVENTS (${/T13/.test(when) ? 'by day' : 'at night'}): ${got.join(', ')} each appeared within 6 s${missing.length ? ` — MISSING: ${missing.join(', ')}` : ''}`);
+    await P.ctx.close();
+  }
+}
+
+const GROUPS = new Map();
+const G = (name, fn) => { if (!GROUPS.has(name)) GROUPS.set(name, []); GROUPS.get(name).push(fn); };
+G('core', async () => {
   // ================================================================ 1. ?city=2: the Harbor, no errors, every size
   const A = await open({ slot: 'ha', qs: NIGHT });
   await harborUp(A.page);
@@ -165,11 +280,11 @@ try {
   ok(A.files.some(u => /\/js\/screens\/harbor\/scene\.js/.test(u)), 'CITY 2: the harbor modules load with the flag');
   if (SHOTS) for (const [w, h] of [[390, 844], [402, 874], [412, 915], [430, 932], [874, 402], [1440, 900]]) {
     await A.page.setViewport({ width: w, height: h, deviceScaleFactor: w < 1000 ? 2 : 1, isMobile: w < 1000, hasTouch: w < 1000 });
-    await sleep(1500);
+    await waitFor(A.page, `window.__district.harbor().cam.W === ${w}`, 'the re-layout', 8000); await settled(A.page);
     await A.page.screenshot({ path: `${OUT}night-${w}x${h}.png` });
   }
   await A.page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  await sleep(800);
+  await waitFor(A.page, 'window.__district.harbor().cam.W === 390', 'back at 390', 8000); await settled(A.page);
 
   // ================================================================ 1b. the lanes (real rects); a re-layout never blanks the city
   { const h1 = await ev(A.page, 'window.__district.harbor()'), sc = await ev(A.page, 'window.__district.scene()');
@@ -187,22 +302,25 @@ try {
       const f = d.w / 1.5, px = d.x - 6.3 * f, py = d.y - 1.5 * f, sy = hb.cam.VPY - 30;
       const x = cv.getContext('2d');
       const read = (X, Y) => { const k = cv.width / cv.clientWidth; return Array.from(x.getImageData(Math.round(X * k), Math.round(Y * k), 1, 1).data).slice(0, 3); };
-      const before = read(px, py), sky = read(4, sy), out = [];
+      // (NEON PASS 5: the first sample inside a frame too — read between frames under load it could catch the canvas mid-commit)
+      let before = null, sky = null, prevP = null, steadyN = 0, waitN = 0; const out = [];
       let n = 0, sawPending = false;
       const bakes0 = hb.bakes;
       const tick = () => {
+        // (start once the pixel holds steady for 8 frames — the stage settling after the first bakes is not a re-layout)
+        if (!before) { const p = read(px, py); steadyN = prevP && Math.abs(p[0] - prevP[0]) + Math.abs(p[1] - prevP[1]) + Math.abs(p[2] - prevP[2]) < 6 ? steadyN + 1 : 0; prevP = p; if (steadyN >= 8 || ++waitN > 240) { before = p; sky = read(4, sy); } requestAnimationFrame(tick); return; }
         out.push(read(px, py)); n++;
         if (n === 3) window.__district.setTier(1);
         const h = window.__district.harbor();
         if (n >= 3 && h.pending) sawPending = true;
-        if ((n > 6 && h.bakes > bakes0 && !h.pending && !h.fading) || n > 900) return res({ before, sky, out, n, sawPending, baked: h.bakes > bakes0 && !h.pending, tier: window.__district.scene().tier });
+        if ((n > 6 && h.bakes > bakes0 && !h.pending && !h.fading) || n > 900) return res({ before, sky, out, n, sawPending, baked: h.bakes > bakes0 && !h.pending, tier: window.__district.scene().tier, hist: (window.__district.tiering() || {}).hist, first: out.findIndex(p => p[0] + p[1] + p[2] < 24) });
         requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
     })`);
     const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
     const worst = Math.max(...run.out.map(p => dist(p, run.before))), nearSky = run.out.filter(p => dist(p, run.sky) < 12).length, black = run.out.filter(p => p[0] + p[1] + p[2] < 24).length;
-    ok(run.baked && run.tier <= 1 && worst < 60 && !nearSky && !black, `RE-LAYOUT: setTier(1) mid-session (then t${run.tier}: the per-frame reads slow it, so the scene may step down again) — over ${run.n} frames (bake + crossfade) the stage-band pixel never went blank (worst Δ ${Math.round(worst)} from rgb(${run.before}); bare sky ${nearSky}×, black ${black}×)`);
+    ok(run.baked && run.tier <= 1 && worst < 60 && !nearSky && !black, `RE-LAYOUT: setTier(1) mid-session (then t${run.tier}: the per-frame reads slow it, so the scene may step down again) — over ${run.n} frames (bake + crossfade) the stage-band pixel never went blank (worst Δ ${Math.round(worst)} from rgb(${run.before}); bare sky ${nearSky}×, black ${black}× — the tiers ${(run.hist || []).join("→")}, the first black frame ${run.first})`);
     await D.ctx.close(); }
 
   // ================================================================ 2. the flag is never saved; a normal visit is today's city
@@ -218,9 +336,12 @@ try {
     ok(!N.files.some(u => /\/harbor\//.test(u)) && (await ev(N.page, 'window.__district.scene()')).city !== 2, 'NORMAL VISIT: the default city, no harbor module requested');
     await N.ctx.close(); }
 
+});
+G('flags', async () => {
   // ================================================================ 3. every title flag works with ?city=2
   { const X = await open({ slot: 'hf', qs: `when=2026-10-14T13:00${GR}&wx=rain&speed=60&force=demo&grid=1&debug=1` });
     await harborUp(X.page);
+    await waitFor(X.page, "window.__district.harbor().events.some(e => e.id === 'demo')", 'the demo event', 10000).catch(() => {});
     const s = await ev(X.page, 'window.__district.scene()'), h2 = await ev(X.page, 'window.__district.harbor()');
     const sp = await ev(X.page, 'window.__district.neon().now');
     await sleep(1200);
@@ -230,6 +351,8 @@ try {
     if (SHOTS) await X.page.screenshot({ path: `${OUT}flags-grid-390x844.png` });
     await X.ctx.close(); }
 
+});
+G('skyline', async () => {
   // ================================================================ 3b. Part 2 (+ Part 5): the tagline rests with the dock, the words, the searchlights, the wheel
   { const T = await open({ slot: 'h7', qs: `${NIGHT}&force=spell,searchlights&text=2027` });
     // (the city laid out on the title's REAL text rects before the first reading: a sub-pt re-layout after it is not the bug)
@@ -252,8 +375,7 @@ try {
     await T.page.touchscreen.tap(20, 200);
     await waitFor(T.page, `(() => { const t = document.querySelector('.nd-tag'), d = document.querySelector('.nd-actions'); return t && getComputedStyle(t).opacity > 0.9 && getComputedStyle(d).opacity > 0.9 && !window.__district.harbor().cam.tagGone; })()`, 'the tagline back with the dock', 9000);
     ok(true, 'TAGLINE ON A TAP: back together with the dock, its band the tagline\'s again');
-    await waitFor(T.page, '!!(window.__district.harbor().windows.spelling)', 'the word', 9000);
-    await sleep(1500);
+    await waitFor(T.page, '!!(window.__district.harbor().windows.spelling) && window.__district.harbor().beams > 0.3', 'the word + the searchlights', 9000);
     const h2 = await ev(T.page, 'window.__district.harbor()');
     ok(h2.windows.spelling.text === '2027' && h2.windows.spelling.cells > 30 && h2.beams > 0.3 && h2.windows.share > 0.9,
       `WORDS + SEARCHLIGHTS: "${h2.windows.spelling.text}" lit on ${h2.windows.spelling.towers} (${h2.windows.spelling.cells} windows), beams ${h2.beams}, the night's share ${h2.windows.share}`);
@@ -264,14 +386,17 @@ try {
     void sp;
     await T.ctx.close();
   }
+});
+G('neon', async () => {
   // ================================================================ 3c. Part 3: the neon — signs, outlines, billboards, beacons, the scroll, moments
   { const N = await open({ slot: 'h8', qs: NIGHT });
-    await waitFor(N.page, '(() => { const n = window.__district.harbor().neon; return n.items > 20 && n.built >= n.items && !n.queued; })()', 'the neon built', 15000);
-    await sleep(5000);
+    await waitFor(N.page, '(() => { const n = window.__district.harbor().neon; return n.items > 20 && n.built >= n.items && !n.queued && n.signs.every(s => s.on); })()', 'the neon built + lit', 15000);
     const h = await ev(N.page, 'window.__district.harbor()'), sc = await ev(N.page, 'window.__district.scene()');
-    const games = h.neon.signs.filter(s => s.game).map(s => s.game);
-    ok(new Set(games).size === 12 && h.neon.signs.filter(s => s.kind === 'named').length === 5 && h.neon.signs.every(s => s.on),   // (5 named: none on a hero tower — NEON PASS 2)
-      `SIGNS: all 12 games in the skyline (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')} named tonight; the rest as tube icons), every sign lit at night`);
+    const games = h.neon.signs.filter(s => s.game).map(s => s.game), bb = h.neon.boards[0] && h.neon.boards[0].show;
+    // (NEON PASS 5: 4 named + 6 icons — the small icon left of the wheel and PAR's narrow name are gone; the billboard advertises a
+    // game with no sign tonight, the nightly shuffle rotates the rest)
+    ok(new Set(games).size === 10 && h.neon.signs.filter(s => s.kind === 'named').length === 4 && h.neon.signs.every(s => s.on) && !h.neon.signs.some(s => s.id === 'i-mid' || s.id === 'n-par'),
+      `SIGNS: 10 games in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')} named, stacked roof signs; the rest as tube icons; the billboard: ${bb}), every sign lit at night, no icon left of the wheel`);
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
     const sg = h.neon.signs.find(s => s.game), hit = await ev(N.page, `window.__district.hit(${sg.rect.x + sg.rect.w / 2}, ${sg.rect.y + sg.rect.h / 2})`);
@@ -281,7 +406,7 @@ try {
     const scroll = await ev(N.page, "(() => { const hb = window.__district.harbor(); const okk = hb.spell('HAPPY BIRTHDAY SAMANTHA', { style: 'scroll' }); return okk && window.__district.harbor().windows.spelling; })()");
     ok(scroll && scroll.style === 'scroll' && scroll.towers[0] === 'wordA', `THE SCROLL: a long message tickers across ${scroll && scroll.towers}`);
     await ev(N.page, "window.__district.harbor().moment('flash', { game: 'pulse' }), window.__district.harbor().billboard('bb-left', { game: 'rum' })");
-    await sleep(300);
+    await waitFor(N.page, 'window.__district.harbor().neon.moment.flash', 'the flash', 3000);
     const h2 = await ev(N.page, 'window.__district.harbor()');
     ok(h2.neon.moment.flash && h2.neon.boards[0].show === 'RUMRUNNER', `MOMENTS + BILLBOARDS: a game's flash sweeps the skyline; a billboard shows ${h2.neon.boards[0].show}`);
     ok(h2.mem.mb + h2.neon.mb <= h2.mem.budget, `MEMORY (neon): the sprites ${h2.neon.mb} MB + the baked layers ${h2.mem.mb} MB ≤ ${h2.mem.budget}`);
@@ -290,17 +415,21 @@ try {
     await N.ctx.close();
   }
   { const D = await open({ slot: 'h9', qs: `when=2026-10-21T13:00${GR}` });
-    await sleep(3000);
+    await harborUp(D.page);
+    await waitFor(D.page, '(() => { const n = window.__district.harbor().neon; return n.items > 20 && n.built >= n.items; })()', 'the neon built (by day)', 15000);
     const h = await ev(D.page, 'window.__district.harbor()');
     ok(h.neon.signs.every(s => !s.on), 'BY DAY: the neon is off (the signs + outlines as unlit glass)');
     await D.ctx.close();
   }
 
+});
+G('water', async () => {
   // ================================================================ 3d. Part 4: the water — the mirror, the light columns, the wind, the paths
   { const N = await open({ slot: 'hw', qs: `${NIGHT}&wind=0.5` });
     await harborUp(N.page);
-    await waitFor(N.page, 'window.__district.harbor().neon.signs.every(s => s.on)', 'the neon on', 15000);
-    await sleep(800);
+    await waitFor(N.page, '(() => { const h = window.__district.harbor(); return h.neon.signs.every(s => s.on) && h.neon.built >= h.neon.items && !h.neon.queued && h.water.copies > 0 && h.water.strips > 30; })()', 'the neon built + on, the mirror + its columns', 15000);
+    await sleep(500);                                                       // (the mirror is rebuilt 10× a second: a few rebuilds with the lit neon)
+    await waitFor(N.page, 'window.__district.harbor().rate.drawn > 0', 'a frame', 2000);
     const h = await ev(N.page, 'window.__district.harbor()');
     ok(h.water.strips > 30 && h.water.copies > 0, `THE WATER: the mirror rippled row by row (${h.water.strips} rows), the lights' columns at night (${h.water.copies} copies)`);
     ok(h.water.rough < 0.05, `A CALM NIGHT (wind 0.5 m/s): a glassy mirror (roughness ${h.water.rough})`);
@@ -329,36 +458,38 @@ try {
         return { grid: wt.grid, edge: mean(at), rest: mean(rest), n: at.length }; })()`);
       ok(sm.grid && sm.n > 20 && sm.edge >= sm.rest - 0.015, `NO SEAMS IN THE WATER (tier ${tr}): every strip on whole device rows; the rows where strips meet ${(100 * sm.edge).toFixed(1)} % of their neighbours' light, every other row ${(100 * sm.rest).toFixed(1)} % (${sm.n} meeting rows sampled)`);
     }
-    await ev(N.page, 'window.__district.setTier(0)'); await sleep(2500);
+    await ev(N.page, 'window.__district.setTier(0)'); await waitFor(N.page, 'window.__district.harbor().water.tier === 0 && window.__district.harbor().water.strips > 0', 'the calm mirror', 8000);
     const h0 = await ev(N.page, 'window.__district.harbor()');
     ok(h0.water.tier === 0 && h0.water.strips > 0, `TIER 0: the calm baked mirror (${h0.water.strips} rows, re-drawn once a second)`);
     if (SHOTS) await N.page.screenshot({ path: `${OUT}part4-water-calm-390x844.png` });
     await N.ctx.close();
   }
   { const N = await open({ slot: 'hx', qs: `${NIGHT}&wind=13` });
-    await harborUp(N.page); await sleep(1500);
+    await harborUp(N.page); await waitFor(N.page, 'window.__district.harbor().water.rough > 0.85 && window.__district.harbor().water.copies >= 8', 'the chop', 10000).catch(() => {});
     const h = await ev(N.page, 'window.__district.harbor()');
     ok(h.water.rough > 0.85 && h.water.copies >= 8, `A WINDY NIGHT (13 m/s): choppy (roughness ${h.water.rough}), longer broken columns (${h.water.copies} copies)`);
     if (SHOTS) await N.page.screenshot({ path: `${OUT}part4-water-windy-390x844.png` });
     await N.ctx.close();
   }
   { const G = await open({ slot: 'hy', qs: `when=2026-10-20T18:30${GR}&wind=3` });
-    await harborUp(G.page); await sleep(1500);
+    await harborUp(G.page); await waitFor(G.page, "/sun/.test(window.__district.harbor().water.paths)", 'the sun\'s path', 10000).catch(() => {});
     const g = await ev(G.page, 'window.__district.harbor().water');
     ok(/sun/.test(g.paths), `GOLDEN HOUR: the sun's gold path on the water (${g.paths})`);
     await G.ctx.close();
     const D = await open({ slot: 'hz', qs: `when=2026-10-21T13:00${GR}` });
-    await harborUp(D.page); await sleep(1500);
+    await harborUp(D.page); await waitFor(D.page, "/glints/.test(window.__district.harbor().water.paths)", 'the glints', 10000).catch(() => {});
     const d = await ev(D.page, 'window.__district.harbor().water');
     ok(/glints/.test(d.paths) && d.copies === 0, `BY DAY: sun glints on the water, no light columns (${d.paths}; ${d.copies} copies)`);
     await D.ctx.close();
   }
 
+});
+G('harbor', async () => {
   // ================================================================ 3e. Part 5: the harbor's hero pieces — the wheel, the lighthouse, the boats, the roof signs
   { const H = await open({ slot: 'h9', qs: `${NIGHT}&force=taxi` });
     await harborUp(H.page);
     await waitFor(H.page, '(() => { const n = window.__district.harbor().neon; return n.items > 20 && n.built >= n.items && !n.queued; })()', 'the neon built', 15000);
-    await sleep(3000);
+    await waitFor(H.page, "window.__district.harbor().boats.boats.some(b => b.on && b.id === 'taxi')", 'the taxi out', 10000).catch(() => {});
     const h = await ev(H.page, 'window.__district.harbor()');
     const w = h.wheel;
     ok(w.legs[0] > w.head[0] && w.legs[1] < w.head[1] && w.r > 40 && w.mb > 0,
@@ -381,6 +512,8 @@ try {
     if (SHOTS) await H.page.screenshot({ path: `${OUT}part5-harbor-390x844.png` });
     await H.ctx.close();
   }
+});
+G('sky', async () => {
   // ================================================================ 3f. Part 6a: THE EVERYDAY SKY — the tier on an iPhone, the sky's pieces + API, lanes, the moon
   { const I = await open({ slot: 'h6', qs: `when=2026-10-21T13:00${GR}&wind=2`, dpr: 3, cores: 2 });
     await harborUp(I.page);
@@ -389,7 +522,7 @@ try {
     await waitFor(I.page, '!!window.__district.scene().textRects', 'the sign measured', 8000);
     const b = await ev(I.page, "window.__district.harbor().sky.banner(['FRESH LEMONADE', 'AT THE PIER'])");
     const t = await ev(I.page, "window.__district.harbor().sky.skytype('HAPPY BIRTHDAY STEVE')");
-    await sleep(1500);
+    await waitFor(I.page, '(() => { const h = window.__district.harbor(), st = h.sky.state; return st.banner && st.smoke && st.smoke.puffs > 100 && h.density.road < 1; })()', 'the banner + the skytypers (+ the city calmed)', 8000).catch(() => {});
     const st = (await ev(I.page, 'window.__district.harbor()')).sky.state;
     ok(b && st.banner && st.banner.lines.length === 2 && st.banner.panels.every(p => p.h >= 19), `THE BANNER PLANE (API): ${st.banner && st.banner.lines.join(' / ')} — panels ${st.banner && st.banner.panels.map(p => p.w + '×' + p.h).join(', ')} pt`);
     ok(t && st.smoke && st.smoke.kind === 'skytype' && st.smoke.text === 'HAPPY BIRTHDAY / STEVE' && st.smoke.puffs > 100, `SKYTYPING (API): "${st.smoke && st.smoke.text}" — ${st.smoke && st.smoke.puffs} puffs, 16 a line, 2 lines`);
@@ -398,10 +531,11 @@ try {
     ok(h.rate.fast !== '', `THE SKY KEEPS 60 FPS while it writes (${h.rate.fast})`);
     if (SHOTS) await I.page.screenshot({ path: `${OUT}part6-skytype-390x844.png` });
     await I.ctx.close(); }
-  { const D = await open({ slot: 'h7', qs: `${NIGHT}&force=drones&text=HELLO&show=heart` });
+  // (the drone show runs on the clock: &speed=4 flies its first formation in a quarter of the time — the same checks)
+  { const D = await open({ slot: 'h7', qs: `${NIGHT}&force=drones&text=HELLO&show=heart&speed=4` });
     await harborUp(D.page);
     await waitFor(D.page, '!!window.__district.harbor().sky.state.drones', 'the drone show', 10000);
-    await sleep(17000);
+    await waitFor(D.page, '(() => { const d = window.__district.harbor().sky.state.drones; return d && d.lit > 100; })()', 'the formation lit', 30000);
     const st = (await ev(D.page, 'window.__district.harbor()')).sky.state;
     ok(st.drones && st.drones.n >= 140 && st.drones.lit > 100 && st.used.includes('water') && st.barge && st.barge.w > 40,
       `THE DRONE SHOW (&force=drones): ${st.drones && st.drones.n} drones, ${st.drones && st.drones.lit} lit in "${st.drones && st.drones.shapes.join(' → ')}" at ${st.drones && st.drones.e} s; the barge ${st.barge && Math.round(st.barge.w)} pt on the harbor`);
@@ -409,6 +543,8 @@ try {
     ok(m && m.discA > 0.6 && m.r > 14, `THE MOON (the Harbor's art): drawn at r ${m && m.r} pt, visible ${m && m.discA}, amber ${m && m.amber}`);
     if (SHOTS) await D.page.screenshot({ path: `${OUT}part6-drones-390x844.png` });
     await D.ctx.close(); }
+});
+G('neon', async () => {
   // ================================================================ 3g. NEON PASS 2: clean tubes, solid signs, the waterfront, the drones' colours
   for (const view of [[390, 844], [430, 932]]) {
     const P = await open({ slot: `hn${view[0]}`, qs: NIGHT, view });
@@ -422,7 +558,10 @@ try {
     ok(r.wf.fronts >= 8 && !r.wf.words && r.wf.shops.includes('marquee') && r.wf.shops.includes('cocktail'), `THE WATERFRONT at ${view[0]}: ${r.wf.fronts} storefronts read by shape on a phone (${[...new Set(r.wf.shops)].join(', ')}), no small words`);
     await P.ctx.close();
   }
-  { const D = await open({ slot: 'h8', qs: `${NIGHT}&force=drones&text=HI%20THERE&colours=ff2e97,2ee6ff&by=word&show=heart` });
+});
+G('sky', async () => {
+  // (&speed=8: the message holds after ~36 s of the show's clock — ~5 s here)
+  { const D = await open({ slot: 'h8', qs: `${NIGHT}&force=drones&text=HI%20THERE&colours=ff2e97,2ee6ff&by=word&show=heart&speed=8` });
     await harborUp(D.page);
     await waitFor(D.page, '!!window.__district.harbor().sky.state.drones', 'the drone show', 10000);
     await waitFor(D.page, "(() => { const d = window.__district.harbor().sky.state.drones; return d && d.e > 36.5; })()", 'the message held', 45000);
@@ -432,6 +571,8 @@ try {
     const g = await ev(D.page, `(() => { const h = window.__district.harbor(); return { crown: Math.min(...h.boxes.filter(b => b.kind === 'sky').map(b => b.y)), word: document.querySelector('.nd-word').getBoundingClientRect().bottom }; })()`);
     ok(d.box && d.box[3] < g.crown - 2 && d.box[1] > g.word, `THE DRONES IN OPEN SKY: the formation ${d.box && d.box[1]}–${d.box && d.box[3]} pt, under the word (${Math.round(g.word)}), over the tallest crown (${Math.round(g.crown)})`);
     await D.ctx.close(); }
+});
+G('neon', async () => {
   // ================================================================ 3h. NEON PASS 3: the night spectacular, the lighthouse in neon, the party show, the everyday motion
   { const N = await open({ slot: 'h9', qs: NIGHT, view: [402, 874] });
     await harborUp(N.page);
@@ -450,27 +591,33 @@ try {
     const b = (await ev(N.page, 'window.__district.harbor()')).daily.burnout, sg = (await ev(N.page, 'window.__district.harbor()')).neon.signs.find(s => s.id === b.id);
     ok(sg && sg.kind === 'named', `A BURNT-OUT LETTER (&force=burnout): letter ${b.letter + 1} of ${b.id} is dead tonight (never the NEON logo)`);
     await N.ctx.close(); }
+});
+G('party', async () => {
   { const Q = await open({ slot: 'h10', qs: `when=2026-10-24T23:00${GR}&scene=climb%2Bcrowns`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, 'window.__district.party().show.scene === "climb+crowns" && window.__district.party().show.racing > 0', 'the party show at its peak', 20000);
-    await waitFor(Q.page, "window.__district.harbor().neon.scheme === 'party' && !window.__district.harbor().neon.queued", 'the party colours rolled in', 15000);
+    // (NEON PASS 5: tiers 1–2 wear THE ROTATING PALETTE — the baked 'party' scheme is tier 0's still party)
+    await waitFor(Q.page, "(() => { const n = window.__district.harbor().neon; return n.pal && n.pal.on && n.pal.built > 20 && !n.queued; })()", 'the party colours rolled in', 15000);
     const p = await ev(Q.page, 'window.__district.party()'), hq = await ev(Q.page, 'window.__district.harbor()'), ws = await ev(Q.page, 'window.__district.harbor().wheel.scheme()');
     ok(p.show.moving >= 6 && p.show.racing >= 6 && ws === 'party', `THE PARTY SHOW (11 pm): scene "${p.show.scene}", ${p.show.racing} buildings racing + ${p.show.moving - p.show.racing} running an effect, the wheel in party colours`);
     // NEON PASS 4: obvious in one frame — the party scheme, the sky beams, the beat punching, the string lights in colour
     const pk = await ev(Q.page, `new Promise(res => { let lo = 9, hi = 0, n = 0; const tick = () => { const v = window.__district.party().punch; lo = Math.min(lo, v); hi = Math.max(hi, v); if (++n < 150) requestAnimationFrame(tick); else res({ lo, hi }); }; requestAnimationFrame(tick); })`);
     ok(hq.skyBeams.beams.length >= 2 && p.show.beams > 0.5, `THE SKY BEAMS: ${hq.skyBeams.beams.map(b => b.id + (b.under ? '' : ' (to the top)')).join(', ')}`);
     ok(pk.hi - pk.lo > 0.5, `THE HARD BEAT: the punch swings ${pk.lo.toFixed(2)} → ${pk.hi.toFixed(2)} over ~2.5 s`);
-    ok(hq.strings.bulbs >= 20, `STRING LIGHTS on the speakeasy's roof: ${hq.strings.bulbs} bulbs, ${hq.strings.runs} runs`);
+    // NEON PASS 5: the roof string lights are off until Parts 7–8 (the code a hook: &force=strings-party)
+    ok(hq.strings.on === false, 'STRING LIGHTS: switched off (a hook for Parts 7–8)');
     await Q.ctx.close(); }
+  await neonPass5Party();
   { const Q = await open({ slot: 'h11', qs: `when=2026-10-24T21:00${GR}`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, '!!window.__district.party().show.scene', 'the warm-up show', 20000);
     const p = await ev(Q.page, 'window.__district.party()');
     ok(p.name === 'warm' && p.show.lights === 0 && ['glow', 'sweep-slow', 'climb-slow', 'chase-heroes'].includes(p.show.scene), `THE WARM-UP (9 pm): a classy scene ("${p.show.scene}"), no searchlights yet`);
     await Q.ctx.close(); }
-  // ================================================================ 3i. THE PREVIEW PANEL (JUST ME + EVERYONE ON CITY 2)
-  await panelSection();
-
+});
+// ================================================================ 3i. THE PREVIEW PANEL (JUST ME + EVERYONE ON CITY 2)
+G('panel', async () => { await panelSection(); await neonPass5Panel(); });
+G('dock', async () => {
   // ================================================================ 4. the dock: HOST, JOIN, the knock on the door
   const H = await open({ slot: 'hh', qs: NIGHT });
   await harborUp(H.page);
@@ -495,7 +642,8 @@ try {
   await waitFor(B.page, '!!window.__arcade.state.code', 'B joined', 20000);
   ok((await ev(B.page, 'window.__arcade.state.code')) === code, 'JOIN (city 2): typing the hush word joins the room');
   await H.ctx.close(); await B.ctx.close();
-
+});
+G('perf', async () => {
   // ================================================================ 5. frame pacing at 4× CPU, memory over 20 cycles, a hidden tab
   const Q = await open({ slot: 'hq', qs: `when=2026-10-24T23:00${GR}` });   // a Saturday at the party's peak
   await harborUp(Q.page);
@@ -515,23 +663,27 @@ try {
   ok(perf.every(p => p.cost <= BUDGET_MS && p.p50 <= 18), `PERF (city 2, party peak, ${CPU}× CPU): scene work ${perf.map(p => `t${p.tier}: ${p.cost} ms/frame, p50 ${p.p50}`).join(' · ')} (budget ${BUDGET_MS} ms)`);
   await setTierBack();
   async function setTierBack() { await ev(Q.page, 'window.__district.setTier(2)'); await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 're-bake', 15000); }
-  const mem0 = (await ev(Q.page, 'window.__district.harbor()')).mem.mb;
+  const memH0 = await ev(Q.page, 'window.__district.harbor()'), mem0 = memH0.mem.mb;
   await cdp.send('HeapProfiler.collectGarbage');
   const q0 = (await cdp.send('Runtime.getHeapUsage')).usedSize;
   for (let i = 0; i < 20; i++) {
     await Q.page.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'setup', setupMode: 'host' })));
-    await sleep(600);
+    await waitFor(Q.page, "!!document.querySelector('.setup-screen') && !window.__district", 'the setup screen', 8000).catch(() => {});
     await Q.page.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'title' })));
-    await sleep(700);
+    await waitFor(Q.page, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'the title again', 10000);
   }
   await waitFor(Q.page, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'back on the title', 15000);
   await sleep(800);
   await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled (the memory is read between crossfades)', 15000);
+  // (the same tier as the first reading: a loaded laptop may probe a tier down — NEON PASS 5's tiering — and memory scales with the tier)
+  if ((await ev(Q.page, 'window.__district.harbor().mem.tier')) !== memH0.mem.tier) { await ev(Q.page, `window.__district.setTier(${memH0.mem.tier})`); await settled(Q.page, 'the same tier again'); }
   await cdp.send('HeapProfiler.collectGarbage');
   const q1 = (await cdp.send('Runtime.getHeapUsage')).usedSize;
   const mem1 = (await ev(Q.page, 'window.__district.harbor()')).mem.mb;
   const scenes = await ev(Q.page, `document.querySelectorAll('.nd-scene').length`);
-  ok(scenes === 1 && q1 - q0 < 6e6 && Math.abs(mem1 - mem0) < 0.01, `MEMORY: 20 title↔setup cycles leave one city, heap ${Math.round((q1 - q0) / 1e5) / 10} MB, offscreen ${mem0} → ${mem1} MB`);
+  const lay = h => h.mem.layers.map(l => `${l.name.split(' ')[0]}:${l.mb}`).join(' ');
+  const hq0 = memH0, hq1 = await ev(Q.page, 'window.__district.harbor()');
+  ok(scenes === 1 && q1 - q0 < 6e6 && Math.abs(mem1 - mem0) < 0.01, `MEMORY: 20 title↔setup cycles leave one city, heap ${Math.round((q1 - q0) / 1e5) / 10} MB, offscreen ${mem0} → ${mem1} MB${Math.abs(mem1 - mem0) >= 0.01 ? ` (tier ${hq0.mem.tier} → ${hq1.mem.tier}; ${lay(hq0)} → ${lay(hq1)})` : ''}`);
   await Q.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await sleep(300);
   ok((await ev(Q.page, 'window.__district.scene()')).running === false, 'HIDDEN TAB (city 2): the Harbor stops rendering');
@@ -544,8 +696,14 @@ try {
     await harborUp(C.page);
     await waitFor(C.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 15000);
     await waitFor(C.page, "window.__district.harbor().rate.fast === ''", 'the city calm (the neon booted)', 20000);   // (the boot's sputters count as motion)
-    await sleep(500);
-    const r0 = await ev(C.page, 'window.__district.harbor().rate'); await sleep(3000); const r1 = await ev(C.page, 'window.__district.harbor().rate');
+    // (a 3 s window with nothing fast in it — a loaded laptop may re-bake mid-window (the tier's probe): then the next window, ≤ 4)
+    let r0, r1;
+    for (let k = 0; k < 4; k++) {
+      await waitFor(C.page, "window.__district.harbor().rate.fast === ''", 'calm again', 20000).catch(() => {});
+      await sleep(500);
+      r0 = await ev(C.page, 'window.__district.harbor().rate'); await sleep(3000); r1 = await ev(C.page, 'window.__district.harbor().rate');
+      if (r1.fast === '') break;
+    }
     const fps = (r1.drawn - r0.drawn) / 3;
     ok(r1.fast === '' && fps > 22 && fps < 40, `BATTERY: a calm night draws ${fps.toFixed(0)} frames a second (every other rAF; fast: '${r1.fast || 'calm'}')`);
     await C.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
@@ -556,13 +714,41 @@ try {
     ok(v.running && v.drawn > h1.drawn + 20 && v.fast !== '', `BATTERY: visible again, it resumes at 60 fps for a moment (fast: ${v.fast})`);
     await C.ctx.close(); }
   await Q.ctx.close();
-} catch (e) {
-  if (e.only) log('ONLY=panel: the rest skipped');
-  else { errors.push(`FATAL ${e.message}`); log('FAILED', e.message); }
+});
+
+// ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
+async function runGroup(name) {
+  const fns = GROUPS.get(name);
+  if (!fns) { errors.push(`unknown group ${name} (known: ${[...GROUPS.keys()].join(', ')})`); return; }
+  const g0 = Date.now();
+  for (const fn of fns) { try { await fn(); } catch (e) { errors.push(`FATAL [${name}] ${e.message}`); log('FAILED', name, e.message); } }
+  log(`group ${name}: ${((Date.now() - g0) / 1000).toFixed(1)} s`);
 }
+const ONLY = (process.env.ONLY || '').split(',').map(x => x.trim()).filter(Boolean), TAG = process.env.SHARD_TAG || '';
+const SERIAL = ['panel', 'perf'];
+// (the shards, balanced on the measured times: ~35 s each)
+const SHARD_PLAN = { 1: [], 2: [['core', 'flags', 'skyline', 'water', 'harbor'], ['neon', 'dock', 'sky', 'party']], 3: [['core', 'flags', 'skyline', 'water'], ['neon', 'harbor', 'dock'], ['sky', 'party']] };
+const SHARDS = Number(process.env.SHARDS || 3);
+if (ONLY.length) { for (const g of ONLY) await runGroup(g); }
+else if (SHARDS > 1) {
+  const plan = SHARD_PLAN[SHARDS] || SHARD_PLAN[3], me = fileURLToPath(import.meta.url);
+  await Promise.all(plan.map((groups, i) => new Promise(res => {
+    const ch = spawn(process.execPath, [me, BROWSER, OUT], { env: { ...process.env, ONLY: groups.join(','), SHARD_TAG: `s${i + 1}` }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const pre = `[s${i + 1}]`;
+    for (const st of [ch.stdout, ch.stderr]) { let buf = ''; st.on('data', d => { buf += d; let k; while ((k = buf.indexOf('\n')) >= 0) { console.log(pre, buf.slice(0, k)); buf = buf.slice(k + 1); } }); }
+    // ('exit', not 'close': the headless browsers a shard spawned hold its stdout pipe open for a while after it ends)
+    ch.on('exit', () => {
+      const rf = `${OUT}result-s${i + 1}.json`;
+      if (existsSync(rf)) { const r = JSON.parse(readFileSync(rf, 'utf8')); checks.push(...r.checks); errors.push(...r.errors); }
+      else errors.push(`shard s${i + 1} wrote no result`);
+      res();
+    });
+  })));
+  for (const g of SERIAL) await runGroup(g);
+} else { for (const g of GROUPS.keys()) await runGroup(g); }
 const passed = checks.filter(c => c.ok).length;
 log(`checks ${passed}/${checks.length} passed`);
 log(errors.length ? `errors:\n${errors.join('\n')}` : 'errors none');
-writeFileSync(`${OUT}result.json`, JSON.stringify({ checks, errors }, null, 1));
-await browser.close();
+writeFileSync(`${OUT}result${TAG ? '-' + TAG : ''}.json`, JSON.stringify({ checks, errors }, null, 1));
+if (browser) await Promise.race([browser.close(), sleep(5000)]);
 process.exit(errors.length ? 1 : 0);
