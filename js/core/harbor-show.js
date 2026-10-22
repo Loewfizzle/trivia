@@ -1,125 +1,191 @@
-// CITY 2.0 — THE HARBOR, NEON PASS 3: THE PARTY SHOW's director + THE EVERYDAY MOTION's pick (PURE: no DOM; tests/harbor.test.mjs).
-// docs/harbor.md#neon-pass-3.
+// CITY 2.0 — THE HARBOR: THE PARTY SHOW's director + THE EVERYDAY MOTION's pick (PURE: no DOM; tests/harbor.test.mjs).
+// docs/harbor.md#neon-pass-3 + #neon-pass-4.
 //
-// A party night is a CHOREOGRAPHED LIGHT SHOW across the skyline on the party beat (core/party.js's beat clock): tubes pulsing on the
-// beat, colour SWEEPS rolling across the clusters, ledge bands CLIMBING a tower floor by floor and falling back, fins running in
-// sequence, crowns FLASHING on the drops, CALL-AND-RESPONSE between towers, the CHASERS as one effect among many. Different by
-// building and changing scene every few bars; some buildings always hold steady (never one effect everywhere). It BUILDS with the
-// night: a classy warm-up (slow, gentle, a few effects) → the spectacle at the peak → a calm-down after midnight (the midnight
-// finale stays Part 10's, with the fireworks: `finale` in the frame's input is its hook — the show holds back while it runs).
-// NEVER STROBE-LIKE (the owner): every change has a soft envelope (≥ ~120 ms attack, longer decay), no full-screen flashing, no hard
-// on/off across large areas; a "flash" is a crown flaring up to ~1.5× and easing back.
+// A party night is a CHOREOGRAPHED LIGHT SHOW across the skyline on the party beat (core/party.js's beat clock). NEON PASS 4 (the
+// owner: "the neon needs to be racing around the tubes — motion, flashes, shimmer; it has to look impressive"):
+//   THE HARD BEAT     every beat PUNCHES — a fast attack (~50 ms) to a clearly brighter peak, a quick decay — harder on the
+//                     downbeats + the drops, rippling across the skyline (punchEnv); the tubes never go dark (≥ ~0.7)
+//   RACING LIGHT      bright pulses racing round the WHOLE outline of most buildings (out.race: strength, out.dir, out.sp) — per
+//                     building speed + direction, some reversing every two bars, surging on the beat (the renderer integrates)
+//   FLASHES           crowns + spires flare on the strong beats (every crown on the drops), whole buildings punch on the drops,
+//                     a few towers STROBE colour-to-colour on the beat (a 60 ms crossfade — never a hard on/off)
+//   SCENES            colour sweeps, call-and-response, climbing ledge bands, fins in sequence, layered on the racing light —
+//                     a new scene every 20–40 s; ~a quarter of the city holds (no race, no effect) in any scene
+//   THE NIGHT         builds: a classy warm-up (9 pm) → the peak (11 pm) → calming after 1 am → the 2 am wind-down
+//                     (harborParty: the harbor's own curve; City 1.0's core/party.js energy is unchanged)
+// NEVER HEADACHE-INDUCING: no full-screen flashing, no hard on/off across large areas — the punch is brightness + glow on the
+// lights themselves, with a ≥ 40 ms attack (tested).
 //
 //   showItems(list)  the outline items' descriptors (built once per layout): { kind: 'hero'|'word'|'mid'|'band'|'quay'|'harbor'|
 //                    'far', x (0..1 across the screen), ledges, fins, crown, contour } → the director's cast
 //   showFrame(cast, f, out)   one frame: f = { bar, phase (0..1 of a breath), energy, ramp, name ('warm'|'peak'|'after'), tier,
-//                    motion, t (s), swell, finale } → out (reused): { scene, a[i] (alpha × of the item's tubes), alt[i] (0..1 its
-//                    party colour), fx[i] (0 none · 1 chase · 2 ledges · 3 fins · 4 crown flash), k[i] (the effect's strength),
-//                    ph[i] (the effect's phase 0..1), drop (a drop this bar: 0..1 decaying), big (the biggest drops: the NEON word
-//                    joins), lights (the searchlights 0..1), sparkle (the wheel's sparkle), moving (how many items run an effect) }
-//   everyday(key, cast, signs)  tonight's calm motion (the owner: "a little motion every night"): which signs blink / spell on,
-//                    which sign cycles its colour, which buildings run a slow chaser — seeded by the night, sparse.
+//                    motion, t (s), swell, finale, scene?, beatU (0..1 of a beat), beatT (s a beat), beatIdx (the beat in its
+//                    breath: 0 = the downbeat), beats (a beat counter), rate (breaths / s) } → out (reused): { scene, a[i] (the
+//                    item's tubes ×, up to ~2: the renderer draws the part over 1 additively), alt[i] (0..1 its party colour),
+//                    fx[i] (0 none · 2 ledges · 3 fins · 4 crown flash), k[i], ph[i], race[i] (0..1 racing light), dir[i] (±1),
+//                    sp[i] (speed ×), punch (the city's punch now 0..~1.6), drop, big, lights (the searchlights 0..1), beams
+//                    (the sky beams 0..1), sparkle, shimmer (0..1 how often the shimmer rolls), moving, peak }
+//   everyday(key, cast, signs)  tonight's calm motion: blinking / spelling signs, a colour-cycling sign, slow chasers, rotations
+//                    + scheme stages through the night — seeded by the night (the same all night)
 
 export const FX = { none: 0, chase: 1, ledges: 2, fins: 3, flash: 4 };
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 const hash = (a, b = 0) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
-/** a soft beat envelope (0..1) at a phase: a gentle rise into the beat, a long ease out — never a hard edge */
+/** NEON PASS 3's soft beat envelope (0..1) at a breath's phase — kept for the calm breathing (tier 0, reduced effects) */
 export const beatEnv = ph => { const u = ph - Math.floor(ph); return Math.max(1 - smooth(0, 0.7, u), smooth(0.84, 1, u)); };
+/**
+ * THE HARD BEAT (NEON PASS 4): the punch at u (0..1 of a beat; 0 = the beat), T = seconds a beat. A fast attack over the last
+ * ~50 ms before the beat (never under 40 ms, never more than 30 % of the beat) to 1 on the beat, then a quick decay (~140 ms).
+ */
+export const ATTACK_S = 0.05, DECAY_S = 0.14;
+export function punchEnv(u, T = 0.5) {
+  const v = u - Math.floor(u), a = Math.min(0.3, ATTACK_S / Math.max(0.15, T));
+  if (v > 1 - a) { const x = (v - (1 - a)) / a; return x * x * (3 - 2 * x); }
+  return Math.exp(-v * T / DECAY_S);
+}
+/** the beat inside a breath: the clock's breath phase + the song's bpm (0: no song) → { u, idx, T, div } (a breath is 1, 2 or 4
+ *  beats: core/party.js#breathDiv; with no song the city keeps a party's 120 bpm inside its slow breath) */
+export function beatOf(phase, rate, bpm, breathDiv) {
+  // (no song: a party's 120 bpm — a beat every 0.5 s inside the clock's slow breath)
+  const div = bpm ? breathDiv(bpm) : Math.max(1, Math.round(1 / (Math.max(0.05, rate || 0.3) * 0.5))), x = (phase - Math.floor(phase)) * div, idx = Math.floor(x);
+  return { u: x - idx, idx, T: 1 / Math.max(0.05, (rate || 0.3) * div), div };
+}
+/** the harbor's party night (the owner: 9 pm warm-up → 11 pm peak → calming after 1 am → the 2 am wind-down; core/party.js's
+ *  window + wind-down are kept): h = core/party.js#partyHour → { energy 0.55..1, name } */
+export function harborParty(h) {
+  if (h == null) return { energy: 0, name: null };
+  const energy = 0.55 + 0.2 * smooth(20.6, 22, h) + 0.25 * smooth(22.2, 23, h) - 0.3 * smooth(24.9, 25.6, h);
+  return { energy, name: h < 22.6 ? 'warm' : h < 25 ? 'peak' : 'after' };
+}
 
 /** the cast: the descriptors of the outline items in draw order */
 export function showItems(list) {
-  return list.map((o, i) => ({ i, kind: o.kind, x: clamp01(o.x), ledges: o.ledges | 0, fins: o.fins | 0, crown: !!o.crown, contour: !!o.contour, h: hash(i + 7, 3) }));
+  return list.map((o, i) => ({ i, kind: o.kind, x: clamp01(o.x), ledges: o.ledges | 0, fins: o.fins | 0, crown: !!o.crown, contour: !!o.contour, h: hash(i + 7, 3), h2: hash(i + 11, 5) }));
 }
 
-// THE SCENES: each a few EFFECTS assigned to classes of buildings; the rest steady or gently breathing.
-//   pulse   the tubes swell on the beat, a ripple across the screen (amp: how much)
+// THE SCENES: effects assigned to classes of buildings, layered over the racing light; ~a quarter of the city holds steady.
+//   pulse   how hard the beat punches (× the night)   ripple: the punch rolling across the screen
 //   sweep   a colour sweep rolls across the clusters (every `every` bars, `dir` ±1)
 //   call    call-and-response: two teams of towers answer each other bar by bar
 //   climb   the ledge bands light floor by floor up the towers + fall back   fins: the fins run in sequence
-//   chase   the chasers round the whole outline   crowns: crowns flash on the drops
+//   race    how much of the city races (0..1)   strobe: the share of towers strobing colour-to-colour on the beat
+//   crowns  crowns flash on the strong beats (crownsAll: every crown)   secs: how long the scene runs
 const WARM = [
-  { name: 'glow', pulse: 0.16, ripple: 0.6 },
-  { name: 'sweep-slow', pulse: 0.1, sweep: { every: 4, dir: 1, w: 0.22 } },
-  { name: 'climb-slow', pulse: 0.1, climb: 0.5, cls: ['hero', 'mid'] },
-  { name: 'chase-heroes', pulse: 0.08, chase: ['hero'], speed: 0.6 },
+  { name: 'glow', pulse: 0.75, ripple: 0.6, race: 0.6, crowns: true },
+  { name: 'sweep-slow', pulse: 0.7, sweep: { every: 4, dir: 1, w: 0.22 }, race: 0.55 },
+  { name: 'climb-slow', pulse: 0.7, climb: 0.7, cls: ['hero', 'mid'], race: 0.5 },
+  { name: 'chase-heroes', pulse: 0.65, race: 0.75, crowns: true },
 ];
 const PEAK = [
-  { name: 'ripple+climb', pulse: 0.42, ripple: 0.9, climb: 1, cls: ['hero', 'mid', 'band'], crowns: true },
-  { name: 'sweep+fins', pulse: 0.28, sweep: { every: 2, dir: 1, w: 0.18 }, fins: ['hero', 'band', 'mid'], crowns: true },
-  { name: 'call+chase', call: true, chase: ['word', 'hero'], speed: 1.2, crowns: true },
-  { name: 'climb+crowns', pulse: 0.3, ripple: 0.4, climb: 1, cls: ['band', 'mid', 'hero'], crowns: true, crownsAll: true },
-  { name: 'sweep-back+chase', pulse: 0.3, sweep: { every: 2, dir: -1, w: 0.2 }, chase: ['band', 'quay'], speed: 1, crowns: true },
-  { name: 'call+fins', call: true, fins: ['band', 'mid', 'hero'], crowns: true },
+  { name: 'ripple+climb', pulse: 1, ripple: 0.9, climb: 1, cls: ['hero', 'mid', 'band'], crowns: true, race: 0.8 },
+  { name: 'sweep+fins', pulse: 0.9, sweep: { every: 2, dir: 1, w: 0.18 }, fins: ['hero', 'band', 'mid'], crowns: true, race: 0.85 },
+  { name: 'call+chase', pulse: 0.9, call: true, crowns: true, race: 1 },
+  { name: 'climb+crowns', pulse: 1, ripple: 0.4, climb: 1, cls: ['band', 'mid', 'hero'], crowns: true, crownsAll: true, race: 0.75 },
+  { name: 'sweep-back+chase', pulse: 0.9, sweep: { every: 2, dir: -1, w: 0.2 }, crowns: true, race: 1 },
+  { name: 'call+fins', pulse: 0.9, call: true, fins: ['band', 'mid', 'hero'], crowns: true, race: 0.8 },
+  { name: 'race+strobe', pulse: 1, ripple: 0.7, race: 1, strobe: 0.3, crowns: true },
 ];
 const AFTER = [
-  { name: 'after-glow', pulse: 0.2, ripple: 0.5 },
-  { name: 'after-sweep', pulse: 0.12, sweep: { every: 4, dir: -1, w: 0.25 } },
-  { name: 'after-climb', pulse: 0.12, climb: 0.6, cls: ['hero', 'band'] },
+  { name: 'after-glow', pulse: 0.7, ripple: 0.5, race: 0.55 },
+  { name: 'after-sweep', pulse: 0.65, sweep: { every: 4, dir: -1, w: 0.25 }, race: 0.5 },
+  { name: 'after-climb', pulse: 0.65, climb: 0.6, cls: ['hero', 'band'], race: 0.5 },
 ];
 export const SHOW_SCENES = { warm: WARM, peak: PEAK, after: AFTER };
-/** how many items may run a live effect at once, by tier (tier 0: none — the calm city breathes as one image) */
+const SECS = { warm: 34, peak: 26, after: 36 };
+/** how many items may run a live effect (a climb, the fins, a flash) at once, by tier (tier 0: none — one breathing image) */
 export const MAX_MOVING = [0, 5, 64];
+/** how many items may race at once, by tier */
+export const MAX_RACE = [0, 6, 999];
 
-export function newShowOut(n) { return { scene: '', a: new Float32Array(n), alt: new Float32Array(n), fx: new Uint8Array(n), k: new Float32Array(n), ph: new Float32Array(n), drop: 0, big: 0, lights: 0, sparkle: 0, moving: 0, peak: 0 }; }
+export function newShowOut(n) { return { scene: '', a: new Float32Array(n), alt: new Float32Array(n), fx: new Uint8Array(n), k: new Float32Array(n), ph: new Float32Array(n), race: new Float32Array(n), dir: new Int8Array(n), sp: new Float32Array(n), punch: 0, drop: 0, big: 0, lights: 0, beams: 0, sparkle: 0, shimmer: 0, moving: 0, racing: 0, peak: 0 }; }
 
-/** which scene list + scene a frame is in (pure: the bar count + the energy) */
+/** which scene list + scene a frame is in (pure: the bar count + the energy); len = bars a scene (20–40 s at the song's rate) */
 export function sceneAt(f) {
   const peak = smooth(0.84, 0.98, f.energy || 0);
-  if (f.scene) { for (const list of [PEAK, WARM, AFTER]) { const sc = list.find(s => s.name === f.scene); if (sc) return { list, sc, idx: 0, peak: list === PEAK ? Math.max(peak, 1) : peak, len: list === PEAK ? 8 : 12 }; } }
+  const lenOf = list => { const nm = list === PEAK ? 'peak' : list === WARM ? 'warm' : 'after'; return f.rate ? Math.max(8, Math.min(64, Math.round(f.rate * SECS[nm]))) : (list === PEAK ? 8 : 12); };
+  if (f.scene) { for (const list of [PEAK, WARM, AFTER]) { const sc = list.find(s => s.name === f.scene); if (sc) return { list, sc, idx: 0, peak: list === PEAK ? Math.max(peak, 1) : peak, len: lenOf(list) }; } }
   const list = f.name === 'after' ? AFTER : peak > 0.5 ? PEAK : WARM;
-  const len = list === PEAK ? 8 : 12, n = Math.floor(Math.max(0, f.bar || 0) / len);
+  const len = lenOf(list), n = Math.floor(Math.max(0, f.bar || 0) / len);
   return { list, sc: list[(n + (list === PEAK ? 1 : 0)) % list.length], idx: n, peak, len };
 }
 
 export function showFrame(cast, f, out = newShowOut(cast.length)) {
   const n = cast.length, on = clamp01((f.ramp || 0) * (f.on ?? 1));
-  out.moving = 0;
+  out.moving = 0; out.racing = 0;
   if (!on || !f.motion) {
     // (reduced motion: a still party — the tubes a touch brighter, nothing moves)
-    for (let i = 0; i < n; i++) { out.a[i] = 1 + 0.08 * on; out.alt[i] = 0; out.fx[i] = 0; out.k[i] = 0; out.ph[i] = 0; }
-    out.scene = on ? 'still' : ''; out.drop = 0; out.big = 0; out.lights = 0; out.sparkle = 0; out.peak = 0;
+    for (let i = 0; i < n; i++) { out.a[i] = 1 + 0.08 * on; out.alt[i] = 0; out.fx[i] = 0; out.k[i] = 0; out.ph[i] = 0; out.race[i] = 0; out.dir[i] = 1; out.sp[i] = 1; }
+    out.scene = on ? 'still' : ''; out.drop = 0; out.big = 0; out.lights = 0; out.sparkle = 0; out.peak = 0; out.punch = 0; out.shimmer = 0;
+    out.beams = on ? 0.6 : 0;
     return out;
   }
   const { sc, peak, len } = sceneAt(f);
   const bar = f.bar | 0, ph = f.phase || 0, inBar = (bar % len + ph) / len;          // (how far through the scene)
   // the scene fades in over its first bar and out over its last (never a hard cut between scenes)
   const sk = smooth(0, 1, inBar * len) * (1 - smooth(len - 1, len, inBar * len));
-  const amp = on * (0.55 + 0.45 * peak) * (f.finale ? 0.4 : 1);
+  // (the warm-up is already a party — clearly livelier than a normal night; the peak the full show)
+  const amp = on * (0.74 + 0.26 * peak) * (f.finale ? 0.4 : 1);
   // THE DROPS: every 8th bar at the peak (+ a firework's swell); the biggest every 32nd — the NEON word joins those
   const dropBar = peak > 0.5 && bar % 8 === 0, bigBar = peak > 0.7 && bar % 32 === 0;
   out.drop = Math.max(dropBar ? Math.max(0, 1 - ph * 1.6) : 0, clamp01(f.swell || 0));
   out.big = bigBar ? Math.max(0, 1 - ph * 1.3) : 0;
   out.scene = sc.name; out.peak = peak;
-  out.lights = on * smooth(0.86, 0.97, f.energy || 0) * (f.name === 'after' ? 0.5 : 1);
+  // THE SKY: the searchlights take turns with the sky beams at the peak (the last quarter of every 32 bars), so the sky never
+  // gets messy; the beams switch on through the warm-up and stand together from the peak
+  const turn = peak > 0.5 ? smooth(23, 24.5, bar % 32 + ph) * (1 - smooth(31, 32, bar % 32 + ph)) : 0;
+  out.lights = on * smooth(0.86, 0.97, f.energy || 0) * (f.name === 'after' ? 0.5 : 1) * turn;
+  out.beams = on * (1 - 0.65 * turn) * (f.name === 'after' ? 0.75 : 1);
   out.sparkle = peak > 0.5 && (dropBar || bar % 4 === 0) ? 1 : 0;
-  const maxMove = MAX_MOVING[f.tier ?? 2] ?? 64;
+  out.shimmer = on * (0.35 + 0.65 * peak);
+  // THE HARD BEAT: the punch of this beat (harder on the downbeat, harder still on a drop)
+  const T = f.beatT || 0.5, bu = f.beatU ?? ph, strong = (f.beatIdx | 0) === 0 ? 1 : 0.72;
+  const hit = strong * (1 + 0.6 * out.drop) * (sc.pulse ?? 0.6) * amp;
+  out.punch = punchEnv(bu, T) * hit;
+  const maxMove = MAX_MOVING[f.tier ?? 2] ?? 64, maxRace = MAX_RACE[f.tier ?? 2] ?? 999;
   const sweepPos = sc.sweep ? (((bar % sc.sweep.every) + ph) / sc.sweep.every) * 1.5 - 0.25 : 0;
+  const beats = f.beats ?? bar, cur = beats % 2, sa = smooth(0, Math.min(0.3, 0.06 / T), bu);       // (the strobe's 60 ms crossfade)
   for (let i = 0; i < n; i++) {
     const it = cast[i];
-    let a = 1, alt = 0, fx = 0, k = 0, p = 0;
-    // ~a quarter of the city holds steady through any scene (a different quarter each scene): the show never looks like one
-    // effect everywhere
+    let a = 1, alt = 0, fx = 0, k = 0, p = 0, race = 0;
+    // ~a quarter of the city holds steady through any scene (a different quarter each scene): no race, no effect — it still
+    // punches on the beat, gently (the whole city in time)
     const steady = hash(i + 31, Math.floor(bar / len)) < 0.24 && it.kind !== 'hero';
+    const delay = (sc.ripple || 0) * it.x * 0.35;
+    const pe = punchEnv(bu - delay, T) * hit;
+    // the base sinks a little so the punch reads (a big swing, never dark): 0.8 between beats → ~1.8 on a downbeat at the peak
+    a = 1 - 0.2 * amp + (steady ? 0.35 : 0.9) * pe;
     if (!steady) {
-      if (sc.pulse) a *= 1 - sc.pulse * amp * 0.5 + sc.pulse * amp * beatEnv(ph - (sc.ripple || 0) * it.x * 0.6);
       if (sc.call && (it.kind === 'hero' || it.kind === 'word' || it.kind === 'mid')) {
         // two teams (by the building's place): A lights on even bars, B answers on odd — a soft hand-over, never a cut
         const team = (it.i + (it.x > 0.5 ? 1 : 0)) % 2, mine = (bar + team) % 2 === 0;
         const e = mine ? 1 - smooth(0.55, 1, ph) * 0.5 : 0.5 + 0.5 * smooth(0.6, 1, ph);
-        a *= 0.55 + 0.6 * e * amp + 0.25 * (1 - amp);
+        a *= 0.6 + 0.55 * e * amp + 0.2 * (1 - amp);
       }
       if (sc.sweep) { const d = (sc.sweep.dir > 0 ? it.x : 1 - it.x) - sweepPos; alt = Math.max(0, 1 - Math.abs(d) / sc.sweep.w) * amp; alt = alt * alt * (3 - 2 * alt); }
+      // a few towers STROBE colour-to-colour on the beat (a 60 ms crossfade, every beat)
+      if (sc.strobe && (it.kind === 'hero' || it.kind === 'word' || it.kind === 'mid') && it.h2 < sc.strobe * 1.6) alt = Math.max(alt, (cur ? sa : 1 - sa) * amp);
+      // RACING LIGHT round the whole outline: the towers + most mid buildings, half the bands, some of the quay
+      const racer = it.contour && (it.kind === 'hero' || it.kind === 'word' || (it.kind === 'mid' && it.h2 < 0.85) || (it.kind === 'band' && it.h2 < 0.5) || (it.kind === 'quay' && it.h2 < 0.5));
+      if (racer && it.h < (sc.race ?? 0.6) * 1.15 + (it.kind === 'hero' ? 1 : 0) && out.racing < maxRace) { race = amp * (0.7 + 0.3 * peak); out.racing++; }
       if (out.moving < maxMove) {
         if (sc.climb && it.ledges >= 2 && (!sc.cls || sc.cls.includes(it.kind)) && it.h < 0.85) { fx = FX.ledges; k = sc.climb * amp; p = (inBar * len * 0.5 + it.h) % 1; }
         else if (sc.fins && it.fins >= 2 && sc.fins.includes(it.kind) && it.h < 0.85) { fx = FX.fins; k = amp; p = (ph + bar * 0.25 + it.h) % 1; }
-        else if (sc.chase && sc.chase.includes(it.kind) && it.contour) { fx = FX.chase; k = amp * (sc.speed || 1); p = it.h; }
         if (fx) out.moving++;
       }
-      // crowns flash on the drops (a flare that eases back: ~0.6 s), the towers' crowns only (or every crown: crownsAll)
-      if (!fx && sc.crowns && it.crown && out.drop > 0.02 && (sc.crownsAll || it.kind === 'hero' || it.kind === 'mid' || it.kind === 'word')) { fx = FX.flash; k = out.drop * amp; }
+      // FLASHES: the crowns + spires flare on the strong beats (the towers'; every crown on a drop or in a crownsAll scene)
+      if (!fx && sc.crowns && it.crown && (sc.crownsAll || out.drop > 0.05 || it.kind === 'hero' || it.kind === 'mid' || it.kind === 'word')) {
+        const fl = Math.max(out.drop, strong > 0.9 ? pe / Math.max(0.01, hit) : 0);
+        if (fl > 0.03) { fx = FX.flash; k = fl * amp; }
+      }
     }
-    out.a[i] = 1 + (a - 1) * sk;              // (the scene's envelope: a building eases into its part and out of it — never a cut) out.alt[i] = alt * sk; out.fx[i] = fx; out.k[i] = k * (fx === FX.flash ? 1 : sk); out.ph[i] = p;
+    out.a[i] = 1 + (a - 1) * (0.35 + 0.65 * sk);              // (the scene's envelope eases the effects; the beat never stops)
+    out.alt[i] = alt * sk; out.fx[i] = fx; out.k[i] = k * (fx === FX.flash ? 1 : sk); out.ph[i] = p;
+    out.race[i] = race * (0.4 + 0.6 * sk);
+    // each racer's own speed + direction; a third of them reverse every two bars (on the downbeat)
+    out.sp[i] = 0.7 + 0.9 * it.h2;
+    out.dir[i] = (it.h < 0.5 ? 1 : -1) * (it.h2 < 0.33 && Math.floor(bar / 2) % 2 ? -1 : 1);
+    if (race) out.moving++;
   }
   return out;
 }
@@ -136,14 +202,19 @@ export function everyday(key, cast, signs) {
   const named = signs.filter(g => g.kind === 'named'), icons = signs.filter(g => g.kind === 'icon');
   const pick = (arr, k) => (arr.length ? arr[Math.floor(R(k) * arr.length) % arr.length] : null);
   const spell = new Set(), blink = new Set();
-  const a = pick(named, 1), b = pick(named.filter(g => g !== a), 2);
+  // (NEON PASS 4: a name at the screen's edge never SPELLS ON — its dark letters read as a sign cut off by the edge; it may blink)
+  const a = pick(named.filter(g => !g.edge), 1) || pick(named, 1), b = pick(named.filter(g => g !== a), 2), b2 = pick(named.filter(g => g !== a && g !== b), 7);
   if (a) spell.add(a.id);
   if (b) blink.add(b.id);
+  if (b2 && R(8) < 0.7) blink.add(b2.id);          // (NEON PASS 4: a second blinking name most nights)
   const c = pick(icons, 3);
   const heroes = cast.filter(c2 => (c2.kind === 'hero' || c2.kind === 'band' || c2.kind === 'mid') && c2.contour);
   const chase = new Set();
+  // (NEON PASS 4: three or four slow chasers spread across the skyline — the renderer runs the first two on tier 1)
   const h1 = pick(heroes, 4); if (h1) chase.add(h1.i);
-  const h2 = pick(heroes.filter(x => x !== h1 && Math.abs(x.x - h1.x) > 0.3), 5); if (h2 && R(6) < 0.6) chase.add(h2.i);
+  const h2 = pick(heroes.filter(x => x !== h1 && Math.abs(x.x - h1.x) > 0.3), 5); if (h2) chase.add(h2.i);
+  const h3 = pick(heroes.filter(x => ![...chase].some(j => Math.abs(cast[j].x - x.x) < 0.2)), 9); if (h3) chase.add(h3.i);
+  const h4 = pick(heroes.filter(x => ![...chase].some(j => Math.abs(cast[j].x - x.x) < 0.15)), 12); if (h4 && R(13) < 0.6) chase.add(h4.i);
   // COLOURS THROUGH THE NIGHT (the owner, like City 1.0): two or three buildings ROTATE their colour slowly (a long calm cycle to a
   // second colour and back); three or four CHANGE THEIR SCHEME as the night goes on — evening → late night → the small hours — each
   // stage its own colour index (into the renderer's palette), on the light timeline (the local hour: nightStage)

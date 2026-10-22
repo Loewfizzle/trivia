@@ -63,8 +63,17 @@ function quad(x, cam, pts, fill) {
  * A building (a band block, a tower's tier, a hero block): b = { x0, x1, z0, z1, h, y0?, mat, win, crown, seed, kind, rank }.
  * o: { rank, tierIndex, tiers (the tower's tier count), flood: [r,g,b] | null, gold }
  */
+/** NEON PASS 4 (the owner: the wheel reads clean WITHOUT a veil): is this building one of the quiet office blocks right behind the
+ *  wheel — further away than the wheel, its middle inside the wheel's disc, its top above the hub (cam.wheelQuiet: scene.js) */
+export function behindWheel(cam, b) {
+  const w = cam.wheelQuiet;
+  if (!w || b.z0 <= w.z + 4) return false;
+  const [a, ty] = project(cam, b.x0, (b.y0 || 0) + b.h, b.z0), [c] = project(cam, b.x1, 0, b.z0), mx = (a + c) / 2;
+  return Math.abs(mx - w.x) < w.r * 0.82 && ty < w.y + w.r * 0.2;
+}
 export function skyBlock(x, cam, b, T, o = {}) {
-  const y0 = b.y0 || 0, y1 = y0 + b.h, F = faces(T, b.mat, b.z0), s = cam.F / b.z0;
+  // (the quiet blocks behind the wheel: a touch further back in the haze — lower contrast, never blurred)
+  const y0 = b.y0 || 0, y1 = y0 + b.h, F = faces(T, b.mat, behindWheel(cam, b) ? b.z0 + 150 : b.z0), s = cam.F / b.z0;
   const glass = b.mat === 'glass';
   // ---- the side face the camera sees (the one turned to the middle), lit or in shade by the real sun
   const sideOf = right => (T.sunDir === 0 ? mix(F.lit, F.dark, 0.5) : (right ? T.sunDir > 0 : T.sunDir < 0) ? F.lit : F.dark);

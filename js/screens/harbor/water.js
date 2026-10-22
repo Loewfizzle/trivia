@@ -71,7 +71,7 @@ export function createWater() {
   const mk = () => document.createElement('canvas');
   const src = mk(), bright = mk(), sm = mk(), R = mk(), wc = mk(), cols = new Map();
   const tex = [mk(), mk()];
-  let L = null, cam = null, W = 0, y0 = 0, y1 = 0, Hw = 0, top = 0, sh = 0, dpr = 1, rr = 1, tier = 2, A0 = 0;
+  let L = null, cam = null, W = 0, y0 = 0, y1 = 0, Hw = 0, top = 0, sh = 0, dpr = 1, rr = 1, tier = 2, A0 = 0, oy = 0, oyD = 0;
   let strips = [], dashes = [], glints = [], texKey = '', lastT = 0, updAt = -1e9, ready = false, set0 = { rain: 0, fog: 0 };
   let queue = [], mirrors = [], wakes = [], stats = { strips: 0, copies: 0, lights: 0, paths: '' };
 
@@ -85,14 +85,24 @@ export function createWater() {
     rr = 1;                                       // (a reflection is soft: the mirror at 1 px a pt, the light columns at half)
     size(src, W * rr, sh * rr); size(bright, W * rr * 0.5, sh * rr * 0.5); size(sm, W * rr * 0.5, (Hw + 6) * rr * 0.5);
     size(R, W * rr, (Hw + 6) * rr);
-    size(wc, W * dpr, (Hw + 2) * dpr);
+    // THE WATER'S CANVAS SITS ON WHOLE DEVICE ROWS (NEON PASS 4 — the owner's "thin black bars" on her iPhone): its top is the
+    // waterline rounded to the scene's device row (it is blitted 1:1, never resampled), and every strip below covers whole
+    // device rows, edge to edge. (Strips at fractional rows anti-aliased their edges: two half-covered, half-transparent rows
+    // over the black base read as a thin dark line at every strip's seam — WebKit's drawImage shows it most.)
+    oyD = Math.round(y0 * dpr); oy = oyD / dpr;
+    size(wc, W * dpr, (y1 + 2 - oy) * dpr);
     strips = [];
-    const k = tier === 2 ? 1 : 1.55;
-    for (let y = y0; y < y1;) {
-      const u = (y - y0) / Hw, h = Math.min(y1 - y, (0.7 + 2.7 * Math.pow(u, 1.25)) * k * (cam.F / 600));
-      const yc = y + h / 2, z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, yc - cam.VPY);
-      strips.push({ y, h, u, z, s: cam.F / z, seed: hash(strips.length + 1) });
-      y += h;
+    const k = tier === 2 ? 1 : 1.55, rEnd = Math.max(1, Math.round((y1 - oy) * dpr));
+    const zAt = y => cam.F * (cam.CAMH - LEVEL) / Math.max(1, y - cam.VPY);
+    for (let r = 0; r < rEnd;) {
+      const y = oy + r / dpr, u = clamp01((y - y0) / Hw);
+      const hd = Math.min(rEnd - r, Math.max(1, Math.round((0.7 + 2.7 * Math.pow(u, 1.25)) * k * (cam.F / 600) * dpr))), h = hd / dpr;
+      const z = zAt(y + h / 2);
+      // the crest / trough is box-filtered over the strip: a far strip spans many wave crests (its brightness is their average),
+      // so its contrast fades with the wave phase it covers — no near-random bright / dark alternation in thin far rows
+      const dph = 1.21 * Math.abs(zAt(y) - zAt(y + h));
+      strips.push({ r, hd, y, h, u, z, s: cam.F / z, ck: Math.min(1, 1.6 / Math.max(1e-3, dph)), seed: hash(strips.length + 1) });
+      r += hd;
     }
     // the paths' dashes + the day's glints: their dice once (the compose only twinkles them)
     const at = u => { const y = y0 + u * Hw, z = cam.F * (cam.CAMH - LEVEL) / Math.max(1, y - cam.VPY); return { y, s: cam.F / z }; };
@@ -164,7 +174,8 @@ export function createWater() {
     queue = []; mirrors = [];
     if (!composed) return;
     const tb = performance.now();
-    c.save(); c.globalAlpha = f.fade; c.drawImage(wc, 0, y0, W, Hw + 2); c.restore();
+    // (1:1 onto the scene's device pixels: its top on a whole row, its size its own — never resampled, so never a soft seam)
+    c.save(); c.globalAlpha = f.fade; c.drawImage(wc, 0, oy, wc.width / dpr, wc.height / dpr); c.restore();
     ema('blit', performance.now() - tb);
   }
   // (the steps' cost, smoothed: harbor().water.ms — tests + the perf budget)
@@ -243,10 +254,10 @@ export function createWater() {
   function compose(f, t, still) {
     if (!built) return;
     const tm2 = performance.now(), T = f.T, rough = roughOf(f), fa = 1;
-    const x = size(wc, W * dpr, (Hw + 2) * dpr);
+    const x = wc.getContext('2d'), Wd = wc.width;
     x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, wc.width, wc.height);
-    x.setTransform(dpr, 0, 0, dpr, 0, -dpr * y0);
-    // 4. the ripples: the mirror row by row (one wave phase per depth: a sideways wobble, a vertical break, crest / trough)
+    // 4. the ripples: the mirror row by row (one wave phase per depth: a sideways wobble, a vertical break, crest / trough) —
+    //    in device pixels: each strip fills its own whole rows (st.r, st.hd), wider than the canvas (no edge inside it)
     const dayK = Math.min(1, T.day + T.gold * 0.6);
     const amp = 0.05 + 0.3 * rough, jit = 0.03 + 0.22 * rough;
     for (const st of strips) {
@@ -257,25 +268,27 @@ export function createWater() {
       // it: blue-green by day, orange at golden hour, black at night) — so it darkens toward us; the wind breaks it up
       const fres = (0.93 - (0.42 + 0.26 * dayK) * Math.pow(st.u, 0.8)) * (1 - 0.3 * rough) * (1 - 0.26 * dayK);
       const crest = 0.5 + 0.5 * Math.sin(st.z * 1.21 - t * 1.6 + st.seed * 2);
-      const sk = 0.12 + 0.38 * rough + 0.1 * st.u;
+      const sk = (0.12 + 0.38 * rough + 0.1 * st.u) * st.ck;
       x.globalAlpha = clamp01(fres * (1 - sk + sk * crest)) * fa;
       const ry = Math.max(0, Math.min(Hw + 6 - st.h, st.y - y0 + dy));
       const pad = Math.abs(A) + 1;
-      x.drawImage(R, 0, ry * rr, R.width, Math.max(1, st.h * rr), dx - pad, st.y, W + pad * 2, st.h + 0.02);
+      x.drawImage(R, 0, ry * rr, R.width, Math.max(1, st.h * rr), (dx - pad) * dpr, st.r, Wd + 2 * pad * dpr, st.hd);
     }
     stats.strips = strips.length;
     x.globalAlpha = 1;
+    x.setTransform(dpr, 0, 0, dpr, 0, -oyD);
     const tS = performance.now(); ema('strips', tS - tm2);
     // 5. the wavelets: sky-lit crests + dark troughs sliding against each other (their density follows the wind)
     bakeTex(T, rough);
     const ta = (0.95 * dayK + 0.45 * T.night) * (0.55 + 0.45 * rough) * fa;
     if (ta > 0.01) {
       const o1 = still ? 0 : ((t * (3 + 9 * rough)) % W + W) % W, o2 = still ? W * 0.37 : ((-t * (2 + 6 * rough)) % W + W) % W;
-      for (const [cv, o, al] of [[tex[0], o1, ta], [tex[1], o2, ta * 0.8]].slice(0, tier === 2 ? 2 : 1)) {
+      for (const [cv, o0, al] of [[tex[0], o1, ta], [tex[1], o2, ta * 0.8]].slice(0, tier === 2 ? 2 : 1)) {
         x.globalAlpha = al;
-        // (the texture wraps: its two pieces, each drawn once)
-        if (o > 0.5) x.drawImage(cv, (W - o) * dpr, 0, o * dpr, cv.height, 0, y0, o, Hw + 2);
-        if (W - o > 0.5) x.drawImage(cv, 0, 0, (W - o) * dpr, cv.height, o, y0, W - o, Hw + 2);
+        // (the texture wraps: its two pieces, each drawn once, 1:1 — the wrap on a whole device column, so no seam there either)
+        const o = Math.round(o0 * dpr) / dpr, th = cv.height / dpr;
+        if (o > 0.5) x.drawImage(cv, (W - o) * dpr, 0, o * dpr, cv.height, 0, oy, o, th);
+        if (W - o > 0.5) x.drawImage(cv, 0, 0, (W - o) * dpr, cv.height, o, oy, W - o, th);
       }
       x.globalAlpha = 1;
     }
@@ -377,7 +390,9 @@ export function createWater() {
     set(o) { Object.assign(set0, o || {}); },
     band: () => ({ y0, y1 }),
     mem: () => +([src, bright, sm, R, wc, ...tex, ...cols.values()].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2),
-    debug: () => ({ y0: +y0.toFixed(1), y1: +y1.toFixed(1), strips: stats.strips, copies: stats.copies, lights: stats.lights, paths: stats.paths.trim(), rough: stats.rough, ms: stats.ms, rr, tier, wakes: wakes.length, mb: +([src, bright, sm, R, wc, ...tex].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2) }),
+    debug: () => ({ y0: +y0.toFixed(1), y1: +y1.toFixed(1), strips: stats.strips, copies: stats.copies, lights: stats.lights, paths: stats.paths.trim(), rough: stats.rough, ms: stats.ms, rr, tier,
+      // (NEON PASS 4: every strip on whole device rows, edge to edge from the canvas's top — no seam can anti-alias)
+      grid: Number.isInteger(oyD) && strips.every((s, i) => Number.isInteger(s.r) && Number.isInteger(s.hd) && s.hd >= 1 && s.r === (i ? strips[i - 1].r + strips[i - 1].hd : 0)) && !!strips.length && strips[strips.length - 1].r + strips[strips.length - 1].hd <= wc.height, rows: [oyD, ...strips.map(s => s.r)], wakes: wakes.length, mb: +([src, bright, sm, R, wc, ...tex].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2) }),
     destroy() { for (const cv of [src, bright, sm, R, wc, ...tex, ...cols.values()]) { cv.width = 0; cv.height = 0; } cols.clear(); ready = false; },
   };
 }

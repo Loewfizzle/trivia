@@ -397,7 +397,7 @@ test('events: when() gates by the context; forced events run at once', () => {
 
 // ================================================================== Part 3: NEON + SIGNS + BILLBOARDS
 import { signSpots, spotConflicts, assignSigns, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet, WARM_ROLES, DEPTH, depthStrength } from '../js/core/harbor-neon.js';
-import { showItems, showFrame, newShowOut, sceneAt, everyday, signMotion, beatEnv, FX, MAX_MOVING, SHOW_SCENES, nightStage, rotateMix, burnout, burnoutFlicker } from '../js/core/harbor-show.js';
+import { showItems, showFrame, newShowOut, sceneAt, everyday, signMotion, beatEnv, FX, MAX_MOVING, MAX_RACE, SHOW_SCENES, nightStage, rotateMix, burnout, burnoutFlicker, punchEnv, beatOf, harborParty } from '../js/core/harbor-show.js';
 import { flattenPath, tubeLight } from '../js/core/tube-path.js';
 import { scrollColumns } from '../js/core/harbor-windows.js';
 import { lighthouseBoxes } from '../js/core/harbor-layout.js';
@@ -887,57 +887,81 @@ test('THE DRONES\' COLOURS: one colour, a colour per word or per letter, a rainb
 });
 
 // ------------------------------------------------------------------ NEON PASS 3: THE PARTY SHOW + THE EVERYDAY MOTION
-test('the party show (NEON PASS 3): scenes change, builds through the night, some buildings always steady, never one effect everywhere, never strobe-like, tiers', () => {
+test('the party show (NEON PASS 4): racing light on most buildings, a HARD beat (never dark, never a hard on/off), scenes every 20–40 s, a steady quarter, the sky taking turns, tiers', () => {
   const { L } = setup('402x874');
   const O = outlines(L);
   const kindOf = o => (o.strength === 'hero' ? 'hero' : o.strength === 'word' ? 'word' : o.strength === 'mid' ? 'mid' : o.strength === 'band' || o.strength === 'midband' ? 'band' : o.strength === 'quay' ? 'quay' : 'far');
   const cast = showItems(O.map((o, i) => ({ kind: kindOf(o), x: (i + 0.5) / O.length, ledges: o.lines.filter(l => l.part === 'ledge').length, fins: o.lines.filter(l => l.part === 'fin').length, crown: o.lines.some(l => l.part === 'crown'), contour: o.lines.some(l => l.part === 'contour' || l.part === 'roof') })));
-  const run = (energy, name, tier = 2) => { const scenes = new Set(), moving = []; let steadyMin = 1, maxJump = 0; let prev = null; const out = newShowOut(cast.length);
+  const T = 0.5, frame = (bar, s, energy, name, tier = 2, extra = {}) => { const bu = (s / 64) * 2 % 1; return { bar, phase: s / 64, energy, ramp: 1, name, tier, motion: true, t: bar + s / 64, swell: 0, beatU: bu, beatT: T, beatIdx: s < 32 ? 0 : 1, beats: bar * 2 + (s < 32 ? 0 : 1), ...extra }; };
+  const run = (energy, name, tier = 2) => { const scenes = new Set(), moving = [], racing = []; let steadyMin = 1, minA = 9, maxA = 0, maxStrobe = 0; const out = newShowOut(cast.length);
     for (let bar = 0; bar < 96; bar++) for (let s = 0; s < 64; s++) {
-      showFrame(cast, { bar, phase: s / 64, energy, ramp: 1, name, tier, motion: true, t: bar + s / 64, swell: 0 }, out);
-      scenes.add(out.scene); moving.push(out.moving);
-      // steady: buildings with no effect, no sweep colour and their tubes within 10 % of normal
-      let st = 0; for (let i = 0; i < cast.length; i++) if (!out.fx[i] && out.alt[i] < 0.02 && Math.abs(out.a[i] - 1) < 0.1) st++;
-      steadyMin = Math.min(steadyMin, st / cast.length);
-      // never strobe-like: a step of 1/64 of a breath (~23 ms at the fastest 1.4 breaths/s) never moves a building's light by much
-      if (prev) for (let i = 0; i < cast.length; i++) maxJump = Math.max(maxJump, Math.abs(out.a[i] - prev[i]));
-      prev = Float32Array.from(out.a);
+      showFrame(cast, frame(bar, s, energy, name, tier), out);
+      scenes.add(out.scene); moving.push(out.moving - out.racing); racing.push(out.racing);
+      let st = 0, sb = 0; for (let i = 0; i < cast.length; i++) { if (!out.fx[i] && !out.race[i] && out.alt[i] < 0.02) st++; if (out.alt[i] > 0.5) sb++; minA = Math.min(minA, out.a[i]); maxA = Math.max(maxA, out.a[i]); }
+      steadyMin = Math.min(steadyMin, st / cast.length); maxStrobe = Math.max(maxStrobe, sb / cast.length);
     }
-    return { scenes, moving: moving.reduce((a, b) => a + b, 0) / moving.length, maxMoving: Math.max(...moving), steadyMin, maxJump }; };
+    const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+    return { scenes, moving: avg(moving), maxMoving: Math.max(...moving), racing: avg(racing), maxRacing: Math.max(...racing), steadyMin, minA, maxA, maxStrobe }; };
   const warm = run(0.7, 'warm'), peak = run(1, 'peak'), after = run(0.7, 'after');
   assert.ok(peak.scenes.size >= 5 && warm.scenes.size >= 3 && after.scenes.size >= 2, `scenes change: ${[...peak.scenes]} / ${[...warm.scenes]}`);
-  assert.ok(peak.moving > warm.moving, `the peak moves more than the warm-up (${peak.moving.toFixed(1)} vs ${warm.moving.toFixed(1)})`);
+  assert.ok(peak.racing > warm.racing && peak.racing >= cast.filter(c => c.contour && ['hero', 'word', 'mid'].includes(c.kind)).length * 0.6, `RACING LIGHT: most towers race at the peak (${peak.racing.toFixed(1)} of ${cast.length}), fewer at the warm-up (${warm.racing.toFixed(1)})`);
   for (const [n, r] of [['warm', warm], ['peak', peak], ['after', after]]) {
     assert.ok(r.steadyMin >= 0.1, `${n}: some buildings always hold steady (${r.steadyMin.toFixed(2)})`);
-    assert.ok(r.maxJump < 0.12, `${n}: never strobe-like (a jump of ${r.maxJump.toFixed(3)} in one step)`);
+    assert.ok(r.minA >= 0.6, `${n}: the tubes never go dark between the beats (min ${r.minA.toFixed(2)})`);
+    assert.ok(r.maxStrobe < 0.4, `${n}: never one strobe everywhere (${r.maxStrobe.toFixed(2)} of the city)`);
   }
-  // tier 1: a few moving effects at once; tier 0: none (the whole neon breathes as one image)
-  assert.ok(run(1, 'peak', 1).maxMoving <= MAX_MOVING[1], 'tier 1: ≤ 5 effects at once');
-  assert.equal(run(1, 'peak', 0).maxMoving, 0, 'tier 0: no live effects');
+  assert.ok(peak.maxA >= 1.6, `THE HARD BEAT: a big swing at the peak (up to ${peak.maxA.toFixed(2)}× on a downbeat)`);
+  // the punch: a ≥ 40 ms attack (never a hard on), up on the beat, gone in a beat; harder on the downbeat
+  for (const bt of [0.35, 0.5, 0.75]) {
+    let step = 0; for (let ms = 0; ms < bt * 2000; ms += 5) step = Math.max(step, Math.abs(punchEnv((ms + 5) / 1000 / bt, bt) - punchEnv(ms / 1000 / bt, bt)));
+    assert.ok(step <= 0.16, `the attack takes ≥ 40 ms at ${bt} s a beat (a 5 ms step moves it ${step.toFixed(3)})`);
+    assert.equal(punchEnv(0, bt), 1); assert.ok(punchEnv(0.15 / bt, bt) < 0.4, 'a quick decay');
+  }
+  const down = showFrame(cast, frame(9, 0, 1, 'peak'), newShowOut(cast.length)).punch, up = showFrame(cast, frame(9, 32, 1, 'peak'), newShowOut(cast.length)).punch;
+  assert.ok(down > up * 1.2 && down > 0.7, `harder on the downbeat (${down.toFixed(2)} vs ${up.toFixed(2)})`);
+  // tier 1: a few effects + a few racers at once; tier 0: none (the whole neon punches as one image)
+  const t1 = run(1, 'peak', 1);
+  assert.ok(t1.maxMoving <= MAX_MOVING[1] && t1.maxRacing <= MAX_RACE[1], `tier 1: ≤ ${MAX_MOVING[1]} effects + ≤ ${MAX_RACE[1]} racing (${t1.maxMoving} + ${t1.maxRacing})`);
+  const t0 = run(1, 'peak', 0);
+  assert.equal(t0.maxMoving + t0.maxRacing, 0, 'tier 0: no live effects');
   // the same input → the same plan (any phone, a refresh)
-  const a1 = showFrame(cast, { bar: 40, phase: 0.3, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 9, swell: 0 }), a2 = showFrame(cast, { bar: 40, phase: 0.3, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 9, swell: 0 });
-  assert.deepEqual([...a1.a], [...a2.a]); assert.equal(a1.scene, a2.scene);
-  // drops: every 8th bar at the peak; the biggest every 32nd (the NEON word joins those only); the searchlights + the wheel's sparkle join at the peak only
-  const d = showFrame(cast, { bar: 32, phase: 0.05, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 0 }), nd = showFrame(cast, { bar: 33, phase: 0.05, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 0 });
+  const a1 = showFrame(cast, frame(40, 19, 1, 'peak')), a2 = showFrame(cast, frame(40, 19, 1, 'peak'));
+  assert.deepEqual([...a1.a], [...a2.a]); assert.deepEqual([...a1.race], [...a2.race]); assert.equal(a1.scene, a2.scene);
+  // drops: every 8th bar at the peak; the biggest every 32nd (the NEON word joins those only)
+  const d = showFrame(cast, frame(32, 3, 1, 'peak')), nd = showFrame(cast, frame(33, 3, 1, 'peak'));
   assert.ok(d.drop > 0.5 && d.big > 0.5 && nd.drop === 0 && nd.big === 0);
-  assert.ok(showFrame(cast, { bar: 8, phase: 0.05, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: true, t: 0 }).big === 0, 'an ordinary drop is not a big one');
-  assert.ok(d.lights > 0.9 && showFrame(cast, { bar: 3, phase: 0.2, energy: 0.65, ramp: 1, name: 'warm', tier: 2, motion: true, t: 0 }).lights === 0, 'the searchlights join at the peak');
-  // reduced motion: a still party; the flash scenes on the drops only
-  const still = showFrame(cast, { bar: 32, phase: 0.1, energy: 1, ramp: 1, name: 'peak', tier: 2, motion: false, t: 0 });
-  assert.equal(still.moving, 0); assert.ok([...still.fx].every(v => v === 0));
-  assert.ok(beatEnv(0) === 1 && beatEnv(0.5) < 0.2, 'the beat envelope');
+  assert.ok(showFrame(cast, frame(8, 3, 1, 'peak')).big === 0, 'an ordinary drop is not a big one');
+  // THE SKY takes turns at the peak: the sky beams most of the time, the searchlights in the last quarter of every 32 bars
+  const b8 = showFrame(cast, frame(8, 10, 1, 'peak')), b28 = showFrame(cast, frame(28, 10, 1, 'peak'));
+  assert.ok(b8.beams > 0.9 && b8.lights === 0 && b28.lights > 0.9 && b28.beams < 0.5, `turns: bar 8 beams ${b8.beams.toFixed(2)} / lights ${b8.lights.toFixed(2)}; bar 28 ${b28.beams.toFixed(2)} / ${b28.lights.toFixed(2)}`);
+  assert.ok(showFrame(cast, frame(3, 10, 0.65, 'warm')).lights === 0, 'no searchlights at the warm-up');
+  // reduced motion: a still party
+  const still = showFrame(cast, { ...frame(32, 6, 1, 'peak'), motion: false });
+  assert.equal(still.moving, 0); assert.ok([...still.fx].every(v => v === 0) && [...still.race].every(v => v === 0) && still.punch === 0);
+  assert.ok(beatEnv(0) === 1 && beatEnv(0.5) < 0.2, 'the soft breath (tier 0, reduced)');
+  // scenes run 20–40 s at the song's rate (a breath a second: 20–40 bars)
+  for (const name of ['warm', 'peak', 'after']) { const len = sceneAt({ bar: 0, energy: name === 'peak' ? 1 : 0.7, name, rate: 1 }).len; assert.ok(len >= 20 && len <= 40, `${name}: a scene lasts ${len} s`); }
   assert.equal(sceneAt({ bar: 0, energy: 1, name: 'peak', scene: 'call+chase' }).sc.name, 'call+chase', 'a scene held for a preview (&scene=)');
+  assert.ok(SHOW_SCENES.peak.some(s2 => s2.name === 'race+strobe'));
   for (const list of Object.values(SHOW_SCENES)) assert.equal(new Set(list.map(s2 => s2.name)).size, list.length);
+  // THE NIGHT (the harbor's curve): 9 pm warm-up → 11 pm peak → calming after 1 am
+  const e = h => harborParty(h).energy;
+  assert.ok(e(21) < 0.8 && e(23) > 0.97 && e(25.8) < 0.8 && e(22) < e(23), `the night builds: 9 pm ${e(21).toFixed(2)}, 11 pm ${e(23).toFixed(2)}, 1:48 am ${e(25.8).toFixed(2)}`);
+  assert.deepEqual([harborParty(21).name, harborParty(23).name, harborParty(25.5).name], ['warm', 'peak', 'after']);
+  // the beat with no song: a party's 120 bpm inside the slow breath
+  assert.ok(Math.abs(beatOf(0.3, 1 / 3.5, 0, () => 1).T - 0.5) < 0.01);
+  assert.ok(Math.abs(beatOf(0.3, 1, 120, () => 2).T - 0.5) < 0.01 && beatOf(0.6, 1, 120, () => 2).idx === 1);
 });
 
-test('the everyday motion (NEON PASS 3): sparse + calm — one sign spells on, one blinks, one icon cycles its colour, one or two slow chasers; the same all night', () => {
+test('the everyday motion (NEON PASS 3 + 4): calm but alive — one sign spells on, one or two blink, one icon cycles its colour, three or four slow chasers spread out; the same all night', () => {
   const signs = [{ id: 'n-roof', kind: 'named' }, { id: 'n-par', kind: 'named' }, { id: 'n-blade', kind: 'named' }, { id: 'i-par', kind: 'icon' }, { id: 'i-jazz', kind: 'icon' }];
   const cast = showItems(Array.from({ length: 30 }, (_, i) => ({ kind: i % 3 ? 'band' : 'hero', x: i / 30, contour: true })));
   const a = everyday('2026-10-22', cast, signs), b = everyday('2026-10-22', cast, signs), c = everyday('2026-10-23', cast, signs);
   assert.deepEqual([...a.spell], [...b.spell]); assert.equal(a.cycle, b.cycle);
-  assert.ok(a.spell.size === 1 && a.blink.size === 1 && !a.spell.has([...a.blink][0]), 'one spells, another blinks');
+  assert.ok(a.spell.size === 1 && a.blink.size >= 1 && a.blink.size <= 2 && ![...a.blink].some(id => a.spell.has(id)), 'one spells, one or two others blink');
   assert.ok(a.cycle && a.cycle.startsWith('i-'), 'an icon cycles its colour');
-  assert.ok(a.chase.size >= 1 && a.chase.size <= 2, 'one or two slow chasers');
+  assert.ok(a.chase.size >= 3 && a.chase.size <= 4, `three or four slow chasers (${a.chase.size})`);
+  { const xs = [...a.chase].map(i => cast[i].x).sort((p, q) => p - q); for (let i = 1; i < xs.length; i++) assert.ok(xs[i] - xs[i - 1] >= 0.15 - 1e-9, `spread across the skyline (${xs.map(v => v.toFixed(2))})`); }
   assert.ok(JSON.stringify([[...a.spell], a.cycle, [...a.chase]]) !== JSON.stringify([[...c.spell], c.cycle, [...c.chase]]) || true);
   // a blink is a couple of soft off-ons then a long hold; a spell-on reveals the letters in order
   let off = 0; for (let t = 0; t < 120; t += 0.05) if (signMotion('blink', t, 3).a < 0.5) off += 0.05;
@@ -1056,4 +1080,160 @@ test('the preview panel: time presets follow the real sun; holidays jump to thei
   assert.equal(holidayDay('thanksgiving', { y: 2026, m: 10, d: 22 }), '2026-11-26');
   for (const h of HOLIDAYS) { const d = holidayDay(h.id, { y: 2026, m: 1, d: 1 }), [y, m, dd] = d.split('-').map(Number); const hol = holidayOf(y, m, dd);
     if (!['memorial', 'veterans', 'christmas-eve'].includes(h.id)) assert.equal(hol && hol.id, h.id, `${h.id} → ${d}`); }
+});
+
+// ------------------------------------------------------------------ NEON PASS 4: the signs — never clipped, nothing in front, the beams behind them
+import { buildSign } from '../js/screens/harbor/signs.js';
+import { beamCover, searchlightSpots } from '../js/screens/harbor/searchlights.js';
+import { pierLamps } from '../js/screens/harbor/pier.js';
+
+const NIGHTS = Array.from({ length: 120 }, (_, i) => new Date(Date.UTC(2026, 9, 1) + i * 864e5).toISOString().slice(0, 10));
+const inPoly = (poly, x, y) => { let inside = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside; } return inside; };
+// docked ROSIE's silhouette (screens/harbor/boats.js#drawRosie, her own units: a along her 24-unit length, y up from the
+// waterline): the hull + decks + the paddle box + the twin stacks + the flag staffs as boxes, the bulb strings as points
+const ROSIE_BOXES = [[0.2, 24.2, 2.1], [-1.4, 2.2, 4.6], [2.1, 22.2, 4.15], [4, 19.8, 6.35], [8.6, 15.4, 7.7], [12.2, 15.2, 9.55], [15.85, 16.95, 11.75], [17.05, 18.15, 11.75], [23.5, 24.6, 5.2], [-2, -0.8, 6.4]];
+const ROSIE_STRINGS = (() => { const out = []; for (const [[a0, y0], [a1, y1]] of [[[23.6, 5.2], [17.6, 11.2]], [[17.6, 11.2], [16.4, 11.2]], [[16.4, 11.2], [-0.9, 6.4]]]) { const n = Math.max(2, Math.round(Math.hypot(a1 - a0, y1 - y0) / 0.75)); for (let i = 0; i <= n; i++) { const t = i / n, sag = Math.sin(Math.PI * t) * Math.min(1.3, Math.abs(a1 - a0) * 0.06); out.push([a0 + (a1 - a0) * t, y0 + (y1 - y0) * t - sag]); } } return out; })();
+
+test('NEON PASS 4 — no sign is ever clipped: every cabinet inside the screen, every name + mark inside its cabinet (+ its border), every night, every size', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k), s = cam.F / 600, spots = signSpots(L), W = cam.W;
+    // the cabinets (+ a roof sign's girder, a billboard's frame + lamps): on screen with ≥ 3 pt to spare on a phone
+    const edge = cam.wide ? 0 : 3;
+    for (const sp of spots) {
+      const R = sp.rect, out = sp.kind === 'billboard' ? 1 : sp.mount === 'tower' ? 0.8 * Math.max(0.5, R.h / 18) : 0;
+      assert.ok(R.x - out >= edge && R.x + R.w + out <= W - edge, `${k}: ${sp.id} on screen (${(R.x - out).toFixed(1)}..${(R.x + R.w + out).toFixed(1)} of ${W})`);
+    }
+    // every night's pick (the names that really hang there): the letters + the mark stay inside the cabinet — a boxed sign's
+    // inside its border tube (the ink + half a tube ≥ 1.5 pt in from the cabinet's edge; the blade's inside its dark panel)
+    const seen = new Set();
+    for (const night of NIGHTS) {
+      const pick = assignSigns(GAMES12, spots, night);
+      for (const sp of spots) {
+        if (sp.kind === 'billboard' || sp.kind === 'fixed') continue;
+        const gid = pick.get(sp.id), key = `${sp.id}|${gid}`;
+        if (!gid || seen.has(key)) continue;
+        seen.add(key);
+        const g = GAMES.find(x => x.id === gid), sg = buildSign(sp, g, { W, s, roofY: 0, frame: null }), R = sp.rect;
+        // (an icon has no cabinet: its mark fills its square, a tube's half-width may round its edge)
+        // (a boxed sign: inside its border tube — the tube runs 0.45 pad in from the cabinet's edge, pad = 16 % of its short side)
+        const bi = Math.min(R.w, R.h) * 0.16 * 0.45 + 0.4;
+        const box = sg.panel && sg.panel.frame ? sg.panel : sp.type === 'icon' ? { x: R.x - 0.8, y: R.y - 0.8, w: R.w + 1.6, h: R.h + 1.6 } : { x: R.x + bi, y: R.y + bi, w: R.w - 2 * bi, h: R.h - 2 * bi };
+        for (const p of sg.parts) for (const t of p.tubes) for (const [x, y] of t.pts) {
+          const hw = p.w / 2;
+          assert.ok(x - hw >= box.x - 0.05 && x + hw <= box.x + box.w + 0.05 && y - hw >= box.y - 0.6 && y + hw <= box.y + box.h + 0.6,
+            `${k} ${night}: ${sp.id}'s ${p.mark ? 'mark' : 'name'} (${g.id}) leaves its ${sg.panel && sg.panel.frame ? 'panel' : 'cabinet'} at ${x.toFixed(1)},${y.toFixed(1)} (box ${box.x.toFixed(1)}..${(box.x + box.w).toFixed(1)} × ${box.y.toFixed(1)}..${(box.y + box.h).toFixed(1)})`);
+        }
+      }
+    }
+    if (!cam.wide) assert.ok(seen.size >= 30, `${k}: ${seen.size} sign × game pairs checked`);
+  }
+});
+
+test('NEON PASS 4 — THE GAME BLADE reads whole: nothing nearer stands in front of it (or any sign) — docked Rosie, a holding boat, the pier\'s lamps + festoons, the wheel, the lighthouse, the waterfront', () => {
+  for (const k of PHONES) {
+    const { cam, L } = setup(k), spots = signSpots(L), s = cam.F / 600;
+    const hit = (R, b, m = 1) => b.x < R.x + R.w + m && R.x - m < b.x + b.w && b.y < R.y + R.h + m && R.y - m < b.y + b.h;
+    for (const r of boatRoutes(L)) for (const g of r.segs.filter(g => g.type === 'hold')) {
+      const u = cam.F / r.z, [cx, wy] = project(cam, g.xa, 0, r.z), X = a => cx + (a - r.len / 2) * u * g.face, Y = y => wy - y * u;
+      // (Rosie + the tug: their real silhouettes, boats.js#drawRosie / #drawTug — the tug's masthead lights on its mast; any
+      // other boat that ever waits somewhere: its whole box up to h + 1.6)
+      const shape = r.id === 'rosie' ? ROSIE_BOXES : r.id === 'tug' ? [[0.2, 9.6, 1.8], [2.4, 6.6, 3.1], [4, 7, 4.45], [2.65, 3.65, 5.2], [5.85, 6.15, r.h + 1.4]] : null;
+      const boxes = shape ? shape.map(([a0, a1, y1]) => ({ x: Math.min(X(a0), X(a1)), y: Y(y1), w: Math.abs(X(a1) - X(a0)), h: y1 * u })) : [{ x: cx - r.len * u / 2, y: Y(r.h + 1.6), w: r.len * u, h: (r.h + 1.6) * u }];
+      const bulbs = r.id === 'rosie' ? ROSIE_STRINGS.map(([a, y]) => [X(a), Y(y)]) : r.id === 'tug' ? [[X(6), Y(r.h + 1.3)], [X(6), Y(r.h + 0.7)]] : [];
+      for (const sp of spots) {
+        const R = sp.rect;
+        for (const b of boxes) assert.ok(!hit(R, b), `${k}: ${r.id} waiting at her ${g.type} (${b.x.toFixed(0)}..${(b.x + b.w).toFixed(0)}, top ${b.y.toFixed(1)}) stands in front of ${sp.id} (bottom ${(R.y + R.h).toFixed(1)})`);
+        // (a bulb + its glow ~1.6 pt)
+        for (const [x, y] of bulbs) assert.ok(!(x > R.x - 1.6 && x < R.x + R.w + 1.6 && y > R.y - 1.6 && y < R.y + R.h + 1.6), `${k}: ${r.id}'s bulb string (${x.toFixed(1)},${y.toFixed(1)}) crosses ${sp.id}`);
+      }
+    }
+    const bl = spots.find(sp => sp.id === 'n-blade'), B = bl.rect;
+    // the pier's lamps + their festoons (they hang from the lamps down): never over the blade
+    for (const lp of pierLamps(L)) { const [x, y] = project(cam, lp.x, lp.y, lp.z); assert.ok(!(x > B.x - 3 && x < B.x + B.w + 3 && y < B.y + B.h + 3), `${k}: a pier lamp (${x.toFixed(0)},${y.toFixed(0)}) by the blade`); }
+    // the waterfront's storefronts (drawn over the near neon): their tops (+ the shop sign over them) under the blade
+    for (const sf of storefronts(L)) if (sf.x1 > B.x && sf.x0 < B.x + B.w) assert.ok(sf.y0 - 6 * s > B.y + B.h, `${k}: a storefront (top ${sf.y0.toFixed(0)}) under the blade's foot ${(B.y + B.h).toFixed(0)}`);
+    // the wheel + the lighthouse (+ every other spot rule)
+    assert.deepEqual(spotConflicts(L, bl, spots), [], `${k}: the blade is clear`);
+    // and it still reads: six letters ≥ 10 pt (the glance test, NEON PASS 3)
+    assert.ok(bladeLayout(B, 6).lh >= 10 * Math.min(1, s), `${k}: the blade's letters ${bladeLayout(B, 6).lh.toFixed(2)} pt`);
+  }
+});
+
+test('NEON PASS 4 — SEARCHLIGHTS BEHIND SIGNS: a sign, billboard or roof in front of a light hides its beam, its flare + its hardware; the lights stand where they can be seen', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k), spots = signSpots(L), cov = beamCover(L);
+    assert.equal(cov.length, searchlightSpots(L).length);
+    for (const c of cov) {
+      const z = c.sp.z;
+      // every sign nearer than the light: the beam's clip never reaches into its cabinet (sampled every 1.5 pt)
+      for (const sp of spots) {
+        if (!(sp.w.z < z - 0.01)) continue;
+        const R = sp.rect;
+        // (a beam always points up: nothing of it reaches lower than ~2 pt under its lens, its flare 3 units round it)
+        for (let x = R.x + 0.6; x < R.x + R.w - 0.5; x += 1.5) for (let y = R.y + 0.6; y < Math.min(R.y + R.h - 0.5, c.sy + c.s * 3); y += 1.5) {
+          if (x < 0 || x > cam.W) continue;
+          assert.ok(!inPoly(c.poly, x, y), `${k}: the ${c.sp.host} light's beam (z ${z.toFixed(1)}) draws over ${sp.id} (z ${sp.w.z.toFixed(1)}) at ${x.toFixed(0)},${y.toFixed(0)}`);
+        }
+        // its flare: never when the lens stands behind the sign
+        if (c.sx > R.x - 1 && c.sx < R.x + R.w + 1 && c.sy > R.y - 1) assert.ok(!c.lensSeen, `${k}: the ${c.sp.host} light's flare shows through ${sp.id}`);
+      }
+      // a nearer building's face hides it too (the roofline in front, the light's own building left out)
+      const front = screenBoxes(L).filter(b => b.kind === 'sky' && b.z < z - 0.01 && b.id !== c.sp.host);
+      for (const b of front) for (const x of [b.x + 1, b.x + b.w / 2, b.x + b.w - 1]) if (x > 0 && x < cam.W && b.y + 2 < c.sy + c.s * 3) assert.ok(!inPoly(c.poly, x, b.y + 2), `${k}: the ${c.sp.host} beam shows through ${b.id} at ${x.toFixed(0)}`);
+      // a visible lens is inside its own clip (the flare + the beam's foot really show)
+      if (c.lensSeen) assert.ok(inPoly(c.poly, c.sx, c.sy - 0.5), `${k}: the ${c.sp.host} lens inside its clip`);
+    }
+    if (!cam.wide) {
+      // the searchlights still read on a phone: the EMPIRE's + the hotel's lenses in the open (the EMPIRE's on a setback that clears
+      // the roofs in front — the first one sat behind the near band); word tower B's behind its roof sign (its beam rises from
+      // behind the sign)
+      const by = id => cov.find(c => c.sp.host === id);
+      assert.ok(by('empire').lensSeen && by('hotel').lensSeen, `${k}: the EMPIRE's + the hotel's lights in view`);
+      const rs = spots.find(sp => sp.mount === 'tower' && sp.host === 'wordB');
+      assert.ok(rs && by('wordB').sp.z > rs.w.z && !by('wordB').lensSeen, `${k}: word tower B's light behind its roof sign`);
+    }
+  }
+});
+
+test('NEON PASS 4 — the JAZZ sign is gone: the old club is plain city with NEON PASS 3 trims; its icon hangs on a calm wall; every game still has a sign every night on every phone', () => {
+  assert.ok(!SPOTS_ALL().some(sp => sp.id === 'jazz' || sp.host === 'jazz' || /JAZZ/.test(sp.text || '')), 'no JAZZ sign, nothing on the old club');
+  for (const k of PHONES) {
+    const { cam, L } = setup(k), s = cam.F / 600, spots = signSpots(L);
+    assert.equal(spots.filter(sp => sp.kind === 'named').length, 5, `${k}: five named`);
+    assert.equal(spots.filter(sp => sp.kind === 'icon').length, 7, `${k}: seven icons`);
+    assert.equal(spots.filter(sp => sp.kind === 'fixed').length, 0, `${k}: no fixed text sign`);
+    for (const night of NIGHTS) assert.equal(new Set(assignSigns(GAMES12, spots, night).values()).size, 12, `${k} ${night}: all 12 games have a sign`);
+    // the moved icon: a calm wall — ≥ 24 pt from every other sign, off the wheel's quiet zone, out of the sun corridors, off the
+    // hero towers, with a wall behind it (a roof over its top), nothing nearer in front
+    const ic = spots.find(sp => sp.id === 'i-mid'), R = ic.rect;
+    assert.deepEqual(spotConflicts(L, ic, spots), [], `${k}: i-mid clear`);
+    for (const o of spots) if (o !== ic) { const d = Math.hypot(Math.max(o.rect.x - (R.x + R.w), 0, R.x - (o.rect.x + o.rect.w)), Math.max(o.rect.y - (R.y + R.h), 0, R.y - (o.rect.y + o.rect.h))); assert.ok(d >= 24 * s, `${k}: i-mid ${d.toFixed(1)} pt from ${o.id}`); }
+    const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z), wr = cam.F * w.r / w.z;
+    assert.ok(Math.hypot(Math.max(R.x - wx, 0, wx - (R.x + R.w)), Math.max(R.y - wy, 0, wy - (R.y + R.h))) > wr + 5, `${k}: i-mid off the wheel's quiet zone`);
+    for (const g of L.gaps) assert.ok(R.x + R.w < g.sx - g.w / 2 - 3 || R.x > g.sx + g.w / 2 + 3, `${k}: i-mid out of the corridor at ${g.sx.toFixed(0)}`);
+    const behind = roofline(L, b => b.z <= ic.w.z + 40);
+    for (let x = R.x; x <= R.x + R.w; x += 2) assert.ok(behind[Math.round(x / 4)] <= R.y, `${k}: a wall behind i-mid at ${x.toFixed(0)}`);
+    // the old club's neon: like its neighbours in the near band (NEON PASS 3) — a band item of its own, several tubes, ≤ 3 colours
+    const jz = outlines(L).find(o => o.id === 'jazz');
+    assert.ok(jz && jz.strength === 'band' && jz.lines.length >= 3 && new Set(jz.lines.map(l => l.role)).size <= 3, `${k}: the old club's trims (${jz && jz.lines.length} tubes)`);
+  }
+});
+import { SPOTS as SPOTS_LIST } from '../js/core/harbor-neon.js';
+const SPOTS_ALL = () => SPOTS_LIST;
+
+test('NEON PASS 4 — SEARCHLIGHTS never sweep across a sign on a phone (not even one standing behind the lamp): their core stays in the open air beside + above the signs', () => {
+  for (const k of PHONES) {
+    const { cam, L } = setup(k), spots = signSpots(L), len = cam.H * 0.95, bw = Math.max(56, cam.W * 0.2);
+    for (const c of beamCover(L)) for (let a = c.sp.base - c.sp.amp; a <= c.sp.base + c.sp.amp + 1e-9; a += 0.02) for (let d = 0; d < 420; d += 2) {
+      // (the beam's bright core: 60 % of the sprite's half-width at that distance — searchlights.js#beamSprite; a nearer sign hides it)
+      const hw = (0.08 + 0.92 * d / len) * bw / 2 * 0.6, x = c.sx + Math.sin(a) * d, y = c.sy - Math.cos(a) * d;
+      for (const sp of spots) { if (sp.w.z < c.sp.z) continue; const R = sp.rect; assert.ok(!(y > R.y && y < R.y + R.h && x + hw > R.x && x - hw < R.x + R.w), `${k}: the ${c.sp.host} beam (at ${a.toFixed(2)} rad) crosses ${sp.id}`); }
+    }
+  }
+});
+
+test('NEON PASS 4: a name at the screen edge never spells on (its dark letters would read as cut off); it may still blink', () => {
+  const cast = showItems(Array.from({ length: 30 }, (_, i) => ({ kind: i % 3 ? 'band' : 'hero', x: i / 30, contour: true })));
+  const signs = [{ id: 'n-roofB', kind: 'named', edge: true }, { id: 'n-par', kind: 'named' }, { id: 'n-blade', kind: 'named' }, { id: 'i-par', kind: 'icon' }];
+  for (let d = 1; d <= 60; d++) assert.ok(!everyday(`2026-11-${d}`, cast, signs).spell.has('n-roofB'), `night ${d}`);
 });

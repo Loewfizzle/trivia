@@ -283,7 +283,7 @@ export function createTitle() {
     els.sign = h('div.nd-sign', { class: 'is-glass' },
       h('div.nd-bloom', { 'aria-hidden': 'true' }),   // PARTY NIGHTS: the logo's breath, behind the letters
       h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: !!createHarbor }) + (createHarbor && /[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
-      h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'))),
+      h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'), createHarbor ? h('span.nd-word-p', { 'aria-hidden': 'true' }, 'SPEAKEASY') : null)),
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     els.actions = buildActions();
@@ -636,7 +636,22 @@ export function createTitle() {
     if (humStop) humStop(0.3);
     humStop = neonHumFade({ level });
   }
-  const NEON_LIT = { stage: 'night', letters: [true, true, true, true], signs: null, fade: 1, caught: true };
+  // CITY 2.0 — THE WARM-UP'S LAST 30 s (NEON PASS 4, the owner): the golden-hour sputters stay silent until the last
+  // WARM_SOUND_MS before THE CATCH; from then each tube striking plays a flicker, quiet at first and building toward the catch
+  // (level 0.3 → 0.8), never closer than 4 s → 1.2 s apart (real time). Then the catch's power-on + the fading hum. The window is
+  // on the plan's clock (?speed= shrinks it too); never on the first paint, under Reduced effects or on a hidden page.
+  const WARM_SOUND_MS = 30000;
+  let warmSoundAt = -1e9, neonWarmSounds = 0;
+  function warmFlicker() {
+    if (!createHarbor || !neonPlanV || !scene || reduced() || destroyed || document.visibilityState !== 'visible') return;
+    const left = neonPlanV.catchAt - scene.now();
+    if (left <= 0 || left > WARM_SOUND_MS) return;
+    const k = 1 - left / WARM_SOUND_MS, now = performance.now();
+    if (now - warmSoundAt < 4000 - 2800 * k) return;
+    warmSoundAt = now; neonWarmSounds++;
+    neonFlicker({ level: 0.3 + 0.5 * k });
+  }
+  const NEON_LIT ={ stage: 'night', letters: [true, true, true, true], signs: null, fade: 1, caught: true };
   const NEON_DAY = { stage: 'day', letters: [false, false, false, false], signs: null, fade: 0, caught: false };
   function neonNow() {
     neonFromPlan = false;
@@ -707,9 +722,10 @@ export function createTitle() {
       l.classList.toggle('on', !!st.letters[i]);
       if (was !== !!st.letters[i]) { if (st.letters[i]) struck++; else dropped++; }
     });
-    // CITY 2.0 — THE RECORDED NEON (NEON PASS 3, the owner's ears): the golden-hour warm-up and the dawn's stutters are SILENT;
-    // only the very last tube cutting out at dawn sounds — the dropout, softly (it lands as the plan turns to 'day'). Never on
-    // the first paint, never under Reduced effects.
+    // CITY 2.0 — THE RECORDED NEON (NEON PASS 3 + 4, the owner's ears): the golden-hour warm-up is SILENT but for its last 30 s
+    // (warmFlicker: the strikes building toward the catch); the dawn's stutters are silent — only the very last tube cutting out
+    // at dawn sounds, the dropout, softly (it lands as the plan turns to 'day'). Never on the first paint, never under Reduced effects.
+    if (createHarbor && st.stage === 'ramp' && !opts.quiet && !fade && struck) warmFlicker();
     if (createHarbor && prev === 'goodbye' && st.stage === 'day' && !opts.quiet && !fade && dropped) neonDropout({ level: 0.55 });
     dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
     const share = fade ? st.fade : on / 4;
@@ -724,19 +740,22 @@ export function createTitle() {
     if (!els.root.dataset.pt) { els.root.dataset.pt = '1'; for (const k of ['no-bloom', 'no-ringbreath', 'no-shimmer', 'no-vars']) if (location.search.includes(k)) els.root.classList.add(k); }
     if (els.root.classList.contains('no-vars')) { els.root.classList.toggle('is-party', p.on > 0); return; }
     const on = p.on > 0;
-    if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on && partyEls) { for (const g of partyEls.glows) g.el.style.opacity = ''; partyEls = null; } }
+    if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on && partyEls) { for (const g of partyEls.glows) g.el.style.opacity = ''; if (partyEls.word) partyEls.word.style.opacity = ''; partyEls = null; } }
     if (!on) return;
     // the numbers go on the three elements that breathe — never on the root: a custom property there is inherited by the whole
     // title, and writing it every frame re-styled all of it (100 ms frames on a slow phone). (Reduced: the breath holds at 0.5.)
     // (the rings breathe through their glow layer's opacity — a compositor change — never the registered --hk, whose 2.4 s
     // transition restarted on every write and re-styled the whole ring)
-    if (!partyEls || !partyEls.bloom || !partyEls.bloom.isConnected) partyEls = { bloom: els.sign.querySelector('.nd-bloom'), glows: [...els.root.querySelectorAll('.nd-ringbtn')].map(r => ({ el: r.querySelector('.nd-hglow'), ring: r, k: r.classList.contains('nd-joinring') ? 0.46 : 0.62 })).filter(g => g.el), bo: -1, hk: -1 };
+    if (!partyEls || !partyEls.bloom || !partyEls.bloom.isConnected) partyEls = { bloom: els.sign.querySelector('.nd-bloom'), word: els.sign.querySelector('.nd-word-p'), glows: [...els.root.querySelectorAll('.nd-ringbtn')].map(r => ({ el: r.querySelector('.nd-hglow'), ring: r, k: r.classList.contains('nd-joinring') ? 0.46 : 0.62 })).filter(g => g.el), bo: -1, hk: -1, wp: -1 };
     const pe = p.ramp * p.energy;
     // the bloom holds a gentle level that moves with the party's phase and the finale's swell (the beat breathes in the canvas's
     // halo under it): a big layer re-composited every frame cost a slow phone 60+ ms
     // (City 2.0, NEON PASS 3: the NEON word joins the show on its BIGGEST drops only — p.big, a flare easing back)
     const sw = Math.max(p.swell, 0.8 * (p.big || 0));
-    const bo = Math.round((0.2 * pe + 0.6 * sw) * 50) / 50, hk = Math.round((1 + 0.34 * p.breath * pe + 0.5 * sw) * 50) / 50;
+    // (City 2.0, NEON PASS 4 — THE HARD BEAT: the rings + SPEAKEASY PUNCH on every beat — p.punch, a ~50 ms attack and a quick
+    // decay — through opacity alone: the rings' glow layer, SPEAKEASY's extra glow layer; the big bloom keeps its gentle level)
+    const bo = Math.round((0.2 * pe + 0.6 * sw) * 50) / 50, hk = Math.round((createHarbor ? 0.78 + 0.95 * (p.punch || 0) + 0.5 * sw : 1 + 0.34 * p.breath * pe + 0.5 * sw) * 50) / 50;
+    if (createHarbor && partyEls.word) { const wp = Math.round(Math.min(1, (p.punch || 0) * 1.15 + 0.6 * sw) * 40) / 40; if (wp !== partyEls.wp) { partyEls.wp = wp; partyEls.word.style.opacity = String(wp); } }
     if (bo !== partyEls.bo && partyEls.bloom) { partyEls.bo = bo; partyEls.bloom.style.setProperty('--bo', bo); }
     if (hk !== partyEls.hk) { partyEls.hk = hk; for (const g of partyEls.glows) g.el.style.opacity = g.ring.classList.contains('is-lit') ? String(Math.round(hk * g.k * 250) / 250) : ''; }
   }
@@ -1251,6 +1270,7 @@ export function createTitle() {
       rainSound: () => !!stopRain,
       neonAt: t => (neonPlanV ? neonState(neonPlanV, t) : null),
       neonSounds: () => neonSounds,
+      neonWarmSounds: () => neonWarmSounds,                                   // (City 2.0: the warm-up's last-30-s flickers)
       neon: () => { const p = neonPlanV; return { stage: neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
       party: () => (scene ? scene.party() : null),
       rainbow: () => (scene && scene.rainbow ? scene.rainbow() : null),

@@ -314,6 +314,21 @@ try {
     ok(red > 80, `THE NEON IN THE WATER: the game blade mirrored under it (brightness ${Math.round(red)})`);
     ok(await ev(N.page, "['reflect', 'light', 'wake', 'set'].every(k => typeof window.__district.harbor().water[k] === 'function')"), 'THE HOOKS: reflect (boats, Part 5), light (fireworks, Part 10), wake (Part 5), set (rain + fog, Part 9)');
     ok(h.mem.mb + h.neon.mb <= h.mem.budget, `MEMORY (the water): ${h.mem.layers.find(l => /mirror/.test(l.name)).mb} MB in the ${h.mem.mb} MB of layers + the neon ${h.neon.mb} MB ≤ ${h.mem.budget}`);
+    // NEON PASS 4 — THE THIN BLACK BARS (the owner's iPhone): every ripple strip on whole device rows (an edge at a fractional row
+    // anti-aliased into a dark seam), and the pixels agree — in the lit water, the rows where two strips meet are no darker than
+    // their neighbours, against every other row (tier 1, DPR 1.5, where the seams showed most here: 3 % darker before the fix)
+    for (const tr of [2, 1]) {
+      await ev(N.page, `window.__district.setTier(${tr})`);
+      await waitFor(N.page, `window.__district.harbor().water.tier === ${tr}`, `the water at tier ${tr}`, 5000); await sleep(700);
+      const sm = await ev(N.page, `(async () => { const cv = document.querySelector('canvas'), x = cv.getContext('2d'), k = cv.width / innerWidth, at = [], rest = [];
+        for (let n = 0; n < 4; n++) { await new Promise(r => setTimeout(r, 130));
+          const wt = window.__district.harbor().water, E = new Set(wt.rows.slice(2).map(r => wt.rows[0] + r)), r0 = Math.ceil(wt.y0 * k) + 1, r1 = Math.floor(wt.y1 * k) - 8, w = cv.width;
+          const d = x.getImageData(0, r0 - 1, w, r1 - r0 + 2).data, Lm = (r, c) => { const i = ((r - r0 + 1) * w + c) * 4; return d[i] + d[i + 1] + d[i + 2]; };
+          for (let r = r0 + 1; r < r1; r++) { let s = 0, m = 0; for (let c = 0; c < w; c += 2) { const a = Lm(r - 1, c), z = Lm(r + 1, c); if (Math.min(a, z) < 120) continue; s += 2 * Lm(r, c) / (a + z); m++; } if (m > 20) (E.has(r) ? at : rest).push(s / m); } }
+        const mean = a => a.reduce((s, v) => s + v, 0) / Math.max(1, a.length), wt = window.__district.harbor().water;
+        return { grid: wt.grid, edge: mean(at), rest: mean(rest), n: at.length }; })()`);
+      ok(sm.grid && sm.n > 20 && sm.edge >= sm.rest - 0.015, `NO SEAMS IN THE WATER (tier ${tr}): every strip on whole device rows; the rows where strips meet ${(100 * sm.edge).toFixed(1)} % of their neighbours' light, every other row ${(100 * sm.rest).toFixed(1)} % (${sm.n} meeting rows sampled)`);
+    }
     await ev(N.page, 'window.__district.setTier(0)'); await sleep(2500);
     const h0 = await ev(N.page, 'window.__district.harbor()');
     ok(h0.water.tier === 0 && h0.water.strips > 0, `TIER 0: the calm baked mirror (${h0.water.strips} rows, re-drawn once a second)`);
@@ -424,7 +439,8 @@ try {
     const h = await ev(N.page, 'window.__district.harbor()');
     const bands = h.neon.outlines.filter(o => o.id.startsWith('threads-near') || o.id.startsWith('threads-mid'));
     ok(bands.length >= 5 && bands.reduce((a, o) => a + o.runs, 0) >= 20 && h.neon.outlines.some(o => o.id === 'lighthouse' && o.runs >= 6), `THE NIGHT CITY LIT: ${bands.length} neon clusters on the near + mid buildings (${bands.reduce((a, o) => a + o.runs, 0)} runs), the lighthouse in neon (${(h.neon.outlines.find(o => o.id === 'lighthouse') || {}).runs} runs)`);
-    ok(h.daily && h.daily.spell.length === 1 && h.daily.blink.length === 1 && h.daily.cycle && h.daily.chase.length >= 1, `THE EVERYDAY MOTION: ${h.daily.spell} spells on, ${h.daily.blink} blinks, ${h.daily.cycle} cycles its colour, ${h.daily.chase.join(' + ')} chase slowly`);
+    ok(h.daily && h.daily.spell.length === 1 && h.daily.blink.length >= 1 && h.daily.cycle && h.daily.chase.length >= 3, `THE EVERYDAY MOTION (NEON PASS 4: alive): ${h.daily.spell} spells on, ${h.daily.blink} blink, ${h.daily.cycle} cycles its colour, ${h.daily.chase.join(' + ')} chase slowly`);
+    ok(h.neon.scheme === 'city' && !h.neon.partyLook, 'A NORMAL NIGHT: the city\'s own colours');
     ok(!h.show.scene && h.beams === 0, 'A NORMAL NIGHT: no party show, no searchlights');
     ok(h.daily.rotate.length >= 1 && h.daily.stages.length >= 1, `COLOURS THROUGH THE NIGHT: ${h.daily.rotate.join(' + ')} rotate slowly, ${h.daily.stages.join(' + ')} change scheme by the hour`);
     await N.ctx.close(); }
@@ -436,10 +452,15 @@ try {
     await N.ctx.close(); }
   { const Q = await open({ slot: 'h10', qs: `when=2026-10-24T23:00${GR}&scene=climb%2Bcrowns`, view: [402, 874] });
     await harborUp(Q.page);
-    await waitFor(Q.page, 'window.__district.party().show.scene === "climb+crowns" && window.__district.party().beams > 0.5', 'the party show at its peak', 20000);
-    await waitFor(Q.page, 'window.__district.party().beams > 0.9', 'the searchlights up', 10000);
-    const p = await ev(Q.page, 'window.__district.party()'), ws = await ev(Q.page, 'window.__district.harbor().wheel.scheme()');
-    ok(p.show.moving >= 2 && p.show.lights > 0.9 && ws === 'party', `THE PARTY SHOW (11 pm): scene "${p.show.scene}", ${p.show.moving} buildings running an effect, the searchlights on (${p.beams}), the wheel in party colours`);
+    await waitFor(Q.page, 'window.__district.party().show.scene === "climb+crowns" && window.__district.party().show.racing > 0', 'the party show at its peak', 20000);
+    await waitFor(Q.page, "window.__district.harbor().neon.scheme === 'party' && !window.__district.harbor().neon.queued", 'the party colours rolled in', 15000);
+    const p = await ev(Q.page, 'window.__district.party()'), hq = await ev(Q.page, 'window.__district.harbor()'), ws = await ev(Q.page, 'window.__district.harbor().wheel.scheme()');
+    ok(p.show.moving >= 6 && p.show.racing >= 6 && ws === 'party', `THE PARTY SHOW (11 pm): scene "${p.show.scene}", ${p.show.racing} buildings racing + ${p.show.moving - p.show.racing} running an effect, the wheel in party colours`);
+    // NEON PASS 4: obvious in one frame — the party scheme, the sky beams, the beat punching, the string lights in colour
+    const pk = await ev(Q.page, `new Promise(res => { let lo = 9, hi = 0, n = 0; const tick = () => { const v = window.__district.party().punch; lo = Math.min(lo, v); hi = Math.max(hi, v); if (++n < 150) requestAnimationFrame(tick); else res({ lo, hi }); }; requestAnimationFrame(tick); })`);
+    ok(hq.skyBeams.beams.length >= 2 && p.show.beams > 0.5, `THE SKY BEAMS: ${hq.skyBeams.beams.map(b => b.id + (b.under ? '' : ' (to the top)')).join(', ')}`);
+    ok(pk.hi - pk.lo > 0.5, `THE HARD BEAT: the punch swings ${pk.lo.toFixed(2)} → ${pk.hi.toFixed(2)} over ~2.5 s`);
+    ok(hq.strings.bulbs >= 20, `STRING LIGHTS on the speakeasy's roof: ${hq.strings.bulbs} bulbs, ${hq.strings.runs} runs`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'h11', qs: `when=2026-10-24T21:00${GR}`, view: [402, 874] });
     await harborUp(Q.page);

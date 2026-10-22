@@ -41,17 +41,19 @@ highpass, a faint 5 kHz hiss, the level stepping unsteadily, ≤ 1.4 s) for as l
 softer tick. On the SFX bus (the Effects slider, Mute); peaks ~0.03 — under the music, never relied on. **Since NEON PASS 2 it is
 the fallback** — City 2.0 plays the recordings below; the synthesized buzz plays only when a file can't load.
 
-**THE RECORDED NEON** (NEON PASS 2, Oct 21 2026; retuned in NEON PASS 3, Oct 22, after the owner listened on her iPhone — City 2.0
-only; `ambience.js#neonFlicker / neonDropout / neonCatch / neonHumFade / neonPreload`, driven by `title.js#applyNeon`, `#neonOnSound`,
-`#scheduleFlicker` and `#buzz`): real neon in `audio/sfx/` (mono 44.1 kHz 16-bit WAV, ~770 KB in all, nothing fetched until City 2.0 is
-up and audio unlocks). **When it sounds (NEON PASS 3):** the golden-hour WARM-UP is SILENT (its sputters were annoying), the dawn's
-stutters too — only the very last tube's dropout at dawn sounds, softly (0.55); a RANDOM FLICKER of the lit sign (every 20–40 s,
+**THE RECORDED NEON** (NEON PASS 2, Oct 21 2026; retuned in NEON PASS 3 + 4, Oct 22, after the owner listened on her iPhone — City 2.0
+only; `ambience.js#neonFlicker / neonDropout / neonCatch / neonHumFade / neonPreload`, driven by `title.js#applyNeon`, `#warmFlicker`,
+`#neonOnSound`, `#scheduleFlicker` and `#buzz`): real neon in `audio/sfx/` (mono 44.1 kHz 16-bit WAV, ~770 KB in all, nothing fetched
+until City 2.0 is up and audio unlocks). **When it sounds (NEON PASS 3 + 4):** the golden-hour WARM-UP is SILENT (its sputters were
+annoying) **except its LAST 30 s** (NEON PASS 4, `title.js#warmFlicker`): from 30 s (on the plan's clock) before THE CATCH each tube
+striking plays a flicker, building toward it — level 0.3 → 0.8, never closer than 4 s → 1.2 s apart in real time (4–9 of them, median
+7, over the plan's seeds); the dawn's stutters are silent — only the very last tube's dropout at dawn sounds, softly (0.55); a RANDOM FLICKER of the lit sign (every 20–40 s,
 `scheduleFlicker`) plays a flicker (0.8); THE CATCH plays the power-on and the hum comes up with it and FADES OUT smoothly over the
 10 s after the sign is fully on (`neonHumFade`: an equal-power curve, then it stops — no hum all night); TAPPING THE SIGN: the
 dropout when the tapped letter goes dark, the power-on + the same fading hum when it lights (0.75; none under Reduced effects):
 | file | what | when | level |
 | --- | --- | --- | --- |
-| `neon-flicker-1…4.wav` (0.6–0.8 s) | a tube striking | the lit sign's rare random flicker — one at random, never the same twice running, ±3 % pitch | −20 LUFS |
+| `neon-flicker-1…4.wav` (0.6–0.8 s) | a tube striking | the lit sign's rare random flicker; the warm-up's last 30 s — one at random, never the same twice running, ±3 % pitch | −20 LUFS |
 | `neon-dropout.wav` (0.75 s) | a tube's buzz cutting out | the last letter dying at dawn (softly); a tapped letter going dark | −20 LUFS |
 | `neon-power-on.wav` (2.1 s) | the strike settling into the hum | THE CATCH (all four letters lock on); a tapped letter re-igniting | −20 LUFS |
 | `neon-hum-loop.wav` (3.0 s) | the steady mains hum | after a power-on only: up with it, held until the sign is fully on (1.5 s), then faded out over 10 s; cut when the page hides | −24 LUFS |
@@ -59,7 +61,23 @@ Cut + levelled by `scripts/build-neon-sfx.py` (BS.1770 K-weighted loudness, a so
 nudged to where its wave lines up, then crossfaded in phase — the level holds through the seam ±0.4 dB). Sources (Freesound, all
 **CC0**): 500693 *bolkmar* "neon tube light flickering" (flickers 1–2), 202612 *ludwigmueller* "fxlm neon lights flicker bathroom"
 (3–4), 351430 *kinoton* "neon lamp switch on hum" (power-on), 125064 *everydaysounds* "faulty fluorescent light starter hum"
-(dropout + hum). On the SFX bus at the files' own level × `NEON_GAIN` (1 — trim them all by ear there).
+(dropout + hum).
+
+**The levels (NEON PASS 4, Oct 22 — the owner's iPhone: the flickers were heard over the music and could startle with it off).** Each
+one-shot plays at the file's level × `NEON_GAIN` (1, the master trim) × `NEON_GAINS[sound]` × the caller's level, **fades in over 6 ms**
+(`NEON_ATTACK`: no click on the first sample), **−3 dB more while the music is off** (`NEON_NO_MUSIC` 0.71: settings.musicOff or the
+music slider at 0 — nothing to sit under), then through a shared chain per kind into the SFX bus (the Effects slider, Mute): a soft
+**PEAK CAP** (a WaveShaper: linear up to half the cap, a tanh knee above — an absolute ceiling whatever the level or the music) and, for
+the flickers, a **4.5 kHz low-pass** (Q 0.707). Measured on the files (BS.1770, before the Effects slider; the default slider 0.7 is
+another −6 dB):
+| sound | gain (was → now) | cap | the lit sign / the catch, was → now |
+| --- | --- | --- | --- |
+| flickers | 1 → **0.28 (−11 dB)** × a per-file trim 1.6 / 1.15 / 1.15 / 1.05 (1–2 are bright: the low-pass takes more from them) | 0.08 (**−22 dBFS**) + the low-pass | at 0.8: −21.9 LUFS, peaks −4 … −6 dBFS → **−33.7 … −35.1 LUFS, peaks ≤ −22 dBFS** (≈ −12 dB); the warm-up's quietest (0.3) ≈ −41 LUFS |
+| power-on | 1 → **0.5 (−6 dB)** | 0.35 (−9 dBFS) | the catch: −20.1 LUFS, peak −1 dBFS → **−26.3 LUFS, peak −9.5 dBFS**; a tap (0.75) −28.7 |
+| dropout | 1 → **0.5 (−6 dB)** | 0.35 | a tap (0.75): −22.5 → **−28.5 LUFS**; dawn (0.55) −25.2 → **−31.2** |
+| hum | 1 (unchanged) | — (its own fade, no chain) | −24 LUFS × the caller's level, as before |
+The synthesized fallbacks (`neonBuzz`, a file that can't load) play at half the caller's level. `ambience.js#neonLog` keeps the last
+40 one-shots `{ name, kind, gain, at }` and `__district.neonWarmSounds()` counts the warm-up's flickers (for tests).
 
 **Fireworks** (`ambience.js#fireworkBurst({ delay, level })`): the finale's sound on the SFX bus — a soft low thump (a sine
 dropping 96 → 42 Hz with a little filtered body) and 10–18 tiny bright crackles over the next 1.5 s, panned about; quiet.

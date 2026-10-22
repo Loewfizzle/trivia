@@ -17,6 +17,8 @@ import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from '.
 import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHousing } from './signs.js';
 import { hexRgb, markFor } from '../district/marks.js';
 import { showItems, showFrame, newShowOut, FX, everyday, signMotion, nightStage, rotateMix, burnout, burnoutFlicker } from '../../core/harbor-show.js';
+// NEON PASS 4: the racing light's head (white-hot) and the shimmer's glints
+const HOT = [255, 250, 244];
 // the party's colour sweep: each building's second colour (one that contrasts with its own main colour)
 const SWEEP = [[255, 46, 151], [46, 230, 255], [168, 82, 255], [255, 210, 90], [255, 40, 210], [24, 232, 190]];
 // the colour-cycling sign's colours (the everyday motion): pink → cyan → gold → violet
@@ -42,7 +44,10 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   let castOf = null, cast = [], showOut = newShowOut(0), showOn = false, daily = null, dailyKey = '';
   // A BURNT-OUT LETTER (core/harbor-show.js#burnout): tonight's dead letter, picked from the night's date (or &force=burnout)
   let burn = null, burnKey = '';
-  const showState = { lights: 0, sparkle: 0, big: 0, drop: 0, scene: '', moving: 0, peak: 0 };
+  const showState = { lights: 0, sparkle: 0, big: 0, drop: 0, scene: '', moving: 0, peak: 0, punch: 0, beams: 0, shimmer: 0, racing: 0 };
+  // NEON PASS 4: THE PARTY SCHEME — on a party night the outlines are re-lit in the bold party colours (rebuilt a few a frame,
+  // left → right: the colour rolls across the skyline as the party starts); an explicit scheme (a holiday, a preview) wins
+  let schemeX = null, partyLook = false;
 
   // ---------------------------------------------------------------- the layout
   function layout(l, o) {
@@ -214,13 +219,21 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
         x.globalCompositeOperation = 'source-over';
       })];
       it.tubes = tubes;
-      it.alt = null; it.altQ = false;
+      free(it.alt); it.alt = null; it.altQ = false;
+      if (it.vars) { for (const v of it.vars.values()) free(v); it.vars = null; }
       // the party show's live runs (screen pt): the ledges bottom → top, the fins left → right, the crowns, the chase (the whole
       // outline but the thin details)
       const P2 = r => { const p = new Path2D(); p.moveTo(r.pts[0][0], r.pts[0][1]); for (let i = 1; i < r.pts.length; i++) p.lineTo(r.pts[i][0], r.pts[i][1]); return p; };
       const yOf = r => r.pts.reduce((a, p) => a + p[1], 0) / r.pts.length, xOf = r => r.pts.reduce((a, p) => a + p[0], 0) / r.pts.length;
       const fx = (part, key, rev) => tubes.filter(r => r.part === part).map(r => ({ p: P2(r), role: r.role, thin: r.thin, k: key(r) })).sort((a, b) => (rev ? b.k - a.k : a.k - b.k));
       it.fx = { ledges: fx('ledge', yOf, true), fins: fx('fin', xOf), crown: fx('crown', yOf), chase: tubes.filter(r => !r.thin || r.part === 'trim').map(r => ({ p: P2(r), role: r.role, thin: r.thin })) };
+      // (NEON PASS 4: THE RACING LIGHT — the whole outline as one path per colour role: a few strokes a building, not one a run)
+      const byR = new Map();
+      for (const r of tubes) if (!r.thin || r.part === 'trim') { if (!byR.has(r.role)) byR.set(r.role, new Path2D()); const p = byR.get(r.role); p.moveTo(r.pts[0][0], r.pts[0][1]); for (let j = 1; j < r.pts.length; j++) p.lineTo(r.pts[j][0], r.pts[j][1]); }
+      it.fx.race = [...byR].map(([role, p]) => ({ role, p }));
+      // (the shimmer's glints: a few points along the tubes)
+      // (at most 28 a building, spread along its tubes — chosen once here: the shimmer's cost is per glint)
+      { const all = []; for (const r of tubes) for (let j = 0; j < r.pts.length; j += 2) all.push(r.pts[j]); const st = Math.max(1, Math.ceil(all.length / 28)); it.glints = all.filter((_, j) => j % st === 0).map((p, j) => [p[0], p[1], j * 2.7 + it.i]); }
       let sx = 0, n = 0; for (const r of tubes) for (const p of r.pts) { sx += p[0]; n++; }
       it.cx = n ? sx / n / W : 0.5;
     }
@@ -300,6 +313,15 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       for (const b of set.boards) if (groupOf(b.spot) === group) { x.save(); b.dayDraw(x, T); x.restore(); }
     };
   }
+  /** the scheme the outlines wear now: an explicit one (a holiday, a preview), else the party's on a party night, else the city's */
+  function applyScheme() {
+    const want = schemeX || (partyLook ? 'party' : 'city');
+    if (want === scheme) return;
+    scheme = want; dropComp();
+    // (rebuilt left → right, a few a frame: the new colours roll across the skyline)
+    const outl = items.filter(it => it.kind === 'outline').sort((a, b) => (a.cx ?? 0.5) - (b.cx ?? 0.5));
+    for (const it of outl) queue.push(() => { if (!it.tubes && !it.o) return; const old = it.lit; buildItem(it); if (old) old.forEach(free); });
+  }
   function pump(ms) {
     if (!queue.length) return false;
     const t0 = performance.now();
@@ -370,10 +392,12 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     c.globalCompositeOperation = 'lighter';
     // (tier 0, the calm city: the party's motion — the chasers, the beat — is dropped; the neon stays lit, steady)
     const pe = f.party ? f.party.ramp * (f.party.energy || 0) : 0, partyK = tier === 0 ? 0 : Math.max(pe, moment.party);
+    // THE PARTY SCHEME (every tier: the still picture is a party too) — on above 0.3, off under 0.15
+    if (group === 'far') { const pl = Math.max(pe, moment.party); const want = partyLook ? pl > 0.15 : pl > 0.3; if (want !== partyLook) { partyLook = want; applyScheme(); } }
     // tonight's burnt-out letter (the night's date; the named signs; a forced preview)
     { const bk = `${assignKey}|${signs.length}|${moment.burnout ? 1 : 0}`; if (bk !== burnKey) { burnKey = bk; const m = /^(\d+)-(\d+)-(\d+)$/.exec(assignKey); burn = m ? burnout({ y: +m[1], m: +m[2], d: +m[3] }, signs.filter(sg => sg.kind === 'named' && sg.nText).map(sg => ({ id: sg.id, n: sg.nText })), moment.burnout) : null; dropComp(); } }
     // tonight's everyday motion (once every item is built; a new pick each night)
-    if (group === 'far' && dailyKey !== `${assignKey}|${items.length}` && items.length && items.every(it => it.ready)) { dailyKey = `${assignKey}|${items.length}`; castOf = null; castFor(); daily = everyday(assignKey, cast, signs.map(sg => ({ id: sg.id, kind: sg.kind }))); }
+    if (group === 'far' && dailyKey !== `${assignKey}|${items.length}` && items.length && items.every(it => it.ready)) { dailyKey = `${assignKey}|${items.length}`; castOf = null; castFor(); daily = everyday(assignKey, cast, signs.map(sg => ({ id: sg.id, kind: sg.kind, edge: !!sg.rect && (sg.rect.x < 36 * cam.F / 600 || sg.rect.x + sg.rect.w > W - 36 * cam.F / 600) }))); }
     // THE PARTY SHOW (NEON PASS 3): this frame's plan, once a frame (the far group draws first)
     if (group === 'far') planShow(f, partyK);
     // the glass towers' LED facades (far): slow, smooth colour gradients sweeping across the face (a calm night: subtle)
@@ -384,8 +408,9 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     if (tier === 0 && steady(group, t, partyK)) {
       if (!comp[group]) comp[group] = composite(group);
       // (tier 0 on a party night: no moving effects — the whole neon breathes gently on the beat as one image)
-      const pb = f.party && motion ? 0.92 + 0.12 * (f.party.breath || 0) * (f.party.ramp || 0) : 1;
-      if (comp[group]) { const cp = comp[group]; c.globalAlpha = Math.min(1, f.fade * (group === 'far' ? Math.max(0.05, f.night) : 1) * pb); c.drawImage(cp.c, cp.x, cp.y, cp.w, cp.h); boardsLit(c, group, t, motion, f); }
+      // (NEON PASS 4: the hard beat, as one image: 0.85 between beats → ~1.3 on the beat — the part over 1 drawn again, additive)
+      const pb = f.party && motion ? 0.85 + 0.5 * (f.party.punch || 0) : 1;
+      if (comp[group]) { const cp = comp[group], base = f.fade * (group === 'far' ? Math.max(0.05, f.night) : 1); c.globalAlpha = Math.min(1, base * pb); c.drawImage(cp.c, cp.x, cp.y, cp.w, cp.h); if (pb > 1.01) { c.globalAlpha = Math.min(1, base * (pb - 1)); c.drawImage(cp.c, cp.x, cp.y, cp.w, cp.h); } boardsLit(c, group, t, motion, f); }
       c.restore();
       return;
     }
@@ -396,10 +421,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     // the live light over the tubes: the party show's effects (+ the &force=neon-party / chase previews), tonight's slow chasers,
     // a game's flash — through the solid-sign clip (only while something runs)
     // (tonight's slow chasers: tier 2 only — tier 1 keeps the signs' blink / spell / colour cycle, which cost nothing)
-    const live = motion && tier > 0 && (showOn || moment.chase || (tier > 1 && daily && daily.chase.size && f.night > 0.3));
+    const live = motion && tier > 0 && (showOn || moment.chase || (daily && daily.chase.size && f.night > 0.3));
     if (live || moment.flash) {
       c.save(); solidClip(c, group);
       if (live) liveFx(c, group, t, f);
+      if (motion && tier > 1 && f.night > 0.3 && !(f.force && f.force.has('no-shimmer'))) shimmerFx(c, group, t, f);   // (tier 2 only: the A-B-B-A's one fix)
       if (moment.flash) flashSweep(c, group, f);
       c.restore();
     }
@@ -416,6 +442,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     c.clip('evenodd');
   }
   function drawItems(c, group, f, t, motion, flutter, partyK, outlinesPass) {
+    const noPunch = !!(f.force && f.force.has('no-punch'));        // (&force=no-punch: the perf A/B of the punch's second draw)
     for (const it of items) {
       if (!it.ready || (!it.lit && it.kind !== 'board')) continue;
       if ((it.kind === 'outline') !== outlinesPass) continue;
@@ -430,9 +457,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       // THE PARTY SHOW: the building's tubes × the plan (the beat, call-and-response), its party colour crossfaded in by a sweep;
       // under a live effect (a climb, the fins, a chase) the tubes sink back a little so the running light reads
       let beat = 1, alt = 0;
+      // (NEON PASS 4: the signs + icons punch on the beat too — their light and glow, never the billboards' paint)
+      if (it.kind === 'sign' && showOn) beat = 0.9 + 0.55 * showState.punch;
       if (it.kind === 'outline' && showOn) {
         const fx = showOut.fx[it.i];
-        beat = showOut.a[it.i] * (fx === FX.chase ? 0.5 : fx === FX.ledges || fx === FX.fins ? 0.72 : 1);
+        beat = showOut.a[it.i] * (showOut.race[it.i] > 0.05 ? 0.82 : 1) * (fx === FX.ledges || fx === FX.fins ? 0.72 : 1);
         alt = showOut.alt[it.i];
         if (alt > 0.02 && !it.alt && !it.altQ) { it.altQ = true; queue.push(() => buildAlt(it)); }
         if (!it.alt) alt = 0;
@@ -458,16 +487,20 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
         if (s.role === 'text' && burn && burn.id === it.sg.id) { deadText(c, it, s, a, dm, t); return; }
         if (dm && s.role === 'text' && (dm === 'spell' || dm === 'blink')) { signText(c, it, s, a, dm, t); return; }
         if (dm === 'cycle' && (s.role === 'mark' || it.sg.type === 'icon')) { if (!it.cyc) buildCycle(it); if (it.cyc) { cycleDraw(c, it, a, t); return; } }
-        if (alt > 0) { c.globalAlpha = Math.min(1, a * (1 - alt)); c.drawImage(s.c, s.x, s.y, s.w, s.h); c.globalAlpha = Math.min(1, a * alt * 1.1); c.drawImage(it.alt.c, it.alt.x, it.alt.y, it.alt.w, it.alt.h); return; }
+        if (alt > 0) { c.globalAlpha = Math.min(1, a * (1 - alt)); c.drawImage(s.c, s.x, s.y, s.w, s.h); c.globalAlpha = Math.min(1, a * alt * 1.1); c.drawImage(it.alt.c, it.alt.x, it.alt.y, it.alt.w, it.alt.h); if (a > 1.01) { const A = alt > 0.5 ? it.alt : s; c.globalAlpha = Math.min(1, a - 1); c.drawImage(A.c, A.x, A.y, A.w, A.h); } return; }
         if (vk && i === 0) { const A = vk.from || s, B = vk.to || s; if (vk.k < 1) { c.globalAlpha = Math.min(1, a * (1 - vk.k)); c.drawImage(A.c, A.x, A.y, A.w, A.h); } c.globalAlpha = Math.min(1, a * vk.k); c.drawImage(B.c, B.x, B.y, B.w, B.h); return; }
         c.globalAlpha = Math.min(1, a); c.drawImage(s.c, s.x, s.y, s.w, s.h);
+        // THE PUNCH: brighter than lit — the sprite again, additive (its core + glow swell together)
+        if (a > 1.01 && !noPunch) { c.globalAlpha = Math.min(1, a - 1); c.drawImage(s.c, s.x, s.y, s.w, s.h); }
       });
       // the game blade's chaser bulbs (Part 6a; the HOTEL's before)
       if (it.kind === 'sign' && it.sg.bulbs) {
         const a = alpha(it, 0, t, motion) * base;
         // (NEON PASS 3: a CALM chase on the outer frame — one bulb in four, a step every 0.42 s, a soft hand-off between them; never a
         // flash across the letters)
-        if (a > 0.02) { const D = warmDot(), u = motion ? t / 0.42 : 0, step = Math.floor(u), fr = u - step; it.sg.bulbs.forEach(([bx, by], i) => { const ph = (i + step) % 4, lit = ph === 0 ? 1 - fr * 0.6 : ph === 3 ? 0.4 + fr * 0.6 : 0; c.globalAlpha = a * (0.3 + 0.7 * lit); const r = 1.35 + 0.65 * lit; c.drawImage(D, bx - r, by - r, r * 2, r * 2); }); }
+        // (NEON PASS 4, the party: a MARQUEE — a step every beat, one bulb in three, the lit ones punching)
+        const pt = showOn && f.party ? f.party : null, pp = pt ? showState.punch : 0;
+        if (a > 0.02) { const D = warmDot(), u = !motion ? 0 : pt ? (pt.beats || 0) + Math.min(1, (pt.beatU || 0) * 4) : t / 0.42, step = Math.floor(u), fr = u - step, m = pt ? 3 : 4; it.sg.bulbs.forEach(([bx, by], i) => { const ph = (i + step) % m, lit = ph === 0 ? 1 - fr * 0.6 : ph === m - 1 ? 0.4 + fr * 0.6 : 0; c.globalAlpha = Math.min(1, a * (0.3 + 0.7 * lit) * (1 + 0.6 * pp * lit)); const r = 1.35 + 0.65 * lit + 0.8 * pp * lit; c.drawImage(D, bx - r, by - r, r * 2, r * 2); }); }
       }
     }
   }
@@ -555,15 +588,17 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     // (tier 0: no live effects, but the show's still cues — the searchlights at the peak, the wheel, the NEON word's big drops)
     if (!showOn && tier === 0 && P && P.ramp > 0.05) {
       castFor();
-      showFrame(cast, { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell, tier: 0, motion: f.motion, t: f.t, finale: f.finale }, showOut);
-      Object.assign(showState, { lights: showOut.lights, sparkle: showOut.sparkle, big: showOut.big, drop: showOut.drop, scene: showOut.scene, moving: 0, peak: showOut.peak });
+      showFrame(cast, { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell, tier: 0, motion: f.motion, t: f.t, finale: f.finale, beatU: P.beatU, beatT: P.beatT, beatIdx: P.beatIdx, beats: P.beats, rate: P.rate }, showOut);
+      Object.assign(showState, { lights: showOut.lights, sparkle: showOut.sparkle, big: showOut.big, drop: showOut.drop, scene: showOut.scene, moving: 0, peak: showOut.peak, punch: P.punch || 0, beams: showOut.beams, shimmer: 0, racing: 0 });
       return;
     }
-    if (!showOn) { showState.lights = 0; showState.sparkle = 0; showState.big = 0; showState.drop = 0; showState.scene = ''; showState.moving = 0; showState.peak = 0; return; }
+    if (!showOn) { showState.lights = 0; showState.sparkle = 0; showState.big = 0; showState.drop = 0; showState.scene = ''; showState.moving = 0; showState.peak = 0; showState.punch = 0; showState.beams = 0; showState.shimmer = 0; showState.racing = 0; return; }
     castFor();
-    const fr = forced ? { bar: Math.floor(f.t / 1.4), phase: (f.t / 1.4) % 1, energy: 1, ramp: moment.party, name: 'peak', swell: 0 } : { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell };
+    // (the &force=neon-party preview keeps its own 120 bpm: a beat every 0.5 s, a breath of two)
+    const fr = forced ? { bar: Math.floor(f.t), phase: f.t % 1, energy: 1, ramp: moment.party, name: 'peak', swell: 0, beatU: (f.t / 0.5) % 1, beatT: 0.5, beatIdx: Math.floor(f.t / 0.5) % 2, beats: Math.floor(f.t / 0.5), rate: 1 }
+      : { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell, beatU: P.beatU, beatT: P.beatT, beatIdx: P.beatIdx, beats: P.beats, rate: P.rate };
     showFrame(cast, { ...fr, tier, motion: f.motion, t: f.t, finale: f.finale, scene: moment.scene }, showOut);
-    Object.assign(showState, { lights: showOut.lights, sparkle: showOut.sparkle, big: showOut.big, drop: showOut.drop, scene: showOut.scene, moving: showOut.moving, peak: showOut.peak });
+    Object.assign(showState, { lights: showOut.lights, sparkle: showOut.sparkle, big: showOut.big, drop: showOut.drop, scene: showOut.scene, moving: showOut.moving, peak: showOut.peak, punch: showOut.punch, beams: showOut.beams, shimmer: showOut.shimmer, racing: showOut.racing });
   }
   // a run set stroked as live light: a soft glow (tier 2) + a bright core, in each tube's own colour (k: 0..1+)
   function strokeRuns(c, rs, w, k, white = 0.45, o2 = null) {
@@ -595,14 +630,83 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       } else if (fx === FX.flash && it.fx.crown.length) {
         // A CROWN FLASHING on the drop: a flare easing back
         strokeRuns(c, it.fx.crown, w * 1.15, Math.min(1.4, 1.3 * k) * pk, 0.6, it.o);
-      } else if (fx === FX.chase || (!showOn && tier > 1 && daily && daily.chase.has(it.i) && f.night > 0.3)) {
-        // THE CHASERS: bright runs racing round the WHOLE outline (party: on the beat's speed; every night: one or two, slow + soft)
-        const everyday = fx !== FX.chase, sp = everyday ? 9 : 26 * Math.max(0.6, k), kk = everyday ? 0.38 * f.night : Math.min(1, k);
-        c.setLineDash([w * 2.6, w * 4.2]); c.lineDashOffset = -t * sp;
-        strokeRuns(c, it.fx.chase, w, kk * pk, everyday ? 0.35 : 0.5, it.o);
+      } else if (fx === FX.chase) {
+        // (the &force=neon-party preview's old chase: a plain dash)
+        c.setLineDash([w * 2.6, w * 4.2]); c.lineDashOffset = -t * 26;
+        strokeRuns(c, it.fx.chase, w, Math.min(1, k) * pk, 0.5, it.o);
         c.setLineDash([]);
       }
+      // THE RACING LIGHT (NEON PASS 4): pulses racing round the whole outline — the party's (fast, several a tube, surging on the
+      // beat) or tonight's slow chasers (one or two a tube, soft; tier 1: the first two)
+      const rk = showOn ? showOut.race[it.i] : 0;
+      // (&force=no-race: the perf A/B of the racing light)
+      if (f.force && f.force.has('no-race')) continue;
+      if (rk > 0.03) race(c, it, w, rk * pk, f, true);
+      else if (!showOn && daily && daily.chase.has(it.i) && f.night > 0.3 && (tier > 1 || [...daily.chase].indexOf(it.i) < 2)) race(c, it, w, 0.55 * f.night * pk, f, false);
     }
+  }
+  /**
+   * THE RACING LIGHT along a building's whole outline: a dash pattern moving along the pre-built paths (one per colour role) —
+   * a soft coloured glow (tier 2), the coloured tail, a hot white HEAD at the leading end. party: fast, a pulse every ~38 pt, its
+   * speed surging on the beat, its direction the director's (some reverse every two bars); otherwise: slow, every ~90 pt, soft.
+   * The offset is integrated per building, so a reversal never jumps.
+   */
+  function race(c, it, w, k, f, party) {
+    if (!it.fx.race || !it.fx.race.length) return;
+    const K = cam.F / 600, dt = Math.min(0.05, (f.dt || 16.7) / 1000);
+    const P = (party ? 38 : 92) * K, tail = P * (party ? 0.42 : 0.3), head = Math.max(1.4, w * 1.2);
+    const dir = party ? showOut.dir[it.i] || 1 : (it.i % 2 ? 1 : -1);
+    const v = party ? (70 + 55 * (showOut.sp[it.i] || 1)) * K * (1 + 1.4 * showState.punch) : 16 * K;
+    // (once a frame: the harbor group is drawn twice when the water mirrors it)
+    if (it.raceT !== f.t) { it.raceT = f.t; it.raceO = ((it.raceO || 0) - dir * v * dt) % (P * 1000); }
+    const o = it.raceO, oHead = dir > 0 ? o - tail + head : o;
+    for (const r of it.fx.race) {
+      const col = colOf(r.role, it.o);
+      c.setLineDash([tail, P - tail]); c.lineDashOffset = o;
+      if (tier > 1) { c.strokeStyle = rgba(col, Math.min(1, 0.3 * k)); c.lineWidth = w * (party ? 5.2 : 4); c.stroke(r.p); }
+      c.strokeStyle = rgba(mix(col, WHITE3, 0.18), Math.min(1, 0.9 * k)); c.lineWidth = w * 1.6; c.stroke(r.p);
+      c.setLineDash([head, P - head]); c.lineDashOffset = oHead;
+      c.strokeStyle = rgba(HOT, Math.min(1, (party ? 1 : 0.8) * k)); c.lineWidth = w * (party ? 2 : 1.6); c.stroke(r.p);
+    }
+    c.setLineDash([]);
+  }
+  /**
+   * THE SHIMMER (NEON PASS 4): a party night — a band of glints rolls across the skyline every ~5 s, sparkling along the tubes it
+   * passes and lighting the crowns white-hot; a normal night — now and then (~every 20 s) one crown catches a slow white shimmer.
+   */
+  function shimmerFx(c, group, t, f) {
+    const K = cam.F / 600, D = warmDot();
+    if (showOn && showState.shimmer > 0.05) {
+      const per = 5.2, u = (t / per) % 1, sx = (u * 1.5 - 0.25) * W, bw = 70 * K;
+      let n = 0;
+      for (const it of items) {
+        if (it.kind !== 'outline' || it.o.group !== group || !it.glints || !it.pw || !it.pw.on) continue;
+        const cx = (it.cx ?? 0.5) * W; if (Math.abs(cx - sx) > bw * 2.2) continue;
+        const w = it.o.st.w * K;
+        if (tier > 1) for (let j = 0; j < it.glints.length && n < 80; j++) {
+          const [x, y, sd] = it.glints[j], d = Math.abs(x - sx); if (d > bw) continue;
+          const tw = (Math.sin(t * 9 + sd) + 1) * 0.5; if (tw < 0.55) continue;
+          const a = (1 - d / bw) * (tw - 0.55) / 0.45 * showState.shimmer * f.fade; if (a < 0.04) continue;
+          const r = (1.6 + 2.2 * a) * Math.max(0.8, w);
+          c.globalAlpha = Math.min(1, a); c.drawImage(D, x - r, y - r, r * 2, r * 2); n++;
+        }
+        if (it.fx && it.fx.crown.length) { const e = Math.max(0, 1 - Math.abs(cx - sx) / (bw * 1.4)); if (e > 0.05) { c.globalAlpha = 1; strokeRuns(c, it.fx.crown, w * 1.1, e * 0.9 * showState.shimmer, 0.75, it.o); } }
+      }
+      c.globalAlpha = 1;
+      return;
+    }
+    if (showOn || !daily) return;
+    // a normal night: one crown every ~20 s, a white shimmer running across it (1.6 s)
+    const P = 20, slot = Math.floor(t / P), e = t - slot * P;
+    if (e > 1.6) return;
+    const crowns = items.filter(it => it.kind === 'outline' && it.o.group === group && it.fx && it.fx.crown.length && it.pw && it.pw.on);
+    if (!crowns.length) return;
+    const all = items.filter(it => it.kind === 'outline' && it.fx && it.fx.crown.length), pick = all[Math.floor(((slot * 2654435761) >>> 0) % 997) % Math.max(1, all.length)];
+    if (!pick || !crowns.includes(pick)) return;
+    const w = pick.o.st.w * K, k = Math.sin(Math.PI * e / 1.6) * 0.8 * f.night * f.fade;
+    c.setLineDash([9 * K, 400 * K]); c.lineDashOffset = 400 * K - e / 1.6 * 120 * K;
+    strokeRuns(c, pick.fx.crown, w * 1.2, k, 0.85, pick.o);
+    c.setLineDash([]);
   }
   // a sign's name: BLINK (soft off-on twice) or SPELL ON (dark, then its letters strike one by one down / across the sign)
   function signText(c, it, s, a, dm, t) {
@@ -669,7 +773,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       else if (name === 'show') moment.scene = v || null;
       else if (name === 'burnout') moment.burnout = !!v;            // (&force=burnout: a dead letter tonight)          // (a party show scene held: the &scene= preview, reviews)
       else if (name === 'flash') { const g = v && v.game && games.find(x => x.id === v.game); const cols = (v && v.cols) || (g ? markFor(g).tubes.map(t => hexRgb(t.col)).concat([hexRgb(SIGN_ACC[g.id] || '#ffffff')]) : [[255, 46, 151], [46, 230, 255]]); moment.flash = { t0: performance.now(), dur: 1.6, cols }; }
-      else if (name === 'scheme' && (SCHEMES[v] || v === 'city') && v !== scheme) { scheme = v; dropComp(); for (const it of items) if (it.kind === 'outline') queue.push(() => { const old = it.lit; buildItem(it); old && old.forEach(free); }); }
+      else if (name === 'scheme' && (SCHEMES[v] || v === 'city')) { schemeX = v === 'city' ? null : v; applyScheme(); }
     },
     /** a billboard's content (CITY CONTROL later): { game } or { title, sub, bg, ink } */
     billboard(id, show) {
@@ -687,11 +791,15 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     },
     /** Part 4's hook: every light that should smear in the water — { x, y, w, h, col, a } on screen */
     reflections: () => items.filter(it => it.ready && it.pw && it.pw.on).map(it => { const R = it.kind === 'sign' ? it.sg.rect : it.kind === 'board' ? it.b.rect : null; if (R) return { id: it.id, x: R.x, y: R.y, w: R.w, h: R.h, col: it.kind === 'sign' ? it.sg.col : [255, 214, 150], a: 1 }; const s = it.lit && it.lit[0]; return s ? { id: it.id, x: s.x, y: s.y, w: s.w, h: s.h, col: roleColour(it.o.roles[0], scheme), a: it.o.st.a } : null; }).filter(Boolean),
+    /** NEON PASS 4: the solid signs' rects on screen (a sky beam rises from above the roof sign on its tower) */
+    signRects: () => signs.filter(sg => sg.rect).map(sg => sg.rect),
+    /** NEON PASS 4: the sky beams' colours — each tower's own neon colour (its party colour while a sweep / strobe holds it) */
+    beamCols: ids => ids.map(id => { const it = items.find(x => x.kind === 'outline' && x.id === id); if (!it || !it.o) return [255, 255, 255]; if (showOn && showOut.alt[it.i] > 0.5 && it.altCol) return it.altCol; return roleColour(it.o.roles[0], scheme); }),
     /** the party show's state this frame (the scene reads it: the searchlights, the wheel's sparkle, the NEON word's big drops) */
     show: () => showState,
     /** tonight's everyday motion (debug) */
     daily: () => (daily ? { spell: [...daily.spell], blink: [...daily.blink], cycle: daily.cycle, chase: [...daily.chase].map(i => items[i] && items[i].id), rotate: [...daily.rotate].map(i => items[i] && items[i].id), stages: [...daily.stages.keys()].map(i => items[i] && items[i].id), burnout: burn ? { ...burn } : null } : null),
-    debug: () => ({ signs: signs.map(sg => ({ id: sg.id, game: sg.game, kind: sg.kind, type: sg.type, rect: { x: +sg.rect.x.toFixed(1), y: +sg.rect.y.toFixed(1), w: +sg.rect.w.toFixed(1), h: +sg.rect.h.toFixed(1) }, on: !!(items.find(i => i.sg === sg) || {}).pw?.on })), boards: boards.map(b => ({ id: b.id, show: b.content.title })), outlines: outs.map(o2 => ({ id: o2.id, group: o2.group, strength: o2.strength, runs: o2.runs.length, roles: o2.roles })), items: items.length, built, queued: queue.length, mb: +(mbSprites + (comp.far ? comp.far.mb : 0) + (comp.near ? comp.near.mb : 0)).toFixed(2), comp: { far: !!comp.far, near: !!comp.near }, tier, night: assignKey, scheme, led: glassFaces.length, moment: { party: moment.party, chase: moment.chase, flash: !!moment.flash } }),
+    debug: () => ({ signs: signs.map(sg => ({ id: sg.id, game: sg.game, kind: sg.kind, type: sg.type, rect: { x: +sg.rect.x.toFixed(1), y: +sg.rect.y.toFixed(1), w: +sg.rect.w.toFixed(1), h: +sg.rect.h.toFixed(1) }, on: !!(items.find(i => i.sg === sg) || {}).pw?.on })), boards: boards.map(b => ({ id: b.id, show: b.content.title })), outlines: outs.map(o2 => ({ id: o2.id, group: o2.group, strength: o2.strength, runs: o2.runs.length, roles: o2.roles })), items: items.length, built, queued: queue.length, mb: +(mbSprites + (comp.far ? comp.far.mb : 0) + (comp.near ? comp.near.mb : 0)).toFixed(2), comp: { far: !!comp.far, near: !!comp.near }, tier, night: assignKey, scheme, led: glassFaces.length, moment: { party: moment.party, chase: moment.chase, flash: !!moment.flash }, partyLook, show: { ...showState } }),
     destroy() { for (const it of [...items, ...(pending ? pending.items : [])]) freeItem(it); items = []; pending = null; queue = []; dropComp(); free({ c: dot }); },
   };
 }

@@ -8,7 +8,7 @@
 //  - outlines(L): THE NEON OUTLINES on the buildings — world polylines tracing the Art Deco shapes: the hero + landmark towers
 //    fully (each tier's edges, the setback ledges, the crown), the middle tier on its rooflines + setbacks, the far bands only as
 //    a few faint threads; the needle's spire becomes THE NEON NEEDLE. Never across a word tower's face (only its frame).
-//  - signSpots(L): where the city's signs hang (named game signs, icon signs, the hotel's blade, JAZZ, billboards), in world
+//  - signSpots(L): where the city's signs hang (named game signs, icon signs, the game blade, billboards), in world
 //    units; assignSigns(): which game takes which spot tonight (a new pick each night, never while you watch).
 import { REF_TITLE, cameraFor, fxAt, fOf, project, lighthouseBoxes } from './harbor-layout.js';
 import { rngFrom, shuffle } from './rng.js';
@@ -36,7 +36,9 @@ export const SCHEMES = {
   nye: { b0: [255, 216, 122], b1: [236, 240, 255], b2: [255, 248, 230], h0: [255, 196, 74], h1: [220, 226, 255], a0: [255, 196, 74], a1: [255, 240, 200], a2: [236, 240, 255] },
   thanksgiving: { b0: [255, 138, 30], b1: [255, 176, 80], b2: [255, 230, 190], h0: [255, 138, 30], h1: [200, 90, 40], a0: 'amber', a1: [220, 70, 40], a2: [255, 200, 100] },
   easter: { b0: [138, 216, 255], b1: [255, 179, 224], b2: [255, 240, 200], h0: [255, 138, 208], h1: [180, 138, 255], a0: [255, 216, 106], a1: [255, 138, 208], a2: [160, 255, 190] },
-  party: { b0: 'violet', b1: 'pink', b2: 'cyan', h0: 'pink', h1: 'cyan', a0: 'amber', a1: 'acid', a2: 'ice', m0: 'magenta', t0: 'teal', g0: 'green', a3: 'gold', w0: 'white' },
+  // NEON PASS 4 — THE PARTY SCHEME (the owner: bold party colours in any single frame): magenta, hot pink, gold, electric blue,
+  // violet, lime — every role re-lit, so a party night reads at a glance
+  party: { b0: [255, 40, 210], b1: [255, 46, 151], b2: [40, 120, 255], h0: [255, 46, 151], h1: [150, 70, 255], a0: [255, 200, 60], a1: [150, 255, 60], a2: [40, 120, 255], m0: [255, 40, 210], t0: [150, 255, 60], g0: [150, 255, 60], a3: [255, 200, 60], w0: [255, 236, 250] },
 };
 /** a role's colour in a scheme: [r, g, b] */
 export function roleColour(role, scheme = 'city') {
@@ -61,8 +63,11 @@ const ROLES = {
   // (NEON PASS 3: the middle tier in contrasting pairs — teal / violet / magenta / gold — so the midsection reads as lit)
   'm-edge': ['a0', 'm0'], 'm-dome': ['b1', 'a3'], 'm-step': ['t0', 'h0'], 'm-twin': ['h1', 'b1'], 'm-right': ['m0', 'b1'],
   glassL: ['b1', 'b1'], glassR: ['b2', 'b2'],
-  hotel: ['a1', 'a1'], pulse: ['h1', 'h1'], par: ['h0', 'h0'], jazz: ['a0', 'a0'],
+  hotel: ['a1', 'a1'], pulse: ['h1', 'h1'], par: ['h0', 'h0'],
 };
+// NEON PASS 4 (the owner: "remove the JAZZ sign — that left corner is cluttered"): the old JAZZ club is PLAIN CITY now — no sign, no
+// frame — lit like its neighbours in the near band (NEON PASS 3's trims): [kind, main, accent, detail] (a WARM_L pairing)
+const PLAIN_HEROES = { jazz: ['bands', 'm0', 'b1', 'w0'] };
 /** strength: the brightness hierarchy (tube width in pt at the reference scale, glow, alpha) */
 export const STRENGTH = { hero: { w: 1.5, glow: 7, a: 1 }, word: { w: 1.25, glow: 5.5, a: 0.92 }, mid: { w: 1.0, glow: 4.5, a: 0.8 }, quay: { w: 1.1, glow: 5, a: 0.88 }, far: { w: 0.7, glow: 3.2, a: 0.5 }, pano: { w: 1.2, glow: 5.5, a: 0.9 },
   // NEON PASS 3: the bands' own neon — the near band (the storefront city) just under the middle tier, the mid band softer
@@ -157,6 +162,13 @@ export function outlines(L, signRects = new Map()) {
   // (NEON PASS 2: + a Deco LEDGE BAND across the second floor and CORNER TRIMS up the upper floors — warm, the storefront city;
   // a sign hung on the wall cuts them cleanly: neon.js)
   for (const b of L.heroes) {
+    const plain = PLAIN_HEROES[b.id];
+    if (plain) {
+      const lines = [];
+      bandNeon(lines, { ...b, seed: 0 }, plain[0], plain[1], plain[2], plain[3], true, true);
+      add({ id: b.id, group: 'near', strength: 'band', roles: [...new Set(lines.map(l => l.role))], z: b.z0, lines, band: 'near', blocks: [b.id] });
+      continue;
+    }
     const role = (ROLES[b.id] || ['a0'])[0], z = b.z0 - 0.05, w = b.x1 - b.x0;
     const lines = [{ pts: [[b.x0, b.h, z], [b.x1, b.h, z]], role }];
     lines.push({ pts: [[b.x0 + 0.3, b.h * 0.3, z], [b.x1 - 0.3, b.h * 0.3, z]], role, thin: true });
@@ -359,24 +371,33 @@ function crownPath(t, tr) {
 // same signs scaled to its width (like the skyline) and a wide screen keeps them in its centre group. Checked against the
 // layout (tests): on screen, never over a word face, the wheel, the lighthouse or the sign; clear of each other; nothing
 // nearer in front.
-//   kind: named (a game's NAME + mark; cap = the longest name it takes) · icon (a game's tube mark) · fixed (HOTEL, JAZZ) ·
-//   billboard (painted, gooseneck lamps; CITY CONTROL changes what it shows). type: vbox (vertical) · box · icon · script.
+//   kind: named (a game's NAME + mark; cap = the longest name it takes) · icon (a game's tube mark) · fixed (a text sign:
+//   `text`, `col`; none hang now) · billboard (painted, gooseneck lamps; CITY CONTROL changes what it shows). type: vbox
+//   (vertical) · box · icon · script.
 // Part 4 (the owner's review): the icons are ~20–21 pt (they read at a glance; were 11–18) and stand on the calm walls — the
-// near band's corners left and right, under the word tower, on JAZZ + PAR — never in the busy centre (the NEON NEEDLE, the
-// sunburst's sign, the wheel, the HOTEL blade breathe), never on the construction tower's spot (wordV, behind JAZZ); the
-// billboard is half as big again (66×32) on the left near band's wall.
+// near band's corners left and right, under the word tower, on PAR — never in the busy centre (the NEON NEEDLE, the
+// sunburst's sign, the wheel, the HOTEL blade breathe), never on the construction tower's face (wordV); the billboard is half
+// as big again (66×32) on the left near band's wall. NEON PASS 4: the JAZZ sign is gone (the left corner was cluttered).
 export const SPOTS = [
   { id: 'n-roof', kind: 'named', type: 'box', host: 'near', mount: 'roof', x: [27, 75], y: [458, 478], z: 240, cap: 9 },
-  { id: 'n-par', kind: 'named', type: 'vbox', host: 'par', x: [294.5, 305], y: [494, 545], z: 233.6, cap: 6 },
+  // (NEON PASS 4: from just under PAR's roof down to 2 pt over docked Rosie's stacks — nothing nearer stands in front of a sign)
+  { id: 'n-par', kind: 'named', type: 'vbox', host: 'par', x: [294.5, 305], y: [491.5, 537.5], z: 233.6, cap: 6 },
   // Part 6a (the owner's SIGN PLACEMENT RULE: no sign covers a hero tower's face or outline): the sunburst's named sign is gone
   // and the HOTEL blade with it (its thin letters didn't read) — THE GAME BLADE takes the hotel's spot: a projecting vertical
   // cabinet with chasing bulbs, tonight's game (≤ 6 letters: they stand ~9 pt tall on a phone, the glance test)
   // NEON PASS 3 (the owner: the bulbs fought the letters): a bigger cabinet — the LETTERS win (bigger, brighter tubes on a dark
   // panel), the bulbs on an OUTER FRAME with a dark gap between them and the letters (signs.js#bladeLayout)
-  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [475.5, 555], z: 229.4, cap: 6 },
-  { id: 'jazz', kind: 'fixed', type: 'script', host: 'jazz', text: 'JAZZ', col: [255, 176, 46], x: [74, 100], y: [494, 506], z: 229.4 },
+  // NEON PASS 4 (the owner: "the blade is partly hidden behind the building in front of it on some nights — the whole word must
+  // read"): it was docked ROSIE — her twin stacks + their bulb strings stood over its last letter for her four minutes alongside.
+  // She now rests bow-out (core/harbor-boats.js) and the blade ends 2.5 pt over her stern's bulb string (its top 1.5 pt under the
+  // hotel's roof): every letter clear, still ≥ 10 pt (signs.js#bladeLayout) — tested against her docked silhouette
+  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6 },
   { id: 'i-par', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [493, 513], z: 233.6 },
-  { id: 'i-jazz', kind: 'icon', type: 'icon', host: 'jazz', x: [77, 98], y: [509, 530], z: 229.4 },
+  // NEON PASS 4 (the owner: "remove the JAZZ sign … the game icon inside its frame moves to a calmer spot"): the JAZZ script + the
+  // icon under it are gone from the old club's facade; the icon hangs on its own on the next wall to the right — under the
+  // construction tower's face, ≥ 26 pt from every other sign, clear of the wheel's quiet zone (the one calm wall a phone has
+  // left: tests/harbor.test.mjs)
+  { id: 'i-mid', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [97, 117], y: [496, 516], z: 229.4 },
   { id: 'i-left', kind: 'icon', type: 'icon', host: 'near', mount: 'roof', x: [5, 25], y: [459, 479], z: 238 },
   { id: 'i-c1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [269, 289], y: [517, 537], z: 232.1 },
   { id: 'i-r1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [356, 377], y: [494, 515], z: 235.1 },

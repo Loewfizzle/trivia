@@ -328,6 +328,25 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 4: THE NEON IN MOTION (Oct 22, 2026) — `docs/harbor.md#neon-pass-4`
+- [x] A party night obvious in one frame: the outlines re-lit in the bold PARTY SCHEME (rolling in left → right), a warmer pink-violet
+      city glow, SKY BEAMS from the tall towers (2–3 on a phone, 4–5 on desktop; fading under the tagline, free ones to the top;
+      pulsing, swapping colour, one by one from 9 pm, taking turns with the searchlights; reusable for holidays + the tribute)
+- [x] LIGHT RACING round the tubes (white-hot heads, coloured tails, per-building speed + direction, reversing, surging on the beat),
+      THE HARD BEAT (a ~50 ms attack to a big swing, harder on the downbeats + drops — never dark, never a hard on/off) on the tubes,
+      the signs, the blade's marquee, the wheel, the pier lamps, the string lights, the beams, the title's rings + SPEAKEASY
+- [x] Flashes (crowns on the strong beats, colour-to-colour strobes in the new race+strobe scene), the shimmer rolling across the
+      skyline; scenes every 20–40 s; the harbor's night: 9 pm warm-up → 11 pm peak → calming after 1 am
+- [x] Every night alive: three or four slow chasers, one or two blinking names, a crown shimmer every ~20 s
+- [x] STRING LIGHTS on the speakeasy's roof (warm; a party night's colours chasing on the beat; reusable)
+- [x] The wheel without a veil: quiet office blocks behind it (few warm windows, a touch more haze), seven bulbs a spoke, a bolder
+      rim, a hub medallion, the spoke bulbs chasing outward on the beat
+- [x] Fixes: no sign clipped at 390–430 (tested), the blade's whole word readable, no seams in the water, beams + flares hidden by the
+      signs in front of them, the JAZZ sign removed (its icon moved), the neon sounds ~12 dB quieter (power-on / dropout −6 dB) with
+      a soft attack + low-pass + a peak cap, the warm-up's last 30 s audible; RUMRUNNER's lobby sign "CLUB 21"
+- [x] The preview panel: SKY BEAMS, STRING LIGHTS · PARTY, the race+strobe scene; tests: harbor.test (the hard beat, racing, the sky's
+      turns, the night's curve, the everyday motion), e2e-harbor (the party scheme, beams, the punch, the strings)
+
 ### ✅ CITY 2.0 — THE PREVIEW PANEL (Oct 22, 2026) — `docs/harbor.md#the-preview-panel`
 - [x] ONE registry (`js/core/harbor-remote.js`, pure, shared with the server): every `&force=` preview the Harbor runs (43), the party
       show's scenes, time presets from the real sun, weather, holiday looks, durations; validation to plain values; the state → the

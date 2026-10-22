@@ -3,7 +3,10 @@
 //
 //   node shots.mjs "<browser>" [--scenes night,day,halloween] [--sizes phones|desktop|all|390x844,412x915] [--place gr|ny|none]
 //                  [--crop dock,corner,sign | --crop 0,1400,780,300] [--qs "wx=rain&force=lightning"] [--out ./shots-review]
-//                  [--wait 2600] [--guest] [--preview] [--city 2] [--safe]
+//                  [--wait 2600] [--guest] [--preview] [--city 2] [--safe] [--tier 0|1|2] [--zoom 3 [--zx 0.5]]
+// --tier: CITY 2.0 — the scene forced to that quality tier (setTier) before the shot. --zoom N: each crop's device pixels blown
+//   up N × N (nearest neighbour: no blur), its width cut to 1/N around --zx (0..1 across, default the middle) — seams, ripples
+//   and tubes looked at pixel by pixel. A custom crop in pt: --crop XxYxWxH (a comma separates crops).
 // --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
 // --city 2: CITY 2.0, THE HARBOR (docs/harbor.md): adds &city=2 (any extra flag via --qs, e.g. "grid=1" or "force=demo");
 //   --sizes harbor = the six review sizes (four phones upright, a phone sideways, desktop); --safe emulates the iPhone's
@@ -34,6 +37,7 @@ const PLACES = { gr: '&tz=America/Detroit&at=42.96,-85.67', ny: '&tz=America/New
 const PLACE = PLACES[opt('place', 'gr')] ?? PLACES.gr;
 const CITY = opt('city', '') ? `&city=${opt('city')}` : '';
 const SAFE = !!opt('safe', false);
+const TIER = opt('tier', '') === '' ? null : Number(opt('tier')), ZOOM = Number(opt('zoom', 0)) || 0, ZX = Number(opt('zx', 0.5));
 const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
 const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900', harbor: '390x844,402x874,412x915,430x932,874x402,1440x900' };
 const SIZES = String(SIZE_SETS[opt('sizes', 'quick')] || opt('sizes')).split(',').map(s => s.split('x').map(Number));
@@ -89,6 +93,14 @@ const CROPS = String(opt('crop', '') || '').split(',').filter(Boolean);
 const PRESET = { dock: ['.nd-actions', 24], corner: ['.menu-btn, .music-btn', 10], sign: ['.nd-sign', 16] };
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// --zoom: the shot's own pixels drawn N × N on a page of their own (image-rendering: pixelated — no blur) and shot again
+async function magnify(ctx, buf, k, path) {
+  const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20), q = await ctx.newPage();
+  await q.setViewport({ width: w * k, height: h * k, deviceScaleFactor: 1 });
+  await q.setContent(`<body style="margin:0;background:#000"><img src="data:image/png;base64,${buf.toString('base64')}" style="display:block;width:${w * k}px;height:${h * k}px;image-rendering:pixelated"></body>`);
+  await q.waitForFunction(() => document.images[0].complete);
+  await q.screenshot({ path }); await q.close();
+}
 const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--mute-audio'] });
 let n = 0;
 for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
@@ -104,6 +116,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   const qs = `when=${when}${PLACE}${o.qs ? `&${o.qs}` : ''}${CITY}${EXTRA}`;
   await p.goto(PREVIEW ? `${BASE}/tests/integration/title-preview.html?${qs}${GUEST || o.guest ? '&guest=1' : ''}` : `${BASE}/?emu&slot=sh&${qs}`);
   await p.waitForFunction(() => window.__district && window.__district.phase().done, { timeout: 25000 });
+  if (TIER !== null) await p.evaluate(t => window.__district.setTier(t), TIER);
   await sleep(o.wait && !opt('wait', 0) ? o.wait : WAIT);
   if (o.act === 'join') { await p.evaluate(() => window.__district.dock.join(true)); await sleep(500); await p.type('.nd-code-in', 'mi'); await sleep(400); }
   if (o.act === 'rejoin') { await p.evaluate(() => window.__district.dock.preview({ rejoin: 'MINT' })); await sleep(700); }
@@ -116,7 +129,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
   for (let shot = 0; shot < COUNT; shot++) {
   if (shot) await sleep(EVERY);
-  const file = `${OUT}${name}-${w}x${h}${COUNT > 1 ? `-${shot}` : ''}`;
+  const file = `${OUT}${name}-${w}x${h}${TIER !== null ? `-t${TIER}` : ''}${COUNT > 1 ? `-${shot}` : ''}`;
   if (!CROPS.length) { await p.screenshot({ path: `${file}.png` }); n++; }
   for (const c of CROPS) {
     let clip;
@@ -139,6 +152,10 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam;
         if (cc === 'logo') { const r = document.querySelector('.nd-logo-wrap').getBoundingClientRect(); return { x: Math.max(0, r.left - 20), y: Math.max(0, r.top - 30), width: Math.min(innerWidth, r.width + 40), height: r.height + 60 }; }
         const y = Math.max(0, c.limitY - 24), hh = c.VPY + c.F * c.CAMH / 230 + 14 - y, w = innerWidth / 2; return { x: cc === 'skyl' ? 0 : w, y, width: w, height: hh }; }, c);
+    } else if (c === 'blade') {
+      // CITY 2.0: THE GAME BLADE close up (n-blade + what stands around / in front of it)
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); const b = hb && hb.neon.signs.find(s => s.id === 'n-blade'); if (!b) return null; const r = b.rect, k = hb.cam.F / 600;
+        return { x: Math.max(0, r.x - 40 * k), y: Math.max(0, r.y - 30 * k), width: r.w + 80 * k, height: r.h + 60 * k }; });
     } else if (['wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c)) {
       // CITY 2.0 (Part 5): close-ups of the harbor's hero pieces — the wheel (with its legs on the pier), the lighthouse (+ the
       // beam's sweep), Rosie (wherever she is now), the harbor strip (the wheel's top to the road)
@@ -157,7 +174,10 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    await p.screenshot({ path: `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c) ? c : 'crop'}.png`, clip }); n++;
+    if (ZOOM > 1) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade'].includes(c) ? c : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
+    n++;
   }
   }
   await ctx.close();

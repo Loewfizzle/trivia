@@ -26,7 +26,11 @@ const SCENES = {
   // CITY 2.0, Part 3: the neon's party moment (chasers + the beat + the LED facades) on top of the show; and the plain scenes
   // without the planes (their contrail grows the cost over a pass: docs/harbor.md Known issues) — np-party, np-night, np-day
   neon: 'when=2026-10-17T23:00&wx=clear&force=no-planes,neon-party,searchlights,spell&text=2027',
-  'np-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes', 'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
+  'np-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes', 
+  // NEON PASS 4: the party peak with one new piece off at a time (the A/B of its cost on one page)
+  'n4-race': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race', 'n4-punch': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-punch', 'n4-shim': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-shimmer',
+  'n4-beams': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-beams', 'n4-str': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-strings', 'n4-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race,no-punch,no-shimmer,no-beams,no-strings',
+'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
   'np-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes', 'np-golden': 'when=2026-10-14T18:30&wx=clear&force=no-planes',
   // CITY 2.0, Part 4: the water — a windy night (the most light-column copies + the broken mirror); nw- = the same scenes without
   // the live water (only its baked base: Part 3's cost), for a before / after

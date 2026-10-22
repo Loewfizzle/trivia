@@ -10,7 +10,7 @@
 //    floor by floor, or a gentle twinkle — while the rest of that tower dims so it reads. Night only. Any later part addresses
 //    a window by (building, tier, col, row) with set() (party waves, flags, holiday windows).
 import { winTraits, buildingDice, isLit, winHash, layoutText, normText, scrollColumns, FONT_H } from '../../core/harbor-windows.js';
-import { cellRect, isDeco } from './blocks.js';
+import { cellRect, isDeco, behindWheel } from './blocks.js';
 import { project } from '../../core/harbor-layout.js';
 import { SPOTS, towerRoofSign } from '../../core/harbor-neon.js';
 import { fog } from './tones.js';
@@ -77,17 +77,19 @@ function drawLit(x, cam, it, look, meta, group, idx) {
   const fz = fog(b.z0), depthK = 0.6 + 0.4 * (1 - fz);
   const paneW = s * g.pitch[0] * 0.5, room = group === 'near' && paneW > 2.2;
   const share = look.share;
+  // (NEON PASS 4: a quiet office block right behind the wheel — the spokes cross mostly dark glass)
+  const quiet = behindWheel(cam, b);
   for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
     const tr = winTraits(b.seed, t, c, r, dice);
     if (!tr) continue;
-    const on = isLit(tr, share);
+    const on = isLit(tr, share) && (!quiet || winHash(b.seed, t, c, r, 31) < 0.16);
     const rect = cellRect(cam, b, c, r, deco);
     if (group === 'near' && winHash(b.seed, t, c, r, 12) < 0.05 && meta.cands.length < 220) meta.cands.push({ rect, col: colourOf(tr, look.warm), on, a: tr.a * depthK, idx, id: [b.tower || b.id, t, c, r] });
     if (!on || share <= 0) continue;
-    let col = colourOf(tr, look.warm), a = tr.a * depthK;
+    let col = quiet ? colourOf({ ...tr, cls: 'warm' }, look.warm) : colourOf(tr, look.warm), a = tr.a * depthK * (quiet ? 0.85 : 1);
     // PARTY WINDOWS (NEON PASS 3, City 1.0's): on a party night ~1 lit window in 5 takes a party colour (pink, cyan, violet, gold),
     // and now and then a whole floor in one colour — baked with the light key (look.party), so they cost nothing a frame
-    if (look.party && tr.cls !== 'tv') {
+    if (look.party && tr.cls !== 'tv' && !quiet) {
       const fl = winHash(b.seed, t, 0, r, 23) < 0.07;
       if (fl || winHash(b.seed, t, c, r, 21) < 0.2) { col = PARTYW[Math.floor(winHash(b.seed, t, fl ? 0 : c, r, 22) * PARTYW.length)]; a = Math.min(1, Math.max(a, 0.7) * 1.1); }
     }
@@ -106,7 +108,7 @@ function drawLit(x, cam, it, look, meta, group, idx) {
       a = Math.min(1, a);
     }
     // (a coloured room glows a little into the night around its pane: its own soft halo — City 1.0's)
-    if (tr.cls === 'neon') { x.fillStyle = rgba(col, a * (group === 'far' ? 0.18 : 0.14)); x.fillRect(wx - 1.2, wy - 1.2, Math.max(0.6, ww) + 2.4, Math.max(0.6, wh) + 2.4); a = Math.min(1, a * 1.15); }
+    if (tr.cls === 'neon' && !quiet) { x.fillStyle = rgba(col, a * (group === 'far' ? 0.18 : 0.14)); x.fillRect(wx - 1.2, wy - 1.2, Math.max(0.6, ww) + 2.4, Math.max(0.6, wh) + 2.4); a = Math.min(1, a * 1.15); }
     x.fillStyle = rgba(col, a); x.fillRect(wx, wy, Math.max(0.6, ww), Math.max(0.6, wh));
     // City 1.0's power-on (district/scene.js): bottom first, with scatter — delay = (1 − height) · 0.82 + rand · 0.16
     { const yn = Math.max(0, Math.min(1, (wy - cam.limitY) / Math.max(1, cam.VPY + cam.F * cam.CAMH / 230 - cam.limitY)));

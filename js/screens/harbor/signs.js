@@ -3,10 +3,10 @@
 //   unlit glass tubes — by day weathered paint, sunlit glass, a cast shadow; at night a dark cabinet) and its LIT PARTS (the
 //   border tube, the game's mark, the name — each its own sprite so they buzz on one by one), drawn additively with the power.
 //   Types: vbox (vertical: the name stacked, the mark on top) · box (horizontal) · icon (the game's tube mark on a raceway) ·
-//   script (open tube letters on a raceway: JAZZ) · billboard (a painted 1920s board, gooseneck lamps lighting it at night).
+//   script (open tube letters on a raceway; JAZZ used it until NEON PASS 4) · billboard (a painted 1920s board, gooseneck lamps lighting it at night).
 // The games' marks + the tube alphabet are district/marks.js (the same marks as City 1.0's signs and the tube logos).
 import { MARKS, LETTERS, markFor, bladeWord, hexRgb } from '../district/marks.js';
-import { flattenPath } from '../../core/harbor-neon.js';
+import { flattenPath, signSpots } from '../../core/harbor-neon.js';
 import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
 
 /** each game's sign colour (its accent; the same as the title's game tiles) */
@@ -17,12 +17,35 @@ const accOf = g => hexRgb(SIGN_ACC[g.id] || (markFor(g).tubes[0] || {}).col || '
 const ICE = [214, 240, 255];
 
 // tube letters along a line / down a column, in a box: → tubes (screen pt)
+// NEON PASS 4 (the owner: "the SIGNAL / CIPHER roof signs are clipped at the right edge"): the row FITS its box — its letters'
+// real ink + half a tube inside [x0, x0 + w], centred (it used to run ~8 % past the box on each side: the last letter sat on the
+// cabinet's edge, over the border tube, its glow out at the screen's edge). Letters keep ≥ 5 % of a cell between them (+ their own side bearings).
+export const tubeWidthFor = lh => Math.max(0.55, Math.min(1.25, lh * 0.13));
 function lettersRow(text, x0, y0, w, h, { skew = 0 } = {}) {
-  const ch = [...text], n = ch.length, lh = Math.min(h, (w / Math.max(1, n)) / 0.86 * (14 / 10)), s = lh / 14, lw = 10 * s, gap = Math.max(0, (w - n * lw) / Math.max(1, n));
-  const used = n * lw + (n - 1) * Math.min(gap, lw * 0.35), ox = x0 + (w - used) / 2, oy = y0 + (h - lh) / 2;
-  const out = [], boxes = [];
-  ch.forEach((c, i) => { const d = LETTERS[c]; if (!d) return; const lx = ox + i * (lw + Math.min(gap, lw * 0.35)); for (const p of flattenPath(d, s, lx, oy, 1)) out.push(skewP(p, skew, oy + lh)); boxes.push({ x0: lx - 0.6, y0: oy - 0.6, x1: lx + lw + lh * skew + 0.6, y1: oy + lh + 0.6 }); });
-  return { polys: out, lh, boxes };
+  const ch = [...text], n = Math.max(1, ch.length);
+  const lay = lh => {
+    const s = lh / 14, lw = 10 * s, wa = w - tubeWidthFor(lh) - 0.3, gap = n > 1 ? Math.max(lw * 0.05, Math.min(lw * 0.35, (wa - n * lw) / (n - 1))) : 0;
+    const polys = [], cells = [];
+    let ix0 = Infinity, ix1 = -Infinity, at = 0;
+    ch.forEach(c => {
+      const d = LETTERS[c], lx = at;
+      at += (d ? lw : lw * 0.45) + gap;                 // (a space: under half a cell)
+      if (!d) return;
+      for (const p of flattenPath(d, s, lx, 0, 1)) { const q = skewP(p, skew, lh); polys.push(q); for (const [x] of q.pts) { if (x < ix0) ix0 = x; if (x > ix1) ix1 = x; } }
+      cells.push(lx);
+    });
+    return { lh, s, lw, polys, cells, ix0, ix1 };
+  };
+  let r = lay(Math.min(h, (w / n) * 1.4));
+  for (let k = 0; k < 3 && r.ix1 > r.ix0; k++) {
+    const avail = w - tubeWidthFor(r.lh) - 0.3, inkW = r.ix1 - r.ix0;
+    if (inkW <= avail) break;
+    r = lay(r.lh * avail / inkW * 0.995);
+  }
+  const dx = x0 + (w - (r.ix1 - r.ix0)) / 2 - r.ix0, oy = y0 + (h - r.lh) / 2;
+  const polys = r.polys.map(p => ({ ...p, pts: p.pts.map(([x, y]) => [x + dx, y + oy]) }));
+  const boxes = r.cells.map(lx => ({ x0: lx + dx - 0.6, y0: oy - 0.6, x1: lx + dx + r.lw + r.lh * skew + 0.6, y1: oy + r.lh + 0.6 }));
+  return { polys, lh: r.lh, boxes };
 }
 function lettersCol(text, x0, y0, w, h, { fill = 0.8, wide = 0.64 } = {}) {
   const ch = [...text], n = ch.length, lh = Math.min(w * wide * 1.4, h / Math.max(1, n) * fill), s = lh / 14, lw = 10 * s, step = h / Math.max(1, n);
@@ -42,9 +65,11 @@ function markTubes(g, x0, y0, size) {
  * panel, and the height six stacked letters stand (pt) — the glance test reads it (tests/harbor.test.mjs).
  */
 export function bladeLayout(R, n = 6) {
-  const ring = 1.15, gap = ring + 2.15, pad = 1.0;
+  // (NEON PASS 4: the blade got 2.5 pt shorter — clear of docked Rosie — so the margins inside it tightened a touch: the dark
+  // gap 2.0 pt, the letters' box 1 pt in from the panel's top + bottom; six letters still stand ≥ 10 pt)
+  const ring = 1.15, gap = ring + 2.0, pad = 1.0;
   const panel = { x: R.x + gap, y: R.y + gap, w: R.w - gap * 2, h: R.h - gap * 2 };
-  const box = { x: panel.x + pad, y: panel.y + pad * 1.6, w: panel.w - pad * 2, h: panel.h - pad * 3.2 };
+  const box = { x: panel.x + pad, y: panel.y + pad, w: panel.w - pad * 2, h: panel.h - pad * 2 };
   const lh = Math.min(box.w * 0.82 * 1.4, box.h / Math.max(1, n) * 0.88);
   return { ring, panel, box, lh, fill: 0.88, wide: 0.82 };
 }
@@ -89,10 +114,12 @@ export function buildSign(spot, game, ctx) {
       tw = Math.max(0.55, Math.min(1.25, L2.lh * 0.13));
       parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
     } else {
-      const ms = game ? R.h - pad * 2 : 0;
-      if (ms) for (const m of markTubes(game, R.x + pad, R.y + pad, ms)) parts.push({ tubes: m.polys, col: m.col, w: tw * 0.85, mark: true });
-      const L2 = lettersRow(text, R.x + pad + (ms ? ms + pad * 0.6 : 0), R.y + pad, R.w - pad * 2 - (ms ? ms + pad * 0.6 : 0), R.h - pad * 2);
-      tw = Math.max(0.55, Math.min(1.25, L2.lh * 0.13));
+      // (NEON PASS 4: the name now fits inside the border — a slightly smaller mark + tighter gaps give the letters the room back;
+      // the text box ends 0.8 pad in from the edge: just inside the border tube)
+      const ms = game ? (R.h - pad * 2) * 0.9 : 0, mx = R.x + pad + tw * 0.45, tx = mx + (ms ? ms + pad * 0.45 : 0);
+      if (ms) for (const m of markTubes(game, mx, R.y + (R.h - ms) / 2, ms)) parts.push({ tubes: m.polys, col: m.col, w: tw * 0.85, mark: true });
+      const L2 = lettersRow(text, tx, R.y + pad, R.x + R.w - pad * 0.8 - tx, R.h - pad * 2);
+      tw = tubeWidthFor(L2.lh);
       parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
     }
     }
@@ -110,6 +137,31 @@ export function buildSign(spot, game, ctx) {
   const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type, frame: ctx.frame || null, letterBoxes: (parts.find(p => p.boxes) || {}).boxes || [], nText: [...String(spot.text || (game ? signName(game) : '')).replace(/ /g, '')].length };
   sign.lit = (dpr, scheme) => litSprites(sign, dpr);
   return sign;
+}
+
+// ------------------------------------------------------------------ SOLID CABINETS vs THE LIT WINDOWS (NEON PASS 4)
+/**
+ * The lit windows are their own baked layers, drawn OVER the facades + the signs' baked housings — so a lit window behind a sign
+ * shone through its cabinet (the owner: "the blade is partly hidden behind the building in front of it": the hotel's windows
+ * lay over the GAME BLADE). A last step for a lit-window bake: the solid cabinets (vbox / box panels, the blade, the billboards'
+ * boards — not the open icons) cut out of the layer (destination-out), and the per-frame window touches behind them (a TV's
+ * flicker, a light switched on, a twinkle) dropped. group: 'far' | 'near' (neon.js#groupOf); meta: lights.js#newMeta (the
+ * layer's touch lists); hung: the ids of the signs that really hang tonight (null: every spot).
+ */
+export function cabinetCut(L, group, meta = null, hung = null) {
+  const rects = signSpots(L).filter(sp => ((sp.z ?? 0) >= 300 ? 'far' : 'near') === group && (sp.type === 'vbox' || sp.type === 'box' || sp.type === 'billboard') && (!hung || !hung.length || sp.kind === 'billboard' || hung.includes(sp.id))).map(sp => sp.rect);
+  return x => {
+    if (!rects.length) return;
+    x.save(); x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000';
+    for (const R of rects) { x.beginPath(); x.roundRect(R.x - 0.4, R.y - 0.4, R.w + 0.8, R.h + 0.8, Math.min(R.w, R.h) * 0.12); x.fill(); }
+    x.restore();
+    if (!meta) return;
+    const behind = r => rects.some(R => r[0] < R.x + R.w + 0.4 && r[0] + r[2] > R.x - 0.4 && r[1] < R.y + R.h + 0.4 && r[1] + r[3] > R.y - 0.4);
+    for (const k of ['cands', 'tv', 'twinkle']) if (Array.isArray(meta[k])) meta[k] = meta[k].filter(w => !w.rect || !behind(w.rect));
+    if (Array.isArray(meta.boxes)) for (const R of rects) meta.boxes.push({ idx: Infinity, x0: R.x, x1: R.x + R.w, y0: R.y, y1: R.y + R.h });
+    // (the power-on wave's windows too: lights.js#drawWave)
+    if (meta.wave && Array.isArray(meta.wave.list)) for (const w of meta.wave.list) if (w.vis && behind([w.x, w.y, w.w, w.h])) w.vis = 0;
+  };
 }
 
 // ------------------------------------------------------------------ the housing (per look)

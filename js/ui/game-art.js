@@ -269,7 +269,7 @@ const RUM = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
 <rect width="120" height="120" rx="14" fill="url(#rr-neon)"/>
 <g stroke="url(#rr-gold)" stroke-width="1" opacity="0.5"><path d="M60 26 L20 8 M60 26 L40 4 M60 26 L80 4 M60 26 L100 8"/></g>
 <rect x="30" y="22" width="60" height="18" rx="4" fill="none" stroke="#ff6b86" stroke-width="2" filter="drop-shadow(0 0 4px #ff6b86)"/>
-<text x="60" y="35" text-anchor="middle" font-family="Orbitron, sans-serif" font-size="9" font-weight="700" fill="#ffd1da" letter-spacing="1.5">CLUB VALE</text>
+<text x="60" y="35" text-anchor="middle" font-family="Orbitron, sans-serif" font-size="9" font-weight="700" fill="#ffd1da" letter-spacing="1.5">CLUB 21</text>
 <rect x="8" y="88" width="104" height="2" fill="#2a1c22"/>
 <ellipse cx="60" cy="90" rx="46" ry="4" fill="url(#rr-lamp)" opacity="0.45"/>
 <g>

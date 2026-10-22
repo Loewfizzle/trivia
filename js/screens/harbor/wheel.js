@@ -20,7 +20,9 @@ import { project } from '../../core/harbor-layout.js';
 import { mix, rgb, shade, clamp01 } from './shapes.js';
 
 const TURN_S = 150;                         // one turn (s)
-const CARS = 16, RIM_BULBS = 48, SPOKE_RINGS = [0.36, 0.53, 0.7, 0.86], HUB_BULBS = 10;
+// (NEON PASS 4 — A STRONGER WHEEL, the owner: the spokes read as LINES OF LIGHT — seven bulbs along each, the rim bolder, a
+// glowing hub medallion; on a party night the spoke bulbs chase OUTWARD from the hub on every beat, in colour)
+const CARS = 16, RIM_BULBS = 48, SPOKE_RINGS = [0.24, 0.35, 0.46, 0.57, 0.68, 0.79, 0.89], HUB_BULBS = 10, NR = SPOKE_RINGS.length;
 const SHOW_S = 48;
 // the bulbs' colours per scheme: rim sets A/B/C, the spoke rings 0..3, the hub
 export const WHEEL_SCHEMES = {
@@ -146,13 +148,13 @@ export function createWheel() {
     const mk = (pts) => { const cv = canvas(S * dpr, S * dpr), x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter'; for (const [px, py, col, k] of pts) { const rr = br * (k || 1); x.drawImage(dot(col), px - rr, py - rr, rr * 2, rr * 2); } return cv; };
     bulbs = [];
     for (let s = 0; s < 3; s++) { const pts = []; for (let i = s; i < RIM_BULBS; i += 3) { const a = (i / RIM_BULBS) * Math.PI * 2; pts.push([Math.cos(a) * r * 0.97, Math.sin(a) * r * 0.97, sc.rim[s]]); } bulbs.push(mk(pts)); }
-    SPOKE_RINGS.forEach((f, j) => { const pts = []; for (let i = 0; i < CARS; i++) { const a = (i / CARS) * Math.PI * 2; pts.push([Math.cos(a) * r * f, Math.sin(a) * r * f, sc.rings[j], 0.85]); } bulbs.push(mk(pts)); });
+    SPOKE_RINGS.forEach((f, j) => { const pts = [], col = sc.rings[Math.round(j * (sc.rings.length - 1) / (NR - 1))]; for (let i = 0; i < CARS; i++) { const a = (i / CARS) * Math.PI * 2; pts.push([Math.cos(a) * r * f, Math.sin(a) * r * f, col, 0.72]); } bulbs.push(mk(pts)); });
     { const pts = []; for (let i = 0; i < HUB_BULBS; i++) { const a = (i / HUB_BULBS) * Math.PI * 2; pts.push([Math.cos(a) * r * 0.13, Math.sin(a) * r * 0.13, sc.hub, 0.75]); } pts.push([0, 0, sc.hub, 1.5]); bulbs.push(mk(pts)); }
     // NEON PASS 3 (the owner: the wheel must be SEE-THROUGH — it reads by its own light): the struts FAINTLY LIT by their bulbs (a
     // fine soft line hub → rim, turning with the wheel) — the city's windows show between them
     { const x = bulbs[bulbs.length - 1].getContext('2d'), sc2 = sc.ring || sc.hub;
       x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
-      for (const [w, a] of [[Math.max(0.9, r * 0.022), 0.05], [Math.max(0.35, r * 0.006), 0.2]]) {
+      for (const [w, a] of [[Math.max(0.9, r * 0.024), 0.09], [Math.max(0.4, r * 0.007), 0.36]]) {
         x.strokeStyle = `rgba(${sc2},${a})`; x.lineWidth = w; x.beginPath();
         for (let i = 0; i < CARS; i++) { const an = (i / CARS) * Math.PI * 2; x.moveTo(Math.cos(an) * r * 0.16, Math.sin(an) * r * 0.16); x.lineTo(Math.cos(an) * r * 0.93, Math.sin(an) * r * 0.93); }
         x.stroke();
@@ -162,7 +164,10 @@ export function createWheel() {
     { const rc = sc.ring || sc.rim[0].map(v => Math.min(255, v + 30));
       ring = ring || canvas(1, 1); ring.width = ring.height = Math.ceil(S * dpr);
       const x = ring.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter';
-      for (const [w, a] of [[r * 0.11, 0.05], [r * 0.055, 0.09], [Math.max(0.9, r * 0.02), 0.22], [Math.max(0.45, r * 0.006), 0.55]]) { x.strokeStyle = `rgba(${rc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * 0.97, 0, Math.PI * 2); x.stroke(); }
+      for (const [w, a] of [[r * 0.12, 0.06], [r * 0.06, 0.12], [Math.max(1.1, r * 0.026), 0.3], [Math.max(0.6, r * 0.009), 0.75]]) { x.strokeStyle = `rgba(${rc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * 0.97, 0, Math.PI * 2); x.stroke(); }
+      // THE HUB MEDALLION: a glowing disc + two bright rings round the axle
+      { const hc = sc.hub, g = x.createRadialGradient(0, 0, 0, 0, 0, r * 0.2); g.addColorStop(0, `rgba(${hc},0.55)`); g.addColorStop(0.45, `rgba(${hc},0.22)`); g.addColorStop(1, `rgba(${hc},0)`); x.fillStyle = g; x.beginPath(); x.arc(0, 0, r * 0.2, 0, Math.PI * 2); x.fill();
+        for (const [rr, w, a] of [[0.165, Math.max(0.6, r * 0.01), 0.7], [0.1, Math.max(0.5, r * 0.007), 0.6]]) { x.strokeStyle = `rgba(${hc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * rr, 0, Math.PI * 2); x.stroke(); } }
       x.lineWidth = Math.max(0.35, r * 0.004); x.strokeStyle = `rgba(${rc},0.28)`; x.beginPath(); x.arc(0, 0, r * 0.3, 0, Math.PI * 2); x.stroke(); }
     // every set at once (the show's steady phase — most of the time — and tier 0: one draw instead of eight)
     allBulbs = allBulbs || canvas(1, 1); allBulbs.width = bulbs[0].width; allBulbs.height = bulbs[0].height;
@@ -174,23 +179,33 @@ export function createWheel() {
 
   // ---------------------------------------------------------------- the show: each bulb set's brightness at t (s)
   function show(t, f) {
-    const k = new Array(8).fill(1);
+    const k = new Array(3 + NR + 1).fill(1);
     k.steady = true;
     if (!f.motion || tier === 0) return k;
     k.steady = false;
     const party = f.party ? f.party.ramp : 0;
     const len = party > 0.3 ? SHOW_S * 0.5 : SHOW_S, ph = (t % len) / len;
     // (NEON PASS 3: at the party's peak the wheel's SPARKLE joins on the show's bars — a soft shimmer of the rim sets, never a strobe)
-    if (f.sparkle > 0) { for (let s = 0; s < 3; s++) k[s] = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 7 + s * 2.1)); for (let j = 0; j < 4; j++) k[3 + j] = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t * 4 - j * 1.3)); return k; }
+    // NEON PASS 4 — THE PARTY: the spoke bulbs CHASE OUTWARD from the hub on every beat (a wave hub → rim), the rim sets step round
+    // on the beat, the whole wheel punching with it
+    if (party > 0.3 && f.party && f.party.beatU != null) {
+      const u = f.party.beatU, pos = u * (NR + 1.5) - 0.5, pk = f.party.punch || 0, step = (f.party.beats || 0) % 3;
+      for (let j = 0; j < NR; j++) { const d = Math.abs(j - pos); k[3 + j] = 0.48 + 0.85 * Math.max(0, 1 - d / 1.6); }
+      for (let s = 0; s < 3; s++) k[s] = (s === step ? 1.15 : 0.55) + 0.45 * pk;
+      k[3 + NR] = 0.8 + 0.6 * pk;
+      if (f.sparkle > 0) for (let s = 0; s < 3; s++) k[s] *= 0.75 + 0.25 * (0.5 + 0.5 * Math.sin(t * 7 + s * 2.1));
+      return k;
+    }
+    if (f.sparkle > 0) { for (let s = 0; s < 3; s++) k[s] = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 7 + s * 2.1)); for (let j = 0; j < NR; j++) k[3 + j] = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t * 4 - j * 1.3)); return k; }
     const twinkle = i => 0.9 + 0.1 * Math.sin(t * 1.7 + i * 2.1);
-    for (let i = 0; i < 8; i++) k[i] = twinkle(i);
+    for (let i = 0; i < k.length; i++) k[i] = twinkle(i);
     const fade = (a, b) => clamp01(Math.min((ph - a) * len / 1.2, (b - ph) * len / 1.2));
     // 0.58–0.75: the chase round the rim (one set of three lit, the others low)
     const ch = fade(0.58, 0.75);
     if (ch > 0) { const step = Math.floor(t / (party > 0.3 ? 0.1 : 0.16)) % 3; for (let s = 0; s < 3; s++) k[s] = k[s] * (1 - ch) + ch * (s === step ? 1 : 0.16); }
     // 0.75–0.92: the rings pulse outward from the hub
     const rd = fade(0.75, 0.92);
-    if (rd > 0) for (let j = 0; j < 4; j++) { const p = 0.2 + 0.8 * Math.pow(Math.max(0, Math.cos(Math.PI * 2 * (t * 0.9 - j / 4))), 3); k[3 + j] = k[3 + j] * (1 - rd) + rd * p; }
+    if (rd > 0) for (let j = 0; j < NR; j++) { const p = 0.2 + 0.8 * Math.pow(Math.max(0, Math.cos(Math.PI * 2 * (t * 0.9 - j / NR))), 3); k[3 + j] = k[3 + j] * (1 - rd) + rd * p; }
     // 0.92–1: a sparkle — the rim sets flicker against each other, fast
     const sp = fade(0.92, 1.0);
     if (sp > 0) for (let s = 0; s < 3; s++) k[s] = k[s] * (1 - sp) + sp * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 9 + s * 2.4)));   // (soft: never a hard strobe)
@@ -230,7 +245,7 @@ export function createWheel() {
       // (the steady phase: all the sets in one draw, a soft breath for the twinkle)
       const steady = k.steady || k.every(v => v > 0.88);
       if (steady && allBulbs) { c.globalAlpha = Math.min(1, f.lights * (k.steady ? 1 : 0.95 + 0.05 * Math.sin(f.t * 1.3))); c.drawImage(allBulbs, -P, -P, P * 2, P * 2); }
-      else bulbs.forEach((b, i) => { const al = f.lights * k[i]; if (al > 0.01) { c.globalAlpha = Math.min(1, al); c.drawImage(b, -P, -P, P * 2, P * 2); } });
+      else bulbs.forEach((b, i) => { const al = f.lights * k[i]; if (al > 0.01) { c.globalAlpha = Math.min(1, al); c.drawImage(b, -P, -P, P * 2, P * 2); if (al > 1.02) { c.globalAlpha = Math.min(1, al - 1); c.drawImage(b, -P, -P, P * 2, P * 2); } } });
       c.restore();
       c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     }

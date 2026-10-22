@@ -32,14 +32,17 @@ export function boatRoutes(L, { taxi = false } = {}) {
     const r = { id: b.id, z: b.z, len: b.len, h: b.h, kind: b.id.startsWith('sail') ? 'sail' : b.id, when: b.when || null, segs: [], period: 0, offset: 0 };
     const R = offR(b.z, b.len), Lf = pierR(b.z) + b.len / 2 + 1.6;   // (≥ 1.6 units of water between the boat and the pier)
     if (b.id === 'rosie') {
-      // ROSIE: in from the right to her landing beside the platform, four minutes alongside, turns, steams out; ten minutes a cycle
-      const land = Lf + 0.6;
+      // ROSIE: in from the right to her landing beside the platform, turns there, four minutes alongside BOW-OUT, steams out; ten
+      // minutes a cycle. (NEON PASS 4: she turns on arrival and rests facing out — bow-in, her twin stacks + their bulb strings
+      // stood right in front of THE GAME BLADE's last letters for the whole four minutes; bow-out they stand clear of every sign:
+      // tests/harbor.test.mjs)
+      const land = Lf + 0.6, out = land + 0.6;
       r.offset = 140;
       r.segs = [
         { d: 120, type: 'move', xa: R, xb: land, face: -1, ease: 'out' },
-        { d: 230, type: 'hold', xa: land, face: -1 },
-        { d: 34, type: 'turn', xa: land, xb: land + 1.2, face: -1, to: 1 },
-        { d: 110, type: 'move', xa: land + 1.2, xb: R, face: 1, ease: 'in' },
+        { d: 34, type: 'turn', xa: land, xb: out, face: -1, to: 1 },
+        { d: 230, type: 'hold', xa: out, face: 1 },
+        { d: 110, type: 'move', xa: out, xb: R, face: 1, ease: 'in' },
         { d: 106, type: 'away', xa: R, face: 1 },
       ];
       r.lane = [land, R];
@@ -58,7 +61,8 @@ export function boatRoutes(L, { taxi = false } = {}) {
     } else if (b.id === 'tug') {
       // THE TUG (night): noses in toward the pier, idles, swings round, chugs out
       // (on Rosie's ten minutes, phased so it comes in as she steams out and leaves as she returns: never idling behind her)
-      const stop = Lf + 6;
+      // (NEON PASS 4: a unit nearer the pier — idling, its masthead lights stood against THE GAME BLADE's foot)
+      const stop = Lf + 5;
       r.offset = 356;
       r.segs = [
         { d: 140, type: 'move', xa: R, xb: stop, face: -1, ease: 'out' },

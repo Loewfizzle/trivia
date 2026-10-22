@@ -74,6 +74,7 @@ export const EVENTS = [
   { id: 'neonbow', label: 'NEON BOW', group: 'RAINBOWS', night: true },
   { id: 'lightning', label: 'LIGHTNING', group: 'WEATHER FX' },
   { id: 'freeze', label: 'FROST', group: 'WEATHER FX' },
+  { id: 'beams', label: 'SKY BEAMS', group: 'CITY', night: true, hint: 'the party’s vertical beams from the tall towers' },
   { id: 'searchlights', label: 'SEARCHLIGHTS', group: 'CITY', night: true },
   { id: 'spell', label: 'WORDS IN THE WINDOWS', group: 'CITY', inputs: ['text', 'style', 'tower'], text: 10, night: true },
   { id: 'burnout', label: 'BURNT-OUT LETTER', group: 'CITY', night: true },
@@ -84,6 +85,7 @@ export const EVENTS = [
   { id: 'beam-green', label: 'GREEN BEAM', group: 'HARBOR', night: true },
   { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', group: 'HARBOR', inputs: ['scheme'] },
   { id: 'taxi', label: 'WATER TAXI', group: 'HARBOR' },
+  { id: 'strings-party', label: 'STRING LIGHTS · PARTY', group: 'HARBOR', night: true, hint: 'the speakeasy roof’s string lights in party mode' },
 ];
 export const EVENT_GROUPS = [...new Set(EVENTS.map(e => e.group))];
 const EV = Object.fromEntries(EVENTS.map(e => [e.id, e]));
