@@ -21,7 +21,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | — | RUMRUNNER: Mr. Vale → Mr. Balboni ✅ | Sonnet 5.5 medium | done |
 | P | the PREVIEW PANEL (JUST ME / EVERYONE ON CITY 2) ✅ | Opus 5.5 high | done |
 | N4 | Neon Pass 4 — the neon in motion (racing party lights, the hard beat, sky beams, string lights, the wheel, fixes) ✅ | Opus 5.5 high | done |
-| N5 | Neon Pass 5 — Safari (WebKit) fix + testing, the real beat, party colours, the wheel showpiece, sign sizes, faster tests, panel fixes ← NEXT | Opus 5.5 high | ~2½ h |
+| N5 | Neon Pass 5 — Safari (WebKit) fix + testing, the real beat, party colours, the wheel showpiece, sign sizes, faster tests, panel fixes ✅ | Opus 5.5 high | done |
+| N6 | Neon Pass 6 — night touch-ups (flowing racing, soft beams, the wheel's glow + its backdrop, 3D outlines, ledge bands, icons removed, the lighthouse, the NEON logo race, the iOS beat) ← NEXT | Opus 5.5 high | ~1½–2 h |
 | D | the Day Pass (the city by daylight, painted day signs, sunlit 3D skyline, sky, sun, water) | Opus 5.5 high | 90–120 min |
 | M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
@@ -170,10 +171,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - POLISH LIST (small things, for the cleanup passes): the NEON logo at night — a white-hot glass core inside each pink tube
   (the colour in the glow around it), a faint pink cast of its light on the haze / clouds behind it, the tiniest uneven
   brightness along each tube; SPEAKEASY's letters as real thin tubes. Size stays.
-- CITY 2.0 MUSIC (after the Day Pass, before 6b): import the owner's 35 new mood songs (~/Downloads folders day, evening, late,
-  morning, party) as City 2.0's mood lists (City 1.0 keeps its own; victory + game music stay as they are); neighbouring moods may
+- CITY 2.0 MUSIC (after the Day Pass, before 6b): import ALL the owner's mood songs — she has added more since (more than 35
+  now) — from the ~/Downloads mood folders (morning, day, evening, late, party — check the exact folder names; use every
+  audio file in them); IGNORE the victory and neon folders as City 2.0's mood lists (City 1.0 keeps its own; victory + game music stay as they are); neighbouring moods may
   share songs (bigger decks) — the owner's first: morning10.mp3 (in the morning folder) plays in BOTH the MORNING and the LATE
-  NIGHT rotation, one file shared by both lists (never uploaded twice); seasonal songs later; a MUSIC MOOD setting: AUTO (default, follows the time of day) / MORNING /
+  NIGHT rotation, one file shared by both lists (never uploaded twice); seasonal songs later; a MUSIC MOOD setting (in BOTH cities — the owner's call): AUTO (default, follows the time of day) / MORNING /
   DAY / EVENING / LATE NIGHT / PARTY — in a lobby the room's synced song follows the HOST's setting. Later, once a mood has
   ~30+ songs: rotate halves week by week (the owner's idea — not before, it would make repeats worse).
 - BUILD ORDER NOW (Oct 22): the Balboni rename → THE PREVIEW PANEL (the owner's test remote: JUST ME / EVERYONE ON CITY 2,
@@ -243,6 +245,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   opening, volume fading back in over a few seconds. Lobby / synced songs re-sync to the room's clock when they return (no
   drift). Title + lobby only (never in a game); with music off, only the drone + the crackle play. Uses the existing
   duckMusic / filterMusic + a playback-rate ramp.
+- 6b — LEGENDARY SKY RARITY (the owner): the UFO abduction ~1–2 a month, the TR-3B + its jet chase ~1–2 a month (the same
+  nights for everyone, seeded), never two legendaries the same night; the barnstormer a few times a week.
 - 6b — THE TR-3B BENDS THE MUSIC (the owner's idea): as it nears, the music POWERS DOWN like a record player losing
   power — the pitch and speed sag (a "tape stop"), it goes muffled (filterMusic low-pass) with a faint warble and electrical
   crackle; while it's overhead the music is almost gone, only a low hum. After the jets of the chase leave the screen, the
@@ -371,15 +375,33 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
     is VERY ACTIVE around the clock — something visibly happening in at least one window every ~10–20 s, never all at once.
     BY DAY the speakeasy hides behind an innocent front and the upstairs lives: the apartment's morning routine (blinds up, a
     figure stretching, watering a window box, the cat sunbathing on the sill), a laundry line, someone reading by the window,
-    a delivery of "crates" being carried in, the front shop open (a tailor / flower shop) with customers; AFTERNOON: the
+    a delivery of "crates" being carried in, the front shop open — a BARBERSHOP (the owner's pick: the classic speakeasy
+    cover, a striped barber pole turning by the door that reads on a phone, a chair + a barber in the window) with customers;
+    AT NIGHT the barbershop "closes" — the pole stops, a CLOSED card, the chair empty under one dim lamp — but its back wall
+    (a big mirror) is a HIDDEN DOOR: every so often it swings open and you glimpse the bar behind it — warm amber light,
+    bottle shelves, silhouettes, a burst of muffled jazz — before it swings shut again (more often on party nights; never
+    during a raid). The secret, in plain sight, on the most readable window; AFTERNOON: the
     bartender setting up behind half-drawn shades — polishing glasses, lights on one by one; EVENING → NIGHT: the full bar,
     jazz room and card game (below), a couple dancing past, a toast with raised glasses, someone at the piano, a curtain
     drawn and opened, a silhouette peeking out, lights switching room to room; LATE: the TV glow upstairs, the cat, the last
     patrons leaving; the raid nights as planned. A scheduler picks the next small moment by the hour (busier on party nights).
-  - NO CUT-OFF WINDOWS (the owner's call): the left screen edge slices a window column today. Lay the speakeasy's facade out
-    FROM THE SCREEN EDGE per phone width, so the edge always lands on solid wall (a brick pier / drainpipe / pilaster) — every
-    visible window complete at 390 / 402 / 412 / 430; wider screens show more of the building. Moments only live in windows
-    that are fully on screen at every phone size.
+  - THE GHOST AD (the owner's idea): the speakeasy's angled RIGHT side wall carries a big faded, hand-painted 1920s GHOST
+    AD for one of our games (worn paint on brick, the bricks showing through, sun-faded colours) — hiding in plain sight: it's
+    an old ad, not the speakeasy's own sign (the speakeasy stays unmarked). It rotates WEEKLY to another game (the neon signs
+    rotate nightly). Clear by day; AT NIGHT lit by a row of 2–3 vintage GOOSENECK LAMPS mounted above it (the classic
+    painted-billboard lamps), each throwing a warm cone of light down the wall — pools of light on the brick, brightest at
+    the top, fading down, the ad glowing in their wash. The lamps flicker off with the raid and with the TR-3B's power drain.
+    ONE GHOST AD PER GAME (12), a new one each week (each game about every 12 weeks, the same for everyone). THE CHANGE:
+    Part 7 swaps it quietly at ~4 am Monday (nobody watching). Part 8 (once people exist) adds THE SIGN PAINTERS as a
+    weekly routine: Monday ~8–11 am, two painters on a hanging scaffold paint the new ad in stages — the old one whitewashed,
+    then the outline, the colour fill, the lettering — readable on the phone (the wall is close); the ad then starts its
+    week fresh and slowly "ages" back to a faded ghost by the weekend.
+  - THE EDGE WINDOWS (the owner's call, revised): keep the windows the left screen edge cuts — a solid brick edge would make
+    the building feel suffocating. Lay the facade out per phone width so the edge cuts each edge window at a CONSISTENT,
+    deliberate point (about half a window showing — never a thin sliver), and make those edge windows AMBIENT ONLY: curtains
+    (drawn by night, tied back by day), warm light spilling through at night to make the foreground pop, a plant on the
+    sill, and THE CAT now and then jumping up onto that ledge, sitting in the visible half (never cut). No story moments in a
+    cut window — those live in the fully visible ones.
   - BUILT AS A "MOMENTS CATALOGUE" so new ones are easy to add any time (the owner will keep adding): every window moment is
     ONE self-contained entry — which window(s), its little animation (a small module drawing the silhouettes / light), when it
     may happen (hours, weekday / weekend, season, weather, party night, holidays), its RARITY (routine / common / uncommon /
@@ -579,7 +601,14 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   guests); the ghost ship (Halloween). A few subtle, rare Grand Rapids nods (e.g. the October salmon run leaping).
 - The music-off soundscape (foghorn, gulls, a far honk, light traffic, a soft city hum; a night version). Sound never relies on
   subtlety (the music is loud): moments use a music change, a duck or crisp on-beat hits, always with a strong visual.
-- The desktop/wide panorama; also make room for a TV camera (see TV mode).
+- The desktop/wide panorama; also make room for a TV camera (see TV mode). The owner's laptop review (Oct 22, 1440-ish
+  Chrome): today it looks "kind of weird" — a huge EMPTY beige promenade plane fills the bottom third with tiny people,
+  the skyline is a thin squashed band, the same buildings repeat across the width, the speakeasy is small in the corner,
+  and the sign floats small. The desktop camera must be composed as its own cinematic shot (not the phone camera
+  stretched): a lower, closer camera so the skyline is big and tall, more water + reflections, the promenade a shallow
+  foreground band (not a parking lot), the speakeasy a proud corner, varied buildings across the panorama (no visible
+  repeats), the sign bigger; the same care at 1920×1080 and on a TV. BEFORE writing this prompt, ask the owner her
+  questions about the desktop view first (her request).
 
 ## After the city
 - **CITY CONTROL (/admin, phone-first):** global messages with a "just my devices" preview before GO LIVE; "send now" = everyone
@@ -603,14 +632,39 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   or two then "…", tap → the chat at that message; one bubble per person (a new one replaces the old), older ones fade faster when
   many are up and bubbles nudge apart; the profanity setting applies; the full history stays in the chat window; builds on the
   existing typing dots.
+- **LATER — APP STORES + MONEY (a brainstorm for after City 2.0 + the big features are done; nothing decided):** keep the
+  option open to ship NEON SPEAKEASY in the App Store / Google Play (Google: a Trusted Web Activity wrapper, ~a day, $25 once;
+  Apple: a Capacitor wrapper + real app touches — push notifications, haptics, maybe Game Center — $99/yr; store purchases
+  take 15–30 % and need the stores' own payments). The owner's ideas to brainstorm then: launch FREE with ~20 games, the
+  complete city and progression; then a GAME PACK (~$3 for 10 more games), or a paid CITY 3.0, or a yearly "SEASON CITY"
+  subscription where the city and the games change every year. Keep building nothing that blocks a store wrapper.
 - **TV MODE (after Lobby 2.0):** neonspeakeasy.com/tv shows a short code + QR; the host pairs via SHARE TO TV on their phone (no
   typing on the TV); the TV is a viewer, phones are controllers; the TV plays the music + big moments, phones go quiet (tiny
   taps only); a TV camera with a bigger stage so people read from the couch, gentle slow drift, push-ins on moments; step 1 the
   lobby, walk-in, standings + podium; step 2 per-game TV views (trivia games, HIGH STAKES first); a lighter tier for weak
   smart-TV browsers (best on a laptop/HDMI, Mac/iPad AirPlay, a cast tab).
+  THE TV IS NOT A PLAYER (decided): it joins the room as a SCREEN, not a player — its own node (e.g. rooms/{CODE}/screens/
+  {id}), never in players/: it takes no player slot (8 players + the TV), never counts toward a game's minimum (DOUBLE
+  AGENT's 4), never becomes host, never gets a figure in the lobby crowd, a card or a score; read-only by the rules; it
+  shows a small "ON TV" chip in the lobby so everyone knows it's connected.
+  MANY TVs AT ONCE (decided): friends playing from different houses can each put the game on their OWN TV at the same time —
+  ANY player (not only the host) can SHARE TO TV from their phone; a room holds several screens (up to ~8, one per household),
+  all showing the same synced moment on the server clock, each playing the music + big moments. A phone goes quiet only when
+  ITS OWN TV is paired (its household's), so a friend without a TV still hears everything on their phone. The lobby chip
+  shows how many TVs are on.
 - **BOARD 2.0** (the bar inside the speakeasy, an Art Deco brass + enamel honor board, a live bartender, windows onto the live
   Harbor) and **PROGRESSION 2.0** (levels 1–100, a wardrobe whose pieces turn neon at night, entrances, a birthday on the
   profile so the towers can spell "HAPPY BDAY <NAME>").
+  - MY CITY — UNLOCKABLE DECOR (the owner's idea): achievements, holiday challenges, streaks and sightings unlock decor a
+    player places on THEIR OWN promenade and the speakeasy's ROOF to give the city their flair — e.g. finish the Halloween
+    challenge → a special carved pumpkin they can keep out all year. Placed in FIXED DECOR SLOTS (not free-form — keeps the
+    composition, the glance test and the speed safe): ~6–8 slots (the roof corners + edge, the plaza's planters, beside
+    the bench, by the door, a lamp post). Shown only on the owner's own screen — and in a lobby, the HOST's decor is what the
+    room sees (so friends see your flair when you host). Saved on the profile (server), across devices. Parts 7 + 8 must
+    RESERVE these slots (hooks only); Progression 2.0 builds the unlocks + a simple "decorate" sheet.
+  - THE TINFOIL HAT (the owner's idea): seeing EITHER UFO event (the TR-3B or the saucer abduction) unlocks a big crinkly
+    TINFOIL HAT for the player's wardrobe — shiny, catching the light, glinting under the neon at night; a bonus for seeing
+    BOTH (e.g. a glowing pair of alien antennae). Unlocked only by a real sighting (never a &force= preview).
   - STREAKS ARE BIG (the owner): they bring people back, so streak rewards are generous and visible — milestone rewards
     (wardrobe pieces, finishes, glows) at real streak lengths, built on the existing streaks + weekly goal (docs/profiles.md).
   - CITY SIGHTINGS (the owner): badges / achievements for SEEING legendary city moments — the periscope, the UFO abduction,
