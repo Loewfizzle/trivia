@@ -145,6 +145,17 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   (matte black triangle, a glowing red orb at the belly's centre + three orbs at its points, slow silent glide, then impossibly fast
   and gone; a rare night flyover); skydivers (colourful canopies by day, ankle flares + canopy lights at night); the witch; Santa's
   sleigh. Every piece gets day + night versions (golden-hour touches where they help).
+- THE DAY PASS (after Neon Pass 2, before 6b; the owner: by day, high noon especially, "it looks pretty rough"): signs read by
+  day through PAINTED faces (enamel boards, bold solid letters, tubes faint on top), the skyline lit by the real sun (lit vs
+  shaded sides, soft setback shadows, bright ledge lines), real aerial depth, windows reflecting the sky, a real daytime sky +
+  clouds, a white-hot sun with bloom, the water by day. Night / dusk / party unchanged.
+- 6b section 0 — THE GEESE MORE REAL (the owner): a V is never perfect — one or two stragglers trail behind with a gap, flapping
+  a little harder to catch up; arms of uneven length, birds shifting places, the odd one dropping back now and then.
+- 6b section 0 — THE MOON REDONE (the owner: "the craters look off"): today it reads as a ball with round dark spots. A real
+  moon seen from the ground shows no distinct round craters — it reads by the MARIA (large soft irregular dark-grey seas, the
+  "man in the moon"), bright highlands, Tycho's bright rays near the bottom, a gently soft edge and a soft glow. Use a real
+  photographic lunar map (NASA's public-domain CGI Moon Kit / LRO), not drawn craters, at the right orientation for the
+  player's sky and in its real phase with a soft terminator; keep earthshine, the amber moonrise, the eclipse red.
 - Planes, the BANNER PLANE (1–3 banners: daily challenges, holiday messages, game announcements, CITY CONTROL messages),
   helicopter, jets, birds/gulls, the UFO, satellites.
 - The sun and moon art: big amber moonrise turning silver, earthshine on the crescent, a halo only in real haze; rare harvest
@@ -333,6 +344,12 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Fri/Sat build all night: classy warm-up → spectacle at the peak → the midnight finale. Special party nights also on the
   Wednesday before Thanksgiving (homecoming), Valentine's (a softer jazz date night) and NYE (the biggest).
 - The party yacht + helicopter: legendary-rare on party nights, guaranteed on NYE.
+- (MOVED UP to Neon Pass 3 — the owner's call; Part 10 keeps the midnight finale + fireworks on its hook.)
+  PARTY NEON WITH VARIETY (the owner: today it only turns the outlines into dashes running round the border): a choreographed
+  light show across the skyline, different by building and changing through the night — tubes pulsing on the beat, colour
+  sweeps across clusters, ledge bands lighting floor by floor up a tower, fins strobing in sequence, crowns flashing on the
+  drops, call-and-response between towers, a few buildings holding steady so it never looks like one effect everywhere; the
+  chasers stay as one effect among many. Builds with the night (classy → spectacle → finale).
 - FIREWORKS (one premium engine, also used for July 4th): real shell types (peony, chrysanthemum with trails, gold willow,
   palm, ring, crossette, crackling glitter/strobe, comets), sparks that cool white→colour→ember and fall with gravity + drag,
   every burst lighting the buildings, smoke and water, reflections in the harbor, smoke drifting on the real wind lit from
