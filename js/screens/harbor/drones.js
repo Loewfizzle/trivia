@@ -13,7 +13,7 @@
 // Drones: 180 / 140 / 90 by tier (the shapes resample to them). The formation fills the sky-low lane (+ a little of the
 // skyline below it: the drones are in front of the city, over the harbor); drawn after the city and before the water (the mirror
 // doubles them), the ones still low by the barge after the water.
-import { droneShape, droneTimeline } from '../../core/harbor-sky.js';
+import { droneShape, droneTimeline, hsv } from '../../core/harbor-sky.js';
 import { MARKS } from '../district/marks.js';
 
 const TAU = Math.PI * 2;
@@ -70,7 +70,7 @@ export function createDrones() {
     const home = Array.from({ length: n }, (_, i) => { const p = B.pads[i % B.pads.length]; return [p[0], p[1] - Math.floor(i / B.pads.length) * 1.4]; });
     const cloud = Array.from({ length: n }, () => [box.x + box.w * (0.2 + 0.6 * R()), box.y + box.h * (0.45 + 0.5 * R())]);
     // each formation: its points scaled into the box (centred; letters a touch bigger), the drones matched in order (x, then y)
-    const sets = [cloud], sizes = [3.3 * K];
+    const sets = [cloud], sizes = [3.3 * K], xns = [cloud.map(p => clamp01((p[0] - box.x) / Math.max(1, box.w)))];
     const cols = [Array.from({ length: n }, () => IDLE)], on = [Array.from({ length: n }, () => 1)];
     for (const sh of shapes) {
       // (letters: a cell ≤ 13 pt — big enough to read at a glance, tight enough that each cell's drones merge into one pixel)
@@ -88,11 +88,13 @@ export function createDrones() {
         pos[di] = [t.x, t.y]; col[di] = t.col; lit[di] = tk !== lastTk ? 1 : 0; lastTk = tk;
       });
       sets.push(pos); cols.push(col); on.push(lit);
+      // (each drone's place across the box: the colour wave sweeps left to right through a morph)
+      xns.push(pos.map(p => clamp01((p[0] - box.x) / Math.max(1, box.w))));
       // (a letter's drones glow wide enough that each cell's cluster merges into one solid pixel)
       sizes.push(sh.kind === 'text' ? Math.max(3.3 * K, sc * 0.44) : 3.3 * K);
     }
     const glw = cols.map(arr => arr.map(cc => glow(cc)));
-    cur = { at, n, home, sets, sizes, cols, glw, idleG: glow(IDLE), on, tl, calm: !!o.calm, seed: o.seed || 11, box, waterTop: o.waterTop, phase: Array.from({ length: n }, () => R() * TAU), lift: Array.from({ length: n }, (_, i) => 1.5 + (i / n) * 7 + R() * 0.8), land: Array.from({ length: n }, () => R() * 5), specs };
+    cur = { at, n, home, sets, sizes, cols, glw, xns, idleG: glow(IDLE), on, tl, wave: o.wave !== false, calm: !!o.calm, seed: o.seed || 11, box, waterTop: o.waterTop, phase: Array.from({ length: n }, () => R() * TAU), lift: Array.from({ length: n }, (_, i) => 1.5 + (i / n) * 7 + R() * 0.8), land: Array.from({ length: n }, () => R() * 5), specs };
     return true;
   }
   function stop() { cur = null; if (bargeCv && bargeCv.cv) bargeCv.cv.width = 0; bargeCv = null; }
@@ -116,9 +118,15 @@ export function createDrones() {
       const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
       const x = a[0] + dx * u - dy / L * arc + (k >= 1 ? hov[0] : 0), y = a[1] + dy * u + dx / L * arc + (k >= 1 ? hov[1] : 0);
       const fromLit = C.on[s][i], toLit = C.on[s + 1][i];
-      const col = u < 0.5 ? C.glw[s][i] : C.glw[s + 1][i];
-      const tw = C.specs[s] && C.specs[s].shape === 'burst' && motion && !C.calm ? 0.65 + 0.35 * Math.sin(e * 9 + ph * 3) : 1;
-      const a2 = (fromLit && toLit ? 1 : fromLit ? 1 - smoothK(u, 0, 0.5) : toLit ? smoothK(u, 0.5, 1) : 0) * tw;
+      // THE COLOUR WAVE (NEON PASS 2): a drone takes its new colour when the wave reaches it — the change ripples across the swarm
+      // left → right through the morph (calm shows: all at once, mid-flight)
+      const th = C.wave && !C.calm ? 0.12 + 0.76 * C.xns[s + 1][i] : 0.5;
+      let col = k < th ? C.glw[s][i] : C.glw[s + 1][i];
+      // a formation that CYCLES (spec.cycle): while it holds, its colours drift slowly round the hues, a wave across it
+      const spec = C.specs[s];
+      if (spec && spec.cycle && k >= 1 && motion) col = hueGlow(((e - sh.t0) * 0.05 + C.xns[s + 1][i] * 0.6 + 2) % 1);
+      const tw = spec && spec.shape === 'burst' && motion && !C.calm ? 0.65 + 0.35 * Math.sin(e * 9 + ph * 3) : 1;
+      const a2 = (fromLit && toLit ? 1 : fromLit ? 1 - smoothK(k, th - 0.3, th) : toLit ? smoothK(k, th, th + 0.3) : 0) * tw;
       return [x, y, col, a2];
     }
     const last = C.sets[C.sets.length - 1][i], lastCol = C.glw[C.glw.length - 1][i];
@@ -134,6 +142,8 @@ export function createDrones() {
     return [sx + (h[0] - sx) * Math.sqrt(u), sy + (h[1] - sy) * u * u, k < 0.4 ? lastCol : C.idleG, 1 - smoothK(k, 0.85, 1) * 0.9];
   }
   const smoothK = (v, a, b) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+  const hues = [];
+  const hueGlow = h => { const q = Math.floor(h * 24) % 24; return hues[q] || (hues[q] = glow(hsv(q / 24, 0.72, 1))); };
 
   return {
     resize(w) { W = w; K = Math.max(0.9, Math.min(1.35, w / 402)); },
@@ -180,8 +190,9 @@ export function createDrones() {
       if (!cur) return null;
       const e = last ? (last - cur.at) / 1000 : 0;
       let lit = 0, x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-      for (let i = 0; i < cur.n; i++) { const [x, y, , a] = droneAt(i, e, false); if (a < 0.02) continue; lit++; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-      return { n: cur.n, shapes: cur.specs.map(s => s.text || s.shape), end: cur.tl.end, at: cur.at, e: +e.toFixed(1), calm: cur.calm, lit, box: lit ? [x0, y0, x1, y1].map(Math.round) : null };
+      const cs = new Set();
+      for (let i = 0; i < cur.n; i++) { const [x, y, g, a] = droneAt(i, e, false); if (a < 0.02) continue; lit++; cs.add(g); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+      return { n: cur.n, shapes: cur.specs.map(s => s.text || s.shape), end: cur.tl.end, at: cur.at, e: +e.toFixed(1), calm: cur.calm, lit, colours: cs.size, box: lit ? [x0, y0, x1, y1].map(Math.round) : null };
     },
     destroy() { stop(); for (const c of glows.values()) c.width = 0; glows.clear(); },
   };

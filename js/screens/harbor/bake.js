@@ -62,7 +62,7 @@ export function createBaker() {
     busyMs += performance.now() - t0;
     if (queue.length) return false;
     // the swap: the old canvas (now `next`) and its band stay for the crossfade
-    for (const g of groups) { const c = g.cur; g.cur = g.next; g.next = c; g.prev = g.ready ? g.show : null; g.show = { y0: g.y0, h: g.h }; g.ready = true; }
+    for (const g of groups) { const c = g.cur; g.cur = g.next; g.next = c; g.prev = g.ready ? g.show : null; g.show = { y0: g.y0, h: g.h }; g.ready = true; g.ver = (g.ver || 0) + 1; }
     key = pendingKey; bakes++; doneAt = performance.now();
     return true;
   }

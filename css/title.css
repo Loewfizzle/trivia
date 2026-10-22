@@ -85,6 +85,8 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
 }
 .nd-sign.is-steady .nd-word { opacity: 1; text-shadow: 0 0 14px rgba(150, 170, 255, 0.45); }
 .nd-sign.is-steady .nd-tag { opacity: 1; }
+/* CITY 2.0 (NEON PASS 2): a bright sun / full moon passing behind the tagline — a soft shadow behind its letters, no box */
+.nd-sign .nd-tag.nd-tag-shade { text-shadow: 0 0 4px rgba(6, 5, 18, 0.95), 0 0 12px rgba(6, 5, 18, 0.8), 0 0 22px rgba(6, 5, 18, 0.5); }
 
 /* ---- menu (eases in, staggered) ---- */
 .nd-corner, .nd-actions > * {

@@ -25,6 +25,7 @@ import { bannerPanels, eventMessage, smokeWeather, balloonWeather, bannerWeather
 import { LANES } from '../../core/harbor-events.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+const hexRgb = h => { const n = parseInt(String(h).replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 
 export function createSkyFx({ games = [], clock, qp } = {}) {
   const air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
@@ -64,7 +65,12 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
   function startDrones(s, specs, at, o = {}) {
     const box = droneBox();
     if (!box || !barge || !specs || !specs.length) return false;
-    return drones.start(specs, at, { box, barge, waterTop, year: s.L.local ? s.L.local.y : 2026, seed: o.seed || Math.floor(at / 1000), calm: !!o.calm });
+    // THE COLOURS (NEON PASS 2; CITY CONTROL's colour picker later): o.colour (one colour for the messages), o.colours + o.by
+    // ('word' | 'letter': a colour per word / per letter), o.colour 'rainbow', o.cycle (the colours drift while a formation holds),
+    // o.wave (default on: the new colours ripple across the swarm through each morph) — a spec's own col / cols win
+    const C = v => (typeof v === 'string' && /^#?[0-9a-f]{6}$/i.test(v) ? hexRgb(v) : v);
+    const out = specs.map(sp => (sp.text == null ? { ...sp, cycle: sp.cycle ?? !!o.cycle } : { ...sp, col: C(sp.col) || (sp.cols ? undefined : C(o.colour)), cols: sp.cols ? sp.cols.map(C) : o.colours ? o.colours.map(C) : undefined, by: sp.by || o.by, cycle: sp.cycle ?? !!o.cycle }));
+    return drones.start(out, at, { box, barge, waterTop, year: s.L.local ? s.L.local.y : 2026, seed: o.seed || Math.floor(at / 1000), calm: !!o.calm, wave: o.wave });
   }
   function startBalloons(s, at, fest, seed) {
     if (!lanes) return false;
@@ -112,7 +118,8 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
       again('drones', drones.on(), () => {
         const show = (qp && qp.get('show') ? qp.get('show').split(',') : ['heart']).map(t => (DRONE_SHAPES.includes(t) || t.startsWith('mark:') ? { shape: t } : { text: t.toUpperCase() }));
         const msgs = (text || 'HELLO').split('|').map(t => ({ text: t.toUpperCase() }));
-        startDrones(s, qp && qp.get('show') ? [...show, ...msgs] : [show[0], ...msgs, { shape: 'star' }], s.now, { calm: force.has('drones-calm') });
+        const cs = qp && qp.get('colours') ? qp.get('colours').split(',') : null;
+        startDrones(s, qp && qp.get('show') ? [...show, ...msgs] : [show[0], ...msgs, { shape: 'star' }], s.now, { calm: force.has('drones-calm'), colour: qp && qp.get('colour') ? (qp.get('colour') === 'rainbow' ? 'rainbow' : '#' + qp.get('colour').replace('#', '')) : undefined, colours: cs && cs.map(c => '#' + c.replace('#', '')), by: qp && qp.get('by'), cycle: !!(qp && qp.get('cycle')) });
       });
     }
   }

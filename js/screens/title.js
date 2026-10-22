@@ -28,8 +28,9 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, neonBuzz, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, startNeonHum, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource } from '../audio/beat.js';
+import { isUnlocked } from '../audio/engine.js';
 import { createDistrict } from './district/scene.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded
 const createHarbor = /[?&]city=2(?:&|$)/.test(location.search) ? (await import('./harbor/scene.js')).createHarbor : null;
@@ -514,7 +515,18 @@ export function createTitle() {
     tintGlass();
     snowOnSign();
     rainSound();
+    tagShade();
     els.skyTimer = setTimeout(watchSky, 1000);
+  }
+  // CITY 2.0 (NEON PASS 2): the sun + the moon may pass behind the tagline — while a bright disc is behind it, a soft shadow behind
+  // its letters keeps it readable (no box; only where needed)
+  function tagShade() {
+    if (!createHarbor) return;
+    const tag = els.sign && els.sign.querySelector('.nd-tag');
+    if (!tag) return;
+    const r = tag.getBoundingClientRect(), s = scene.sun && scene.sun(), m = scene.moonAt && scene.moonAt();
+    const near = d => d && d.x + d.r * 1.6 > r.left && d.x - d.r * 1.6 < r.right && d.y + d.r * 1.6 > r.top && d.y - d.r * 1.6 < r.bottom;
+    tag.classList.toggle('nd-tag-shade', !!((s && (s.vis == null || s.vis > 0.1) && near(s)) || near(m)));
   }
   // CITY 2.0's premium logo (logo.js#premiumBits): the glass highlight leans toward the light — the real sun's side by day, a
   // little left at night — moving with the sun through the day; a faint flutter now and then in one lit tube's core (rare and
@@ -604,6 +616,16 @@ export function createTitle() {
   // The dock: icons dark through the ramp, lit from the catch until the last letter dies; HOST brightens at the catch and softens
   // (no flicker) when the last letter dies.
   let neonPlanV = null, neonKey = '', neonT = 0, neonStage = null, neonFromPlan = false, neonSounds = 0;
+  // CITY 2.0 — THE HUM (NEON PASS 2): the sign's recorded hum loops, very quietly, while it is lit (from the catch to the morning
+  // goodbye). Checked on every neon update, so it also starts once audio unlocks; the files are warmed at the same moment.
+  let humStop = null, neonWarm = false;
+  function humSync(on) {
+    if (!createHarbor) return;
+    if (!neonWarm && isUnlocked()) { neonWarm = true; neonPreload(); }
+    if (document.visibilityState !== 'visible') on = false;
+    if (on && !humStop && !destroyed && isUnlocked()) humStop = startNeonHum();
+    else if ((!on || destroyed) && humStop) { humStop(on ? 0.3 : 1.2); humStop = null; }
+  }
   const NEON_LIT = { stage: 'night', letters: [true, true, true, true], signs: null, fade: 1, caught: true };
   const NEON_DAY = { stage: 'day', letters: [false, false, false, false], signs: null, fade: 0, caught: false };
   function neonNow() {
@@ -627,6 +649,7 @@ export function createTitle() {
   }
   function applyNeon(st, opts = {}) {
     if (!els.sign || !scene) return;
+    humSync(!!st.caught);
     const s = els.sign, letters = [...s.querySelectorAll('.ndl')];
     const prev = neonStage;
     neonStage = st.stage;
@@ -651,7 +674,7 @@ export function createTitle() {
         if (isCatch) {
           // THE CATCH: all four lock on together, the crackle + hum, a soft bloom (City 2.0: the city holds its tier through it)
           if (scene.hold) scene.hold(3000);
-          neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 });
+          if (createHarbor) neonCatch(); else neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 });   // (City 2.0: the recorded power-on)
           neonSounds++;
           s.classList.add('is-catch');
           setTimeout(() => { if (!destroyed) s.classList.remove('is-catch'); }, 1500);
@@ -674,12 +697,11 @@ export function createTitle() {
       l.classList.toggle('on', !!st.letters[i]);
       if (was !== !!st.letters[i]) { if (st.letters[i]) struck++; else dropped++; }
     });
-    // CITY 2.0 — THE NEON BUZZ (ambience.js#neonBuzz): a crisp tick on every flicker of the warm-up and the morning fade, the
-    // buzz for as long as this flash holds (the plan's next change); never on the first paint, never under Reduced effects
+    // CITY 2.0 — THE RECORDED NEON (NEON PASS 2; ambience.js): a real flicker when a tube strikes in the warm-up or the dawn's
+    // stutter (never the same twice running), the dropout when one cuts out; never on the first paint, never under Reduced
+    // effects (the synthesized buzz only if a file can't load)
     if (createHarbor && prev && !opts.quiet && !fade && (struck || dropped) && (st.stage === 'ramp' || st.stage === 'goodbye')) {
-      const now = scene.now(), sp = scene.speed ? scene.speed() : 1;
-      const hold = neonFromPlan ? (neonNext(neonPlanV, now) - now) / 1000 / sp : 0.3;
-      neonBuzz({ on: struck > 0, dur: hold, level: struck + dropped > 1 ? 1.15 : 1 });
+      if (struck > 0) neonFlicker({ level: struck + dropped > 1 ? 1.1 : 1 }); else neonDropout();
     }
     dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
     const share = fade ? st.fade : on / 4;
@@ -765,7 +787,7 @@ export function createTitle() {
     return neon && word && tag ? { neon, word, tag, sub: box(els.sign.querySelector('.nd-sub')) } : null;
   }
   // BATTERY: the title's loops (the sign's rects, the sky watch) idle while the page is hidden and pick up at once when it shows
-  function onVisTitle() { if (destroyed || !tl || !tl.done || document.visibilityState !== 'visible') return; clearTimeout(els.logoTimer); clearTimeout(els.skyTimer); trackLogo(); watchSky(); neonTick(); }
+  function onVisTitle() { if (document.visibilityState !== 'visible') humSync(false); if (destroyed || !tl || !tl.done || document.visibilityState !== 'visible') return; clearTimeout(els.logoTimer); clearTimeout(els.skyTimer); trackLogo(); watchSky(); neonTick(); }
   function trackLogo() {
     if (destroyed) return;
     if (document.visibilityState !== 'visible') { els.logoTimer = setTimeout(trackLogo, 5000); return; }
@@ -1235,6 +1257,7 @@ export function createTitle() {
 
   function unmount() {
     destroyed = true;
+    humSync(false);
     if (tl) cancelAnimationFrame(tl.raf);
     clearTimeout(flickerTimer);
     clearTimeout(els.logoTimer);

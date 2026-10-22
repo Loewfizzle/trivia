@@ -101,7 +101,7 @@ js/ui/    dom.js components.js final.js logo.js tube-logo.js game-art.js setting
 js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js beat.js   prefs, AudioContext + buses, music + playlists, synth SFX, title ambience (+ thunder, fireworks), songs on the server clock, MOOD MUSIC, the beat the city breathes to
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
 js/screens/ title.js title-dock.js setup.js lobby.js profile.js district/{scene,backdrop,fx,party-fx,fireworks,rainbow,furniture,people,palette,signs,marks,sign-logic,stars,weather-fx,rain,frost,wildlife,street,aircraft,live-weather,sun,neon-ramp}.js   the front door, name/avatar, the lobby, the membership card, the city (Canvas 2D: sky, effects, signs, LIVE WEATHER, birds, the street) + its still behind menus
-js/screens/harbor/{scene,bake,tones,shapes,blocks,skyline,lights,rays,searchlights,neon,signs,tubes,sky,quay,water,pier,wheel,lighthouse,boats,road,speakeasy,stage,foreground,grid}.js   CITY 2.0 — THE HARBOR (?city=2 only; docs/harbor.md)
+js/screens/harbor/{scene,bake,tones,shapes,blocks,skyline,lights,rays,searchlights,neon,signs,tubes,sky,quay,water,waterfront,pier,wheel,lighthouse,boats,road,speakeasy,stage,foreground,grid}.js   CITY 2.0 — THE HARBOR (?city=2 only; docs/harbor.md)
 js/screens/harbor/{skyfx,air,banner,smoke,birds,balloons,drones,moon}.js   THE HARBOR's everyday sky (Part 6a): the manager + the API (harbor().sky), airliners + satellites + the helicopter, the banner plane, skywriting + skytyping, the birds, balloons, the drone show, the moon + the golden haze + the aurora
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
 js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
@@ -111,6 +111,7 @@ js/games/<id>/  logic.js director.js index.js view.js (+ scene/audio/…)   PURE
 data/     trivia bluff oc words agent pulse prism slip    the banks and song analyses (formats in docs/content.md and each game's doc)
 data/hushwords.json  scripts/hushwords/                  HUSH WORDS (room codes): built + checked by scripts/build-hushwords.mjs (docs/content.md)
 audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs
+audio/sfx/neon-*.wav  audio/weather/*.mp3                 City 2.0's recorded neon (scripts/build-neon-sfx.py; docs/audio.md), the thunder
 scripts/  serve.mjs build-*.{mjs,py} validate-holes.mjs sim-gridlock.mjs   local server (:5173, `--emu` also runs /api on the emulators), builders, the NEON PAR hole bot, GRIDLOCK balance sim
 database.rules.json                                      RTDB rules — paste into the Firebase console after every change
 tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)

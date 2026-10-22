@@ -53,7 +53,7 @@ const ROLES = {
   wordA: ['b1', 'b1'], wordB: ['b1', 'b2'], wordV: ['b0', 'b2'],
   'm-edge': ['b1', 'b1'], 'm-dome': ['b0', 'a0'], 'm-step': ['b0', 'b0'], 'm-twin': ['h1', 'h1'], 'm-right': ['b1', 'a1'],
   glassL: ['b1', 'b1'], glassR: ['b2', 'b2'],
-  hotel: ['a1', 'a1'], pulse: ['h1', 'h1'], par: ['b1', 'b1'], jazz: ['a0', 'a0'],
+  hotel: ['a1', 'a1'], pulse: ['h1', 'h1'], par: ['h0', 'h0'], jazz: ['a0', 'a0'],
 };
 /** strength: the brightness hierarchy (tube width in pt at the reference scale, glow, alpha) */
 export const STRENGTH = { hero: { w: 1.5, glow: 7, a: 1 }, word: { w: 1.25, glow: 5.5, a: 0.92 }, mid: { w: 1.0, glow: 4.5, a: 0.8 }, quay: { w: 1.1, glow: 5, a: 0.88 }, far: { w: 0.7, glow: 3.2, a: 0.5 }, pano: { w: 1.2, glow: 5.5, a: 0.9 } };
@@ -79,22 +79,25 @@ export function outlines(L, signRects = new Map()) {
     const lines = [], n = t.tiers.length, topT = t.tiers[n - 1];
     if (modern) { const y1 = topT.y0 + topT.h, z = topT.z0 - 0.05; lines.push({ pts: [[topT.x0, y1, z], [topT.x1, y1, z]], role: roles[0] }); }
     else {
-      // THE CONTOUR: the heroes + the word towers from up the shaft (the foot is behind the base); the middle tier from its shaft's
-      // top (its stepped cap)
-      const full = hero || word, left = [], right = [];
+      // THE CONTOUR (NEON PASS 2, the owner's zoomed review): ONE tube a side bent like a sign shop would — up the shaft from its
+      // FOOT (the cut ends it cleanly at the roofs in front: neon.js), stepping in only at the MAIN setbacks (a setback narrower than
+      // MIN_STEP is skipped: the tube runs straight up the inner edge), over a simplified crown, every bend ROUNDED (fillet) — never
+      // an 8-bit staircase. The middle tier from its shaft's top (its stepped cap).
+      const full = hero || word, groups = [];
       t.tiers.forEach((tr, i) => {
-        const y1 = tr.y0 + tr.h, z = tr.z0 - 0.05;
-        if (i === 0 && !full) { left.push([tr.x0, y1, z]); right.push([tr.x1, y1, z]); return; }
-        const from = i === 0 ? tr.y0 + Math.min(tr.h * 0.45, 30) : tr.y0;
-        left.push([tr.x0, from, z], [tr.x0, y1, z]); right.push([tr.x1, from, z], [tr.x1, y1, z]);
+        const g = groups[groups.length - 1], y1 = tr.y0 + tr.h, z = tr.z0 - 0.05;
+        if (g && Math.abs(tr.x0 - g.x0) < MIN_STEP && Math.abs(tr.x1 - g.x1) < MIN_STEP) { g.x0 = Math.max(g.x0, tr.x0); g.x1 = Math.min(g.x1, tr.x1); g.y1 = y1; g.z1 = z; }
+        else groups.push({ x0: tr.x0, x1: tr.x1, y0: i === 0 && !full ? y1 : tr.y0, y1, z0: z, z1: z });
       });
+      const left = [], right = [];
+      for (const g of groups) { left.push([g.x0, g.y0, g.z0], [g.x0, g.y1, g.z1]); right.push([g.x1, g.y0, g.z0], [g.x1, g.y1, g.z1]); }
       const cr = topT.crown ? crownPath(t, topT) : null;
       const one = cr && cr.path && (roles[1] || roles[0]) === roles[0];
       // one continuous tube when the crown is the building's own colour; else the contour closes over the roof and the crown is its own tube
-      const over = one ? cr.path : [[topT.x0, topT.y0 + topT.h, topT.z0 - 0.05], [topT.x1, topT.y0 + topT.h, topT.z0 - 0.05]];
-      const pts = dedupe([...left, ...over, ...right.reverse()]);
+      const lastG = groups[groups.length - 1], over = one ? cr.path.map(([x, y, z], i, a) => [i === 0 ? lastG.x0 : i === a.length - 1 ? lastG.x1 : x, y, z]) : [[lastG.x0, lastG.y1, lastG.z1], [lastG.x1, lastG.y1, lastG.z1]];
+      const pts = fillet(dedupe([...left, ...over, ...right.reverse()]), FILLET);
       if (pts.length > 1) lines.push({ pts, role: roles[0] });
-      if (cr) { if (cr.path && !one) lines.push({ pts: cr.path, role: roles[1] || roles[0] }); for (const e of cr.extras) lines.push({ ...e, role: e.needle ? e.role : roles[1] || roles[0] }); }
+      if (cr) { if (cr.path && !one) lines.push({ pts: fillet(cr.path, FILLET * 0.8), role: roles[1] || roles[0] }); for (const e of cr.extras) lines.push({ ...e, role: e.needle ? e.role : roles[1] || roles[0] }); }
       // DECO FINS: thin piers up every tier above the shaft (the heroes', the word towers' + the panorama's), never under a sign
       if (full) t.tiers.forEach((tr, i) => {
         if (i === 0) return;
@@ -107,23 +110,81 @@ export function outlines(L, signRects = new Map()) {
     add({ id: t.id, group: t.z0 >= 300 ? 'far' : 'near', strength: hero ? 'hero' : word ? 'word' : modern ? 'far' : pano ? 'pano' : 'mid', roles, z: t.z0, lines });
   }
   // the hero blocks on the quay: their rooflines (their signs are the signs)
-  for (const b of L.heroes) add({ id: b.id, group: 'near', strength: 'quay', roles: ROLES[b.id] || ['b0', 'b0'], z: b.z0, lines: [{ pts: [[b.x0, b.h, b.z0 - 0.05], [b.x1, b.h, b.z0 - 0.05]], role: (ROLES[b.id] || ['b0'])[0] }] });
-  // the bands: a few faint threads — the roofline of a tall block now and then (by its own dice), colour by cluster
+  // (NEON PASS 2: + a Deco LEDGE BAND across the second floor and CORNER TRIMS up the upper floors — warm, the storefront city;
+  // a sign hung on the wall cuts them cleanly: neon.js)
+  for (const b of L.heroes) {
+    const role = (ROLES[b.id] || ['a0'])[0], z = b.z0 - 0.05, w = b.x1 - b.x0;
+    const lines = [{ pts: [[b.x0, b.h, z], [b.x1, b.h, z]], role }];
+    lines.push({ pts: [[b.x0 + 0.3, b.h * 0.3, z], [b.x1 - 0.3, b.h * 0.3, z]], role, thin: true });
+    if (w > 6) for (const x of [b.x0 + 0.25, b.x1 - 0.25]) lines.push({ pts: [[x, b.h * 0.3, z], [x, b.h - 0.2, z]], role, thin: true });
+    add({ id: b.id, group: 'near', strength: 'quay', roles: [role, role], z: b.z0, lines });
+  }
+  // THE BANDS — NEON PASS 2 (the owner: "it's only in the back and it stops halfway"): the middle + near buildings get neon of
+  // their own, with taste. The NEAR band (the storefront city by the water) leans WARM — the NEON pink, amber, signal red, a violet
+  // now and then — the towers stay cool (depth); per building one colour (its dice): a ROOFLINE on about half, and on some of those
+  // a Deco LEDGE BAND across a lower floor, CORNER TRIMS up its upper floors, or thin FINS on its upper half. The MID band (z
+  // 300–360) gets cool rooflines on about a third; the far band a few faint threads. Never behind the wheel (its quiet zone: no
+  // building whose face reaches its disc gets new neon), never on a corridor's clipped piece.
+  const cam = L.cam, wh = L.wheel;
+  const [wcx, wcy] = cam ? project(cam, wh.x, wh.y, wh.z) : [0, 0], wr = cam ? cam.F * wh.r / wh.z + 6 : 0;
+  const nearWheel = b => { if (!cam) return false; const [a, ty] = project(cam, b.x0, b.h, b.z0), [c, fy] = project(cam, b.x1, 0, b.z0); const nx = Math.max(a, Math.min(wcx, c)), ny = Math.max(ty, Math.min(wcy, fy)); return Math.hypot(nx - wcx, ny - wcy) < wr; };
+  const dice = (b, k) => ((b.seed >>> (k * 7)) % 997) / 997;
   for (const bd of L.bands) {
     if (bd.id === 'haze') continue;
-    const share = bd.id === 'near' ? 0.16 : bd.id === 'mid' ? 0.14 : 0.1;
+    const near = bd.id === 'near', mid = bd.id === 'mid';
+    const share = near ? 0.86 : mid ? 0.4 : 0.1;
     const lines = [];
     for (const b of bd.blocks) {
       if (b.cap != null || (b.seed % 1000) / 1000 > share || b.x1 - b.x0 < 4) continue;
+      if ((near || mid) && nearWheel(b)) continue;
       const f = fOf((b.x0 + b.x1) / 2, b.z0), fr = ((f % 1) + 1) % 1;
-      const role = fr < 0.3 ? 'b1' : fr < 0.45 ? 'b0' : fr < 0.62 ? 'h1' : fr < 0.8 ? 'b0' : 'b1';
-      lines.push({ pts: [[b.x0, b.h, b.z0 - 0.05], [b.x1, b.h, b.z0 - 0.05]], role, z: b.z0, block: b.id });
+      // colour by cluster: the near band warm (storefront neon), the mid band cool, the far threads as before
+      const role = near ? (fr < 0.16 ? 'h0' : fr < 0.3 ? 'a0' : fr < 0.62 ? 'h1' : fr < 0.78 ? 'a1' : fr < 0.9 ? 'h0' : 'a0')
+        : mid ? (fr < 0.35 ? 'b1' : fr < 0.65 ? 'b0' : 'h1')
+        : (fr < 0.3 ? 'b1' : fr < 0.45 ? 'b0' : fr < 0.62 ? 'h1' : fr < 0.8 ? 'b0' : 'b1');
+      const z = b.z0 - 0.05, x0 = b.x0, x1 = b.x1, h = b.h, w = x1 - x0;
+      lines.push({ pts: [[x0, h, z], [x1, h, z]], role, z: b.z0, block: b.id });
+      if (!near) continue;
+      const d = dice(b, 1);
+      if (d < 0.36 && h > 8) {
+        // a Deco LEDGE BAND across a lower floor (its height from the building's own dice)
+        const y = h * (0.3 + 0.32 * dice(b, 2));
+        lines.push({ pts: [[x0 + 0.25, y, z], [x1 - 0.25, y, z]], role, z: b.z0, block: b.id, thin: true });
+      } else if (d < 0.6 && w > 5.5 && h > 10) {
+        // CORNER TRIMS: up both front corners over the upper floors
+        for (const x of [x0 + 0.22, x1 - 0.22]) lines.push({ pts: [[x, h * 0.52, z], [x, h - 0.15, z]], role, z: b.z0, block: b.id, thin: true });
+      } else if (d < 0.76 && w > 6 && h > 10) {
+        // thin FINS on the upper half (2 or 3 by its width)
+        const fr2 = w > 10 ? [0.25, 0.5, 0.75] : [0.33, 0.67];
+        for (const k of fr2) lines.push({ pts: [[x0 + w * k, h * 0.55, z], [x0 + w * k, h - 0.4, z]], role, z: b.z0, block: b.id, thin: true });
+      }
     }
-    add({ id: `threads-${bd.id}`, group: bd.id === 'near' ? 'near' : 'far', strength: bd.id === 'near' ? 'mid' : 'far', roles: ['b0', 'b1'], z: bd.id === 'near' ? 240 : 400, lines, band: bd.id });
+    add({ id: `threads-${bd.id}`, group: near ? 'near' : 'far', strength: near ? 'mid' : mid ? 'mid' : 'far', roles: near ? ['h0', 'a0'] : ['b0', 'b1'], z: near ? 240 : mid ? 330 : 400, lines, band: bd.id });
   }
   return out;
 }
 const dedupe = pts => pts.filter((p, i) => !i || Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) > 1e-6);
+/** a setback narrower than this (world units, ~2–3 pt on a phone) is skipped: the tube runs straight up the inner edge */
+export const MIN_STEP = 1.1;
+/** the radius of a bend (world units): every corner of a contour is rounded, like bent glass */
+export const FILLET = 0.8;
+/** round every corner of a polyline [[x, y, z]…] with radius r (limited by the legs), a quadratic bend sampled in 6 steps */
+export function fillet(pts, r) {
+  if (pts.length < 3 || !(r > 0)) return pts;
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], b = pts[i], c = pts[i + 1];
+    const l1 = Math.hypot(b[0] - a[0], b[1] - a[1]), l2 = Math.hypot(c[0] - b[0], c[1] - b[1]);
+    const cross = Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) / Math.max(1e-9, l1 * l2);
+    const rr = Math.min(r, l1 * 0.45, l2 * 0.45);
+    if (rr < 0.04 || cross < 0.05) { out.push(b); continue; }                 // (a straight joint: nothing to round)
+    const p = [b[0] + (a[0] - b[0]) * rr / l1, b[1] + (a[1] - b[1]) * rr / l1, b[2] + (a[2] - b[2]) * rr / l1];
+    const q = [b[0] + (c[0] - b[0]) * rr / l2, b[1] + (c[1] - b[1]) * rr / l2, b[2] + (c[2] - b[2]) * rr / l2];
+    for (let k = 0; k <= 6; k++) { const u = k / 6, w0 = (1 - u) * (1 - u), w1 = 2 * (1 - u) * u, w2 = u * u; out.push([w0 * p[0] + w1 * b[0] + w2 * q[0], w0 * p[1] + w1 * b[1] + w2 * q[1], w0 * p[2] + w1 * b[2] + w2 * q[2]]); }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
 /** a crown traced (world units; the shapes of blocks.js#crown): path = from the top tier's left roof corner over the crown's
  *  steps to its right one (null when the crown is not a closed silhouette), extras = its other tubes (the sunburst's inner
  *  arch + needle, the mast's antenna, THE NEON NEEDLE) */
@@ -144,19 +205,17 @@ function crownPath(t, tr) {
     if (t.id === 'needle') extras.push({ pts: [[cx, y - 1, z - 0.1], [cx, y + H + (t.needle || 0), z - 0.1]], role: (ROLES.needle || [])[1], needle: true });
   } else if (c.t === 'mast') {
     const dw = hw * 0.62;
-    path = sym([L0, [cx - dw, y, z], [cx - dw, y + H * 0.22, z], [cx - dw * 0.72, y + H * 0.22, z], [cx - dw * 0.72, y + H * 0.42, z], [cx - dw * 0.5, y + H * 0.42, z]], [cx, y + H * 0.78, z]);
+    path = sym([L0, [cx - dw, y, z], [cx - dw, y + H * 0.3, z], [cx - dw * 0.55, y + H * 0.42, z]], [cx, y + H * 0.78, z]);
     extras.push({ pts: [[cx, y + H * 0.78, z], [cx, y + H, z]] });
   } else if (c.t === 'pyramid') {
     path = [L0, [cx - hw * 0.72, y + H * 0.27, z], [cx - hw * 0.52, y + H * 0.54, z], [cx - hw * 0.3, y + H * 0.81, z], [cx, y + H, z], [cx + hw * 0.3, y + H * 0.81, z], [cx + hw * 0.52, y + H * 0.54, z], [cx + hw * 0.72, y + H * 0.27, z], R0];
   } else if (c.t === 'dome') {
     path = [L0, [cx - hw * 0.82, y, z], ...arc(hw * 0.74, Math.max(0.5, H * 0.62), y), [cx + hw * 0.82, y, z], R0];
   } else if (c.t === 'stepped') {
-    const p = [L0];
-    for (let i = 0; i < 3; i++) { const w0 = hw * (0.9 - i * 0.24); p.push([cx - w0, y + i * H * 0.24, z], [cx - w0, y + (i + 1) * H * 0.24, z]); }
-    path = sym(p);
+    path = sym([L0, [cx - hw, y + H * 0.5, z], [cx - hw * 0.5, y + H * 0.5, z], [cx - hw * 0.5, y + H, z]]);
   } else if (c.t === 'deco') {
     // the word towers' parapet: the full-width bar, the stepped centre (the Deco ziggurat)
-    path = sym([L0, [cx - hw, y + H * 0.4, z], [cx - hw * 0.5, y + H * 0.4, z], [cx - hw * 0.5, y + H * 0.75, z], [cx - hw * 0.2, y + H * 0.75, z], [cx - hw * 0.2, y + H, z]]);
+    path = sym([L0, [cx - hw, y + H * 0.45, z], [cx - hw * 0.42, y + H * 0.45, z], [cx - hw * 0.42, y + H, z]]);
   } else if (c.t === 'slant') {
     extras.push({ pts: [[cx - hw, y + H, z], [cx + hw, y + H * 0.25, z]] });
   }
@@ -176,9 +235,8 @@ function crownPath(t, tr) {
 // sunburst's sign, the wheel, the HOTEL blade breathe), never on the construction tower's spot (wordV, behind JAZZ); the
 // billboard is half as big again (66×32) on the left near band's wall.
 export const SPOTS = [
-  { id: 'n-roof', kind: 'named', type: 'box', host: 'near', mount: 'roof', x: [23, 71], y: [458, 478], z: 240, cap: 9 },
+  { id: 'n-roof', kind: 'named', type: 'box', host: 'near', mount: 'roof', x: [27, 75], y: [458, 478], z: 240, cap: 9 },
   { id: 'n-par', kind: 'named', type: 'vbox', host: 'par', x: [294.5, 305], y: [494, 545], z: 233.6, cap: 6 },
-  { id: 'n-empire', kind: 'named', type: 'vbox', host: 'empire', x: [38, 49], y: [418, 455], z: 265.4, cap: 5 },
   // Part 6a (the owner's SIGN PLACEMENT RULE: no sign covers a hero tower's face or outline): the sunburst's named sign is gone
   // and the HOTEL blade with it (its thin letters didn't read) — THE GAME BLADE takes the hotel's spot: a projecting vertical
   // cabinet with chasing bulbs, tonight's game (≤ 6 letters: they stand ~9 pt tall on a phone, the glance test)
@@ -186,17 +244,20 @@ export const SPOTS = [
   { id: 'jazz', kind: 'fixed', type: 'script', host: 'jazz', text: 'JAZZ', col: [255, 176, 46], x: [74, 100], y: [494, 506], z: 229.4 },
   { id: 'i-par', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [493, 513], z: 233.6 },
   { id: 'i-jazz', kind: 'icon', type: 'icon', host: 'jazz', x: [77, 98], y: [509, 530], z: 229.4 },
-  { id: 'i-left', kind: 'icon', type: 'icon', host: 'near', mount: 'roof', x: [1, 21], y: [459, 479], z: 238 },
-  { id: 'i-c1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [266, 286], y: [492, 512], z: 232.1 },
+  { id: 'i-left', kind: 'icon', type: 'icon', host: 'near', mount: 'roof', x: [5, 25], y: [459, 479], z: 238 },
+  { id: 'i-c1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [266, 286], y: [517, 537], z: 232.1 },
   { id: 'i-r1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [356, 377], y: [494, 515], z: 235.1 },
-  { id: 'i-r2', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [380, 401], y: [524, 545], z: 235.1 },
+  { id: 'i-r2', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [376, 397], y: [524, 545], z: 235.1 },
+  // NEON PASS 2 (the owner: no sign on any hero tower's face — the EMPIRE's named sign is gone): a second icon on PAR, under its
+  // first (the one plain wall on a phone that passes every rule: tested), so every game still has a sign each night
+  { id: 'i-par2', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [522, 542], z: 233.6 },
   // Part 5 (the owner's call): two NAMED ROOF SIGNS on the word towers' roofs, in the open sky above their crowns (they took
   // i-c2 + i-par2 off the crowded right wall) — under the skyline limit, out of the sun corridors, the towers' beacons on top
   // of their frames; while a tower spells a word its roof sign dims (the message is the star). Placed from the tower's own
   // top roof (towerRoofSign), not from reference pt: wpt × hpt is the cabinet at the reference scale.
   { id: 'n-roofA', kind: 'named', type: 'box', host: 'wordA', mount: 'tower', wpt: 52, hpt: 18, cap: 7 },
   { id: 'n-roofB', kind: 'named', type: 'box', host: 'wordB', mount: 'tower', wpt: 52, hpt: 18, cap: 7 },
-  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'wall', x: [3, 69], y: [490, 522], z: 233.1, show: 'rum' },
+  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'wall', x: [5, 71], y: [490, 522], z: 233.1, show: 'rum' },
 ];
 let refCam = null;
 const ref = () => refCam || (refCam = cameraFor(REF_TITLE.W, REF_TITLE.H, { tag: REF_TITLE.tag, dock: REF_TITLE.dock }, REF_TITLE.safe));

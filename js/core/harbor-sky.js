@@ -122,7 +122,20 @@ export function skytypeLayout(text, max = 16) {
   const lines = wrapLines(normText(text, 60), max, 2).map(l => l.trim()).filter(l => l && [...l].some(ch => glyph(ch)));
   if (!lines.length) return null;
   const widths = lines.map(l => lineWidth(l)), cols = Math.max(...widths), dots = [];
-  lines.forEach((l, i) => { const off = Math.floor((cols - widths[i]) / 2); for (const [c, r] of lineCells(l)) dots.push([c + off, r + i * (FONT_H + 1), i]); });
+  // (each dot carries its letter + word index: the drone show's colour per letter / per word)
+  let li = 0, wi = 0;
+  lines.forEach((l, i) => {
+    const off = Math.floor((cols - widths[i]) / 2);
+    let x = 0;
+    [...l].forEach((ch, k) => {
+      const g = glyph(ch); if (!g) return;
+      if (k) x += 1;
+      if (ch === ' ') wi++;
+      else { g.forEach((row, r) => [...row].forEach((v, c) => { if (v === '#') dots.push([x + c + off, r + i * (FONT_H + 1), i, li, wi]); })); li++; }
+      x += g[0].length;
+    });
+    wi++;
+  });
   return { lines, cols, rows: lines.length * FONT_H + (lines.length - 1), dots };
 }
 // the skywriting alphabet: single strokes in a 10 × 14 box (the tube alphabet's letters + digits, a heart, ! and ?)
@@ -284,11 +297,14 @@ export function droneShape(spec, n = 160, { year = 2026, marks = null } = {}) {
   if (spec && spec.text != null) {
     const T = skytypeLayout(fillText(spec.text, year), 12);
     if (!T) return null;
-    const col = spec.col || [214, 240, 255];
+    // its colour (NEON PASS 2): one colour (col), a colour per word or per letter (cols + by: 'word' | 'letter'), or a rainbow
+    // across the letters (col: 'rainbow'); the default a cool white
+    const cols = Array.isArray(spec.cols) && spec.cols.length ? spec.cols : null, nL = Math.max(1, T.dots.reduce((m, d) => Math.max(m, d[3] + 1), 1));
+    const colOf = (li, wi) => (spec.col === 'rainbow' ? hsv((li / nL) * 0.85, 0.75, 1) : cols ? cols[(spec.by === 'word' ? wi : li) % cols.length] : spec.col || [214, 240, 255]);
     // (each lit cell a small cluster of drones — 2 × 2 or 3 × 3 as the drones allow — so a letter reads as a solid pixel letter)
     const k = Math.max(1, Math.min(3, Math.floor(Math.sqrt(n / T.dots.length))));
     let pts = [];
-    for (const [c, r] of T.dots) for (let j = 0; j < k * k; j++) pts.push([c + (k > 1 ? ((j % k) + 0.5) / k - 0.5 : 0) * 0.6, r + (k > 1 ? (Math.floor(j / k) + 0.5) / k - 0.5 : 0) * 0.6, ...col]);
+    for (const [c, r, , li, wi] of T.dots) { const col = colOf(li, wi); for (let j = 0; j < k * k; j++) pts.push([c + (k > 1 ? ((j % k) + 0.5) / k - 0.5 : 0) * 0.6, r + (k > 1 ? (Math.floor(j / k) + 0.5) / k - 0.5 : 0) * 0.6, ...col]); }
     if (pts.length > n) { const q = pts.length / n; pts = Array.from({ length: n }, (_, i) => pts[Math.floor(i * q)]); }
     return { w: Math.max(1, T.cols - 1), h: Math.max(1, T.rows - 1), pts, kind: 'text', text: T.lines.join(' / '), sub: k };
   }
@@ -311,6 +327,12 @@ export function droneShape(spec, n = 160, { year = 2026, marks = null } = {}) {
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
   return { w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0), pts: pts.map(p => [p[0] - x0, p[1] - y0, p[2], p[3], p[4]]), kind: 'shape' };
+}
+/** a colour from hue (0..1), saturation, value → [r, g, b] */
+export function hsv(h, sa, v) {
+  const i = Math.floor(h * 6), f = h * 6 - i, p = v * (1 - sa), q = v * (1 - f * sa), t = v * (1 - (1 - f) * sa);
+  const [r, g, b] = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][((i % 6) + 6) % 6];
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 /** the show's timeline (s): launch → each formation (a morph + a hold) → the scatter → home. calm: slower, longer holds */
 export function droneTimeline(count, calm = false) {

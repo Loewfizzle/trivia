@@ -228,7 +228,7 @@ export function createWater() {
     // lights that are not in the frame above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow): columns
     rx.globalCompositeOperation = 'lighter';
     for (const p of queue) {
-      const e = A0 - p.y, r = Math.max(2, e * 0.95), len = Math.max(10, Math.min(Hw * 1.2, e * (0.5 + rough)));
+      const e = A0 - p.y, r = Math.max(2, e * 0.95), len = p.len ? Math.min(Hw * 1.2, p.len * (0.85 + 0.5 * rough)) : Math.max(10, Math.min(Hw * 1.2, e * (0.5 + rough)));
       rx.setTransform(rr, 0, 0, rr, 0, -rr * A0); rx.globalAlpha = clamp01(p.a);
       const w = Math.max(2, p.w || 3) * 2.4;
       rx.drawImage(column(p.col), p.x - w / 2, A0 + r - len * 0.35, w, len);
@@ -368,8 +368,9 @@ export function createWater() {
      *  it in screen coordinates (Part 5: the boats, Rosie and her bulbs, the train, the lighthouse beam) */
     reflect(fn, axisY) { mirrors.push({ fn, axis: axisY }); },
     /** HOOK: a light not in the frame above the waterline (fireworks high up — Part 10; the ghost ship's glow — 11a): its
-     *  column in the water this frame. x, y: the light on screen (pt), col [r,g,b], a 0..1, w its size (pt) */
-    light(x, y, col, a = 1, w = 3) { if (queue.length < 400) queue.push({ x, y, col, a, w }); },
+     *  column in the water this frame. x, y: the light on screen (pt), col [r,g,b], a 0..1, w its size (pt), len: its column's
+     *  length (pt; NEON PASS 2 — the waterfront's long streaks; default: by its height above the water) */
+    light(x, y, col, a = 1, w = 3, len = 0) { if (queue.length < 400) queue.push({ x, y, col, a, w, len }); },
     /** HOOK (Part 5): a boat's wake — { x, z, len, dir, k } world units; stored, not yet drawn */
     wake(o) { wakes.push(o); if (wakes.length > 16) wakes.shift(); },
     /** HOOK (Part 9): { rain: 0..1 (roughens the mirror now; the rings: Part 9), fog: 0..1 (the fog over the water: Part 9) } */

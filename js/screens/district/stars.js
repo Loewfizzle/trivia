@@ -77,7 +77,7 @@ export function createStars() {
     const e = galToEq(l, b);
     grain.push({ ...e, a: 0.1 + rnd() * 0.3, r: 0.35 + rnd() * 0.4, warm: core > 0.5 && rnd() < 0.5 });
   }
-  let cv = null, key = '', at = -1e9, bright = [], planets = [];
+  let cv = null, key = '', at = -1e9, bright = [], planets = [], ver = 0;
   const glowCache = new Map();
   const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glowCache.get(k); if (!c) { c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.4, `rgba(${k},0.35)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); glowCache.set(k, c); } return c; };
 
@@ -142,14 +142,23 @@ export function createStars() {
   }
 
   return {
-    /** draw the night sky. vis: how visible stars are now (0 by day); milky: the Milky Way's strength */
-    draw(c, W, HZ, L, ms, vis, milky, t, motion, camY, twilight = 0) {
-      if ((vis <= 0.02 && twilight <= 0.02) || L.lat == null) return;
-      if (vis <= 0.02) { const k = `${W}|${HZ}|${Math.round(milky * 20)}|${L.south}`; if (k !== key || ms - at > 20000 || ms < at) { key = k; at = ms; render(W, HZ, L, ms, milky); } drawPlanets(c, Math.min(1, twilight), camY); return; }
+    /** CITY 2.0 (NEON PASS 2 — FILL): bring the star field up to date and hand it over ({ cv, ver }), so the Harbor can fold it
+     *  into its sky bitmap; it then draws with noBase (only the twinkles + the planets on top) */
+    base(W, HZ, L, ms, milky) {
+      if (L.lat == null) return null;
       const k = `${W}|${HZ}|${Math.round(milky * 20)}|${L.south}`;
-      if (k !== key || ms - at > 20000 || ms < at) { key = k; at = ms; render(W, HZ, L, ms, milky); }
+      if (k !== key || ms - at > 20000 || ms < at) { key = k; at = ms; render(W, HZ, L, ms, milky); ver++; }
+      return cv ? { cv, ver } : null;
+    },
+    /** draw the night sky. vis: how visible stars are now (0 by day); milky: the Milky Way's strength; noBase: the field itself
+     *  is already in the caller's sky (base()) */
+    draw(c, W, HZ, L, ms, vis, milky, t, motion, camY, twilight = 0, noBase = false) {
+      if ((vis <= 0.02 && twilight <= 0.02) || L.lat == null) return;
+      if (vis <= 0.02) { const k = `${W}|${HZ}|${Math.round(milky * 20)}|${L.south}`; if (k !== key || ms - at > 20000 || ms < at) { key = k; at = ms; render(W, HZ, L, ms, milky); ver++; } drawPlanets(c, Math.min(1, twilight), camY); return; }
+      const k = `${W}|${HZ}|${Math.round(milky * 20)}|${L.south}`;
+      if (k !== key || ms - at > 20000 || ms < at) { key = k; at = ms; render(W, HZ, L, ms, milky); ver++; }
       c.globalAlpha = Math.min(1, vis);
-      c.drawImage(cv, 0, camY, W, HZ);
+      if (!noBase) c.drawImage(cv, 0, camY, W, HZ);
       if (motion && bright.length) {
         c.globalCompositeOperation = 'lighter';
         for (const b of bright) { const tw = 0.5 + 0.5 * Math.sin(t * (1.3 + (b.ph % 7) * 0.2) + b.ph); c.globalAlpha = 0.35 * tw * vis; c.drawImage(glow(230, 236, 255), b.x - b.r * 3, b.y - b.r * 3 + camY, b.r * 6, b.r * 6); }

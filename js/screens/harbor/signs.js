@@ -223,6 +223,8 @@ export function buildBillboard(spot, content, ctx) {
     // the board: the paper's ground, seams, the art
     x.fillStyle = rgba(content.bg); x.fillRect(R.x, R.y, R.w, R.h);
     const g = x.createLinearGradient(0, R.y, 0, R.y + R.h); g.addColorStop(0, 'rgba(255,255,255,0.08)'); g.addColorStop(1, 'rgba(0,0,0,0.16)'); x.fillStyle = g; x.fillRect(R.x, R.y, R.w, R.h);
+    // the paper's seams (under the paint: never a line through the lettering)
+    x.fillStyle = 'rgba(0,0,0,0.1)'; for (const f of [0.34, 0.67]) x.fillRect(R.x + R.w * f, R.y, 0.35, R.h);
     // the mark, painted (flat strokes in its colours) on the left; the name + the tag line on the right
     const ms = R.h * 0.78;
     if (content.game) {
@@ -231,20 +233,20 @@ export function buildBillboard(spot, content, ctx) {
       for (const t of m.tubes) { x.strokeStyle = t.col; x.lineWidth = 9; x.stroke(new Path2D(t.d)); }
       x.restore();
     }
-    // the name as big as the board allows (the glance test, Part 4): two words stack on two lines; the tag line only if it reads
+    // the name as big as the board allows (the glance test, Part 4): two words stack on two lines; the tag line only if it really
+    // reads (NEON PASS 2: ≥ 6.5 pt — on a phone's 66 × 32 board it doesn't, so the name has the board)
     const tx = R.x + (content.game ? R.h * 0.12 + ms + R.h * 0.1 : R.w * 0.06), tw = R.x + R.w - R.w * 0.04 - tx;
     const words = String(content.title).split(' '), lines = words.length > 1 ? [words[0], words.slice(1).join(' ')] : words;
     const fitFs = (txt, fs0, wt) => { let fs = fs0; x.font = `${wt} ${fs}px Orbitron, "Chakra Petch", sans-serif`; while (fs > 3 && x.measureText(txt).width > tw) { fs *= 0.94; x.font = `${wt} ${fs}px Orbitron, "Chakra Petch", sans-serif`; } return fs; };
     const fs = Math.min(...lines.map(l => fitFs(l, R.h * (lines.length > 1 ? 0.33 : 0.4), 900)));
     let fs2 = R.h * 0.15; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`;
     while (fs2 > 2 && x.measureText(content.sub).width > tw) { fs2 *= 0.92; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; }
-    const sub = fs2 >= 3.4 && content.sub;
+    const sub = fs2 >= 6.5 && content.sub;
     const blockH = lines.length * fs * 1.05 + (sub ? fs2 * 1.5 : 0), top = R.y + (R.h - blockH) / 2;
     x.font = `900 ${fs}px Orbitron, "Chakra Petch", sans-serif`; x.fillStyle = rgba(content.ink); x.textBaseline = 'alphabetic';
     lines.forEach((l, i) => x.fillText(l, tx, top + fs * (0.86 + i * 1.05)));
     if (sub) { x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; x.fillStyle = rgba(mix(content.ink, content.bg, 0.25)); x.fillText(content.sub, tx, top + lines.length * fs * 1.05 + fs2 * 1.15); }
-    // the paper's seams + a peeled corner
-    x.fillStyle = 'rgba(0,0,0,0.14)'; for (const f of [0.34, 0.67]) x.fillRect(R.x + R.w * f, R.y, 0.35, R.h);
+    // a peeled corner
     x.fillStyle = 'rgba(232,224,206,0.7)'; x.beginPath(); x.moveTo(R.x + R.w, R.y + R.h); x.lineTo(R.x + R.w - R.h * 0.18, R.y + R.h); x.lineTo(R.x + R.w, R.y + R.h - R.h * 0.2); x.fill();
   };
   const frame = (x, day) => {

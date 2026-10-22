@@ -328,6 +328,22 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 2 (Oct 21, 2026) — `docs/harbor.md#neon-pass-2`
+- The building neon fixed from the owner's zoomed iPhone review: each line cut at its own depth against the nearer buildings (a tower's
+  contour against a dilated envelope: no tube down a sun corridor), every run ending at an electrode cap, stubs dropped, nothing
+  within 2.5 pt of the screen's edge; contours from the foot over the main setbacks only (`MIN_STEP`), one-step crowns, filleted
+  corners; no tube through a sign / icon / billboard / the wheel; SOLID SIGNS (their cabinets cut out of the outlines' baked light);
+  no sign on a hero tower (`n-empire` gone, `i-par2` added: 5 named + 7 icons); the billboard's seams under its paint; the wheel's
+  quiet zone + a night-air veil; the sun + moon arch peaking just under NEON, the tagline shaded over a bright disc.
+- The midsection lit: the near band warm (rooflines, Deco ledges, corner trims, fins), the mid band cool; the quay heroes trimmed.
+- THE WATERFRONT STRIP (`screens/harbor/waterfront.js`): storefronts where they can be seen — awnings, warm windows, neon SHAPES on
+  a phone (names on wide screens where they read), the theatre's chasing marquee, long wobbly reflections (`water.light(…, len)`).
+- THE DRONES' COLOURS: per word / per letter / rainbow, the colour wave through each morph, `cycle`; in the API + `&colours=…&by=…`.
+- REAL NEON SOUND: four CC0 recordings cut + levelled (`scripts/build-neon-sfx.py` → `audio/sfx/`): random flickers, the dropout,
+  the power-on at the catch, a seamless hum while lit; the synth stays as the fallback.
+- The iPhone's slow frames traced to GPU fill (6.7 screens of pixels a party-night frame at DPR 2): bands + their lights and the
+  sky + its stars merged while steady — 5.3 (−21 %), the same picture. A-B-B-A: +0.3 ms on the bench (reported).
+
 ### ✅ CITY 2.0 — THE HARBOR, Part 6a of 12: THE EVERYDAY SKY (Oct 21, 2026) — `docs/harbor.md`
 - Section 0: THE TIER ON iPHONES (iOS caps the reported core count, so every DPR-3 iPhone started at tier 1 — the Harbor starts at tier 2
   with a start-up grace + a guarded step back up; "real phones decide" recorded), the catch closed (the owner's iPhone), the wheel

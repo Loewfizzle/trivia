@@ -113,6 +113,63 @@ export function neonBuzz({ on = true, dur = 0.4, level = 1 } = {}) {
   n.connect(nb).connect(ng).connect(out); n.start(t, Math.random(), d + 0.1);
 }
 
+// ---------------------------------------------------------------- CITY 2.0 — THE RECORDED NEON (NEON PASS 2, Oct 2026)
+// Real neon from Freesound (all CC0; scripts/build-neon-sfx.py cuts + levels them: the hum −24 LUFS, the rest −20 LUFS) in
+// audio/sfx/. City 2.0 only (the classic district keeps the synthesized sign). Nothing is fetched until the first call; a file that
+// can't load falls back to the synthesized sound, and none of it is ever relied on (the picture is the moment).
+const NEON_REC = { flicker: ['neon-flicker-1.wav', 'neon-flicker-2.wav', 'neon-flicker-3.wav', 'neon-flicker-4.wav'], powerOn: 'neon-power-on.wav', dropout: 'neon-dropout.wav', hum: 'neon-hum-loop.wav' };
+export const NEON_GAIN = 1;                      // the files carry their level; one knob to trim them all by ear
+const neonBufs = new Map();
+function neonBuf(ctx, name) {
+  if (!neonBufs.has(name)) neonBufs.set(name, fetch(new URL(`../../audio/sfx/${name}`, import.meta.url)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status)))).then(b => ctx.decodeAudioData(b)).catch(() => null));
+  return neonBufs.get(name);
+}
+/** warm the neon files (the title calls it once City 2.0 is up and audio is unlocked: the first flicker then plays on time) */
+export function neonPreload() { if (!isUnlocked()) return; const ctx = getContext(); for (const n of [...NEON_REC.flicker, NEON_REC.powerOn, NEON_REC.dropout, NEON_REC.hum]) neonBuf(ctx, n); }
+function playNeon(name, level, fallback) {
+  if (!isUnlocked()) return;
+  const ctx = getContext();
+  neonBuf(ctx, name).then(buf => {
+    if (!buf) { fallback(); return; }
+    const s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = buf; s.playbackRate.value = 0.97 + Math.random() * 0.06;      // (±3 %: repeats never sound stamped)
+    g.gain.value = NEON_GAIN * level;
+    s.connect(g).connect(getSfxBus()); s.start();
+  });
+}
+let lastFlicker = -1;
+/** a tube STRIKING (a warm-up flicker, a dawn stutter): one of four real flickers at random, never the same twice in a row */
+export function neonFlicker({ level = 1 } = {}) {
+  let i = Math.floor(Math.random() * (NEON_REC.flicker.length - 1));
+  if (i >= lastFlicker && lastFlicker >= 0) i++;
+  lastFlicker = i;
+  playNeon(NEON_REC.flicker[i], level, () => neonBuzz({ on: true, dur: 0.35, level }));
+}
+/** a tube CUTTING OUT */
+export function neonDropout({ level = 1 } = {}) { playNeon(NEON_REC.dropout, level, () => neonBuzz({ on: false, level })); }
+/** THE CATCH: the whole sign striking and settling into its hum */
+export function neonCatch({ level = 1 } = {}) { playNeon(NEON_REC.powerOn, level, () => neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 })); }
+/** the hum while the sign is lit: a seamless loop, very quiet; returns stop(fade s) */
+export function startNeonHum({ level = 1, fadeIn = 2.5 } = {}) {
+  if (!isUnlocked()) return () => {};
+  const ctx = getContext(), out = ctx.createGain();
+  let src = null, stopped = false;
+  out.gain.setValueAtTime(0, ctx.currentTime);
+  out.connect(getSfxBus());
+  neonBuf(ctx, NEON_REC.hum).then(buf => {
+    if (!buf || stopped) return;
+    src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    src.connect(out); src.start();
+    const n = ctx.currentTime; out.gain.setValueAtTime(0, n); out.gain.linearRampToValueAtTime(NEON_GAIN * level, n + fadeIn);
+  });
+  return (fade = 0.6) => {
+    if (stopped) return; stopped = true;
+    const n = ctx.currentTime;
+    out.gain.cancelScheduledValues(n); out.gain.setValueAtTime(out.gain.value, n); out.gain.linearRampToValueAtTime(0, n + fade);
+    setTimeout(() => { try { if (src) src.stop(); } catch {} out.disconnect(); }, fade * 1000 + 100);
+  };
+}
+
 export function neonTick() {
   if (!isUnlocked()) return;
   const ctx = getContext();

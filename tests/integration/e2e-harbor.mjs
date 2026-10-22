@@ -178,7 +178,7 @@ try {
     await sleep(5000);
     const h = await ev(N.page, 'window.__district.harbor()'), sc = await ev(N.page, 'window.__district.scene()');
     const games = h.neon.signs.filter(s => s.game).map(s => s.game);
-    ok(new Set(games).size === 12 && h.neon.signs.filter(s => s.kind === 'named').length === 6 && h.neon.signs.every(s => s.on),
+    ok(new Set(games).size === 12 && h.neon.signs.filter(s => s.kind === 'named').length === 5 && h.neon.signs.every(s => s.on),   // (5 named: none on a hero tower — NEON PASS 2)
       `SIGNS: all 12 games in the skyline (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')} named tonight; the rest as tube icons), every sign lit at night`);
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
@@ -301,6 +301,26 @@ try {
     const m = st.cel && st.cel.moon;
     ok(m && m.discA > 0.6 && m.r > 14, `THE MOON (the Harbor's art): drawn at r ${m && m.r} pt, visible ${m && m.discA}, amber ${m && m.amber}`);
     if (SHOTS) await D.page.screenshot({ path: `${OUT}part6-drones-390x844.png` });
+    await D.ctx.close(); }
+  // ================================================================ 3g. NEON PASS 2: clean tubes, solid signs, the waterfront, the drones' colours
+  for (const view of [[390, 844], [430, 932]]) {
+    const P = await open({ slot: `hn${view[0]}`, qs: NIGHT, view });
+    await harborUp(P.page);
+    await waitFor(P.page, 'window.__district.harbor().neon.signs.every(s => s.on)', 'the neon on', 15000);
+    const r = await ev(P.page, `(() => { const h = window.__district.harbor(), W = innerWidth; let pts = 0, edge = 0, inSign = 0;
+      const rs = h.neon.signs.map(s => s.rect);
+      for (const o of h.neonRuns()) for (const run of o.runs) for (const [x, y] of run) { pts++; if (x < 2.4 || x > W - 2.4) edge++; if (rs.some(q => x > q.x && x < q.x + q.w && y > q.y && y < q.y + q.h)) inSign++; }
+      return { pts, edge, inSign, clipped: h.neon.signs.filter(s => s.rect.x < 3 || s.rect.x + s.rect.w > W - 3).map(s => s.id), wf: h.waterfront }; })()`);
+    ok(r.pts > 1500 && r.edge === 0 && r.inSign === 0 && !r.clipped.length, `CLEAN NEON at ${view[0]}: ${r.pts} tube points, none within 2.4 pt of the screen's edge, none through a sign; no sign clipped (${r.clipped.join(', ') || 'none'})`);
+    ok(r.wf.fronts >= 8 && !r.wf.words && r.wf.shops.includes('marquee') && r.wf.shops.includes('cocktail'), `THE WATERFRONT at ${view[0]}: ${r.wf.fronts} storefronts read by shape on a phone (${[...new Set(r.wf.shops)].join(', ')}), no small words`);
+    await P.ctx.close();
+  }
+  { const D = await open({ slot: 'h8', qs: `${NIGHT}&force=drones&text=HI%20THERE&colours=ff2e97,2ee6ff&by=word&show=heart` });
+    await harborUp(D.page);
+    await waitFor(D.page, '!!window.__district.harbor().sky.state.drones', 'the drone show', 10000);
+    await waitFor(D.page, "(() => { const d = window.__district.harbor().sky.state.drones; return d && d.e > 36.5; })()", 'the message held', 45000);
+    const d = (await ev(D.page, 'window.__district.harbor()')).sky.state.drones;
+    ok(d.colours === 2 && d.lit > 60, `THE DRONES' COLOURS (&colours=…&by=word): "HI THERE" in ${d.colours} colours, a colour per word (${d.lit} lit)`);
     await D.ctx.close(); }
   // ================================================================ 4. the dock: HOST, JOIN, the knock on the door
   const H = await open({ slot: 'hh', qs: NIGHT });

@@ -396,7 +396,7 @@ test('events: when() gates by the context; forced events run at once', () => {
 });
 
 // ================================================================== Part 3: NEON + SIGNS + BILLBOARDS
-import { signSpots, spotConflicts, assignSigns, nightKey, outlines, roleFamily, SCHEMES, roleColour } from '../js/core/harbor-neon.js';
+import { signSpots, spotConflicts, assignSigns, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet } from '../js/core/harbor-neon.js';
 import { flattenPath, tubeLight } from '../js/core/tube-path.js';
 import { scrollColumns } from '../js/core/harbor-windows.js';
 import { lighthouseBoxes } from '../js/core/harbor-layout.js';
@@ -424,7 +424,7 @@ test('word towers (Part 3): both faces fully on screen, nothing nearer over them
   }
 });
 
-test('signs: every game has a sign on every phone (6 named — 2 of them roof signs — + 6 icons), every spot clear, names fit; desktop too', () => {
+test('signs: every game has a sign on every phone (5 named — 2 of them roof signs — + 7 icons; NEON PASS 2: none on a hero tower), every spot clear + inside the screen, names fit; desktop too', () => {
   for (const k of Object.keys(SIZES)) {
     const { cam, L } = setup(k);
     const spots = signSpots(L);
@@ -432,8 +432,11 @@ test('signs: every game has a sign on every phone (6 named — 2 of them roof si
     const pick = assignSigns(GAMES12, spots, '2026-10-21');
     const got = new Set(pick.values());
     if (!cam.wide) {
-      assert.equal(spots.filter(s => s.kind === 'named').length, 6, `${k}: six named spots`);
-      assert.equal(spots.filter(s => s.kind === 'icon').length, 6, `${k}: six icons`);
+      assert.equal(spots.filter(s => s.kind === 'named').length, 5, `${k}: five named spots`);
+      assert.equal(spots.filter(s => s.kind === 'icon').length, 7, `${k}: seven icons`);
+      // (NEON PASS 2) never on a hero tower; never clipped by the screen's edge
+      for (const s of spots) assert.ok(!L.towers.some(t => t.rank === 'hero' && t.id === s.host), `${k}: ${s.id} on a hero tower`);
+      for (const s of spots) assert.ok(s.rect.x >= 3 && s.rect.x + s.rect.w <= cam.W - 3, `${k}: ${s.id} inside the screen (${s.rect.x.toFixed(1)}..${(s.rect.x + s.rect.w).toFixed(1)})`);
       assert.equal(got.size, 12, `${k}: all 12 games have a sign`);
     } else if (k === '1440x900') assert.equal(got.size, 12, 'desktop: all 12 games');
     for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(g.short.replace(/ /g, '').length <= s.cap, `${k}: ${g.short} fits ${s.id}`); }
@@ -460,10 +463,10 @@ test('signs: a new pick each night (the same all night), and a game list that gr
   for (const g of GAMES12) assert.ok(MARKS[g.id], `${g.id} has a tube mark`);
 });
 
-test('neon outlines: never across a word face, at most two colours a building, base > heat > accent', () => {
+test('neon outlines: never across a word face, at most two colours a building, base > heat > accent above the near band; the near band warm (NEON PASS 2)', () => {
   for (const k of ['390x844', '402x874', '1440x900']) {
     const { cam, L } = setup(k);
-    const O = outlines(L), len = { base: 0, heat: 0, accent: 0 };
+    const O = outlines(L), len = { base: 0, heat: 0, accent: 0 }, nearLen = { base: 0, heat: 0, accent: 0 };
     const faces = L.towers.filter(t => t.word).map(t => ({ id: t.id, z: t.z0, ...faceRect(cam, t) }));   // (an outline farther back is behind the tower: it covers it)
     for (const o of O) {
       const roles = new Set(o.lines.map(l => l.role));
@@ -475,10 +478,12 @@ test('neon outlines: never across a word face, at most two colours a building, b
           d += Math.hypot(c - a, e - b);
           for (const f of faces) { if (o.z > f.z + 1) continue; const mx = (a + c) / 2, my = (b + e) / 2; assert.ok(!(mx > f.x + 1.5 && mx < f.x + f.w - 1.5 && my > f.y + 1.5 && my < f.y + f.h - 1.5), `${k}: ${o.id} crosses ${f.id}'s face`); }
         }
-        len[roleFamily(ln.role)] += d;
+        (o.id === 'threads-near' || o.strength === 'quay' ? nearLen : len)[roleFamily(ln.role)] += d;
       }
     }
     assert.ok(len.base > len.heat && len.heat > len.accent && len.accent > 0, `${k}: ${JSON.stringify(len)}`);
+    // (the owner, NEON PASS 2: the nearer buildings lean WARMER — pinks, ambers, reds — the towers stay cooler, for depth)
+    assert.ok(nearLen.heat + nearLen.accent > nearLen.base * 3 && nearLen.heat + nearLen.accent > 0, `${k}: the near band warm ${JSON.stringify(nearLen)}`);
   }
   for (const n of Object.keys(SCHEMES)) for (const r of ['b0', 'b1', 'b2', 'h0', 'h1', 'a0', 'a1', 'a2']) assert.equal(roleColour(r, n).length, 3, `${n} ${r}`);
 });
@@ -504,23 +509,30 @@ test('words: the scroll — any length, column by column', () => {
 // ------------------------------------------------------------------ Part 4: the touch-ups (the owner's review) + THE WATER
 import { waterBand, axisAt, LEVEL } from '../js/screens/harbor/water.js';
 
-test('neon outlines (Part 4): each tower is one bent tube a side that steps in at every setback, fins on the upper tiers', () => {
+test('neon outlines (NEON PASS 2): one bent tube a side, stepping in only at the MAIN setbacks, every bend rounded (no staircase); fins on the upper tiers', () => {
   for (const k of ['390x844', '402x874', '1440x900']) {
     const { L } = setup(k);
     const O = outlines(L);
     for (const t of L.towers.filter(t => t.rank === 'hero' || t.rank === 'word')) {
       const o = O.find(q => q.id === t.id), contour = o.lines.filter(l => !l.thin && !l.needle && l.role === o.roles[0]).sort((a, b) => b.pts.length - a.pts.length)[0];
-      // the contour visits every tier's edge (left + right): the steps, never one plain rectangle
-      for (const tr of t.tiers) for (const ex of [tr.x0, tr.x1]) assert.ok(contour.pts.some(p => Math.abs(p[0] - ex) < 1e-6), `${k}: ${t.id}'s contour reaches the edge ${ex.toFixed(1)} of a tier`);
-      assert.ok(contour.pts.length >= 2 * t.tiers.length + 4, `${k}: ${t.id}'s contour bends (${contour.pts.length} points)`);
-      // the Deco fins: thin piers on the tiers above the shaft
+      // the contour starts at the shaft's foot (the cut ends it at the roofs in front: neon.js) and reaches the top tier's edges
+      assert.ok(Math.min(...contour.pts.map(p => p[1])) <= t.tiers[0].y0 + 1e-6, `${k}: ${t.id} from its foot`);
+      const top = t.tiers[t.tiers.length - 1];
+      for (const ex of [top.x0, top.x1]) assert.ok(contour.pts.some(p => Math.abs(p[0] - ex) < 0.5), `${k}: ${t.id} reaches its top tier's edge`);
+      // every MAIN setback (≥ MIN_STEP) is followed: some point of the contour sits on that tier's edge
+      for (let i = 1; i < t.tiers.length; i++) { const a = t.tiers[i - 1], b = t.tiers[i]; if (b.x0 - a.x0 >= MIN_STEP * 1.5) assert.ok(contour.pts.some(p => Math.abs(p[0] - b.x0) < 0.6), `${k}: ${t.id} steps in at tier ${i}`); }
+      // NO STAIRCASE: no sharp corner anywhere (every bend is a fillet: consecutive turns are gentle, < 50°)
+      for (let i = 1; i < contour.pts.length - 1; i++) {
+        const [a, b, c] = [contour.pts[i - 1], contour.pts[i], contour.pts[i + 1]];
+        const u = [b[0] - a[0], b[1] - a[1]], v = [c[0] - b[0], c[1] - b[1]], lu = Math.hypot(...u), lv = Math.hypot(...v);
+        if (lu < 1e-6 || lv < 1e-6) continue;
+        const ang = Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1]) / (lu * lv)))) * 180 / Math.PI;
+        assert.ok(ang < 50, `${k}: ${t.id} has a sharp ${ang.toFixed(0)}° corner at ${b[0].toFixed(1)},${b[1].toFixed(1)}`);
+      }
       if (t.tiers.length > 1) assert.ok(o.lines.some(l => l.thin), `${k}: ${t.id} has fins`);
     }
-    // the word towers' crowns: the Deco ziggurat traced (the parapet + two steps on each side)
-    const wa = O.find(q => q.id === 'wordA').lines.filter(l => !l.thin)[0];
-    const tops = new Set(wa.pts.map(p => p[1].toFixed(2)));
-    assert.ok(tops.size >= 6, `${k}: wordA's outline steps up through ${tops.size} heights`);
   }
+  assert.deepEqual(fillet([[0, 0, 1], [0, 10, 1], [10, 10, 1]], 1).length, 9, 'a corner becomes a 7-point bend');
 });
 
 test('signs (Part 4): the icons read (≥ 19 pt), the billboard is big, the busy centre + the construction tower stay clear', () => {
@@ -809,4 +821,42 @@ test('section 0 (Part 6a): no sign covers a hero tower — the sunburst + the ne
   const { L } = setup('402x874'), spots = signSpots(L), games = GAMES.map(g => ({ id: g.id, name: g.name, short: bladeWord(g) }));
   const pick = assignSigns(games, spots, '2026-10-21');
   assert.equal(new Set(pick.values()).size, games.length);
+});
+
+// ------------------------------------------------------------------ NEON PASS 2: the waterfront strip, the drones' colours
+import { storefronts, SHOPS, THEATRE } from '../js/screens/harbor/waterfront.js';
+import { hsv } from '../js/core/harbor-sky.js';
+
+test('THE WATERFRONT STRIP: storefronts only where they can be seen at street level, every neighbour different, one theatre', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { s, L } = setup(k), f = storefronts(L), K = L.cam.F / 600;
+    assert.ok(f.length >= 8, `${k}: ${f.length} storefronts`);
+    assert.equal(f.filter(x => x.shop === THEATRE).length, 1, `${k}: one theatre`);
+    for (let i = 0; i < f.length; i++) {
+      const a = f[i];
+      assert.ok(a.x1 - a.x0 >= 8 * K && a.x0 >= -1 && a.x1 <= s.W + 1, `${k}: front ${i} on screen and wide enough`);
+      assert.ok(a.y1 > a.y0, `${k}: front ${i} has a height`);
+      if (i) { assert.notEqual(a.shop, f[i - 1].shop, `${k}: neighbours differ (${i})`); assert.ok(a.x0 >= f[i - 1].x1 - 0.01, `${k}: fronts don't overlap (${i})`); }
+    }
+    // never behind the wheel's disc (its quiet zone)
+    const w = L.wheel, [cx, cy] = project(L.cam, w.x, w.y, w.z), r = L.cam.F * w.r / w.z;
+    for (const a of f) { const nx = Math.max(a.x0, Math.min(cx, a.x1)), ny = Math.max(a.y0, Math.min(cy, a.y1)); assert.ok(Math.hypot(nx - cx, ny - cy) >= r, `${k}: a storefront behind the wheel`); }
+  }
+  assert.ok(SHOPS.every(sh => sh.glyph && sh.word && sh.col.length === 3), 'every shop has a shape (phones) + a name (wide screens)');
+});
+
+test('THE DRONES\' COLOURS: one colour, a colour per word or per letter, a rainbow; shapes keep theirs', () => {
+  const key = p => p.slice(2).join(',');
+  const one = droneShape({ text: 'HI THERE', col: [255, 0, 0] }, 180);
+  assert.deepEqual([...new Set(one.pts.map(key))], ['255,0,0']);
+  const word = droneShape({ text: 'HI THERE', cols: [[255, 0, 0], [0, 255, 0]], by: 'word' }, 180);
+  assert.deepEqual([...new Set(word.pts.map(key))].sort(), ['0,255,0', '255,0,0']);
+  assert.ok(word.pts.filter(p => p[0] < 8).every(p => key(p) === '255,0,0'), 'HI is the first colour');
+  const letter = droneShape({ text: 'ABC', cols: [[255, 0, 0], [0, 255, 0], [0, 0, 255]], by: 'letter' }, 180);
+  assert.equal(new Set(letter.pts.map(key)).size, 3, 'a colour per letter');
+  const rb = droneShape({ text: 'HELLO', col: 'rainbow' }, 180);
+  assert.ok(new Set(rb.pts.map(key)).size >= 4, 'a rainbow across the letters');
+  assert.deepEqual(droneShape({ text: 'HI' }, 180).pts[0].slice(2), [214, 240, 255], 'the default: a cool white');
+  assert.ok(new Set(droneShape({ shape: 'pumpkin' }, 180).pts.map(key)).size >= 2, 'a shape keeps its own colours');
+  assert.deepEqual(hsv(0, 1, 1), [255, 0, 0]); assert.deepEqual(hsv(1 / 3, 1, 1), [0, 255, 0]); assert.deepEqual(hsv(0.5, 0, 0.5), [128, 128, 128]);
 });

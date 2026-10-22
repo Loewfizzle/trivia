@@ -13,13 +13,15 @@
 import { outlines, signSpots, assignSigns, nightKey, roleColour, STRENGTH, SCHEMES } from '../../core/harbor-neon.js';
 import { project } from '../../core/harbor-layout.js';
 import { skyItems } from './skyline.js';
-import { tube, drawLit, drawGlass, sprite, bbox, free, mix, rgba } from './tubes.js';
+import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from './tubes.js';
 import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHousing } from './signs.js';
 import { hexRgb, markFor } from '../district/marks.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const THIN = 0.6;                                  // the Deco fins: thinner tubes than the contour (Part 4)
 const lineK = ln => (ln.needle ? 1.5 : ln.thin ? THIN : 1);
+// a cut run's light: dimmer toward its two electrodes (like any open tube), the rest as the whole tube had it
+const capLight = lv => lv.map((v, i) => { const e = Math.min(i, lv.length - 1 - i); return e < 4 ? v * (0.62 + 0.095 * e) : v; });
 
 export function createNeon({ games: allGames = [], onContent = () => {} } = {}) {
   const games = allGames.filter(g => g.playable !== false).map(g => ({ ...g, short: signName(g) }));
@@ -60,7 +62,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     for (const sp of spots) if (sp.kind !== 'icon' && sp.w) { if (!signRects.has(sp.host)) signRects.set(sp.host, []); signRects.get(sp.host).push(sp.w); }
     outs = outlines(L, signRects).map(o2 => ({ ...o2, st: STRENGTH[o2.strength] || STRENGTH.mid }));
     glassFaces = [];
-    cutOutlines();
+    cutOutlines(); dropStubs();
     // the power items: the signs, the billboards, then each building's outline (the boot-up order: the neon plan's)
     items = [...signs.map(sg => ({ kind: 'sign', sg, id: sg.id })), ...boards.map(b => ({ kind: 'board', b, id: b.id })), ...outs.filter(o2 => o2.runs.length).map(o2 => ({ kind: 'outline', o: o2, id: o2.id }))];
     items.forEach((it, i) => { it.i = i; it.pw = null; it.fl = 0; it.flick = -9; it.ready = false; });
@@ -108,32 +110,54 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     if (b.crown) { const s = cam.F / b.z0, cw = (c - a) * 0.36, cx = (a + c) / 2; segs.push([cx - cw, cx + cw, ty - b.crown.h * s * 0.5]); }
     return segs;
   }
+  // NEON PASS 2: what stands IN FRONT of every building's neon besides the nearer buildings — the signs' cabinets, the icons, the
+  // billboards (SOLID: a tube never runs through one; its glow is clipped out at draw), the WHEEL's disc (a quiet zone: the tubes
+  // behind it end at caps beside the rim), the screen's edges (a tube never runs off the screen: it ends at a cap just inside)
+  function blockersOf() {
+    const rs = [...signs.map(sg => sg.rect), ...boards.map(b => b.rect)].filter(Boolean).map(r => ({ x0: r.x - 1.4, x1: r.x + r.w + 1.4, y0: r.y - 1.4, y1: r.y + r.h + 1.4 }));
+    const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z), wr = cam.F * w.r / w.z * 1.08 + 3;
+    return { rs, wheel: { x: wx, y: wy, r2: wr * wr } };
+  }
+  /** the envelope dilated by r px: a gap narrower than 2r between the roofs in front never lets a tube down into it */
+  function dilate(env, r) {
+    const out = new Float32Array(env.length);
+    for (let x = 0; x < env.length; x++) { let m = env[x]; for (let d = 1; d <= r; d++) { if (x - d >= 0 && env[x - d] < m) m = env[x - d]; if (x + d < env.length && env[x + d] < m) m = env[x + d]; } out[x] = m; }
+    return out;
+  }
   function cutOutlines() {
     const groups = skyItems(L);
+    const K = cam.F / 600, R = Math.max(3, Math.round(5 * K)), EDGE = 2.5, minLen = 5 * K, bl = blockersOf();
     for (const g of ['far', 'near']) {
       const env = new Float32Array(Math.ceil(W) + 2).fill(1e9);
       const ev = [];
       for (const it of groups[g]) if (it.b) ev.push({ z: it.b.z0, b: it.b });
-      for (const o2 of outs) if (o2.group === g) ev.push({ z: o2.z - 0.04, o: o2 });
+      // (each line at its own depth: a band's threads belong to many buildings — each roofline is cut by what stands in front of
+      // ITS building, never by its own block)
+      for (const o2 of outs) if (o2.group === g) { o2.runs = []; for (const ln of o2.lines) ev.push({ z: (ln.z != null ? ln.z : o2.z) - 0.04, o: o2, ln }); }
       ev.sort((a, b) => a.z - b.z || (a.o ? -1 : 1));
       for (const e of ev) {
         if (e.b) { for (const [x0, x1, y] of silhouette(e.b)) for (let x = Math.max(0, Math.floor(x0)); x <= Math.min(env.length - 1, Math.ceil(x1)); x++) if (y < env[x]) env[x] = y; continue; }
-        const o2 = e.o, runs = [];
-        for (const ln of o2.lines) {
+        const o2 = e.o, runs = o2.runs, envD = dilate(env, o2.band ? 1 : R);   // (the dilation keeps a TOWER's edge out of narrow gaps; a band's rooflines need none)
+        for (const ln of [e.ln]) {
           const z0 = ln.pts[0][2];
           const pts = ln.pts.map(([x, y, z]) => project(cam, x, y, z ?? z0));
           const tb = tube(pts, !!ln.closed, o2.st.w * (cam.F / 600) * lineK(ln), [false, false]);
-          // keep the runs above the envelope (what nearer buildings leave visible); the light of each point kept from the whole
+          // keep the runs above the (dilated) envelope — what nearer buildings leave visible — and clear of the signs, the wheel and
+          // the screen's edges; every run ENDS at an electrode cap (never mid-air, never on behind a building); the light of each
+          // point kept from the whole tube
           let run = null;
           tb.pts.forEach(([x, y], i) => {
-            const xi = Math.round(x), vis = x >= -4 && x <= W + 4 && (xi < 0 || xi >= env.length || y < env[xi] - 0.4);
+            const xi = Math.round(x);
+            let vis = x >= EDGE && x <= W - EDGE && (xi < 0 || xi >= env.length || y < envD[xi] - 0.4);
+            if (vis) for (const r of bl.rs) if (x > r.x0 && x < r.x1 && y > r.y0 && y < r.y1) { vis = false; break; }
+            if (vis && (x - bl.wheel.x) ** 2 + (y - bl.wheel.y) ** 2 < bl.wheel.r2) vis = false;
             if (vis) { if (!run) { run = { pts: [], lv: [], role: ln.role, needle: !!ln.needle, thin: !!ln.thin, block: ln.block }; runs.push(run); } run.pts.push([x, y]); run.lv.push(tb.lv[i]); }
             else run = null;
           });
         }
-        o2.runs = runs.filter(r => r.pts.length > 1);
+
         // the glass towers' LED facades: the face's visible part (above the nearer buildings) for the per-frame glow
-        if (o2.strength === 'far' && L.towers.find(t => t.id === o2.id && t.rank === 'modern')) {
+        if (e.ln === o2.lines[0] && o2.strength === 'far' && L.towers.find(t => t.id === o2.id && t.rank === 'modern')) {
           const t = L.towers.find(tt => tt.id === o2.id), tr = t.tiers[0], [a, ty] = project(cam, tr.x0, tr.h, tr.z0), [c, by] = project(cam, tr.x1, 0, tr.z0);
           const top = [];
           for (let x = Math.floor(a); x <= Math.ceil(c); x++) top.push([x, Math.min(by, env[Math.max(0, Math.min(env.length - 1, x))])]);
@@ -144,20 +168,32 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   }
 
   // ---------------------------------------------------------------- building the sprites (queued: a few a frame)
+  function dropStubs() {
+    const K = cam.F / 600, minLen = 5 * K;
+    const lenOf = r => { let d = 0; for (let i = 1; i < r.pts.length; i++) d += Math.hypot(r.pts[i][0] - r.pts[i - 1][0], r.pts[i][1] - r.pts[i - 1][1]); return d; };
+    for (const o2 of outs) o2.runs = (o2.runs || []).filter(r => r.pts.length > 1 && lenOf(r) >= minLen * (r.thin ? 1.6 : 1));
+  }
   function buildItem(it) {
     if (it.kind === 'sign') { it.lit = it.sg.lit(dpr); it.housing = null; }
     else if (it.kind === 'board') { it.night = it.b.nightS; }
     else {
       const o2 = it.o, k = cam.F / 600;
-      const tubes = o2.runs.map(r => ({ pts: r.pts, lv: r.lv, closed: false, ends: [false, false], role: r.role, needle: r.needle, thin: r.thin }));
+      const tubes = o2.runs.map(r => ({ pts: r.pts, lv: capLight(r.lv), closed: false, ends: [true, true], role: r.role, needle: r.needle, thin: r.thin }));
       const byRole = new Map();
       for (const t of tubes) { const kk = `${t.role}|${t.needle ? 1 : t.thin ? 2 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
       const b = bbox(tubes), glow = o2.st.glow * k;
       it.lit = [sprite(b, glow * 2.6, dpr, x => {
         for (const [kk, ts] of byRole) {
           const [role, nd] = kk.split('|');
-          drawLit(x, ts, roleColour(role, scheme), { w: o2.st.w * k * (nd === '1' ? 1.5 : nd === '2' ? THIN : 1), glow: glow * (nd === '1' ? 1.6 : nd === '2' ? 0.7 : 1), a: o2.st.a * (nd === '2' ? 0.85 : 1), dpr });
+          const tw = o2.st.w * k * (nd === '1' ? 1.5 : nd === '2' ? THIN : 1);
+          drawLit(x, ts, roleColour(role, scheme), { w: tw, glow: glow * (nd === '1' ? 1.6 : nd === '2' ? 0.7 : 1), a: o2.st.a * (nd === '2' ? 0.85 : 1), dpr });
+          caps(x, ts, tw, 0);
         }
+        // SOLID SIGNS, baked: the signs' + billboards' cabinets cut out of the outline's light once, here (the per-frame clip
+        // cost a slow phone ~0.6 ms a frame); only the live chasers + the flash still draw through the clip
+        x.globalCompositeOperation = 'destination-out'; x.globalAlpha = 1; x.fillStyle = '#000';
+        for (const r of solidRects(o2.group)) x.fillRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
+        x.globalCompositeOperation = 'source-over';
       })];
       it.tubes = tubes;
     }
@@ -197,9 +233,10 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     if (!o2 || o2.group !== 'near') return;
     const k = cam.F / 600, w = o2.st.w * k;
     const ls = lines || o2.lines;
-    if (!ls.length) return;
+    if (!ls.length || !o2.runs) return;
     const byRole = new Map();
-    for (const ln of ls) { const z0 = ln.pts[0][2]; const t = tube(ln.pts.map(([xx, y, z]) => project(cam, xx, y, z ?? z0)), false, w, [false, false]); const kk = `${ln.role}|${ln.needle ? 1 : ln.thin ? 2 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
+    const rs = lines ? o2.runs.filter(r => r.block === b.id) : o2.runs;
+    for (const r of rs) { const t = { pts: r.pts, lv: r.lv, closed: false, ends: [true, true] }; const kk = `${r.role}|${r.needle ? 1 : r.thin ? 2 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
     for (const [kk, ts] of byRole) {
       const [role, nd] = kk.split('|');
       if (nd === '1') { x.strokeStyle = rgba(mix([30, 26, 40], [120, 116, 120], T.day + T.gold)); x.lineWidth = Math.max(0.4, w * 0.5); x.beginPath(); for (const t of ts) { x.moveTo(t.pts[0][0] + w * 0.6, t.pts[0][1]); x.lineTo(t.pts.at(-1)[0] + w * 0.6, t.pts.at(-1)[1]); } x.stroke(); }
@@ -258,8 +295,32 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       return;
     }
     if (comp[group] && tier > 0) dropComp();
+    // THE OUTLINES FIRST (+ the moments over them), the signs' cabinets clipped out — SOLID signs: no tube or glow shows through
+    // a sign, an icon or a billboard (NEON PASS 2) — then the signs on top
+    drawItems(c, group, f, t, motion, flutter, partyK, true);
+    const chase = motion && tier > 0 && (partyK > 0.05 || moment.chase);
+    if (chase || moment.flash) {
+      c.save(); solidClip(c, group);
+      if (chase) chasers(c, group, t, Math.max(partyK, moment.chase ? 1 : 0), f);
+      if (moment.flash) flashSweep(c, group, f);
+      c.restore();
+    }
+    drawItems(c, group, f, t, motion, flutter, partyK, false);
+    c.restore();
+  }
+  /** the clip that keeps the outlines' light out of the signs (even-odd: the screen minus each sign's cabinet) */
+  const solidRects = group => [...signs.filter(sg => groupOf(sg.spot) === group).map(sg => sg.rect), ...boards.filter(b => groupOf(b.spot) === group).map(b => b.rect)].filter(Boolean);
+  function solidClip(c, group) {
+    const rs = solidRects(group);
+    if (!rs.length) return;
+    c.beginPath(); c.rect(-100, -100, W + 200, 1e4);
+    for (const r of rs) c.rect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
+    c.clip('evenodd');
+  }
+  function drawItems(c, group, f, t, motion, flutter, partyK, outlinesPass) {
     for (const it of items) {
       if (!it.ready || (!it.lit && it.kind !== 'board')) continue;
+      if ((it.kind === 'outline') !== outlinesPass) continue;
       if (it.kind === 'outline') { if (it.o.group !== group) continue; }
       else if (groupOf(it.kind === 'sign' ? it.sg.spot : it.b.spot) !== group) continue;
       const base = f.fade * (flutter ? 0.965 + 0.035 * Math.sin(t * 11 + it.i * 2.3) * Math.sin(t * 3.1 + it.i) : 1) * dimOf(it, f);
@@ -283,10 +344,6 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
         if (a > 0.02) { const D = warmDot(), step = motion ? Math.floor(t / 0.16) : 0; it.sg.bulbs.forEach(([bx, by], i) => { const lit = (i + step) % 3 === 0; c.globalAlpha = a * (lit ? 1 : 0.28); const r = lit ? 2.6 : 1.6; c.drawImage(D, bx - r, by - r, r * 2, r * 2); }); }
       }
     }
-    // MOMENTS over the outlines: party chasers, the game's flash sweeping across the skyline
-    if (motion && tier > 0 && (partyK > 0.05 || moment.chase)) chasers(c, group, t, Math.max(partyK, moment.chase ? 1 : 0), f);
-    if (moment.flash) flashSweep(c, group, f);
-    c.restore();
   }
   const groupOf = sp => (sp.z >= 300 ? 'far' : 'near');
   // A TOWER SPELLING A WORD: its roof sign sinks to a low glow (over ~1 s) so the message is the star, and comes back after
@@ -309,13 +366,17 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   }
   // the group's lit sprites (signs + outlines; the game blade's bulbs steady) composed once into one canvas
   function composite(group) {
-    const sps = items.filter(it => inGroup(it, group) && it.lit).flatMap(it => it.lit);
+    const sps = items.filter(it => inGroup(it, group) && it.lit).flatMap(it => it.lit);   // (the bounds; drawn in two passes below)
     if (!sps.length) return null;
     const x0 = Math.max(0, Math.min(...sps.map(s => s.x))), y0 = Math.min(...sps.map(s => s.y)), x1 = Math.min(W, Math.max(...sps.map(s => s.x + s.w))), y1 = Math.max(...sps.map(s => s.y + s.h));
     return sprite({ x0, y0, x1, y1 }, 0, dpr, x => {
       x.globalCompositeOperation = 'lighter';
       if (group === 'far') for (const gf of glassFaces) ledFacade(x, gf, 0, { motion: false, night: 1, fade: 1 }, 0);   // (the LED facades, still)
-      for (const s of sps) x.drawImage(s.c, s.x, s.y, s.w, s.h);
+      // (the outlines under the signs' cabinets clipped out, then the signs: SOLID)
+      x.save(); solidClip(x, group);
+      for (const it of items) if (inGroup(it, group) && it.lit && it.kind === 'outline') for (const s of it.lit) x.drawImage(s.c, s.x, s.y, s.w, s.h);
+      x.restore();
+      for (const it of items) if (inGroup(it, group) && it.lit && it.kind !== 'outline') for (const s of it.lit) x.drawImage(s.c, s.x, s.y, s.w, s.h);
       const D = warmDot();
       for (const it of items) if (inGroup(it, group) && it.kind === 'sign' && it.sg.bulbs) it.sg.bulbs.forEach(([bx, by], i) => { x.globalAlpha = i % 3 === 0 ? 1 : 0.28; const r = i % 3 === 0 ? 2.6 : 1.6; x.drawImage(D, bx - r, by - r, r * 2, r * 2); });
     });
@@ -394,6 +455,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
 
   return {
     layout, pump, glass, draw, powerTick, housingStep,
+    /** tests: each outline's visible runs on screen (after the cut) — { id, z, group, runs: [[[x, y]…]…] } */
+    runs: () => outs.map(o2 => ({ id: o2.id, z: o2.z, group: o2.group, runs: o2.runs.map(r => r.pts.map(([x, y]) => [+x.toFixed(1), +y.toFixed(1)])) })),
     /** bumps when a billboard's content changes: the scene re-bakes (the boards are baked with the facades) */
     get rev() { return rev; },
     /** the number of power items (the neon plan's "signs": title.js#neonNow) */

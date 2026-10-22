@@ -38,7 +38,23 @@ loading) — the city then breathes slowly on its own. The title's scene polls i
 sputters at the dusk warm-up and the morning fade, one per flicker — a tube striking: a crisp tick (a 25–75 ms band-passed click + a
 sine zap 3.6 → 0.9 kHz in 18 ms) then the gas's buzz (120 Hz saw + 240 square + 60 saw through a 1.4 kHz bandpass and a 220 Hz
 highpass, a faint 5 kHz hiss, the level stepping unsteadily, ≤ 1.4 s) for as long as the plan holds the flash; dropping out: a
-softer tick. On the SFX bus (the Effects slider, Mute); peaks ~0.03 — under the music, never relied on.
+softer tick. On the SFX bus (the Effects slider, Mute); peaks ~0.03 — under the music, never relied on. **Since NEON PASS 2 it is
+the fallback** — City 2.0 plays the recordings below; the synthesized buzz plays only when a file can't load.
+
+**THE RECORDED NEON** (NEON PASS 2, Oct 21 2026 — City 2.0 only; `ambience.js#neonFlicker / neonDropout / neonCatch /
+startNeonHum / neonPreload`, driven by `title.js#applyNeon` + `humSync`): real neon in `audio/sfx/` (mono 44.1 kHz 16-bit WAV, ~770 KB
+in all, nothing fetched until City 2.0 is up and audio unlocks):
+| file | what | when | level |
+| --- | --- | --- | --- |
+| `neon-flicker-1…4.wav` (0.6–0.8 s) | a tube striking | each strike of the dusk warm-up + the dawn stutters — one at random, never the same twice running, ±3 % pitch | −20 LUFS |
+| `neon-dropout.wav` (0.75 s) | a tube's buzz cutting out | a letter dropping out (the morning goodbye, a warm-up flicker going dark) | −20 LUFS |
+| `neon-power-on.wav` (2.1 s) | the strike settling into the hum | THE CATCH (all four letters lock on) | −20 LUFS |
+| `neon-hum-loop.wav` (3.0 s) | the steady mains hum | loops, very quietly, from the catch to the morning goodbye; fades in over 2.5 s, out when the page hides | −24 LUFS |
+Cut + levelled by `scripts/build-neon-sfx.py` (BS.1770 K-weighted loudness, a soft peak limiter at −1 dBFS; the hum's loop length
+nudged to where its wave lines up, then crossfaded in phase — the level holds through the seam ±0.4 dB). Sources (Freesound, all
+**CC0**): 500693 *bolkmar* "neon tube light flickering" (flickers 1–2), 202612 *ludwigmueller* "fxlm neon lights flicker bathroom"
+(3–4), 351430 *kinoton* "neon lamp switch on hum" (power-on), 125064 *everydaysounds* "faulty fluorescent light starter hum"
+(dropout + hum). On the SFX bus at the files' own level × `NEON_GAIN` (1 — trim them all by ear there).
 
 **Fireworks** (`ambience.js#fireworkBurst({ delay, level })`): the finale's sound on the SFX bus — a soft low thump (a sine
 dropping 96 → 42 Hz with a little filtered body) and 10–18 tiny bright crackles over the next 1.5 s, panned about; quiet.
