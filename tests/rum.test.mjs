@@ -65,7 +65,7 @@ test('a day of actions: every trade, payment, deposit, upgrade and tip-off is ch
   const sale = applyAction(['t', 'rum', -5], { ...S, cargo: { ...S.cargo }, cost: { ...S.cost } }, { ...prices, rum: 150 });
   assert.equal(sale.profit, 250, 'profit on the sale from the average cost');
   assert.equal(S.dist, HOME);
-  assert.ok(applyAction(['p', 100], S, prices), 'Vale takes a payment at his office');
+  assert.ok(applyAction(['p', 100], S, prices), 'Balboni takes a payment at his office');
   assert.equal(S.debt, START_DEBT - 100);
   assert.ok(applyAction(['s', 200], S, prices), 'the stash in the Old Quarter');
   assert.equal(S.stash, 200);
@@ -73,7 +73,7 @@ test('a day of actions: every trade, payment, deposit, upgrade and tip-off is ch
   assert.ok(applyAction(['s', 5000], S, prices));
   assert.equal(S.stash, 200 + before, 'a deposit is capped at your cash'); assert.equal(S.cash, 0);
   S.dist = 'docks';
-  assert.equal(applyAction(['p', 100], S, prices), null, 'no paying Vale from the Docks');
+  assert.equal(applyAction(['p', 100], S, prices), null, 'no paying Balboni from the Docks');
   assert.equal(applyAction(['s', -10], S, prices), null, 'no stash at the Docks without the warehouse');
   S.upg.warehouse = true;
   assert.ok(applyAction(['s', -(200 + before)], S, prices), 'the warehouse: withdraw anywhere');
@@ -139,7 +139,7 @@ test('events: who they find, what the choices cost, and that the dice were cast 
   assert.equal(out.lost.rum, Math.ceil(40 * T.HIJACK.share));
   out = applyEvent({ t: 'hijack', dice: [0.9, 0, 0] }, 'floor', { ...S, cargo: { rum: 40 } }, day, prices);
   assert.ok(out.caught && out.lost.rum === Math.ceil(40 * T.HIJACK.share * 2));
-  // Vale's men
+  // Balboni's men
   const owing = { ...createState(), cash: 10000, debt: 20000 };
   out = applyEvent({ t: 'vale', dice: [0.9, 0, 0] }, 'stall', owing, day, prices);
   const take = Math.max(500, Math.round(10000 * T.EVENTS.vale.take));
@@ -172,7 +172,7 @@ test('arrival: interest compounds, the Heights charge a fee, the crooked cop tak
   assert.equal(S.cash, left - Math.min(UPGRADES.cop.fee, left));
   assert.equal(S.dist, 'heights');
   // dest validation in the replay: the Heights need the fee in hand
-  const poorLog = { 1: { a: [['p', START_CASH - 100]], dest: 'heights' } };   // paid Vale almost everything
+  const poorLog = { 1: { a: [['p', START_CASH - 100]], dest: 'heights' } };   // paid Balboni almost everything
   const R = replay(g, 'u0', poorLog, 1);
   assert.equal(R.hist[0].dest, HOME, 'can\'t afford the drive up the hill: stays');
 });

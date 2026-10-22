@@ -207,7 +207,7 @@ export function createCity(canvas, { reduced = false } = {}) {
     signs.push(m);
     const gl = new THREE.Sprite(keep(new THREE.SpriteMaterial({ map: glowTex(), color: m.material.color, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }))); gl.position.copy(m.position); gl.scale.set(4, 3, 1); scene.add(gl); signs.push(gl);
   }
-  // old quarter: gas lamps and Vale's office (a tall narrow building with a green-shaded window)
+  // old quarter: gas lamps and Balboni's office (a tall narrow building with a green-shaded window)
   const lampMat = keep(new THREE.SpriteMaterial({ map: glowTex(), color: 0xffb060, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
   for (let i = 0; i < 9; i++) { const s = SPOTS.quarter; const x = s.x - 6 + (i % 5) * 3, z = s.z - 4 + Math.floor(i / 5) * 7; addBox(0.1, 1.6, 0.1, x, 0.8, z, steel); const sp = new THREE.Sprite(lampMat); sp.position.set(x, 1.8, z); sp.scale.set(1.3, 1.3, 1); scene.add(sp); }
   const vale = addBox(2.6, 6.5, 2.6, SPOTS.quarter.x + 1, 3.25, SPOTS.quarter.z - 2.5, basic(0x2a1a1c, { emissive: 0x2fbf6a, emissiveIntensity: 0.08 }));

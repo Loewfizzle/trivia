@@ -640,14 +640,14 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 
 ### ✅ Stage 14 — RUMRUNNER (Prohibition trading, the city diorama) (Oct 2026) — `docs/rum.md`
 - [x] Rules first: six goods × six districts with tendencies, seeded daily prices, news spikes / crashes, rumours (70 % true),
-      weather with effects, a shared market moved by everyone's trades, Vale's compounding debt and his collectors, the stash,
+      weather with effects, a shared market moved by everyone's trades, Balboni's compounding debt and his collectors, the stash,
       six upgrades, tip-offs, the feds / hijackers / lucky finds with pre-rolled dice; a whole day replayed from a private log;
       whole-match tests at every length, the server replaying the whole city from the books (`verifyDays`)
 - [x] Host picks 15 / 20 / 30 days and a 30 / 45 / 60 s day; the day ends early when everyone's DONE; rejoin re-reads your
       logs; host migration repeats the night; late joiners watch
 - [x] The city: a three.js diorama (instanced buildings, towers, signs, lamps, cranes, trains, mansions, searchlights, rain, fog,
       lightning, the dawn of the last morning), trucks in player colours driving at dawn, the camera swooping into events; a
-      deco-gold glass UI: market cards with trends, BUY / SELL drawers, Vale's office with typed dialogue, the stash, the garage,
+      deco-gold glass UI: market cards with trends, BUY / SELL drawers, Balboni's office with typed dialogue, the stash, the garage,
       travel + TIP OFF; dawn / night cards; THE NEON GAZETTE drawn on canvas (saveable); the podium + THE LEDGER
 - [x] Music: the owner's run1–4 (calm pair first, then the driving pair, seeded per room), ducking for events, victory.mp3;
       rain / thunder / city / engine ambience, siren, register, typewriter, printing press, jazz stings

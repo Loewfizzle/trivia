@@ -7,27 +7,27 @@ import { GAMES } from '../config.js';
 // Each game: a one-line goal, then short scannable sections. Keep them phone-sized.
 const RULES = {
   rum: {
-    goal: 'Fifteen, twenty or thirty days in a neon-lit Prohibition city. Buy contraband cheap, sell it dear, dodge the feds, pay Mr. Vale. The biggest fortune at dawn wins.',
+    goal: 'Fifteen, twenty or thirty days in a neon-lit Prohibition city. Buy contraband cheap, sell it dear, dodge the feds, pay Mr. Balboni. The biggest fortune at dawn wins.',
     sections: [
       ['YOUR FIRST DAY (QUICK START)', [
-        'You wake up in the Old Quarter with a little cash, an empty truck and a debt to Mr. Vale.',
+        'You wake up in the Old Quarter with a little cash, an empty truck and a debt to Mr. Balboni.',
         'MARKET: buy what’s cheap here (moonshine). TRAVEL: pick a district where it sells higher. Tap DONE.',
-        'Next dawn you arrive; SELL, buy whatever is cheap there, drive on. Every few days, pay Vale at his office in the Old Quarter.',
+        'Next dawn you arrive; SELL, buy whatever is cheap there, drive on. Every few days, pay Balboni at his office in the Old Quarter.',
         'Prices in each district lean a certain way (listed under THE CITY). News and rumours tell you where the money is today and tomorrow.',
       ]],
       ['EVERY DAY', [
         'Dawn: the weather turns, and everyone’s truck arrives in the district they chose. Who’s in your district is your competition in that market.',
-        'Events may find you first — federal agents, hijackers, a lucky crate, a rumour, Vale’s men. One tap decides.',
-        'Trade in your district’s market, pay Vale (Old Quarter), use your stash, buy upgrades, tip off the feds.',
+        'Events may find you first — federal agents, hijackers, a lucky crate, a rumour, Balboni’s men. One tap decides.',
+        'Trade in your district’s market, pay Balboni (Old Quarter), use your stash, buy upgrades, tip off the feds.',
         'Pick where you drive tomorrow (secret until dawn) and tap DONE. The day ends early when everyone’s done; run out of time and what you’d set still counts — no destination means you stay put.',
       ]],
       ['THE CITY', [
         'THE DOCKS: cheap imports, fog, fed patrols. UPTOWN: rich buyers, watched. THE STRIP: big demand, wild prices.',
-        'OLD QUARTER: Vale’s office, cheap moonshine, gangland. RAIL YARD: bulk deals, hijackers. HARBOR HEIGHTS: the best luxury prices, a fee to get there.',
+        'OLD QUARTER: Balboni’s office, cheap moonshine, gangland. RAIL YARD: bulk deals, hijackers. HARBOR HEIGHTS: the best luxury prices, a fee to get there.',
         'Prices swing every day; news spikes them (×3–5) or crashes them (down to a quarter). Heavy buying or selling by players moves tomorrow’s price in that district.',
       ]],
       ['THE MONEY', [
-        'You start with a little cash, a truck for 100 units and a debt to Mr. Vale that grows every night. Pay any amount at his office.',
+        'You start with a little cash, a truck for 100 units and a debt to Mr. Balboni that grows every night. Pay any amount at his office.',
         'Let the debt run too high or too late and his men collect. The stash keeps cash safe from fines (Old Quarter, or anywhere with the Hidden Warehouse).',
         'Feds: RUN (fog helps, an armored truck helps), BRIBE (a cut of your cargo’s value, nearly always works) or DUMP THE CARGO.',
         'Unsold cargo at the end is worth nothing. Final fortune = cash + stash − debt.',

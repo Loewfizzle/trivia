@@ -1,5 +1,5 @@
 // RUMRUNNER — every line of flavour text: goods, districts, weather, upgrades, the news, rumours, event scenes and their
-// outcomes, Mr. Vale, and the newspaper at the end. Pure and deterministic: every "pick a variation" goes through the rng
+// outcomes, Mr. Balboni, and the newspaper at the end. Pure and deterministic: every "pick a variation" goes through the rng
 // `r()` the caller passes (seeded per match/day/player), so every phone shows the same line. Each picker calls r() exactly
 // once, and only picks among the variations that fit the length limit with these particular names and numbers.
 //
@@ -43,7 +43,7 @@ export const DISTRICT_TEXT = {
   docks: { name: 'THE DOCKS', the: 'the Docks', at: 'at the Docks', tagline: 'Fog, freighters, fed boats', blurb: 'Rum and cigars come in cheap off the boats. Federal patrols watch the piers closely.' },
   uptown: { name: 'UPTOWN', the: 'Uptown', at: 'Uptown', tagline: 'Old money, thirsty parties', blurb: 'Rich buyers pay well for whiskey and champagne. The feds keep a close eye on the avenues.' },
   strip: { name: 'THE STRIP', the: 'the Strip', at: 'on the Strip', tagline: 'Jazz, neon and wild prices', blurb: 'Nightclubs want everything, and prices swing wildly night to night. Fewer feds; anything goes.' },
-  quarter: { name: 'OLD QUARTER', the: 'the Old Quarter', at: 'in the Old Quarter', tagline: 'Mr. Vale’s side of town', blurb: 'Vale’s office and your safe stash. The cheapest moonshine in town; few feds, some hijackers.' },
+  quarter: { name: 'OLD QUARTER', the: 'the Old Quarter', at: 'in the Old Quarter', tagline: 'Mr. Balboni’s side of town', blurb: 'Balboni’s office and your safe stash. The cheapest moonshine in town; few feds, some hijackers.' },
   rail: { name: 'RAIL YARD', the: 'the Rail Yard', at: 'at the Rail Yard', tagline: 'Bulk deals by the boxcar', blurb: 'Gin and whiskey cheap by the boxcar, and the place to buy trucks. Hijackers love the dark.' },
   heights: { name: 'HARBOR HEIGHTS', the: 'Harbor Heights', at: 'in Harbor Heights', tagline: 'Mansions on the hill', blurb: 'The best prices for cigars and champagne, almost no feds. The drive up costs a $450 fee.' },
 };
@@ -149,12 +149,12 @@ const SCENES = {
     ],
   },
   vale: {
-    title: ['MR. VALE’S MEN', 'A FRIENDLY VISIT', 'COLLECTION DAY', 'VALE SENDS REGARDS'],
-    kicker: ['Two big men in good suits', 'Mr. Vale is a patient man', 'Somebody’s leaning on your truck', 'The debt has come calling'],
+    title: ['MR. BALBONI’S MEN', 'A FRIENDLY VISIT', 'COLLECTION DAY', 'BALBONI SENDS REGARDS'],
+    kicker: ['Two big men in good suits', 'Mr. Balboni is a patient man', 'Somebody’s leaning on your truck', 'The debt has come calling'],
     body: [
-      'Two very large gentlemen in very good suits lean on your truck {at}. Mr. Vale sends his regards{debtNote}.',
-      'A sedan pulls up beside you. The window rolls down. “Mr. Vale was wondering about his money{debtNote}.”',
-      'They find you {at}, as they always do. “Nothing personal. Mr. Vale just likes his books balanced{debtNote}.”',
+      'Two very large gentlemen in very good suits lean on your truck {at}. Mr. Balboni sends his regards{debtNote}.',
+      'A sedan pulls up beside you. The window rolls down. “Mr. Balboni was wondering about his money{debtNote}.”',
+      'They find you {at}, as they always do. “Nothing personal. Mr. Balboni just likes his books balanced{debtNote}.”',
       'A man with no neck and a gentle voice blocks your way. “The boss is patient. Not that patient{debtNote}.”',
     ],
   },
@@ -324,38 +324,38 @@ const OUT = {
     ],
   },
   'vale.pay': {
-    title: ['PAID UP', 'SQUARED AWAY', 'VALE IS PLEASED', 'GOOD FAITH'],
+    title: ['PAID UP', 'SQUARED AWAY', 'BALBONI IS PLEASED', 'GOOD FAITH'],
     body: [
-      'You hand over {paid}. The big men count it twice, nod once and leave. Mr. Vale will be pleased.',
-      '{paid} goes into an envelope with Mr. Vale’s name on it. “See? Nobody needs to get upset.”',
-      'You pay {paid}. One of them straightens your collar. “Mr. Vale appreciates a reliable man.”',
-      '{paid} to Mr. Vale, with your compliments. They tip their hats and melt into the dark.',
+      'You hand over {paid}. The big men count it twice, nod once and leave. Mr. Balboni will be pleased.',
+      '{paid} goes into an envelope with Mr. Balboni’s name on it. “See? Nobody needs to get upset.”',
+      'You pay {paid}. One of them straightens your collar. “Mr. Balboni appreciates a reliable man.”',
+      '{paid} to Mr. Balboni, with your compliments. They tip their hats and melt into the dark.',
     ],
   },
   'vale.pay.none': {
     title: ['EMPTY POCKETS', 'NOTHING TO GIVE', 'TOUGH LUCK'],
     body: [
-      'You turn out your pockets. Lint. They exchange a look. “Mr. Vale will hear about this.”',
+      'You turn out your pockets. Lint. They exchange a look. “Mr. Balboni will hear about this.”',
       'Not a cent to give. They sigh and leave. You get the feeling they’ll be back.',
       'You show them your empty wallet. “Next time,” one says. It doesn’t sound like a promise.',
     ],
   },
   'vale.stall.slide': {
-    title: ['A REPRIEVE', 'LET IT SLIDE', 'BORROWED TIME', 'MR. VALE IS PATIENT'],
+    title: ['A REPRIEVE', 'LET IT SLIDE', 'BORROWED TIME', 'MR. BALBONI IS PATIENT'],
     body: [
       'You talk fast and smile wide. They glance at each other. “The boss says one more day.”',
-      '“Tomorrow, I swear.” For reasons of his own, Mr. Vale lets it slide. This time.',
-      'A long silence. Then: “Mr. Vale is in a generous mood.” They leave. You breathe again.',
-      'You spin a fine tale about a big deal coming. They buy it. Mr. Vale will want to see it, though.',
+      '“Tomorrow, I swear.” For reasons of his own, Mr. Balboni lets it slide. This time.',
+      'A long silence. Then: “Mr. Balboni is in a generous mood.” They leave. You breathe again.',
+      'You spin a fine tale about a big deal coming. They buy it. Mr. Balboni will want to see it, though.',
     ],
   },
   'vale.stall.took': {
-    title: ['LEANED ON', 'A LESSON IN MANNERS', 'VALE’S PATIENCE ENDS', 'COLLECTED'],
+    title: ['LEANED ON', 'A LESSON IN MANNERS', 'NO MORE PATIENCE', 'COLLECTED'],
     body: [
-      'They don’t buy it. They take {took} from your wallet, and Mr. Vale adds 10% to the debt for the trouble.',
+      'They don’t buy it. They take {took} from your wallet, and Mr. Balboni adds 10% to the debt for the trouble.',
       'Wrong answer. You’re leaned on, gently, and {took} lighter. The debt grows 10% as a lesson.',
       '“The boss doesn’t like excuses.” They help themselves to {took}, and the debt climbs 10%.',
-      'They empty {took} from your pockets and smooth your lapels. Mr. Vale tacks on 10% interest.',
+      'They empty {took} from your pockets and smooth your lapels. Mr. Balboni tacks on 10% interest.',
     ],
   },
   'find.got': {
@@ -429,7 +429,7 @@ export function outcomeLine(out, ctx = {}, r) {
   return { title: pick(r, O.title), body: fit(r, O.body, v, 140) };
 }
 
-// ---------------------------------------------------------------- Mr. Vale (typed out line by line)
+// ---------------------------------------------------------------- Mr. Balboni (typed out line by line)
 const VALE = {
   intro: [
     ['Sit down, kid. I lent you {debt} to start your little enterprise.', 'Interest runs daily. I’m in the Old Quarter when you want to pay.', 'Don’t make me come looking.'],
@@ -450,9 +450,9 @@ const VALE = {
     ['Well, well. Every cent, on the table.', 'You have my respect. Don’t waste it.', 'Now get out there and make some money.'],
   ],
   collect: [
-    ['Mr. Vale sends his regards.', 'He’s been patient. Patience costs money.'],
+    ['Mr. Balboni sends his regards.', 'He’s been patient. Patience costs money.'],
     ['Don’t get up. This won’t take long.', 'The boss wants what’s his.'],
-    ['Nice truck. Shame if it went missing.', 'Mr. Vale would like a word about his money.'],
+    ['Nice truck. Shame if it went missing.', 'Mr. Balboni would like a word about his money.'],
     ['Evening. We were in the neighborhood.', 'Funny thing. So is your debt.', 'Let’s settle up.'],
   ],
   last: [
@@ -476,28 +476,28 @@ const MAIN = {
     deck: [
       'After {days} nights on the road, {W} ends with a fortune of {nw} — the biggest bankroll in the city.',
       'Rivals left in the dust as {W} closes the books on {nw}. {best}',
-      'Police baffled, Mr. Vale impressed: {W} finishes on top with {nw} to the good.',
-      '{W} rolls into dawn {nw} richer than the day Mr. Vale lent the money. {best}',
+      'Police baffled, Mr. Balboni impressed: {W} finishes on top with {nw} to the good.',
+      '{W} rolls into dawn {nw} richer than the day Mr. Balboni lent the money. {best}',
     ],
   },
   broke: {
-    head: ['NOBODY GETS RICH; {W} LOSES LEAST', '{W} LEAST BROKE IN BROKE TOWN', 'HARD TIMES: {W} SCRAPES BY', '{W} OWES VALE THE LEAST'],
+    head: ['NOBODY GETS RICH; {W} LOSES LEAST', '{W} LEAST BROKE IN BROKE TOWN', 'HARD TIMES: {W} SCRAPES BY', '{W} OWES BALBONI THE LEAST'],
     deck: [
       'A grim season for rumrunners. {W} finishes on {nw}, which counts as winning this year.',
       'Every crew in town ends in the red. {W}, at {nw}, ends in it least.',
-      'Mr. Vale collects from everyone. {W} gets off lightest, finishing on {nw}.',
+      'Mr. Balboni collects from everyone. {W} gets off lightest, finishing on {nw}.',
       'Not a dollar made in the whole city, but {W} lost fewer of them: {nw}.',
     ],
   },
 };
 const ITEMS = {
   flee: {
-    head: ['{N} FLEES TOWN OWING VALE {debt}', '{N} SKIPS TOWN ON THE MIDNIGHT TRAIN', 'WHERE IS {N}? VALE WANTS TO KNOW', '{N} LAST SEEN HEADED FOR CANADA', '{N} LEAVES TOWN IN A HURRY'],
+    head: ['{N} FLEES TOWN OWING BALBONI {debt}', '{N} SKIPS TOWN ON THE MIDNIGHT TRAIN', 'WHERE IS {N}? BALBONI WANTS TO KNOW', '{N} LAST SEEN HEADED FOR CANADA', '{N} LEAVES TOWN IN A HURRY'],
     body: [
-      'Neighbors report a packed suitcase and a hasty exit. Mr. Vale is owed {debt} and is said to be “disappointed.”',
-      'A ticket bought under a false name, a truck left at the station. Mr. Vale’s ledger still reads {debt}.',
-      'Last seen leaving with a hat pulled low. Fortune at the finish: {nw}. Mr. Vale’s men are asking around.',
-      'The rent is unpaid, the truck abandoned and Mr. Vale is still owed {debt}. Sources expect a long vacation.',
+      'Neighbors report a packed suitcase and a hasty exit. Mr. Balboni is owed {debt} and is said to be “disappointed.”',
+      'A ticket bought under a false name, a truck left at the station. Mr. Balboni’s ledger still reads {debt}.',
+      'Last seen leaving with a hat pulled low. Fortune at the finish: {nw}. Mr. Balboni’s men are asking around.',
+      'The rent is unpaid, the truck abandoned and Mr. Balboni is still owed {debt}. Sources expect a long vacation.',
     ],
   },
   tipster: {
@@ -555,11 +555,11 @@ const ITEMS = {
     ],
   },
   cleared: {
-    head: ['{N} SQUARES UP WITH VALE', '{N} PAYS VALE IN FULL', 'VALE TIPS HIS HAT TO {N}', 'DEBT-FREE {N} SLEEPS SOUNDLY'],
+    head: ['{N} SQUARES UP WITH BALBONI', '{N} PAYS BALBONI IN FULL', 'BALBONI TIPS HIS HAT TO {N}', 'DEBT-FREE {N} SLEEPS SOUNDLY'],
     body: [
-      '{paid} handed over to Mr. Vale, every cent. {N} walks the streets debt-free with {nw}.',
-      'Mr. Vale confirms the account is closed. {N} paid {paid} in all and ends on {nw}.',
-      'Not a dollar owed in the Old Quarter: {N} paid {paid} to Mr. Vale and kept {nw}.',
+      '{paid} handed over to Mr. Balboni, every cent. {N} walks the streets debt-free with {nw}.',
+      'Mr. Balboni confirms the account is closed. {N} paid {paid} in all and ends on {nw}.',
+      'Not a dollar owed in the Old Quarter: {N} paid {paid} to Mr. Balboni and kept {nw}.',
       'The ledger is clean. {N} settled {paid} of debt, and the big men are all smiles.',
     ],
   },
@@ -594,7 +594,7 @@ const ITEMS = {
     head: ['{N} KEEPS HEAD DOWN', '{N} FINISHES ON {nw}', 'QUIET SEASON FOR {N}', '{N} LIVES TO RUN ANOTHER DAY'],
     body: [
       'No scandals, no headlines, just {trades} trades and a fortune of {nw}. {N} likes it that way.',
-      '{N} worked the city quietly and closes the season on {nw}. Mr. Vale has no complaints.',
+      '{N} worked the city quietly and closes the season on {nw}. Mr. Balboni has no complaints.',
       'A steady hand: {trades} deals made, no trouble worth printing. Final fortune: {nw}.',
       'Ask around about {N} and folks shrug. That’s the mark of a pro. Ends on {nw}.',
     ],

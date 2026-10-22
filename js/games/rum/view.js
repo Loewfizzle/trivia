@@ -2,7 +2,7 @@
 //
 // Layers: the city canvas (full screen; the camera frames the diorama in the rectangle the panels leave free) → district
 // labels (projected each frame, transforms only) → the top bar (day, weather, where you are, the day timer) → the live
-// net-worth board → the panel (the morning, the market / Vale / the stash / the garage / travel, DONE) → overlays: events
+// net-worth board → the panel (the morning, the market / Balboni / the stash / the garage / travel, DONE) → overlays: events
 // (the camera swoops into your district, then a choice card), the dawn and night cards, the newspaper, the podium.
 // Everything renders from state + your own private logs: a refresh re-reads your logs and continues the same day.
 import { h, reducedMotion, vibrate } from '../../ui/dom.js';
@@ -222,7 +222,7 @@ export function createView() {
     if (game.phase !== 'final') { root.classList.remove('is-paper'); }
   }
 
-  // ---- intro: the title and Vale's welcome
+  // ---- intro: the title and Balboni's welcome
   function showIntro() {
     const lines = valeLines('intro', { debt: START_DEBT }, rngFor('intro'));
     els.card.replaceChildren(h('div.rr-intro',
@@ -232,7 +232,7 @@ export function createView() {
       h('div.rr-primer',
         h('div.rr-primer-s', h('b', '1'), h('span', 'BUY contraband where it’s cheap')),
         h('div.rr-primer-s', h('b', '2'), h('span', 'DRIVE to a district that pays more and SELL')),
-        h('div.rr-primer-s', h('b', '3'), h('span', 'PAY Mr. Vale at his office before his men come')),
+        h('div.rr-primer-s', h('b', '3'), h('span', 'PAY Mr. Balboni at his office before his men come')),
         h('button.btn.btn-ghost.btn-sm.rr-howto', { type: 'button', onclick: () => openHelp('rum') }, 'HOW TO PLAY'))));
     typeLines(els.card.querySelector('.rr-vale-lines'), lines, 26);
     root.classList.add('is-card');
@@ -306,11 +306,11 @@ export function createView() {
       for (const e of H.events) if (e.t === 'vale' && e.paid) paid += e.paid;
       if (sold) rows.push(['SOLD', fmt$(sold)]);
       if (bought) rows.push(['BOUGHT', fmt$(bought)]);
-      if (paid) rows.push(['PAID VALE', fmt$(paid)]);
+      if (paid) rows.push(['PAID BALBONI', fmt$(paid)]);
       const prevNw = d > 1 && game.nwh && game.nwh[d - 1] ? game.nwh[d - 1][me()] : NW0;
       rows.push(['NET WORTH', `${fmt$(H.nw)} (${H.nw - prevNw >= 0 ? '+' : '−'}${fmt$(Math.abs(H.nw - prevNw))})`]);
       if (d < game.settings.days) rows.push(['TOMORROW', DISTRICT_TEXT[H.dest || H.dist].name + (H.dest && H.dest !== H.dist ? '' : ' (STAYING)')]);
-      if (d < game.settings.days && R.S.debt > 0) rows.push(['VALE’S INTEREST', `+${fmt$(Math.round(R.S.debt * interestRate(game.settings.days)))} tonight`]);
+      if (d < game.settings.days && R.S.debt > 0) rows.push(['BALBONI’S INTEREST', `+${fmt$(Math.round(R.S.debt * interestRate(game.settings.days)))} tonight`]);
     }
     els.card.replaceChildren(h('div.rr-night',
       h('div.rr-night-t', d >= game.settings.days ? 'LAST CALL' : 'THE CITY SLEEPS'),
@@ -364,7 +364,7 @@ export function createView() {
     if (out.caught || out.took) { vibrate([30, 40, 30]); sfx.low(); } else if (out.ok || out.got || out.bought || out.slide || out.paid) { sfx.coins(3); } else sfx.tap();
     if (out.t === 'feds' && out.ok) sfx.drive(true), later('drive', 1400, () => sfx.drive(false));
     const lost = out.lost && Object.keys(out.lost).length ? h('div.rr-out-lost', ...Object.entries(out.lost).map(([g, n]) => h('span', `−${n} ${GOOD_TEXT[g].short}`))) : null;
-    const money = out.fine ? h('div.rr-out-money.is-bad', `−${fmt$(out.fine)} fine`) : out.bribe ? h('div.rr-out-money.is-bad', `−${fmt$(out.bribe)}`) : out.took ? h('div.rr-out-money.is-bad', `−${fmt$(out.took)}`) : out.paid ? h('div.rr-out-money', `−${fmt$(out.paid)} to Vale`) : out.price ? h('div.rr-out-money', `−${fmt$(out.price)}`) : null;
+    const money = out.fine ? h('div.rr-out-money.is-bad', `−${fmt$(out.fine)} fine`) : out.bribe ? h('div.rr-out-money.is-bad', `−${fmt$(out.bribe)}`) : out.took ? h('div.rr-out-money.is-bad', `−${fmt$(out.took)}`) : out.paid ? h('div.rr-out-money', `−${fmt$(out.paid)} to Balboni`) : out.price ? h('div.rr-out-money', `−${fmt$(out.price)}`) : null;
     els.event.replaceChildren(h('div.rr-ev.is-out', { 'data-t': ev.t, 'data-ok': out.ok || out.got || out.slide || out.bought ? '1' : out.caught || out.took ? '0' : '' },
       h('div.rr-ev-t', line.title), h('div.rr-ev-b', line.body), lost, money,
       h('button.rr-choice.is-go', { type: 'button', onclick: () => { my.showing = null; maybeEvent(); renderPanel(); } }, h('b', my.events[i + 1] ? 'NEXT' : 'TO BUSINESS'))));
@@ -513,7 +513,7 @@ export function createView() {
       h('div.rr-w.rr-w-cargo', h('span', 'CARGO'), h('b', `${units(S)}/${S.cap}`), h('i.rr-cap', h('i', { style: { transform: `scaleX(${Math.min(1, units(S) / S.cap)})` } }))));
     if (ph !== 'day') {
       // dawn / night / intro: the wallet and a line
-      const line = ph === 'dawn' ? `ARRIVING ${DISTRICT_TEXT[myDist()].at.toUpperCase()}` : ph === 'night' ? 'THE DAY IS DONE' : 'MR. VALE IS WAITING';
+      const line = ph === 'dawn' ? `ARRIVING ${DISTRICT_TEXT[myDist()].at.toUpperCase()}` : ph === 'night' ? 'THE DAY IS DONE' : 'MR. BALBONI IS WAITING';
       setPanel(`${ph}|${game.day}|${fortune(S)}|${units(S)}`, () => [wallet, h('div.rr-panel-line', line)]);
       return;
     }
@@ -526,7 +526,7 @@ export function createView() {
       return;
     }
     const tabs = [['market', 'MARKET']];
-    if (valeHere(S)) tabs.push(['vale', 'VALE']);
+    if (valeHere(S)) tabs.push(['vale', 'BALBONI']);
     if (stashHere(S)) tabs.push(['stash', 'STASH']);
     if (upgradesHere(S, S.dist).length) tabs.push(['garage', 'GARAGE']);
     if (game.day < game.settings.days) tabs.push(['travel', 'TRAVEL']);
@@ -600,7 +600,7 @@ export function createView() {
         h('button.rr-mini.is-ghost', { type: 'button', onclick: () => { my.open = null; renderPanel(); } }, 'CANCEL'),
         h('button.rr-mini.is-go', { type: 'button', onclick: () => { const n = o.n; my.open = null; act(['t', g, o.dir > 0 ? n : -n]); } }, o.dir > 0 ? 'BUY' : 'SELL')));
   }
-  // ---- Mr. Vale's office
+  // ---- Mr. Balboni's office
   function renderVale(S) {
     const kind = S.debt <= 0 ? 'cleared' : game.day >= game.settings.days ? 'last' : 'office';
     const lines = valeLines(kind, { debt: S.debt }, rngFor('office', my.typed === kind ? 'x' : 'y'));
@@ -617,7 +617,7 @@ export function createView() {
         h('div.rr-trade-q',
           h('button.rr-mini', { type: 'button', onclick: () => { o.n = Math.round(o.max / 2); el.querySelector('.rr-trade-n').textContent = fmt$(o.n); el.querySelector('input').value = o.n; } }, '½'),
           h('button.rr-mini', { type: 'button', onclick: () => { o.n = o.max; el.querySelector('.rr-trade-n').textContent = fmt$(o.n); el.querySelector('input').value = o.n; } }, S.cash >= S.debt ? 'ALL OF IT' : 'ALL I HAVE'),
-          h('button.rr-mini.is-go', { type: 'button', onclick: () => { const n = o.n; my.open = null; act(['p', n]); } }, 'PAY VALE')))
+          h('button.rr-mini.is-go', { type: 'button', onclick: () => { const n = o.n; my.open = null; act(['p', n]); } }, 'PAY BALBONI')))
         : S.debt > 0 ? h('div.rr-panel-line', 'No cash to pay him with. Sell something first.') : null);
     if (my.typed !== kind) { my.typed = kind; typeLines(box.querySelector('.rr-vale-lines'), lines, 22); }
     else lines.forEach(l => box.querySelector('.rr-vale-lines').append(h('p', l)));
@@ -628,7 +628,7 @@ export function createView() {
     const o = my.open && my.open.g === 'stash' ? my.open : (my.open = { g: 'stash', dir: 1, n: S.cash, max: S.cash });
     o.max = o.dir > 0 ? S.cash : S.stash; o.n = Math.max(0, Math.min(o.n, o.max));
     const el = h('div.rr-stashp',
-      h('div.rr-debt', h('span', 'IN THE STASH'), h('b', fmt$(S.stash)), h('i', 'Safe from fines and Vale’s men. Counts in your fortune.')),
+      h('div.rr-debt', h('span', 'IN THE STASH'), h('b', fmt$(S.stash)), h('i', 'Safe from fines and Balboni’s men. Counts in your fortune.')),
       h('div.rr-tabs.is-sub', h('button.rr-tab', { type: 'button', class: o.dir > 0 ? 'is-on' : '', onclick: () => { o.dir = 1; o.n = S.cash; renderPanel(); } }, 'DEPOSIT'), h('button.rr-tab', { type: 'button', class: o.dir < 0 ? 'is-on' : '', onclick: () => { o.dir = -1; o.n = S.stash; renderPanel(); } }, 'WITHDRAW')),
       o.max > 0 ? h('div.rr-trade',
         h('div.rr-trade-top', h('span', o.dir > 0 ? 'DEPOSIT' : 'WITHDRAW'), h('b.rr-trade-n', fmt$(o.n))),
@@ -699,7 +699,7 @@ export function createView() {
     root.classList.remove('is-paper');
     const rows = standings(game).map(r => ({ uid: r.uid, rank: r.rank, score: r.nw, label: fmt$(r.nw) }));
     const story = (my.paper && my.paper.story) || matchStory(game);
-    const report = reportPanel({ prefix: 'rr', title: 'THE LEDGER', head: ['PLACE', 'FORTUNE', 'BEST TRADE', 'RAIDS', 'PAID VALE'],
+    const report = reportPanel({ prefix: 'rr', title: 'THE LEDGER', head: ['PLACE', 'FORTUNE', 'BEST TRADE', 'RAIDS', 'PAID BALBONI'],
       rows: standings(game).map(r => { const s = story[r.uid] || {}; const p = st.players[r.uid] || {}; return { uid: r.uid, name: p.name || '—', color: p.color || 'cyan', me: r.uid === me(), cells: [r.rank, fmt$(r.nw), s.best ? `+${fmt$(s.best.profit)}` : '—', `${s.caught || 0}/${s.raids || 0}`, fmt$(s.paid || 0)] }; }), calls: null, player: null, showCalls: false });
     finalView = createFinal({ rows, players: st.players, me: me(), presence: st.presence, winnerLine: name => `${name} owns the town`, scoreLabel: 'FORTUNE', kicker: 'THE MORNING AFTER', extra: report });
     els.final.replaceChildren(finalView.el);

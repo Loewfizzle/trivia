@@ -125,7 +125,7 @@ test('outcomes: every case within limits, several variations', () => {
   assert.match(outcomeLine({ t: 'feds', choice: 'run', caught: true, fine: 900, lost: { rum: 12 } }, { goodNames }, rngFrom('z')).body, /12 bottles of rum/);
 });
 
-test('Mr. Vale: every kind, 2–3 lines ≤ 70 chars, ≥ 4 variations', () => {
+test('Mr. Balboni: every kind, 2–3 lines ≤ 70 chars, ≥ 4 variations', () => {
   for (const kind of ['intro', 'office', 'cleared', 'collect', 'last']) {
     const seen = new Set();
     for (const r of seeds(`v${kind}`)) {

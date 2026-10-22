@@ -2,7 +2,7 @@
 // length, reporting what js/games/rum/tuning.js should be balanced against.
 //   node scripts/sim-rum.mjs [--days 15|20|30|all] [--n 200]
 // Each match seats six bots (trader, careful, gambler, random, idle, mean). The trader's seat is replayed with variants on
-// the same seeds (no upgrades / every upgrade / never the Heights / never pays Mr. Vale) to price those choices; a set of
+// the same seeds (no upgrades / every upgrade / never the Heights / never pays Mr. Balboni) to price those choices; a set of
 // 8-player matches measures the first-to-last spread.
 import { playMatch } from '../js/games/rum/bot.js';
 import { replay, GOOD_IDS, DIST_IDS, units, cargoValue } from '../js/games/rum/logic.js';

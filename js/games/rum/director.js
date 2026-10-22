@@ -1,6 +1,6 @@
 // RUMRUNNER — the pure director: intro → (dawn → day → night) × days → final.
 //   dawn:  the day and its weather are revealed; everyone's truck arrives where they chose (7.2 s; 5.2 s on day 1)
-//   day:   events, trading, paying Vale, the stash, upgrades, tip-offs, the destination; the host's timer (30/45/60 s),
+//   day:   events, trading, paying Balboni, the stash, upgrades, tip-offs, the destination; the host's timer (30/45/60 s),
 //          over early once every connected player has tapped DONE (public flags in rrpub/{m}/{d}/{uid})
 //   night: the host reads everyone's private day logs (rrp/, readable by the host only now) and writes tomorrow:
 //          prices moved by the day's trades, arrivals, who was tipped off, the net worths — or the books and the final

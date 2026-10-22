@@ -9,7 +9,7 @@
 //   · sell what is priced above that value; buy what is priced well below it (greedy on expected profit, so a cash-poor
 //     bot buys cheap goods and a cap-bound one buys champagne)
 //   · drive where tomorrow looks best: a few sampled tomorrows per district, played with the same sell/buy rules, minus
-//     the road's risk for the load and the Heights' fee, plus rumours and Mr. Vale
+//     the road's risk for the load and the Heights' fee, plus rumours and Mr. Balboni
 //   · pick the event choice with the best expected value (weighted by the bot's fear of losses)
 //   · buy an upgrade when its expected saving (or extra room) over the days left beats its price
 import { rngFrom } from '../../core/rng.js';
@@ -174,7 +174,7 @@ export function botDay(game, uid, logs, strategy, seedExtra = '', flags = {}) {
     const quick = P.quickSell && S.cost[g] > 0 && prices[g] >= S.cost[g] * P.quickSell;   // thin margins: any profit will do
     if (quick || prices[g] >= holdValue(g, left, P) * (left ? rumorK[g] || 1 : 1)) act(['t', g, -n]);
   }
-  // Mr. Vale (at home): pay once the cash can spare it, and before his men come calling
+  // Mr. Balboni (at home): pay once the cash can spare it, and before his men come calling
   const overdueAt = Math.ceil(days * T.EVENTS.vale.overdue);
   if (valeHere(S) && S.debt > 0 && !flags.noPay) {
     let pay = 0;
@@ -188,7 +188,7 @@ export function botDay(game, uid, logs, strategy, seedExtra = '', flags = {}) {
     const price = upgradePrice(id);
     if (S.cash >= price && wantsUpg(id, S.cash - price)) act(['u', id]);
   }
-  // the stash: the careful bot banks some of what it has (out of reach of fines and Vale's men)
+  // the stash: the careful bot banks some of what it has (out of reach of fines and Balboni's men)
   if (strategy === 'careful' && stashHere(S)) {
     if (d < days && S.cash > 40000) act(['s', Math.floor(S.cash * 0.2)]);
     if (d >= days && S.stash > 0) act(['s', -S.stash]);
@@ -216,7 +216,7 @@ export function botDay(game, uid, logs, strategy, seedExtra = '', flags = {}) {
 /** The expected value of buying upgrade id now (positive: worth it), for a bot with `cash` left after paying. */
 function upgradeWorth(id, S, cash, left, P, scale) {
   const U = UPGRADES[id], price = upgradePrice(id);
-  if (left < 2 || id === 'warehouse') return -1;              // a stash anywhere: only Vale's men and fines care
+  if (left < 2 || id === 'warehouse') return -1;              // a stash anywhere: only Balboni's men and fines care
   const load = Math.max(0, cash) + cargoValue(S, null);       // what the truck carries, roughly
   if (U.cap && P.truckAt) return cash >= price * (P.truckAt - 1) ? 1 : -1;
   if (U.cap) {
@@ -263,7 +263,7 @@ function destination(S, left, P, rumors, scale, days, d, flags, r, wantsUpg) {
     let v = tot / K;
     v -= lossRate(D, S.upg, scale) * held * P.risk;           // the road's risk for the load
     if (Dd.fee && D !== S.dist) v -= Dd.fee;
-    // Mr. Vale: a visit home once his men are due and the cash can cover him
+    // Mr. Balboni: a visit home once his men are due and the cash can cover him
     if (D === HOME && S.debt > 0 && !flags.noPay && !(P.lateVale && d < days * 0.55)) {
       const overdueAt = Math.ceil(days * T.EVENTS.vale.overdue);
       const liquid = S.cash + held;

@@ -27,7 +27,7 @@ export const DISTRICT_ICONS = {
   heights: S('<path d="M3 21l9-9 9 9"/><path d="M8 16v5h8v-5"/><path d="M10.5 21v-3h3v3"/><path d="M15 9V6h2v5"/>'),
 };
 
-// Mr. Vale: a backlit doorway, a fedora and shoulders in silhouette, the ember of his cigar
+// Mr. Balboni: a backlit doorway, a fedora and shoulders in silhouette, the ember of his cigar
 export const VALE_SVG = `<svg viewBox="0 0 54 64" aria-hidden="true"><defs>
   <linearGradient id="rrv-door" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0c75e" stop-opacity="0.55"/><stop offset="0.6" stop-color="#8a4a2a" stop-opacity="0.35"/><stop offset="1" stop-color="#1a0a0e" stop-opacity="0.9"/></linearGradient>
   <radialGradient id="rrv-ember" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff0c0"/><stop offset="0.3" stop-color="#ff7a30"/><stop offset="1" stop-color="#ff7a30" stop-opacity="0"/></radialGradient>

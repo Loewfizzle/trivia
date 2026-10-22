@@ -16,7 +16,7 @@ server-verified results and THE BOARD.
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|
-| 12 | **RUMRUNNER** | Prohibition trading (a modern Drug Wars): everyone in the same neon city, day by day — buy contraband cheap in one district, sell high in another, dodge the feds, pay off Mr. Vale, tip off rivals; a shared market, weather, upgrades, the stash; a 3D diorama city; the end-of-game front page of THE NEON GAZETTE. 15 / 20 / 30 days. | deco gold and burgundy, a city of neon in the rain | ✅ Stage 14 |
+| 12 | **RUMRUNNER** | Prohibition trading (a modern Drug Wars): everyone in the same neon city, day by day — buy contraband cheap in one district, sell high in another, dodge the feds, pay off Mr. Balboni, tip off rivals; a shared market, weather, upgrades, the stash; a 3D diorama city; the end-of-game front page of THE NEON GAZETTE. 15 / 20 / 30 days. | deco gold and burgundy, a city of neon in the rain | ✅ Stage 14 |
 | 11 | **HIGH STAKES** | Wager trivia in the high-roller back room: see only the category and difficulty, bet chips in secret, then answer. MEDIUM pays 1×, HARD 2×, DOUBLE DOWN doubles it; house loans that come off your total; an ALL IN final revealed last place to first. | emerald felt and gold under a single lamp | ✅ Stage 13 |
 | 1 | **CIPHER BREACH** | Competitive Wordle race; opponents' boards live as color-only tiles; word length grows. | terminal green / cyan | ✅ Stage 1 |
 | 2 | **NEURAL BLUFF** | Bluffing trivia: write a convincing lie, find the truth among everyone's lies, score for fooling friends. 356 hand-written strange-but-true questions. | cold "Ministry of Truth" dossiers | ✅ Stage 3 |

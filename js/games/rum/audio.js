@@ -3,9 +3,9 @@
 //   thunder    a low rumble when the sky flashes
 //   siren      a two-tone wail for the feds
 //   register   ka-ching: the sale rung up          coins   a few clinks (small trades, payments)
-//   type       a typewriter key (Vale's lines)     ding    the carriage bell
+//   type       a typewriter key (Balboni's lines)     ding    the carriage bell
 //   press      the printing press (looping thumps) rustle  a newspaper shaken open
-//   sting      a short jazz brass accent (big events)       low   an ominous low accent (Vale's men, hijackers)
+//   sting      a short jazz brass accent (big events)       low   an ominous low accent (Balboni's men, hijackers)
 //   done       the day locked in                   tick    the last seconds
 //   drive      engine on (start / stop)
 import { getContext, getSfxBus } from '../../audio/engine.js';

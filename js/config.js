@@ -59,7 +59,7 @@ export const AVATAR_IDS = Object.keys(AVATARS);
 
 // Game registry metadata (UI + availability). Logic lives in js/games/<id>/.
 export const GAMES = [ // lobby order
-  { id: 'rum', name: 'RUMRUNNER', theme: 'rum', tag: 'PROHIBITION TRADING', blurb: 'Buy low at the Docks, sell high Uptown. Dodge the feds. Pay Mr. Vale. Richest at dawn wins.', playable: true },
+  { id: 'rum', name: 'RUMRUNNER', theme: 'rum', tag: 'PROHIBITION TRADING', blurb: 'Buy low at the Docks, sell high Uptown. Dodge the feds. Pay Mr. Balboni. Richest at dawn wins.', playable: true },
   { id: 'stakes', name: 'HIGH STAKES', theme: 'stakes', tag: 'WAGER TRIVIA', blurb: 'See the category. Bet your chips. Then the question. Know what you know.', playable: true },
   { id: 'gridlock', name: 'GRIDLOCK', theme: 'gridlock', tag: 'FLEET BATTLE', blurb: 'Place your fleet. Call your shots. Last fleet standing.', playable: true },
   { id: 'slip', name: 'SLIPSTREAM', theme: 'slip', tag: 'SURVIVAL RIDE', blurb: 'One seeded course, everyone at once. Dive, fly, flip. Last rider riding wins.', playable: true },

@@ -3,13 +3,13 @@
 //
 // The idea: everything that happens to a player is DERIVED by replaying their private day logs against the public day
 // records (prices, weather, news, arrivals) with seeded dice. A log says only what the player chose — which option in an
-// event, which trades in which order, how much they paid Vale, what they stashed, what they bought, whom they tipped off,
+// event, which trades in which order, how much they paid Balboni, what they stashed, what they bought, whom they tipped off,
 // where they drive next. The dice for their events are seeded by (match, player, day), so the outcome of "RUN" was decided
 // before they chose it, and anyone (another client that became host, the server) replays the same match to the cent.
 //
 //   day record  game.days[d] = { w, f, news[], p: { dist: { good: price|0 } }, at: { uid: dist }, hot: { uid: true } }
 //   day log     rrp/{code}/{m}/{uid}/{d} = { ev: { i: choice }, a: [[type, ...args]], dest, at }
-//                 a: ['t', good, ±units] trade · ['p', amount] pay Vale · ['s', ±amount] stash · ['u', id] upgrade · ['x', uid] tip off
+//                 a: ['t', good, ±units] trade · ['p', amount] pay Balboni · ['s', ±amount] stash · ['u', id] upgrade · ['x', uid] tip off
 //   state       { cash, stash, debt, cargo: { good: units }, cost: { good: avg paid }, cap, upg: { id: true }, dist }
 //
 // Two seeds: the CITY seed (matchId + a per-match secret only the host holds until the final — prices, news, weather and
@@ -25,7 +25,7 @@ export const DIST_IDS = DISTRICTS.map(d => d.id);
 export const GOOD = Object.fromEntries(GOODS.map(([id, name, lo, hi]) => [id, { id, name, lo, hi }]));
 export const DIST = Object.fromEntries(DISTRICTS.map(d => [d.id, d]));
 export const WEATHERS = ['clear', 'rain', 'fog', 'storm'];
-export const HOME = 'quarter';                      // day 1: everyone wakes up in the Old Quarter, owing Mr. Vale
+export const HOME = 'quarter';                      // day 1: everyone wakes up in the Old Quarter, owing Mr. Balboni
 export const DEFAULT_SETTINGS = { days: 20, daySec: 45 };
 export const MS = { intro: 5200, dawn: 7200, dawn1: 5200, night: 3600 };
 export const MAX_ACTS = 60;                        // actions a day (the rules allow two digits; the view refuses past this)
@@ -150,7 +150,7 @@ export function rollEvents(seed, uid, d, S, day, days) {
   const D = DIST[S.dist];
   const fx = weatherFx(day.w);
   const carrying = units(S) > 0;
-  // Mr. Vale's men: the debt is too high, or overdue
+  // Mr. Balboni's men: the debt is too high, or overdue
   const V = T.EVENTS.vale;
   const overdue = S.debt > 0 && (S.debt > V.over * START_DEBT || d > Math.ceil(days * V.overdue));
   const rv = r();

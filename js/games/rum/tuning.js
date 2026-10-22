@@ -6,7 +6,7 @@ export const START_DEBT = 5500;
 export const START_CAP = 100;
 export const LENGTHS = [15, 20, 30];
 
-// Mr. Vale's daily interest (compounding at the start of each day after the first), by game length
+// Mr. Balboni's daily interest (compounding at the start of each day after the first), by game length
 export const INTEREST = { 15: 0.06, 20: 0.05, 30: 0.045 };   // was 7.5 / 6 %: the first five days were a treadmill; idle still ends deep in the red
 
 // the six goods: [id, name, low, high] — the daily price lives between low and high before district, events and the market

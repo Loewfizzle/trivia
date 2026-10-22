@@ -31,7 +31,7 @@ await H.run(async () => {
   ok(g0.days && g0.days[1] && DIST_IDS.every(d => g0.days[1].p[d] && Object.values(g0.days[1].p[d]).filter(Boolean).length >= 3), 'day 1: prices in all six districts, three goods on sale at least');
   ok(Object.values(g0.days[1].at).every(d => d === HOME), 'everyone wakes up in the Old Quarter');
   await pages[0].waitForSelector('.rr-city', { timeout: 15000 });
-  ok(await pages[0].$('.rr-intro'), 'the intro: RUMRUNNER and Mr. Vale\'s welcome');
+  ok(await pages[0].$('.rr-intro'), 'the intro: RUMRUNNER and Mr. Balboni\'s welcome');
   await waitPhase(host, 'dawn', 1, 'the first dawn', 20000);
   ok(await pages[0].$('.rr-dawn'), 'the dawn card');
   if (!FAST) await H.shot(pages[0], 'rr-01-dawn-390x844');
