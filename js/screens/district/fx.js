@@ -149,14 +149,17 @@ export function createFx() {
         const r = Math.min(26, Math.max(15, W * 0.035));
         const p = moonPlace(L, r, s.signRect, s.moonArch);
         const a = P.moonA * clamp01((L.moon.el + 2) / 5) * (0.35 + 0.65 * clamp01(L.moon.illum * 4)) * (s.moonVeil == null ? 1 : s.moonVeil);
-        if (L.clear && dark > 0.4) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 * a * dark; c.drawImage(glow([200, 210, 255]), p.x - r * 5, p.y - r * 5, r * 10, r * 10); c.globalCompositeOperation = 'source-over'; }
-        c.globalAlpha = a * (0.55 + 0.45 * dark);
         // a lunar eclipse (real dates, core/sky.js#eclipseAt): the earth's shadow crossing, the moon copper-red in totality
         const ec = s.force.has('eclipse') ? { p: ((t % 36) / 36) * 2 - 1, mag: 1.25 } : L.eclipse;
+        // CITY 2.0 only (s.moonArt: screens/harbor/moon.js — City 1.0 never passes it): the Harbor's own moon at this place
+        if (s.moonArt) { const rr = s.moonArt(c, { x: p.x, y: p.y, r, a, ec, L, dark }); s.moonAt = { x: p.x, y: p.y, r: rr || r }; } else {
+        if (L.clear && dark > 0.4) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 * a * dark; c.drawImage(glow([200, 210, 255]), p.x - r * 5, p.y - r * 5, r * 10, r * 10); c.globalCompositeOperation = 'source-over'; }
+        c.globalAlpha = a * (0.55 + 0.45 * dark);
         if (ec) c.drawImage(eclipsed(L.moon.phase, r, ec), p.x - r * 1.23, p.y - r * 1.23, r * 2.46, r * 2.46);
         else c.drawImage(moonSprite(L.moon.phase), p.x - r * 1.23, p.y - r * 1.23, r * 2.46, r * 2.46);
         c.globalAlpha = 1;
         s.moonAt = { x: p.x, y: p.y, r };
+        }
         // tapped: a soft swell of light and a few sparkles circling it
         if (shimmer > 0) {
           shimmer = Math.max(0, shimmer - dt / 1600);
@@ -173,7 +176,8 @@ export function createFx() {
       } else s.moonAt = null;
       lastMoon = s.moonAt;
       // the aurora: slow curtains of green and violet light over the skyline
-      if (L.aurora || s.force.has('aurora')) aurora(c, t, CAPS[tier].aurora, motion, dark || 1);
+      // (CITY 2.0 only: s.auroraArt — the Harbor's own curtains on its own nights: screens/harbor/moon.js; City 1.0 never passes it)
+      if (L.aurora || s.force.has('aurora')) { if (s.auroraArt) s.auroraArt(c, s); else aurora(c, t, CAPS[tier].aurora, motion, dark || 1); }
       // shooting stars (a rare one any clear night, many on a shower's peak)
       const rate = (s.force.has('meteor') ? 8 : L.meteors) * (motion ? 1 : 0);
       if (rate && Math.random() < (rate / 60) * (dt / 1000)) meteors.push({ x: W * (0.1 + Math.random() * 0.8), y: HZ * (0.05 + Math.random() * 0.3), a: Math.PI * (0.62 + Math.random() * 0.16) * (Math.random() < 0.5 ? 1 : -1) + (Math.random() < 0.5 ? 0 : Math.PI), v: 520 + Math.random() * 420, life: 0, max: 0.55 + Math.random() * 0.5 });

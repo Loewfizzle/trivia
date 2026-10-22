@@ -176,11 +176,13 @@ function crownPath(t, tr) {
 // sunburst's sign, the wheel, the HOTEL blade breathe), never on the construction tower's spot (wordV, behind JAZZ); the
 // billboard is half as big again (66×32) on the left near band's wall.
 export const SPOTS = [
-  { id: 'n-sunburst', kind: 'named', type: 'vbox', host: 'sunburst', x: [244, 255], y: [385, 468], z: 257.4, cap: 10 },
   { id: 'n-roof', kind: 'named', type: 'box', host: 'near', mount: 'roof', x: [23, 71], y: [458, 478], z: 240, cap: 9 },
   { id: 'n-par', kind: 'named', type: 'vbox', host: 'par', x: [294.5, 305], y: [494, 545], z: 233.6, cap: 6 },
   { id: 'n-empire', kind: 'named', type: 'vbox', host: 'empire', x: [38, 49], y: [418, 455], z: 265.4, cap: 5 },
-  { id: 'hotel', kind: 'fixed', type: 'vbox', host: 'hotel', text: 'HOTEL', col: [255, 72, 64], x: [253, 263], y: [478, 536], z: 229.4 },
+  // Part 6a (the owner's SIGN PLACEMENT RULE: no sign covers a hero tower's face or outline): the sunburst's named sign is gone
+  // and the HOTEL blade with it (its thin letters didn't read) — THE GAME BLADE takes the hotel's spot: a projecting vertical
+  // cabinet with chasing bulbs, tonight's game (≤ 6 letters: they stand ~9 pt tall on a phone, the glance test)
+  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248.5, 264.5], y: [475.5, 546], z: 229.4, cap: 6 },
   { id: 'jazz', kind: 'fixed', type: 'script', host: 'jazz', text: 'JAZZ', col: [255, 176, 46], x: [74, 100], y: [494, 506], z: 229.4 },
   { id: 'i-par', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [493, 513], z: 233.6 },
   { id: 'i-jazz', kind: 'icon', type: 'icon', host: 'jazz', x: [77, 98], y: [509, 530], z: 229.4 },

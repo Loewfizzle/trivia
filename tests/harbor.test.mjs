@@ -532,7 +532,7 @@ test('signs (Part 4): the icons read (≥ 19 pt), the billboard is big, the busy
     assert.ok(bb && bb.rect.w >= 60 * s && bb.rect.h >= 30 * s, `${k}: the billboard ${bb && bb.rect.w.toFixed(0)}×${bb && bb.rect.h.toFixed(0)}`);
     // the centre breathes: no sign but the sunburst's + the HOTEL blade between the wheel's left edge and the sunburst
     const nd = L.towers.find(t => t.id === 'needle'), nx = project(cam, (nd.x0 + nd.x1) / 2, 0, nd.z0)[0];
-    for (const sp of spots) if (!['n-sunburst', 'hotel'].includes(sp.id)) assert.ok(Math.abs(sp.rect.x + sp.rect.w / 2 - nx) > 50 * s, `${k}: ${sp.id} crowds the NEON NEEDLE`);
+    for (const sp of spots) if (sp.id !== 'n-blade') assert.ok(Math.abs(sp.rect.x + sp.rect.w / 2 - nx) > 50 * s, `${k}: ${sp.id} crowds the NEON NEEDLE`);
     // the construction tower's spot (wordV, left of the wheel, behind JAZZ): no sign on it (plan.md)
     const v = L.towers.find(t => t.id === 'wordV'), [vx0] = project(cam, v.x0, 0, v.z0), [vx1] = project(cam, v.x1, 0, v.z0);
     for (const sp of spots.filter(x => x.host === 'wordV')) assert.fail(`${k}: ${sp.id} hangs on the construction tower`);
@@ -649,4 +649,164 @@ test('the boats (Part 5): RUNS for the thinning — the taxi crosses twice a cyc
     }
     assert.ok(seen > 5, `${r.id}: runs seen ${seen}`);
   }
+});
+
+// ------------------------------------------------------------------ Part 6a: THE EVERYDAY SKY (core/harbor-sky.js) + section 0
+import { auroraNight2, auroraTonight, stormKp, parseKp, kpAt, STORM_KP, moonLook, harvestMoon, supermoon, balloonWeather, smokeWeather, bannerWeather, balloonTime,
+  wrapLines, skytypeLayout, skywriteStrokes, SKYWRITE_MAX, bannerPanels, eventMessage, birdsNow, SKY_HOLIDAYS, skyHolidayOn, setSkyHoliday, fillText,
+  droneShape, droneTimeline, DRONE_SHAPES } from '../js/core/harbor-sky.js';
+
+test('the aurora (the owner\'s call): ~2 seeded nights a month for everyone, never two in a row; a bonus night on a real Kp ≥ 7 storm anywhere', () => {
+  let n = 0, prev = false, runs = 0;
+  for (let i = 0; i < 3650; i++) { const d = new Date(Date.UTC(2026, 0, 1) + i * 864e5); const a = auroraNight2(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()); if (a) { n++; if (prev) runs++; } prev = a; }
+  const perMonth = n / 120;
+  assert.ok(perMonth > 1.6 && perMonth < 2.6, `${perMonth.toFixed(2)} nights a month`);
+  assert.equal(runs, 0, 'never two nights in a row');
+  // the storm night: regardless of latitude, Kp ≥ 7 within 12 h either side
+  const t = Date.UTC(2026, 9, 21, 3), blocks = [[t - 3 * 3600e3, 5.33], [t, 7.33], [t + 3 * 3600e3, 6]];
+  assert.equal(stormKp(blocks, t + 3600e3), 7.33);
+  const quiet = { y: 2026, m: 10, d: 21 };
+  assert.equal(auroraTonight(quiet, 7.33).why, auroraNight2(2026, 10, 21) ? 'storm' : 'storm');
+  assert.ok(auroraTonight(quiet, 7.33).on && auroraTonight(quiet, 7.33).strength >= 0.75);
+  assert.equal(auroraTonight(quiet, STORM_KP - 0.1).why, auroraNight2(2026, 10, 21) ? 'night' : null);
+  assert.equal(stormKp(null, t), null);
+  // NOAA's forecast in both formats (objects; the older rows under a header), 12 h back to 36 h ahead, UTC
+  const now = Date.parse('2026-10-21T16:00:00Z');
+  const objs = parseKp([{ time_tag: '2026-10-21T15:00:00', kp: 7.33, observed: 'estimated' }, { time_tag: '2026-10-10T00:00:00', kp: 3 }, { time_tag: 'x', kp: 2 }], now);
+  assert.deepEqual(objs, [[Date.parse('2026-10-21T15:00:00Z'), 7.33]]);
+  const rows = parseKp([['time_tag', 'kp', 'observed', 'noaa_scale'], ['2026-10-21 18:00:00', '4.67', 'predicted', null]], now);
+  assert.deepEqual(rows, [[Date.parse('2026-10-21T18:00:00Z'), 4.67]]);
+  assert.equal(kpAt(objs, now), 7.33);
+  assert.deepEqual(parseKp({ not: 'an array' }), []);
+});
+
+test('the moon\'s look: the amber moonrise (bigger + amber low, silver high), the harvest moon, a supermoon, a halo only in real haze, earthshine', () => {
+  const low = moonLook({ el: 4, phase: 0.5, illum: 1, dist: 384000 }, { cloud: 0.05 }), high = moonLook({ el: 45, phase: 0.5, illum: 1, dist: 384000 }, { cloud: 0.05 });
+  assert.ok(low.amber > 0.9 && high.amber === 0 && low.size > high.size * 1.2, `amber ${low.amber} → ${high.amber}, size ${low.size.toFixed(2)} → ${high.size.toFixed(2)}`);
+  assert.ok(harvestMoon({ y: 2026, m: 9, d: 26, doy: 269 }, 0.5, false) && !harvestMoon({ y: 2026, m: 6, d: 26, doy: 177 }, 0.5, false) && !harvestMoon({ y: 2026, m: 9, d: 26, doy: 269 }, 0.25, false));
+  assert.ok(supermoon(0.5, 357000) && !supermoon(0.5, 390000) && !supermoon(0.2, 357000));
+  assert.ok(moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.3 }).halo > 0.5 && moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.02 }).halo === 0 && moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.3, rain: 0.5 }).halo === 0);
+  assert.ok(moonLook({ el: 30, phase: 0.08, illum: 0.06 }).earthshine > 0.9 && moonLook({ el: 30, phase: 0.5, illum: 1 }).earthshine === 0);
+});
+
+test('what may fly: balloons (calm, clear; mornings Apr–Oct, summer evenings), smoke (clear, low wind), the banner plane', () => {
+  const calm = { wind: 2, cloud: 0.1, rain: 0, fog: 0 }, windy = { ...calm, wind: 8 }, wet = { ...calm, rain: 0.4 };
+  assert.ok(balloonWeather(calm) && !balloonWeather(windy) && !balloonWeather(wet) && !balloonWeather({ ...calm, cloud: 0.8 }));
+  assert.ok(smokeWeather(calm) && !smokeWeather(windy) && !smokeWeather({ ...calm, cloud: 0.6 }));
+  assert.ok(bannerWeather(windy) && !bannerWeather(wet));
+  assert.equal(balloonTime(8, 110, 10, false), 'morning');
+  assert.equal(balloonTime(8, 110, 1, false), null);                // (January: no balloons)
+  assert.equal(balloonTime(6, 290, 7, false), 'evening');
+  assert.equal(balloonTime(6, 290, 10, false), null);               // (an October evening: mornings only)
+  assert.equal(balloonTime(40, 180, 7, false), null);               // (midday: thermals)
+  assert.equal(balloonTime(8, 250, 1, true), 'morning');            // (the south: January is summer, the morning sun in the east = az > 180 facing north)
+});
+
+test('sky messages: skytyping ≤ 16 a line, ≤ 2 lines in the window font\'s 5 rows; skywriting strokes; the banner\'s ≤ 3 panels of ≤ 24', () => {
+  assert.deepEqual(wrapLines('HAPPY BIRTHDAY STEVE', 16, 2), ['HAPPY BIRTHDAY', 'STEVE']);
+  for (const t of ['HAPPY NEW YEAR', 'MERRY CHRISTMAS', 'HAPPY THANKSGIVING', 'HAPPY BIRTHDAY STEVE']) {
+    const L = skytypeLayout(t);
+    assert.ok(L && L.lines.length <= 2 && L.lines.every(l => l.length <= 16) && L.rows === L.lines.length * FONT_H + L.lines.length - 1, `${t}: ${L && L.lines.join(' / ')}`);
+    assert.ok(L.dots.every(([c, r]) => c >= 0 && c < L.cols && r >= 0 && r < L.rows));
+  }
+  assert.equal(skytypeLayout('   '), null);
+  const H = skywriteStrokes('HI');
+  assert.ok(H.strokes.length >= 4 && H.w > 20 && H.h === 14 && H.len > 50, `HI: ${H.strokes.length} strokes`);
+  for (const t of ['♥', '2027', 'BOO', 'HELLO', 'WOW!']) assert.ok(skywriteStrokes(t), t);
+  assert.equal(skywriteStrokes('X'.repeat(30)).text.length, SKYWRITE_MAX);
+  assert.deepEqual(bannerPanels('FRESH LEMONADE | AT THE PIER'), ['FRESH LEMONADE', 'AT THE PIER']);
+  assert.ok(bannerPanels('A VERY LONG MESSAGE THAT NEEDS MORE THAN ONE PANEL TO FIT').every(p => p.length <= 24));
+  assert.equal(bannerPanels(['a', 'b', 'c', 'd']).length, 3);
+  const m = eventMessage('banner', 3, [{ id: 'pulse', name: 'Pulse' }]);
+  assert.ok(Array.isArray(m) && m.length >= 1);
+});
+
+test('the birds: gulls by day, swifts at summer dusk, geese (the migrations most), bats on summer nights', () => {
+  const at = (el, az, m, d = 15) => birdsNow({ sun: { el, az }, local: { m, d }, south: false });
+  assert.ok(at(30, 180, 10).gulls === 1 && at(-15, 300, 10).gulls === 0);
+  assert.ok(at(-3, 290, 7).swifts > 0.3 && at(-3, 290, 11).swifts === 0);
+  assert.ok(at(20, 180, 10).geese > at(20, 180, 6).geese * 3);
+  assert.ok(at(-6, 300, 7).bats > 0.5 && at(-6, 300, 12).bats === 0 && at(20, 200, 7).bats === 0);
+});
+
+test('the holiday sky (the owner\'s call): a skywriting / skytyping message by day + a drone show at night on each holiday, on the clock; overridable; no party nights', () => {
+  assert.equal(skyHolidayOn(2026, 11, 26).id, 'thanksgiving');
+  assert.equal(skyHolidayOn(2026, 5, 25).id, 'memorial');
+  assert.equal(skyHolidayOn(2027, 3, 28).id, 'easter');
+  assert.equal(skyHolidayOn(2026, 12, 24).id, 'christmas-eve');
+  assert.equal(skyHolidayOn(2026, 10, 23), null, 'a regular party Friday: no automatic show');
+  for (const h of SKY_HOLIDAYS) {
+    assert.ok(h.day && ['skywrite', 'skytype'].includes(h.day.kind) && h.day.h >= 10 && h.day.h <= 16, `${h.id}: a daytime message`);
+    assert.ok(skytypeLayout(fillText(h.day.text, 2026)), `${h.id}: its message fits`);
+    assert.ok(h.night && h.night.show.length >= 1 && h.night.show.every(sp => droneShape(sp, 140, { year: 2026, marks: MARKS })), `${h.id}: its show's formations exist`);
+    const end = h.night.h + droneTimeline(h.night.show.length, h.calm).end / 3600;
+    assert.ok(end < 23.5, `${h.id}: the show ends ${end.toFixed(2)} h (never into the NYE countdown)`);
+  }
+  assert.ok(SKY_HOLIDAYS.find(h => h.id === 'july4').night.h + droneTimeline(3).end / 3600 < 21.7, 'July 4th: before the fireworks');
+  assert.ok(SKY_HOLIDAYS.filter(h => h.calm).map(h => h.id).sort().join() === 'memorial,veterans', 'Memorial + Veterans Day: respectful (calm) shows');
+  setSkyHoliday('halloween', null);
+  assert.equal(skyHolidayOn(2026, 10, 31), null, 'CITY CONTROL cancels one');
+  setSkyHoliday('halloween', { day: { kind: 'skywrite', text: 'EEK', h: 15 } });
+  assert.equal(skyHolidayOn(2026, 10, 31).day.text, 'EEK', 'or overrides it');
+  setSkyHoliday('halloween', undefined);
+  assert.equal(skyHolidayOn(2026, 10, 31).day.text, 'BOO');
+  assert.equal(fillText('{next}', 2026), '2027');
+});
+
+test('the drone show\'s shapes: every library shape + every game\'s mark + letters fit the drones; the timeline', () => {
+  for (const n of [90, 140, 180]) {
+    for (const id of DRONE_SHAPES) { const s = droneShape({ shape: id }, n); assert.ok(s && s.pts.length >= Math.min(60, n * 0.5) && s.pts.length <= n, `${id} at ${n}: ${s && s.pts.length}`); }
+    for (const g of Object.keys(MARKS)) { const s = droneShape({ shape: `mark:${g}` }, n, { marks: MARKS }); assert.ok(s && s.pts.length <= n && s.pts.length > 20, `mark ${g}`); }
+    const t = droneShape({ text: 'HELLO' }, n);
+    assert.ok(t.kind === 'text' && t.pts.length <= n && t.h === FONT_H - 1, `HELLO at ${n}`);
+  }
+  assert.equal(droneShape({ shape: 'nope' }, 100), null);
+  const tl = droneTimeline(3), calm = droneTimeline(3, true);
+  assert.ok(tl.shapes[1].t0 === tl.shapes[0].t0 + tl.shapes[0].morph + tl.shapes[0].hold && tl.end > tl.home && calm.end > tl.end);
+});
+
+test('the sky events (Part 6a): the banner plane, the helicopter, balloons + a rare festival — sky MESSAGES are never random (holidays + the API only)', () => {
+  const ids = HARBOR_EVENTS.map(e => e.id);
+  for (const id of ['banner', 'helicopter', 'balloons', 'balloon-festival']) assert.ok(ids.includes(id), id);
+  for (const id of ['skywrite', 'skytype', 'drones']) assert.ok(!ids.includes(id), `${id} is not a random event`);
+  const bal = HARBOR_EVENTS.find(e => e.id === 'balloons'), ban = HARBOR_EVENTS.find(e => e.id === 'banner');
+  assert.ok(bal.when({ el: 8, az: 110, month: 10, south: false }) && !bal.when({ el: 30, az: 180, month: 10, south: false }) && !bal.when({ el: -20, az: 0, month: 10 }));
+  assert.ok(ban.when({ el: 30 }) && !ban.when({ el: -10 }));
+  assert.ok(HARBOR_EVENTS.find(e => e.id === 'balloon-festival').heavy);
+  // a day of slots: a banner pass or two, the events never share a lane
+  const t0 = Date.UTC(2026, 9, 21, 4);
+  const ctx = t => { const h = ((t - t0) / 3600e3) % 24; return { ms: t, force: new Set(), night: h < 3 || h > 14, el: h > 3 && h < 14 ? 30 : -20, az: h < 8 ? 120 : 240, month: 10, south: false }; };
+  const sc = createScheduler(HARBOR_EVENTS, ctx, { anchor: t0 });
+  let banners = 0, seen = new Set();
+  for (let t = t0; t < t0 + 864e5; t += SLOT_MS) { const a = sc.at(t).active; for (const e of a) if (e.id === 'banner' && !seen.has(e.start)) { seen.add(e.start); banners++; } const lanes = a.flatMap(e => e.lanes); assert.equal(new Set(lanes).size, lanes.length); }
+  assert.ok(banners >= 1 && banners <= 6, `${banners} banner flights in a day`);
+});
+
+test('section 0 (Part 6a): no sign covers a hero tower — the sunburst + the needle stand clean; THE GAME BLADE took the HOTEL\'s spot and reads', () => {
+  for (const k of ['390x844', '402x874', '412x915', '430x932']) {
+    const { cam, L } = setup(k), s = cam.F / 600, spots = signSpots(L);
+    assert.ok(!spots.some(sp => sp.id === 'hotel' || sp.id === 'n-sunburst'), `${k}: no HOTEL sign, no sign on the sunburst`);
+    // (a tower's VISIBLE face: from its top down to the roofs of everything nearer in front of it, column by column)
+    for (const id of ['sunburst', 'needle']) {
+      const t = L.towers.find(tt => tt.id === id), front = roofline(L, b => b.z < t.tiers[0].z0 - 1);
+      for (const sp of spots) assert.notEqual(sp.host, id, `${k}: ${sp.id} hangs on the ${id}`);
+      for (const tr of t.tiers) {
+        const [a, b] = project(cam, tr.x0, tr.y0 + tr.h + (tr.crown ? tr.crown.h : 0), tr.z0), [c] = project(cam, tr.x1, 0, tr.z0);
+        for (const sp of spots) for (let x = Math.max(a, sp.rect.x); x < Math.min(c, sp.rect.x + sp.rect.w); x += 1) {
+          const fb = front[Math.round(x / 4)];
+          if (sp.rect.y < fb - 1 && sp.rect.y + sp.rect.h > b) assert.fail(`${k}: ${sp.id} covers the ${id}'s face at x ${x.toFixed(0)}`);
+        }
+      }
+    }
+    const bl = spots.find(sp => sp.id === 'n-blade');
+    assert.ok(bl && bl.kind === 'named' && bl.bulbs && bl.cap === 6 && bl.host === 'hotel', `${k}: the game blade`);
+    // the glance test: six letters stacked in it stand ≥ 8.5 pt tall (signs.js#lettersCol: the inner box, 80 % of a row)
+    const pad = Math.min(bl.rect.w, bl.rect.h) * 0.16, lh = Math.min((bl.rect.w - pad * 2) * 0.64 * 1.4, (bl.rect.h - pad * 2) / 6 * 0.8);
+    assert.ok(lh >= 8.5 * Math.min(1, s), `${k}: the blade's letters ${lh.toFixed(1)} pt`);
+    assert.equal(spotConflicts(L, bl, spots).length, 0, `${k}: the blade is clear (${spotConflicts(L, bl, spots).join(', ')})`);
+  }
+  // every game still has a sign tonight (6 named + 6 icons on a phone)
+  const { L } = setup('402x874'), spots = signSpots(L), games = GAMES.map(g => ({ id: g.id, name: g.name, short: bladeWord(g) }));
+  const pick = assignSigns(games, spots, '2026-10-21');
+  assert.equal(new Set(pick.values()).size, games.length);
 });

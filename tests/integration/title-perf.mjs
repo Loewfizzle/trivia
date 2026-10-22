@@ -41,6 +41,14 @@ const SCENES = {
   'h-nb': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-boats', 'h-nw': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-wakes',
   'h-nwh': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-wheel', 'h-nbm': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-beam',
   'h-none': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-boats,no-wheel,no-beam', 'h-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes,taxi',
+  // CITY 2.0, Part 6a: THE EVERYDAY SKY — each piece forced (on the commit before, the same URL is the plain scene: A-B-B-A gives
+  // the piece's whole cost): planes by day (+ the gulls, the capped contrails), a night approach, the banner plane, skytyping, the
+  // helicopter at night (its searchlight), the drone show (its launch + the first formation), the aurora, and the worst sky: a
+  // party peak + the drone show
+  's-day': 'when=2026-10-14T14:00&wx=clear&force=planes', 's-night': 'when=2026-10-14T21:30&wx=clear&force=approach',
+  's-banner': 'when=2026-10-14T14:00&wx=clear&force=no-planes,banner', 's-skytype': 'when=2026-10-14T14:00&wx=clear&wind=2&force=no-planes,skytype&text=HAPPY%20BIRTHDAY%20STEVE',
+  's-heli': 'when=2026-10-14T21:30&wx=clear&force=no-planes,helicopter', 's-drones': 'when=2026-10-14T21:30&wx=clear&force=no-planes,drones&text=HELLO&show=heart',
+  's-aurora': 'when=2026-10-14T23:30&wx=clear&force=no-planes,aurora', 's-worst': 'when=2026-10-17T23:00&wx=clear&force=no-planes,neon-party,drones&text=HELLO&show=heart',
 };
 const names = arg('scenes', 'party,night,day').split(',');
 const sleep = ms => new Promise(r => setTimeout(r, ms));

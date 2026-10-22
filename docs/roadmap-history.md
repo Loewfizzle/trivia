@@ -328,6 +328,22 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE HARBOR, Part 6a of 12: THE EVERYDAY SKY (Oct 21, 2026) — `docs/harbor.md`
+- Section 0: THE TIER ON iPHONES (iOS caps the reported core count, so every DPR-3 iPhone started at tier 1 — the Harbor starts at tier 2
+  with a start-up grace + a guarded step back up; "real phones decide" recorded), the catch closed (the owner's iPhone), the wheel
+  at night (crisp white bulbs + a glow ring on the rim), SIGNS OFF THE HERO TOWERS (the sunburst's sign + the HOTEL blade gone; THE
+  GAME BLADE with chasing bulbs in the hotel's spot), the train decided (desktop + TV, Part 12).
+- The sky (`core/harbor-sky.js` pure + tested; `screens/harbor/skyfx.js` + air / banner / smoke / birds / balloons / drones / moon):
+  crafted AIRLINERS (liveries, a lit tail at night, nav lights, strobes, landing lights; contrails capped at 60 samples), THE BANNER
+  PLANE (a Cub towing 1–3 rippling panels), SKYWRITING + SKYTYPING (smoke on the real wind; API + holidays only), THE HELICOPTER
+  (rotor blur, a searchlight at night; the yacht-landing hook), GULLS / SWIFTS / GEESE / BATS / the heron, HOT AIR BALLOONS (calm clear
+  mornings + summer evenings; the burner lighting the envelope at dusk; a rare festival), THE MOON (a real texture, its phase, earthshine,
+  the amber moonrise in the sunrise corridor, the harvest moon, a supermoon, a halo only in haze, the red eclipse) + the golden haze,
+  THE AURORA (the owner's call: ~2 seeded nights a month for everyone, never two in a row, + a bonus night on a real NOAA Kp ≥ 7 storm —
+  Kp via `/api/sky`), THE DRONE SHOW (a barge, a rising swarm, letters / hearts / stars / flags / every game's mark / ₿ / holiday shapes,
+  the flow between formations, home again — a heavy sky event) and THE HOLIDAY SKY TABLE (a message by day + a drone show at night on
+  each holiday, on the clock; CITY CONTROL can cancel or override; never on regular party nights).
+
 ### ✅ CITY 2.0 — THE HARBOR, Part 5 of 12: THE HARBOR'S HERO PIECES (Oct 21, 2026) — `docs/harbor.md`
 - THE FERRIS WHEEL (`screens/harbor/wheel.js`): real steel (two rims + their truss, crossing tension spokes, struts, the hub) turning
   on the real clock, 16 gondolas hanging level and swaying, bulbs on the rim + spokes + a star round the hub with a 48 s show

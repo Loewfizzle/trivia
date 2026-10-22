@@ -56,7 +56,7 @@ export function buildSign(spot, game, ctx) {
     const text = spot.text || signName(game);
     panel = { x: R.x, y: R.y, w: R.w, h: R.h, r: Math.min(R.w, R.h) * 0.12 };
     const pad = Math.min(R.w, R.h) * 0.16;
-    border = { pts: roundRectPts(R.x + pad * 0.45, R.y + pad * 0.45, R.w - pad * 0.9, R.h - pad * 0.9, Math.min(R.w, R.h) * 0.1), col: spot.id === 'hotel' ? [255, 236, 214] : mix(col, ICE, 0.55) };
+    border = { pts: roundRectPts(R.x + pad * 0.45, R.y + pad * 0.45, R.w - pad * 0.9, R.h - pad * 0.9, Math.min(R.w, R.h) * 0.1), col: spot.bulbs ? [255, 236, 214] : mix(col, ICE, 0.55) };
     if (spot.type === 'vbox') {
       // (the mark on top only where it reads: a wide cabinet — on a slim one a small mark reads as a letter)
       const markH = game && R.w >= 14 && R.h > R.w * (text.length + 2.2) * 0.9 ? R.w * 0.86 : 0;
@@ -71,8 +71,8 @@ export function buildSign(spot, game, ctx) {
       tw = Math.max(0.55, Math.min(1.25, L2.lh * 0.13));
       parts.push({ tubes: L2.polys, col, w: tw });
     }
-    if (spot.id === 'hotel') {
-      // the HOTEL's chaser bulbs: round the panel, every ~3.4 pt
+    if (spot.bulbs) {
+      // THE GAME BLADE's chaser bulbs (Part 6a; the HOTEL's before): round the panel, every ~3.4 pt
       bulbs = [];
       const per = roundRectPts(R.x + 0.9, R.y + 0.9, R.w - 1.8, R.h - 1.8, Math.min(R.w, R.h) * 0.12);
       let acc = 0;
@@ -173,7 +173,7 @@ export function drawHousing(x, sg, T, ctx) {
       x.beginPath(); x.roundRect(R.x + R.w * 0.04, R.y + R.h * 0.52 - rh / 2, R.w * 0.92, rh, rh * 0.3); x.fill();
       if (day > 0.05) { x.fillStyle = `rgba(255,250,230,${0.25 * day})`; x.fillRect(R.x + R.w * 0.04, R.y + R.h * 0.52 - rh / 2, R.w * 0.92, Math.max(0.3, rh * 0.25)); }
     }
-    // the bulbs' sockets (HOTEL)
+    // the bulbs' sockets (the game blade)
     if (sg.bulbs) { for (const [bx, by] of sg.bulbs) { x.fillStyle = rgba(mix([30, 24, 30], [230, 220, 200], day)); x.beginPath(); x.arc(bx, by, 0.55, 0, Math.PI * 2); x.fill(); } }
     // the glass tubes, unlit (clear glass by day; dark at night)
     for (const p of sg.parts) drawGlass(x, p.t, p.col, T, { w: p.w, clipEvery: 18 });

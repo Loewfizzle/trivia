@@ -60,6 +60,18 @@ const SCENE = {
   // high in the south-east at 21:00 on Oct 24), sunset's gold path
   calm: ['2026-10-19T22:30', { qs: 'wind=0.5' }], windy: ['2026-10-19T22:30', { qs: 'wind=13' }], moon: ['2026-10-25T20:30', { qs: 'wind=3' }], sunset: ['2026-10-20T18:30', { qs: 'wind=3' }],
   'nye-sparklers': ['2027-01-01T00:01'], door: ['2026-10-21T22:00', { qs: 'force=door,hint' }], 'door-day': ['2026-10-21T13:00'],
+  // CITY 2.0, Part 6a — THE EVERYDAY SKY (each forced piece; wait: how long it flies before the shot). --crop sky = the sky lanes
+  'sky-day': ['2026-10-21T13:00', { qs: 'force=planes' }], 'sky-night': ['2026-10-21T22:00', { qs: 'force=approach' }],
+  'sky-golden': ['2026-10-20T18:20', { qs: 'force=planes' }],
+  banner: ['2026-10-21T13:00', { qs: 'force=banner&text=FRESH%20LEMONADE|AT%20THE%20PIER', wait: 15000 }],
+  skywrite: ['2026-10-21T13:00', { qs: 'force=skywrite&text=HELLO&wind=2', wait: 26000 }],
+  skytype: ['2026-10-21T13:00', { qs: 'force=skytype&text=HAPPY%20BIRTHDAY%20STEVE&wind=2', wait: 24000 }],
+  helicopter: ['2026-10-21T22:00', { qs: 'force=helicopter', wait: 20000 }], 'helicopter-day': ['2026-10-21T13:00', { qs: 'force=helicopter', wait: 20000 }],
+  'balloons-dawn': ['2026-10-21T08:40', { qs: 'force=balloons&wind=1', wait: 9000 }], 'balloons-dusk': ['2026-07-10T21:20', { qs: 'force=balloon-festival&wind=1', wait: 9000 }],
+  gulls: ['2026-10-21T15:00', { wait: 4000 }], geese: ['2026-10-21T15:00', { qs: 'force=geese', wait: 14000 }], swifts: ['2026-07-10T21:25', { qs: 'force=swifts,bats-dusk', wait: 6000 }],
+  moonrise: ['2026-10-26T19:40'], harvest: ['2026-09-26T20:05'], crescent: ['2026-11-14T19:30'], 'crescent-dawn': ['2026-10-07T06:00'], eclipse: ['2026-10-26T22:30', { qs: 'force=eclipse', wait: 20000 }],
+  aurora: ['2026-10-21T23:30', { qs: 'force=aurora', wait: 5000 }],
+  drones: ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 26000 }], 'drones-launch': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 9000 }], 'drones-text': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 40000 }],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
   const [name, when] = s.split('=');
@@ -87,7 +99,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   const qs = `when=${when}${PLACE}${o.qs ? `&${o.qs}` : ''}${CITY}${EXTRA}`;
   await p.goto(PREVIEW ? `${BASE}/tests/integration/title-preview.html?${qs}${GUEST || o.guest ? '&guest=1' : ''}` : `${BASE}/?emu&slot=sh&${qs}`);
   await p.waitForFunction(() => window.__district && window.__district.phase().done, { timeout: 25000 });
-  await sleep(WAIT);
+  await sleep(o.wait && !opt('wait', 0) ? o.wait : WAIT);
   if (o.act === 'join') { await p.evaluate(() => window.__district.dock.join(true)); await sleep(500); await p.type('.nd-code-in', 'mi'); await sleep(400); }
   if (o.act === 'rejoin') { await p.evaluate(() => window.__district.dock.preview({ rejoin: 'MINT' })); await sleep(700); }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
@@ -108,6 +120,9 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else if (c === 'water') {
       // CITY 2.0: the water close up — the city's foot (what it mirrors) down to the road
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb || !hb.water) return null; const y = Math.max(0, hb.water.y0 - 60); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight, hb.water.y1 + 12) - y }; });
+    } else if (c === 'sky') {
+      // CITY 2.0 (Part 6a): the sky lanes — from the safe top to a little under the skyline's limit
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; return { x: 0, y: 0, width: innerWidth, height: Math.min(innerHeight, hb.cam.limitY + 60) }; });
     } else if (c === 'skyl' || c === 'skyr' || c === 'logo') {
       // CITY 2.0: close-ups — the skyline's left / right half (its signs + neon up close), the NEON logo
       clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam;
@@ -131,7 +146,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    await p.screenshot({ path: `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'skyl', 'skyr', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c) ? c : 'crop'}.png`, clip }); n++;
+    await p.screenshot({ path: `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c) ? c : 'crop'}.png`, clip }); n++;
   }
   }
   await ctx.close();

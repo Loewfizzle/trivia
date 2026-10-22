@@ -7,23 +7,26 @@
 // keeps the sum of their frame costs within the budget, and a HEAVY event quiets the other lanes (the scene thins out what
 // runs there: fs.density).
 import { hashString, rngFrom } from './rng.js';
+import { balloonTime } from './harbor-sky.js';
 
 export const LANES = ['sky-high', 'sky-low', 'skyline', 'water', 'road', 'promenade', 'windows', 'rooftop', 'tagline'];
 export const SLOT_MS = 90 * 1000;
 const DAY = 864e5;
 /** how often, on average, an eligible event starts (the period in ms): common = every few slots … legendary = once a year */
-export const RARITY = { common: 4 * SLOT_MS, weekly: 7 * DAY, rare: 30 * DAY, legendary: 365 * DAY };
-const ORDER = { legendary: 0, rare: 1, weekly: 2, common: 3 };
+export const RARITY = { common: 4 * SLOT_MS, daily: DAY / 3, weekly: 7 * DAY, rare: 30 * DAY, legendary: 365 * DAY };
+const ORDER = { legendary: 0, rare: 1, weekly: 2, daily: 3, common: 4 };
 /** the frame budget (ms of drawing per frame) all running events share, and each lane's own share */
 export const BUDGET = { total: 2.5, lane: 1.5 };
 /** what a quiet lane keeps of its usual traffic while a heavy event runs elsewhere (fs.density) */
 export const QUIET = 0.3;
 
 /**
- * An event: { id, lanes: [...LANES], when(ctx) → bool, rarity: 'common'|'weekly'|'rare'|'legendary', duration (ms),
+ * An event: { id, lanes: [...LANES], when(ctx) → bool, rarity: 'common'|'daily'|'weekly'|'rare'|'legendary', duration (ms),
  * cost?: ms per frame (default 0.5), heavy?: bool, seed?: number }.
- * ctx (from ctxAt(ms)): what is known about that moment — { ms, force: Set, night (the sun under −6° there and then) }. A
- * function of ms ONLY: the replay asks it about the past (Part 6 adds the season, the holiday from core/sky.js).
+ * ctx (from ctxAt(ms)): what is known about that moment — { ms, force: Set, night (the sun under −6° there and then), el + az (the
+ * sun's, Part 6a), month (1–12, UTC), south }. A function of ms ONLY: the replay asks it about the past. (Live things — the real
+ * wind, the cloud — are not known about the past: an event the weather forbids still runs in the schedule, its art just
+ * doesn't fly: screens/harbor/skyfx.js checks the weather when it starts.)
  */
 export function defineEvent(e) {
   if (!e || !e.id || !Array.isArray(e.lanes) || !e.lanes.length) throw new Error('event: id + lanes');
@@ -124,4 +127,13 @@ export const HARBOR_EVENTS = [
   defineEvent({ id: 'demo', lanes: ['sky-low'], rarity: 'legendary', duration: SLOT_MS, cost: 0.1, when: ctx => !!(ctx.force && ctx.force.has('demo')) }),
   defineEvent({ id: 'searchlights', lanes: ['skyline'], rarity: 'rare', duration: 8 * SLOT_MS, cost: 0.6, when: ctx => !!ctx.night }),
   defineEvent({ id: 'spell', lanes: ['windows'], rarity: 'weekly', duration: 4 * SLOT_MS, cost: 0.3, when: ctx => !!ctx.night }),
+  // Part 6a — THE EVERYDAY SKY (sky messages — skywriting, skytyping, the drone show — are NOT random: holidays + the API only)
+  //   the banner plane: a pass or two a day by daylight (its message: the city's own little ads + game announcements)
+  defineEvent({ id: 'banner', lanes: ['sky-high'], rarity: 'daily', duration: 2 * SLOT_MS, cost: 0.4, when: ctx => ctx.el != null && ctx.el > 5 }),
+  //   the helicopter: in, a hover over the harbor, out — day or night (its searchlight after dark)
+  defineEvent({ id: 'helicopter', lanes: ['sky-low'], rarity: 'daily', duration: SLOT_MS, cost: 0.3, when: ctx => ctx.el != null }),
+  //   hot air balloons: calm, clear mornings (Apr–Oct) + summer evenings (Jun–Aug); the weather is checked when it starts
+  defineEvent({ id: 'balloons', lanes: ['sky-low'], rarity: 'daily', duration: 8 * SLOT_MS, cost: 0.3, when: ctx => ctx.el != null && !!balloonTime(ctx.el, ctx.az, ctx.month, ctx.south) }),
+  //   rarely a small festival of several, both sky lanes (heavy: the rest of the city calms)
+  defineEvent({ id: 'balloon-festival', lanes: ['sky-high', 'sky-low'], rarity: 'rare', duration: 8 * SLOT_MS, cost: 0.6, heavy: true, when: ctx => ctx.el != null && !!balloonTime(ctx.el, ctx.az, ctx.month, ctx.south) }),
 ];

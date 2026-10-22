@@ -24,7 +24,9 @@ const CARS = 16, RIM_BULBS = 48, SPOKE_RINGS = [0.36, 0.53, 0.7, 0.86], HUB_BULB
 const SHOW_S = 48;
 // the bulbs' colours per scheme: rim sets A/B/C, the spoke rings 0..3, the hub
 export const WHEEL_SCHEMES = {
-  city: { rim: [[255, 226, 170], [255, 226, 170], [255, 214, 150]], rings: [[255, 196, 120], [255, 214, 150], [255, 196, 120], [255, 226, 170]], hub: [255, 240, 210] },
+  // (Part 6a, the owner's review: the city's own bulbs are a crisp near-white — the skyline's windows behind are warm tungsten, so
+  // warm bulbs melted into them; a soft glow ring traces the rim: the wheel reads as the wheel, still elegant)
+  city: { rim: [[255, 248, 236], [255, 248, 236], [246, 246, 255]], rings: [[255, 232, 196], [255, 244, 226], [255, 232, 196], [255, 248, 236]], hub: [255, 252, 246], ring: [232, 238, 255] },
   party: { rim: [[255, 70, 190], [70, 220, 255], [255, 214, 90]], rings: [[160, 90, 255], [255, 70, 190], [70, 220, 255], [120, 255, 160]], hub: [255, 255, 255] },
   halloween: { rim: [[255, 140, 30], [170, 70, 255], [255, 140, 30]], rings: [[170, 70, 255], [255, 140, 30], [170, 70, 255], [120, 255, 90]], hub: [255, 170, 60] },
   christmas: { rim: [[255, 60, 60], [80, 255, 120], [255, 236, 200]], rings: [[255, 236, 200], [255, 60, 60], [80, 255, 120], [255, 236, 200]], hub: [255, 214, 120] },
@@ -48,7 +50,7 @@ function glowDot(col) {
 export function createWheel() {
   let L = null, cam = null, dpr = 2, tier = 2;
   let cx = 0, cy = 0, r = 0, u = 1, deckY = 0, P = 0;               // the hub on screen, the rim's radius (pt), pt per unit, the sprite's half size
-  let steel = null, bulbs = null, allBulbs = null, cars = [], front = null, haze = null, lookKey = '', schemeName = 'city', bulbKey = '';
+  let steel = null, bulbs = null, allBulbs = null, ring = null, cars = [], front = null, haze = null, lookKey = '', schemeName = 'city', bulbKey = '';
   let mb = 0;
   const dots = new Map();
   const dot = col => { const k = col.join(','); if (!dots.has(k)) dots.set(k, glowDot(k)); return dots.get(k); };
@@ -146,10 +148,17 @@ export function createWheel() {
     for (let s = 0; s < 3; s++) { const pts = []; for (let i = s; i < RIM_BULBS; i += 3) { const a = (i / RIM_BULBS) * Math.PI * 2; pts.push([Math.cos(a) * r * 0.97, Math.sin(a) * r * 0.97, sc.rim[s]]); } bulbs.push(mk(pts)); }
     SPOKE_RINGS.forEach((f, j) => { const pts = []; for (let i = 0; i < CARS; i++) { const a = (i / CARS) * Math.PI * 2; pts.push([Math.cos(a) * r * f, Math.sin(a) * r * f, sc.rings[j], 0.85]); } bulbs.push(mk(pts)); });
     { const pts = []; for (let i = 0; i < HUB_BULBS; i++) { const a = (i / HUB_BULBS) * Math.PI * 2; pts.push([Math.cos(a) * r * 0.13, Math.sin(a) * r * 0.13, sc.hub, 0.75]); } pts.push([0, 0, sc.hub, 1.5]); bulbs.push(mk(pts)); }
+    // THE RIM'S GLOW RING (Part 6a): a soft wide halo + a fine bright line along the rim — the circle reads against the lit skyline
+    // (not rotated: drawn under the bulbs every frame the bulbs are)
+    { const rc = sc.ring || sc.rim[0].map(v => Math.min(255, v + 30));
+      ring = ring || canvas(1, 1); ring.width = ring.height = Math.ceil(S * dpr);
+      const x = ring.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter';
+      for (const [w, a] of [[r * 0.11, 0.05], [r * 0.055, 0.09], [Math.max(0.9, r * 0.02), 0.22], [Math.max(0.45, r * 0.006), 0.55]]) { x.strokeStyle = `rgba(${rc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * 0.97, 0, Math.PI * 2); x.stroke(); }
+      x.lineWidth = Math.max(0.35, r * 0.004); x.strokeStyle = `rgba(${rc},0.28)`; x.beginPath(); x.arc(0, 0, r * 0.3, 0, Math.PI * 2); x.stroke(); }
     // every set at once (the show's steady phase — most of the time — and tier 0: one draw instead of eight)
     allBulbs = allBulbs || canvas(1, 1); allBulbs.width = bulbs[0].width; allBulbs.height = bulbs[0].height;
     { const x = allBulbs.getContext('2d'); x.globalCompositeOperation = 'lighter'; for (const b of bulbs) x.drawImage(b, 0, 0); }
-    if (!haze) { haze = canvas(64, 64); const x = haze.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,214,160,0.55)'); g.addColorStop(0.5, 'rgba(255,190,130,0.18)'); g.addColorStop(1, 'rgba(255,170,120,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }
+    if (!haze) { haze = canvas(64, 64); const x = haze.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,236,214,0.55)'); g.addColorStop(0.5, 'rgba(236,226,232,0.16)'); g.addColorStop(1, 'rgba(220,220,240,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }
   }
 
   // ---------------------------------------------------------------- the show: each bulb set's brightness at t (s)
@@ -203,6 +212,7 @@ export function createWheel() {
     if (f.lights > 0.01 && bulbs) {
       const k = show(f.t, f);
       c.globalCompositeOperation = 'lighter';
+      if (ring) { c.globalAlpha = Math.min(1, f.lights); c.drawImage(ring, -P, -P, P * 2, P * 2); }
       c.save(); c.rotate(a);
       // (the steady phase: all the sets in one draw, a soft breath for the twinkle)
       const steady = k.steady || k.every(v => v > 0.88);
@@ -259,7 +269,7 @@ export function createWheel() {
     /** a tap on the wheel? (Part 12's egg: a gondola rocks) */
     hit: (x, y) => Math.hypot(x - cx, y - cy) < r * 1.05,
     debug: () => ({ x: cx, y: cy, r, scheme: schemeName, mb: +(mb + (bulbs ? bulbs.reduce((s, b) => s + b.width * b.height * 4, 0) / 1e6 : 0) + (cache ? cache.width * cache.height * 4 / 1e6 : 0)).toFixed(2) }),
-    destroy() { for (const cv of [steel, front, haze, cache, allBulbs, ...cars, ...(bulbs || []), ...dots.values()]) if (cv) { cv.width = 0; cv.height = 0; } dots.clear(); L = null; },
+    destroy() { for (const cv of [steel, front, haze, cache, allBulbs, ring, ...cars, ...(bulbs || []), ...dots.values()]) if (cv) { cv.width = 0; cv.height = 0; } dots.clear(); L = null; },
   };
 }
 

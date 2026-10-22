@@ -277,7 +277,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
         if (a <= 0.01) return;
         c.globalAlpha = Math.min(1, a); c.drawImage(s.c, s.x, s.y, s.w, s.h);
       });
-      // the HOTEL's chaser bulbs
+      // the game blade's chaser bulbs (Part 6a; the HOTEL's before)
       if (it.kind === 'sign' && it.sg.bulbs) {
         const a = alpha(it, 0, t, motion) * base;
         if (a > 0.02) { const D = warmDot(), step = motion ? Math.floor(t / 0.16) : 0; it.sg.bulbs.forEach(([bx, by], i) => { const lit = (i + step) % 3 === 0; c.globalAlpha = a * (lit ? 1 : 0.28); const r = lit ? 2.6 : 1.6; c.drawImage(D, bx - r, by - r, r * 2, r * 2); }); }
@@ -307,7 +307,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     for (const it of items) if (inGroup(it, group) && (!it.ready || !it.pw || !it.pw.on || t - it.pw.t0 < 2.5)) return false;
     return true;
   }
-  // the group's lit sprites (signs + outlines; the HOTEL's bulbs steady) composed once into one canvas
+  // the group's lit sprites (signs + outlines; the game blade's bulbs steady) composed once into one canvas
   function composite(group) {
     const sps = items.filter(it => inGroup(it, group) && it.lit).flatMap(it => it.lit);
     if (!sps.length) return null;

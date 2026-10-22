@@ -264,7 +264,9 @@ export function createTitle() {
     // the city: fixed behind everything, full viewport (the screen column is narrower on desktop)
     els.sceneWrap = h('div.nd-scene', { 'aria-hidden': 'true' }, els.canvas = h('canvas'));
     document.body.prepend(els.sceneWrap);
-    scene = (createHarbor || createDistrict)(els.canvas, { games: GAMES, tier: (window.devicePixelRatio || 1) > 2.5 && (navigator.hardwareConcurrency || 8) <= 4 ? 1 : 2 });
+    // (City 2.0 starts every phone at tier 2 — iOS reports a capped core count, so the old guess put every iPhone at tier 1 while it
+    // ran the Harbor in 1–3 ms; the Harbor's own step-down still protects a slow phone: docs/harbor.md#performance)
+    scene = (createHarbor || createDistrict)(els.canvas, { games: GAMES, tier: createHarbor ? 2 : (window.devicePixelRatio || 1) > 2.5 && (navigator.hardwareConcurrency || 8) <= 4 ? 1 : 2 });
     scene.set({ motion: reduced() ? 0 : 1 });
     // a lightning strike: thunder a few seconds later, the glass of the dock catches the flash
     scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });

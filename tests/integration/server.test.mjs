@@ -22,7 +22,7 @@ import { adminAction } from '../../api/admin.js';
 import reportHandler from '../../api/report.js';
 import boardHandler from '../../api/board.js';
 import logHandler, { logErrors, errorSig } from '../../api/log.js';
-import skyHandler, { placeOf, skyFor, clearSkyCache } from '../../api/sky.js';
+import skyHandler, { placeOf, skyFor, clearSkyCache, setKpFetcher } from '../../api/sky.js';
 import { clearBoardCache } from '../../api/_lib/lb.js';
 import { finalGame } from '../fixtures/finals.mjs';
 import { weekKey } from '../../js/core/week.js';
@@ -546,8 +546,20 @@ test('sky: weather for the visitor\'s rounded area, cached 15 minutes, nothing w
   await skyFor(place, { now: now + 16 * 60_000, fetcher });
   assert.equal(calls, 2, 'stale after 15 minutes');
   assert.equal(placeOf({ url: '/api/sky', headers: {} }), null);
-  const r = await new Promise(resolve => { const res = { statusCode: 200, setHeader() {}, end: () => resolve(res.statusCode) }; skyHandler({ method: 'GET', url: '/api/sky', headers: {} }, res); });
-  assert.equal(r, 204, 'no location: no answer (the city keeps its own weather)');
+  const call = () => new Promise(resolve => { const res = { statusCode: 200, setHeader() {}, end: b => resolve({ code: res.statusCode, body: b ? JSON.parse(b) : null }) }; skyHandler({ method: 'GET', url: '/api/sky', headers: {} }, res); });
+  setKpFetcher(async () => ({ ok: false, status: 503 }));
+  assert.equal((await call()).code, 204, 'no location + no Kp: no answer (the city keeps its own weather)');
+  // CITY 2.0 (Part 6a): NOAA's planetary Kp rides along for everyone (the aurora's storm night) — even with no location
+  const t0 = new Date(Math.floor(Date.now() / 10800e3) * 10800e3).toISOString().slice(0, 19);
+  let kpCalls = 0;
+  setKpFetcher(async () => { kpCalls++; return { ok: true, json: async () => [{ time_tag: t0, kp: 7.33, observed: 'estimated', noaa_scale: 'G3' }] }; });
+  const k = await call();
+  assert.equal(k.code, 200);
+  assert.equal(k.body.kind, undefined, 'no weather without a location');
+  assert.equal(k.body.kp[0][1], 7.33, 'the Kp blocks: [ms, kp]');
+  await call();
+  assert.equal(kpCalls, 1, 'Kp cached for everyone (an hour)');
+  setKpFetcher(null);
 });
 
 test('sky: when the rain really stopped (RAINBOWS) — the past quarter hours, never the forecast', async () => {

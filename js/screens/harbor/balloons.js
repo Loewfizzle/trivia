@@ -1,0 +1,151 @@
+// CITY 2.0 — THE HARBOR, Part 6a: HOT AIR BALLOONS (docs/harbor.md#part-6a). On calm, clear mornings and summer evenings (only
+// when the real wind is low: core/harbor-sky.js#balloonWeather + #balloonTime) a crafted balloon drifts slowly across the
+// sky-low lane — rarely a small FESTIVAL of several at different heights and distances (both sky lanes).
+//   THE ENVELOPE   a teardrop of 12 gores: the stripes narrow toward its edges as they turn away (a sphere, not a flat
+//                  pattern), the load tapes on the seams, the crown's vent cap, the darker skirt; shaded as a sphere toward
+//                  the REAL sun's side (morning: the east, our left), a rim of sky light on the other
+//   THE BASKET     wicker (a weave + a leather rim), the burner frame, the cables up to the skirt
+//   THE BURNER     every 8–20 s a burn of a few pulses: a yellow-white flame up into the mouth — and at dusk the envelope LIGHTS
+//                  FROM INSIDE like a lantern (its own stripes glowing, brightest by the mouth)
+// Positions are a function of the time since the event began (every phone sees the same sky): a slow drift with the real wind
+// (a crossing takes most of the event), a gentle rise and fall. Sprites per balloon per light; the flame + the glow live.
+const TAU = Math.PI * 2;
+const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+export const BALLOON_SCHEMES = [
+  [[214, 40, 48], [250, 204, 60]], [[40, 92, 196], [246, 244, 236]], [[232, 92, 40], [128, 52, 160]],
+  [[214, 40, 48], [246, 150, 40], [250, 214, 60], [60, 170, 90], [50, 120, 210], [120, 70, 170]], [[24, 130, 110], [244, 232, 200]], [[30, 30, 60], [240, 190, 60]],
+];
+
+// the envelope's outline (centre of the dome at 0,0; radius 1): the dome, then the taper to the mouth
+function envPath(x, R) {
+  x.beginPath();
+  x.moveTo(-0.2 * R, 1.42 * R);
+  x.bezierCurveTo(-0.55 * R, 1.05 * R, -1.02 * R, 0.55 * R, -1.0 * R, 0.0);
+  x.bezierCurveTo(-0.98 * R, -0.6 * R, -0.55 * R, -1.02 * R, 0, -1.02 * R);
+  x.bezierCurveTo(0.55 * R, -1.02 * R, 0.98 * R, -0.6 * R, 1.0 * R, 0.0);
+  x.bezierCurveTo(1.02 * R, 0.55 * R, 0.55 * R, 1.05 * R, 0.2 * R, 1.42 * R);
+  x.closePath();
+}
+/** one balloon's art in this light → { cv, glow, w, h, oy (the dome's centre from the top), mouth (y of the mouth) } */
+function balloonArt(R, scheme, light, dpr) {
+  const W = R * 2.3, Hh = R * 3.35, d = Math.min(3, dpr * 1.25);
+  const make = lit => {
+    const cv = mk(W * d, Hh * d), x = cv.getContext('2d');
+    x.setTransform(d, 0, 0, d, (W / 2) * d, (R * 1.08) * d);
+    // the stripes: 12 gores round the sphere — a seam at longitude φ shows at x = R·sin φ (they narrow toward the edges)
+    x.save(); envPath(x, R); x.clip();
+    const n = 12, cols = scheme;
+    for (let i = 0; i < n; i++) {
+      const a0 = -Math.PI / 2 + i * Math.PI / (n / 2) - Math.PI / n, a1 = a0 + Math.PI / (n / 2);
+      if (a1 < -Math.PI / 2 - 0.01 || a0 > Math.PI / 2 + 0.01) continue;
+      const x0 = Math.sin(Math.max(-Math.PI / 2, a0)) * R * 1.05, x1 = Math.sin(Math.min(Math.PI / 2, a1)) * R * 1.05;
+      let col = cols[i % cols.length];
+      if (lit) col = mix(col, [255, 220, 150], 0.25).map(v => Math.min(255, v * 1.15));
+      x.fillStyle = rgb(col); x.fillRect(x0, -1.1 * R, x1 - x0 + 0.3, 2.6 * R);
+    }
+    if (!lit) {
+      // the sphere's light: the sun's side lit, the far side in shade, a sky rim on the shaded edge
+      const sx = light.side * R * 0.45;
+      let g = x.createRadialGradient(sx, -R * 0.35, R * 0.1, sx * 0.4, 0, R * 1.5);
+      g.addColorStop(0, `rgba(255,250,235,${0.35 * light.day})`); g.addColorStop(0.45, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(20,12,40,${0.42 + 0.3 * (1 - light.day)})`);
+      x.fillStyle = g; x.fillRect(-R * 1.2, -R * 1.2, R * 2.4, R * 2.8);
+      if (light.gold > 0.1) { g = x.createLinearGradient(light.side * R, 0, -light.side * R, 0); g.addColorStop(0, `rgba(255,170,90,${0.35 * light.gold})`); g.addColorStop(1, 'rgba(255,170,90,0)'); x.fillStyle = g; x.fillRect(-R * 1.2, -R * 1.2, R * 2.4, R * 2.8); }
+      g = x.createLinearGradient(-light.side * R, 0, -light.side * R * 0.7, 0); g.addColorStop(0, `rgba(200,220,255,${0.25 * light.day})`); g.addColorStop(1, 'rgba(200,220,255,0)'); x.fillStyle = g; x.fillRect(-R * 1.2, -R * 1.2, R * 2.4, R * 2.8);
+      // the load tapes on the seams (fine, a little darker), the crown's vent cap, the skirt
+      x.strokeStyle = 'rgba(30,20,30,0.18)'; x.lineWidth = Math.max(0.25, R * 0.012);
+      for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + i * Math.PI / (n / 2) - Math.PI / n; if (Math.abs(a) > Math.PI / 2) continue; const sx2 = Math.sin(a) * R; x.beginPath(); x.moveTo(sx2 * 0.15, -1.02 * R); x.quadraticCurveTo(sx2 * 1.1, -0.2 * R, sx2 * 0.22, 1.4 * R); x.stroke(); }
+      x.fillStyle = `rgba(30,24,36,${0.35})`; x.beginPath(); x.ellipse(0, -0.98 * R, R * 0.26, R * 0.07, 0, 0, TAU); x.fill();
+      x.fillStyle = 'rgba(28,20,24,0.5)'; x.fillRect(-R, 1.26 * R, R * 2, R * 0.2);
+    } else {
+      // lit from inside: brightest by the mouth, fading up the dome (only this, drawn additively over the envelope)
+      x.globalCompositeOperation = 'destination-in';
+      const g = x.createRadialGradient(0, R * 1.2, R * 0.1, 0, R * 0.2, R * 1.6);
+      g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.55, 'rgba(0,0,0,0.7)'); g.addColorStop(1, 'rgba(0,0,0,0.25)');
+      x.fillStyle = g; x.fillRect(-R * 1.2, -R * 1.2, R * 2.4, R * 2.8);
+      x.globalCompositeOperation = 'source-over';
+    }
+    x.restore();
+    if (!lit) {
+      // the cables, the burner frame, the basket (wicker: a weave + a leather rim)
+      const by = 1.92 * R, bw = 0.36 * R, bh = 0.3 * R;
+      x.strokeStyle = 'rgba(40,30,30,0.7)'; x.lineWidth = Math.max(0.3, R * 0.015);
+      x.beginPath(); for (const f of [-1, -0.35, 0.35, 1]) { x.moveTo(f * 0.2 * R, 1.42 * R); x.lineTo(f * bw * 0.5, by); } x.stroke();
+      x.fillStyle = 'rgb(40,36,40)'; x.fillRect(-bw * 0.32, 1.7 * R, bw * 0.64, R * 0.06);
+      const bc = mix([60, 40, 26], [150, 104, 60], light.day);
+      x.fillStyle = rgb(bc); x.beginPath(); x.roundRect(-bw / 2, by, bw, bh, R * 0.04); x.fill();
+      x.strokeStyle = rgb(mix(bc, [30, 20, 10], 0.45), 0.7); x.lineWidth = Math.max(0.2, R * 0.01);
+      x.beginPath(); for (let i = 1; i < 5; i++) { x.moveTo(-bw / 2, by + bh * i / 5); x.lineTo(bw / 2, by + bh * i / 5); } for (let i = 1; i < 6; i++) { x.moveTo(-bw / 2 + bw * i / 6, by); x.lineTo(-bw / 2 + bw * i / 6, by + bh); } x.stroke();
+      x.fillStyle = rgb(mix(bc, [20, 12, 8], 0.55)); x.fillRect(-bw / 2 - R * 0.01, by - R * 0.02, bw + R * 0.02, R * 0.05);
+      x.fillStyle = rgb([255, 250, 230], 0.25 * light.day); x.fillRect(light.side > 0 ? bw * 0.3 : -bw / 2, by, bw * 0.2, bh);
+    }
+    return cv;
+  };
+  return { cv: make(false), glow: make(true), w: W, h: Hh, oy: R * 1.08, mouth: 1.42 * R, burner: 1.73 * R };
+}
+
+export function createBalloons() {
+  let W = 1, K = 1, dpr = 2, cur = null;
+  const flameDot = (() => { const c = mk(32, 32), x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(0.3, 'rgba(255,170,60,0.6)'); g.addColorStop(1, 'rgba(255,120,30,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return c; })();
+
+  /** start: { at (clock ms), seed, festival, lanes: { 'sky-high', 'sky-low' }, windSign (−1 / 1) } */
+  function start(o) {
+    stop();
+    const R0 = rng(o.seed || 7), n = o.festival ? 4 + Math.floor(R0() * 3) : 1, list = [];
+    for (let i = 0; i < n; i++) {
+      const near = o.festival ? (i === 0 ? 1 : 0.35 + R0() * 0.55) : 1;
+      const lane = o.festival && R0() < 0.45 && o.lanes['sky-high'] ? o.lanes['sky-high'] : o.lanes['sky-low'];
+      if (!lane) continue;
+      const R = (12 + 7 * near) * K;
+      list.push({ R, near, scheme: BALLOON_SCHEMES[Math.floor(R0() * BALLOON_SCHEMES.length)], lane, x0: R0(), drift: 0.7 + 0.6 * R0(), ph: R0() * TAU, burnEvery: 8 + R0() * 12, art: null, key: '' });
+    }
+    list.sort((a, b) => a.near - b.near);                 // far first
+    cur = { at: o.at, list, dir: o.windSign || 1, dur: o.dur || 12 * 60 };
+  }
+  function stop() { if (cur) for (const b of cur.list) if (b.art) { b.art.cv.width = 0; b.art.glow.width = 0; } cur = null; }
+
+  return {
+    resize(w) { W = w; K = Math.max(0.9, Math.min(1.35, w / 402)); },
+    setDpr(d) { dpr = d; },
+    start, stop,
+    on: () => !!cur,
+    draw(c, s) {
+      if (!cur) return false;
+      const e = (s.now - cur.at) / 1000;
+      if (e > cur.dur) { stop(); return false; }
+      if (e < 0) return true;
+      const L = s.L, dark = clamp01(L.w.night + L.w.late), day = clamp01(L.w.day + L.w.golden * 0.85 + L.w.dawn * 0.8) * (1 - dark * 0.9);
+      const gold = clamp01((L.w.golden + L.w.dawn) * 1.3), side = L.south ? (L.sun.az < 180 ? 1 : -1) : (L.sun.az < 180 ? -1 : 1);
+      const light = { day: Math.max(0.1, day), gold, side }, key = `${Math.round(light.day * 6)}${Math.round(gold * 6)}${side}`;
+      const fadeIn = clamp01(e / 6), fadeOut = clamp01((cur.dur - e) / 10);
+      for (const b of cur.list) {
+        if (!b.art || b.key !== key) { if (b.art) { b.art.cv.width = 0; b.art.glow.width = 0; } b.art = balloonArt(b.R, b.scheme, light, dpr); b.key = key; }
+        const A = b.art;
+        // the drift across (the real wind's side), slower for the far ones; a slow rise and fall, a little bob
+        // (it starts in view and drifts about half the screen over the event: a balloon is slow)
+        const span = W + A.w * 2, k = 0.18 + b.x0 * 0.4 + e / cur.dur * b.drift * 0.5 * (0.55 + 0.45 * b.near);   // (never wrapped: it drifts off)
+        const x = cur.dir > 0 ? -A.w + k * span : W + A.w - k * span;
+        const top = b.lane.y + 2, room = Math.max(0, b.lane.h - A.h * (b.near > 0.9 ? 0.9 : 0.8));
+        const y = top + room * (0.45 + 0.35 * Math.sin(e * 0.012 + b.ph)) + (s.motion ? Math.sin(e * 0.6 + b.ph) * 0.8 : 0);
+        const alpha = fadeIn * fadeOut * (0.75 + 0.25 * b.near);
+        c.globalAlpha = alpha; c.drawImage(A.cv, x - A.w / 2, y, A.w, A.h); c.globalAlpha = 1;
+        // THE BURNER: a burn of a few pulses every 8–20 s; the flame, and at dusk the envelope lit from inside
+        const cyc = (e + b.ph * 3) % b.burnEvery, burn = s.motion ? (cyc < 2.4 ? Math.max(0, Math.sin(cyc * 7.5)) * 0.6 + 0.4 * (cyc < 2.2 ? 1 : 0) : 0) : 0;
+        if (burn > 0.02) {
+          const fx = x, fy = y + A.oy + A.burner, fl = b.R * (0.35 + 0.25 * burn) * (0.9 + 0.1 * Math.sin(e * 40));
+          c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = alpha * burn;
+          c.drawImage(flameDot, fx - fl * 0.35, fy - fl * 1.1, fl * 0.7, fl * 1.25);
+          c.globalAlpha = alpha * burn * (0.25 + 0.75 * dark + 0.4 * gold) * 0.9;
+          c.drawImage(A.glow, x - A.w / 2, y, A.w, A.h);
+          c.restore();
+        }
+      }
+      return true;
+    },
+    debug: () => (cur ? { n: cur.list.length, at: cur.at, dir: cur.dir } : null),
+    destroy: stop,
+  };
+}

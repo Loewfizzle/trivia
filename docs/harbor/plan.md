@@ -127,7 +127,7 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   extra boats during big shows. Note: on a normal night the wheel's warm bulbs blend into the windows behind it — give it more
   contrast (Part 6 section 0).
 
-## Part 6 — sky hero pieces (existing behaviour, new art) — SPLIT into 6a (everyday sky) + 6b (special-occasion sky)
+## Part 6 — sky hero pieces (existing behaviour, new art) — SPLIT into 6a (everyday sky ✅ Oct 21 2026) + 6b (special-occasion sky)
 - Planes, the BANNER PLANE (1–3 banners: daily challenges, holiday messages, game announcements, CITY CONTROL messages),
   helicopter, jets, birds/gulls, the UFO, satellites.
 - The sun and moon art: big amber moonrise turning silver, earthshine on the crescent, a halo only in real haze; rare harvest
@@ -139,8 +139,22 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   July 4th / Memorial / Veterans Day; rare on calm clear days; maybe neon canopies on a legendary party night.
 - HOT AIR BALLOONS: on calm, clear mornings and summer evenings (only when the real wind is low) a crafted striped balloon
   drifts slowly across the sky; at dusk the burner flame flares and lights it from inside; rarely a small festival of several.
-- THE AURORA must be REAL: today's sky shows it on ~1 night in 5 at random (core/sky.js#auroraNight) — tie it to the real
-  space-weather forecast (NOAA's Kp index) or make it very rare (a few nights a year at Grand Rapids' latitude).
+- THE AURORA (decided Oct 21 2026, during 6a — replaces "tie it to the player's latitude"): NOT limited by the player's location — a RARE
+  TIMED EVENT for everyone (~2 nights a month, the same nights for all players, seeded by the date, never two nights in a row) PLUS a
+  bonus night whenever the real NOAA Kp index shows a strong geomagnetic storm (Kp ≥ 7), regardless of latitude; only at night, under
+  clear-enough skies; beautiful and premium. (Built in 6a: core/harbor-sky.js#auroraTonight, Kp via /api/sky.)
+- THE DRONE SHOW (decided Oct 21 2026, built in 6a): the drones launch from a BARGE on the harbor (a swarm of lights rising, reflected),
+  fly up into formation; a show is a sequence of shapes and/or messages, the swarm flowing smoothly from one to the next, then
+  scattering and flying back down to the barge. Shapes: letters (the skytyping font), hearts, stars, flags, each game's logo mark, ₿,
+  holiday shapes (pumpkin, Christmas tree, firework burst, shamrock). An API (CITY CONTROL, holidays, rare party-night peaks later) +
+  &force=drones&text=…. Glance test: shapes + letters read on a phone. A HEAVY sky event (it quiets the other lanes).
+- SKY MESSAGES (decided Oct 21 2026): skywriting, skytyping and the drone show are NOT random — they come from the API (CITY CONTROL,
+  birthdays…) and THE HOLIDAY SKY: holidays DO get an automatic sky message on the clock (skywriting / skytyping by day, a drone show
+  at night) — Halloween (a pumpkin, BOO), Thanksgiving, Christmas Eve (a tree, MERRY CHRISTMAS), New Year's Eve (in the evening, never
+  clashing with the countdown, the ball drop or the fireworks), Valentine's (a heart), St. Patrick's (a shamrock), Easter, July 4th (a
+  flag, before the fireworks), Memorial + Veterans Day (a respectful flag). A holiday table (core/harbor-sky.js#SKY_HOLIDAYS) the
+  holiday parts (11a–c) fill in; the owner can cancel or override any of them from CITY CONTROL. NO automatic shows on regular party
+  nights.
 - Cap the planes' contrail cost (Known issues, Part 2).
 - SKYWRITING + SKYTYPING: on clear, low-wind days a plane writes a word or two in huge smoke letters stroke by stroke; for longer
   messages (HAPPY BIRTHDAY STEVE, HAPPY NEW YEAR, MERRY CHRISTMAS, HAPPY THANKSGIVING) a line of planes SKYTYPES dot-matrix

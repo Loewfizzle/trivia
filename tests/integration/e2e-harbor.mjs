@@ -24,7 +24,7 @@ const GR = '&tz=America/Detroit&at=42.96,-85.67';
 const NIGHT = `when=2026-10-21T22:00${GR}`;
 
 const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : [])] });
-async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true } = {}) {
+async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0 } = {}) {
   const ctx = await browser.createBrowserContext();
   const p = await ctx.newPage();
   const files = [];
@@ -32,7 +32,9 @@ async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profi
   p.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/favicon|ERR_|Failed to load|permission_denied|PERMISSION_DENIED|Client is offline/i.test(t)) { errors.push(`${slot}: ${t}`); log(slot, 'console.error', t); } });
   p.on('request', r => files.push(r.url()));
   const [w, h] = view, mobile = w < 1000;
-  await p.setViewport({ width: w, height: h, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile });
+  await p.setViewport({ width: w, height: h, deviceScaleFactor: dpr || (mobile ? 2 : 1), isMobile: mobile, hasTouch: mobile });
+  // (an iPhone: DPR 3, and iOS reports a capped core count — Part 6a's tier check)
+  if (cores) await p.evaluateOnNewDocument(n => { Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => n }); }, cores);
   await p.evaluateOnNewDocument((slotName, prof) => {
     try { localStorage.setItem('nd:entered', '1'); if (prof) localStorage.setItem(`na:${slotName}:profile`, JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, slot, profile);
@@ -210,13 +212,14 @@ try {
     const h = await ev(N.page, 'window.__district.harbor()');
     ok(h.water.strips > 30 && h.water.copies > 0, `THE WATER: the mirror rippled row by row (${h.water.strips} rows), the lights' columns at night (${h.water.copies} copies)`);
     ok(h.water.rough < 0.05, `A CALM NIGHT (wind 0.5 m/s): a glassy mirror (roughness ${h.water.rough})`);
-    // the HOTEL's red neon shows in the water below it (its mirror image: as far under the waterline as the sign is above it)
-    const hot = h.neon.signs.find(s => s.id === 'hotel');
+    // THE GAME BLADE's neon + its chasing bulbs show in the water below it (Part 6a: it took the HOTEL's spot; its mirror image:
+    // as far under the waterline as the sign is above it)
+    const hot = h.neon.signs.find(s => s.id === 'n-blade');
     const red = await ev(N.page, `(() => { const cv = document.querySelector('canvas'), x = cv.getContext('2d'), k = cv.width / innerWidth, y0 = ${h.water.y0}, y1 = ${h.water.y1};
       const cx = ${hot.rect.x + hot.rect.w / 2}, my = Math.min(y1 - 4, 2 * y0 - (${hot.rect.y + hot.rect.h * 0.8}));
-      let best = 0; for (let dx = -4; dx <= 4; dx += 2) for (let dy = -8; dy <= 8; dy += 2) { const d = x.getImageData((cx + dx) * k, (my + dy) * k, 1, 1).data; best = Math.max(best, d[0] - Math.max(d[1], d[2]) * 0.5); }
+      let best = 0; for (let dx = -4; dx <= 4; dx += 2) for (let dy = -8; dy <= 8; dy += 2) { const d = x.getImageData((cx + dx) * k, (my + dy) * k, 1, 1).data; best = Math.max(best, (d[0] + d[1] + d[2]) / 3); }
       return best; })()`);
-    ok(red > 40, `THE NEON IN THE WATER: the HOTEL's red mirrored under it (red excess ${Math.round(red)})`);
+    ok(red > 80, `THE NEON IN THE WATER: the game blade mirrored under it (brightness ${Math.round(red)})`);
     ok(await ev(N.page, "['reflect', 'light', 'wake', 'set'].every(k => typeof window.__district.harbor().water[k] === 'function')"), 'THE HOOKS: reflect (boats, Part 5), light (fireworks, Part 10), wake (Part 5), set (rain + fog, Part 9)');
     ok(h.mem.mb + h.neon.mb <= h.mem.budget, `MEMORY (the water): ${h.mem.layers.find(l => /mirror/.test(l.name)).mb} MB in the ${h.mem.mb} MB of layers + the neon ${h.neon.mb} MB ≤ ${h.mem.budget}`);
     await ev(N.page, 'window.__district.setTier(0)'); await sleep(2500);
@@ -271,6 +274,34 @@ try {
     if (SHOTS) await H.page.screenshot({ path: `${OUT}part5-harbor-390x844.png` });
     await H.ctx.close();
   }
+  // ================================================================ 3f. Part 6a: THE EVERYDAY SKY — the tier on an iPhone, the sky's pieces + API, lanes, the moon
+  { const I = await open({ slot: 'h6', qs: `when=2026-10-21T13:00${GR}&wind=2`, dpr: 3, cores: 2 });
+    await harborUp(I.page);
+    const sc = await ev(I.page, 'window.__district.scene()');
+    ok(sc.tier === 2 && sc.dpr === 2, `THE TIER ON AN iPHONE: DPR 3 + iOS's capped core count start the Harbor at tier ${sc.tier} (DPR ${sc.dpr}) — the step-down still guards a slow phone`);
+    await waitFor(I.page, '!!window.__district.scene().textRects', 'the sign measured', 8000);
+    const b = await ev(I.page, "window.__district.harbor().sky.banner(['FRESH LEMONADE', 'AT THE PIER'])");
+    const t = await ev(I.page, "window.__district.harbor().sky.skytype('HAPPY BIRTHDAY STEVE')");
+    await sleep(1500);
+    const st = (await ev(I.page, 'window.__district.harbor()')).sky.state;
+    ok(b && st.banner && st.banner.lines.length === 2 && st.banner.panels.every(p => p.h >= 19), `THE BANNER PLANE (API): ${st.banner && st.banner.lines.join(' / ')} — panels ${st.banner && st.banner.panels.map(p => p.w + '×' + p.h).join(', ')} pt`);
+    ok(t && st.smoke && st.smoke.kind === 'skytype' && st.smoke.text === 'HAPPY BIRTHDAY / STEVE' && st.smoke.puffs > 100, `SKYTYPING (API): "${st.smoke && st.smoke.text}" — ${st.smoke && st.smoke.puffs} puffs, 16 a line, 2 lines`);
+    const h = await ev(I.page, 'window.__district.harbor()');
+    ok(st.used.includes('sky-high') && st.used.includes('sky-low') && st.heavy && h.density.road < 1 && h.density['sky-high'] === 1, `HEAVY SKY: the skytypers hold both sky lanes (no plane there), the rest of the city calms (road density ${h.density.road})`);
+    ok(h.rate.fast !== '', `THE SKY KEEPS 60 FPS while it writes (${h.rate.fast})`);
+    if (SHOTS) await I.page.screenshot({ path: `${OUT}part6-skytype-390x844.png` });
+    await I.ctx.close(); }
+  { const D = await open({ slot: 'h7', qs: `${NIGHT}&force=drones&text=HELLO&show=heart` });
+    await harborUp(D.page);
+    await waitFor(D.page, '!!window.__district.harbor().sky.state.drones', 'the drone show', 10000);
+    await sleep(17000);
+    const st = (await ev(D.page, 'window.__district.harbor()')).sky.state;
+    ok(st.drones && st.drones.n >= 140 && st.drones.lit > 100 && st.used.includes('water') && st.barge && st.barge.w > 40,
+      `THE DRONE SHOW (&force=drones): ${st.drones && st.drones.n} drones, ${st.drones && st.drones.lit} lit in "${st.drones && st.drones.shapes.join(' → ')}" at ${st.drones && st.drones.e} s; the barge ${st.barge && Math.round(st.barge.w)} pt on the harbor`);
+    const m = st.cel && st.cel.moon;
+    ok(m && m.discA > 0.6 && m.r > 14, `THE MOON (the Harbor's art): drawn at r ${m && m.r} pt, visible ${m && m.discA}, amber ${m && m.amber}`);
+    if (SHOTS) await D.page.screenshot({ path: `${OUT}part6-drones-390x844.png` });
+    await D.ctx.close(); }
   // ================================================================ 4. the dock: HOST, JOIN, the knock on the door
   const H = await open({ slot: 'hh', qs: NIGHT });
   await harborUp(H.page);

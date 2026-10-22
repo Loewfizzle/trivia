@@ -4,10 +4,13 @@
 // the cache key and all this function ever keeps. Weather: Open-Meteo (free, no key), cached per area for 15 minutes in
 // memory and in wx/{area} (server-only), so a busy night costs a few requests an hour per area. With it, the past two hours of
 // precipitation in quarter hours → wetAt (when the rain really stopped: RAINBOWS, core/rainbow.js).
-// Without Vercel's headers (local dev, some networks): ?lat=&lon= (tests), else 204 — the city stays dry (no weather drawn).
+// Without Vercel's headers (local dev, some networks): ?lat=&lon= (tests), else no weather — the city stays dry (no weather drawn).
+// CITY 2.0 (Part 6a): every answer also carries `kp` — NOAA SWPC's planetary K-index in 3-hour blocks (12 h back, 36 h ahead;
+// core/harbor-sky.js#parseKp), fetched once an hour for everyone (one global cache): the Harbor's aurora gets a bonus night on a
+// real strong storm (Kp ≥ 7). With no location the answer is just { kp } (204 when neither is known).
 import { route, send } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
-import { normalize, areaOf } from '../js/core/weather.js';
+import { normalize, areaOf, parseKp } from '../js/core/weather.js';
 
 export const SKY_TTL_MS = 15 * 60_000;
 const mem = new Map();
@@ -55,14 +58,36 @@ export async function skyFor(place, { now = Date.now(), fetcher = fetch } = {}) 
   return { ...wx, city: place.city };
 }
 
-export function clearSkyCache() { mem.clear(); }
+export const KP_TTL_MS = 60 * 60_000;
+const KP_URL = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json';
+let kpMem = null, kpFetch = (...a) => fetch(...a);
+/** tests: the network for the Kp fetch (null = the real one) */
+export const setKpFetcher = fn => { kpFetch = fn || ((...a) => fetch(...a)); kpMem = null; };
+/** The planetary Kp blocks (cached an hour for everyone; a failed fetch keeps the last answer up to 6 hours). Null when unknown. */
+export async function kpNow({ now = Date.now(), fetcher = kpFetch } = {}) {
+  if (kpMem && now - kpMem.at < KP_TTL_MS) return kpMem.blocks;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 3500);
+  try {
+    const r = await fetcher(KP_URL, { signal: ctl.signal });
+    if (!r.ok) throw new Error(`swpc ${r.status}`);
+    const blocks = parseKp(await r.json(), now);
+    if (blocks.length) { kpMem = { at: now, got: now, blocks }; return blocks; }
+  } catch (e) { console.warn('kp', e && e.message); } finally { clearTimeout(timer); }
+  if (kpMem && now - kpMem.got < 6 * KP_TTL_MS) { kpMem.at = now - KP_TTL_MS + 10 * 60_000; return kpMem.blocks; }   // (stale ≤ 6 h; retry in 10 min)
+  return null;
+}
+
+export function clearSkyCache() { mem.clear(); kpMem = null; }
 
 export default route(['GET'], async (req, res) => {
   const place = placeOf(req);
-  if (!place) { res.statusCode = 204; res.setHeader('Cache-Control', 'no-store'); res.end(); return; }
-  let wx = null;
-  try { wx = await skyFor(place); } catch (e) { console.warn('sky', e && e.message); }
-  if (!wx) { res.statusCode = 204; res.setHeader('Cache-Control', 'no-store'); res.end(); return; }
+  let wx = null, kp = null;
+  await Promise.all([
+    place ? skyFor(place).then(v => { wx = v; }, e => console.warn('sky', e && e.message)) : null,
+    kpNow().then(v => { kp = v; }, () => {}),
+  ]);
+  if (!wx && !kp) { res.statusCode = 204; res.setHeader('Cache-Control', 'no-store'); res.end(); return; }
   // private: the answer depends on where the caller is, so no shared CDN cache; the browser may keep it 10 minutes
-  send(res, 200, wx, { 'Cache-Control': 'private, max-age=600' });
+  send(res, 200, wx ? { ...wx, kp } : { kp }, { 'Cache-Control': 'private, max-age=600' });
 });

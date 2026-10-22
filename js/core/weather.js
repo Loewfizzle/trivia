@@ -84,3 +84,28 @@ export function areaOf(lat, lon) {
   const r = v => Math.round(v * 2) / 2;
   return { lat: r(la), lon: r(lo), key: `a${r(la).toFixed(1)}_${r(lo).toFixed(1)}`.replace(/\./g, 'p').replace(/-/g, 'm') };
 }
+
+// ------------------------------------------------------------------ SPACE WEATHER (CITY 2.0, Part 6a: the aurora's storm night)
+/** NOAA SWPC's planetary K-index forecast (products/noaa-planetary-k-index-forecast.json — objects { time_tag, kp, observed },
+ *  or the older rows [time_tag, kp, observed, scale] under a header) → [[ms (the 3-hour block's start, UTC), kp], …] from 12 h
+ *  ago to 36 h ahead. [] when it can't be read. */
+export function parseKp(json, nowMs = Date.now()) {
+  if (!Array.isArray(json)) return [];
+  const out = [];
+  for (const r of json) {
+    let t, k;
+    if (Array.isArray(r)) { if (r[0] === 'time_tag') continue; [t, k] = r; } else if (r && typeof r === 'object') { t = r.time_tag; k = r.kp; } else continue;
+    const ms = Date.parse(String(t).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(t)) ? '' : 'Z'));
+    const kp = Number(k);
+    if (!Number.isFinite(ms) || !Number.isFinite(kp) || kp < 0 || kp > 9.5) continue;
+    if (ms < nowMs - 12 * 3600e3 || ms > nowMs + 36 * 3600e3) continue;
+    out.push([ms, Math.round(kp * 100) / 100]);
+  }
+  return out.sort((a, b) => a[0] - b[0]);
+}
+/** the Kp at ms from the blocks (each 3 h from its start); null outside them */
+export function kpAt(blocks, ms) {
+  if (!Array.isArray(blocks)) return null;
+  for (const [t, k] of blocks) if (ms >= t && ms < t + 3 * 3600e3) return k;
+  return null;
+}
