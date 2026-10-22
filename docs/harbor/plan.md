@@ -110,6 +110,14 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   the game blade takes over the projecting build + chasing bulbs, glance-tested. Game signs never go on the speakeasy (it stays
   secret and unmarked).
 
+- NEON PASS 2 (after 6a, the owner's zoomed iPhone review): outlines hidden by nearer buildings (no drawing over them), clean end
+  caps, one tube bent around the MAIN setbacks with rounded corners (no 8-bit stair-steps), no tube through a sign, no icon on a
+  tube, NO signs on any hero tower's face (EMPIRE + the white tower too — icon spots added elsewhere), no sign/icon/tube clipped by
+  the screen edge, the billboard's small second line fixed or dropped; MORE NEON IN THE MIDSECTION (mid-building rooflines +
+  setbacks, Deco ledge bands, fins + corner trims, and a WATERFRONT STRIP of ground-level bars/diners/theatres along the far shore
+  reflected in the harbor; nearer buildings warmer — pink, amber, red — towers cooler); drone colours; real neon SFX from the
+  owner's picks.
+
 ## Part 4 — water
 - Reflections in perspective; a gold sun path at sunset and a silver moon path at night broken by ripples; every light smeared
   in the water; fireworks doubled in the harbor (Part 11).
@@ -127,7 +135,16 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   extra boats during big shows. Note: on a normal night the wheel's warm bulbs blend into the windows behind it — give it more
   contrast (Part 6 section 0).
 
-## Part 6 — sky hero pieces (existing behaviour, new art) — SPLIT into 6a (everyday sky ✅ Oct 21 2026) + 6b (special-occasion sky)
+## Part 6 — sky hero pieces (existing behaviour, new art) — SPLIT into 6a (everyday sky, DONE Oct 21) + 6b (special-occasion sky)
+- 6a built: tier 2 on modern iPhones (iOS reports capped cores), white wheel bulbs + a glow ring, the game blade in HOTEL's spot,
+  airliners, the banner plane (lit at night), skywriting + skytyping, the helicopter, birds, balloons, the moon art, the aurora
+  (~2 nights a month for everyone + real Kp ≥ 7), the drone show (barge launch) as the night form of sky messages — sky messages
+  only on holidays or when sent (CITY CONTROL), never random.
+- 6b: the jets + air show (our own team) + the F-16 missing man; TWO UFOs, realistic not cartoonish — a classic metallic saucer
+  (rotating rim lights, an underglow lighting the haze/water, slow silent hover; it does the promenade abduction) and the TR-3B
+  (matte black triangle, a glowing red orb at the belly's centre + three orbs at its points, slow silent glide, then impossibly fast
+  and gone; a rare night flyover); skydivers (colourful canopies by day, ankle flares + canopy lights at night); the witch; Santa's
+  sleigh. Every piece gets day + night versions (golden-hour touches where they help).
 - Planes, the BANNER PLANE (1–3 banners: daily challenges, holiday messages, game announcements, CITY CONTROL messages),
   helicopter, jets, birds/gulls, the UFO, satellites.
 - The sun and moon art: big amber moonrise turning silver, earthshine on the crescent, a halo only in real haze; rare harvest
@@ -139,22 +156,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   July 4th / Memorial / Veterans Day; rare on calm clear days; maybe neon canopies on a legendary party night.
 - HOT AIR BALLOONS: on calm, clear mornings and summer evenings (only when the real wind is low) a crafted striped balloon
   drifts slowly across the sky; at dusk the burner flame flares and lights it from inside; rarely a small festival of several.
-- THE AURORA (decided Oct 21 2026, during 6a — replaces "tie it to the player's latitude"): NOT limited by the player's location — a RARE
-  TIMED EVENT for everyone (~2 nights a month, the same nights for all players, seeded by the date, never two nights in a row) PLUS a
-  bonus night whenever the real NOAA Kp index shows a strong geomagnetic storm (Kp ≥ 7), regardless of latitude; only at night, under
-  clear-enough skies; beautiful and premium. (Built in 6a: core/harbor-sky.js#auroraTonight, Kp via /api/sky.)
-- THE DRONE SHOW (decided Oct 21 2026, built in 6a): the drones launch from a BARGE on the harbor (a swarm of lights rising, reflected),
-  fly up into formation; a show is a sequence of shapes and/or messages, the swarm flowing smoothly from one to the next, then
-  scattering and flying back down to the barge. Shapes: letters (the skytyping font), hearts, stars, flags, each game's logo mark, ₿,
-  holiday shapes (pumpkin, Christmas tree, firework burst, shamrock). An API (CITY CONTROL, holidays, rare party-night peaks later) +
-  &force=drones&text=…. Glance test: shapes + letters read on a phone. A HEAVY sky event (it quiets the other lanes).
-- SKY MESSAGES (decided Oct 21 2026): skywriting, skytyping and the drone show are NOT random — they come from the API (CITY CONTROL,
-  birthdays…) and THE HOLIDAY SKY: holidays DO get an automatic sky message on the clock (skywriting / skytyping by day, a drone show
-  at night) — Halloween (a pumpkin, BOO), Thanksgiving, Christmas Eve (a tree, MERRY CHRISTMAS), New Year's Eve (in the evening, never
-  clashing with the countdown, the ball drop or the fireworks), Valentine's (a heart), St. Patrick's (a shamrock), Easter, July 4th (a
-  flag, before the fireworks), Memorial + Veterans Day (a respectful flag). A holiday table (core/harbor-sky.js#SKY_HOLIDAYS) the
-  holiday parts (11a–c) fill in; the owner can cancel or override any of them from CITY CONTROL. NO automatic shows on regular party
-  nights.
+- THE AURORA must be REAL: today's sky shows it on ~1 night in 5 at random (core/sky.js#auroraNight) — tie it to the real
+  space-weather forecast (NOAA's Kp index) or make it very rare (a few nights a year at Grand Rapids' latitude).
 - Cap the planes' contrail cost (Known issues, Part 2).
 - SKYWRITING + SKYTYPING: on clear, low-wind days a plane writes a word or two in huge smoke letters stroke by stroke; for longer
   messages (HAPPY BIRTHDAY STEVE, HAPPY NEW YEAR, MERRY CHRISTMAS, HAPPY THANKSGIVING) a line of planes SKYTYPES dot-matrix
@@ -382,6 +385,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - **BOARD 2.0** (the bar inside the speakeasy, an Art Deco brass + enamel honor board, a live bartender, windows onto the live
   Harbor) and **PROGRESSION 2.0** (levels 1–100, a wardrobe whose pieces turn neon at night, entrances, a birthday on the
   profile so the towers can spell "HAPPY BDAY <NAME>").
+  - STREAKS ARE BIG (the owner): they bring people back, so streak rewards are generous and visible — milestone rewards
+    (wardrobe pieces, finishes, glows) at real streak lengths, built on the existing streaks + weekly goal (docs/profiles.md).
+  - CITY SIGHTINGS (the owner): badges / achievements for SEEING legendary city moments — the periscope, the UFO abduction,
+    and the other rare events and easter eggs (the aurora, the raid, a lunar eclipse…). The city reports a sighting when the
+    event is really on the player's screen (the scheduler already knows); a collection on the profile shows found + "???".
 - **MENUS 2.0 (after Part 12's switch-over, judged over the real Harbor — the menus' glass sits over a still of today's city
   until then):** one pass for settings, chat, help, the game list, the profile card and toasts together: calm, classy warm glass +
   brass + a touch of neon that lets the city shine through; readable and fast, never as flashy as the city.
