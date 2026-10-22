@@ -502,6 +502,39 @@ test('error log: grouped by error, rate-limited, readable and clearable by admin
   } finally { process.env.ADMIN_PIDS = ''; }
 });
 
+test('CITY 2.0 preview panel: cityLive / cityClear — admins only, validated plain values, one public node, audited', async () => {
+  await ref('city2').remove();
+  const boss = await ensure('u-cityboss', 'CityBoss');
+  await ensure('u-cityguest', 'CityGuest');
+  const st = { force: ['drones', 'aurora'], text: 'happy birthday', show: 'heart', when: '2026-10-24T23:00', speed: 20, wx: 'rain' };
+  await rejects(adminAction('u-cityboss', { action: 'cityLive', state: st }), 403, 'not_admin');
+  await rejects(adminAction('u-cityguest', { action: 'cityClear' }), 403, 'not_admin');
+  assert.equal(await val('city2/live'), null, 'nothing written by a non-admin');
+  process.env.ADMIN_PIDS = boss.pid;
+  try {
+    const now = Date.now();
+    const r = await adminAction('u-cityboss', { action: 'cityLive', state: st, mins: 45 }, now);
+    const live = await val('city2/live');
+    assert.deepEqual(live, r.live);
+    assert.equal(live.startAt, now); assert.equal(live.until, now + 45 * 60_000); assert.equal(live.by, boss.pid);
+    assert.deepEqual(live.state, { force: ['drones', 'aurora'], text: 'HAPPY BIRTHDAY', show: 'heart', when: '2026-10-24T23:00', speed: 20, wx: 'rain' });
+    assert.equal(live.params.force, 'drones,aurora'); assert.equal(live.params.speed, '20');
+    assert.match(live.label, /DRONE SHOW “HAPPY BIRTHDAY” · AURORA/);
+    // the default is 30 minutes; anything the registry doesn't know is refused, nothing half-written
+    assert.equal((await adminAction('u-cityboss', { action: 'cityLive', state: { force: ['banner'], text: 'HI' } }, now)).live.until, now + 30 * 60_000);
+    await rejects(adminAction('u-cityboss', { action: 'cityLive', state: { force: ['banner', '<img src=x>'] } }), 400, 'bad_state');
+    await rejects(adminAction('u-cityboss', { action: 'cityLive', state: { force: ['banner'], when: 'tomorrow' } }), 400, 'bad_state');
+    await rejects(adminAction('u-cityboss', { action: 'cityLive', state: { wx: 'rain' }, mins: 9999 }), 400, 'bad_mins');
+    await rejects(adminAction('u-cityboss', { action: 'cityLive', state: {} }), 400, 'empty_state');
+    await rejects(adminAction('u-cityboss', { action: 'cityLive', state: 'force=banner' }), 400, 'empty_state');
+    assert.equal((await val('city2/live')).state.text, 'HI', 'the refused calls left the last good state');
+    assert.deepEqual(await adminAction('u-cityboss', { action: 'cityClear' }), { live: null });
+    assert.equal(await val('city2/live'), null);
+    const log = (await adminAction('u-cityboss', { action: 'audit' })).log.filter(l => l.by === boss.pid).map(l => l.act);
+    assert.deepEqual(log.slice(0, 3), ['cityClear', 'cityLive', 'cityLive'], 'every send + the clear in the audit log');
+  } finally { process.env.ADMIN_PIDS = ''; }
+});
+
 test('admin stats: live rooms, games, players and busiest times from the real nodes', async () => {
   const boss = await ensure('u-statboss', 'StatBoss');
   await rejects(adminAction('u-statboss', { action: 'stats' }), 403, 'not_admin');

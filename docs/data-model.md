@@ -192,6 +192,14 @@ audit/{push}:     { at, by (admin pid), act, pid, … }                         
 rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid})
 ```
 
+## CITY 2.0 — THE PREVIEW PANEL (top level, server-written — `docs/harbor.md#the-preview-panel`)
+```
+city2/live: { v: 1, kind: 'preview', state (core/harbor-remote.js: { force: [ids], text?, show?, colours?, when?, speed?, wx?, scene?,
+              party?, hol?, debug?, … }), params (the same as URL flags), label (the status line), startAt (server ms), until, by (pid) }
+              read: signed-in users · write: the server only (/api/admin cityLive / cityClear). Every phone on ?city=2 plays it from
+              startAt until `until`; the default city never reads it.
+```
+
 ## RUMRUNNER (`docs/rum.md`)
 ```
 game: { id:'rum', matchId, participants, n0, settings{days, daySec}, day, dk (day as a string), phase: intro|dawn|day|night|final,

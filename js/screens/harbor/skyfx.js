@@ -33,6 +33,9 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
   const handled = new Set();                 // the scheduler's events already turned into pieces (id|start)
   const holiday = new Set();                 // the holiday sky's moments already started (date|day / date|night)
   let festival = false, last = null, forcedAt = new Map(), aurora = { on: false, strength: 0 };
+  // THE PREVIEW PANEL: a preview it switched on flies FIRST from the clock ms its state began (every phone the same moment, a
+  // late arrival mid-flight); its repeats start when they start, like a preview link's
+  const firstAt = new Map();
   const force = clock ? clock.force : new Set();
 
   // ---- the pieces' lanes (what a plane may not use; what a scheduled event finds taken)
@@ -118,20 +121,24 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
       }
     }
     // THE PREVIEWS (&force=…): start at once, again a few seconds after each ends
-    const again = (id, on, fn) => { if (!force.has(id) || on) return; const t = forcedAt.get(id) || 0; if (performance.now() - t < 2500) return; forcedAt.set(id, performance.now()); fn(); };
+    const again = (id, on, fn) => {
+      if (!force.has(id) || on) return; const t = forcedAt.get(id) || 0; if (performance.now() - t < 2500) return; forcedAt.set(id, performance.now());
+      const a = firstAt.get(id); firstAt.delete(id);
+      fn(a != null ? a : s.now);
+    };
     if (s.textRects && s.textRects.neon && lanes) {
       const text = qp && qp.get('text');
-      again('banner', banner.on(), () => startBanner(s, text ? text.split('|') : ['FRESH LEMONADE', 'AT THE PIER'], s.now, { passes: 2 }));
-      again('skywrite', smoke.on(), () => startSmoke(s, 'skywrite', text || 'HELLO', s.now));
-      again('skytype', smoke.on(), () => startSmoke(s, 'skytype', text || 'HAPPY BIRTHDAY STEVE', s.now));
-      again('helicopter', air.heliOn(), () => air.heli(s, s.now, Math.floor(s.now / 1000)));
-      again('balloons', balloons.on(), () => startBalloons(s, s.now, false, 3));
-      again('balloon-festival', balloons.on(), () => startBalloons(s, s.now, true, 5));
-      again('drones', drones.on(), () => {
+      again('banner', banner.on(), at => startBanner(s, text ? text.split('|') : ['FRESH LEMONADE', 'AT THE PIER'], at, { passes: 2 }));
+      again('skywrite', smoke.on(), at => startSmoke(s, 'skywrite', text || 'HELLO', at));
+      again('skytype', smoke.on(), at => startSmoke(s, 'skytype', text || 'HAPPY BIRTHDAY STEVE', at));
+      again('helicopter', air.heliOn(), at => air.heli(s, at, Math.floor(at / 1000)));
+      again('balloons', balloons.on(), at => startBalloons(s, at, false, 3));
+      again('balloon-festival', balloons.on(), at => startBalloons(s, at, true, 5));
+      again('drones', drones.on(), at => {
         const show = (qp && qp.get('show') ? qp.get('show').split(',') : ['heart']).map(t => (DRONE_SHAPES.includes(t) || t.startsWith('mark:') ? { shape: t } : { text: t.toUpperCase() }));
         const msgs = (text || 'HELLO').split('|').map(t => ({ text: t.toUpperCase() }));
         const cs = qp && qp.get('colours') ? qp.get('colours').split(',') : null;
-        startDrones(s, qp && qp.get('show') ? [...show, ...msgs] : [show[0], ...msgs, { shape: 'star' }], s.now, { calm: force.has('drones-calm'), colour: qp && qp.get('colour') ? (qp.get('colour') === 'rainbow' ? 'rainbow' : '#' + qp.get('colour').replace('#', '')) : undefined, colours: cs && cs.map(c => '#' + c.replace('#', '')), by: qp && qp.get('by'), cycle: !!(qp && qp.get('cycle')) });
+        startDrones(s, qp && qp.get('show') ? [...show, ...msgs] : [show[0], ...msgs, { shape: 'star' }], at, { calm: force.has('drones-calm'), colour: qp && qp.get('colour') ? (qp.get('colour') === 'rainbow' ? 'rainbow' : '#' + qp.get('colour').replace('#', '')) : undefined, colours: cs && cs.map(c => '#' + c.replace('#', '')), by: qp && qp.get('by'), cycle: !!(qp && qp.get('cycle')) });
       });
     }
   }
@@ -147,6 +154,18 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
       for (const m of [air, banner, smoke, balloons, drones]) if (m.setDpr) m.setDpr(o.dpr);
     },
     setLanes(l) { lanes = l; },
+    /** THE PREVIEW PANEL changed the flags: gone = the &force= ids switched off (or changed: their pieces leave the sky at once);
+     *  came = the ones switched on (or changed) — their first flight starts at `at` (clock ms) */
+    remote(at, gone = [], came = []) {
+      for (const id of came) { firstAt.set(id, at); forcedAt.delete(id); }
+      for (const id of gone) {
+        if (!came.includes(id)) firstAt.delete(id);
+        if (id === 'banner') banner.stop();
+        else if (id === 'skywrite' || id === 'skytype') smoke.stop();
+        else if (id === 'drones') drones.stop();
+        else if (id === 'balloons' || id === 'balloon-festival') balloons.stop();
+      }
+    },
     setTier(t) { for (const m of [air, banner, smoke, birds, drones, cel]) if (m.setTier) m.setTier(t); },
     /** tonight's aurora (the scene: auroraTonight + the sky) — strength for the art */
     setAurora(a) { aurora = a || { on: false, strength: 0 }; },

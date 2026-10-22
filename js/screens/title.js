@@ -251,6 +251,7 @@ export function createTitle() {
   let scene = null;
   let stopRain = null;
   let tl = null;                 // { plan, t0, raf, kind }
+  let remote = null, remoteT = 0;  // CITY 2.0 only: THE PREVIEW PANEL (harbor/remote.js), loaded after the first paint
   let flickerTimer = 0;
   let destroyed = false;
   let busy = false;
@@ -274,6 +275,9 @@ export function createTitle() {
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
     scene.set({ beat: beatSource, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
+    // CITY 2.0: THE PREVIEW PANEL (docs/harbor.md) — everyone on ?city=2 follows the owner's city2/live; she gets the TEST pill.
+    // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
+    if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) remote = m.createRemote({ scene: () => scene }); }).catch(e => console.warn('preview panel', e)); }, 1500);
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
@@ -1252,7 +1256,8 @@ export function createTitle() {
       rainbow: () => (scene && scene.rainbow ? scene.rainbow() : null),
       street: () => (scene && scene.street ? scene.street() : null),
       cost: () => (scene && scene.cost ? scene.cost() : []),
-      harbor: () => (scene && scene.harbor ? scene.harbor() : null),     // CITY 2.0 only (?city=2): camera, layout, bake + memory
+      harbor: () => (scene && scene.harbor ? scene.harbor() : null),
+      remote: () => remote,                                              // CITY 2.0 only: THE PREVIEW PANEL (tests)     // CITY 2.0 only (?city=2): camera, layout, bake + memory
       door: () => (scene && scene.door ? scene.door() : null),
       finale: () => scene && scene.finale(),
       dock: {
@@ -1296,6 +1301,8 @@ export function createTitle() {
     document.body.style.removeProperty('--dk-tint');
     dressCorners(false);
     if (dock) dock.destroy();
+    clearTimeout(remoteT);
+    if (remote) { remote.destroy(); remote = null; }
     const wrap = els.sceneWrap;
     captureBackdrop(els.canvas, scene.partyLight ? scene.partyLight() : null);   // the menus keep a still of the city (+ the party's light, which breathes on)
     const sc = scene;

@@ -4,7 +4,9 @@
 // visit (no flag) gets today's city and never loads a harbor file; the flag is never saved (localStorage, sessionStorage,
 // cookies) — a reload without it is today's city; the dock: HOST opens a room, JOIN by typing joins it, a knock on the
 // speakeasy's door opens JOIN; frame pacing within the City 2.0 budget at 4× CPU; 20 title ↔ setup cycles leave one city, no
-// growing heap and the same offscreen memory; a hidden tab stops rendering. Screens at the six review sizes.
+// growing heap and the same offscreen memory; a hidden tab stops rendering. Screens at the six review sizes. THE PREVIEW PANEL
+// (JUST ME live + kept for the tab + CLEAR ALL; EVERYONE: city2/live on two phones in sync, a late arrival, until, clear) —
+// ONLY=panel runs just that part.
 import puppeteer from 'puppeteer-core';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
@@ -60,8 +62,98 @@ async function tap(p, sel) {
   await tapAt(p, r.x, r.y);
 }
 const harborUp = p => waitFor(p, '!!(window.__district.harbor() && window.__district.harbor().shown)', 'the harbor baked', 15000);
+const DB = 'http://127.0.0.1:9000';
+const dbPut = (path, v) => fetch(`${DB}/${path}.json?ns=demo-arcade-default-rtdb`, { method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify(v) });
+const flags = p => ev(p, 'window.__district.harbor().flags');
+
+// ================================================================ THE PREVIEW PANEL (the owner's test remote; ONLY=panel runs just this)
+async function panelSection() {
+  // ---- JUST ME: the TEST pill + the sheet (&panel=1 under ?emu: the test switch — no admin profile here), live, no reload
+  const O = await open({ slot: 'hp', qs: `${NIGHT}&panel=1` });
+  await harborUp(O.page);
+  await waitFor(O.page, '!!document.querySelector(".hr-pill")', 'the TEST pill', 10000);
+  const pill = await ev(O.page, `(() => { const b = document.querySelector('.hr-pill').getBoundingClientRect(); const hits = [...document.querySelectorAll('.menu-btn, .music-btn, .nd-actions, .nd-sign')].map(e => e.getBoundingClientRect()).filter(r => r.width && b.left < r.right && r.left < b.right && b.top < r.bottom && r.top < b.bottom); return { w: b.width, h: b.height, hits: hits.length }; })()`);
+  ok(pill.w >= 44 && pill.h >= 44 && pill.hits === 0, `PANEL: the TEST pill (${Math.round(pill.w)}×${Math.round(pill.h)} pt target) clear of the corner buttons, the sign and the dock`);
+  await tap(O.page, '.hr-pill');
+  await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
+  await sleep(450);
+  const chip = async label => {
+    const r = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }, label);
+    if (!r) throw new Error(`no chip ${label}`);
+    await tapAt(O.page, r.x, r.y); await sleep(200);
+  };
+  const small = await ev(O.page, `[...document.querySelectorAll('.hr-sheet button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && (r.height < 44 || r.width < 44); }).length`);
+  ok(small === 0, `PANEL: every button in the sheet is a ≥ 44 pt target (${small} smaller)`);
+  await chip('AURORA'); await chip('RAIN'); await chip('20×');
+  let f1 = await flags(O.page);
+  ok(f1.remote && f1.force.includes('aurora') && f1.wx === 'rain' && f1.speed === 20, `JUST ME: AURORA + RAIN + 20× live, no reload (force ${f1.force}, wx ${f1.wx}, ${f1.speed}×)`);
+  await waitFor(O.page, 'window.__district.scene().rain > 0', 'the rain falls', 6000);
+  await chip('DAWN');
+  await waitFor(O.page, 'window.__district.scene().w.night < 0.5', 'the clock at dawn', 8000);
+  f1 = await flags(O.page);
+  ok(/T0[5-8]:\d\d$/.test(f1.q.when || ''), `JUST ME: DAWN from the real sun (${f1.q.when}), the city's look follows`);
+  await chip('BACK TO NOW'); await chip('REAL'); await chip('1×');
+  await chip('WORDS IN THE WINDOWS');
+  await O.page.evaluate(() => { const i = document.querySelector('.hr-text'); i.scrollIntoView({ block: 'center', behavior: 'instant' }); i.focus(); });
+  await O.page.keyboard.type('hey you');
+  await waitFor(O.page, "window.__district.harbor().flags.q.text === 'HEY YOU'", 'the text applied', 5000);
+  await waitFor(O.page, "!!window.__district.harbor().windows.spelling && window.__district.harbor().windows.spelling.text === 'HEY YOU'", 'the word in the windows', 8000);
+  ok(true, 'JUST ME: WORDS IN THE WINDOWS + typed text ("hey you" → HEY YOU) lights on the word towers');
+  if (SHOTS) await O.page.screenshot({ path: `${OUT}panel-me-390x844.png` });
+  // the tab keeps it (like a preview link survives a refresh)
+  await O.page.reload();
+  await waitFor(O.page, '!!window.__district && window.__district.phase().done', 'reload', 25000);
+  await harborUp(O.page);
+  await waitFor(O.page, "window.__district.harbor().flags.remote && window.__district.harbor().flags.force.includes('spell')", 'JUST ME after a reload', 8000);
+  ok((await flags(O.page)).q.text === 'HEY YOU', 'JUST ME: a refresh keeps it (this tab)');
+  // CLEAR ALL: back to the real city (the page's own flags: the link's &at keeps clear weather)
+  await tap(O.page, '.hr-pill'); await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(450);
+  await O.page.evaluate(() => document.querySelector('.hr-clear').scrollIntoView({ block: 'center', behavior: 'instant' })); await sleep(150);
+  await tap(O.page, '.hr-clear');
+  await waitFor(O.page, '!window.__district.harbor().flags.remote', 'cleared', 5000);
+  await waitFor(O.page, '!window.__district.harbor().windows.spelling', 'the word gone', 5000);
+  f1 = await flags(O.page);
+  ok(!f1.force.length && !f1.q.text && f1.speed === 1 && f1.wx === 'clear', `JUST ME: CLEAR ALL — the real city again (force [${f1.force}], wx ${f1.wx} from the link's own &at)`);
+  await O.ctx.close();
+
+  // ---- EVERYONE ON CITY 2: the server's node (written here with the emulator's owner rights; the /api path: server.test) —
+  // phones on ?city=2 play it in sync from startAt; a late arrival joins mid-way; until → the real city; the default city never listens
+  const B = await open({ slot: 'he1', qs: NIGHT });
+  await harborUp(B.page);
+  await waitFor(B.page, '!!window.__district.remote()', 'the listener up', 10000);
+  const startAt = Date.now() - 3000;
+  await dbPut('city2/live', { v: 1, kind: 'preview', state: { force: ['banner', 'spell'], text: 'HI ALL', when: '2026-10-24T23:00' }, params: {}, label: 'test', startAt, until: Date.now() + 120_000, by: 'ptest00000000' });
+  await waitFor(B.page, "window.__district.harbor().flags.remote && window.__district.harbor().flags.force.includes('banner')", 'EVERYONE on phone 1', 8000);
+  const C = await open({ slot: 'he2', qs: NIGHT, view: [430, 932] });
+  await harborUp(C.page);
+  await waitFor(C.page, "window.__district.harbor().flags.remote && window.__district.harbor().flags.force.includes('banner')", 'EVERYONE on a late arrival', 10000);
+  await waitFor(B.page, '!!window.__district.harbor().sky.state.banner', 'the banner flies (1)', 10000);
+  await waitFor(C.page, '!!window.__district.harbor().sky.state.banner', 'the banner flies (2)', 10000);
+  const [b, c] = await Promise.all([B.page, C.page].map(p => ev(p, '({ f: window.__district.harbor().flags, at: window.__district.harbor().sky.state.banner.at, now: window.__district.harbor().flags.now })')));
+  const expect = Date.UTC(2026, 9, 25, 3, 0) + (Date.now() - startAt);            // (23:00 in Detroit = 03:00 UTC, running since startAt)
+  ok(b.f.q.text === 'HI ALL' && c.f.q.text === 'HI ALL' && Math.abs(b.now - c.now) < 2000 && Math.abs(b.now - expect) < 5000,
+    `EVERYONE: two phones (one arriving late) on the same minute (clocks ${Math.round(Math.abs(b.now - c.now))} ms apart, ${Math.round((b.now - expect) / 1000)} s from startAt's 23:00)`);
+  ok(Math.abs(b.at - c.at) < 1500 && Math.abs(b.at - Date.UTC(2026, 9, 25, 3, 0)) < 1500, `EVERYONE: the banner's first flight starts at startAt on both phones (${Math.round(Math.abs(b.at - c.at))} ms apart) — the late one joins mid-flight`);
+  if (SHOTS) await C.page.screenshot({ path: `${OUT}panel-everyone-430x932.png` });
+  // the default city never subscribes
+  { const N = await open({ slot: 'he3', qs: NIGHT, city: false }); await sleep(2500);
+    ok(!N.files.some(u => /remote\.js|harbor-remote/.test(u)) && (await ev(N.page, 'window.__district.harbor()')) === null && !(await ev(N.page, '!!document.querySelector(".hr-pill")')), 'EVERYONE: the default city never loads the panel or listens to city2/live');
+    await N.ctx.close(); }
+  // until passes → the real city again; CLEAR (the node removed) → the real city at once
+  await dbPut('city2/live', { v: 1, kind: 'preview', state: { force: ['aurora'] }, params: {}, label: 'test', startAt: Date.now(), until: Date.now() + 2500, by: 'ptest00000000' });
+  await waitFor(B.page, "window.__district.harbor().flags.force.includes('aurora')", 'the new state', 6000);
+  await waitFor(B.page, '!window.__district.harbor().flags.remote', 'until passed', 12000);
+  ok(true, 'EVERYONE: when `until` passes, the phone goes back to the real city on its own');
+  await dbPut('city2/live', { v: 1, kind: 'preview', state: { force: ['searchlights'] }, params: {}, label: 'test', startAt: Date.now(), until: Date.now() + 120_000, by: 'ptest00000000' });
+  await waitFor(C.page, "window.__district.harbor().flags.force.includes('searchlights')", 'searchlights', 6000);
+  await dbPut('city2/live', null);
+  await waitFor(C.page, '!window.__district.harbor().flags.remote', 'cleared for everyone', 6000);
+  ok(true, 'EVERYONE: CLEAR — the node removed, every phone back to the real city');
+  await B.ctx.close(); await C.ctx.close();
+}
 
 try {
+  if (process.env.ONLY === 'panel') { await panelSection(); throw Object.assign(new Error('ONLY=panel'), { only: true }); }
   // ================================================================ 1. ?city=2: the Harbor, no errors, every size
   const A = await open({ slot: 'ha', qs: NIGHT });
   await harborUp(A.page);
@@ -355,6 +447,9 @@ try {
     const p = await ev(Q.page, 'window.__district.party()');
     ok(p.name === 'warm' && p.show.lights === 0 && ['glow', 'sweep-slow', 'climb-slow', 'chase-heroes'].includes(p.show.scene), `THE WARM-UP (9 pm): a classy scene ("${p.show.scene}"), no searchlights yet`);
     await Q.ctx.close(); }
+  // ================================================================ 3i. THE PREVIEW PANEL (JUST ME + EVERYONE ON CITY 2)
+  await panelSection();
+
   // ================================================================ 4. the dock: HOST, JOIN, the knock on the door
   const H = await open({ slot: 'hh', qs: NIGHT });
   await harborUp(H.page);
@@ -441,8 +536,8 @@ try {
     await C.ctx.close(); }
   await Q.ctx.close();
 } catch (e) {
-  errors.push(`FATAL ${e.message}`);
-  log('FAILED', e.message);
+  if (e.only) log('ONLY=panel: the rest skipped');
+  else { errors.push(`FATAL ${e.message}`); log('FAILED', e.message); }
 }
 const passed = checks.filter(c => c.ok).length;
 log(`checks ${passed}/${checks.length} passed`);

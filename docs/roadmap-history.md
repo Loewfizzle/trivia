@@ -328,6 +328,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE PREVIEW PANEL (Oct 22, 2026) — `docs/harbor.md#the-preview-panel`
+- [x] ONE registry (`js/core/harbor-remote.js`, pure, shared with the server): every `&force=` preview the Harbor runs (43), the party
+      show's scenes, time presets from the real sun, weather, holiday looks, durations; validation to plain values; the state → the
+      links' URL flags; the status line. A unit test fails when a preview is missing from it, or a row is read by nothing
+- [x] The city applies it LIVE (`createHarbor().remote`): the clock, the &force= set and the flags swapped in place, what a preview
+      leaves behind put back; time jumps + a sky piece's first flight in sync from the state's start on the server clock
+- [x] The owner's TEST pill (admins only, top left) + a glass sheet two thirds high (the city stays in view): JUST ME (live, kept for
+      the tab) / EVERYONE ON CITY 2 (a draft, FOR 15–120 MIN, SEND TO EVERYONE), the status, EVENTS with their inputs, PARTY SHOW,
+      TIME, WEATHER, HOLIDAY, TOOLS (readout, grid, CLEAR ALL); every target ≥ 44 pt
+- [x] EVERYONE: `/api/admin cityLive / cityClear` (ADMIN_PIDS, validated, audited) → `city2/live` (rules: signed-in read, server-only
+      write); every phone on `?city=2` listens after the first paint and plays it until `until`; the default city never listens
+- [x] Tests: harbor.test (registry ↔ code, validation, flags, sun times, holidays), server.test + rules.test (CITY 2.0), e2e-harbor
+      (`ONLY=panel`: JUST ME live + refresh + clear; EVERYONE on two phones in sync incl. a late arrival, until, clear); shots: panel scenes
+
 ### ✅ CITY 2.0 — THE HARBOR, NEON PASS 3: THE WOW PASS (Oct 22, 2026) — `docs/harbor.md#neon-pass-3`
 - The review's fixes: the wheel SEE-THROUGH (no veil; lit struts, a haze ring), THE GAME BLADE readable (bulbs on an outer frame, a dark
   gap, bigger brighter letters on a near-black panel, a calm chase), THE DRONE SHOW in open sky (under the word, over the tallest crown).

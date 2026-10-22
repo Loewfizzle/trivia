@@ -11,6 +11,9 @@
 //   stats { fresh? }               → STATS (js/core/insights.js#summarize): live rooms, games, players, busiest times
 //   errors                         → { errors: [...] } errors from players' phones (api/log.js), newest first
 //   clearErrors { sig? }           → removes one error (sig) or all of them
+//   cityLive { state, mins? }      → CITY 2.0's PREVIEW PANEL, EVERYONE ON CITY 2: writes city2/live (every phone on ?city=2 plays
+//                                    it from startAt until `until`; js/core/harbor-remote.js validates the state) → { live }
+//   cityClear                      → removes city2/live (back to the real city) → { live: null }
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
 import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_lib/profiles.js';
@@ -20,6 +23,7 @@ import { nameKey } from '../js/core/names.js';
 import { weekKey } from '../js/core/week.js';
 import { summarize } from '../js/core/insights.js';
 import { activity } from './_lib/activity.js';
+import { cleanRemote, isEmpty, toParams, describe, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -120,6 +124,20 @@ async function errorList(now) {
     .slice(0, 150);
 }
 
+// CITY 2.0 — THE PREVIEW PANEL (docs/harbor.md): one public node, written here only (the rules: read by signed-in users, no
+// client writes). Plain values only — the state is rebuilt from the registry's lists; anything it had to drop refuses the call.
+async function cityLive(me, body, now) {
+  const { state, bad } = cleanRemote(body.state);
+  if (bad.length) throw new ApiError(400, 'bad_state', `Not allowed: ${bad.slice(0, 6).join(', ')}`);
+  if (isEmpty(state)) throw new ApiError(400, 'empty_state', 'Nothing to send (use cityClear).');
+  const m = body.mins == null ? DEFAULT_MINS : Number(body.mins);
+  if (!Number.isInteger(m) || m < 1 || m > MAX_MINS) throw new ApiError(400, 'bad_mins');
+  const live = { v: 1, kind: 'preview', state, params: toParams(state), label: describe(state), startAt: now, until: now + m * 60_000, by: me };
+  await ref('city2/live').set(live);
+  await audit(me, 'cityLive', null, { b: live.label.slice(0, 140), mins: m });
+  return { live };
+}
+
 export async function adminAction(uid, body, now = Date.now()) {
   const me = await pidOf(uid);
   const admin = !!me && adminPids().includes(me);
@@ -164,6 +182,8 @@ export async function adminAction(uid, body, now = Date.now()) {
       await audit(me, sig ? 'clearError' : 'clearErrors', null, sig ? { b: sig } : {});
       return { errors: await errorList(now) };
     }
+    case 'cityLive': return cityLive(me, body, now);
+    case 'cityClear': await ref('city2/live').remove(); await audit(me, 'cityClear', null); return { live: null };
     default: throw new ApiError(400, 'bad_action');
   }
 }

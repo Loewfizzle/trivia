@@ -937,6 +937,12 @@
         }
       }
     },
+    "city2": {
+      "live": {
+        ".read": "auth != null",
+        ".write": false
+      }
+    },
     "chats": {
       "$code": {
         ".read": "auth != null && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists()",

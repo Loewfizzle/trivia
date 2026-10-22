@@ -984,3 +984,76 @@ test('colours through the night + a burnt-out letter (NEON PASS 3): stages on th
   let lit = 0; for (let t = 0; t < 130; t += 0.02) if (burnoutFlicker(t) > 0) lit += 0.02;
   assert.ok(lit > 0.5 && lit < 4, `a weak sputter now and then (${lit.toFixed(1)} s in 130 s)`);
 });
+
+// ------------------------------------------------------------------ THE PREVIEW PANEL (core/harbor-remote.js)
+import { readFileSync, readdirSync } from 'node:fs';
+import { EVENTS, INPUTS, REMOTE_KEYS, SHOW_SCENE_LIST, HOLIDAYS, cleanRemote, toParams, describe, timeAt, holidayDay, textMax, isEmpty } from '../js/core/harbor-remote.js';
+import { skyClock, holidayOf } from '../js/core/sky.js';
+
+test('the preview panel: one registry — every &force= preview the Harbor runs is on it, and every row is a real preview', () => {
+  // the modules City 2.0 runs (its own + the district's sky modules it reuses): every id they test with force.has(...)
+  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), ...['fx', 'sun', 'weather-fx', 'frost'].map(f => `js/screens/district/${f}.js`)];
+  const src = files.map(f => readFileSync(f, 'utf8')).join('\n');
+  const used = new Set([...src.matchAll(/(?:force|f|off|clock\.force)\.has\('([a-z0-9-]+)'\)/g)].map(m => m[1]));
+  for (const m of src.matchAll(/again\('([a-z0-9-]+)'/g)) used.add(m[1]);
+  // (not events: the perf A/B switches, the panel's own party switches, the debug-only demo, sky internals)
+  const tools = id => id.startsWith('no-') || ['party', 'demo', 'sat'].includes(id);
+  const ids = new Set(EVENTS.map(e => e.id));
+  const missing = [...used].filter(id => !tools(id) && !ids.has(id));
+  assert.deepEqual(missing, [], 'a &force= preview the panel does not list');
+  const dead = [...ids].filter(id => !used.has(id) && !['searchlights'].includes(id));
+  assert.deepEqual(dead, [], 'a row no module reads');
+  assert.ok(src.includes("['demo', 'searchlights'].filter(id => clock.force.has(id))"), 'searchlights: forced through the scheduler');
+  for (const e of EVENTS) for (const k of e.inputs || []) assert.ok(INPUTS[k] && REMOTE_KEYS.includes(k), `${e.id}: ${k}`);
+  assert.equal(new Set(EVENTS.map(e => e.id)).size, EVENTS.length, 'ids are unique');
+  assert.ok(SHOW_SCENE_LIST.some(s => s.id === 'climb+crowns') && SHOW_SCENE_LIST.length >= 12, 'the show\'s own scene list');
+});
+
+test('the preview panel: validation keeps plain values only (the server refuses what it had to drop)', () => {
+  let r = cleanRemote({ force: ['drones', 'aurora', 'nope'], text: 'hi <b>there</b>', show: 'heart,mark:pulse,javascript:x', colours: ['#FF2E97', 'zzz'], when: '2026-10-24T23:00', speed: 20, wx: 'rain', party: 'on', scene: 'climb+crowns', hol: 'halloween', debug: 1, evil: '<script>' });
+  assert.deepEqual(r.bad.sort(), ['colours', 'force:nope', 'show'].sort());
+  assert.deepEqual(r.state.force, ['drones', 'aurora']);
+  assert.equal(r.state.text, 'HI BTHEREB', 'no markup survives: letters only, upper case');
+  assert.equal(r.state.show, 'heart,mark:pulse');
+  assert.equal(r.state.colours, 'ff2e97');
+  assert.ok(!('evil' in r.state));
+  r = cleanRemote({ force: 'skywrite,spell', text: 'a very long message for the sky' });
+  assert.equal(r.state.text.length, 10, 'the shortest limit of the text events on');
+  assert.equal(textMax(['banner']), 74);
+  r = cleanRemote({ text: 'HELLO', scheme: 'halloween' });
+  assert.ok(isEmpty(r.state), 'inputs with no event using them are dropped quietly');
+  for (const w of ['2026-13-01T10:00', '2026-02-30T10:00', '2026-10-24T24:00', '2026-10-24 23:00', 'x']) assert.ok(cleanRemote({ when: w }).bad.includes('when'), w);
+  assert.ok(cleanRemote({ speed: 7 }).bad.includes('speed'));
+  assert.ok(cleanRemote({ wx: 'hail' }).bad.includes('wx'));
+  assert.ok(cleanRemote({ force: Array.from({ length: 20 }, (_, i) => EVENTS[i].id) }).bad.includes('force:too-many'));
+  assert.deepEqual(cleanRemote(null), { state: {}, bad: [] });
+  assert.deepEqual(cleanRemote('force=aurora'), { state: {}, bad: [] });
+});
+
+test('the preview panel: the state becomes the preview links\' flags, which the city\'s own clock reads', () => {
+  const st = cleanRemote({ force: ['drones', 'banner'], text: 'HAPPY BIRTHDAY', show: 'heart', colours: 'ff2e97,2ee6ff', by: 'word', when: '2026-10-24T23:00', speed: 20, wx: 'snow', scene: 'call+chase', party: 'off', debug: true }).state;
+  const p = toParams(st);
+  assert.equal(p.force, 'drones,banner,neon-party,no-party', 'a held scene brings the neon party; PARTY OFF = no-party');
+  const c = skyClock('?' + new URLSearchParams(p));
+  assert.ok(c.force.has('drones') && c.force.has('neon-party') && c.speed === 20 && c.wx.kind === 'snow' && c.preview);
+  assert.equal(p.text, 'HAPPY BIRTHDAY'); assert.equal(p.debug, '1'); assert.equal(p.scene, 'call+chase');
+  assert.equal(toParams(cleanRemote({ party: 'on' }).state).force, 'party');
+  assert.match(describe(st), /DRONE SHOW “HAPPY BIRTHDAY” · BANNER PLANE “HAPPY BIRTHDAY” · SCENE CALL\+CHASE · PARTY OFF · SAT 10\/24 23:00 · 20× · SNOW · READOUT/);
+  assert.equal(describe({}), 'THE REAL CITY');
+});
+
+test('the preview panel: time presets follow the real sun; holidays jump to their next date', () => {
+  const at = [42.96, -85.67], tz = 'America/Detroit';
+  const mins = id => { const t = timeAt(id, '2026-10-22', tz, ...at); return +t.slice(11, 13) * 60 + +t.slice(14, 16); };
+  const order = ['dawn', 'morning', 'noon', 'afternoon', 'golden', 'dusk', 'night'].map(mins);
+  for (let i = 1; i < order.length; i++) assert.ok(order[i] > order[i - 1], `in order: ${order}`);
+  assert.ok(mins('dawn') > 7 * 60 && mins('dawn') < 8 * 60 + 30, `dawn in late October (${mins('dawn')})`);
+  assert.ok(mins('dusk') > 18 * 60 + 30 && mins('dusk') < 19 * 60 + 40, `dusk (${mins('dusk')})`);
+  assert.equal(timeAt('late', '2026-10-22', tz, ...at), '2026-10-22T03:00');
+  assert.ok(timeAt('noon', '2026-06-21', tz, ...at).startsWith('2026-06-21T13:'), 'noon is the sun\'s (DST)');
+  assert.equal(holidayDay('halloween', { y: 2026, m: 10, d: 22 }), '2026-10-31');
+  assert.equal(holidayDay('valentine', { y: 2026, m: 10, d: 22 }), '2027-02-14', 'past this year: next year');
+  assert.equal(holidayDay('thanksgiving', { y: 2026, m: 10, d: 22 }), '2026-11-26');
+  for (const h of HOLIDAYS) { const d = holidayDay(h.id, { y: 2026, m: 1, d: 1 }), [y, m, dd] = d.split('-').map(Number); const hol = holidayOf(y, m, dd);
+    if (!['memorial', 'veterans', 'christmas-eve'].includes(h.id)) assert.equal(hol && hol.id, h.id, `${h.id} → ${d}`); }
+});

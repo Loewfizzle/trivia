@@ -720,6 +720,18 @@ test('gridlock resolutions: the target or the host, once, while resolving; calls
   await assertFails(set(ref(db('p2'), `${R}/glcall/m1/p2`), { w: 'host', at: serverTimestamp() }), 'still in: no call');
 });
 
+test('CITY 2.0 preview panel: city2/live is read by signed-in visitors, written by the server only', async () => {
+  const live = { v: 1, kind: 'preview', state: { force: ['banner'], text: 'HI' }, params: { force: 'banner', text: 'HI' }, label: 'BANNER PLANE “HI”', startAt: now(), until: now() + 1800000, by: 'pmike0000000' };
+  await seed({ city2: { live } });
+  await assertSucceeds(get(ref(db('anyone'), 'city2/live')));
+  await assertFails(get(ref(db(null), 'city2/live')), 'not without signing in');
+  await assertFails(get(ref(db('anyone'), 'city2')), 'only the live node is readable');
+  for (const [path, v] of [['city2/live', { ...live, state: { force: ['drones'], text: 'PWNED' } }], ['city2/live/state/text', 'PWNED'], ['city2/live/until', now() + 9e9], ['city2/live', null], ['city2/other', 1]]) {
+    await assertFails(set(ref(db('anyone'), path), v), path);
+  }
+  await assertFails(remove(ref(db('anyone'), 'city2/live')));
+});
+
 test('profiles + boards: public profiles, private stats and keys, nothing a client can write', async () => {
   await seed({
     ...lobbyRoom(),

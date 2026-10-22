@@ -93,6 +93,12 @@ Signs in with the browser's own anonymous identity (same as the game there). `PO
 view a player (profile, boards with ranks, games), remove a record (all-time / this week / both), reset a career board, rename (no
 limit), hide from / return to every board, the audit log, **errors from phones** (below). A non-admin sees their own profile id and the setup steps.
 
+**CITY 2.0's PREVIEW PANEL** (Oct 22 2026; `docs/harbor.md#the-preview-panel`): `cityLive { state, mins? }` writes the public
+`city2/live` node every phone on `?city=2` plays (the state validated by `js/core/harbor-remote.js#cleanRemote` — anything dropped
+refuses the call; 1–240 min, default 30) and `cityClear` removes it; both audited (`cityLive` with the status line + minutes,
+`cityClear`). They are sent from the TEST pill on the title (?city=2, admins only), not from the /admin page. `whoami` also tells the
+title whether to show that pill (cached 6 h per tab).
+
 **Stats** (Oct 2026; `js/core/insights.js#summarize`, PURE, `tests/insights.test.mjs`; action `stats`, cached 30 s): at the top of
 /admin. LIVE NOW (refreshes every 30 s while the page is visible): players in rooms, rooms open, games in progress, a row per room
 (game + phase, online / away, how long it's been open — no codes, no names; title-screen visitors have no connection and aren't

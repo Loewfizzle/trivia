@@ -71,6 +71,11 @@ const SCENE = {
   gulls: ['2026-10-21T15:00', { wait: 4000 }], geese: ['2026-10-21T15:00', { qs: 'force=geese', wait: 14000 }], swifts: ['2026-07-10T21:25', { qs: 'force=swifts,bats-dusk', wait: 6000 }],
   moonrise: ['2026-10-26T19:40'], harvest: ['2026-09-26T20:05'], crescent: ['2026-11-14T19:30'], 'crescent-dawn': ['2026-10-07T06:00'], eclipse: ['2026-10-26T22:30', { qs: 'force=eclipse', wait: 20000 }],
   aurora: ['2026-10-21T23:30', { qs: 'force=aurora', wait: 5000 }],
+  // CITY 2.0 — THE PREVIEW PANEL (the owner's test remote; --city 2 --preview): the sheet open (JUST ME / EVERYONE, events on,
+  // scrolled down to the time + weather, the bottom with the tools)
+  panel: ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel' }], 'panel-on': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', on: { force: ['drones', 'spell', 'neon-scheme'], text: 'HI THERE', show: 'heart', colours: 'ff2e97,2ee6ff', scheme: 'halloween' } }],
+  'panel-all': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', mode: 'all' }], 'panel-time': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', scroll: 0.62 }],
+  'panel-end': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', scroll: 1, mode: 'all' }],
   drones: ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 26000 }], 'drones-launch': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 9000 }], 'drones-text': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 40000 }],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
@@ -102,6 +107,12 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   await sleep(o.wait && !opt('wait', 0) ? o.wait : WAIT);
   if (o.act === 'join') { await p.evaluate(() => window.__district.dock.join(true)); await sleep(500); await p.type('.nd-code-in', 'mi'); await sleep(400); }
   if (o.act === 'rejoin') { await p.evaluate(() => window.__district.dock.preview({ rejoin: 'MINT' })); await sleep(700); }
+  if (o.act === 'panel') {
+    await p.waitForFunction(() => window.__district.remote && window.__district.remote(), { timeout: 15000 });
+    await p.evaluate(o => { const r = window.__district.remote(); r.setMode(o.mode || 'me'); if (o.on) r.setMine(o.on); r.open(); }, o);
+    await sleep(700);
+    if (o.scroll) { await p.evaluate(k => { const s = document.querySelector('.hr-sheet'); s.scrollTop = (s.scrollHeight - s.clientHeight) * k; }, o.scroll); await sleep(200); }
+  }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
   for (let shot = 0; shot < COUNT; shot++) {
   if (shot) await sleep(EVERY);
