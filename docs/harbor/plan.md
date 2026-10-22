@@ -10,12 +10,20 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 1 | foundation + blockout ✅ | Opus 5.5 medium | done |
 | — | Fable read-only review ✅ | Fable | done |
 | 1.5 | foundation fixes ✅ | Opus 5.5 medium | done |
-| 2 | skyline | Opus 5.5 high | 60–90 min |
-| 3 | neon + signs + billboards + the NEON logo | Opus 5.5 high (or Fable) | 60–90 min |
-| 4 | water | Opus 5.5 medium | 30–50 min |
-| C1 | cleanup pass 1 (Known issues + the full title suite) | Opus 5.5 medium | 15–30 min |
-| 5 | harbor hero pieces | Opus 5.5 high | 60–90 min |
-| 6 | sky hero pieces | Opus 5.5 high | 60–90 min |
+| 2 | skyline ✅ | Opus 5.5 high | done |
+| 3 | neon + signs + billboards + the NEON logo ✅ | Opus 5.5 high | done |
+| 4 | water ✅ | Opus 5.5 medium | done |
+| C1 | cleanup pass 1 ✅ | Opus 5.5 medium | done |
+| 5 | harbor hero pieces ✅ | Opus 5.5 high | done |
+| 6a | the everyday sky ✅ | Opus 5.5 high | done |
+| N2 | Neon Pass 2 (clean tubes, midsection + waterfront, drone colours, real neon sounds) ✅ | Opus 5.5 high | done |
+| N3 | Neon Pass 3 — the wow pass (neon on every building, depth, lighthouse, party show v1) ✅ | Opus 5.5 high | done |
+| — | RUMRUNNER: Mr. Vale → Mr. Balboni ✅ | Sonnet 5.5 medium | done |
+| P | the PREVIEW PANEL (JUST ME / EVERYONE ON CITY 2) ✅ | Opus 5.5 high | done |
+| N4 | Neon Pass 4 — the neon in motion (racing party lights, the hard beat, sky beams, string lights, the wheel, fixes) ← NEXT | Opus 5.5 high | ~2 h |
+| D | the Day Pass (the city by daylight, painted day signs) | Opus 5.5 high | 90–120 min |
+| M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
+| 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
 | 8 | the stage + wildlife | Opus 5.5 high | 60–90 min |
 | C2 | cleanup pass 2 | Opus 5.5 medium | 15–30 min |
@@ -157,7 +165,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   brightness along each tube; SPEAKEASY's letters as real thin tubes. Size stays.
 - CITY 2.0 MUSIC (after the Day Pass, before 6b): import the owner's 35 new mood songs (~/Downloads folders day, evening, late,
   morning, party) as City 2.0's mood lists (City 1.0 keeps its own; victory + game music stay as they are); neighbouring moods may
-  share songs (bigger decks); seasonal songs later; a MUSIC MOOD setting: AUTO (default, follows the time of day) / MORNING /
+  share songs (bigger decks) — the owner's first: morning10.mp3 (in the morning folder) plays in BOTH the MORNING and the LATE
+  NIGHT rotation, one file shared by both lists (never uploaded twice); seasonal songs later; a MUSIC MOOD setting: AUTO (default, follows the time of day) / MORNING /
   DAY / EVENING / LATE NIGHT / PARTY — in a lobby the room's synced song follows the HOST's setting. Later, once a mood has
   ~30+ songs: rotate halves week by week (the owner's idea — not before, it would make repeats worse).
 - BUILD ORDER NOW (Oct 22): the Balboni rename → THE PREVIEW PANEL (the owner's test remote: JUST ME / EVERYONE ON CITY 2,
@@ -284,6 +293,31 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   tomato clusters, autumn pumpkins, winter beds under snow, string lights left up).
 - THE SPEAKEASY WINDOWS (its own section — the closest, biggest windows in the city, ~25 pt on a phone; figures inside are
   12–16 pt SILHOUETTES, so they read by light, shape and big motion — the glance test on every window):
+  - THE MOST BEAUTIFUL, MOST ALIVE PART OF THE CITY (the owner): it's the most detailed and readable thing on screen, so it
+    is VERY ACTIVE around the clock — something visibly happening in at least one window every ~10–20 s, never all at once.
+    BY DAY the speakeasy hides behind an innocent front and the upstairs lives: the apartment's morning routine (blinds up, a
+    figure stretching, watering a window box, the cat sunbathing on the sill), a laundry line, someone reading by the window,
+    a delivery of "crates" being carried in, the front shop open (a tailor / flower shop) with customers; AFTERNOON: the
+    bartender setting up behind half-drawn shades — polishing glasses, lights on one by one; EVENING → NIGHT: the full bar,
+    jazz room and card game (below), a couple dancing past, a toast with raised glasses, someone at the piano, a curtain
+    drawn and opened, a silhouette peeking out, lights switching room to room; LATE: the TV glow upstairs, the cat, the last
+    patrons leaving; the raid nights as planned. A scheduler picks the next small moment by the hour (busier on party nights).
+  - NO CUT-OFF WINDOWS (the owner's call): the left screen edge slices a window column today. Lay the speakeasy's facade out
+    FROM THE SCREEN EDGE per phone width, so the edge always lands on solid wall (a brick pier / drainpipe / pilaster) — every
+    visible window complete at 390 / 402 / 412 / 430; wider screens show more of the building. Moments only live in windows
+    that are fully on screen at every phone size.
+  - BUILT AS A "MOMENTS CATALOGUE" so new ones are easy to add any time (the owner will keep adding): every window moment is
+    ONE self-contained entry — which window(s), its little animation (a small module drawing the silhouettes / light), when it
+    may happen (hours, weekday / weekend, season, weather, party night, holidays), its RARITY (routine / common / uncommon /
+    rare / legendary — e.g. legendary ≈ a few times a year), its length and a cooldown. ROUTINES are fixed in the day (the
+    upstairs wakes ~7 am, the shop opens 9, the bartender arrives 4 pm, lights out ~midnight / the TV glow later); the rest
+    are random draws weighted by rarity, never two in the same window at once, seeded so everyone in a room sees the same.
+    A &force=window&moment=<id> preview + a button in the preview panel for every moment. Part 7 builds the system + a
+    STARTER SET OF 10 (the owner's call — she reviews them on her phone before any more get made), chosen to cover the range:
+    3–4 routines (waking up, the shop opening, the bartender arriving, lights out / the TV glow), then common, uncommon, rare
+    and one legendary, across different windows and different kinds of animation (a light change, a big silhouette motion, a
+    prop, the cat). What reads on the phone becomes the template for the rest; adding one later = one small prompt (~15–30 min). Legendary window
+    moments can become City Sightings badges (Progression 2.0).
   - Rooms (share the ~6 visible windows; assign by what's visible at every iPhone size): THE BAR (the one CLEAR window straight
     in: glowing bottle shelves as colour, the bartender's big arm-pump shake, patrons leaning on the bar); THE JAZZ ROOM (a sax
     player swaying behind the shade, couples dancing on busy nights); THE BACK ROOM (a pool of lamplight over a table with 3–4
