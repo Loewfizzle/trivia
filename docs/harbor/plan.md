@@ -20,8 +20,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | N3 | Neon Pass 3 — the wow pass (neon on every building, depth, lighthouse, party show v1) ✅ | Opus 5.5 high | done |
 | — | RUMRUNNER: Mr. Vale → Mr. Balboni ✅ | Sonnet 5.5 medium | done |
 | P | the PREVIEW PANEL (JUST ME / EVERYONE ON CITY 2) ✅ | Opus 5.5 high | done |
-| N4 | Neon Pass 4 — the neon in motion (racing party lights, the hard beat, sky beams, string lights, the wheel, fixes) ← NEXT | Opus 5.5 high | ~2 h |
-| D | the Day Pass (the city by daylight, painted day signs) | Opus 5.5 high | 90–120 min |
+| N4 | Neon Pass 4 — the neon in motion (racing party lights, the hard beat, sky beams, string lights, the wheel, fixes) ✅ | Opus 5.5 high | done |
+| N5 | Neon Pass 5 — Safari (WebKit) fix + testing, the real beat, party colours, the wheel showpiece, sign sizes, faster tests, panel fixes ← NEXT | Opus 5.5 high | ~2½ h |
+| D | the Day Pass (the city by daylight, painted day signs, sunlit 3D skyline, sky, sun, water) | Opus 5.5 high | 90–120 min |
 | M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
@@ -48,6 +49,12 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 ?city=2&tz=America/Detroit&at=42.96,-85.67.
 
 ## Rules that apply to everything
+- **The whole sky is free — behind the sign (the owner, Oct 22; replaces "never across the NEON sign or the tagline"):**
+  every sky object (planes, the banner plane, helicopters, jets, birds, bats, balloons, UFOs, drones, smoke, meteors) may use
+  the WHOLE sky from the top safe area down to the skyline, passing BEHIND the NEON sign and the tagline (they always draw
+  on top, so the sign stays readable) and in front of the sun, moon and stars. Never over the dock or the corner buttons.
+  The lanes stay only for depth (high = small + far, low = bigger + behind the taller roofs) and to keep events from
+  colliding. The one planned exception: the barnstormer threading THROUGH the letters (6b). Sky messages dim the sign.
 - **The beat must be felt (the owner):** anything that pulses to the music pulses HARD — a fast attack to a clearly brighter
   peak (a big swing in brightness + glow, not a few percent), then a quick decay, harder on downbeats / drops — obvious on an
   iPhone at a glance; still never full-screen flashing or hard on/off across large areas.
@@ -230,6 +237,26 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   small band between the skyline and the tagline (the owner: "it only uses a very small part of the sky"); with the sign
   gone it fills the sky from the crowns up to near the top safe area, big. DRAW ORDER BUG: drones (and smoke, planes,
   balloons) must draw IN FRONT of the moon, the sun and the stars — never behind them (the moon is far away).
+- 6b — THE TR-3B's EFFECT ON THE MUSIC (the owner's idea): as it nears, the music "loses power" — a TAPE-STOP slowdown (the
+  pitch and speed sagging), a closing low-pass, a little crackle / warble of interference — sinking to near silence under the
+  craft's deep drone; it stays down while it passes; after the CHASE jets leave the screen the music powers back up — filter
+  opening, volume fading back in over a few seconds. Lobby / synced songs re-sync to the room's clock when they return (no
+  drift). Title + lobby only (never in a game); with music off, only the drone + the crackle play. Uses the existing
+  duckMusic / filterMusic + a playback-rate ramp.
+- 6b — THE TR-3B BENDS THE MUSIC (the owner's idea): as it nears, the music POWERS DOWN like a record player losing
+  power — the pitch and speed sag (a "tape stop"), it goes muffled (filterMusic low-pass) with a faint warble and electrical
+  crackle; while it's overhead the music is almost gone, only a low hum. After the jets of the chase leave the screen, the
+  music comes back — a soft power-on, then a smooth fade back up to normal over a few seconds. With music off, the
+  soundscape gets the same treatment. Title / lobby screens only; never in a game; follows the music setting.
+- 6b — THE TR-3B's CHASE (the owner's idea): a few seconds after the TR-3B leaves the screen, 2–3 military jets in tight
+  formation SCREAM across in a straight line after it — afterburners blazing, green formation lights at night, a roar that
+  rises and Dopplers away (the sound list), the city's lights still flickering back on in their wake. Every TR-3B pass ends
+  with the chase.
+- 6b — THE TR-3B's POWER INTERFERENCE: it affects EVERY power source within its range — windows, neon outlines, signs, the
+  NEON sign, street lamps / lamp posts, string lights, searchlights + sky beams, the wheel's bulbs, the lighthouse, the
+  HEADLIGHTS + lights of cars, the bus and the boats — like the energy is being SUCKED OUT: a gradient by distance (the edge
+  of its range dims and flickers, anything close shuts off COMPLETELY), moving with the craft, then restoring unevenly as it
+  moves away (details below).
 - 6b — THE TR-3B's POWER INTERFERENCE (the owner's idea): the black triangle crosses the WHOLE screen, big and slow, and the
   city's lights under it fail as it passes — a moving zone below and around it where windows flicker and go dark, neon
   stutters and dies, street lamps buzz down, the NEON sign glitches if it passes over; a soft electrical crackle / the hum
@@ -258,6 +285,53 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   edges that slowly spread, drift on the real wind and dissolve, a little longer life (~30 s) — while keeping the cost capped
   (e.g. a soft puff sprite stamped along the path into a small layer, refreshed a few times a second). Same rules (high planes,
   dry, not overcast, by day / golden hour, pink-gold at sunset).
+- 6b — THE BARNSTORMER THROUGH THE SIGN (the owner's idea): a rare stunt (a few times a week) — a 1920s barnstormer biplane
+  THREADS THROUGH THE LETTERS: behind one stroke of the O and in front of the other, weaving round the N, maybe a loop; the
+  one planned exception to "nothing flies across the sign" — the plane is drawn BETWEEN the sign's layers using the letters'
+  mapped paths (LOGO_ANCHORS / the tube paths), so the right strokes sit in front of it. By day a bright red biplane with a
+  thin smoke trail; at night wingtip lights glinting on the tubes and the sign's pink glow lighting the plane; the letters
+  wobble / flicker a touch in its wake. &force=barnstormer; a City Sightings badge later.
+- 6b section 0 — SKY MESSAGES: LONGER, BIGGER, IN FRONT (the owner): skytyping (day) and the drone show (night) share ONE
+  message layout. While a message flies, the NEON sign + tagline DIM (not vanish) and the message draws IN FRONT of the dim
+  sign, using the whole sky from just above the crowns up to the top safe area. Words wrap at word boundaries into up to
+  3 LINES (~16 letters a line) per "page", letters as big as the space allows (much bigger than today); longer messages play
+  as PAGES in sequence (the drones re-form / the jets type the next page), up to ~3 pages (≈ 140 characters, a couple of short
+  sentences). Examples that must work: "HAPPY BIRTHDAY JESSICA", "HAPPY NEW YEAR FROM NEON SPEAKEASY", "GAME NIGHT TONIGHT ·
+  9 PM · BRING FRIENDS". Banner-plane messages keep their own limits. Check every example at 390 / 402 / 430 by day and night.
+- 6b section 0 — THE SKYWRITING + SKYTYPING PLANES REBUILT (the owner: "very jagged", "they look very cheap"): the
+  skywriting plane must fly SMOOTH curves — a spline path at a steady speed, banking into turns, its smoke following the
+  curve (no jagged corners); the planes bigger and far better crafted. SKYTYPING by a formation of sleek JETS (the owner's
+  call) with glowing AFTERBURNERS (a hot cone + heat shimmer, brighter at dusk / night), crisp nav lights, the formation
+  sweeping in tight, holding perfect spacing, puffing the dot letters, peeling off with style.
+- 6b — THE MILITARY JETS (the air show + the F-16 missing man, already planned): they must look BADASS — sharp F-16 silhouettes,
+  grey camo, wingtip MISSILES + pylons, glowing AFTERBURNERS on the pull-ups, green FORMATION (slime) LIGHTS + nav lights at
+  dusk / night, vapour cones on high-g turns, tight formations (diamond, the missing-man pull-up), a low rumble that follows
+  them (sound list).
+- 6b section 0 — THE BATS' JITTER (a bug the owner saw): the night bats' flight looks jittery — find the cause (frame-time
+  steps, random per-frame direction, rounding) and make it the real fluttering, swooping bat flight: smooth paths with quick
+  erratic darts, not per-frame noise.
+- 6b section 0 — THE RAINBOWS' ARC TOO LOW (the owner: "the neon rainbow arc is way too low"): City 2.0 still draws City
+  1.0's bows (district/rainbow.js, fitted to the district's horizon) — re-fit every bow (the rainbow, the double, the moonbow,
+  the NEON BOW) to the Harbor: a big, tall arc rising from behind the skyline / the far shore into the open sky, its real
+  geometry (opposite the sun / moon) kept, never over the NEON word, glance-tested at 390 / 402 / 430. &force=rainbow,
+  rainbow2, moonbow, neonbow.
+- 6b section 0 — THE BALLOONS RE-RENDERED, PREMIUM (the owner: "render them really good, make them cool"): crafted envelopes
+  with real gores (the vertical panels), fabric shading + a soft highlight, the mouth, the basket, ropes and tiny passengers;
+  THE BURNER FLARE kept and made beautiful — the flame jets up and the whole envelope glows from the inside (warm light
+  through the fabric, brightest near the mouth), lighting the basket and the air around it; at night the flare is the show.
+  SPECIAL BALLOONS (sometimes in a normal flight, always at the festival):
+  - THE ₿ BALLOON: all black with a big orange ₿ by day; at night it reads all ORANGE with a black ₿ (lit from inside) —
+    a subtle nod, never explained (the Bitcoin rule).
+  - THE ALIEN HEAD: a special-shape balloon of a classic grey alien head — green, with big glossy black almond eyes — a
+    real special-shape balloon (puffy, seamed fabric), not a flat cartoon.
+- 6b section 0 — BALLOONS USE THE WHOLE SKY (the owner): the hot air balloons and the balloon festival may drift anywhere in
+  the sky, from the top safe area down to the skyline — passing BEHIND the NEON letters and the tagline (the sign always
+  draws on top) and IN FRONT of the sun, the moon and the stars; slow, real wind-driven drift at different heights and sizes
+  (nearer = bigger, lower), a festival spread across the whole sky. Never over the dock or the corner buttons.
+- 6b section 0 — THE AURORA: BACK TO CITY 1.0's (the owner: 6a's aurora is jittery, slowed-down, with hard vertical shafts;
+  City 1.0's "looked really good"): drop 6a's aurora art (moon.js / s.auroraArt) and use City 1.0's aurora (district/fx.js
+  #aurora) on the Harbor — re-fitted to the Harbor's sky (the whole sky, behind the NEON sign), smooth at 60 fps, with its
+  soft reflection in the harbor water as the one addition. Keep 6a's timing (~2 nights a month + Kp ≥ 7).
 - 6b section 0 — THE GEESE MORE REAL (the owner): a V is never perfect — one or two stragglers trail behind with a gap, flapping
   a little harder to catch up; arms of uneven length, birds shifting places, the odd one dropping back now and then.
 - 6b section 0 — THE MOON REDONE (the owner: "the craters look off"): today it reads as a ball with round dark spots. A real
@@ -478,6 +552,7 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Fri/Sat build all night: classy warm-up → spectacle at the peak → the midnight finale. Special party nights also on the
   Wednesday before Thanksgiving (homecoming), Valentine's (a softer jazz date night) and NYE (the biggest).
 - The party yacht + helicopter: legendary-rare on party nights, guaranteed on NYE.
+- Rosie's + the pier's bulbs CHASE on party nights (Neon Pass 4 could only pulse them — Rosie's bulbs are baked into her picture).
 - (MOVED UP to Neon Pass 3 — the owner's call; Part 10 keeps the midnight finale + fireworks on its hook.)
   PARTY NEON WITH VARIETY (the owner: today it only turns the outlines into dashes running round the border): a choreographed
   light show across the skyline, different by building and changing through the night — tubes pulsing on the beat, colour
