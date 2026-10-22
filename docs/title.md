@@ -119,7 +119,7 @@ the street outside: the district, the sign over the door.
 - **No game row.** Under the tagline, one line: `N PARTY GAMES · ONE PHONE EACH` (N = the playable games in `GAMES`, so it
   updates itself). The city's billboards (bigger now) cycle the game art; **tapping one opens that game's HOW TO PLAY**.
 - **The dock:** THE NEON RING (below) — it replaced the HOST / JOIN pills, the links and the welcome line (Oct 19, 2026).
-- **At rest:** after 15 s without a touch the menu, the tagline, the explainer and the corner buttons fade out (1.8 s),
+- **At rest:** after 10 s without a touch the menu, the tagline, the explainer and the corner buttons fade out (1.8 s),
   leaving the sign and the living city. Any touch brings them back and presses nothing (the waking tap is swallowed); on
   desktop moving the mouse wakes it. Not while a sheet is open, the code boxes are open or a room is being made. Local test
   runs (`?emu`) only fade when asked (`&idle=1` or `__district.idle()`).
@@ -236,7 +236,9 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   - EVENING: from startAt single silent sputters (80–150 ms, 20–30 s apart) that grow — more often, longer, sometimes two letters,
     later sometimes holding 1–2 s; in the last few minutes the letters STICK one by one (still dropping out now and then); at
     catchAt THE CATCH — all four lock on with the crackle + hum (the only sound; City 2.0: the sputters tick + buzz too —
-    docs/audio.md, and the city holds its tier through the catch: `scene.hold`) and a soft bloom (`.is-catch`); then the rare
+    docs/audio.md, and the city holds its tier through the catch: `scene.hold`) and a soft bloom (`.is-catch`); City 2.0 (NEON
+    PASS 6): ~0.1 s later THE RACE rides on top — a bright surge N → E → O → N, each letter blazing, then a sweep across SPEAKEASY
+    (`title.js#raceLogo`; also when a tapped letter re-ignites at night, and now and then on party nights); then the rare
     random flicker as before. The city's signs answer one at a time, a few minutes apart, within ~15 min.
   - MORNING: the city signs go off one by one 30–10 min before sunrise; the logo stays on until clearAt, then falters for 6–9 min —
     letters drop out and come back, die one by one, the last hangs on alone — then the daytime glass look.

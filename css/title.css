@@ -259,6 +259,20 @@ body.reduced-fx .nd-gate-txt { animation: none; }
 .nd:not(.is-party) .nd-logo-glow, .nd-sign:not(.is-steady) .nd-logo-glow, .nd-sign.is-day .nd-logo-glow { display: none; }
 @media (prefers-reduced-motion: reduce) { .nd-logo-glow { display: none; } }
 body.reduced-fx .nd-logo-glow { display: none; }
+/* (City 2.0, NEON PASS 6 — THE RACE: a surge racing N → E → O → N, each letter blazing as it passes, then a sweep across SPEAKEASY —
+   at the catch, on a re-ignite, now and then on party nights. Each letter's blaze is its own svg (opacity only); the head + its tail
+   move by transform; title.js#raceLogo writes them only while it runs) */
+.nd-logo-wrap svg.nd-race { position: absolute; left: 0; top: 0; pointer-events: none; }
+.nd-logo-wrap svg.nd-race-l { opacity: 0; will-change: opacity; }
+.nd-race .ndr-w { stroke: var(--pc); opacity: 0.9; }
+.nd-race .ndr-n { stroke: var(--pcb); }
+.nd-race .ndr-c { stroke: #ffffff; opacity: 0.9; }
+.nd-word-r { position: absolute; inset: 0; pointer-events: none; color: #fff; }
+.nd-word-r i { font-style: normal; opacity: 0; will-change: opacity;
+  text-shadow: 0 0 2px #fff, 0 0 6px var(--pcb), 0 0 14px var(--pc), 0 0 26px var(--pc); }
+.nd-sign:not(.is-steady) .nd-race, .nd-sign.is-day .nd-race, .nd-sign:not(.is-steady) .nd-word-r, .nd-sign.is-day .nd-word-r { display: none; }
+@media (prefers-reduced-motion: reduce) { .nd-race, .nd-word-r { display: none; } }
+body.reduced-fx .nd-race, body.reduced-fx .nd-word-r { display: none; }
 /* (City 2.0, NEON PASS 5 — THE TIRED TUBE: a letter or two looking a little worn for a few hours — a weaker core, a softer glow, no hot
    spots — chosen anew every few hours: title.js#tiredTick) */
 .nd-logo .ndl.is-tired .ndl-core { opacity: 0.6; transition: opacity 2s ease; }

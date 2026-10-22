@@ -19,16 +19,30 @@ function outLatency() {
   return c ? Math.min(0.35, Math.max(0, (c.outputLatency || 0) + (c.baseLatency || 0))) : 0;
 }
 
-export function beatSource() {
-  if (settings.musicOff || settings.muted) return null;
+// (NEON PASS 6: an <audio> element's currentTime may move in coarse steps on iOS — a step every few frames, not every frame. The
+// position is carried forward on the frame clock between its steps, so the beat never jerks back and forth with them.)
+const smooth = { id: null, at: -1, perf: 0 };
+function dequantize(id, at, now) {
+  if (id !== smooth.id || at < smooth.at || at - smooth.at > 1) { smooth.id = id; smooth.at = at; smooth.perf = now; return at; }
+  if (at !== smooth.at) { smooth.at = at; smooth.perf = now; return at; }
+  return at + Math.min(0.5, (now - smooth.perf) / 1000);
+}
+/** why the beat is calm right now (the &debug=1 readout: "beat calm — music off") — '' when a song is being followed */
+let why = '';
+export const beatWhy = () => why;
+export function beatSource(nowMs = performance.now()) {
+  if (settings.musicOff) { why = 'music off'; return null; }
+  if (settings.muted) { why = 'muted'; return null; }
   const np = lobbyNow() || nowPlaying();
-  if (!np || !np.id) return null;
+  if (!np || !np.id) { const c = getContext(); why = !c || c.state !== 'running' ? 'tap for sound' : settings.menuMusic === 'classic' ? 'classic music' : 'no song'; return null; }
   const d = moodData();
-  const song = d && d.songs && d.songs[np.id];
-  if (!song || !(song.bpm > 0)) return null;
+  if (!d) { why = 'songs loading'; return null; }
+  const song = d.songs && d.songs[np.id];
+  if (!song || !(song.bpm > 0)) { why = 'song unknown'; return null; }
   const g = song.grid && song.grid.bpm > 0 ? song.grid : null;
+  why = '';
   // (pos AS HEARD: the element's / the buffer's clock runs ahead of the speaker by the output latency)
-  return { id: np.id, bpm: g ? g.bpm : song.bpm, pos: Math.max(0, np.at - outLatency()), grid: g };
+  return { id: np.id, bpm: g ? g.bpm : song.bpm, pos: Math.max(0, dequantize(np.id, np.at, nowMs) - outLatency()), grid: g };
 }
 
 // ---------------------------------------------------------------- THE SOUND: the low end, off the music bus

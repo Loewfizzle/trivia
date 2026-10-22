@@ -3,7 +3,7 @@
 // (on a party night its colour in the rotating palette: it changes with the show): the clearest "it's a party" sign in a single
 // frame. A soft volumetric beam (a bright core + a wide soft glow, brighter on a hazy night), fading out with height, rising to the
 // top of the screen. NEON PASS 5 (the owner's whole-sky rule, plan.md): the beams rise BEHIND the NEON sign and the tagline (the
-// sign is the page above the canvas: it always draws on top); only the corner buttons keep a clear column above them. (Neon Pass
+// sign is the page above the canvas: it always draws on top) — NEON PASS 6: and behind the music + menu buttons too. (Neon Pass
 // 4 stopped a beam under the sign at the tagline, so a phone showed 2–3 — the owner's iPhone, one.)
 // it PULSES on the beat (the hard pulse), takes the show's colour sweeps, switches on one by one through the warm-up and stands
 // together from the 11 pm peak; the sweeping searchlights take turns with it (core/harbor-show.js: out.beams / out.lights).
@@ -16,6 +16,8 @@ import { project } from '../../core/harbor-layout.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+/** the beam's soft foot (pt at the reference scale): the last stretch above the crown fades out instead of ending on a line */
+const FOOT = 16;
 
 export function createSkyBeams() {
   let beams = [], K = 1, cand = [];
@@ -51,6 +53,23 @@ export function createSkyBeams() {
     sprites.set(key, cv);
     return cv;
   }
+  // the FOOT (NEON PASS 6): the beam's bottom row, fading out downward (smoothstep) — drawn under the main sprite's last row, so the
+  // beam melts into the crown instead of ending on a line
+  const feet = new WeakMap();
+  function footFor(sp) {
+    if (feet.has(sp)) return feet.get(sp);
+    const w = sp.width, h = 32, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const x = ctx2d(cv);
+    if (!x) { cv.width = 0; feet.set(sp, null); return null; }
+    const src = sp.getContext('2d').getImageData(0, sp.height - 1, w, 1).data, img = x.createImageData(w, h), d = img.data;
+    for (let j = 0; j < h; j++) {
+      const v = j / (h - 1), k = 1 - v * v * (3 - 2 * v);           // 1 at the top (meets the beam) → 0 at the crown
+      for (let i = 0; i < w; i++) { const o = (j * w + i) * 4, s = i * 4; d[o] = src[s]; d[o + 1] = src[s + 1]; d[o + 2] = src[s + 2]; d[o + 3] = Math.round(src[s + 3] * k); }
+    }
+    x.putImageData(img, 0, 0);
+    feet.set(sp, cv);
+    return cv;
+  }
   function flareSprite() {
     if (flare) return flare;
     const c = document.createElement('canvas'); c.width = c.height = 32;
@@ -70,8 +89,9 @@ export function createSkyBeams() {
       const [x, y] = project(cam, cx, tp.y0 + tp.h + (tp.crown ? tp.crown.h : 0) + (t.needle || 0), tp.z0);
       if (x < 6 || x > cam.W - 6) continue;
       const under = false;
-      let top = 0;
-      if (corner && x > corner.x - 10 && x < corner.x + corner.w + 10) top = corner.y + corner.h + 12;
+      // (NEON PASS 6, the owner: every beam rises to the top — the one under the music + menu buttons too, BEHIND them: the canvas is
+      // under the page, the buttons stay on top and tappable)
+      const top = 0;
       if (y - top < 40 * K) continue;                                // (too little sky above it: no beam)
       cand.push({ id: t.id, x, y, top, under, len: y - top });
     }
@@ -109,7 +129,12 @@ export function createSkyBeams() {
       const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.92 + 0.2 * (f.punch || 0));
       if (!sp) return;
       c.globalAlpha = Math.min(1, a * pulse * haze * 0.95);
-      c.drawImage(sp, b.x - gw / 2, b.top, gw, y0 - b.top + 2);
+      // (NEON PASS 6, the owner: the beam ended in a sharp horizontal line at the crown — its last FOOT pt now come from a fade sprite:
+      // the same beam, fading out softly into the crown; everything above exactly as before)
+      const ft = FOOT * K, yf = y0 + 2 - ft;
+      c.drawImage(sp, 0, 0, sp.width, sp.height - 1, b.x - gw / 2, b.top, gw, yf - b.top);
+      const fs = footFor(sp);
+      if (fs) c.drawImage(fs, b.x - gw / 2, yf, gw, ft + 3 * K);
       // the beam's root: a bright flare where it leaves the crown (it punches on the beat)
       const r = (5 + 5 * (f.punch || 0)) * K;
       c.globalAlpha = Math.min(1, a * (0.55 + 0.45 * (f.punch || 0)));

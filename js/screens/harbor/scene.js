@@ -604,7 +604,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);
       const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
       const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
-      roText = [`t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`, `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...(PT.on > 0 ? [`beat ${hbeat.src}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.bar} · ${hbeat.idx + 1}/4${hbeat.live ? ` · kick ${hbeat.level.toFixed(2)}` : ''}`] : [])];
+      roText = [`t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`, `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...(PT.on > 0 ? [`beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.bar} · ${hbeat.idx + 1}/4${hbeat.live ? ` · kick ${hbeat.level.toFixed(2)}` : hbeat.bpm ? ' · kick unheard' : ''}`] : [])];
     }
     if (!roText) return;
     c.save();
@@ -645,6 +645,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const sh0 = neon.show(), hw = { t, ms, T, sunDir, lights: glowK, fade: fadeIn, motion, party: PT.on > 0 ? PT : null, sparkle: PT.on > 0 ? sh0.sparkle : 0, cn: sh0.cn || 0, drop: sh0.drop || 0 };
     const hb = { t, T, lights: glowK, motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes') };
     const hl = { ms, now: performance.now(), k: fadeIn * Math.max(clamp01((P.dark - 0.35) / 0.4) * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, motion, tier, dim: !!lights.spelling, water };
+    // (NEON PASS 6, the owner: on a party night the lighthouse holds its own — a stronger, wider beam; now and then (4 bars in 16) it
+    // picks up the party's colour — the right word tower's palette colour, eased in + out)
+    if (PT.on > 0) { const u = (PT.bar % 16) + (PT.phase || 0); hl.party = PT.ramp * Math.max(0.6, PT.energy || 0); hl.pm = S.motion ? smooth(8, 9, u) * (1 - smooth(12, 13, u)) : 0; hl.pcol = hl.pm > 0 ? (neon.beamCols(['wordB'])[0] || null) : null; }
     if (fadeIn > 0 && !clock.force.has('no-water')) {
       if (!clock.force.has('no-wheel')) water.reflect(cx => wheel.reflect(cx, hw), axisAt(L, L.wheel.z));
       if (!clock.force.has('no-boats')) boats.mirrors(water, hb);

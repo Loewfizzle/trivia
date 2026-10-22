@@ -166,7 +166,10 @@ export function createBeam() {
   }
   function drawFans(c, f, a, k) {
     c.globalAlpha = 1;
-    const col = colour.join(','), fog = clamp01(f.fog || 0), wide = 1 + 1.2 * fog;
+    // (NEON PASS 6: a party night — brighter + a little wider; now and then the party's colour, mixed in)
+    const pa = clamp01(f.party || 0), pc = f.pcol && f.pm > 0 ? colour.map((v, i) => Math.round(v + (f.pcol[i] - v) * clamp01(f.pm) * 0.85)) : colour;
+    const col = pc.join(','), fog = clamp01(f.fog || 0), wide = (1 + 1.2 * fog) * (1 + 0.32 * pa);
+    k *= 1 + 0.6 * pa;
     for (const off of [0, Math.PI]) {
       const aa = a + off, F2 = fan(aa, 58 + 20 * fog, 0.085 * wide), al = Math.min(1, k * (0.28 + 0.52 * F2.side) * (1 + 1.1 * fog));
       if (al < 0.01) continue;
@@ -186,7 +189,7 @@ export function createBeam() {
       if (!L || f.k <= 0.01) return;
       sprites();
       const a = angle(f.ms, f.now, f.motion); lastAng = a;
-      const k = f.k * (f.dim ? 0.5 : 1);
+      const k = f.k * (f.dim ? 0.5 : 1) * (1 + 0.3 * clamp01(f.party || 0));     // (NEON PASS 6: a brighter lantern on a party night)
       c.save(); c.globalCompositeOperation = 'lighter';
       // the haze lit around the lantern (brighter in fog)
       const fog = clamp01(f.fog || 0), hr = lu * (4 + 6 * fog);

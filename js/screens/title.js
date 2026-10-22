@@ -16,7 +16,7 @@ import { h, reducedMotion } from '../ui/dom.js';
 import { step } from '../core/ranks.js';
 import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
-import { logoSvg, logoGlowSvg, anchorsSvg, TAGLINE } from '../ui/logo.js';
+import { logoSvg, logoGlowSvg, logoRaceSvg, logoTrack, anchorsSvg, TAGLINE } from '../ui/logo.js';
 import { openHelp } from '../ui/help.js';
 import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, colorHex } from '../config.js';
 import { setState } from '../store.js';
@@ -29,7 +29,7 @@ import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
-import { beatSource, beatKick } from '../audio/beat.js';
+import { beatSource, beatKick, beatWhy } from '../audio/beat.js';
 import { tiredLetters } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { createDistrict } from './district/scene.js';
@@ -282,7 +282,7 @@ export function createTitle() {
     scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
-    scene.set({ beat: beatSource, kick: createHarbor ? beatKick : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
+    scene.set({ beat: beatSource, kick: createHarbor ? beatKick : null, beatWhy: createHarbor ? beatWhy : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
     // CITY 2.0 — THE TIRED TUBE (NEON PASS 5): one or two letters of the NEON logo look tired for a few hours (core/harbor-show.js
     // #tiredLetters — any letter, sometimes none, always changing; it was always the O)
     if (createHarbor) { tiredTick(); tiredT = setInterval(tiredTick, 30000); }
@@ -293,8 +293,8 @@ export function createTitle() {
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
       h('div.nd-bloom', { 'aria-hidden': 'true' }),   // PARTY NIGHTS: the logo's breath, behind the letters
-      h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: !!createHarbor }) + (createHarbor ? logoGlowSvg({ id: 'ndtg' }) : '') + (createHarbor && /[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
-      h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'), createHarbor ? h('span.nd-word-p', { 'aria-hidden': 'true' }, 'SPEAKEASY') : null)),
+      h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: !!createHarbor }) + (createHarbor ? logoGlowSvg({ id: 'ndtg' }) + logoRaceSvg({ id: 'ndtr' }) : '') + (createHarbor && /[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
+      h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'), createHarbor ? h('span.nd-word-p', { 'aria-hidden': 'true' }, 'SPEAKEASY') : null, createHarbor ? h('span.nd-word-r', { 'aria-hidden': 'true' }, ...[...'SPEAKEASY'].map(ch => h('i', ch))) : null)),
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     els.actions = buildActions();
@@ -373,7 +373,7 @@ export function createTitle() {
     const root = els.sign.closest('.nd');
     root.classList.add(`seq-${tl.kind}`);
     rainSound();
-    armTagline();     // (CITY 2.0: the tagline's 15 s count from the moment the title appears, not from the end of its power-on)
+    armTagline();     // (CITY 2.0: the tagline's 10 s count from the moment the title appears, not from the end of its power-on)
     tick();
   }
 
@@ -715,6 +715,7 @@ export function createTitle() {
           neonSounds++;
           s.classList.add('is-catch');
           setTimeout(() => { if (!destroyed) s.classList.remove('is-catch'); }, 1500);
+          setTimeout(() => raceLogo('catch'), 120);          // (NEON PASS 6: THE RACE rides on top of the catch — its timing + sound unchanged)
         }
       }
       scene.set({ logo: 1, signPow: 1, caught: true });
@@ -754,6 +755,8 @@ export function createTitle() {
     const on = p.on > 0;
     if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on && partyEls) { for (const g of partyEls.glows) g.el.style.opacity = ''; if (partyEls.word) partyEls.word.style.opacity = ''; if (partyEls.logo) partyEls.logo.style.opacity = ''; partyEls = null; } }
     if (!on) return;
+    // (NEON PASS 6: THE RACE now and then on a party night — every ~40–70 s, on a bar line, from the warm-up's middle)
+    { const t = performance.now(); if (raceNext < 0) raceNext = t + 9000; else if (t > raceNext && p.ramp > 0.6 && p.bar !== raceBar && !race) { raceNext = t + 40000 + Math.random() * 30000; raceLogo('party'); } raceBar = p.bar; }
     // the numbers go on the three elements that breathe — never on the root: a custom property there is inherited by the whole
     // title, and writing it every frame re-styled all of it (100 ms frames on a slow phone). (Reduced: the breath holds at 0.5.)
     // (the rings breathe through their glow layer's opacity — a compositor change — never the registered --hk, whose 2.4 s
@@ -780,6 +783,50 @@ export function createTitle() {
     if (hk !== partyEls.hk) { partyEls.hk = hk; for (const g of partyEls.glows) g.el.style.opacity = g.ring.classList.contains('is-lit') ? String(Math.round(hk * g.k * 250) / 250) : ''; }
   }
   let partyEls = null;
+  // ---------------------------------------------------------------- THE RACE (NEON PASS 6, City 2.0 — the owner)
+  // A bright surge races through the NEON letters in turn — N → E → O → N, through the blacked-out connectors between them (dim
+  // there: it runs behind the painted tube) — each letter BLAZING fully on as it passes (its own blaze layer, opacity only), then a
+  // quick sweep across SPEAKEASY. At the catch, when a tap re-ignites a letter, and now and then on party nights. Smooth: the head +
+  // its tail move by transform along the tube at a steady speed on the frame clock; nothing else changes a frame. Reduced effects /
+  // motion: none. &force=race previews it every 6 s.
+  let race = null, raceNext = -1, raceBar = -1;
+  const RACE = { catch: { v: 0.8, decay: 950, peak: 1, word: 1 }, tap: { v: 0.85, decay: 700, peak: 0.9, word: 0.85 }, party: { v: 0.62, decay: 650, peak: 0.85, word: 0.9 } };
+  function raceLogo(kind) {
+    if (!createHarbor || destroyed || race || reduced() || !els.sign || !els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day')) return;
+    const wrap = els.sign.querySelector('.nd-logo-wrap');
+    const blaze = wrap ? [...wrap.querySelectorAll('.nd-race-l')] : [], H = wrap && wrap.querySelector('.nd-race-h');
+    if (blaze.length !== 4 || !H) return;
+    const cfg = RACE[kind] || RACE.party, track = logoTrack(), lit = [...els.sign.querySelectorAll('.nd-logo .ndl')].map(l => l.classList.contains('on'));
+    // the schedule: each stretch at the letters' speed (the connectors 2.5× faster), its time span + its global arc offset
+    let t = 0, off = 0;
+    const segs = track.map(sg => { const v = cfg.v * (sg.letter < 0 ? 2.5 : 1), o = { ...sg, t0: t, dur: sg.total / v, off }; t += o.dur; off += sg.total; return o; });
+    const tEnd = t, total = off, inL = [0, 1, 2, 3].map(i => { const g = segs.find(x => x.letter === i); return [g.t0, g.t0 + g.dur]; });
+    const at = S => { let g = segs[segs.length - 1]; for (const x of segs) if (S < x.off + x.total) { g = x; break; } const u = Math.max(0, Math.min(g.total, S - g.off)); let j = 1; while (j < g.len.length - 1 && g.len[j] < u) j++; const k = (u - g.len[j - 1]) / Math.max(1e-6, g.len[j] - g.len[j - 1]); return [g.pts[j - 1][0] + (g.pts[j][0] - g.pts[j - 1][0]) * k, g.pts[j - 1][1] + (g.pts[j][1] - g.pts[j - 1][1]) * k, g.letter]; };
+    const Sat = e => { for (const x of segs) if (e < x.t0 + x.dur) return x.off + Math.max(0, e - x.t0) / x.dur * x.total; return total; };
+    const dots = [...H.querySelectorAll('.ndr-t')].reverse(), hd = H.querySelector('.ndr-hd'), word = [...els.sign.querySelectorAll('.nd-word-r i')];
+    const tW = tEnd - 120, WD = 560, done = Math.max(tEnd + cfg.decay, tW + WD + 500);
+    const last = new Map(), put = (el, a) => { const q = Math.round(a * 50) / 50; if (last.get(el) !== q) { last.set(el, q); el.style.opacity = q ? String(q) : ''; } };
+    const sm = v => (v <= 0 ? 0 : v >= 1 ? 1 : v * v * (3 - 2 * v));
+    const t0 = performance.now();
+    race = { kind };
+    const frame = now => {
+      if (destroyed || !race) return;
+      const e = now - t0;
+      if (e > done || !els.sign.classList.contains('is-steady')) { for (const el of [...blaze, ...dots, hd, ...word]) el.style.opacity = ''; race = null; return; }
+      // the head + its tail (on a connector the light runs behind the painted tube: dim)
+      const S = Sat(e), fadeIn = sm(e / 90), fadeOut = 1 - sm((e - tEnd + 60) / 220);
+      const [hx, hy, hl] = at(S);
+      hd.setAttribute('transform', `translate(${hx.toFixed(1)} ${hy.toFixed(1)})`); put(hd, (hl < 0 ? 0.32 : 1) * fadeIn * fadeOut);
+      dots.forEach((d, k) => { const s2 = S - (k + 1) * 5.5; if (s2 < 0) { put(d, 0); return; } const [x, y, l] = at(s2); d.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); put(d, Math.pow(1 - k / dots.length, 1.3) * (l < 0 ? 0.3 : 1) * fadeIn * fadeOut); });
+      // each letter blazes as the surge enters it, holds while it runs through, then eases back (a letter that's out stays out)
+      blaze.forEach((b, i) => { if (!lit[i]) return; const [a, z] = inL[i]; put(b, cfg.peak * (e < a ? 0 : e < z ? sm((e - a) / 140) : Math.exp(-(e - z) / (cfg.decay * 0.42)))); });
+      // SPEAKEASY: a quick sweep, letter by letter
+      if (e > tW) { const p = (e - tW) / WD * 1.5 - 0.25; word.forEach((w, j) => { const d = Math.abs((j + 0.5) / word.length - p); put(w, cfg.word * Math.pow(Math.max(0, 1 - d / 0.2), 1.6)); }); }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+  if (createHarbor && /[?&]force=([^&]*,)?race(,|&|$)/.test(location.search)) { const iv = setInterval(() => { if (destroyed) { clearInterval(iv); return; } raceLogo('party'); }, 6000); }
   function neonTick() {
     clearTimeout(neonT);
     if (destroyed || !scene || !tl || !tl.done) return;
@@ -975,11 +1022,12 @@ export function createTitle() {
       ? [[1, 0], [0, 60], [1, 110], [0, 170], [1, 230], [0, 1850], [1, 1910], [0, 1990]]          // sparks on … glows … flickers out
       : [[0, 0], [1, 50], [0, 95], [1, 150], [0, 200], [1, 1600], [0, 1660], [1, 1720], [0, 1800], [1, 1900]];   // out … dark … re-ignites
     plan.forEach(([on, ms], k) => set(!!on, ms, k === 0 || k === 5));        // a tick as it changes, and as it restarts
+    if (!day) setTimeout(() => raceLogo('tap'), plan[5][1] + 30);           // (NEON PASS 6: the re-ignite sends THE RACE through the sign)
     setTimeout(() => { buzzing.delete(i); if (destroyed) return; l.classList.toggle('on', !day); if (tl && tl.done) neonTick(); }, plan[plan.length - 1][1] + 40);
   }
 
-  // after 15 s without a touch the menu and the tagline fade away — just the sign and the city; any touch brings them back
-  const IDLE_MS = 15000;
+  // after 10 s without a touch the menu and the tagline fade away — just the sign and the city; any touch brings them back
+  const IDLE_MS = 10000;
   let idleTimer = 0, swallowed = false, mouseAt = null;
   // (local test runs don't fade on their own unless they ask with &idle=1 — a slow test step must not hide the buttons)
   const autoIdle = !(useEmulator && !/[?&]idle(?![a-z])/.test(location.search));

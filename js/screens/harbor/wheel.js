@@ -54,6 +54,20 @@ WHEEL_SCHEMES.easter = { rim: [[255, 190, 230], [190, 230, 255], [255, 246, 170]
 const DAY_CARS = [[196, 44, 52], [236, 226, 204], [38, 128, 140], [226, 168, 40]];
 
 function canvas(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
+/**
+ * NEON PASS 6 (the owner: the wheel's glow is "too much of a ring" — a ghost circle round the wheel): a glow that HUGS the rim — a
+ * radial gradient whose alpha follows a smooth curve peaking at the bulbs (rp) and falling fast inside, a little slower outside,
+ * gone within a short distance; no flat band, so no edge to read as a second circle. g: the gradient's [r0, r1]; peak a; the
+ * fall-offs as a share of r (sIn, sOut).
+ */
+function rimGlow(x, col, r, rp, a, sIn, sOut) {
+  const r0 = Math.max(0, rp - sIn * r * 3), r1 = rp + sOut * r * 3, g = x.createRadialGradient(0, 0, r0, 0, 0, r1);
+  for (let i = 0; i <= 20; i++) {
+    const rho = r0 + (r1 - r0) * i / 20, d = rho - rp, sg = (d < 0 ? sIn : sOut) * r, v = Math.exp(-0.5 * (d / sg) * (d / sg));
+    g.addColorStop(i / 20, `rgba(${col},${(a * (v < 0.012 ? 0 : v)).toFixed(4)})`);
+  }
+  x.fillStyle = g; x.beginPath(); x.arc(0, 0, r1, 0, Math.PI * 2); x.arc(0, 0, r0, 0, Math.PI * 2, true); x.fill('evenodd');
+}
 function glowDot(col) {
   const c = canvas(32, 32), x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
   g.addColorStop(0, `rgba(255,255,255,1)`); g.addColorStop(0.2, `rgba(${col},1)`); g.addColorStop(0.46, `rgba(${col},0.38)`); g.addColorStop(1, `rgba(${col},0)`);
@@ -175,7 +189,9 @@ export function createWheel() {
     { const rc = sc.ring || sc.rim[0].map(v => Math.min(255, v + 30));
       ring = ring || canvas(1, 1); ring.width = ring.height = Math.ceil(S * dpr);
       const x = ring.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter';
-      for (const [w, a] of [[r * 0.26, 0.045], [r * 0.14, 0.08], [r * 0.065, 0.14], [Math.max(1.1, r * 0.026), 0.34], [Math.max(0.6, r * 0.009), 0.8]]) { x.strokeStyle = `rgba(${rc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * 0.97, 0, Math.PI * 2); x.stroke(); }
+      // (NEON PASS 6: one smooth glow hugging the bulbs — strongest at the rim, gone within ~0.1 r outside — + the fine bright line)
+      rimGlow(x, rc, r, r * 0.97, 0.3, 0.018, 0.04);
+      for (const [w, a] of [[Math.max(0.6, r * 0.009), 0.8]]) { x.strokeStyle = `rgba(${rc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * 0.97, 0, Math.PI * 2); x.stroke(); }
       // THE HUB MEDALLION: a glowing disc + two bright rings round the axle
       { const hc = sc.hub, g = x.createRadialGradient(0, 0, 0, 0, 0, r * 0.2); g.addColorStop(0, `rgba(${hc},0.55)`); g.addColorStop(0.45, `rgba(${hc},0.22)`); g.addColorStop(1, `rgba(${hc},0)`); x.fillStyle = g; x.beginPath(); x.arc(0, 0, r * 0.2, 0, Math.PI * 2); x.fill();
         for (const [rr, w, a] of [[0.165, Math.max(0.6, r * 0.01), 0.7], [0.1, Math.max(0.5, r * 0.007), 0.6]]) { x.strokeStyle = `rgba(${hc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * rr, 0, Math.PI * 2); x.stroke(); } }
@@ -183,8 +199,9 @@ export function createWheel() {
     // every set at once (the show's steady phase — most of the time — and tier 0: one draw instead of eight)
     allBulbs = allBulbs || canvas(1, 1); allBulbs.width = bulbs[0].width; allBulbs.height = bulbs[0].height;
     { const x = allBulbs.getContext('2d'); x.globalCompositeOperation = 'lighter'; for (const b of bulbs) x.drawImage(b, 0, 0); }
-    // the haze the bulbs throw: a RING round the rim (NEON PASS 3) — clear inside, so the wheel never reads as a lit disc
-    if (!haze) { haze = canvas(64, 64); const x = haze.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,236,214,0)'); g.addColorStop(0.5, 'rgba(240,232,236,0.05)'); g.addColorStop(0.66, 'rgba(240,232,236,0.42)'); g.addColorStop(0.8, 'rgba(236,226,232,0.12)'); g.addColorStop(1, 'rgba(220,220,240,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }
+    // the haze the bulbs throw: round the rim (NEON PASS 3) — clear inside, so the wheel never reads as a lit disc. NEON PASS 6: it
+    // hugs the bulbs (the peak AT the rim, falling smoothly — gone ~0.25 r out), drawn at 1.3 r (was a ring reaching 1.5 r)
+    if (!haze) { haze = canvas(160, 160); const x = haze.getContext('2d'); x.setTransform(1, 0, 0, 1, 80, 80); rimGlow(x, '240,232,236', 80 / 1.3, 80 * 0.97 / 1.3, 0.5, 0.03, 0.085); }
     if (!pool) { pool = canvas(64, 64); const x = pool.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,236,214,0.55)'); g.addColorStop(0.5, 'rgba(236,226,232,0.16)'); g.addColorStop(1, 'rgba(220,220,240,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }
   }
 
@@ -380,7 +397,7 @@ export function createWheel() {
       // the warm haze the bulbs throw into the night air + their pool on the platform's deck (under the wheel)
       if (f.lights > 0.01) {
         c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = f.fade * f.lights * 0.3; c.drawImage(haze, cx - r * 1.5, cy - r * 1.5, r * 3, r * 3);
+        c.globalAlpha = f.fade * f.lights * 0.3; c.drawImage(haze, cx - r * 1.3, cy - r * 1.3, r * 2.6, r * 2.6);
         c.globalAlpha = f.fade * f.lights * 0.5; c.drawImage(pool, cx - r * 0.75, deckY - r * 0.16, r * 1.5, r * 0.32);
         c.globalCompositeOperation = 'source-over'; c.globalAlpha = f.fade;
       }

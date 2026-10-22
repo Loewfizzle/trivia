@@ -82,7 +82,8 @@ function drawLit(x, cam, it, look, meta, group, idx) {
   for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
     const tr = winTraits(b.seed, t, c, r, dice);
     if (!tr) continue;
-    const on = isLit(tr, share) && (!quiet || winHash(b.seed, t, c, r, 31) < 0.16);
+    // (NEON PASS 6: ~1 window in 12 behind the wheel, warm — on the city's light timeline)
+    const on = quiet ? share > 0 && winHash(b.seed, t, c, r, 31) < 0.085 * Math.min(1, share / 0.5) : isLit(tr, share);
     const rect = cellRect(cam, b, c, r, deco);
     if (group === 'near' && winHash(b.seed, t, c, r, 12) < 0.05 && meta.cands.length < 220) meta.cands.push({ rect, col: colourOf(tr, look.warm), on, a: tr.a * depthK, idx, id: [b.tower || b.id, t, c, r] });
     if (!on || share <= 0) continue;

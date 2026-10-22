@@ -328,6 +328,26 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 6: NIGHT TOUCH-UPS (Oct 22, 2026) — `docs/harbor.md#neon-pass-6`
+- [x] THE RACING FLOWS: the party racers' speed came from the beat phase (a quarter speed between beats + the beat clock's jitter) →
+      a steady speed from the tempo (eased to a new song's), the dt of the frame (30 Hz the same), the punch only brightens + lengthens
+      the tail; no reversals. iOS: the song's coarse `currentTime` carried forward between its steps; the readout says why it's calm
+- [x] THE SKY BEAMS as Neon Pass 5 (a rebuild tried + reverted on the owner's word): a soft FOOT instead of the hard bottom line; the
+      far-right beam rises behind the music + menu buttons like the others
+- [x] THE WHEEL: one smooth glow hugging the rim (no ghost ring); behind it a dusky violet-blue backdrop — a tone each, a rim of city
+      glow, ~1 window in 12 warm, rooftop tanks / antennas / sheds
+- [x] SIGNS: the six small floating icons removed — 4 named signs + the billboard (a game with no sign tonight; `billboardPick`, pure),
+      every game over the nights (tested); the lighthouse's CALM ZONE (a quiet white roofline behind it); its party beam stronger,
+      wider, now and then the party's colour
+- [x] NEON + ARCHITECTURE: the side faces traced (the roofline across both faces + the far edge), ledge bands on the window grid's
+      floor lines, fins on its piers; the crowns under the right-hand roof signs restored (a re-layout cut the OLD signs' cabinets out of
+      the new outlines' sprites — her phone's safe areas re-lay once) + the sign's glow spilling onto its frame + roof
+- [x] THE NEON LOGO RACES: N → E → O → N along the tubes + connectors, each letter blazing, then a sweep across SPEAKEASY — party nights
+      every ~40–70 s, at the catch (riding on its timing + sound), on a re-ignite; opacity + transform only (`&force=race`)
+- [x] The screen at rest after 10 s (was 15), both cities
+- [x] Tests: harbor.test (signs without icons, the billboard covering every game), E2E "THE RACING FLOWS" + "THE NEON LOGO RACES";
+      the A-B-B-A (night cheaper; party noisy, tier 0 equal) — the owner's iPhone decides
+
 ### ✅ CITY 2.0 — THE HARBOR, NEON PASS 5: SAFARI, THE REAL BEAT + THE PARTY POLISHED (Oct 22, 2026) — `docs/harbor.md#neon-pass-5`
 - [x] Faster harbor tests, nothing dropped: e2e-harbor in GROUPS (`ONLY=…`), three parallel shards + panel + perf alone, the fixed
       sleeps → waits for the real condition (223 s → ~190–200 s, 87 → 99 checks)

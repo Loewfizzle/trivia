@@ -108,6 +108,14 @@ export function depthStrength(o) {
  */
 export function outlines(L, signRects = new Map()) {
   const out = [];
+  const cam0 = L.cam;
+  // NEON PASS 6 — THE LIGHTHOUSE'S CALM ZONE (the owner: "tidy the neon around the lighthouse", like the wheel's quiet zone): the
+  // buildings standing right behind it keep only a quiet roofline (no outline boxes, no bands, no fins), so its red-and-white tower
+  // and its beam stand clear. On screen: ±30 pt round the tower (at the reference scale).
+  const lh = L.lighthouse && cam0 ? (() => { const l = L.lighthouse, [x, ty] = project(cam0, l.x, l.h + 6, l.z); return { x, ty, hw: 30 * cam0.F / 600 }; })() : null;
+  let boxes = null;
+  const allBoxes = () => boxes || (boxes = [...L.bands.flatMap(b => b.blocks), ...L.heroes, ...L.towers.flatMap(t => t.tiers)]);
+  const behindLh = (x0, x1, z0, top) => { if (!lh || !(z0 > L.lighthouse.z)) return false; const [a, ty] = project(cam0, x0, top, z0), [c] = project(cam0, x1, 0, z0); return c > lh.x - lh.hw && a < lh.x + lh.hw && ty < lh.ty + 120 * cam0.F / 600; };
   const add = (o) => { if (o.lines.length) out.push(o); };
   const signsOn = id => (signRects instanceof Map ? signRects.get(id) || [] : signRects.has && signRects.has(id) ? [{ x0: -1e9, x1: 1e9, y0: -1e9, y1: 1e9 }] : []);
   // the towers: the heroes + the landmarks + the word towers fully, the middle tier on the setbacks + crowns, the glass towers' roofs
@@ -130,6 +138,18 @@ export function outlines(L, signRects = new Map()) {
       });
       const left = [], right = [];
       for (const g of groups) { left.push([g.x0, g.y0, g.z0], [g.x0, g.y1, g.z1]); right.push([g.x1, g.y0, g.z0], [g.x1, g.y1, g.z1]); }
+      // THE SIDE FACE (NEON PASS 6): each tier group's visible side — its top edge back from the front corner, its far vertical edge
+      // down (to the foot, or to where the tier below hides it) — so the tube wraps the volume, never a flat box with a "shadow"
+      groups.forEach((g, gi) => {
+        const tTop = t.tiers.filter(tr => tr.y0 + tr.h <= g.y1 + 1e-6).pop() || topT, zb = (tTop.z1 ?? tTop.z0) - 0.05;
+        const sf = sideFace(cam0, g.x0, g.x1, g.y1, g.z1, zb);
+        if (!sf) return;
+        let yb = g.y0;
+        if (gi > 0) { const lo = groups[gi - 1], ylo = project(cam0, sf.x, lo.y1, lo.z1)[1]; yb = Math.max(yb, cam0.CAMH - (ylo - cam0.VPY) * zb / cam0.F); }
+        yb = sideFloor(cam0, allBoxes(), new Set(t.tiers), sf, g.z1, g.y1, yb);
+        if (yb == null || g.y1 - yb < 0.6) return;
+        lines.push({ pts: fillet([[sf.x, g.y1, g.z1], [sf.x, g.y1, zb], [sf.x, yb, zb]], FILLET * 0.5), role: roles[0], part: 'contour', side: true });
+      });
       const cr = topT.crown ? crownPath(t, topT) : null;
       const one = cr && cr.path && (roles[1] || roles[0]) === roles[0];
       // one continuous tube when the crown is the building's own colour; else the contour closes over the roof and the crown is its own tube
@@ -138,23 +158,26 @@ export function outlines(L, signRects = new Map()) {
       if (pts.length > 1) lines.push({ pts, role: roles[0], part: 'contour' });
       if (cr) { if (cr.path && !one) lines.push({ pts: fillet(cr.path, FILLET * 0.8), role: roles[1] || roles[0], part: 'crown' }); for (const e of cr.extras) lines.push({ ...e, role: e.needle ? e.role : roles[1] || roles[0], part: 'crown' }); }
       // DECO FINS: thin piers up every tier above the shaft (the heroes', the word towers' + the panorama's), never under a sign
-      if (hero || word) t.tiers.forEach((tr, i) => {
+      // (NEON PASS 6: on the piers between the window columns — never across glass)
+      const calm = mid && behindLh(t.tiers[0].x0, t.tiers[0].x1, t.z0, topT.y0 + topT.h);   // (the middle tier: the heroes + word towers rise clear above it)
+      if ((hero || word) && !calm) t.tiers.forEach((tr, i) => {
         if (i === 0) return;
         const w = tr.x1 - tr.x0, z = tr.z0 - 0.05, y0 = tr.y0 + tr.h * 0.08, y1 = tr.y0 + tr.h;
         if (w < 3.2 || signsOn(t.id).some(r => r.y1 > tr.y0 && r.y0 < y1)) return;
         const fr = w >= 9 ? [0.2, 0.4, 0.6, 0.8] : w >= 5.5 ? [0.27, 0.5, 0.73] : [0.34, 0.66];
-        for (const f of fr) lines.push({ pts: [[tr.x0 + w * f, y0, z], [tr.x0 + w * f, y1, z]], role: roles[0], thin: true, part: 'fin', lvl: Math.round(f * 10) });
+        uniq(fr.map(f => pierX(tr, tr.x0 + w * f))).filter(x => x > tr.x0 + 0.3 && x < tr.x1 - 0.3).forEach(x => lines.push({ pts: [[x, y0, z], [x, y1, z]], role: roles[0], thin: true, part: 'fin', lvl: Math.round((x - tr.x0) / w * 10) }));
       });
       // NEON PASS 3 — SETBACK LEDGES: a Deco band across the face at every setback (+ two spandrel bands up a hero's shaft), in the
       // building's accent — the tower reads as lit floor over floor (and the party show lights them one by one up the tower).
       // Never on a word tower (its face is the message) and never through a sign (the cut ends them at its cabinet).
-      if (hero || mid) {
+      if ((hero || mid) && !calm) {
         const ys = [];
         t.tiers.forEach((tr, i) => { if (i < n - 1) ys.push([tr.y0 + tr.h - 0.3, tr]); });
-        if (hero) { const s0 = t.tiers[0]; for (const f of [0.55, 0.78]) if (s0.h > 20) ys.push([s0.y0 + s0.h * f, s0]); }
+        // (NEON PASS 6: the spandrel bands up a hero's shaft on a FLOOR LINE — between two rows of windows)
+        if (hero) { const s0 = t.tiers[0]; if (s0.h > 20) for (const y of uniq([0.55, 0.78].map(f => floorY(s0, s0.y0 + s0.h * f)))) ys.push([y, s0]); }
         ys.sort((a, b) => a[0] - b[0]).forEach(([y, tr], i) => { if (tr.x1 - tr.x0 > 2.2 && !signsOn(t.id).some(r => y > r.y0 - 0.5 && y < r.y1 + 0.5)) lines.push({ pts: [[tr.x0 + 0.35, y, tr.z0 - 0.05], [tr.x1 - 0.35, y, tr.z0 - 0.05]], role: roles[1] || roles[0], thin: true, part: 'ledge', lvl: i }); });
         // the middle tier's fins on its top tier (two or three, its main colour)
-        if (mid) { const tr = topT, w = tr.x1 - tr.x0; if (w > 3) for (const f of w > 6 ? [0.3, 0.5, 0.7] : [0.35, 0.65]) lines.push({ pts: [[tr.x0 + w * f, tr.y0 + tr.h * (n > 1 ? 0.12 : 0.6), tr.z0 - 0.05], [tr.x0 + w * f, tr.y0 + tr.h - 0.35, tr.z0 - 0.05]], role: roles[0], thin: true, part: 'fin', lvl: Math.round(f * 10) }); }
+        if (mid) { const tr = topT, w = tr.x1 - tr.x0; if (w > 3) for (const x of uniq((w > 6 ? [0.3, 0.5, 0.7] : [0.35, 0.65]).map(f => pierX(tr, tr.x0 + w * f))).filter(x => x > tr.x0 + 0.3 && x < tr.x1 - 0.3)) lines.push({ pts: [[x, tr.y0 + tr.h * (n > 1 ? 0.12 : 0.6), tr.z0 - 0.05], [x, tr.y0 + tr.h - 0.35, tr.z0 - 0.05]], role: roles[0], thin: true, part: 'fin', lvl: Math.round((x - tr.x0) / w * 10) }); }
       }
     }
     add({ id: t.id, group: t.z0 >= 300 ? 'far' : 'near', strength: hero ? 'hero' : word ? 'word' : modern ? 'far' : pano ? 'pano' : 'mid', roles, z: t.z0, lines });
@@ -166,10 +189,13 @@ export function outlines(L, signRects = new Map()) {
     const plain = PLAIN_HEROES[b.id];
     if (plain) {
       const lines = [];
-      bandNeon(lines, { ...b, seed: 0 }, plain[0], plain[1], plain[2], plain[3], true, true);
+      bandNeon(lines, { ...b, seed: 0 }, plain[0], plain[1], plain[2], plain[3], true, true, L.cam);
       add({ id: b.id, group: 'near', strength: 'band', roles: [...new Set(lines.map(l => l.role))], z: b.z0, lines, band: 'near', blocks: [b.id] });
       continue;
     }
+    // (NEON PASS 6: a block right behind the lighthouse — PAR on a phone — keeps only a quiet roofline: its pink frame read as a
+    // floating box crowding the tower)
+    if (behindLh(b.x0, b.x1, b.z0, b.h)) { const lines = []; bandNeon(lines, b, 'roof', 'w0', 'w0', 'w0', true, false, L.cam); add({ id: b.id, group: 'near', strength: 'farband', roles: ['w0', 'w0'], z: b.z0, lines, calm: true }); continue; }
     const role = (ROLES[b.id] || ['a0'])[0], z = b.z0 - 0.05, w = b.x1 - b.x0;
     const lines = [{ pts: [[b.x0, b.h, z], [b.x1, b.h, z]], role }];
     lines.push({ pts: [[b.x0 + 0.3, b.h * 0.3, z], [b.x1 - 0.3, b.h * 0.3, z]], role, thin: true });
@@ -216,6 +242,10 @@ export function outlines(L, signRects = new Map()) {
     const share = near ? 0.96 : mid ? 0.88 : 0.62;
     const blocks = bd.blocks.filter(b => b.cap == null && b.x1 - b.x0 >= (near ? 2.4 : 3) && !((near || mid) && nearWheel(b))).sort((p, q) => (p.x0 + p.x1) - (q.x0 + q.x1));
     let prevMain = null, prevKind = null, cluster = [], ci = 0;
+    // (NEON PASS 6: the blocks behind the lighthouse — a quiet roofline each, dimmer, in one item of their own)
+    const calmLines = [], calmIds = [];
+    for (const b of blocks) if (behindLh(b.x0, b.x1, b.z0, b.h)) { const ln = []; bandNeon(ln, b, 'roof', 'w0', 'w0', 'w0', near, false, cam); calmLines.push(...ln); calmIds.push(b.id); }
+    if (calmLines.length) add({ id: `threads-${bd.id}-calm`, group: near ? 'near' : 'far', strength: 'farband', roles: ['w0'], z: Math.min(...blocks.filter(b => calmIds.includes(b.id)).map(b => b.z0)), lines: calmLines, band: bd.id, blocks: calmIds });
     const flush = () => {
       if (!cluster.length) return;
       const lines = cluster.flatMap(c => c.lines), roles = [...new Set(lines.map(l => l.role))];
@@ -224,6 +254,7 @@ export function outlines(L, signRects = new Map()) {
     };
     for (const b of blocks) {
       const lines = [];
+      if (calmIds.includes(b.id)) continue;
       if (dice(b, 0) <= share) {
         const f = fOf((b.x0 + b.x1) / 2, b.z0), fr = ((f % 1) + 1) % 1;
         // the district's pairings (left / middle / right of the skyline: each its own family); the building's dice picks one,
@@ -233,7 +264,7 @@ export function outlines(L, signRects = new Map()) {
         while (tries++ < fam.length && prevMain && (fam[i][0] === prevMain || (fam[i][0][0] === prevMain[0] && fam[i][0] !== 'w0'))) i = (i + 1) % fam.length;
         const [main, acc, det] = fam[i];
         const kind = bandKind(b, near, mid, dice, prevKind);
-        if (kind !== 'quiet') { bandNeon(lines, b, kind, main, acc, det, near, !underFace(b)); prevMain = main; }
+        if (kind !== 'quiet') { bandNeon(lines, b, kind, main, acc, det, near, !underFace(b), cam); prevMain = main; }
         prevKind = kind;
       } else prevKind = 'quiet';
       if (!lines.length) continue;
@@ -264,33 +295,42 @@ function bandKind(b, near, mid, dice, prevKind) {
   return d < 0.3 ? 'outline' : d < 0.47 && h > 9 ? 'bands' : d < 0.62 && w > 5 && h > 9 ? 'pilasters' : d < 0.76 && w > 6 && h > 10 ? 'fins' : d < 0.88 && w > 5.5 && h > 9 ? 'sunburst' : 'trim';
 }
 /** a band building's tubes (world units; the cut ends them at the roofs in front: neon.js) */
-function bandNeon(lines, b, kind, main, acc, det, near, above = true) {
+function bandNeon(lines, b, kind, main, acc, det, near, above = true, cam = null) {
   const z = b.z0 - 0.05, x0 = b.x0, x1 = b.x1, h = b.h, w = x1 - x0, cx = (x0 + x1) / 2, bid = b.id;
   const L = (pts, role, part, o = {}) => lines.push({ pts, role, z: b.z0, block: bid, part, ...o });
-  const roof = () => L([[x0, h, z], [x1, h, z]], main, 'roof');
+  // (NEON PASS 6: the roofline runs on across the top of the side face the camera sees — the tube wraps the volume)
+  const sf = sideFace(cam, x0, x1, h, z, (b.z1 ?? b.z0) - 0.05);
+  const roofPts = () => (sf ? (sf.x === x1 ? [[x0, h, z], [x1, h, z], [x1, h, sf.zb]] : [[x0, h, sf.zb], [x0, h, z], [x1, h, z]]) : [[x0, h, z], [x1, h, z]]);
+  const roof = (role = main) => L(fillet(roofPts(), 0.3), role, 'roof');
+  const fy = y => floorY(b, y), fxw = x => pierX(b, x);           // (NEON PASS 6: on a floor line / a pier, never across glass)
   const acc2 = acc || main, det2 = det || acc2;
+  if (kind === 'roof') { roof(); return; }                         // (the lighthouse's calm zone: a quiet roofline)
   if (kind === 'outline') {
     // the full contour: up one edge from the foot, over the roof (a parapet step on a wide one), down the other — one bent tube
     const ph = near && above && w > 7 ? Math.min(1.2, h * 0.05) : 0, pw = w * 0.3;
     const top = ph ? [[x0, h, z], [cx - pw, h, z], [cx - pw, h + ph, z], [cx + pw, h + ph, z], [cx + pw, h, z], [x1, h, z]] : [[x0, h, z], [x1, h, z]];
     L(fillet([[x0, 0, z], ...top, [x1, 0, z]], Math.min(FILLET, w * 0.12)), main, 'contour');
-    if (near && w > 6 && h > 12) L([[x0 + 0.3, h * 0.62, z], [x1 - 0.3, h * 0.62, z]], acc2, 'ledge', { thin: true, lvl: 0 });
+    // (NEON PASS 6: + the side face — its top edge back from the corner, its far edge down to the foot)
+    if (sf) L(fillet([[sf.x, h, z], [sf.x, h, sf.zb], [sf.x, 0, sf.zb]], 0.3), main, 'contour', { side: true });
+    if (near && w > 6 && h > 12) { const y = fy(h * 0.62); if (y < h - 0.4) L([[x0 + 0.3, y, z], [x1 - 0.3, y, z]], acc2, 'ledge', { thin: true, lvl: 0 }); }
     if (near && above && w > 5 && ((b.seed >>> 3) % 3 === 0)) chevron(L, cx, h + ph, z, Math.min(w * 0.22, 1.8), det2);
   } else if (kind === 'bands') {
     // Deco LEDGE BANDS floor over floor up the upper half (the party show lights them floor by floor), the roofline over them
     roof();
     const n = near ? (h > 22 ? 4 : 3) : 2;
-    for (let i = 0; i < n; i++) { const y = h * (0.42 + 0.5 * i / n); L([[x0 + 0.25, y, z], [x1 - 0.25, y, z]], i % 2 ? det2 : acc2, 'ledge', { thin: true, lvl: i }); }
+    uniq(Array.from({ length: n }, (_, i) => fy(h * (0.42 + 0.5 * i / n)))).filter(y => y < h - 0.4).forEach((y, i) => L([[x0 + 0.25, y, z], [x1 - 0.25, y, z]], i % 2 ? det2 : acc2, 'ledge', { thin: true, lvl: i }));
   } else if (kind === 'pilasters') {
     // CORNER PILASTERS full height (the building's frame), the roofline in the accent
     [x0 + 0.22, x1 - 0.22].forEach((x, i) => L([[x, 0, z], [x, h - 0.15, z]], main, 'trim', { lvl: i }));
-    L([[x0, h, z], [x1, h, z]], acc2, 'roof');
-    if (near && h > 14) L([[x0 + 0.3, h * 0.75, z], [x1 - 0.3, h * 0.75, z]], det2, 'ledge', { thin: true, lvl: 0 });
+    roof(acc2);
+    if (sf) L([[sf.x, 0, sf.zb], [sf.x, h - 0.15, sf.zb]], main, 'trim', { lvl: 2, side: true });
+    if (near && h > 14) { const y = fy(h * 0.75); if (y < h - 0.4) L([[x0 + 0.3, y, z], [x1 - 0.3, y, z]], det2, 'ledge', { thin: true, lvl: 0 }); }
   } else if (kind === 'fins') {
     roof();
     const fr = w > 10 ? [0.2, 0.4, 0.6, 0.8] : w > 7.5 ? [0.25, 0.5, 0.75] : [0.33, 0.67];
-    fr.forEach((k, i) => L([[x0 + w * k, h * 0.5, z], [x0 + w * k, h - 0.4, z]], acc2, 'fin', { thin: true, lvl: i }));
-    L([[x0 + 0.3, h * 0.47, z], [x1 - 0.3, h * 0.47, z]], det2, 'ledge', { thin: true, lvl: 0 });
+    const yl = fy(h * 0.47);
+    uniq(fr.map(k => fxw(x0 + w * k))).filter(x => x > x0 + 0.3 && x < x1 - 0.3).forEach((x, i) => L([[x, yl, z], [x, h - 0.4, z]], acc2, 'fin', { thin: true, lvl: i }));
+    L([[x0 + 0.3, yl, z], [x1 - 0.3, yl, z]], det2, 'ledge', { thin: true, lvl: 0 });
   } else if (kind === 'sunburst') {
     // a Deco SUNBURST fan on the top floor (rays from a point under the roof + its arc), the roofline + a band under it
     roof();
@@ -298,7 +338,7 @@ function bandNeon(lines, b, kind, main, acc, det, near, above = true) {
     const arc = []; for (let i = 0; i <= 10; i++) { const a = Math.PI * (0.12 + 0.76 * i / 10); arc.push([cx - Math.cos(a) * r, oy + Math.sin(a) * r, z]); }
     L(arc, acc2, 'crown');
     for (let i = 0; i < 5; i++) { const a = Math.PI * (0.2 + 0.6 * i / 4); L([[cx - Math.cos(a) * r * 0.18, oy + Math.sin(a) * r * 0.18, z], [cx - Math.cos(a) * r * 0.8, oy + Math.sin(a) * r * 0.8, z]], det2, 'crown', { thin: true, lvl: i }); }
-    L([[x0 + 0.3, oy - 0.5, z], [x1 - 0.3, oy - 0.5, z]], acc2, 'ledge', { thin: true, lvl: 0 });
+    { const y = fy(oy - 0.5); if (y < oy - 0.2) L([[x0 + 0.3, y, z], [x1 - 0.3, y, z]], acc2, 'ledge', { thin: true, lvl: 0 }); }
   } else {
     // a small trim: the roofline (+ on a near building, its corners' top floors)
     roof();
@@ -312,6 +352,52 @@ const dedupe = pts => pts.filter((p, i) => !i || Math.hypot(p[0] - pts[i - 1][0]
 export const MIN_STEP = 1.1;
 /** the radius of a bend (world units): every corner of a contour is rounded, like bent glass */
 export const FILLET = 0.8;
+/**
+ * NEON PASS 6 (the owner: "ledge bands must sit on the ledges"): a band's height snapped to the nearest FLOOR LINE of the building's
+ * window grid (the spandrel between two rows of windows — never across glass); a fin's x to the nearest PIER between two columns.
+ * b: a block / a tower's tier ({ x0, y0?, win: { cols, rows, u0, v0, pitch } }); without a grid the value as asked.
+ */
+export function floorY(b, y) {
+  const g = b && b.win; if (!g || !(g.rows > 0) || !g.pitch) return y;
+  const base = (b.y0 || 0) + g.v0, pv = g.pitch[1], k = Math.max(0, Math.min(g.rows, Math.round((y - base) / pv)));
+  return base + k * pv;
+}
+export function pierX(b, x) {
+  const g = b && b.win; if (!g || !(g.cols > 0) || !g.pitch) return x;
+  const base = b.x0 + g.u0, pu = g.pitch[0], k = Math.max(0, Math.min(g.cols, Math.round((x - base) / pu)));
+  return base + k * pu;
+}
+/** the snapped values, without two on the same line (sorted) */
+const uniq = (vs, eps = 0.05) => [...vs].sort((a, b) => a - b).filter((v, i, a) => !i || v - a[i - 1] > eps);
+/**
+ * NEON PASS 6 (the owner: "neon that traces the 3D building"): the SIDE FACE a camera sees on a building off the middle (its right
+ * face when it stands left of the camera, its left face when right) — { x (its edge), zb (the back), w (its width on screen, pt) };
+ * null when no side shows or it is too thin to trace (< 1.6 pt)
+ */
+export function sideFace(cam, x0, x1, y, z0, z1) {
+  if (!cam || !(z1 > z0)) return null;
+  const x = x1 < 0 ? x1 : x0 > 0 ? x0 : null;
+  if (x == null) return null;
+  const w = Math.abs(project(cam, x, y, z0)[0] - project(cam, x, y, z1)[0]);
+  return w >= 1.6 ? { x, zb: z1, w } : null;
+}
+/**
+ * How much of a side face shows: a neighbour standing just in front of its far part (deeper than the front, so neon.js's envelope
+ * of nearer buildings doesn't know it — an abutting block of the same band) hides its lower part. → the world height its far edge
+ * may come down to, or null when the neighbour hides it all. all: every box ({ x0, x1, z0, y0?, h }); self: the boxes to skip.
+ */
+export function sideFloor(cam, all, self, sf, zf, yTop, yb) {
+  const fx = project(cam, sf.x, yTop, sf.zb)[0], nx = project(cam, sf.x, yTop, zf)[0];
+  for (const c of all) {
+    if (self.has(c) || !(c.z0 >= zf - 0.06 && c.z0 < sf.zb)) continue;
+    const [a, ty] = project(cam, c.x0, (c.y0 || 0) + c.h, c.z0), [b] = project(cam, c.x1, 0, c.z0);
+    if (b < Math.min(fx, nx) + 0.3 || a > Math.max(fx, nx) - 0.3) continue;
+    const yw = cam.CAMH - (ty - cam.VPY) * sf.zb / cam.F;
+    if (yw >= yTop - 0.6) return null;
+    yb = Math.max(yb, yw);
+  }
+  return yb;
+}
 /** round every corner of a polyline [[x, y, z]…] with radius r (limited by the legs), a quadratic bend sampled in 6 steps */
 export function fillet(pts, r) {
   if (pts.length < 3 || !(r > 0)) return pts;
@@ -384,7 +470,7 @@ export const SPOTS = [
   // across the whole cabinet under it — and take names of up to 6 letters; the longer ones hang as icons or on the billboard)
   { id: 'n-roof', kind: 'named', type: 'box', stack: true, host: 'near', mount: 'roof', x: [29, 85], y: [446, 478], z: 240, cap: 6 },
   // (NEON PASS 5: n-par — PAR's narrow vertical name, 10.5 pt wide between PAR's roof and docked Rosie — is gone: six stacked letters
-  // stood 5.7 pt there, and no taller box fits; PAR keeps its two icons)
+  // stood 5.7 pt there, and no taller box fits)
   // Part 6a (the owner's SIGN PLACEMENT RULE: no sign covers a hero tower's face or outline): the sunburst's named sign is gone
   // and the HOTEL blade with it (its thin letters didn't read) — THE GAME BLADE takes the hotel's spot: a projecting vertical
   // cabinet with chasing bulbs, tonight's game (≤ 6 letters: they stand ~9 pt tall on a phone, the glance test)
@@ -395,16 +481,10 @@ export const SPOTS = [
   // She now rests bow-out (core/harbor-boats.js) and the blade ends 2.5 pt over her stern's bulb string (its top 1.5 pt under the
   // hotel's roof): every letter clear, still ≥ 10 pt (signs.js#bladeLayout) — tested against her docked silhouette
   { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6 },
-  { id: 'i-par', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [493, 513], z: 233.6 },
-  // (NEON PASS 5, the owner: the small icon left of the Ferris wheel — i-mid, Neon Pass 4's — is gone: 5 named + 6 icons; the
-  // game the night leaves without a sign is the one the billboard advertises, and the nightly shuffle rotates it)
-  { id: 'i-left', kind: 'icon', type: 'icon', host: 'near', mount: 'roof', x: [5, 25], y: [459, 479], z: 238 },
-  { id: 'i-c1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [269, 289], y: [517, 537], z: 232.1 },
-  { id: 'i-r1', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [356, 377], y: [494, 515], z: 235.1 },
-  { id: 'i-r2', kind: 'icon', type: 'icon', host: 'near', mount: 'wall', x: [376, 397], y: [524, 545], z: 235.1 },
-  // NEON PASS 2 (the owner: no sign on any hero tower's face — the EMPIRE's named sign is gone): a second icon on PAR, under its
-  // first (the one plain wall on a phone that passes every rule: tested), so every game still has a sign each night
-  { id: 'i-par2', kind: 'icon', type: 'icon', host: 'par', x: [309, 329], y: [522, 542], z: 233.6 },
+  // NEON PASS 6 (the owner: "remove the tiny floating game icons — distracting"): every ICON spot is gone (i-par, i-par2, i-left,
+  // i-c1, i-r1, i-r2; i-mid went in Neon Pass 5). The games are carried by the NAMED signs — the roof signs, the blade, the
+  // billboard (it advertises a game with no sign tonight) — and the nightly shuffle rotates which games hang, so every game shows
+  // over a few nights. (The waterfront strip's little shop shapes at the water's edge stay.) A phone: 4 named + the billboard.
   // Part 5 (the owner's call): two NAMED ROOF SIGNS on the word towers' roofs, in the open sky above their crowns (they took
   // i-c2 + i-par2 off the crowded right wall) — under the skyline limit, out of the sun corridors, the towers' beacons on top
   // of their frames; while a tower spells a word its roof sign dims (the message is the star). Placed from the tower's own
@@ -541,5 +621,14 @@ export function assignSigns(games, spots, key = 'x') {
   }
   for (const s of icons) { const g = order.find(id => !used.has(id)); if (g) { out.set(s.id, g); used.add(g); } }
   return out;
+}
+/**
+ * Tonight's BILLBOARD game (NEON PASS 5, pure since NEON PASS 6): a game with NO sign tonight (the nightly shuffle picks which),
+ * else one with no named sign; n: the billboard's index (more than one on a wide screen). → game id | null
+ */
+export function billboardPick(games, spots, pick, key = 'x', n = 0) {
+  const named = new Set(spots.filter(x => x.kind === 'named').map(x => pick.get(x.id))), signed = new Set(pick.values());
+  const none = games.filter(g => !signed.has(g.id)), ad = none.length ? none : games.filter(g => !named.has(g.id));
+  return ad.length ? ad[(n + key.length + key.charCodeAt(key.length - 1)) % ad.length].id : null;
 }
 export { fxAt };

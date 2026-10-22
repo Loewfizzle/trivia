@@ -199,8 +199,31 @@ async function neonPass5Party() {
     `HALF-TIME: the punch on beats 1 + 3 (${m.beats[0].toFixed(2)}, ${m.beats[2].toFixed(2)}), beats 2 + 4 calm (${m.beats[1].toFixed(2)}, ${m.beats[3].toFixed(2)})`);
   ok(m.hi > 0.35 && m.lo < 0.15, `THE NEON LOGO PUNCHES with the city: its glow layer ${m.lo.toFixed(2)} → ${m.hi.toFixed(2)} (gentler than the skyline)`);
   ok(m.tired <= 2, `THE TIRED TUBE: ${m.tired} tired letter(s) right now (0–2, rotating)`);
+  // NEON PASS 6 (the owner, her iPhone: "they almost stop between pulses and jitter"): the racing light's speed comes from the tempo
+  // alone — sampled through ~2 s (several beats), it never dips between the punches
+  const rv = await ev(Q.page, `new Promise(res => { const v = []; const iv = setInterval(() => { v.push(window.__district.harbor().neon.show.raceV || 0); if (v.length >= 20) { clearInterval(iv); res(v); } }, 100); })`);
+  const rlo = Math.min(...rv), rhi = Math.max(...rv);
+  ok(rlo > 20 && rlo / rhi > 0.85, `THE RACING FLOWS: a steady ${rlo.toFixed(0)}–${rhi.toFixed(0)} pt/s through the beats (never a stop-and-go)`);
   if (SHOTS) await Q.page.screenshot({ path: `${OUT}np5-party-402x874.png` });
   await Q.ctx.close();
+  // NEON PASS 6 — THE NEON LOGO RACES (&force=race: every 6 s): a head running the letters by transform, each letter blazing in turn,
+  // then SPEAKEASY's sweep
+  { const R = await open({ slot: 'h16', qs: `${NIGHT}&force=race`, view: [402, 874] });
+    await waitFor(R.page, 'window.__district.harbor().neon.signs.every(s => s.on)', 'the neon on', 15000);
+    const r = await ev(R.page, `new Promise(res => {
+      const ls = [...document.querySelectorAll('.nd-race-l')], hd = document.querySelector('.ndr-hd'), w = [...document.querySelectorAll('.nd-word-r i')];
+      const peak = [0, 0, 0, 0], first = [-1, -1, -1, -1], pos = new Set(); let word = 0, t0 = performance.now();
+      const tick = () => { const e = performance.now() - t0;
+        ls.forEach((l, i) => { const o = +getComputedStyle(l).opacity; if (o > peak[i]) peak[i] = o; if (o > 0.5 && first[i] < 0) first[i] = e; });
+        if (+getComputedStyle(hd).opacity > 0.5) pos.add(hd.getAttribute('transform'));
+        for (const x of w) word = Math.max(word, +getComputedStyle(x).opacity);
+        if (e < 8500) requestAnimationFrame(tick); else res({ peak, first, moves: pos.size, word });
+      };
+      requestAnimationFrame(tick);
+    })`);
+    const inTurn = r.first.every(v => v >= 0) && r.first[0] < r.first[1] && r.first[1] < r.first[2] && r.first[2] < r.first[3];
+    ok(inTurn && Math.min(...r.peak) > 0.6 && r.moves > 20 && r.word > 0.5, `THE NEON LOGO RACES: N → E → O → N blaze in turn (at ${r.first.map(v => Math.round(v)).join(' / ')} ms, peaks ${r.peak.map(v => v.toFixed(2)).join(' ')}), the head moved through ${r.moves} places, SPEAKEASY swept (${r.word.toFixed(2)})`);
+    await R.ctx.close(); }
   // A 30 Hz FRAME RATE (iOS Low Power Mode): the city tries one step down, sees no faster frames, steps back up + stays (the owner's
   // iPhone ran a party night at tier 0: nothing racing). requestAnimationFrame throttled to 30 Hz in the page.
   const C = await open({ slot: 'h14', qs: NIGHT, view: [402, 874], init: { fn: () => { const raf = window.requestAnimationFrame.bind(window); let q = [], last = 0, armed = false, id = 0; const pump = t => { if (t - last < 31) { raf(pump); return; } last = t; const run = q; q = []; armed = false; for (const e of run) e[1](t); }; window.requestAnimationFrame = cb => { q.push([++id, cb]); if (!armed) { armed = true; raf(pump); } return id; }; window.cancelAnimationFrame = i => { q = q.filter(e => e[0] !== i); }; }, arg: null } });
@@ -395,8 +418,9 @@ G('neon', async () => {
     const games = h.neon.signs.filter(s => s.game).map(s => s.game), bb = h.neon.boards[0] && h.neon.boards[0].show;
     // (NEON PASS 5: 4 named + 6 icons — the small icon left of the wheel and PAR's narrow name are gone; the billboard advertises a
     // game with no sign tonight, the nightly shuffle rotates the rest)
-    ok(new Set(games).size === 10 && h.neon.signs.filter(s => s.kind === 'named').length === 4 && h.neon.signs.every(s => s.on) && !h.neon.signs.some(s => s.id === 'i-mid' || s.id === 'n-par'),
-      `SIGNS: 10 games in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')} named, stacked roof signs; the rest as tube icons; the billboard: ${bb}), every sign lit at night, no icon left of the wheel`);
+    // (NEON PASS 6, the owner: the tiny floating icons are gone — 4 named signs + the billboard a fifth game)
+    ok(new Set(games).size === 4 && h.neon.signs.filter(s => s.kind === 'named').length === 4 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
+      `SIGNS: 4 named games in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')}; stacked roof signs + the blade), no icons, the billboard a fifth (${bb}), every sign lit at night`);
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
     const sg = h.neon.signs.find(s => s.game), hit = await ev(N.page, `window.__district.hit(${sg.rect.x + sg.rect.w / 2}, ${sg.rect.y + sg.rect.h / 2})`);
@@ -580,7 +604,8 @@ G('neon', async () => {
     const h = await ev(N.page, 'window.__district.harbor()');
     const bands = h.neon.outlines.filter(o => o.id.startsWith('threads-near') || o.id.startsWith('threads-mid'));
     ok(bands.length >= 5 && bands.reduce((a, o) => a + o.runs, 0) >= 20 && h.neon.outlines.some(o => o.id === 'lighthouse' && o.runs >= 6), `THE NIGHT CITY LIT: ${bands.length} neon clusters on the near + mid buildings (${bands.reduce((a, o) => a + o.runs, 0)} runs), the lighthouse in neon (${(h.neon.outlines.find(o => o.id === 'lighthouse') || {}).runs} runs)`);
-    ok(h.daily && h.daily.spell.length === 1 && h.daily.blink.length >= 1 && h.daily.cycle && h.daily.chase.length >= 3, `THE EVERYDAY MOTION (NEON PASS 4: alive): ${h.daily.spell} spells on, ${h.daily.blink} blink, ${h.daily.cycle} cycles its colour, ${h.daily.chase.join(' + ')} chase slowly`);
+    // (NEON PASS 6: no icon signs any more — nothing cycles its colour)
+    ok(h.daily && h.daily.spell.length === 1 && h.daily.blink.length >= 1 && h.daily.chase.length >= 3, `THE EVERYDAY MOTION (NEON PASS 4: alive): ${h.daily.spell} spells on, ${h.daily.blink} blink, ${h.daily.chase.join(' + ')} chase slowly`);
     ok(h.neon.scheme === 'city' && !h.neon.partyLook, 'A NORMAL NIGHT: the city\'s own colours');
     ok(!h.show.scene && h.beams === 0, 'A NORMAL NIGHT: no party show, no searchlights');
     ok(h.daily.rotate.length >= 1 && h.daily.stages.length >= 1, `COLOURS THROUGH THE NIGHT: ${h.daily.rotate.join(' + ')} rotate slowly, ${h.daily.stages.join(' + ')} change scheme by the hour`);

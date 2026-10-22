@@ -54,7 +54,11 @@ loading) — the city then breathes slowly on its own. The title's scene polls i
   passage or a breakdown with no kick calms it), a kick between them is a small hit of its own; a song with no grid punches on
   every real kick; no music: a calm 120 bpm of its own. Checked on real songs in headless Chrome (overclock, late2, slip5): locked
   to the grid, the analyser live 97–100 %, 63–78 % of the kicks it hears within ±0.15 beat of the grid's beats (chance: ~30 %).
-  The `&debug=1` readout shows `beat grid 130.0 · bar 12 · 3/4 · kick 0.86` on a party night.
+  The `&debug=1` readout shows `beat grid 130.0 · bar 12 · 3/4 · kick 0.86` on a party night. NEON PASS 6: when it's calm it says
+  why (`beatWhy()`: `beat calm — music off` / `muted` / `tap for sound` / `classic music` / `songs loading` / `no song`), and
+  `· kick unheard` when a song is followed but the analyser hears nothing. **iOS**: an `<audio>` element's `currentTime` may move in
+  coarse steps — `beatSource` carries the position forward on the frame clock between its steps (`dequantize`), so the clock never
+  jerks with them. The racing lights take only the TEMPO from it (their speed), never the phase (docs/harbor.md#neon-pass-6).
 **THE NEON BUZZ** (`ambience.js#neonBuzz({ on, dur, level })`, City 2.0 only — docs/harbor.md cleanup pass 1): the main sign's
 sputters at the dusk warm-up and the morning fade, one per flicker — a tube striking: a crisp tick (a 25–75 ms band-passed click + a
 sine zap 3.6 → 0.9 kHz in 18 ms) then the gas's buzz (120 Hz saw + 240 square + 60 saw through a 1.4 kHz bandpass and a 220 Hz

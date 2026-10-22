@@ -22,7 +22,7 @@
 //                    motion, t (s), swell, finale, scene?, beatU (0..1 of a beat), beatT (s a beat), beatIdx (the beat in its
 //                    breath: 0 = the downbeat), beats (a beat counter), rate (breaths / s) } → out (reused): { scene, a[i] (the
 //                    item's tubes ×, up to ~2: the renderer draws the part over 1 additively), alt[i] (0..1 its party colour),
-//                    fx[i] (0 none · 2 ledges · 3 fins · 4 crown flash), k[i], ph[i], race[i] (0..1 racing light), dir[i] (±1),
+//                    fx[i] (0 none · 2 ledges · 3 fins · 4 crown flash), k[i], ph[i], race[i] (0..1 racing light), dir[i] (±1, fixed all night),
 //                    sp[i] (speed ×), punch (the city's punch now 0..~1.6), drop, big, lights (the searchlights 0..1), beams
 //                    (the sky beams 0..1), sparkle, shimmer (0..1 how often the shimmer rolls), moving, peak }
 //   everyday(key, cast, signs)  tonight's calm motion: blinking / spelling signs, a colour-cycling sign, slow chasers, rotations
@@ -216,10 +216,11 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
     out.a[i] = 1 + (a - 1) * (0.35 + 0.65 * sk);              // (the scene's envelope eases the effects; the beat never stops)
     out.alt[i] = alt * sk; out.fx[i] = fx; out.k[i] = k * (fx === FX.flash ? 1 : sk); out.ph[i] = p;
     out.race[i] = race * (0.4 + 0.6 * sk);
-    // each racer's own pace (a lap of its pattern a bar, × 0.8–1.25) + direction; a third of them reverse every two bars (on the downbeat)
+    // each racer's own pace (a lap of its pattern a bar, × 0.8–1.25) + direction — NEON PASS 6 (the owner: "the racing must flow"):
+    // a building keeps its direction all night (a reversal is a stop); the renderer moves it at a steady speed from the tempo
     out.sp[i] = 0.8 + 0.45 * it.h2;
     { const d = (cn % 2 ? 1 - it.x : it.x), m = clamp01((front * 1.35 - d) / 0.35); out.cm[i] = m * m * (3 - 2 * m); }
-    out.dir[i] = (it.h < 0.5 ? 1 : -1) * (it.h2 < 0.33 && Math.floor(bar / 2) % 2 ? -1 : 1);
+    out.dir[i] = it.h < 0.5 ? 1 : -1;
     if (race) out.moving++;
   }
   return out;

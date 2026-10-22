@@ -100,6 +100,47 @@ export function logoGlowSvg({ id = 'ndg', pad = 26, blur = 1 } = {}) {
 </svg>`;
 }
 
+/**
+ * THE RACE (CITY 2.0, NEON PASS 6 — the owner): a bright surge racing through the NEON letters in turn (N → E → O → N), each letter
+ * blazing fully on as it passes — at the catch, when a tap re-ignites the sign, and now and then on party nights (title.js#raceLogo).
+ * Built for the compositor: ONE SVG PER LETTER holding that letter's blaze (its glow blurred once, faded in + out by the svg's own
+ * opacity) and one SVG for the HEAD — a white-hot dot + a tail of soft dots of gradient fill (no filter), moved by their transform
+ * along the tube (logoTrack). Same viewBox as logoSvg, laid over it.
+ */
+export function logoRaceSvg({ id = 'ndr', pad = 26, blur = 1, tail = 14 } = {}) {
+  const vb = `${-pad} ${-pad - 4} ${LOGO_W + pad * 2} ${LOGO_H + pad * 2 + 8}`;
+  const defs = `<filter id="${id}-b1" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${3.6 * blur}"/></filter>
+  <filter id="${id}-b2" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="${13 * blur}"/></filter>`;
+  const blaze = LETTERS.map((L, i) => `<svg class="nd-race nd-race-l" data-i="${i}" viewBox="${vb}" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+<defs>${defs.replaceAll(`${id}-b`, `${id}${i}-b`)}</defs>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(${L.x} 0)">
+  <path class="ndr-w" d="${L.d}" stroke-width="${TUBE + 20}" filter="url(#${id}${i}-b2)"/>
+  <path class="ndr-n" d="${L.d}" stroke-width="${TUBE + 6}" filter="url(#${id}${i}-b1)"/>
+  <path class="ndr-c" d="${L.d}" stroke-width="${TUBE * 0.62}"/>
+</g></svg>`).join('');
+  const dots = Array.from({ length: tail }, (_, k) => `<circle class="ndr-t" r="${(TUBE * (1.35 - 0.05 * k)).toFixed(2)}" fill="url(#${id}-tg)" opacity="0"/>`).reverse().join('');
+  const head = `<svg class="nd-race nd-race-h" viewBox="${vb}" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="${id}-hg"><stop offset="0" stop-color="#ffffff"/><stop offset="0.22" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.5" style="stop-color:var(--pcb,#ff5fb4);stop-opacity:0.45"/><stop offset="1" style="stop-color:var(--pc,#ff2e97);stop-opacity:0"/></radialGradient>
+  <radialGradient id="${id}-tg"><stop offset="0" stop-color="#fff4fa" stop-opacity="0.9"/><stop offset="0.35" style="stop-color:var(--pcb,#ff5fb4);stop-opacity:0.5"/><stop offset="1" style="stop-color:var(--pc,#ff2e97);stop-opacity:0"/></radialGradient>
+</defs>
+<g class="ndr-dots">${dots}<circle class="ndr-hd" r="${TUBE * 3.1}" fill="url(#${id}-hg)" opacity="0"/></g></svg>`;
+  return blaze + head;
+}
+/**
+ * The race's TRACK through the sign (logo units): N, its connector, E's main stroke, the connector, O (round from the electrode the
+ * connector reaches), the connector, N — [{ pts: [[x, y]…], len: [cumulative], letter (0..3) | -1 on a connector }]
+ */
+let TRACK = null;
+export function logoTrack() {
+  if (TRACK) return TRACK;
+  const seg = (pts, letter) => { const len = [0]; for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); return { pts, len, total: len[len.length - 1], letter }; };
+  const main = (L, rev = false) => { const p = flattenPath(L.d, 1, L.x, 0, 2)[0].pts; return rev ? p.slice().reverse() : p; };
+  const link = d => flattenPath(d, 1, 0, 0, 3)[0].pts;
+  TRACK = [seg(main(LETTERS[0]), 0), seg(link(LINKS[0]), -1), seg(main(LETTERS[1]), 1), seg(link(LINKS[1]), -1), seg(main(LETTERS[2], true), 2), seg(link(LINKS[2]), -1), seg(main(LETTERS[3]), 3)];
+  return TRACK;
+}
+
 // ---- PREMIUM layers (CITY 2.0): per letter, from its own path
 const BENDS = new Map();
 /** a letter's bends (where the tube turns hardest: the hot spots) and its open ends (the electrodes), in its own 0..64 box */
