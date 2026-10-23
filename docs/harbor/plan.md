@@ -23,7 +23,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | N4 | Neon Pass 4 — the neon in motion (racing party lights, the hard beat, sky beams, string lights, the wheel, fixes) ✅ | Opus 5.5 high | done |
 | N5 | Neon Pass 5 — Safari (WebKit) fix + testing, the real beat, party colours, the wheel showpiece, sign sizes, faster tests, panel fixes ✅ | Opus 5.5 high | done |
 | N6 | Neon Pass 6 — night touch-ups (flowing racing, soft beams, the wheel's glow + its backdrop, 3D outlines, ledge bands, icons removed, the lighthouse, the NEON logo race, the iOS beat) ✅ | Opus 5.5 high | done |
-| D | the Day Pass (the city by daylight, painted day signs, sunlit 3D skyline, sky, sun, water) ← NEXT | Opus 5.5 high | 90–120 min |
+| D | the Day Pass (the city by daylight, painted day signs, sunlit 3D skyline, sky, sun, water) ✅ | Opus 5.5 high | done |
+| R2 | ← NEXT FABLE READ-ONLY REVIEW #2 (after the Day Pass): a fresh-eyes audit of everything since Part 1 — code health + leftovers from the many passes, Safari / iPhone risks, performance, tests, docs vs reality, the plan vs what's built; FOCUS (the owner): the laptop perf check has failed every pass since Neon Pass 4 — is the party night really too costly, is the budget / the benchmark wrong for this laptop, or is it noise? Find out and recommend; a report only, then a cleanup prompt for what it finds | Fable | ~45–60 min |
+| DT | DAY TOUCH-UP + CLEANUP (the "DAY TOUCH-UP PASS" list: real clouds, stronger lit / shaded faces, windows, the blue-hour power-up, the wheel backdrop d + roof accent, floodlit buildings, billboard lamps) + the fixes R2 recommends now | Opus 5.5 high | 90–120 min |
 | M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
@@ -59,6 +61,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   on top, so the sign stays readable) and in front of the sun, moon and stars. Never over the dock or the corner buttons.
   The lanes stay only for depth (high = small + far, low = bigger + behind the taller roofs) and to keep events from
   colliding. The one planned exception: the barnstormer threading THROUGH the letters (6b). Sky messages dim the sign.
+  THE THREE DEPTH RULES (the owner, confirmed): (1) EVERYDAY SKY (planes, contrails, helicopters, birds, bats, balloons,
+  UFOs, meteors, satellites) — the whole sky, BEHIND the corner buttons, the NEON logo + tagline and the taller buildings,
+  IN FRONT of the moon, sun and stars; (2) MESSAGES (the drone show, skywriting, skytyping, the banner plane) — IN FRONT of
+  the logo, which dims / the tagline fades while they fly (the banner under SPEAKEASY through the tagline's band); (3) THE
+  BARNSTORMER — THROUGH the letters.
 - **The beat must be felt (the owner):** anything that pulses to the music pulses HARD — a fast attack to a clearly brighter
   peak (a big swing in brightness + glow, not a few percent), then a quick decay, harder on downbeats / drops — obvious on an
   iPhone at a glance; still never full-screen flashing or hard on/off across large areas.
@@ -184,6 +191,29 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - BUILD ORDER NOW (Oct 22): the Balboni rename → THE PREVIEW PANEL (the owner's test remote: JUST ME / EVERYONE ON CITY 2,
   admin-only via /api/admin, a server-written city2/live node — the seed of Part 13's CITY CONTROL, which later adds the PIN,
   the confirm tap and MY ROOM once City 2.0 is the real city) → Neon Pass 4 → the Day Pass → City 2.0 music → 6b.
+- DAY TOUCH-UP PASS (after the Day Pass; notes so far): (1) the CLOUDS look like cartoon bubbles in rows with flat bottoms —
+  real varied cumulus, soft edges, real shading; (2) the sunlit vs shaded sides too subtle at phone size — more contrast so
+  buildings read as solid 3D; (3) windows still grid-like from a distance; (4) THE POWER-UP WAITS FOR THE BLUE HOUR (the
+  owner): golden hour = pure sunlight (warm facades, gold glass, long shadows), NO building neon; only a FEW warm windows
+  come on (~5–10 %, first on the shaded sides, the sunlit faces show gold reflections instead); at sunset the city powers
+  up in a staggered ~30-min wave through the blue hour — more windows, the signs flicker on, the outlines cluster by
+  cluster — fully lit against a deep-blue sky; the NEON logo keeps its own timing; party nights the same power-up first;
+  + the owner's iPhone notes on the Day Pass.
+  (5) DECIDED (Oct 22): THE WHEEL BACKDROP = d (floodlit stone) + a NEON ROOF ACCENT on that building (a thin Deco roofline,
+  calm, never brighter than the wheel); remove a / b / c. FLOODLIGHTING ELSEWHERE — the owner hands the picks to us:
+  reuse it around the city for depth: uplit facades on a few chosen landmark / mid-distance buildings (not every one), so
+  the skyline reads in layers. Night + it switches on as part of the blue-hour power-up; NOT by day (the sun's lit / shaded
+  faces do that job in the morning and golden hour). Party nights may tint the floodlights.
+  (5b) The owner's iPhone check (Oct 22): buildings now read solid + 3D ("more polish passes needed"); clouds need a lot
+  of work; party night 60 fps, work 1.6 / 2.0 ms but 4–7 % slow (was 0–3 % before the Day Pass — R2 looks at why). At
+  night the DOUBLE AGENT billboard (left, under BLUFF) reads as a dull grey board — its night face must glow like the others.
+  (6) BILLBOARD LAMPS (the owner): every billboard / painted ad gets 1920s gooseneck lamps on arms over its top edge —
+  the layout: TWO lamps on each side of the logo at top centre (four per board, the logo between them, the word below),
+  warm old-school incandescent tone (~2700 K amber-gold),
+  visible as hardware all day. They switch ON at late golden hour (the first thing in the power-up, a warm pool of light
+  down the poster, before the windows and neon) and in the morning from dawn until a little after sunrise; off at midday
+  (sunlight). At NIGHT they drop to a soft, dim wash once the neon is fully on (never competing with the neon; judge night
+  side by side with / without — if they still distract, switch them off when the neon is up). Same lamps Part 7's ghost ad uses.
 - CITY SOUNDS — THE HUNT LIST (the owner collects real recordings; CC0 / royalty-free, e.g. Freesound CC0, Sonniss GDC bundles;
   WAV 44.1 kHz; the builder trims + levels them like the neon set). The city NEVER goes quiet at night — it gets naturally
   quieter because it's less busy (fewer cars, people, boats; the hourly bell still rings, just sounding over a calmer city).
@@ -339,6 +369,26 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   City 1.0's "looked really good"): drop 6a's aurora art (moon.js / s.auroraArt) and use City 1.0's aurora (district/fx.js
   #aurora) on the Harbor — re-fitted to the Harbor's sky (the whole sky, behind the NEON sign), smooth at 60 fps, with its
   soft reflection in the harbor water as the one addition. Keep 6a's timing (~2 nights a month + Kp ≥ 7).
+- 6b section 0 — SPLIT CORNERS ON THE TITLE + LOBBY (the owner): the MENU button moves to the TOP-LEFT corner and the MUSIC
+  button stays TOP-RIGHT, framing the NEON sign symmetrically — on the title screen and the lobby only (the TEST pill moves
+  out of the way, e.g. below the menu); the games keep both on the right for now (Menus 2.0 decides per game).
+- 6b section 0 — THE SIGN UP A LITTLE + SMALLER CORNER BUTTONS (the owner): raise the NEON sign (+ SPEAKEASY + the tagline)
+  ~20–30 pt so the city gets more sky (never into the status bar / Dynamic Island; the N may sit level with the corner buttons
+  — it already does). Shrink the MENU + MUSIC corner buttons a little EVERYWHERE (title, lobby, every game, THE BOARD): the
+  visible circle ~15–20 % smaller, but the TAP AREA stays ≥ 44 pt (the ground rule — invisible padding). Re-fit everything
+  that hangs off them (the games' header padding-right, the +10 / +58 offsets, the chat badge, the full-width games' pinned
+  columns); THE BANNER PLANE keeps its full size (plane, banner, lettering — never shrunk): its path moves to just under
+  SPEAKEASY, through the tagline's band — the tagline ("YOUR FRIENDS ARE ALREADY INSIDE.") fades out softly as the plane
+  arrives and fades back after it has gone (like the sign dimming for sky messages); the banner stays tappable, clear of
+  the moon's disc when it can. Then re-fit the sun / moon arch, the drone + sky-
+  message layout and the lanes once. Check every phone size + a couple of games.
+- 6b section 0 — ROSIE'S TURN, QUICK FIX (the owner: when the big paddle steamer turns around it looks super weird — a flat
+  2D picture flipping / squashing): until she's rebuilt, she turns OUT OF SIGHT — behind the pier, the lighthouse's
+  breakwater or past the screen edge — never on open water in view.
+- PART 8 — ROSIE (and every boat) AS A REAL 3D MODEL in the Harbor's own 3D camera, like the buildings: hull, paddle
+  wheels, decks, cabins, funnels — so she turns naturally on the water (bow, three-quarter, side views all true), her wake
+  curving with the turn, her lights / bulbs on the model (and they CHASE on party nights — the Part 10 note); the water
+  taxi and the other boats the same — and THE PARTY YACHT (Part 10) is built as a 3D model from the start (the owner).
 - 6b section 0 — THE GEESE MORE REAL (the owner): a V is never perfect — one or two stragglers trail behind with a gap, flapping
   a little harder to catch up; arms of uneven length, birds shifting places, the odd one dropping back now and then.
 - 6b section 0 — THE MOON REDONE (the owner: "the craters look off"): today it reads as a ball with round dark spots. A real
