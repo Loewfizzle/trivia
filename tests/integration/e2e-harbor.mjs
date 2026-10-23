@@ -421,14 +421,15 @@ G('neon', async () => {
     // (NEON PASS 5: 4 named + 6 icons — the small icon left of the wheel and PAR's narrow name are gone; the billboard advertises a
     // game with no sign tonight, the nightly shuffle rotates the rest)
     // (NEON PASS 6, the owner: the tiny floating icons are gone — 4 named signs + the billboard a fifth game)
-    ok(new Set(games).size === 4 && h.neon.signs.filter(s => s.kind === 'named').length === 4 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
-      `SIGNS: 4 named games in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')}; stacked roof signs + the blade), no icons, the billboard a fifth (${bb}), every sign lit at night`);
+    // (DT1: the left roof slot is gone — 3 named signs: the blade + the two roof signs; the billboard a fourth game)
+    ok(new Set(games).size === 3 && h.neon.signs.filter(s => s.kind === 'named').length === 3 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
+      `SIGNS: 3 named games in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')}; stacked roof signs + the blade), no icons, the billboard a fourth (${bb}), every sign lit at night`);
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
     const sg = h.neon.signs.find(s => s.game), hit = await ev(N.page, `window.__district.hit(${sg.rect.x + sg.rect.w / 2}, ${sg.rect.y + sg.rect.h / 2})`);
     ok(hit && hit.kind === 'sign' && hit.id === sg.game, `A TAP ON A SIGN: ${sg.id} → ${hit && hit.kind} ${hit && hit.id} (its HOW TO PLAY)`);
-    const sigs = await ev(N.page, '(window.__district.scene().signPower || []).length');
-    ok(sigs === h.neon.items, `THE NEON PLAN: one power state per sign + outline (${sigs} of ${h.neon.items})`);
+    // (DT1 — THE BLUE-HOUR POWER-UP: the Harbor's neon follows the darkness's stagger, not the title's plan — at night all of it)
+    ok(h.powerUp && h.powerUp.on === h.powerUp.of && h.power === 1, `THE POWER-UP at night: every light on (${h.powerUp && h.powerUp.on} of ${h.powerUp && h.powerUp.of}, tonight's sweep ${h.powerUp && h.powerUp.sweep})`);
     const scroll = await ev(N.page, "(() => { const hb = window.__district.harbor(); const okk = hb.spell('HAPPY BIRTHDAY SAMANTHA', { style: 'scroll' }); return okk && window.__district.harbor().windows.spelling; })()");
     ok(scroll && scroll.style === 'scroll' && scroll.towers[0] === 'wordA', `THE SCROLL: a long message tickers across ${scroll && scroll.towers}`);
     await ev(N.page, "window.__district.harbor().moment('flash', { game: 'pulse' }), window.__district.harbor().billboard('bb-left', { game: 'rum' })");
@@ -439,6 +440,20 @@ G('neon', async () => {
     if (SHOTS) await N.page.screenshot({ path: `${OUT}part3-neon-390x844.png` });
     void sc;
     await N.ctx.close();
+  }
+  // DT1 — THE BLUE-HOUR POWER-UP: late golden hour = sunlight (no building neon, the billboard's lamps the first light, a few
+  // windows); mid blue hour = some lit, some still dark (never all at once); the sign + the billboard on the darkness's stagger
+  { const out = [];
+    for (const [when, label] of [['2026-10-22T18:30', 'golden'], ['2026-10-22T19:04', 'blue']]) {
+      const P = await open({ slot: `hp${label}`, qs: `when=${when}${GR}` });
+      await harborUp(P.page);
+      await waitFor(P.page, '(() => { const n = window.__district.harbor().neon; return n.items > 20 && n.built >= n.items && !n.queued; })()', 'the neon built', 15000);
+      out.push({ label, h: await ev(P.page, '(() => { const h = window.__district.harbor(); return { pu: h.powerUp, lamps: h.lamps, power: h.power, share: h.windows.share, dark: h.dark }; })()') });
+      await P.ctx.close();
+    }
+    const [g, b] = out.map(o => o.h);
+    ok(g.pu && g.pu.on <= 1 && g.lamps > 0.5 && g.power === 0 && g.share > 0 && g.share < 0.2 && b.pu.on > 2 && b.pu.on < b.pu.of && b.power > 0.2 && b.power < 0.9,
+      `THE POWER-UP: golden hour ${g.pu && g.pu.on} lit (the billboard's lamps ${g.lamps}), ${Math.round(g.share * 100)} % of the windows; mid blue hour ${b.pu && b.pu.on} of ${b.pu && b.pu.of} lit (power ${b.power}), the rest still to come`);
   }
   { const D = await open({ slot: 'h9', qs: `when=2026-10-21T13:00${GR}` });
     await harborUp(D.page);

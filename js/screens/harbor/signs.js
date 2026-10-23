@@ -12,8 +12,14 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 
 /** each game's sign colour (its accent; the same as the title's game tiles) */
 export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
-/** the name a sign spells for a game (the blade word; NEON PAR keeps its space) */
-export const signName = g => (bladeWord(g) === 'NEONPAR' ? 'NEON PAR' : bladeWord(g));
+/**
+ * THE NAME A SIGN SPELLS (DT1 — the owner: "never a shortened name anywhere"): the game's city name, whole — the two-word ones
+ * with both words (HIGH STAKES, DOUBLE AGENT, NEON PAR: never "STAKES" or "AGENT"); the others their one-word sign name (the
+ * marks' blade word: SIGNAL, CIPHER, BLUFF, PRISM — the city's names the owner lists as one-word). A new game without a mark:
+ * its name, spaces kept. Where it may hang: core/harbor-neon.js#fitsSpot (the slot rule).
+ */
+export const SIGN_NAMES = Object.freeze({ stakes: 'HIGH STAKES', agent: 'DOUBLE AGENT', golf: 'NEON PAR' });
+export const signName = g => SIGN_NAMES[g.id] || (MARKS[g.id] ? bladeWord(g) : String(g.name || g.id).toUpperCase().replace(/[^A-Z ]/g, '').replace(/\s+/g, ' ').trim());
 const accOf = g => hexRgb(SIGN_ACC[g.id] || (markFor(g).tubes[0] || {}).col || '#9fd8ff');
 const ICE = [214, 240, 255];
 
@@ -164,12 +170,13 @@ export function buildSign(spot, game, ctx) {
       const bl = bladeLayout(R, [...text.replace(/ /g, '')].length);
       panel = { ...bl.panel, r: Math.min(bl.panel.w, bl.panel.h) * 0.1, frame: { x: R.x, y: R.y, w: R.w, h: R.h, r: Math.min(R.w, R.h) * 0.14 } };
       const L2 = lettersCol(text.replace(/ /g, ''), bl.box.x, bl.box.y, bl.box.w, bl.box.h, { fill: bl.fill, wide: bl.wide });
-      tw = Math.max(0.7, Math.min(1.55, L2.lh * 0.14));
-      parts.push({ tubes: L2.polys, col: mix(col, [255, 255, 255], 0.12), w: tw, hot: true, boxes: L2.boxes });
+      // (DT1 — the owner: "a little bolder / brighter, it's hard to read"): thicker tubes, a whiter core colour, a touch more glow
+      tw = Math.max(0.85, Math.min(1.85, L2.lh * 0.17));
+      parts.push({ tubes: L2.polys, col: mix(col, [255, 255, 255], 0.22), w: tw, hot: true, boxes: L2.boxes });
       bulbs = [];
       const per = roundRectPts(R.x + bl.ring, R.y + bl.ring, R.w - bl.ring * 2, R.h - bl.ring * 2, Math.min(R.w, R.h) * 0.12);
       let acc = 0;
-      for (let i = 1; i < per.length; i++) { const [ax, ay] = per[i - 1], [bx, by] = per[i], d = Math.hypot(bx - ax, by - ay); for (let t = 0; t < d; t += 0.5) { acc += 0.5; if (acc >= 3.6 * k) { acc = 0; bulbs.push([ax + (bx - ax) * t / d, ay + (by - ay) * t / d]); } } }
+      for (let i = 1; i < per.length; i++) { const [ax, ay] = per[i - 1], [bx, by] = per[i], d = Math.hypot(bx - ax, by - ay); for (let t = 0; t < d; t += 0.5) { acc += 0.5; if (acc >= 4.1 * k) { acc = 0; bulbs.push([ax + (bx - ax) * t / d, ay + (by - ay) * t / d]); } } }
     } else {
     const pad = Math.min(R.w, R.h) * 0.16;
     border = { pts: roundRectPts(R.x + pad * 0.45, R.y + pad * 0.45, R.w - pad * 0.9, R.h - pad * 0.9, Math.min(R.w, R.h) * 0.1), col: spot.bulbs ? [255, 236, 214] : mix(col, ICE, 0.55) };
@@ -180,6 +187,16 @@ export function buildSign(spot, game, ctx) {
       const L2 = lettersCol(text.replace(/ /g, ' '), R.x + pad, R.y + pad + (markH ? markH + pad * 0.6 : 0), R.w - pad * 2, R.h - pad * 2 - (markH ? markH + pad * 0.6 : 0));
       tw = Math.max(0.55, Math.min(1.25, L2.lh * 0.13));
       parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
+    } else if (spot.stack && text.includes(' ')) {
+      // DT1 — A TWO-WORD NAME ON A ROOF SIGN (the slot rule): the FULL name stacked on two lines — HIGH / STAKES — both lines the
+      // same letter height (a sign shop's), centred, filling the cabinet; no mark (it would shrink the letters under the glance test)
+      const px = Math.max(1.6, R.h * 0.06), py = Math.max(1.4, R.h * 0.05), gp = R.h * 0.05, rh = (R.h - py * 2 - gp) / 2;
+      const [w1, ...more] = text.split(' '), w2 = more.join(' ');
+      const lh = Math.min(lettersRow(w1, R.x + px, R.y + py, R.w - px * 2, rh).lh, lettersRow(w2, R.x + px, R.y + py + rh + gp, R.w - px * 2, rh).lh);
+      const A = lettersRow(w1, R.x + px, R.y + py + (rh - lh) / 2, R.w - px * 2, lh), B = lettersRow(w2, R.x + px, R.y + py + rh + gp + (rh - lh) / 2, R.w - px * 2, lh);
+      tw = tubeWidthFor(lh);
+      parts.push({ tubes: [...A.polys, ...B.polys], col, w: tw, boxes: [...A.boxes, ...B.boxes], lines: 2 });
+      border = { pts: roundRectPts(R.x + 0.55, R.y + 0.55, R.w - 1.1, R.h - 1.1, Math.min(R.w, R.h) * 0.1), col: mix(col, ICE, 0.55) };
     } else if (spot.stack) {
       // NEON PASS 5 — A ROOF SIGN, STACKED (the owner: the names were too small for the glance test): the game's mark centred on
       // top, the NAME across the cabinet's whole width under it — ≥ 10 pt at 390 wide (tests/harbor.test.mjs), never clipped
@@ -241,37 +258,58 @@ export function cabinetCut(L, group, meta = null, hung = null) {
 }
 
 // ------------------------------------------------------------------ the housing (per look)
-/** a roof sign's steel frame (screen pt): fr = { roofY, legs: [x0, x1], beacon: [x, y] } */
-function roofFrame(x, sg, fr, day, sd) {
-  const R = sg.rect, gy = R.y + R.h, foot = fr.roofY, k = Math.max(0.5, R.h / 18);
-  const steel = mix([20, 16, 28], [96, 84, 78], day), lit = mix([34, 28, 44], [168, 150, 128], day), dark = mix([10, 8, 16], [52, 44, 44], day);
-  const [l0, l1] = fr.legs;
-  // the girder under the cabinet (a little wider than it), its shadow side
-  x.fillStyle = rgba(steel); x.fillRect(R.x - 0.8 * k, gy - 0.2, R.w + 1.6 * k, 1.1 * k);
-  x.fillStyle = rgba(dark); x.fillRect(R.x - 0.8 * k, gy + 0.9 * k - 0.2, R.w + 1.6 * k, 0.35 * k);
-  // the legs: lattice columns (two rails + zigzag lacing) from the roof to the girder, raking out to the cabinet's ends
-  const tops = [R.x + R.w * 0.1, R.x + R.w * 0.9];
-  x.lineCap = 'butt';
+/**
+ * A ROOF SIGN'S STEEL (DT1 — the owner: "visible steel lattice frames + a catwalk with a thin railing underneath, so their size reads
+ * as deliberate"): the frame's members as strokes (screen pt) — the girder under the cabinet, two LATTICE LEGS (two rails + zigzag
+ * lacing) raking from the roof's edges, X braces between them, the CATWALK (a plank deck a little below the cabinet, past both
+ * ends) with its RAILING (posts, a top + a mid rail) up to the cabinet's foot, the beacon's post. style(kind) → [colour, width]
+ * for 'main' | 'lit' | 'lace' | 'deck' | 'rail' (by day the steel in the sun; at night the sign's own light on it: frameLight).
+ */
+export function frameGeom(x, R, fr, sd, style) {
+  const gy = R.y + R.h, foot = Math.max(gy + 3, fr.roofY), k = Math.max(0.5, R.h / 18), span = foot - gy;
+  const [l0, l1] = fr.legs, tops = [R.x + R.w * 0.1, R.x + R.w * 0.9];
+  const deckY = gy + Math.min(3 * k, span * 0.42), railTop = gy + 0.35 * k;
+  const line = (kind, fn) => { const [c, w] = style(kind); if (!c) return; x.strokeStyle = c; x.lineWidth = w; x.beginPath(); fn(); x.stroke(); };
+  x.lineCap = 'butt'; x.lineJoin = 'miter';
+  // the girder under the cabinet (a little wider than it)
+  line('main', () => { x.moveTo(R.x - 0.8 * k, gy + 0.45 * k); x.lineTo(R.x + R.w + 0.8 * k, gy + 0.45 * k); });
+  // the lattice legs: two rails each, from the roof's edge up to the girder, raking out to the cabinet's ends, + the zigzag lacing
   [l0, l1].forEach((lx, i) => {
-    const tx = tops[i], cw = 1.3 * k;
-    x.strokeStyle = rgba(i === (sd > 0 ? 1 : 0) ? lit : steel); x.lineWidth = Math.max(0.35, 0.32 * k);
-    x.beginPath(); x.moveTo(lx - cw / 2, foot); x.lineTo(tx - cw / 2, gy + 0.8 * k); x.moveTo(lx + cw / 2, foot); x.lineTo(tx + cw / 2, gy + 0.8 * k); x.stroke();
-    x.lineWidth = Math.max(0.25, 0.2 * k); x.beginPath();
-    const n = Math.max(3, Math.round((foot - gy) / (1.6 * k)));
-    for (let j = 0; j < n; j++) { const a = j / n, b = (j + 1) / n, xa = lx + (tx - lx) * (1 - a), ya = foot + (gy + 0.8 * k - foot) * a, xb = lx + (tx - lx) * (1 - b), yb = foot + (gy + 0.8 * k - foot) * b; x.moveTo(xa + (j % 2 ? cw : -cw) / 2, ya); x.lineTo(xb + (j % 2 ? -cw : cw) / 2, yb); }
-    x.stroke();
+    const tx = tops[i], cw = 1.5 * k, side = i === (sd > 0 ? 1 : 0) ? 'lit' : 'main';
+    line(side, () => { x.moveTo(lx - cw / 2, foot); x.lineTo(tx - cw / 2, gy + 0.9 * k); x.moveTo(lx + cw / 2, foot); x.lineTo(tx + cw / 2, gy + 0.9 * k); });
+    const n = Math.max(3, Math.round((foot - gy) / (1.5 * k)));
+    line('lace', () => { for (let j = 0; j < n; j++) { const a = j / n, b = (j + 1) / n, xa = lx + (tx - lx) * a, ya = foot + (gy + 0.9 * k - foot) * a, xb = lx + (tx - lx) * b, yb = foot + (gy + 0.9 * k - foot) * b; x.moveTo(xa + (j % 2 ? cw : -cw) / 2, ya); x.lineTo(xb + (j % 2 ? -cw : cw) / 2, yb); } });
   });
-  // the X braces between the legs, the catwalk rail just under the girder
-  x.strokeStyle = rgba(steel, 0.85); x.lineWidth = Math.max(0.25, 0.22 * k);
-  const mY = (foot + gy) / 2;
-  x.beginPath(); x.moveTo(l0, foot - 0.6); x.lineTo((tops[1] + l1) / 2, mY); x.moveTo(l1, foot - 0.6); x.lineTo((tops[0] + l0) / 2, mY); x.stroke();
-  x.strokeStyle = rgba(lit, 0.8); x.lineWidth = Math.max(0.25, 0.18 * k);
-  x.beginPath(); x.moveTo(R.x + 1, gy + 2.2 * k); x.lineTo(R.x + R.w - 1, gy + 2.2 * k); for (let px = R.x + 2; px < R.x + R.w - 1; px += 3.2 * k) { x.moveTo(px, gy + 1.1 * k); x.lineTo(px, gy + 2.2 * k); } x.stroke();
-  // the beacon's post on top of the cabinet (+ its little cage)
-  const [bx, by] = fr.beacon;
-  x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.35, 0.36 * k);
-  x.beginPath(); x.moveTo(bx, R.y); x.lineTo(bx, by + 0.6 * k); x.stroke();
-  x.fillStyle = rgba(dark); x.beginPath(); x.arc(bx, by + 0.4 * k, 0.75 * k, 0, Math.PI * 2); x.fill();
+  // the X braces between the legs
+  const mY = (foot + deckY) / 2;
+  line('lace', () => { x.moveTo(l0, foot - 0.4); x.lineTo((tops[1] + l1) / 2, mY); x.moveTo(l1, foot - 0.4); x.lineTo((tops[0] + l0) / 2, mY); });
+  // THE CATWALK: the deck (planks) out past both ends, the railing's posts + rails from the deck up to the cabinet's foot
+  const d0 = R.x - 1.6 * k, d1 = R.x + R.w + 1.6 * k;
+  line('deck', () => { x.moveTo(d0, deckY); x.lineTo(d1, deckY); });
+  line('rail', () => {
+    x.moveTo(d0, railTop); x.lineTo(d1, railTop);
+    x.moveTo(d0, (railTop + deckY) / 2); x.lineTo(d1, (railTop + deckY) / 2);
+    for (let px = d0; px <= d1 + 0.01; px += Math.max(2.2, 3 * k)) { x.moveTo(px, railTop); x.lineTo(px, deckY); }
+  });
+  // the beacon's post on top of the cabinet
+  if (fr.beacon) { const [bx, by] = fr.beacon; line('main', () => { x.moveTo(bx, R.y); x.lineTo(bx, by + 0.6 * k); }); }
+  return { deckY, foot, k };
+}
+/** a roof sign's steel frame (screen pt), baked with the housing: fr = { roofY, legs: [x0, x1], beacon: [x, y] } */
+function roofFrame(x, sg, fr, day, sd) {
+  const R = sg.rect, k = Math.max(0.5, R.h / 18);
+  // (DT1: a touch lighter at night than the old near-black, so the lattice reads as a silhouette against the night sky's glow)
+  const steel = mix([30, 26, 40], [96, 84, 78], day), lit = mix([44, 38, 54], [176, 158, 134], day), lace = mix([26, 22, 36], [84, 74, 70], day);
+  const g = frameGeom(x, R, fr, sd, kind => kind === 'main' ? [rgba(steel), Math.max(0.5, 0.46 * k)] : kind === 'lit' ? [rgba(lit), Math.max(0.5, 0.46 * k)] : kind === 'lace' ? [rgba(lace, 0.95), Math.max(0.3, 0.24 * k)] : kind === 'deck' ? [rgba(steel), Math.max(0.6, 0.62 * k)] : [rgba(mix(steel, [200, 190, 170], 0.15 * day), 0.95), Math.max(0.25, 0.17 * k)]);
+  // the deck's sunlit top edge (day) + the beacon's cage
+  if (day > 0.05) { x.strokeStyle = rgba([255, 246, 222], 0.5 * day); x.lineWidth = Math.max(0.2, 0.14 * k); x.beginPath(); x.moveTo(R.x - 1.6 * k, g.deckY - 0.3 * k); x.lineTo(R.x + R.w + 1.6 * k, g.deckY - 0.3 * k); x.stroke(); }
+  if (fr.beacon) { const [bx, by] = fr.beacon; x.fillStyle = rgba(mix([10, 8, 16], [52, 44, 44], day)); x.beginPath(); x.arc(bx, by + 0.4 * k, 0.75 * k, 0, Math.PI * 2); x.fill(); }
+}
+/** a roof sign's frame in its own light (night, additive — neon.js draws it with the sign's power): the steel catching the colour */
+export function frameLight(x, sg, col) {
+  if (!sg.frame) return;
+  const R = sg.rect, k = Math.max(0.5, R.h / 18), c = mix(col, [255, 255, 255], 0.25);
+  frameGeom(x, R, sg.frame, 0, kind => kind === 'main' || kind === 'lit' ? [rgba(c, 0.5), Math.max(0.5, 0.46 * k)] : kind === 'lace' ? [rgba(c, 0.32), Math.max(0.3, 0.24 * k)] : kind === 'deck' ? [rgba(c, 0.62), Math.max(0.6, 0.62 * k)] : [rgba(c, 0.5), Math.max(0.25, 0.17 * k)]);
 }
 /** the housing drawn straight into a context (the facade bake: the signs' cabinets are static per look) */
 export function drawHousing(x, sg, T, ctx) {
@@ -332,7 +370,8 @@ export function drawHousing(x, sg, T, ctx) {
       if (day > 0.05) { x.fillStyle = `rgba(255,250,230,${0.25 * day})`; x.fillRect(R.x + R.w * 0.04, R.y + R.h * 0.52 - rh / 2, R.w * 0.92, Math.max(0.3, rh * 0.25)); }
     }
     // the bulbs' sockets (the game blade)
-    if (sg.bulbs) { for (const [bx, by] of sg.bulbs) { x.fillStyle = rgba(mix([30, 24, 30], [230, 220, 200], day)); x.beginPath(); x.arc(bx, by, 0.55, 0, Math.PI * 2); x.fill(); } }
+    // (DT1: bigger bulbs — a socket ring + the glass bulb, the marquee reads as hardware by day)
+    if (sg.bulbs) { for (const [bx, by] of sg.bulbs) { x.fillStyle = rgba(mix([22, 18, 24], [150, 132, 104], day)); x.beginPath(); x.arc(bx, by, 0.95, 0, Math.PI * 2); x.fill(); x.fillStyle = rgba(mix([44, 36, 40], [244, 236, 214], day)); x.beginPath(); x.arc(bx, by, 0.7, 0, Math.PI * 2); x.fill(); } }
     // the glass tubes, unlit (clear glass by day; dark at night)
     // (on a painted board by day the glass is a faint pale line over the paint — onPaint)
     const onPaint = !!sg.panel;
@@ -364,7 +403,7 @@ function litSprites(sg, dpr) {
     ms.role = 'mark'; out.push(ms);
   }
   // (the game blade's letters: a tighter glow — six big letters stacked close must not melt into one bar of light)
-  for (const p of text) if (p.t.length) { const sp = p.hot ? sprite(bbox(p.t), Math.max(2.6, p.w * 3.4) * 2.6, dpr, x => { drawLit(x, p.t, p.col, { w: p.w, glow: Math.max(2.6, p.w * 3.4), a: 1, dpr }); }) : one(p.t, p.col, p.w); sp.role = 'text'; sp.box = bbox(p.t); out.push(sp); }
+  for (const p of text) if (p.t.length) { const sp = p.hot ? sprite(bbox(p.t), Math.max(3, p.w * 3.9) * 2.6, dpr, x => { drawLit(x, p.t, p.col, { w: p.w, glow: Math.max(3, p.w * 3.9), a: 1, dpr }); }) : one(p.t, p.col, p.w); sp.role = 'text'; sp.box = bbox(p.t); out.push(sp); }
   return out;
 }
 
@@ -375,122 +414,170 @@ export function billboardContent(show, games) {
   if (g) { const acc = accOf(g); return { title: g.name, sub: g.tag || '', game: g, bg: mix(acc, [30, 18, 40], 0.78), ink: mix(acc, [255, 246, 226], 0.35), acc }; }
   return { title: (show && show.title) || 'NEON SPEAKEASY', sub: (show && show.sub) || 'YOUR FRIENDS ARE ALREADY INSIDE', game: null, bg: (show && show.bg) || [40, 22, 48], ink: (show && show.ink) || [255, 214, 120], acc: (show && show.acc) || [255, 46, 151] };
 }
-/** a billboard's sprites: day (painted, weathered, sunlit), night (lit by its gooseneck lamps), the lamps' light */
+/** THE GOOSENECK LAMPS' warm incandescent light (~2700 K amber-gold) */
+export const LAMP_C = [255, 196, 122];
+/**
+ * THE GOOSENECK LAMPS (DT1 — reusable: Part 7's ghost ad on the speakeasy's wall takes the same): where a board's lamps stand —
+ * FOUR over its top edge, TWO EACH SIDE of the game's mark at top centre (the mark between them, the name below). Each lamp: its
+ * conduit rising from behind the board, the gooseneck arching over the top edge, the shade hanging over the poster. → [{ x, y
+ * (the shade's mouth), top (the arm's peak), dir (which way it reaches) }]
+ */
+export function gooseneckLamps(R) {
+  const a = Math.max(4.2, Math.min(7.5, R.h * 0.15));
+  return [0.1, 0.27, 0.73, 0.9].map(f => { const dir = f < 0.5 ? 1 : -1; return { x: R.x + R.w * f + dir * a * 0.42, y: R.y - a * 0.34, top: R.y - a, x0: R.x + R.w * f, dir, a }; });
+}
+/** the lamps as hardware (any hour: by day in the sun, at night dark): the conduit, the gooseneck, the shade */
+export function drawGooseneck(x, lamps, day, sd = 0) {
+  const steel = mix([22, 20, 28], [70, 66, 62], day), shade = mix([34, 30, 38], [58, 86, 72], day), rim = mix([60, 52, 52], [208, 196, 168], day);
+  x.lineCap = 'round';
+  for (const l of lamps) {
+    const w = Math.max(0.45, l.a * 0.085);
+    x.strokeStyle = rgba(steel); x.lineWidth = w;
+    x.beginPath(); x.moveTo(l.x0, l.y + l.a * 0.9); x.lineTo(l.x0, l.top + l.a * 0.25); x.quadraticCurveTo(l.x0, l.top, l.x0 + l.dir * l.a * 0.3, l.top + l.a * 0.12); x.quadraticCurveTo(l.x, l.top + l.a * 0.2, l.x, l.y - l.a * 0.12); x.stroke();
+    // the shade: an enamelled dish, its mouth down at the poster (green enamel by day, dark at night), a bright rim
+    const sw = l.a * 0.36, sh = l.a * 0.22;
+    x.fillStyle = rgba(shade); x.beginPath(); x.moveTo(l.x - sw * 0.35, l.y - sh); x.lineTo(l.x + sw * 0.35, l.y - sh); x.lineTo(l.x + sw, l.y); x.lineTo(l.x - sw, l.y); x.closePath(); x.fill();
+    x.strokeStyle = rgba(rim, 0.8); x.lineWidth = Math.max(0.25, w * 0.55); x.beginPath(); x.moveTo(l.x - sw, l.y); x.lineTo(l.x + sw, l.y); x.stroke();
+    if (day > 0.05) { x.strokeStyle = rgba([255, 248, 230], 0.45 * day); x.beginPath(); x.moveTo(l.x + (sd > 0 ? 0.2 : -0.2) * sw, l.y - sh); x.lineTo(l.x + (sd > 0 ? 0.9 : -0.9) * sw, l.y - 0.2); x.stroke(); }
+  }
+}
+/** the lamps' LIGHT on the poster (a light map, 0..255 a channel, for multiply): a warm pool down the board under each lamp,
+ *  brightest at the top, over the night's dark ambient */
+export function lampLightMap(lx, R, lamps, ambient = [34, 28, 46]) {
+  lx.fillStyle = `rgb(${ambient})`; lx.fillRect(0, 0, R.w, R.h);
+  lx.globalCompositeOperation = 'lighter';
+  for (const l of lamps) {
+    const cx = l.x - R.x, g = lx.createRadialGradient(cx, -R.h * 0.06, 0, cx, -R.h * 0.06, R.h * 1.05);
+    g.addColorStop(0, 'rgba(255,214,160,0.95)'); g.addColorStop(0.3, 'rgba(250,190,128,0.62)'); g.addColorStop(0.7, 'rgba(200,140,92,0.22)'); g.addColorStop(1, 'rgba(160,100,70,0)');
+    lx.fillStyle = g; lx.fillRect(0, 0, R.w, R.h);
+  }
+  lx.globalCompositeOperation = 'source-over';
+}
+/** the lamps lit, over the poster (additive): each bulb's glow under its shade + a faint cone of light down onto the board */
+export function lampGlows(x, lamps, R, k = 1) {
+  x.save(); x.globalCompositeOperation = 'lighter';
+  for (const l of lamps) {
+    const cone = x.createLinearGradient(0, l.y, 0, R.y + R.h * 0.55);
+    cone.addColorStop(0, rgba(LAMP_C, 0.16 * k)); cone.addColorStop(1, rgba(LAMP_C, 0));
+    x.fillStyle = cone; x.beginPath(); x.moveTo(l.x - l.a * 0.3, l.y); x.lineTo(l.x + l.a * 0.3, l.y); x.lineTo(l.x + l.a * 1.5, R.y + R.h * 0.55); x.lineTo(l.x - l.a * 1.5, R.y + R.h * 0.55); x.closePath(); x.fill();
+    const g = x.createRadialGradient(l.x, l.y + l.a * 0.04, 0, l.x, l.y + l.a * 0.04, l.a * 0.75);
+    g.addColorStop(0, rgba([255, 244, 214], 1 * k)); g.addColorStop(0.3, rgba(LAMP_C, 0.55 * k)); g.addColorStop(1, rgba(LAMP_C, 0));
+    x.fillStyle = g; x.fillRect(l.x - l.a, l.y - l.a * 0.6, l.a * 2, l.a * 1.4);
+  }
+  x.restore();
+}
+/**
+ * A BILLBOARD (DT1 — the owner: "a proper 1920s painted billboard … BUILT, NOT FLOATING"): ONE POSTER by day and by night — the
+ * game's mark at top centre on a Deco sunburst, the FULL NAME big across the board under it (one line, a condensed sign-writer's
+ * hand; no tag line), in the game's enamel; a moulded frame; standing on the roof of the near block behind it (its roof lowered
+ * for it: core/harbor-layout.js#BILLBOARD) on a STEEL STRUCTURE — three A-frames, X braces, a CATWALK along its foot with a thin
+ * RAILING, a ladder (Part 8's billposter climbs it) — and FOUR GOOSENECK LAMPS over its top edge. By day the steel + the paint in
+ * the sun; at night the board is dark but where its lamps light it (nightS, drawn with the lamps' level: neon.js).
+ * → { id, spot, rect, content, dayDraw(x, T), nightS, lamps }
+ */
 export function buildBillboard(spot, content, ctx) {
-  const R = spot.rect, dpr = ctx.dpr;
-  // (the lamps keep their real size on a bigger board: an arm ~7 pt, a head ~4 pt — Part 4)
-  const LH = Math.min(R.h, 22);
-  const lamps = [0.18, 0.5, 0.82].map(f => ({ x: R.x + R.w * f, y: R.y - LH * 0.34 }));
-  const paint = x => {
-    // the board: the paper's ground, seams, the art
-    x.fillStyle = rgba(content.bg); x.fillRect(R.x, R.y, R.w, R.h);
-    const g = x.createLinearGradient(0, R.y, 0, R.y + R.h); g.addColorStop(0, 'rgba(255,255,255,0.08)'); g.addColorStop(1, 'rgba(0,0,0,0.16)'); x.fillStyle = g; x.fillRect(R.x, R.y, R.w, R.h);
-    // the paper's seams (under the paint: never a line through the lettering)
-    x.fillStyle = 'rgba(0,0,0,0.1)'; for (const f of [0.34, 0.67]) x.fillRect(R.x + R.w * f, R.y, 0.35, R.h);
-    // NEON PASS 5 (the owner: the game's name was small beside the icon, hard to read): the mark SMALL in the top-left corner, the
-    // NAME across the whole board under it, as big as the board allows (the condensed UI face: a long name still reads), one line
-    const ms = R.h * 0.3, mx = R.x + R.w * 0.045, my = R.y + R.h * 0.07;
-    if (content.game) {
-      const m = markFor(content.game), s = ms / 100;
-      x.save(); x.translate(mx, my); x.scale(s, s); x.lineCap = 'round'; x.lineJoin = 'round';
-      for (const t of m.tubes) { x.strokeStyle = t.col; x.lineWidth = 11; x.stroke(new Path2D(t.d)); }
-      x.restore();
-    }
-    // (beside the mark, small, the tag line only if it really reads — at least 6.5 pt: on a phone it doesn't, the name has the board)
-    const tx = R.x + R.w * 0.05, tw = R.w * 0.9;
-    const FONT = fs => `700 ${fs}px "Chakra Petch", Orbitron, sans-serif`;
-    const nameTop = content.game ? my + ms + R.h * 0.03 : R.y + R.h * 0.12, nameH = R.y + R.h * 0.95 - nameTop;
-    let fs = nameH * 1.25; x.font = FONT(fs);
-    while (fs > 3 && x.measureText(content.title).width > tw) { fs *= 0.95; x.font = FONT(fs); }
-    let fs2 = R.h * 0.15; const sw = R.x + R.w * 0.96 - (mx + ms + R.w * 0.04); x.font = `600 ${fs2}px "Chakra Petch", sans-serif`;
-    while (fs2 > 2 && x.measureText(content.sub).width > sw) { fs2 *= 0.92; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; }
-    const sub = !content.game && fs2 >= 6.5 && content.sub;
-    x.font = FONT(fs); x.fillStyle = rgba(content.ink); x.textBaseline = 'alphabetic';
-    x.fillText(content.title, tx + (tw - x.measureText(content.title).width) / 2, nameTop + (nameH + fs * 0.7) / 2);
-    if (sub) { x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; x.fillStyle = rgba(mix(content.ink, content.bg, 0.25)); x.fillText(content.sub, mx + ms + R.w * 0.04, my + ms * 0.72); }
-    // a peeled corner
-    x.fillStyle = 'rgba(232,224,206,0.7)'; x.beginPath(); x.moveTo(R.x + R.w, R.y + R.h); x.lineTo(R.x + R.w - R.h * 0.18, R.y + R.h); x.lineTo(R.x + R.w, R.y + R.h - R.h * 0.2); x.fill();
-  };
-  const frame = (x, day) => {
-    const steel = mix([20, 16, 26], [74, 66, 64], day);
-    // the legs + braces to the roof, the catwalk under the board, the frame
-    x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.5, R.h * 0.04);
-    const foot = Math.max(R.y + R.h + 3, ctx.roofY || R.y + R.h + 6);
-    x.beginPath(); for (const f of [0.12, 0.5, 0.88]) { x.moveTo(R.x + R.w * f, R.y + R.h); x.lineTo(R.x + R.w * f, foot); } x.moveTo(R.x + R.w * 0.12, R.y + R.h + 1); x.lineTo(R.x + R.w * 0.5, foot); x.moveTo(R.x + R.w * 0.88, R.y + R.h + 1); x.lineTo(R.x + R.w * 0.5, foot); x.stroke();
-    x.fillStyle = rgba(steel); x.fillRect(R.x - 1, R.y + R.h, R.w + 2, Math.max(0.6, R.h * 0.06));
-    x.fillRect(R.x - 1, R.y + R.h + R.h * 0.06 - 2.2, 0.4, 2.2); x.fillRect(R.x + R.w + 0.6, R.y + R.h + R.h * 0.06 - 2.2, 0.4, 2.2);
-    x.strokeStyle = rgba(mix([30, 24, 34], [120, 104, 88], day)); x.lineWidth = Math.max(0.5, R.h * 0.05); x.strokeRect(R.x, R.y, R.w, R.h);
-    // the gooseneck lamps: an arm curving out over the board, a shade pointing down at it
-    x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.45, R.h * 0.035);
-    for (const l of lamps) {
-      x.beginPath(); x.moveTo(l.x, R.y); x.quadraticCurveTo(l.x, l.y, l.x + LH * 0.12, l.y); x.stroke();
-      x.fillStyle = rgba(mix([24, 20, 30], [60, 70, 66], day)); x.beginPath(); x.moveTo(l.x + LH * 0.04, l.y - 0.4); x.lineTo(l.x + LH * 0.26, l.y + LH * 0.08); x.lineTo(l.x + LH * 0.02, l.y + LH * 0.1); x.fill();
-    }
-  };
-  const box = { x0: R.x - 2, y0: R.y - LH * 0.5, x1: R.x + R.w + 2, y1: Math.max(R.y + R.h + 4, ctx.roofY || 0) };
-  // THE DAY PASS — the board by day is a 1920s PAINTED POSTER: the game's enamel colours, a Deco sunburst behind its mark painted big,
-  // the NAME across the whole board under it (gold leaf / keyline + a drop shadow) — a bold image + a big word, no small text
+  const R = spot.rect, dpr = ctx.dpr, lamps = gooseneckLamps(R);
+  const gy = R.y + R.h, foot = Math.max(gy + 4, ctx.roofY || gy + 7), k = Math.max(0.6, R.h / 40);
+  const deckY = gy + 0.75 * k, railTop = gy - 2.2 * k;
+  const FONT = fs => `700 ${fs}px "Chakra Petch", Orbitron, sans-serif`;
+  const SQ = 0.8;                                               // (the name's condensed hand: 80 % width)
+  // THE POSTER (the same art by day + night; sd: the sun's side for the paint's shadows, 0 at night)
   const poster = (x, sd) => {
     const pt = dayPaint(content.game, content.acc);
     x.fillStyle = rgba(pt.face); x.fillRect(R.x, R.y, R.w, R.h);
-    const FONT = fs => `700 ${fs}px "Chakra Petch", Orbitron, sans-serif`, tw = R.w * 0.84;
-    let fs = R.h * 0.62; x.font = FONT(fs);
-    while (fs > 3 && x.measureText(content.title).width > tw) { fs *= 0.96; x.font = FONT(fs); }
-    const base = R.y + R.h * 0.9, capH = fs * 0.7, top = R.y + R.h * 0.07, imgB = base - capH - R.h * 0.08, ih = imgB - top;
-    // the sunburst: rays fanning up from behind the mark, a lighter tint of the board, clipped to the image's band
-    const cx = R.x + R.w / 2, cy = imgB + ih * 0.15;
+    // the name: as big as one line across 90 % of the board allows (condensed), its baseline clear of the catwalk's railing
+    const tw = R.w * 0.9;
+    let fs = R.h * 0.4; x.font = FONT(fs);
+    while (fs > 3 && x.measureText(content.title).width * SQ > tw) { fs *= 0.96; x.font = FONT(fs); }
+    const base = R.y + R.h * 0.86, capH = fs * 0.72, top = R.y + R.h * 0.07, imgB = base - capH - R.h * 0.07, ih = imgB - top;
+    // the sunburst behind the mark (rays fanning up from it), clipped to the image's band
+    const cx = R.x + R.w / 2, cy = imgB + ih * 0.12;
     x.save(); x.beginPath(); x.rect(R.x, R.y, R.w, imgB - R.y + 0.5); x.clip();
-    x.fillStyle = rgba(mix(pt.face, pt.light ? [255, 250, 236] : pt.edge, pt.light ? 0.5 : 0.22));
-    const n = 14, Rr = R.w * 0.8;
+    x.fillStyle = rgba(mix(pt.face, pt.light ? [255, 250, 236] : pt.edge, pt.light ? 0.5 : 0.24));
+    const n = 16, Rr = R.w * 0.8;
     for (let i = 0; i < n; i += 2) { const a0 = Math.PI + i * Math.PI / n, a1 = a0 + Math.PI / n; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a0) * Rr, cy + Math.sin(a0) * Rr); x.lineTo(cx + Math.cos(a1) * Rr, cy + Math.sin(a1) * Rr); x.fill(); }
     x.restore();
-    // a band under the image (the poster's rule line) in the edge colour
-    x.fillStyle = rgba(pt.edge, 0.9); x.fillRect(R.x + R.w * 0.04, imgB + R.h * 0.02, R.w * 0.92, Math.max(0.5, R.h * 0.025));
+    // the poster's rule line under the image, in the keyline colour
+    x.fillStyle = rgba(pt.edge, 0.9); x.fillRect(R.x + R.w * 0.05, imgB + R.h * 0.022, R.w * 0.9, Math.max(0.5, R.h * 0.024));
+    // the mark, big, at top centre (between the lamps): shadow → keyline → the colours
     if (content.game && ih > 4) {
-      const m = markFor(content.game), ms = ih * 0.96, s2 = ms / 100, mx = cx - ms / 2, my = top + (ih - ms) / 2;
-      const lw = 12;
+      const m = markFor(content.game), ms = Math.min(ih * 0.98, R.w * 0.3), s2 = ms / 100, mx = cx - ms / 2, my = top + (ih - ms) / 2, lw = 12;
       x.save(); x.translate(mx, my); x.scale(s2, s2); x.lineCap = 'round'; x.lineJoin = 'round';
       for (const t of m.tubes) { const p = new Path2D(t.d); x.save(); x.translate((sd > 0 ? -1 : 1) * 4, 5); x.strokeStyle = rgba(pt.shade, 0.45); x.lineWidth = lw + 9; x.stroke(p); x.restore(); }
       for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(pt.edge); x.lineWidth = lw + 7; x.stroke(p); }
       for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(mix(hexRgb(t.col), pt.ink, 0.45)); x.lineWidth = lw; x.stroke(p); }
       x.restore();
     }
-    // the name: shadow → keyline → the letters → the sun on their top
-    const nw = x.measureText(content.title).width, nx = R.x + (R.w - nw) / 2;
+    // the name: shadow → keyline → the letters → a lighter top edge (condensed: drawn in a squeezed frame)
+    x.save(); x.translate(cx, base); x.scale(SQ, 1);
+    const nw = x.measureText(content.title).width, nx = -nw / 2;
     x.lineJoin = 'round';
-    x.fillStyle = rgba(pt.shade, 0.5); x.fillText(content.title, nx + (sd > 0 ? -1 : 1) * fs * 0.05, base + fs * 0.06);
-    x.strokeStyle = rgba(pt.edge); x.lineWidth = Math.max(0.6, fs * 0.1); x.strokeText(content.title, nx, base);
-    x.fillStyle = rgba(pt.ink); x.fillText(content.title, nx, base);
-    x.save(); x.beginPath(); x.rect(R.x, base - capH, R.w, capH * 0.32); x.clip(); x.fillStyle = rgba(mix(pt.ink, [255, 252, 240], 0.35), 0.6); x.fillText(content.title, nx, base); x.restore();
-    // the paper: seams, a sun-faded top, a peeled corner
+    x.fillStyle = rgba(pt.shade, 0.5); x.fillText(content.title, nx + (sd > 0 ? -1 : 1) * fs * 0.06, fs * 0.06);
+    x.strokeStyle = rgba(pt.edge); x.lineWidth = Math.max(0.6, fs * 0.1); x.strokeText(content.title, nx, 0);
+    x.fillStyle = rgba(pt.ink); x.fillText(content.title, nx, 0);
+    x.beginPath(); x.rect(nx - 2, -capH, nw + 4, capH * 0.32); x.clip(); x.fillStyle = rgba(mix(pt.ink, [255, 252, 240], 0.35), 0.6); x.fillText(content.title, nx, 0);
+    x.restore();
+    // the paper: two seams, a little grime at the foot
     x.fillStyle = 'rgba(0,0,0,0.08)'; for (const f of [0.34, 0.67]) x.fillRect(R.x + R.w * f, R.y, 0.35, R.h);
-    const g = x.createLinearGradient(0, R.y, 0, R.y + R.h); g.addColorStop(0, 'rgba(255,248,230,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0.12)'); x.fillStyle = g; x.fillRect(R.x, R.y, R.w, R.h);
-    x.fillStyle = 'rgba(232,224,206,0.75)'; x.beginPath(); x.moveTo(R.x + R.w, R.y + R.h); x.lineTo(R.x + R.w - R.h * 0.18, R.y + R.h); x.lineTo(R.x + R.w, R.y + R.h - R.h * 0.2); x.fill();
+    const g = x.createLinearGradient(0, R.y, 0, gy); g.addColorStop(0, 'rgba(255,248,230,0.1)'); g.addColorStop(0.7, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.14)'); x.fillStyle = g; x.fillRect(R.x, R.y, R.w, R.h);
   };
-  // day: painted + weathered + the sun's shading
+  // THE STRUCTURE (screen pt): the moulding round the poster, the catwalk + its railing, three A-frames to the roof + X braces, a
+  // ladder; steel in the sun by day, near-black at night (cols: [steel, lit side, moulding])
+  const structure = (x, day, sd) => {
+    // (galvanised steel by day — lighter than the brick behind it, so the frame reads as structure; near-black at night)
+    const steel = mix([24, 20, 30], [126, 124, 118], day), lit = mix([36, 30, 42], [200, 196, 184], day), mould = mix([30, 24, 30], [134, 110, 84], day);
+    x.lineCap = 'butt';
+    // the A-frames: from the roof up to the deck, splayed; a tie across each; the X braces between them
+    const legs = [0.13, 0.5, 0.87].map(f => R.x + R.w * f), spread = Math.min(R.w * 0.07, (foot - deckY) * 0.8);
+    x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.5, 0.5 * k);
+    x.beginPath(); for (const lx of legs) { x.moveTo(lx - spread, foot); x.lineTo(lx, deckY); x.moveTo(lx + spread, foot); x.lineTo(lx, deckY); } x.stroke();
+    x.strokeStyle = rgba(lit, 0.9); x.lineWidth = Math.max(0.35, 0.3 * k);
+    x.beginPath(); for (const lx of legs) { const ty = (foot + deckY) / 2; x.moveTo(lx - spread / 2, ty); x.lineTo(lx + spread / 2, ty); } x.stroke();
+    x.strokeStyle = rgba(steel, 0.85); x.lineWidth = Math.max(0.3, 0.24 * k);
+    x.beginPath(); for (let i = 0; i < legs.length - 1; i++) { x.moveTo(legs[i], foot - 0.3); x.lineTo(legs[i + 1], deckY + 0.4); x.moveTo(legs[i + 1], foot - 0.3); x.lineTo(legs[i], deckY + 0.4); } x.stroke();
+    // the ladder up to the catwalk (right of the middle A-frame)
+    const lx0 = R.x + R.w * 0.7, lw = Math.max(1.4, 1.5 * k);
+    x.strokeStyle = rgba(lit, 0.9); x.lineWidth = Math.max(0.3, 0.22 * k);
+    x.beginPath(); x.moveTo(lx0, foot); x.lineTo(lx0, deckY); x.moveTo(lx0 + lw, foot); x.lineTo(lx0 + lw, deckY); for (let y = foot - 1.1 * k; y > deckY; y -= 1.1 * k) { x.moveTo(lx0, y); x.lineTo(lx0 + lw, y); } x.stroke();
+    // the moulding round the poster (a wood frame, its top catching the light)
+    x.strokeStyle = rgba(mould); x.lineWidth = Math.max(0.7, R.h * 0.04); x.strokeRect(R.x, R.y, R.w, R.h);
+    if (day > 0.05) { x.strokeStyle = rgba([255, 244, 220], 0.4 * day); x.lineWidth = Math.max(0.3, R.h * 0.012); x.beginPath(); x.moveTo(R.x, R.y - R.h * 0.01); x.lineTo(R.x + R.w, R.y - R.h * 0.01); x.stroke(); }
+    // THE CATWALK: the deck (planks) past both ends, the railing in front of the board's foot (posts, a top + a mid rail)
+    const d0 = R.x - 2 * k, d1 = R.x + R.w + 2 * k;
+    x.fillStyle = rgba(steel); x.fillRect(d0, deckY - 0.45 * k, d1 - d0, Math.max(0.7, 0.9 * k));
+    if (day > 0.05) { x.fillStyle = rgba([255, 244, 220], 0.45 * day); x.fillRect(d0, deckY - 0.45 * k, d1 - d0, Math.max(0.25, 0.22 * k)); }
+    x.strokeStyle = rgba(lit, 0.95); x.lineWidth = Math.max(0.25, 0.2 * k);
+    x.beginPath(); x.moveTo(d0, railTop); x.lineTo(d1, railTop); x.moveTo(d0, (railTop + deckY) / 2); x.lineTo(d1, (railTop + deckY) / 2);
+    for (let px = d0; px <= d1 + 0.01; px += Math.max(2.4, 3.2 * k)) { x.moveTo(px, railTop); x.lineTo(px, deckY); } x.stroke();
+    drawGooseneck(x, lamps, day, sd);
+  };
+  const box = { x0: R.x - 2.5 * k - 1, y0: Math.min(...lamps.map(l => l.top)) - 1.5, x1: R.x + R.w + 2.5 * k + 1, y1: foot + 1 };
+  // the baked board (per look): its shadow on the roof by day, the poster (in the sun by day; unlit + dark at night), weathering, the
+  // structure in the same sun + shade
   const dayDraw = (x, T) => {
-    const day = Math.min(1, T.day + 0.8 * T.gold);
-    if (day > 0.05) { x.fillStyle = `rgba(20,14,30,${0.25 * day})`; x.fillRect(R.x + 1.5, R.y + 2, R.w, R.h); }
-    // (the poster by day; the night's lamp-lit board under it, unchanged — the poster fades out with the day)
-    paint(x);
-    if (day > 0.02) { x.save(); x.globalAlpha = Math.min(1, day * 1.15); poster(x, T.sunDir || 0); x.restore(); }
-    // weathered by day (faded, streaks), dusk-dark at night (the unlit board)
-    x.fillStyle = `rgba(238,226,204,${0.12 * day})`; x.fillRect(R.x, R.y, R.w, R.h);
-    x.fillStyle = `rgba(90,56,40,${0.16 * day})`; for (let i = 0; i < 5; i++) x.fillRect(R.x + R.w * (0.08 + i * 0.2), R.y, Math.max(0.3, R.w * 0.01), R.h * (0.2 + 0.1 * (i % 3)));
-    if (T.night > 0.02) { x.fillStyle = `rgba(6,5,14,${0.86 * T.night})`; x.fillRect(R.x, R.y, R.w, R.h); }
-    frame(x, day);
+    const day = Math.min(1, T.day + 0.8 * T.gold), sd = T.sunDir || 0;
+    if (day > 0.05) { x.fillStyle = `rgba(20,14,30,${0.22 * day})`; x.fillRect(R.x + (sd > 0 ? -1.4 : 1.4), R.y + 1.8, R.w, R.h); }
+    poster(x, sd);
+    x.fillStyle = `rgba(238,226,204,${0.1 * day})`; x.fillRect(R.x, R.y, R.w, R.h);
+    x.fillStyle = `rgba(90,56,40,${0.14 * day})`; for (let i = 0; i < 5; i++) x.fillRect(R.x + R.w * (0.08 + i * 0.2), R.y, Math.max(0.3, R.w * 0.01), R.h * (0.16 + 0.08 * (i % 3)));
+    // (unlit, dusk-dark at night; the lamps light it: nightS)
+    const dk = Math.max(T.night, 1 - day) * 0.88;
+    if (dk > 0.02) { x.fillStyle = `rgba(6,5,14,${dk})`; x.fillRect(R.x, R.y, R.w, R.h); }
+    structure(x, day, sd);
   };
-  // night: the board as its three lamps light it — bright under each lamp, falling off to the edges — and the lamps' light
-  const nightS = sprite(box, 3, dpr, x => {
-    paint(x);
-    // the lamps' light on the paper: bright under each lamp (warm), falling off down the board and between the lamps
+  // the board in its lamps' light: the poster × the warm pools (brightest at the top, falling off down the board), the catwalk +
+  // railing catching the spill, the bulbs glowing under their shades (drawn over the dark board with the lamps' level)
+  const nightS = sprite(box, 2, dpr, x => {
+    poster(x, 0);
     const lightC = document.createElement('canvas'); lightC.width = Math.ceil(R.w * dpr); lightC.height = Math.ceil(R.h * dpr);
-    const lx = safeCtx(lightC); lx.scale(dpr, dpr); lx.fillStyle = 'rgb(46,38,52)'; lx.fillRect(0, 0, R.w, R.h); lx.globalCompositeOperation = 'lighter';
-    for (const l of lamps) { const cx = l.x - R.x + R.h * 0.15, g = lx.createRadialGradient(cx, 0, 0, cx, R.h * 0.25, R.h * 1.1); g.addColorStop(0, 'rgba(255,236,200,0.95)'); g.addColorStop(0.55, 'rgba(230,190,140,0.5)'); g.addColorStop(1, 'rgba(160,120,90,0)'); lx.fillStyle = g; lx.fillRect(0, 0, R.w, R.h); }
+    const lx = safeCtx(lightC); lx.scale(dpr, dpr); lampLightMap(lx, R, lamps);
     x.globalCompositeOperation = 'multiply'; x.drawImage(lightC, R.x, R.y, R.w, R.h); lightC.width = lightC.height = 0;
     x.globalCompositeOperation = 'source-over';
-    frame(x, 0);
-    for (const l of lamps) { const g = x.createRadialGradient(l.x + LH * 0.15, l.y + LH * 0.08, 0, l.x + LH * 0.15, l.y + LH * 0.08, LH * 0.25); g.addColorStop(0, 'rgba(255,240,210,1)'); g.addColorStop(1, 'rgba(255,200,130,0)'); x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.fillRect(l.x - LH * 0.2, l.y - LH * 0.2, LH * 0.7, LH * 0.6); }
+    structure(x, 0, 0);
+    // the catwalk + railing in the poster's spill (a faint warm edge)
+    x.save(); x.globalCompositeOperation = 'lighter'; x.strokeStyle = rgba(LAMP_C, 0.22); x.lineWidth = Math.max(0.25, 0.22 * k);
+    x.beginPath(); x.moveTo(R.x - 2 * k, railTop); x.lineTo(R.x + R.w + 2 * k, railTop); x.moveTo(R.x - 2 * k, deckY - 0.45 * k); x.lineTo(R.x + R.w + 2 * k, deckY - 0.45 * k); x.stroke(); x.restore();
+    lampGlows(x, lamps, R, 1);
   });
   return { id: spot.id, spot, rect: R, content, dayDraw, nightS, lamps };
 }

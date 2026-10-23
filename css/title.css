@@ -87,6 +87,12 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
 .nd-sign.is-steady .nd-tag { opacity: 1; }
 /* CITY 2.0 (NEON PASS 2): a bright sun / full moon passing behind the tagline — a soft shadow behind its letters, no box */
 .nd-sign .nd-tag.nd-tag-shade { text-shadow: 0 0 4px rgba(6, 5, 18, 0.95), 0 0 12px rgba(6, 5, 18, 0.8), 0 0 22px rgba(6, 5, 18, 0.5); }
+/* CITY 2.0 (DT1 — the owner: the tagline over the moon): a soft DARK HALO hugging each letter, ALWAYS ON — dark on the dark night sky
+   (invisible), it only shows where something bright is behind: the moon, the day sky, the sun, a beam. Stacked shadows (density
+   without a box); stronger while the sun / moon sits right behind it (nd-tag-shade). &force=no-halo: the old shadow (nd-nohalo). */
+.nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 1px rgba(5, 4, 16, 0.95), 0 0 3px rgba(5, 4, 16, 0.88), 0 0 7px rgba(5, 4, 16, 0.7), 0 0 14px rgba(5, 4, 16, 0.42); }
+.nd-c2 .nd-sign .nd-tag.nd-tag.nd-tag-shade { text-shadow: 0 0 1.5px rgba(5, 4, 16, 1), 0 0 4px rgba(5, 4, 16, 0.95), 0 0 9px rgba(5, 4, 16, 0.82), 0 0 18px rgba(5, 4, 16, 0.55); }
+html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3, 12, 0.95), 0 0 2px rgba(3, 3, 12, 0.9); }
 
 /* ---- menu (eases in, staggered) ---- */
 .nd-corner, .nd-actions > * {

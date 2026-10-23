@@ -278,6 +278,7 @@ export function createTitle() {
   function mount(el, state) {
     st = state;
     el.classList.add('title-screen', 'nd');
+    el.classList.toggle('nd-c2', !!createHarbor);          // (DT1: City 2.0's own sign styles — the tagline's dark halo, css/title.css)
     document.body.classList.add('nd-on');
     dressCorners(true);
     // the city: fixed behind everything, full viewport (the screen column is narrower on desktop)
@@ -902,7 +903,8 @@ export function createTitle() {
     const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return r.width && r.height ? { x: r.left, y: r.top, w: r.width, h: r.height } : null; };
     const neon = logoRect(), word = box(els.sign.querySelector('.nd-word')), tag = box(els.sign.querySelector('.nd-tag'));
     // (sub: a first visit's "12 PARTY GAMES · ONE PHONE EACH" under the tagline — the rainbow keeps under it too)
-    return neon && word && tag ? { neon, word, tag, sub: box(els.sign.querySelector('.nd-sub')) } : null;
+    // (DT1: + glyphs — SPEAKEASY's own letters, without the word's decorative rules: City 2.0's dark halo hugs them)
+    return neon && word && tag ? { neon, word, tag, sub: box(els.sign.querySelector('.nd-sub')), glyphs: box(els.sign.querySelector('.nd-word-g')) } : null;
   }
   // BATTERY: the title's loops (the sign's rects, the sky watch) idle while the page is hidden and pick up at once when it shows
   function onVisTitle() { if (document.visibilityState !== 'visible') humSync(false); if (destroyed || !tl || !tl.done || document.visibilityState !== 'visible') return; clearTimeout(els.logoTimer); clearTimeout(els.skyTimer); trackLogo(); watchSky(); neonTick(); }

@@ -89,6 +89,33 @@ function wheelBackdrop(F, T, seed) {
   return { ...F, front: tint(F.front, 0), lit: tint(F.lit, -0.1), dark: tint(F.dark, -0.2), trim: tint(F.trim, 0.12) };
 }
 const FLOOD_C = [255, 186, 120];
+/** DT1: the floodlights' strength (the darkness's flood ramp, scene.js#lookTones — they fade up through the blue hour); the tone
+ *  weights only where no scene passed it (tests, previews) */
+export const floodK = T => (T.flood != null ? T.flood : T.night);
+/** DT1 — the blocks standing right behind the lighthouse (the wall it pops against): cam.lhWall = { x, ty, hw, z } (scene.js) */
+export function behindLighthouse(cam, b) {
+  const l = cam.lhWall;
+  if (!l || !(b.z0 > l.z) || (b.band !== 'near' && b.band !== 'mid')) return false;
+  const [a, ty] = project(cam, b.x0, (b.y0 || 0) + b.h, b.z0), [c] = project(cam, b.x1, 0, b.z0);
+  return c > l.x - l.hw && a < l.x + l.hw && ty < l.ty + 120 * cam.F / 600;
+}
+/**
+ * DT1 — THE UPLIT LANDMARKS (the owner handed us the picks: "uplit facades on 2–4 mid-distance buildings, so the skyline reads in
+ * layers"): warm / cool uplights washing up the shafts of the EMPIRE (cool white, its crown's floodlight's colour), the SUNBURST
+ * (gold) and the right edge's middle-tier tower (warm) — each standing in front of the darker far towers. Softer than the wheel's
+ * backdrop (the wheel stays the focal point).
+ */
+const UPLIT = { empire: [226, 232, 255], sunburst: [255, 204, 136], 'm-right': [255, 210, 160] };
+/** a wash of light up a face from its foot, in a colour (the floodWash's shape, its own colour + strength) */
+function upWash(x, cam, b, a, w, ty, h, s, k, col, frac = 0.88, tower = null) {
+  const topY = tower ? (() => { const t = tower.tiers[tower.tiers.length - 1]; return t.y0 + t.h; })() : (b.y0 || 0) + b.h;
+  // (from the VISIBLE foot: the ground floor + its storefront strip at the water hide the real one — waterfront.js STOREY)
+  const foot = project(cam, 0, Math.min(3.6, topY * 0.3), b.z0)[1], top = project(cam, 0, topY, b.z0)[1], up = Math.max(18 * s, (foot - top) * frac);
+  if (foot - up >= ty + h) return;
+  const g = x.createLinearGradient(0, foot, 0, foot - up);
+  g.addColorStop(0, rgb(col, 0.42 * k)); g.addColorStop(0.45, rgb(col, 0.22 * k)); g.addColorStop(0.8, rgb(col, 0.06 * k)); g.addColorStop(1, rgb(col, 0));
+  x.fillStyle = g; x.fillRect(a, ty, w, h);
+}
 function floodWash(x, cam, b, a, w, ty, h, s, k, tower) {
   // (the feet stand behind the near band + the quay: the light is scaled to the building's whole height — the part we see
   // above the roofs in front still catches it, the top ~15 % sinks into the night)
@@ -121,9 +148,23 @@ export function skyBlock(x, cam, b, T, o = {}) {
   // (THE DAY PASS §0 — the owner's pick d, ARCHITECTURAL FLOODLIGHTING behind the wheel: warm uplights at the buildings' feet
   // washing up the stone — brightest at the base, gone ~60 pt up so the tops sink into the night; drawn under the windows, so the
   // panes stay dark shut rectangles against lit stone; one smooth glow, no points, no rim light)
-  if (bw && T.night > 0.05) floodWash(x, cam, b, a, w, ty, h, s, T.night, o.tower);
+  if (bw && floodK(T) > 0.05) floodWash(x, cam, b, a, w, ty, h, s, floodK(T), o.tower);
   if (glass) glassFace(x, cam, b, T, F, a, ty, w, h, s);
   else stoneFace(x, cam, b, T, F, a, ty, w, h, s, o);
+  // DT1 — MORE FLOODLIGHTS (in the blue hour's power-up, never by day): the wall behind the lighthouse (soft light on its brick —
+  // a touch softer than the wheel's backdrop, its windows kept: they are their own layer). Laid OVER the finished face, additive: the light falls on the brick + the glass alike, the uplit landmarks, and THE WATERFRONT
+  // ROW (&force=flood-front: the front buildings along the water, a low warm uplight on their bottom third, uneven, a few gaps)
+  if (!bw && floodK(T) > 0.05) {
+    x.save(); x.globalCompositeOperation = 'lighter';
+    const fk = floodK(T);
+    if (behindLighthouse(cam, b)) upWash(x, cam, b, a, w, ty, h, s, fk * (b.band === 'near' ? 0.74 : 0.5), FLOOD_C);
+    else if (o.tower && UPLIT[o.tower.id]) upWash(x, cam, b, a, w, ty, h, s, fk * 0.5 * (1 - F.fz * 0.5), UPLIT[o.tower.id], 0.62, o.tower);
+    else if (T.floodFront && b.band === 'near' && !b.billboard) {
+      const d1 = winHash(b.seed, 5, 5, 5, 5), d2 = winHash(b.seed, 6, 6, 6, 6);
+      if (d1 > 0.22) upWash(x, cam, b, a, w, ty, h, s, fk * (0.38 + 0.42 * d2), FLOOD_C, 0.36);
+    }
+    x.restore();
+  }
   // ---- light over the whole front: day — the sky from above and the ground's shade below; night — the street's glow at the
   // feet (the near rows); golden hour — the edge toward the sun catches it
   if (T.day > 0.05 && w > 3) {
@@ -166,7 +207,7 @@ export function skyBlock(x, cam, b, T, o = {}) {
   if (T.day > 0.05) { x.fillStyle = `rgba(30,36,70,${0.18 + 0.2 * T.day})`; x.fillRect(a, ty + Math.max(0.6, 0.3 * s), w, Math.max(0.5, 0.22 * s)); }
   else { x.fillStyle = `rgba(20,16,30,${0.18 + 0.12 * T.day})`; x.fillRect(a, ty + Math.max(0.6, 0.3 * s), w, Math.max(0.5, 0.18 * s)); }
   // ---- night: floodlights wash up the crown's stone from the setback below (real falloff), in the tower's colour
-  if (o.flood && T.night > 0.05) flood(x, a, ty, w, h, s, o.flood, T.night * (1 - F.fz * 0.5), b.seed);
+  if (o.flood && floodK(T) > 0.05) flood(x, a, ty, w, h, s, o.flood, floodK(T) * (1 - F.fz * 0.5), b.seed);
   if (b.crown) crown(x, cam, b, T, F, o);
   if (o.roof !== false && !b.crown && b.kind !== 'landmark' && s > 1.3 && !(bw && T.night > 0.05)) roofClutter(x, cam, b, T, F, s);
 }
@@ -342,7 +383,7 @@ export function crown(x, cam, b, T, F, o = {}) {
   const hz = col => mix(col, T.haze, F.fz * 0.55);
   const sunX = T.sunDir || 0;
   const rim = (path) => { if (T.gold > 0.1 && sunX) { x.save(); x.clip(path); x.fillStyle = rgb([255, 200, 130], 0.6 * T.gold); x.fillRect(sunX > 0 ? sx : sx - hw * 2, sy - hh * 2, hw * 2, hh * 2); x.restore(); } };
-  const nightK = T.night * (1 - F.fz * 0.4);
+  const nightK = floodK(T) * (1 - F.fz * 0.4);          // (DT1: the crowns' floodlights + lit crown windows come up with the floodlights)
   if (c.t === 'sunburst') {
     // stacked arches, each with its sunburst of triangular windows; a needle above. The city's one gold crown.
     const body = hz(o.gold ? mix(metal, gold, 0.55) : metal);

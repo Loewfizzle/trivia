@@ -396,7 +396,8 @@ test('events: when() gates by the context; forced events run at once', () => {
 });
 
 // ================================================================== Part 3: NEON + SIGNS + BILLBOARDS
-import { signSpots, spotConflicts, assignSigns, billboardPick, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet, WARM_ROLES, DEPTH, depthStrength } from '../js/core/harbor-neon.js';
+import { signName } from '../js/screens/harbor/signs.js';
+import { signSpots, spotConflicts, assignSigns, billboardPick, fitsSpot, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet, WARM_ROLES, DEPTH, depthStrength } from '../js/core/harbor-neon.js';
 import { showItems, showFrame, newShowOut, sceneAt, everyday, signMotion, beatEnv, FX, MAX_MOVING, MAX_RACE, SHOW_SCENES, nightStage, rotateMix, burnout, burnoutFlicker, punchEnv, beatOf, harborParty } from '../js/core/harbor-show.js';
 import { flattenPath, tubeLight } from '../js/core/tube-path.js';
 import { scrollColumns } from '../js/core/harbor-windows.js';
@@ -404,7 +405,7 @@ import { lighthouseBoxes } from '../js/core/harbor-layout.js';
 import { GAMES } from '../js/config.js';
 import { MARKS, bladeWord } from '../js/screens/district/marks.js';
 
-const GAMES12 = GAMES.filter(g => g.playable).map(g => ({ id: g.id, name: g.name, short: bladeWord(g) === 'NEONPAR' ? 'NEON PAR' : bladeWord(g) }));
+const GAMES12 = GAMES.filter(g => g.playable).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
 const faceRect = (cam, t) => { const tr = t.tiers[0], [a, b] = project(cam, tr.x0, tr.y0 + tr.h, tr.z0), [c] = project(cam, tr.x1, 0, tr.z0); return { x: a, y: b, w: c - a, h: t.face.y - b }; };
 
 test('word towers (Part 3): both faces fully on screen, nothing nearer over them — the lighthouse, the wheel, the boats, the signs', () => {
@@ -425,7 +426,7 @@ test('word towers (Part 3): both faces fully on screen, nothing nearer over them
   }
 });
 
-test('signs: 4 named (3 of them stacked roof signs) + the billboard on a phone, NO icons (NEON PASS 6: "distracting") — 5 of the 12 games a night, every game over the nights (the shuffle + the billboard); none on a hero tower, every spot clear + inside the screen, names fit; desktop too', () => {
+test('signs (DT1): 3 named (the blade + 2 stacked roof signs — the left roof slot is gone) + the billboard on a phone, NO icons (NEON PASS 6: "distracting") — 5 of the 12 games a night, every game over the nights (the shuffle + the billboard); none on a hero tower, every spot clear + inside the screen, names fit; desktop too', () => {
   for (const k of Object.keys(SIZES)) {
     const { cam, L } = setup(k);
     const spots = signSpots(L);
@@ -433,16 +434,17 @@ test('signs: 4 named (3 of them stacked roof signs) + the billboard on a phone, 
     const pick = assignSigns(GAMES12, spots, '2026-10-21');
     const got = new Set(pick.values());
     if (!cam.wide) {
-      assert.equal(spots.filter(s => s.kind === 'named').length, 4, `${k}: four named spots`);
+      assert.equal(spots.filter(s => s.kind === 'named').length, 3, `${k}: three named spots (DT1: the left roof slot is gone)`);
+      assert.ok(!spots.some(s => s.id === 'n-roof'), `${k}: no left roof sign`);
       assert.equal(spots.filter(s => s.kind === 'icon').length, 0, `${k}: no icons (NEON PASS 6)`);
       // (NEON PASS 2) never on a hero tower; never clipped by the screen's edge
       for (const s of spots) assert.ok(!L.towers.some(t => t.rank === 'hero' && t.id === s.host), `${k}: ${s.id} on a hero tower`);
       for (const s of spots) assert.ok(s.rect.x >= 3 && s.rect.x + s.rect.w <= cam.W - 3, `${k}: ${s.id} inside the screen (${s.rect.x.toFixed(1)}..${(s.rect.x + s.rect.w).toFixed(1)})`);
-      assert.equal(got.size, 4, `${k}: 4 games have a named sign tonight`);
+      assert.equal(got.size, 3, `${k}: 3 games have a named sign tonight`);
       const all = new Set(); for (const n of NIGHTS) { const pk = assignSigns(GAMES12, spots, n); for (const g of pk.values()) all.add(g); all.add(billboardPick(GAMES12, spots, pk, n)); }
       assert.equal(all.size, 12, `${k}: over the nights every game shows — a named sign or the billboard (the nightly shuffle)`);
     } else if (k === '1440x900') assert.ok(got.size >= 7, `desktop: ${got.size} games`);
-    for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(g.short.replace(/ /g, '').length <= s.cap, `${k}: ${g.short} fits ${s.id}`); }
+    for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(fitsSpot(g.short, s), `${k}: ${g.short} fits ${s.id}`); }
     // the named spots read on a phone: a vertical sign's letters ≥ 6 pt
     if (!cam.wide) for (const s of spots.filter(s => s.kind === 'named' && s.type === 'vbox')) assert.ok(s.rect.h / s.cap >= 6 * (cam.F / 600) * 0.95, `${k}: ${s.id} letters ${(s.rect.h / s.cap).toFixed(1)} pt`);
   }
@@ -461,7 +463,7 @@ test('signs: a new pick each night (the same all night), and a game list that gr
   { const short3 = GAMES12.filter(g => g.short.replace(/ /g, '').length <= 6).slice(0, 3); assert.equal(new Set(assignSigns(short3, spots, 'x').values()).size, 3); }
   assert.ok(new Set(assignSigns(GAMES12.slice(0, 7), spots, 'x').values()).size <= Math.min(7, slots));
   assert.equal(new Set(assignSigns([...GAMES12, { id: 'new1', short: 'BINGO' }, { id: 'new2', short: 'DARTS' }], spots, 'x').values()).size, Math.min(14, slots));
-  assert.ok(slots >= 4, `${slots} sign slots`);
+  assert.ok(slots >= 3, `${slots} sign slots`);
   // tonight: the evening's date — before noon it is still last night (the pick changes by day, while the neon is dark)
   assert.equal(nightKey({ y: 2026, m: 10, d: 22, h: 1 }), '2026-10-21');
   assert.equal(nightKey({ y: 2026, m: 10, d: 22, h: 9 }), '2026-10-22');          // (THE DAY PASS: the day shows tonight's pick)
@@ -847,9 +849,9 @@ test('section 0 (Part 6a): no sign covers a hero tower — the sunburst + the ne
     assert.equal(spotConflicts(L, bl, spots).length, 0, `${k}: the blade is clear (${spotConflicts(L, bl, spots).join(', ')})`);
   }
   // (NEON PASS 6) 4 of the games have a named sign tonight (no icons any more) + the billboard a fifth; the nightly shuffle rotates the rest
-  const { L } = setup('402x874'), spots = signSpots(L), games = GAMES.filter(g => g.playable).map(g => ({ id: g.id, name: g.name, short: bladeWord(g) }));
+  const { L } = setup('402x874'), spots = signSpots(L), games = GAMES12;
   const pick = assignSigns(games, spots, '2026-10-21');
-  assert.equal(new Set(pick.values()).size, 4);
+  assert.equal(new Set(pick.values()).size, 3);
   assert.ok(billboardPick(games, spots, pick, '2026-10-21') && ![...pick.values()].includes(billboardPick(games, spots, pick, '2026-10-21')), 'the billboard: a game with no sign tonight');
 });
 
@@ -1136,7 +1138,7 @@ test('NEON PASS 4 — no sign is ever clipped: every cabinet inside the screen, 
         }
       }
     }
-    if (!cam.wide) assert.ok(seen.size >= 24, `${k}: ${seen.size} sign × game pairs checked`);   // (NEON PASS 6: 4 named spots × the 7 short names, no icons)
+    if (!cam.wide) assert.ok(seen.size >= 18, `${k}: ${seen.size} sign × game pairs checked`);   // (DT1: the blade × its 5 one-word names + 2 roof signs × their 8)
   }
 });
 
@@ -1206,14 +1208,14 @@ test('NEON PASS 4 — SEARCHLIGHTS BEHIND SIGNS: a sign, billboard or roof in fr
   }
 });
 
-test('NEON PASS 4 — the JAZZ sign is gone: the old club is plain city with NEON PASS 3 trims; (NEON PASS 6: no icons) four named signs every night on every phone', () => {
+test('NEON PASS 4 — the JAZZ sign is gone: the old club is plain city with NEON PASS 3 trims; (NEON PASS 6: no icons; DT1: no left roof sign) three named signs every night on every phone', () => {
   assert.ok(!SPOTS_ALL().some(sp => sp.id === 'jazz' || sp.host === 'jazz' || /JAZZ/.test(sp.text || '')), 'no JAZZ sign, nothing on the old club');
   for (const k of PHONES) {
     const { cam, L } = setup(k), s = cam.F / 600, spots = signSpots(L);
-    assert.equal(spots.filter(sp => sp.kind === 'named').length, 4, `${k}: four named`);
+    assert.equal(spots.filter(sp => sp.kind === 'named').length, 3, `${k}: three named`);
     assert.equal(spots.filter(sp => sp.kind === 'icon').length, 0, `${k}: no icons (NEON PASS 6)`);
     assert.equal(spots.filter(sp => sp.kind === 'fixed').length, 0, `${k}: no fixed text sign`);
-    for (const night of NIGHTS) assert.equal(new Set(assignSigns(GAMES12, spots, night).values()).size, 4, `${k} ${night}: 4 games have a named sign`);
+    for (const night of NIGHTS) assert.equal(new Set(assignSigns(GAMES12, spots, night).values()).size, 3, `${k} ${night}: 3 games have a named sign`);
     // (NEON PASS 5, the owner: the small icon left of the Ferris wheel — i-mid — is gone; the checks below stay for the day it
     // comes back)
     assert.ok(!spots.some(sp => sp.id === 'i-mid'), `${k}: no icon left of the wheel`);
@@ -1373,7 +1375,7 @@ test('NEON PASS 5 — THE GLANCE TEST: every named sign\'s letters ≥ 10 pt on 
   for (const k of PHONES) {
     const { cam, L } = setup(k), spots = signSpots(L);
     for (const sp of spots.filter(x => x.kind === 'named')) for (const g of GAMES12) {
-      if (g.short.replace(/ /g, '').length > sp.cap) continue;
+      if (!fitsSpot(g.short, sp)) continue;
       const gg = GAMES.find(x => x.id === g.id), sg = buildSign(sp, gg, { W: cam.W, s: cam.F / 600 }), p = sg.parts.find(q => q.boxes);
       const lh = Math.min(...p.boxes.map(b => b.y1 - b.y0 - 1.2));
       assert.ok(lh >= 10, `${k}: ${sp.id} "${g.short}" letters ${lh.toFixed(1)} pt`);
@@ -1454,23 +1456,115 @@ test('the panel: rows a later part still has to build stay hidden (ready: false)
   assert.deepEqual(cleanRemote({ force: ['ufo'] }).bad, []);
 });
 
-test('one darkness input: today it IS the sky model\'s darkness, and every ramp is the old threshold', async () => {
-  const { darkness, litK, LIT, DARK_TERMS, windowsNight, isNight } = await import('../js/core/harbor-dark.js');
-  const c01 = v => Math.max(0, Math.min(1, v));
-  const OLD = { water: d => c01((d - 0.15) / 0.5), neon: d => c01((d - 0.2) / 0.5), city: d => c01((d - 0.25) / 0.5), lamps: d => c01((d - 0.3) / 0.45), strings: d => c01((d - 0.3) / 0.4), logo: d => c01((d - 0.3) / 0.5), glow: d => c01((d - 0.3) / 0.5), beams: d => c01((d - 0.35) / 0.4) };
-  assert.deepEqual(Object.keys(LIT).sort(), Object.keys(OLD).sort());
-  assert.ok(Object.values(DARK_TERMS).every(v => v === 0), 'no extra term is on yet (nothing changes until the Day touch-up / Part 9)');
-  for (let d = 0; d <= 1.0001; d += 0.01) {
-    for (const cloud of [0, 0.5, 1]) for (const storm of [0, 1]) assert.equal(darkness({ sky: d, cloud, storm, eclipse: 1 }), Math.min(1, d));
-    for (const [k, f] of Object.entries(OLD)) assert.ok(Math.abs(litK(d, k) - f(d)) < 1e-12, `${k} at ${d}`);
-    assert.equal(windowsNight(d), d > 0.2); assert.equal(isNight(d), d > 0.5);
-  }
-  // the terms, once a part turns them on: they only darken, toward 1, never lighten the night
+test('one darkness input (C1.5) on THE DUSK CURVE (DT1): the sun\'s elevation → darkness, golden hour barely dark, the power-up through the blue hour, every ramp full by night', async () => {
+  const { darkness, duskDark, litK, LIT, DARK_TERMS, windowsNight, isNight, power, POWER } = await import('../js/core/harbor-dark.js');
+  assert.ok(Object.values(DARK_TERMS).every(v => v === 0), 'no extra term is on yet (Part 9 turns on the storm / cloud)');
+  // monotonic: darker as the sun sinks; 0 by day, 1 at night; golden hour light; sunset at the power-up's start, −7° its end
+  let prev = -1;
+  for (let el = 20; el >= -20; el -= 0.25) { const d = duskDark(el); assert.ok(d >= prev - 1e-12 && d >= 0 && d <= 1, `el ${el}`); prev = d; }
+  assert.equal(duskDark(15), 0); assert.equal(duskDark(-15), 1);
+  assert.ok(duskDark(5) < 0.06 && duskDark(1) < POWER[0], 'golden hour: barely dark');
+  assert.ok(Math.abs(duskDark(-0.8) - POWER[0]) < 1e-9 && Math.abs(duskDark(-7) - POWER[1]) < 1e-9, 'the power-up: sunset → −7°');
+  assert.equal(power(duskDark(2)), 0); assert.equal(power(duskDark(-7)), 1);
+  // the sky model's value without an elevation (ALWAYS NIGHT, a test); the terms only darken
+  for (let d = 0; d <= 1.0001; d += 0.05) assert.equal(darkness({ sky: d }), Math.min(1, d));
+  assert.equal(darkness({ sky: 0.2, el: -20 }), 1); assert.equal(darkness({ sky: 1, el: 20 }), 0);
   const T = { cloud: 0.3, storm: 0.8, eclipse: 1 };
-  assert.ok(darkness({ sky: 0.1, storm: 1 }, T) > 0.8 && darkness({ sky: 0.1, storm: 1 }, T) <= 1);
-  assert.equal(darkness({ sky: 1, storm: 1 }, T), 1);
-  assert.ok(darkness({ sky: 0.4, cloud: 1 }, T) >= 0.4);
+  assert.ok(darkness({ el: 30, storm: 1 }, T) > 0.79, 'a storm afternoon (Part 9) powers the city up');
   assert.equal(darkness({}), 0);
+  // every ramp fully on by the end of the blue hour (the night unchanged); the billboard's lamps first, the lamps around sunset
+  for (const k of Object.keys(LIT)) { assert.equal(litK(1, k), 1, k); assert.equal(litK(POWER[1], k), 1, `${k} full by −7°`); assert.equal(litK(0, k), 0, k); }
+  assert.ok(litK(duskDark(3.5), 'bill') > 0.3 && litK(duskDark(3.5), 'lamps') === 0 && litK(duskDark(3.5), 'neon') === 0, 'late golden hour: the billboard lamps only');
+  assert.ok(litK(duskDark(-1.5), 'lamps') > 0.3 && litK(duskDark(-1.5), 'flood') === 0, 'just after sunset: the lamps, not yet the floodlights');
+  assert.equal(windowsNight(0.21), true); assert.equal(isNight(0.6), true); assert.equal(isNight(0.4), false);
+});
+
+test('THE BLUE-HOUR POWER-UP (DT1): tonight\'s order (seeded by the date: outlines cluster by cluster, signs one by one), never all at once, the morning in reverse; the windows', async () => {
+  const { powerOrder, lightOn, powerAt, STAGE, duskDark, windowShare, windowBias, windowThreshold, partyReady, SWEEPS } = await import('../js/core/harbor-dark.js');
+  const list = Array.from({ length: 30 }, (_, i) => ({ id: `o${i}`, kind: i < 4 ? 'sign' : 'outline', x: i / 29 }));
+  const a = powerOrder('2026-10-22', list), b = powerOrder('2026-10-22', list);
+  assert.deepEqual([...a.pos], [...b.pos], 'the same order all night');
+  assert.ok(SWEEPS.includes(a.sweep));
+  const sweeps = new Set(); let differ = 0;
+  for (let d = 1; d <= 20; d++) { const o = powerOrder(`2026-11-${String(d).padStart(2, '0')}`, list); sweeps.add(o.sweep); if (JSON.stringify([...o.pos]) !== JSON.stringify([...a.pos])) differ++; }
+  assert.ok(sweeps.size >= 3 && differ >= 19, `a slightly different order each night (${sweeps.size} sweeps)`);
+  // never all at once: through the blue hour (−0.8° → −7°, 25 steps) the lights come on in many separate steps
+  const onAt = it => { for (let k = 0; k <= 100; k++) { const el = -0.8 - 6.2 * k / 100; if (lightOn(duskDark(el), a.pos.get(it.id), it.kind === 'sign' ? STAGE.signs : STAGE.neon)) return k; } return 101; };
+  const times = list.map(onAt);
+  assert.ok(new Set(times).size >= 15 && Math.max(...times) <= 100 && Math.min(...times) > 0, `staggered: ${new Set(times).size} moments`);
+  // golden hour: nothing on; the night: everything; the morning mirrors (the same thresholds)
+  for (const it of list) { assert.equal(lightOn(duskDark(2), a.pos.get(it.id)), false); assert.equal(lightOn(duskDark(-9), a.pos.get(it.id)), true); }
+  // neighbouring outlines light close together (a cluster's neighbours), the signs anywhere in their stage
+  const o = list.filter(it => it.kind === 'outline'); let near = 0;
+  for (let i = 1; i < o.length; i++) if (Math.abs(a.pos.get(o[i].id) - a.pos.get(o[i - 1].id)) < 0.3) near++;
+  assert.ok(near >= o.length * 0.7, `clusters: ${near} of ${o.length - 1} neighbours close`);
+  assert.ok(powerAt(1, STAGE.neon) < 1, 'every light is on before the blue hour ends');
+  // THE WINDOWS: golden hour a few (~5 % of the windows that can light), lower floors first; all by −7°; monotonic (on only)
+  const share = el => { const k = duskDark(el), sh = windowShare(k), bias = windowBias(k); let n = 0; for (let i = 0; i < 2000; i++) { const low = (i % 40) / 39, ord = ((i * 7919) % 2000) / 2000; if (ord <= windowThreshold(sh, bias, low)) n++; } return n / 2000; };
+  assert.ok(share(4) < 0.02 && share(0) > 0.04 && share(0) < 0.16, `golden hour: a few (${share(4).toFixed(3)} → ${share(0).toFixed(3)})`);
+  assert.equal(share(-7.2), 1);
+  let p = -1; for (let el = 8; el >= -8; el -= 0.2) { const v = share(el); assert.ok(v >= p - 1e-9, `windows only come on (${el})`); p = v; }
+  assert.ok(windowThreshold(0.1, 1.2, 1) > windowThreshold(0.1, 1.2, 0), 'the lower floors first');
+  assert.equal(windowThreshold(0.4, 0, 0), 0.4, 'at night (no bias): City 1.0\'s order exactly');
+  assert.equal(partyReady(duskDark(-3)), false); assert.equal(partyReady(duskDark(-8)), true);
+});
+
+test('THE BLUE HOUR (DT1): the Harbor\'s look passes through a deep-blue sky between sunset and night (City 1.0\'s palette untouched)', async () => {
+  const { blueHour, harborWeights } = await import('../js/screens/harbor/tones.js');
+  const { paletteFor } = await import('../js/screens/district/palette.js');
+  assert.equal(blueHour(2), 0); assert.equal(blueHour(-0.8), 0); assert.equal(blueHour(-5), 1); assert.equal(blueHour(-14), 0);
+  const LK = { w: { night: 0.2, late: 0, dawn: 0, day: 0, golden: 0.8 }, sun: { el: -5 }, season: { winter: 0, autumn: 1, spring: 0, summer: 0 }, holiday: null };
+  const H = harborWeights(LK), sum = Object.values(H.w).reduce((x, y) => x + y, 0);
+  assert.ok(Math.abs(sum - 1) < 1e-9 && H.w.blue === 1, 'the weights still sum to 1');
+  const P = paletteFor(H), P0 = paletteFor(LK);
+  assert.ok(P.sky[1][2] > P.sky[1][0] * 3 && P0.sky[3][0] > P.sky[3][0], 'deep blue, not salmon');
+  { const AN = { ...LK, alwaysNight: true }; assert.equal(harborWeights(AN), AN, 'ALWAYS NIGHT: the night itself'); }
+  assert.deepEqual(harborWeights({ ...LK, sun: { el: 10 } }).w, LK.w, 'golden hour unchanged');
+});
+
+test('THE SLOT RULE (DT1 — the owner: never a shortened name): the blade one-word names only, two-word names on a roof sign (two lines) or the billboard; every sign spells the FULL name at 390 / 402 / 430; every game hangs every week', () => {
+  assert.equal(signName({ id: 'stakes', name: 'HIGH STAKES' }), 'HIGH STAKES');
+  assert.equal(signName({ id: 'agent', name: 'DOUBLE AGENT' }), 'DOUBLE AGENT');
+  assert.equal(signName({ id: 'golf', name: 'NEON PAR' }), 'NEON PAR');
+  assert.equal(signName({ id: 'new', name: 'Big Top' }), 'BIG TOP');
+  const blade = { kind: 'named', words: 1, cap: 6 }, roof = { kind: 'named', words: 2, cap: 6 };
+  assert.ok(fitsSpot('PULSE', blade) && !fitsSpot('HIGH STAKES', blade) && !fitsSpot('OVERCLOCK', blade));
+  assert.ok(fitsSpot('HIGH STAKES', roof) && fitsSpot('DOUBLE AGENT', roof) && fitsSpot('CIPHER', roof) && !fitsSpot('RUMRUNNER', roof));
+  assert.ok(fitsSpot('SLIPSTREAM', { kind: 'billboard' }));
+  const CUT = ['STAKES', 'AGENT', 'NEONPAR', 'PAR', 'HIGH', 'DOUBLE'];
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), spots = signSpots(L), named = spots.filter(sp => sp.kind === 'named');
+    for (const night of NIGHTS) {
+      const pick = assignSigns(GAMES12, spots, night);
+      for (const sp of named) {
+        const g = GAMES12.find(x => x.id === pick.get(sp.id)); if (!g) continue;
+        assert.ok(fitsSpot(g.short, sp), `${k} ${night}: ${g.short} on ${sp.id}`);
+        if (sp.id === 'n-blade') assert.ok(!g.short.includes(' '), `${k} ${night}: the blade takes one word (${g.short})`);
+        const sg = buildSign(sp, GAMES.find(x => x.id === g.id), { W: cam.W, s: cam.F / 600 });
+        assert.equal(sg.nText, g.short.replace(/ /g, '').length, `${k} ${night}: ${sp.id} spells all of ${g.short}`);
+        assert.ok(!CUT.includes(g.short.replace(/ /g, '')) || g.short === 'NEON PAR', `${k} ${night}: a cut-down name ${g.short}`);
+        const p = sg.parts.find(q => q.boxes); assert.ok(Math.min(...p.boxes.map(b => b.y1 - b.y0 - 1.2)) >= 10, `${k}: ${sp.id} "${g.short}" ≥ 10 pt`);
+        if (g.short.includes(' ')) assert.equal(p.lines, 2, `${k}: ${g.short} stacked on two lines`);
+      }
+      const bb = billboardPick(GAMES12, spots, pick, night);
+      assert.ok(bb && ![...pick.values()].includes(bb), `${k} ${night}: the billboard advertises a game with no sign`);
+    }
+    // every calendar week (Monday → Sunday) every game shows: a named sign or the billboard
+    for (let w = 0; w < 16; w++) {
+      const seen = new Set();
+      for (let d = 0; d < 7; d++) { const n = new Date(Date.UTC(2026, 9, 5) + (w * 7 + d) * 864e5).toISOString().slice(0, 10), pk = assignSigns(GAMES12, spots, n); for (const v of pk.values()) seen.add(v); seen.add(billboardPick(GAMES12, spots, pk, n)); }
+      assert.equal(seen.size, 12, `${k}: week ${w}: ${12 - seen.size} games missing`);
+    }
+  }
+});
+
+test('THE BILLBOARD (DT1): built, not floating — it stands on the lowered roof of the near block behind it (the frame\'s height under it), the same on every phone', () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), sp = signSpots(L).find(x => x.kind === 'billboard'), R = sp.rect, u = cam.F / 600;
+    const under = L.bands.find(b => b.id === 'near').blocks.filter(b => { const a = project(cam, b.x0, 0, b.z0)[0], c = project(cam, b.x1, 0, b.z0)[0], m = (a + c) / 2; return m > R.x && m < R.x + R.w; });
+    assert.ok(under.length >= 2, `${k}: blocks under the billboard`);
+    for (const b of under) { const roof = project(cam, 0, b.h, b.z0)[1]; assert.ok(roof >= R.y + R.h + 6 * u && roof <= R.y + R.h + 12 * u, `${k}: ${b.id}'s roof ${(roof - R.y - R.h).toFixed(1)} pt under the board`); }
+  }
 });
 
 test('the sign-dim hook: messages dim the logo + fade the tagline, the dimmest wins, the last one lets it come back', async () => {

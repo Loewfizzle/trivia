@@ -82,6 +82,11 @@ export const EVENTS = [
   { id: 'neon-party', label: 'NEON PARTY', group: 'CITY', night: true },
   { id: 'neon-flash', label: 'NEON FLASH', group: 'CITY', inputs: ['game'], night: true },
   { id: 'neon-scheme', label: 'NEON SCHEME', group: 'CITY', inputs: ['scheme'], night: true },
+  // (DT1 — THE LIGHTS + SIGNS PASS: the power-up itself is TIME = POWER-UP / POWER-DOWN at SPEED 20)
+  { id: 'flood-front', label: 'WATERFRONT FLOODLIGHTS', group: 'LIGHTS', night: true, hint: 'the front row’s low warm uplight — compare on / off' },
+  { id: 'lamps-on', label: 'BILLBOARD LAMPS ON', group: 'LIGHTS', hint: 'its 4 gooseneck lamps held on (by day too)' },
+  { id: 'lamps-off', label: 'BILLBOARD LAMPS OFF', group: 'LIGHTS', night: true, hint: 'the night without them — compare' },
+  { id: 'no-halo', label: 'SIGN HALO OFF', group: 'LIGHTS', hint: 'the tagline + NEON’s dark halo off — compare (the moon behind it)' },
   { id: 'wheel-scheme', label: 'WHEEL SCHEME', group: 'HARBOR', inputs: ['scheme'] },
   { id: 'beam-green', label: 'GREEN BEAM', group: 'HARBOR', night: true },
   { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', group: 'HARBOR', inputs: ['scheme'] },
@@ -100,6 +105,8 @@ export const SHOW_SCENE_LIST = Object.entries(SHOW_SCENES).flatMap(([list, scene
 export const TIMES = [
   { id: 'dawn', label: 'DAWN' }, { id: 'morning', label: 'MORNING' }, { id: 'noon', label: 'NOON' }, { id: 'afternoon', label: 'AFTERNOON' },
   { id: 'golden', label: 'GOLDEN HOUR' }, { id: 'dusk', label: 'DUSK' }, { id: 'night', label: 'NIGHT' }, { id: 'late', label: '3 AM' },
+  // (DT1: the blue hour's power-up from late golden hour; the power-down before sunrise — watch them at SPEED 20)
+  { id: 'powerup', label: 'POWER-UP' }, { id: 'powerdown', label: 'POWER-DOWN' },
 ];
 export const SPEEDS = [1, 20, 60];
 export const WEATHER = [
@@ -146,7 +153,7 @@ export function timeAt(id, day, tz, lat, lon) {
   const wall = ms => { const lp = localParts(ms, tz); return lp.h * 60 + lp.mi; };
   const rise = st.rise != null ? wall(st.rise) : 7 * 60, set = st.set != null ? wall(st.set) : 19 * 60;
   const mins = { dawn: rise - 22, morning: rise + 100, noon: Math.round((rise + set) / 2), afternoon: Math.round((rise + set) / 2) + 180,
-    golden: set - 40, dusk: set + 16, night: 22 * 60 + 30, late: 3 * 60 }[id];
+    golden: set - 40, dusk: set + 16, night: 22 * 60 + 30, late: 3 * 60, powerup: set - 28, powerdown: rise - 52 }[id];
   if (mins == null) return null;
   const v = Math.max(0, Math.min(23 * 60 + 59, Math.round(mins)));
   return `${day}T${pad(Math.floor(v / 60))}:${pad(v % 60)}`;

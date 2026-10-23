@@ -111,6 +111,13 @@ export const fOf = (x, z) => 0.5 + x / (FX * z);
 /** the reference title (402×874, measured with the iPhone's safe areas): the squeeze is decided here once, so every upright
  *  phone gets the same skyline; a roomier phone shows more sky above it (the owner's call, Oct 21 2026) */
 export const REF_TITLE = { W: 402, H: 874, tag: { y: 319, h: 14 }, dock: { x: 14, y: 758, w: 374, h: 76 }, safe: { top: 62, bottom: 34 } };
+/**
+ * THE BILLBOARD (DT1 — the owner: "built, not floating"): its board on the reference phone (pt: x across, y down, at depth z) and
+ * the height of its steel A-frame (legs + catwalk, ref pt). The near band's blocks under it are LOWERED so their roof lands
+ * right under the frame — the board stands ON that roof (their old roofs were hidden behind the board anyway). The sign spot
+ * (core/harbor-neon.js#SPOTS bb-left) is this rect.
+ */
+export const BILLBOARD = Object.freeze({ x: [6, 71], y: [480, 526], z: 233.1, legs: 9 });
 
 /**
  * THE SUN GAPS: corridors (screen fraction, width pt) in the skyline's TOPS where the low sun's rays stream between the
@@ -341,6 +348,18 @@ export function harborLayout(cam, seed = 1924) {
   const hAtY = (y, z) => cam.CAMH - (y - cam.VPY) * z / cam.F;           // the height whose top lands on screen y at depth z
   // the corridors' floors: a piece in a corridor is lowered to its band's floor
   for (const b of sky.all) if (b.cap != null) b.h = Math.min(b.h, Math.max(2, hAtY(HZq - b.cap * hUnit, b.z0)));
+  // DT1 — THE BILLBOARD'S ROOF (upright phones: the composition is the reference phone's): a near-band block whose middle stands
+  // under the board is lowered so its roof lands BILLBOARD.legs under the board (the reference camera: the same world on every phone)
+  if (!cam.wide) {
+    const rc = cameraFor(REF_TITLE.W, REF_TITLE.H, { tag: REF_TITLE.tag, dock: REF_TITLE.dock }, REF_TITLE.safe);
+    const near = sky.bands.find(d => d.id === 'near');
+    for (const b of near ? near.blocks : []) {
+      const a = project(rc, b.x0, 0, b.z0)[0], c = project(rc, b.x1, 0, b.z0)[0], m = (a + c) / 2;
+      if (m <= BILLBOARD.x[0] || m >= BILLBOARD.x[1]) continue;
+      const hRoof = rc.CAMH - (BILLBOARD.y[1] + BILLBOARD.legs - rc.VPY) * b.z0 / rc.F;
+      if (b.h > hRoof) { b.h = Math.max(2, hRoof); b.crown = null; b.billboard = true; }
+    }
+  }
   // the towers' tiers + window grids (after the squeeze); every block gets its grid
   for (const t of sky.towers) t.tiers = tiersOf(t);
   for (const b of [...sky.bands.flatMap(d => d.blocks), ...sky.heroes]) b.win = grid(b.x1 - b.x0, b.h, PITCH[0], PITCH[1], b.kind === 'hero' ? 2.2 : 0.9);

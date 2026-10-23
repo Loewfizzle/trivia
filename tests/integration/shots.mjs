@@ -186,7 +186,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
     if (ZOOM > 1) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade'].includes(c) ? c : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

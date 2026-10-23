@@ -103,7 +103,10 @@ export function createSkyBeams() {
     const corner = o.corner || null;
     cand = [];
     for (const t of L.towers) {
-      if (!['hero', 'word', 'pano'].includes(t.rank) && !(t.rank === 'modern' && cam.wide)) continue;
+      // (DT1 — the owner: the gap in the row of beams by the thin glass tower looked odd: glassL gets one too — the farthest tower,
+      // so a thinner, fainter, ice-white beam that still joins the colour sweeps)
+      const far = t.id === 'glassL' && !cam.wide;
+      if (!['hero', 'word', 'pano'].includes(t.rank) && !(t.rank === 'modern' && cam.wide) && !far) continue;
       const tp = t.tiers[t.tiers.length - 1], cx = (tp.x0 + tp.x1) / 2;
       const [x, y] = project(cam, cx, tp.y0 + tp.h + (tp.crown ? tp.crown.h : 0) + (t.needle || 0), tp.z0);
       if (x < 6 || x > cam.W - 6) continue;
@@ -112,7 +115,7 @@ export function createSkyBeams() {
       // under the page, the buttons stay on top and tappable)
       const top = 0;
       if (y - top < 40 * K) continue;                                // (too little sky above it: no beam)
-      cand.push({ id: t.id, x, y, top, under, len: y - top });
+      cand.push({ id: t.id, x, y, top, under, len: y - top, far });
     }
     // the ones rising free of the sign first (the tall beams), then the tallest — spread out (never two within ~40 pt)
     cand.sort((a, b) => (a.under - b.under) || a.y - b.y);
@@ -144,10 +147,11 @@ export function createSkyBeams() {
       if (y0 - b.top < 24 * K) return;
       const a = f.k * on * f.fade;
       if (a < 0.01) return;
-      const col = (cfg.colours && cfg.colours[i % cfg.colours.length]) || cols[i] || [255, 255, 255];
-      const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.92 + 0.2 * (f.punch || 0));
+      let col = (cfg.colours && cfg.colours[i % cfg.colours.length]) || cols[i] || [255, 255, 255];
+      if (b.far) col = col.map((v, j) => Math.round([224, 240, 255][j] * 0.72 + v * 0.28));      // (the glass tower's: ice-white, a touch of the sweep)
+      const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.92 + 0.2 * (f.punch || 0)) * (b.far ? 0.5 : 1);
       if (!sp) return;
-      c.globalAlpha = Math.min(1, a * pulse * haze * 0.95);
+      c.globalAlpha = Math.min(1, a * pulse * haze * 0.95 * (b.far ? 0.5 : 1));
       // (NEON PASS 6, the owner: the beam ended in a sharp horizontal line at the crown — its last FOOT pt now come from a fade sprite:
       // the same beam, fading out softly into the crown; everything above exactly as before)
       const ft = FOOT * K, yf = y0 + 2 - ft;
@@ -155,8 +159,8 @@ export function createSkyBeams() {
       const fs = footFor(sp);
       if (fs) c.drawImage(fs, b.x - gw / 2, yf, gw, ft + 3 * K);
       // the beam's root: a bright flare where it leaves the crown (it punches on the beat)
-      const r = (5 + 5 * (f.punch || 0)) * K;
-      c.globalAlpha = Math.min(1, a * (0.55 + 0.45 * (f.punch || 0)));
+      const r = (5 + 5 * (f.punch || 0)) * K * (b.far ? 0.55 : 1);
+      c.globalAlpha = Math.min(1, a * (0.55 + 0.45 * (f.punch || 0)) * (b.far ? 0.6 : 1));
       c.drawImage(flareSprite(), b.x - r, y0 - r * 0.7, r * 2, r * 2);
     });
     c.restore();

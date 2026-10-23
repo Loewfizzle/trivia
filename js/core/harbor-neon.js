@@ -10,7 +10,7 @@
 //    a few faint threads; the needle's spire becomes THE NEON NEEDLE. Never across a word tower's face (only its frame).
 //  - signSpots(L): where the city's signs hang (named game signs, icon signs, the game blade, billboards), in world
 //    units; assignSigns(): which game takes which spot tonight (a new pick each night, never while you watch).
-import { REF_TITLE, cameraFor, fxAt, fOf, project, lighthouseBoxes } from './harbor-layout.js';
+import { REF_TITLE, cameraFor, fxAt, fOf, project, lighthouseBoxes, BILLBOARD } from './harbor-layout.js';
 import { rngFrom, shuffle } from './rng.js';
 
 export { flattenPath, tubeLight } from './tube-path.js';
@@ -63,7 +63,7 @@ const ROLES = {
   wordA: ['b1', 'b1'], wordB: ['b1', 'b2'], wordV: ['b0', 'b2'],
   // (NEON PASS 3: the middle tier in contrasting pairs — teal / violet / magenta / gold — so the midsection reads as lit)
   'm-edge': ['a0', 'm0'], 'm-dome': ['b1', 'a3'], 'm-step': ['t0', 'h0'], 'm-twin': ['h1', 'b1'], 'm-right': ['m0', 'b1'],
-  glassL: ['b1', 'b1'], glassR: ['b2', 'b2'],
+  glassL: ['b2', 'b2'], glassR: ['b2', 'b2'],
   hotel: ['a1', 'a1'], pulse: ['h1', 'h1'], par: ['h0', 'h0'],
 };
 // NEON PASS 4 (the owner: "remove the JAZZ sign — that left corner is cluttered"): the old JAZZ club is PLAIN CITY now — no sign, no
@@ -138,7 +138,9 @@ export function outlines(L, signRects = new Map()) {
     const k = pano ? Math.abs(t.seed) % 4 : 0;
     const roles = ROLES[t.id] || (modern ? ['b1', 'b1'] : pano ? [['b0', 'b1'], ['h0', 'a0'], ['b2', 'b0'], ['h1', 'b1']][k] : ['b0', 'b0']);
     const lines = [], n = t.tiers.length, topT = t.tiers[n - 1];
-    if (modern) { const y1 = topT.y0 + topT.h, z = topT.z0 - 0.05; lines.push({ pts: [[topT.x0, y1, z], [topT.x1, y1, z]], role: roles[0] }); }
+    // (DT1 — the owner: the thin glass tower was the only building dark on every night: the glass towers get a FINE full outline
+    // like the other far buildings — up both edges from the foot, over the roof; the cut keeps what stands in front)
+    if (modern) { const y1 = topT.y0 + topT.h, z = topT.z0 - 0.05, t0 = t.tiers[0]; lines.push({ pts: fillet([[t0.x0, t0.y0, z], [topT.x0, y1, z], [topT.x1, y1, z], [t0.x1, t0.y0, z]], FILLET * 0.4), role: roles[0], part: 'contour' }); }
     else {
       // THE CONTOUR (NEON PASS 2, the owner's zoomed review): ONE tube a side bent like a sign shop would — up the shaft from its
       // FOOT (the cut ends it cleanly at the roofs in front: neon.js), stepping in only at the MAIN setbacks (a setback narrower than
@@ -250,6 +252,19 @@ export function outlines(L, signRects = new Map()) {
   // (a building standing in front of a word tower's face keeps its neon under its roof: no chevron, no parapet into the face)
   const faces = cam ? L.towers.filter(t => t.word && t.face).map(t => { const tr = t.tiers[0]; return { x0: project(cam, tr.x0, 0, tr.z0)[0], x1: project(cam, tr.x1, 0, tr.z0)[0], z: tr.z0 }; }) : [];
   const underFace = b => faces.some(f => b.z0 < f.z && project(cam, b.x1, 0, b.z0)[0] > f.x0 - 2 && project(cam, b.x0, 0, b.z0)[0] < f.x1 + 2);
+  // DT1 — THE WHEEL BACKDROP'S NEON ROOF ACCENT (the owner's pick d + "a thin Deco roofline, calm, never brighter than the wheel"):
+  // the floodlit near blocks behind the wheel get ONE fine gold roofline each — the cornice + a short Deco step at each end —
+  // dimmer + thinner than any other neon (neon.js: strength 'accent'), the only tubes allowed behind the wheel's disc
+  if (cam) {
+    const nb = L.bands.find(b => b.id === 'near'), acc = [];
+    for (const b of nb ? nb.blocks : []) {
+      const [a, ty] = project(cam, b.x0, b.h, b.z0), [c] = project(cam, b.x1, 0, b.z0), mx = (a + c) / 2;
+      if (!(b.z0 > wh.z + 4 && Math.abs(mx - wcx) < (wr - 6) * 0.82 && ty < wcy + (wr - 6) * 0.2) || b.x1 - b.x0 < 2.4) continue;
+      const z = b.z0 - 0.05, st = Math.min(0.9, (b.x1 - b.x0) * 0.12), dy = 0.55;
+      acc.push({ pts: fillet([[b.x0 + 0.25, b.h - dy, z], [b.x0 + 0.25, b.h + 0.05, z], [b.x0 + 0.25 + st, b.h + 0.05, z], [b.x0 + 0.25 + st, b.h + dy * 0.7, z], [b.x1 - 0.25 - st, b.h + dy * 0.7, z], [b.x1 - 0.25 - st, b.h + 0.05, z], [b.x1 - 0.25, b.h + 0.05, z], [b.x1 - 0.25, b.h - dy, z]], 0.12), role: 'a3', thin: true, part: 'roof', z, block: b.id });
+    }
+    if (acc.length) add({ id: 'wheel-accent', group: 'near', strength: 'accent', roles: ['a3'], z: Math.min(...acc.map(l => l.z)), lines: acc, accent: true, band: 'near', blocks: acc.map(l => l.block) });
+  }
   for (const bd of L.bands) {
     if (bd.id === 'haze') continue;
     const near = bd.id === 'near', mid = bd.id === 'mid';
@@ -485,7 +500,8 @@ function crownPath(t, tr) {
 export const SPOTS = [
   // (NEON PASS 5 — the owner's glance test: every name >= 10 pt at 390 wide. The roof signs are STACKED — the mark on top, the name
   // across the whole cabinet under it — and take names of up to 6 letters; the longer ones hang as icons or on the billboard)
-  { id: 'n-roof', kind: 'named', type: 'box', stack: true, host: 'near', mount: 'roof', x: [29, 85], y: [446, 478], z: 240, cap: 6 },
+  // (DT1 — the owner: THE LEFT ROOF-SIGN SLOT IS GONE — n-roof, the box on the top-left roof — so the EMPIRE behind it shows whole:
+  // its outline, fins, ledges and windows. 3 named signs a night + the billboard)
   // (NEON PASS 5: n-par — PAR's narrow vertical name, 10.5 pt wide between PAR's roof and docked Rosie — is gone: six stacked letters
   // stood 5.7 pt there, and no taller box fits)
   // Part 6a (the owner's SIGN PLACEMENT RULE: no sign covers a hero tower's face or outline): the sunburst's named sign is gone
@@ -497,7 +513,8 @@ export const SPOTS = [
   // read"): it was docked ROSIE — her twin stacks + their bulb strings stood over its last letter for her four minutes alongside.
   // She now rests bow-out (core/harbor-boats.js) and the blade ends 2.5 pt over her stern's bulb string (its top 1.5 pt under the
   // hotel's roof): every letter clear, still ≥ 10 pt (signs.js#bladeLayout) — tested against her docked silhouette
-  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6 },
+  // (DT1 — THE SLOT RULE: the blade takes ONE-WORD names only — words: 1)
+  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6, words: 1 },
   // NEON PASS 6 (the owner: "remove the tiny floating game icons — distracting"): every ICON spot is gone (i-par, i-par2, i-left,
   // i-c1, i-r1, i-r2; i-mid went in Neon Pass 5). The games are carried by the NAMED signs — the roof signs, the blade, the
   // billboard (it advertises a game with no sign tonight) — and the nightly shuffle rotates which games hang, so every game shows
@@ -506,11 +523,14 @@ export const SPOTS = [
   // i-c2 + i-par2 off the crowded right wall) — under the skyline limit, out of the sun corridors, the towers' beacons on top
   // of their frames; while a tower spells a word its roof sign dims (the message is the star). Placed from the tower's own
   // top roof (towerRoofSign), not from reference pt: wpt × hpt is the cabinet at the reference scale.
-  { id: 'n-roofA', kind: 'named', type: 'box', stack: true, host: 'wordA', mount: 'tower', wpt: 55, hpt: 31, cap: 6 },
-  { id: 'n-roofB', kind: 'named', type: 'box', stack: true, host: 'wordB', mount: 'tower', wpt: 55, hpt: 31, cap: 6 },
+  // (DT1 — THE SLOT RULE: a roof sign takes a one-word name, or a TWO-WORD name stacked on two lines — words: 2, each ≤ cap)
+  { id: 'n-roofA', kind: 'named', type: 'box', stack: true, host: 'wordA', mount: 'tower', wpt: 55, hpt: 31, cap: 6, words: 2 },
+  { id: 'n-roofB', kind: 'named', type: 'box', stack: true, host: 'wordB', mount: 'tower', wpt: 55, hpt: 31, cap: 6, words: 2 },
   // (NEON PASS 5 — the owner: the billboard's name was small beside its icon: a bigger board, the mark small in its corner, the NAME
   // across the whole board: signs.js#buildBillboard)
-  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'wall', x: [6, 71], y: [483, 524], z: 233.1, show: 'rum' },
+  // (DT1 — the owner: "built, not floating": a 1920s rooftop billboard on the lowered roof of the near block behind it, on a steel
+  // A-frame with a catwalk + railing, four gooseneck lamps — core/harbor-layout.js#BILLBOARD; any name fits it, on one line)
+  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'roof', x: [...BILLBOARD.x], y: [...BILLBOARD.y], z: BILLBOARD.z, show: 'rum' },
 ];
 let refCam = null;
 const ref = () => refCam || (refCam = cameraFor(REF_TITLE.W, REF_TITLE.H, { tag: REF_TITLE.tag, dock: REF_TITLE.dock }, REF_TITLE.safe));
@@ -622,23 +642,40 @@ export function nightKey(local) {
 }
 
 /**
- * Which game takes which spot tonight. games: [{ id, name, short }] (short: the name a sign spells — the blade word); spots:
- * signSpots(). A new shuffle each night (key): the named spots get the first games whose name fits (cap), the icon spots the
- * rest in order — every game has a sign while there are spots enough (12 games: 4 named + 8 icons on a phone); a game list
- * that grows or shrinks just fills more or fewer spots (an empty spot hangs nothing). → Map(spot id → game id).
+ * THE SLOT RULE (DT1 — the owner: "a single word like STAKES tells nobody anything"): does a sign's FULL name (never shortened)
+ * fit a spot? A spot takes names of up to `words` words (the blade: 1; a roof sign: 2, stacked on two lines; a panorama blade:
+ * 1), each word at most `cap` letters (the glance test: every letter ≥ 10 pt). The billboard takes any name, on one line.
+ */
+export function fitsSpot(name, sp) {
+  if (!sp || sp.kind === 'billboard') return true;
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.length <= (sp.words || 1) && words.every(w => w.length <= (sp.cap || 99));
+}
+const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) : null; };
+/**
+ * Which game takes which spot tonight. games: [{ id, name, short }] (short: the FULL name a sign spells — signs.js#signName);
+ * spots: signSpots(); key: the night (nightKey). DT1: THE WEEK'S ROTATION — each week (Monday → Sunday) a new seeded order of the
+ * games, rotated night by night through the named spots, the most particular spot first (the blade: one word), each taking the
+ * first game whose name FITS (fitsSpot) — so every game that fits a named sign hangs on one a few times a week, and the ones
+ * that fit none (long single words) take the billboard (billboardPick). A list that grows or shrinks fills more or fewer spots.
+ * → Map(spot id → game id).
  */
 export function assignSigns(games, spots, key = 'x') {
-  const R = rngFrom(`signs|${key}`);
-  const order = shuffle(R, games.map(g => g.id));
+  const n = dayNo(key) ?? Math.floor(rngFrom(`signs|${key}`)() * 7000), week = Math.floor((n + 3) / 7), d = n + 3 - week * 7;
   const byId = new Map(games.map(g => [g.id, g]));
-  const out = new Map(), used = new Set();
   const named = spots.filter(s => s.kind === 'named'), icons = spots.filter(s => s.kind === 'icon');
-  // the named spots, the wide/long ones first (they take the long names)
-  for (const s of [...named].sort((a, b) => (b.cap || 0) - (a.cap || 0))) {
-    const g = order.find(id => !used.has(id) && (byId.get(id).short || '').replace(/ /g, '').length <= (s.cap || 99));
+  // the week's order: the games that fit a named spot, shuffled for the week, rotated by tonight's place in it
+  const fitsAny = id => named.some(s => fitsSpot(byId.get(id).short, s));
+  const pool = shuffle(rngFrom(`signs|w${week}`), games.map(g => g.id).filter(fitsAny));
+  const rot = pool.length ? (d * Math.max(1, named.length)) % pool.length : 0, order = [...pool.slice(rot), ...pool.slice(0, rot)];
+  const out = new Map(), used = new Set();
+  // the most particular spots first (fewest words, then the shortest cap): the blade before the roof signs
+  for (const s of [...named].sort((a, b) => (a.words || 1) - (b.words || 1) || (a.cap || 99) - (b.cap || 99))) {
+    const g = order.find(id => !used.has(id) && fitsSpot(byId.get(id).short, s));
     if (g) { out.set(s.id, g); used.add(g); }
   }
-  for (const s of icons) { const g = order.find(id => !used.has(id)); if (g) { out.set(s.id, g); used.add(g); } }
+  const rest = shuffle(rngFrom(`signs|i${week}|${d}`), games.map(g => g.id).filter(id => !used.has(id)));
+  for (const s of icons) { const g = rest.find(id => !used.has(id)); if (g) { out.set(s.id, g); used.add(g); } }
   return out;
 }
 /**
@@ -646,8 +683,19 @@ export function assignSigns(games, spots, key = 'x') {
  * else one with no named sign; n: the billboard's index (more than one on a wide screen). → game id | null
  */
 export function billboardPick(games, spots, pick, key = 'x', n = 0) {
-  const named = new Set(spots.filter(x => x.kind === 'named').map(x => pick.get(x.id))), signed = new Set(pick.values());
-  const none = games.filter(g => !signed.has(g.id)), ad = none.length ? none : games.filter(g => !named.has(g.id));
-  return ad.length ? ad[(n + key.length + key.charCodeAt(key.length - 1)) % ad.length].id : null;
+  const signed = new Set(pick.values()), namedSpots = spots.filter(x => x.kind === 'named');
+  const day = dayNo(key);
+  if (day == null) {
+    const named = new Set(namedSpots.map(x => pick.get(x.id)));
+    const none = games.filter(g => !signed.has(g.id)), ad = none.length ? none : games.filter(g => !named.has(g.id));
+    return ad.length ? ad[(n + key.length + key.charCodeAt(key.length - 1)) % ad.length].id : null;
+  }
+  // DT1 — THE WEEK'S ROTATION: the games that fit no named sign (a long single word) take the board on the week's first nights, one
+  // each (shuffled for the week), the others after; never a game already on a sign tonight
+  const week = Math.floor((day + 3) / 7), d = day + 3 - week * 7;
+  const only = games.filter(g => !namedSpots.some(s => fitsSpot(g.short, s))).map(g => g.id), others = games.map(g => g.id).filter(id => !only.includes(id));
+  const list = [...shuffle(rngFrom(`bb|w${week}`), only), ...shuffle(rngFrom(`bb2|w${week}`), others)];
+  for (let i = 0; i < list.length; i++) { const id = list[(d + n + i) % list.length]; if (!signed.has(id)) return id; }
+  return null;
 }
 export { fxAt };

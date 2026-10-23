@@ -777,6 +777,21 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — THE LIGHTS + SIGNS PASS (Oct 23, 2026) — `docs/harbor.md#dt1` (Day touch-up part 1)
+- [x] THE BLUE-HOUR POWER-UP on the one darkness input: the dusk curve on the sun's elevation (golden hour's flat 0.35 gone), the
+      power-up sunset → −7° with tonight's seeded order (outlines cluster by cluster in a sweep, signs one by one), the ramps re-cut
+      (the billboard's lamps first, the lamps at sunset, floodlights mid blue hour), the windows (~5 % in golden hour, lower floors
+      first, all by the blue hour's end), the BLUE HOUR look (a deep-blue sky, night tones) — City 1.0 untouched; mirrored at dawn
+- [x] Floodlights: the wheel backdrop's gold roof accent, the wall behind the lighthouse (+ the beam brightening it), uplit landmarks
+      (EMPIRE, sunburst, m-right), the waterfront row behind `&force=flood-front`
+- [x] The signs: the left roof slot removed (the EMPIRE whole), the slot rule + full names (two words stacked on a roof sign, the
+      long single words on the billboard), the week's rotation (every game every week), roof-sign steel lattice + catwalks, the
+      blade bolder + bigger bulbs, the billboard rebuilt as a poster on its roof (lowered blocks, A-frames, catwalk, ladder) with
+      four gooseneck lamps (a dim wash at night)
+- [x] The glass tower: a fine outline, lit floors, its party beam; the sign's dark halo (CSS tagline + canvas logo / SPEAKEASY) +
+      the moon dimmed behind the tagline; load hitches never cost a tier (8 s grace), the session's after-10 s line, the readout at
+      the bottom; the panel's LIGHTS group + POWER-UP / POWER-DOWN times
+
 ### ✅ CITY 2.0 — CLEANUP C1.5 + SPEED (Oct 22, 2026) — `docs/harbor.md#cleanup-c15` (from `docs/harbor/review-2.md`; no visual change)
 - [x] The O's white core: the holiday O's rules scoped to the swapped O (`[data-kind]`) with fallbacks; the flutter by a class
       (`is-flut`), never an inline style that left `style=""` behind; E2E: the flutter forced onto the O, the Halloween + St Patrick's O

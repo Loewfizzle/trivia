@@ -208,6 +208,23 @@ export function createBeam() {
       }
       c.restore();
     },
+    /** DT1: the beam brightening the floodlit wall behind the lighthouse as it sweeps past (f: { k, wallZ, ms, now, motion }) — a
+     *  soft warm patch where the beam pointing AWAY from us meets the wall, sliding across it; drawn under the lighthouse */
+    wall(c, f) {
+      if (!L || f.k <= 0.01 || !f.motion) return;
+      sprites();
+      const h = L.lighthouse, a = angle(f.ms, f.now, f.motion), dz = f.wallZ - h.z;
+      for (const off of [0, Math.PI]) {
+        const aa = a + off, sn = Math.sin(aa);
+        if (sn < 0.2) continue;
+        const xw = h.x + dz * Math.cos(aa) / sn, [sx, sy] = project(cam, xw, h.h * 0.55, f.wallZ), u = cam.F / f.wallZ;
+        const k = f.k * Math.pow(sn, 1.5) * Math.max(0, 1 - Math.abs(xw - h.x) / 22);
+        if (k < 0.01) continue;
+        c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, k * 0.32);
+        const rw = u * 9, rh = u * 13; c.drawImage(halo, sx - rw, sy - rh, rw * 2, rh * 2);
+        c.restore();
+      }
+    },
     /** the beam in the water (water.reflect: flipped about the lighthouse's waterline) — the fans only, softer */
     reflect(c, f) { if (!L || f.k <= 0.01) return; c.save(); c.globalCompositeOperation = 'lighter'; drawFans(c, { ...f, tier: 0 }, lastAng, f.k * 0.55); c.restore(); },
     /** HOOK: the beam's colour ([r,g,b]; null = the lamp's warm white) — 11a: the Halloween green */

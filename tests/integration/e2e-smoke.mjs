@@ -13,7 +13,9 @@ mkdirSync(OUT, { recursive: true });
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const WATCH_MS = Number(process.env.WATCH_MS || 14000);
 // quick settings so each game reaches real play fast (DOUBLE AGENT needs 4 players — e2e-agent.mjs covers it)
-const GAMES = [
+// (GAMES=cipher,pulse: only those — the one-game smoke check a City 2.0 pass runs when it touches a shared file; plan.md TESTING SCOPE)
+const ONLY_GAMES = (process.env.GAMES || '').split(',').filter(Boolean);
+const ALL_GAMES = [
   ['cipher', { rounds: 3 }],
   ['signal', {}],
   ['overclock', { mode: 'quick' }],
@@ -27,6 +29,7 @@ const GAMES = [
   ['stakes', {}],
   ['rum', { days: 15, daySec: 30 }],
 ];
+const GAMES = ONLY_GAMES.length ? ALL_GAMES.filter(([id]) => ONLY_GAMES.includes(id)) : ALL_GAMES;
 const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);

@@ -30,6 +30,9 @@ const LINKS = [
 // mounting clips (x, y) — tiny standoffs crossing the tube
 const CLIPS = [[0, 30], [64, 70], [92, 30], [92, 76], [176, 50], [240, 50], [268, 30], [332, 70]];
 
+/** the NEON letters' tube paths (x offset + SVG path in the 332 × 100 logo box) — CITY 2.0's dark halo behind the sign (harbor/scene.js) */
+export const LOGO_LETTERS = LETTERS.map(L => ({ x: L.x, d: L.d }));
+export const LOGO_TUBE = TUBE;
 export const LOGO_W = 332;
 export const LOGO_H = 100;
 

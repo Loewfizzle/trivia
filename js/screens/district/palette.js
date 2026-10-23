@@ -27,7 +27,14 @@ const GOLDEN = {
   stars: 0.08, haze: [255, 150, 120], hazeA: 1, tint: [70, 38, 72], tintA: 0.46, rim: [255, 170, 110, 0.32], win: 0.5, trims: 0.4, street: [92, 52, 70, 0.4], refl: 0.6,
   sign: 0.35, dark: 0.35, sun: 1, sunCol: [255, 170, 90], moonA: 0.5,
 };
-export const LOOKS = { night: NIGHT, late: LATE, dawn: DAWN, day: DAY, golden: GOLDEN };
+// THE BLUE HOUR (CITY 2.0 only, DT1 — the Harbor's weights carry `blue` between sunset and full night: screens/harbor/tones.js#
+// harborWeights; City 1.0's never do, so its palette is unchanged): a deep, luminous blue overhead fading to a softer blue low,
+// the city's glow cool, a few first stars — the sky real cities light up against
+const BLUE = {
+  ...NIGHT, sky: [[6, 12, 44], [16, 34, 98], [38, 66, 150], [92, 104, 182]], glow: [120, 110, 255, 0.26], glow2: [60, 96, 230, 0.16], cloud: [96, 104, 196, 0.16],
+  stars: 0.32, haze: [62, 70, 148], tint: [28, 38, 92], tintA: 0.28, rim: [140, 160, 255, 0.1], street: [16, 18, 52, 0.12], refl: 0.85, dark: 0.85, moonA: 0.9,
+};
+export const LOOKS = { night: NIGHT, late: LATE, dawn: DAWN, day: DAY, golden: GOLDEN, blue: BLUE };
 
 const mixN = (a, b, t) => a + (b - a) * t;
 const clamp = v => (v < 0 ? 0 : v > 1 ? 1 : v);

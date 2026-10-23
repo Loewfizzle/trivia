@@ -28,10 +28,32 @@ const NIGHT = {
   boat: [60, 56, 76], boatHull: [44, 18, 28], cart: [22, 36, 30], bench: [30, 24, 26], planter: [34, 26, 30], win: [255, 208, 138], winA: 1,
 };
 
+/**
+ * DT1 — THE BLUE HOUR (the owner: the city lights up "fully lit against a deep-blue sky"): the sky model goes from golden hour to
+ * night only by −14°, so the power-up (sunset → −7°) ran against a salmon sky. The Harbor's look passes through a BLUE look
+ * between them: its share by the real sun's elevation — in from sunset (−0.8° → −4°), held through the blue hour (→ −7°), out
+ * into the night (→ −12°); the same at dawn. City 1.0 never calls this (its palette has no blue share).
+ */
+export function blueHour(el) {
+  if (!(el < -0.8) || !(el > -12)) return 0;
+  const sm = t => t * t * (3 - 2 * t);
+  return el > -4 ? sm((-0.8 - el) / 3.2) : el > -7 ? 1 : sm((el + 12) / 5);
+}
+/** the Harbor's look weights: the sky model's, with the blue hour's share taken evenly from them (they still sum to 1) */
+export function harborWeights(LK) {
+  if (!LK || !LK.w || LK.alwaysNight || !LK.sun) return LK;
+  const b = blueHour(LK.sun.el);
+  if (b <= 0) return LK;
+  const w = {};
+  for (const [k, v] of Object.entries(LK.w)) w[k] = v * (1 - b);
+  w.blue = b;
+  return { ...LK, w, blue: b };
+}
 /** the blend weights of the three tints for a look: { day, gold, night } summing to 1 */
 export function toneWeights(LK) {
   const w = (LK && LK.w) || { night: 1 };
-  const night = (w.night || 0) + (w.late || 0) + 0.3 * (w.dawn || 0);
+  // (DT1: the blue hour's facades take the night's tones — silhouettes against the luminous blue, their windows + neon coming on)
+  const night = (w.night || 0) + (w.late || 0) + 0.3 * (w.dawn || 0) + (w.blue || 0);
   const gold = (w.golden || 0) + 0.7 * (w.dawn || 0);
   const day = w.day || 0;
   const s = Math.max(1e-6, night + gold + day);

@@ -51,7 +51,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     Looks without a server: `board-preview.html` (`?mode=public&g=pulse&c=records&p=all&far=1&anon=1&empty=1&err=1`),
     `results-preview.html` (`?case=first|top10|world|pb|merged|rankup|legend`), `emblems-preview.html`; `og-board.html` renders the
     /board link preview (`render-assets.mjs` writes assets/og-board.jpg).
-  - **Smoke test first (~2 min):** `node e2e-smoke.mjs "<browser path>" ./shots` — two REGULAR phone tabs (no `?slot=`; every
+  - **Smoke test first (~2 min):** `node e2e-smoke.mjs "<browser path>" ./shots` (DT1: `GAMES=cipher` runs only those — the one-game check a City 2.0 pass runs after touching a shared file; `shots.mjs` names a custom crop by it: `-c0x420x150x140`) — two REGULAR phone tabs (no `?slot=`; every
     other suite uses test slots, which once hid a lobby bug that printed "null" only on a real phone): create/join, lobby, HOW TO
     PLAY, all six games started and watched, back to the lobby. Fails on visible "null"/"undefined"/"NaN"/"[object Object]",
     page errors or console errors. Native `append()`/`replaceChildren()` print a `null` argument as text — `h()` skips it.

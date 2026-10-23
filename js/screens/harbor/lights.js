@@ -9,7 +9,8 @@
 //    spell(text, { tower, style }) lights a message on the word towers (core/harbor-windows.js#layoutText) — steady, a wipe-on
 //    floor by floor, or a gentle twinkle — while the rest of that tower dims so it reads. Night only. Any later part addresses
 //    a window by (building, tier, col, row) with set() (party waves, flags, holiday windows).
-import { winTraits, buildingDice, isLit, winHash, layoutText, normText, scrollColumns, FONT_H } from '../../core/harbor-windows.js';
+import { winTraits, buildingDice, winHash, layoutText, normText, scrollColumns, FONT_H } from '../../core/harbor-windows.js';
+import { windowThreshold } from '../../core/harbor-dark.js';
 import { cellRect, isDeco, behindWheel } from './blocks.js';
 import { project } from '../../core/harbor-layout.js';
 import { SPOTS, towerRoofSign } from '../../core/harbor-neon.js';
@@ -86,11 +87,14 @@ function drawLit(x, cam, it, look, meta, group, idx) {
     const tr = winTraits(b.seed, t, c, r, dice);
     if (!tr) continue;
     // (THE DAY PASS §0, the owner's pick d: behind the wheel the windows stay dark — the floodlit stone carries it, blocks.js#floodWash)
-    const on = !quiet && isLit(tr, share);
+    // (DT1 — THE BLUE HOUR: while the city powers up the LOWER floors light first — look.bias, core/harbor-dark.js#windowThreshold;
+    // at night the bias is 0: City 1.0's order exactly)
+    const low = 0.75 * (1 - r / Math.max(1, g.rows - 1)) + 0.25 * winHash(b.seed, t, c, r, 24);
+    const on = !quiet && tr.order <= windowThreshold(share, look.bias || 0, low);
     const rect = cellRect(cam, b, c, r, deco);
     if (group === 'near' && winHash(b.seed, t, c, r, 12) < 0.05 && meta.cands.length < 220) meta.cands.push({ rect, col: colourOf(tr, look.warm), on, a: tr.a * depthK, idx, id: [b.tower || b.id, t, c, r] });
     if (!on || share <= 0) continue;
-    let col = quiet ? colourOf({ ...tr, cls: 'warm' }, look.warm) : colourOf(tr, look.warm), a = tr.a * depthK * (quiet ? (wbg === 'a' ? 1 : wbg === 'c' ? 0.92 : 0.85) : 1);
+    let col = quiet ? colourOf({ ...tr, cls: 'warm' }, look.warm) : colourOf(tr, look.warm), a = tr.a * depthK;
     // PARTY WINDOWS (NEON PASS 3, City 1.0's): on a party night ~1 lit window in 5 takes a party colour (pink, cyan, violet, gold),
     // and now and then a whole floor in one colour — baked with the light key (look.party), so they cost nothing a frame
     if (look.party && tr.cls !== 'tv' && !quiet) {
@@ -134,6 +138,9 @@ function drawLit(x, cam, it, look, meta, group, idx) {
     const [a, ty] = project(cam, b.x0, (b.y0 || 0) + b.h, b.z0), [c2] = project(cam, b.x1, 0, b.z0), lw = Math.max(0.5, s * 0.12);
     x.fillStyle = rgba([200, 236, 255], 0.75 * look.night * depthK);
     for (let i = 0; i < 3; i++) x.fillRect(a, ty + i * s * 1.6, c2 - a, lw);
+    // (DT1: + a few LIT FLOORS down the glass — late offices, a cleaning crew: 3–4 seeded floors, cool white, soft)
+    { const by = project(cam, b.x0, b.y0 || 0, b.z0)[1], hh = by - ty;
+      for (let i = 0; i < 4; i++) { const f = 0.22 + 0.17 * i + 0.08 * (winHash(b.seed, 31, i, 0, 5) - 0.5); if (winHash(b.seed, 32, i, 0, 5) < 0.2) continue; x.fillStyle = rgba(i % 2 ? [214, 232, 255] : [255, 236, 210], 0.5 * look.night * depthK); x.fillRect(a + (c2 - a) * 0.06, ty + hh * f, (c2 - a) * 0.88, Math.max(0.6, s * 0.5)); } }
     x.fillRect(a, ty, lw, s * 10); x.fillRect(c2 - lw, ty, lw, s * 10);
   }
 }
