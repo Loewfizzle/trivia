@@ -33,9 +33,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | FA | ✅ (b87e589 — the owner: fixed, "even better": music returns by itself after the home screen / another app; one tap after a podcast or another app's music, as iOS requires. OPEN: in her screenshots the Web Audio context stays FROZEN after returning and the music runs on the DIRECT element — check the beat lights + SFX still work in that state; fold into 7a section 0) FABLE: THE iPHONE MUSIC BUG on evidence (the AUDIO panel: a new context "running" with a frozen clock, session ambient, gain 0, 6 rebuilds) | Fable high | 45–75 min |
 | F1 | ✅ (294e105) FIX PASS: the iPhone music bug (still broken — a diagnostic first), the billboard lit at night, the beat lead, brick texture at noon | Opus 5.5 high | 45–75 min |
 | DB | ✅ (ed141a3, Oct 23) MUSIC FIXES (drop slip8, the iOS music-dies-after-leaving bug, party beat latency) + DAY BUILDINGS (the owner: "a little flat", 7–8 / 10): cast shadows between buildings, ambient occlusion, recessed windows, materials — the "BUILDINGS BY DAY" notes | Opus 5.5 high | 60–90 min |
-| 7a | ✅ (Oct 23) THE SPEAKEASY'S LOOK + section 0 (the layout, the first tap, the beat after returning, the panel in categories) + the near brick + the lighthouse — the ghost ad: a blade sign by default, the turned corner a preview (the owner's call: docs/harbor.md#part-7a) | Opus 5.5 high | done |
-| 7 | (7a done above; 7b THE LIFE comes with 8b) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
-| 8a | ← NEXT: THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
+| 7 | ✅ 7a (12a4f9c, Oct 23 — the owner: 7–8 / 10 at night, cozy; the ghost ad = the BLADE, not the corner turn; the smaller corner buttons feel better) ( add-ons sent: the sun's colour by altitude — golden hour too white; SUNRISE + SUNSET presets in the panel's TIME category; the AUDIO panel's header says "sounding" while the detail says NO) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
+| 8a | ← NEXT (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 8b | THE LIFE (after 6b): people, vehicles, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
 | C2 | cleanup pass 2 | Opus 5.5 medium | 15–30 min |
@@ -265,6 +264,10 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   REAL MORNING (Fri 8:52 am, live): the sun here IS a white bloom (good — so the 9:00 orange ball was the preview's
   low-sun colour, recheck); cumulus read much better (soft, shaded, varied); a few still have flat grey slab bases; the
   streaks again cross behind SPEAKEASY like speed lines; overall the day now reads like a poster.
+  (5b-5) THE SPELL-ON (the owner loves it, Oct 23): a neon sign going dark, then lighting back up one letter at a time and
+  staying on (Neon Pass 4's normal-night "spell" effect). Make sure EVERY neon sign (both roof signs + the blade) does it
+  now and then on normal nights — staggered, never two at once, every ~few minutes somewhere — and keep it on party nights
+  between show scenes.
   (5c) THE SIGNS RETHINK (Oct 22 — the owner: one-word signs like "STAKES" tell nobody anything; let the CITY be the neon and
   the billboards be old-school painted billboards, lit at night). Being decided one by one:
     - BLUFF (the neon box on the top-left roof): REMOVE (agreed) — it frees that tower's pink neon crown and un-stacks the
@@ -565,6 +568,16 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   the MOOD cozy and a bit worn (chipped terracotta, faded gilt, weathered brick, some ivy, a patched awning) — "it is a
   speakeasy after all"; KEEP ITS SIZE on screen as today; the BARBERSHOP front stays (striped turning pole, a big shop window
   with the chair, the "EST. 1924" awning).
+  THE BILLBOARD MOVES ONTO THE SPEAKEASY'S ROOF (the owner, Oct 23 — it still looks like it's floating): stands on the
+  speakeasy roof's BACK-LEFT corner on its steel frame (legs bolted to the roof deck, a catwalk + ladder, the four lamps),
+  set back so the rooftop deck in front stays open — rooftop party guests (7b) walk IN FRONT of it, the sign painters /
+  billposter (8b) work on the roof instead of a ladder. Conditions: never cut by the left screen edge at 390 / 402 / 430,
+  never covering the wheel or the word towers, the daily game rotation + full name + lit at night unchanged; check the
+  speakeasy doesn't feel crowded with the ghost ad on its side wall (if it does, tell the owner and propose an option).
+  THE BARBER POLE AT NIGHT (the owner, Oct 23 — replaces "the pole stops at night"): from DUSK until MORNING the pole is LIT
+  from inside — a soft, warm old-school incandescent yellow glow through the glass (not LED-bright), turning SLOWLY; by day
+  it turns unlit in daylight. The story: the shop shows CLOSED, yet the pole keeps turning — the secret signal that the
+  speakeasy is open. During a RAID it snaps dark and stops (7b), back on when the coast is clear.
 - 7a ALSO — THE SKYLINE'S NEAR BRICK STILL READS FLAT (the owner's noon crop, Oct 23, after F1's brick pass): the red-brick
   waterfront blocks (by the lighthouse, under the billboard) are smooth salmon slabs + a window grid. Real-scale brick
   courses are sub-pixel at that distance, so they vanish. Fix like an illustrator, the same material system as the
@@ -585,9 +598,21 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   big parts only (6b, 10, the holiday parts), the owner just leaves her iPhone on the city (&debug=1, plugged in or not)
   while doing something else, then reads the session line (slow % over 30 min, any tier drop) and feels if the phone is
   hot. The readout can add a "since 10 min" slow % so the creep is visible.
+- FUTURE IDEAS (PARKED — not in any part yet; the owner, Oct 23: "let's not spend time on that right now"):
+  NOCTILUCENT CLOUDS (a RARE sky event, true to life): the highest clouds there are
+  (~80 km), glowing electric blue-silver because they're still lit by the sun after it has set. Only when real-ish:
+  SUMMER (late May → early August), only in deep TWILIGHT (the sun ~6–16° below the horizon — ~45–100 min after sunset or
+  before sunrise), never in full night or by day; low over the horizon behind the skyline; delicate rippled, wavy bands
+  and herringbone streaks, faintly luminous, slowly shifting. Rare at Grand Rapids' latitude, so: a few evenings a
+  summer at most (seeded, the same for everyone) → a City Sightings badge candidate. A preview + panel row.
+- 6b section 0 — CLOUD LAYERING BUG (the owner, Oct 23, at night with the city's pink underglow): a high CIRRUS behind a
+  CUMULUS showed THROUGH the cumulus — the near cloud reads see-through. Likely the night underglow / tint drawn as a
+  translucent layer, the cumulus' body too transparent at night, or the draw order (cirrus after cumulus). Rule: a
+  cumulus' body is OPAQUE — nothing behind it shows through (only its thin edges let the sky through); high clouds always
+  draw first. Check at night, party night and by day.
 - 6b section 0 — CIRRUS SOFTER + LONGER (the owner, Oct 23): the high streaks are too sharp — more diffusion (soft,
   blurred, feathered edges, lower contrast) and longer, more stretched strands.
-- 6b section 0 — CLOUDS EVOLVE (pending the owner's OK): clouds slowly swell, change shape and dissipate over minutes,
+- 6b section 0 — CLOUDS EVOLVE (the owner said OK, Oct 23 — she'll judge the clouds only once 6b's full system is in): clouds slowly swell, change shape and dissipate over minutes,
   new ones form; each 6-hour re-roll picks a varied MIX (a towering one or two / many medium / nearly clear), never the
   same blend.
 - Windows you see into (rooms read as warm glow + big silhouettes), the unmarked door + the knock, the awning "EST. 1924".
@@ -674,6 +699,48 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Leave room for Lobby 2.0's password sign in a window ("TONIGHT'S PASSWORD: <hush word>", letters 14–16 pt).
 
 ## Part 8 — the stage + wildlife
+- 8a SECTION 0 — CARRIED OVER: only (6) the billboard move was NOT sent to 7a (the owner sent (1)–(5) + the barber pole —
+  check 7a's summary that they landed; anything missing carries here too):
+  (1) THE SUN'S COLOUR BY ALTITUDE — golden hour too white (her iPhone at 17:57, ≈ 5–6° up): above ~15° white; ~6–15° warm
+  yellow-white; ~2–6° clearly golden amber (the city's light warmer too); the last ~2° deep orange-red, slightly squashed;
+  the same at sunrise. (2) The panel's TIME presets in order: SUNRISE (~5 min after the real sunrise) · MORNING · NOON ·
+  AFTERNOON · GOLDEN HOUR · SUNSET (~5 min before) · DUSK · NIGHT. (3) The AUDIO panel's header says "sounding" while its
+  detail says "sounding NO · locked (no tap yet)" — match them. (4) THE SPELL-ON on EVERY neon sign (both roof signs + the
+  blade), staggered, never two at once, every few minutes on normal nights, between scenes on party nights. (5) The window
+  WORD TOWERS: a text box in the panel (type a message, pick tower(s), each tower's max letters shown live; long messages
+  spread one word per tower or scroll); report the exact limits. (6) THE BILLBOARD ONTO THE SPEAKEASY'S ROOF — over the left
+  half-plus of the roof, fully inside the left edge at 390 / 402 / 430, raised on a visible steel lattice frame (legs on the
+  roof deck, ~¼ of the board's height of open frame so the city shows through), catwalk + ladder + the four lamps; guests /
+  painters can walk under it; never covering the wheel or the word towers; flag it if the speakeasy feels crowded with the
+  ghost ad. (6b) THE FIRST-TAP SURGE whenever the sign is NOT on (the owner): not only "by day" — morning, day, golden
+  hour, dusk, any moment the NEON sign isn't lit, the first tap's surge races N→E→O→N then fades back; only during the
+  evening warm-up window does the tap do the catch instead (it lights the sign for good). (6c) THE PULSE DOESN'T COME BACK
+  AFTER RETURNING (the owner's iPhone, Oct 23, after 7a): this time Web Audio DID recover (ctx running, clock advancing,
+  out WEB AUDIO, the beat line "grid 100.0 · bar 30 · kick 0.66", music sounding) — yet the city's lights didn't pulse. So
+  the bug is on the LIGHTS side: find the stuck state after hidden → visible (the "calm" latch from the frozen-graph state
+  never cleared? the beat clock / punch envelope paused on visibilitychange and not restarted? a huge rAF time jump
+  clamping the envelope?) and fix it; add "pulse" (the punch level now, 0–1) to the readout's beat line so it's visible.
+  (6d) THE PULSE STRONGER AGAIN (the owner: "crank it up higher") — and stop guessing: add a PULSE STRENGTH slider to the
+  preview panel (LIGHTS) so the owner dials it live on her iPhone, then the chosen value becomes the default; start ~+30 %
+  above 7a's; still no full-screen flashing. (7) THE NEON TAP SOUNDS ~25 % QUIETER (the owner): the on / off sounds when you TAP the NEON sign's tubes drop
+  ~25 % in volume (gain × 0.75, ≈ −2.5 dB); the start-up surge / power-on sound stays as loud as it is.
+  (8) SOUND SLOTS (the owner will collect the recordings later): ONE sound registry — every planned city sound (the CITY
+  SOUNDS hunt list, by part) gets a named SLOT now (e.g. club-murmur-calm, door-heavy, cat-meow, water-lapping,
+  city-hum-night, car-1920s-pass, flag-flap…); every event calls its slot; an EMPTY slot is simply silent (never an error,
+  never a placeholder beep). Adding a sound later = drop the file into a folder (e.g. ~/Downloads/city-sfx/<slot name>.wav)
+  + run one script (trim, level to the city's loudness, encode, register) — like add-city2-music.py. The preview panel's
+  SOUNDS category lists every slot: filled / empty, with a play button. + anything the owner
+  finds when she checks 7a.
+- 8a DECISIONS (the owner, Oct 23): CUT the glass bus stop shelter (the bus stops at the curb). GROUND mostly COBBLESTONE —
+  rounded granite setts that catch lamplight on their tops; rain = a wet sheen + reflections of the lamps / neon in the
+  stones and puddles collecting in the joints; snow settles in the joints first, then covers; a smooth granite CURB edge
+  and a ring of smooth stone around the centrepiece medallion. TREES (Claude's pick, the seasons must read at a glance):
+  mostly SUGAR MAPLES (Michigan; full green summer, blazing red-orange-gold autumn, bare branches holding snow in winter)
+  + 1–2 FLOWERING CRABAPPLES for a pink-white spring blossom; real trunks + branches (no round balls), ~5–6 in all.
+  THE FLAGPOLE: the far RIGHT end of the promenade at the water's railing, a tall slim pole, the flag reading against the
+  water / sky — never covering the lighthouse (check at every width). The bench, the cart and the planters in the clearly
+  visible middle band, never low by the dock. THE GREY-BOX STEP STAYS (quick): 8a builds the rough layout first, sends the
+  owner screenshots and WAITS for her OK before the real art — not an overnight run.
 - Road, bus, cars, two BIG bright stop lights, the promenade, lamps (rich light at night), trees, bench, planters, the seasonal
   vendor cart, people (hats/coats readable), a FLAGPOLE with an American flag (waves in the real wind, lit at night,
   half-staff on official days — see Part 10).
@@ -701,6 +768,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   reaction on people. DOGS: 1–2 dog walkers at a time, medium/big breeds with clear silhouettes (big shaggy, a greyhound, a
   dachshund), drawn ~1.3× real size, trotting / sniffing a lamp post / pulling ahead, a contrasting leash line, on the nearer
   promenade.
+- GULLS ON THE BILLBOARD (the owner, Oct 23): by day a couple of seagulls fly in and LAND on the top edge of the speakeasy
+  roof's billboard (and its catwalk railing) — settle, preen, look around, the odd call (the gulls sound slot), then take
+  off; more on windy / stormy days huddled, none at night. PREMIUM RENDER (the owner): the gulls must be crafted wildlife,
+  not icons — a real gull silhouette and plumage (white body, grey wings, black wingtips, yellow bill), a proper landing
+  (wings spread, legs down, a hop), folded wings at rest, readable on a phone — the bar for all the wildlife.
 - Wildlife: pigeons that strut/peck and scatter (bus, walkers, a tap); gulls on the railing by day (huddled in real rain); a rare
   late-night coyote (1–4 am) whose eyes catch the lamplight; a raccoon raiding a trash can late at night; squirrels burying
   acorns in autumn; fireflies around the trees on summer nights; ducks near the railing, a heron on the pilings at dawn, fish
@@ -910,6 +982,14 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   - CITY SIGHTINGS (the owner): badges / achievements for SEEING legendary city moments — the periscope, the UFO abduction,
     and the other rare events and easter eggs (the aurora, the raid, a lunar eclipse…). The city reports a sighting when the
     event is really on the player's screen (the scheduler already knows); a collection on the profile shows found + "???".
+    REVISED (the owner, Oct 23 — a passive award feels wrong: "they don't even see it and get an achievement… I already
+    missed that"): a sighting counts only when the player TAPS THE EVENT while it's happening ("spotted!"): a generous tap
+    area, a small camera-flash / polaroid moment, then the badge. Missed ones stay "???" in the collection, with a vague
+    hint ("something strange over the harbor at night…"), so a miss becomes a reason to come back, never a confusing award.
+  - "CALL IN A FAVOR" (REMIND THE OWNER when Progression 2.0's prompt is written — her OK, Oct 23): players earn a few
+    favors by playing; one favor triggers a moment for THEIR ROOM while friends are in the lobby — fireworks, a sky
+    message, the party yacht passing, a song request at the bar — limited (e.g. about once a week), so the world stays
+    shared and the moment stays special. (Rejected: per-player control of the city schedule — it breaks the shared world.)
 - **MENUS 2.0 (after Part 12's switch-over, judged over the real Harbor — the menus' glass sits over a still of today's city
   until then):** one pass for settings, chat, help, the game list, the profile card and toasts together: calm, classy warm glass +
   brass + a touch of neon that lets the city shine through; readable and fast, never as flashy as the city.
