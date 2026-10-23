@@ -30,7 +30,7 @@ import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource, beatKick, beatWhy } from '../audio/beat.js';
-import { tiredLetters } from '../core/harbor-show.js';
+import { tiredLetters, tiredForced } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { createDistrict } from './district/scene.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded
@@ -256,7 +256,9 @@ export function createTitle() {
   let flickerTimer = 0, lastFlick = -1, tiredT = 0, tiredKey = '';
   function tiredTick() {
     if (destroyed || !scene || !els.sign) return;
-    const L = scene.look ? scene.look() : null, t = tiredLetters(L && L.local), k = t.join(',');
+    // (THE DAY PASS: &force=tired&letter=N|E|O|N2 holds that letter tired — the owner checks each one)
+    const q = new URLSearchParams(location.search), forced = /(^|,)tired(,|$)/.test(q.get('force') || '');
+    const L = scene.look ? scene.look() : null, t = forced ? tiredForced(q.get('letter')) : tiredLetters(L && L.local), k = t.join(',');
     if (k === tiredKey) return;
     tiredKey = k;
     els.sign.querySelectorAll('.nd-logo .ndl').forEach((l, i) => l.classList.toggle('is-tired', t.includes(i)));
@@ -283,9 +285,10 @@ export function createTitle() {
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
     scene.set({ beat: beatSource, kick: createHarbor ? beatKick : null, beatWhy: createHarbor ? beatWhy : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
-    // CITY 2.0 — THE TIRED TUBE (NEON PASS 5): one or two letters of the NEON logo look tired for a few hours (core/harbor-show.js
-    // #tiredLetters — any letter, sometimes none, always changing; it was always the O)
-    if (createHarbor) { tiredTick(); tiredT = setInterval(tiredTick, 30000); }
+    // CITY 2.0 — THE TIRED TUBE (NEON PASS 5): one or two letters of the NEON logo look tired for ~3 hours (core/harbor-show.js
+    // #tiredLetters — any letter, sometimes none, never the same twice running; it was always the O)
+    // (and again once the scene has its clock: the first check can come before its look — then nothing showed for 30 s)
+    if (createHarbor) { tiredTick(); setTimeout(tiredTick, 1200); tiredT = setInterval(tiredTick, 30000); }
     // CITY 2.0: THE PREVIEW PANEL (docs/harbor.md) — everyone on ?city=2 follows the owner's city2/live; she gets the TEST pill.
     // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
     if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) remote = m.createRemote({ scene: () => scene }); }).catch(e => console.warn('preview panel', e)); }, 1500);

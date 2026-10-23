@@ -188,7 +188,12 @@ function premiumBits(L, id, light) {
   // hotter on the bends, dimmer near the electrodes — soft dots from radial gradients, NOT filters (cleanup pass 1: a blur filter
   // per spot made every repaint of the sign ~3× dearer, and the catch's 1.5 s glow animation repaints it every frame)
   const hotC = hot.map(([x, y, d]) => `<circle class="ndl-hot" cx="${x}" cy="${y}" r="${(TUBE * (0.42 + Math.min(0.3, d * 0.18)) * 1.9).toFixed(1)}" fill="url(#${id}-hot)"/>`).join('');
-  const dim = ends.map(([x, y]) => `<circle class="ndl-dim" cx="${x}" cy="${y}" r="${(TUBE * 0.95 * 1.5).toFixed(1)}" fill="url(#${id}-dim)"/>`).join('');
+  // (THE DAY PASS — the owner: the O looked PERMANENTLY dimmer, an "imperfect tube": its two electrodes sit 10 apart at its foot,
+  // so their two shade spots overlapped into one dark patch across the whole bottom of the letter. Electrodes that close share
+  // ONE spot of the usual size between them; the imperfection is the rotating tired tube's alone — core/harbor-show.js#tiredLetters)
+  const dimAt = [];
+  for (const e of ends) { const near = dimAt.find(d => Math.hypot(d[0] - e[0], d[1] - e[1]) < TUBE * 2.6); if (near) { near[0] = (near[0] + e[0]) / 2; near[1] = (near[1] + e[1]) / 2; } else dimAt.push([...e]); }
+  const dim = dimAt.map(([x, y]) => `<circle class="ndl-dim" cx="${x}" cy="${y}" r="${(TUBE * 0.95 * 1.5).toFixed(1)}" fill="url(#${id}-dim)"/>`).join('');
   // sun glints on the glass (day only): a few bright points on the bends toward the light
   const glint = hot.filter((_, i) => i % 2 === 0).slice(0, 3).map(([x, y]) => `<circle class="ndl-glint" cx="${(x + light * 1.6).toFixed(1)}" cy="${(y - 1.8).toFixed(1)}" r="1.1" fill="#ffffff"/>`).join('');
   // the highlight leans toward the light (the sun's side by day; the title moves it as the day goes)

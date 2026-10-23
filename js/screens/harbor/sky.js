@@ -8,8 +8,10 @@ export function paintSky(cv, W, HZ, dpr, P, o = {}) {
   if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
   const x = cv.getContext('2d');
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // (THE DAY PASS: o.stops — the Harbor's own day sky, tones.js#harborSky; the palette's at night)
+  const st = o.stops || P.sky;
   const g = x.createLinearGradient(0, 0, 0, HZ);
-  g.addColorStop(0, css(P.sky[0])); g.addColorStop(0.45, css(P.sky[1])); g.addColorStop(0.8, css(P.sky[2])); g.addColorStop(1, css(P.sky[3]));
+  g.addColorStop(0, css(st[0])); g.addColorStop(0.45, css(st[1])); g.addColorStop(0.8, css(st[2])); g.addColorStop(1, css(st[3]));
   x.fillStyle = g; x.fillRect(0, 0, W, HZ);
   const hg = x.createRadialGradient(W * 0.5, HZ * 1.02, 0, W * 0.5, HZ * 1.02, Math.max(W, HZ) * 0.9);
   hg.addColorStop(0, css(P.glow)); hg.addColorStop(0.45, css(P.glow2)); hg.addColorStop(1, 'rgba(0,0,0,0)');

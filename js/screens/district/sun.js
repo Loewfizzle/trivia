@@ -29,6 +29,14 @@ export function sunColor(el) {
   for (let i = 1; i < stops.length; i++) if (el <= stops[i][0]) { const [e0, c0] = stops[i - 1], [e1, c1] = stops[i]; const t = (el - e0) / (e1 - e0); return c0.map((v, j) => Math.round(lerp(v, c1[j], t))); }
   return stops[stops.length - 1][1];
 }
+/** PURE (CITY 2.0, THE DAY PASS — the Harbor's sun only): white-hot overhead (you can't see its colour, only its light), golden →
+ *  orange → red low, a deeper red right at the horizon. City 1.0 keeps sunColor. */
+export function sunColorHarbor(el) {
+  const stops = [[-2, [255, 50, 24]], [1, [255, 72, 30]], [4, [255, 116, 44]], [9, [255, 168, 72]], [16, [255, 222, 158]], [24, [255, 244, 224]], [34, [255, 253, 246]]];
+  if (el <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) if (el <= stops[i][0]) { const [e0, c0] = stops[i - 1], [e1, c1] = stops[i]; const t = (el - e0) / (e1 - e0); return c0.map((v, j) => Math.round(lerp(v, c1[j], t))); }
+  return stops[stops.length - 1][1];
+}
 /** PURE: the disc's radius multiplier and vertical squash at an elevation (larger and flattened at the horizon). */
 export function sunShape(el) { return { size: lerp(1.38, 1, smooth(0, 14, el)), squash: lerp(0.86, 1, smooth(-1, 7, el)) }; }
 
@@ -211,7 +219,10 @@ export function sunMoments({ lat, lon, tz, ms, layout }) {
   return { rise, set, noonEl, startAt: Math.min(startAt, catchAt - 25 * 60000), catchAt, clearAt };
 }
 
-export function createSun() {
+export function createSun(opts = {}) {
+  // (CITY 2.0 — THE DAY PASS: look 'harbor' = the Harbor's sun — a white-hot disc by day you can't see the edge of, a big soft
+  // bloom and a faint wide halo; golden → orange → red and a little more squashed low. City 1.0 calls createSun() as before.)
+  const HB = opts.look === 'harbor';
   let W = 1, H = 1, HZ = 1;
   let pos = null, discCv = null, coronaCv = null, rayCv = null;
   let shown = 0;               // 0..1: the sun fades in when it's first placed (a title load, a new layout) — never a pop
@@ -229,6 +240,22 @@ export function createSun() {
       x.fillStyle = g; x.beginPath(); x.arc(64, 64, 60, 0, TAU); x.fill();
       if (discs.size > 40) discs.clear();
       discs.set(k, cv);
+    }
+    return cv;
+  };
+  // (the Harbor's day disc: a white core that burns out to its rim — no visible edge, the colour only in the last soft ring)
+  const hots = new Map();
+  const hot = col => {
+    const k = qc(col).join(',');
+    let cv = hots.get(k);
+    if (!cv) {
+      cv = mk(128, 128); const x = cv.getContext('2d');
+      const g = x.createRadialGradient(64, 64, 0, 64, 64, 64), hi = col.map(v => Math.min(255, v + (255 - v) * 0.7));
+      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.62, 'rgba(255,255,253,1)'); g.addColorStop(0.8, `rgba(${hi.map(Math.round)},0.92)`);
+      g.addColorStop(0.9, `rgba(${k},0.45)`); g.addColorStop(1, `rgba(${k},0)`);
+      x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      if (hots.size > 40) hots.clear();
+      hots.set(k, cv);
     }
     return cv;
   };
@@ -382,7 +409,9 @@ export function createSun() {
       ec = { dx: along * Math.cos(th) - off * Math.sin(th), dy: along * Math.sin(th) + off * Math.cos(th), k: 1.03, total: false };
     }
     if (ec && !ec.total) ec = { ...ec, ...litOf(ec, s.L.south) };
-    return { x: pos.x, y: pos.y, r, rx: r, ry: r * sh.squash, col: sunColor(el), el, vis: vis * fadeK, glow: glowK * fadeK, over, eclipse: ec, fade: fadeK };
+    // (the Harbor's sun: its own colours; flattened a little more right at the horizon — the look only, never the arch's fit)
+    const sq = HB ? lerp(0.8, 1, smooth(-1, 8, el)) : sh.squash;
+    return { x: pos.x, y: pos.y, r, rx: r, ry: r * sq, col: HB ? sunColorHarbor(el) : sunColor(el), el, vis: vis * fadeK, glow: glowK * fadeK, over, eclipse: ec, fade: fadeK };
   }
 
   // the placement inputs (the sign + tagline, the corner buttons, the skyline's outline) — for the day's moments
@@ -426,6 +455,13 @@ export function createSun() {
       if (wide > 0.01) { c.globalAlpha = wide * (0.4 + 0.6 * vis); c.drawImage(glow(col, 2.2), bx - rx * 11, by - rx * 8, rx * 22, rx * 16); }
       const mid = (0.28 + 0.2 * low) * gk * (1 - tot) * ecDim;
       if (mid > 0.01 && vis > 0.02 && !part) { c.globalAlpha = mid * vis; c.drawImage(glow(col.map(v => Math.min(255, v + 20)), 1.4), x - rx * 3.4, y - ry * 3.4, rx * 6.8, ry * 6.8); }
+      // (the Harbor by day: the light itself — a faint wide halo over a big part of the sky, a big soft bloom, a hot inner glare)
+      const hk = HB ? smooth(6, 22, el) * gk * (1 - tot) * ecDim : 0;
+      if (hk > 0.01) {
+        c.globalAlpha = 0.1 * hk * (0.4 + 0.6 * vis); c.drawImage(glow([255, 248, 236], 1.25), x - rx * 18, y - rx * 18, rx * 36, rx * 36);
+        c.globalAlpha = 0.42 * hk * (0.3 + 0.7 * vis); c.drawImage(glow([255, 250, 240], 2.6), x - rx * 6.5, y - rx * 6.5, rx * 13, rx * 13);
+        if (vis > 0.02 && !part) { c.globalAlpha = 0.75 * hk * vis; c.drawImage(glow([255, 255, 250], 1.8), x - rx * 2.6, y - rx * 2.6, rx * 5.2, rx * 5.2); }
+      }
       c.globalCompositeOperation = 'source-over';
       if (vis < 0.02 && tot < 0.01) { c.globalAlpha = 1; return; }
       // the disc (or, in an eclipse, the disc with the moon across it)
@@ -443,7 +479,10 @@ export function createSun() {
         c.globalAlpha = 0.55 * vis; c.drawImage(A.cres, x - (CS / 2) * sx, y - (CS / 2) * sy, CS * sx, CS * sy);
         c.globalCompositeOperation = 'source-over';
       } else {
-        c.globalAlpha = vis; c.drawImage(disc(col), x - rx * 1.07, y - ry * 1.07, rx * 2.14, ry * 2.14);
+        // (the Harbor: a low sun a crisp coloured disc, a high one the white-hot core with no edge — crossfaded by its height)
+        const hs = HB ? smooth(10, 24, el) : 0;
+        if (hs < 0.99) { c.globalAlpha = vis * (1 - hs); c.drawImage(disc(col), x - rx * 1.07, y - ry * 1.07, rx * 2.14, ry * 2.14); }
+        if (hs > 0.01) { c.globalAlpha = vis * hs; c.drawImage(hot(col), x - rx * 1.25, y - ry * 1.25, rx * 2.5, ry * 2.5); }
       }
       c.globalAlpha = 1;
     },

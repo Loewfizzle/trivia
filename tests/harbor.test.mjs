@@ -464,6 +464,7 @@ test('signs: a new pick each night (the same all night), and a game list that gr
   assert.ok(slots >= 4, `${slots} sign slots`);
   // tonight: the evening's date — before noon it is still last night (the pick changes by day, while the neon is dark)
   assert.equal(nightKey({ y: 2026, m: 10, d: 22, h: 1 }), '2026-10-21');
+  assert.equal(nightKey({ y: 2026, m: 10, d: 22, h: 9 }), '2026-10-22');          // (THE DAY PASS: the day shows tonight's pick)
   assert.equal(nightKey({ y: 2026, m: 10, d: 22, h: 19 }), '2026-10-22');
   for (const g of GAMES12) assert.ok(MARKS[g.id], `${g.id} has a tube mark`);
 });
@@ -1354,7 +1355,7 @@ test('NEON PASS 5 — the RACING LIGHT: every hero + word tower races its whole 
   }
 });
 
-test('NEON PASS 5 — THE TIRED TUBE rotates: any letter, sometimes none, sometimes two, never the same letter two blocks running (the O was always the one)', () => {
+test('THE TIRED TUBE rotates (about every 3 hours — the owner): any letter, sometimes none, sometimes two, never the same letter two blocks running (the O was always the one); the &force=tired preview', () => {
   const seen = [0, 0, 0, 0]; let none = 0, two = 0, prev = null;
   for (let d = 1; d <= 90; d++) for (let h = 0; h < 24; h += 3) {
     const t = tiredLetters({ y: 2026, m: 10 + Math.floor((d - 1) / 31), d: ((d - 1) % 31) + 1, h });
@@ -1364,6 +1365,8 @@ test('NEON PASS 5 — THE TIRED TUBE rotates: any letter, sometimes none, someti
   }
   assert.ok(seen.every(n => n > 60) && none > 100 && two > 30, `every letter takes a turn (${seen}), none ${none}, two ${two}`);
   assert.deepEqual(tiredLetters({ y: 2026, m: 10, d: 24, h: 23 }), tiredLetters({ y: 2026, m: 10, d: 24, h: 22 }), 'the same through a 3-hour block (every phone the same)');
+  assert.deepEqual(tiredForced('N'), [0]); assert.deepEqual(tiredForced('e'), [1]); assert.deepEqual(tiredForced('O'), [2]); assert.deepEqual(tiredForced('N2'), [3]);
+  assert.deepEqual(tiredForced('N,N2'), [0, 3]); assert.deepEqual(tiredForced(''), [2]);
 });
 
 test('NEON PASS 5 — THE GLANCE TEST: every named sign\'s letters ≥ 10 pt on every phone (the roof signs stacked: the mark on top, the name across the cabinet)', () => {
@@ -1375,5 +1378,71 @@ test('NEON PASS 5 — THE GLANCE TEST: every named sign\'s letters ≥ 10 pt on 
       const lh = Math.min(...p.boxes.map(b => b.y1 - b.y0 - 1.2));
       assert.ok(lh >= 10, `${k}: ${sp.id} "${g.short}" letters ${lh.toFixed(1)} pt`);
     }
+  }
+});
+
+// ================================================================ THE DAY PASS (Oct 22 2026)
+import { sunLook, harborSky, toneWeights } from '../js/screens/harbor/tones.js';
+import { tiredForced } from '../js/core/harbor-show.js';
+import { cloudLight } from '../js/screens/harbor/clouds.js';
+import { DAY_PAINT, dayPaint } from '../js/screens/harbor/signs.js';
+import { lhEdgeBlocks } from '../js/core/harbor-neon.js';
+// (GAMES: imported above)
+import { sunColorHarbor, sunColor } from '../js/screens/district/sun.js';
+
+test('THE DAY PASS — the sun\'s side by day is continuous (never flat at noon); with the sun down the old sides exactly', () => {
+  const at = (az, el) => sunLook({ sun: { az, el }, w: { day: 1 } }, null);
+  assert.equal(at(180, 35).sunDir, 0.4);                              // noon: a gentle side, never 0
+  assert.ok(at(120, 20).sunDir < -0.9 && at(250, 12).sunDir > 0.9);    // a morning sun from the left, an afternoon one from the right
+  assert.ok(at(160, 30).sunDir < 0 && at(200, 30).sunDir > 0);
+  // the night + dusk keep Neon Pass 6's values
+  assert.equal(at(300, -20).sunDir, 1); assert.equal(at(60, -20).sunDir, -1); assert.equal(at(185, -20).sunDir, 0);
+  // the look key moves rarely: over a day's sun (every minute) the keys change at most ~22 times
+  let keys = new Set(), last = null, changes = 0;
+  for (let m = 7 * 60; m <= 19 * 60; m++) { const t = (m - 7 * 60) / (12 * 60), k = JSON.stringify([at(100 + 160 * t, 40 * Math.sin(Math.PI * t)).sunDir, at(100 + 160 * t, 40 * Math.sin(Math.PI * t)).sunEl]); if (k !== last) changes++; last = k; keys.add(k); }
+  assert.ok(changes <= 24, `the sun's look changes ${changes} times a day`);
+});
+
+test('THE DAY PASS — the Harbor\'s own day sky: deep blue up high, pale at the horizon, the palette\'s exactly at night, greyed by cloud', () => {
+  const P = { sky: [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]] };
+  assert.deepEqual(harborSky(P, { w: { day: 0, night: 1 } }), P.sky);
+  const d = harborSky(P, { w: { day: 1 }, cloud: 0.1 }), lum = c => c[0] + c[1] + c[2];
+  assert.ok(d[0][2] > d[0][0] * 2 && lum(d[0]) < lum(d[3]), 'deep blue overhead, paler to the horizon');
+  const o = harborSky(P, { w: { day: 1 }, cloud: 1 });
+  assert.ok(Math.abs(o[0][2] - o[0][0]) < Math.abs(d[0][2] - d[0][0]) * 0.5, 'overcast greys it');
+});
+
+test('THE DAY PASS — the Harbor\'s sun: white-hot high, golden → orange → red low (City 1.0\'s sunColor untouched)', () => {
+  const w = sunColorHarbor(40), g = sunColorHarbor(9), r = sunColorHarbor(0);
+  assert.ok(w.every(v => v >= 245), 'high: white');
+  assert.ok(g[0] === 255 && g[2] < 100 && r[1] < g[1], 'low: golden, then redder');
+  assert.deepEqual(sunColor(40), [255, 244, 223]);
+});
+
+test('THE DAY PASS — THE CLOUDS\' light: sunlit white tops by day, gold / pink underneath at sunset (the sun\'s side), faint + violet-lit at night, party colours', () => {
+  const day = cloudLight({ w: { day: 1 }, sun: { el: 40 } }, 200, 400), sunset = cloudLight({ w: { golden: 1 }, sun: { el: 3 } }, 380, 400);
+  const night = cloudLight({ w: { night: 1 }, sun: { el: -30 } }, null, 400), party = cloudLight({ w: { night: 1 }, sun: { el: -30 } }, null, 400, 1);
+  assert.ok(day.top.every(v => v > 250) && day.shade[2] > day.shade[0], 'day: white tops, blue-grey bellies');
+  assert.ok(sunset.uk > 0.8 && sunset.under[0] > 240 && sunset.under[2] < 140 && sunset.lx > 0.6, 'sunset: a strong warm underlight from the sun\'s side');
+  assert.ok(night.body < 0.5 && night.uk > 0.2 && night.under[2] > night.under[1], 'night: faint, lit from below in violet');
+  assert.notEqual(party.key, night.key);
+  assert.ok(cloudLight({ w: { day: 1 }, sun: { el: 40 } }, 200, 400, 0, { grey: 1, dark: 1 }).top[0] < 200, 'Part 9: set({ grey, dark }) greys + darkens');
+});
+
+test('THE DAY PASS — the painted day faces: every game has one, and its letters stand out from its board (the glance test by day)', () => {
+  const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  for (const g of GAMES) {
+    assert.ok(DAY_PAINT[g.id], `${g.id} has a painted scheme`);
+    const p = dayPaint(g);
+    assert.ok(ratio(p.ink, p.face) >= 4.5, `${g.id}: letters ${ratio(p.ink, p.face).toFixed(1)}:1 on their board`);
+  }
+});
+
+test('THE DAY PASS §0 — the dark corner: the block right of the lighthouse is lit again on every phone, the ones behind the tower stay calm', () => {
+  for (const k of ['390x844', '402x874', '412x915', '430x932']) {
+    const { L, cam } = setup(k), ids = lhEdgeBlocks(L), lx = project(cam, L.lighthouse.x, 0, L.lighthouse.z)[0], hw = 30 * cam.F / 600;
+    assert.ok(ids.size >= 1, `${k}: a block freed beside the lighthouse`);
+    for (const id of ids) { const b = L.bands.find(d => d.id === 'near').blocks.find(x => x.id === id), m = (project(cam, b.x0, 0, b.z0)[0] + project(cam, b.x1, 0, b.z0)[0]) / 2; assert.ok(Math.abs(m - lx) > hw, `${k}: ${id} stands clear of the tower`); }
   }
 });

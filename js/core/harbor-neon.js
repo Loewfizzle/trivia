@@ -106,6 +106,24 @@ export function depthStrength(o) {
  * silhouette reads as stepped, not as stacked rectangles; thin vertical FINS (the Deco piers) run up every tier above the
  * shaft (never where a sign hangs: signRects, host → world rects); the crown is traced by its own shape.
  */
+/**
+ * THE DAY PASS §0 — THE DARK CORNER (the owner: right of the lighthouse a building went dark when its icon was removed): the near
+ * band's blocks that reach into the lighthouse's calm zone but stand mostly CLEAR of the tower (their middle outside ±30 pt) light
+ * up like their neighbours again — a warm roofline + one ledge band (nothing boxy behind the tower) and their windows (lights.js).
+ * → Set of block ids (pure: the outlines + the lit windows share it).
+ */
+export function lhEdgeBlocks(L) {
+  const cam = L.cam, out = new Set();
+  if (!L.lighthouse || !cam || cam.wide) return out;
+  const l = L.lighthouse, [lx, lty] = project(cam, l.x, l.h + 6, l.z), hw = 30 * cam.F / 600;
+  const near = L.bands.find(b => b.id === 'near');
+  for (const b of near ? near.blocks : []) {
+    if (!(b.z0 > l.z)) continue;
+    const [a, ty] = project(cam, b.x0, b.h, b.z0), [c] = project(cam, b.x1, 0, b.z0), m = (a + c) / 2;
+    if (c > lx - hw && a < lx + hw && ty < lty + 120 * cam.F / 600 && Math.abs(m - lx) > hw) out.add(b.id);
+  }
+  return out;
+}
 export function outlines(L, signRects = new Map()) {
   const out = [];
   const cam0 = L.cam;
@@ -244,7 +262,8 @@ export function outlines(L, signRects = new Map()) {
     let prevMain = null, prevKind = null, cluster = [], ci = 0;
     // (NEON PASS 6: the blocks behind the lighthouse — a quiet roofline each, dimmer, in one item of their own)
     const calmLines = [], calmIds = [];
-    for (const b of blocks) if (behindLh(b.x0, b.x1, b.z0, b.h)) { const ln = []; bandNeon(ln, b, 'roof', 'w0', 'w0', 'w0', near, false, cam); calmLines.push(...ln); calmIds.push(b.id); }
+    const lhEdge = near ? lhEdgeBlocks(L) : new Set();
+    for (const b of blocks) if (behindLh(b.x0, b.x1, b.z0, b.h) && !lhEdge.has(b.id)) { const ln = []; bandNeon(ln, b, 'roof', 'w0', 'w0', 'w0', near, false, cam); calmLines.push(...ln); calmIds.push(b.id); }
     if (calmLines.length) add({ id: `threads-${bd.id}-calm`, group: near ? 'near' : 'far', strength: 'farband', roles: ['w0'], z: Math.min(...blocks.filter(b => calmIds.includes(b.id)).map(b => b.z0)), lines: calmLines, band: bd.id, blocks: calmIds });
     const flush = () => {
       if (!cluster.length) return;
@@ -255,7 +274,7 @@ export function outlines(L, signRects = new Map()) {
     for (const b of blocks) {
       const lines = [];
       if (calmIds.includes(b.id)) continue;
-      if (dice(b, 0) <= share) {
+      if (dice(b, 0) <= share || lhEdge.has(b.id)) {
         const f = fOf((b.x0 + b.x1) / 2, b.z0), fr = ((f % 1) + 1) % 1;
         // the district's pairings (left / middle / right of the skyline: each its own family); the building's dice picks one,
         // a neighbour with the same main colour (or the same hue family) moves on to the next
@@ -263,7 +282,7 @@ export function outlines(L, signRects = new Map()) {
         let i = Math.floor(dice(b, 1) * fam.length), tries = 0;
         while (tries++ < fam.length && prevMain && (fam[i][0] === prevMain || (fam[i][0][0] === prevMain[0] && fam[i][0] !== 'w0'))) i = (i + 1) % fam.length;
         const [main, acc, det] = fam[i];
-        const kind = bandKind(b, near, mid, dice, prevKind);
+        const kind = lhEdge.has(b.id) ? 'roofledge' : bandKind(b, near, mid, dice, prevKind);
         if (kind !== 'quiet') { bandNeon(lines, b, kind, main, acc, det, near, !underFace(b), cam); prevMain = main; }
         prevKind = kind;
       } else prevKind = 'quiet';
@@ -305,6 +324,8 @@ function bandNeon(lines, b, kind, main, acc, det, near, above = true, cam = null
   const fy = y => floorY(b, y), fxw = x => pierX(b, x);           // (NEON PASS 6: on a floor line / a pier, never across glass)
   const acc2 = acc || main, det2 = det || acc2;
   if (kind === 'roof') { roof(); return; }                         // (the lighthouse's calm zone: a quiet roofline)
+  // (THE DAY PASS §0: beside the lighthouse — the roofline in its warm colour + one ledge band on a floor line, no box)
+  if (kind === 'roofledge') { roof(); const y = fy(h * 0.62); if (y < h - 0.4) L([[x0 + 0.25, y, z], [x1 - 0.25, y, z]], acc2, 'ledge', { thin: true, lvl: 0 }); return; }
   if (kind === 'outline') {
     // the full contour: up one edge from the foot, over the roof (a parapet step on a wide one), down the other — one bent tube
     const ph = near && above && w > 7 ? Math.min(1.2, h * 0.05) : 0, pw = w * 0.3;
@@ -595,10 +616,12 @@ export function spotConflicts(L, sp, spots = []) {
   return bad;
 }
 
-/** tonight's key: the local date of the evening (before noon it is still last night) — the pick changes by day, unlit */
+/** tonight's key: the local date of the evening (before 5 am it is still last night). THE DAY PASS: the signs are painted by day,
+ *  so the day shows TONIGHT's pick (from 5 am) and a sign never swaps game at dusk; within a visit the pick never changes while
+ *  anything of a sign shows (neon.js#night) — a new pick comes with the next visit */
 export function nightKey(local) {
   if (!local) return 'x';
-  const d = new Date(Date.UTC(local.y, local.m - 1, local.d) - (local.h < 12 ? 86400000 : 0));
+  const d = new Date(Date.UTC(local.y, local.m - 1, local.d) - (local.h < 5 ? 86400000 : 0));
   return d.toISOString().slice(0, 10);
 }
 

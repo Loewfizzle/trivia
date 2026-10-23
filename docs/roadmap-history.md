@@ -776,3 +776,26 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       plausibility), `server.test.mjs` (the functions on the emulators), rules tests for the new nodes, `e2e-profiles.mjs` (the flow)
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
+
+### ✅ CITY 2.0 — THE HARBOR, THE DAY PASS (Oct 22, 2026) — `docs/harbor.md#the-day-pass`
+- [x] §0 night touch-ups: behind the wheel four versions (`&wheelbg=a` more warm windows, `b` lighter + bluer, `c` a little of each —
+      the default —, `d` architectural floodlighting: warm uplights washing up the stone, the windows dark); the dark corner right of
+      the lighthouse lit again (a warm roofline + one ledge band, its windows; `core/harbor-neon.js#lhEdgeBlocks`, tested)
+- [x] Signs by day: painted vintage faces per game (`signs.js#DAY_PAINT`: the tube letters painted thick, gold leaf / keyline, drop
+      shadow, the glass a faint line on top — contrast ≥ 4.5 : 1 tested), the blade's panel, the billboard a painted poster (no tag
+      line); the nightly pick from 5 am (the day shows tonight's signs) and never re-picked while a sign shows
+- [x] The skyline: the sun's side continuous by day (`tones.js#sunLook` — at noon it was 0: no lit side), richer day materials, cool
+      blue shade, sunlit arrises, bright ledges, cooler shadows, the bluer day haze, day windows (`blocks.js#dayPanes`), clouds in
+      the glass towers; the Harbor's own day sky (`tones.js#harborSky`); the Harbor's sun (`createSun({ look: 'harbor' })`: white-hot,
+      a soft bloom + a wide halo, no visible edge; City 1.0 untouched)
+- [x] THE CLOUDS (the owner's add-on): `screens/harbor/clouds.js` — cumulus, stratus, cirrus, an overcast deck; the real cover + wind;
+      lit for the hour (day / sunset / night / party); behind the sign, never behind the word; `KINDS` + `set({ grey, dark, base })`
+      for Part 9
+- [x] The water by day: a deeper blue-green, the sky in the ripples, a stronger mirror, the sun's day glitter path
+- [x] The day's motion: `screens/harbor/dayfx.js` — flags in the real wind, sun glints on the towers' glass
+- [x] The NEON logo: the O's permanent shade gone (its two close electrodes share one spot); the tired tube is the only imperfection
+      (about every 3 h: the owner's call), checked again after mount; `&force=tired&letter=N|E|O|N2`
+- [x] Tests: `harbor.test` 90 (+ the sun's side, the day sky, the Harbor's sun, the clouds' light, the painted contrast, the dark
+      corner, the tired tube + its preview); e2e-harbor groups (the panel + dock need the emulators: no Java on this machine); the unit
+      suite 456; the default city pixel-compared against the commit before (the same as its own run-to-run noise)
+- [x] Perf (A-B-B-A, 4× CPU): day t2 5.84 → 6.11, a cloudy day 5.78 → 6.36, golden 7.83 → 7.67, night 8.24 → 8.18 ms

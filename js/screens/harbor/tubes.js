@@ -89,12 +89,13 @@ export function drawGlass(x, tubes, col, T, o) {
   // the shadow on the wall (day), away from the sun and down
   if (day > 0.05 && o.shadow !== false && !o.faint) {
     x.beginPath(); for (const t of tubes) path(x, t, (sd > 0 ? -1 : sd < 0 ? 1 : 0.3) * w * 0.7, w * 0.9);
-    x.strokeStyle = `rgba(22,16,34,${0.22 * day})`; x.lineWidth = w * 1.2; x.stroke();
+    x.strokeStyle = `rgba(22,16,34,${(o.onPaint ? 0.1 : 0.22) * day})`; x.lineWidth = w * 1.2; x.stroke();
   }
   // the glass: day — pale and clear, a hint of its colour (the coating), the gas tint inside; night — dark glass
   x.beginPath(); for (const t of tubes) path(x, t);
   // (faint: a building's outline — up close by day only a glint of clear glass along its edges, never a painted line)
-  const fk = o.faint ? 0.45 : 1;
+  // (THE DAY PASS — onPaint: the tubes over a sign's painted letters by day: a faint pale line, the paint reads first)
+  const fk = (o.faint ? 0.45 : 1) * (o.onPaint ? 1 - 0.6 * day : 1);
   const glassDay = mix([214, 222, 232], col, o.faint ? 0.1 : 0.26), glassNight = mix(col, [26, 20, 40], 0.78);
   x.strokeStyle = rgba(mix(glassNight, glassDay, day), (0.55 + 0.25 * day) * fk); x.lineWidth = w * (o.faint ? 0.8 : 1); x.stroke();
   if (day > 0.05) {
@@ -107,8 +108,12 @@ export function drawGlass(x, tubes, col, T, o) {
     x.strokeStyle = rgba(WHITE, 0.08 * night); x.lineWidth = Math.max(0.25, w * 0.16); x.stroke();
   }
   x.restore();
+  // (by day on a painted board — and on the buildings' unlit outlines — the caps + clips fade: dark specks would read as dirt)
+  const pk = o.onPaint || o.faint ? day : 0;
+  if (pk > 0.02) { x.save(); x.globalAlpha = 1 - 0.85 * pk; }
   caps(x, tubes, w, day);
   if (o.clips !== false) clips(x, tubes, w, o.clipEvery || 26);
+  if (pk > 0.02) x.restore();
 }
 
 /** the electrode caps at a tube's open ends (dark housings, a glint by day) */

@@ -29,7 +29,7 @@ import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core
 import { settings } from '../../audio/settings.js';
 import { reportError } from '../../errlog.js';
 import { createBaker } from './bake.js';
-import { toneWeights, toneKey, tones, sunLook, sunKey } from './tones.js';
+import { toneWeights, toneKey, tones, sunLook, sunKey, harborSky } from './tones.js';
 import { paintSky } from './sky.js';
 import { facadeSteps } from './skyline.js';
 import { litSteps, createLights, newMeta } from './lights.js';
@@ -55,6 +55,9 @@ import { createSkyBeams } from './skybeams.js';
 import { createStrings } from './strings.js';
 import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
 import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
+import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
+import { createDayFx } from './dayfx.js';
+import { createClouds } from './clouds.js';
 
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
 /** the speakeasy's roof string lights (NEON PASS 4) — off until Parts 7–8 build the speakeasy + the promenade (the owner) */
@@ -87,6 +90,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let pierLampsAt = [];
   let litFadeFrom = -1, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
+  // THE DAY PASS §0 — BEHIND THE WHEEL, A TOUCH LIGHTER (the owner picks on her iPhone): &wheelbg=a (more warm windows: ~1 in 6),
+  // b (the buildings a step lighter / bluer), c (a little of each — the default until she picks), d (the owner's add-on:
+  // ARCHITECTURAL FLOODLIGHTING — warm uplights washing up the stone, the windows dark)
+  const wheelBg = /^[abcd]$/.test(qp.get('wheelbg') || '') ? qp.get('wheelbg') : 'c';
   // THE EVERYDAY SKY (Part 6a): the planes, the banner plane, skywriting + skytyping, the helicopter, the birds, balloons, the
   // drone show, the moon's + the aurora's art (screens/harbor/skyfx.js)
   const sky = createSkyFx({ games, clock, qp });
@@ -105,7 +112,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the sky modules (district/), the same ones the default city runs
   const stars = createStars();
   const fx = createFx();
-  const sun = createSun();
+  const sun = createSun({ look: 'harbor' });
+  const clouds = createClouds();
+  const dayfx = createDayFx();
   const bow = createRainbow();
   const fw = createFireworks({ onBurst: e => { PT.swell = Math.min(1, PT.swell + 0.55); PT.bursts++; if (S.onBurst) S.onBurst(e); } });
   const bc = createBeatClock();
@@ -190,13 +199,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     litBaker.plan(W, [{ name: 'farLit', y0: top, h: groundY(cam, Z.mid[0]) + 3 - top }, { name: 'nearLit', y0: top, h: yOf(L.quay.foot, Z.quay) + 3 - top }], Math.min(2, dpr), tier, baker.planned);
     if (DEBUG) console.info('[harbor] layout', { W, H, F: +cam.F.toFixed(1), CAMH: +cam.CAMH.toFixed(2), VPY: +cam.VPY.toFixed(1), limitY: cam.limitY, squeeze: +L.squeeze.toFixed(2), mem: memAll() });
     skyGlowY = Array.from(skyline).sort((a, b) => a - b)[Math.floor(skyline.length * 0.35)];
-    paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty });
+    paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK) });
     skyKey = LK.key;
     skyMix.sky = null;                                         // (a re-layout repaints the sky: the merged copy too)
     for (const m of [fx, wfx, rain, sun]) m.resize(W, H, HZ);
+    clouds.resize(W, safeTopV, skyGlowY, HZ);
     sky.layout(L, { HZ, waterTop: waterBand(L).y0, waterY1: waterBand(L).y1, dpr: Math.min(2, dpr) });
     skyBeams.layout(L, { textRects: S.textRects, corner: rects().corner });
-    { const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z); cam.wheelQuiet = { x: wx, y: wy, r: cam.F * w.r / w.z, z: w.z }; }
+    { const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z); cam.wheelQuiet = { x: wx, y: wy, r: cam.F * w.r / w.z, z: w.z, bg: wheelBg }; }
+    cam.lhLit = lhEdgeBlocks(L);
+    dayfx.layout(L, signSpots(L).map(sp => sp.rect).filter(Boolean));
     strings.layout(L);
     frost.resize(W, H);
     bow.resize(W, H, HZ, dpr); bow.setTier(tier); fw.setTier(tier);
@@ -292,8 +304,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       sched = createScheduler(HARBOR_EVENTS, t => { const sp = sunPosition(t, lat, lon); return { ms: t, force: clock.force, night: an || sp.el < -6, el: an ? -30 : sp.el, az: sp.az, month: new Date(t).getUTCMonth() + 1, south: lat < 0 }; }, { seed, forced: ['demo', 'searchlights'].filter(id => clock.force.has(id)), anchor: anchorFor(ms, LK.local) });
     }
     // (NEON PASS 4: the party's warmer glow over the skyline — repainted when the party starts / ends)
-    if (LK.key !== skyKey || (partyLit() ? 1 : 0) !== skyParty) { skyKey = LK.key; skyParty = partyLit() ? 1 : 0; skyMix.sky = null; paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty }); }
-    if (L && neon.night(nightKey(LK.local))) layout();          // (tonight's signs: a new pick, only while they are dark)
+    if (LK.key !== skyKey || (partyLit() ? 1 : 0) !== skyParty) { skyKey = LK.key; skyParty = partyLit() ? 1 : 0; skyMix.sky = null; paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK) }); }
+    if (L && neon.night(nightKey(LK.local), TW.day + TW.gold)) layout();          // (tonight's signs: a new pick, only while they are dark + unpainted)
     // (never during a crossfade: its source is the canvas the next bake draws into)
     if (L && bakeKey() !== baker.key && !baker.pending && fadeFrom < 0 && !waitRects()) rebake();
     if (L && lightKey() !== litBaker.key && !litBaker.pending && litFadeFrom < 0) rebakeLights();
@@ -471,8 +483,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.sunHaze(c, fs, sun.debug());
     sky.tick(fs, events.active);
     sky.sky(c, fs);
-    if (!off.has('no-clouds')) wfx.sky(c, fs);
-    sun.through(c, fs, (x, y) => (wfx.coverAt ? wfx.coverAt(x, y) : 0));
+    // THE DAY PASS — THE CLOUDS (clouds.js: the Harbor's own, every hour, the real cover + wind); City 1.0's weather-fx only for
+    // the lightning now (its clouds off: cloud 0)
+    { const sd = sun.debug(); if (!off.has('no-clouds')) clouds.draw(c, fs, sd && sd.vis > 0.02 ? sd.x : W / 2 + ((bakeTones && bakeTones.sunDir) || 0) * W * 0.45); }
+    if (LK.storm) wfx.sky(c, { ...fs, L: { ...LK, cloud: 0 } });
+    sun.through(c, fs, (x, y) => clouds.coverAt(x, y));
     if (!off.has('no-rain')) rain.veils(c, fs);
     bowT = bowTarget(t);
     bow.update(fs, bowT, { t, dt, motion: S.motion, breath: 0 });
@@ -512,6 +527,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     eventsTick(now, nightK);
     lights.draw(c, 'near', now, nightK, S.motion);
     neon.draw(c, 'near', nf);
+    // THE DAY PASS — the day's motion: flags on the roofs in the real wind, sun glints on the towers' glass (dayfx.js)
+    if (!off.has('no-dayfx')) dayfx.draw(c, { t, LK, T: bakeTones, fade: fadeIn, motion: S.motion, tier });
     // THE SKY BEAMS (NEON PASS 4): straight up from the tall towers' crowns on a party night — one by one through the warm-up (9 →
     // 11 pm), all from the peak, taking turns with the searchlights; pulsing on the beat; in each tower's colour (the sweeps too)
     { const sh = neon.show(), forced = clock.force.has('beams');
@@ -993,6 +1010,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     rainbow: () => ({ ...bow.debug(), target: bowT ? { day: +bowT.day.toFixed(3), moon: +bowT.moon.toFixed(3), neon: +bowT.neon.toFixed(3), secondary: bowT.secondary, wet: bowT.wet || null, env: bowT.env ?? null, forced: bowT.forced || null } : null, sunAt: null }),
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     harbor: () => (L ? { cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze,
+      clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS }, dayfx: dayfx.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),
@@ -1019,7 +1037,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       window.removeEventListener('resize', onResize);
       baker.destroy(); litBaker.destroy(); sky.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
-      fx.destroy(); wfx.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
+      fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
       for (const c of [skyCv, vignette, glow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;
     },

@@ -16,6 +16,71 @@ export const signName = g => (bladeWord(g) === 'NEONPAR' ? 'NEON PAR' : bladeWor
 const accOf = g => hexRgb(SIGN_ACC[g.id] || (markFor(g).tubes[0] || {}).col || '#9fd8ff');
 const ICE = [214, 240, 255];
 
+// ------------------------------------------------------------------ THE DAY FACES (THE DAY PASS)
+// Real neon is nearly invisible in sunlight, so a real sign is built to read UNLIT: an enamelled / hand-painted board with bold
+// solid letters, the glass tubes riding on top. VINTAGE 1920s (the owner's call): theatre-sign enamel, warm and a little
+// sun-faded, the letters edged in GOLD LEAF (or a dark keyline on a light board) with a drop shadow. Each game its own scheme
+// from its colours: face (the board), ink (the letters + the mark), edge (the keyline round them), band (the border stripe).
+// The letters are the tube alphabet's own strokes, painted thick right under the tubes — the same word by day and by night.
+const GOLD_LEAF = [214, 172, 86], KEY_DARK = [38, 26, 30];
+export const DAY_PAINT = {
+  signal: { face: [150, 30, 40], ink: [248, 234, 206], edge: GOLD_LEAF },              // cream on deep red
+  stakes: { face: [28, 24, 28], ink: [236, 194, 96], edge: [128, 88, 34] },            // gold on black
+  agent: { face: [26, 40, 88], ink: [244, 238, 222], edge: GOLD_LEAF },                // white on navy
+  bluff: { face: [238, 224, 192], ink: [172, 34, 40], edge: KEY_DARK },                // red on cream
+  cipher: { face: [22, 84, 60], ink: [244, 232, 198], edge: GOLD_LEAF },               // cream on bottle green
+  pulse: { face: [70, 34, 100], ink: [244, 208, 120], edge: [250, 236, 206] },         // gold on plum
+  prism: { face: [28, 88, 126], ink: [246, 240, 222], edge: GOLD_LEAF },               // white on peacock blue
+  golf: { face: [16, 98, 92], ink: [248, 236, 204], edge: GOLD_LEAF },                 // cream on teal
+  rum: { face: [96, 26, 32], ink: [238, 198, 110], edge: [250, 232, 196] },            // gold on oxblood
+  overclock: { face: [222, 126, 40], ink: [34, 24, 22], edge: [250, 230, 190] },       // black on orange
+  gridlock: { face: [34, 70, 150], ink: [248, 238, 214], edge: GOLD_LEAF },            // cream on royal blue
+  slip: { face: [232, 174, 74], ink: [28, 38, 84], edge: [250, 236, 206] },            // navy on amber
+};
+const FADE = [236, 226, 204];           // the sun fades every painted colour a touch toward warm paper
+/** a sign's painted scheme (sun-faded): { face, ink, edge, band, shade } */
+export function dayPaint(game, col) {
+  const p = (game && DAY_PAINT[game.id || game]) || { face: mix(col || [200, 60, 60], [40, 20, 30], 0.55), ink: [248, 234, 206], edge: GOLD_LEAF };
+  const f = c => mix(c, FADE, 0.08);
+  const light = (p.face[0] + p.face[1] + p.face[2]) / 3 > 150;
+  return { face: f(p.face), ink: f(p.ink), edge: f(p.edge), band: f(mix(p.edge, p.face, 0.15)), shade: light ? [70, 46, 34] : [8, 6, 12], light };
+}
+function strokePolys(x, polys, dx = 0, dy = 0) {
+  x.beginPath();
+  for (const p of polys) { const q = p.pts || p; q.forEach(([a, b], i) => (i ? x.lineTo(a + dx, b + dy) : x.moveTo(a + dx, b + dy))); if (p.closed) x.closePath(); }
+}
+/**
+ * Paint a sign's letters + mark onto its board (by day; a = the day's share): the drop shadow (down + away from the sun), the
+ * keyline / gold leaf, the solid letter, then the sun catching its top edge. lh: the letters' height (pt).
+ */
+function paintStrokes(x, polys, lh, pt, sd, a, mark = false) {
+  if (!polys.length || a <= 0.01) return;
+  const ink = Math.max(0.8, lh * (mark ? 0.13 : 0.17)), edge = Math.max(0.45, lh * 0.055), sx = (sd > 0 ? -1 : sd < 0 ? 1 : 0.35) * Math.max(0.35, lh * 0.06), sy = Math.max(0.4, lh * 0.07);
+  x.save(); x.lineCap = 'round'; x.lineJoin = 'round'; x.globalAlpha = a;
+  strokePolys(x, polys, sx, sy); x.strokeStyle = rgba(pt.shade, 0.55); x.lineWidth = ink + edge * 2; x.stroke();
+  strokePolys(x, polys); x.strokeStyle = rgba(pt.edge); x.lineWidth = ink + edge * 2; x.stroke();
+  x.strokeStyle = rgba(pt.ink); x.lineWidth = ink; x.stroke();
+  // the sun on the paint: a fine lighter line along the letter's upper edge (toward the light)
+  strokePolys(x, polys, (sd > 0 ? 1 : -1) * ink * 0.18, -ink * 0.22); x.strokeStyle = rgba(mix(pt.ink, [255, 252, 240], 0.55), 0.5); x.lineWidth = Math.max(0.25, ink * 0.28); x.stroke();
+  x.restore();
+}
+/** a sign's whole painted face (the board is already filled): its border stripe, the mark, the letters */
+function paintFace(x, sg, pt, day, sd, P) {
+  if (day <= 0.02) return;
+  x.save(); x.globalAlpha = day;
+  // a painted pinstripe just inside the board's edge (where the border tube rides) + a fine inner keyline: theatre-sign trim
+  const inset = Math.max(0.9, Math.min(P.w, P.h) * 0.07);
+  x.strokeStyle = rgba(pt.band); x.lineWidth = Math.max(0.6, Math.min(P.w, P.h) * 0.045);
+  x.beginPath(); x.roundRect(P.x + inset * 0.6, P.y + inset * 0.6, P.w - inset * 1.2, P.h - inset * 1.2, Math.max(0.5, (P.r || 1) * 0.8)); x.stroke();
+  x.strokeStyle = rgba(pt.band, 0.55); x.lineWidth = Math.max(0.3, Math.min(P.w, P.h) * 0.016);
+  x.beginPath(); x.roundRect(P.x + inset * 1.35, P.y + inset * 1.35, P.w - inset * 2.7, P.h - inset * 2.7, Math.max(0.4, (P.r || 1) * 0.6)); x.stroke();
+  x.restore();
+  for (const p of sg.parts) {
+    const b = bbox(p.t), lh = p.mark ? (b.y1 - b.y0) * 0.6 : (p.boxes && p.boxes[0] ? p.boxes[0].y1 - p.boxes[0].y0 - 1.2 : b.y1 - b.y0);
+    paintStrokes(x, p.tubes, lh, pt, sd, day, !!p.mark);
+  }
+}
+
 // tube letters along a line / down a column, in a box: → tubes (screen pt)
 // NEON PASS 4 (the owner: "the SIGNAL / CIPHER roof signs are clipped at the right edge"): the row FITS its box — its letters'
 // real ink + half a tube inside [x0, x0 + w], centred (it used to run ~8 % past the box on each side: the last letter sat on the
@@ -211,7 +276,9 @@ function roofFrame(x, sg, fr, day, sd) {
 export function drawHousing(x, sg, T, ctx) {
   const R = sg.rect, day = Math.min(1, T.day + 0.8 * T.gold), sd = T.sunDir || 0;
   {
-    const enamelDay = sg.game ? mix(mix(sg.col, [40, 36, 48], 0.72), [92, 84, 80], 0.25) : [70, 32, 34];
+    // (THE DAY PASS: by day the board is the game's painted enamel — dayPaint — not a grey box; the night's dark cabinet unchanged)
+    const pt = dayPaint(sg.game, sg.col);
+    const enamelDay = pt.face;
     const enamel = mix([14, 11, 22], enamelDay, day);
     const trim = mix([40, 34, 50], [214, 196, 160], day);
     // A TOWER'S ROOF SIGN (Part 5): a riveted steel frame on the tower's roof — two lattice legs on the roof's edges, a girder
@@ -240,8 +307,10 @@ export function drawHousing(x, sg, T, ctx) {
       x.fillStyle = rgba(enamel); x.beginPath(); x.roundRect(P.x, P.y, P.w, P.h, P.r); x.fill();
       x.strokeStyle = rgba(trim, 0.9); x.lineWidth = Math.max(0.4, P.w * 0.04); x.stroke();
       if (P0.frame) {
-        // the inner panel: near-black enamel, a fine raised lip — the stage the letters stand on
-        x.fillStyle = rgba(mix(mix([6, 5, 12], enamelDay, day), [0, 0, 0], 0.25)); x.beginPath(); x.roundRect(P0.x, P0.y, P0.w, P0.h, P0.r); x.fill();
+        // the inner panel: near-black enamel, a fine raised lip — the stage the letters stand on (by day: the game's painted
+        // board; the outer frame that carries the bulbs a darker band of the same paint)
+        if (day > 0.02) { x.fillStyle = rgba(mix(enamel, mix(pt.face, [10, 8, 14], 0.5), day)); x.beginPath(); x.roundRect(P.x, P.y, P.w, P.h, P.r); x.fill(); }
+        x.fillStyle = rgba(mix(mix([6, 5, 12], [0, 0, 0], 0.25), pt.face, day)); x.beginPath(); x.roundRect(P0.x, P0.y, P0.w, P0.h, P0.r); x.fill();
         x.strokeStyle = rgba(mix(trim, [0, 0, 0], 0.35), 0.85); x.lineWidth = Math.max(0.35, P0.w * 0.03); x.stroke();
       }
       if (day > 0.05) {
@@ -249,8 +318,10 @@ export function drawHousing(x, sg, T, ctx) {
         g.addColorStop(0, `rgba(255,248,230,${0.16 * day})`); g.addColorStop(0.6, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(20,10,20,${0.18 * day})`);
         x.fillStyle = g; x.beginPath(); x.roundRect(P.x, P.y, P.w, P.h, P.r); x.fill();
         // weathering: a few streaks under the bottom edge + faded blotches
-        x.fillStyle = `rgba(90,60,40,${0.18 * day})`;
+        x.fillStyle = `rgba(90,60,40,${0.1 * day})`;
         for (let i = 0; i < 3; i++) x.fillRect(P.x + P.w * (0.2 + 0.3 * i), P.y + P.h * 0.55, Math.max(0.3, P.w * 0.05), P.h * 0.45);
+        // THE PAINTED FACE: the border stripe, the mark, the letters (gold leaf / keyline, drop shadow) — the glass rides on top
+        paintFace(x, sg, pt, day, sd, P0);
       }
     } else if (sg.type === 'script' || sg.type === 'icon') {
       // the raceway: a slim painted metal bar the tubes are mounted on (the transformers inside)
@@ -262,8 +333,10 @@ export function drawHousing(x, sg, T, ctx) {
     // the bulbs' sockets (the game blade)
     if (sg.bulbs) { for (const [bx, by] of sg.bulbs) { x.fillStyle = rgba(mix([30, 24, 30], [230, 220, 200], day)); x.beginPath(); x.arc(bx, by, 0.55, 0, Math.PI * 2); x.fill(); } }
     // the glass tubes, unlit (clear glass by day; dark at night)
-    for (const p of sg.parts) drawGlass(x, p.t, p.col, T, { w: p.w, clipEvery: 18 });
-    if (sg.border) drawGlass(x, sg.border.t, sg.border.col, T, { w: sg.border.t[0] ? sg.parts[0] ? sg.parts[0].w * 0.75 : 0.7 : 0.7, clips: false, shadow: false });
+    // (on a painted board by day the glass is a faint pale line over the paint — onPaint)
+    const onPaint = !!sg.panel;
+    for (const p of sg.parts) drawGlass(x, p.t, p.col, T, { w: p.w, clipEvery: 18, onPaint });
+    if (sg.border) drawGlass(x, sg.border.t, sg.border.col, T, { w: sg.border.t[0] ? sg.parts[0] ? sg.parts[0].w * 0.75 : 0.7 : 0.7, clips: false, shadow: false, onPaint });
   }
 }
 
@@ -330,7 +403,7 @@ export function buildBillboard(spot, content, ctx) {
     while (fs > 3 && x.measureText(content.title).width > tw) { fs *= 0.95; x.font = FONT(fs); }
     let fs2 = R.h * 0.15; const sw = R.x + R.w * 0.96 - (mx + ms + R.w * 0.04); x.font = `600 ${fs2}px "Chakra Petch", sans-serif`;
     while (fs2 > 2 && x.measureText(content.sub).width > sw) { fs2 *= 0.92; x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; }
-    const sub = fs2 >= 6.5 && content.sub;
+    const sub = !content.game && fs2 >= 6.5 && content.sub;
     x.font = FONT(fs); x.fillStyle = rgba(content.ink); x.textBaseline = 'alphabetic';
     x.fillText(content.title, tx + (tw - x.measureText(content.title).width) / 2, nameTop + (nameH + fs * 0.7) / 2);
     if (sub) { x.font = `600 ${fs2}px "Chakra Petch", sans-serif`; x.fillStyle = rgba(mix(content.ink, content.bg, 0.25)); x.fillText(content.sub, mx + ms + R.w * 0.04, my + ms * 0.72); }
@@ -354,11 +427,52 @@ export function buildBillboard(spot, content, ctx) {
     }
   };
   const box = { x0: R.x - 2, y0: R.y - LH * 0.5, x1: R.x + R.w + 2, y1: Math.max(R.y + R.h + 4, ctx.roofY || 0) };
+  // THE DAY PASS — the board by day is a 1920s PAINTED POSTER: the game's enamel colours, a Deco sunburst behind its mark painted big,
+  // the NAME across the whole board under it (gold leaf / keyline + a drop shadow) — a bold image + a big word, no small text
+  const poster = (x, sd) => {
+    const pt = dayPaint(content.game, content.acc);
+    x.fillStyle = rgba(pt.face); x.fillRect(R.x, R.y, R.w, R.h);
+    const FONT = fs => `700 ${fs}px "Chakra Petch", Orbitron, sans-serif`, tw = R.w * 0.84;
+    let fs = R.h * 0.62; x.font = FONT(fs);
+    while (fs > 3 && x.measureText(content.title).width > tw) { fs *= 0.96; x.font = FONT(fs); }
+    const base = R.y + R.h * 0.9, capH = fs * 0.7, top = R.y + R.h * 0.07, imgB = base - capH - R.h * 0.08, ih = imgB - top;
+    // the sunburst: rays fanning up from behind the mark, a lighter tint of the board, clipped to the image's band
+    const cx = R.x + R.w / 2, cy = imgB + ih * 0.15;
+    x.save(); x.beginPath(); x.rect(R.x, R.y, R.w, imgB - R.y + 0.5); x.clip();
+    x.fillStyle = rgba(mix(pt.face, pt.light ? [255, 250, 236] : pt.edge, pt.light ? 0.5 : 0.22));
+    const n = 14, Rr = R.w * 0.8;
+    for (let i = 0; i < n; i += 2) { const a0 = Math.PI + i * Math.PI / n, a1 = a0 + Math.PI / n; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a0) * Rr, cy + Math.sin(a0) * Rr); x.lineTo(cx + Math.cos(a1) * Rr, cy + Math.sin(a1) * Rr); x.fill(); }
+    x.restore();
+    // a band under the image (the poster's rule line) in the edge colour
+    x.fillStyle = rgba(pt.edge, 0.9); x.fillRect(R.x + R.w * 0.04, imgB + R.h * 0.02, R.w * 0.92, Math.max(0.5, R.h * 0.025));
+    if (content.game && ih > 4) {
+      const m = markFor(content.game), ms = ih * 0.96, s2 = ms / 100, mx = cx - ms / 2, my = top + (ih - ms) / 2;
+      const lw = 12;
+      x.save(); x.translate(mx, my); x.scale(s2, s2); x.lineCap = 'round'; x.lineJoin = 'round';
+      for (const t of m.tubes) { const p = new Path2D(t.d); x.save(); x.translate((sd > 0 ? -1 : 1) * 4, 5); x.strokeStyle = rgba(pt.shade, 0.45); x.lineWidth = lw + 9; x.stroke(p); x.restore(); }
+      for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(pt.edge); x.lineWidth = lw + 7; x.stroke(p); }
+      for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(mix(hexRgb(t.col), pt.ink, 0.45)); x.lineWidth = lw; x.stroke(p); }
+      x.restore();
+    }
+    // the name: shadow → keyline → the letters → the sun on their top
+    const nw = x.measureText(content.title).width, nx = R.x + (R.w - nw) / 2;
+    x.lineJoin = 'round';
+    x.fillStyle = rgba(pt.shade, 0.5); x.fillText(content.title, nx + (sd > 0 ? -1 : 1) * fs * 0.05, base + fs * 0.06);
+    x.strokeStyle = rgba(pt.edge); x.lineWidth = Math.max(0.6, fs * 0.1); x.strokeText(content.title, nx, base);
+    x.fillStyle = rgba(pt.ink); x.fillText(content.title, nx, base);
+    x.save(); x.beginPath(); x.rect(R.x, base - capH, R.w, capH * 0.32); x.clip(); x.fillStyle = rgba(mix(pt.ink, [255, 252, 240], 0.35), 0.6); x.fillText(content.title, nx, base); x.restore();
+    // the paper: seams, a sun-faded top, a peeled corner
+    x.fillStyle = 'rgba(0,0,0,0.08)'; for (const f of [0.34, 0.67]) x.fillRect(R.x + R.w * f, R.y, 0.35, R.h);
+    const g = x.createLinearGradient(0, R.y, 0, R.y + R.h); g.addColorStop(0, 'rgba(255,248,230,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0.12)'); x.fillStyle = g; x.fillRect(R.x, R.y, R.w, R.h);
+    x.fillStyle = 'rgba(232,224,206,0.75)'; x.beginPath(); x.moveTo(R.x + R.w, R.y + R.h); x.lineTo(R.x + R.w - R.h * 0.18, R.y + R.h); x.lineTo(R.x + R.w, R.y + R.h - R.h * 0.2); x.fill();
+  };
   // day: painted + weathered + the sun's shading
   const dayDraw = (x, T) => {
     const day = Math.min(1, T.day + 0.8 * T.gold);
     if (day > 0.05) { x.fillStyle = `rgba(20,14,30,${0.25 * day})`; x.fillRect(R.x + 1.5, R.y + 2, R.w, R.h); }
+    // (the poster by day; the night's lamp-lit board under it, unchanged — the poster fades out with the day)
     paint(x);
+    if (day > 0.02) { x.save(); x.globalAlpha = Math.min(1, day * 1.15); poster(x, T.sunDir || 0); x.restore(); }
     // weathered by day (faded, streaks), dusk-dark at night (the unlit board)
     x.fillStyle = `rgba(238,226,204,${0.12 * day})`; x.fillRect(R.x, R.y, R.w, R.h);
     x.fillStyle = `rgba(90,56,40,${0.16 * day})`; for (let i = 0; i < 5; i++) x.fillRect(R.x + R.w * (0.08 + i * 0.2), R.y, Math.max(0.3, R.w * 0.01), R.h * (0.2 + 0.1 * (i % 3)));

@@ -75,6 +75,11 @@ const SCENE = {
   gulls: ['2026-10-21T15:00', { wait: 4000 }], geese: ['2026-10-21T15:00', { qs: 'force=geese', wait: 14000 }], swifts: ['2026-07-10T21:25', { qs: 'force=swifts,bats-dusk', wait: 6000 }],
   moonrise: ['2026-10-26T19:40'], harvest: ['2026-09-26T20:05'], crescent: ['2026-11-14T19:30'], 'crescent-dawn': ['2026-10-07T06:00'], eclipse: ['2026-10-26T22:30', { qs: 'force=eclipse', wait: 20000 }],
   aurora: ['2026-10-21T23:30', { qs: 'force=aurora', wait: 5000 }],
+  // CITY 2.0 — THE DAY PASS (Oct 22 2026, Grand Rapids): morning, high noon, afternoon, golden hour, a fair-weather + an overcast day,
+  // and the night + the party to compare side by side (--sizes 402x874 --crop skyl,skym,skyr)
+  'd-morn': ['2026-10-22T09:00'], 'd-noon': ['2026-10-22T12:30'], 'd-aft': ['2026-10-22T16:00'], 'd-golden': ['2026-10-22T18:20'],
+  'd-clouds': ['2026-10-22T13:00', { qs: 'wx=clouds' }], 'd-overcast': ['2026-10-22T13:00', { qs: 'wx=overcast' }],
+  'd-night': ['2026-10-22T22:00'], 'd-party': ['2026-10-24T23:00'],
   // CITY 2.0 — THE PREVIEW PANEL (the owner's test remote; --city 2 --preview): the sheet open (JUST ME / EVERYONE, events on,
   // scrolled down to the time + weather, the bottom with the tools)
   panel: ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel' }], 'panel-on': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', on: { force: ['drones', 'spell', 'neon-scheme'], text: 'HI THERE', show: 'heart', colours: 'ff2e97,2ee6ff', scheme: 'halloween' } }],
@@ -147,11 +152,17 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else if (c === 'sky') {
       // CITY 2.0 (Part 6a): the sky lanes — from the safe top to a little under the skyline's limit
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; return { x: 0, y: 0, width: innerWidth, height: Math.min(innerHeight, hb.cam.limitY + 60) }; });
-    } else if (c === 'skyl' || c === 'skyr' || c === 'logo') {
-      // CITY 2.0: close-ups — the skyline's left / right half (its signs + neon up close), the NEON logo
+    } else if (c === 'skyl' || c === 'skyr' || c === 'skym' || c === 'logo') {
+      // CITY 2.0: close-ups — the skyline's left / right half (its signs + neon up close), the NEON logo; the Day Pass's thirds:
+      // skyl3 / skym / skyr3 (left, middle, right third)
       clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam;
         if (cc === 'logo') { const r = document.querySelector('.nd-logo-wrap').getBoundingClientRect(); return { x: Math.max(0, r.left - 20), y: Math.max(0, r.top - 30), width: Math.min(innerWidth, r.width + 40), height: r.height + 60 }; }
-        const y = Math.max(0, c.limitY - 24), hh = c.VPY + c.F * c.CAMH / 230 + 14 - y, w = innerWidth / 2; return { x: cc === 'skyl' ? 0 : w, y, width: w, height: hh }; }, c);
+        const y = Math.max(0, c.limitY - 24), hh = c.VPY + c.F * c.CAMH / 230 + 14 - y, w = innerWidth / 2;
+        if (cc === 'skym') return { x: innerWidth / 3, y, width: innerWidth / 3, height: hh };
+        return { x: cc === 'skyl' ? 0 : w, y, width: w, height: hh }; }, c);
+    } else if (c === 'skyl3' || c === 'skyr3') {
+      clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam;
+        const y = Math.max(0, c.limitY - 24), hh = c.VPY + c.F * c.CAMH / 230 + 14 - y, w = innerWidth / 3; return { x: cc === 'skyl3' ? 0 : w * 2, y, width: w, height: hh }; }, c);
     } else if (c === 'blade') {
       // CITY 2.0: THE GAME BLADE close up (n-blade + what stands around / in front of it)
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); const b = hb && hb.neon.signs.find(s => s.id === 'n-blade'); if (!b) return null; const r = b.rect, k = hb.cam.F / 600;
@@ -175,7 +186,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
     if (ZOOM > 1) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade'].includes(c) ? c : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade'].includes(c) ? c : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

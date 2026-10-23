@@ -283,9 +283,11 @@ export function burnout(local, signs, force = false) {
   return { id: sg.id, letter: Math.floor(R(3) * Math.max(1, sg.n)) % Math.max(1, sg.n), start };
 }
 /**
- * THE TIRED TUBE (NEON PASS 5 — the owner: the O always looked "off", an ageing tube): which of the NEON logo's four letters look
- * tired — a weaker core, a softer glow — in a 3-hour block of the local clock: none (~30 %), one (~55 %) or two (~15 %), picked
- * from the date + the block (every phone the same), never a letter the block before had. lc: { y, m, d, h } → [0..3]
+ * THE TIRED TUBE (NEON PASS 5 — the owner: the O always looked "off", an ageing tube; THE DAY PASS — the O's own permanent shade is
+ * gone (ui/logo.js#premiumBits), so this rotation is the logo's ONLY imperfection): which of the NEON logo's four letters look tired
+ * — a weaker core, a softer glow — in a 3-hour block of the local clock (the owner's call: about every 3 hours): none (~30 %), one
+ * (~55 %) or two (~15 %), picked from the date + the block (every phone the same), never a letter the block before had.
+ * lc: { y, m, d, h } → [0..3]. A preview: &force=tired&letter=N|E|O|N2 (title.js#tiredTick).
  */
 export function tiredLetters(lc) {
   if (!lc) return [];
@@ -295,6 +297,11 @@ export function tiredLetters(lc) {
   let prev = [];
   for (let b = blk - 8; b <= blk; b++) { const out = []; for (const i of raw(b)) { let j = i; for (let k = 0; k < 4 && (prev.includes(j) || out.includes(j)); k++) j = (j + 1) % 4; if (!prev.includes(j) && !out.includes(j)) out.push(j); } prev = out; }
   return prev;
+}
+/** the &force=tired preview's letters: &letter=N|E|O|N2 (a comma list too) → [0..3]; N alone is the first N */
+export function tiredForced(v) {
+  const map = { N: 0, N1: 0, E: 1, O: 2, N2: 3 };
+  return [...new Set(String(v || 'O').toUpperCase().split(',').map(s => map[s.trim()]).filter(i => i != null))];
 }
 /** the dead letter's weak flicker at t (s): mostly dark; every ~9–17 s a brief, weak sputter (0..0.35) */
 export function burnoutFlicker(t) {

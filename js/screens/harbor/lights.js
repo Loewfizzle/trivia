@@ -73,21 +73,27 @@ function drawLit(x, cam, it, look, meta, group, idx) {
   x.globalCompositeOperation = 'source-over';
   const g = b.win;
   if (!g || g.rows <= 0) return;
-  const s = cam.F / b.z0, deco = isDeco(o.rank), dice = buildingDice(b.seed, o.rank), t = o.tierIndex || 0;
+  // (THE DAY PASS §0: the blocks freed beside the lighthouse light most of their windows again, like their neighbours)
+  const dice0 = buildingDice(b.seed, o.rank), dice = cam.lhLit && cam.lhLit.has(b.id) ? { ...dice0, lit: Math.max(dice0.lit, 0.86), floor: 0.3 } : dice0;
+  const s = cam.F / b.z0, deco = isDeco(o.rank), t = o.tierIndex || 0;
   const fz = fog(b.z0), depthK = 0.6 + 0.4 * (1 - fz);
   const paneW = s * g.pitch[0] * 0.5, room = group === 'near' && paneW > 2.2;
   const share = look.share;
   // (NEON PASS 4: a quiet office block right behind the wheel — the spokes cross mostly dark glass)
   const quiet = behindWheel(cam, b);
+  // (THE DAY PASS §0 — &wheelbg: a = ~1 window in 6 behind the wheel lit warm, c = ~1 in 9, b = as Neon Pass 6 — every window may
+  // light there, not only the ones the building's own dice allow)
+  const wbg = quiet && cam.wheelQuiet ? cam.wheelQuiet.bg : 'b', qThr = wbg === 'a' ? 0.167 : wbg === 'c' ? 0.11 : wbg === 'd' ? 0 : 0.085;
   for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
-    const tr = winTraits(b.seed, t, c, r, dice);
+    let tr = winTraits(b.seed, t, c, r, dice);
+    if (!tr && quiet && (wbg === 'a' || wbg === 'c')) tr = { order: 0, cls: 'warm', a: 0.55 + 0.45 * winHash(b.seed, t, c, r, 3), tone: winHash(b.seed, t, c, r, 4) };
     if (!tr) continue;
     // (NEON PASS 6: ~1 window in 12 behind the wheel, warm — on the city's light timeline)
-    const on = quiet ? share > 0 && winHash(b.seed, t, c, r, 31) < 0.085 * Math.min(1, share / 0.5) : isLit(tr, share);
+    const on = quiet ? share > 0 && winHash(b.seed, t, c, r, 31) < qThr * Math.min(1, share / 0.5) : isLit(tr, share);
     const rect = cellRect(cam, b, c, r, deco);
     if (group === 'near' && winHash(b.seed, t, c, r, 12) < 0.05 && meta.cands.length < 220) meta.cands.push({ rect, col: colourOf(tr, look.warm), on, a: tr.a * depthK, idx, id: [b.tower || b.id, t, c, r] });
     if (!on || share <= 0) continue;
-    let col = quiet ? colourOf({ ...tr, cls: 'warm' }, look.warm) : colourOf(tr, look.warm), a = tr.a * depthK * (quiet ? 0.85 : 1);
+    let col = quiet ? colourOf({ ...tr, cls: 'warm' }, look.warm) : colourOf(tr, look.warm), a = tr.a * depthK * (quiet ? (wbg === 'a' ? 1 : wbg === 'c' ? 0.92 : 0.85) : 1);
     // PARTY WINDOWS (NEON PASS 3, City 1.0's): on a party night ~1 lit window in 5 takes a party colour (pink, cyan, violet, gold),
     // and now and then a whole floor in one colour — baked with the light key (look.party), so they cost nothing a frame
     if (look.party && tr.cls !== 'tv' && !quiet) {

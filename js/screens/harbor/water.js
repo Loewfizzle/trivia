@@ -46,7 +46,8 @@ export const axisAt = (L, z) => project(L.cam, 0, LEVEL, z)[1];
 
 // the water's own colour: far (grazing: the low sky's light on it), middle, near (looking down into it)
 const TINT = {
-  day: [[128, 170, 184], [40, 110, 132], [12, 60, 86]],
+  // (THE DAY PASS: a deeper blue-green harbor, the far end paler with the sky's light on it)
+  day: [[124, 178, 210], [26, 102, 140], [6, 50, 88]],
   gold: [[226, 146, 108], [150, 76, 82], [58, 28, 56]],
   night: [[22, 18, 46], [9, 9, 26], [3, 3, 11]],
 };
@@ -57,7 +58,9 @@ export function waterTint(T) {
 
 /** THE BASE (baked with the look): the water's colour + depth, the shadow along the far quay's foot */
 export function waterSteps(L, T) {
-  const cam = L.cam, { y0, y1 } = waterBand(L), [far, mid, near] = waterTint(T);
+  const cam = L.cam, { y0, y1 } = waterBand(L), [far0, mid, near] = waterTint(T);
+  // (by day the grazing far water takes the real sky's own blue near the horizon)
+  const far = T.skyLo && T.day > 0 ? mix(far0, mix(T.skyLo, T.skyHi || T.skyLo, 0.5), 0.35 * T.day) : far0;
   return [x => {
     const g = x.createLinearGradient(0, y0, 0, y1 + 8);
     g.addColorStop(0, rgb(far)); g.addColorStop(0.18, rgb(mix(far, mid, 0.7))); g.addColorStop(0.55, rgb(mid)); g.addColorStop(1, rgb(near));
@@ -115,10 +118,12 @@ export function createWater() {
 
   // ---------------------------------------------------------------- the wavelets: two perspective dash textures
   function bakeTex(T, rough) {
-    const key = `${Math.round(T.day * 6)}${Math.round(T.gold * 6)}${Math.round(T.night * 6)}|${Math.round(rough * 4)}|${W}|${dpr}`;
+    const skyC = T.day > 0 && T.skyHi ? mix(T.skyHi, [255, 255, 255], 0.38) : null;
+    const key = `${Math.round(T.day * 6)}${Math.round(T.gold * 6)}${Math.round(T.night * 6)}|${Math.round(rough * 4)}|${W}|${dpr}${skyC ? '|' + skyC.map(v => v >> 4).join('.') : ''}`;
     if (key === texKey) return;
     texKey = key;
-    const crest = mix(mix([214, 232, 244], [255, 196, 140], T.gold / Math.max(0.01, T.day + T.gold)), [150, 140, 210], T.night);
+    // (THE DAY PASS: by day the crests carry the real sky's colour — a blue sky in every ripple)
+    const crest = mix(mix(skyC || [214, 232, 244], [255, 196, 140], T.gold / Math.max(0.01, T.day + T.gold)), [150, 140, 210], T.night);
     tex.forEach((cv, n) => {
       const x = size(cv, W * dpr, (Hw + 2) * dpr);
       x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, Hw + 2);
@@ -267,7 +272,8 @@ export function createWater() {
       const dy = jit * st.s * Math.sin(st.z * 1.71 + t * 1.1 + st.seed * 3);
       // FRESNEL + DEPTH: a mirror at the grazing far end; looking down near us more of the water's own colour (the base under
       // it: blue-green by day, orange at golden hour, black at night) — so it darkens toward us; the wind breaks it up
-      const fres = (0.93 - (0.42 + 0.26 * dayK) * Math.pow(st.u, 0.8)) * (1 - 0.3 * rough) * (1 - 0.26 * dayK);
+      // (THE DAY PASS: a stronger mirror by day — the wheel, the lighthouse and the sunlit city read in the water; golden hour + night as before)
+      const fres = (0.93 - (0.42 + 0.26 * dayK - 0.16 * T.day) * Math.pow(st.u, 0.8)) * (1 - 0.3 * rough) * (1 - 0.26 * dayK + 0.17 * T.day);
       const crest = 0.5 + 0.5 * Math.sin(st.z * 1.21 - t * 1.6 + st.seed * 2);
       const sk = (0.12 + 0.38 * rough + 0.1 * st.u) * st.ck;
       x.globalAlpha = clamp01(fres * (1 - sk + sk * crest)) * fa;
@@ -281,7 +287,7 @@ export function createWater() {
     const tS = performance.now(); ema('strips', tS - tm2);
     // 5. the wavelets: sky-lit crests + dark troughs sliding against each other (their density follows the wind)
     bakeTex(T, rough);
-    const ta = (0.95 * dayK + 0.45 * T.night) * (0.55 + 0.45 * rough) * fa;
+    const ta = (0.95 * dayK + 0.45 * T.night) * (0.55 + 0.45 * rough) * fa * (1 - 0.3 * T.day);
     if (ta > 0.01) {
       const o1 = still ? 0 : ((t * (3 + 9 * rough)) % W + W) % W, o2 = still ? W * 0.37 : ((-t * (2 + 6 * rough)) % W + W) % W;
       for (const [cv, o0, al] of [[tex[0], o1, ta], [tex[1], o2, ta * 0.8]].slice(0, tier === 2 ? 2 : 1)) {
@@ -303,6 +309,11 @@ export function createWater() {
       if (k > 0.02) { glitter(x, sun.x, k, [255, 196, 120], [255, 240, 200], t, still, rough, 1); stats.paths += 'sun '; }
     }
     if (f.moon && f.moon.k > 0.02) { glitter(x, f.moon.x, f.moon.k * T.night * fa, [178, 192, 236], [238, 242, 255], t, still, rough, 0.62); stats.paths += 'moon '; }
+    // (THE DAY PASS — the sun's glitter path by day: a high sun's narrow white trail of sparkle under it, toward us)
+    if (T.day > 0.05 && sun && sun.vis > 0.1 && sun.el >= 12 && sun.x > -40 && sun.x < W + 40) {
+      const kd = 0.5 * T.day * Math.min(1, sun.vis * 1.2) * smooth(12, 20, sun.el) * (1 - 0.9 * smooth(0.4, 0.85, cloud)) * fa;
+      if (kd > 0.02) { glitter(x, sun.x, kd * 1.4, [236, 244, 255], [255, 255, 250], t, still, rough, 0.78); stats.paths += 'daypath '; }
+    }
     if (T.day > 0.05 && sun && sun.vis > 0.1) { sparkle(x, sun.x, T.day * (1 - 0.8 * smooth(0.4, 0.9, cloud)) * fa, t, still, rough); stats.paths += 'glints '; }
     x.globalCompositeOperation = 'source-over';
     const tP = performance.now(); ema('paths', tP - tT);

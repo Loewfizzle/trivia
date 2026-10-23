@@ -4,7 +4,7 @@
 import { mix } from './shapes.js';
 
 const DAY = {
-  haze: [214, 222, 232], far: [176, 184, 198], mid: [160, 168, 182], landmark: [146, 152, 166], near: [128, 134, 148], hero: [138, 120, 112],
+  haze: [188, 208, 232], far: [176, 184, 198], mid: [160, 168, 182], landmark: [146, 152, 166], near: [128, 134, 148], hero: [138, 120, 112],
   crown: [196, 186, 150], quay: [143, 135, 123], water: [72, 102, 134], waterLo: [44, 72, 104], pier: [120, 100, 84], wheel: [190, 70, 70],
   light: [232, 232, 226], lightBand: [190, 50, 50], rail: [70, 70, 78], road: [86, 86, 95], lane: [220, 214, 200], prom: [207, 199, 184],
   promLine: [182, 173, 158], speak: [154, 84, 64], speakTop: [124, 110, 98], glass: [58, 76, 104], door: [70, 44, 34], awning: [168, 36, 46],
@@ -63,12 +63,34 @@ export function tones(tw) {
 export function sunLook(LK, P) {
   const az = LK && LK.sun ? LK.sun.az : 180, el = LK && LK.sun ? LK.sun.el : 30;
   const d = ((az - 180 + 540) % 360) - 180;
-  const sunDir = Math.abs(d) < 14 ? 0 : d > 0 ? 1 : -1;
-  const sunEl = el < 8 ? 6 : el < 18 ? 12 : el < 34 ? 25 : 45;
-  const col = c => (Array.isArray(c) ? c : null);
-  return { sunDir, sunEl, skyHi: col(P && P.sky && P.sky[1]), skyLo: col(P && P.sky && P.sky[3]) };
+  // THE DAY PASS: with the sun up the side is CONTINUOUS (−1..1 in fifths) — the light swings from the left in the morning to the
+  // right in the afternoon, never "straight behind" (a flat city at noon): around noon a gentle ±0.4 from the side it's on.
+  // A low sun (golden hour: |d| ≥ 55°) is ±1 as before; with the sun down the old sides exactly (the night + dusk never change).
+  const sunDir = el < 0 ? (Math.abs(d) < 14 ? 0 : d > 0 ? 1 : -1)
+    : Math.round(Math.max(-1, Math.min(1, (Math.sign(d) || 1) * Math.max(0.4, Math.abs(d) / 55))) * 5) / 5;
+  // (the height in steps: a golden-hour sun as before; a day sun in ~8° steps — a new look every ~40–60 min at most)
+  const sunEl = el < 8 ? 6 : el < 18 ? 12 : el < 26 ? 22 : el < 34 ? 30 : el < 44 ? 40 : 52;
+  const col = c => (Array.isArray(c) ? c : null), st = harborSky(P, LK);
+  return { sunDir, sunEl, skyHi: col(st && st[1]), skyLo: col(st && st[3]), skyTop: col(st && st[0]), cloud: LK ? LK.cloud || 0 : 0 };
 }
-export const sunKey = sl => `${sl.sunDir}${sl.sunEl}`;
+
+// ------------------------------------------------------------------ THE DAY SKY (THE DAY PASS)
+// The shared palette's day sky (district/palette.js — City 1.0's, untouched) is a soft grey-blue. The Harbor paints its own by day:
+// a deep azure overhead fading through clean blues to a pale, luminous horizon — a travel poster's sky — blended in by the day's
+// share (so dawn, golden hour and the night keep the palette's exactly) and greyed by the real cloud cover.
+const SKY_DAY = [[26, 82, 172], [70, 136, 212], [146, 192, 236], [214, 230, 242]];
+const SKY_GREY = [[124, 136, 154], [150, 160, 174], [176, 184, 194], [200, 204, 208]];
+const sm = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+/** the Harbor's sky stops (4 colours, top → horizon) for a look: the palette's, with the Harbor's own day sky by the day's share */
+export function harborSky(P, LK) {
+  if (!P || !P.sky) return null;
+  const d = LK && LK.w ? LK.w.day || 0 : 0;
+  if (d <= 0.001) return P.sky;
+  const g = sm(0.45, 0.97, (LK && LK.cloud) || 0) * 0.85;
+  return P.sky.map((c, i) => { const own = mixc(SKY_DAY[i], SKY_GREY[i], g); return mixc(c.slice(0, 3), own, d).map(Math.round); });
+}
+export const sunKey = sl => `${sl.sunDir}${sl.sunEl}${sl.cloud > 0.6 ? 'o' : ''}`;
 
 /** atmospheric depth: 0 at the quay, 1 far away (mixed into the haze) */
 export const fog = z => Math.max(0, Math.min(1, (z - 230) / 770));

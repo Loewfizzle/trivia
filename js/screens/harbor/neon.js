@@ -59,7 +59,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     const old = { signs, boards, outs, items, glassFaces };
     queue = []; items = []; signs = []; boards = []; outs = []; built = 0;
     const spots = signSpots(L);
-    assignKey = o.night || assignKey || 'x';
+    // (THE DAY PASS: the first layout's key holds — a re-layout never re-picks; only night() changes it)
+    assignKey = assignKey || o.night || 'x';
     const pick = assignSigns(games, spots, assignKey);
     const s = cam.F / 600;
     // the signs (named, icons, the fixed ones); the billboards
@@ -881,7 +882,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     },
     setTier(t) { tier = t; dropComp(); applyScheme(); },
     /** tonight's pick changes only while the neon is dark (never while you watch); key: nightKey(local) */
-    night(k) { if (k !== assignKey && !items.some(it => it.pw && it.pw.on)) { assignKey = k; return true; } return false; },
+    // (THE DAY PASS: by day the painted faces show, so never then — painted: the day's share of the look)
+    night(k, painted = 0) { if (k !== assignKey && painted < 0.02 && !items.some(it => it.pw && it.pw.on)) { assignKey = k; return true; } return false; },
     /** a moment: 'party' (k 0..1: chasers + beat + colour shifts), 'chase' (on/off), 'flash' ({ game } | { cols }: the game's
      *  colours sweep across the skyline), 'scheme' (a name in SCHEMES: the outlines re-lit in it) */
     moment(name, v) {
