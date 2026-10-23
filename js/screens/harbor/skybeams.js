@@ -155,15 +155,29 @@ export function createSkyBeams() {
       // (NEON PASS 6, the owner: the beam ended in a sharp horizontal line at the crown — its last FOOT pt now come from a fade sprite:
       // the same beam, fading out softly into the crown; everything above exactly as before)
       const ft = FOOT * K, yf = y0 + 2 - ft;
-      c.drawImage(sp, 0, 0, sp.width, sp.height - 1, b.x - gw / 2, b.top, gw, yf - b.top);
+      // (SP: a cloud overhead takes the beam — bright up to its belly, then only what gets through it: clouds.js#rayHit)
+      const hit = f.hit && yf - b.top > 30 * K ? f.hit(b.x, yf, 0, -1, yf - b.top) : null;
+      if (hit) {
+        // (in pieces: full up to the first cloud, then what gets through it, then through the next)
+        const H = sp.height - 1, a0 = c.globalAlpha, rowOf = y => H * (y - b.top) / (yf - b.top);
+        let yBot = yf, keep = 1;
+        for (let h = hit; h; h = h.next) {
+          const yc = Math.max(b.top + 1, yf - h.d), r0 = rowOf(yc), r1 = rowOf(yBot);
+          if (yBot - yc > 0.5) { c.globalAlpha = a0 * keep; c.drawImage(sp, 0, r0, sp.width, r1 - r0, b.x - gw / 2, yc, gw, yBot - yc); }
+          yBot = yc; keep *= 0.1 + 0.9 * h.trans;
+        }
+        if (yBot - b.top > 0.5) { c.globalAlpha = a0 * keep; c.drawImage(sp, 0, 0, sp.width, rowOf(yBot), b.x - gw / 2, b.top, gw, yBot - b.top); }
+        c.globalAlpha = a0;
+      } else c.drawImage(sp, 0, 0, sp.width, sp.height - 1, b.x - gw / 2, b.top, gw, yf - b.top);
       const fs = footFor(sp);
       if (fs) c.drawImage(fs, b.x - gw / 2, yf, gw, ft + 3 * K);
       // the beam's root: a bright flare where it leaves the crown (it punches on the beat)
       const r = (5 + 5 * (f.punch || 0)) * K * (b.far ? 0.55 : 1);
       c.globalAlpha = Math.min(1, a * (0.55 + 0.45 * (f.punch || 0)) * (b.far ? 0.6 : 1));
       c.drawImage(flareSprite(), b.x - r, y0 - r * 0.7, r * 2, r * 2);
-      // (DT2: the clouds it passes through catch it — clouds.js#catchBeam lights them where the beam goes in)
-      if (f.onBeam) f.onBeam(b.x, b.top, y0, col, Math.min(1, a * pulse * haze * (b.far ? 0.5 : 1)), gw);
+      // (SP: the cloud it goes into lights up there — clouds.js#beamPatch)
+      // (the patch's size from the beam's own width, not its beat pulse — the beat is only its brightness)
+      if (hit && f.patch) { let k = Math.min(1, a * pulse * haze * (b.far ? 0.5 : 1)); const pw = 64 * K * cfg.width * (b.far ? 0.5 : 1); for (let h = hit; h; h = h.next) { f.patch(h, col, k, pw); k *= 0.1 + 0.9 * h.trans; } }
     });
     c.restore();
   }

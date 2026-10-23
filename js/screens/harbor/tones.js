@@ -93,7 +93,10 @@ export function sunLook(LK, P) {
   // (the height in steps: a golden-hour sun as before; a day sun in ~8° steps — a new look every ~40–60 min at most)
   const sunEl = el < 8 ? 6 : el < 18 ? 12 : el < 26 ? 22 : el < 34 ? 30 : el < 44 ? 40 : 52;
   const col = c => (Array.isArray(c) ? c : null), st = harborSky(P, LK);
-  return { sunDir, sunEl, skyHi: col(st && st[1]), skyLo: col(st && st[3]), skyTop: col(st && st[0]), cloud: LK ? LK.cloud || 0 : 0 };
+  // SP — OVERCAST (the owner: under a full deck the light is FLAT and COOL-GREY — soft shadows, muted colours): by day the sun has
+  // no side under it (no cast shadows, no sun streaks), the facades go a soft cool grey (blocks.js#faces), in quarters
+  const ovc = el > 2 ? Math.round(sm(0.72, 0.95, (LK && LK.cloud) || 0) * 4) / 4 : 0;
+  return { sunDir: ovc >= 0.5 ? 0 : sunDir, sunEl, skyHi: col(st && st[1]), skyLo: col(st && st[3]), skyTop: col(st && st[0]), cloud: LK ? LK.cloud || 0 : 0, ovc };
 }
 
 // ------------------------------------------------------------------ THE DAY SKY (THE DAY PASS)
@@ -113,7 +116,7 @@ export function harborSky(P, LK) {
   const g = sm(0.45, 0.97, (LK && LK.cloud) || 0) * 0.85;
   return P.sky.map((c, i) => { const own = mixc(SKY_DAY[i], SKY_GREY[i], g); return mixc(c.slice(0, 3), own, d).map(Math.round); });
 }
-export const sunKey = sl => `${sl.sunDir}${sl.sunEl}${sl.cloud > 0.6 ? 'o' : ''}`;
+export const sunKey = sl => `${sl.sunDir}${sl.sunEl}${sl.cloud > 0.6 ? 'o' : ''}${sl.ovc ? `v${sl.ovc}` : ''}`;
 
 /** atmospheric depth: 0 at the quay, 1 far away (mixed into the haze) */
 export const fog = z => Math.max(0, Math.min(1, (z - 230) / 770));

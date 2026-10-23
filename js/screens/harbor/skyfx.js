@@ -197,6 +197,8 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     beam(c, s) { air.beam(c, s, waterTop + (waterY1 - waterTop) * 0.35); },
     /** the moon (district/fx.js's hook) */
     moon: (c, o) => cel.moon(c, o),
+    /** SP: the moon's surroundings — the tagline's band (its 22° halo never crosses it), tonight's cirrostratus veil */
+    moonSky: o => cel.skyIs(o),
     /** the aurora (district/fx.js's hook) */
     aurora(c, s) {
       const st = s.force.has('aurora') && !aurora.on ? 0.8 : aurora.strength;

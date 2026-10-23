@@ -142,7 +142,7 @@ function beamSprite() {
  * The beams (every frame while on). k: on × night (0..1); fog: 0..1 how thick the air is (fog / low cloud: brighter beams,
  * the cloud lit where they hit); cloudY: the cloud base's screen y (the top of the sky, or lower in fog).
  */
-export function drawBeams(c, L, k, t, { fog = 0, cloudY = 40, motion = true, col = [214, 226, 255] } = {}) {
+export function drawBeams(c, L, k, t, { fog = 0, cloudY = 40, motion = true, col = [214, 226, 255], hit = null, patch = null } = {}) {
   if (k <= 0.01) return;
   const cam = L.cam, spr = beamSprite(), len = cam.H * 0.95;
   c.save();
@@ -154,10 +154,23 @@ export function drawBeams(c, L, k, t, { fog = 0, cloudY = 40, motion = true, col
     const w = Math.max(56, cam.W * 0.2) * (1 + fog * 0.6);
     // (NEON PASS 4: only the open air above what stands in front of this light — a nearer sign, billboard or roof hides it)
     c.save(); c.clip(cv.path || (cv.path = pathOf(cv.poly)));
+    // (SP: a cloud in its way takes the beam — bright up to it, dimmed beyond by how thick it is; the cloud's base lit where the
+    // beam sweeps across it: clouds.js#rayHit / beamPatch)
+    const ux = Math.sin(ang), uy = -Math.cos(ang), h = hit ? hit(sx, sy, ux, uy, len) : null;
     c.save(); c.translate(sx, sy); c.rotate(ang);
-    c.globalAlpha = 0.6 * air * k; c.drawImage(spr, -w / 2, -len, w, len);
-    c.globalAlpha = 0.45 * air * k; c.drawImage(spr, -w * 0.18, -len * 0.8, w * 0.36, len * 0.8);   // the core
+    const part = (ww, ll, a) => {
+      const H = spr.height, rowOf = dd => H * (ll - dd) / ll;     // (the sprite's top is the beam's far end)
+      let d0 = 0, keep = 1;
+      for (let hh = h; hh && hh.d < ll; hh = hh.next) {
+        if (hh.d - d0 > 0.5) { c.globalAlpha = a * keep; c.drawImage(spr, 0, rowOf(hh.d), spr.width, rowOf(d0) - rowOf(hh.d), -ww / 2, -hh.d, ww, hh.d - d0); }
+        d0 = hh.d; keep *= 0.1 + 0.9 * hh.trans;
+      }
+      if (ll - d0 > 0.5) { c.globalAlpha = a * keep; c.drawImage(spr, 0, 0, spr.width, rowOf(d0), -ww / 2, -ll, ww, ll - d0); }
+    };
+    part(w, len, 0.6 * air * k);
+    part(w * 0.36, len * 0.8, 0.45 * air * k);         // the core
     c.restore();
+    if (h && patch) { let pk = Math.min(1, 0.8 * air * k); for (let hh = h; hh && hh.d < len; hh = hh.next) { patch(hh, col, pk, w * 0.7, ux, uy); pk *= 0.1 + 0.9 * hh.trans; } }
     // where it hits the low cloud: a lit patch
     if (fog > 0.15) {
       const tx = sx + Math.sin(ang) * (sy - cloudY) / Math.max(0.2, Math.cos(ang)), r = w * 1.6;

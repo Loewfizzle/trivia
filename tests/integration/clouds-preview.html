@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clouds preview</title>
 <!-- CITY 2.0 — DT2: THE CLOUDS, every kind in every light, no Firebase (js/screens/harbor/clouds.js#bakeCloud on the real layout
-     from js/core/harbor-clouds.js). One phone-sized sky panel per look: ?looks=noon,golden … &cover=0.45 &seed=… &res=2 -->
+     from js/core/harbor-clouds.js). One phone-sized sky panel per look: ?looks=noon,golden … &cover=0.45 &seed=… &res=2
+     SP: &layers=lo,mid,hi (the live cover by height: 0,0,0.6 = cirrus only) &kinds=cirrus,cumulus (only those) &band=1 (the
+     tagline's band shown) -->
 <style>
   html, body { background: #111; color: #ddd; margin: 0; font: 12px monospace; }
   #m { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; }
@@ -19,7 +21,7 @@
 import { bakeCloud } from '/js/screens/harbor/clouds.js';
 import { cloudMix, cloudPlan, skyLight } from '/js/core/harbor-clouds.js';
 const qs = new URLSearchParams(location.search);
-const W = 402, H = 520, box = { W, top: 62, roof: 470, hz: 563 };
+const W = 402, H = 520, box = { W, top: 62, roof: 470, hz: 563, avoid: { y0: 280, y1: 340 } };
 const RES = Number(qs.get('res') || 2), SEED = qs.get('seed') || 'pv1';
 // the look: the sun (elevation, its place on the screen), the sky's stops, the cover
 const LOOKS = {
@@ -52,11 +54,17 @@ for (const name of pick) {
   if (lk.sx != null && lk.el > -1) { const r = c.createRadialGradient(lk.sx, lk.sy, 0, lk.sx, lk.sy, 70); r.addColorStop(0, 'rgba(255,250,235,1)'); r.addColorStop(0.2, 'rgba(255,240,210,0.7)'); r.addColorStop(1, 'rgba(255,240,210,0)'); c.fillStyle = r; c.fillRect(0, 0, W, H); }
   if (lk.moon) { c.fillStyle = '#e8e8f0'; c.beginPath(); c.arc(lk.moon.x, lk.moon.y, 11, 0, 7); c.fill(); }
   const cover = Number(qs.get('cover') || lk.cover);
-  const L = { cloud: cover, sun: { el: lk.el }, moon: lk.moon ? { el: lk.moon.el, illum: lk.moon.illum } : { el: -10 }, rain: 0, snow: 0, storm: 0 };
+  // &layers=lo,mid,hi: the live weather's cover by height (e.g. 0,0,0.6 = high cirrus only; 0.3,0,0.9 = cumulus under a veil)
+  const ly = qs.get('layers') ? qs.get('layers').split(',').map(Number) : null;
+  const L = { cloud: cover, cloudLayers: ly ? { lo: ly[0], mid: ly[1], hi: ly[2] } : null, sun: { el: lk.el }, moon: lk.moon ? { el: lk.moon.el, illum: lk.moon.illum } : { el: -10 }, rain: 0, snow: 0, storm: 0 };
   const M = cloudMix(L, SEED), plan = cloudPlan(box, M, SEED);
   const G = skyLight(L, { sun: lk.sx != null ? { x: lk.sx, y: lk.sy, vis: lk.el > -1 ? 1 : 0 } : null, side: lk.sx != null ? (lk.sx > W / 2 ? 1 : -1) : 0, moon: lk.moon || null, party: lk.party || 0, palette: PAL, horizon: lk.sky[2].map((v, i) => (v + lk.sky[3][i]) / 2), deck: M.deck });
   const t0 = performance.now();
+  const only = qs.get('kinds') ? qs.get('kinds').split(',') : null;
+  // (the tagline's band, faint: the cirrus keep above it)
+  if (qs.get('band')) { c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(0, box.avoid.y0, W, box.avoid.y1 - box.avoid.y0); }
   for (const d of plan) {
+    if (only && !only.includes(d.kind)) continue;
     const sp = bakeCloud(d, G, box, d.kind === 'deck' ? 0.6 : RES, SEED);
     c.globalAlpha = 1;
     if (d.kind === 'deck') { c.drawImage(sp, -d.w * 0.3, -2, d.w, d.h); c.drawImage(sp, d.w * 0.7, -2, d.w, d.h); }

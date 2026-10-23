@@ -82,6 +82,13 @@ const SCENE = {
   'd-morn': ['2026-10-22T09:00'], 'd-noon': ['2026-10-22T12:30'], 'd-aft': ['2026-10-22T16:00'], 'd-golden': ['2026-10-22T18:20'],
   'd-clouds': ['2026-10-22T13:00', { qs: 'wx=clouds' }], 'd-overcast': ['2026-10-22T13:00', { qs: 'wx=overcast' }],
   'd-night': ['2026-10-22T22:00'], 'd-party': ['2026-10-24T23:00'],
+  // CITY 2.0 — SKY POLISH (Oct 23 2026): the owner's review list (--sizes 402x874 --crop sky,skyl3,skym,skyr3); sp-plane: a forced
+  // airliner with its contrail; sp-cirrus / sp-veil: the high cloud by its height (&wx=cirrus / &wx=veil — the moon's 22° halo)
+  'sp-morn': ['2026-10-22T09:00'], 'sp-noon': ['2026-10-22T12:30'], 'sp-cloudy': ['2026-10-22T13:00', { qs: 'wx=clouds' }],
+  'sp-overcast': ['2026-10-22T13:00', { qs: 'wx=overcast' }], 'sp-golden': ['2026-10-22T18:20', { qs: 'wx=clouds' }],
+  'sp-sunset': ['2026-10-22T18:45', { qs: 'wx=clouds' }], 'sp-dawn': ['2026-10-23T07:45'], 'sp-night': ['2026-10-22T22:00', { qs: 'wx=clouds' }],
+  'sp-party': ['2026-10-24T23:00', { qs: 'wx=clouds' }], 'sp-plane': ['2026-10-22T11:00', { qs: 'force=planes', wait: 16000 }],
+  'sp-cirrus': ['2026-10-22T11:00', { qs: 'wx=cirrus' }], 'sp-cirrus-set': ['2026-10-22T18:45', { qs: 'wx=cirrus' }], 'sp-veil': ['2026-10-26T23:30', { qs: 'wx=veil' }],
   // CITY 2.0 — THE PREVIEW PANEL (the owner's test remote; --city 2 --preview): the sheet open (JUST ME / EVERYONE, events on,
   // scrolled down to the time + weather, the bottom with the tools)
   panel: ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel' }], 'panel-on': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', on: { force: ['drones', 'spell', 'neon-scheme'], text: 'HI THERE', show: 'heart', colours: 'ff2e97,2ee6ff', scheme: 'halloween' } }],

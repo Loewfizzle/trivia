@@ -45,17 +45,21 @@ const lerp3 = (T, d, g, n) => [0, 1, 2].map(i => d[i] * T.day + g[i] * T.gold + 
 // THE DAY PASS — the day's colours, richer (the day channel only: golden hour, dusk and the night keep theirs): the stone a touch
 // more saturated and, near, warmed by the sun; the sunlit side bright and warm; the SHADE cool and blue (the sky lights it); the
 // far ones dissolve into a paler, bluer haze (aerial perspective) — the near ones stay warm, darker and crisp
-const SUN_WARM = [255, 226, 178], SKY_SHADE = [62, 76, 142];
-// (DT2 — the owner: "push the 3D further at phone size": the lit side warmer + brighter, the shade deeper + bluer, the near ones richer)
+const SUN_WARM = [255, 226, 178], SKY_SHADE = [62, 76, 142], OVC_GREY = [164, 170, 182], OVC_SHADE = [104, 112, 132];
+// (DT2 — the owner: "push the 3D further at phone size": the lit side warmer + brighter, the shade deeper + bluer, the near ones richer;
+// SP: one more step — the sunlit side a touch brighter, the shade a touch deeper + cooler)
 const sat = (c, k) => { const l = (c[0] + c[1] + c[2]) / 3; return c.map(v => Math.max(0, Math.min(255, l + (v - l) * k))); };
 export function faces(T, mat, z) {
   const m = MAT[mat] || MAT.lime, fz = fog(z);
   const hz = c => mix(c, T.haze, fz * (T.night > 0.5 ? 0.62 : 0.7 + 0.22 * T.day));
   const near = 1 - Math.min(1, fz * 2.2);
-  const dFront = shade(mix(sat(m.d, 1.3 + 0.12 * near), SUN_WARM, 0.12 * near), -0.1 * Math.abs(T.sunDir || 0)), dLit = shade(mix(sat(m.l, 1.2), SUN_WARM, 0.3), 0.06), dDark = shade(mix(sat(m.s, 1.12), SKY_SHADE, 0.5), -0.22);
-  const front = lerp3(T, dFront, mix(m.d, DUSK, 0.5).map(v => v * 0.82), m.n);
-  const lit = lerp3(T, dLit, mix(m.l, SUNLIT, 0.55), m.ns);
-  const dark = lerp3(T, dDark, mix(m.s, [84, 58, 98], 0.5), m.ns.map(v => v * 0.85));
+  const dFront = shade(mix(sat(m.d, 1.3 + 0.12 * near), SUN_WARM, 0.12 * near), -0.1 * Math.abs(T.sunDir || 0)), dLit = shade(mix(sat(m.l, 1.22), SUN_WARM, 0.32), 0.09), dDark = shade(mix(sat(m.s, 1.14), SKY_SHADE, 0.54), -0.27);
+  // (SP — OVERCAST by day: the faces converge on a soft cool grey — the material still reads, muted; the sides barely differ)
+  const ov = T.ovc || 0, flat = ov ? mix(sat(m.d, 0.78), OVC_GREY, 0.22) : null;
+  const dF = ov ? mix(dFront, flat, ov) : dFront, dL = ov ? mix(dLit, shade(flat, 0.05), ov) : dLit, dD = ov ? mix(dDark, shade(mix(flat, OVC_SHADE, 0.2), -0.1), ov) : dDark;
+  const front = lerp3(T, dF, mix(m.d, DUSK, 0.5).map(v => v * 0.82), m.n);
+  const lit = lerp3(T, dL, mix(m.l, SUNLIT, 0.55), m.ns);
+  const dark = lerp3(T, dD, mix(m.s, [84, 58, 98], 0.5), m.ns.map(v => v * 0.85));
   const trim = lerp3(T, mix(m.t, [255, 246, 226], 0.2), mix(m.t, SUNLIT, 0.4), m.n.map(v => v * 1.25));
   return { front: hz(front), lit: hz(lit), dark: hz(dark), trim: hz(trim), fz };
 }

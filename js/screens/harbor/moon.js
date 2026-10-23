@@ -4,8 +4,9 @@
 //               Crisium, Fecunditatis, Nectaris, Nubium, Humorum, the Ocean of Storms, Frigoris), bright Tycho with its rays,
 //               Copernicus, Kepler, Aristarchus, a field of craterlets; its REAL PHASE with a soft terminator; EARTHSHINE on the
 //               crescent's dark part (the maria faintly there); a big AMBER MOONRISE (bigger + amber low, shrinking to silver
-//               as it climbs; the harvest moon stays amber longer; a supermoon a touch bigger); a tight corona in clear air
-//               and a 22° HALO only in real haze (thin cloud / light fog); a lunar eclipse (the real dates) turns it copper-red
+//               as it climbs; the harvest moon stays amber longer; a supermoon a touch bigger); a wide soft gaussian glow
+//               (wider in haze), a tight corona in clear air and a faint 22° HALO only under a cirrostratus veil, never across
+//               the tagline (SP); a lunar eclipse (the real dates) turns it copper-red
 //   THE SUN     (district/sun.js draws the disc) + the golden hour's haze: the low sun's warm air along the horizon
 //   THE AURORA  slow curtains of rays — a sharp green lower border fading up through teal into violet and red (a storm night:
 //               higher, redder, brighter) — rendered small a few times a second and drawn as one soft image
@@ -62,7 +63,24 @@ function texture() {
 
 export function createCelestial() {
   let tex = null, comp = null, compKey = '', mask = null, glowCv = new Map(), auroraCv = null, auroraAt = -1e9, rayCv = null;
-  let W = 1, HZ = 1, K = 1, tier = 2, lastMoon = null;
+  let W = 1, HZ = 1, K = 1, tier = 2, lastMoon = null, skyNow = { band: null, veil: 0 }, ringCv = null;
+  const softCv = new Map();
+  // SP — a soft glow with a GAUSSIAN fall-off (the owner: the moon's light "too concentrated", a stray circle): it fades to nothing
+  // smoothly, no edge at any size or brightness
+  const soft = col => {
+    const k = col.join(','); let c = softCv.get(k);
+    if (!c) { c = mk(128, 128); const x = safeCtx(c), g = x.createRadialGradient(64, 64, 0, 64, 64, 64); for (let i = 0; i <= 16; i++) { const t = i / 16; g.addColorStop(t, `rgba(${k},${(Math.exp(-((t * 2.6) ** 2)) * (1 - t ** 8)).toFixed(4)})`); } x.fillStyle = g; x.fillRect(0, 0, 128, 128); if (softCv.size > 8) softCv.clear(); softCv.set(k, c); }
+    return c;
+  };
+  // the 22° ring: a soft band (no stroke edge), a faint warm inside edge — the real halo's red
+  const ring = () => {
+    if (ringCv) return ringCv;
+    ringCv = mk(256, 256); const x = safeCtx(ringCv), g = x.createRadialGradient(128, 128, 0, 128, 128, 128), R0 = 0.84, w = 0.1;
+    g.addColorStop(0, 'rgba(220,230,255,0)'); g.addColorStop(R0 - w, 'rgba(220,230,255,0)'); g.addColorStop(R0 - w * 0.35, 'rgba(255,190,170,0.55)');
+    g.addColorStop(R0, 'rgba(226,236,255,1)'); g.addColorStop(R0 + w * 0.6, 'rgba(220,230,255,0.35)'); g.addColorStop(Math.min(1, R0 + w * 1.4), 'rgba(220,230,255,0)'); g.addColorStop(1, 'rgba(220,230,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+    return ringCv;
+  };
   const glow = col => {
     const k = col.join(','); let c = glowCv.get(k);
     if (!c) { c = mk(64, 64); const x = safeCtx(c), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, `rgba(${k},1)`); g.addColorStop(0.3, `rgba(${k},0.38)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 64, 64); if (glowCv.size > 24) glowCv.clear(); glowCv.set(k, c); }
@@ -119,11 +137,13 @@ export function createCelestial() {
 
   return {
     resize(w, h, hz) { W = w; HZ = hz; K = Math.max(0.9, Math.min(1.35, w / 402)); auroraAt = -1e9; },
+    /** SP: what the moon's light needs from the rest of the sky: the tagline's band ({ y0, y1 } | null), the cirrostratus veil 0..1 */
+    skyIs(o) { skyNow = { band: o.band || null, veil: o.veil || 0 }; },
     setTier(t) { tier = t; },
     /** THE MOON (district/fx.js calls it in place of its own art, at its place): o = { x, y, r, a (its visibility), ec, L, dark }
      *  → the radius drawn (the water's moon path + the tap use it) */
     moon(c, o) {
-      const L = o.L, lk = moonLook(L.moon, { local: L.local, south: L.south, cloud: L.cloud, fog: L.fog, rain: L.rain, clear: L.clear });
+      const L = o.L, lk = moonLook(L.moon, { local: L.local, south: L.south, cloud: L.cloud, fog: L.fog, rain: L.rain, clear: L.clear, veil: skyNow.veil });
       // (the district's visibility `a` was tuned for its old sprite: ~0.35 in twilight — a real moon is brightest against a
       // darkening sky; the Harbor's disc reaches full strength at a ≈ 0.45, and still fades in by day)
       const r = o.r * lk.size, es = lk.earthshine * clamp01((o.dark - 0.4) * 2), discA = clamp01(o.a * 2.2);
@@ -132,16 +152,19 @@ export function createCelestial() {
       const amberCol = [255, Math.round(236 - 70 * lk.amber), Math.round(214 - 130 * lk.amber)], silver = [214, 224, 255];
       const gcol = lk.amber > 0.3 ? amberCol : silver;
       c.save(); c.globalCompositeOperation = 'lighter';
-      // the light round it: a wide soft glow (warm when low) + a tight corona in clear air
-      c.globalAlpha = (0.14 + 0.12 * lk.amber) * o.a * o.dark * (0.5 + 0.5 * L.moon.illum) * (lk.supermoon ? 1.25 : 1); c.drawImage(glow(gcol), o.x - r * 7, o.y - r * 7, r * 14, r * 14);
-      c.globalAlpha = 0.32 * lk.corona * o.a * o.dark * (0.35 + 0.65 * L.moon.illum); c.drawImage(glow(gcol.map(v => Math.min(255, v + 20))), o.x - r * 2.4, o.y - r * 2.4, r * 4.8, r * 4.8);
-      // the 22° HALO: only in real haze — a thin pale ring, a hint of red on its inside edge
+      // the light round it (SP): a WIDE SOFT GLOW, gaussian (no edge) — warm when low, wider + a little brighter in haze (the
+      // aureole) — then a tight corona in clear air
+      const lum = o.a * o.dark * (0.5 + 0.5 * L.moon.illum) * (lk.supermoon ? 1.2 : 1), wr = r * (8 + 6 * lk.haze);
+      c.globalAlpha = (0.1 + 0.08 * lk.amber + 0.07 * lk.haze) * lum; c.drawImage(soft(gcol), o.x - wr, o.y - wr, wr * 2, wr * 2);
+      c.globalAlpha = (0.1 + 0.06 * lk.haze) * lum; c.drawImage(soft(gcol), o.x - r * 3.6, o.y - r * 3.6, r * 7.2, r * 7.2);
+      c.globalAlpha = 0.28 * lk.corona * o.a * o.dark * (0.35 + 0.65 * L.moon.illum); c.drawImage(glow(gcol.map(v => Math.min(255, v + 20))), o.x - r * 2.2, o.y - r * 2.2, r * 4.4, r * 4.4);
+      // the 22° HALO: only under a cirrostratus veil — very faint, a soft band; and never a circle across the words (it fades out
+      // while any part of it would cross the tagline's band)
       if (lk.halo > 0.02) {
-        const hr = r * 5.2;
-        c.globalAlpha = 0.16 * lk.halo * o.a * o.dark; c.lineWidth = Math.max(1.5, r * 0.35);
-        c.strokeStyle = 'rgba(255,170,150,0.7)'; c.beginPath(); c.arc(o.x, o.y, hr - r * 0.18, 0, TAU); c.stroke();
-        c.strokeStyle = 'rgba(220,232,255,0.9)'; c.beginPath(); c.arc(o.x, o.y, hr, 0, TAU); c.stroke();
-        c.globalAlpha = 0.06 * lk.halo * o.a * o.dark; c.lineWidth = r * 1.2; c.beginPath(); c.arc(o.x, o.y, hr + r * 0.3, 0, TAU); c.stroke();
+        const hr = r * 6.2, b = skyNow.band;
+        const clear = b ? smooth(0, 24, Math.max(b.y0 - (o.y + hr), (o.y - hr) - b.y1)) : 1;
+        const a = 0.09 * lk.halo * o.a * o.dark * clear;
+        if (a > 0.004) { c.globalAlpha = a; const R2 = hr / 0.84; c.drawImage(ring(), o.x - R2, o.y - R2, R2 * 2, R2 * 2); }
       }
       c.restore();
       // the disc
@@ -198,6 +221,6 @@ export function createCelestial() {
       c.restore();
     },
     debug: () => ({ moonKey: compKey, moon: lastMoon }),
-    destroy() { for (const cv of [tex, comp, mask, auroraCv, rayCv, ...glowCv.values()]) if (cv) cv.width = 0; glowCv.clear(); tex = comp = mask = auroraCv = rayCv = null; },
+    destroy() { for (const cv of [tex, comp, mask, auroraCv, rayCv, ringCv, ...glowCv.values(), ...softCv.values()]) if (cv) cv.width = 0; glowCv.clear(); softCv.clear(); tex = comp = mask = auroraCv = rayCv = ringCv = null; },
   };
 }

@@ -214,6 +214,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     skyMix.sky = null;                                         // (a re-layout repaints the sky: the merged copy too)
     for (const m of [fx, wfx, rain, sun]) m.resize(W, H, HZ);
     clouds.resize(W, safeTopV, skyGlowY, HZ, dpr);
+    clouds.avoid(tagBand());
     sky.layout(L, { HZ, waterTop: waterBand(L).y0, waterY1: waterBand(L).y1, dpr: Math.min(2, dpr) });
     skyBeams.layout(L, { textRects: S.textRects, corner: rects().corner });
     { const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z); cam.wheelQuiet = { x: wx, y: wy, r: cam.F * w.r / w.z, z: w.z }; }
@@ -501,6 +502,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         stars.draw(c, W, HZ, LK, clock.now(), vis, milky, t, S.motion, 0, twilight);
       } }
     fs.moonVeil = wfx.moonVeil(LK) * tagMoonDim(dt);
+    sky.moonSky({ band: tagBand(), veil: clouds.veil() });
     moonNow = fs.moonAt || null;
     logoHaze(c);
     fx.back(c, fs);
@@ -570,7 +572,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (NEON PASS 5: every tower's beam at the peak — a desktop has a dozen; the warm-up switches them on one by one over 9 → 11 pm)
       const hr = partyHour(LK.local), nB = skyBeams.count(), onN = forced || PT.name === 'peak' || PT.name === 'after' || hr == null ? nB : 1 + (nB - 1) * smooth(20.9, 23, hr);
       const k = off.has('no-beams') ? 0 : (forced ? 1 : PT.on > 0 ? PT.ramp * (sh.beams || (tier === 0 ? 0.8 : 0)) : 0) * litK(DK, 'beams') * lit;
-      if (k > 0.004) skyBeams.draw(c, { k, on: onN, signs: neon.signRects(), cols: ids => neon.beamCols(ids), punch: PT.punch || 0, haze: Math.max(LK.fog || 0, (LK.cloud || 0) * 0.6), fade: fadeIn, motion: S.motion, tier, onBeam: off.has('no-clouds') ? null : (x, y1, y0, col, a, gw) => clouds.catchBeam(c, x, y1, y0, col, a, gw) }); }
+      if (k > 0.004) skyBeams.draw(c, { k, on: onN, signs: neon.signRects(), cols: ids => neon.beamCols(ids), punch: PT.punch || 0, haze: Math.max(LK.fog || 0, (LK.cloud || 0) * 0.6), fade: fadeIn, motion: S.motion, tier, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, gw) => clouds.beamPatch(c, h, col, a, gw) }); }
     // the party show's drops for the title (the NEON word joins the biggest ones) + the wheel (its sparkle, its party colours)
     { const sh = neon.show(); PT.drop = sh.drop; PT.big = sh.big; PT.scene = sh.scene;
       const wantParty = PT.on > 0.5;          // (NEON PASS 4: the wheel wears the party's colours all party night)
@@ -585,7 +587,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
-    if (beamK > 0.01) drawBeams(c, L, beamK * nightK, t, { fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion });
+    if (beamK > 0.01) drawBeams(c, L, beamK * nightK, t, { fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, w, ux, uy) => clouds.beamPatch(c, h, col, a, w, ux, uy) });
     // the drones up in the sky + the gulls over the harbor (in front of the city, before the water: the mirror doubles them)
     sky.city(c, fs);
     // ---- THE HARBOR'S HERO PIECES (Part 5): their state for this frame, their reflections queued for the water's mirror
@@ -1063,6 +1065,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const sig = r => (r ? `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}` : '-');
     const lk = [rr.neon, rr.word, rr.corner].map(sig).join('|');
     if (lk !== laneKey) { laneKey = lk; if (rr.neon) cam.neon = rr.neon; if (rr.word) cam.word = rr.word; if (rr.corner) cam.corner = rr.corner; L.lanes = laneRects(L); sky.setLanes(L.lanes); skyBeams.layout(L, { textRects: S.textRects, corner: rr.corner }); }
+    clouds.avoid(tagBand());
+  }
+  /** SP: the tagline's band (SPEAKEASY's top → the tagline's foot): the cirrus keep above it (clouds.js) */
+  function tagBand() {
+    const rr = rects(), wd = rr.word, tg = rr.tag;
+    if (!wd && !tg) return null;
+    const y0 = Math.min(wd ? wd.y : 1e9, tg ? tg.y : 1e9), y1 = Math.max(wd ? wd.y + wd.h : -1e9, tg ? tg.y + tg.h : -1e9);
+    return { y0: y0 - 6, y1: y1 + 6 };
   }
 
   build();
@@ -1137,7 +1147,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     rainbow: () => ({ ...bow.debug(), target: bowT ? { day: +bowT.day.toFixed(3), moon: +bowT.moon.toFixed(3), neon: +bowT.neon.toFixed(3), secondary: bowT.secondary, wet: bowT.wet || null, env: bowT.env ?? null, forced: bowT.forced || null } : null, sunAt: null }),
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     harbor: () => (L ? { cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze,
-      clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS }, dayfx: dayfx.debug(),
+      clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),

@@ -777,6 +777,19 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — SKY POLISH (Oct 23, 2026) — `docs/harbor.md#sp` (the owner: the clouds a 7/10)
+- [x] CIRRUS drawn as groups of wisps (fibratus, mares' tails, tufts) over a soft body, never straight / parallel / evenly spaced; a
+      cirrostratus veil on a hazy high day; lit first + last at sunset; above the tagline's band; `&wx=cirrus|veil` + the panel
+- [x] The cumulus: soft uneven bases with rounded ends, lighter at the edges; the self-shadow on a smooth thickness field (no seams);
+      towers + fractus; stratocumulus as one lumpy mass
+- [x] Overcast: only scud in front of the deck; the city's light flat + cool-grey by day (`sunLook.ovc`, `faces`)
+- [x] The moon: a wide gaussian glow; the 22° halo only under a veil, faint, never across the words; the Harbor's sun near-white from ~9°
+- [x] Beams + searchlights meet the clouds (`rayHit` / `beamPatch`, masked by the cloud's sprite, cached); the cloudy party's cost:
+      no re-light at birth, none by moonlight, the per-frame column scan gone
+- [x] Contrails: one smooth trail of puffs on a fixed time grid (no steps at 60 / 30 Hz), a steady head
+- [x] Buildings by day one small step; pixdiff (`night-nc`, `dusk-nc` identical; `golden-nc` the sun only); harbor.test 102,
+      e2e-harbor 112/112, units 472, smoke; perf A/B `np-pclouds` / `np-clouds` / `np-party`: same
+
 ### ✅ CITY 2.0 — THE DAY LOOK (Oct 23, 2026) — `docs/harbor.md#dt2` (Day touch-up part 2)
 - [x] THE CLOUDS, a full rework: `core/harbor-clouds.js` (PURE + tested: the kinds from the real weather + the cover by height,
       the perspective layout with clusters and the row rule, the light for the hour + per cloud) + `screens/harbor/clouds.js`

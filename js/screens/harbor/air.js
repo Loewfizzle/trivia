@@ -8,8 +8,9 @@
 //               a cheatline, the cockpit glass, a row of windows (lit at night on a big one); at night a dark shape whose TAIL is
 //               lit by its logo lights, NAV LIGHTS (red port, green starboard), a white tail light, red beacons top + belly,
 //               double-flash white STROBES, and on approach the LANDING LIGHTS with a glare reaching ahead
-//   CONTRAILS   two engine trails that merge, widen, drift on the real wind and fade — a ring of ≤ 60 samples drawn in six
-//               batched strokes: the cost is CAPPED (Part 2's Known issue: the district's puffs piled up to +2.3 ms)
+//   CONTRAILS   (SP) two thin engine lines merging into ONE smooth trail of soft puffs on the plane's real path, each tied to
+//               the moment it was laid (never crawling or jumping at 60 or 30 Hz), spreading, drifting on the real wind and fading
+//               evenly — ~90 puffs a plane at most (every other one fades out as the trail spreads)
 //   SATELLITES  the district's twilight points + Starlink trains (behaviour unchanged)
 //   HELICOPTER  a crafted chopper (glass canopy, a two-tone body, skids, a tail rotor) with a motion-blurred rotor disc; it
 //               comes in, hovers over the harbor and goes; at night a SEARCHLIGHT beam to the water + its pool, a red beacon,
@@ -24,7 +25,7 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Mat
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const LIVERIES = [{ tail: [28, 52, 118], line: [214, 170, 70] }, { tail: [176, 34, 48], line: [176, 34, 48] }, { tail: [16, 110, 122], line: [240, 196, 80] }];
-const CAP = 60;                                        // contrail samples per plane (the cost's cap)
+const CAP = 260;                                       // contrail samples per plane (every 0.1 s: the path; the puffs drawn are capped by their spacing)
 
 /** the hour's light on an aircraft: { day, golden, dawn, dark, warm (0..1 golden side), haze } from the look */
 export function airLook(L) {
@@ -157,11 +158,11 @@ export function createAir() {
     const x = p.x0 + (p.x1 - p.x0) * u, y = p.y0 + (p.y1 - p.y0) * u;
     const edge = Math.min(1, u / 0.03, (1 - u) / 0.03);
     const { dark, golden, dawn, day, wet, fog, overcast } = look;
-    // THE CONTRAIL (high, dry, not overcast, out of the night): samples every 0.35 s into a ring of ≤ CAP
+    // THE CONTRAIL (high, dry, not overcast, out of the night): the engines' place every 0.1 s (≤ CAP) — drawTrail lays the puffs
     const trailOn = !p.approach && p.alt > 0.45 && !wet && !overcast && dark < 0.8 && p.k < 1;
     if (trailOn) {
       p.trailAt -= s.dt / 1000;
-      if (p.trailAt <= 0) { p.trailAt = 0.35; p.trail.push({ x: x - p.dir * p.len * 0.22, y: y + p.len * 0.05, at: t }); if (p.trail.length > CAP) p.trail.shift(); }
+      if (p.trailAt <= 0) { p.trailAt = 0.1; p.trail.push({ x: x - p.dir * p.len * 0.22, y: y + p.len * 0.05, at: t }); if (p.trail.length > CAP) p.trail.shift(); }
     }
     if (p.trail.length > 1) drawTrail(c, s, p, look, x, y);
     if (p.k >= 1) return;
@@ -213,41 +214,82 @@ export function createAir() {
     }
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
   }
-  // THE CONTRAIL: two engine lines that merge after ~3 s, widening + drifting with the real wind, fading over its life; six
-  // age batches × two strokes (a soft body + a brighter core) — ≤ 14 draw calls a plane whatever its age
+  // THE CONTRAIL (SP — the owner: "too jagged, skippy, jumpy"; City 1.0's fluffy contrails are the reference): ONE CONTINUOUS TRAIL
+  // of soft puffs laid along the plane's real path — the engines' exact place, sampled every 0.1 s and interpolated between — each
+  // puff tied to the moment it was laid (a fixed grid of times), so it never crawls or jumps from frame to frame (60 Hz or Low
+  // Power's 30): it only ages — spreading, softening, drifting with the wind, fading out evenly. As the trail spreads, every other
+  // puff fades out smoothly (its neighbours grow to cover it): ~90 small sprites a plane, whatever its age. The first half-second
+  // is the two thin engine lines, merging, from the engines themselves (a steady head).
+  const puffs = new Map();
+  function puffOf(col) {
+    const k = col.join(',');
+    let cv = puffs.get(k);
+    if (!cv) {
+      cv = mk(32, 32); const x = safeCtx(cv), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+      for (let i = 0; i <= 10; i++) { const u = i / 10; g.addColorStop(u, `rgba(${k},${(Math.exp(-((u * 2.1) ** 2)) * (1 - u ** 6)).toFixed(4)})`); }
+      x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+      if (puffs.size > 6) { for (const c of puffs.values()) c.width = 0; puffs.clear(); }
+      puffs.set(k, cv);
+    }
+    return cv;
+  }
   function drawTrail(c, s, p, look, hx, hy) {
-    const { dark, golden, dawn, day, fog } = look, t = s.t, life = 22;
-    while (p.trail.length && t - p.trail[0].at > life) p.trail.shift();
-    if (p.trail.length < 2) return;
+    const { dark, golden, dawn, day, fog } = look, t = s.t, life = 22, tr = p.trail;
+    while (tr.length > 2 && t - tr[1].at > life + 0.5) tr.shift();
+    if (tr.length && t - tr[tr.length - 1].at > life) tr.length = 0;     // (all of it faded: the plane can go)
+    if (tr.length < 2) return;
     const wind = Math.sin(((s.L.windDir == null ? 250 : s.L.windDir)) * Math.PI / 180) * Math.min(10, s.L.wind == null ? 2 : s.L.wind) * 0.3;
     const vis = (1 - dark * 0.9) * (0.35 + 0.65 * (day + golden + dawn)) * (fog > 0.3 ? 0.4 : 1);
     if (vis < 0.02) return;
-    const tc = golden + dawn > day ? (golden >= dawn ? [255, 206, 178] : [255, 196, 206]) : [255, 255, 255];
-    const sc = Math.max(0.7, p.len / 20);
-    const at = q => { const age = t - q.at; return [q.x + (s.motion ? wind * age : 0), q.y + (s.motion ? age * 0.08 : 0), age]; };
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    const N = p.trail.length, B = 6;
-    for (let b = 0; b < B; b++) {
-      const i0 = Math.floor(b * (N - 1) / B), i1 = Math.floor((b + 1) * (N - 1) / B);
-      if (i1 <= i0) continue;
-      const mid = at(p.trail[Math.floor((i0 + i1) / 2)]), age = mid[2];
-      const form = smooth(0.2, 1.6, age), fade = Math.pow(1 - age / life, 1.3);
-      const wd = (1.1 + (s.motion ? age * 0.32 : 0)) * sc;
-      const a = (day > 0.5 ? 0.5 : 0.36) * form * fade * vis;
-      if (a < 0.01) continue;
-      c.beginPath();
-      for (let i = i0; i <= i1; i++) { const [px, py] = at(p.trail[i]); if (i === i0) c.moveTo(px, py); else c.lineTo(px, py); }
-      c.strokeStyle = rgb(tc, a * 0.35); c.lineWidth = wd * 2.4; c.stroke();
-      c.strokeStyle = rgb(tc, a * 0.75); c.lineWidth = wd; c.stroke();
+    const tc = golden + dawn > day ? (golden >= dawn ? [255, 210, 184] : [255, 200, 212]) : [255, 255, 255];
+    const sc = Math.max(0.7, p.len / 20), mo = s.motion;
+    // (the engines' place at a moment: the samples, interpolated — a straight path between them, sub-pixel)
+    let si = 0;
+    const at = tau => {
+      while (si < tr.length - 2 && tr[si + 1].at <= tau) si++;
+      const a = tr[si], b = tr[si + 1], u = Math.max(0, Math.min(1, (tau - a.at) / Math.max(1e-3, b.at - a.at)));
+      return [a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u];
+    };
+    const drift = age => (mo ? [wind * age, age * 0.08] : [0, 0]);
+    const tFirst = tr[0].at, tLast = tr[tr.length - 1].at;
+    // the puffs: their radius + the trail's opacity by age (it forms over a second, then spreads + thins out)
+    const rad = age => (0.85 + (mo ? age * 0.3 : 0)) * sc, peak = (day > 0.5 ? 0.5 : 0.38) * vis;
+    const speed = Math.max(2, Math.hypot(p.x1 - p.x0, p.y1 - p.y0) / Math.max(1, p.dur)), D0 = Math.max(0.025, Math.min(0.1, 0.4 / speed));
+    const young = 0.55, j0 = Math.ceil(Math.max(tFirst, t - life) / D0), j1 = Math.floor(Math.min(tLast, t - young) / D0);
+    const sp = puffOf(tc);
+    for (let j = j0; j <= j1; j++) {
+      const tau = j * D0, age = t - tau, r = rad(age);
+      // (the density: spacing ≈ 0.65 of a puff's radius — as it spreads, every other puff fades out over a doubling)
+      const Ld = Math.max(0, Math.log2(0.65 * r / (speed * D0))), n = Math.floor(Ld), f = Ld - n;
+      const lv = j === 0 ? 30 : 31 - Math.clz32(j & -j);
+      if (lv < n) continue;
+      const wgt = lv === n ? 1 - f : 1;
+      if (wgt <= 0.01) continue;
+      const T = peak * smooth(0.2, 1.4, age) * Math.pow(Math.max(0, 1 - age / life), 1.3);
+      const spc = speed * D0 * Math.pow(2, n + 1) / (2 - f), over = Math.max(1, 2 * r / spc);
+      const a = (1 - Math.pow(1 - Math.min(0.97, T), 1 / over)) * wgt;
+      if (a < 0.003) continue;
+      const [px, py] = at(tau), [dx, dy] = drift(age), R = r * 2.1;
+      c.globalAlpha = a; c.drawImage(sp, px + dx - R, py + dy - R, R * 2, R * 2);
     }
-    // the young trail: two thin engine lines from the plane, merging into one (the first ~3 s)
-    const young = p.trail.filter(q => t - q.at < 3.2);
-    if (young.length && p.k < 1) {
+    c.globalAlpha = 1;
+    // the young trail: two thin engine lines from the engines, merging into the trail (a smooth polyline, every 0.04 s)
+    if (p.k < 1) {
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      const tA = Math.max(tFirst, t - young - 0.15), ex = hx - p.dir * p.len * 0.22, ey = hy + p.len * 0.05;
+      // (after the last sample: on toward the engines' place now)
+      const atH = tau => { if (tau <= tLast) return at(tau); const L = tr[tr.length - 1], u = Math.min(1, (tau - tLast) / Math.max(1e-3, t - tLast)); return [L.x + (ex - L.x) * u, L.y + (ey - L.y) * u]; };
       c.beginPath();
-      for (const off of [-0.7, 0.7]) young.forEach((q, i) => { const [px, py, age] = at(q); const o = off * sc * (1 - clamp01(age / 3)); if (i === 0) c.moveTo(px, py + o); else c.lineTo(px, py + o); });
-      const last = young[young.length - 1], [lx, ly] = at(last);
-      c.moveTo(lx, ly); c.lineTo(hx - p.dir * p.len * 0.3, hy + p.len * 0.05);
-      c.strokeStyle = rgb(tc, 0.5 * vis * (day > 0.5 ? 1 : 0.75)); c.lineWidth = 0.7 * sc; c.stroke();
+      for (const off of [-0.6, 0.6]) {
+        let first = true;
+        si = 0;
+        for (let tau = tA; tau < t; tau += 0.04) {
+          const age = t - tau, [px, py] = atH(tau), [dx, dy] = drift(age), o = off * sc * (1 - Math.min(1, age / young));
+          if (first) { c.moveTo(px + dx, py + dy + o); first = false; } else c.lineTo(px + dx, py + dy + o);
+        }
+        c.lineTo(ex, ey + off * sc);
+      }
+      c.strokeStyle = rgb(tc, 0.42 * vis * (day > 0.5 ? 1 : 0.75)); c.lineWidth = 0.6 * sc; c.stroke();
     }
   }
 

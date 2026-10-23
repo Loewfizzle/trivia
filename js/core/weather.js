@@ -78,6 +78,8 @@ export function forcedWeather(kind, extra = {}) {
     clear: { kind: 'clear', cloud: 0.1 }, clouds: { kind: 'clouds', cloud: 0.55 }, overcast: { kind: 'overcast', cloud: 0.95 },
     fog: { kind: 'fog', cloud: 0.9, fog: 0.9 }, drizzle: { kind: 'drizzle', cloud: 0.9, rain: 0.3 }, rain: { kind: 'rain', cloud: 0.95, rain: 0.75 },
     storm: { kind: 'storm', cloud: 1, rain: 0.95, storm: 1 }, freeze: { kind: 'clear', cloud: 0.15, temp: -16 }, snow: { kind: 'snow', cloud: 0.95, snow: 0.8 }, sleet: { kind: 'sleet', cloud: 0.95, rain: 0.4, snow: 0.25 },
+    // (CITY 2.0 — SP: high cloud by its height — a fair day's cirrus over a few cumulus; a hazy CIRROSTRATUS veil + the moon's halo)
+    cirrus: { kind: 'clear', cloud: 0.3, layers: { lo: 0.12, mid: 0, hi: 0.5 } }, veil: { kind: 'clouds', cloud: 0.5, layers: { lo: 0.08, mid: 0.05, hi: 0.92 } },
   }[kind] || { kind: 'clear', cloud: 0.1 };
   return { rain: 0, snow: 0, storm: 0, fog: 0, wind: kind === 'storm' ? 9 : 3, windDir: 250, temp: kind === 'snow' ? -2 : kind === 'freeze' ? -16 : 12, lat: null, lon: null, city: null, at: Date.now(), ...base, ...extra };
 }

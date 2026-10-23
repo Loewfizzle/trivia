@@ -61,6 +61,8 @@ const SCENES = {
   'np-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes', 'np-golden': 'when=2026-10-14T18:30&wx=clear&force=no-planes',
   // (THE DAY PASS: a cloudy day — the Harbor's own clouds, the most of them a phone draws)
   'np-clouds': 'when=2026-10-14T14:00&wx=clouds&force=no-planes',
+  // SP: the owner's iPhone case — a cloudy party night (the clouds + the beams in them) vs np-party (clear); a sky of cirrus by day
+  'np-pclouds': 'when=2026-10-17T23:00&wx=clouds&force=no-planes', 'np-cirrus': 'when=2026-10-14T14:00&wx=cirrus&force=no-planes',
   // CITY 2.0, Part 4: the water — a windy night (the most light-column copies + the broken mirror); nw- = the same scenes without
   // the live water (only its baked base: Part 3's cost), for a before / after
   'np-windy': 'when=2026-10-14T21:30&wx=clear&wind=13&force=no-planes',

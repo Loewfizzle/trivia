@@ -511,7 +511,7 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
 // ---------------------------------------------------------------- the clock (a preview switch for screenshots)
 /** ?when=2026-10-31T19:30&tz=America/New_York freezes the start of the clock (it still runs from there);
  *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights,party,finale makes the rare moments happen now; ?wx=storm|rain|snow|fog|clouds|
- *  overcast|drizzle|sleet|clear sets the weather (instead of the live weather); &at=42.96,-85.67 puts the sun, moon and stars
+ *  overcast|drizzle|sleet|clear (CITY 2.0: + cirrus|veil — high cloud by its height) sets the weather (instead of the live weather); &at=42.96,-85.67 puts the sun, moon and stars
  *  over that place instead of the time zone's city (with clear weather unless &wx= says otherwise); &rained=12 says the rain
  *  stopped 12 minutes before the clock's start (RAINBOWS: the real after-rain path, core/rainbow.js; &force=rainbow,rainbow2,
  *  moonbow,neonbow show one at once); &wind=<m/s> sets the wind (THE STREET). Normal players never pass these. */

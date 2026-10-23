@@ -24,7 +24,8 @@ const rad = d => d * Math.PI / 180;
 
 // ------------------------------------------------------------------ THE KINDS (the real weather)
 /**
- * The sky's recipe now: { cover, cumulus, strato, alto, cirrus, deck, scud (shares 0..1), tall (0 humilis … 1 congestus),
+ * The sky's recipe now: { cover, cumulus, strato, alto, cirrus, veil (cirrostratus), deck, scud (shares 0..1), tall (0 humilis …
+ * 1 congestus),
  * layers (true = from the live weather's heights) }.
  */
 export function cloudMix(L, seed = '') {
@@ -40,15 +41,20 @@ export function cloudMix(L, seed = '') {
     lo = c;
   }
   const deck = wet ? 1 : smooth(0.74, 0.96, Math.max(lo, mid * 0.9));
-  const strato = smooth(0.4, 0.78, lo) * (1 - 0.75 * deck);
-  const cumulus = lo < 0.035 ? 0 : clamp01(Math.min(lo, 0.6) * 1.05) * (1 - 0.85 * deck) * (1 - 0.35 * strato);
+  // (SP — the owner's overcast at 1 pm showed separate puffy clouds: under a full deck nothing puffy floats in front of it — only
+  // the scud's dark ragged fragments; the heaps fade out as the deck closes)
+  const shut = 1 - smooth(0.45, 0.85, deck);
+  const strato = smooth(0.4, 0.78, lo) * (1 - 0.75 * deck) * shut;
+  const cumulus = lo < 0.035 ? 0 : clamp01(Math.min(lo, 0.6) * 1.05) * (1 - 0.85 * deck) * (1 - 0.35 * strato) * shut;
   const alto = smooth(0.12, 0.6, mid) * (1 - deck);
   const cirrus = smooth(0.04, 0.45, hi) * (1 - 0.9 * deck);
+  // (SP: a lot of high cover is CIRROSTRATUS — a thin milky veil over the blue, the wisps through it; the moon's 22° halo lives here)
+  const veil = smooth(0.5, 0.85, hi) * (1 - deck);
   const scud = deck > 0.2 ? smooth(0.2, 1, deck) * (wet ? 1 : 0.6) : 0;
   // the cumulus's character: a thin fair day = humilis (small, flat); more cover = mediocris; some days congestus towers
   const r4 = R();
   const tall = clamp01(smooth(0.08, 0.5, lo) * (0.35 + 0.65 * r4) + (r4 > 0.82 && lo > 0.2 ? 0.3 : 0));
-  return { cover: c, cumulus, strato, alto, cirrus, deck, scud, tall, layers: !!lay };
+  return { cover: c, cumulus, strato, alto, cirrus, veil, deck, scud, tall, layers: !!lay };
 }
 
 // ------------------------------------------------------------------ THE LAYOUT (perspective on a cloud field)
@@ -57,7 +63,8 @@ export const nearAt = (y, box) => clamp((box.hz - y) / Math.max(1, box.hz - box.
 const lognorm = (R, s) => { const u = Math.max(1e-6, R()), v = R(); return Math.exp(s * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)); };
 
 /**
- * Where each cloud sits. box: { W, top (the safe top), roof (the skyline's median roof), hz (the horizon: the far waterline) }.
+ * Where each cloud sits. box: { W, top (the safe top), roof (the skyline's median roof), hz (the horizon: the far waterline),
+ * avoid ({ y0, y1 } | null: the tagline's band — SPEAKEASY to the tagline — the cirrus keep above it where they can) }.
  * Returns [{ kind, seed, x0 (pt, its left edge at t = 0), y (its base on screen), w, h, s (near 0..1), v (drift per unit wind
  * speed: nearer = faster), z (draw order: far first) }].
  */
@@ -105,6 +112,11 @@ export function cloudPlan(box, M, seed = '') {
       // (a near one sits low enough that its towers show under the top of the screen)
       const hh = Math.max(10, w * asp);
       const c = { kind: 'cumulus', seed: seedOf(), w, h: hh, s, y: Math.max(y, top + hh * 0.72), x0: 0, v: 0.25 + 0.95 * s, tall: clamp01(M.tall + (R() - 0.5) * 0.4) * (0.4 + 0.6 * s) };
+      // (SP — more shape variety, never one cloud repeated: most are heaps; some a TOWER (narrower + taller — a congestus turret,
+      // more often on a taller day), a few broken + ragged FRACTUS; the small far ones stay simple puffs)
+      const fr = R();
+      if (s > 0.25 && fr < 0.08 + 0.22 * M.tall) { c.form = 'tower'; c.w = Math.max(30, c.w * 0.72); c.h = Math.min(c.w * 1.25, c.h * 1.55); c.tall = Math.max(c.tall, 0.7); c.y = Math.max(c.y, top + c.h * 0.8); }
+      else if (fr > 0.86) { c.form = 'fractus'; c.h = Math.max(10, c.h * 0.7); }
       c.x0 = x + (R() - 0.5) * w * 1.6 - w / 2;
       // (far ones: their heights spread a little — never a line of puffs along the horizon)
       if (s < 0.4) c.y = Math.min(roof + 12, c.y + (R() - 0.5) * 26 * (1 - s));
@@ -130,7 +142,23 @@ export function cloudPlan(box, M, seed = '') {
   };
   patches('strato', M.strato, 4, 1.15, 0.22, 0);
   patches('alto', M.alto, 3, 1.1, 0.34, 0.55);
-  patches('cirrus', Math.min(M.cirrus, 0.7), 3, 1.2, 0.2, 0.45);
+  // ---- CIRRUS (SP — the owner: "hard, straight, parallel speed lines"): a FEW GRACEFUL GROUPS high in the sky (the renderer draws
+  // two to five wisps in each — fibres, mares' tails, a tuft — never a pattern), kept ABOVE the tagline's band (box.avoid) where the
+  // sky allows; on a hazy high day one wide CIRROSTRATUS veil behind them
+  if (M.cirrus > 0.04) {
+    const yMax = Math.max(top + 60, (box.avoid ? box.avoid.y0 - 6 : roof - 30)), n = Math.round(clamp(1 + M.cirrus * 2.2 * Math.sqrt(wide) + R() * 0.8, 1, 4));
+    const placed = [];
+    for (let i = 0, tries = 0; i < n && tries < 40; tries++) {
+      const w = Math.min(W * 1.1, (0.5 + R() * 0.65) * phoneW * (0.8 + 0.2 * R())), h = Math.round(w * (0.26 + R() * 0.12));
+      const span = Math.max(1, yMax - top - h), y = top + h + Math.pow(R(), 0.8) * span, s = nearAt(y - h / 2, box);
+      const x0 = R() * (W + w * 0.6) - w * 0.8;
+      // (groups apart: never two stacked on each other — they would read as one striped block)
+      if (placed.some(o => Math.min(o.x0 + o.w, x0 + w) - Math.max(o.x0, x0) > 0.35 * Math.min(o.w, w) && Math.min(o.y, y) - Math.max(o.y - o.h, y - h) > 0.3 * Math.min(o.h, h))) continue;
+      const c = { kind: 'cirrus', seed: seedOf(), w, h, s, y, x0, v: 0.18 * (0.4 + 0.6 * s) };
+      placed.push(c); out.push(c); i++;
+    }
+  }
+  if (M.veil > 0.05) out.push({ kind: 'cirrus', veil: M.veil, seed: seedOf(), w: Math.round(W * 1.5), h: Math.round(Math.max(80, (box.avoid ? box.avoid.y1 : roof) - top) * 0.95), s: 0.9, y: (box.avoid ? box.avoid.y1 : roof) - 4, x0: -W * 0.25, v: 0.1 });
   // ---- SCUD: low ragged fragments under the deck (they drift faster)
   for (let i = 0, n = Math.round(M.scud * 5 * wide); i < n; i++) {
     const y = roof + 10 - R() * (roof - top) * 0.45, s = nearAt(y, box), w = (0.25 + R() * 0.3) * phoneW * (0.3 + 0.7 * s);
@@ -247,6 +275,9 @@ export function cloudLit(G, d, x, box) {
   let glow = G.glow.c;
   if (G.glow.party) { const p = G.glow.party[(d.seed >>> 3) % G.glow.party.length]; glow = mix(glow, p, 0.7); }
   const glowK = G.glow.k * (0.5 + 0.7 * far);
-  const key = [G.key, q(lx, 8), q(ly, 8), q(lz, 8), q(back, 8), q(glowK, 16), glow.map(v => v >> 4).join('.')].join('/');
+  // (SP — the cloudy party's cost: by MOONLIGHT the direction matters little — a weak, silvery key light — so a drifting cloud
+  // re-lights in coarse steps only; by day an eighth of the way round the sun, as before)
+  const qd = S && S.moon ? 3 : 8;
+  const key = [G.key, q(lx, qd), q(ly, qd), q(lz, qd), q(back, qd), q(glowK, 16), glow.map(v => v >> 4).join('.')].join('/');
   return { lx, ly, lz, l2: [lx / n2, ly / n2], back, rim, below, haze, farA, glow, glowK, key };
 }

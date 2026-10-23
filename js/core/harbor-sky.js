@@ -63,9 +63,11 @@ export function harvestMoon(local, phase, south) {
 /** a supermoon: a full moon (± 1.6 days) at its nearest (closer than 362 000 km) */
 export const supermoon = (phase, dist) => phase != null && dist != null && Math.abs(phase - 0.5) * 29.53 <= 1.6 && dist < 362000;
 /**
- * The moon's look tonight. m: { el, phase, illum, dist }, o: { local, south, cloud, fog, rain, clear }.
+ * The moon's look tonight. m: { el, phase, illum, dist }, o: { local, south, cloud, fog, rain, clear, veil (0..1: a cirrostratus
+ * veil tonight — clouds.js) }.
  * → { size (× the drawn radius: the moon illusion low + a supermoon), amber (0..1: the colour of a low moon; a harvest moon
- *     stays amber longer), harvest, supermoon, halo (0..1: a 22° ring only in thin real haze), corona (0..1: a tight glow in clear
+ *     stays amber longer), harvest, supermoon, halo (0..1: the 22° ring — only under a cirrostratus veil), haze (0..1: thin cloud /
+ *     light fog: a wider, brighter soft glow), corona (0..1: a tight glow in clear
  *     air), earthshine (0..1: the crescent's dark part lit by the earth) }
  */
 export function moonLook(m, o = {}) {
@@ -75,12 +77,15 @@ export function moonLook(m, o = {}) {
   const size = (1 + 0.32 * low) * (sup ? 1.12 : 1);
   const amber = clamp01(1 - smooth(harvest ? 10 : 6, harvest ? 34 : 26, el));
   const cloud = o.cloud || 0, fog = o.fog || 0, rain = o.rain || 0;
-  const haze = rain > 0.05 ? 0 : smooth(0.18, 0.4, cloud) * (1 - smooth(0.62, 0.8, cloud)) + smooth(0.1, 0.3, fog) * (1 - smooth(0.5, 0.75, fog));
-  const halo = clamp01(haze) * smooth(0.35, 0.6, m.illum == null ? 1 : m.illum);
+  // (the moonlight scattered round it: thin cloud or light fog widens + brightens its soft glow — the aureole)
+  const haze = clamp01(rain > 0.05 ? 0 : smooth(0.18, 0.4, cloud) * (1 - smooth(0.62, 0.8, cloud)) + smooth(0.1, 0.3, fog) * (1 - smooth(0.5, 0.75, fog)));
+  // (SP — the owner: the big faint ring cut through the tagline on any cloudy night: the 22° HALO is ice crystals — only a thin
+  // high CIRROSTRATUS veil makes it (o.veil: clouds.js's), never a cumulus night, fog or rain)
+  const halo = rain > 0.05 ? 0 : clamp01(o.veil || 0) * smooth(0.35, 0.6, m.illum == null ? 1 : m.illum);
   const corona = o.clear === false ? 0.3 : 1 - smooth(0.2, 0.5, cloud);
   // earthshine: strongest on a thin crescent, gone past the quarters
   const crescent = 1 - smooth(0.1, 0.32, Math.min(ph, 1 - ph));
-  return { size, amber, harvest, supermoon: sup, halo, corona, earthshine: crescent };
+  return { size, amber, harvest, supermoon: sup, halo, haze, corona, earthshine: crescent };
 }
 
 // ------------------------------------------------------------------ THE WEATHER — what may fly

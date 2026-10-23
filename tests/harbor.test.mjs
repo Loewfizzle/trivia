@@ -726,7 +726,9 @@ test('the moon\'s look: the amber moonrise (bigger + amber low, silver high), th
   assert.ok(low.amber > 0.9 && high.amber === 0 && low.size > high.size * 1.2, `amber ${low.amber} → ${high.amber}, size ${low.size.toFixed(2)} → ${high.size.toFixed(2)}`);
   assert.ok(harvestMoon({ y: 2026, m: 9, d: 26, doy: 269 }, 0.5, false) && !harvestMoon({ y: 2026, m: 6, d: 26, doy: 177 }, 0.5, false) && !harvestMoon({ y: 2026, m: 9, d: 26, doy: 269 }, 0.25, false));
   assert.ok(supermoon(0.5, 357000) && !supermoon(0.5, 390000) && !supermoon(0.2, 357000));
-  assert.ok(moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.3 }).halo > 0.5 && moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.02 }).halo === 0 && moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.3, rain: 0.5 }).halo === 0);
+  // (SP: the 22° ring only under a cirrostratus veil — a cumulus night, fog or rain only widen the soft glow)
+  assert.ok(moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.3, veil: 0.9 }).halo > 0.5 && moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.3 }).halo === 0 && moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.02 }).halo === 0 && moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.3, veil: 0.9, rain: 0.5 }).halo === 0);
+  assert.ok(moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.3 }).haze > 0.5 && moonLook({ el: 30, phase: 0.5, illum: 1 }, { cloud: 0.02 }).haze === 0);
   assert.ok(moonLook({ el: 30, phase: 0.08, illum: 0.06 }).earthshine > 0.9 && moonLook({ el: 30, phase: 0.5, illum: 1 }).earthshine === 0);
 });
 
@@ -1416,9 +1418,11 @@ test('THE DAY PASS — the Harbor\'s own day sky: deep blue up high, pale at the
 });
 
 test('THE DAY PASS — the Harbor\'s sun: white-hot high, golden → orange → red low (City 1.0\'s sunColor untouched)', () => {
-  const w = sunColorHarbor(40), g = sunColorHarbor(9), r = sunColorHarbor(0);
+  const w = sunColorHarbor(40), g = sunColorHarbor(4), r = sunColorHarbor(0), m = sunColorHarbor(9);
   assert.ok(w.every(v => v >= 245), 'high: white');
   assert.ok(g[0] === 255 && g[2] < 100 && r[1] < g[1], 'low: golden, then redder');
+  // (SP: the 9 am sun — ~9° up — is a pale near-white glare, never an orange ball)
+  assert.ok(m[1] > 215 && m[2] > 170, 'nine degrees up: pale, near-white');
   assert.deepEqual(sunColor(40), [255, 244, 223]);
 });
 
@@ -1645,4 +1649,50 @@ test('the sign-dim hook: messages dim the logo + fade the tagline, the dimmest w
   assert.deepEqual([sd.now().logo, sd.now().tag, sd.now().by.length], [1, 1, 0]); assert.equal(seen.length, 3);
   sd.clear('nobody'); sd.set('', {}); assert.equal(seen.length, 3);
   sd.set('x', { logo: 7, tag: -1, ms: 'no' }); assert.deepEqual([sd.now().logo, sd.now().tag, sd.now().ms], [1, 0, 0]);
+});
+
+// ------------------------------------------------------------------ SP — THE SKY POLISH (Oct 23 2026)
+import { forcedWeather } from '../js/core/weather.js';
+test('SP — CIRRUS: a few groups high in the sky, above the tagline\'s band; a hazy high day adds one cirrostratus veil', () => {
+  const box = { W: 402, top: 62, roof: 470, hz: 563, avoid: { y0: 280, y1: 340 } };
+  for (const seed of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
+    const M = cloudMix({ cloud: 0.3, cloudLayers: { lo: 0.1, mid: 0, hi: 0.55 } }, seed), P = cloudPlan(box, M, seed).filter(d => d.kind === 'cirrus' && !d.veil);
+    assert.ok(P.length >= 1 && P.length <= 4, `${seed}: ${P.length} groups (a few, never a pattern)`);
+    assert.ok(P.every(d => d.y <= box.avoid.y0 - 5 && d.y - d.h >= box.top - 1), `${seed}: above the tagline's band, under the top`);
+    // groups apart: never two stacked on each other
+    for (const a of P) for (const b of P) if (a !== b) {
+      const ox = Math.min(a.x0 + a.w, b.x0 + b.w) - Math.max(a.x0, b.x0), oy = Math.min(a.y, b.y) - Math.max(a.y - a.h, b.y - b.h);
+      assert.ok(!(ox > 0.35 * Math.min(a.w, b.w) && oy > 0.3 * Math.min(a.h, b.h)), `${seed}: never stacked`);
+    }
+  }
+  const veil = cloudMix({ cloud: 0.5, cloudLayers: { lo: 0.08, mid: 0.05, hi: 0.92 } }, 'a');
+  assert.ok(veil.veil > 0.8 && cloudPlan(box, veil, 'a').filter(d => d.veil).length === 1, 'a hazy high day: one veil');
+  assert.equal(cloudMix({ cloud: 0.3, cloudLayers: { lo: 0.1, mid: 0, hi: 0.4 } }, 'a').veil, 0, 'thin high cloud: wisps, no veil');
+  // the preview weathers carry their heights (&wx=cirrus / &wx=veil)
+  assert.ok(forcedWeather('cirrus').layers.hi >= 0.45 && forcedWeather('veil').layers.hi > 0.85);
+});
+
+test('SP — OVERCAST: nothing puffy in front of a full deck (only the scud); the light flat + cool by day, the sun without a side', () => {
+  for (const seed of ['a', 'b', 'c']) {
+    const M = cloudMix({ cloud: 0.97 }, seed);
+    assert.ok(M.deck > 0.9 && M.cumulus === 0 && M.strato === 0 && M.scud > 0.3, `${seed}: the deck + scud only`);
+  }
+  const P = { sky: [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]] };
+  const day = { sun: { el: 34, az: 190 }, w: { day: 1 }, cloud: 0.95 }, fair = { ...day, cloud: 0.2 };
+  const o = sunLook(day, P), f = sunLook(fair, P);
+  assert.ok(o.ovc === 1 && o.sunDir === 0, 'overcast by day: flat (no side)');
+  assert.ok(f.ovc === 0 && f.sunDir !== 0, 'a fair day keeps its sun');
+  assert.equal(sunLook({ ...day, sun: { el: -20, az: 300 } }, P).ovc, 0, 'never at night');
+});
+
+test('SP — the cloudy night\'s cost: by moonlight a drifting cloud keeps its light (coarse steps); by day an eighth of the way round', () => {
+  const box = { W: 402, top: 62, roof: 470, hz: 563 }, cl = { kind: 'cumulus', w: 100, h: 40, y: 300, s: 0.5, seed: 7 };
+  const moon = skyLight({ sun: { el: -30 }, moon: { el: 40, illum: 0.9 } }, { moon: { x: 200, y: 150, r: 12 } });
+  assert.ok(moon.src && moon.src.moon);
+  let changes = 0, prev = null;
+  for (let x = 0; x <= 300; x += 5) { const k = cloudLit(moon, cl, x, box).key; if (prev && k !== prev) changes++; prev = k; }
+  const noon = skyLight({ sun: { el: 40 } }, { sun: { x: 200, y: 380, vis: 1 } });
+  let dayChanges = 0; prev = null;
+  for (let x = 0; x <= 300; x += 5) { const k = cloudLit(noon, cl, x, box).key; if (prev && k !== prev) dayChanges++; prev = k; }
+  assert.ok(changes <= dayChanges * 0.5, `moonlight ${changes} re-lights over 300 pt, the sun ${dayChanges}`);
 });
