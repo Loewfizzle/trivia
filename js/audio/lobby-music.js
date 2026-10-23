@@ -10,6 +10,7 @@
 // keeps playing it (rideDecision) — nothing restarts — and the synced player takes over from the NEXT song, crossfading in
 // on the server clock. A phone on a different song crossfades into the room's song (~1.8 s) once it is decoded.
 import { createSyncedSongs } from './synced-songs.js';
+import { musicUrl } from './music-url.js';
 import { getMusicBus } from './engine.js';
 import { serverNow, dbRef, update, firebaseReady } from '../firebase.js';
 import { songStarts, XF_MS } from '../core/playlist.js';
@@ -25,7 +26,7 @@ export function hostSeed(now) {
 }
 
 let player = null, playingId = null, lastHostWrite = 0, handed = false;
-const urlFor = id => new URL(`../../audio/music/${id}.mp3`, import.meta.url).href;
+const urlFor = id => musicUrl(id);
 
 function pick(lm, mood) {
   const ids = songsFor(mood);

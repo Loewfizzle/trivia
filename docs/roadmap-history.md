@@ -4,6 +4,15 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — MUSIC (Oct 23, 2026)
+- [x] The owner's mood folders (morning 11 · day 11 · evening 14 · late 11 · party 9) → `audio/music/c2-*.mp3`: byte-identical files stored once (morning4–7 = day4–7), morning10 in MORNING + LATE NIGHT,
+      evening3 = the repo's slip8 (found by cross-correlation: same audio, same timing) so listed, not copied; 112 kbps stereo, trimmed, −16 LUFS / ≤ −1 dBTP; +144.5 MB
+- [x] `scripts/add-city2-music.py` — drop files in the folders, run it: dedupe by bytes, level + encode, beat grids (+ lock / kick agreement / trusted), resumable, `--reuse`, `--regrid`, `--retrust`
+- [x] City 2.0's mood rule on the Harbor's own clock (`core/city-mood.js`, `core/city.js`): dawn / 11 am / golden hour / 11 pm / the party show; `&when= &speed=` and the preview panel move the music
+- [x] MUSIC MOOD setting (AUTO / MORNING / DAY / EVENING / LATE NIGHT / PARTY) in both cities, saved per device; the lobby follows the host; a forced change is a 4 s crossfade, a natural one waits
+- [x] The preview panel's MUSIC section (mood, SKIP, song + grid status), `&mood=`, the readout's music line; untrusted grids (15 of 51) → the kick listener leads
+- [x] `MUSIC_BASE` (js/config.js) — one setting moves every music file to a CDN; the weekly-halves hook (`deckForNow`) for decks of 30+
+
 ### ✅ Stage 1 — foundation, lobby, multiplayer core, CIPHER BREACH
 Static no-build site, design system, rooms + invite links, presence, rejoin, host migration, server-time timers,
 wake lock, stale-room cleanup, multi-tab testing slots, Cipher Breach, open-licensed word lists, security rules, tests.

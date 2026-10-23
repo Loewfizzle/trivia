@@ -115,9 +115,9 @@ js/games/kit/                                            THE MATCH KIT: moments 
 js/games/<id>/  logic.js director.js index.js view.js (+ scene/audio/…)   PURE rules / PURE state machine / contract + host duties / the screen
 data/     trivia bluff oc words agent pulse prism slip    the banks and song analyses (formats in docs/content.md and each game's doc)
 data/hushwords.json  scripts/hushwords/                  HUSH WORDS (room codes): built + checked by scripts/build-hushwords.mjs (docs/content.md)
-audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs
+audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs; `c2-*.mp3` = the owner's City 2.0 mood songs (112 kbps, −16 LUFS)
 audio/sfx/neon-*.wav  audio/weather/*.mp3                 City 2.0's recorded neon (scripts/build-neon-sfx.py; docs/audio.md), the thunder
-scripts/  serve.mjs build-*.{mjs,py} validate-holes.mjs sim-gridlock.mjs   local server (:5173, `--emu` also runs /api on the emulators), builders, the NEON PAR hole bot, GRIDLOCK balance sim
+scripts/  serve.mjs build-*.{mjs,py} add-city2-music.py validate-holes.mjs sim-gridlock.mjs   local server (:5173, `--emu` also runs /api on the emulators), builders (add-city2-music.py: the one command that imports the owner's mood folders), the NEON PAR hole bot, GRIDLOCK balance sim
 database.rules.json                                      RTDB rules — paste into the Firebase console after every change
 tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)
 tests/integration/  kit/harness.mjs e2e-*.mjs title-perf.mjs pixdiff.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
@@ -172,6 +172,9 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **MOOD MUSIC** (docs/audio.md): menu screens play the time-of-day mood (`audio/mood.js`, songs in `data/mood-music.json`, built by
   `scripts/build-mood-music.py`; the owner adds songs as late3/morn1/day1/eve1/party1… in ~/Downloads → "add the new mood songs");
   a lobby plays one synced song for the room (`audio/lobby-music.js`, `meta/lm`, the host's clock). CLASSIC in settings = the old playlist.
+  **CITY 2.0 MUSIC** (`?city=2`): its own day (`core/city-mood.js`: dawn / 11 am / golden hour / 11 pm / the party show) and its own decks (`city2` in
+  `data/mood-music.json`: the owner's ~50 songs, some in two moods); the MUSIC MOOD setting (AUTO / MORNING / DAY / EVENING / LATE NIGHT / PARTY) works in
+  both cities. New songs: drop them in ~/Downloads/{morning,day,evening,late,party}/ and run `scripts/add-city2-music.py` (docs/audio.md#city-20-music).
 - `playMusic(id, fallback)` is driven by `app.js` from state (mood / menu playlist on title/setup/lobby, `module.MUSIC` in a game, `'victory'` on
   the podium). Same track = no-op. `PLAYLISTS` (menu, victory, spy, gridlock…) play several tracks with crossfades; `setPlaylist(id, ids)`
   for a seeded per-room order; `duckMusic(level, s)` and `filterMusic(hz, s)` for moments. Songs on the server clock: `audio/synced-songs.js`.

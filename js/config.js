@@ -3,6 +3,10 @@ export const APP_NAME = 'NEON SPEAKEASY';
 export const APP_TAGLINE = 'four minds // one signal';
 export const APP_VERSION = '1.1.0';
 
+// Where the music files (audio/music/*.mp3, the mood songs included) are fetched from: '' = this site; or a CDN folder with a trailing
+// slash, e.g. 'https://cdn.example.com/music/' (docs/audio.md#city-20-music; js/audio/music-url.js). The ONE setting for moving the songs.
+export const MUSIC_BASE = '';
+
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;
 export const NAME_MAX = 12;

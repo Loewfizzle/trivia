@@ -8,6 +8,7 @@
 // without another tap. A missing file just marks the track missing — the game
 // stays silent (or uses the fallback track) with no errors.
 import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, onResume } from './engine.js';
+import { musicUrl } from './music-url.js';
 
 const FILES = {
   menu1: 'menu', menu2: 'menu2', menu3: 'menu3', menu4: 'menu4', cipher: 'cipher-breach', signal: 'last-signal',
@@ -45,7 +46,7 @@ const LOOP_XFADE = 1.8;   // seconds, track into itself
 // Browsers keep audio for a week (vercel.json). When a file is REPLACED under the same name, bump its number here so every
 // phone fetches the new one instead of playing its cached copy.
 const REV = { menu: 2, menu3: 2, menu4: 2 };
-const urlFor = id => new URL(`../../audio/music/${FILES[id]}.mp3${REV[FILES[id]] ? `?v=${REV[FILES[id]]}` : ''}`, import.meta.url).href;
+const urlFor = id => musicUrl(FILES[id], REV[FILES[id]] ? `?v=${REV[FILES[id]]}` : '');
 
 const status = {};        // id -> 'ok' | 'missing' (unknown if absent)
 const positions = {};     // id -> seconds to resume from
@@ -112,7 +113,7 @@ function makeVoices() {
     gain.connect(tone());
     const voice = { el, gain, id: null, busyUntil: 0 };
     el.addEventListener('error', () => {
-      if (voice.id && el.src.includes('/audio/music/')) { status[voice.id] = 'missing'; voice.id = null; if (current && current.voice === voice) current = null; apply(); }
+      if (voice.id && !el.src.startsWith('blob:')) { status[voice.id] = 'missing'; voice.id = null; if (current && current.voice === voice) current = null; apply(); }
     });
     // Activate the element inside the unlock gesture (iOS), then park it.
     el.src = silent;
@@ -150,7 +151,7 @@ function stopVoice(voice, seconds) {
   }, seconds * 1000 + 80);
 }
 
-function startTrack(id) {
+function startTrack(id, xf = XFADE) {
   const voice = freeVoice();
   if (voice.id !== id || !voice.el.src.includes(FILES[id])) {
     voice.el.preload = 'auto';
@@ -161,11 +162,11 @@ function startTrack(id) {
   try { voice.el.currentTime = at; } catch { /* not seekable yet */ }
   voice.gain.gain.value = 0;
   voice.el.play().then(() => { status[id] = status[id] || 'ok'; }).catch(() => {});
-  fade(voice, duckLevel, XFADE);
+  fade(voice, duckLevel, xf);
   const prev = current;
   current = { id, voice, list: listFor(id) };
   if (current.list && !PROVIDERS[current.list]) prefetch(nextInList(current.list, id));
-  if (prev) stopVoice(prev.voice, XFADE);
+  if (prev) stopVoice(prev.voice, xf);
 }
 
 // The playlist track to play now: the saved position, skipping missing files.
@@ -258,6 +259,27 @@ function watchLoop() {
   stopVoice(voice, LOOP_XFADE);
 }
 
+/**
+ * A FORCED change of mood (the listener picked one, the party starts): leave the song now for the provider's next one, a smooth
+ * crossfade of `seconds` (never a cut) — after the new song has downloaded, so the crossfade is into sound, not silence. A natural
+ * change (evening → late night) never calls this: the song finishes and the next comes from the new mood (watchLoop). Resolves
+ * true when it switched. Only a provider list (the mood music outside a room) can; a lobby's queue is the host's.
+ */
+export async function switchNow(seconds = 4) {
+  if (!current || !current.list || !PROVIDERS[current.list] || current.ended || !isUnlocked()) return false;
+  const from = current, list = current.list;
+  let t = null;
+  for (let k = 0; k < 6 && !t; k++) { const c = PROVIDERS[list](from.id); if (c && c !== from.id && status[c] !== 'missing') t = c; }
+  if (!t) return false;
+  const warm = prefetch(t, true);
+  if (warm) await Promise.race([warm, new Promise(r => setTimeout(r, 6000))]);
+  if (current !== from || !desired || desired.id !== list || status[t] === 'missing') return false;   // moved on meanwhile
+  positions[t] = 0;
+  startTrack(t, seconds);
+  setTimeout(() => { positions[from.id] = 0; }, seconds * 1000 + 300);     // (the song we left starts from its top next time)
+  return true;
+}
+
 /** Ask for a track. Same track = no-op (keeps playing seamlessly). */
 export function playMusic(id, fallback = null) {
   if (desired && desired.id === id && desired.fallback === fallback) { apply(); return; }
@@ -272,14 +294,16 @@ export function playMusic(id, fallback = null) {
 }
 
 /** Warm the HTTP cache for a track (called when a game is chosen). */
-export function prefetch(id) {
-  if (PROVIDERS[id]) return;
-  if (PLAYLISTS[id]) { prefetch(PLAYLISTS[id][listPos[id] || 0]); return; }
-  if (!FILES[id] || prefetching[id] || status[id] === 'missing') return;
+export function prefetch(id, wait = false) {
+  if (PROVIDERS[id]) return null;
+  if (PLAYLISTS[id]) return prefetch(PLAYLISTS[id][listPos[id] || 0], wait);
+  if (!FILES[id] || status[id] === 'missing') return null;
+  if (prefetching[id]) return wait ? prefetching[id] : null;
   prefetching[id] = fetch(urlFor(id), { priority: 'low' })
     .then(r => { status[id] = r.ok ? 'ok' : 'missing'; return r.ok ? r.blob() : null; })
     .then(() => apply())
     .catch(() => { delete prefetching[id]; });
+  return wait ? prefetching[id] : null;
 }
 
 /** Lower (or restore) the current music: level 0..1 over `seconds`. Reset when the track changes. */

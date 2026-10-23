@@ -218,3 +218,47 @@ Files: `js/audio/mood.js` (the moods + the per-device shuffle bag), `js/audio/lo
   `--retire-temporary <mood>` drops the temporary picks from a mood once it has enough keepers; `--keep-assignments` leaves every
   song where it is and only places new ones. Then `node --test tests/mood.test.mjs` and commit `audio/music/` + `data/mood-music.json`.
 - The dev server (`scripts/serve.mjs`) now answers byte ranges like Vercel, so a song can be sought in tests.
+
+
+## CITY 2.0 MUSIC (Oct 23 2026) — the owner's mood songs, City 2.0's own day, the MUSIC MOOD setting
+Files: `core/city.js` (which city is showing + the clock it runs on), `core/city-mood.js` (PURE: City 2.0's mood rule), `audio/mood.js`
+(`moodNow`, `fixedMood`, `songsFor`), `audio/music.js#switchNow`, `app.js#moodWatch`, `ui/settings-panel.js#moodRow`, the preview panel's MUSIC section
+(`screens/harbor/remote.js`, `core/harbor-remote.js` → `mood`), `scripts/add-city2-music.py`, `tests/city-music.test.mjs`, `tests/integration/e2e-harbor.mjs` (group `music`).
+- **The songs** (`data/mood-music.json`): `city2.moods` = City 2.0's five decks (ids → `songs[id]`, files `audio/music/c2-<name>.mp3`); City 1.0's `moods` are
+  untouched (its AUTO is exactly as before). `city2.sources[md5]` records what was imported from where, `city2.shared` which songs sit in more than one deck.
+  The owner's folders in ~/Downloads, Oct 23: **morning 11 · day 11 · evening 14 · late 11 · party 9 = 56 files → 51 songs stored + 1 reused**:
+  morning4–7 are byte-identical to day4–7 (stored once, as `c2-morning4…7`, listed in MORNING **and** DAY); the owner's first sharing, `c2-morning10`, is in MORNING
+  **and** LATE NIGHT (one file); `evening3` is the repo's `slip8.mp3` (the same audio at the same timing — found by cross-correlation) so EVENING lists `slip8`,
+  not a copy (it is ~3.5 dB louder than the rest: the repo's older level). The decks: MORNING 11 (33 min) · DAY 11 (31) · EVENING 14 (50) · LATE NIGHT 12 (39+) · PARTY 9 (35).
+  The victory + neon folders are ignored (City 1.0 / the games keep their own music).
+- **Format + loudness:** stereo 44.1 kHz **112 kbps MP3** (the repo's music format), leading / trailing silence trimmed (only what is below −60 dBFS peak — never
+  re-cut musically; e.g. late4 lost 6.5 s of digital silence at the start), levelled to **−16 LUFS integrated** (BS.1770; the older repo songs range −6…−21, they were never
+  levelled) with a **true peak ≤ −1 dBTP** (a −2.2 dBFS limiter only on songs that had to come UP, such as morning7 −21.3 → −16.1). 51 songs, 172 min, **144.5 MB** added.
+  Originals in Downloads are untouched.
+- **City 2.0's AUTO** (`core/city-mood.js#cityMoodAt`, on the Harbor's own clock — `?when= &speed=` and the preview panel move the music with the light):
+  LATE NIGHT 11 pm → dawn (the sun back above −6°) · MORNING dawn → 11 am · DAY 11 am → golden hour (the sun at 10° and falling, never before noon) · EVENING golden hour → 11 pm ·
+  **PARTY** on the party show's hours (Fri + Sat 8 pm → 2 am) once the city has powered up (`harbor-dark.js#partyReady` — a long summer dusk is still EVENING). The party wins over
+  LATE NIGHT: Friday 11:45 pm is PARTY (the late-night preview link is a Thursday: `&when=2026-10-22T23:45`).
+- **Shuffle:** `nextForDevice` — a bag per mood and per city (`nd:moodbag:c2:<mood>`): every song once before any repeats, never the same song twice in a row (across a
+  reshuffle, and across moods that share songs). The next song is chosen ≈ 45 s before the current one ends, from the mood at that moment, and preloads quietly; songs stream
+  on demand and never block the title's first paint. **A natural change** (evening → late night) never cuts: the song finishes. **A forced change** — the listener picks a
+  mood (setting / panel) or City 2.0's party starts — crossfades over 4 s after the new song has downloaded (`switchNow`; a song that is also in the new deck just plays on).
+  A lobby's room song waits for the song to end (the host's queue appends the next song from the HOST's mood — guests never decide).
+- **MUSIC MOOD** (settings, both cities; `settings.musicMood`, saved per device): AUTO (default) / MORNING / DAY / EVENING / LATE NIGHT / PARTY. A chosen mood plays that mood's deck in the
+  city that's showing (City 1.0: its own lists). In a lobby the room follows the host's. The preview panel's MUSIC section: the mood buttons (part of the panel's state, so EVERYONE ON
+  CITY 2 follows; a link's `&mood=` does the same and wins over the saved setting), SKIP TO THE NEXT SONG (this phone), and the song playing with its beat grid's status.
+  `&debug=1`'s readout has a `music` line (`music PARTY · c2-party9 100.0 · grid trusted (lock 5.46)`).
+- **Beat grids:** every song has `grid` (`bpm, t0, down, steady, drift`) from PULSE's tracker like the older ones, plus `lock` (onset energy on the grid's beats ÷ between them),
+  `agree` (the share of the kicks the city's kick listener — the 150 Hz analyser + `onsetStep` replayed offline — hears that land within ±0.15 beat of the grid; chance ≈ 0.3; City 1.0's songs
+  read 0.2–0.93) and `kicks`. **`grid.trusted`** = steady for the whole song AND (agree ≥ 0.5 OR lock ≥ 3). A song that isn't trusted keeps its grid out of the beat clock
+  (`beat.js` returns `untrusted`, `harbor-beat.js` ignores its tempo): **the kick listener leads** — the city punches on the kicks it hears, like with no song.
+  I could not listen on this machine; "by ear" was replaced by that offline replay of the real listener (and e2e-harbor checks the runtime picks the right branch per song).
+  **Not trusted (15 of 51):** c2-morning2, c2-morning3, c2-morning7 (the tempo drifts 24 ms in the last quarter), c2-morning8, c2-morning11, c2-evening4, c2-evening7, c2-evening11,
+  c2-evening14, c2-late1, c2-late2, c2-late4, c2-late8 (tempo changes), c2-late10 (tempo changes), c2-party3. Re-check one with `--regrid --only <id>`; flip it by hand in the JSON if the owner's ear disagrees.
+- **Adding songs later (one folder drop + one command):** put the files in `~/Downloads/{morning,day,evening,late,party}/` (any name, mp3/m4a/wav/ogg/flac) and run
+  `~/.cache/neural-arcade/pyenv/Scripts/python -I scripts/add-city2-music.py` (`--dry-run` first if you like). It skips what is already imported (by bytes), stores identical files in
+  several folders once and lists them in each mood, levels + trims + encodes the new ones, builds their grids (+ lock / agree / trusted) and writes the JSON. A song that should also play in
+  another mood: add its id to `city2.moods[mood]` by hand (and `city2.shared`). A file that IS an existing repo song: `--reuse evening/evening3.mp3=slip8`. Interrupted: `--resume`.
+  `--regrid [--only a,b]` / `--retrust` redo the beat numbers. Then `node --test tests/city-music.test.mjs` (the decks, files, levels, trust list in this doc) and commit `audio/music/` + the JSON.
+- **Hook, not built:** once a deck reaches ~30 songs, play one half of it each week (`mood.js#deckForNow`, `HALVES_FROM`). Seasonal songs later.
+- **Size:** +144.5 MB in git (the repo's music was 97 MB) — see the owner's decision in the Oct 23 handoff (docs/harbor.md#m).

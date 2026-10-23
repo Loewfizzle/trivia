@@ -15,8 +15,9 @@ import { createTitle, harborReady, harborPending } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { createLobby } from './screens/lobby.js';
 import { installAudio } from './audio/engine.js';
-import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider } from './audio/music.js';
-import { loadMoodMusic, moodNow, nextForDevice } from './audio/mood.js';
+import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying } from './audio/music.js';
+import { loadMoodMusic, moodNow, fixedMood, songsFor, nextForDevice } from './audio/mood.js';
+import { isCity2 } from './core/city.js';
 import { lobbyMusicTick, lobbyMusicDebug } from './audio/lobby-music.js';
 import { beatSource } from './audio/beat.js';
 import { sfx } from './audio/sfx.js';
@@ -69,8 +70,23 @@ loadMoodMusic().then(d => {
   if (!d) return;
   registerTracks(Object.fromEntries(Object.keys(d.songs).map(id => [`m:${id}`, id])));
   setListProvider('mood', prev => { const id = nextForDevice(moodNow(), prev && prev.replace(/^m:/, '')); return id ? `m:${id}` : null; });
+  moodWatch();            // (the baseline reading now, not 2 s later: a mood picked in the first seconds still counts as a change)
   render(state);
 });
+// A FORCED change of mood — the listener picked one (MUSIC MOOD, the preview panel) or City 2.0's party starts — doesn't wait for the song to
+// end: it crossfades to the new mood's next song over 4 s (music.js#switchNow). A natural change (evening → late night) never does: the
+// song finishes and the next comes from the new mood. A song that is also in the new mood's deck (shared songs) just plays on.
+let moodSeen = null, choiceSeen = null;
+function moodWatch() {
+  if (!moodOn()) { moodSeen = null; return; }
+  const m = moodNow(), c = fixedMood();
+  if (moodSeen !== null && m !== moodSeen && !lobbySynced && (c !== choiceSeen || (m === 'party' && isCity2()))) {
+    const np = nowPlaying();
+    if (!(np && songsFor(m).includes(np.id))) switchNow(4);
+  }
+  moodSeen = m; choiceSeen = c;
+}
+setInterval(moodWatch, 2000);
 let lobbySynced = false;
 const inLobby = st => !!(st.code && st.meta && (st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId));
 setInterval(() => { const was = lobbySynced; const lob = inLobby(state) && state.ready; lobbySynced = lobbyMusicTick(state, moodOn() && lob, lob); if (was !== lobbySynced) render(state); }, 250);
@@ -199,7 +215,7 @@ async function boot() {
   fxClass();
   onSettings(fxClass);
   let lastMM = settings.menuMusic;
-  onSettings(() => { if (settings.menuMusic !== lastMM) { lastMM = settings.menuMusic; render(state); } });
+  onSettings(() => { if (settings.menuMusic !== lastMM) { lastMM = settings.menuMusic; render(state); } moodWatch(); });
   // Soft UI tick on every button press (game keyboards opt out with data-sfx="none").
   document.addEventListener('pointerdown', e => {
     const b = e.target.closest && e.target.closest('button');

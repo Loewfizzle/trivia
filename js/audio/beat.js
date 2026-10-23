@@ -39,10 +39,23 @@ export function beatSource(nowMs = performance.now()) {
   if (!d) { why = 'songs loading'; return null; }
   const song = d.songs && d.songs[np.id];
   if (!song || !(song.bpm > 0)) { why = 'song unknown'; return null; }
-  const g = song.grid && song.grid.bpm > 0 ? song.grid : null;
+  const all = song.grid && song.grid.bpm > 0 ? song.grid : null;
+  // (CITY 2.0 MUSIC: add-city2-music.py marks a grid it couldn't verify — `trusted: false`: the city then follows the kicks it hears)
+  const untrusted = !!(all && all.trusted === false);
+  const g = untrusted ? null : all;
   why = '';
   // (pos AS HEARD: the element's / the buffer's clock runs ahead of the speaker by the output latency)
-  return { id: np.id, bpm: g ? g.bpm : song.bpm, pos: Math.max(0, dequantize(np.id, np.at, nowMs) - outLatency()), grid: g };
+  return { id: np.id, bpm: g ? g.bpm : song.bpm, pos: Math.max(0, dequantize(np.id, np.at, nowMs) - outLatency()), grid: g, untrusted };
+}
+
+/** the song sounding on this phone and what the beat knows of it (the preview panel's MUSIC row, the readout): { id, at, dur, bpm, grid:
+ *  'trusted' | 'NOT TRUSTED' | 'none', lock } or null when no mood song is sounding */
+export function songInfo() {
+  const np = lobbyNow() || nowPlaying();
+  if (!np || !np.id) return null;
+  const d = moodData(), s = d && d.songs && d.songs[np.id];
+  const g = s && s.grid && s.grid.bpm > 0 ? s.grid : null;
+  return { id: np.id, at: np.at, dur: s ? s.dur : 0, bpm: g ? g.bpm : null, grid: !g ? 'none' : g.trusted === false ? 'NOT TRUSTED' : 'trusted', lock: g && g.lock != null ? g.lock : null };
 }
 
 // ---------------------------------------------------------------- THE SOUND: the low end, off the music bus

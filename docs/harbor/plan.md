@@ -29,8 +29,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | DT1 | ✅ (Oct 23) THE LIGHTS + SIGNS PASS (Day touch-up part 1): the blue-hour power-up on the shared darkness value, floodlights (wheel roof accent, behind the lighthouse, landmarks, the waterfront flag), the signs rethink (left roof slot removed, the slot rule, roof-sign steel frames, the blade bolder, the billboard built on a frame + its 4 lamps), the glass tower + its beam, the tagline's dark halo, load hitches never cost a tier | Opus 5.5 high | 90–120 min |
 | DT2 | ✅ (1d2dd08, Oct 23) THE DAY LOOK (Day touch-up part 2): real clouds (a full rework), stronger sunlit / shaded faces, windows less grid-like — three refine passes | Opus 5.5 high | 75–100 min |
 | SP | ✅ (Oct 23 — docs/harbor.md#sp) SKY POLISH (the owner: clouds 7/10): cirrus streaks rebuilt (not speed lines), cumulus bases, a real overcast deck + the pink 1 pm tint + the logo lit by day under cloud, the moon halo softer, the sun's colour by altitude, beams lighting clouds (not passing through), the cloudy party's cost, smooth contrails, one more push on the day buildings | Opus 5.5 high | 75–100 min |
-| M | ← NEXT City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
-| 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
+| M | ✅ (Oct 23 — docs/harbor.md#m) City 2.0 music (her 56 mood files → 51 songs + 1 reused, the MUSIC MOOD setting in both cities, the panel's MUSIC row, the importer script) | Sonnet 5.5 high | 30–45 min |
+| 6b | ← NEXT the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
 | 8 | the stage + wildlife | Opus 5.5 high | 60–90 min |
 | C2 | cleanup pass 2 | Opus 5.5 medium | 15–30 min |

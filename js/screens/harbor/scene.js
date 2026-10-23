@@ -55,6 +55,7 @@ import { createSkyBeams } from './skybeams.js';
 import { createStrings } from './strings.js';
 import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
 import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
+import { setCityClock } from '../../core/city.js';
 import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
 import { createDayFx } from './dayfx.js';
 import { createClouds } from './clouds.js';
@@ -141,6 +142,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }).catch(e => { console.warn('harbor extras', e); reportError(e, 'harbor extras'); });
   }, 1200);
   const wxNow = () => clock.wx || (clock.preview ? null : liveWeather());
+  // CITY 2.0 MUSIC (core/city.js): the music follows THIS clock — the scene's own, so the preview panel's time jumps + speeds move it too —
+  // the weather it shows (the sun's place) and the flags it runs on (&mood=)
+  setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k) });
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
   // (DT1: the palette + the facades' tones from the Harbor's weights — the sky model's + THE BLUE HOUR: tones.js#harborWeights)
   let LH = harborWeights(LK), P = paletteFor(LH), skyKey = '', lookAt = 0, TW = toneWeights(LH);
@@ -660,7 +664,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);
       const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
       const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
-      roText = [`t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`, `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...(PT.on > 0 ? [`beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.bar} · ${hbeat.idx + 1}/4${hbeat.live ? ` · kick ${hbeat.level.toFixed(2)}` : hbeat.bpm ? ' · kick unheard' : ''}`] : [])];
+      roText = [`t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`, `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...(S.musicLine ? [S.musicLine()] : []), ...(PT.on > 0 ? [`beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.bar} · ${hbeat.idx + 1}/4${hbeat.live ? ` · kick ${hbeat.level.toFixed(2)}` : hbeat.bpm ? ' · kick unheard' : ''}`] : [])];
     }
     if (!roText) return;
     // (DT1, the owner: it sat over the NEON sign — now at the BOTTOM, just above the dock, over the promenade (a placeholder until
@@ -1165,6 +1169,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, grid: GRID },
+      music: S.musicLine ? S.musicLine() : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {

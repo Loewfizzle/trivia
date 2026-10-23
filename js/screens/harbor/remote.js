@@ -10,12 +10,17 @@
 // own &when): opening a link that carries its own preview flags (&when, &force, &speed, &wx, &scene…) drops a stored JUST ME state
 // (a refresh of the same page keeps it, as before); while JUST ME is on the pill says so — "JUST ME · PARTY ON · SAT 10/24 23:00"
 // — with a one-tap ✕ beside it.
+// CITY 2.0 MUSIC: a MUSIC section — force a mood (AUTO / MORNING / DAY / EVENING / LATE NIGHT / PARTY: part of the state, so EVERYONE's
+// phones follow too), SKIP TO THE NEXT SONG (this phone), and the song playing now with its beat grid's status.
 import { h } from '../../ui/dom.js';
 import { toast } from '../../ui/toast.js';
 import { serverNow, firebaseReady, onValue, dbRef } from '../../firebase.js';
 import { localParts, deviceZone } from '../../core/sky.js';
 import { api as apiCall } from '../../profile/api.js';
 import * as R from '../../core/harbor-remote.js';
+import { songInfo } from '../../audio/beat.js';
+import { switchNow } from '../../audio/music.js';
+import { moodNow, MOOD_LABEL } from '../../audio/mood.js';
 
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin';
 const ss = {
@@ -178,15 +183,25 @@ export function createRemote({ scene, api = apiCall }) {
       h('div.sheet.hr-sheet', { role: 'dialog', 'aria-label': 'Preview panel', onpointerdown: e => { if (e.currentTarget.classList.contains('hr-peek') && !e.target.closest('.hr-b')) { e.currentTarget.classList.remove('hr-peek'); clearTimeout(peekT); } } }));
     document.body.append(sheet);
     render();
+    musicT = setInterval(paintMusic, 1000);
   }
   function close() {
     if (!sheet) return;
-    const s = sheet; sheet = null; s.classList.add('out'); setTimeout(() => s.remove(), 260);
+    const s = sheet; sheet = null; musicEl = null; clearInterval(musicT); s.classList.add('out'); setTimeout(() => s.remove(), 260);
   }
   const btn = (label, on, onclick, o = {}) => h('button.hr-b', { type: 'button', class: [on ? 'is-on' : '', o.cls || ''].join(' ').trim() || null, 'aria-pressed': on ? 'true' : 'false', disabled: o.disabled || null, title: o.title || null, onclick }, label, o.night ? h('span.hr-moon', { 'aria-hidden': 'true' }, '☾') : null);
   const sec = (title, ...kids) => h('section.hr-sec', h('h3.hr-h', title), ...kids);
   const grid = (...kids) => h('div.hr-grid', ...kids);
-  let statusEl = null;
+  let statusEl = null, musicEl = null, musicT = 0;
+  const mmss = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+  function paintMusic() {
+    if (!musicEl) return;
+    const i = songInfo();
+    const mood = MOOD_LABEL[moodNow()];
+    const line = i ? `${i.id}${i.bpm ? ` · ${i.bpm.toFixed(1)} bpm` : ''} · ${mmss(i.at)}${i.dur ? ` / ${mmss(i.dur)}` : ''}` : 'NO SONG — TAP THE CITY FOR SOUND, MUSIC ON';
+    const grid = i ? `GRID ${i.grid.toUpperCase()}${i.lock != null ? ` · LOCK ${i.lock}` : ''}${i.grid === 'NOT TRUSTED' ? ' · THE KICKS LEAD' : ''}` : '';
+    musicEl.replaceChildren(h('div.hr-line', h('b', `PLAYING ${mood}`), h('span', line), grid ? h('small', { class: i.grid === 'NOT TRUSTED' ? 'hr-warn' : null }, grid) : null));
+  }
   function statusText() {
     const now = serverNow();
     const until = ms => { const d = new Date(ms), m = Math.max(0, Math.round((ms - now) / 60000)); return `UNTIL ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} (${m} MIN)`; };
@@ -234,6 +249,11 @@ export function createRemote({ scene, api = apiCall }) {
     kids.push(sec('HOLIDAY', h('p.hr-note', 'jumps to its next date (keeps the time you picked; else 21:00)'),
       grid(btn('NONE', !st.hol, () => edit((s, u) => { delete s.hol; retime({ state: s, ui: u }); })),
         ...R.HOLIDAYS.map(hd => btn(hd.label, st.hol === hd.id, () => edit((s, u) => { s.hol = hd.id; delete u.custom; retime({ state: s, ui: u }); }))))));
+    kids.push(sec('MUSIC',
+      h('div.hr-gl', 'MOOD'),
+      grid(btn('AUTO', !st.mood, () => edit(s => { delete s.mood; })), ...R.MUSIC_MOODS.map(m => btn(m.label, st.mood === m.id, () => edit(s => { s.mood = m.id; })))),
+      musicEl = h('div.hr-status.hr-music', { 'aria-live': 'off' }),
+      h('div.hr-row', btn('SKIP TO THE NEXT SONG', false, async () => { const ok = await switchNow(2); toast(ok ? 'NEXT SONG' : 'NOTHING TO SKIP — THE ROOM’S SONG IS THE HOST’S', ok ? 'info' : 'warn'); paintMusic(); }, { cls: 'hr-wide', title: 'this phone only' }))));
     kids.push(sec('TOOLS', grid(btn('READOUT', !!st.debug, () => edit(s => { if (s.debug) delete s.debug; else s.debug = true; })),
       btn('GRID', !!st.grid, () => edit(s => { if (s.grid) delete s.grid; else s.grid = true; }))),
       h('div.hr-row', h('button.btn.btn-ghost.btn-block.hr-clear', { type: 'button', disabled: sendBusy || null, onclick: clearAll }, h('span', mode === 'me' ? 'CLEAR ALL — BACK TO THE REAL CITY' : 'CLEAR ALL FOR EVERYONE')))));
@@ -243,7 +263,7 @@ export function createRemote({ scene, api = apiCall }) {
         h('button.btn.btn-primary.btn-block', { type: 'button', disabled: sendBusy || null, onclick: send }, h('span', sendBusy ? 'SENDING…' : 'SEND TO EVERYONE'))));
     }
     box.replaceChildren(...kids);
-    paintStatus();
+    paintStatus(); paintMusic();
     box.scrollTop = top;
   }
   function input(k, st, force) {
@@ -285,7 +305,7 @@ export function createRemote({ scene, api = apiCall }) {
     setMine(st) { mode = 'me'; mine.state = R.cleanRemote(st).state; mine.ui = {}; mine.at = serverNow(); ss.set(ME_KEY, R.isEmpty(mine.state) ? null : { state: mine.state, ui: mine.ui }); apply(); render(); },
     debug: () => ({ mode, admin, mine: mine.state, live, effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
     destroy() {
-      destroyed = true; clearInterval(tick); clearTimeout(typeT); clearTimeout(peekT);
+      destroyed = true; clearInterval(tick); clearInterval(musicT); clearTimeout(typeT); clearTimeout(peekT);
       if (unsub) { try { unsub(); } catch { /* fine */ } }
       if (bar) bar.remove();
       if (sheet) sheet.remove();

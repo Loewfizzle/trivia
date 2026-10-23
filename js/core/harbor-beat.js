@@ -37,7 +37,7 @@ export function halfTime(b, T = 0.5) {
 
 /**
  * Advance the clock by dt ms.
- *   song: { bpm, pos (s: the song's position AS HEARD), grid?: { bpm, t0, down } } | null
+ *   song: { bpm, pos (s: the song's position AS HEARD), grid?: { bpm, t0, down }, untrusted? } | null
  *   kick: { hit (0..1: a kick heard this frame, its strength), live (the analyser hears the music) } | null
  * → hb (mutated): beats (continuous; with a grid 0 mod 4 = a downbeat), u (0..1 of the beat), T (s a beat), idx (0..3 in the
  * bar), bar (bars counted — never backwards), barU (0..1 of the bar), punch (0..~1.4), src ('grid'|'tempo'|'kick'|'calm')
@@ -45,7 +45,8 @@ export function halfTime(b, T = 0.5) {
 export function advanceHarborBeat(hb, dt, song, kick) {
   const sec = Math.min(0.25, Math.max(0, dt / 1000));
   const g = song && song.grid && song.grid.bpm > 0 ? song.grid : null;
-  const bpm = g ? g.bpm : song && song.bpm > 0 ? song.bpm : 0;
+  // (CITY 2.0 MUSIC: a song whose grid the importer couldn't trust — song.untrusted — has no tempo either: the kicks lead, like no song)
+  const bpm = g ? g.bpm : song && song.bpm > 0 && !song.untrusted ? song.bpm : 0;
   hb.beats += hb.rate * sec;                     // (advance first, then pull toward the song as it sounds NOW: no frame of lead)
   if (bpm && song.pos >= 0) {
     const target = bpm / 60;

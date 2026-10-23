@@ -4,7 +4,7 @@
 // the panel (and is accepted by the server) with no other change.
 //
 //   the state   { force: [ids], text, show, colours, colour, by, cycle, style, tower, scheme, game, scene, party: 'on'|'off',
-//                 when: 'YYYY-MM-DDTHH:MM' (wall time in the city's zone), speed: 1|20|60, wx, hol, debug, grid }
+//                 when: 'YYYY-MM-DDTHH:MM' (wall time in the city's zone), speed: 1|20|60, wx, hol, mood: a MUSIC MOOD, debug, grid }
 //               — plain values only (ids from these lists, short upper-case text, numbers); cleanRemote() validates them (the
 //               server refuses anything it had to drop)
 //   toParams    the state → the URL flags the preview links use (&force=a,b&text=…&when=…) — the scene applies them live
@@ -17,7 +17,7 @@ import { SHOW_SCENES } from './harbor-show.js';
 import { DRONE_SHAPES } from './harbor-sky.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'debug', 'grid'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'mood', 'debug', 'grid'];
 
 const GAME_IDS = ['cipher', 'signal', 'overclock', 'bluff', 'pulse', 'golf', 'prism', 'gridlock', 'slip', 'agent', 'stakes', 'rum'];
 const NEON_SCHEMES = ['halloween', 'christmas', 'july4', 'valentine', 'stpatrick', 'nye', 'thanksgiving', 'easter', 'party'];
@@ -109,6 +109,8 @@ export const TIMES = [
   { id: 'powerup', label: 'POWER-UP' }, { id: 'powerdown', label: 'POWER-DOWN' },
 ];
 export const SPEEDS = [1, 20, 60];
+/** CITY 2.0 MUSIC: the moods the panel can force (the same ids as audio/mood.js#MOODS; AUTO = no `mood` key) */
+export const MUSIC_MOODS = [{ id: 'morning', label: 'MORNING' }, { id: 'day', label: 'DAY' }, { id: 'evening', label: 'EVENING' }, { id: 'late', label: 'LATE NIGHT' }, { id: 'party', label: 'PARTY' }];
 export const WEATHER = [
   { id: 'clear', label: 'CLEAR' }, { id: 'clouds', label: 'CLOUDS' }, { id: 'cirrus', label: 'HIGH CIRRUS' }, { id: 'veil', label: 'HAZY VEIL' },
   { id: 'overcast', label: 'OVERCAST' }, { id: 'rain', label: 'RAIN' }, { id: 'storm', label: 'STORM' }, { id: 'snow', label: 'SNOW' }, { id: 'fog', label: 'FOG' },
@@ -212,6 +214,7 @@ export function cleanRemote(raw) {
   if (r.speed != null && r.speed !== '' && Number(r.speed) !== 1) { const v = Number(r.speed); if (SPEEDS.includes(v)) out.speed = v; else bad.push('speed'); }
   sel('wx', WEATHER.map(w => w.id));
   sel('hol', HOLIDAYS.map(h => h.id));
+  sel('mood', MUSIC_MOODS.map(m => m.id));
   if (r.debug) out.debug = true;
   if (r.grid) out.grid = true;
   // (an input no event on the list uses is dropped quietly: the panel keeps its fields filled while an event is off)
@@ -231,7 +234,7 @@ export function toParams(st) {
   if (st.party === 'on') force.push('party');
   if (st.party === 'off') force.push('no-party');
   if (force.length) p.force = force.join(',');
-  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx']) if (st[k] != null) p[k] = String(st[k]);
+  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'mood']) if (st[k] != null) p[k] = String(st[k]);
   if (st.cycle) p.cycle = '1';
   if (st.speed && st.speed !== 1) p.speed = String(st.speed);
   if (st.debug) p.debug = '1';
@@ -256,6 +259,7 @@ export function describe(st) {
   if (st.when) { const [y, m, d] = st.when.slice(0, 10).split('-').map(Number); out.push(`${DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${m}/${d} ${st.when.slice(11)}`); }
   if (st.speed > 1) out.push(`${st.speed}×`);
   if (st.wx) out.push(st.wx.toUpperCase());
+  if (st.mood) out.push(`MUSIC ${MUSIC_MOODS.find(m => m.id === st.mood).label}`);
   if (st.debug) out.push('READOUT');
   if (st.grid) out.push('GRID');
   return out.join(' · ');

@@ -10,6 +10,7 @@ import { leaveRoom } from '../room.js';
 import { colorHex } from '../config.js';
 import { openHelp } from './help.js';
 import { segmented } from './components.js';
+import { MOOD_CHOICES, MOOD_LABEL, moodNow } from '../audio/mood.js';
 
 const GEAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 
@@ -32,6 +33,16 @@ function slider(label, key) {
   };
   paint();
   return h('label.set-row', h('span.label', label), out, input);
+}
+
+// MUSIC MOOD (both cities): AUTO follows the time of day; a chosen mood plays from that mood's deck in the city that's showing.
+// In a lobby the room's song follows the HOST's choice.
+function moodRow() {
+  const seg = segmented(MOOD_CHOICES.map(v => ({ value: v, label: MOOD_LABEL[v] })), settings.musicMood || 'auto', v => { updateSettings({ musicMood: v }); hint.textContent = hintText(); });
+  seg.classList.add('set-mood-seg');
+  const hintText = () => (state.code && !isHost() ? 'IN A ROOM THE HOST’S MOOD PLAYS FOR EVERYONE' : (settings.musicMood || 'auto') === 'auto' ? `AUTO FOLLOWS THE TIME OF DAY · NOW ${MOOD_LABEL[moodNow()]}` : 'AUTO GOES BACK TO THE TIME OF DAY');
+  const hint = h('span.set-hint', hintText());
+  return h('div.set-row.set-mood', h('span.label', 'MUSIC MOOD'), seg, hint);
 }
 
 function toggle(label, key, invert = false) {
@@ -108,6 +119,7 @@ function open() {
       toggle('MUSIC', 'musicOff', true),
       slider('MUSIC VOLUME', 'music'),
       h('div.set-row.set-seg', h('span.label', 'MENU MUSIC'), segmented([{ value: 'mood', label: 'BY TIME' }, { value: 'classic', label: 'CLASSIC' }], settings.menuMusic || 'mood', v => updateSettings({ menuMusic: v }))),
+      moodRow(),
       slider('EFFECTS', 'sfx'),
       toggle('MUTE ALL', 'muted'),
       toggle('HAPTICS', 'haptics'),

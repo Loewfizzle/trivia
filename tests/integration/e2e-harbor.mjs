@@ -9,7 +9,7 @@
 // ONLY=panel runs just that part.
 //
 // GROUPS (NEON PASS 5 — the suite had grown to ~90 checks and 3 ½ minutes): ONLY=core,flags,skyline,neon,water,harbor,sky,
-// party,panel,dock,perf (comma-separated) runs those groups in this process. With no ONLY the independent groups run in PARALLEL
+// party,panel,dock,music,perf (comma-separated) runs those groups in this process. With no ONLY the independent groups run in PARALLEL
 // shards (SHARDS=3 child processes, each its own browser — the same checks), then the two that must run alone: panel (it writes
 // the shared city2/live node every ?city=2 page listens to) and perf (CPU-throttled timing). SHARDS=1: everything in this process.
 import puppeteer from 'puppeteer-core';
@@ -827,6 +827,115 @@ G('perf', async () => {
   await Q.ctx.close();
 });
 
+// ================================================================ CITY 2.0 MUSIC (the owner's mood songs, the MUSIC MOOD setting; docs/audio.md#city-20-music)
+G('music', async () => {
+  const songs = await (await fetch(`${BASE}/data/mood-music.json`)).json();
+  const deck = m => songs.city2.moods[m];
+  const NOW = `(() => { const d = window.__arcade.musicDebug(); return d.list === 'mood' && d.playing ? String(d.playing).replace(/^m:/, '') : null; })()`;
+  const unlock = p => tapAt(p, 30, 300);
+  const start = async p => { await unlock(p); await waitFor(p, NOW, 'a mood song playing', 25000); return ev(p, NOW); };
+  const setMood = (p, v) => ev(p, `import('/js/audio/settings.js').then(m => m.updateSettings({ musicMood: '${v}' }))`);
+  const voices = p => ev(p, 'window.__arcade.musicDebug().voices.filter(v => v.gain > 0.03).length');
+  const changed = (p, from, what, ms = 20000) => waitFor(p, `(() => { const id = ${NOW}; return !!id && id !== '${from}'; })()`, what, ms);
+
+  // ---- 1. the five preview links: the mood follows the city's own clock, the song comes from that mood's City 2.0 deck
+  for (const [when, mood] of [['2026-10-23T08:00', 'morning'], ['2026-10-23T13:00', 'day'], ['2026-10-23T19:30', 'evening'], ['2026-10-22T23:45', 'late'], ['2026-10-24T23:00', 'party']]) {
+    const P = await open({ slot: 'mu', qs: `when=${when}${GR}&debug=1`, view: [402, 874] });
+    const m = await ev(P.page, 'window.__arcade.mood()');
+    const id = await start(P.page);
+    ok(m === mood && deck(mood).includes(id), `MUSIC ${when} → ${mood}: plays ${id} from City 2.0's ${mood} deck (${deck(mood).length} songs)`);
+    ok(!songs.moods[mood].includes(id) || id === 'slip8', `MUSIC ${mood}: not one of City 1.0's songs (${id})`);
+    await sleep(1500);
+    const b = await ev(P.page, 'window.__arcade.beat()'), line = await ev(P.page, 'window.__district.harbor().music');
+    const s = songs.songs[id];
+    ok(b && b.id === id && ((s.grid.trusted === false && b.untrusted && !b.grid) || (s.grid.trusted !== false && b.grid && Math.abs(b.grid.bpm - s.grid.bpm) < 0.01)), `MUSIC ${mood}: the beat follows ${id}'s ${s.grid.trusted === false ? 'kicks (grid not trusted)' : `grid (${s.grid.bpm} bpm)`}`);
+    ok(/music/i.test(line) && line.includes(id), `MUSIC ${mood}: the readout names it ("${line}")`);
+    if (SHOTS && mood === 'party') await P.page.screenshot({ path: `${OUT}music-party-402x874.png` });
+    await P.ctx.close();
+  }
+
+  // ---- 2. MUSIC MOOD (the setting): a forced change is a ~4 s crossfade into the new mood's deck, AUTO goes back without a cut
+  { const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}`, view: [402, 874] });
+    const first = await start(P.page);
+    ok(deck('day').includes(first), `SETTING: AUTO at 1 pm plays DAY (${first})`);
+    await setMood(P.page, 'late');
+    let peak = 0; const t0 = Date.now();
+    while (Date.now() - t0 < 14000) { peak = Math.max(peak, await voices(P.page)); const id = await ev(P.page, NOW); if (id && id !== first && peak >= 2 && (await voices(P.page)) === 1) break; await sleep(150); }
+    const now = await ev(P.page, NOW);
+    ok(now && now !== first && deck('late').includes(now), `SETTING: LATE NIGHT crossfades to ${now} (late deck) without waiting for the song to end`);
+    ok(peak >= 2, `SETTING: it is a crossfade — two voices sounding at once (${peak}), never a cut`);
+    ok(await ev(P.page, `JSON.parse(localStorage.getItem('na:settings')).musicMood === 'late'`), 'SETTING: saved on this device');
+    await setMood(P.page, 'auto');
+    await changed(P.page, now, 'AUTO again');
+    ok(deck('day').includes(await ev(P.page, NOW)), 'SETTING: AUTO again — back to the time of day (a crossfade into the DAY deck)');
+    // the settings sheet row
+    await ev(P.page, `document.querySelector('button.gear').click()`);
+    await waitFor(P.page, `document.querySelectorAll('.set-mood-seg .seg-btn').length === 6`, 'the MUSIC MOOD row', 5000);
+    const labels = await ev(P.page, `[...document.querySelectorAll('.set-mood-seg .seg-btn')].map(b => b.textContent)`);
+    ok(labels.join(',') === 'AUTO,MORNING,DAY,EVENING,LATE NIGHT,PARTY', `SETTING: the row reads ${labels.join(' · ')}`);
+    if (SHOTS) for (const [w, h] of [[390, 844], [412, 915], [1440, 900]]) { await P.page.setViewport({ width: w, height: h, deviceScaleFactor: w < 1000 ? 2 : 1, isMobile: w < 1000, hasTouch: w < 1000 }); await sleep(500); await P.page.screenshot({ path: `${OUT}music-setting-${w}x${h}.png` }); }
+    await P.ctx.close(); }
+
+  // ---- 3. a natural change waits for the song; a link's &mood= plays that mood; the party starting is forced
+  { const P = await open({ slot: 'mu', qs: `when=2026-10-22T10:59:00&speed=20${GR}`, view: [402, 874] });
+    const first = await start(P.page);
+    await waitFor(P.page, `window.__arcade.mood() === 'day'`, 'the clock reaching 11 am', 12000);
+    await sleep(2500);
+    ok((await ev(P.page, NOW)) === first, `NATURAL CHANGE: MORNING → DAY at 11 am — ${first} plays on (never cut)`);
+    await ev(P.page, 'window.__arcade.musicSeek(44)');
+    await waitFor(P.page, `!!window.__arcade.musicDebug().next`, 'the next song chosen', 8000);
+    const nx = String(await ev(P.page, 'window.__arcade.musicDebug().next')).replace(/^m:/, '');
+    ok(deck('day').includes(nx) && nx !== first, `NATURAL CHANGE: the next song (${nx}) comes from the DAY deck`);
+    await P.ctx.close(); }
+  { const P = await open({ slot: 'mu', qs: `when=2026-10-23T19:58:30&speed=20${GR}`, view: [402, 874] });
+    const first = await start(P.page);
+    ok(deck('evening').includes(first), `PARTY START: evening plays ${first}`);
+    await waitFor(P.page, `window.__arcade.mood() === 'party'`, 'the party starting (8 pm)', 15000);
+    await changed(P.page, first, 'the forced switch');
+    const now = await ev(P.page, NOW);
+    ok(deck('party').includes(now), `PARTY START: 8 pm switches at once to the PARTY deck (${now}) — the evening song did not have to end`);
+    await P.ctx.close(); }
+  { const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00&mood=late${GR}`, view: [402, 874] });
+    const id = await start(P.page);
+    ok(deck('late').includes(id), `LINK &mood=late at 1 pm plays the LATE NIGHT deck (${id})`);
+    await P.ctx.close(); }
+
+  // ---- 4. THE PREVIEW PANEL's MUSIC row: force a mood (the state), SKIP, the song + its grid status
+  { const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&panel=1`, view: [402, 874] });
+    await waitFor(P.page, '!!window.__district.remote()', 'the panel', 10000);
+    const first = await start(P.page);
+    await ev(P.page, "window.__district.remote().setMine({ mood: 'party' })");
+    await changed(P.page, first, 'the panel forces PARTY');
+    const now = await ev(P.page, NOW);
+    ok(deck('party').includes(now), `PANEL: MOOD = PARTY plays the party deck (${now}); the chip reads "${await ev(P.page, "document.querySelector('.hr-lbl').textContent")}"`);
+    await ev(P.page, 'window.__district.remote().open()');
+    await waitFor(P.page, `[...document.querySelectorAll('.hr-h')].some(h => h.textContent === 'MUSIC')`, 'the MUSIC section', 5000);
+    const btns = await ev(P.page, `[...[...document.querySelectorAll('.hr-sec')].find(s => s.querySelector('.hr-h').textContent === 'MUSIC').querySelectorAll('.hr-b')].map(b => b.textContent)`);
+    ok(btns.join(',') === 'AUTO,MORNING,DAY,EVENING,LATE NIGHT,PARTY,SKIP TO THE NEXT SONG', `PANEL: the MUSIC row (${btns.join(' · ')})`);
+    await waitFor(P.page, `document.querySelector('.hr-music') && /GRID/.test(document.querySelector('.hr-music').textContent)`, 'the song line', 5000);
+    const txt = await ev(P.page, "document.querySelector('.hr-music').textContent");
+    ok(txt.includes(now) && /PLAYING PARTY/.test(txt) && /GRID (TRUSTED|NOT TRUSTED|NONE)/.test(txt), `PANEL: shows the song + its grid status ("${txt}")`);
+    if (SHOTS) { await ev(P.page, `[...document.querySelectorAll('.hr-sec')].find(s => s.querySelector('.hr-h').textContent === 'MUSIC').scrollIntoView({ block: 'start' })`); await sleep(400); await P.page.screenshot({ path: `${OUT}music-panel-402x874.png` }); }
+    await ev(P.page, `[...document.querySelectorAll('.hr-b')].find(b => b.textContent === 'SKIP TO THE NEXT SONG').click()`);
+    await changed(P.page, now, 'SKIP');
+    const after = await ev(P.page, NOW);
+    ok(deck('party').includes(after), `PANEL: SKIP moves to the next party song (${now} → ${after})`);
+    await ev(P.page, 'window.__district.remote().setMine({})');
+    await changed(P.page, after, 'AUTO again');
+    ok(deck('day').includes(await ev(P.page, NOW)), 'PANEL: clearing the mood goes back to the time of day (DAY)');
+    await P.ctx.close(); }
+
+  // ---- 5. City 1.0 (no flag) is untouched: its own decks, and the same setting
+  { const P = await open({ slot: 'mu', qs: 'when=2026-10-22T13:00&tz=America/Detroit', view: [402, 874], city: false });
+    const id = await start(P.page);
+    ok(songs.moods.day.includes(id) && !songs.songs[id].c2, `CITY 1.0: 1 pm plays its own DAY deck (${id}), none of the owner's c2 songs`);
+    await setMood(P.page, 'party');
+    await changed(P.page, id, 'City 1.0 forced');
+    const p2 = await ev(P.page, NOW);
+    ok(songs.moods.party.includes(p2) && !songs.songs[p2].c2, `CITY 1.0: the setting PARTY plays City 1.0's party deck (${p2})`);
+    await P.ctx.close(); }
+});
+
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
 async function runGroup(name) {
   const fns = GROUPS.get(name);
@@ -838,7 +947,7 @@ async function runGroup(name) {
 const ONLY = (process.env.ONLY || '').split(',').map(x => x.trim()).filter(Boolean), TAG = process.env.SHARD_TAG || '';
 const SERIAL = ['panel', 'perf'];
 // (the shards, balanced on the measured times: ~35 s each)
-const SHARD_PLAN = { 1: [], 2: [['core', 'flags', 'skyline', 'water', 'harbor'], ['neon', 'dock', 'sky', 'party']], 3: [['core', 'flags', 'skyline', 'water'], ['neon', 'harbor', 'dock'], ['sky', 'party']] };
+const SHARD_PLAN = { 1: [], 2: [['core', 'flags', 'skyline', 'water', 'harbor'], ['neon', 'dock', 'sky', 'party']], 3: [['core', 'flags', 'skyline', 'water'], ['neon', 'harbor', 'dock'], ['sky', 'party', 'music']] };
 const SHARDS = Number(process.env.SHARDS || 3);
 if (ONLY.length) { for (const g of ONLY) await runGroup(g); }
 else if (SHARDS > 1) {

@@ -29,7 +29,9 @@ import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
-import { beatSource, beatKick, beatWhy } from '../audio/beat.js';
+import { beatSource, beatKick, beatWhy, songInfo } from '../audio/beat.js';
+import { moodNow, MOOD_LABEL } from '../audio/mood.js';
+import { cityFailed } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { createDistrict } from './district/scene.js';
@@ -42,9 +44,14 @@ import { createDock, dressCorners, ICON } from './title-dock.js';
 const HARBOR_URL = /[?&]city=2(?:&|$)/.test(location.search);
 let createHarbor = null, harborSettled = !HARBOR_URL;
 export const harborReady = HARBOR_URL
-  ? import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; }, e => console.warn('harbor', e)).finally(() => { harborSettled = true; })
+  ? import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; }, e => { console.warn('harbor', e); cityFailed(); }).finally(() => { harborSettled = true; })
   : Promise.resolve();
 export const harborPending = () => !harborSettled;
+/** CITY 2.0 MUSIC: the &debug=1 readout's line — the mood, the song, and whether its beat grid can be trusted */
+function musicLine() {
+  const i = songInfo();
+  return `music ${MOOD_LABEL[moodNow()]}${i ? ` · ${i.id}${i.bpm ? ` ${i.bpm.toFixed(1)}` : ''} · grid ${i.grid}${i.lock != null ? ` (lock ${i.lock})` : ''}` : ' · no song'}`;
+}
 
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
@@ -292,7 +299,7 @@ export function createTitle() {
     scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
-    scene.set({ beat: beatSource, kick: createHarbor ? beatKick : null, beatWhy: createHarbor ? beatWhy : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
+    scene.set({ beat: beatSource, kick: createHarbor ? beatKick : null, beatWhy: createHarbor ? beatWhy : null, musicLine: createHarbor ? musicLine : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
     // CITY 2.0 — THE TIRED TUBE (NEON PASS 5): one or two letters of the NEON logo look tired for ~3 hours (core/harbor-show.js
     // #tiredLetters — any letter, sometimes none, never the same twice running; it was always the O)
     // (and again once the scene has its clock: the first check can come before its look — then nothing showed for 30 s)
