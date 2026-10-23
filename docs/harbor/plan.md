@@ -27,7 +27,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | R2 | ✅ (done Oct 22 — docs/harbor/review-2.md) FABLE READ-ONLY REVIEW #2 (after the Day Pass): a fresh-eyes audit of everything since Part 1 — code health + leftovers from the many passes, Safari / iPhone risks, performance, tests, docs vs reality, the plan vs what's built; FOCUS (the owner): the laptop perf check has failed every pass since Neon Pass 4 — is the party night really too costly, is the budget / the benchmark wrong for this laptop, or is it noise? Find out and recommend; a report only, then a cleanup prompt for what it finds | Fable | ~45–60 min |
 | C1.5 | ✅ (7c58e32) CLEANUP + SPEED (from review-2.md): the O's core fix, wheel d live, Safari floor (top-level await, getContext guards), the new perf gate (relative A/B; the phone decides) + a slow-frame count on the readout, the party's 3 fill costs trimmed, one shared "how dark is it" input, the sign-dim hook, panel rows hidden, playwright reverted — NO visual changes | Opus 5.5 high | 45–75 min |
 | DT1 | ✅ (Oct 23) THE LIGHTS + SIGNS PASS (Day touch-up part 1): the blue-hour power-up on the shared darkness value, floodlights (wheel roof accent, behind the lighthouse, landmarks, the waterfront flag), the signs rethink (left roof slot removed, the slot rule, roof-sign steel frames, the blade bolder, the billboard built on a frame + its 4 lamps), the glass tower + its beam, the tagline's dark halo, load hitches never cost a tier | Opus 5.5 high | 90–120 min |
-| DT2 | ← NEXT THE DAY LOOK (Day touch-up part 2): real clouds (a full rework), stronger sunlit / shaded faces, windows less grid-like — three refine passes | Opus 5.5 high | 75–100 min |
+| DT2 | ✅ (1d2dd08, Oct 23) THE DAY LOOK (Day touch-up part 2): real clouds (a full rework), stronger sunlit / shaded faces, windows less grid-like — three refine passes | Opus 5.5 high | 75–100 min |
+| SP | ← NEXT SKY POLISH (the owner: clouds 7/10): cirrus streaks rebuilt (not speed lines), cumulus bases, a real overcast deck + the pink 1 pm tint + the logo lit by day under cloud, the moon halo softer, the sun's colour by altitude, beams lighting clouds (not passing through), the cloudy party's cost, smooth contrails, one more push on the day buildings | Opus 5.5 high | 75–100 min |
 | M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
@@ -235,6 +236,29 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   behind each part of the tagline, and by day. The halo + dim read the sign's LIVE position (6b raises the sign ~20–30 pt
   and then re-fits the sun / moon arch — that re-fit should also keep the moon's path out of the tagline band where it
   can, crossing it quickly when it must; re-check this fix after 6b).
+  (5b-4) THE OWNER'S DT2 PHONE CHECK (Oct 23, in progress): the PLANE CONTRAILS look jagged / skippy / jumpy — investigate
+  (likely the trail drawn as segments at fractional / frame-stepped positions, or sampled per frame so it steps at 60 Hz;
+  fix: a smooth continuous path, sub-pixel, eased spread + fade) — folds into 6b's "fluffy contrails like City 1".
+  The HIGH STREAKS (cirrus / long thin streaks): the owner loves the idea, "not there yet" — needs tweaking (in her
+  screenshot they read like hard speed lines; softer, feathered, varied, following the wind). Claude's notes from her
+  OVERCAST screenshot (13:00 &wx=overcast, to raise with her): it shows separate puffy clouds with blue-violet gaps, not an
+  overcast deck; the whole sky is pink-violet like dusk at 1 pm; the clouds still read a bit cartoon-round; the NEON
+  letters E-O-N look lit pink by day (N unlit) — check whether the darkness value turned the logo on under cloud;
+  30 fps there (Low Power Mode?). From her MORNING (9:00) screenshot: the sun is a flat orange-peach ball with no bloom
+  at 9 am (should be near-white with a soft bloom ~20° up; orange only right at the horizon); the high streaks again read
+  as hard speed lines; small cumulus still a bit cartoon-round; windows on the mid towers still grid-like; buildings'
+  3D reads OK; readout says 30 fps by day while frame shows 17 ms (a day frame cap? ask the builder).
+  NIGHT (22:00, &wx=clouds): the owner — cumulus look OK, the high-altitude streaks do NOT. Claude's notes: a big faint
+  RING around the moon cuts through the tagline (a moon halo? reads like a stray circle — check what it is); the
+  billboard glows warm under its lamps (good); the clouds' violet underglow reads well.
+  PARTY + CLOUDS (23:00, &wx=clouds): the owner — the MOON HALO is too concentrated (soften: wider, fainter, no hard ring
+  edge, never a circle cutting the tagline). Claude's notes: 4.2 % slow (3.1 % after 10 s), work 5.1 / 8.0 ms — a cloudy
+  party costs ~3× a clear one (1.2 %): trim the clouds + beams-on-clouds cost; HIGH STAKES stacked on the roof sign reads
+  well; the billboard showed "PRISM DROP" — so PRISM's full name is PRISM DROP and the blade's "PRISM" alone breaks the
+  never-shortened rule (ask her about SIGNAL / CIPHER / BLUFF too).
+  REAL MORNING (Fri 8:52 am, live): the sun here IS a white bloom (good — so the 9:00 orange ball was the preview's
+  low-sun colour, recheck); cumulus read much better (soft, shaded, varied); a few still have flat grey slab bases; the
+  streaks again cross behind SPEAKEASY like speed lines; overall the day now reads like a poster.
   (5c) THE SIGNS RETHINK (Oct 22 — the owner: one-word signs like "STAKES" tell nobody anything; let the CITY be the neon and
   the billboards be old-school painted billboards, lit at night). Being decided one by one:
     - BLUFF (the neon box on the top-left roof): REMOVE (agreed) — it frees that tower's pink neon crown and un-stacks the
