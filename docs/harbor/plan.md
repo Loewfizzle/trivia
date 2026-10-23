@@ -28,12 +28,15 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | C1.5 | ✅ (7c58e32) CLEANUP + SPEED (from review-2.md): the O's core fix, wheel d live, Safari floor (top-level await, getContext guards), the new perf gate (relative A/B; the phone decides) + a slow-frame count on the readout, the party's 3 fill costs trimmed, one shared "how dark is it" input, the sign-dim hook, panel rows hidden, playwright reverted — NO visual changes | Opus 5.5 high | 45–75 min |
 | DT1 | ✅ (Oct 23) THE LIGHTS + SIGNS PASS (Day touch-up part 1): the blue-hour power-up on the shared darkness value, floodlights (wheel roof accent, behind the lighthouse, landmarks, the waterfront flag), the signs rethink (left roof slot removed, the slot rule, roof-sign steel frames, the blade bolder, the billboard built on a frame + its 4 lamps), the glass tower + its beam, the tagline's dark halo, load hitches never cost a tier | Opus 5.5 high | 90–120 min |
 | DT2 | ✅ (1d2dd08, Oct 23) THE DAY LOOK (Day touch-up part 2): real clouds (a full rework), stronger sunlit / shaded faces, windows less grid-like — three refine passes | Opus 5.5 high | 75–100 min |
-| SP | ✅ (Oct 23 — docs/harbor.md#sp) SKY POLISH (the owner: clouds 7/10): cirrus streaks rebuilt (not speed lines), cumulus bases, a real overcast deck + the pink 1 pm tint + the logo lit by day under cloud, the moon halo softer, the sun's colour by altitude, beams lighting clouds (not passing through), the cloudy party's cost, smooth contrails, one more push on the day buildings | Opus 5.5 high | 75–100 min |
-| M | ✅ (Oct 23 — docs/harbor.md#m) City 2.0 music (her 56 mood files → 51 songs + 1 reused, the MUSIC MOOD setting in both cities, the panel's MUSIC row, the importer script) | Sonnet 5.5 high | 30–45 min |
-| M2 | ✅ (Oct 23 — docs/harbor.md#m2) music fixes (City 1.0 songs out of City 2.0, the music back after leaving Safari, the beat as heard on iPhone) + the day buildings (cast shadows, occlusion, recessed windows, materials) + bold billboard lamps | Opus 5.5 high | 75–100 min |
-| 6b | ← NEXT the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
-| 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
-| 8 | the stage + wildlife | Opus 5.5 high | 60–90 min |
+| SP | ✅ (254eda7, Oct 23) SKY POLISH (the owner: clouds 7/10): cirrus streaks rebuilt (not speed lines), cumulus bases, a real overcast deck + the pink 1 pm tint + the logo lit by day under cloud, the moon halo softer, the sun's colour by altitude, beams lighting clouds (not passing through), the cloudy party's cost, smooth contrails, one more push on the day buildings | Opus 5.5 high | 75–100 min |
+| M | ✅ (563cdb2, Oct 23) City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
+| FA | ← NEXT FABLE: THE iPHONE MUSIC BUG on evidence (the AUDIO panel: a new context "running" with a frozen clock, session ambient, gain 0, 6 rebuilds) | Fable high | 45–75 min |
+| F1 | ✅ (294e105) FIX PASS: the iPhone music bug (still broken — a diagnostic first), the billboard lit at night, the beat lead, brick texture at noon | Opus 5.5 high | 45–75 min |
+| DB | ✅ (ed141a3, Oct 23) MUSIC FIXES (drop slip8, the iOS music-dies-after-leaving bug, party beat latency) + DAY BUILDINGS (the owner: "a little flat", 7–8 / 10): cast shadows between buildings, ambient occlusion, recessed windows, materials — the "BUILDINGS BY DAY" notes | Opus 5.5 high | 60–90 min |
+| 7 | REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
+| 8a | THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
+| 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
+| 8b | THE LIFE (after 6b): people, vehicles, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
 | C2 | cleanup pass 2 | Opus 5.5 medium | 15–30 min |
 | 9 | seasons + weather | Opus 5.5 medium | 45–75 min |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
@@ -43,6 +46,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 12 | easter eggs, sounds, desktop, switch-over | Opus 5.5 medium | 60–90 min |
 | C3 | final cleanup | Opus 5.5 medium | 30–45 min |
 | 13 | CITY CONTROL (admin) | Opus 5.5 medium | 45–60 min |
+| L | GAME LINEUP SESSION (a chat with Claude, no build — the owner, Oct 23): which games stay / go / are new, final names (e.g. PRISM vs PRISM DROP), how each roughly plays — BEFORE Lobby 2.0 + Progression 2.0, which are built around the games. The owner's order: finish the city → this session → lobby, progression, City Control, settings → the games; release once ~5 games are complete, no date | chat | ~1 h |
 | 14 | Lobby 2.0 + the public crowd | Opus 5.5 high | 90–120 min |
 | 15 | TV mode, step 1 | Opus 5.5 high | 60–90 min |
 | 16 | Board 2.0 | Opus 5.5 high | 60–90 min |
@@ -451,6 +455,24 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - 6b section 0 — THE BATS' JITTER (a bug the owner saw): the night bats' flight looks jittery — find the cause (frame-time
   steps, random per-frame direction, rounding) and make it the real fluttering, swooping bat flight: smooth paths with quick
   erratic darts, not per-frame noise.
+- 6b section 0 — CLOUD LEFTOVERS FROM THE SKY POLISH (the owner's iPhone, Oct 23: cirrus 8/10, cumulus 8–9/10, overcast
+  "looks great", morning sun OK; beams now light the clouds; the moon ring gone; cloudy party 0.2 % slow after 10 s):
+  (a) the SMALL cumulus still look like little cartoon clip-art clouds (flat bottom + three round bumps, similar sizes,
+  evenly scattered) — make the small ones irregular broken fragments / wisps of varied shape, fewer of them, never the
+  icon shape; (b) OVERCAST: the small dark floating puffs at the tagline height look off — make them ragged, soft, darker
+  fractus that melt into the deck (or drop them); (c) OVERCAST cost: 3.7 % slow after 10 s at noon (work 1.9 ms) — find
+  the stall (the deck's drift / a large layer upload?) and trim; (d) cirrus: a touch more feathered and fewer
+  straight-ish strands (the owner: better, "not quite there"). (Contrails: smooth now ✅.)
+  BUILDINGS BY DAY: the owner rates them 7–8 / 10 (night is the bar) — they look "a little FLAT". By night the neon draws
+  every edge; by day nothing does. The fixes, biggest first: (1) CAST SHADOWS between buildings — a taller tower shading
+  the face of its neighbour / the one behind it, along the sun's real direction (the strongest 3D cue, missing today);
+  (2) AMBIENT OCCLUSION — darker where setbacks meet walls, under ledges / cornices, in inside corners, at the street;
+  (3) RECESSED WINDOWS — a thin shadow line on the sill / reveal on the sun side, so the facade has depth instead of
+  printed squares; (4) MATERIAL — rusticated stone bases, brick tone variation, terracotta bands, a slight gradient up
+  each facade (darker at the base, brighter toward the top); (5) a bit more lit / shaded contrast still. → the DB pass.
+  + THE BILLBOARD'S GOOSENECK LAMPS (the owner, Oct 23): bolder, more prominent — today they're tiny specks. Bigger
+  dark-enamel shades (~6–8 pt at 402) on clear curved arms that read by day; when on, a bright warm bulb point in each
+  shade + a visible soft cone of light down the poster; still four, framing the logo, never covering it.
 - 6b section 0 — THE RAINBOWS' ARC TOO LOW (the owner: "the neon rainbow arc is way too low"): City 2.0 still draws City
   1.0's bows (district/rainbow.js, fitted to the district's horizon) — re-fit every bow (the rainbow, the double, the moonbow,
   the NEON BOW) to the Harbor: a big, tall arc rising from behind the skyline / the far shore into the open sky, its real
@@ -522,6 +544,31 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - Santa's sleigh across the moon on Christmas Eve. Bats at summer dusk + from a tower crown on Halloween.
 
 ## Part 7 — the speakeasy
+- SPLIT (Oct 23): 7a = THE LOOK (the building day + night: facade, materials, the barbershop front + pole, windows with glow
+  + shades, the awning, the rooftop + string lights, the ghost ad + the corner-turn preview) — before 8a + 6b; 7b = THE LIFE
+  (the moments catalogue + starter 10, the hidden mirror door, the TV glow, the raid, taps, rooftop seasons) — with 8b.
+- THE OWNER'S LOOK DECISIONS (Oct 23): FANCIER — a once-grand 1920s Deco corner building (cream terracotta trim, Deco
+  ornament at the roofline, a decorative cornice, carved panels between floors, gold-leaf lettering) over warm brick;
+  the MOOD cozy and a bit worn (chipped terracotta, faded gilt, weathered brick, some ivy, a patched awning) — "it is a
+  speakeasy after all"; KEEP ITS SIZE on screen as today; the BARBERSHOP front stays (striped turning pole, a big shop window
+  with the chair, the "EST. 1924" awning).
+- 7a ALSO — THE SKYLINE'S NEAR BRICK STILL READS FLAT (the owner's noon crop, Oct 23, after F1's brick pass): the red-brick
+  waterfront blocks (by the lighthouse, under the billboard) are smooth salmon slabs + a window grid. Real-scale brick
+  courses are sub-pixel at that distance, so they vanish. Fix like an illustrator, the same material system as the
+  speakeasy's brick: (1) CHECK THE BAKE RESOLUTION — the near layer must bake at the device's full pixel ratio (F1/DB
+  noted the bakes looked soft — sub-point detail is lost below it); (2) STYLISED readable brick: exaggerated courses every
+  ~2 device px with a darker mortar tint, panel-to-panel colour variation, soldier-course bands above the windows,
+  stone quoins at the corners, a cornice line, faint weathering streaks under sills; (3) the side faces / returns of the
+  blocks in shade so they read as volumes. Judge zoomed at 3× AND at phone size.
+  + THE LIGHTHOUSE (the owner): give the tower texture + roundness by day — strong CYLINDRICAL shading (lit side → soft
+  core shadow → a thin bounce light on the far edge), faint painted-masonry courses, subtle weathering (rust streaks under
+  the gallery and the windows, a slightly darker salt-worn base), a rough stone foundation on the breakwater; the red /
+  white stripes stay crisp and bold (it's a hero piece); the night look unchanged.
+- 6b section 0 — CIRRUS SOFTER + LONGER (the owner, Oct 23): the high streaks are too sharp — more diffusion (soft,
+  blurred, feathered edges, lower contrast) and longer, more stretched strands.
+- 6b section 0 — CLOUDS EVOLVE (pending the owner's OK): clouds slowly swell, change shape and dissipate over minutes,
+  new ones form; each 6-hour re-roll picks a varied MIX (a towering one or two / many medium / nearly clear), never the
+  same blend.
 - Windows you see into (rooms read as warm glow + big silhouettes), the unmarked door + the knock, the awning "EST. 1924".
 - The ROOFTOP: summer weekend rooftop parties (string lights, dancing figures, a bar cart, someone at the railing); a rooftop
   garden through the year (spring seedlings + a gardener with a watering can, summer lush green with tall sunflowers and red
