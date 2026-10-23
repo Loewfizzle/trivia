@@ -24,8 +24,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | N5 | Neon Pass 5 — Safari (WebKit) fix + testing, the real beat, party colours, the wheel showpiece, sign sizes, faster tests, panel fixes ✅ | Opus 5.5 high | done |
 | N6 | Neon Pass 6 — night touch-ups (flowing racing, soft beams, the wheel's glow + its backdrop, 3D outlines, ledge bands, icons removed, the lighthouse, the NEON logo race, the iOS beat) ✅ | Opus 5.5 high | done |
 | D | the Day Pass (the city by daylight, painted day signs, sunlit 3D skyline, sky, sun, water) ✅ | Opus 5.5 high | done |
-| R2 | ← NEXT FABLE READ-ONLY REVIEW #2 (after the Day Pass): a fresh-eyes audit of everything since Part 1 — code health + leftovers from the many passes, Safari / iPhone risks, performance, tests, docs vs reality, the plan vs what's built; FOCUS (the owner): the laptop perf check has failed every pass since Neon Pass 4 — is the party night really too costly, is the budget / the benchmark wrong for this laptop, or is it noise? Find out and recommend; a report only, then a cleanup prompt for what it finds | Fable | ~45–60 min |
-| DT | DAY TOUCH-UP + CLEANUP (the "DAY TOUCH-UP PASS" list: real clouds, stronger lit / shaded faces, windows, the blue-hour power-up, the wheel backdrop d + roof accent, floodlit buildings, billboard lamps) + the fixes R2 recommends now | Opus 5.5 high | 90–120 min |
+| R2 | ✅ (done Oct 22 — docs/harbor/review-2.md) FABLE READ-ONLY REVIEW #2 (after the Day Pass): a fresh-eyes audit of everything since Part 1 — code health + leftovers from the many passes, Safari / iPhone risks, performance, tests, docs vs reality, the plan vs what's built; FOCUS (the owner): the laptop perf check has failed every pass since Neon Pass 4 — is the party night really too costly, is the budget / the benchmark wrong for this laptop, or is it noise? Find out and recommend; a report only, then a cleanup prompt for what it finds | Fable | ~45–60 min |
+| C1.5 | ← NEXT CLEANUP + SPEED (from review-2.md): the O's core fix, wheel d live, Safari floor (top-level await, getContext guards), the new perf gate (relative A/B; the phone decides) + a slow-frame count on the readout, the party's 3 fill costs trimmed, one shared "how dark is it" input, the sign-dim hook, panel rows hidden, playwright reverted — NO visual changes | Opus 5.5 high | 45–75 min |
+| DT | DAY TOUCH-UP (the "DAY TOUCH-UP PASS" list: real clouds, stronger lit / shaded faces, windows, the blue-hour power-up on the shared darkness input, the wheel's roof accent, floodlit buildings, the signs rethink, the billboard's steel frame + lamps, the glass tower, SIGNAL bolder) | Opus 5.5 high | 90–120 min |
 | M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
@@ -207,6 +208,34 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   (5b) The owner's iPhone check (Oct 22): buildings now read solid + 3D ("more polish passes needed"); clouds need a lot
   of work; party night 60 fps, work 1.6 / 2.0 ms but 4–7 % slow (was 0–3 % before the Day Pass — R2 looks at why). At
   night the DOUBLE AGENT billboard (left, under BLUFF) reads as a dull grey board — its night face must glow like the others.
+  (5c) THE SIGNS RETHINK (Oct 22 — the owner: one-word signs like "STAKES" tell nobody anything; let the CITY be the neon and
+  the billboards be old-school painted billboards, lit at night). Being decided one by one:
+    - BLUFF (the neon box on the top-left roof): REMOVE (agreed) — it frees that tower's pink neon crown and un-stacks the
+      left side.
+    - DOUBLE AGENT (the billboard under it): AGREED — repainted properly as a 1920s painted billboard: the game's ICON + the
+      FULL NAME, big, filling the board (no tagline — no room); the gooseneck lamps (6) on it; fixes its dull grey night look.
+    - SIGNAL (the neon blade on the gold tower): KEEP as neon (the owner) — a little bolder / brighter, it's hard to read
+      today; its marquee chase bulbs a touch bigger / brighter / more prominent.
+    - THE BILLBOARD MUST BE BUILT, NOT FLOATING (the owner can't tell what holds it up): it sits on the ROOF of the mid
+      building it's on (not the speakeasy) on a real steel structure — lattice legs / an A-frame, a catwalk along its
+      bottom with a thin railing, the gooseneck lamps' arms rising from the catwalk — cast in the same sun / shade and dark
+      at night except where the lamps light it. Check it makes physical sense (the depth check) at 390 / 402 / 430.
+    - PART 8 EVENT — THE BILLPOSTER (the owner's idea): when the billboard changes game (once a day, with the nightly sign
+      rotation), a worker climbs the ladder onto the catwalk and pastes up the new poster on a fixed daily schedule (e.g.
+      mid-morning): a long-handled paste brush, the new poster going up in strips over the old one, the lamps' arms
+      in the way, then he climbs down. Goes on the CITY SCHEDULE. Decide in Part 8 when the "day's games" flip so the
+      board never shows a game before he pastes it.
+    - THE THIN GLASS TOWER (back, left of the wheel) is the only building with no neon or lit windows on ANY night (the
+      owner): EVERY NIGHT give it a FINE, dim outline like the other far buildings + a few lit floors / a soft glow in its
+      glass; on party nights its outline joins the show and its glass picks up the party colours (beam / sweep
+      reflections) — still the calmest tower, so it reads as far away.
+    - BLUFF's removal, the owner's rule: the building behind it must be FULLY finished where the box was — its whole
+      outline traced in neon, its crown, windows and roof built out — never a black gap or a cut-off shape where the sign sat.
+    - CIPHER + STAKES (neon roof signs, right): AGREED (the owner) —
+      keep as the neon landmarks; always the FULL real name (HIGH STAKES stacked on two lines); visible steel lattice frames
+      + a catwalk under the roof signs so their size reads as deliberate; any game whose name won't fit a roof sign gets the
+      billboard that night. (4 sign slots a night instead of 5.)
+    - The rule for every sign: never a shortened game name.
   (6) BILLBOARD LAMPS (the owner): every billboard / painted ad gets 1920s gooseneck lamps on arms over its top edge —
   the layout: TWO lamps on each side of the logo at top centre (four per board, the logo between them, the word below),
   warm old-school incandescent tone (~2700 K amber-gold),
@@ -244,7 +273,18 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   Ferris wheel that turns, "SEE YOU INSIDE" to close; colours per Neon Pass 2. CITY CONTROL can override the running order.
 - THE CITY SCHEDULE (the owner's idea — set-your-watch routines on the player's own clock; built in Part 8 with the people and
   vehicles, Part 10 adds party nights + the weekly drone show; sounds join the soundscape). iPHONE-FIRST — only what reads on
-  a phone (near promenade, the big skyline, light changes, sound); far-shore detail is desktop / TV only:
+  a phone (near promenade, the big skyline, light changes, sound); far-shore detail is desktop / TV only.
+  (Owner decisions after review #2, Oct 22: perf gate = relative A/B in one run only, absolute budgets are per-tier
+  warnings, her iPhone decides; the Harbor's Safari floor = iOS 16 (the games + City 1.0 must still run on older iOS);
+  revert the playwright change; hide the UFO + MOON CAT panel rows until 6b.)
+  THE "ALWAYS SOMETHING HAPPENING" RULE (the owner, Oct 22): whenever anyone opens the city, they should be able to catch
+  something cool already IN PROGRESS. So: (1) never stack the routines at the same time — spread them across the day and
+  week so no hour is empty (e.g. the billposter, the ghost-ad sign painters on Monday 8–11 am, the tower construction,
+  the speakeasy window scenes, the steamer's whistle, the planes, the wildlife each in their own slots); (2) make the
+  routines LAST — painting, pasting, building take minutes to hours, in visible stages, so you arrive mid-way; (3) every
+  event (incl. the rare + legendary ones) JOINS MID-WAY on load, never only from the start; (4) a planning table in
+  docs/harbor.md: each hour of the week vs what's running, so gaps are visible; Part 13's CITY CONTROL shows it.
+  Includes sunrise / sunset, seasons, weather, holidays — the whole city, not just Part 8.
   - PHONE: the street lamps switch ON one by one at sunset and OFF one by one at sunrise; a ship's bell rings each hour; the
     paddle steamer's STEAM WHISTLE at noon (a white steam plume + the sound); dog walkers at sunrise + sunset (more on
     weekends); the morning rush (more buses, people with coffee on the promenade); the lunch crowd at the food cart; the
@@ -449,6 +489,12 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
     weekly routine: Monday ~8–11 am, two painters on a hanging scaffold paint the new ad in stages — the old one whitewashed,
     then the outline, the colour fill, the lettering — readable on the phone (the wall is close); the ad then starts its
     week fresh and slowly "ages" back to a faded ghost by the weekend.
+    SIZE CHECK FIRST (Oct 22): today the angled right wall is only a thin slice on a phone (~15–20 pt wide at 402) — too
+    narrow, the same reason the Day Pass skipped the skyline ghost signs. The ad needs ≥ ~70 pt of wall width to read. In
+    order of preference: (1) Part 7's rebuild turns the corner so the angled wall shows wide enough — the owner: overlapping
+    a little of the wheel is OK (it adds depth); TRY IT and show her both (a preview flag, turned vs today) so she decides; (2) if not, the ghost ad goes on a wide brick band of the FRONT facade; (3) the owner's fallback: a BIG
+    painted vertical BLADE SIGN on the building (a wooden board on iron brackets, same weekly game rotation, the same
+    gooseneck lamps, the painters repaint it on a ladder) — only if it never covers the wheel, the pier or the dock.
   - THE EDGE WINDOWS (the owner's call, revised): keep the windows the left screen edge cuts — a solid brick edge would make
     the building feel suffocating. Lay the facade out per phone width so the edge cuts each edge window at a CONSISTENT,
     deliberate point (about half a window showing — never a thin sliver), and make those edge windows AMBIENT ONLY: curtains
