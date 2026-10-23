@@ -25,8 +25,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | N6 | Neon Pass 6 — night touch-ups (flowing racing, soft beams, the wheel's glow + its backdrop, 3D outlines, ledge bands, icons removed, the lighthouse, the NEON logo race, the iOS beat) ✅ | Opus 5.5 high | done |
 | D | the Day Pass (the city by daylight, painted day signs, sunlit 3D skyline, sky, sun, water) ✅ | Opus 5.5 high | done |
 | R2 | ✅ (done Oct 22 — docs/harbor/review-2.md) FABLE READ-ONLY REVIEW #2 (after the Day Pass): a fresh-eyes audit of everything since Part 1 — code health + leftovers from the many passes, Safari / iPhone risks, performance, tests, docs vs reality, the plan vs what's built; FOCUS (the owner): the laptop perf check has failed every pass since Neon Pass 4 — is the party night really too costly, is the budget / the benchmark wrong for this laptop, or is it noise? Find out and recommend; a report only, then a cleanup prompt for what it finds | Fable | ~45–60 min |
-| C1.5 | ✅ (done Oct 22 — docs/harbor.md#cleanup-c15) CLEANUP + SPEED (from review-2.md): the O's core fix, wheel d live, Safari floor (top-level await, getContext guards), the new perf gate (relative A/B; the phone decides) + a slow-frame count on the readout, the party's 3 fill costs trimmed, one shared "how dark is it" input, the sign-dim hook, panel rows hidden, playwright reverted — NO visual changes | Opus 5.5 high | 45–75 min |
-| DT | ← NEXT DAY TOUCH-UP (the "DAY TOUCH-UP PASS" list: real clouds, stronger lit / shaded faces, windows, the blue-hour power-up on the shared darkness input, the wheel's roof accent, floodlit buildings, the signs rethink, the billboard's steel frame + lamps, the glass tower, SIGNAL bolder) | Opus 5.5 high | 90–120 min |
+| C1.5 | ✅ (7c58e32) CLEANUP + SPEED (from review-2.md): the O's core fix, wheel d live, Safari floor (top-level await, getContext guards), the new perf gate (relative A/B; the phone decides) + a slow-frame count on the readout, the party's 3 fill costs trimmed, one shared "how dark is it" input, the sign-dim hook, panel rows hidden, playwright reverted — NO visual changes | Opus 5.5 high | 45–75 min |
+| DT1 | ← NEXT THE LIGHTS + SIGNS PASS (Day touch-up part 1): the blue-hour power-up on the shared darkness value, floodlights (wheel roof accent, behind the lighthouse, landmarks, the waterfront flag), the signs rethink (left roof slot removed, the slot rule, roof-sign steel frames, the blade bolder, the billboard built on a frame + its 4 lamps), the glass tower + its beam, the tagline's dark halo, load hitches never cost a tier | Opus 5.5 high | 90–120 min |
+| DT2 | THE DAY LOOK (Day touch-up part 2): real clouds (a full rework), stronger sunlit / shaded faces, windows less grid-like — three refine passes | Opus 5.5 high | 75–100 min |
 | M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
@@ -44,6 +45,12 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 15 | TV mode, step 1 | Opus 5.5 high | 60–90 min |
 | 16 | Board 2.0 | Opus 5.5 high | 60–90 min |
 | 17 | Progression 2.0 | Opus 5.5 high | 90–120 min |
+| R-ALL | FABLE WHOLE-APP READ-ONLY REVIEW (the very end — the games, lobby + rooms + sync, profiles + progression, every /api, City 1.0 / the Harbor, security before app stores + payments); a report, then a cleanup prompt | Fable | ~60–90 min |
+
+**TESTING SCOPE (the owner, Oct 22 — no traffic yet, the games will be reworked):** City 2.0 passes test the CITY only. No
+game-by-game or every-phone game sweeps. Only when a pass touches files the whole app shares (title.js / title.css, the
+router, shared helpers, /api): one quick smoke check — the default city loads at 402×874 and one game opens — then stop.
+The full game suites wait for the games' own rework and the final whole-app review.
 
 **How every part works:** a "work efficiently" block (a bug not fixed after 2 real attempts → logged in docs/harbor.md
 "Known issues", move on; never polish what a later part rebuilds; while working only the part's own tests; at the end the unit
@@ -85,8 +92,7 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   tier 1), stop and tell the owner what you'd simplify and let her decide.
 - **Real phones decide the budget:** the laptop's 4×-CPU, no-GPU test is an EARLY WARNING, not the verdict. On the owner's iPhone
   (Oct 21, &debug=1) a party night costs 1–3 ms of work at a steady 60 fps, while the laptop said ~6.4 — so when the laptop says
-  "slightly over", check a real phone (&debug=1) before cutting anything. (The owner, after review #2: the ONLY gate is a relative
-  A/B in one run — `title-perf.mjs --ab`; absolute budgets are per-tier warnings; her iPhone's `&debug=1` session line decides.) Measure once while building + ONE careful A-B-B-A round
+  "slightly over", check a real phone (&debug=1) before cutting anything. Measure once while building + ONE careful A-B-B-A round
   at the end (only the scenes that changed); if over, one fix attempt + one re-measure, then report and ask — no loops.
 - **Performance + battery:** every part stays within the frame and memory budgets; the cleanup passes double as performance
   checks; cleanup pass 1 adds battery/heat care (a lower frame rate when little is moving, a full stop when the page is hidden).
@@ -203,12 +209,32 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   + the owner's iPhone notes on the Day Pass.
   (5) DECIDED (Oct 22): THE WHEEL BACKDROP = d (floodlit stone) + a NEON ROOF ACCENT on that building (a thin Deco roofline,
   calm, never brighter than the wheel); remove a / b / c. FLOODLIGHTING ELSEWHERE — the owner hands the picks to us:
-  reuse it around the city for depth: uplit facades on a few chosen landmark / mid-distance buildings (not every one), so
+  reuse it around the city for depth — AND (the owner, Oct 22) try a soft FLOODLIT WATERFRONT ROW: the front buildings
+  along the water get a low uplight wash (the bottom third of each facade, fading upward), warm, uneven (some brighter,
+  a few gaps — never one even band), dimmer than the wheel's backdrop building so that one stays the brightest; it shows
+  in the water's reflections. Build it behind a preview flag (on / off) so the owner compares and decides — maybe not on
+  all of them (the owner agreed). FOR SURE: THE BUILDINGS BEHIND THE LIGHTHOUSE get the wheel-backdrop treatment (the
+  owner, Oct 22): soft floodlight on the BRICK so it reads as a real building behind; KEEP THE WINDOWS as they are (at most
+  ~10 % fewer, the owner likes them), so the lighthouse pops
+  against a calm lit wall like the wheel does — a touch softer than the wheel's backdrop (the wheel stays the focal
+  point); nothing boxy behind the tower (the earlier rule); the lighthouse beam brightens the wall as it sweeps past. Also: uplit facades on a few chosen landmark / mid-distance buildings (not every one), so
   the skyline reads in layers. Night + it switches on as part of the blue-hour power-up; NOT by day (the sun's lit / shaded
   faces do that job in the morning and golden hour). Party nights may tint the floodlights.
   (5b) The owner's iPhone check (Oct 22): buildings now read solid + 3D ("more polish passes needed"); clouds need a lot
   of work; party night 60 fps, work 1.6 / 2.0 ms but 4–7 % slow (was 0–3 % before the Day Pass — R2 looks at why). At
   night the DOUBLE AGENT billboard (left, under BLUFF) reads as a dull grey board — its night face must glow like the others.
+  (5b-2) The owner's iPhone, party 23:00 (Oct 22, 10 pm): mostly 0 % slow, peaks of 4 % (the 7 % was right after load) —
+  not a big problem. The readout showed "2→1→2": the city dropped to tier 1 and back, probably on the load spikes. Check
+  the tier logic ignores the first seconds after load (bakes / fonts / images) so a load hitch never costs a downgrade,
+  and the slow-frame count can skip the first ~10 s (or show both).
+  (5b-3) THE TAGLINE OVER THE MOON (the owner): when the moon sits behind SPEAKEASY the pink letters get hard to read.
+  The pro fix (titles / subtitles over changing backgrounds): a soft DARK HALO hugging each letter of the tagline (and the
+  NEON word) — a blurred dark shadow, always on, invisible against the dark night sky, so it only shows where something
+  bright is behind (the moon, the day sky, the sun, fireworks, beams). Plus the moon dims ~20–30 % softly while it's behind
+  the tagline band. NOT a light haze (that lowers contrast). Never a box or visible panel. Check at night with the moon
+  behind each part of the tagline, and by day. The halo + dim read the sign's LIVE position (6b raises the sign ~20–30 pt
+  and then re-fits the sun / moon arch — that re-fit should also keep the moon's path out of the tagline band where it
+  can, crossing it quickly when it must; re-check this fix after 6b).
   (5c) THE SIGNS RETHINK (Oct 22 — the owner: one-word signs like "STAKES" tell nobody anything; let the CITY be the neon and
   the billboards be old-school painted billboards, lit at night). Being decided one by one:
     - BLUFF (the neon box on the top-left roof): REMOVE (agreed) — it frees that tower's pink neon crown and un-stacks the
@@ -229,9 +255,18 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
     - THE THIN GLASS TOWER (back, left of the wheel) is the only building with no neon or lit windows on ANY night (the
       owner): EVERY NIGHT give it a FINE, dim outline like the other far buildings + a few lit floors / a soft glow in its
       glass; on party nights its outline joins the show and its glass picks up the party colours (beam / sweep
-      reflections) — still the calmest tower, so it reads as far away.
+      reflections) — still the calmest tower, so it reads as far away. PARTY NIGHTS: it gets a SKY BEAM too (the owner: the
+      gap in the row of beams looks odd) — thinner and fainter than the others since it's the farthest tower, a cool ice /
+      white to suit the glass, joining the beams' colour sweeps; it may pass in front of the moon (physically right).
     - BLUFF's removal, the owner's rule: the building behind it must be FULLY finished where the box was — its whole
       outline traced in neon, its crown, windows and roof built out — never a black gap or a cut-off shape where the sign sat.
+    - TWO-WORD NAMES (the owner: the blade showed just "STAKES", the left roof sign just "AGENT"): the blade is only ~20 pt
+      wide on a phone, so a header word won't fit readably (dropped the T-header idea). THE SLOT RULE: the nightly rotation
+      assigns games to slots by name — the vertical BLADE takes ONE-WORD names only (SIGNAL, CIPHER, BLUFF, PULSE, PRISM,
+      OVERCLOCK…); TWO-WORD names (HIGH STAKES, DOUBLE AGENT, NEON PAR…) go to a ROOF SIGN (stacked on two lines) or the
+      BILLBOARD (one line). Never a shortened name anywhere.
+    - "REMOVE BLUFF" means REMOVE THE LEFT ROOF-SIGN SLOT (whatever game it shows that night — tonight it showed AGENT);
+      every game keeps its turn in the other slots.
     - CIPHER + STAKES (neon roof signs, right): AGREED (the owner) —
       keep as the neon landmarks; always the FULL real name (HIGH STAKES stacked on two lines); visible steel lattice frames
       + a catwalk under the roof signs so their size reads as deliberate; any game whose name won't fit a roof sign gets the
@@ -582,6 +617,15 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   visible road salting; rain + puddles; fog; frost; a snowman that grows through a real snowy day and melts when it warms.
 - WEATHER AROUND THE NEON SIGN (only when real): falling SNOW lit by the sign's glow as it drifts past (flakes turning pink near
   the tubes); RAIN as lit streaks near the tubes; raindrops dripping off the bottom of the tubes with glints, day or night.
+- WEATHER ON THE NEON LOGO ITSELF (the owner, Oct 22 — only when real): RAIN = drops beading on the tubes, catching the glow,
+  running down and dripping off the bottoms; SNOW = collects on the top edges of the letters + the mounting while the sign is
+  OFF (by day); once lit, the warm tubes melt it — wet, glistening tubes, drips, and small ICICLES forming under the
+  letters on freezing nights (real neon runs warm, so snow never buries a lit tube); ICE / FREEZING RAIN = a clear glaze
+  and icicles on the frame and brackets, the lit tubes shedding it. Readability first: the word always reads.
+- WEATHER ON THE DOCK + THE MENU / MUSIC BUTTONS (the owner: RAIN and ICE only, no snow): the glass UI shows rain drops on its
+  glass (a few beading, the odd one running down) and, below freezing, a light frost creeping in from the edges. Subtle,
+  at the edges only — never over the text or icons, never lowering contrast, taps unaffected; off with reduced motion.
+  City 2.0 only. (The same weather lives on the lobby later.)
 - SNOW LIKE A REAL WINTER (the owner is in Michigan): snow STAYS on the ground until it really melts — never only on the days
   it snows. Use the real SNOW ON THE GROUND at the player's place (Open-Meteo's snow depth, through the existing /api/sky), with
   a fallback snowpack model from the real snowfall + temperatures (adds when it snows, melts slowly only above freezing). The
