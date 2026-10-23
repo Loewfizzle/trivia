@@ -11,6 +11,7 @@ import { colorHex } from '../config.js';
 import { openHelp } from './help.js';
 import { segmented } from './components.js';
 import { MOOD_CHOICES, MOOD_LABEL, moodNow } from '../audio/mood.js';
+import { musicNeedsRescue } from '../audio/music.js';
 
 const GEAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 
@@ -156,7 +157,11 @@ export function installSettingsPanel() {
   document.body.append(gear);
   // one-tap music on/off: next to the gear on the title, setup and lobby; under the chat button in a game (components.css)
   musicBtn = h('button.music-btn', { type: 'button', html: NOTE, onclick: () => {
+    // the music was meant to be ON but had gone quiet (iOS after leaving Safari, a call, the lock screen): this tap brings it back
+    // (audio/music.js#musicNeedsRescue restarts it inside the tap) instead of switching it off
+    if (musicNeedsRescue()) { toast('MUSIC ON', 'info', 1600); return; }
     updateSettings({ musicOff: !settings.musicOff });
+    if (!settings.musicOff) musicNeedsRescue();     // switched on: make sure it really plays (still inside the tap)
     toast(settings.musicOff ? 'MUSIC OFF — EFFECTS STAY ON' : 'MUSIC ON', 'info', 1600);
   } });
   document.body.append(musicBtn);

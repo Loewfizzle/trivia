@@ -14,10 +14,13 @@ const SAMPLES = 24;
 let offs = [];      // recent (contextTime - performanceTime) samples, seconds
 let offset = null;  // smoothed mapping
 let lastSample = 0;
+let sampledCtx = null;
 
 function sample() {
   const ctx = getContext();
   if (!ctx) return;
+  if (ctx !== sampledCtx) { sampledCtx = ctx; offs = []; offset = null; }   // a rebuilt context (engine.js#rebuild) has its own clock
+  if (ctx.state !== 'running') return;          // (a suspended context's clock stands still: its samples would map the wrong time)
   const now = performance.now();
   if (now - lastSample < 30) return;
   lastSample = now;

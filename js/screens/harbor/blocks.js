@@ -53,7 +53,7 @@ export function faces(T, mat, z) {
   const m = MAT[mat] || MAT.lime, fz = fog(z);
   const hz = c => mix(c, T.haze, fz * (T.night > 0.5 ? 0.62 : 0.7 + 0.22 * T.day));
   const near = 1 - Math.min(1, fz * 2.2);
-  const dFront = shade(mix(sat(m.d, 1.3 + 0.12 * near), SUN_WARM, 0.12 * near), -0.1 * Math.abs(T.sunDir || 0)), dLit = shade(mix(sat(m.l, 1.22), SUN_WARM, 0.32), 0.09), dDark = shade(mix(sat(m.s, 1.14), SKY_SHADE, 0.54), -0.27);
+  const dFront = shade(mix(sat(m.d, 1.32 + 0.12 * near), SUN_WARM, 0.15 * near), -0.1 * Math.abs(T.sunDir || 0)), dLit = shade(mix(sat(m.l, 1.24), SUN_WARM, 0.34), 0.13), dDark = shade(mix(sat(m.s, 1.14), SKY_SHADE, 0.54), -0.27);
   // (SP — OVERCAST by day: the faces converge on a soft cool grey — the material still reads, muted; the sides barely differ)
   const ov = T.ovc || 0, flat = ov ? mix(sat(m.d, 0.78), OVC_GREY, 0.22) : null;
   const dF = ov ? mix(dFront, flat, ov) : dFront, dL = ov ? mix(dLit, shade(flat, 0.05), ov) : dLit, dD = ov ? mix(dDark, shade(mix(flat, OVC_SHADE, 0.2), -0.1), ov) : dDark;
@@ -185,9 +185,16 @@ export function skyBlock(x, cam, b, T, o = {}) {
     if (Math.abs(sd) > 0.1 && s > 0.9 && ((sd > 0 && b.x0 > 0) || (sd < 0 && b.x1 < 0))) { x.fillStyle = `rgba(28,34,78,${(0.34 * k).toFixed(3)})`; x.fillRect(sd > 0 ? a : c - Math.max(0.5, 0.2 * s), ty, Math.max(0.5, 0.2 * s), h); }
   }
   if (T.day > 0.05) {
-    const g = x.createLinearGradient(0, ty, 0, by);
-    g.addColorStop(0, `rgba(255,255,255,${0.1 * T.day})`); g.addColorStop(0.55, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(30,24,40,${0.16 * T.day * (1 - F.fz)})`);
+    // (M2: a clearer gradient up each facade — brighter toward the top where it sees more sky, darker at the base; the foot's own
+    // occlusion where it meets the street / the water)
+    const ov = 1 - (T.ovc || 0) * 0.5, g = x.createLinearGradient(0, ty, 0, by);
+    g.addColorStop(0, `rgba(255,240,210,${(0.14 * T.day * ov).toFixed(3)})`); g.addColorStop(0.5, 'rgba(255,240,210,0)'); g.addColorStop(1, `rgba(30,24,52,${(0.22 * T.day * (1 - F.fz)).toFixed(3)})`);
     x.fillStyle = g; x.fillRect(a, ty, w, h);
+    if (!(b.y0 > 0.5) && !o.tierIndex) {
+      const fh = Math.min(h * 0.3, 7 * s), fg = x.createLinearGradient(0, by - fh, 0, by);
+      fg.addColorStop(0, 'rgba(26,28,62,0)'); fg.addColorStop(1, `rgba(26,28,62,${(0.3 * T.day * (1 - F.fz * 0.7)).toFixed(3)})`);
+      x.fillStyle = fg; x.fillRect(a, by - fh, w, fh);
+    }
   }
   if (T.night > 0.05 && !o.tierIndex && b.z0 < 400) {
     const up = Math.min(h, 60 * s / 2.4), g = x.createLinearGradient(0, by, 0, by - up), k = T.night * (1 - F.fz) * 0.28;
@@ -237,6 +244,37 @@ function stoneFace(x, cam, b, T, F, a, ty, w, h, s, o) {
   }
   const r = (k) => winHash(b.seed, o.tierIndex || 0, k, 0, 11);
   for (let i = 0; i < 3 + w / 12; i++) { x.fillStyle = rgb(shade(F.front, r(i) < 0.5 ? -0.06 : 0.05), 0.35); const mw = w * (0.1 + r(i + 20) * 0.3); x.fillRect(a + r(i + 40) * (w - mw), ty + r(i + 60) * h * 0.8, mw, h * (0.05 + r(i + 80) * 0.2)); }
+  // M2 — MATERIAL by day (near + mid): brick laid in batches (each floor's courses a slightly different tone), a rusticated stone base
+  // (channelled joints, a water-table line on top), belt courses (limestone on brick, terracotta on stone) — quiet at phone size
+  const dk = T.day * (1 - (T.ovc || 0) * 0.5) * (1 - F.fz * 0.8);
+  if (dk > 0.05 && s > 1.3 && w > 3) {
+    if (brick && g && g.rows > 0) {
+      const rh0 = g.pitch[1] * s;
+      for (let row = 0; row < g.rows; row++) {
+        const v = winHash(b.seed, o.tierIndex || 0, row, 3, 12);
+        if (v < 0.25 || v > 0.75) { x.fillStyle = rgb(shade(F.front, v < 0.25 ? -0.1 : 0.08), 0.5 * dk); x.fillRect(a, by - (g.v0 + (row + 1) * g.pitch[1]) * s, w, rh0); }
+      }
+    }
+    const tall = (b.y0 || 0) < 0.5 && !o.tierIndex;
+    const baseH = tall ? Math.min(h * 0.16, Math.max(2.2 * s, ((g && g.v0) || 2.5) * s * 0.9)) : 0;
+    if (baseH > 2) {
+      const stone = brick ? mix(F.front, [196, 186, 168], 0.6) : shade(F.front, -0.07);
+      x.fillStyle = rgb(stone, 0.9 * dk); x.fillRect(a, by - baseH, w, baseH);
+      x.fillStyle = rgb(shade(stone, -0.3), 0.6 * dk); x.beginPath();
+      const jt = Math.max(0.9, 0.7 * s);
+      for (let yy = by - jt; yy > by - baseH + 0.6; yy -= jt) x.rect(a, yy, w, Math.max(0.3, 0.1 * s));
+      x.fill();
+      x.fillStyle = rgb([255, 250, 238], 0.75 * dk); x.fillRect(a, by - baseH, w, Math.max(0.4, 0.14 * s));
+      x.fillStyle = rgb([24, 26, 56], 0.3 * dk); x.fillRect(a, by - baseH + Math.max(0.4, 0.14 * s), w, Math.max(0.4, 0.2 * s));
+    }
+    if (g && g.rows >= 4 && s > 1.6) {
+      const band = brick ? [232, 222, 200] : (b.mat === 'lime' || b.mat === 'cream') ? [200, 150, 112] : shade(F.front, 0.14);
+      const bc = mix(band, F.front, brick ? 0.2 : 0.45), bh = Math.max(0.5, 0.32 * s);
+      x.fillStyle = rgb(bc, 0.85 * dk); x.beginPath();
+      for (const row of [g.rows - 1, ...(g.rows >= 8 ? [Math.floor(g.rows / 2) - 1] : [])]) x.rect(a, by - (g.v0 + (row + 1) * g.pitch[1]) * s - bh * 0.3, w, bh);
+      x.fill();
+    }
+  }
   if (!g || g.rows <= 0) return;
   const [pu, pv] = g.pitch, cw = pu * s, rh = pv * s;
   if (cw < 0.9 || rh < 1.1) return;
@@ -350,6 +388,29 @@ function dayPanes(x, b, T, F, o, g, xOf, yOf, cw, rh, ww, wh, ty, by) {
   for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) pane(col, row, 0, 0.38);
   x.fill();
   if (wh < 1.2) return;
+  // M2 — RECESSED WINDOWS (the owner: "a little flat" — the windows were printed on the wall): each opening sits INTO the wall. Its
+  // head and the jamb on the sun's side throw a thin shadow onto the glass; the jamb across catches the light inside the opening and
+  // the sill below it a bright line. By the openings this building has (an office floor's ribbon, a Deco tower's tall window, a pane).
+  if (ww > 1.1 && wh > 1.3) {
+    const ops = [];
+    if (style === 'office' && n > 1) for (let row = 0; row < g.rows; row++) ops.push([px0(0), py0(row), px0(n - 1) + ww - px0(0), wh, 0]);
+    else if (style === 'tall' && g.rows > 1) for (let row = 0; row < g.rows; row += 2) for (let col = 0; col < n; col++) { const r1 = Math.min(g.rows - 1, row + 1); ops.push([px0(col), py0(r1), ww, py0(row) + wh - py0(r1), 1]); }
+    else for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) ops.push([px0(col), py0(row), ww, wh, 1]);
+    const left = sd <= 0, lw = Math.max(0.5, Math.min(ww * 0.24, 1.2)), lh = Math.max(0.5, Math.min(wh * 0.26, 1.3)), kk = k * (1 - (T.ovc || 0) * 0.6);
+    x.fillStyle = rgb([20, 24, 52], 0.58 * kk); x.beginPath();
+    for (const [u, v, w0, h0, j] of ops) { x.rect(u, v, w0, lh); if (j) x.rect(left ? u : u + w0 - lw, v + lh, lw, h0 - lh); }
+    x.fill();
+    // (the bright lines only where the opening is big enough to show them: on a dense grid they bleached the stone)
+    if (wh > 2) {
+      x.fillStyle = rgb([255, 249, 234], 0.4 * kk); x.beginPath();
+      for (const [u, v, w0, h0, j] of ops) { x.rect(u - 0.25, v + h0, w0 + 0.5, Math.max(0.4, lh * 0.6)); if (j && ww > 2.2) x.rect(left ? u + w0 - Math.max(0.35, lw * 0.4) : u, v + lh, Math.max(0.35, lw * 0.4), h0 - lh); }
+      x.fill();
+    }
+    // (the sill's own shadow on the wall under it: the stone stands out from the facade)
+    x.fillStyle = rgb([24, 26, 56], 0.22 * kk); x.beginPath();
+    for (const [u, v, w0, h0] of ops) x.rect(u - 0.25 + (left ? 0.4 : -0.4), v + h0 + Math.max(0.4, lh * 0.75), w0 + 0.5, Math.max(0.35, lh * 0.5));
+    x.fill();
+  }
   // mullions + transoms on the near ones (a frame colour: the trim)
   if (ww > 2.2 && wh > 2.2) {
     x.fillStyle = rgb(mix(F.trim, [255, 255, 255], 0.2), 0.62 * k); x.beginPath();
@@ -615,6 +676,87 @@ export function drawShadow(x, sh) {
   if (!sh) return;
   x.fillStyle = sh.day ? `rgba(32,40,84,${sh.a})` : `rgba(36,30,62,${sh.a})`;
   x.beginPath(); sh.pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.fill();
+}
+
+/**
+ * DAY BUILDINGS (M2 — the owner: by day "a little flat"): CAST SHADOWS BETWEEN BUILDINGS + CONTACT OCCLUSION, the day channel only.
+ * The light: the sun's side (sunDir: morning from the left, afternoon from the right) and height, and — the illustration's convention
+ * the whole day look already uses — from the viewer's side, so the fronts are lit and a box throws its shadow onto the fronts BEHIND
+ * it. A box (its front at z0, its back at z1) seen along the light is its front rect pushed by the depth to the wall behind plus its
+ * back rect pushed less: the hull of the two is the shadow on that wall (attached to the box where they touch, long when the depth
+ * gap is big or the sun low). Soft-edged (a penumbra growing with the gap), cool blue-violet. A nearer roofline that cuts across a
+ * wall behind darkens that wall just above it (where the forms meet). Golden hour, dusk + the night: none (T.day), and an overcast
+ * deck fades them out. → { get(box) → { cast: [{ pts, a, pen }], ao: [{ x0, x1, y, h, a }] } | undefined, values() } in screen pt.
+ */
+export const CAST = { kx: 1.1, ty: 0.45, a: 0.72, ao: 0.5, col: [124, 130, 208], aoCol: [100, 106, 170] };
+export function castShadows(cam, boxes, T) {
+  const out = new Map(), none = { get: () => undefined, values: () => [].values() }, k = T.day * (1 - (T.ovc || 0)) * ((T.cloud || 0) > 0.6 ? 0.55 : 1);   // (the cloud as the bake key has it)
+  if (k < 0.05) return none;
+  const sd = T.sunDir || 0, lx = -sd * CAST.kx, drop = Math.max(0.07, Math.min(0.62, CAST.ty * Math.tan(Math.max(4, T.sunEl || 30) * Math.PI / 180)));
+  const scr = boxes.map(b => { const y0 = b.y0 || 0, [a, ty] = P(cam, b.x0, y0 + b.h, b.z0), [c, by] = P(cam, b.x1, y0, b.z0); return { b, a, c, ty, by, y0, y1: y0 + b.h }; });
+  const byBox = new Map(scr.map(R => [R.b, R]));
+  // (lazy: a wall's shadows are worked out when its bake step draws it — the work spreads over the sliced bake, never one long frame)
+  const one = R => {
+    if (R.c - R.a < 1.5 || R.by - R.ty < 1.5) return undefined;
+    const zr = R.b.z0, fz = fog(zr), kr = k * (1 - fz * 0.75), cast = [], ao = [];
+    for (const O of scr) {
+      const ob = O.b;
+      if (O === R || ob.z0 >= zr - 0.5 || ob.tower && ob.tower === R.b.tower) continue;
+      // contact occlusion: a nearer box (≤ 30 deep in front) whose roofline cuts across this wall
+      if (zr - ob.z0 < 30 && O.ty > R.ty + 1 && O.ty < R.by && O.c > R.a && O.a < R.c) {
+        const s = cam.F / zr;
+        ao.push({ x0: Math.max(R.a, O.a), x1: Math.min(R.c, O.c), y: O.ty, h: Math.min(O.ty - R.ty, (1.6 + 0.04 * (zr - ob.z0)) * s), a: CAST.ao * kr });
+      }
+      if (!sd) continue;
+      const d0 = zr - ob.z0, d1 = Math.max(0, zr - ob.z1);
+      if (d0 > 120) continue;
+      // the shadow's top on this wall is the box's top pushed down by the light: nothing to see once it's under the wall's foot
+      const top = O.y1 - drop * d1;
+      if (top <= R.y0 + 0.3) continue;
+      // (cheap first: where the shadow lands across, in the world — most pairs never meet; only then project the 8 corners)
+      const s0 = lx * d0, s1 = lx * d1;
+      if (ob.x1 + Math.max(s0, s1) <= R.b.x0 || ob.x0 + Math.min(s0, s1) >= R.b.x1) continue;
+      const pts = [];
+      for (const d of [d0, d1]) for (const [X, Y] of [[ob.x0, O.y0], [ob.x1, O.y0], [ob.x1, O.y1], [ob.x0, O.y1]]) pts.push(P(cam, X + lx * d, Y - drop * d, zr));
+      const hull = hull2(pts), xs = hull.map(p => p[0]);
+      if (Math.max(...xs) < R.a || Math.min(...xs) > R.c) continue;
+      cast.push({ pts: hull, a: CAST.a * kr, pen: Math.min(2.4, 0.3 + 0.035 * d0) * cam.F / zr * 0.5 });
+    }
+    return cast.length || ao.length ? { cast, ao, a: R.a, c: R.c, ty: R.ty, by: R.by } : undefined;
+  };
+  const get = b => { if (!out.has(b)) { const R = byBox.get(b); out.set(b, R ? one(R) : undefined); } return out.get(b); };
+  return { get, values: () => scr.map(R => get(R.b)).filter(Boolean).values() };
+}
+const sm01 = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+// the convex hull of a few points (monotone chain)
+function hull2(p) {
+  const q = p.slice().sort((u, v) => u[0] - v[0] || u[1] - v[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const v of q) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], v) <= 0) lo.pop(); lo.push(v); }
+  for (let i = q.length - 1; i >= 0; i--) { const v = q[i]; while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], v) <= 0) up.pop(); up.push(v); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+/** draws a box's cast shadows + contact occlusion onto its front (clipped to it), right after the box */
+export function drawCast(x, cs) {
+  if (!cs) return;
+  x.save(); x.beginPath(); x.rect(cs.a, cs.ty, cs.c - cs.a, cs.by - cs.ty); x.clip();
+  x.globalCompositeOperation = 'multiply';
+  for (const o of cs.ao) {
+    const g = x.createLinearGradient(0, o.y, 0, o.y - o.h);
+    g.addColorStop(0, rgb(CAST.aoCol, o.a)); g.addColorStop(1, rgb(CAST.aoCol, 0));
+    x.fillStyle = g; x.fillRect(o.x0, o.y - o.h, o.x1 - o.x0, o.h);
+  }
+  // the penumbra: the shadow four times, a step apart along both axes, each a quarter — soft edges, a solid core
+  // (MULTIPLY: the stone darkens + cools the way its own shade side does, and its windows still show through the shadow)
+  x.globalCompositeOperation = 'multiply';
+  for (const sh of cs.cast) {
+    x.fillStyle = rgb(CAST.col, sh.a / 4);
+    for (let i = 0; i < 4; i++) {
+      const o = (i - 1.5) * sh.pen;
+      x.beginPath(); sh.pts.forEach(([u, v], j) => (j ? x.lineTo(u + o, v + o * 0.6) : x.moveTo(u + o, v + o * 0.6))); x.closePath(); x.fill();
+    }
+  }
+  x.restore();
 }
 
 /** a haze veil at a band's feet (the distance dissolves): from the ground line up `up` pt, in the haze colour */

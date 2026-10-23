@@ -157,8 +157,17 @@ test('data: the owner\'s shared songs are ONE file in several decks (morning10 i
   assert.ok(c2.moods.morning.includes('c2-morning10') && c2.moods.late.includes('c2-morning10'), 'morning10: MORNING and LATE NIGHT');
   for (const n of [4, 5, 6, 7]) assert.ok(c2.moods.morning.includes(`c2-morning${n}`) && c2.moods.day.includes(`c2-morning${n}`), `morning${n} + day${n}: one file, both decks`);
   assert.ok(!existsSync(new URL('audio/music/c2-day4.mp3', ROOT)) && !existsSync(new URL('audio/music/c2-late-morning10.mp3', ROOT)), 'never stored twice');
-  assert.ok(c2.moods.evening.includes('slip8'), 'evening3 IS the repo\'s slip8 (same audio, same timing): listed, not stored again');
-  assert.ok(!existsSync(new URL('audio/music/c2-evening3.mp3', ROOT)));
+  assert.ok(!existsSync(new URL('audio/music/c2-evening3.mp3', ROOT)), 'evening3 (= City 1.0\'s slip8) is never stored');
+});
+
+test('data: no City 2.0 deck holds a City 1.0 song (the owner: City 2.0 never uses City 1.0 songs)', () => {
+  const city1 = new Set(Object.values(data.moods).flat());
+  for (const m of MOODS) for (const id of c2.moods[m]) {
+    assert.ok(data.songs[id].c2 === true, `${m}: ${id} is a City 2.0 song`);
+    assert.ok(!city1.has(id), `${m}: ${id} is not in a City 1.0 list`);
+  }
+  assert.ok(!c2.moods.evening.includes('slip8'), 'evening3 = slip8: dropped');
+  assert.ok(Object.values(c2.sources).some(s => !s.id && s.files.includes('evening/evening3.mp3')), 'the importer remembers to skip evening3');
 });
 
 test('data: every City 2.0 song is levelled to ~ -16 LUFS with a true peak under -1 dBTP, 112 kbps stereo, at most 4.3 MB', () => {

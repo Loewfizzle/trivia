@@ -92,6 +92,23 @@ try {
   ok(fin.room > 0.98 && fin.old < 0.02, `JOINER: then only the room's song (${fin.room.toFixed(2)} / ${fin.old.toFixed(2)})`);
   const hNow = await md(H.p);
   ok(fin.rt != null && Math.abs(fin.rt - hNow.at) < 1.5, `JOINER: at the room's place (${fin.rt}s here, ${hNow.at}s on the host)`);
+  // M2 — iOS took the joiner's audio and won't give it back (leaving Safari, a call): back on screen + ONE tap → a fresh context, and
+  // the room's song comes back in sync with the room's clock (engine.js#rebuild → synced-songs re-connects + re-places it)
+  { const vis = v => ev(J.p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
+    await vis('hidden'); await sleep(500);
+    await ev(J.p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
+    await vis('visible'); await sleep(1900);
+    const stuck = await ev(J.p, `import('/js/audio/engine.js').then(e => e.audioHealth())`);
+    await ev(J.p, `document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`);
+    let back = null;
+    for (let i = 0; i < 40 && !back; i++) { await sleep(150); const l = await ld(J.p); const r = l && l.slots.find(s => s.id === st.lm.songs[0] && s.gain > 0.5); if (r) back = r; }
+    const h1 = await md(H.p);
+    ok(back && Math.abs(back.t - h1.at) < 1.5, `STUCK: from its first moment back the room's song is at the room's place (${back ? back.t : '—'}s here, ${h1.at}s on the host)`);
+    await sleep(2500);        // (and stays there: the player re-places its song twice a second)
+    { const l = await ld(J.p); back = (l && l.slots.find(s => s.id === st.lm.songs[0] && s.gain > 0.5)) || back; }
+    const h2 = await md(H.p), health = await ev(J.p, `import('/js/audio/engine.js').then(e => e.audioHealth())`);
+    ok(stuck.stuck && health.rebuilds === 1 && health.state === 'running', `STUCK: one tap rebuilt the joiner's audio (${stuck.state} → ${health.state}, ${health.why})`);
+    ok(back && Math.abs(back.t - h2.at) < 1.5, `STUCK: the room's song is back in sync with the room (${back ? back.t : '—'}s here, ${h2.at}s on the host)`); }
 
   // ============================================================ 3. a joiner already on the room's song at its place: no restart
   const K = await open('lssame', { bag: { mood: 'evening', bag: { order: [st.lm.songs[0], ...others], i: 0 } } });

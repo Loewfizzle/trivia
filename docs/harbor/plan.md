@@ -30,6 +30,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | DT2 | ✅ (1d2dd08, Oct 23) THE DAY LOOK (Day touch-up part 2): real clouds (a full rework), stronger sunlit / shaded faces, windows less grid-like — three refine passes | Opus 5.5 high | 75–100 min |
 | SP | ✅ (Oct 23 — docs/harbor.md#sp) SKY POLISH (the owner: clouds 7/10): cirrus streaks rebuilt (not speed lines), cumulus bases, a real overcast deck + the pink 1 pm tint + the logo lit by day under cloud, the moon halo softer, the sun's colour by altitude, beams lighting clouds (not passing through), the cloudy party's cost, smooth contrails, one more push on the day buildings | Opus 5.5 high | 75–100 min |
 | M | ✅ (Oct 23 — docs/harbor.md#m) City 2.0 music (her 56 mood files → 51 songs + 1 reused, the MUSIC MOOD setting in both cities, the panel's MUSIC row, the importer script) | Sonnet 5.5 high | 30–45 min |
+| M2 | ✅ (Oct 23 — docs/harbor.md#m2) music fixes (City 1.0 songs out of City 2.0, the music back after leaving Safari, the beat as heard on iPhone) + the day buildings (cast shadows, occlusion, recessed windows, materials) + bold billboard lamps | Opus 5.5 high | 75–100 min |
 | 6b | ← NEXT the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
 | 8 | the stage + wildlife | Opus 5.5 high | 60–90 min |

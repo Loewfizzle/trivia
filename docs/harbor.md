@@ -2656,7 +2656,7 @@ can reuse the time-grid puff trail in `air.js#drawTrail`). Sky messages still dr
 ## M — CITY 2.0 MUSIC (Oct 23 2026; the owner's mood songs + the MUSIC MOOD setting; City 2.0's music behind `?city=2`, the setting in both cities)
 The detail lives in docs/audio.md#city-20-music; this is the handoff.
 - **Songs:** the owner's five ~/Downloads folders (morning 11 · day 11 · evening 14 · late 11 · party 9 = 56 files; victory + neon ignored) → 51 stored + 1 reused:
-  morning4–7 = day4–7 byte for byte (one file each, in two decks), her morning10 in MORNING + LATE NIGHT (one file), evening3 = the repo's slip8. 112 kbps stereo MP3, trimmed,
+  morning4–7 = day4–7 byte for byte (one file each, in two decks), her morning10 in MORNING + LATE NIGHT (one file), evening3 = the repo's slip8 (M2: dropped — City 2.0 never plays City 1.0 songs). 112 kbps stereo MP3, trimmed,
   −16 LUFS / ≤ −1 dBTP; **+144.5 MB** (the owner chose to commit them as they are; `MUSIC_BASE` in js/config.js moves them to a CDN with one change — js/audio/music-url.js).
 - **One command to add more:** drop files in the folders, `python -I scripts/add-city2-music.py` (docs/audio.md).
 - **Rule + decks:** `core/city-mood.js` (dawn / 11 am / golden hour 10° / 11 pm / the party show once `partyReady`) on the Harbor's own clock (`core/city.js#setCityClock`, registered by
@@ -2673,11 +2673,96 @@ The detail lives in docs/audio.md#city-20-music; this is the handoff.
 - A lobby's room song does not switch mid-song when the HOST changes mood (the next song comes from the new mood): the synced player schedules its fade-out once per song, a mid-song queue rewrite
   would need it to re-plan. Outside a room the switch is a crossfade.
 - The 1440×900 shot of the settings sheet shows the title (the sheet closed on the viewport change in the test); the row is the same markup as the phone's.
-- The songs' loudness is −16 LUFS; City 1.0's older songs average −12 (slip8, now in EVENING, is 3.5 dB louder than the rest).
+- The songs' loudness is −16 LUFS; City 1.0's older songs average −12 (M2: slip8 is out of City 2.0's EVENING, so its decks are all at one level).
 ### Handoff → Part 6b (the special-occasion sky)
 Nothing in 6b needs the music, but its TR-3B "power-down" effect (plan.md) plugs into `music.js` (`filterMusic`, `duckMusic`) and
 `beat.js#songInfo` says which song + whether its grid is trusted. The harbor's clock is now shared with the audio (`core/city.js`): a new clock override (a CITY CONTROL time jump, Part 13) only has to
 mutate the scene's `clock` and the music follows.
+
+## M2 — MUSIC FIXES + DAY BUILDINGS (Oct 23 2026; the music in both cities, the look behind `?city=2`)
+The owner: the music dies after leaving Safari (every visitor hits it); the party's beat sync "kind of — not perfect"; the day buildings
+7–8 / 10 — "a little flat". The bar: the day reaches the night. **Proved with `pixdiff.mjs`** against 563cdb2: `party-nc` = the billboard's
+lamp strip only (pt 11–65 × 492–504); `night-nc`, `dusk-nc`, `golden-nc` = that strip + a few px of the lighthouse / the blue hour's randomly
+timed sputters (the A-A noise of a moving frame). The day work is gated on the day's share (`T.day`): golden hour, dusk + the night never run it.
+The music detail lives in docs/audio.md (#m2-the-music-comes-back, #m2-when-the-beat-is-heard).
+
+### 1. Music
+- **City 2.0 never plays a City 1.0 song:** `slip8` (= the owner's evening3) out of the EVENING deck; `city2.sources` marks that file
+  `skipped` so the importer never lists it again, and `--reuse` refuses a City 1.0 song. Test: `city-music.test.mjs` (no City 2.0 deck holds a
+  City 1.0 track). morning4–7 = day4–7 stay shared (intended).
+- **THE MUSIC COMES BACK** (`audio/engine.js`, `audio/music.js`, the music buttons): a stuck context is REBUILT inside the next tap, a song that
+  errored / stalled after the phone slept is reloaded at its place (never marked "missing"), a voice that "plays" but sends nothing is seen by
+  a probe and re-made in the next tap, and the music button's tap always ends with music playing. The lobby's room song comes back on the room's
+  clock (`synced-songs.js` re-connects to the new context; `pulse/clock.js` re-samples it and ignores a stopped clock). Tests: e2e-harbor `music`
+  (+7 scenarios: leave + come back, a stuck context + one tap, the music button while stuck, a network error, the OS pausing it, a bfcache
+  restore, a dead voice), e2e-lobbysong (+3: a joiner's stuck audio → one tap → the room's song in sync from its first moment), audio-resume.mjs.
+- **THE BEAT AS HEARD** (`audio/beat.js`): Safari reports no `outputLatency` — the beat now uses the output timestamp (or ~20 ms on an iPhone)
+  and each phone MEASURES the song element's own lead from the kicks it hears on trusted grids (Chrome here: 2 ms; the iPhone's is its own,
+  saved per device). The readout's new line: `sync out 59 ms · lead 2 ms (32 kicks)`.
+- **party3** re-checked (a full tempo + phase scan): its "142.5 BPM, lock 5.7" is an artifact of a dense 16th-note pattern (each quarter of the
+  song prefers a phase a third of a beat away); the real tempo is the tracker's 106.9 and its kicks sit off the beat (agree 0.19) → it stays
+  untrusted: on it the city follows the kicks it hears (right for a syncopated song). The other eight party grids hold (steady, agree 0.59–0.9;
+  party9 agree 0.33 but lock 5.46).
+
+### 2. THE DAY BUILDINGS — from flat to solid (`blocks.js`, `skyline.js`; the day channel only)
+1. **CAST SHADOWS BETWEEN BUILDINGS** (`castShadows`, `drawCast`, `CAST`): the light is the real sun's side + height and — the day look's
+   convention — from the viewer's side, so each box throws its shadow onto the fronts BEHIND it: its front rect pushed by the depth gap to that
+   wall + its back rect pushed less, the hull of the two (attached where they touch, long when the gap is big or the sun low: drop =
+   0.45 × tan(elevation) a unit of depth, sideways 1.1 × sunDir). Across both baked groups (a near block shadows a far tower), clipped to the
+   receiving front, a 4-step penumbra growing with the gap, MULTIPLIED in a cool blue-violet (the stone darkens + cools like its own shade
+   side, its windows still show). Morning from the left, afternoon from the right; noon short; an overcast deck: none (`ovc`), a cloudy day
+   (> 0.6, the bake key's bucket) softer. **Contact occlusion**: a nearer roofline cutting across a wall darkens it just above. Cost: computed
+   lazily per wall inside its own bake step (~5 ms for all 203 boxes on the laptop, spread over the sliced bake; nothing per frame).
+2. **The foot's occlusion** (a cool dark band at each building's base where it meets the street / water) + a clearer, WARM gradient up each
+   facade (brighter toward the top, darker at the base).
+3. **RECESSED WINDOWS** (`dayPanes`): each opening's head + its sun-side jamb throw a thin shadow onto the glass; the sill + the far jamb catch
+   the light only where the opening is ≥ 2 pt (on dense grids the bright lines bleached the stone); the sill's own shadow under it. Per the
+   building's openings (an office ribbon, a Deco tall window, a pane). Near + mid only (far ones stay tone bands).
+4. **MATERIAL** (`stoneFace`): rusticated stone bases (channelled joints, a lit water-table line, its shadow), brick laid in batches (a floor's
+   courses a slightly different tone), belt courses (limestone on brick, terracotta on cream / limestone, a lighter band on granite).
+5. **Contrast**: the sunlit side faces brighter + warmer (`dLit` +13 %), the fronts warm (a first try made them cooler — it greyed the cream
+   towers; reverted). The edge highlights were already crisp (DT2).
+
+### 3. THE BILLBOARD'S GOOSENECK LAMPS (`signs.js#gooseneckLamps`, `drawGooseneck`, `lampGlows`)
+Each shade a deep enamelled warehouse dish ~6–8 pt across at 402 (`W` = 8.5 % of the board, clamped), a cap where the arm enters, a sun shine
+on its dome, a bright rolled rim; the arm ~0.9 pt thick, up from behind the board, arching over the top edge. Two each side of the mark; every
+mouth ABOVE the board's top edge (they never cover the mark or the name). Lit: the shade's inside glows, a white-hot bulb point, a visible soft
+cone down the poster. The timing is DT1's (on at late golden hour, a dim wash once the neon is up). Test: `harbor.test.mjs` (size, place, the middle clear).
+
+### Previews (the owner's iPhone — `?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&when=…`)
+Morning `2026-10-22T09:00`, noon `T12:30`, afternoon `T16:00`, golden hour `T18:20`, overcast `T13:00&wx=overcast`, night `T22:00`, party
+`2026-10-24T23:00`; the billboard lit `2026-10-22T18:50`. Shots: `shots.mjs --scenes d-morn,d-noon,d-aft,d-golden,d-overcast,d-night,d-party --crop skyl3,skym,skyr3`.
+
+### Tests (M2)
+`harbor.test.mjs` (+2, 104: cast shadows by day only, along the sun, never above their box, none overcast / golden / night; the lamps),
+`city-music.test.mjs` (+1, 16), e2e-harbor 169/169 (music group 57), e2e-lobbysong 12/12, audio-resume.mjs, the one-game smoke check, units 490.
+
+### Performance (A/B in one run, `title-perf.mjs --ab` against 563cdb2, 402×874, 2× CPU, the laptop without a GPU, 3 + 3 windows)
+| scene | t2 · t1 · t0 work A → B (ms) | frame p95 · slow | verdict |
+| --- | --- | --- | --- |
+| `np-day` | 2.36 → 2.00 · 1.67 → 1.77 · 1.37 → 1.37 | 16.8–17.2 · 0 % both | same ×3 |
+| `np-night` | 2.85 → 2.30 · 2.04 → 1.83 · 1.44 → 1.33 | 16.8–17.1 · 0 % both | same ×3 |
+| `np-party` | 7.59 → 7.63 · 5.06 → 5.04 · 3.59 → 3.59 | 16.8–17.1 · 0 % both | same ×3 |
+The day's new work is all in its bakes (per look key — a few a day, sliced); nothing per frame.
+
+### Known issues (M2)
+- **WebKit can't run here** — the iOS audio states are simulated (a context that won't resume, a paused / errored / dead element, bfcache). The
+  owner's iPhone decides; what to try is in the commit's notes + docs/audio.md. If a rebuild happens, the readout's `music` line can't show it —
+  `__arcade.musicDebug().health` (`rebuilds`, `why`, `last`) does.
+- The element's lead is learned on each phone (≥ 12 strong kicks on a trusted party song whose kicks land on its grid); the first visit starts at
+  0, every later one with the saved value. Bluetooth headphones' delay is only as good as Safari's output timestamp.
+- A song with a long stretch of true digital silence would look like a dead voice for that moment (the next tap would re-make the voices and
+  carry on; it clears itself when sound returns).
+- Cast shadows fall on FRONTS only (side faces + roofs aren't drawn as lit surfaces); with the light from the viewer's side most of a shadow
+  hides behind the box that throws it — what shows is the part pushed sideways, so noon (the sun near the middle) is calmer by nature.
+- The window recesses are half-point lines at the bakes' 2 px / pt: at phone size they read as texture on the mid towers, as relief only on the
+  near blocks.
+- A second tap on the music button within 1.5 s of a rescue counts as the same "play" (never switches the music straight off again).
+
+### Handoff → Part 6b (the special-occasion sky)
+Nothing in 6b depends on this pass. For later passes: `castShadows` takes any box list (Part 7's speakeasy + Part 8's stage can throw
+shadows the same way); `CAST` holds the light's numbers; the lamps (`gooseneckLamps` / `drawGooseneck` / `lampGlows`) are Part 7's ghost-ad
+lamps. The audio engine's `onRebuild` / `onGesture` are the hooks any new audio module should use if it caches nodes.
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against

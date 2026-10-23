@@ -6,7 +6,7 @@ import { createBoardView } from './view.js';
 setErrorContext(() => 'board', 'board');
 import { installEmblems } from '../ui/emblems.js';
 import { installAudio } from '../audio/engine.js';
-import { playMusic, registerTracks, setListProvider, musicDebug } from '../audio/music.js';
+import { playMusic, registerTracks, setListProvider, musicDebug, musicNeedsRescue } from '../audio/music.js';
 import { loadMoodMusic, moodNow, nextForDevice } from '../audio/mood.js';
 import { settings, updateSettings, onSettings } from '../audio/settings.js';
 
@@ -32,7 +32,7 @@ loadMoodMusic().then(d => {
   const NOTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="slash" d="M3 3l18 18"/></svg>';
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'music-btn bd-music'; b.innerHTML = NOTE;
-  b.addEventListener('click', () => updateSettings({ musicOff: !settings.musicOff }));
+  b.addEventListener('click', () => { if (musicNeedsRescue()) return; updateSettings({ musicOff: !settings.musicOff }); if (!settings.musicOff) musicNeedsRescue(); });
   const paint = () => { b.classList.toggle('is-off', !!(settings.musicOff || settings.muted)); b.setAttribute('aria-label', settings.musicOff ? 'Music off — tap to turn it on' : 'Music on — tap to turn it off'); };
   onSettings(paint); paint();
   document.body.append(b);

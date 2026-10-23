@@ -786,6 +786,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — MUSIC FIXES + DAY BUILDINGS (Oct 23, 2026) — `docs/harbor.md#m2`, `docs/audio.md` (the owner: the music dies after leaving Safari; the day "a little flat")
+- [x] City 2.0's EVENING without City 1.0's slip8 (the importer skips it for good; `--reuse` refuses City 1.0 songs); a unit test
+- [x] THE MUSIC COMES BACK (both cities): every resume checked after 1.5 s, a stuck context REBUILT in the next tap (music re-made in the same
+      tap, the lobby's song re-placed on the room clock, PULSE's clock re-sampled, the SFX chain rebuilt); errored / stalled songs reloaded at
+      their place (never "missing" unless a 404); a dead voice seen by a probe; bfcache + the iOS audio session; the music button means PLAY
+      when the music should be on but isn't
+- [x] The beat as heard: Safari's missing `outputLatency` (the output timestamp / ~20 ms), each phone measures its song element's lead from the
+      kicks on trusted grids (Chrome: 2 ms); the readout's `sync` line; party3 re-checked (stays untrusted: syncopated kicks)
+- [x] Day buildings: cast shadows between buildings along the sun (both baked groups, multiplied blue-violet, soft, lazy per wall), contact +
+      foot occlusion, recessed windows, rusticated bases, brick batches, belt courses, a warm facade gradient, brighter sunlit sides
+- [x] The billboard's gooseneck lamps: ~6–8 pt enamel shades on clear curved arms, a bulb + a cone of light when lit, never over the mark / name
+- [x] pixdiff (night / party / dusk / golden = the lamps only), harbor.test 104, city-music 16, e2e-harbor 169/169, e2e-lobbysong 12/12,
+      audio-resume, smoke, units 490; perf A/B `np-day` / `np-night` / `np-party`: same
+
 ### ✅ CITY 2.0 — SKY POLISH (Oct 23, 2026) — `docs/harbor.md#sp` (the owner: the clouds a 7/10)
 - [x] CIRRUS drawn as groups of wisps (fibratus, mares' tails, tufts) over a soft body, never straight / parallel / evenly spaced; a
       cirrostratus veil on a hazy high day; lit first + last at sunset; above the tagline's band; `&wx=cirrus|veil` + the panel

@@ -1696,3 +1696,38 @@ test('SP — the cloudy night\'s cost: by moonlight a drifting cloud keeps its l
   for (let x = 0; x <= 300; x += 5) { const k = cloudLit(noon, cl, x, box).key; if (prev && k !== prev) dayChanges++; prev = k; }
   assert.ok(changes <= dayChanges * 0.5, `moonlight ${changes} re-lights over 300 pt, the sun ${dayChanges}`);
 });
+
+// ---------------------------------------------------------------- M2: THE DAY BUILDINGS (cast shadows between buildings) + THE BILLBOARD'S LAMPS
+import { castShadows } from '../js/screens/harbor/blocks.js';
+import { skyItems } from '../js/screens/harbor/skyline.js';
+import { gooseneckLamps } from '../js/screens/harbor/signs.js';
+test('M2 cast shadows: by day only, along the sun (morning → right, afternoon → left), never under an overcast deck', () => {
+  const { cam, L } = setup('402x874');
+  const all = skyItems(L), boxes = [...all.far, ...all.near].filter(i => i.b).map(i => i.b);
+  const day = (sunDir, extra = {}) => castShadows(cam, boxes, { day: 1, gold: 0, night: 0, sunDir, sunEl: 22, ovc: 0, cloud: 0.2, ...extra });
+  const count = m => [...m.values()].reduce((n, v) => n + v.cast.length, 0);
+  assert.ok(count(day(-1)) > 100 && count(day(1)) > 100, 'a sunny day: many shadows');
+  for (const T of [{ day: 0, night: 1 }, { day: 0, gold: 1 }, { ovc: 1 }]) assert.equal(count(day(-1, T)), 0, `none at ${JSON.stringify(T)}`);
+  assert.ok(count(day(-1, { cloud: 0.7 })) > 0, 'a cloudy day keeps them (softer)');
+  // the needle's top tier: in the sunburst's shadow in the afternoon (the sunburst stands to its right, in front), not in the morning
+  const needle = boxes.filter(b => b.tower === 'needle').sort((a, b) => (b.y0 || 0) - (a.y0 || 0))[0];
+  const hits = m => (m.get(needle) || { cast: [] }).cast.length;
+  assert.ok(hits(day(1)) > 0, 'afternoon: the sunburst throws its shadow on the needle');
+  // direction (one box in front of a wide wall): the shadow falls right of the box in the morning, left in the afternoon, and is
+  // never higher on the wall than the box itself (the light is above)
+  const wall = { x0: -40, x1: 40, z0: 300, z1: 312, h: 60, mat: 'lime' }, box = { x0: -5, x1: 5, z0: 280, z1: 292, h: 40, mat: 'lime' };
+  const one = sd => castShadows(cam, [wall, box], { day: 1, sunDir: sd, sunEl: 22, ovc: 0, cloud: 0.2 }).get(wall).cast[0];
+  const [bx0] = project(cam, box.x0, 0, box.z0), [bx1, , ] = project(cam, box.x1, 0, box.z0), boxTop = project(cam, 0, box.h, box.z0)[1];
+  const xs = c => c.pts.map(q => q[0]), ys = c => c.pts.map(q => q[1]);
+  assert.ok(Math.max(...xs(one(-1))) > bx1 + 5, 'morning: the shadow reaches out right of the box');
+  assert.ok(Math.min(...xs(one(1))) < bx0 - 5, 'afternoon: out left of it');
+  assert.ok(Math.min(...ys(one(-1))) >= boxTop - 0.5, 'never above the box on screen');
+});
+test('M2 billboard lamps: four, ~6–8 pt shades, two each side of the middle, every shade above the board (never over the mark or the name)', () => {
+  const R = { x: 6, y: 470, w: 80, h: 50 };
+  const ls = gooseneckLamps(R);
+  assert.equal(ls.length, 4);
+  for (const l of ls) { assert.ok(l.W >= 5.5 && l.W <= 8, `shade ${l.W}`); assert.ok(l.y < R.y, 'mouth above the top edge'); assert.ok(l.top < l.y - l.W, 'the arm rises clear above the shade'); }
+  assert.ok(ls[1].x + ls[1].W / 2 < R.x + R.w * 0.35 && ls[2].x - ls[2].W / 2 > R.x + R.w * 0.65, 'the middle (the mark) stays between the inner lamps');
+  assert.ok(gooseneckLamps({ x: 0, y: 0, w: 300, h: 80 })[0].W <= 8 && gooseneckLamps({ x: 0, y: 0, w: 40, h: 20 })[0].W >= 5.5, 'clamped at any board size');
+});

@@ -128,6 +128,9 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
         if (m !== game.matchId || (!want.includes(Number(si)) && !voices.has(Number(si)))) bufs.delete(k);
       }
       const ctx = getContext();
+      // a rebuilt context (engine.js#rebuild, iOS): the old voices died with the old one — drop them now (they must not report a
+      // place), start again on the room clock once the new one runs
+      if (dest && ctx && dest.context !== ctx) { voices.clear(); dest = null; restarts++; }
       if (!ctx || ctx.state !== 'running') return null;
       if (!dest) dest = connect(ctx);
       for (const i of want) {

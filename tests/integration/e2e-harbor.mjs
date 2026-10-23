@@ -844,12 +844,13 @@ G('music', async () => {
     const m = await ev(P.page, 'window.__arcade.mood()');
     const id = await start(P.page);
     ok(m === mood && deck(mood).includes(id), `MUSIC ${when} → ${mood}: plays ${id} from City 2.0's ${mood} deck (${deck(mood).length} songs)`);
-    ok(!songs.moods[mood].includes(id) || id === 'slip8', `MUSIC ${mood}: not one of City 1.0's songs (${id})`);
+    ok(!songs.moods[mood].includes(id) && songs.songs[id].c2,`MUSIC ${mood}: not one of City 1.0's songs (${id})`);
     await sleep(1500);
     const b = await ev(P.page, 'window.__arcade.beat()'), line = await ev(P.page, 'window.__district.harbor().music');
     const s = songs.songs[id];
     ok(b && b.id === id && ((s.grid.trusted === false && b.untrusted && !b.grid) || (s.grid.trusted !== false && b.grid && Math.abs(b.grid.bpm - s.grid.bpm) < 0.01)), `MUSIC ${mood}: the beat follows ${id}'s ${s.grid.trusted === false ? 'kicks (grid not trusted)' : `grid (${s.grid.bpm} bpm)`}`);
     ok(/music/i.test(line) && line.includes(id), `MUSIC ${mood}: the readout names it ("${line}")`);
+    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead -?\d+ ms \(\d+ kicks\)$/.test(sl || ''), `SYNC: the readout says what the beat subtracts ("${sl}")`); }
     if (SHOTS && mood === 'party') await P.page.screenshot({ path: `${OUT}music-party-402x874.png` });
     await P.ctx.close();
   }
@@ -923,6 +924,78 @@ G('music', async () => {
     await ev(P.page, 'window.__district.remote().setMine({})');
     await changed(P.page, after, 'AUTO again');
     ok(deck('day').includes(await ev(P.page, NOW)), 'PANEL: clearing the mood goes back to the time of day (DAY)');
+    await P.ctx.close(); }
+
+  // ---- 6. THE MUSIC COMES BACK (the owner's iPhone: leaving Safari killed it; the music button didn't help; only a reload did)
+  { const els = { fn: () => { window.__els = new Set(); const o = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__els.add(this); return o.call(this); }; } };
+    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}`, view: [402, 874], init: els });
+    const p = P.page;
+    const H = () => ev(p, 'window.__arcade.musicDebug().health');
+    const cur = () => ev(p, `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return { id: d.playing, t: v ? v.t : -1, paused: v ? v.paused : true, ctx: d.health.state }; })()`);
+    const vis = v => ev(p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
+    const PLAYING = `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return !!v && !v.paused && d.health.state === 'running' && d.health.sounding; })()`;
+    const playingOn = async (what, ms = 8000) => { try { await waitFor(p, PLAYING, what, ms); return true; } catch { return false; } };
+    const first = await start(p);
+    await sleep(2500);
+    // a) leave the browser + come back (no tap): the same song goes on from where it was
+    const a0 = await cur();
+    await vis('hidden'); await sleep(1200);
+    const hid = await cur();
+    ok(hid.paused && hid.ctx === 'suspended', `RESUME: hidden — the song pauses + the context sleeps (${JSON.stringify(hid)})`);
+    await vis('visible');
+    ok(await playingOn('back on screen'), 'RESUME: back on screen — it plays again with no tap');
+    const a1 = await cur();
+    ok(a1.id === a0.id && Math.abs(a1.t - a0.t) < 4, `RESUME: the same song (${first}) from the same place (${a0.t} → ${a1.t} s)`);
+    // b) iOS won't give the context back (resume refused, "interrupted"): ONE tap anywhere rebuilds it — the same song plays on
+    await vis('hidden'); await sleep(400);
+    await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
+    await vis('visible'); await sleep(1900);
+    const sh = await H();
+    ok(sh.stuck && !sh.sounding, `STUCK: back on screen, the context won't run (${sh.state}) — marked stuck, waiting for a tap`);
+    const b0 = await cur();
+    await tapAt(p, 30, 300);
+    ok(await playingOn('one tap after a stuck context'), 'STUCK: one tap — a fresh context, the music plays again (no reload)');
+    const b1 = await cur(), bh = await H();
+    ok(bh.rebuilds === 1 && b1.id === b0.id && Math.abs(b1.t - b0.t) < 4, `STUCK: rebuilt once (${bh.why}); the same song ${b1.id} from ${b0.t} → ${b1.t} s`);
+    await ev(p, `import('/js/audio/sfx.js').then(m => m.sfx('tap'))`);
+    ok(!errors.some(e => /different audio context|InvalidAccessError/i.test(e)), 'STUCK: the effects follow the new context (no cross-context errors)');
+    // c) stuck again — this time the tap is ON THE MUSIC BUTTON: it must end with music playing, never switch the music off
+    await vis('hidden'); await sleep(400);
+    await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('suspended'))`);
+    await vis('visible'); await sleep(1900);
+    const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+    await tapAt(p, mb[0], mb[1]);
+    ok(await playingOn('the music button after a stuck context'), 'MUSIC BUTTON: one tap on it brings the music back');
+    ok(await ev(p, `!JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff`), 'MUSIC BUTTON: that tap meant "play" — the music is still ON (not switched off)');
+    await sleep(1700);        // (a second tap within 1.5 s of a rescue is part of the same "play")
+    await tapAt(p, mb[0], mb[1]); await sleep(300);
+    ok(await ev(p, `JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff === true`), 'MUSIC BUTTON: with the music playing, a tap switches it off as before');
+    await tapAt(p, mb[0], mb[1]);
+    ok(await playingOn('music on again') && await ev(p, `!JSON.parse(localStorage.getItem('na:settings')).musicOff`), 'MUSIC BUTTON: and on again — playing');
+    // d) the connection dropped while the phone slept (the element errors): reloaded from its place, never marked "missing"
+    const d0 = await cur();
+    await ev(p, `(() => { const d = window.__arcade.musicDebug(); const f = String(d.playing).replace(/^m:/, ''); const el = [...window.__els].find(a => a.src.includes(f)); el.dispatchEvent(new Event('error')); })()`);
+    await waitFor(p, `/error/.test(window.__arcade.musicDebug().health.last)`, 'the reload after the error', 6000);
+    ok(true, 'NETWORK: the error is seen as "reload", not "missing"');
+    ok(await playingOn('reloaded after a network error', 9000), 'NETWORK: reloaded + playing again');
+    const d1 = await cur(), st = await ev(p, 'window.__arcade.musicDebug().status');
+    ok(d1.id === d0.id && st[d0.id] !== 'missing' && Math.abs(d1.t - d0.t) < 6, `NETWORK: the same song (${d0.t} → ${d1.t} s), not marked missing (${st[d0.id]})`);
+    // e) the OS pauses the element behind our back (a call, Siri, another app's audio) while we're on screen: the watchdog restarts it
+    await ev(p, '[...window.__els].forEach(a => a.pause())');
+    ok(await playingOn('the watchdog after an OS pause', 5000), 'OS PAUSE: restarted with no tap');
+    // f) the back-forward cache: pagehide → pageshow (no visibilitychange)
+    await ev(p, `window.dispatchEvent(new Event('pagehide'))`); await sleep(600);
+    const fh = await cur();
+    await ev(p, `window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))`);
+    ok(fh.paused && await playingOn('after a bfcache restore'), 'BFCACHE: pagehide pauses, pageshow plays again');
+    // g) the voice "plays" but nothing comes out (WebKit after the lock screen): seen by the probe, the next tap makes new voices
+    const g0 = await cur();
+    await ev(p, `import('/js/audio/music.js').then(m => m.musicSimulateDead())`);
+    await waitFor(p, 'window.__arcade.musicDebug().health.dead', 'the dead voice seen', 9000);
+    await tapAt(p, 30, 300);
+    ok(await playingOn('new voices after a dead one'), 'DEAD VOICE: seen by the probe; one tap — new voices, playing');
+    const g1 = await cur(), gh = await H();
+    ok(g1.id === g0.id && !gh.dead && /new voices/.test(gh.last), `DEAD VOICE: the same song goes on (${g0.id}, ${g0.t} → ${g1.t} s; ${gh.last})`);
     await P.ctx.close(); }
 
   // ---- 5. City 1.0 (no flag) is untouched: its own decks, and the same setting

@@ -2561,7 +2561,6 @@
    "evening": [
     "c2-evening1",
     "c2-evening2",
-    "slip8",
     "c2-evening4",
     "c2-evening5",
     "c2-evening6",
@@ -2726,11 +2725,11 @@
     ]
    },
    "823e941860a6633e297cdd7606bef990": {
-    "id": "slip8",
+    "id": null,
     "files": [
      "evening/evening3.mp3"
     ],
-    "reused": true
+    "skipped": "City 1.0's slip8: City 2.0 never plays City 1.0 songs"
    },
    "bda01cceb595f03ac332164e3bda6814": {
     "id": "c2-evening4",
@@ -2939,9 +2938,6 @@
    "c2-morning7": [
     "morning",
     "day"
-   ],
-   "slip8": [
-    "evening"
    ]
   }
  }

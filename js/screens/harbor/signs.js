@@ -419,26 +419,45 @@ export const LAMP_C = [255, 196, 122];
 /**
  * THE GOOSENECK LAMPS (DT1 — reusable: Part 7's ghost ad on the speakeasy's wall takes the same): where a board's lamps stand —
  * FOUR over its top edge, TWO EACH SIDE of the game's mark at top centre (the mark between them, the name below). Each lamp: its
- * conduit rising from behind the board, the gooseneck arching over the top edge, the shade hanging over the poster. → [{ x, y
- * (the shade's mouth), top (the arm's peak), dir (which way it reaches) }]
+ * conduit rising from behind the board, the gooseneck arching over the top edge, the shade hanging over the poster.
+ * M2 (the owner: "more bold or prominent" — they were specks): a real warehouse lamp at phone size — the SHADE a deep enamelled
+ * dish ~6–8 pt across at 402 (W), the arm a clear curve ~0.9 pt thick rising ~1.3 W above the board; the shade's mouth always ABOVE
+ * the board's top edge, so the lamps never cover the mark or the name (their light falls on them). → [{ x, y (the shade's mouth),
+ * top (the arm's peak), x0 (the conduit), dir (which way it reaches), a, W (the shade's width) }]
  */
 export function gooseneckLamps(R) {
-  const a = Math.max(4.2, Math.min(7.5, R.h * 0.15));
-  return [0.1, 0.27, 0.73, 0.9].map(f => { const dir = f < 0.5 ? 1 : -1; return { x: R.x + R.w * f + dir * a * 0.42, y: R.y - a * 0.34, top: R.y - a, x0: R.x + R.w * f, dir, a }; });
+  const W = Math.max(5.5, Math.min(8, R.w * 0.085)), a = W * 1.25;
+  return [0.09, 0.25, 0.75, 0.91].map(f => { const dir = f < 0.5 ? 1 : -1, x0 = R.x + R.w * f; return { x: x0 + dir * W * 0.55, y: R.y - W * 0.12, top: R.y - a * 1.05, x0, dir, a, W }; });
 }
 /** the lamps as hardware (any hour: by day in the sun, at night dark): the conduit, the gooseneck, the shade */
 export function drawGooseneck(x, lamps, day, sd = 0) {
-  const steel = mix([22, 20, 28], [70, 66, 62], day), shade = mix([34, 30, 38], [58, 86, 72], day), rim = mix([60, 52, 52], [208, 196, 168], day);
-  x.lineCap = 'round';
+  const steel = mix([20, 18, 26], [64, 62, 60], day), steelHi = mix([44, 40, 48], [196, 190, 176], day);
+  const enamel = mix([24, 26, 30], [30, 70, 56], day), enamelHi = mix([44, 46, 52], [120, 176, 150], day), rim = mix([56, 50, 50], [226, 216, 190], day);
+  x.lineCap = 'round'; x.lineJoin = 'round';
   for (const l of lamps) {
-    const w = Math.max(0.45, l.a * 0.085);
-    x.strokeStyle = rgba(steel); x.lineWidth = w;
-    x.beginPath(); x.moveTo(l.x0, l.y + l.a * 0.9); x.lineTo(l.x0, l.top + l.a * 0.25); x.quadraticCurveTo(l.x0, l.top, l.x0 + l.dir * l.a * 0.3, l.top + l.a * 0.12); x.quadraticCurveTo(l.x, l.top + l.a * 0.2, l.x, l.y - l.a * 0.12); x.stroke();
-    // the shade: an enamelled dish, its mouth down at the poster (green enamel by day, dark at night), a bright rim
-    const sw = l.a * 0.36, sh = l.a * 0.22;
-    x.fillStyle = rgba(shade); x.beginPath(); x.moveTo(l.x - sw * 0.35, l.y - sh); x.lineTo(l.x + sw * 0.35, l.y - sh); x.lineTo(l.x + sw, l.y); x.lineTo(l.x - sw, l.y); x.closePath(); x.fill();
-    x.strokeStyle = rgba(rim, 0.8); x.lineWidth = Math.max(0.25, w * 0.55); x.beginPath(); x.moveTo(l.x - sw, l.y); x.lineTo(l.x + sw, l.y); x.stroke();
-    if (day > 0.05) { x.strokeStyle = rgba([255, 248, 230], 0.45 * day); x.beginPath(); x.moveTo(l.x + (sd > 0 ? 0.2 : -0.2) * sw, l.y - sh); x.lineTo(l.x + (sd > 0 ? 0.9 : -0.9) * sw, l.y - 0.2); x.stroke(); }
+    const W = l.W, aw = Math.max(0.8, W * 0.13), capY = l.y - W * 0.5;
+    // the gooseneck: up from behind the board, over in a smooth arc, down into the shade's cap
+    const arm = () => { x.beginPath(); x.moveTo(l.x0, l.y + W * 0.7); x.lineTo(l.x0, l.top + l.a * 0.35); x.bezierCurveTo(l.x0, l.top - l.a * 0.05, l.x0 + l.dir * W * 0.2, l.top - l.a * 0.08, l.x0 + l.dir * W * 0.42, l.top + l.a * 0.12); x.quadraticCurveTo(l.x, l.top + l.a * 0.3, l.x, capY - W * 0.08); };
+    x.strokeStyle = rgba(steel); x.lineWidth = aw; arm(); x.stroke();
+    if (day > 0.05) { x.save(); x.translate(sd > 0 ? aw * 0.22 : -aw * 0.22, -aw * 0.12); x.strokeStyle = rgba(steelHi, 0.55 * day); x.lineWidth = aw * 0.35; arm(); x.stroke(); x.restore(); }
+    // the shade: a deep dish (a dome over a flared skirt), its mouth down at the poster
+    const hw = W / 2, top = capY + W * 0.06;
+    const dish = new Path2D();
+    dish.moveTo(l.x - hw * 0.22, top); dish.lineTo(l.x + hw * 0.22, top);
+    dish.bezierCurveTo(l.x + hw * 0.62, top + W * 0.06, l.x + hw * 0.78, l.y - W * 0.12, l.x + hw, l.y);
+    dish.lineTo(l.x - hw, l.y);
+    dish.bezierCurveTo(l.x - hw * 0.78, l.y - W * 0.12, l.x - hw * 0.62, top + W * 0.06, l.x - hw * 0.22, top);
+    dish.closePath();
+    x.fillStyle = rgba(enamel); x.fill(dish);
+    // the enamel's shine on the sunny side by day (a soft band), a faint one at night
+    x.save(); x.clip(dish);
+    const sx = l.x + (sd >= 0 ? 0.28 : -0.28) * hw, g = x.createRadialGradient(sx, top + W * 0.14, 0, sx, top + W * 0.14, W * 0.42);
+    g.addColorStop(0, rgba(enamelHi, 0.95 * Math.max(0.25, day))); g.addColorStop(1, rgba(enamelHi, 0));
+    x.fillStyle = g; x.fillRect(l.x - hw, top, W, l.y - top);
+    x.restore();
+    // the cap where the arm goes in, the bright rolled rim at the mouth
+    x.fillStyle = rgba(steel); x.fillRect(l.x - hw * 0.26, top - W * 0.1, hw * 0.52, W * 0.13);
+    x.strokeStyle = rgba(rim, 0.92); x.lineWidth = Math.max(0.45, W * 0.07); x.beginPath(); x.moveTo(l.x - hw, l.y); x.lineTo(l.x + hw, l.y); x.stroke();
   }
 }
 /** the lamps' LIGHT on the poster (a light map, 0..255 a channel, for multiply): a warm pool down the board under each lamp,
@@ -453,16 +472,24 @@ export function lampLightMap(lx, R, lamps, ambient = [34, 28, 46]) {
   }
   lx.globalCompositeOperation = 'source-over';
 }
-/** the lamps lit, over the poster (additive): each bulb's glow under its shade + a faint cone of light down onto the board */
+/** the lamps lit, over the poster (additive): inside each shade the lit enamel + a bright warm bulb, a soft cone of light down the
+ *  poster (M2: clearly visible, never covering the name — the cone is light, the bulb sits in the shade above the board) */
 export function lampGlows(x, lamps, R, k = 1) {
   x.save(); x.globalCompositeOperation = 'lighter';
   for (const l of lamps) {
-    const cone = x.createLinearGradient(0, l.y, 0, R.y + R.h * 0.55);
-    cone.addColorStop(0, rgba(LAMP_C, 0.16 * k)); cone.addColorStop(1, rgba(LAMP_C, 0));
-    x.fillStyle = cone; x.beginPath(); x.moveTo(l.x - l.a * 0.3, l.y); x.lineTo(l.x + l.a * 0.3, l.y); x.lineTo(l.x + l.a * 1.5, R.y + R.h * 0.55); x.lineTo(l.x - l.a * 1.5, R.y + R.h * 0.55); x.closePath(); x.fill();
-    const g = x.createRadialGradient(l.x, l.y + l.a * 0.04, 0, l.x, l.y + l.a * 0.04, l.a * 0.75);
-    g.addColorStop(0, rgba([255, 244, 214], 1 * k)); g.addColorStop(0.3, rgba(LAMP_C, 0.55 * k)); g.addColorStop(1, rgba(LAMP_C, 0));
-    x.fillStyle = g; x.fillRect(l.x - l.a, l.y - l.a * 0.6, l.a * 2, l.a * 1.4);
+    const W = l.W || l.a * 0.72, hw = W / 2, foot = R.y + R.h * 0.62, spread = W * 1.15;
+    // the cone: from the mouth down the board, widening, fading
+    const cone = x.createLinearGradient(0, l.y, 0, foot);
+    cone.addColorStop(0, rgba(LAMP_C, 0.32 * k)); cone.addColorStop(0.45, rgba(LAMP_C, 0.12 * k)); cone.addColorStop(1, rgba(LAMP_C, 0));
+    x.fillStyle = cone; x.beginPath(); x.moveTo(l.x - hw * 0.9, l.y); x.lineTo(l.x + hw * 0.9, l.y); x.lineTo(l.x + spread, foot); x.lineTo(l.x - spread, foot); x.closePath(); x.fill();
+    // the inside of the shade lit (a warm crescent under the rim)
+    const inG = x.createRadialGradient(l.x, l.y, 0, l.x, l.y, hw * 1.05);
+    inG.addColorStop(0, rgba([255, 226, 170], 0.9 * k)); inG.addColorStop(0.6, rgba(LAMP_C, 0.35 * k)); inG.addColorStop(1, rgba(LAMP_C, 0));
+    x.fillStyle = inG; x.beginPath(); x.ellipse(l.x, l.y, hw * 1.05, W * 0.3, 0, 0, Math.PI * 2); x.fill();
+    // the bulb: a white-hot point in the mouth + its glow
+    const by = l.y + W * 0.02, bg = x.createRadialGradient(l.x, by, 0, l.x, by, W * 0.9);
+    bg.addColorStop(0, rgba([255, 252, 236], 1 * k)); bg.addColorStop(0.12, rgba([255, 236, 190], 0.95 * k)); bg.addColorStop(0.4, rgba(LAMP_C, 0.4 * k)); bg.addColorStop(1, rgba(LAMP_C, 0));
+    x.fillStyle = bg; x.fillRect(l.x - W, by - W * 0.9, W * 2, W * 1.8);
   }
   x.restore();
 }

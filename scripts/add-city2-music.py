@@ -3,7 +3,7 @@
 
     ~/.cache/neural-arcade/pyenv/Scripts/python -I scripts/add-city2-music.py              # import whatever is new
     ... --dry-run                                  # list what it would do, change nothing
-    ... --reuse evening/evening3.mp3=slip8         # this file IS an existing repo song: list that, don't store a copy
+    ... --reuse day/x.mp3=c2-morning4              # this file IS an existing City 2.0 song: list that, don't store a copy
     ... --regrid [--only a,b]                      # recompute beat grids (and trust) for City 2.0 songs already imported
 
 Drop new songs into ~/Downloads/{morning,day,evening,late,party}/ (any name, mp3 / m4a / wav / ogg / flac) and run it:
@@ -236,10 +236,15 @@ def main():
         rel = [f'{m}/{p.name}' for m, p in files]
         if h in c2['sources']:
             sid = c2['sources'][h]['id']
+            if not sid:             # skipped on purpose (e.g. a City 1.0 song): never listed
+                print(f'  skip {", ".join(rel)}: {c2["sources"][h].get("skipped", "skipped")}')
+                continue
         elif any(r in reuse for r in rel):
             sid = reuse[next(r for r in rel if r in reuse)]
             if sid not in songs:
                 sys.exit(f'--reuse: no song {sid} in data/mood-music.json')
+            if not songs[sid].get('c2'):
+                sys.exit(f'--reuse: {sid} is a City 1.0 song; City 2.0 never plays City 1.0 songs')
             c2['sources'][h] = {'id': sid, 'files': rel, 'reused': True}
         else:
             sid = PREFIX + re.sub(r'[^a-z0-9]+', '-', files[0][1].stem.lower()).strip('-')

@@ -29,7 +29,7 @@ import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
-import { beatSource, beatKick, beatWhy, songInfo } from '../audio/beat.js';
+import { beatSource, beatKick, beatWhy, songInfo, syncLine } from '../audio/beat.js';
 import { moodNow, MOOD_LABEL } from '../audio/mood.js';
 import { cityFailed } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
@@ -47,10 +47,12 @@ export const harborReady = HARBOR_URL
   ? import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; }, e => { console.warn('harbor', e); cityFailed(); }).finally(() => { harborSettled = true; })
   : Promise.resolve();
 export const harborPending = () => !harborSettled;
-/** CITY 2.0 MUSIC: the &debug=1 readout's line — the mood, the song, and whether its beat grid can be trusted */
+/** CITY 2.0 MUSIC: the &debug=1 readout's lines — the mood, the song, whether its beat grid can be trusted; + what the beat subtracts to
+ *  land on the sound as heard (M2: the output latency, the song element's measured lead) */
 function musicLine() {
   const i = songInfo();
-  return `music ${MOOD_LABEL[moodNow()]}${i ? ` · ${i.id}${i.bpm ? ` ${i.bpm.toFixed(1)}` : ''} · grid ${i.grid}${i.lock != null ? ` (lock ${i.lock})` : ''}` : ' · no song'}`;
+  const m = `music ${MOOD_LABEL[moodNow()]}${i ? ` · ${i.id}${i.bpm ? ` ${i.bpm.toFixed(1)}` : ''} · grid ${i.grid}${i.lock != null ? ` (lock ${i.lock})` : ''}` : ' · no song'}`;
+  return i ? [m, syncLine()] : [m];
 }
 
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };

@@ -12,7 +12,7 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   them play later. Loops crossfade 1.8 s into a fresh copy before the end. iOS often refuses
   resumes after an app switch or pauses the track around the system keyboard: `engine.js` retries on every
   tap/keystroke/focus/pageshow and fires `onResume`; `music.js#watchLoop` restarts a current track the OS paused
-  (regression test: `tests/integration/audio-resume.mjs`). A missing file marks the track missing and
+  (regression test: `tests/integration/audio-resume.mjs`). M2: a context iOS won't give back is REBUILT in the next tap — below. A missing file marks the track missing and
   falls back or stays silent, with no errors.
 - SFX: `sfx(name, opts)`, names in `SOUNDS` (tap, key, select, lock, join, playerJoined, flip{state,i}, correct, present,
   absent, solve, invalid, tick{last}, roundEnd, shimmer, strike, hit, shieldBreak, eliminate, challenge, ocCorrect, ocWrong,
@@ -106,6 +106,47 @@ The synthesized fallbacks (`neonBuzz`, a file that can't load) play at half the 
 
 **Fireworks** (`ambience.js#fireworkBurst({ delay, level })`): the finale's sound on the SFX bus — a soft low thump (a sine
 dropping 96 → 42 Hz with a little filtered body) and 10–18 tiny bright crackles over the next 1.5 s, panned about; quiet.
+
+## M2 — THE MUSIC COMES BACK (Oct 23 2026; both cities) — `audio/engine.js`, `audio/music.js`, `ui/settings-panel.js`, `board/public.js`
+The owner's iPhone: after switching away from Safari the music was off, the music button didn't bring it back, sometimes only a reload did.
+- **The engine asks, then checks:** every resume we ask for (back on screen, a bfcache `pageshow`, `focus`, `navigator.audioSession`'s statechange
+  (iOS 17+), the OS taking the context while we're on screen — a call, Siri, another app's audio) is checked 1.5 s later. A context still not
+  running is **stuck**, and the NEXT TAP anywhere **rebuilds** it: a fresh AudioContext (+ the buses + the limiter), created and started inside
+  that tap (which iOS always allows), the old one closed. `onRebuild` listeners move over: `music.js` re-makes its voices IN THE SAME TAP (a new
+  element may only start in a gesture) and carries the song on from its place; `synced-songs.js` (the lobby's room song, PRISM, SLIPSTREAM) drops
+  its dead voices at once and re-places the song on the room's clock as soon as the new context runs; `pulse/clock.js` re-samples the new clock
+  (and never samples a suspended one — its stopped clock mapped the wrong time); `sfx.js` rebuilds its reverb chain; the games' audio modules
+  already key their nodes to `getContext()`. Every tap also runs `onGesture` listeners (things only a gesture may restart).
+- **The music player heals:** back on screen it plays the song again (from the saved place); a song element that ERRORS (a lost connection while
+  the phone slept, a decode hiccup) is no longer marked "missing" for the visit — a HEAD request decides: only a real 404 / 410 is missing,
+  anything else is reloaded at its place; a STALL (playing but its clock still for 5 s) reloads from there; a play() the OS refuses marks
+  "needs a tap"; THE PROBE (a small analyser after the voices, before the bus — so mute / MUSIC OFF don't matter) sees a voice whose clock runs
+  but which sends digital silence (WebKit's element → Web Audio link after the lock screen): the next tap re-makes the voices, same song, same
+  place. The silent wav that activates a new element in the gesture never pauses a song that took it meanwhile.
+- **The music button:** if the music is meant to be ON but isn't sounding (or the tap just found the audio stopped), the tap means PLAY —
+  it rescues the music inside the tap, toasts MUSIC ON and leaves the setting on; with music playing it switches off as before; switching it
+  ON also makes sure it plays. (A second tap within 1.5 s of a rescue is the same "play".) THE BOARD's button does the same.
+- **Debug:** `__arcade.musicDebug().health` → `{ sounding, needTap, dead, heals, last, peak, state, stuck, rebuilds, why, unlocked, visible }`;
+  test hooks `engine.js#simulateStuck(state)` (resume() never settles — the iOS case) and `music.js#musicSimulateDead()`.
+- **Tests:** e2e-harbor `music` (leave + come back; a stuck context + one tap; the music button while stuck; a network error; the OS pausing it;
+  a bfcache restore; a dead voice), e2e-lobbysong (a joiner's stuck audio → one tap → the room's song at the room's place from its first moment),
+  audio-resume.mjs (City 1.0).
+- **What the owner should try on her iPhone** (`?city=2&debug=1`, music on): leave Safari for another app and come back; lock the screen for
+  a minute and unlock; take a call (or ask Siri something) mid-song; play a podcast in another app, stop it, come back; go back / forward to
+  the page. Each time: the music back by itself, or after ONE tap anywhere — and a tap on the music button must give music, never silence.
+
+## M2 — WHEN THE BEAT IS HEARD (Oct 23 2026; City 2.0's party) — `audio/beat.js`
+Two delays sit between a song's clock and the ear. (1) **Output** (the graph → the speaker): Chrome reports `outputLatency`; **Safari does not**
+(only a tiny `baseLatency`), so on an iPhone the lights ran a little early — now the context's output timestamp (`getOutputTimestamp`: how far the
+graph runs ahead of what is heard), else ~20 ms for an iPhone's speaker (`IOS_OUT`). (2) **The element's lead**: the mood song is an `<audio>`
+element whose `currentTime` can run ahead of (or behind) the samples reaching the graph; nothing reports it, so **each phone measures it**: every
+strong kick the kick listener hears on a song with a TRUSTED grid whose kicks land on it (`agree` ≥ 0.5) gives the element's clock minus that
+beat, minus the listener's own lag (`KICK_LAG` 24 ms — measured offline on the party songs: 15–37 ms per song); the median of the last 32 (once
+≥ 12 agree within 60 ms) is the lead, saved per device (`na:beatcal`), applied to the grid's position; the lobby's synced song (decoded buffers
+on the audio clock) learns its own (`buf`, ≈ 0). Chrome here: lead 1–2 ms (the method checks out). The readout's `sync` line:
+`sync out 59 ms · lead 2 ms (32 kicks)` (`(est)` when Safari gave nothing, `(stamp)` from the output timestamp).
+**party3** (untrusted) re-checked with a full tempo + phase scan: its strongest "lock" (142.5 BPM) is a dense 16th-note artifact; the real
+tempo is 106.9 with its kicks off the beat — it stays untrusted (the city follows the kicks it hears).
 
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
@@ -228,8 +269,9 @@ Files: `core/city.js` (which city is showing + the clock it runs on), `core/city
   untouched (its AUTO is exactly as before). `city2.sources[md5]` records what was imported from where, `city2.shared` which songs sit in more than one deck.
   The owner's folders in ~/Downloads, Oct 23: **morning 11 · day 11 · evening 14 · late 11 · party 9 = 56 files → 51 songs stored + 1 reused**:
   morning4–7 are byte-identical to day4–7 (stored once, as `c2-morning4…7`, listed in MORNING **and** DAY); the owner's first sharing, `c2-morning10`, is in MORNING
-  **and** LATE NIGHT (one file); `evening3` is the repo's `slip8.mp3` (the same audio at the same timing — found by cross-correlation) so EVENING lists `slip8`,
-  not a copy (it is ~3.5 dB louder than the rest: the repo's older level). The decks: MORNING 11 (33 min) · DAY 11 (31) · EVENING 14 (50) · LATE NIGHT 12 (39+) · PARTY 9 (35).
+  **and** LATE NIGHT (one file); `evening3` is the repo's `slip8.mp3` (the same audio at the same timing — found by cross-correlation) — **M2: dropped** (the owner:
+  City 2.0 never plays City 1.0 songs); `city2.sources` marks that file `skipped` so the importer never lists it again, and `--reuse` refuses a City 1.0 song
+  (`city-music.test.mjs` checks no City 2.0 deck holds one). The decks: MORNING 11 (33 min) · DAY 11 (31) · EVENING 13 (46) · LATE NIGHT 12 (39+) · PARTY 9 (35).
   The victory + neon folders are ignored (City 1.0 / the games keep their own music).
 - **Format + loudness:** stereo 44.1 kHz **112 kbps MP3** (the repo's music format), leading / trailing silence trimmed (only what is below −60 dBFS peak — never
   re-cut musically; e.g. late4 lost 6.5 s of digital silence at the start), levelled to **−16 LUFS integrated** (BS.1770; the older repo songs range −6…−21, they were never

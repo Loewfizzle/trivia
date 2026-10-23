@@ -51,7 +51,7 @@ function setup() {
   const noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
   const nd = noise.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
-  fx = { reverb, delayIn, noise, out };
+  fx = { reverb, delayIn, noise, out, ctx };
 }
 
 // One enveloped oscillator note.
@@ -204,7 +204,7 @@ const lastPlayed = {};
 /** Play a named effect. Silently does nothing before audio is unlocked. */
 export function sfx(name, opts) {
   if (!isUnlocked() || !SOUNDS[name]) return;
-  if (!fx) setup();
+  if (!fx || fx.ctx !== getContext()) setup();   // (a rebuilt context — engine.js#rebuild — gets its own chain)
   const now = performance.now();
   if (name !== 'flip' && name !== 'node' && now - (lastPlayed[name] || 0) < 45) return; // de-dupe bursts
   lastPlayed[name] = now;
