@@ -30,10 +30,10 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | DT2 | ✅ (1d2dd08, Oct 23) THE DAY LOOK (Day touch-up part 2): real clouds (a full rework), stronger sunlit / shaded faces, windows less grid-like — three refine passes | Opus 5.5 high | 75–100 min |
 | SP | ✅ (254eda7, Oct 23) SKY POLISH (the owner: clouds 7/10): cirrus streaks rebuilt (not speed lines), cumulus bases, a real overcast deck + the pink 1 pm tint + the logo lit by day under cloud, the moon halo softer, the sun's colour by altitude, beams lighting clouds (not passing through), the cloudy party's cost, smooth contrails, one more push on the day buildings | Opus 5.5 high | 75–100 min |
 | M | ✅ (563cdb2, Oct 23) City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
-| FA | ← NEXT FABLE: THE iPHONE MUSIC BUG on evidence (the AUDIO panel: a new context "running" with a frozen clock, session ambient, gain 0, 6 rebuilds) | Fable high | 45–75 min |
+| FA | ✅ (b87e589 — the owner: fixed, "even better": music returns by itself after the home screen / another app; one tap after a podcast or another app's music, as iOS requires. OPEN: in her screenshots the Web Audio context stays FROZEN after returning and the music runs on the DIRECT element — check the beat lights + SFX still work in that state; fold into 7a section 0) FABLE: THE iPHONE MUSIC BUG on evidence (the AUDIO panel: a new context "running" with a frozen clock, session ambient, gain 0, 6 rebuilds) | Fable high | 45–75 min |
 | F1 | ✅ (294e105) FIX PASS: the iPhone music bug (still broken — a diagnostic first), the billboard lit at night, the beat lead, brick texture at noon | Opus 5.5 high | 45–75 min |
 | DB | ✅ (ed141a3, Oct 23) MUSIC FIXES (drop slip8, the iOS music-dies-after-leaving bug, party beat latency) + DAY BUILDINGS (the owner: "a little flat", 7–8 / 10): cast shadows between buildings, ambient occlusion, recessed windows, materials — the "BUILDINGS BY DAY" notes | Opus 5.5 high | 60–90 min |
-| 7 | REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
+| 7 | ← NEXT (7a) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
 | 8a | THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 8b | THE LIFE (after 6b): people, vehicles, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
@@ -443,9 +443,10 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   as PAGES in sequence (the drones re-form / the jets type the next page), up to ~3 pages (≈ 140 characters, a couple of short
   sentences). Examples that must work: "HAPPY BIRTHDAY JESSICA", "HAPPY NEW YEAR FROM NEON SPEAKEASY", "GAME NIGHT TONIGHT ·
   9 PM · BRING FRIENDS". Banner-plane messages keep their own limits. Check every example at 390 / 402 / 430 by day and night.
-- 6b section 0 — THE SKYWRITING + SKYTYPING PLANES REBUILT (the owner: "very jagged", "they look very cheap"): the
-  skywriting plane must fly SMOOTH curves — a spline path at a steady speed, banking into turns, its smoke following the
-  curve (no jagged corners); the planes bigger and far better crafted. SKYTYPING by a formation of sleek JETS (the owner's
+- 6b section 0 — SKYWRITING IS CUT (the owner, Oct 23: "if we're already doing the dot-matrix thing, let's not double up"):
+  remove the single-plane smoke-cursive skywriting (code, the &force= preview, the panel row, its schedule); every sky text
+  message is SKYTYPING (+ the banner plane, the drones). Messages that used skywriting move to skytyping. THE SKYTYPING
+  PLANES REBUILT (the owner: "very jagged", "they look very cheap"): SKYTYPING by a formation of sleek JETS (the owner's
   call) with glowing AFTERBURNERS (a hot cone + heat shimmer, brighter at dusk / night), crisp nav lights, the formation
   sweeping in tight, holding perfect spacing, puffing the dot letters, peeling off with style.
 - 6b — THE MILITARY JETS (the air show + the F-16 missing man, already planned): they must look BADASS — sharp F-16 silhouettes,
@@ -500,7 +501,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   out of the way, e.g. below the menu); the games keep both on the right for now (Menus 2.0 decides per game).
 - 6b section 0 — THE SIGN UP A LITTLE + SMALLER CORNER BUTTONS (the owner): raise the NEON sign (+ SPEAKEASY + the tagline)
   ~20–30 pt so the city gets more sky (never into the status bar / Dynamic Island; the N may sit level with the corner buttons
-  — it already does). Shrink the MENU + MUSIC corner buttons a little EVERYWHERE (title, lobby, every game, THE BOARD): the
+  — it already does). [MOVED TO 7a SECTION 0 (Oct 23): the sign raise, the smaller buttons, the split corners — 6b keeps
+  only the banner plane's path + the arch re-fit below.] Shrink the MENU + MUSIC corner buttons a little EVERYWHERE (title, lobby, every game, THE BOARD): the
   visible circle ~15–20 % smaller, but the TAP AREA stays ≥ 44 pt (the ground rule — invisible padding). Re-fit everything
   that hangs off them (the games' header padding-right, the +10 / +58 offsets, the chat badge, the full-width games' pinned
   columns); THE BANNER PLANE keeps its full size (plane, banner, lettering — never shrunk): its path moves to just under
@@ -536,7 +538,7 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - THE AURORA must be REAL: today's sky shows it on ~1 night in 5 at random (core/sky.js#auroraNight) — tie it to the real
   space-weather forecast (NOAA's Kp index) or make it very rare (a few nights a year at Grand Rapids' latitude).
 - Cap the planes' contrail cost (Known issues, Part 2).
-- SKYWRITING + SKYTYPING: on clear, low-wind days a plane writes a word or two in huge smoke letters stroke by stroke; for longer
+- SKYTYPING (skywriting CUT, Oct 23 — no doubling up): on clear, low-wind days, for short words AND longer
   messages (HAPPY BIRTHDAY STEVE, HAPPY NEW YEAR, MERRY CHRISTMAS, HAPPY THANKSGIVING) a line of planes SKYTYPES dot-matrix
   letters (~16 a line, up to 2 lines on a phone); the real wind drifts and blurs them until they fade. Flies in the sky-high /
   sky-low lanes, never over the sign or tagline. Selectable from CITY CONTROL; used by holidays and birthdays.
@@ -547,6 +549,16 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
 - SPLIT (Oct 23): 7a = THE LOOK (the building day + night: facade, materials, the barbershop front + pole, windows with glow
   + shades, the awning, the rooftop + string lights, the ghost ad + the corner-turn preview) — before 8a + 6b; 7b = THE LIFE
   (the moments catalogue + starter 10, the hidden mirror door, the TV glow, the raid, taps, rooftop seasons) — with 8b.
+- 7a SECTION 0 — THE LAYOUT, MOVED UP FROM 6b (the owner, Oct 23 — the top's final place matters for judging the whole
+  picture): raise the NEON sign ~20–30 pt; shrink the round corner buttons ~15–20 % EVERYWHERE (title, lobby, every game,
+  THE BOARD) with the tap area ≥ 44 pt and everything hanging off them re-fitted; SPLIT THE CORNERS on the title + lobby
+  (menu top-left, music top-right). The banner plane's path + the sun / moon arch re-fit stay in 6b.
+  + THE MUSIC'S FIRST TAP (the owner, Oct 23 — no "tap for music" hint): when the music starts on a visit's first tap, the
+  NEON sign answers it — BY DAY (tubes unlit) a bright SURGE races through the tubes letter by letter, N → E → O → N, then
+  they fade back to unlit daytime glass; AT NIGHT (already lit) a quick brighter race / pulse through the lit tubes. Once per
+  visit, only when the music actually starts; never fights the evening warm-up / tap-to-light "catch" (if the sign is in its
+  warm-up, the first tap does what the catch does today). + the open FA item: check the beat lights + SFX still work while
+  the music runs on the DIRECT element (the Web Audio context frozen after returning).
 - THE OWNER'S LOOK DECISIONS (Oct 23): FANCIER — a once-grand 1920s Deco corner building (cream terracotta trim, Deco
   ornament at the roofline, a decorative cornice, carved panels between floors, gold-leaf lettering) over warm brick;
   the MOOD cozy and a bit worn (chipped terracotta, faded gilt, weathered brick, some ivy, a patched awning) — "it is a
@@ -564,6 +576,14 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   core shadow → a thin bounce light on the far edge), faint painted-masonry courses, subtle weathering (rust streaks under
   the gallery and the windows, a slightly darker salt-worn base), a rough stone foundation on the breakwater; the red /
   white stripes stay crisp and bold (it's a hero piece); the night look unchanged.
+- 6b section 0 — THE DIRECTOR (can a phone handle the whole plan? — the owner, Oct 23): yes, IF only what's on screen
+  costs. Build ONE scheduler that every event / moment / weather / holiday goes through, with a per-tier SPECTACLE BUDGET:
+  at most N heavy effects at once (fireworks, drones, the raid, storms, the party show…), the rest queued or skipped,
+  priorities (holidays > party > legendary > rare > routine); assets for seasons / holidays / rare events LAZY-loaded and
+  released after; a MEMORY budget per tier (today 35.7 of 64 MB); a PASSIVE LONG-SESSION CHECK — no build time: after the
+  big parts only (6b, 10, the holiday parts), the owner just leaves her iPhone on the city (&debug=1, plugged in or not)
+  while doing something else, then reads the session line (slow % over 30 min, any tier drop) and feels if the phone is
+  hot. The readout can add a "since 10 min" slow % so the creep is visible.
 - 6b section 0 — CIRRUS SOFTER + LONGER (the owner, Oct 23): the high streaks are too sharp — more diffusion (soft,
   blurred, feathered edges, lower contrast) and longer, more stretched strands.
 - 6b section 0 — CLOUDS EVOLVE (pending the owner's OK): clouds slowly swell, change shape and dissipate over minutes,
