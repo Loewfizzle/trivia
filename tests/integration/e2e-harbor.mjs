@@ -89,9 +89,26 @@ async function panelSection() {
   await tap(O.page, '.hr-pill');
   await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);
+  // PART 7a §0 — THE CATEGORIES: collapsed by default; each preview sits in its registry category (no positions hard-coded here)
+  {
+    const { PANEL_EVENTS, CATS } = await import('../../js/core/harbor-remote.js');
+    const c = await ev(O.page, `(() => { const secs = [...document.querySelectorAll('.hr-sheet .hr-sec')]; return { cats: secs.map(s => s.dataset.cat), open: secs.filter(s => s.classList.contains('is-open') || !s.querySelector('.hr-body').hidden).length,
+      heads: secs.map(s => s.querySelector('.hr-cat').getBoundingClientRect().height).filter(h => h > 0), ev: Object.fromEntries([...document.querySelectorAll('.hr-sheet .hr-b[data-ev]')].map(b => [b.dataset.ev, b.closest('.hr-sec').dataset.cat])) }; })()`);
+    const wrong = PANEL_EVENTS.filter(e => c.ev[e.id] !== e.cat).map(e => `${e.id}→${c.ev[e.id]}`);
+    ok(c.open === 0 && !wrong.length && c.cats.join() === CATS.map(x => x.id).filter(id => c.cats.includes(id)).join() && c.heads.every(h => h >= 44),
+      `PANEL: ${c.cats.length} categories (${c.cats.join(' · ')}), all collapsed at first, headers ≥ 44 pt (${Math.min(...c.heads)}), every preview in its registry category${wrong.length ? ` — WRONG: ${wrong.join(', ')}` : ''}`);
+  }
+  // a row's category opens (a real tap on its header) before the row is tapped
+  const reveal = async label => {
+    const hd = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); const s = b && b.closest('.hr-sec'); if (!s || s.classList.contains('is-open')) return null; const hh = s.querySelector('.hr-cat'); hh.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = hh.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2, cat: s.dataset.cat }; }, label);
+    if (!hd) return;
+    await tapAt(O.page, hd.x, hd.y);
+    await waitFor(O.page, `document.querySelector('.hr-sec[data-cat="${hd.cat}"]').classList.contains('is-open')`, `${hd.cat} opens`, 3000);
+  };
   const chip = async label => {
     // (NEON PASS 5: a sky piece switched on makes the sheet PEEK — wait for its height to settle before measuring a button)
     await waitFor(O.page, "!document.querySelector('.hr-sheet') || document.querySelector('.hr-sheet').getAnimations().every(x => x.playState !== 'running')", "the sheet still", 3000).catch(() => {});
+    await reveal(label);
     const r = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }, label);
     if (!r) throw new Error(`no chip ${label}`);
     await tapAt(O.page, r.x, r.y); await sleep(200);
@@ -122,12 +139,26 @@ async function panelSection() {
   ok((await flags(O.page)).q.text === 'HEY YOU', 'JUST ME: a refresh keeps it (this tab)');
   // CLEAR ALL: back to the real city (the page's own flags: the link's &at keeps clear weather)
   await tap(O.page, '.hr-pill'); await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(450);
-  await O.page.evaluate(() => document.querySelector('.hr-clear').scrollIntoView({ block: 'center', behavior: 'instant' })); await sleep(150);
+  // (7a §0: the categories opened before the reload are open again — this device remembers; the pinned top stays in view at the bottom)
+  { const r = await ev(O.page, `(() => { const s = document.querySelector('.hr-sheet'); s.scrollTop = s.scrollHeight; const open = [...document.querySelectorAll('.hr-sec.is-open')].map(x => x.dataset.cat).sort();
+      const sb = s.getBoundingClientRect(), cb = document.querySelector('.hr-clear').getBoundingClientRect(); return { open, pinned: s.scrollTop > 100 && cb.top >= sb.top && cb.bottom <= sb.top + sb.height * 0.6, stored: JSON.parse(localStorage.getItem('nd:hr-open') || '[]').sort() }; })()`);
+    ok(['lights', 'sky', 'time', 'weather'].every(c => r.open.includes(c) && r.stored.includes(c)) && r.pinned, `PANEL: the open categories remembered on this device (${r.open.join(', ')}); CLEAR ALL pinned at the top when scrolled to the bottom (${r.pinned})`); }
   await tap(O.page, '.hr-clear');
   await waitFor(O.page, '!window.__district.harbor().flags.remote', 'cleared', 5000);
   await waitFor(O.page, '!window.__district.harbor().windows.spelling', 'the word gone', 5000);
   f1 = await flags(O.page);
   ok(!f1.force.length && !f1.q.text && f1.speed === 1 && f1.wx === 'clear', `JUST ME: CLEAR ALL — the real city again (force [${f1.force}], wx ${f1.wx} from the link's own &at)`);
+  // 7a §0 — THE WORD TOWERS from the panel: one word per tower, the one too long for its tower scrolls on it; the readout says so
+  await ev(O.page, "window.__district.remote().setMine({ force: ['spell'], text: 'HAPPY BIRTHDAY SAM', tower: 'wordA,wordB,wordV' })");
+  await waitFor(O.page, "(() => { const s = window.__district.harbor().windows.spelling; return !!s && s.towers.length === 3; })()", 'three towers', 8000).catch(() => {});
+  { const s = await ev(O.page, 'window.__district.harbor().windows.spelling');
+    await ev(O.page, "window.__district.remote().open(), window.__district.remote().openCats(['lights'])");
+    await waitFor(O.page, "!!document.querySelector('.hr-fit')", 'the readout', 4000).catch(() => {});
+    const fit = await ev(O.page, "(() => { const f = document.querySelector('.hr-fit'); return f ? [...f.querySelectorAll('.hr-fit-row')].map(r => r.textContent).join(' | ') + ' || ' + [...f.querySelectorAll('.hr-fit-n')].map(r => r.textContent).join(' | ') : ''; })()");
+    if (SHOTS) await O.page.screenshot({ path: `${OUT}panel-towers-390x844.png` });
+    ok(s && ['wordA', 'wordB', 'wordV'].every(t => s.towers.includes(t)) && s.scrolls.join() === 'wordB' && /BIRTHDAY.*SCROLLS/.test(fit) && /ROOM/.test(fit),
+      `THE WORD TOWERS (JUST ME): "${s && s.text}" on ${s && s.towers} — ${s && s.scrolls} scrolls; the readout: "${fit}"`);
+    await ev(O.page, 'window.__district.remote().close(), window.__district.remote().setMine({})'); }
   await O.ctx.close();
 
   // ---- EVERYONE ON CITY 2: the server's node (written here with the emulator's owner rights; the /api path: server.test) —
@@ -160,6 +191,11 @@ async function panelSection() {
   ok(true, 'EVERYONE: when `until` passes, the phone goes back to the real city on its own');
   await dbPut('city2/live', { v: 1, kind: 'preview', state: { force: ['searchlights'] }, params: {}, label: 'test', startAt: Date.now(), until: Date.now() + 120_000, by: 'ptest00000000' });
   await waitFor(C.page, "window.__district.harbor().flags.force.includes('searchlights')", 'searchlights', 6000);
+  // (7a §0: THE WORD TOWERS from EVERYONE — one word per tower through city2/live; NIGHT too wide for B: it scrolls there)
+  await dbPut('city2/live', { v: 1, kind: 'preview', state: { force: ['spell'], text: 'JAZZ NIGHT', tower: 'wordA,wordB', when: '2026-10-24T23:00' }, params: {}, label: 'test', startAt: Date.now(), until: Date.now() + 120_000, by: 'ptest00000000' });
+  { const okk = await waitFor(C.page, "(() => { const s = window.__district.harbor().windows.spelling; return !!s && s.text === 'JAZZ NIGHT'; })()", 'the towers for everyone', 8000).then(() => true).catch(() => false);
+    const s = await ev(C.page, 'window.__district.harbor().windows.spelling');
+    ok(okk && s.towers.join() === 'wordA,wordB' && s.scrolls.join() === 'wordB', `THE WORD TOWERS (EVERYONE): "${s && s.text}" — JAZZ still on A, NIGHT scrolling on B (${s && s.scrolls})`); }
   await dbPut('city2/live', null);
   await waitFor(C.page, '!window.__district.harbor().flags.remote', 'cleared for everyone', 6000);
   ok(true, 'EVERYONE: CLEAR — the node removed, every phone back to the real city');
@@ -261,7 +297,11 @@ async function neonPass5Panel() {
   await waitFor(D.page, '!!document.querySelector(".hr-pill")', 'the TEST pill', 10000);
   await tap(D.page, '.hr-pill');
   await waitFor(D.page, "!!document.querySelector('.hr-sheet') && document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 6000);
-  const on = await ev(D.page, `(() => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].filter(x => x.textContent.trim() === 'ON')[0]; if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; })()`);
+  // (7a §0: PARTY ON sits in the PARTY SHOW category — collapsed at first: a tap on its header opens it)
+  const ph = await ev(D.page, `(() => { const h = document.querySelector('.hr-sec[data-cat="party"] .hr-cat'); h.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = h.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; })()`);
+  await tapAt(D.page, ph.x, ph.y);
+  await waitFor(D.page, `document.querySelector('.hr-sec[data-cat="party"]').classList.contains('is-open')`, 'PARTY SHOW opens', 3000);
+  const on = await ev(D.page, `(() => { const b = [...document.querySelectorAll('.hr-sec[data-cat="party"] .hr-b')].filter(x => x.textContent.trim() === 'ON')[0]; if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; })()`);
   await tapAt(D.page, on.x, on.y);
   await waitFor(D.page, "(() => { const p = window.__district.party(), n = window.__district.harbor().neon; return p.on > 0.5 && n.pal && n.pal.on && window.__district.harbor().skyBeams.beams.length > 0 && window.__district.scene().w.night > 0.6; })()", 'PARTY ON at night', 20000).catch(() => {});
   const fd = await flags(D.page), pd = await ev(D.page, '({ on: window.__district.party().on, name: window.__district.party().name, night: window.__district.scene().w.night, beams: window.__district.harbor().skyBeams.beams.length, pal: window.__district.harbor().neon.pal.on })');
@@ -642,10 +682,19 @@ G('neon', async () => {
     const bands = h.neon.outlines.filter(o => o.id.startsWith('threads-near') || o.id.startsWith('threads-mid'));
     ok(bands.length >= 5 && bands.reduce((a, o) => a + o.runs, 0) >= 20 && h.neon.outlines.some(o => o.id === 'lighthouse' && o.runs >= 6), `THE NIGHT CITY LIT: ${bands.length} neon clusters on the near + mid buildings (${bands.reduce((a, o) => a + o.runs, 0)} runs), the lighthouse in neon (${(h.neon.outlines.find(o => o.id === 'lighthouse') || {}).runs} runs)`);
     // (NEON PASS 6: no icon signs any more — nothing cycles its colour)
-    ok(h.daily && h.daily.spell.length === 1 && h.daily.blink.length >= 1 && h.daily.chase.length >= 3, `THE EVERYDAY MOTION (NEON PASS 4: alive): ${h.daily.spell} spells on, ${h.daily.blink} blink, ${h.daily.chase.join(' + ')} chase slowly`);
+    ok(h.daily && h.daily.spell.length >= 2 && h.daily.blink.length >= 1 && h.daily.chase.length >= 3, `THE EVERYDAY MOTION (NEON PASS 4: alive): ${h.daily.spell} spells on, ${h.daily.blink} blink, ${h.daily.chase.join(' + ')} chase slowly`);
     ok(h.neon.scheme === 'city' && !h.neon.partyLook, 'A NORMAL NIGHT: the city\'s own colours');
     ok(!h.show.scene && h.beams === 0, 'A NORMAL NIGHT: no party show, no searchlights');
     ok(h.daily.rotate.length >= 1 && h.daily.stages.length >= 1, `COLOURS THROUGH THE NIGHT: ${h.daily.rotate.join(' + ')} rotate slowly, ${h.daily.stages.join(' + ')} change scheme by the hour`);
+    await N.ctx.close(); }
+  // 7a — THE SPELL-ON ROUND's preview (&force=spell-on): the next sign every 6 s, every named sign in turn, never two at once
+  { const N = await open({ slot: 'h9', qs: `${NIGHT}&force=spell-on`, view: [402, 874] });
+    await harborUp(N.page);
+    await waitFor(N.page, 'window.__district.harbor().neon.signs.every(s => s.on) && !!window.__district.harbor().daily', 'the neon on', 15000);
+    const r = await ev(N.page, `new Promise(res => { const seen = [], t0 = performance.now(); let shot = null; const tick = () => { const d = window.__district.harbor().daily; const s = d && d.spellOn; if (s && (!seen.length || seen[seen.length - 1].k !== s.k)) seen.push({ id: s.id, k: s.k }); if (performance.now() - t0 < 19500) requestAnimationFrame(tick); else res({ seen, all: d.spell }); }; requestAnimationFrame(tick); })`);
+    const ids = new Set(r.seen.map(s => s.id));
+    ok(r.seen.length >= 3 && ids.size >= Math.min(3, r.all.length) && r.seen.every((s, i) => !i || s.id !== r.seen[i - 1].id), `SPELL-ON ROUND (&force=spell-on): ${r.seen.map(s => s.id).join(' → ')} — every sign in turn (${r.all.join(', ')})`);
+    if (SHOTS) { await waitFor(N.page, '(() => { const s = window.__district.harbor().daily.spellOn; return s && s.u > 1.4 && s.u < 1.9; })()', 'mid-spell', 8000).catch(() => {}); await N.page.screenshot({ path: `${OUT}neon-spell-on-402x874.png` }); }
     await N.ctx.close(); }
   { const N = await open({ slot: 'h12', qs: `${NIGHT}&force=burnout`, view: [402, 874] });
     await harborUp(N.page);
@@ -701,8 +750,8 @@ G('party', async () => {
     const pk = await ev(Q.page, `new Promise(res => { let lo = 9, hi = 0, n = 0; const tick = () => { const v = window.__district.party().punch; lo = Math.min(lo, v); hi = Math.max(hi, v); if (++n < 150) requestAnimationFrame(tick); else res({ lo, hi }); }; requestAnimationFrame(tick); })`);
     ok(hq.skyBeams.beams.length >= 2 && p.show.beams > 0.5, `THE SKY BEAMS: ${hq.skyBeams.beams.map(b => b.id + (b.under ? '' : ' (to the top)')).join(', ')}`);
     ok(pk.hi - pk.lo > 0.5, `THE HARD BEAT: the punch swings ${pk.lo.toFixed(2)} → ${pk.hi.toFixed(2)} over ~2.5 s`);
-    // NEON PASS 5: the roof string lights are off until Parts 7–8 (the code a hook: &force=strings-party)
-    ok(hq.strings.on === false, 'STRING LIGHTS: switched off (a hook for Parts 7–8)');
+    // PART 7a: the roof string lights are ON, mounted on the parapet's posts (NEON PASS 5 had them off until the speakeasy was built)
+    ok(hq.strings.on === true && hq.strings.bulbs >= 20 && hq.strings.runs >= 5, `STRING LIGHTS: on, mounted on the parapet (${hq.strings.runs} swags, ${hq.strings.bulbs} bulbs)`);
     await Q.ctx.close(); }
   await neonPass5Party();
   { const Q = await open({ slot: 'h11', qs: `when=2026-10-24T21:00${GR}`, view: [402, 874] });
@@ -845,6 +894,11 @@ G('music', async () => {
     const id = await start(P.page);
     ok(m === mood && deck(mood).includes(id), `MUSIC ${when} → ${mood}: plays ${id} from City 2.0's ${mood} deck (${deck(mood).length} songs)`);
     ok(!songs.moods[mood].includes(id) && songs.songs[id].c2,`MUSIC ${mood}: not one of City 1.0's songs (${id})`);
+    // (7a §0 — THE MUSIC'S FIRST TAP: the sign answered the music's start — a surge through the daytime glass, a race through the lit tubes)
+    { await waitFor(P.page, '!!window.__district.surge().last', 'the sign answers the music', 4000).catch(() => {});
+      const sg = await ev(P.page, 'window.__district.surge()');
+      const want = mood === 'day' ? ['day'] : mood === 'late' || mood === 'party' ? ['night'] : ['day', 'night', 'skip:warm-up'];
+      ok(sg && sg.spent && sg.last && sg.last.why === 'music' && want.includes(sg.last.did), `FIRST TAP ${mood}: the music started → the NEON sign answered (${sg && sg.last ? sg.last.did : 'nothing'})`); }
     await sleep(1500);
     const b = await ev(P.page, 'window.__arcade.beat()'), line = await ev(P.page, 'window.__district.harbor().music');
     const s = songs.songs[id];
@@ -916,7 +970,7 @@ G('music', async () => {
     await waitFor(P.page, `document.querySelector('.hr-music') && /GRID/.test(document.querySelector('.hr-music').textContent)`, 'the song line', 5000);
     const txt = await ev(P.page, "document.querySelector('.hr-music').textContent");
     ok(txt.includes(now) && /PLAYING PARTY/.test(txt) && /GRID (TRUSTED|NOT TRUSTED|NONE)/.test(txt), `PANEL: shows the song + its grid status ("${txt}")`);
-    if (SHOTS) { await ev(P.page, `[...document.querySelectorAll('.hr-sec')].find(s => s.querySelector('.hr-h').textContent === 'MUSIC').scrollIntoView({ block: 'start' })`); await sleep(400); await P.page.screenshot({ path: `${OUT}music-panel-402x874.png` }); }
+    if (SHOTS) { await ev(P.page, `window.__district.remote().openCats(['music'])`); await ev(P.page, `[...document.querySelectorAll('.hr-sec')].find(s => s.querySelector('.hr-h').textContent === 'MUSIC').scrollIntoView({ block: 'start' })`); await sleep(400); await P.page.screenshot({ path: `${OUT}music-panel-402x874.png` }); }
     await ev(P.page, `[...document.querySelectorAll('.hr-b')].find(b => b.textContent === 'SKIP TO THE NEXT SONG').click()`);
     await changed(P.page, now, 'SKIP');
     const after = await ev(P.page, NOW);
@@ -1146,7 +1200,70 @@ G('music', async () => {
     const b1 = await D();
     ok(b1.id === b0.id && Math.abs(b1.at - b0.at) < 4 && b1.rebuilds === 1, `RECOVERY: the same song from its place (${b0.at} → ${b1.at} s), no extra context`);
     if (SHOTS) await p.screenshot({ path: `${OUT}music-evidence-402x874.png` });
-    await P.ctx.close(); }
+    await P.ctx.close();
+
+  // ---- 9. 7a — THE BEAT IN DIRECT MODE (the owner, iPhone: back from the home screen the music plays on the direct element, but the
+  // city's lights no longer pulse). §8's dead graph on a PARTY NIGHT, plus what a frozen graph's analyser really does: it keeps its LAST
+  // window (the music that was playing when it froze) — a steady RMS the kick listener read as "live, no kicks" = a breakdown, calm.
+  // Expected: with no tap (the direct element takes over by itself) and after a tap (the rebuilt context, dead too) the beat follows the
+  // song's GRID on the direct element's clock ('direct-grid'), punching as hard as before; an untrusted song a gentle pulse ('tempo').
+    const stale = { fn: () => {
+      const AN = AnalyserNode.prototype, gf = AN.getFloatTimeDomainData, last = new WeakMap();
+      AN.getFloatTimeDomainData = function (a) { const s = last.get(this); if (window.__deadGraph && s) { a.set(s); return; } gf.call(this, a); if (!window.__deadGraph) last.set(this, Float32Array.from(a)); };
+    } };
+    const Q = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1`, view: [402, 874], init: { fn: new Function(`(${evidence.fn})(); (${stale.fn})();`) } });
+    const q = Q.page;
+    const PUNCH = ms => ev(q, `new Promise(res => { let lo = 9, hi = 0; const t0 = performance.now(); const tick = () => { const v = window.__district.party().punch; lo = Math.min(lo, v); hi = Math.max(hi, v); if (performance.now() - t0 < ${ms}) requestAnimationFrame(tick); else res({ lo: +lo.toFixed(3), hi: +hi.toFixed(3), src: window.__district.party().src, level: window.__district.party().level, live: window.__district.party().live, line: window.__district.harbor().beatLine, out: window.__arcade.musicDebug().out }); }; requestAnimationFrame(tick); })`);
+    const qvis = v => ev(q, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
+    // THE PANEL'S ONE STATUS (the owner: its header said "sounding" over a row saying "sounding NO · locked (no tap yet)"): the header
+    // and the want row print the same verdict — before the first tap LOCKED, after it sounding
+    const PANEL = () => ev(q, `(() => { const h = document.querySelector('.ad-diag .ad-h'), w = [...document.querySelectorAll('.ad-diag .ad-body div')].find(d => d.textContent.startsWith('want ')); return { h: h ? h.textContent : '', w: w ? w.textContent : '' }; })()`);
+    await waitFor(q, `!!document.querySelector('.ad-diag .ad-h')`, 'the AUDIO panel', 8000).catch(() => {});
+    await sleep(600);
+    const pn0 = await PANEL();
+    ok(/LOCKED \(no tap yet\)/.test(pn0.h) && /LOCKED \(no tap yet\)/.test(pn0.w) && !/sounding/.test(pn0.h + pn0.w), `PANEL before a tap: the header + the want row agree — LOCKED ("${pn0.h.replace(/ · \d\d:\d\d:\d\d$/, '')}" / "${pn0.w}")`);
+    await tapAt(q, 30, 300);
+    await waitFor(q, `(() => { const d = window.__arcade.musicDebug(); return !!d.playing && d.health.sounding; })()`, 'the party song', 25000);
+    await waitFor(q, 'window.__district.party().on > 0.5', 'the party on', 25000);
+    // whichever song the deck dealt: trusted for this part (the grid), untrusted below (the tempo)
+    const sid = await ev(q, NOW);
+    const sg = songs.songs[sid].grid;
+    await ev(q, `import('/js/audio/mood.js').then(m => { const g = m.moodData().songs['${sid}'].grid; delete g.trusted; g.agree = 0.9; })`);
+    await sleep(600);
+    const pn1 = await PANEL();
+    ok(/ sounding · ctx/.test(pn1.h) && / · sounding · heals/.test(pn1.w), `PANEL playing: the header + the want row both say sounding ("${pn1.h.replace(/ · \d\d:\d\d:\d\d$/, '')}" / "${pn1.w}")`);
+    const before = await PUNCH(2600);
+    ok(before.out === 'web' && before.src === 'grid' && before.hi - before.lo > 0.5, `DIRECT BEAT: before leaving, through the graph — '${before.src}', the punch ${before.lo} → ${before.hi} (${sid}, "${before.line}")`);
+    await qvis('hidden'); await sleep(400);
+    await ev(q, `import('/js/audio/engine.js').then(e => e.simulateFrozen())`);
+    await ev(q, 'window.__deadGraph = true');
+    await qvis('visible');
+    // no tap: the direct element takes the song by itself (armed in the first tap); the old context's analyser repeats its last window
+    ok(await waitFor(q, `window.__arcade.musicDebug().out === 'direct' && window.__arcade.musicDebug().health.sounding`, 'the direct element (no tap)', 6000).catch(() => false), 'DIRECT BEAT: back, no tap — the song on the direct element');
+    await sleep(2500);    // (past the listener's 2 s "live" window: the stale analyser would have calmed it by now)
+    const d1 = await PUNCH(2600);
+    ok(d1.src === 'direct-grid' && d1.hi - d1.lo > 0.5 && d1.hi > before.hi * 0.8 && !d1.live, `DIRECT BEAT (no tap): '${d1.src}', the punch still swings ${d1.lo} → ${d1.hi} (before ${before.hi}), level ${d1.level}, the dead listener ignored (live ${d1.live})`);
+    ok(/^beat direct-grid \d+\.\d · bar \d+ · [1-4]\/4$/.test(d1.line || ''), `READOUT: the beat line says direct-grid ("${d1.line}")`);
+    const pn2 = await PANEL();
+    ok(/ sounding DIRECT · ctx/.test(pn2.h) && / · sounding DIRECT · heals/.test(pn2.w), `PANEL on the direct element: the header + the want row both say sounding DIRECT ("${pn2.h.replace(/ · \d\d:\d\d:\d\d$/, '')}" / "${pn2.w}")`);
+    // a tap: the context rebuilt (dead too — its clock 0.00); still the grid on the direct element
+    await tapAt(q, 30, 300);
+    await waitFor(q, 'window.__arcade.musicDebug().health.rebuilds >= 1 && window.__arcade.musicDebug().health.frozen', 'the rebuilt context seen frozen', 4000).catch(() => {});
+    await sleep(2500);
+    const d2 = await PUNCH(2600);
+    ok(d2.out === 'direct' && d2.src === 'direct-grid' && d2.hi - d2.lo > 0.5, `DIRECT BEAT (after a tap, the rebuilt context dead too): '${d2.src}', the punch ${d2.lo} → ${d2.hi}`);
+    // the bars land where the grid says on the direct element's clock (beat 0 mod 4 = a downbeat)
+    const ph = await ev(q, `(() => { const b = window.__arcade.beat(), p = window.__district.party(); const g = b.grid; const k = (b.pos - (g.t0 || 0)) * g.bpm / 60 - (g.down || 0); let d = ((k - p.beatsF) % 4 + 4) % 4; return { d: Math.min(d, 4 - d), direct: b.direct }; })()`);
+    ok(ph.direct && ph.d < 0.15, `DIRECT BEAT: on the grid's bars on the direct element's clock (${ph.d.toFixed(3)} beats off)`);
+    // an untrusted song (party3's kind) on the direct element: a gentle steady pulse at its tempo
+    await ev(q, `import('/js/audio/mood.js').then(m => { m.moodData().songs['${sid}'].grid.trusted = false; })`);
+    await sleep(1500);
+    const d3 = await PUNCH(3000);
+    const bpmNow = await ev(q, 'window.__district.party().bpm');
+    ok(d3.src === 'tempo' && Math.abs(bpmNow - songs.songs[sid].bpm) < 0.5 && d3.hi - d3.lo > 0.3 && d3.hi < d2.hi, `DIRECT BEAT (untrusted grid): '${d3.src}' at ${bpmNow} bpm (the song's ${songs.songs[sid].bpm}), a gentler pulse ${d3.lo} → ${d3.hi} ("${d3.line}")`);
+    void sg;
+    if (SHOTS) await q.screenshot({ path: `${OUT}music-direct-beat-402x874.png` });
+    await Q.ctx.close(); }
 
   // ---- 5. City 1.0 (no flag) is untouched: its own decks, and the same setting
   { const P = await open({ slot: 'mu', qs: 'when=2026-10-22T13:00&tz=America/Detroit', view: [402, 874], city: false });
@@ -1157,6 +1274,46 @@ G('music', async () => {
     const p2 = await ev(P.page, NOW);
     ok(songs.moods.party.includes(p2) && !songs.songs[p2].c2, `CITY 1.0: the setting PARTY plays City 1.0's party deck (${p2})`);
     await P.ctx.close(); }
+});
+
+// ================================================================ PART 7a — THE SPEAKEASY (ONLY=speakeasy)
+G('speakeasy', async () => {
+  // a pixel of the main canvas (pt), after the scene drew; a window's centre
+  const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
+  const settle = p => waitFor(p, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 20000);
+  // ---- the night: the rooms lit, the edge windows half cut, the blade sign (the corner as it is), the knock's door unchanged
+  { const Q = await open({ slot: 'sp1', qs: NIGHT, view: [402, 874] });
+    await harborUp(Q.page); await settle(Q.page);
+    await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.9', 'the city powered on (the rooms lit)', 20000);
+    const sp = await ev(Q.page, '(() => { const s = window.__district.harbor().speakeasy; return { ...s, wins: s.windows() }; })()');
+    ok(sp.wins.length === 6 && ['edge2', 'bar', 'jazz', 'edge3', 'apartment', 'back'].every(id => sp.wins.some(w => w.id === id)), `THE SPEAKEASY: six windows with their rooms (${sp.wins.map(w => w.id).join(', ')})`);
+    const edge = sp.wins.filter(w => w.edge), seen = edge.map(w => (w.rect.x + w.rect.w) / w.rect.w);
+    ok(edge.length === 2 && seen.every(v => v > 0.35 && v < 0.65), `THE EDGE WINDOWS: the screen's left edge cuts each at about half (${seen.map(v => Math.round(v * 100) + ' %').join(', ')} showing)`);
+    ok(sp.k > 0.9 && sp.lit && !sp.turned && sp.ad, `THE ROOMS LIT AT NIGHT (k ${sp.k}); the corner as it is; this week's ad: ${sp.ad} (on the blade sign)`);
+    const bar = sp.wins.find(w => w.id === 'bar').rect, c = await px(Q.page, bar.x + bar.w * 0.5, bar.y + bar.h * 0.28);
+    ok(c[0] > 150 && c[0] > c[2] + 60, `THE BAR at night: warm light in its window (rgb ${c.join(',')})`);
+    const board = (await ev(Q.page, 'window.__district.harbor().neon')).boards[0];
+    ok(!board || board.game !== sp.ad, `THE AD never doubles tonight's billboard (board ${board && board.game}, ad ${sp.ad})`);
+    ok(sp.mb < 4, `THE SPEAKEASY's live layer: ${sp.mb} MB`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}speakeasy-night-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- by day: the windows not lit, the basement's amber still glowing (the one hint), the pole turning
+  { const Q = await open({ slot: 'sp2', qs: `when=2026-10-22T12:30${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await settle(Q.page);
+    const sp = await ev(Q.page, '(() => { const s = window.__district.harbor().speakeasy; return { ...s, wins: s.windows() }; })()');
+    const bar = sp.wins.find(w => w.id === 'bar').rect, c = await px(Q.page, bar.x + bar.w * 0.5, bar.y + bar.h * 0.28);
+    ok(sp.k < 0.05 && !(c[0] > 150 && c[0] > c[2] + 60), `BY DAY: the rooms unlit (k ${sp.k}), the bar's glass not glowing (rgb ${c.join(',')})`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}speakeasy-day-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- THE CORNER TURNED (&force=corner-turn): the side wall wide enough for the ghost ad; the west signal outside the building
+  for (const [w, h] of [[390, 844], [430, 932]]) {
+    const Q = await open({ slot: 'sp3', qs: `${NIGHT}&force=corner-turn`, view: [w, h] });
+    await harborUp(Q.page);
+    const sp = await ev(Q.page, 'window.__district.harbor().speakeasy');
+    ok(sp.turned && sp.sidePt >= 70, `THE CORNER TURNED (${w}×${h}): the side wall ${sp.sidePt} pt across (the ad needs ≥ 70)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}speakeasy-turned-${w}x${h}.png` });
+    await Q.ctx.close();
+  }
 });
 
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
@@ -1170,7 +1327,7 @@ async function runGroup(name) {
 const ONLY = (process.env.ONLY || '').split(',').map(x => x.trim()).filter(Boolean), TAG = process.env.SHARD_TAG || '';
 const SERIAL = ['panel', 'perf'];
 // (the shards, balanced on the measured times: ~35 s each)
-const SHARD_PLAN = { 1: [], 2: [['core', 'flags', 'skyline', 'water', 'harbor'], ['neon', 'dock', 'sky', 'party']], 3: [['core', 'flags', 'skyline', 'water'], ['neon', 'harbor', 'dock'], ['sky', 'party', 'music']] };
+const SHARD_PLAN = { 1: [], 2: [['core', 'flags', 'skyline', 'water', 'harbor', 'speakeasy'], ['neon', 'dock', 'sky', 'party']], 3: [['core', 'flags', 'skyline', 'water'], ['neon', 'harbor', 'dock', 'speakeasy'], ['sky', 'party', 'music']] };
 const SHARDS = Number(process.env.SHARDS || 3);
 if (ONLY.length) { for (const g of ONLY) await runGroup(g); }
 else if (SHARDS > 1) {

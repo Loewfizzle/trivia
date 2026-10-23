@@ -786,6 +786,21 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — PART 7a: THE SPEAKEASY'S LOOK (Oct 23, 2026) — `docs/harbor.md#part-7a`, `docs/audio.md#7a`, `docs/title.md`
+- [x] §0 the layout: corner buttons 36 pt (44 pt tap areas) everywhere, the corners split on the title + the lobby (☰ left, ♪ right), the
+      NEON sign ~24 pt higher (both cities), the lanes clear of the ☰
+- [x] §0 the music's first tap: the NEON sign's surge by day / a brighter race at night, once a visit, only when the music really starts
+- [x] §0 the beat after returning: the frozen analyser ignored, the direct element's grid drives the lights (`direct-grid` / `tempo`); the
+      pulse a step stronger; every sign's spell-on in turn (+ `&force=spell-on`); the AUDIO panel's header = its detail
+- [x] §0 the preview panel in collapsible categories (+ the corner turn, the first tap, the spell-on, SUNRISE / SUNSET, the word towers' text box)
+- [x] §1 the speakeasy (core/harbor-speakeasy.js + speakeasy.js): walls painted flat + projected, the Deco facade, the barbershop, the rooms
+      by the hour, the barber pole (lit + slow at night; a raid hook), the rooftop + mounted string lights, a 'front' bake for the front row
+- [x] §1 the ghost ad: weekly (never doubling tonight's billboard); the turned corner (≥ 70 pt) as a preview — it hides the wheel's leg + pier,
+      so the default is the plan's fallback (3): a painted blade sign with two lamps; the owner decides
+- [x] §2 the near brick snapped to device pixels (the bake was already at DPR 2), quoins, soldier courses, cornices, returns in shade; the
+      lighthouse by day as a lit cylinder (masonry, rust, a stone plinth); the sun's colour by altitude (+ the morning city warmer)
+- [x] three refine passes (day + night at 402, 390 / 430 / 1440), harbor.test + e2e-harbor (+ the speakeasy group), the A/B, docs
+
 ### ✅ THE iPHONE MUSIC BUG, M4 (Oct 23, 2026) — `docs/audio.md#m4` (the owner's iPhone after M3, with the AUDIO panel's evidence)
 - [x] The evidence read: every NEW context made inside a real tap says `running` (resume ok) and its clock never leaves 0.00 while the song
       element plays on and the probe hears nothing (six rebuilds, none started) = a started output unit never called: the AVAudioSession

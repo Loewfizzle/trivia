@@ -41,25 +41,27 @@ export function createStrings() {
       const u = i / n, x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u - sag * 4 * u * (1 - u), z = a[2] + (b[2] - a[2]) * u;
       pts.push(project(cam, x, y, z));
     }
-    const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), nb = Math.max(2, Math.round(len / gap));
+    // (7a: never closer than ~5.5 pt on screen — a run foreshortened down a side wall would crowd its bulbs into one glare)
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), sl = Math.hypot(pts[n][0] - pts[0][0], pts[n][1] - pts[0][1]), nb = Math.max(1, Math.min(Math.round(len / gap), Math.round(sl / (5.5 * cam.F / 600))));
     const bs = [];
     for (let i = 0; i <= nb; i++) { const u = (i + 0.5) / (nb + 1), x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u - sag * 4 * u * (1 - u) - 0.12, z = a[2] + (b[2] - a[2]) * u; bs.push(project(cam, x, y, z)); }
     return { pts, bs };
   }
   function layout(L) {
-    const cam = L.cam, s = L.speakeasy, pl = L.roof.pole, z = s.z0 - 0.05, top = s.h + 0.55;
+    // PART 7a — MOUNTED: swags between the iron POSTS on the speakeasy's parapet (one per pier: L.roof.posts, 1.15 units over the
+    // coping), round the corner and along the side wall's parapet to its far end — every end on a post, nothing floating (the
+    // owner's look review: a run up to a roof pole drew a loop over the wheel — dropped)
+    const cam = L.cam, s = L.speakeasy, pl = L.roof.pole, z = s.z0 - 0.05, top = 11.25 + 1.12;
     K = cam.F / 600;
     runs = []; bulbs = [];
     const add = r => { runs.push(r.pts); for (const p of r.bs) if (p[0] > -6 && p[0] < cam.W + 6) bulbs.push({ x: p[0], y: p[1], i: bulbs.length }); };
-    // the parapet run: swags between the parapet's posts every ~2.4 units, left (off the screen) → the corner
-    const post = []; for (let u = 0; u <= 11.2 + 1e-6; u += 2.24) post.push(s.x0 + u);
-    for (let i = 0; i + 1 < post.length; i++) add(catenary(cam, [post[i], top, z], [post[i + 1], top, z], 0.32, 0.42));
-    // up to the rooftop pole (a long swag), and back down to the parapet's middle (a second, deeper swag)
-    add(catenary(cam, [s.x1 - 0.1, top, z], [pl.x, s.h + pl.h, pl.z], 0.55, 0.42));
-    add(catenary(cam, [pl.x, s.h + pl.h, pl.z], [s.x0 + 6.7, top + 0.1, z + 0.2], 0.9, 0.42));
-    // the loops draped down at the corner (two short hanging loops on the face)
-    add(catenary(cam, [s.x1 - 0.12, top - 0.05, z], [s.x1 - 1.3, top - 0.1, z], 0.55, 0.38));
-    add(catenary(cam, [s.x1 - 1.3, top - 0.1, z], [s.x1 - 2.6, top - 0.05, z], 0.45, 0.38));
+    const len = Math.hypot(s.side.x - s.x1, s.side.z - s.z0), dx = (s.side.x - s.x1) / len, dz = (s.side.z - s.z0) / len;
+    const sideP = w => [s.x1 + w * dx, top, s.z0 + w * dz];
+    const posts = (L.roof.posts || [s.x0 + 3.55, s.x0 + 6.75, s.x0 + 9.95, s.x1]).map(x => [x, top, z]);
+    const left = [s.x0 + 0.35, top, z];
+    const chain = [left, ...posts, ...[0.4, 0.75, 1].map(f => sideP(len * f - 0.1))];
+    for (let i = 0; i + 1 < chain.length; i++) add(catenary(cam, chain[i], chain[i + 1], 0.3, 0.42));
+    void pl;
   }
   function colours() { return cfg.colours || SCHEMES[cfg.scheme] || null; }
 

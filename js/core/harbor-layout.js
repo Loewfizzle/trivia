@@ -9,6 +9,7 @@
 // topped, the landmarks stay the tallest), which frees the sky for the sun's arch (the owner's call, Oct 20 2026).
 // A wide screen (desktop, a phone sideways) gets its own camera: a panorama, never a stretched phone.
 import { rngFrom, hashString } from './rng.js';
+import { CORNER_TURN, SPEAK_V } from './harbor-speakeasy.js';
 
 /** the mockup's reference phone and camera */
 export const REF = { W: 402, H: 874, VPY: 540, CAMH: 13.5, F: 600 };
@@ -60,7 +61,7 @@ export function cameraFor(W, H, rects = {}, safe = {}) {
   const neon = rects.neon || { x: W / 2 - 140, y: tag.y - (wide ? (W >= 1000 ? 205 : 121) : 141), w: 280, h: 85 };
   const word = rects.word || { x: W / 2 - 150, y: tag.y - 34, w: 300, h: 21 };
   const corner = rects.corner || { x: W - 56, y: (safe.top || 0) + 10, w: 44, h: 90 };
-  const cam = { W, H, wide, F, CAMH, VPX: W / 2, VPY, dock, tag, neon, word, corner, limitY: tagB + UNDER_TAG, front, safeTop: safe.top || 0, safeBottom: sb };
+  const cam = { W, H, wide, F, CAMH, VPX: W / 2, VPY, dock, tag, neon, word, corner, cornerL: rects.cornerL || null, limitY: tagB + UNDER_TAG, front, safeTop: safe.top || 0, safeBottom: sb };
   // the visible half-width at a depth, in world units, and the panorama factor (1 on a phone)
   cam.hw = z => (W / 2) * z / F;
   cam.spread = cam.hw(100) / (0.335 * 100);
@@ -327,7 +328,7 @@ export function lighthouseBoxes(l) {
 }
 
 /** The whole layout for a camera: every piece at its final position and size (world units), plus screen-space checks. */
-export function harborLayout(cam, seed = 1924) {
+export function harborLayout(cam, seed = 1924, opts = {}) {
   const sky = skylineOf(cam, seed);
   // the squeeze: on an upright phone the reference phone's (so every phone shows the same skyline — a roomier one keeps more
   // sky above it), never past this screen's own limit; a wide screen fits its own
@@ -400,10 +401,18 @@ export function harborLayout(cam, seed = 1924) {
   const water = { z0: Z.rail, z1: Z.quay };
   // ---- the near STAGE. The speakeasy bleeds off the left edge (28 pt past it at the reference scale); everything on the
   // phone's stage keeps its place relative to the speakeasy's right face; a panorama repeats the promenade to the right edge.
-  const sz0 = 44, sx0 = xAt(cam, -28 * cam.F / REF.F, sz0);
-  const speakeasy = { x0: sx0, x1: sx0 + 11.2, z0: sz0, z1: 60, h: 10.5,
-    door: { u0: 9.05, u1: 10.55, h: 2.6 }, awning: { u0: 5.9, u1: 8.8, y0: 3.75, y1: 2.95, z: 42.7 },
-    windows: [[1.0, 2.9], [4.2, 6.1], [7.4, 9.3]], rows: [[4.5, 6.9], [7.5, 9.9]], tower: { x: sx0 + 1.6, z: 46 } };
+  // PART 7a — THE SPEAKEASY (core/harbor-speakeasy.js: the facade's heights, the rooms, the weekly ghost ad): the same box on screen
+  // as Part 1's; its SIDE WALL runs straight back to z 60 — or, with the CORNER TURNED (opts.corner: the owner's comparison,
+  // &force=corner-turn), swung out toward us so the ghost ad reads (~80 pt across), its far end in front of the road's kerb.
+  // The ground floor: the barbershop's window (shop.win) + its door + the pole, the unmarked side door (door: the knock's target),
+  // the basement window in the plinth; the awning over the shop; the upper windows (windows × rows) are the rooms' (ROOMS).
+  const sz0 = 44, sx0 = xAt(cam, -28 * cam.F / REF.F, sz0), sx1 = sx0 + 11.2, turned = !!opts.corner;
+  const ta = CORNER_TURN.deg * Math.PI / 180;
+  const side = turned ? { x: sx1 + CORNER_TURN.len * Math.sin(ta), z: sz0 + CORNER_TURN.len * Math.cos(ta) } : { x: sx1, z: 60 };
+  const speakeasy = { x0: sx0, x1: sx1, z0: sz0, z1: 60, h: 10.5, turned, side,
+    door: { u0: 9.05, u1: 10.55, h: 2.6 }, awning: { u0: 2.15, u1: 7.95, y0: 3.8, y1: 3.36, z: 43.15 },
+    shop: { win: [3.5, 7.72, 0.78, 3.12], door: [2.3, 3.24, 3.12], pole: { u: 8.27, v0: 1.15, v1: 3.2 }, basement: [4.3, 7.1, 0.1, 0.47], sconce: { u: 9.8, v: 3.05 } },
+    windows: [[1.0, 2.9], [4.2, 6.1], [7.4, 9.3]], rows: SPEAK_V.rows.map(r => [...r]), top: SPEAK_V.crest };
   // ---- the pier + the Ferris wheel, the breakwater + the lighthouse + the keeper's cottage (right, in open water).
   // THE WHEEL STANDS ON ITS PIER OVER WATER (the owner's review, Oct 21 2026): the speakeasy hides the harbor left of its
   // roof's back corner, so the wheel stands right of it — its A-frame legs ≥ 12 pt clear of the speakeasy — and nearer than
@@ -434,7 +443,8 @@ export function harborLayout(cam, seed = 1924) {
   const rail = { z: Z.rail, y: 1.1 };
   const road = { z0: Z.road[0], z1: Z.road[1], lane: Z.lane };
   const stopH = units('stopLight');
-  const signals = [{ id: 'west', x: rel(2.6), z: 54.6, dir: 1, h: stopH, state: 'red' }, { id: 'east', x: rel(18.1), z: 54.6, dir: -1, h: stopH, state: 'green' }];
+  // (7a: with the corner turned, the west signal stands just past the side wall's far end — never inside the building)
+  const signals = [{ id: 'west', x: turned ? Math.max(rel(2.6), side.x + 1.3) : rel(2.6), z: 54.6, dir: 1, h: stopH, state: 'red' }, { id: 'east', x: rel(18.1), z: 54.6, dir: -1, h: stopH, state: 'green' }];
   const carL = units('car'), busL = units('bus');
   const bus = { x: rel(13.6), z: 60, len: busL, h: busL * 0.28, dir: -1 };
   const cars = [
@@ -459,8 +469,12 @@ export function harborLayout(cam, seed = 1924) {
     { id: 'stroll', x: rel(10.2), z: 46.6, dir: 1, h: personH * 0.98 },
     { id: 'walker', x: rel(3.2), z: 41.5, dir: -1, h: personH * 1.02, hat: true },
   ];
-  // the rooftop: planters and string lights (people up there come with Part 7)
-  const roof = { planters: [0.8, 3, 5.2, 7.4, 9.6].map(u => ({ x: sx0 + u, z: 44.8 })), pole: { x: speakeasy.x1 - 0.3, z: 44.5, h: 4 } };
+  // the rooftop (7a): the string lights' POSTS on the parapet (each pier) + their tall POLE at the back, the stair BULKHEAD, the
+  // CHIMNEY; the deck between them is left open for 7b's parties + the seasonal garden (planters: where its beds go)
+  const roofBack = Math.min(side.z, 56);
+  const roof = { planters: [4.4, 5.8, 7.2].map(u => ({ x: sx0 + u, z: 47.2 })), pole: { x: sx1 - 1.4, z: roofBack - 3.2, h: 2.9 },
+    posts: [3.55, 6.75, 9.95, 11.2].map(u => sx0 + u), bulkhead: { x0: sx0 + 2.3, x1: sx0 + 4.3, z0: roofBack - 4.6, z1: roofBack - 1.8, h: 2.1 },
+    chimney: { x: sx0 + 8.6, z: roofBack - 2.2, w: 0.75, h: 1.9 } };
   // a panorama: the promenade goes on to the right edge — lamp + tree pairs, a bench now and then, people
   if (cam.spread > 1.6) {
     const r = rngFrom(seed + 99);
@@ -560,6 +574,9 @@ export function laneRects(L) {
     const r = { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
     // the corner buttons: a lane that would reach them stops short on the left
     if (c.corner && r.y < c.corner.y + c.corner.h + PAD && r.y + r.h > c.corner.y - PAD && r.x + r.w > c.corner.x - PAD) r.w = Math.max(0, c.corner.x - PAD - r.x);
+    // (7a §0 — SPLIT CORNERS: the ☰ in the top-left corner on the title: a lane that would reach it starts right of it)
+    const cl = c.cornerL;
+    if (cl && r.y < cl.y + cl.h + PAD && r.y + r.h > cl.y - PAD && r.x < cl.x + cl.w + PAD) { const x0 = cl.x + cl.w + PAD; r.w = Math.max(0, r.x + r.w - x0); r.x = x0; }
     return r;
   };
   const roof = Array.from(roofline(L)).sort((a, b) => a - b), roofMed = roof[roof.length >> 1];

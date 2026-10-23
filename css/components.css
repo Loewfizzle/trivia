@@ -610,7 +610,7 @@
 
 
 /* ---- game header (leaves room for the fixed gear button) ---- */
-.game-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex: none; min-height: 44px; padding-right: 52px; }
+.game-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex: none; min-height: 44px; padding-right: 44px; }   /* (clear of the 36 pt corner buttons: 12 + 36 + 12 − the 16 pt gutter) */
 .lb-note { display: block; font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--text-dim); margin-top: 2px; }
 
 /* ---- settings: gear + sheet ---- */
@@ -1303,25 +1303,37 @@ body.nd-glass .lobby-leave.is-armed {
 /* ==========================================================================
    THE IN-GAME CORNER: ☰ menu + music (gear, chat and HOW TO PLAY live inside the menu)
    ========================================================================== */
-.menu-btn { display: none; position: fixed; z-index: 70; width: 44px; height: 44px; border-radius: 50%; place-items: center; color: rgba(236, 240, 255, 0.94); background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%), rgba(12, 14, 34, 0.62); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 18px rgba(0, 0, 0, 0.32); transition: transform 0.12s var(--ease); }
+/* (7a section 0, the owner: the round corner buttons ~18 % smaller everywhere — 36 pt circles, was 44 / 42 — the TAP AREA
+   stays 44 × 44 pt: an invisible ::after 4 pt round each one. Everything that hangs off them (the music under the menu in a
+   game, the chat dot, the menu's panel, the game headers' padding-right) is sized from --cb.) */
+:root { --cb: 36px; --cb-gap: 8px; }
+.menu-btn { display: none; position: fixed; z-index: 70; width: var(--cb); height: var(--cb); border-radius: 50%; place-items: center; color: rgba(236, 240, 255, 0.94); background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%), rgba(12, 14, 34, 0.62); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 5px 15px rgba(0, 0, 0, 0.32); transition: transform 0.12s var(--ease); }
+.music-btn { width: var(--cb); height: var(--cb); }
+.music-btn svg { width: 16px; height: 16px; }
+.menu-btn::after, .music-btn::after { content: ''; position: absolute; inset: calc((var(--cb) - 44px) / 2); }   /* the 44 pt tap area */
 .menu-btn:active { transform: scale(0.92); }
-.mb-bars { display: grid; gap: 4px; width: 18px; }
-.mb-bars i { display: block; height: 2px; border-radius: 1px; background: currentColor; transition: transform 0.2s var(--ease), opacity 0.2s; }
-.menu-btn.is-open .mb-bars i:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.mb-bars { display: grid; gap: 3.5px; width: 15px; }
+.mb-bars i { display: block; height: 1.75px; border-radius: 1px; background: currentColor; transition: transform 0.2s var(--ease), opacity 0.2s; }
+.menu-btn.is-open .mb-bars i:nth-child(1) { transform: translateY(5.25px) rotate(45deg); }
 .menu-btn.is-open .mb-bars i:nth-child(2) { opacity: 0; }
-.menu-btn.is-open .mb-bars i:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-.mb-dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--magenta, #ff2bd6); box-shadow: 0 0 8px var(--magenta, #ff2bd6); }
+.menu-btn.is-open .mb-bars i:nth-child(3) { transform: translateY(-5.25px) rotate(-45deg); }
+.mb-dot { position: absolute; top: 3px; right: 3px; width: 9px; height: 9px; border-radius: 50%; background: var(--magenta, #ff2bd6); box-shadow: 0 0 7px var(--magenta, #ff2bd6); }
 .mb-dot[hidden] { display: none; }
 /* every screen: ☰ on top, music under it (the gear and the chat button live inside the menu) */
 .menu-btn { display: grid; top: calc(var(--safe-t) + 10px); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); }
 .gear, .chat-fab, .help-btn { display: none !important; }
-.music-btn, body .music-btn, body[data-theme] .music-btn, body[data-theme]:not([data-theme='']) .music-btn, body[data-theme]:not([data-theme='']):not(.chat-fab-on) .music-btn, body.nd-glass .music-btn, body.nd-on .music-btn, body.bd-on .music-btn { top: calc(var(--safe-t) + 58px); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); }
+.music-btn, body .music-btn, body[data-theme] .music-btn, body[data-theme]:not([data-theme='']) .music-btn, body[data-theme]:not([data-theme='']):not(.chat-fab-on) .music-btn, body.nd-glass .music-btn, body.nd-on .music-btn, body.bd-on .music-btn { top: calc(var(--safe-t) + 10px + var(--cb) + var(--cb-gap)); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); }
 body.nd-glass .menu-btn, body.nd-on .menu-btn, body.bd-on .menu-btn, body.nd-glass .gm-panel, body.nd-on .gm-panel, body.bd-on .gm-panel { right: calc(var(--safe-r) + 12px); }
 body.nd-glass .music-btn, body.nd-on .music-btn, body.bd-on .music-btn { right: calc(var(--safe-r) + 12px); }
+/* SPLIT CORNERS (7a section 0, the owner): on the title (body.nd-on) and the lobby (body.cb-split, app.js) the menu sits in the
+   TOP-LEFT corner and the music in the TOP-RIGHT, framing the sign; the games keep both on the right */
+body.nd-on .menu-btn, body.cb-split .menu-btn { left: calc(var(--safe-l) + 12px); right: auto; }
+body.nd-on .music-btn, body.cb-split .music-btn { top: calc(var(--safe-t) + 10px); }
+body.nd-on .gm-panel, body.cb-split .gm-panel { left: calc(var(--safe-l) + 12px); right: auto; transform-origin: top left; }
 
 .gm { position: fixed; inset: 0; z-index: 90; }
 .gm-scrim { position: absolute; inset: 0; background: rgba(2, 3, 10, 0.35); animation: fade-in 0.18s both; }
-.gm-panel { position: absolute; top: calc(var(--safe-t) + 60px); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); width: min(280px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 20px; background: linear-gradient(180deg, rgba(40, 42, 70, 0.96), rgba(16, 17, 38, 0.97)); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 48px rgba(0, 0, 0, 0.5); transform-origin: top right; animation: gm-in 0.2s var(--ease) both; }
+.gm-panel { position: absolute; top: calc(var(--safe-t) + 16px + var(--cb)); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); width: min(280px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 20px; background: linear-gradient(180deg, rgba(40, 42, 70, 0.96), rgba(16, 17, 38, 0.97)); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 48px rgba(0, 0, 0, 0.5); transform-origin: top right; animation: gm-in 0.2s var(--ease) both; }
 .gm.out .gm-panel { animation: gm-out 0.18s ease both; }
 .gm.out .gm-scrim { opacity: 0; transition: opacity 0.18s; }
 @keyframes gm-in { from { opacity: 0; transform: scale(0.94) translateY(-6px); } }

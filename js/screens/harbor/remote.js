@@ -12,27 +12,37 @@
 // — with a one-tap ✕ beside it.
 // CITY 2.0 MUSIC: a MUSIC section — force a mood (AUTO / MORNING / DAY / EVENING / LATE NIGHT / PARTY: part of the state, so EVERYONE's
 // phones follow too), SKIP TO THE NEXT SONG (this phone), and the song playing now with its beat grid's status.
+// PART 7a §0 — TIDIED (the owner: "it's getting so cluttered"): the status, JUST ME / EVERYONE and CLEAR ALL pinned at the top (sticky
+// in the sheet's scroll); everything else in COLLAPSIBLE CATEGORIES from the registry (R.CATS; each event's `cat`): a 52 pt header
+// with a count and a dot + what's on inside, collapsed by default, the open ones remembered on this device (localStorage). A header
+// tap only flips its body (no re-render); the bodies stay in the DOM (hidden), so the music line + the tests find their rows.
 import { h } from '../../ui/dom.js';
 import { toast } from '../../ui/toast.js';
 import { serverNow, firebaseReady, onValue, dbRef } from '../../firebase.js';
 import { localParts, deviceZone } from '../../core/sky.js';
 import { api as apiCall } from '../../profile/api.js';
 import * as R from '../../core/harbor-remote.js';
+import { fitText, towerCapacity, WORD_FACES, FONT_ALIASES } from '../../core/harbor-windows.js';
 import { songInfo } from '../../audio/beat.js';
 import { switchNow } from '../../audio/music.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../../audio/mood.js';
 import { settings, updateSettings } from '../../audio/settings.js';
 
-const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin';
+const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin', OPEN_KEY = 'nd:hr-open';
 const ss = {
   get(k) { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch { return null; } },
   set(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: fine */ } },
 };
+// the open categories: this device's (localStorage — a convenience; it may throw or come back empty, then all collapsed)
+const CAT_IDS = R.CATS.map(c => c.id);
+function loadOpen() { try { const v = JSON.parse(localStorage.getItem(OPEN_KEY) || '[]'); return new Set(Array.isArray(v) ? v.filter(x => CAT_IDS.includes(x)) : []); } catch { return new Set(); } }
+function saveOpen(set) { try { localStorage.setItem(OPEN_KEY, JSON.stringify([...set])); } catch { /* fine */ } }
 // (test-only: the panel without an admin profile — the previews and the emulator E2E; never on the real site's pages)
 /** the link's own preview flags (not the tools: &debug, &grid) — a fresh link with any of them wins over a stored JUST ME */
 const linkFlags = () => { try { const q = new URLSearchParams(location.search); return R.REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid' && q.has(k)); } catch { return []; } };
 const navType = () => { try { const e = performance.getEntriesByType('navigation')[0]; return (e && e.type) || 'navigate'; } catch { return 'navigate'; } };
-let linkChecked = false;          // (once a page load: the title mounts the panel again after every visit to a menu)
+let linkChecked = false;
+let cssReady = null;             // (the panel's stylesheet, loaded once a page: the pill waits for it)          // (once a page load: the title mounts the panel again after every visit to a menu)
 const TEST_PANEL = typeof location !== 'undefined' && /[?&]panel=1(?:&|$)/.test(location.search)
   && (location.pathname.includes('/tests/') || /[?&]emu(?:[=&]|$)/.test(location.search));
 
@@ -46,6 +56,7 @@ export function createRemote({ scene, api = apiCall }) {
   }
   const mine = { state: R.cleanRemote(stored && stored.state).state, ui: (stored && stored.ui) || {}, at: serverNow() };
   let draft = { state: {}, ui: {} }, mins = R.DEFAULT_MINS;
+  const openCats = loadOpen();
 
   // ---------------------------------------------------------------- what this phone shows
   const liveOn = () => !!(live && live.until > serverNow());
@@ -84,9 +95,13 @@ export function createRemote({ scene, api = apiCall }) {
     try { const r = await api('admin', { action: 'whoami' }); ss.set(ADMIN_KEY, { admin: !!r.admin, at: Date.now() }); return !!r.admin; } catch { return false; }
   }
   checkAdmin().then(a => {
-    if (destroyed || !a) return;
+    if (destroyed || !a) return false;
     admin = true;
-    if (!document.querySelector('link[data-hr]')) document.head.append(h('link', { rel: 'stylesheet', href: '/css/harbor-remote.css', 'data-hr': '1' }));
+    if (!cssReady) cssReady = new Promise(res => { const l = h('link', { rel: 'stylesheet', href: '/css/harbor-remote.css', 'data-hr': '1' }); const done = () => res(true); l.onload = l.onerror = done; setTimeout(done, 3000); document.head.append(l); });
+    return cssReady;
+  }).then(ok => {
+    // (7a §0: the pill appears once its stylesheet is in — never a moment unstyled at the page's foot, where a tap would miss it)
+    if (destroyed || !ok) return;
     chip = h('button.hr-pill', { type: 'button', 'aria-label': 'Preview panel', onclick: open }, h('span.hr-dot'), label = h('span.hr-lbl', 'TEST'));
     // (JUST ME on: a one-tap clear beside the pill — back to the real city, or the link's own flags)
     xb = h('button.hr-x', { type: 'button', 'aria-label': 'Clear JUST ME', onclick: () => { mode = 'me'; ss.set(MODE_KEY, 'me'); clearAll(); } }, h('span', '×'));
@@ -143,7 +158,7 @@ export function createRemote({ scene, api = apiCall }) {
     else {
       f.add(id); for (const k of def.inputs || []) { if (s[k] == null && u.mem && u.mem[k] != null) s[k] = u.mem[k]; if (s[k] == null && R.INPUTS[k].default) s[k] = R.INPUTS[k].default; }
       if (def.night || id === 'satellites') toTonight(s, u, id === 'satellites' ? 'dusk' : 'night');
-      if (['SKY', 'BIRDS', 'RAINBOWS'].includes(def.group)) peek();
+      if (mode === 'me' && (def.cat === 'sky' || def.group === 'RAINBOWS')) peek();
     }
     s.force = [...f];
   });
@@ -188,7 +203,7 @@ export function createRemote({ scene, api = apiCall }) {
     if (sheet) return;
     if (mode === 'all') draft = { state: liveOn() ? { ...live.state } : {}, ui: {} };
     sheet = h('div.modal.hr-modal', { onclick: e => { if (e.target === sheet) close(); } },
-      h('div.sheet.hr-sheet', { role: 'dialog', 'aria-label': 'Preview panel', onpointerdown: e => { if (e.currentTarget.classList.contains('hr-peek') && !e.target.closest('.hr-b')) { e.currentTarget.classList.remove('hr-peek'); clearTimeout(peekT); } } }));
+      h('div.sheet.hr-sheet', { role: 'dialog', 'aria-label': 'Preview panel', onpointerdown: e => { if (e.currentTarget.classList.contains('hr-peek') && !e.target.closest('.hr-b, .hr-cat')) { e.currentTarget.classList.remove('hr-peek'); clearTimeout(peekT); } } }));
     document.body.append(sheet);
     render();
     musicT = setInterval(paintMusic, 1000);
@@ -198,7 +213,6 @@ export function createRemote({ scene, api = apiCall }) {
     const s = sheet; sheet = null; musicEl = null; clearInterval(musicT); s.classList.add('out'); setTimeout(() => s.remove(), 260);
   }
   const btn = (label, on, onclick, o = {}) => h('button.hr-b', { type: 'button', class: [on ? 'is-on' : '', o.cls || ''].join(' ').trim() || null, 'aria-pressed': on ? 'true' : 'false', disabled: o.disabled || null, title: o.title || null, onclick }, label, o.night ? h('span.hr-moon', { 'aria-hidden': 'true' }, '☾') : null);
-  const sec = (title, ...kids) => h('section.hr-sec', h('h3.hr-h', title), ...kids);
   const grid = (...kids) => h('div.hr-grid', ...kids);
   let statusEl = null, musicEl = null, musicT = 0;
   const mmss = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -216,7 +230,7 @@ export function createRemote({ scene, api = apiCall }) {
     const now = serverNow();
     const until = ms => { const d = new Date(ms), m = Math.max(0, Math.round((ms - now) / 60000)); return `UNTIL ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} (${m} MIN)`; };
     const lines = [];
-    if (!R.isEmpty(mine.state)) lines.push({ who: 'JUST ME', what: R.describe(mine.state), when: 'THIS PHONE · UNTIL CLEAR ALL' });
+    if (!R.isEmpty(mine.state)) lines.push({ who: 'JUST ME', what: R.describe(mine.state), when: '' });          // (7a §0: "this phone, until CLEAR ALL" went — the pinned band stays short)
     if (liveOn()) lines.push({ who: 'EVERYONE', what: R.describe(live.state), when: until(live.until) + (!R.isEmpty(mine.state) ? ' · HIDDEN HERE BY JUST ME' : '') });
     if (!lines.length) lines.push({ who: 'NOTHING ON', what: R.describe(null), when: '' });
     if (mode === 'all' && JSON.stringify(R.cleanRemote(draft.state).state) !== JSON.stringify(liveOn() ? live.state : {})) lines.push({ who: 'NOT SENT', what: R.describe(R.cleanRemote(draft.state).state), when: 'TAP SEND TO EVERYONE' , draft: true });
@@ -226,54 +240,123 @@ export function createRemote({ scene, api = apiCall }) {
     if (!statusEl) return;
     statusEl.replaceChildren(...statusText().map(l => h('div.hr-line', { class: l.draft ? 'hr-draft' : null }, h('b', l.who), h('span', l.what), l.when ? h('small', l.when) : null)));
   }
+  // ---- the categories: what each holds beyond its events (its own controls, how many choices, what's on in it)
+  const timeLabel = (st, ui) => { const t = ui.t && R.TIMES.find(x => x.id === ui.t); return t ? t.label : st.when && !st.hol ? `${+st.when.slice(5, 7)}/${+st.when.slice(8, 10)} ${st.when.slice(11)}` : null; };
+  const OWN = {
+    time: {
+      n: () => R.TIMES.length,
+      on: (st, ui) => [timeLabel(st, ui), st.speed > 1 ? `${st.speed}×` : null],
+      kids: (st, ui) => {
+        const dt = h('input.input.hr-dt', { type: 'datetime-local', value: st.when || '', 'aria-label': 'Date and time',
+          onchange: e => edit((s, u) => { const v = String(e.target.value || '').slice(0, 16); u.t = null; delete s.hol; if (v) { u.custom = v; s.when = v; } else { delete u.custom; delete s.when; } retime({ state: s, ui: u }); }) });
+        const tb = t => btn(t.label, ui.t === t.id, () => edit((s, u) => { u.t = t.id; delete u.custom; retime({ state: s, ui: u }); }));
+        // (the day in time order, SUNRISE → NIGHT; then the night's edges + the lights' power-up / down)
+        return [grid(...R.TIMES.filter(t => !t.more).map(tb)),
+          h('div.hr-gl', 'MORE'), grid(...R.TIMES.filter(t => t.more).map(tb)),
+          h('div.hr-row', dt),
+          h('div.hr-gl', 'CLOCK SPEED'), grid(...R.SPEEDS.map(v => btn(`${v}×`, (st.speed || 1) === v, () => edit(s => { if (v === 1) delete s.speed; else s.speed = v; })))),
+          h('div.hr-row', btn('BACK TO NOW', false, () => edit((s, u) => { delete s.when; delete s.speed; delete s.hol; delete u.t; delete u.custom; }), { cls: 'hr-wide' }))];
+      },
+    },
+    weather: {
+      n: () => R.WEATHER.length,
+      on: st => [st.wx ? R.WEATHER.find(w => w.id === st.wx).label : null],
+      kids: st => [grid(btn('REAL', !st.wx, () => edit(s => { delete s.wx; })), ...R.WEATHER.map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }))))],
+    },
+    party: {
+      n: () => 2 + R.SHOW_SCENE_LIST.length,
+      on: st => [st.party ? `PARTY ${st.party.toUpperCase()}` : null, st.scene ? st.scene.toUpperCase() : null],
+      kids: st => [
+        h('div.hr-gl', 'PARTY NIGHT'), grid(...[['', 'AUTO'], ['on', 'ON'], ['off', 'OFF']].map(([v, l]) => btn(l, (st.party || '') === v, () => edit((s, u) => { if (v) s.party = v; else delete s.party; if (v === 'on') toTonight(s, u, 'night'); })))),
+        h('div.hr-gl', 'HOLD A SCENE'), grid(btn('LET IT RUN', !st.scene, () => edit(s => { delete s.scene; })),
+          ...R.SHOW_SCENE_LIST.map(sc => btn(sc.id.toUpperCase(), st.scene === sc.id, () => edit(s => { s.scene = sc.id; }), { cls: `hr-${sc.list}` })))],
+    },
+    holidays: {
+      n: () => R.HOLIDAYS.length,
+      on: st => [st.hol ? R.HOLIDAYS.find(x => x.id === st.hol).label : null],
+      kids: st => [h('p.hr-note', 'jumps to its next date (keeps the time you picked; else 21:00)'),
+        grid(btn('NONE', !st.hol, () => edit((s, u) => { delete s.hol; retime({ state: s, ui: u }); })),
+          ...R.HOLIDAYS.map(hd => btn(hd.label, st.hol === hd.id, () => edit((s, u) => { s.hol = hd.id; delete u.custom; retime({ state: s, ui: u }); }))))],
+    },
+    music: {
+      n: () => R.MUSIC_MOODS.length,
+      on: st => [st.mood ? R.MUSIC_MOODS.find(m => m.id === st.mood).label : null],
+      kids: st => [h('div.hr-gl', 'MOOD'),
+        // (AUTO here means AUTO: it also puts this phone's MUSIC MOOD setting back to AUTO, so the city's clock really decides)
+        grid(btn('AUTO', !st.mood, () => { autoSetting(); edit(s => { delete s.mood; }); }), ...R.MUSIC_MOODS.map(m => btn(m.label, st.mood === m.id, () => edit(s => { s.mood = m.id; })))),
+        musicEl = h('div.hr-status.hr-music', { 'aria-live': 'off' }),
+        h('div.hr-row', btn('SKIP TO THE NEXT SONG', false, async () => { const ok = await switchNow(2); toast(ok ? 'NEXT SONG' : 'NOTHING TO SKIP — THE ROOM’S SONG IS THE HOST’S', ok ? 'info' : 'warn'); paintMusic(); }, { cls: 'hr-wide', title: 'this phone only' }))],
+    },
+    tools: {
+      n: () => 2,
+      on: st => [st.debug ? 'READOUT' : null, st.grid ? 'GRID' : null],
+      kids: st => [grid(btn('READOUT', !!st.debug, () => edit(s => { if (s.debug) delete s.debug; else s.debug = true; })),
+        btn('GRID', !!st.grid, () => edit(s => { if (s.grid) delete s.grid; else s.grid = true; })))],
+    },
+  };
+  function flip(id, secEl) {
+    const on = !openCats.has(id);
+    if (on) openCats.add(id); else openCats.delete(id);
+    saveOpen(openCats);
+    if (!secEl) return;
+    secEl.classList.toggle('is-open', on);
+    secEl.querySelector('.hr-cat').setAttribute('aria-expanded', on ? 'true' : 'false');
+    secEl.querySelector('.hr-body').hidden = !on;
+  }
+  function category(c, st, ui, force) {
+    const own = OWN[c.id], evs = R.PANEL_EVENTS.filter(e => R.catOf(e.id) === c.id), onEvs = evs.filter(e => force.has(e.id));
+    const n = evs.length + (own ? own.n() : 0);
+    if (!n) return null;
+    // (what's on, short: an event + its text / scheme / game, like the status line)
+    const on = [...(own ? own.on(st, ui) : []), ...onEvs.map(e => e.label + ((e.inputs || []).includes('text') && st.text ? ` “${st.text}”` : '') + ['scheme', 'game'].filter(k => (e.inputs || []).includes(k) && st[k]).map(k => ` ${st[k].toUpperCase()}`).join(''))].filter(Boolean);
+    const isOpen = openCats.has(c.id);
+    const body = [];
+    // the inputs of this category's events that are on (shared between events like the links' flags)
+    const inputs = [...new Set(onEvs.flatMap(e => e.inputs || []))];
+    if (inputs.length) body.push(h('div.hr-opts', ...inputs.map(k => input(k, st, force))));
+    if (own) body.push(...own.kids(st, ui));
+    if (evs.length) {
+      const groups = [...new Set(evs.map(e => e.group || ''))];
+      if (evs.some(e => e.night)) body.push(h('p.hr-note', '☾ night only (by day it jumps to tonight) · tap again to switch off'));
+      for (const g of groups) body.push(h('div.hr-group', groups.length > 1 && g ? h('div.hr-gl', g) : null,
+        grid(...evs.filter(e => (e.group || '') === g).map(e => { const b = btn(e.label, force.has(e.id), () => toggleForce(e.id), { night: e.night, title: e.hint }); b.dataset.ev = e.id; return b; }))));
+    }
+    const id = `hr-c-${c.id}`;
+    return h('section.hr-sec', { class: isOpen ? 'is-open' : null, dataset: { cat: c.id } },
+      h('button.hr-cat', { type: 'button', 'aria-expanded': isOpen ? 'true' : 'false', 'aria-controls': id, onclick: e => flip(c.id, e.currentTarget.parentNode) },
+        h('span.hr-cat-t', h('span.hr-h', c.label), on.length ? h('small.hr-cat-on', on.join(' · ')) : null),
+        on.length ? h('span.hr-cat-dot', { 'aria-label': `${on.length} on` }) : null,
+        h('span.hr-cat-n', { 'aria-label': `${n} previews` }, String(n)),
+        h('span.hr-chev', { 'aria-hidden': 'true' })),
+      h('div.hr-body', { id, hidden: !isOpen }, ...body));
+  }
   function render() {
     if (!sheet) return;
     const box = sheet.firstChild, top = box.scrollTop, c = cur(), st = c.state, ui = c.ui, force = new Set(st.force || []);
     const kids = [];
-    kids.push(h('div.sheet-grip'),
+    musicEl = null;
+    // PINNED: the title, JUST ME / EVERYONE, what's on + CLEAR ALL (sticky at the top of the sheet's scroll)
+    kids.push(h('div.hr-top',
+      h('div.sheet-grip'),
       h('div.hr-head', h('div', h('div.sheet-kicker', 'CITY 2.0 · OWNER ONLY'), h('h2.sheet-title', 'PREVIEW PANEL')),
         h('button.icon-btn', { type: 'button', 'aria-label': 'Close the preview panel', onclick: close }, '×')),
       h('div.hr-mode', { role: 'radiogroup' },
         ...[['me', 'JUST ME'], ['all', 'EVERYONE ON CITY 2']].map(([v, l]) => h('button.hr-b.hr-modeb', { type: 'button', role: 'radio', 'aria-checked': mode === v ? 'true' : 'false', class: mode === v ? 'is-on' : null,
           onclick: () => { if (mode === v) return; mode = v; ss.set(MODE_KEY, v); if (v === 'all') draft = { state: liveOn() ? { ...live.state } : {}, ui: {} }; render(); } }, l))),
-      statusEl = h('div.hr-status', { 'aria-live': 'polite' }));
-    // EVENTS: every &force= preview, by group; the inputs of the ones that are on underneath
-    const evs = R.EVENT_GROUPS.map(g => h('div.hr-group', h('div.hr-gl', g), grid(...R.PANEL_EVENTS.filter(e => e.group === g).map(e => btn(e.label, force.has(e.id), () => toggleForce(e.id), { night: e.night, title: e.hint })))));
-    const inputs = [...new Set(R.EVENTS.filter(e => force.has(e.id)).flatMap(e => e.inputs || []))];
-    const opts = inputs.map(k => input(k, st, force));
-    kids.push(sec('EVENTS', opts.length ? h('div.hr-opts', ...opts) : null, h('p.hr-note', '☾ shows at night only · tap again to switch off'), ...evs));
-    // PARTY SHOW
-    kids.push(sec('PARTY SHOW',
-      h('div.hr-gl', 'PARTY NIGHT'), grid(...[['', 'AUTO'], ['on', 'ON'], ['off', 'OFF']].map(([v, l]) => btn(l, (st.party || '') === v, () => edit((s, u) => { if (v) s.party = v; else delete s.party; if (v === 'on') toTonight(s, u, 'night'); })))),
-      h('div.hr-gl', 'HOLD A SCENE'), grid(btn('LET IT RUN', !st.scene, () => edit(s => { delete s.scene; })),
-        ...R.SHOW_SCENE_LIST.map(sc => btn(sc.id.toUpperCase(), st.scene === sc.id, () => edit(s => { s.scene = sc.id; }), { cls: `hr-${sc.list}` })))));
-    // TIME
-    const dt = h('input.input.hr-dt', { type: 'datetime-local', value: st.when || '', 'aria-label': 'Date and time',
-      onchange: e => edit((s, u) => { const v = String(e.target.value || '').slice(0, 16); u.t = null; delete s.hol; if (v) { u.custom = v; s.when = v; } else { delete u.custom; delete s.when; } retime({ state: s, ui: u }); }) });
-    kids.push(sec('TIME',
-      grid(...R.TIMES.map(t => btn(t.label, ui.t === t.id, () => edit((s, u) => { u.t = t.id; delete u.custom; retime({ state: s, ui: u }); })))),
-      h('div.hr-row', dt),
-      h('div.hr-gl', 'CLOCK SPEED'), grid(...R.SPEEDS.map(v => btn(`${v}×`, (st.speed || 1) === v, () => edit(s => { if (v === 1) delete s.speed; else s.speed = v; })))),
-      h('div.hr-row', btn('BACK TO NOW', false, () => edit((s, u) => { delete s.when; delete s.speed; delete s.hol; delete u.t; delete u.custom; }), { cls: 'hr-wide' }))));
-    kids.push(sec('WEATHER', grid(btn('REAL', !st.wx, () => edit(s => { delete s.wx; })), ...R.WEATHER.map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }))))));
-    kids.push(sec('HOLIDAY', h('p.hr-note', 'jumps to its next date (keeps the time you picked; else 21:00)'),
-      grid(btn('NONE', !st.hol, () => edit((s, u) => { delete s.hol; retime({ state: s, ui: u }); })),
-        ...R.HOLIDAYS.map(hd => btn(hd.label, st.hol === hd.id, () => edit((s, u) => { s.hol = hd.id; delete u.custom; retime({ state: s, ui: u }); }))))));
-    kids.push(sec('MUSIC',
-      h('div.hr-gl', 'MOOD'),
-      // (AUTO here means AUTO: it also puts this phone's MUSIC MOOD setting back to AUTO, so the city's clock really decides)
-      grid(btn('AUTO', !st.mood, () => { autoSetting(); edit(s => { delete s.mood; }); }), ...R.MUSIC_MOODS.map(m => btn(m.label, st.mood === m.id, () => edit(s => { s.mood = m.id; })))),
-      musicEl = h('div.hr-status.hr-music', { 'aria-live': 'off' }),
-      h('div.hr-row', btn('SKIP TO THE NEXT SONG', false, async () => { const ok = await switchNow(2); toast(ok ? 'NEXT SONG' : 'NOTHING TO SKIP — THE ROOM’S SONG IS THE HOST’S', ok ? 'info' : 'warn'); paintMusic(); }, { cls: 'hr-wide', title: 'this phone only' }))));
-    kids.push(sec('TOOLS', grid(btn('READOUT', !!st.debug, () => edit(s => { if (s.debug) delete s.debug; else s.debug = true; })),
-      btn('GRID', !!st.grid, () => edit(s => { if (s.grid) delete s.grid; else s.grid = true; }))),
-      h('div.hr-row', h('button.btn.btn-ghost.btn-block.hr-clear', { type: 'button', disabled: sendBusy || null, onclick: clearAll }, h('span', mode === 'me' ? 'CLEAR ALL — BACK TO THE REAL CITY' : 'CLEAR ALL FOR EVERYONE')))));
+      h('div.hr-stat',
+        statusEl = h('div.hr-status', { 'aria-live': 'polite' }),
+        h('button.btn.btn-ghost.hr-clear', { type: 'button', disabled: sendBusy || null, 'aria-label': mode === 'me' ? 'Clear all — back to the real city' : 'Clear all for everyone', onclick: clearAll },
+          h('span', 'CLEAR ALL'), h('small', mode === 'me' ? 'REAL CITY' : 'EVERYONE')))));
+    // THE CATEGORIES (the registry's order; an event whose cat is unknown lands in TOOLS)
+    for (const cat of R.CATS) { const el = category(cat, st, ui, force); if (el) kids.push(el); }
     if (mode === 'all') {
       kids.push(h('div.hr-send',
-        h('div.hr-gl', 'FOR'), h('div.hr-grid.hr-mins', ...R.DURATIONS.map(m => btn(`${m} MIN`, mins === m, () => { mins = m; render(); }))),
-        h('button.btn.btn-primary.btn-block', { type: 'button', disabled: sendBusy || null, onclick: send }, h('span', sendBusy ? 'SENDING…' : 'SEND TO EVERYONE'))));
+        // (7a §0: one row of durations + the button that names the one picked — the bar stays short under the categories)
+        h('div.hr-grid.hr-mins', { role: 'radiogroup', 'aria-label': 'For how long' }, ...R.DURATIONS.map(m => btn(`${m} MIN`, mins === m, () => { mins = m; render(); }))),
+        h('button.btn.btn-primary.btn-block', { type: 'button', disabled: sendBusy || null, onclick: send }, h('span', sendBusy ? 'SENDING…' : `SEND TO EVERYONE · ${mins} MIN`))));
     }
     box.replaceChildren(...kids);
+    box.dataset.mode = mode;
     paintStatus(); paintMusic();
     box.scrollTop = top;
   }
@@ -283,9 +366,12 @@ export function createRemote({ scene, api = apiCall }) {
     if (def.kind === 'text') {
       const max = R.textMax([...force].filter(id => (R.eventDef(id).inputs || []).includes('text')));
       const el = h('input.input.hr-text', { type: 'text', value: st.text || '', maxlength: String(max), placeholder: `up to ${max} letters`, autocapitalize: 'characters', autocomplete: 'off', spellcheck: 'false', 'aria-label': def.label,
-        oninput: e => { const v = e.target.value; clearTimeout(typeT); typeT = setTimeout(() => edit(s => { if (v.trim()) s.text = v; else delete s.text; }, { soft: true }), mode === 'me' ? 700 : 0); },
+        oninput: e => { const v = e.target.value; for (const o of sheet ? sheet.querySelectorAll('.hr-text') : []) if (o !== e.target) o.value = v; for (const o of sheet ? sheet.querySelectorAll('.hr-fit') : []) paintFit(o, v, cur().state.tower); clearTimeout(typeT); typeT = setTimeout(() => edit(s => { if (v.trim()) s.text = v; else delete s.text; }, { soft: true }), mode === 'me' ? 700 : 0); },
         onkeydown: e => { if (e.key === 'Enter') e.target.blur(); } });
-      return h('div.hr-opt', lab, el);
+      // (7a §0: THE WORD TOWERS — what the message does on them, live while she types)
+      const fit = force.has('spell') ? h('div.hr-fit', { 'aria-live': 'polite' }) : null;
+      if (fit) { towerFaces = null; paintFit(fit, st.text || '', st.tower); }
+      return h('div.hr-opt', lab, el, fit);
     }
     if (def.kind === 'bool') return h('div.hr-opt', lab, grid(btn(st[k] ? 'ON' : 'OFF', !!st[k], () => edit(s => { if (s[k]) delete s[k]; else s[k] = true; }))));
     if (def.kind === 'select') return h('div.hr-opt', lab, swatchesOr(def, k, st));
@@ -296,6 +382,29 @@ export function createRemote({ scene, api = apiCall }) {
       if (i >= 0) p.splice(i, 1); else if (p.length < def.max) p.push(o);
       if (p.length) s[k] = p.join(','); else delete s[k];
     }), { cls: def.kind === 'colours' ? 'hr-sw' : '' })).map((b, i) => { if (def.kind === 'colours') { b.style.setProperty('--sw', `#${def.options[i]}`); b.setAttribute('aria-label', `#${def.options[i]}`); } return b; })));
+  }
+  // ---- THE WORD TOWERS' readout (7a §0): each tower's room on this screen (the live faces: harbor().windows.faces; else the
+  // faces every phone has today) and what the typed message does on them — the same plan lights.js#spell follows
+  let towerFaces = null;
+  function liveFaces() {
+    if (towerFaces) return towerFaces;
+    let f = null;
+    try { const sc = scene(), hb = sc && sc.harbor ? sc.harbor() : null; f = hb && hb.windows && hb.windows.faces; } catch { f = null; }
+    const ok = f && Object.keys(WORD_FACES).every(id => f[id] && f[id].cols);
+    towerFaces = ok ? Object.fromEntries(Object.keys(WORD_FACES).map(id => [id, { cols: f[id].cols, rows: f[id].rows, word: f[id].word }])) : WORD_FACES;
+    return towerFaces;
+  }
+  const TW = { wordA: 'A', wordB: 'B', wordV: 'V' };
+  const CHARS = `A–Z 0–9 ! ? - . ' ${Object.entries(FONT_ALIASES).map(([c, a]) => `${c} (${a})`).join(' ')}`;
+  function paintFit(el, text, tower) {
+    const faces = liveFaces(), cap = towerCapacity(faces), fit = fitText(text, faces, tower || '');
+    const room = Object.entries(cap).map(([id, c]) => `${TW[id]} ${c.letters}${c.word === 'v' ? ' DOWN' : c.lines > 1 ? ` × ${c.lines} LINES` : ''}`).join(' · ');
+    const rows = fit ? fit.plan.map(p => h('div.hr-fit-row', { class: p.scroll ? 'is-scroll' : null }, h('b', TW[p.tower]), h('span', p.text),
+      h('small', p.scroll ? `${p.letters} of ${p.cap} — SCROLLS` : `${p.letters} of ${p.cap}`))) : [h('div.hr-fit-row', h('span', 'TYPE A MESSAGE — ONE WORD PER TOWER'))];
+    el.replaceChildren(...[...rows,
+      h('small.hr-fit-n', `ROOM (LETTERS): ${room}`),
+      fit && fit.bad.length ? h('small.hr-fit-n.hr-warn', `NOT IN THE WINDOW FONT (SKIPPED): ${fit.bad.join(' ')}`) : null,
+      h('small.hr-fit-n', `WORKS: ${CHARS}`)].filter(Boolean));
   }
   // a select: one choice (a colour shows as its swatch)
   function swatchesOr(def, k, st) {
@@ -314,7 +423,9 @@ export function createRemote({ scene, api = apiCall }) {
     /** (tests + shots) the mode, and this phone's JUST ME state */
     setMode(v) { mode = v === 'all' ? 'all' : 'me'; ss.set(MODE_KEY, mode); if (mode === 'all') draft = { state: liveOn() ? { ...live.state } : {}, ui: {} }; render(); },
     setMine(st) { mode = 'me'; mine.state = R.cleanRemote(st).state; mine.ui = {}; mine.at = serverNow(); ss.set(ME_KEY, R.isEmpty(mine.state) ? null : { state: mine.state, ui: mine.ui }); apply(); render(); },
-    debug: () => ({ mode, admin, mine: mine.state, live, effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
+    /** (tests + shots) open exactly these categories (ids, or '*' = all); remembered like a tap */
+    openCats(ids) { openCats.clear(); for (const id of ids === '*' ? CAT_IDS : ids || []) if (CAT_IDS.includes(id)) openCats.add(id); saveOpen(openCats); render(); },
+    debug: () => ({ mode, admin, mine: mine.state, live, open: [...openCats], effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
     destroy() {
       destroyed = true; clearInterval(tick); clearInterval(musicT); clearTimeout(typeT); clearTimeout(peekT);
       if (unsub) { try { unsub(); } catch { /* fine */ } }

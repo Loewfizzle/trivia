@@ -34,8 +34,10 @@ const lamp = (x, cam, l, T) => {
   l.head = { x: b, y: y + s * 0.3, s };
 };
 
-/** the stage's still pieces, far first: lamps + trees at z 47, the bench, the planters, the near lamp, the corner trees, the cart */
-export function furnitureSteps(L, T) {
+/** the stage's still pieces, far first: lamps + trees at z 47, the bench, the planters, the near lamp, the corner trees, the cart
+ *  (PART 7a: keep(item) picks a share by depth — the scene bakes the ones behind / beside the speakeasy into 'stage' and the front
+ *  row into 'front', over the speakeasy's live layer) */
+export function furnitureSteps(L, T, keep = null) {
   const cam = L.cam;
   const items = [
     ...L.lamps.map(l => ({ z: l.z, f: x => lamp(x, cam, l, T) })),
@@ -43,7 +45,7 @@ export function furnitureSteps(L, T) {
     ...[L.bench, ...(L.bench.more || [])].map(b => ({ z: b.z, f: x => { box(x, cam, { x0: b.x - b.w / 2, x1: b.x + b.w / 2, z0: b.z, z1: b.z + 0.5, h: 0.12 }, T.bench, { y0: 0.45 }); box(x, cam, { x0: b.x - b.w / 2, x1: b.x + b.w / 2, z0: b.z + 0.5, z1: b.z + 0.6, h: 0.5 }, shade(T.bench, -0.1), { y0: 0.45, top: false }); for (const s of [-1, 1]) box(x, cam, { x0: b.x + s * b.w * 0.42 - 0.05, x1: b.x + s * b.w * 0.42 + 0.05, z0: b.z, z1: b.z + 0.1, h: 0.45 }, T.lamp, { top: false }); } })),
     ...L.planters.map(p => ({ z: p.z, f: x => { box(x, cam, { x0: p.x - 0.7, x1: p.x + 0.7, z0: p.z, z1: p.z + 1.2, h: 0.9 }, T.planter); const [cx, cy] = project(cam, p.x, 1.1, p.z); x.fillStyle = rgb(shade(T.canopy, -0.1)); x.beginPath(); x.ellipse(cx, cy, cam.F * 0.7 / p.z, cam.F * 0.3 / p.z, 0, 0, Math.PI * 2); x.fill(); } })),
     { z: L.cart.z, f: x => { const c = L.cart; box(x, cam, { x0: c.x - 1.2, x1: c.x + 1.2, z0: c.z, z1: c.z + 1, h: 1.05 }, T.cart, { y0: 0.7 }); for (const s of [-0.8, 0.8]) { const [wx, wy] = project(cam, c.x + s, 0.45, c.z); x.fillStyle = '#121218'; x.beginPath(); x.arc(wx, wy, cam.F * 0.45 / c.z, 0, Math.PI * 2); x.fill(); } box(x, cam, { x0: c.x + 0.65, x1: c.x + 0.75, z0: c.z + 0.4, z1: c.z + 0.5, h: 1.6 }, T.lamp, { y0: 1.9, top: false }); const [ux, uy] = project(cam, c.x + 0.7, 3.5, c.z + 0.45), ur = cam.F * 1.5 / c.z; x.fillStyle = rgb(shade(T.awning, 0.1)); x.beginPath(); x.ellipse(ux, uy, ur, ur * 0.32, 0, Math.PI, 0); x.fill(); } },
-  ].sort((a, b) => b.z - a.z);
+  ].filter(it => !keep || keep(it)).sort((a, b) => b.z - a.z);
   const steps = [];
   for (let i = 0; i < items.length; i += 4) { const part = items.slice(i, i + 4); steps.push(x => { for (const it of part) it.f(x); }); }
   return steps;

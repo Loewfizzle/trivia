@@ -83,6 +83,8 @@ const SCENE = {
   'd-morn': ['2026-10-22T09:00'], 'd-noon': ['2026-10-22T12:30'], 'd-aft': ['2026-10-22T16:00'], 'd-golden': ['2026-10-22T18:20'],
   'd-clouds': ['2026-10-22T13:00', { qs: 'wx=clouds' }], 'd-overcast': ['2026-10-22T13:00', { qs: 'wx=overcast' }],
   'd-night': ['2026-10-22T22:00'], 'd-party': ['2026-10-24T23:00'],
+  // (7a §0: the title's ☰ menu open — the split corners: it drops from the top-left)
+  'menu-open': ['2026-10-22T22:00', { act: 'menu' }],
   // CITY 2.0 — SKY POLISH (Oct 23 2026): the owner's review list (--sizes 402x874 --crop sky,skyl3,skym,skyr3); sp-plane: a forced
   // airliner with its contrail; sp-cirrus / sp-veil: the high cloud by its height (&wx=cirrus / &wx=veil — the moon's 22° halo)
   'sp-morn': ['2026-10-22T09:00'], 'sp-noon': ['2026-10-22T12:30'], 'sp-cloudy': ['2026-10-22T13:00', { qs: 'wx=clouds' }],
@@ -91,10 +93,13 @@ const SCENE = {
   'sp-party': ['2026-10-24T23:00', { qs: 'wx=clouds' }], 'sp-plane': ['2026-10-22T11:00', { qs: 'force=planes', wait: 16000 }],
   'sp-cirrus': ['2026-10-22T11:00', { qs: 'wx=cirrus' }], 'sp-cirrus-set': ['2026-10-22T18:45', { qs: 'wx=cirrus' }], 'sp-veil': ['2026-10-26T23:30', { qs: 'wx=veil' }],
   // CITY 2.0 — THE PREVIEW PANEL (the owner's test remote; --city 2 --preview): the sheet open (JUST ME / EVERYONE, events on,
-  // scrolled down to the time + weather, the bottom with the tools)
-  panel: ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel' }], 'panel-on': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', on: { force: ['drones', 'spell', 'neon-scheme'], text: 'HI THERE', show: 'heart', colours: 'ff2e97,2ee6ff', scheme: 'halloween' } }],
-  'panel-all': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', mode: 'all' }], 'panel-time': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', scroll: 0.62 }],
-  'panel-end': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', scroll: 1, mode: 'all' }],
+  // scrolled down to the time + weather, the bottom with the tools). PART 7a §0: the categories — cats: the open ones (none = all
+  // collapsed; '*' = every one); panel-on: two open with things on; panel-dots: collapsed, the dots + what's on; panel-end: all open, the bottom
+  panel: ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel' }], 'panel-on': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['sky', 'signs'], on: { force: ['drones', 'spell', 'neon-scheme'], text: 'HI THERE', show: 'heart', colours: 'ff2e97,2ee6ff', scheme: 'halloween' } }],
+  'panel-dots': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', on: { force: ['aurora', 'corner-turn', 'neon-scheme'], scheme: 'halloween', wx: 'rain', when: '2026-10-24T23:00', speed: 20 } }],
+  'panel-all': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', mode: 'all', cats: ['time'] }], 'panel-time': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['time', 'weather'], on: { wx: 'snow' } }],
+  'panel-end': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', scroll: 1, mode: 'all', cats: '*' }],
+  'panel-towers': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['lights'], scroll: 0.36, on: { force: ['spell'], text: 'HAPPY BIRTHDAY SAM &', tower: 'wordA,wordB,wordV' } }],
   drones: ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 26000 }], 'drones-launch': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 9000 }], 'drones-text': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 40000 }],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
@@ -151,10 +156,11 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (o.act === 'rejoin') { await p.evaluate(() => window.__district.dock.preview({ rejoin: 'MINT' })); await sleep(700); }
   if (o.act === 'panel') {
     await p.waitForFunction(() => window.__district.remote && window.__district.remote(), { timeout: 15000 });
-    await p.evaluate(o => { const r = window.__district.remote(); r.setMode(o.mode || 'me'); if (o.on) r.setMine(o.on); r.open(); }, o);
+    await p.evaluate(o => { const r = window.__district.remote(); r.setMode(o.mode || 'me'); if (o.on) r.setMine(o.on); r.open(); if (r.openCats) r.openCats(o.cats || []); }, o);
     await sleep(700);
     if (o.scroll) { await p.evaluate(k => { const s = document.querySelector('.hr-sheet'); s.scrollTop = (s.scrollHeight - s.clientHeight) * k; }, o.scroll); await sleep(200); }
   }
+  if (o.act === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm-panel'); await sleep(400); }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
   for (let shot = 0; shot < COUNT; shot++) {
   if (shot) await sleep(EVERY);

@@ -240,6 +240,15 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
     PASS 6): ~0.1 s later THE RACE rides on top — a bright surge N → E → O → N, each letter blazing, then a sweep across SPEAKEASY
     (`title.js#raceLogo`; also when a tapped letter re-ignites at night, and now and then on party nights); then the rare
     random flicker as before. The city's signs answer one at a time, a few minutes apart, within ~15 min.
+  - THE MUSIC'S FIRST TAP (City 2.0, 7a section 0 — no "tap for music" hint): when the music starts on a visit's first tap the sign
+    answers — BY DAY a surge races through the unlit glass N → E → O → N (`raceLogo('surge')`: the race's layers shown through the
+    daytime glass by `.nd-surge`, each letter blazing as the head passes, the sign's bloom swelling, ~1.6 s) and fades back to glass;
+    AT NIGHT a quicker, brighter race (`raceLogo('first')`). Once per page load (`surgeSpent`), only when the song's own clock starts
+    moving after a tap (`audio/music.js#musicClock`: −1 with the music off / muted / at zero volume, or not really sounding).
+    During the intro the power-on is the answer; in the warm-up (`ramp`) the tap does what it does today — never both. Reduced
+    motion: one gentle brighten (the bloom fades up + back, `.nd-glow-in/-out`). `&force=first-tap` (City 2.0) previews it 2.4 s
+    after the intro and every 5 s; hooks `__district.signSurge()` (fires now, returns `day | night | soft | skip:…`) and
+    `__district.surge()` ({ spent, count, last: { why, did, at }, running }); e2e-harbor's `music` group checks it.
   - MORNING: the city signs go off one by one 30–10 min before sunrise; the logo stays on until clearAt, then falters for 6–9 min —
     letters drop out and come back, die one by one, the last hangs on alone — then the daytime glass look.
   - Never more than one flash every 0.7 s. ALWAYS NIGHT: lit at all times. Reduced effects: no sputters — the sign fades in over
@@ -539,6 +548,17 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
   global ☰ and music buttons and their glass becomes the pill's (the city's tint: `tintGlass` also sets `--dk-tint` on the body);
   lit with `.nd-cl-lit`; white on holidays. Removed on unmount — the lobby, THE BOARD and the games keep their buttons exactly as
   before. The sun behind them (`sunGlass`) works as before (test hook `__district.dock.sunAt(x, y, r)` places a sun to review it).
+- **SPLIT CORNERS + smaller buttons (7a section 0, Oct 23 2026 — the owner; both cities):** the round corner buttons are 36 pt
+  everywhere (`--cb` in components.css, was 44 / 42; the icons 19 / 16 px) with an invisible 44 × 44 pt tap area (`::after`, 4 pt
+  round each). On the title (`body.nd-on`) and the lobby (`body.cb-split`, app.js) the ☰ sits in the TOP-LEFT corner and the music in
+  the TOP-RIGHT, both at safe top + 10, framing the sign; the ☰'s panel drops from the left. The games keep both on the right (☰ at
+  +10, music at +54). A dev slot's TEST SLOT tag and City 2.0's TEST pill (`.hr-bar`) sit right of the ☰; the lobby's LEAVE ROOM
+  steps right of it on a phone (`margin-left`, none on a wide screen). The Harbor's lanes keep clear of the left button too
+  (`cornerL`, harbor/scene.js#rects + harbor-layout.js#laneRects).
+- **The sign ~24 pt higher on an upright phone (7a section 0, both cities):** `.nd-sign { margin-top: clamp(16px, calc(8.5vh − 24px),
+  72px) }` (was clamp(40px, 8.5vh, 96px)); a short upright phone (≤ 720 pt tall) 12 px (was 26); sideways phones + desktop unchanged.
+  The N's top lands ~38 pt under the corner buttons on a 402 × 874 iPhone (safe top 62). City 2.0's skyline doesn't grow into the
+  freed sky (its squeeze comes from REF_TITLE, unchanged): the city gets more sky.
 - Carried over from THE NEON RING (`docs/title-history.md`): the JOIN panel (the four boxes over one real input, auto-join on the 4th
   letter, paste, inline errors, pinned above the iOS keyboard by `fitKeyboard`, an invite link opens it filled in), REJOIN and notes
   above the dock, weather on the glass (`.nd-bar.is-rain / .is-flash`), the power-on (`is-dock`), the at-rest fade, `.nd-noblur`.

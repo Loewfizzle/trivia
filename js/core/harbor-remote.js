@@ -15,6 +15,7 @@
 import { sunTimes, localParts, easter, thanksgiving } from './sky.js';
 import { SHOW_SCENES } from './harbor-show.js';
 import { DRONE_SHAPES } from './harbor-sky.js';
+import { TOWER_CHOICES } from './harbor-windows.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
 export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'mood', 'debug', 'grid'];
@@ -31,82 +32,128 @@ export const INPUTS = {
   colour: { kind: 'select', label: 'ONE COLOUR', options: ['', 'rainbow', 'ff2e97', '2ee6ff', 'ffd25a', '7dff6a', 'ffffff'] },
   by: { kind: 'select', label: 'COLOUR BY', options: ['', 'word', 'letter'] },
   cycle: { kind: 'bool', label: 'COLOURS DRIFT' },
-  style: { kind: 'select', label: 'STYLE', options: ['wipe', 'steady', 'twinkle'], default: 'wipe' },
-  tower: { kind: 'select', label: 'TOWER', options: ['', 'wordA', 'wordB', 'wordV'], labels: { '': 'ANY', wordA: 'TOWER A', wordB: 'TOWER B', wordV: 'TOWER V' } },
+  style: { kind: 'select', label: 'STYLE', options: ['wipe', 'steady', 'twinkle', 'scroll'], default: 'wipe' },
+  // (7a §0: one tower, or one word per tower across a list — core/harbor-windows.js#TOWER_CHOICES; AUTO = the best layout)
+  tower: { kind: 'select', label: 'TOWERS', options: TOWER_CHOICES, labels: { '': 'AUTO', wordA: 'A', wordB: 'B', wordV: 'VERTICAL', 'wordA,wordB': 'A + B', 'wordA,wordB,wordV': 'A + B + V' } },
   scheme: { kind: 'select', label: 'SCHEME', options: [...new Set([...NEON_SCHEMES, ...ROSIE_SCHEMES])], default: 'halloween' },
   game: { kind: 'select', label: 'GAME', options: GAME_IDS, default: 'pulse' },
 };
 
-// THE EVENTS: every &force= preview that runs on ?city=2 (group → the panel's sub-heading). text: the longest text it takes.
+/** THE PANEL'S CATEGORIES (PART 7a §0 — the owner: "it's getting so cluttered"): collapsible sections, in this order, collapsed by
+ *  default. Every EVENT names its `cat` (one of these ids); the sheet's own controls (the times, the weather list, the party's
+ *  switches + scenes, the holidays, the music, the tools) sit in theirs. A new preview = a row with a `cat`; checkRegistry() and
+ *  harbor.test.mjs fail on an unknown one (the panel would put it in TOOLS rather than lose it). */
+export const CATS = [
+  { id: 'time', label: 'TIME' },
+  { id: 'weather', label: 'WEATHER' },
+  { id: 'sky', label: 'SKY EVENTS' },
+  { id: 'lights', label: 'LIGHTS' },
+  { id: 'signs', label: 'SIGNS' },
+  { id: 'party', label: 'PARTY SHOW' },
+  { id: 'harbor', label: 'HARBOR' },
+  { id: 'speakeasy', label: 'SPEAKEASY' },
+  { id: 'holidays', label: 'HOLIDAYS' },
+  { id: 'music', label: 'MUSIC' },
+  { id: 'tools', label: 'TOOLS' },
+];
+const CAT_IDS = new Set(CATS.map(c => c.id));
+export const catOf = id => { const e = EV[id]; return e && CAT_IDS.has(e.cat) ? e.cat : 'tools'; };
+
+// THE EVENTS: every &force= preview that runs on ?city=2 (cat → its category in the panel, group → the sub-heading inside it). Each
+// is a TOGGLE in `force` (several on at once, together with a time / weather / scene / holiday). text: the longest text it takes.
 // oneShot: a sky piece started through harbor().sky — EVERYONE's phones start it at the same moment (startAt), a late arrival
 // joins mid-flight; the rest are states (on while the remote is on). ready: false = not drawn on the Harbor yet: the panel hides the
 // row (the id stays valid for the URL + the server) until the part that builds it flips it.
 export const EVENTS = [
-  { id: 'drones', label: 'DRONE SHOW', group: 'SKY', oneShot: true, inputs: ['text', 'show', 'colours', 'colour', 'by', 'cycle'], text: 40, night: true },
-  { id: 'drones-calm', label: 'DRONES · CALM', group: 'SKY', hint: 'with DRONE SHOW: slower, steady lights' },
-  { id: 'banner', label: 'BANNER PLANE', group: 'SKY', oneShot: true, inputs: ['text'], text: 74, hint: 'A | B | C: up to 3 banners' },
-  { id: 'skywrite', label: 'SKYWRITING', group: 'SKY', oneShot: true, inputs: ['text'], text: 10 },
-  { id: 'skytype', label: 'SKYTYPING', group: 'SKY', oneShot: true, inputs: ['text'], text: 33 },
-  { id: 'helicopter', label: 'HELICOPTER', group: 'SKY', oneShot: true },
-  { id: 'balloons', label: 'BALLOONS', group: 'SKY', oneShot: true },
-  { id: 'balloon-festival', label: 'BALLOON FESTIVAL', group: 'SKY', oneShot: true },
-  { id: 'planes', label: 'PLANES', group: 'SKY' },
-  { id: 'approach', label: 'PLANE ON APPROACH', group: 'SKY' },
-  { id: 'satellites', label: 'SATELLITE TRAIN', group: 'SKY', night: true },
-  { id: 'aurora', label: 'AURORA', group: 'SKY', night: true },
-  { id: 'meteor', label: 'METEORS', group: 'SKY', night: true },
-  { id: 'eclipse', label: 'MOON ECLIPSE', group: 'SKY', night: true },
-  { id: 'eclipse-sun', label: 'SOLAR ECLIPSE', group: 'SKY' },
-  { id: 'totality', label: 'TOTALITY', group: 'SKY' },
-  { id: 'fireworks', label: 'FIREWORKS', group: 'SKY', night: true },
-  { id: 'finale', label: 'PARTY FINALE', group: 'SKY', night: true },
-  { id: 'sleigh', label: 'SLEIGH', group: 'SKY', night: true },
-  { id: 'witch', label: 'WITCH', group: 'SKY', night: true },
-  { id: 'ufo', label: 'UFO', group: 'SKY', night: true, ready: false },          // (ready: false — hidden in the panel until Part 6b
-  { id: 'cat', label: 'THE MOON CAT', group: 'SKY', night: true, ready: false },  //  builds them for the Harbor; still a valid id)
-  { id: 'geese', label: 'GEESE', group: 'BIRDS' },
-  { id: 'swifts', label: 'SWIFTS', group: 'BIRDS' },
-  { id: 'bats-dusk', label: 'BATS AT DUSK', group: 'BIRDS' },
-  { id: 'bats', label: 'HALLOWEEN BATS', group: 'BIRDS', night: true },
-  { id: 'heron', label: 'HERON', group: 'BIRDS' },
-  { id: 'rainbow', label: 'RAINBOW', group: 'RAINBOWS' },
-  { id: 'rainbow2', label: 'DOUBLE RAINBOW', group: 'RAINBOWS' },
-  { id: 'moonbow', label: 'MOONBOW', group: 'RAINBOWS', night: true },
-  { id: 'neonbow', label: 'NEON BOW', group: 'RAINBOWS', night: true },
-  { id: 'lightning', label: 'LIGHTNING', group: 'WEATHER FX', hint: 'with WEATHER = STORM' },
-  { id: 'freeze', label: 'FROST', group: 'WEATHER FX' },
-  { id: 'beams', label: 'SKY BEAMS', group: 'CITY', night: true, hint: 'the party’s vertical beams from the tall towers' },
-  { id: 'searchlights', label: 'SEARCHLIGHTS', group: 'CITY', night: true },
-  { id: 'spell', label: 'WORDS IN THE WINDOWS', group: 'CITY', inputs: ['text', 'style', 'tower'], text: 10, night: true },
-  { id: 'burnout', label: 'BURNT-OUT LETTER', group: 'CITY', night: true },
-  { id: 'neon-party', label: 'NEON PARTY', group: 'CITY', night: true },
-  { id: 'neon-flash', label: 'NEON FLASH', group: 'CITY', inputs: ['game'], night: true },
-  { id: 'neon-scheme', label: 'NEON SCHEME', group: 'CITY', inputs: ['scheme'], night: true },
+  { id: 'drones', label: 'DRONE SHOW', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text', 'show', 'colours', 'colour', 'by', 'cycle'], text: 40, night: true },
+  { id: 'drones-calm', label: 'DRONES · CALM', cat: 'sky', group: 'MESSAGES', hint: 'with DRONE SHOW: slower, steady lights' },
+  { id: 'banner', label: 'BANNER PLANE', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 74, hint: 'A | B | C: up to 3 banners' },
+  { id: 'skywrite', label: 'SKYWRITING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 10 },
+  { id: 'skytype', label: 'SKYTYPING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 33 },
+  { id: 'helicopter', label: 'HELICOPTER', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
+  { id: 'balloons', label: 'BALLOONS', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
+  { id: 'balloon-festival', label: 'BALLOON FESTIVAL', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
+  { id: 'planes', label: 'PLANES', cat: 'sky', group: 'AIRCRAFT' },
+  { id: 'approach', label: 'PLANE ON APPROACH', cat: 'sky', group: 'AIRCRAFT' },
+  { id: 'satellites', label: 'SATELLITE TRAIN', cat: 'sky', group: 'AIRCRAFT', night: true },
+  { id: 'aurora', label: 'AURORA', cat: 'sky', group: 'UP HIGH', night: true },
+  { id: 'meteor', label: 'METEORS', cat: 'sky', group: 'UP HIGH', night: true },
+  { id: 'eclipse', label: 'MOON ECLIPSE', cat: 'sky', group: 'UP HIGH', night: true },
+  { id: 'eclipse-sun', label: 'SOLAR ECLIPSE', cat: 'sky', group: 'UP HIGH' },
+  { id: 'totality', label: 'TOTALITY', cat: 'sky', group: 'UP HIGH' },
+  { id: 'fireworks', label: 'FIREWORKS', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
+  { id: 'finale', label: 'PARTY FINALE', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
+  { id: 'sleigh', label: 'SLEIGH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
+  { id: 'witch', label: 'WITCH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
+  { id: 'ufo', label: 'UFO', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, ready: false },          // (ready: false — hidden in the panel until Part 6b
+  { id: 'cat', label: 'THE MOON CAT', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, ready: false },  //  builds them for the Harbor; still a valid id)
+  { id: 'geese', label: 'GEESE', cat: 'sky', group: 'BIRDS' },
+  { id: 'swifts', label: 'SWIFTS', cat: 'sky', group: 'BIRDS' },
+  { id: 'bats-dusk', label: 'BATS AT DUSK', cat: 'sky', group: 'BIRDS' },
+  { id: 'bats', label: 'HALLOWEEN BATS', cat: 'sky', group: 'BIRDS', night: true },
+  { id: 'heron', label: 'HERON', cat: 'sky', group: 'BIRDS' },
+  { id: 'rainbow', label: 'RAINBOW', cat: 'weather', group: 'RAINBOWS' },
+  { id: 'rainbow2', label: 'DOUBLE RAINBOW', cat: 'weather', group: 'RAINBOWS' },
+  { id: 'moonbow', label: 'MOONBOW', cat: 'weather', group: 'RAINBOWS', night: true },
+  { id: 'neonbow', label: 'NEON BOW', cat: 'weather', group: 'RAINBOWS', night: true },
+  { id: 'lightning', label: 'LIGHTNING', cat: 'weather', group: 'WEATHER FX', hint: 'with WEATHER = STORM' },
+  { id: 'freeze', label: 'FROST', cat: 'weather', group: 'WEATHER FX' },
+  { id: 'beams', label: 'SKY BEAMS', cat: 'party', group: 'ANY NIGHT', night: true, hint: 'the party’s vertical beams from the tall towers' },
+  { id: 'searchlights', label: 'SEARCHLIGHTS', cat: 'lights', group: 'THE TOWERS', night: true },
+  { id: 'spell', label: 'WORDS IN THE WINDOWS', cat: 'lights', group: 'THE TOWERS', inputs: ['text', 'style', 'tower'], text: 60, night: true, hint: 'type a message: one word per tower, a word too long for its tower scrolls on it' },
+  { id: 'burnout', label: 'BURNT-OUT LETTER', cat: 'signs', group: 'THE CITY’S NEON', night: true },
+  { id: 'neon-party', label: 'NEON PARTY', cat: 'party', group: 'ANY NIGHT', night: true },
+  { id: 'neon-flash', label: 'NEON FLASH', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['game'], night: true },
+  { id: 'neon-scheme', label: 'NEON SCHEME', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['scheme'], night: true },
+  { id: 'spell-on', label: 'SPELL-ON ROUND', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'every named sign spells itself on in turn — the next one every 6 s' },
   // (DT1 — THE LIGHTS + SIGNS PASS: the power-up itself is TIME = POWER-UP / POWER-DOWN at SPEED 20)
-  { id: 'flood-front', label: 'WATERFRONT FLOODLIGHTS', group: 'LIGHTS', night: true, hint: 'the front row’s low warm uplight — compare on / off' },
-  { id: 'lamps-on', label: 'BILLBOARD LAMPS ON', group: 'LIGHTS', hint: 'its 4 gooseneck lamps held on (by day too)' },
-  { id: 'lamps-off', label: 'BILLBOARD LAMPS OFF', group: 'LIGHTS', night: true, hint: 'the night without them — compare' },
-  { id: 'no-halo', label: 'SIGN HALO OFF', group: 'LIGHTS', hint: 'the tagline + NEON’s dark halo off — compare (the moon behind it)' },
-  { id: 'wheel-scheme', label: 'WHEEL SCHEME', group: 'HARBOR', inputs: ['scheme'] },
-  { id: 'beam-green', label: 'GREEN BEAM', group: 'HARBOR', night: true },
-  { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', group: 'HARBOR', inputs: ['scheme'] },
-  { id: 'taxi', label: 'WATER TAXI', group: 'HARBOR' },
-  { id: 'strings-party', label: 'STRING LIGHTS · PARTY', group: 'HARBOR', night: true, hint: 'the speakeasy roof’s string lights in party mode' },
+  { id: 'flood-front', label: 'WATERFRONT FLOODLIGHTS', cat: 'lights', group: 'THE WATERFRONT', night: true, hint: 'the front row’s low warm uplight — compare on / off' },
+  { id: 'lamps-on', label: 'BILLBOARD LAMPS ON', cat: 'signs', group: 'THE BILLBOARD', hint: 'its 4 gooseneck lamps held on (by day too)' },
+  { id: 'lamps-off', label: 'BILLBOARD LAMPS OFF', cat: 'signs', group: 'THE BILLBOARD', night: true, hint: 'the night without them — compare' },
+  { id: 'no-halo', label: 'SIGN HALO OFF', cat: 'signs', group: 'THE NEON SIGN', hint: 'the tagline + NEON’s dark halo off — compare (the moon behind it)' },
+  { id: 'wheel-scheme', label: 'WHEEL SCHEME', cat: 'harbor', group: 'HARBOR', inputs: ['scheme'] },
+  { id: 'beam-green', label: 'GREEN BEAM', cat: 'harbor', group: 'HARBOR', night: true },
+  { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', cat: 'harbor', group: 'HARBOR', inputs: ['scheme'] },
+  { id: 'taxi', label: 'WATER TAXI', cat: 'harbor', group: 'HARBOR' },
+  { id: 'strings-party', label: 'STRING LIGHTS · PARTY', cat: 'speakeasy', group: 'SPEAKEASY', night: true, hint: 'the speakeasy roof’s string lights in party mode' },
+  // (PART 7a §0: the speakeasy's corner turned — the ghost ad wall wider; a toggle the owner flips on / off to compare, with any time)
+  { id: 'corner-turn', label: 'CORNER TURNED', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the speakeasy’s corner turned (the ghost ad wall wider) — compare on / off' },
+  // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the
+  // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set
+  // (harbor().flags.force / the scene's clock — a title-level regex on location.search can't be switched from the panel). Rename
+  // the id here if the effect lands under another name; flip ready when it's drawn.
+  { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', group: 'THE NEON SIGN', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
 ];
 export const EVENT_GROUPS = [...new Set(EVENTS.map(e => e.group))];
 /** the rows the panel shows (not the ones a later part still has to build) */
 export const PANEL_EVENTS = EVENTS.filter(e => e.ready !== false);
 const EV = Object.fromEntries(EVENTS.map(e => [e.id, e]));
 export const eventDef = id => EV[id] || null;
+/** the registry's own checks (harbor.test.mjs): [] = fine; else what's wrong (an unknown category, a duplicate id, an unknown input) */
+export function checkRegistry() {
+  const bad = [], seen = new Set();
+  for (const e of EVENTS) {
+    if (!/^[a-z0-9-]+$/.test(e.id || '')) bad.push(`id:${e.id}`);
+    if (seen.has(e.id)) bad.push(`dup:${e.id}`); seen.add(e.id);
+    if (!CAT_IDS.has(e.cat)) bad.push(`cat:${e.id}:${e.cat}`);
+    if (!e.label || typeof e.label !== 'string') bad.push(`label:${e.id}`);
+    for (const k of e.inputs || []) if (!INPUTS[k] || !REMOTE_KEYS.includes(k)) bad.push(`input:${e.id}:${k}`);
+  }
+  if (CAT_IDS.size !== CATS.length) bad.push('cats:dup');
+  return bad;
+}
 
 /** the party show's scenes, from the show's own lists (NEON PASS 3) */
 export const SHOW_SCENE_LIST = Object.entries(SHOW_SCENES).flatMap(([list, scenes]) => scenes.map(s => ({ id: s.name, list })));
 
+// PART 7a §0 (the owner): the day in time order — SUNRISE (5 min after today's real sunrise) · MORNING · NOON · AFTERNOON · GOLDEN HOUR
+// · SUNSET (5 min before the real sunset) · DUSK · NIGHT; then the rest (more: true — the panel's second row), in time order too.
+// Each becomes a concrete `when` at tap time (timeAt, from the real sun at the city's place that day) — EVERYONE gets that minute.
 export const TIMES = [
-  { id: 'dawn', label: 'DAWN' }, { id: 'morning', label: 'MORNING' }, { id: 'noon', label: 'NOON' }, { id: 'afternoon', label: 'AFTERNOON' },
-  { id: 'golden', label: 'GOLDEN HOUR' }, { id: 'dusk', label: 'DUSK' }, { id: 'night', label: 'NIGHT' }, { id: 'late', label: '3 AM' },
+  { id: 'sunrise', label: 'SUNRISE' }, { id: 'morning', label: 'MORNING' }, { id: 'noon', label: 'NOON' }, { id: 'afternoon', label: 'AFTERNOON' },
+  { id: 'golden', label: 'GOLDEN HOUR' }, { id: 'sunset', label: 'SUNSET' }, { id: 'dusk', label: 'DUSK' }, { id: 'night', label: 'NIGHT' },
   // (DT1: the blue hour's power-up from late golden hour; the power-down before sunrise — watch them at SPEED 20)
-  { id: 'powerup', label: 'POWER-UP' }, { id: 'powerdown', label: 'POWER-DOWN' },
+  { id: 'late', label: '3 AM', more: true }, { id: 'powerdown', label: 'POWER-DOWN', more: true }, { id: 'dawn', label: 'DAWN', more: true }, { id: 'powerup', label: 'POWER-UP', more: true },
 ];
 export const SPEEDS = [1, 20, 60];
 /** CITY 2.0 MUSIC: the moods the panel can force (the same ids as audio/mood.js#MOODS; AUTO = no `mood` key) */
@@ -154,7 +201,7 @@ export function timeAt(id, day, tz, lat, lon) {
   const st = sunTimes(Date.UTC(y, m - 1, d, 12), tz, lat, lon);
   const wall = ms => { const lp = localParts(ms, tz); return lp.h * 60 + lp.mi; };
   const rise = st.rise != null ? wall(st.rise) : 7 * 60, set = st.set != null ? wall(st.set) : 19 * 60;
-  const mins = { dawn: rise - 22, morning: rise + 100, noon: Math.round((rise + set) / 2), afternoon: Math.round((rise + set) / 2) + 180,
+  const mins = { dawn: rise - 22, sunrise: rise + 5, sunset: set - 5, morning: rise + 100, noon: Math.round((rise + set) / 2), afternoon: Math.round((rise + set) / 2) + 180,
     golden: set - 40, dusk: set + 16, night: 22 * 60 + 30, late: 3 * 60, powerup: set - 28, powerdown: rise - 52 }[id];
   if (mins == null) return null;
   const v = Math.max(0, Math.min(23 * 60 + 59, Math.round(mins)));
@@ -165,8 +212,9 @@ export function timeAt(id, day, tz, lat, lon) {
 const WHEN_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 const HEX_RE = /^[0-9a-f]{6}$/;
 // the letters every piece can draw (the pixel font of the windows, the smoke, the banner, the drones): A–Z 0–9, a few marks
-const TEXT_RE = /[^A-Z0-9 !?.,'&+\-#@:♥★|]/g;
-export const cleanText = (t, max = 74) => String(t == null ? '' : t).toUpperCase().replace(/[‘’]/g, "'").replace(TEXT_RE, '').replace(/\s+/g, ' ').trim().slice(0, max);
+const TEXT_RE = /[^A-Z0-9 !?.,'&+\-#@:♥★⚑|]/g;
+// (7a §0: the window font's symbols typed the easy way — <3 ♥, * ★, [flag] ⚑ — become the symbol before the filter)
+export const cleanText = (t, max = 74) => String(t == null ? '' : t).toUpperCase().replace(/[‘’]/g, "'").replace(/<3|\[HEART\]/g, '♥').replace(/\*|\[STAR\]/g, '★').replace(/\[FLAG\]/g, '⚑').replace(TEXT_RE, '').replace(/\s+/g, ' ').trim().slice(0, max);
 /** the longest text the state's text events all accept (the shortest of their limits) */
 export const textMax = force => Math.min(74, ...force.map(id => (EV[id] && EV[id].text) || 74));
 export function validWhen(s) {
@@ -205,7 +253,7 @@ export function cleanRemote(raw) {
     if (ok.length) out.colours = ok.join(',');
   }
   if (r.colour != null && r.colour !== '') { const v = String(r.colour).replace('#', '').toLowerCase(); if (v === 'rainbow' || HEX_RE.test(v)) out.colour = v; else bad.push('colour'); }
-  sel('by', ['word', 'letter']); sel('style', INPUTS.style.options); sel('tower', ['wordA', 'wordB', 'wordV']);
+  sel('by', ['word', 'letter']); sel('style', INPUTS.style.options); sel('tower', TOWER_CHOICES.filter(Boolean));
   sel('scheme', INPUTS.scheme.options); sel('game', GAME_IDS);
   if (r.cycle) out.cycle = true;
   sel('scene', SHOW_SCENE_LIST.map(s => s.id));

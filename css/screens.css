@@ -3,7 +3,7 @@
    ========================================================================== */
 
 /* ---- shared header bar ---- */
-.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-right: 52px; }
+.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-right: 44px; }
 .bar-title {
   font-family: var(--font-display);
   font-weight: 700;
@@ -305,9 +305,12 @@
 .opt-label { font-family: var(--font-ui); font-weight: 700; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
 .opt-sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-dim); }
 
-/* lobby: LEAVE ROOM sits top-left, across from the gear (tap twice to confirm) */
+/* lobby: LEAVE ROOM sits top-left, beside the ☰ (tap twice to confirm) — the SPLIT CORNERS put the menu in the screen's top-left
+   corner: on a phone (the column touches the edge) LEAVE ROOM steps right of it; on a wide screen the column is far from it */
 .lobby-leave {
   align-self: flex-start;
+  margin-left: max(0px, calc(var(--cb, 36px) + 4px - max(0px, (100vw - var(--maxw)) / 2)));
+  margin-top: -6px;   /* (level with the ☰: both centred 28 pt under the safe top) */
   min-height: 42px;
   margin-bottom: -10px;
   padding: 0 14px;

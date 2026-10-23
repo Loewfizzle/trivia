@@ -7,10 +7,10 @@
   position: fixed;
   z-index: 40;
   top: calc(var(--safe-t) + 6px);
-  left: calc(var(--safe-l) + 6px);
+  left: calc(var(--safe-l) + 16px + var(--cb, 36px));        /* (7a section 0: beside the ☰, which moved to the top-left corner) */
   display: flex;
   align-items: center;
-  max-width: calc(100vw - var(--safe-l) - 150px);
+  max-width: calc(100vw - var(--safe-l) - 36px - 2 * var(--cb, 36px));   /* (… and clear of the music button, top right) */
 }
 .hr-pill {
   position: relative;
@@ -51,7 +51,9 @@
 .hr-x[hidden] { display: none; }
 .hr-pill:active::before { transform: scale(0.95); }
 .hr-bar.hr-low { top: calc(var(--safe-t) + 88px); }      /* (under the &debug=1 readout: NEON PASS 5 gave it a fifth line) */
-.hr-bar.hr-under { top: calc(var(--safe-t) + 34px); }      /* (a dev slot's TEST SLOT tag sits top left: the pill goes under it) */
+/* (a dev slot's TEST SLOT tag sits beside the ☰ top left — 7a §0: under it the pill would touch the sign, so it moves to the
+   top right instead, beside the music button) */
+.hr-bar.hr-under { top: calc(var(--safe-t) + 6px); left: auto; right: calc(var(--safe-r) + 14px + var(--cb, 36px)); max-width: calc(100vw - 230px); }
 .hr-bar.hr-low.hr-under { top: calc(var(--safe-t) + 122px); }
 .hr-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
 .hr-pill[data-on='me'] .hr-dot { background: #7dff9c; box-shadow: 0 0 8px #7dff9c; }
@@ -64,9 +66,31 @@
 .modal.hr-modal > .sheet.hr-sheet { max-height: min(66dvh, calc(100dvh - var(--safe-t) - 10px)); transition: max-height 0.35s var(--ease, ease); }
 /* (NEON PASS 5: a sky piece just switched on — the sheet PEEKS for a few seconds: the sky lanes stay in view above it; a touch on
    the sheet brings it back up) */
+/* (PART 7a §0: EVERYONE builds a draft — nothing changes on this phone while she taps — so its sheet may be taller: the pinned top
+   + the send bar leave room for the categories) */
+.modal.hr-modal > .sheet.hr-sheet[data-mode='all'] { max-height: min(84dvh, calc(100dvh - var(--safe-t) - 10px)); }
 .modal.hr-modal > .sheet.hr-sheet.hr-peek { max-height: min(34dvh, calc(100dvh - var(--safe-t) - 10px)); }
-.hr-sheet { --accent: #ff7ccb; --accent-soft: rgba(255, 124, 203, 0.18); gap: 12px; padding-bottom: calc(var(--safe-b) + 14px); }
-.hr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.hr-sheet { --accent: #ff7ccb; --accent-soft: rgba(255, 124, 203, 0.18); gap: 0; padding-top: 0; padding-bottom: calc(var(--safe-b) + 14px); }
+/* PART 7a §0 — PINNED: the title, JUST ME / EVERYONE, the status + CLEAR ALL stay at the top while the categories scroll under them
+   (an opaque glass band, like the settings sheet's pinned head: no second blur layer over the sheet's own) */
+.hr-top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 8px var(--gutter) 10px;
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(180deg, rgb(31, 32, 58), rgb(15, 16, 38));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.13), 0 12px 16px -12px rgba(0, 0, 0, 0.75);
+}
+.hr-top .sheet-grip { margin: 0 auto -2px; }
+/* (while the sheet PEEKS — a third of the screen — the pinned band keeps only what's on + CLEAR ALL: the rows stay tappable) */
+.hr-sheet.hr-peek .hr-head, .hr-sheet.hr-peek .hr-mode { display: none; }
+.hr-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hr-top .sheet-title { font-size: 19px; }
 .hr-head .icon-btn { font-size: 28px; flex: none; width: 46px; height: 46px; }
 .hr-mode { display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; }
 .hr-modeb { min-height: 48px; font-size: 12px; }
@@ -85,8 +109,48 @@
 .hr-line small { flex-basis: 100%; font: 600 11px/1.3 var(--font-num); letter-spacing: 0.06em; color: rgba(222, 228, 255, 0.76); }
 .hr-line.hr-draft b { color: #ffd25a; }
 
-.hr-sec { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
-.hr-h { margin: 4px 0 0; font: 900 15px/1.1 var(--font-display); letter-spacing: 0.12em; color: #fff; }
+/* the status + CLEAR ALL side by side (one row of the pinned band) */
+.hr-stat { display: flex; gap: 8px; align-items: stretch; }
+.hr-stat > .hr-status { flex: 1; min-width: 0; padding: 7px 12px; gap: 4px; justify-content: center; }
+/* (pinned, the status stays short: two lines a line at most — the categories' headers say the rest) */
+.hr-stat .hr-line > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sheet .btn.hr-clear { flex: none; width: 96px; min-height: 48px; padding: 6px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 700 12.5px/1.1 var(--font-ui); letter-spacing: 0.1em; white-space: nowrap; border-radius: 14px; }
+.hr-clear small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.16em; color: rgba(222, 228, 255, 0.76); }
+
+/* THE CATEGORIES: a 52 pt header (the name, what's on inside, a dot, the count, a chevron) over a body that's hidden when closed */
+.hr-sec { display: flex; flex-direction: column; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.hr-top + .hr-sec { border-top: 0; margin-top: 4px; }
+.hr-cat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 2px;
+  margin: 0;
+  background: none;
+  border: 0;
+  border-radius: 12px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s;
+}
+.hr-cat:active { background-color: rgba(255, 255, 255, 0.05); }
+.hr-cat:focus-visible { outline: 2px solid #ff9bd8; outline-offset: -2px; }
+.hr-cat-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.hr-h { margin: 0; font: 900 14px/1.1 var(--font-display); letter-spacing: 0.12em; color: #fff; }
+.hr-cat-on { font: 600 11.5px/1.25 var(--font-num); letter-spacing: 0.05em; color: #ffc4e8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-cat-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #7dff9c; box-shadow: 0 0 8px #7dff9c; }
+.hr-sheet[data-mode='all'] .hr-cat-dot { background: #ff7ccb; box-shadow: 0 0 8px #ff7ccb; }
+.hr-cat-n { flex: none; min-width: 30px; height: 24px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font: 700 11.5px/1 var(--font-num); color: rgba(222, 228, 255, 0.8); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.14); }
+.hr-chev { flex: none; width: 9px; height: 9px; margin: -4px 8px 0 2px; border-right: 2px solid rgba(236, 240, 255, 0.72); border-bottom: 2px solid rgba(236, 240, 255, 0.72); transform: rotate(45deg); transition: transform 0.2s; }
+.hr-sec.is-open .hr-chev { transform: translateY(4px) rotate(225deg); }
+.hr-sec.is-open .hr-cat-n { color: #1a0614; background: #ff9bd8; border-color: #ffc4e8; }
+.hr-body { display: flex; flex-direction: column; gap: 8px; padding: 0 0 16px; }
+.hr-body[hidden] { display: none; }
 .hr-gl { font: 700 10.5px/1.3 var(--font-mono); letter-spacing: 0.2em; color: rgba(222, 228, 255, 0.76); margin-top: 4px; }
 .hr-note { margin: 0; font-size: 12.5px; color: rgba(222, 228, 255, 0.76); }
 .hr-group { display: flex; flex-direction: column; gap: 6px; }
@@ -135,18 +199,29 @@
 .hr-send {
   position: sticky;
   bottom: 0;
-  margin: 0 calc(-1 * var(--gutter));
-  padding: 10px var(--gutter) calc(var(--safe-b) + 14px);
+  z-index: 3;
+  margin: 8px calc(-1 * var(--gutter)) 0;
+  padding: 8px var(--gutter) calc(var(--safe-b) + 12px);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: rgba(10, 11, 28, 0.94);
+  background: rgb(12, 13, 32);                      /* (opaque: nothing ghosts through while the categories scroll under it) */
   border-top: 1px solid rgba(255, 255, 255, 0.16);
 }
 .hr-mins .hr-b { flex: 1; justify-content: center; }
 
-@media (prefers-reduced-motion: reduce) { .hr-b, .hr-pill::before { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .hr-b, .hr-pill::before, .hr-cat, .hr-chev { transition: none; } }
 
 /* CITY 2.0 MUSIC: the song playing now + its beat grid's status */
 .hr-music { min-height: 40px; }
 .hr-line small.hr-warn { color: #ffd25a; }
+
+/* PART 7a §0 — THE WORD TOWERS' readout under the text box: a row a tower (what stands / what scrolls), the room, the characters */
+.hr-fit { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; border-radius: 12px; background: rgba(8, 9, 26, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); }
+.hr-fit-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 13px; color: rgba(236, 240, 255, 0.94); }
+.hr-fit-row b { flex: none; width: 16px; font: 700 12px/1.2 var(--font-mono); color: #ff9bd8; }
+.hr-fit-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 13px/1.3 var(--font-ui); letter-spacing: 0.06em; }
+.hr-fit-row small { flex: none; font: 600 11.5px/1.3 var(--font-num); color: #9dffb4; }
+.hr-fit-row.is-scroll small { color: #ffd25a; }
+.hr-fit-n { font: 600 11px/1.35 var(--font-num); letter-spacing: 0.04em; color: rgba(222, 228, 255, 0.76); }
+.hr-fit-n.hr-warn { color: #ffd25a; }

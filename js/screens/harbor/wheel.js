@@ -224,7 +224,7 @@ export function createWheel() {
     const sc = WHEEL_SCHEMES[schemeName] || WHEEL_SCHEMES.city, t = f.t, br = BR();
     const P2 = f.party, party = !!(P2 && P2.ramp > 0.3 && schemeName === 'party');
     const pk = party ? P2.punch || 0 : 0, bF = party ? P2.beatsF || 0 : 0, bar = party ? P2.bar || 0 : 0, cn = f.cn || 0, drop = party ? f.drop || 0 : 0;
-    const whole = lights * (party ? 0.82 + 0.45 * pk : 1);
+    const whole = lights * (party ? 0.82 + 0.6 * pk : 1);      // (7a: 0.45 → 0.6)
     const PAL = i => PARTY_PAL[((i % 7) + 7) % 7];
     const mode = party ? Math.floor(bar / 4) % 4 : -1;
     // (the perf pass: a normal night is the baked bulbs at their steady level + only the bulbs that differ drawn over them)
@@ -290,7 +290,7 @@ export function createWheel() {
         bulb(c, x, y, br * 0.86, col, k * whole);
       }
     }
-    const hc = party ? PAL(cn * 2 + 5) : sc.hub, hk = (party ? 0.9 + 0.7 * pk : 1) * whole;
+    const hc = party ? PAL(cn * 2 + 5) : sc.hub, hk = (party ? 0.9 + 0.92 * pk : 1) * whole;
     if (!base) { for (let i = 0; i < HUB_BULBS; i++) { const an = (i / HUB_BULBS) * Math.PI * 2; bulb(c, Math.cos(an) * r * 0.13, Math.sin(an) * r * 0.13, br * 0.8, hc, hk); } bulb(c, 0, 0, br * 1.5, hc, hk); }
     c.globalAlpha = 1;
   }
@@ -308,8 +308,8 @@ export function createWheel() {
     if (party > 0.3 && f.party && f.party.beatU != null) {
       const u = f.party.beatU, pos = u * (NR + 1.5) - 0.5, pk = f.party.punch || 0, step = (f.party.beats || 0) % 3;
       for (let j = 0; j < NR; j++) { const d = Math.abs(j - pos); k[3 + j] = 0.48 + 0.85 * Math.max(0, 1 - d / 1.6); }
-      for (let s = 0; s < 3; s++) k[s] = (s === step ? 1.15 : 0.55) + 0.45 * pk;
-      k[3 + NR] = 0.8 + 0.6 * pk;
+      for (let s = 0; s < 3; s++) k[s] = (s === step ? 1.15 : 0.55) + 0.6 * pk;    // (7a: 0.45 → 0.6, the hub's 0.6 → 0.8)
+      k[3 + NR] = 0.8 + 0.8 * pk;
       if (f.sparkle > 0) for (let s = 0; s < 3; s++) k[s] *= 0.75 + 0.25 * (0.5 + 0.5 * Math.sin(t * 7 + s * 2.1));
       return k;
     }

@@ -6,7 +6,7 @@
 //   el    the song's <audio> element: playing / paused, readyState, networkState, error code, its clock ▲ / ■, its gain, the file
 //   out   (M4) the path the music is on: WEB AUDIO (a voice through the graph) or DIRECT ELEMENT (iOS's own pipeline), the direct
 //         element armed or not, the voices, the probe's level
-//   want  what should be playing (+ music off / muted), sounding yes / NO, needs a tap, a dead voice, the last heal
+//   want  what should be playing (+ music off / muted), the panel's ONE status (the header's too: sounding / sounding DIRECT / silent (why) / LOCKED / NEEDS TAP / DEAD VOICE / NOT SOUNDING), the last heal
 //   then  the last 8 events with times: visibility, pagehide / pageshow (persisted), blur / focus, each tap (+ the context's state
 //         then), every resume() and play() with its result or the error's name, rebuilds, frozen clocks, rescues, the direct path.
 // Tap the AUDIO title to fold it to one line (remembered for the visit). Pointer events pass through everything else; the right
@@ -27,7 +27,6 @@ const CSS = `
 
 const KEY = 'ad:fold';
 const hhmmss = at => { const d = new Date(at); const p = n => String(n).padStart(2, '0'); return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${Math.floor(d.getMilliseconds() / 100)}`; };
-const yes = (v, t = 'yes', f = 'NO') => v ? t : f;
 
 export function mountAudioDiag() {
   if (document.querySelector('.ad-diag')) return;
@@ -42,6 +41,16 @@ export function mountAudioDiag() {
   box.classList.toggle('ad-fold', fold);
   head.addEventListener('click', () => { fold = !fold; box.classList.toggle('ad-fold', fold); try { sessionStorage.setItem(KEY, fold ? '1' : '0'); } catch { /* fine */ } paint(); });
   let prevCtx = null, prevEl = null, lastText = '', lastHead = '';
+  /** the panel's one verdict on the music: { key, text, ok } — the header and the want row both print `text` */
+  function audioStatus(d, E, should) {
+    if (d.sounding) return { key: 'on', text: d.out === 'direct' ? 'sounding DIRECT' : 'sounding', ok: true };
+    if (d.off) return { key: 'off', text: `silent (${d.off})`, ok: true };
+    if (!E.unlocked) return { key: 'locked', text: 'LOCKED (no tap yet)', ok: !should };
+    if (d.needTap) return { key: 'tap', text: 'NEEDS TAP', ok: false };
+    if (d.dead) return { key: 'dead', text: 'DEAD VOICE', ok: false };
+    if (!should) return { key: 'idle', text: 'silent (nothing to play)', ok: true };
+    return { key: 'no', text: 'NOT SOUNDING', ok: false };
+  }
   const line = (cls, text) => [cls, text];
   function paint() {
     let d;
@@ -54,9 +63,13 @@ export function mountAudioDiag() {
     const ctxOk = E.state === 'running' && !E.frozen && ctxMoves !== false;
     const elOk = !!d.el && !d.el.paused && !d.el.err && elMoves !== false;
     const should = !!d.want && !d.off;
-    const okAll = !should || d.sounding;
+    // 7a (the owner: the header said "sounding" over a detail row saying "sounding NO · locked (no tap yet)"): ONE status, read by the
+    // header AND the want row — sounding / SOUNDING DIRECT / silent (music off · muted · nothing to play) / LOCKED (no tap yet) /
+    // NEEDS TAP / DEAD VOICE / NOT SOUNDING
+    const st = audioStatus(d, E, should);
+    const okAll = st.ok;
     // (the title carries the clock: it changes every half second — the body only when something happened)
-    const h = `AUDIO ${fold ? '▸' : '▾'} ${okAll ? 'sounding' : 'NOT SOUNDING'} · ctx ${E.state} · el ${d.el ? (d.el.paused ? 'paused' : 'playing') : 'none'}${d.out === 'direct' ? ' DIRECT' : ''} · ${hhmmss(Date.now())}`;
+    const h = `AUDIO ${fold ? '▸' : '▾'} ${st.text} · ctx ${E.state} · el ${d.el ? (d.el.paused ? 'paused' : 'playing') : 'none'} · ${hhmmss(Date.now())}`;
     if (h !== lastHead) { lastHead = h; head.textContent = h; head.className = 'ad-h ' + (okAll ? 'ad-ok' : 'ad-bad'); }
     if (fold) return;
     const rows = [
@@ -66,7 +79,7 @@ export function mountAudioDiag() {
         ? `el ${d.playing} ${d.el.paused ? 'PAUSED' : 'playing'} · ready ${d.el.ready} · net ${d.el.net} · err ${d.el.err || '–'} · t ${d.el.t.toFixed(1)} ${arrow(elMoves)} · gain ${d.el.gain.toFixed(2)}${d.el.broken ? ' · BROKEN' : ''}${d.still ? ' · STILL' : ''}`
         : `el none${d.carry ? ` (carrying ${d.carry} to new voices)` : ''} · voices ${d.voices}`),
       line(d.out === 'direct' ? 'ad-ok' : 'ad-ok', `out ${d.out === 'direct' ? 'DIRECT ELEMENT' : 'WEB AUDIO'} · direct ${d.direct} · src ${d.el ? d.el.src : '–'} · voices ${d.voices} (${d.armed} armed) · probe ${d.peak < 0 ? '?' : d.peak.toFixed(3)}`),
-      line(okAll ? 'ad-ok' : 'ad-bad', `want ${d.want || 'nothing'}${d.off ? ` (${d.off})` : ''} · sounding ${yes(d.sounding)}${d.needTap ? ' · NEEDS TAP' : ''}${d.dead ? ' · DEAD VOICE' : ''}${d.ended ? ' · ended' : ''} · heals ${d.heals}${d.last ? ` (${d.last})` : ''}`),
+      line(okAll ? 'ad-ok' : 'ad-bad', `want ${d.want || 'nothing'}${d.off ? ` (${d.off})` : ''} · ${st.text}${d.needTap && st.key !== 'tap' ? ' · NEEDS TAP' : ''}${d.dead && st.key !== 'dead' ? ' · DEAD VOICE' : ''}${d.ended ? ' · ended' : ''} · heals ${d.heals}${d.last ? ` (${d.last})` : ''}`),
       ...d.events.slice(-8).map(e => line('ad-ev', `${hhmmss(e.at)} ${e.m}`)),
     ];
     const text = rows.map(r => r.join('\u0001')).join('\n');

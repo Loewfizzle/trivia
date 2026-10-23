@@ -136,7 +136,7 @@ export function createSkyBeams() {
     if (!beams.length || f.k <= 0.004) return;
     const cols = f.cols ? f.cols(beams.map(b => b.id)) : beams.map(() => [255, 255, 255]);
     const haze = 1 + 0.7 * clamp01(f.haze || 0);
-    const pulse = 0.55 + 0.75 * (f.punch || 0);                       // (NEON PASS 5: a clear punch on the strong beats)
+    const pulse = 0.5 + 1.0 * (f.punch || 0);                         // (NEON PASS 5: a clear punch on the strong beats; 7a: 0.55 + 0.75 → 0.5 + 1.0)
     c.save(); c.globalCompositeOperation = 'lighter';
     const rs = f.signs || [];
     beams.forEach((b, i) => {
@@ -149,7 +149,7 @@ export function createSkyBeams() {
       if (a < 0.01) return;
       let col = (cfg.colours && cfg.colours[i % cfg.colours.length]) || cols[i] || [255, 255, 255];
       if (b.far) col = col.map((v, j) => Math.round([224, 240, 255][j] * 0.72 + v * 0.28));      // (the glass tower's: ice-white, a touch of the sweep)
-      const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.92 + 0.2 * (f.punch || 0)) * (b.far ? 0.5 : 1);
+      const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.9 + 0.3 * (f.punch || 0)) * (b.far ? 0.5 : 1);   // (7a: the beam swells more on the beat)
       if (!sp) return;
       c.globalAlpha = Math.min(1, a * pulse * haze * 0.95 * (b.far ? 0.5 : 1));
       // (NEON PASS 6, the owner: the beam ended in a sharp horizontal line at the crown — its last FOOT pt now come from a fade sprite:
@@ -172,8 +172,8 @@ export function createSkyBeams() {
       const fs = footFor(sp);
       if (fs) c.drawImage(fs, b.x - gw / 2, yf, gw, ft + 3 * K);
       // the beam's root: a bright flare where it leaves the crown (it punches on the beat)
-      const r = (5 + 5 * (f.punch || 0)) * K * (b.far ? 0.55 : 1);
-      c.globalAlpha = Math.min(1, a * (0.55 + 0.45 * (f.punch || 0)) * (b.far ? 0.6 : 1));
+      const r = (5 + 7 * (f.punch || 0)) * K * (b.far ? 0.55 : 1);
+      c.globalAlpha = Math.min(1, a * (0.55 + 0.6 * (f.punch || 0)) * (b.far ? 0.6 : 1));
       c.drawImage(flareSprite(), b.x - r, y0 - r * 0.7, r * 2, r * 2);
       // (SP: the cloud it goes into lights up there — clouds.js#beamPatch)
       // (the patch's size from the beam's own width, not its beat pulse — the beat is only its brightness)

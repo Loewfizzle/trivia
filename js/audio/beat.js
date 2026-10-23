@@ -6,11 +6,11 @@
 // NEON PASS 5 (City 2.0): the song's BEAT GRID (data/mood-music.json `grid`: the exact bpm, the first beat, the downbeat) and
 // THE SOUND ITSELF — beatKick() reads the low end (kick + bass) off the music bus through an AnalyserNode and reports the kicks
 // it hears (core/harbor-beat.js#onsetStep), late by the output's latency so the light lands when the sound does.
-import { nowPlaying } from './music.js';
+import { nowPlaying, musicOut } from './music.js';
 import { lobbyNow } from './lobby-music.js';
 import { moodData } from './mood.js';
 import { settings } from './settings.js';
-import { getContext, getMusicBus } from './engine.js';
+import { getContext, getMusicBus, clockFrozen } from './engine.js';
 import { createOnsets, onsetStep, kickLag, kickErr, createLead, learnLead, heardPos } from '../core/harbor-beat.js';
 
 // ---- WHEN THE BEAT IS HEARD (M2, the owner: the party's sync "kind of — not perfect")
@@ -91,9 +91,16 @@ export function beatSource(nowMs = performance.now()) {
   const untrusted = !!(all && all.trusted === false);
   const g = untrusted ? null : all;
   why = '';
+  // 7a: the mood song on THE DIRECT ELEMENT (M4: the graph is dead) — iOS's own media pipeline plays it, so its currentTime is what is
+  // heard (AVFoundation's clock follows the audio device and compensates its output latency — that is how video stays in sync, Bluetooth
+  // included). Neither the graph's output latency nor the learned lead (the graph tap's offset from the element) applies: 0 + 0. If
+  // anything this errs toward the light a hair EARLY, the side the eye forgives (a sound behind its light is natural; ahead is not).
+  const direct = !lob && musicOut() === 'direct';
   // (pos AS HEARD: the element's / the buffer's clock runs ahead of the speaker by the output latency + the element's own lead)
-  return { id: np.id, bpm: g ? g.bpm : song.bpm, pos: heardPos(dequantize(np.id, np.at, nowMs), outLatency(), cal[lob ? 'buf' : 'el'].v), grid: g, untrusted };
+  const pos = direct ? heardPos(dequantize(np.id, np.at, nowMs), DIRECT_OUT, 0) : heardPos(dequantize(np.id, np.at, nowMs), outLatency(), cal[lob ? 'buf' : 'el'].v);
+  return { id: np.id, bpm: g ? g.bpm : song.bpm, pos, grid: g, untrusted, loose: untrusted ? all : null, direct };
 }
+const DIRECT_OUT = 0;              // the direct element's output estimate (s): its clock is the presentation time already
 
 /** the song sounding on this phone and what the beat knows of it (the preview panel's MUSIC row, the readout): { id, at, dur, bpm, grid:
  *  'trusted' | 'NOT TRUSTED' | 'none', lock } or null when no mood song is sounding */
@@ -130,14 +137,24 @@ function analyser() {
  * This frame's kick (call once a frame while a party wants the beat): { hit (0..1 a kick that sounds now, its strength), live
  * (the analyser hears the music: a signal in the last 2 s) } — or null (no music, muted, no Web Audio).
  */
+// 7a — THE DEAF LISTENER: a graph whose clock has stopped (iOS after the background) keeps the analyser's LAST window for ever — the
+// music that was playing when it froze. Its RMS then never changes, so it looked "live" (a signal in the last 2 s) with no kicks: the
+// clock read that as a breakdown and calmed the city to a quarter (hb.level 0.25) — the owner's "the lights stopped pulsing" after
+// coming back. The same RMS frame after frame (a real signal never repeats to 1e-7 for 8 frames), a frozen clock, or the song on the
+// direct element = nothing heard.
+let lastRms = -1, sameN = 0;
 export function beatKick(nowMs = performance.now()) {
   if (settings.musicOff || settings.muted || !(lobbyNow() || nowPlaying())) return null;
+  // (the song on THE DIRECT ELEMENT or the graph frozen: the listener can't hear it — no kicks, not live; the grid leads: 'direct-grid')
+  if ((!lobbyNow() && musicOut() === 'direct') || clockFrozen()) { heardAt = -1e9; queue.length = 0; sameN = 0; return { hit: 0, live: false, deaf: true }; }
   const A = analyser();
   if (!A || A.ctx.state !== 'running') return null;
   let s = 0, n;
   if (A.f) { A.a.getFloatTimeDomainData(A.f); n = A.f.length; for (let i = 0; i < n; i++) s += A.f[i] * A.f[i]; }
   else { A.a.getByteTimeDomainData(A.b); n = A.b.length; for (let i = 0; i < n; i++) { const v = (A.b[i] - 128) / 128; s += v * v; } }
   const rms = Math.sqrt(s / n);
+  sameN = rms > 1e-3 && Math.abs(rms - lastRms) < 1e-7 ? sameN + 1 : 0; lastRms = rms;
+  if (sameN >= 8) { heardAt = -1e9; return { hit: 0, live: false, deaf: true }; }
   if (rms > 1e-3) heardAt = nowMs;
   if (lastFrame && nowMs - lastFrame < 100) frameS += ((nowMs - lastFrame) / 1000 - frameS) * 0.05;
   lastFrame = nowMs;

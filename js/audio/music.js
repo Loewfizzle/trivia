@@ -362,6 +362,13 @@ export function musicSounding() {
   if (current.voice.direct) return !el.paused && !el.error && !current.voice.broken && !needTap && !stall.still;   // (the graph doesn't matter)
   return !!ctx && ctx.state === 'running' && !clockFrozen() && !el.paused && !el.error && !current.voice.broken && !dead && !needTap && !stall.still;
 }
+/** THE MUSIC'S FIRST TAP (title.js, City 2.0): the playing song's own clock (s) while a song really sounds — playing, sounding, the
+ *  music on, not muted, its volume up — else -1. The title's sign answers the moment this starts moving after a tap. */
+export function musicClock() {
+  if (!current || current.ended || settings.musicOff || settings.muted || !(settings.music > 0) || !musicSounding()) return -1;
+  const el = current.voice.el;
+  return el && !el.paused && isFinite(el.currentTime) ? el.currentTime : -1;
+}
 
 // Loop watcher: crossfade into a fresh copy before the end.
 let lastNudge = 0;

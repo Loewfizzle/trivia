@@ -120,6 +120,8 @@ function render(st) {
   // the menus (setup, lobby) sit on glass over the lit district, like the title
   const glass = key.startsWith('setup') || key.startsWith('lobby') || key === 'profile';
   if (document.body.classList.contains('nd-glass') !== glass) { document.body.classList.toggle('nd-glass', glass); showBackdrop(glass); }
+  // SPLIT CORNERS (7a section 0): the lobby (like the title) puts ☰ top-left and the music top-right (components.css)
+  document.body.classList.toggle('cb-split', key.startsWith('lobby'));
 
   if (current && current.key === key) { current.screen.update && current.screen.update(st); return; }
   const old = current;

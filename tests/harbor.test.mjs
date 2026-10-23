@@ -967,12 +967,12 @@ test('the party show (NEON PASS 4): racing light on most buildings, a HARD beat 
   assert.ok(Math.abs(beatOf(0.3, 1, 120, () => 2).T - 0.5) < 0.01 && beatOf(0.6, 1, 120, () => 2).idx === 1);
 });
 
-test('the everyday motion (NEON PASS 3 + 4): calm but alive — one sign spells on, one or two blink, one icon cycles its colour, three or four slow chasers spread out; the same all night', () => {
+test('the everyday motion (NEON PASS 3 + 4; 7a): calm but alive — every named sign spells on in its turn, one or two blink, one icon cycles its colour, three or four slow chasers spread out; the same all night', () => {
   const signs = [{ id: 'n-roof', kind: 'named' }, { id: 'n-par', kind: 'named' }, { id: 'n-blade', kind: 'named' }, { id: 'i-par', kind: 'icon' }, { id: 'i-jazz', kind: 'icon' }];
   const cast = showItems(Array.from({ length: 30 }, (_, i) => ({ kind: i % 3 ? 'band' : 'hero', x: i / 30, contour: true })));
   const a = everyday('2026-10-22', cast, signs), b = everyday('2026-10-22', cast, signs), c = everyday('2026-10-23', cast, signs);
   assert.deepEqual([...a.spell], [...b.spell]); assert.equal(a.cycle, b.cycle);
-  assert.ok(a.spell.size === 1 && a.blink.size >= 1 && a.blink.size <= 2 && ![...a.blink].some(id => a.spell.has(id)), 'one spells, one or two others blink');
+  assert.ok(a.spell.size === 3 && [...a.spell].every(id => id.startsWith('n-')) && a.blink.size >= 1 && a.blink.size <= 2, 'every named sign spells (in turns), one or two blink');
   assert.ok(a.cycle && a.cycle.startsWith('i-'), 'an icon cycles its colour');
   assert.ok(a.chase.size >= 3 && a.chase.size <= 4, `three or four slow chasers (${a.chase.size})`);
   { const xs = [...a.chase].map(i => cast[i].x).sort((p, q) => p - q); for (let i = 1; i < xs.length; i++) assert.ok(xs[i] - xs[i - 1] >= 0.15 - 1e-9, `spread across the skyline (${xs.map(v => v.toFixed(2))})`); }
@@ -1025,26 +1025,89 @@ test('colours through the night + a burnt-out letter (NEON PASS 3): stages on th
 
 // ------------------------------------------------------------------ THE PREVIEW PANEL (core/harbor-remote.js)
 import { readFileSync, readdirSync } from 'node:fs';
-import { EVENTS, INPUTS, REMOTE_KEYS, SHOW_SCENE_LIST, HOLIDAYS, cleanRemote, toParams, describe, timeAt, holidayDay, textMax, isEmpty } from '../js/core/harbor-remote.js';
-import { skyClock, holidayOf } from '../js/core/sky.js';
+import { EVENTS, INPUTS, REMOTE_KEYS, SHOW_SCENE_LIST, HOLIDAYS, TIMES, cleanRemote, toParams, describe, timeAt, holidayDay, textMax, isEmpty } from '../js/core/harbor-remote.js';
+import { skyClock, holidayOf, sunTimes, localParts } from '../js/core/sky.js';
 
 test('the preview panel: one registry — every &force= preview the Harbor runs is on it, and every row is a real preview', () => {
   // the modules City 2.0 runs (its own + the district's sky modules it reuses): every id they test with force.has(...)
-  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), ...['fx', 'sun', 'weather-fx', 'frost'].map(f => `js/screens/district/${f}.js`)];
+  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), ...['fx', 'sun', 'weather-fx', 'frost'].map(f => `js/screens/district/${f}.js`), 'js/screens/title.js'];
   const src = files.map(f => readFileSync(f, 'utf8')).join('\n');
-  const used = new Set([...src.matchAll(/(?:force|f|off|clock\.force)\.has\('([a-z0-9-]+)'\)/g)].map(m => m[1]));
+  const used = new Set([...src.matchAll(/(?:(?:force|f|off|clock\.force)\.has|scene\.forced)\('([a-z0-9-]+)'\)/g)].map(m => m[1]));
   for (const m of src.matchAll(/again\('([a-z0-9-]+)'/g)) used.add(m[1]);
   // (not events: the perf A/B switches, the panel's own party switches, the debug-only demo, sky internals)
   const tools = id => id.startsWith('no-') || ['party', 'demo', 'sat'].includes(id);
   const ids = new Set(EVENTS.map(e => e.id));
   const missing = [...used].filter(id => !tools(id) && !ids.has(id));
   assert.deepEqual(missing, [], 'a &force= preview the panel does not list');
-  const dead = [...ids].filter(id => !used.has(id) && !['searchlights'].includes(id));
+  // (PART 7a §0: registered before their effect lands — corner-turn: the speakeasy (the lead); first-tap: the NEON sign's surge (the
+  // layout agent; hidden, ready: false). Once a module reads one it simply passes; drop it from here then.)
+  const PENDING = [];
+  const dead = [...ids].filter(id => !used.has(id) && !['searchlights', ...PENDING].includes(id));
   assert.deepEqual(dead, [], 'a row no module reads');
   assert.ok(src.includes("['demo', 'searchlights'].filter(id => clock.force.has(id))"), 'searchlights: forced through the scheduler');
   for (const e of EVENTS) for (const k of e.inputs || []) assert.ok(INPUTS[k] && REMOTE_KEYS.includes(k), `${e.id}: ${k}`);
   assert.equal(new Set(EVENTS.map(e => e.id)).size, EVENTS.length, 'ids are unique');
   assert.ok(SHOW_SCENE_LIST.some(s => s.id === 'climb+crowns') && SHOW_SCENE_LIST.length >= 12, 'the show\'s own scene list');
+});
+
+test('the preview panel (PART 7a §0): every entry names a known category; the registry\'s own checks pass; the new toggles', async () => {
+  const { CATS, catOf, checkRegistry, PANEL_EVENTS } = await import('../js/core/harbor-remote.js');
+  const known = new Set(CATS.map(c => c.id));
+  assert.equal(known.size, CATS.length, 'category ids are unique');
+  for (const e of EVENTS) assert.ok(known.has(e.cat), `${e.id}: a known category (${e.cat})`);
+  assert.deepEqual(checkRegistry(), [], 'the registry\'s own checks');
+  // every category the panel draws holds something (its own controls or at least one row)
+  const own = ['time', 'weather', 'party', 'holidays', 'music', 'tools'];
+  for (const c of CATS) assert.ok(own.includes(c.id) || PANEL_EVENTS.some(e => e.cat === c.id), `${c.id}: not empty`);
+  assert.equal(catOf('nope'), 'tools', 'an unknown id falls back to TOOLS (never lost)');
+  // the speakeasy's corner: a TOGGLE (in force[]) — on together with a time, a scene and the party
+  assert.equal(catOf('corner-turn'), 'speakeasy');
+  assert.ok(PANEL_EVENTS.some(e => e.id === 'corner-turn'), 'the corner turn shows in the panel');
+  const st = cleanRemote({ force: ['corner-turn', 'strings-party'], when: '2026-10-24T23:00', scene: 'climb+crowns', party: 'on' });
+  assert.deepEqual(st.bad, []);
+  assert.equal(toParams(st.state).force, 'corner-turn,strings-party,party');
+  assert.match(describe(st.state), /CORNER TURNED/);
+  // the first-tap surge: a valid id (the URL + the server accept it), hidden until its effect is drawn
+  assert.deepEqual(cleanRemote({ force: ['first-tap'] }).bad, []);
+  assert.equal(catOf('first-tap'), 'signs');
+  // checkRegistry catches an unknown category
+  EVENTS.push({ id: 'zz-test', label: 'X', cat: 'nowhere' });
+  try { assert.deepEqual(checkRegistry(), ['cat:zz-test:nowhere']); } finally { EVENTS.pop(); }
+});
+
+test('THE WORD TOWERS from the panel (7a §0): each tower\'s room, one word per tower, a word too long for its tower scrolls on it', async () => {
+  const { fitText, towerCapacity, WORD_FACES, TOWER_CHOICES, badChars, FONT_CHARS, normText } = await import('../js/core/harbor-windows.js');
+  // the fallback faces are the real ones on every phone + desktop (19 × 11, 15 × 9, 5 × 18)
+  // (a phone on its side, 874 × 402, keeps only a few free rows: the live faces say so in the panel — no room there)
+  const side = {};
+  for (const k of Object.keys(SIZES)) {
+    const { L } = setup(k);
+    for (const t of L.towers.filter(x => x.word)) { const f = { cols: t.tiers[0].win.cols, rows: t.face.rows, word: t.word }; if (k === '874x402') side[t.id] = f; else assert.deepEqual(f, WORD_FACES[t.id], `${k}: ${t.id}`); }
+  }
+  assert.equal(towerCapacity(side).wordB.letters, 4, 'on its side: B still holds a word (A 19 × 3 — no room; B 15 × 12; V 5 × 8 — one letter)');
+  assert.deepEqual(towerCapacity(WORD_FACES), {
+    wordA: { word: 'h', cols: 19, rows: 11, lines: 2, letters: 5 }, wordB: { word: 'h', cols: 15, rows: 9, lines: 1, letters: 4 }, wordV: { word: 'v', cols: 5, rows: 18, lines: 1, letters: 3 } });
+  const plan = (t, tw) => fitText(t, WORD_FACES, tw).plan.map(p => `${p.tower}:${p.text}:${p.scroll ? 'scroll' : 'still'}`);
+  assert.deepEqual(plan('HELLO', ''), ['wordA:HELLO:still']);
+  assert.deepEqual(plan('HAPPY NEW YEAR', ''), ['wordA:HAPPY / NEW:still', 'wordB:YEAR:still'], 'AUTO keeps the best layout');
+  assert.deepEqual(plan('JOY', ''), ['wordV:JOY:still']);
+  assert.deepEqual(plan('HAPPY BIRTHDAY', ''), ['wordA:HAPPY:still', 'wordB:BIRTHDAY:scroll'], 'AUTO, nothing fits: one word per tower, the long one scrolls');
+  assert.deepEqual(plan('SPEAKEASY', ''), ['wordA:SPEAKEASY:scroll'], 'one long word: the ticker on A');
+  assert.deepEqual(plan('HAPPY BIRTHDAY SAM', 'wordA,wordB,wordV'), ['wordA:HAPPY:still', 'wordB:BIRTHDAY:scroll', 'wordV:SAM:still']);
+  assert.deepEqual(plan('JAZZ NIGHT AT THE BAR', 'wordA,wordB'), ['wordA:JAZZ:still', 'wordB:NIGHT AT THE BAR:scroll'], 'the last tower takes the rest');
+  assert.deepEqual(plan('HI', 'wordB'), ['wordB:HI:still']);
+  assert.deepEqual(plan('MMMMMM', 'wordB'), ['wordB:MMMMMM:scroll'], 'too wide for B: B scrolls it');
+  assert.deepEqual(plan('JAZZY', 'wordV'), ['wordA:JAZZY:scroll'], 'too tall for the vertical tower: the ticker on A');
+  const fit = fitText('BOO', WORD_FACES, 'wordA');
+  assert.ok(fit.mode === 'layout' && fit.plan[0].letters === 3 && fit.plan[0].cap === 5);
+  // the characters: what the font draws, the aliases, what's dropped (+ no double space left behind)
+  assert.deepEqual(badChars('hi & you @ <3 * [flag]'), ['&', '@']);
+  assert.equal(normText('HI & YOU'), 'HI YOU');
+  assert.equal(fitText('<3 * [flag]', WORD_FACES).text, '♥ ★ ⚑');
+  assert.ok(['♥', '★', '⚑', '!', '?', '-', '.', "'", ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'].every(c => FONT_CHARS.includes(c)) && FONT_CHARS.length === 44, `${FONT_CHARS.length} characters`);
+  assert.equal(fitText('', WORD_FACES), null);
+  assert.deepEqual(TOWER_CHOICES.filter(Boolean).filter(v => cleanRemote({ force: ['spell'], text: 'HI', tower: v }).bad.length), [], 'every choice passes the remote\'s validation');
+  assert.equal(cleanRemote({ force: ['spell'], text: 'hi <3 *' }).state.text, 'HI ♥ ★', 'the panel / the server keep the symbols');
 });
 
 test('the preview panel: validation keeps plain values only (the server refuses what it had to drop)', () => {
@@ -1083,6 +1146,16 @@ test('the preview panel: the state becomes the preview links\' flags, which the 
 test('the preview panel: time presets follow the real sun; holidays jump to their next date', () => {
   const at = [42.96, -85.67], tz = 'America/Detroit';
   const mins = id => { const t = timeAt(id, '2026-10-22', tz, ...at); return +t.slice(11, 13) * 60 + +t.slice(14, 16); };
+  // (PART 7a §0: the panel's main row is the day in time order — SUNRISE … NIGHT; the rest is its MORE row, in time order too)
+  const main = TIMES.filter(t => !t.more).map(t => t.id);
+  assert.deepEqual(main, ['sunrise', 'morning', 'noon', 'afternoon', 'golden', 'sunset', 'dusk', 'night']);
+  for (const list of [main, TIMES.filter(t => t.more).map(t => t.id)]) { const m = list.map(mins); for (let i = 1; i < m.length; i++) assert.ok(m[i] > m[i - 1], `${list}: in time order (${m})`); }
+  // SUNRISE / SUNSET: 5 min after / before the real sun (sky.js) at the place that day — Grand Rapids, Oct 22 2026: up 08:04, down 18:48
+  const st = sunTimes(Date.UTC(2026, 9, 22, 12), tz, ...at), wall = ms => { const lp = localParts(ms, tz); return lp.h * 60 + lp.mi; };
+  assert.equal(mins('sunrise'), wall(st.rise) + 5); assert.equal(mins('sunset'), wall(st.set) - 5);
+  assert.ok(mins('sunrise') >= 8 * 60 + 5 && mins('sunrise') <= 8 * 60 + 13, `sunrise preset ${timeAt('sunrise', '2026-10-22', tz, ...at)} (the sun up ≈ 08:04 EDT)`);
+  assert.ok(mins('sunset') >= 18 * 60 + 39 && mins('sunset') <= 18 * 60 + 47, `sunset preset ${timeAt('sunset', '2026-10-22', tz, ...at)} (the sun down ≈ 18:48 EDT)`);
+  assert.ok(timeAt('sunrise', '2026-06-21', tz, ...at).startsWith('2026-06-21T06:'), 'midsummer: an earlier sunrise (DST)');
   const order = ['dawn', 'morning', 'noon', 'afternoon', 'golden', 'dusk', 'night'].map(mins);
   for (let i = 1; i < order.length; i++) assert.ok(order[i] > order[i - 1], `in order: ${order}`);
   assert.ok(mins('dawn') > 7 * 60 && mins('dawn') < 8 * 60 + 30, `dawn in late October (${mins('dawn')})`);
@@ -1249,14 +1322,69 @@ test('NEON PASS 4 — SEARCHLIGHTS never sweep across a sign on a phone (not eve
   }
 });
 
-test('NEON PASS 4: a name at the screen edge never spells on (its dark letters would read as cut off); it may still blink', () => {
+test('7a (the owner: EVERY sign spells on — was the NEON PASS 4 edge rule): a name at the screen edge spells on in its turn too', () => {
   const cast = showItems(Array.from({ length: 30 }, (_, i) => ({ kind: i % 3 ? 'band' : 'hero', x: i / 30, contour: true })));
   const signs = [{ id: 'n-roofB', kind: 'named', edge: true }, { id: 'n-par', kind: 'named' }, { id: 'n-blade', kind: 'named' }, { id: 'i-par', kind: 'icon' }];
-  for (let d = 1; d <= 60; d++) assert.ok(!everyday(`2026-11-${d}`, cast, signs).spell.has('n-roofB'), `night ${d}`);
+  for (let d = 1; d <= 60; d++) assert.ok(everyday(`2026-11-${d}`, cast, signs).spell.has('n-roofB'), `night ${d}`);
+});
+
+import { spellNow, spellParty, spellWho, spellMotion, SPELL_DUR } from '../js/core/harbor-show.js';
+test('7a — THE SPELL-ON ROUND: every sign spells on in its turn, never two at once, one every 2–4 min on a normal night; on a party night only between the show\'s scenes; seeded (every phone the same)', () => {
+  for (const ids of [['n-blade', 'n-roofA', 'n-roofB'], ['n-blade', 'n-roofA', 'n-roofB', 'n-pano0', 'n-pano1'], ['n-roofA', 'n-roofB'], ['n-blade']]) {
+    for (const night of ['2026-10-22', '2026-10-23', '2026-11-07']) {
+      // a simulated hour on the city's clock, 0.1 s steps
+      const t0 = Date.UTC(2026, 9, 22, 2) / 1000, runs = [];
+      let cur = null;
+      for (let s = 0; s < 3600; s += 0.1) {
+        const sp = spellNow(t0 + s, ids, night);
+        if (sp && (!cur || cur.k !== sp.k)) { cur = { k: sp.k, id: sp.id, start: t0 + s - sp.u, end: t0 + s - sp.u + sp.dur }; runs.push(cur); }
+        if (!sp) cur = null;
+      }
+      const who = new Set(runs.map(r => r.id));
+      assert.ok(ids.every(id => who.has(id)), `${ids.length} signs, ${night}: every sign spells within the hour (${[...who]})`);
+      for (let i = 1; i < runs.length; i++) {
+        const gap = runs[i].start - runs[i - 1].start;
+        assert.ok(runs[i].start >= runs[i - 1].end, 'never two at once');
+        assert.ok(gap >= 120 - 1e-6 && gap <= 240 + 1e-6, `the gaps 2–4 min (${gap.toFixed(1)} s)`);
+        if (ids.length > 1) assert.notEqual(runs[i].id, runs[i - 1].id, 'never the same sign twice running');
+      }
+      assert.ok(runs.length >= 14 && runs.length <= 31, `about one every 3 min (${runs.length} in the hour)`);
+      // seeded: the same for every phone
+      assert.deepEqual(spellNow(t0 + 1234.5, ids, night), spellNow(t0 + 1234.5, ids, night));
+    }
+    // each round of n slots names every sign once
+    const seen = new Set(); for (let k = 0; k < ids.length; k++) seen.add(spellWho(ids, 12345, k + 7 * ids.length));
+    assert.equal(seen.size, ids.length, 'a round: every sign once');
+  }
+  // the spell itself: dark, then the letters in order, then on (and its length scaled for the party's two bars)
+  assert.equal(spellMotion(0.2).reveal, 1); assert.ok(spellMotion(0.2).a < 0.5, 'goes dark first');
+  assert.ok(spellMotion(1.8).reveal > 0.3 && spellMotion(1.8).reveal < 0.7 && spellMotion(SPELL_DUR + 0.1).reveal === 1);
+  assert.ok(spellMotion(1.5, 1.7).reveal > spellMotion(1.5).reveal, 'a shorter spell reveals faster');
+  // A PARTY NIGHT: only from a scene's last bar into the next scene's first (its envelope's fade), every other change, never two at once
+  const ids = ['n-blade', 'n-roofA', 'n-roofB'];
+  for (const [len, barS] of [[13, 2], [16, 1.6], [24, 1.75], [8, 2.4]]) {
+    const runs = []; let cur = null;
+    for (let x = 0; x < 600; x += 0.01) {
+      const sp = spellParty(x, len, barS, ids, '2026-10-24');
+      if (sp) {
+        const inBar = ((x % len) + len) % len;
+        assert.ok(inBar >= len - 1 || inBar < 1, `len ${len}: only between scenes (bar ${inBar.toFixed(2)} of ${len})`);
+        assert.ok(sp.dur <= 2 * barS + 1e-9, 'fits the two bars');
+        if (!cur || cur.k !== sp.k) { cur = { k: sp.k, id: sp.id }; runs.push(cur); }
+      } else cur = null;
+    }
+    const changes = Math.floor(600 / len);
+    assert.ok(Math.abs(runs.length - Math.floor(changes / 2)) <= 1, `len ${len}: every other scene change (${runs.length} of ${changes})`);
+    assert.ok(ids.every(id => runs.some(r => r.id === id)), `len ${len}: every sign gets its turn at the party`);
+    for (let i = 1; i < runs.length; i++) assert.notEqual(runs[i].id, runs[i - 1].id);
+  }
+  // the preview (&force=spell-on): the next sign every 6 s
+  const q = []; for (let s = 0; s < 36; s += 0.1) { const sp = spellNow(s, ids, 'x', { every: 6 }); if (sp && (!q.length || q[q.length - 1].k !== sp.k)) q.push(sp); }
+  assert.ok(q.length === 6 && new Set(q.map(p => p.id)).size === 3, `the preview: a spell every 6 s, every sign (${q.map(p => p.id)})`);
 });
 
 // ------------------------------------------------------------------ NEON PASS 5: the real beat, the palette, the signs, the tired tube
-import { createHarborBeat, advanceHarborBeat, halfTime, createOnsets, onsetStep, CALM_BPM } from '../js/core/harbor-beat.js';
+import { createHarborBeat, advanceHarborBeat, halfTime, createOnsets, onsetStep, CALM_BPM, beatMode } from '../js/core/harbor-beat.js';
 import { PARTY_PAL, partyColours, tiredLetters } from '../js/core/harbor-show.js';
 
 test('NEON PASS 5 — THE BEAT locks to the song\'s grid: bars on the real downbeats, a new song re-locks at once, the bar count never runs backwards', () => {
@@ -1304,7 +1432,39 @@ test('NEON PASS 5 — THE SOUND: kicks on the strong beats set how hard the city
   // no grid, kicks heard: every kick is a hit (the attack at the kick: a song we know nothing about)
   const k2 = createHarborBeat(0); let hit = 0;
   for (let i = 0; i < 120; i++) { advanceHarborBeat(k2, 16, null, { hit: i % 30 === 0 ? 0.9 : 0, live: true }); if (i % 30 === 0) hit = Math.max(hit, k2.punch); }
-  assert.ok(k2.src === 'kick' && hit > 0.85, `no grid: the kicks themselves (${hit.toFixed(2)})`);
+  assert.ok(k2.src === 'kicks' && hit > 0.85, `no grid: the kicks themselves (${hit.toFixed(2)})`);
+});
+
+test('7a — THE BEAT IN DIRECT MODE: the source is chosen (grid / direct-grid / kicks / tempo / calm); on the direct element the grid punches at full strength whatever the dead listener says; an untrusted song a gentle pulse at its tempo', () => {
+  const grid = { bpm: 128, t0: 0.2, down: 1 }, loose = { bpm: 106.904, t0: 0.485, down: 1, trusted: false };
+  const live = { hit: 0, live: true }, deaf = { hit: 0, live: false };
+  assert.equal(beatMode({ bpm: 128, pos: 10, grid }, live), 'grid');
+  assert.equal(beatMode({ bpm: 128, pos: 10, grid }, deaf), 'grid');
+  assert.equal(beatMode({ bpm: 128, pos: 10, grid, direct: true }, live), 'direct-grid', 'the direct element: a "live" listener is stale, the grid leads');
+  assert.equal(beatMode({ bpm: 106.9, pos: 10, grid: null, untrusted: true, loose }, live), 'kicks', 'an untrusted song through the graph: the kicks heard');
+  assert.equal(beatMode({ bpm: 106.9, pos: 10, grid: null, untrusted: true, loose, direct: true }, live), 'tempo', 'an untrusted song on the direct element: its tempo');
+  assert.equal(beatMode({ bpm: 106.9, pos: 10, grid: null, untrusted: true, loose }, deaf), 'tempo', 'an untrusted song, nothing heard: its tempo (was a calm 120)');
+  assert.equal(beatMode(null, null), 'calm');
+  assert.equal(beatMode(null, live), 'kicks');
+  // THE BUG: back from the home screen the frozen graph's analyser repeats its last window — "live", no kicks. Through the graph that is
+  // a breakdown (the city calms to a quarter); on the direct element it must not matter: the grid punches as it did before leaving.
+  const swing = (direct, kick, n = 600, g = grid, extra = {}) => {
+    const hb = createHarborBeat(0); let pos = 30, lo = 9, hi = 0;
+    for (let i = 0; i < n; i++) { pos += 1 / 60; advanceHarborBeat(hb, 1000 / 60, { bpm: g ? g.bpm : 106.9, pos, grid: g, direct, ...extra }, kick); if (i > n - 240) { lo = Math.min(lo, hb.punch); hi = Math.max(hi, hb.punch); } }
+    return { hb, lo, hi };
+  };
+  const stale = swing(false, live), direct = swing(true, live), graph = swing(false, deaf);
+  assert.ok(stale.hb.level <= 0.3, `(the bug, through the graph: a stale "live" listener calms it to ${stale.hb.level.toFixed(2)})`);
+  assert.ok(direct.hb.src === 'direct-grid' && direct.hb.level > 0.8 && direct.hi - direct.lo > 0.75, `direct-grid: the punch swings ${direct.lo.toFixed(2)} → ${direct.hi.toFixed(2)} (level ${direct.hb.level.toFixed(2)})`);
+  assert.ok(Math.abs(direct.hi - graph.hi) < 0.02, `direct-grid punches as hard as the grid with nothing heard (${direct.hi.toFixed(2)} vs ${graph.hi.toFixed(2)})`);
+  assert.ok(Math.abs(direct.hb.T - 60 / 128) < 0.002, `direct-grid: at the grid's tempo (${(60 / direct.hb.T).toFixed(2)} bpm)`);
+  // its phase is the grid's: the downbeat where the grid puts it
+  const k = ((30 + 600 / 60) - grid.t0) * 128 / 60 - grid.down, d = ((k - direct.hb.beats) % 4 + 4) % 4;
+  assert.ok(Math.min(d, 4 - d) < 0.05, `direct-grid: on the grid's bars (${Math.min(d, 4 - d).toFixed(3)} beats off)`);
+  // an untrusted song on the direct element: a steady, GENTLER pulse at its tempo, on its (loose) grid's phase
+  const t = swing(true, live, 600, null, { untrusted: true, loose });
+  assert.ok(t.hb.src === 'tempo' && Math.abs(60 / t.hb.T - 106.904) < 0.05, `tempo: ${(60 / t.hb.T).toFixed(2)} bpm (the song's 106.90)`);
+  assert.ok(t.hi - t.lo > 0.45 && t.hi < direct.hi * 0.8, `tempo: a gentle pulse (${t.lo.toFixed(2)} → ${t.hi.toFixed(2)}, the grid's ${direct.hi.toFixed(2)})`);
 });
 
 test('NEON PASS 5 — ONSETS: synthetic kicks over a bass line + noise are found (≥ 95 %), no false ones, their strength follows the loudness', () => {
@@ -1393,7 +1553,7 @@ import { layersOf } from '../js/core/weather.js';
 import { DAY_PAINT, dayPaint } from '../js/screens/harbor/signs.js';
 import { lhEdgeBlocks } from '../js/core/harbor-neon.js';
 // (GAMES: imported above)
-import { sunColorHarbor, sunColor } from '../js/screens/district/sun.js';
+import { sunColorHarbor, sunColor, sunColourAt } from '../js/screens/district/sun.js';
 
 test('THE DAY PASS — the sun\'s side by day is continuous (never flat at noon); with the sun down the old sides exactly', () => {
   const at = (az, el) => sunLook({ sun: { az, el }, w: { day: 1 } }, null);
@@ -1421,9 +1581,48 @@ test('THE DAY PASS — the Harbor\'s sun: white-hot high, golden → orange → 
   const w = sunColorHarbor(40), g = sunColorHarbor(4), r = sunColorHarbor(0), m = sunColorHarbor(9);
   assert.ok(w.every(v => v >= 245), 'high: white');
   assert.ok(g[0] === 255 && g[2] < 100 && r[1] < g[1], 'low: golden, then redder');
-  // (SP: the 9 am sun — ~9° up — is a pale near-white glare, never an orange ball)
-  assert.ok(m[1] > 215 && m[2] > 170, 'nine degrees up: pale, near-white');
+  // (SP: the 9 am sun — ~9° up — is never an orange ball; since the stages pass it is a pale warm yellow-white)
+  assert.ok(m[1] > 205 && m[2] > 130, 'nine degrees up: pale, never orange');
   assert.deepEqual(sunColor(40), [255, 244, 223]);
+});
+
+import { sunPosition } from '../js/core/sky.js';
+test("THE SUN'S STAGES (sunColourAt): white ≥ 15°, yellow-white 6–15°, golden amber 2–6°, orange-red + squashed under 2°; smooth; the city's light follows", () => {
+  const at = sunColourAt, hue = c => (c[1] - c[2]) / Math.max(1, c[0] - c[2]);   // (0 red … 1 yellow; low = no colour)
+  const w = at(20), y = at(10), a = at(4), o = at(1);
+  assert.ok(w.disc.every(v => v >= 238) && w.white === 1 && w.halo === 1 && w.squash === 1, '20°: white, the white-hot core + its halo');
+  assert.ok(y.disc[0] === 255 && y.disc[1] >= 215 && y.disc[2] >= 130 && y.disc[2] <= 200 && y.disc[1] - y.disc[2] >= 40 && y.white < 0.05, '10°: warm yellow-white, the coloured disc');
+  assert.ok(a.disc[0] === 255 && a.disc[1] >= 135 && a.disc[1] <= 185 && a.disc[2] < 90 && a.halo < 0.05 && a.lift < 0.3, '4°: golden amber, no white bloom');
+  assert.ok(o.disc[0] === 255 && o.disc[1] < 110 && o.disc[2] < 60, '1°: deep orange-red');
+  assert.ok(o.squash >= 0.85 && o.squash <= 0.92 && at(0).squash < o.squash && at(4).squash === 1, '1°: flattened by refraction (0.85–0.9)');
+  // the glow follows the stage: warm low, white high
+  assert.ok(a.glow[2] < 170 && w.glow.every(v => v >= 238), 'the glow: warm low, white high');
+  // smooth: no visible step anywhere from below the horizon to high noon (every channel, 0.05° apart)
+  let prev = at(-3);
+  for (let e = -2.95; e <= 40; e += 0.05) {
+    const c = at(e);
+    for (const k of ['disc', 'glow']) assert.ok(c[k].every((v, i) => Math.abs(v - prev[k][i]) <= 3), `a step in ${k} at ${e.toFixed(2)}°`);
+    for (const k of ['white', 'halo', 'squash', 'lift']) assert.ok(Math.abs(c[k] - prev[k]) < 0.02, `a step in ${k} at ${e.toFixed(2)}°`);
+    prev = c;
+  }
+  // monotonic: the colour only ever warms as it sinks (yellow → amber → red), never a wobble
+  for (let e = 0; e < 30; e += 0.5) assert.ok(at(e).disc[1] <= at(e + 0.5).disc[1] && (e >= 14 || hue(at(e).disc) <= hue(at(e + 0.5).disc) + 0.02), `warmer lower at ${e}°`);
+  // the same rising as setting: a function of the elevation only (the real sun's morning + evening at Grand Rapids)
+  const rise = sunPosition(Date.parse('2026-10-23T12:35:00Z'), 42.96, -85.67).el, set = sunPosition(Date.parse('2026-10-22T22:21:00Z'), 42.96, -85.67).el;
+  assert.ok(Math.abs(rise - set) < 0.6, `two ~4° suns (${rise.toFixed(2)}, ${set.toFixed(2)})`);
+  for (const e of [rise, set]) assert.ok(at(e).disc[1] >= 135 && at(e).disc[1] <= 185 && at(e).disc[2] < 90, `amber at ${e.toFixed(2)}° (rising + setting)`);
+  // THE CITY'S LIGHT follows the 2–6° stage, morning + evening: the lit city all gold under ~5°, daylight from ~9° (the day channel
+  // only: the night's share — the dawn's dusk, the blue hour — never changes); the evening's weights are untouched
+  const look = (el, morning) => ({ sun: { el }, w: morning ? { day: Math.min(1, Math.max(0, (el - 1) / 10)), dawn: 1 - Math.min(1, Math.max(0, (el - 1) / 10)) } : { day: Math.min(1, Math.max(0, (el - 5) / 10)), golden: 1 - Math.min(1, Math.max(0, (el - 5) / 10)) } });
+  for (const m of [true, false]) {
+    const t4 = toneWeights(look(4, m)), t2 = toneWeights(look(2, m)), t10 = toneWeights(look(10, m)), t12 = toneWeights(look(12, m));
+    assert.ok(t4.day < 1e-9 && t2.day < 1e-9 && t4.gold > 0.75, `4° ${m ? 'morning' : 'evening'}: the lit city all gold`);
+    assert.ok(t12.day > 0.65, `12° ${m ? 'morning' : 'evening'}: mostly daylight`);
+    if (m) assert.ok(t10.day > 0.85 && Math.abs(t4.night - 0.3 * 0.7) < 1e-9, 'the morning: daylight by 10°; the night share unchanged');
+  }
+  const ev = look(7, false), raw = { day: ev.w.day, gold: ev.w.golden };
+  const tev = toneWeights(ev);
+  assert.ok(Math.abs(tev.day - raw.day) < 1e-9 && Math.abs(tev.gold - raw.gold) < 1e-9, 'the evening untouched');
 });
 
 test('DT2 — THE CLOUDS\' kinds follow the real weather: fair cumulus, a greyer day\'s patches, the overcast deck, cirrus from the high layer', () => {
@@ -1767,4 +1966,133 @@ test('M3 — THE LEAD: the sign is right (a kick heard → the lead; heard = clo
   assert.equal(m.v, 0.01);
   // the listener's delay follows the frame rate: 60 Hz = KICK_LAG, 30 Hz ≈ +8 ms, never less at 120 Hz
   assert.equal(kickLag(1 / 60), KICK_LAG); assert.ok(Math.abs(kickLag(1 / 30) - KICK_LAG - 1 / 120) < 1e-9); assert.equal(kickLag(1 / 120), KICK_LAG);
+});
+
+// ------------------------------------------------------------------ PART 7a §2: THE NEAR BRICK (readable by day) + THE LIGHTHOUSE BY DAY
+// a recording 2D context (no canvas in node): the bake's transform (dpr 2, a band starting at an integer pt), every rect / clip kept
+function rec2d(D = 2, oy = -2 * 137) {
+  const ops = { rect: [], fillRect: [], clip: 0 }, grad = { addColorStop() {} };
+  const base = { getTransform: () => ({ a: D, b: 0, c: 0, d: D, e: 0, f: oy }), createLinearGradient: () => grad, createRadialGradient: () => grad,
+    rect: (...a) => { ops.rect.push(a); }, fillRect: (...a) => { ops.fillRect.push(a); }, clip: () => { ops.clip++; } };
+  return { ops, x: new Proxy(base, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }) };
+}
+test('7a — the near layer bakes at the main canvas\'s DPR at tier 2 (2), on every phone, within the 64 MB budget (no step-down)', async () => {
+  const { createBaker, MEM_BUDGET_MB } = await import('../js/screens/harbor/bake.js');
+  const fake = () => ({ width: 0, height: 0, getContext: () => null });
+  const had = globalThis.document; globalThis.document = { createElement: fake };
+  try {
+    for (const k of ['390x844', '402x874', '430x932', '412x915']) {
+      const { s, cam, L } = setup(k);
+      const yOf = (y, z) => project(cam, 0, y, z)[1], top = cam.limitY - 6, w = L.wheel, l = L.lighthouse;
+      const hy0 = Math.min(yOf(w.y + w.r + 1, w.z), yOf(l.h + 7, l.z));
+      // the scene's groups (scene.js#layout); the stage's band at its measured share of the screen + a margin (it depends on the speakeasy)
+      const groups = [
+        { name: 'far', y0: top, h: groundY(cam, Z.mid[0]) + 3 - top }, { name: 'near', y0: top, h: yOf(L.quay.foot, Z.quay) + 3 - top },
+        { name: 'water', y0: waterBand(L).y0 - 3, h: waterBand(L).y1 - waterBand(L).y0 + 12 },
+        { name: 'harbor', y0: hy0, h: yOf(-3.2, L.pier.z0) - hy0 + 4 },
+        { name: 'road', y0: yOf(L.rail.y + 0.4, Z.rail) - 3, h: groundY(cam, Z.road[0]) - yOf(L.rail.y + 0.4, Z.rail) + 6 },
+        { name: 'stage', y0: s.H * 0.5, h: s.H * 0.48 },
+      ];
+      const dpr = Math.min(2, 3);                         // tier 2 on a 3× iPhone: the main canvas at DPR 2 (scene.js TIERS)
+      const a = createBaker(), b = createBaker();
+      a.plan(s.W, groups, dpr, 2);
+      b.plan(s.W, [{ name: 'farLit', y0: top, h: groups[0].h }, { name: 'nearLit', y0: top, h: groups[1].h }], dpr, 2, a.planned);
+      for (const [bk, n] of [[a, 'near'], [a, 'far'], [b, 'nearLit']]) assert.equal(bk.group(n).dpr, dpr, `${k}: ${n} bakes at the canvas's DPR`);
+      const mb = a.mem().mb + b.mem().mb;
+      assert.ok(mb < MEM_BUDGET_MB[2] * 0.75, `${k}: ${mb.toFixed(1)} MB of baked layers — room left in the ${MEM_BUDGET_MB[2]} MB budget`);
+      a.destroy(); b.destroy();
+    }
+  } finally { globalThis.document = had; }
+});
+test('7a — THE BRICK: device-pixel courses + joints by day only (never at night, golden hour or dusk), snapped to whole device px', async () => {
+  const { skyBlock, brickCourse, pxGrid } = await import('../js/screens/harbor/blocks.js');
+  const { tones } = await import('../js/screens/harbor/tones.js');
+  const { cam, L } = setup('402x874');
+  const it = skyItems(L).near.find(i => i.b && (i.b.mat === 'brick' || i.b.mat === 'red') && i.b.band === 'near' && i.b.win && i.b.win.rows > 3);
+  assert.ok(it, 'a brick block in the near band');
+  const s = cam.F / it.b.z0;
+  assert.equal(brickCourse(s), 3, `the near ones course every 3 device px (s ${s.toFixed(2)})`);
+  const look = (w, extra = {}) => ({ ...tones(w), sunDir: -0.4, sunEl: 30, ovc: 0, cloud: 0.2, ...extra });
+  const courses = T => { const { ops, x } = rec2d(); skyBlock(x, cam, it.b, T, it.o); return ops.rect.filter(r => Math.abs(r[3] - 0.5) < 1e-9 && r[2] > 4); };
+  const day = courses(look({ day: 1, gold: 0, night: 0 }));
+  assert.ok(day.length > 40, `by day: the bed joints (${day.length})`);
+  for (const r of day) assert.ok(Math.abs(r[1] * 2 - Math.round(r[1] * 2)) < 1e-6, `a joint on a whole device row (${r[1]})`);
+  for (const w of [{ day: 0, gold: 0, night: 1 }, { day: 0, gold: 1, night: 0 }, { day: 0, gold: 0.5, night: 0.5 }]) assert.equal(courses(look(w, { sunDir: 1, sunEl: 6 })).length, 0, `none at ${JSON.stringify(w)}`);
+  // the grid follows the bake's transform: a DPR 1.5 bake snaps to its own pixels
+  const g = pxGrid(rec2d(1.5, -1.5 * 100).x);
+  assert.equal(g.D, 1.5); assert.ok(Math.abs((g.sy(10.3) * 1.5 - 150) - Math.round(g.sy(10.3) * 1.5 - 150)) < 1e-9);
+});
+test('7a — THE LIGHTHOUSE by day: a cylinder from the sun\'s side (lit flank → core shadow → a bounce on the far edge); the night untouched', async () => {
+  const { cylinderTone, lighthouseSteps } = await import('../js/screens/harbor/lighthouse.js');
+  const { tones } = await import('../js/screens/harbor/tones.js');
+  const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const paint = { lit: [253, 251, 245], core: [170, 176, 198], bounce: [222, 214, 204] };
+  for (const sd of [-1, -0.4, 0.4, 1]) {
+    const side = Math.sign(sd), at = u => lum(cylinderTone(u * side, paint, sd));       // u > 0: toward the sun
+    const us = Array.from({ length: 41 }, (_, i) => -1 + i / 20), L2 = us.map(at);
+    const core = us[L2.indexOf(Math.min(...L2.slice(0, 40)))];
+    assert.ok(at(0.5) > at(-0.5) + 25, `sd ${sd}: the sun's flank is brighter`);
+    assert.ok(core < -0.2 && core > -0.98, `sd ${sd}: the core shadow sits on the far side, in from the edge (${core})`);
+    assert.ok(at(-0.95) > Math.min(...L2) + 6, `sd ${sd}: a bounce light on the far edge`);
+  }
+  // overcast: flatter (less spread across the tower)
+  const spread = (sd, ovc) => { const v = Array.from({ length: 21 }, (_, i) => lum(cylinderTone(-1 + i / 10, paint, sd, ovc))); return Math.max(...v) - Math.min(...v); };
+  assert.ok(spread(0, 1) < spread(-0.4, 0) * 0.8, 'overcast: softer');
+  // the night (and golden hour) never run the day pass: no clip, the same draw calls
+  const { cam, L } = setup('402x874');
+  const run = w => { const { ops, x } = rec2d(); for (const st of lighthouseSteps(L, { ...tones(w), sunDir: 1, sunEl: 6, ovc: 0 })) st(x); return ops; };
+  const night = run({ day: 0, gold: 0, night: 1 }), golden = run({ day: 0, gold: 1, night: 0 }), noon = run({ day: 1, gold: 0, night: 0 });
+  assert.equal(night.clip, 0); assert.equal(golden.clip, 0);
+  assert.ok(noon.clip >= 1 && noon.fillRect.length > night.fillRect.length + 100, 'by day: the cylinder, the courses, the rust, the stones');
+});
+
+// ================================================================ PART 7a — THE SPEAKEASY (core/harbor-speakeasy.js + its layout)
+import { ghostAdGame, adWeek, AD_ORDER, AD_EPOCH, roomLight, ROOMS, CORNER_TURN } from '../js/core/harbor-speakeasy.js';
+import { speakGeo, bladeGeo, adLamps } from '../js/screens/harbor/speakeasy.js';
+
+test('7a — THE GHOST AD: one game a week, every game in 12 weeks, the swap on Monday ~4 am, never tonight\'s billboard game', () => {
+  const ids = GAMES.filter(g => g.playable !== false).map(g => g.id), WEEK = 7 * 864e5;
+  const seen = new Set();
+  for (let w = 0; w < ids.length; w++) seen.add(ghostAdGame(AD_EPOCH + w * WEEK + 3600e3, ids));
+  assert.equal(seen.size, ids.length, 'every game gets its week');
+  const mon = AD_EPOCH + 40 * WEEK;
+  assert.equal(ghostAdGame(mon + 60e3, ids), ghostAdGame(mon + WEEK - 60e3, ids), 'the same all week');
+  assert.notEqual(ghostAdGame(mon - 60e3, ids), ghostAdGame(mon + 60e3, ids), 'a new one at the swap');
+  assert.equal(adWeek(mon), 40);
+  const g = ghostAdGame(mon, ids);
+  assert.notEqual(ghostAdGame(mon, ids, g), g, 'the billboard\'s game → the next in the rotation');
+  assert.ok(AD_ORDER.every(id => ids.includes(id)), 'the rotation names real games');
+});
+
+test('7a — THE ROOMS by the hour: all lit in the evening, dark in the small hours, the apartment wakes before dawn', () => {
+  for (const r of ROOMS) assert.equal(roomLight(r.id, 22), 1, `${r.id} at 10 pm`);
+  for (const id of ['bar', 'jazz', 'back']) assert.equal(roomLight(id, 4), 0, `${id} at 4 am`);
+  assert.equal(roomLight('bar', 2.5), 1, 'the bar still open at 2:30');
+  assert.equal(roomLight('apartment', 6.75), 1, 'the apartment at 6:45 am');
+  assert.equal(roomLight('bar', null), 1);
+  assert.deepEqual(ROOMS.filter(r => r.edge).map(r => r.col), [0, 0], 'the edge windows are the cut column');
+});
+
+test('7a — THE SPEAKEASY on every phone: same size, the edge windows cut at half, the corner turned wide enough, the blade clear of the wheel', () => {
+  for (const k of ['390x844', '402x874', '412x915', '430x932']) {
+    const { s, cam, L } = setup(k);
+    const G = speakGeo(L), [c0] = G.front(0, 0), [c1] = G.front(11.2, 0);
+    assert.ok(c0 < 0 && Math.abs((c1 - c0) - 153 * cam.F / 600) < 2, `${k}: the front ${Math.round(c1 - c0)} pt, bleeding off the left`);
+    // the edge column: about half a window showing
+    const [a, b] = L.speakeasy.windows[0], [wx0] = G.front(a, 5), [wx1] = G.front(b, 5), show = wx1 / (wx1 - wx0);
+    assert.ok(show > 0.35 && show < 0.65, `${k}: the edge window ${Math.round(show * 100)} % showing`);
+    // the corner as it is: the side wall straight back; the blade sign clear of the wheel's legs + the dock
+    assert.equal(L.speakeasy.side.z, 60);
+    const bg = bladeGeo(G), w = L.wheel, [wx] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z;
+    assert.ok(bg.rect.x + bg.rect.w < wx - w.leg * r - 2, `${k}: the blade (to ${Math.round(bg.rect.x + bg.rect.w)}) clear of the wheel's leg (${Math.round(wx - w.leg * r)})`);
+    assert.ok(bg.rect.y + bg.rect.h < cam.dock.y && bg.rect.w > 18 && bg.rect.h > 60, `${k}: the blade ${Math.round(bg.rect.w)}×${Math.round(bg.rect.h)} pt, above the dock`);
+    // THE CORNER TURNED (the preview): ≥ 70 pt of wall for the ad; the wheel + the door where they were; the west signal outside
+    const cam2 = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock, ...signOf(s) }, s.safe), T = harborLayout(cam2, 1924, { corner: true }), G2 = speakGeo(T);
+    const wide = G2.side(G2.len, 0)[0] - G2.side(0, 0)[0];
+    assert.ok(wide >= 70, `${k}: the turned wall ${Math.round(wide)} pt`);
+    assert.equal(T.wheel.x, L.wheel.x); assert.deepEqual(T.door, L.door);
+    const sg = T.signals[0], wallX = T.speakeasy.x1 + (sg.z - T.speakeasy.z0) * Math.tan(CORNER_TURN.deg * Math.PI / 180);
+    assert.ok(sg.z > T.speakeasy.side.z || sg.x > wallX, `${k}: the west signal outside the building`);
+    assert.equal(adLamps(G2).length, 3);
+  }
 });

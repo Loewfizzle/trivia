@@ -264,6 +264,55 @@ The element's sound exists only inside that dead graph (a MediaElementSource cap
   STUCK check ("from its first moment back … at the room's place": 9.5 s here vs 16.1 s on the host) fails the same way on the commit before
   this pass — not from this pass; to look at next. The direct element's volume is iOS's (the slider / ducks don't apply there).
 
+## 7a — THE BEAT IN DIRECT MODE (Oct 23 2026; City 2.0's party) — `core/harbor-beat.js`, `audio/beat.js`, `audio/diag.js`
+The owner's iPhone after M4: back from the home screen the music came back on THE DIRECT ELEMENT, but the city's lights "seemed not to
+pulse any more".
+- **What was wrong:** the beat clock DID get the song (`nowPlaying()` reads `current.voice.el` — the direct element — so `beatSource()`
+  returned it with the element's `currentTime`, the grid and all). The kick listener was the problem: a graph whose clock has stopped keeps
+  its AnalyserNode's LAST window for ever (the music playing when the phone left), so `beatKick()` saw a steady RMS > 0 = "live" with no
+  kicks. The clock read that as a breakdown (a strong beat with no kick: the level × 0.8 a beat, floor 0.25) and the city calmed to about a
+  quarter. Reproduced in e2e-harbor `music` §9 on the old code (the frozen graph's analyser repeating its last window, as WebKit's
+  RealtimeAnalyser does with no render thread): no tap → level 0.28, `live true`, the punch's peak 0.85 → 0.42. After a tap the REBUILT
+  context's analyser (silent from birth) is not live, so it partly came back — her "seemed" fits. Also: the direct path used the graph's
+  output latency + the learned lead (the graph tap's offset) on the direct element's clock (≈ +24 ms late on her phone), and an untrusted
+  song (party3's kind) fell to the calm 120 bpm whenever nothing was heard.
+- **The fix:** `core/harbor-beat.js#beatMode(song, kick)` (PURE, tested) chooses what the beat follows; `advanceHarborBeat` sets `hb.src` from
+  it and ignores the kick report while `song.direct` (a "live" report there is stale by definition). `audio/beat.js`: `beatSource()` marks
+  `direct` (`music.js#musicOut() === 'direct'`, not in a lobby) and then takes the element's own clock **as heard: output 0, no lead**
+  (`DIRECT_OUT` — iOS's media pipeline plays it; AVFoundation's clock follows the audio device and compensates its output latency, the way
+  video stays in sync, Bluetooth included; if anything this errs toward the light a hair early, the side the eye forgives). `beatKick()`
+  reports `{ hit: 0, live: false }` on the direct element or a frozen clock (`engine.js#clockFrozen`), and treats 8 frames of the
+  identical RMS as a deaf listener (a real signal never repeats to 1e-7). An untrusted grid is passed as `loose` (its tempo + phase: the
+  best guess there is) for the gentle tempo pulse.
+- **The sources** (the `&debug=1` readout's beat line, `scene.js#beatLine`, `harbor().beatLine`; `__district.party().src`):
+  | src | when | strength |
+  | --- | --- | --- |
+  | `grid` | a trusted grid through the graph | the kicks heard set it (0.25–1); nothing heard: 0.85 |
+  | `direct-grid` | a trusted grid on the direct element | steady 0.85 (no listener) |
+  | `kicks` | no trusted grid, the listener hears the music | every real kick |
+  | `tempo` | no trusted grid, nothing heard (the direct element, a deaf analyser) | a gentle steady 0.6 at the song's tempo, on its loose grid's phase |
+  | `calm` | no song (`— music off` / `muted` / `tap for sound` …) | a calm 120 bpm, 0.7 |
+  e.g. `beat direct-grid 128.0 · bar 12 · 3/4`; `· kick 0.86` only while the listener hears; `· kick unheard` only on `grid`.
+- **THE PULSE A STEP STRONGER** (the owner: "close", not obvious enough on her iPhone): the punch's peak light ~+30 %, most on the dominant
+  pieces, no new draws (the same passes; a few more wheel bulbs cross their bloom threshold on the beat) — the buildings' tubes
+  `1 − 0.2·amp + 0.9·pe` → `1.15·pe` (steady quarter 0.35 → 0.45), the crowns' flare `min(1.4, 1.3k)` → `min(1.9, 1.7k)`, the signs
+  `0.9 + 0.55p` → `0.72p`, tier 0's whole neon `0.85 + 0.5p` → `0.65p`, the racing light `0.84 + 0.36p` → `0.48p` (head 0.22 → 0.3), the
+  wheel `0.82 + 0.45p` → `0.6p` (hub 0.7 → 0.92, rim sets 0.45 → 0.6, hub ring 0.6 → 0.8), the sky beams `0.55 + 0.75p` → `0.5 + 1.0p`
+  (width swing 0.2 → 0.3, the root flare 5p → 7p, its alpha 0.45p → 0.6p), the NEON logo's party glow `min(0.8, 0.78p)` → `min(0.95,
+  1.02p)`, SPEAKEASY's rings 0.95p → 1.2p, its party word 1.15p → 1.45p.
+- **THE AUDIO PANEL'S ONE STATUS** (`diag.js#audioStatus`; the owner saw the header say "sounding" over a row saying "sounding NO · locked
+  (no tap yet)" — the header counted "nothing wanted yet" as fine): the header and the `want` row print the same verdict: `sounding` /
+  `sounding DIRECT` / `silent (music off | muted | nothing to play)` / `LOCKED (no tap yet)` / `NEEDS TAP` / `DEAD VOICE` / `NOT SOUNDING`.
+- **Tests:** `tests/harbor.test.mjs` "7a — THE BEAT IN DIRECT MODE" (the source chosen in every case; the stale-listener bug through the
+  graph vs direct-grid at full strength, on the grid's bars and tempo; the gentle tempo pulse); e2e-harbor `music` §9 (a party night,
+  §8's dead graph + the frozen analyser: before leaving `grid`; back with no tap and after a tap `direct-grid`, the punch swinging as
+  before, the readout's line; an untrusted grid → `tempo` at the song's bpm, gentler; the panel's header + want row agreeing: LOCKED
+  before a tap, sounding, sounding DIRECT).
+- **What the owner should try** (iPhone, `?city=2&debug=1` on a party night — Fri / Sat after 9 pm, or the preview panel's party): music
+  on, tap once; leave for the home screen ~30 s, come back WITHOUT tapping: the lights should keep punching; the readout's beat line says
+  `beat direct-grid …` (or `tempo` on an untrusted song) and the AUDIO panel's header `sounding DIRECT`. Then tap once: still
+  `direct-grid` until the graph runs again, then `grid · kick …` after a later tap.
+
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
   level = rain + 0.25 in a storm). A breathing bed of filtered noise, a low roar that only a downpour brings, and droplet ticks

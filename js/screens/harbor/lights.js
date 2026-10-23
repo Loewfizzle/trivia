@@ -9,7 +9,7 @@
 //    spell(text, { tower, style }) lights a message on the word towers (core/harbor-windows.js#layoutText) — steady, a wipe-on
 //    floor by floor, or a gentle twinkle — while the rest of that tower dims so it reads. Night only. Any later part addresses
 //    a window by (building, tier, col, row) with set() (party waves, flags, holiday windows).
-import { winTraits, buildingDice, winHash, layoutText, normText, scrollColumns, FONT_H } from '../../core/harbor-windows.js';
+import { winTraits, buildingDice, winHash, layoutText, normText, scrollColumns, fitText, FONT_H } from '../../core/harbor-windows.js';
 import { windowThreshold } from '../../core/harbor-dark.js';
 import { cellRect, isDeco, behindWheel } from './blocks.js';
 import { project } from '../../core/harbor-layout.js';
@@ -208,9 +208,31 @@ export function createLights() {
     roofs.sort((a, b) => a.y - b.y).slice(0, 8).forEach(({ b, y }) => { const [x] = project(l.cam, (b.x0 + b.x1) / 2, 0, b.z0); if (x > -4 && x < l.cam.W + 4) beacons.push({ x, y: y + 0.4, r: Math.max(0.9, 1.3 * u), id: b.id }); });
     if (best) best.tallest = true;
   }
+  // (a relayout: the same message built again on the new faces — the sprite goes, its geometry is the old one's)
   function respell(sp) {
-    if (sp.scroll) { const f = faces[sp.scroll.tower]; return f ? { ...sp, scroll: { ...sp.scroll, face: f, top: Math.max(0, Math.floor((f.rows - FONT_H) / 2)) } } : null; }
-    const p = place(sp.text, sp.opts); return p ? { ...sp, ...p } : null;
+    if (sp.sprite) sp.sprite.cv.width = sp.sprite.cv.height = 0;
+    const b = build(sp.raw, sp.opts); return b ? { ...sp, ...b, sprite: null } : null;
+  }
+  const dims = () => Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word }]));
+  const ticker = (text, id) => { const sc = scrollColumns(text), f = faces[id]; return sc.cols.length && f && f.rows >= FONT_H ? { cols: sc.cols, face: f, tower: id, top: Math.max(0, Math.floor((f.rows - FONT_H) / 2)) } : null; };
+  /** PART 7a §0: a message → { text, style, parts (still words), scrolls (a ticker per tower whose word is too long) } from the
+   *  shared plan (core/harbor-windows.js#fitText — the panel's readout says the same): the best layout; else ONE WORD PER TOWER */
+  function build(text, opts = {}) {
+    const fx = dims();
+    if (opts.style === 'scroll') {                 // THE SCROLL asked for: the whole message on one face (wordA unless asked)
+      const id = String(opts.tower || '').split(',')[0], S = ticker(text, faces[id] && faces[id].word === 'h' ? id : 'wordA');
+      return S ? { text: normText(text, 120), style: 'scroll', parts: [], scrolls: [S] } : null;
+    }
+    const fit = fitText(text, fx, opts.tower || '');
+    if (!fit) return null;
+    if (fit.mode === 'layout') { const p = place(fit.text, { ...opts, tower: String(opts.tower || '').includes(',') ? undefined : opts.tower }); if (p) return { text: fit.text, style: opts.style || 'wipe', parts: p.parts, scrolls: [] }; }
+    const parts = [], scrolls = [];
+    for (const e of fit.plan) {
+      if (e.fits) { const p = place(e.text, { tower: e.tower }); if (p) { parts.push(...p.parts); continue; } }
+      const S = ticker(e.text, e.tower); if (S) scrolls.push(S);
+    }
+    if (!parts.length && !scrolls.length) return null;
+    return { text: fit.text, style: parts.length ? opts.style || 'wipe' : 'scroll', parts, scrolls };
   }
   function place(text, opts = {}) {
     const lay = layoutText(text, Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word }])), opts);
@@ -231,16 +253,11 @@ export function createLights() {
     if (!L) return false;
     const base = { opts, colour: opts.colour || [255, 226, 168], t0: opts.at ?? performance.now(), until: opts.ms ? (opts.at ?? performance.now()) + opts.ms : Infinity, out: -1 };
     dropSpell();                                   // (a word replacing a word: its sprite goes)
-    // THE SCROLL: asked for, or a message too long for the faces — it tickers across one face (wordA unless asked), any length
-    const t = normText(text);
-    const p = opts.style === 'scroll' || !t ? null : place(t, opts);
-    if (!p) {
-      const sc = scrollColumns(text), id = opts.tower && faces[opts.tower] && faces[opts.tower].word === 'h' ? opts.tower : 'wordA', f = faces[id];
-      if (!sc.cols.length || !f || f.rows < FONT_H) return false;
-      spell = { ...base, text: sc.text, style: 'scroll', scroll: { cols: sc.cols, face: f, tower: id, top: Math.max(0, Math.floor((f.rows - FONT_H) / 2)) }, parts: [] };
-      return true;
-    }
-    spell = { ...base, text: t, ...p, style: opts.style || 'wipe' };
+    // THE SCROLL: asked for (one face), or a word too long for its tower — it tickers across THAT tower's face (7a §0: one word
+    // per tower; the others stand still); opts.tower may list towers ('wordA,wordB' — core/harbor-windows.js#TOWER_CHOICES)
+    const b = build(text, opts);
+    if (!b) return false;
+    spell = { ...base, raw: text, ...b };
     return true;
   }
   function clearSpell(fade = true) { if (spell) { if (fade) spell.out = performance.now(); else dropSpell(); } }
@@ -343,9 +360,10 @@ export function createLights() {
     const fadeIn = Math.min(1, el / 1200), fadeOut = sp.out >= 0 ? Math.max(0, 1 - (now - sp.out) / 1600) : 1;
     if (fadeOut <= 0) { dropSpell(); return; }
     const env = fadeIn * fadeOut * k;
-    if (sp.scroll) {
-      // THE SCROLL: one window-column a step, right to left, like a Times Square ticker (slower under Reduced motion)
-      const S = sp.scroll, f = S.face, n = S.cols.length, stepMs = motion ? 120 : 260;
+    for (const S of sp.scrolls) {
+      // THE SCROLL: one window-column a step, right to left, like a Times Square ticker (slower under Reduced motion) — one per
+      // tower whose word is too long for it (7a §0), beside the still words on the others
+      const f = S.face, n = S.cols.length, stepMs = motion ? 120 : 260;
       dimFace(c, f, env);
       const shift = Math.floor(el / stepMs) % (n + f.cols + 4);
       for (let col = 0; col < f.cols; col++) {
@@ -354,8 +372,8 @@ export function createLights() {
         const mask = S.cols[m];
         for (let r = 0; r < FONT_H; r++) if (mask & (1 << r)) letter(c, f.bay(col, S.top + r), sp.colour, fadeOut * k, D);
       }
-      return;
     }
+    if (!sp.parts.length) return;
     // the rest of each tower's face dims, so the message reads
     for (const p of sp.parts) dimFace(c, p.face, env);
     // THE LETTERS AS ONE SPRITE (cleanup pass 1): drawn into an offscreen only when their state changes — the wipe 25 times a
@@ -417,7 +435,12 @@ export function createLights() {
     clear: clearSpell,
     /** a finished bake's metadata swaps in with its layer */
     swap(far, near) { if (far) metaFar = far; if (near) metaNear = near; },
-    get spelling() { return spell ? { text: spell.text, style: spell.style, towers: spell.scroll ? [spell.scroll.tower] : spell.parts.map(p => p.tower), cells: spell.scroll ? spell.scroll.cols.reduce((n, m) => { let b = 0; for (let v = m; v; v >>= 1) b += v & 1; return n + b; }, 0) : spell.parts.reduce((n, p) => n + p.cells.length, 0) } : null; },
+    get spelling() {
+      if (!spell) return null;
+      const bits = cols => cols.reduce((n, m) => { let b = 0; for (let v = m; v; v >>= 1) b += v & 1; return n + b; }, 0);
+      return { text: spell.text, style: spell.style, towers: [...new Set([...spell.parts.map(p => p.tower), ...spell.scrolls.map(S => S.tower)])], scrolls: spell.scrolls.map(S => S.tower),
+        cells: spell.parts.reduce((n, p) => n + p.cells.length, 0) + spell.scrolls.reduce((n, S) => n + bits(S.cols), 0) };
+    },
     faces: () => Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word, rect: (() => { const a = f.cell(0, 0), b = f.cell(f.cols - 1, f.rows - 1); return { x: a[0], y: a[1], w: b[0] + b[2] - a[0], h: b[1] + b[3] - a[1] }; })() }])),
     debug: () => ({ beacons: beacons.length, twinkle: metaFar.twinkle.length, tv: metaNear.tv.length, cands: metaNear.cands.length, toggles: toggles.length, sets: sets.size }),
   };

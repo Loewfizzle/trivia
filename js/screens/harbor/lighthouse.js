@@ -18,6 +18,7 @@ import { box, poly, rgb, shade, mix, clamp01 } from './shapes.js';
 import { project } from '../../core/harbor-layout.js';
 import { LEVEL } from './water.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { pxGrid } from './blocks.js';
 
 const TURN_S = 16;
 const fract = v => v - Math.floor(v);
@@ -54,6 +55,7 @@ export function lighthouseSteps(L, T) {
     box(x, cam, { x0: l.x - l.r0 - 1, x1: l.x + l.r0 + 1, z0: pz, z1: l.z + 3, h: 2.2 - b.h }, granite, { y0: b.h, light: sd >= 0 ? 1 : -1 });
     x.strokeStyle = rgb(shade(granite, -0.3), 0.7); x.lineWidth = 0.4;
     for (let yy = b.h + 0.3; yy < 2.2; yy += 0.3) { const [a, ya] = P(l.x - l.r0 - 1, yy, pz), [c] = P(l.x + l.r0 + 1, yy, pz); x.beginPath(); x.moveTo(a, ya); x.lineTo(c, ya); x.stroke(); }
+    if (T.day > 0.02) dayPlinth(x, cam, l, b, pz, granite, T);
     box(x, cam, { x0: l.x - l.r0 - 1.2, x1: l.x + l.r0 + 1.2, z0: pz - 0.1, z1: l.z + 3, h: 0.22 }, shade(granite, 0.12), { y0: 2.2, light: 1 });
     // ---- the tower: a tapered cylinder, white with two red bands, shaded across (lit on the sun's side)
     const yb = 2.42, R = y => l.r0 + (l.r1 - l.r0) * (y / l.h);
@@ -69,6 +71,7 @@ export function lighthouseSteps(L, T) {
     band(yb, l.h, white);
     band(l.h * 0.25, l.h * 0.38, red);
     band(l.h * 0.6, l.h * 0.73, red);
+    if (T.day > 0.02) dayTower(x, cam, l, yb, T, R);
     // the rim light at night (the city's glow behind it) + a hairline on the sun's edge by day
     { const [a0, ya0] = P(l.x + R(yb) * (sd < 0 ? -1 : 1), yb, l.z), [a1, ya1] = P(l.x + R(l.h) * (sd < 0 ? -1 : 1), l.h, l.z);
       x.strokeStyle = night > 0.4 ? 'rgba(160,140,230,0.35)' : `rgba(255,250,240,${0.5 * day})`; x.lineWidth = 0.5; x.beginPath(); x.moveTo(a0, ya0); x.lineTo(a1, ya1); x.stroke(); }
@@ -117,6 +120,105 @@ export function lighthouseSteps(L, T) {
       const [fa, fy] = P(k.x - 1, b.h + 0.9, k.z), [fc] = P(k.x + k.w + 3, b.h + 0.9, k.z), [, fb] = P(0, b.h, k.z);
       x.beginPath(); x.moveTo(fa, fy + 0.6); x.lineTo(fc, fy + 0.6); for (let px = fa; px <= fc; px += 1.6) { x.moveTo(px, fb); x.lineTo(px, fy); } x.stroke(); }
   }];
+}
+
+// 7a — THE LIGHTHOUSE BY DAY (the owner: "texture + roundness by day"; a hero piece). Laid over the old tower by the day's share
+// only (T.day: golden hour, dusk + the night never see it — the night look is unchanged): a real CYLINDER from the real sun's side
+// (the lit flank with a soft sheen → the terminator → a soft CORE SHADOW → a thin BOUNCE light on the far edge), the red / white
+// stripes re-laid on the device-pixel grid (crisp + bold), faint painted-masonry courses with their joints foreshortened round the
+// curve, RUST streaks under the gallery + the windows, a salt-worn darker base; the plinth a rough STONE FOUNDATION. Baked.
+const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+const LH_WHITE = { lit: [253, 251, 245], core: [158, 165, 192], bounce: [214, 208, 204] };
+const LH_RED = { lit: [224, 54, 56], core: [100, 24, 44], bounce: [160, 52, 58] };
+/** the cylinder's light across its width (u: −1 left edge … 1 right edge) → a colour, for a paint ({ lit, core, bounce }) */
+export function cylinderTone(u, paint, sd, ovc = 0) {
+  const side = sd === 0 ? 0 : Math.sign(sd), phi = side ? (55 + 25 * Math.min(1, Math.abs(sd))) * Math.PI / 180 : 0.35;
+  const d = u * side * Math.sin(phi) + Math.sqrt(Math.max(0, 1 - u * u)) * Math.cos(phi);
+  // (overcast: the sky lights it all round — a soft roll-off to both edges instead of a lit flank and a core shadow)
+  const t = smooth(-0.38, 0.62, d) * (1 - ovc) + ovc * (0.5 + 0.42 * Math.sqrt(Math.max(0, 1 - u * u)));
+  let c = mix(paint.core, paint.lit, t);
+  if (side) c = mix(c, paint.bounce, smooth(0.7, 0.96, -u * side) * (1 - t) * 0.95 * (1 - ovc));        // the thin bounce on the far edge
+  const uh = side * Math.sin(phi) * 0.82;
+  c = mix(c, [255, 255, 252], 0.22 * Math.exp(-(((u - uh) / 0.16) ** 2)) * (1 - ovc));                 // the paint's soft sheen
+  return shade(c, -0.08 * smooth(0.9, 1, Math.abs(u)));                                                   // the limbs turning away
+}
+function dayTower(x, cam, l, yb, T, R) {
+  const k = clamp01(T.day * 2), G = pxGrid(x), px = G.px, s = cam.F / l.z, sd = T.sunDir || 0, ovc = T.ovc || 0;
+  const P = (xx, y) => project(cam, xx, y, l.z), sy = y => G.sy(P(l.x, y)[1]);
+  const [cx] = P(l.x, 0);
+  x.save(); x.globalAlpha = k;
+  // the tower's outline (its taper), the clip for everything below
+  { const [a0, y0] = P(l.x - R(yb), yb), [b0] = P(l.x + R(yb), yb), [a1, y1] = P(l.x - R(l.h), l.h), [b1] = P(l.x + R(l.h), l.h);
+    x.beginPath(); x.moveTo(a0, y0); x.lineTo(a1, y1); x.lineTo(b1, y1); x.lineTo(b0, y0); x.closePath(); x.clip(); }
+  const yOfS = Y => { const [, py] = P(l.x, 0); return (py - Y) / s; };       // a screen y → the world height
+  const N = 9, us = Array.from({ length: N }, (_, i) => -1 + 2 * i / (N - 1));
+  const strips = (top, bot, paint) => {
+    for (let yy = top; yy < bot; yy += 2 * px) {
+      const hh = Math.min(2 * px, bot - yy), wy = yOfS(yy + hh / 2), hw = R(wy) * s, g = x.createLinearGradient(cx - hw, 0, cx + hw, 0);
+      us.forEach((u, i) => g.addColorStop(i / (N - 1), rgb(cylinderTone(u, paint, sd, ovc))));
+      x.fillStyle = g; x.fillRect(cx - hw - 1, yy, hw * 2 + 2, hh);
+    }
+  };
+  const top = sy(l.h) - px, bot = sy(yb) + px;
+  // (the morning's + the late afternoon's warmth on the paint, as the old tower had it: the golden share of the light)
+  const gw = clamp01(T.gold / Math.max(0.01, T.day + T.gold)), warm0 = (P2, c, b) => ({ ...P2, lit: mix(P2.lit, c, gw * 0.85), bounce: mix(P2.bounce, b, gw * 0.5) });
+  // (SP — OVERCAST: the paint muted under the deck like the city's faces — a cooler, greyer, dimmer white + red)
+  const grey = c => { const l = (c[0] + c[1] + c[2]) / 3; return shade(mix(c, [l, l + 2, l + 8], 0.45), -0.13); };
+  const warm = (P2, c, b) => { const w = warm0(P2, c, b); return ovc ? { ...w, lit: mix(w.lit, grey(w.lit), ovc * 0.8), core: mix(w.core, grey(w.core), ovc * 0.5) } : w; };
+  strips(top, bot, warm(LH_WHITE, [250, 214, 182], [236, 196, 170]));
+  const bands = [[l.h * 0.25, l.h * 0.38], [l.h * 0.6, l.h * 0.73]].map(([a, b]) => [sy(b), sy(a)]);
+  for (const [t0, b0] of bands) strips(t0, b0, warm(LH_RED, [226, 70, 58], [176, 64, 60]));
+  // faint PAINTED MASONRY: a course every ~⅗ unit under the paint, the joints (fainter still) staggered course to course and
+  // foreshortened round the curve — texture felt more than seen
+  const cy = 0.62, beds = [], joints = [];
+  for (let y = yb + cy, row = 0; y < l.h - 0.2; y += cy, row++) {
+    const yy = sy(y), hw = R(y) * s;
+    beds.push(cx - hw, yy, hw * 2);
+    for (let th = -1.3 + (row % 2) * 0.3; th < 1.3; th += 0.6) joints.push(G.sx(cx + hw * Math.sin(th)), yy + px, Math.max(px, cy * s - px));
+  }
+  x.fillStyle = 'rgba(70,64,84,0.06)'; x.beginPath(); for (let i = 0; i < beds.length; i += 3) x.rect(beds[i], beds[i + 1], beds[i + 2], px); x.fill();
+  x.fillStyle = 'rgba(70,64,84,0.025)'; x.beginPath(); for (let i = 0; i < joints.length; i += 3) x.rect(joints[i], joints[i + 1], px, joints[i + 2]); x.fill();
+  // RUST: streaks bleeding down from the gallery's corbels + from under each window (fading as they run)
+  const RUST = [150, 84, 46], runs = [];
+  for (let i = 0; i < 9; i++) { const th = -1.25 + 2.5 * hash(i * 3.7 + 11), len = 1.4 + 3.6 * hash(i * 5.1 + 3); runs.push([th, l.h - 0.75, len, hash(i * 2.3 + 7) < 0.4 ? 2 : 1, 0.34]); }
+  for (let i = 0; i < 4; i++) { const yy = l.h * (0.16 + i * 0.2), off = [0.25, -0.2, 0.3, -0.1][i]; for (const dx of [-0.08, 0.1]) runs.push([Math.asin(Math.max(-1, Math.min(1, off + dx * (1 + hash(i + dx))))), yy + 0.06, 0.9 + 1.6 * hash(i * 9 + dx * 10 + 2), 1, 0.3]); }
+  for (const [th, y0, len, w, a] of runs) {
+    for (let j = 0; j < 4; j++) {
+      const ya = y0 - len * j / 4, yb2 = y0 - len * (j + 1) / 4, hw = R(ya) * s, xx = G.sx(cx + hw * Math.sin(th));
+      x.fillStyle = rgb(RUST, a * (1 - j / 4) * (0.7 + 0.3 * Math.cos(th))); x.fillRect(xx, sy(ya), w * px, sy(yb2) - sy(ya));
+    }
+  }
+  // the SALT-WORN BASE: a darker, greyer skirt up the foot, mottled where the spray dries
+  { const y0 = sy(yb), y1 = sy(yb + 4.2), g = x.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, 'rgba(84,92,96,0.44)'); g.addColorStop(0.55, 'rgba(110,116,116,0.14)'); g.addColorStop(1, 'rgba(110,116,116,0)');
+    x.fillStyle = g; x.fillRect(cx - R(yb) * s - 1, y1, R(yb) * s * 2 + 2, y0 - y1);
+    x.fillStyle = 'rgba(96,100,98,0.12)'; x.beginPath();
+    for (let i = 0; i < 26; i++) { const wy = yb + 3.6 * hash(i * 4.3 + 1) ** 1.6, th = -1.4 + 2.8 * hash(i * 6.1 + 2), hw = R(wy) * s; x.rect(G.sx(cx + hw * Math.sin(th)), sy(wy), (1 + Math.floor(hash(i + 9) * 3)) * px, (1 + Math.floor(hash(i + 5) * 2)) * px); }
+    x.fill(); }
+  x.restore();
+}
+/** the plinth as a ROUGH STONE FOUNDATION (by day): coursed rubble — irregular granite blocks, each its own tone, lit tops, dark joints */
+function dayPlinth(x, cam, l, b, pz, granite, T) {
+  const G = pxGrid(x), px = G.px, X0 = l.x - l.r0 - 1, X1 = l.x + l.r0 + 1, base = mix(granite, [150, 146, 140], 1);
+  const P = (xx, y) => project(cam, xx, y, pz);
+  x.save(); x.globalAlpha = clamp01(T.day * 2);
+  const lit = [], dark = [];
+  for (let y = b.h, row = 0; y < 2.2 - 0.04; row++) {
+    const hh = Math.min(2.2 - y, 0.26 + 0.16 * hash(row * 7.3 + 1));
+    for (let xx = X0 - hash(row * 3.1 + 2) * 0.7, i = 0; xx < X1; i++) {
+      const ww = 0.5 + hash(row * 13 + i * 5.7) * 0.95, u0 = Math.max(X0, xx), u1 = Math.min(X1, xx + ww);
+      const [a, ya] = P(u0, y + hh), [c, yc] = P(u1, y), ax = G.sx(a), cx2 = G.sx(c), ay = G.sy(ya), cy = G.sy(yc);
+      if (cx2 > ax && cy > ay) {
+        x.fillStyle = rgb(shade(base, (hash(row * 31 + i * 7) - 0.5) * 0.34 - 0.04)); x.fillRect(ax, ay, cx2 - ax, cy - ay);
+        lit.push(ax, ay, cx2 - ax); dark.push(ax, ay, cx2 - ax, cy - ay);
+      }
+      xx += ww;
+    }
+    y += hh;
+  }
+  x.fillStyle = 'rgba(255,250,236,0.4)'; x.beginPath(); for (let i = 0; i < lit.length; i += 3) x.rect(lit[i], lit[i + 1], lit[i + 2] - px, px); x.fill();
+  x.fillStyle = 'rgba(30,30,44,0.55)'; x.beginPath(); for (let i = 0; i < dark.length; i += 4) { x.rect(dark[i] + dark[i + 2] - px, dark[i + 1], px, dark[i + 3]); x.rect(dark[i], dark[i + 1] + dark[i + 3] - px, dark[i + 2], px); } x.fill();
+  x.restore();
 }
 
 /** THE BEAM (every frame, night): see the top of this file */

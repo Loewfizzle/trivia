@@ -36,17 +36,45 @@ export function halfTime(b, T = 0.5) {
 }
 
 /**
+ * 7a — WHAT THE BEAT FOLLOWS (docs/audio.md#7a-the-beat-in-direct-mode). One of:
+ *   'grid'         the song's trusted grid, the kick listener setting how hard it punches
+ *   'direct-grid'  the song plays on THE DIRECT ELEMENT (M4: the Web Audio graph is dead, so the kick listener hears nothing): the
+ *                  grid alone, on the element's own clock, at a steady strength
+ *   'kicks'        no trusted grid: the kicks the listener hears (a song we know nothing about)
+ *   'tempo'        no trusted grid and nothing heard (the direct element, a deaf analyser): a gentle steady pulse at the song's tempo
+ *   'calm'         no song: a calm 120 bpm of its own
+ * song: { bpm, pos, grid?, untrusted?, loose? (the untrusted grid: its tempo + phase, the best guess there is), direct? } | null
+ */
+export function beatMode(song, kick) {
+  const heard = !!(kick && kick.live) && !(song && song.direct);
+  if (song && song.pos >= 0) {
+    if (song.grid && song.grid.bpm > 0) return song.direct ? 'direct-grid' : 'grid';
+    if (song.bpm > 0 && !song.untrusted) return 'tempo';          // (a song with a tempo but no grid at all: as before)
+    if (heard) return 'kicks';
+    if (song.bpm > 0 || (song.loose && song.loose.bpm > 0)) return 'tempo';
+  }
+  return heard ? 'kicks' : 'calm';
+}
+/** the strength a beat settles at when no kick is heard: the grid 0.85, the gentle tempo pulse 0.6, the calm pulse 0.7 */
+export const SETTLE = { grid: 0.85, 'direct-grid': 0.85, tempo: 0.6, calm: 0.7, kicks: 0.7 };
+
+/**
  * Advance the clock by dt ms.
- *   song: { bpm, pos (s: the song's position AS HEARD), grid?: { bpm, t0, down }, untrusted? } | null
+ *   song: { bpm, pos (s: the song's position AS HEARD), grid?: { bpm, t0, down }, untrusted?, loose?, direct? } | null
  *   kick: { hit (0..1: a kick heard this frame, its strength), live (the analyser hears the music) } | null
  * → hb (mutated): beats (continuous; with a grid 0 mod 4 = a downbeat), u (0..1 of the beat), T (s a beat), idx (0..3 in the
- * bar), bar (bars counted — never backwards), barU (0..1 of the bar), punch (0..~1.4), src ('grid'|'tempo'|'kick'|'calm')
+ * bar), bar (bars counted — never backwards), barU (0..1 of the bar), punch (0..~1.4), src (beatMode: 'grid'|'direct-grid'|
+ * 'kicks'|'tempo'|'calm')
  */
 export function advanceHarborBeat(hb, dt, song, kick) {
   const sec = Math.min(0.25, Math.max(0, dt / 1000));
-  const g = song && song.grid && song.grid.bpm > 0 ? song.grid : null;
-  // (CITY 2.0 MUSIC: a song whose grid the importer couldn't trust — song.untrusted — has no tempo either: the kicks lead, like no song)
-  const bpm = g ? g.bpm : song && song.bpm > 0 && !song.untrusted ? song.bpm : 0;
+  const mode = beatMode(song, kick);
+  // (on the direct element the kick listener's graph is dead: whatever it reports is stale — never trusted)
+  if (song && song.direct) kick = null;
+  // the phase source: the trusted grid; for the gentle tempo pulse the untrusted grid's own tempo + phase when there is one
+  const g = mode === 'grid' || mode === 'direct-grid' ? song.grid : mode === 'tempo' && song.loose && song.loose.bpm > 0 ? song.loose : null;
+  // (CITY 2.0 MUSIC: a song whose grid the importer couldn't trust — song.untrusted — follows the kicks it hears; heard nothing: its tempo)
+  const bpm = g ? g.bpm : mode === 'tempo' ? song.bpm : 0;
   hb.beats += hb.rate * sec;                     // (advance first, then pull toward the song as it sounds NOW: no frame of lead)
   if (bpm && song.pos >= 0) {
     const target = bpm / 60;
@@ -55,11 +83,12 @@ export function advanceHarborBeat(hb, dt, song, kick) {
     // the bar's phase, the shortest way round (in beats): a new song or a seek re-locks at once, a small drift is pulled in
     let d = tb - hb.beats; d -= 4 * Math.round(d / 4);
     if (Math.abs(d) > 0.6) hb.beats += d; else hb.beats += d * Math.min(1, sec * 4);
-    hb.locked = Math.min(1, hb.locked + sec / 1.5); hb.bpm = bpm; hb.src = g ? 'grid' : 'tempo';
+    hb.locked = Math.min(1, hb.locked + sec / 1.5); hb.bpm = bpm;
   } else {
     hb.rate += (CALM_BPM / 60 - hb.rate) * Math.min(1, sec * 0.8);
-    hb.locked = Math.max(0, hb.locked - sec / 2.5); hb.bpm = 0; hb.src = kick && kick.live ? 'kick' : 'calm';
+    hb.locked = Math.max(0, hb.locked - sec / 2.5); hb.bpm = 0;
   }
+  hb.src = mode;
   const b = hb.beats, T = 1 / Math.max(0.2, hb.rate), fb = Math.floor(b);
   hb.T = T; hb.u = b - fb; hb.idx = ((fb % 4) + 4) % 4;
   const bi = Math.floor(b / 4);
@@ -84,7 +113,7 @@ export function advanceHarborBeat(hb, dt, song, kick) {
     }
   } else {
     hb.live = false;
-    hb.level += ((bpm ? 0.85 : 0.7) - hb.level) * Math.min(1, sec * 1.5);
+    hb.level += (SETTLE[mode] - hb.level) * Math.min(1, sec * 1.5);
   }
   hb.punch = bpm || !hb.live ? ht.env * ht.strong * hb.level + hb.kick : hb.kick;
   return hb;

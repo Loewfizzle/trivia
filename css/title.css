@@ -25,8 +25,8 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
 }
 .nd-corner {
   position: fixed;
-  top: calc(var(--safe-t) + 22px);
-  left: calc(var(--safe-l) + var(--gutter));
+  top: calc(var(--safe-t) + 19px);   /* (a dev slot's TEST SLOT tag: beside the ☰ in the top-left corner, centred on it) */
+  left: calc(var(--safe-l) + 12px + var(--cb, 36px) + 10px);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -43,7 +43,8 @@ body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: n
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: clamp(40px, 8.5vh, 96px);
+  /* (7a section 0, the owner: the sign ~24 pt higher on an upright phone — more sky for the city; was clamp(40px, 8.5vh, 96px)) */
+  margin-top: clamp(16px, calc(8.5vh - 24px), 72px);
   pointer-events: none;
   transition: opacity 0.6s ease;
 }
@@ -207,6 +208,7 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
   .nd-logo-wrap { width: min(70vw, 270px); }
   .nd-tag { margin-top: 8px; }
 }
+@media (max-height: 720px) and (orientation: portrait) { .nd-sign { margin-top: 12px; } }   /* (a small upright phone: up a little too) */
 
 /* ---- wide screens: the scene opens up, the menu stays a calm column ---- */
 @media (min-width: 900px) and (min-height: 640px) {
@@ -279,6 +281,11 @@ body.reduced-fx .nd-logo-glow { display: none; }
 .nd-sign:not(.is-steady) .nd-race, .nd-sign.is-day .nd-race, .nd-sign:not(.is-steady) .nd-word-r, .nd-sign.is-day .nd-word-r { display: none; }
 @media (prefers-reduced-motion: reduce) { .nd-race, .nd-word-r { display: none; } }
 body.reduced-fx .nd-race, body.reduced-fx .nd-word-r { display: none; }
+/* (7a section 0 — THE MUSIC'S FIRST TAP, City 2.0: by day the race's layers show through the unlit glass while the surge runs —
+   title.js#raceLogo('surge') sets nd-surge only then, never under reduced motion; there the sign's bloom fades up and back instead) */
+.nd-sign.is-day.nd-surge .nd-race, .nd-sign.is-day.nd-surge .nd-word-r { display: block; }
+.nd-sign.nd-glow-in .nd-bloom { opacity: 0.5; transition: opacity 0.42s ease; }
+.nd-sign.nd-glow-out .nd-bloom { opacity: 0; transition: opacity 1.2s ease; }
 /* (City 2.0, NEON PASS 5 — THE TIRED TUBE: a letter or two looking a little worn for a few hours — a weaker core, a softer glow, no hot
    spots — chosen anew every few hours: title.js#tiredTick) */
 .nd-logo .ndl.is-tired .ndl-core { opacity: 0.6; transition: opacity 2s ease; }
@@ -685,8 +692,8 @@ body.nd-on .menu-btn, body.nd-on .music-btn, body.nd-on .music-btn.is-off {
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 body.nd-on .menu-btn .mb-bars, body.nd-on .music-btn > svg { display: none; }
-.nd-cic { display: grid; place-items: center; width: 22px; height: 22px; pointer-events: none; }
-body.nd-on .nd-cic svg { width: 22px; height: 22px; }
+.nd-cic { display: grid; place-items: center; width: 19px; height: 19px; pointer-events: none; }
+body.nd-on .nd-cic svg { width: 19px; height: 19px; }
 body.nd-on :not(.nd-cl-lit) > .nd-cic svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); }
 body.nd-on :not(.nd-cl-lit) > .nd-cic .t { stroke: rgba(196, 194, 222, 0.7); }
 body.nd-on :not(.nd-cl-lit) > .nd-cic .c { stroke: rgba(255, 255, 255, 0.42); opacity: 1; }

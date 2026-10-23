@@ -54,8 +54,16 @@ export function toneWeights(LK) {
   const w = (LK && LK.w) || { night: 1 };
   // (DT1: the blue hour's facades take the night's tones — silhouettes against the luminous blue, their windows + neon coming on)
   const night = (w.night || 0) + (w.late || 0) + 0.3 * (w.dawn || 0) + (w.blue || 0);
-  const gold = (w.golden || 0) + 0.7 * (w.dawn || 0);
-  const day = w.day || 0;
+  let gold = (w.golden || 0) + 0.7 * (w.dawn || 0);
+  let day = w.day || 0;
+  // (THE SUN'S STAGES — district/sun.js#sunColourAt: with the sun 2–6° up it is golden amber, and so is its light on the city. The
+  // evening's weights already are; the morning's went to daylight by ~4°. The day channel only: its share moves to gold so the lit
+  // city is all gold to ~5°, half by ~7°, daylight from ~9° — the night's share (the dawn's dusk, the blue hour) never changes.)
+  const el = LK && LK.sun ? LK.sun.el : null;
+  if (el != null && el > -1 && day > 0) {
+    const want = (gold + day) * (1 - sm(5, 9, el));
+    if (gold < want) { const mv = Math.min(day, want - gold); gold += mv; day -= mv; }
+  }
   const s = Math.max(1e-6, night + gold + day);
   return { day: day / s, gold: gold / s, night: night / s };
 }

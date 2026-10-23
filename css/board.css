@@ -46,12 +46,13 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 /* ---- the header: back, the title in neon over Art Deco rules, your emblem ---- */
 .bd-head { position: relative; display: grid; grid-template-columns: 44px 1fr; grid-template-rows: 44px auto; align-items: center; padding-right: 0; }
 .bd-back {
-  grid-row: 1; grid-column: 1; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%;
-  color: rgba(255, 240, 220, 0.9); font: 400 28px/1 var(--font-ui); text-decoration: none; padding-bottom: 4px; box-sizing: border-box;
+  grid-row: 1; grid-column: 1; position: relative; width: var(--cb, 36px); height: var(--cb, 36px); display: grid; place-items: center; border-radius: 50%;
+  color: rgba(255, 240, 220, 0.9); font: 400 25px/1 var(--font-ui); text-decoration: none; padding-bottom: 3px; box-sizing: border-box;
   background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 60%), rgba(20, 12, 16, 0.55);
   border: 1px solid rgba(255, 230, 200, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 .bd-back:active { transform: scale(0.94); }
+.bd-back::after { content: ''; position: absolute; inset: calc((var(--cb, 36px) - 44px) / 2); }   /* (7a §0: the corner buttons' size — 36 pt — with a 44 pt tap area) */
 .bd-title { grid-row: 1 / span 2; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none; padding-top: 4px; }
 .bd-kicker { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.5em; padding-left: 0.5em; color: rgba(242, 200, 105, 0.82); margin-top: 6px; }
 .bd-name {

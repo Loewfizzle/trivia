@@ -71,7 +71,7 @@ export const glyph = ch => G[ch] || G[String(ch).toUpperCase()] || null;
 export function normText(s, max = 40) {
   let t = String(s || '').toUpperCase().slice(0, max);
   t = t.replace(/<3/g, '♥').replace(/\*/g, '★').replace(/\[FLAG\]/g, '⚑').replace(/\[HEART\]/g, '♥').replace(/\[STAR\]/g, '★');
-  return [...t].filter(ch => G[ch]).join('');
+  return [...t].filter(ch => G[ch]).join('').replace(/ +/g, ' ').trim();     // (7a §0: a dropped character leaves no double space)
 }
 /** a line's width in columns (1 column between glyphs) */
 export const lineWidth = line => [...line].reduce((w, ch, i) => w + glyph(ch)[0].length + (i ? 1 : 0), 0);
@@ -106,18 +106,18 @@ export function layoutText(text, towers, opts = {}) {
     if (!tw || need > tw.rows || chars.some(ch => glyph(ch)[0].length > tw.cols)) return null;
     const top = Math.max(0, Math.floor((tw.rows - need) / 2));
     const cells = chars.flatMap((ch, i) => centre(lineCells(ch), tw.cols, glyph(ch)[0].length, top + i * (FONT_H + 1)));
-    return [{ tower: 'wordV', cells, rows: need }];
+    return [{ tower: 'wordV', cells, rows: need, text: chars.join('') }];
   };
   const oneLine = (line, tw, id) => {
     const w = lineWidth(line); if (!tw || w > tw.cols || FONT_H > tw.rows) return null;
     const top = Math.max(0, Math.floor((tw.rows - FONT_H) / 2));
-    return { tower: id, cells: centre(lineCells(line), tw.cols, w, top), rows: FONT_H };
+    return { tower: id, cells: centre(lineCells(line), tw.cols, w, top), rows: FONT_H, text: line };
   };
   const twoLines = (l1, l2, tw, id) => {
     const w1 = lineWidth(l1), w2 = lineWidth(l2);
     if (!tw || Math.max(w1, w2) > tw.cols || 2 * FONT_H + 1 > tw.rows) return null;
     const top = Math.max(0, Math.floor((tw.rows - 2 * FONT_H - 1) / 2));
-    return { tower: id, cells: [...centre(lineCells(l1), tw.cols, w1, top), ...centre(lineCells(l2), tw.cols, w2, top + FONT_H + 1)], rows: 2 * FONT_H + 1 };
+    return { tower: id, cells: [...centre(lineCells(l1), tw.cols, w1, top), ...centre(lineCells(l2), tw.cols, w2, top + FONT_H + 1)], rows: 2 * FONT_H + 1, text: `${l1} / ${l2}` };
   };
   if (opts.tower === 'wordV') return vertical(V);
   if (opts.tower === 'wordA' || opts.tower === 'wordB') { const r = oneLine(t, towers[opts.tower], opts.tower); return r ? [r] : null; }
@@ -147,6 +147,68 @@ export function scrollColumns(text) {
   const w = t ? lineWidth(t) : 0, cols = new Array(w).fill(0);
   for (const [c, r] of lineCells(t)) cols[c] |= 1 << r;
   return { text: t, cols };
+}
+
+// ------------------------------------------------------------------ PART 7a §0 — THE WORD TOWERS from the panel: capacity + the fit
+/** the word towers' faces on every phone + desktop today (harbor.test.mjs checks them against the layout): the panel's fallback
+ *  when the live faces (harbor().windows.faces) aren't there */
+export const WORD_FACES = { wordA: { cols: 19, rows: 11, word: 'h' }, wordB: { cols: 15, rows: 9, word: 'h' }, wordV: { cols: 5, rows: 18, word: 'v' } };
+/** the tower choices: AUTO (layoutText: the best layout, else ONE WORD PER TOWER on A + B), one tower, or a list of towers (one
+ *  word each, in order; the last takes the rest) — a word too long for its tower SCROLLS on it */
+export const TOWER_CHOICES = ['', 'wordA', 'wordB', 'wordV', 'wordA,wordB', 'wordA,wordB,wordV'];
+/** the characters the window font draws (+ what to type for the symbols) */
+export const FONT_CHARS = Object.keys(G).filter(ch => ch !== ' ');
+export const FONT_ALIASES = { '♥': '<3', '★': '*', '⚑': '[flag]' };
+/** a tower's room: { word, cols, rows, lines (h: lines of text it holds), letters (a line's 3-column letters: most letters — M W N Q ♥ ★
+ *  are wider, I ! . ' narrower) } — vertical: letters = one under the other */
+export function towerCapacity(towers) {
+  const out = {};
+  for (const [id, f] of Object.entries(towers || {})) {
+    if (!f || !f.cols || !f.rows) continue;
+    if (f.word === 'v') out[id] = { word: 'v', cols: f.cols, rows: f.rows, lines: 1, letters: f.cols >= 3 ? Math.floor((f.rows + 1) / (FONT_H + 1)) : 0 };
+    else { const lines = Math.floor((f.rows + 1) / (FONT_H + 1)); out[id] = { word: 'h', cols: f.cols, rows: f.rows, lines, letters: lines ? Math.floor((f.cols + 1) / 4) : 0 }; }
+  }
+  return out;
+}
+/** the characters of a message the font can't draw (after the aliases) */
+export function badChars(s) {
+  const t = String(s || '').toUpperCase().replace(/<3/g, '').replace(/\*/g, '').replace(/\[(FLAG|HEART|STAR)\]/g, '');
+  return [...new Set([...t].filter(ch => ch !== ' ' && !G[ch]))];
+}
+/** does a word stand on a tower (no scroll)? h: one line in its columns; v: its letters one under the other */
+function standsOn(word, f) {
+  if (!f) return false;
+  if (f.word === 'v') { const ch = [...word.replace(/ /g, '')]; return ch.length > 0 && ch.length * FONT_H + ch.length - 1 <= f.rows && ch.every(c => glyph(c)[0].length <= f.cols); }
+  return lineWidth(word) <= f.cols && FONT_H <= f.rows;
+}
+/**
+ * What a message does on the towers — the panel's live readout and lights.js#spell share it.
+ * → { text, bad: [characters dropped], mode: 'layout' (layoutText placed it) | 'split' (one word per tower) | 'scroll' (one tower's
+ *   ticker), plan: [{ tower, text, letters, cap (the tower's letters a line), fits (stands still), scroll }] } — null for no text.
+ * tower: a TOWER_CHOICES value (or one id / a comma list).
+ */
+export function fitText(text, towers, tower = '') {
+  const t = normText(text, 120);
+  if (!t) return null;
+  const bad = badChars(text), cap = towerCapacity(towers);
+  const list = String(tower || '').split(',').filter(id => towers[id]);
+  const count = w => [...w.replace(/ /g, '')].length;
+  const entry = (id, w, still) => ({ tower: id, text: w, letters: count(w), cap: cap[id] ? cap[id].letters * (still && cap[id].word === 'h' && w.includes(' / ') ? 2 : 1) : 0, fits: still, scroll: !still });
+  if (list.length <= 1) {
+    const lay = t.length <= 40 ? layoutText(t, towers, list[0] ? { tower: list[0] } : {}) : null;
+    if (lay) return { text: t, bad, mode: 'layout', plan: lay.map(p => entry(p.tower, p.text, true)) };
+    // one tower asked for: its ticker (a vertical tower's word that doesn't stand: the ticker on A — the narrow face is no ticker)
+    if (list[0]) { const id = towers[list[0]].word === 'h' ? list[0] : 'wordA'; return { text: t, bad, mode: 'scroll', plan: [entry(id, t, false)] }; }
+  }
+  // ONE WORD PER TOWER (AUTO when nothing else fits: A then B) — the last tower takes the rest; a word too long for its tower scrolls
+  const ids = list.length > 1 ? list : ['wordA', 'wordB'].filter(id => towers[id]);
+  const words = t.split(' ').filter(Boolean), n = Math.min(words.length, ids.length);
+  const plan = [];
+  for (let i = 0; i < n; i++) {
+    const w = i === n - 1 ? words.slice(i).join(' ') : words[i], id = ids[i];
+    plan.push(entry(id, w, standsOn(w, towers[id])));
+  }
+  return { text: t, bad, mode: n === 1 && plan[0].scroll ? 'scroll' : 'split', plan };
 }
 
 /** the words the scheduler's random `spell` event may light (night only; rare — never the same two nights running) */

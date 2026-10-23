@@ -185,8 +185,9 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
     const steady = hash(i + 31, Math.floor(bar / len)) < 0.24 && it.kind !== 'hero' && it.kind !== 'word';   // (NEON PASS 5: the towers always race)
     const delay = (sc.ripple || 0) * it.x * 0.35 * T;                      // (seconds: the punch rolling across the screen)
     const pe = pAt(delay) * hit;
-    // the base sinks a little so the punch reads (a big swing, never dark): 0.8 between beats → ~1.8 on a downbeat at the peak
-    a = 1 - 0.2 * amp + (steady ? 0.35 : 0.9) * pe;
+    // the base sinks a little so the punch reads (a big swing, never dark): 0.8 between beats → ~2 on a downbeat at the peak
+    // (7a, the owner: one step stronger on her iPhone — 0.9 → 1.15, the steady quarter 0.35 → 0.45)
+    a = 1 - 0.2 * amp + (steady ? 0.45 : 1.15) * pe;
     if (!steady) {
       if (sc.call && (it.kind === 'hero' || it.kind === 'word' || it.kind === 'mid')) {
         // two teams (by the building's place): A lights on even bars, B answers on odd — a soft hand-over, never a cut
@@ -227,7 +228,8 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
 }
 
 /**
- * Tonight's EVERYDAY MOTION (calm, sparse — the big motion is the party's): a few named signs BLINK or SPELL ON every ~40–80 s,
+ * Tonight's EVERYDAY MOTION (calm, sparse — the big motion is the party's): one or two named signs BLINK every ~45 s, EVERY named
+ * sign SPELLS ON in its turn (spell: all of them — spellNow / spellParty schedule the turns, never two at once),
  * one icon sign CYCLES its colour slowly, one or two buildings run a SLOW CHASER. Seeded by the night (the same all night).
  * signs: [{ id, kind: 'named'|'icon'|… }] · cast: showItems → { blink: Set(sign id), spell: Set(sign id), cycle: sign id | null,
  * chase: Set(item index) }
@@ -240,7 +242,9 @@ export function everyday(key, cast, signs) {
   const spell = new Set(), blink = new Set();
   // (NEON PASS 4: a name at the screen's edge never SPELLS ON — its dark letters read as a sign cut off by the edge; it may blink)
   const a = pick(named.filter(g => !g.edge), 1) || pick(named, 1), b = pick(named.filter(g => g !== a), 2), b2 = pick(named.filter(g => g !== a && g !== b), 7);
-  if (a) spell.add(a.id);
+  // (7a, the owner: EVERY named sign spells on now and then — they take turns, one at a time: spellNow / spellParty. The edge rule
+  // above now only keeps tonight's FIRST pick — `a`, who never blinks — off the screen's edge)
+  for (const g of named) spell.add(g.id);
   if (b) blink.add(b.id);
   if (b2 && R(8) < 0.7) blink.add(b2.id);          // (NEON PASS 4: a second blinking name most nights)
   const c = pick(icons, 3);
@@ -321,9 +325,57 @@ export function signMotion(kind, t, seed = 0) {
   if (kind === 'spell') {
     // SPELL ON: every ~70 s the name goes dark and spells itself back on, letter by letter (~0.22 s a letter)
     const P = 68 + (seed % 13), u = (t + seed * 1.7) % P;
-    if (u > 3.4) return { a: 1, reveal: 1 };
-    if (u < 0.35) return { a: 1 - smooth(0, 0.35, u), reveal: 1 };
-    return { a: 1, reveal: clamp01((u - 0.6) / 2.4) };
+    return spellMotion(u);
   }
   return { a: 1, reveal: 1 };
+}
+
+// ---- THE SPELL-ON ROUND (7a — the owner loves the spell-on: EVERY named sign does it now and then — the roof signs, the blade, the
+// panorama names — staggered, NEVER two at once). A normal night: one spell every 120–240 s somewhere in the city (a start in every
+// 180 s window, + 0–60 s), the signs taking turns in a seeded order (each round every sign once; never the same sign twice running),
+// on the city's clock (every phone the same). A party night: BETWEEN the show's scenes — from the last bar of a scene (its effects
+// fading out) into the first of the next (fading in), every other scene change, the turns as above. &force=spell-on: a quick cycle.
+export const SPELL_DUR = 3.4;                    // s: dark over 0.35 s, the letters 0.6 → 3.0 s (scaled when shorter), then on
+export const SPELL_EVERY = 180, SPELL_JITTER = 60;
+/** a spell-on u s after it started (dur: its length) → { a (the name's alpha ×), reveal (0..1 of its letters) } */
+export function spellMotion(u, dur = SPELL_DUR) {
+  const k = dur / SPELL_DUR, v = u / k;
+  if (!(v >= 0) || v > SPELL_DUR) return { a: 1, reveal: 1 };
+  if (v < 0.35) return { a: 1 - smooth(0, 0.35, v), reveal: 1 };
+  return { a: 1, reveal: clamp01((v - 0.6) / 2.4) };
+}
+const keySeed = key => { let s = 7; for (const ch of String(key)) s = (s * 31 + ch.charCodeAt(0)) | 0; return s; };
+/** whose turn slot k is (ids sorted; each round of n slots every sign once, in a seeded order; never the same sign twice running) */
+export function spellWho(ids, seed, k) {
+  const L = [...ids].sort(), n = L.length;
+  if (!n) return null;
+  if (n === 1) return L[0];
+  if (n === 2) return L[(k + (hash(seed, 999) < 0.5 ? 0 : 1)) % 2];
+  const raw = r => { const a = L.slice(); for (let i = n - 1; i > 0; i--) { const j = Math.floor(hash(seed + r * 7919, 1000 + i) * (i + 1)) % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const r = Math.floor(k / n), i = ((k % n) + n) % n, o = raw(r);
+  if (o[0] === raw(r - 1)[n - 1]) [o[0], o[1]] = [o[1], o[0]];       // (n ≥ 3: a swap at the front never changes the round's last)
+  return o[i];
+}
+/** a normal night: which sign spells at sec (s on the city's clock) → { id, u (s into it), dur, k (the slot) } | null.
+ *  o.every / o.jitter: the preview's quick cycle (&force=spell-on: every 6 s) */
+export function spellNow(sec, ids, key, o = {}) {
+  if (!ids || !ids.length) return null;
+  const every = o.every || SPELL_EVERY, jit = o.jitter ?? (o.every ? 0 : SPELL_JITTER), seed = keySeed(key), k0 = Math.floor(sec / every);
+  for (const k of [k0, k0 - 1]) {
+    const u = sec - (k * every + jit * hash(seed, 5000 + k));
+    if (u >= 0 && u < SPELL_DUR) return { id: spellWho(ids, seed, k), u, dur: SPELL_DUR, k };
+  }
+  return null;
+}
+/** a party night: bars x (bar + phase), len (bars a scene), barS (s a bar) → { id, u, dur, k } | null — only from the last bar of a
+ *  scene into the first of the next (the scene envelope's fade), every other change; its length fits the two bars */
+export function spellParty(x, len, barS, ids, key) {
+  if (!ids || !ids.length || !(len > 2) || !(barS > 0)) return null;
+  const seed = keySeed(key), dur = Math.min(SPELL_DUR, 2 * barS);
+  for (const b of [Math.floor(x / len), Math.floor(x / len) + 1]) {
+    if (b < 1 || b % 2) continue;
+    const u = (x - (b * len - 1)) * barS;
+    if (u >= 0 && u < dur) return { id: spellWho(ids, seed, b / 2), u, dur, k: b / 2 };
+  }
+  return null;
 }

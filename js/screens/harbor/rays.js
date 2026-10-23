@@ -40,9 +40,11 @@ export function drawRays(c, L, sun, k, t, pass, motion = true, tier = 2) {
     let a0 = ang(top), a1 = ang(bot);
     if (Math.abs(a1 - a0) > Math.PI) a1 += a1 < a0 ? Math.PI * 2 : -Math.PI * 2;
     const r0 = Math.hypot(g.sx - sun.x, (topY + floorY) / 2 - sun.y), r1 = r0 + reach;
+    // (the shafts start outside the sun's disc: added over it, they bleached a 6° golden sun to lemon — district/sun.js#sunColourAt)
+    const rs = Math.max(r0 * 0.92, (sun.r || 0) * 1.4);
     const n = tier === 2 ? 5 : 3;
     // one gradient per corridor (alpha 1), each shaft's strength by globalAlpha
-    const gr = c.createRadialGradient(sun.x, sun.y, r0 * 0.92, sun.x, sun.y, r1);
+    const gr = c.createRadialGradient(sun.x, sun.y, rs, sun.x, sun.y, Math.max(r1, rs + 1));
     gr.addColorStop(0, `rgba(${col},1)`); gr.addColorStop(0.2, `rgba(${col},0.5)`); gr.addColorStop(0.6, `rgba(${col},0.12)`); gr.addColorStop(1, `rgba(${col},0)`);
     c.fillStyle = gr;
     for (let i = 0; i < n; i++) {
@@ -54,10 +56,10 @@ export function drawRays(c, L, sun, k, t, pass, motion = true, tier = 2) {
       if (a < 0.004) continue;
       c.globalAlpha = a;
       c.beginPath();
-      c.moveTo(sun.x + Math.cos(b0) * r0 * 0.92, sun.y + Math.sin(b0) * r0 * 0.92);
+      c.moveTo(sun.x + Math.cos(b0) * rs, sun.y + Math.sin(b0) * rs);
       c.lineTo(sun.x + Math.cos(b0) * r1, sun.y + Math.sin(b0) * r1);
       c.lineTo(sun.x + Math.cos(b1) * r1, sun.y + Math.sin(b1) * r1);
-      c.lineTo(sun.x + Math.cos(b1) * r0 * 0.92, sun.y + Math.sin(b1) * r0 * 0.92);
+      c.lineTo(sun.x + Math.cos(b1) * rs, sun.y + Math.sin(b1) * rs);
       c.closePath(); c.fill();
     }
     c.globalAlpha = 1;
@@ -66,7 +68,12 @@ export function drawRays(c, L, sun, k, t, pass, motion = true, tier = 2) {
       const cy = (floorY + topY) / 2, rr = (floorY - topY) * 0.55;
       const gg = c.createRadialGradient(g.sx, cy, 0, g.sx, cy, rr);
       gg.addColorStop(0, `rgba(${col},${0.2 * k * near})`); gg.addColorStop(1, `rgba(${col},0)`);
-      c.fillStyle = gg; c.fillRect(g.sx - rr, cy - rr, rr * 2, rr * 2);
+      c.fillStyle = gg;
+      // (never over the sun's own disc: the glow is the air around it — over it, it bleached a golden sun to lemon)
+      if (sun.r && Math.hypot(sun.x - g.sx, sun.y - cy) < rr + sun.r) {
+        c.save(); c.beginPath(); c.rect(g.sx - rr, cy - rr, rr * 2, rr * 2); c.ellipse(sun.x, sun.y, sun.r * 0.98, sun.r * 0.98, 0, 0, Math.PI * 2); c.clip('evenodd');
+        c.fillRect(g.sx - rr, cy - rr, rr * 2, rr * 2); c.restore();
+      } else c.fillRect(g.sx - rr, cy - rr, rr * 2, rr * 2);
     }
   }
   c.restore();

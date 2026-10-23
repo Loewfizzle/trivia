@@ -15,6 +15,9 @@ const WATCH_MS = Number(process.env.WATCH_MS || 14000);
 // quick settings so each game reaches real play fast (DOUBLE AGENT needs 4 players — e2e-agent.mjs covers it)
 // (GAMES=cipher,pulse: only those — the one-game smoke check a City 2.0 pass runs when it touches a shared file; plan.md TESTING SCOPE)
 const ONLY_GAMES = (process.env.GAMES || '').split(',').filter(Boolean);
+// (SIZE=402x874: the phones' size, default 390x844; MENU=1: one more shot of each game with its ☰ menu open — the corner's look)
+const [VW, VH] = String(process.env.SIZE || '390x844').split('x').map(Number);
+const SFX = process.env.SIZE ? `-${VW}x${VH}` : '';
 const ALL_GAMES = [
   ['cipher', { rounds: 3 }],
   ['signal', {}],
@@ -47,7 +50,7 @@ async function open(i, qs = '') {
   page.on('console', m => { if (m.type() === 'warning' && /game view/.test(m.text())) errors.push(`game view failed to load: ${m.text()}`); });
   page.on('pageerror', e => { errors.push(`${NAMES[i]} pageerror: ${e.message}`); log(NAMES[i], 'PAGEERROR', e.message); });
   page.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|TOO LATE/i.test(t) && !/blocked by CORS policy/i.test(t) /* an outside site (the trivia APIs) refusing a request: not ours */) { errors.push(`${NAMES[i]}: ${t}`); log(NAMES[i], 'console.error', t); } });
-  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await page.setViewport({ width: VW, height: VH, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   await page.goto(`${BASE}/?emu${qs}`); // no &slot= : a regular phone
   pages[i] = page;
   return page;
@@ -119,7 +122,7 @@ try {
   await waitFor(host, s => Object.keys(s.players).length === 2, 'two players', 20000);
   await sleep(1500); // chat strip + lobby art load lazily
   await watch('lobby', 2000);
-  await host.screenshot({ path: `${OUT}smoke-lobby.png`, fullPage: true });
+  await host.screenshot({ path: `${OUT}smoke-lobby${SFX}.png`, fullPage: true });
   ok(true, 'lobby on two regular phones');
 
   // ---- HOW TO PLAY sheet (every game's rules)
@@ -141,7 +144,8 @@ try {
     await waitFor(host, (s, g) => s.game && s.game.id === g, `${id} started`, 20000, id);
     await waitFor(guest, (s, g) => s.game && s.game.id === g, `${id} on the guest`, 20000, id);
     await watch(id, WATCH_MS);
-    await guest.screenshot({ path: `${OUT}smoke-${id}.png` });
+    await guest.screenshot({ path: `${OUT}smoke-${id}${SFX}.png` });
+    if (process.env.MENU === '1') { await guest.click('.menu-btn'); await guest.waitForSelector('.gm-panel'); await sleep(350); await guest.screenshot({ path: `${OUT}smoke-${id}${SFX}-menu.png` }); await guest.click('.menu-btn'); await sleep(300); }
     const phase = await evalIn(guest, s => s.game && s.game.phase);
     ok(true, `${id}: watched to phase "${phase}" with no stray text`);
     await host.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
