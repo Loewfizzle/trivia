@@ -1388,7 +1388,7 @@ test('NEON PASS 5 — THE GLANCE TEST: every named sign\'s letters ≥ 10 pt on 
 // ================================================================ THE DAY PASS (Oct 22 2026)
 import { sunLook, harborSky, toneWeights } from '../js/screens/harbor/tones.js';
 import { tiredForced } from '../js/core/harbor-show.js';
-import { cloudMix, cloudPlan, driftX, skyLight, cloudLit } from '../js/core/harbor-clouds.js';
+import { cloudMix, cloudPlan, driftX, skyLight, cloudLit, SMALL_DROP, SMALL_FRAG, SMALL_MAX } from '../js/core/harbor-clouds.js';
 import { layersOf } from '../js/core/weather.js';
 import { DAY_PAINT, dayPaint } from '../js/screens/harbor/signs.js';
 import { lhEdgeBlocks } from '../js/core/harbor-neon.js';
@@ -1454,9 +1454,14 @@ test('DT2 — THE CLOUDS\' layout: perspective (near = big, the horizon = small 
     // never a row: no three cumulus of about the same size on (almost) the same line
     for (const a of P) assert.ok(P.filter(b => b !== a && Math.abs(b.y - a.y) < 2 && Math.abs(b.w - a.w) < a.w * 0.15).length < 2, 'no rows');
     // far ones flatter than near ones (h / w), every one readable (>= 30 x 10 pt)
-    const far = P.filter(d => d.s < 0.35), near = P.filter(d => d.s > 0.55);
+    // (M3: among the HEAPS — the small fragments + wisps are flat by design)
+    const heaps = P.filter(d => !d.form || d.form === 'tower' || d.form === 'fractus'), far = heaps.filter(d => d.s < 0.35), near = heaps.filter(d => d.s > 0.55);
     if (far.length && near.length) assert.ok(far.reduce((s, d) => s + d.h / d.w, 0) / far.length < near.reduce((s, d) => s + d.h / d.w, 0) / near.length + 0.02);
     assert.ok(P.every(d => d.w >= 30 && d.h >= 10));
+    // M3 — the small ones: none of the old little-puff class; every small one left is a fragment or a wisp (flat, see-through)
+    assert.ok(P.every(d => d.w >= SMALL_DROP), 'no little puffs');
+    assert.ok(P.filter(d => d.form === 'frag' || d.form === 'wisp').length <= SMALL_MAX, 'a few small ones at most');
+    for (const d of P.filter(d => d.w < SMALL_FRAG)) assert.ok((d.form === 'frag' || d.form === 'wisp') && d.k < 1 && d.h <= d.w * 0.41 + 0.1 && !d.tall, `small ${d.w}: ${d.form}`);
     // the sky band only: never below the skyline's roofs + a peek, never above the top
     assert.ok(P.every(d => d.y <= box.roof + 14 && d.y - d.h * 0.72 >= box.top - 1));
   }
@@ -1730,4 +1735,36 @@ test('M2 billboard lamps: four, ~6–8 pt shades, two each side of the middle, e
   for (const l of ls) { assert.ok(l.W >= 5.5 && l.W <= 8, `shade ${l.W}`); assert.ok(l.y < R.y, 'mouth above the top edge'); assert.ok(l.top < l.y - l.W, 'the arm rises clear above the shade'); }
   assert.ok(ls[1].x + ls[1].W / 2 < R.x + R.w * 0.35 && ls[2].x - ls[2].W / 2 > R.x + R.w * 0.65, 'the middle (the mark) stays between the inner lamps');
   assert.ok(gooseneckLamps({ x: 0, y: 0, w: 300, h: 80 })[0].W <= 8 && gooseneckLamps({ x: 0, y: 0, w: 40, h: 20 })[0].W >= 5.5, 'clamped at any board size');
+});
+
+// ------------------------------------------------------------------ M3: the element's learned lead (her iPhone: "lead −42 ms")
+import { kickErr, learnLead, createLead, heardPos, kickLag, KICK_LAG, LEAD_MIN, LEAD_MAX } from '../js/core/harbor-beat.js';
+
+test('M3 — THE LEAD: the sign is right (a kick heard → the lead; heard = clock − out − lead), only beats\' kicks teach it, clamped', () => {
+  const grid = { bpm: 128, t0: 0.31 }, p = 60 / 128, L = -0.042, out = 0.018;
+  // the element's clock x runs L ahead of the graph's sound: graph = x − L. A beat b enters the graph, the listener fires lag later.
+  const lead = createLead();
+  for (let k = 4; k < 40; k++) {
+    const b = grid.t0 + k * p;
+    const err = kickErr(b + KICK_LAG + L, grid);                  // x when the kick is detected
+    assert.ok(Math.abs(err - L) < 1e-9, `kick ${k}: err ${err}`);
+    learnLead(lead, err);
+    // a 16th-note bass hit a quarter beat before the beat: never teaches the lead
+    assert.equal(kickErr(b - p / 4 + KICK_LAG + L, grid), null, '16th note rejected');
+  }
+  assert.ok(Math.abs(lead.v - L) < 1e-9, `learned ${lead.v}`);
+  // heard position: when the beat is HEARD (graph at b + out → x = b + out + L), the heard position is exactly the beat
+  const b = grid.t0 + 20 * p;
+  assert.ok(Math.abs(heardPos(b + out + L, out, lead.v) - b) < 1e-9, 'heard = the beat when it sounds');
+  // clamped: a wild reading set never applies past the sane range; a saved wild value is clamped too
+  const w = createLead();
+  for (let i = 0; i < 20; i++) learnLead(w, -0.075 - 0.001 * (i % 3));
+  assert.ok(w.v >= LEAD_MIN && w.v <= LEAD_MAX);
+  assert.equal(createLead(0.4).v, LEAD_MAX); assert.equal(createLead(-0.3).v, LEAD_MIN); assert.equal(createLead(null).n, 0);
+  // inconsistent readings (spread > 50 ms) keep the old value
+  const m = createLead(0.01);
+  for (let i = 0; i < 20; i++) learnLead(m, i % 2 ? 0.07 : -0.07);
+  assert.equal(m.v, 0.01);
+  // the listener's delay follows the frame rate: 60 Hz = KICK_LAG, 30 Hz ≈ +8 ms, never less at 120 Hz
+  assert.equal(kickLag(1 / 60), KICK_LAG); assert.ok(Math.abs(kickLag(1 / 30) - KICK_LAG - 1 / 120) < 1e-9); assert.equal(kickLag(1 / 120), KICK_LAG);
 });

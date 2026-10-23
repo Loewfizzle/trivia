@@ -95,6 +95,40 @@ export function advanceHarborBeat(hb, dt, song, kick) {
  * the last reading against an adaptive threshold (the recent rises' mean + 1.5 σ), at least 0.18 s apart, at least 30 % of the
  * recent peak. → the hit's strength (0..1, against the peak of the last ~45 s: a quiet passage hits softly) or 0.
  */
+// ---- THE ELEMENT'S LEAD (M2, checked in M3 — docs/audio.md#m3-the-learned-lead). A mood song is an <audio> element; the samples that
+// reach the graph can run ahead of (lead < 0) or behind (lead > 0) its currentTime. A kick the listener hears at element-clock `at`
+// entered the graph `lag` earlier (the listener's own delay), so at − lag − the beat = the lead. Heard = at − the output − the lead.
+// (Her iPhone: −42 ms with Safari's own outputLatency 18 ms — WebKit taps an element's audio ahead of its player clock; the sign is
+// right: the lights land 24 ms before the element's clock reaches a beat, i.e. when the beat is heard.)
+export const KICK_LAG = 0.024;              // the listener at 60 frames a second (offline replay of the party songs: 15–37 ms per song)
+export const LEAD_MIN = -0.08, LEAD_MAX = 0.12;   // a sane element lead; anything outside is a bad reading, never applied
+/** the listener's delay at this frame interval (s): it samples once a frame, so a slower frame hears a kick later (30 Hz: +8 ms) */
+export const kickLag = frameS => KICK_LAG + Math.max(0, Math.min(0.03, ((frameS || 1 / 60) - 1 / 60) / 2));
+/**
+ * A strong kick heard at element-clock `at` on a trusted grid → its distance from the nearest beat (the lead), or null when it isn't
+ * a beat's kick: only within ±min(80 ms, a fifth of a beat) — a 16th-note bass hit (a quarter beat away: 117 ms at 128 BPM) or a
+ * syncopated kick never teaches the lead.
+ */
+export function kickErr(at, grid, lag = KICK_LAG) {
+  if (!grid || !(grid.bpm > 0)) return null;
+  const p = 60 / grid.bpm, x = at - lag - (grid.t0 || 0), err = x - Math.round(x / p) * p;
+  return Math.abs(err) <= Math.min(0.08, 0.2 * p) ? err : null;
+}
+const clampLead = v => Math.max(LEAD_MIN, Math.min(LEAD_MAX, +v || 0));
+/** a lead being learned: v (s, applied), n (readings behind it), errs (the last 32) — a saved value starts it (clamped) */
+export function createLead(saved = null) { return saved == null ? { v: 0, n: 0, errs: [] } : { v: clampLead(saved), n: 12, errs: [] }; }
+/** one reading → true when the lead changed: the median of the last 32 once ≥ 12 agree (their middle half within 50 ms), clamped */
+export function learnLead(c, err) {
+  c.errs.push(err); if (c.errs.length > 32) c.errs.shift();
+  if (c.errs.length < 12) return false;
+  const s = c.errs.slice().sort((a, b) => a - b), med = s[s.length >> 1];
+  if (s[Math.floor(s.length * 0.75)] - s[Math.floor(s.length * 0.25)] > 0.05) return false;   // (not consistent yet: keep what we had)
+  c.v = clampLead(med); c.n = c.errs.length;
+  return true;
+}
+/** the song's position AS HEARD: the element's clock − the output latency − the element's lead */
+export const heardPos = (at, out, lead) => Math.max(0, at - out - lead);
+
 export function createOnsets() { return { prev: 0, h: [], peak: 1e-4, last: -9, t: null, level: 0 }; }
 export function onsetStep(o, e, t) {
   const dt = o.t == null ? 0 : Math.max(0, Math.min(0.25, t - o.t)); o.t = t;

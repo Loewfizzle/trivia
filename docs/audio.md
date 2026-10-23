@@ -148,6 +148,57 @@ on the audio clock) learns its own (`buf`, ≈ 0). Chrome here: lead 1–2 ms (t
 **party3** (untrusted) re-checked with a full tempo + phase scan: its strongest "lock" (142.5 BPM) is a dense 16th-note artifact; the real
 tempo is 106.9 with its kicks off the beat — it stays untrusted (the city follows the kicks it hears).
 
+## M3 — THE MUSIC ON THE IPHONE, for real (Oct 23 2026; both cities) — `audio/engine.js`, `audio/music.js`, `audio/diag.js`
+The owner's iPhone after M2: the music STILL didn't come back after leaving Safari, even when she tapped. WebKit can't run on this machine, so
+this pass first EMULATED iOS's rule in the test (e2e-harbor `music` §7 — `play()` and `resume()` refused, a new AudioContext kept silent,
+unless called inside `touchend` / `click` / `keydown` / a mouse's `pointerdown`), which reproduced her report exactly on the M2 code: the first
+tap after a load never started the music, a stuck context + one tap ended "rebuilt, running, needs a tap" (silence), and a tap on the music
+button toasted MUSIC ON in silence.
+- **What was wrong:** (1) the engine did its work in **`pointerdown`** — the first event of a tap, and NOT a gesture for media on iOS (a
+  touch's pointerdown = touchstart). The rebuild + the voices' activation + the song's `play()` ran there and were refused; the `touchend`
+  that followed saw "nothing to rescue" (the song was waiting for the new context to report running) and did nothing, so the song started a
+  moment later OUTSIDE any gesture and was refused again. (2) `apply()` only started a song once the context said `running` — never inside the
+  tap that had just asked it to run. (3) A context that SAYS `running` while its clock has stopped (a WebKit bug after the background) counted
+  as sounding: the music button switched the music OFF. (4) The music button, after the tap's own rescue, returned at once ("rescued") — a
+  silent "MUSIC ON".
+- **The fix:** the gestures are `touchend`, `click`, `keydown` (+ a mouse's `pointerdown`), document-level, capture phase, every tap, never
+  removed; a touch's `pointerdown` only asks for a resume. Inside a gesture (`inGesture()`, ≤ 60 ms) a song may START even before the
+  (fresh / resumed) context reports running (`canStart()`), so `play()` is always called synchronously in the tap. A tap REBUILDS the context
+  at once when it is `closed`, stuck (a resume not honoured after 1.5 s), `interrupted` (≥ 0.4 s after coming back), FROZEN (says running,
+  its clock still for 1.5 s — `watchClock`), or when a resume asked in an earlier TAP never ran. Voices whose activation iOS refused are
+  activated again in the next tap (`armed`); a song element with no source left (`networkState` 3) or stuck still while "playing" is
+  re-`load()`ed + played in the tap. Every tap whose music isn't sounding rescues it (no "already tried" flag); the music button rescues again
+  inside its own click while it still isn't sounding, so it always ends in sound. `musicSounding()` now also needs the context's clock and
+  the song's clock moving.
+- **THE DIAGNOSTIC** (`&debug=1`, both cities, any screen — `audio/diag.js`, a panel top-left under the safe area, clear of the corner
+  buttons; tap its title to fold it): `ctx` state + its clock ▲ moving / ■ stopped + rebuilds (why) + `navigator.audioSession` type/state;
+  `el` the song element: playing / PAUSED, readyState, networkState, error code, its clock ▲ / ■, its gain, BROKEN / STILL; `src` the file,
+  voices (armed), the probe's level; `want` what should play (music off / muted), sounding yes / NO, NEEDS TAP, DEAD VOICE, heals; then the
+  LAST 8 EVENTS with times: visibility, pagehide / pageshow (persisted), blur / focus, each tap (+ the context's state then), every resume()
+  (ok / ✗ + the error's name), every song play() (ok / ✗ NotAllowedError … · in tap), rebuilds, the clock frozen / moving again, stills,
+  rescues. `engine.js#audioLog / audioEvents` keep the last 24; `music.js#musicDiag()` is the panel's data.
+- **What the owner should do** (iPhone, Safari, `neonspeakeasy.com/?city=2&debug=1`, music ON): tap once so the music plays; leave Safari for
+  another app (or lock the phone) for ~30 s; come back. If it isn't playing: tap once on the city (not a button). Still silent → take ONE
+  screenshot of the AUDIO panel (it shows where it died); then tap the ♪ button and take a second one.
+- **Tests:** e2e-harbor `music` §7 (the emulated iOS rule: the first tap, stuck + one tap, the music button, a frozen clock, the panel), the
+  M2 scenarios unchanged; e2e-lobbysong; audio-resume.mjs (City 1.0).
+
+## M3 — THE LEARNED LEAD, checked (Oct 23 2026; City 2.0's party) — `core/harbor-beat.js`, `audio/beat.js`
+Her readout: `sync out 18 ms · lead −42 ms (22 kicks)` — no `(est)` / `(stamp)`, so Safari now reports its own `outputLatency`.
+- **The sign is right** (the maths moved to `core/harbor-beat.js#kickErr / learnLead / heardPos`, with a test that runs a song with a known
+  lead through it): a kick heard at element-clock x entered the graph a listener's delay earlier, so x − lag − the beat = the lead; heard =
+  x − out − lead. −42 ms = the samples reaching Web Audio run 42 ms AHEAD of the element's `currentTime` (WebKit taps an element's audio
+  before its player clock — plausible); with 18 ms of output the lights land 24 ms before the element's clock reaches each beat, i.e. when
+  the beat is heard.
+- **The right kicks:** strong hits only (≥ 0.6 of the recent peak, was 0.5) within ±min(80 ms, a fifth of a beat) of a beat — the old ±141 ms
+  at 128 BPM let a 16th-note bass hit (117 ms off) teach the lead; the 150 Hz low-pass already keeps the hi-hats out. Consistency: the middle
+  half within 50 ms (was 60).
+- **Clamped** to −80 … +120 ms (was −100 … +250), the saved value too.
+- **The detector on iOS:** its delay (`KICK_LAG` 24 ms, measured offline at 60 frames a second) now follows the frame rate (`kickLag`: +8 ms
+  at 30 Hz — low-power mode; never less at 120 Hz); the 1024-sample window is 21 ms at the iPhone's 48 kHz vs 23 ms at 44.1 (≈ 1 ms).
+- **When it's heard:** a heard kick (the punches between beats, a song with no trusted grid) was released an extra listener's delay late —
+  now at detection − lag + the output. The readout: `sync out 18 ms · lead −42 ms (22 kicks) · lag 24 ms`.
+
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
   level = rain + 0.25 in a storm). A breathing bed of filtered noise, a low roar that only a downpour brings, and droplet ticks

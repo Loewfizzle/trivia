@@ -7,7 +7,7 @@
 // activated inside the first user gesture, which lets iOS start them later
 // without another tap. A missing file just marks the track missing — the game
 // stays silent (or uses the fallback track) with no errors.
-import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, onResume, onRebuild, onGesture, tapFoundSilence, audioHealth } from './engine.js';
+import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, canStart, inGesture, clockFrozen, onResume, onRebuild, onGesture, tapFoundSilence, audioHealth, audioLog, audioEvents } from './engine.js';
 import { settings } from './settings.js';
 import { musicUrl } from './music-url.js';
 
@@ -115,6 +115,24 @@ export function setPlaylist(id, ids) {
   else if (!(id in listPos)) listPos[id] = 0;
 }
 
+// play() an element and log what came of it (a song's play, or a refused activation); a refusal iOS gives outside a gesture = needs a tap
+const short = u => String(u || '').replace(/^.*\//, '').replace(/\?.*$/, '') || '–';
+function playEl(el, why, voice) {
+  const silent = el.src.startsWith('blob:'), g = inGesture() ? ' · in tap' : '';
+  let p;
+  try { p = el.play(); } catch (e) { audioLog(`play threw ${(e && e.name) || 'error'} (${why})`); return Promise.resolve(false); }
+  return Promise.resolve(p).then(() => {
+    if (voice) voice.armed = true;
+    if (!silent) audioLog(`play ok ${short(el.src)} (${why}${g})`);
+    return true;
+  }, e => {
+    const n = (e && e.name) || 'error';
+    if (n !== 'AbortError' || !silent) audioLog(`play ✗ ${n} ${silent ? 'activation' : short(el.src)} (${why}${g})`);
+    if (n === 'NotAllowedError' && !silent) needTap = true;
+    return false;
+  });
+}
+
 let silentUrl = null;
 function makeVoices() {
   const ctx = getContext();
@@ -129,7 +147,7 @@ function makeVoices() {
     gain.gain.value = 0;
     try { ctx.createMediaElementSource(el).connect(gain); } catch { continue; }
     gain.connect(tone());
-    const voice = { el, gain, id: null, busyUntil: 0 };
+    const voice = { el, gain, id: null, busyUntil: 0, armed: false };
     el.addEventListener('error', () => {
       if (!voice.id || el.src.startsWith('blob:')) return;
       // A lost connection or a decode hiccup after the phone slept is NOT a missing file (it used to silence that song for the
@@ -145,7 +163,7 @@ function makeVoices() {
     });
     // Activate the element inside the gesture (iOS), then park it (unless a song took it meanwhile).
     el.src = silent;
-    el.play().then(() => { if (el.src === silent) el.pause(); }).catch(() => {});
+    playEl(el, 'activate', voice).then(ok => { if (ok && el.src === silent) el.pause(); });
     voices.push(voice);
   }
 }
@@ -156,11 +174,12 @@ function reloadVoice(voice, at) {
   if (!id || !FILES[id]) return;
   voice.broken = false;
   el.preload = 'auto';
-  el.src = urlFor(id);
+  el.src = urlFor(id); voice.srcAt = performance.now();
   const seek = () => { try { if (at > 0 && Math.abs(el.currentTime - at) > 0.5) el.currentTime = at; } catch { /* not yet */ } };
   el.addEventListener('loadedmetadata', seek, { once: true });
+  try { el.load(); } catch { /* fine */ }
   seek();
-  el.play().catch(() => { needTap = true; });
+  playEl(el, 'reload', voice);
 }
 
 
@@ -196,14 +215,14 @@ function startTrack(id, xf = XFADE) {
   const voice = freeVoice();
   if (voice.id !== id || !voice.el.src.includes(FILES[id])) {
     voice.el.preload = 'auto';
-    voice.el.src = urlFor(id);
+    voice.el.src = urlFor(id); voice.srcAt = performance.now();
   }
   voice.id = id;
   const at = positions[id] || 0;
   try { voice.el.currentTime = at; } catch { /* not seekable yet */ }
   voice.gain.gain.value = 0;
   voice.broken = false;
-  voice.el.play().then(() => { status[id] = status[id] || 'ok'; }).catch(e => { if (e && e.name === 'NotAllowedError') needTap = true; });
+  playEl(voice.el, 'start', voice).then(ok => { if (ok) status[id] = status[id] || 'ok'; });
   fade(voice, duckLevel, xf);
   const prev = current;
   current = { id, voice, list: listFor(id) };
@@ -254,7 +273,8 @@ let nextStopFade = 0;
 export function handoffFade(seconds) { nextStopFade = seconds; }
 
 function apply() {
-  if (!isUnlocked() || !visible || !voices.length) return;
+  // (canStart: running — or inside a tap that just asked a fresh / suspended context to run: start the song IN the tap, iOS's rule)
+  if (!canStart() || !visible || !voices.length) return;
   // the voices were re-made (a rebuilt context / a dead voice): the same song goes on from where it was
   if (carry && !current && desired) {
     const c = carry; carry = null;
@@ -277,7 +297,7 @@ function apply() {
 let needTap = false;      // something only a tap can restart (a play() refused, a dead voice): the next tap does it
 let dead = false;         // the voice "plays" (its clock runs) but the probe hears nothing at all: re-make the voices in the next tap
 let deadRuns = { n: 0, t: 0 };
-let stall = { t: -1, since: 0 };
+let stall = { t: -1, since: 0, still: false };
 let carry = null;         // { id, list, next, at }: the song to go on with after the voices were re-made
 let heals = 0, lastHeal = '', rescuedAt = -1e9;
 
@@ -286,7 +306,7 @@ export function musicSounding() {
   if (current && current.ended) return true;                 // a fanfare that has finished: nothing to rescue
   if (!current) return !desired || isUnlocked();             // not started yet (before the first tap) = not sounding
   const el = current.voice.el, ctx = getContext();
-  return !!ctx && ctx.state === 'running' && !el.paused && !el.error && !current.voice.broken && !dead && !needTap;
+  return !!ctx && ctx.state === 'running' && !clockFrozen() && !el.paused && !el.error && !current.voice.broken && !dead && !needTap && !stall.still;
 }
 
 // Loop watcher: crossfade into a fresh copy before the end.
@@ -303,15 +323,16 @@ function watchLoop() {
     reloadVoice(voice, el.currentTime || positions[id] || 0);
     return;
   }
-  if (el.paused && !el.ended && isUnlocked() && performance.now() - lastNudge > 1500) {
+  if (el.paused && !el.ended && isUnlocked() && !needTap && performance.now() - lastNudge > 1500) {
     lastNudge = performance.now();
-    el.play().catch(e => { if (e && e.name === 'NotAllowedError') needTap = true; });
+    playEl(el, 'watchdog', voice);
     return;
   }
   // a STALL: playing, but its clock hasn't moved for 5 s (the connection dropped while the phone slept) → load it again from there
   if (!el.paused && isUnlocked()) {
     const nowMs = performance.now();
-    if (Math.abs(el.currentTime - stall.t) > 0.01) stall = { t: el.currentTime, since: nowMs };
+    if (Math.abs(el.currentTime - stall.t) > 0.01) { if (stall.still) audioLog(`song clock moving (${el.currentTime.toFixed(1)} s)`); stall = { t: el.currentTime, since: nowMs, still: false }; }
+    else if (!stall.still && nowMs - stall.since > 1500 && el.currentTime > 0.05) { stall.still = true; audioLog(`song clock still at ${el.currentTime.toFixed(1)} s (ready ${el.readyState} · net ${el.networkState})`); }
     else if (nowMs - stall.since > 5000 && performance.now() - lastNudge > 5000) {
       lastNudge = nowMs; stall.since = nowMs;
       heals++; lastHeal = 'reload (stalled)';
@@ -323,7 +344,7 @@ function watchLoop() {
     if (el.currentTime > 3 && voice.gain.gain.value > 0.05 && Math.abs(el.currentTime - deadRuns.t) > 0.5) {
       const pk = probePeak();
       deadRuns = pk === 0 ? { n: deadRuns.n + 1, t: el.currentTime } : { n: 0, t: el.currentTime };
-      if (deadRuns.n >= 3 && !dead) { dead = true; lastHeal = 'dead voice: next tap'; }
+      if (deadRuns.n >= 3 && !dead) { dead = true; lastHeal = 'dead voice: next tap'; audioLog('dead voice: playing, but the probe hears nothing'); }
       else if (pk > 0 && dead) dead = false;          // (a song's own silent gap, not a dead voice)
     }
   }
@@ -339,11 +360,11 @@ function watchLoop() {
   const nid = list && PROVIDERS[list] ? (current.next || PROVIDERS[list](id) || id) : list ? nextInList(list, id) : id;
   const next = freeVoice(voice);
   next.el.preload = 'auto';
-  if (next.id !== nid || !next.el.src.includes(FILES[nid])) next.el.src = urlFor(nid);
+  if (next.id !== nid || !next.el.src.includes(FILES[nid])) { next.el.src = urlFor(nid); next.srcAt = performance.now(); }
   next.id = nid;
   try { next.el.currentTime = 0; } catch { /* fine */ }
   next.gain.gain.value = 0;
-  next.el.play().catch(() => {});
+  playEl(next.el, 'next', next);
   fade(next, duckLevel, LOOP_XFADE);
   current = { id: nid, voice: next, list };
   positions[id] = 0;
@@ -443,6 +464,21 @@ export function musicDebug() {
   };
 }
 
+/** THE AUDIO DIAGNOSTIC (audio/diag.js, &debug=1): the engine, the playing element, what should be playing, the last events. */
+export function musicDiag() {
+  const v = current && current.voice, el = v && v.el;
+  return {
+    want: desired ? desired.id + (desired.fallback ? '/' + desired.fallback : '') : null,
+    off: settings.musicOff ? 'music off' : settings.muted ? 'muted' : '',
+    playing: current ? current.id : null, ended: !!(current && current.ended), carry: carry ? carry.id : null,
+    el: el ? { paused: el.paused, ready: el.readyState, net: el.networkState, err: el.error ? el.error.code : 0, t: el.currentTime || 0,
+      src: short(el.src), gain: v.gain.gain.value, broken: !!v.broken } : null,
+    voices: voices.length, armed: voices.filter(x => x.armed).length,
+    sounding: musicSounding(), needTap, dead, still: !!stall.still, heals, last: lastHeal, peak: probePeak(),
+    engine: audioHealth(), events: audioEvents(),
+  };
+}
+
 // Throw the voices away and make new ones (inside a tap: iOS lets a new element start only there), keeping the song + its place.
 function remakeVoices(why) {
   if (current && !current.ended && current.id) {
@@ -452,6 +488,7 @@ function remakeVoices(why) {
   for (const v of voices) { try { v.el.pause(); v.el.removeAttribute('src'); v.el.load(); } catch { /* gone */ } try { v.gain.disconnect(); } catch { /* gone */ } }
   voices = []; current = null; dead = false; deadRuns = { n: 0, t: 0 }; needTap = false;
   heals++; lastHeal = why;
+  audioLog(`new voices (${why})`);
   makeVoices();
   apply();
 }
@@ -462,8 +499,10 @@ function heal(why) {
   if (!current) { apply(); return; }
   if (current.ended) return;
   const v = current.voice, el = v.el;
-  if (v.broken || el.error) { heals++; lastHeal = why + ': reload'; reloadVoice(v, el.currentTime || positions[current.id] || 0); }
-  else if (el.paused) el.play().catch(e => { if (e && e.name === 'NotAllowedError') needTap = true; });
+  // errored / no source left (iOS can drop it while the phone sleeps) / stuck still while "playing": load it again (inside a tap: allowed)
+  // (networkState 3 = no source: right after a new src it reads 3 for a moment while the browser picks it up — only later is it lost)
+  if (v.broken || el.error || (el.networkState === 3 && performance.now() - (v.srcAt || 0) > 3000) || (stall.still && inGesture())) { heals++; lastHeal = why + ': reload'; stall = { t: -1, since: performance.now(), still: false }; reloadVoice(v, el.currentTime || positions[current.id] || 0); }
+  else if (el.paused) playEl(el, why, v);
   fade(v, duckLevel, 0.6);
   apply();
 }
@@ -474,16 +513,19 @@ function heal(why) {
  */
 export function musicNeedsRescue() {
   if (settings.musicOff || settings.muted) return false;
-  if (performance.now() - rescuedAt < 1500 || tapFoundSilence()) return true;
-  if (!desired || musicSounding()) return false;
-  rescue('the music button');
-  return true;
+  const recent = performance.now() - rescuedAt < 1500 || tapFoundSilence();
+  // still not sounding: rescue again inside THIS click (the button's own gesture — never a silent "MUSIC ON")
+  if (desired && !musicSounding()) { rescue('the music button'); return true; }
+  return recent;
 }
 function rescue(why) {
   rescuedAt = performance.now();
+  audioLog(`rescue (${why})`);
   if (dead || (voices.length && voices[0].gain.context !== getContext())) { remakeVoices(why + ': new voices'); return; }
   if (!voices.length) { makeVoices(); apply(); return; }
   needTap = false;
+  // voices whose activation iOS refused (not in a gesture then): activate them now, inside this one
+  if (inGesture()) for (const x of voices) if (!x.armed && (!current || x !== current.voice) && x.el.src.startsWith('blob:')) playEl(x.el, 'activate', x).then(ok => { if (ok && x.el.src.startsWith('blob:')) x.el.pause(); });
   heal(why);
 }
 
@@ -502,12 +544,12 @@ onGesture(() => {
   if (!visible || !desired) return;
   const ctx = getContext();
   const off = !!current && !current.ended && (current.voice.el.paused || current.voice.broken || !!current.voice.el.error);
-  if (needTap || dead || off || (voices.length && voices[0].gain.context !== ctx)) rescue('tap');
+  if (needTap || dead || off || !musicSounding() || (voices.length && voices[0].gain.context !== ctx)) rescue('tap');
 });
 onVisibility(v => {
   visible = v;
   if (!current) { apply(); return; }
-  if (!v) { positions[current.id] = current.voice.el.currentTime || 0; voices.forEach(x => x.el.pause()); stall = { t: -1, since: 0 }; }
+  if (!v) { positions[current.id] = current.voice.el.currentTime || 0; voices.forEach(x => x.el.pause()); stall = { t: -1, since: 0, still: false }; }
   else {
     heal('back on screen');
     // 1.5 s later: still not sounding? the next tap restarts it (the engine rebuilds a stuck context in that same tap)

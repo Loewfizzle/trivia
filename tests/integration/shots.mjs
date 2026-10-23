@@ -15,6 +15,7 @@
 //   safe areas (62 / 34 pt upright, 21 pt at the bottom sideways); --crop stage = the near stage (the road to the dock);
 //   --crop skyline = the skyline close up (above the crowns to the far quay); skyl / skyr = its left / right half (signs + neon
 //   up close); logo = the NEON logo; water = the harbor's water close up (Part 4: from 60 pt above the waterline to the road).
+//   bill = THE BILLBOARD close up (its lamps, the poster, the steel; M3).
 //   e.g. node shots.mjs "<browser>" --preview --city 2 --safe --sizes harbor --scenes day,golden,night,party,rain,snow
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
@@ -190,6 +191,10 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       // CITY 2.0: THE GAME BLADE close up (n-blade + what stands around / in front of it)
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); const b = hb && hb.neon.signs.find(s => s.id === 'n-blade'); if (!b) return null; const r = b.rect, k = hb.cam.F / 600;
         return { x: Math.max(0, r.x - 40 * k), y: Math.max(0, r.y - 30 * k), width: r.w + 80 * k, height: r.h + 60 * k }; });
+    } else if (c === 'bill') {
+      // CITY 2.0: THE BILLBOARD close up (its lamps, the poster, the steel down to the roof)
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); const b = hb && hb.neon.boards[0]; if (!b || !b.rect) return null; const r = b.rect, k = hb.cam.F / 600;
+        return { x: Math.max(0, r.x - 30 * k), y: Math.max(0, r.y - 24 * k), width: r.w + 60 * k, height: r.h + 44 * k }; });
     } else if (['wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c)) {
       // CITY 2.0 (Part 5): close-ups of the harbor's hero pieces — the wheel (with its legs on the pier), the lighthouse (+ the
       // beam's sweep), Rosie (wherever she is now), the harbor strip (the wheel's top to the road)
@@ -209,7 +214,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
     if (ZOOM > 1) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

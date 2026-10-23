@@ -211,6 +211,8 @@ async function dismissBoot() {
 async function boot() {
   installAudio();
   installSettingsPanel();
+  // &debug=1: THE AUDIO DIAGNOSTIC (docs/audio.md#m3) — what the music is doing, on any screen
+  if (/[?&]debug=1(?:&|$)/.test(location.search)) import('./audio/diag.js').then(m => m.mountAudioDiag()).catch(() => {});
   const fxClass = () => document.body.classList.toggle('reduced-fx', !!settings.reducedFx);
   fxClass();
   onSettings(fxClass);

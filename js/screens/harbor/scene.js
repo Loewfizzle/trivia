@@ -67,8 +67,9 @@ import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
 /** the speakeasy's roof string lights (NEON PASS 4) — off until Parts 7–8 build the speakeasy + the promenade (the owner) */
 const STRINGS_ON = false;
-/** DT1: how far the billboard's lamps drop once the neon is fully up (a soft wash: 1 − LAMP_DIM of full) */
-const LAMP_DIM = 0.5;
+/** DT1: how far the billboard's lamps drop once the neon is fully up (1 − LAMP_DIM of full). M3 (the owner: "an advertisement — you
+ *  should be able to see it at night"): 0.5 → 0.1 — the board stays lamp-lit all night, a painted poster beside the neon */
+const LAMP_DIM = 0.1;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 const GROUPS = ['far', 'near', 'water', 'harbor', 'road', 'stage'];

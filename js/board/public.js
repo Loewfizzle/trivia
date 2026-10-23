@@ -20,6 +20,7 @@ function me() {
 
 installEmblems();
 try { installAudio(); } catch { /* sound is polish */ }
+if (/[?&]debug=1(?:&|$)/.test(location.search)) import('../audio/diag.js').then(m => m.mountAudioDiag()).catch(() => {});
 // MOOD MUSIC here too (docs/audio.md): it can only start after the visitor's first tap (the audio engine unlocks on it);
 // the music button turns it on / off like in the app (same saved setting)
 loadMoodMusic().then(d => {

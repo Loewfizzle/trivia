@@ -2318,7 +2318,7 @@ evening's order + its golden-hour half-lit windows); the small hours' thinning a
 FOUR 1920s gooseneck lamps over the top edge, two each side of the mark (the conduit, the arched neck, an enamelled shade) —
 hardware all day. Warm incandescent (~2700 K, `LAMP_C`). ON from late golden hour (`LIT.bill`, ~+4°: the first light of the
 power-up — a warm pool down the poster, brightest at the top, a faint cone under each shade), a DIM WASH once the neon is up
-(`LAMP_DIM` 0.5 — judged side by side with off / full: off is the old dull dark board, full competes; the wash reads as a lamp-lit
+(`LAMP_DIM` 0.5 — M3: 0.1, the whole board lit all night, #m3-fix-pass — judged side by side with off / full: off is the old dull dark board, full competes; the wash reads as a lamp-lit
 poster beside the neon), on again at dawn until a little after sunrise, off by day. The board item switches with them (its
 sputter). Hooks: `harbor().moment('lamps', 0 | 1 | null)` (Part 7's raid, the TR-3B's drain); `&force=lamps-on` / `lamps-off`.
 
@@ -2763,6 +2763,65 @@ The day's new work is all in its bakes (per look key — a few a day, sliced); n
 Nothing in 6b depends on this pass. For later passes: `castShadows` takes any box list (Part 7's speakeasy + Part 8's stage can throw
 shadows the same way); `CAST` holds the light's numbers; the lamps (`gooseneckLamps` / `drawGooseneck` / `lampGlows`) are Part 7's ghost-ad
 lamps. The audio engine's `onRebuild` / `onGesture` are the hooks any new audio module should use if it caches nodes.
+
+## M3 — FIX PASS (Oct 23 2026; the music in both cities, the look behind `?city=2`)
+The owner's iPhone after M2: the music still didn't come back after leaving Safari (even with a tap); the billboard dark at night ("it's an
+advertisement — you should be able to see it at night"); the beat "might not be perfect yet" (`lead −42 ms`); the brick a little flat at noon;
+the small cumulus "cheap and fake". The music + the lead live in docs/audio.md (#m3-the-music-on-the-iphone-for-real, #m3-the-learned-lead-checked).
+
+### 1. The music (both cities) — docs/audio.md#m3
+Reproduced first by emulating iOS's gesture rule in the test (play / resume only inside touchend / click / keydown): the M2 engine worked in
+`pointerdown` (not a gesture on iOS) and never started the song inside the tap. Now: the work runs in the real gestures, a song starts IN the
+tap, an interrupted / frozen / unhonoured context is rebuilt at once, every silent tap rescues, the music button always ends in sound.
+**THE AUDIO PANEL** (`&debug=1`, `audio/diag.js`): the context, the song element, what should play and the last 8 events with times — one
+screenshot after the bug shows where it died.
+
+### 2. THE BILLBOARD AT NIGHT (`signs.js#lampLightMap`, `scene.js#LAMP_DIM`)
+The four lamps' light now WASHES THE WHOLE BOARD: a warm wash top to bottom (bright under the lamps, ~62 % at the foot), a brighter pool under
+each lamp at the top, the ends beyond the outer lamps a little less lit — multiplied over the poster (was: a dark 13 % ambient + pools that
+died above the name). At night the lamps stay up (`LAMP_DIM` 0.5 → 0.1: 90 % of full once the neon is on, was 50 %). Same look at dusk + dawn
+when the lamps are on. Judged at 402×874 beside the neon: the icon + the full name read like the signs around it; the lamps' hardware, bulbs +
+cones unchanged. Shots: `shots.mjs --city 2 --scenes d-night,d-party --sizes 402x874 --crop bill` (the new `bill` crop).
+
+### 3. THE BRICK AT NOON (`blocks.js#brickFace`, `#brickTrim`; the day channel only)
+On every brick building (brick is only ever NEAR; the mid ones by scale `s` > 1.3, the far stay smooth tone): staggered COURSES of brick-sized
+runs a little lighter / darker / warmer (the kiln's colours), a fine light MORTAR line on each course (≥ 1.05 pt apart — ≥ 2 device px in the
+2 px / pt bake: texture, never noise) with the joint's shadow under it, a darker SOOT BAND at the foot, stone LINTELS over the windows + SILLS
+under them catching the light, the sill's shadow on the brick below. All by `noonK` (the sun's height): strongest at noon (short cast
+shadows), softer morning + afternoon; overcast halves it; golden hour, dusk + the night never run it (the old thin course lines on brick are
+replaced). Baked per look — nothing per frame.
+
+### 4. THE SMALL CLOUDS (`core/harbor-clouds.js#smallForm`, `clouds.js#fragLobes`)
+Fewer and better: a cumulus under 50 pt (`SMALL_DROP`) isn't drawn (it still counts toward the sky's share — no replacement); a NEAR one (s > 0.5)
+under 130 pt grows to a full heap (130 pt); a middle-distance / far one under 130 pt (`SMALL_FRAG`; a heap's sprite is wider than the cloud
+you see) is a FRAGMENT (40 %) or a WISP (60 %) — at most 4 a sky (`SMALL_MAX`, more on a wider screen): lobes of every size on a wandering
+spine, each at its own height, a torn bit coming away, much more broken edges (noise 0.78 / 0.88), NO flat base (the lower third thins away),
+partly see-through (`k` 0.72–0.86 / 0.56–0.70), lit by the same light as the big ones. Overcast: the SCUD is built the same way (wisp-flat),
+softer + more see-through (a 0.74) and lighter (melts into the deck). The big cumulus are untouched. Test: `harbor.test.mjs` (no puffs, every
+small one a fragment / wisp, ≤ 4, near + far still).
+
+### Previews (the owner's iPhone — `?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&when=…`)
+Night `2026-10-22T22:00`, party `2026-10-24T23:00`, noon `2026-10-22T12:30`, dusk lamps `2026-10-22T18:50`; overcast `T13:00&wx=overcast`,
+a cloudy day `T13:00&wx=clouds`.
+
+### Tests (M3)
+e2e-harbor `music` §7 (+7: the emulated iOS rule — the first tap, stuck + one tap, the music button + the tap landing on it, a frozen clock,
+the AUDIO panel), the readout's sync line; `harbor.test.mjs` (+1, 105: the lead's sign / filter / clamp / frame-rate lag; the small clouds);
+e2e-harbor 176/176 (music 64), e2e-lobbysong 12/12 (its stuck tap now sends a real tap's touchend + click), audio-resume.mjs, the one-game smoke
+check, units 491.
+
+### Known issues (M3)
+- **WebKit still can't run here.** The emulation covers iOS's gesture rule, not every WebKit state; if the music still dies, the AUDIO
+  panel's screenshot says where (the context, the element or a refused play — and in which event).
+- The lead is learned per phone; a saved value outside −80…+120 ms is clamped (an older save of e.g. +180 ms comes back as +120 until relearned).
+- The brick's mortar lines are ~half-point at the bake's 2 px / pt: on a 3× iPhone they read as fine texture, not individual bricks (by design).
+- A small cloud the plan drops still counts toward the sky's share, so a sparse day has fewer clouds than before (intended: "fewer and better").
+- No perf A/B this pass: every change is in a bake (the board, the brick, the clouds' sprites) or makes less work (fewer clouds); nothing per frame.
+
+### Handoff → Part 6b (the special-occasion sky)
+Nothing in 6b depends on this pass. `brickFace` / `brickTrim` take any brick face (Part 7's speakeasy can call them); `fragLobes` + the
+`frag` / `wisp` forms are there for Part 9's weather (ragged scud under rain, fog wisps); `audioLog()` is the place for any new audio module to
+say what it did (it shows on the AUDIO panel).
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against

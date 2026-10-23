@@ -99,7 +99,8 @@ try {
     await ev(J.p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
     await vis('visible'); await sleep(1900);
     const stuck = await ev(J.p, `import('/js/audio/engine.js').then(e => e.audioHealth())`);
-    await ev(J.p, `document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`);
+    // (M3: a tap's GESTURE events — iOS starts audio only in touchend / click; a touch's pointerdown alone is not one)
+    await ev(J.p, `(() => { document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' })); document.dispatchEvent(new Event('touchend', { bubbles: true })); document.dispatchEvent(new MouseEvent('click', { bubbles: true })); })()`);
     let back = null;
     for (let i = 0; i < 40 && !back; i++) { await sleep(150); const l = await ld(J.p); const r = l && l.slots.find(s => s.id === st.lm.songs[0] && s.gain > 0.5); if (r) back = r; }
     const h1 = await md(H.p);

@@ -850,7 +850,7 @@ G('music', async () => {
     const s = songs.songs[id];
     ok(b && b.id === id && ((s.grid.trusted === false && b.untrusted && !b.grid) || (s.grid.trusted !== false && b.grid && Math.abs(b.grid.bpm - s.grid.bpm) < 0.01)), `MUSIC ${mood}: the beat follows ${id}'s ${s.grid.trusted === false ? 'kicks (grid not trusted)' : `grid (${s.grid.bpm} bpm)`}`);
     ok(/music/i.test(line) && line.includes(id), `MUSIC ${mood}: the readout names it ("${line}")`);
-    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead -?\d+ ms \(\d+ kicks\)$/.test(sl || ''), `SYNC: the readout says what the beat subtracts ("${sl}")`); }
+    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead -?\d+ ms \(\d+ kicks\) · lag \d+ ms$/.test(sl || ''), `SYNC: the readout says what the beat subtracts ("${sl}")`); }
     if (SHOTS && mood === 'party') await P.page.screenshot({ path: `${OUT}music-party-402x874.png` });
     await P.ctx.close();
   }
@@ -996,6 +996,60 @@ G('music', async () => {
     ok(await playingOn('new voices after a dead one'), 'DEAD VOICE: seen by the probe; one tap — new voices, playing');
     const g1 = await cur(), gh = await H();
     ok(g1.id === g0.id && !gh.dead && /new voices/.test(gh.last), `DEAD VOICE: the same song goes on (${g0.id}, ${g0.t} → ${g1.t} s; ${gh.last})`);
+    await P.ctx.close(); }
+
+  // ---- 7. iOS's GESTURE RULE, emulated (the owner's iPhone: "the music still doesn't come back, even when I tap"). Chrome here lets
+  // anything play; Safari only lets a media element / an AudioContext START inside touchend / click / keydown (a touch's pointerdown is
+  // NOT a gesture there). This page refuses play() and resume() outside those — the engine must still bring the music back in ONE tap.
+  { const iosRule = { fn: () => {
+      let g = 0;
+      const gesture = e => { if ((e.type === 'pointerdown' || e.type === 'mousedown') && e.pointerType !== 'mouse' && e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return; if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return; g++; setTimeout(() => { g--; }, 0); };
+      for (const t of ['touchend', 'click', 'keydown', 'pointerdown']) window.addEventListener(t, gesture, { capture: true });
+      const okEl = new WeakSet(), okCtx = new WeakSet();
+      window.__iosRefused = 0;
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        if (g > 0) okEl.add(this);
+        if (!okEl.has(this)) { window.__iosRefused++; return Promise.reject(new DOMException('not in a gesture (emulated iOS)', 'NotAllowedError')); }
+        return play.call(this);
+      };
+      const AC = window.AudioContext, resume = AC.prototype.resume;
+      AC.prototype.resume = function () { if (g > 0) okCtx.add(this); return okCtx.has(this) ? resume.call(this) : new Promise(() => {}); };
+      window.AudioContext = class extends AC { constructor(o) { super(o); if (g > 0) okCtx.add(this); else AC.prototype.suspend.call(this); } };
+    } };
+    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&debug=1`, view: [402, 874], init: iosRule });
+    const p = P.page;
+    const vis = v => ev(p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
+    const PLAYING = `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return !!v && !v.paused && d.health.state === 'running' && d.health.sounding; })()`;
+    const playingOn = async (what, ms = 6000) => { try { await waitFor(p, PLAYING, what, ms); return true; } catch { return false; } };
+    await tapAt(p, 30, 300);
+    ok(await playingOn('iOS rule: the first tap'), 'iOS RULE: the FIRST tap starts the music (play() + resume() only count inside touchend / click)');
+    // stuck after leaving Safari + ONE tap anywhere
+    await vis('hidden'); await sleep(400);
+    await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
+    await vis('visible'); await sleep(1900);
+    await tapAt(p, 30, 300);
+    ok(await playingOn('iOS rule: one tap after a stuck context'), `iOS RULE: stuck after leaving Safari — ONE tap brings it back (${JSON.stringify(await ev(p, 'window.__arcade.musicDebug().health'))})`);
+    // stuck + the tap is on the MUSIC BUTTON: music, never a silent "MUSIC ON"
+    await vis('hidden'); await sleep(400);
+    await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
+    await vis('visible'); await sleep(1900);
+    const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+    ok(await ev(p, `!!document.elementFromPoint(${mb[0]}, ${mb[1]}).closest('.music-btn')`), 'iOS RULE: the tap lands on the music button itself (the AUDIO block keeps clear of it)');
+    await tapAt(p, mb[0], mb[1]);
+    ok(await playingOn('iOS rule: the music button') && await ev(p, `!JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff`), 'iOS RULE: stuck — one tap on the MUSIC BUTTON plays (and leaves it ON)');
+    // a FROZEN context: it says "running" but its clock has stopped (a WebKit bug after the background) — seen, one tap rebuilds it
+    await ev(p, `import('/js/audio/engine.js').then(e => e.simulateFrozen())`);
+    await waitFor(p, 'window.__arcade.musicDebug().health.frozen', 'the frozen clock seen', 6000).catch(() => {});
+    const fz = await ev(p, 'window.__arcade.musicDebug().health');
+    ok(fz.frozen && !fz.sounding, `FROZEN: a "running" context whose clock stopped is seen (not sounding) (${fz.state}, frozen ${fz.frozen})`);
+    await tapAt(p, 30, 300);
+    ok(await playingOn('iOS rule: one tap after a frozen clock'), 'FROZEN: one tap — a fresh context, playing');
+    // the readout's AUDIO block (&debug=1): states + the last events, so one screenshot after the bug says where it died
+    await sleep(700);
+    const diag = await ev(p, `(() => { const d = document.querySelector('.ad-diag'); return d ? d.textContent : ''; })()`);
+    ok(/ctx running/.test(diag) && /el .*playing/.test(diag) && /touchend|click/.test(diag) && /rebuild/.test(diag), `DIAGNOSTIC: the AUDIO block shows the context, the element + the events ("${diag.slice(0, 160)}…")`);
+    if (SHOTS) await p.screenshot({ path: `${OUT}music-diag-402x874.png` });
     await P.ctx.close(); }
 
   // ---- 5. City 1.0 (no flag) is untouched: its own decks, and the same setting

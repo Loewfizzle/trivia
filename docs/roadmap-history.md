@@ -786,6 +786,19 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — FIX PASS M3 (Oct 23, 2026) — `docs/harbor.md#m3-fix-pass`, `docs/audio.md#m3` (the owner's iPhone: the music still dies; the billboard dark; the brick flat; the small clouds cheap)
+- [x] The music bug made visible: THE AUDIO PANEL (`&debug=1`, both cities, any screen — the context + its clock, the song element, what should
+      play, the last 8 events with times: visibility, page show / hide, taps, every resume + play with its result or error)
+- [x] Reproduced on this machine by emulating iOS's gesture rule in e2e-harbor (M2 failed 3 of 3), then fixed: gestures = touchend / click /
+      keydown (a touch's pointerdown isn't one), the song started inside the tap, interrupted / frozen / unhonoured contexts rebuilt at once,
+      re-arming refused voices, every silent tap rescues, the music button rescues in its own click
+- [x] The learned lead: sign right (a test), only strong kicks within ±80 ms of a beat, clamped −80…+120 ms, the listener's lag follows the
+      frame rate, heard kicks released when heard; the readout shows the lag
+- [x] The billboard lit all night: the lamps wash the whole board (LAMP_DIM 0.5 → 0.1); `shots.mjs --crop bill`
+- [x] Brick at noon: courses, mortar, a soot band, lintels + sills (baked, by the sun's height); the small cumulus dropped / broken fragments +
+      wisps (≤ 4), near small ones grown to heaps, soft scud melting into the deck
+- [x] harbor.test 105, units 491, e2e-harbor music §7, e2e-lobbysong, audio-resume, smoke
+
 ### ✅ CITY 2.0 — MUSIC FIXES + DAY BUILDINGS (Oct 23, 2026) — `docs/harbor.md#m2`, `docs/audio.md` (the owner: the music dies after leaving Safari; the day "a little flat")
 - [x] City 2.0's EVENING without City 1.0's slip8 (the importer skips it for good; `--reuse` refuses City 1.0 songs); a unit test
 - [x] THE MUSIC COMES BACK (both cities): every resume checked after 1.5 s, a stuck context REBUILT in the next tap (music re-made in the same

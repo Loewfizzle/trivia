@@ -57,6 +57,28 @@ export function cloudMix(L, seed = '') {
   return { cover: c, cumulus, strato, alto, cirrus, veil, deck, scud, tall, layers: !!lay };
 }
 
+// ------------------------------------------------------------------ M3 — THE SMALL CLOUDS
+/** below this a cumulus isn't drawn at all (pt wide: the old "little puff" class) */
+export const SMALL_DROP = 50;
+/** at most this many small ones in a sky (a phone's width; more on a wider screen): fewer and better */
+export const SMALL_MAX = 4;
+/** up to this a cumulus is never a heap: a FRAGMENT (frag) or a soft WISP — irregular, partly see-through, no flat base */
+export const SMALL_FRAG = 130;     // (a heap's sprite is wider than the cloud you see: under ~130 pt it read as a little puff)
+/** decide a small cumulus's form (sets d.form + d.k, its opacity): 'drop' | 'frag' | 'wisp' | null (a full heap, as before) */
+export function smallForm(d, R, room = Infinity) {
+  // (a NEAR one is never small — it grows to a full heap: the small slots are the middle distance's + the far ones')
+  if (d.s > 0.5 && d.w < SMALL_FRAG && d.kind === 'cumulus') { const k = SMALL_FRAG / d.w; d.w = SMALL_FRAG; d.h *= k; return null; }
+  if (d.w < SMALL_DROP) return 'drop';
+  if (d.w >= SMALL_FRAG) return null;
+  if (room <= 0) return 'drop';
+  const wisp = R() < 0.6;
+  d.form = wisp ? 'wisp' : 'frag';
+  d.h = Math.max(10, Math.min(d.h, d.w * (wisp ? 0.26 : 0.4)));      // (flatter: a piece, never a little dome)
+  d.k = wisp ? 0.56 + R() * 0.14 : 0.72 + R() * 0.14;                 // (partly see-through)
+  d.tall = 0;
+  return d.form;
+}
+
 // ------------------------------------------------------------------ THE LAYOUT (perspective on a cloud field)
 /** how near a screen height is on the cloud field: 1 overhead (the top of the sky) … → 0 at the horizon */
 export const nearAt = (y, box) => clamp((box.hz - y) / Math.max(1, box.hz - box.top), 0.03, 1);
@@ -98,6 +120,7 @@ export function cloudPlan(box, M, seed = '') {
     const nP = 2 + Math.floor(R() * 2 * Math.sqrt(wide)), parents = Array.from({ length: nP }, (_, i) => ({ x: R() * W, d: depthAt((i + R()) / nP) }));
     let got = 0, tries = 0;
     let nCu = 0;
+    const smallMax = Math.round(SMALL_MAX * Math.sqrt(wide));
     while ((got < target || nCu < nMin) && nCu < nMax && tries++ < nMax * 8) {
       let d, x;
       if (R() < 0.72) { const p = parents[Math.floor(R() * parents.length)]; d = clamp(p.d * (1 + (R() - 0.5) * 0.6), dN, dF); x = p.x; }
@@ -120,13 +143,20 @@ export function cloudPlan(box, M, seed = '') {
       c.x0 = x + (R() - 0.5) * w * 1.6 - w / 2;
       // (far ones: their heights spread a little — never a line of puffs along the horizon)
       if (s < 0.4) c.y = Math.min(roof + 12, c.y + (R() - 0.5) * 26 * (1 - s));
+      // M3 — THE SMALL ONES (the owner: "they still look cheap and fake" — little puffs with a flat bottom + three bumps, clip art):
+      // the smallest class is gone (it still counts toward the sky's share: fewer clouds, never replaced by more); a small one that
+      // stays is a FRAGMENT (a broken ragged piece) or a soft WISP — never a little heap (smallForm)
+      const sf = smallForm(c, R, smallMax - out.filter(o => o.form === 'frag' || o.form === 'wisp').length);
+      if (sf === 'drop') { got += area(c); nCu++; continue; }
+      c.y = Math.max(c.y, top + c.h * 0.72);              // (a near one grown to a heap: its top still under the safe top)
       if (!fits(c)) continue;
       out.push(c); got += area(c); nCu++;
       // (and a far one often has a neighbour half-merged into it: clusters, not a string of single puffs)
       if (s < 0.45 && nCu < nMax && R() < 0.45) {
         const k2 = 0.55 + R() * 0.35, w2 = Math.max(30, w * k2), h2 = Math.max(10, c.h * (k2 + 0.1)), sg = R() < 0.5 ? -1 : 1;
         const c2 = { ...c, seed: seedOf(), w: w2, h: h2, y: Math.min(roof + 12, c.y + (R() - 0.3) * 8), x0: c.x0 + (sg > 0 ? w * (0.45 + R() * 0.3) : -w2 * (0.45 + R() * 0.3)) };
-        out.push(c2); got += area(c2); nCu++;
+        delete c2.form; delete c2.k;
+        if (smallForm(c2, R, smallMax - out.filter(o => o.form === 'frag' || o.form === 'wisp').length) !== 'drop') { out.push(c2); got += area(c2); nCu++; }
       }
     }
   }

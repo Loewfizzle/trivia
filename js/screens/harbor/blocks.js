@@ -236,10 +236,10 @@ function stoneFace(x, cam, b, T, F, a, ty, w, h, s, o) {
   const g = b.win, by = ty + h;
   const deco = isDeco(o.rank);
   const brick = (b.mat === 'brick' || b.mat === 'red');
-  // texture: brick courses near, stone joints, a mottling (deterministic, cheap)
-  if (s > 1.9 && T.day > 0.05) {
-    x.fillStyle = rgb(shade(F.front, brick ? -0.14 : -0.06), (brick ? 0.35 : 0.22) * T.day);
-    const step = (brick ? 0.36 : 1.0) * s;
+  // texture: stone joints, a mottling (deterministic, cheap); brick has its own below (M3 — brickFace)
+  if (s > 1.9 && T.day > 0.05 && !brick) {
+    x.fillStyle = rgb(shade(F.front, -0.06), 0.22 * T.day);
+    const step = 1.0 * s;
     for (let yy = by - step; yy > ty + 1; yy -= step) x.fillRect(a, yy, w, Math.max(0.35, step * 0.12));
   }
   const r = (k) => winHash(b.seed, o.tierIndex || 0, k, 0, 11);
@@ -248,6 +248,7 @@ function stoneFace(x, cam, b, T, F, a, ty, w, h, s, o) {
   // (channelled joints, a water-table line on top), belt courses (limestone on brick, terracotta on stone) — quiet at phone size
   const dk = T.day * (1 - (T.ovc || 0) * 0.5) * (1 - F.fz * 0.8);
   if (dk > 0.05 && s > 1.3 && w > 3) {
+    if (brick) brickFace(x, b, T, F, o, a, ty, w, h, s, dk);
     if (brick && g && g.rows > 0) {
       const rh0 = g.pitch[1] * s;
       for (let row = 0; row < g.rows; row++) {
@@ -317,6 +318,7 @@ function stoneFace(x, cam, b, T, F, a, ty, w, h, s, o) {
   // sees the buildings across), some blinds half down, a few windows open (dark), the odd sun glint on the sunny side — quiet
   // enough that the building reads first. Far away by day only the faint hint above.
   if (T.day > 0.15 && !farDay) dayPanes(x, b, T, F, o, g, xOf, yOf, cw, rh, ww, wh, ty, by);
+  if (brick && !farDay && dk > 0.05 && s > 1.3 && cw >= 1.4 && rh >= 2) brickTrim(x, b, T, g, xOf, yOf, cw, rh, ww, wh, s, dk);
   if (T.day > 0.05 && farDay) farBands(x, g, T, F, xOf, yOf, cw, rh, ww, wh);
   // golden hour: panes toward the sun flash orange
   if (T.gold > 0.2 && T.sunDir !== 0 && !farDay) {
@@ -336,6 +338,60 @@ function stoneFace(x, cam, b, T, F, a, ty, w, h, s, o) {
     for (let col = 0; col < g.cols; col++) if (winHash(b.seed, 7, col, 0, 8) < 0.45) { const sx = xOf(col) + cw * (0.3 + 0.4 * winHash(b.seed, 7, col, 1, 8)); x.rect(sx, yOf(g.rows - 1), Math.max(0.4, cw * 0.12), g.rows * rh * (0.4 + 0.6 * winHash(b.seed, 7, col, 2, 8))); }
     x.fill();
   }
+}
+
+// M3 — BRICK BY DAY (the owner: "the brick buildings still look a little flat at noon"; near + mid only — brick is only ever near —
+// baked, the day's share only: golden hour, dusk + the night never see it). Strongest with the sun high (short cast shadows), when
+// the light skims the wall and shows its relief.
+const noonK = T => Math.max(0, Math.min(1, ((T.sunEl || 30) - 10) / 30));
+function brickFace(x, b, T, F, o, a, ty, w, h, s, dk) {
+  const k = dk * (0.6 + 0.4 * noonK(T)), by = ty + h, H = (i, j, n) => winHash(b.seed, (o.tierIndex || 0) + 40, i, j, n);
+  // the courses of texture: ≥ 1.05 pt apart (≥ 2 device px in the 2 px / pt bake — texture, never noise)
+  const cp = Math.max(1.05, 0.3 * s);
+  // 1. the kiln's colours: brick-sized runs along each course a little lighter / darker / warmer, staggered course to course
+  const tones = [[shade(F.front, 0.12), 0.5], [shade(F.front, -0.14), 0.48], [mix(F.front, [128, 58, 40], 0.4), 0.45]];
+  const runs = [[], [], []];
+  for (let row = 0, yy = by - cp; yy > ty - cp * 0.5; row++, yy -= cp) {
+    let xx = a - (row % 2 ? cp * 1.2 : 0);
+    for (let i = 0; xx < a + w; i++) {
+      const bw = cp * (1.7 + 1.5 * H(i, row, 21)), r = H(i, row, 22);
+      const t = r < 0.17 ? 0 : r > 0.86 ? 1 : r > 0.79 ? 2 : -1;
+      if (t >= 0) { const x0 = Math.max(a, xx), x1 = Math.min(a + w, xx + bw - 0.25), y0 = Math.max(ty, yy); if (x1 > x0) runs[t].push(x0, y0, x1 - x0, yy + cp - 0.2 - y0); }
+      xx += bw;
+    }
+  }
+  runs.forEach((R, t) => { if (!R.length) return; x.fillStyle = rgb(tones[t][0], tones[t][1] * k); x.beginPath(); for (let i = 0; i < R.length; i += 4) x.rect(R[i], R[i + 1], R[i + 2], R[i + 3]); x.fill(); });
+  // 2. the mortar: a fine light line on every course, the joint's shadow just under it (the sun from above)
+  const ml = Math.max(0.26, cp * 0.2);
+  x.fillStyle = rgb(mix(F.front, [214, 204, 188], 0.5), 0.36 * k); x.beginPath();
+  for (let yy = by - cp; yy > ty; yy -= cp) x.rect(a, yy, w, ml);
+  x.fill();
+  x.fillStyle = rgb(shade(F.front, -0.3), 0.16 * k * (0.4 + 0.6 * noonK(T))); x.beginPath();
+  for (let yy = by - cp; yy > ty; yy -= cp) x.rect(a, yy + ml, w, Math.max(0.2, ml * 0.7));
+  x.fill();
+  // 3. the base: a darker band of soot + damp where the wall meets the street (under the stone base on a tall block, it rises above it)
+  const bh = Math.min(h * 0.16, 9 * s), gb = x.createLinearGradient(0, by, 0, by - bh);
+  gb.addColorStop(0, rgb([40, 24, 26], 0.42 * dk)); gb.addColorStop(0.5, rgb([52, 32, 32], 0.16 * dk)); gb.addColorStop(1, rgb([52, 32, 32], 0));
+  x.fillStyle = gb; x.fillRect(a, by - bh, w, bh);
+}
+/** the openings' stone: a lintel over each window and a sill under it catching the light (the sill's shadow on the brick below,
+ *  longer with the sun high) */
+function brickTrim(x, b, T, g, xOf, yOf, cw, rh, ww, wh, s, dk) {
+  const hi = noonK(T), k = dk * (0.6 + 0.4 * hi), stone = [226, 212, 186];
+  const lh = Math.max(0.45, rh * 0.11), sh = Math.max(0.4, rh * 0.08), ov = Math.max(0.3, ww * 0.12);
+  const px = col => xOf(col) + (cw - ww) / 2, py = row => yOf(row) + (rh - wh) / 2;
+  x.fillStyle = rgb(stone, 0.78 * k); x.beginPath();
+  for (let row = 0; row < g.rows; row++) for (let col = 0; col < g.cols; col++) { x.rect(px(col) - ov * 0.5, py(row) - lh, ww + ov, lh); x.rect(px(col) - ov, py(row) + wh, ww + ov * 2, sh); }
+  x.fill();
+  // the lit top edge of each sill + lintel (the sun from above)
+  x.fillStyle = rgb([255, 250, 236], 0.55 * k * (0.5 + 0.5 * hi)); x.beginPath();
+  for (let row = 0; row < g.rows; row++) for (let col = 0; col < g.cols; col++) { x.rect(px(col) - ov * 0.5, py(row) - lh, ww + ov, Math.max(0.2, lh * 0.3)); x.rect(px(col) - ov, py(row) + wh, ww + ov * 2, Math.max(0.2, sh * 0.35)); }
+  x.fill();
+  // the sill's shadow on the brick under it
+  const dh = Math.max(0.3, sh * (0.8 + 1.2 * hi));
+  x.fillStyle = rgb([34, 20, 30], 0.3 * k); x.beginPath();
+  for (let row = 0; row < g.rows; row++) for (let col = 0; col < g.cols; col++) x.rect(px(col) - ov, py(row) + wh + sh, ww + ov * 2, dh);
+  x.fill();
 }
 
 // DT2 — WINDOWS BY DAY, NOT A GRID (the owner: "they still read as a uniform grid from a distance"). Each building its own window

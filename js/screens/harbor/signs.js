@@ -460,16 +460,25 @@ export function drawGooseneck(x, lamps, day, sd = 0) {
     x.strokeStyle = rgba(rim, 0.92); x.lineWidth = Math.max(0.45, W * 0.07); x.beginPath(); x.moveTo(l.x - hw, l.y); x.lineTo(l.x + hw, l.y); x.stroke();
   }
 }
-/** the lamps' LIGHT on the poster (a light map, 0..255 a channel, for multiply): a warm pool down the board under each lamp,
- *  brightest at the top, over the night's dark ambient */
-export function lampLightMap(lx, R, lamps, ambient = [34, 28, 46]) {
-  lx.fillStyle = `rgb(${ambient})`; lx.fillRect(0, 0, R.w, R.h);
+/** the lamps' LIGHT on the poster (a light map, 0..255 a channel, for multiply). M3 (the owner: "it's an advertisement — you should
+ *  be able to see it at night"): the four lamps WASH THE WHOLE BOARD — a warm wash from top to bottom (bright under the lamps, ~62 %
+ *  at the foot, so the full name reads like the neon around it), the pools under each lamp brighter still at the top, a little
+ *  fall-off at the two ends: a lit painted billboard, never a dark board with a lit strip */
+export function lampLightMap(lx, R, lamps) {
+  const wash = lx.createLinearGradient(0, 0, 0, R.h);
+  wash.addColorStop(0, 'rgb(236,200,152)'); wash.addColorStop(0.35, 'rgb(214,176,132)'); wash.addColorStop(0.75, 'rgb(178,142,108)'); wash.addColorStop(1, 'rgb(150,118,92)');
+  lx.fillStyle = wash; lx.fillRect(0, 0, R.w, R.h);
   lx.globalCompositeOperation = 'lighter';
   for (const l of lamps) {
-    const cx = l.x - R.x, g = lx.createRadialGradient(cx, -R.h * 0.06, 0, cx, -R.h * 0.06, R.h * 1.05);
-    g.addColorStop(0, 'rgba(255,214,160,0.95)'); g.addColorStop(0.3, 'rgba(250,190,128,0.62)'); g.addColorStop(0.7, 'rgba(200,140,92,0.22)'); g.addColorStop(1, 'rgba(160,100,70,0)');
+    const cx = l.x - R.x, g = lx.createRadialGradient(cx, -R.h * 0.08, 0, cx, -R.h * 0.08, R.h * 0.8);
+    g.addColorStop(0, 'rgba(255,226,180,0.5)'); g.addColorStop(0.4, 'rgba(250,200,140,0.22)'); g.addColorStop(1, 'rgba(220,160,110,0)');
     lx.fillStyle = g; lx.fillRect(0, 0, R.w, R.h);
   }
+  lx.globalCompositeOperation = 'multiply';
+  // the ends (beyond the outer lamps) a little less lit
+  const side = lx.createLinearGradient(0, 0, R.w, 0);
+  side.addColorStop(0, 'rgb(205,205,205)'); side.addColorStop(0.12, 'rgb(255,255,255)'); side.addColorStop(0.88, 'rgb(255,255,255)'); side.addColorStop(1, 'rgb(205,205,205)');
+  lx.fillStyle = side; lx.fillRect(0, 0, R.w, R.h);
   lx.globalCompositeOperation = 'source-over';
 }
 /** the lamps lit, over the poster (additive): inside each shade the lit enamel + a bright warm bulb, a soft cone of light down the

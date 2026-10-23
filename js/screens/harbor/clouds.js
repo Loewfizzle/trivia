@@ -123,6 +123,32 @@ function heapLobes(R, w, h, tall, ragged) {
   return { lobes, base, rMed: rs[Math.floor(rs.length * 0.5)] || 10 };
 }
 
+/** M3 — A SMALL CLOUD (the owner: the little puffs "look cheap and fake"): never a little heap. A FRAGMENT (frag; the scud too) —
+ *  a broken, uneven piece: lobes of every size strung along a wandering spine, thicker off-centre, a torn bit or two coming
+ *  away; a WISP — the same, thinner + flatter, stretched. No towers, no row of three bumps, no flat base (heapField feathers it). */
+function fragLobes(R, w, h, wisp) {
+  const S = [], base = h * 0.92, n = (wisp ? 5 : 4) + Math.floor(R() * 4), pk = 0.6 + R() * 1.1;
+  let x = w * (0.06 + R() * 0.1);
+  const step = w * 0.86 / n;
+  for (let i = 0; i < n && x < w * 0.95; i++) {
+    const u = Math.max(0, Math.min(1, x / w)), env = Math.pow(Math.sin(Math.PI * Math.pow(u, pk)), 0.7);
+    const r = h * (wisp ? 0.3 + R() * 0.26 : 0.34 + R() * 0.38) * (0.5 + 0.5 * env), sq = wisp ? 0.32 + R() * 0.16 : 0.42 + R() * 0.22;
+    // (every lobe at its own height — the underside a ragged line, never one level cut)
+    const cy = base - r * sq * (0.9 + R() * 1.6) - h * 0.12 * R();
+    S.push([x, cy, r, sq, R() * r * 0.3]);
+    if (R() < 0.38) S.push([x + (R() - 0.5) * r * 2.4, cy - r * sq * (0.3 + R() * 0.9), r * (0.28 + R() * 0.24), sq * 0.9, R() * r * 0.2]);
+    x += step * (0.55 + R() * 0.9);
+  }
+  const pad = Math.max(2, w * 0.05);
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity;
+  for (const [cx, cy, r, sq] of S) { x0 = Math.min(x0, cx - r); x1 = Math.max(x1, cx + r); y0 = Math.min(y0, cy - r * sq); }
+  const k = Math.min((w - 2 * pad) / Math.max(1, x1 - x0), (base - pad) / Math.max(1, base - y0), 1.3), mx = (x0 + x1) / 2;
+  const lobes = S.map(([cx, cy, r, sq, zc]) => [w / 2 + (cx - mx) * k, base - (base - cy) * k, r * k, sq, zc * k]);
+  const rs = lobes.map(L => L[2]).sort((a, b) => a - b);
+  return { lobes, base, rMed: rs[Math.floor(rs.length * 0.5)] || 6 };
+}
+const isFrag = d => d.form === 'frag' || d.form === 'wisp' || d.kind === 'scud';
+
 /** CUMULUS / SCUD: rasterise the lobes — a SMOOTH union (each pixel's normal the soft-max-weighted blend of the lobes it's on, so
  *  the billows merge with soft creases instead of hard seams), the thickness through them, noise for soft irregular edges */
 /** STRATOCUMULUS: a patch of flat heaps merged into one lumpy mass — rounded masses of varied size on an uneven base, a few gaps,
@@ -147,10 +173,11 @@ function stratoLobes(R, w, h) {
   return { lobes: S, base, rMed: rs[Math.floor(rs.length * 0.5)] || 10 };
 }
 function* heapField(d, F, N) {
-  const ragged = d.kind === 'scud' || d.form === 'fractus';
-  const { pw, ph, res } = F, R = rngFrom(`heap|${d.seed}`), { lobes, base, rMed } = d.kind === 'strato' ? stratoLobes(R, d.w, d.h) : heapLobes(R, d.w, d.h, d.tall || 0, ragged);
+  const frag = isFrag(d), wisp = d.form === 'wisp', ragged = frag || d.form === 'fractus';
+  const { pw, ph, res } = F, R = rngFrom(`heap|${d.seed}`), { lobes, base, rMed } = d.kind === 'strato' ? stratoLobes(R, d.w, d.h) : frag ? fragLobes(R, d.w, d.h, wisp || d.kind === 'scud') : heapLobes(R, d.w, d.h, d.tall || 0, ragged);
   const n = pw * ph, TK = new Float32Array(n), TM = new Float32Array(n), WS = new Float32Array(n), NX = new Float32Array(n), NY = new Float32Array(n), NZ = new Float32Array(n), NB = new Float32Array(n);
-  const fq = 7 / Math.max(20, d.w), amp = ragged ? 0.62 : d.kind === 'strato' ? 0.46 : 0.36;
+  // (M3: a fragment / wisp much more broken at its edges — torn, see-through in places)
+  const fq = (frag ? 9 : 7) / Math.max(20, d.w), amp = frag ? (wisp ? 0.88 : 0.78) : ragged ? 0.62 : d.kind === 'strato' ? 0.46 : 0.36;
   for (let py = 0; py < ph; py++) {
     for (let px = 0; px < pw; px++) NB[py * pw + px] = N.fbm2(px / res * fq, py / res * fq, 4);
     if (py % (rowsOf(pw) * 3) === 0) yield;
@@ -208,10 +235,11 @@ function* heapField(d, F, N) {
       // never the pointed rim a sloping top met a flat base in)
       const hc = Math.max(1, base * res - Math.min(rawTop[px], base * res)), toEnd = Math.min(px - xL, xR - px), qe = Math.max(0, 1 - toEnd / hc);
       const round = hc * 0.5 * (1 - Math.sqrt(Math.max(0, 1 - qe * qe))) / res;
-      const by = (base - round - endK * d.h * (st ? 0.06 : 0.12) + (N.fbm2(px / res / Math.max(30, d.w) * (st ? 6 : 3.2), 3.7, 2) - 0.5) * (d.h * (st ? 0.22 : 0.1) + d.w * 0.012)
+      const by = (base - round - endK * d.h * (st ? 0.06 : frag ? 0.3 : 0.12) + (N.fbm2(px / res / Math.max(30, d.w) * (st ? 6 : frag ? 5 : 3.2), 3.7, 2) - 0.5) * (d.h * (st ? 0.22 : frag ? 0.4 : 0.1) + d.w * 0.012)
         + (N.fbm2(px / res * 0.07, 11.3, 2) - 0.5) * d.h * 0.035) * res;
-      const soft = Math.max(1.6, d.h * (st ? 0.1 : 0.08) * res);
-      const cut = 1 - smooth(by - soft, by + soft * 0.45, py);
+      // (M3: a fragment / wisp / the scud has NO flat base — its underside feathers away over a third of its height)
+      const soft = Math.max(1.6, d.h * (st ? 0.1 : frag ? 0.3 : 0.08) * res);
+      const cut = frag ? 1 - 0.55 * smooth(base * res - d.h * 0.45 * res, base * res + d.h * 0.05 * res, py) - 0.3 * smooth(by - soft, by + soft, py) : 1 - smooth(by - soft, by + soft * 0.45, py);
       F.t[i] = Math.min(255, Math.round(TK[i] / tRef * 255 * cut));
       F.m[i] = Math.min(255, Math.round(TM[i] / tRef * 1.6 * 255 * cut));
       F.oc[i] = Math.round(255 * clamp01((py - colTop[px]) / Math.max(2, by - colTop[px])));
@@ -291,7 +319,9 @@ export const KINDS = { cumulus: heapField, scud: heapField, strato: heapField, a
 // per kind: the edge softness (σ soft / σ on the sunlit side: crisper), how solid it reads, how much it self-shades
 const LOOK = {
   // (lc: the self-shadow's length — the share of the cloud's height that, solid, dims the light to 1 / e)
-  cumulus: { s: 4.6, h: 10, a: 1, occ: 0.5, lc: 0.25 }, scud: { s: 3, h: 5, a: 0.92, occ: 0.35, lc: 0.3 },
+  cumulus: { s: 4.6, h: 10, a: 1, occ: 0.5, lc: 0.25 }, scud: { s: 2.2, h: 3.6, a: 0.74, occ: 0.3, lc: 0.34 },
+  // (M3: the small ones — thinner reads see-through; the same light as the big ones)
+  frag: { s: 2.2, h: 4, a: 0.92, occ: 0.4, lc: 0.3 }, wisp: { s: 1.8, h: 2.8, a: 0.86, occ: 0.26, lc: 0.45 },
   strato: { s: 3.4, h: 6, a: 0.95, occ: 0.42, lc: 0.3 }, alto: { s: 2.6, h: 4.5, a: 0.85, occ: 0.25, lc: 0.5 },
   cirrus: { s: 1.8, h: 2.2, a: 0.82, occ: 0, lc: 1 }, deck: { s: 3.2, h: 4, a: 1, occ: 0.5, lc: 1 },
 };
@@ -304,12 +334,13 @@ function lutOf(sg) {
 
 /** THE LIGHT on one cloud: its cached shape → RGBA (time-sliced). Lt: core/harbor-clouds.js#cloudLit; G: #skyLight */
 function* shadeField(d, F, G, Lt, img) {
-  const { pw, ph, res } = F, D = img.data, lk = LOOK[d.kind] || LOOK.cumulus, aS = lutOf(lk.s), aH = lutOf(lk.h), T8 = F.t, M8 = F.m || F.t;
+  const { pw, ph, res } = F, D = img.data, lk = LOOK[d.form === 'frag' || d.form === 'wisp' ? d.form : d.kind] || LOOK.cumulus, aS = lutOf(lk.s), aH = lutOf(lk.h), T8 = F.t, M8 = F.m || F.t;
   const { lx, ly, lz, l2, rim, haze, farA, glow, glowK } = Lt;
   const sc = G.sunC, sk = G.sunK, at = G.ambTop, ab = G.ambBot, hz = G.hazeC, occK = lk.occ, alpha = lk.a * G.body * farA * (d.k == null ? 1 : clamp01(d.k * 1.15));
   const cir = d.kind === 'cirrus', deck = d.kind === 'deck';
   // (SP: the scud under a deck is darker than the deck — low, wet, ragged fragments in its shade)
-  const scudK = d.kind === 'scud' ? 0.78 - 0.1 * G.grey : 1;
+  // (M3: a little lighter than before — it melts into the deck instead of floating in front of it as a dark cut-out)
+  const scudK = d.kind === 'scud' ? 0.92 - 0.08 * G.grey : 1;
   // THE SELF-SHADOW: from each pixel, a short march TOWARD the light through the cloud's own thickness (the optical depth) — the
   // far side + the bellies fall into shade, billows shade the ones behind them, and after sunset (the light from below) the bellies
   // glow while the tops go dark. Weighted by how much of the light lies in the screen's plane (a sun behind us lights the face).
