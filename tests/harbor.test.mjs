@@ -1386,7 +1386,8 @@ test('NEON PASS 5 — THE GLANCE TEST: every named sign\'s letters ≥ 10 pt on 
 // ================================================================ THE DAY PASS (Oct 22 2026)
 import { sunLook, harborSky, toneWeights } from '../js/screens/harbor/tones.js';
 import { tiredForced } from '../js/core/harbor-show.js';
-import { cloudLight } from '../js/screens/harbor/clouds.js';
+import { cloudMix, cloudPlan, driftX, skyLight, cloudLit } from '../js/core/harbor-clouds.js';
+import { layersOf } from '../js/core/weather.js';
 import { DAY_PAINT, dayPaint } from '../js/screens/harbor/signs.js';
 import { lhEdgeBlocks } from '../js/core/harbor-neon.js';
 // (GAMES: imported above)
@@ -1421,14 +1422,76 @@ test('THE DAY PASS — the Harbor\'s sun: white-hot high, golden → orange → 
   assert.deepEqual(sunColor(40), [255, 244, 223]);
 });
 
-test('THE DAY PASS — THE CLOUDS\' light: sunlit white tops by day, gold / pink underneath at sunset (the sun\'s side), faint + violet-lit at night, party colours', () => {
-  const day = cloudLight({ w: { day: 1 }, sun: { el: 40 } }, 200, 400), sunset = cloudLight({ w: { golden: 1 }, sun: { el: 3 } }, 380, 400);
-  const night = cloudLight({ w: { night: 1 }, sun: { el: -30 } }, null, 400), party = cloudLight({ w: { night: 1 }, sun: { el: -30 } }, null, 400, 1);
-  assert.ok(day.top.every(v => v > 250) && day.shade[2] > day.shade[0], 'day: white tops, blue-grey bellies');
-  assert.ok(sunset.uk > 0.8 && sunset.under[0] > 240 && sunset.under[2] < 140 && sunset.lx > 0.6, 'sunset: a strong warm underlight from the sun\'s side');
-  assert.ok(night.body < 0.5 && night.uk > 0.2 && night.under[2] > night.under[1], 'night: faint, lit from below in violet');
-  assert.notEqual(party.key, night.key);
-  assert.ok(cloudLight({ w: { day: 1 }, sun: { el: 40 } }, 200, 400, 0, { grey: 1, dark: 1 }).top[0] < 200, 'Part 9: set({ grey, dark }) greys + darkens');
+test('DT2 — THE CLOUDS\' kinds follow the real weather: fair cumulus, a greyer day\'s patches, the overcast deck, cirrus from the high layer', () => {
+  const fair = cloudMix({ cloud: 0.2 }, 'a'), grey = cloudMix({ cloud: 0.6 }, 'a'), over = cloudMix({ cloud: 0.96 }, 'a'), wet = cloudMix({ cloud: 0.5, rain: 0.6 }, 'a');
+  assert.ok(fair.cumulus > 0.15 && fair.deck === 0 && fair.strato === 0, 'a fair day: cumulus only (+ maybe cirrus)');
+  assert.ok(grey.strato > 0.3 && grey.cumulus > 0.2 && grey.deck < 0.1, 'a greyer day: patches among the heaps');
+  assert.ok(over.deck > 0.9 && over.cumulus < 0.15 && over.scud > 0.3, 'overcast: the deck + scud under it');
+  assert.ok(wet.deck === 1, 'rain: always a deck');
+  assert.equal(cloudMix({ cloud: 0.01 }, 'a').cumulus, 0, 'a clear sky: none');
+  // the live heights decide (a sky of high cirrus only: no deck, no cumulus)
+  const hi = cloudMix({ cloud: 0.9, cloudLayers: { lo: 0, mid: 0, hi: 0.9 } }, 'a');
+  assert.ok(hi.layers && hi.cirrus > 0.9 && hi.deck < 0.05 && hi.cumulus === 0);
+  assert.deepEqual(layersOf({ cloud_cover_low: 20, cloud_cover_mid: 0, cloud_cover_high: 75 }), { lo: 0.2, mid: 0, hi: 0.75 });
+  assert.equal(layersOf({ cloud_cover: 50 }), null, 'no heights in the data: null');
+});
+
+test('DT2 — THE CLOUDS\' layout: perspective (near = big, the horizon = small + flatter + closer together), clusters, never in rows', () => {
+  const box = { W: 402, top: 62, roof: 470, hz: 563 };
+  const rank = a => { const s = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]); const r = []; s.forEach(([, i], k) => { r[i] = k; }); return r; };
+  const rhoOf = P => { const ry = rank(P.map(d => -d.y)), rw = rank(P.map(d => d.w)), n = P.length; return 1 - 6 * ry.reduce((s, v, i) => s + (v - rw[i]) ** 2, 0) / (n * (n * n - 1)); };
+  const pooled = [];
+  for (const seed of ['a', 'b', 'c', 'd', 'e', 'f']) for (const cover of [0.25, 0.5]) {
+    const P = cloudPlan(box, cloudMix({ cloud: cover }, seed), seed).filter(d => d.kind === 'cumulus');
+    pooled.push(...P);
+    assert.ok(P.length >= 5 && P.length <= 22, `${seed} ${cover}: ${P.length} cumulus`);
+    // every sky has near AND far ones (the clusters spread through the depth)
+    assert.ok(P.some(d => d.s > 0.55) && P.some(d => d.s < 0.45), `${seed} ${cover}: near + far`);
+    // never a row: no three cumulus of about the same size on (almost) the same line
+    for (const a of P) assert.ok(P.filter(b => b !== a && Math.abs(b.y - a.y) < 2 && Math.abs(b.w - a.w) < a.w * 0.15).length < 2, 'no rows');
+    // far ones flatter than near ones (h / w), every one readable (>= 30 x 10 pt)
+    const far = P.filter(d => d.s < 0.35), near = P.filter(d => d.s > 0.55);
+    if (far.length && near.length) assert.ok(far.reduce((s, d) => s + d.h / d.w, 0) / far.length < near.reduce((s, d) => s + d.h / d.w, 0) / near.length + 0.02);
+    assert.ok(P.every(d => d.w >= 30 && d.h >= 10));
+    // the sky band only: never below the skyline's roofs + a peek, never above the top
+    assert.ok(P.every(d => d.y <= box.roof + 14 && d.y - d.h * 0.72 >= box.top - 1));
+  }
+  // the higher on the screen, the bigger (rank correlation of base height vs width, every sky together)
+  assert.ok(rhoOf(pooled) > 0.6, `near = bigger (rho ${rhoOf(pooled).toFixed(2)})`);
+  // deterministic: every phone the same sky
+  assert.deepEqual(cloudPlan(box, cloudMix({ cloud: 0.4 }, 'x'), 'x'), cloudPlan(box, cloudMix({ cloud: 0.4 }, 'x'), 'x'));
+  // overcast: one deck tile wider than the screen, the whole sky
+  const o = cloudPlan(box, cloudMix({ cloud: 0.97 }, 'x'), 'x').filter(d => d.kind === 'deck');
+  assert.ok(o.length === 1 && o[0].w >= box.W * 1.4 && o[0].h >= box.hz);
+  // drifting: nearer = faster, wrapping round (always back on screen)
+  const d = { w: 100, x0: 50, v: 1 }, d2 = { w: 100, x0: 50, v: 0.3 };
+  assert.ok(Math.abs(driftX(d, 10, 3, 1, 402) - 50) > Math.abs(driftX(d2, 10, 3, 1, 402) - 50));
+  for (let t = 0; t < 5000; t += 97) { const x = driftX(d, t, 3, -1, 402); assert.ok(x >= -105 && x <= 402 + 4); }
+});
+
+test('DT2 — THE CLOUDS\' light: white by midday, gold low, coral + pink after sunset, the sun\'s side, backlit near the sun, faint + violet at night, the party\'s colours', () => {
+  const box = { W: 402, top: 62, roof: 470, hz: 563 }, cl = { kind: 'cumulus', w: 100, h: 40, y: 300, s: 0.5, seed: 7 };
+  const noon = skyLight({ sun: { el: 40 } }, { sun: { x: 200, y: 380, vis: 1 } }), gold = skyLight({ sun: { el: 4 } }, { sun: { x: 330, y: 440, vis: 1 } });
+  const after = skyLight({ sun: { el: -3 } }, { side: 1 }), night = skyLight({ sun: { el: -30 } }, {}), party = skyLight({ sun: { el: -30 } }, { party: 1, palette: [[255, 63, 176], [63, 224, 255]] });
+  assert.ok(noon.sunC.every(v => v > 235) && noon.sunK > 0.9, 'midday: white sunlight');
+  assert.ok(gold.sunC[0] > 250 && gold.sunC[2] < 150, 'golden hour: gold');
+  assert.ok(after.sunC[0] > 240 && after.sunC[1] < 140 && after.sunK > 0.4, 'just after sunset: coral + pink, still lit (they are high)');
+  assert.ok(night.sunK === 0 && night.body < 0.75 && night.glow.k > 0.3 && night.glow.c[2] > night.glow.c[1], 'night: faint, the city\'s violet from below');
+  assert.ok(party.glow.party && cloudLit(party, cl, 100, box).glow.join() !== cloudLit(night, cl, 100, box).glow.join(), 'a party night: the party\'s colours under them');
+  // the sun's side: a cloud left of the sun is lit from its right; backlit right in front of the sun
+  const left = cloudLit(gold, { ...cl, y: 300 }, 20, box);
+  assert.ok(left.lx > 0.3, 'lit from the sun\'s side');
+  const behind = cloudLit(gold, { ...cl, y: 470 }, 280, box);
+  assert.ok(behind.back > left.back && behind.lz < left.lz && behind.rim > left.rim, 'the sun right behind: backlit, a brighter rim');
+  assert.ok(cloudLit(after, cl, 100, box).below > 0.3 && cloudLit(noon, cl, 100, box).below === 0, 'after sunset lit from below');
+  // far = into the haze; the key changes with the light (the bake follows it) but not for nothing
+  assert.ok(cloudLit(noon, { ...cl, s: 0.1 }, 100, box).haze > cloudLit(noon, { ...cl, s: 0.9 }, 100, box).haze);
+  assert.equal(cloudLit(noon, cl, 100, box).key, cloudLit(noon, cl, 101, box).key, 'a 1 pt drift re-lights nothing');
+  assert.notEqual(cloudLit(noon, cl, 100, box).key, cloudLit(gold, cl, 100, box).key);
+  // PART 9: greyed + darkened skies; under a deck the light goes diffuse
+  const storm = skyLight({ sun: { el: 40 } }, { sun: { x: 200, y: 380, vis: 1 }, extra: { grey: 1, dark: 1 } });
+  assert.ok(storm.sunK < 0.1 && storm.ambTop[0] < 130, 'Part 9: set({ grey, dark }) greys + darkens');
+  assert.ok(skyLight({ sun: { el: 40 } }, { deck: 1 }).sunK < 0.35, 'overcast: diffuse light');
 });
 
 test('THE DAY PASS — the painted day faces: every game has one, and its letters stand out from its board (the glance test by day)', () => {

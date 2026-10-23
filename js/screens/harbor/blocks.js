@@ -45,13 +45,14 @@ const lerp3 = (T, d, g, n) => [0, 1, 2].map(i => d[i] * T.day + g[i] * T.gold + 
 // THE DAY PASS — the day's colours, richer (the day channel only: golden hour, dusk and the night keep theirs): the stone a touch
 // more saturated and, near, warmed by the sun; the sunlit side bright and warm; the SHADE cool and blue (the sky lights it); the
 // far ones dissolve into a paler, bluer haze (aerial perspective) — the near ones stay warm, darker and crisp
-const SUN_WARM = [255, 228, 190], SKY_SHADE = [84, 104, 150];
+const SUN_WARM = [255, 226, 178], SKY_SHADE = [62, 76, 142];
+// (DT2 — the owner: "push the 3D further at phone size": the lit side warmer + brighter, the shade deeper + bluer, the near ones richer)
 const sat = (c, k) => { const l = (c[0] + c[1] + c[2]) / 3; return c.map(v => Math.max(0, Math.min(255, l + (v - l) * k))); };
 export function faces(T, mat, z) {
   const m = MAT[mat] || MAT.lime, fz = fog(z);
-  const hz = c => mix(c, T.haze, fz * (T.night > 0.5 ? 0.62 : 0.7 + 0.12 * T.day));
+  const hz = c => mix(c, T.haze, fz * (T.night > 0.5 ? 0.62 : 0.7 + 0.22 * T.day));
   const near = 1 - Math.min(1, fz * 2.2);
-  const dFront = mix(sat(m.d, 1.22), SUN_WARM, 0.1 * near), dLit = mix(sat(m.l, 1.15), SUN_WARM, 0.22), dDark = mix(sat(m.s, 1.1), SKY_SHADE, 0.34);
+  const dFront = shade(mix(sat(m.d, 1.3 + 0.12 * near), SUN_WARM, 0.12 * near), -0.1 * Math.abs(T.sunDir || 0)), dLit = shade(mix(sat(m.l, 1.2), SUN_WARM, 0.3), 0.06), dDark = shade(mix(sat(m.s, 1.12), SKY_SHADE, 0.5), -0.22);
   const front = lerp3(T, dFront, mix(m.d, DUSK, 0.5).map(v => v * 0.82), m.n);
   const lit = lerp3(T, dLit, mix(m.l, SUNLIT, 0.55), m.ns);
   const dark = lerp3(T, dDark, mix(m.s, [84, 58, 98], 0.5), m.ns.map(v => v * 0.85));
@@ -137,7 +138,7 @@ export function skyBlock(x, cam, b, T, o = {}) {
   const glass = b.mat === 'glass';
   // ---- the side face the camera sees (the one turned to the middle), lit or in shade by the real sun
   // (THE DAY PASS: the sun's side is continuous by day — a noon sun lights its side a little less than a low one; ±1 / 0 at night as before)
-  const sdA = Math.abs(T.sunDir || 0), sideK = 0.5 + 0.5 * sdA;
+  const sdA = Math.abs(T.sunDir || 0), sideK = 0.5 + 0.5 * sdA + T.day * 0.25 * (1 - sdA);
   const sideOf = right => (T.sunDir === 0 ? mix(F.lit, F.dark, 0.5) : mix(mix(F.lit, F.dark, 0.5), (right ? T.sunDir > 0 : T.sunDir < 0) ? F.lit : F.dark, sideK));
   if (b.x1 < 0) quad(x, cam, [[b.x1, y0, b.z0], [b.x1, y1, b.z0], [b.x1, y1, b.z1], [b.x1, y0, b.z1]], rgb(sideOf(true)));
   if (b.x0 > 0) quad(x, cam, [[b.x0, y0, b.z0], [b.x0, y1, b.z0], [b.x0, y1, b.z1], [b.x0, y0, b.z1]], rgb(sideOf(false)));
@@ -169,13 +170,15 @@ export function skyBlock(x, cam, b, T, o = {}) {
   // feet (the near rows); golden hour — the edge toward the sun catches it
   if (T.day > 0.05 && w > 3) {
     // (THE DAY PASS: the front turns from the sun — warm light on its sunny edge, the cool sky's shade on the other: a mass, not a card)
-    const sd = T.sunDir || 0, gx = x.createLinearGradient(a, 0, c, 0), k = T.day * (1 - F.fz * 0.55), kl = 0.24 * k * (0.6 + 0.4 * Math.abs(sd)), ks = 0.3 * k * (0.6 + 0.4 * Math.abs(sd));
+    const sd = T.sunDir || 0, gx = x.createLinearGradient(a, 0, c, 0), k = T.day * (1 - F.fz * 0.55), kl = 0.3 * k * (0.6 + 0.4 * Math.abs(sd)), ks = 0.42 * k * (0.6 + 0.4 * Math.abs(sd));
     gx.addColorStop(0, sd < 0 ? `rgba(255,244,222,${kl})` : `rgba(34,46,92,${ks})`);
     gx.addColorStop(0.5, 'rgba(128,128,128,0)');
     gx.addColorStop(1, sd > 0 ? `rgba(255,244,222,${kl})` : `rgba(34,46,92,${ks})`);
     x.fillStyle = gx; x.fillRect(a, ty, w, h);
     // the sunny corner: a crisp bright arris down the front's edge toward the sun (the stone turning into the light)
-    if (Math.abs(sd) > 0.1 && s > 0.9) { x.fillStyle = rgb(mix(F.lit, [255, 250, 236], 0.45), 0.7 * k); x.fillRect(sd > 0 ? c - Math.max(0.5, 0.22 * s) : a, ty, Math.max(0.5, 0.22 * s), h); }
+    if (Math.abs(sd) > 0.1 && s > 0.9) { x.fillStyle = rgb(mix(F.lit, [255, 252, 240], 0.6), 0.9 * k); x.fillRect(sd > 0 ? c - Math.max(0.5, 0.24 * s) : a, ty, Math.max(0.5, 0.24 * s), h); }
+    // (DT2: where the front meets the side in shade, a fine cool line — the corner reads as a corner)
+    if (Math.abs(sd) > 0.1 && s > 0.9 && ((sd > 0 && b.x0 > 0) || (sd < 0 && b.x1 < 0))) { x.fillStyle = `rgba(28,34,78,${(0.34 * k).toFixed(3)})`; x.fillRect(sd > 0 ? a : c - Math.max(0.5, 0.2 * s), ty, Math.max(0.5, 0.2 * s), h); }
   }
   if (T.day > 0.05) {
     const g = x.createLinearGradient(0, ty, 0, by);
@@ -196,14 +199,19 @@ export function skyBlock(x, cam, b, T, o = {}) {
     const pw = (b.x1 - b.x0) * 0.14 * s;
     x.fillStyle = rgb(shade(F.trim, T.night > 0.5 ? -0.1 : 0.06), 0.9); x.fillRect(a - pw, by - Math.max(0.6, 0.35 * s), w + pw * 2, Math.max(0.6, 0.35 * s));
     if (T.day > 0.05) { x.fillStyle = rgb([255, 250, 238], 0.8 * T.day * (1 - F.fz * 0.6)); x.fillRect(a - pw, by - Math.max(0.6, 0.35 * s), w + pw * 2, Math.max(0.4, 0.12 * s)); }
-    const sg = x.createLinearGradient(0, by, 0, by - Math.min(h, 2.2 * s));
-    sg.addColorStop(0, `rgba(24,20,40,${0.3 * (1 - T.night * 0.5) + 0.12 * T.day})`); sg.addColorStop(1, 'rgba(24,20,40,0)');
-    x.fillStyle = sg; x.fillRect(a, by - Math.min(h, 2.2 * s), w, Math.min(h, 2.2 * s));
+    const sl = Math.min(h, (2.2 + 1.6 * T.day) * s), sg = x.createLinearGradient(0, by, 0, by - sl);
+    sg.addColorStop(0, `rgba(24,20,40,${0.3 * (1 - T.night * 0.5) + 0.2 * T.day})`); sg.addColorStop(1, 'rgba(24,20,40,0)');
+    x.fillStyle = sg; x.fillRect(a, by - sl, w, sl);
+    // (DT2: the tier above throws its shadow across the ledge on the side away from the sun — a cool wedge on the parapet)
+    if (T.day > 0.05 && Math.abs(T.sunDir || 0) > 0.1 && pw > 0.6) {
+      const right = T.sunDir < 0, ex = right ? c : a - pw, lw = pw * (0.6 + 0.4 * Math.abs(T.sunDir));
+      x.fillStyle = `rgba(30,38,86,${(0.32 * T.day * (1 - F.fz * 0.6)).toFixed(3)})`; x.fillRect(right ? ex : ex + pw - lw, by - Math.max(0.6, 0.35 * s), lw, Math.max(1.2, 0.9 * s));
+    }
   }
   // the cornice: the top edge catches the light, a shadow line under it (the silhouettes read against each other)
   x.fillStyle = rgb(shade(F.trim, T.night > 0.5 ? 0.12 : 0.05), T.night > 0.5 ? 0.6 : 0.9); x.fillRect(a - 0.2, ty, w + 0.4, Math.max(0.6, 0.3 * s));
   // (THE DAY PASS: the cornice's top catches the sun — a bright line — and throws a cool shadow band under it)
-  if (T.day > 0.05) { x.fillStyle = rgb([255, 250, 238], 0.75 * T.day * (1 - F.fz * 0.6)); x.fillRect(a - 0.2, ty, w + 0.4, Math.max(0.45, 0.12 * s)); }
+  if (T.day > 0.05) { x.fillStyle = rgb([255, 251, 240], 0.95 * T.day * (1 - F.fz * 0.55)); x.fillRect(a - 0.2, ty, w + 0.4, Math.max(0.5, 0.15 * s)); }
   if (T.day > 0.05) { x.fillStyle = `rgba(30,36,70,${0.18 + 0.2 * T.day})`; x.fillRect(a, ty + Math.max(0.6, 0.3 * s), w, Math.max(0.5, 0.22 * s)); }
   else { x.fillStyle = `rgba(20,16,30,${0.18 + 0.12 * T.day})`; x.fillRect(a, ty + Math.max(0.6, 0.3 * s), w, Math.max(0.5, 0.18 * s)); }
   // ---- night: floodlights wash up the crown's stone from the setback below (real falloff), in the tower's colour
@@ -257,7 +265,8 @@ function stoneFace(x, cam, b, T, F, a, ty, w, h, s, o) {
   }
   // the glass: dark by day (the sky's colour in it), dark at night (the lit ones are lights.js); far away by day only a hint
   const farDay = s < 1.25;
-  x.fillStyle = rgb(glassC, farDay ? 0.28 + 0.5 * T.night : 0.9);
+  // (DT2: far away by day the grid gives way to tone bands — farBands; the grid's hint fades with the day's share)
+  x.fillStyle = rgb(glassC, farDay ? (0.28 + 0.5 * T.night) * (1 - 0.85 * T.day) : 0.9);
   const ww = Math.max(0.5, cw * winW), wh = Math.max(0.5, rh * winH);
   x.beginPath();
   for (let row = 0; row < g.rows; row++) for (let col = 0; col < g.cols; col++) x.rect(xOf(col) + (cw - ww) / 2, yOf(row) + (rh - wh) / 2, ww, wh);
@@ -266,6 +275,7 @@ function stoneFace(x, cam, b, T, F, a, ty, w, h, s, o) {
   // sees the buildings across), some blinds half down, a few windows open (dark), the odd sun glint on the sunny side — quiet
   // enough that the building reads first. Far away by day only the faint hint above.
   if (T.day > 0.15 && !farDay) dayPanes(x, b, T, F, o, g, xOf, yOf, cw, rh, ww, wh, ty, by);
+  if (T.day > 0.05 && farDay) farBands(x, g, T, F, xOf, yOf, cw, rh, ww, wh);
   // golden hour: panes toward the sun flash orange
   if (T.gold > 0.2 && T.sunDir !== 0 && !farDay) {
     x.fillStyle = rgb([255, 176, 96], 0.7 * T.gold);
@@ -286,39 +296,100 @@ function stoneFace(x, cam, b, T, F, a, ty, w, h, s, o) {
   }
 }
 
+// DT2 — WINDOWS BY DAY, NOT A GRID (the owner: "they still read as a uniform grid from a distance"). Each building its own window
+// character (by its seed): OFFICE floors (the panes joined into ribbon bands of glass, thin mullions), APARTMENTS (framed panes,
+// curtains in a few colours, blinds, a few open), DECO towers (tall windows: two floors' panes joined in their recessed strips).
+// The glass mirrors the sky (lighter up the facade, the odd pane catching more of it, a few dark — the room behind), mullions on
+// the near ones, the odd sun glint on the sunny side. Quiet enough that the building reads first. All of it by the day's share:
+// golden hour, dusk + the night never see it (the lit windows keep their panes exactly).
+const CURTAINS = [[214, 196, 168], [196, 132, 120], [150, 168, 132], [214, 172, 96], [168, 120, 140]];
+export function windowStyle(b, deco) {
+  const r = winHash(b.seed, 9, 9, 9, 9);
+  if (deco) return r < 0.5 ? 'tall' : 'deco';
+  return b.mat === 'brick' || b.mat === 'red' ? (r < 0.25 ? 'office' : 'flat') : (r < 0.55 ? 'office' : r < 0.8 ? 'flat' : 'wide');
+}
 function dayPanes(x, b, T, F, o, g, xOf, yOf, cw, rh, ww, wh, ty, by) {
   const k = T.day * (1 - F.fz * 0.5), ti = o.tierIndex || 0, sky = T.skyHi || [150, 196, 236], top = T.skyTop || [40, 96, 180], n = g.cols;
-  const sd = T.sunDir || 0;
-  const pane = (col, row, f0 = 0, f1 = 1) => x.rect(xOf(col) + (cw - ww) / 2, yOf(row) + (rh - wh) / 2 + wh * f0, ww, wh * (f1 - f0));
-  // the sky in the glass: one gradient down the whole facade, through every pane
+  const sd = T.sunDir || 0, deco = isDeco(o.rank), style = windowStyle(b, deco), H = (c, r, s) => winHash(b.seed, ti, c, r, s);
+  const px0 = col => xOf(col) + (cw - ww) / 2, py0 = row => yOf(row) + (rh - wh) / 2;
+  const pane = (col, row, f0 = 0, f1 = 1) => x.rect(px0(col), py0(row) + wh * f0, ww, wh * (f1 - f0));
+  const glass = mix(lerp3(T, GLASS_D, [70, 52, 80], GLASS_N), T.haze, F.fz * 0.6);
+  // the joins (by day only): OFFICE ribbons — the gaps between a floor's panes filled with glass; TALL Deco windows — two floors'
+  // panes joined through the spandrel between them
+  if (style === 'office' && ww > 1 && n > 1) {
+    x.fillStyle = rgb(glass, 0.9 * k); x.beginPath();
+    for (let row = 0; row < g.rows; row++) x.rect(px0(0), py0(row), px0(n - 1) + ww - px0(0), wh);
+    x.fill();
+  } else if (style === 'tall' && g.rows > 1 && wh > 1) {
+    x.fillStyle = rgb(glass, 0.9 * k); x.beginPath();
+    for (let row = 0; row + 1 < g.rows; row += 2) for (let col = 0; col < n; col++) x.rect(px0(col), py0(row + 1), ww, py0(row) + wh - py0(row + 1));
+    x.fill();
+  }
+  const span = (col, row) => style === 'office' ? [px0(0), py0(row), px0(n - 1) + ww - px0(0), wh] : style === 'tall' ? null : [px0(col), py0(row), ww, wh];
+  // the sky in the glass: one gradient down the whole facade (lighter high, where it sees more sky)
   const gr = x.createLinearGradient(0, ty, 0, by);
-  gr.addColorStop(0, rgb(mix(sky, [255, 255, 255], 0.3), 0.62 * k)); gr.addColorStop(0.45, rgb(mix(top, sky, 0.5), 0.36 * k)); gr.addColorStop(1, rgb(top, 0.1 * k));
+  gr.addColorStop(0, rgb(mix(sky, [255, 255, 255], 0.34), 0.66 * k)); gr.addColorStop(0.45, rgb(mix(top, sky, 0.5), 0.38 * k)); gr.addColorStop(1, rgb(top, 0.12 * k));
   x.fillStyle = gr; x.beginPath();
-  for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) pane(col, row);
+  if (style === 'office') for (let row = 0; row < g.rows; row++) { const [a0, b0, w0, h0] = span(0, row); x.rect(a0, b0, w0, h0); }
+  else if (style === 'tall') for (let row = 0; row < g.rows; row += 2) for (let col = 0; col < n; col++) { const r1 = Math.min(g.rows - 1, row + 1); x.rect(px0(col), py0(r1), ww, py0(row) + wh - py0(r1)); }
+  else for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) pane(col, row);
   x.fill();
-  // each pane's upper part catches a little more sky (the frame's shadow below it)
-  x.fillStyle = rgb([255, 255, 255], 0.1 * k); x.beginPath();
-  for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) pane(col, row, 0, 0.42);
+  // pane by pane the reflection varies: some catch more sky (brighter), some show the dark room behind — never one even tone
+  x.fillStyle = rgb([255, 255, 255], 0.16 * k); x.beginPath();
+  for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) if (H(col, row, 31) < 0.26) pane(col, row, 0, 0.55 + 0.4 * H(col, row, 32));
+  x.fill();
+  x.fillStyle = rgb([22, 26, 44], 0.32 * k); x.beginPath();
+  for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) { const h = H(col, row, 31); if (h > 0.88) pane(col, row, 0.1 + 0.3 * H(col, row, 33), 1); }
+  x.fill();
+  // each pane's upper part a touch brighter (the frame's shadow below it)
+  x.fillStyle = rgb([255, 255, 255], 0.08 * k); x.beginPath();
+  for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) pane(col, row, 0, 0.38);
   x.fill();
   if (wh < 1.2) return;
-  // blinds (half down — cream and the odd green), open windows (the dark room), glints (toward the sun)
-  const blind = [mix([236, 226, 204], F.front, 0.25), mix([214, 222, 196], F.front, 0.3)];
+  // mullions + transoms on the near ones (a frame colour: the trim)
+  if (ww > 2.2 && wh > 2.2) {
+    x.fillStyle = rgb(mix(F.trim, [255, 255, 255], 0.2), 0.62 * k); x.beginPath();
+    const mw = Math.max(0.35, ww * 0.07);
+    for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) {
+      if (style === 'office') { x.rect(px0(col) - mw / 2, py0(row), mw, wh); if (col < n - 1) x.rect(px0(col) + ww + (cw - ww) / 2 - mw / 2, py0(row), mw, wh); }
+      else { x.rect(px0(col) + ww / 2 - mw / 2, py0(row), mw, wh); if (style !== 'tall') x.rect(px0(col), py0(row) + wh * 0.36, ww, mw); }
+    }
+    x.fill();
+  }
+  // apartments + brick: curtains drawn to the sides, blinds half down; offices: blinds only, fewer; open windows (the dark room)
+  const homes = style === 'flat' || style === 'wide';
+  if (homes && ww > 1.6) for (let v = 0; v < CURTAINS.length; v++) {
+    x.fillStyle = rgb(mix(CURTAINS[v], F.front, 0.22), 0.9 * k); x.beginPath();
+    for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) { const r = H(col, row, 24); if (r < 0.2 && Math.floor(r * 25) === v) { const cwid = ww * (0.18 + 0.1 * H(col, row, 25)); x.rect(px0(col), py0(row), cwid, wh); x.rect(px0(col) + ww - cwid, py0(row), cwid, wh); } }
+    x.fill();
+  }
+  const blind = [mix([236, 226, 204], F.front, 0.25), mix([214, 222, 196], F.front, 0.3)], bShare = homes ? 0.16 : 0.1;
   for (let v = 0; v < 2; v++) {
     x.fillStyle = rgb(blind[v], 0.92 * k); x.beginPath();
-    for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) { const r = winHash(b.seed, ti, col, row, 21); if (v ? r < 0.04 : r >= 0.04 && r < 0.19) pane(col, row, 0, 0.25 + 0.5 * winHash(b.seed, ti, col, row, 22)); }
+    for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) { const r = H(col, row, 21); if (v ? r < 0.04 : r >= 0.04 && r < bShare + 0.03) pane(col, row, 0, 0.22 + 0.5 * H(col, row, 22)); }
     x.fill();
   }
   x.fillStyle = rgb([28, 24, 34], 0.7 * k); x.beginPath();
-  for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) { const r = winHash(b.seed, ti, col, row, 21); if (r >= 0.19 && r < 0.23) pane(col, row, 0.08, 1); }
+  for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) { const r = H(col, row, 21); if (homes && r >= 0.2 && r < 0.235) pane(col, row, 0.08, 1); }
   x.fill();
+  // the sun's glint on the sunny half (a bright bar high in the pane)
   if (Math.abs(sd) > 0.05 && ww > 1) {
     x.fillStyle = rgb([255, 254, 246], 0.95 * k); x.beginPath();
     for (let row = 0; row < g.rows; row++) for (let col = 0; col < n; col++) {
       const side = sd > 0 ? col >= n * 0.5 : col < n * 0.5;
-      if (side && winHash(b.seed, ti, col, row, 23) < 0.035) { const px = xOf(col) + (cw - ww) / 2, py = yOf(row) + (rh - wh) / 2; x.rect(px + ww * 0.12, py + wh * 0.1, ww * 0.76, Math.max(0.4, wh * 0.3)); }
+      if (side && H(col, row, 23) < 0.035) x.rect(px0(col) + ww * 0.12, py0(row) + wh * 0.1, ww * 0.76, Math.max(0.4, wh * 0.3));
     }
     x.fill();
   }
+}
+/** DT2: far away by day the windows merge into soft tone bands (a band per floor) instead of tiny squares */
+function farBands(x, g, T, F, xOf, yOf, cw, rh, ww, wh) {
+  const k = T.day * (0.55 - 0.25 * F.fz), n = g.cols;
+  if (k <= 0.01 || n < 1) return;
+  const glass = mix(GLASS_D, T.haze, 0.45 + 0.3 * F.fz);
+  x.fillStyle = rgb(glass, k * 0.55); x.beginPath();
+  for (let row = 0; row < g.rows; row++) x.rect(xOf(0) + (cw - ww) / 2, yOf(row) + (rh - wh) / 2 + wh * 0.15, xOf(n - 1) - xOf(0) + ww, wh * 0.7);
+  x.fill();
 }
 
 // the newer city's glass: the sky's colour mirrored (lighter low, the sky's top high), mullions, a sheen; night: dark glass
@@ -331,13 +402,26 @@ function glassFace(x, cam, b, T, F, a, ty, w, h, s) {
     x.fillStyle = g; x.fillRect(a, ty, w, h);
     // (THE DAY PASS: clouds in the glass — a few soft white reflections, by the day's share)
     if (T.day > 0.1 && w > 4) {
-      x.save(); x.beginPath(); x.rect(a, ty, w, h); x.clip();
-      for (let i = 0; i < 3; i++) {
-        const r1 = winHash(b.seed, 4, i, 1, 41), r2 = winHash(b.seed, 4, i, 2, 41), cx = a + w * r1, cy = ty + h * (0.12 + 0.5 * r2), rx = w * (0.35 + 0.3 * r2), ry = Math.max(1.5, h * 0.1);
-        x.save(); x.translate(cx, cy); x.scale(1, ry / rx);
-        const cg = x.createRadialGradient(0, 0, 0, 0, 0, rx); cg.addColorStop(0, `rgba(255,255,255,${0.3 * T.day * (1 - F.fz * 0.5)})`); cg.addColorStop(1, 'rgba(255,255,255,0)');
-        x.fillStyle = cg; x.fillRect(-rx, -rx, rx * 2, rx * 2); x.restore();
+      const gw = b.win && b.win.pitch[0] * s > 2.2 ? b.win.pitch[0] * s : w, nCol = Math.max(1, Math.ceil(w / gw)), ca = 0.34 * T.day * (1 - F.fz * 0.5);
+      for (let col = 0; col < nCol; col++) {
+        const cx0 = a + col * gw, jy = (winHash(b.seed, 4, col, 7, 43) - 0.5) * Math.min(6, h * 0.03);
+        x.save(); x.beginPath(); x.rect(cx0, ty, Math.min(gw, a + w - cx0), h); x.clip(); x.translate(0, jy);
+        for (let i = 0; i < 6; i++) {
+          const r1 = winHash(b.seed, 4, i, 1, 41), r2 = winHash(b.seed, 4, i, 2, 41), cx = a + w * (r1 * 1.2 - 0.1), cy = ty + h * (0.06 + 0.62 * r2), rx = w * (0.28 + 0.4 * r2), ry = Math.max(1.5, h * (0.04 + 0.05 * r1));
+          x.save(); x.translate(cx, cy); x.scale(1, ry / rx);
+          const cg = x.createRadialGradient(0, 0, 0, 0, 0, rx); cg.addColorStop(0, `rgba(255,255,255,${ca * (0.6 + 0.4 * r1)})`); cg.addColorStop(0.55, `rgba(246,250,255,${ca * 0.35})`); cg.addColorStop(1, 'rgba(255,255,255,0)');
+          x.fillStyle = cg; x.fillRect(-rx, -rx, rx * 2, rx * 2); x.restore();
+        }
+        x.restore();
       }
+      x.save(); x.beginPath(); x.rect(a, ty, w, h); x.clip();
+      // (low on the glass: the city across, darker)
+      const lo = x.createLinearGradient(0, ty + h * 0.55, 0, ty + h);
+      lo.addColorStop(0, 'rgba(30,40,70,0)'); lo.addColorStop(1, `rgba(30,40,70,${0.3 * T.day})`);
+      x.fillStyle = lo; x.fillRect(a, ty + h * 0.55, w, h * 0.45);
+      // (the sun's streak down the sunny edge of the glass)
+      const sd = T.sunDir || 0;
+      if (Math.abs(sd) > 0.1) { const sx0 = sd > 0 ? a + w * 0.72 : a + w * 0.08, sg = x.createLinearGradient(sx0, 0, sx0 + w * 0.2, 0); sg.addColorStop(0, 'rgba(255,252,240,0)'); sg.addColorStop(0.5, `rgba(255,252,240,${0.3 * T.day * Math.abs(sd)})`); sg.addColorStop(1, 'rgba(255,252,240,0)'); x.fillStyle = sg; x.fillRect(sx0, ty, w * 0.2, h); }
       x.restore();
     }
     // the sheen: a diagonal band of brighter sky
@@ -379,14 +463,14 @@ export function crown(x, cam, b, T, F, o = {}) {
   const [sx, sy] = P(cam, cx, y, z), s = cam.F / z, hw = bw / 2 * s, hh = c.h * s;
   const metal = lerp3(T, [214, 220, 230], [255, 196, 130], [40, 38, 66]);
   const gold = lerp3(T, [222, 184, 104], [255, 190, 110], [120, 92, 50]);
-  const copper = lerp3(T, [96, 160, 140], [140, 150, 120], [24, 40, 46]);
+  const copper = lerp3(T, [82, 168, 146], [140, 150, 120], [24, 40, 46]);
   const hz = col => mix(col, T.haze, F.fz * 0.55);
   const sunX = T.sunDir || 0;
   const rim = (path) => { if (T.gold > 0.1 && sunX) { x.save(); x.clip(path); x.fillStyle = rgb([255, 200, 130], 0.6 * T.gold); x.fillRect(sunX > 0 ? sx : sx - hw * 2, sy - hh * 2, hw * 2, hh * 2); x.restore(); } };
   const nightK = floodK(T) * (1 - F.fz * 0.4);          // (DT1: the crowns' floodlights + lit crown windows come up with the floodlights)
   if (c.t === 'sunburst') {
     // stacked arches, each with its sunburst of triangular windows; a needle above. The city's one gold crown.
-    const body = hz(o.gold ? mix(metal, gold, 0.55) : metal);
+    const body = hz(o.gold ? mix(metal, gold, 0.55 + 0.3 * T.day) : metal);
     for (let i = 0; i < 4; i++) {
       const r = hw * (1 - 0.2 * i), yy = sy - i * hh * 0.11, ry = Math.min(r * 0.95, hh * 0.3 * (1 - 0.1 * i));
       const p = new Path2D(); p.ellipse(sx, yy, r, ry, 0, Math.PI, 0); p.closePath();
@@ -394,6 +478,8 @@ export function crown(x, cam, b, T, F, o = {}) {
       // the left half in shade (day) — the right in shade at the other end of the day
       x.save(); x.clip(p); x.fillStyle = `rgba(30,24,50,${0.2 * T.day})`; x.fillRect(sunX > 0 ? sx - r : sx, yy - r, r, r); x.restore();
       rim(p);
+      // (DT2: by day the sun catches the metal — a bright band on each arch's sunny side, the gold crown glinting)
+      if (T.day > 0.1) { x.save(); x.clip(p); const bx = sx + (sunX >= 0 ? 0.32 : -0.62) * r, bg = x.createLinearGradient(bx, 0, bx + r * 0.3, 0); bg.addColorStop(0, 'rgba(255,250,226,0)'); bg.addColorStop(0.5, `rgba(255,250,226,${(0.6 * T.day).toFixed(3)})`); bg.addColorStop(1, 'rgba(255,250,226,0)'); x.fillStyle = bg; x.fillRect(bx, yy - r, r * 0.3, r); x.restore(); }
       // the sunburst windows: rays of triangles
       const lit = nightK > 0.1;
       x.fillStyle = lit ? rgb([255, 214, 140], 0.85 * nightK) : rgb([40, 46, 70], 0.55);
@@ -517,7 +603,7 @@ export function shadowsFor(cam, blocks, T) {
     }
     if (!best) continue;
     const w = me.c - me.a, len = Math.min(w * 0.85, (me.ty - best.ty) * 0.9 / slope + 4), drop = len * slope;
-    out.set(me.b, { pts: [[edge, me.ty], [edge - T.sunDir * len, me.ty], [edge, Math.min(me.by, me.ty + drop)]], a: (0.2 + 0.1 * T.day) * k * (1 - fog(me.b.z0) * 0.7), day: T.day > 0.3 });
+    out.set(me.b, { pts: [[edge, me.ty], [edge - T.sunDir * len, me.ty], [edge, Math.min(me.by, me.ty + drop)]], a: (0.2 + 0.18 * T.day) * k * (1 - fog(me.b.z0) * 0.7), day: T.day > 0.3 });
   }
   return out;
 }

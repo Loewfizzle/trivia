@@ -777,6 +777,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — THE DAY LOOK (Oct 23, 2026) — `docs/harbor.md#dt2` (Day touch-up part 2)
+- [x] THE CLOUDS, a full rework: `core/harbor-clouds.js` (PURE + tested: the kinds from the real weather + the cover by height,
+      the perspective layout with clusters and the row rule, the light for the hour + per cloud) + `screens/harbor/clouds.js`
+      (cumulus as smooth unions of billowed 3D lobes, stratocumulus as merged heaps, altocumulus + the overcast deck as perspective
+      noise fields, cirrus as drawn filaments; per-pixel light with a self-shadow march, hue-keeping highlights; shapes cached,
+      re-lit in time slices, crossfaded); the sky beams catch them; `tests/integration/clouds-preview.html` + `shots.mjs --page`
+- [x] The buildings by day: warmer lit sides, deeper blue-violet shade, a firmer side by day, crisp arrises + cool corner lines,
+      brighter ledges, deeper setback + cast shadows, stronger aerial perspective, a deeper day horizon, the gold crown in the sun,
+      glass mirroring the clouds (broken at the mullions), richer copper
+- [x] Windows by day: per-building character (office ribbons, apartments with curtains + blinds + transoms, tall Deco windows),
+      varied reflections pane by pane, tone bands far away — the lit layer's panes unchanged
+- [x] pixdiff: `dusk` + the no-cloud twins (`night-nc`, `party-nc`, `dusk-nc`, `golden-nc`) — the night, the party, the blue hour
+      and golden hour unchanged except the clouds
+
 ### ✅ CITY 2.0 — THE LIGHTS + SIGNS PASS (Oct 23, 2026) — `docs/harbor.md#dt1` (Day touch-up part 1)
 - [x] THE BLUE-HOUR POWER-UP on the one darkness input: the dusk curve on the sun's elevation (golden hour's flat 0.35 gone), the
       power-up sunset → −7° with tonight's seeded order (outlines cluster by cluster in a sweep, signs one by one), the ramps re-cut

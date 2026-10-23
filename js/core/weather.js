@@ -43,6 +43,13 @@ export function wetAtOf(m15, nowMs = Date.now()) {
   return wet;
 }
 
+/** PURE: the cloud cover by height ({ lo, mid, hi } 0..1, rounded) — null unless all three are in the data */
+export function layersOf(cur) {
+  if (!cur || cur.cloud_cover_low == null || cur.cloud_cover_mid == null || cur.cloud_cover_high == null) return null;
+  const f = v => Math.round(clamp01(num(v) / 100) * 100) / 100;
+  return { lo: f(cur.cloud_cover_low), mid: f(cur.cloud_cover_mid), hi: f(cur.cloud_cover_high) };
+}
+
 /** PURE: Open-Meteo's `current` block (+ where; + its past 15-minute precipitation) → the city's weather. */
 export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
   const w = fromWmo(cur && cur.weather_code);
@@ -59,6 +66,9 @@ export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
     lat: where.lat ?? null, lon: where.lon ?? null, city: where.city || null, at,
     // RAINBOWS (core/rainbow.js): when it last rained — raining now counts as now
     wetAt: WET_KINDS.has(w.kind) ? at : wetAtOf(m15, at),
+    // DT2 — THE CLOUDS by height (Open-Meteo's low / mid / high cover, 0..1): which kinds the Harbor draws (core/harbor-clouds.js —
+    // high = cirrus, mid = altocumulus, low = cumulus / stratocumulus / the deck); null when the data has none
+    layers: layersOf(cur),
   };
 }
 

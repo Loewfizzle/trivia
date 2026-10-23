@@ -7,6 +7,8 @@
 // --tier: CITY 2.0 — the scene forced to that quality tier (setTier) before the shot. --zoom N: each crop's device pixels blown
 //   up N × N (nearest neighbour: no blur), its width cut to 1/N around --zx (0..1 across, default the middle) — seams, ripples
 //   and tubes looked at pixel by pixel. A custom crop in pt: --crop XxYxWxH (a comma separates crops).
+// --page <path?query>: shoot any page of the site instead of the title (e.g. tests/integration/clouds-preview.html?looks=noon), full
+//   length, once its body has data-ready (or after --wait); one shot per size, named by --name (default "page").
 // --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
 // --city 2: CITY 2.0, THE HARBOR (docs/harbor.md): adds &city=2 (any extra flag via --qs, e.g. "grid=1" or "force=demo");
 //   --sizes harbor = the six review sizes (four phones upright, a phone sideways, desktop); --safe emulates the iPhone's
@@ -107,6 +109,20 @@ async function magnify(ctx, buf, k, path) {
   await q.screenshot({ path }); await q.close();
 }
 const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--mute-audio'] });
+const PAGE = opt('page', '');
+if (PAGE) {
+  for (const [w, h] of SIZES) {
+    const p = await browser.newPage();
+    p.on('pageerror', e => console.log('PAGEERROR', e.message));
+    await p.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
+    await p.goto(`${BASE}/${String(PAGE).replace(/^\/+/, '')}`);
+    await p.waitForFunction(() => document.body && document.body.dataset.ready, { timeout: 60000 }).catch(() => {});
+    await sleep(opt('wait', 0) ? WAIT : 300);
+    await p.screenshot({ path: `${OUT}${opt('name', 'page')}-${w}x${h}.png`, fullPage: true }); await p.close();
+  }
+  console.log(`${SIZES.length} page shot(s) in ${OUT}`);
+  await browser.close(); process.exit(0);
+}
 let n = 0;
 for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   const ctx = await browser.createBrowserContext();

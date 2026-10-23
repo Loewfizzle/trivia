@@ -162,6 +162,8 @@ export function createSkyBeams() {
       const r = (5 + 5 * (f.punch || 0)) * K * (b.far ? 0.55 : 1);
       c.globalAlpha = Math.min(1, a * (0.55 + 0.45 * (f.punch || 0)) * (b.far ? 0.6 : 1));
       c.drawImage(flareSprite(), b.x - r, y0 - r * 0.7, r * 2, r * 2);
+      // (DT2: the clouds it passes through catch it — clouds.js#catchBeam lights them where the beam goes in)
+      if (f.onBeam) f.onBeam(b.x, b.top, y0, col, Math.min(1, a * pulse * haze * (b.far ? 0.5 : 1)), gw);
     });
     c.restore();
   }

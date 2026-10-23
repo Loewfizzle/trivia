@@ -100,7 +100,8 @@ export function sunLook(LK, P) {
 // The shared palette's day sky (district/palette.js — City 1.0's, untouched) is a soft grey-blue. The Harbor paints its own by day:
 // a deep azure overhead fading through clean blues to a pale, luminous horizon — a travel poster's sky — blended in by the day's
 // share (so dawn, golden hour and the night keep the palette's exactly) and greyed by the real cloud cover.
-const SKY_DAY = [[26, 82, 172], [70, 136, 212], [146, 192, 236], [214, 230, 242]];
+// (DT2: the horizon a step deeper — the cream stone towers stand out against it instead of dissolving into a pale band)
+const SKY_DAY = [[22, 78, 170], [62, 128, 208], [128, 180, 232], [194, 218, 241]];
 const SKY_GREY = [[124, 136, 154], [150, 160, 174], [176, 184, 194], [200, 204, 208]];
 const sm = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);

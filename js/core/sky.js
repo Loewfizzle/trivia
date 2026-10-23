@@ -504,7 +504,7 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
     local: lp, lat, lon, south, sun, alwaysNight, partyNight: inPartyWindow(lp), moon: { ...moonP, ...mph, u: moonArc(ms, lat, lon) }, w, season, holiday: hol, nye,
     eclipse: moonP.el > -1 ? eclipseAt(ms) : null,
     sunArc: sunArc(ms, tz, lat, lon), solar: sun.el > -2 ? solarEclipse(ms, lat, lon) : null,
-    rain, snow: clamp01(snow), storm, fog, cloud, wind, windDir, temp: live ? live.temp : null, freeze, live: !!live, wxKind: live ? live.kind : null, clear, meteors, shower: met.shower, aurora, key,
+    rain, snow: clamp01(snow), storm, fog, cloud, cloudLayers: live && live.layers ? live.layers : null, wind, windDir, temp: live ? live.temp : null, freeze, live: !!live, wxKind: live ? live.kind : null, clear, meteors, shower: met.shower, aurora, key,
   };
 }
 

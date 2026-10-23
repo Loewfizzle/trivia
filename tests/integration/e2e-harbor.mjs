@@ -601,6 +601,26 @@ G('neon', async () => {
   }
 });
 G('sky', async () => {
+  // ================================================================ DT2: THE CLOUDS — the real weather's kinds, baked + drawn, in the sky band, in budget
+  { const C = await open({ slot: 'h31', qs: 'when=2026-10-22T13:00&tz=America/Detroit&at=42.96,-85.67&wx=clouds', view: [402, 874] });
+    await harborUp(C.page);
+    await waitFor(C.page, '!!(window.__district.harbor().clouds || {}).born', 'the clouds baked', 20000);
+    const c = (await ev(C.page, 'window.__district.harbor()')).clouds;
+    const cu = c.at.filter(d => d.k === 'cumulus');
+    ok(cu.length >= 8 && c.kinds.includes('strato') && c.mix.cumulus > 0.3, `THE CLOUDS (a cloudy day): ${c.clouds} clouds — ${cu.length} cumulus + ${c.kinds.filter(k => k === 'strato').length} stratocumulus patches (the cover's mix ${JSON.stringify(c.mix)})`);
+    ok(cu.every(d => d.y > 62 && d.y < 520 && d.w >= 30 && d.h >= 10), 'THE CLOUDS in the sky band, never a sliver (≥ 30 × 10 pt)');
+    const near = cu.filter(d => d.s > 0.55), far = cu.filter(d => d.s < 0.4);
+    ok(near.length && far.length && Math.max(...far.map(d => d.w)) < Math.max(...near.map(d => d.w)), `PERSPECTIVE: the near ones bigger (${near.length} near up to ${Math.max(...near.map(d => d.w))} pt, ${far.length} far up to ${Math.max(...far.map(d => d.w))} pt)`);
+    ok(c.mb < 9 && c.pending === 0, `THE CLOUDS' MEMORY: ${c.mb.toFixed(1)} MB (sprites + their cached shapes), nothing left to bake`);
+    await C.ctx.close(); }
+  { const C = await open({ slot: 'h32', qs: 'when=2026-10-22T13:00&tz=America/Detroit&at=42.96,-85.67&wx=overcast', view: [402, 874] });
+    await harborUp(C.page);
+    await waitFor(C.page, '!!(window.__district.harbor().clouds || {}).born', 'the overcast baked', 25000);
+    const c = (await ev(C.page, 'window.__district.harbor()')).clouds;
+    ok(c.deck && c.kinds.includes('scud'), `OVERCAST: the deck + scud under it (${c.kinds.join(', ')})`);
+    await C.ctx.close(); }
+});
+G('sky', async () => {
   // (&speed=8: the message holds after ~36 s of the show's clock — ~5 s here)
   { const D = await open({ slot: 'h8', qs: `${NIGHT}&force=drones&text=HI%20THERE&colours=ff2e97,2ee6ff&by=word&show=heart&speed=8` });
     await harborUp(D.page);

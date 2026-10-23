@@ -30,6 +30,12 @@ const SCENES = {
   golden: 'when=2026-10-22T18:20&wx=clear&force=no-planes,no-birds',
   halloween: 'when=2026-10-31T22:00&wx=clear&force=no-planes,no-birds',
   stpatrick: 'when=2027-03-17T22:00&wx=clear&force=no-planes,no-birds',
+  // DT2: the blue hour, and each look without its clouds (a clouds pass proves the rest of the frame is untouched)
+  dusk: 'when=2026-10-22T19:05&wx=clear&force=no-planes,no-birds',
+  'night-nc': 'when=2026-10-22T22:00&wx=clear&force=no-planes,no-birds,no-clouds',
+  'party-nc': 'when=2026-10-24T23:00&wx=clear&force=no-planes,no-birds,no-clouds',
+  'dusk-nc': 'when=2026-10-22T19:05&wx=clear&force=no-planes,no-birds,no-clouds',
+  'golden-nc': 'when=2026-10-22T18:20&wx=clear&force=no-planes,no-birds,no-clouds',
 };
 const names = arg('scenes', 'night,party,noon,golden').split(',');
 mkdirSync(OUT, { recursive: true });
