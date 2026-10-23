@@ -272,6 +272,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
       + a catwalk under the roof signs so their size reads as deliberate; any game whose name won't fit a roof sign gets the
       billboard that night. (4 sign slots a night instead of 5.)
     - The rule for every sign: never a shortened game name.
+    - BUILT (DT1, Oct 23): 3 named signs a night + the billboard; long one-word names (OVERCLOCK, GRIDLOCK, SLIPSTREAM,
+      RUMRUNNER) only fit the BILLBOARD (each once a week). PART 12 DESKTOP: the desktop layout drops the billboard today —
+      it MUST keep a billboard (or give those games another readable slot), or those four games never show on desktop.
   (6) BILLBOARD LAMPS (the owner): every billboard / painted ad gets 1920s gooseneck lamps on arms over its top edge —
   the layout: TWO lamps on each side of the logo at top centre (four per board, the logo between them, the word below),
   warm old-school incandescent tone (~2700 K amber-gold),
