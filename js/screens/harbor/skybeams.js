@@ -13,7 +13,7 @@
 //   draw(c, f)   f: { signs ([rects]: a roof sign over a crown — the beam rises from above it), k (0..1 strength), on (how many are on, fractional: one by one), cols(ids) → [rgb] per beam, punch,
 //                haze (0..1), motion, tier, fade }
 import { project } from '../../core/harbor-layout.js';
-import { ctx2d } from '../../ui/canvas-safe.js';
+import { ctx2d, safeCtx } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** the beam's soft foot (pt at the reference scale): the last stretch above the crown fades out instead of ending on a line */
@@ -25,46 +25,65 @@ export function createSkyBeams() {
   const sprites = new Map();             // colour key → the beam sprite (a horizontal profile × a vertical fade), white-hot core
   let flare = null;
 
-  // the beam: 48 × 256, a soft wide glow + a narrow bright core, fading upward (the base at the bottom)
-  function spriteFor(col) {
-    const key = col.join(',');
-    if (sprites.has(key)) return sprites.get(key);
-    const w = 64, h = 256, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    const x = ctx2d(cv);
-    if (!x) { cv.width = 0; return null; }                          // (iOS out of canvas memory: no beam, never a thrown frame)
-    const img = x.createImageData(w, h), d = img.data;
-    for (let j = 0; j < h; j++) {
-      const v = 1 - j / (h - 1);                                    // 0 at the base (the bottom row) → 1 at the top
+  // the beam: 64 × 256, a soft wide glow + a narrow bright core, fading upward (the base at the bottom)
+  // (C1.5 — the party's colour sweeps asked for a new sprite nearly every frame of a fade: the shape is now computed ONCE (SHAPE:
+  // each pixel's alpha + how far its colour runs to white — the beam is linear in its colour), so a new colour is a few multiplies
+  // a pixel, the foot comes from the same table (no getImageData readback), and the cache drops its oldest entry instead of all
+  // of them — the same pixels as before, a fraction of the work)
+  const SW = 64, SH = 256;
+  let SHAPE = null;
+  function shape() {
+    if (SHAPE) return SHAPE;
+    const A = new Uint8ClampedArray(SW * SH), HOT = new Float64Array(SW * SH);
+    for (let j = 0; j < SH; j++) {
+      const v = 1 - j / (SH - 1);                                   // 0 at the base (the bottom row) → 1 at the top
       // (bright for most of its height, then a long soft fade — gone at the top)
       const fade = (1 - v * v * 0.55) * Math.pow(1 - v, 0.7);
-      for (let i = 0; i < w; i++) {
-        const u = Math.abs(i + 0.5 - w / 2) / (w / 2);              // 0 at the centre → 1 at the edge
+      for (let i = 0; i < SW; i++) {
+        const u = Math.abs(i + 0.5 - SW / 2) / (SW / 2);            // 0 at the centre → 1 at the edge
         // (a wide soft glow — the beam's light in the haze — a mid glow, a narrow white-hot core)
         const glow = Math.pow(1 - u, 2.2) * 0.3 + Math.pow(Math.max(0, 1 - u * 3), 2) * 0.45, core = Math.max(0, 1 - u * 12) ** 1.4;
-        const a = clamp01((glow + core) * fade);
-        const hot = core * 0.55;                                    // the core runs toward white
-        const o = (j * w + i) * 4;
-        d[o] = Math.round(col[0] + (255 - col[0]) * hot); d[o + 1] = Math.round(col[1] + (255 - col[1]) * hot); d[o + 2] = Math.round(col[2] + (255 - col[2]) * hot);
-        d[o + 3] = Math.round(a * 255);
+        A[j * SW + i] = Math.round(clamp01((glow + core) * fade) * 255);
+        HOT[j * SW + i] = core * 0.55;                              // the core runs toward white
       }
     }
+    return (SHAPE = { A, HOT });
+  }
+  const CACHE = 40;
+  function spriteFor(col) {
+    const key = col.join(',');
+    const hit = sprites.get(key);
+    if (hit) return hit;
+    const w = SW, h = SH, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const x = ctx2d(cv);
+    if (!x) { cv.width = 0; return null; }                          // (iOS out of canvas memory: no beam, never a thrown frame)
+    const { A, HOT } = shape(), img = x.createImageData(w, h), d = img.data;
+    const r = col[0], g = col[1], b = col[2], dr = 255 - r, dg = 255 - g, db = 255 - b;
+    for (let p = 0, o = 0; p < w * h; p++, o += 4) {
+      const hot = HOT[p];
+      d[o] = Math.round(r + dr * hot); d[o + 1] = Math.round(g + dg * hot); d[o + 2] = Math.round(b + db * hot); d[o + 3] = A[p];
+    }
     x.putImageData(img, 0, 0);
-    if (sprites.size > 24) { for (const s of sprites.values()) s.width = 0; sprites.clear(); }
+    cv._col = [r, g, b];
+    if (sprites.size >= CACHE) { const [k0, s0] = sprites.entries().next().value; s0.width = 0; sprites.delete(k0); }
     sprites.set(key, cv);
     return cv;
   }
   // the FOOT (NEON PASS 6): the beam's bottom row, fading out downward (smoothstep) — drawn under the main sprite's last row, so the
-  // beam melts into the crown instead of ending on a line
+  // beam melts into the crown instead of ending on a line (its row from SHAPE: the sprite's own last row, never read back)
   const feet = new WeakMap();
   function footFor(sp) {
     if (feet.has(sp)) return feet.get(sp);
     const w = sp.width, h = 32, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
     const x = ctx2d(cv);
-    if (!x) { cv.width = 0; feet.set(sp, null); return null; }
-    const src = sp.getContext('2d').getImageData(0, sp.height - 1, w, 1).data, img = x.createImageData(w, h), d = img.data;
+    if (!x || !sp._col) { cv.width = 0; feet.set(sp, null); return null; }
+    const { A, HOT } = shape(), [r, g, b] = sp._col, row = (SH - 1) * SW, img = x.createImageData(w, h), d = img.data;
     for (let j = 0; j < h; j++) {
       const v = j / (h - 1), k = 1 - v * v * (3 - 2 * v);           // 1 at the top (meets the beam) → 0 at the crown
-      for (let i = 0; i < w; i++) { const o = (j * w + i) * 4, s = i * 4; d[o] = src[s]; d[o + 1] = src[s + 1]; d[o + 2] = src[s + 2]; d[o + 3] = Math.round(src[s + 3] * k); }
+      for (let i = 0; i < w; i++) {
+        const o = (j * w + i) * 4, hot = HOT[row + i];
+        d[o] = Math.round(r + (255 - r) * hot); d[o + 1] = Math.round(g + (255 - g) * hot); d[o + 2] = Math.round(b + (255 - b) * hot); d[o + 3] = Math.round(A[row + i] * k);
+      }
     }
     x.putImageData(img, 0, 0);
     feet.set(sp, cv);
@@ -73,7 +92,7 @@ export function createSkyBeams() {
   function flareSprite() {
     if (flare) return flare;
     const c = document.createElement('canvas'); c.width = c.height = 32;
-    const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+    const x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
     g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.3, 'rgba(255,255,255,0.45)'); g.addColorStop(1, 'rgba(255,255,255,0)');
     x.fillStyle = g; x.fillRect(0, 0, 32, 32);
     return (flare = c);

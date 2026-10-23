@@ -34,3 +34,37 @@ export function blit(c, img, sx, sy, sw, sh, dx, dy, dw, dh) {
 export function ctx2d(cv, o) {
   try { return cv.getContext('2d', o) || null; } catch { return null; }
 }
+
+// A context that draws nothing: what safeCtx() hands back when iOS refuses one, so a starved layer comes out blank instead of
+// throwing on every frame. Every method is a no-op; the few that must return something return a harmless stand-in.
+let starved = 0;
+const NOOP = () => {};
+const GRAD = Object.freeze({ addColorStop: NOOP });
+const img = (w, h) => {
+  const W = Math.max(1, Math.floor(Math.abs(w) || 1)), H = Math.max(1, Math.floor(Math.abs(h) || 1));
+  return typeof ImageData === 'function' ? new ImageData(W, H) : { width: W, height: H, data: new Uint8ClampedArray(W * H * 4) };
+};
+const RET = {
+  createLinearGradient: () => GRAD, createRadialGradient: () => GRAD, createConicGradient: () => GRAD, createPattern: () => null,
+  createImageData: (w, h) => (typeof w === 'object' ? img(w.width, w.height) : img(w, h)), getImageData: (x, y, w, h) => img(w, h),
+  measureText: () => ({ width: 0, actualBoundingBoxAscent: 0, actualBoundingBoxDescent: 0 }), isPointInPath: () => false,
+  isPointInStroke: () => false, getTransform: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }), getLineDash: () => [],
+};
+function nullCtx(cv) {
+  const props = { canvas: cv };
+  return new Proxy(props, {
+    get: (o, k) => (k in RET ? RET[k] : k in o ? o[k] : NOOP),
+    set: (o, k, v) => { if (!(k in RET)) o[k] = v; return true; },
+  });
+}
+/** a canvas's 2D context — or, when iOS has no canvas memory left (getContext returns null / throws), a stand-in that draws
+ *  nothing and counts the miss (starvedCount(): the scene steps its tier down to free memory). Never null, never throws. */
+export function safeCtx(cv, o) {
+  let x = null;
+  try { x = cv.getContext('2d', o) || null; } catch { x = null; }
+  if (x) return x;
+  starved++;
+  return nullCtx(cv);
+}
+/** how many contexts iOS has refused so far (safeCtx) */
+export const starvedCount = () => starved;

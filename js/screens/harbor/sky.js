@@ -2,11 +2,13 @@
 // glow low over the harbor, repainted only when the look changes. The real sky ON it (the stars, the sun, the moon, planes,
 // clouds, rain, birds, fireworks, rainbows) is the district's sky modules, called as they are (docs/harbor.md#sky).
 import { css } from '../district/palette.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
+import { litK } from '../../core/harbor-dark.js';
 
 export function paintSky(cv, W, HZ, dpr, P, o = {}) {
   const cw = Math.max(1, Math.round(W * dpr)), ch = Math.max(1, Math.round(HZ * dpr));
   if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
-  const x = cv.getContext('2d');
+  const x = safeCtx(cv);
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   // (THE DAY PASS: o.stops — the Harbor's own day sky, tones.js#harborSky; the palette's at night)
   const st = o.stops || P.sky;
@@ -19,7 +21,8 @@ export function paintSky(cv, W, HZ, dpr, P, o = {}) {
   // NEON PASS 3 — THE CITY'S LIGHT ON THE NIGHT AIR: a real neon city lights the haze over it — a soft violet bloom over the
   // middle of the skyline, teal toward the right, a warm magenta hint at the left; low over the roofs (o.roof: the roofline's
   // median), fading up into the dark. Baked here with the sky (no cost a frame); stronger the darker the night.
-  const k = Math.max(0, Math.min(1, ((P.dark || 0) - 0.3) / 0.5)) * (o.k ?? 1);
+  // (C1.5: through the one darkness input — o.dark from the scene, core/harbor-dark.js; the same ramp as before)
+  const k = litK(o.dark != null ? o.dark : +P.dark || 0, 'glow') * (o.k ?? 1);
   if (k > 0.01 && o.roof) {
     const y = o.roof, R = Math.max(W * 0.62, (HZ - y) * 2.2);
     // (NEON PASS 4: a party night's glow, stronger: the city is lit up for the party; o.party 0..1. NEON PASS 5 — the owner: "I

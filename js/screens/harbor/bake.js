@@ -6,6 +6,7 @@
 // MEMORY (iOS Safari kills a page that holds too much canvas memory): every offscreen canvas counts against a hard budget per
 // tier. Baked layers are capped at DPR 2 on phones; if the budget is still exceeded the biggest layers step down to DPR 1.5,
 // then 1. The main canvas is the scene's (its own DPR per tier) and is reported next to the budget. &debug=1 logs it all.
+import { safeCtx } from '../../ui/canvas-safe.js';
 export const MEM_BUDGET_MB = [24, 40, 64];   // tier 0, 1, 2: all baked layers (both sets)
 
 const mk = () => document.createElement('canvas');
@@ -48,7 +49,7 @@ export function createBaker() {
     pendingKey = k;
     queue = [];
     for (const g of groups) {
-      const x = g.next.getContext('2d');
+      const x = safeCtx(g.next);
       queue.push(() => { const cw = Math.ceil(W * g.dpr), ch = Math.ceil(g.h * g.dpr); if (g.next.width !== cw || g.next.height !== ch) { g.next.width = cw; g.next.height = ch; } x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, g.next.width, g.next.height); x.setTransform(g.dpr, 0, 0, g.dpr, 0, -g.y0 * g.dpr); });
       for (const s of jobs[g.name] || []) queue.push(() => { x.save(); s(x); x.restore(); });
     }

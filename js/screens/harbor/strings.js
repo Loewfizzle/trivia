@@ -9,6 +9,7 @@
 //   layout(L)   the runs on screen (the speakeasy's parapet, the pole, the corner loops)
 //   draw(c, f)  f: { k (0..1 lit), day (0..1), party: { on, energy, beats, beatU, punch } | null, t, motion, tier }
 import { project } from '../../core/harbor-layout.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const SCHEMES = {
@@ -26,7 +27,7 @@ export function createStrings() {
     const key = col.join(',');
     if (dots.has(key)) return dots.get(key);
     const c = document.createElement('canvas'); c.width = c.height = 32;
-    const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+    const x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
     g.addColorStop(0, 'rgba(255,255,244,1)'); g.addColorStop(0.16, `rgba(${col},0.95)`); g.addColorStop(0.42, `rgba(${col},0.3)`); g.addColorStop(1, `rgba(${col},0)`);
     x.fillStyle = g; x.fillRect(0, 0, 32, 32);
     if (dots.size > 40) { for (const d of dots.values()) d.width = 0; dots.clear(); }

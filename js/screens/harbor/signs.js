@@ -8,6 +8,7 @@
 import { MARKS, LETTERS, markFor, bladeWord, hexRgb } from '../district/marks.js';
 import { flattenPath, signSpots } from '../../core/harbor-neon.js';
 import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 /** each game's sign colour (its accent; the same as the title's game tiles) */
 export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
@@ -484,7 +485,7 @@ export function buildBillboard(spot, content, ctx) {
     paint(x);
     // the lamps' light on the paper: bright under each lamp (warm), falling off down the board and between the lamps
     const lightC = document.createElement('canvas'); lightC.width = Math.ceil(R.w * dpr); lightC.height = Math.ceil(R.h * dpr);
-    const lx = lightC.getContext('2d'); lx.scale(dpr, dpr); lx.fillStyle = 'rgb(46,38,52)'; lx.fillRect(0, 0, R.w, R.h); lx.globalCompositeOperation = 'lighter';
+    const lx = safeCtx(lightC); lx.scale(dpr, dpr); lx.fillStyle = 'rgb(46,38,52)'; lx.fillRect(0, 0, R.w, R.h); lx.globalCompositeOperation = 'lighter';
     for (const l of lamps) { const cx = l.x - R.x + R.h * 0.15, g = lx.createRadialGradient(cx, 0, 0, cx, R.h * 0.25, R.h * 1.1); g.addColorStop(0, 'rgba(255,236,200,0.95)'); g.addColorStop(0.55, 'rgba(230,190,140,0.5)'); g.addColorStop(1, 'rgba(160,120,90,0)'); lx.fillStyle = g; lx.fillRect(0, 0, R.w, R.h); }
     x.globalCompositeOperation = 'multiply'; x.drawImage(lightC, R.x, R.y, R.w, R.h); lightC.width = lightC.height = 0;
     x.globalCompositeOperation = 'source-over';

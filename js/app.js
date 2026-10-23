@@ -11,7 +11,7 @@ import { resumeSession, armPresence, roomExists } from './room.js';
 import { startHostLoop } from './host.js';
 import { keepAwake } from './wakelock.js';
 import { GAME_MODULES } from './games/registry.js';
-import { createTitle } from './screens/title.js';
+import { createTitle, harborReady, harborPending } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { createLobby } from './screens/lobby.js';
 import { installAudio } from './audio/engine.js';
@@ -44,6 +44,7 @@ if (resuming) { const s = document.querySelector('#boot .boot-status'); if (s) s
 
 function routeKey(st) {
   if (!st.ready && (resuming || st.code)) return 'boot';
+  if (!st.code && harborPending()) return 'boot';   // ?city=2: the Harbor's module is still loading (title.js#harborReady)
   if (!st.code) return st.view === 'setup' ? `setup:${st.setupMode}` : st.view === 'board' ? 'board' : st.view === 'profile' ? 'profile' : 'title';
   if (!st.meta) return 'boot';
   if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id] && st.quit !== st.game.matchId) return `game:${st.game.id}:${st.game.matchId}`;
@@ -259,3 +260,4 @@ async function boot() {
 }
 
 boot();
+harborReady.then(() => render(state));

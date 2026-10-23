@@ -239,7 +239,7 @@ body.reduced-fx .nd-gate-txt { animation: none; }
 .nd.is-party .nd-sign.is-steady .nd-bloom { opacity: var(--bo, 0); }   /* (--bo / --hkp: written on these elements alone, each frame: title.js#partyFrame) */
 .nd.is-party .nd-sign.is-steady .nd-logo .ndl-glow2 { opacity: 0.86; }
 /* SPEAKEASY as real neon: a white-hot core in the sign's colour, layered glow; a slow shimmer of light sweeping the letters */
-.nd-word-g { position: relative; display: inline-block; transition: color 4s ease, text-shadow 4s ease; }
+.nd-word-g { position: relative; display: inline-block; transition: color 4s ease, text-shadow 4s ease, opacity var(--sd-ms, 1.2s) ease; opacity: var(--sd-logo, 1); }
 .nd-word-s { position: absolute; inset: 0; opacity: 0; color: transparent; pointer-events: none; will-change: transform; transform: translateZ(0);
   background: linear-gradient(100deg, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0) 60%) no-repeat;
   background-size: 240% 100%; background-position: 170% 0; -webkit-background-clip: text; background-clip: text; }
@@ -276,6 +276,8 @@ body.reduced-fx .nd-race, body.reduced-fx .nd-word-r { display: none; }
 /* (City 2.0, NEON PASS 5 — THE TIRED TUBE: a letter or two looking a little worn for a few hours — a weaker core, a softer glow, no hot
    spots — chosen anew every few hours: title.js#tiredTick) */
 .nd-logo .ndl.is-tired .ndl-core { opacity: 0.6; transition: opacity 2s ease; }
+/* CITY 2.0's flutter (title.js#premiumLogo): a class, never an inline style (it outranks the tired core, as the inline style did) */
+.nd-logo .ndl .ndl-core.is-flut { opacity: 0.8; }
 .nd-logo .ndl.is-tired .ndl-body { opacity: 0.84; transition: opacity 2s ease; }
 .nd-logo .ndp .ndl.is-tired .ndl-hot { opacity: 0.12; }
 .nd-logo .ndl.is-tired .ndl-glow2, .is-warm .nd-logo .ndl.is-tired .ndl-glow2 { opacity: 0.5; }
@@ -398,6 +400,10 @@ body.reduced-fx .nd-word-s, body.reduced-fx .nd-word-p { animation: none !import
 .nd-sign.nd-tag-gone .nd-tag:not(.nd-count) { opacity: 0 !important; transition: opacity 2.4s ease !important; }
 /* (NEON PASS 3: a drone show over the city — the tagline steps aside while the formation fills its band) */
 .nd-sign.nd-tag-hold .nd-tag:not(.nd-count) { opacity: 0 !important; transition: opacity 1.2s ease !important; }
+/* THE SIGN-DIM HOOK (C1.5; Part 6b's sky messages, title.js#applySignDim): the NEON letters + SPEAKEASY dim to --sd-logo, the
+   tagline fades to --sd-tag, over --sd-ms — opacity only, on wrappers nothing else writes (at rest --sd-logo is unset: 1) */
+.nd-sign .nd-logo-wrap { opacity: var(--sd-logo, 1); transition: opacity var(--sd-ms, 1.2s) ease; }
+.nd-sign.nd-tag-sky .nd-tag:not(.nd-count) { opacity: var(--sd-tag, 0) !important; transition: opacity var(--sd-ms, 1.2s) ease !important; }
 .nd.is-idle .nd-sign:not(.nd-tag-gone) .nd-tag.nd-tag-msg { opacity: 1; transition: opacity 1.2s ease; }
 
 /* the screen at rest: just the sign and the city */
@@ -435,10 +441,12 @@ body.nd-idle .menu-btn, body.nd-idle .music-btn { opacity: 0; pointer-events: no
 body.reduced-fx .nd-xb-tw { animation: none; }
 
 /* the O as a jack-o'-lantern / a clover: its parts carry their own colour vars (the face gold, the stem green) */
-.nd-sign .ndl-3 path[style] { stroke: var(--b); }
-.nd-sign .ndl-3 .ndl-glow1[style], .nd-sign .ndl-3 .ndl-glow2[style] { stroke: var(--g); }
-.nd-sign .ndl-3 .ndl-core[style] { stroke: var(--c); }
-.nd-sign .ndl-3 .ndl-glass[style] { stroke: #40243a; }
+/* (only the swapped O — swapO sets data-kind — and with fallbacks: an unscoped [style] rule once caught the flutter's empty
+   style="" on the plain O and took its white core away for the rest of the visit; docs/harbor/review-2.md §2) */
+.nd-sign .ndl-3[data-kind] path[style] { stroke: var(--b, #ff5fb4); }
+.nd-sign .ndl-3[data-kind] .ndl-glow1[style], .nd-sign .ndl-3[data-kind] .ndl-glow2[style] { stroke: var(--g, #ff2e97); }
+.nd-sign .ndl-3[data-kind] .ndl-core[style] { stroke: var(--c, #fff1f8); }
+.nd-sign .ndl-3[data-kind] .ndl-glass[style] { stroke: #40243a; }
 .sg-halloween .ndl-3 { --g: #ff7a12; --b: #ffa040; --c: #fff4e0; }
 .sg-stpatrick .ndl-3 { --g: #18e070; --b: #5dff9e; --c: #f0fff6; }
 

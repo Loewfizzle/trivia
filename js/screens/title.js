@@ -33,11 +33,18 @@ import { beatSource, beatKick, beatWhy } from '../audio/beat.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { createDistrict } from './district/scene.js';
-// CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded
-const createHarbor = /[?&]city=2(?:&|$)/.test(location.search) ? (await import('./harbor/scene.js')).createHarbor : null;
 import { captureBackdrop } from './district/backdrop.js';
 import { neonPlan, neonState, neonNext } from './district/neon-ramp.js';
 import { createDock, dressCorners, ICON } from './title-dock.js';
+// CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded.
+// No top-level await (iOS 14 can't parse one — the whole app would die, every game and City 1.0 too): app.js holds the title on
+// the boot screen until harborReady settles (a failed load falls back to City 1.0). A unit test keeps await out of module tops.
+const HARBOR_URL = /[?&]city=2(?:&|$)/.test(location.search);
+let createHarbor = null, harborSettled = !HARBOR_URL;
+export const harborReady = HARBOR_URL
+  ? import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; }, e => console.warn('harbor', e)).finally(() => { harborSettled = true; })
+  : Promise.resolve();
+export const harborPending = () => !harborSettled;
 
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
@@ -289,6 +296,8 @@ export function createTitle() {
     // #tiredLetters — any letter, sometimes none, never the same twice running; it was always the O)
     // (and again once the scene has its clock: the first check can come before its look — then nothing showed for 30 s)
     if (createHarbor) { tiredTick(); setTimeout(tiredTick, 1200); tiredT = setInterval(tiredTick, 30000); }
+    // CITY 2.0 — THE SIGN-DIM HOOK (C1.5; Part 6b's sky messages use it): the scene says how dim the logo and the tagline should be
+    if (createHarbor) scene.set({ onSignDim: applySignDim });
     // CITY 2.0: THE PREVIEW PANEL (docs/harbor.md) — everyone on ?city=2 follows the owner's city2/live; she gets the TEST pill.
     // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
     if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) remote = m.createRemote({ scene: () => scene }); }).catch(e => console.warn('preview panel', e)); }, 1500);
@@ -562,8 +571,18 @@ export function createTitle() {
     const lit = [...svg.querySelectorAll('.ndl.on .ndl-core')];
     const core = lit[Math.floor(Math.random() * lit.length)];
     if (!core) return;
-    core.style.opacity = '0.8';
-    setTimeout(() => { core.style.opacity = ''; }, 70 + Math.random() * 60);
+    // (a class, never core.style: clearing an inline style leaves style="" behind — review-2.md §2)
+    core.classList.add('is-flut');
+    setTimeout(() => core.classList.remove('is-flut'), 70 + Math.random() * 60);
+  }
+  // THE SIGN-DIM HOOK (C1.5, core/harbor-signdim.js): a sky message flies in front of the logo — the NEON letters + SPEAKEASY dim
+  // (--sd-logo: opacity on their own wrappers, nothing else writes those) and the tagline fades (nd-tag-sky), over d.ms; back after
+  function applySignDim(d) {
+    if (destroyed || !els.sign) return;
+    els.sign.style.setProperty('--sd-ms', `${Math.round(d.ms)}ms`);
+    if (d.logo >= 1) els.sign.style.removeProperty('--sd-logo'); else els.sign.style.setProperty('--sd-logo', String(+d.logo.toFixed(3)));
+    els.sign.style.setProperty('--sd-tag', String(+d.tag.toFixed(3)));
+    els.sign.classList.toggle('nd-tag-sky', d.tag < 1);
   }
   // the dock's glass takes the sky's light: the sign's neon after dark (the holiday's colour on its days), amber at golden
   // hour, rose at dawn, a cool frosted daylight — and rain runs down it while it rains. The labels never change (contrast).
@@ -1345,7 +1364,8 @@ export function createTitle() {
       enter,
       setTier: t => scene && scene.setTier(t),
       frames: () => scene && scene.frames(),
-      tiering: () => (scene && scene.tiering ? scene.tiering() : null),            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
+      tiering: () => (scene && scene.tiering ? scene.tiering() : null),
+      signDim: (id, o) => (scene && scene.dimSign ? (id ? scene.dimSign(id, o) : scene.signDim()) : null),   // (City 2.0, C1.5: the sign-dim hook)            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),
       idle: () => goIdle(),

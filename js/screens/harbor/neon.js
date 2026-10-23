@@ -17,6 +17,7 @@ import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from '.
 import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHousing } from './signs.js';
 import { hexRgb, markFor } from '../district/marks.js';
 import { showItems, showFrame, newShowOut, FX, everyday, signMotion, nightStage, rotateMix, burnout, burnoutFlicker, PARTY_PAL, partyColours } from '../../core/harbor-show.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 // NEON PASS 4: the racing light's head (white-hot) and the shimmer's glints
 const HOT = [255, 250, 244];
 // the party's colour sweep: each building's second colour (one that contrasts with its own main colour)
@@ -439,7 +440,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
 
   // ---------------------------------------------------------------- per frame
   let dot = null;
-  const warmDot = () => { if (dot) return dot; const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,244,214,1)'); g.addColorStop(0.25, 'rgba(255,214,150,0.7)'); g.addColorStop(1, 'rgba(255,190,110,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return (dot = c); };
+  const warmDot = () => { if (dot) return dot; const c = document.createElement('canvas'); c.width = c.height = 32; const x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,244,214,1)'); g.addColorStop(0.25, 'rgba(255,214,150,0.7)'); g.addColorStop(1, 'rgba(255,190,110,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return (dot = c); };
   /**
    * Draw a group's neon. f: { t (s), now, night (0..1: how dark), fade (the city's fade-in), motion, tier, party (PT), force }
    */

@@ -69,10 +69,6 @@ const ROLES = {
 // NEON PASS 4 (the owner: "remove the JAZZ sign — that left corner is cluttered"): the old JAZZ club is PLAIN CITY now — no sign, no
 // frame — lit like its neighbours in the near band (NEON PASS 3's trims): [kind, main, accent, detail] (a WARM_L pairing)
 const PLAIN_HEROES = { jazz: ['bands', 'm0', 'b1', 'w0'] };
-/** strength: the brightness hierarchy (tube width in pt at the reference scale, glow, alpha) */
-export const STRENGTH = { hero: { w: 1.5, glow: 7, a: 1 }, word: { w: 1.25, glow: 5.5, a: 0.92 }, mid: { w: 1.0, glow: 4.5, a: 0.8 }, quay: { w: 1.1, glow: 5, a: 0.88 }, far: { w: 0.7, glow: 3.2, a: 0.5 }, pano: { w: 1.2, glow: 5.5, a: 0.9 },
-  // NEON PASS 3: the bands' own neon — the near band (the storefront city) just under the middle tier, the mid band softer
-  band: { w: 1.0, glow: 4.8, a: 0.95 }, midband: { w: 0.85, glow: 4, a: 0.78 }, farband: { w: 0.75, glow: 3.4, a: 0.62 } };
 
 /**
  * DEPTH (NEON PASS 3, the owner: "use the neon to build DEPTH" — the most important note): every tube's weight, glow, brightness

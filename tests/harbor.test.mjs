@@ -1446,3 +1446,46 @@ test('THE DAY PASS §0 — the dark corner: the block right of the lighthouse is
     for (const id of ids) { const b = L.bands.find(d => d.id === 'near').blocks.find(x => x.id === id), m = (project(cam, b.x0, 0, b.z0)[0] + project(cam, b.x1, 0, b.z0)[0]) / 2; assert.ok(Math.abs(m - lx) > hw, `${k}: ${id} stands clear of the tower`); }
   }
 });
+
+test('the panel: rows a later part still has to build stay hidden (ready: false), their ids stay valid', async () => {
+  const { EVENTS, PANEL_EVENTS, cleanRemote } = await import('../js/core/harbor-remote.js');
+  const hidden = EVENTS.filter(e => !PANEL_EVENTS.includes(e)).map(e => e.id);
+  assert.deepEqual(hidden.sort(), ['cat', 'ufo']);
+  assert.deepEqual(cleanRemote({ force: ['ufo'] }).bad, []);
+});
+
+test('one darkness input: today it IS the sky model\'s darkness, and every ramp is the old threshold', async () => {
+  const { darkness, litK, LIT, DARK_TERMS, windowsNight, isNight } = await import('../js/core/harbor-dark.js');
+  const c01 = v => Math.max(0, Math.min(1, v));
+  const OLD = { water: d => c01((d - 0.15) / 0.5), neon: d => c01((d - 0.2) / 0.5), city: d => c01((d - 0.25) / 0.5), lamps: d => c01((d - 0.3) / 0.45), strings: d => c01((d - 0.3) / 0.4), logo: d => c01((d - 0.3) / 0.5), glow: d => c01((d - 0.3) / 0.5), beams: d => c01((d - 0.35) / 0.4) };
+  assert.deepEqual(Object.keys(LIT).sort(), Object.keys(OLD).sort());
+  assert.ok(Object.values(DARK_TERMS).every(v => v === 0), 'no extra term is on yet (nothing changes until the Day touch-up / Part 9)');
+  for (let d = 0; d <= 1.0001; d += 0.01) {
+    for (const cloud of [0, 0.5, 1]) for (const storm of [0, 1]) assert.equal(darkness({ sky: d, cloud, storm, eclipse: 1 }), Math.min(1, d));
+    for (const [k, f] of Object.entries(OLD)) assert.ok(Math.abs(litK(d, k) - f(d)) < 1e-12, `${k} at ${d}`);
+    assert.equal(windowsNight(d), d > 0.2); assert.equal(isNight(d), d > 0.5);
+  }
+  // the terms, once a part turns them on: they only darken, toward 1, never lighten the night
+  const T = { cloud: 0.3, storm: 0.8, eclipse: 1 };
+  assert.ok(darkness({ sky: 0.1, storm: 1 }, T) > 0.8 && darkness({ sky: 0.1, storm: 1 }, T) <= 1);
+  assert.equal(darkness({ sky: 1, storm: 1 }, T), 1);
+  assert.ok(darkness({ sky: 0.4, cloud: 1 }, T) >= 0.4);
+  assert.equal(darkness({}), 0);
+});
+
+test('the sign-dim hook: messages dim the logo + fade the tagline, the dimmest wins, the last one lets it come back', async () => {
+  const { createSignDim, SIGN_DIM_DEFAULT } = await import('../js/core/harbor-signdim.js');
+  const seen = [];
+  const sd = createSignDim(d => seen.push(d));
+  assert.deepEqual({ logo: sd.now().logo, tag: sd.now().tag }, { logo: 1, tag: 1 });
+  sd.set('banner', {});                                     // the defaults
+  assert.equal(sd.now().logo, SIGN_DIM_DEFAULT.logo); assert.equal(sd.now().tag, 0); assert.equal(seen.length, 1); assert.equal(seen[0].ms, 1200);
+  sd.set('drones', { logo: 0.6, tag: 0.5, ms: 2000 });      // a lighter ask: the dimmest of each still wins
+  assert.deepEqual([sd.now().logo, sd.now().tag], [0.35, 0]); assert.equal(seen.length, 1, 'no change, no call');
+  sd.clear('banner');
+  assert.deepEqual([sd.now().logo, sd.now().tag], [0.6, 0.5]); assert.equal(seen.at(-1).ms, 1200, 'the fade of the one letting go');
+  sd.set('drones', null);
+  assert.deepEqual([sd.now().logo, sd.now().tag, sd.now().by.length], [1, 1, 0]); assert.equal(seen.length, 3);
+  sd.clear('nobody'); sd.set('', {}); assert.equal(seen.length, 3);
+  sd.set('x', { logo: 7, tag: -1, ms: 'no' }); assert.deepEqual([sd.now().logo, sd.now().tag, sd.now().ms], [1, 0, 0]);
+});

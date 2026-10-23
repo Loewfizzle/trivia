@@ -23,7 +23,9 @@ mkdirSync(OUT, { recursive: true });
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const SHOTS = process.env.SHOTS !== '0';
 const CPU = Number(process.env.CPU || 4);
-const BUDGET_MS = 8;          // City 2.0, tier 2 on a phone: ≤ 8 ms of scene work a frame on average (docs/harbor.md#performance)
+// City 2.0's absolute budgets per tier (ms of scene work a frame): WARNINGS only since C1.5 — this laptop's no-GPU number is
+// not the phone's (docs/harbor.md#performance). The gate is a relative A/B (title-perf.mjs --ab) + the owner's iPhone.
+const BUDGET_MS = { 2: 8, 1: 6, 0: 4 };
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -617,6 +619,41 @@ G('neon', async () => {
     ok(sg && sg.kind === 'named', `A BURNT-OUT LETTER (&force=burnout): letter ${b.letter + 1} of ${b.id} is dead tonight (never the NEON logo)`);
     await N.ctx.close(); }
 });
+G('neon', async () => {
+  // ================================================================ C1.5: THE O KEEPS ITS WHITE CORE (review-2.md §2) + the holiday O + the sign-dim hook
+  { const N = await open({ slot: 'h21', qs: NIGHT, view: [402, 874] });
+    await harborUp(N.page);
+    await waitFor(N.page, "document.querySelector('.nd-sign').classList.contains('is-steady')", 'the sign steady', 20000);
+    // make the flutter land on the O: for a few seconds Math.random alternates "flutter now" / "the third lit letter"
+    const landed = await ev(N.page, `new Promise(res => {
+      const o = document.querySelector('.nd-logo .ndl-3 .ndl-core'); let seen = false;
+      const mo = new MutationObserver(() => { if (o.classList.contains('is-flut')) seen = true; }); mo.observe(o, { attributes: true });
+      const rnd = Math.random; let k = 0; Math.random = () => (k++ % 2 ? 0.55 : 0.1);
+      setTimeout(() => { Math.random = rnd; setTimeout(() => { mo.disconnect(); res(seen); }, 400); }, 6000);
+    })`);
+    const cores = await ev(N.page, "[...document.querySelectorAll('.nd-logo .ndl-core')].map(c => ({ style: c.hasAttribute('style'), stroke: getComputedStyle(c).stroke, flut: c.classList.contains('is-flut') }))");
+    ok(landed && cores.every(c => !c.style && c.stroke !== 'none' && !c.flut), `THE O'S WHITE CORE: the flutter landed on the O (${landed}) and every letter keeps its core — no style attribute left, stroke ${[...new Set(cores.map(c => c.stroke))].join(' / ')}`);
+    // (the CSS half: even an empty style="" on the plain O no longer takes its core away)
+    const s2 = await ev(N.page, "(() => { const o = document.querySelector('.nd-logo .ndl-3 .ndl-core'); o.setAttribute('style', ''); const s = getComputedStyle(o).stroke; o.removeAttribute('style'); return s; })()");
+    ok(s2 !== 'none', `THE O'S WHITE CORE: the holiday rule reaches only the swapped O (a stray style="" leaves stroke ${s2})`);
+    // THE SIGN-DIM HOOK (built for Part 6b's sky messages): the logo dims, the tagline fades, and both come back
+    await ev(N.page, "window.__district.signDim('test', { logo: 0.3, tag: 0, ms: 150 })");
+    await sleep(600);
+    const dim = await ev(N.page, "(() => { const s = document.querySelector('.nd-sign'); return { logo: +getComputedStyle(s.querySelector('.nd-logo-wrap')).opacity, word: +getComputedStyle(s.querySelector('.nd-word-g')).opacity, tag: +getComputedStyle(s.querySelector('.nd-tag')).opacity, by: window.__district.signDim().by }; })()");
+    await ev(N.page, "window.__district.signDim('test', null)");
+    await sleep(600);
+    const back = await ev(N.page, "(() => { const s = document.querySelector('.nd-sign'); return { logo: +getComputedStyle(s.querySelector('.nd-logo-wrap')).opacity, word: +getComputedStyle(s.querySelector('.nd-word-g')).opacity, tag: +getComputedStyle(s.querySelector('.nd-tag')).opacity }; })()");
+    ok(Math.abs(dim.logo - 0.3) < 0.02 && Math.abs(dim.word - 0.3) < 0.02 && dim.tag < 0.02 && dim.by.includes('test') && back.logo === 1 && back.word === 1 && back.tag > 0.98, `THE SIGN-DIM HOOK: dimmed logo ${dim.logo} / SPEAKEASY ${dim.word} / tagline ${dim.tag} → back ${back.logo} / ${back.word} / ${back.tag}`);
+    await N.ctx.close(); }
+  for (const [when, kind, core] of [['2026-10-31T22:00', 'halloween', 'rgb(255, 244, 224)'], ['2027-03-17T22:00', 'stpatrick', 'rgb(240, 255, 246)']]) {
+    const N = await open({ slot: `h22${kind[0]}`, qs: `when=${when}${GR}`, view: [402, 874] });
+    await harborUp(N.page);
+    await waitFor(N.page, `!!document.querySelector('.nd-logo .ndl-3[data-kind="${kind}"]')`, `the ${kind} O`, 20000);
+    const o = await ev(N.page, `(() => { const g = document.querySelector('.nd-logo .ndl-3'); return { cores: [...g.querySelectorAll('.ndl-core')].map(c => getComputedStyle(c).stroke), styled: [...g.querySelectorAll('path.ndl-body[style]')].map(c => getComputedStyle(c).stroke) }; })()`);
+    ok(o.cores.length > 1 && o.cores.every(c => c !== 'none') && o.cores.includes(core) && o.styled.every(c => c !== 'none'), `THE ${kind.toUpperCase()} O: its parts keep their colours (cores ${[...new Set(o.cores)].join(' / ')}; the coloured parts ${[...new Set(o.styled)].join(' / ') || '—'})`);
+    await N.ctx.close();
+  }
+});
 G('party', async () => {
   { const Q = await open({ slot: 'h10', qs: `when=2026-10-24T23:00${GR}&scene=climb%2Bcrowns`, view: [402, 874] });
     await harborUp(Q.page);
@@ -677,17 +714,31 @@ G('perf', async () => {
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
   const perf = [];
   for (const t of [2, 1, 0]) {
-    await ev(Q.page, `window.__district.setTier(${t})`);
-    await waitFor(Q.page, '!window.__district.harbor().pending', 're-bake', 15000);
-    await sleep(6000);
-    const cost = await ev(Q.page, 'window.__district.cost()'), fr = [...await ev(Q.page, 'window.__district.frames()')].sort((a, b) => a - b);
-    perf.push({ tier: t, now: await ev(Q.page, 'window.__district.scene().tier'), cost: +(cost.reduce((a, b) => a + b, 0) / cost.length).toFixed(2), p50: +fr[Math.floor(fr.length / 2)].toFixed(1) });
+    // (one plain-value read; a page torn down under 4× throttle + GC once lost a pending evaluate: "Promise was collected" — retried)
+    for (let k = 0; k < 2; k++) {
+      try {
+        await ev(Q.page, `window.__district.setTier(${t})`);
+        await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 're-bake', 15000);
+        await sleep(6000);   // (the measuring window)
+        const r = await ev(Q.page, '(() => { const d = window.__district, c = d.cost(), f = [...d.frames()].sort((a, b) => a - b); return { now: d.scene().tier, cost: c.reduce((a, b) => a + b, 0) / Math.max(1, c.length), p50: f.length ? f[Math.floor(f.length / 2)] : 0 }; })()');
+        perf.push({ tier: t, now: r.now, cost: +r.cost.toFixed(2), p50: +r.p50.toFixed(1) });
+        break;
+      } catch (e) { if (k) throw e; log('perf: retrying tier', t, e.message); }
+    }
   }
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   writeFileSync(`${OUT}perf.json`, JSON.stringify(perf, null, 1));
-  ok(perf.every(p => p.cost <= BUDGET_MS && p.p50 <= 18), `PERF (city 2, party peak, ${CPU}× CPU): scene work ${perf.map(p => `t${p.tier}: ${p.cost} ms/frame, p50 ${p.p50}`).join(' · ')} (budget ${BUDGET_MS} ms)`);
+  // C1.5 (the owner's decision): absolute numbers on this laptop are WARNINGS — the gate is the relative A/B in one run
+  // (title-perf.mjs --ab) and her iPhone (&debug=1's session line). Headless Chrome without a GPU is raster-bound on a party
+  // night (frames 33–100 ms at 4× on the commit before C1.5 too, the tier stepping down): the check is that it measured.
+  ok(perf.length === 3 && perf.every(p => p.cost > 0), `PERF (city 2, party peak, ${CPU}× CPU) measured: ${perf.map(p => `t${p.tier}${p.now !== p.tier ? `→${p.now}` : ''}: p50 ${p.p50} ms, work ${p.cost} ms`).join(' · ')}`);
+  for (const p of perf) {
+    if (p.cost > BUDGET_MS[p.tier]) log(`WARN  PERF: t${p.tier} scene work ${p.cost} ms > the ${BUDGET_MS[p.tier]} ms budget on this laptop (a warning — the A/B + the phone decide)`);
+    if (p.p50 > 18 || (p.tier > 0 && p.now === 0)) log(`WARN  PERF: t${p.tier} frames p50 ${p.p50} ms${p.now === 0 && p.tier > 0 ? ', fell to tier 0' : ''} (a warning on this laptop)`);
+  }
+  // (MEMORY at tier 0: it can't step lower — a party night on this laptop steps 2 → 1 on its own, and memory scales with the tier)
   await setTierBack();
-  async function setTierBack() { await ev(Q.page, 'window.__district.setTier(2)'); await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 're-bake', 15000); }
+  async function setTierBack() { await ev(Q.page, 'window.__district.setTier(0)'); await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 're-bake', 15000); }
   const memH0 = await ev(Q.page, 'window.__district.harbor()'), mem0 = memH0.mem.mb;
   await cdp.send('HeapProfiler.collectGarbage');
   const q0 = (await cdp.send('Runtime.getHeapUsage')).usedSize;

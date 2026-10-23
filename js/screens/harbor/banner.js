@@ -7,7 +7,7 @@
 // Its flight is a function of the time since it started (every phone sees the same pass); a pass takes ~30 s; `passes` = 2
 // comes back the other way. API (screens/harbor/skyfx.js): banner(lines, { colour, passes }) — daily challenges, holiday
 // messages, game announcements, later CITY CONTROL; the scheduler's random `banner` event; &force=banner&text=A | B.
-import { blit } from '../../ui/canvas-safe.js';
+import { blit, safeCtx } from '../../ui/canvas-safe.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
@@ -18,7 +18,7 @@ const SLICES = [6, 4.5, 3];                           // pt per fabric slice by 
 /** the tow plane, nose toward +x (flipped for dir −1) → { cv, w, h, tail: [x, y] (the tow hook, from the centre) } */
 function towPlane(len, light, dir, dpr) {
   const W = len * 1.15, H = len * 0.62, d = Math.min(3, dpr * 1.3);
-  const cv = mk(W * d, H * d), x = cv.getContext('2d');
+  const cv = mk(W * d, H * d), x = safeCtx(cv);
   x.setTransform(d, 0, 0, d, (W / 2) * d, (H * 0.52) * d); x.scale(dir * len, len);
   const { day, gold } = light;
   const yel = mix(mix([60, 50, 30], [250, 196, 40], day), [255, 170, 70], gold * 0.5), yelD = mix(yel, [90, 50, 20], 0.45), red = mix([60, 20, 24], [200, 40, 40], day);
@@ -51,9 +51,9 @@ function towPlane(len, light, dir, dpr) {
 /** a panel's flat art: cream nylon, the bold red letters, hemmed edges → { cv, w, h } (screen pt) */
 function panelArt(text, hgt, col, dpr) {
   const d = Math.min(3, dpr * 1.3), fs = hgt * 0.68;
-  const probe = mk(4, 4).getContext('2d'); probe.font = `700 ${fs}px "Chakra Petch", "Arial Narrow", system-ui, sans-serif`;
+  const probe = safeCtx(mk(4, 4)); probe.font = `700 ${fs}px "Chakra Petch", "Arial Narrow", system-ui, sans-serif`;
   const tw = probe.measureText(text).width + fs * 0.05 * text.length, w = Math.max(hgt * 2.2, tw + hgt * 0.9);
-  const cv = mk(w * d, hgt * d), x = cv.getContext('2d');
+  const cv = mk(w * d, hgt * d), x = safeCtx(cv);
   x.setTransform(d, 0, 0, d, 0, 0);
   // the nylon: warm cream with a faint woven grain, the hems (darker bands top + bottom), grommet dots along the leading edge
   const g = x.createLinearGradient(0, 0, 0, hgt); g.addColorStop(0, '#fbf6ea'); g.addColorStop(0.5, '#f4eedd'); g.addColorStop(1, '#e6dcc6');

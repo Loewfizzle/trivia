@@ -15,6 +15,7 @@
 //               comes in, hovers over the harbor and goes; at night a SEARCHLIGHT beam to the water + its pool, a red beacon,
 //               nav lights. fly(route) is the hook for Part 10's party yacht landing.
 import { trafficRate, planPath, navLights, starlinkNight, satTwilight } from '../district/aircraft.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -35,7 +36,7 @@ export function airLook(L) {
  *  positions in the sprite's frame: wing tips, tail, beacons, landing lights — screen offsets from its centre) */
 function airliner(len, look, dir, slope, lv, dpr, big) {
   const W = len * 1.25, H = len * 0.72, d = Math.min(3, dpr * (big ? 1 : 1.25));
-  const cv = mk(W * d, H * d), x = cv.getContext('2d');
+  const cv = mk(W * d, H * d), x = safeCtx(cv);
   const ang = Math.atan(slope);
   x.setTransform(d, 0, 0, d, (W / 2) * d, (H / 2) * d); x.rotate(ang); x.scale(dir * len, len);
   const day = clamp01(look.day + look.golden * 0.9 + look.dawn * 0.8) * (1 - look.dark), gold = clamp01((look.golden + look.dawn) * 1.4) * (1 - look.dark);
@@ -93,7 +94,7 @@ function airliner(len, look, dir, slope, lv, dpr, big) {
 // ------------------------------------------------------------------ the helicopter sprite (no rotor: that is drawn live)
 function chopper(len, look, dir, dpr) {
   const W = len * 1.2, H = len * 0.75, d = Math.min(3, dpr * 1.25);
-  const cv = mk(W * d, H * d), x = cv.getContext('2d');
+  const cv = mk(W * d, H * d), x = safeCtx(cv);
   x.setTransform(d, 0, 0, d, (W / 2) * d, (H * 0.55) * d); x.scale(dir * len, len);
   const day = clamp01(look.day + look.golden * 0.9 + look.dawn * 0.8) * (1 - look.dark), gold = clamp01((look.golden + look.dawn) * 1.4) * (1 - look.dark);
   const body = mix(mix([16, 18, 34], [26, 46, 96], day), [90, 60, 90], gold * 0.4), lite = mix(body, [210, 222, 255], 0.35 * day + 0.12), dark = mix(body, [6, 6, 12], 0.5);
@@ -126,7 +127,7 @@ export function createAir() {
   let train = null, trainNight = '', sat = null, nextSat = 60 + Math.random() * 180;
   let heli = null;
   const glows = new Map();
-  const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glows.get(k); if (!c) { c = mk(32, 32); const x = c.getContext('2d'); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.28, `rgba(${k},0.45)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); glows.set(k, c); } return c; };
+  const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glows.get(k); if (!c) { c = mk(32, 32); const x = safeCtx(c); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.28, `rgba(${k},0.45)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); glows.set(k, c); } return c; };
 
   // a path across a lane (sky-high / sky-low), a little climb or descent, clear of the corner buttons' rows when it can
   function lanePath(lane, approach, avoid) {

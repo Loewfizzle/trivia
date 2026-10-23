@@ -15,6 +15,7 @@
 // doubles them), the ones still low by the barge after the water.
 import { droneShape, droneTimeline, hsv } from '../../core/harbor-sky.js';
 import { MARKS } from '../district/marks.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -30,13 +31,13 @@ export function createDrones() {
   const glow = col => {
     const q = col.map(v => Math.min(255, Math.round(v / 12) * 12)), k = q.join(',');
     let c = glows.get(k);
-    if (!c) { c = mk(32, 32); const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.12, `rgba(${k},1)`); g.addColorStop(0.32, `rgba(${k},0.42)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 32, 32); if (glows.size > 48) glows.clear(); glows.set(k, c); }
+    if (!c) { c = mk(32, 32); const x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.12, `rgba(${k},1)`); g.addColorStop(0.32, `rgba(${k},0.42)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 32, 32); if (glows.size > 48) glows.clear(); glows.set(k, c); }
     return c;
   };
 
   // ---- the barge's art (screen pt): rect { x, y (the waterline), w } → canvas + the pads' screen points
   function bargeArt(b) {
-    const w = b.w, h = w * 0.16, d = Math.min(3, dpr * 1.2), cv = mk((w + 8) * d, (h * 2.4 + 8) * d), x = cv.getContext('2d');
+    const w = b.w, h = w * 0.16, d = Math.min(3, dpr * 1.2), cv = mk((w + 8) * d, (h * 2.4 + 8) * d), x = safeCtx(cv);
     x.setTransform(d, 0, 0, d, 4 * d, (h * 1.4 + 4) * d);
     // the hull (dark steel, its sheer line catching a little light), the deck, the pads, the hut, the masts
     x.fillStyle = '#14161e'; x.beginPath(); x.moveTo(0, -h * 0.5); x.lineTo(w, -h * 0.5); x.lineTo(w - h * 0.5, h * 0.5); x.lineTo(h * 0.5, h * 0.5); x.closePath(); x.fill();

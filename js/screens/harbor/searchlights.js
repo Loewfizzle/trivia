@@ -15,6 +15,7 @@
 import { project, screenBoxes } from '../../core/harbor-layout.js';
 import { signSpots } from '../../core/harbor-neon.js';
 import { rgb, mix } from './shapes.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -123,7 +124,7 @@ let beamCv = null;
 function beamSprite() {
   if (beamCv) return beamCv;
   beamCv = document.createElement('canvas'); beamCv.width = 64; beamCv.height = 512;
-  const x = beamCv.getContext('2d'), img = x.createImageData(64, 512);
+  const x = safeCtx(beamCv), img = x.createImageData(64, 512);
   for (let j = 0; j < 512; j++) {
     const along = 1 - j / 511, fall = Math.pow(1 - along, 0.9) * (0.35 + 0.65 * Math.min(1, along * 12));
     for (let i = 0; i < 64; i++) {

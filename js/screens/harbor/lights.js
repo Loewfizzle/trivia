@@ -15,6 +15,7 @@ import { project } from '../../core/harbor-layout.js';
 import { SPOTS, towerRoofSign } from '../../core/harbor-neon.js';
 import { fog } from './tones.js';
 import { skyItems } from './skyline.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const WARM = [[255, 214, 158], [255, 205, 136], [255, 226, 186], [255, 193, 120], [255, 234, 204]];
 const COOL = [[166, 214, 255], [190, 226, 255], [206, 222, 255]];
@@ -81,15 +82,11 @@ function drawLit(x, cam, it, look, meta, group, idx) {
   const share = look.share;
   // (NEON PASS 4: a quiet office block right behind the wheel — the spokes cross mostly dark glass)
   const quiet = behindWheel(cam, b);
-  // (THE DAY PASS §0 — &wheelbg: a = ~1 window in 6 behind the wheel lit warm, c = ~1 in 9, b = as Neon Pass 6 — every window may
-  // light there, not only the ones the building's own dice allow)
-  const wbg = quiet && cam.wheelQuiet ? cam.wheelQuiet.bg : 'b', qThr = wbg === 'a' ? 0.167 : wbg === 'c' ? 0.11 : wbg === 'd' ? 0 : 0.085;
   for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
-    let tr = winTraits(b.seed, t, c, r, dice);
-    if (!tr && quiet && (wbg === 'a' || wbg === 'c')) tr = { order: 0, cls: 'warm', a: 0.55 + 0.45 * winHash(b.seed, t, c, r, 3), tone: winHash(b.seed, t, c, r, 4) };
+    const tr = winTraits(b.seed, t, c, r, dice);
     if (!tr) continue;
-    // (NEON PASS 6: ~1 window in 12 behind the wheel, warm — on the city's light timeline)
-    const on = quiet ? share > 0 && winHash(b.seed, t, c, r, 31) < qThr * Math.min(1, share / 0.5) : isLit(tr, share);
+    // (THE DAY PASS §0, the owner's pick d: behind the wheel the windows stay dark — the floodlit stone carries it, blocks.js#floodWash)
+    const on = !quiet && isLit(tr, share);
     const rect = cellRect(cam, b, c, r, deco);
     if (group === 'near' && winHash(b.seed, t, c, r, 12) < 0.05 && meta.cands.length < 220) meta.cands.push({ rect, col: colourOf(tr, look.warm), on, a: tr.a * depthK, idx, id: [b.tower || b.id, t, c, r] });
     if (!on || share <= 0) continue;
@@ -173,7 +170,7 @@ export function beaconPulse(t) { const ph = (t / BEACON_S) % 1; return ph < 0.38
 let dotCache = null;
 function dots() {
   if (dotCache) return dotCache;
-  const mkDot = (col) => { const c = document.createElement('canvas'); c.width = c.height = 48; const x = c.getContext('2d'), g = x.createRadialGradient(24, 24, 0, 24, 24, 24); g.addColorStop(0, `rgba(${col},1)`); g.addColorStop(0.12, `rgba(${col},0.85)`); g.addColorStop(0.35, `rgba(${col},0.22)`); g.addColorStop(1, `rgba(${col},0)`); x.fillStyle = g; x.fillRect(0, 0, 48, 48); return c; };
+  const mkDot = (col) => { const c = document.createElement('canvas'); c.width = c.height = 48; const x = safeCtx(c), g = x.createRadialGradient(24, 24, 0, 24, 24, 24); g.addColorStop(0, `rgba(${col},1)`); g.addColorStop(0.12, `rgba(${col},0.85)`); g.addColorStop(0.35, `rgba(${col},0.22)`); g.addColorStop(1, `rgba(${col},0)`); x.fillStyle = g; x.fillRect(0, 0, 48, 48); return c; };
   dotCache = { red: mkDot('255,46,40'), white: mkDot('255,255,255'), warm: mkDot('255,214,150') };
   return dotCache;
 }
@@ -369,7 +366,7 @@ export function createLights() {
       S.key = stateKey;
       const cw = Math.ceil(S.w * dpr), ch = Math.ceil(S.h * dpr);
       if (S.cv.width !== cw || S.cv.height !== ch) { S.cv.width = cw; S.cv.height = ch; }
-      const x = S.cv.getContext('2d');
+      const x = safeCtx(S.cv);
       x.setTransform(dpr, 0, 0, dpr, -S.x0 * dpr, -S.y0 * dpr); x.clearRect(S.x0, S.y0, S.w, S.h);
       for (const p of sp.parts) {
         // the letters: the wipe climbs floor by floor from the bottom; the twinkle breathes window by window

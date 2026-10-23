@@ -17,6 +17,7 @@ import { project } from '../../core/harbor-layout.js';
 import { boatRoutes, boatAt } from '../../core/harbor-boats.js';
 import { mix, rgb, shade, clamp01 } from './shapes.js';
 import { LEVEL, axisAt } from './water.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const WAKE = { rosie: { life: 10, spread: 0.55, n: 16 }, taxi: { life: 3.4, spread: 1.6, n: 14 }, tug: { life: 8, spread: 0.6, n: 12 }, sail: { life: 6, spread: 0.45, n: 10 } };
 const BULBS = { city: [[255, 214, 140]], valentine: [[255, 90, 140], [255, 200, 220]], parade: [[255, 70, 70], [80, 255, 120], [255, 214, 120], [90, 160, 255]], party: [[255, 70, 190], [70, 220, 255], [255, 214, 90]], halloween: [[255, 140, 30], [170, 70, 255]], christmas: [[255, 60, 60], [80, 255, 120], [255, 236, 200]] };
@@ -27,7 +28,7 @@ export function createBoats() {
   let L = null, cam = null, dpr = 2, tier = 2, routes = [], states = [], lookKey = '', rosieScheme = 'city', mb = 0;
   const spr = new Map();                 // id → { body, lights, ox, oy, w, h }
   let dot = null;
-  const glow = () => { if (dot) return dot; dot = cvs(32, 32); const x = dot.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.2, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return dot; };
+  const glow = () => { if (dot) return dot; dot = cvs(32, 32); const x = safeCtx(dot), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.2, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return dot; };
 
   function layout(l, o) {
     L = l; cam = l.cam; dpr = Math.min(2, o.dpr || 1); tier = o.tier ?? 2;
@@ -50,11 +51,11 @@ export function createBoats() {
     for (const r of routes) {
       const u = cam.F / r.z, len = r.len * u, top = (r.kind === 'sail' ? r.h + 1 : r.h + 1.6) * u;
       const W = len + 8 + (r.kind === 'rosie' ? 2 * u : 0), H = top + 2 * u + 4, ox = W / 2, oy = top + 2;
-      const body = cvs(W * dpr, H * dpr), x = body.getContext('2d');
+      const body = cvs(W * dpr, H * dpr), x = safeCtx(body);
       x.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
       if (r.kind === 'sail' && hb) x.rotate(-hb * 0.6);
       if (r.kind === 'taxi') x.rotate(-0.035);
-      const lights = night > 0.05 ? cvs(W * dpr, H * dpr) : null, g = lights && lights.getContext('2d');
+      const lights = night > 0.05 ? cvs(W * dpr, H * dpr) : null, g = lights && safeCtx(lights);
       if (g) { g.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr); if (r.kind === 'taxi') g.rotate(-0.035); g.globalCompositeOperation = 'lighter'; }
       const X = a => (a - r.len / 2) * u, Y = y => -y * u;
       const bulb = (px, py, col, rr = 1, k = 1) => { if (!g) return; g.globalAlpha = k; const d = glow(); const s = Math.max(1.2, u * 0.32) * rr; g.drawImage(d, px - s, py - s, s * 2, s * 2); g.fillStyle = `rgba(${col},1)`; g.globalAlpha = 1; };
@@ -67,7 +68,7 @@ export function createBoats() {
       let bodyL = null;
       if (r.kind === 'rosie' && nameAt) {
         bodyL = cvs(W * dpr, H * dpr);
-        const y = bodyL.getContext('2d'); y.setTransform(-1, 0, 0, 1, W * dpr, 0); y.drawImage(body, 0, 0);
+        const y = safeCtx(bodyL); y.setTransform(-1, 0, 0, 1, W * dpr, 0); y.drawImage(body, 0, 0);
         const nm = (cx, px) => { cx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr); cx.fillStyle = nameAt.col; cx.font = `700 ${nameAt.px.toFixed(1)}px "Chakra Petch", system-ui, sans-serif`; cx.textAlign = 'center'; cx.fillText('ROSIE', px, nameAt.y); };
         nm(x, nameAt.x); nm(y, -nameAt.x);
       }
@@ -243,7 +244,7 @@ export function createBoats() {
     }
   }
   const tints = new Map();
-  function tint(col) { const k = col.join(','); if (tints.has(k)) return tints.get(k); const c = cvs(32, 32), x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.2, `rgba(${k},0.9)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 32, 32); tints.set(k, c); return c; }
+  function tint(col) { const k = col.join(','); if (tints.has(k)) return tints.get(k); const c = cvs(32, 32), x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.2, `rgba(${k},0.9)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 32, 32); tints.set(k, c); return c; }
 
 
   /** THE WAKE: the foam where the hull passed (anchored in the water, spreading + fading with age) — a Kelvin V (the near arm
@@ -291,7 +292,7 @@ export function createBoats() {
     cv = cv || cvs(1, 1);
     const cw = Math.ceil(w * dpr), ch = Math.ceil(h * dpr);
     if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
-    const x = cv.getContext('2d');
+    const x = safeCtx(cv);
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cw, ch);
     x.setTransform(dpr, 0, 0, dpr, -x0 * dpr, -y0 * dpr);
     draw3(x, r, W, pts, f, nightK, fk, foam, r.kind === 'taxi' ? [1, 2] : [0, 1, 2]);

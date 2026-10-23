@@ -2,6 +2,7 @@
 // signs: Part 3, neon.js). Part 4 lights the lamps at night (drawQuayLamps, every frame): their light runs down into the water.
 import { box, rgb, shade } from './shapes.js';
 import { project } from '../../core/harbor-layout.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 export function quaySteps(L, T) {
   const cam = L.cam, q = L.quay;
@@ -33,7 +34,7 @@ export function quayLampSprite(L, glow, dpr, old = null) {
   const [, yh] = project(cam, 0, 3.25, q.z + 1.15), [, yq] = project(cam, 0, q.top, q.z);
   const y = Math.floor(yh - s * 1.6), h = Math.ceil(yq + s * 0.8 - y), cv = old || document.createElement('canvas');
   cv.width = Math.ceil(cam.W * dpr); cv.height = Math.ceil(h * dpr);
-  const x = cv.getContext('2d');
+  const x = safeCtx(cv);
   x.setTransform(dpr, 0, 0, dpr, 0, -y * dpr);
   drawLamps(x, L, glow);
   return { cv, y, w: cam.W, h };

@@ -83,11 +83,8 @@ export function behindWheel(cam, b) {
  * step to a DUSKY VIOLET-BLUE (still darker than the wheel), each its own tone so they separate. → the faces, tinted.
  */
 const BW_TONES = [[60, 54, 108], [52, 56, 106], [68, 56, 112], [56, 50, 98], [64, 60, 116]];
-function wheelBackdrop(F, T, seed, bg = 'b') {
-  // (THE DAY PASS §0 — &wheelbg=b: a step lighter + bluer; c: half that step; a: as Neon Pass 6)
-  const lift = bg === 'b' ? 1 : bg === 'c' ? 0.5 : 0;
-  const k = (0.62 + 0.2 * lift) * T.night, tone0 = BW_TONES[Math.floor(winHash(seed, 7, 7, 7, 7) * BW_TONES.length) % BW_TONES.length];
-  const tone = mix(tone0, [108, 120, 190], 0.55 * lift);
+function wheelBackdrop(F, T, seed) {
+  const k = 0.62 * T.night, tone = BW_TONES[Math.floor(winHash(seed, 7, 7, 7, 7) * BW_TONES.length) % BW_TONES.length];
   const tint = (c, d) => mix(c, shade(tone, d), k);
   return { ...F, front: tint(F.front, 0), lit: tint(F.lit, -0.1), dark: tint(F.dark, -0.2), trim: tint(F.trim, 0.12) };
 }
@@ -102,49 +99,14 @@ function floodWash(x, cam, b, a, w, ty, h, s, k, tower) {
   g.addColorStop(0, rgb(FLOOD_C, 0.62 * k)); g.addColorStop(0.45, rgb(FLOOD_C, 0.36 * k)); g.addColorStop(0.8, rgb(FLOOD_C, 0.1 * k)); g.addColorStop(1, rgb(FLOOD_C, 0));
   x.fillStyle = g; x.fillRect(a, ty, w, h);
 }
-/** the city's glow catching a quiet block's roofline (+ every setback: each tier draws its own top) — a fine rim, fading down */
-function rimLight(x, a, ty, w, s, k) {
-  if (k <= 0.01 || w < 1) return;
-  const g = x.createLinearGradient(0, ty, 0, ty + 2.4 * s);
-  g.addColorStop(0, `rgba(176,150,232,${0.34 * k})`); g.addColorStop(1, 'rgba(176,150,232,0)');
-  x.fillStyle = g; x.fillRect(a, ty, w, 2.4 * s);
-  x.fillStyle = `rgba(206,184,255,${0.62 * k})`; x.fillRect(a - 0.2, ty - 0.1, w + 0.4, Math.max(0.5, 0.22 * s));
-}
-/** rooftop SILHOUETTES above a quiet block's rim (a wooden water tank, an antenna, a rooftop shed — one or two a roof), their tops
- *  catching the same rim light */
-function roofSilhouettes(x, a, ty, w, s, T, F, seed, k) {
-  if (w < 3) return;
-  const col = shade(F.front, -0.06), rim = `rgba(206,184,255,${0.5 * k})`, r1 = winHash(seed, 9, 1, 2, 3), r2 = winHash(seed, 9, 4, 5, 6);
-  const kinds = r1 < 0.4 ? ['tank'] : r1 < 0.7 ? ['shed', 'antenna'] : ['antenna', 'tank'];
-  kinds.forEach((kd, i) => {
-    const cx = a + w * (i ? 0.72 - r2 * 0.12 : 0.24 + r2 * 0.18);
-    x.fillStyle = rgb(col);
-    if (kd === 'tank') {
-      const tw = 2.1 * s, th = 2.1 * s, leg = 1.1 * s;
-      x.fillRect(cx - tw * 0.4, ty - leg, Math.max(0.4, s * 0.12), leg); x.fillRect(cx + tw * 0.4 - s * 0.12, ty - leg, Math.max(0.4, s * 0.12), leg);
-      x.fillRect(cx - tw / 2, ty - leg - th, tw, th);
-      x.beginPath(); x.moveTo(cx - tw * 0.6, ty - leg - th); x.lineTo(cx, ty - leg - th - tw * 0.45); x.lineTo(cx + tw * 0.6, ty - leg - th); x.fill();
-      x.fillStyle = rim; x.fillRect(cx - tw * 0.5, ty - leg - th, tw, Math.max(0.4, 0.14 * s));
-    } else if (kd === 'shed') {
-      const sw = Math.min(w * 0.32, 3.2 * s), sh = 1.5 * s;
-      x.fillRect(cx - sw / 2, ty - sh, sw, sh);
-      x.fillStyle = rim; x.fillRect(cx - sw / 2, ty - sh, sw, Math.max(0.4, 0.14 * s));
-    } else {
-      const ah = 4.4 * s;
-      x.fillRect(cx - Math.max(0.25, 0.06 * s), ty - ah, Math.max(0.5, 0.12 * s), ah);
-      x.fillRect(cx - 0.5 * s, ty - ah * 0.72, s, Math.max(0.35, 0.08 * s));
-      x.fillStyle = rim; x.fillRect(cx - Math.max(0.25, 0.06 * s), ty - ah, Math.max(0.5, 0.12 * s), Math.max(0.4, 0.3 * s));
-    }
-  });
-}
 export function skyBlock(x, cam, b, T, o = {}) {
   // (the quiet blocks behind the wheel: a touch further back in the haze — lower contrast, never blurred; NEON PASS 6: lifted to a
-  // dusky violet-blue, each its own tone, a rim of city glow on the rooflines + setbacks, silhouettes on the roofs)
+  // dusky violet-blue, each its own tone; THE DAY PASS: floodlit from their feet, the owner's pick d — floodWash)
   const bw = behindWheel(cam, b);
   const y0 = b.y0 || 0, y1 = y0 + b.h, s = cam.F / b.z0;
   // (THE DAY PASS: by day only a little further back — a full +150 washed them out to a pale grey; the night keeps +150)
   let F = faces(T, b.mat, bw ? b.z0 + 150 - 100 * T.day : b.z0);
-  if (bw && T.night > 0.05) F = wheelBackdrop(F, T, b.seed, cam.wheelQuiet.bg);
+  if (bw && T.night > 0.05) F = wheelBackdrop(F, T, b.seed);
   const glass = b.mat === 'glass';
   // ---- the side face the camera sees (the one turned to the middle), lit or in shade by the real sun
   // (THE DAY PASS: the sun's side is continuous by day — a noon sun lights its side a little less than a low one; ±1 / 0 at night as before)
@@ -156,10 +118,10 @@ export function skyBlock(x, cam, b, T, o = {}) {
   const [a, ty] = P(cam, b.x0, y1, b.z0), [c, by] = P(cam, b.x1, y0, b.z0), w = c - a, h = by - ty;
   if (w <= 0.2 || h <= 0.2) return;
   x.fillStyle = rgb(F.front); x.fillRect(a, ty, w, h);
-  // (THE DAY PASS §0 — &wheelbg=d, ARCHITECTURAL FLOODLIGHTING behind the wheel: warm uplights at the buildings' feet washing up
-  // the stone — brightest at the base, gone ~60 pt up so the tops sink into the night; drawn under the windows, so the panes stay
-  // dark shut rectangles against lit stone; one smooth glow, no points)
-  if (bw && T.night > 0.05 && cam.wheelQuiet.bg === 'd') floodWash(x, cam, b, a, w, ty, h, s, T.night, o.tower);
+  // (THE DAY PASS §0 — the owner's pick d, ARCHITECTURAL FLOODLIGHTING behind the wheel: warm uplights at the buildings' feet
+  // washing up the stone — brightest at the base, gone ~60 pt up so the tops sink into the night; drawn under the windows, so the
+  // panes stay dark shut rectangles against lit stone; one smooth glow, no points, no rim light)
+  if (bw && T.night > 0.05) floodWash(x, cam, b, a, w, ty, h, s, T.night, o.tower);
   if (glass) glassFace(x, cam, b, T, F, a, ty, w, h, s);
   else stoneFace(x, cam, b, T, F, a, ty, w, h, s, o);
   // ---- light over the whole front: day — the sky from above and the ground's shade below; night — the street's glow at the
@@ -205,10 +167,6 @@ export function skyBlock(x, cam, b, T, o = {}) {
   else { x.fillStyle = `rgba(20,16,30,${0.18 + 0.12 * T.day})`; x.fillRect(a, ty + Math.max(0.6, 0.3 * s), w, Math.max(0.5, 0.18 * s)); }
   // ---- night: floodlights wash up the crown's stone from the setback below (real falloff), in the tower's colour
   if (o.flood && T.night > 0.05) flood(x, a, ty, w, h, s, o.flood, T.night * (1 - F.fz * 0.5), b.seed);
-  if (bw && T.night > 0.05 && cam.wheelQuiet.bg !== 'd') {
-    rimLight(x, a, ty, w, s, T.night);
-    if ((!o.tiers || o.tierIndex === o.tiers - 1) && !b.crown) roofSilhouettes(x, a, ty, w, s, T, F, b.seed, T.night);
-  }
   if (b.crown) crown(x, cam, b, T, F, o);
   if (o.roof !== false && !b.crown && b.kind !== 'landmark' && s > 1.3 && !(bw && T.night > 0.05)) roofClutter(x, cam, b, T, F, s);
 }

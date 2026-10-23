@@ -25,8 +25,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | N6 | Neon Pass 6 — night touch-ups (flowing racing, soft beams, the wheel's glow + its backdrop, 3D outlines, ledge bands, icons removed, the lighthouse, the NEON logo race, the iOS beat) ✅ | Opus 5.5 high | done |
 | D | the Day Pass (the city by daylight, painted day signs, sunlit 3D skyline, sky, sun, water) ✅ | Opus 5.5 high | done |
 | R2 | ✅ (done Oct 22 — docs/harbor/review-2.md) FABLE READ-ONLY REVIEW #2 (after the Day Pass): a fresh-eyes audit of everything since Part 1 — code health + leftovers from the many passes, Safari / iPhone risks, performance, tests, docs vs reality, the plan vs what's built; FOCUS (the owner): the laptop perf check has failed every pass since Neon Pass 4 — is the party night really too costly, is the budget / the benchmark wrong for this laptop, or is it noise? Find out and recommend; a report only, then a cleanup prompt for what it finds | Fable | ~45–60 min |
-| C1.5 | ← NEXT CLEANUP + SPEED (from review-2.md): the O's core fix, wheel d live, Safari floor (top-level await, getContext guards), the new perf gate (relative A/B; the phone decides) + a slow-frame count on the readout, the party's 3 fill costs trimmed, one shared "how dark is it" input, the sign-dim hook, panel rows hidden, playwright reverted — NO visual changes | Opus 5.5 high | 45–75 min |
-| DT | DAY TOUCH-UP (the "DAY TOUCH-UP PASS" list: real clouds, stronger lit / shaded faces, windows, the blue-hour power-up on the shared darkness input, the wheel's roof accent, floodlit buildings, the signs rethink, the billboard's steel frame + lamps, the glass tower, SIGNAL bolder) | Opus 5.5 high | 90–120 min |
+| C1.5 | ✅ (done Oct 22 — docs/harbor.md#cleanup-c15) CLEANUP + SPEED (from review-2.md): the O's core fix, wheel d live, Safari floor (top-level await, getContext guards), the new perf gate (relative A/B; the phone decides) + a slow-frame count on the readout, the party's 3 fill costs trimmed, one shared "how dark is it" input, the sign-dim hook, panel rows hidden, playwright reverted — NO visual changes | Opus 5.5 high | 45–75 min |
+| DT | ← NEXT DAY TOUCH-UP (the "DAY TOUCH-UP PASS" list: real clouds, stronger lit / shaded faces, windows, the blue-hour power-up on the shared darkness input, the wheel's roof accent, floodlit buildings, the signs rethink, the billboard's steel frame + lamps, the glass tower, SIGNAL bolder) | Opus 5.5 high | 90–120 min |
 | M | City 2.0 music (her 35 mood songs, the MUSIC MOOD setting) | Sonnet 5.5 high | 30–45 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 7 | the speakeasy + rooftop | Opus 5.5 high | 45–75 min |
@@ -85,7 +85,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   tier 1), stop and tell the owner what you'd simplify and let her decide.
 - **Real phones decide the budget:** the laptop's 4×-CPU, no-GPU test is an EARLY WARNING, not the verdict. On the owner's iPhone
   (Oct 21, &debug=1) a party night costs 1–3 ms of work at a steady 60 fps, while the laptop said ~6.4 — so when the laptop says
-  "slightly over", check a real phone (&debug=1) before cutting anything. Measure once while building + ONE careful A-B-B-A round
+  "slightly over", check a real phone (&debug=1) before cutting anything. (The owner, after review #2: the ONLY gate is a relative
+  A/B in one run — `title-perf.mjs --ab`; absolute budgets are per-tier warnings; her iPhone's `&debug=1` session line decides.) Measure once while building + ONE careful A-B-B-A round
   at the end (only the scenes that changed); if over, one fix attempt + one re-measure, then report and ask — no loops.
 - **Performance + battery:** every part stays within the frame and memory budgets; the cleanup passes double as performance
   checks; cleanup pass 1 adds battery/heat care (a lower frame rate when little is moving, a full stop when the page is hidden).

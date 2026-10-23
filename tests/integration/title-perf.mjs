@@ -1,17 +1,42 @@
-// The title city's frame cost, per scene and tier, at a slowed CPU (no Firebase: the real title in title-preview.html).
-//   node title-perf.mjs "<browser>" [--city 2] [--scenes party,night,day] [--cpu 4] [--size 390x844] [--secs 6] [--gpu]
-// Prints, per scene: the scene's own draw cost (window.__district.cost(): ms spent drawing, not tick-quantised) and the frame
-// intervals (frames()), median / p95 / mean, at each tier 2 → 1 → 0, plus the tier the auto-tiering settles on.
-// The City 2.0 baseline (docs/harbor.md#performance) was measured with this. Needs scripts/serve.mjs on :5173.
+// The title city's frame pacing + work, per scene and tier (no Firebase: the real title in title-preview.html).
+//
+//   A/B (THE GATE — C1.5, the owner's rule: only a relative A/B in ONE run means anything on this laptop):
+//     node title-perf.mjs "<browser>" --city 2 --ab http://localhost:5174 [--scenes np-party,np-night] [--tiers 2,1,0]
+//                         [--pairs 3] [--cpu 4] [--gpu] [--size 402x874] [--secs 5]
+//     A = the --ab server (a `git worktree` of the commit before on :5174), B = E2E_BASE (the working tree on :5173). Both pages
+//     load once; the one being measured is brought to the front, so the other is HIDDEN and its city stops (the scenes stop on a
+//     hidden page) — they never compete for the CPU. Each
+//     scene × tier runs A B B A A B … (--pairs windows each, the same warm-up); every window starts only when the city is settled
+//     (no bake, no crossfade, no tier probe, the tier asked for) and is thrown away (re-run) if the tier moved during it.
+//     Judged on FRAME PACING (the rAF interval p95 + the share over 20 ms: what a person feels and what the tiering acts on), with
+//     the work as a second line: SLOWER when B's median is worse than A's by more than the noise (the windows' own spread) AND by
+//     > 10 % and > 0.5 ms of work / > 2 points of slow frames. Exit code 1 on SLOWER.
+//   A FLAG'S COST (one server): --vs <scene> — A = the --scenes scene, B = the --vs scene (e.g. --scenes np-party --vs n4-punch),
+//     the same interleaving + verdict ("faster" = what the flag saves).
+//   ABSOLUTE (one server): node title-perf.mjs "<browser>" --city 2 [--scenes …] — the numbers, with the per-tier budgets
+//     (City 2.0: 8 / 6 / 4 ms of work at tier 2 / 1 / 0) printed as WARNINGS, never a failure (the laptop is not the phone).
+//
+// What it measures (the same on any commit, no hook needed): a wrapper round requestAnimationFrame installed before the page's
+// scripts — the interval between frames, and the main-thread time spent in rAF callbacks per frame (the scene's draw + the
+// title's party frame: "rAF work"); plus the scene's own cost() (its draw per drawn frame, the last 90) at each window's end.
+// Model a real device: tier 2 = a fast phone (--gpu, --cpu 1 or 2); tier 0 = the slow phone the auto-tier lands on (--cpu 4).
+// (A party night at 4× without a GPU steps itself down from tier 2 — setTier() pins against stepping UP only — so its tier-2
+// windows are thrown away: measure tier 2 at --cpu 1–2. Without --gpu the fill is main-thread work: a fair proxy for a fill cost.)
+// Needs scripts/serve.mjs on :5173 (and a second one on :5174 for --ab).
 import puppeteer from 'puppeteer-core';
 
 const BROWSER = process.argv[2];
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 const CITY = arg('city', '1');
 const CPU = Number(arg('cpu', 4));
-const SECS = Number(arg('secs', 6));
+const SECS = Number(arg('secs', 5));
+const PAIRS = Math.max(1, Number(arg('pairs', 3)));
+const TIERS = arg('tiers', '2,1,0').split(',').map(Number);
 const [VW, VH] = arg('size', '390x844').split('x').map(Number);
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
+const VS = arg('vs', null);            // --vs <scene>: A = each --scenes scene, B = this one, on the same server (a flag's cost)
+const BASE_A = arg('ab', null) || (VS ? BASE : null);
+const BUDGET = { 2: 8, 1: 6, 0: 4 };   // City 2.0's absolute budgets: warnings only (docs/harbor.md#performance)
 // Grand Rapids by default (the owner's city); party = a Saturday at the peak (10 pm–midnight)
 const AT = '&tz=America/Detroit&at=42.96,-85.67';
 const SCENES = {
@@ -30,7 +55,9 @@ const SCENES = {
   // NEON PASS 4: the party peak with one new piece off at a time (the A/B of its cost on one page)
   'n4-race': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race', 'n4-punch': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-punch', 'n4-shim': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-shimmer',
   'n4-beams': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-beams', 'n4-str': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-strings', 'n4-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race,no-punch,no-shimmer,no-beams,no-strings',
-'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
+  'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
+  // C1.5: the party's three fill costs, one flag each (review-2.md §1b), against np-party (n4-punch, n4-beams are the other two)
+  'f-water': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water', 'f-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-punch,no-water,no-beams',
   'np-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes', 'np-golden': 'when=2026-10-14T18:30&wx=clear&force=no-planes',
   // (THE DAY PASS: a cloudy day — the Harbor's own clouds, the most of them a phone draws)
   'np-clouds': 'when=2026-10-14T14:00&wx=clouds&force=no-planes',
@@ -58,39 +85,131 @@ const SCENES = {
 };
 const names = arg('scenes', 'party,night,day').split(',');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const stats = a => { const s = [...a].sort((x, y) => x - y); if (!s.length) return { p50: 0, p95: 0, mean: 0 }; return { p50: +s[Math.floor(s.length / 2)].toFixed(2), p95: +s[Math.floor(s.length * 0.95)].toFixed(2), mean: +(s.reduce((x, y) => x + y, 0) / s.length).toFixed(2) }; };
+const q = (a, f) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * f))] : 0; };
+const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+const med = a => q(a, 0.5);
+const r2 = v => +v.toFixed(2);
+
+// the rAF wrapper (installed before any page script): intervals between distinct frames + the callbacks' time per frame
+const BENCH = `(() => {
+  const raf = window.requestAnimationFrame.bind(window);
+  const B = window.__bench = { on: false, iv: [], work: [], ts: -1, w: 0,
+    start() { this.iv = []; this.work = []; this.ts = -1; this.w = 0; this.on = true; },
+    stop() { this.on = false; return { iv: this.iv, work: this.work }; } };
+  window.requestAnimationFrame = cb => raf(ts => {
+    if (B.on && ts !== B.ts) { if (B.ts >= 0) { B.iv.push(ts - B.ts); B.work.push(B.w); } B.ts = ts; B.w = 0; }
+    const t0 = performance.now();
+    try { cb(ts); } finally { if (B.on) B.w += performance.now() - t0; }
+  });
+})();`;
 
 const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--mute-audio', ...(process.argv.includes('--gpu') ? ['--enable-gpu', '--use-angle=d3d11'] : [])] });
-const out = [];
-for (const name of names) {
+
+async function openPage(base, name) {
   const page = await browser.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
+  await page.evaluateOnNewDocument(BENCH);
   const mobile = VW < 800;
   await page.setViewport({ width: VW, height: VH, deviceScaleFactor: mobile ? 3 : 1, isMobile: mobile, hasTouch: mobile });
-  await page.goto(`${BASE}/tests/integration/title-preview.html?${SCENES[name] || name}${AT}${CITY !== '1' ? `&city=${CITY}` : ''}`);
-  const end = Date.now() + 20000;
+  await page.goto(`${base}/tests/integration/title-preview.html?${SCENES[name] || name}${AT}${CITY !== '1' ? `&city=${CITY}` : ''}`);
+  const end = Date.now() + 25000;
   while (Date.now() < end && !(await page.evaluate('!!(window.__district && window.__district.phase().done)').catch(() => false))) await sleep(150);
-  await sleep(2500);   // the extras (weather, the street) load ~1.2 s after the first paint
   const cdp = await page.target().createCDPSession();
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
-  const row = { scene: name, city: CITY, cpu: CPU, size: `${VW}x${VH}`, tiers: [] };
-  for (const t of [2, 1, 0]) {
-    await page.evaluate(`window.__district.setTier(${t})`);
-    await sleep(2500);                                  // the tier's rebuild settles
-    await page.evaluate('0');
-    await sleep(SECS * 1000);
-    const cost = await page.evaluate('window.__district.cost()');
-    const frames = await page.evaluate('window.__district.frames()');
-    const now = (await page.evaluate('window.__district.scene()')).tier;
-    row.tiers.push({ tier: t, settled: now, cost: stats(cost), frame: stats(frames) });
-  }
-  row.errors = errs;
-  out.push(row);
-  console.log(`${name.padEnd(7)} city ${CITY} ${CPU}x CPU ${VW}x${VH}: ` + row.tiers.map(r => `t${r.tier}${r.settled !== r.tier ? `→${r.settled}` : ''} cost ${r.cost.mean}/${r.cost.p50}/${r.cost.p95} frame ${r.frame.p50}/${r.frame.p95}`).join(' | ') + (errs.length ? `  ERRORS ${errs.join('; ')}` : ''));
-  await cdp.detach();
-  await page.close();
+  return { page, cdp, errs, base };
 }
-console.log('(cost = mean/p50/p95 ms of drawing per frame; frame = p50/p95 ms between frames)');
+// (the page measured comes to the front; the other turns hidden and its scene stops. CDP's frozen state can't be used: a page
+// thawed from it stays hidden with no rAF in headless Chrome)
+const front = P => P.page.bringToFront();
+// the city settled: no bake, no crossfade, no tier probe, the tier asked for (City 1.0: the tier only)
+const SETTLED = t => `(() => { const d = window.__district; if (!d) return false; const s = d.scene(); if (!s || s.tier !== ${t}) return false;
+  const h = d.harbor && d.harbor(), tg = d.tiering && d.tiering();
+  if (tg && tg.probe) return false;
+  return !h || (h.shown && !h.pending && !h.fading && (!h.rate || h.rate.fast !== 'bake')); })()`;
+async function settle(P, t, ms = 15000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) { if (await P.page.evaluate(SETTLED(t)).catch(() => false)) return true; await sleep(200); }
+  return false;
+}
+async function setTier(P, t) { await P.page.evaluate(`window.__district.setTier(${t})`); return settle(P, t); }
+const HIST = "JSON.stringify(window.__district.tiering ? window.__district.tiering().hist : [])";
+const PROBE_LOG = new Set();
+/** one measuring window on page P at tier t: { iv, work, cost } — or null when the tier kept moving / it never settled */
+async function windowOn(P, t) {
+  for (let k = 0; k < 2; k++) {
+    if (!(await settle(P, t))) { await P.page.evaluate(`window.__district.setTier(${t})`); continue; }
+    await sleep(2000);                                           // the same warm-up every time (after coming to the front too)
+    const h0 = await P.page.evaluate(HIST);
+    await P.page.evaluate('window.__bench.start()');
+    await sleep(SECS * 1000);
+    const r = await P.page.evaluate('window.__bench.stop()');
+    const cost = await P.page.evaluate('window.__district.cost()');
+    const h1 = await P.page.evaluate(HIST), tier = (await P.page.evaluate('window.__district.scene()')).tier;
+    if (tier === t && h0 === h1) return { iv: r.iv, work: r.work, cost };
+    if (!PROBE_LOG.has(P.base)) { PROBE_LOG.add(P.base); console.log(`  (${P.base}: the tier moved during a window — thrown away, re-run; the tiering: ${h1})`); }
+    await setTier(P, t);
+  }
+  return null;
+}
+const sum = w => ({ p95: q(w.iv, 0.95), slow: 100 * w.iv.filter(v => v > 20).length / Math.max(1, w.iv.length), work: mean(w.work), wp95: q(w.work, 0.95), cost: mean(w.cost) });
+const fmt = s => `frame p95 ${r2(s.p95)} · ${s.slow.toFixed(1)}% slow · work ${r2(s.work)} / p95 ${r2(s.wp95)} · scene ${r2(s.cost)}`;
+const FIELDS = ['p95', 'slow', 'work', 'wp95', 'cost'];
+
+const out = [];
+let failed = false;
+for (const name of names) {
+  if (!BASE_A) {
+    // ---- ABSOLUTE: one page, the numbers + the budgets as warnings
+    const P = await openPage(BASE, name);
+    const row = { scene: name, city: CITY, cpu: CPU, size: `${VW}x${VH}`, tiers: [] };
+    for (const t of TIERS) {
+      await setTier(P, t);
+      const w = await windowOn(P, t);
+      row.tiers.push(w ? { tier: t, ...sum(w) } : { tier: t, invalid: true });
+    }
+    row.errors = P.errs; out.push(row);
+    console.log(`${name.padEnd(9)} city ${CITY} ${CPU}x CPU ${VW}x${VH}`);
+    for (const r of row.tiers) {
+      const warn = CITY === '2' && !r.invalid && r.work > BUDGET[r.tier] ? `   WARNING: over the t${r.tier} budget (${BUDGET[r.tier]} ms) on this laptop — check the phone (&debug=1)` : '';
+      console.log(`  t${r.tier}: ${r.invalid ? 'INVALID (the tier kept moving)' : fmt(r)}${warn}`);
+    }
+    if (P.errs.length) console.log(`  ERRORS ${P.errs.join('; ')}`);
+    await P.page.close();
+    continue;
+  }
+  // ---- A/B in one run: both pages loaded, the idle one frozen, A B B A A B … per tier
+  const A = await openPage(BASE_A, name), B = await openPage(BASE, VS || name);
+  const row = { scene: name, city: CITY, cpu: CPU, size: `${VW}x${VH}`, tiers: [] };
+  console.log(`${name.padEnd(9)} city ${CITY} ${CPU}x CPU ${VW}x${VH} — A ${VS ? name : BASE_A} vs B ${VS || BASE}, ${PAIRS} windows each of ${SECS} s`);
+  for (const t of TIERS) {
+    for (const P of [A, B]) { await front(P); await setTier(P, t); }
+    const runs = { A: [], B: [] };
+    const order = Array.from({ length: PAIRS * 2 }, (_, i) => (i % 4 === 0 || i % 4 === 3 ? 'A' : 'B'));
+    for (const k of order) {
+      const P = k === 'A' ? A : B;
+      await front(P);
+      const w = await windowOn(P, t);
+      if (w) runs[k].push(sum(w));
+    }
+    const pick = k => Object.fromEntries(FIELDS.map(f => [f, med(runs[k].map(r => r[f]))]));
+    const spread = f => Math.max(...['A', 'B'].map(k => { const v = runs[k].map(r => r[f]); return v.length ? Math.max(...v) - Math.min(...v) : 0; }));
+    const res = { tier: t, A: pick('A'), B: pick('B'), n: [runs.A.length, runs.B.length] };
+    const noiseW = spread('work'), noiseS = spread('slow');
+    const dW = res.B.work - res.A.work, dS = res.B.slow - res.A.slow, dP = res.B.p95 - res.A.p95;
+    const slowerW = dW > 0.5 && res.B.work > res.A.work * 1.1 && dW > noiseW;
+    const slowerS = dS > 2 && dS > noiseS && dP > res.A.p95 * 0.1;
+    res.verdict = !runs.A.length || !runs.B.length ? 'INVALID' : slowerS ? 'SLOWER (frame pacing)' : slowerW ? 'SLOWER (work)' : dW < -0.5 && -dW > noiseW ? 'faster' : 'same';
+    if (/SLOWER/.test(res.verdict)) failed = true;
+    row.tiers.push(res);
+    console.log(`  t${t}: A ${fmt(res.A)}\n      B ${fmt(res.B)}\n      → ${res.verdict} (work ${dW >= 0 ? '+' : ''}${r2(dW)} ms, slow ${dS >= 0 ? '+' : ''}${dS.toFixed(1)} pts; noise ±${r2(noiseW)} ms / ±${noiseS.toFixed(1)} pts; ${res.n.join(' + ')} windows)`);
+    if (CITY === '2' && res.B.work > BUDGET[t]) console.log(`      WARNING: B over the t${t} budget (${BUDGET[t]} ms) on this laptop — a warning only; the phone decides (&debug=1)`);
+  }
+  row.errors = [...A.errs, ...B.errs]; out.push(row);
+  if (row.errors.length) console.log(`  ERRORS ${row.errors.join('; ')}`);
+  await A.page.close(); await B.page.close();
+}
+console.log("(frame = rAF interval ms; slow = share over 20 ms; work = main-thread ms in rAF callbacks a frame, mean / p95; scene = the scene's own draw per drawn frame)");
 if (process.argv.includes('--json')) console.log(JSON.stringify(out, null, 1));
 await browser.close();
+if (BASE_A && !VS && failed) process.exit(1);

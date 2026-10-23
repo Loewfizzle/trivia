@@ -10,6 +10,7 @@
 // last ~0.1 s at the planes' tails) are drawn live. Only on clear, low-wind days (core/harbor-sky.js#smokeWeather) — the
 // API and &force= previews draw whatever the weather. API: skywrite(text) / skytype(text) via screens/harbor/skyfx.js.
 import { skywriteStrokes, skytypeLayout } from '../../core/harbor-sky.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -20,7 +21,7 @@ const HOLD = 95, FADE = 80;                           // s legible after the las
 /** a small sleek smoke plane (low wing, a canopy, a smoke tank), nose to +x → canvas (len pt, its light) */
 function smokePlane(len, day, gold, dpr) {
   const W = len * 1.2, H = len * 0.7, d = Math.min(3, dpr * 1.5);
-  const cv = mk(W * d, H * d), x = cv.getContext('2d');
+  const cv = mk(W * d, H * d), x = safeCtx(cv);
   x.setTransform(d, 0, 0, d, (W / 2) * d, (H / 2) * d); x.scale(len, len);
   const body = [Math.round(40 + 160 * day + 40 * gold), Math.round(44 + 150 * day + 10 * gold), Math.round(60 + 150 * day - 30 * gold)];
   const dark = body.map(v => Math.round(v * 0.55)), red = [190, 34, 40];
@@ -91,7 +92,7 @@ export function createSmoke() {
     if (puffSpr && key === puffKey) return puffSpr;
     puffKey = key;
     puffSpr = puffSpr || mk(64, 64);
-    const x = puffSpr.getContext('2d'); x.clearRect(0, 0, 64, 64);
+    const x = safeCtx(puffSpr); x.clearRect(0, 0, 64, 64);
     // a soft round puff: lit from above (white / warm at sunset), its underside a cool grey — the smoke has volume
     const top = light.gold > 0.3 ? [255, 228, 214] : [255, 255, 255], under = light.gold > 0.3 ? [196, 160, 176] : [196, 206, 224];
     let g = x.createRadialGradient(32, 37, 2, 32, 37, 30); g.addColorStop(0, `rgba(${under},0.55)`); g.addColorStop(0.6, `rgba(${under},0.22)`); g.addColorStop(1, `rgba(${under},0)`);
@@ -117,7 +118,7 @@ export function createSmoke() {
     return [Math.sin(dir * Math.PI / 180) * w * 0.12 * K, -0.04 * K];        // pt/s (east is screen-left: facing south)
   }
   function renderLayer(s, e, light) {
-    const d = Math.min(2, dpr), x = layer.getContext('2d'), spr = puffSprite(light);
+    const d = Math.min(2, dpr), x = safeCtx(layer), spr = puffSprite(light);
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, layer.width, layer.height);
     x.setTransform(d, 0, 0, d, 0, 0);
     const [vx, vy] = drift(s);

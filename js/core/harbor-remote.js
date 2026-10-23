@@ -39,7 +39,8 @@ export const INPUTS = {
 
 // THE EVENTS: every &force= preview that runs on ?city=2 (group → the panel's sub-heading). text: the longest text it takes.
 // oneShot: a sky piece started through harbor().sky — EVERYONE's phones start it at the same moment (startAt), a late arrival
-// joins mid-flight; the rest are states (on while the remote is on).
+// joins mid-flight; the rest are states (on while the remote is on). ready: false = not drawn on the Harbor yet: the panel hides the
+// row (the id stays valid for the URL + the server) until the part that builds it flips it.
 export const EVENTS = [
   { id: 'drones', label: 'DRONE SHOW', group: 'SKY', oneShot: true, inputs: ['text', 'show', 'colours', 'colour', 'by', 'cycle'], text: 40, night: true },
   { id: 'drones-calm', label: 'DRONES · CALM', group: 'SKY', hint: 'with DRONE SHOW: slower, steady lights' },
@@ -61,8 +62,8 @@ export const EVENTS = [
   { id: 'finale', label: 'PARTY FINALE', group: 'SKY', night: true },
   { id: 'sleigh', label: 'SLEIGH', group: 'SKY', night: true },
   { id: 'witch', label: 'WITCH', group: 'SKY', night: true },
-  { id: 'ufo', label: 'UFO', group: 'SKY', night: true },
-  { id: 'cat', label: 'THE MOON CAT', group: 'SKY', night: true },
+  { id: 'ufo', label: 'UFO', group: 'SKY', night: true, ready: false },          // (ready: false — hidden in the panel until Part 6b
+  { id: 'cat', label: 'THE MOON CAT', group: 'SKY', night: true, ready: false },  //  builds them for the Harbor; still a valid id)
   { id: 'geese', label: 'GEESE', group: 'BIRDS' },
   { id: 'swifts', label: 'SWIFTS', group: 'BIRDS' },
   { id: 'bats-dusk', label: 'BATS AT DUSK', group: 'BIRDS' },
@@ -72,7 +73,7 @@ export const EVENTS = [
   { id: 'rainbow2', label: 'DOUBLE RAINBOW', group: 'RAINBOWS' },
   { id: 'moonbow', label: 'MOONBOW', group: 'RAINBOWS', night: true },
   { id: 'neonbow', label: 'NEON BOW', group: 'RAINBOWS', night: true },
-  { id: 'lightning', label: 'LIGHTNING', group: 'WEATHER FX' },
+  { id: 'lightning', label: 'LIGHTNING', group: 'WEATHER FX', hint: 'with WEATHER = STORM' },
   { id: 'freeze', label: 'FROST', group: 'WEATHER FX' },
   { id: 'beams', label: 'SKY BEAMS', group: 'CITY', night: true, hint: 'the party’s vertical beams from the tall towers' },
   { id: 'searchlights', label: 'SEARCHLIGHTS', group: 'CITY', night: true },
@@ -88,6 +89,8 @@ export const EVENTS = [
   { id: 'strings-party', label: 'STRING LIGHTS · PARTY', group: 'HARBOR', night: true, hint: 'the speakeasy roof’s string lights in party mode' },
 ];
 export const EVENT_GROUPS = [...new Set(EVENTS.map(e => e.group))];
+/** the rows the panel shows (not the ones a later part still has to build) */
+export const PANEL_EVENTS = EVENTS.filter(e => e.ready !== false);
 const EV = Object.fromEntries(EVENTS.map(e => [e.id, e]));
 export const eventDef = id => EV[id] || null;
 

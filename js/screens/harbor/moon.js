@@ -10,6 +10,7 @@
 //   THE AURORA  slow curtains of rays — a sharp green lower border fading up through teal into violet and red (a storm night:
 //               higher, redder, brighter) — rendered small a few times a second and drawn as one soft image
 import { moonLook } from '../../core/harbor-sky.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -23,7 +24,7 @@ const MARIA = [[-0.32, -0.38, 0.27], [0.18, -0.34, 0.17], [0.34, -0.06, 0.2], [0
   [-0.15, 0.4, 0.17], [-0.5, 0.42, 0.1], [-0.62, -0.04, 0.3], [-0.45, 0.18, 0.22], [-0.06, -0.69, 0.12], [0.22, -0.7, 0.09], [-0.3, -0.7, 0.1], [0.0, -0.12, 0.08], [-0.3, 0.08, 0.13]];
 
 function texture() {
-  const cv = mk(S, S), x = cv.getContext('2d'), R = rng(1969);
+  const cv = mk(S, S), x = safeCtx(cv), R = rng(1969);
   x.save(); x.beginPath(); x.arc(MC, MC, MR, 0, TAU); x.clip();
   // the highlands: a warm pale grey, a little brighter toward the limb (the full moon's even light)
   let g = x.createRadialGradient(MC, MC, 0, MC, MC, MR);
@@ -64,7 +65,7 @@ export function createCelestial() {
   let W = 1, HZ = 1, K = 1, tier = 2, lastMoon = null;
   const glow = col => {
     const k = col.join(','); let c = glowCv.get(k);
-    if (!c) { c = mk(64, 64); const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, `rgba(${k},1)`); g.addColorStop(0.3, `rgba(${k},0.38)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 64, 64); if (glowCv.size > 24) glowCv.clear(); glowCv.set(k, c); }
+    if (!c) { c = mk(64, 64); const x = safeCtx(c), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, `rgba(${k},1)`); g.addColorStop(0.3, `rgba(${k},0.38)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 64, 64); if (glowCv.size > 24) glowCv.clear(); glowCv.set(k, c); }
     return c;
   };
 
@@ -75,12 +76,12 @@ export function createCelestial() {
     compKey = key;
     if (!tex) tex = texture();
     comp = comp || mk(S, S); mask = mask || mk(S, S);
-    const x = comp.getContext('2d');
+    const x = safeCtx(comp);
     x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, S, S);
     // the dark part: opaque (it hides the stars behind it), with the earth's light on it — the maria faintly there
     if (es > 0.01) { x.globalAlpha = 0.05 + 0.2 * es; x.drawImage(tex, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'multiply'; x.fillStyle = 'rgb(150,170,220)'; x.fillRect(0, 0, S, S); x.globalCompositeOperation = 'destination-in'; x.beginPath(); x.arc(MC, MC, MR, 0, TAU); x.fill(); x.globalCompositeOperation = 'source-over'; }
     // the lit part: the phase's shape, its terminator softened (a blurred mask), the texture inside it
-    const m = mask.getContext('2d');
+    const m = safeCtx(mask);
     m.setTransform(1, 0, 0, 1, 0, 0); m.globalCompositeOperation = 'source-over'; m.clearRect(0, 0, S, S);
     const k = Math.cos(q * TAU);                     // 1 new, −1 full
     m.save(); m.shadowColor = '#fff'; m.shadowBlur = 3.5; m.shadowOffsetX = 2000;
@@ -170,14 +171,14 @@ export function createCelestial() {
       const aw = Math.ceil(W / 3), ah = Math.ceil((area.y1 - area.y0) / 2.5);
       if (!auroraCv || auroraCv.width !== aw || auroraCv.height !== ah) { if (auroraCv) auroraCv.width = 0; auroraCv = mk(aw, ah); auroraAt = -1e9; }
       if (!rayCv) {
-        rayCv = mk(4, 128); const x = rayCv.getContext('2d'), g = x.createLinearGradient(0, 128, 0, 0);
+        rayCv = mk(4, 128); const x = safeCtx(rayCv), g = x.createLinearGradient(0, 128, 0, 0);
         g.addColorStop(0, 'rgba(110,255,170,0)'); g.addColorStop(0.04, 'rgba(140,255,180,1)'); g.addColorStop(0.18, 'rgba(80,240,160,0.7)'); g.addColorStop(0.5, 'rgba(60,200,190,0.28)'); g.addColorStop(0.78, 'rgba(150,80,220,0.18)'); g.addColorStop(1, 'rgba(220,60,120,0)');
         x.fillStyle = g; x.fillRect(0, 0, 4, 128);
       }
       const every = !s.motion ? 1e9 : tier === 2 ? 110 : tier === 1 ? 180 : 400;
       if (performance.now() - auroraAt > every) {
         auroraAt = performance.now();
-        const x = auroraCv.getContext('2d'), t = s.motion ? s.t : 0;
+        const x = safeCtx(auroraCv), t = s.motion ? s.t : 0;
         x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, aw, ah); x.globalCompositeOperation = 'lighter';
         const curtains = [[0.86, 0.1, 0, 0.07, 1], [0.7, 0.08, 2.1, 0.05, 0.6], [0.78, 0.06, 4.4, 0.09, 0.45]].slice(0, tier === 0 ? 2 : 3);
         // (the rays: as many as the width wants, each with its own stable jitter — never a regular comb)

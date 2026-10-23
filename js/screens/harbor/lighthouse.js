@@ -17,6 +17,7 @@
 import { box, poly, rgb, shade, mix, clamp01 } from './shapes.js';
 import { project } from '../../core/harbor-layout.js';
 import { LEVEL } from './water.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TURN_S = 16;
 const fract = v => v - Math.floor(v);
@@ -125,12 +126,12 @@ export function createBeam() {
   function sprites() {
     if (halo) return;
     halo = document.createElement('canvas'); halo.width = halo.height = 64;
-    const x = halo.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    const x = safeCtx(halo), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
     g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.2, 'rgba(255,255,255,0.45)'); g.addColorStop(1, 'rgba(255,255,255,0)');
     x.fillStyle = g; x.fillRect(0, 0, 64, 64);
     // the flare: a four-point star (thin, long rays) + its core
     flareC = document.createElement('canvas'); flareC.width = flareC.height = 128;
-    const f = flareC.getContext('2d');
+    const f = safeCtx(flareC);
     f.translate(64, 64); f.globalCompositeOperation = 'lighter';
     for (const [a, len, w] of [[0, 62, 2.2], [Math.PI / 2, 46, 1.8], [Math.PI / 4, 22, 1.1], [-Math.PI / 4, 22, 1.1]]) {
       f.save(); f.rotate(a);

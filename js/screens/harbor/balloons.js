@@ -9,6 +9,7 @@
 //                  FROM INSIDE like a lantern (its own stripes glowing, brightest by the mouth)
 // Positions are a function of the time since the event began (every phone sees the same sky): a slow drift with the real wind
 // (a crossing takes most of the event), a gentle rise and fall. Sprites per balloon per light; the flame + the glow live.
+import { safeCtx } from '../../ui/canvas-safe.js';
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
@@ -34,7 +35,7 @@ function envPath(x, R) {
 function balloonArt(R, scheme, light, dpr) {
   const W = R * 2.3, Hh = R * 3.35, d = Math.min(3, dpr * 1.25);
   const make = lit => {
-    const cv = mk(W * d, Hh * d), x = cv.getContext('2d');
+    const cv = mk(W * d, Hh * d), x = safeCtx(cv);
     x.setTransform(d, 0, 0, d, (W / 2) * d, (R * 1.08) * d);
     // the stripes: 12 gores round the sphere — a seam at longitude φ shows at x = R·sin φ (they narrow toward the edges)
     x.save(); envPath(x, R); x.clip();
@@ -89,7 +90,7 @@ function balloonArt(R, scheme, light, dpr) {
 
 export function createBalloons() {
   let W = 1, K = 1, dpr = 2, cur = null;
-  const flameDot = (() => { const c = mk(32, 32), x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(0.3, 'rgba(255,170,60,0.6)'); g.addColorStop(1, 'rgba(255,120,30,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return c; })();
+  const flameDot = (() => { const c = mk(32, 32), x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(0.3, 'rgba(255,170,60,0.6)'); g.addColorStop(1, 'rgba(255,120,30,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return c; })();
 
   /** start: { at (clock ms), seed, festival, lanes: { 'sky-high', 'sky-low' }, windSign (−1 / 1) } */
   function start(o) {

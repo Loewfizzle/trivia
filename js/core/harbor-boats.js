@@ -127,8 +127,3 @@ export function boatAt(r, ms, nightAt = () => true) {
   return { x: r.lane[1], face: 1, on: false, moving: false, seg: 'away' };
 }
 
-/** a boat's speed (world units / s, signed) at ms — the wake's strength */
-export function boatSpeed(r, ms, nightAt) {
-  const a = boatAt(r, ms - 150, nightAt), b = boatAt(r, ms + 150, nightAt);
-  return a.on && b.on ? (b.x - a.x) / 0.3 : 0;
-}

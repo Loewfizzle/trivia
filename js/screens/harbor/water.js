@@ -26,7 +26,7 @@
 // above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · wake(o) — Part 5
 // draws boat wakes · set({ rain, fog }) — Part 9 (rain roughens the mirror now; the rings + the fog over the water: Part 9).
 import { rgb, mix } from './shapes.js';
-import { blit } from '../../ui/canvas-safe.js';
+import { blit, safeCtx } from '../../ui/canvas-safe.js';
 import { groundY, project } from '../../core/harbor-layout.js';
 
 /** the water's surface (world y): the far quay wall stands 1.2 above it (its stones show between the lamps + the water) */
@@ -79,7 +79,7 @@ export function createWater() {
   let strips = [], dashes = [], glints = [], texKey = '', lastT = 0, updAt = -1e9, ready = false, set0 = { rain: 0, fog: 0 };
   let queue = [], mirrors = [], wakes = [], stats = { strips: 0, copies: 0, lights: 0, paths: '' };
 
-  function size(cv, w, h) { const cw = Math.max(1, Math.ceil(w)), ch = Math.max(1, Math.ceil(h)); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; } return cv.getContext('2d'); }
+  function size(cv, w, h) { const cw = Math.max(1, Math.ceil(w)), ch = Math.max(1, Math.ceil(h)); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; } return safeCtx(cv); }
   /** the layout: the band, the canvases, the strips (thin far, thick near: one wave phase per depth) */
   function layout(l, o) {
     L = l; cam = l.cam; W = cam.W; tier = o.tier ?? 2; dpr = Math.min(2, o.dpr || 1);
@@ -159,7 +159,7 @@ export function createWater() {
   /**
    * Draw the water. c: the scene's context (dpr transform), main: the scene's canvas (the frame so far — everything above the
    * waterline is drawn), f: { t, T (tones), night (0..1 dark), fade, motion, wind (m/s), cloud, rain, sun: sun.debug(), moon:
-   * { x, y, r, k } | null, mirrors: [{ cv, sx, sy, sw, sh (device px), x, y, w, h (pt), axis }] }
+   * { x, y, r, k } | null, mirrors: [{ cv, sx, sy, sw, sh (device px), x, y, w, h (pt), axis }], punch (the neon's beat punch now) }
    * The work is split over two frames (30 water frames a second, an even cost every frame; tier 1: three, 20 a second): one
    * frame BUILDS the mirror (the copy of the frame above the waterline, the objects in the water, the light columns), the next
    * COMPOSES the water from it (the ripples, the wavelets, the paths, the lapping) into its canvas; every frame shows it. Tier 0 and reduced
@@ -173,7 +173,9 @@ export function createWater() {
       // the cycle ON THE CLOCK (cleanup pass 1: the scene draws at 30 fps when the city is calm — the water keeps its rates):
       // the mirror's SOURCE is re-read 10 times a second (the city's lights change slowly, the ripples hide the rest), the
       // ripples composed 30 times a second at tier 2 (20 at tier 1); never both in one frame
-      if (!built || now - builtAt >= 95) { build(main, f, f.t, false); builtAt = now; }
+      // (C1.5: never on a PUNCH frame — the neon's second, additive draw is the frame's heaviest fill; the build waits for the
+      // punch to pass, ≤ 160 ms after the last one: the mirror is 0–95 ms old anyway, so it never shows — review-2.md §1b-2)
+      if (!built || (now - builtAt >= 95 && !(f.punch > 0.2 && now - builtAt < 160))) { build(main, f, f.t, false); builtAt = now; }
       else if (now - composedAt >= (tier === 2 ? 30 : 46)) { compose(f, f.t, false); composedAt = now; }
       lastT = f.t;
     }
@@ -197,13 +199,13 @@ export function createWater() {
     stats.rough = +rough.toFixed(2);
     // 1. the frame above the waterline, as drawn (one copy, at the mirror's resolution)
     const tm0 = performance.now();
-    const sx = src.getContext('2d');
+    const sx = safeCtx(src);
     sx.setTransform(1, 0, 0, 1, 0, 0); sx.globalCompositeOperation = 'copy'; sx.globalAlpha = 1;
     blit(sx, main, 0, top * md, W * md, sh * md, 0, 0, src.width, src.height);
     sx.globalCompositeOperation = 'source-over';
     const tm1 = performance.now(); ema('copy', tm1 - tm0);
     // 2. the mirror: flipped about the waterline (an R row r pt below it ↔ the frame r pt above it)
-    const rx = R.getContext('2d');
+    const rx = safeCtx(R);
     rx.setTransform(1, 0, 0, 1, 0, 0); rx.globalAlpha = 1; rx.globalCompositeOperation = 'copy';
     rx.setTransform(rr, 0, 0, -rr, 0, rr * A0);
     blit(rx, src, 0, (sh - Hw - 6) * rr, src.width, (Hw + 6) * rr, 0, A0 - Hw - 6, W, Hw + 6);
@@ -220,11 +222,11 @@ export function createWater() {
     const lk = clamp01(f.night) * (tier === 0 ? 0.85 : 1);
     stats.copies = 0;
     if (lk > 0.03) {
-      const bx = bright.getContext('2d'), bw = bright.width, bh = bright.height;
+      const bx = safeCtx(bright), bw = bright.width, bh = bright.height;
       bx.setTransform(1, 0, 0, 1, 0, 0); bx.globalAlpha = 1; bx.globalCompositeOperation = 'copy';
       bx.drawImage(src, 0, 0, bw, bh);
       bx.globalCompositeOperation = 'multiply'; bx.drawImage(src, 0, 0, bw, bh); bx.drawImage(src, 0, 0, bw, bh);
-      const smx = sm.getContext('2d'), h2 = rr * 0.5;
+      const smx = safeCtx(sm), h2 = rr * 0.5;
       smx.setTransform(1, 0, 0, 1, 0, 0); smx.globalAlpha = 1; smx.globalCompositeOperation = 'source-over'; smx.clearRect(0, 0, sm.width, sm.height);
       const K = tier === 2 ? Math.round(5 + 5 * rough) : tier === 1 ? Math.round(3 + 3 * rough) : 4;
       const s0 = 0.6 - 0.36 * rough, s1 = 1.12 + 0.16 * rough;
@@ -260,7 +262,7 @@ export function createWater() {
   function compose(f, t, still) {
     if (!built) return;
     const tm2 = performance.now(), T = f.T, rough = roughOf(f), fa = 1;
-    const x = wc.getContext('2d'), Wd = wc.width;
+    const x = safeCtx(wc), Wd = wc.width;
     x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, wc.width, wc.height);
     // 4. the ripples: the mirror row by row (one wave phase per depth: a sideways wobble, a vertical break, crest / trough) —
     //    in device pixels: each strip fills its own whole rows (st.r, st.hd), wider than the canvas (no edge inside it)

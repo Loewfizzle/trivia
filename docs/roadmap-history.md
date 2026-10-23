@@ -777,6 +777,24 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — CLEANUP C1.5 + SPEED (Oct 22, 2026) — `docs/harbor.md#cleanup-c15` (from `docs/harbor/review-2.md`; no visual change)
+- [x] The O's white core: the holiday O's rules scoped to the swapped O (`[data-kind]`) with fallbacks; the flutter by a class
+      (`is-flut`), never an inline style that left `style=""` behind; E2E: the flutter forced onto the O, the Halloween + St Patrick's O
+- [x] The wheel's backdrop: the owner's pick d (floodlit stone, dark windows) for everyone; variants a / b / c and `&wheelbg` removed
+- [x] The Safari floor: no top-level await (title.js → `harborReady`; a unit test parses every module as a script); every Harbor
+      `getContext` through `canvas-safe.js#safeCtx` (a refused context draws nothing + steps the tier down; a frame that throws
+      never freezes the city); the Harbor's floor iOS 16 written down
+- [x] The speed gate: `title-perf.mjs --ab <before>` (A B B A in one run, the idle page hidden, settled windows, frame pacing first,
+      budgets as warnings; `--vs <scene>` for a flag's cost); the E2E's PERF = frames held + no tier fell to 0 (work = warnings);
+      `&debug=1` shows THE SESSION (slow frames since the city showed, the longest run, the longest frame)
+- [x] The party's fill: the sky beams' sprite from a shape table (no per-pixel `Math.pow`, no readback, an LRU cache — the same
+      pixels); the water's 10 Hz build never on a punch frame; the punch's second draw kept (no cheaper exact draw — Known issues)
+- [x] Foundations: ONE darkness input (`core/harbor-dark.js`: `darkness()` + named ramps, today = the old thresholds exactly), THE
+      SIGN-DIM HOOK (`core/harbor-signdim.js`, `harbor().dimSign`, the title's `--sd-logo` / `nd-tag-sky`) — built + tested, unused
+- [x] Tidy: UFO + THE MOON CAT hidden in the panel (`ready: false`), LIGHTNING's hint, playwright reverted, dead code (STRENGTH,
+      boatSpeed, LIT_GROUPS, skyPos), the searchlights' warm-up per 60 Hz frame; `tests/integration/pixdiff.mjs` (A/B pixel diff +
+      bursts) — night / party / noon / golden / Halloween / St Patrick's: nothing beyond the run-to-run noise
+
 ### ✅ CITY 2.0 — THE HARBOR, THE DAY PASS (Oct 22, 2026) — `docs/harbor.md#the-day-pass`
 - [x] §0 night touch-ups: behind the wheel four versions (`&wheelbg=a` more warm windows, `b` lighter + bluer, `c` a little of each —
       the default —, `d` architectural floodlighting: warm uplights washing up the stone, the windows dark); the dark corner right of

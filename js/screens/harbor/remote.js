@@ -213,7 +213,7 @@ export function createRemote({ scene, api = apiCall }) {
           onclick: () => { if (mode === v) return; mode = v; ss.set(MODE_KEY, v); if (v === 'all') draft = { state: liveOn() ? { ...live.state } : {}, ui: {} }; render(); } }, l))),
       statusEl = h('div.hr-status', { 'aria-live': 'polite' }));
     // EVENTS: every &force= preview, by group; the inputs of the ones that are on underneath
-    const evs = R.EVENT_GROUPS.map(g => h('div.hr-group', h('div.hr-gl', g), grid(...R.EVENTS.filter(e => e.group === g).map(e => btn(e.label, force.has(e.id), () => toggleForce(e.id), { night: e.night, title: e.hint })))));
+    const evs = R.EVENT_GROUPS.map(g => h('div.hr-group', h('div.hr-gl', g), grid(...R.PANEL_EVENTS.filter(e => e.group === g).map(e => btn(e.label, force.has(e.id), () => toggleForce(e.id), { night: e.night, title: e.hint })))));
     const inputs = [...new Set(R.EVENTS.filter(e => force.has(e.id)).flatMap(e => e.inputs || []))];
     const opts = inputs.map(k => input(k, st, force));
     kids.push(sec('EVENTS', opts.length ? h('div.hr-opts', ...opts) : null, h('p.hr-note', '☾ shows at night only · tap again to switch off'), ...evs));

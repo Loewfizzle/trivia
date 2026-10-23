@@ -29,7 +29,8 @@ try {
   else localStorage.setItem('na:pv:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' }));
 } catch { /* fine */ }
 if (!q.get('slot')) { q.set('slot', 'pv'); history.replaceState(null, '', `?${q}`); }
-const { createTitle } = await import('/js/screens/title.js');
+const { createTitle, harborReady } = await import('/js/screens/title.js');
+await harborReady;
 const { installSettingsPanel } = await import('/js/ui/settings-panel.js');
 const { installAudio } = await import('/js/audio/engine.js');
 installAudio();   // (a tap unlocks it, as in the app: the ambience, the sign's crackle, thunder)

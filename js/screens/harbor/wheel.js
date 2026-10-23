@@ -29,6 +29,7 @@
 import { project } from '../../core/harbor-layout.js';
 import { mix, rgb, shade, clamp01 } from './shapes.js';
 import { PARTY_PAL } from '../../core/harbor-show.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TURN_S = 150;                         // one turn (s)
 // (NEON PASS 4 — A STRONGER WHEEL, the owner: the spokes read as LINES OF LIGHT — seven bulbs along each, the rim bolder, a
@@ -69,7 +70,7 @@ function rimGlow(x, col, r, rp, a, sIn, sOut) {
   x.fillStyle = g; x.beginPath(); x.arc(0, 0, r1, 0, Math.PI * 2); x.arc(0, 0, r0, 0, Math.PI * 2, true); x.fill('evenodd');
 }
 function glowDot(col) {
-  const c = canvas(32, 32), x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+  const c = canvas(32, 32), x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
   g.addColorStop(0, `rgba(255,255,255,1)`); g.addColorStop(0.2, `rgba(${col},1)`); g.addColorStop(0.46, `rgba(${col},0.38)`); g.addColorStop(1, `rgba(${col},0)`);
   x.fillStyle = g; x.fillRect(0, 0, 32, 32); return c;
 }
@@ -102,7 +103,7 @@ export function createWheel() {
     const dark = shade(paint, -0.35), pale = mix(paint, [255, 236, 226], 0.28 * day);
     const S = P * 2;
     steel = steel || canvas(1, 1); steel.width = steel.height = Math.ceil(S * dpr);
-    const x = steel.getContext('2d');
+    const x = safeCtx(steel);
     x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr);
     x.lineCap = 'round';
     const lw = k => Math.max(0.3, r * k);
@@ -141,7 +142,7 @@ export function createWheel() {
     for (let n = 0; n < 6; n++) {
       const lit = n >= 4 ? 0 : 1, colIdx = n % 4;
       const body = mix(DAY_CARS[colIdx], lit ? [70, 46, 40] : [24, 20, 34], night * 0.88), roofC = shade(body, -0.25), win = night > 0.3 ? (lit ? [255, 222, 160] : [16, 14, 24]) : mix([60, 80, 100], [150, 186, 210], day * 0.6);
-      const W = cw + 4, H = ch + hang + 4, cv = canvas(W * dpr, H * dpr), g = cv.getContext('2d');
+      const W = cw + 4, H = ch + hang + 4, cv = canvas(W * dpr, H * dpr), g = safeCtx(cv);
       g.setTransform(dpr, 0, 0, dpr, (W / 2) * dpr, 2 * dpr);
       // the hanger (from the pivot at 0,0), the roof (a little dome + its rim), the cabin, the window band, the floor
       g.strokeStyle = rgb(dark); g.lineWidth = Math.max(0.35, u * 0.08);
@@ -161,7 +162,7 @@ export function createWheel() {
     const fz = L.wheel.z - L.wheel.frame, fu = cam.F / fz, [fx, fy] = project(cam, L.wheel.x, L.wheel.y, fz), [, fd] = project(cam, L.wheel.x, L.pier.y, fz);
     const legX = L.wheel.leg * L.wheel.r * fu, FW = legX * 2 + 8, FH = fd - fy + 6;
     front.width = Math.ceil(FW * dpr); front.height = Math.ceil(FH * dpr); front.ox = fx - FW / 2; front.oy = fy - 3; front.w = FW; front.h = FH;
-    { const fc = front.getContext('2d'); fc.setTransform(dpr, 0, 0, dpr, 0, 0); aFrame(fc, FW / 2, 3, legX, fd - fy, fu, paint, dark, pale, true); }
+    { const fc = safeCtx(front); fc.setTransform(dpr, 0, 0, dpr, 0, 0); aFrame(fc, FW / 2, 3, legX, fd - fy, fu, paint, dark, pale, true); }
     mb = ((steel.width * steel.height) + cars.reduce((s, c) => s + c.width * c.height, 0) + front.width * front.height) * 4 / 1e6;
   }
   function buildBulbs() {
@@ -170,14 +171,14 @@ export function createWheel() {
     bulbKey = key;
     if (bulbs) for (const b of bulbs) b.width = 0;
     const S = P * 2, br = BR();
-    const mk = (pts) => { const cv = canvas(S * dpr, S * dpr), x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter'; for (const [px, py, col, k] of pts) { const rr = br * (k || 1); x.drawImage(dot(col), px - rr, py - rr, rr * 2, rr * 2); } return cv; };
+    const mk = (pts) => { const cv = canvas(S * dpr, S * dpr), x = safeCtx(cv); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter'; for (const [px, py, col, k] of pts) { const rr = br * (k || 1); x.drawImage(dot(col), px - rr, py - rr, rr * 2, rr * 2); } return cv; };
     bulbs = [];
     for (let s = 0; s < 3; s++) { const pts = []; for (let i = s; i < RIM_BULBS; i += 3) { const a = (i / RIM_BULBS) * Math.PI * 2; pts.push([Math.cos(a) * r * 0.97, Math.sin(a) * r * 0.97, sc.rim[s]]); } bulbs.push(mk(pts)); }
     SPOKE_RINGS.forEach((f, j) => { const pts = [], col = sc.rings[Math.round(j * (sc.rings.length - 1) / (NR - 1))]; for (let i = 0; i < CARS; i++) { const a = (i / CARS) * Math.PI * 2; pts.push([Math.cos(a) * r * f, Math.sin(a) * r * f, col, 0.72]); } bulbs.push(mk(pts)); });
     { const pts = []; for (let i = 0; i < HUB_BULBS; i++) { const a = (i / HUB_BULBS) * Math.PI * 2; pts.push([Math.cos(a) * r * 0.13, Math.sin(a) * r * 0.13, sc.hub, 0.75]); } pts.push([0, 0, sc.hub, 1.5]); bulbs.push(mk(pts)); }
     // NEON PASS 3 (the owner: the wheel must be SEE-THROUGH — it reads by its own light): the struts FAINTLY LIT by their bulbs (a
     // fine soft line hub → rim, turning with the wheel) — the city's windows show between them
-    { const x = bulbs[bulbs.length - 1].getContext('2d'), sc2 = sc.ring || sc.hub;
+    { const x = safeCtx(bulbs[bulbs.length - 1]), sc2 = sc.ring || sc.hub;
       x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
       for (const [w, a] of [[Math.max(0.9, r * 0.024), 0.09], [Math.max(0.4, r * 0.007), 0.36]]) {
         x.strokeStyle = `rgba(${sc2},${a})`; x.lineWidth = w; x.beginPath();
@@ -188,7 +189,7 @@ export function createWheel() {
     // (not rotated: drawn under the bulbs every frame the bulbs are)
     { const rc = sc.ring || sc.rim[0].map(v => Math.min(255, v + 30));
       ring = ring || canvas(1, 1); ring.width = ring.height = Math.ceil(S * dpr);
-      const x = ring.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter';
+      const x = safeCtx(ring); x.setTransform(dpr, 0, 0, dpr, P * dpr, P * dpr); x.globalCompositeOperation = 'lighter';
       // (NEON PASS 6: one smooth glow hugging the bulbs — strongest at the rim, gone within ~0.1 r outside — + the fine bright line)
       rimGlow(x, rc, r, r * 0.97, 0.3, 0.018, 0.04);
       for (const [w, a] of [[Math.max(0.6, r * 0.009), 0.8]]) { x.strokeStyle = `rgba(${rc},${a})`; x.lineWidth = w; x.beginPath(); x.arc(0, 0, r * 0.97, 0, Math.PI * 2); x.stroke(); }
@@ -198,11 +199,11 @@ export function createWheel() {
       x.lineWidth = Math.max(0.35, r * 0.004); x.strokeStyle = `rgba(${rc},0.28)`; x.beginPath(); x.arc(0, 0, r * 0.3, 0, Math.PI * 2); x.stroke(); }
     // every set at once (the show's steady phase — most of the time — and tier 0: one draw instead of eight)
     allBulbs = allBulbs || canvas(1, 1); allBulbs.width = bulbs[0].width; allBulbs.height = bulbs[0].height;
-    { const x = allBulbs.getContext('2d'); x.globalCompositeOperation = 'lighter'; for (const b of bulbs) x.drawImage(b, 0, 0); }
+    { const x = safeCtx(allBulbs); x.globalCompositeOperation = 'lighter'; for (const b of bulbs) x.drawImage(b, 0, 0); }
     // the haze the bulbs throw: round the rim (NEON PASS 3) — clear inside, so the wheel never reads as a lit disc. NEON PASS 6: it
     // hugs the bulbs (the peak AT the rim, falling smoothly — gone ~0.25 r out), drawn at 1.3 r (was a ring reaching 1.5 r)
-    if (!haze) { haze = canvas(160, 160); const x = haze.getContext('2d'); x.setTransform(1, 0, 0, 1, 80, 80); rimGlow(x, '240,232,236', 80 / 1.3, 80 * 0.97 / 1.3, 0.5, 0.03, 0.085); }
-    if (!pool) { pool = canvas(64, 64); const x = pool.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,236,214,0.55)'); g.addColorStop(0.5, 'rgba(236,226,232,0.16)'); g.addColorStop(1, 'rgba(220,220,240,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }
+    if (!haze) { haze = canvas(160, 160); const x = safeCtx(haze); x.setTransform(1, 0, 0, 1, 80, 80); rimGlow(x, '240,232,236', 80 / 1.3, 80 * 0.97 / 1.3, 0.5, 0.03, 0.085); }
+    if (!pool) { pool = canvas(64, 64); const x = safeCtx(pool), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,236,214,0.55)'); g.addColorStop(0.5, 'rgba(236,226,232,0.16)'); g.addColorStop(1, 'rgba(220,220,240,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }
   }
 
   const BR = () => Math.max(2.1, r * 0.058);                        // (NEON PASS 5: a little bigger bulbs)
@@ -380,7 +381,7 @@ export function createWheel() {
     if (!cache) cache = canvas(1, 1);
     const S = Math.ceil(CP * 2 * dpr);
     if (cache.width !== S || cache.height !== S) { cache.width = S; cache.height = S; }
-    const x = cache.getContext('2d');
+    const x = safeCtx(cache);
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, S, S);
     x.setTransform(dpr, 0, 0, dpr, (CP - cx) * dpr, (CP - cy) * dpr);
     paint(x, f, false);
