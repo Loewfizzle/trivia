@@ -2663,6 +2663,8 @@ The detail lives in docs/audio.md#city-20-music; this is the handoff.
   `scene.js` — so `&when= &speed=` and the preview panel move the music). Decks in `data/mood-music.json` `city2`; City 1.0's lists untouched.
 - **Setting:** `settings.musicMood` (AUTO + five moods), a row in the settings sheet, both cities; the lobby follows the HOST. A forced change (a picked mood, the party starting) crossfades 4 s
   (`music.js#switchNow`); a natural change waits for the song. The preview panel's MUSIC section (mood, SKIP, the song + its grid status) and `&mood=`; the readout's `music` line.
+  M4: the MUSIC row says where the mood comes from (THIS PANEL / THE MUSIC MOOD SETTING ON THIS PHONE / AUTO · THE CITY'S CLOCK) — the owner's "music
+  MORNING all day" was her phone's own setting; the panel's AUTO + CLEAR ALL put that setting back to AUTO (docs/audio.md#m4).
 - **Beat grids:** all 51 have one; **15 are not trusted** (docs/audio.md lists them: steady for the whole song AND the kicks land on it ≥ 50 % or a strong onset lock) — the city follows the
   kicks it hears on them (`untrusted` in `beatSource`, ignored by `advanceHarborBeat`). Ear-checked: no (no audio output here) — the offline replay of the real kick listener stands in for it.
 - **Tests:** `tests/city-music.test.mjs` (15), e2e-harbor group `music` (38 checks: the five preview links, the setting's crossfade + AUTO, natural vs forced, party start, `&mood=`, the panel row +

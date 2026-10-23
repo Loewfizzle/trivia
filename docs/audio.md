@@ -4,7 +4,9 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
 
 ## Audio
 - `installAudio()` (engine) + `installSettingsPanel()` run at boot. The AudioContext is created/resumed on the first
-  pointer/key event (iOS requires a gesture). `navigator.audioSession.type = 'ambient'` (iOS 17+).
+  pointer/key event (iOS requires a gesture). `navigator.audioSession.type` (iOS 17+) = `'playback'` while the music is on (plays with the
+  silent switch on, like YouTube), `'ambient'` with the music off / muted (M4 below). A dead graph never silences the music: the song falls
+  back to a plain `<audio>` element (THE DIRECT PATH, M4).
 - Music: `app.js` render calls `playMusic(track, fallback)` for the current state (menu for title/setup/lobby,
   `module.MUSIC` in a game, `'victory'` on the final phase with the game track as fallback). Same track = no-op (never
   restarts). Tracks load lazily (`prefetch` when the host opens a game's options or a match starts). Three `<audio>`
@@ -198,6 +200,69 @@ Her readout: `sync out 18 ms · lead −42 ms (22 kicks)` — no `(est)` / `(sta
   at 30 Hz — low-power mode; never less at 120 Hz); the 1024-sample window is 21 ms at the iPhone's 48 kHz vs 23 ms at 44.1 (≈ 1 ms).
 - **When it's heard:** a heard kick (the punches between beats, a song with no trusted grid) was released an extra listener's delay late —
   now at detection − lag + the output. The readout: `sync out 18 ms · lead −42 ms (22 kicks) · lag 24 ms`.
+
+## M4 — THE SESSION + THE DIRECT PATH (Oct 23 2026; both cities) — `audio/engine.js`, `audio/music.js`, `audio/diag.js`, `screens/harbor/remote.js`
+The owner's iPhone after M3, this time with the AUDIO panel's evidence (two taps, 8 s apart, after leaving Safari and coming back):
+`ctx running FROZEN · t 0.00 · rebuilds 5 → 6 (frozen clock) · session ambient/?` — `el … playing · t 45.2 → 53.6 · gain 0.00` — `probe 0.000`;
+each tap: `rebuild #6 (frozen clock) · new voices · rescue (tap) · resume ok (new context) · ctx → running · play ok (start) · clock frozen at
+0.00 s`. **What it says:** the song element really plays (iOS's own media pipeline advances it), but every NEW AudioContext — made inside a
+real `touchend`, its `resume()` resolved — never renders a single quantum: its clock stays at 0.00, the probe (an analyser inside the graph)
+hears digital silence, and the music gain is 0 only because its fade is a ramp scheduled on a clock that never moves (a symptom, not a cause).
+The element's sound exists only inside that dead graph (a MediaElementSource captures it for the element's life). Six contexts, none started.
+- **The hypotheses, against the code + the numbers** — (1) **THE AUDIO SESSION — the cause the evidence fits.** A context that is "started"
+  (`AudioOutputUnitStart` returned success, so WebKit resolves `resume()` and reports `running`) but whose render callback is never called is
+  exactly what Core Audio does while the app's AVAudioSession is not ACTIVE. The page set `navigator.audioSession.type = 'ambient'` on every
+  context since Stage 2 (iOS 17+): the AMBIENT category is deactivated the moment the app leaves the foreground, gets no "resume" hint after
+  another app's audio, and WebKit re-activates the session for a media element's playback — not for Web Audio alone (and the element here is
+  routed through the graph, so its play counts for the element, not the graph). It fits every number: `resume ok` + `running` + `t 0.00` on
+  a fresh context, the element advancing, the probe at 0, the first context of the visit fine (the session was fresh then). Not provable
+  without WebKit on this machine, so it is fixed AND covered by (4). (2) **Too many contexts** — ruled out as the cause: WebKit refuses a
+  context beyond its limit by THROWING on `new AudioContext` (the log shows `rebuild #6` made + `resume ok`); but it is real waste (a real-time
+  thread + an output unit per live graph; her readout showed 5–6 % slow frames in this state), so: the old context is closed FIRST, the
+  panel counts the ones alive (made − close() resolved), a failed `new AudioContext` is logged with its error name, and the rebuild loop is
+  capped (below). (3) **Gain stuck at 0** — a symptom: the fade is `linearRampToValueAtTime` on the frozen clock. Now a ramp asked on a
+  clock that is frozen or still at 0 (a fresh context) sets the value straight (`music.js#fade`, `engine.js#applyVolumes`). (4) **The media
+  element is captured** — true, and the basis of the fallback below. (5) Nothing else fits `running` + `t 0.00` + the element advancing.
+- **The session type** (`engine.js#setSession`): `'playback'` while the music is ON (the category every music app uses: it survives the
+  background, is re-activated with the element, and **plays with the ring / silent switch on silent** — like YouTube in Safari — and stops
+  other apps' music while ours plays), `'ambient'` only while the music is OFF or muted (effects only: mixes with other apps, respects the
+  switch). Set BEFORE the context is made and re-asserted inside every tap, on the way back on screen, on the session's `statechange` and
+  when the setting changes; the panel's `set` row says which, when and why.
+- **THE DIRECT PATH** (`music.js`): one more `<audio>` element, never connected to Web Audio — iOS's own pipeline plays it — activated with
+  the silent wav in the first gesture like the voices (so it may start later without a tap), re-armed in every tap if that failed. When the
+  graph is dead (a `running` context whose clock is seen stopped: the old one after the background, or the rebuilt one that never started)
+  the song moves onto it at its place — at once when it is armed (`onFrozen`), inside the tap otherwise. On it: no crossfades (a cut between
+  songs), the slider / ducks only where an element's volume works (not iOS), mute + MUSIC OFF mute the element, the beat follows the song's
+  grid (the kick listener hears nothing: `beatKick` reports `live: false` and `core/harbor-beat.js` falls back to the grid / calm). The
+  music button on it works as usual (a frozen context is not "silence" when the song sounds). At the next tap with the graph seen running
+  for 2 s (`engine.js#graphOk`) the song moves back onto a voice at its place (`backToGraph`: the fades, the kick listener again).
+- **Frozen, faster; the loop capped** (`engine.js`): a context that never started (clock 0.00 after 0.7 s of `running`) is frozen at once
+  (was 1.5 s); a tap looks at the clock itself (`running`, not past the watcher's sample of ≥ 300 ms ago, the page on screen ≥ 500 ms = frozen
+  NOW — the owner's tap right after coming back did nothing before). A rebuilt context that freezes too is NOT rebuilt again for 20 s
+  (`REBUILD_GAP`): the direct element plays meanwhile; after that one more try (with the session type re-asserted). So: one rebuild per
+  return, not one per tap.
+- **The panel** (`audio/diag.js`): `alive N (made M, closed K)`, `session type/state` (`n/a` when Safari has no `state`), a `set` row (the type
+  asked for, when, why), an `out` row (`WEB AUDIO` / `DIRECT ELEMENT`, the direct element armed or not), `DIRECT` in the title, the events
+  `session → playback (tap)`, `direct element (frozen clock) from 45.2 s`, `back to web audio (tap)`, `rebuild #n (why) · alive k`,
+  `new context ✗ QuotaExceededError` if iOS ever refuses one. It repaints only when its text changed (a fixed layer over the canvas).
+- **The preview panel's MUSIC row** (`screens/harbor/remote.js`): the owner's test session read "music MORNING" all day — her phone's own
+  MUSIC MOOD setting was forcing it while the panel's AUTO chip was on. The row now says where the mood comes from (`PLAYING MORNING — THE
+  MUSIC MOOD SETTING ON THIS PHONE` / `THIS PANEL` / `AUTO · THE CITY'S CLOCK`), and the panel's AUTO + CLEAR ALL also put that setting
+  back to AUTO (a toast says so); AUTO then follows the city's (preview) clock (`audio/mood.js#fixedMoodFrom`).
+- **Tests:** e2e-harbor `music` §8 THE EVIDENCE — on §7's gesture rule, every context made after "leaving" has a clock pinned at 0 (while
+  `running`, `resume` ok) and `navigator.audioSession` exists: back + one tap → the direct element within ~2 s, the same song from its place,
+  ONE rebuild (the new one seen frozen within a second), a second tap makes no third context, the old ones closed, the panel's rows, the
+  music button OFF → 'ambient' / ON → 'playback', the clock moving again + a tap → back on a voice at its place; §7 reworked for the
+  direct path + the rebuild cap; the M2 scenarios unchanged (76 checks); audio-resume.mjs (City 1.0); smoke.
+- **What the owner should do** (iPhone, Safari, `neonspeakeasy.com/?city=2&debug=1`, music ON): tap once so the music plays; leave Safari for
+  another app for ~30 s; come back; tap once on the city. Also: lock the phone for a minute; play a podcast in another app, stop it, come
+  back. Each time the music should be back within a second or two of the tap (the panel's title says `DIRECT` if the graph was dead and the
+  element took over; a later tap moves it back). Still silent → ONE screenshot of the expanded AUDIO panel (it now shows the session type
+  set, the contexts alive, the output path, the direct element armed or not, and the last events).
+- **Known issues:** the lobby's synced song (decoded buffers on the audio clock) has no direct path: with a dead graph it waits for the
+  rebuild (with the session type fixed it should run; if her panel ever shows `DIRECT` in a lobby, that is the next piece). e2e-lobbysong's
+  STUCK check ("from its first moment back … at the room's place": 9.5 s here vs 16.1 s on the host) fails the same way on the commit before
+  this pass — not from this pass; to look at next. The direct element's volume is iOS's (the slider / ducks don't apply there).
 
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,

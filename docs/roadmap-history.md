@@ -786,6 +786,25 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ THE iPHONE MUSIC BUG, M4 (Oct 23, 2026) — `docs/audio.md#m4` (the owner's iPhone after M3, with the AUDIO panel's evidence)
+- [x] The evidence read: every NEW context made inside a real tap says `running` (resume ok) and its clock never leaves 0.00 while the song
+      element plays on and the probe hears nothing (six rebuilds, none started) = a started output unit never called: the AVAudioSession
+      inactive — the page set `audioSession.type = 'ambient'` (deactivated in the background, re-activated for an element, not for Web Audio)
+- [x] The fix: `'playback'` while the music is on (plays with the silent switch on, like YouTube in Safari; stops other apps' music),
+      `'ambient'` off / muted — set before the context, re-asserted in every tap / back on screen / statechange / settings
+- [x] THE DIRECT PATH: a plain `<audio>` element (never in the graph) takes the song at its place when the graph is dead — at once if armed,
+      else in the tap; muted by mute / MUSIC OFF; the beat on the grid; back onto a voice at a tap once a context's clock has run 2 s
+- [x] Frozen seen in 0.7 s for a context that never started and at the tap itself; a rebuilt context that froze is not rebuilt again for 20 s
+      (the loop that cost 5–6 % slow frames); the old context closed first; the contexts alive counted; a refused `new AudioContext` logged;
+      a fade on a stopped clock sets the value straight; the voices + the direct element re-armed in every tap; hiding the page no longer
+      aborts a pending activation
+- [x] The AUDIO panel: `alive`, the session type set (when, why), the output path (`WEB AUDIO` / `DIRECT ELEMENT`), `DIRECT` in the title,
+      repaints only on change
+- [x] The preview panel's MUSIC row says where the mood comes from (the phone's MUSIC MOOD setting was forcing MORNING all day); AUTO +
+      CLEAR ALL put that setting back to AUTO
+- [x] e2e-harbor music §8 THE EVIDENCE (the frozen fresh contexts + the session, emulated) + §7 reworked: 76/76; audio-resume; smoke;
+      units 491. e2e-lobbysong's STUCK check fails the same on the previous commit (Known issues)
+
 ### ✅ CITY 2.0 — FIX PASS M3 (Oct 23, 2026) — `docs/harbor.md#m3-fix-pass`, `docs/audio.md#m3` (the owner's iPhone: the music still dies; the billboard dark; the brick flat; the small clouds cheap)
 - [x] The music bug made visible: THE AUDIO PANEL (`&debug=1`, both cities, any screen — the context + its clock, the song element, what should
       play, the last 8 events with times: visibility, page show / hide, taps, every resume + play with its result or error)

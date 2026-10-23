@@ -1,13 +1,16 @@
 // THE AUDIO DIAGNOSTIC (&debug=1, both cities, every screen — M3, the owner's iPhone: "the music still doesn't come back").
 // This machine can't run WebKit, so the phone tells us: one screenshot after the bug shows where the music died —
 //   ctx   the AudioContext: state (running / suspended / interrupted / closed), its clock moving (▲) or not (■), rebuilds,
-//         navigator.audioSession (iOS 17+: type/state)
+//         contexts alive (made − closed), navigator.audioSession (iOS 17+: type/state — n/a when Safari has no `state`)
+//   set   (M4) the session type this page asked for, when and why ('playback' with the music on, 'ambient' effects-only)
 //   el    the song's <audio> element: playing / paused, readyState, networkState, error code, its clock ▲ / ■, its gain, the file
+//   out   (M4) the path the music is on: WEB AUDIO (a voice through the graph) or DIRECT ELEMENT (iOS's own pipeline), the direct
+//         element armed or not, the voices, the probe's level
 //   want  what should be playing (+ music off / muted), sounding yes / NO, needs a tap, a dead voice, the last heal
 //   then  the last 8 events with times: visibility, pagehide / pageshow (persisted), blur / focus, each tap (+ the context's state
-//         then), every resume() and play() with its result or the error's name, rebuilds, frozen clocks, rescues.
+//         then), every resume() and play() with its result or the error's name, rebuilds, frozen clocks, rescues, the direct path.
 // Tap the AUDIO title to fold it to one line (remembered for the visit). Pointer events pass through everything else; the right
-// 64 px stay clear (the corner buttons: gear, music, menu).
+// 64 px stay clear (the corner buttons: gear, music, menu). It repaints only when its text changed (a fixed layer over the canvas).
 import { musicDiag } from './music.js';
 
 const CSS = `
@@ -38,8 +41,8 @@ export function mountAudioDiag() {
   try { fold = sessionStorage.getItem(KEY) === '1'; } catch { /* private mode */ }
   box.classList.toggle('ad-fold', fold);
   head.addEventListener('click', () => { fold = !fold; box.classList.toggle('ad-fold', fold); try { sessionStorage.setItem(KEY, fold ? '1' : '0'); } catch { /* fine */ } paint(); });
-  let prevCtx = null, prevEl = null;
-  const line = (cls, text) => { const s = document.createElement('div'); s.className = cls; s.textContent = text; return s; };
+  let prevCtx = null, prevEl = null, lastText = '', lastHead = '';
+  const line = (cls, text) => [cls, text];
   function paint() {
     let d;
     try { d = musicDiag(); } catch (e) { head.textContent = 'AUDIO — ' + (e && e.message); return; }
@@ -52,19 +55,24 @@ export function mountAudioDiag() {
     const elOk = !!d.el && !d.el.paused && !d.el.err && elMoves !== false;
     const should = !!d.want && !d.off;
     const okAll = !should || d.sounding;
-    head.textContent = `AUDIO ${fold ? '▸' : '▾'} ${okAll ? 'sounding' : 'NOT SOUNDING'} · ctx ${E.state} · el ${d.el ? (d.el.paused ? 'paused' : 'playing') : 'none'} · ${hhmmss(Date.now())}`;
-    head.className = 'ad-h ' + (okAll ? 'ad-ok' : 'ad-bad');
+    // (the title carries the clock: it changes every half second — the body only when something happened)
+    const h = `AUDIO ${fold ? '▸' : '▾'} ${okAll ? 'sounding' : 'NOT SOUNDING'} · ctx ${E.state} · el ${d.el ? (d.el.paused ? 'paused' : 'playing') : 'none'}${d.out === 'direct' ? ' DIRECT' : ''} · ${hhmmss(Date.now())}`;
+    if (h !== lastHead) { lastHead = h; head.textContent = h; head.className = 'ad-h ' + (okAll ? 'ad-ok' : 'ad-bad'); }
     if (fold) return;
     const rows = [
-      line(ctxOk ? 'ad-ok' : 'ad-bad', `ctx ${E.state}${E.frozen ? ' FROZEN' : ''} · t ${E.time.toFixed(2)} ${arrow(ctxMoves)} · rebuilds ${E.rebuilds}${E.why ? ` (${E.why})` : ''}${E.stuck ? ' · STUCK' : ''}${E.unlocked ? '' : ' · locked (no tap yet)'}${E.session ? ` · session ${E.session}` : ''}`),
+      line(ctxOk ? 'ad-ok' : 'ad-bad', `ctx ${E.state}${E.frozen ? ' FROZEN' : ''} · t ${E.time.toFixed(2)} ${arrow(ctxMoves)} · rebuilds ${E.rebuilds}${E.why ? ` (${E.why})` : ''}${E.stuck ? ' · STUCK' : ''}${E.unlocked ? '' : ' · locked (no tap yet)'} · alive ${E.alive} (made ${E.made}, closed ${E.closed})${E.session ? ` · session ${E.session}` : ''}`),
+      line('ad-ok', `set ${E.sessionSet && E.sessionSet.type ? `${E.sessionSet.type} at ${hhmmss(E.sessionSet.at)} (${E.sessionSet.why})` : E.session ? 'nothing yet' : 'no audioSession API'}`),
       line(elOk || !should ? 'ad-ok' : 'ad-bad', d.el
         ? `el ${d.playing} ${d.el.paused ? 'PAUSED' : 'playing'} · ready ${d.el.ready} · net ${d.el.net} · err ${d.el.err || '–'} · t ${d.el.t.toFixed(1)} ${arrow(elMoves)} · gain ${d.el.gain.toFixed(2)}${d.el.broken ? ' · BROKEN' : ''}${d.still ? ' · STILL' : ''}`
         : `el none${d.carry ? ` (carrying ${d.carry} to new voices)` : ''} · voices ${d.voices}`),
-      line('ad-ok', `src ${d.el ? d.el.src : '–'} · voices ${d.voices} (${d.armed} armed) · probe ${d.peak < 0 ? '?' : d.peak.toFixed(3)}`),
+      line(d.out === 'direct' ? 'ad-ok' : 'ad-ok', `out ${d.out === 'direct' ? 'DIRECT ELEMENT' : 'WEB AUDIO'} · direct ${d.direct} · src ${d.el ? d.el.src : '–'} · voices ${d.voices} (${d.armed} armed) · probe ${d.peak < 0 ? '?' : d.peak.toFixed(3)}`),
       line(okAll ? 'ad-ok' : 'ad-bad', `want ${d.want || 'nothing'}${d.off ? ` (${d.off})` : ''} · sounding ${yes(d.sounding)}${d.needTap ? ' · NEEDS TAP' : ''}${d.dead ? ' · DEAD VOICE' : ''}${d.ended ? ' · ended' : ''} · heals ${d.heals}${d.last ? ` (${d.last})` : ''}`),
       ...d.events.slice(-8).map(e => line('ad-ev', `${hhmmss(e.at)} ${e.m}`)),
     ];
-    body.replaceChildren(...rows);
+    const text = rows.map(r => r.join('\u0001')).join('\n');
+    if (text === lastText) return;
+    lastText = text;
+    body.replaceChildren(...rows.map(([cls, t]) => { const s = document.createElement('div'); s.className = cls; s.textContent = t; return s; }));
   }
   paint();
   setInterval(() => { if (document.visibilityState === 'visible') paint(); }, 500);

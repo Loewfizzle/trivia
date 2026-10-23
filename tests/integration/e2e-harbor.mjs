@@ -933,7 +933,7 @@ G('music', async () => {
     const H = () => ev(p, 'window.__arcade.musicDebug().health');
     const cur = () => ev(p, `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return { id: d.playing, t: v ? v.t : -1, paused: v ? v.paused : true, ctx: d.health.state }; })()`);
     const vis = v => ev(p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
-    const PLAYING = `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return !!v && !v.paused && d.health.state === 'running' && d.health.sounding; })()`;
+    const PLAYING = `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return !!d.playing && d.health.sounding && (d.out === 'direct' || (!!v && !v.paused && d.health.state === 'running')); })()`;
     const playingOn = async (what, ms = 8000) => { try { await waitFor(p, PLAYING, what, ms); return true; } catch { return false; } };
     const first = await start(p);
     await sleep(2500);
@@ -1020,7 +1020,7 @@ G('music', async () => {
     const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&debug=1`, view: [402, 874], init: iosRule });
     const p = P.page;
     const vis = v => ev(p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
-    const PLAYING = `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return !!v && !v.paused && d.health.state === 'running' && d.health.sounding; })()`;
+    const PLAYING = `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return !!d.playing && d.health.sounding && (d.out === 'direct' || (!!v && !v.paused && d.health.state === 'running')); })()`;
     const playingOn = async (what, ms = 6000) => { try { await waitFor(p, PLAYING, what, ms); return true; } catch { return false; } };
     await tapAt(p, 30, 300);
     ok(await playingOn('iOS rule: the first tap'), 'iOS RULE: the FIRST tap starts the music (play() + resume() only count inside touchend / click)');
@@ -1038,18 +1038,114 @@ G('music', async () => {
     ok(await ev(p, `!!document.elementFromPoint(${mb[0]}, ${mb[1]}).closest('.music-btn')`), 'iOS RULE: the tap lands on the music button itself (the AUDIO block keeps clear of it)');
     await tapAt(p, mb[0], mb[1]);
     ok(await playingOn('iOS rule: the music button') && await ev(p, `!JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff`), 'iOS RULE: stuck — one tap on the MUSIC BUTTON plays (and leaves it ON)');
-    // a FROZEN context: it says "running" but its clock has stopped (a WebKit bug after the background) — seen, one tap rebuilds it
+    // a FROZEN context: it says "running" but its clock has stopped (a WebKit bug after the background) — seen; ONE tap gives music
+    // (M4: through the direct element if it is armed, else a rebuilt context), the tap rebuilds the context; a tap once the new one
+    // has run for 2 s has the song on a voice through the graph (its fades, the kick listener). (§8 covers the no-tap case.)
+    const f0 = await ev(p, 'window.__arcade.musicDebug().at');
     await ev(p, `import('/js/audio/engine.js').then(e => e.simulateFrozen())`);
     await waitFor(p, 'window.__arcade.musicDebug().health.frozen', 'the frozen clock seen', 6000).catch(() => {});
     const fz = await ev(p, 'window.__arcade.musicDebug().health');
-    ok(fz.frozen && !fz.sounding, `FROZEN: a "running" context whose clock stopped is seen (not sounding) (${fz.state}, frozen ${fz.frozen})`);
+    ok(fz.frozen, `FROZEN: a "running" context whose clock stopped is seen (${fz.state}, frozen ${fz.frozen})`);
     await tapAt(p, 30, 300);
-    ok(await playingOn('iOS rule: one tap after a frozen clock'), 'FROZEN: one tap — a fresh context, playing');
+    ok(await playingOn('iOS rule: one tap after a frozen clock', 3000), `FROZEN: one tap — music (${JSON.stringify(await ev(p, '(() => { const d = window.__arcade.musicDebug(); return { out: d.out, at: d.at, rebuilds: d.health.rebuilds, last: d.health.last }; })()'))}, was at ${f0} s)`);
+    // (this context was itself born of a rebuild seconds ago: the tap makes NO third one within 20 s — the loop her readout showed — the
+    // direct element carries the music meanwhile; §8 has the way back onto a voice once a context's clock runs)
+    const fr = await ev(p, 'window.__arcade.musicDebug().health.rebuilds');
+    await sleep(1500); await tapAt(p, 30, 300); await sleep(600);
+    const fh = await ev(p, '(() => { const d = window.__arcade.musicDebug(); return { out: d.out, rebuilds: d.health.rebuilds, sounding: d.health.sounding, last: d.health.last }; })()');
+    ok(fh.rebuilds === fr && fh.out === 'direct' && fh.sounding, `FROZEN: a rebuilt context that froze is not rebuilt again within 20 s (rebuilds ${fr} → ${fh.rebuilds}); the direct element plays on (${fh.out}, sounding ${fh.sounding})`);
     // the readout's AUDIO block (&debug=1): states + the last events, so one screenshot after the bug says where it died
     await sleep(700);
     const diag = await ev(p, `(() => { const d = document.querySelector('.ad-diag'); return d ? d.textContent : ''; })()`);
     ok(/ctx running/.test(diag) && /el .*playing/.test(diag) && /touchend|click/.test(diag) && /rebuild/.test(diag), `DIAGNOSTIC: the AUDIO block shows the context, the element + the events ("${diag.slice(0, 160)}…")`);
     if (SHOTS) await p.screenshot({ path: `${OUT}music-diag-402x874.png` });
+    await P.ctx.close(); }
+
+  // ---- 8. THE EVIDENCE (M4 — the owner's iPhone, Oct 23, after leaving the app and coming back): every NEW AudioContext, made inside a
+  // real touchend, says 'running' (resume ok) and its clock NEVER moves (0.00), the song element plays on (its clock advancing), the
+  // probe hears nothing — six rebuilds, none ever started. Emulated on §7's gesture rule: once __deadGraph is on, every new context's
+  // clock reads 0 for ever (the real one runs underneath); navigator.audioSession is given (iOS 17+). Expected: the music through the
+  // DIRECT element within ~2 s of coming back (one tap or none), ONE rebuild, no loop; the session type 'playback' with the music on,
+  // 'ambient' off; back onto a voice once a context's clock really runs; the AUDIO panel saying all of it.
+  { const evidence = { fn: () => {
+      let g = 0;
+      const gesture = e => { if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return; g++; setTimeout(() => { g--; }, 0); };
+      for (const t of ['touchend', 'click', 'keydown', 'pointerdown']) window.addEventListener(t, gesture, { capture: true });
+      const okEl = new WeakSet(), okCtx = new WeakSet();
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        if (g > 0) okEl.add(this);
+        if (!okEl.has(this)) return Promise.reject(new DOMException('not in a gesture (emulated iOS)', 'NotAllowedError'));
+        return play.call(this);
+      };
+      const AC = window.AudioContext, resume = AC.prototype.resume;
+      const realTime = Object.getOwnPropertyDescriptor(BaseAudioContext.prototype, 'currentTime').get;
+      window.__deadGraph = false; window.__contexts = 0;
+      AC.prototype.resume = function () { if (g > 0) okCtx.add(this); return okCtx.has(this) ? resume.call(this) : new Promise(() => {}); };
+      window.AudioContext = class extends AC { constructor(o) {
+        super(o); window.__contexts++;
+        if (g > 0) okCtx.add(this); else AC.prototype.suspend.call(this);
+        // the evidence: a context born while the session is dead renders nothing, ever — its clock stays at 0.00 (while 'running')
+        if (window.__deadGraph) { const me = this; Object.defineProperty(this, 'currentTime', { get: () => (window.__deadGraph ? 0 : realTime.call(me)), configurable: true }); }
+      } };
+      const session = { type: 'auto', state: 'active', log: [], addEventListener() {} };
+      Object.defineProperty(navigator, 'audioSession', { get: () => session, configurable: true });
+      const t = Object.getOwnPropertyDescriptor(session, 'type');
+      let type = 'auto';
+      Object.defineProperty(session, 'type', { get: () => type, set: v => { type = v; session.log.push(v); }, configurable: true });
+      void t;
+    } };
+    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&debug=1`, view: [402, 874], init: evidence });
+    const p = P.page;
+    const vis = v => ev(p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
+    const D = () => ev(p, `(() => { const d = window.__arcade.musicDebug(); return { id: d.playing, at: d.at, out: d.out, sounding: d.health.sounding, rebuilds: d.health.rebuilds, frozen: d.health.frozen, alive: d.health.alive, made: d.health.made, time: d.health.time, last: d.health.last, session: navigator.audioSession.type, set: d.health.sessionSet.type, contexts: window.__contexts }; })()`);
+    const SOUND = `(() => { const d = window.__arcade.musicDebug(); return !!d.playing && d.health.sounding; })()`;
+    await tapAt(p, 30, 300);
+    await waitFor(p, SOUND, 'the first song', 25000);
+    const e0 = await D();
+    ok(e0.out === 'web' && e0.session === 'playback' && e0.set === 'playback', `EVIDENCE: music on, through the graph; the audio session asked for 'playback' before the context was made (session ${e0.session}, set ${e0.set})`);
+    await sleep(2000);
+    // leave: the old context's clock stops; the session is dead for every context made from now on
+    const a0 = await D();
+    await vis('hidden'); await sleep(400);
+    await ev(p, `import('/js/audio/engine.js').then(e => e.simulateFrozen())`);
+    await ev(p, 'window.__deadGraph = true');
+    await vis('visible');
+    // a tap (the owner's first tap, a moment after coming back): the old clock, seen stopped AT THE TAP → the direct element inside it;
+    // the tap rebuilds the context; the new one never starts (its clock 0.00) — seen within a second, no second rebuild
+    await sleep(800); await tapAt(p, 30, 300);
+    const t0 = Date.now();
+    ok(await waitFor(p, `${SOUND} && window.__arcade.musicDebug().out === 'direct'`, 'the direct element', 4000).catch(() => false), `EVIDENCE: back + one tap — the music sounds through the DIRECT element within ${((Date.now() - t0) / 1000).toFixed(1)} s (${JSON.stringify(await D())})`);
+    const a1 = await D();
+    ok(a1.id === a0.id && Math.abs(a1.at - a0.at) < 5, `EVIDENCE: the same song (${a0.id}) from its place (${a0.at} → ${a1.at} s)`);
+    await waitFor(p, 'window.__arcade.musicDebug().health.frozen && window.__arcade.musicDebug().health.rebuilds >= 1', 'the rebuilt context seen frozen', 4000).catch(() => {});
+    const a2 = await D();
+    ok(a2.rebuilds === 1 && a2.frozen && a2.time === 0, `EVIDENCE: the tap rebuilt ONCE; the new context never started (t ${a2.time}, frozen ${a2.frozen}) — seen within a second, not 1.5 s`);
+    // a second tap 2 s later (the owner's, 8 s later): NO new context — the direct element keeps playing
+    await sleep(2000); await tapAt(p, 30, 300); await sleep(800);
+    const a3 = await D();
+    ok(a3.rebuilds === 1 && a3.out === 'direct' && a3.sounding && a3.at > a1.at, `EVIDENCE: a second tap makes no third context (rebuilds ${a3.rebuilds}, contexts made ${a3.contexts}); still sounding, direct, the song advancing (${a1.at} → ${a3.at} s)`);
+    ok(a3.alive <= 2, `EVIDENCE: the old contexts are closed (alive ${a3.alive}, made ${a3.made})`);
+    // the panel says it
+    const diag = await ev(p, `(() => { const d = document.querySelector('.ad-diag'); return d ? d.textContent : ''; })()`);
+    ok(/out DIRECT ELEMENT/.test(diag) && /alive \d/.test(diag) && /set playback at/.test(diag) && /FROZEN/.test(diag), `PANEL: the AUDIO block shows the output path, the contexts alive, the session type set + the frozen clock ("${diag.slice(0, 200)}…")`);
+    // the music button on the direct path: OFF mutes it (+ the session goes 'ambient'); ON again plays (+ 'playback')
+    const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+    await sleep(1600);        // (a tap within 1.5 s of a rescue is part of the same "play")
+    await tapAt(p, mb[0], mb[1]); await sleep(500);
+    const off = await ev(p, `import('/js/audio/music.js').then(m => ({ off: JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff, gain: m.musicDiag().el.gain, session: navigator.audioSession.type }))`);
+    ok(off.off === true && off.gain === 0 && off.session === 'ambient', `MUSIC BUTTON on the direct path: OFF (${off.off}, the element muted: gain ${off.gain}) — the session back to 'ambient' (${off.session})`);
+    await tapAt(p, mb[0], mb[1]);
+    ok(await waitFor(p, `${SOUND} && !JSON.parse(localStorage.getItem('na:settings')).musicOff && navigator.audioSession.type === 'playback'`, 'music on again', 4000).catch(() => false), `MUSIC BUTTON on the direct path: ON again — sounding, 'playback' (${JSON.stringify(await D())})`);
+    // the session comes back (the direct element's playback re-activated it): the rebuilt context's clock starts moving → back onto a voice at a tap
+    await ev(p, 'window.__deadGraph = false');
+    await waitFor(p, 'window.__arcade.musicDebug().health.ok', 'the graph seen running for 2 s', 6000).catch(() => {});
+    const b0 = await D();
+    await tapAt(p, 30, 300);
+    ok(await waitFor(p, `${SOUND} && window.__arcade.musicDebug().out === 'web'`, 'back to web audio', 5000).catch(() => false), `RECOVERY: the clock moving again for 2 s + one tap — the song back on a voice through the graph (${JSON.stringify(await D())})`);
+    const b1 = await D();
+    ok(b1.id === b0.id && Math.abs(b1.at - b0.at) < 4 && b1.rebuilds === 1, `RECOVERY: the same song from its place (${b0.at} → ${b1.at} s), no extra context`);
+    if (SHOTS) await p.screenshot({ path: `${OUT}music-evidence-402x874.png` });
     await P.ctx.close(); }
 
   // ---- 5. City 1.0 (no flag) is untouched: its own decks, and the same setting

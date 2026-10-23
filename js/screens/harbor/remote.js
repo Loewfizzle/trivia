@@ -20,7 +20,8 @@ import { api as apiCall } from '../../profile/api.js';
 import * as R from '../../core/harbor-remote.js';
 import { songInfo } from '../../audio/beat.js';
 import { switchNow } from '../../audio/music.js';
-import { moodNow, MOOD_LABEL } from '../../audio/mood.js';
+import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../../audio/mood.js';
+import { settings, updateSettings } from '../../audio/settings.js';
 
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin';
 const ss = {
@@ -166,7 +167,14 @@ export function createRemote({ scene, api = apiCall }) {
     } catch (e) { toast(`NOT SENT — ${String(e && e.message || e).toUpperCase().slice(0, 60)}`, 'err', 4000); }
     sendBusy = false; render(); apply();
   }
+  // the phone's own MUSIC MOOD setting forcing a mood (the panel's AUTO + CLEAR ALL put it back to AUTO; M4)
+  function autoSetting() {
+    if ((settings.musicMood || 'auto') === 'auto') return;
+    updateSettings({ musicMood: 'auto' });
+    toast('MUSIC MOOD SETTING BACK TO AUTO', 'info');
+  }
   async function clearAll() {
+    autoSetting();
     if (mode === 'me') { edit((s, u) => { for (const k of Object.keys(s)) delete s[k]; for (const k of Object.keys(u)) delete u[k]; }); toast('BACK TO THE REAL CITY', 'info'); return; }
     draft = { state: {}, ui: {} };
     if (!api || sendBusy) { render(); return; }
@@ -197,10 +205,12 @@ export function createRemote({ scene, api = apiCall }) {
   function paintMusic() {
     if (!musicEl) return;
     const i = songInfo();
-    const mood = MOOD_LABEL[moodNow()];
+    const mood = MOOD_LABEL[moodNow()], f = fixedMoodFrom();
+    // (M4, the owner: "music MORNING all day" — the phone's own MUSIC MOOD setting was forcing it while the panel said AUTO: say where it comes from)
+    const from = !f ? 'AUTO · THE CITY’S CLOCK' : f.from === 'panel' ? 'THIS PANEL' : 'THE MUSIC MOOD SETTING ON THIS PHONE';
     const line = i ? `${i.id}${i.bpm ? ` · ${i.bpm.toFixed(1)} bpm` : ''} · ${mmss(i.at)}${i.dur ? ` / ${mmss(i.dur)}` : ''}` : 'NO SONG — TAP THE CITY FOR SOUND, MUSIC ON';
     const grid = i ? `GRID ${i.grid.toUpperCase()}${i.lock != null ? ` · LOCK ${i.lock}` : ''}${i.grid === 'NOT TRUSTED' ? ' · THE KICKS LEAD' : ''}` : '';
-    musicEl.replaceChildren(h('div.hr-line', h('b', `PLAYING ${mood}`), h('span', line), grid ? h('small', { class: i.grid === 'NOT TRUSTED' ? 'hr-warn' : null }, grid) : null));
+    musicEl.replaceChildren(h('div.hr-line', h('b', `PLAYING ${mood} — ${from}`), h('span', line), grid ? h('small', { class: i.grid === 'NOT TRUSTED' ? 'hr-warn' : null }, grid) : null));
   }
   function statusText() {
     const now = serverNow();
@@ -251,7 +261,8 @@ export function createRemote({ scene, api = apiCall }) {
         ...R.HOLIDAYS.map(hd => btn(hd.label, st.hol === hd.id, () => edit((s, u) => { s.hol = hd.id; delete u.custom; retime({ state: s, ui: u }); }))))));
     kids.push(sec('MUSIC',
       h('div.hr-gl', 'MOOD'),
-      grid(btn('AUTO', !st.mood, () => edit(s => { delete s.mood; })), ...R.MUSIC_MOODS.map(m => btn(m.label, st.mood === m.id, () => edit(s => { s.mood = m.id; })))),
+      // (AUTO here means AUTO: it also puts this phone's MUSIC MOOD setting back to AUTO, so the city's clock really decides)
+      grid(btn('AUTO', !st.mood, () => { autoSetting(); edit(s => { delete s.mood; }); }), ...R.MUSIC_MOODS.map(m => btn(m.label, st.mood === m.id, () => edit(s => { s.mood = m.id; })))),
       musicEl = h('div.hr-status.hr-music', { 'aria-live': 'off' }),
       h('div.hr-row', btn('SKIP TO THE NEXT SONG', false, async () => { const ok = await switchNow(2); toast(ok ? 'NEXT SONG' : 'NOTHING TO SKIP — THE ROOM’S SONG IS THE HOST’S', ok ? 'info' : 'warn'); paintMusic(); }, { cls: 'hr-wide', title: 'this phone only' }))));
     kids.push(sec('TOOLS', grid(btn('READOUT', !!st.debug, () => edit(s => { if (s.debug) delete s.debug; else s.debug = true; })),

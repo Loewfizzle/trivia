@@ -174,4 +174,10 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"`
     (`scripts/serve.mjs` gzips like Vercel so the numbers are representative).
 
+- THE MUSIC ON AN iPHONE (docs/audio.md#m2 / #m3 / #m4): `ONLY=music node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 90 s, the emulators) — §6 the
+  M2 scenarios (leave + come back, stuck, the music button, a network error, the OS pause, bfcache, a dead voice), §7 iOS's gesture rule
+  emulated (play() / resume() refused outside touchend / click; a frozen clock → the direct element, the rebuild cap), §8 THE EVIDENCE
+  (every new context's clock pinned at 0 while 'running' + `navigator.audioSession`: the direct element within ~2 s of one tap, one rebuild,
+  the session 'playback' / 'ambient', back onto a voice once a clock runs); `node audio-resume.mjs "<browser>"` (City 1.0: an OS pause + one
+  tap, the watchdog); `node e2e-lobbysong.mjs` (the room's song; its STUCK check fails since before M4 — docs/audio.md#m4 Known issues).
 - MOOD MUSIC: `node --test tests/mood.test.mjs` (boundaries, the bag, the song file) and `node e2e-mood.mjs "<browser>"` (title, mood change at a song's end, CLASSIC, every preview mood, lobby sync + late joiner + host migration, a game's own music, the public board's first tap).

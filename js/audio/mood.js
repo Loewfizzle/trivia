@@ -28,14 +28,16 @@ export function moodAt(p, rise = 6.5, set = 19) {
 
 /** The mood the listener CHOSE, or null for AUTO: the preview panel's / a link's &mood= (City 2.0, a preview — it wins over the
  *  saved setting) or the MUSIC MOOD setting (both cities; saved per device). */
-export function fixedMood() {
+export function fixedMood() { const f = fixedMoodFrom(); return f ? f.mood : null; }
+/** ... and where the choice comes from: { mood, from: 'panel' (the preview panel / a link's &mood=) | 'setting' (MUSIC MOOD) } or null (AUTO) */
+export function fixedMoodFrom() {
   let q = null;
   try {
     const cc = isCity2() ? cityClock() : null;
     q = cc && cc.q ? cc.q('mood') : typeof location !== 'undefined' && isCity2() ? new URLSearchParams(location.search).get('mood') : null;
   } catch { q = null; }
-  if (q && MOODS.includes(q)) return q;
-  return MOODS.includes(settings.musicMood) ? settings.musicMood : null;
+  if (q && MOODS.includes(q)) return { mood: q, from: 'panel' };
+  return MOODS.includes(settings.musicMood) ? { mood: settings.musicMood, from: 'setting' } : null;
 }
 
 // CITY 2.0 has no clock of its own until the Harbor registers one (core/city.js); until then, one for the page (a running &when=)
