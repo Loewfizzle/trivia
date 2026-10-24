@@ -3046,7 +3046,7 @@ test('PF — THE PREVIEW PANEL lists the centrepiece test under PROMENADE', () =
 // (helper B: street.js, strings.js, speakeasy.js's blade, signs.js's billboard lamps)
 import { streetLook, CURB_STEP, SHEEN } from '../js/screens/harbor/street.js';
 import { STRINGS_ON, createStrings, BULB, CANOPY, frontProfile } from '../js/screens/harbor/strings.js';
-import { MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, WASH, washCone, BLADE, LETTER, bladeLetters } from '../js/screens/harbor/speakeasy.js';
+import { MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, WASH, washCone, BLADE, LETTER, bladeLetters, bladeWords, BLADE_ONE } from '../js/screens/harbor/speakeasy.js';
 import { ROOM_TINT, LATE_TINT, lateOf, SASH_RAIL } from '../js/screens/harbor/windows.js';
 const pfLum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 test('PF — THE STREET reads as its own surface: tarred setts darker + cooler than the promenade\'s, tar in the joints (never black at night), the worn paths\' sheen, a clear curb step', () => {
@@ -3054,7 +3054,9 @@ test('PF — THE STREET reads as its own surface: tarred setts darker + cooler t
   for (const [name, T, prom] of [['day', { day: 1 }, PROM.d], ['night', { night: 1 }, PROM.n]]) {
     const K = streetLook(T);
     assert.ok(pfLum(K.sett) < 0.8 * pfLum(prom), `${name}: the street's setts ${pfLum(K.sett).toFixed(0)} vs the promenade's ${pfLum(prom).toFixed(0)}`);
-    assert.ok(K.sett[2] >= K.sett[0], `${name}: cool (blue ≥ red)`);
+    // (8P — the owner: a reddish brick street, muted + aged: red leads, never saturated — the city keeps the eye)
+    assert.ok(K.sett[0] > K.sett[1] && K.sett[0] > K.sett[2], `${name}: oxblood (red leads)`);
+    assert.ok(Math.max(...K.sett) - Math.min(...K.sett) < (name === 'night' ? 30 : 60), `${name}: muted, never a saturated red`);
     assert.ok(pfLum(K.grout) < 0.75 * pfLum(K.sett), `${name}: tar in the joints, darker than the stones`);
     assert.ok(pfLum(K.grout) > (name === 'night' ? 20 : 40), `${name}: the joints never black (${pfLum(K.grout).toFixed(0)})`);
     assert.ok(pfLum(K.gut) < pfLum(prom), `${name}: the gutter darker than the promenade's stone`);
@@ -3103,9 +3105,11 @@ test('SP2 — THE MARQUEE (crest + foot only — the letters get the long sides)
 test('SP2 — THE BLADE READS for every game: big letters filling the board (one column a word), never a sliver', () => {
   const { L } = setup('402x874'), k = bladeGeo(speakGeo(L)).k;
   for (const g of GAMES.filter(x => x.playable !== false)) {
-    const T = bladeLetters(g.name), words = g.name.trim().split(/\s+/);
+    const T = bladeLetters(g.name), words = bladeWords(g.name);
     assert.equal(T.cols.length, Math.min(2, words.length), `${g.name}: a column a word`);
-    assert.ok(T.cap * k >= 8.5, `${g.name}: letters ${(T.cap * k).toFixed(1)} pt tall at 402`);
+    assert.equal(words.join(''), g.name.toUpperCase().replace(/\s+/g, ''), `${g.name}: every letter, in order`);
+    assert.ok(words.every(w => w.length <= BLADE_ONE), `${g.name}: no column longer than ${BLADE_ONE} (8P: SLIP / STREAM)`);
+    assert.ok(T.cap * k >= 10, `${g.name}: letters ${(T.cap * k).toFixed(1)} pt tall at 402 (8P: the 10 pt rule)`);
     assert.ok(T.cap <= T.cw * LETTER.tall + 1e-9 && T.cap <= T.lh, `${g.name}: never taller than its slot or a sliver of its column`);
     for (const c of T.cols) assert.ok(c.top <= BLADE.v1 - LETTER.v1 + 1e-9 && c.top - c.lh * c.word.length >= BLADE.v0 + LETTER.v0 - 1e-9, `${g.name}: between the crest's bulbs + the foot's`);
   }

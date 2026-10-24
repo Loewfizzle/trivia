@@ -1,7 +1,13 @@
-# CITY 2.0 — the FULL e2e-harbor suite on GitHub's machines (the laptop runs out of memory on it). docs/testing.md "GitHub checks".
-# Kept lean for the PRIVATE repo's monthly free minutes: it runs only when a City 2.0 file changes (the paths below), a newer push
-# cancels an older run, the npm + emulator downloads are cached, and no screenshots are taken unless a check fails. The quick unit
-# tests stay in tests.yml on every push. Run it by hand from the Actions tab (workflow_dispatch) after a change outside these paths.
+# CITY 2.0 — the FULL e2e-harbor suite on GitHub's machines (the laptop runs out of memory on it). docs/testing.md "THE HARBOR IN THE CLOUD".
+# Kept lean for the PRIVATE repo's 2,000 monthly free minutes (the owner, Oct 24):
+#   • it runs ONLY on a pass's FINAL push — a push whose commits carry the tag [harbor] in a message (e.g. "CITY 2.0 PART 8P: … [harbor]") —
+#     or by hand (Actions → harbor → Run workflow, or `gh workflow run harbor` / `gh workflow run harbor -f job=street`). Mid-pass pushes
+#     show a skipped run and cost nothing. The quick unit + smoke tests stay in tests.yml on every push.
+#   • only when a City 2.0 file changed (the paths below);
+#   • split into PARALLEL JOBS (the matrix — the groups of each job are in tests/integration/harbor-jobs.mjs), so "Re-run failed jobs"
+#     re-runs one job (~4 min), not the whole suite;
+#   • a newer FULL run cancels an older full run (a skipped push never cancels a full run); npm + emulator downloads cached; no screenshots
+#     unless a check fails.
 name: harbor
 
 on:
@@ -31,18 +37,33 @@ on:
       - 'api/admin.js'
       - 'database.rules.json'
       - 'tests/integration/e2e-harbor.mjs'
+      - 'tests/integration/harbor-jobs.mjs'
       - '.github/workflows/harbor.yml'
   workflow_dispatch:
+    inputs:
+      job:
+        description: 'One job only (its groups: tests/integration/harbor-jobs.mjs), or all'
+        type: choice
+        default: all
+        options: [all, audio, show, city, street]
 
 concurrency:
-  group: harbor-${{ github.ref }}
+  group: harbor-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(join(github.event.commits.*.message, ' '), '[harbor]')) && 'full' || 'skip' }}
   cancel-in-progress: true
 
 jobs:
   harbor:
-    name: e2e-harbor (the whole suite, emulators, headless Chrome)
+    # (the pass's final push only: a commit message in the push carries [harbor]; or Run workflow by hand)
+    if: github.event_name == 'workflow_dispatch' || contains(join(github.event.commits.*.message, ' '), '[harbor]')
+    name: e2e-harbor · ${{ matrix.job }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # THE JOBS — the same names as CI_JOBS in tests/integration/harbor-jobs.mjs (tests/harbor-jobs.test.mjs checks the two match;
+        # a new job goes in both + in the options above). A new GROUP needs no change here: it goes in a job in harbor-jobs.mjs.
+        job: ${{ fromJSON(inputs.job && inputs.job != 'all' && format('["{0}"]', inputs.job) || '["audio","show","city","street"]') }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -67,12 +88,12 @@ jobs:
           key: firebase-emulators-${{ hashFiles('tests/integration/package-lock.json') }}
       - name: Let Chrome use its sandbox (Ubuntu 24.04 restricts user namespaces)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: e2e-harbor on the emulators
+      - name: e2e-harbor (${{ matrix.job }}) on the emulators
         working-directory: tests/integration
         env:
           CHROME: /usr/bin/google-chrome
           SHOTS: '0'
-          SHARDS: '2'
+          JOB: ${{ matrix.job }}
         run: |
           npx firebase emulators:exec --only database,auth --project demo-arcade --config ../../firebase.json '
             set -e
@@ -84,6 +105,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: harbor-results
+          name: harbor-results-${{ matrix.job }}
           path: tests/integration/shots-harbor/
           retention-days: 7

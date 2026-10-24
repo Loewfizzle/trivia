@@ -23,14 +23,35 @@ export function roadSteps(L, T) {
       x.fillStyle = rgb(shade(kb, 0.1)); x.fillRect(0, yt, cam.W, yk - yt + 0.2);
       x.fillStyle = rgb(shade(kb, -0.22)); x.fillRect(0, yk, cam.W, Math.max(0.8, yf - yk));
       x.fillStyle = rgb(shade(kb, -0.4), 0.6); for (let sx = (cam.W / 2) % 19; sx < cam.W; sx += 19) x.fillRect(sx, yt, 0.5, yf - yt); }
+    // 8P — THE CROSSWALK LIT (the owner: the lamps flank it but no light landed ON it): the two tall lamps framing the crossing throw
+    // their pools ONTO the road — overlapping across the stripes, so at night the crossing is the brightest strip of ground on the
+    // promenade; crisp pools with a soft edge (no haze), the asphalt warmed a little, the painted stripes catching more (pale, a glossy
+    // near edge). Baked with the road (T.lamps: the lamps' ramp). crossLight(x, z) — the light there, 0..~1.2.
+    const lk = T.lamps || 0, crossLight = crossLightOf(L);
+    if (lk > 0.01 && L.crosswalk) {
+      x.save(); x.globalCompositeOperation = 'lighter';
+      for (const p of crossPools(L)) {
+        const [cx] = project(cam, p.x, 0, p.z), ya = groundY(cam, p.z + p.rz), yb = groundY(cam, p.z - p.rz), rw = cam.F * p.rx / p.z, g = null;
+        void g;
+        x.save(); x.beginPath(); x.rect(0, yRail, cam.W, yCurb - yRail); x.clip();
+        // (concentric rings, each adding a little: a clear pool with a soft edge — (1 − d²)² summed in 9 steps)
+        x.translate(cx, (ya + yb) / 2); x.scale(rw, (yb - ya) / 2);
+        for (let q = 9; q >= 1; q--) { const r0 = q / 9, f = (1 - (r0 - 1 / 9) ** 2) ** 2 - (1 - r0 * r0) ** 2; x.fillStyle = rgb(CROSS.col, Math.min(1, Math.max(0, f) * CROSS.k * lk)); x.beginPath(); x.arc(0, 0, r0, 0, Math.PI * 2); x.fill(); }
+        x.restore();
+      }
+      x.restore();
+    }
     // THE CROSSWALK (8a) between the two stop lights: wide white bars across the road, worn
     if (L.crosswalk) {
       const cw = L.crosswalk, n = 9;
-      x.fillStyle = rgb(shade(T.lane, -0.05), 0.75);
       for (let i = 0; i < n; i++) {
         const z0 = cw.z0 + (cw.z1 - cw.z0) * i / n, z1 = z0 + (cw.z1 - cw.z0) / n * 0.55;
         const [a, ya] = project(cam, cw.x0, 0, z0), [b] = project(cam, cw.x1, 0, z0), [a2, yb] = project(cam, cw.x0, 0, z1), [b2] = project(cam, cw.x1, 0, z1);
+        const lt = lk > 0.01 ? Math.min(1.2, crossLight((cw.x0 + cw.x1) / 2, (z0 + z1) / 2)) * lk : 0;
+        x.fillStyle = rgb(mix(shade(T.lane, -0.05), CROSS.paint, Math.min(1, lt * 1.6)), Math.min(1, 0.75 + 0.4 * lt));
         x.beginPath(); x.moveTo(a, ya); x.lineTo(b, ya); x.lineTo(b2, yb); x.lineTo(a2, yb); x.closePath(); x.fill();
+        // (the paint's glossy near edge catching the lamps)
+        if (lt > 0.05) { x.fillStyle = rgb([250, 250, 255], 0.5 * Math.min(1, lt)); x.fillRect(Math.min(a, a2), ya - Math.max(0.35, (ya - yb) * 0.18), Math.abs(b - a), Math.max(0.35, (ya - yb) * 0.18)); }
       }
     }
     // THE WALK / WAIT LANTERN (FP) at the railing across the road (behind the traffic: a passing bus hides it)
@@ -38,6 +59,16 @@ export function roadSteps(L, T) {
     // the curb
     x.fillStyle = rgb(shade(T.prom, -0.25)); x.fillRect(0, yCurb - Math.max(1, cam.F * 0.22 / r.z0), cam.W, Math.max(1.5, cam.F * 0.22 / r.z0));
   }];
+}
+
+/** 8P — the crossing's light: each tall lamp of the pair flanking it throws a pool onto the road (world units: centred a little into the
+ *  road, rx across, rz along the crossing); col: the tall lamps' cool white on the asphalt; paint: the stripes lit */
+export const CROSS = Object.freeze({ z: 57, rx: 5.8, rz: 4.8, k: 1.05, col: [214, 222, 240], paint: [246, 248, 255] });
+export const crossPools = L => L.lamps.filter(l => l.kind === 'tall').map(l => ({ x: l.x + (L.crosswalk ? Math.sign((L.crosswalk.x0 + L.crosswalk.x1) / 2 - l.x) * 1.2 : 0), z: CROSS.z, rx: CROSS.rx, rz: CROSS.rz }));
+/** the light at (x, z) on the road from the crossing's pools (PURE): the sum of each pool's (1 − d²)² */
+export function crossLightOf(L) {
+  const P = crossPools(L);
+  return (x, z) => P.reduce((s, p) => { const d2 = ((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2; return d2 < 1 ? s + (1 - d2) ** 2 : s; }, 0);
 }
 
 // ---- FP — THE STOP LIGHTS + THE CROSSING (the owner: "both face the camera, but the cars drive left ↔ right")

@@ -9,7 +9,6 @@
 // (props.js) are drawn from here; the people are placeholders (8b walks them).
 import { project, groundY } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
 import { person, rgb, shade, mix } from './shapes.js';
 import { drawTree, treeShadow } from './trees.js';
 import { drawBench, drawCart, drawPlanter, drawMedallion, drawMailbox, propShadow } from './props.js';
@@ -52,10 +51,10 @@ function speakSpill(L) {
   return [{ x: s.x0 + (s.door.u0 + s.door.u1) / 2, z, kind: 'spill', k: 0.95 }, { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2, z, kind: 'spill', k: 0.5 },
     ...(s.shop && s.shop.pole ? [{ x: s.x0 + s.shop.pole.u, z: s.z0 - 0.8, kind: 'pole', k: 0.6 }] : [])];
 }
-const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: l.kind === 'tall' ? TALL_K : 1 })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];
+export const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: l.kind === 'tall' ? TALL_K : 1 })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];
 /** the light on the ground at (x, z) at night — every lamp's pool (overlapping: every path lit, the shadows between dim) + the
  *  speakeasy's spill; null by day (T.lamps 0) */
-function lightField(L, T) {
+export function lightField(L, T) {
   const k = T.lamps || 0;
   if (k < 0.01) return null;
   const src = lightSources(L);
@@ -142,7 +141,8 @@ export function promenadeSteps(L, T) {
       if (st.tint < 0.2) c = addc(c, [10, 4, -4], 0.6 + 0.4 * day); else if (st.tint < 0.32) c = addc(c, [-6, -2, 7], 0.6 + 0.4 * day);
       const lt = lightAt ? lightAt((st.x0 + st.x1) / 2, zc) : null;
       if (lt) c = addc(c, lt, 0.58);
-      paintSett(x, ax, ay, ww, hh, c, { lt, day, night, lip, grout: joint, a: st.a, b: st.b });
+      // (8P — FLATTER, the owner: no pillow highlight on each stone; grouted joints — street.js#paintFlat)
+      paintSett(x, ax, ay, ww, hh, c, { lt, day, night, lip, grout: joint, a: st.a, b: st.b, flat: true });
     }
   };
   // (FP2: the soft night stones cost ~2× a day stone — two rows a step at night, so no bake step grows past a tree's)
@@ -308,41 +308,48 @@ export function drawPeople(c, L, T) {
  * heart, the warm (globe) / cool-white (street lamp) glass — and a small soft halo round it (never a screen-wide wash). k: the
  * lamps' ramp now. The sprites are cached per kind + size.
  */
-/** FP2: the lamps' halos in globe radii (tight: the outer glow, the inner bloom) */
-export const LAMP_HALO = Object.freeze({ globe: 2.4, tall: 2.2, inner: 1.45 });
-const litCache = new Map();
-function litGlass(kind, rw, rh, dpr) {
-  const key = `${kind}|${Math.round(rw * 4)}|${Math.round(rh * 4)}|${dpr}`;
-  if (litCache.has(key)) return litCache.get(key);
-  const c = document.createElement('canvas'), W = Math.ceil(rw * 2 * dpr) + 2, H = Math.ceil(rh * 2 * dpr) + 2;
-  c.width = W; c.height = H;
-  const x = safeCtx(c);
-  if (x) {
-    const g = x.createRadialGradient(W / 2, H * 0.55, 0, W / 2, H / 2, Math.max(W, H) / 2);
-    const edge = kind === 'tall' ? '196,214,246' : '255,190,110';
-    g.addColorStop(0, 'rgba(255,255,250,1)'); g.addColorStop(0.45, kind === 'tall' ? 'rgba(236,244,255,1)' : 'rgba(255,236,196,1)'); g.addColorStop(1, `rgba(${edge},0.92)`);
-    x.fillStyle = g; x.beginPath(); x.ellipse(W / 2, H / 2, W / 2 - 1, H / 2 - 1, 0, 0, Math.PI * 2); x.fill();
-  }
-  if (litCache.size > 16) { for (const v of litCache.values()) v.width = v.height = 0; litCache.clear(); }
-  litCache.set(key, c);
-  return c;
-}
-export function drawLampLight(c, L, k, glow, cool = glow, dpr = 2) {
+/** FP2: the lamps' halos in globe radii (tight: the outer glow, the inner bloom). 8P — CRISP GLOBES (the owner: "no soft blob"): tighter
+ *  still, and the glass drawn as a vector ellipse every frame (a sprite stretched over it softened its edge) */
+export const LAMP_HALO = Object.freeze({ globe: 1.75, tall: 1.6, inner: 1.18 });
+const GLASS_STOPS = { tall: ['236,244,255', '196,214,246'], globe: ['255,236,196', '255,190,110'] };
+/**
+ * levels: each lamp's own level (8P — THE LAMPS' LIFE: core/harbor-lamps.js — the switch-on one by one, the rare stutter / outage),
+ * 1 when absent. The glass: a white-hot heart, the warm (globe) / cool-white (street lamp) opal, a crisp rim; a TIGHT halo.
+ */
+export function drawLampLight(c, L, k, glow, cool = glow, dpr = 2, levels = null) {
+  void dpr;
   if (k < 0.02) return;
-  for (const l of L.lamps) {
-    if (!l.heads) continue;
-    const tall = l.kind === 'tall';
+  L.lamps.forEach((l, li) => {
+    const lv = levels ? levels[li] : 1;
+    if (!l.heads || lv <= 0.01) return;
+    const tall = l.kind === 'tall', st = GLASS_STOPS[tall ? 'tall' : 'globe'], a = Math.min(1, k * 1.1 * lv);
     for (const h of l.heads) {
       if (h.rw == null) continue;
-      c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, k * 1.1);
-      c.drawImage(litGlass(l.kind, h.rw, h.rh, dpr), h.x - h.rw - 0.5, h.y - h.rh - 0.5, h.rw * 2 + 1, h.rh * 2 + 1);
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = a;
+      const g = c.createRadialGradient(h.x, h.y + h.rh * 0.1, 0, h.x, h.y, Math.max(h.rw, h.rh));
+      g.addColorStop(0, 'rgb(255,255,250)'); g.addColorStop(0.45, `rgb(${st[0]})`); g.addColorStop(0.92, `rgb(${st[1]})`); g.addColorStop(1, `rgba(${st[1]},0.85)`);
+      c.fillStyle = g; c.beginPath(); c.ellipse(h.x, h.y, h.rw, h.rh, 0, 0, Math.PI * 2); c.fill();
       c.globalCompositeOperation = 'lighter';
-      // (FP2 — CRISP LIGHTS: a TIGHT halo — LAMP_HALO globe radii, was 3.2–3.6 — the light itself lands on the cobbles, baked)
       const r = Math.max(h.rw, h.rh) * (tall ? LAMP_HALO.tall : LAMP_HALO.globe);
-      c.globalAlpha = (tall ? 0.44 : 0.52) * k; c.drawImage(tall ? cool : glow, h.x - r, h.y - r, r * 2, r * 2);
-      const r2 = Math.max(h.rw, h.rh) * LAMP_HALO.inner; c.globalAlpha = 0.6 * k; c.drawImage(tall ? cool : glow, h.x - r2, h.y - r2, r2 * 2, r2 * 2);
+      c.globalAlpha = (tall ? 0.4 : 0.46) * k * lv; c.drawImage(tall ? cool : glow, h.x - r, h.y - r, r * 2, r * 2);
+      const r2 = Math.max(h.rw, h.rh) * LAMP_HALO.inner; c.globalAlpha = 0.55 * k * lv; c.drawImage(tall ? cool : glow, h.x - r2, h.y - r2, r2 * 2, r2 * 2);
     }
-  }
+  });
   c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
 }
-export function freeLampLight() { for (const v of litCache.values()) v.width = v.height = 0; litCache.clear(); }
+/** 8P — a lamp that is OFF (not caught yet at dusk, or out for a moment) while its pool is baked lit: its pool taken back down (a
+ *  multiply over the pool's ellipse on the paving). off: each lamp's 0..1 darkness; baked: the bake's T.lamps */
+export function dimPools(c, L, off, baked) {
+  if (!off || baked < 0.02) return;
+  const cam = L.cam, src = lightSources(L);
+  c.save(); c.globalCompositeOperation = 'multiply';
+  L.lamps.forEach((l, i) => {
+    const d = off[i] || 0; if (d < 0.02) return;
+    const sr = src[i], R = REACH[sr.kind], [cx] = project(cam, sr.x, 0, sr.z), ya = groundY(cam, sr.z + R / 1.15), yb = groundY(cam, sr.z - R / 1.15), rw = cam.F * R / sr.z;
+    const m = Math.round(255 * (1 - Math.min(0.62, d * baked * sr.k * 0.6))), g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+    g.addColorStop(0, `rgb(${m},${m},${m})`); g.addColorStop(0.5, `rgb(${Math.round((m + 255) / 2)},${Math.round((m + 255) / 2)},${Math.round((m + 255) / 2)})`); g.addColorStop(1, 'rgb(255,255,255)');
+    c.save(); c.translate(cx, (ya + yb) / 2); c.scale(rw, (yb - ya) / 2); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 1, 0, Math.PI * 2); c.fill(); c.restore();
+  });
+  c.restore();
+}
+export function freeLampLight() { /* (8P: the lit glass is drawn as vectors now — nothing cached) */ }

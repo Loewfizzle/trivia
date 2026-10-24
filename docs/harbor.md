@@ -3958,6 +3958,12 @@ the canopy has fewer bulbs than 7b's string lights) — no speed round.
 - **THE QUICK `tests` WORKFLOW's smoke test** timed out on `golf: back to lobby` on the two docs / CI commits after SP2 (the SP2 commit's own
   run passed; the code under test identical; NEON PAR's flow, untouched by this pass) — the known GitHub-machine flake 793141d raised to 60 s.
   It now repeats: worth a real look in the next pass that touches the games or the smoke test (what the lobby waits on after NEON PAR).
+  → **Looked at (PART 8P, section 0 n):** the failed runs' screenshots show BOTH phones still on NEON PAR's hole 1 after the 60-s wait —
+  the lobby write never landed, not a slow wait. Most likely cause: NEON PAR is three.js on software WebGL on the 2-core runner, a tab's
+  2-s host beat goes ≥ 10 s stale, the other phone claims host (as designed), and `backToLobby()` on the old host returns silently
+  (`isHost()` false). The smoke test now sends startGame / backToLobby to whichever tab is the host NOW, retries back-to-lobby up to 3×
+  30 s from the current host, and logs `NOTE … is the host now` / each tab's uid + hostId + phase when it has to retry (so the next
+  failure, if any, says which it was). Unconfirmed on GitHub until the next runs.
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against

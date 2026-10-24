@@ -29,6 +29,7 @@ const mulc = (c, m) => [c[0] * m, c[1] * m, c[2] * m];
  */
 export function paintSett(x, ax, ay, ww, hh, c, o) {
   const { lt, day, night, lip, grout } = o, wet = o.wet || 0;
+  if (o.flat) { paintFlat(x, ax, ay, ww, hh, c, o); return; }
   const rad = Math.min(hh * (0.34 + 0.08 * night), ww * 0.22);
   // the body, falling off toward the near edge (by night into the grout's tone: rounded, no black rim)
   const bot = mix(shade(c, -0.06 - 0.03 * day), grout, 0.3 * night);
@@ -62,12 +63,31 @@ export function paintSett(x, ax, ay, ww, hh, c, o) {
   if (night < 0.95) { x.fillStyle = `rgba(0,0,0,${0.07 * (1 - night)})`; x.fillRect(ax + rad * 0.5, ay + hh - Math.max(0.3, hh * 0.12), ww - rad, Math.max(0.3, hh * 0.12)); }
 }
 
+/**
+ * 8P — FLAT paving (the owner, iPhone, day: "too bumpy… needs grout"): a stone / a brick laid FLAT — its face one tone (the lamps'
+ * light already in c), a faint bevel (the far edge a hair lighter, the near edge a hair darker), small corners, NO pillow crown, no
+ * lip; the grout round it does the rest. o.brick: square corners (a paving brick); o.wet: a sky glaze on the face (Part 9).
+ */
+export function paintFlat(x, ax, ay, ww, hh, c, o) {
+  const day = o.day || 0, night = o.night || 0, wet = o.wet || 0, r = o.brick ? Math.min(0.5, hh * 0.12) : Math.min(hh * 0.2, ww * 0.12);
+  let face = c;
+  if (wet > 0.01 && o.sky) face = mix(face, o.sky, 0.2 * wet);
+  x.fillStyle = rgb(face); x.beginPath(); if (r > 0.2) x.roundRect(ax, ay, ww, hh, r); else x.rect(ax, ay, ww, hh); x.fill();
+  const e = Math.max(0.3, hh * 0.13);
+  x.fillStyle = rgb(shade(face, 0.05 + 0.04 * day + (o.lt ? 0.03 : 0))); x.fillRect(ax + r * 0.5, ay, ww - r, e);
+  x.fillStyle = `rgba(0,0,0,${(0.06 + 0.05 * (1 - night)).toFixed(3)})`; x.fillRect(ax + r * 0.5, ay + hh - e, ww - r, e);
+  if (o.b != null && o.b < 0.08) { x.fillStyle = `rgba(0,0,0,${(0.1 - 0.04 * night).toFixed(3)})`; x.fillRect(ax, ay, ww, hh); }
+}
+
 // ------------------------------------------------------------------ THE STREET's colours
 // PF (the owner's iPhone review: "the street must read as a different SURFACE from the promenade"): TARRED setts — the granite
 // darkened + cooled by decades of tar, oil + tyre grime (an asphalt tone, blue-grey, never the promenade's warm sand-grey), TAR in the
 // joints (a dark pitch line, lifted where the lamps reach so the night never goes black), the gutter a step darker than the curb
-const SETT = { d: [98, 100, 108], g: [122, 96, 94], n: [44, 45, 66] };          // (FP2 [130,127,126] · [152,112,100] · [52,50,72])
-const GROUT = { d: [56, 55, 61], g: [66, 52, 54], n: [28, 28, 42] };          // tar in the joints (FP2 sand [106,99,91] · [114,82,74] · [46,43,58])
+// 8P — THE STREET UNDER THE DOCK, A 1920s MIDWEST BRICK STREET (the owner: "too bumpy", wanted its own shade — a reddish brick): small
+// regular paving bricks laid in tight rows across the street, a muted aged OXBLOOD / brown-red — darker + less saturated than the
+// promenade and the brick compass, so it frames the screen's foot without pulling the eye; thin dark tar / sand joints; flat
+const SETT = { d: [118, 70, 62], g: [138, 78, 64], n: [54, 37, 48] };          // (PF's tarred granite [98,100,108] · [122,96,94] · [44,45,66])
+const GROUT = { d: [58, 46, 46], g: [66, 46, 44], n: [24, 20, 32] };          // the joints: tar + sand (PF [56,55,61] · [66,52,54] · [28,28,42])
 const GUT = { d: [118, 118, 122], g: [140, 112, 104], n: [46, 46, 66] };      // the gutter's dressed slabs (FP2 [164,158,150] · [186,142,122] · [64,60,84])
 const STRETCH = { d: [126, 126, 130], g: [148, 118, 108], n: [50, 50, 70] };  // the rails' granite stretchers (FP2 [162,156,148] · [186,140,120] · [64,60,84])
 const HEAD = { d: [226, 232, 242], g: [255, 214, 172], n: [138, 138, 170] };  // a railhead's polished running top (the sky / the sun in it)
@@ -117,19 +137,20 @@ export function streetSteps(L, T, lightAt) {
       const [ax, ay] = P(wx + 0.03, z1 - 0.02), [bx, by] = P(wx + 2.07, z0 + 0.03), lt = lit(wx + 1, z0 + 0.3);
       let c = mulc(K.gut, 0.92 + r() * 0.12); if (lt) c = addc(c, lt, 0.58);
       x.fillStyle = rgb(mix(K.grout, c, 0.5)); x.fillRect(ax - 0.5, ay, bx - ax + 1, by - ay);
-      paintSett(x, ax, ay, bx - ax, by - ay, c, { ...so, lt, a: r(), b: 1 });
+      paintFlat(x, ax, ay, bx - ax, by - ay, c, { ...so, lt, b: 1 });
     }
   });
   // 2. THE SETTS, course by course toward us (the grout under each stone lit a little less than its top: no dark gaps)
-  const [DX, DZ] = [0.74, 0.6], GAP = 0.075, rows = [];
+  // (8P: bricks — SMALLER + more regular than the promenade's cobbles (0.95 × 0.72): ~0.5 long across the street × 0.3 deep, tight)
+  const [DX, DZ] = [0.5, 0.3], GAP = 0.04, rows = [];
   for (let z1 = st.gutter[0], i = 0; z1 > st.foot - DZ; z1 -= DZ, i++) rows.push([z1 - DZ, z1, i]);
   const paint = (x, z0, z1, ri) => {
     const r = rngFrom(6067 + ri * 151), off = (ri % 2) * DX * 0.5, H = hw(z0), zc = (z0 + z1) / 2;
     if (railBed(zc)) return;                                   // (the rails' stretchers go there: step 3)
     const stones = [];
     for (let wx = -H - off; wx < H; wx += DX) {
-      const w = DX * (0.86 + r() * 0.24), x0 = wx + GAP / 2, x1 = wx + w - GAP / 2, za = z0 + GAP / 2, zb = z1 - GAP / 2;
-      stones.push({ wx, x0, x1, za, zb, v: 0.8 + r() * 0.3, tint: r(), a: r(), b: r() });
+      const w = DX, x0 = wx + GAP / 2, x1 = wx + w - GAP / 2, za = z0 + GAP / 2, zb = z1 - GAP / 2;
+      stones.push({ wx, x0, x1, za, zb, v: 0.88 + r() * 0.18, tint: r(), a: r(), b: r() });
     }
     // the grout band of this course, lit where it lies (a mid tone: packed sand catching the lamps)
     for (const s of stones) {
@@ -141,12 +162,14 @@ export function streetSteps(L, T, lightAt) {
     for (const s of stones) {
       const [ax, ay] = P(s.x0, s.zb), [bx, by] = P(s.x1, s.za), ww = bx - ax, hh = by - ay;
       if (ww < 0.6 || hh < 0.4 || bx < -2 || ax > cam.W + 2) continue;
-      let c = mulc(K.sett, polished ? 0.94 + (s.v - 0.82) * 0.5 : s.v);
-      if (s.tint < 0.2) c = addc(c, [12, 6, -4], 0.6 + 0.4 * day); else if (s.tint < 0.36) c = addc(c, [-4, -1, 6], 0.6 + 0.4 * day);   // (PF: the cool tint 9 → 6 on the darker stone)
+      // (8P: worn SMOOTHER + DARKER along the wheel paths + beside the rails — the kiln colour evened out by the tyres)
+      const nearRail = st.rails.some(rz => Math.abs(zc - rz) < RB + 0.35);
+      let c = mulc(K.sett, polished || nearRail ? 0.86 + (s.v - 0.97) * 0.3 : s.v);
+      if (s.tint < 0.12) c = addc(c, [-14, -8, -6], 0.6 + 0.4 * day); else if (s.tint < 0.22) c = addc(c, [10, 2, -4], 0.6 + 0.4 * day); else if (s.tint < 0.28) c = addc(c, [-6, -4, 2], 0.6 + 0.4 * day);
       const lt = lit((s.x0 + s.x1) / 2, zc);
       if (lt) c = addc(c, lt, 0.6);
       // (PF: the tyres' paths WORN SMOOTH — their crowns take a faint sheen of the sky, through the painter's wet path: a glaze, not water)
-      paintSett(x, ax, ay, ww, hh, c, { ...so, lt, a: polished ? 0.9 : s.a, b: polished ? 1 : s.b, day: polished ? Math.min(1, day * 1.25) : day, wet: polished ? Math.max(wet, SHEEN) : wet });
+      paintFlat(x, ax, ay, ww, hh, c, { ...so, lt, brick: true, b: polished ? 1 : s.b, wet: polished ? Math.max(wet, SHEEN * 0.6) : wet });
     }
   };
   // (FP2: the soft night stones cost ~2× a day stone — two rows a step at night, so no bake step grows past a tree's)
@@ -164,7 +187,7 @@ export function streetSteps(L, T, lightAt) {
           const [ax, ay] = P(wx + 0.03, zb), [bx, by] = P(wx + 1.87, za), lt = lit(wx + 0.95, za);
           let c = mulc(K.stretch, 0.9 + r() * 0.14); if (lt) c = addc(c, lt, 0.6);
           x.fillStyle = rgb(lt ? addc(K.grout, lt, 0.42) : K.grout); x.fillRect(ax - 0.4, ay - 0.3, bx - ax + 0.8, by - ay + 0.6);
-          paintSett(x, ax, ay, bx - ax, by - ay, c, { ...so, lt, a: r(), b: 1 });
+          paintFlat(x, ax, ay, bx - ax, by - ay, c, { ...so, lt, b: 1 });
         }
       }
       // the rail: the groove (the flange's slot, on the track's inner side), the rusty flank, the polished head — in short runs so

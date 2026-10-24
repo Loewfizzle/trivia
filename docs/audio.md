@@ -434,7 +434,8 @@ recordings imported into theirs; every event that exists today calls its slot; a
   rows + ▶; at night the NIGHT hum; the neon tap at 0.28125 = 0.5 × 0.5625).
 
 ## 7b — THE SPEAKEASY'S SLOTS (Oct 24 2026; City 2.0) — `screens/harbor/windows.js`, `screens/harbor/sounds.js#speakeasy`
-The speakeasy's life calls five Part 7 slots — all EMPTY today, so all silent; a recording dropped in starts sounding with its event:
+The speakeasy's life calls five Part 7 slots — all EMPTY today, so all silent; a recording dropped in starts sounding with its event
+(8P: filled, + the moments' own cues, the barbershop, the broom — tv-murmur stays empty; see 8P below):
 - `club-murmur-calm` / `club-murmur-party` — a BED while the bar is open at night (the party take on a party night), `tv-murmur` — a BED during
   the TV hours upstairs (~10 pm → 3 am). The speakeasy reports `{ club, tv, party }` each frame (`speak.beds()`); `sounds.js#speakeasy` keeps them
   with the city's other beds — ducked by `bedMix` under the music, held until the music sounds, panned left (−0.55 / −0.6: the speakeasy's corner).
@@ -682,6 +683,87 @@ turbine), narrow-band peaks for drones. MD5s match `credits.txt`. **+3.19 MB** (
 - **Known issues:** levels by LUFS arithmetic, not by ear; the burner / geese / heli-flyby / prop-plane are the lossy Pixabay copies (the lossless
   CC0 originals: credits.txt's Freesound links); the airliner's take starts with its crossing, so a crossing longer than ~40 s (a wide desktop)
   chains a second take.
+
+## 8P — THE SPEAKEASY + PEOPLE SOUNDS, THE JETS' DUCK (Oct 24 2026; City 2.0) — `scripts/add-city-sfx.py`, `core/city-sounds.js`, `audio/city-sound.js`, `screens/harbor/sounds.js`
+Grok's speakeasy + people folder (`~/Downloads/city-sfx`, credits.txt "Speakeasy + people sounds": Sonniss GDC, Mixkit, Pixabay — the
+Pixabay ones mostly copies of CC0 Freesound originals, noted in CREDITS.md; every MD5 matches; no newer copies in the folder) and the
+owner's "sky sounds louder again". Grok measured, didn't listen; **every trim here was confirmed by analysis**: the 0.05–0.5 s RMS
+envelope + onsets, band energies, **speech** = the 2–8 Hz modulation of the 300–3400 Hz envelope (one clear talker ≈ 0.5–1.1, a crowd's
+babble ≈ 0.1–0.3), **music** = tonal lines held ≥ 0.45 s within ±1.5 % (a note holds its pitch; a voice glides). **83 slots, 42 filled;
+`audio/city/` 7.19 MB (+1.65 MB: 43 new files, the low-passed beds at 40 kbps; the aircraft re-encoded at the same size).**
+- **The importer's new recipe keys:** `presence` (dB, Hz: a broad Q 0.7 lift), `gainenv` [(t0, t1, dB)] (a creak softened, a slam taken
+  down), `gate` (a soft 1:2 expander under the loudest 10 ms − n dB: the hiss between quiet snips / steps), `seq` (a take ASSEMBLED from
+  pieces, other files of the folder included — credited too), `mark` (s into the take → `hit`: where its event lands), `to` (one source,
+  several slots), `name`, `kbps`; `SKIP` = the folder's files never imported (below). The licence check now knows Mixkit + Pixabay.
+- **The player:** `citySound(slot, { sync: { peakIn, mark: 'hit' | 'start' } })` — the take's `hit` (or its start) lands on the clock
+  instead of its peak (the moments' cues, the bus's stop); the handle carries `hit` + its take `t`.
+
+| slot | source → kept | processing | what the analysis found |
+| --- | --- | --- | --- |
+| club-murmur-calm / -party (loops) | club-murmur.wav (2:57, a party of 50 indoors) → **85.9 + 40 s** / **24.1 + 40 s** | low cut 90, a 120 Hz notch (mains), +3 dB at 300 Hz, **low-pass 1 kHz / 1.4 kHz** (THROUGH A WALL), 40 kbps, 16 kHz | babble throughout (0.10–0.25), no note held but the mains hum; 0–72 s the livelier half (the party), 75–165 s the calmer; seams +0.3 / −0.4 dB; after the wall: modulation 0.17, nothing above 2 kHz |
+| door-heavy | mirror-door.wav (8.4 s Sonniss) → **0.15–2.25 s** | 90 Hz, low-pass 7 kHz | the latch at 0.2 s, a short creak 0.75–1.4 s (Grok's 0.2–1.5 + the after-creak to 2.1) |
+| door-heavy-close | the same → **2.85–6.3 s**, `hit` 1.8 s | 90 Hz, low-pass 6 kHz, **the creak −6 dB** | the "spooky" part is the close's long creak (19–24 tonal peaks a frame at 3.8–4.2 s): softened under the thud (4.65 s in the source); the Mixkit + PMSFX "haunted" files not used |
+| bar-open | bar-ambience-close.mp3 (4:24) → **62–70 s** (a one-shot, ~7 s) | 120 Hz + notch, low-pass 3 kHz, fades 1 / 1.8 s | the bar through the open mirror door: babble (0.19–0.24), no note; clear talkers elsewhere in the file (0.59 at 32 s, 0.72 at 136 s, 0.62 at 192 s) avoided |
+| line-murmur (loop) | the same → **163.5 + 24 s** | low-pass **1.3 kHz**, 40 kbps, gain 0.05 | THE LINE (no street-crowd file): the file's quietest babble (0.18–0.31), ending before the clear talker at 192 s — no word readable |
+| rooftop-party (loop) | rooftop-party.mp3 (2:22) → **40 + 21 s** | low-pass 2.4 kHz, notches 144.5 / 165.8 / 289 / 331.6 Hz, 40 kbps | **MUSIC from 89 s to the end** (a melody on C4 / A♭3 / F3 / E♭3 / C3 + F6 / A♭6, ±0.3–1 %) and notes at 20.7–29 s, 69.6 s, 82.8 s — all outside; two recurring low lines (166 / 144.5 Hz, 0.5 s every ~5–6 s: a distant bass line or a machine) notched; a nearer voice at 36.5–39 s (0.46) left out; what's left: voices' pitches (178–214 Hz, ±1–3 %) |
+| glasses-clink ×3 | glasses-clink / -2 / -3.wav (Mixkit) | 400 Hz | one clink · a table's three (0 / 0.24 / 0.35 s) · a wine glass; the held lines are the glass ringing |
+| shop-bell ×3 | shop-bell.mp3 (12.3 s) → **1.3–3.85, 3.9–6.35, 6.5–9.35 s** | 400 Hz (a 230 Hz spring line under it) | the bell's partials 1.2 / 3.55 / 4.4 kHz; three jingles |
+| scissors-snip ×4 | scissors-snip.wav (5.2 s, peaks −45 dBFS) → 2–4 snips each | 400 Hz, **gate −32 dB**, +45 dB of gain | 11 snips found; the takes sit at ≈ −28 LUFS (all transient: the limiter stops them) → slot gain 0.08 |
+| broom-sweep (loop) | broom-sweep.mp3 (49 s) → **16.7 + 24 s** | 180 Hz (low thumps out), low-pass 4 kHz (through the glass), 48 kbps | steady strokes, no tonal content |
+| window-sash-up | window-sash.mp3 (25.9 s) → **17.0–21.3 s**, `hit` 3.83 | 150 Hz | the long JUDDERING push (stick-slip onsets every ~0.1–0.3 s), a soft stop at 20.83 s, no thud — a weighted sash pushed up |
+| window-sash-down | the same → **12.75–14.4 s**, `hit` 0.9 | 150 Hz, **the thud −8 dB** | a short slide onto the sill: THE THUD at 13.65 s (−10 dB) — a sash let down lands |
+| roller-blind | roller-blind.mp3 → 0.12–1.05 s | 150 Hz | the tug + the roll's snap |
+| cat-meow · cat-land | cat-meow.wav → 0–0.85 s · cat-land.mp3 → 0–0.7 s (`hit` 0.06) | 250 / 120 Hz | one meow (the room noise after it cut) · a soft landing (a stand-in) |
+| door-knock | secret-knock.wav (five knocks at 0.03 / 0.32 / 0.58 / 0.88 / 1.20 s) + **door-slot.wav** → THE SECRET KNOCK, 3.3 s | `seq`: knock … knock-knock … knock (0 / 0.62 / 0.84 / 1.46 s), the slot −5 dB at 2.36 s; 80 Hz, +4 dB at 300 Hz, +3 dB at 2.5 kHz | measured back: onsets 0.02 / 0.60 / 0.79 / 1.44, the slot 2.34 s; a heavy door is mostly < 150 Hz, lifted where a phone plays |
+| footsteps-cobble ×6 · -heels ×6 | footsteps-cobble.wav (Mixkit, a step every ~0.6 s + gravel) · footsteps-heels.wav (clean, every ~0.59 s) | 120 / 150 Hz, gate −36 dB | single steps from just before their onsets (0.37–0.58 s each) |
+| laugh-distant ×2 | laugh-distant.wav (Mixkit, a crowd laugh) → 0–2.75, 2.8–4.12 s | 200 Hz, low-pass 3.5 kHz | modulation 0.28–0.34 over 2–4 s (a crowd); the held lines are the "ha"s (213–229 Hz) — no words |
+| cart-bell | cart-bell.wav (a hand bell, 6 s decay) → 0–3.6 s | 400 Hz | one ring (1.24 kHz + 2.47 / 2.67 / 3.19 kHz) |
+| bus-arrive | car-1920s-pass-3.wav ("…Up_Stop_Off") → **397–417.6 s**, `hit` 17.0 | 70 Hz, +3 dB at 300 Hz, +3 dB at 1.5 kHz, 16 kHz | far (−61 dB) → near (−43 at 410 s) → settled into its stop idle at 414.0 s (64 Hz); the engine off at 418.5 left out |
+| bus-idle (loop) | the same → **414.3 + 2.6 s** | the same | the ARRIVAL's own idle looped (seam +0.4 dB): the hand-over keeps its pitch (take 1's 67 Hz idle drifted 2 dB) |
+| bus-pull-away | the same ("Start_Slow_Away") → **10.4–30.4 s** | the same, fade-out 4 s | revs to −40 dB at 12–19 s, then a steady 80 Hz note fading with distance |
+| bus-door | bus-door.mp3 (an old truck door, HOT) | 120 Hz | a stand-in |
+
+- **Not imported (`SKIP`):** `tv-murmur.mp3` — **the TV slot stays EMPTY**: music in it (G4 / E5 / G5 held 1–1.9 s at 26–41 s, a
+  recurring 392.8 Hz) and one clear talker (modulation 0.5–1.1); `bus-idle.mp3` / `bus-depart.mp3` (the diesel stand-ins — the
+  1945 truck instead); `mirror-door-open` / `-close` (the haunted alternatives); `door-slot` (inside the knock). `bus-brake-hiss` stays
+  empty (an air brake is post-1920s).
+- **The mix** (into the bus, before the Effects slider; the day hum −43.6): the knock (the player's own tap) −38.8 · the bus −38.8
+  (arrival / pull-away), its idle −44.4 · the club −44.4 / −42.8 party (ducked with the bed under the music) · the mirror door −40.4,
+  its close −42.1, the bar through it −40.4 · a clink −44 · the shop bell −44.9 · the sash −46.5 / −47.3, the blind −46.3, the cat
+  −40.4 / landing −46.6 · the broom −47.5 · the rooftop −48.8 · a laugh −48.4 · the cart bell −46.5 · the snips −49.5 · the line −50.4 ·
+  a footstep −51 / −53 (× the caller's gain: very soft). The speakeasy's beds, the line + the rooftop duck with the bed (bedMix's k).
+- **THE MOMENTS HEARD** (`core/city-sounds.js#MOMENT_CUES`, `momentCues`; `sounds.js#life`): a moment seen for the first time queues
+  its cues, each handed to the player ~2.5 s ahead and placed on the clock by its mark (late by > 0.3 s = silent): the toast's clink
+  (p 0.38, its hit) · the wake's blind (p 0.02), the sash up (its stop at p 0.62) and down (on the sill at p 0.9) · the cat landing on
+  the sill (p 0.07) + behind it (p 0.98) · the mirror: the bar (from p 0.06) + the door's thud shut (p 0.95) · the barbershop's opening
+  (the bell p 0.48, snips p 0.77 / 0.9). The moments' first sounds stay `windows.js#sound`'s (the mirror's `door-heavy`, the cat's
+  `cat-meow`). **THE BARBERSHOP'S DAY** (`barberAt`, `bellsBetween` — windows.js#barberDay's own 480 s cycle): the bell as each customer
+  comes in (0.6 s) + goes out (345 s), a few snips every 6–15 s while he cuts; by day, while open. **THE 3 AM BROOM**: a bed while the
+  bar's last light burns (3 → 4 am, night). Needs the windows' frame: `speakeasy({ …beds, fr, k, motion })`.
+- **THE API** (the scene's `snd` = `createCitySounds()`; all silent when empty / locked / muted):
+  `bus('arrive', { pan, gain, stopIn })` (stopIn = s until it halts: the take's stop lands there; without it, it halts 17 s in) →
+  `bus('idle')` at the curb → `bus('door')` (each open / close) → `bus('depart')` → `bus('pan', { pan })` to follow it → `bus('gone')`;
+  `step('cobble' | 'heels', { pan, gain })` per footfall of the nearest walker (< 0.18 s apart dropped); `laugh({ pan, gain })` (≥ 6 s
+  apart); `cartBell({ pan })` once / `cart({ on, pan })` per frame (a ring 8–30 s after it's out, then every 40–110 s); `line(level, { pan })`
+  and `rooftop(level, { pan })` (beds 0..1, kept by tick); `jets({ gain, dir, width })`.
+- **SKY SOUNDS LOUDER AGAIN** (the owner, after SP2's +6 / +3.5 dB): the gains — the jets **0.07 → 0.14 (+6 dB)**, the helicopter
+  0.074 → 0.117 + the burner 0.07 → 0.111 (+4 dB), the airliners 0.036 → 0.051, the banner plane 0.05 → 0.071, the drone hum
+  0.045 → 0.064 (+3 dB); the geese, gulls + every animal unchanged. **PHONE PRESENCE**, baked in by the importer (re-encoded from the
+  originals; levelled to the same LUFS, so the lows give way): +5 dB at 2 kHz (Q 0.7) on the flybys, +3 dB at 1.6 kHz on the burner and
+  1.1 kHz on the swarm (under their low-passes). Measured, the 1–4 kHz band (what a phone plays) before → after, with the gains:
+  helicopter +6.3 / +7.5 dB · airliner +6.3 · banner plane +6.0 · **jets +8.8** · burner +6.1 · swarm +4.3 — with the level asked for
+  +3…+6. The jets' peak (−2 dBFS × 0.14) stays under the player's cap knee: no limiting, no startle.
+- **THE JETS' DUCK** (`duck: 0.66` on the slot — −3.6 dB; `duckAt`, `sweepPan`; `sounds.js#jets` / `ducking`): the music eased down from
+  1.4 s before the take's peak (over 0.8 s), held to 1.2 s after it, eased back over 2 s (≈ 3 s under) through `duckMusic` ~4× a
+  second; the pass panned right → left over its swell (the recording's own direction); released on destroy. There is no air-show event
+  yet: 6b calls `snd.jets()` (or puts `jets` in `sky.listen()` — tick plays it).
+- **Tests:** `harbor-sounds.test.mjs` — the sky's +6 / +4 / +3 dB on SP2 (the animals unchanged), the duck's shape + the pan, every 8P
+  slot's cut + marks against the source (the thud at 4.65 s, the sash's stop / thud, the bus's stop at 414 s + its idle before the
+  engine off), the cues + the barbershop's bells; `city-sounds.test.mjs` — the filled list (tv-murmur + bus-brake-hiss empty), the
+  smaller beds' minimum lengths, the folder < 8 MB.
+- **Known issues:** levels by LUFS arithmetic, not by ear; the moment cues need the speakeasy to pass its frame (one line in
+  speakeasy.js); `door-slot`, `cat-land` + `bus-door` are stand-ins; the rooftop's remaining 178–214 Hz lines read as voices, not notes
+  — the owner's ear decides.
 
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,

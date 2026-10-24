@@ -8,17 +8,37 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   deploy, never in front of it — a push goes live as fast as before; a failure is a red ✗ on the commit (and an email). The smoke
   test's screenshots are attached to a failed run. Nothing there needs a secret. `gh run list` / `gh run watch` from the terminal.
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, Oct 24 — the laptop runs out of memory on the full suite): the WHOLE
-  `e2e-harbor.mjs` (every group, `SHARDS=2`, `SHOTS=0`, on the emulators) runs on GitHub's machine after every push to main that touches
-  a City 2.0 file (the `paths:` list: `js/screens/harbor/`, `js/core/harbor-*` + `city-*`, the title, `js/audio/`, `audio/city/`, the
-  harbor CSS, the suite itself…); a newer push cancels an older run; the npm + emulator downloads are cached; the run's
-  `shots-harbor/` (the result JSON) is attached when a check fails. **Timing checks are WARNINGS there** (THE BEAT-SYNC PASS, Oct 24: `okT` in
-  e2e-harbor.mjs — frames drawn in a window, a bake finished in time, a sound's peak in its window, the punch sampled during a loop restart,
-  the pole's turn rate — on `CI=true`, or locally with `TIMING=warn`; `TIMING=strict` makes them hard again): logged `WARN`, counted in the
-  summary (`timing warnings N` + the list), never red — a red cloud run always means a real problem. ≈ 7 min a run (≈ 6 ½ min of tests — the repo is PRIVATE: the
-  monthly free minutes). Anything else: run it by hand (Actions → harbor → Run workflow, or `gh workflow run harbor`). **City 2.0
-  passes rely on it** — locally only the unit suite + the groups the pass touched (`ONLY=…`); after pushing, `gh run list --workflow
-  harbor` → `gh run view <id> --log | grep -E "FAIL|checks"`. GitHub's 2-core machine is slower than the laptop: a timing check that
-  passes here and fails there waits for its condition (never a longer fixed sleep).
+  `e2e-harbor.mjs` (`SHOTS=0`, on the emulators) on GitHub's machines. **The rule (PART 8P, the owner's 2,000 monthly minutes — the repo is
+  PRIVATE): it runs only on a pass's FINAL push** — a push with **`[harbor]`** in one of its commit messages (`CITY 2.0 PART 8P: … [harbor]`)
+  that touches a City 2.0 file (the `paths:` list: `js/screens/harbor/`, `js/core/harbor-*` + `city-*`, the title, `js/audio/`, `audio/city/`,
+  the harbor CSS, the suite + `harbor-jobs.mjs`…) — or by hand: `gh workflow run harbor` (Actions → harbor → Run workflow), `gh workflow run
+  harbor -f job=street` for one job. A mid-pass push without the tag shows a SKIPPED harbor run (0 minutes) and never cancels a full run in
+  flight; a newer full run cancels an older one. The quick `tests` workflow (unit, rules, `/api`, smoke) still runs on every push.
+  - **4 parallel jobs** (the matrix `audio` · `show` · `city` · `street`; each job's groups in **`tests/integration/harbor-jobs.mjs`**,
+    run in order in one process with `JOB=<name>` — the same command works locally): audio = music, flags, harbor, dock · show = neon,
+    party, sky · city = core, skyline, water, then panel + perf (the two serial groups, last) · street = speakeasy, windows, sounds,
+    promenade. Each job has its own emulators + its own npm / emulator caches; a failed job attaches `harbor-results-<job>`. **A red job →
+    "Re-run failed jobs"** re-runs that job alone (≈ 4 min), never the whole suite.
+  - **A NEW GROUP** (`G('people', …)`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
+    `e2e-harbor.mjs` refuses to run (even with `ONLY=`) and `tests/harbor-jobs.test.mjs` fails in the quick workflow, so no group is ever
+    skipped silently. A new JOB: a key in `CI_JOBS` + the same name in harbor.yml's matrix list + the Run-workflow options (the test checks).
+    The laptop's no-ONLY run (`SHARDS=2|3`) spreads the same groups over its shards by `SECONDS` (`localShards`), then panel + perf.
+  - **WARNINGS, not red** (on `CI=true`, or locally `TIMING=warn`; `TIMING=strict` makes them hard again): `okT` — pure speed (frames
+    drawn in a window, a bake finished in time, a sound's peak in its window, the punch after a return, the pole's turn rate, the scene
+    reading PULSE STRENGTH's flag within 3 s, the frames drawn after a return); `okF` — **known-flaky pixel probes** that failed once in the
+    cloud and passed the next run with the code unchanged: THE POLE's party colours (now read in ONE frame between beats, `party().beatU`
+    0.55–0.88), THE WALL-WASHERS' hot spot, the water's seam-light limit, the O's flutter landing. The half of each that proves the rule
+    stays hard (no plain red on the pole, the water strips on whole rows, every letter keeping its core, the loop restarting after a
+    return, the slider + flag + status). Each warning is a `::warning::` annotation on the run and a row (kind + check) in the job's
+    summary page; the log says `WARN … (a timing|flaky check: a warning on this machine)` and `checks N/M passed · warnings K`. A red
+    cloud run always means a real problem; a warning that repeats in two passes is worth a look.
+  - **Minutes:** the old single job was 10–14 min a run (≈ 100 billed min on Oct 24 alone, 9 runs). Now ≈ 4 parallel jobs × ~4 min
+    (≈ 3 min of tests + ~1 min of setup each; billing rounds EACH job up to a whole minute) ≈ 16–20 billed min for a full run — but only
+    on the final push, ~4–5 min of wall time, and a re-run costs one job. (The quick `tests` workflow is ≈ 8 billed min a push: unit 1 +
+    integration 5–6, each rounded up.)
+  - After pushing: `gh run list --workflow harbor` → `gh run view <id>` (the jobs) → `gh run view <id> --log-failed`, or the summary page.
+    GitHub's 2-core machine is slower than the laptop: a timing check that passes here and fails there waits for its condition (never a
+    longer fixed sleep).
 - **What a phone loads + errors from phones:** `node e2e-loading.mjs "<browser>" ./shots-loading` (≈ 1 min): the title links no
   game stylesheet; a game's sheets load with its screen, in the old cascade order; the lobby warms them; an error thrown in our code
   reaches `errlog/` once, noise doesn't, two phones share one entry.
@@ -63,7 +83,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     Looks without a server: `board-preview.html` (`?mode=public&g=pulse&c=records&p=all&far=1&anon=1&empty=1&err=1`),
     `results-preview.html` (`?case=first|top10|world|pb|merged|rankup|legend`), `emblems-preview.html`; `og-board.html` renders the
     /board link preview (`render-assets.mjs` writes assets/og-board.jpg).
-  - **Smoke test first (~2 min):** `node e2e-smoke.mjs "<browser path>" ./shots` (DT1: `GAMES=cipher` runs only those — the one-game check a City 2.0 pass runs after touching a shared file; `shots.mjs` names a custom crop by it: `-c0x420x150x140`) — two REGULAR phone tabs (no `?slot=`; every
+  - **Smoke test first (~2 min):** `node e2e-smoke.mjs "<browser path>" ./shots` (DT1: `GAMES=cipher` runs only those — the one-game check a City 2.0 pass runs after touching a shared file; `shots.mjs` names a custom crop by it: `-c0x420x150x140`; Oct 24: it sends startGame / backToLobby to whichever tab is the host NOW and retries back-to-lobby from the current host — on GitHub NEON PAR's software WebGL can starve a tab's host beat and the other phone takes over, which made `golf: back to lobby` time out) — two REGULAR phone tabs (no `?slot=`; every
     other suite uses test slots, which once hid a lobby bug that printed "null" only on a real phone): create/join, lobby, HOW TO
     PLAY, all six games started and watched, back to the lobby. Fails on visible "null"/"undefined"/"NaN"/"[object Object]",
     page errors or console errors. Native `append()`/`replaceChildren()` print a `null` argument as text — `h()` skips it.

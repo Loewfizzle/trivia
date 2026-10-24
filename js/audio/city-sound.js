@@ -121,10 +121,11 @@ export const cityLog = [];
  * A one-shot from a slot. gain: × the slot's mix level; pan −1..1; rate: playback rate (+ a little pitch variety: ±jitter, 3 % by
  * default); delay: s from now; take: an index to force one.
  * sync (FP3 — a sound placed on a clock, whatever the wait for its file): { peakIn: () => s from NOW until the take's peak must
- * sound, pre: s of the take before its peak at most, fade, late } — evaluated when the buffer is ready (core/city-sounds.js#
+ * sound, pre: s of the take before its peak at most, fade, late, mark } — mark (8P): what lands on the clock instead of the peak:
+ * 'hit' (the take's `hit` — a latch, a thud, a stop) or 'start' (the take's beginning) — evaluated when the buffer is ready (core/city-sounds.js#
  * syncStart): the start is delayed, or joined part-way with a fade, so the peak lands on time; too late → it stays silent. A synced
  * sound plays at exactly `rate` (no jitter: the peak's time is in the take's own seconds).
- * → { slot, take: the file, i, peak: s into it where it's loudest, dur, set({ gain, pan }, ramp), stop(fade), started(): the
+ * → { slot, take: the file, i, peak: s into it where it's loudest, hit (its marked moment, s, or null), dur, set({ gain, pan }, ramp), stop(fade), started(): the
  * performance.now() it began (0 = not yet), ended(), late() } or null (an empty slot, audio locked, effects off).
  */
 export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take = null, jitter = 0.03, sync = null } = {}) {
@@ -141,7 +142,8 @@ export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take =
       if (!buf || stopped || getContext() !== c) return;
       let at = Math.max(c.currentTime, c.currentTime + delay), off = 0, fade = 0.012;
       if (sync && typeof sync.peakIn === 'function') {
-        const plan = syncStart(t, sync.peakIn(), sync);
+        const tk = sync.mark === 'hit' && t.hit != null ? { ...t, peak: t.hit } : sync.mark === 'start' ? { ...t, peak: 0 } : t;
+        const plan = syncStart(tk, sync.peakIn(), sync);
         if (!plan) { late = true; ended = true; cityLog.push({ slot, f: t.f, late: true, at: performance.now() }); if (cityLog.length > 40) cityLog.shift(); return; }
         at = c.currentTime + plan.delay; off = plan.offset; fade = Math.max(0.012, plan.fade);
       } else r = rate * (1 - jitter + Math.random() * 2 * jitter);
@@ -156,7 +158,7 @@ export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take =
       cityLog.push({ slot, f: t.f, gain: +v.toFixed(4), pan: +(+p).toFixed(2), off: +off.toFixed(2), wait: +(at - c.currentTime).toFixed(2), at: performance.now() }); if (cityLog.length > 40) cityLog.shift();
     }).catch(() => { ended = true; });
     return {
-      slot, take: t.f, i: pick.i, peak: t.peak ?? 0, dur: t.d,
+      slot, take: t.f, i: pick.i, peak: t.peak ?? 0, hit: t.hit ?? null, dur: t.d, t,
       /** follow the thing it belongs to: × the slot's level, the pan (ramped) — before it starts, its start takes them */
       set(o = {}, ramp = 0.25) {
         if (o.gain != null) v = s.gain * o.gain;

@@ -27,12 +27,26 @@ export const PARTS = [
 const S = (id, part, kind, gain, what, by = '', o = null) => ({ id, part, kind, gain, what, by, ...(o || {}) });
 export const SLOTS = [
   // ---- PART 7 — the speakeasy + the raid
-  S('club-murmur-calm', '7', 'loop', 0.1, 'a muffled club through a wall: crowd murmur + laughter (the jazz is our own music, low-passed)', 'the bar open at night (7b: sounds.js#speakeasy, ducked under the music)'),
-  S('club-murmur-party', '7', 'loop', 0.12, 'the party-night version, louder', 'the bar open on a party night (7b)'),
-  S('door-heavy', '7', 'once', 0.14, 'the speakeasy’s heavy wood door opening / closing (a moment of loud jazz)', 'the hidden MIRROR DOOR swinging open (7b)'),
-  S('door-knock', '7', 'once', 0.16, 'a knock on the speakeasy’s door', 'tapping the door (the synthesized knock until it’s filled)'),
+  // (8P: filled — the owner's speakeasy + people sounds; their mix: one-shots −20 LUFS, loops −24, × the gain: a window's sound ≈ −43 …
+  // −49 LUFS into the bus (felt, through glass), the club through the wall ≈ −44 / −42.4, the knock — the player's own tap — ≈ −36)
+  S('club-murmur-calm', '7', 'loop', 0.1, 'a muffled club through a wall: a crowd’s murmur + laughter, low-passed 1 kHz (the jazz is our own music)', 'the bar open at night (7b: sounds.js#speakeasy, ducked under the music)'),
+  S('club-murmur-party', '7', 'loop', 0.12, 'the party-night version: livelier, a brighter wall (1.4 kHz)', 'the bar open on a party night (7b)'),
+  S('door-heavy', '7', 'once', 0.1, 'the hidden mirror door swinging open: its latch + a short wooden creak', 'the hidden MIRROR DOOR swinging open (7b: windows.js#sound)'),
+  S('door-heavy-close', '7', 'once', 0.09, 'the mirror door swinging shut: a softened creak, the thud as it meets its frame at `hit` s', 'the mirror door shutting (8P: sounds.js#life — its thud on the moment’s close)'),
+  S('bar-open', '7', 'once', 0.1, 'the bar heard through the open mirror door: chatter + glasses, ~7 s, faded in + out', 'the mirror door open (8P: sounds.js#life)'),
+  S('glasses-clink', '7', 'once', 0.07, 'glasses clinking (three takes: two glasses, a table of three, a wine glass)', 'the toast at the bar (8P: sounds.js#life — on the clink)'),
+  S('shop-bell', '7', 'once', 0.06, 'the barbershop door’s bell (three jingles)', 'the barbershop’s customers in + out, the first one at the opening (8P: sounds.js#life)'),
+  S('scissors-snip', '7', 'once', 0.08, 'a barber’s scissors: 2–4 snips (four takes; all transient — the files sit at ≈ −28 LUFS, so a higher gain: ≈ −49 into the bus)', 'the haircuts (8P: sounds.js#life — now and then while the barber works)'),
+  S('broom-sweep', '7', 'loop', 0.07, 'a broom sweeping, through the bar’s glass (3 am)', 'the bar’s last light, 3 → 4 am (8P: sounds.js#life)'),
+  S('window-sash-up', '7', 'once', 0.05, 'a sash window pushed up (a juddering slide, a soft stop at `hit` s)', 'the upstairs wakes: the lower sash up for the watering (8P)'),
+  S('window-sash-down', '7', 'once', 0.05, 'a sash window let down (a short slide, the rail on the sill at `hit` s)', 'the upstairs wakes: the sash down again (8P)'),
+  S('roller-blind', '7', 'once', 0.05, 'a roller blind going up', 'the upstairs wakes: the blind up (8P)'),
+  S('door-knock', '7', 'once', 0.16, 'THE SECRET KNOCK on the speakeasy’s door — knock … knock-knock … knock — then the peephole slot sliding open', 'tapping the door (ambience.js#knock; the synthesized knock if it were ever empty)'),
   S('cat-meow', '7', 'once', 0.1, 'the alley cat’s meow', 'the cat jumping up onto a sill + a tap on the cat (7b)'),
-  S('tv-murmur', '7', 'loop', 0.08, 'a TV murmur through a window (late night)', 'the TV glow upstairs, ~10 pm → 3 am (7b)'),
+  S('cat-land', '7', 'once', 0.05, 'the cat landing (soft)', 'the cat landing on the sill + hopping down (8P: sounds.js#life)'),
+  S('tv-murmur', '7', 'loop', 0.08, 'a TV murmur through a window (late night) — EMPTY: the file had music + a clear talker in it', 'the TV glow upstairs, ~10 pm → 3 am (7b)'),
+  S('line-murmur', '7', 'loop', 0.05, 'the line at the speakeasy’s door: a few people murmuring, low-passed (no word readable)', 'the lobby line (8P: sounds.line(level))'),
+  S('rooftop-party', '7', 'loop', 0.06, 'a party up on the roof, heard from the street (low-passed)', 'the rooftop guests (8P: sounds.rooftop(level))'),
   S('police-car-1920s', '7', 'once', 0.14, '1920s police cars: old engines rolling by, tyres on a wet road'),
   S('siren-1920s', '7', 'once', 0.08, 'a soft distant 1920s siren wail (rising and falling)'),
   // ---- PART 8 — the promenade, people, vehicles, the city schedule
@@ -44,9 +58,18 @@ export const SLOTS = [
   S('city-hum-night', '8', 'loop', 0.09, 'a distant city hum at night (calmer, never silent)', 'at night (crossfades with the day hum on the darkness)'),
   S('traffic-far', '8', 'loop', 0.08, 'light far-off traffic'),
   S('car-1920s-pass', '8', 'once', 0.1, 'a single 1920s car passing, far → near → far', 'the road’s cars (harbor().sounds.play / citySound — Part 8’s headlight sweeps)'),
-  S('bus-brake-hiss', '8', 'once', 0.12, 'the bus’s air-brake hiss'),
-  S('bus-idle', '8', 'loop', 0.1, 'the bus idling at the curb'),
-  S('bus-pull-away', '8', 'once', 0.14, 'the bus pulling away'),
+  S('bus-brake-hiss', '8', 'once', 0.12, 'the bus’s air-brake hiss (an air brake is post-1920s: kept empty — bus-arrive brings it to a stop)'),
+  // (8P — THE BUS: the 1945 Mercedes truck's own takes — its approach + stop, its idle, its slow pull-away — rather than the diesel
+  // stand-ins; sounds.bus(event, o))
+  S('bus-arrive', '8', 'once', 0.12, 'the bus coming up the street and stopping: settled into its idle at `hit` s', 'the bus arriving (8P: sounds.bus("arrive", { stopIn }))'),
+  S('bus-idle', '8', 'loop', 0.1, 'the bus idling at the curb (a short engine loop)', 'the bus at the curb (8P: sounds.bus("idle"))'),
+  S('bus-door', '8', 'once', 0.08, 'the bus’s door (an old truck door)', 'the door opening / closing (8P: sounds.bus("door"))'),
+  S('bus-pull-away', '8', 'once', 0.12, 'the bus pulling away (revs, then slowly off, fading)', 'the bus leaving (8P: sounds.bus("depart"))'),
+  // (8P — THE PEOPLE: very soft — the nearest walking figure's steps only, now and then a laugh from a group, the chestnut cart's bell)
+  S('footsteps-cobble', '8', 'once', 0.03, 'one footstep on the cobbles (six takes)', 'the nearest walking figure (8P: sounds.step("cobble", o))'),
+  S('footsteps-heels', '8', 'once', 0.03, 'one step in heels (six takes)', 'the nearest walking figure in heels (8P: sounds.step("heels", o))'),
+  S('laugh-distant', '8', 'once', 0.04, 'a group laughing, distant (two takes)', 'a group of people (8P: sounds.laugh(o))'),
+  S('cart-bell', '8', 'once', 0.05, 'the chestnut cart’s hand bell (one ring)', 'the cart, now and then (8P: sounds.cart({ on, pan }) / sounds.cartBell(o))'),
   S('ships-bell', '8', 'once', 0.14, 'the HOURLY SHIP’S BELL'),
   S('steam-whistle', '8', 'once', 0.16, 'the NOON STEAM WHISTLE (a 1920s steamboat / factory)'),
   S('ship-horn', '8', 'once', 0.16, 'a big ship’s horn (the 7 pm dinner cruise)'),
@@ -87,13 +110,13 @@ export const SLOTS = [
   // heard over the music yet still distant (low-passed takes; the player's peak cap): the jets, the helicopter + the burner +6 dB (≈ the
   // day hum's −43.6 LUFS: −43 to −43.5), the airliners, the banner plane, the geese + the drone hum +3.5 dB (an airliner ≈ −49.3, the
   // banner plane ≈ −46.5, the swarm ≈ −51.5) — and ducked with the bed under the music (bedMix's k))
-  S('helicopter', 'sky', 'once', 0.074, 'a helicopter, distant + a flyby (two takes)', 'the helicopter while it’s up: its flybys chained, panned with it, louder while it hovers'),
-  S('airliner-far', 'sky', 'once', 0.036, 'an airliner far up (a long, slow flyby)', 'the airliners while one crosses (the nearest: its flyby from the start of its crossing, panned, swelling with it)'),
-  S('prop-plane', 'sky', 'once', 0.05, 'a vintage prop plane overhead (two swells: a plane circling)', 'the banner plane, the skywriters'),
-  S('jet-flyby', 'sky', 'once', 0.07, 'jets flying by right → left (the air show; low: far off)'),
-  S('balloon-burner', 'sky', 'once', 0.07, 'a hot air balloon’s burner whoosh, far off (five bursts, low-passed)', 'the balloons while they’re up: a burn every ~6–18 s'),
+  S('helicopter', 'sky', 'once', 0.117, 'a helicopter, distant + a flyby (two takes)', 'the helicopter while it’s up: its flybys chained, panned with it, louder while it hovers'),
+  S('airliner-far', 'sky', 'once', 0.051, 'an airliner far up (a long, slow flyby)', 'the airliners while one crosses (the nearest: its flyby from the start of its crossing, panned, swelling with it)'),
+  S('prop-plane', 'sky', 'once', 0.071, 'a vintage prop plane overhead (two swells: a plane circling)', 'the banner plane, the skywriters'),
+  S('jet-flyby', 'sky', 'once', 0.14, 'jets flying by right → left (the air show) — REALLY loud: the music ducks for the pass (`duck`)', 'the jets’ pass (8P: sounds.jets(o) — panned right → left over its swell, the music dipped ~3.6 dB round its peak)', { duck: 0.66 }),
+  S('balloon-burner', 'sky', 'once', 0.111, 'a hot air balloon’s burner whoosh, far off (five bursts, low-passed)', 'the balloons while they’re up: a burn every ~6–18 s'),
   S('geese', 'sky', 'once', 0.075, 'a skein of geese honking overhead (~28 s: one crossing)', 'the geese while a V crosses: one flyover a V, panned with it'),
-  S('drone-swarm', 'sky', 'loop', 0.045, 'the drone show’s faint swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
+  S('drone-swarm', 'sky', 'loop', 0.064, 'the drone show’s faint swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
   S('ufo-hum', 'sky', 'loop', 0.06, 'the UFO saucer’s low tonal hum (soft top — lower / filter it under the music)'),
   S('ufo-beam', 'sky', 'once', 0.1, 'the abduction beam (a riser, its peak ~6 s in)'),
   S('tr3b-drone', 'sky', 'loop', 0.08, 'the TR-3B’s deep drone (low-mids kept: a phone still hears it)'),
@@ -139,6 +162,7 @@ export function checkSlots() {
     if (!(s.gain > 0 && s.gain <= 1)) bad.push(`gain:${s.id}`);
     if (!s.what) bad.push(`what:${s.id}`);
     if (s.lp != null && !(s.kind === 'loop' && s.lp >= 200 && s.lp <= 16000)) bad.push(`lp:${s.id}`);
+    if (s.duck != null && !(s.kind === 'once' && s.duck >= 0.4 && s.duck < 1)) bad.push(`duck:${s.id}`);
   }
   for (const [id, takes] of Object.entries(FILES)) {
     const s = BY_ID.get(id);
@@ -239,3 +263,72 @@ export const panOf = (x, half, max = CAR_PAN) => +(max * Math.tanh(x / Math.max(
 /** a flyby chained while its thing is up: the next take starts when the one playing has `xf` s left (its baked fade-out overlaps
  *  the next one's fade-in) — elapsed / dur in s (dur: the take's length ÷ its rate) */
 export const chainDue = (elapsed, dur, xf = 2.5) => elapsed >= Math.max(0.5, dur - xf);
+
+// ---------------------------------------------------------------- 8P — THE JETS' DUCK (the owner: the F-16s REALLY loud, the music
+// never overpowered): a slot with `duck` (its level, linear) dips the MUSIC round its take's peak, like a real flyover — eased down
+// DUCK_IN s before the peak (over DUCK_ATTACK s), held DUCK_HOLD s past it, eased back over DUCK_RELEASE s (≈ 3 s in all). The jets'
+// own peak stays under the player's cap (audio/city-sound.js#CAP): loud, never a startle.
+export const DUCK_IN = 1.4, DUCK_ATTACK = 0.8, DUCK_HOLD = 1.2, DUCK_RELEASE = 2;
+/** the music's level (1 = untouched) `el` s into a take that ducks to `depth` round its peak (PURE) */
+export function duckAt(el, take, depth) {
+  if (!take || !(depth > 0 && depth < 1) || !Number.isFinite(el)) return 1;
+  const pk = take.peak ?? 0, a = pk - DUCK_IN, b = a + DUCK_ATTACK, c = pk + DUCK_HOLD, d = c + DUCK_RELEASE;
+  if (el <= a || el >= d) return 1;
+  const k = el < b ? (el - a) / DUCK_ATTACK : el <= c ? 1 : 1 - (el - c) / DUCK_RELEASE;
+  return +(1 - (1 - depth) * k).toFixed(4);
+}
+/** the jets' pan over their pass: right → left across the take's swell (the recording's own direction), ±`w` */
+export function sweepPan(el, take, w = 0.55, dir = -1) {
+  if (!take || !Array.isArray(take.sw)) return 0;
+  const [a, b] = take.sw, k = Math.max(0, Math.min(1, (el - a) / Math.max(0.1, b - a)));
+  return +(-dir * w + dir * 2 * w * k).toFixed(3);
+}
+
+// ---------------------------------------------------------------- 8P — THE SPEAKEASY'S MOMENTS, HEARD (core/harbor-moments.js#MOMENTS)
+// Each window moment's sounds, placed where its painter (screens/harbor/windows.js#PAINT) shows them: `p` = the moment's progress
+// (el / len); hit: true = the take's `hit` (its latch, its thud, the sash's stop — measured by the importer) lands on `p`, else
+// the take STARTS at `p`. The moment's first sound (the mirror door's opening, the cat's meow) is windows.js#sound's, at its start.
+// Pans: the speakeasy's corner, left.
+export const MOMENT_CUES = Object.freeze({
+  // the clink over the middle (patrons(): the glasses meet at p 0.33–0.44)
+  toast: [{ slot: 'glasses-clink', p: 0.38, hit: true, gain: 0.9, pan: -0.5 }],
+  // the blind rolls up (p 0.02–0.16); the lower sash up for the watering (its stop as it tops out, p 0.62) and down again (on the
+  // sill at p 0.9)
+  wake: [{ slot: 'roller-blind', p: 0.02, gain: 0.8, pan: -0.58 }, { slot: 'window-sash-up', p: 0.62, hit: true, gain: 0.8, pan: -0.58 },
+    { slot: 'window-sash-down', p: 0.9, hit: true, gain: 0.7, pan: -0.58 }],
+  // the leap up lands on the sill (p 0.07); the hop down lands behind it (p 0.98), softer
+  cat: [{ slot: 'cat-land', p: 0.07, hit: true, gain: 0.7, pan: -0.6 }, { slot: 'cat-land', p: 0.98, hit: true, gain: 0.45, pan: -0.6 }],
+  // the bar heard while the mirror stands open (from p 0.06, its own fades), the door's thud as it shuts (p 0.95)
+  mirror: [{ slot: 'bar-open', p: 0.06, gain: 1, pan: -0.5 }, { slot: 'door-heavy-close', p: 0.95, hit: true, gain: 0.9, pan: -0.5 }],
+  // the opening: the first customer through the door (p 0.48), the first snips (from p 0.74)
+  'shop-open': [{ slot: 'shop-bell', p: 0.48, gain: 0.9, pan: -0.45 }, { slot: 'scissors-snip', p: 0.77, gain: 0.8, pan: -0.45 },
+    { slot: 'scissors-snip', p: 0.9, gain: 0.7, pan: -0.45 }],
+});
+/** a moment's cues still to come, `el` s into it (PURE): [{ slot, in (s from now until its mark), mark: 'hit' | 'start', gain, pan }]
+ *  — a cue more than `late` s past is dropped */
+export function momentCues(id, el, len, late = 0.3) {
+  const out = [];
+  for (const c of MOMENT_CUES[id] || []) {
+    const at = c.p * len - el;
+    if (at < -late) continue;
+    out.push({ slot: c.slot, in: +at.toFixed(3), mark: c.hit ? 'hit' : 'start', gain: c.gain ?? 1, pan: c.pan ?? -0.5 });
+  }
+  return out;
+}
+/**
+ * THE BARBERSHOP'S DAY, heard (windows.js#barberDay — the same cycle): a customer every BARBER_CYCLE s — in through the door (the
+ * bell), the haircut (snips now and then), out (the bell) — from the opening's end. → { n (the customer), ph (s into the cycle),
+ * cutting } for local second `sec`; shopStart = today's opening (core/harbor-moments.js#routineAt), its length `len` (44 s)
+ */
+export const BARBER_CYCLE = 480, BARBER_BELLS = Object.freeze([0.6, 345]), BARBER_CUT = Object.freeze([24, 336]);
+export function barberAt(sec, shopStart, len = 44) {
+  const el = sec - shopStart - len + 40, n = Math.floor(el / BARBER_CYCLE), ph = el - n * BARBER_CYCLE;
+  return { n, ph: +ph.toFixed(3), cutting: ph >= BARBER_CUT[0] && ph <= BARBER_CUT[1] };
+}
+/** the bells crossed between two looks at the cycle (PURE): a > b in the same customer, or across a new one; none on the first look */
+export function bellsBetween(a, b) {
+  if (!a || !b) return 0;
+  if (b.n === a.n) return BARBER_BELLS.filter(t => a.ph < t && t <= b.ph).length;
+  if (b.n === a.n + 1) return BARBER_BELLS.filter(t => a.ph < t).length + BARBER_BELLS.filter(t => t <= b.ph).length;
+  return 0;                                   // (a jump — the clock moved, a long pause: nothing rung for what was missed)
+}

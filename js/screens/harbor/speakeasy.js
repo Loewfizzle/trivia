@@ -19,6 +19,7 @@ import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
 import { paintRoom, createWindowLife, SASH_RAIL, lateOf } from './windows.js';
+import { createHushSign } from './hushsign.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.gold || 0) + n[i] * (T.night || 0));
@@ -31,7 +32,15 @@ const GLASS_IN = 0.16;                   // a window's recess (exaggerated a lit
  *  sconce's glass — and landR: the sconce's light landing on the brick + the door's frame (baked: paintGround), gone by then. */
 /** SP2 — the awning's night lamp (wall units): over the shop window's middle; reach: its light's fall along the awning; the canvas's
  *  glow by stripe (the cream ones let more through), the scallops' rim */
-export const AWNING_LAMP = Object.freeze({ u: 5.6, reach: 2.1, cream: 0.3, red: 0.14, rim: 0.55 });
+/** 8P — THREE LAMPS under the awning (the owner: one lamp lit the middle only): each end + the middle (us), each a little dimmer (k)
+ *  than SP2's single one, so together they wash the shopfront EVENLY; crisp SOURCES — a small brass shade hung under the valance's
+ *  scallops with a lit bulb + a tight halo (live) — and their light landing on the canvas, the shopfront, the pavement (baked). The
+ *  barber pole stays the brightest light on the front (tested). */
+export const AWNING_LAMP = Object.freeze({ us: [2.5, 5.6, 7.85], k: 0.72, reach: 1.45, cream: 0.3, red: 0.14, rim: 0.55, drop: 0.03, bulb: 0.07, halo: 0.34 });
+/** the awning lamps' bulbs (wall units u across + world y / z): just under the valance's foot */
+/** 8P — the valance's depth (world units; was 0.42: it hid the window's head — the gold arch + the sign need the room) */
+export const VAL = 0.34;
+export const awningBulbs = aw => AWNING_LAMP.us.map(u => ({ u, y: aw.y1 - VAL - AWNING_LAMP.drop, z: aw.z + 0.05 }));
 export const SHOP_GLOW = Object.freeze({ lamp: 0.2, sconce: 0.24, landR: 0.95 });   // (SP2: tighter — a few pt)
 
 // ------------------------------------------------------------------ geometry
@@ -313,11 +322,13 @@ function paintGround(x, M, s) {
   { const lx = w0 + (w1 - w0) * 0.38; R(x, lx - 0.01, wv1 - 0.4, lx + 0.01, wv1, M.iron); x.fillStyle = rgb(tri(M.T, [240, 236, 220], [250, 220, 180], [40, 36, 46])); x.beginPath(); x.arc(lx, wv1 - 0.48, 0.12, 0, Math.PI * 2); x.fill(); }
   // the glass: the street's pale reflection low, a soft diagonal sheen, a little of the sky up top (by day); the awning's shadow
   if (!night) {
-    const g = x.createLinearGradient(0, wv0, 0, wv1); g.addColorStop(0, 'rgba(236,232,220,0.3)'); g.addColorStop(0.35, 'rgba(236,232,220,0.06)'); g.addColorStop(0.75, 'rgba(255,255,255,0)'); g.addColorStop(1, rgb(M.glassTop, 0.35));
+    // (8P — CRISP: the milky street reflection that veiled the lower half of the glass is gone — a clean sky tint at the head + two
+    // hard-edged sheens; the shop inside reads sharp)
+    const g = x.createLinearGradient(0, wv0, 0, wv1); g.addColorStop(0, 'rgba(236,232,220,0.06)'); g.addColorStop(0.6, 'rgba(255,255,255,0)'); g.addColorStop(1, rgb(M.glassTop, 0.28));
     x.fillStyle = g; x.fillRect(w0, wv0, w1 - w0, wv1 - wv0);
-    x.fillStyle = 'rgba(255,255,255,0.13)'; for (const [p, q] of [[0.1, 0.55], [0.62, 0.78]]) { x.beginPath(); x.moveTo(w0 + (w1 - w0) * p, wv1); x.lineTo(w0 + (w1 - w0) * q, wv1); x.lineTo(w0 + (w1 - w0) * (q - 0.22), wv0); x.lineTo(w0 + (w1 - w0) * (p - 0.22), wv0); x.fill(); }
+    x.fillStyle = 'rgba(255,255,255,0.08)'; for (const [p, q] of [[0.1, 0.55], [0.62, 0.78]]) { x.beginPath(); x.moveTo(w0 + (w1 - w0) * p, wv1); x.lineTo(w0 + (w1 - w0) * q, wv1); x.lineTo(w0 + (w1 - w0) * (q - 0.22), wv0); x.lineTo(w0 + (w1 - w0) * (p - 0.22), wv0); x.fill(); }
   } else R(x, w0, wv0, w1, wv1, M.inside, 0.55);
-  R(x, w0, wv1 - 0.38, w1, wv1, [0, 0, 0], 0.32 * (M.day + M.gold) + 0.1);
+  R(x, w0, wv1 - 0.3, w1, wv1, [0, 0, 0], 0.3 * (M.day + M.gold) + 0.1);
   // THE GOLD LEAF (7b: its own painter — the live layer lays it over the people inside: it is ON the glass)
   paintGilt(x, M, sh);
   x.restore();
@@ -331,10 +342,7 @@ function paintGround(x, M, s) {
   R(x, d0 + 0.12, V.plinth + 0.1, d1 - 0.12, 1.1, shade(M.wood, -0.15));
   R(x, d0 + 0.08, dh + 0.08, d1 - 0.08, dh + 0.42, night ? M.inside : mix(M.glassTop, M.inside, 0.3));
   R(x, d1 - 0.2, 1.05, d1 - 0.13, 1.18, M.gilt);
-  { const cu = (d0 + d1) / 2, cv = 2.05, card = tri(M.T, [244, 240, 228], [250, 226, 196], [56, 50, 60]);
-    x.strokeStyle = rgb(M.iron); x.lineWidth = 0.02; x.beginPath(); x.moveTo(cu - 0.18, cv + 0.2); x.lineTo(cu, cv + 0.42); x.lineTo(cu + 0.18, cv + 0.2); x.stroke();
-    R(x, cu - 0.3, cv - 0.02, cu + 0.3, cv + 0.2, card);
-    text(x, open ? 'OPEN' : 'CLOSED', cu, cv + 0.035, open ? 0.15 : 0.11, { fill: rgb(open ? [190, 30, 36] : [30, 30, 40]) }); }
+  // (8P: the door's tiny OPEN / CLOSED card is gone — a ~3 pt word read as mush; THE HUSH WORD SIGN in the window says OPEN in neon)
   // the pole's brackets (the pole itself is live: it turns)
   R(x, sh.pole.u - 0.22, sh.pole.v1 - 0.05, sh.pole.u + 0.22, sh.pole.v1 + 0.12, M.iron); R(x, sh.pole.u - 0.22, sh.pole.v0 - 0.12, sh.pole.u + 0.22, sh.pole.v0 + 0.05, M.iron);
   // the pole's shadow on the wall by day
@@ -383,19 +391,23 @@ function paintGround(x, M, s) {
 /** THE GOLD LEAF on the shop window: "HARBOR BARBERS" arched, "SHAVE & HAIRCUT" under it — gilt with a dark keyline and a shade, a
  *  little faded (in wall units; the bake paints it on the glass, the live layer lays it again over whatever moves inside) */
 export function paintGilt(x, M, sh) {
-  const [w0, w1, , wv1] = sh.win;
-  { const cx = (w0 + w1) / 2, R0 = 3.4, cy = wv1 - 0.98 - R0, word = 'HARBOR BARBERS', size = 0.34;
-    const gi = mix(M.gilt, M.giltHi, 0.2 * (1 - M.night)), sz = 1;
-    x.font = FONT(size * 100);
-    const span = (w1 - w0) * 0.86 / R0, step = span / (word.length - 1);
-    for (let i = 0; i < word.length; i++) {
-      const a = -span / 2 + i * step, u = cx + Math.sin(a) * R0, v = cy + Math.cos(a) * R0;
-      text(x, word[i], u + 0.03, v - 0.03, size, { fill: rgb(M.giltLo, 0.9), rot: a });
-      text(x, word[i], u, v, size, { fill: rgb(gi), stroke: rgb([24, 16, 14], 0.85), lw: 0.05, rot: a });
-    }
-    text(x, 'SHAVE & HAIRCUT', cx, wv1 - 1.78, 0.26 * sz, { fill: rgb(gi), stroke: rgb([24, 16, 14], 0.85), lw: 0.04, sq: 0.92 });
-    R(x, cx - 1.25, wv1 - 1.9, cx + 1.25, wv1 - 1.88, gi, 0.85); }
+  const [w0, w1, , wv1] = sh.win, G0 = GILT;
+  // (8P — THE BARBERSHOP FRONT WAS BLURRY, the owner's biggest note: the letters were ~3 pt caps with a drop-shade offset by under a
+  // point — at phone size that read as a double image, a smear. Now bigger, ONE crisp dark keyline round a clean gold fill, no offset
+  // shade; the arch flatter + higher (THE HUSH WORD SIGN hangs under it); "SHAVE & HAIRCUT" gone — the sign has that spot. At night
+  // the leaf catches the awning's lamps: a warm lit gold, never the murky brown it was.)
+  const cx = (w0 + w1) / 2, R0 = G0.R, word = 'HARBOR BARBERS', size = G0.size, cy = wv1 - G0.top - R0;
+  const lampK = clamp01(M.lamps != null ? M.lamps : M.T && M.T.lamps != null ? M.T.lamps : M.night) * clamp01(M.night || 0);
+  const gi = mix(mix(M.gilt, M.giltHi, 0.3 * (1 - M.night)), G0.lit, 0.62 * lampK), key = rgb(mix([20, 12, 10], [8, 6, 10], M.night || 0), 0.92);
+  const span = (w1 - w0) * G0.span / R0, step = span / (word.length - 1);
+  for (let i = 0; i < word.length; i++) {
+    const a = -span / 2 + i * step, u = cx + Math.sin(a) * R0, v = cy + Math.cos(a) * R0;
+    text(x, word[i], u, v, size, { fill: rgb(gi), stroke: key, lw: G0.key, rot: a });
+  }
 }
+/** 8P — the gold leaf's arch (wall units): font size, the apex's baseline under the window's head (top), the arch's radius (flat),
+ *  its span (of the window's width), the keyline's width, the leaf's colour when the awning's lamps light it */
+export const GILT = Object.freeze({ size: 0.44, top: 0.55, R: 10, span: 0.84, key: 0.06, lit: [236, 184, 104] });
 
 // ------------------------------------------------------------------ 7b — THE WALL-WASHERS (the owner: "something's missing" at night)
 /** small warm lamps under the capitals, aimed DOWN, GRAZING the brick PIERS between the windows (never the windows): from dusk all
@@ -543,8 +555,19 @@ export function marqueeLevel(i, party = 0, beats = 0, beatU = 0) {
  *  a sliver of a letter doesn't read) and its width (filling LETTER.fill of the column, at most LETTER.wide × a natural letter) →
  *  { cols: [{ word, cx, lh, cap, top }], cw, cap } (board units) */
 export const LETTER = Object.freeze({ fill: 0.86, tall: 1.5, wide: 1.9, gap: 0.08, v0: 0.32, v1: 0.52 });
+/** 8P — a long ONE-WORD name reads as two stacked columns at its seam (the owner: SLIPSTREAM was ~8.6 pt, under the 10 pt rule; one
+ *  column of 9–10 letters can't get bigger on a ~25 pt board): SLIP / STREAM like the two-word names. Unknown long words split at
+ *  their middle; ≤ BLADE_ONE letters stay one column. */
+export const BLADE_SPLIT = Object.freeze({ SLIPSTREAM: ['SLIP', 'STREAM'], RUMRUNNER: ['RUM', 'RUNNER'], OVERCLOCK: ['OVER', 'CLOCK'] });
+export const BLADE_ONE = 8;
+export function bladeWords(name) {
+  const words = String(name || '').toUpperCase().split(/\s+/).filter(Boolean).slice(0, 2);
+  if (words.length !== 1 || words[0].length <= BLADE_ONE) return words;
+  const w = words[0];
+  return BLADE_SPLIT[w] ? [...BLADE_SPLIT[w]] : [w.slice(0, Math.ceil(w.length / 2)), w.slice(Math.ceil(w.length / 2))];
+}
 export function bladeLetters(name, bw = BLADE.bw, v0 = BLADE.v0, v1 = BLADE.v1) {
-  const words = String(name || '').toUpperCase().split(/\s+/).filter(Boolean).slice(0, 2), nc = Math.max(1, words.length);
+  const words = bladeWords(name), nc = Math.max(1, words.length);
   const x0 = MARQUEE.edge + 0.05, x1 = bw - MARQUEE.edge - 0.05, top = v1 - LETTER.v1, foot = v0 + LETTER.v0, ih = top - foot;
   const cw = (x1 - x0 - LETTER.gap * (nc - 1)) / nc, n = Math.max(1, ...words.map(w => w.length)), lh = ih / n;
   const cap = Math.min(lh * 0.86, cw * LETTER.tall);
@@ -710,9 +733,9 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       poly(x, cam, [at(aw.u0 + 3.1, aw.y0 - 0.22, s.z0 - 0.45), at(aw.u0 + 3.75, aw.y0 - 0.22, s.z0 - 0.45), at(aw.u0 + 3.75, aw.y0 - 0.5, s.z0 - 0.98), at(aw.u0 + 3.1, aw.y0 - 0.5, s.z0 - 0.98)], rgb(shade(M.awnR, 0.06)));
       { const [a, y0] = project(cam, s.x0 + aw.u0, aw.y0, s.z0), [b, y1] = project(cam, s.x0 + aw.u1, aw.y1, aw.z), g = x.createLinearGradient(0, y0, 0, y1);
         g.addColorStop(0, `rgba(255,248,230,${(0.18 * M.day).toFixed(3)})`); g.addColorStop(1, 'rgba(0,0,0,0.12)'); x.fillStyle = g; x.fillRect(a, y0, b - a, y1 - y0); }
-      poly(x, cam, [at(aw.u1, aw.y0, s.z0), at(aw.u1, aw.y1, aw.z), at(aw.u1, aw.y1 - 0.42, aw.z)], rgb(shade(M.awnR, -0.25)));
+      poly(x, cam, [at(aw.u1, aw.y0, s.z0), at(aw.u1, aw.y1, aw.z), at(aw.u1, aw.y1 - VAL, aw.z)], rgb(shade(M.awnR, -0.25)));
       // the valance: a red band with the year, the scallops under it
-      const [va, vy0] = project(cam, s.x0 + aw.u0, aw.y1, aw.z), [vb, vy1] = project(cam, s.x0 + aw.u1, aw.y1 - 0.42, aw.z), vh = vy1 - vy0, sc = cam.F / aw.z;
+      const [va, vy0] = project(cam, s.x0 + aw.u0, aw.y1, aw.z), [vb, vy1] = project(cam, s.x0 + aw.u1, aw.y1 - VAL, aw.z), vh = vy1 - vy0, sc = cam.F / aw.z;
       x.fillStyle = rgb(shade(M.awnR, -0.08)); x.fillRect(va, vy0, vb - va, vh);
       x.fillStyle = rgb(shade(M.awnR, -0.08)); const ns = 14, sw = (vb - va) / ns;
       for (let i = 0; i < ns; i++) { x.beginPath(); x.arc(va + sw * (i + 0.5), vy1, sw / 2, 0, Math.PI); x.fill(); }
@@ -727,25 +750,36 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       // Subtle: the barber pole stays the brightest light on the front. Baked (by the lamps' ramp).
       { const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
         if (lk > 0.01) {
-          const lu = AWNING_LAMP.u, W = [255, 196, 132], fall = u => Math.exp(-(((u - lu) / AWNING_LAMP.reach) ** 2));
+          const A = AWNING_LAMP, W = [255, 196, 132], fall = u => Math.min(1.25, A.us.reduce((sum, lu) => sum + A.k * Math.exp(-(((u - lu) / A.reach) ** 2)), 0));
           x.save(); x.globalCompositeOperation = 'lighter';
           for (let i = 0; i < n; i++) {
-            const u0 = aw.u0 + i * du, u1 = u0 + du, f = fall((u0 + u1) / 2) * lk * (i % 2 ? AWNING_LAMP.cream : AWNING_LAMP.red);
+            const u0 = aw.u0 + i * du, u1 = u0 + du, f = fall((u0 + u1) / 2) * lk * (i % 2 ? A.cream : A.red);
             const [, ya] = project(cam, s.x0 + u0, aw.y0, s.z0), [, yb] = project(cam, s.x0 + u0, aw.y1, aw.z), g = x.createLinearGradient(0, ya, 0, yb);
-            g.addColorStop(0, rgb(W, f)); g.addColorStop(1, rgb(W, f * 0.25));
+            g.addColorStop(0, rgb(W, f * 0.55)); g.addColorStop(1, rgb(W, f));
             poly(x, cam, [at(u0, aw.y0, s.z0), at(u1, aw.y0, s.z0), at(u1, aw.y1, aw.z), at(u0, aw.y1, aw.z)], g);
           }
-          // the scallops' warm rim (their lower edges), brightest over the lamp
+          // the scallops' warm rim (their lower edges), brightest by each lamp
           x.lineWidth = Math.max(0.5, 0.035 * sc);
-          for (let i = 0; i < ns; i++) { const cx = va + sw * (i + 0.5), u = aw.u0 + (aw.u1 - aw.u0) * (i + 0.5) / ns; x.strokeStyle = rgb([255, 214, 160], AWNING_LAMP.rim * fall(u) * lk); x.beginPath(); x.arc(cx, vy1, sw / 2 - x.lineWidth / 2, 0.15, Math.PI - 0.15); x.stroke(); }
-          // the shopfront under it (the wall over the window + the window's head) + the pavement in front: soft, short
-          { const [p0, py0] = project(cam, s.x0 + lu, aw.y0 - 0.12, s.z0), [, py1] = project(cam, s.x0 + lu, 2.6, s.z0), r = (py1 - py0);
-            const g = x.createRadialGradient(p0, py0, 0, p0, py0, r * 1.6); g.addColorStop(0, rgb(W, 0.22 * lk)); g.addColorStop(0.5, rgb(W, 0.07 * lk)); g.addColorStop(1, rgb(W, 0));
-            x.fillStyle = g; x.beginPath(); x.rect(project(cam, s.x0 + aw.u0, 0, s.z0)[0], py0, project(cam, s.x0 + aw.u1, 0, s.z0)[0] - project(cam, s.x0 + aw.u0, 0, s.z0)[0], r * 1.6); x.fill(); }
-          { const [pc, pyc] = project(cam, s.x0 + lu, 0, s.z0 - 0.9), rw = 2.6 * cam.F / s.z0, g = x.createRadialGradient(pc, pyc, 0, pc, pyc, rw);
-            g.addColorStop(0, rgb(W, 0.12 * lk)); g.addColorStop(1, rgb(W, 0)); x.save(); x.translate(pc, pyc); x.scale(1, 0.16); x.translate(-pc, -pyc); x.fillStyle = g; x.fillRect(pc - rw, pyc - rw, 2 * rw, 2 * rw); x.restore(); }
+          for (let i = 0; i < ns; i++) { const cx = va + sw * (i + 0.5), u = aw.u0 + (aw.u1 - aw.u0) * (i + 0.5) / ns; x.strokeStyle = rgb([255, 214, 160], A.rim * Math.min(1, fall(u)) * lk); x.beginPath(); x.arc(cx, vy1, sw / 2 - x.lineWidth / 2, 0.15, Math.PI - 0.15); x.stroke(); }
+          // each lamp's light LANDING: a short crisp fan down the shopfront under it (the window's head + frame, the stall riser) + a small
+          // pool on the pavement in front — three of them overlapping, so the front reads evenly lit, no fog
+          for (const b of awningBulbs(aw)) {
+            const [p0, py0] = project(cam, s.x0 + b.u, b.y, s.z0), [, py1] = project(cam, s.x0 + b.u, 0.5, s.z0), r = py1 - py0, wv = 1.15 * cam.F / s.z0;
+            const g = x.createRadialGradient(p0, py0, 0, p0, py0, r); g.addColorStop(0, rgb(W, 0.2 * A.k * lk)); g.addColorStop(0.45, rgb(W, 0.08 * A.k * lk)); g.addColorStop(1, rgb(W, 0));
+            x.save(); x.beginPath(); x.moveTo(p0 - wv * 0.25, py0); x.lineTo(p0 + wv * 0.25, py0); x.lineTo(p0 + wv, py1); x.lineTo(p0 - wv, py1); x.closePath(); x.clip();
+            x.fillStyle = g; x.fillRect(p0 - wv, py0, wv * 2, r); x.restore();
+            const [pc, pyc] = project(cam, s.x0 + b.u, 0, s.z0 - 0.8), rw = 1.5 * cam.F / s.z0, g2 = x.createRadialGradient(pc, pyc, 0, pc, pyc, rw);
+            g2.addColorStop(0, rgb(W, 0.13 * A.k * lk)); g2.addColorStop(0.6, rgb(W, 0.04 * A.k * lk)); g2.addColorStop(1, rgb(W, 0));
+            x.save(); x.translate(pc, pyc); x.scale(1, 0.2); x.translate(-pc, -pyc); x.fillStyle = g2; x.fillRect(pc - rw, pyc - rw, 2 * rw, 2 * rw); x.restore();
+          }
           x.restore();
-          // (the lamp itself hangs UNDER the canvas, at the wall: from this camera, above the awning, it is hidden — only its light shows)
+        }
+        // the lamps' fixtures (by day too): a short brass stem under the valance's foot, a small bell shade, the bulb's glass under it
+        for (const b of awningBulbs(aw)) {
+          const [bx, by] = project(cam, s.x0 + b.u, b.y, b.z), [, ty] = project(cam, s.x0 + b.u, aw.y1 - VAL, aw.z), k2 = cam.F / b.z, r = AWNING_LAMP.bulb * k2;
+          x.fillStyle = rgb(M.gilt); x.fillRect(bx - Math.max(0.3, 0.012 * k2), ty, Math.max(0.6, 0.024 * k2), by - ty - r * 0.6);
+          x.fillStyle = rgb(shade(M.gilt, -0.25)); x.beginPath(); x.moveTo(bx - r * 1.7, by - r * 0.1); x.lineTo(bx + r * 1.7, by - r * 0.1); x.lineTo(bx + r * 0.7, by - r * 1.3); x.lineTo(bx - r * 0.7, by - r * 1.3); x.closePath(); x.fill();
+          x.fillStyle = rgb(lk > 0.01 ? mix(M.glassTop, [255, 230, 190], lk) : mix(M.glassTop, [236, 232, 222], 0.5)); x.beginPath(); x.arc(bx, by + r * 0.3, r, 0, Math.PI * 2); x.fill();
         } }
       // the side door's two worn granite steps (a dip worn in the middle)
       const d = s.door;
@@ -757,6 +791,34 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
   ];
 }
 
+/** 8P — THE BASEMENT WINDOW's colours (the only window this colour: a smoky amber edging to copper — darker + smokier at the top) */
+export const BASEMENT = Object.freeze({ top: [150, 52, 22], mid: [236, 112, 44], low: [255, 150, 70], day: 0.38, night: 0.34, pass: 13, beat: 0.32 });
+const hh01 = (n, s) => { let h = (n * 374761393 + s * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+/**
+ * The basement's light at t (s) — PURE: { a (its level), shadows: [{ x (0..1 across), s (size × the opening's height), a }], flick }.
+ * night 0..1 (brighter after dark), beat 0..1 (a party night's punch × its ramp). A pass every BASEMENT.pass s or so (seeded by the
+ * slot: ~3 in 5 slots), one or two figures walking across in ~3–4 s, dimming the light a little as they pass; a flicker ~once in 8
+ * minutes (two quick dips).
+ */
+export function basementLight(t, { night = 0, beat = 0 } = {}) {
+  const B = BASEMENT, slot = Math.floor(t / B.pass), u = t - slot * B.pass, shadows = [];
+  let dim = 0;
+  if (hh01(slot, 3) < 0.6) {
+    const dur = 3 + hh01(slot, 4) * 1.4, dir = hh01(slot, 5) < 0.5 ? 1 : -1, n = hh01(slot, 6) < 0.35 ? 2 : 1, t0 = 1 + hh01(slot, 7) * (B.pass - dur - 2);
+    for (let i = 0; i < n; i++) {
+      const p = (u - t0 - i * 0.55) / dur;
+      if (p <= 0 || p >= 1) continue;
+      const x = dir > 0 ? -0.15 + 1.3 * p : 1.15 - 1.3 * p;
+      shadows.push({ x, s: 0.95 + 0.25 * hh01(slot, 8 + i), a: 0.55 + 0.2 * hh01(slot, 10 + i) });
+      dim = Math.max(dim, 0.14 * Math.sin(Math.PI * p));
+    }
+  }
+  // the rare flicker: one slot in ~8 minutes, two quick dips at a seeded second
+  const fs = Math.floor(t / 480), ft = t - fs * 480 - (20 + hh01(fs, 21) * 440);
+  const flick = hh01(fs, 20) < 0.5 && ft > 0 && ft < 0.45 ? (ft < 0.08 || (ft > 0.18 && ft < 0.26) ? 0.45 : 0) : 0;
+  const a = (B.day + B.night * Math.max(0, Math.min(1, night))) * (1 - dim) * (1 + B.beat * beat) * (1 - flick);
+  return { a, shadows, flick };
+}
 // ------------------------------------------------------------------ LIVE: the lit rooms, the glows, the pole, the ad's lamps
 /** THE BARBER POLE's turn (FP, PURE): the stripes' phase (0..1 of a period) after dt s — the shop's pace by day, the slow night turn
  *  when lit; continuous (never rounded to a pixel or a frame: the strip slides at a fractional offset) */
@@ -815,6 +877,9 @@ export function createSpeakeasy() {
   let mirror = 0, lastK = -1;
   // PART 7b — THE LIFE: the window moments, the rooms' states, the taps (screens/harbor/windows.js; the plan: core/harbor-moments.js)
   const life = createWindowLife();
+  // 8P — THE HUSH WORD SIGN in the shop window (hushsign.js; Lobby 2.0: hush(word))
+  const hush = createHushSign();
+  let basementDbg = null;
   let giltCv = null, giltKey = '', giltAt = null, lastT = 0, lastGame = null, bedsNow = { club: 0, tv: 0, party: false };
   function layout(L, o = {}) {
     G = speakGeo(L); dpr = Math.min(2, o.dpr || 1);
@@ -826,6 +891,7 @@ export function createSpeakeasy() {
     const [b0, b1, bv0, bv1] = s.shop.basement, [p, py] = G.front(b0, bv1), [q, qy] = G.front(b1, bv0);
     basement = { x: p, y: py, w: q - p, h: qy - py };
     litKey = adKey = bladeKey = '';
+    hush.layout(G, { dpr });
   }
   // the window's level now: its own (a hook) or the timeline's (core/harbor-speakeasy.js#roomLight)
   const levelOf = (rm, f) => (own.has(rm.id) ? own.get(rm.id) : roomLight(rm.id, f.hour));
@@ -884,7 +950,7 @@ export function createSpeakeasy() {
       const x = safeCtx(giltCv), [ox, oy] = G.front(0, 0);
       x.setTransform(dpr, 0, 0, dpr, -giltAt.x * dpr, -giltAt.y * dpr);
       x.save(); wallMap(x, ox, oy, G.K); x.beginPath(); x.rect(w0, wv0, w1 - w0, wv1 - wv0); x.clip();
-      paintGilt(x, { gilt: tri(T, [214, 168, 78], [236, 176, 90], [86, 70, 58]), giltHi: tri(T, [255, 232, 160], [255, 214, 140], [120, 100, 80]), giltLo: tri(T, [128, 86, 34], [140, 80, 40], [40, 30, 34]), night: T.night || 0 }, G.s.shop);
+      paintGilt(x, { gilt: tri(T, [214, 168, 78], [236, 176, 90], [86, 70, 58]), giltHi: tri(T, [255, 232, 160], [255, 214, 140], [120, 100, 80]), giltLo: tri(T, [128, 86, 34], [140, 80, 40], [40, 30, 34]), night: T.night || 0, lamps: T.night || 0 }, G.s.shop);
       x.restore();
     }
     c.drawImage(giltCv, giltAt.x, giltAt.y, giltAt.w, giltAt.h);
@@ -1034,8 +1100,14 @@ export function createSpeakeasy() {
     // PART 7b — THE LIFE: the people, the cat, the TV, the night lamp, the bar's afternoon + last light, the shop's day, the mirror door
     c.globalAlpha = 1;
     const [ox, oy] = G.front(0, 0), d = G.s.shop.door;
-    life.draw(c, { map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: [(d[0] + d[1]) / 2, 2.05], gilt: x => giltOver(x, f), play: f.play });
-    bedsNow = life.bedLevels(k, !!(f.party && (f.party.ramp == null ? 1 : f.party.ramp) > 0.3));
+    life.draw(c, { map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: x => giltOver(x, f), play: f.play });
+    void d;
+    // 8P — THE HUSH WORD SIGN (inside the glass, in front of the shop's life): the lobby's word lit; no lobby → OPEN while the shop is
+    // open by day (it lights at the opening routine's flip, a third of the way in), unlit before + after, dark at night
+    { const op = fr.on.find(e => e.id === 'shop-open'), shopSt = fr.states.shop === 'open' || (op && op.el / op.len >= 0.33) ? 'open' : 'closed';
+      if (f.hush !== undefined) hush.set(f.hush);
+      hush.draw(c, { t: f.t || 0, T: f.tw || { day: 1 - k, gold: 0, night: k }, night: clamp01(f.night || 0), shop: shopSt, fade, motion: f.motion }); }
+    bedsNow = { ...life.bedLevels(k, !!(f.party && (f.party.ramp == null ? 1 : f.party.ramp) > 0.3)), fr, k, motion: f.motion !== false };   // (8P: the moments' + the shop's sound cues read the frame — sounds.js)
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     // for 7b: a moment's own painter over its window
     for (const [id, fn] of drawers) { const w = wins.find(o => o.id === id); if (w) fn(c, w, f); }
@@ -1046,10 +1118,41 @@ export function createSpeakeasy() {
     { const sc = G.s.shop.sconce, [sx, sy] = G.front(sc.u, sc.v + 0.13), a = clamp01(f.sconce == null ? f.k : f.sconce) * fade;
       if (a > 0.004) { const [p, py] = G.front(sc.u - 0.1, sc.v + 0.26), [q, qy] = G.front(sc.u + 0.1, sc.v); c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,226,170)'; c.fillRect(p, py, q - p, qy - py); c.globalCompositeOperation = 'lighter'; }
       soft(c, [255, 210, 150], sx, sy, G.K * SHOP_GLOW.sconce, 0.72 * a); glowAt.sconce = [sx, sy]; }
-    // THE BASEMENT WINDOW: the one hint of the secret — a faint warm amber, day + night, breathing a little
-    { const b = basement, br = 0.75 + 0.1 * (f.motion ? Math.sin(f.t * 1.3) + 0.5 * Math.sin(f.t * 3.7) : 0), a = (0.26 + 0.2 * clamp01(f.night)) * br * fade;
-      c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,150,60)'; c.fillRect(b.x, b.y, b.w, b.h);
-      c.globalAlpha = Math.min(1, a * 0.7); c.fillRect(b.x - 1, b.y + b.h, b.w + 2, Math.max(0.6, b.h * 0.12)); }   // (SP2: its light lands on the sill under it — no soft blob)
+    // 8P — THE AWNING'S THREE LAMPS lit: each bulb a crisp warm globe + a small TIGHT halo (their light on the canvas, the shopfront and
+    // the pavement is baked — speakeasySteps); the barber pole stays the brightest light on the front
+    { const a = clamp01(f.sconce == null ? f.k : f.sconce) * fade;
+      if (a > 0.004) for (const b of awningBulbs(G.s.awning)) {
+        const [bx, by0] = project(G.cam, G.s.x0 + b.u, b.y, b.z), r = AWNING_LAMP.bulb * G.cam.F / b.z, by = by0 + r * 0.3;
+        soft(c, [255, 204, 146], bx, by, AWNING_LAMP.halo * G.cam.F / b.z, 0.55 * a * AWNING_LAMP.k);
+        c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,238,208)'; c.beginPath(); c.arc(bx, by, r, 0, Math.PI * 2); c.fill();
+        c.fillStyle = 'rgb(255,252,240)'; c.beginPath(); c.arc(bx, by + r * 0.15, r * 0.5, 0, Math.PI * 2); c.fill(); c.globalCompositeOperation = 'lighter';
+      } }
+    // THE BASEMENT WINDOW: the one hint of the secret — 8P (the owner: "you can't really tell"): the club's heart, unlike every room above —
+    // a DEEPER smoky amber edging to copper, a bit brighter; alive through MOVEMENT: now and then the shadows of people passing behind it
+    // (the light warming + dimming as they pass), a gentle pulse with the beat on party nights (the music's heart is down there), a very
+    // rare brief flicker (an old wire). basementLight() is PURE (tested).
+    { const b = basement, t = f.t || 0, pt = f.party, beat = pt && f.motion ? clamp01(pt.ramp == null ? 1 : pt.ramp) * clamp01(pt.punch || 0) : 0;
+      const L0 = basementLight(f.motion ? t : 0, { night: clamp01(f.night), beat });
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, L0.a * fade);
+      const g = c.createLinearGradient(0, b.y, 0, b.y + b.h); g.addColorStop(0, rgb(BASEMENT.top)); g.addColorStop(0.55, rgb(BASEMENT.mid)); g.addColorStop(1, rgb(BASEMENT.low));
+      c.fillStyle = g; c.fillRect(b.x, b.y, b.w, b.h);
+      // the shadows passing (head + shoulders, soft-edged, against the light) — clipped to the opening
+      if (L0.shadows.length) {
+        c.save(); c.beginPath(); c.rect(b.x, b.y, b.w, b.h); c.clip(); c.fillStyle = 'rgb(34,12,8)';
+        for (const sh of L0.shadows) {
+          const sx = b.x + b.w * sh.x, hh = b.h * sh.s, hy = b.y + b.h * 0.42;
+          c.globalAlpha = Math.min(1, sh.a * fade);
+          c.beginPath(); c.ellipse(sx, hy, hh * 0.26, hh * 0.3, 0, 0, Math.PI * 2); c.fill();
+          c.beginPath(); c.ellipse(sx, hy + hh * 0.78, hh * 0.62, hh * 0.5, 0, Math.PI, 0); c.fill(); c.fillRect(sx - hh * 0.62, hy + hh * 0.78, hh * 1.24, b.h);
+        }
+        c.restore();
+      }
+      // its light landing on the sill under it + the iron bars over the glow (the bake's bars are under this layer)
+      c.globalAlpha = Math.min(1, L0.a * 0.75 * fade); c.fillStyle = rgb(BASEMENT.low); c.fillRect(b.x - 1, b.y + b.h, b.w + 2, Math.max(0.6, b.h * 0.12));
+      c.globalAlpha = fade; c.fillStyle = 'rgb(16,12,14)';
+      const [b0, b1] = G.s.shop.basement;
+      for (let u = b0 + 0.2; u < b1; u += 0.24) { const [px] = G.front(u - 0.025, 0); c.fillRect(px, b.y, Math.max(0.6, 0.05 * G.K), b.h); }
+      basementDbg = L0; }
     c.globalCompositeOperation = 'source-over';
     // THE BLADE AT NIGHT: the lit letters, the bulbs
     if (f.game && (f.lamp || 0) > 0.004) {
@@ -1080,12 +1183,14 @@ export function createSpeakeasy() {
     /** the barber pole: { on: false } dark + still (7b's raid), { on: true } back to its lamp + its turn */
     pole(o = {}) { if ('on' in o) poleOff = !o.on; },
     roomDraw(id, fn) { if (fn) drawers.set(id, fn); else drawers.delete(id); },
+    /** 8P — THE HUSH WORD SIGN: hush(word) sets the lobby's word (null = no lobby); hush() → the sign's state */
+    hush(w) { if (w !== undefined) hush.set(w); return hush.debug(); },
     /** PART 7b: a tap on the speakeasy's windows → { kind: 'window', id, tap } | { kind: 'cat', id } | null */
     hit: (x, y) => (G ? life.hit(x, y, wins, lastT) : null),
     life: () => life.debug(),
     /** PART 7b: the speakeasy's sound beds now (sounds.js#speakeasy): { club, tv, party } */
     beds: () => bedsNow,
-    debug: () => ({ marquee: G && lastGame ? marqueeScreen(bladeGeo(G)).map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1) })) : [], poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(4), poleRate: poleA ? +poleA.rate.toFixed(3) : 0, polePx, box, dpr, k: lastK, lit: !!litCv, adLit: !!adCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (adCv ? adCv.width * adCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
-    destroy() { life.destroy(); for (const cv of [litCv, adCv, bladeCv, poleCv, haloCv, giltCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = adCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
+    debug: () => ({ basement: basementDbg ? { a: +basementDbg.a.toFixed(3), shadows: basementDbg.shadows.length, flick: basementDbg.flick } : null, marquee: G && lastGame ? marqueeScreen(bladeGeo(G)).map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1) })) : [], poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(4), poleRate: poleA ? +poleA.rate.toFixed(3) : 0, polePx, box, dpr, k: lastK, lit: !!litCv, adLit: !!adCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (adCv ? adCv.width * adCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
+    destroy() { life.destroy(); hush.destroy(); for (const cv of [litCv, adCv, bladeCv, poleCv, haloCv, giltCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = adCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
   };
 }

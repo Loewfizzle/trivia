@@ -29,6 +29,54 @@
   ],
   "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
  },
+ "bar-ambience-close": {
+  "file": "bar-ambience-close.mp3",
+  "md5": "9630a36239d83ec67c42051325cb3b04",
+  "slots": [
+   "bar-open",
+   "line-murmur"
+  ],
+  "credit": [
+   "bar-ambience-close.mp3   (5,282,880 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)",
+   "  \"Bar restaurant closing, chatter, glasses, walla, medium adult murmur\" - SpliceSound (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/people-bar-restaurant-closing-chatter-glasses-walla-medium-adult-murmur-17916/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/02/07/audio_0c84735edb.mp3?filename=freesound_community-bar-restaurant-closing-chatter-glasses-walla-medium-adult-murmur-17916.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: Freesound user SpliceSound, \"Bar restaurant closing, chatter, glasses, walla, medium adult murmur\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
+  ],
+  "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "broom-sweep": {
+  "file": "broom-sweep.mp3",
+  "md5": "153d45749031af41c131f1c6bf2c816a",
+  "slots": [
+   "broom-sweep"
+  ],
+  "credit": [
+   "broom-sweep.mp3   (985,440 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)",
+   "  \"Sweeping Sample\" - rsn267 (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/film-special-effects-sweeping-sample-70544/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_9c3da02bec.mp3?filename=freesound_community-sweeping-sample-70544.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: Freesound user rsn267, \"Sweeping Sample\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
+  ],
+  "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "bus-door": {
+  "file": "bus-door.mp3",
+  "md5": "12e45e31fd496149766de5deef2ae5e2",
+  "slots": [
+   "bus-door"
+  ],
+  "credit": [
+   "bus-door.mp3   (15,046 bytes)   (LOSSY Pixabay MP3)",
+   "  \"Open an old truck door\" - spinopel (Pixabay)",
+   "  Page: https://pixabay.com/sound-effects/film-special-effects-open-an-old-truck-door-381849/",
+   "  Source: https://cdn.pixabay.com/download/audio/2025/07/28/audio_f34fbf2e41.mp3?filename=spinopel-open-an-old-truck-door-381849.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/"
+  ],
+  "note": "A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original."
+ },
  "car-1920s-pass": {
   "file": "car-1920s-pass.wav",
   "md5": "428986bdbef2d41c12d768e66bd79fb4",
@@ -61,6 +109,9 @@
   "file": "car-1920s-pass-3.wav",
   "md5": "58d30769b681f2f76128e2e4d1413520",
   "slots": [
+   "bus-arrive",
+   "bus-idle",
+   "bus-pull-away",
    "car-1920s-pass",
    "truck-delivery"
   ],
@@ -68,6 +119,50 @@
    "car-1920s-pass-3.wav",
    "  \"Mercedes_L3750_t1_Ext_Start_Slow_Away_Up_Reverse_Stop_Away_By_Up_Stop_Off_Distant_MKH416\" (1945 Mercedes L3750 truck) - Pole Position Production, Sonniss GDC 2020 bundle",
    "  Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Pole%20Position%20-%20Mercedes%20L3750%201945/Mercedes_L3750_t1_Ext_Start_Slow_Away_Up_Reverse_Stop_Away_By_Up_Stop_Off_Distant_MKH416.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "cart-bell": {
+  "file": "cart-bell.wav",
+  "md5": "6f500998c0c085b134407d69556decc7",
+  "slots": [
+   "cart-bell"
+  ],
+  "credit": [
+   "cart-bell.wav   (4,360,508 bytes)",
+   "  \"BELLHand_Metallic Bell_ 22_MWSFX_SEC\" - Mechanical Wave - Sound Effects Collection, Sonniss GDC 2024 bundle",
+   "  Source: https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Mechanical%20Wave%20-%20Sound%20Effects%20Collection/BELLHand_Metallic%20Bell_%2022_MWSFX_SEC.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "cat-land": {
+  "file": "cat-land.mp3",
+  "md5": "a8d30a70e995d1d91b1029d8d61a007b",
+  "slots": [
+   "cat-land"
+  ],
+  "credit": [
+   "cat-land.mp3   (24,960 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)",
+   "  \"Landing on grass\" - onehugeeye (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/film-special-effects-landing-on-grass-40650/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/03/10/audio_213a3cf7d3.mp3?filename=freesound_community-landing-on-grass-40650.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: Freesound user onehugeeye, \"Landing on grass\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
+  ],
+  "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "cat-meow": {
+  "file": "cat-meow.wav",
+  "md5": "65c918f89a9d94fae0107091d4cd967e",
+  "slots": [
+   "cat-meow"
+  ],
+  "credit": [
+   "cat-meow.wav   (1,441,060 bytes)",
+   "  \"animals cat Fiona 31 meow mono 192kHz\" - Soundholder - Cat - Meow Library, Sonniss GDC 2020 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Soundholder%20-%20Cat%20-%20Meow%20Library/animals%20cat%20Fiona%2031%20meow%20mono%20192kHz.wav",
    "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
   ],
   "note": null
@@ -101,6 +196,35 @@
   ],
   "note": null
  },
+ "club-murmur": {
+  "file": "club-murmur.wav",
+  "md5": "b11e897c361a72268599038529c95c74",
+  "slots": [
+   "club-murmur-calm",
+   "club-murmur-party"
+  ],
+  "credit": [
+   "club-murmur.wav   (51,897,422 bytes)",
+   "  \"AMB_INT_Party_50_people\" - GriffinSound - Places With People, Sonniss GDC 2016 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/GriffinSound%20-%20Places%20With%20People/AMB_INT_Party_50_people.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "door-slot": {
+  "file": "door-slot.wav",
+  "md5": "fd441508090d267f5e335563c5fd0e04",
+  "slots": [
+   "door-knock"
+  ],
+  "credit": [
+   "door-slot.wav   (857,580 bytes)",
+   "  \"Exterior Metal Door Gate Bolt Latch 7\" - 344 Audio - Practical Doors, Sonniss GDC 2020 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/344%20Audio%20-%20Practical%20Doors/Exterior%20Metal%20Door%20Gate%20Bolt%20Latch%207.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": "Used inside door-knock (THE SECRET KNOCK: the peephole slot after the knocks)."
+ },
  "drone-swarm": {
   "file": "drone-swarm.wav",
   "md5": "8898cff5544b498922f7cbab1072f1c9",
@@ -112,6 +236,36 @@
    "  \"SW006_Quadcopter_engine_right_constant_coilmic\" - ShapingWaves (SW006 Quadcopter), Sonniss GDC 2016 bundle",
    "  Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/ShapingWaves%20-%20%20QUADCOPTER/SW006_Quadcopter_engine_right_constant_coilmic.wav",
    "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "footsteps-cobble": {
+  "file": "footsteps-cobble.wav",
+  "md5": "cd6fea1db75c694efc0c9aaa315f4502",
+  "slots": [
+   "footsteps-cobble"
+  ],
+  "credit": [
+   "footsteps-cobble.wav   (5,184,404 bytes)",
+   "  \"Footsteps on stones loop\" - Mixkit",
+   "  Page: https://mixkit.co/free-sound-effects/footsteps/",
+   "  Source: https://assets.mixkit.co/active_storage/sfx/1270/1270.wav",
+   "  Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree"
+  ],
+  "note": null
+ },
+ "footsteps-heels": {
+  "file": "footsteps-heels.wav",
+  "md5": "085fd99a2aaa1aa4ae64cd41f0ce0967",
+  "slots": [
+   "footsteps-heels"
+  ],
+  "credit": [
+   "footsteps-heels.wav   (926,770 bytes)",
+   "  \"Footsteps on heels on the pavement\" - Mixkit",
+   "  Page: https://mixkit.co/free-sound-effects/footsteps/",
+   "  Source: https://assets.mixkit.co/active_storage/sfx/542/542.wav",
+   "  Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree"
   ],
   "note": null
  },
@@ -130,6 +284,51 @@
    "  Original: Freesound user jackmichaelking, https://freesound.org/people/jackmichaelking/ (CC0 1.0) - \"Brent geese flying overhead in Essex Wetland.WAV\""
   ],
   "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "glasses-clink": {
+  "file": "glasses-clink.wav",
+  "md5": "34722db3e10660e827292c85c1af84f2",
+  "slots": [
+   "glasses-clink"
+  ],
+  "credit": [
+   "glasses-clink.wav   (697,826 bytes)",
+   "  \"A couple of glasses clink\" - Mixkit",
+   "  Page: https://mixkit.co/free-sound-effects/restaurant/",
+   "  Source: https://assets.mixkit.co/active_storage/sfx/154/154.wav",
+   "  Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree"
+  ],
+  "note": null
+ },
+ "glasses-clink-2": {
+  "file": "glasses-clink-2.wav",
+  "md5": "c049d54f6c12a5342e7bc288d313daf5",
+  "slots": [
+   "glasses-clink"
+  ],
+  "credit": [
+   "glasses-clink-2.wav   (212,484 bytes)",
+   "  \"Glasses clinking\" - Mixkit",
+   "  Page: https://mixkit.co/free-sound-effects/glass/",
+   "  Source: https://assets.mixkit.co/active_storage/sfx/2836/2836.wav",
+   "  Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree"
+  ],
+  "note": null
+ },
+ "glasses-clink-3": {
+  "file": "glasses-clink-3.wav",
+  "md5": "e44c90576fb26bb9b57284aedf1b445e",
+  "slots": [
+   "glasses-clink"
+  ],
+  "credit": [
+   "glasses-clink-3.wav   (211,756 bytes)",
+   "  \"Wine glass clink\" - Mixkit",
+   "  Page: https://mixkit.co/free-sound-effects/restaurant/",
+   "  Source: https://assets.mixkit.co/active_storage/sfx/2936/2936.wav",
+   "  Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree"
+  ],
+  "note": null
  },
  "gulls": {
   "file": "gulls.flac",
@@ -191,6 +390,36 @@
   ],
   "note": null
  },
+ "laugh-distant": {
+  "file": "laugh-distant.wav",
+  "md5": "04c7e2a9f2c61409a156c43e47fe6ecb",
+  "slots": [
+   "laugh-distant"
+  ],
+  "credit": [
+   "laugh-distant.wav   (1,091,552 bytes)",
+   "  \"Crowd laugh\" - Mixkit",
+   "  Page: https://mixkit.co/free-sound-effects/crowd/",
+   "  Source: https://assets.mixkit.co/active_storage/sfx/424/424.wav",
+   "  Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree"
+  ],
+  "note": null
+ },
+ "mirror-door": {
+  "file": "mirror-door.wav",
+  "md5": "16b7e2988db8acba074b3b29d64c5ee8",
+  "slots": [
+   "door-heavy",
+   "door-heavy-close"
+  ],
+  "credit": [
+   "mirror-door.wav   (5,111,968 bytes)",
+   "  \"DOORCreak_Wooden Door, Opening and Closing 09_RogueWaves_CreakingDoor\" - Rogue Waves - Creaking Door, Sonniss GDC 2024 bundle",
+   "  Source: https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Rogue%20Waves%20-%20Creaking%20Door/DOORCreak_Wooden%20Door%2C%20Opening%20and%20Closing%2009_RogueWaves_CreakingDoor.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
  "prop-plane": {
   "file": "prop-plane.mp3",
   "md5": "4a992ec5d49d102be3188ab39db47904",
@@ -204,6 +433,82 @@
    "  Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_a1e3eb08b3.mp3?filename=freesound_community-028698_distant-old-plane-overhead-77mel-binaural-2-8-12flac-62001.mp3",
    "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
    "  Original: https://freesound.org/people/TRP/sounds/577775/ (CC0 1.0) - FLAC 48 kHz/16-bit stereo"
+  ],
+  "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "roller-blind": {
+  "file": "roller-blind.mp3",
+  "md5": "755dec8dc398aa282fe2f803dae44c4c",
+  "slots": [
+   "roller-blind"
+  ],
+  "credit": [
+   "roller-blind.mp3   (34,560 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)",
+   "  \"roller shade up\" - twinpix (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/film-special-effects-roller-shade-up-39139/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/03/10/audio_0dbee58c00.mp3?filename=freesound_community-roller-shade-up-39139.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: Freesound user twinpix, \"roller shade up\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
+  ],
+  "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "rooftop-party": {
+  "file": "rooftop-party.mp3",
+  "md5": "606c173405ee45513a824a497d35cff3",
+  "slots": [
+   "rooftop-party"
+  ],
+  "credit": [
+   "rooftop-party.mp3   (2,835,840 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)",
+   "  \"Backyard party Bloor-Dovercourt Toronto 26 Jun 2011\" - geogblog (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/city-backyard-party-bloor-dovercourt-toronto-26-jun-2011-24721/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/03/09/audio_efd03693c2.mp3?filename=freesound_community-backyard-party-bloor-dovercourt-toronto-26-jun-2011-24721.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: Freesound user geogblog, \"Backyard party Bloor-Dovercourt Toronto 26 Jun 2011\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
+  ],
+  "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "scissors-snip": {
+  "file": "scissors-snip.wav",
+  "md5": "271035fc17c884a726d6a8fd0ff51da7",
+  "slots": [
+   "scissors-snip"
+  ],
+  "credit": [
+   "scissors-snip.wav   (2,990,174 bytes)",
+   "  \"OBJMisc_Hair Scissor, Snips 4_344 Audio_Barbershop Vol 2\" - 344 Audio - Barbershop Vol. 2, Sonniss GDC 2026 bundle",
+   "  Source: https://archive.org/download/sonniss-gdc-2026-game-audio-bundle-normalized/344%20Audio%20-%20Barbershop%20Vol.%202/OBJMisc_Hair%20Scissor%2C%20Snips%204_344%20Audio_Barbershop%20Vol%202.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "secret-knock": {
+  "file": "secret-knock.wav",
+  "md5": "3e4e69d095d58f89b566af76e585e870",
+  "slots": [
+   "door-knock"
+  ],
+  "credit": [
+   "secret-knock.wav   (1,353,430 bytes)",
+   "  \"Knocking On Heavy Door 1\" - 344 Audio - Practical Doors, Sonniss GDC 2020 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/344%20Audio%20-%20Practical%20Doors/Knocking%20On%20Heavy%20Door%201.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": "THE SECRET KNOCK is assembled from four of its knocks + door-slot.wav (credited below) as the peephole slot."
+ },
+ "shop-bell": {
+  "file": "shop-bell.mp3",
+  "md5": "b198ac984cde9fac4648b4079ae99362",
+  "slots": [
+   "shop-bell"
+  ],
+  "credit": [
+   "shop-bell.mp3   (245,760 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)",
+   "  \"Door Bell old style\" - lazymonk (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/household-door-bell-old-style-87092/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_674f07b086.mp3?filename=freesound_community-door-bell-old-style-87092.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: Freesound user lazymonk, \"Door Bell old style\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
   ],
   "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
  },
@@ -276,5 +581,22 @@
    "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
   ],
   "note": null
+ },
+ "window-sash": {
+  "file": "window-sash.mp3",
+  "md5": "623101f8e3a1349afbe4de2b1db1ca4b",
+  "slots": [
+   "window-sash-down",
+   "window-sash-up"
+  ],
+  "credit": [
+   "window-sash.mp3   (827,904 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)",
+   "  \"Sash Window Open and Close\" - jamesdrake89 (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/film-special-effects-sash-window-open-and-close-79304/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_6db8747429.mp3?filename=freesound_community-sash-window-open-and-close-79304.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: Freesound user jamesdrake89, \"Sash Window Open and Close\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
+  ],
+  "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
  }
 }

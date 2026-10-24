@@ -491,14 +491,16 @@ export function createWindowLife() {
   function tvRoom(E, on = 1, people = true) {
     const { c, G, t, k, mo } = E;
     const tv = mo ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0, cut: 1 }, a = k * on;
-    const tc = tv.warm ? [255, 214, 170] : mixc([96, 140, 255], [188, 206, 255], tv.tint);
+    // (8P — the owner: a touch BLUER, less white — even the brightest flicker frame never reads as a blank grey sheet: the blues deeper,
+    // the two glows lower, the level capped)
+    const tc = tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint), tk = Math.min(0.92, tv.k);
     c.globalAlpha = 1;
     // the room in the TV's light: the walls take its colour (the whole window reads BLUE at a glance), brighter toward the set
     R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([8, 9, 20], mixc([30, 44, 96], tc, 0.25), clamp01(a * (0.55 + 0.45 * tv.k)))));
     // the TV's light on the walls + the ceiling (the set low at the left, out of sight below the sill)
     c.globalCompositeOperation = 'lighter';
-    glow(c, tc, G.g0 + G.cw * 0.3, G.h0 + G.ch * 0.45, G.ch * 1.15, 0.62 * a * tv.k, 0.9);
-    glow(c, tc, G.g0 + G.cw * 0.22, G.h0 + G.ch * 0.18, G.ch * 0.6, 0.5 * a * tv.k);
+    glow(c, tc, G.g0 + G.cw * 0.3, G.h0 + G.ch * 0.45, G.ch * 1.15, 0.5 * a * tk, 0.9);
+    glow(c, tc, G.g0 + G.cw * 0.22, G.h0 + G.ch * 0.18, G.ch * 0.6, 0.36 * a * tk);
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     // the picture on the wall (faint), the curtains tied back (their inner edges catching the blue)
     R(c, G.g0 + G.cw * 0.58, G.h0 + G.ch * 0.58, G.g0 + G.cw * 0.82, G.h0 + G.ch * 0.77, rgb(mixc([10, 12, 24], tc, 0.16 * a * tv.k)));
@@ -637,7 +639,7 @@ export function createWindowLife() {
     if (!w || fr.states.apartment !== 'tv' || env.k < 0.02) return;
     const tv = env.f.motion !== false ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0 };
     c.save(); env.map(c); c.globalCompositeOperation = 'lighter';
-    landing(c, glassOf(w), tv.warm ? [255, 214, 170] : mixc([96, 140, 255], [188, 206, 255], tv.tint), 0.75 * env.k * tv.k);
+    landing(c, glassOf(w), tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint), 0.75 * env.k * Math.min(0.92, tv.k));
     c.restore();
   }
 

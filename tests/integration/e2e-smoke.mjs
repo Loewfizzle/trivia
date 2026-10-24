@@ -48,6 +48,7 @@ async function open(i, qs = '') {
   const ctx = await browser.createBrowserContext();
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'warning' && /game view/.test(m.text())) errors.push(`game view failed to load: ${m.text()}`); });
+  page.on('console', m => { if (m.type() === 'warning' && /^lobby\b/.test(m.text())) log(NAMES[i], 'NOTE backToLobby\'s write failed:', m.text()); });   // (host.js#backToLobby warns 'lobby', e)
   page.on('pageerror', e => { errors.push(`${NAMES[i]} pageerror: ${e.message}`); log(NAMES[i], 'PAGEERROR', e.message); });
   page.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|TOO LATE/i.test(t) && !/blocked by CORS policy/i.test(t) /* an outside site (the trivia APIs) refusing a request: not ours */) { errors.push(`${NAMES[i]}: ${t}`); log(NAMES[i], 'console.error', t); } });
   await page.setViewport({ width: VW, height: VH, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
@@ -90,6 +91,33 @@ async function watch(where, ms) {
   while (Date.now() < end) { await check(where); await sleep(400); }
 }
 const tap = async (page, sel) => { const el = await page.waitForSelector(sel, { timeout: 15000 }); await el.tap(); };
+// THE HOST NOW (Oct 24, section 0 n — the "golf: back to lobby" timeouts on GitHub): NEON PAR is three.js on software WebGL there, two
+// tabs on a 2-core machine — a tab's 2-s host beat can go 10 s stale, the OTHER phone takes over as host (as designed), and
+// backToLobby() / startGame() on the old host are silent no-ops (isHost() false) — the failed runs' screenshots: both phones still on
+// hole 1 after the 60-s wait. So the commands go to whichever phone is the host NOW, and back-to-lobby is retried from the current host.
+const amHost = page => evalIn(page, s => !!(s.meta && s.uid && s.meta.hostId === s.uid)).catch(() => false);
+async function hostNow(what) {
+  for (let k = 0; k < 75; k++) {   // (≤ 15 s: a claim in flight has no host for a moment)
+    for (let i = 0; i < pages.length; i++) if (pages[i] && await amHost(pages[i])) { if (i !== 0) log('NOTE', `${NAMES[i]} is the host now (${what}) — the host moved, the commands follow it`); return pages[i]; }
+    await sleep(200);
+  }
+  log('NOTE', `no phone is the host (${what}) — trying ${NAMES[0]}`);
+  return pages[0];
+}
+async function backToLobbyNow(id) {
+  const back = s => !s.game || s.meta.status === 'lobby', guest = pages[1];
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const hp = await hostNow(`${id}: back to lobby`);
+    await hp.evaluate(() => import('/js/host.js').then(m => m.backToLobby())).catch(e => log('NOTE', `backToLobby threw: ${e.message}`));
+    try { await waitFor(guest, back, `${id}: back to lobby`, 30000); if (attempt > 1) log('NOTE', `${id}: back in the lobby on attempt ${attempt}`); return; }
+    catch {
+      const diag = [];
+      for (let i = 0; i < pages.length; i++) diag.push(`${NAMES[i]} ${JSON.stringify(await evalIn(pages[i], s => ({ uid: s.uid, host: s.meta && s.meta.hostId, status: s.meta && s.meta.status, game: s.game && s.game.id, phase: s.game && s.game.phase })).catch(e => e.message))}`);
+      log('NOTE', `${id}: not back in the lobby after 30 s (attempt ${attempt}) — ${diag.join(' · ')}`);
+    }
+  }
+  throw new Error(`timeout: ${id}: back to lobby (3 tries from the current host)`);
+}
 
 try {
   // ---- title + create (host) — a brand-new phone
@@ -140,7 +168,7 @@ try {
 
   // ---- each game: start, watch its opening screens on both phones, back to the lobby
   for (const [id, settings] of GAMES) {
-    await host.evaluate(([g, s]) => import('/js/host.js').then(m => m.startGame(g, s)), [id, settings]);
+    await (await hostNow(`${id} start`)).evaluate(([g, s]) => import('/js/host.js').then(m => m.startGame(g, s)), [id, settings]);
     await waitFor(host, (s, g) => s.game && s.game.id === g, `${id} started`, 20000, id);
     await waitFor(guest, (s, g) => s.game && s.game.id === g, `${id} on the guest`, 20000, id);
     await watch(id, WATCH_MS);
@@ -148,10 +176,7 @@ try {
     if (process.env.MENU === '1') { await guest.click('.menu-btn'); await guest.waitForSelector('.gm-panel'); await sleep(350); await guest.screenshot({ path: `${OUT}smoke-${id}${SFX}-menu.png` }); await guest.click('.menu-btn'); await sleep(300); }
     const phase = await evalIn(guest, s => s.game && s.game.phase);
     ok(true, `${id}: watched to phase "${phase}" with no stray text`);
-    await host.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
-    // (a WAIT, not a limit: GitHub's slower machine timed out at 20 s after NEON PAR twice running — its scene is the heaviest — while the
-    // same flow takes ~1 s here; a generous wait costs nothing when it passes)
-    await waitFor(guest, s => !s.game || s.meta.status === 'lobby', `${id}: back to lobby`, 60000);
+    await backToLobbyNow(id);
     await guest.waitForSelector('.lobby-screen', { timeout: 15000 });
     await sleep(800);
     await check(`lobby after ${id}`);

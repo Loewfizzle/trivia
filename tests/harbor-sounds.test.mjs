@@ -5,7 +5,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 const CS = await import('../js/core/city-sounds.js');
-const { takesOf, slotOf, takeAt, crossFor, carPre, syncStart, panOf, chainDue, CAR_CROSS, CAR_LEAD, CAR_PAN } = CS;
+const { takesOf, slotOf, takeAt, crossFor, carPre, syncStart, panOf, chainDue, CAR_CROSS, CAR_LEAD, CAR_PAN, duckAt, sweepPan, momentCues, MOMENT_CUES,
+  barberAt, bellsBetween, BARBER_CYCLE } = CS;
 const { cameraFor, harborLayout } = await import('../js/core/harbor-layout.js');
 const { roadPassAt, ROAD_PASS, carAt, carSpeed } = await import('../js/core/harbor-promenade.js');
 
@@ -38,7 +39,7 @@ test('FP3 — takeAt: the pass\'s take from its clock number — the same on eve
   }
   const w = takesOf('car-1920s-pass').reduce((s, t) => s + (t.w ?? 1), 0);
   for (const t of takesOf('car-1920s-pass')) assert.ok(Math.abs(n.get(t.f) / 10000 - (t.w ?? 1) / w) < 0.01, `${t.f}: ${n.get(t.f)} of 10000 (weight ${t.w ?? 1})`);
-  assert.equal(takeAt('cat-meow', 0.5), null, 'an empty slot');
+  assert.equal(takeAt('siren-1920s', 0.5), null, 'an empty slot');
   assert.ok(takeAt('car-1920s-pass', 1).i >= 0 && takeAt('car-1920s-pass', -3).i === 0 && takeAt('car-1920s-pass', NaN).i === 0, 'out-of-range numbers still pick');
 });
 
@@ -131,13 +132,87 @@ test('THE SKY SOUNDS: every recording in its slot, cut as measured — flybys ar
   for (const id of ['helicopter', 'airliner-far', 'prop-plane', 'jet-flyby', 'geese', 'balloon-burner']) for (const t of one(id)) assert.ok(t.d <= 45, `${t.f}: ${t.d} s`);
 });
 
-test('THE SKY SOUNDS (SP2 — the owner: louder, clearly heard, still distant): the jets, the helicopter + the burner about level with the harbor\'s bed; the airliners, the banner plane + the swarm a step under it', () => {
+test('THE SKY SOUNDS (8P — the owner, after SP2: louder again, the F-16s REALLY loud, the animals unchanged): +6 / +4 / +3 dB on SP2\'s levels', () => {
   const lvl = id => { const t = takesOf(id)[0]; return t.lufs + 20 * Math.log10(slotOf(id).gain); };
   const bed = lvl('city-hum-day');
-  for (const id of ['helicopter', 'jet-flyby', 'balloon-burner']) assert.ok(Math.abs(lvl(id) - bed) <= 2, `${id} ${lvl(id).toFixed(1)} LUFS ≈ the bed's hum ${bed.toFixed(1)}`);
-  for (const id of ['airliner-far', 'prop-plane', 'drone-swarm']) assert.ok(bed - lvl(id) >= 2, `${id} ${lvl(id).toFixed(1)} LUFS: ${(bed - lvl(id)).toFixed(1)} dB under the bed`);
-  assert.ok(bed - lvl('airliner-far') >= 5, 'an airliner far up: well under');
+  // SP2's gains → 8P's: the jets +6 dB, the helicopter + the burner +4, the airliners, the banner plane + the drone hum +3
+  const sp2 = { 'jet-flyby': [0.07, 6], helicopter: [0.074, 4], 'balloon-burner': [0.07, 4], 'airliner-far': [0.036, 3], 'prop-plane': [0.05, 3], 'drone-swarm': [0.045, 3] };
+  for (const [id, [g, db]] of Object.entries(sp2)) assert.ok(Math.abs(20 * Math.log10(slotOf(id).gain / g) - db) < 0.15, `${id}: ${(20 * Math.log10(slotOf(id).gain / g)).toFixed(2)} dB (asked ${db})`);
+  assert.equal(slotOf('geese').gain, 0.075, 'the geese unchanged');
+  assert.equal(slotOf('gulls').gain, 0.11, 'the gulls unchanged');
+  assert.ok(lvl('jet-flyby') - bed >= 5, `the jets ${lvl('jet-flyby').toFixed(1)} LUFS: well over the hum (${bed.toFixed(1)})`);
+  for (const id of ['helicopter', 'balloon-burner']) assert.ok(lvl(id) - bed >= 2 && lvl(id) - bed <= 6, `${id} ${lvl(id).toFixed(1)} LUFS: a little over the hum`);
+  assert.ok(bed - lvl('airliner-far') >= 2, 'an airliner far up: still under the hum');
   assert.ok(lvl('drone-swarm') < lvl('helicopter'), 'the swarm a faint hum');
+  // the jets' peak (≤ −2 dBFS in the file) × their gain stays under the player's cap knee (0.15 linear): never clipped, never a startle
+  assert.ok(10 ** (-2 / 20) * slotOf('jet-flyby').gain < 0.15);
+});
+
+test('8P — THE JETS\' DUCK: the music dips ~3.6 dB round the pass\'s peak — eased in, held, eased back (~3 s); the pan right → left', () => {
+  const t = takesOf('jet-flyby')[0], d = slotOf('jet-flyby').duck;
+  assert.ok(d >= 0.6 && d <= 0.72, `the duck ${(20 * Math.log10(d)).toFixed(1)} dB (3–4 asked)`);
+  assert.equal(duckAt(0, t, d), 1, 'not before');
+  assert.equal(duckAt(t.peak, t, d), d, 'full at the peak');
+  assert.equal(duckAt(t.peak + 4, t, d), 1, 'back after');
+  let prev = 1, low = 0;
+  for (let el = 0; el <= t.d; el += 0.05) { const v = duckAt(el, t, d); assert.ok(v >= d - 1e-9 && v <= 1); if (v < 1) low += 0.05; if (el < t.peak) assert.ok(v <= prev + 1e-9, 'eased down'); prev = v; }
+  assert.ok(low > 2.5 && low < 5, `the music dipped for ${low.toFixed(1)} s`);
+  assert.equal(duckAt(3, null, d), 1); assert.equal(duckAt(3, t, 1), 1);
+  assert.ok(sweepPan(t.sw[0], t) > 0.5 && sweepPan(t.sw[1], t) < -0.5 && Math.abs(sweepPan((t.sw[0] + t.sw[1]) / 2, t)) < 0.01, 'right → left over its swell');
+  assert.equal(slotOf('helicopter').duck, undefined, 'only the jets duck the music');
+});
+
+test('8P — THE SPEAKEASY + PEOPLE SOUNDS: each slot holds its cut; marks where their events land; nothing modern / spoken / musical kept', () => {
+  const f = id => takesOf(id).map(t => t.f).sort(), one = id => takesOf(id)[0];
+  assert.deepEqual(f('door-heavy'), ['door-heavy.mp3']);
+  assert.deepEqual(f('glasses-clink'), ['glasses-clink-2.mp3', 'glasses-clink-3.mp3', 'glasses-clink.mp3']);
+  assert.equal(takesOf('shop-bell').length, 3); assert.equal(takesOf('scissors-snip').length, 4);
+  assert.equal(takesOf('footsteps-cobble').length, 6); assert.equal(takesOf('footsteps-heels').length, 6); assert.equal(takesOf('laugh-distant').length, 2);
+  for (const id of ['footsteps-cobble', 'footsteps-heels']) for (const t of takesOf(id)) assert.ok(t.d < 0.7, `${t.f}: one step (${t.d} s)`);
+  // the mirror door: the open from its latch; the close's thud (its frame) at `hit` — the cut inside the source's 2.85–6.3 s
+  assert.ok(one('door-heavy').from[0] < 0.3 && one('door-heavy').from[1] <= 2.3);
+  const cl = one('door-heavy-close');
+  assert.ok(Math.abs(cl.from[0] + cl.hit - 4.65) < 0.1, `the thud at ${cl.from[0] + cl.hit} s in the source (measured 4.65)`);
+  // the sash: UP = the long juddering push (17–21.3 s, its stop at 20.83), DOWN = the slide onto the sill (the thud at 13.65)
+  const up = one('window-sash-up'), dn = one('window-sash-down');
+  assert.ok(Math.abs(up.from[0] + up.hit - 20.83) < 0.05 && Math.abs(dn.from[0] + dn.hit - 13.65) < 0.05);
+  // the knock: assembled (knock … knock-knock … knock + the slot) — 3.3 s
+  assert.ok(one('door-knock').d > 3 && one('door-knock').d < 3.6);
+  // the beds: the club through a wall (from the louder half for the party, the calmer half for the calm), the line's murmur clear of
+  // the bar recording's clear talker at 192 s, the rooftop inside the music-free stretch (music from 89 s; notes at 20.7–29 s)
+  assert.ok(one('club-murmur-calm').from[0] >= 75 && one('club-murmur-party').from[1] <= 72);
+  assert.ok(one('line-murmur').from[1] < 192);
+  assert.ok(one('rooftop-party').from[0] > 29 && one('rooftop-party').from[1] < 69);
+  assert.ok(one('bar-open').from[0] >= 60 && one('bar-open').from[1] <= 71);
+  for (const id of ['club-murmur-calm', 'club-murmur-party', 'line-murmur', 'rooftop-party']) assert.equal(one(id).r, 16000, `${id}: low-passed, decoded at 16 kHz`);
+  // THE BUS: the 1945 truck's own takes — the arrival's stop (`hit`) = its engine settling at 414 s; the idle = that same stop idle
+  const ar = one('bus-arrive'), idle = one('bus-idle'), away = one('bus-pull-away');
+  assert.ok(ar.src === 'car-1920s-pass-3' && idle.src === 'car-1920s-pass-3' && away.src === 'car-1920s-pass-3', 'not the diesel stand-ins');
+  assert.ok(Math.abs(ar.from[0] + ar.hit - 414) < 0.1 && idle.from[0] >= 414 && idle.from[1] <= 418.3, 'the idle loops the arrival\'s own stop idle (before the engine off at 418.5)');
+  assert.ok(away.from[0] >= 10 && away.from[1] <= 31, 'the slow pull-away of take 1');
+  assert.deepEqual(f('bus-door'), ['bus-door.mp3']);
+});
+
+test('8P — THE MOMENTS HEARD: each cue where its painter shows it; cues already past are dropped; the barbershop\'s bells in + out', () => {
+  // the cues name filled slots + moments that exist
+  for (const [id, cs] of Object.entries(MOMENT_CUES)) for (const c of cs) { assert.ok(takesOf(c.slot).length, `${id}: ${c.slot} filled`); assert.ok(c.p > 0 && c.p < 1); }
+  const m = momentCues('mirror', 0, 8.5);
+  assert.deepEqual(m.map(c => c.slot), ['bar-open', 'door-heavy-close']);
+  assert.ok(Math.abs(m[1].in - 0.95 * 8.5) < 1e-6 && m[1].mark === 'hit', 'the thud on the shut (p 0.95)');
+  assert.deepEqual(momentCues('mirror', 4, 8.5).map(c => c.slot), ['door-heavy-close'], 'the bar\'s burst is past 4 s in');
+  assert.deepEqual(momentCues('toast', 0, 7)[0], { slot: 'glasses-clink', in: 2.66, mark: 'hit', gain: 0.9, pan: -0.5 });
+  assert.deepEqual(momentCues('dance', 0, 9), [], 'no sound');
+  assert.equal(momentCues('wake', 0.84 + 0.2, 42).length, 3, 'a cue 0.2 s late still plays (joined)');
+  assert.equal(momentCues('wake', 0.84 + 0.5, 42).length, 2, '… 0.5 s late: dropped');
+  // the barbershop: the same cycle as windows.js#barberDay (a customer every 480 s from the opening's end − 40 s)
+  const open = 9 * 3600 + 120, at = ph => open + 44 - 40 + ph;
+  assert.deepEqual(barberAt(at(100), open), { n: 0, ph: 100, cutting: true });
+  assert.equal(barberAt(at(400), open).cutting, false, 'between customers: the barber reads');
+  assert.equal(bellsBetween(null, barberAt(at(1), open)), 0, 'no bell on the first look');
+  assert.equal(bellsBetween(barberAt(at(0.2), open), barberAt(at(0.9), open)), 1, 'in');
+  assert.equal(bellsBetween(barberAt(at(344.8), open), barberAt(at(345.1), open)), 1, 'out');
+  assert.equal(bellsBetween(barberAt(at(479.8), open), barberAt(at(BARBER_CYCLE + 0.7), open)), 1, 'the next customer in');
+  assert.equal(bellsBetween(barberAt(at(10), open), barberAt(at(3000), open)), 0, 'a jump: nothing rung for what was missed');
 });
 
 test('THE SKY\'s flybys chain: the next take starts as the playing one fades (its last 2.5 s)', () => {

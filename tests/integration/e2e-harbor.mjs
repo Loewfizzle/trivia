@@ -12,10 +12,13 @@
 // party,panel,dock,music,perf (comma-separated) runs those groups in this process. With no ONLY the independent groups run in PARALLEL
 // shards (SHARDS=3 child processes, each its own browser — the same checks), then the two that must run alone: panel (it writes
 // the shared city2/live node every ?city=2 page listens to) and perf (CPU-throttled timing). SHARDS=1: everything in this process.
+// THE CLOUD JOBS (Oct 24): GitHub runs the groups as parallel jobs — JOB=audio|show|city|street runs one job's groups (harbor-jobs.mjs).
+// A NEW GROUP goes in exactly one job there (this script refuses to run until it does).
 import puppeteer from 'puppeteer-core';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { CI_JOBS, SERIAL, jobProblems, localShards } from './harbor-jobs.mjs';
 
 const BROWSER = process.argv[2];
 const OUT = (process.argv[3] || './shots-harbor').replace(/\/?$/, '/');
@@ -33,11 +36,16 @@ const errors = [], checks = [];
 const ok = (cond, what) => { checks.push({ what, ok: !!cond }); log(cond ? 'OK  ' : 'FAIL', what); if (!cond) errors.push(`check failed: ${what}`); };
 // THE CLOUD'S SLOWER MACHINE (Oct 24): a check that measures pure SPEED — frames drawn in a window, a bake finished in time, a sound's
 // peak landing in a window, a punch sampled while the loop restarts — is a WARNING there (CI=true, which GitHub sets; or TIMING=warn
-// locally): it is logged, counted (`timing warnings N`) and shown in the summary, but never fails the run. A red cloud run always
+// locally): it is logged, counted (`warnings N`, each tagged [timing]) and shown in the summary, but never fails the run. A red cloud run always
 // means a real problem. Everything else (layout, colours, memory, data, the rules of the city) stays a hard check everywhere.
+// KNOWN-FLAKY VISUAL CHECKS (Oct 24, section 0 m): a pixel probe that caught a frame mid-punch / mid-flutter on the cloud's machine
+// and passed on the next run with the code unchanged (the barber pole's party colours, the wall-washers' hot spot, the water's seam
+// limit, the O's flutter landing) is `okF`: a warning on CI like the timing checks, each listed in the job's summary as "flaky". The
+// half of such a check that proves the RULE (no plain red on the pole, the strips on whole rows, every letter keeping its core) stays hard.
 const TIMING_WARN = process.env.TIMING === 'warn' || (!!process.env.CI && process.env.TIMING !== 'strict');
 const warnings = [];
-const okT = (cond, what) => { if (cond || !TIMING_WARN) return ok(cond, what); checks.push({ what, ok: true, warn: true }); warnings.push(what); log('WARN', `${what} (a timing check: a warning on this machine)`); };
+const soft = kind => (cond, what) => { if (cond || !TIMING_WARN) return ok(cond, what); checks.push({ what, ok: true, warn: kind }); warnings.push(`[${kind}] ${what}`); log('WARN', `${what} (a ${kind} check: a warning on this machine)`); };
+const okT = soft('timing'), okF = soft('flaky');
 const GR = '&tz=America/Detroit&at=42.96,-85.67';
 const NIGHT = `when=2026-10-21T22:00${GR}`;
 
@@ -117,8 +125,10 @@ async function panelSection() {
     await ev(O.page, `(() => { const r = document.querySelector('.hr-range'); r.dispatchEvent(new Event('change', { bubbles: true })); })()`);
     await sleep(200);
     const st = await ev(O.page, "document.querySelector('.hr-sec[data-cat=\"lights\"] .hr-cat').textContent + ' | ' + document.querySelector('.hr-status').textContent");
-    ok(s0.v === '175' && s0.min === '50' && s0.max === '250' && s0.num === '175 %' && s0.h >= 44 && live.q === '180' && live.pulse === 1.8 && live.num === '180 %' && /PULSE 180 %/.test(st),
-      `PANEL: PULSE STRENGTH — ${s0.min}–${s0.max} %, starts at ${s0.num} (${Math.round(s0.w)}×${Math.round(s0.h)} pt); dragged to 180 % the city's punch ×${live.pulse} live (&pulse=${live.q}), the number "${live.num}", the status "${st.slice(0, 90)}"`);
+    ok(s0.v === '175' && s0.min === '50' && s0.max === '250' && s0.num === '175 %' && s0.h >= 44 && live.q === '180' && live.num === '180 %' && /PULSE 180 %/.test(st),
+      `PANEL: PULSE STRENGTH — ${s0.min}–${s0.max} %, starts at ${s0.num} (${Math.round(s0.w)}×${Math.round(s0.h)} pt); dragged to 180 % (&pulse=${live.q}), the number "${live.num}", the status "${st.slice(0, 90)}"`);
+    // (the scene reads the flag once a FRAME: on the cloud's loaded machine a frame can come after the 3-s wait — speed, not the rule)
+    okT(live.pulse === 1.8, `PANEL: PULSE STRENGTH — the city's punch ×${live.pulse} live (×1.8 expected)`);
     const back = await O.page.evaluate(() => { const b = [...document.querySelectorAll('.hr-sec[data-cat="lights"] .hr-b')].find(x => /^BACK TO 175/.test(x.textContent)); if (b) b.click(); return !!b; });
     await sleep(200);
     const q2 = await ev(O.page, 'window.__district.harbor().flags.q.pulse || null');
@@ -594,7 +604,8 @@ G('water', async () => {
           for (let r = r0 + 1; r < r1; r++) { let s = 0, m = 0; for (let c = 0; c < w; c += 2) { const a = Lm(r - 1, c), z = Lm(r + 1, c); if (Math.min(a, z) < 120) continue; s += 2 * Lm(r, c) / (a + z); m++; } if (m > 20) (E.has(r) ? at : rest).push(s / m); } }
         const mean = a => a.reduce((s, v) => s + v, 0) / Math.max(1, a.length), wt = window.__district.harbor().water;
         return { grid: wt.grid, edge: mean(at), rest: mean(rest), n: at.length }; })()`);
-      ok(sm.grid && sm.n > 20 && sm.edge >= sm.rest - 0.025, `NO SEAMS IN THE WATER (tier ${tr}): every strip on whole device rows; the rows where strips meet ${(100 * sm.edge).toFixed(1)} % of their neighbours' light, every other row ${(100 * sm.rest).toFixed(1)} % (${sm.n} meeting rows sampled)`);
+      ok(sm.grid, `NO SEAMS IN THE WATER (tier ${tr}): every strip on whole device rows`);
+      okF(sm.n > 20 && sm.edge >= sm.rest - 0.025, `NO SEAMS IN THE WATER (tier ${tr}): the rows where strips meet ${(100 * sm.edge).toFixed(1)} % of their neighbours' light, every other row ${(100 * sm.rest).toFixed(1)} % (${sm.n} meeting rows sampled)`);
     }
     await ev(N.page, 'window.__district.setTier(0)'); await waitFor(N.page, 'window.__district.harbor().water.tier === 0 && window.__district.harbor().water.strips > 0', 'the calm mirror', 8000);
     const h0 = await ev(N.page, 'window.__district.harbor()');
@@ -776,7 +787,8 @@ G('neon', async () => {
       const t0 = Date.now(), poll = setInterval(() => { if (seen || Date.now() - t0 > 12000) { clearInterval(poll); end(); } }, 250);
     })`);
     const cores = await ev(N.page, "[...document.querySelectorAll('.nd-logo .ndl-core')].map(c => ({ style: c.hasAttribute('style'), stroke: getComputedStyle(c).stroke, flut: c.classList.contains('is-flut') }))");
-    ok(landed && cores.every(c => !c.style && c.stroke !== 'none' && !c.flut), `THE O'S WHITE CORE: the flutter landed on the O (${landed}) and every letter keeps its core — no style attribute left, stroke ${[...new Set(cores.map(c => c.stroke))].join(' / ')}`);
+    okF(landed, `THE O'S WHITE CORE: the flutter landed on the O within 12 s (${landed})`);
+    ok(cores.every(c => !c.style && c.stroke !== 'none' && !c.flut), `THE O'S WHITE CORE: every letter keeps its core — no style attribute left, stroke ${[...new Set(cores.map(c => c.stroke))].join(' / ')}`);
     // (the CSS half: even an empty style="" on the plain O no longer takes its core away)
     const s2 = await ev(N.page, "(() => { const o = document.querySelector('.nd-logo .ndl-3 .ndl-core'); o.setAttribute('style', ''); const s = getComputedStyle(o).stroke; o.removeAttribute('style'); return s; })()");
     ok(s2 !== 'none', `THE O'S WHITE CORE: the holiday rule reaches only the swapped O (a stray style="" leaves stroke ${s2})`);
@@ -1375,7 +1387,8 @@ G('music', async () => {
     const l1 = await ev(r, 'window.__district.loop()');
     await setVis('visible'); await fire('vis'); await sleep(900);
     const p1 = await PUNCH(2600);
-    ok(!l1.running && p1.loop.running && p1.loop.restarts >= 1 && p1.loop.drawn > l1.drawn + 20, `RETURN (plain): stopped while hidden, restarted by 'visible' (${JSON.stringify(p1.loop)})`);
+    ok(!l1.running && p1.loop.running && p1.loop.restarts >= 1, `RETURN (plain): stopped while hidden, restarted by 'visible' (${JSON.stringify(p1.loop)})`);
+    okT(p1.loop.drawn > l1.drawn + 20, `RETURN (plain): drawing again after the return (${p1.loop.drawn - l1.drawn} frames)`);
     okT(p1.hi - p1.lo > 0.5, `RETURN (plain): the punch swings again ${p1.lo} → ${p1.hi}`);
     // THE BEAT-SYNC PASS — a return never costs a tier: the first seconds back are held out of the tiering (RETURN_GRACE), the frame window emptied
     { const ti = await ev(r, 'window.__district.tiering()');
@@ -1544,11 +1557,18 @@ G('speakeasy', async () => {
     await harborUp(Q.page); await settle(Q.page);
     await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.9 && window.__district.party().on > 0.9', 'the party on, the rooms lit', 20000);
     const sp = await ev(Q.page, 'window.__district.harbor().speakeasy'), pr = sp.poleRect;
-    // (a column down the glass; up to 5 sweeps — a loaded parallel run can catch a sweep mid-punch, washed toward white)
+    // (a column down the glass read in ONE frame BETWEEN beats — the punch washes every colour toward white for a moment, and a column read
+    // pixel by pixel over ~20 frames on the loaded cloud machine always caught one; up to 5 tries)
     const party = cs => cs.some(c => c[0] > 180 && c[2] > 100 && c[1] < 130) && cs.some(c => c[2] > 180 && c[0] < 150), red = cs => cs.some(c => c[0] > 180 && c[1] < 110 && c[2] < 90);
-    let cs = [], sawRed = false;
-    for (let k = 0; k < 5; k++) { cs = []; for (let f = 0.15; f < 0.86; f += 0.035) cs.push(await px(Q.page, pr.x + pr.w * 0.5, pr.y + pr.h * f)); sawRed ||= red(cs); if (party(cs)) break; await sleep(300); }
-    ok(party(cs) && !sawRed, `THE POLE on a party night: neon magenta + electric blue, no plain red (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
+    const column = () => ev(Q.page, `new Promise(res => { const t0 = performance.now(); const tick = () => { const p = window.__district.party() || {};
+      if (!(p.beatU > 0.55 && p.beatU < 0.88) && performance.now() - t0 < 3000) return requestAnimationFrame(tick);
+      const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x = cv.getContext('2d'), out = [];
+      for (let f = 0.15; f < 0.86; f += 0.035) out.push(Array.from(x.getImageData(Math.round(${pr.x + pr.w * 0.5} * k), Math.round((${pr.y} + ${pr.h} * f) * k), 1, 1).data).slice(0, 3));
+      res({ cs: out, u: p.beatU, punch: p.punch }); }; requestAnimationFrame(tick); })`);
+    let cs = [], sawRed = false, at = null;
+    for (let k = 0; k < 5; k++) { const r = await column(); cs = r.cs; at = r; sawRed ||= red(cs); if (party(cs)) break; await sleep(300); }
+    ok(!sawRed, `THE POLE on a party night: no plain red (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
+    okF(party(cs), `THE POLE on a party night: neon magenta + electric blue (read between beats: beatU ${at && at.u != null ? at.u.toFixed(2) : '?'}, punch ${at && at.punch != null ? (+at.punch).toFixed(2) : '?'}; ${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
     const ph0 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), t0 = Date.now(); await sleep(1500);
     const ph1 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), d = ((ph1 - ph0 + 1) % 1) / ((Date.now() - t0) / 1000);
     okT(d > 0.08 && d < 0.3, `THE POLE's party turn: the same slow turn (${d.toFixed(3)} periods a second)`);
@@ -1584,7 +1604,7 @@ G('windows', async () => {
     const W = await wins(Q.page), x = (W.back.x + W.back.w + W.apartment.x) / 2, hot = [];
     for (const f of [0.1, 0.18, 0.26, 0.34, 0.42]) hot.push(await px(Q.page, x, W.apartment.y + W.apartment.h * f));
     const pier = hot.reduce((a, b) => (b[0] > a[0] ? b : a)), warm = Math.max(...hot.map(c => c[0] - c[2])), low = await px(Q.page, x, W.jazz.y + W.jazz.h * 0.5);
-    ok(pier[0] > low[0] + 12 && warm > Math.max(12, low[0] - low[2] + 6), `THE WALL-WASHERS: the pier lit warm under its lamp (brightest rgb ${pier.join(',')}, warmest +${warm}) vs the same pier a floor down (rgb ${low.join(',')})`);
+    okF(pier[0] > low[0] + 12 && warm > Math.max(12, low[0] - low[2] + 6), `THE WALL-WASHERS: the pier lit warm under its lamp (brightest rgb ${pier.join(',')}, warmest +${warm}) vs the same pier a floor down (rgb ${low.join(',')})`);
     // the marquee: its bulbs lit (a warm-white bulb on the blade's frame)
     const mq = await ev(Q.page, 'window.__district.harbor().speakeasy.marquee'), mb = [];
     for (const b of mq.slice(0, 12)) mb.push(lum(await px(Q.page, b.x, b.y)));
@@ -1640,7 +1660,7 @@ G('windows', async () => {
   // ---- the hidden mirror door (forced, 10:30 pm): the shop window glows amber while it stands open
   { const Q = await open({ slot: 'w6', qs: `when=2026-10-22T22:30${GR}&force=window&moment=mirror`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
-    const shop = await ev(Q.page, '(() => { const s = window.__district.harbor().speakeasy, p = s.poleRect, k = window.__district.harbor().cam.F / 600; return { x: p.x - 34 * k, y: p.y + p.h * 0.15, w: 24 * k, h: p.h * 0.7 }; })()');
+    const shop = await ev(Q.page, '(() => { const s = window.__district.harbor().speakeasy, p = s.poleRect, k = window.__district.harbor().cam.F / 600; return { x: p.x - 34 * k, y: p.y + p.h * 0.1, w: 24 * k, h: p.h * 0.3 }; })()');   // (8P: the glass ABOVE the hush word sign)
     await waitFor(Q.page, '!window.__district.harbor().speakeasy.life.on.length', 'between the loops (shut)', 15000);
     const shut = await area(Q.page, shop);
     await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'mirror' && e.el > 2.5 && e.el < 5.5)", 'the mirror open', 15000);
@@ -1769,13 +1789,13 @@ G('sounds', async () => {
     ok(off.k === 1 && off.hum > hd.gain, `FP BED: MUSIC OFF → the bed is the main sound (×${off.k}: the day hum ${hd.gain} → ${off.hum})`);
     await ev(P.page, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: false }))"); }
   // ---- 2. a one-shot from a slot (the road's cars, the gulls) + an EMPTY slot is silent
-  const r = await ev(P.page, `(() => { const s = window.__district.harbor().sounds, car = s.play('car-1920s-pass', { pan: -0.5 }), gull = s.play('gulls'), cat = s.play('cat-meow'), mute = s.loop('club-murmur-calm');
+  const r = await ev(P.page, `(() => { const s = window.__district.harbor().sounds, car = s.play('car-1920s-pass', { pan: -0.5 }), gull = s.play('gulls'), cat = s.play('siren-1920s'), mute = s.loop('tv-murmur');
     return { car: car && { take: car.take, peak: car.peak }, gull: gull && gull.take, cat, mute: !!mute.silent }; })()`);
   await sleep(600);
   const log = await ev(P.page, `${PLAYER}.then(m => m.cityLog.slice(-4).map(x => x.slot))`);
   ok(r.car && r.car.peak > 5 && /car-1920s-pass/.test(r.car.take) && r.gull && log.includes('car-1920s-pass') && log.includes('gulls'),
     `ONE-SHOTS: play('car-1920s-pass') → ${r.car && r.car.take} (nearest at ${r.car && r.car.peak} s); play('gulls') → ${r.gull}; both sounded (${log.join(', ')})`);
-  ok(r.cat === null && r.mute, 'EMPTY SLOTS: play(\'cat-meow\') → null, loop(\'club-murmur-calm\') → a silent handle (no error, no beep)');
+  ok(r.cat === null && r.mute, 'EMPTY SLOTS: play(\'siren-1920s\') → null, loop(\'tv-murmur\') → a silent handle (no error, no beep)');
   // ---- 3. THE SEAM: a loop started 4 s before its end crossfades into a fresh pass (2 voices for 2.5 s), then carries on with one
   const seam = await ev(P.page, `${PLAYER}.then(async m => { const h = m.cityLoop('city-hum-day', { start: 66, fadeIn: 1, gain: 0.01 }); const v = []; for (let i = 0; i < 18; i++) { await new Promise(r => setTimeout(r, 500)); v.push(h.debug().voices); } h.stop(0.2); return v; })`);
   ok(seam.includes(2) && seam[seam.length - 1] === 1 && seam.indexOf(2) > 0, `THE SEAM: voices over 9 s ${seam.join('')} — one pass, the crossfade (two), one again`);
@@ -1851,14 +1871,16 @@ async function runGroup(name) {
   for (const fn of fns) { try { await fn(); } catch (e) { errors.push(`FATAL [${name}] ${e.message}`); log('FAILED', name, e.message); } }
   log(`group ${name}: ${((Date.now() - g0) / 1000).toFixed(1)} s`);
 }
-const ONLY = (process.env.ONLY || '').split(',').map(x => x.trim()).filter(Boolean), TAG = process.env.SHARD_TAG || '';
-const SERIAL = ['panel', 'perf'];
-// (the shards, balanced on the measured times: ~35 s each)
-const SHARD_PLAN = { 1: [], 2: [['core', 'flags', 'skyline', 'water', 'harbor', 'speakeasy', 'promenade'], ['neon', 'dock', 'sky', 'party', 'music', 'sounds', 'windows']], 3: [['core', 'flags', 'skyline', 'water', 'promenade'], ['neon', 'harbor', 'dock', 'speakeasy', 'windows'], ['sky', 'party', 'music', 'sounds']] };
+// THE CLOUD JOBS (harbor-jobs.mjs): every group in exactly one job — checked before anything runs, so a new group can't be skipped silently
+{ const bad = jobProblems([...GROUPS.keys()]); if (bad.length) { console.error(`THE CLOUD JOBS (tests/integration/harbor-jobs.mjs):\n  ${bad.join('\n  ')}`); process.exit(1); } }
+const JOB = process.env.JOB || '';
+if (JOB && !CI_JOBS[JOB]) { console.error(`unknown JOB ${JOB} (the cloud jobs: ${Object.keys(CI_JOBS).join(', ')})`); process.exit(1); }
+const ONLY = JOB ? CI_JOBS[JOB] : (process.env.ONLY || '').split(',').map(x => x.trim()).filter(Boolean), TAG = process.env.SHARD_TAG || '';
 const SHARDS = Number(process.env.SHARDS || 3);
-if (ONLY.length) { for (const g of ONLY) await runGroup(g); }
+if (ONLY.length) { if (JOB) log(`JOB ${JOB}: ${ONLY.join(', ')}`); for (const g of ONLY) await runGroup(g); }
 else if (SHARDS > 1) {
-  const plan = SHARD_PLAN[SHARDS] || SHARD_PLAN[3], me = fileURLToPath(import.meta.url);
+  // (the laptop's parallel run: the independent groups spread over the shards by their measured times — harbor-jobs.mjs#localShards)
+  const plan = localShards([...GROUPS.keys()], SHARDS), me = fileURLToPath(import.meta.url);
   await Promise.all(plan.map((groups, i) => new Promise(res => {
     const ch = spawn(process.execPath, [me, BROWSER, OUT], { env: { ...process.env, ONLY: groups.join(','), SHARD_TAG: `s${i + 1}` }, stdio: ['ignore', 'pipe', 'pipe'] });
     const pre = `[s${i + 1}]`;
@@ -1872,10 +1894,23 @@ else if (SHARDS > 1) {
     });
   })));
   for (const g of SERIAL) await runGroup(g);
-} else { for (const g of GROUPS.keys()) await runGroup(g); }
+} else { for (const g of [...GROUPS.keys()].filter(g => !SERIAL.includes(g)).concat(SERIAL)) await runGroup(g); }
 const passed = checks.filter(c => c.ok).length;
-log(`checks ${passed}/${checks.length} passed${warnings.length ? ` · timing warnings ${warnings.length}:\n${warnings.map(w => `  ~ ${w}`).join('\n')}` : ''}`);
+log(`checks ${passed}/${checks.length} passed${warnings.length ? ` · warnings ${warnings.length}:\n${warnings.map(w => `  ~ ${w}`).join('\n')}` : ''}`);
 log(errors.length ? `errors:\n${errors.join('\n')}` : 'errors none');
 writeFileSync(`${OUT}result${TAG ? '-' + TAG : ''}.json`, JSON.stringify({ checks, errors, warnings }, null, 1));
+// on GitHub (the top process only): each warning + error as an annotation on the run, and a table in the job's summary page
+if (!TAG && process.env.GITHUB_ACTIONS) {
+  const esc = t => String(t).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+  for (const w of warnings) console.log(`::warning title=e2e-harbor${JOB ? ' · ' + JOB : ''}::${esc(w)}`);
+  for (const e of errors) console.log(`::error title=e2e-harbor${JOB ? ' · ' + JOB : ''}::${esc(e)}`);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const cell = t => String(t).replace(/\|/g, '\|').replace(/\n/g, ' ').slice(0, 400);
+    const md = [`### e2e-harbor${JOB ? ` · ${JOB} (${ONLY.join(', ')})` : ''}: ${errors.length ? `❌ ${errors.length} failed` : '✅ passed'} — ${passed}/${checks.length} checks, ${warnings.length} warnings`, ''];
+    if (errors.length) md.push('**Failed**', '', ...errors.map(e => `- ${cell(e)}`), '');
+    if (warnings.length) md.push('**Warnings** (timing / known-flaky checks: never red on CI — a repeat in two passes is worth a look)', '', '| kind | check |', '| --- | --- |', ...warnings.map(w => { const m = /^\[(\w+)\] (.*)$/s.exec(w); return `| ${m ? m[1] : 'timing'} | ${cell(m ? m[2] : w)} |`; }), '');
+    try { writeFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n', { flag: 'a' }); } catch { /* the summary is polish */ }
+  }
+}
 if (browser) await Promise.race([browser.close(), sleep(5000)]);
 process.exit(errors.length ? 1 : 0);

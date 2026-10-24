@@ -225,9 +225,14 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 ## Testing (the short version; every suite and flag: `docs/testing.md`)
 - **GitHub checks** run on every push to main (unit → rules → /api → smoke, on the emulators): next to the Vercel deploy, never
   blocking it. Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
-- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`): the FULL `e2e-harbor` suite runs on GitHub after a push that touches a
-  City 2.0 file (≈ 7 min; a newer push cancels; the private repo's free minutes). City 2.0 passes never run the whole suite on the
-  laptop (it runs out of memory): the unit suite + the touched groups (`ONLY=…`) locally, then push and read `gh run list --workflow harbor`.
+- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`): the FULL `e2e-harbor` suite runs on GitHub **only on a pass's FINAL push** —
+  put **`[harbor]`** in a commit message of that push (and it must touch a City 2.0 file: the `paths:` list) — or by hand: `gh workflow run harbor`
+  (`-f job=street` = one job). Mid-pass pushes show a skipped harbor run and cost nothing; the quick `tests` workflow runs on every push.
+  It runs as **4 parallel jobs** (`audio` `show` `city` `street`, ≈ 4 min each); a red job → **"Re-run failed jobs"** re-runs that job only.
+  **A new test group goes in exactly one job in `tests/integration/harbor-jobs.mjs`** (e2e-harbor.mjs refuses to run and the unit test fails
+  until it does). Timing checks (`okT`) and known-flaky pixel probes (`okF`) are WARNINGS on CI, listed in each job's summary page.
+  City 2.0 passes never run the whole suite on the laptop (it runs out of memory): the unit suite + the touched groups (`ONLY=…`) locally,
+  then the final `[harbor]` push and read `gh run list --workflow harbor`.
   **CI minutes (the owner, Oct 24): at most TWO cloud runs per pass.** Never re-run the cloud suite to confirm a flake: a failed check in
   code the pass didn't touch that is a known flake goes in the pass's "Known issues" and the pass finishes.
 - `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
