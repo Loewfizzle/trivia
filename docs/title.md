@@ -78,10 +78,23 @@ the street outside: the district, the sign over the door.
   server-only). `core/weather.js` (pure) turns WMO codes + cloud cover + visibility + wind + temperature into
   `{ kind, rain, snow, storm, fog, cloud, wind, windDir, temp, lat, lon, wetAt }` (wetAt: when it last really rained, from the
   past two hours of 15-minute precipitation — RAINBOWS below). The page (`district/live-weather.js`) asks after the
-  first paint, every 15 minutes and when it comes back to the front; the answer is good for 75 minutes. With it, look() also
+  first paint, every 15 minutes and when it comes back to the front; the answer is good for 45 minutes (FP3a: was 75). With it, look() also
   places the sun, moon and stars over the visitor's real area (Grand Rapids sunrises, not New York's). **Without it** (no
   answer yet, local dev, a failed lookup): a dry city with a few fair-weather clouds — the old seeded "rainy evenings" are gone
-  for good. Previews never use live weather; `&wx=clear|clouds|overcast|fog|drizzle|rain|storm|snow|sleet|freeze` sets it.
+  for good. Previews never use live weather; `&wx=clear|clouds|overcast|fog|drizzle|rain|storm|snow|sleet|freeze` sets it
+  (City 2.0 also `cirrus|veil|mist|stratus|highovercast`).
+- **The weather BY LAYERS (FP3a, Oct 24 — the owner's iPhone showed fog at 10:19 + a grey deck under a thin high veil at 11:19;
+  docs/harbor/review-3.md#b2):** `normalize` reads Open-Meteo's low / mid / high cover. FOG is conservative + graded: a dense `fog`
+  (banks, the foghorn) only for a fog code (WMO 45 / 48) AND under 300 m; 300 m – 1 km (or a fog code at 1–3 km) is `mist` — the
+  far skyline's haze + wider halos, no banks, no horn. The SKY: `opaque` = max(low, 0.9 × mid) is what shuts it (≥ 0.75
+  `overcast`: the deck, the flat grey light; 0.4–0.75 `clouds`); high cover over an open sky is a `veil` (the sky whitened a little,
+  the sun kept, its rays halved — the veil's real look, the sheen + the 22° halo, is 6b's). look() hands every consumer `cloud` =
+  the opaque cover (+ `cover` the total, `veil`), so nine places that read "how overcast" stopped greying a bright cirrostratus day.
+  The answer also carries `src`, `code`, `vis`, `t` (the model's slot) for the readout. The area stays rounded to 0.5° (the
+  owner: privacy); no multi-model median yet (revisit only if wrong weather keeps happening).
+- **The readout's weather lines** (City 2.0, `&debug=1`): `wx open-meteo/best_match · 43,-85.5 · slot 11:15 · 9 min old · WMO 3 ·
+  cc 100 (lo 100 mid 0 hi 4) · vis 12.2 km` and `→ overcast · opaque 1.00 veil 0.04 fog 0.00 · live` (or `wx FORCED fog (the panel)`
+  / `wx seeded (no live answer yet / stale)`).
 - **Clouds** (`district/weather-fx.js`): fractal-noise shapes (cumulus domes on a flat base, ragged stratus banks low near the
   skyline, a seamless overcast deck) with light marched through them — from above (sun, sky, moon) and from below (the city's
   neon on the bellies at night) — re-coloured as the hour changes; built a little each frame after the opening sequence (never a
@@ -243,12 +256,15 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   - THE MUSIC'S FIRST TAP (City 2.0, 7a section 0 — no "tap for music" hint): when the music starts on a visit's first tap the sign
     answers — BY DAY a surge races through the unlit glass N → E → O → N (`raceLogo('surge')`: the race's layers shown through the
     daytime glass by `.nd-surge`, each letter blazing as the head passes, the sign's bloom swelling, ~1.6 s) and fades back to glass;
-    AT NIGHT a quicker, brighter race (`raceLogo('first')`). Once per page load (`surgeSpent`), only when the song's own clock starts
-    moving after a tap (`audio/music.js#musicClock`: −1 with the music off / muted / at zero volume, or not really sounding).
-    During the intro the power-on is the answer; in the warm-up (`ramp`) the tap does what it does today — never both. Reduced
-    motion: one gentle brighten (the bloom fades up + back, `.nd-glow-in/-out`). `&force=first-tap` (City 2.0) previews it 2.4 s
-    after the intro and every 5 s; hooks `__district.signSurge()` (fires now, returns `day | night | soft | skip:…`) and
-    `__district.surge()` ({ spent, count, last: { why, did, at }, running }); e2e-harbor's `music` group checks it.
+    AT NIGHT a quicker, brighter race (`raceLogo('first')`). FP3a (FREV B3 — "the first tap sometimes does nothing"): EVERY time the
+    MUSIC STARTS — the first tap, the music button back ON, a rescue after the background — found by ONE detector on the title's tick
+    (`district/neon-ramp.js#createStartDetector`: the song's clock — `audio/music.js#musicClock`, −1 with the music off / muted / at
+    zero volume, or not really sounding — silent ≥ 1 s, then moving), with a 10 s cooldown stamped only when it really ran; lit vs
+    unlit from the sign's REAL state on screen (`is-steady && !is-day`); during the intro / a race the answer is PENDING and fires
+    when the sign is free; by day the peak + bloom hold ~300 ms longer. In the warm-up (`ramp`) the tap catches. Reduced motion: one
+    gentle brighten (the bloom fades up + back, `.nd-glow-in/-out`). `&force=first-tap` (City 2.0) previews it 2.4 s after the intro
+    and every 5 s; hooks `__district.signSurge()` (fires now, returns `surge | first | catch | soft | skip:…`) and `__district.surge()`
+    ({ count, last: { why, did, at }, pending, cool, running }); e2e-harbor's `neon` + `music` groups check it.
   - MORNING: the city signs go off one by one 30–10 min before sunrise; the logo stays on until clearAt, then falters for 6–9 min —
     letters drop out and come back, die one by one, the last hangs on alone — then the daytime glass look.
   - Never more than one flash every 0.7 s. ALWAYS NIGHT: lit at all times. Reduced effects: no sputters — the sign fades in over

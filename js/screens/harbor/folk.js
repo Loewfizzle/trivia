@@ -17,8 +17,13 @@ const rgb = (c, a = 1) => (a >= 1 ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` :
 const pick = (r, a) => a[Math.floor(r() * a.length)];
 
 // ------------------------------------------------------------------ THE WARDROBE (1920s, muted, one accent each)
-const COATS = [[52, 50, 58], [44, 52, 74], [92, 72, 52], [64, 70, 60], [96, 46, 50], [118, 104, 84], [70, 62, 76], [38, 40, 46], [134, 112, 80]];
-const DRESSES = [[118, 64, 88], [52, 104, 108], [176, 100, 96], [196, 162, 86], [214, 204, 180], [86, 84, 136], [146, 68, 62]];
+// FP3a (the owner's 8P note 3 — "never flat black silhouettes by day"): real muted period cloth that reads at ~27 pt in daylight —
+// camel, tweed brown, navy serge, bottle green, burgundy, grey herringbone, dove grey, a cream mac — trousers in flannel greys +
+// browns, felt hats in browns + greys. At night the same cloth goes to a lamp-lit silhouette (drawFolk's NIGHT mix).
+const COATS = [[176, 140, 96], [128, 96, 70], [64, 76, 112], [72, 100, 80], [130, 60, 66], [96, 96, 104], [152, 150, 146], [112, 56, 48], [198, 184, 152]];
+const TROUSERS = [[104, 102, 106], [98, 82, 68], [60, 66, 90], [74, 74, 80], [150, 134, 104]];
+const FELT = [[72, 62, 54], [112, 94, 72], [84, 84, 94], [150, 130, 100], [56, 52, 60]];
+const DRESSES = [[150, 82, 108], [62, 120, 124], [190, 112, 104], [204, 170, 96], [220, 210, 186], [104, 100, 156], [164, 80, 72]];
 const FLAPPER = [[214, 176, 96], [196, 60, 84], [40, 40, 52], [210, 206, 196], [88, 150, 160], [150, 92, 168]];
 const SUMMER = [[226, 222, 208], [198, 208, 214], [214, 196, 160], [184, 202, 176]];
 const SCARVES = [[178, 48, 48], [206, 156, 60], [58, 96, 150], [150, 70, 120], [60, 120, 90], [224, 214, 196]];
@@ -40,20 +45,20 @@ export function lookOf(name, seed, o = {}) {
   if (name === 'worker' || name === 'jogger' || name === 'nightworker') woman = r() < 0.15;
   if (name === 'newsboy') { kid = true; woman = false; }
   const L = { woman, kid, coat: cold ? 'long' : summer ? 'none' : r() < 0.6 ? 'long' : 'short', dress: woman ? 'day' : null, hat: null, carry: null, jog: false,
-    cols: { coat: pick(r, COATS), legs: pick(r, [[40, 40, 48], [56, 52, 50], [70, 64, 60], [34, 36, 46]]), hat: pick(r, [[36, 34, 40], [70, 56, 44], [52, 52, 62], [96, 84, 70]]),
+    cols: { coat: pick(r, COATS), legs: pick(r, TROUSERS), hat: pick(r, FELT),
       skin: pick(r, SKIN), hair: pick(r, HAIR), shirt: pick(r, SUMMER), dress: pick(r, DRESSES), scarf: cold && r() < 0.7 ? pick(r, SCARVES) : null } };
   L.hat = woman ? (r() < 0.75 ? 'cloche' : null) : summer && r() < 0.5 ? 'boater' : r() < 0.8 ? 'fedora' : 'flatcap';
   if (woman && L.hat === 'cloche') L.cols.hat = pick(r, [[120, 64, 80], [60, 60, 84], [150, 120, 80], [40, 40, 48], [170, 80, 70]]);
   if (name === 'commuter') { L.carry = r() < 0.55 ? (woman ? 'purse' : 'case') : 'papers'; if (!woman) L.hat = summer ? 'boater' : 'fedora'; }
   if (name === 'lady') L.carry = 'purse';
-  if (name === 'worker' || name === 'nightworker') { L.hat = 'flatcap'; L.coat = 'short'; L.carry = 'pail'; L.cols.coat = pick(r, [[56, 66, 86], [80, 70, 56], [60, 60, 60]]); L.dress = null; L.woman = false; }
+  if (name === 'worker' || name === 'nightworker') { L.hat = 'flatcap'; L.coat = 'short'; L.carry = 'pail'; L.cols.coat = pick(r, [[70, 84, 112], [112, 96, 74], [88, 88, 90]]); L.dress = null; L.woman = false; }
   if (name === 'jogger') { L.jog = true; L.coat = 'none'; L.dress = null; L.woman = false; L.hat = r() < 0.5 ? 'flatcap' : null; L.cols.shirt = pick(r, [[214, 210, 200], [120, 40, 44], [44, 60, 96], [90, 90, 96]]); L.cols.legs = pick(r, [[180, 170, 150], [60, 60, 66], [214, 210, 200]]); L.scarf = null; L.cols.scarf = null; }
-  if (name === 'newsboy') { L.hat = 'newsboy'; L.coat = 'short'; L.carry = 'papers'; L.cols.coat = pick(r, [[110, 92, 70], [74, 70, 64], [90, 70, 50]]); L.cols.legs = [96, 86, 72]; }
+  if (name === 'newsboy') { L.hat = 'newsboy'; L.coat = 'short'; L.carry = 'papers'; L.cols.coat = pick(r, [[130, 108, 80], [100, 94, 86], [116, 92, 66]]); L.cols.legs = [116, 104, 86]; }
   if (name === 'guest' || (party && (name === 'couple' || name === 'stroll'))) {
     if (L.woman) { L.dress = party || r() < 0.4 ? 'flapper' : 'day'; L.cols.dress = pick(r, L.dress === 'flapper' ? FLAPPER : DRESSES); L.hat = L.dress === 'flapper' ? (r() < 0.5 ? 'band' : null) : 'cloche'; L.coat = cold && !party ? 'long' : 'none'; L.carry = 'purse'; }
     else { L.cols.coat = pick(r, [[22, 22, 28], [30, 30, 38], [44, 40, 46]]); L.cols.legs = [24, 24, 30]; L.hat = party && r() < 0.3 ? 'top' : 'fedora'; L.cols.hat = [24, 22, 28]; L.coat = cold ? 'long' : 'short'; L.cols.shirt = [236, 232, 222]; L.tux = true; }
   }
-  if (name === 'night') { L.cols.coat = pick(r, [[34, 34, 42], [44, 40, 38], [30, 36, 50]]); L.coat = 'long'; if (!L.woman) L.hat = 'fedora'; }
+  if (name === 'night') { L.cols.coat = pick(r, [[58, 58, 70], [74, 66, 60], [52, 62, 84]]); L.coat = 'long'; if (!L.woman) L.hat = 'fedora'; }
   if (L.woman && L.coat === 'long') L.dress = L.dress || 'day';
   L.h = kid ? 0.72 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08);
   L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.8 ? pick(r, [[30, 30, 36], [120, 40, 44], [44, 60, 96], [70, 64, 56]]) : null;
@@ -67,7 +72,7 @@ export function jointsOf(st, L, t, mo = true) {
   const d = st.dir === -1 ? -1 : 1, side = st.dir === 1 || st.dir === -1, pose = st.pose || 'walk', jog = L.jog && st.v > 2;
   const S = (jog ? 0.56 : L.kid ? 0.42 : 0.38) * L.h * 2.1;                    // (a step, world units — a stride is two)
   const walking = pose === 'walk' && st.v > 0.05, p = walking ? (st.dist / (2 * S)) % 1 : 0;
-  const J = { side, d, hip: [0, 0.49], sh: [0, 0.8], head: [0, 0.915], lean: 0, feet: [], knees: [], hands: [], elbows: [], pose, walking, p, jog };
+  const J = { side, d, face: st.dir, hip: [0, 0.49], sh: [0, 0.8], head: [0, 0.915], lean: 0, feet: [], knees: [], hands: [], elbows: [], pose, walking, p, jog };
   const breath = mo ? 0.004 * Math.sin(t * 1.7 + (L.h * 37)) : 0;
   J.sh[1] += breath; J.head[1] += breath;
   if (pose === 'sit') { J.hip = [0, 0.27]; J.sh = [0, 0.58 + breath]; J.head = [0, 0.69 + breath]; }
@@ -132,7 +137,7 @@ export function drawFolk(c, cam, it, env) {
   const lit = (col, k = 1) => {
     let cc = col;
     if (T.gold) cc = mix(cc, [cc[0] * 1.08 + 10, cc[1] * 0.95, cc[2] * 0.82], T.gold * 0.5);
-    if (dark > 0.01) { cc = mix(cc, NIGHT, 0.78 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); cc = [cc[0] + lt[0] * q * 0.17 * k * lampK, cc[1] + lt[1] * q * 0.17 * k * lampK, cc[2] + lt[2] * q * 0.17 * k * lampK]; } }
+    if (dark > 0.01) { cc = mix(cc, NIGHT, 0.86 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); cc = [cc[0] + lt[0] * q * 0.1 * k * lampK, cc[1] + lt[1] * q * 0.1 * k * lampK, cc[2] + lt[2] * q * 0.1 * k * lampK]; } }   // (FP3a: 0.17 → 0.1 — mostly silhouette; the rim carries the light)
     return cc.map(v => Math.min(255, v));
   };
   const X = u => fx + u * H, Y = v => fy - v * H, d = J.d;
@@ -146,12 +151,14 @@ export function drawFolk(c, cam, it, env) {
   }
   c.fillStyle = `rgba(8,6,16,${(0.32 + 0.18 * (1 - day) + 0.1 * lk).toFixed(3)})`;
   c.beginPath(); c.ellipse(fx, fy, H * (st.pose === 'sit' ? 0.12 : 0.14), H * 0.035, 0, 0, TAU); c.fill();
-  // ---- the RIM (night, under a lamp): the whole figure laid down first in the lamp's colour, offset toward the light — the body
-  // drawn over it leaves a crisp lit edge on that side
-  if (dark > 0.3 && lt && lk > 0.12 && env.tier !== 0) {              // (tier 0: no rim pass — half the paths)
-    const side = env.rimSide ? env.rimSide(st.x, st.z) : 1, n = Math.max(lt[0], lt[1], lt[2]) || 1, rc = lt.map(v => Math.min(255, 40 + v / n * 190));
-    c.save(); c.translate(side * Math.max(0.55, H * 0.022), -Math.max(0.3, H * 0.008)); c.globalAlpha = a * 0.6 * clamp01(lk * 0.8) * lampK;
-    body(c, J, L, X, Y, H, () => rgb(rc), env, true); c.restore();
+  // ---- the RIM (night, under a lamp — FP3a, the owner's 8P note 3: on the HEAD + SHOULDERS only, never the whole outline): the head,
+  // the hat and the top of the shoulders laid down first in the lamp's warm colour, offset toward the light — the body drawn over
+  // them leaves a crisp lit edge where a lamp would catch a face + a collar
+  if (dark > 0.3 && lt && lk > 0.12 && env.tier !== 0) {              // (tier 0: no rim pass)
+    // (warm: lamplight on skin + wool — a cool street lamp's rim is pulled toward a warm white)
+    const side = env.rimSide ? env.rimSide(st.x, st.z) : 1, n = Math.max(lt[0], lt[1], lt[2]) || 1, rc = mix(lt.map(v => Math.min(255, 52 + v / n * 200)), [255, 214, 160], 0.45);
+    c.save(); c.translate(side * Math.max(0.7, H * 0.034), -Math.max(0.35, H * 0.01)); c.globalAlpha = a * 0.95 * clamp01(0.35 + lk * 0.8) * lampK;
+    rimUpper(c, J, L, X, Y, H, rgb(rc)); c.restore();
   }
   body(c, J, L, X, Y, H, lit, env, false);
   c.restore();
@@ -204,9 +211,17 @@ function body(c, J, L, X, Y, H, lit, env, flat) {
     if (L.tux) { c.fillStyle = f(cols.shirt, 1.2); c.beginPath(); c.moveTo(X(-0.03 + lean), Y(top)); c.lineTo(X(0.03 + lean), Y(top)); c.lineTo(X(lean * 0.6), Y(top - 0.13)); c.closePath(); c.fill(); }
     if (L.coat !== 'none' && side) { c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(X(-sx * 0.1 * d + lean * 0.7), Y(top - 0.05), Math.max(0.4, H * 0.012), (top - 0.05 - hem) * H * 0.95); }
     if (cols.scarf && L.coat !== 'none') { c.fillStyle = f(cols.scarf); c.beginPath(); c.ellipse(X(lean), Y(top - 0.005), sx * H * 0.92, H * 0.026, 0, 0, TAU); c.fill(); if (side) c.fillRect(X(-d * 0.05 + lean), Y(top - 0.005), Math.max(0.6, 0.03 * H), 0.13 * H); }
-    // the day's light: the sun's side of the body a little lighter
-    const sd = env.T && env.T.sunDir ? env.T.sunDir : 0, day = (env.T && (env.T.day || 0) + (env.T.gold || 0)) || 0;
-    if (day > 0.2 && Math.abs(sd) > 0.05) { c.fillStyle = `rgba(255,240,214,${(0.16 * Math.min(1, day)).toFixed(3)})`; const sgn = sd > 0 ? 1 : -1; c.fillRect(X(sgn > 0 ? sx * 0.35 + lean : -sx + lean), Y(top), sx * 0.65 * H, (top - hem) * H); }
+    // THE DAY'S LIGHT (FP3a, note 3): a LIT side + a SHADE side across the whole torso from the real sun (warm at golden hour), over
+    // the cloth's own colour — the torso's path filled again with a gradient, so it stays inside the figure
+    const sun = sunSide(env);
+    if (sun) {
+      const g = c.createLinearGradient(X(-sx * sun.s + lean), 0, X(sx * sun.s + lean), 0);
+      g.addColorStop(0, `rgba(${sun.hi},${(0.26 * sun.k).toFixed(3)})`); g.addColorStop(0.45, `rgba(${sun.hi},0)`); g.addColorStop(0.62, 'rgba(24,20,44,0)'); g.addColorStop(1, `rgba(24,20,44,${(0.3 * sun.k).toFixed(3)})`);
+      c.fillStyle = g; c.beginPath();
+      c.moveTo(X(-sx + lean), Y(top)); c.lineTo(X(sx + lean), Y(top));
+      c.lineTo(X(sx * 0.82 + lean * 0.5), Y(hipY + 0.05)); c.lineTo(X(sx * 0.9 + flare + swingHem * d), Y(hem)); c.lineTo(X(-sx * 0.9 - flare + swingHem * d), Y(hem)); c.lineTo(X(-sx * 0.82 + lean * 0.5), Y(hipY + 0.05));
+      c.closePath(); c.fill();
+    }
   }
   // the near leg (a walker's; sitting: both visible under the coat's hem)
   leg(0, legCol, legW);
@@ -215,16 +230,45 @@ function body(c, J, L, X, Y, H, lit, env, flat) {
   c.fillStyle = f(cols.skin, 0.9); c.fillRect(X(hx - 0.022), Y(hy - hr * 0.6), 0.044 * H, 0.06 * H);
   c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill();
   if (side && !flat) { c.beginPath(); c.moveTo(X(hx + d * hr * 0.9), Y(hy + 0.005)); c.lineTo(X(hx + d * hr * 1.25), Y(hy - 0.012)); c.lineTo(X(hx + d * hr * 0.85), Y(hy - 0.025)); c.fill(); }   // (the nose in profile)
-  if (J.d === 2 || (!side && J.pose !== 'sit' && st2back(J))) { c.fillStyle = f(cols.hair); c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); }
+  // THE HAIR (FP3a, note 3 — it never drew from behind: the facing wasn't passed): walking away (dir 0) the back of the head is hair;
+  // in profile the back of the head under the hat; a woman without a cloche her bob
+  if (!flat) {
+    c.fillStyle = f(cols.hair);
+    if (J.face === 0 && J.pose !== 'sit') { c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); }
+    else if (side && !L.woman) { c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip(); c.fillRect(Math.min(X(hx - d * hr * 1.1), X(hx - d * hr * 0.15)), Y(hy + hr), hr * 0.95 * H, hr * 1.25 * H); c.restore(); }
+  }
   if (L.woman && L.hat !== 'cloche') { c.fillStyle = f(cols.hair); c.beginPath(); c.arc(X(hx - (side ? d * 0.012 : 0)), Y(hy + 0.012), hr * 1.05 * H, Math.PI * 0.95, Math.PI * 2.05); c.fill(); c.fillRect(X(hx - hr * 1.05), Y(hy + 0.005), hr * 2.1 * H, 0.04 * H); }
+  // the head's own light by day: the lit cheek + the shaded one (the same sun as the torso)
+  if (!flat) { const sun = sunSide(env); if (sun) { const g = c.createLinearGradient(X(hx - hr * sun.s), 0, X(hx + hr * sun.s), 0); g.addColorStop(0, `rgba(${sun.hi},${(0.24 * sun.k).toFixed(3)})`); g.addColorStop(0.5, `rgba(${sun.hi},0)`); g.addColorStop(0.55, 'rgba(30,20,40,0)'); g.addColorStop(1, `rgba(30,20,40,${(0.3 * sun.k).toFixed(3)})`); c.fillStyle = g; c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); } }
   hat(c, L, X, Y, H, hx, hy, hr, d, side, f);
+  // THE BRIM'S SHADOW across the face (FP3a, note 3 — no drawn features: the hat's shade reads as a face under it), by day + at dusk
+  if (!flat && L.hat && BRIM[L.hat] != null) { const k = sunSide(env, true); if (k > 0.05) { const by = BRIM[L.hat]; c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip(); c.fillStyle = `rgba(26,18,30,${(0.42 * k).toFixed(3)})`; c.fillRect(X(hx - hr * 1.2), Y(hy + hr * by), hr * 2.4 * H, hr * 0.55 * H); c.restore(); } }
   // the near arm (+ what it carries)
   const hand = side ? armP(0, sleeve, 0.062) : (armP(0, sleeve, 0.062), armP(1, sleeve, 0.062));
   if (!flat && L.carry && !['point', 'wave', 'toast', 'dance', 'garden'].includes(J.pose)) carry(c, L.carry, hand, H, f, d);
   if (!flat && J.pose === 'toast') { const [gx, gy] = hand; c.fillStyle = 'rgba(236,226,190,0.9)'; c.beginPath(); c.moveTo(gx - H * 0.03, gy - H * 0.05); c.lineTo(gx + H * 0.03, gy - H * 0.05); c.lineTo(gx, gy - H * 0.015); c.closePath(); c.fill(); c.fillRect(gx - 0.25, gy - H * 0.015, 0.5, H * 0.03); }
   if (!flat && L.umbrella && J.pose !== 'sit') { const [ux, uy] = hand; c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(ux, Y(1.18)); c.stroke(); c.fillStyle = f(L.umbrella); c.beginPath(); c.ellipse(ux, Y(1.18), H * 0.3, H * 0.12, 0, Math.PI, 0); c.fill(); }
 }
-const st2back = J => J.d === 2;
+// the brim's line on the head (in head radii above its centre) per hat — the band under it is in shade
+const BRIM = { fedora: 0.55, top: 0.6, boater: 0.6, cloche: 0.18, flatcap: 0.62, newsboy: 0.62 };
+/** the sun's side on a figure by day: { s (±1: the lit side's sign on screen), k (strength), hi (the lit tint) } or null; daylight
+ *  only (k > 0) with `level` — the scene's daylight share (the brim's shade: soft light from above even under a deck) */
+function sunSide(env, level = false) {
+  const T = env.T || {}, day = clamp01((T.day || 0) + (T.gold || 0)) * (1 - clamp01(env.dark || 0));
+  if (level) return day;
+  if (day < 0.15) return null;
+  const sd = T.sunDir || 0, ovc = T.ovc || 0;
+  const s = Math.abs(sd) > 0.05 ? (sd > 0 ? 1 : -1) : -1, k = day * (1 - 0.7 * ovc) * (Math.abs(sd) > 0.05 ? 1 : 0.6);
+  return k > 0.05 ? { s: -s, k, hi: (T.gold || 0) > 0.3 ? '255,206,150' : '255,242,220' } : null;
+}
+/** THE RIM's shapes (night): the head, the hat's crown + brim, the top of the shoulders — one colour (FP3a: head + shoulders only) */
+function rimUpper(c, J, L, X, Y, H, col) {
+  const lean = J.lean * J.d, top = J.sh[1] + 0.01, sx = J.side ? 0.1 : 0.138, hx = J.head[0] + lean * 1.3, hy = J.head[1], hr = 0.066;
+  c.fillStyle = col;
+  c.beginPath(); c.moveTo(X(-sx + lean), Y(top)); c.lineTo(X(sx + lean), Y(top)); c.lineTo(X(sx * 0.95 + lean), Y(top - 0.11)); c.lineTo(X(-sx * 0.95 + lean), Y(top - 0.11)); c.closePath(); c.fill();
+  c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill();
+  if (L.hat) hat(c, L, X, Y, H, hx, hy, hr, J.d, J.side, () => col);
+}
 function hat(c, L, X, Y, H, hx, hy, hr, d, side, f) {
   const k = L.cols.hat;
   if (!L.hat) return;

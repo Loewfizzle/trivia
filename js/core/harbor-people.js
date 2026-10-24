@@ -29,6 +29,20 @@ export const FOLK = Object.freeze({
   zMin: 38.75, zMax: 52.25, curbZ: 53.2, roadZ: 53.6, farZ: 63.55, doorZ: 43.55, busZ: 55.4,
 });
 
+/** FP3a (FREV A4) — THE PEOPLE DRAWN BY THE PHONE'S TIER: at most TIER_CAP[tier] heads on screen (the plan is the same on every
+ *  phone; an older phone / Low Power draws fewer). Whole visits are kept (a couple, a dog walker + the dog), in a fixed order by
+ *  their id — every phone at the same tier keeps the same people. The roof's guests are off at tier 0 (people.js). */
+export const TIER_CAP = Object.freeze([6, 9, 12]);
+export function capByTier(members, tier = 2) {
+  const cap = TIER_CAP[Math.max(0, Math.min(2, tier | 0))];
+  if (cap >= FOLK.cap) return members;
+  const heads = new Map();
+  for (const m of members) heads.set(m.vid, (heads.get(m.vid) || 0) + (m.m.role === 'dog' ? 0 : 1));
+  const keep = new Set(); let n = 0;
+  for (const v of [...heads.keys()].sort((a, b) => hashString(a) - hashString(b) || (a < b ? -1 : 1))) { const h = heads.get(v); if (n + h <= cap) { n += h; keep.add(v); } }
+  return members.filter(m => keep.has(m.vid));
+}
+
 // ------------------------------------------------------------------ WHO'S OUT WHEN (data — tune here)
 /** periods of the day (local hours [from, to)): n = the people out on average [weekday, weekend] (~¾ of them on screen: the rest are
  *  walking in / out past the edges or round behind the speakeasy); mix = the kinds' weights

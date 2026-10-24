@@ -4,6 +4,26 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — FP3a: THE FIXES EVERYONE SEES + THE CLEANUP + THE PEOPLE'S COLOURS (Oct 24, 2026) — `docs/harbor.md#fp3a`, `docs/harbor/review-3.md` §C 1–6
+- [x] The barber pole's party check off the glass's LED core (a test bug — the pole was right), a hard check again
+- [x] THE SURGE on every music start (the first tap, the music button back ON, a rescue): one start detector, a 10 s cooldown, pending
+      instead of lost (the intro, a race), lit vs unlit from the sign on screen, the day's peak + bloom held ~300 ms longer
+- [x] THE DEBUG STRIPS: the readout + the AUDIO panel as DOM strips at the top under the corner buttons, folded to one line by a tap,
+      remembered per device; the readout's weather lines (source, slot, age, WMO, the layers, visibility → the city's state)
+- [x] THE WEATHER BY LAYERS (pushed early, ef63851): graded fog (dense < 300 m with a fog code; `mist` otherwise — no banks, no horn),
+      `opaque` (low + mid) shuts the sky, a high `veil` keeps the sun; the raw answer in the server's reply; 45-min freshness;
+      `&wx=mist|stratus|highovercast`
+- [x] THE LOAD GATE: resizes coalesced in the load window, the title's rects measured not reported, the city dark until its first full
+      frame + ONE fade in, the boot screen kept until the Harbor's module is in, no stretched layers, no tier step during load; the `load`
+      E2E group; `shots.mjs --load --net 3g --cpu 4`
+- [x] THE CLEANUP (no look change, pixdiff): `core/harbor-light.js` (one light module), no sound inside a painter (ticks + cues), the
+      facade's `power(k)`, the placeholder people + parked traffic deleted, props.js split, leftovers + stale comments
+- [x] THE PEOPLE: ~25 % slower with per-person variety, real muted 1920s colours by day + skin + hair + the brim's shadow + a lit /
+      shade side, a deep silhouette with a warm rim on head + shoulders at night, the cap by tier (12 / 9 / 6) + no roof guests at tier 0,
+      the bus door shutting 3–5 s after the last rider
+- [x] Tests: unit 601; e2e — `neon` (the music starting ×6), `core` (the strips ×8), `load` ×8 (new, `city` job), the pole + the night
+      bed's race fixed; smoke `GAMES=cipher` green
+
 ### ✅ CITY 2.0 — PART 8P: THE PEOPLE + THE SPEAKEASY POLISH CARRY-OVER (Oct 24, 2026) — `docs/harbor.md#part-8p`, `docs/audio.md` 8P
 - [x] Section 0 (its own commit, 7dc3a8d): the barbershop front crisp (the gilt arch rebuilt, the glass's haze + the door card gone), THE HUSH WORD
       SIGN (Ben's add-on: bare neon tubes in the lower-right upstairs window, only while a lobby is open — 2 × 2, 11.1 pt at 390;

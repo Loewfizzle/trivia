@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
 import { hushPlan, hushState, strikeLevel, darkLevel, hushGlass } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
-import { FOLK, MIX, mixNow, folkMap, folkAt, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS } from '../js/core/harbor-people.js';
+import { FOLK, MIX, mixNow, folkMap, folkAt, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
 import { signalAt } from '../js/core/harbor-promenade.js';
 
 const SIZES = {
@@ -197,6 +197,23 @@ test('FP3a — THE PACE: ~25 % slower than 8P, strollers + couples slowest, comm
   assert.ok(S.walk <= 1.5 * 0.8 && S.walk >= 1.5 * 0.7, `walk ${S.walk}`);
   assert.ok(S.stroll < S.walk && S.walk < S.brisk && S.brisk * 1.8 < S.jog, 'stroll < walk < brisk, the jog clearly faster');
   assert.equal(KINDS.couple(() => 0.5, { nodes: { inlay: { x: 0, z: 45 } } }).gait, 'stroll', 'couples stroll');
+});
+
+test('FP3a — THE CAP BY TIER: 12 / 9 / 6 heads drawn; whole visits kept (a couple stays a couple, a dog with its walker); the same people on every phone at a tier', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map();
+  assert.deepEqual([...TIER_CAP], [6, 9, 12]);
+  let busy = 0;
+  for (let t = DAY + 11 * 3600; t < DAY + 15 * 3600; t += 37) {
+    const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache), heads = ms => ms.filter(m => m.m.role !== 'dog').length;
+    for (const tier of [0, 1, 2]) {
+      const k = capByTier(f.members, tier), kv = new Set(k.map(m => m.vid));
+      assert.ok(heads(k) <= TIER_CAP[tier], `tier ${tier}: ${heads(k)} heads`);
+      for (const m of f.members) if (kv.has(m.vid)) assert.ok(k.includes(m), 'a kept visit keeps all its members');
+      assert.deepEqual(capByTier([...f.members].reverse(), tier).map(m => m.vid).sort(), k.map(m => m.vid).sort(), 'the order of the plan never changes who is kept');
+    }
+    if (heads(f.members) > 6) busy++;
+  }
+  assert.ok(busy > 5, 'busy enough at midday to test the cap');
 });
 
 test('8P — THE LOBBY LINE: left of the door along the shopfront, bending toward the bottom-left corner; never cut by the left edge, never under the dock, the door clear', () => {

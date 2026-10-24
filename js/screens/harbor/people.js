@@ -12,7 +12,7 @@
 // a distant laugh from a pair chatting now and then, the cart's bell, the lobby line's murmur, the rooftop party's bed, the bus.
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
-import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect } from '../../core/harbor-people.js';
+import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '../../core/harbor-people.js';
 import { lookOf, drawFolk, drawDog, drawLeash, jointsOf } from './folk.js';
 import { drawBus } from './bus.js';
 import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
@@ -78,10 +78,10 @@ export function createPeople() {
     if (pass === 'roof') { const warm = env.party ? [255, 170, 150] : [255, 196, 128], k = 0.9 * dark; E.lightAt = k > 0.02 ? () => warm.map(v => v * k) : null; E.rimSide = () => -1; E.shadow = () => null; }
     let items;
     if (pass === 'roof') {
-      if (!roofNow.members.length) return;
+      if (!roofNow.members.length || env.tier === 0) return;            // (FP3a: the roof's guests off at tier 0)
       items = roofNow.members;
     } else {
-      const all = [...now.members, ...(pass === 'near' ? lineMembers(env.t || 0) : [])];
+      const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...(pass === 'near' ? lineMembers(env.t || 0) : [])];   // (FP3a: the cap by tier)
       if (pass === 'near' && env.vendor && M.nodes.vendor) all.push({ vid: 'vendor', kind: 'vendor', look: 'worker', party: false, m: { role: 'lead', seed: 777, lag: 0 }, s: { ...M.nodes.vendor, pose: 'cart', dir: -1, dist: 0, v: 0, a: 1 } });
       // (behind the speakeasy on the waterside sidewalk: hidden by the building — not drawn)
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ));
@@ -111,7 +111,7 @@ export function createPeople() {
    *  scene runs (after frame()), whether or not the people were drawn this frame */
   function tick(env) {
     if (!L || !env || !env.snd) return;
-    const near = [...now.members, ...lineMembers(env.t || 0)].filter(m => m.s.z <= FOLK.roadZ);
+    const near = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...lineMembers(env.t || 0)].filter(m => m.s.z <= FOLK.roadZ);
     sounds(env, near);
     busSounds(env);
   }
