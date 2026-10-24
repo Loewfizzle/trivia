@@ -547,7 +547,7 @@ export function folkAt(t, world, cache = new Map()) {
   // CLOSED to the crowd (the blocks route round it: Mev) and its people count against the cap (the blocks plan around them)
   const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceDance };
   const sess = j => get(`DS|${j}|${rctx.force ? 1 : 0}`, () => danceSlot(j, rctx));
-  const sessionsNear = (a, b) => danceSlotsNear(a, b, rctx).map(sess).filter(x => x && x.s1 + 90 > a && x.s0 - 40 < b);
+  const sessionsNear = (a, b) => (ctx.noDance ? [] : danceSlotsNear(a, b, rctx).map(sess).filter(x => x && x.s1 + 90 > a && x.s0 - 40 < b));
   const danceVisits = x => get(`DV|${x.id}`, () => planDance(x, M, L));
   const Mev = get('Mev', () => folkMap(L, { event: true }));
   const closed = (a, b) => sessionsNear(a, b).some(x => b > x.s0 - 30 && a < x.s1 + 60);

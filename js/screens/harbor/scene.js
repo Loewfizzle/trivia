@@ -349,7 +349,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // 8P — THE PEOPLE's inputs: the clock + the place (every phone the same), the rain (Part 9: only when real), an event on the inlay,
   // the shop's hours; the previews: &force=line&n=6 (the lobby line), &force=bus (a bus every 90 s), &force=no-people
   const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924,
-    forceBus: clock.force.has('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
+    forceBus: clock.force.has('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   function peopleEnv(lit, fadeIn) {
     const h = LK.local ? LK.local.h + LK.local.mi / 60 : 12;
     people.line(clock.force.has('line') ? Number(qp.get('n') || 6) : lobbyLine);

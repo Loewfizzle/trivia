@@ -50,8 +50,8 @@ export function createPeople() {
   function frame(f) {
     if (!L) return;
     ensureMap(!!f.event);
-    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, event: !!f.event };
+    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event };
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
     lastT = t;
