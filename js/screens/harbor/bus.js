@@ -23,6 +23,7 @@ export function drawBus(c, cam, b, env) {
   const cream = tri(T, [232, 222, 194], [244, 206, 160], [62, 58, 74]), green = tri(T, [34, 84, 66], [52, 70, 52], [14, 22, 26]), red = tri(T, [176, 40, 40], [190, 60, 44], [56, 18, 24]);
   const roofC = tri(T, [196, 188, 166], [214, 176, 136], [40, 38, 52]), dk = tri(T, [26, 26, 30], [30, 24, 26], [8, 8, 14]), chrome = tri(T, [210, 214, 220], [236, 204, 170], [60, 60, 76]);
   const glass = tri(T, [120, 150, 180], [196, 150, 130], [16, 16, 30]);
+  let doorBox = null;
   c.save();
   // the shadow on the road
   { const [a, ya] = P(0, 0), [bb] = P(len, 0); c.fillStyle = `rgba(6,6,14,${(0.35 + 0.15 * dark).toFixed(3)})`; c.beginPath(); c.ellipse((a + bb) / 2, ya, (bb - a) / 2 + 2, Math.max(1.5, s * 0.18), 0, 0, Math.PI * 2); c.fill(); }
@@ -56,6 +57,7 @@ export function drawBus(c, cam, b, env) {
     c.fillStyle = dark > 0.3 ? 'rgb(255,226,160)' : rgb(mix(cream, [255, 255, 255], 0.3)); c.font = `700 ${Math.max(4, bh * 0.78).toFixed(1)}px "Chakra Petch", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('7  HARBOR', (r0 + r1) / 2, by + bh * 0.55); }
   // the folding door (front, our side): closed — two glazed leaves; open — the dark doorway, the step lit at night
   { const [p] = P(K(C.door[0]), 0), [q] = P(K(C.door[1]), 0), [, yd0] = P(0, C.win[1] + 0.05), [, yd1] = P(0, C.floor * 0.6);
+    doorBox = { x: p, y: yd0, w: q - p, h: yd1 - yd0 };
     if (b.door) { c.fillStyle = rgb(dark > 0.3 ? [120, 84, 52] : [30, 28, 32]); c.fillRect(p, yd0, q - p, yd1 - yd0); c.fillStyle = rgb(chrome); c.fillRect(p, yd0, Math.max(0.6, (q - p) * 0.12), yd1 - yd0); c.fillRect(q - Math.max(0.6, (q - p) * 0.12), yd0, Math.max(0.6, (q - p) * 0.12), yd1 - yd0); }
     else { c.fillStyle = rgb(green); c.fillRect(p, yd0, q - p, yd1 - yd0); c.fillStyle = rgb(dark > 0.3 ? mix(glass, [255, 206, 140], 0.6 * dark) : glass); for (const k of [0, 0.5]) c.fillRect(p + (q - p) * (k + 0.08), yd0 + (yd1 - yd0) * 0.06, (q - p) * 0.34, (yd1 - yd0) * 0.48); c.fillStyle = rgb(dk); c.fillRect((p + q) / 2 - 0.3, yd0, 0.6, yd1 - yd0); } }
   // the lettering on the green: HARBOR LINE
@@ -88,5 +90,5 @@ export function drawBus(c, cam, b, env) {
     }
     const [tx, ty] = P(0.02, C.floor + 0.25); c.fillStyle = dark > 0.3 ? 'rgb(255,90,70)' : rgb(red); c.fillRect(tx - 0.6, ty - s * 0.08, Math.max(1, s * 0.08), s * 0.16); }
   c.restore();
-  return { x: ax, y: yt, w: W, h: ay - yt };
+  return { x: ax, y: yt, w: W, h: ay - yt, door: b.door ? doorBox : null };
 }

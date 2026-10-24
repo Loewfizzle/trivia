@@ -125,10 +125,10 @@ test('8P — THE PEOPLE over two days at 390 / 402 / 430: never past the cap, ne
       for (const m of heads) {
         const s = m.s; seenKinds.add(m.kind);
         assert.ok(s.z >= FOLK.zMin - 0.6, `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);
-        if (s.a >= 0.999 && m.m.role === 'lead') for (const r of block) assert.ok(!inR(s, r), `${k}: ${m.kind} inside ${r.id} at ${s.x.toFixed(2)}, ${s.z.toFixed(2)} (${s.pose})`);
+        if (s.a >= 0.999 && m.m.role === 'lead' && !s.door) for (const r of block) assert.ok(!inR(s, r), `${k}: ${m.kind} inside ${r.id} at ${s.x.toFixed(2)}, ${s.z.toFixed(2)} (${s.pose})`);
         if (s.z > FOLK.roadZ + 0.2 && s.z < FOLK.farZ - 0.35 && m.m.role === 'lead') {
           const nearBus = Math.abs(s.x - busStopX(L)) < 2.2;
-          assert.ok(s.cross || nearBus || s.a < 1, `${k}: ${m.kind} on the road, not crossing (${s.x.toFixed(2)}, ${s.z.toFixed(2)})`);
+          assert.ok(s.cross || nearBus || s.a < 1 || s.door, `${k}: ${m.kind} on the road, not crossing (${s.x.toFixed(2)}, ${s.z.toFixed(2)})`);
           if (s.cross) { const S = signalAt(t * 1000); assert.ok(S.walk === 'walk' || S.phase === 'blink', `${k}: crossing on ${S.phase}`); }
         }
       }
@@ -140,8 +140,10 @@ test('8P — THE PEOPLE over two days at 390 / 402 / 430: never past the cap, ne
       const first = v.legs[0], last = v.legs[v.legs.length - 1];
       const off = p => Math.abs(p.x) > cam.hw(p.z) || (p.z >= FOLK.farZ - 0.01 && p.x < L.speakeasy.x1);
       const p0 = first.k === 'walk' ? first.pts[0] : first, p1 = last.k === 'walk' ? last.pts[last.pts.length - 1] : last;
-      assert.ok(first.k === 'fade' || off(p0), `${v.kind} appears on screen at ${p0.x.toFixed(1)}, ${p0.z.toFixed(1)}`);
-      assert.ok(last.k === 'fade' || off(p1), `${v.kind} leaves on screen at ${p1.x.toFixed(1)}, ${p1.z.toFixed(1)}`);
+      // (FP3b: through a REAL door — never a fade on the promenade)
+      assert.ok(first.k === 'door' || off(p0), `${v.kind} appears on screen at ${p0.x.toFixed(1)}, ${p0.z.toFixed(1)}`);
+      assert.ok(last.k === 'door' || off(p1), `${v.kind} leaves on screen at ${p1.x.toFixed(1)}, ${p1.z.toFixed(1)}`);
+      assert.ok(!v.legs.some(lg => lg.k === 'fade'), `${v.kind}: no fade legs on the promenade`);
     }
   }
 });
@@ -179,7 +181,8 @@ test('FP3a — THE BUS DOOR shuts 3–5 s after the LAST rider (off or on) — n
   for (let t = DAY + 6 * 3600; t < DAY + 30 * 3600; t += 2) {
     const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
     for (const b of f.buses) buses.set(b.id, b);
-    for (const v of f.visits) for (const lg of v.legs) if (lg.k === 'fade' && lg.bus) last.set(lg.bus, Math.max(last.get(lg.bus) || 0, lg.t1));
+    // (FP3b: a rider is through the bus's door once past its threshold — the door leg's tClose, the group's last member lagging)
+    for (const v of f.visits) for (const lg of v.legs) if (lg.k === 'door' && lg.bus) last.set(lg.bus, Math.max(last.get(lg.bus) || 0, lg.tClose + Math.max(0, ...v.members.map(m => m.lag))));
   }
   let n = 0;
   for (const [id, b] of buses) {
@@ -302,4 +305,46 @@ test('FP3b — THEY FACE WHERE THEY GO: the heading follows the route, turns at 
   assert.ok(worst < 0.5, `no snap: the biggest heading change in a frame ${worst.toFixed(3)} rad`);
   assert.ok(TURN.corner > 0.3 && TURN.pose > 0.3, 'turns take a few frames');
   assert.equal(hdOfDir(1), 0);
+});
+test('FP3b — REAL DOORS: nobody fades on the promenade — through the speakeasy\'s side door, the barbershop\'s + the bus\'s they WALK (a door leg); the door swings open only while someone passes, shut again within a second after', async () => {
+  const { DOOR, doorLeg, doorOpenK } = await import('../js/core/harbor-people.js');
+  // a leg in: waits for the swing, walks through, the door shuts behind them while they walk on
+  const lg = doorLeg('side', 'in', -8, 100, 1.2, 44);
+  assert.ok(lg.z0 < 44 && lg.z1 > 44 + DOOR.clear, 'from the step to inside');
+  assert.equal(doorOpenK(lg, 99.9), 0); assert.ok(doorOpenK(lg, 100 + DOOR.open) > 0.99, 'open before they step through');
+  assert.ok(doorOpenK(lg, lg.tClose + DOOR.close + 0.01) === 0 && lg.t1 >= lg.tClose + DOOR.close - 1e-9, 'shut behind them — they are still walking in as it closes');
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map();
+  let sideOpen = 0, shopOpen = 0, through = 0;
+  for (let t = DAY + 8 * 3600; t < DAY + 26 * 3600; t += 0.5) {
+    const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
+    for (const m of f.members) { assert.equal(m.s.a == null ? 1 : m.s.a, 1, `${m.kind} fading at ${m.s.x.toFixed(1)}, ${m.s.z.toFixed(1)}`); if (m.s.door) through++; }
+    if (f.doors.side > 0.5) sideOpen++; if (f.doors.shop > 0.5) shopOpen++;
+    const passing = id => f.visits.some(v => v.legs.some(lg => lg.k === 'door' && lg.door === id && t >= lg.tOpen - 0.01 && t <= lg.tClose + DOOR.close + 4));
+    if (f.doors.side > 0.01) assert.ok(passing('side'), 'the side door opens only for someone');
+    if (f.doors.shop > 0.01) assert.ok(passing('shop'), 'the shop door opens only for someone');
+  }
+  assert.ok(sideOpen > 20 && shopOpen > 10 && through > 100, `doors in use over the day (side ${sideOpen}, shop ${shopOpen}, ${through} member-frames in a doorway)`);
+});
+test('FP3b — THE DANCE CIRCLE (the routines layer): party nights only, at the peak; dancers out of the side door + back in; the crowd routes round the compass while it dances; within the cap; tier 0 keeps 4 dancers', async () => {
+  const { DANCE, danceSlot } = await import('../js/core/harbor-routines.js');
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), m = L.medallion;
+  // (a Thursday night: none; the Saturday's peak: most quarter hours)
+  const thu = Date.parse('2026-10-22T22:00:00-04:00') / 1000, sat = Date.parse('2026-10-24T22:00:00-04:00') / 1000;
+  for (let j = Math.floor(thu / 900); j < Math.floor(thu / 900) + 10; j++) assert.equal(danceSlot(j, { off: OFF }), null, 'no circle on a Thursday');
+  let sessions = 0;
+  for (let j = Math.floor(sat / 900); j < Math.floor(sat / 900) + 11; j++) if (danceSlot(j, { off: OFF })) sessions++;
+  assert.ok(sessions >= 5, `a circle in most quarter hours of the peak (${sessions} / 11)`);
+  let formed = 0;
+  for (let t = sat; t < sat + 2 * 3600; t += 4) {
+    const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
+    assert.ok(f.members.filter(x => x.m.role !== 'dog').length <= FOLK.cap, 'within the cap');
+    if (!f.dance.on || f.dance.k < 1) continue;
+    formed++;
+    const d = f.members.filter(x => x.kind === 'dancer');
+    assert.ok(d.length >= 4 && d.length <= DANCE.n, `${d.length} dancers`);
+    assert.equal(capByTier(f.members, 0).filter(x => x.kind === 'dancer').length, Math.min(DANCE.tier0, d.length), 'tier 0: the first four dancers kept');
+    for (const x of f.members) if (!x.routine && x.m.role !== 'dog') assert.ok(Math.hypot(x.s.x - m.x, x.s.z - m.z) > m.ring + 0.2, `${x.kind} walking through the dance (${Math.hypot(x.s.x - m.x, x.s.z - m.z).toFixed(2)})`);
+    for (const v of f.visits.filter(v => v.kind === 'dancer')) { assert.equal(v.legs[0].k, 'door'); assert.equal(v.legs[0].dir, 'out'); assert.equal(v.legs[v.legs.length - 1].dir, 'in'); }
+  }
+  assert.ok(formed > 100, `the circle danced (${formed} samples)`);
 });

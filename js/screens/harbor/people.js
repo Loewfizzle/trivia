@@ -15,6 +15,7 @@ import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '../../core/harbor-people.js';
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP } from './folk.js';
 import { drawBus } from './bus.js';
+import { danceMoves, drawWands } from './wands.js';
 import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
 import { frontProfile } from './strings.js';
 import { SPEAK_V } from '../../core/harbor-speakeasy.js';
@@ -23,9 +24,10 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 export function createPeople() {
   let L = null, M = null, mapKey = '', cache = new Map(), roofCache = new Map(), looks = new Map(), lineN = 0, budget = 1;
-  let now = { members: [], buses: [] }, roofNow = { members: [] }, lightKey = '', lightFn = null, srcs = [], occ = null;
+  let now = { members: [], buses: [], doors: { side: 0, shop: 0 } }, roofNow = { members: [] }, lightKey = '', lightFn = null, srcs = [], occ = null;
   const busSt = new Map(), steps = new Map();
-  let lastT = 0, laughAt = 0, forced = false;
+  let lastT = 0, laughAt = 0, forced = '';
+  const trails = new Map(); let wandT = -1;
   function layout(l) { L = l; mapKey = ''; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; }
   function ensureMap(event) {
     const key = `${event ? 1 : 0}|${lineN}`;
@@ -45,9 +47,9 @@ export function createPeople() {
   function frame(f) {
     if (!L) return;
     ensureMap(!!f.event);
-    if (!!f.forceBus !== forced) { forced = !!f.forceBus; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus };
-    now = f.off == null ? { members: [], buses: [] } : folkAt(t, { L, M, ctx }, cache);
+    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance };
+    now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
     lastT = t;
   }
@@ -70,12 +72,16 @@ export function createPeople() {
    * draw(c, pass, env): pass 'far' | 'near' | 'roof'; env = { cam, T (the tones: day / gold / night, sunDir, sunEl, ovc), dark (the
    * lamps' ramp), t (s, the frame), mo (motion), season, rain, fade, vendor (the cart staffed), snd (sounds.js) }
    */
+  const envOf = env => { const dark = clamp01(env.dark || 0); return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: lights(dark), rimSide, shadow: h => sunShadow(env.T || {}, h) }; };
+  /** FP3b — REAL DOORS: is this member inside a doorway (behind the facade's plane — drawn by drawInside through the opening)? */
+  const insideDoor = m => !!(m.s.door && !m.s.door.bus && M && m.s.z > M.face - 0.02);
+  const inBus = (m, b) => !!(m.s.door && m.s.door.bus && m.s.door.id === b.id && m.s.z > b.z - 0.02);
   function draw(c, pass, env) {
     if (!L) return;
-    const cam = L.cam, dark = clamp01(env.dark || 0), fade = env.fade == null ? 1 : env.fade;
-    const E = { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: lights(dark), rimSide, shadow: h => sunShadow(env.T || {}, h) };
+    const cam = L.cam, fade = env.fade == null ? 1 : env.fade;
+    const E = envOf(env);
     // the roof: lit by the café lights over the deck (warm, from above) — the guests read against the dark billboard; the party's colours
-    if (pass === 'roof') { const warm = env.party ? [255, 170, 150] : [255, 196, 128], k = 0.9 * dark; E.lightAt = k > 0.02 ? () => warm.map(v => v * k) : null; E.rimSide = () => -1; E.shadow = () => null; }
+    if (pass === 'roof') { const warm = env.party ? [255, 170, 150] : [255, 196, 128], k = 0.9 * E.dark; E.lightAt = k > 0.02 ? () => warm.map(v => v * k) : null; E.rimSide = () => -1; E.shadow = () => null; }
     let items;
     if (pass === 'roof') {
       if (!roofNow.members.length || env.tier === 0) return;            // (FP3a: the roof's guests off at tier 0)
@@ -84,7 +90,7 @@ export function createPeople() {
       const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...(pass === 'near' ? lineMembers(env.t || 0) : [])];   // (FP3a: the cap by tier)
       if (pass === 'near' && env.vendor && M.nodes.vendor) all.push({ vid: 'vendor', kind: 'vendor', look: 'worker', party: false, m: { role: 'lead', seed: 777, lag: 0 }, s: { ...M.nodes.vendor, pose: 'cart', dir: -1, hd: Math.PI, dist: 0, v: 0, a: 1 } });
       // (behind the speakeasy on the waterside sidewalk: hidden by the building — not drawn)
-      items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ));
+      items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ && !insideDoor(m)));
     }
     const buses = pass === 'far' ? now.buses : [];
     if (!items.length && !buses.length) return;
@@ -93,13 +99,30 @@ export function createPeople() {
     // far first; a bus is one item at its own depth
     const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b }))].sort((a, b) => b.z - a.z);
     const hands = new Map(), collars = new Map();
+    // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
+    const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, advance = pass === 'near' && env.t !== wandT;
+    if (advance) { wandT = env.t; if (trails.size > 40) trails.clear(); }
+    const nDancers = items.filter(m => m.kind === 'dancer').length || 1;
+    const riding = new Set();
+    for (const b of buses) for (const m of items) if (inBus(m, b)) riding.add(m);
     for (const it of list) {
-      if (it.b) { drawBus(c, cam, { ...it.b, dist: it.b.xNow - it.b.xc + 40, seed: it.b.id.length, riders: 2 }, E); continue; }
-      const mem = it.m, look = lookFor(mem, env), st = mem.s;
+      if (it.b) {
+        const box = drawBus(c, cam, { ...it.b, dist: it.b.xNow - it.b.xc + 40, seed: it.b.id.length, riders: 2 }, E);
+        // (FP3b: whoever is in its doorway — stepping up in / down out — through the open door, clipped to it)
+        const rs = items.filter(m => riding.has(m) && inBus(m, it.b)).sort((a, b) => b.s.z - a.s.z);
+        if (box && box.door && rs.length) { c.save(); c.beginPath(); c.rect(box.door.x, box.door.y, box.door.w, box.door.h); c.clip(); for (const m of rs) drawFolk(c, cam, { s: m.s, L: lookFor(m, env) }, { ...E, yUp: m.s.y || 0 }); c.restore(); }
+        continue;
+      }
+      if (riding.has(it.m)) continue;
+      const mem = it.m, look = lookFor(mem, env);
+      let st = mem.s, mv = null;
+      if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+      else if (mem.kind === 'watcher') st = { ...st, beatF: beatsF };
       if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { collars.set(mem.vid, drawDog(c, cam, { ...st, dist: st.dist * 1.6 }, look, E, pass === 'roof' ? roofY() : 0)); continue; }
       // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
       const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
-      const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() : 0 });
+      const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() : st.y || 0 });
+      if (box && mv) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false); drawWands(c, J, fx, fy, H, { idx: mem.idx || 0, n: nDancers, beatsF, punch: bt ? bt.punch || 0 : (1 - (beatsF % 1)) ** 3, pal: bt && bt.pal, move: mv.move, t: env.t || 0, tier: env.tier, k: now.dance ? Math.max(0.35, now.dance.k) : 1, trails: env.mo === false ? null : trails, key: mem.vid, advance }); }
       if (box && mem.kind === 'dogwalker' && mem.m.role === 'lead') {
         const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near];
         hands.set(mem.vid, [fx + h[0] * H, fy - h[1] * H]);
@@ -108,6 +131,32 @@ export function createPeople() {
     for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E); }
     c.restore();
   }
+  /** FP3b — REAL DOORS: whoever is in the doorway `id` ('side' | 'shop'), drawn by the speakeasy between its opening + its leaf
+   *  (doors.js — already clipped to the opening), dimming into the passage's darkness the deeper they go */
+  function drawInside(c, id, env) {
+    if (!L || !env) return;
+    const E = envOf(env), ms = now.members.filter(m => insideDoor(m) && m.s.door.id === id).sort((a, b) => b.s.z - a.s.z);
+    for (const m of ms) { c.save(); c.globalAlpha = (env.fade == null ? 1 : env.fade) * (1 - 0.8 * clamp01((m.s.z - M.face) / 1.8)); drawFolk(c, L.cam, { s: m.s, L: lookFor(m, env) }, E); c.restore(); }
+  }
+  // the doors' sounds on the SWING (the street-door slots — silent while empty — and at night the club's burst through the open side
+  // door; the shop's bell): open as it starts to swing, shut as it swings back
+  const doorSt = { side: 'shut', shop: 'shut' };
+  function doorSounds(env) {
+    const snd = env.snd, pan = id => panOf(id === 'side' ? L.speakeasy.x0 + L.speakeasy.door.u1 : L.speakeasy.x0 + L.speakeasy.shop.door[1]);
+    for (const id of ['side', 'shop']) {
+      const k = now.doors ? now.doors[id] || 0 : 0, st = doorSt[id];
+      if (st === 'shut' && k > 0.04) {
+        doorSt[id] = 'open';
+        if (snd.play) {
+          if (id === 'side') { snd.play('street-door', { pan: pan(id), gain: 0.8 }); if (clamp01(env.dark || 0) > 0.4) snd.play('bar-open', { pan: pan(id), gain: 0.7 }); }
+          else snd.play('shop-bell', { pan: pan(id), gain: 0.75 });
+        }
+      } else if (st === 'open' && k > 0.85) doorSt[id] = 'held';
+      else if ((st === 'held' || st === 'open') && k < 0.5) { doorSt[id] = 'closing'; if (snd.play && id === 'side') snd.play('street-door-close', { pan: pan(id), gain: 0.75 }); }
+      else if (st === 'closing' && k < 0.01) doorSt[id] = 'shut';
+      if (k < 0.01 && st !== 'closing') doorSt[id] = 'shut';
+    }
+  }
   /** FP3a (FREV H3 — no sound inside a painter): the footsteps, the laughs, the cart, the line, the roof, the bus — every frame the
    *  scene runs (after frame()), whether or not the people were drawn this frame */
   function tick(env) {
@@ -115,6 +164,7 @@ export function createPeople() {
     const near = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...lineMembers(env.t || 0)].filter(m => m.s.z <= FOLK.roadZ);
     sounds(env, near);
     busSounds(env);
+    doorSounds(env);
   }
   const roofY = () => L.speakeasy.h;
   // the roof's clip: the sky ABOVE the building's front silhouette, as ONE small polygon over the deck (a whole-screen even-odd path
@@ -162,14 +212,19 @@ export function createPeople() {
     for (const id of [...busSt.keys()]) if (!seen.has(id)) { busSt.delete(id); snd.bus('gone', {}); }
   }
   return {
-    layout, frame, draw, tick,
+    layout, frame, draw, tick, drawInside,
+    /** FP3b — REAL DOORS: how open each speakeasy door is now ({ side, shop }: 0..1 — the speakeasy draws the leaf) */
+    doors: () => ({ ...(now.doors || { side: 0, shop: 0 }) }),
+    /** FP3b — THE DANCE CIRCLE now: { on, k (0..1 formed), id, s0, s1 } (the scene lights the inlay's floor spots + keeps the cart away) */
+    dance: () => ({ ...(now.dance || { on: false, k: 0 }) }),
     /** Lobby 2.0: n guests in the line at the speakeasy's door (0 = none) */
     line(n) { lineN = Math.max(0, Math.min(12, Math.round(n || 0))); },
     /** 6b's director: the street's share of its people (0..1) */
     budget(k) { budget = clamp01(k == null ? 1 : k); cache.clear(); },
     /** what's on the promenade now (tests, the readout) */
     debug: () => ({ n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
-      members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2) })),
+      members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
+      doors: { ...(now.doors || {}) }, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
       roofMembers: roofNow.members.map(m => ({ kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })), map: M ? { nodes: M.nodes, rects: M.rects.length } : null }),
     destroy() { cache.clear(); roofCache.clear(); looks.clear(); },
   };

@@ -41,6 +41,9 @@ export const SLOTS = [
   S('window-sash-up', '7', 'once', 0.05, 'a sash window pushed up (a juddering slide, a soft stop at `hit` s)', 'the upstairs wakes: the lower sash up for the watering (8P)'),
   S('window-sash-down', '7', 'once', 0.05, 'a sash window let down (a short slide, the rail on the sill at `hit` s)', 'the upstairs wakes: the sash down again (8P)'),
   S('roller-blind', '7', 'once', 0.05, 'a roller blind going up', 'the upstairs wakes: the blind up (8P)'),
+  // (FP3b — REAL DOORS: the speakeasy's unmarked side door swinging as someone walks through — empty until a recording is imported)
+  S('street-door', '7', 'once', 0.08, 'a heavy 1920s street door of oak on iron hinges opening: the latch, a short creak', 'the speakeasy’s side door swinging open as someone walks through (FP3b: people.js#doorSounds; at night with bar-open’s burst)'),
+  S('street-door-close', '7', 'once', 0.07, 'the same door swinging shut: a soft creak, the latch catching', 'the side door shutting behind them (FP3b: people.js#doorSounds)'),
   S('door-knock', '7', 'once', 0.16, 'THE SECRET KNOCK on the speakeasy’s door — knock … knock-knock … knock — then the peephole slot sliding open', 'tapping the door (ambience.js#knock; the synthesized knock if it were ever empty)'),
   S('cat-meow', '7', 'once', 0.1, 'the alley cat’s meow', 'the cat jumping up onto a sill + a tap on the cat (7b)'),
   S('cat-land', '7', 'once', 0.05, 'the cat landing (soft)', 'the cat landing on the sill + hopping down (8P: sounds.js#life)'),

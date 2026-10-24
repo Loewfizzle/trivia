@@ -143,6 +143,10 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   }
   if (pose === 'sit') hipY = 0.27;
   if (pose === 'garden') hipY = 0.36;
+  // (a dip on the beat — the dancers + the bobbing watchers: the knees give, the whole body drops a little; FP3b item 9)
+  const bph = st.beatF != null ? ((st.beatF % 1) + 1) % 1 : mo ? (t * (st.bps || 2)) % 1 : 0.5;
+  const dip = pose === 'wands' && st.moves ? st.moves.dip || 0 : pose === 'bob' ? 0.022 * (1 - bph) * (1 - bph) : 0;
+  hipY -= dip;
   for (let i = 0; i < 2; i++) hipJ.push({ a: (walking ? G.hip * foot[i].a : 0) + (pose === 'garden' ? -0.04 : 0), b: sg[i] * 0.045, y: hipY });
   // the knees: two-segment IK in each leg's own plane, always bending FORWARD; sitting: the thighs forward along the seat
   const knee = [];
@@ -153,7 +157,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
     knee.push({ a: h.a + Math.cos(ang) * HALF, b: (h.b + f.b) / 2, y: h.y + Math.sin(ang) * HALF });
   }
   // ---- the upper body: the shoulders (counter-rotating against the hips), the head; a forward lean tips the torso
-  const shY = (pose === 'sit' ? 0.58 : pose === 'garden' ? 0.61 : HIP0 + 0.3) + breath, up = shY - hipY;
+  const shY = (pose === 'sit' ? 0.58 : pose === 'garden' ? 0.61 : HIP0 + 0.3) + breath - dip, up = shY - hipY;
   let shA = lean * up, headA = lean * (up + 0.115);
   if (pose === 'garden') { shA = 0.12; headA = 0.17; }
   const shJ = [0, 1].map(i => ({ a: shA - (walking ? G.sh * foot[i].a : 0), b: sg[i] * 0.11, y: shY - 0.015 }));
@@ -182,15 +186,17 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'lean') { arm(0, 1.3, 0.3); arm(1, 1.25, 0.35); headA += 0.03; }
   if (pose === 'cart' || pose === 'shop') arm(N, 0.55, 0.9);
   if (pose === 'sit') { arm(0, 0.5, 0.9); arm(1, 0.4, 0.9); }
-  if (pose === 'clap') { const k = mo ? Math.abs(Math.sin(t * Math.PI * (st.bps || 2))) : 0.5; for (let i = 0; i < 2; i++) arm(i, 1.15, 0.95, 0.42 - 0.34 * (1 - k)); }
-  if (pose === 'bob') { const k = mo ? Math.sin(t * Math.PI * (st.bps || 2)) : 0; arm(0, 0.25 + 0.15 * k, 0.6); arm(1, 0.25 - 0.15 * k, 0.6); hipY += 0; }
+  // (the watchers — FP3b item 9: CLAP on the beat — the hands meet on it, part between; BOB — a dip on the beat, the arms loose)
+  if (pose === 'clap') { const k = Math.min(1, bph * 2.2); for (let i = 0; i < 2; i++) arm(i, 1.2, 1.0, 0.06 + 0.3 * k); }
+  if (pose === 'bob') { const k = Math.sin(bph * Math.PI * 2); arm(0, 0.3 + 0.12 * k, 0.7); arm(1, 0.3 - 0.12 * k, 0.7); }
   // the roof's poses: a DANCE (a sway + the arms trading up / out on a slow count), a TOAST (the glass raised), the GARDENER bending
   let toast = 0;
   if (pose === 'dance') { const b = mo ? Math.sin(t * 3.4 + L.h * 9) : 0; shJ.forEach(s => { s.b += 0.02 * b; }); head.b += 0.03 * b; arm(N, 1.4 + 0.9 * Math.max(0, b), 0.6, 0.25); arm(Fa, 0.9 - 0.5 * b, 0.9, 0.2); }
   if (pose === 'toast') { toast = mo ? 0.5 + 0.5 * Math.sin(t * 0.6 + L.h * 3) : 1; arm(N, 1.2 + 1.5 * toast, 0.4); }
   if (pose === 'garden') { arm(0, 0.35, 0.2); arm(1, 0.25, 0.25); }
   // THE WANDS' dancer (FP3b item 9): st.moves = { arms: [[ang, bend, out], [ang, bend, out]], sway, dip } from people.js's routine
-  if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) arm(i, m.arms[i][0], m.arms[i][1], m.arms[i][2]); shJ.forEach((s, i) => { s.b += (m.sway || 0) * 0.03; s.y -= m.dip || 0; }); head.b += (m.sway || 0) * 0.045; head.y -= m.dip || 0; hipJ.forEach(h => { h.y -= (m.dip || 0) * 0.7; }); }
+  // (phi: the arm raised in the FRONTAL plane — 0 hanging, π/2 out to the side, π straight up — so the moves read from the front)
+  if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) { const [phi, bend] = m.arms[i]; arm(i, phi <= Math.PI / 2 ? 0 : Math.PI, bend, phi <= Math.PI / 2 ? phi : Math.PI - phi); } shJ.forEach(s => { s.b += (m.sway || 0) * 0.03; }); head.b += (m.sway || 0) * 0.045; }
   // ---- onto the screen
   const k0 = kD[0], k1 = kD[1];
   const scr = j => { const D = j.a * cz + j.b * cx; return [j.a * cx - j.b * cz, j.y + D * (k0 - k1 * j.y)]; };

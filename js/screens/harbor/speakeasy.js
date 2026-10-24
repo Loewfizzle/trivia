@@ -11,6 +11,7 @@
 // (speakeasySteps, in small steps); what changes at night is LIVE (createSpeakeasy): the windows' rooms lit (one cached canvas,
 // re-rendered only when a window's light changes), their glow on the brick, the shop's one lamp, the sconce, the basement's amber,
 // the ad's lamps, the barber pole turning. HOOKS for 7b: windows() (each window's rect + room), light(id, k), mirror(k).
+import { drawDoor } from './doors.js';
 import { project } from '../../core/harbor-layout.js';
 import { SPEAK_V, ROOMS, roomLight } from '../../core/harbor-speakeasy.js';
 import { rngFrom } from '../../core/rng.js';
@@ -1147,7 +1148,7 @@ export function createSpeakeasy() {
   // FP3a (FREV H1) — THE FACADE'S ONE POWER HOOK: power(k) dims every light on the building at once — the rooms (k), the blade +
   // its bulbs (lamp), the sconce + the awning's lamps, the barber pole, the basement, the hush sign. 1 = untouched (the frame f
   // passes through as it is); 8b's raid drives it (harbor().raid → speak.power)
-  let power = 1;
+  let power = 1, doorState = { side: 0, shop: 0, inside: null }, doorRects = { side: null, shop: null };
   function draw(c, f0) {
     if (!G) return;
     const P = power, f = P >= 1 ? f0 : { ...f0, k: clamp01(f0.k) * P, lamp: (f0.lamp || 0) * P, sconce: clamp01(f0.sconce == null ? f0.k : f0.sconce) * P, pole: clamp01(f0.pole == null ? f0.k : f0.pole) * P };
@@ -1181,6 +1182,12 @@ export function createSpeakeasy() {
         c.save(); wallMap(c, ox, oy, G.K); c.globalAlpha = fade; R(c, a + 0.18, rail - 0.025, b - 0.05, rail + 0.025, k > 0.3 ? 'rgb(26,18,20)' : 'rgb(30,48,42)'); c.restore(); } }
     // THE GOLD LEAF on the glass — once (8P), over the shop's life + the sign inside
     c.save(); c.globalAlpha = fade; giltOver(c, f); c.restore();
+    // FP3b — REAL DOORS (doors.js): the side door + the shop door swinging open while someone walks through (people.js drives
+    // doors({ side, shop, inside }) from core/harbor-people.js#folkAt's doors), the side door's amber spill at night
+    { const sh = G.s.shop, sd = G.s.door, df = { day: f.day, night: f.night == null ? k : f.night, fade, power: P };
+      const ins = id => (doorState.inside ? (cc, r) => doorState.inside(cc, id, r) : null);
+      doorRects.side = drawDoor(c, G, { u0: sd.u0, u1: sd.u1, v0: 0.12, v1: sd.h }, 'side', doorState.side, df, ins('side'));
+      doorRects.shop = drawDoor(c, G, { u0: sh.door[0], u1: sh.door[1], v0: V.plinth - 0.05, v1: sh.door[2] }, 'shop', doorState.shop, df, ins('shop')); }
     bedsNow = { ...life.bedLevels(k, !!(f.party && (f.party.ramp == null ? 1 : f.party.ramp) > 0.3)), fr, k, motion: f.motion !== false };   // (8P: the moments' + the shop's sound cues read the frame — sounds.js)
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     // for 7b: a moment's own painter over its window
@@ -1254,6 +1261,8 @@ export function createSpeakeasy() {
     windows: () => wins.map(w => ({ id: w.id, room: w.room, floor: w.floor, col: w.col, edge: !!w.edge, rect: { ...w.rect } })),
     light(id, k) { if (k == null) own.delete(id); else own.set(id, clamp01(k)); },
     mirror(k) { mirror = clamp01(k || 0); },
+    /** FP3b — REAL DOORS: { side, shop } how open (0..1), inside(c, id, rect) draws whoever is in that doorway → the doors now */
+    doors(o) { if (o) doorState = { side: clamp01(o.side || 0), shop: clamp01(o.shop || 0), inside: o.inside || null }; return { side: doorState.side, shop: doorState.shop, rects: { ...doorRects } }; },
     /** FP3a: every light on the facade × k (0 = dark, 1 = as the night has it) → the level now; power() reads it */
     power(k) { if (k !== undefined) power = clamp01(+k); return power; },
     /** the barber pole: { on: false } dark + still (7b's raid), { on: true } back to its lamp + its turn */

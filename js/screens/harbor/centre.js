@@ -33,7 +33,9 @@ export function createCentre() {
   let spr = null, lit = null, sprKey = '', sprT = null, box = null;
   const glows = new Map();
   /** the state drawn now: the API's (a holiday part's) wins over the test piece */
-  const current = () => api || (testOn ? TEST : null);
+  const current = () => api || dance || (testOn ? TEST : null);
+  // (FP3b: THE DANCE CIRCLE — the rig alone, no piece: the floor spots on in the phrase's colour while it dances; the floor stays walkable)
+  let dance = null;
   let TEST = null;
   function layout(L0, { dpr: d = 2 } = {}) {
     L = L0; cam = L0.cam; dpr = d; sprKey = '';
@@ -118,6 +120,8 @@ export function createCentre() {
     /** set the centrepiece (see the header); returns the cleaned state's summary */
     set(o) { const st = normCentre(o, cap || Infinity); api = st ? { ...st, raw: o } : null; rev++; sprKey = ''; return st ? { h: st.h, rig: { ...st.rig }, lights: st.lights.length, cap } : null; },
     clear() { api = null; rev++; sprKey = ''; },
+    /** FP3b — the dance circle (the scene, every frame): { k (0..1 formed), col } | null — the floor spots, under any holiday piece */
+    dance(o) { dance = o && o.k > 0.01 ? normCentre({ rig: { on: true, col: o.col || RIG.col, k: 1.3 * o.k } }) : null; },
     /** &force=centrepiece-test (the scene, every frame) */
     test(on) {
       if (!!on !== testOn) { testOn = !!on; rev++; sprKey = ''; }

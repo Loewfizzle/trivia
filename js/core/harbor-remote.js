@@ -138,6 +138,8 @@ export const EVENTS = [
   // (8P: THE PEOPLE — the lobby line at the door (&n= guests, 6 by default; Lobby 2.0 fills it), a bus every minute, everyone off to compare)
   { id: 'line', label: 'THE LOBBY LINE', cat: 'promenade', group: 'THE PEOPLE', hint: 'guests lined up at the speakeasy’s door (6; &n=<guests>) — Lobby 2.0 fills it with the room' },
   { id: 'bus', label: 'A BUS EVERY MINUTE', cat: 'promenade', group: 'THE PEOPLE', hint: 'the 1920s bus arriving, stopping at the curb, riders on + off, pulling away on green' },
+  { id: 'dance', label: 'THE DANCE CIRCLE', cat: 'promenade', group: 'THE PEOPLE', hint: 'the glow-wand dancers on the compass inlay — a circle every 5 minutes (best with PARTY ON)' },
+  { id: 'doors', label: 'THE DOORS', cat: 'promenade', group: 'THE PEOPLE', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
   { id: 'no-people', label: 'NO PEOPLE', cat: 'promenade', group: 'THE PEOPLE', hint: 'the promenade + the roof empty — compare' },
   // (8P: THE HUSH WORD SIGN in the barbershop window — JAZZ by default, &hush=<word> another; Lobby 2.0 lights the real word)
   { id: 'hushsign', label: 'HUSH WORD SIGN', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the lobby’s password in neon in the barbershop window (JAZZ; &hush=<word>)' },
