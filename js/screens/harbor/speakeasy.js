@@ -319,10 +319,13 @@ export function createSpeakeasy() {
   // FP3a (FREV H1) — THE FACADE'S ONE POWER HOOK: power(k) dims every light on the building at once — the rooms (k), the blade +
   // its bulbs (lamp), the sconce + the awning's lamps, the barber pole, the basement, the hush sign. 1 = untouched (the frame f
   // passes through as it is); 8b's raid drives it (harbor().raid → speak.power)
-  let quiet = false;   // (FP3b: the tests' hold — the basement steady, the windows' moments paused: a light probe reads only the lamps)
+  let quiet = false, quietF = null;   // (FP3b: the tests' hold — the basement steady, the windows' moments paused, the facade's light levels
+  // frozen where they were (a slow machine may still be ramping the city up): a light probe compares only what it switches)
   let power = 1, doorState = { side: 0, shop: 0, inside: null }, doorRects = { side: null, shop: null };
-  function draw(c, f0) {
+  function draw(c, f1) {
     if (!G) return;
+    if (quiet && !quietF) quietF = { k: f1.k, lamp: f1.lamp, sconce: f1.sconce, night: f1.night, fade: f1.fade, day: f1.day };
+    const f0 = quiet ? { ...f1, ...quietF } : f1;
     const P = power, f = P >= 1 ? f0 : { ...f0, k: clamp01(f0.k) * P, lamp: (f0.lamp || 0) * P, sconce: clamp01(f0.sconce == null ? f0.k : f0.sconce) * P, pole: clamp01(f0.pole == null ? f0.k : f0.pole) * P };
     const fade = f.fade == null ? 1 : f.fade;
     c.save();
@@ -434,7 +437,7 @@ export function createSpeakeasy() {
     light(id, k) { if (k == null) own.delete(id); else own.set(id, clamp01(k)); },
     mirror(k) { mirror = clamp01(k || 0); },
     /** FP3b — tests: quiet(true) holds the basement's light steady + pauses the windows' moments (the mirror door's light), quiet(false) back */
-    quiet(on) { quiet = !!on; return quiet; },
+    quiet(on) { quiet = !!on; quietF = null; return quiet; },
     /** FP3b — REAL DOORS: { side, shop } how open (0..1), inside(c, id, rect) draws whoever is in that doorway → the doors now */
     doors(o) { if (o) doorState = { side: clamp01(o.side || 0), shop: clamp01(o.shop || 0), inside: o.inside || null }; return { side: doorState.side, shop: doorState.shop, rects: { ...doorRects } }; },
     /** FP3a: every light on the facade × k (0 = dark, 1 = as the night has it) → the level now; power() reads it */

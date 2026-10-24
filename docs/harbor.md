@@ -4350,8 +4350,11 @@ owner's iPhone readout on a party night decides (`&force=dance`, &debug=1: tier,
 trail quads a wand; tier 0 drops the trails + the halos and two dancers. The roaster: a sprite while it stands + ~16 soft puffs.
 
 ### Known issues (FP3b)
-- **The emulator-backed E2E couldn't run on this laptop** (no Java): the `people` / `life` / `speakeasy` groups' new + touched checks were
-  checked in the preview + node only; the one `[harbor]` cloud run is their first real run.
+- **The emulator-backed E2E couldn't run on this laptop** (no Java): the new + touched checks were checked in the preview + node, then in
+  the cloud. **THE CLOUD (2 runs, the cap):** run 1 (c5b1e9c): audio, show (+ the new `life` group), **city** green — FP3a's skyline wait
+  fix confirmed — and the quick tests green; `street` red on "NO SMOKE round the pole" (one far point +15 between the two readings: the
+  CI machine's slower power-on, its wait times out silently, the facade still ramping up). Fixed: `speakeasy.quiet()` also freezes the
+  facade's light levels while it holds (locally every far point 0.0 apart). Run 2: the `street` job alone by hand — see the commit after.
 - The ROOF's guests still come up + go down through the hatch with a short fade (the hatch has no door art yet — 8b's roof pass).
 - The bus's grille + headlamp are ~3 pt at the far road: detail that only shows zoomed.
 - The dance circle's moves are the same four for every song; the beat is the song's (`PT.beatsF`) — a song without a beat analysis
