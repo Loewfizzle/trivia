@@ -136,7 +136,8 @@ test('THE SKY SOUNDS (8P — the owner, after SP2: louder again, the F-16s REALL
   const lvl = id => { const t = takesOf(id)[0]; return t.lufs + 20 * Math.log10(slotOf(id).gain); };
   const bed = lvl('city-hum-day');
   // SP2's gains → 8P's: the jets +6 dB, the helicopter + the burner +4, the airliners, the banner plane + the drone hum +3
-  const sp2 = { 'jet-flyby': [0.07, 6], helicopter: [0.074, 4], 'balloon-burner': [0.07, 4], 'airliner-far': [0.036, 3], 'prop-plane': [0.05, 3], 'drone-swarm': [0.045, 3] };
+  const sp2 = { 'jet-flyby': [0.07, 9],   // (FP3b: the jets +3 more — 8P's +6 then FP3b's +3)
+    helicopter: [0.074, 4], 'balloon-burner': [0.07, 4], 'airliner-far': [0.036, 3], 'prop-plane': [0.05, 3], 'drone-swarm': [0.045, 3] };
   for (const [id, [g, db]] of Object.entries(sp2)) assert.ok(Math.abs(20 * Math.log10(slotOf(id).gain / g) - db) < 0.15, `${id}: ${(20 * Math.log10(slotOf(id).gain / g)).toFixed(2)} dB (asked ${db})`);
   assert.equal(slotOf('geese').gain, 0.075, 'the geese unchanged');
   assert.equal(slotOf('gulls').gain, 0.11, 'the gulls unchanged');
@@ -144,13 +145,16 @@ test('THE SKY SOUNDS (8P — the owner, after SP2: louder again, the F-16s REALL
   for (const id of ['helicopter', 'balloon-burner']) assert.ok(lvl(id) - bed >= 2 && lvl(id) - bed <= 6, `${id} ${lvl(id).toFixed(1)} LUFS: a little over the hum`);
   assert.ok(bed - lvl('airliner-far') >= 2, 'an airliner far up: still under the hum');
   assert.ok(lvl('drone-swarm') < lvl('helicopter'), 'the swarm a faint hum');
-  // the jets' peak (≤ −2 dBFS in the file) × their gain stays under the player's cap knee (0.15 linear): never clipped, never a startle
-  assert.ok(10 ** (-2 / 20) * slotOf('jet-flyby').gain < 0.15);
+  // the jets' peak (≤ −2 dBFS in the file) × their gain: FP3b's +3 dB ("peaks capped" — the owner) reaches just into the player's soft
+  // cap's knee (0.15 linear: the top ≈ 0.4 dB rounded off), far under its ceiling (0.3): never clipped, never a startle
+  const pk = 10 ** (-2 / 20) * slotOf('jet-flyby').gain;
+  assert.ok(pk < 0.15 * 10 ** (0.6 / 20) && pk < 0.3, `the jets' peak ${pk.toFixed(3)} at most ~0.5 dB into the knee`);
 });
 
 test('8P — THE JETS\' DUCK: the music dips ~3.6 dB round the pass\'s peak — eased in, held, eased back (~3 s); the pan right → left', () => {
   const t = takesOf('jet-flyby')[0], d = slotOf('jet-flyby').duck;
-  assert.ok(d >= 0.6 && d <= 0.72, `the duck ${(20 * Math.log10(d)).toFixed(1)} dB (3–4 asked)`);
+  assert.ok(d >= 0.52 && d <= 0.6, `the duck ${(20 * Math.log10(d)).toFixed(1)} dB (FP3b: ~5 asked — "a slightly deeper dip")`);
+  assert.ok(Math.abs(20 * Math.log10(slotOf('jet-flyby').gain / 0.14) - 3) < 0.1, 'FP3b: the jets +3 dB over 8P');
   assert.equal(duckAt(0, t, d), 1, 'not before');
   assert.equal(duckAt(t.peak, t, d), d, 'full at the peak');
   assert.equal(duckAt(t.peak + 4, t, d), 1, 'back after');

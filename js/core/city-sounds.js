@@ -116,7 +116,9 @@ export const SLOTS = [
   S('helicopter', 'sky', 'once', 0.117, 'a helicopter, distant + a flyby (two takes)', 'the helicopter while it’s up: its flybys chained, panned with it, louder while it hovers'),
   S('airliner-far', 'sky', 'once', 0.051, 'an airliner far up (a long, slow flyby)', 'the airliners while one crosses (the nearest: its flyby from the start of its crossing, panned, swelling with it)'),
   S('prop-plane', 'sky', 'once', 0.071, 'a vintage prop plane overhead (two swells: a plane circling)', 'the banner plane, the skywriters'),
-  S('jet-flyby', 'sky', 'once', 0.14, 'jets flying by right → left (the air show) — REALLY loud: the music ducks for the pass (`duck`)', 'the jets’ pass (8P: sounds.jets(o) — panned right → left over its swell, the music dipped ~3.6 dB round its peak)', { duck: 0.66 }),
+  // (FP3b, the owner's 8P note 10 — "sound great, a bit louder still": +3 dB (0.14 → 0.198) + a slightly deeper dip of the music (−3.6 →
+  // −5 dB); the peaks still under the player's cap — audio/city-sound.js#CAP)
+  S('jet-flyby', 'sky', 'once', 0.198, 'jets flying by right → left (the air show) — REALLY loud: the music ducks for the pass (`duck`)', 'the jets’ pass (8P: sounds.jets(o) — panned right → left over its swell, the music dipped ~5 dB round its peak)', { duck: 0.56 }),
   S('balloon-burner', 'sky', 'once', 0.111, 'a hot air balloon’s burner whoosh, far off (five bursts, low-passed)', 'the balloons while they’re up: a burn every ~6–18 s'),
   S('geese', 'sky', 'once', 0.075, 'a skein of geese honking overhead (~28 s: one crossing)', 'the geese while a V crosses: one flyover a V, panned with it'),
   S('drone-swarm', 'sky', 'loop', 0.064, 'the drone show’s faint swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
