@@ -4,9 +4,12 @@
 name: tests
 
 on:
+  # (FP3b, FREV A5: a docs-only push runs nothing — it cost ~7 CI minutes each; any code file in the push runs everything)
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
   pull_request:
+    paths-ignore: ['docs/**', '**/*.md']
   workflow_dispatch:
 
 concurrency:

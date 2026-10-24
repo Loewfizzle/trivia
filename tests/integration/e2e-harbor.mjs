@@ -1683,6 +1683,9 @@ G('speakeasy', async () => {
       // away (FP's warm wash reached ~28 pt: ~17–20 levels at 15 pt; the noise floor here ±5)
       const lumP = async ([X, Y]) => { let t = 0, n = 0; for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const c = await px(Q.page, X + dx, Y + dy); t += 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; n++; } return t / n; };
       await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.985', 'the power-on done (the city still brightening would read as a difference)', 15000).catch(() => {});
+      // (FP3b, FREV A5: GATED, not moved — the basement's passing shadows + its flicker and the shop's mirror door are held still while
+      // the probe reads, so only the pole's own light differs between its two readings)
+      await ev(Q.page, 'window.__district.harbor().speakeasy.quiet(true)'); await sleep(200);
       const pcx = pr.x + pr.w / 2, mid = pr.y + pr.h / 2;
       const nearAt = [[pr.x - 3.5, mid], [pr.x + pr.w + 3.5, mid - 6]], farAt = [[pcx + 15, mid + 6], [pcx, pr.y - 15], [pcx - 16, pr.y + 4], [pcx + 28, mid]];
       const on1 = { near: [], far: [] }; for (const p of nearAt) on1.near.push(await lumP(p)); for (const p of farAt) on1.far.push(await lumP(p));
@@ -1693,6 +1696,7 @@ G('speakeasy', async () => {
       ok(a === b && ld < lp * 0.6, `THE RAID's hook: the pole dark (${ld.toFixed(0)}) + still`);
       { const nd = []; for (const [i, p] of nearAt.entries()) nd.push(on1.near[i] - await lumP(p)); const fd = []; for (const [i, p] of farAt.entries()) fd.push(on1.far[i] - await lumP(p));
         ok(Math.max(...nd) > 10 && fd.every(v => Math.abs(v) < 6), `NO SMOKE round the pole: its light on the brick beside it +${nd.map(v => v.toFixed(1)).join(' / +')}; ~15–28 pt away ${fd.map(v => v.toFixed(1)).join(' / ')} (≈ 0)`); }
+      await ev(Q.page, 'window.__district.harbor().speakeasy.quiet(false)');
       await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: true })');
       // (the condition, not a fixed pause: the parallel run's loaded frames can take longer than 400 ms to show it)
       let lit = 0; for (let i = 0; i < 25 && !(lit > lp * 0.85); i++) { await sleep(200); lit = lumA(await col()); }
@@ -2068,7 +2072,30 @@ G('people', async () => {
     const pp = await ev(Q.page, `${P}.people`);
     ok(pp.roof >= 2 && pp.roof <= 6, `THE ROOF on a party night: ${pp.roof} guests (${pp.roofMembers.map(m => m.pose).join(', ')})`);
     await Q.ctx.close(); }
+
 });
+// ---- FP3b — THE PEOPLE'S LIFE: REAL DOORS + THE GLOW-WAND DANCE CIRCLE (their own group: the `show` cloud job has the room)
+G('life', async () => {
+  const P = 'window.__district.harbor()';
+  // ---- FP3b — REAL DOORS (&force=doors at night: someone through the side door every ~24 s): the door swings open with someone in
+  // its doorway — nobody fading anywhere — and shuts again behind them
+  { const Q = await open({ slot: 'pp6', qs: `when=2026-10-22T22:00${GR}&force=doors`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.doors.side > 0.9`, 'the side door open for someone', 60000);
+    const pp = await ev(Q.page, `${P}.people`);
+    ok(pp.members.some(m => m.door === 'side') && pp.members.every(m => m.a === 1), `REAL DOORS: the side door open (${pp.doors.side}) with ${pp.members.filter(m => m.door === 'side').length} in its doorway, nobody fading`);
+    await waitFor(Q.page, `${P}.people.doors.side === 0`, 'the door shut again', 30000);
+    ok(true, 'REAL DOORS: the side door shut again behind them');
+    await Q.ctx.close(); }
+  // ---- FP3b — THE GLOW-WAND DANCE CIRCLE (&force=dance: one every 5 minutes) on a party night: it forms on the compass, the cart away
+  { const Q = await open({ slot: 'pp7', qs: `when=2026-10-24T22:25${GR}&force=dance`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.dance.k > 0.99`, 'the circle formed', 90000);
+    const pp = await ev(Q.page, `${P}.people`);
+    ok(pp.dancers >= 4 && !(pp.cart && pp.cart.on), `THE DANCE CIRCLE: ${pp.dancers} dancers on the compass, ${pp.watchers} watching, the chestnut cart away`);
+    await Q.ctx.close(); }
+});
+
 
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
 async function runGroup(name) {

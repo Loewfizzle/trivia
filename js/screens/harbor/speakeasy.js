@@ -319,6 +319,7 @@ export function createSpeakeasy() {
   // FP3a (FREV H1) — THE FACADE'S ONE POWER HOOK: power(k) dims every light on the building at once — the rooms (k), the blade +
   // its bulbs (lamp), the sconce + the awning's lamps, the barber pole, the basement, the hush sign. 1 = untouched (the frame f
   // passes through as it is); 8b's raid drives it (harbor().raid → speak.power)
+  let quiet = false;   // (FP3b: the tests' hold — the basement steady, the windows' moments paused: a light probe reads only the lamps)
   let power = 1, doorState = { side: 0, shop: 0, inside: null }, doorRects = { side: null, shop: null };
   function draw(c, f0) {
     if (!G) return;
@@ -344,7 +345,7 @@ export function createSpeakeasy() {
     // PART 7b — THE LIFE: the people, the cat, the TV, the night lamp, the bar's afternoon + last light, the shop's day, the mirror door
     c.globalAlpha = 1;
     const [ox, oy] = G.front(0, 0);
-    life.draw(c, { map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
+    if (!quiet) life.draw(c, { map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
     // 8P — THE HUSH WORD SIGN: bare neon tubes inside the lower-right upstairs window (the jazz room — its life shows between the letters),
     // only while a lobby is open (hushsign.js); the window's meeting rail laid back over them (they hang inside the glass)
     { if (f.hush !== undefined) hush.set(f.hush);
@@ -384,7 +385,7 @@ export function createSpeakeasy() {
     // (the light warming + dimming as they pass), a gentle pulse with the beat on party nights (the music's heart is down there), a very
     // rare brief flicker (an old wire). basementLight() is PURE (tested).
     { const b = basement, t = f.t || 0, pt = f.party, beat = pt && f.motion ? clamp01(pt.ramp == null ? 1 : pt.ramp) * clamp01(pt.punch || 0) : 0;
-      const L1 = basementLight(f.motion ? t : 0, { night: clamp01(f.night), beat }), L0 = P >= 1 ? L1 : { ...L1, a: L1.a * P };
+      const L2 = basementLight(f.motion ? t : 0, { night: clamp01(f.night), beat }), L1 = quiet ? { a: BASEMENT.day + BASEMENT.night * clamp01(f.night), shadows: [], flick: 0 } : L2, L0 = P >= 1 ? L1 : { ...L1, a: L1.a * P };
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, L0.a * fade);
       const g = c.createLinearGradient(0, b.y, 0, b.y + b.h); g.addColorStop(0, rgb(BASEMENT.top)); g.addColorStop(0.55, rgb(BASEMENT.mid)); g.addColorStop(1, rgb(BASEMENT.low));
       c.fillStyle = g; c.fillRect(b.x, b.y, b.w, b.h);
@@ -432,6 +433,8 @@ export function createSpeakeasy() {
     windows: () => wins.map(w => ({ id: w.id, room: w.room, floor: w.floor, col: w.col, edge: !!w.edge, rect: { ...w.rect } })),
     light(id, k) { if (k == null) own.delete(id); else own.set(id, clamp01(k)); },
     mirror(k) { mirror = clamp01(k || 0); },
+    /** FP3b — tests: quiet(true) holds the basement's light steady + pauses the windows' moments (the mirror door's light), quiet(false) back */
+    quiet(on) { quiet = !!on; return quiet; },
     /** FP3b — REAL DOORS: { side, shop } how open (0..1), inside(c, id, rect) draws whoever is in that doorway → the doors now */
     doors(o) { if (o) doorState = { side: clamp01(o.side || 0), shop: clamp01(o.shop || 0), inside: o.inside || null }; return { side: doorState.side, shop: doorState.shop, rects: { ...doorRects } }; },
     /** FP3a: every light on the facade × k (0 = dark, 1 = as the night has it) → the level now; power() reads it */
