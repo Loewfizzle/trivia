@@ -8,6 +8,8 @@
 // Everything is quiet by design: felt more than heard.
 import { getContext, getSfxBus, isUnlocked } from './engine.js';
 import { settings } from './settings.js';
+import { citySound } from './city-sound.js';
+import { isFilled } from '../core/city-sounds.js';
 
 let noiseBuf = null;
 function noise(ctx) {
@@ -394,6 +396,8 @@ export function thunder({ near = false, delay = 2, level = 1 } = {}) {
 /** THE STREET: a soft double knock on the speakeasy's door (wood, felt more than heard) — the title's knock → JOIN. */
 export function knock({ level = 1 } = {}) {
   if (!isUnlocked()) return;
+  // (PART 8a: the slot door-knock, once a recording fills it — core/city-sounds.js; until then this synthesized one)
+  if (isFilled('door-knock') && citySound('door-knock', { gain: level })) return;
   const ctx = getContext();
   const out = ctx.createGain(); out.gain.value = 0.5 * level; out.connect(getSfxBus());
   for (const [dt, v] of [[0, 1], [0.16, 0.8]]) {
@@ -414,6 +418,8 @@ export function knock({ level = 1 } = {}) {
  *  midnight finale). delay: seconds from now (the burst is in the sky before the sound arrives). Quiet, premium. */
 export function fireworkBurst({ delay = 0.35, level = 1 } = {}) {
   if (!isUnlocked()) return;
+  // (PART 8a: the slot firework-burst, once a recording fills it — core/city-sounds.js; until then this synthesized one)
+  if (isFilled('firework-burst') && citySound('firework-burst', { delay, gain: level, pan: Math.random() * 1.2 - 0.6 })) return;
   const ctx = getContext();
   const t0 = ctx.currentTime + delay;
   const out = ctx.createGain(); out.gain.value = 0.55 * level;

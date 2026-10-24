@@ -192,6 +192,15 @@
 .hr-text, .hr-dt { width: 100%; min-height: 46px; font-size: 16px; padding: 0 12px; }
 .hr-text { text-transform: uppercase; letter-spacing: 0.06em; }
 .hr-dt { color-scheme: dark; }
+/* 8a — PULSE STRENGTH: a wide thumb-friendly slider (the whole row is the tap area) + the live number */
+.hr-pulse { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.hr-range { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 44px; margin: 0; background: transparent; touch-action: pan-y; }
+.hr-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgba(255, 124, 203, 0.35), #ff7ccb); }
+.hr-range::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgba(255, 124, 203, 0.35), #ff7ccb); }
+.hr-range::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: #fff; border: 2px solid #ff7ccb; box-shadow: 0 0 10px rgba(255, 124, 203, 0.6); }
+.hr-range::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 2px solid #ff7ccb; }
+.hr-range:focus-visible { outline: 2px solid #ff7ccb; outline-offset: 2px; border-radius: 8px; }
+.hr-pv { min-width: 4.4em; text-align: right; font: 700 18px/1 var(--font-num); color: #fff; }
 
 .hr-clear { min-height: 48px; }
 /* EVERYONE: the send bar stays at the bottom of the sheet while it scrolls */
@@ -211,6 +220,19 @@
 .hr-mins .hr-b { flex: 1; justify-content: center; }
 
 @media (prefers-reduced-motion: reduce) { .hr-b, .hr-pill::before, .hr-cat, .hr-chev { transition: none; } }
+
+/* PART 8a — THE CITY SOUNDS: a row a slot (▶ · its id + what it is · FILLED / EMPTY) */
+.hr-snds { display: flex; flex-direction: column; gap: 6px; }
+.hr-snd { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 2px 10px 2px 2px; border-radius: 12px; background: rgba(8, 9, 26, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); }
+.hr-snd.is-filled { border-color: rgba(157, 255, 180, 0.3); }
+.hr-snd-play { flex: none; width: 46px; padding: 0; font-size: 15px; }
+.hr-snd.is-filled .hr-snd-play { color: #9dffb4; border-color: rgba(157, 255, 180, 0.45); }
+.hr-snd-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hr-snd-t b { font: 700 12px/1.3 var(--font-mono); letter-spacing: 0.04em; color: rgba(236, 240, 255, 0.94); overflow-wrap: anywhere; }
+.hr-snd-t small { font: 500 11.5px/1.3 var(--font-ui); color: rgba(222, 228, 255, 0.76); }
+.hr-snd-st { flex: none; font: 700 10.5px/1.2 var(--font-mono); letter-spacing: 0.12em; color: rgba(222, 228, 255, 0.76); }
+.hr-snd.is-filled .hr-snd-st { color: #9dffb4; }
+.hr-snd-now { min-height: 40px; }
 
 /* CITY 2.0 MUSIC: the song playing now + its beat grid's status */
 .hr-music { min-height: 40px; }

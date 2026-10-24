@@ -69,7 +69,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     const s = cam.F / 600;
     // the signs (named, icons, the fixed ones); the billboards
     for (const sp of spots) {
-      const roofY = sp.mount === 'roof' || sp.mount === 'tower' ? roofUnder(sp) : 0;
+      const roofY = sp.mount === 'roof' || sp.mount === 'tower' || sp.mount === 'speak' ? roofUnder(sp) : 0;
       if (sp.kind === 'billboard') {
         // tonight's billboard advertises the game with NO sign tonight (NEON PASS 5: 11 signs for 12 games — the nightly shuffle
         // picks which), else one with no named sign (an icon one), never the one up the street
@@ -113,6 +113,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   function roofUnder(sp) {
     const R = sp.rect;
     if (sp.mount === 'tower') return project(cam, 0, sp.w.roof, sp.w.z)[1];
+    if (sp.mount === 'speak') return project(cam, 0, sp.w.dun, sp.w.z)[1];       // (8a: the dunnage platform on the speakeasy's roof)
     let y = Infinity;
     for (const b of [...L.bands.find(b => b.id === 'near').blocks, ...L.heroes]) {
       const [a, ty] = project(cam, b.x0, b.h, b.z0), [c] = project(cam, b.x1, 0, b.z0);
@@ -374,7 +375,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   function housingStep(group, T) {
     return x => {
       const set = pending || { signs, boards };
-      for (const sg of set.signs) if (groupOf(sg.spot) === group) drawHousing(x, sg, T, { roofY: sg.spot.mount === 'roof' || sg.spot.mount === 'tower' ? roofUnder(sg.spot) : 0, frame: sg.frame });
+      for (const sg of set.signs) if (groupOf(sg.spot) === group) drawHousing(x, sg, T, { roofY: sg.spot.mount === 'roof' || sg.spot.mount === 'tower' || sg.spot.mount === 'speak' ? roofUnder(sg.spot) : 0, frame: sg.frame });
       for (const b of set.boards) if (groupOf(b.spot) === group) { x.save(); b.dayDraw(x, T); x.restore(); }
     };
   }
@@ -487,7 +488,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       // (tier 0 on a party night: no moving effects — the whole neon breathes gently on the beat as one image)
       // (NEON PASS 4: the hard beat, as one image: 0.85 between beats → ~1.3 on the beat — the part over 1 drawn again, additive)
       const pb = f.party && motion ? 0.85 + 0.65 * (f.party.punch || 0) : 1;   // (7a: 0.5 → 0.65)
-      if (comp[group]) { const cp = comp[group], base = f.fade * (group === 'far' ? Math.max(0.05, f.night) : 1); c.globalAlpha = Math.min(1, base * pb); c.drawImage(cp.c, cp.x, cp.y, cp.w, cp.h); if (pb > 1.01) { c.globalAlpha = Math.min(1, base * (pb - 1)); c.drawImage(cp.c, cp.x, cp.y, cp.w, cp.h); } boardsLit(c, group, t, motion, f); }
+      if (comp[group]) { const cp = comp[group], base = f.fade * (group === 'far' ? Math.max(0.05, f.night) : 1); c.globalAlpha = Math.min(1, base * pb); c.drawImage(cp.c, cp.x, cp.y, cp.w, cp.h); if (pb > 1.01) { c.globalAlpha = Math.min(1, base * (pb - 1)); c.drawImage(cp.c, cp.x, cp.y, cp.w, cp.h); } }
+      boardsLit(c, group, t, motion, f);          // (8a: a group of only a billboard has no composite — its lamps' light still draws)
       c.restore();
       return;
     }
@@ -613,7 +615,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       }
     }
   }
-  const groupOf = sp => (sp.z >= 300 ? 'far' : 'near');
+  // (8a: the billboard on the speakeasy's roof is its own group, 'bill' — baked + drawn just before the speakeasy)
+  const groupOf = sp => (sp.mount === 'speak' ? 'bill' : sp.z >= 300 ? 'far' : 'near');
   // A TOWER SPELLING A WORD: its roof sign sinks to a low glow (over ~1 s) so the message is the star, and comes back after
   // (f.spelling: the towers spelling now — lights.spelling.towers)
   const SPELL_DIM = 0.22;
@@ -653,7 +656,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       for (const it of items) if (inGroup(it, group) && it.kind === 'sign' && it.sg.bulbs) it.sg.bulbs.forEach(([bx, by], i) => { x.globalAlpha = i % 4 === 0 ? 1 : 0.42; const r = i % 4 === 0 ? 2.7 : 1.75; x.drawImage(D, bx - r, by - r, r * 2, r * 2); });
     });
   }
-  function dropComp() { for (const g of ['far', 'near', 'harbor']) { free(comp[g]); comp[g] = null; } free(led.sp); led.sp = null; led.key = ''; }
+  function dropComp() { for (const g of ['far', 'near', 'harbor', 'bill']) { free(comp[g]); comp[g] = null; } free(led.sp); led.sp = null; led.key = ''; }
   // tier 1 (Part 4's budget): the LED facades held still — one cached image of their gradients (the party's colours or the calm
   // ones), drawn with the night's strength; the slow sweep + the climbing band run at tier 2 only
   const led = { key: '', sp: null };
@@ -706,7 +709,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     castFor();
     // (the &force=neon-party preview keeps its own 120 bpm: a beat every 0.5 s, a breath of two)
     // (NEON PASS 5: real bars — 4 beats — from the song's grid; the punch half-time, read late for the ripple: P.punchAt)
-    const fr = forced ? { bar: Math.floor(f.t / 2), phase: (f.t / 2) % 1, energy: 1, ramp: moment.party, name: 'peak', swell: 0, beatU: (f.t / 0.5) % 1, beatT: 0.5, beatIdx: Math.floor(f.t / 0.5) % 4, beats: Math.floor(f.t / 0.5), beatsF: f.t / 0.5, rate: 0.5 }
+    const fr = forced ? { bar: Math.floor(f.t / 2), phase: (f.t / 2) % 1, energy: 1, ramp: moment.party, name: 'peak', swell: 0, beatU: (f.t / 0.5) % 1, beatT: 0.5, beatIdx: Math.floor(f.t / 0.5) % 4, beats: Math.floor(f.t / 0.5), beatsF: f.t / 0.5, rate: 0.5, pulse: f.pulse }     // (8a: the preview's own beat follows PULSE STRENGTH too)
       : { bar: P.bar, phase: P.phase, energy: P.energy, ramp: P.ramp, name: P.name, swell: P.swell, beatU: P.beatU, beatT: P.beatT, beatIdx: P.beatIdx, beats: P.beats, beatsF: P.beatsF, rate: P.rate, punchAt: P.punchAt };
     showState.beatsF = fr.beatsF ?? 0; showState.rate = fr.rate || 0.5;
     // (NEON PASS 5: the palette starts from the local half-hour — fixed once a page load, so a 9 pm visit and a 1 am one wear

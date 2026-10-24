@@ -10,7 +10,7 @@
 //    a few faint threads; the needle's spire becomes THE NEON NEEDLE. Never across a word tower's face (only its frame).
 //  - signSpots(L): where the city's signs hang (named game signs, icon signs, the game blade, billboards), in world
 //    units; assignSigns(): which game takes which spot tonight (a new pick each night, never while you watch).
-import { REF_TITLE, cameraFor, fxAt, fOf, project, lighthouseBoxes, BILLBOARD } from './harbor-layout.js';
+import { REF_TITLE, cameraFor, fxAt, fOf, project, lighthouseBoxes } from './harbor-layout.js';
 import { rngFrom, shuffle } from './rng.js';
 
 export { flattenPath, tubeLight } from './tube-path.js';
@@ -530,7 +530,10 @@ export const SPOTS = [
   // across the whole board: signs.js#buildBillboard)
   // (DT1 — the owner: "built, not floating": a 1920s rooftop billboard on the lowered roof of the near block behind it, on a steel
   // A-frame with a catwalk + railing, four gooseneck lamps — core/harbor-layout.js#BILLBOARD; any name fits it, on one line)
-  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'near', mount: 'roof', x: [...BILLBOARD.x], y: [...BILLBOARD.y], z: BILLBOARD.z, show: 'rum' },
+  // (8a — the owner: it still looked like it was floating → ONTO THE SPEAKEASY'S ROOF: over the left half-plus of the roof on its
+  // steel frame + a dunnage platform, the same catwalk, ladder + four lamps — core/harbor-layout.js#BILLBOARD, L.roof.board; its own
+  // baked group 'bill', drawn before the speakeasy so the roof's bulkhead + the parapet's string lights stand in front of it)
+  { id: 'bb-left', kind: 'billboard', type: 'billboard', host: 'speakeasy', mount: 'speak', z: 55, show: 'rum' },
 ];
 let refCam = null;
 const ref = () => refCam || (refCam = cameraFor(REF_TITLE.W, REF_TITLE.H, { tag: REF_TITLE.tag, dock: REF_TITLE.dock }, REF_TITLE.safe));
@@ -545,7 +548,8 @@ export function spotWorld(sp) {
  * rect, rect: screen rect (pt) }.
  */
 export function signSpots(L, { all = false } = {}) {
-  const cam = L.cam, out = SPOTS.map(sp => ({ ...sp, w: sp.mount === 'tower' ? towerRoofSign(L, sp) : spotWorld(sp) })).filter(sp => sp.w);
+  const speakW = () => { const b = L.roof && L.roof.board; return b ? { x0: b.x0, x1: b.x1, y0: b.y0, y1: b.y1, z: b.z, dun: b.dun } : null; };
+  const cam = L.cam, out = SPOTS.map(sp => ({ ...sp, w: sp.mount === 'tower' ? towerRoofSign(L, sp) : sp.mount === 'speak' ? speakW() : spotWorld(sp) })).filter(sp => sp.w).map(sp => (sp.mount === 'speak' ? { ...sp, z: sp.w.z } : sp));
   // a sign on a tower hangs down the middle of its shaft, never past a setback: centred on the tower, as wide as the narrowest
   // tier it crosses allows
   for (const sp of out) {

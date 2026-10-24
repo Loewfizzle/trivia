@@ -512,7 +512,7 @@ export function lampGlows(x, lamps, R, k = 1) {
  * → { id, spot, rect, content, dayDraw(x, T), nightS, lamps }
  */
 export function buildBillboard(spot, content, ctx) {
-  const R = spot.rect, dpr = ctx.dpr, lamps = gooseneckLamps(R);
+  const R = spot.rect, dpr = ctx.dpr, lamps = gooseneckLamps(R), dun = spot.mount === 'speak';
   const gy = R.y + R.h, foot = Math.max(gy + 4, ctx.roofY || gy + 7), k = Math.max(0.6, R.h / 40);
   const deckY = gy + 0.75 * k, railTop = gy - 2.2 * k;
   const FONT = fs => `700 ${fs}px "Chakra Petch", Orbitron, sans-serif`;
@@ -563,6 +563,18 @@ export function buildBillboard(spot, content, ctx) {
     // (galvanised steel by day — lighter than the brick behind it, so the frame reads as structure; near-black at night)
     const steel = mix([24, 20, 30], [126, 124, 118], day), lit = mix([36, 30, 42], [200, 196, 184], day), mould = mix([30, 24, 30], [134, 110, 84], day);
     x.lineCap = 'butt';
+    // (8a) THE DUNNAGE on the speakeasy's roof: a steel I-beam platform the frame's feet are bolted to, on short posts down to the
+    // deck (behind the parapet) — its top clears the parapet's line, so the feet always show
+    if (dun) {
+      const d0 = R.x - 3 * k, d1 = R.x + R.w + 3 * k, bh = Math.max(1.1, 1.25 * k);
+      x.fillStyle = rgba(steel); for (const f of [0.06, 0.3, 0.5, 0.7, 0.94]) x.fillRect(R.x + R.w * f - 0.5 * k, foot + bh * 0.6, Math.max(0.8, 1.0 * k), 7 * k);
+      x.fillStyle = rgba(mix(steel, [0, 0, 0], 0.25)); x.fillRect(d0, foot, d1 - d0, bh);
+      x.fillStyle = rgba(lit, 0.95); x.fillRect(d0, foot, d1 - d0, Math.max(0.35, 0.3 * k));                 // the flange's lit top
+      x.fillStyle = rgba(steel); x.fillRect(d0, foot + bh - Math.max(0.3, 0.25 * k), d1 - d0, Math.max(0.3, 0.25 * k));
+      // the base plates under each leg + the bolts
+      x.fillStyle = rgba(lit, 0.9);
+      for (const f of [0.13, 0.5, 0.87]) { const lx = R.x + R.w * f, sp2 = Math.min(R.w * 0.07, (foot - deckY) * 0.8); for (const dx of [-sp2, sp2]) x.fillRect(lx + dx - 1.1 * k, foot - 0.45 * k, 2.2 * k, Math.max(0.4, 0.45 * k)); }
+    }
     // the A-frames: from the roof up to the deck, splayed; a tie across each; the X braces between them
     const legs = [0.13, 0.5, 0.87].map(f => R.x + R.w * f), spread = Math.min(R.w * 0.07, (foot - deckY) * 0.8);
     x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.5, 0.5 * k);
@@ -587,12 +599,12 @@ export function buildBillboard(spot, content, ctx) {
     for (let px = d0; px <= d1 + 0.01; px += Math.max(2.4, 3.2 * k)) { x.moveTo(px, railTop); x.lineTo(px, deckY); } x.stroke();
     drawGooseneck(x, lamps, day, sd);
   };
-  const box = { x0: R.x - 2.5 * k - 1, y0: Math.min(...lamps.map(l => l.top)) - 1.5, x1: R.x + R.w + 2.5 * k + 1, y1: foot + 1 };
+  const box = { x0: R.x - 3.5 * k - 1, y0: Math.min(...lamps.map(l => l.top)) - 1.5, x1: R.x + R.w + 3.5 * k + 1, y1: foot + (dun ? 9 * k : 1) };
   // the baked board (per look): its shadow on the roof by day, the poster (in the sun by day; unlit + dark at night), weathering, the
   // structure in the same sun + shade
   const dayDraw = (x, T) => {
     const day = Math.min(1, T.day + 0.8 * T.gold), sd = T.sunDir || 0;
-    if (day > 0.05) { x.fillStyle = `rgba(20,14,30,${0.22 * day})`; x.fillRect(R.x + (sd > 0 ? -1.4 : 1.4), R.y + 1.8, R.w, R.h); }
+    if (day > 0.05 && !dun) { x.fillStyle = `rgba(20,14,30,${0.22 * day})`; x.fillRect(R.x + (sd > 0 ? -1.4 : 1.4), R.y + 1.8, R.w, R.h); }
     poster(x, sd);
     x.fillStyle = `rgba(238,226,204,${0.1 * day})`; x.fillRect(R.x, R.y, R.w, R.h);
     x.fillStyle = `rgba(90,56,40,${0.14 * day})`; for (let i = 0; i < 5; i++) x.fillRect(R.x + R.w * (0.08 + i * 0.2), R.y, Math.max(0.3, R.w * 0.01), R.h * (0.16 + 0.08 * (i % 3)));

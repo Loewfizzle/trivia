@@ -83,6 +83,8 @@ const SCENE = {
   'd-morn': ['2026-10-22T09:00'], 'd-noon': ['2026-10-22T12:30'], 'd-aft': ['2026-10-22T16:00'], 'd-golden': ['2026-10-22T18:20'],
   'd-clouds': ['2026-10-22T13:00', { qs: 'wx=clouds' }], 'd-overcast': ['2026-10-22T13:00', { qs: 'wx=overcast' }],
   'd-night': ['2026-10-22T22:00'], 'd-party': ['2026-10-24T23:00'],
+  // (8a — the trees through a season, by the real date: the crabapple's buds, its full blossom, the maples' late autumn thinning)
+  'tr-bud': ['2026-04-16T11:00'], 'tr-bloom': ['2026-05-05T11:00'], 'tr-early': ['2026-10-01T11:00'], 'tr-late': ['2026-11-15T11:00'],
   // (7a §0: the title's ☰ menu open — the split corners: it drops from the top-left)
   'menu-open': ['2026-10-22T22:00', { act: 'menu' }],
   // CITY 2.0 — SKY POLISH (Oct 23 2026): the owner's review list (--sizes 402x874 --crop sky,skyl3,skym,skyr3); sp-plane: a forced
@@ -96,7 +98,7 @@ const SCENE = {
   // scrolled down to the time + weather, the bottom with the tools). PART 7a §0: the categories — cats: the open ones (none = all
   // collapsed; '*' = every one); panel-on: two open with things on; panel-dots: collapsed, the dots + what's on; panel-end: all open, the bottom
   panel: ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel' }], 'panel-on': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['sky', 'signs'], on: { force: ['drones', 'spell', 'neon-scheme'], text: 'HI THERE', show: 'heart', colours: 'ff2e97,2ee6ff', scheme: 'halloween' } }],
-  'panel-dots': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', on: { force: ['aurora', 'corner-turn', 'neon-scheme'], scheme: 'halloween', wx: 'rain', when: '2026-10-24T23:00', speed: 20 } }],
+  'panel-dots': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', on: { force: ['aurora', 'road-pass', 'neon-scheme'], scheme: 'halloween', wx: 'rain', when: '2026-10-24T23:00', speed: 20 } }],
   'panel-all': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', mode: 'all', cats: ['time'] }], 'panel-time': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['time', 'weather'], on: { wx: 'snow' } }],
   'panel-end': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', scroll: 1, mode: 'all', cats: '*' }],
   'panel-towers': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['lights'], scroll: 0.36, on: { force: ['spell'], text: 'HAPPY BIRTHDAY SAM &', tower: 'wordA,wordB,wordV' } }],

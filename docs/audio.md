@@ -77,7 +77,8 @@ striking plays a flicker, building toward it — level 0.3 → 0.8, never closer
 7, over the plan's seeds); the dawn's stutters are silent — only the very last tube's dropout at dawn sounds, softly (0.55); a RANDOM FLICKER of the lit sign (every 20–40 s,
 `scheduleFlicker`) plays a flicker (0.8); THE CATCH plays the power-on and the hum comes up with it and FADES OUT smoothly over the
 10 s after the sign is fully on (`neonHumFade`: an equal-power curve, then it stops — no hum all night); TAPPING THE SIGN: the
-dropout when the tapped letter goes dark, the power-on + the same fading hum when it lights (0.75; none under Reduced effects):
+dropout when the tapped letter goes dark, the power-on + the same fading hum when it lights (0.75 → **0.5625 since Part 8a**, the owner: ~25 %
+quieter, ≈ −2.5 dB — `title.js#NEON_TAP_LEVEL`; THE CATCH + the first-tap surge keep their level; none under Reduced effects):
 | file | what | when | level |
 | --- | --- | --- | --- |
 | `neon-flicker-1…4.wav` (0.6–0.8 s) | a tube striking | the lit sign's rare random flicker; the warm-up's last 30 s — one at random, never the same twice running, ±3 % pitch | −20 LUFS |
@@ -100,8 +101,8 @@ another −6 dB):
 | sound | gain (was → now) | cap | the lit sign / the catch, was → now |
 | --- | --- | --- | --- |
 | flickers | 1 → **0.28 (−11 dB)** × a per-file trim 1.6 / 1.15 / 1.15 / 1.05 (1–2 are bright: the low-pass takes more from them) | 0.08 (**−22 dBFS**) + the low-pass | at 0.8: −21.9 LUFS, peaks −4 … −6 dBFS → **−33.7 … −35.1 LUFS, peaks ≤ −22 dBFS** (≈ −12 dB); the warm-up's quietest (0.3) ≈ −41 LUFS |
-| power-on | 1 → **0.5 (−6 dB)** | 0.35 (−9 dBFS) | the catch: −20.1 LUFS, peak −1 dBFS → **−26.3 LUFS, peak −9.5 dBFS**; a tap (0.75) −28.7 |
-| dropout | 1 → **0.5 (−6 dB)** | 0.35 | a tap (0.75): −22.5 → **−28.5 LUFS**; dawn (0.55) −25.2 → **−31.2** |
+| power-on | 1 → **0.5 (−6 dB)** | 0.35 (−9 dBFS) | the catch: −20.1 LUFS, peak −1 dBFS → **−26.3 LUFS, peak −9.5 dBFS**; a tap (0.75) −28.7 → 8a (0.5625) **−31.2** |
+| dropout | 1 → **0.5 (−6 dB)** | 0.35 | a tap (0.75): −22.5 → **−28.5 LUFS** → 8a (0.5625) **−31.0**; dawn (0.55) −25.2 → **−31.2** |
 | hum | 1 (unchanged) | — (its own fade, no chain) | −24 LUFS × the caller's level, as before |
 The synthesized fallbacks (`neonBuzz`, a file that can't load) play at half the caller's level. `ambience.js#neonLog` keeps the last
 40 one-shots `{ name, kind, gain, at }` and `__district.neonWarmSounds()` counts the warm-up's flickers (for tests).
@@ -292,7 +293,9 @@ pulse any more".
   | `kicks` | no trusted grid, the listener hears the music | every real kick |
   | `tempo` | no trusted grid, nothing heard (the direct element, a deaf analyser) | a gentle steady 0.6 at the song's tempo, on its loose grid's phase |
   | `calm` | no song (`— music off` / `muted` / `tap for sound` …) | a calm 120 bpm, 0.7 |
-  e.g. `beat direct-grid 128.0 · bar 12 · 3/4`; `· kick 0.86` only while the listener hears; `· kick unheard` only on `grid`.
+  e.g. `beat direct-grid 128.0 · bar 12 · 3/4 · pulse 0.87`; `· kick 0.86` only while the listener hears; `· kick unheard` only on `grid`
+  (8a: `· pulse` = the punch the lights got, its peak over the last ½ s — 0 means they aren't pulsing; `×1.80` when PULSE STRENGTH
+  isn't the default — see 8a below).
 - **THE PULSE A STEP STRONGER** (the owner: "close", not obvious enough on her iPhone): the punch's peak light ~+30 %, most on the dominant
   pieces, no new draws (the same passes; a few more wheel bulbs cross their bloom threshold on the beat) — the buildings' tubes
   `1 − 0.2·amp + 0.9·pe` → `1.15·pe` (steady quarter 0.35 → 0.45), the crowns' flare `min(1.4, 1.3k)` → `min(1.9, 1.7k)`, the signs
@@ -312,6 +315,121 @@ pulse any more".
   on, tap once; leave for the home screen ~30 s, come back WITHOUT tapping: the lights should keep punching; the readout's beat line says
   `beat direct-grid …` (or `tempo` on an untrusted song) and the AUDIO panel's header `sounding DIRECT`. Then tap once: still
   `direct-grid` until the graph runs again, then `grid · kick …` after a later tap.
+
+## 8a — THE PULSE AFTER RETURNING (the lights side) + PULSE STRENGTH (Oct 23 2026; City 2.0) — `screens/harbor/scene.js`, `core/harbor-beat.js`, `audio/diag.js`
+- **What the owner saw** (iPhone, after 7a): back from the home screen the AUDIO panel said Web Audio recovered (ctx running, clock ▲,
+  out WEB AUDIO, sounding) and the readout's beat line `grid 100.0 · bar 30 · kick 0.66` — yet the lights didn't pulse. The beat clock
+  was fine; the readout is drawn BY the city's frame loop, so a stopped loop freezes it — numbers and all — on its last frame, while
+  the AUDIO panel (DOM, its own timer) stays live. That matches every number she read.
+- **The cause (the lights side):** the loop had ONE way back — a `visibilitychange` to visible while it thought it was stopped. On iOS a
+  return can come without that: the hidden event missed / coalesced (`start()` then saw `running` still true and did nothing) while WebKit
+  dropped the rAF pending across the process suspension; a page restored with a `pageshow` only; the fail-stop after 30 failed frames
+  (out of canvas memory in the background). Also a negative first `dt` (a rAF timestamp before `start()`'s clock) ran the dt-driven
+  envelopes backwards (`PT.swell − dt/3800` jumped UP: the party's DOM lights held at full).
+- **The fix:** a WATCHDOG (`scene.js#wakeLoop`): on visible, `pageshow`, `focus`, any tap and once a second, a visible page whose loop
+  is stopped — or "running" with no frame for 1.5 s (`STALL_MS`, counted from the last real frame) — is restarted; a fail-stopped loop
+  gets a fresh chance when the page comes back; `dt` never negative. `__district.loop()` / `scene.loop()`: `{ running, ago, drawn,
+  restarts, stalls, why }`. The AUDIO panel's new `city` row: `city running · last frame 0.0 s ago · restarts 2 (last: visible)` —
+  `STOPPED` / `STALLED` in red if it happens again (then the watchdog didn't help: tell Claude the row).
+- **PULSE STRENGTH** (the owner: "crank it up higher" — no more guessing): ONE multiplier on the punch at its source (`scene.js#partyTick`:
+  `PT.punch` + the ripple's history), so every beat-driven light follows it — the tubes, the crowns' flare, the signs, the wheel, the sky
+  beams, the pier lamps, the string lights, the NEON logo's party glow, SPEAKEASY's rings + word. `core/harbor-beat.js#pulseGain`
+  (the panel's percent or a multiplier, clamped 50–250 % in 5 % steps) and `pulseOut` (linear to 1.2, then a soft knee toward 2.0:
+  the tubes' punch is one extra additive draw at most, so a bigger number holds the peak a little longer — never a white wash, never
+  a full-screen flash; the troughs stay put). **The default: `PULSE_DEFAULT = 1.3`** (7a + 30 %) — the owner's pick locks in there.
+  Live: THE PREVIEW PANEL → LIGHTS → PULSE STRENGTH (JUST ME live, EVERYONE via SEND; `core/harbor-remote.js` `pulse`, validated by
+  `/api/admin` too), or `&pulse=180` on a link.
+- **Tests:** `tests/harbor.test.mjs` "8a — PULSE STRENGTH" (parse, clamp, the knee, the remote's validation); e2e-harbor `music` §10 (a
+  party night: the plain return; WebKit's dropped rAF with no hidden event — "running", no frame — restarted; no event at all — the
+  watchdog; a `pageshow` only; the punch swinging after each; the AUDIO panel's city row; 50 % vs 250 % live) + `panel` (the slider).
+
+## THE CITY SOUNDS (PART 8a, Oct 23 2026; City 2.0's title) — `core/city-sounds.js`, `audio/city-sound.js`, `screens/harbor/sounds.js`, `scripts/add-city-sfx.py`
+ONE registry of every sound the city will ever make (the owner's CITY SOUNDS hunt list, docs/harbor/plan.md), each a named SLOT; the first
+recordings imported into theirs; every event that exists today calls its slot; an EMPTY slot is simply silent.
+- **The slots** (`core/city-sounds.js#SLOTS`, PURE): `{ id (kebab-case, stable), part, kind: 'loop' | 'once', gain (its mix level), what, by (what calls
+  it today) }` — 65 slots. A one-shot may hold several TAKES (one slot, one picked at random, weighted, never the same twice running — `pickTake`);
+  the alternative (a slot per take) would make every caller pick, and a fourth car would mean code changes. FILLED = it has takes in the GENERATED
+  `core/city-sounds-files.js` (no network probe); `checkSlots()` guards ids / parts / kinds / gains / the takes' shape.
+  | part | slots (**filled**) |
+  | --- | --- |
+  | 7 · the speakeasy + the raid | club-murmur-calm, club-murmur-party, door-heavy, door-knock, cat-meow, tv-murmur, police-car-1920s, siren-1920s |
+  | 8 · the promenade + the city schedule | **water-lapping**, **city-hum-day**, **city-hum-night**, traffic-far, **car-1920s-pass** (4 takes), bus-brake-hiss, bus-idle, bus-pull-away, ships-bell, steam-whistle, ship-horn, **gulls** (4 takes), dog-bark, market-murmur, milk-bottles, **truck-delivery**, trash-truck, flag-flap, boat-putter |
+  | 9 · seasons + weather | birdsong-morning, crickets-night, wind-leaves, wind-winter, snow-hush, foghorn, rain-pavement, rain-water |
+  | 9 · the construction tower | tower-siren, tower-horn, implosion-charges, implosion-rumble, hammering, crane |
+  | 10 · party nights + fireworks | firework-launch, firework-burst, firework-burst-far, firework-crackle, crowd-cheer, party-yacht-music, helicopter-landing |
+  | 6b + the sky | helicopter, airliner-far, prop-plane, jet-flyby, balloon-burner, geese, drone-swarm, ufo-hum, ufo-beam, tr3b-drone, tr3b-crackle, tr3b-power-down, witch-cackle, sleigh-bells |
+  | legendary | ghost-ship-creak, ghost-bell, monster-splash |
+  Not on the hunt list, added for events that already exist: `door-knock` (tapping the door), `boat-putter` (the water taxi), `drone-swarm` (the drone
+  show). Thunder (audio/weather/) and the neon (audio/sfx/) keep their own recordings.
+- **What calls them today** (`screens/harbor/sounds.js`, ticked by the scene ~4× a second; `skyfx.js#listen` says what's up): THE BED — water-lapping
+  always, the two hums crossfading (below); THE SKY — helicopter (a bed while it's up, panned with it, louder hovering), airliner-far (the loudest
+  plane crossing: faded in / out at its ends, nearer = louder, panned), prop-plane (the banner plane, skywriting / skytyping), drone-swarm (the drone
+  show), balloon-burner (a burn every ~6–18 s while balloons fly), geese (a honk every ~2.5–7 s while a V crosses); THE HARBOR — gulls (by day while
+  gulls fly: a call every ~20–60 s, fewer with fewer gulls, none at night — `birds.debug().who.gulls`), boat-putter (the water taxi crossing), foghorn
+  (real fog > 0.45: every ~40–80 s, from the lighthouse's side); `ambience.js#knock` → door-knock and `#fireworkBurst` → firework-burst once filled (the
+  synthesized ones until then). Waiting for their events (Parts 7–11): the rest — e.g. ships-bell / steam-whistle / ship-horn are the CITY SCHEDULE's.
+- **THE CARS — wired in 8a** (`screens/harbor/roadlight.js`: a pass on the implied road plays a take as it starts; the headlights peak at the take's `peak`). **The API:** `harbor().sounds.play('car-1920s-pass', { pan, gain })` (in scene.js: `snd.play(…)`; anywhere:
+  `audio/city-sound.js#citySound`) → `{ take, peak, dur, stop(fade) }` or null. `peak` = seconds after the start when the car is NEAREST (the
+  loudest 400 ms: 8.6–9.4 s) — start the sound `peak` s before the headlights sweep the middle; `pan` −1…1 follows the direction; `gain` × the slot's
+  0.12. Takes: the two 1929 Volvo passes (weight 1 each), the 1945 Mercedes truck (0.35), the 1954 MG (0.15, rare).
+- **The player** (`audio/city-sound.js`): `citySound(slot, { gain, pan, rate, delay, take })` (a one-shot, ±3 % pitch), `cityLoop(slot, { gain, pan,
+  fadeIn })` → `{ set({ gain, pan }, ramp), stop(fade) }`, `cityPreview(slot)` (the panel). Everything → CITY_GAIN (1: the one knob) → a soft PEAK CAP
+  (a WaveShaper, −10.5 dBFS ceiling) → the SFX bus (the Effects slider, Mute). **Silent, never an error:** an empty slot (null / a do-nothing handle),
+  audio locked (no tap yet), Effects at 0 or Mute (a loop's voices stop; it comes back faded in), a missing file / a decode error (tried again
+  later), a FROZEN graph (nothing scheduled), a REBUILT context (`onRebuild`: every loop restarts on the new one, faded in), a hidden page (the
+  engine suspends the context: the loops pause with it). **LOOPS, seamless whatever the MP3's padding:** the file is the loop + a TAIL (the 2.5 s that
+  followed it in the recording); every pass is a fresh voice started `loop` s after the last, the old voice's tail crossfaded into it (equal-power
+  sin / cos curves) — scheduled ~2.5 s ahead on the context's own clock; the first pass starts at a random place, faded in over 2 s. **Memory:**
+  the MP3s decode through an OfflineAudioContext at 32 kHz (the hums at 16 kHz: nothing above ~6 kHz in them — `r` in the registry), mono: the day
+  bed (water + hum) is **12.6 MB** decoded (at the phone's 48 kHz it would be 26 MB); a hum not heard for 60 s is stopped and its buffer freed; the
+  one-shots' buffers are kept LRU up to 10 MB. Nothing is fetched before the first tap, and only what plays.
+- **The mix** (the files: loops −24 LUFS, one-shots −20; × the slot's gain; then the Effects slider — default 0.7 = −6.2 dB; the music at its default
+  0.35 sits at ≈ −34 LUFS out): water 0.125 → **−42.5 LUFS into the bus / −48.7 out**; the day hum 0.11 → −43.6 / −49.8; the night hum 0.09 → −45.3 /
+  −51.5 ("never silent, just calmer"); **the bed ≈ −46 LUFS out by day, −47 at night — ~12 dB under the music** (felt more than heard); a gull call
+  (gain 0.55–1) −42 … −48 out at its loudest moment; a car at its nearest ≈ −38 out for a moment (≈ 4 dB under the music), −41 over 3 s. With the
+  music OFF the same ambience plays (Part 12 builds the full soundscape) — it is all there is then, and it is what the owner will hear when she listens.
+- **Day ↔ night:** on the city's ONE darkness (`core/harbor-dark.js#darkness` — the blue hour on the real sun, ALWAYS NIGHT = 1): `w = smoothstep(0.12,
+  0.88, dark)`, day = cos(w·π/2), night = sin(w·π/2) (equal power: the bed never dips), each gain ramped over 2.5 s.
+- **THE PREVIEW PANEL — SOUNDS** (`core/harbor-remote.js#CATS`, `screens/harbor/remote.js`, `css/harbor-remote.css` `.hr-snd*`): every slot by part —
+  ▶ (on the filled ones), its id, LOOP / ONE-SHOT + what it is + what calls it, FILLED (`LOOP 60 S`, `4 TAKES`, `1.8 S`) or EMPTY; ▶ plays it on THIS
+  phone only (a one-shot once, a loop ~8 s, at twice its city level so it's heard over the music); a SOUNDING NOW line (the beds + their gains, the MB
+  decoded, the last one-shot).
+- **Adding a sound (one folder + one command):** drop `<slot>.wav` into `~/Downloads/city-sfx/` (any of wav / flac / mp3 / m4a / ogg / aif; more takes
+  of a one-shot: `<slot>-2.wav`, `<slot>-3.wav` …), and its credits in that folder's `credits.txt` (a block per file: its name at the start of a line,
+  the details indented), then `~/.cache/neural-arcade/pyenv/Scripts/python -I scripts/add-city-sfx.py` (`--dry-run` first; `--only a,b`). It reads the
+  slot ids from `core/city-sounds.js`, decodes the original read-only (ffmpeg), cuts it (a row in its `CUTS` table for hand-picked cut points / weights /
+  a shared slot / a decode rate; without one: a loop = the whole file less 1 s at each end, a one-shot = the whole file trimmed at −45 dB of its peak),
+  mono 32 kHz, a 2nd-order LOW CUT (120 Hz default; + an optional presence lift at 2.5 kHz), levels it (BS.1770, the neon builder's meter; a soft
+  limiter at −2 dBFS), a loop's start nudged ±5 s to where its head and tail match best (level + low/high balance), a one-shot's raised-cosine fades,
+  MP3 64 kbps → `audio/city/`, registers the takes (`core/city-sounds-files.js`: file, `v` = its content hash for the `?v=` cache key, length, LUFS,
+  loop + xf / peak, the source span, weight, decode rate) and the credits (`audio/city/sources.json` + `audio/city/CREDITS.md`; a block naming no CC0 /
+  Sonniss / royalty-free licence is flagged). Re-importing a file replaces its takes. Then `node --test tests/city-sounds.test.mjs` and commit
+  `audio/city/` + `js/core/city-sounds-files.js`. A NEW slot = one row in `SLOTS` (and, if an event should call it, a line in `screens/harbor/sounds.js`).
+- **The first recordings** (the owner, Oct 23 — measured, not listened to: per-second band energies, spectrograms, spectral flux for onsets, narrow-band
+  peaks for horns / bells / voices / sirens; all MD5s match `credits.txt`). All mono 32 kHz MP3, 64 kbps — **2.36 MB in all**:
+  | slot | source → kept | length · size · loudness | what was cut, and why |
+  | --- | --- | --- | --- |
+  | water-lapping | water-lapping.wav (2:03, 96k/24) → **9.4–69.4 s** + a 2.5 s tail | loop 60 s · 489 KB · −24.4 LUFS (peak −2.4 dBFS) | the steadiest of all, no tonal events; 0–3 s fades in in the source; 60 s is plenty for water (memory); low cut 110 Hz; the seam head vs tail 0.0 dB |
+  | city-hum-day | city-hum-day.wav (1:57, 48k/24) → **3.5–73.5 s** + tail | loop 70 s · 567 KB · −24.4 | a steady wash under 2 kHz + a faint steady 266 Hz drone (a distant engine — "city hum"); **no horns, sirens or voices found**; left out: a louder rumble at 65–82 s + 99–115 s and a bright click at 87 s; low cut 120 Hz; seam −1.1 dB; decodes at 16 kHz |
+  | city-hum-night | city-hum-night.wav (4:17, 96k/24) → **98.8–168.8 s** + tail | loop 70 s · 567 KB · −24.4 | **CHURCH BELLS 4–42 s** (partials 1.5 / 2.0 / 2.4 / 2.9 / 3.4 kHz) **and one more strike at ~63 s** (the credits said "first ~12 s": they ring longer); low swells at 81–95 s + 207 s; faint whistle-like chirps at 193–203 s — all outside; very bass-heavy (−12 dB of mids vs the lows): low cut 140 Hz + a +3 dB lift at 2.5 kHz so it reads on a phone; seam +1.4 dB; 16 kHz |
+  | car-1920s-pass ×2 | car-1920s-pass.wav (3:10, a 1929 Volvo PV4, two slow passes) → **13.0–31.5 s** and **127.0–146.5 s** | 18.5 s / 19.5 s · 145 / 153 KB · −20.4 | the two passes (digital silence 41–106 s between); its own engine note (a 590 Hz whine) is the car; nearest at 8.6 / 9.1 s; fades 0.6 s in, 1.8 s out |
+  | car-1920s-pass (rare) | car-1920s-pass-2.wav (0:31, a 1954 MG TF) → **9.0–27.0 s** | 18 s · 141 KB · −20.5 | a quick, sporty pass, nearest at 9.4 s — newer than the era: kept as a RARE take (weight 0.15) rather than dropped (nothing modern in it: no horn, no voices) |
+  | car-1920s-pass + truck-delivery | car-1920s-pass-3.wav (7:01 mono, a 1945 Mercedes L3750 truck) → **283.0–306.5 s** | 23.5 s · 184 KB · −20.4 | the clean distant drive-by (the file's other takes are starts, reverses, stops); slow + heavy: weight 0.35 among the cars, and the dawn DELIVERY TRUCK's take |
+  | gulls ×4 | gulls.flac (0:52, the lossless Freesound original) → **0.15–1.95, 2.05–3.65, 3.7–5.2 (weight 0.6), 6.85–8.6 s** | 1.5–1.8 s · 13–15 KB each · −20.4 | single calls with clean harmonic arches at a ~1.1–1.3 kHz fundamental (gull "kyow"s), each with its natural tail; from 13 s on the whole colony chatters at once (no single calls); broadband clicks at 5.4 / 6.75 / 12.25 s left out; crow-like noisy caws not used; a city rumble under it: low cut 350 Hz; fades 0.08 s in, 0.6–0.7 s out |
+- **Credits** (all CC0 or royalty-free; credits kept anyway — `audio/city/CREDITS.md` has every source's full block + MD5): water-lapping — TS Sound,
+  "AMB_EXT_Fort_McAllister_Water_Lapping_Boat_Ramp" (Savannah, GA Ambiences), Sonniss GDC 2016 · city-hum-day — Federica Vairani, "24_Roosvelt
+  Island_water_air_birds_distant traffic" (Water in Different Shapes), Sonniss GDC 2023 · city-hum-night — Sonocaine, "SON_Quad_City_Berlin_027 —
+  Rooftop At Night…" (Quad City Berlin), Sonniss GDC 2017 · car-1920s-pass — Pole Position Production, "volvo_pv4_t2_ext_slow_by_twice" (Volvo PV4
+  1929), Sonniss GDC 2018 · car-1920s-pass-2 — On The Fly Audio, "MG TF1500-Roadside-Pass By Fast 02", Sonniss GDC 2020 · car-1920s-pass-3 — Pole
+  Position Production, "Mercedes_L3750_t1_Ext_…_Distant_MKH416" (Mercedes L3750 1945), Sonniss GDC 2020 · gulls — TRP, "Seagulls distant urban St John
+  190529", Freesound 574388, **CC0 1.0** (the imported file IS that lossless FLAC, 48 kHz / 24-bit, not the Pixabay MP3 named in credits.txt). The
+  Sonniss GDC Bundle licence: royalty-free, commercial use, no attribution required, the raw files not redistributed standalone (only these cut,
+  filtered, re-encoded excerpts ship). Other credits: the neon (Freesound CC0) — THE RECORDED NEON above + `scripts/build-neon-sfx.py`.
+- **Tests:** `tests/city-sounds.test.mjs` (the registry's checks, every hunt-list slot present, the filled ones + their takes, every file real / small /
+  matching its `?v=` hash / levelled, loops = loop + tail, the night hum clear of the bells, weighted takes never repeating, an EMPTY slot silent + a
+  locked one quiet, the importer's id regex = the registry); e2e-harbor `ONLY=sounds` (silent before the tap; by day the water + the DAY hum, the night
+  one not loaded; 12.6 MB decoded; the car + gull one-shots; empty slots silent; THE SEAM's voices 1 → 2 → 1; Effects off / on; the panel's SOUNDS
+  rows + ▶; at night the NIGHT hum; the neon tap at 0.28125 = 0.5 × 0.5625).
 
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,

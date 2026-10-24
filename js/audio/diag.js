@@ -52,6 +52,13 @@ export function mountAudioDiag() {
     return { key: 'no', text: 'NOT SOUNDING', ok: false };
   }
   const line = (cls, text) => [cls, text];
+  function cityRow() {
+    let L = null;
+    try { L = window.__district && window.__district.loop ? window.__district.loop() : null; } catch { /* no city */ }
+    if (!L) return [];
+    const ok = L.running && L.ago < 1500;
+    return [line(ok ? 'ad-ok' : 'ad-bad', `city ${L.running ? (ok ? 'running' : 'STALLED') : 'STOPPED'} · last frame ${(Math.round(L.ago / 500) / 2).toFixed(1)} s ago · restarts ${L.restarts}${L.why ? ` (last: ${L.why})` : ''}${L.stalls ? ` · stalls ${L.stalls}` : ''}${L.failStop ? ' · FAIL-STOP' : ''}`)];
+  }
   function paint() {
     let d;
     try { d = musicDiag(); } catch (e) { head.textContent = 'AUDIO — ' + (e && e.message); return; }
@@ -80,6 +87,9 @@ export function mountAudioDiag() {
         : `el none${d.carry ? ` (carrying ${d.carry} to new voices)` : ''} · voices ${d.voices}`),
       line(d.out === 'direct' ? 'ad-ok' : 'ad-ok', `out ${d.out === 'direct' ? 'DIRECT ELEMENT' : 'WEB AUDIO'} · direct ${d.direct} · src ${d.el ? d.el.src : '–'} · voices ${d.voices} (${d.armed} armed) · probe ${d.peak < 0 ? '?' : d.peak.toFixed(3)}`),
       line(okAll ? 'ad-ok' : 'ad-bad', `want ${d.want || 'nothing'}${d.off ? ` (${d.off})` : ''} · ${st.text}${d.needTap && st.key !== 'tap' ? ' · NEEDS TAP' : ''}${d.dead && st.key !== 'dead' ? ' · DEAD VOICE' : ''}${d.ended ? ' · ended' : ''} · heals ${d.heals}${d.last ? ` (${d.last})` : ''}`),
+      // 8a (City 2.0): THE CITY'S FRAME LOOP — the &debug readout's beat line is drawn BY it, so a stopped loop freezes that line on
+      // its last frame while this panel (the DOM) stays live: 'city STOPPED' / a growing 'last frame' = the lights can't pulse
+      ...cityRow(),
       ...d.events.slice(-8).map(e => line('ad-ev', `${hhmmss(e.at)} ${e.m}`)),
     ];
     const text = rows.map(r => r.join('\u0001')).join('\n');

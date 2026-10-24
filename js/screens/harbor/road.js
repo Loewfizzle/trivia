@@ -17,6 +17,16 @@ export function roadSteps(L, T) {
     const [, yr] = project(cam, 0, rail.y, rail.z), sr = cam.F / rail.z;
     x.fillStyle = rgb(T.rail); x.fillRect(0, yr, cam.W, Math.max(1.2, sr * 0.1));
     for (let sx = 0; sx < cam.W; sx += 1.1 * sr) x.fillRect(sx, yr, 0.7, yRail - yr);
+    // THE CROSSWALK (8a) between the two stop lights: wide white bars across the road, worn
+    if (L.crosswalk) {
+      const cw = L.crosswalk, n = 9;
+      x.fillStyle = rgb(shade(T.lane, -0.05), 0.75);
+      for (let i = 0; i < n; i++) {
+        const z0 = cw.z0 + (cw.z1 - cw.z0) * i / n, z1 = z0 + (cw.z1 - cw.z0) / n * 0.55;
+        const [a, ya] = project(cam, cw.x0, 0, z0), [b] = project(cam, cw.x1, 0, z0), [a2, yb] = project(cam, cw.x0, 0, z1), [b2] = project(cam, cw.x1, 0, z1);
+        x.beginPath(); x.moveTo(a, ya); x.lineTo(b, ya); x.lineTo(b2, yb); x.lineTo(a2, yb); x.closePath(); x.fill();
+      }
+    }
     // the curb
     x.fillStyle = rgb(shade(T.prom, -0.25)); x.fillRect(0, yCurb - Math.max(1, cam.F * 0.22 / r.z0), cam.W, Math.max(1.5, cam.F * 0.22 / r.z0));
   }];
@@ -27,9 +37,12 @@ export function signalSteps(L, T) {
   const cam = L.cam;
   return L.signals.map(sg => x => {
     box(x, cam, { x0: sg.x - 0.12, x1: sg.x + 0.12, z0: sg.z, z1: sg.z + 0.2, h: sg.h }, T.lamp, { top: false });
-    const arm = 3.2, hx = sg.x + sg.dir * 2.6;
-    const [a, ya] = project(cam, Math.min(sg.x, sg.x + sg.dir * arm), sg.h - 0.1, sg.z), [b] = project(cam, Math.max(sg.x, sg.x + sg.dir * arm), sg.h, sg.z);
-    x.fillStyle = rgb(T.lamp); x.fillRect(a, ya, b - a, Math.max(1, cam.F * 0.12 / sg.z));
+    // (8a: a 1920s pole-top signal — arm 0: the head sits on the pole; the old mast arm when sg.arm is set)
+    const armL = sg.arm ?? 2.6, arm = armL ? armL + 0.6 : 0, hx = sg.x + sg.dir * armL;
+    if (arm) {
+      const [a, ya] = project(cam, Math.min(sg.x, sg.x + sg.dir * arm), sg.h - 0.1, sg.z), [b] = project(cam, Math.max(sg.x, sg.x + sg.dir * arm), sg.h, sg.z);
+      x.fillStyle = rgb(T.lamp); x.fillRect(a, ya, b - a, Math.max(1, cam.F * 0.12 / sg.z));
+    }
     const s = cam.F / sg.z, hw = s * 0.45 * 1.3, hh = s * 1.25 * 1.3;
     const [cx, cy] = project(cam, hx, sg.h - 0.1, sg.z);
     x.fillStyle = rgb(shade(T.lamp, -0.2)); x.beginPath(); x.roundRect(cx - hw / 2, cy, hw, hh, hw * 0.2); x.fill();

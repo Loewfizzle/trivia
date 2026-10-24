@@ -1,0 +1,104 @@
+{
+ "car-1920s-pass": {
+  "file": "car-1920s-pass.wav",
+  "md5": "428986bdbef2d41c12d768e66bd79fb4",
+  "slots": [
+   "car-1920s-pass"
+  ],
+  "credit": [
+   "car-1920s-pass.wav   (same file as sent earlier in the speakeasy pack)",
+   "  \"volvo_pv4_t2_ext_slow_by_twice_ORTF_MKH8040\" (1929 Volvo PV4) - Pole Position Production, Sonniss GDC 2018 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Pole%20Position%20-%20Volvo%20PV4%201929/volvo_pv4_t2_ext_slow_by_twice_ORTF_MKH8040.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "car-1920s-pass-2": {
+  "file": "car-1920s-pass-2.wav",
+  "md5": "d4d262dc1a87a3b09bc9aeeb84b53bd6",
+  "slots": [
+   "car-1920s-pass"
+  ],
+  "credit": [
+   "car-1920s-pass-2.wav",
+   "  \"MG TF1500-Roadside-Pass By Fast 02-OTFA\" (1954 MG TF 1500) - On The Fly Audio, Sonniss GDC 2020 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/On%20The%20Fly%20Audio%20-%20MG%20TF%201500%20anno%201954/MG%20TF1500-Roadside-Pass%20By%20Fast%2002-OTFA.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "car-1920s-pass-3": {
+  "file": "car-1920s-pass-3.wav",
+  "md5": "58d30769b681f2f76128e2e4d1413520",
+  "slots": [
+   "car-1920s-pass",
+   "truck-delivery"
+  ],
+  "credit": [
+   "car-1920s-pass-3.wav",
+   "  \"Mercedes_L3750_t1_Ext_Start_Slow_Away_Up_Reverse_Stop_Away_By_Up_Stop_Off_Distant_MKH416\" (1945 Mercedes L3750 truck) - Pole Position Production, Sonniss GDC 2020 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Pole%20Position%20-%20Mercedes%20L3750%201945/Mercedes_L3750_t1_Ext_Start_Slow_Away_Up_Reverse_Stop_Away_By_Up_Stop_Off_Distant_MKH416.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "city-hum-day": {
+  "file": "city-hum-day.wav",
+  "md5": "aad14ef309eda9872952ccc8375d51d8",
+  "slots": [
+   "city-hum-day"
+  ],
+  "credit": [
+   "city-hum-day.wav",
+   "  \"24_Roosvelt Island_water_air_birds_distant traffic\" - Federica Vairani (\"Water in Different Shapes\"), Sonniss GDC 2023 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/Federica%20Vairani%20-%20Water%20in%20Different%20Shapes/24_Roosvelt%20Island_water_air_birds_distant%20traffic.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "city-hum-night": {
+  "file": "city-hum-night.wav",
+  "md5": "130d4a030ed4b86473a5f5d1d2af4043",
+  "slots": [
+   "city-hum-night"
+  ],
+  "credit": [
+   "city-hum-night.wav",
+   "  \"SON_Quad_City_Berlin_027 - Rooftop At Night In Residential Area, Calm, Faint Traffic, Churchbells At Top - Front Omni\" - Sonocaine (\"Quad City Berlin\"), Sonniss GDC 2017 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-3/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle/Sonocaine%20-%20Quad%20City%20Berlin/SON_Quad_City_Berlin_027%20-%20Rooftop%20At%20Night%20In%20Residential%20Area%2C%20Calm%2C%20Faint%20Traffic%2C%20Churchbells%20At%20Top%20-%20Front%20Omni.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/",
+   "  NOTE: church bells in the first ~12 s - trim them off."
+  ],
+  "note": null
+ },
+ "gulls": {
+  "file": "gulls.flac",
+  "md5": "99ddb8f947981a5e1ffc87bcec1bb7b2",
+  "slots": [
+   "gulls"
+  ],
+  "credit": [
+   "gulls.mp3   (LOSSY Pixabay copy - the lossless original is on Freesound, download it yourself, see below)",
+   "  \"Seagulls distant urban St John 190529\" - TRP (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/nature-seagulls-distant-urban-st-john-190529-62207/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_2f3d9e7c2e.mp3?filename=freesound_community-seagulls-distant-urban-st-john-190529-62207.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: https://freesound.org/people/TRP/sounds/574388/ (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/) - \"Seagulls distant urban St John 190529.flac\", FLAC 48 kHz/24-bit stereo"
+  ],
+  "note": "The file imported is the lossless Freesound original named in this block (TRP, sound 574388, CC0 1.0; FLAC 48 kHz 24-bit stereo, 0:52), not the Pixabay MP3 copy."
+ },
+ "water-lapping": {
+  "file": "water-lapping.wav",
+  "md5": "4ca14bf31cdacc5d8cb99b497801a015",
+  "slots": [
+   "water-lapping"
+  ],
+  "credit": [
+   "water-lapping.wav",
+   "  \"AMB_EXT_Fort_McAllister_Water_Lapping_Boat_Ramp\" - TS Sound (\"Savannah, GA Ambiences\"), Sonniss GDC 2016 bundle",
+   "  Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/TS%20Sound%20-%20Savannah%2C%20GA%20Ambiences/AMB_EXT_Fort_McAllister_Water_Lapping_Boat_Ramp.wav",
+   "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ }
+}

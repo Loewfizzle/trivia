@@ -1,0 +1,145 @@
+// CITY 2.0 — THE CITY SOUNDS: the slot registry (PURE; Part 8a — docs/audio.md#the-city-sounds). ONE list of every sound the
+// city will ever make (the owner's CITY SOUNDS hunt list, docs/harbor/plan.md, grouped by the part that needs it): each a named
+// SLOT with stable kebab-case id. A slot is FILLED when scripts/add-city-sfx.py has imported a recording for it (its takes are in
+// city-sounds-files.js, generated — no network probe needed to know); an EMPTY slot is simply silent (audio/city-sound.js returns
+// nothing and does nothing — never an error, never a placeholder beep). Every event that exists in the city already calls its
+// slot (screens/harbor/sounds.js), so a recording dropped in later just starts sounding.
+//   kind   'loop' — a bed that runs as long as its thing lasts (crossfaded into itself at runtime: the file holds the loop + a tail)
+//          'once' — a one-shot; a slot may hold several TAKES (one picked at random, weighted, never the same twice running)
+//   gain   the slot's mix level on top of the file's own loudness (the importer levels loops to −24 LUFS, one-shots to −20 LUFS)
+//   by     what calls it today ('' = nothing yet: the part that builds its event wires it)
+// Adding a sound = drop <slot>.wav (or <slot>-2.wav … for more takes; any common format) into ~/Downloads/city-sfx/ and run
+// `~/.cache/neural-arcade/pyenv/Scripts/python -I scripts/add-city-sfx.py` (it trims, levels, encodes, registers + credits).
+// A NEW slot = one row here (the importer reads the ids from this file).
+import { FILES } from './city-sounds-files.js';
+
+export const PARTS = [
+  { id: '7', label: 'PART 7 · THE SPEAKEASY + THE RAID' },
+  { id: '8', label: 'PART 8 · THE PROMENADE + THE CITY SCHEDULE' },
+  { id: '9', label: 'PART 9 · SEASONS + WEATHER' },
+  { id: 'tower', label: 'PART 9 · THE CONSTRUCTION TOWER' },
+  { id: '10', label: 'PART 10 · PARTY NIGHTS + FIREWORKS' },
+  { id: 'sky', label: '6b + THE SKY' },
+  { id: 'legend', label: 'LEGENDARY EVENTS' },
+];
+
+const S = (id, part, kind, gain, what, by = '') => ({ id, part, kind, gain, what, by });
+export const SLOTS = [
+  // ---- PART 7 — the speakeasy + the raid
+  S('club-murmur-calm', '7', 'loop', 0.1, 'a muffled club through a wall: crowd murmur + laughter (the jazz is our own music, low-passed)'),
+  S('club-murmur-party', '7', 'loop', 0.12, 'the party-night version, louder'),
+  S('door-heavy', '7', 'once', 0.14, 'the speakeasy’s heavy wood door opening / closing (a moment of loud jazz)'),
+  S('door-knock', '7', 'once', 0.16, 'a knock on the speakeasy’s door', 'tapping the door (the synthesized knock until it’s filled)'),
+  S('cat-meow', '7', 'once', 0.1, 'the alley cat’s meow'),
+  S('tv-murmur', '7', 'loop', 0.08, 'a TV murmur through a window (late night)'),
+  S('police-car-1920s', '7', 'once', 0.14, '1920s police cars: old engines rolling by, tyres on a wet road'),
+  S('siren-1920s', '7', 'once', 0.08, 'a soft distant 1920s siren wail (rising and falling)'),
+  // ---- PART 8 — the promenade, people, vehicles, the city schedule
+  S('water-lapping', '8', 'loop', 0.125, 'harbor water lapping at the quay', 'always, quietly under everything'),
+  S('city-hum-day', '8', 'loop', 0.11, 'a distant city hum by day', 'by day (crossfades with the night hum on the darkness)'),
+  S('city-hum-night', '8', 'loop', 0.09, 'a distant city hum at night (calmer, never silent)', 'at night (crossfades with the day hum on the darkness)'),
+  S('traffic-far', '8', 'loop', 0.08, 'light far-off traffic'),
+  S('car-1920s-pass', '8', 'once', 0.12, 'a single 1920s car passing, far → near → far', 'the road’s cars (harbor().sounds.play / citySound — Part 8’s headlight sweeps)'),
+  S('bus-brake-hiss', '8', 'once', 0.12, 'the bus’s air-brake hiss'),
+  S('bus-idle', '8', 'loop', 0.1, 'the bus idling at the curb'),
+  S('bus-pull-away', '8', 'once', 0.14, 'the bus pulling away'),
+  S('ships-bell', '8', 'once', 0.14, 'the HOURLY SHIP’S BELL'),
+  S('steam-whistle', '8', 'once', 0.16, 'the NOON STEAM WHISTLE (a 1920s steamboat / factory)'),
+  S('ship-horn', '8', 'once', 0.16, 'a big ship’s horn (the 7 pm dinner cruise)'),
+  S('gulls', '8', 'once', 0.11, 'a gull’s call, distant (several takes)', 'the gulls over the harbor by day: a call every ~20–60 s'),
+  S('dog-bark', '8', 'once', 0.1, 'a friendly distant dog bark'),
+  S('market-murmur', '8', 'loop', 0.1, 'a farmers’ market murmur (Saturday morning)'),
+  S('milk-bottles', '8', 'once', 0.1, 'milk bottles clinking (dawn)'),
+  S('truck-delivery', '8', 'once', 0.12, 'a delivery truck (dawn)'),
+  S('trash-truck', '8', 'once', 0.14, 'the trash truck (Monday)'),
+  S('flag-flap', '8', 'loop', 0.08, 'the flag flapping in the wind'),
+  S('boat-putter', '8', 'loop', 0.09, 'a small boat’s engine putting across the water', 'the water taxi while it crosses'),
+  // ---- PART 9 — seasons + weather
+  S('birdsong-morning', '9', 'loop', 0.08, 'morning birdsong (spring / summer)'),
+  S('crickets-night', '9', 'loop', 0.07, 'summer-night crickets'),
+  S('wind-leaves', '9', 'loop', 0.08, 'autumn wind through leaves'),
+  S('wind-winter', '9', 'loop', 0.08, 'winter wind'),
+  S('snow-hush', '9', 'loop', 0.06, 'snow’s muffled hush'),
+  S('foghorn', '9', 'once', 0.14, 'a distant FOGHORN (real fog)', 'the lighthouse in real fog: every ~40–80 s'),
+  S('rain-pavement', '9', 'loop', 0.1, 'rain on the pavement'),
+  S('rain-water', '9', 'loop', 0.09, 'rain on the water'),
+  // ---- PART 9 — the construction tower
+  S('tower-siren', 'tower', 'once', 0.12, 'the demolition’s warning siren'),
+  S('tower-horn', 'tower', 'once', 0.14, 'the warning horn blasts'),
+  S('implosion-charges', 'tower', 'once', 0.16, 'the implosion’s charges'),
+  S('implosion-rumble', 'tower', 'once', 0.16, 'the long rumble as it comes down'),
+  S('hammering', 'tower', 'loop', 0.07, 'distant hammering'),
+  S('crane', 'tower', 'loop', 0.07, 'a crane at work'),
+  // ---- PART 10 — party nights + fireworks
+  S('firework-launch', '10', 'once', 0.12, 'a firework’s launch whoosh'),
+  S('firework-burst', '10', 'once', 0.14, 'a firework bursting (near)', 'the party’s finale (the synthesized burst until it’s filled)'),
+  S('firework-burst-far', '10', 'once', 0.1, 'a firework bursting far off'),
+  S('firework-crackle', '10', 'once', 0.1, 'crackle / glitter after a burst'),
+  S('crowd-cheer', '10', 'once', 0.12, 'a crowd cheering (the fireworks, the NYE countdown)'),
+  S('party-yacht-music', '10', 'loop', 0.1, 'the party yacht’s music across the water'),
+  S('helicopter-landing', '10', 'once', 0.14, 'a helicopter landing (on the party yacht)'),
+  // ---- 6b + THE SKY
+  S('helicopter', 'sky', 'loop', 0.1, 'a helicopter, distant + a flyby', 'the helicopter while it’s up (panned with it)'),
+  S('airliner-far', 'sky', 'loop', 0.07, 'an airliner far up', 'the airliners while one crosses (the nearest, panned)'),
+  S('prop-plane', 'sky', 'loop', 0.08, 'a prop plane’s drone', 'the banner plane, the skywriters'),
+  S('jet-flyby', 'sky', 'once', 0.14, 'jets flying by (the air show)'),
+  S('balloon-burner', 'sky', 'once', 0.1, 'a hot air balloon’s burner whoosh', 'the balloons while they’re up: a burn every ~6–18 s'),
+  S('geese', 'sky', 'once', 0.1, 'geese honking', 'the geese while a V crosses'),
+  S('drone-swarm', 'sky', 'loop', 0.05, 'the drone show’s faint swarm hum', 'the drone show while it flies'),
+  S('ufo-hum', 'sky', 'loop', 0.08, 'the UFO saucer’s low hum'),
+  S('ufo-beam', 'sky', 'once', 0.1, 'the abduction beam'),
+  S('tr3b-drone', 'sky', 'loop', 0.08, 'the TR-3B’s deep drone'),
+  S('tr3b-crackle', 'sky', 'once', 0.1, 'electrical crackle'),
+  S('tr3b-power-down', 'sky', 'once', 0.12, 'the power-down (the blackout)'),
+  S('witch-cackle', 'sky', 'once', 0.1, 'a witch’s cackle (Halloween)'),
+  S('sleigh-bells', 'sky', 'once', 0.1, 'sleigh bells (Christmas)'),
+  // ---- LEGENDARY EVENTS
+  S('ghost-ship-creak', 'legend', 'loop', 0.08, 'the ghost ship: creaking wood'),
+  S('ghost-bell', 'legend', 'once', 0.12, 'the ghost ship’s ghostly bell'),
+  S('monster-splash', 'legend', 'once', 0.16, 'the harbor monster’s big splash'),
+];
+
+const BY_ID = new Map(SLOTS.map(s => [s.id, s]));
+export const slotOf = id => BY_ID.get(id) || null;
+/** the recorded takes of a slot ([] = empty: silent) — each { f, d, v, w?, loop?, xf?, peak?, lufs, src } */
+export const takesOf = id => (BY_ID.has(id) && Array.isArray(FILES[id]) ? FILES[id] : []);
+export const isFilled = id => takesOf(id).length > 0;
+/** the slots with something in them / still waiting for a recording */
+export const filledSlots = () => SLOTS.filter(s => isFilled(s.id)).map(s => s.id);
+
+/** a take of a slot: weighted at random (w, default 1), never the same as `last` when there is another → { take, i } or null */
+export function pickTake(id, rnd = Math.random, last = -1) {
+  const t = takesOf(id);
+  if (!t.length) return null;
+  if (t.length === 1) return { take: t[0], i: 0 };
+  const idx = t.map((_, i) => i).filter(i => i !== last);
+  const tot = idx.reduce((a, i) => a + (t[i].w ?? 1), 0);
+  let r = rnd() * tot;
+  for (const i of idx) { r -= t[i].w ?? 1; if (r < 0) return { take: t[i], i }; }
+  const i = idx[idx.length - 1];
+  return { take: t[i], i };
+}
+
+/** the registry's own checks (city-sounds.test.mjs): [] = fine */
+export function checkSlots() {
+  const bad = [], seen = new Set(), parts = new Set(PARTS.map(p => p.id));
+  for (const s of SLOTS) {
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(s.id)) bad.push(`id:${s.id}`);
+    if (seen.has(s.id)) bad.push(`dup:${s.id}`); seen.add(s.id);
+    if (!parts.has(s.part)) bad.push(`part:${s.id}:${s.part}`);
+    if (s.kind !== 'loop' && s.kind !== 'once') bad.push(`kind:${s.id}`);
+    if (!(s.gain > 0 && s.gain <= 1)) bad.push(`gain:${s.id}`);
+    if (!s.what) bad.push(`what:${s.id}`);
+  }
+  for (const [id, takes] of Object.entries(FILES)) {
+    const s = BY_ID.get(id);
+    if (!s) { bad.push(`files:unknown-slot:${id}`); continue; }
+    for (const t of takes) {
+      if (!t || typeof t.f !== 'string' || !/^[a-z0-9_.-]+\.(mp3|m4a|wav)$/.test(t.f)) bad.push(`files:${id}:name`);
+      if (!(t.d > 0)) bad.push(`files:${id}:${t.f}:d`);
+      if (s.kind === 'loop' && !(t.loop > 1 && t.xf > 0 && t.loop + t.xf <= t.d + 0.05)) bad.push(`files:${id}:${t.f}:loop`);
+      if (t.w != null && !(t.w > 0)) bad.push(`files:${id}:${t.f}:w`);
+    }
+  }
+  return bad;
+}

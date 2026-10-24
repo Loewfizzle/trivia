@@ -55,6 +55,33 @@ export function beatMode(song, kick) {
   }
   return heard ? 'kicks' : 'calm';
 }
+// ---- 8a — PULSE STRENGTH (the owner: "crank it up higher" — and stop guessing: THE PREVIEW PANEL's LIGHTS → PULSE STRENGTH slider,
+// the &pulse=<percent> flag). ONE multiplier on the city's punch at its source (scene.js#partyTick: PT.punch + the ripple's history),
+// so every beat-driven light follows it at once — the tubes, the crowns' flare, the signs, the wheel, the sky beams, the pier lamps,
+// the string lights, the NEON logo's party glow, SPEAKEASY's rings + word. Above PULSE_KNEE a soft knee eases the scaled punch toward
+// PULSE_CAP (the tubes' punch is one extra additive draw at most — 2× lit — so a bigger number holds the peak a little longer, never
+// a white wash); the troughs between beats stay where they are (the multiplier only grows the peak: never a full-screen flash).
+/** THE DEFAULT — the owner's pick locks in HERE (1.3 = 130 % = 7a's punch + 30 %) */
+export const PULSE_DEFAULT = 1.3;
+export const PULSE_MIN = 0.5, PULSE_MAX = 2.5, PULSE_STEP = 0.05;
+export const PULSE_KNEE = 1.2, PULSE_CAP = 2;
+/** a pulse value (the panel's percent 50…250, or a multiplier ≤ 5: '1.8') → the multiplier, clamped; missing / junk → the default */
+export function pulseGain(v) {
+  if (v == null || v === '') return PULSE_DEFAULT;
+  let n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return PULSE_DEFAULT;
+  if (n > 5) n /= 100;
+  n = Math.round(n / PULSE_STEP) * PULSE_STEP;
+  return +Math.max(PULSE_MIN, Math.min(PULSE_MAX, n)).toFixed(2);
+}
+/** the punch p (0..~1.4) × the strength k, with the soft knee: linear up to PULSE_KNEE, then easing toward PULSE_CAP */
+export function pulseOut(p, k = PULSE_DEFAULT) {
+  const x = Math.max(0, +p || 0) * k;
+  if (x <= PULSE_KNEE) return x;
+  const o = x - PULSE_KNEE, r = PULSE_CAP - PULSE_KNEE;
+  return PULSE_KNEE + o / (1 + o / r);
+}
+
 /** the strength a beat settles at when no kick is heard: the grid 0.85, the gentle tempo pulse 0.6, the calm pulse 0.7 */
 export const SETTLE = { grid: 0.85, 'direct-grid': 0.85, tempo: 0.6, calm: 0.7, kicks: 0.7 };
 

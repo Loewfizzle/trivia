@@ -16,9 +16,10 @@ import { sunTimes, localParts, easter, thanksgiving } from './sky.js';
 import { SHOW_SCENES } from './harbor-show.js';
 import { DRONE_SHAPES } from './harbor-sky.js';
 import { TOWER_CHOICES } from './harbor-windows.js';
+import { PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_STEP } from './harbor-beat.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'mood', 'debug', 'grid'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'mood', 'debug', 'grid', 'pulse'];
 
 const GAME_IDS = ['cipher', 'signal', 'overclock', 'bluff', 'pulse', 'golf', 'prism', 'gridlock', 'slip', 'agent', 'stakes', 'rum'];
 const NEON_SCHEMES = ['halloween', 'christmas', 'july4', 'valentine', 'stpatrick', 'nye', 'thanksgiving', 'easter', 'party'];
@@ -52,8 +53,12 @@ export const CATS = [
   { id: 'party', label: 'PARTY SHOW' },
   { id: 'harbor', label: 'HARBOR' },
   { id: 'speakeasy', label: 'SPEAKEASY' },
+  // (PART 8a: THE PROMENADE — the trees' seasons, the implied road on / off, a car passing now)
+  { id: 'promenade', label: 'PROMENADE' },
   { id: 'holidays', label: 'HOLIDAYS' },
   { id: 'music', label: 'MUSIC' },
+  // (PART 8a: every CITY SOUND slot — filled / empty, ▶ plays it on this phone; core/city-sounds.js. No events: its rows are the panel's own)
+  { id: 'sounds', label: 'SOUNDS' },
   { id: 'tools', label: 'TOOLS' },
 ];
 const CAT_IDS = new Set(CATS.map(c => c.id));
@@ -115,9 +120,15 @@ export const EVENTS = [
   { id: 'beam-green', label: 'GREEN BEAM', cat: 'harbor', group: 'HARBOR', night: true },
   { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', cat: 'harbor', group: 'HARBOR', inputs: ['scheme'] },
   { id: 'taxi', label: 'WATER TAXI', cat: 'harbor', group: 'HARBOR' },
+  // (PART 8a — THE PROMENADE: the trees + planters in each season (the real date otherwise); the owner's implied road (on by default)
+  // switched off to compare; a car passing along it now (its headlights at night, its shadow by day, its sound))
+  { id: 'season-spring', label: 'SPRING', cat: 'promenade', group: 'SEASON', hint: 'the crabapple in blossom, fresh light-green maples, tulips' },
+  { id: 'season-summer', label: 'SUMMER', cat: 'promenade', group: 'SEASON', hint: 'full green trees, geraniums' },
+  { id: 'season-autumn', label: 'AUTUMN', cat: 'promenade', group: 'SEASON', hint: 'the maples red / orange / gold, leaves falling, mums' },
+  { id: 'season-winter', label: 'WINTER', cat: 'promenade', group: 'SEASON', hint: 'bare branches, evergreen boughs (snow comes with Part 9)' },
+  { id: 'no-implied-road', label: 'IMPLIED ROAD OFF', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the curb + the passing cars’ light gone — compare' },
+  { id: 'road-pass', label: 'A CAR PASSING', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'a car every ~13 s: headlights at night, a shadow by day, its sound' },
   { id: 'strings-party', label: 'STRING LIGHTS · PARTY', cat: 'speakeasy', group: 'SPEAKEASY', night: true, hint: 'the speakeasy roof’s string lights in party mode' },
-  // (PART 7a §0: the speakeasy's corner turned — the ghost ad wall wider; a toggle the owner flips on / off to compare, with any time)
-  { id: 'corner-turn', label: 'CORNER TURNED', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the speakeasy’s corner turned (the ghost ad wall wider) — compare on / off' },
   // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the
   // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set
   // (harbor().flags.force / the scene's clock — a title-level regex on location.search can't be switched from the panel). Rename
@@ -156,6 +167,9 @@ export const TIMES = [
   { id: 'late', label: '3 AM', more: true }, { id: 'powerdown', label: 'POWER-DOWN', more: true }, { id: 'dawn', label: 'DAWN', more: true }, { id: 'powerup', label: 'POWER-UP', more: true },
 ];
 export const SPEEDS = [1, 20, 60];
+/** 8a — PULSE STRENGTH (LIGHTS): the beat punch × this, in percent — the state's `pulse` (absent = the default, core/harbor-beat.js
+ *  #PULSE_DEFAULT: the owner's pick locks in there), the URL's &pulse=<percent> */
+export const PULSE = { min: Math.round(PULSE_MIN * 100), max: Math.round(PULSE_MAX * 100), step: Math.round(PULSE_STEP * 100), def: Math.round(PULSE_DEFAULT * 100) };
 /** CITY 2.0 MUSIC: the moods the panel can force (the same ids as audio/mood.js#MOODS; AUTO = no `mood` key) */
 export const MUSIC_MOODS = [{ id: 'morning', label: 'MORNING' }, { id: 'day', label: 'DAY' }, { id: 'evening', label: 'EVENING' }, { id: 'late', label: 'LATE NIGHT' }, { id: 'party', label: 'PARTY' }];
 export const WEATHER = [
@@ -265,6 +279,11 @@ export function cleanRemote(raw) {
   sel('mood', MUSIC_MOODS.map(m => m.id));
   if (r.debug) out.debug = true;
   if (r.grid) out.grid = true;
+  // (8a: PULSE STRENGTH — a whole percent on the slider's steps; the default itself is no change: dropped quietly)
+  if (r.pulse != null && r.pulse !== '') {
+    const v = Number(r.pulse);
+    if (Number.isInteger(v) && v >= PULSE.min && v <= PULSE.max && v % PULSE.step === 0) { if (v !== PULSE.def) out.pulse = v; } else bad.push('pulse');
+  }
   // (an input no event on the list uses is dropped quietly: the panel keeps its fields filled while an event is off)
   for (const k of ['text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'game']) if (k in out && !uses.has(k)) delete out[k];
   if ('scheme' in out && !uses.has('scheme')) delete out.scheme;
@@ -287,6 +306,7 @@ export function toParams(st) {
   if (st.speed && st.speed !== 1) p.speed = String(st.speed);
   if (st.debug) p.debug = '1';
   if (st.grid) p.grid = '1';
+  if (st.pulse) p.pulse = String(st.pulse);
   return p;
 }
 
@@ -310,5 +330,6 @@ export function describe(st) {
   if (st.mood) out.push(`MUSIC ${MUSIC_MOODS.find(m => m.id === st.mood).label}`);
   if (st.debug) out.push('READOUT');
   if (st.grid) out.push('GRID');
+  if (st.pulse) out.push(`PULSE ${st.pulse} %`);
   return out.join(' · ');
 }

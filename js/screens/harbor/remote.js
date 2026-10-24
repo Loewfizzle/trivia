@@ -27,6 +27,8 @@ import { songInfo } from '../../audio/beat.js';
 import { switchNow } from '../../audio/music.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../../audio/mood.js';
 import { settings, updateSettings } from '../../audio/settings.js';
+import { SLOTS, PARTS, takesOf } from '../../core/city-sounds.js';
+import { cityPreview, citySoundsDebug } from '../../audio/city-sound.js';
 
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin', OPEN_KEY = 'nd:hr-open';
 const ss = {
@@ -206,16 +208,36 @@ export function createRemote({ scene, api = apiCall }) {
       h('div.sheet.hr-sheet', { role: 'dialog', 'aria-label': 'Preview panel', onpointerdown: e => { if (e.currentTarget.classList.contains('hr-peek') && !e.target.closest('.hr-b, .hr-cat')) { e.currentTarget.classList.remove('hr-peek'); clearTimeout(peekT); } } }));
     document.body.append(sheet);
     render();
-    musicT = setInterval(paintMusic, 1000);
+    musicT = setInterval(() => { paintMusic(); paintSounds(); }, 1000);
   }
   function close() {
     if (!sheet) return;
-    const s = sheet; sheet = null; musicEl = null; clearInterval(musicT); s.classList.add('out'); setTimeout(() => s.remove(), 260);
+    const s = sheet; sheet = null; musicEl = null; soundsEl = null; clearInterval(musicT); s.classList.add('out'); setTimeout(() => s.remove(), 260);
   }
   const btn = (label, on, onclick, o = {}) => h('button.hr-b', { type: 'button', class: [on ? 'is-on' : '', o.cls || ''].join(' ').trim() || null, 'aria-pressed': on ? 'true' : 'false', disabled: o.disabled || null, title: o.title || null, onclick }, label, o.night ? h('span.hr-moon', { 'aria-hidden': 'true' }, '☾') : null);
   const grid = (...kids) => h('div.hr-grid', ...kids);
-  let statusEl = null, musicEl = null, musicT = 0;
+  let statusEl = null, musicEl = null, musicT = 0, pulseT = 0, soundsEl = null;
   const mmss = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+  // ---- PART 8a — THE CITY SOUNDS: a slot's row (▶, its id + what it is + what calls it, FILLED / EMPTY) and what's sounding now
+  function soundRow(s) {
+    const t = takesOf(s.id), on = t.length > 0;
+    const st = !on ? 'EMPTY' : t.length > 1 ? `${t.length} TAKES` : s.kind === 'loop' ? `LOOP ${Math.round(t[0].loop)} S` : `${t[0].d.toFixed(1)} S`;
+    const play = h('button.hr-b.hr-snd-play', { type: 'button', disabled: on ? null : true, 'aria-label': on ? `Play ${s.id}` : `${s.id}: empty`,
+      onclick: () => { const r = cityPreview(s.id); toast(r.ok ? `▶ ${s.id.toUpperCase()}` : `${s.id.toUpperCase()} — ${String(r.why).toUpperCase()}`, r.ok ? 'info' : 'warn'); } }, '▶');
+    return h('div.hr-snd', { class: on ? 'is-filled' : null, dataset: { slot: s.id } }, play,
+      h('div.hr-snd-t', h('b', s.id), h('small', `${s.kind === 'loop' ? 'LOOP' : 'ONE-SHOT'} · ${s.what}${s.by ? ` — ${s.by}` : ''}`)),
+      h('span.hr-snd-st', st));
+  }
+  function paintSounds() {
+    if (!soundsEl) return;
+    let line = 'NOTHING SOUNDING — TAP THE CITY FOR SOUND, EFFECTS ON';
+    try {
+      const d = citySoundsDebug(), live = d.loops.filter(l => l.voices > 0 && l.gain > 0.001);
+      if (live.length) line = live.map(l => `${l.slot} ${l.gain.toFixed(3)}`).join(' · ');
+      const last = d.log[d.log.length - 1];
+      soundsEl.replaceChildren(h('div.hr-line', h('b', 'SOUNDING NOW'), h('span', line), h('small', `${d.mb.toFixed(1)} MB decoded${last ? ` · last: ${last.slot} (${Math.round((performance.now() - last.at) / 1000)} s ago)` : ''}`)));
+    } catch { /* fine */ }
+  }
   function paintMusic() {
     if (!musicEl) return;
     const i = songInfo();
@@ -287,6 +309,36 @@ export function createRemote({ scene, api = apiCall }) {
         musicEl = h('div.hr-status.hr-music', { 'aria-live': 'off' }),
         h('div.hr-row', btn('SKIP TO THE NEXT SONG', false, async () => { const ok = await switchNow(2); toast(ok ? 'NEXT SONG' : 'NOTHING TO SKIP — THE ROOM’S SONG IS THE HOST’S', ok ? 'info' : 'warn'); paintMusic(); }, { cls: 'hr-wide', title: 'this phone only' }))],
     },
+    // 8a — PULSE STRENGTH (the owner: "crank it up higher" — she dials it live; the number she picks becomes the default:
+    // core/harbor-beat.js#PULSE_DEFAULT). Dragging edits softly (live in JUST ME, the draft in EVERYONE); letting go re-renders.
+    lights: {
+      n: () => 1,
+      on: st => [st.pulse ? `PULSE ${st.pulse} %` : null],
+      kids: st => {
+        const P = R.PULSE, v = st.pulse || P.def;
+        const num = h('b.hr-pv', { 'aria-hidden': 'true' }, `${v} %`);
+        const set = (n, soft) => edit(s => { if (n === P.def) delete s.pulse; else s.pulse = n; }, { soft });
+        const rng = h('input.hr-range', { type: 'range', min: String(P.min), max: String(P.max), step: String(P.step), value: String(v), 'aria-label': 'Pulse strength, percent',
+          oninput: e => { const n = +e.target.value; num.textContent = `${n} %`; clearTimeout(pulseT); pulseT = setTimeout(() => set(n, true), mode === 'me' ? 80 : 0); },
+          onchange: e => { clearTimeout(pulseT); set(+e.target.value, false); } });
+        return [h('div.hr-gl', 'PULSE STRENGTH — EVERY LIGHT ON THE BEAT'), h('div.hr-pulse', rng, num),
+          h('p.hr-note', `${P.def} % = the default (7a’s punch + 30 %) · ${P.min}–${P.max} % · a party night, music on: pick what feels right, then tell Claude the number`),
+          h('div.hr-row', btn(`BACK TO ${P.def} %`, v === P.def, () => set(P.def, false), { cls: 'hr-wide' }))];
+      },
+    },
+    // PART 8a — THE CITY SOUNDS: every slot by part (core/city-sounds.js) — FILLED (its takes) or EMPTY, ▶ plays it on THIS phone
+    // only (a one-shot once, a loop ~8 s, at twice its city level so it's heard over the music); what's sounding now on top
+    sounds: {
+      n: () => SLOTS.length,
+      on: () => [],
+      kids: () => {
+        const filled = SLOTS.filter(s => takesOf(s.id).length).length;
+        const kids = [h('p.hr-note', `${filled} of ${SLOTS.length} filled · ▶ plays it on this phone (a loop ~8 s; louder than in the city) · to fill one: <slot>.wav into Downloads/city-sfx, then scripts/add-city-sfx.py`),
+          soundsEl = h('div.hr-status.hr-snd-now', { 'aria-live': 'off' })];
+        for (const p of PARTS) kids.push(h('div.hr-gl', p.label), h('div.hr-snds', ...SLOTS.filter(s => s.part === p.id).map(soundRow)));
+        return kids;
+      },
+    },
     tools: {
       n: () => 2,
       on: st => [st.debug ? 'READOUT' : null, st.grid ? 'GRID' : null],
@@ -334,7 +386,7 @@ export function createRemote({ scene, api = apiCall }) {
     if (!sheet) return;
     const box = sheet.firstChild, top = box.scrollTop, c = cur(), st = c.state, ui = c.ui, force = new Set(st.force || []);
     const kids = [];
-    musicEl = null;
+    musicEl = null; soundsEl = null;
     // PINNED: the title, JUST ME / EVERYONE, what's on + CLEAR ALL (sticky at the top of the sheet's scroll)
     kids.push(h('div.hr-top',
       h('div.sheet-grip'),
@@ -357,7 +409,7 @@ export function createRemote({ scene, api = apiCall }) {
     }
     box.replaceChildren(...kids);
     box.dataset.mode = mode;
-    paintStatus(); paintMusic();
+    paintStatus(); paintMusic(); paintSounds();
     box.scrollTop = top;
   }
   function input(k, st, force) {

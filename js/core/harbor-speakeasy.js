@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR, PART 7a: THE SPEAKEASY's plan (PURE — tested in tests/harbor.test.mjs; drawn by screens/harbor/speakeasy.js).
 // The once-grand 1920s Deco corner building on our side of the harbor, its barbershop front the cover. This file holds what the
 // building IS, not how it looks: the rooms behind its windows (the hooks Part 7b's window MOMENTS animate), the weekly GHOST AD on
-// its side wall, and the CORNER TURN (the owner's comparison: the side wall swung toward us so the ad reads — &force=corner-turn).
+// its blade sign (the owner's pick, 8a — the corner-turn preview is gone).
 //
 // The facade in wall units (u across from the building's left end, v up from the pavement; ~13.6 pt a unit on a 402 phone):
 //   0 – 0.55   the granite plinth (the basement window in it, its faint amber glow day + night: the one hint of the secret)
@@ -11,10 +11,6 @@
 //   6.8 – 7.6    the carved spandrels
 //   7.6 – 9.6    floor 3 — the edge window, THE APARTMENT (the cat's sill, the TV), THE BACK ROOM
 //   9.85 – 10.5  the cornice; 10.5 – 11.25 the parapet; the Deco crest to 12.05
-
-/** the corner turned (a preview): the side wall swung out by `deg` from straight back, `len` units long — its far end lands in
- *  front of the road's kerb (z ≤ 54) and ~80 pt across on a phone, wide enough for the ghost ad (≥ 70 pt) */
-export const CORNER_TURN = Object.freeze({ deg: 30, len: 12 });
 
 /** the facade's heights (wall units) */
 export const SPEAK_V = Object.freeze({ plinth: 0.55, ground: 3.85, belt: 4.3, rows: [[4.6, 6.8], [7.6, 9.6]], cornice: [9.85, 10.5], parapet: 11.25, crest: 12.05 });

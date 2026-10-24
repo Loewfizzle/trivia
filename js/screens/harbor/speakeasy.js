@@ -411,53 +411,14 @@ function paintIvy(x, M, u, dir, seed, month) {
   }
 }
 
-// ------------------------------------------------------------------ THE GHOST AD (the side wall, the corner turned)
-/** the ad painted flat: a faded 1920s hand-painted wall sign for this week's game (the full name, its tag, the mark's colours),
- *  sun-bleached, flaking so the bricks show through */
-function paintGhostAd(x0, M, game, a0, a1, v0, v1, seed) {
-  if (!game) return;
-  const m = x0.getTransform(), k = Math.abs(m.a), tmp = document.createElement('canvas');
-  tmp.width = Math.ceil((a1 - a0) * k) + 2; tmp.height = Math.ceil((v1 - v0) * k) + 2;
-  const x = safeCtx(tmp); x.setTransform(k, 0, 0, -k, -a0 * k, v1 * k);
-  const p = dayPaint(game), r = rngFrom(seed), fade = 0.42, wall = M.brickS;
-  const f = c => mix(mix(c, [236, 226, 204], 0.25), wall, fade);
-  const w = a1 - a0, h = v1 - v0, cx = (a0 + a1) / 2;
-  x.save();
-  x.globalAlpha = 0.9;
-  R(x, a0, v0, a1, v1, f(p.edge));
-  R(x, a0 + 0.12, v0 + 0.12, a1 - 0.12, v1 - 0.12, f(p.face));
-  R(x, a0 + 0.24, v0 + 0.24, a1 - 0.24, v0 + 0.3, f(p.edge)); R(x, a0 + 0.24, v1 - 0.3, a1 - 0.24, v1 - 0.24, f(p.edge));
-  // the name: big, condensed, a drop shade; the tag line above; a strap line below
-  const name = String(game.name || game.id).toUpperCase(), tag = String(game.tag || '').toUpperCase();
-  x.font = FONT(100);
-  const nw = x.measureText(name).width / 100, size = Math.min(h * 0.36, (w * 0.86) / (nw * 0.82));
-  text(x, name, cx + 0.07, v0 + h * 0.36 - 0.07, size, { fill: rgb(f(p.shade || [0, 0, 0]), 0.8), sq: 0.82 });
-  text(x, name, cx, v0 + h * 0.36, size, { fill: rgb(f(p.ink)), stroke: rgb(f(p.edge)), lw: size * 0.06, sq: 0.82 });
-  if (tag) text(x, tag, cx, v1 - h * 0.25, Math.min(h * 0.13, w * 0.9 / Math.max(6, tag.length * 0.62)), { fill: rgb(f(p.ink)), sq: 0.9 });
-  text(x, '— PLAY TONIGHT —', cx, v0 + h * 0.13, h * 0.09, { fill: rgb(f(p.edge)), sq: 0.9 });
-  x.restore();
-  // the paint flaking: bricks + patches where it's gone (destination-out), the mortar lines through what's left
-  x.save(); x.beginPath(); x.rect(a0, v0, w, h); x.clip();
-  x.globalCompositeOperation = 'destination-out';
-  const course = 0.11;
-  for (let i = 0; i < 300; i++) { const u = a0 + r() * w, v = v0 + Math.floor(r() * h / course) * course; x.fillStyle = `rgba(0,0,0,${(0.2 + r() * 0.5).toFixed(2)})`; x.fillRect(u, v, 0.14 + r() * (r() < 0.15 ? 0.9 : 0.3), course * 0.82); }
-  // (the weather's worst: the lower corners + a streak down from the top where the rain runs)
-  for (let i = 0; i < 70; i++) { const c = r() < 0.5, u = c ? a0 + r() * w * 0.25 : a1 - r() * w * 0.25, v = v0 + Math.floor(r() * h * 0.4 / course) * course; x.fillStyle = 'rgba(0,0,0,0.5)'; x.fillRect(u, v, 0.2 + r() * 0.4, course * 0.82); }
-  { const g = x.createLinearGradient(0, v1, 0, v0); g.addColorStop(0, 'rgba(0,0,0,0.05)'); g.addColorStop(1, 'rgba(0,0,0,0.3)'); x.fillStyle = g; x.fillRect(a0, v0, w, h); }
-  // the courses read through what paint is left (the mortar's shadow lines)
-  x.globalCompositeOperation = 'destination-out'; x.fillStyle = 'rgba(0,0,0,0.28)';
-  for (let v = v0; v < v1; v += 0.11) x.fillRect(a0, v, w, 0.025);
-  x.restore();
-  const [dx, dy] = [m.a * a0 + m.c * v1 + m.e, m.b * a0 + m.d * v1 + m.f];
-  x0.save(); x0.setTransform(1, 0, 0, 1, 0, 0); x0.drawImage(tmp, Math.round(dx), Math.round(dy)); x0.restore();
-  tmp.width = tmp.height = 0;
-}
-
-// ------------------------------------------------------------------ THE BLADE SIGN (the fallback: the corner NOT turned)
+// ------------------------------------------------------------------ THE BLADE SIGN (the weekly ghost ad's home — the owner's pick, 8a)
 /** the painted BLADE: a wooden board on iron brackets out from the side wall near the corner, facing us (parallel to the front),
  *  the same weekly game as the ghost ad — the plan's fallback (3) while the corner stays as it is (the turned wall hides the
  *  wheel's legs + the pier). Board units: b 0 … bw across (from the brackets), v up (wall units). */
-export const BLADE = Object.freeze({ w: 0.42, out: 0.32, bw: 1.62, v0: 4.55, v1: 10.05 });
+// (8a — the owner picked the BLADE for the weekly ad + "the name BIGGER, readable at a glance like the neon signs": it can't grow
+// wider — the wheel's left leg lands ~3 pt right of it — so it grows DOWN the side wall (its foot just above door height, clear of
+// the west stop light) and up to the cornice: ~24 × 104 pt on a 402 phone (was 22 × 75); the letters fill their column)
+export const BLADE = Object.freeze({ w: 0.42, out: 0.32, bw: 1.76, v0: 2.75, v1: 10.3 });
 export function bladeGeo(G) {
   const B = BLADE, [ox, oy] = G.side(B.w, 0, B.out), z = G.zAt(B.w), k = G.cam.F / z;
   const [x0, y0] = G.side(B.w, B.v1, B.out), [x1, y1] = G.side(B.w, B.v0, B.out + B.bw);
@@ -484,12 +445,15 @@ function paintBlade(x, M, game, lit = false) {
   R(x, 0.6, v1 - 0.3, bw - 0.6, v1 - 0.1, f(p.face));
   R(x, 0.17, v0 + 0.17, bw - 0.17, v0 + 0.21, f(p.edge)); R(x, 0.17, v1 - 0.56, bw - 0.17, v1 - 0.52, f(p.edge));
   // the name: stacked letters, one column a word (two words: side by side), the keyline + a drop shade
-  const words = String(game.name || game.id).toUpperCase().split(/s+/).slice(0, 2), nc = words.length, iw = bw - 0.42, ih = (v1 - 0.62) - (v0 + 0.28);
-  const n = Math.max(...words.map(w => w.length)), lh = Math.min(ih / n, (iw / nc) * 1.15), size = lh * 0.94;
-  words.forEach((w, ci) => { const cx = 0.21 + iw * (ci + 0.5) / nc, start = v1 - 0.62 - (ih - lh * w.length) / 2;
-    [...w].forEach((ch, i) => { const vb = start - lh * (i + 1) + lh * 0.12;
-      text(x, ch, cx + 0.05, vb - 0.05, size, { fill: rgb(f(p.shade || [0, 0, 0]), 0.6) });
-      text(x, ch, cx, vb, size, { fill: rgb(f(p.ink)), stroke: rgb(f(p.edge)), lw: size * 0.1 }); }); });
+  // (8a: split on whitespace — the old /s+/ never split, so a two-word name ran down one column with a gap)
+  const words = String(game.name || game.id).toUpperCase().split(/\s+/).filter(Boolean).slice(0, 2), nc = words.length, iw = bw - 0.36, ih = (v1 - 0.6) - (v0 + 0.24);
+  const n = Math.max(...words.map(w => w.length)), lh = Math.min(ih / n, (iw / nc) * 1.18), size = lh * 1.02;
+  // the letters fill their column: as wide as it allows (a sign-writer's broad stroke), up to 1.5× the face's own width
+  const sq = Math.max(1, Math.min(1.5, (iw / nc) * 0.86 / (size * 0.62)));
+  words.forEach((w, ci) => { const cx = 0.18 + iw * (ci + 0.5) / nc, start = v1 - 0.6 - (ih - lh * w.length) / 2;
+    [...w].forEach((ch, i) => { const vb = start - lh * (i + 1) + lh * 0.14;
+      text(x, ch, cx + 0.05, vb - 0.05, size, { fill: rgb(f(p.shade || [0, 0, 0]), 0.6), sq });
+      text(x, ch, cx, vb, size, { fill: rgb(f(p.ink)), stroke: rgb(f(p.edge)), lw: size * 0.09, sq }); }); });
   // the weather: the wood's grain + the paint worn at the edges + a rain streak
   x.fillStyle = 'rgba(0,0,0,0.07)'; for (let v = v0 + 0.2; v < v1 - 0.4; v += 0.13 + r() * 0.1) x.fillRect(0.1, v, bw - 0.2, 0.012);
   for (let i = 0; i < 26; i++) { const e = r() < 0.5, u = e ? 0.1 + r() * 0.12 : bw - 0.22 + r() * 0.12, v = v0 + 0.1 + r() * (v1 - v0 - 0.5); R(x, u, v, u + 0.05 + r() * 0.06, v + 0.05 + r() * 0.12, f(shade(p.face, -0.25)), 0.6); }
@@ -534,7 +498,6 @@ export function speakeasySteps(L, T, ctx = {}) {
         R(sx, len * 0.2, 1.5, len * 0.2 + 0.9, 2.6, shade(M.brickS, -0.5)); sx.fillStyle = rgb(M.iron); for (let u = len * 0.2 + 0.15; u < len * 0.2 + 0.9; u += 0.2) sx.fillRect(u, 1.5, 0.04, 1.1);
         R(sx, len * 0.2 - 0.08, 1.38, len * 0.2 + 0.98, 1.5, M.trimS);
       }
-      if (G.turned && ctx.game) paintGhostAd(sx, M, ctx.game, 0.85, len - 0.6, 4.75, 9.3, 12);
       paintLight(sx, M, 0, len, true, 33);
       paintIvy(sx, M, 0.05, 1, 3, ctx.month);
       st.sideK = k;
@@ -553,7 +516,7 @@ export function speakeasySteps(L, T, ctx = {}) {
     },
     // THE BLADE (the corner as it is): the painted board + its brackets, in front of the side wall
     x => {
-      if (G.turned || !ctx.game) return;
+      if (!ctx.game) return;
       const bg = bladeGeo(G); x.save(); wallMap(x, bg.ox, bg.oy, bg.k); paintBlade(x, M, ctx.game); x.restore();
       drawGooseneck(x, bladeLamps(bg), M.day + M.gold * 0.8, M.sd);
     },
@@ -613,18 +576,8 @@ export function speakeasySteps(L, T, ctx = {}) {
       x.strokeStyle = rgb(M.iron); x.lineWidth = Math.max(0.6, 0.06 * G.K);
       for (const px of roof.posts) { const [a, y0] = project(cam, px, V.parapet, s.z0 - 0.05), [, y1] = project(cam, px, V.parapet + 1.15, s.z0 - 0.05); x.beginPath(); x.moveTo(a, y0); x.lineTo(a, y1); x.stroke(); }
       for (const f of [0.4, 0.75, 1]) { const [a, y0] = G.side(G.len * f - 0.1, V.parapet), [, y1] = G.side(G.len * f - 0.1, V.parapet + 1.15); x.beginPath(); x.moveTo(a, y0); x.lineTo(a, y1); x.stroke(); }
-      // the GHOST AD's three gooseneck lamps (hardware; their light is live)
-      if (G.turned) drawGooseneck(x, adLamps(G), M.day + M.gold * 0.8, M.sd);
     },
   ];
-}
-
-/** the ghost ad's lamps on screen (the billboard's lamp, reused: { x, y (the mouth), top, x0, dir, a, W }) */
-export function adLamps(G) {
-  return [0.22, 0.5, 0.78].map(f => {
-    const w = 0.85 + (G.len - 1.45) * f, [x, y] = G.side(w, 9.62, 0.55), [x0] = G.side(w, 9.62, 0), z = G.zAt(w), W = 0.52 * G.cam.F / z, a = W * 1.25;
-    return { x, y, top: y - a * 1.05, x0, dir: x > x0 ? 1 : -1, a, W, z };
-  });
 }
 
 // ------------------------------------------------------------------ LIVE: the lit rooms, the glows, the pole, the ad's lamps
@@ -750,35 +703,6 @@ export function createSpeakeasy() {
     // the sill catching the light
     R(x, a - 0.16, r0 - 0.03, b + 0.16, r0, 'rgba(255,200,140,0.55)');
   }
-  // the ghost ad under its lamps: the wall + the ad in the lamps' warm light, kept only where the light falls (its pools)
-  function paintAd(game) {
-    adCv = canvasFor(adCv);
-    const x = safeCtx(adCv), k = G.K * dpr, len = G.len;
-    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, adCv.width, adCv.height);
-    const fl = document.createElement('canvas'); fl.width = Math.ceil(len * k); fl.height = Math.ceil(V.parapet * k);
-    const fx = safeCtx(fl); fx.setTransform(k, 0, 0, -k, 0, fl.height);
-    const DT = { day: 1, gold: 0, night: 0, sunDir: 0, sunEl: 30, ovc: 0, haze: [188, 208, 232] };
-    const M = mats(DT);
-    const pat = fx.createPattern(brickTile(mix(M.brickS, [150, 80, 60], 0.3), Math.max(2, Math.round(0.11 * k)), Math.max(4, Math.round(0.26 * k)), 5, false), 'repeat');
-    fx.fillStyle = pat; fx.save(); fx.setTransform(1, 0, 0, 1, 0, 0); fx.fillRect(0, 0, fl.width, fl.height); fx.restore();
-    paintGhostAd(fx, M, game, 0.85, len - 0.6, 4.75, 9.3, 12);
-    // the lamps' light: warm, a pool under each lamp brightest at the top, fading down the wall
-    fx.globalCompositeOperation = 'multiply'; fx.fillStyle = 'rgb(255,186,120)'; fx.fillRect(0, 0, len, V.parapet);
-    fx.globalCompositeOperation = 'destination-in';
-    const mask = document.createElement('canvas'); mask.width = fl.width; mask.height = fl.height; const mx = safeCtx(mask); mx.setTransform(k, 0, 0, -k, 0, fl.height);
-    for (const f of [0.22, 0.5, 0.78]) { const w = 0.85 + (len - 1.45) * f; mx.save(); mx.translate(w, 9.55); mx.scale(1, 1.55); const g = mx.createRadialGradient(0, 0, 0, 0, 0, 2.2); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.35, 'rgba(0,0,0,0.75)'); g.addColorStop(0.7, 'rgba(0,0,0,0.3)'); g.addColorStop(1, 'rgba(0,0,0,0)'); mx.fillStyle = g; mx.fillRect(-2.3, -2.3, 4.6, 4.6); mx.restore(); }
-    fx.setTransform(1, 0, 0, 1, 0, 0); fx.drawImage(mask, 0, 0); fx.globalCompositeOperation = 'source-over';
-    mask.width = mask.height = 0;
-    // projected like the baked wall
-    x.setTransform(dpr, 0, 0, dpr, -box.x * dpr, -box.y * dpr);
-    const step = 1 / dpr, [ax] = G.side(0, 0), [bx] = G.side(len, 0);
-    for (let px = Math.floor(ax * dpr) / dpr; px < bx; px += step) {
-      const wa = Math.max(0, G.wAt(px)), wb = Math.min(len, G.wAt(px + step)); if (!(wb > wa)) continue;
-      const wm = (wa + wb) / 2, [, yt] = G.side(wm, V.parapet), [, yb] = G.side(wm, 0);
-      x.drawImage(fl, wa * k, 0, Math.max(0.5, (wb - wa) * k), fl.height, px, yt, step + 0.25 / dpr, yb - yt);
-    }
-    fl.width = fl.height = 0;
-  }
   // the blade under its lamps (the corner as it is): the board painted in their warm light, brightest at the top
   let bladeCv = null, bladeKey = '', bladeAt = null;
   function paintBladeLit(game) {
@@ -870,17 +794,8 @@ export function createSpeakeasy() {
       c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,150,60)'; c.fillRect(b.x, b.y, b.w, b.h);
       blob(c, b.x + b.w / 2, b.y + b.h * 0.5, b.w * 0.75, a * 0.45, 0.4); }
     c.globalCompositeOperation = 'source-over';
-    // THE GHOST AD'S LAMPS: their light on the ad (the lit painting), the bulbs
-    if (G.turned && f.game && (f.lamp || 0) > 0.004) {
-      const key = f.game.id + '|' + dpr;
-      if (key !== adKey || !adCv) { paintAd(f.game); adKey = key; }
-      c.globalAlpha = clamp01(f.lamp) * fade; c.drawImage(adCv, box.x, box.y, box.w, box.h);
-      c.globalCompositeOperation = 'lighter';
-      for (const l of adLamps(G)) { blob(c, l.x, l.y + l.W * 0.1, l.W * 0.7, f.lamp * fade); blob(c, l.x, l.y + l.W * 1.8, l.W * 3.2, 0.25 * f.lamp * fade, 1.4); }
-      c.globalCompositeOperation = 'source-over';
-    }
     // THE BLADE'S LAMPS (the corner as it is): the lit board, the bulbs
-    if (!G.turned && f.game && (f.lamp || 0) > 0.004) {
+    if (f.game && (f.lamp || 0) > 0.004) {
       const key = f.game.id + '|' + dpr + '|' + G.K.toFixed(2);
       if (key !== bladeKey || !bladeCv) { bladeAt = paintBladeLit(f.game); bladeKey = key; }
       c.globalAlpha = clamp01(f.lamp) * fade; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h);

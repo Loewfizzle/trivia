@@ -107,6 +107,29 @@ export function neonState(plan, t) {
   return { stage, letters: lit, signs, fade, caught: stage === 'night' || stage === 'lit' };
 }
 
+/** THE EVENING WARM-UP WINDOW's start: the first letter sticking (the last ~2–5 min before the catch, when the sign is visibly almost
+ *  on) — the golden hour's early sputters before it are still "the sign isn't on" (8a, the owner) */
+export const warmAt = plan => Math.min(...plan.letters.map(l => l.stick));
+
+/**
+ * 8a — THE MUSIC'S FIRST TAP (City 2.0, the owner): what the NEON sign does when the visit's first tap starts the music, from the
+ * sign's REAL state (neonState, or the title's lit / day stand-ins) — never a day / night guess:
+ *   'catch'  the evening warm-up window (stage 'ramp', from warmAt to the catch): the tap catches it — the sign lights for good
+ *   'first'  the sign is lit (night, after the catch, ALWAYS NIGHT): a quick brighter race through the lit tubes
+ *   'surge'  any moment the sign is NOT lit — morning goodbye, day, golden hour's early sputters, a polar day: a surge races
+ *            N → E → O → N through the glass and fades back to unlit
+ *   'soft'   reduced effects / motion (anything but the catch): one gentle brighten
+ *   'skip:intro' (the power-on is the answer) · 'skip:busy' (a race / the catch already running)
+ * o: { intro, busy, reduced }
+ */
+export function firstTapAnswer(st, plan, t, o = {}) {
+  if (o.intro) return 'skip:intro';
+  if (o.busy) return 'skip:busy';
+  if (st && st.stage === 'ramp' && plan && t >= warmAt(plan) && t < plan.catchAt) return 'catch';
+  if (o.reduced) return 'soft';
+  return st && st.caught ? 'first' : 'surge';
+}
+
 /** The next moment after t at which anything changes (ms), or t + 1 h. */
 export function neonNext(plan, t) {
   if (!plan) return t + 60 * MIN;

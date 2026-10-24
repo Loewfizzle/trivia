@@ -786,6 +786,16 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — PART 8a: THE PROMENADE'S LOOK (Oct 23, 2026) — `docs/harbor.md#part-8a`, `docs/audio.md#the-city-sounds`
+- [x] Section 0: the billboard onto the speakeasy's roof (its own baked group, a dunnage platform so its feet show over the parapet); the blade's name bigger (taller board, wide letters, the two-word split fixed); the corner-turn preview removed
+- [x] The first-tap surge whenever the NEON sign is off (`neon-ramp.js#firstTapAnswer`); the pulse after returning (a frame-loop watchdog, `pulse` on the readout, the AUDIO panel's `city` row); PULSE STRENGTH 50–250 % (default 130 %); the neon tap sounds × 0.75
+- [x] THE CITY SOUNDS: 65 named slots (`core/city-sounds.js`), the player (`audio/city-sound.js`), the events wired (`screens/harbor/sounds.js`), `scripts/add-city-sfx.py`, the panel's SOUNDS; water-lapping, city-hum-day / -night, car-1920s-pass (4 takes), gulls (4 takes) imported (church bells + rumbles cut, levels by analysis)
+- [x] The grey-box stop ×2 (the owner: people ~⅔ of the door, the lower middle filled, autumn by the real date, the flag removed, the stop lights off the wheel; the medallion into the open plaza, the left globe dropped)
+- [x] `core/harbor-promenade.js` (the bands, the sizes, the phone's layout by screen fraction, the season, the implied road's passes on the clock, the walkable zones); SIZE.person 20 → 27 pt
+- [x] The ground (setts, pavers, the front curb, asphalt), the lamps' pools baked at the lamps' ramp, crafted Deco lamps + their lit glass, shadows along the real sun; the trees (`core/harbor-trees.js`, `trees.js`, falling leaves); the props (`props.js`); the implied road (`roadlight.js`, the car sound, `harbor().road.wash` for the raid)
+- [x] The panel's PROMENADE category (four seasons, the implied road off, a car passing); `&season=`, `&force=no-lamp-light`
+- [x] Tests: harbor.test (+ the billboard, the promenade, the seasons, the passes, the trees, the props, the slots), e2e-harbor `promenade` + `sounds` + `music` §10; three review passes (402 day / golden / night / party, the seasons, 390 / 430 / desktop); the A/B perf: same
+
 ### ✅ CITY 2.0 — PART 7a: THE SPEAKEASY'S LOOK (Oct 23, 2026) — `docs/harbor.md#part-7a`, `docs/audio.md#7a`, `docs/title.md`
 - [x] §0 the layout: corner buttons 36 pt (44 pt tap areas) everywhere, the corners split on the title + the lobby (☰ left, ♪ right), the
       NEON sign ~24 pt higher (both cities), the lanes clear of the ☰

@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { REF, Z, SIZE, units, ptAt, cameraFor, project, xAt, groundY, squeeze, harborLayout, screenBoxes, SUN_GAPS, LANE_MIN, laneMin, roofline } from '../js/core/harbor-layout.js';
+import { SPEAK_V } from '../js/core/harbor-speakeasy.js';
 import { winHash, winTraits, buildingDice, isLit, layoutText, lineWidth, glyph, FONT_H } from '../js/core/harbor-windows.js';
 import { LANES, SLOT_MS, RARITY, BUDGET, QUIET, defineEvent, schedule, createScheduler, anchorFor, densityOf, startChance, HARBOR_EVENTS } from '../js/core/harbor-events.js';
 
@@ -34,7 +35,7 @@ test('the projector: the mockup camera at the reference phone', () => {
 test('SIZE rules: world units ↔ pt at the reference phone', () => {
   const cam = { F: REF.F };
   for (const [name, r] of Object.entries(SIZE)) assert.ok(Math.abs(ptAt(cam, units(name), r.z) - r.pt) < 1e-9, name);
-  assert.ok(units('person') > 1.4 && units('person') < 1.7);
+  assert.ok(units('person') > 1.9 && units('person') < 2.3);   // (8a: 27 pt at z 47 — the owner's scale)
   assert.ok(Math.abs(units('bus') - 11) < 0.01);
 });
 
@@ -85,16 +86,17 @@ for (const k of Object.keys(SIZES)) {
     if (!cam.wide) {
       // the SIZE rules on a phone held upright (390–430 pt follow the width)
       const f = s.W / REF.W;
-      assert.ok(person > 17 * f && person < 23 * f, `person ${person}`);
+      assert.ok(person > 24 * f && person < 30 * f, `person ${person}`);
       assert.ok(bus > 100 * f && bus < 120 * f, `bus ${bus}`);
       assert.ok(ptAt(cam, L.cars[0].len, L.cars[0].z) > 48 * f && ptAt(cam, L.cars[0].len, L.cars[0].z) < 62 * f);
-      assert.ok(ptAt(cam, L.lamps[0].h, L.lamps[0].z) > 45 * f && ptAt(cam, L.lamps[0].h, L.lamps[0].z) < 55 * f);
-      assert.ok(ptAt(cam, L.trees[0].r * 2, L.trees[0].z) > 36 * f && ptAt(cam, L.trees[0].r * 2, L.trees[0].z) < 44 * f);
+      // (8a: the promenade at the owner's scale — the tall curb lamp ~70 pt, a curb maple's crown ~55 pt across)
+      assert.ok(ptAt(cam, L.lamps[0].h, L.lamps[0].z) > 62 * f && ptAt(cam, L.lamps[0].h, L.lamps[0].z) < 78 * f);
+      assert.ok(ptAt(cam, L.trees[0].r * 2, L.trees[0].z) > 48 * f && ptAt(cam, L.trees[0].r * 2, L.trees[0].z) < 64 * f);
       assert.ok(ptAt(cam, L.signals[0].h, L.signals[0].z) > 50 * f && ptAt(cam, L.signals[0].h, L.signals[0].z) < 60 * f);
     } else if (s.H < 500) {
       assert.ok(person >= 8.5, `sideways people ${person}`);   // the owner's call: the whole city, smaller
     } else {
-      assert.ok(person > 17 && person < 23, `desktop person ${person}`);
+      assert.ok(person > 24 && person < 30, `desktop person ${person}`);
       assert.ok(cam.spread > 2, 'a panorama, not a stretched phone');
     }
   });
@@ -1039,7 +1041,7 @@ test('the preview panel: one registry — every &force= preview the Harbor runs 
   const ids = new Set(EVENTS.map(e => e.id));
   const missing = [...used].filter(id => !tools(id) && !ids.has(id));
   assert.deepEqual(missing, [], 'a &force= preview the panel does not list');
-  // (PART 7a §0: registered before their effect lands — corner-turn: the speakeasy (the lead); first-tap: the NEON sign's surge (the
+  // (PART 7a §0: registered before their effect lands — first-tap: the NEON sign's surge (the
   // layout agent; hidden, ready: false). Once a module reads one it simply passes; drop it from here then.)
   const PENDING = [];
   const dead = [...ids].filter(id => !used.has(id) && !['searchlights', ...PENDING].includes(id));
@@ -1057,16 +1059,16 @@ test('the preview panel (PART 7a §0): every entry names a known category; the r
   for (const e of EVENTS) assert.ok(known.has(e.cat), `${e.id}: a known category (${e.cat})`);
   assert.deepEqual(checkRegistry(), [], 'the registry\'s own checks');
   // every category the panel draws holds something (its own controls or at least one row)
-  const own = ['time', 'weather', 'party', 'holidays', 'music', 'tools'];
+  const own = ['time', 'weather', 'party', 'holidays', 'music', 'sounds', 'tools'];      // (8a: SOUNDS — its rows are the city's sound slots)
   for (const c of CATS) assert.ok(own.includes(c.id) || PANEL_EVENTS.some(e => e.cat === c.id), `${c.id}: not empty`);
   assert.equal(catOf('nope'), 'tools', 'an unknown id falls back to TOOLS (never lost)');
-  // the speakeasy's corner: a TOGGLE (in force[]) — on together with a time, a scene and the party
-  assert.equal(catOf('corner-turn'), 'speakeasy');
-  assert.ok(PANEL_EVENTS.some(e => e.id === 'corner-turn'), 'the corner turn shows in the panel');
-  const st = cleanRemote({ force: ['corner-turn', 'strings-party'], when: '2026-10-24T23:00', scene: 'climb+crowns', party: 'on' });
+  // (8a) the promenade's toggles (in force[]) — on together with a time, a scene and the party; the corner turn is gone
+  assert.equal(catOf('road-pass'), 'promenade'); assert.equal(catOf('season-winter'), 'promenade');
+  assert.ok(!EVENTS.some(e => e.id === 'corner-turn'), 'the corner turn is gone (the owner picked the blade)');
+  const st = cleanRemote({ force: ['road-pass', 'strings-party'], when: '2026-10-24T23:00', scene: 'climb+crowns', party: 'on' });
   assert.deepEqual(st.bad, []);
-  assert.equal(toParams(st.state).force, 'corner-turn,strings-party,party');
-  assert.match(describe(st.state), /CORNER TURNED/);
+  assert.equal(toParams(st.state).force, 'road-pass,strings-party,party');
+  assert.match(describe(st.state), /A CAR PASSING/);
   // the first-tap surge: a valid id (the URL + the server accept it), hidden until its effect is drawn
   assert.deepEqual(cleanRemote({ force: ['first-tap'] }).bad, []);
   assert.equal(catOf('first-tap'), 'signs');
@@ -1829,12 +1831,26 @@ test('THE SLOT RULE (DT1 — the owner: never a shortened name): the blade one-w
   }
 });
 
-test('THE BILLBOARD (DT1): built, not floating — it stands on the lowered roof of the near block behind it (the frame\'s height under it), the same on every phone', () => {
+test("8a — THE BILLBOARD on the speakeasy's roof: over the left half-plus of the roof, fully inside the left edge, clear of the wheel + the word towers, its frame's feet above the parapet's line, ~¼ open frame", () => {
   for (const k of ['390x844', '402x874', '430x932']) {
-    const { cam, L } = setup(k), sp = signSpots(L).find(x => x.kind === 'billboard'), R = sp.rect, u = cam.F / 600;
-    const under = L.bands.find(b => b.id === 'near').blocks.filter(b => { const a = project(cam, b.x0, 0, b.z0)[0], c = project(cam, b.x1, 0, b.z0)[0], m = (a + c) / 2; return m > R.x && m < R.x + R.w; });
-    assert.ok(under.length >= 2, `${k}: blocks under the billboard`);
-    for (const b of under) { const roof = project(cam, 0, b.h, b.z0)[1]; assert.ok(roof >= R.y + R.h + 6 * u && roof <= R.y + R.h + 12 * u, `${k}: ${b.id}'s roof ${(roof - R.y - R.h).toFixed(1)} pt under the board`); }
+    const { cam, L } = setup(k), sp = signSpots(L).find(x => x.kind === 'billboard'), R = sp.rect, b = L.roof.board, s = L.speakeasy;
+    assert.equal(sp.mount, 'speak');
+    assert.ok(R.x >= 4 && R.w > 60 * cam.F / 600, `${k}: the board ${R.x.toFixed(1)}..${(R.x + R.w).toFixed(1)} inside the left edge, ${R.w.toFixed(0)} pt wide`);
+    // over the roof: between the speakeasy's two ends at its depth, its left half-plus
+    assert.ok(b.x0 > s.x0 && b.x1 < s.x1 && (b.x1 - s.x0) / (s.x1 - s.x0) > 0.5 && (b.x1 - s.x0) / (s.x1 - s.x0) < 0.75 && b.z > s.z0 && b.z < s.z1);
+    // the wheel: the board ends left of its rim; the word towers far right
+    const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z;
+    assert.ok(Math.hypot(Math.max(R.x - wx, 0, wx - (R.x + R.w)), Math.max(R.y - wy, 0, wy - (R.y + R.h))) > r + 6, `${k}: clear of the wheel`);
+    // the word towers' FACES (where the letters light: the tower's top down to face.y) — the board + its lamps stay below / beside
+    for (const t of L.towers.filter(t => t.word && t.face)) {
+      const tr = t.tiers[0], [a, top] = project(cam, tr.x0, tr.y0 + tr.h, tr.z0), [c] = project(cam, tr.x1, 0, tr.z0);
+      assert.ok(!overlap({ x: R.x, y: R.y - 10, w: R.w, h: R.h + 10 }, { x: a, y: top, w: c - a, h: t.face.y - top }), `${k}: clear of ${t.id}'s word face`);
+    }
+    // the feet: the dunnage's top above the front parapet's line (from this camera the deck itself hides behind it)
+    const dunY = project(cam, 0, b.dun, b.z)[1], parY = project(cam, 0, SPEAK_V.parapet, s.z0)[1];
+    assert.ok(dunY < parY - 4 * cam.F / 600, `${k}: the feet ${(parY - dunY).toFixed(1)} pt above the parapet`);
+    const open = b.y0 - b.dun, hb = b.y1 - b.y0;
+    assert.ok(open / hb > 0.2 && open / hb < 0.32, `${k}: open frame ${(open / hb).toFixed(2)} of the board`);
   }
 });
 
@@ -2047,8 +2063,8 @@ test('7a — THE LIGHTHOUSE by day: a cylinder from the sun\'s side (lit flank �
 });
 
 // ================================================================ PART 7a — THE SPEAKEASY (core/harbor-speakeasy.js + its layout)
-import { ghostAdGame, adWeek, AD_ORDER, AD_EPOCH, roomLight, ROOMS, CORNER_TURN } from '../js/core/harbor-speakeasy.js';
-import { speakGeo, bladeGeo, adLamps } from '../js/screens/harbor/speakeasy.js';
+import { ghostAdGame, adWeek, AD_ORDER, AD_EPOCH, roomLight, ROOMS } from '../js/core/harbor-speakeasy.js';
+import { speakGeo, bladeGeo } from '../js/screens/harbor/speakeasy.js';
 
 test('7a — THE GHOST AD: one game a week, every game in 12 weeks, the swap on Monday ~4 am, never tonight\'s billboard game', () => {
   const ids = GAMES.filter(g => g.playable !== false).map(g => g.id), WEEK = 7 * 864e5;
@@ -2073,7 +2089,7 @@ test('7a — THE ROOMS by the hour: all lit in the evening, dark in the small ho
   assert.deepEqual(ROOMS.filter(r => r.edge).map(r => r.col), [0, 0], 'the edge windows are the cut column');
 });
 
-test('7a — THE SPEAKEASY on every phone: same size, the edge windows cut at half, the corner turned wide enough, the blade clear of the wheel', () => {
+test('7a — THE SPEAKEASY on every phone: same size, the edge windows cut at half, the blade clear of the wheel', () => {
   for (const k of ['390x844', '402x874', '412x915', '430x932']) {
     const { s, cam, L } = setup(k);
     const G = speakGeo(L), [c0] = G.front(0, 0), [c1] = G.front(11.2, 0);
@@ -2086,13 +2102,206 @@ test('7a — THE SPEAKEASY on every phone: same size, the edge windows cut at ha
     const bg = bladeGeo(G), w = L.wheel, [wx] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z;
     assert.ok(bg.rect.x + bg.rect.w < wx - w.leg * r - 2, `${k}: the blade (to ${Math.round(bg.rect.x + bg.rect.w)}) clear of the wheel's leg (${Math.round(wx - w.leg * r)})`);
     assert.ok(bg.rect.y + bg.rect.h < cam.dock.y && bg.rect.w > 18 && bg.rect.h > 60, `${k}: the blade ${Math.round(bg.rect.w)}×${Math.round(bg.rect.h)} pt, above the dock`);
-    // THE CORNER TURNED (the preview): ≥ 70 pt of wall for the ad; the wheel + the door where they were; the west signal outside
-    const cam2 = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock, ...signOf(s) }, s.safe), T = harborLayout(cam2, 1924, { corner: true }), G2 = speakGeo(T);
-    const wide = G2.side(G2.len, 0)[0] - G2.side(0, 0)[0];
-    assert.ok(wide >= 70, `${k}: the turned wall ${Math.round(wide)} pt`);
-    assert.equal(T.wheel.x, L.wheel.x); assert.deepEqual(T.door, L.door);
-    const sg = T.signals[0], wallX = T.speakeasy.x1 + (sg.z - T.speakeasy.z0) * Math.tan(CORNER_TURN.deg * Math.PI / 180);
-    assert.ok(sg.z > T.speakeasy.side.z || sg.x > wallX, `${k}: the west signal outside the building`);
-    assert.equal(adLamps(G2).length, 3);
   }
+});
+
+// ------------------------------------------------------------------ 8a — the first tap, the pulse strength (pure)
+test('8a — THE FIRST TAP reads the sign\'s real state: unlit (goodbye / day / golden hour\'s early sputters) → surge, the warm-up window → catch, lit → first; reduced → soft (the catch still catches); the intro / busy skip', async () => {
+  const { neonPlan, neonState, firstTapAnswer, warmAt } = await import('../js/screens/district/neon-ramp.js');
+  const MIN = 60000, base = Date.UTC(2026, 9, 23, 11, 0);
+  const moments = { rise: base, clearAt: base + 8 * MIN, startAt: base + 10 * 3600e3, catchAt: base + 11 * 3600e3 };
+  for (const reduced of [false, true]) {
+    const plan = neonPlan({ moments, seed: 'gr', reduced });
+    const w = warmAt(plan);
+    assert.ok(w > plan.startAt + 30 * MIN && w < plan.catchAt && plan.catchAt - w <= 5.5 * MIN && plan.catchAt - w >= 1.8 * MIN, 'the warm-up window: the last ~2–5 min (from the first letter sticking)');
+    const at = t => firstTapAnswer(neonState(plan, t), plan, t, { reduced });
+    const cases = [
+      ['night (before dawn)', base - 30 * MIN, 'first'],
+      ['the morning goodbye', plan.clearAt + 2 * MIN, 'surge'],
+      ['the day', base + 4 * 3600e3, 'surge'],
+      ['golden hour (the early sputters)', plan.startAt + 20 * MIN, 'surge'],
+      ['just before the window', w - 1000, 'surge'],
+      ['the warm-up window', w + 1000, 'catch'],
+      ['a second before the catch', plan.catchAt - 1000, 'catch'],
+      ['dusk (after the catch)', plan.catchAt + 20 * MIN, 'first'],
+    ];
+    for (const [what, t, want] of cases) assert.equal(at(t), reduced && want !== 'catch' ? 'soft' : want, `${reduced ? 'reduced: ' : ''}${what}`);
+  }
+  const plan = neonPlan({ moments, seed: 'gr' });
+  // the title's stand-ins (ALWAYS NIGHT, a polar day: no plan) — by the lit state alone
+  assert.equal(firstTapAnswer({ stage: 'night', caught: true }, null, 0), 'first');
+  assert.equal(firstTapAnswer({ stage: 'day', caught: false }, null, 0), 'surge');
+  assert.equal(firstTapAnswer({ stage: 'ramp', caught: false }, null, 0), 'surge', 'no plan: never a catch');
+  assert.equal(firstTapAnswer(neonState(plan, plan.catchAt - 1000), plan, plan.catchAt - 1000, { intro: true }), 'skip:intro');
+  assert.equal(firstTapAnswer(neonState(plan, base), plan, base, { busy: true }), 'skip:busy');
+});
+
+test('8a — PULSE STRENGTH: pulseGain parses percent / multiplier, clamps, defaults; pulseOut is linear to the knee, never above the cap; the remote validates it (the server shares it), drops the default, and carries it to the URL + the status', async () => {
+  const { pulseGain, pulseOut, PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_KNEE, PULSE_CAP } = await import('../js/core/harbor-beat.js');
+  const { cleanRemote, toParams, describe, PULSE, REMOTE_KEYS } = await import('../js/core/harbor-remote.js');
+  assert.equal(PULSE_DEFAULT, 1.3, '7a + 30 % (the owner: "crank it up higher")');
+  assert.equal(pulseGain(null), PULSE_DEFAULT); assert.equal(pulseGain(''), PULSE_DEFAULT); assert.equal(pulseGain('junk'), PULSE_DEFAULT); assert.equal(pulseGain('-3'), PULSE_DEFAULT);
+  assert.equal(pulseGain('180'), 1.8); assert.equal(pulseGain(180), 1.8); assert.equal(pulseGain('1.8'), 1.8); assert.equal(pulseGain('100'), 1);
+  assert.equal(pulseGain('900'), PULSE_MAX); assert.equal(pulseGain('10'), PULSE_MIN); assert.equal(pulseGain('0.2'), PULSE_MIN);
+  assert.equal(pulseGain('133'), 1.35, 'on the slider\'s 5 % steps');
+  // the default boosts 7a's punch by 30 % where it lives (a downbeat at the grid's 0.85); never negative, never above the cap
+  assert.ok(Math.abs(pulseOut(0.85) - 0.85 * 1.3) < 1e-9);
+  assert.equal(pulseOut(0), 0); assert.equal(pulseOut(-1, 2), 0); assert.equal(pulseOut(NaN, 2), 0);
+  assert.ok(Math.abs(pulseOut(1, PULSE_KNEE) - PULSE_KNEE) < 1e-9, 'linear up to the knee');
+  let prev = 0;
+  for (let p = 0; p <= 1.6; p += 0.02) { const v = pulseOut(p, PULSE_MAX); assert.ok(v >= prev - 1e-12 && v < PULSE_CAP, `monotonic, under the cap (${p.toFixed(2)} → ${v.toFixed(3)})`); prev = v; }
+  for (const k of [0.5, 1, 1.3, 1.8, 2.5]) assert.ok(pulseOut(0.85, k) >= pulseOut(0.85, k - 0.1), `a higher strength never punches less (${k})`);
+  // the panel's range + the remote
+  assert.deepEqual(PULSE, { min: 50, max: 250, step: 5, def: 130 });
+  assert.ok(REMOTE_KEYS.includes('pulse'), 'the remote owns &pulse= (JUST ME / EVERYONE replace the page\'s own)');
+  let r = cleanRemote({ pulse: 180 });
+  assert.deepEqual(r, { state: { pulse: 180 }, bad: [] });
+  assert.equal(toParams(r.state).pulse, '180'); assert.equal(describe(r.state), 'PULSE 180 %');
+  assert.equal(pulseGain(toParams(r.state).pulse), 1.8, 'the URL flag the scene reads → the multiplier');
+  assert.deepEqual(cleanRemote({ pulse: '205' }).state, { pulse: 205 });
+  assert.deepEqual(cleanRemote({ pulse: 130 }), { state: {}, bad: [] }, 'the default itself is no change');
+  for (const v of [45, 255, 133, 'x', 1.8, -100, 1e9]) assert.ok(cleanRemote({ pulse: v }).bad.includes('pulse'), `refused: ${v}`);
+  assert.deepEqual(cleanRemote({ force: ['searchlights'], pulse: 250, party: 'on' }).state, { force: ['searchlights'], pulse: 250, party: 'on' }, 'with anything else');
+});
+
+// ------------------------------------------------------------------ 8a — THE PROMENADE
+import { promenadeLayout, seasonOf, PHONE as PROM_PHONE } from '../js/core/harbor-promenade.js';
+test('8a — THE PROMENADE: the centrepiece spot in the open plaza (clear of the door, the shop window, the furniture; a tall seasonal piece stays under the wheel\'s hub), nothing under the dock, no tree cut by the edge', () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), m = L.medallion, P = (x, y, z) => project(cam, x, y, z);
+    const [mx, my] = P(m.x, 0, m.z), ring = cam.F * m.ring / m.z;
+    // the door + the shop window stay clear of a 2.6-unit-radius piece standing on it
+    const d = L.door, piece = cam.F * 2.6 / m.z;
+    assert.ok(mx - piece > d.x + d.w / 2 + 4, `${k}: the centrepiece clear of the door`);
+    const [w1] = P(L.speakeasy.x0 + L.speakeasy.shop.win[1], 0, L.speakeasy.z0);
+    assert.ok(mx - piece > w1, `${k}: clear of the shop window`);
+    // open space: no furniture within the ring (+ a margin)
+    for (const it of [...L.lamps, ...L.trees, ...L.planters, L.bench, L.cart]) {
+      const [ix] = P(it.x, 0, it.z);
+      if (Math.abs(it.z - m.z) < 6) assert.ok(Math.abs(ix - mx) > ring + 6, `${k}: ${it.kind || 'a piece'} at ${ix.toFixed(0)} clear of the medallion ${mx.toFixed(0)}`);
+    }
+    // an 11-unit Christmas tree there stays under the wheel's hub
+    const w = L.wheel, [, hy] = P(w.x, w.y, w.z), [, ty] = P(m.x, 11, m.z);
+    assert.ok(ty > hy + 30 * cam.F / 600, `${k}: the tall piece's top ${ty.toFixed(0)} under the hub ${hy.toFixed(0)}`);
+    // nothing stands under the dock; no tree is cut by the screen's edges
+    for (const it of [...L.lamps, ...L.trees, ...L.planters, L.bench, L.cart]) assert.ok(P(it.x, 0, it.z)[1] <= cam.dock.y + 1, `${k}: ${it.kind || 'piece'} above the dock`);
+    for (const t of L.trees) { const [tx] = P(t.x, 0, t.z), r = cam.F * t.w / 2 / t.z; assert.ok(tx - r >= 0 && tx + r <= cam.W, `${k}: a ${t.kind} inside the screen`); }
+    // no flag; the stop lights right of the wheel's base
+    assert.equal(L.flag, undefined);
+    const [wx] = P(w.x, 0, w.z), base = cam.F * (w.leg * w.r + 1.4) / w.z;
+    for (const sg of L.signals) assert.ok(P(sg.x, 0, sg.z)[0] > wx + base, `${k}: the ${sg.id} stop light right of the wheel's base`);
+  }
+});
+test('8a — THE SEASON by the real date (Michigan), forced by &season=, the south shifted', () => {
+  assert.equal(seasonOf(10, 23), 'autumn'); assert.equal(seasonOf(7, 4), 'summer'); assert.equal(seasonOf(5, 1), 'spring'); assert.equal(seasonOf(1, 10), 'winter');
+  assert.equal(seasonOf(11, 25), 'winter'); assert.equal(seasonOf(4, 5), 'winter'); assert.equal(seasonOf(9, 26), 'autumn');
+  assert.equal(seasonOf(10, 23, { force: 'spring' }), 'spring'); assert.equal(seasonOf(10, 23, { force: 'nope' }), 'autumn');
+  assert.equal(seasonOf(1, 10, { south: true }), 'summer');
+});
+test('8a — THE IMPLIED ROAD: one car a slot at most, on the clock (the same for everyone), busier in the evening than at 3 am', async () => {
+  const { roadPassAt, roadBusy, ROAD_PASS } = await import('../js/core/harbor-promenade.js');
+  const t0 = Date.UTC(2026, 9, 23, 0, 0);
+  let eve = 0, small = 0;
+  for (let i = 0; i < 2000; i++) { const ms = t0 + i * 7e3; const a = roadPassAt(ms, () => 19), b = roadPassAt(ms, () => 19); assert.deepEqual(a, b); if (a) { assert.ok(ms >= a.t0 && ms < a.t0 + ROAD_PASS.dur); eve++; } if (roadPassAt(ms, () => 3)) small++; }
+  assert.ok(eve > small * 2, `evening ${eve} vs 3 am ${small}`);
+  assert.ok(roadBusy(18) > roadBusy(3));
+  const f = roadPassAt(t0 + 5e3, () => 12, { force: true }); assert.ok(f && f.id.startsWith('f'));
+});
+
+// ------------------------------------------------------------------ PART 8a: THE PROPS' ART (props.js) — every prop, season and look
+// draws with real colours (never NaN), and the shadows follow the rules: a cast shadow only in the sun, the contact shadow always
+test('8a — the props draw in every season + look with finite colours; cast shadows only in the sun (none at night / overcast)', async () => {
+  const { drawBench, drawCart, drawPlanter, drawMedallion, propShadow } = await import('../js/screens/harbor/props.js');
+  const { promenadeLayout } = await import('../js/core/harbor-promenade.js');
+  const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = promenadeLayout(cam);
+  const grad = { addColorStop() {} };
+  const rec = () => {
+    const o = { bad: [], soft: 0 }, base = { getTransform: () => ({ a: 2, b: 0, c: 0, d: 2, e: 0, f: 0 }), createLinearGradient: () => grad, createRadialGradient: () => grad, measureText: () => ({ width: 40 }), fill: () => { if (base.shadowBlur > 0) o.soft++; } };
+    const chk = v => { if (typeof v === 'string' && /NaN|undefined|Infinity/.test(v)) o.bad.push(v); };
+    return { o, x: new Proxy(base, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle' || k === 'shadowColor') chk(v); t[k] = v; if (k === 'shadowBlur' && !v) t[k] = 0; return true; } }) };
+  };
+  const looks = { day: { day: 1, gold: 0, night: 0, sunDir: 0.4, sunEl: 40, ovc: 0 }, gold: { day: 0, gold: 1, night: 0, sunDir: 1, sunEl: 6, ovc: 0 },
+    night: { day: 0, gold: 0, night: 1, sunDir: 0, sunEl: 6, ovc: 0, lamps: 1 }, overcast: { day: 1, gold: 0, night: 0, sunDir: 0, sunEl: 40, ovc: 0.75 } };
+  for (const season of ['spring', 'summer', 'autumn', 'winter']) for (const [name, T] of Object.entries(looks)) {
+    const ctx = { season, phase: 0.5, lights: L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), lampK: T.lamps || 0, snow: season === 'winter' ? 0.5 : 0 };
+    const { o, x } = rec();
+    drawBench(x, cam, L.bench, T, ctx); drawCart(x, cam, L.cart, T, ctx); for (const p of L.planters) drawPlanter(x, cam, p, T, ctx); drawMedallion(x, cam, L.medallion, T, ctx);
+    assert.deepEqual(o.bad, [], `${season} ${name}`);
+    // the shadows: the bench's cast + contact = 2 soft fills in the sun; only the contact one at night / under an overcast deck
+    const sh = rec(); propShadow(sh.x, cam, L.bench, 'bench', T, ctx);
+    assert.equal(sh.o.soft, name === 'night' || name === 'overcast' ? 1 : 2, `${season} ${name} shadows`);
+    assert.deepEqual(sh.o.bad, []);
+  }
+});
+
+// ------------------------------------------------------------------ PART 8a: THE TREES (core/harbor-trees.js + trees.js)
+test('8a — THE TREES: one seeded skeleton through the year, the crown inside its box (never past w/2 or the top), bare in winter, thinning in late autumn, each maple its own autumn mix, the crabapple\'s blossom + fruit', async () => {
+  const { treePlan, treeMix, densityOf, LEAF } = await import('../js/core/harbor-trees.js');
+  const { promenadeLayout } = await import('../js/core/harbor-promenade.js');
+  const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = promenadeLayout(cam);
+  assert.ok(L.trees.some(t => t.kind === 'maple') && L.trees.some(t => t.kind === 'crab'));
+  L.trees.forEach((t, i) => {
+    const a = treePlan(t, { season: 'autumn', phase: 0.5, i });
+    assert.deepEqual(JSON.stringify(a), JSON.stringify(treePlan(t, { season: 'autumn', phase: 0.5, i })), 'deterministic');
+    // the same tree all year: the skeleton never changes with the season
+    for (const season of ['spring', 'summer', 'winter']) assert.deepEqual(treePlan(t, { season, phase: 0.5, i }).segs, a.segs, `${t.kind} ${season}: one skeleton`);
+    // real branching: a trunk, limbs, twigs (no ball on a stick)
+    assert.ok(a.segs.filter(g => g.d === 1).length >= 6 && a.segs.filter(g => g.d >= 5).length >= 40, `${t.kind}: limbs + twigs`);
+    for (const season of ['spring', 'summer', 'autumn']) for (const phase of [0.1, 0.5, 0.9]) {
+      const p = treePlan(t, { season, phase, i });
+      assert.ok(p.clusters.length >= 6, `${t.kind} ${season} ${phase}: a crown`);
+      for (const c of p.clusters) {
+        const reach = c.r * 1.04 + LEAF[t.kind] * 1.6;
+        assert.ok(Math.abs(c.u) + reach <= t.w / 2 + 1e-9 && c.v + reach <= t.trunk + t.h + 1e-9, `${t.kind} ${season}: a cluster inside the crown's box`);
+        assert.ok(c.col.every(Number.isFinite) && c.dabs.length > 10);
+      }
+    }
+    const w = treePlan(t, { season: 'winter', phase: 0.3, i });
+    assert.equal(w.clusters.length, 0, 'winter: bare');
+    assert.equal(w.depth, 6, 'winter: every twig shows');
+    if (t.kind === 'maple') {
+      assert.ok(treePlan(t, { season: 'autumn', phase: 0.95, i }).clusters.length < a.clusters.length * 0.6, 'late autumn: thinner');
+      assert.ok(treePlan(t, { season: 'autumn', phase: 0.9, i }).fallen.length > treePlan(t, { season: 'autumn', phase: 0.1, i }).fallen.length, 'more leaves down as autumn goes on');
+      assert.ok(treePlan(t, { season: 'spring', phase: 0.05, i }).clusters.length < treePlan(t, { season: 'spring', phase: 0.8, i }).clusters.length, 'spring: the leaves come out');
+    } else {
+      const sp = treePlan(t, { season: 'spring', phase: 0.5, i });
+      assert.ok(sp.clusters.filter(c => c.blooms).length > sp.clusters.length * 0.7, 'the crabapple in blossom');
+      assert.ok(sp.fallen.length > 0, 'petals on the paving');
+      assert.ok(a.fruit.length > 8 && w.fruit.length > 0, 'its little red apples in autumn + winter');
+    }
+  });
+  // the maples' autumn: scarlet-crimson, orange, gold-amber — the phone's two maples (i 0, 1) each their own
+  const dom = i => treeMix('maple', 'autumn', i)[0][0];
+  assert.ok(dom(0)[0] > 180 && dom(0)[1] < 60, 'scarlet'); assert.ok(dom(1)[1] > 80 && dom(1)[1] < 130, 'orange'); assert.ok(dom(2)[1] > 150, 'gold');
+  assert.equal(densityOf('maple', 'winter'), 0); assert.equal(densityOf('maple', 'summer'), 1);
+});
+
+test('8a — THE TREES draw in every season + look with finite colours; cast shadows only in the sun; THE FALLING LEAVES: capped by tier, none at tier 0 / reduced motion / winter', async () => {
+  const { drawTree, treeShadow, createLeaves } = await import('../js/screens/harbor/trees.js');
+  const { promenadeLayout } = await import('../js/core/harbor-promenade.js');
+  const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = { ...promenadeLayout(cam), cam };
+  const rec = () => {
+    const o = { bad: [], fills: 0 }, base = { fill: () => { o.fills++; } };
+    const chk = v => { if (typeof v === 'string' && /NaN|undefined|Infinity/.test(v)) o.bad.push(v); };
+    const num = (...a) => { if (a.some(v => typeof v === 'number' && !Number.isFinite(v))) o.bad.push('a NaN point'); };
+    return { o, x: new Proxy(base, { get: (t, k) => (k in t ? t[k] : num), set: (t, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle') chk(v); t[k] = v; return true; } }) };
+  };
+  const looks = { day: { day: 1, gold: 0, night: 0, sunDir: -0.4, sunEl: 40, ovc: 0 }, gold: { day: 0, gold: 1, night: 0, sunDir: 1, sunEl: 6, ovc: 0 },
+    night: { day: 0, gold: 0, night: 1, sunDir: 0, sunEl: 6, ovc: 0 }, overcast: { day: 1, gold: 0, night: 0, sunDir: 0, sunEl: 40, ovc: 0.75 } };
+  for (const season of ['spring', 'summer', 'autumn', 'winter']) for (const [name, T] of Object.entries(looks)) {
+    const ctx = { season, phase: 0.5, lights: L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), lampK: name === 'night' ? 1 : 0, snow: season === 'winter' ? 0.5 : 0, wet: 0 };
+    L.trees.forEach((t, i) => {
+      const { o, x } = rec(); drawTree(x, cam, t, T, { ...ctx, i });
+      assert.deepEqual(o.bad, [], `${t.kind} ${season} ${name}`); assert.ok(o.fills > 5);
+      const sh = rec(); treeShadow(sh.x, cam, t, T, { ...ctx, i });
+      assert.deepEqual(sh.o.bad, []);
+      assert.equal(sh.o.fills > 0, name === 'day' || name === 'gold', `${t.kind} ${season} ${name}: a cast shadow only in the sun`);
+    });
+  }
+  // the leaves: a minute of frames in a wind
+  const run = (o, secs = 60) => { const lv = createLeaves(); lv.layout(L); let peak = 0; const { x } = rec(); for (let f = 0; f < secs * 30; f++) { lv.draw(x, { t: f / 30, dt: 33, motion: true, wind: 6, season: 'autumn', phase: 0.6, fade: 1, night: 0, tier: 2, ...o }); peak = Math.max(peak, lv.debug().n); } return peak; };
+  const p2 = run({}), p1 = run({ tier: 1 });
+  assert.ok(p2 > 2 && p2 <= 12, `tier 2: ${p2}`); assert.ok(p1 > 0 && p1 <= 5, `tier 1: ${p1}`);
+  assert.equal(run({ tier: 0 }), 0); assert.equal(run({ motion: false }), 0); assert.equal(run({ season: 'winter' }), 0);
+  assert.ok(run({ season: 'spring', phase: 0.5 }) > 0, 'the crabapple\'s petals');
 });

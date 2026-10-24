@@ -211,6 +211,9 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     busy: () => air.busy() || banner.on() || smoke.on() || drones.on() || birds.busy() || balloons.on(),
     /** a drone show holds the freed band under the word: the tagline steps aside (title.js) */
     holdTag: () => drones.on(),
+    /** PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js reads it ~4× a second): what's up there now — the planes + the
+     *  helicopter (where), the banner plane, the skywriters, the balloons, the drone show, the birds */
+    listen: () => ({ air: air.debug(), banner: banner.on(), smoke: smoke.on(), balloons: balloons.on(), drones: drones.on(), birds: birds.debug() }),
     // ---- THE API (harbor().sky): each piece starts now, or at o.at (clock ms); → true if it could start
     api: {
       banner: (lines, o = {}) => !!last && startBanner(last, lines, o.at || last.now, o),
