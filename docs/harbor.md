@@ -4589,6 +4589,9 @@ readout decides (`&force=tr3b&debug=1`: tier, slow %, the new `last 10 min` line
 night; its sprites (the saucer ~1.2 MB at dpr 2, the beam ~0.4, the triangle ~0.7) go with it.
 
 ### Known issues (6b)
+- **THE CLOUD (2 runs, the cap):** run 1 (7232578): `street` + `city` green (Group 0's probe fixes held), `audio` + `show` red on four checks that
+  still described the old design (the deck + scud, the drones under the word, the sign read during its opening flicker, jets.js counted as
+  the lazy module) — brought to this pass's design; run 2 (the next commit): all four jobs green; the quick `tests` workflow green on every push.
 - **The speed round ran while a helper pass took screenshots** for part of it (the abduction's A side read 76 % slow — noise); the TR-3B
   + abduction rows were re-measured on a quiet machine (Performance). The iPhone readout on `&force=tr3b` / `&force=ufo` decides.
 - The searchlights + the party's sky beams in fog are unchanged (still brighter in fog — "dramatic"): only the lighthouse got the wide soft
