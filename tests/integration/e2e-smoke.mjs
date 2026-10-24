@@ -149,7 +149,9 @@ try {
     const phase = await evalIn(guest, s => s.game && s.game.phase);
     ok(true, `${id}: watched to phase "${phase}" with no stray text`);
     await host.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
-    await waitFor(guest, s => !s.game || s.meta.status === 'lobby', `${id}: back to lobby`, 20000);
+    // (a WAIT, not a limit: GitHub's slower machine timed out at 20 s after NEON PAR twice running — its scene is the heaviest — while the
+    // same flow takes ~1 s here; a generous wait costs nothing when it passes)
+    await waitFor(guest, s => !s.game || s.meta.status === 'lobby', `${id}: back to lobby`, 60000);
     await guest.waitForSelector('.lobby-screen', { timeout: 15000 });
     await sleep(800);
     await check(`lobby after ${id}`);
