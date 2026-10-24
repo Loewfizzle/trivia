@@ -228,6 +228,8 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`): the FULL `e2e-harbor` suite runs on GitHub after a push that touches a
   City 2.0 file (≈ 7 min; a newer push cancels; the private repo's free minutes). City 2.0 passes never run the whole suite on the
   laptop (it runs out of memory): the unit suite + the touched groups (`ONLY=…`) locally, then push and read `gh run list --workflow harbor`.
+  **CI minutes (the owner, Oct 24): at most TWO cloud runs per pass.** Never re-run the cloud suite to confirm a flake: a failed check in
+  code the pass didn't touch that is a known flake goes in the pass's "Known issues" and the pass finishes.
 - `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
 - `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
 - Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;

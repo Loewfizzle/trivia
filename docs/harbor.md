@@ -3949,6 +3949,12 @@ the canopy has fewer bulbs than 7b's string lights) — no speed round.
 - 10-letter one-word names (SLIPSTREAM) get ~8.6 pt letters at 402 — the board can't grow (the wheel's leg on the right, the stop light
   below, the parapet above).
 - WebKit can't run here: the blade's glow is the canvas's `shadowBlur` (Safari supports it — not `ctx.filter`), baked once.
+- **THE CLOUD JOB (2 runs, the owner's cap):** run 1 — 295 / 296, the wall-washer probe read one pixel of the narrow new cone (76 red locally,
+  63 in the cloud) → the check now samples the hot spot's brightest + warmest of five points against the same pier a floor down (fixed,
+  passes locally). Run 2 — 295 / 296, the washer check passing; the one failure THE POLE on a party night (every sweep washed toward white
+  mid-punch: 210,210,197 · 209,137,209 …) — the barber pole's code wasn't touched by this pass, it passed on run 1, and it's the known
+  "a loaded run catches a sweep mid-punch" flake the check already retries for. Not re-run (the owner: never spend a cloud run to confirm a
+  flake); if it repeats, the check should sample between beats (`party().beatU` < 0.5) rather than on a timer.
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against
