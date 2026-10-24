@@ -1,0 +1,89 @@
+# CITY 2.0 — the FULL e2e-harbor suite on GitHub's machines (the laptop runs out of memory on it). docs/testing.md "GitHub checks".
+# Kept lean for the PRIVATE repo's monthly free minutes: it runs only when a City 2.0 file changes (the paths below), a newer push
+# cancels an older run, the npm + emulator downloads are cached, and no screenshots are taken unless a check fails. The quick unit
+# tests stay in tests.yml on every push. Run it by hand from the Actions tab (workflow_dispatch) after a change outside these paths.
+name: harbor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'js/screens/harbor/**'
+      - 'js/core/harbor-*.js'
+      - 'js/core/city-*.js'
+      - 'js/core/sky.js'
+      - 'js/core/weather.js'
+      - 'js/core/party.js'
+      - 'js/core/tube-path.js'
+      - 'js/screens/title.js'
+      - 'js/screens/title-dock.js'
+      - 'js/audio/**'
+      - 'js/ui/canvas-safe.js'
+      - 'js/ui/debug-tools.js'
+      - 'js/ui/logo.js'
+      - 'js/ui/tube-logo.js'
+      - 'js/app.js'
+      - 'index.html'
+      - 'css/title.css'
+      - 'css/harbor*.css'
+      - 'audio/city/**'
+      - 'data/mood-music.json'
+      - 'api/admin.js'
+      - 'database.rules.json'
+      - 'tests/integration/e2e-harbor.mjs'
+      - '.github/workflows/harbor.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: harbor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  harbor:
+    name: e2e-harbor (the whole suite, emulators, headless Chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tests/integration/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install (firebase-admin for /api; the emulators + puppeteer-core for the tests)
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/integration --no-audit --no-fund
+      - name: Cache the emulator downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('tests/integration/package-lock.json') }}
+      - name: Let Chrome use its sandbox (Ubuntu 24.04 restricts user namespaces)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: e2e-harbor on the emulators
+        working-directory: tests/integration
+        env:
+          CHROME: /usr/bin/google-chrome
+          SHOTS: '0'
+          SHARDS: '2'
+        run: |
+          npx firebase emulators:exec --only database,auth --project demo-arcade --config ../../firebase.json '
+            set -e
+            (cd ../.. && node scripts/serve.mjs --emu > /tmp/serve.log 2>&1 &)
+            for i in $(seq 1 30); do curl -sf http://localhost:5173/ > /dev/null && break; sleep 1; done
+            node e2e-harbor.mjs "$CHROME" ./shots-harbor
+          '
+      - name: The results (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harbor-results
+          path: tests/integration/shots-harbor/
+          retention-days: 7
