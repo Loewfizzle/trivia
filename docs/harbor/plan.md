@@ -33,14 +33,18 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | FA | ✅ (b87e589 — the owner: fixed, "even better": music returns by itself after the home screen / another app; one tap after a podcast or another app's music, as iOS requires. OPEN: in her screenshots the Web Audio context stays FROZEN after returning and the music runs on the DIRECT element — check the beat lights + SFX still work in that state; fold into 7a section 0) FABLE: THE iPHONE MUSIC BUG on evidence (the AUDIO panel: a new context "running" with a frozen clock, session ambient, gain 0, 6 rebuilds) | Fable high | 45–75 min |
 | F1 | ✅ (294e105) FIX PASS: the iPhone music bug (still broken — a diagnostic first), the billboard lit at night, the beat lead, brick texture at noon | Opus 5.5 high | 45–75 min |
 | DB | ✅ (ed141a3, Oct 23) MUSIC FIXES (drop slip8, the iOS music-dies-after-leaving bug, party beat latency) + DAY BUILDINGS (the owner: "a little flat", 7–8 / 10): cast shadows between buildings, ambient occlusion, recessed windows, materials — the "BUILDINGS BY DAY" notes | Opus 5.5 high | 60–90 min |
-| 7 | ✅ 7b (Oct 24 — THE SPEAKEASY'S LIFE, built overnight: the moments catalogue + the starter ten + the mirror door, the TV glow, never fully dark, taps, the wall-washers, the marquee, the string lights — docs/harbor.md#part-7b; the raid + the rooftop guests wait for 8b) ✅ 7a (12a4f9c, Oct 23 — the owner: 7–8 / 10 at night, cozy; the ghost ad = the BLADE, not the corner turn; the smaller corner buttons feel better) ( add-ons sent: the sun's colour by altitude — golden hour too white; SUNRISE + SUNSET presets in the panel's TIME category; the AUDIO panel's header says "sounding" while the detail says NO) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
-| PF | ✅ (Oct 24 — docs/harbor.md#pf) PROMENADE FINAL TOUCHES (Oct 24): the GitHub CI job (full e2e-harbor in the cloud, lean for the private repo), the final layout (cart + bus hidden until 8b, the bench + crabapple left of the crossing, the brick compass inlay, the lamps re-thought + tree uplights, the darker street under the dock, the string lights off for now, brighter sign lamps, an olive-green mailbox), the car's sound in sync, the neon-outline check, the SKY SOUNDS imported (Grok's 12 files, wired to the existing sky events) | Opus 5.5 high | 75–90 min |
-| BEAT | THE BEAT AFTER RETURNING — a focused FABLE pass (the evidence: "re-measure gave up" before leaving; "heard +237 ms SKEW" after; the tier drop 2→1→2 on return) — waits on the owner's answer: did it LOOK off by eye? | Fable high | 45–60 min |
+| 7 | ✅ 7a (12a4f9c, Oct 23 — the owner: 7–8 / 10 at night, cozy; the ghost ad = the BLADE, not the corner turn; the smaller corner buttons feel better) ( add-ons sent: the sun's colour by altitude — golden hour too white; SUNRISE + SUNSET presets in the panel's TIME category; the AUDIO panel's header says "sounding" while the detail says NO) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
+| SPOL | ✅ (70bdbb5 + 3, Oct 24; also the room tints, sky sounds louder, placeholders hidden, the CI two-run rule; SLIPSTREAM on the blade only ~8.6 pt and the NEON PAR "back to lobby" flake → 8P) SPEAKEASY POLISH (Oct 24): the blade inverted (dark board, big bright self-lit letters), the windows redesigned (clean panes, less inside, the TV window upper right), the wall-washers as accents, crisp shopfront lights, the café-light canopy on the roof, the awning's warm glow | Opus 5.5 high | 60–90 min |
+| 8P | ← NEXT (moved up, Oct 24 — Ben: hard to judge the windows / foreground with placeholder people): THE PEOPLE — the promenade people (guided free will, up to ~12, the entry / exit points, the crosswalk to the waterside sidewalk, the lobby line's corner), the rooftop people, the cart back (placed), the bus moving + stopping at the curb; premium silhouettes. (Wildlife, Rosie + boats in 3D, the raid + police cars, cabs, the schedule routines stay in 8b.) + SECTION 0 CARRY-OVER from Ben's SPOL review (the blurry barbershop front, 3 awning lamps, crisp lamp globes, the TV bluer, SLIPSTREAM stacked, the brick street, cobbles flatter, the crosswalk lit, the basement window, lamppost life, the hush-word sign preview, sky sounds louder + the jet duck, the speakeasy + people sounds imported, the CI split + flaky checks → warnings, the NEON PAR flake) | Opus 5.5 high | 120–150 min |
+| FREV | THEN: a FABLE FOREGROUND REVIEW (read-only, fresh eyes on the speakeasy + promenade + lighting + the systems' separation — clouds, lights, sounds, people hooks) → one cleanup pass from it | Fable | ~45–60 min |
+| PF | ✅ (Oct 24, CI green) PROMENADE FINAL TOUCHES (Oct 24): the GitHub CI job (full e2e-harbor in the cloud, lean for the private repo), the final layout (cart + bus hidden until 8b, the bench + crabapple left of the crossing, the brick compass inlay, the lamps re-thought + tree uplights, the darker street under the dock, the string lights off for now, brighter sign lamps, an olive-green mailbox), the car's sound in sync, the neon-outline check, the SKY SOUNDS imported (Grok's 12 files, wired to the existing sky events) | Opus 5.5 high | 75–90 min |
+| 7b | ✅ (3c5c17a, Oct 24 — CI 296/296; awaiting Ben's iPhone review; party tier 0 +0.5 ms) (moved up, Oct 24): THE SPEAKEASY'S LIFE — the window moments catalogue + the starter 10, the hidden mirror door, the TV glow, never fully dark at night; + the facade grazing lights between the windows, the blade's marquee bulbs, the rooftop string lights re-rendered (the raid stays for later with the vehicles) | Opus 5.5 high | 90–120 min |
+| BEAT | ✅ (2a8338c, Oct 24 — one source per song, kicks only calibrate the lead, every beat punches, no tier drop on return; awaiting the owner's iPhone test) THE BEAT SYNC MADE ROCK-SOLID — a focused FABLE pass (the evidence: "re-measure gave up" before leaving; "heard +237 ms SKEW" after; the tier drop 2→1→2 on return; the owner: "all over the place — off, then back on at a slower rhythm, then lost again") — one source of truth (the trusted grid from the song's time + one lead, kicks only calibrate), no half-time, no tier drop on return; + SPEAKEASY in WHITE on party nights (the owner: too much pink) | Fable high | 45–75 min |
 | FP2 | ✅ (Oct 24) FOREGROUND POLISH 2: the beat SKEW after returning (re-converge the output lead), the promenade tweaks (far-left tree + urn removed, the medallion to the middle with a height cap, cart left of it, bench + a crabapple shifted left, the bus removed until 8b, the framing maple fixed), grout in the cobbles at night, the finished street under the dock, crisp lights (no smoke), the barber pole (bright LED-like, smooth, neon on party nights), party timing 8:30 / 9:30 | Opus 5.5 high | 75–100 min |
 | FP | ✅ (fb332a1, Oct 23 — the owner: "a big jump", ~8 / 10) FOREGROUND POLISH (Oct 23): the beat-after-returning fix (count beats from the song's position, not the context clock — the owner's evidence: ~1.3 s drift), the promenade re-layout (approved sketch), the billboard on a short frame, the blade in front of the tree, the barber pole (smooth + brighter), the stop lights + a WALK/WAIT lantern, one crafted planter, the bench at night, quieter water + varied gulls, pulse default 175, readout + AUDIO toggles in the panel | Opus 5.5 high | 75–100 min |
 | 8a | ✅ (2aecda7, Oct 23) (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
-| 8b | THE LIFE (after 6b): people, vehicles, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
+| 8b | THE LIFE (after 6b; the people moved up to 8P): cabs, the raid + police cars, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
 | C2 | cleanup pass 2 (+ DEPENDENCY UPGRADES on a branch with the full tests: firebase-admin 13 → 14, the browser Firebase SDK past 11.10 — not urgent, Oct 24) | Opus 5.5 medium | 15–30 min |
 | 9 | seasons + weather | Opus 5.5 medium | 45–75 min |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
@@ -62,7 +66,7 @@ browser tests):** (1) add a GitHub CI job that runs the FULL e2e-harbor suite on
 not the laptop); (2) locally each pass runs only the unit suite + the test groups it touched; (3) the A-B-B-A speed check
 runs only when a pass changes what's drawn every frame (new animations, lights, layers), not for layout / art / sound
 tweaks — the owner's iPhone readout stays the judge; (4) the speed check never waits on bakes under 4× throttling (bakes
-are measured separately). The CI job: `.github/workflows/harbor.yml` (PF, ✅).
+are measured separately). The CI job goes in the next pass.
 
 **TESTING SCOPE (the owner, Oct 22 — no traffic yet, the games will be reworked):** City 2.0 passes test the CITY only. No
 game-by-game or every-phone game sweeps. Only when a pass touches files the whole app shares (title.js / title.css, the
@@ -710,7 +714,18 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
     The car bodies come with the other vehicles (Part 8); the raid with the speakeasy (Part 7).
   - Plus what's planned elsewhere: holiday window scenes, the password sign, busier windows when more players are online.
 - WINDOW WASHERS: some weekday mornings, two washers on a hanging platform squeegee the speakeasy's windows (tap → they wave).
-- Leave room for Lobby 2.0's password sign in a window ("TONIGHT'S PASSWORD: <hush word>", letters 14–16 pt).
+- THE HUSH WORD SIGN (the owner, Oct 24: it must be ON the speakeasy, as NEON) — DECIDED: a small NEON WINDOW SIGN in the
+  BARBERSHOP's front window, hanging just inside the glass in the LOWER half of the window, under the gold "HARBOR BARBERS"
+  arch, between the window's left edge and the barber pole (it replaces the tiny OPEN card). The barber + customer scene
+  stays behind it. Just the HUSH WORD in neon (bold Deco capitals, one warm colour, a thin tube border) + a small neon
+  KEYHOLE beside it as the wink; no extra painted text (the window is small). The joke: the password hides in plain sight
+  on the innocent front shop. Hush words are 4 letters; SIZE IT FOR 5 (room to expand). Letters as big as the window
+  allows, never under ~14 pt, readable at a glance at 390 / 402 / 430; if 5 letters don't fit at that size, widen the
+  shopfront a little rather than shrink the letters; the window's left edge must never be cut by the screen edge where the
+  sign sits. Lit whenever a lobby is open (by day too), otherwise a plain neon OPEN in the same spot by day and dark at
+  night. In a lobby it re-lights letter by letter when the word changes. Never covering the barber pole or the door. The real
+  word still shows big in INVITE / the dock. BUILD IT IN 8P as a preview (&force=hushsign&hush=JAZZ, plus a 5-letter test
+  word) so the owner can see it on his phone; Lobby 2.0 connects it to the real lobby word.
 
 ## Part 8 — the stage + wildlife
 - 8a SECTION 0 — CARRIED OVER: only (6) the billboard move was NOT sent to 7a (the owner sent (1)–(5) + the barber pole —
@@ -760,14 +775,101 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   and more CONCENTRATED — tighter cones aimed down the board so the whole blade face is evenly lit and the name pops at
   night (undo FP's "dimmed the blade a little"); still crisp light-on-surface, never a haze; (h) lamps strategic + future-
   proof (people readable everywhere they walk / wait / line up); (i) warm UPLIGHTS at each tree's base so the trees read at
-  night; (j) a 1920s OLIVE-GREEN pillar mailbox on the right side by the curb (not the bottom-left — the lobby line's corner);
+  night; (j) REMOVE THE OLIVE-GREEN MAILBOX (the owner, Oct 24: "I don't like it") — no street-furniture accent there;
   a NEWSSTAND / NEWSBOY idea → 8b with the people; (k) EVENT LIGHTING for the centrepiece (the owner): the inlay always inside
   the permanent pools + a hook rig of 3–4 flush brass FLOOR SPOTS in its ring, off normally, on (warm, aimed up) when an event
   piece stands there; holiday parts drive it via an API + add their own lights.
+- THE SPEAKEASY AT NIGHT FEELS EMPTY (the owner, Oct 24, 3:24 am): (1) the window LIFE (7b) moves UP — right after the Fable
+  beat pass, before 6b (the owner wants to see it; the windows are the city's most alive spot); 7b must make sure the
+  building is NEVER fully dark at any hour (the TV glow upstairs, a night lamp, the bar's last light); (2) FACADE LIGHTING
+  for depth: warm, soft grazing light on the brick PIERS BETWEEN the windows from small lamps under the cornice aiming DOWN
+  (wall-washers), not lighting the windows themselves — on from dusk, all night, subtle; (3) THE BLADE SIGN goes the
+  MARQUEE route: a border of soft warm-white BULBS around the board (steady, no chase needed; maybe a slow chase on party
+  nights), the board itself DIMMER (no bright gooseneck wash — the bulbs replace the blade's lamps so two lights don't fight);
+  by day the bulbs read as unlit glass globes on the frame (a classic theatre look) — judge by day too.
+- THE SPEAKEASY BLADE STILL UNREADABLE (Ben, Oct 24, after 7b's marquee): dark thin letters on a dim orange board, with the
+  bulb border crowding a ~25 pt board. FIX — INVERT IT, the classic 1920s theatre blade: a DARK board (deep navy / black
+  enamel), the game name in BIG, BOLD, BRIGHT letters that light themselves at night (warm-white neon tubes, or letters
+  made of bulbs), the marquee bulbs only as a thin sparse border (or none on the long sides) so the letters get the width;
+  the board a little WIDER if the wheel allows; by day the letters painted cream / gold on the dark board. Readable at a
+  glance at 402 day + night, every game in the rotation (check the longest names).
+- THE SPEAKEASY WINDOWS REDESIGNED (Ben, Oct 24, after 7b — the windows themselves, not the scenes): today a thick frame /
+  mullion splits each window down the middle and the rooms are cluttered, so the scenes read as busy fragments. REDESIGN:
+  BIG CLEAN panes — a slim frame, at most ONE thin rail placed HIGH (a 1920s one-over-one sash with the meeting rail in the
+  upper third, or a transom), never a bar through the middle of the scene; deep reveals + a sill; LESS INSIDE: each room =
+  a warm wall gradient + ONE light source (a lamp / the back-bar glow) + one or two strong silhouette shapes; furniture as
+  dim simple shapes or none; curtains only framing the edges, never crossing the middle. An empty room is still beautiful
+  (soft lamplight, a curtain, a plant). THE TV WINDOW = the UPPER-RIGHT window (Ben's memory of the plan — move it from the
+  upper middle). Keep every moment working inside the new panes.
+- THE WALL-WASHERS READ AS EXTRA ARCHED WINDOWS (Ben's close-up, Oct 24): the lit piers are tall evenly-bright panels with a
+  hard ROUNDED TOP edge, so they look like more arched windows / doorways between the windows. FIX: a small visible fixture
+  under the cornice on each pier; the light a bright hot-spot just below it fading DOWN fast in a soft V / cone (the top
+  third of the pier, then gone), no hard outline, the brick texture showing through the light; dimmer overall — accents,
+  not panels.
+- THE SHOPFRONT LIGHTS STILL SMOKY (Ben's close-up): the door sconce and the shop's inside lamp are still hazy soft blobs.
+  Apply the crisp-light rule for real: a small bright source, a tight halo (a few pt), and the light on the surfaces (the
+  door, the frame, the awning's underside, the step) — no wide translucent glow. The barber pole is good now (bright, crisp).
+- THE ROOFTOP STRING LIGHTS REDONE (Ben, Oct 24: "they look cheap") — DECIDED: a café-light canopy of FEWER, BIGGER warm
+  Edison bulbs (~8–12), widely spaced, deep swags between 3–4 tall posts; party colours on party nights; NOT dashed neon on
+  the railing (the speakeasy stays the warm incandescent building). If still cheap after refining → remove. THE AWNING AT NIGHT: a subtle warm
+  glow, the 1920s way (a lamp under it lighting its underside + the shopfront, faint translucency, a warm rim), not backlit.
 - THE LIGHTHOUSE BEAM ON PARTY NIGHTS — DECIDED: STAYS WHITE (the owner asked, then left it to Claude, Oct 24): on a party
   night nearly everything is already in colour (the skyline, the sky beams, the wheel, the string lights, the barber pole);
   the lighthouse's clean white beam sweeping across it is the calm anchor + contrast that makes the colour pop. Do NOT
   colour it.
+- THE LIGHTHOUSE BEAM IN HEAVY FOG — CHECK IT (the owner, Oct 24: "almost lasers, too sharp"): in real fog a lighthouse beam
+  looks BROADER and SOFTER, not sharper. It is a wide, glowing cone with soft edges that fades with distance, plus a bright
+  bloom (a halo) around the lamp itself; the denser the fog, the shorter and more diffuse the beam. The thin hard-edged look
+  belongs to clear air, if anywhere. Make the beam's width, edge softness and length follow the fog density (light fog: a
+  faint crisp shaft; heavy fog: a wide, soft, shorter cone + a big glow at the lamp). Same for the sky beams /
+  searchlights in fog. Fold into 6b (the sky) or Part 9 (weather), whichever comes first.
+- THE BASEMENT WINDOW MUST STAND OUT (the owner, Oct 24: "you can't really tell"): the low window at the bottom of the
+  speakeasy is where the real club is, so it's the speakeasy's heart and should read as different from every room above.
+  A DEEPER, RICHER light than the rooms above: a low, smoky amber edging toward copper / red, the only window that colour,
+  a bit brighter. Give it LIFE through movement, not a faulty flicker: shadows of dancers / people passing behind it now
+  and then, the light slightly warming and dimming as they pass; on party nights a gentle pulse with the beat (the
+  music's heart is down there). A very rare brief flicker is OK as a bonus (an old wire), never often. Goes in the people
+  pass (8P) with the foreground.
+- THE LAMPPOSTS GET A LITTLE LIFE (the owner, Oct 24): YES, but RARELY. (1) At dusk the lamps switch on ONE BY ONE with a
+  short stutter as each warms up (not all at once). (2) Very rarely (one lamp, every several minutes at most) a lamp gives a
+  brief 2–3 flicker stutter and settles, like an old wire. Never the lamps flanking the crosswalk during an event, never
+  more than one at a time, never a strobe. (3) Optional rare moment: one lamp goes out for a few seconds, then comes back.
+  Pairs with the neon flicker sound slot (softer, a light tick). Goes in 8P.
+- THE CROSSWALK MUST BE LIT (the owner, Oct 24: the lamps flank it but no light lands ON it): the two lamps framing the
+  crossing must throw their pools ONTO the crosswalk itself; the pools overlap across the stripes so the whole crossing reads
+  as the brightest strip of ground on the promenade at night. The painted stripes catch the light (pale, slightly glossy),
+  the wet-weather sheen later (Part 9). Still crisp: a clear pool with a soft edge, no haze. People cross here in 8P, so they
+  must read clearly while crossing. Goes in 8P.
+- THE STREET UNDER THE DOCK — FLATTER + ITS OWN COLOUR (the owner, Oct 24 iPhone, day: "too bumpy… needs grout"; wants a
+  slightly different shade, maybe reddish brick): today each stone is a rounded pillow with a strong highlight, so the strip
+  reads lumpy. Make it a real 1920s Midwest BRICK STREET (Grand Rapids still has some): rectangular paving bricks, SMALLER and
+  more regular than the promenade's cobbles, laid tight in rows across the street with thin dark tar / sand joints; FLAT
+  shading (a faint bevel, no pillow highlight); a muted, aged OXBLOOD / brown-red, darker and less saturated than the
+  promenade and the brick compass, so it frames the bottom of the screen without pulling the eye or competing with the
+  speakeasy's brick. Worn smoother and darker along the wheel paths and beside the streetcar rails; the rails set flush. A
+  clear curb step between the promenade and the street. Night: darker still, with the lamps' light landing on it softly.
+  Goes in 8P (the people pass touches the foreground anyway).
+- SKY SOUNDS LOUDER AGAIN (the owner, Oct 24 after SPOL's +6 / +3.5 dB): everything but the animals a bit louder still;
+  the F-16 JETS must be REALLY loud. How, without the music being overpowered: (1) the jets another ~+6 dB, plus a brief
+  MUSIC DUCK (the music dips ~3–4 dB for the 2–3 s of the pass, then eases back), like a real flyover; the peak
+  stays capped, never a startle; (2) a "phone presence" EQ on the aircraft (a gentle lift around 1–3 kHz), since phone
+  speakers can't play the low roar, so they read louder without more level; (3) the balloon burner + the helicopter
+  ~+4 dB, the airliners / banner plane / drone hum ~+3 dB; the geese + gulls + all animals unchanged. Goes in 8P's
+  carry-over.
+- THE SPEAKEASY + PEOPLE SOUNDS ARRIVED (Grok, Oct 24; ~/Downloads/city-sfx, credits.txt "Speakeasy + people sounds"; all
+  CC0 / Pixabay / Sonniss / Mixkit). 8P imports them into their slots with Grok's trims as a starting point (he measured,
+  didn't listen: confirm by analysis and cut any readable words, music or modern sound). The bus: cut idle + pull-away from
+  car-1920s-pass-3.wav (the 1945 truck, more period-correct) instead of the diesel stand-ins. The street-crowd file is
+  missing: build the lobby line's murmur from rooftop-party.mp3 / bar-ambience-close (low-passed, quieter) or leave the
+  slot empty. Stand-ins (cat-land, door-slot, bus-door) are fine at this size. tv-murmur is the weakest: use it only if it's
+  clearly indistinct talk with no music; otherwise leave the slot empty.
+- THE AIRCRAFT BEACONS IN FOG (the owner, Oct 24, wanted the hero buildings' tops blinking WHITE in unison in fog, like
+  anti-collision lights; Claude pushed back on the colour): the synced beacons already exist; keep them RED. White strobes are
+  a modern (1970s+) look, harsh and startling, and wrong for a cozy 1920s city. Old obstruction lights were slow, steady
+  red glows. What fog SHOULD do to them: make every beacon bloom into a soft red halo that glows through the murk, the
+  blink a slow, gentle fade on and off (not a hard snap), every hero / tall top in perfect unison, so the city's tops
+  "breathe" red together in the fog. Check the beacons are actually visible on every hero top in heavy fog (the fog layer
+  must not hide them; a halo is what you see when the building itself is gone). Fold into 6b / Part 9 with the fog beam.
 - NEON OUTLINES MERGE INTO ONE SHAPE (the owner, Oct 24, party night, the right side: the BLUFF + DOUBLE AGENT towers and the
   buildings in front of them): overlapping buildings share the same pink outline, so front and back read as one strange
   blob. RULE: a building in FRONT never shares its outline colour with the building directly behind it — contrasting hues
@@ -775,6 +877,20 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   colours by layer, not one colour for all); the front building's outline cleanly OCCLUDES the one behind (a thin dark gap
   where they cross, the back outline stops behind the front silhouette); near outlines a touch thicker / brighter, far ones
   finer / dimmer (Neon Pass 3's depth rule). Check every overlap across the skyline at 402.
+- 8b PEOPLE — DECIDED (the owner, Oct 24): GUIDED FREE WILL (a walkable map + small goals + routes, not fixed scripts, not
+  physics). The CROSSWALK leads to a WATERSIDE SIDEWALK along the railing on the far side of the road; people cross, then walk
+  LEFT or RIGHT along it and off screen (left = behind the speakeasy building, just keep going). Entry / exit points: the
+  screen edges, the waterside sidewalk via the crossing, the barbershop door (day), the speakeasy side door (night), the bus
+  at the curb, cabs on the back road; never off the bottom (under the dock). COUNT: up to ~12 at once at the busiest (not
+  cluttered), down to a handful / none late at night, by the clock + weather + events (the director's budget). Silhouette
+  art at ~25–30 pt: clear shapes, coats, hats, umbrellas, dogs; a few strong poses (walk, jog, sit, wave, point up, lean).
+  (The boat landing / riding the wheel → FUTURE IDEAS.)
+  + THE ROOFTOP PEOPLE (the owner, Oct 24 — don't forget them): the same people system on the speakeasy's ROOF as its own
+  small zone — rooftop party guests (summer weekend nights / party nights: dancing, a bar cart, someone at the railing, a
+  toast), the gardener by day through the seasons, the billposter / sign painters on the roof billboard's catwalk, a figure
+  stepping out of the roof hatch / stair house to look at the view. They come and go through the roof hatch (never pop in);
+  they stand TALLER than the parapet (7a: the parapet hides the roof deck from this camera) and walk in front of / under the
+  billboard frame; their own small count (up to ~4–6 on a party night, 0–1 otherwise), inside the director's budget.
 - THE LINE AT THE SPEAKEASY (the owner, Oct 23 — for Lobby 2.0 + 8b): friends in a lobby line up LEFT of the left globe lamp —
   along the barbershop front, to the left of the door, toward the bottom-left corner. Space check (Claude): that corner holds
   ~4–5 figures in a single file at phone size, so the line runs along the shopfront and bends down toward the corner (two-deep
