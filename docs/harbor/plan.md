@@ -34,7 +34,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | F1 | ✅ (294e105) FIX PASS: the iPhone music bug (still broken — a diagnostic first), the billboard lit at night, the beat lead, brick texture at noon | Opus 5.5 high | 45–75 min |
 | DB | ✅ (ed141a3, Oct 23) MUSIC FIXES (drop slip8, the iOS music-dies-after-leaving bug, party beat latency) + DAY BUILDINGS (the owner: "a little flat", 7–8 / 10): cast shadows between buildings, ambient occlusion, recessed windows, materials — the "BUILDINGS BY DAY" notes | Opus 5.5 high | 60–90 min |
 | 7 | ✅ 7a (12a4f9c, Oct 23 — the owner: 7–8 / 10 at night, cozy; the ghost ad = the BLADE, not the corner turn; the smaller corner buttons feel better) ( add-ons sent: the sun's colour by altitude — golden hour too white; SUNRISE + SUNSET presets in the panel's TIME category; the AUDIO panel's header says "sounding" while the detail says NO) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
-| 8a | ← NEXT (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
+| FP | ← NEXT FOREGROUND POLISH (Oct 23): the beat-after-returning fix (count beats from the song's position, not the context clock — the owner's evidence: ~1.3 s drift), the promenade re-layout (approved sketch), the billboard on a short frame, the blade in front of the tree, the barber pole (smooth + brighter), the stop lights + a WALK/WAIT lantern, one crafted planter, the bench at night, quieter water + varied gulls, pulse default 175, readout + AUDIO toggles in the panel | Opus 5.5 high | 75–100 min |
+| 8a | ✅ (2aecda7, Oct 23) (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 8b | THE LIFE (after 6b): people, vehicles, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
 | C2 | cleanup pass 2 | Opus 5.5 medium | 15–30 min |
@@ -731,14 +732,49 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   + run one script (trim, level to the city's loudness, encode, register) — like add-city2-music.py. The preview panel's
   SOUNDS category lists every slot: filled / empty, with a play button. + anything the owner
   finds when she checks 7a.
+- THE PROMENADE RE-LAYOUT (APPROVED by the owner, Oct 23 — Claude's sketch promenade-layout.png): FURNITURE ON THE EDGES,
+  AN OPEN FLOOR IN THE MIDDLE, THE FRONT EDGE CLEAR. Back row along the curb by the waterside road: tree · tall double lamp ·
+  tree (the bench under it) · a planter · tall double lamp; the open walking floor in the middle with the MEDALLION at its
+  centre (roughly under the wheel); the CART in the open right side with room around it; ONE big framing maple at the far
+  right edge (framing, not covering the cart); the front edge above the dock clear — only two short warm globe lamps at the
+  corners; ONE crafted planter tucked against the speakeasy's corner (open cobbles in front of the door + shop window).
+  NIGHT LIGHT PLAN: cool pools under the tall curb lamps (the back row, the road edge, the bench); warm pools from the two
+  corner globes across the front of the open floor; the speakeasy's warm spill across the cobbles in front of it; the
+  cart's string-light glow; the medallion where pools overlap; headlight sweeps across the front edge; dim, never black,
+  between the pools; no haze.
+- THE BARBER POLE AT NIGHT, FIXES (the owner, Oct 23, after 8a): its glow is glitchy — the stripes / light look jagged and
+  not continuous (fix the rotation: smooth, sub-pixel, continuous stripes, no stepping); it must POP more — a brighter, whiter
+  glow than before (the owner now wants it brighter than the "soft yellow"), the clear hero light of the shopfront; the two
+  lights beside it (the door sconce + the shop window's lamp) must not fight it — tone them down / fix their diffusion
+  (soft, round, no hard-edged blobs).
+- AFTER 8a — THE OWNER'S NOTES (Oct 23, collecting): (a) the billboard doesn't read as standing on the speakeasy's roof —
+  it looks attached to the tall buildings behind (its frame / legs must visibly stand on the speakeasy's roof deck, in front
+  of the skyline, the depth check) — her close-up shows why: the board's bottom sits ~a storey ABOVE the speakeasy's
+  parapet and the gap between is filled by the brick buildings behind, with no legs crossing it, so it reads as bolted to
+  them. Fix: steel lattice legs + diagonal bracing running DOWN in front of the far buildings to the speakeasy's roof deck
+  (feet on the roof, just behind the parapet / string lights), drawn in the near layer, plus its shadow on the roof; or
+  lower the board so its frame meets the roof. THE OWNER: "that space between the roof and the billboard looks chaotic —
+  do what looks best". CLAUDE'S CALL: LOWER the board onto a SHORT, CLEAN steel frame — a simple lattice with a couple of
+  diagonals and a catwalk, its feet on the roof deck just behind the string lights, the board's bottom only a little above
+  them; the frame drawn DARK and solid enough to read as one structure (no busy city pattern showing through a tall gap);
+  a soft shadow on the roof; the lamps on the catwalk. Never cut by the left edge, never covering the wheel; (c) THE STOP
+  LIGHTS look wrong (the owner): today both face the camera, but the cars drive left ↔ right — the signal heads should face
+  ALONG the road (seen from the side / at an angle, toward the drivers), and on the far side, facing the camera, a
+  PEDESTRIAN signal for the crosswalk (a lit WALK / WAIT lantern, 1920s-style, the "WAIT" blinking before it changes) — or
+  a period 1920s STOP / GO semaphore with arms; make the crossing read logically; (d) THE PLANTERS (the owner): the one
+  in front of the barbershop needs MUCH higher quality (or something else instead), and both planters move out "toward the
+  road" so there's open walking space between the planter and the shopfront (which road — the owner is explaining next);
+  (b) the DOUBLE AGENT blade sign must be IN FRONT of the tree next to it (draw order).
 - 8a DECISIONS (the owner, Oct 23): CUT the glass bus stop shelter (the bus stops at the curb). GROUND mostly COBBLESTONE —
   rounded granite setts that catch lamplight on their tops; rain = a wet sheen + reflections of the lamps / neon in the
   stones and puddles collecting in the joints; snow settles in the joints first, then covers; a smooth granite CURB edge
   and a ring of smooth stone around the centrepiece medallion. TREES (Claude's pick, the seasons must read at a glance):
   mostly SUGAR MAPLES (Michigan; full green summer, blazing red-orange-gold autumn, bare branches holding snow in winter)
   + 1–2 FLOWERING CRABAPPLES for a pink-white spring blossom; real trunks + branches (no round balls), ~5–6 in all.
-  THE FLAGPOLE: the far RIGHT end of the promenade at the water's railing, a tall slim pole, the flag reading against the
-  water / sky — never covering the lighthouse (check at every width). The bench, the cart and the planters in the clearly
+  THE FLAG — REMOVED as a permanent piece (the owner, Oct 23): no everyday flagpole. On patriotic holidays / special events
+  (Memorial Day, July 4th, Veterans Day, Flag Day…) the city DECORATES: flags on the street-lamp posts + red-white-blue
+  bunting on the speakeasy; on half-staff days (Sept 11, official days) a flagpole appears for the day at the railing
+  (base visible on the promenade, never over the lighthouse). Built with the holiday parts (11), not 8a. The bench, the cart and the planters in the clearly
   visible middle band, never low by the dock. THE GREY-BOX STEP STAYS (quick): 8a builds the rough layout first, sends the
   owner screenshots and WAITS for her OK before the real art — not an overnight run.
 - Road, bus, cars, two BIG bright stop lights, the promenade, lamps (rich light at night), trees, bench, planters, the seasonal
