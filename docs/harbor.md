@@ -3653,6 +3653,7 @@ the peak within 0.35 s of mid-crossing, on screen ≈ its swell, a pass skipped 
 - A placeholder person stands right behind the mailbox at 402 (8b places the people); the mailbox reads dark in golden-hour shade.
 - `&force=strings-party` shows the string lights without their posts; the worn sheen in the street's tyre paths is subtle.
 - The dim strip just in front of the inlay (§4) — left for the rig / 8b's lights.
+- THE CLOUD JOB's slower runs (12 min on the PF commit vs 7–9): four timing checks flaked there once each and passed on the run before — `music` RETURN (plain) (the punch after a return: the BEAT pass's area), `panel` PULSE STRENGTH (the live ×1.75), `perf` BATTERY (the 60 fps wake), FP3's first car (now excused: its file may arrive after it passes). Watch the next runs; a check that fails twice in a row is real.
 
 ### Handoff → 6b (the special-occasion sky), then 8b (THE LIFE)
 The promenade's layout is FINAL. 6b: the UFO / TR-3B / jet slots are filled (`sounds.js` wires nothing for them yet; the blackout = tr3b-

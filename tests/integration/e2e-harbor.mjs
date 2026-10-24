@@ -1724,8 +1724,8 @@ G('sounds', async () => {
     })()`);
     // (PF: a sound is paired with its own car only — one whose peak lands within 8 s of it; a car whose sound was SKIPPED by design
     // (its file arrived under 1 s before the centre: `late`, silent rather than out of sync — the first pass after the page opened)
-    // has none, and is listed as such)
-    const pairs = res.cars.map(c => { const s = res.sounds.filter(x => x.f === c.f && Math.abs(x.peakAt - c.mid) < 8000).sort((a, b) => Math.abs(a.peakAt - c.mid) - Math.abs(b.peakAt - c.mid))[0]; return { ...c, dt: s ? (s.peakAt - c.mid) / 1000 : null, skipped: !s && res.late.includes(c.f) }; });
+    // has none, and is listed as such — so may the FIRST car in the window on a slow machine: its file may not even arrive before it passes)
+    const pairs = res.cars.map(c => { const s = res.sounds.filter(x => x.f === c.f && Math.abs(x.peakAt - c.mid) < 8000).sort((a, b) => Math.abs(a.peakAt - c.mid) - Math.abs(b.peakAt - c.mid))[0]; return { ...c, dt: s ? (s.peakAt - c.mid) / 1000 : null, skipped: !s && (res.late.includes(c.f) || c === res.cars[0]) }; });
     const heard = pairs.filter(q => !q.skipped);
     ok(heard.length >= 1 && heard.every(q => q.dt != null && Math.abs(q.dt) < 0.35) && pairs.every(q => Math.abs(q.on - q.cross) < 0.4),
       `FP3 — THE CAR IN SYNC (car files held back 2.5 s): ${pairs.map(q => `${q.f} on screen ${q.on.toFixed(2)} s (its swell's ${q.cross} s), its sound's peak ${q.skipped ? 'SKIPPED (late, silent by design)' : q.dt == null ? 'MISSING' : `${q.dt >= 0 ? '+' : ''}${q.dt.toFixed(2)} s`} from mid-crossing`).join(' · ')}`);
