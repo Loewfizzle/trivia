@@ -454,8 +454,8 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
     // (FP: on the open floor — the doorman beside the side door (its left: the corner globe stands at its right), the couple
     // window-shopping at the barbershop, the dog walker crossing the floor)
     { id: 'doorman', x: rel(-2.0), z: 43.2, dir: 1, h: personH * 1.05, hat: true },
-    { id: 'couple-a', x: rel(-4.6), z: 41.4, dir: 1, h: personH * 1.05, hat: true },
-    { id: 'couple-b', x: rel(-3.85), z: 41.7, dir: 1, h: personH * 0.95 },
+    { id: 'couple-a', x: rel(-6.2), z: 41.4, dir: 1, h: personH * 1.05, hat: true },          // (7b: by the shop's door — the barber + the chair stay in view)
+    { id: 'couple-b', x: rel(-5.45), z: 41.7, dir: 1, h: personH * 0.95 },
     { id: 'dog', x: rel(2.2), z: 39.6, dir: 1, h: personH, dog: true },
     { id: 'hail', x: rel(9.6), z: 51.8, dir: -1, h: personH, hat: true },
     { id: 'stroll', x: rel(13.2), z: 47.2, dir: 1, h: personH * 0.98 },

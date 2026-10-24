@@ -10,6 +10,7 @@
 //    floor by floor, or a gentle twinkle — while the rest of that tower dims so it reads. Night only. Any later part addresses
 //    a window by (building, tier, col, row) with set() (party waves, flags, holiday windows).
 import { winTraits, buildingDice, winHash, layoutText, normText, scrollColumns, fitText, FONT_H } from '../../core/harbor-windows.js';
+import { tvLight } from '../../core/harbor-moments.js';
 import { windowThreshold } from '../../core/harbor-dark.js';
 import { cellRect, isDeco, behindWheel } from './blocks.js';
 import { project } from '../../core/harbor-layout.js';
@@ -182,8 +183,9 @@ function dots() {
   return dotCache;
 }
 const ROOF_SPOTS = SPOTS.filter(sp => sp.mount === 'tower');
+const b0Seed = l => (l.seed || 1924) * 31 + 7;
 export function createLights() {
-  let L = null, faces = {}, beacons = [], spell = null, toggles = [], nextToggle = 0, sets = new Map();
+  let L = null, faces = {}, beacons = [], spell = null, toggles = [], nextToggle = 0, sets = new Map(), lateTvs = [], lateK = 0;
   let metaFar = newMeta(), metaNear = newMeta();
 
   function layout(l) {
@@ -207,6 +209,23 @@ export function createLights() {
     const roofs = l.bands.flatMap(bd => bd.blocks.filter(b => b.kind === 'tower' && b.crown && (b.crown.t === 'spire' || b.crown.t === 'pyramid' || b.crown.t === 'dome')).map(b => ({ b, y: project(l.cam, 0, b.h + b.crown.h, b.z0)[1] })));
     roofs.sort((a, b) => a.y - b.y).slice(0, 8).forEach(({ b, y }) => { const [x] = project(l.cam, (b.x0 + b.x1) / 2, 0, b.z0); if (x > -4 && x < l.cam.W + 4) beacons.push({ x, y: y + 0.4, r: Math.max(0.9, 1.3 * u), id: b.id }); });
     if (best) best.tallest = true;
+    // PART 7b — THE LATE TVs: a handful of lone windows across the skyline that flicker blue from ~10 pm to ~3 am (the same windows
+    // every night: seeded) — as the city's bedtime turns the others off, they stand out more and more (the speakeasy's TV upstairs
+    // is their neighbour). The near towers (not the word towers: they may be spelling), their upper floors, never behind the wheel.
+    lateTvs = [];
+    { const cam = l.cam, sp = l.speakeasy, [spR] = sp ? project(cam, sp.side.x, 0, sp.side.z) : [0], [, spT] = sp ? project(cam, 0, sp.top + 2.5, sp.z0) : [0, 1e9];
+      const blocks = l.bands.filter(bd => bd.id === 'near' || bd.id === 'mid').flatMap(bd => bd.blocks).filter(b => b.win && b.win.rows > 3 && b.win.cols > 1);
+      for (let i = 0; i < blocks.length * 3 && lateTvs.length < 7; i++) {
+        const b = blocks[Math.floor(winHash(b0Seed(l), 0, i, 3, 73) * blocks.length)], g = b.win;
+        const col = Math.floor(winHash(b.seed || 7, 0, i, 1, 71) * g.cols), row = Math.floor(g.rows * (0.45 + 0.5 * winHash(b.seed || 7, 0, i, 2, 72)));
+        const rect = cellRect(cam, b, col, row, isDeco(b.rank));
+        if (rect[2] < 1.8 || rect[0] < 4 || rect[0] > cam.W - 6 || (rect[0] < spR + 4 && rect[1] > spT)) continue;
+        if (lateTvs.some(o => Math.abs(o.rect[0] - rect[0]) < cam.W / 12) || behindWheel(cam, b)) continue;
+        // (not behind the roof billboard, not inside the wheel's disc: they must stand alone in the dark)
+        const bd = l.roof && l.roof.board; if (bd) { const [x0, y0] = project(cam, bd.x0, bd.y1 + 1, bd.z), [x1, y1] = project(cam, bd.x1, bd.dun - 1, bd.z); if (rect[0] > x0 - 3 && rect[0] < x1 + 3 && rect[1] > y0 - 3 && rect[1] < y1 + 3) continue; }
+        const wh = l.wheel; if (wh) { const [wx, wy] = project(cam, wh.x, wh.y, wh.z), wr = cam.F * wh.r / wh.z; if (Math.hypot(rect[0] - wx, rect[1] - wy) < wr * 1.08) continue; }
+        lateTvs.push({ rect, seed: 13 + i * 7, off: i * 3.7 });
+      } }
   }
   // (a relayout: the same message built again on the new faces — the sprite goes, its geometry is the old one's)
   function respell(sp) {
@@ -291,6 +310,17 @@ export function createLights() {
         const [x, y, ww, wh] = w.rect; c.fillStyle = rgba(TV, 0.32 * k * v); c.fillRect(x, y, ww, wh);
       }
       c.globalCompositeOperation = 'source-over';
+    }
+    // PART 7b — THE LATE TVs (lateK: the hours' envelope × the night, scene.js): a dark room, its walls flickering blue, IRREGULAR
+    // (core/harbor-moments.js#tvLight — scene cuts, a bright flash now and then); still under Reduced motion
+    if (lateK > 0.01 && lateTvs.length) {
+      for (const w of lateTvs) {
+        const tv = motion ? tvLight(t + w.off, w.seed) : { k: 0.7, tint: 0.4, warm: 0 }, col = tv.warm ? [255, 214, 170] : mixc([96, 140, 255], [196, 212, 255], tv.tint);
+        const [x, y, ww, wh] = w.rect;
+        c.fillStyle = rgba(DARK, 0.9 * lateK); c.fillRect(x, y, Math.max(0.6, ww), Math.max(0.6, wh));
+        c.globalCompositeOperation = 'lighter'; c.fillStyle = rgba(col, Math.min(1, 0.85 * lateK * tv.k)); c.fillRect(x, y, Math.max(0.6, ww), Math.max(0.6, wh));
+        c.globalCompositeOperation = 'source-over';
+      }
     }
     // now and then a light goes off somewhere (or one comes on), stays a while, then the room's light is back
     if (motion && meta.done && meta.cands.length && now > nextToggle) {
@@ -430,7 +460,10 @@ export function createLights() {
   }
 
   return {
-    layout, set, draw, drawWave, beacons: drawBeacons, beaconList: () => beacons.map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1), id: b.id, tallest: !!b.tallest })),
+    layout, set, draw, drawWave, beacons: drawBeacons,
+    /** PART 7b: the late TVs' level now (0..1: scene.js — ~10 pm → ~3 am, eased in + out) */
+    lateTv(k) { lateK = Math.max(0, Math.min(1, k || 0)); },
+    lateTvs: () => lateTvs.map(w => ({ rect: w.rect.map(v => +v.toFixed(1)) })), beaconList: () => beacons.map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1), id: b.id, tallest: !!b.tallest })),
     spell: spellIt,
     clear: clearSpell,
     /** a finished bake's metadata swaps in with its layer */
@@ -442,6 +475,6 @@ export function createLights() {
         cells: spell.parts.reduce((n, p) => n + p.cells.length, 0) + spell.scrolls.reduce((n, S) => n + bits(S.cols), 0) };
     },
     faces: () => Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word, rect: (() => { const a = f.cell(0, 0), b = f.cell(f.cols - 1, f.rows - 1); return { x: a[0], y: a[1], w: b[0] + b[2] - a[0], h: b[1] + b[3] - a[1] }; })() }])),
-    debug: () => ({ beacons: beacons.length, twinkle: metaFar.twinkle.length, tv: metaNear.tv.length, cands: metaNear.cands.length, toggles: toggles.length, sets: sets.size }),
+    debug: () => ({ lateTvs: lateTvs.length, lateK: +lateK.toFixed(2), beacons: beacons.length, twinkle: metaFar.twinkle.length, tv: metaNear.tv.length, cands: metaNear.cands.length, toggles: toggles.length, sets: sets.size }),
   };
 }

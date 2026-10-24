@@ -17,6 +17,7 @@ import { SHOW_SCENES } from './harbor-show.js';
 import { DRONE_SHAPES } from './harbor-sky.js';
 import { TOWER_CHOICES } from './harbor-windows.js';
 import { PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_STEP } from './harbor-beat.js';
+import { MOMENTS } from './harbor-moments.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
 export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'mood', 'debug', 'grid', 'pulse'];
@@ -53,6 +54,8 @@ export const CATS = [
   { id: 'party', label: 'PARTY SHOW' },
   { id: 'harbor', label: 'HARBOR' },
   { id: 'speakeasy', label: 'SPEAKEASY' },
+  // (PART 7b: THE WINDOWS — every window moment of core/harbor-moments.js, one row each: it plays on a loop; adding a moment adds its row)
+  { id: 'windows', label: 'WINDOWS' },
   // (PART 8a: THE PROMENADE — the trees' seasons, the implied road on / off, a car passing now)
   { id: 'promenade', label: 'PROMENADE' },
   { id: 'holidays', label: 'HOLIDAYS' },
@@ -136,6 +139,10 @@ export const EVENTS = [
   // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set
   // (harbor().flags.force / the scene's clock — a title-level regex on location.search can't be switched from the panel). Rename
   // the id here if the effect lands under another name; flip ready when it's drawn.
+  // ---- PART 7b — THE WINDOWS: &force=window&moment=<id> (the links; hidden: the panel can't type a moment) + one row per moment
+  // (&force=window-<id>), grouped by rarity — the catalogue's own list (core/harbor-moments.js#MOMENTS), so a new moment is a new row
+  { id: 'window', label: 'WINDOW MOMENT', cat: 'windows', group: 'ROUTINES', ready: false, hint: 'with &moment=<id>' },
+  ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', group: m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
   { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', group: 'THE NEON SIGN', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
 ];
 export const EVENT_GROUPS = [...new Set(EVENTS.map(e => e.group))];

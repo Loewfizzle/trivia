@@ -812,7 +812,7 @@ G('party', async () => {
     ok(hq.skyBeams.beams.length >= 2 && p.show.beams > 0.5, `THE SKY BEAMS: ${hq.skyBeams.beams.map(b => b.id + (b.under ? '' : ' (to the top)')).join(', ')}`);
     ok(pk.hi - pk.lo > 0.5, `THE HARD BEAT: the punch swings ${pk.lo.toFixed(2)} → ${pk.hi.toFixed(2)} over ~2.5 s`);
     // PART 7a: the roof string lights are ON, mounted on the parapet's posts (NEON PASS 5 had them off until the speakeasy was built)
-    ok(hq.strings.on === false && hq.strings.bulbs >= 20 && hq.strings.runs >= 5, `STRING LIGHTS: OFF for now (PF — the owner: re-rendered with the rooftop in 7b), still laid out on the parapet (${hq.strings.runs} swags, ${hq.strings.bulbs} bulbs)`);
+    ok(hq.strings.on === true && hq.strings.bulbs >= 20 && hq.strings.runs >= 5, `STRING LIGHTS: ON again (7b — real bulbs on the parapet's posts: ${hq.strings.runs} swags, ${hq.strings.bulbs} bulbs)`);
     await Q.ctx.close(); }
   await neonPass5Party();
   { const Q = await open({ slot: 'h11', qs: `when=2026-10-24T21:00${GR}`, view: [402, 874] });
@@ -1563,6 +1563,96 @@ G('speakeasy', async () => {
     await Q.ctx.close(); }
 });
 
+// ================================================================ PART 7b — THE SPEAKEASY'S LIFE (ONLY=windows; docs/harbor.md#part-7b)
+G('windows', async () => {
+  const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
+  // a region's mean colour over a grid of 5 × 5 points (pt rect, fractions of it)
+  const area = async (p, r, fx0 = 0.2, fx1 = 0.85, fy0 = 0.1, fy1 = 0.9) => { const s = [0, 0, 0]; let n = 0; for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) { const c = await px(p, r.x + r.w * (fx0 + (fx1 - fx0) * i / 4), r.y + r.h * (fy0 + (fy1 - fy0) * j / 4)); s[0] += c[0]; s[1] += c[1]; s[2] += c[2]; n++; } return s.map(v => v / n); };
+  const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const life = p => ev(p, 'window.__district.harbor().speakeasy.life');
+  const wins = async p => Object.fromEntries((await ev(p, 'window.__district.harbor().speakeasy.windows()')).map(w => [w.id, w.rect]));
+  const lit = p => waitFor(p, 'window.__district.harbor().speakeasy.k > 0.9 && !window.__district.harbor().pending', 'the rooms lit', 25000);
+  // ---- an ordinary night (Thu 9:30 pm): the schedule runs — something on, or about to start, every ~10–30 s; the rooms' states
+  { const Q = await open({ slot: 'w1', qs: `when=2026-10-22T21:30${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const L0 = await life(Q.page);
+    ok(L0.states.bar === 'open' && L0.states.apartment === 'lamp' && L0.states.shop === 'closed' && !L0.forced, `THE ROOMS AT 9:30 PM: the bar open, the apartment's lamp, the shop closed (${JSON.stringify(L0.states)})`);
+    ok(L0.on.length > 0 || (L0.next && L0.next.in <= 30), `THE SCHEDULE at night: ${L0.on.length ? `on now: ${L0.on.map(e => `${e.id} in ${e.win}`).join(', ')}` : `the next (${L0.next && L0.next.id}) in ${L0.next && L0.next.in} s`}`);
+    // the wall-washers: the pier between the bar + the jazz room lit warm (light on the brick, never the windows)
+    const W = await wins(Q.page), x = (W.apartment.x + W.apartment.w + W.back.x) / 2, pier = await px(Q.page, x, W.apartment.y + W.apartment.h * 0.3);
+    ok(pier[0] > 70 && pier[0] > pier[2] + 20, `THE WALL-WASHERS: the pier between the windows lit warm (rgb ${pier.join(',')})`);
+    // the marquee: its bulbs lit (a warm-white bulb on the blade's frame)
+    const mq = await ev(Q.page, 'window.__district.harbor().speakeasy.marquee'), mb = [];
+    for (const b of mq.slice(0, 12)) mb.push(lum(await px(Q.page, b.x, b.y)));
+    ok(mq.length >= 40 && Math.max(...mb) > 200, `THE MARQUEE: ${mq.length} bulbs round the blade, lit (the brightest of 12: ${Math.max(...mb).toFixed(0)})`);
+    const st = await ev(Q.page, 'window.__district.harbor().strings');
+    ok(st.on && st.bulbs >= 20, `THE STRING LIGHTS on the roof: ${st.bulbs} bulbs on ${st.runs} swags`);
+    // a TAP on the jazz room's window answers (a head peeks out) — the window's kind
+    const tap = await ev(Q.page, `window.__district.harbor().speakeasy.hit(${W.jazz.x + W.jazz.w / 2}, ${W.jazz.y + W.jazz.h / 2})`);
+    ok(tap && tap.kind === 'window' && tap.id === 'jazz' && tap.tap === 'peek', `A TAP on a window: ${JSON.stringify(tap)}`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}windows-night-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- a forced moment (the preview link): the dance — the jazz room's shade changes as the couple crosses it (motion, not a still)
+  { const Q = await open({ slot: 'w2', qs: `when=2026-10-22T21:30${GR}&force=window&moment=dance`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'dance')", 'the dance on', 15000);
+    const r = (await wins(Q.page)).jazz, a = [];
+    for (let i = 0; i < 5; i++) { a.push(await area(Q.page, r)); await sleep(900); }
+    const ls = a.map(lum), swing = Math.max(...ls) - Math.min(...ls);
+    ok(swing > 4, `THE DANCE (forced): the jazz room's shade changes as they cross it (its mean light ${ls.map(v => v.toFixed(0)).join(' → ')})`);
+    const L = await life(Q.page);
+    ok(L.forced === 'dance' && L.on.every(e => e.id === 'dance'), `THE PREVIEW: only the forced moment plays (${L.on.map(e => e.id).join(', ') || 'between loops'})`);
+    await Q.ctx.close(); }
+  // ---- the cat on the apartment's sill: a large dark silhouette in the lit window; a tap → it leaps off
+  { const Q = await open({ slot: 'w3', qs: `when=2026-10-22T21:30${GR}&force=window&moment=cat`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'cat' && e.el > 4 && e.el < 18)", 'the cat settled', 20000);
+    const r = (await wins(Q.page)).apartment, c = await area(Q.page, r, 0.62, 0.78, 0.65, 0.85);
+    ok(lum(c) < 60, `THE CAT on the sill: a dark silhouette against the lamp-lit room (rgb ${c.map(v => v.toFixed(0)).join(',')})`);
+    const tap = await ev(Q.page, `window.__district.harbor().speakeasy.hit(${r.x + r.w * 0.7}, ${r.y + r.h * 0.75})`);
+    await sleep(1200);
+    const c2 = await area(Q.page, r, 0.62, 0.78, 0.65, 0.85);
+    ok(tap && tap.kind === 'cat' && lum(c2) > lum(c) + 25, `A TAP on the cat: it leaps off (${lum(c).toFixed(0)} → ${lum(c2).toFixed(0)})`);
+    await Q.ctx.close(); }
+  // ---- 11:30 pm: THE TV GLOW upstairs (blue, irregular), the lone late TVs across the skyline
+  { const Q = await open({ slot: 'w4', qs: `when=2026-10-22T23:30${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const L = await life(Q.page), r = (await wins(Q.page)).apartment, a = [];
+    for (let i = 0; i < 8; i++) { a.push(await area(Q.page, r, 0.2, 0.8, 0.3, 0.9)); await sleep(350); }
+    // (on average: now and then a WARM scene on the TV — real TV light isn't always blue)
+    const mean = [0, 1, 2].map(i => a.reduce((t, c) => t + c[i], 0) / a.length), blue = mean[2] > mean[0] + 12, ls = a.map(lum), swing = Math.max(...ls) - Math.min(...ls);
+    ok(L.states.apartment === 'tv' && blue, `THE TV GLOW (11:30 pm): the apartment blue (mean rgb ${mean.map(v => v.toFixed(0)).join(',')})`);
+    okT(swing > 3, `THE TV GLOW flickers (its light ${ls.map(v => v.toFixed(0)).join(' ')})`);
+    const w = await ev(Q.page, 'window.__district.harbor().windows');
+    ok(w.lateTvs >= 4 && w.lateK > 0.9, `THE LATE TVs: ${w.lateTvs} lone windows flickering blue across the skyline (level ${w.lateK})`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}windows-tv-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- 3:30 am: NEVER FULLY DARK — the night lamp upstairs, the bar's last light + the sweeping
+  { const Q = await open({ slot: 'w5', qs: `when=2026-10-22T03:30${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const L = await life(Q.page), W = await wins(Q.page), ap = await area(Q.page, W.apartment), bar = await area(Q.page, W.bar);
+    ok(L.states.apartment === 'nightlamp' && L.states.bar === 'last' && ap[0] > 110 && ap[0] > ap[2] + 40, `NEVER FULLY DARK (3:30 am): the night lamp upstairs (rgb ${ap.map(v => v.toFixed(0)).join(',')}), the bar's last light (rgb ${bar.map(v => v.toFixed(0)).join(',')})`);
+    await Q.ctx.close(); }
+  // ---- the hidden mirror door (forced, 10:30 pm): the shop window glows amber while it stands open
+  { const Q = await open({ slot: 'w6', qs: `when=2026-10-22T22:30${GR}&force=window&moment=mirror`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const shop = await ev(Q.page, '(() => { const s = window.__district.harbor().speakeasy, p = s.poleRect, k = window.__district.harbor().cam.F / 600; return { x: p.x - 34 * k, y: p.y + p.h * 0.15, w: 24 * k, h: p.h * 0.7 }; })()');
+    await waitFor(Q.page, '!window.__district.harbor().speakeasy.life.on.length', 'between the loops (shut)', 15000);
+    const shut = await area(Q.page, shop);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'mirror' && e.el > 2.5 && e.el < 5.5)", 'the mirror open', 15000);
+    const open1 = await area(Q.page, shop);
+    ok(lum(open1) > lum(shut) + 8 && open1[0] > open1[2] + 40, `THE MIRROR DOOR: the shop glows amber while it stands open (${lum(shut).toFixed(0)} → ${lum(open1).toFixed(0)})`);
+    await Q.ctx.close(); }
+  // ---- by day (12:30): the shop open (the barber at work), the bar closed
+  { const Q = await open({ slot: 'w7', qs: `when=2026-10-22T12:30${GR}`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, '!window.__district.harbor().pending', 'settled', 20000);
+    const L = await life(Q.page);
+    ok(L.states.shop === 'open' && L.states.bar === 'closed', `BY DAY: the barbershop open, the bar closed (${JSON.stringify(L.states)})`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}windows-day-402x874.png` });
+    await Q.ctx.close(); }
+});
+
 // ================================================================ PART 8a — THE CITY SOUNDS (ONLY=sounds; docs/audio.md#the-city-sounds)
 // ---- PART 8a: THE PROMENADE — the layout the owner approved, the season by the real date (+ forced), the lamps' pools baked into
 // the setts at night, the implied road (a car's headlights; off by the owner's flag)
@@ -1760,7 +1850,7 @@ async function runGroup(name) {
 const ONLY = (process.env.ONLY || '').split(',').map(x => x.trim()).filter(Boolean), TAG = process.env.SHARD_TAG || '';
 const SERIAL = ['panel', 'perf'];
 // (the shards, balanced on the measured times: ~35 s each)
-const SHARD_PLAN = { 1: [], 2: [['core', 'flags', 'skyline', 'water', 'harbor', 'speakeasy', 'promenade'], ['neon', 'dock', 'sky', 'party', 'music', 'sounds']], 3: [['core', 'flags', 'skyline', 'water', 'promenade'], ['neon', 'harbor', 'dock', 'speakeasy'], ['sky', 'party', 'music', 'sounds']] };
+const SHARD_PLAN = { 1: [], 2: [['core', 'flags', 'skyline', 'water', 'harbor', 'speakeasy', 'promenade'], ['neon', 'dock', 'sky', 'party', 'music', 'sounds', 'windows']], 3: [['core', 'flags', 'skyline', 'water', 'promenade'], ['neon', 'harbor', 'dock', 'speakeasy', 'windows'], ['sky', 'party', 'music', 'sounds']] };
 const SHARDS = Number(process.env.SHARDS || 3);
 if (ONLY.length) { for (const g of ONLY) await runGroup(g); }
 else if (SHARDS > 1) {

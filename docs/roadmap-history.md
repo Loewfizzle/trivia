@@ -4,6 +4,22 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — PART 7b: THE SPEAKEASY'S LIFE (Oct 24, 2026) — `docs/harbor.md#part-7b` (built overnight, unattended)
+- [x] THE MOMENTS CATALOGUE (`core/harbor-moments.js`, PURE + `tests/harbor-moments.test.mjs`): one entry a moment (windows, hours, light, rarity, length,
+      cooldown, party weight), routines on the clock (seeded minutes) that move their room on, a legendary calendar (4 nights a year × 3 plays), the schedule
+      in HOUR BLOCKS seeded by the date (~1 ms an hour; every phone the same; joined mid-way), rarity as a chance a slot (rare stays rare by day)
+- [x] THE STARTER TEN + THE MIRROR DOOR, drawn live (`screens/harbor/windows.js`: the figure kit, the cat, the painters): wake · shop-open · bartender ·
+      lights-out · dance · toast · sax · cat · peek · TANGO · the mirror door; the ambient life (the bartender + his shake, the regular, the sax player's sway,
+      the barbershop's day with a customer every ~8 min, CLOSED before 9)
+- [x] THE TV GLOW (irregular scenes, a head + the cat on the couch, a blue spill) + the LATE TVs across the skyline (`lights.js#lateTv`); NEVER FULLY DARK
+      (the night lamp 3 am → the wake, the bar's last light + the sweeping 3 → 4 am), tested minute by minute
+- [x] TAPS (a curtain twitch, a head peeks out, the regular salutes, the back room's lamp swings, the cat leaps off); the sound slots wired (club murmur +
+      the TV's murmur as beds ducked under the music, `door-heavy` at the mirror door, `cat-meow`); Reduced motion: the states only
+- [x] THE FACADE AT NIGHT: WALL-WASHERS (baked scallops of lit brick down the three piers, never a window), the blade a MARQUEE (48 bulbs, steady, a slow
+      chase on party nights, the board dimmer, the gooseneck lamps gone), the STRING LIGHTS back ON as real round bulbs + their light on the parapet
+- [x] THE PREVIEW PANEL's WINDOWS category (a row per moment, `&force=window&moment=<id>` for links); `shots.mjs --crop facade | upper`
+- [x] e2e `windows` group (16); the speed A/B (party night tier 0 +0.5 ms of work after one fix, frames unchanged — the owner's iPhone decides)
+
 ### ✅ CITY 2.0 — MUSIC (Oct 23, 2026)
 - [x] The owner's mood folders (morning 11 · day 11 · evening 14 · late 11 · party 9) → `audio/music/c2-*.mp3`: byte-identical files stored once (morning4–7 = day4–7), morning10 in MORNING + LATE NIGHT,
       evening3 = the repo's slip8 (found by cross-correlation: same audio, same timing) so listed, not copied; 112 kbps stereo, trimmed, −16 LUFS / ≤ −1 dBTP; +144.5 MB

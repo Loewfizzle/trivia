@@ -194,6 +194,12 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
         if (cc === 'pole') return { x: Math.max(0, r.x - 8), y: Math.max(0, r.y - 8), width: r.w + 16, height: r.h + 16 };
         const sx = sp.glowAt && sp.glowAt.sconce ? sp.glowAt.sconce[0] : r.x, x1 = Math.min(innerWidth, Math.max(r.x + r.w, sx) + 40 * k), y = Math.max(0, r.y - 44 * k);
         return { x: 0, y, width: x1, height: Math.min(innerHeight - y, r.h + 100 * k) }; }, c);
+    } else if (c === 'facade' || c === 'upper') {
+      // CITY 2.0 (7b): THE SPEAKEASY's facade close up — facade: the whole front from the crest + its string lights down to the
+      // pavement; upper: the six windows (the moments' stage). With --zoom the device pixels are blown up whole (no width cut).
+      clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); const sp = hb && hb.speakeasy; if (!sp || !sp.box) return null; const b = sp.box, k = hb.cam.F / 600;
+        if (cc === 'upper') { const ws = sp.windows(); const x0 = 0, y0 = Math.min(...ws.map(w => w.rect.y)) - 10 * k, x1 = Math.max(...ws.map(w => w.rect.x + w.rect.w)) + 12 * k, y1 = Math.max(...ws.map(w => w.rect.y + w.rect.h)) + 8 * k; return { x: x0, y: Math.max(0, y0), width: Math.min(innerWidth, x1), height: y1 - Math.max(0, y0) }; }
+        const y = Math.max(0, b.y - 26 * k); return { x: 0, y, width: Math.min(innerWidth, b.x + b.w + 6 * k), height: Math.min(innerHeight - y, b.h + 30 * k) }; }, c);
     } else if (c === 'skyline') {
       // CITY 2.0: the skyline close up — from above the tallest crown down to the far quay
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, y = Math.max(0, c.limitY - 24); return { x: 0, y, width: innerWidth, height: c.VPY + c.F * c.CAMH / 230 + 14 - y }; });
@@ -240,8 +246,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    if (ZOOM > 1 && c !== 'shop' && c !== 'pole') { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'pole', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper'].includes(c)) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

@@ -433,6 +433,15 @@ recordings imported into theirs; every event that exists today calls its slot; a
   one not loaded; 12.6 MB decoded; the car + gull one-shots; empty slots silent; THE SEAM's voices 1 → 2 → 1; Effects off / on; the panel's SOUNDS
   rows + ▶; at night the NIGHT hum; the neon tap at 0.28125 = 0.5 × 0.5625).
 
+## 7b — THE SPEAKEASY'S SLOTS (Oct 24 2026; City 2.0) — `screens/harbor/windows.js`, `screens/harbor/sounds.js#speakeasy`
+The speakeasy's life calls five Part 7 slots — all EMPTY today, so all silent; a recording dropped in starts sounding with its event:
+- `club-murmur-calm` / `club-murmur-party` — a BED while the bar is open at night (the party take on a party night), `tv-murmur` — a BED during
+  the TV hours upstairs (~10 pm → 3 am). The speakeasy reports `{ club, tv, party }` each frame (`speak.beds()`); `sounds.js#speakeasy` keeps them
+  with the city's other beds — ducked by `bedMix` under the music, held until the music sounds, panned left (−0.55 / −0.6: the speakeasy's corner).
+- `door-heavy` — once when the hidden MIRROR DOOR swings open (a moment of loud jazz); `cat-meow` — once when the cat jumps up onto a sill, and on a
+  tap on the cat. One-shots through the scene's `snd.play` (none under Reduced motion: no moments run).
+- `door-knock` (tapping the side door) is unchanged; `police-car-1920s` / `siren-1920s` wait for the raid (8b).
+
 ## FP — THE BEAT FROM THE SONG'S POSITION (Oct 23 2026; City 2.0) — `core/harbor-beat.js`, `audio/beat.js`, `audio/music.js`, `screens/harbor/scene.js`
 - **The owner's evidence** (after returning from the home screen, the lights on "random beats"): `c2-party7 · ctx t 71.77 · el t 70.4 → bar 43 ·
   3/4`, `c2-party4 · ctx t 38.27 · el t 37.0 → bar 20 · 4/4`. **What it showed:** the beat already followed the ELEMENT (`nowPlaying()` →

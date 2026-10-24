@@ -27,12 +27,12 @@ export const PARTS = [
 const S = (id, part, kind, gain, what, by = '', o = null) => ({ id, part, kind, gain, what, by, ...(o || {}) });
 export const SLOTS = [
   // ---- PART 7 — the speakeasy + the raid
-  S('club-murmur-calm', '7', 'loop', 0.1, 'a muffled club through a wall: crowd murmur + laughter (the jazz is our own music, low-passed)'),
-  S('club-murmur-party', '7', 'loop', 0.12, 'the party-night version, louder'),
-  S('door-heavy', '7', 'once', 0.14, 'the speakeasy’s heavy wood door opening / closing (a moment of loud jazz)'),
+  S('club-murmur-calm', '7', 'loop', 0.1, 'a muffled club through a wall: crowd murmur + laughter (the jazz is our own music, low-passed)', 'the bar open at night (7b: sounds.js#speakeasy, ducked under the music)'),
+  S('club-murmur-party', '7', 'loop', 0.12, 'the party-night version, louder', 'the bar open on a party night (7b)'),
+  S('door-heavy', '7', 'once', 0.14, 'the speakeasy’s heavy wood door opening / closing (a moment of loud jazz)', 'the hidden MIRROR DOOR swinging open (7b)'),
   S('door-knock', '7', 'once', 0.16, 'a knock on the speakeasy’s door', 'tapping the door (the synthesized knock until it’s filled)'),
-  S('cat-meow', '7', 'once', 0.1, 'the alley cat’s meow'),
-  S('tv-murmur', '7', 'loop', 0.08, 'a TV murmur through a window (late night)'),
+  S('cat-meow', '7', 'once', 0.1, 'the alley cat’s meow', 'the cat jumping up onto a sill + a tap on the cat (7b)'),
+  S('tv-murmur', '7', 'loop', 0.08, 'a TV murmur through a window (late night)', 'the TV glow upstairs, ~10 pm → 3 am (7b)'),
   S('police-car-1920s', '7', 'once', 0.14, '1920s police cars: old engines rolling by, tyres on a wet road'),
   S('siren-1920s', '7', 'once', 0.08, 'a soft distant 1920s siren wail (rising and falling)'),
   // ---- PART 8 — the promenade, people, vehicles, the city schedule

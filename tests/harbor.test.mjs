@@ -1029,6 +1029,7 @@ test('colours through the night + a burnt-out letter (NEON PASS 3): stages on th
 
 // ------------------------------------------------------------------ THE PREVIEW PANEL (core/harbor-remote.js)
 import { readFileSync, readdirSync } from 'node:fs';
+import { MOMENTS } from '../js/core/harbor-moments.js';
 import { EVENTS, INPUTS, REMOTE_KEYS, SHOW_SCENE_LIST, HOLIDAYS, TIMES, cleanRemote, toParams, describe, timeAt, holidayDay, textMax, isEmpty } from '../js/core/harbor-remote.js';
 import { skyClock, holidayOf, sunTimes, localParts } from '../js/core/sky.js';
 
@@ -1038,6 +1039,8 @@ test('the preview panel: one registry — every &force= preview the Harbor runs 
   const src = files.map(f => readFileSync(f, 'utf8')).join('\n');
   const used = new Set([...src.matchAll(/(?:(?:force|f|off|clock\.force)\.has|scene\.forced)\('([a-z0-9-]+)'\)/g)].map(m => m[1]));
   for (const m of src.matchAll(/again\('([a-z0-9-]+)'/g)) used.add(m[1]);
+  // (PART 7b: the WINDOWS rows — scene.js#forcedMoment reads any `window-<id>` of the catalogue)
+  if (src.includes("id.startsWith('window-')")) for (const m of MOMENTS) used.add(`window-${m.id}`);
   // (not events: the perf A/B switches, the panel's own party switches, the debug-only demo, sky internals)
   const tools = id => id.startsWith('no-') || ['party', 'demo', 'sat'].includes(id);
   const ids = new Set(EVENTS.map(e => e.id));
@@ -1765,7 +1768,7 @@ test('THE DAY PASS §0 — the dark corner: the block right of the lighthouse is
 test('the panel: rows a later part still has to build stay hidden (ready: false), their ids stay valid', async () => {
   const { EVENTS, PANEL_EVENTS, cleanRemote } = await import('../js/core/harbor-remote.js');
   const hidden = EVENTS.filter(e => !PANEL_EVENTS.includes(e)).map(e => e.id);
-  assert.deepEqual(hidden.sort(), ['cat', 'ufo']);
+  assert.deepEqual(hidden.sort(), ['cat', 'ufo', 'window']);   // (7b: 'window' needs &moment= — the links; the panel has a row per moment)
   assert.deepEqual(cleanRemote({ force: ['ufo'] }).bad, []);
 });
 
@@ -3042,8 +3045,8 @@ test('PF — THE PREVIEW PANEL lists the centrepiece test under PROMENADE', () =
 // ---------------------------------------------------------------- PF — THE STREET'S SURFACE / THE STRING LIGHTS OFF / THE BLADE'S LAMPS
 // (helper B: street.js, strings.js, speakeasy.js's blade, signs.js's billboard lamps)
 import { streetLook, CURB_STEP, SHEEN } from '../js/screens/harbor/street.js';
-import { STRINGS_ON, createStrings } from '../js/screens/harbor/strings.js';
-import { BLADE_LIGHT, bladeLamps, bladeLevel } from '../js/screens/harbor/speakeasy.js';
+import { STRINGS_ON, createStrings, BULB } from '../js/screens/harbor/strings.js';
+import { BLADE_LIGHT, bladeLevel, MARQUEE, MARQUEE_LIGHT, marqueeBulbs, marqueeScreen, marqueeLevel, WASH } from '../js/screens/harbor/speakeasy.js';
 const pfLum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 test('PF — THE STREET reads as its own surface: tarred setts darker + cooler than the promenade\'s, tar in the joints (never black at night), the worn paths\' sheen, a clear curb step', () => {
   const PROM = { d: [154, 148, 140], n: [64, 59, 86] };      // (stage.js#SETT — the promenade's own setts, unchanged by PF)
@@ -3060,29 +3063,45 @@ test('PF — THE STREET reads as its own surface: tarred setts darker + cooler t
   assert.ok(C.face[1] > C.face[0] && C.face[0] > 0.1 && C.faceN[1] > 0.1, 'the curb\'s face deeper in shade toward its foot, day + night');
   assert.ok(C.arris > 0.4 && C.arrisN > 0.2 && C.shadow > 0.2, 'a crisp lit arris day + night, the curb\'s shadow on the gutter');
 });
-test('PF — THE STRING LIGHTS are OFF (their posts too) until 7b; the code stays ready (the swags + bulbs still lay out on the parapet)', () => {
-  assert.equal(STRINGS_ON, false);
+test('7b — THE STRING LIGHTS are ON again: real round bulbs on sagging swags between the parapet\'s posts, spaced to read one by one', () => {
+  assert.equal(STRINGS_ON, true);
+  assert.ok(BULB.r >= 1 && BULB.halo <= 4 && BULB.haloA <= 0.5, 'a real globe, a TIGHT halo (no blurry dot)');
   for (const k of ['390x844', '402x874', '430x932']) {
     const { L } = setup(k), s = createStrings();
     s.layout(L);
     const d = s.debug();
-    assert.ok(d.runs >= 5 && d.bulbs >= 20, `${k}: ${d.runs} swags, ${d.bulbs} bulbs ready for 7b`);
+    assert.ok(d.runs >= 5 && d.bulbs >= 20, `${k}: ${d.runs} swags, ${d.bulbs} bulbs`);
   }
 });
-test('PF — THE BLADE\'S LAMPS: tight cones down the board — the face lit evenly top to bottom, the two cones reach both edges at the foot, the mouths above the board', () => {
-  const B = BLADE_LIGHT;
-  for (let i = 0; i < 3; i++) {
-    assert.ok(B.cone[i] >= B.fill[i] && B.hot[i] >= B.cone[i], 'hot ≥ cone ≥ fill');
-    assert.ok(B.foot[i] >= 0.9 * B.cone[i], 'even top to bottom: the foot ≥ 90 % of the cone (FP: 40 %)');
-    assert.ok(B.fill[i] >= 0.6 * B.cone[i], 'between the cones never dark');
-  }
+test('7b — THE MARQUEE: a border of bulbs on the blade\'s frame (no gooseneck lamps), inside the board, spaced to read; steady, a slow chase on party nights; the board dimmer', () => {
+  const B = marqueeBulbs();
+  assert.ok(B.length >= 40 && B.length <= 70, `${B.length} bulbs`);
+  for (const [u, v] of B) assert.ok(u > 0 && u < 1.76 && v > 2.75 && v < 10.3, 'on the board');
   for (const k of ['390x844', '402x874', '430x932']) {
-    const { L } = setup(k), R = bladeGeo(speakGeo(L)).rect, ls = bladeLamps(bladeGeo(speakGeo(L))), w1 = R.w * B.spread;
-    assert.ok(Math.min(...ls.map(l => l.x - w1)) <= R.x + 0.5 && Math.max(...ls.map(l => l.x + w1)) >= R.x + R.w - 0.5, `${k}: the cones cover the foot`);
-    // the cones overlap only a little in the middle (no doubled bright stripe; 'lighten' keeps it at one cone's light anyway)
-    assert.ok(ls[0].x + w1 - (ls[1].x - w1) < R.w * 0.75, `${k}: the cones are cones, not one wash`);
-    for (const l of ls) assert.ok(l.y < R.y, `${k}: the lamp's mouth above the board`);
+    const { L } = setup(k), bg = bladeGeo(speakGeo(L)), R = bg.rect, S = marqueeScreen(bg);
+    for (const b of S) assert.ok(b.x >= R.x - 0.5 && b.x <= R.x + R.w + 0.5 && b.y >= R.y - 0.5 && b.y <= R.y + R.h + 0.5, `${k}: a bulb inside the board's outline`);
+    const gaps = S.slice(1).map((b, i) => Math.hypot(b.x - S[i].x, b.y - S[i].y));
+    assert.ok(Math.min(...gaps) >= 3.2, `${k}: bulbs ≥ ${Math.min(...gaps).toFixed(1)} pt apart (each one reads)`);
+    assert.ok(S[0].r * 2 >= 1.6, `${k}: a globe ${(S[0].r * 2).toFixed(1)} pt across`);
   }
+  assert.equal(marqueeLevel(5, 0, 3, 0.5), 1, 'steady on a normal night');
+  const lv = beats => B.map((_, i) => marqueeLevel(i, 1, beats, 0.9));
+  assert.equal(lv(0).filter(v => v === 1).length, Math.ceil(B.length / 3), 'a party night: every third bulb leads');
+  assert.notDeepEqual(lv(0), lv(1), 'the chase steps a bulb a beat');
+  assert.deepEqual(lv(0), lv(3), 'a three-bulb chase');
+  assert.ok(MARQUEE.board < 0.8, 'the board under the bulbs dimmer');
+  for (let i = 0; i < 3; i++) assert.ok(MARQUEE_LIGHT.fill[i] <= BLADE_LIGHT.fill[i] && MARQUEE_LIGHT.edge[i] >= MARQUEE_LIGHT.fill[i], 'an even fill, a warmer edge by the bulbs');
+});
+test('7b — THE WALL-WASHERS: a lamp over each brick pier, never over a window; the scallop\'s light falls off down the pier', () => {
+  const wins = [[1.0, 2.9], [4.2, 6.1], [7.4, 9.3]];
+  for (const [a, b] of WASH.piers) {
+    assert.ok(b > a + 0.9, 'a pier');
+    for (const [w0, w1] of wins) assert.ok(b <= w0 + 1e-9 || a >= w1 - 1e-9, `pier ${a}–${b} clear of the window ${w0}–${w1}`);
+  }
+  assert.ok(WASH.lampV < SPEAK_V.cornice[0] - 0.6 && WASH.lampV > SPEAK_V.rows[1][1] - 0.6, 'under the capitals, by the top floor\'s heads');
+  const st = WASH.stops;
+  for (let i = 2; i < st.length; i++) assert.ok(st[i][1] < st[i - 1][1], 'falling off down the pier');
+  assert.ok(st[0][1] === 0 && st[1][1] === 1, 'dark right under the lamp, the bright scallop edge');
 });
 test('PF — THE BLADE\'S LEVEL: a dark board back to full + a boost (FP\'s × 0.78 undone); a glaring light board (OVERCLOCK, SLIP, BLUFF) steps back, well back on a party night — never the biggest warm slab', () => {
   const lumOf = id => { const f = dayPaint({ id }).face; return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; };

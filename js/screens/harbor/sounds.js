@@ -32,7 +32,7 @@ export function createCitySounds() {
   const beds = new Map();               // slot → { h, zeroAt }
   const next = { gulls: born + rnd(8000, 25000), burner: 0, fog: born + rnd(6000, 20000) };
   let mix = { dark: 0, day: 0, night: 0, k: 1, hold: false };
-  let unlockedAt = 0, bedOn = false, bedK = -1;
+  let unlockedAt = 0, bedOn = false, bedK = -1, speakBeds = { club: 0, tv: 0, party: false };
 
   /** keep a bed at this gain (0 = fade it out; stopped after `linger` s at zero: its buffer is freed) */
   function keep(slot, gain, pan = 0, { ramp = 1.5, linger = 20, fadeIn = 2 } = {}) {
@@ -91,6 +91,11 @@ export function createCitySounds() {
       keep('city-hum-day', mix.day * bm.k, 0, { ramp: r, linger: 60, fadeIn: fi });
       keep('city-hum-night', mix.night * bm.k, 0, { ramp: r, linger: 60, fadeIn: fi });
       bedOn = bedOn || beds.size > 0;
+      // PART 7b — THE SPEAKEASY's beds (speakeasy.js#beds): the club murmuring through the wall while the bar is open (the party-night
+      // take on a party night), the TV's murmur upstairs late — panned to the speakeasy (left), ducked with the bed under the music
+      keep('club-murmur-calm', speakBeds.party ? 0 : speakBeds.club * bm.k, -0.55, { ramp: 2, linger: 20 });
+      keep('club-murmur-party', speakBeds.party ? speakBeds.club * bm.k : 0, -0.55, { ramp: 2, linger: 20 });
+      keep('tv-murmur', speakBeds.tv * bm.k, -0.6, { ramp: 2, linger: 20 });
     }
     // ---- THE SKY (skyfx.listen(): what's up there now) — under the bed, ducked with it under the music (bm.k)
     const s = sky && sky.listen ? sky.listen() : null;
@@ -128,6 +133,8 @@ export function createCitySounds() {
 
   return {
     tick,
+    /** PART 7b: the speakeasy's beds now { club, tv, party } (the scene passes speak.beds() every frame; tick() keeps them) */
+    speakeasy(b) { if (b) speakBeds = b; },
     /** a one-shot from a slot (the road's cars: play('car-1920s-pass', { pan, gain }) → { peak, dur, stop } or null) */
     play: (slot, o) => citySound(slot, o),
     /** a bed from a slot → { set({ gain, pan }), stop(fade) } (an empty slot: a handle that does nothing) */

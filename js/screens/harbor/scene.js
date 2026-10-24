@@ -46,6 +46,7 @@ import { createBoats } from './boats.js';
 import { createWheel } from './wheel.js';
 import { roadSteps, signalSteps, drawTraffic, drawSignalLamps, drawLantern, LENS, WORDS } from './road.js';
 import { speakeasySteps, bladeStep, createSpeakeasy } from './speakeasy.js';
+import { lateTvK } from '../../core/harbor-moments.js';
 import { createCentre } from './centre.js';
 import { ghostAdGame } from '../../core/harbor-speakeasy.js';
 import { promenadeSteps, furnitureSteps, drawPeople, drawLampLight, freeLampLight } from './stage.js';
@@ -308,6 +309,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // FP2 — THE STREET's WET HOOK (Part 9 hands it the real rain: streetWet({ wet })); &force=wet-street previews it (baked: in the key)
   const wetNow = () => streetWet({ force: clock.force.has('wet-street') });
   const bakeKey = () => `${seasonNow()}|l${lampsNow()}|${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}|${toneKey(TW)}|${sunKey(sunLook(LK, P))}|${camSig}|${neon.rev}|f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}|${speakCtx().key}`;
+  // PART 7b: a forced window moment — &force=window&moment=<id> (the preview links) or the panel's WINDOWS rows (&force=window-<id>)
+  function forcedMoment() {
+    const f = clock.force;
+    if (f.has('window')) return qp.get('moment') || null;
+    for (const id of f) if (id.startsWith('window-')) return id.slice(7);
+    return null;
+  }
   // PART 7a: the speakeasy's bake inputs — this week's GHOST AD (the same for everyone: core/harbor-speakeasy.js), the month (the ivy)
   const playable = games.filter(g => g.playable !== false);
   let speakMemo = null;
@@ -647,6 +655,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wfx.fogLayer(c, fs, 1, t);
     pair('near', 'nearLit', winK, lx, xf, fadeIn);
     eventsTick(now, nightK);
+    // (7b: the LATE TVs across the skyline — ~10 pm → ~3 am, eased in + out over 20 min — core/harbor-moments.js#lateTvK)
+    lights.lateTv(LK.local ? lateTvK(LK.local.h + LK.local.mi / 60) * nightK : 0);
     lights.draw(c, 'near', now, nightK, S.motion);
     neon.draw(c, 'near', nf);
     // (DT1: the lighthouse's beam brightens the floodlit wall behind it as it sweeps past — under the lighthouse, drawn later)
@@ -711,7 +721,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (fadeIn > 0) drawSignalLamps(c, L, sigSt, sigO);
     // PART 7a — THE SPEAKEASY's live layer: its rooms lit (from dusk, by the hour), their glow on the brick, the shop's lamp, the
     // sconce, the basement's amber (day + night), the ghost ad's lamps, the barber pole (turning while the shop is open)
-    if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette } : null });   // (FP2: the barber pole's party neon + the beat)
+    if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
+      tw: TW, life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment() }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+    snd.speakeasy(speak.beds());                    // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them)
     // PF — THE CENTREPIECE on the inlay + its rig's floor spots (nothing without one; &force=centrepiece-test: the test obelisk)
     centre.test(off.has('centrepiece-test'));
     if (fadeIn > 0 && bakeTones) centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), fade: fadeIn, t });
@@ -1242,6 +1254,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const bt = L && boats.hit(x, y);
       if (bt) return { kind: 'boat', id: bt };
       if (L && wheel.hit(x, y)) return { kind: 'wheel' };
+      // PART 7b: the speakeasy's windows (a curtain twitches, a head peeks out, the patron salutes, the lamp swings) + the cat (it leaps off)
+      const sw = L && !clock.force.has('no-speakeasy') && speak.hit(x, y);
+      if (sw) { if (sw.kind === 'cat' && S.motion) snd.play('cat-meow', { gain: 0.8, pan: -0.6 }); return { ...sw, kind: sw.kind === 'cat' ? 'speakeasy-cat' : 'speakeasy' }; }
       const r = L && L.door.rect;
       if (r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { kind: 'door' };
       return null;
@@ -1298,14 +1313,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     forced: id => clock.force.has(id),
     harbor: () => (L ? { cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
-      windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
+      windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),
       lighthouse: { ...beam.debug(), set: o => beam.set(o), spin: () => beam.spin() },
       boats: { ...boats.debug(), set: o => boats.set(o) },
       waterfront: waterfront.debug(),
       skyBeams: { ...skyBeams.debug(), set: o => skyBeams.set(o) },
-      speakeasy: { ...speak.debug(), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), pole: o => speak.pole(o), roomDraw: (id, fn) => speak.roomDraw(id, fn), ad: (speakCtx().game || {}).id || null, door: L.door },
+      speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), pole: o => speak.pole(o), roomDraw: (id, fn) => speak.roomDraw(id, fn), ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },
       strings: { ...strings.debug(), on: STRINGS_ON || clock.force.has('strings-party'), set: o => strings.set(o) },
