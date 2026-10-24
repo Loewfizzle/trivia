@@ -714,20 +714,12 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
     The car bodies come with the other vehicles (Part 8); the raid with the speakeasy (Part 7).
   - Plus what's planned elsewhere: holiday window scenes, the password sign, busier windows when more players are online.
 - WINDOW WASHERS: some weekday mornings, two washers on a hanging platform squeegee the speakeasy's windows (tap → they wave).
-- THE HUSH WORD SIGN (the owner, Oct 24: it must be ON the speakeasy, as NEON) — DECIDED: a small NEON WINDOW SIGN in the
-  BARBERSHOP's front window, hanging just inside the glass in the LOWER half of the window, under the gold "HARBOR BARBERS"
-  arch, between the window's left edge and the barber pole (it replaces the tiny OPEN card). The barber + customer scene
-  stays behind it. Just the HUSH WORD in neon (bold Deco capitals, one warm colour, a thin tube border) + a small neon
-  KEYHOLE beside it as the wink; no extra painted text (the window is small). The joke: the password hides in plain sight
-  on the innocent front shop. Hush words are 4 letters; SIZE IT FOR 5 (room to expand). Letters as big as the window
-  allows, never under ~14 pt, readable at a glance at 390 / 402 / 430; if 5 letters don't fit at that size, widen the
-  shopfront a little rather than shrink the letters; the window's left edge must never be cut by the screen edge where the
-  sign sits. Lit whenever a lobby is open (by day too), otherwise a plain neon OPEN in the same spot by day and dark at
-  night. In a lobby it re-lights letter by letter when the word changes. Never covering the barber pole or the door. The real
-  word still shows big in INVITE / the dock. BUILD IT IN 8P as a preview (&force=hushsign&hush=JAZZ, plus a 5-letter test
-  word) so the owner can see it on his phone; Lobby 2.0 connects it to the real lobby word.
-
-## Part 8 — the stage + wildlife
+- THE HUSH WORD SIGN — DECIDED (Ben, Oct 24, replacing the shop-window sign of the first 8P build): BARE NEON TUBES hanging inside the
+  speakeasy's LOWER-RIGHT upstairs window (the jazz room), a signal from someone inside to friends outside; ONLY while the player is in a
+  lobby (absent otherwise — no unlit tubes, no OPEN sign); lights letter by letter when a lobby opens, glows by day too, goes dark + disappears
+  on leaving; the room's moments play on behind it. The barbershop window stays clear. SIZE (after the feasibility check — the glass is
+  ~22 × 27 pt at 390): sized for 4 letters as a 2 × 2 block as big as the glass allows (~11 pt at 390); 5 letters (3 + 2) only have to fit.
+  Built in 8P (`&force=hushsign&hush=JAZZ`); Lobby 2.0 connects the real word (`harbor().speakeasy.hush(word)`).
 - 8a SECTION 0 — CARRIED OVER: only (6) the billboard move was NOT sent to 7a (the owner sent (1)–(5) + the barber pole —
   check 7a's summary that they landed; anything missing carries here too):
   (1) THE SUN'S COLOUR BY ALTITUDE — golden hour too white (her iPhone at 17:57, ≈ 5–6° up): above ~15° white; ~6–15° warm

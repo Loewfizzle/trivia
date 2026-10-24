@@ -6,7 +6,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
 
 ### ✅ CITY 2.0 — PART 8P: THE PEOPLE + THE SPEAKEASY POLISH CARRY-OVER (Oct 24, 2026) — `docs/harbor.md#part-8p`, `docs/audio.md` 8P
 - [x] Section 0 (its own commit, 7dc3a8d): the barbershop front crisp (the gilt arch rebuilt, the glass's haze + the door card gone), THE HUSH WORD
-      SIGN (neon tube capitals + a keyhole, 14.4 pt at 390 — the shop window widened; OPEN by day, a lobby's word day + night;
+      SIGN (Ben's add-on: bare neon tubes in the lower-right upstairs window, only while a lobby is open — 2 × 2, 11.1 pt at 390;
       `&force=hushsign&hush=JAZZ`), three awning lamps, crisp lamp globes, the TV bluer, SLIP / STREAM (+ RUM / RUNNER, OVER / CLOCK) stacked,
       an oxblood brick street + flat cobbles, the crosswalk lit, the basement window (copper, shadows, the beat), the lamps' life; the speakeasy
       + people sounds, the jets' duck; CI: 4 parallel jobs, the full suite only on a `[harbor]` push, flaky visual checks → warnings

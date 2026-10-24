@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
-import { hushPlan, hushState, strikeLevel, HUSH } from '../js/core/harbor-hush.js';
+import { hushPlan, hushState, strikeLevel, darkLevel, hushGlass } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
 import { FOLK, MIX, mixNow, folkMap, folkAt, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS } from '../js/core/harbor-people.js';
 import { signalAt } from '../js/core/harbor-promenade.js';
@@ -16,35 +16,26 @@ const SIZES = {
 const setup = k => { const s = SIZES[k]; const cam = cameraFor(s.W, s.H, { dock: { x: 14, y: s.H - 116, w: s.W - 28, h: 76 } }, s.safe); return { cam, L: harborLayout(cam) }; };
 
 // ------------------------------------------------------------------ THE HUSH WORD SIGN
-test('8P — THE HUSH WORD SIGN: sized for 5 letters, never under 14 pt on a 390 / 402 / 430 phone, inside the shop window under its arch', () => {
+test('8P — THE HUSH WORD SIGN: bare tubes in the lower-right upstairs window — a 4-letter word a 2 × 2 block as big as the glass allows; 5 letters (3 + 2) fit; inside the glass at 390 / 402 / 430', () => {
   for (const k of Object.keys(SIZES)) {
-    const { cam, L } = setup(k), s = L.speakeasy, K = cam.F / s.z0, win = s.shop.win;
-    for (const w of ['JAZZ', 'OPEN', 'BLUES', 'SWING']) {
-      const p = hushPlan(w, win);
-      assert.ok(p.cap * K >= HUSH.minPt, `${k} ${w}: letters ${(p.cap * K).toFixed(1)} pt`);
-      const [b0, b1, v0, v1] = p.board;
-      assert.ok(b0 >= win[0] && b1 <= win[1] && v0 >= win[2] && v1 <= win[3], `${k} ${w}: the board inside the glass`);
-      assert.ok(v1 <= win[2] + (win[3] - win[2]) * 0.66, `${k} ${w}: in the window's lower part (the arch above)`);
-      for (const l of p.letters) assert.ok(l.u0 >= b0 && l.u0 + l.w <= b1 + 1e-9, `${k} ${w}: ${l.ch} on the board`);
-      assert.ok(p.key.u0 + p.key.w < p.letters[0].u0, 'the keyhole beside the word');
-      // the window's left edge (where the sign sits) is on screen
-      const x0 = cam.VPX + cam.F * (s.x0 + win[0]) / s.z0;
-      assert.ok(x0 > 4, `${k}: the shop window's left edge on screen (${x0.toFixed(1)} pt)`);
-    }
-    const four = hushPlan('JAZZ', win), five = hushPlan('BLUES', win);
-    assert.equal(four.cap, five.cap, 'a 4-letter word keeps the 5-letter size');
+    const { cam, L } = setup(k), s = L.speakeasy, K = cam.F / s.z0, [a, b] = s.windows[2], [r0, r1] = s.rows[0], g = hushGlass(a, b, r0, r1);
+    const four = hushPlan('JAZZ', g), five = hushPlan('SWING', g);
+    assert.deepEqual(four.rows.map(r => r.word), ['JA', 'ZZ']); assert.deepEqual(five.rows.map(r => r.word), ['SWI', 'NG']);
+    assert.ok(four.cap >= five.cap, `${k}: four letters at least as big as five`);
+    for (const p of [four, five]) for (const r of p.rows) for (const l of r.letters) for (const q of l.polys) for (const [u, v] of q.pts)
+      assert.ok(u >= g[0] - 1e-6 && u <= g[1] + 1e-6 && v >= g[2] - 1e-6 && v <= g[3] + 1e-6, `${k} ${p.text}: inside the glass`);
+    // (the size the window allows: reported, not a pass mark — ~11 pt caps for four letters on a 390 phone)
+    assert.ok(four.cap * K > 9.5, `${k}: four letters ${(four.cap * K).toFixed(1)} pt`);
   }
 });
-test('8P — THE HUSH WORD SIGN says: the lobby word day + night; no lobby → OPEN lit while the shop is open by day, dark at night', () => {
-  assert.deepEqual(hushState({ word: 'jazz', shop: 'closed', night: 1 }), { text: 'JAZZ', lit: 1 });
-  assert.deepEqual(hushState({ word: null, shop: 'open', night: 0 }), { text: 'OPEN', lit: 1 });
-  assert.equal(hushState({ shop: 'closed', night: 0 }).lit, 0, 'before the opening: unlit');
-  assert.equal(hushState({ shop: 'open', night: 1 }).lit, 0, 'dark at night with no lobby');
-  // a new word re-lights letter by letter: the keyhole first, each letter later than the one before, all on in under ~2.5 s
+test('8P — THE HUSH WORD SIGN exists ONLY in a lobby: absent otherwise (no unlit tubes); lights letter by letter; dark + gone on leaving', () => {
+  assert.deepEqual(hushState({ word: 'jazz' }), { text: 'JAZZ', lit: 1 });
+  assert.deepEqual(hushState({ word: null }), { text: null, lit: 0 });
   const first = i => { for (let t = 0; t < 5; t += 0.01) if (strikeLevel(i, t) > 0) return t; return 99; };
-  assert.ok(first(-1) < first(0) && first(0) < first(1) && first(1) < first(4), 'strikes in turn');
-  for (let i = -1; i < 5; i++) assert.equal(strikeLevel(i, 2.5), 1, 'all on');
-  assert.ok([0.32, 0.36, 0.4, 0.45].some(t => strikeLevel(-1, t) < 0.5), 'a cold tube flickers as it catches');
+  assert.ok(first(0) < first(1) && first(1) < first(3), 'strikes in turn');
+  for (let i = 0; i < 5; i++) assert.equal(strikeLevel(i, 2.5), 1, 'all on');
+  assert.ok([0.32, 0.36, 0.4, 0.45].some(t => strikeLevel(0, t) < 0.5), 'a cold tube flickers as it catches');
+  assert.equal(darkLevel(0.6), 0, 'gone half a second after the lobby closes');
 });
 
 // ------------------------------------------------------------------ THE LAMPS' LIFE

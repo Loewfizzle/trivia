@@ -1537,7 +1537,7 @@ G('speakeasy', async () => {
       const lumP = async ([X, Y]) => { let t = 0, n = 0; for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const c = await px(Q.page, X + dx, Y + dy); t += 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; n++; } return t / n; };
       await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.985', 'the power-on done (the city still brightening would read as a difference)', 15000).catch(() => {});
       const pcx = pr.x + pr.w / 2, mid = pr.y + pr.h / 2;
-      const nearAt = [[pr.x - 3.5, mid], [pr.x + pr.w + 3.5, mid - 6]], farAt = [[pcx - 15, mid], [pcx, pr.y - 15], [pcx - 16, pr.y + 4], [pcx + 28, mid]];
+      const nearAt = [[pr.x - 3.5, mid], [pr.x + pr.w + 3.5, mid - 6]], farAt = [[pcx + 15, mid + 6], [pcx, pr.y - 15], [pcx - 16, pr.y + 4], [pcx + 28, mid]];
       const on1 = { near: [], far: [] }; for (const p of nearAt) on1.near.push(await lumP(p)); for (const p of farAt) on1.far.push(await lumP(p));
       await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: false })');
       await sleep(300);
@@ -1866,6 +1866,7 @@ G('sounds', async () => {
 // ================================================================ 8P — THE PEOPLE (+ section 0's hush word sign + the lamps' life)
 G('people', async () => {
   const P = 'window.__district.harbor()';
+  let hushRect = null, hushRed = 0;
   const settle = p => waitFor(p, `!${P}.pending && !${P}.fading`, 'settled', 20000);
   // the stage band's pixels, as one fingerprint (the A/B against &force=no-people)
   const band = p => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, c = ${P}.cam, y0 = Math.round((c.dock.y - 130) * k), h = Math.round(120 * k);
@@ -1878,7 +1879,7 @@ G('people', async () => {
     ok(pp.n >= 3 && pp.n <= 12, `THE PEOPLE at 12:30: ${pp.n} out (+ ${pp.dogs} dogs) — ${[...new Set(pp.members.map(m => m.kind))].join(', ')}`);
     ok(pp.members.every(m => m.z >= 38.1), `nobody under the dock (nearest z ${Math.min(...pp.members.map(m => m.z)).toFixed(2)})`);
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`);
-    ok(hs.text === 'OPEN' && hs.lit === 1 && hs.capPt >= 14, `THE HUSH WORD SIGN at noon, no lobby: a neon ${hs.text} lit (${hs.capPt} pt letters)`);
+    ok(!hs.text && hs.lit === 0, `THE HUSH WORD SIGN at noon, no lobby: absent (${hs.text})`);
     const a = await band(Q.page);
     const O = await open({ slot: 'pp1b', qs: `when=2026-10-22T12:30${GR}&force=no-people`, view: [402, 874] });
     await harborUp(O.page); await settle(O.page);
@@ -1892,13 +1893,16 @@ G('people', async () => {
     ok(pp.line === 6, `THE LOBBY LINE: &force=line&n=6 → ${pp.line} guests at the door`);
     await waitFor(Q.page, `${P}.speakeasy.hush().since > 3`, 'the word lit through', 8000).catch(() => {});
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`);
-    const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hs.rect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i] > d[i + 2] + 40) n++; res(n / (d.length / 4)); }))`);
-    ok(hs.text === 'SWING' && hs.lit === 1 && red > 0.04, `THE HUSH WORD SIGN at night with a lobby: ${hs.text} lit in warm neon (${(red * 100).toFixed(1)} % of its board glowing)`);
+    hushRect = hs.rect;
+    const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hs.rect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 215 && d[i + 1] < 150 && d[i] > d[i + 2] + 60) n++; res(n / (d.length / 4)); }))`);   // (the neon's hot red, not the room's amber)
+    hushRed = red;
+    ok(hs.text === 'SWING' && hs.lit === 1 && red > 0.006 && hs.rows.join('/') === 'SWI/NG', `THE HUSH WORD SIGN at night with a lobby: ${hs.rows.join(' / ')} in warm neon tubes in the upstairs window (${(red * 100).toFixed(1)} % of its glass glowing, ${hs.capPt} pt)`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'pp3', qs: `when=2026-10-22T22:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await settle(Q.page);
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`), lamps = await ev(Q.page, `${P}.lampLife()`);
-    ok(hs.lit === 0, `THE HUSH WORD SIGN at night, no lobby: dark (${hs.text} unlit)`);
+    const red0 = hushRect ? await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hushRect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 215 && d[i + 1] < 150 && d[i] > d[i + 2] + 60) n++; res(n / (d.length / 4)); }))`) : 0;
+    ok(!hs.text && hs.lit === 0 && red0 < hushRed / 3, `THE HUSH WORD SIGN at night, no lobby: absent (the window's neon red ${(red0 * 100).toFixed(2)} % vs ${(hushRed * 100).toFixed(2)} % with the word)`);
     ok(lamps && lamps.levels.length >= 4 && lamps.levels.filter((v, i) => !(lamps.moment && lamps.moment.i === i)).every(v => v === 1), `THE LAMPS' LIFE at 10:30 pm: every lamp on (${lamps && lamps.levels.join(' ')}; switch-on order ${lamps && lamps.th.join(' ')})`);
     await Q.ctx.close(); }
   // ---- THE BUS (&force=bus: one a minute): it comes, stops at the curb short of the crossing with its door open, then goes
