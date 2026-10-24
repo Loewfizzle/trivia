@@ -4,6 +4,23 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — FP3b: THE PEOPLE WALK RIGHT + REAL DOORS + THE DANCE CIRCLE + THE FACADE (Oct 24, 2026) — `docs/harbor.md#fp3b`, `docs/harbor/review-3.md` §C 7–13
+- [x] THE FACING: one 2.5-D rig from the heading (side / 3/4 / front / back), turns blended at corners + poses (through the front),
+      partners in the lead's frame stepping into a chat; the walk cycle with straight stance legs + a pendulum hip, the swing knee, the
+      counter-swing; a run cycle for joggers; no skating on a diagonal (x + y); the pace +12 %, shorter steps; sitters in cloth away
+      from the oak + a light edge, the bench's iron dark green
+- [x] REAL DOORS: the side door + the barbershop's swing open, people step through, they shut behind them (the amber stairwell + a
+      crisp spill at night); the bus's riders step up / down through its door; nobody fades on the promenade; the street-door slots
+- [x] THE ROUTINES layer's skeleton + THE GLOW-WAND DANCE CIRCLE (party nights at the peak: dancers out of the side door, moves on the
+      beat, neon wands racing / strobing / glitching with short trails, watchers clapping + bobbing, the floor spots; tier 0 four, no trails)
+- [x] THE FACADE: speakeasy.js split (geo / blade / bake), the ivy as climbing vines to the parapet, the carved EST. 1924 tablet, the
+      warm limestone trim (grain, crisp shadows, soot); the window box under the sill (the TV window clear)
+- [x] THE JETS +3 dB + a deeper dip; THE BUS cream over maroon with period detail
+- [x] THE VENDOR SPOT at the front curb by the compass, shared by time; THE CHESTNUT ROASTER (no umbrella: a stove, a tin chimney, a
+      lantern, smoke in the real wind, a drizzle hood) wheeled in + out on its evening in the cold months
+- [x] Tests: the diagonal stride, straight legs, no heading snap, no fades, the dance circle, the vendor spot; the `life` E2E group;
+      the NO SMOKE probe gated; docs-only pushes skip the quick workflow
+
 ### ✅ CITY 2.0 — FP3a: THE FIXES EVERYONE SEES + THE CLEANUP + THE PEOPLE'S COLOURS (Oct 24, 2026) — `docs/harbor.md#fp3a`, `docs/harbor/review-3.md` §C 1–6
 - [x] The barber pole's party check off the glass's LED core (a test bug — the pole was right), a hard check again
 - [x] THE SURGE on every music start (the first tap, the music button back ON, a rescue): one start detector, a 10 s cooldown, pending

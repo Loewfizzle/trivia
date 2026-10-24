@@ -757,7 +757,13 @@ own timetable (arrive with `stopIn` = the seconds to its stop → idle → the d
   1.1 kHz on the swarm (under their low-passes). Measured, the 1–4 kHz band (what a phone plays) before → after, with the gains:
   helicopter +6.3 / +7.5 dB · airliner +6.3 · banner plane +6.0 · **jets +8.8** · burner +6.1 · swarm +4.3 — with the level asked for
   +3…+6. The jets' peak (−2 dBFS × 0.14) stays under the player's cap knee: no limiting, no startle.
-- **THE JETS' DUCK** (`duck: 0.66` on the slot — −3.6 dB; `duckAt`, `sweepPan`; `sounds.js#jets` / `ducking`): the music eased down from
+- **FP3b — THE JETS LOUDER STILL** (the owner's 8P note 10: "sound great — a bit louder still, a slightly deeper music dip"): the gain
+  **0.14 → 0.198 (+3 dB)** and the duck **0.66 → 0.56 (−3.6 → −5 dB)**; the peak (−2 dBFS × 0.198 ≈ 0.157) reaches just into the
+  player's soft-cap knee (0.15 — the top ~0.4 dB rounded off, far under its 0.3 ceiling): loud, never clipped. (tests/harbor-sounds.test.mjs)
+- **FP3b — THE STREET DOOR** (empty slots → silent until recordings are imported): `street-door` (the speakeasy's side door swinging open
+  as someone walks through: a latch + a creak) and `street-door-close`; at night the open door lets out `bar-open`'s burst of the club;
+  the barbershop's door rings `shop-bell` (people.js#doorSounds — on the swing, never inside a painter).
+- **THE JETS' DUCK** (`duck: 0.66` on the slot — −3.6 dB; FP3b: 0.56, −5 dB; `duckAt`, `sweepPan`; `sounds.js#jets` / `ducking`): the music eased down from
   1.4 s before the take's peak (over 0.8 s), held to 1.2 s after it, eased back over 2 s (≈ 3 s under) through `duckMusic` ~4× a
   second; the pass panned right → left over its swell (the recording's own direction); released on destroy. There is no air-show event
   yet: 6b calls `snd.jets()` (or puts `jets` in `sky.listen()` — tick plays it).
