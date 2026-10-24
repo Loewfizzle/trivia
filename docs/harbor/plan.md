@@ -35,8 +35,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | DB | ✅ (ed141a3, Oct 23) MUSIC FIXES (drop slip8, the iOS music-dies-after-leaving bug, party beat latency) + DAY BUILDINGS (the owner: "a little flat", 7–8 / 10): cast shadows between buildings, ambient occlusion, recessed windows, materials — the "BUILDINGS BY DAY" notes | Opus 5.5 high | 60–90 min |
 | 7 | ✅ 7a (12a4f9c, Oct 23 — the owner: 7–8 / 10 at night, cozy; the ghost ad = the BLADE, not the corner turn; the smaller corner buttons feel better) ( add-ons sent: the sun's colour by altitude — golden hour too white; SUNRISE + SUNSET presets in the panel's TIME category; the AUDIO panel's header says "sounding" while the detail says NO) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
 | SPOL | ✅ (70bdbb5 + 3, Oct 24; also the room tints, sky sounds louder, placeholders hidden, the CI two-run rule; SLIPSTREAM on the blade only ~8.6 pt and the NEON PAR "back to lobby" flake → 8P) SPEAKEASY POLISH (Oct 24): the blade inverted (dark board, big bright self-lit letters), the windows redesigned (clean panes, less inside, the TV window upper right), the wall-washers as accents, crisp shopfront lights, the café-light canopy on the roof, the awning's warm glow | Opus 5.5 high | 60–90 min |
-| 8P | ✅ (Oct 24 — docs/harbor.md#part-8p; the bus stops LEFT of the crossing — right of it the framing maple + the cart's umbrella hide the road; the hush sign 14.4 pt with the shop window widened) (moved up, Oct 24 — Ben: hard to judge the windows / foreground with placeholder people): THE PEOPLE — the promenade people (guided free will, up to ~12, the entry / exit points, the crosswalk to the waterside sidewalk, the lobby line's corner), the rooftop people, the cart back (placed), the bus moving + stopping at the curb; premium silhouettes. (Wildlife, Rosie + boats in 3D, the raid + police cars, cabs, the schedule routines stay in 8b.) + SECTION 0 CARRY-OVER from Ben's SPOL review (the blurry barbershop front, 3 awning lamps, crisp lamp globes, the TV bluer, SLIPSTREAM stacked, the brick street, cobbles flatter, the crosswalk lit, the basement window, lamppost life, the hush-word sign preview, sky sounds louder + the jet duck, the speakeasy + people sounds imported, the CI split + flaky checks → warnings, the NEON PAR flake) | Opus 5.5 high | 120–150 min |
-| FREV | ← NEXT: a FABLE FOREGROUND REVIEW (read-only, fresh eyes on the speakeasy + promenade + lighting + the systems' separation — clouds, lights, sounds, people hooks) → one cleanup pass from it | Fable | ~45–60 min |
+| 8P | ✅ (Oct 24 — people + roof + bus + cart, the hush sign in the lower-right window 2×2 ~11–12 pt, the doubled gilt fixed, ivy, the 1924 date stone, the brick street, the cloud suite in 4 jobs on [harbor] pushes; party +4 ms at tier 0 on the laptop → the owner's iPhone decides; the barber pole party-colour check now fails every run → FREV) (moved up, Oct 24 — Ben: hard to judge the windows / foreground with placeholder people): THE PEOPLE — the promenade people (guided free will, up to ~12, the entry / exit points, the crosswalk to the waterside sidewalk, the lobby line's corner), the rooftop people, the cart back (placed), the bus moving + stopping at the curb; premium silhouettes. (Wildlife, Rosie + boats in 3D, the raid + police cars, cabs, the schedule routines stay in 8b.) + SECTION 0 CARRY-OVER from Ben's SPOL review (the blurry barbershop front, 3 awning lamps, crisp lamp globes, the TV bluer, SLIPSTREAM stacked, the brick street, cobbles flatter, the crosswalk lit, the basement window, lamppost life, the hush-word sign preview, sky sounds louder + the jet duck, the speakeasy + people sounds imported, the CI split + flaky checks → warnings, the NEON PAR flake) | Opus 5.5 high | 120–150 min |
+| FP3 | THEN (after FREV): FOREGROUND POLISH 3 — Fable's cleanup list + the "8P REVIEW NOTES" (the people's walking in depth + knees + pace + colours by day, the glow-wand dance circle, the ivy, the date stone + the stone trim, the bus, real doors, the jets) | Opus 5.5 high | 120–150 min |
+| FREV | ← NEXT: a FABLE FOREGROUND REVIEW (read-only, fresh eyes on the speakeasy + promenade + people + lighting + the systems' separation — clouds, lights, sounds, people hooks) → its findings + the 8P review notes go into ONE pass (FP3). + TWO OWNER ISSUES to diagnose (Oct 24): (1) THE JUMPY LOAD on iPhone Safari — the city shrinks, enlarges and snaps around several times before it settles; find every cause (the viewport height changing as Safari's bars settle — vh vs svh / dvh / visualViewport; the canvas sized before the viewport / fonts / DPR are final; the tier stepping up / down during load; bake stages popping in; resize handlers re-laying out) and recommend the fix so it's PERFECT THE FIRST TIME: size once from a stable viewport, ignore load-time resize noise, and reveal the city only when its first full frame is ready (a quick, graceful fade-in, e.g. from dark with the NEON sign — no visible jumps); (2) FOG SHOWN WHEN IT ISN'T FOGGY (his iPhone, 10:19 am; the real weather: mostly cloudy, 11 °C): trace the weather path — the source + its condition code, caching / refresh timing (stale early-morning mist?), leftover panel overrides, how "mist" / haze maps to the city's fog levels; fog only for real low visibility; the readout's weather line shows source, code, age and the city's mapped state; (3) THE FIRST TAP SOMETIMES DOES NOTHING TO THE NEON SIGN (his iPhone, by day, Oct 24 — the MUSIC starts fine; it's only the VISUAL surge / race that's missing; that day the city wrongly showed FOG, so check whether fog / overcast darkness makes the sign count as "already lit" and skip the surge): the surge must fire EVERY time on the first tap whenever the sign isn't lit (the catch during the warm-up) — find why it's skipped (the tap landing during the jumpy load before the sign is ready? the tap eaten by another handler — the panel chip, the dock, a window / cat tap? the surge tied to the music starting, so it's skipped when audio is already unlocked or fails? a once-per-session flag that never resets after returning from the background?) and make it reliable; also judge whether the surge is big enough for that moment. DECIDED WITH IT (the owner loved it, Oct 24): turning the MUSIC back ON (the music button, after it was off) also fires the surge whenever the sign isn't lit — the race along the tubes, then back to daylight glass as the music starts; the same punch every time music comes on, with a short cooldown (~10 s) so toggling can't spam it. At night (the sign already lit) music-on gives the lit sign a quick race / brightness punch instead. (2b) THE OVERCAST IS WRONG TOO (his iPhone, 11:19 am: the real sky = a thin, high white veil over blue sky — cirrostratus — but the city showed a grey, gloomy overcast deck): the weather mapping treats total cloud cover as a low grey deck. Use the cloud LAYERS where the source gives them (low / mid / high cover — e.g. Open-Meteo's cloud_cover_low / _mid / _high) so HIGH thin cover → a bright THIN VEIL (blue sky showing through a milky white sheen, the sun softened, maybe a faint 22° sun / moon halo on rare days) and only LOW / MID cover → the grey overcast deck. Recommend the mapping; the veil's look is built in 6b with the clouds. (4) THE DEBUG OVERLAYS COVER THE CITY (the owner can't see the people behind them): the AUDIO panel's fold uses a 'click' listener on a plain div (audio/diag.js:51) — iOS Safari may never fire it (CLAUDE.md's own pointerdown/pointerup rule); fix it, and make the green READOUT foldable to ONE line the same way (tap its title), both remembered; smaller text; never covering the promenade's middle. (5) THE BARBER POLE's party-colour check now fails on EVERY run (8P) — probably real (the blue stripe too pale): find it and fix | Fable | ~45–60 min |
 | PF | ✅ (Oct 24, CI green) PROMENADE FINAL TOUCHES (Oct 24): the GitHub CI job (full e2e-harbor in the cloud, lean for the private repo), the final layout (cart + bus hidden until 8b, the bench + crabapple left of the crossing, the brick compass inlay, the lamps re-thought + tree uplights, the darker street under the dock, the string lights off for now, brighter sign lamps, an olive-green mailbox), the car's sound in sync, the neon-outline check, the SKY SOUNDS imported (Grok's 12 files, wired to the existing sky events) | Opus 5.5 high | 75–90 min |
 | 7b | ✅ (3c5c17a, Oct 24 — CI 296/296; awaiting Ben's iPhone review; party tier 0 +0.5 ms) (moved up, Oct 24): THE SPEAKEASY'S LIFE — the window moments catalogue + the starter 10, the hidden mirror door, the TV glow, never fully dark at night; + the facade grazing lights between the windows, the blade's marquee bulbs, the rooftop string lights re-rendered (the raid stays for later with the vehicles) | Opus 5.5 high | 90–120 min |
 | BEAT | ✅ (2a8338c, Oct 24 — one source per song, kicks only calibrate the lead, every beat punches, no tier drop on return; awaiting the owner's iPhone test) THE BEAT SYNC MADE ROCK-SOLID — a focused FABLE pass (the evidence: "re-measure gave up" before leaving; "heard +237 ms SKEW" after; the tier drop 2→1→2 on return; the owner: "all over the place — off, then back on at a slower rhythm, then lost again") — one source of truth (the trusted grid from the song's time + one lead, kicks only calibrate), no half-time, no tier drop on return; + SPEAKEASY in WHITE on party nights (the owner: too much pink) | Fable high | 45–75 min |
@@ -44,7 +45,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | FP | ✅ (fb332a1, Oct 23 — the owner: "a big jump", ~8 / 10) FOREGROUND POLISH (Oct 23): the beat-after-returning fix (count beats from the song's position, not the context clock — the owner's evidence: ~1.3 s drift), the promenade re-layout (approved sketch), the billboard on a short frame, the blade in front of the tree, the barber pole (smooth + brighter), the stop lights + a WALK/WAIT lantern, one crafted planter, the bench at night, quieter water + varied gulls, pulse default 175, readout + AUDIO toggles in the panel | Opus 5.5 high | 75–100 min |
 | 8a | ✅ (2aecda7, Oct 23) (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
 | 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
-| 8b | THE LIFE (after 6b; the people moved up to 8P): cabs, the raid + police cars, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
+| 8b | THE LIFE (after 6b; the people moved up to 8P): cabs, the raid + police cars, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines incl. THE WORKERS' SCHEDULE (decided Oct 24) | Opus 5.5 high | 90–120 min |
 | C2 | cleanup pass 2 (+ DEPENDENCY UPGRADES on a branch with the full tests: firebase-admin 13 → 14, the browser Firebase SDK past 11.10 — not urgent, Oct 24) | Opus 5.5 medium | 15–30 min |
 | 9 | seasons + weather | Opus 5.5 medium | 45–75 min |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
@@ -372,6 +373,42 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   event (incl. the rare + legendary ones) JOINS MID-WAY on load, never only from the start; (4) a planning table in
   docs/harbor.md: each hour of the week vs what's running, so gaps are visible; Part 13's CITY CONTROL shows it.
   Includes sunrise / sunset, seasons, weather, holidays — the whole city, not just Part 8.
+  THE WORKERS' SCHEDULE — DECIDED (the owner + Claude, Oct 24; built in 8b on the 8P people system; the 8P figures +
+  the director's budget; the panel can force each one). THE PRINCIPLE: most people open a party-game site in the EVENING
+  (7–11 pm prime), then lunch, then after work — so the big shows sit where people look; the early morning stays light
+  but leaves TRACES that are still visible later. Set-your-watch FIXED regulars (to the minute, weekdays): the milk truck
+  6:00, the newsboy 7:00, the barber 8:30, the beat cop 9:00 am + 9:00 pm; everything else in a time WINDOW with
+  randomness. Period look with some charm: trucks, not horses.
+  - WEEKDAYS (Mon–Fri): ~5:30 the street sweeper (broom cart; a wet streak left drying on the cobbles); 6:00 the milk
+    truck (bottles left on the speakeasy step — they stay there until the barber takes them in at 8:30); mid-morning the
+    ice man (an ice block with tongs to the side door); 7:00 the newsboy sets up his stand (bundled papers waiting before
+    he arrives), sells until ~10, and comes back 5–7 pm for the EVENING EDITION; 8:30 the barber rolls out the awning,
+    flips to OPEN, takes in the milk, sweeps the step; 9:00 am the beat cop strolls through (baton twirl, tips his hat —
+    friendly, not the raid); ~10:30 the mailman to the barbershop; late morning → noon the WINDOW WASHERS (Tue + Fri);
+    midday → ~9:30 pm the chestnut cart (wheeled in late morning; at night roasting under the lamps, steam + a warm glow;
+    packs up ~9:30); ~2 pm a "SODA WATER" delivery truck, crates to the side door (wink); ~4 pm the bartender arrives (the
+    window moment); ~5–6 pm the BILLPOSTER changes the roof billboard (the daily game change); dusk: the DOORMAN takes his
+    post at the speakeasy's side door (guests whisper the password, he lets them in — ties to the hush word sign + the
+    lobby line), a FLOWER SELLER sells to couples heading in, the street lamps switch on one by one; ~8 pm a MUSICIAN
+    arrives with an instrument case (the band); 9:00 pm the beat cop again; ~11 pm (rare, a few nights a month) the
+    BOOTLEGGERS: a quiet truck, crates passed down the basement hatch, a lookout on the corner; ~2 am the bar staff lock
+    up and leave.
+  - SATURDAY: no commuters, a later start, the newsboy selling the weekend edition, a busy afternoon (more strollers), the
+    bootleggers' big delivery before the party night.
+  - SUNDAY: quiet and sleepy — hardly any workers, a few strollers.
+  - WEEKLY: MONDAY 1–4 pm the SIGN PAINTERS repaint the blade (moved from 8–11 am — more people see it); Tue + Fri late
+    morning the window washers; Wednesday the rooftop gardener.
+  - CAUSE AND EFFECT (the city notices itself — all in the FOREGROUND): a blade bulb / letter goes out (~once a week) → the
+    next morning a repairman leans a tall ladder on the speakeasy corner, swaps it, tests it with a flicker, climbs down;
+    a lamppost flickers (a couple of times a week) → a short ladder at that lamp the next morning; a billboard lamp burns
+    out → the billposter fixes it on his next visit; the FAR roof signs' dead letter fixes itself overnight with the
+    letter-by-letter spell-on (no worker — too far to see); the morning after a party night: extra sweeping + a cleanup
+    crew on the roof; rarely the RAID comes the night after a bootlegger delivery (the raid gets a story); Part 9: snow
+    shovelers + a salt cart, leaf rakers in autumn, coal down the basement chute in winter.
+  - THE HARBOR: no harbor workers (too small to read); its schedule shows through boats + light instead — a fishing boat
+    heads out at dawn with a bow lantern and returns late afternoon, Rosie sounds her horn and leaves the pier on a
+    timetable (~10 am, 2 pm, 6 pm), the lighthouse lamp switches on at dusk.
+  - Never stack two worker shows at once; every one JOINS MID-WAY; the hour-by-week planning table (above) shows the gaps.
   - PHONE: the street lamps switch ON one by one at sunset and OFF one by one at sunrise; a ship's bell rings each hour; the
     paddle steamer's STEAM WHISTLE at noon (a white steam plume + the sound); dog walkers at sunrise + sunset (more on
     weekends); the morning rush (more buses, people with coffee on the promenade); the lunch crowd at the food cart; the
@@ -405,6 +442,22 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   opening, volume fading back in over a few seconds. Lobby / synced songs re-sync to the room's clock when they return (no
   drift). Title + lobby only (never in a game); with music off, only the drone + the crackle play. Uses the existing
   duckMusic / filterMusic + a playback-rate ramp.
+- 6b — THE ABDUCTION + THE TR-3B MUST BE CINEMATIC (the owner, Oct 24: "absolutely cinematic, beautiful, jaw-dropping,
+  stunning"; his REFERENCE painting is saved at docs/harbor/refs/abduction.jpg (commit the refs/ folder in step 0 if it isn't yet) —
+  STUDY it first, and any other image in refs/).
+  What the reference shows, and what to match: THE POSE — the figure ARCHED BACKWARD, limp, lifted from the chest / small
+  of the back as if a string pulls him up: chest highest, head dropped back and down, arms hanging loose below with fingers
+  open, knees bent, feet trailing — the classic abduction pose, never upright or stiff; he turns slowly as he rises, the
+  hat / coat tails lifting. THE BEAM — a WIDE, SOFT cone from the saucer's glowing underside ring, not a hard laser tube:
+  pale light with faint colour shifts, slowly falling / rising PARTICLES and shimmering dust inside it, soft edges that
+  bleed into the air, brightest near the craft, lighting the ground (and the promenade, the water, the trees) from above,
+  long shadows thrown outward. THE CRAFT — seen slightly from below: a dark, glossy saucer (deep violet / near-black, the
+  city's neon reflecting on its hull), a ring of evenly spaced rim lights, the glowing concentric ring on its belly. THE
+  STAGING (a short film, ~20–30 s): an approach (hum, the lamps flickering under it), the beam opening, the lift (slow,
+  then faster), the figure vanishing into the light, the beam closing, the saucer leaving fast; the city's lights dip
+  near it; music handled like the TR-3B (a dip + filter). The TR-3B gets the same level of care: a huge, slow black
+  triangle, corner lights + a pulsing centre glow, the power drain rolling across the city, then the jet chase. Both:
+  the best-looking moments in the whole city, refine with frame bursts until they're truly jaw-dropping.
 - 6b — LEGENDARY SKY RARITY (the owner): the UFO abduction ~1–2 a month, the TR-3B + its jet chase ~1–2 a month (the same
   nights for everyone, seeded), never two legendaries the same night; the barnstormer a few times a week.
 - 6b — THE TR-3B BENDS THE MUSIC (the owner's idea): as it nears, the music POWERS DOWN like a record player losing
@@ -629,7 +682,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   shafts of light — soften them: the rays fade into each other (soft-edged, overlapping, blurred along their length), a
   smooth glowing curtain that shimmers and drifts, not separate stripes; keep its colours and its reflection on the water.
 - 6b section 0 — CIRRUS SOFTER + LONGER (the owner, Oct 23): the high streaks are too sharp — more diffusion (soft,
-  blurred, feathered edges, lower contrast) and longer, more stretched strands.
+  blurred, feathered edges, lower contrast) and longer, more stretched strands. (Re-checked Oct 24: he LOVES the wispy
+  high cirrus look, but they still need to be more stretched out; and under overcast the small cartoon-round cumulus are
+  STILL there — both are must-fixes in 6b.)
 - 6b section 0 — CLOUDS EVOLVE (the owner said OK, Oct 23 — she'll judge the clouds only once 6b's full system is in): clouds slowly swell, change shape and dissipate over minutes,
   new ones form; each 6-hour re-roll picks a varied MIX (a towering one or two / many medium / nearly clear), never the
   same blend.
@@ -714,12 +769,64 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
     The car bodies come with the other vehicles (Part 8); the raid with the speakeasy (Part 7).
   - Plus what's planned elsewhere: holiday window scenes, the password sign, busier windows when more players are online.
 - WINDOW WASHERS: some weekday mornings, two washers on a hanging platform squeegee the speakeasy's windows (tap → they wave).
-- THE HUSH WORD SIGN — DECIDED (Ben, Oct 24, replacing the shop-window sign of the first 8P build): BARE NEON TUBES hanging inside the
-  speakeasy's LOWER-RIGHT upstairs window (the jazz room), a signal from someone inside to friends outside; ONLY while the player is in a
-  lobby (absent otherwise — no unlit tubes, no OPEN sign); lights letter by letter when a lobby opens, glows by day too, goes dark + disappears
-  on leaving; the room's moments play on behind it. The barbershop window stays clear. SIZE (after the feasibility check — the glass is
-  ~22 × 27 pt at 390): sized for 4 letters as a 2 × 2 block as big as the glass allows (~11 pt at 390); 5 letters (3 + 2) only have to fit.
-  Built in 8P (`&force=hushsign&hush=JAZZ`); Lobby 2.0 connects the real word (`harbor().speakeasy.hush(word)`).
+- 8P REVIEW NOTES (the owner's iPhone, Oct 24 — collecting; "pretty impressed for a first pass, not perfect"):
+  (1) THE PEOPLE'S MOVEMENT: they SLIDE, and near the crosswalk they walk "sideways and forward at the same time" — a
+  side-profile walk cycle used while moving IN DEPTH. Fix: the facing must match the direction of travel — front view walking
+  toward the camera, back view walking away, 3/4 views on diagonals, side view only when crossing the screen; scale changes
+  smoothly with depth; screen speed matched to the stride at that depth (farther = smaller steps) so feet plant and never
+  skate; turns happen through a 3/4 frame, never a snap. (2) THE KNEES look odd: a proper walk cycle (contact, down,
+  passing, up — ~8 frames), clear knee bend on the passing leg, a little hip / shoulder counter-swing, arms swinging
+  opposite. (3) FACELESS: at ~25–30 pt a face is ~3–4 pt, so NO drawn eyes / mouths (they'd look creepy or cartoonish);
+  instead stop drawing them as flat black silhouettes BY DAY: real muted 1920s clothing colours, skin tones on face +
+  hands, hair colour, a hat brim's shadow across the face, a light side + shade side; at night mostly silhouette with a
+  warm RIM LIGHT on the face / shoulders from the nearest lamp. That reads as "a person" without features.
+  (4) THEY WALK TOO FAST (agreed): slow the everyday pace ~25 % (a relaxed 1920s stroll), varied per person — strollers +
+  couples slowest, commuters brisker, joggers clearly faster. (5) PARTY NIGHT (iPhone readout: tier 2, 60 fps, 2 % slow —
+  fine; the beat settled, drift 0): THE GLOW-WAND DANCERS (the owner's idea, agreed with a tweak): at the party's peak a
+  DANCE CIRCLE forms on the brick compass inlay (the event floor spots switch on — the rig built for exactly this):
+  ~4–6 dancers swinging handheld neon LIGHT WANDS (like flight-deck marshalling wands — anachronistic, but party nights are
+  the city's neon fantasy), the wands changing colour with the party palette, RACING / strobing on the beat, now and then
+  twitching or glitching like a tired tube; crisp glowing tubes with SHORT motion trails (never a smeared blur); big
+  readable dance moves on the beat (arms up, swings, spins). Not every person — the rest watch, bob, clap around the
+  circle. Inside the party's cost budget; tier 0 drops the trails first.
+  (6) THE IVY is too dense — a solid red mass that reads like FIRE: spread it out, irregular climbing stems and tendrils with
+  brick showing between, individual leaf clusters, a mix of crimson / scarlet / a few still-green and amber leaves in
+  autumn, and let it climb FARTHER up the corner pier (toward the second floor) — only if it looks natural.
+  (7) THE DATE STONE reads as a flat white box with "1924" (not clear it's a year): make it an intricate carved tablet —
+  "EST. 1924" in incised, shadowed letters, a raised moulded border, small scrolled ends / a Deco ornament, the same
+  warm limestone / terracotta as the trim, lit softly at night. (8) THE WHITE TRIM on the whole speakeasy (cornice, sills,
+  lintels, quoins, the parapet band) looks FLAT: give it real stone — a warm cream limestone / terracotta tone, a subtle
+  texture, crisp shadows under the cornice + dentils + sills, a little weathering / soot streaking below the ledges. (9) THE
+  BLADE: approved (stacked names are fine). (10) THE JETS: sound great — a bit louder still (~+3 dB) and a slightly deeper
+  music dip during the pass. (11) The hush sign can't be judged in a real lobby yet; use the preview link.
+  (12) THE BUS: looks good; more detail (a period coach: chrome grille + bumpers, round headlamps, a destination sign
+  "HARBOR LINE", riveted panels, spoked wheels, a lit interior at night) and NOT GREEN (it clashes with the green cart) —
+  Claude's pick: CREAM OVER DEEP MAROON with a thin gold pinstripe + gold lettering (warm, period, matches the speakeasy's
+  palette). The door stays open far too long: close it ~3–5 s after the last rider. (13) DOORS ARE REAL: people must WALK
+  through the speakeasy's side door and the barbershop door — the door swings open, they step in (or out), it closes —
+  never fade in / out. At night the speakeasy door spills a warm amber glow when it opens (a lit rectangle on the step and
+  cobbles, a burst of muffled jazz from the club slot), then closes.
+- THE HUSH WORD SIGN — REVISED (the owner, Oct 24 ~11:45, after seeing the shop-window version block the barbershop scene):
+  it moves to the speakeasy's LOWER-RIGHT upstairs WINDOW as bare NEON TUBES of the hush word hanging inside the glass — a
+  SIGNAL from someone in the building to the friends outside. It exists ONLY while the player is in a lobby: invisible
+  (not even unlit tubes) otherwise; when a lobby opens it lights letter by letter, glows by day too, and when they leave
+  the lobby it goes dark and is gone. The room's moments keep playing BEHIND it (silhouettes through the gaps). No OPEN
+  sign in the shop window at all — the barbershop scene stays clear. Same size rules (5 letters, never under ~14 pt).
+  The older shop-window plan below is superseded.
+- THE HUSH WORD SIGN (the owner, Oct 24: it must be ON the speakeasy, as NEON) — SUPERSEDED, see above: a small NEON WINDOW SIGN in the
+  BARBERSHOP's front window, hanging just inside the glass in the LOWER half of the window, under the gold "HARBOR BARBERS"
+  arch, between the window's left edge and the barber pole (it replaces the tiny OPEN card). The barber + customer scene
+  stays behind it. Just the HUSH WORD in neon (bold Deco capitals, one warm colour, a thin tube border) + a small neon
+  KEYHOLE beside it as the wink; no extra painted text (the window is small). The joke: the password hides in plain sight
+  on the innocent front shop. Hush words are 4 letters; SIZE IT FOR 5 (room to expand). Letters as big as the window
+  allows, never under ~14 pt, readable at a glance at 390 / 402 / 430; if 5 letters don't fit at that size, widen the
+  shopfront a little rather than shrink the letters; the window's left edge must never be cut by the screen edge where the
+  sign sits. Lit whenever a lobby is open (by day too), otherwise a plain neon OPEN in the same spot by day and dark at
+  night. In a lobby it re-lights letter by letter when the word changes. Never covering the barber pole or the door. The real
+  word still shows big in INVITE / the dock. BUILD IT IN 8P as a preview (&force=hushsign&hush=JAZZ, plus a 5-letter test
+  word) so the owner can see it on his phone; Lobby 2.0 connects it to the real lobby word.
+
+## Part 8 — the stage + wildlife
 - 8a SECTION 0 — CARRIED OVER: only (6) the billboard move was NOT sent to 7a (the owner sent (1)–(5) + the barber pole —
   check 7a's summary that they landed; anything missing carries here too):
   (1) THE SUN'S COLOUR BY ALTITUDE — golden hour too white (her iPhone at 17:57, ≈ 5–6° up): above ~15° white; ~6–15° warm
