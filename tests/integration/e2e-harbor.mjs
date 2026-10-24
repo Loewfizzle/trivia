@@ -718,6 +718,7 @@ G('sky', async () => {
     ok(b && st.banner && st.banner.lines.length === 2 && st.banner.panels.every(p => p.h >= 19), `THE BANNER PLANE (API): ${st.banner && st.banner.lines.join(' / ')} — panels ${st.banner && st.banner.panels.map(p => p.w + '×' + p.h).join(', ')} pt`);
     ok(t && st.smoke && st.smoke.kind === 'skytype' && st.smoke.text === 'HAPPY / BIRTHDAY / STEVE' && st.smoke.pages === 1 && st.smoke.puffs > 100, `SKYTYPING (API): "${st.smoke && st.smoke.text}" — ${st.smoke && st.smoke.puffs} puffs, one page wrapped for the biggest letters (6b)`);
     // (6b: the sign makes room — the NEON sign a ghost + the tagline gone while it types; the banner fades the tagline only)
+    await waitFor(I.page, '(() => { const d = window.__district.signDim(); return d && d.logo <= 0.2; })()', 'the sign down to its ghost (after the flicker)', 5000).catch(() => {});
     const sd = await ev(I.page, 'window.__district.signDim()');
     ok(sd && sd.by.includes('msg') && sd.logo <= 0.2 && sd.tag === 0, `THE SIGN MAKES ROOM: the NEON sign dims to ${sd && sd.logo} + the tagline to ${sd && sd.tag} while the message types (${sd && sd.by.join(', ')})`);
     const h = await ev(I.page, 'window.__district.harbor()');
@@ -771,7 +772,8 @@ G('sky', async () => {
     await harborUp(C.page);
     await waitFor(C.page, '!!(window.__district.harbor().clouds || {}).born', 'the overcast baked', 25000);
     const c = (await ev(C.page, 'window.__district.harbor()')).clouds;
-    ok(c.deck && c.kinds.includes('scud'), `OVERCAST: the deck + scud under it (${c.kinds.join(', ')})`);
+    // (6b, the owner: "the small dark floating puffs look off" — under a FULL deck the deck alone: no scud, no small cumulus)
+    ok(c.deck && !c.kinds.includes('scud'), `OVERCAST: the deck alone — no scud / small puffs under it (${c.kinds.join(', ')})`);
     await C.ctx.close(); }
 });
 G('sky', async () => {
@@ -782,9 +784,10 @@ G('sky', async () => {
     await waitFor(D.page, "(() => { const d = window.__district.harbor().sky.state.drones; return d && d.e > 36.5; })()", 'the message held', 45000);
     const d = (await ev(D.page, 'window.__district.harbor()')).sky.state.drones;
     ok(d.colours === 2 && d.lit > 60, `THE DRONES' COLOURS (&colours=…&by=word): "HI THERE" in ${d.colours} colours, a colour per word (${d.lit} lit)`);
-    // NEON PASS 3 (the owner): the formation in OPEN SKY — under the SPEAKEASY word / the tagline, over the tallest crown
-    const g = await ev(D.page, `(() => { const h = window.__district.harbor(); return { crown: Math.min(...h.boxes.filter(b => b.kind === 'sky').map(b => b.y)), word: document.querySelector('.nd-word').getBoundingClientRect().bottom }; })()`);
-    ok(d.box && d.box[3] < g.crown - 2 && d.box[1] > g.word, `THE DRONES IN OPEN SKY: the formation ${d.box && d.box[1]}–${d.box && d.box[3]} pt, under the word (${Math.round(g.word)}), over the tallest crown (${Math.round(g.crown)})`);
+    // (6b, the owner: "it only uses a very small part of the sky") the formation fills the OPEN SKY — from under the corner buttons down
+    // to over the tallest crown — IN FRONT of the sign, which dims to a ghost while the show flies
+    const g = await ev(D.page, `(() => { const h = window.__district.harbor(); return { crown: Math.min(...h.boxes.filter(b => b.kind === 'sky').map(b => b.y)), btn: document.querySelector('.music-btn').getBoundingClientRect().bottom, dim: window.__district.signDim() }; })()`);
+    ok(d.box && d.box[3] < g.crown - 2 && d.box[1] > g.btn && g.dim.logo <= 0.2, `THE DRONES IN OPEN SKY: the formation ${d.box && d.box[1]}–${d.box && d.box[3]} pt, under the corner buttons (${Math.round(g.btn)}), over the tallest crown (${Math.round(g.crown)}); the sign a ghost (${g.dim.logo})`);
     await D.ctx.close(); }
 });
 G('neon', async () => {
@@ -2117,7 +2120,8 @@ G('legends', async () => {
   { const Q = await open({ slot: 'lg0', qs: NIGHT, view: [402, 874] });
     await harborUp(Q.page); await sleep(1500);
     const st = await ev(Q.page, `${P}.legend.state`);
-    ok(!Q.files.some(f => /harbor\/(legends|jets)\.js/.test(f)) && !st.run, `THE LEGENDARY SKY: a normal night never loads its module (${Q.files.filter(f => /legends|jets/.test(f)).length} files)`);
+    // (jets.js is shared with skytyping + the air show — the legendary module itself, legends.js, is the lazy one)
+    ok(!Q.files.some(f => /harbor\/legends\.js/.test(f)) && !st.run, `THE LEGENDARY SKY: a normal night never loads its module (${Q.files.filter(f => /legends\.js/.test(f)).length} files)`);
     await Q.ctx.close(); }
   // ---- THE UFO ABDUCTION held mid-lift (&lgs=14): the module loaded on demand, the beam a bright pale column over the compass
   { const Q = await open({ slot: 'lg1', qs: `${NIGHT}&force=ufo&lgs=14&force=no-people`, view: [402, 874] });
