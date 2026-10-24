@@ -351,9 +351,23 @@ export function createLights() {
 
   /** the aircraft beacons (every frame, day and night): all in sync — a slow red pulse at night (a faint ember between the
    *  pulses so each lamp is still there), a white strobe on the very tallest by day. night / day: 0..1 */
-  function drawBeacons(c, now, night, day, motion) {
+  // 6b — THE BEACONS IN FOG (plan.md, decided: they stay RED — slow, steady 1920s obstruction lights, never white strobes): in heavy fog
+  // every beacon BLOOMS into a soft red halo glowing through the murk, the blink a slow gentle fade in and out, every top in unison —
+  // the city's tops "breathe" red together. halo: the pass drawn AFTER the fog layer (scene.js) — the halo is what you see when the
+  // building itself is gone; fog: 0..1 (the real fog)
+  function drawBeacons(c, now, night, day, motion, fog = 0, halo = false) {
     if (!beacons.length) return;
     const t = now / 1000, D = dots();
+    const heavy = Math.max(0, Math.min(1, (fog - 0.35) / 0.5));
+    if (halo) {
+      if (heavy < 0.02) return;
+      // (on in the murk by day too — low visibility; a slow sine breath shared by every top)
+      const p = motion ? 0.5 - 0.5 * Math.cos((t / 4.2) * Math.PI * 2) : 0.7, a = Math.max(night, 0.55 * heavy) * heavy * (0.25 + 0.75 * p);
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for (const b of beacons) { const r = b.r * (9 + 7 * heavy); c.globalAlpha = Math.min(1, a * 0.75); c.drawImage(D.red, b.x - r, b.y - r, r * 2, r * 2); c.globalAlpha = Math.min(1, a); const r2 = b.r * 3.2; c.drawImage(D.red, b.x - r2, b.y - r2, r2 * 2, r2 * 2); }
+      c.restore();
+      return;
+    }
     c.save(); c.globalCompositeOperation = 'lighter';
     if (night > 0.02) {
       const p = motion ? beaconPulse(t) : 0.7, a = night * (0.14 + 0.86 * p);

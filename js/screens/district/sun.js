@@ -139,7 +139,8 @@ export function phoneArch(o, u) {
   if (!A) {
     const size = e => r * sunShape(e - 0.83).size;
     const ar = o.arch && o.arch.peak != null ? o.arch : null;
-    const season = ar ? lerp(ar.low ?? ar.peak, ar.peak, s * s * (3 - 2 * s)) : Math.max(lerp(tagY, wordY, s * s * (3 - 2 * s)), o.neon.y + o.neon.h + r + 3);
+    // (6b, the Harbor: ar.pow — a compressed curve, so a winter noon still clears the crowns and the seasons differ visibly)
+    const season = ar ? lerp(ar.low ?? ar.peak, ar.peak, ar.pow ? Math.pow(s, ar.pow) : s * s * (3 - 2 * s)) : Math.max(lerp(tagY, wordY, s * s * (3 - 2 * s)), o.neon.y + o.neon.h + r + 3);
     const top = ar ? (ar.top ?? ar.peak) : o.neon.y + o.neon.h + r + 3;     // the highest it may ever go
     const r0 = size(0);
     const lowest = (x, rr) => { let v = -Infinity; for (let dx = -rr; dx <= rr; dx += 2) v = Math.max(v, roof(x + dx)); return v; };
@@ -482,8 +483,11 @@ export function createSun(opts = {}) {
       const hk = HB ? now.st.halo * gk * (1 - tot) * ecDim : 0;
       if (hk > 0.01) {
         const gc = now.st.glow, inner = gc.map(v => Math.round(lerp(v, 255, 0.2 + 0.8 * now.st.white)));
-        c.globalAlpha = 0.1 * hk * (0.4 + 0.6 * vis); c.drawImage(glow(gc, 1.25), x - rx * 18, y - rx * 18, rx * 36, rx * 36);
-        c.globalAlpha = 0.42 * hk * (0.3 + 0.7 * vis); c.drawImage(glow(gc, 2.6), x - rx * 6.5, y - rx * 6.5, rx * 13, rx * 13);
+        // (6b: the arch's apex sits just under the NEON tubes — near the top the glare draws in tight, so it never washes out the
+        // daytime glass: the wide halo fainter, the soft bloom smaller)
+        const nt = s.arch && s.arch.top != null ? 1 - smooth(s.arch.top + 10, s.arch.top + 90, y) : 0, bs = 6.5 * (1 - 0.35 * nt);
+        c.globalAlpha = 0.1 * hk * (0.4 + 0.6 * vis) * (1 - 0.45 * nt); c.drawImage(glow(gc, 1.25), x - rx * 18, y - rx * 18, rx * 36, rx * 36);
+        c.globalAlpha = 0.42 * hk * (0.3 + 0.7 * vis); c.drawImage(glow(gc, 2.6), x - rx * bs, y - rx * bs, rx * bs * 2, rx * bs * 2);
         if (vis > 0.02 && !part) { c.globalAlpha = 0.75 * hk * vis; c.drawImage(glow(inner, 1.8), x - rx * 2.6, y - rx * 2.6, rx * 5.2, rx * 5.2); }
       }
       c.globalCompositeOperation = 'source-over';

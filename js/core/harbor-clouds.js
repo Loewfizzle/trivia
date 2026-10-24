@@ -179,7 +179,8 @@ export function cloudPlan(box, M, seed = '') {
     const yMax = Math.max(top + 60, (box.avoid ? box.avoid.y0 - 6 : roof - 30)), n = Math.round(clamp(1 + M.cirrus * 2.2 * Math.sqrt(wide) + R() * 0.8, 1, 4));
     const placed = [];
     for (let i = 0, tries = 0; i < n && tries < 40; tries++) {
-      const w = Math.min(W * 1.1, (0.5 + R() * 0.65) * phoneW * (0.8 + 0.2 * R())), h = Math.round(w * (0.26 + R() * 0.12));
+      // (6b — CIRRUS SOFTER + LONGER, the owner: "he LOVES the wispy look — stretch them longer": ~1.5× longer, flatter)
+      const w = Math.min(W * 1.45, (0.75 + R() * 0.95) * phoneW * (0.8 + 0.2 * R())), h = Math.round(w * (0.17 + R() * 0.08));
       const span = Math.max(1, yMax - top - h), y = top + h + Math.pow(R(), 0.8) * span, s = nearAt(y - h / 2, box);
       const x0 = R() * (W + w * 0.6) - w * 0.8;
       // (groups apart: never two stacked on each other — they would read as one striped block)
@@ -189,8 +190,9 @@ export function cloudPlan(box, M, seed = '') {
     }
   }
   if (M.veil > 0.05) out.push({ kind: 'cirrus', veil: M.veil, seed: seedOf(), w: Math.round(W * 1.5), h: Math.round(Math.max(80, (box.avoid ? box.avoid.y1 : roof) - top) * 0.95), s: 0.9, y: (box.avoid ? box.avoid.y1 : roof) - 4, x0: -W * 0.25, v: 0.1 });
-  // ---- SCUD: low ragged fragments under the deck (they drift faster)
-  for (let i = 0, n = Math.round(M.scud * 5 * wide); i < n; i++) {
+  // ---- SCUD: low ragged fragments under the deck (they drift faster) — 6b, the owner: "the small dark floating puffs at the tagline
+  // height look off" → none under a FULL deck (the deck alone reads right); a broken sky keeps a few
+  for (let i = 0, n = M.deck > 0.6 ? 0 : Math.round(M.scud * 5 * wide); i < n; i++) {
     const y = roof + 10 - R() * (roof - top) * 0.45, s = nearAt(y, box), w = (0.25 + R() * 0.3) * phoneW * (0.3 + 0.7 * s);
     out.push({ kind: 'scud', seed: seedOf(), w, h: w * 0.32, s, y, x0: R() * (W + w) - w, v: 0.6 + 1.1 * s, tall: 0 });
   }
@@ -198,7 +200,12 @@ export function cloudPlan(box, M, seed = '') {
   if (M.deck > 0.04) out.push({ kind: 'deck', seed: seedOf(), w: Math.ceil(W * 1.5), h: Math.ceil(hz + 6), s: 1, y: hz + 6, x0: 0, v: 0.22, k: M.deck });
   // far first; at the same nearness the high kinds behind the low
   const rankK = { deck: 0, cirrus: 1, alto: 2, strato: 3, cumulus: 4, scud: 5 };
-  out.sort((a, b) => (a.kind === 'deck' ? -1 : b.kind === 'deck' ? 1 : 0) || (a.s - b.s) || (rankK[a.kind] - rankK[b.kind]));
+  // (6b — THE LAYERING BUG, the owner: a high cirrus showed THROUGH a cumulus at night. The HIGH kinds (the deck, cirrus, alto) are
+  // always drawn FIRST, whatever their nearness on the screen; then the low ones far → near)
+  const high = d => (d.kind === 'deck' ? 0 : d.kind === 'cirrus' ? 1 : d.kind === 'alto' ? 2 : 3);
+  out.sort((a, b) => (high(a) - high(b)) || (a.s - b.s) || (rankK[a.kind] - rankK[b.kind]));
+  // (6b: under a full deck no small round cumulus either — only the big ones stay, melting into it)
+  if (M.deck > 0.6) for (let i = out.length - 1; i >= 0; i--) { const d = out[i]; if ((d.kind === 'cumulus' && (d.form === 'frag' || d.form === 'wisp' || d.w < phoneW * 0.4))) out.splice(i, 1); }
   out.forEach((d, i) => { d.z = i; d.w = Math.round(d.w * 10) / 10; d.h = Math.round(d.h * 10) / 10; });
   return out;
 }

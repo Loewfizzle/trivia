@@ -336,7 +336,8 @@ function lutOf(sg) {
 function* shadeField(d, F, G, Lt, img) {
   const { pw, ph, res } = F, D = img.data, lk = LOOK[d.form === 'frag' || d.form === 'wisp' ? d.form : d.kind] || LOOK.cumulus, aS = lutOf(lk.s), aH = lutOf(lk.h), T8 = F.t, M8 = F.m || F.t;
   const { lx, ly, lz, l2, rim, haze, farA, glow, glowK } = Lt;
-  const sc = G.sunC, sk = G.sunK, at = G.ambTop, ab = G.ambBot, hz = G.hazeC, occK = lk.occ, alpha = lk.a * G.body * farA * (d.k == null ? 1 : clamp01(d.k * 1.15));
+  // (6b: a HEAP cloud's body is OPAQUE at any hour — nothing behind it shows through, only its thin edges; the layer clouds thin at night)
+  const sc = G.sunC, sk = G.sunK, at = G.ambTop, ab = G.ambBot, hz = G.hazeC, occK = lk.occ, alpha = lk.a * (KINDS[d.kind] === heapField ? 1 : G.body) * farA * (d.k == null ? 1 : clamp01(d.k * 1.15));
   const cir = d.kind === 'cirrus', deck = d.kind === 'deck';
   // (SP: the scud under a deck is darker than the deck — low, wet, ragged fragments in its shade)
   // (M3: a little lighter than before — it melts into the deck instead of floating in front of it as a dark cut-out)
@@ -395,7 +396,7 @@ function cirrusWisps(R, w, h, flip) {
   const out = [], n = Math.max(2, Math.min(5, Math.round(1.6 + w / 150 + R() * 1.4))), tilt = (R() - 0.5) * 0.16;
   for (let i = 0, tries = 0; i < n && tries < 30; tries++) {
     const r = R(), type = i === 0 ? (R() < 0.5 ? 'unc' : 'fib') : r < 0.32 ? 'unc' : r < 0.8 ? 'fib' : 'tuft';
-    const L = w * (type === 'tuft' ? 0.13 + R() * 0.12 : type === 'unc' ? 0.32 + R() * 0.32 : 0.4 + R() * 0.45);
+    const L = w * (type === 'tuft' ? 0.13 + R() * 0.12 : type === 'unc' ? 0.38 + R() * 0.34 : 0.55 + R() * 0.4);   // (6b: longer strands)
     const th = tilt + gauss(R) * 0.12 + (type === 'unc' ? 0.04 : 0);
     const x0 = R() * Math.max(1, w - L * 0.95) + L * 0.02, y0 = h * (0.3 + R() * 0.5);
     // (never a parallel stack: a wisp at about the same angle right over another moves on)
@@ -472,7 +473,7 @@ function* cirrusGen(d, G, Lt, res, out, flip) {
     // the body: the backbone wide + faint (a mares' tail's head a little denser)
     if (y) {
       const bw = (tuft ? h * 0.09 : unc ? h * 0.08 : h * 0.1);
-      for (const [mul, a] of [[2.2, 0.06], [1.1, 0.09]]) {
+      for (const [mul, a] of [[3.2, 0.075], [1.6, 0.11]]) {          // (6b: softer — a wider, stronger silky body under the fibres)
         y.lineWidth = bw * mul;
         const a0 = B.at(0), a1 = B.at(1), g = y.createLinearGradient(a0[0], a0[1], a1[0], a1[1]);
         g.addColorStop(0, `rgba(${cs},0)`); g.addColorStop(unc ? 0.45 : 0.3, `rgba(${cs},${(a * dens).toFixed(3)})`); g.addColorStop(unc ? 0.92 : 0.72, `rgba(${cs},${(a * dens * (unc ? 1.5 : 1)).toFixed(3)})`); g.addColorStop(1, `rgba(${cs},0)`);
@@ -493,8 +494,8 @@ function* cirrusGen(d, G, Lt, res, out, flip) {
       else { sa = Math.pow(R(), 1.6) * 0.38; sb = 1 - Math.pow(R(), 1.6) * 0.38; }
       if (sb - sa < 0.12) continue;
       const wob = (R() - 0.5) * width * 0.14, wf = 0.5 + R() * 1.1, wp0 = R() * 6.3;
-      const a = A * dens * (0.07 + 0.2 * Math.pow(R(), 1.4)) * (R() < 0.08 ? 1.8 : 1);
-      const lwPx = 0.45 + Math.pow(R(), 2.2) * 1.2;
+      const a = A * dens * (0.05 + 0.15 * Math.pow(R(), 1.4)) * (R() < 0.06 ? 1.6 : 1);   // (6b: lower contrast, more diffusion)
+      const lwPx = 0.7 + Math.pow(R(), 2.2) * 1.4;
       const K = Math.max(6, Math.min(40, Math.round((sb - sa) * L / 5)));
       x.beginPath();
       let fx0 = 0, fy0 = 0, fx1 = 0, fy1 = 0;
@@ -559,7 +560,7 @@ export function createClouds() {
     // (the sprite's px per pt: the phone's own up to 2 — a deck or a far patch less: they are soft)
     for (const d of list) {
       // (SP: the cirrus at the phone's own resolution — their fibres are a pixel wide; the veil half: it is soft)
-      const r = d.kind === 'deck' ? Math.min(res * 0.55, Math.sqrt(260000 / (d.w * d.h))) : d.kind === 'cirrus' ? res * (d.veil ? 0.6 : 1.08) : d.kind === 'strato' || d.kind === 'alto' ? res * 0.8 : res * (d.s < 0.3 ? 1 : 0.92);
+      const r = d.kind === 'deck' ? Math.min(res * 0.55, Math.sqrt(260000 / (d.w * d.h))) : d.kind === 'cirrus' ? res * (d.veil ? 0.6 : 0.78) : d.kind === 'strato' || d.kind === 'alto' ? res * 0.8 : res * (d.s < 0.3 ? 1 : 0.92);
       // (SP — the cloudy party's cost: each cloud's first bake is lit where it IS now — it has drifted since the 6-hour block began;
       // baking it at its starting place re-lit every cloud a second time the moment the sky appeared)
       d.res = Math.max(0.4, r); d.lit = ''; d.cv = null; d.prev = null; d.fade = 1;
@@ -603,11 +604,26 @@ export function createClouds() {
         if (a <= 0.004) return;
         c.globalAlpha = a;
         if (d.kind === 'deck') { for (const ox of [x, x + d.w]) if (ox < W && ox + d.w > 0) c.drawImage(cv, ox, -2 + (extra.base || 0) * 0.3, d.w, d.h); }
-        else if (x < W && x + d.w > 0) c.drawImage(cv, x, ty, d.w, d.h);
+        else if (x < W && x + d.w > 0) {
+          // (6b — CLOUDS EVOLVE: each heap / patch slowly SWELLS + changes its shape (wider, taller, on its own slow clocks, anchored at
+          // its base) and THINS + RE-FORMS over minutes — a pure function of the sky's clock, every phone the same; never the deck/veil)
+          const ev = evolve(d, tSec, motion);
+          if (ev.a < 1) c.globalAlpha = a * ev.a;
+          if (ev.sx !== 1 || ev.sy !== 1) { const w2 = d.w * ev.sx, h2 = d.h * ev.sy; c.drawImage(cv, x - (w2 - d.w) / 2, ty - (h2 - d.h), w2, h2); }
+          else c.drawImage(cv, x, ty, d.w, d.h);
+        }
       };
       if (d.prev && d.fade < 1) { draw(d.cv, k); draw(d.prev, k * (1 - d.fade)); }
       else draw(d.cv, k);
     }
+  }
+  function evolve(d, t, motion) {
+    if (!motion || d.kind === 'deck' || d.veil) return { sx: 1, sy: 1, a: 1 };
+    const h = (((d.z || 0) * 2654435761) >>> 0) / 4294967296, small = d.form === 'frag' || d.form === 'wisp' || d.kind === 'scud';
+    const sx = 1 + 0.05 * Math.sin(t / (260 + h * 320) + h * 6.3), sy = 1 + (d.kind === 'cumulus' ? 0.09 : 0.04) * Math.sin(t / (210 + h * 280) + h * 4.1);
+    // (a life: most of the time whole, now and then thinning away + forming again — the small ones go further)
+    const life = 0.5 + 0.5 * Math.sin(t / (480 + h * 600) + h * 9.7), floor = small ? 0.15 : 0.6;
+    return { sx, sy, a: floor + (1 - floor) * smooth(0.05, 0.6, life) };
   }
   /** how much cloud covers a point (0..1, from the baked shapes) — the sun glows through a thin edge (district/sun.js#through) */
   function coverAt(px, py) {
@@ -619,7 +635,7 @@ export function createClouds() {
       if (d.kind === 'deck') x = x > px ? x - d.w : x + d.w <= px ? x + d.w : x;
       if (px < x || px >= x + d.w || py < ty || py >= ty + d.h) continue;
       const F = d.F, ix = Math.min(F.pw - 1, Math.floor((px - x) * F.res)), iy = Math.min(F.ph - 1, Math.floor((py - ty) * F.res));
-      const lk = LOOK[d.kind] || LOOK.cumulus, a = lutOf(lk.s)[F.t[iy * F.pw + ix]] * lk.a * (G ? G.body : 1) * (d.k == null ? 1 : clamp01(d.k * 1.15));
+      const lk = LOOK[d.kind] || LOOK.cumulus, a = lutOf(lk.s)[F.t[iy * F.pw + ix]] * lk.a * (G && KINDS[d.kind] !== heapField ? G.body : 1) * (d.k == null ? 1 : clamp01(d.k * 1.15));
       clear *= 1 - a;
     }
     return (1 - clear) * lastA;
@@ -777,6 +793,29 @@ export function createClouds() {
     }),
     destroy() { free(list); free(old); list = []; old = null; jobs = []; for (const g of glows.values()) g.width = 0; glows.clear(); for (const o of patches.values()) if (o.cv) o.cv.width = 0; patches.clear(); for (const cv of pool) cv.width = 0; pool.length = 0; },
   };
+  function veilLook(c, fs, sun, k, lc) {
+    const LK = fs.L, day = clamp01(LK.w.day + LK.w.golden * 0.7 + LK.w.dawn * 0.6) * (1 - clamp01(LK.w.night + LK.w.late));
+    if (k < 0.02 || day < 0.05) return;
+    const H0 = HZ, g = c.createLinearGradient(0, top, 0, H0);
+    g.addColorStop(0, `rgba(236,240,248,${(0.07 * k * day).toFixed(3)})`); g.addColorStop(0.7, `rgba(240,242,248,${(0.16 * k * day).toFixed(3)})`); g.addColorStop(1, `rgba(244,244,246,${(0.24 * k * day).toFixed(3)})`);
+    c.fillStyle = g; c.fillRect(0, 0, W, H0);
+    if (sun && sun.x != null && sun.vis > 0.05) {
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const r = Math.min(W, H0) * 0.32, gg = c.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, r);
+      gg.addColorStop(0, `rgba(255,252,240,${(0.22 * k * sun.vis).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,252,240,0)');
+      c.fillStyle = gg; c.fillRect(sun.x - r, sun.y - r, r * 2, r * 2);
+      // (the rare 22° halo: its radius ~0.6 of a phone's width — the real ring at this camera's field — a reddish inner edge, fading out)
+      const rare = lc ? ((lc.y * 400 + lc.m * 31 + lc.d) * 2654435761 >>> 0) % 4 === 0 : false;
+      if ((rare || fs.force.has('halo')) && k > 0.25) {
+        const R = Math.min(W * 0.6, H0 * 0.55), band = R * 0.05;
+        const rg = c.createRadialGradient(sun.x, sun.y, R - band, sun.x, sun.y, R + band * 2.2);
+        rg.addColorStop(0, 'rgba(255,170,140,0)'); rg.addColorStop(0.25, `rgba(255,190,160,${(0.3 * k * sun.vis).toFixed(3)})`); rg.addColorStop(0.45, `rgba(255,250,240,${(0.26 * k * sun.vis).toFixed(3)})`); rg.addColorStop(1, 'rgba(220,235,255,0)');
+        c.beginPath(); c.rect(0, 0, W, roof + 20); c.clip();
+        c.fillStyle = rg; c.beginPath(); c.arc(sun.x, sun.y, R + band * 2.2, 0, Math.PI * 2); c.arc(sun.x, sun.y, Math.max(0, R - band), 0, Math.PI * 2, true); c.fill('evenodd');
+      }
+      c.restore();
+    }
+  }
   function drawAll(c, fs, sunInfo, part) {
       const LK = fs.L;
       if (!box) return;
@@ -807,6 +846,9 @@ export function createClouds() {
       const appear = born ? smooth(0, 1600, now - born) : 0;
       // (the time on the cloud field: seconds into this 6-hour block on the city's clock — every phone the same sky)
       const tSec = e0 + ((fs.now - t0Clock) / 1000);
+      // 6b — THE HIGH VEIL (cirrostratus: core/weather.js#veilOf → mix.veil): a MILKY SHEEN over the blue (whiter toward the horizon), the
+      // sun SOFTENED in it (a wide watery glow), and on a rare veil day (~1 in 4, seeded by the date) a faint 22° HALO round the sun
+      if (mix && mix.veil > 0.05 && part !== 'front') veilLook(c, fs, sunInfo, mix.veil * appear, lc);
       if (old) { oldK = Math.max(0, 1 - appear); drawSet(c, old, oldK, tSec, LK, fs.motion); if (oldK <= 0) { free(old); old = null; } }
       drawSet(c, list, appear, tSec, LK, fs.motion, part);
       lastT = tSec;

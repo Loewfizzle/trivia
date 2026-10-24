@@ -271,15 +271,19 @@ export function createBeam() {
     c.globalAlpha = 1;
     // (NEON PASS 6: a party night — brighter + a little wider; now and then the party's colour, mixed in)
     const pa = clamp01(f.party || 0), pc = f.pcol && f.pm > 0 ? colour.map((v, i) => Math.round(v + (f.pcol[i] - v) * clamp01(f.pm) * 0.85)) : colour;
-    const col = pc.join(','), fog = clamp01(f.fog || 0), wide = (1 + 1.2 * fog) * (1 + 0.32 * pa);
+    // (6b — THE BEAM IN HEAVY FOG, the owner: "almost lasers, too sharp". In fog a beam is BROADER + SOFTER, never sharper: the denser
+    // the fog, the WIDER, SHORTER and more diffuse the cone — soft edges from layered fans — with a big glow at the lamp (draw()). A light
+    // fog keeps a faint crisp shaft; the thin hard-edged look belongs to clear air)
+    const col = pc.join(','), fog = clamp01(f.fog || 0), heavy = smooth(0.35, 0.95, fog), wide = (1 + 2.2 * heavy) * (1 + 0.32 * pa), D = 58 * (1 - 0.42 * heavy) + 8 * fog * (1 - heavy);
     k *= 1 + 0.6 * pa;
     for (const off of [0, Math.PI]) {
-      const aa = a + off, F2 = fan(aa, 58 + 20 * fog, 0.085 * wide), al = Math.min(1, k * (0.28 + 0.52 * F2.side) * (1 + 1.1 * fog));
+      const aa = a + off, F2 = fan(aa, D, 0.085 * wide), al = Math.min(1, k * (0.28 + 0.52 * F2.side) * (1 + 0.5 * fog - 0.25 * heavy));
       if (al < 0.01) continue;
-      for (const [sp, aMul] of f.tier < 2 ? [[1.4, 1]] : [[2.3, 0.35], [1, 1]]) {
-        const F3 = sp === 1 ? F2 : fan(aa, 58 + 20 * fog, 0.085 * wide * sp);
+      const fans = heavy > 0.3 ? (f.tier < 2 ? [[1.9, 0.45], [1, 0.6]] : [[2.6, 0.28], [1.7, 0.4], [1, 0.5]]) : f.tier < 2 ? [[1.4, 1]] : [[2.3, 0.35], [1, 1]];
+      for (const [sp, aMul] of fans) {
+        const F3 = sp === 1 ? F2 : fan(aa, D, 0.085 * wide * sp);
         const g = c.createLinearGradient(lx, ly, F3.em[0], F3.em[1]);
-        g.addColorStop(0, `rgba(${col},${Math.min(1, al * aMul)})`); g.addColorStop(0.35, `rgba(${col},${al * aMul * 0.45})`); g.addColorStop(1, `rgba(${col},0)`);
+        g.addColorStop(0, `rgba(${col},${Math.min(1, al * aMul)})`); g.addColorStop(0.35 - 0.15 * heavy, `rgba(${col},${al * aMul * 0.45})`); g.addColorStop(1, `rgba(${col},0)`);
         c.fillStyle = g; c.beginPath(); c.moveTo(lx, ly - lu * 0.25); c.lineTo(F3.e0[0], F3.e0[1]); c.lineTo(F3.e1[0], F3.e1[1]); c.lineTo(lx, ly + lu * 0.25); c.closePath(); c.fill();
       }
     }
@@ -295,8 +299,9 @@ export function createBeam() {
       const k = f.k * (f.dim ? 0.5 : 1) * (1 + 0.3 * clamp01(f.party || 0));     // (NEON PASS 6: a brighter lantern on a party night)
       c.save(); c.globalCompositeOperation = 'lighter';
       // the haze lit around the lantern (brighter in fog)
-      const fog = clamp01(f.fog || 0), hr = lu * (4 + 6 * fog);
-      if (f.tier > 0) { c.globalAlpha = k * (0.22 + 0.4 * fog); c.drawImage(halo, lx - hr, ly - hr, hr * 2, hr * 2); }
+      // (6b: heavy fog — a BIG glow at the lamp: the light scattered all round it; at tier 0 too, it's the beam's whole look then)
+      const fog = clamp01(f.fog || 0), heavy = smooth(0.35, 0.95, fog), hr = lu * (4 + 6 * fog + 9 * heavy);
+      if (f.tier > 0 || heavy > 0.3) { c.globalAlpha = Math.min(1, k * (0.22 + 0.4 * fog + 0.3 * heavy)); c.drawImage(halo, lx - hr, ly - hr, hr * 2, hr * 2); }
       c.globalAlpha = 1;
       drawFans(c, f, a, k);
       // the lantern's core + THE FLARE: a beam swinging round to face us

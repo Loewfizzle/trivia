@@ -3,7 +3,8 @@
 // (move with an easing, hold, turn, away). They live in the water right of the pier (it runs from z 118 to the quay: nothing
 // beyond its head can cross it) — Rosie docks at her landing beside the pier's platform, the tug noses up to the pier, the
 // sailboats reach back and forth — except the water taxi, out in front of the pier head, which zips across the whole harbor.
-// A boat turns by foreshortening (its side view squeezes to its bow and opens the other way: `face` −1 … 1).
+// A boat turns by foreshortening (its side view squeezes to its bow and opens the other way: `face` −1 … 1) — the small ones
+// only: Rosie never turns in sight (she backs in to her landing, `astern`: moving against her face).
 // Which boats sail is decided per CYCLE from the hour at the cycle's start (the tug at night, the sailboats by day) — a boat
 // never pops in or out while you watch. docs/harbor.md#the-boats.
 
@@ -32,20 +33,23 @@ export function boatRoutes(L, { taxi = false } = {}) {
     const r = { id: b.id, z: b.z, len: b.len, h: b.h, kind: b.id.startsWith('sail') ? 'sail' : b.id, when: b.when || null, segs: [], period: 0, offset: 0 };
     const R = offR(b.z, b.len), Lf = pierR(b.z) + b.len / 2 + 1.6;   // (≥ 1.6 units of water between the boat and the pier)
     if (b.id === 'rosie') {
-      // ROSIE: in from the right to her landing beside the platform, turns there, four minutes alongside BOW-OUT, steams out; ten
-      // minutes a cycle. (NEON PASS 4: she turns on arrival and rests facing out — bow-in, her twin stacks + their bulb strings
-      // stood right in front of THE GAME BLADE's last letters for the whole four minutes; bow-out they stand clear of every sign:
+      // ROSIE: she BACKS IN from the right to her landing beside the platform (astern, slowing to a stop), four minutes alongside
+      // BOW-OUT, steams out bow-first; ten minutes a cycle. She NEVER TURNS IN SIGHT (the owner, Oct 24: her flat side view
+      // squeezing round on open water looked like a picture flipping — until her 3D model, she keeps facing out the whole cycle:
+      // nothing in view hides her — the pier, the platform and the breakwater are drawn UNDER her — so the only blind spot is past
+      // the right edge, and a turn there is never needed). She reaches her berth at the same moment (154 s into the cycle) and
+      // holds at the same spot. (NEON PASS 4: she rests facing out — bow-in, her twin stacks + their bulb strings stood right in
+      // front of THE GAME BLADE's last letters for the whole four minutes; bow-out they stand clear of every sign:
       // tests/harbor.test.mjs)
-      const land = Lf + 0.6, out = land + 0.6;
+      const out = Lf + 1.2, Rr = R + 3;                 // (Rr: her stern wheel + flagstaff, 2 units past the hull, off too)
       r.offset = 140;
       r.segs = [
-        { d: 120, type: 'move', xa: R, xb: land, face: -1, ease: 'out' },
-        { d: 34, type: 'turn', xa: land, xb: out, face: -1, to: 1 },
+        { d: 154, type: 'move', xa: Rr, xb: out, face: 1, ease: 'out', astern: true },
         { d: 230, type: 'hold', xa: out, face: 1 },
-        { d: 110, type: 'move', xa: out, xb: R, face: 1, ease: 'in' },
-        { d: 106, type: 'away', xa: R, face: 1 },
+        { d: 110, type: 'move', xa: out, xb: Rr, face: 1, ease: 'in' },
+        { d: 106, type: 'away', xa: Rr, face: 1 },
       ];
-      r.lane = [land, R];
+      r.lane = [out, Rr];
     } else if (b.id === 'taxi') {
       // THE WATER TAXI: in front of the pier head — it zips across the whole harbor, one way, then back a minute later
       const A = offL(b.z, b.len), B = R;
@@ -115,7 +119,7 @@ export function boatAt(r, ms, nightAt = () => true) {
     const g = r.segs[i];
     if (u > g.d) { u -= g.d; continue; }
     const k = clamp01(u / g.d), run = g.run >= 0 ? c.n * (r.runs || 1) + g.run : -1;
-    if (g.type === 'move') return { x: g.xa + (g.xb - g.xa) * EASE[g.ease || 'lin'](k), face: g.face, on: true, moving: true, seg: 'move', run };
+    if (g.type === 'move') return { x: g.xa + (g.xb - g.xa) * EASE[g.ease || 'lin'](k), face: g.face, on: true, moving: true, seg: 'move', run, ...(g.astern ? { astern: true } : null) };
     if (g.type === 'hold') return { x: g.xa, face: g.face, on: true, moving: false, seg: 'hold', run };
     if (g.type === 'turn') { const e = EASE.both(k); return { x: g.xa + (g.xb - g.xa) * e, face: g.face + (g.to - g.face) * e, on: true, moving: true, seg: 'turn', run }; }
     // (away: the run that comes next — the thinning decides it while the boat is out of sight)

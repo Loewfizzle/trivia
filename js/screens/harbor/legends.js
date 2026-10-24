@@ -284,7 +284,7 @@ export function createLegends({ clock, qp } = {}) {
   const triLen = () => Math.max(200, Math.min(W * 0.66, 540));
 
   /** the scheduled legendary now (null) or the forced one; starts / ends the run */
-  function tick(fs) {
+  function tick(fs, allow = null) {
     const now = fs.now, force = fs.force;
     const forced = force.has('ufo') ? 'ufo' : force.has('tr3b') ? 'tr3b' : null;
     if (run && run.forced && run.kind !== forced) run = null;
@@ -296,7 +296,8 @@ export function createLegends({ clock, qp } = {}) {
       const lg = legendAt(fs.L.local);
       const dk = clamp01(fs.L.w.night + fs.L.w.late);
       // (the weather: the abduction needs a dry night; the TR-3B any night but a storm — a hazy, low-cloud night is its best)
-      if (lg && dk > 0.55 && !fs.L.storm && !(lg.kind === 'ufo' && (fs.L.rain || 0) > 0.2)) {
+      // (THE DIRECTOR: a legendary waits its turn behind a holiday / the party's peak when the phone's spectacle budget is full)
+      if (lg && dk > 0.55 && !fs.L.storm && !(lg.kind === 'ufo' && (fs.L.rain || 0) > 0.2) && (!allow || allow('legend', 'legendary'))) {
         const ev = eveningOf(fs.L.local);
         run = { kind: lg.kind, at: now - lg.s * 1000, dir: tr3bDir(ev.y, ev.m, ev.d), forced: false };
       }

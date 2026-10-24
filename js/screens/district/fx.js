@@ -179,7 +179,9 @@ export function createFx() {
       // (CITY 2.0 only: s.auroraArt — the Harbor's own curtains on its own nights: screens/harbor/moon.js; City 1.0 never passes it)
       if (L.aurora || s.force.has('aurora')) { if (s.auroraArt) s.auroraArt(c, s); else aurora(c, t, CAPS[tier].aurora, motion, dark || 1); }
       // shooting stars (a rare one any clear night, many on a shower's peak)
-      const rate = (s.force.has('meteor') ? 8 : L.meteors) * (motion ? 1 : 0);
+      // (CITY 2.0 only: s.meteorArt — the Harbor's own, rarer + its own art: screens/harbor/meteors.js; the moon's tapped star stays here)
+      if (s.meteorArt) s.meteorArt(c, s);
+      const rate = s.meteorArt ? 0 : (s.force.has('meteor') ? 8 : L.meteors) * (motion ? 1 : 0);
       if (rate && Math.random() < (rate / 60) * (dt / 1000)) meteors.push({ x: W * (0.1 + Math.random() * 0.8), y: HZ * (0.05 + Math.random() * 0.3), a: Math.PI * (0.62 + Math.random() * 0.16) * (Math.random() < 0.5 ? 1 : -1) + (Math.random() < 0.5 ? 0 : Math.PI), v: 520 + Math.random() * 420, life: 0, max: 0.55 + Math.random() * 0.5 });
       if (meteors.length) {
         c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
@@ -646,7 +648,8 @@ export function createFx() {
     // its height half the pass, half the real elevation; it may pass behind the towers, the wheel, the lighthouse
     if (arch) {
       x = arch.x0 + (arch.x1 - arch.x0) * (1 - Math.cos(Math.PI * u)) / 2;
-      y = arch.base - (arch.base - arch.apex) * clamp01(0.45 * Math.sin(Math.PI * u) + 0.55 * e);
+      // (6b, the Harbor's arch.pow: the height follows the real elevation on the sun's compressed curve — ~72° up at the apex)
+      y = arch.base - (arch.base - arch.apex) * (arch.pow ? clamp01(0.25 * Math.sin(Math.PI * u) + 0.75 * Math.pow(clamp01((el + 1) / 72), arch.pow)) : clamp01(0.45 * Math.sin(Math.PI * u) + 0.55 * e));
     } else
     // phones (a portrait screen: the sign spans it): the moon arches over the sign through the night, fading in at moonrise
     // and out at moonset, clear of the corner buttons and under the notch / status bar

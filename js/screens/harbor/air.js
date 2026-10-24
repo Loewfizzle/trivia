@@ -23,6 +23,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const cam0Wide = W => W > 800;
 const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const LIVERIES = [{ tail: [28, 52, 118], line: [214, 170, 70] }, { tail: [176, 34, 48], line: [176, 34, 48] }, { tail: [16, 110, 122], line: [240, 196, 80] }];
 const CAP = 260;                                       // contrail samples per plane (every 0.1 s: the path; the puffs drawn are capped by their spacing)
@@ -225,16 +226,21 @@ export function createAir() {
     const k = col.join(',');
     let cv = puffs.get(k);
     if (!cv) {
-      cv = mk(32, 32); const x = safeCtx(cv), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
-      for (let i = 0; i <= 10; i++) { const u = i / 10; g.addColorStop(u, `rgba(${k},${(Math.exp(-((u * 2.1) ** 2)) * (1 - u ** 6)).toFixed(4)})`); }
-      x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+      // (6b — FLUFFY CONTRAILS BACK, City 1.0's look: a BILLOWY puff — five soft lobes round a core, not one clean dot — so the
+      // trail's edge reads puffy as the puffs overlap)
+      cv = mk(48, 48); const x = safeCtx(cv);
+      for (const [cx, cy, r, a] of [[24, 24, 15, 0.75], [16, 21, 10, 0.55], [32, 20, 11, 0.55], [21, 31, 10, 0.5], [31, 30, 9, 0.5], [24, 15, 9, 0.45]]) {
+        const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+        for (let i = 0; i <= 8; i++) { const u = i / 8; g.addColorStop(u, `rgba(${k},${(a * Math.exp(-((u * 2.1) ** 2)) * (1 - u ** 6)).toFixed(4)})`); }
+        x.fillStyle = g; x.fillRect(0, 0, 48, 48);
+      }
       if (puffs.size > 6) { for (const c of puffs.values()) c.width = 0; puffs.clear(); }
       puffs.set(k, cv);
     }
     return cv;
   }
   function drawTrail(c, s, p, look, hx, hy) {
-    const { dark, golden, dawn, day, fog } = look, t = s.t, life = 22, tr = p.trail;
+    const { dark, golden, dawn, day, fog } = look, t = s.t, life = 30, tr = p.trail;
     while (tr.length > 2 && t - tr[1].at > life + 0.5) tr.shift();
     if (tr.length && t - tr[tr.length - 1].at > life) tr.length = 0;     // (all of it faded: the plane can go)
     if (tr.length < 2) return;
@@ -253,7 +259,7 @@ export function createAir() {
     const drift = age => (mo ? [wind * age, age * 0.08] : [0, 0]);
     const tFirst = tr[0].at, tLast = tr[tr.length - 1].at;
     // the puffs: their radius + the trail's opacity by age (it forms over a second, then spreads + thins out)
-    const rad = age => (0.85 + (mo ? age * 0.3 : 0)) * sc, peak = (day > 0.5 ? 0.5 : 0.38) * vis;
+    const rad = age => (0.85 + (mo ? age * 0.38 : 0)) * sc, peak = (day > 0.5 ? 0.52 : 0.4) * vis;
     const speed = Math.max(2, Math.hypot(p.x1 - p.x0, p.y1 - p.y0) / Math.max(1, p.dur)), D0 = Math.max(0.025, Math.min(0.1, 0.4 / speed));
     const young = 0.55, j0 = Math.ceil(Math.max(tFirst, t - life) / D0), j1 = Math.floor(Math.min(tLast, t - young) / D0);
     const sp = puffOf(tc);
@@ -269,8 +275,10 @@ export function createAir() {
       const spc = speed * D0 * Math.pow(2, n + 1) / (2 - f), over = Math.max(1, 2 * r / spc);
       const a = (1 - Math.pow(1 - Math.min(0.97, T), 1 / over)) * wgt;
       if (a < 0.003) continue;
-      const [px, py] = at(tau), [dx, dy] = drift(age), R = r * 2.1;
-      c.globalAlpha = a; c.drawImage(sp, px + dx - R, py + dy - R, R * 2, R * 2);
+      // (each puff its own size + a little sideways billow, seeded by its index: every frame the same puff, never a flicker)
+      const h1 = ((j * 2654435761) >>> 0) / 4294967296, h2 = ((j * 2246822519 + 7) >>> 0) / 4294967296;
+      const [px, py] = at(tau), [dx, dy] = drift(age), R = r * 2.1 * (0.82 + 0.4 * h1), wob = (h2 - 0.5) * r * 0.7 * smooth(0.5, 6, age);
+      c.globalAlpha = a; c.drawImage(sp, px + dx - R, py + dy - R + wob, R * 2, R * 2);
     }
     c.globalAlpha = 1;
     // the young trail: two thin engine lines from the engines, merging into the trail (a smooth polyline, every 0.04 s)
@@ -322,11 +330,15 @@ export function createAir() {
     const dir = seed % 2 ? 1 : -1, sky = s.skyline;
     // the hover: over the harbor where the roofs are lowest (so it is seen whole), a little above them
     // (over the harbor's middle — between the wheel and Rosie's landing — a little above the roofs there)
-    const best = W * (0.42 + ((seed >>> 3) % 100) / 100 * 0.22);
+    // (6b: right of the wheel, over the open harbor — at the wheel's depth or nearer it would hide in its rim)
+    const best = W * (cam0Wide(W) ? 0.42 + ((seed >>> 3) % 100) / 100 * 0.22 : 0.7 + ((seed >>> 3) % 100) / 100 * 0.14);
     let low = -1;
     if (sky) for (let x = best - 20; x <= best + 20; x += 4) { const ry = sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] || 0; if (low < 0 || ry < low) low = ry; }
-    const hy = Math.max(lane.y + 16 * K, Math.min(lane.y + lane.h * 0.42, (low > 0 ? low : lane.y + lane.h) - 40 * K));
-    const route = [[dir > 0 ? -50 : W + 50, hy - 10 * K, 0], [best, hy, 22], [dir > 0 ? W + 60 : -60, hy - 14 * K, 0]];
+    // (6b — THE HELICOPTER's DEPTH, the owner: it flew in sky-low, behind the taller towers, yet its searchlight landed on the harbor
+    // in front of them. Now it flies OVER THE HARBOR — in front of the skyline, between the far quay and the pier — a little above the
+    // waterline, drawn after the city (skyfx.city), so it never slips behind a tower and its beam drops straight to the water under it)
+    const wl = s.lanes && s.lanes.water, hy = wl ? wl.y - 58 * K : Math.max(lane.y + 16 * K, Math.min(lane.y + lane.h * 0.42, (low > 0 ? low : lane.y + lane.h) - 40 * K));
+    const route = [[dir > 0 ? -50 : W + 50, hy - 8 * K, 0], [best, hy, 22], [dir > 0 ? W + 60 : -60, hy - 26 * K, 0]];
     return { start, route, dir, spr: null, sprKey: '', len: 28 * K, own: false };
   }
   /** where the helicopter is at time e (s since its start): { x, y, dir, hover (0..1), done } */
@@ -371,7 +383,10 @@ export function createAir() {
     const lightA = clamp01((look.dark + look.golden * 0.3) * 1.3);
     if (lightA > 0.03) {
       c.globalCompositeOperation = 'lighter';
-      const bk = s.motion ? Math.max(0, Math.sin(t * TAU / 1.1)) ** 3 : 0.5, r = 2.4 * K;
+      const bk = s.motion ? Math.max(0, Math.sin(t * TAU / 1.1)) ** 3 : 0.5, r = 3.2 * K;
+      // (6b: at night it reads by its lights — the searchlight's lamp under its belly, a warm cockpit glow)
+      c.globalAlpha = lightA * 0.9; c.drawImage(glow(240, 246, 255), p.x + p.dir * L * 0.08 - r * 1.4, p.y + L * 0.1 - r * 1.4, r * 2.8, r * 2.8);
+      c.globalAlpha = lightA * 0.55; c.drawImage(glow(255, 200, 140), p.x + p.dir * L * 0.25 - r, p.y - L * 0.08 - r, r * 2, r * 2);
       c.globalAlpha = lightA * bk; c.drawImage(glow(255, 50, 60), p.x - p.dir * L * 0.05 - r * 1.6, p.y - L * 0.2 - r * 1.6, r * 3.2, r * 3.2);
       c.globalAlpha = lightA * 0.8; c.drawImage(glow(...(p.dir > 0 ? [60, 255, 140] : [255, 50, 60])), p.x + p.dir * L * 0.05 - r, p.y + L * 0.02 - r, r * 2, r * 2);
       c.globalAlpha = lightA * 0.6; c.drawImage(glow(255, 255, 255), tx - p.dir * L * 0.03 - r * 0.8, ty - r * 0.8, r * 1.6, r * 1.6);
@@ -442,11 +457,12 @@ export function createAir() {
       }
       if (sat) { sat.k += sec / sat.dur; const u = sat.k; satPoint(c, sat.x0 + (sat.x1 - sat.x0) * u, sat.y0 + (sat.y1 - sat.y0) * u, sat.b * satVis * satAlpha(u, sat.mode, sat.shadow) * Math.min(1, u / 0.04, (1 - u) / 0.04), s.moonAt); if (sat.k >= 1) sat = null; }
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-      // ---- the helicopter
-      heliNow = drawHeli(c, s, look);
     },
-    /** the helicopter's SEARCHLIGHT at night (after the city: the beam reaches down past the roofs to the water + its pool) */
-    beam(c, s, waterY) {
+    /** 6b: the helicopter, over the harbor in front of the skyline (skyfx.city: after the city's layers, before the water) */
+    heliDraw(c, s) { heliNow = drawHeli(c, s, airLook(s.L)); },
+    /** the helicopter's SEARCHLIGHT at night: part 'upper' (with the helicopter, above the waterline) · 'lower' (after the water: the
+     *  rest of the cone + its pool on the water) — waterTop: the water's top line */
+    beam(c, s, waterY, part = 'all', waterTop = 0) {
       const h = heliNow;
       if (!h || !heli) return;
       const look = airLook(s.L), k = clamp01((look.dark - 0.35) * 2) * (s.L.fog > 0.6 ? 0.6 : 1);
@@ -457,11 +473,12 @@ export function createAir() {
       const len = Math.max(40, waterY - h.y), ex = h.x + Math.cos(ang) * len / Math.max(0.3, Math.sin(ang)), ey = waterY;
       const spread = len * 0.16;
       c.save(); c.globalCompositeOperation = 'lighter';
+      if (part !== 'all') { c.beginPath(); if (part === 'upper') c.rect(0, 0, W, waterTop); else c.rect(0, waterTop, W, H); c.clip(); }
       const g = c.createLinearGradient(h.x, h.y, ex, ey);
       g.addColorStop(0, `rgba(235,242,255,${0.42 * k})`); g.addColorStop(0.5, `rgba(220,232,255,${0.14 * k})`); g.addColorStop(1, `rgba(220,232,255,${0.06 * k})`);
       c.fillStyle = g; c.beginPath(); c.moveTo(h.x - 1, h.y); c.lineTo(h.x + 1, h.y); c.lineTo(ex + spread, ey); c.lineTo(ex - spread, ey); c.closePath(); c.fill();
-      c.globalAlpha = 0.5 * k; c.drawImage(glow(230, 238, 255), ex - spread * 1.6, ey - spread * 0.35, spread * 3.2, spread * 0.7);
-      c.globalAlpha = 0.9 * k; c.drawImage(glow(255, 255, 255), h.x - 3, h.y - 3, 6, 6);
+      if (part !== 'upper') { c.globalAlpha = 0.5 * k; c.drawImage(glow(230, 238, 255), ex - spread * 1.6, ey - spread * 0.35, spread * 3.2, spread * 0.7); }
+      if (part !== 'lower') { c.globalAlpha = 0.9 * k; c.drawImage(glow(255, 255, 255), h.x - 3, h.y - 3, 6, 6); }
       c.restore();
     },
     /** start the helicopter's flight now (the scheduler's event, &force=helicopter): start = clock ms, seed: its side */

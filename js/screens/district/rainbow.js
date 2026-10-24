@@ -23,7 +23,7 @@ const SPECTRUM = [[0.1, [150, 96, 255], 0.32], [0.25, [84, 136, 255], 0.55], [0.
 // the neon tubes, outer → inner
 const TUBES = [[255, 52, 72], [255, 132, 40], [255, 224, 64], [60, 255, 130], [52, 146, 255], [176, 84, 255]];
 
-export function createRainbow() {
+export function createRainbow({ harbor = false } = {}) {
   let W = 0, H = 0, HZ = 0, dpr = 1, tier = 2;
   let geoKey = '', geo = null, ngeo = null;
   let dayCv = null, dayKey = '', moonCv = null, moonKey = '';
@@ -44,7 +44,7 @@ export function createRainbow() {
     const k = [W, H, HZ, Math.round(low.y), Math.round(low.h), Math.round(tr.neon.y), Math.round(tr.neon.h), Math.round(tr.neon.x), Math.round(roof(W * 0.03)), Math.round(roof(W * 0.97)), Math.round(roof(W * 0.5))].join('|');
     if (k !== geoKey) {
       geoKey = k;
-      const o = { W, H, HZ, roof, neon: tr.neon, word: tr.word, tag: low };
+      const o = { W, H, HZ, roof, neon: tr.neon, word: tr.word, tag: low, harbor };
       geo = bowGeometry(o); ngeo = bowGeometry({ ...o, kind: 'neon' });
       // the text the secondary bow must pass behind on a phone (SPEAKEASY + the tagline)
       geo.textBlock = { x: Math.min(tr.word.x, low.x) - 14, y: tr.word.y - 10, w: Math.max(tr.word.x + tr.word.w, low.x + low.w) - Math.min(tr.word.x, low.x) + 28, h: low.y + low.h - tr.word.y + 22 };

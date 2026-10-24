@@ -69,3 +69,18 @@ test('the jets: formations + the missing man pulls up', () => {
   assert.equal(FORMATIONS.chase.length, 3); assert.equal(FORMATIONS.diamond.length, 4); assert.equal(FORMATIONS.finger.length, 4);
   assert.ok(missingManAt(0.2).climb === 0 && missingManAt(0.9).climb > 0.8);
 });
+
+test('THE DIRECTOR: a spectacle budget per tier, holidays > party > legendary > rare; what runs keeps its slot', async () => {
+  const { createDirector, SPECTACLE } = await import('../js/core/harbor-director.js');
+  const d = createDirector();
+  d.frame([], 2); assert.ok(d.may('legend', 'legendary'));
+  d.frame([{ id: 'party', kind: 'party' }], 0);
+  assert.equal(SPECTACLE[0], 1);
+  assert.ok(!d.may('legend', 'legendary'), 'tier 0 on a party night: the legendary waits');
+  d.frame([{ id: 'party', kind: 'party' }], 2);
+  assert.ok(d.may('legend', 'legendary'), 'tier 2: the party + a legendary');
+  d.frame([{ id: 'party', kind: 'party' }, { id: 'legend', kind: 'legendary' }], 2);
+  assert.ok(!d.may('festival', 'rare') && d.may('legend', 'legendary'), 'the budget full: a rare one waits; a running one keeps its slot');
+  d.frame([{ id: 'festival', kind: 'rare' }], 0);
+  assert.ok(d.may('drones', 'holiday'), 'a holiday outranks what runs below it');
+});

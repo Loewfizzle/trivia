@@ -76,6 +76,7 @@ import { createDebugStrip } from '../../ui/debug-strip.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { createDirector } from '../../core/harbor-director.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
@@ -115,7 +116,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const qp = new URLSearchParams(q);
   // THE EVERYDAY SKY (Part 6a): the planes, the banner plane, skywriting + skytyping, the helicopter, the birds, balloons, the
   // drone show, the moon's + the aurora's art (screens/harbor/skyfx.js)
-  const sky = createSkyFx({ games, clock, qp, dim: (id, o) => signDim.set(id, o) });   // (6b: sky messages dim the sign — the hook below)
+  // PART 6b — THE DIRECTOR (core/harbor-director.js): every heavy moment asks it before it starts — the spectacle budget per tier,
+  // holidays > party > legendary > rare > routine; previews bypass it
+  const director = createDirector();
+  const sky = createSkyFx({ games, clock, qp, dim: (id, o) => signDim.set(id, o), allow: (id, kind) => director.may(id, kind) });   // (6b: sky messages dim the sign — the hook below)
   sky.setTier(tier);
   // PART 6b — THE LEGENDARY SKY (screens/harbor/legends.js: the UFO abduction, the TR-3B + its jet chase) — LAZILY loaded: only on a
   // legendary night (core/harbor-legend.js#legendNight, a minute ahead), a preview (&force=ufo / tr3b) or the API (harbor().legend)
@@ -182,7 +186,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const sun = createSun({ look: 'harbor' });
   const clouds = createClouds();
   const dayfx = createDayFx();
-  const bow = createRainbow();
+  const bow = createRainbow({ harbor: true });   // (6b: the Harbor's own fit — core/rainbow.js#bowGeometry's o.harbor)
   const fw = createFireworks({ onBurst: e => { PT.swell = Math.min(1, PT.swell + 0.55); PT.bursts++; if (S.onBurst) S.onBurst(e); } });
   const bc = createBeatClock();
   const hbeat = createHarborBeat(Math.random());     // NEON PASS 5: THE BEAT (the song's grid + the kicks heard: core/harbor-beat.js)
@@ -337,13 +341,22 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // tagline, which always draws on top (showing or faded: the arch never moves); the winter sun keeps its lower path)
     const wordB = cam.word ? cam.word.y + cam.word.h : tagB, under = wordB + 4;
     const at = x => archRoof[Math.max(0, Math.min(archRoof.length - 1, Math.round(x / 4)))];
-    const peak = under + r + 3, low = Math.max(tagB + r + 6, cam.limitY + 0.42 * (med - cam.limitY));
+    // 6b — THE ARCH, HIGHER (the owner, Oct 24): the APEX just below the NEON tubes (SPEAKEASY + the tagline may pass in front of the
+    // sun / moon near the top — their dark halo keeps them readable; never behind the NEON tubes themselves). SEASONAL + TRUE TO THE
+    // REAL SKY: the year's highest noon (the summer solstice, ~71° in Grand Rapids) maps to the apex, the lowest (December, ~24°) to a
+    // point CLEARLY ABOVE the tallest crowns in open sky (about half-way up the arc), and the seasons between on a gentle COMPRESSED
+    // curve (pow 0.75: winter isn't buried, an October noon visibly higher than December's, summer up under the sign); rise + set
+    // still behind the skyline (sun.js#phoneArch's ends)
+    const neonB = cam.neon ? cam.neon.y + cam.neon.h : under - 30, peak = neonB + r + 3;
+    const allRoof = skyline ? Array.from(skyline) : sorted, tallest = Math.min(...allRoof.slice(Math.floor(allRoof.length * 0.1), Math.ceil(allRoof.length * 0.9)));
+    const base = med, low = Math.max(peak + 40, Math.min((base + peak) / 2, tallest - r - 14));
     // (a wide screen: the district's arch over the sign, but rising from behind the base and clearing the towers by ~10°)
-    ARCH = cam.wide ? { roof: archRoof, horizon: med + 26 * 1.2, skyline: cam.limitY - 26 - 6 } : { phone: true, roof: archRoof, peak, low, top: under + r + 1 };
+    ARCH = cam.wide ? { roof: archRoof, horizon: med + 26 * 1.2, skyline: cam.limitY - 26 - 6 } : { phone: true, roof: archRoof, peak, low, top: neonB + r + 1, pow: 0.75 };
     // (Part 6a: on a phone the moon rises in the sunrise corridor between the EMPIRE and the vertical word tower — at 0.1 it spent
     // its whole amber rise hidden behind the EMPIRE — and sets toward the right edge)
     const mr = Math.min(26, Math.max(15, W * 0.035)), x0 = W * (cam.wide ? 0.05 : 0.185), x1 = W * (cam.wide ? 0.95 : 0.9);
-    MOON = { x0, x1, base: Math.max(at(x0), at(x1)) + mr + 2, apex: cam.wide ? cam.safeTop + mr + 24 : under + mr + 3 };
+    // (6b: the moon on the same mapping — its apex just under the NEON tubes, its height the real elevation on the compressed curve)
+    MOON = { x0, x1, base: Math.max(at(x0), at(x1)) + mr + 2, apex: cam.wide ? cam.safeTop + mr + 24 : (cam.neon ? cam.neon.y + cam.neon.h : under - 30) + mr + 3, pow: cam.wide ? null : 0.75 };
   }
   let ARCH = null, MOON = null, quayLamps = null, moonNow = null, skyGlowY = 0, skyParty = 0;
   // the facades' look: the tone weights + the real sun's side and height (+ the sky the glass mirrors)
@@ -663,12 +676,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the scheduler's first read is at once, the moment it exists)
     if (now - eventsAt > 500 || (sched && !schedRead)) { eventsAt = now; if (sched) { events = sched.at(clock.now()); schedRead = true; } density = densityOf([...events.quiet, ...sky.quiet()]); }
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
-    const fs = { lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
+    const fs = { lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
     if (now - legendCheckAt > 1000) { legendCheckAt = now; if (!legends && (off.has('ufo') || off.has('tr3b') || legendSoon())) needLegends(); }
+    // (THE DIRECTOR's view of this frame: what heavy is on screen now)
+    director.frame([PT.on > 0.5 ? { id: 'party', kind: 'party' } : null, ...sky.heavies(), legends && legends.busy() ? { id: 'legend', kind: 'legendary' } : null], tier);
     if (legends) {
-      legends.tick(fs);
+      legends.tick(fs, (id, kind) => director.may(id, kind));
       const gl = legends.signGlitch();
       if (gl != null) signDim.set('tr3b', { logo: gl, tag: Math.min(1, gl + 0.15), ms: 60 }); else if (signDim.ids().includes('tr3b')) signDim.clear('tr3b');
     }
@@ -790,6 +805,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (legends && legends.busy()) drainCity(c, fadeIn);       // (6b: THE TR-3B's power drain rolling across the city under it)
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
+    // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)
+    if ((LK.fog || 0) > 0.35) lights.beacons(c, now, nightK * (lit > 0 ? lit : 0), 0, S.motion, LK.fog, true);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
     if (beamK > 0.01) drawBeams(c, L, beamK * nightK, t, { fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, w, ux, uy) => clouds.beamPatch(c, h, col, a, w, ux, uy) });
     // the drones up in the sky + the gulls over the harbor (in front of the city, before the water: the mirror doubles them)
@@ -911,7 +928,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
     const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
     const head = `t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`;
-    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine()] : [])];
+    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine()] : [])];
     if (!roStrip) roStrip = createDebugStrip('readout');
     roStrip.set({ head: `${head} ▾`, line: `t${tier} · ${fps} fps · ${slow}% slow${PT.on > 0 ? ` · beat ${hbeat.src}` : ''} ▸`, rows });
   }
@@ -1262,8 +1279,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (dt > o.max) o.max = dt;
     if (dt > 20) { o.slow++; if (++o.run > o.maxRun) o.maxRun = o.run; } else o.run = 0;
   };
+  // (6b — THE DIRECTOR's passive long-session check: the slow share over the LAST 10 MINUTES, per-second buckets — the creep shows)
+  const tenMin = { b: new Array(600).fill(null), sec: -1 };
+  function tenMinSlow() { let n = 0, s = 0; for (const x of tenMin.b) if (x) { n += x[0]; s += x[1]; } return n ? (100 * s / n) : 0; }
   function session(dt) {
     if (shownAt < 0 || document.visibilityState !== 'visible') return;
+    { const sec = Math.floor(performance.now() / 1000); if (sec !== tenMin.sec) { tenMin.sec = sec; tenMin.b[sec % 600] = [0, 0]; } const x = tenMin.b[sec % 600]; x[0]++; if (dt > 20) x[1]++; }
     count(sess, dt);
     if (performance.now() - shownAt >= LOAD_SKIP) count(sess.after, dt);
   }
@@ -1499,6 +1520,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       waterfront: waterfront.debug(),
       skyBeams: { ...skyBeams.debug(), set: o => skyBeams.set(o) },
       lampLife: () => lampDbg,
+      // (6b: THE DIRECTOR — the budget, what runs, who asked + got a yes)
+      director: director.state(),
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
       people: { ...people.debug(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },

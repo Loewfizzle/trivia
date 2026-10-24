@@ -22,6 +22,8 @@ import { createDrones } from './drones.js';
 import { createCelestial } from './moon.js';
 import { createAirShow, SHOW_LEN } from './jets.js';
 import { createBarnstorm } from './barnstorm.js';
+import { createMeteors } from './meteors.js';
+import { createAurora } from './aurora.js';
 import { barnstormDay, BARN_LEN } from '../../core/harbor-legend.js';
 import { project } from '../../core/harbor-layout.js';
 import { bannerPanels, eventMessage, smokeWeather, balloonWeather, bannerWeather, skyHolidayOn, fillText, droneTimeline, DRONE_SHAPES, messagePages } from '../../core/harbor-sky.js';
@@ -30,12 +32,13 @@ import { LANES } from '../../core/harbor-events.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const hexRgb = h => { const n = parseInt(String(h).replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 
-export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
-  const barn = createBarnstorm(), show = createAirShow(), air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
+export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } = {}) {
+  const may = (id, kind) => !allow || allow(id, kind);
+  const aur = createAurora(), met = createMeteors(), barn = createBarnstorm(), show = createAirShow(), air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
   let W = 1, H = 1, HZ = 1, L = null, lanes = null, waterTop = 0, waterY1 = 0, barge = null;
   const handled = new Set();                 // the scheduler's events already turned into pieces (id|start)
   const holiday = new Set();                 // the holiday sky's moments already started (date|day / date|night)
-  let festival = false, last = null, forcedAt = new Map(), aurora = { on: false, strength: 0 };
+  let aurNow = 0, festival = false, last = null, forcedAt = new Map(), aurora = { on: false, strength: 0 };
   // THE PREVIEW PANEL: a preview it switched on flies FIRST from the clock ms its state began (every phone the same moment, a
   // late arrival mid-flight); its repeats start when they start, like a preview link's
   const firstAt = new Map();
@@ -163,7 +166,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
       if (e.lanes.some(l => u.has(l))) continue;                             // (a holiday / API piece holds the lane)
       if (e.id === 'banner' && bannerWeather(Lk)) startBanner(s, eventMessage('banner', e.seed, games), e.start, { passes: 2 });
       else if (e.id === 'helicopter' && !Lk.storm && (Lk.wind || 0) < 14) air.heli(s, e.start, e.seed);
-      else if ((e.id === 'balloons' || e.id === 'balloon-festival') && balloonWeather(Lk)) startBalloons(s, e.start, e.id === 'balloon-festival', e.seed);
+      else if ((e.id === 'balloons' || e.id === 'balloon-festival') && balloonWeather(Lk) && (e.id === 'balloons' || may('festival', 'rare'))) startBalloons(s, e.start, e.id === 'balloon-festival', e.seed);
     }
     // THE HOLIDAY SKY, on the clock: the entry's local hour → its clock ms; a piece starts there (a late arrival lands mid-way)
     const lc = Lk.local;
@@ -174,7 +177,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
         if (startSmoke(s, ent.day.kind, fillText(ent.day.text, lc.y), atOf(ent.day.h))) holiday.add(`${date}|day`);
       }
       // (6b: THE MILITARY JETS on their days — the missing man on Memorial + Veterans Day, the air show on July 4th; clear + by day)
-      if (ent && ent.show && !holiday.has(`${date}|show`) && hr >= ent.show.h && hr < ent.show.h + SHOW_LEN[ent.show.kind] / 3600 && !show.on() && !Lk.rain && !Lk.storm && (Lk.cloud || 0) < 0.8) {
+      if (ent && ent.show && !holiday.has(`${date}|show`) && hr >= ent.show.h && hr < ent.show.h + SHOW_LEN[ent.show.kind] / 3600 && !show.on() && !Lk.rain && !Lk.storm && (Lk.cloud || 0) < 0.8 && may('airshow', 'holiday')) {
         if (show.start(ent.show.kind, atOf(ent.show.h))) holiday.add(`${date}|show`);
       }
       // (6b: THE BARNSTORMER — ~3 days a week at its seeded hour: through the letters, weather allowing)
@@ -183,7 +186,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
         if (barn.start(atOf(bd.h))) holiday.add(`${date}|barn`);
       }
       if (ent && ent.night && !holiday.has(`${date}|night`) && hr >= ent.night.h && hr < ent.night.h + droneTimeline(ent.night.show.length, ent.calm).end / 3600 && !drones.on()
-        && clamp01(Lk.w.night + Lk.w.late) > 0.6 && !(Lk.rain > 0.1) && !Lk.storm && (Lk.wind || 0) < 12) {
+        && clamp01(Lk.w.night + Lk.w.late) > 0.6 && !(Lk.rain > 0.1) && !Lk.storm && (Lk.wind || 0) < 12 && may('drones', 'holiday')) {
         if (startDrones(s, ent.night.show, atOf(ent.night.h), { calm: ent.calm, seed: lc.y * 400 + lc.m * 31 + lc.d })) holiday.add(`${date}|night`);
       }
     }
@@ -220,7 +223,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
       // (the barge: open water in front of Rosie's landing — nearer than the wheel, the lighthouse and Rosie; behind the taxi)
       const cam = l.cam, z = 108, xs = W * (cam.wide ? 0.6 : 0.71), wx = (xs - cam.VPX) * z / cam.F, [bx, by] = project(cam, wx, -0.8, z);
       barge = { x: bx, y: by, w: cam.F * 13 / z };
-      for (const m of [air, banner, smoke, birds, balloons, drones, cel]) if (m.resize) m.resize(W, H, HZ);
+      for (const m of [air, banner, smoke, birds, balloons, drones, cel, met, aur]) if (m.resize) m.resize(W, H, HZ);
       for (const m of [air, banner, smoke, balloons, drones, show, barn]) if (m.setDpr) m.setDpr(o.dpr);
     },
     setLanes(l) { lanes = l; },
@@ -238,7 +241,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
         else if (id === 'balloons' || id === 'balloon-festival') balloons.stop();
       }
     },
-    setTier(t) { for (const m of [air, banner, smoke, birds, drones, cel]) if (m.setTier) m.setTier(t); },
+    setTier(t) { for (const m of [air, banner, smoke, birds, drones, cel, aur]) if (m.setTier) m.setTier(t); },
     /** tonight's aurora (the scene: auroraTonight + the sky) — strength for the art */
     setAurora(a) { aurora = a || { on: false, strength: 0 }; },
     /** the frame's state: start what the scheduler / the clock / the previews ask (call once a frame, before drawing) */
@@ -262,13 +265,17 @@ export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
     low(c, s) { if (!s.force.has('no-birds') && s.motion) birds.low(c, s); },
     /** after the near city (before the water: the mirror doubles them): the drones up in the sky, the gulls over the harbor */
     city(c, s) {
+      // (6b: the helicopter over the harbor, in front of the skyline — never behind a tower; its searchlight down to the waterline)
+      air.heliDraw(c, s); air.beam(c, s, waterTop + (waterY1 - waterTop) * 0.35, 'upper', waterTop);
       drones.draw(c, s, 'sky');
       if (!s.force.has('no-birds') && lanes) birds.harbor(c, s, { x0: 0, x1: W, y0: lanes.skyline.y + lanes.skyline.h * 0.45, y1: waterTop - 6 });
     },
     /** after the harbor layer: the barge + the drones still low by it, the helicopter's searchlight down to the water */
-    harbor(c, s) { drones.barge(c, s); drones.draw(c, s, 'low'); },
+    harbor(c, s) { if (aurNow > 0.02) { aur.reflect(c, aurNow, { y0: waterTop, y1: waterY1 }, s.t, s.motion); aurNow = 0; } drones.barge(c, s); drones.draw(c, s, 'low'); air.beam(c, s, waterTop + (waterY1 - waterTop) * 0.35, 'lower', waterTop); },
     /** after the near boats: the helicopter's searchlight down to the water */
-    beam(c, s) { air.beam(c, s, waterTop + (waterY1 - waterTop) * 0.35); },
+    beam() { /* (6b: the searchlight draws with the helicopter now — city() + harbor()) */ },
+    /** 6b: the shooting stars (district/fx.js's hook: rarer on the Harbor, their own art) */
+    meteors: (c, s) => met.draw(c, s),
     /** the moon (district/fx.js's hook) */
     moon: (c, o) => cel.moon(c, o),
     /** SP: the moon's surroundings — the tagline's band (its 22° halo never crosses it), tonight's cirrostratus veil */
@@ -276,9 +283,12 @@ export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
     /** the aurora (district/fx.js's hook) */
     aurora(c, s) {
       const st = s.force.has('aurora') && !aurora.on ? 0.8 : aurora.strength;
-      const ln = lanes && lanes['sky-low'];
-      cel.aurora(c, s, st, { y0: Math.max(0, (s.safeTop || 0) + 20), y1: ln ? ln.y + ln.h + 24 : HZ * 0.7 });
+      // (6b: City 1.0's smooth curtain re-fitted to the whole sky — its foot on the crowns, the city drawn over it — aurora.js)
+      const y0 = Math.max(0, (s.safeTop || 0) + 20), y1 = crownIn(s, 0, W, y0) + 34;
+      aur.draw(c, st, { y0, y1 }, s.t, s.motion); aurNow = st;
     },
+    /** 6b — THE DIRECTOR: the heavy pieces up now ([{ id, kind }]) */
+    heavies: () => [drones.on() ? { id: 'drones', kind: 'holiday' } : null, show.on() ? { id: 'airshow', kind: 'holiday' } : null, smoke.on() ? { id: 'skytype', kind: 'holiday' } : null, balloons.on() && festival ? { id: 'festival', kind: 'rare' } : null].filter(Boolean),
     /** lanes a heavy piece quiets (merged into the scheduler's quiet → fs.density) */
     quiet() { if (!heavy()) return []; const u = used(); return LANES.filter(l => !u.has(l)); },
     /** anything fast up there (the calm frame rate: 60 fps while it flies) */
@@ -303,7 +313,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
       fly: (route, o = {}) => { if (!last) return false; air.fly(last, route, o); return true; },
       stop: () => { banner.stop(); smoke.stop(); drones.stop(); balloons.stop(); show.stop(); barn.stop(); },
     },
-    debug: () => ({ barn: barn.debug(), show: show.debug(), cel: cel.debug(), air: air.debug(), banner: banner.debug(), smoke: smoke.debug(), birds: birds.debug(), balloons: balloons.debug(), drones: drones.debug(), barge, aurora, used: [...used()], heavy: heavy() }),
-    destroy() { for (const m of [air, banner, smoke, balloons, drones, cel, show, barn]) m.destroy(); },
+    debug: () => ({ meteors: met.debug(), barn: barn.debug(), show: show.debug(), cel: cel.debug(), air: air.debug(), banner: banner.debug(), smoke: smoke.debug(), birds: birds.debug(), balloons: balloons.debug(), drones: drones.debug(), barge, aurora, used: [...used()], heavy: heavy() }),
+    destroy() { for (const m of [air, banner, smoke, balloons, drones, cel, show, barn, met, aur]) m.destroy(); },
   };
 }

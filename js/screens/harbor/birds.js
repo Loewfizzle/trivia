@@ -5,16 +5,24 @@
 //                      body + underwings, grey mantle when they bank, black tips), a few lazy wingbeats to climb; nearer ones
 //                      bigger. Drawn before the water: the mirror reflects them.
 //   SWIFTS  low(c)     a screaming party darting round the rooftops on summer evenings (scythe wings, fast flicker)
-//   BATS    low(c)     summer dusk into the night: erratic, jinking flight, fast scalloped wings
-//   GEESE   sky(c)     V's crossing a sky lane (never across the sign): the wingbeats ripple down each arm, the leader swaps
-//                      now and then; autumn's head south (away: they shrink into the haze), spring's come toward us
+//   BATS    low(c)     summer dusk into the night: smooth looping paths with quick darts (a fast but smooth swerve ~once a
+//                      second, the bat banking into it), fast scalloped wings — core/harbor-flight.js#batAt
+//   GEESE   sky(c)     V's crossing a sky lane (never across the sign): never a perfect V — uneven arms, irregular spacing,
+//                      birds drifting in their slots, 1–2 stragglers trailing with a gap (flapping harder), now and then one
+//                      dropping back + rejoining or two trading places (core/harbor-flight.js#geesePlan); the wingbeats ripple
+//                      down each arm; autumn's head south (away: they shrink into the haze), spring's come toward us
+// Every path is a function of (its seed, the seconds since the flight began): frame-rate independent, no per-frame dice.
+// (The bats' old JITTER: they rode the raw roofline — a step function with 50–90 pt jumps at the building edges — so a bat
+// teleported up and down as it crossed one, flickering when its ±6 pt wobble straddled an edge. Now: core#smoothRoof.)
 //   HERON   sky(c)     the district's rare slow crossing on spring-to-autumn nights (neck folded, legs trailing)
 // Reduced effects: no birds on the wing (the district's rule). Heavy events elsewhere thin them (fs.density).
 import { birdsNow } from '../../core/harbor-sky.js';
+import { smoothRoof, roofAt as roofLerp, batPlan, batAt, geesePlan, goosePose, geeseTail } from '../../core/harbor-flight.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const rnd = (a, b) => a + Math.random() * (b - a);
+const seed32 = () => (Math.random() * 4294967296) >>> 0;
 
 export function createBirds() {
   let W = 1, H = 1, HZ = 1, K = 1, tier = 2;
@@ -24,6 +32,8 @@ export function createBirds() {
   let bats = null, nextBats = rnd(5, 20);
   let heron = null, nextHeron = rnd(300, 900);
   let who = { gulls: 0, swifts: 0, geese: 0, bats: 0 }, whoAt = -1e9;
+  let roofSrc = null, roofS = null;                       // the smoothed roofline (re-made when the layout's changes)
+  const GP = { along: 0, across: 0, flap: 0 }, BP = { x: 0, y: 0, ax: 0, flap: 0 };   // scratch (no allocation per bird)
 
   // ---------------------------------------------------------------- the hour's inks
   function inks(L) {
@@ -93,8 +103,8 @@ export function createBirds() {
     c.quadraticCurveTo(s * 0.05, s * 0.18 * f, s * 0.3, 0);
     c.fill(); c.restore();
   }
-  function bat(c, x, y, s, flap, dir, ink) {
-    c.save(); c.translate(x, y); c.scale(dir * s / 10, s / 10);
+  function bat(c, x, y, s, flap, roll, ink) {
+    c.save(); c.translate(x, y); c.rotate(roll); c.scale(s / 10, s / 10);
     const up = Math.sin(flap) * 0.9;
     c.fillStyle = ink.sil; c.beginPath();
     c.moveTo(0, -1);
@@ -136,8 +146,18 @@ export function createBirds() {
     if (!lane || lane.h < 24) return null;
     const n = 7 + Math.floor(Math.random() * 7), dir = Math.random() < 0.5 ? 1 : -1;
     const mn = L.local ? L.local.m : 10, autumn = L.south ? mn >= 3 && mn <= 5 : mn >= 9 && mn <= 11;
-    const y = lane.y + lane.h * rnd(0.35, 0.65), slope = rnd(-0.04, 0.04);
-    return { n, dir, x: dir > 0 ? -90 * K : W + 90 * K, y, slope, v: rnd(16, 22) * K, s: 13 * K, k0: autumn ? 1 : 0.8, k1: autumn ? 0.78 : 1.02, t: 0, gap: 9.5 * K, forced, lead: 0, swapAt: rnd(12, 25), bottom: lane.y + lane.h, top: lane.y };
+    const v = rnd(16, 22) * K, gap = 9.5 * K, plan0 = geesePlan(seed32(), n, (W + 200 * K) / v);
+    // the leader comes in just off screen; the flight ends when the last straggler has left (the V's tail, at its largest)
+    const tail = geeseTail(plan0) * gap * 1.02, lead = 24 * K, flight = W + 2 * lead + tail;
+    // the whole V inside its lane when it fits (its arms' reach + a bird's slip to the side), the drift kept inside too
+    const lo = lane.y + 4 + (-plan0.minAcross + 0.7) * gap, hi = lane.y + lane.h - 4 - (plan0.maxAcross + 0.7) * gap;
+    let y, slope;
+    if (lo <= hi) {
+      y = lo + (hi - lo) * rnd(0.2, 0.8);
+      const ye = Math.max(lo, Math.min(hi, y + rnd(-0.04, 0.04) * flight));   // where it may drift to by the far side
+      slope = (ye - y) / flight;
+    } else { y = (lo + hi) / 2; slope = 0; }                    // a lane too narrow: centred, its edge birds fade softly
+    return { n, dir, x0: dir > 0 ? -lead : W + lead, x: 0, y0: y, y, slope, v, s: 13 * K, k0: autumn ? 1 : 0.8, k1: autumn ? 0.78 : 1.02, t: 0, gap, forced, span: flight, plan: plan0, bottom: lane.y + lane.h, top: lane.y };
   }
 
   return {
@@ -159,16 +179,19 @@ export function createBirds() {
         nextGeese = force.has('geese') ? 6 : rnd(1200, 3600) / Math.max(0.1, who.geese);
       }
       if (geese) {
-        const g = geese; g.t += sec; g.x += g.dir * g.v * sec; g.y += g.slope * g.v * sec;
-        const span = W + 180 * K, k = clamp01((g.dir > 0 ? g.x + 90 * K : W + 90 * K - g.x) / span), sc = g.k0 + (g.k1 - g.k0) * k;
-        if (g.t > g.swapAt) { g.lead = (g.lead + 1) % 3; g.swapAt = g.t + rnd(15, 30); }
-        const fade = Math.min(1, (1 - k) * 8, k * 8) * (sc < 0.9 ? 0.75 + 0.25 * sc : 1);
-        c.globalAlpha = fade;
+        // (a function of the flight's time: x, y + every bird's place come from g.t — the same at 30 fps as at 60)
+        const g = geese; g.t += sec; g.x = g.x0 + g.dir * g.v * g.t; g.y = g.y0 + g.slope * g.v * g.t;
+        const k = clamp01(g.v * g.t / g.span), sc = g.k0 + (g.k1 - g.k0) * k;
+        const fade = sc < 0.9 ? 0.75 + 0.25 * sc : 1, unit = g.gap * sc;
         for (let i = 0; i < g.n; i++) {
-          const arm = i === 0 ? 0 : Math.ceil(i / 2), side = i % 2 ? -1 : 1;
-          const bx = g.x - g.dir * arm * g.gap * sc, by = g.y + side * arm * g.gap * 0.62 * sc + (i === g.lead ? 0 : 0) + Math.sin(g.t * 0.7 + i) * 0.6;
-          if (by < g.top + 2 || by > g.bottom - 2) continue;
-          goose(c, bx, by, g.s * sc, g.t * 5.2 - arm * 0.55, g.dir, ink);
+          goosePose(g.plan, i, g.t, GP);
+          const bx = g.x - g.dir * GP.along * unit, by = g.y + GP.across * unit + Math.sin(g.t * 0.7 + i * 1.7) * 0.6;
+          if (bx < -20 * K || bx > W + 20 * K) continue;
+          // the lane's edge: a soft 5 pt fade (a bird drifting out of the lane fades, never pops)
+          const e = Math.min(by - g.top - 1, g.bottom - 1 - by) / 5;
+          if (e <= 0) continue;
+          c.globalAlpha = fade * (e < 1 ? e : 1);
+          goose(c, bx, by, g.s * sc, GP.flap, g.dir, ink);
         }
         c.globalAlpha = 1;
         if (k >= 1) geese = null;
@@ -186,7 +209,9 @@ export function createBirds() {
     /** over the far rows (between the far skyline + the near one): SWIFTS + BATS round the rooftops */
     low(c, s) {
       const { L, dt, force, motion, t } = s, sec = dt / 1000, ink = inks(L), sky = s.skyline;
-      const roofAt = x => (sky ? sky[Math.max(0, Math.min(sky.length - 1, Math.round(x / 4)))] : HZ * 0.6);
+      // (the roofline is a STEP function — a tower's edge jumps 50–90 pt in one 4-pt cell: a bird that rode it teleported)
+      if (sky && sky !== roofSrc) { roofSrc = sky; roofS = smoothRoof(sky); }
+      const roofAt = x => (sky ? roofLerp(roofS, x) : HZ * 0.6);
       const dens = s.density ? s.density.skyline : 1;
       // SWIFTS: a party of 8–14 every minute or two on summer evenings, darting along the roofs
       nextSwifts -= sec;
@@ -208,7 +233,8 @@ export function createBirds() {
       nextBats -= sec;
       if (!bats && motion && (force.has('bats-dusk') || (nextBats <= 0 && who.bats > 0.2 && dens >= 1))) {
         const n = tier === 0 ? 3 : 5 + Math.floor(Math.random() * 4);
-        bats = { t: 0, life: rnd(26, 40), b: Array.from({ length: n }, () => ({ cx: rnd(0.15, 0.85) * W, cy: rnd(18, 50) * K, r: rnd(18, 50) * K, w: rnd(0.8, 1.6) * (Math.random() < 0.5 ? 1 : -1), ph: rnd(0, TAU), j: rnd(2, 4), s: rnd(7, 9.5) * K, drift: rnd(-14, 14) * K })) };
+        // each bat: a home over the roofs (drifting slowly) + its own seeded flight (core/harbor-flight.js#batPlan)
+        bats = { t: 0, life: rnd(26, 40), b: Array.from({ length: n }, () => ({ hx: rnd(0.15, 0.85) * W, hy: rnd(24, 56) * K, s: rnd(7, 9.5) * K, drift: rnd(-6, 6) * K, p: batPlan(seed32()) })) };
         nextBats = force.has('bats-dusk') ? 3 : rnd(30, 90);
       }
       if (bats) {
@@ -216,9 +242,11 @@ export function createBirds() {
         const fade = Math.min(1, g.t / 2, (g.life - g.t) / 2);
         c.globalAlpha = clamp01(fade);
         for (const b of g.b) {
-          const th = g.t * b.w + b.ph, jx = Math.sin(g.t * b.j * 3.1 + b.ph) * 6 * K, jy = Math.sin(g.t * b.j * 4.3 + b.ph * 2) * 5 * K;
-          const x = b.cx + b.drift * g.t + Math.cos(th) * b.r + jx, y = roofAt(x) - b.cy + Math.sin(th * 1.3) * b.r * 0.4 + jy;
-          bat(c, x, y, b.s, t * 48 + b.ph, Math.cos(th) * b.w < 0 ? 1 : -1, ink);
+          // the home's height follows the smoothed roofs (not the bat's own x: its swerves never drag the baseline about)
+          const hx = b.hx + b.drift * g.t;
+          batAt(b.p, g.t, BP);
+          const roll = BP.ax > 0 ? Math.min(0.55, BP.ax / 2600) : Math.max(-0.55, BP.ax / 2600);   // banked into each dart
+          bat(c, hx + BP.x * K, roofAt(hx) - b.hy + BP.y * K - Math.sin(BP.flap) * 0.5 * K, b.s, BP.flap, roll, ink);
         }
         c.globalAlpha = 1;
         if (g.t >= g.life) bats = null;

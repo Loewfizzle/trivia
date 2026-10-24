@@ -680,6 +680,32 @@ test('the boats (Part 5): a day / night boat is decided per cycle (never pops in
   }
 });
 
+test('ROSIE never turns in sight (the owner, Oct 24: her flat side view squeezing round looked like a picture flipping): over a whole day, whenever her facing changes she is wholly off the screen — at every size; she still docks at her landing at the same moments', () => {
+  // (the pier, its platform and the breakwater are drawn UNDER her — scene order: the baked harbor layer, then Rosie — and the
+  // wheel in front of her is open spokes: nothing in view can hide her, so "out of sight" means past the screen's edge)
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k), rosie = boatRoutes(L).find(r => r.id === 'rosie');
+    // her drawn extent (boats.js#drawRosie, her own units: the stern wheel + flagstaff to -2, the bow staff to 24.6) + 1 unit
+    const offScreen = st => { const u0 = st.face >= 0 ? -3 : -25.6, u1 = st.face >= 0 ? 25.6 : 3, x0 = st.x - rosie.len / 2;
+      const a = project(cam, x0 + Math.min(u0, u1), 0, rosie.z)[0], b = project(cam, x0 + Math.max(u0, u1), 0, rosie.z)[0];
+      return a >= cam.W || b <= 0; };
+    let prev = null, changes = 0, inView = 0;
+    for (let ms = Date.UTC(2026, 9, 21, 4); ms < Date.UTC(2026, 9, 22, 4); ms += 1000) {
+      const st = boatAt(rosie, ms);
+      if (st.on && !offScreen(st)) inView++;
+      if (prev && (st.face !== prev.face || Math.abs(st.face) < 1)) { changes++; assert.ok(offScreen(st) && offScreen(prev), `${k}: Rosie's facing changes in sight (x ${project(cam, st.x, 0, rosie.z)[0].toFixed(0)} pt, ${new Date(ms).toISOString()})`); }
+      prev = st;
+    }
+    assert.ok(inView > 86400 * 0.6, `${k}: she is still out on the water most of the day (${inView} s)`);
+    // her schedule's feel: in astern (bow out) to her berth by 154 s into each ten-minute cycle, four minutes alongside, out
+    const c0 = cycleOf(rosie, Date.UTC(2026, 9, 21, 12)).start, at = s => boatAt(rosie, c0 + s * 1000);
+    assert.equal(rosie.period, 600); assert.equal(rosie.offset, 140);
+    assert.equal(at(153).seg, 'move'); assert.ok(at(153).astern && at(40).x > at(120).x, `${k}: she backs in (bow out)`);
+    assert.equal(at(155).seg, 'hold'); assert.equal(at(383).seg, 'hold'); assert.equal(at(385).seg, 'move'); assert.ok(!at(385).astern && at(450).x > at(400).x, `${k}: she steams out bow-first`);
+    assert.ok(project(cam, at(0).x - rosie.len / 2 - 3, 0, rosie.z)[0] >= cam.W, `${k}: she backs in from past the right edge`);
+  }
+});
+
 test('the boats (Part 5): RUNS for the thinning — the taxi crosses twice a cycle, the tug visits once; an away boat names the run that comes next', () => {
   const { L } = setup('402x874'), R = boatRoutes(L), taxi = R.find(r => r.id === 'taxi'), tug = R.find(r => r.id === 'tug');
   assert.equal(taxi.runs, 2); assert.equal(tug.runs, 1);

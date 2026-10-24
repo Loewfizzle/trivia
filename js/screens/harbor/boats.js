@@ -230,7 +230,7 @@ export function createBoats() {
     if (s.lights && f.lights > 0.01) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, f.lights) * (mirror ? 0.9 : 1); c.drawImage(s.lights, -s.ox, -s.oy, s.w, s.h); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
     // Rosie's paddlewheel (turning while she moves: its spokes + the wash's white water) — after the sprite
     if (r.kind === 'rosie' && tier > 0) {
-      const wx = (-1.4 + 0.3 - r.len / 2) * u + 1.3 * u * 0.5, wy = -1.4 * u, rr = 1.55 * u, ang = (f.t * (st.moving ? 1.6 : 0.15)) % (Math.PI * 2);
+      const wx = (-1.4 + 0.3 - r.len / 2) * u + 1.3 * u * 0.5, wy = -1.4 * u, rr = 1.55 * u, ang = (f.t * (st.moving ? (st.astern ? -1.6 : 1.6) : 0.15)) % (Math.PI * 2);   // (astern: the wheel backs)
       c.strokeStyle = rgb(mix([150, 30, 40], [40, 16, 26], f.T.night)); c.lineWidth = Math.max(0.35, u * 0.12);
       c.beginPath(); for (let i = 0; i < 8; i++) { const a = ang + i * Math.PI / 4; c.moveTo(wx + Math.cos(a) * rr * 0.25, wy + Math.sin(a) * rr * 0.25); c.lineTo(wx + Math.cos(a) * rr, wy + Math.sin(a) * rr); } c.stroke();
     }
@@ -267,8 +267,8 @@ export function createBoats() {
     }
     if (img && img.w > 0) c.drawImage(img.cv, img.x, img.y, img.w, img.h);
     if (r.kind === 'taxi') draw3(c, r, W, pts, f, nightK, fk, foam, [0]);      // (only the fast taxi's head is drawn live)
-    // the bow wave (moving: a white curl at the stem)
-    if (st.moving && Math.abs(st.face) > 0.5 && pts.length) { const [a, ya] = project(cam, st.x + st.face * r.len * 0.47, LEVEL, r.z - 0.2), s = cam.F / r.z; c.fillStyle = `rgba(${foam},${(0.6 * fk * Math.min(1, pts[0].v / 1.2)).toFixed(3)})`; c.beginPath(); c.ellipse(a, ya, s * (r.kind === 'taxi' ? 0.9 : 0.55), Math.max(0.45, s * 0.14), 0, 0, Math.PI * 2); c.fill(); }
+    // the bow wave (moving: a white curl at the stem — at the leading end: going astern (Rosie backing in), her stern)
+    if (st.moving && Math.abs(st.face) > 0.5 && pts.length) { const [a, ya] = project(cam, st.x + (st.astern ? -st.face : st.face) * r.len * 0.47, LEVEL, r.z - 0.2), s = cam.F / r.z; c.fillStyle = `rgba(${foam},${(0.6 * fk * Math.min(1, pts[0].v / 1.2)).toFixed(3)})`; c.beginPath(); c.ellipse(a, ya, s * (r.kind === 'taxi' ? 0.9 : 0.55), Math.max(0.45, s * 0.14), 0, 0, Math.PI * 2); c.fill(); }
   }
   const wakeCache = new Map();
   function sample(r, st, f, n, W) {

@@ -74,11 +74,14 @@ export function bowGeometry(o) {
   // the roofs right at the screen's edges: the arc must reach the edges below them (its ends hidden, never a sliver past them)
   const edges = roof ? Math.max(roof(2), roof(W - 2)) : HZ * 0.6;
   if (phone) {
-    const top = tag.y + tag.h + (neon ? 30 : 12);
+    // (6b — CITY 2.0, the owner: "the rainbow arc is way too low": on the Harbor (o.harbor) a big, tall arc — its top just under the
+    // NEON word (it passes BEHIND SPEAKEASY + the tagline: the page draws over it; never across NEON), its legs down behind the skyline
+    // at the screen's edges (the city draws in front of them))
+    const top = o.harbor ? sign.y + sign.h + (neon ? 34 : 10) : tag.y + tag.h + (neon ? 30 : 12);
     const a = W / 2;
     // the arc reaches the screen's edges a little below the roofs there (hidden): solve R from the drop d at x = ±a
     const d = Math.max(W * 0.18, edges + 14 - top);
-    const R = Math.max(a * 1.02, Math.min(W * (neon ? 0.52 : 0.56), (a * a + d * d) / (2 * d)));
+    const R = Math.max(a * 1.02, Math.min(W * (neon ? 0.52 : o.harbor ? 0.62 : 0.56), (a * a + d * d) / (2 * d)));
     const band = R * (neon ? 0.19 : 0.085);
     return { cx: W / 2, cy: top + R, R, band, top, phone: true, mask: null };
   }
