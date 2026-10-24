@@ -1579,8 +1579,12 @@ G('windows', async () => {
     ok(L0.states.bar === 'open' && L0.states.apartment === 'lamp' && L0.states.shop === 'closed' && !L0.forced, `THE ROOMS AT 9:30 PM: the bar open, the apartment's lamp, the shop closed (${JSON.stringify(L0.states)})`);
     ok(L0.on.length > 0 || (L0.next && L0.next.in <= 30), `THE SCHEDULE at night: ${L0.on.length ? `on now: ${L0.on.map(e => `${e.id} in ${e.win}`).join(', ')}` : `the next (${L0.next && L0.next.id}) in ${L0.next && L0.next.in} s`}`);
     // the wall-washers: the pier between the bar + the jazz room lit warm (light on the brick, never the windows)
-    const W = await wins(Q.page), x = (W.back.x + W.back.w + W.apartment.x) / 2, pier = await px(Q.page, x, W.apartment.y + W.apartment.h * 0.35);   // (SP2: the hot spot under the lamp, the pier between the back room + the apartment)
-    ok(pier[0] > 70 && pier[0] > pier[2] + 20, `THE WALL-WASHERS: the pier between the windows lit warm (rgb ${pier.join(',')})`);
+    // (SP2: the soft V's hot spot under the lamp, the pier between the back room + the apartment — the brightest of a few points down its
+    // middle, against the same pier a floor lower where no washer reaches)
+    const W = await wins(Q.page), x = (W.back.x + W.back.w + W.apartment.x) / 2, hot = [];
+    for (const f of [0.1, 0.18, 0.26, 0.34, 0.42]) hot.push(await px(Q.page, x, W.apartment.y + W.apartment.h * f));
+    const pier = hot.reduce((a, b) => (b[0] > a[0] ? b : a)), warm = Math.max(...hot.map(c => c[0] - c[2])), low = await px(Q.page, x, W.jazz.y + W.jazz.h * 0.5);
+    ok(pier[0] > low[0] + 12 && warm > Math.max(12, low[0] - low[2] + 6), `THE WALL-WASHERS: the pier lit warm under its lamp (brightest rgb ${pier.join(',')}, warmest +${warm}) vs the same pier a floor down (rgb ${low.join(',')})`);
     // the marquee: its bulbs lit (a warm-white bulb on the blade's frame)
     const mq = await ev(Q.page, 'window.__district.harbor().speakeasy.marquee'), mb = [];
     for (const b of mq.slice(0, 12)) mb.push(lum(await px(Q.page, b.x, b.y)));
