@@ -28,8 +28,17 @@ const CSS = `
 const KEY = 'ad:fold';
 const hhmmss = at => { const d = new Date(at); const p = n => String(n).padStart(2, '0'); return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${Math.floor(d.getMilliseconds() / 100)}`; };
 
+// (FP: it can be switched off again live — THE PREVIEW PANEL → TOOLS → AUDIO PANEL, ui/debug-tools.js — so it keeps what to undo)
+let mounted = null;
+export function unmountAudioDiag() {
+  if (!mounted) return;
+  const m = mounted; mounted = null;
+  clearInterval(m.timer); document.removeEventListener('visibilitychange', m.vis);
+  m.box.remove(); m.st.remove();
+}
+export const audioDiagOn = () => !!mounted;
 export function mountAudioDiag() {
-  if (document.querySelector('.ad-diag')) return;
+  if (mounted || document.querySelector('.ad-diag')) return;
   const st = document.createElement('style'); st.textContent = CSS; document.head.append(st);
   const box = document.createElement('div'); box.className = 'ad-diag';
   const head = document.createElement('button'); head.type = 'button'; head.className = 'ad-h';
@@ -98,6 +107,8 @@ export function mountAudioDiag() {
     body.replaceChildren(...rows.map(([cls, t]) => { const s = document.createElement('div'); s.className = cls; s.textContent = t; return s; }));
   }
   paint();
-  setInterval(() => { if (document.visibilityState === 'visible') paint(); }, 500);
-  document.addEventListener('visibilitychange', () => paint());
+  const timer = setInterval(() => { if (document.visibilityState === 'visible') paint(); }, 500);
+  const vis = () => paint();
+  document.addEventListener('visibilitychange', vis);
+  mounted = { box, st, timer, vis };
 }

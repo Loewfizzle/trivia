@@ -116,11 +116,12 @@ export const REF_TITLE = { W: 402, H: 874, tag: { y: 319, h: 14 }, dock: { x: 14
 /**
  * THE BILLBOARD (8a — the owner: onto the speakeasy's roof): over the left half-plus of the roof (u0..u1 from the speakeasy's left
  * end), set back near the roof's back edge (back: units in front of it) so the deck in front stays open (7b's guests walk in front
- * of it, 8b's billposter works up there); raised on a steel lattice frame (open: units of open frame between the platform and the
- * board's foot — ~¼ of its height, the city shows through) standing on a DUNNAGE platform (steel beams on short posts from the
- * deck) whose top (dun, above the pavement) clears the parapet's line from this camera — the frame's feet always visible.
+ * of it, 8b's billposter works up there); on a SHORT steel frame (FP — the owner: the tall open frame showed the brick city behind
+ * through the gap and "looked chaotic": open = units of frame between the platform and the board's foot, now ~⅛ of its height, the
+ * board's bottom only a little above the string lights) standing on a DUNNAGE platform (steel beams on short posts from the deck)
+ * whose top (dun, above the pavement) sits just behind the string lights, clear of the parapet's line from this camera.
  */
-export const BILLBOARD = Object.freeze({ u0: 0.6, u1: 7.4, back: 1.0, dun: 11.9, open: 0.95, h: 3.7 });
+export const BILLBOARD = Object.freeze({ u0: 0.6, u1: 7.4, back: 1.0, dun: 11.9, open: 0.5, h: 3.7 });
 
 
 /**
@@ -450,20 +451,23 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   // walker, the cab hail at the curb, a stroller, a walker — none under the dock
   const people = [
     { id: 'cart', x: cart.x - 1.9, z: cart.z - 0.4, dir: 1, h: personH * 1.0 },
-    { id: 'doorman', x: rel(1.2), z: 44.2, dir: 1, h: personH * 1.05, hat: true },
-    { id: 'couple-a', x: rel(8.6), z: 42.2, dir: 1, h: personH * 1.05, hat: true },
-    { id: 'couple-b', x: rel(9.35), z: 42.5, dir: 1, h: personH * 0.95 },
-    { id: 'dog', x: rel(-1.6), z: 40.4, dir: 1, h: personH, dog: true },
+    // (FP: on the open floor — the doorman beside the side door (its left: the corner globe stands at its right), the couple
+    // window-shopping at the barbershop, the dog walker crossing the floor)
+    { id: 'doorman', x: rel(-2.0), z: 43.2, dir: 1, h: personH * 1.05, hat: true },
+    { id: 'couple-a', x: rel(-4.6), z: 41.4, dir: 1, h: personH * 1.05, hat: true },
+    { id: 'couple-b', x: rel(-3.85), z: 41.7, dir: 1, h: personH * 0.95 },
+    { id: 'dog', x: rel(2.2), z: 39.6, dir: 1, h: personH, dog: true },
     { id: 'hail', x: rel(9.6), z: 51.8, dir: -1, h: personH, hat: true },
-    { id: 'stroll', x: rel(7.4), z: 46.4, dir: 1, h: personH * 0.98 },
+    { id: 'stroll', x: rel(13.2), z: 47.2, dir: 1, h: personH * 0.98 },
     { id: 'walker', x: rel(14.6), z: 44.8, dir: -1, h: personH * 1.02, hat: true },
   ];
   // the rooftop (7a): the string lights' POSTS on the parapet (each pier) + their tall POLE at the back, the stair BULKHEAD, the
   // CHIMNEY; the deck between them is left open for 7b's parties + the seasonal garden (planters: where its beds go)
   const roofBack = Math.min(side.z, 56);
   const roof = { planters: [4.4, 5.8, 7.2].map(u => ({ x: sx0 + u, z: 47.2 })), pole: { x: sx1 - 1.4, z: roofBack - 3.2, h: 2.9 },
-    posts: [3.55, 6.75, 9.95, 11.2].map(u => sx0 + u), bulkhead: { x0: sx0 + 2.3, x1: sx0 + 4.3, z0: roofBack - 4.6, z1: roofBack - 1.8, h: 2.1 },
-    chimney: { x: sx0 + 8.6, z: roofBack - 2.2, w: 0.75, h: 1.9 } };
+    posts: [3.55, 6.75, 9.95, 11.2].map(u => sx0 + u), bulkhead: { x0: sx0 + 8.1, x1: sx0 + 9.9, z0: roofBack - 4.6, z1: roofBack - 1.8, h: 2.1 },
+    chimney: { x: sx0 + 10.5, z: roofBack - 2.2, w: 0.75, h: 1.9 } };
+  // (FP: the bulkhead + the chimney moved right, out from under the billboard — its short frame reads as one clean structure)
   // THE BILLBOARD on the roof (8a): its board in world units + the dunnage platform under the frame (core/harbor-neon.js: the spot)
   { const B = BILLBOARD, y0 = B.dun + B.open;
     roof.board = { x0: sx0 + B.u0, x1: sx0 + B.u1, y0, y1: y0 + B.h, z: roofBack - B.back, dun: B.dun, deck: speakeasy.h }; }

@@ -29,15 +29,18 @@ const SETT = { d: [154, 148, 140], g: [176, 130, 112], n: [64, 59, 86] };
 const JOINT = { d: [112, 105, 97], g: [120, 86, 78], n: [30, 28, 46] };
 const ASPH = { d: [72, 72, 80], g: [68, 52, 62], n: [12, 12, 22] };
 // the lamps' light per unit of T.lamps: the tall street lamps a clean cool white, the globes warm, the speakeasy's spill amber
-const LIGHT = { tall: [150, 162, 182], globe: [236, 168, 92], spill: [196, 120, 54] };
-const REACH = { tall: 6.2, globe: 5.6, spill: 3.6 };
+// FP — THE NIGHT LIGHT PLAN (the re-layout): cool pools under the two tall curb lamps (the back row, the road's edge, the bench), warm
+// pools from the two corner globes across the front of the open floor, the speakeasy's warm spill in front of it, the cart's
+// string-light glow round the cart, the medallion where they overlap; dim (never black) between, no haze
+const LIGHT = { tall: [150, 162, 184], globe: [236, 166, 88], spill: [196, 120, 54], cart: [226, 150, 70] };
+const REACH = { tall: 10.5, globe: 7.6, spill: 4.2, cart: 6 };
 
 /** the speakeasy's warm spill on the cobbles: its side door's sconce, the shop's one dim lamp through the big window */
 function speakSpill(L) {
   const s = L.speakeasy, z = s.z0 - 1.3;
   return [{ x: s.x0 + (s.door.u0 + s.door.u1) / 2, z, kind: 'spill', k: 0.95 }, { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2, z, kind: 'spill', k: 0.5 }];
 }
-const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - 0.3, kind: l.kind, k: 1 })), ...speakSpill(L)];
+const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: 1 })), ...speakSpill(L), ...(L.cart ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];
 /** the light on the ground at (x, z) at night — every lamp's pool (overlapping: every path lit, the shadows between dim) + the
  *  speakeasy's spill; null by day (T.lamps 0) */
 function lightField(L, T) {

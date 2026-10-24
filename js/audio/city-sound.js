@@ -165,7 +165,7 @@ export function cityLoop(slot, { gain = 1, pan = 0, fadeIn = 2, start = null } =
     },
     stop(fade = 2) { stopLoop(L, fade); },
     playing: () => L.voices.length > 0,
-    debug: () => ({ slot, gain: +(L.s.gain * L.gain).toFixed(4), pan: +L.pan.toFixed(2), voices: L.voices.length, on: L.voices.length > 0, file: t.f }),
+    debug: () => ({ slot, gain: +(L.s.gain * L.gain).toFixed(4), pan: +L.pan.toFixed(2), voices: L.voices.length, on: L.voices.length > 0, file: t.f, lp: L.lp ? L.s.lp : 0 }),
   };
 }
 function stopLoop(L, fade) {
@@ -173,11 +173,11 @@ function stopLoop(L, fade) {
   L.want = false; loops.delete(L);
   // (a loop's buffer is big — a minute of audio: freed once nothing plays it; the HTTP cache has the file if it's wanted again)
   if (L.entry) { L.entry.pins = Math.max(0, L.entry.pins - 1); L.entry.used = performance.now(); if (!L.entry.pins && bufs.get(L.t.f) === L.entry) bufs.delete(L.t.f); }
-  const c = L.c, og = L.outG, vs = L.voices.slice();
+  const c = L.c, og = L.outG, lp = L.lp, vs = L.voices.slice();
   L.voices = [];
   if (c && og) {
     setP(og.gain, 0, c, fade);
-    setTimeout(() => { for (const v of vs) { try { v.src.stop(); } catch { /* gone */ } } try { og.disconnect(); } catch { /* gone */ } }, fade * 1000 + 120);
+    setTimeout(() => { for (const v of vs) { try { v.src.stop(); } catch { /* gone */ } } try { og.disconnect(); } catch { /* gone */ } try { if (lp) lp.disconnect(); } catch { /* gone */ } }, fade * 1000 + 120);
   }
   if (!loops.size) { clearInterval(pumpT); pumpT = 0; }
   trim();
@@ -186,7 +186,8 @@ function drop(L) {
   // (a context gone — rebuilt / closed — or the effects switched off: its nodes go, the loop restarts with a fade when it can)
   for (const v of L.voices) { try { v.src.stop(); } catch { /* gone */ } }
   try { if (L.outG) L.outG.disconnect(); } catch { /* gone */ }
-  L.voices = []; L.outG = null; L.pn = null; L.c = null;
+  try { if (L.lp) L.lp.disconnect(); } catch { /* gone */ }
+  L.voices = []; L.outG = null; L.pn = null; L.lp = null; L.c = null;
 }
 function pump() { for (const L of [...loops]) pumpOne(L); }
 function pumpOne(L) {
@@ -210,7 +211,11 @@ function pumpOne(L) {
       L.c = c;
       L.outG = c.createGain(); L.outG.gain.value = L.s.gain * L.gain;
       L.pn = c.createStereoPanner ? c.createStereoPanner() : null;
-      if (L.pn) { L.pn.pan.value = Math.max(-1, Math.min(1, L.pan)); L.outG.connect(L.pn).connect(out(c)); } else L.outG.connect(out(c));
+      // (FP: a slot's `lp` — the water's highs softened, heard from the promenade rather than at the water's edge)
+      let tail = L.outG;
+      L.lp = null;
+      if (L.s.lp) { try { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = L.s.lp; f.Q.value = 0.5; L.outG.connect(f); tail = f; L.lp = f; } catch { tail = L.outG; } }
+      if (L.pn) { L.pn.pan.value = Math.max(-1, Math.min(1, L.pan)); tail.connect(L.pn).connect(out(c)); } else tail.connect(out(c));
       // the first pass: a random place in the loop, faded in
       const t0 = c.currentTime + 0.05, off = L.start != null ? Math.max(0, Math.min(L.t.loop - 0.5, L.start)) : Math.random() * L.t.loop * 0.9;
       L.start = null;
@@ -272,5 +277,5 @@ export function cityPreview(slot, { seconds = 8 } = {}) {
 /** the player's state (the panel, the tests): the loops running, the decoded MB, the last one-shots */
 export function citySoundsDebug() {
   const mb = [...bufs.values()].reduce((s, e) => s + e.mb, 0);
-  return { loops: [...loops].map(L => ({ slot: L.slot, gain: +(L.s.gain * L.gain).toFixed(4), pan: +L.pan.toFixed(2), voices: L.voices.length, ready: !!L.buf })), mb: +mb.toFixed(2), files: [...bufs.keys()], log: cityLog.slice(-8), decodeRate: noOffline ? 'context' : [...decoders.keys()].join('/') || DECODE_RATE };
+  return { loops: [...loops].map(L => ({ slot: L.slot, gain: +(L.s.gain * L.gain).toFixed(4), pan: +L.pan.toFixed(2), voices: L.voices.length, ready: !!L.buf, lp: L.lp ? L.s.lp : 0 })), mb: +mb.toFixed(2), files: [...bufs.keys()], log: cityLog.slice(-8), decodeRate: noOffline ? 'context' : [...decoders.keys()].join('/') || DECODE_RATE };
 }

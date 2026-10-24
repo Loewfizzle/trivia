@@ -19,8 +19,11 @@ export const CALM_BPM = 120;
 /** the punch's attack (before the strong beat: the light lands ON it) and its decay */
 export const ATTACK_S = 0.05, DECAY_S = 0.24;
 
+/** FP: a gap this big (s) between the lights' grid and the song re-locks at once (the owner: "more than ~30 ms") */
+export const DRIFT_SNAP = 0.03;
 export function createHarborBeat(seed = 0) {
   return { beats: seed * 4, rate: CALM_BPM / 60, bpm: 0, src: 'calm', locked: 0, bar: 0, barMax: Math.floor(seed), level: 0.7, kick: 0, lastHit: -99, missAt: null, live: false,
+    drift: null, songBar: null, songIdx: null,
     u: 0, T: 0.5, idx: 0, barU: 0, env: 0, strong: 1, punch: 0, hits: { on: 0, off: 0 } };
 }
 
@@ -61,8 +64,8 @@ export function beatMode(song, kick) {
 // the string lights, the NEON logo's party glow, SPEAKEASY's rings + word. Above PULSE_KNEE a soft knee eases the scaled punch toward
 // PULSE_CAP (the tubes' punch is one extra additive draw at most — 2× lit — so a bigger number holds the peak a little longer, never
 // a white wash); the troughs between beats stay where they are (the multiplier only grows the peak: never a full-screen flash).
-/** THE DEFAULT — the owner's pick locks in HERE (1.3 = 130 % = 7a's punch + 30 %) */
-export const PULSE_DEFAULT = 1.3;
+/** THE DEFAULT — the owner's pick locks in HERE (FP: 1.75 = 175 %, her slider value on her iPhone; 8a's was 1.3) */
+export const PULSE_DEFAULT = 1.75;
 export const PULSE_MIN = 0.5, PULSE_MAX = 2.5, PULSE_STEP = 0.05;
 export const PULSE_KNEE = 1.2, PULSE_CAP = 2;
 /** a pulse value (the panel's percent 50…250, or a multiplier ≤ 5: '1.8') → the multiplier, clamped; missing / junk → the default */
@@ -107,14 +110,21 @@ export function advanceHarborBeat(hb, dt, song, kick) {
     const target = bpm / 60;
     const tb = g ? (song.pos - (g.t0 || 0)) * target - (g.down || 0) : song.pos * target;
     hb.rate += (target - hb.rate) * Math.min(1, sec * 3);
-    // the bar's phase, the shortest way round (in beats): a new song or a seek re-locks at once, a small drift is pulled in
+    // the bar's phase, the shortest way round (in beats): a new song, a seek, a re-anchored song clock (song.snap) or a drift beyond
+    // ~30 ms re-locks at once (FP: the lights never ease toward the beat for half a second after a return); a smaller one is pulled in
     let d = tb - hb.beats; d -= 4 * Math.round(d / 4);
-    if (Math.abs(d) > 0.6) hb.beats += d; else hb.beats += d * Math.min(1, sec * 4);
+    if (song.snap || Math.abs(d) * 60 / bpm > DRIFT_SNAP) hb.beats += d; else hb.beats += d * Math.min(1, sec * 4);
     hb.locked = Math.min(1, hb.locked + sec / 1.5); hb.bpm = bpm;
+    // (the readout: the song's own bar + beat from its grid, and how far the lights' grid sits from the song as heard — ms)
+    let d2 = tb - hb.beats; d2 -= 4 * Math.round(d2 / 4);
+    hb.drift = d2 * 60 / bpm * 1000; hb.songBar = Math.floor(tb / 4) + 1; hb.songIdx = ((Math.floor(tb) % 4) + 4) % 4;
   } else {
     hb.rate += (CALM_BPM / 60 - hb.rate) * Math.min(1, sec * 0.8);
     hb.locked = Math.max(0, hb.locked - sec / 2.5); hb.bpm = 0;
+    hb.drift = null; hb.songBar = null; hb.songIdx = null;
   }
+  // (FP: the heard kicks systematically off the grid — audio/beat.js#beatKick's `skew` — are not listened to: the grid alone)
+  if (kick && kick.skew) kick = null;
   hb.src = mode;
   const b = hb.beats, T = 1 / Math.max(0.2, hb.rate), fb = Math.floor(b);
   hb.T = T; hb.u = b - fb; hb.idx = ((fb % 4) + 4) % 4;
@@ -184,6 +194,79 @@ export function learnLead(c, err) {
 }
 /** the song's position AS HEARD: the element's clock − the output latency − the element's lead */
 export const heardPos = (at, out, lead) => Math.max(0, at - out - lead);
+
+// ---- FP — THE SONG CLOCK (the owner, Oct 23: after the home screen "the lights pulse to random beats"). The beat's position comes
+// from the SONG — the media element's currentTime — never from a clock started with the music. currentTime is read every frame but
+// may move in coarse steps (iOS), stick for a moment, or jump (a seek, a stall, a return from the background); so the clock keeps an
+// ANCHOR (the element's time, the frame time it was read) and runs it forward at the playback rate. Each FRESH reading (the value
+// changed) is compared with the run-forward position:
+//   within SC_SLEW (30 ms)        slewed in gently (a frame's jitter: never a visible hitch)
+//   beyond SC_JUMP (250 ms)       re-anchored at once (a seek, a stall, the background — a discontinuity)
+//   30…250 ms                     re-anchored when TWO fresh readings in a row agree (a real drift, not one late update)
+// Re-anchored at once on any event (song change, play / pause / resume, seek, stall / waiting, ratechange, the page back on screen, a
+// new audio context): `why`. A reading that stops changing while the element plays is run forward for SC_HOLD s at most (a stalled
+// element isn't advancing the sound either), flagged `stuck` after SC_STUCK s.
+export const SC_SLEW = 0.03, SC_JUMP = 0.25, SC_STUCK = 0.6, SC_HOLD = 2;
+export function createSongClock() {
+  return { id: null, at: 0, perf: 0, raw: -1, rawPerf: 0, rate: 1, err: 0, pend: 0, stuck: false, anchors: 0, why: '', pos: -1, snap: false };
+}
+/**
+ * One frame: r = { id, t (the element's currentTime, s), rate? (playbackRate), paused? } | null, now (ms), why (an event since the
+ * last frame: re-anchor) → the song's position (s), or −1 (nothing playing). sc.snap = this frame re-anchored (the beat clock jumps
+ * with it instead of easing); sc.err = the last fresh reading vs the run-forward clock (s); sc.stuck.
+ */
+export function songClockStep(sc, r, now, why = '') {
+  sc.snap = false;
+  if (!r || !r.id || r.paused || !(r.t >= 0)) { if (sc.id) { sc.id = null; sc.why = r && r.paused ? 'pause' : 'stop'; } sc.pos = -1; return -1; }
+  const rate = r.rate > 0 ? r.rate : 1;
+  const anchor = w => { sc.at = r.t; sc.perf = now; sc.raw = r.t; sc.rawPerf = now; sc.err = 0; sc.pend = 0; sc.stuck = false; sc.anchors++; sc.why = w; sc.snap = true; sc.rate = rate; return (sc.pos = r.t); };
+  if (r.id !== sc.id) { const w = why || (sc.id === null && (sc.why === 'pause' || sc.why === 'stop') ? 'resume' : 'song'); sc.id = r.id; return anchor(w); }
+  if (why) return anchor(why);
+  if (rate !== sc.rate) return anchor('rate');
+  const run = ms => sc.at + Math.max(0, ms - sc.perf) / 1000 * sc.rate;
+  if (r.t !== sc.raw) {
+    const e = r.t - run(now);
+    sc.raw = r.t; sc.rawPerf = now; sc.stuck = false; sc.err = e;
+    const a = Math.abs(e);
+    if (a > SC_JUMP) return anchor('jump');
+    if (a > SC_SLEW) {
+      if (sc.pend && Math.sign(sc.pend) === Math.sign(e)) return anchor('drift');
+      sc.pend = e;
+    } else {
+      sc.pend = 0;
+      // (slew: move the anchor a quarter of the way to the reading — a 16 ms jitter shifts the clock by 4 ms)
+      sc.at = run(now) + e * 0.25; sc.perf = now;
+    }
+  } else if ((now - sc.rawPerf) / 1000 > SC_STUCK) sc.stuck = true;
+  // (a reading that stopped changing: run forward SC_HOLD s past it at most — then hold)
+  return (sc.pos = run(Math.min(now, sc.rawPerf + SC_HOLD * 1000)));
+}
+
+// ---- FP — THE HEARD OFFSET: where the strong kicks the listener HEARS land against the grid, over a wide window (± half a beat —
+// the learned lead only takes ±80 ms). After a return from the background WebKit may feed the graph from a different point of the
+// element than its currentTime says; then the heard kicks sit systematically off the grid. Measured, shown on the readout (`heard`),
+// never applied to the lights' timing. While it is steady AND beyond the lead's reach (SKEW_MS from the learned lead) the clock
+// stops listening to the kicks (they'd land between the grid's beats: extra "random" punches, and the strong beats would look
+// kick-less and calm the city) — the lights then run on the grid alone at its steady strength.
+export const SKEW_MS = 0.08;
+/** a heard kick at element-clock `at` → its distance from the nearest beat (s, within ± half a beat), or null with no grid */
+export function kickErrWide(at, grid, lag = KICK_LAG) {
+  if (!grid || !(grid.bpm > 0)) return null;
+  const p = 60 / grid.bpm, x = at - lag - (grid.t0 || 0);
+  return x - Math.round(x / p) * p;
+}
+export function createHeard() { return { errs: [], v: 0, n: 0, steady: false }; }
+/** one reading (s) → the median of the last 24 once ≥ 8, steady when their middle half is within 50 ms */
+export function heardStep(h, err) {
+  h.errs.push(err); if (h.errs.length > 24) h.errs.shift();
+  if (h.errs.length < 8) { h.n = h.errs.length; h.steady = false; return h; }
+  const s = h.errs.slice().sort((a, b) => a - b);
+  h.v = s[s.length >> 1]; h.n = s.length;
+  h.steady = s[Math.floor(s.length * 0.75)] - s[Math.floor(s.length * 0.25)] <= 0.05;
+  return h;
+}
+/** the heard kicks are systematically off the grid, beyond what the learned lead covers */
+export const heardSkew = (h, lead = 0) => !!(h && h.steady && Math.abs(h.v - lead) > SKEW_MS);
 
 export function createOnsets() { return { prev: 0, h: [], peak: 1e-4, last: -9, t: null, level: 0 }; }
 export function onsetStep(o, e, t) {

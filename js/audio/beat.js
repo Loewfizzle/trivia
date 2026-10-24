@@ -10,8 +10,8 @@ import { nowPlaying, musicOut } from './music.js';
 import { lobbyNow } from './lobby-music.js';
 import { moodData } from './mood.js';
 import { settings } from './settings.js';
-import { getContext, getMusicBus, clockFrozen } from './engine.js';
-import { createOnsets, onsetStep, kickLag, kickErr, createLead, learnLead, heardPos } from '../core/harbor-beat.js';
+import { getContext, getMusicBus, clockFrozen, onRebuild, onResume } from './engine.js';
+import { createOnsets, onsetStep, kickLag, kickErr, createLead, learnLead, heardPos, createSongClock, songClockStep, kickErrWide, createHeard, heardStep, heardSkew } from '../core/harbor-beat.js';
 
 // ---- WHEN THE BEAT IS HEARD (M2, the owner: the party's sync "kind of — not perfect")
 // Two delays sit between a song's clock and the ear:
@@ -66,13 +66,32 @@ function learn(kind, err) {
   }
 }
 
-// (NEON PASS 6: an <audio> element's currentTime may move in coarse steps on iOS — a step every few frames, not every frame. The
-// position is carried forward on the frame clock between its steps, so the beat never jerks back and forth with them.)
-const smooth = { id: null, at: -1, perf: 0 };
-function dequantize(id, at, now) {
-  if (id !== smooth.id || at < smooth.at || at - smooth.at > 1) { smooth.id = id; smooth.at = at; smooth.perf = now; return at; }
-  if (at !== smooth.at) { smooth.at = at; smooth.perf = now; return at; }
-  return at + Math.min(0.5, (now - smooth.perf) / 1000);
+// FP — THE SONG CLOCK (core/harbor-beat.js#songClockStep): the beat's position always comes from the SONG — the element's
+// currentTime — run forward between its (coarse, iOS) updates and re-anchored on every event that can move the song against the
+// frame clock. (Replaces NEON PASS 6's dequantize, which carried a stuck reading forward 0.5 s and then let it snap back.)
+const sclock = createSongClock();
+let pendWhy = '';
+const reanchor = why => { pendWhy = why; };     // (the latest event names the re-anchor)
+const wired = new WeakSet();
+const EL_EVENTS = ['play', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'stalled', 'ratechange'];
+function wire(el) {
+  if (!el || wired.has(el) || typeof el.addEventListener !== 'function') return;
+  wired.add(el);
+  for (const e of EL_EVENTS) el.addEventListener(e, () => reanchor(e));
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => reanchor(document.visibilityState === 'visible' ? 'visible' : 'hidden'));
+  addEventListener('pageshow', () => reanchor('pageshow'));
+}
+try { onRebuild(() => reanchor('rebuild')); onResume(() => reanchor('ctx resume')); } catch { /* no engine (tests) */ }
+let stepAt = -1, stepPos = -1;
+/** the song's position on its own clock this frame (s), the same value for every caller in the frame */
+function songPos(np, nowMs) {
+  if (nowMs === stepAt && sclock.id === np.id) return stepPos;
+  if (np.el) wire(np.el);
+  const why = pendWhy; pendWhy = '';
+  stepAt = nowMs;
+  return (stepPos = songClockStep(sclock, { id: np.id, t: np.at, rate: np.rate, paused: false }, nowMs, why));
 }
 /** why the beat is calm right now (the &debug=1 readout: "beat calm — music off") — '' when a song is being followed */
 let why = '';
@@ -81,7 +100,7 @@ export function beatSource(nowMs = performance.now()) {
   if (settings.musicOff) { why = 'music off'; return null; }
   if (settings.muted) { why = 'muted'; return null; }
   const lob = lobbyNow(), np = lob || nowPlaying();
-  if (!np || !np.id) { const c = getContext(); why = !c || c.state !== 'running' ? 'tap for sound' : settings.menuMusic === 'classic' ? 'classic music' : 'no song'; return null; }
+  if (!np || !np.id) { if (sclock.id) songClockStep(sclock, null, nowMs); const c = getContext(); why = !c || c.state !== 'running' ? 'tap for sound' : settings.menuMusic === 'classic' ? 'classic music' : 'no song'; return null; }
   const d = moodData();
   if (!d) { why = 'songs loading'; return null; }
   const song = d.songs && d.songs[np.id];
@@ -97,8 +116,9 @@ export function beatSource(nowMs = performance.now()) {
   // anything this errs toward the light a hair EARLY, the side the eye forgives (a sound behind its light is natural; ahead is not).
   const direct = !lob && musicOut() === 'direct';
   // (pos AS HEARD: the element's / the buffer's clock runs ahead of the speaker by the output latency + the element's own lead)
-  const pos = direct ? heardPos(dequantize(np.id, np.at, nowMs), DIRECT_OUT, 0) : heardPos(dequantize(np.id, np.at, nowMs), outLatency(), cal[lob ? 'buf' : 'el'].v);
-  return { id: np.id, bpm: g ? g.bpm : song.bpm, pos, grid: g, untrusted, loose: untrusted ? all : null, direct };
+  const at = songPos(np, nowMs);
+  const pos = direct ? heardPos(at, DIRECT_OUT, 0) : heardPos(at, outLatency(), cal[lob ? 'buf' : 'el'].v);
+  return { id: np.id, bpm: g ? g.bpm : song.bpm, pos, grid: g, untrusted, loose: untrusted ? all : null, direct, snap: sclock.snap };
 }
 const DIRECT_OUT = 0;              // the direct element's output estimate (s): its clock is the presentation time already
 
@@ -143,6 +163,9 @@ function analyser() {
 // coming back. The same RMS frame after frame (a real signal never repeats to 1e-7 for 8 frames), a frozen clock, or the song on the
 // direct element = nothing heard.
 let lastRms = -1, sameN = 0;
+// FP — THE HEARD OFFSET (core/harbor-beat.js#heardStep): where the strong kicks land vs the grid (± half a beat), per song
+const heard = createHeard();
+let heardId = null, heardAnch = 0;
 export function beatKick(nowMs = performance.now()) {
   if (settings.musicOff || settings.muted || !(lobbyNow() || nowPlaying())) return null;
   // (the song on THE DIRECT ELEMENT or the graph frozen: the listener can't hear it — no kicks, not live; the grid leads: 'direct-grid')
@@ -167,12 +190,19 @@ export function beatKick(nowMs = performance.now()) {
     const lob = lobbyNow(), np = lob || nowPlaying(), d = moodData();
     const g = np && d && d.songs && d.songs[np.id] && d.songs[np.id].grid;
     if (g && g.bpm > 0 && g.trusted !== false && (g.agree == null || g.agree >= 0.5)) {
-      const err = kickErr(dequantize(np.id, np.at, nowMs), g, lag);
+      const at = songPos(np, nowMs);
+      if (heardId !== np.id) { heardId = np.id; heard.errs.length = 0; heard.n = 0; heard.steady = false; }
+      if (heardAnch !== sclock.anchors) { heardAnch = sclock.anchors; heard.errs.length = 0; heard.steady = false; }   // (a re-anchor: what was measured before it is history)
+      const wide = kickErrWide(at, g, lag);
+      if (wide != null) heardStep(heard, wide);
+      const err = kickErr(at, g, lag);
       if (err != null) learn(lob ? 'buf' : 'el', err);
     }
   }
   let out = 0;
   while (queue.length && queue[0][0] <= nowMs) out = Math.max(out, queue.shift()[1]);
+  // (the heard kicks steadily off the grid beyond the lead: not listened to — they'd add off-beat punches; the grid leads alone)
+  if (heardSkew(heard, cal[lobbyNow() ? 'buf' : 'el'].v)) return { hit: 0, live: false, skew: true };
   return { hit: out, live: nowMs - heardAt < 2000 };
 }
 /** the debug view (window.__arcade.beat / the readout) */
@@ -180,10 +210,18 @@ export function beatDebug() {
   const c = getContext();
   return { analyser: !!an, peak: +ons.peak.toFixed(4), level: +ons.level.toFixed(4), latency: +outLatency().toFixed(3),
     reported: c ? +(c.outputLatency || 0).toFixed(3) : 0, stamp: +stamp.v.toFixed(3), lead: +cal.el.v.toFixed(3), leadN: cal.el.errs.length, buf: +cal.buf.v.toFixed(3), bufN: cal.buf.errs.length,
-    lag: +kickLag(frameS).toFixed(3), fps: Math.round(1 / frameS) };
+    lag: +kickLag(frameS).toFixed(3), fps: Math.round(1 / frameS),
+    clock: { id: sclock.id, pos: +sclock.pos.toFixed(3), err: +sclock.err.toFixed(3), stuck: sclock.stuck, anchors: sclock.anchors, why: sclock.why },
+    heard: { v: +heard.v.toFixed(3), n: heard.n, steady: heard.steady, skew: heardSkew(heard, cal.el.v) } };
 }
 /** the &debug=1 readout's line: what the beat subtracts to land on the sound as HEARD */
 export function syncLine() {
   const d = beatDebug();
   return `sync out ${Math.round(d.latency * 1000)} ms${d.reported ? '' : d.stamp ? ' (stamp)' : ' (est)'} · lead ${Math.round(d.lead * 1000)} ms (${d.leadN} kicks) · lag ${Math.round(d.lag * 1000)} ms`;
+}
+/** FP — the readout's song-clock line: the last element reading vs the run-forward clock, the re-anchors (+ the last why), the heard
+ *  kicks' offset from the grid (`~` = not steady yet, SKEW = steady + beyond the lead: the kicks are ignored) */
+export function clockLine() {
+  const d = beatDebug(), ms = v => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v * 1000))}`;
+  return `clock el ${ms(d.clock.err)} ms${d.clock.stuck ? ' STUCK' : ''} · anchors ${d.clock.anchors}${d.clock.why ? ` (${d.clock.why})` : ''}${d.heard.n >= 8 ? ` · heard ${ms(d.heard.v)} ms${d.heard.steady ? '' : ' ~'}${d.heard.skew ? ' SKEW' : ''}` : ''}`;
 }

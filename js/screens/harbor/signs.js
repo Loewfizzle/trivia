@@ -563,18 +563,36 @@ export function buildBillboard(spot, content, ctx) {
     // (galvanised steel by day — lighter than the brick behind it, so the frame reads as structure; near-black at night)
     const steel = mix([24, 20, 30], [126, 124, 118], day), lit = mix([36, 30, 42], [200, 196, 184], day), mould = mix([30, 24, 30], [134, 110, 84], day);
     x.lineCap = 'butt';
-    // (8a) THE DUNNAGE on the speakeasy's roof: a steel I-beam platform the frame's feet are bolted to, on short posts down to the
-    // deck (behind the parapet) — its top clears the parapet's line, so the feet always show
     if (dun) {
-      const d0 = R.x - 3 * k, d1 = R.x + R.w + 3 * k, bh = Math.max(1.1, 1.25 * k);
+      // FP — A SHORT, CLEAN FRAME (the owner: the tall open frame let the brick city behind show through "and looked chaotic"): the
+      // board's foot only a little above the string lights; under it ONE dark structure — a shadowed backing (the depth of the frame
+      // under the board: nothing busy shows through it), five posts with a Warren lattice of diagonals between them, on the DUNNAGE
+      // (a steel I-beam on short posts down to the deck, behind the parapet + the string lights); a soft shadow on the roof by day
+      const d0 = R.x - 3 * k, d1 = R.x + R.w + 3 * k, bh = Math.max(1.1, 1.25 * k), dark = mix([12, 10, 18], [64, 62, 66], day);
+      const bk = x.createLinearGradient(0, deckY, 0, foot);
+      bk.addColorStop(0, rgba(dark, 0.94)); bk.addColorStop(1, rgba(dark, 0.8));
+      x.fillStyle = bk; x.fillRect(R.x - 0.6 * k, deckY, R.w + 1.2 * k, foot - deckY + 0.2);
+      // the posts (each a lit edge + its steel) + the diagonals, alternating (a Warren truss): read as ONE lattice
+      const posts = [0.04, 0.27, 0.5, 0.73, 0.96].map(f => R.x + R.w * f), pw = Math.max(0.7, 0.8 * k);
+      x.fillStyle = rgba(steel); for (const px of posts) x.fillRect(px - pw / 2, deckY, pw, foot - deckY);
+      if (day > 0.05) { x.fillStyle = rgba(lit, 0.7 * day); for (const px of posts) x.fillRect(px + (sd > 0 ? 0 : -pw / 2), deckY, pw / 2, foot - deckY); }
+      x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.45, 0.45 * k);
+      x.beginPath();
+      for (let i = 0; i < posts.length - 1; i++) { const up = i % 2 === 0; x.moveTo(posts[i], up ? foot - 0.2 : deckY + 0.3); x.lineTo(posts[i + 1], up ? deckY + 0.3 : foot - 0.2); }
+      x.stroke();
+      // a mid tie along the frame
+      x.fillStyle = rgba(steel, 0.9); x.fillRect(R.x, (deckY + foot) / 2 - 0.2 * k, R.w, Math.max(0.35, 0.35 * k));
+      // the dunnage: its posts down to the deck, the beam, its lit flange, the base plates + bolts under each frame post
       x.fillStyle = rgba(steel); for (const f of [0.06, 0.3, 0.5, 0.7, 0.94]) x.fillRect(R.x + R.w * f - 0.5 * k, foot + bh * 0.6, Math.max(0.8, 1.0 * k), 7 * k);
       x.fillStyle = rgba(mix(steel, [0, 0, 0], 0.25)); x.fillRect(d0, foot, d1 - d0, bh);
-      x.fillStyle = rgba(lit, 0.95); x.fillRect(d0, foot, d1 - d0, Math.max(0.35, 0.3 * k));                 // the flange's lit top
+      x.fillStyle = rgba(lit, 0.95); x.fillRect(d0, foot, d1 - d0, Math.max(0.35, 0.3 * k));
       x.fillStyle = rgba(steel); x.fillRect(d0, foot + bh - Math.max(0.3, 0.25 * k), d1 - d0, Math.max(0.3, 0.25 * k));
-      // the base plates under each leg + the bolts
-      x.fillStyle = rgba(lit, 0.9);
-      for (const f of [0.13, 0.5, 0.87]) { const lx = R.x + R.w * f, sp2 = Math.min(R.w * 0.07, (foot - deckY) * 0.8); for (const dx of [-sp2, sp2]) x.fillRect(lx + dx - 1.1 * k, foot - 0.45 * k, 2.2 * k, Math.max(0.4, 0.45 * k)); }
-    }
+      x.fillStyle = rgba(lit, 0.9); for (const px of posts) x.fillRect(px - 1.0 * k, foot - 0.45 * k, 2.0 * k, Math.max(0.4, 0.45 * k));
+      // the soft shadow the board throws on the roof (by day: along the sun; a faint one at night under the frame)
+      const sh = x.createLinearGradient(0, foot + bh, 0, foot + bh + 4 * k), sa = 0.32 * day + 0.12;
+      sh.addColorStop(0, `rgba(10,8,16,${sa.toFixed(3)})`); sh.addColorStop(1, 'rgba(10,8,16,0)');
+      x.fillStyle = sh; x.fillRect(d0 + (sd > 0 ? -2 : 2) * k * day, foot + bh, d1 - d0, 4 * k);
+    } else {
     // the A-frames: from the roof up to the deck, splayed; a tie across each; the X braces between them
     const legs = [0.13, 0.5, 0.87].map(f => R.x + R.w * f), spread = Math.min(R.w * 0.07, (foot - deckY) * 0.8);
     x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.5, 0.5 * k);
@@ -583,6 +601,7 @@ export function buildBillboard(spot, content, ctx) {
     x.beginPath(); for (const lx of legs) { const ty = (foot + deckY) / 2; x.moveTo(lx - spread / 2, ty); x.lineTo(lx + spread / 2, ty); } x.stroke();
     x.strokeStyle = rgba(steel, 0.85); x.lineWidth = Math.max(0.3, 0.24 * k);
     x.beginPath(); for (let i = 0; i < legs.length - 1; i++) { x.moveTo(legs[i], foot - 0.3); x.lineTo(legs[i + 1], deckY + 0.4); x.moveTo(legs[i + 1], foot - 0.3); x.lineTo(legs[i], deckY + 0.4); } x.stroke();
+    }
     // the ladder up to the catwalk (right of the middle A-frame)
     const lx0 = R.x + R.w * 0.7, lw = Math.max(1.4, 1.5 * k);
     x.strokeStyle = rgba(lit, 0.9); x.lineWidth = Math.max(0.3, 0.22 * k);

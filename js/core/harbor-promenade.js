@@ -44,15 +44,60 @@ export const PIECE = Object.freeze({
 export const PHONE = Object.freeze({
   signals: [{ id: 'west', f: 0.6, dir: 1, arm: 0 }, { id: 'east', f: 0.735, dir: -1, arm: 0 }],   // (pole-top heads, 1920s)
   crosswalk: [0.613, 0.722],
-  tall: [0.93],
-  maples: [{ f: 0.818, z: 52.75 }, { f: 0.893, z: 37.2 }],
-  crabs: [{ f: 0.405, z: 49 }],
-  globes: [0.355, 0.69],                   // (the far-left globe dropped — the owner: the shopfront reads clean)
-  medallion: { f: 0.47, z: 42.6 },          // (the owner: the MIDDLE of the open plaza, right of the door — open space round it)
-  bench: { f: 0.665, z: 47 },
-  cart: { f: 0.778, z: 44.4 },
-  planters: [{ f: 0.15, z: 38.8 }, { f: 0.618, z: 38.6 }],
+  // FP — THE RE-LAYOUT (the owner approved the sketch, Oct 23): FURNITURE ON THE EDGES, AN OPEN FLOOR IN THE MIDDLE, THE FRONT EDGE
+  // CLEAR. THE BACK ROW along the curb, a steady street rhythm: maple (beside the blade) · tall lamp · [the crosswalk's landing, open]
+  // · maple with the BENCH under it · a planter · tall lamp. THE OPEN FLOOR: clear cobbles from the shopfront to the right edge, the
+  // MEDALLION at its centre (roughly under the wheel), the CART on its open right side. ONE big framing maple at the far right edge.
+  // THE FRONT EDGE: only two short warm globes, one at each corner (the speakeasy's corner + the right edge). ONE crafted planter
+  // tucked against the speakeasy's corner, beside the side wall (never in front of the door or the shop window).
+  // (at phone size the strip is ~70 pt deep, so depth stacks on screen: no curb tree may stand in front of the two stop lights or
+  // the crossing (f ~0.58–0.76), and the framing maple's crown covers the right quarter — so the back row's trees + bench sit LEFT
+  // of the crossing, beside the blade + under the wheel's deck, its second tall lamp right of it; the sketch's curb planter would
+  // stand hidden behind the framing maple — the ONE crafted planter is the speakeasy's corner one)
+  tall: [{ f: 0.455, z: 52.6 }, { f: 0.776, z: 52.6 }],
+  maples: [{ f: 0.373, z: 52.9 }, { f: 0.507, z: 53.1 }, { f: 0.888, z: 38.2, big: true }],
+  crabs: [],
+  globes: [0.322, 0.962],                  // (the front edge's two corners: by the speakeasy's corner, by the right edge)
+  medallion: { f: 0.49, z: 43.4 },          // (the owner: the CENTRE of the open floor, roughly under the wheel)
+  bench: { f: 0.505, z: 50.4 },             // (under the second curb maple, by the first tall lamp: its cool light)
+  cart: { f: 0.667, z: 41.8 },              // (the open right side of the floor, in front of the crossing, room round it)
+  planters: [{ f: 0.378, z: 45.6, corner: true }],
 });
+
+/** the WALK / WAIT lantern (world units): at the crosswalk's far end (`at`: its place across the crosswalk's width, 0 = the left
+ *  edge — the open gap between the curb row's tall lamp and maple, the west stop light clear), z by the railing, h the post to the
+ *  box's foot, w × bh the box (≈ 22 × 25 pt at 402; its letters ≈ 6.7 pt tall) */
+export const LANTERN = Object.freeze({ at: 0.5, z: 63.4, h: 2.6, w: 2.3, bh: 2.4 });
+
+// ------------------------------------------------------------------ THE CROSSING'S CYCLE (FP — PURE, on the shared clock)
+// One cycle for the whole road (both stop lights show the same — it's one road, both directions) and the WALK / WAIT lantern, in
+// step: the road GREEN (the lantern WAIT, steady) → AMBER → a moment ALL RED → WALK (steady) → WAIT BLINKING (the clearance: "don't
+// start now" — it blinks before the road turns green again) → a moment all red (WAIT steady) → green. On the city's clock (ms since
+// the epoch): every phone sees the same light at the same moment; 8b's traffic + people use it (stop on red, cross on WALK).
+/** the phases' lengths (s) */
+export const SIGNAL_CYCLE = Object.freeze({ go: 24, amber: 3, clear: 1.5, walk: 11, blink: 5, hold: 1.5 });
+export const SIGNAL_PERIOD = Object.values(SIGNAL_CYCLE).reduce((a, b) => a + b, 0);
+/** the blink: on for BLINK_ON of each BLINK_S */
+export const BLINK_S = 1, BLINK_ON = 0.55;
+/**
+ * The crossing at ms → { road: 'green' | 'amber' | 'red', walk: 'walk' | 'wait', blink (WAIT blinking: the last BLINK s before the
+ * road turns green), lit (the lantern's lit pane is showing right now — false only in a blink's off half), phase, left (s to the next
+ * change), s (s into the cycle) }
+ */
+export function signalAt(ms) {
+  const C = SIGNAL_CYCLE, P = SIGNAL_PERIOD, s = (((ms / 1000) % P) + P) % P;
+  const ends = [['go', 'green', 'wait'], ['amber', 'amber', 'wait'], ['clear', 'red', 'wait'], ['walk', 'red', 'walk'], ['blink', 'red', 'wait'], ['hold', 'red', 'wait']];
+  let t0 = 0;
+  for (const [phase, road, walk] of ends) {
+    const t1 = t0 + C[phase];
+    if (s < t1) {
+      const blink = phase === 'blink', u = s - t0;
+      return { road, walk, blink, lit: !blink || (u % BLINK_S) < BLINK_ON * BLINK_S, phase, left: t1 - s, s };
+    }
+    t0 = t1;
+  }
+  return { road: 'green', walk: 'wait', blink: false, lit: true, phase: 'go', left: C.go, s: 0 };
+}
 
 /** x (world) for a screen fraction f at depth z on this camera */
 export const xOfF = (cam, f, z) => (f - 0.5) * 2 * cam.hw(z);
@@ -72,21 +117,24 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   const crab = (x, z = PROM.front) => trees.push({ x, z, kind: 'crab', trunk: P.crab.trunk, w: P.crab.w, h: P.crab.h, r: P.crab.w / 2, grate: true });
   const globe = (x, z = PROM.globes) => lamps.push({ x, z, h: P.globe.h, kind: 'globe', dir: 1 });
   const S = PHONE;
-  const signals = S.signals.map(s => ({ id: s.id, x: X(s.f, 54.6), z: 54.6, dir: s.dir, arm: s.arm, h: stopH, state: s.id === 'west' ? 'red' : 'green' }));
-  S.tall.forEach((f, i) => tall(X(f, PROM.curb), i));
-  S.maples.forEach(m => maple(X(m.f, m.z), m.z));
+  const signals = S.signals.map(s => ({ id: s.id, x: X(s.f, 54.6), z: 54.6, dir: s.dir, arm: s.arm, h: stopH, state: 'green' }));
+  S.tall.forEach((t, i) => tall(X(t.f, t.z), i));
+  S.maples.forEach(m => { maple(X(m.f, m.z), m.z); if (m.big) Object.assign(trees[trees.length - 1], { big: true, w: P.maple.w * 1.12, r: P.maple.w * 0.56, h: P.maple.h * 1.1, trunk: P.maple.trunk * 1.05 }); });
   S.globes.forEach(f => globe(X(f, PROM.globes)));
   S.crabs.forEach(c => crab(X(c.f, c.z), c.z));
-  for (const p of S.planters) planters.push({ x: X(p.f, p.z), z: p.z, w: P.planter.w });
+  for (const p of S.planters) planters.push({ x: X(p.f, p.z), z: p.z, w: P.planter.w * (p.corner ? 1.08 : 0.92), corner: !!p.corner });
   const bench = { x: X(S.bench.f, S.bench.z), z: S.bench.z, w: P.bench.w };
   const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts' };
   const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring };
   const crosswalk = { x0: X(S.crosswalk[0], 59), x1: X(S.crosswalk[1], 59), z0: 54, z1: 64 };
+  // (FP: THE WALK / WAIT LANTERN — on the FAR side of the crossing, at the railing where the crosswalk lands, facing us: the people
+  // waiting on the promenade's kerb read it across the road, the way a pedestrian signal stands)
+  crosswalk.lantern = { x: crosswalk.x0 + (crosswalk.x1 - crosswalk.x0) * LANTERN.at, z: LANTERN.z, h: LANTERN.h, w: LANTERN.w, bh: LANTERN.bh };
   // a wide screen (a panorama): the curb band goes on to the right edge — lamp / maple pairs, a bench now and then; the front row
   // (globes + a crabapple) either side of the dock, never under it
   if (wide) {
     const r = rngFrom(seed + 99), end = cam.hw(PROM.curb) * 0.97;
-    for (let x = X(S.tall[1], PROM.curb) + 8, i = 0; x < end; x += 8 + r() * 2, i++) {
+    for (let x = X(S.tall[1].f, PROM.curb) + 8, i = 0; x < end; x += 8 + r() * 2, i++) {
       if (i % 2 === 0) tall(x, i); else maple(x);
       if (i % 4 === 1) more.push({ x: x + 3.2, z: 46.6, w: P.bench.w });
     }
@@ -108,7 +156,8 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   // THE WALKABLE ZONES (8b's people + dogs): world rects + the pieces they walk round (never through the cart, into the water, under
   // the dock — the dock is a screen rect: zones stop at its top)
   const zones = {
-    plaza: { x0: X(0.12, 44), x1: X(0.6, 44), z0: 40, z1: 44 },
+    // (FP: THE OPEN FLOOR — the shopfront to the cart's right, the speakeasy's face to the back row)
+    plaza: { x0: X(0.02, 44), x1: X(0.8, 44), z0: 38.4, z1: 50 },
     walk: { x0: X(0.0, 46), x1: X(1.0, 46), z0: 40, z1: 51.6 },
     front: { x0: X(0.0, 38), x1: X(1.0, 38), z0: 36.9, z1: 40 },
     curb: { x0: X(0.36, 53), x1: X(1.0, 53), z0: 51.6, z1: 53.6 },

@@ -29,6 +29,7 @@ import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../../audio/mood.js';
 import { settings, updateSettings } from '../../audio/settings.js';
 import { SLOTS, PARTS, takesOf } from '../../core/city-sounds.js';
 import { cityPreview, citySoundsDebug } from '../../audio/city-sound.js';
+import { debugTool, setDebugTool } from '../../ui/debug-tools.js';
 
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin', OPEN_KEY = 'nd:hr-open';
 const ss = {
@@ -339,11 +340,17 @@ export function createRemote({ scene, api = apiCall }) {
         return kids;
       },
     },
+    // FP — THE DEBUG TOOLS ON THIS PHONE (the owner couldn't find the AUDIO panel without the &debug=1 link): the READOUT (the green
+    // box) + the AUDIO PANEL, each on / off live, remembered on this device (ui/debug-tools.js) — never sent to EVERYONE. The GRID
+    // stays a preview flag (it can go to everyone). (An old state's `debug` still shows the readout: the scene ORs it in.)
     tools: {
-      n: () => 2,
-      on: st => [st.debug ? 'READOUT' : null, st.grid ? 'GRID' : null],
-      kids: st => [grid(btn('READOUT', !!st.debug, () => edit(s => { if (s.debug) delete s.debug; else s.debug = true; })),
-        btn('GRID', !!st.grid, () => edit(s => { if (s.grid) delete s.grid; else s.grid = true; })))],
+      n: () => 3,
+      on: st => [debugTool('readout') || st.debug ? 'READOUT' : null, debugTool('audio') ? 'AUDIO PANEL' : null, st.grid ? 'GRID' : null],
+      kids: st => {
+        const tool = (id, label) => { const on = debugTool(id) || (id === 'readout' && !!st.debug); const b = btn(label, on, () => { const next = !on; setDebugTool(id, next); if (!next && id === 'readout' && st.debug) edit(s => { delete s.debug; }); else render(); }, { title: 'this phone only · remembered' }); b.dataset.tool = id; return b; };
+        return [h('div.hr-gl', 'ON THIS PHONE — REMEMBERED, NO LINK NEEDED'), grid(tool('readout', 'READOUT'), tool('audio', 'AUDIO PANEL')),
+          h('div.hr-gl', 'PREVIEW'), grid(btn('GRID', !!st.grid, () => edit(s => { if (s.grid) delete s.grid; else s.grid = true; })))];
+      },
     },
   };
   function flip(id, secEl) {

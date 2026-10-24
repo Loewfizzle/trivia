@@ -29,7 +29,7 @@ import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
-import { beatSource, beatKick, beatWhy, songInfo, syncLine } from '../audio/beat.js';
+import { beatSource, beatKick, beatWhy, songInfo, syncLine, clockLine } from '../audio/beat.js';
 import { moodNow, MOOD_LABEL } from '../audio/mood.js';
 import { cityFailed } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
@@ -53,7 +53,7 @@ export const harborPending = () => !harborSettled;
 function musicLine() {
   const i = songInfo();
   const m = `music ${MOOD_LABEL[moodNow()]}${i ? ` · ${i.id}${i.bpm ? ` ${i.bpm.toFixed(1)}` : ''} · grid ${i.grid}${i.lock != null ? ` (lock ${i.lock})` : ''}` : ' · no song'}`;
-  return i ? [m, syncLine()] : [m];
+  return i ? [m, syncLine(), clockLine()] : [m];
 }
 
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };

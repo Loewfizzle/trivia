@@ -336,7 +336,7 @@ pulse any more".
   beams, the pier lamps, the string lights, the NEON logo's party glow, SPEAKEASY's rings + word. `core/harbor-beat.js#pulseGain`
   (the panel's percent or a multiplier, clamped 50–250 % in 5 % steps) and `pulseOut` (linear to 1.2, then a soft knee toward 2.0:
   the tubes' punch is one extra additive draw at most, so a bigger number holds the peak a little longer — never a white wash, never
-  a full-screen flash; the troughs stay put). **The default: `PULSE_DEFAULT = 1.3`** (7a + 30 %) — the owner's pick locks in there.
+  a full-screen flash; the troughs stay put). **The default: `PULSE_DEFAULT = 1.3`** (7a + 30 %) — the owner's pick locks in there (FP: her pick, **1.75** = 175 %).
   Live: THE PREVIEW PANEL → LIGHTS → PULSE STRENGTH (JUST ME live, EVERYONE via SEND; `core/harbor-remote.js` `pulse`, validated by
   `/api/admin` too), or `&pulse=180` on a link.
 - **Tests:** `tests/harbor.test.mjs` "8a — PULSE STRENGTH" (parse, clamp, the knee, the remote's validation); e2e-harbor `music` §10 (a
@@ -430,6 +430,67 @@ recordings imported into theirs; every event that exists today calls its slot; a
   locked one quiet, the importer's id regex = the registry); e2e-harbor `ONLY=sounds` (silent before the tap; by day the water + the DAY hum, the night
   one not loaded; 12.6 MB decoded; the car + gull one-shots; empty slots silent; THE SEAM's voices 1 → 2 → 1; Effects off / on; the panel's SOUNDS
   rows + ▶; at night the NIGHT hum; the neon tap at 0.28125 = 0.5 × 0.5625).
+
+## FP — THE BEAT FROM THE SONG'S POSITION (Oct 23 2026; City 2.0) — `core/harbor-beat.js`, `audio/beat.js`, `audio/music.js`, `screens/harbor/scene.js`
+- **The owner's evidence** (after returning from the home screen, the lights on "random beats"): `c2-party7 · ctx t 71.77 · el t 70.4 → bar 43 ·
+  3/4`, `c2-party4 · ctx t 38.27 · el t 37.0 → bar 20 · 4/4`. **What it showed:** the beat already followed the ELEMENT (`nowPlaying()` →
+  `el.currentTime`); the readout's `bar` was `hbeat.bar` — the bars COUNTED since the scene started, ≈ the context's age, which is why it
+  matched `ctx t`. On the real grids (party7 t0 0.197 · down 1; party4 t0 0.009 · down 2) party4's `4/4` is the element's beat (the context's
+  would be `2/4`); party7's is `3/4` either way. The ~1.3 s between the two clocks is most likely how long the song took to start after the
+  context was made. So the stated cause was a misread — but the off-beat lights still need explaining: this pass makes the clock sturdier and
+  makes the readout say where it goes wrong.
+- **THE SONG CLOCK** (`createSongClock`, `songClockStep`, PURE): an anchor (the element's time + the frame's time) run forward at the playback
+  rate, each fresh `currentTime` reading compared with it — within 30 ms eased in; past 250 ms re-anchored at once; between, re-anchored when
+  two readings in a row agree (iOS's coarse steps never jerk it). Every EVENT re-anchors at once: the element's play / playing / pause /
+  seeking / seeked / waiting / stalled / ratechange, `visibilitychange`, `pageshow`, the engine's `onRebuild` + `onResume` (`audio/beat.js`
+  wires them lazily on the element `nowPlaying()` returns — it now also returns `el` + `rate`). A `currentTime` that stops moving while the
+  song plays runs on for 2 s at most, then holds, flagged `stuck` after 0.6 s. `dequantize` is gone (`songPos()`: one value per frame for
+  every caller). The output latency + the learned lead still apply through Web Audio; the direct element keeps 0 + 0.
+- **The lights jump onto it:** `advanceHarborBeat` snaps to the beat when the song clock re-anchors or the gap passes 30 ms (`DRIFT_SNAP`)
+  instead of easing in over ~½ s; `hb.drift` (ms), `hb.songBar`, `hb.songIdx`.
+- **THE HEARD OFFSET** (`kickErrWide`, `createHeard`, `heardStep`, `heardSkew`): the median of the last 24 strong kicks against the grid within
+  ± half a beat, judged once there are 8. Steady and > 80 ms from the learned lead = `SKEW` — the sound through Web Audio is off the element's
+  clock (the plausible WebKit cause after a return, beyond the lead's ±80…120 ms clamp). It is SHOWN, never applied to the lights' timing;
+  while `SKEW` the kicks are ignored (consistently-off kicks would add off-beat punches AND make the strong beats look kick-less and calm the
+  city — both read as "random beats"): the grid runs alone at its steady strength. Reset on a song change or a re-anchor.
+- **The readout** (`scene.js#beatLine`, `beat.js#clockLine`): `beat grid 100.0 · bar 1 · 2/4 · drift −2 ms · pulse 1.20 · kick 0.62` (the SONG's
+  bar + beat from its grid) and under `sync` a new `clock el +3 ms · anchors 6 (seeking)` (`STUCK` when the element's time stops), `· heard
+  −45 ms` once 8 kicks are heard (`~` while not steady, ` SKEW` when the kicks are ignored). `beatDebug()` has `clock` + `heard`;
+  `harbor().clock`.
+- **What the owner should look at** (a party night, `&debug=1` — or the panel's TOOLS → READOUT; leave for the home screen, come back): `drift`
+  within ~±30 ms; a big / jumping `clock el` or `STUCK` = iOS's `currentTime` misbehaving; `heard ±N ms SKEW` = the sound through Web Audio
+  offset from the element — the next fix (applying that offset) would follow from that number.
+- **Tests:** `harbor.test.mjs` "FP — THE SONG CLOCK" (250 ms iOS steps: < 20 ms off, never backwards; the element paused while the context runs;
+  the context frozen / the page hidden 40 s while the element plays; a seek with no event; a stuck reading; a 30–250 ms drift needing two
+  readings; an event re-anchor — each ending with the lights' beat index on the song's grid beat) + "FP — THE HEARD OFFSET"; e2e-harbor
+  `music` §11 (playing 0.009 beats off; the element paused 2 s → 0.024; the context suspended 2 s → 0.029; a 17 s seek → 0.012; the readout
+  + clock lines) and §9's line now with `drift`.
+
+## FP — THE SOUNDS (Oct 23 2026; the owner listened on her iPhone) — `core/city-sounds.js`, `audio/city-sound.js`, `screens/harbor/sounds.js`
+The owner: the water FAR too loud ("like you're right next to a lake", noticeable over the music); the gulls good but patterned; the cars fine.
+- **THE WATER** — a harbor quay heard from the promenade, not a beach: its gain 0.125 → **0.07** and a new per-slot low-pass (`lp`, loops only,
+  200–16000 Hz, checked by `checkSlots`): **`lp: 1600`** — the filter sits between the loop's gain and its panner (`city-sound.js#pumpOne`,
+  freed on drop / stop, `debug().lp`). The low-pass alone takes 4.8 LU off (−24.1 → −28.9 LUFS, ffmpeg ebur128): ≈ **−9.8 dB** in all. The
+  CITY HUM now leads the bed.
+- **THE BED UNDER THE MUSIC** (`bedMix({ musicOn, sounding, sinceMs, started })`, PURE): with the music on (not off, not muted, slider > 0.01)
+  the whole bed (water + both hums) × **`BED_DUCK` 0.71 (−3 dB)**; it never starts louder than the music — before it has ever started it waits
+  for the song to really sound (`musicSounding()`, at most `BED_WAIT_MS` 6 s), then fades in over `BED_FADE_IN` 5 s; the music on ↔ off eases
+  it over `BED_RAMP` 3 s. The bed starts only after audio unlocks; the panel's SOUNDING line shows `k` + `hold`.
+  | (the music at its default ≈ −34 LUFS out; "out" = after the Effects slider's −6.2 dB) | music OFF: into the bus / out | music ON: into / out | 8a |
+  | --- | --- | --- | --- |
+  | water (0.07 + the 1.6 kHz low-pass) | −52.0 / −58.2 | −55.0 / −61.2 | −42.5 / −48.7 |
+  | the day hum (0.11) | −43.3 / −49.5 | −46.3 / −52.5 | the same |
+  | the night hum (0.09) | −45.2 / −51.4 | −48.2 / −54.4 | the same |
+  | the whole bed by day | ≈ −49.0 out | ≈ −52.0 out (**~18 dB under the music**) | ≈ −46 out |
+  | the whole bed at night | ≈ −50.6 out | ≈ −53.6 out | ≈ −47 out |
+  | a car at its nearest (0.12 → 0.1, −1.6 dB) | ≈ −39.6 out (−42.6 over 3 s) | the same (not ducked) — ~5.6 dB under the music | ≈ −38 out |
+- **THE GULLS** (`gullCalls(rnd, pan)`, `gullGap(g, rnd, calls)`): a moment is ONE call 66 % of the time, two 24 %, three 10 % — each call its own
+  take (never the same twice running), level 0.5–1, pitch 0.95–1.05, pan; the gaps inside a run 0.35–~2 s, uneven; between moments 14–66 s
+  (leaning short, longer with fewer gulls, + 8 s after a run of three) — never a pattern.
+- **Tests:** `city-sounds.test.mjs` (the bed's levels + duck / hold, the gulls' pattern, the debug switches); e2e-harbor `sounds` (the water
+  through its 1.6 kHz low-pass under the day hum, the bed × 0.71 with the music on, × 1 with it off).
+- **Known issues:** only the bed ducks (the sky loops — helicopter, airliner — and the one-shots don't); levels by LUFS arithmetic, not by ear
+  (the owner's ear decides); the wait-for-the-music hold is unit-tested only (in headless Chrome the music sounds at once).
 
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,

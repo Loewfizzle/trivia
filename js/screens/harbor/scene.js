@@ -44,11 +44,11 @@ import { pierSteps, pierLamps } from './pier.js';
 import { lighthouseSteps, createBeam } from './lighthouse.js';
 import { createBoats } from './boats.js';
 import { createWheel } from './wheel.js';
-import { roadSteps, signalSteps, drawTraffic } from './road.js';
-import { speakeasySteps, createSpeakeasy } from './speakeasy.js';
+import { roadSteps, signalSteps, drawTraffic, drawSignalLamps, drawLantern, LENS, WORDS } from './road.js';
+import { speakeasySteps, bladeStep, createSpeakeasy } from './speakeasy.js';
 import { ghostAdGame } from '../../core/harbor-speakeasy.js';
 import { promenadeSteps, furnitureSteps, drawPeople, drawLampLight, freeLampLight } from './stage.js';
-import { seasonOf, seasonPhase } from '../../core/harbor-promenade.js';
+import { seasonOf, seasonPhase, signalAt } from '../../core/harbor-promenade.js';
 import { drawForeground, makeVignette } from './foreground.js';
 import { drawGrid } from './grid.js';
 import { createSkyFx } from './skyfx.js';
@@ -65,6 +65,7 @@ import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
 import { createDayFx } from './dayfx.js';
 import { createClouds } from './clouds.js';
 import { safeCtx, starvedCount, blurWorks } from '../../ui/canvas-safe.js';
+import { debugTool } from '../../ui/debug-tools.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
@@ -259,7 +260,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the roof billboard's band (8a): its lamps' tops down to the dunnage's posts behind the parapet
   function billBand() { const b = L.roof.board, yOf = (y, z) => project(cam, 0, y, z)[1]; return [Math.floor(yOf(b.y1 + 1.6, b.z) - 3), Math.ceil(yOf(b.dun - 0.9, b.z) + 3)]; }
   // the road layer's top: the railing
-  function roadTop() { const yOf = (y, z) => project(cam, 0, y, z)[1]; return yOf(L.rail.y + 0.4, Z.rail); }
+  // (FP: + the WALK / WAIT lantern's cap at the railing)
+  function roadTop() { const yOf = (y, z) => project(cam, 0, y, z)[1], ln = L.crosswalk && L.crosswalk.lantern; return Math.min(yOf(L.rail.y + 0.4, Z.rail), ln ? yOf(ln.h + ln.bh + 0.7, ln.z) : 1e9); }
   // the stage's top: the speakeasy's crest + the posts on its parapet, the string lights' pole, the stop lights
   function stageTop() { const s = L.speakeasy, pl = L.roof.pole, yOf = (y, z) => project(cam, 0, y, z)[1]; return Math.min(yOf(s.top + 0.6, s.z0), yOf(s.h + pl.h + 0.3, pl.z), yOf(L.signals[0].h + 2, L.signals[0].z)); }
   // the front row's top (the furniture nearer than the speakeasy's face)
@@ -326,7 +328,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       harbor: [...pierSteps(L, T), ...lighthouseSteps(L, T)],
       road: roadSteps(L, T),
       bill: [neon.housingStep('bill', T)],
-      stage: [...promenadeSteps(L, T), ...signalSteps(L, T), ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z > L.speakeasy.side.z), ...speakeasySteps(L, T, speakCtx()), ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z <= L.speakeasy.side.z)],
+      stage: [...promenadeSteps(L, T), ...signalSteps(L, T), ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z > L.speakeasy.side.z), ...speakeasySteps(L, T, speakCtx(), { blade: false }), ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z <= L.speakeasy.side.z), bladeStep(L, T, speakCtx())],   // (FP: the blade in front of the curb trees beside the side wall)
       front: furnitureSteps(L, T, it => it.z < L.speakeasy.z0),
     });
     bakeTones = T;
@@ -677,10 +679,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.beam(c, fs);                                // (the helicopter's searchlight down to the water)
     wfx.fogLayer(c, fs, 3, t);
     layer('road');
+    // (FP: the crossing's cycle on the city's clock — the stop lights + the WALK / WAIT lantern across the road, lit before the traffic)
+    const sigSt = signalAt(clock.now()), sigO = { fade: fadeIn, lk: litK(DK, 'lamps'), glow: i => sigGlow[i] || (sigGlow[i] = radial(LENS[i].join(','))) };
+    if (fadeIn > 0) drawLantern(c, L, sigSt, { ...sigO, glow: k => sigGlow[3 + k] || (sigGlow[3 + k] = radial(WORDS[k].col.join(','))) });
     if (fadeIn > 0 && !off.has('no-road')) { c.globalAlpha = fadeIn; drawTraffic(c, L, T, density.road); c.globalAlpha = 1; }
     layer('bill');
     neon.draw(c, 'bill', nf);                        // (8a: the roof billboard's lamps + their light on the poster)
     layer('stage');
+    // the stop lights' lamps: lit at every hour, a glow after dark (FP: side-on, the glow spilling along the road; the cycle: signalAt) —
+    // right after their bake, so the people + the front row stand in front of them
+    if (fadeIn > 0) drawSignalLamps(c, L, sigSt, sigO);
     // PART 7a — THE SPEAKEASY's live layer: its rooms lit (from dusk, by the hour), their glow on the brick, the shop's lamp, the
     // sconce, the basement's amber (day + night), the ghost ad's lamps, the barber pole (turning while the shop is open)
     if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier });
@@ -701,14 +709,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const sp = PT.on > 0 ? { on: PT.ramp, energy: PT.energy, beats: PT.beats, beatU: PT.beatU, punch: PT.punch } : fp ? { on: 1, energy: 1, beats: Math.floor(tb), beatU: tb % 1, punch: S.motion ? pulseOut(punchEnv(tb % 1, 0.5), PT.pulse) : 0 } : null;
       strings.draw(c, { k: fadeIn * litK(DK, 'strings') * (lit > 0 ? lit : 0), day: TW.day || 0, party: sp, t, motion: S.motion, tier });
     }
-    // the stop lights' lamps: lit at every hour, a glow after dark (Part 8: the cycle, the wet reflections)
-    if (fadeIn > 0) for (const sg of L.signals) if (sg.head) {
-      const hd = sg.head, i = sg.state === 'red' ? 0 : 2, y = hd.y + hd.h * (0.2 + i * 0.3), col = i ? [90, 255, 150] : [255, 70, 60];
-      c.globalAlpha = fadeIn; c.fillStyle = `rgb(${col})`; c.beginPath(); c.arc(hd.x, y, hd.w * 0.28, 0, Math.PI * 2); c.fill();
-      if (!sigGlow[i]) sigGlow[i] = radial(col.join(','));
-      const lk = litK(DK, 'lamps'), r = hd.w * (1.6 + 2.2 * lk); c.globalCompositeOperation = 'lighter'; c.globalAlpha = fadeIn * (0.35 + 0.5 * lk); c.drawImage(sigGlow[i], hd.x - r, y - r, r * 2, r * 2);
-      c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-    }
     { const k = 1 - smooth(0, 900, (performance.now() - knockAt)); if (k > 0) { const d = L.door; c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.7 * k; const r = d.h * 1.6; c.drawImage(glow, d.x - r, d.y - d.h * 0.7 - r, r * 2, r * 2); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; } }
     // before the power-on the city sits in near-darkness (only at night)
     if (lit < 1) { c.fillStyle = `rgba(2,2,9,${0.58 * (1 - lit) * night})`; c.fillRect(0, 0, W, H); }
@@ -721,7 +721,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sun.dim(c, fs);
     drawForeground(c, W, H, vignette, night);
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
-    if (DEBUG) drawReadout(c, now);
+    // (FP: or THE PREVIEW PANEL → TOOLS → READOUT on this device — ui/debug-tools.js, live, remembered; &debug=1 still shows it)
+    if (debugTool('readout', DEBUG)) drawReadout(c, now);
   }
   // &debug=1: THE FRAME-TIME READOUT (the owner's request: the real speed on her own phone) — top left, under the safe area:
   // the tier + DPR, frames drawn a second, the scene's work per drawn frame (mean / p95 over the last 90 DRAWN frames), the frame
@@ -732,7 +733,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (8a: `· pulse 0.87` — the punch the lights got, its peak since the last refresh: 0 = they aren't pulsing; ~0.6–1.2 on the beats at
   // the default strength, up to ~2 cranked — the owner's iPhone: "the pulse doesn't come back after returning" — + `×1.8` when the
   // PULSE STRENGTH isn't the default)
-  const beatLine = () => `beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.bar} · ${hbeat.idx + 1}/4 · pulse ${roPulse.toFixed(2)}${PT.pulse && PT.pulse !== pulseGain(null) ? ` ×${PT.pulse.toFixed(2)}` : ''}${hbeat.live ? ` · kick ${hbeat.level.toFixed(2)}` : hbeat.src === 'grid' ? ' · kick unheard' : ''}`;
+  const beatLine = () => `beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.songBar != null ? hbeat.songBar : hbeat.bar} · ${(hbeat.songIdx != null ? hbeat.songIdx : hbeat.idx) + 1}/4${hbeat.drift != null ? ` · drift ${hbeat.drift >= 0 ? '+' : '−'}${Math.abs(Math.round(hbeat.drift))} ms` : ''} · pulse ${roPulse.toFixed(2)}${PT.pulse && PT.pulse !== pulseGain(null) ? ` ×${PT.pulse.toFixed(2)}` : ''}${hbeat.live ? ` · kick ${hbeat.level.toFixed(2)}` : hbeat.src === 'grid' ? ' · kick unheard' : ''}`;
   let roAt = 0, roText = null, roN = 0, roT0 = 0;
   function drawReadout(c, now) {
     roN++;
@@ -1274,12 +1275,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       sky: { state: sky.debug(), ...sky.api },
       sounds: { ...snd.debug(), play: snd.play, loop: snd.loop },
       road: { ...roadLight.debug(), wash: o => roadLight.wash(o) },
+      // (FP: the crossing now — the cycle's state, the lantern's box + the heads on screen)
+      crossing: (() => { const ln = L.crosswalk && L.crosswalk.lantern; return { ...signalAt(clock.now()), lantern: ln && ln.box ? { x: ln.box.x, y: ln.box.y, w: ln.box.w, h: ln.box.h, letter: ln.box.panes[0].h * 0.74, panes: ln.box.panes.map(q => ({ word: q.word, x: q.x, y: q.y, w: q.w, h: q.h })) } : null, heads: L.signals.map(s => (s.head ? { id: s.id, x: s.head.x, y: s.head.y, w: s.head.w, h: s.head.h, state: s.state } : null)) }; })(),
       // (8a: THE PROMENADE — what stands where (screen pt), the season, the implied road, a lit + a dark point of the tall lamp's pool)
       promenade: L ? (() => { const P = (x, z, y = 0) => project(cam, x, y, z).map(v => +v.toFixed(1));
         return { season: L.season, phase: L.seasonPhase, impliedOn: L.impliedOn !== false, lampK: L.lampK, flag: !!L.flag,
           lamps: L.lamps.map(l => ({ kind: l.kind, at: P(l.x, l.z), heads: (l.heads || []).length })), trees: L.trees.map(t => ({ kind: t.kind, at: P(t.x, t.z), r: +(cam.F * t.w / 2 / t.z).toFixed(1) })),
           medallion: P(L.medallion.x, L.medallion.z), bench: P(L.bench.x, L.bench.z), cart: P(L.cart.x, L.cart.z), planters: L.planters.map(p => P(p.x, p.z)),
-          pool: (() => { const g = L.lamps.find(l => l.kind === 'globe' && l.x > L.medallion.x); return g ? { lit: P(g.x + 1.1, g.z + 1.3) } : null; })() }; })() : null,      // (8a: THE IMPLIED ROAD — the pass now; wash({ col, k }) for 7b's raid)      // (PART 8a: the city's sound slots — play('car-1920s-pass', { pan, gain }))
+          pool: (() => { const g = L.lamps.filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0]; return g ? { lit: P(g.x + 2.2, g.z + 0.8) } : null; })() }; })() : null,   // (FP: the open floor beside the left corner globe)      // (8a: THE IMPLIED ROAD — the pass now; wash({ col, k }) for 7b's raid)      // (PART 8a: the city's sound slots — play('car-1920s-pass', { pan, gain }))
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
       water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },
       neon: neon.debug(), neonRuns: () => neon.runs(), show: neon.show(), daily: neon.daily(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => neon.billboard(id, v), reflections: () => neon.reflections(), beacons: lights.beaconList(),
@@ -1287,9 +1290,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(),
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
-      flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, grid: GRID },
+      flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null,
-      music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
+      music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {

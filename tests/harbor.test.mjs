@@ -1831,7 +1831,7 @@ test('THE SLOT RULE (DT1 — the owner: never a shortened name): the blade one-w
   }
 });
 
-test("8a — THE BILLBOARD on the speakeasy's roof: over the left half-plus of the roof, fully inside the left edge, clear of the wheel + the word towers, its frame's feet above the parapet's line, ~¼ open frame", () => {
+test("8a — THE BILLBOARD on the speakeasy's roof: over the left half-plus of the roof, fully inside the left edge, clear of the wheel + the word towers, its frame's feet above the parapet's line, FP: a SHORT frame — the board's foot only a little above the string lights", () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), sp = signSpots(L).find(x => x.kind === 'billboard'), R = sp.rect, b = L.roof.board, s = L.speakeasy;
     assert.equal(sp.mount, 'speak');
@@ -1849,8 +1849,12 @@ test("8a — THE BILLBOARD on the speakeasy's roof: over the left half-plus of t
     // the feet: the dunnage's top above the front parapet's line (from this camera the deck itself hides behind it)
     const dunY = project(cam, 0, b.dun, b.z)[1], parY = project(cam, 0, SPEAK_V.parapet, s.z0)[1];
     assert.ok(dunY < parY - 4 * cam.F / 600, `${k}: the feet ${(parY - dunY).toFixed(1)} pt above the parapet`);
+    // FP (the owner: the tall open frame showed the brick city through the gap — "chaotic"): a short frame, ≤ ⅙ of the board, the
+    // board's foot 1.5–6 pt above the string lights' posts (on the parapet's front edge) — never behind them, never a tall gap
     const open = b.y0 - b.dun, hb = b.y1 - b.y0;
-    assert.ok(open / hb > 0.2 && open / hb < 0.32, `${k}: open frame ${(open / hb).toFixed(2)} of the board`);
+    assert.ok(open / hb > 0.05 && open / hb <= 1 / 6, `${k}: frame ${(open / hb).toFixed(2)} of the board`);
+    const footY = project(cam, 0, b.y0, b.z)[1], strY = project(cam, 0, SPEAK_V.parapet + 1.12, s.z0 - 0.05)[1], gap = strY - footY, pt = cam.F / 600;
+    assert.ok(gap > 1.5 * pt && gap < 6 * pt, `${k}: the board's foot ${gap.toFixed(1)} pt above the string lights`);
   }
 });
 
@@ -2139,27 +2143,28 @@ test('8a — THE FIRST TAP reads the sign\'s real state: unlit (goodbye / day / 
 test('8a — PULSE STRENGTH: pulseGain parses percent / multiplier, clamps, defaults; pulseOut is linear to the knee, never above the cap; the remote validates it (the server shares it), drops the default, and carries it to the URL + the status', async () => {
   const { pulseGain, pulseOut, PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_KNEE, PULSE_CAP } = await import('../js/core/harbor-beat.js');
   const { cleanRemote, toParams, describe, PULSE, REMOTE_KEYS } = await import('../js/core/harbor-remote.js');
-  assert.equal(PULSE_DEFAULT, 1.3, '7a + 30 % (the owner: "crank it up higher")');
+  assert.equal(PULSE_DEFAULT, 1.75, "the owner's pick on her iPhone: 175 % (FP)");
   assert.equal(pulseGain(null), PULSE_DEFAULT); assert.equal(pulseGain(''), PULSE_DEFAULT); assert.equal(pulseGain('junk'), PULSE_DEFAULT); assert.equal(pulseGain('-3'), PULSE_DEFAULT);
   assert.equal(pulseGain('180'), 1.8); assert.equal(pulseGain(180), 1.8); assert.equal(pulseGain('1.8'), 1.8); assert.equal(pulseGain('100'), 1);
   assert.equal(pulseGain('900'), PULSE_MAX); assert.equal(pulseGain('10'), PULSE_MIN); assert.equal(pulseGain('0.2'), PULSE_MIN);
   assert.equal(pulseGain('133'), 1.35, 'on the slider\'s 5 % steps');
-  // the default boosts 7a's punch by 30 % where it lives (a downbeat at the grid's 0.85); never negative, never above the cap
-  assert.ok(Math.abs(pulseOut(0.85) - 0.85 * 1.3) < 1e-9);
+  // the default (175 %) is linear below the knee (a beat-3 punch ~0.6) and eased above it (a downbeat at the grid's 0.85); never negative, never above the cap
+  assert.ok(Math.abs(pulseOut(0.6) - 0.6 * 1.75) < 1e-9);
+  assert.ok(pulseOut(0.85) > PULSE_KNEE && pulseOut(0.85) < 0.85 * 1.75 && pulseOut(0.85) < PULSE_CAP, 'the downbeat eased by the knee');
   assert.equal(pulseOut(0), 0); assert.equal(pulseOut(-1, 2), 0); assert.equal(pulseOut(NaN, 2), 0);
   assert.ok(Math.abs(pulseOut(1, PULSE_KNEE) - PULSE_KNEE) < 1e-9, 'linear up to the knee');
   let prev = 0;
   for (let p = 0; p <= 1.6; p += 0.02) { const v = pulseOut(p, PULSE_MAX); assert.ok(v >= prev - 1e-12 && v < PULSE_CAP, `monotonic, under the cap (${p.toFixed(2)} → ${v.toFixed(3)})`); prev = v; }
   for (const k of [0.5, 1, 1.3, 1.8, 2.5]) assert.ok(pulseOut(0.85, k) >= pulseOut(0.85, k - 0.1), `a higher strength never punches less (${k})`);
   // the panel's range + the remote
-  assert.deepEqual(PULSE, { min: 50, max: 250, step: 5, def: 130 });
+  assert.deepEqual(PULSE, { min: 50, max: 250, step: 5, def: 175 });
   assert.ok(REMOTE_KEYS.includes('pulse'), 'the remote owns &pulse= (JUST ME / EVERYONE replace the page\'s own)');
   let r = cleanRemote({ pulse: 180 });
   assert.deepEqual(r, { state: { pulse: 180 }, bad: [] });
   assert.equal(toParams(r.state).pulse, '180'); assert.equal(describe(r.state), 'PULSE 180 %');
   assert.equal(pulseGain(toParams(r.state).pulse), 1.8, 'the URL flag the scene reads → the multiplier');
   assert.deepEqual(cleanRemote({ pulse: '205' }).state, { pulse: 205 });
-  assert.deepEqual(cleanRemote({ pulse: 130 }), { state: {}, bad: [] }, 'the default itself is no change');
+  assert.deepEqual(cleanRemote({ pulse: 175 }), { state: {}, bad: [] }, 'the default itself is no change');
   for (const v of [45, 255, 133, 'x', 1.8, -100, 1e9]) assert.ok(cleanRemote({ pulse: v }).bad.includes('pulse'), `refused: ${v}`);
   assert.deepEqual(cleanRemote({ force: ['searchlights'], pulse: 250, party: 'on' }).state, { force: ['searchlights'], pulse: 250, party: 'on' }, 'with anything else');
 });
@@ -2190,6 +2195,36 @@ test('8a — THE PROMENADE: the centrepiece spot in the open plaza (clear of the
     assert.equal(L.flag, undefined);
     const [wx] = P(w.x, 0, w.z), base = cam.F * (w.leg * w.r + 1.4) / w.z;
     for (const sg of L.signals) assert.ok(P(sg.x, 0, sg.z)[0] > wx + base, `${k}: the ${sg.id} stop light right of the wheel's base`);
+  }
+});
+test('FP — THE PROMENADE RE-LAYOUT: furniture on the edges (the back row clear of the stop lights, the lantern + the crossing\'s landing), an open floor (only the medallion, the cart, the corner urn), the front edge clear (two corner globes + the framing maple), the bench by a tall lamp', () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
+    const crown = t => cam.F * t.w / 2 / t.z;
+    // THE BACK ROW (the curb): two maples, two tall lamps, the bench — every tree's crown clear of both stop lights' heads + the lantern
+    const back = [...L.trees, ...L.lamps].filter(it => it.z >= 50);
+    assert.equal(back.filter(t => t.kind === 'maple').length, 2, `${k}: two curb maples`); assert.equal(back.filter(l => l.kind === 'tall').length, 2, `${k}: two tall lamps`);
+    assert.ok(L.bench.z >= 50, `${k}: the bench in the back row`);
+    const keep = [...L.signals.map(sg => sx(sg)), sx(L.crosswalk.lantern)];
+    for (const t of L.trees.filter(t => t.z >= 50)) for (const kx of keep) assert.ok(Math.abs(sx(t) - kx) > crown(t) + 4, `${k}: a curb maple (${sx(t).toFixed(0)}) clear of a stop light / the lantern (${kx.toFixed(0)})`);
+    // the crossing's landing on the curb stays open: no tree trunk, lamp post or bench in the crosswalk's width
+    const [c0] = P(L.crosswalk.x0, 53), [c1] = P(L.crosswalk.x1, 53);
+    for (const it of [...back, L.bench]) { const x = sx(it), hw = it === L.bench ? cam.F * L.bench.w / 2 / L.bench.z : 3; assert.ok(x + hw < c0 || x - hw > c1, `${k}: the crossing's landing open (${x.toFixed(0)} vs ${c0.toFixed(0)}–${c1.toFixed(0)})`); }
+    // THE OPEN FLOOR (z 38.4–50): only the medallion, the cart + the urn at the speakeasy's corner
+    const floor = [...L.trees, ...L.lamps, ...L.planters].filter(it => it.z > 38.4 && it.z < 50);
+    assert.deepEqual(floor.map(it => it.kind || 'planter'), ['planter'], `${k}: the floor holds no tree or lamp — only the corner urn`);
+    const u = L.planters[0], s = L.speakeasy, [ux] = P(u.x, u.z), uw = cam.F * u.w / 2 / u.z, [wallX] = P(s.x1, u.z);
+    assert.ok(ux - uw > wallX && ux - uw < wallX + 14, `${k}: the urn tucked against the side wall (${(ux - uw).toFixed(0)} vs the wall ${wallX.toFixed(0)})`);
+    assert.ok(ux - uw > L.door.x + L.door.w / 2, `${k}: the urn clear of the door`);
+    assert.equal(L.planters.length, 1, `${k}: ONE crafted planter`);
+    // THE FRONT EDGE (nearer than z 38.4): only the two corner globes + the framing maple at the right — not covering the cart
+    const front = [...L.trees, ...L.lamps, ...L.planters].filter(it => it.z <= 38.4);
+    const globes = front.filter(l => l.kind === 'globe').map(sx).sort((a, b) => a - b), [faceX] = P(s.x1, s.z0);
+    assert.equal(globes.length, 2, `${k}: two globes`); assert.ok(Math.abs(globes[0] - faceX) < 0.04 * cam.W && globes[1] > 0.93 * cam.W, `${k}: one at each corner (${globes.map(v => v.toFixed(0))})`);
+    const big = front.filter(t => t.kind === 'maple'); assert.equal(big.length, 1, `${k}: one framing maple`);
+    const cartR = sx(L.cart) + cam.F * 1.25 / L.cart.z; assert.ok(sx(big[0]) - crown(big[0]) >= cartR - 4 && sx(big[0]) > 0.82 * cam.W, `${k}: the framing maple at the right edge, clear of the cart`);
+    // the bench in a tall lamp's light (it must read at night)
+    assert.ok(L.lamps.some(l => l.kind === 'tall' && Math.hypot(l.x - L.bench.x, l.z - L.bench.z) < 3.5), `${k}: the bench by a tall lamp`);
   }
 });
 test('8a — THE SEASON by the real date (Michigan), forced by &season=, the south shifted', () => {
@@ -2239,8 +2274,10 @@ test('8a — THE TREES: one seeded skeleton through the year, the crown inside i
   const { treePlan, treeMix, densityOf, LEAF } = await import('../js/core/harbor-trees.js');
   const { promenadeLayout } = await import('../js/core/harbor-promenade.js');
   const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = promenadeLayout(cam);
-  assert.ok(L.trees.some(t => t.kind === 'maple') && L.trees.some(t => t.kind === 'crab'));
-  L.trees.forEach((t, i) => {
+  // (FP: the phone's re-laid promenade has three maples — the crabapple stays for the panorama's front row: tested here as one)
+  const { PIECE: PC } = await import('../js/core/harbor-promenade.js'), CRAB = { x: 0, z: 49, kind: 'crab', trunk: PC.crab.trunk, w: PC.crab.w, h: PC.crab.h, r: PC.crab.w / 2, grate: true };
+  assert.equal(L.trees.filter(t => t.kind === 'maple').length, 3, 'the phone: two curb maples + the big framing one');
+  [...L.trees, CRAB].forEach((t, i) => {
     const a = treePlan(t, { season: 'autumn', phase: 0.5, i });
     assert.deepEqual(JSON.stringify(a), JSON.stringify(treePlan(t, { season: 'autumn', phase: 0.5, i })), 'deterministic');
     // the same tree all year: the skeleton never changes with the season
@@ -2280,6 +2317,7 @@ test('8a — THE TREES draw in every season + look with finite colours; cast sha
   const { drawTree, treeShadow, createLeaves } = await import('../js/screens/harbor/trees.js');
   const { promenadeLayout } = await import('../js/core/harbor-promenade.js');
   const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = { ...promenadeLayout(cam), cam };
+  { const { PIECE: PC } = await import('../js/core/harbor-promenade.js'); L.trees = [...L.trees, { x: 0, z: 49, kind: 'crab', trunk: PC.crab.trunk, w: PC.crab.w, h: PC.crab.h, r: PC.crab.w / 2, grate: true }]; }   // (FP: a crabapple — the panorama's)
   const rec = () => {
     const o = { bad: [], fills: 0 }, base = { fill: () => { o.fills++; } };
     const chk = v => { if (typeof v === 'string' && /NaN|undefined|Infinity/.test(v)) o.bad.push(v); };
@@ -2304,4 +2342,158 @@ test('8a — THE TREES draw in every season + look with finite colours; cast sha
   assert.ok(p2 > 2 && p2 <= 12, `tier 2: ${p2}`); assert.ok(p1 > 0 && p1 <= 5, `tier 1: ${p1}`);
   assert.equal(run({ tier: 0 }), 0); assert.equal(run({ motion: false }), 0); assert.equal(run({ season: 'winter' }), 0);
   assert.ok(run({ season: 'spring', phase: 0.5 }) > 0, 'the crabapple\'s petals');
+});
+
+// ------------------------------------------------------------------ FP — THE SONG CLOCK (the beat after returning: docs/audio.md#fp)
+test('FP — THE SONG CLOCK: the beat follows the SONG (the element\'s currentTime) through coarse iOS steps, a pause (the context running on), the context frozen while the element plays, a seek, a stuck reading — and the lights\' beat index matches the song', async () => {
+  const { createSongClock, songClockStep, SC_HOLD, DRIFT_SNAP } = await import('../js/core/harbor-beat.js');
+  const grid = { bpm: 140, t0: 0.197, down: 1 }, spb = 60 / grid.bpm;
+  const songBeat = t => (t - grid.t0) / spb - grid.down;
+  const off = (hb, t) => { let d = songBeat(t) - hb.beats; d -= 4 * Math.round(d / 4); return Math.abs(d) * spb; };   // (s)
+  const sc = createSongClock(), hb = createHarborBeat(0);
+  let now = 0, song = 30;                                  // the frame clock (ms) + the song's true position (s)
+  // the element's currentTime on iOS: a fresh value every 250 ms (the time at that update), held between
+  let shown = song, shownAt = 0;
+  const frame = (dtMs, opts = {}) => {
+    now += dtMs; if (!opts.paused && !opts.stuck) song += dtMs / 1000;
+    if (opts.seek != null) { song = opts.seek; shown = song; shownAt = now; }
+    if (!opts.stuck && now - shownAt >= 250) { shown = song; shownAt = now; }
+    const pos = songClockStep(sc, { id: 'c2-party7', t: shown, paused: !!opts.paused }, now, opts.why || '');
+    advanceHarborBeat(hb, opts.lost ? 0 : dtMs, pos >= 0 ? { bpm: grid.bpm, pos, grid, snap: sc.snap } : null, null);
+    return pos;
+  };
+  // 1. coarse steps: the clock runs smoothly, within a frame of the song, never backwards
+  let prev = -1, worst = 0, back = 0;
+  for (let i = 0; i < 600; i++) { const p = frame(1000 / 60); worst = Math.max(worst, Math.abs(p - song)); if (prev >= 0 && p < prev - 1e-6) back++; prev = p; }
+  assert.ok(worst < 0.02 && back === 0, `coarse steps: ${(worst * 1000).toFixed(1)} ms from the song at worst, ${back} steps back`);
+  assert.ok(off(hb, song) < DRIFT_SNAP, `the lights on the song's beat (${(off(hb, song) * 1000).toFixed(1)} ms)`);
+  // 2. the element paused while the context keeps running (the frame clock goes on): no song, then it resumes from where it stopped
+  for (let i = 0; i < 120; i++) frame(1000 / 60, { paused: true });
+  assert.equal(sc.pos, -1, 'paused: no position');
+  frame(1000 / 60, { why: 'play' });
+  for (let i = 0; i < 3; i++) frame(1000 / 60);
+  assert.ok(off(hb, song) < DRIFT_SNAP, `resumed: the beat index matches the song at once (${(off(hb, song) * 1000).toFixed(1)} ms)`);
+  // 3. the CONTEXT frozen / the page hidden while the element plays on (no frames for 40 s; the song advanced): back → re-locked at once
+  for (let i = 0; i < 40; i++) { now += 1000; song += 1; }
+  shown = song; shownAt = now;
+  frame(1000 / 60, { lost: true });
+  for (let i = 0; i < 2; i++) frame(1000 / 60);
+  assert.ok(off(hb, song) < DRIFT_SNAP && Math.abs(sc.pos - song) < 0.02, `back after 40 s: on the song within two frames (${(off(hb, song) * 1000).toFixed(1)} ms)`);
+  const idx = ((Math.floor(songBeat(song)) % 4) + 4) % 4;
+  assert.equal(hb.idx, idx, `the beat index ${hb.idx + 1}/4 = the song's ${idx + 1}/4`);
+  assert.equal(hb.songIdx, idx, 'the readout\'s song beat');
+  assert.ok(Math.abs(hb.drift) < DRIFT_SNAP * 1000, `the readout's drift ${hb.drift.toFixed(1)} ms`);
+  // 4. a seek (without an event: the reading jumps) — re-anchored at once
+  frame(1000 / 60, { seek: 95.3 });
+  frame(1000 / 60);
+  assert.ok(sc.why === 'jump' && off(hb, song) < DRIFT_SNAP, `a seek re-locks (${sc.why}, ${(off(hb, song) * 1000).toFixed(1)} ms)`);
+  // 5. a stuck currentTime while it "plays": run forward SC_HOLD s at most, flagged; when it moves again — back on the song
+  const stuckAt = sc.pos;
+  for (let i = 0; i < 240; i++) frame(1000 / 60, { stuck: true });
+  assert.ok(sc.stuck && sc.pos <= stuckAt + SC_HOLD + 0.3 + 1e-6, `stuck: flagged, held ${(sc.pos - stuckAt).toFixed(2)} s past the last reading`);
+  shown = song; shownAt = now;
+  for (let i = 0; i < 3; i++) frame(1000 / 60);
+  assert.ok(!sc.stuck && off(hb, song) < DRIFT_SNAP, `unstuck: on the song (${(off(hb, song) * 1000).toFixed(1)} ms)`);
+  // 6. a drift between 30 and 250 ms: re-anchored when two fresh readings agree (one late update alone never moves it)
+  const a0 = sc.anchors;
+  song += 0.08; shown = song; shownAt = now; frame(1000 / 60);
+  assert.equal(sc.anchors, a0, 'one reading 80 ms off: not yet');
+  for (let i = 0; i < 20; i++) frame(1000 / 60);
+  assert.ok(sc.anchors === a0 + 1 && sc.why === 'drift' && off(hb, song) < DRIFT_SNAP, `two agreeing readings: re-anchored (${sc.why})`);
+  // 7. an event re-anchors on its own (visible / rebuild): the clock takes the reading as it is
+  frame(1000 / 60, { why: 'visible' });
+  assert.ok(sc.snap && sc.why === 'visible');
+});
+
+test('FP — THE HEARD OFFSET: strong kicks vs the grid over ± half a beat; steady + beyond the lead = SKEW, and then the kicks are not listened to (no off-beat punches, the strong beats don\'t calm the city)', async () => {
+  const { kickErrWide, createHeard, heardStep, heardSkew, KICK_LAG } = await import('../js/core/harbor-beat.js');
+  const grid = { bpm: 125, t0: 0.009, down: 2 }, p = 60 / grid.bpm;
+  assert.ok(Math.abs(kickErrWide(grid.t0 + 10 * p + KICK_LAG + 0.2, grid) - 0.2) < 1e-9, 'a kick 200 ms late reads +200 ms (the lead\'s ±80 ms would drop it)');
+  const h = createHeard();
+  for (let i = 0; i < 7; i++) heardStep(h, 0.2 + (i % 3) * 0.004);
+  assert.ok(!h.steady && !heardSkew(h), 'fewer than 8: not judged');
+  heardStep(h, 0.2);
+  assert.ok(h.steady && Math.abs(h.v - 0.2) < 0.01 && heardSkew(h, -0.04), `steady at +${Math.round(h.v * 1000)} ms: SKEW`);
+  const ok = createHeard(); for (let i = 0; i < 12; i++) heardStep(ok, -0.04 + (i % 4) * 0.005);
+  assert.ok(ok.steady && !heardSkew(ok, -0.04), 'near the learned lead: in sync');
+  const messy = createHeard(); for (let i = 0; i < 16; i++) heardStep(messy, ((i * 7) % 11) / 11 * 0.4 - 0.2);
+  assert.ok(!messy.steady && !heardSkew(messy), 'scattered kicks: never a skew');
+  // the beat clock with skewed kicks: as if nothing were heard (the grid at its steady strength)
+  const a = createHarborBeat(0), b = createHarborBeat(0);
+  let pos = 0;
+  for (let i = 0; i < 900; i++) {
+    pos += 1 / 60; const beat = (pos - grid.t0) / p, hit = Math.abs(beat - Math.round(beat) - 0.45) < 0.03 ? 0.9 : 0;   // (kicks ~half a beat off)
+    advanceHarborBeat(a, 1000 / 60, { bpm: 125, pos, grid }, { hit, live: true, skew: true });
+    advanceHarborBeat(b, 1000 / 60, { bpm: 125, pos, grid }, { hit: 0, live: false });
+  }
+  assert.ok(Math.abs(a.level - b.level) < 1e-9 && Math.abs(a.punch - b.punch) < 1e-9 && a.kick === 0, `skewed kicks ignored (level ${a.level.toFixed(2)} = ${b.level.toFixed(2)})`);
+});
+
+// ------------------------------------------------------------------ FP — THE STOP LIGHTS + THE CROSSING
+import { signalAt, SIGNAL_CYCLE, SIGNAL_PERIOD, LANTERN } from '../js/core/harbor-promenade.js';
+import { SIG } from '../js/screens/harbor/road.js';
+test('FP — THE CROSSING\'S CYCLE: on the shared clock (the same for everyone), green → amber → red with WALK → WAIT blinking → green', () => {
+  const t0 = Date.UTC(2026, 9, 22, 16, 0, 0);
+  // every phone the same: a pure function of the city's clock, periodic
+  for (let k = 0; k < 50; k++) { const ms = t0 + k * 937; assert.deepEqual(signalAt(ms), signalAt(ms)); assert.equal(signalAt(ms).road, signalAt(ms + SIGNAL_PERIOD * 1000 * 7).road); }
+  // the order over one cycle, sampled every 50 ms
+  const seq = [];
+  let blinkOn = 0, blinkOff = 0;
+  for (let s = 0; s < SIGNAL_PERIOD; s += 0.05) {
+    const st = signalAt(Math.ceil(t0 / (SIGNAL_PERIOD * 1000)) * SIGNAL_PERIOD * 1000 + s * 1000);
+    const key = `${st.road}/${st.walk}${st.blink ? '*' : ''}`;
+    if (seq[seq.length - 1] !== key) seq.push(key);
+    // never WALK unless the road is red; the cars' green always under a steady WAIT
+    if (st.walk === 'walk') assert.equal(st.road, 'red');
+    if (st.road === 'green') assert.ok(st.walk === 'wait' && !st.blink && st.lit);
+    if (st.blink) { if (st.lit) blinkOn++; else blinkOff++; }
+  }
+  assert.deepEqual(seq, ['green/wait', 'amber/wait', 'red/wait', 'red/walk', 'red/wait*', 'red/wait', 'green/wait']);
+  // WAIT blinks (on and off) only in the last seconds before the road turns green
+  assert.ok(blinkOn > 20 && blinkOff > 20, `the blink: on ${blinkOn} · off ${blinkOff}`);
+  assert.ok(SIGNAL_CYCLE.blink >= 3 && SIGNAL_CYCLE.blink <= 8 && SIGNAL_CYCLE.walk >= 8);
+});
+test('FP — THE CROSSING on the phones: the heads face along the road (side-on), the WALK / WAIT lantern across the road — clear of the wheel\'s base, the stop lights + the dock, its letters readable', () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), P = (x, y, z) => project(cam, x, y, z), f = cam.W / 402;
+    const ln = L.crosswalk.lantern, s = cam.F / ln.z, [lx, ly] = P(ln.x, 0, ln.z), lw = ln.w * s;
+    const box = { x0: lx - lw / 2, x1: lx + lw / 2, y0: ly - (ln.h + ln.bh + 0.5) * s, y1: ly };
+    // on the far side (by the railing), at the crosswalk's far end
+    assert.ok(ln.z > L.crosswalk.z0 + 8 && ln.z < Z.rail && ln.x > L.crosswalk.x0 && ln.x < L.crosswalk.x1, `${k}: the lantern at the crosswalk's far end`);
+    // clear of the wheel's base + the dock
+    const w = L.wheel, [wx] = P(w.x, 0, w.z), base = cam.F * (w.leg * w.r + 1.4) / w.z;
+    assert.ok(box.x0 > wx + base, `${k}: the lantern ${box.x0.toFixed(0)} right of the wheel's base ${(wx + base).toFixed(0)}`);
+    assert.ok(box.y1 < cam.dock.y, `${k}: the lantern above the dock`);
+    // never behind a stop light's head (hoods included)
+    for (const sg of L.signals) {
+      const ss = cam.F / sg.z, [sx] = P(sg.x, 0, sg.z), [, sy] = P(sg.x, sg.h, sg.z), half = (SIG.D / 2 + SIG.visor) * ss;
+      const sb = { x0: sx - half, x1: sx + half, y0: sy, y1: sy + (SIG.top + SIG.HH) * ss };
+      const overlap = box.x0 < sb.x1 && box.x1 > sb.x0 && box.y0 < sb.y1 && box.y1 > sb.y0;
+      assert.ok(!overlap, `${k}: the lantern clear of the ${sg.id} stop light's head`);
+      // the head's hoods reach along the road both ways (one face per direction of traffic), wider than it is deep
+      assert.ok(SIG.visor > SIG.D * 0.8);
+    }
+    // its letters ≈ 6.5 pt+ at 402 (scaled by the width): the pane's height × the font's 0.74
+    const ph = ((ln.bh - 0.34 - 0.16) / 2) * s, letter = ph * 0.74;
+    assert.ok(letter > 6.2 * f, `${k}: the lantern's letters ${letter.toFixed(1)} pt`);
+    assert.equal(LANTERN.z, ln.z);
+  }
+});
+
+// ---------------------------------------------------------------- FP — THE BARBER POLE (the owner: "glitchy, jagged, not continuous" at night)
+import { poleTurn, POLE_DAY, POLE_NIGHT } from '../js/screens/harbor/speakeasy.js';
+test("FP — THE BARBER POLE turns continuously: the same phase at 60 and 30 Hz, never stepped to a pixel; slow when lit, the shop's pace by day", () => {
+  for (const lit of [0, 0.5, 1]) {
+    let a = 0.3, b = 0.3;
+    for (let i = 0; i < 120; i++) a = poleTurn(a, 1 / 60, lit);
+    for (let i = 0; i < 60; i++) b = poleTurn(b, 1 / 30, lit);
+    assert.ok(Math.abs(a - b) < 1e-9, `lit ${lit}: 60 Hz ${a} vs 30 Hz ${b}`);
+    const rate = POLE_DAY + (POLE_NIGHT - POLE_DAY) * lit;
+    assert.ok(Math.abs(((a - 0.3 + 1) % 1) - (2 * rate) % 1) < 1e-9, `lit ${lit}: 2 s turn ${rate * 2} periods`);
+  }
+  // one frame's step at night is a small FRACTION of a point (a 10 pt period: ~0.03 pt at 60 Hz) — sub-pixel, so the strip must slide
+  const step = (poleTurn(0, 1 / 60, 1) - 0) * 10;
+  assert.ok(step > 0 && step < 0.1 && Math.abs(step - Math.round(step)) > 1e-3, `a frame's step ${step.toFixed(4)} pt`);
+  assert.equal(poleTurn(0.99, 0.1, 0), (0.99 + 0.042) % 1, 'wraps round (the strip is one period: seamless)');
+  assert.equal(poleTurn(0.5, -1, 1), 0.5, 'never backwards');
 });

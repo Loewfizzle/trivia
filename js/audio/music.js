@@ -515,7 +515,7 @@ export function nowPlaying() {
   if (!current || !current.id || !current.id.startsWith('m:') || current.ended) return null;
   const el = current.voice.el;
   if (!el || el.paused || !isFinite(el.currentTime)) return null;
-  return { id: current.id.slice(2), at: el.currentTime || 0, dur: isFinite(el.duration) && el.duration > 0 ? el.duration : 0 };
+  return { id: current.id.slice(2), at: el.currentTime || 0, dur: isFinite(el.duration) && el.duration > 0 ? el.duration : 0, el, rate: el.playbackRate || 1 };
 }
 
 export function musicDebug() {

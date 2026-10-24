@@ -23,7 +23,8 @@ export const PARTS = [
   { id: 'legend', label: 'LEGENDARY EVENTS' },
 ];
 
-const S = (id, part, kind, gain, what, by = '') => ({ id, part, kind, gain, what, by });
+// (o: extras — lp: a low-pass in Hz on a loop's voice, the highs softened at playback: FP, the water heard from the promenade)
+const S = (id, part, kind, gain, what, by = '', o = null) => ({ id, part, kind, gain, what, by, ...(o || {}) });
 export const SLOTS = [
   // ---- PART 7 — the speakeasy + the raid
   S('club-murmur-calm', '7', 'loop', 0.1, 'a muffled club through a wall: crowd murmur + laughter (the jazz is our own music, low-passed)'),
@@ -35,18 +36,21 @@ export const SLOTS = [
   S('police-car-1920s', '7', 'once', 0.14, '1920s police cars: old engines rolling by, tyres on a wet road'),
   S('siren-1920s', '7', 'once', 0.08, 'a soft distant 1920s siren wail (rising and falling)'),
   // ---- PART 8 — the promenade, people, vehicles, the city schedule
-  S('water-lapping', '8', 'loop', 0.125, 'harbor water lapping at the quay', 'always, quietly under everything'),
+  // (FP, the owner on her iPhone: "it sounds like you're right next to a lake" — 0.125 → 0.07 (−5.0 dB) + a 1.6 kHz low-pass (−4.8 LU
+  // more, measured: the lapping's splashy highs were most of its loudness) ≈ −9.8 dB in all: a harbor quay heard from the promenade,
+  // not a beach; the city hum leads the bed now)
+  S('water-lapping', '8', 'loop', 0.07, 'harbor water lapping at the quay, far + soft', 'always, quietly under the city hum', { lp: 1600 }),
   S('city-hum-day', '8', 'loop', 0.11, 'a distant city hum by day', 'by day (crossfades with the night hum on the darkness)'),
   S('city-hum-night', '8', 'loop', 0.09, 'a distant city hum at night (calmer, never silent)', 'at night (crossfades with the day hum on the darkness)'),
   S('traffic-far', '8', 'loop', 0.08, 'light far-off traffic'),
-  S('car-1920s-pass', '8', 'once', 0.12, 'a single 1920s car passing, far → near → far', 'the road’s cars (harbor().sounds.play / citySound — Part 8’s headlight sweeps)'),
+  S('car-1920s-pass', '8', 'once', 0.1, 'a single 1920s car passing, far → near → far', 'the road’s cars (harbor().sounds.play / citySound — Part 8’s headlight sweeps)'),
   S('bus-brake-hiss', '8', 'once', 0.12, 'the bus’s air-brake hiss'),
   S('bus-idle', '8', 'loop', 0.1, 'the bus idling at the curb'),
   S('bus-pull-away', '8', 'once', 0.14, 'the bus pulling away'),
   S('ships-bell', '8', 'once', 0.14, 'the HOURLY SHIP’S BELL'),
   S('steam-whistle', '8', 'once', 0.16, 'the NOON STEAM WHISTLE (a 1920s steamboat / factory)'),
   S('ship-horn', '8', 'once', 0.16, 'a big ship’s horn (the 7 pm dinner cruise)'),
-  S('gulls', '8', 'once', 0.11, 'a gull’s call, distant (several takes)', 'the gulls over the harbor by day: a call every ~20–60 s'),
+  S('gulls', '8', 'once', 0.11, 'a gull’s call, distant (several takes)', 'the gulls over the harbor by day: mostly one call, now and then two or three in a row (sounds.js#gullCalls)'),
   S('dog-bark', '8', 'once', 0.1, 'a friendly distant dog bark'),
   S('market-murmur', '8', 'loop', 0.1, 'a farmers’ market murmur (Saturday morning)'),
   S('milk-bottles', '8', 'once', 0.1, 'milk bottles clinking (dawn)'),
@@ -130,6 +134,7 @@ export function checkSlots() {
     if (s.kind !== 'loop' && s.kind !== 'once') bad.push(`kind:${s.id}`);
     if (!(s.gain > 0 && s.gain <= 1)) bad.push(`gain:${s.id}`);
     if (!s.what) bad.push(`what:${s.id}`);
+    if (s.lp != null && !(s.kind === 'loop' && s.lp >= 200 && s.lp <= 16000)) bad.push(`lp:${s.id}`);
   }
   for (const [id, takes] of Object.entries(FILES)) {
     const s = BY_ID.get(id);
@@ -142,4 +147,39 @@ export function checkSlots() {
     }
   }
   return bad;
+}
+
+// ---------------------------------------------------------------- FP — THE BED'S MIX + THE GULLS (the owner listened on her iPhone)
+// The bed (the water + the city hum) sits UNDER the music: while the music is ON (wanted: not off, not muted, its slider up) the
+// whole bed is ducked by BED_DUCK; with the music OFF it is the main sound, at its own (calm) level. It never comes in before the
+// music: with the music on, the bed waits for the song to really sound (at most BED_WAIT_MS after audio unlocks — a song that
+// can't load never keeps the city silent), then fades in slowly (BED_FADE_IN s) — the city never starts louder than the music.
+export const BED_DUCK = 0.71;           // −3 dB while the music is on (the bed then ~18 dB under the default music)
+export const BED_WAIT_MS = 6000;
+export const BED_FADE_IN = 5;           // s
+export const BED_RAMP = 3;              // s: music switched on / off → the bed eases to its new level
+/** the bed's level now: { k (× every bed slot's gain), hold (true = don't START the bed yet) } — started: whether it ever began */
+export function bedMix({ musicOn = false, sounding = false, sinceMs = 0, started = false } = {}) {
+  if (!musicOn) return { k: 1, hold: false };
+  return { k: BED_DUCK, hold: !started && !sounding && sinceMs < BED_WAIT_MS };
+}
+/**
+ * THE GULLS — one "moment": mostly ONE call, now and then two or three in a row (the takes differ: pickTake never repeats one), each
+ * its own small level / pitch / pan, the gaps between them natural and uneven. → [{ delay (s from now), gain, rate, pan }]
+ */
+export function gullCalls(rnd = Math.random, pan = 0) {
+  const r = rnd(), n = r < 0.66 ? 1 : r < 0.9 ? 2 : 3;
+  const out = [];
+  let t = 0;
+  for (let i = 0; i < n; i++) {
+    out.push({ delay: +t.toFixed(3), gain: +(0.5 + rnd() * 0.5).toFixed(3), rate: +(0.95 + rnd() * 0.1).toFixed(3), pan: Math.max(-0.85, Math.min(0.85, pan + (rnd() - 0.5) * 0.3)) });
+    t += 0.35 + rnd() * rnd() * 1.1 + (rnd() < 0.25 ? 0.6 : 0);     // (calls overlap their tails: a gull answering, never a beat)
+  }
+  return out;
+}
+/** ms until the next gull moment: 14–66 s, skewed toward the shorter end, fewer when fewer gulls fly (g 0..1); a burst of three
+ *  rests a little longer — random every time, never a rhythm */
+export function gullGap(g = 1, rnd = Math.random, calls = 1) {
+  const k = Math.max(0.5, Math.min(1, g));
+  return Math.round((14000 + 52000 * Math.pow(rnd(), 1.4)) / k + (calls >= 3 ? 8000 : 0));
 }

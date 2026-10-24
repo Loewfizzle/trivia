@@ -109,12 +109,36 @@ async function panelSection() {
     await ev(O.page, `(() => { const r = document.querySelector('.hr-range'); r.dispatchEvent(new Event('change', { bubbles: true })); })()`);
     await sleep(200);
     const st = await ev(O.page, "document.querySelector('.hr-sec[data-cat=\"lights\"] .hr-cat').textContent + ' | ' + document.querySelector('.hr-status').textContent");
-    ok(s0.v === '130' && s0.min === '50' && s0.max === '250' && s0.num === '130 %' && s0.h >= 44 && live.q === '180' && live.pulse === 1.8 && live.num === '180 %' && /PULSE 180 %/.test(st),
+    ok(s0.v === '175' && s0.min === '50' && s0.max === '250' && s0.num === '175 %' && s0.h >= 44 && live.q === '180' && live.pulse === 1.8 && live.num === '180 %' && /PULSE 180 %/.test(st),
       `PANEL: PULSE STRENGTH — ${s0.min}–${s0.max} %, starts at ${s0.num} (${Math.round(s0.w)}×${Math.round(s0.h)} pt); dragged to 180 % the city's punch ×${live.pulse} live (&pulse=${live.q}), the number "${live.num}", the status "${st.slice(0, 90)}"`);
-    const back = await O.page.evaluate(() => { const b = [...document.querySelectorAll('.hr-sec[data-cat="lights"] .hr-b')].find(x => /^BACK TO 130/.test(x.textContent)); if (b) b.click(); return !!b; });
+    const back = await O.page.evaluate(() => { const b = [...document.querySelectorAll('.hr-sec[data-cat="lights"] .hr-b')].find(x => /^BACK TO 175/.test(x.textContent)); if (b) b.click(); return !!b; });
     await sleep(200);
     const q2 = await ev(O.page, 'window.__district.harbor().flags.q.pulse || null');
-    ok(back && q2 === null && (await ev(O.page, 'window.__district.party().pulse')) === 1.3, `PANEL: BACK TO 130 % — the default again (no &pulse: ${q2})`);
+    ok(back && q2 === null && (await ev(O.page, 'window.__district.party().pulse')) === 1.75, `PANEL: BACK TO 175 % — the default again (no &pulse: ${q2})`);
+    await ev(O.page, 'window.__district.remote().openCats([])');
+  }
+  // FP — THE DEBUG TOOLS (TOOLS): READOUT + AUDIO PANEL on this phone, live on / off, remembered (no &debug=1 on this page)
+  {
+    await ev(O.page, "window.__district.remote().openCats(['tools'])");
+    await waitFor(O.page, "!!document.querySelector('.hr-sec[data-cat=\"tools\"] [data-tool=\"audio\"]')", 'the tool switches', 3000);
+    const st = () => ev(O.page, `({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.ad-diag'), on: [...document.querySelectorAll('.hr-sec[data-cat="tools"] [data-tool]')].filter(b => b.classList.contains('is-on')).map(b => b.dataset.tool), saved: localStorage.getItem('na:dbgtools'), h: Math.min(...[...document.querySelectorAll('.hr-sec[data-cat="tools"] [data-tool]')].map(b => b.getBoundingClientRect().height)) })`);
+    const t0 = await st();
+    const flipT = id => ev(O.page, `document.querySelector('.hr-sec[data-cat="tools"] [data-tool="${id}"]').click()`);
+    await flipT('audio'); await flipT('readout');
+    await waitFor(O.page, "!!document.querySelector('.ad-diag') && window.__district.harbor().flags.readout", 'both on', 4000).catch(() => {});
+    const t1 = await st();
+    await flipT('audio'); await flipT('readout');
+    await waitFor(O.page, "!document.querySelector('.ad-diag') && !window.__district.harbor().flags.readout", 'both off', 4000).catch(() => {});
+    const t2 = await st();
+    ok(!t0.ro && !t0.diag && !t0.on.length && t0.h >= 44 && t1.ro && t1.diag && t1.on.join() === 'readout,audio' && /"audio":true/.test(t1.saved) && /"readout":true/.test(t1.saved) && !t2.ro && !t2.diag && !t2.on.length && /"audio":false/.test(t2.saved),
+      `PANEL TOOLS: READOUT + AUDIO PANEL off → on live (readout ${t1.ro}, panel ${t1.diag}, saved ${t1.saved}) → off (${t2.saved}); buttons ≥ 44 pt`);
+    // remembered: a fresh visit on this device (no &debug=1) shows both
+    const M = await open({ slot: 'hpt', qs: NIGHT, init: { fn: () => { try { localStorage.setItem('na:dbgtools', JSON.stringify({ readout: true, audio: true })); } catch { /* fine */ } }, arg: null } });
+    await harborUp(M.page);
+    await waitFor(M.page, "!!document.querySelector('.ad-diag') && window.__district.harbor().flags.readout", 'remembered tools', 8000).catch(() => {});
+    const m = await ev(M.page, "({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.ad-diag') })");
+    ok(m.ro && m.diag, `PANEL TOOLS: remembered on this device — a visit without &debug=1 shows the readout (${m.ro}) + the AUDIO panel (${m.diag})`);
+    await M.ctx.close();
     await ev(O.page, 'window.__district.remote().openCats([])');
   }
   // a row's category opens (a real tap on its header) before the row is tapped
@@ -1265,7 +1289,7 @@ G('music', async () => {
     await sleep(2500);    // (past the listener's 2 s "live" window: the stale analyser would have calmed it by now)
     const d1 = await PUNCH(2600);
     ok(d1.src === 'direct-grid' && d1.hi - d1.lo > 0.5 && d1.hi > before.hi * 0.8 && !d1.live, `DIRECT BEAT (no tap): '${d1.src}', the punch still swings ${d1.lo} → ${d1.hi} (before ${before.hi}), level ${d1.level}, the dead listener ignored (live ${d1.live})`);
-    ok(/^beat direct-grid \d+\.\d · bar \d+ · [1-4]\/4 · pulse \d\.\d\d$/.test(d1.line || ''), `READOUT: the beat line says direct-grid ("${d1.line}")`);
+    ok(/^beat direct-grid \d+\.\d · bar \d+ · [1-4]\/4 · drift [+−]\d+ ms · pulse \d\.\d\d$/.test(d1.line || ''), `READOUT: the beat line says direct-grid ("${d1.line}")`);
     const pn2 = await PANEL();
     ok(/ sounding DIRECT · ctx/.test(pn2.h) && / · sounding DIRECT · heals/.test(pn2.w), `PANEL on the direct element: the header + the want row both say sounding DIRECT ("${pn2.h.replace(/ · \d\d:\d\d:\d\d$/, '')}" / "${pn2.w}")`);
     // a tap: the context rebuilt (dead too — its clock 0.00); still the grid on the direct element
@@ -1349,9 +1373,54 @@ G('music', async () => {
       const pl = await ev(r, 'window.__district.party().pulse');
       ok(hi.hi > lo.hi * 1.6 && hi.hi < 2.05 && pl === 2.5 && / ×2\.50/.test(hi.line || ''), `PULSE STRENGTH: 50 % peaks ${lo.hi}, 250 % ${hi.hi} (under the cap 2), the readout says ×2.50 ("${hi.line}")`);
       await at(null);
-      ok((await ev(r, 'window.__district.party().pulse')) === 1.3, 'PULSE STRENGTH: cleared → the default 130 %');
+      ok((await ev(r, 'window.__district.party().pulse')) === 1.75, 'PULSE STRENGTH: cleared → the default 175 %');
     } else ok(false, 'PULSE STRENGTH: the preview panel module loaded');
     await R.ctx.close(); }
+
+  // ---- 11. FP — THE SONG CLOCK (the owner, iPhone: after the home screen "the lights pulse to random beats"). The beat's position must
+  // come from the SONG (the element's currentTime), re-anchored whenever the song and the frame clock can part: the element paused while
+  // the context runs on, the context suspended while the element plays on, a seek. Expected after each: the lights' beat (party().beatsF)
+  // on the element's grid position within a frame or two, the readout's beat line with the song's bar + `drift`, the clock line.
+  { const F = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1`, view: [402, 874] });
+    const f = F.page;
+    await tapAt(f, 30, 300);
+    await waitFor(f, `(() => { const d = window.__arcade.musicDebug(); return !!d.playing && d.health.sounding; })()`, 'the party song', 25000);
+    await waitFor(f, 'window.__district.party().on > 0.5', 'the party on', 25000);
+    const fid = await ev(f, NOW);
+    await ev(f, `import('/js/audio/mood.js').then(m => { const g = m.moodData().songs['${fid}'].grid; delete g.trusted; g.agree = 0.9; })`);
+    // the lights vs the element, sampled inside a frame: the element's clock → the grid's beat; the lights' beats; the readout
+    const PHASE = () => ev(f, `import('/js/audio/music.js').then(m => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => {
+      const np = m.nowPlaying(), b = window.__arcade.beat(), p = window.__district.party(), hb = window.__district.harbor();
+      if (!np || !b || !b.grid) return res(null);
+      const g = b.grid, k = (b.pos - (g.t0 || 0)) * g.bpm / 60 - (g.down || 0);
+      let d = ((k - p.beatsF) % 4 + 4) % 4; d = Math.min(d, 4 - d);
+      res({ d: +d.toFixed(3), lag: +(np.at - b.pos).toFixed(3), src: p.src, line: hb.beatLine, clock: hb.clock });
+    }))))`);
+    await sleep(1500);
+    const f0 = await PHASE();
+    ok(f0 && f0.src === 'grid' && f0.d < 0.12 && f0.lag >= 0 && f0.lag < 0.5, `SONG CLOCK: playing — the lights on the element's grid (${f0 && f0.d} beats off; the element − heard ${f0 && f0.lag} s)`);
+    ok(/ · bar \d+ · [1-4]\/4 · drift [+−]\d+ ms · pulse /.test((f0 && f0.line) || '') && /^clock el [+−]\d+ ms · anchors \d+/.test((f0 && f0.clock) || ''), `READOUT: the beat line has the song's bar + drift ("${f0 && f0.line}"), the clock line ("${f0 && f0.clock}")`);
+    // (a) the ELEMENT paused for 2 s while the context runs on, then played again
+    await ev(f, `import('/js/audio/music.js').then(m => { const np = m.nowPlaying(); window.__pausedEl = np && np.el; if (window.__pausedEl) window.__pausedEl.pause(); })`);
+    await sleep(2000);
+    await ev(f, 'window.__pausedEl && window.__pausedEl.play().catch(() => {})');
+    await waitFor(f, `(() => { const d = window.__arcade.musicDebug(); return !!d.playing && d.health.sounding; })()`, 'playing again', 8000).catch(() => {});
+    await sleep(500);
+    const f1 = await PHASE();
+    ok(f1 && f1.d < 0.12, `SONG CLOCK: the element paused 2 s (the context running on) → back on its grid (${f1 && f1.d} beats off, "${f1 && f1.clock}")`);
+    // (b) the CONTEXT suspended for 2 s while the element plays on, then resumed
+    await ev(f, `import('/js/audio/engine.js').then(e => e.getContext().suspend())`);
+    await sleep(2000);
+    await ev(f, `import('/js/audio/engine.js').then(e => e.getContext().resume())`);
+    await sleep(500);
+    const f2 = await PHASE();
+    ok(f2 && f2.d < 0.12, `SONG CLOCK: the context suspended 2 s (the element on) → the lights on the element's grid (${f2 && f2.d} beats off, "${f2 && f2.clock}")`);
+    // (c) a seek of 17.3 s with no event the clock is told about (a reading jump)
+    await ev(f, `import('/js/audio/music.js').then(m => { const np = m.nowPlaying(); if (np) np.el.currentTime = np.at + 17.3; })`);
+    await sleep(600);
+    const f3 = await PHASE();
+    ok(f3 && f3.d < 0.12, `SONG CLOCK: a 17 s seek → re-locked (${f3 && f3.d} beats off, "${f3 && f3.clock}")`);
+    await F.ctx.close(); }
 
   // ---- 5. City 1.0 (no flag) is untouched: its own decks, and the same setting
   { const P = await open({ slot: 'mu', qs: 'when=2026-10-22T13:00&tz=America/Detroit', view: [402, 874], city: false });
@@ -1383,6 +1452,26 @@ G('speakeasy', async () => {
     const board = (await ev(Q.page, 'window.__district.harbor().neon')).boards[0];
     ok(!board || board.game !== sp.ad, `THE AD never doubles tonight's billboard (board ${board && board.game}, ad ${sp.ad})`);
     ok(sp.mb < 4, `THE SPEAKEASY's live layer: ${sp.mb} MB`);
+    // FP — THE BARBER POLE at night: the hero light of the shopfront (its glass brighter than the sconce's + the shop lamp's glow), turning
+    // smoothly (the phase moving at the slow night pace between samples); the raid's hook snaps it dark + still, then gives it back
+    { const lumA = cs => Math.max(...cs.map(c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]));
+      const pr = sp.poleRect, col = async () => { const o = []; for (const f of [0.25, 0.4, 0.55, 0.7]) o.push(await px(Q.page, pr.x + pr.w * 0.5, pr.y + pr.h * f)); return o; };
+      const lp = lumA(await col()), ga = sp.glowAt;
+      // (the sconce + the shop lamp: their glow's mean over a 6 × 6 pt patch round each — a bulb is a point; the pole's glass a column)
+      const patch = async ([X, Y]) => { let t = 0, n = 0; for (let dx = -3; dx <= 3; dx += 1.5) for (let dy = -3; dy <= 3; dy += 1.5) { const c = await px(Q.page, X + dx, Y + dy); t += 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; n++; } return t / n; };
+      const ls = await patch(ga.sconce), ll = await patch(ga.lamp);
+      ok(pr && lp > 150 && lp > ls * 1.1 && lp > ll * 1.1, `THE POLE lit at night: its glass ${lp.toFixed(0)} — brighter than the sconce (${ls.toFixed(0)}) + the shop lamp (${ll.toFixed(0)}): the hero light of the shopfront`);
+      const ph0 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), t0 = Date.now();
+      await sleep(1500);
+      const ph1 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), d = ((ph1 - ph0 + 1) % 1) / ((Date.now() - t0) / 1000);
+      ok(d > 0.08 && d < 0.3, `THE POLE turns slowly at night: ${d.toFixed(3)} periods a second`);
+      await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: false })');
+      await sleep(300);
+      const a = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'); await sleep(500);
+      const b = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), ld = lumA(await col());
+      ok(a === b && ld < lp * 0.6, `THE RAID's hook: the pole dark (${ld.toFixed(0)}) + still`);
+      await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: true })'); await sleep(400);
+      ok(lumA(await col()) > lp * 0.85, 'THE RAID over: the pole lit again'); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}speakeasy-night-402x874.png` });
     await Q.ctx.close(); }
   // ---- by day: the windows not lit, the basement's amber still glowing (the one hint), the pole turning
@@ -1413,15 +1502,25 @@ G('promenade', async () => {
     const door = await ev(Q.page, 'window.__district.harbor().door');
     ok(pr.medallion[0] > door.x + 40 && pr.medallion[1] < 758, `THE MEDALLION in the open plaza, right of the door (${pr.medallion[0]} vs the door ${Math.round(door.x)})`);
     // (a patch's mean, 14 × 4 pt: the setts' joints + tops average out)
-    const patch = (X, Y) => ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round((${X} - 7) * k), Math.round((${Y} - 2) * k), Math.round(14 * k), Math.round(4 * k)).data; let r = 0, g = 0, b = 0, n = d.length / 4; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } res([r / n, g / n, b / n]); }))`);
+    // (a patch's mean, once two frames in a row agree — FP: right after the bake settles the city is still fading in)
+    const patchOn = (p, X, Y) => ev(p, `new Promise(res => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; let last = null, n = 0; const f = () => { const d = cv.getContext('2d').getImageData(Math.round((${X} - 7) * k), Math.round((${Y} - 2) * k), Math.round(14 * k), Math.round(4 * k)).data; let r = 0, g = 0, b = 0, m = d.length / 4; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } const c = [r / m, g / m, b / m]; if ((last && Math.abs(c[0] + c[1] + c[2] - last[0] - last[1] - last[2]) < 3) || ++n > 40) res(c); else { last = c; requestAnimationFrame(f); } }; requestAnimationFrame(f); })`);
+    const patch = (X, Y) => patchOn(Q.page, X, Y);
     const a = lum(await patch(pr.pool.lit[0], pr.pool.lit[1]));
     // the same patch with the lamps' pools switched off (&force=no-lamp-light, the A/B): the pool is the lamps' light, the ground dim
     const O = await open({ slot: 'pr1b', qs: `${NIGHT}&force=no-lamp-light`, view: [402, 874] });
     await harborUp(O.page); await settle(O.page);
-    const b = lum(await (async () => ev(O.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round((${pr.pool.lit[0]} - 7) * k), Math.round((${pr.pool.lit[1]} - 2) * k), Math.round(14 * k), Math.round(4 * k)).data; let r = 0, g = 0, b = 0, n = d.length / 4; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } res([r / n, g / n, b / n]); }))`))());
+    const b = lum(await patchOn(O.page, pr.pool.lit[0], pr.pool.lit[1]));
     await O.ctx.close();
-    ok(a > b * 1.4 && b > 4, `THE POOLS: the cobbles by a globe lamp ${a.toFixed(0)} lit vs ${b.toFixed(0)} unlit — a clear pool on a dim (never black) ground`);
+    ok(a > b * 1.4 && b > 4, `THE POOLS: the cobbles by a globe lamp (at ${pr.pool.lit.join(",")}) ${a.toFixed(0)} lit vs ${b.toFixed(0)} unlit — a clear pool on a dim (never black) ground`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}promenade-night-402x874.png` });
+    // FP — THE CROSSING: the stop lights + the WALK / WAIT lantern in step on the city's clock; the lit pane glowing, the other dark
+    { await waitFor(Q.page, 'window.__district.harbor().crossing.lit', 'the lantern lit (not in a blink off half)', 5000);
+      const cr = await ev(Q.page, 'window.__district.harbor().crossing'), ln = cr.lantern;
+      const litP = ln && ln.panes[cr.walk === 'walk' ? 1 : 0], offP = ln && ln.panes[cr.walk === 'walk' ? 0 : 1];
+      const maxLum = q => ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round(${q.x} * k), Math.round(${q.y} * k), Math.max(1, Math.round(${q.w} * k)), Math.max(1, Math.round(${q.h} * k))).data; let m = 0; for (let i = 0; i < d.length; i += 4) m = Math.max(m, 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]); res(m); }))`);
+      const lit = ln ? await maxLum(litP) : 0, dark = ln ? await maxLum(offP) : 0;
+      ok(ln && cr.heads.every(h => h && h.state === cr.road) && (cr.walk !== 'walk' || cr.road === 'red') && ln.letter > 6, `THE CROSSING: both heads ${cr.road}, the lantern ${cr.walk.toUpperCase()}${cr.blink ? ' (blinking)' : ''} — letters ${ln && ln.letter.toFixed(1)} pt`);
+      ok(lit > 170 && lit > dark + 60, `THE LANTERN: the lit ${litP && litP.word} pane glows (max ${lit.toFixed(0)}) over the unlit ${offP && offP.word} (${dark.toFixed(0)})`); }
     await Q.ctx.close(); }
   // the implied road: a car passing (forced); the owner's flag switches the road off; a forced season
   { const Q = await open({ slot: 'pr2', qs: `${NIGHT}&force=road-pass,season-winter`, view: [402, 874] });
@@ -1460,6 +1559,15 @@ G('sounds', async () => {
   ok(has('water-lapping') && has('city-hum-day') && !d.loops.some(l => l.slot === 'city-hum-night') && d.mix.day > 0.95 && d.mix.night < 0.05,
     `BED by day: water ${has('water-lapping') && has('water-lapping').gain} + the DAY hum ${has('city-hum-day') && has('city-hum-day').gain} (mix day ${d.mix.day} / night ${d.mix.night}, darkness ${d.mix.dark}); the night hum not loaded`);
   ok(d.mb > 0 && d.mb < 14, `BED: ${d.mb} MB decoded (mono; the water at 32 kHz, the hum at 16: ${d.rate} Hz)`);
+  // FP — the water far + soft under the hum (its gain + a low-pass); the whole bed ducked while the music is on, back up with it off
+  { const w = has('water-lapping'), hd = has('city-hum-day'), mOn = await ev(P.page, "import('/js/audio/settings.js').then(m => !m.settings.musicOff && !m.settings.muted && m.settings.music > 0.01)");
+    ok(w.lp === 1600 && w.gain < hd.gain * 0.75 && (mOn ? d.mix.k < 0.8 : d.mix.k === 1),
+      `FP BED: the water ${w.gain} through a ${w.lp} Hz low-pass, under the day hum ${hd.gain}; the music ${mOn ? 'on → ducked' : 'off →'} ×${d.mix.k}`);
+    await ev(P.page, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: true }))");
+    await waitFor(P.page, `${SND}.mix.k === 1 && ${SND}.player.loops.find(l => l.slot === 'city-hum-day').gain > ${hd.gain} + 0.005`, 'the bed up with the music off', 8000).catch(() => {});
+    const off = await ev(P.page, `(() => { const s = ${SND}; return { k: s.mix.k, hum: (s.player.loops.find(l => l.slot === 'city-hum-day') || {}).gain }; })()`);
+    ok(off.k === 1 && off.hum > hd.gain, `FP BED: MUSIC OFF → the bed is the main sound (×${off.k}: the day hum ${hd.gain} → ${off.hum})`);
+    await ev(P.page, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: false }))"); }
   // ---- 2. a one-shot from a slot (the road's cars, the gulls) + an EMPTY slot is silent
   const r = await ev(P.page, `(() => { const s = window.__district.harbor().sounds, car = s.play('car-1920s-pass', { pan: -0.5 }), gull = s.play('gulls'), cat = s.play('cat-meow'), mute = s.loop('club-murmur-calm');
     return { car: car && { take: car.take, peak: car.peak }, gull: gull && gull.take, cat, mute: !!mute.silent }; })()`);

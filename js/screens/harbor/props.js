@@ -62,7 +62,9 @@ function lit(Lt, c, n, gloss = 0) {
     const dl = Math.max(0, dot(n, Lt.ld)), amb = 0.42 + 0.22 * Math.max(0, up);
     const Hl = gloss ? norm([Lt.ld[0] + VIEW[0], Lt.ld[1] + VIEW[1], Lt.ld[2] + VIEW[2]]) : null, spl = gloss ? gloss * Math.pow(Math.max(0, dot(n, Hl)), 18) : 0;
     const ow = Lt.own ? Lt.own.k : 0, oc = Lt.own ? Lt.own.col : N_AMB;
-    for (let i = 0; i < 3; i++) o[i] += Lt.night * (c[i] * amb * N_AMB[i] / 255 + 7 + 6 * up + Lt.lk * (c[i] * dl * 1.25 * Lt.lcol[i] / 255 + dl * 0.1 * Lt.lcol[i] + spl * Lt.lcol[i] * 0.8) + ow * c[i] * oc[i] / 255);
+    // (FP: + the BOUNCE off the lit cobbles round a lamp — every face near a pool gets a soft fill of the lamp's colour, so a bench
+    // with the lamp behind it reads as a bench, not a black cut-out)
+    for (let i = 0; i < 3; i++) o[i] += Lt.night * (c[i] * amb * N_AMB[i] / 255 + 7 + 6 * up + Lt.lk * (c[i] * (dl * 1.25 + 0.34) * Lt.lcol[i] / 255 + dl * 0.1 * Lt.lcol[i] + spl * Lt.lcol[i] * 0.8) + ow * c[i] * oc[i] / 255);
   }
   return [Math.min(255, o[0]), Math.min(255, o[1]), Math.min(255, o[2])];
 }
@@ -452,76 +454,162 @@ function lantern(x, P, Lt, u, y, d, glow) {
   x.fillStyle = rgb(br); x.fillRect(cx - w * 1.05, top + h, w * 2.1, 0.04 * s);
 }
 
-// ------------------------------------------------------------------ THE PLANTERS
-// Big cast-stone Deco planters: a stepped plinth, the body flaring a little to the top with corner pilasters and a FLUTED panel
-// (each reed a lit side + a shade side), a carved chevron band, a projecting lip whose top catches the light (its shadow under
-// it), rain streaks + lichen; brimming with the season's flowers — AUTUMN mums (rust, gold, burgundy) + ornamental kale; SUMMER
-// red geraniums + trailing ivy + white alyssum; SPRING red + yellow tulips over pansies; WINTER evergreen boughs, red berries, pine
-// cones + birch twigs (Part 9's snow on them: ctx.snow).
-const STONE = [186, 178, 164];
+// ------------------------------------------------------------------ THE PLANTER — ONE CRAFTED URN (FP, the owner: "much higher quality
+// or replaced"; fewer planters, better ones)
+// A 1920s Deco garden URN in the speakeasy's own cream terracotta, tucked against its corner: a square two-step plinth with a recessed
+// panel, a turned foot + stem + knop, a GADROONED bowl (lobes that catch the light one by one), a fillet, a carved CHEVRON frieze, a
+// rolled lip — every band a lathe surface lit by its own normals (the lit side → a core shadow → a thin bounce on the far edge: real
+// roundness, the lighthouse's way); weathered (chipped edges, rain streaks under the lip, moss at the foot). Planted the way a
+// gardener fills an urn — a THRILLER (tall: fountain grass plumes in autumn, a spiky dracaena in summer, tall tulips in spring, birch
+// twigs in winter), FILLERS (the season's flowers as clusters with their leaves) and SPILLERS (vines trailing over the lip).
+const STONE = [204, 188, 160];          // (cream terracotta — the speakeasy's trim, a little weathered)
 
-/** a big stone flower planter: p = { x, z, w } (PIECE.planter: h, d) — its flowers by ctx.season */
+/** the urn's profile: [y, r, slope φ (rad: + faces up)] bands, bottom → top (world units; the plinth below y 0.34) */
+const URN = [
+  { y0: 0.34, y1: 0.42, r0: 0.56, r1: 0.5, phi: 0.5 },     // the foot ring (its top bevel)
+  { y0: 0.42, y1: 0.63, r0: 0.34, r1: 0.31, phi: -0.1 },   // the stem
+  { y0: 0.63, y1: 0.72, r0: 0.44, r1: 0.44, phi: 0 },      // the knop
+  { y0: 0.72, y1: 1.02, r0: 0.5, r1: 0.95, phi: -0.75 },   // the bowl's underside (gadrooned)
+  { y0: 1.02, y1: 1.34, r0: 0.95, r1: 1.17, phi: -0.3 },   // the bowl's belly (gadrooned)
+  { y0: 1.34, y1: 1.42, r0: 1.2, r1: 1.2, phi: 0.1 },      // the fillet
+  { y0: 1.42, y1: 1.62, r0: 1.15, r1: 1.15, phi: 0 },      // the chevron frieze
+  { y0: 1.62, y1: 1.67, r0: 1.22, r1: 1.3, phi: -0.6 },    // the lip's roll, under
+  { y0: 1.67, y1: 1.76, r0: 1.3, r1: 1.24, phi: 0.75 },    // the lip's roll, over
+];
 export function drawPlanter(x, cam, p, T, ctx = {}) {
-  const PC = PIECE.planter, P = frame(cam, p.z, 1.35), s = P.s, Lt = lightFor(T, ctx, p.x, p.z + 0.8), X = p.x, hw = p.w / 2, D = PC.d, H = PC.h;
-  const r = rngFrom(seedOf(p.x, p.z));
+  const k = (p.w || PIECE.planter.w) / 2.6, P = frame(cam, p.z, 1.35), s = P.s, Lt = lightFor(T, ctx, p.x, p.z + 0.8), X = p.x;
+  const r = rngFrom(seedOf(p.x, p.z)), dc = 0.95 * k;          // (the axis: the plinth's centre, its front at d 0)
+  const S = v => v * k;
   x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
-  // 1. the stepped plinth (two steps), the body (flaring a little), the lip
-  pbox(x, P, Lt, shade(STONE, -0.08), { x0: X - hw, x1: X + hw, y0: 0, y1: 0.14, d0: -0.02, d1: D + 0.02 });
-  pbox(x, P, Lt, shade(STONE, -0.03), { x0: X - hw + 0.08, x1: X + hw - 0.08, y0: 0.14, y1: 0.25, d0: 0.04, d1: D - 0.04 });
-  const yb = 0.25, yt = H - 0.24, w0 = hw - 0.17, w1 = hw - 0.1, d0 = 0.1, d1 = D - 0.1;
-  const side = X - w0 > 0 ? -1 : X + w0 < 0 ? 1 : 0;
-  if (side) { const u0 = X + side * w0, u1 = X + side * w1; fillPts(x, [P(u0, yb, d0), P(u1, yt, d0 - 0.03), P(u1, yt, d1 + 0.03), P(u0, yb, d1)], lit(Lt, STONE, [side, 0.05, 0])); }
-  const fr = [P(X - w0, yb, d0), P(X + w0, yb, d0), P(X + w1, yt, d0 - 0.03), P(X - w1, yt, d0 - 0.03)];
-  fillPts(x, fr, lit(Lt, STONE, FRONT));
-  // the face's texture: speckled aggregate, rain streaks from the lip, lichen near the foot
-  x.save(); x.beginPath(); fr.forEach((q, i) => (i ? x.lineTo(q[0], q[1]) : x.moveTo(q[0], q[1]))); x.closePath(); x.clip();
-  for (let i = 0; i < 70; i++) { const q = P(X - w1 + r() * w1 * 2, yb + r() * (yt - yb), d0); x.fillStyle = rgb(r() < 0.5 ? shade(lit(Lt, STONE, FRONT), -0.25) : shade(lit(Lt, STONE, FRONT), 0.18), 0.5); x.fillRect(q[0], q[1], Math.max(0.3, 0.025 * s), Math.max(0.3, 0.025 * s)); }
-  for (let i = 0; i < 5; i++) { const u = X - w0 + r() * w0 * 2, a = P(u, yt, d0), b = P(u, yt - 0.3 - r() * 0.4, d0), g = x.createLinearGradient(0, a[1], 0, b[1]); g.addColorStop(0, rgb([60, 56, 52], 0.22 * (1 - Lt.night * 0.6))); g.addColorStop(1, 'rgba(60,56,52,0)'); x.fillStyle = g; x.fillRect(a[0] - 0.04 * s, a[1], (0.05 + r() * 0.06) * s, b[1] - a[1]); }
-  { const a = P(X - w0, yb, d0), g = x.createLinearGradient(0, a[1], 0, a[1] - 0.3 * s); g.addColorStop(0, rgb(mix(lit(Lt, [96, 110, 70], FRONT), [0, 0, 0], 0.1), 0.35)); g.addColorStop(1, 'rgba(90,110,70,0)'); x.fillStyle = g; x.fillRect(fr[0][0], a[1] - 0.3 * s, fr[1][0] - fr[0][0], 0.3 * s); }
-  { const [, ya] = P(X, yt, d0), [, yb2] = P(X, yb, d0), g = x.createLinearGradient(0, ya, 0, yb2), k = 0.3 + 0.15 * Lt.night;
-    g.addColorStop(0, `rgba(30,26,40,${k.toFixed(3)})`); g.addColorStop(0.3, 'rgba(30,26,40,0)'); g.addColorStop(0.75, 'rgba(30,26,40,0)'); g.addColorStop(1, `rgba(30,26,40,${(k * 0.7).toFixed(3)})`);
-    x.fillStyle = g; x.fillRect(fr[0][0] - 2, ya, fr[1][0] - fr[0][0] + 4, yb2 - ya); }
-  x.restore();
-  // the corner pilasters (brought forward: a lit edge toward the light, a shade edge away) + the FLUTED panel between them
-  const sunR = Lt.night > 0.5 ? Lt.ld[0] >= 0 : Lt.sd >= 0, hiC = rimCol(Lt, STONE, [sunR ? 0.7 : -0.7, 0.2, -0.7]), loC = lit(Lt, shade(STONE, -0.35), FRONT);
-  const pil = 0.24, f0 = -w0 + pil, f1 = w0 - pil, yf0 = yb + 0.1, yf1 = yt - 0.24;
-  for (const sg of [-1, 1]) {
-    const ui = X + sg * (w0 - pil), ub = X + sg * (w1 - pil);
-    line(x, P(ui, yb, d0), P(ub, yt, d0 - 0.03), (sg > 0) === sunR ? loC : hiC, Math.max(0.35, 0.03 * s), 0.9);
-    const ue = X + sg * w0, ut = X + sg * w1; line(x, P(ue, yb, d0), P(ut, yt, d0 - 0.03), (sg > 0) === sunR ? hiC : loC, Math.max(0.35, 0.03 * s), 0.8);
+  // the front arc of a horizontal circle (radius rr at height y): θ −90° → +90°, left → right (the near half: lower on screen)
+  const arc = (rr, y, n = 18) => { const o = []; for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + Math.PI * i / n; o.push(P(X + rr * Math.sin(a), y, dc - rr * Math.cos(a))); } return o; };
+  const nrm = (a, phi) => [Math.sin(a) * Math.cos(phi), Math.sin(phi), -Math.cos(a) * Math.cos(phi)];
+  // a lathe band: the region between the front arcs at y0 (r0) and y1 (r1), its colour across from the normals (round shading)
+  const band = (y0, y1, r0, r1, phi, col) => {
+    const lo = arc(r0, y0), hi = arc(r1, y1).reverse(), rm = Math.max(r0, r1), [ax] = P(X - rm, (y0 + y1) / 2, dc), [bx] = P(X + rm, (y0 + y1) / 2, dc);
+    const g = x.createLinearGradient(ax, 0, bx, 0);
+    for (let i = 0; i <= 8; i++) { const t = i / 8, a = Math.asin(Math.max(-1, Math.min(1, t * 2 - 1))) * 0.98; g.addColorStop(t, rgb(lit(Lt, col, nrm(a, phi)))); }
+    x.fillStyle = g; x.beginPath(); [...lo, ...hi].forEach((q, i) => (i ? x.lineTo(q[0], q[1]) : x.moveTo(q[0], q[1]))); x.closePath(); x.fill();
+  };
+  // 1. THE PLINTH: a base step + a die with a recessed panel (its sunk face in shade, a lit lower reveal), the die's lit top edge
+  const pw = S(0.86), pw2 = S(0.76), D0 = dc - S(0.86), D1 = dc + S(0.86);
+  pbox(x, P, Lt, shade(STONE, -0.12), { x0: X - pw, x1: X + pw, y0: 0, y1: 0.13, d0: D0, d1: D1 });
+  pbox(x, P, Lt, shade(STONE, -0.05), { x0: X - pw2, x1: X + pw2, y0: 0.13, y1: 0.34, d0: D0 + 0.08, d1: D1 - 0.08 });
+  { const a = P(X - pw2 + 0.12, 0.3, D0 + 0.08), b = P(X + pw2 - 0.12, 0.17, D0 + 0.08);
+    x.fillStyle = rgb(lit(Lt, shade(STONE, -0.2), FRONT)); x.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+    x.fillStyle = rgb(lit(Lt, shade(STONE, -0.42), FRONT)); x.fillRect(a[0], a[1], b[0] - a[0], Math.max(0.35, (b[1] - a[1]) * 0.22));   // (the sunk panel's top: in its own shadow)
+    x.fillStyle = rgb(rimCol(Lt, STONE, [0, 0.8, -0.6]), 0.8); x.fillRect(a[0], b[1] - Math.max(0.3, (b[1] - a[1]) * 0.16), b[0] - a[0], Math.max(0.3, (b[1] - a[1]) * 0.16));
+    // a small Deco fan carved in the panel (three rays from its foot)
+    const mid = (a[0] + b[0]) / 2; x.strokeStyle = rgb(lit(Lt, shade(STONE, -0.5), FRONT), 0.7); x.lineWidth = Math.max(0.25, 0.022 * s);
+    for (const f of [-0.6, 0, 0.6]) { x.beginPath(); x.moveTo(mid, b[1] - 0.5); x.lineTo(mid + f * (b[0] - a[0]) * 0.32, a[1] + (b[1] - a[1]) * 0.35); x.stroke(); } }
+  // moss + grime at the plinth's foot, a darker damp line where it meets the cobbles
+  { const a = P(X - pw, 0.13, D0), b = P(X + pw, 0, D0), g = x.createLinearGradient(0, a[1], 0, b[1]); g.addColorStop(0, 'rgba(70,96,58,0)'); g.addColorStop(1, rgb(lit(Lt, [70, 96, 58], FRONT), 0.45)); x.fillStyle = g; x.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]); }
+  // 2. THE URN, bottom → top (each band its own lit lathe surface)
+  for (const B of URN) band(B.y0, B.y1, S(B.r0), S(B.r1), B.phi, B.phi > 0.4 ? shade(STONE, 0.05) : B.y0 >= 1.42 && B.y0 < 1.62 ? shade(STONE, -0.02) : STONE);
+  // the GADROONS on the bowl: lobes round it, each a lit crest + a groove (only the near half), following the bowl's curve
+  const rb = y => (y < 1.02 ? S(0.5 + (0.95 - 0.5) * (y - 0.72) / 0.3) : S(0.95 + (1.17 - 0.95) * (y - 1.02) / 0.32));
+  const lobes = 14, sunR = Lt.night > 0.5 ? Lt.ld[0] >= 0 : Lt.sd >= 0;
+  for (let i = 0; i < lobes; i++) {
+    const a = -Math.PI / 2 + Math.PI * (i + 0.5) / lobes;
+    if (Math.abs(a) > 1.45) continue;
+    const pts = t => { const y = 0.76 + t * 0.56, rr = rb(y); return P(X + rr * Math.sin(a), y, dc - rr * Math.cos(a)); };
+    const groove = lit(Lt, shade(STONE, -0.45), nrm(a, -0.4)), crest = rimCol(Lt, STONE, nrm(a + (sunR ? 0.35 : -0.35), -0.2));
+    x.strokeStyle = rgb(groove, 0.7); x.lineWidth = Math.max(0.3, 0.035 * s * Math.cos(a) + 0.2); x.beginPath();
+    for (let t = 0; t <= 1.001; t += 0.1) { const q = pts(t); if (t) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); } x.stroke();
+    const b = -Math.PI / 2 + Math.PI * (i + 1) / lobes;          // (the crest: half way to the next groove)
+    const pc = t => { const y = 0.8 + t * 0.48, rr = rb(y) * 1.01, aa = (a + b) / 2; return P(X + rr * Math.sin(aa), y, dc - rr * Math.cos(aa)); };
+    x.strokeStyle = rgb(crest, 0.35 + 0.4 * Math.max(0, Math.cos(a))); x.lineWidth = Math.max(0.25, 0.028 * s); x.beginPath();
+    for (let t = 0; t <= 1.001; t += 0.125) { const q = pc(t); if (t) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); } x.stroke();
   }
-  for (let u = f0 + 0.1; u < f1 - 0.04; u += 0.15) {
-    const a = P(X + u, yf0, d0), b = P(X + u * (w1 / w0), yf1, d0 - 0.02);
-    line(x, a, b, loC, Math.max(0.35, 0.035 * s), 0.75);
-    line(x, [a[0] + (sunR ? 0.045 : -0.045) * s, a[1]], [b[0] + (sunR ? 0.045 : -0.045) * s, b[1]], hiC, Math.max(0.25, 0.022 * s), 0.7);
-  }
-  // the flutes' rounded feet + heads (a carved stop)
-  line(x, P(X + f0, yf0, d0), P(X + f1, yf0, d0), loC, Math.max(0.3, 0.025 * s), 0.6);
-  // the chevron band under the lip (carved: a shade stroke + a lit stroke a hair above)
-  const cb0 = yt - 0.2, cb1 = yt - 0.03;
-  fillPts(x, [P(X - w1, cb0, d0 - 0.025), P(X + w1, cb0, d0 - 0.025), P(X + w1, cb1, d0 - 0.03), P(X - w1, cb1, d0 - 0.03)], lit(Lt, shade(STONE, 0.04), FRONT));
-  for (const [col, dy] of [[loC, -0.025], [hiC, 0]]) {
-    x.strokeStyle = rgb(col, 0.9); x.lineWidth = Math.max(0.3, 0.03 * s); x.beginPath();
-    for (let u = -w1 + 0.04, i = 0; u <= w1 - 0.03; u += 0.13, i++) { const q = P(X + u, (i % 2 ? cb0 + 0.04 : cb1 - 0.04) + dy, d0 - 0.03); if (i) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); }
+  // the fillet's lit top line + the frieze's carved CHEVRONS (a shade stroke + a lit stroke a hair above), the lip's lit crest
+  { const q = arc(S(1.2), 1.42); x.strokeStyle = rgb(rimCol(Lt, STONE, [0, 0.9, -0.4]), 0.85); x.lineWidth = Math.max(0.3, 0.03 * s); x.beginPath(); q.forEach((v, i) => (i ? x.lineTo(v[0], v[1]) : x.moveTo(v[0], v[1]))); x.stroke(); }
+  for (const [col, dy] of [[lit(Lt, shade(STONE, -0.5), FRONT), 0], [rimCol(Lt, STONE, [0, 0.7, -0.7]), 0.025]]) {
+    x.strokeStyle = rgb(col, 0.8); x.lineWidth = Math.max(0.28, 0.028 * s); x.beginPath();
+    const n = 13; for (let i = 0; i <= n; i++) { const a = -1.35 + 2.7 * i / n, y = (i % 2 ? 1.46 : 1.58) + dy, rr = S(1.155), q = P(X + rr * Math.sin(a), y, dc - rr * Math.cos(a)); if (i) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); }
     x.stroke();
   }
-  // the lip: a deep shadow line under it, its fascia, its top (the brightest face), its inner edge
-  const lx0 = X - hw - 0.02, lx1 = X + hw + 0.02, ly0 = yt, ly1 = H, ld0 = -0.06, ld1 = D + 0.06;
-  line(x, P(X - w1, yt - 0.01, d0 - 0.02), P(X + w1, yt - 0.01, d0 - 0.02), lit(Lt, shade(STONE, -0.55), FRONT), Math.max(0.4, 0.05 * s), 0.85);
-  pbox(x, P, Lt, shade(STONE, 0.04), { x0: lx0, x1: lx1, y0: ly0, y1: ly1, d0: ld0, d1: ld1 }, { rim: true });
-  line(x, P(lx0, ly0 + 0.08, ld0), P(lx1, ly0 + 0.08, ld0), lit(Lt, shade(STONE, -0.2), FRONT), Math.max(0.25, 0.02 * s), 0.7);
-  // the soil inside the rim (barely seen under the flowers)
-  const ir = 0.13; fillPts(x, [P(lx0 + ir, ly1, ld0 + ir), P(lx1 - ir, ly1, ld0 + ir), P(lx1 - ir, ly1, ld1 - ir), P(lx0 + ir, ly1, ld1 - ir)], lit(Lt, [62, 46, 36], TOP));
-  // 2. the flowers
-  const bed = { X, y: H, u0: -hw + ir + 0.02, u1: hw - ir - 0.02, d0: ld0 + ir, d1: ld1 - ir, front: ld0 };
+  { const q = arc(S(1.3), 1.67); x.strokeStyle = rgb(rimCol(Lt, STONE, [0, 0.95, -0.3]), 0.9); x.lineWidth = Math.max(0.35, 0.04 * s); x.beginPath(); q.forEach((v, i) => (i ? x.lineTo(v[0], v[1]) : x.moveTo(v[0], v[1]))); x.stroke(); }
+  // weathering, clipped to the urn's body: speckle, rain streaks down from the lip, a few chips off the lip (darker notches)
+  { x.save(); x.beginPath(); const sil = [...URN.map(B => P(X - S(B.r0), B.y0, dc)), P(X - S(1.24), 1.76, dc), P(X + S(1.24), 1.76, dc), ...URN.slice().reverse().map(B => P(X + S(B.r0), B.y0, dc)), ...arc(S(0.56), 0.34).reverse()];
+    sil.forEach((v, i) => (i ? x.lineTo(v[0], v[1]) : x.moveTo(v[0], v[1]))); x.closePath(); x.clip();
+    for (let i = 0; i < 60; i++) { const a = (r() - 0.5) * 2.8, y = 0.4 + r() * 1.3, rr = rb(Math.max(0.76, Math.min(1.34, y))), q = P(X + rr * Math.sin(a), y, dc - rr * Math.cos(a)); x.fillStyle = rgb(r() < 0.55 ? shade(lit(Lt, STONE, nrm(a, 0)), -0.22) : shade(lit(Lt, STONE, nrm(a, 0)), 0.14), 0.5); x.fillRect(q[0], q[1], Math.max(0.3, 0.022 * s), Math.max(0.3, 0.022 * s)); }
+    for (let i = 0; i < 6; i++) { const a = (r() - 0.5) * 2.2, rr = S(1.16), t = P(X + rr * Math.sin(a), 1.62, dc - rr * Math.cos(a)), b = P(X + rr * 0.92 * Math.sin(a), 1.0 - r() * 0.2, dc - rr * Math.cos(a)), g = x.createLinearGradient(0, t[1], 0, b[1]);
+      g.addColorStop(0, rgb([70, 62, 52], 0.24 * (1 - 0.5 * Lt.night))); g.addColorStop(1, 'rgba(70,62,52,0)'); x.fillStyle = g; x.fillRect(t[0] - 0.03 * s, t[1], (0.04 + r() * 0.05) * s, b[1] - t[1]); }
+    x.restore(); }
+  for (let i = 0; i < 3; i++) { const a = (r() - 0.5) * 2.4, rr = S(1.3), q = P(X + rr * Math.sin(a), 1.7, dc - rr * Math.cos(a)); x.fillStyle = rgb(lit(Lt, shade(STONE, -0.35), FRONT)); x.beginPath(); x.ellipse(q[0], q[1], 0.06 * s, 0.035 * s, 0, 0, Math.PI * 2); x.fill(); }
+  // the lip's top (the ring seen from above) + the soil inside it
+  { const top = 1.76, ro = S(1.24), ri = S(1.06), ring = (rr, y) => { const o = []; for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; o.push(P(X + rr * Math.sin(a), y, dc - rr * Math.cos(a))); } return o; };
+    fillPts(x, ring(ro, top), lit(Lt, shade(STONE, 0.08), TOP)); fillPts(x, ring(ri, top), lit(Lt, ctx.season === 'winter' ? [30, 52, 40] : [34, 56, 36], [0, 0.5, -0.8])); }   // (inside the lip: the planting's own shadowed leaves, never bare soil)
+  // 3. THE PLANTING (the season's): the bed inside the lip (a square inscribed in the bowl's circle, mounded), then the spillers
+  const R = S(1.0), top = 1.76;
+  // (the bed fills the bowl to its lip and mounds above it — no soil showing)
+  const bed = { X, y: top + 0.05, u0: -R * 1.0, u1: R * 1.0, d0: dc - R * 1.1, d1: dc + R * 0.78, front: dc - R * 1.16 };
   const season = ctx.season || 'autumn';
+  urnThriller(x, P, Lt, X, top, dc, R, season, r, 'back');
   if (season === 'summer') geraniums(x, P, Lt, bed, r);
   else if (season === 'spring') tulips(x, P, Lt, bed, r);
   else if (season === 'winter') evergreens(x, P, Lt, bed, r, ctx.snow || 0);
-  else mums(x, P, Lt, bed, r, ctx.phase ?? 0.5);
+  else mums(x, P, Lt, bed, r, ctx.phase ?? 0.5, { kale: false });
+  urnThriller(x, P, Lt, X, top, dc, R, season, r, 'front');
+  urnSpillers(x, P, Lt, X, top, dc, y => (y > 1.62 ? S(1.3) : y > 1.34 ? S(1.2) : y > 1.02 ? S(0.95 + 0.22 * (y - 1.02) / 0.32) : S(0.5 + 0.45 * Math.max(0, y - 0.72) / 0.3)), season, r);
   // Part 9's snow on the lip's top
-  if (ctx.snow > 0.05) { x.globalAlpha = Math.min(1, ctx.snow * 1.4); fillPts(x, [P(lx0, ly1 + 0.02, ld0), P(lx1, ly1 + 0.02, ld0), P(lx1, ly1 + 0.02, ld0 + ir), P(lx0, ly1 + 0.02, ld0 + ir)], lit(Lt, [242, 246, 252], TOP)); x.globalAlpha = 1; }
+  if (ctx.snow > 0.05) { x.globalAlpha = Math.min(1, ctx.snow * 1.4); const q = arc(S(1.27), top + 0.02); x.strokeStyle = rgb(lit(Lt, [242, 246, 252], TOP)); x.lineWidth = Math.max(0.6, 0.08 * s); x.beginPath(); q.forEach((v, i) => (i ? x.lineTo(v[0], v[1]) : x.moveTo(v[0], v[1]))); x.stroke(); x.globalAlpha = 1; }
   x.restore();
+}
+/** the urn's THRILLER — the tall centre plant: autumn purple fountain grass (arching blades + soft plumes), summer a spiky green
+ *  dracaena, spring tall white tulips, winter red-twig dogwood stems. part: 'back' (behind the flowers) | 'front' (the few in front) */
+function urnThriller(x, P, Lt, X, y0, dc, R, season, r, part) {
+  const s = P.s, n = season === 'autumn' ? 16 : season === 'summer' ? 14 : season === 'spring' ? 7 : 9;
+  const rr = rngFrom(Math.round(X * 31 + 7) + (part === 'front' ? 3 : 0));
+  for (let i = 0; i < n; i++) {
+    const a = (i / n - 0.5) * 2.4 + (rr() - 0.5) * 0.25, front = Math.abs(a) < 0.5 && i % 3 === 0;
+    if ((part === 'front') !== front) continue;
+    const base = P(X + Math.sin(a) * 0.12, y0 + 0.3, dc + 0.1), lean = Math.sin(a);
+    if (season === 'autumn') {
+      // fountain grass: a burgundy blade arching out + a soft buff-pink plume on the tallest
+      const h = 1.1 + rr() * 0.55, tip = P(X + lean * 0.9, y0 + 0.3 + h, dc), m = P(X + lean * 0.25, y0 + 0.3 + h * 0.95, dc);
+      x.strokeStyle = rgb(lit(Lt, shade([112, 46, 58], (rr() - 0.5) * 0.2), [lean * 0.5, 0.7, -0.5])); x.lineWidth = Math.max(0.35, 0.035 * s);
+      x.beginPath(); x.moveTo(base[0], base[1]); x.quadraticCurveTo(m[0], m[1], tip[0], tip[1] + 0.25 * s); x.stroke();
+      if (i % 2 === 0) { const pl = P(X + lean * 0.62, y0 + 0.3 + h * 1.02, dc - 0.05); x.save(); x.translate(pl[0], pl[1]); x.rotate(lean * 0.7); const g = x.createLinearGradient(0, -0.3 * s, 0, 0.3 * s); g.addColorStop(0, rgb(lit(Lt, [214, 170, 160], [0, 0.8, -0.5]), 0.95)); g.addColorStop(1, rgb(lit(Lt, [150, 96, 100], [0, 0.4, -0.8]), 0.85)); x.fillStyle = g; x.beginPath(); x.ellipse(0, 0, 0.07 * s, 0.3 * s, 0, 0, Math.PI * 2); x.fill(); x.restore(); }
+    } else if (season === 'summer') {
+      // a dracaena spike: stiff narrow leaves fanning up, lighter along the midrib
+      const h = 1.0 + rr() * 0.4, tip = P(X + lean * 0.55, y0 + 0.3 + h, dc);
+      x.fillStyle = rgb(lit(Lt, [58, 108, 62], [lean * 0.6, 0.6, -0.5])); x.beginPath(); x.moveTo(base[0] - 0.04 * s, base[1]); x.lineTo(tip[0], tip[1]); x.lineTo(base[0] + 0.04 * s, base[1]); x.closePath(); x.fill();
+      x.strokeStyle = rgb(rimCol(Lt, [120, 170, 96], [lean * 0.4, 0.8, -0.4]), 0.6); x.lineWidth = Math.max(0.2, 0.012 * s); x.beginPath(); x.moveTo(base[0], base[1]); x.lineTo(tip[0], tip[1]); x.stroke();
+    } else if (season === 'spring') {
+      // tall white tulips standing up out of the bed
+      const h = 0.9 + rr() * 0.35, tip = P(X + lean * 0.35, y0 + 0.3 + h, dc - 0.1);
+      line(x, base, tip, lit(Lt, [76, 124, 60], FRONT), Math.max(0.3, 0.028 * s));
+      const w = 0.075 * s, hh = 0.15 * s; x.fillStyle = rgb(lit(Lt, [246, 242, 232], [0, 0.2, -1])); x.beginPath(); x.moveTo(tip[0] - w, tip[1] - hh); x.lineTo(tip[0], tip[1] - hh * 0.8); x.lineTo(tip[0] + w, tip[1] - hh); x.quadraticCurveTo(tip[0] + w, tip[1], tip[0], tip[1]); x.quadraticCurveTo(tip[0] - w, tip[1], tip[0] - w, tip[1] - hh); x.fill();
+    } else {
+      // red-twig dogwood: slim straight stems, bright red, a few side twigs
+      const h = 1.1 + rr() * 0.4, tip = P(X + lean * 0.4, y0 + 0.3 + h, dc);
+      line(x, base, tip, lit(Lt, [176, 40, 40], [lean * 0.5, 0.5, -0.7]), Math.max(0.35, 0.03 * s));
+      const m = [(base[0] + tip[0]) / 2, (base[1] + tip[1]) / 2]; line(x, m, [m[0] + lean * 0.18 * s + 0.08 * s, m[1] - 0.2 * s], lit(Lt, [176, 40, 40], FRONT), Math.max(0.25, 0.02 * s));
+    }
+  }
+}
+/** the SPILLERS: vines trailing over the urn's lip and down its front (autumn lime sweet-potato vine, summer variegated ivy + white
+ *  bacopa, spring ivy, winter cedar sprigs) — leaf by leaf, each lit by its own tilt */
+function urnSpillers(x, P, Lt, X, y0, dc, prof, season, r) {
+  // autumn: ivy (deep green) with a few burgundy leaves; summer: variegated ivy + white bacopa; spring: fresh ivy; winter: cedar sprigs
+  const s = P.s, col = season === 'autumn' ? [[46, 92, 52], [62, 112, 60], [112, 46, 58]] : season === 'winter' ? [[52, 86, 62], [64, 98, 70], [46, 76, 56]] : [[56, 104, 56], [80, 132, 70], [196, 214, 170]];
+  const vines = 6;
+  for (let v = 0; v < vines; v++) {
+    // each vine tumbles over the lip and down the bowl (hugging it), curving to one side, its leaves alternating + shrinking
+    const a0 = -1.2 + 2.4 * (v + 0.2 + r() * 0.6) / vines, len = 0.35 + r() * 0.6, curl = (r() < 0.5 ? -1 : 1) * (0.25 + r() * 0.35);
+    for (let t = 0, j = 0; t < len; t += 0.085, j++) {
+      const y = y0 + 0.04 - t, a = a0 + curl * t * t, rr = prof(Math.max(0.72, y)) + 0.05 + 0.03 * Math.sin(t * 9), q = P(X + rr * Math.sin(a), y, dc - rr * Math.cos(a));
+      const c = col[season === 'autumn' ? (r() < 0.16 ? 2 : (r() * 2) | 0) : (r() * 3) | 0], n = [Math.sin(a) * 0.6, 0.3, -Math.cos(a) * 0.8];
+      const rot = (j % 2 ? 1 : -1) * (0.7 + r() * 0.4) + Math.sin(a) * 0.4, sz = 1 - 0.35 * (t / len);
+      x.save(); x.translate(q[0], q[1]); x.rotate(rot);
+      const w = (season === 'winter' ? 0.035 : 0.085) * s * sz, h = (season === 'winter' ? 0.12 : 0.085) * s * sz;
+      x.fillStyle = rgb(lit(Lt, c, n)); x.beginPath(); x.moveTo(0, -h); x.quadraticCurveTo(w * 1.3, -h * 0.2, 0, h); x.quadraticCurveTo(-w * 1.3, -h * 0.2, 0, -h); x.fill();
+      x.strokeStyle = rgb(rimCol(Lt, c, [0, 0.7, -0.6]), 0.45); x.lineWidth = Math.max(0.18, 0.01 * s); x.beginPath(); x.moveTo(0, -h * 0.8); x.lineTo(0, h * 0.8); x.stroke();
+      x.restore();
+    }
+  }
+  if (season === 'summer') for (let i = 0; i < 12; i++) { const a = (r() - 0.5) * 2.4, yy = y0 - r() * 0.3, ro = prof(yy) + 0.06, q = P(X + ro * Math.sin(a), yy, dc - ro * Math.cos(a)); blob(x, Lt, q, 0.035 * s, 0.03 * s, [248, 246, 240], 0); }
 }
 /** the bed's dome height at (u, d): the flowers mound up in the middle */
 const dome = (B, u, d, H) => { const fu = u / ((B.u1 - B.u0) / 2), fd = (d - (B.d0 + B.d1) / 2) / ((B.d1 - B.d0) / 2); return B.y + H * Math.max(0.15, 1 - 0.5 * fu * fu - 0.35 * fd * fd); };
@@ -545,13 +633,13 @@ function foliage(x, P, Lt, B, r, cols, H, n = 46, size = 0.17) {
   pts.sort((a, b) => b[1] - a[1]);
   for (const [u, d] of pts) { const y = dome(B, u, d, H) - 0.08, p = P(B.X + u, y, d); blob(x, Lt, p, size * P.s * (0.8 + r() * 0.5), size * P.s * (0.55 + r() * 0.3), cols[(r() * cols.length) | 0], 0.35); }
 }
-function mums(x, P, Lt, B, r, phase) {
+function mums(x, P, Lt, B, r, phase, { kale: withKale = true } = {}) {
   const s = P.s, MUM = [[188, 72, 36], [232, 166, 46], [132, 34, 54], [214, 112, 40]];
   foliage(x, P, Lt, B, r, [[52, 84, 46], [64, 98, 52], [44, 72, 44]], 0.46, 70, 0.19);
   // the mum plants: domes of tiny florets, one colour each, in a loose grid (3 at the back, 4 at the front), ornamental kale
   // rosettes at the two front corners
   const plants = [];
-  for (const [row, nn] of [[0.78, 3], [0.3, 4]]) for (let i = 0; i < nn; i++) plants.push({ u: B.u0 + (B.u1 - B.u0) * (i + 0.5) / nn + (r() - 0.5) * 0.1, d: B.d0 + (B.d1 - B.d0) * row, c: MUM[(i * 3 + (row > 0.5 ? 1 : 0) + (r() < 0.25 ? 2 : 0)) % MUM.length], kale: row < 0.5 && (i === 0 || i === nn - 1) });
+  for (const [row, nn] of [[0.78, 3], [0.3, 4]]) for (let i = 0; i < nn; i++) plants.push({ u: B.u0 + (B.u1 - B.u0) * (i + 0.5) / nn + (r() - 0.5) * 0.1, d: B.d0 + (B.d1 - B.d0) * row, c: MUM[(i * 3 + (row > 0.5 ? 1 : 0) + (r() < 0.25 ? 2 : 0)) % MUM.length], kale: withKale && row < 0.5 && (i === 0 || i === nn - 1) });
   plants.sort((a, b) => b.d - a.d);
   for (const pl of plants) {
     if (pl.kale) { kale(x, P, Lt, B.X + pl.u, dome(B, pl.u, pl.d, 0.28) + 0.04, pl.d - 0.12); continue; }
@@ -752,8 +840,10 @@ function shadowShapes(kind, it) {
     return { e: 1.5, boxes: [{ x0: -1.22, x1: 1.22, y0: 0.8, y1: 1.92, d0: 0.12, d1: 1.18 }, { x0: -1.0, x1: 1.0, y0: 0, y1: 1.2, d0: 0, d1: 1.24 }, { x0: -0.08, x1: 0.02, y0: 1.9, y1: 4.06, d0: 0.8, d1: 0.9 }, { x0: 0.25, x1: 1.0, y0: 1.9, y1: 3.3, d0: 0.4, d1: 0.95 }],
       disc: { u: -0.05, d: 0.85, r: R, y: 4.2 }, contact: [{ x0: -1.3, x1: 1.3, d0: 0, d1: 1.25, a: 0.32 }, { x0: -1.05, x1: -0.55, d0: -0.08, d1: 0.1, a: 0.55 }, { x0: 0.55, x1: 1.05, d0: -0.08, d1: 0.1, a: 0.55 }] };
   }
-  const hw = (it.w || PIECE.planter.w) / 2, H = PIECE.planter.h, D = PIECE.planter.d;
-  return { e: 1.35, boxes: [{ x0: -hw, x1: hw, y0: 0, y1: H, d0: 0, d1: D }, { x0: -hw + 0.3, x1: hw - 0.3, y0: H, y1: H + 0.5, d0: 0.3, d1: D - 0.3 }], contact: [{ x0: -hw - 0.05, x1: hw + 0.05, d0: -0.06, d1: D + 0.04, a: 0.5 }] };
+  // (FP: the urn — its plinth, its bowl + lip, the planting over it)
+  const k = (it.w || PIECE.planter.w) / 2.6, c = 0.95 * k;
+  return { e: 1.35, boxes: [{ x0: -0.86 * k, x1: 0.86 * k, y0: 0, y1: 0.34, d0: c - 0.86 * k, d1: c + 0.86 * k }, { x0: -0.4 * k, x1: 0.4 * k, y0: 0.34, y1: 0.75, d0: c - 0.4 * k, d1: c + 0.4 * k }, { x0: -1.15 * k, x1: 1.15 * k, y0: 0.9, y1: 1.76, d0: c - 0.9 * k, d1: c + 0.9 * k }, { x0: -0.8 * k, x1: 0.8 * k, y0: 1.76, y1: 2.6, d0: c - 0.6 * k, d1: c + 0.6 * k }],
+    contact: [{ x0: -0.92 * k, x1: 0.92 * k, d0: c - 0.92 * k, d1: c + 0.9 * k, a: 0.5 }] };
 }
 /** a prop's cast shadow on the cobbles by day (kind: 'bench' | 'cart' | 'planter'), along the real sun (T.sunDir, T.sunEl); none
  *  under an overcast deck (T.ovc ≥ 0.5) or at night — and its CONTACT shadow, always (soft, a little darker right under it) */

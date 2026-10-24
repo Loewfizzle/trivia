@@ -25,12 +25,14 @@ import { installSettingsPanel } from './ui/settings-panel.js';
 import { showBackdrop } from './screens/district/backdrop.js';
 import { settings, onSettings } from './audio/settings.js';
 import { lazyView } from './games/lazy-view.js';
+import { debugTool, onDebugTools } from './ui/debug-tools.js';
 
 // THE BOARD and the profile load only when opened (they're behind the title's buttons)
 const createBoardScreen = lazyView(() => import('./board/screen.js'));
 const createProfileScreen = lazyView(() => import('./screens/profile.js'));
 // profiles + the results queue: loaded once Firebase is up (never on the first paint)
 let profileMods = null;
+let diagLoaded = false;            // (the AUDIO panel's module: loaded once it was ever on — FP's live switch)
 const withProfile = () => (profileMods ||= Promise.all([import('./profile/me.js'), import('./profile/queue.js')]).then(([me, queue]) => ({ me, queue })));
 
 document.title = APP_NAME;
@@ -213,8 +215,11 @@ async function dismissBoot() {
 async function boot() {
   installAudio();
   installSettingsPanel();
-  // &debug=1: THE AUDIO DIAGNOSTIC (docs/audio.md#m3) — what the music is doing, on any screen
-  if (/[?&]debug=1(?:&|$)/.test(location.search)) import('./audio/diag.js').then(m => m.mountAudioDiag()).catch(() => {});
+  // &debug=1: THE AUDIO DIAGNOSTIC (docs/audio.md#m3) — what the music is doing, on any screen; FP: or switched on from THE PREVIEW
+  // PANEL → TOOLS → AUDIO PANEL on this device (ui/debug-tools.js: remembered, live on / off)
+  const syncDiag = () => { const on = debugTool('audio'); if (on || diagLoaded) import('./audio/diag.js').then(m => { diagLoaded = true; if (debugTool('audio')) m.mountAudioDiag(); else m.unmountAudioDiag(); }).catch(() => {}); };
+  syncDiag();
+  onDebugTools(id => { if (id === 'audio') syncDiag(); });
   const fxClass = () => document.body.classList.toggle('reduced-fx', !!settings.reducedFx);
   fxClass();
   onSettings(fxClass);

@@ -786,6 +786,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — FOREGROUND POLISH (Oct 23, 2026) — `docs/harbor.md#fp`, `docs/audio.md#fp`
+- [x] §0 the beat after returning: a pure SONG CLOCK on the element's currentTime (re-anchored on every element event, visibility, rebuild; > 30 ms drift), the song's own bar + beat + `drift` on the readout, the HEARD OFFSET (`SKEW`: the kicks ignored, never applied)
+- [x] The promenade re-layout: the back row (maple · tall lamp · maple + bench · [the crossing] · tall lamp), the open floor (the medallion, the cart, the corner urn), the front edge (two corner globes + the framing maple); the sketch's curb planter + the phone's crabapple dropped (hidden / not in the row)
+- [x] THE URN (a Deco cream-terracotta urn: gadroons, chevron frieze, rolled lip, lathe shading; thriller / fillers / spillers by the season); the night light plan (wider cool pools, the cart's glow, a bounce light on the props); the blade baked after the trees beside it
+- [x] The billboard on a short dark frame (⅛ open, its foot 3.4 pt over the string lights); the barber pole a helix strip slid sub-pixel (60 = 30 Hz), white + the hero light, the sconce + the shop lamp softer; the blade dimmer at night
+- [x] The stop lights side-on (two-way 1920s heads), the WALK / WAIT lantern across the road, one 46 s cycle on the city's clock (`signalAt`)
+- [x] Sounds: the water 0.07 + a 1.6 kHz low-pass (≈ −9.8 dB), the bed × 0.71 under the music + waiting for the song, varied gull runs, cars 0.1; PULSE_DEFAULT 1.75; the panel's TOOLS: READOUT + AUDIO PANEL (`js/ui/debug-tools.js`)
+- [x] Tests: harbor.test 131, city-sounds, e2e-harbor 260 / 261 (the water seam on its limit — docs/harbor.md#fp), unit 525, smoke 3 / 3; two review passes (402 noon / golden / night / party, the corner, 390 + 430); A/B perf same
+
 ### ✅ CITY 2.0 — PART 8a: THE PROMENADE'S LOOK (Oct 23, 2026) — `docs/harbor.md#part-8a`, `docs/audio.md#the-city-sounds`
 - [x] Section 0: the billboard onto the speakeasy's roof (its own baked group, a dunnage platform so its feet show over the parapet); the blade's name bigger (taller board, wide letters, the two-word split fixed); the corner-turn preview removed
 - [x] The first-tap surge whenever the NEON sign is off (`neon-ramp.js#firstTapAnswer`); the pulse after returning (a frame-loop watchdog, `pulse` on the readout, the AUDIO panel's `city` row); PULSE STRENGTH 50–250 % (default 130 %); the neon tap sounds × 0.75
