@@ -1,7 +1,13 @@
 // LIVE WEATHER, PURE (server + client): Open-Meteo's current conditions → the few numbers the city draws with.
-//   { kind, rain 0..1, snow 0..1, storm, fog 0..1, cloud 0..1, wind m/s, windDir °, temp °C, lat, lon, city, at,
-//     wetAt (ms: the last real rain in the past two hours — still raining = at; null = dry) }
-// kind: clear · clouds · overcast · fog · drizzle · rain · storm · snow · sleet. /api/sky fetches it for the visitor's area
+//   { kind, rain 0..1, snow 0..1, storm, fog 0..1, cloud 0..1 (TOTAL cover), opaque 0..1 (what shuts the sky: low + mid),
+//     veil 0..1 (thin high cover over a sky that's otherwise open), wind m/s, windDir °, temp °C, lat, lon, city, at,
+//     wetAt (ms: the last real rain in the past two hours — still raining = at; null = dry),
+//     src, code (WMO), vis (m), t (the model's slot, ms) — FP3a: the provenance the &debug=1 readout shows }
+// kind: clear · clouds · veil · overcast · mist · fog · drizzle · rain · storm · snow · sleet.
+// FP3a (FREV B2 — the owner's iPhone showed fog at 10:19 + a grey deck at 11:19 under a thin high veil): FOG is CONSERVATIVE and
+// GRADED (a dense bank only for a fog code AND under 300 m; 300 m – 1 km is MIST: the far skyline's haze + wider halos, no banks,
+// no foghorn), and the CLOUD LAYERS decide the sky: only LOW / MID cover shuts it (`opaque` → the overcast deck, the grey city);
+// HIGH cover over an open sky is a VEIL (a clear sky slightly whitened, the sun kept — its real look is 6b's). /api/sky fetches it for the visitor's area
 // (Vercel's IP location, rounded); core/sky.js#look draws with it; without it the city keeps its seeded weather.
 
 /** WMO weather interpretation codes (Open-Meteo `weather_code`) → kind + intensities. */
@@ -50,17 +56,42 @@ export function layersOf(cur) {
   return { lo: f(cur.cloud_cover_low), mid: f(cur.cloud_cover_mid), hi: f(cur.cloud_cover_high) };
 }
 
+/** PURE (FP3a): the cover that SHUTS the sky — low + most of mid (high thin cover lets the sun through). No layers: the total. */
+export const opaqueOf = (layers, total = 0) => (layers ? clamp01(Math.max(clamp01(layers.lo), 0.9 * clamp01(layers.mid))) : clamp01(total));
+/** PURE (FP3a): a thin HIGH veil over an otherwise open sky (0..1) — 0 once the low / mid cover shuts it, 0 without layers */
+export const veilOf = (layers, opaque = opaqueOf(layers)) => (layers ? clamp01((clamp01(layers.hi) - 0.25) / 0.5) * clamp01((0.6 - opaque) / 0.3) : 0);
+/** PURE (FP3a): fog by visibility + the code — { fog 0..1, dense } — a dense bank only for a fog code AND under 300 m */
+export function fogOf(code, vis) {
+  const fogCode = code === 45 || code === 48;
+  if (vis == null) return { fog: fogCode ? (code === 48 ? 1 : 0.8) : 0, dense: fogCode };      // (no visibility in the answer: the code alone, as before)
+  if (fogCode && vis < 300) return { fog: 1, dense: true };
+  if (vis < 1000) return { fog: Math.round((fogCode ? 0.3 + 0.3 * clamp01((1000 - vis) / 700) : 0.25 + 0.15 * clamp01((1000 - vis) / 700)) * 100) / 100, dense: false };
+  if (fogCode && vis < 3000) return { fog: 0.2, dense: false };                                  // (a fog code, a clear view: patchy — a thin haze at most)
+  return { fog: 0, dense: false };
+}
+const round2 = v => Math.round(v * 100) / 100;
+
 /** PURE: Open-Meteo's `current` block (+ where; + its past 15-minute precipitation) → the city's weather. */
 export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
-  const w = fromWmo(cur && cur.weather_code);
+  const code = cur && cur.weather_code != null && Number.isFinite(Number(cur.weather_code)) ? Number(cur.weather_code) : null;
+  const w = fromWmo(code);
   const cloud = cur && cur.cloud_cover != null ? clamp01(num(cur.cloud_cover) / 100) : w.cloud;
-  // fog from visibility too (Open-Meteo reports metres): under 1 km is fog whatever the code says
-  const vis = cur && cur.visibility != null ? num(cur.visibility, 20000) : 20000;
-  const fog = Math.max(w.fog || 0, clamp01((1500 - vis) / 1200));
+  const vis = cur && cur.visibility != null && Number.isFinite(Number(cur.visibility)) ? Number(cur.visibility) : null;
+  const { fog, dense } = fogOf(code, vis);
+  const layers = layersOf(cur), wet = !!(w.rain || w.snow);
+  const opaque = Math.max(opaqueOf(layers, cloud), wet ? 0.8 : 0), veil = wet ? 0 : veilOf(layers, opaque);
+  let kind = w.kind;
+  if (!wet && !w.storm) {
+    if (dense) kind = 'fog';
+    else if (fog >= 0.25) kind = 'mist';
+    else if (layers) kind = opaque >= 0.75 ? 'overcast' : opaque >= 0.4 ? 'clouds' : veil >= 0.5 ? 'veil' : opaque >= 0.12 || layers.hi >= 0.25 ? 'clouds' : 'clear';
+    else if (kind === 'fog') kind = 'clouds';                    // (a fog code the visibility doesn't back: no fog)
+  }
+  const slot = cur && cur.time != null && Number.isFinite(Number(cur.time)) ? Number(cur.time) * 1000 : null;
   return {
-    kind: fog > 0.6 && w.kind !== 'storm' && !w.rain && !w.snow ? 'fog' : w.kind,
-    rain: clamp01(w.rain || 0), snow: clamp01(w.snow || 0), storm: w.storm ? 1 : 0, fog: Math.round(fog * 100) / 100,
-    cloud: Math.round(Math.max(cloud, w.rain || w.snow ? 0.8 : 0) * 100) / 100,
+    kind,
+    rain: clamp01(w.rain || 0), snow: clamp01(w.snow || 0), storm: w.storm ? 1 : 0, fog: round2(fog),
+    cloud: round2(Math.max(cloud, wet ? 0.8 : 0)), opaque: round2(opaque), veil: round2(veil),
     wind: Math.round(num(cur && cur.wind_speed_10m) * 10) / 10, windDir: Math.round(num(cur && cur.wind_direction_10m)),
     temp: Math.round(num(cur && cur.temperature_2m, 15) * 10) / 10,
     lat: where.lat ?? null, lon: where.lon ?? null, city: where.city || null, at,
@@ -68,7 +99,8 @@ export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
     wetAt: WET_KINDS.has(w.kind) ? at : wetAtOf(m15, at),
     // DT2 — THE CLOUDS by height (Open-Meteo's low / mid / high cover, 0..1): which kinds the Harbor draws (core/harbor-clouds.js —
     // high = cirrus, mid = altocumulus, low = cumulus / stratocumulus / the deck); null when the data has none
-    layers: layersOf(cur),
+    layers,
+    src: 'open-meteo/best_match', code, vis: vis == null ? null : Math.round(vis), t: slot,
   };
 }
 
@@ -79,13 +111,18 @@ export function forcedWeather(kind, extra = {}) {
     fog: { kind: 'fog', cloud: 0.9, fog: 0.9 }, drizzle: { kind: 'drizzle', cloud: 0.9, rain: 0.3 }, rain: { kind: 'rain', cloud: 0.95, rain: 0.75 },
     storm: { kind: 'storm', cloud: 1, rain: 0.95, storm: 1 }, freeze: { kind: 'clear', cloud: 0.15, temp: -16 }, snow: { kind: 'snow', cloud: 0.95, snow: 0.8 }, sleet: { kind: 'sleet', cloud: 0.95, rain: 0.4, snow: 0.25 },
     // (CITY 2.0 — SP: high cloud by its height — a fair day's cirrus over a few cumulus; a hazy CIRROSTRATUS veil + the moon's halo)
-    cirrus: { kind: 'clear', cloud: 0.3, layers: { lo: 0.12, mid: 0, hi: 0.5 } }, veil: { kind: 'clouds', cloud: 0.5, layers: { lo: 0.08, mid: 0.05, hi: 0.92 } },
+    cirrus: { kind: 'clear', cloud: 0.3, layers: { lo: 0.12, mid: 0, hi: 0.5 } }, veil: { kind: 'veil', cloud: 0.92, layers: { lo: 0.08, mid: 0.05, hi: 0.92 } },
+    // (FP3a: the graded fog + the layers — MIST (a 600 m view: the far skyline's haze, no banks, no horn), a low STRATUS deck,
+    // a HIGH OVERCAST (WMO 3, all of it high: a bright veil, never the grey deck))
+    mist: { kind: 'mist', cloud: 0.6, fog: 0.45, vis: 600 }, stratus: { kind: 'overcast', cloud: 1, layers: { lo: 1, mid: 0, hi: 0 } },
+    highovercast: { kind: 'veil', cloud: 1, code: 3, layers: { lo: 0, mid: 0, hi: 1 } },
   }[kind] || { kind: 'clear', cloud: 0.1 };
   return { rain: 0, snow: 0, storm: 0, fog: 0, wind: kind === 'storm' ? 9 : 3, windDir: 250, temp: kind === 'snow' ? -2 : kind === 'freeze' ? -16 : 12, lat: null, lon: null, city: null, at: Date.now(), ...base, ...extra };
 }
 
-/** Real weather is used for 75 minutes after it was fetched (then the seeded weather until the next answer). */
-export const WEATHER_TTL_MS = 75 * 60_000;
+/** Real weather is used for 45 minutes after it was fetched (FP3a: was 75 — then the seeded weather until the next answer; a
+ *  normal answer is at most ~30 min old: the server's cache 15 + the page's poll 15) */
+export const WEATHER_TTL_MS = 45 * 60_000;
 export const isFresh = (wx, now = Date.now()) => !!(wx && wx.kind && wx.at && now - wx.at < WEATHER_TTL_MS && now >= wx.at - 60_000);
 
 /** The area a visitor is in, rounded (~0.5° ≈ 35 miles): the cache key, and all the server ever keeps of where they are. */

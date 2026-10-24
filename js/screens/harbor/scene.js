@@ -70,6 +70,7 @@ import { createDayFx } from './dayfx.js';
 import { createClouds } from './clouds.js';
 import { safeCtx, starvedCount, blurWorks } from '../../ui/canvas-safe.js';
 import { debugTool } from '../../ui/debug-tools.js';
+import { createDebugStrip } from '../../ui/debug-strip.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
@@ -811,7 +812,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     drawForeground(c, W, H, vignette, night);
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
     // (FP: or THE PREVIEW PANEL → TOOLS → READOUT on this device — ui/debug-tools.js, live, remembered; &debug=1 still shows it)
-    if (debugTool('readout', DEBUG)) drawReadout(c, now);
+    if (debugTool('readout', DEBUG)) readout(now); else if (roStrip) { roStrip.remove(); roStrip = null; }
   }
   // &debug=1: THE FRAME-TIME READOUT (the owner's request: the real speed on her own phone) — top left, under the safe area:
   // the tier + DPR, frames drawn a second, the scene's work per drawn frame (mean / p95 over the last 90 DRAWN frames), the frame
@@ -825,26 +826,36 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (the beat-sync pass: `beat grid 106.0 · bar 12 · 3/4 · drift −0 ms · pulse 1.18 · level 0.86` — the source never changes mid-song; `level`
   // is how hard it punches from the music's loudness, `level steady` when nothing is heard; the lead + its calibration are on the sync line)
   const beatLine = () => `beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.songBar != null ? hbeat.songBar : hbeat.bar} · ${(hbeat.songIdx != null ? hbeat.songIdx : hbeat.idx) + 1}/4${hbeat.drift != null ? ` · drift ${hbeat.drift >= 0 ? '+' : '−'}${Math.abs(Math.round(hbeat.drift))} ms` : ''} · pulse ${roPulse.toFixed(2)}${PT.pulse && PT.pulse !== pulseGain(null) ? ` ×${PT.pulse.toFixed(2)}` : ''}${hbeat.live ? ` · level ${hbeat.level.toFixed(2)}` : hbeat.src === 'grid' ? ' · level steady' : ''}`;
-  let roAt = 0, roText = null, roN = 0, roT0 = 0;
-  function drawReadout(c, now) {
+  // (FP3a, FREV B4: a DOM strip at the TOP under the corner buttons — ui/debug-strip.js — never over the promenade or the dock: it
+  // sat on the canvas over the promenade's middle (and ran measureText per line per frame inside the very `work` it reported). Its
+  // text is still made HERE, in the frame — a stopped loop freezes it, as the AUDIO panel's `city` row expects — twice a second;
+  // a tap on its title folds it to ONE line: `t2 · 60 fps · 1% slow · beat grid`, remembered on this device)
+  let roAt = 0, roN = 0, roT0 = 0, roStrip = null;
+  function readout(now) {
     roN++;
-    if (now - roAt > 500) {
-      const fps = roT0 ? Math.round(roN * 1000 / (now - roT0)) : 0; roN = 0; roT0 = now; roAt = now;
-      const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);
-      const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
-      const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
-      roText = [`t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`, `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine()] : [])];
-    }
-    if (!roText) return;
-    // (DT1, the owner: it sat over the NEON sign — now at the BOTTOM, just above the dock, over the promenade (a placeholder until
-    // Part 8): full width minus the 16 pt gutters, never over the dock; drawn on the canvas, so taps pass through)
-    c.save();
-    c.font = '600 10px ui-monospace, "JetBrains Mono", monospace';
-    const x0 = 16, w = W - 32, h = 6 + 13 * roText.length, y = Math.max(safeTopV + 6, cam.dock.y - 8 - h);
-    c.fillStyle = 'rgba(0,0,0,0.7)'; c.beginPath(); c.roundRect(x0, y, w, h, 6); c.fill();
-    c.fillStyle = '#9ff0c8';
-    roText.forEach((t, i) => { let s = t; while (s.length > 8 && c.measureText(s).width > w - 12) s = s.slice(0, -2); c.fillText(s === t ? t : s + '…', x0 + 6, y + 14 + 13 * i); });
-    c.restore();
+    if (now - roAt <= 500) return;
+    const fps = roT0 ? Math.round(roN * 1000 / (now - roT0)) : 0; roN = 0; roT0 = now; roAt = now;
+    const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);
+    const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
+    const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
+    const head = `t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`;
+    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine()] : [])];
+    if (!roStrip) roStrip = createDebugStrip('readout');
+    roStrip.set({ head: `${head} ▾`, line: `t${tier} · ${fps} fps · ${slow}% slow${PT.on > 0 ? ` · beat ${hbeat.src}` : ''} ▸`, rows });
+  }
+  /** the readout's weather lines (FP3a, FREV B2): where the weather came from, how old, the raw answer, and what the city made of it */
+  //   `wx open-meteo/best_match · 43,-85.5 · slot 11:15 · 9 min old · WMO 3 · cc 100 (lo 100 mid 0 hi 4) · vis 12.2 km`
+  //   `→ overcast · opaque 1.00 veil 0.04 fog 0.00 · live`  (or `wx FORCED fog (the panel)` / `wx seeded (no live answer)`)
+  function wxLines() {
+    const f2 = v => (+v || 0).toFixed(2), pct = v => Math.round((+v || 0) * 100);
+    const out = `→ ${LK.wxKind || 'seeded'} · opaque ${f2(LK.cloud)} veil ${f2(LK.veil)} fog ${f2(LK.fog)}`;
+    if (clock.wx) return [`wx FORCED ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`, `${out} · forced`];
+    if (clock.preview) return ['wx a preview clock — no live weather', `${out} · seeded`];
+    const lw = liveWeather();
+    if (!lw) return ['wx seeded (no live answer yet / stale)', `${out} · seeded`];
+    const hm = ms => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+    const L = lw.layers, vis = lw.vis != null ? (lw.vis >= 1000 ? `${(lw.vis / 1000).toFixed(1)} km` : `${lw.vis} m`) : '?';
+    return [`wx ${lw.src || 'open-meteo'} · ${lw.lat},${lw.lon} · slot ${lw.t ? hm(lw.t) : '?'} · ${Math.round((Date.now() - (lw.t || lw.at)) / 60000)} min old · WMO ${lw.code != null ? lw.code : '?'} · cc ${pct(lw.cloud)}${L ? ` (lo ${pct(L.lo)} mid ${pct(L.mid)} hi ${pct(L.hi)})` : ''} · vis ${vis}`, `${out} · live`];
   }
   const sessLine = (name, o, now) => `${name} ${o.n ? (100 * o.slow / o.n).toFixed(1) : '0.0'}% slow · ${o.slow} of ${o.n} in ${Math.round((now - (o.t0 || now)) / 1000)} s · run ${o.maxRun} · max ${Math.round(o.max)} ms`;
 
@@ -1415,6 +1426,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (haloSp) haloSp.cv.width = 0;
       fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
       freeLampLight();
+      if (roStrip) { roStrip.remove(); roStrip = null; }
       for (const c of [skyCv, vignette, glow, coolGlow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;
     },

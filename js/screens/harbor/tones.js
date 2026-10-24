@@ -114,6 +114,9 @@ export function sunLook(LK, P) {
 // (DT2: the horizon a step deeper — the cream stone towers stand out against it instead of dissolving into a pale band)
 const SKY_DAY = [[22, 78, 170], [62, 128, 208], [128, 180, 232], [194, 218, 241]];
 const SKY_GREY = [[124, 136, 154], [150, 160, 174], [176, 184, 194], [200, 204, 208]];
+// FP3a (FREV B2): a thin HIGH VEIL (cirrostratus) over an open sky is milky, not grey — the blue whitened a little, the sun kept
+// (LK.cloud is now the cover that SHUTS the sky; the veil's real look — the sheen, the 22° halo — is 6b's)
+const SKY_VEIL = [[176, 198, 226], [196, 214, 236], [214, 228, 242], [228, 236, 244]];
 const sm = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 /** the Harbor's sky stops (4 colours, top → horizon) for a look: the palette's, with the Harbor's own day sky by the day's share */
@@ -121,8 +124,8 @@ export function harborSky(P, LK) {
   if (!P || !P.sky) return null;
   const d = LK && LK.w ? LK.w.day || 0 : 0;
   if (d <= 0.001) return P.sky;
-  const g = sm(0.45, 0.97, (LK && LK.cloud) || 0) * 0.85;
-  return P.sky.map((c, i) => { const own = mixc(SKY_DAY[i], SKY_GREY[i], g); return mixc(c.slice(0, 3), own, d).map(Math.round); });
+  const g = sm(0.45, 0.97, (LK && LK.cloud) || 0) * 0.85, v = Math.round(((LK && LK.veil) || 0) * 0.25 * 8) / 8;
+  return P.sky.map((c, i) => { const own = mixc(mixc(SKY_DAY[i], SKY_VEIL[i], v * (1 - g)), SKY_GREY[i], g); return mixc(c.slice(0, 3), own, d).map(Math.round); });
 }
 export const sunKey = sl => `${sl.sunDir}${sl.sunEl}${sl.cloud > 0.6 ? 'o' : ''}${sl.ovc ? `v${sl.ovc}` : ''}`;
 

@@ -39,9 +39,10 @@ const ok = (cond, what) => { checks.push({ what, ok: !!cond }); log(cond ? 'OK  
 // locally): it is logged, counted (`warnings N`, each tagged [timing]) and shown in the summary, but never fails the run. A red cloud run always
 // means a real problem. Everything else (layout, colours, memory, data, the rules of the city) stays a hard check everywhere.
 // KNOWN-FLAKY VISUAL CHECKS (Oct 24, section 0 m): a pixel probe that caught a frame mid-punch / mid-flutter on the cloud's machine
-// and passed on the next run with the code unchanged (the barber pole's party colours, the wall-washers' hot spot, the water's seam
-// limit, the O's flutter landing) is `okF`: a warning on CI like the timing checks, each listed in the job's summary as "flaky". The
-// half of such a check that proves the RULE (no plain red on the pole, the strips on whole rows, every letter keeping its core) stays hard.
+// and passed on the next run with the code unchanged (the wall-washers' hot spot, the water's seam limit, the O's flutter landing) is
+// `okF`: a warning on CI like the timing checks, each listed in the job's summary as "flaky". The half of such a check that proves the
+// RULE (the strips on whole rows, every letter keeping its core) stays hard. (The barber pole's party colours are hard again since FP3a:
+// the probe read the lit glass's white LED core — FREV B5 — and now reads two columns either side of it.)
 const TIMING_WARN = process.env.TIMING === 'warn' || (!!process.env.CI && process.env.TIMING !== 'strict');
 const warnings = [];
 const soft = kind => (cond, what) => { if (cond || !TIMING_WARN) return ok(cond, what); checks.push({ what, ok: true, warn: kind }); warnings.push(`[${kind}] ${what}`); log('WARN', `${what} (a ${kind} check: a warning on this machine)`); };
@@ -51,7 +52,7 @@ const NIGHT = `when=2026-10-21T22:00${GR}`;
 
 let browser = null;               // (launched when this process first runs a group itself: a parent that only shards never opens one)
 const launch = async () => browser || (browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : [])] }));
-async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0, init = null } = {}) {
+async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0, init = null, wait = true } = {}) {
   const ctx = await (await launch()).createBrowserContext();
   const p = await ctx.newPage();
   const files = [];
@@ -67,7 +68,7 @@ async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profi
     try { localStorage.setItem('nd:entered', '1'); if (prof) localStorage.setItem(`na:${slotName}:profile`, JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, slot, profile);
   await p.goto(`${BASE}/?emu&slot=${slot}&${qs}${city ? '&city=2' : ''}`);
-  await waitFor(p, '!!window.__district && window.__district.phase().done', `title ${slot}`, 25000);
+  await waitFor(p, wait ? '!!window.__district && window.__district.phase().done' : '!!window.__district', `title ${slot}`, 25000);
   return { ctx, page: p, files };
 }
 const ev = (p, js) => p.evaluate(js);
@@ -139,22 +140,22 @@ async function panelSection() {
   {
     await ev(O.page, "window.__district.remote().openCats(['tools'])");
     await waitFor(O.page, "!!document.querySelector('.hr-sec[data-cat=\"tools\"] [data-tool=\"audio\"]')", 'the tool switches', 3000);
-    const st = () => ev(O.page, `({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.ad-diag'), on: [...document.querySelectorAll('.hr-sec[data-cat="tools"] [data-tool]')].filter(b => b.classList.contains('is-on')).map(b => b.dataset.tool), saved: localStorage.getItem('na:dbgtools'), h: Math.min(...[...document.querySelectorAll('.hr-sec[data-cat="tools"] [data-tool]')].map(b => b.getBoundingClientRect().height)) })`);
+    const st = () => ev(O.page, `({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.dbg-s[data-id=audio]'), on: [...document.querySelectorAll('.hr-sec[data-cat="tools"] [data-tool]')].filter(b => b.classList.contains('is-on')).map(b => b.dataset.tool), saved: localStorage.getItem('na:dbgtools'), h: Math.min(...[...document.querySelectorAll('.hr-sec[data-cat="tools"] [data-tool]')].map(b => b.getBoundingClientRect().height)) })`);
     const t0 = await st();
     const flipT = id => ev(O.page, `document.querySelector('.hr-sec[data-cat="tools"] [data-tool="${id}"]').click()`);
     await flipT('audio'); await flipT('readout');
-    await waitFor(O.page, "!!document.querySelector('.ad-diag') && window.__district.harbor().flags.readout", 'both on', 4000).catch(() => {});
+    await waitFor(O.page, "!!document.querySelector('.dbg-s[data-id=audio]') && window.__district.harbor().flags.readout", 'both on', 4000).catch(() => {});
     const t1 = await st();
     await flipT('audio'); await flipT('readout');
-    await waitFor(O.page, "!document.querySelector('.ad-diag') && !window.__district.harbor().flags.readout", 'both off', 4000).catch(() => {});
+    await waitFor(O.page, "!document.querySelector('.dbg-s[data-id=audio]') && !window.__district.harbor().flags.readout", 'both off', 4000).catch(() => {});
     const t2 = await st();
     ok(!t0.ro && !t0.diag && !t0.on.length && t0.h >= 44 && t1.ro && t1.diag && t1.on.join() === 'readout,audio' && /"audio":true/.test(t1.saved) && /"readout":true/.test(t1.saved) && !t2.ro && !t2.diag && !t2.on.length && /"audio":false/.test(t2.saved),
       `PANEL TOOLS: READOUT + AUDIO PANEL off → on live (readout ${t1.ro}, panel ${t1.diag}, saved ${t1.saved}) → off (${t2.saved}); buttons ≥ 44 pt`);
     // remembered: a fresh visit on this device (no &debug=1) shows both
     const M = await open({ slot: 'hpt', qs: NIGHT, init: { fn: () => { try { localStorage.setItem('na:dbgtools', JSON.stringify({ readout: true, audio: true })); } catch { /* fine */ } }, arg: null } });
     await harborUp(M.page);
-    await waitFor(M.page, "!!document.querySelector('.ad-diag') && window.__district.harbor().flags.readout", 'remembered tools', 8000).catch(() => {});
-    const m = await ev(M.page, "({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.ad-diag') })");
+    await waitFor(M.page, "!!document.querySelector('.dbg-s[data-id=audio]') && window.__district.harbor().flags.readout", 'remembered tools', 8000).catch(() => {});
+    const m = await ev(M.page, "({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.dbg-s[data-id=audio]') })");
     ok(m.ro && m.diag, `PANEL TOOLS: remembered on this device — a visit without &debug=1 shows the readout (${m.ro}) + the AUDIO panel (${m.diag})`);
     await M.ctx.close();
     await ev(O.page, 'window.__district.remote().openCats([])');
@@ -467,7 +468,37 @@ G('core', async () => {
   { const N = await open({ slot: 'hn', qs: NIGHT, city: false });
     ok(!N.files.some(u => /\/harbor\//.test(u)) && (await ev(N.page, 'window.__district.scene()')).city !== 2, 'NORMAL VISIT: the default city, no harbor module requested');
     await N.ctx.close(); }
-
+  // ---- FP3a (FREV B4): THE DEBUG STRIPS — the readout + the AUDIO panel as DOM strips at the TOP under the corner buttons, never over
+  // the promenade or the dock; a tap on a title folds it to ONE line (pointerup, not click), remembered on this device; taps pass through
+  for (const [w, h] of [[390, 844], [430, 932]]) {
+    const D = await open({ slot: 'hdb', qs: `${NIGHT}&debug=1`, view: [w, h] });
+    await harborUp(D.page);
+    await waitFor(D.page, "!!document.querySelector('.dbg-s[data-id=readout] .dbg-b div') && !!document.querySelector('.dbg-s[data-id=audio] .dbg-b div')", 'both strips', 8000);
+    const geo = () => ev(D.page, `(() => { const r = s => document.querySelector(s).getBoundingClientRect(), c = window.__district.harbor().cam, col = r('.dbg-col');
+      const btn = [...document.querySelectorAll('.menu-btn, .music-btn')].map(e => e.getBoundingClientRect());
+      return { col: { top: col.top, bottom: col.bottom, left: col.left, right: col.right }, ro: r('.dbg-s[data-id=readout]').height, au: r('.dbg-s[data-id=audio]').height, limitY: c.limitY, dock: c.dock.y, H: innerHeight,
+        overBtn: btn.some(b => b.bottom > col.top && b.top < col.bottom && b.right > col.left && b.left < col.right),
+        folded: [...document.querySelectorAll('.dbg-s')].map(s => s.classList.contains('dbg-fold')) }; })()`);
+    const g0 = await geo();
+    ok(g0.col.bottom <= g0.H * 0.4 && g0.col.bottom < g0.dock && !g0.overBtn && g0.col.top < g0.limitY, `DEBUG STRIPS ${w}: at the top under the corner buttons (${Math.round(g0.col.top)}–${Math.round(g0.col.bottom)} pt of ${g0.H}; the skyline's limit ${Math.round(g0.limitY)}, the dock ${Math.round(g0.dock)})`);
+    const head = async id => { const b = await ev(D.page, `(() => { const r = document.querySelector('.dbg-s[data-id=${id}] .dbg-h').getBoundingClientRect(); return { x: r.left + 20, y: r.top + r.height / 2 }; })()`); await tapAt(D.page, b.x, b.y); };
+    await head('readout'); await head('audio');
+    await waitFor(D.page, "[...document.querySelectorAll('.dbg-s')].every(s => s.classList.contains('dbg-fold'))", 'both folded', 3000).catch(() => {});
+    await sleep(600);
+    const g1 = await geo(), line1 = await ev(D.page, "document.querySelector('.dbg-s[data-id=readout] .dbg-h').textContent");
+    ok(g1.folded.every(Boolean) && g1.ro < 26 && g1.au < 26 && g1.col.bottom < g1.limitY, `DEBUG STRIPS ${w}: a tap folds each to ONE line (${Math.round(g1.ro)} + ${Math.round(g1.au)} pt; "${line1}"), above the skyline's limit`);
+    if (SHOTS && w === 390) await D.page.screenshot({ path: `${OUT}debug-strips-folded-390x844.png` });
+    await D.page.reload(); await waitFor(D.page, "!!document.querySelector('.dbg-s[data-id=readout]') && !!document.querySelector('.dbg-s[data-id=audio]')", 'the strips again', 15000);
+    const g2 = await geo();
+    ok(g2.folded.every(Boolean), `DEBUG STRIPS ${w}: the fold remembered on this device (${g2.folded.join(' / ')})`);
+    await head('readout'); await head('audio');
+    await waitFor(D.page, "[...document.querySelectorAll('.dbg-s')].every(s => !s.classList.contains('dbg-fold'))", 'unfolded', 3000).catch(() => {});
+    await sleep(600);
+    const g3 = await geo();
+    ok(!g3.folded.some(Boolean) && g3.ro > 60, `DEBUG STRIPS ${w}: a second tap opens them again (${Math.round(g3.ro)} + ${Math.round(g3.au)} pt)`);
+    if (SHOTS && w === 390) await D.page.screenshot({ path: `${OUT}debug-strips-open-390x844.png` });
+    await D.ctx.close();
+  }
 });
 G('flags', async () => {
   // ================================================================ 3. every title flag works with ?city=2
@@ -811,6 +842,55 @@ G('neon', async () => {
     await N.ctx.close();
   }
 });
+G('neon', async () => {
+  // ================================================================ FP3a — THE MUSIC STARTING (FREV B3): the sign answers EVERY start of the music
+  // (the first tap, the music button back ON), from its real lit state, with a 10 s cooldown; a start during the intro is PENDING, not lost
+  const CLOCK = "import('/js/audio/music.js').then(m => m.musicClock())";
+  const DAY = `when=2026-10-23T13:00${GR}&intro=1`;
+  // (1) the real FULL intro, a tap 300 ms in (it skips the intro) → the music starts → a surge through the daytime glass
+  { const P = await open({ slot: 'fs1', qs: DAY, view: [402, 874], wait: false });
+    await sleep(300); await tapAt(P.page, 30, 300);
+    await waitFor(P.page, "!!document.querySelector('.nd-sign.is-day.nd-surge')", 'the surge through the daytime glass', 12000).catch(() => {});
+    await waitFor(P.page, '(window.__district.surge().last || {}).why === "music"', 'the answer to the music', 4000).catch(() => {});
+    const sg = await ev(P.page, 'window.__district.surge()');
+    ok(sg.last && sg.last.why === 'music' && sg.last.did === 'surge' && sg.count === 1, `THE MUSIC STARTING (the first tap, by day): the sign surged (${JSON.stringify(sg.last)})`);
+    // (2) the music button OFF ≥ 1 s, then ON (after the 10 s cooldown) → the same surge again
+    await waitFor(P.page, '!window.__district.surge().running && window.__district.surge().cool === 0', 'the cooldown over', 15000);
+    await tap(P.page, '.music-btn'); await waitFor(P.page, `${CLOCK}.then(c => c < 0)`, 'the music off', 5000); await sleep(1300);
+    await tap(P.page, '.music-btn');
+    await waitFor(P.page, 'window.__district.surge().count === 2', 'the second surge', 15000).catch(() => {});
+    const s2 = await ev(P.page, 'window.__district.surge()');
+    ok(s2.count === 2 && s2.last.why === 'music' && s2.last.did === 'surge', `THE MUSIC BUTTON back ON: the sign surged again (${s2.count}, ${JSON.stringify(s2.last)})`);
+    // (3) OFF / ON again inside 10 s → the cooldown (toggling can't spam it)
+    await tap(P.page, '.music-btn'); await waitFor(P.page, `${CLOCK}.then(c => c < 0)`, 'the music off', 5000); await sleep(1300);
+    await tap(P.page, '.music-btn');
+    await waitFor(P.page, '(window.__district.surge().last || {}).did === "skip:cool"', 'the cooldown answer', 15000).catch(() => {});
+    const s3 = await ev(P.page, 'window.__district.surge()');
+    ok(s3.count === 2 && s3.last.did === 'skip:cool', `THE MUSIC BUTTON inside 10 s: the cooldown (${s3.count}, ${JSON.stringify(s3.last)})`);
+    await P.ctx.close(); }
+  // (4) a tap ~100 ms into the intro (on a fast machine too early to skip it: the music starts while the sign powers on → PENDING → it
+  // fires after the intro; on a slower one the tap skips the intro — either way the answer is never lost)
+  { const P = await open({ slot: 'fs2', qs: DAY, view: [402, 874], wait: false });
+    await sleep(100); await tapAt(P.page, 30, 300);
+    await waitFor(P.page, 'window.__district.surge().count === 1', 'the pending surge after the intro', 15000).catch(() => {});
+    const sg = await ev(P.page, 'window.__district.surge()'), ph = await ev(P.page, 'window.__district.phase()');
+    ok(sg.count === 1 && sg.last && sg.last.why === 'music' && sg.last.did === 'surge' && ph.done, `THE MUSIC STARTING early in the intro: answered once the sign was free (${JSON.stringify(sg.last)})`);
+    await P.ctx.close(); }
+  // (5) at night (the sign lit): the lit race, not the day's surge
+  { const P = await open({ slot: 'fs3', qs: NIGHT, view: [402, 874] });
+    await waitFor(P.page, "document.querySelector('.nd-sign').classList.contains('is-steady')", 'the sign steady', 20000);
+    await tapAt(P.page, 30, 300);
+    await waitFor(P.page, 'window.__district.surge().count === 1', 'the lit race', 15000).catch(() => {});
+    const sg = await ev(P.page, 'window.__district.surge()');
+    ok(sg.count === 1 && sg.last.did === 'first', `THE MUSIC STARTING at night: the lit sign's quick race (${JSON.stringify(sg.last)})`);
+    // (6) PENDING, deterministic: an answer asked for while a race runs is kept and fires from that race's end — never lost
+    await waitFor(P.page, '!window.__district.surge().running', 'the race over', 8000);
+    const a = await ev(P.page, '[window.__district.signSurge(), window.__district.signSurge(), window.__district.surge().pending]');
+    await waitFor(P.page, 'window.__district.surge().count === 3', 'the pending answer after the race', 8000).catch(() => {});
+    const s6 = await ev(P.page, 'window.__district.surge()');
+    ok(a[0] === 'first' && a[1] === 'skip:busy' && a[2] === true && s6.count === 3 && !s6.pending, `PENDING: a second answer during a race (${a.join(' · ')}) fired at its end (count ${s6.count})`);
+    await P.ctx.close(); }
+});
 G('party', async () => {
   { const Q = await open({ slot: 'h10', qs: `when=2026-10-24T23:00${GR}&scene=climb%2Bcrowns`, view: [402, 874] });
     await harborUp(Q.page);
@@ -989,7 +1069,7 @@ G('music', async () => {
       const sg = await ev(P.page, 'window.__district.surge()');
       // (8a: from the sign's real state — unlit: 'surge', lit: 'first', the warm-up window: 'catch')
       const want = mood === 'day' ? ['surge'] : mood === 'late' || mood === 'party' ? ['first'] : ['surge', 'first', 'catch'];
-      ok(sg && sg.spent && sg.last && sg.last.why === 'music' && want.includes(sg.last.did), `FIRST TAP ${mood}: the music started → the NEON sign answered (${sg && sg.last ? sg.last.did : 'nothing'})`); }
+      ok(sg && sg.last && sg.last.why === 'music' && want.includes(sg.last.did), `FIRST TAP ${mood}: the music started → the NEON sign answered (${sg && sg.last ? sg.last.did : 'nothing'})`); }
     await sleep(1500);
     const b = await ev(P.page, 'window.__arcade.beat()'), line = await ev(P.page, 'window.__district.harbor().music');
     const s = songs.songs[id];
@@ -1201,7 +1281,7 @@ G('music', async () => {
     ok(fh.rebuilds === fr && fh.out === 'direct' && fh.sounding, `FROZEN: a rebuilt context that froze is not rebuilt again within 20 s (rebuilds ${fr} → ${fh.rebuilds}); the direct element plays on (${fh.out}, sounding ${fh.sounding})`);
     // the readout's AUDIO block (&debug=1): states + the last events, so one screenshot after the bug says where it died
     await sleep(700);
-    const diag = await ev(p, `(() => { const d = document.querySelector('.ad-diag'); return d ? d.textContent : ''; })()`);
+    const diag = await ev(p, `(() => { const d = document.querySelector('.dbg-s[data-id=audio]'); return d ? d.textContent : ''; })()`);
     ok(/ctx running/.test(diag) && /el .*playing/.test(diag) && /touchend|click/.test(diag) && /rebuild/.test(diag), `DIAGNOSTIC: the AUDIO block shows the context, the element + the events ("${diag.slice(0, 160)}…")`);
     if (SHOTS) await p.screenshot({ path: `${OUT}music-diag-402x874.png` });
     await P.ctx.close(); }
@@ -1272,7 +1352,7 @@ G('music', async () => {
     ok(a3.rebuilds === 1 && a3.out === 'direct' && a3.sounding && a3.at > a1.at, `EVIDENCE: a second tap makes no third context (rebuilds ${a3.rebuilds}, contexts made ${a3.contexts}); still sounding, direct, the song advancing (${a1.at} → ${a3.at} s)`);
     ok(a3.alive <= 2, `EVIDENCE: the old contexts are closed (alive ${a3.alive}, made ${a3.made})`);
     // the panel says it
-    const diag = await ev(p, `(() => { const d = document.querySelector('.ad-diag'); return d ? d.textContent : ''; })()`);
+    const diag = await ev(p, `(() => { const d = document.querySelector('.dbg-s[data-id=audio]'); return d ? d.textContent : ''; })()`);
     ok(/out DIRECT ELEMENT/.test(diag) && /alive \d/.test(diag) && /set playback at/.test(diag) && /FROZEN/.test(diag), `PANEL: the AUDIO block shows the output path, the contexts alive, the session type set + the frozen clock ("${diag.slice(0, 200)}…")`);
     // the music button on the direct path: OFF mutes it (+ the session goes 'ambient'); ON again plays (+ 'playback')
     const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
@@ -1308,8 +1388,8 @@ G('music', async () => {
     const qvis = v => ev(q, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
     // THE PANEL'S ONE STATUS (the owner: its header said "sounding" over a row saying "sounding NO · locked (no tap yet)"): the header
     // and the want row print the same verdict — before the first tap LOCKED, after it sounding
-    const PANEL = () => ev(q, `(() => { const h = document.querySelector('.ad-diag .ad-h'), w = [...document.querySelectorAll('.ad-diag .ad-body div')].find(d => d.textContent.startsWith('want ')); return { h: h ? h.textContent : '', w: w ? w.textContent : '' }; })()`);
-    await waitFor(q, `!!document.querySelector('.ad-diag .ad-h')`, 'the AUDIO panel', 8000).catch(() => {});
+    const PANEL = () => ev(q, `(() => { const h = document.querySelector('.dbg-s[data-id=audio] .dbg-h'), w = [...document.querySelectorAll('.dbg-s[data-id=audio] .dbg-b div')].find(d => d.textContent.startsWith('want ')); return { h: h ? h.textContent : '', w: w ? w.textContent : '' }; })()`);
+    await waitFor(q, `!!document.querySelector('.dbg-s[data-id=audio] .dbg-h')`, 'the AUDIO panel', 8000).catch(() => {});
     await sleep(600);
     const pn0 = await PANEL();
     ok(/LOCKED \(no tap yet\)/.test(pn0.h) && /LOCKED \(no tap yet\)/.test(pn0.w) && !/sounding/.test(pn0.h + pn0.w), `PANEL before a tap: the header + the want row agree — LOCKED ("${pn0.h.replace(/ · \d\d:\d\d:\d\d$/, '')}" / "${pn0.w}")`);
@@ -1413,7 +1493,7 @@ G('music', async () => {
     ok(p3.hi - p3.lo > 0.5, `RETURN (pageshow only): the punch ${p3.lo} → ${p3.hi}`);
     // the AUDIO panel (the DOM, live while the canvas froze) names the loop
     await sleep(600);
-    const row = await ev(r, `(() => { const d = [...document.querySelectorAll('.ad-diag .ad-body div')].find(x => x.textContent.startsWith('city ')); return d ? d.textContent : ''; })()`);
+    const row = await ev(r, `(() => { const d = [...document.querySelectorAll('.dbg-s[data-id=audio] .dbg-b div')].find(x => x.textContent.startsWith('city ')); return d ? d.textContent : ''; })()`);
     ok(/^city running · last frame 0\.\d s ago · restarts \d+/.test(row), `PANEL: the AUDIO block shows the city's loop ("${row}")`);
     // PULSE STRENGTH, live (JUST ME's flag through the scene): 250 % punches clearly harder than 50 %, the cap holds
     const at = async v => { await ev(r, `window.__district.remote() && window.__district.remote().setMine(${v == null ? '{}' : `{ pulse: ${v} }`})`); await sleep(400); return PUNCH(2600); };
@@ -1557,18 +1637,19 @@ G('speakeasy', async () => {
     await harborUp(Q.page); await settle(Q.page);
     await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.9 && window.__district.party().on > 0.9', 'the party on, the rooms lit', 20000);
     const sp = await ev(Q.page, 'window.__district.harbor().speakeasy'), pr = sp.poleRect;
-    // (a column down the glass read in ONE frame BETWEEN beats — the punch washes every colour toward white for a moment, and a column read
-    // pixel by pixel over ~20 frames on the loaded cloud machine always caught one; up to 5 tries)
+    // (TWO columns down the glass, at 0.25 + 0.75 of its width, read in ONE frame BETWEEN beats — the punch washes every colour toward white
+    // for a moment, and a column read pixel by pixel over ~20 frames on the loaded cloud machine always caught one; up to 5 tries. Never the
+    // centre: the lit pole's LED core runs down the middle and adds ≈ (118, 122, 128) there — FREV B5 — so either column passing is the pole)
     const party = cs => cs.some(c => c[0] > 180 && c[2] > 100 && c[1] < 130) && cs.some(c => c[2] > 180 && c[0] < 150), red = cs => cs.some(c => c[0] > 180 && c[1] < 110 && c[2] < 90);
     const column = () => ev(Q.page, `new Promise(res => { const t0 = performance.now(); const tick = () => { const p = window.__district.party() || {};
       if (!(p.beatU > 0.55 && p.beatU < 0.88) && performance.now() - t0 < 3000) return requestAnimationFrame(tick);
       const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x = cv.getContext('2d'), out = [];
-      for (let f = 0.15; f < 0.86; f += 0.035) out.push(Array.from(x.getImageData(Math.round(${pr.x + pr.w * 0.5} * k), Math.round((${pr.y} + ${pr.h} * f) * k), 1, 1).data).slice(0, 3));
-      res({ cs: out, u: p.beatU, punch: p.punch }); }; requestAnimationFrame(tick); })`);
-    let cs = [], sawRed = false, at = null;
-    for (let k = 0; k < 5; k++) { const r = await column(); cs = r.cs; at = r; sawRed ||= red(cs); if (party(cs)) break; await sleep(300); }
+      for (const fx of [0.25, 0.75]) { const c = []; for (let f = 0.15; f < 0.86; f += 0.035) c.push(Array.from(x.getImageData(Math.round((${pr.x} + ${pr.w} * fx) * k), Math.round((${pr.y} + ${pr.h} * f) * k), 1, 1).data).slice(0, 3)); out.push(c); }
+      res({ cols: out, u: p.beatU, punch: p.punch }); }; requestAnimationFrame(tick); })`);
+    let cs = [], sawRed = false, at = null, good = false;
+    for (let k = 0; k < 5; k++) { const r = await column(); at = r; sawRed ||= r.cols.some(red); const hit = r.cols.find(party); cs = hit || r.cols[0]; if (hit) { good = true; break; } await sleep(300); }
     ok(!sawRed, `THE POLE on a party night: no plain red (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
-    okF(party(cs), `THE POLE on a party night: neon magenta + electric blue (read between beats: beatU ${at && at.u != null ? at.u.toFixed(2) : '?'}, punch ${at && at.punch != null ? (+at.punch).toFixed(2) : '?'}; ${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
+    ok(good, `THE POLE on a party night: neon magenta + electric blue (read between beats: beatU ${at && at.u != null ? at.u.toFixed(2) : '?'}, punch ${at && at.punch != null ? (+at.punch).toFixed(2) : '?'}; ${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
     const ph0 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), t0 = Date.now(); await sleep(1500);
     const ph1 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), d = ((ph1 - ph0 + 1) % 1) / ((Date.now() - t0) / 1000);
     okT(d > 0.08 && d < 0.3, `THE POLE's party turn: the same slow turn (${d.toFixed(3)} periods a second)`);

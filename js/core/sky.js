@@ -11,7 +11,7 @@
 //     rain (0..1), snow (0..1), clear, meteors (per minute), aurora (bool), key (changes when the picture should change)
 //   }
 
-import { isFresh, forcedWeather } from './weather.js';
+import { isFresh, forcedWeather, opaqueOf, veilOf } from './weather.js';
 import { partyLateK, inPartyWindow } from './party.js';
 
 const RAD = Math.PI / 180;
@@ -475,16 +475,21 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   const ev = lp.h < 6 ? localParts(ms - 6 * 3_600_000, tz) : lp;
   const winter = season.winter;
   const xmas = hol && hol.id === 'christmas' && hol.full ? 0.8 : 0;   // a little Christmas magic, unless it's really raining
-  let rain, snow, storm, fog, cloud, wind, windDir;
+  let rain, snow, storm, fog, cloud, wind, windDir, cover, veil = 0;
   if (live) {
-    rain = live.rain || 0; storm = live.storm ? 1 : 0; fog = live.fog || 0; cloud = live.cloud || 0;
+    rain = live.rain || 0; storm = live.storm ? 1 : 0; fog = live.fog || 0;
+    // FP3a (FREV B2): `cloud` is the cover that SHUTS the sky (low + mid — every consumer's "how overcast"), `cover` the total,
+    // `veil` a thin high sheet over an open sky (the sun kept); an older answer without them: from its layers, else the total
+    cover = live.cloud || 0;
+    cloud = live.opaque != null ? live.opaque : Math.max(opaqueOf(live.layers, cover), live.rain || live.snow ? 0.8 : 0);
+    veil = live.veil != null ? live.veil : (live.rain || live.snow ? 0 : veilOf(live.layers, cloud));
     snow = Math.max(live.snow || 0, rain ? 0 : xmas * 0.6);
     wind = live.wind || 0; windDir = live.windDir || 0;
   } else {
     // no live weather (yet, or the lookup failed): a dry city — rain, storms, fog and snow only ever come from the real
     // weather (the old seeded "rainy evenings" are gone). A few fair-weather clouds drift by; Christmas keeps its snow.
     snow = xmas; rain = 0; storm = 0; fog = 0;
-    cloud = 0.06 + (hash(`cloud:${ev.y}-${ev.m}-${ev.d}:${Math.floor(lp.h / 3)}`) % 100) / 100 * 0.3;
+    cloud = 0.06 + (hash(`cloud:${ev.y}-${ev.m}-${ev.d}:${Math.floor(lp.h / 3)}`) % 100) / 100 * 0.3; cover = cloud;
     wind = 2 + (hash(`wind:${ev.y}-${ev.m}-${ev.d}`) % 40) / 10; windDir = 250;
   }
   const clear = !rain && snow < 0.6 && cloud < 0.7 && fog < 0.4;
@@ -499,19 +504,19 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   if (lp.m === 12 && lp.d === 31 && lp.h === 23 && lp.mi >= 50) nye = { countdown: (60 - lp.mi) * 60 - lp.s };
   else if (lp.m === 1 && lp.d === 1 && lp.h === 0 && lp.mi < 5) nye = { finale: lp.mi * 60 + lp.s };
   const q = v => Math.round(v * 40);
-  const key = [q(w.night), q(w.late), q(w.dawn), q(w.day), q(w.golden), q(season.winter), q(season.autumn), q(season.spring), q(season.summer), hol ? `${hol.id}${hol.full ? 'F' : Math.round(hol.k * 10)}` : '-', Math.round(rain * 4), Math.round(fog * 4), Math.round(cloud * 5), storm, Math.round(clamp01(snow) * 4), Math.round(freeze * 4), sun.az < 180 ? 'E' : 'W'].join('|');
+  const key = [q(w.night), q(w.late), q(w.dawn), q(w.day), q(w.golden), q(season.winter), q(season.autumn), q(season.spring), q(season.summer), hol ? `${hol.id}${hol.full ? 'F' : Math.round(hol.k * 10)}` : '-', Math.round(rain * 4), Math.round(fog * 4), Math.round(cloud * 5), Math.round(veil * 4), storm, Math.round(clamp01(snow) * 4), Math.round(freeze * 4), sun.az < 180 ? 'E' : 'W'].join('|');
   return {
     local: lp, lat, lon, south, sun, alwaysNight, partyNight: inPartyWindow(lp), moon: { ...moonP, ...mph, u: moonArc(ms, lat, lon) }, w, season, holiday: hol, nye,
     eclipse: moonP.el > -1 ? eclipseAt(ms) : null,
     sunArc: sunArc(ms, tz, lat, lon), solar: sun.el > -2 ? solarEclipse(ms, lat, lon) : null,
-    rain, snow: clamp01(snow), storm, fog, cloud, cloudLayers: live && live.layers ? live.layers : null, wind, windDir, temp: live ? live.temp : null, freeze, live: !!live, wxKind: live ? live.kind : null, clear, meteors, shower: met.shower, aurora, key,
+    rain, snow: clamp01(snow), storm, fog, cloud, cover, veil, cloudLayers: live && live.layers ? live.layers : null, wind, windDir, temp: live ? live.temp : null, freeze, live: !!live, wxKind: live ? live.kind : null, clear, meteors, shower: met.shower, aurora, key,
   };
 }
 
 // ---------------------------------------------------------------- the clock (a preview switch for screenshots)
 /** ?when=2026-10-31T19:30&tz=America/New_York freezes the start of the clock (it still runs from there);
  *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights,party,finale makes the rare moments happen now; ?wx=storm|rain|snow|fog|clouds|
- *  overcast|drizzle|sleet|clear (CITY 2.0: + cirrus|veil — high cloud by its height) sets the weather (instead of the live weather); &at=42.96,-85.67 puts the sun, moon and stars
+ *  overcast|drizzle|sleet|clear (CITY 2.0: + cirrus|veil — high cloud by its height; FP3a: + mist|stratus|highovercast) sets the weather (instead of the live weather); &at=42.96,-85.67 puts the sun, moon and stars
  *  over that place instead of the time zone's city (with clear weather unless &wx= says otherwise); &rained=12 says the rain
  *  stopped 12 minutes before the clock's start (RAINBOWS: the real after-rain path, core/rainbow.js; &force=rainbow,rainbow2,
  *  moonbow,neonbow show one at once); &wind=<m/s> sets the wind (THE STREET). Normal players never pass these. */

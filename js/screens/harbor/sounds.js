@@ -152,7 +152,7 @@ export function createCitySounds() {
     ducking();
     // ---- THE HARBOR: the water taxi's engine while it crosses; the foghorn in real fog
     keep('boat-putter', boats ? 1 : 0, 0, { ramp: 1.5, linger: 8 });
-    if (L && (L.fog || 0) > 0.45 && t > next.fog) { citySound('foghorn', { pan: 0.35, gain: rnd(0.8, 1) }); next.fog = t + rnd(40000, 80000); }
+    if (L && (L.fog || 0) > 0.45 && L.wxKind !== 'mist' && t > next.fog) { citySound('foghorn', { pan: 0.35, gain: rnd(0.8, 1) }); next.fog = t + rnd(40000, 80000); }
   }
 
   // ---------------------------------------------------------------- 8P — THE SPEAKEASY's LIFE

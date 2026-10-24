@@ -1,5 +1,5 @@
 // THE DEBUG TOOLS (FP — the owner couldn't find the AUDIO panel without the &debug=1 link): the frame-time READOUT (City 2.0's
-// green box, screens/harbor/scene.js#drawReadout) and THE AUDIO PANEL (audio/diag.js), switched on / off LIVE from THE PREVIEW
+// strip at the top, screens/harbor/scene.js#readout + ui/debug-strip.js) and THE AUDIO PANEL (audio/diag.js), switched on / off LIVE from THE PREVIEW
 // PANEL → TOOLS on THIS device and remembered there (localStorage `na:dbgtools`) — JUST ME only, never sent to EVERYONE, no special
 // link needed. &debug=1 in a link still shows both; a switch flipped during the visit wins over the link for the rest of it.
 const KEY = 'na:dbgtools';
@@ -23,3 +23,9 @@ export function setDebugTool(id, on) {
 }
 /** called with (id, on) whenever a tool is switched → an unsubscribe */
 export function onDebugTools(fn) { subs.add(fn); return () => subs.delete(fn); }
+/** FP3a: is this tool's strip folded to one line? (ui/debug-strip.js — remembered on this device, beside the switches) */
+export const debugFold = id => !!saved[`fold:${id}`];
+export function setDebugFold(id, folded) {
+  saved = { ...saved, [`fold:${id}`]: !!folded };
+  try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* private mode: this visit only */ }
+}

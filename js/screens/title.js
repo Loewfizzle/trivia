@@ -37,7 +37,7 @@ import { isUnlocked } from '../audio/engine.js';
 import { musicClock } from '../audio/music.js';
 import { createDistrict } from './district/scene.js';
 import { captureBackdrop } from './district/backdrop.js';
-import { neonPlan, neonState, neonNext, firstTapAnswer } from './district/neon-ramp.js';
+import { neonPlan, neonState, neonNext, firstTapAnswer, createStartDetector } from './district/neon-ramp.js';
 import { createDock, dressCorners, ICON } from './title-dock.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded.
 // No top-level await (iOS 14 can't parse one — the whole app would die, every game and City 1.0 too): app.js holds the title on
@@ -63,7 +63,7 @@ const SEEN = 'nd:entered';      // localStorage: this device has been through th
 const BACK = 'nd:back';          // sessionStorage: just stepped back from the name / profile screen (a quick re-light)
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const NEON_TAP_LEVEL = 0.75 * 0.75;   // City 2.0: tapping a NEON letter — its dropout / power-on (PART 8a: ~25 % quieter than 0.75)
-let surgeSpent = false;         // THE MUSIC'S FIRST TAP (City 2.0): the sign has answered the music's start once this visit (a page load)
+let surgeAt = -1e9;             // THE MUSIC STARTING (City 2.0, FP3a): when the sign last really answered it (module-wide: the 10 s cooldown spans re-mounts)
 const store = (s, k, v) => { try { if (v === undefined) return s.getItem(k); s.setItem(k, v); } catch { /* private mode */ } return null; };
 
 // the sequences (seconds from the start). wave = window lights climbing, lit = the city's glow, bill = billboards,
@@ -350,8 +350,6 @@ export function createTitle() {
     // city taps come from the touch itself (iOS Safari never sends 'click' to plain page areas like the city)
     window.addEventListener('pointerdown', onCityDown, { passive: true });
     window.addEventListener('pointerup', onCityUp, { passive: true });
-    // THE MUSIC'S FIRST TAP: window capture runs before the audio engine's own unlock (document capture) — what played before the tap
-    if (createHarbor) { window.addEventListener('pointerdown', onSurgeTap, { capture: true, passive: true }); window.addEventListener('keydown', onSurgeTap, { capture: true, passive: true }); }
     els.probe = h('div', { style: { position: 'fixed', top: '0', left: '0', width: '1px', height: 'var(--safe-t)', visibility: 'hidden', pointerEvents: 'none' } });
     els.probeB = h('div', { style: { position: 'fixed', bottom: '0', left: '0', width: '1px', height: 'var(--safe-b)', visibility: 'hidden', pointerEvents: 'none' } });
     document.body.append(els.probe, els.probeB);
@@ -505,6 +503,7 @@ export function createTitle() {
     neonTick();
     armIdle();
     document.addEventListener('visibilitychange', onVisTitle);
+    surgeRetry();     // (FP3a: the music started during the intro → the sign answers now)
   }
 
   // CITY 2.0 (docs/harbor.md): THE TAGLINE follows the screen at rest (Part 5, the owner's call): shown on arrival, it fades out
@@ -837,7 +836,8 @@ export function createTitle() {
   // (7a section 0 — THE MUSIC'S FIRST TAP: 'first' = the lit sign's quicker, brighter race; 'surge' = BY DAY, gas igniting in the
   // unlit glass — every letter blazes as the head passes and fades straight back to daytime glass; both swell the sign's bloom)
   const RACE = { catch: { v: 0.8, decay: 950, peak: 1, word: 1 }, tap: { v: 0.85, decay: 700, peak: 0.9, word: 0.85 }, party: { v: 0.62, decay: 650, peak: 0.85, word: 0.9 },
-    first: { v: 1.2, decay: 560, peak: 1, word: 1, bloom: 0.55 }, surge: { v: 1.1, decay: 430, peak: 1, word: 0.9, bloom: 0.5, day: true } };
+    first: { v: 1.2, decay: 560, peak: 1, word: 1, bloom: 0.55 }, surge: { v: 1.1, decay: 430, peak: 1, word: 0.9, bloom: 0.5, day: true, hold: 300 } };
+  // (FP3a, the owner: the day's surge holds its peak + bloom ~300 ms longer — at 2 s with no hold it read as a flash)
   function raceLogo(kind) {
     const cfg = RACE[kind] || RACE.party, day = !!cfg.day;
     if (!createHarbor || destroyed || raceBusy() || reduced() || !els.sign) return false;
@@ -856,11 +856,11 @@ export function createTitle() {
     const at = S => { let g = segs[segs.length - 1]; for (const x of segs) if (S < x.off + x.total) { g = x; break; } const u = Math.max(0, Math.min(g.total, S - g.off)); let j = 1; while (j < g.len.length - 1 && g.len[j] < u) j++; const k = (u - g.len[j - 1]) / Math.max(1e-6, g.len[j] - g.len[j - 1]); return [g.pts[j - 1][0] + (g.pts[j][0] - g.pts[j - 1][0]) * k, g.pts[j - 1][1] + (g.pts[j][1] - g.pts[j - 1][1]) * k, g.letter]; };
     const Sat = e => { for (const x of segs) if (e < x.t0 + x.dur) return x.off + Math.max(0, e - x.t0) / x.dur * x.total; return total; };
     const dots = [...H.querySelectorAll('.ndr-t')].reverse(), hd = H.querySelector('.ndr-hd'), word = [...els.sign.querySelectorAll('.nd-word-r i')];
-    const tW = tEnd - 120, WD = 560, done = Math.max(tEnd + cfg.decay, tW + WD + 500);
+    const hold = cfg.hold || 0, tW = tEnd - 120 + hold, WD = 560, done = Math.max(tEnd + hold + cfg.decay, tW + WD + 500);
     const last = new Map(), put = (el, a) => { const q = Math.round(a * 50) / 50; if (last.get(el) !== q) { last.set(el, q); el.style.opacity = q ? String(q) : ''; } };
     const sm = v => (v <= 0 ? 0 : v >= 1 ? 1 : v * v * (3 - 2 * v));
     const t0 = performance.now();
-    const end = () => { for (const el of [...blaze, ...dots, hd, ...word, ...(bloom ? [bloom] : [])]) el.style.opacity = ''; els.sign.classList.remove('nd-surge'); if (race === me) race = null; };
+    const end = () => { for (const el of [...blaze, ...dots, hd, ...word, ...(bloom ? [bloom] : [])]) el.style.opacity = ''; els.sign.classList.remove('nd-surge'); if (race === me) { race = null; surgeRetry(); } };
     const me = race = { kind, seen: t0, end };
     const frame = now => {
       if (destroyed || race !== me) return;
@@ -868,14 +868,14 @@ export function createTitle() {
       const e = now - t0;
       if (e > done || !alive()) { end(); return; }
       // (the first tap's answer: the sign's bloom swells with the surge — up as it starts, easing off as the head leaves the last N)
-      if (bloom) put(bloom, cfg.bloom * sm(e / 260) * (1 - sm((e - tEnd * 0.55) / (tEnd * 0.45 + cfg.decay))));
+      if (bloom) put(bloom, cfg.bloom * sm(e / 260) * (1 - sm((e - tEnd * 0.55 - hold) / (tEnd * 0.45 + cfg.decay))));
       // the head + its tail (on a connector the light runs behind the painted tube: dim)
       const S = Sat(e), fadeIn = sm(e / 90), fadeOut = 1 - sm((e - tEnd + 60) / 220);
       const [hx, hy, hl] = at(S);
       hd.setAttribute('transform', `translate(${hx.toFixed(1)} ${hy.toFixed(1)})`); put(hd, (hl < 0 ? 0.32 : 1) * fadeIn * fadeOut);
       dots.forEach((d, k) => { const s2 = S - (k + 1) * 5.5; if (s2 < 0) { put(d, 0); return; } const [x, y, l] = at(s2); d.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); put(d, Math.pow(1 - k / dots.length, 1.3) * (l < 0 ? 0.3 : 1) * fadeIn * fadeOut); });
       // each letter blazes as the surge enters it, holds while it runs through, then eases back (a letter that's out stays out)
-      blaze.forEach((b, i) => { if (!lit[i]) return; const [a, z] = inL[i]; put(b, cfg.peak * (e < a ? 0 : e < z ? sm((e - a) / 140) : Math.exp(-(e - z) / (cfg.decay * 0.42)))); });
+      blaze.forEach((b, i) => { if (!lit[i]) return; const [a, z0] = inL[i], z = z0 + hold; put(b, cfg.peak * (e < a ? 0 : e < z ? sm((e - a) / 140) : Math.exp(-(e - z) / (cfg.decay * 0.42)))); });
       // SPEAKEASY: a quick sweep, letter by letter
       if (e > tW) { const p = (e - tW) / WD * 1.5 - 0.25; word.forEach((w, j) => { const d = Math.abs((j + 0.5) / word.length - p); put(w, cfg.word * Math.pow(Math.max(0, 1 - d / 0.2), 1.6)); }); }
       requestAnimationFrame(frame);
@@ -888,41 +888,35 @@ export function createTitle() {
   function raceBusy() { if (race && performance.now() - race.seen > 1000) race.end(); return !!race; }
   if (createHarbor && /[?&]force=([^&]*,)?race(,|&|$)/.test(location.search)) { const iv = setInterval(() => { if (destroyed) { clearInterval(iv); return; } raceLogo('party'); }, 6000); }
 
-  // ---------------------------------------------------------------- THE MUSIC'S FIRST TAP (7a section 0, City 2.0 — the owner)
-  // No "tap for music" hint: when the music starts on a visit's first tap, the NEON sign answers it, from its REAL state (8a, the
-  // owner — district/neon-ramp.js#firstTapAnswer, tested): ANY moment the sign isn't lit (the morning goodbye, the day, golden hour's
-  // early sputters) a bright surge races through the glass N → E → O → N and fades back to unlit (raceLogo 'surge'); lit (night,
-  // after the catch, ALWAYS NIGHT) a quicker, brighter race through the lit tubes ('first'); in the evening WARM-UP WINDOW (the last
-  // few minutes before the catch, from the first letter sticking) the tap does THE CATCH — the sign lights for good (earlyCatch).
-  // Once per visit (surgeSpent, module-wide: a page load), only when the song's own clock really starts moving after a tap
-  // (audio/music.js#musicClock: never with the music off / muted / at zero volume, never when the start failed). While the intro
-  // runs, the power-on is the answer. Reduced motion / effects: one gentle brighten (the catch still catches). &force=first-tap
-  // previews it every 5 s.
-  let surgeWatch = 0, surgeLast = null, surgeCount = 0, surgeIv = 0;
-  function onSurgeTap() {
-    if (!createHarbor || surgeSpent || destroyed || surgeWatch) return;
-    if (musicClock() >= 0) { surgeSpent = true; return; }          // already playing before this tap: this tap didn't start it
-    const t0 = performance.now();
-    let c0 = -1;
-    const look = () => {
-      surgeWatch = 0;
-      if (destroyed || surgeSpent) return;
-      const c = musicClock();
-      if (c >= 0 && c0 >= 0 && c > c0 + 0.03) { surgeSpent = true; signSurge('music'); return; }
-      c0 = c;
-      if (performance.now() - t0 < 6000) surgeWatch = setTimeout(look, 90);
-    };
-    surgeWatch = setTimeout(look, 60);
-  }
+  // ---------------------------------------------------------------- THE MUSIC STARTING (7a section 0 → FP3a, City 2.0 — the owner)
+  // No "tap for music" hint: whenever the MUSIC STARTS — the visit's first tap, the music button back ON, a rescue after the
+  // background — the NEON sign answers it, from its REAL state on screen (district/neon-ramp.js#firstTapAnswer, tested): the sign NOT
+  // lit (the morning goodbye, the day, golden hour's early sputters; the DOM's is-day) → a bright surge races through the glass
+  // N → E → O → N, holds its peak a moment and fades back to daylight glass (raceLogo 'surge'); lit (is-steady, not is-day) → a
+  // quicker, brighter race through the lit tubes ('first'); in the evening WARM-UP WINDOW (the last few minutes before the catch)
+  // → THE CATCH (the sign lights for good, earlyCatch).
+  // FP3a (FREV B3 — the surge was lost to a tap-armed 6-s watch + a once-per-visit flag spent before the answer ran): ONE detector
+  // on this tick (createStartDetector: the song's clock silent ≥ 1 s, then moving — audio/music.js#musicClock: never with the music
+  // off / muted / at zero volume, never when the start failed), ONE entry signSurge(reason) with a 10 s COOLDOWN stamped only when
+  // it really ran, and an answer that can't run yet (the intro, a race / the catch running, the race's SVGs not in yet) is PENDING:
+  // it fires from finish() and from the running race's end, within SURGE_PEND. Reduced motion / effects: one gentle brighten (the
+  // catch still catches). &force=first-tap previews it every 5 s (no cooldown).
+  const SURGE_COOL = 10000, SURGE_PEND = 8000;
+  let surgeLast = null, surgeCount = 0, surgeIv = 0, surgePending = null;
+  const surgeStart = createStartDetector({ quietMs: 1000 });
   /** the sign's answer now (the music started / the preview / the test hook) — returns what it did */
   function signSurge(why = 'hook') {
+    const now = performance.now();
     const did = (() => {
-      if (!createHarbor || destroyed || !els.sign) return 'skip:off';
+      if (!createHarbor || destroyed) return 'skip:off';
+      if (why === 'music' && now - surgeAt < SURGE_COOL) return 'skip:cool';
+      if (!els.sign) return 'skip:off';
       // the sign's real state now (the plan's — the DOM catches up first if a timer ran late, e.g. just back from the background)
       const st = tl && tl.done && scene ? neonNow() : null;
       if (st && st.stage !== neonStage) applyNeon(st);
+      const cl = els.sign.classList;
       const ans = firstTapAnswer(st, neonFromPlan ? neonPlanV : null, scene ? scene.now() : 0, { intro: !tl || !tl.done,
-        busy: raceBusy() || els.sign.classList.contains('is-catch') || els.sign.classList.contains('nd-glow-in'), reduced: reduced() });
+        busy: raceBusy() || cl.contains('is-catch') || cl.contains('nd-glow-in'), reduced: reduced(), lit: cl.contains('is-steady') && !cl.contains('is-day') });
       if (ans.startsWith('skip')) return ans;
       if (ans === 'catch') { earlyCatch = neonPlanV.catchAt; neonTick(); return 'catch'; }   // (applyNeon: prev 'ramp' → caught = THE CATCH, its sound + race)
       if (ans === 'soft') {
@@ -935,18 +929,33 @@ export function createTitle() {
       }
       return raceLogo(ans) ? ans : 'skip:race';
     })();
-    surgeLast = { why, did, at: Math.round(performance.now()) };
-    if (!did.startsWith('skip')) surgeCount++;
+    // (can't run yet → pending: the intro's end or the running race's end fires it — never lost, never spent)
+    if (why !== 'force' && (did === 'skip:intro' || did === 'skip:busy' || did === 'skip:race')) surgePending = { why, at: now };
+    else if (!did.startsWith('skip')) { surgePending = null; surgeCount++; if (why !== 'force') surgeAt = now; }
+    surgeLast = { why, did, at: Math.round(now), ...(surgePending && surgePending.at === now ? { pending: true } : {}) };
     return did;
   }
+  /** a pending answer, once the sign is free (finish(), a race's end) — one rAF later so is-day / is-steady have applied */
+  function surgeRetry() {
+    if (!surgePending || destroyed) return;
+    requestAnimationFrame(() => {
+      if (!surgePending || destroyed) return;
+      if (performance.now() - surgePending.at > SURGE_PEND) { surgePending = null; return; }
+      if (race || !tl || !tl.done) return;                       // (still busy: the next end tries again)
+      const p = surgePending; surgePending = null;
+      signSurge(p.why);
+    });
+  }
   if (createHarbor) {
-    // &force=first-tap — from the URL or THE PREVIEW PANEL (live: the scene's force set): 2.4 s after the intro (shots.mjs's burst
-    // starts ~2.6 s after it: --every 120 --count 12 catches it), then every 5 s while it's on
+    // the detector + &force=first-tap — from the URL or THE PREVIEW PANEL (live: the scene's force set): 2.4 s after the intro
+    // (shots.mjs's burst starts ~2.6 s after it: --every 120 --count 12 catches it), then every 5 s while it's on
     let surgeOn = false, surgeNext = 0;
     const watch = () => {
       if (destroyed) return;
-      const on = !!(scene && scene.forced && scene.forced('first-tap')) && !!(tl && tl.done), now = performance.now();
-      if (on && !surgeOn) { surgeSpent = true; surgeNext = now + 2400; }          // (the preview stands in for the real first tap)
+      const now = performance.now();
+      if (surgeStart.feed(musicClock(), now)) signSurge('music');
+      const on = !!(scene && scene.forced && scene.forced('first-tap')) && !!(tl && tl.done);
+      if (on && !surgeOn) surgeNext = now + 2400;
       surgeOn = on;
       if (on && now >= surgeNext) { signSurge('force'); surgeNext = now + 5000; }
       surgeIv = setTimeout(watch, 100);
@@ -1492,10 +1501,12 @@ export function createTitle() {
       remote: () => remote,                                              // CITY 2.0 only: THE PREVIEW PANEL (tests)     // CITY 2.0 only (?city=2): camera, layout, bake + memory
       door: () => (scene && scene.door ? scene.door() : null),
       finale: () => scene && scene.finale(),
-      // (City 2.0 — THE MUSIC'S FIRST TAP: signSurge() fires the sign's answer now and says what it did ('surge' unlit | 'first' lit |
-      // 'catch' the warm-up window | 'soft' | 'skip:…'); surge() — spent this visit?, how many ran, the last one { why: music | force | hook, did, at })
+      // (City 2.0 — THE MUSIC STARTING: signSurge() fires the sign's answer now and says what it did ('surge' unlit | 'first' lit |
+      // 'catch' the warm-up window | 'soft' | 'skip:…'); surge() — how many ran, the last one { why: music | force | hook, did, at },
+      // pending (waiting for the intro / a race to end), cool (ms left of the 10 s cooldown after a real answer to the music))
       signSurge: () => signSurge('hook'),
-      surge: () => ({ spent: surgeSpent, count: surgeCount, last: surgeLast, running: !!(race && (race.kind === 'surge' || race.kind === 'first')) }),
+      surge: () => ({ count: surgeCount, last: surgeLast, pending: !!surgePending, cool: Math.max(0, Math.round(SURGE_COOL - (performance.now() - surgeAt))),
+        running: !!(race && (race.kind === 'surge' || race.kind === 'first')) }),
       dock: {
         join: openJoin,
         preview: patch => { els.sig = null; update({ ...st, ...patch }); },   // test-only: show the dock for a state (REJOIN, an invite)
@@ -1526,8 +1537,7 @@ export function createTitle() {
     window.removeEventListener('pointermove', onMouse);
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
-    window.removeEventListener('pointerdown', onSurgeTap, { capture: true }); window.removeEventListener('keydown', onSurgeTap, { capture: true });
-    clearTimeout(surgeWatch); clearTimeout(surgeIv);
+    clearTimeout(surgeIv);
     document.removeEventListener('visibilitychange', onVisTitle);
     window.removeEventListener('pointerdown', outsideDown, { capture: true });
     if (window.visualViewport) { window.visualViewport.removeEventListener('resize', fitKeyboard); window.visualViewport.removeEventListener('scroll', fitKeyboard); }

@@ -13,7 +13,8 @@ export function rayStrength(LK, sunNow) {
   if (!sunNow || !LK || LK.alwaysNight) return 0;
   const g = (LK.w.golden || 0) + (LK.w.dawn || 0), el = LK.sun.el;
   if (g < 0.2 || el < -1.5 || el > 14 || LK.rain || (LK.cloud || 0) > 0.7 || (LK.fog || 0) > 0.35) return 0;
-  return smooth(0.2, 0.7, g) * (1 - smooth(8, 14, el)) * smooth(-1.5, 0.5, el) * (1 - smooth(0.4, 0.7, LK.cloud || 0)) * Math.min(1, (sunNow.vis || 0) * 1.4 + 0.25);
+  // (FP3a: a high veil softens the sun — the rays at half — but never stops them like a deck)
+  return smooth(0.2, 0.7, g) * (1 - smooth(8, 14, el)) * smooth(-1.5, 0.5, el) * (1 - smooth(0.4, 0.7, LK.cloud || 0)) * (1 - 0.5 * clamp01(LK.veil || 0)) * Math.min(1, (sunNow.vis || 0) * 1.4 + 0.25);
 }
 
 /**

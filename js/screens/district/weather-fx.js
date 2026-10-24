@@ -348,6 +348,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
         c.fillStyle = g; c.fillRect(0, HZ * 0.15, W, HZ * 0.85);
         return;
       }
+      if (L.wxKind === 'mist') return;          // (FP3a: MIST is the haze above + wider halos — the drifting banks are dense fog's only)
       if (!fogShape) fogShape = computeFog();
       const key = col.map(v => Math.round(v / 6)).join(',');
       if (key !== fogShape.key) { colourFog(fogShape, mix(col, [235, 232, 245], 0.3)); fogShape.key = key; }

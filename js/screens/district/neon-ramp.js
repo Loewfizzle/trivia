@@ -120,14 +120,42 @@ export const warmAt = plan => Math.min(...plan.letters.map(l => l.stick));
  *            N → E → O → N through the glass and fades back to unlit
  *   'soft'   reduced effects / motion (anything but the catch): one gentle brighten
  *   'skip:intro' (the power-on is the answer) · 'skip:busy' (a race / the catch already running)
- * o: { intro, busy, reduced }
+ * o: { intro, busy, reduced, lit } — lit (FP3a): the sign's REAL lit state on screen (is-steady && !is-day); when given it decides
+ *    'first' vs 'surge' instead of the plan's `caught` (the DOM is what the player sees)
  */
 export function firstTapAnswer(st, plan, t, o = {}) {
   if (o.intro) return 'skip:intro';
   if (o.busy) return 'skip:busy';
   if (st && st.stage === 'ramp' && plan && t >= warmAt(plan) && t < plan.catchAt) return 'catch';
   if (o.reduced) return 'soft';
-  return st && st.caught ? 'first' : 'surge';
+  const lit = o.lit != null ? !!o.lit : !!(st && st.caught);
+  return lit ? 'first' : 'surge';
+}
+
+/**
+ * FP3a — THE MUSIC STARTING, detected (FREV B3): one detector fed the song's clock (audio/music.js#musicClock: −1 = not sounding)
+ * on the title's tick — it covers the first tap, the music button's ON, a rescue after the background, with no event wiring.
+ * A START = the clock was below 0 for ≥ quietMs (or since the page came up: the visit's first song), then MOVES across two readings.
+ * Not a start: music already playing when the detector began, a song change (the clock jumps back while sounding), a blip of
+ * silence shorter than quietMs (a crossfade between songs).  feed(clock, nowMs) → true once per start.
+ */
+export function createStartDetector({ quietMs = 1000 } = {}) {
+  let state = 'init', offAt = -Infinity, prev = -1, armed = false;
+  return {
+    feed(c, now) {
+      if (!(c >= 0)) {                                     // silent
+        if (state !== 'off') { if (state !== 'init') offAt = now; state = 'off'; }
+        armed = false; prev = -1; return false;
+      }
+      if (state === 'init') { state = 'on'; prev = c; return false; }       // already playing when we began: not a start
+      if (state === 'off') { state = 'on'; armed = now - offAt >= quietMs; prev = c; return false; }
+      const moved = c > prev + 0.03;
+      prev = c;
+      if (armed && moved) { armed = false; return true; }
+      return false;
+    },
+    get state() { return state; },
+  };
 }
 
 /** The next moment after t at which anything changes (ms), or t + 1 h. */

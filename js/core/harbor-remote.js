@@ -192,6 +192,8 @@ export const MUSIC_MOODS = [{ id: 'morning', label: 'MORNING' }, { id: 'day', la
 export const WEATHER = [
   { id: 'clear', label: 'CLEAR' }, { id: 'clouds', label: 'CLOUDS' }, { id: 'cirrus', label: 'HIGH CIRRUS' }, { id: 'veil', label: 'HAZY VEIL' },
   { id: 'overcast', label: 'OVERCAST' }, { id: 'rain', label: 'RAIN' }, { id: 'storm', label: 'STORM' }, { id: 'snow', label: 'SNOW' }, { id: 'fog', label: 'FOG' },
+  // (FP3a — the weather by layers: a 600 m MIST (no banks), a low STRATUS deck, a HIGH OVERCAST = a bright veil, never grey)
+  { id: 'mist', label: 'MIST' }, { id: 'stratus', label: 'LOW STRATUS' }, { id: 'highovercast', label: 'HIGH OVERCAST' },
 ];
 const lastMonday = (y, m) => { const d = new Date(Date.UTC(y, m, 0)); return d.getUTCDate() - ((d.getUTCDay() + 6) % 7); };
 /** the holiday looks (core/sky.js#holidayOf + the holiday sky's own days, core/harbor-sky.js#SKY_HOLIDAYS) and their date */

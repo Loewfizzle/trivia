@@ -1953,6 +1953,28 @@ test('SP — OVERCAST: nothing puffy in front of a full deck (only the scud); th
   assert.equal(sunLook({ ...day, sun: { el: -20, az: 300 } }, P).ovc, 0, 'never at night');
 });
 
+test('FP3a — A HIGH VEIL is not overcast (FREV B2): through look() the cover that shuts the sky is 0 → the sun keeps its side, the deck stays away, the sky only slightly whitened', async () => {
+  const { look } = await import('../js/core/sky.js');
+  const { normalize } = await import('../js/core/weather.js');
+  const ms = Date.UTC(2026, 9, 24, 18), tz = 'America/Detroit';
+  const veilWx = { ...normalize({ weather_code: 3, cloud_cover: 100, cloud_cover_low: 0, cloud_cover_mid: 0, cloud_cover_high: 100, visibility: 24000 }), at: ms };
+  const clearWx = { ...normalize({ weather_code: 0, cloud_cover: 2, cloud_cover_low: 0, cloud_cover_mid: 0, cloud_cover_high: 2, visibility: 24000 }), at: ms };
+  const V = look(ms, tz, { wx: veilWx }), C = look(ms, tz, { wx: clearWx });
+  assert.ok(V.sun.el > 20, 'midday');
+  const P = { sky: [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]] };
+  const sv = sunLook(V, P), sc = sunLook(C, P);
+  assert.ok(sv.ovc === 0 && sv.sunDir === sc.sunDir && sv.sunDir !== 0, `the sun keeps its side under the veil (ovc ${sv.ovc}, side ${sv.sunDir})`);
+  const M = cloudMix(V, 'gr');
+  assert.ok(M.deck < 0.05 && M.veil > 0.8, `no deck, a veil (deck ${M.deck.toFixed(2)}, veil ${M.veil.toFixed(2)})`);
+  const hv = harborSky(P, V), hc = harborSky(P, C), lum = c => c[0] + c[1] + c[2];
+  for (let i = 0; i < 4; i++) {
+    assert.ok(lum(hv[i]) >= lum(hc[i]) && lum(hv[i]) - lum(hc[i]) < 120, `stop ${i}: whitened a little (${hc[i]} → ${hv[i]})`);
+    assert.ok(hv[i][2] > hv[i][0] + 20, `stop ${i}: still blue, never the grey deck (${hv[i]})`);
+  }
+  const S = look(ms, tz, { wx: { ...normalize({ weather_code: 3, cloud_cover: 100, cloud_cover_low: 100, cloud_cover_mid: 0, cloud_cover_high: 0, visibility: 12000 }), at: ms } });
+  assert.equal(sunLook(S, P).ovc, 1, 'a LOW deck is still overcast');
+});
+
 test('SP — the cloudy night\'s cost: by moonlight a drifting cloud keeps its light (coarse steps); by day an eighth of the way round', () => {
   const box = { W: 402, top: 62, roof: 470, hz: 563 }, cl = { kind: 'cumulus', w: 100, h: 40, y: 300, s: 0.5, seed: 7 };
   const moon = skyLight({ sun: { el: -30 }, moon: { el: 40, illum: 0.9 } }, { moon: { x: 200, y: 150, r: 12 } });
@@ -2191,6 +2213,24 @@ test('8a — THE FIRST TAP reads the sign\'s real state: unlit (goodbye / day / 
   assert.equal(firstTapAnswer({ stage: 'ramp', caught: false }, null, 0), 'surge', 'no plan: never a catch');
   assert.equal(firstTapAnswer(neonState(plan, plan.catchAt - 1000), plan, plan.catchAt - 1000, { intro: true }), 'skip:intro');
   assert.equal(firstTapAnswer(neonState(plan, base), plan, base, { busy: true }), 'skip:busy');
+  // FP3a: the sign's REAL lit state on screen wins over the plan's (the DOM is what the player sees)
+  assert.equal(firstTapAnswer({ stage: 'night', caught: true }, null, 0, { lit: false }), 'surge', 'the plan says caught, the glass is unlit → surge');
+  assert.equal(firstTapAnswer({ stage: 'day', caught: false }, null, 0, { lit: true }), 'first', 'lit on screen → the lit race');
+  assert.equal(firstTapAnswer(neonState(plan, warmAt(plan) + 1000), plan, warmAt(plan) + 1000, { lit: false }), 'catch', 'the warm-up window still catches');
+});
+
+test('FP3a — THE MUSIC STARTING: the detector fires once per start (silent ≥ 1 s or since the page came up, then the song\'s clock moving); never for music already playing, a song change, or a short gap', async () => {
+  const { createStartDetector } = await import('../js/screens/district/neon-ramp.js');
+  const run = (seq, step = 100) => { const d = createStartDetector({ quietMs: 1000 }); let t = 0; return seq.map(c => { const r = d.feed(c, t); t += step; return r; }); };
+  const fires = seq => run(seq).filter(Boolean).length;
+  assert.equal(fires([-1, -1, 0, 0.02, 0.1]), 1, 'the visit\'s first song: silent since the page came up (even < 1 s), then moving');
+  assert.equal(fires([-1, 0, 0, 0, 0]), 0, 'a clock that never moves (buffering) is not a start yet');
+  assert.equal(fires([-1, 0, 0, 0, 0.2]), 1, '… and is one once it moves');
+  assert.equal(fires([3.1, 3.2, 3.3, 3.4]), 0, 'already playing when the title mounted');
+  assert.equal(fires([3.1, 3.2, 0.0, 0.1, 0.2]), 0, 'a song change (the clock jumps back while sounding)');
+  assert.equal(fires([5, 5.1, -1, -1, -1, 0, 0.1]), 0, 'a 300 ms gap (a crossfade blip) is not a new start');
+  assert.equal(fires([5, 5.1, ...Array(12).fill(-1), 0, 0.1, 0.2]), 1, 'the music button OFF ≥ 1 s, then ON → a start');
+  assert.equal(fires([-1, 0, 0.1, ...Array(12).fill(-1), 0, 0.1, ...Array(12).fill(-1), 0, 0.1]), 3, 'every start counts (the 10 s cooldown is the title\'s, not the detector\'s)');
 });
 
 test('8a — PULSE STRENGTH: pulseGain parses percent / multiplier, clamps, defaults; pulseOut is linear to the knee, never above the cap; the remote validates it (the server shares it), drops the default, and carries it to the URL + the status', async () => {

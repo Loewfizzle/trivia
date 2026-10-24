@@ -27,9 +27,51 @@ test('Open-Meteo current conditions → the city weather (cloud cover, fog from 
   assert.equal(w.windDir, 271);
   assert.equal(w.lat, 43);
   assert.equal(w.at, 1000);
-  const foggy = normalize({ weather_code: 2, cloud_cover: 40, visibility: 400 });
-  assert.equal(foggy.kind, 'fog', 'under ~1 km visibility is fog whatever the code says');
-  assert.ok(foggy.fog > 0.8);
+  const misty = normalize({ weather_code: 2, cloud_cover: 40, visibility: 400 });
+  assert.equal(misty.kind, 'mist', 'FP3a: under 1 km without a fog code is MIST (haze, no banks) — never a dense fog');
+  assert.ok(misty.fog > 0.25 && misty.fog <= 0.4, `mist ≤ 0.4 (${misty.fog})`);
+});
+
+test('FP3a — THE WEATHER BY LAYERS (FREV B2): Grand Rapids, Oct 24 2026, the real Open-Meteo answers → the city’s state', () => {
+  const S = (code, cc, lo, mid, hi, vis) => ({ weather_code: code, cloud_cover: cc, cloud_cover_low: lo, cloud_cover_mid: mid, cloud_cover_high: hi, visibility: vis, time: 1761314400 });
+  const at10 = normalize(S(45, 100, 100, 0, 0, 100));
+  assert.equal(at10.kind, 'fog', '10:00 — WMO 45 at 100 m: the dense fog (the airport had ¼ mile that minute)');
+  assert.equal(at10.fog, 1);
+  const at11 = normalize(S(3, 100, 100, 0, 4, 12200));
+  assert.equal(at11.kind, 'overcast', '11:00 — the low deck still 100 %: overcast');
+  assert.ok(at11.opaque >= 0.99 && at11.veil === 0 && at11.fog === 0);
+  const at14 = normalize(S(3, 98, 2, 0, 98, 24000));
+  assert.equal(at14.kind, 'veil', '14:00 — all of it HIGH (cirrostratus): a veil, NOT overcast');
+  assert.ok(at14.opaque < 0.05 && at14.veil > 0.9 && at14.cloud >= 0.95, `opaque ${at14.opaque}, veil ${at14.veil}, the total kept ${at14.cloud}`);
+  const at12 = normalize(S(2, 59, 56, 0, 59, 20000));
+  assert.equal(at12.kind, 'clouds', '12:00 — patches under cirrus: clouds');
+  assert.ok(at12.opaque > 0.5 && at12.opaque < 0.6 && at12.veil < 0.1);
+  const mist = normalize({ weather_code: 2, cloud_cover: 50, visibility: 400 });
+  assert.equal(mist.kind, 'mist'); assert.ok(mist.fog <= 0.4);
+  const mist45 = normalize({ weather_code: 45, cloud_cover: 90, visibility: 600 });
+  assert.equal(mist45.kind, 'mist', 'a fog code at 600 m: mist (0.3–0.6), no banks');
+  assert.ok(mist45.fog >= 0.3 && mist45.fog <= 0.6);
+  const patchy = normalize({ weather_code: 45, cloud_cover: 40, visibility: 9000 });
+  assert.notEqual(patchy.kind, 'fog', 'a fog code the visibility doesn’t back is not fog');
+  assert.equal(patchy.fog, 0);
+  const rain = normalize(S(63, 90, 20, 10, 90, 8000));
+  assert.equal(rain.kind, 'rain'); assert.ok(rain.opaque >= 0.8 && rain.veil === 0, 'rain always shuts the sky');
+  // the provenance the readout shows
+  assert.equal(at11.src, 'open-meteo/best_match'); assert.equal(at11.code, 3); assert.equal(at11.vis, 12200); assert.equal(at11.t, 1761314400000);
+  const old = normalize({ weather_code: 3, cloud_cover: 95 });
+  assert.equal(old.kind, 'overcast', 'no layers in the answer: the total cover, as before'); assert.equal(old.opaque, 0.95);
+});
+
+test('FP3a — the city reads OPAQUE, not the total: a high veil keeps the sun; mist has no banks', () => {
+  const ms = at(2026, 10, 24, 14);
+  const veil = look(ms, NY, { wx: { ...normalize({ weather_code: 3, cloud_cover: 98, cloud_cover_low: 2, cloud_cover_mid: 0, cloud_cover_high: 98, visibility: 24000 }), at: ms } });
+  assert.ok(veil.cloud < 0.1 && veil.cover > 0.95 && veil.veil > 0.9, `look(): cloud = the opaque cover (${veil.cloud}), cover the total (${veil.cover}), veil ${veil.veil}`);
+  const deck = look(ms, NY, { wx: { ...forcedWeather('stratus'), at: ms } });
+  assert.ok(deck.cloud >= 0.99 && deck.veil === 0, 'a low stratus deck shuts the sky');
+  const hi = look(ms, NY, { wx: { ...forcedWeather('highovercast'), at: ms } });
+  assert.ok(hi.cloud < 0.05 && hi.veil > 0.9 && hi.wxKind === 'veil', 'the preview HIGH OVERCAST = a veil');
+  const mist = look(ms, NY, { wx: { ...forcedWeather('mist'), at: ms } });
+  assert.ok(mist.fog > 0.3 && mist.fog < 0.6 && mist.wxKind === 'mist');
 });
 
 test('the area is rounded (~35 miles) before anything is kept; nonsense is refused', () => {
