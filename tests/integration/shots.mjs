@@ -24,6 +24,10 @@
 // street-party street-rain umbrellas party-line hail small-hours halloween-kids nye-sparklers door door-day party snow. --crop street: the street strip (the towers' feet down to the dock). "first" has no profile; --guest makes every scene a first-time visitor.
 // --idle: the screen AT REST before the shot (the dock + the tagline faded away: title.js#goIdle, then the 1.8 s fade) — FP2's
 //   street under the dock. --crop band = the band under the dock (the promenade's front edge down to the screen's foot).
+// --load: FP3a — THE LOAD GATE's burst: the shots start at the navigation itself (--every ms --count n from t = 0, no wait for the
+//   intro), so the reveal is seen frame by frame. --net 3g|4g: a cellular network (Fast 3G 1.6 Mbps / 150 ms; 4G 9 Mbps / 60 ms) —
+//   a fresh context has no cache: a first visit on a phone. --cpu N: the CPU slowed N × (4 ≈ a phone's worst moments).
+//   e.g. node shots.mjs "<browser>" --city 2 --scenes day --sizes 402x874 --load --net 3g --cpu 4 --every 250 --count 24
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
@@ -48,6 +52,7 @@ const IDLE = !!opt('idle', false);
 // --dsf N: the device scale factor (default 2 on a phone size, 1 on desktop) — FP2: the barber pole's frame burst at dpr 3 (an iPhone)
 const DSF = Number(opt('dsf', 0)) || 0;
 const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
+const LOAD = !!opt('load', false), NET = { '3g': { latency: 150, down: 1.6e6, up: 0.75e6 }, '4g': { latency: 60, down: 9e6, up: 3e6 } }[opt('net', '')] || null, CPU = Number(opt('cpu', 0)) || 0;
 const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900', harbor: '390x844,402x874,412x915,430x932,874x402,1440x900' };
 const SIZES = String(SIZE_SETS[opt('sizes', 'quick')] || opt('sizes')).split(',').map(s => s.split('x').map(Number));
 // [when, options] — dates are Grand Rapids' 19 Oct 2026 unless the scene is a holiday
@@ -158,10 +163,18 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     try { localStorage.setItem('nd:entered', '1'); if (!guest) localStorage.setItem('na:sh:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, GUEST || !!o.guest);
   const qs = `when=${when}${PLACE}${o.qs ? `&${o.qs}` : ''}${CITY}${EXTRA}`;
-  await p.goto(PREVIEW ? `${BASE}/tests/integration/title-preview.html?${qs}${GUEST || o.guest ? '&guest=1' : ''}` : `${BASE}/?emu&slot=sh&${qs}`);
-  await p.waitForFunction(() => window.__district && window.__district.phase().done, { timeout: 25000 });
-  if (TIER !== null) await p.evaluate(t => window.__district.setTier(t), TIER);
-  await sleep(o.wait && !opt('wait', 0) ? o.wait : WAIT);
+  if (NET || CPU) {
+    const cdp = await p.target().createCDPSession();
+    if (NET) { await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: NET.latency, downloadThroughput: NET.down / 8, uploadThroughput: NET.up / 8 }); }
+    if (CPU) await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
+  }
+  const nav = p.goto(PREVIEW ? `${BASE}/tests/integration/title-preview.html?${qs}${GUEST || o.guest ? '&guest=1' : ''}` : `${BASE}/?emu&slot=sh&${qs}`, { timeout: 90000 });
+  if (!LOAD) {
+    await nav;
+    await p.waitForFunction(() => window.__district && window.__district.phase().done, { timeout: 25000 });
+    if (TIER !== null) await p.evaluate(t => window.__district.setTier(t), TIER);
+    await sleep(o.wait && !opt('wait', 0) ? o.wait : WAIT);
+  } else nav.catch(() => {});
   if (o.act === 'join') { await p.evaluate(() => window.__district.dock.join(true)); await sleep(500); await p.type('.nd-code-in', 'mi'); await sleep(400); }
   if (o.act === 'rejoin') { await p.evaluate(() => window.__district.dock.preview({ rejoin: 'MINT' })); await sleep(700); }
   if (o.act === 'panel') {

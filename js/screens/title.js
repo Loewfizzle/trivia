@@ -297,11 +297,15 @@ export function createTitle() {
     dressCorners(true);
     // the city: fixed behind everything, full viewport (the screen column is narrower on desktop)
     els.sceneWrap = h('div.nd-scene', { 'aria-hidden': 'true' }, els.canvas = h('canvas'));
+    // (FP3a — THE LOAD GATE: City 2.0's canvas stays DARK until the scene says its first full frame is ready — onReveal below —
+    // so Safari's bars settling, the bakes and the fonts never show as a jump: dark → the city fades in, with the NEON sign)
+    if (createHarbor) { els.sceneWrap.classList.add('is-hold'); els.holdT = setTimeout(reveal, 6000); }
     document.body.prepend(els.sceneWrap);
     // (City 2.0 starts every phone at tier 2 — iOS reports a capped core count, so the old guess put every iPhone at tier 1 while it
     // ran the Harbor in 1–3 ms; the Harbor's own step-down still protects a slow phone: docs/harbor.md#performance)
     scene = (createHarbor || createDistrict)(els.canvas, { games: GAMES, tier: createHarbor ? 2 : (window.devicePixelRatio || 1) > 2.5 && (navigator.hardwareConcurrency || 8) <= 4 ? 1 : 2 });
     scene.set({ motion: reduced() ? 0 : 1 });
+    if (createHarbor) scene.set({ onReveal: reveal, measure: () => ({ clear: clearZones(), textRects: textRects() }) });
     // a lightning strike: thunder a few seconds later, the glass of the dock catches the flash
     scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
@@ -1001,6 +1005,13 @@ export function createTitle() {
   }
 
   // keep the sign's light in the scene in sync with layout (resizes, the keyboard)
+  /** FP3a: the scene's first full frame is ready (or the safety timer) — the canvas fades in from dark */
+  function reveal() {
+    clearTimeout(els.holdT);
+    if (destroyed || !els.sceneWrap || !els.sceneWrap.classList.contains('is-hold')) return;
+    els.sceneWrap.classList.add('is-reveal');
+    els.sceneWrap.classList.remove('is-hold');
+  }
   function clearZones() {
     const out = [];
     const add = el => { if (!el) return; const r = el.getBoundingClientRect(); if (r.width && r.height) out.push({ x: r.left, y: r.top, w: r.width, h: r.height }); };
@@ -1549,7 +1560,7 @@ export function createTitle() {
     document.body.style.removeProperty('--dk-tint');
     dressCorners(false);
     if (dock) dock.destroy();
-    clearTimeout(remoteT);
+    clearTimeout(remoteT); clearTimeout(els.holdT);
     if (remote) { remote.destroy(); remote = null; }
     const wrap = els.sceneWrap;
     captureBackdrop(els.canvas, scene.partyLight ? scene.partyLight() : null);   // the menus keep a still of the city (+ the party's light, which breathes on)

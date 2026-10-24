@@ -208,6 +208,9 @@ async function dismissBoot() {
   await new Promise(r => { const check = () => (document.documentElement.classList.contains('css-ready') ? r() : setTimeout(check, 30)); check(); });
   // (the title's TAP TO ENTER should be up within ~1 s, so it waits less for the fonts)
   try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, resuming ? 1500 : 700))]); } catch { /* old browser */ }
+  // (FP3a — THE LOAD GATE: on ?city=2 the boot screen — the dark sky + the unlit sign — stays until the Harbor's module is in, so a
+  // slow network never shows the bare shell between it and the title; ≤ 8 s, then the shell's own boot route covers the rest)
+  if (harborPending()) await Promise.race([harborReady, new Promise(r => setTimeout(r, 8000))]);
   el.classList.add('out');
   setTimeout(() => el.remove(), 500);
 }

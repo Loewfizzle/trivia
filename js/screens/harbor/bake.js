@@ -30,14 +30,14 @@ export function createBaker() {
       big.dpr = big.dpr > 1.5 ? 1.5 : 1;
     }
     // A re-plan never blanks the city: a group that was baked keeps its current canvas (and `ready`) and goes on drawing it
-    // until the new bake swaps in — in the band it was baked for when its pixel size is unchanged, stretched into the new
-    // band after a resize or a tier change. Only `next` (the bake target) is resized, when the bake starts.
+    // until the new bake swaps in — ALWAYS in the band it was baked for (FP3a, FREV B1: it used to be stretched into the new band
+    // after a resize, then the crossfade snapped it back: the iPhone's "shrink, enlarge, snap"). Only `next` (the bake target) is
+    // resized, when the bake starts.
     const old = new Map(groups.map(g => [g.name, g]));
     groups = want.map(g => {
       const o = old.get(g.name);
       if (!o) { const cur = mk(), next = mk(); for (const c of [cur, next]) { c.width = Math.ceil(W * g.dpr); c.height = Math.ceil(g.h * g.dpr); } return { ...g, cur, next, ready: false, show: { y0: g.y0, h: g.h }, prev: null }; }
-      const same = o.cur.width === Math.ceil(W * g.dpr) && o.cur.height === Math.ceil(g.h * g.dpr);
-      return { ...g, cur: o.cur, next: o.next, ready: o.ready, show: same ? o.show : { y0: g.y0, h: g.h }, prev: o.prev };
+      return { ...g, cur: o.cur, next: o.next, ready: o.ready, show: o.show, prev: o.prev };
     });
     for (const o of old.values()) if (!groups.some(g => g.name === o.name)) { o.cur.width = o.cur.height = o.next.width = o.next.height = 0; }
     key = ''; queue = [];

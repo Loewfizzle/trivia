@@ -123,7 +123,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let spellBy = null;                             // who lit the current word: 'force' | an event's seed
   let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now();
   let drawn = 0, fastUntil = 0, fastWhy = '';      // BATTERY: the frames actually drawn; what keeps the city at 60 fps right now
-  let shownAt = -1;                         // when the first bake came in (the city fades in from the sky)
+  let shownAt = -1;                         // THE REVEAL (FP3a): when the city was let in — its first bake ready, the viewport settled
+  // FP3a — THE LOAD GATE (FREV B1: on an iPhone the city "shrinks, enlarges and snaps" while Safari's bars settle): during the LOAD
+  // WINDOW (until the reveal + LOAD_WIN) a height-only resize under 25 % is coalesced into ONE build 400 ms after the LAST one; a
+  // build runs from the next frame (the clear + the redraw share it); the title measures its rects at once (S.measure) so a change
+  // is ONE layout; the city is REVEALED only once its first bake + the lit windows are in, nothing is pending, no resize for 400 ms
+  // and the fonts are in (or 1.2 s passed) — S.onReveal tells the title (which holds the canvas dark until then) — never later
+  // than REVEAL_MAX; before the reveal a re-bake swaps in without a crossfade; no tier step until TIER_GRACE after the reveal.
+  const LOAD_WIN = 2500, REVEAL_MAX = 4500;
+  let lastResizeAt = -1e9, wantBuild = false, wantStep = null, revealWhy = '';
+  const stepWhy = [];
   let fadeFrom = -1;                        // the crossfade of a re-bake
   const frames = [], costs = [];
   let cool = 0, nowT = 0, knockAt = -1e9, knocks = 0;
@@ -525,6 +534,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function frame(now) {
     if (!running) return;
     raf = requestAnimationFrame(frame);
+    if (wantBuild) { wantBuild = false; measure(); build(); }      // (FP3a: the clear and the redraw in ONE frame — never a blank one)
     seenAt = performance.now();                          // (8a: THE LOOP'S PULSE — the watchdog below restarts a loop that stopped getting frames)
     perf(Math.min(100, Math.max(0, now - lastRaf) || 16.7));          // (the frame intervals the tiering watches: every rAF, drawn or not)
     lastRaf = now;
@@ -545,7 +555,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the Safari floor: a frame that throws — iOS out of canvas memory, a layer's context refused — never takes the city down
     // every frame: it steps the tier down to free memory, and after many in a row stops the loop on the last good frame)
     try { draw(t, dt, now); fails = 0; } catch (e) { if (!frameFailed(e)) return; }
-    if (starvedCount() !== starvedSeen && now - starvedAt > 2000) { starvedSeen = starvedCount(); starvedAt = now; if (tier > 0) stepTier(tier - 1); }
+    if (starvedCount() !== starvedSeen && now - starvedAt > 2000) { starvedSeen = starvedCount(); starvedAt = now; if (tier > 0) { if (loadFrozen(now)) wantStep = wantStep || 'starved'; else stepTier(tier - 1); } }
     drawn++;
     costs.push(performance.now() - c0); if (costs.length > 90) costs.shift();
   }
@@ -553,7 +563,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function frameFailed(e) {
     fails++;
     if (!failLogged) { failLogged = true; console.warn('[harbor] a frame failed', e); }
-    if (fails === 3 && tier > 0) { stepTier(tier - 1); fails = 0; }
+    if (fails === 3 && tier > 0) { if (loadFrozen(performance.now())) wantStep = wantStep || 'failed'; else stepTier(tier - 1); fails = 0; }
     else if (fails >= 30) { running = false; failStop = true; cancelAnimationFrame(raf); return false; }
     return true;
   }
@@ -587,7 +597,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the first bake: nothing but the sky draws yet, so it may take a bigger slice of the frame — the city and its windows are
     // ready early in the title's power-on wave)
     if (baker.pump(shownAt < 0 ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
-      if (shownAt < 0) { shownAt = now; baker.settle(); } else fadeFrom = now;   // (the first bake has no fade: its spare canvases settle at once)
+      if (shownAt < 0) baker.settle(); else fadeFrom = now;   // (before the reveal nothing shows: a bake swaps in at once, no crossfade)
       liveTones = bakeTones;
       if (DEBUG) console.info('[harbor] baked', baker.key, `${baker.busyMs.toFixed(1)} ms in total`, baker.mem());
     }
@@ -595,7 +605,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the timeline's next step, a re-layout) starts at once, never during the lit layer's own crossfade
     if (L && !litBaker.pending && litFadeFrom < 0 && lightKey() !== litBaker.key && !waitRects()) rebakeLights();
     if ((!baker.pending || litBaker.bakes === 0) && litBaker.pump(TIERS[tier].bakeMs * (litBaker.bakes === 0 ? 2 : 1))) {
-      if (litBaker.bakes > 1) litFadeFrom = now; else litBaker.settle();
+      if (litBaker.bakes > 1 && shownAt >= 0) litFadeFrom = now; else litBaker.settle();
       lights.swap(litMeta.far, litMeta.near);
     }
     // the neon's sprites build a few a frame (behind the facades' bake: never in the same frame as its first bake)
@@ -652,6 +662,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const sd = sun.debug(); if (!off.has('no-clouds')) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }); }
     if (LK.storm) wfx.sky(c, { ...fs, L: { ...LK, cloud: 0 } });
     signHalo(c);
+    if (shownAt < 0) tryReveal(now);
     sun.through(c, fs, (x, y) => clouds.coverAt(x, y));
     if (!off.has('no-rain')) rain.veils(c, fs);
     bowT = bowTarget(t);
@@ -660,7 +671,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     fw.draw(c, dt, S.motion);
     drawEvents(c, 'sky');
     // ---- the city: the baked layers, far → near, with the moving things between them
-    const fadeIn = shownAt < 0 ? 0 : smooth(0, 700, now - shownAt);
+    const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - shownAt);
     const xf = fadeFrom < 0 ? 1 : smooth(0, 1200, now - fadeFrom);
     if (xf >= 1 && fadeFrom >= 0) { fadeFrom = -1; if (!baker.pending) baker.settle(); }
     if (wantBake && fadeFrom < 0 && !waitRects()) { wantBake = false; rebake(); }
@@ -1199,6 +1210,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // TIER_GRACE after the city shows, and the first window it judges holds no frame from before)
     if (frames.length < 90 || document.visibilityState !== 'visible' || now < tierHold || shownAt < 0 || now - shownAt < TIER_GRACE) return;
     if (!graceDone) { graceDone = true; frames.length = 0; return; }
+    if (wantStep) { const w = wantStep; wantStep = null; if (tier > 0) { stepWhy.push(w); stepTier(tier - 1); cool = 150; frames.length = 0; return; } }
     if (++perfN % 30) return;                 // (the sort every half second, not every frame)
     const s = [...frames].sort((a, b) => a - b);
     // NEON PASS 5 — A CAPPED FRAME RATE IS NOT A SLOW CITY (the owner's iPhone: a party night with NOTHING racing — tier 0): iOS
@@ -1268,7 +1280,41 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const watchdog = setInterval(() => wakeLoop('watchdog'), 1000);
   let resizeT = 0, relayT = 0, laneKey = '';
   // (a resize that changed nothing — iOS fires one on the way back from the home screen — never re-bakes the city)
-  const onResize = () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (destroyed) return; const r = canvas.getBoundingClientRect(); if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr) === dpr) return; build(); }, 180); };
+  // (FP3a: in the load window a height-only change under 25 % — Safari's bars settling — waits for the LAST one + 400 ms; a width
+  // change or a big one (a rotation) at once; the build runs from the next frame)
+  const onResize = () => {
+    const now = performance.now(), r0 = canvas.getBoundingClientRect();
+    lastResizeAt = now;
+    const big = Math.abs(Math.max(320, r0.width) - W) >= 0.5 || Math.abs(Math.max(320, r0.height) - H) >= 0.25 * H;
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => {
+      resizeT = 0;
+      if (destroyed) return;
+      const r = canvas.getBoundingClientRect();
+      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr) === dpr) return;
+      fastUntil = Math.max(fastUntil, performance.now() + 1500);
+      if (running) wantBuild = true; else { measure(); build(); }
+    }, inLoad(now) && !big ? 400 : 180);
+  };
+  const inLoad = now => shownAt < 0 || now < shownAt + LOAD_WIN;
+  const loadFrozen = now => shownAt < 0 || now < shownAt + TIER_GRACE;
+  /** the title's rects measured NOW (S.measure) — a resize lays the city out ONCE, never on the last report's stale dock */
+  function measure() {
+    if (!S.measure) return;
+    let m = null;
+    try { m = S.measure(); } catch { /* the title is going */ }
+    if (m && m.clear) S.clear = m.clear;
+    if (m && m.textRects) S.textRects = m.textRects;
+  }
+  /** THE REVEAL: the first full frame is ready → the city fades in (900 ms) and the title lets the canvas show */
+  function tryReveal(now) {
+    const ready = baker.bakes >= 1 && litBaker.bakes >= 1 && !baker.pending && !litBaker.pending && !wantBake && !wantBuild && !resizeT && now - lastResizeAt > 400;
+    const fonts = typeof document === 'undefined' || !document.fonts || document.fonts.status === 'loaded' || now - t0 > 1200;
+    const late = now - t0 > REVEAL_MAX;
+    if (!(ready && fonts) && !late) return;
+    shownAt = now; revealWhy = ready && fonts ? 'ready' : 'late';
+    if (S.onReveal) { try { S.onReveal({ why: revealWhy, ms: Math.round(now - t0) }); } catch { /* the title's */ } }
+  }
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('pageshow', onShow); window.addEventListener('focus', onFocus);
   window.addEventListener('pointerdown', onTapWake, { capture: true, passive: true });
@@ -1279,7 +1325,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function maybeRelayout() {
     if (!cam) return;
     const rr = rects();
-    const moved = (rr.dock && Math.abs(rr.dock.y - cam.dock.y) > 1) || (rr.tag && Math.abs(rr.tag.y + rr.tag.h + 10 - cam.limitY) > 1);
+    const moved = (rr.dock && Math.abs(rr.dock.y - cam.dock.y) > 2) || (rr.tag && Math.abs(rr.tag.y + rr.tag.h + 10 - cam.limitY) > 2);   // (FP3a: > 2 pt)
     if (moved) { clearTimeout(relayT); relayT = setTimeout(() => { if (!destroyed) layout(); }, 60); return; }
     // the sign or the corner buttons moved, the city didn't: only the lanes follow (no bake)
     const sig = r => (r ? `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}` : '-');
@@ -1348,7 +1394,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** C1.5: the session's frame pacing since the city showed (the readout's 'session' line) */
     session: () => ({ ...sess, after: { ...sess.after } }),
     /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
-    tiering: () => ({ tier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())) }),
+    tiering: () => ({ tier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())) }),
     cost: () => costs.slice(),
     party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
     finale: () => startFinale(),
@@ -1412,7 +1458,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null,
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
-      rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
+      rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {
       destroyed = true;

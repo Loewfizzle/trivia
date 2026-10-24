@@ -951,6 +951,62 @@ G('dock', async () => {
   ok((await ev(B.page, 'window.__arcade.state.code')) === code, 'JOIN (city 2): typing the hush word joins the room');
   await H.ctx.close(); await B.ctx.close();
 });
+// ================================================================ FP3a — THE LOAD GATE (FREV B1: the iPhone's "shrinks, enlarges, snaps" on load)
+// A sampler installed BEFORE the page mounts records every frame: the canvas's backing size, the scene's opacity, the harbor's shown /
+// bakes / fading; Safari's bars are played by two viewport changes in the load window (390×780 at 300 ms, back to 390×844 at 900 ms).
+G('load', async () => {
+  const ctx = await (await launch()).createBrowserContext();
+  const p = await ctx.newPage();
+  p.on('pageerror', e => { errors.push(`load pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
+  await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await p.evaluateOnNewDocument(() => {
+    try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:ld:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
+    const S = window.__ld = { s: [], resizes: [], px: [] };
+    addEventListener('resize', () => S.resizes.push(performance.now()));
+    let n = 0;
+    const tick = () => {
+      const now = performance.now(), cv = document.querySelector('.nd-scene canvas'), wrap = document.querySelector('.nd-scene');
+      let hb = null; try { hb = window.__district && window.__district.harbor ? window.__district.harbor() : null; } catch { /* mounting */ }
+      if (cv && wrap) S.s.push({ t: now, w: cv.width, h: cv.height, op: +getComputedStyle(wrap).opacity, shown: !!(hb && hb.shown), bakes: hb ? hb.bakes : 0, fading: !!(hb && hb.fading) });
+      // (one stage pixel a few frames apart, from a second after the reveal: no stretch, no snap)
+      if (hb && hb.shown && hb.reveal && S.revealT == null) S.revealT = now;
+      if (S.revealT != null && now - S.revealT > 1000 && now - S.revealT < 4000 && ++n % 6 === 0 && cv) {
+        const k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round(cv.clientWidth * 0.12 * k), Math.round(cv.clientHeight * 0.66 * k), 1, 1).data;
+        S.px.push([d[0], d[1], d[2]]);
+      }
+      if (now < 15000) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  const t0 = Date.now();
+  const nav = p.goto(`${BASE}/?emu&slot=ld&when=2026-10-23T13:00${GR}&force=no-people&city=2`);
+  await sleep(300); await p.setViewport({ width: 390, height: 780, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await sleep(Math.max(0, 900 - (Date.now() - t0))); await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await nav;
+  await waitFor(p, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'the reveal', 20000);
+  await sleep(4200);
+  const S = await ev(p, 'window.__ld'), hb = await ev(p, 'window.__district.harbor()'), tr = await ev(p, 'window.__district.tiering()');
+  const sizes = [...new Set(S.s.map(x => `${x.w}×${x.h}`))], last = S.s[S.s.length - 1];
+  ok(sizes.length <= 2 && `${last.w}×${last.h}` === '780×1688', `LOAD: the canvas sized ≤ 2 times through the bars settling (${sizes.join(' → ')})`);
+  const rv = S.s.find(x => x.shown), lastRs = Math.max(...S.resizes);
+  ok(rv && rv.t >= lastRs + 400, `LOAD: revealed only once the viewport settled (the last resize ${Math.round(lastRs)} ms, the reveal ${rv ? Math.round(rv.t) : '—'} ms; ${hb.reveal && hb.reveal.why})`);
+  const before = S.s.filter(x => !x.shown);
+  ok(before.length > 0 && before.every(x => x.op === 0), `LOAD: DARK until the reveal (the canvas's opacity ${[...new Set(before.map(x => x.op))].join(' / ')} over ${before.length} frames)`);
+  const after = S.s.filter(x => x.shown && x.t < rv.t + 3000);
+  const bk = [...new Set(after.map(x => x.bakes))];
+  ok(after.length > 20 && bk.length === 1 && after.every(x => !x.fading), `LOAD: no re-bake and no crossfade in the 3 s after the reveal (bakes ${bk.join(' → ')}, ${after.filter(x => x.fading).length} fading frames)`);
+  const op = after.map(x => x.op);
+  ok(op[op.length - 1] > 0.99 && op.every((v, i) => !i || v >= op[i - 1] - 0.001), `LOAD: one clean fade in (opacity ${op[0].toFixed(2)} → ${op[op.length - 1].toFixed(2)}, never back)`);
+  const jump = S.px.length > 3 ? Math.max(...S.px.slice(1).map((c, i) => Math.max(...c.map((v, j) => Math.abs(v - S.px[i][j]))))) : 999;
+  ok(S.px.length > 3 && jump <= 60, `LOAD: the stage holds still after the reveal — no stretch, no snap (${S.px.length} reads, the biggest step ${jump} levels)`);
+  ok(tr.hist.length === 1 && !tr.wantStep, `LOAD: no tier step during the load (${tr.hist.join('→')}${tr.why.length ? ` · ${tr.why.join(', ')}` : ''})`);
+  if (SHOTS) await p.screenshot({ path: `${OUT}load-revealed-390x844.png` });
+  // a ROTATION after the load window: laid out again at once (not coalesced)
+  await p.setViewport({ width: 874, height: 402, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  let rot = true; await waitFor(p, 'window.__district.harbor().cam.W === 874', 'the rotation', 8000).catch(() => { rot = false; });
+  ok(rot, 'LOAD: a rotation re-lays the city within 8 s');
+  await ctx.close();
+});
 G('perf', async () => {
   // ================================================================ 5. frame pacing at 4× CPU, memory over 20 cycles, a hidden tab
   const Q = await open({ slot: 'hq', qs: `when=2026-10-24T23:00${GR}` });   // a Saturday at the party's peak
