@@ -144,10 +144,14 @@ export function drawCart(x, cam, c, T, ctx = {}) {
   x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
   const glow = Lt.night * Lt.lampK;            // its own lights (the bulbs, the lantern, the coals) by the lamps' ramp
   if (glow > 0.02) Lt.own = { k: 0.42 * Lt.lampK, col: [255, 178, 108] };   // (their warm light on the cart itself: it reads at night)
+  // (FP3b — THE VENDOR SPOT: c.hand = 1 puts the push handles on the RIGHT end (the vendor wheels it in from the right, and the left
+  // end stays clear of the compass inlay); c.fold furls the umbrella (the evening: no sun to keep off — the road + the maple stay
+  // clear); c.roll turns the wheels with the distance it has been wheeled)
+  const hEnd = c.hand === 1 ? bx1 : bx0, hDir = c.hand === 1 ? 1 : -1, roll = c.roll || 0;
   // 1. the far wheels (behind the body), the chassis + the handles' far shaft
-  for (const u of [X - 0.8, X + 0.8]) wheel(x, P, Lt, K, u, 0.6, 1.24, 0.58, true);
+  for (const u of [X - 0.8, X + 0.8]) wheel(x, P, Lt, K, u, 0.6, 1.24, 0.58, true, roll);
   pbox(x, P, Lt, [40, 38, 40], { x0: bx0 + 0.1, x1: bx1 - 0.1, y0: 0.66, y1: 0.8, d0: D0 + 0.05, d1: D1 - 0.05 }, { top: false, rim: false });
-  handle(x, P, Lt, X, bx0, 0.95);
+  handle(x, P, Lt, X, hEnd, 0.95, hDir);
   // 2. the body: its side, its top (the counter), its front (panelled), the mouldings
   pbox(x, P, Lt, K.body, { x0: bx0, x1: bx1, y0: by0, y1: by1, d0: D0, d1: D1 }, { rim: false });
   bodyFront(x, P, Lt, K, bx0, bx1, by0, by1, D0);
@@ -162,21 +166,21 @@ export function drawCart(x, cam, c, T, ctx = {}) {
   else if (kind === 'icecream') iceTop(x, P, Lt, X, by1 + 0.08);
   else flowerTop(x, P, Lt, X, by1 + 0.08, r);
   // 5. the near shaft of the handles + the near wheels (in front of the body)
-  handle(x, P, Lt, X, bx0, 0.25);
-  for (const u of [X - 0.8, X + 0.8]) wheel(x, P, Lt, K, u, 0.6, -0.04, 0.6, false);
-  // 6. the umbrella (+ its bulbs), the lantern on its hook
-  umbrella(x, P, Lt, K, pu, pd, C.umb, glow, ctx.snow || 0);
-  lantern(x, P, Lt, X + 1.15, 3.98, 0.15, glow);
+  handle(x, P, Lt, X, hEnd, 0.25, hDir);
+  for (const u of [X - 0.8, X + 0.8]) wheel(x, P, Lt, K, u, 0.6, -0.04, 0.6, false, roll);
+  // 6. the umbrella (+ its bulbs), the lantern on its hook — or FURLED, the lantern on a crossbar off the pole
+  if (c.fold) { furled(x, P, Lt, K, pu, pd); line(x, P(pu, 3.62, pd), P(pu + 0.62 * -hDir, 3.62, pd), lit(Lt, [60, 56, 50], FRONT), Math.max(0.4, 0.035 * s)); lantern(x, P, Lt, pu + 0.6 * -hDir, 3.32, pd, glow); }
+  else { umbrella(x, P, Lt, K, pu, pd, C.umb, glow, ctx.snow || 0); lantern(x, P, Lt, X + 1.15, 3.98, 0.15, glow); }
   x.restore();
 }
-function wheel(x, P, Lt, K, u, yc, d, R, far) {
-  const s = P.s, [cx, cy] = P(u, yc, d), rr = R * s;
+function wheel(x, P, Lt, K, u, yc, d, R, far, roll = 0) {
+  const s = P.s, [cx, cy] = P(u, yc, d), rr = R * s, spin = -roll / R;
   const tyre = lit(Lt, [30, 30, 34], FRONT, 0.3), paint = lit(Lt, far ? shade(K.wheel, -0.35) : K.wheel, FRONT), hub = lit(Lt, BRASS, FRONT, 1.2);
   // the iron tyre, the painted felloe, twelve spokes (each with its sunny edge), the brass hub
   x.lineWidth = Math.max(0.6, 0.07 * s); x.strokeStyle = rgb(tyre); x.beginPath(); x.arc(cx, cy, rr - 0.035 * s, 0, Math.PI * 2); x.stroke();
   x.lineWidth = Math.max(0.5, 0.07 * s); x.strokeStyle = rgb(paint); x.beginPath(); x.arc(cx, cy, rr - 0.1 * s, 0, Math.PI * 2); x.stroke();
   x.lineWidth = Math.max(0.35, 0.035 * s);
-  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6 + 0.13; x.beginPath(); x.moveTo(cx + Math.cos(a) * 0.1 * s, cy + Math.sin(a) * 0.1 * s); x.lineTo(cx + Math.cos(a) * (rr - 0.12 * s), cy + Math.sin(a) * (rr - 0.12 * s)); x.stroke(); }
+  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6 + 0.13 + spin; x.beginPath(); x.moveTo(cx + Math.cos(a) * 0.1 * s, cy + Math.sin(a) * 0.1 * s); x.lineTo(cx + Math.cos(a) * (rr - 0.12 * s), cy + Math.sin(a) * (rr - 0.12 * s)); x.stroke(); }
   if (!far) {
     // the tyre's sunny arc (the sun's / lamp's side), a gilt pinstripe on the felloe
     const side = Lt.night > 0.5 ? Math.atan2(-Lt.ld[1], Lt.ld[0]) : Math.atan2(-Lt.L[1], Lt.L[0]);
@@ -187,12 +191,12 @@ function wheel(x, P, Lt, K, u, yc, d, R, far) {
   x.fillStyle = rgb(far ? shade(hub, -0.4) : hub); x.beginPath(); x.arc(cx, cy, 0.11 * s, 0, Math.PI * 2); x.fill();
   if (!far) { x.fillStyle = rgb(rimCol(Lt, BRASS, [0.4, 0.5, -0.8]), 0.9); x.beginPath(); x.arc(cx - 0.03 * s, cy - 0.03 * s, 0.04 * s, 0, Math.PI * 2); x.fill(); }
 }
-function handle(x, P, Lt, X, bx0, d) {
-  const s = P.s, a = P(bx0 + 0.05, 1.3, d), b = P(bx0 - 0.62, 1.42, d);
+function handle(x, P, Lt, X, bx0, d, dir = -1) {
+  const s = P.s, a = P(bx0 - 0.05 * dir, 1.3, d), b = P(bx0 + 0.62 * dir, 1.42, d);
   line(x, a, b, lit(Lt, [96, 64, 40], FRONT), Math.max(0.6, 0.075 * s));
   line(x, [a[0], a[1] - 0.025 * s], [b[0], b[1] - 0.025 * s], rimCol(Lt, [150, 104, 64], [0, 0.8, -0.6]), Math.max(0.25, 0.02 * s), 0.7);
   if (d < 0.5) {   // the turned-wood grip across the two shafts' ends (seen end-on: a knob)
-    const g0 = P(bx0 - 0.66, 1.42, 0.25), g1 = P(bx0 - 0.66, 1.42, 0.95);
+    const g0 = P(bx0 + 0.66 * dir, 1.42, 0.25), g1 = P(bx0 + 0.66 * dir, 1.42, 0.95);
     line(x, g0, g1, lit(Lt, [120, 80, 48], TOP), Math.max(0.6, 0.09 * s));
     x.fillStyle = rgb(lit(Lt, [120, 80, 48], [-0.5, 0.3, -0.8])); x.beginPath(); x.arc(g0[0], g0[1], 0.07 * s, 0, Math.PI * 2); x.fill();
   }
@@ -352,6 +356,21 @@ function umbrella(x, P, Lt, K, pu, pd, R, glow, snow) {
   // the finial: a brass ball on a short spike
   x.fillStyle = rgb(lit(Lt, BRASS, [0, 0.8, -0.6], 1.3)); x.beginPath(); x.arc(ap[0], ap[1] - 0.1 * s, 0.075 * s, 0, Math.PI * 2); x.fill();
   x.fillStyle = rgb(rimCol(Lt, BRASS, [0.3, 0.9, -0.3])); x.beginPath(); x.arc(ap[0] - 0.025 * s, ap[1] - 0.13 * s, 0.03 * s, 0, Math.PI * 2); x.fill();
+}
+/** FP3b — the umbrella FURLED round its pole (the evening): the canvas a slim spindle with its stripes, tied with a strap, the finial */
+function furled(x, P, Lt, K, pu, pd) {
+  const s = P.s, y0 = 2.95, y1 = 4.72, ym = 4.05, wm = 0.17;
+  const half = y => (y < ym ? wm * (y - y0) / (ym - y0) * 0.9 + 0.05 : wm * (1 - (y - ym) / (y1 - ym) * 0.85));
+  const n = 9;
+  for (let i = 0; i < n; i++) {
+    const ya = y0 + (y1 - y0) * i / n, yb = y0 + (y1 - y0) * (i + 1) / n, base = K.umb[i % 2];
+    const pts = [P(pu - half(ya), ya, pd), P(pu + half(ya), ya, pd), P(pu + half(yb), yb, pd), P(pu - half(yb), yb, pd)];
+    fillPts(x, pts, lit(Lt, base, FRONT));
+    fillPts(x, [pts[1], [pts[1][0] - 0.06 * s, pts[1][1]], [pts[2][0] - 0.05 * s, pts[2][1]], pts[2]], lit(Lt, shade(base, -0.3), [0.8, 0, -0.6]));   // (the shade side)
+  }
+  line(x, P(pu - wm * 0.95, 3.9, pd), P(pu + wm * 0.95, 3.84, pd), lit(Lt, [70, 46, 30], FRONT), Math.max(0.4, 0.04 * s));      // (the tie)
+  const ap = P(pu, y1 + 0.04, pd);
+  x.fillStyle = rgb(lit(Lt, BRASS, [0, 0.8, -0.6], 1.3)); x.beginPath(); x.arc(ap[0], ap[1] - 0.06 * s, 0.07 * s, 0, Math.PI * 2); x.fill();
 }
 /** a small brass lantern on a hook under the umbrella's rim: a frame, glass (a warm flame at night), a cap + ring */
 function lantern(x, P, Lt, u, y, d, glow) {

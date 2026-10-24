@@ -136,7 +136,7 @@ export function promenadeSteps(L, T) {
     lampShadows(x, L, T);
     L.trees.forEach((t, i) => treeShadow(x, cam, t, T, { ...cx, i }));
     for (const b of [L.bench, ...(L.bench.more || [])]) propShadow(x, cam, b, 'bench', T, cx);
-    if (L.cart.shown !== false) propShadow(x, cam, L.cart, 'cart', T, cx);
+    if (L.cart.shown !== false && !L.cart.live) propShadow(x, cam, L.cart, 'cart', T, cx);   // (FP3b: the live cart draws its own)
     for (const p of L.planters) propShadow(x, cam, p, 'planter', T, cx);
     if (L.mailbox) propShadow(x, cam, L.mailbox, 'mailbox', T, cx);   // (PF)
   });
@@ -232,7 +232,7 @@ export function furnitureSteps(L, T, keep = null) {
     ...L.trees.map((t, i) => ({ z: t.z, heavy: true, f: x => drawTree(x, cam, t, T, { ...cx, i }) })),
     ...[L.bench, ...(L.bench.more || [])].map(b => ({ z: b.z, f: x => drawBench(x, cam, b, T, cx) })),
     ...L.planters.map(p => ({ z: p.z, f: x => drawPlanter(x, cam, p, T, cx) })),
-    ...(L.cart.shown !== false ? [{ z: L.cart.z, f: x => drawCart(x, cam, L.cart, T, cx) }] : []),   // (8P: back, placed — CART_SHOWN)
+    ...(L.cart.shown !== false && !L.cart.live ? [{ z: L.cart.z, f: x => drawCart(x, cam, L.cart, T, cx) }] : []),   // (FP3b: the cart is LIVE — people.js draws it on its schedule)
     ...(L.mailbox ? [{ z: L.mailbox.z, f: x => drawMailbox(x, cam, L.mailbox, T, cx) }] : []),     // (PF: the 1920s pillar box)
   ].filter(it => !keep || keep(it)).sort((a, b) => b.z - a.z);
   const steps = [];

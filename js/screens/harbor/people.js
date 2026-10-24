@@ -16,6 +16,9 @@ import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP } from './folk.js';
 import { drawBus } from './bus.js';
 import { danceMoves, drawWands } from './wands.js';
+import { drawCart, propShadow } from './props.js';
+import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
 import { frontProfile } from './strings.js';
 import { SPEAK_V } from '../../core/harbor-speakeasy.js';
@@ -48,7 +51,7 @@ export function createPeople() {
     if (!L) return;
     ensureMap(!!f.event);
     const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance };
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, event: !!f.event };
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
     lastT = t;
@@ -88,7 +91,7 @@ export function createPeople() {
       items = roofNow.members;
     } else {
       const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...(pass === 'near' ? lineMembers(env.t || 0) : [])];   // (FP3a: the cap by tier)
-      if (pass === 'near' && env.vendor && M.nodes.vendor) all.push({ vid: 'vendor', kind: 'vendor', look: 'worker', party: false, m: { role: 'lead', seed: 777, lag: 0 }, s: { ...M.nodes.vendor, pose: 'cart', dir: -1, hd: Math.PI, dist: 0, v: 0, a: 1 } });
+      // (FP3b: the cart's vendor is a routine member now — core/harbor-people.js#folkAt — wheeling it in + out on its schedule)
       // (behind the speakeasy on the waterside sidewalk: hidden by the building — not drawn)
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ && !insideDoor(m)));
     }
@@ -97,7 +100,8 @@ export function createPeople() {
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);
     // far first; a bus is one item at its own depth
-    const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b }))].sort((a, b) => b.z - a.z);
+    const cartNow = pass === 'near' && now.cart && now.cart.on ? now.cart : null;
+    const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : [])].sort((a, b) => b.z - a.z);
     const hands = new Map(), collars = new Map();
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
     const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, advance = pass === 'near' && env.t !== wandT;
@@ -113,6 +117,7 @@ export function createPeople() {
         if (box && box.door && rs.length) { c.save(); c.beginPath(); c.rect(box.door.x, box.door.y, box.door.w, box.door.h); c.clip(); for (const m of rs) drawFolk(c, cam, { s: m.s, L: lookFor(m, env) }, { ...E, yUp: m.s.y || 0 }); c.restore(); }
         continue;
       }
+      if (it.cart) { drawCartLive(c, it.cart, env); continue; }
       if (riding.has(it.m)) continue;
       const mem = it.m, look = lookFor(mem, env);
       let st = mem.s, mv = null;
@@ -130,6 +135,52 @@ export function createPeople() {
     }
     for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E); }
     c.restore();
+  }
+  // ---- THE CHESTNUT CART, live (FP3b item 11b — the vendor spot: core/harbor-routines.js#VENDOR): wheeled in + out by its vendor,
+  // parked at the front curb in the evening; a sprite while it stands (re-painted when the look changes), painted directly while it
+  // rolls (its wheels turning); ~0.9 of its size round its ground point (it stands nearer than its old spot); a little steam off the
+  // roaster's chimney, warm under the lamps at night
+  let cartCv = null, cartT = null, cartKey = '', cartBox = null;
+  function paintCart(x, st, T) {
+    const cam = L.cam, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, L.cart.z), cc = { ...L.cart, x: st.x, roll: st.roll }, cx = pieceCtx(L);
+    x.save(); x.translate(gx, gy); x.scale(sc, sc); x.translate(-gx, -gy); propShadow(x, cam, cc, 'cart', T, cx); drawCart(x, cam, cc, T, cx); x.restore();
+  }
+  function drawCartLive(c, st, env) {
+    const T = env.T; if (!T || !L.cart) return;
+    const cam = L.cam, s = cam.F / L.cart.z, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, L.cart.z);
+    // its warm pool on the cobbles at night (the lantern + the coals — FP3b: the live cart lays its own; a crisp ellipse, no haze)
+    const nk = clamp01(env.dark || 0);
+    if (nk > 0.05) {
+      const r = 2.2 * s * sc, g = c.createRadialGradient(gx, gy, 0, gx, gy, r);
+      g.addColorStop(0, `rgba(${LIGHT.cart.join(',')},${(0.32 * nk).toFixed(3)})`); g.addColorStop(0.6, `rgba(${LIGHT.cart.join(',')},${(0.12 * nk).toFixed(3)})`); g.addColorStop(1, `rgba(${LIGHT.cart.join(',')},0)`);
+      c.save(); c.globalCompositeOperation = 'lighter'; c.translate(gx, gy); c.scale(1, 0.32); c.translate(-gx, -gy); c.fillStyle = g; c.fillRect(gx - r, gy - r, 2 * r, 2 * r); c.restore();
+    }
+    if (st.moving) paintCart(c, st, T);
+    else {
+      const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}`;
+      if (T !== cartT || key !== cartKey || !cartCv) {
+        cartT = T; cartKey = key;
+        const bx = Math.floor(gx - 4.2 * s * sc), by = Math.floor(gy - 5.4 * s * sc), bw = Math.ceil(8.4 * s * sc), bh = Math.ceil(6.6 * s * sc);
+        cartBox = { x: bx, y: by, w: bw, h: bh };
+        cartCv = cartCv || document.createElement('canvas'); cartCv.width = Math.ceil(bw * dpr); cartCv.height = Math.ceil(bh * dpr);
+        const x = safeCtx(cartCv); if (!x) return; x.setTransform(dpr, 0, 0, dpr, -bx * dpr, -by * dpr); x.clearRect(bx, by, bw, bh); paintCart(x, st, T);
+      }
+      c.drawImage(cartCv, cartBox.x, cartBox.y, cartBox.w, cartBox.h);
+    }
+    // the steam off the roaster's chimney: a few small puffs rising + thinning, drifting a little (warm-lit at night)
+    if (env.mo !== false) {
+      // (from the roaster's lid — props.js#chestnutTop: X + 0.63, its dome's top, ~0.64 deep (× the props' depth exaggeration) — scaled round its foot;
+      // the chimney's cap stands behind the framing maple's lowest leaves at phone size, where steam would never be seen)
+      const [px, py] = project(cam, st.x + 0.63, 2.95, L.cart.z + 0.96), ox = gx + (px - gx) * sc, oy = gy + (py - gy) * sc, t = env.t || 0, night = clamp01(env.dark || 0);
+      const col = night > 0.3 ? '255,226,196' : '242,242,238';
+      c.save();
+      for (let i = 0; i < 5; i++) {
+        // (short — under the framing maple's lowest leaves, where it can be seen)
+        const u = (t * 0.4 + i / 5) % 1, a = 0.5 * (1 - u) * Math.min(1, u / 0.1) * (0.7 + 0.3 * night);
+        c.fillStyle = `rgba(${col},${a.toFixed(3)})`; c.beginPath(); c.arc(ox + u * 0.45 * s * sc + Math.sin(t * 1.3 + i) * 0.05 * s, oy - u * 0.95 * s * sc, (0.12 + 0.3 * u) * s * sc, 0, Math.PI * 2); c.fill();
+      }
+      c.restore();
+    }
   }
   /** FP3b — REAL DOORS: whoever is in the doorway `id` ('side' | 'shop'), drawn by the speakeasy between its opening + its leaf
    *  (doors.js — already clipped to the opening), dimming into the passage's darkness the deeper they go */
@@ -191,7 +242,7 @@ export function createPeople() {
     }
     // a laugh from a pair chatting, now and then
     if (snd.laugh && env.t - laughAt > 6) { const pair = items.find(m => m.s.pose === 'chat' && m.m.role === 'lead'); if (pair && Math.random() < 0.012) { laughAt = env.t; snd.laugh({ pan: panOf(pair.s.x), gain: 0.6 }); } }
-    if (snd.cart && L.cart && L.cart.shown !== false) snd.cart({ on: !!env.vendor, pan: panOf(L.cart.x) });
+    if (snd.cart && L.cart && L.cart.shown !== false) snd.cart({ on: !!(now.cart && now.cart.parked), pan: panOf(now.cart && now.cart.on ? now.cart.x : L.cart.x) });
     if (snd.line) snd.line(lineN ? Math.min(1, 0.35 + lineN / 10) : 0, {});
     if (snd.rooftop) snd.rooftop(roofNow.members.length >= 3 ? Math.min(1, roofNow.members.length / 5) : 0, {});
   }
@@ -217,6 +268,8 @@ export function createPeople() {
     doors: () => ({ ...(now.doors || { side: 0, shop: 0 }) }),
     /** FP3b — THE DANCE CIRCLE now: { on, k (0..1 formed), id, s0, s1 } (the scene lights the inlay's floor spots + keeps the cart away) */
     dance: () => ({ ...(now.dance || { on: false, k: 0 }) }),
+    /** FP3b — THE VENDOR SPOT now: the chestnut cart { on, x, parked, moving } */
+    cart: () => ({ ...(now.cart || { on: false }) }),
     /** Lobby 2.0: n guests in the line at the speakeasy's door (0 = none) */
     line(n) { lineN = Math.max(0, Math.min(12, Math.round(n || 0))); },
     /** 6b's director: the street's share of its people (0..1) */
@@ -224,7 +277,7 @@ export function createPeople() {
     /** what's on the promenade now (tests, the readout) */
     debug: () => ({ n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
-      doors: { ...(now.doors || {}) }, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
+      doors: { ...(now.doors || {}) }, cart: now.cart ? { on: !!now.cart.on, parked: !!now.cart.parked, x: +(now.cart.x || 0).toFixed(2) } : null, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
       roofMembers: roofNow.members.map(m => ({ kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })), map: M ? { nodes: M.nodes, rects: M.rects.length } : null }),
     destroy() { cache.clear(); roofCache.clear(); looks.clear(); },
   };

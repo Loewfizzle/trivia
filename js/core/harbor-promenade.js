@@ -74,9 +74,12 @@ export const PHONE = Object.freeze({
   globes: [0.322, 0.962],                  // (the front edge's two corners: by the speakeasy's corner, by the right edge)
   medallion: { f: 0.6675, z: 44.8 },        // (PF: on the crossing's axis, between the flanking lamps — inside both their pools)
   bench: { f: 0.515, z: 47.8 },             // (PF: in front of the crabapple, a little right — its trunk + uplight show at the bench's left end; its right end by the left flanking lamp)
-  // (8P — THE CART BACK, PLACED: on the open floor RIGHT of the inlay, clear of the crossing + the bench + the crabapple; the vendor
-  // stands behind it; people stop there for chestnuts; nobody walks in front of it — core/harbor-people.js#folkMap)
-  cart: { f: 0.825, z: 42.4 },
+  // (FP3b — THE VENDOR SPOT, the owner, Oct 24: the cart moves to the FRONT CURB in the MIDDLE, just in front of the compass inlay —
+  // RIGHT of it on screen: centred in front of it, its body would cover the compass's front half at every phone size (the strip is
+  // ~70 pt deep); at f 0.805 its left end clears the inlay by ~3 pt and its right end stays ~10 pt short of the framing maple's trunk;
+  // fully above the dock at 390 / 402 / 430 (its wheels ~15 pt over it), ~0.9 of its old size (it stands nearer). Shared by time —
+  // core/harbor-routines.js#VENDOR: the chestnut cart 6:30–9:30 pm in the cold months, the newsboy's stand (8b) in the mornings)
+  cart: { f: 0.805, z: 38.4, scale: 0.9 },
   planters: [],
   // (PF placed a 1920s pillar box here — `mailbox: { f: 0.81, z: 38.6 }`; the owner didn't like the olive-green box: gone, Oct 24. props.js keeps the art.)
   mailbox: null,
@@ -165,7 +168,8 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   S.crabs.forEach(c => crab(X(c.f, c.z), c.z, c.k || 1));
   for (const p of S.planters) planters.push({ x: X(p.f, p.z), z: p.z, w: P.planter.w * (p.corner ? 1.08 : 0.92), corner: !!p.corner });
   const bench = { x: X(S.bench.f, S.bench.z), z: S.bench.z, w: P.bench.w };
-  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: CART_SHOWN };
+  // (live: drawn by the people's near pass on its schedule, never baked; hand 1: its handles on the right end; fold: its umbrella furled)
+  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: CART_SHOWN, live: true, scale: S.cart.scale || 1, hand: 1, fold: true };
   const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring, clear: EVENT_CLEAR };
   // (FP2 — THE CART'S RULE for 8b: it rests LEFT of the medallion; on a normal day its route rolls across the floor — over the
   // medallion — to the open right side and back; during an event on the medallion it stops short: never right of stopX)

@@ -62,3 +62,31 @@ export function danceLevel(sess, t) {
   const up = (t - sess.s0 - 10) / 18, down = (sess.s1 + 8 - t) / 10;
   return Math.max(0, Math.min(1, up, down));
 }
+
+// ------------------------------------------------------------------ THE VENDOR SPOT (FP3b item 11b — the owner + Claude, Oct 24)
+// The front curb in the middle, just in front of the compass inlay (right of it on screen, so it never covers the inlay — FP3b's
+// numbers: a cart centred in front of the compass would cover its front half at every phone size), SHARED BY TIME: the NEWSBOY's
+// small stand in the morning + for the evening edition (8b builds him — `newsboy` here is the hook), the CHESTNUT CART from ~6:30 to
+// ~9:30 pm in the COLD months only (October → March: roasted chestnuts are a cold-weather treat), empty in between (people walk
+// through). Whenever the inlay is in use — the dance circle, a holiday centrepiece — nothing sets up there.
+// The cart is WHEELED IN by its vendor from the right edge (and out again): cartAt(t) is where it is, pure, on the clock.
+export const VENDOR = Object.freeze({
+  months: [10, 11, 12, 1, 2, 3], from: 18.5, to: 21.5, jitter: 0.18,      // (the cart's evening, local hours; ± up to ~11 min a day)
+  roll: 0.9, wheel: 0.6,                                                   // (units / s wheeled in + out; the cart's wheel radius)
+  newsboy: [[7, 10], [16.5, 18.5]],                                        // (8b: the newsboy's stand — the hook only)
+});
+/** the cart's evening on local day `key` (PURE): { t0 (setting off from the edge), ta (at the spot), tb (packing up: wheeling out),
+ *  t1 (gone) } or null (a warm month). dayStart: the local midnight (s abs); xIn / xAt: the edge + the spot (world x) */
+export function cartEvening(key, month, dayStart, xIn, xAt, { seed = 1924 } = {}) {
+  if (!VENDOR.months.includes(month)) return null;
+  const r = rngFrom(hashString(`cart|${seed}|${key}`)), dur = Math.abs(xIn - xAt) / VENDOR.roll;
+  const ta = dayStart + (VENDOR.from + (r() - 0.5) * 2 * VENDOR.jitter) * 3600, tb = dayStart + (VENDOR.to + (r() - 0.5) * 2 * VENDOR.jitter) * 3600;
+  return { t0: ta - dur, ta, tb, t1: tb + dur, dur };
+}
+/** where the cart is at t on that evening (PURE) → { on, x, roll (the distance its wheels have turned), moving } */
+export function cartAt(ev, t, xIn, xAt) {
+  if (!ev || t < ev.t0 || t >= ev.t1) return { on: false, x: xIn, roll: 0, moving: false };
+  if (t < ev.ta) { const u = (t - ev.t0) / ev.dur; return { on: true, x: xIn + (xAt - xIn) * u, roll: Math.abs(xAt - xIn) * u, moving: true }; }
+  if (t < ev.tb) return { on: true, x: xAt, roll: Math.abs(xAt - xIn), moving: false };
+  const u = (t - ev.tb) / ev.dur; return { on: true, x: xAt + (xIn - xAt) * u, roll: Math.abs(xAt - xIn) * (1 + u), moving: true };
+}

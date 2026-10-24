@@ -348,3 +348,25 @@ test('FP3b — THE DANCE CIRCLE (the routines layer): party nights only, at the 
   }
   assert.ok(formed > 100, `the circle danced (${formed} samples)`);
 });
+test('FP3b — THE VENDOR SPOT: the chestnut cart wheeled in ~6:30 pm + out ~9:30 pm in the cold months only, its vendor with it; never while the inlay is in use; its customers only while it stands there', async () => {
+  const { VENDOR } = await import('../js/core/harbor-routines.js');
+  const { L } = setup('402x874'), M = folkMap(L);
+  const run = (iso, hours, ctx = {}) => { const cache = new Map(), t0 = Date.parse(iso) / 1000, out = []; for (let t = t0; t < t0 + hours * 3600; t += 20) out.push([t, folkAt(t, { L, M, ctx: { off: OFF, ...ctx } }, cache)]); return out; };
+  // October: out in the evening, parked at the spot, its vendor behind it; gone by day + late
+  const oct = run('2026-10-22T08:00:00-04:00', 16);
+  const hourOf = t => ((t - (Date.parse('2026-10-22T00:00:00-04:00') / 1000)) / 3600);
+  let parked = 0, buyers = 0;
+  for (const [t, f] of oct) {
+    const h = hourOf(t);
+    if (h < VENDOR.from - 0.4 || h > VENDOR.to + 0.4) assert.ok(!f.cart.on, `no cart at ${h.toFixed(2)}`);
+    if (f.cart.on && f.cart.parked) { parked++; assert.ok(Math.abs(f.cart.x - L.cart.x) < 1e-6, 'parked at the spot'); assert.ok(f.members.some(m => m.kind === 'vendor' && m.s.pose === 'cart'), 'its vendor behind it'); }
+    for (const m of f.members) if (m.kind === 'cart' && m.s.pose === 'cart') { buyers++; assert.ok(f.cart.parked, 'a customer only while it stands there'); }
+  }
+  assert.ok(parked > 400, `out all evening (${parked} samples)`);
+  assert.ok(buyers > 5, `people stop for chestnuts (${buyers})`);
+  // July: never
+  for (const [, f] of run('2026-07-16T17:00:00-04:00', 6)) assert.ok(!f.cart.on, 'no chestnuts in July');
+  // the inlay in use (a centrepiece / the dance circle): it doesn't come out
+  for (const [, f] of run('2026-10-22T18:00:00-04:00', 4, { event: true })) assert.ok(!f.cart.on, 'not while a centrepiece stands');
+  for (const [, f] of run('2026-10-22T18:00:00-04:00', 4, { forceDance: true })) assert.ok(!f.cart.on, 'not while the circle dances');
+});

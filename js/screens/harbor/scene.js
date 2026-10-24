@@ -284,7 +284,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the stage's top: the speakeasy's crest + the posts on its parapet, the string lights' pole, the stop lights
   function stageTop() { const s = L.speakeasy, pl = L.roof.pole, yOf = (y, z) => project(cam, 0, y, z)[1]; return Math.min(yOf(s.top + 0.6, s.z0), yOf(s.h + pl.h + 0.3, pl.z), yOf(L.signals[0].h + 2, L.signals[0].z)); }
   // the front row's top (the furniture nearer than the speakeasy's face)
-  function frontTop() { const zs = L.speakeasy.z0, yOf = (y, z) => project(cam, 0, y, z)[1]; let t = cam.H - 40; for (const tr of L.trees) if (tr.z < zs) t = Math.min(t, yOf(tr.trunk + (tr.h || tr.r * 2), tr.z)); for (const l of L.lamps) if (l.z < zs) t = Math.min(t, yOf(l.h + 0.5, l.z)); if (L.cart.shown !== false && L.cart.z < zs) t = Math.min(t, yOf(4.2, L.cart.z)); for (const p of L.planters) if (p.z < zs) t = Math.min(t, yOf(1.8, p.z)); return t; }
+  function frontTop() { const zs = L.speakeasy.z0, yOf = (y, z) => project(cam, 0, y, z)[1]; let t = cam.H - 40; for (const tr of L.trees) if (tr.z < zs) t = Math.min(t, yOf(tr.trunk + (tr.h || tr.r * 2), tr.z)); for (const l of L.lamps) if (l.z < zs) t = Math.min(t, yOf(l.h + 0.5, l.z)); if (L.cart.shown !== false && !L.cart.live && L.cart.z < zs) t = Math.min(t, yOf(4.2, L.cart.z)); for (const p of L.planters) if (p.z < zs) t = Math.min(t, yOf(1.8, p.z)); return t; }
   // the very first bake waits (≤ 300 ms) for the title's real text rects: a bake on the estimates would be thrown away a frame
   // later (the re-layout), and the city + its windows would land late in the title's power-on
   const waitRects = () => !S.textRects && performance.now() - t0 < 300;
@@ -353,7 +353,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function peopleEnv(lit, fadeIn) {
     const h = LK.local ? LK.local.h + LK.local.mi / 60 : 12;
     people.line(clock.force.has('line') ? Number(qp.get('n') || 6) : lobbyLine);
-    return { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), t: performance.now() / 1000, mo: S.motion, season: L.season, rain: LK.rain || 0, fade: fadeIn, tier, vendor: h >= 10 && h < 21, party: PT.on > 0.3, snd: S.motion ? snd : null,
+    return { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), t: performance.now() / 1000, mo: S.motion, season: L.season, rain: LK.rain || 0, fade: fadeIn, tier, party: PT.on > 0.3, snd: S.motion ? snd : null,
       // (FP3b — the dance circle's beat: the party's song clock + its punch + palette; null off a party → wands.js keeps a steady 120 bpm)
       beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette } : null };
   }

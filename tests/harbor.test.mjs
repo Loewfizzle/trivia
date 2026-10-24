@@ -2709,11 +2709,17 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     const d = L.door, [w1] = P(L.speakeasy.x0 + L.speakeasy.shop.win[1], L.speakeasy.z0);
     assert.ok(mx - ring > d.x + d.w + 4 && mx - ring > w1, `${k}: the inlay clear of the door + the shop window`);
     assert.equal(L.planters.length, 0, `${k}: no urn`);
-    // 8P — THE CART BACK, PLACED: on the open floor right of the inlay — outside an event's clearance, clear of the crossing (right of
-    // its landing), left of the framing maple; it blocks the walkers (they go round)
-    assert.equal(CART_SHOWN, true); assert.ok(L.cart.shown !== false);
-    assert.ok(L.cart.x - m.x >= EVENT_CLEAR - 0.1, `${k}: right of the inlay, outside an event's clearance (${(L.cart.x - m.x).toFixed(2)})`);
-    assert.ok(L.zones.block.some(b => b.x === L.cart.x && b.z === L.cart.z), `${k}: the cart blocks the walkers`);
+    // FP3b — THE VENDOR SPOT (the owner, Oct 24): the cart at the FRONT CURB, just in front of the compass — on screen right of it, its
+    // body never over the inlay (the ring's width at the cart's counter row), its wheels above the dock, short of the framing maple's
+    // trunk; LIVE (drawn by the people on its schedule — core/harbor-routines.js#VENDOR), its handles on the right, its umbrella furled
+    assert.equal(CART_SHOWN, true); assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === 1 && L.cart.fold);
+    { const sc = L.cart.scale, [cxs, gy] = P(L.cart.x, L.cart.z), hw = cam.F * 1.3 * sc / L.cart.z, [, cy] = P(L.cart.x, L.cart.z, 1.92 * sc);
+      const [, ry0] = P(m.x, m.z + m.ring), [, ry1] = P(m.x, m.z - m.ring), ec = (ry0 + ry1) / 2, eh = (ry1 - ry0) / 2, dy = Math.min(1, Math.abs(Math.max(cy, Math.min(gy, ec)) - ec) / eh);
+      const ringR = mx + ring * Math.sqrt(Math.max(0, 1 - dy * dy)), maple = L.trees.find(t => t.big), mapleL = P(maple.x, maple.z)[0] - cam.F * 0.3 / maple.z;
+      assert.ok(cxs - hw > ringR, `${k}: the cart (its left end ${(cxs - hw).toFixed(1)}) clear of the inlay (${ringR.toFixed(1)})`);
+      assert.ok(gy < cam.dock.y - 8, `${k}: its wheels above the dock (${gy.toFixed(0)} vs ${cam.dock.y})`);
+      assert.ok(cxs + hw < mapleL - 4, `${k}: short of the maple's trunk`);
+      assert.ok(Math.abs(cxs - mx) < 70 * f, `${k}: in the middle, by the compass (${(cxs - mx).toFixed(0)} pt right of it)`); }
     // THE HEIGHT CAP: under the game blade's bottom and the wheel's hub (by CENTRE_PAD), a Christmas tree's height at least
     const bl = signSpots(L).find(sp => sp.id === 'n-blade'), nb = bl.rect.y + bl.rect.h, hub = P(L.wheel.x, L.wheel.z, L.wheel.y)[1];
     const cap = centrepieceCap(cam, m, [nb, hub]), [, top] = P(m.x, m.z, cap);

@@ -18,7 +18,7 @@
 import { rngFrom, hashString } from './rng.js';
 import { signalAt, SIGNAL_CYCLE, xOfF } from './harbor-promenade.js';
 import { partyAt } from './harbor-moments.js';
-import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel } from './harbor-routines.js';
+import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -59,7 +59,7 @@ export const MIX = Object.freeze([
   { id: 'midday', from: 11.5, to: 14, n: [11.2, 12], mix: { stroller: 3, couple: 2, lunch: 2.5, window: 1.2, customer: 1.2, cart: 2, water: 1.2, meet: 1.2, brisk: 1.5, busrider: 1 } },
   { id: 'afternoon', from: 14, to: 16.25, n: [8.8, 11.2], mix: { stroller: 3, couple: 2, window: 1, customer: 1, cart: 1.5, water: 1.5, dogwalker: 1.5, newsboy: 1, meet: 1 } },
   { id: 'homeward', from: 16.25, to: 18.5, n: [11.2, 11.2], mix: { homeward: 5, busrider: 3, stroller: 1.5, cart: 1.2, couple: 1.2, dogwalker: 1 } },
-  { id: 'evening', from: 18.5, to: 22, n: [10, 12], mix: { couple: 4, guests: 3, jogger: 0.8, dogwalker: 2, water: 1.5, stargazer: 1, stroller: 1.5 } },
+  { id: 'evening', from: 18.5, to: 22, n: [10, 12], mix: { couple: 4, guests: 3, jogger: 0.8, dogwalker: 2, water: 1.5, stargazer: 1, stroller: 1.5, cart: 1.6 } },
   { id: 'late', from: 22, to: 26, n: [5, 7.5], mix: { straggler: 3, leaving: 2.5, lone: 2, couple: 1.2, guests: 1 } },
 ]);
 /** party nights: the guests' weight × this, the count × partyN; rain (0..1): the count × (1 − rainCut × rain), the gaits × (1 + rainFast) */
@@ -90,7 +90,7 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1 } 
  * real pieces (core/harbor-promenade.js): the bench, the cart, the inlay, the crossing, the speakeasy's doors, the bus stop.
  * line: an active lobby line's rect (people route round it).
  */
-export function folkMap(L, { event = false, line = null } = {}) {
+export function folkMap(L, { event = false, line = null, cart = false } = {}) {
   const cam = L.cam, s = L.speakeasy, cw = L.crosswalk, b = L.bench, F = FOLK;
   const hwAt = z => cam.hw(z);
   const crab = (L.trees || []).find(t => t.kind === 'crab');
@@ -106,8 +106,10 @@ export function folkMap(L, { event = false, line = null } = {}) {
     farWait: { x: cx, z: F.farZ },
     busStop: { x: busStopX(L) + 0.75, z: F.curbZ - 0.05 },
     busDoor: { x: busStopX(L), z: F.busZ },
-    cart: L.cart && L.cart.shown !== false ? { x: L.cart.x - 2.35, z: L.cart.z - 0.1 } : null,
-    vendor: L.cart && L.cart.shown !== false ? { x: L.cart.x + 1.55, z: L.cart.z + 0.45 } : null,
+    // (FP3b — the vendor spot at the front curb: the VENDOR at the cart's left end beside his tray of chestnuts (behind the cart his
+    // head would hide under its counter at phone size), a customer a step further left facing him)
+    cart: L.cart && L.cart.shown !== false ? { x: L.cart.x - 2.75, z: Math.max(FOLK.zMin + 0.05, L.cart.z + 0.6) } : null,
+    vendor: L.cart && L.cart.shown !== false ? { x: L.cart.x - 1.6, z: L.cart.z + 0.4 } : null,
     view: { x: cx + cww * 0.15, z: F.zMax - 0.15 },
     sky: { x: L.medallion.x - 2.2, z: L.medallion.z - 1.2 },
     meetA: { x: L.medallion.x + 2.6, z: L.medallion.z - 1.8 },
@@ -130,8 +132,9 @@ export function folkMap(L, { event = false, line = null } = {}) {
   if (line) rects.push({ id: 'line', ...line });
   const circles = [];
   for (const l of L.lamps || []) if (l.kind === 'tall') circles.push({ x: l.x, z: l.z, r: 0.5 });
-  // (the cart: nobody walks IN FRONT of it — it bakes with the front row, nearer than the floor behind it — or through it)
-  if (L.cart && L.cart.shown !== false) { rects.push({ id: 'cart', x0: L.cart.x - 2.1, x1: L.cart.x + 2.1, z0: F.zMin - 2, z1: L.cart.z + 0.35 }); circles.push({ x: L.cart.x, z: L.cart.z, r: 1.75 }); }
+  // (the cart, only while it's OUT — FP3b's vendor spot is shared by time: nobody walks through it or behind its handles; the vendor's
+  // own spot behind it stays free for him)
+  if (cart && L.cart && L.cart.shown !== false) { rects.push({ id: 'cart', x0: L.cart.x - 1.3, x1: L.cart.x + 2.0, z0: F.zMin - 2, z1: L.cart.z + 0.75 }); }
   if (event) circles.push({ id: 'event', x: L.medallion.x, z: L.medallion.z, r: L.medallion.ring + 0.5 });
   return { nodes, exits, rects, circles, face: s.z0, cw: { x0: cw.x0 + cww * 0.22, x1: cw.x1 - cww * 0.22, z0: F.curbZ, z1: F.farZ } };
 }
@@ -481,7 +484,7 @@ function blockVisits(phase, k, M, ctx = {}) {
   let spent = 0;
   for (let tries = 0; tries < 140 && spent < want; tries++) {
     const kind = pickW(r, mn.mix), spec = KINDS[kind](r, M);
-    if (spec.need === 'cart' && !M.nodes.cart) continue;
+    if (spec.need === 'cart' && (!M.nodes.cart || !ctx.cartOut)) continue;
     if (spec.hours && (loc.h < spec.hours[0] || loc.h >= spec.hours[1])) continue;
     const start = t0 + 2 + r() * (B * 0.75);
     // (FP3b: each visit on its own seed — one that would still be out while the dance circle closes the compass is planned again
@@ -489,6 +492,8 @@ function blockVisits(phase, k, M, ctx = {}) {
     const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [] };
     let vis = planVisit(spec, start, M, { ...vctx, r: rngFrom(vseed) });
     if (vis && ctx.closed && ctx.closed(vis.t0, vis.t1)) vis = planVisit(spec, start, ctx.Mev, { ...vctx, r: rngFrom(vseed) });
+    else if (vis && ctx.cartOut && ctx.cartOut(vis.t0, vis.t1)) vis = planVisit(spec, start, ctx.Mc, { ...vctx, r: rngFrom(vseed) });
+    if (vis && spec.need === 'cart' && !(ctx.cartParked && ctx.cartParked(vis.t0, vis.t1))) continue;
     if (!vis || vis.t1 > t1 - 1 || vis.t1 - vis.t0 < 4) continue;
     const members = membersOf(spec, r), n = heads(members);
     if (load(vis.t0, vis.t1) + n > cap) continue;
@@ -546,8 +551,25 @@ export function folkAt(t, world, cache = new Map()) {
   const danceVisits = x => get(`DV|${x.id}`, () => planDance(x, M, L));
   const Mev = get('Mev', () => folkMap(L, { event: true }));
   const closed = (a, b) => sessionsNear(a, b).some(x => b > x.s0 - 30 && a < x.s1 + 60);
-  const routineOcc = (a, b) => sessionsNear(a, b).flatMap(x => occOf(danceVisits(x)));
-  const cx = { ...ctx, buses: busesNear, closed, Mev };
+  // THE VENDOR SPOT (FP3b — core/harbor-routines.js#VENDOR): the chestnut cart's evening, wheeled in from the right edge + out again;
+  // never while the inlay is in use (a centrepiece: ctx.event; the dance circle: &force=dance — the real circles start after it's gone)
+  const cartX = L.cart ? L.cart.x : 0, cartIn = cam => (cam ? cam.hw(L.cart.z) + 3.2 : cartX + 12);
+  const cartEv = tt => { if (!L.cart || L.cart.shown === false || ctx.event || ctx.forceDance) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
+    return get(`CE|${loc.key}`, () => cartEvening(loc.key, loc.month, day0, cartIn(L.cam), cartX, { seed: ctx.seed })); };
+  const cartOut = (a, b) => { for (const tt of [a, b]) { const e = cartEv(tt); if (e && b > e.t0 - 10 && a < e.t1 + 10) return true; } return false; };
+  const cartParked = (a, b) => { const e = cartEv(a); return !!(e && a >= e.ta && b <= e.tb); };
+  const Mc = get('Mc', () => folkMap(L, { cart: true }));
+  const vendorVisit = e => get(`VV|${e.t0}`, () => {
+    // (the vendor wheels the cart in from the right edge — walking with it at its pace — sells from behind it facing the promenade,
+    // then wheels it out the way he came)
+    const v = M.nodes.vendor, dx = v.x - cartX, xin = cartIn(L.cam) + dx, r = rngFrom(hashString(`vendor|${e.t0}`));
+    const legs = [{ k: 'walk', pts: [{ x: xin, z: v.z }, { x: v.x, z: v.z }], t0: e.t0, t1: e.ta, v: VENDOR.roll },
+      { k: 'pose', pose: 'cart', x: v.x, z: v.z, t0: e.ta, t1: e.tb, hd: -PI / 2 - 0.55 },
+      { k: 'walk', pts: [{ x: v.x, z: v.z }, { x: xin, z: v.z }], t0: e.tb, t1: e.t1, v: VENDOR.roll }];
+    return { id: `vendor.${Math.round(e.t0)}`, kind: 'vendor', routine: 'cart', idx: 0, look: 'worker', gait: 'walk', legs, t0: e.t0, t1: e.t1, tEnd: e.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }] };
+  });
+  const routineOcc = (a, b) => [...sessionsNear(a, b).flatMap(x => occOf(danceVisits(x))), ...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 }))];
+  const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc };
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
   const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
@@ -560,7 +582,7 @@ export function folkAt(t, world, cache = new Map()) {
     const st0 = k * 24 + (spec.goals[0].from === 'right' ? -9 : 1), vis = planVisit(spec, st0, M, { r, shopOpen: true });
     if (!vis) return null; const members = membersOf(spec, r); return { id: `door.${k}`, kind: spec.group ? 'guests' : spec.pair ? 'leaving' : 'customer', look: spec.look, gait: spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members };
   })).filter(Boolean) : [];
-  const nowSess = sessionsNear(t - 120, t + 10), routine = nowSess.flatMap(danceVisits);
+  const evNow = cartEv(t), nowSess = sessionsNear(t - 120, t + 10), routine = [...nowSess.flatMap(danceVisits), ...(evNow && t >= evNow.t0 && t < evNow.t1 ? [vendorVisit(evNow)] : [])];
   const all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   const members = [];
   for (const v of all) {
@@ -620,7 +642,9 @@ export function folkAt(t, world, cache = new Map()) {
   }
   // the circle now: its level (0..1 formed — the floor spots + the moves follow it), its session
   const live = nowSess.find(x => t > x.s0 - 5 && t < x.s1 + 40), dance = live ? { on: true, k: danceLevel(live, t), id: live.id, s0: live.s0, s1: live.s1 } : { on: false, k: 0 };
-  return { visits: all, members, doors, dance, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
+  // the cart now: where it is (wheeled in / parked / wheeled out) — people.js draws it
+  const cart = evNow ? { ...cartAt(evNow, t, cartIn(L.cam), cartX), z: L.cart.z, parked: t >= evNow.ta && t < evNow.tb } : { on: false };
+  return { visits: all, members, doors, dance, cart, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
 }
 
 // ------------------------------------------------------------------ THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)

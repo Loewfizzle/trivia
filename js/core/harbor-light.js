@@ -41,7 +41,7 @@ function speakSpill(L) {
     ...(s.shop && s.shop.pole ? [{ x: s.x0 + s.shop.pole.u, z: s.z0 - 0.8, kind: 'pole', k: 0.6 }] : [])];
 }
 /** every light that pools on the ground: the lamps, the speakeasy's spill, the cart */
-export const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: l.kind === 'tall' ? TALL_K : 1 })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];
+export const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: l.kind === 'tall' ? TALL_K : 1 })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false && !L.cart.live ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];   // (FP3b: the live cart lays its own pool — people.js)
 /** the light on the ground at (x, z) at night — every lamp's pool (overlapping: every path lit, the shadows between dim) + the
  *  speakeasy's spill; null by day (T.lamps 0) */
 export function lightField(L, T) {
