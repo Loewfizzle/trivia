@@ -8,7 +8,6 @@
 //   MESSAGES       the skytype lines (≤ 16 a line, ≤ 2 lines: the window font's 5 rows = the 5 planes), the skywriting strokes
 //                  (single-stroke capitals: the tube alphabet + digits, a heart), the banner's panels (≤ 3, ≤ 24 characters)
 //   THE BIRDS      who is up: gulls by day, swifts at summer dusk, geese (in V's — the migrations most), bats at summer dusk
-import { LETTERS } from '../screens/district/marks.js';
 import { flattenPath } from './tube-path.js';
 import { lineCells, lineWidth, normText, glyph, FONT_H } from './harbor-windows.js';
 import { hashString } from './rng.js';
@@ -120,11 +119,15 @@ export function wrapLines(text, max = 16, lines = 2) {
   }
   return out;
 }
-/** SKYTYPING: a message in the window font's dots (5 rows = the 5 planes of the line) — ≤ 16 characters a line, ≤ 2 lines.
- *  → { lines, cols (the widest line), rows (5, or 11 for two lines: a blank row between), dots: [[col, row, line], …] (each
- *  line centred) } or null when nothing is left to type */
-export function skytypeLayout(text, max = 16) {
-  const lines = wrapLines(normText(text, 60), max, 2).map(l => l.trim()).filter(l => l && [...l].some(ch => glyph(ch)));
+/** SKYTYPING: a message in the window font's dots (5 rows = the 5 planes of a line) — ≤ max characters a line, ≤ `lines` lines.
+ *  → { lines, cols (the widest line), rows (5 a line + a blank row between), dots: [[col, row, line, letter, word], …] (each line
+ *  centred) } or null when nothing is left to type */
+export function skytypeLayout(text, max = 16, lines = 2) {
+  return dotLayout(wrapLines(normText(text, 160), max, lines));
+}
+/** the dots of given lines (each centred) — skytyping + the drone show's letters (6b: one layout for every sky message) */
+export function dotLayout(lines0) {
+  const lines = (lines0 || []).map(l => String(l).trim()).filter(l => l && [...l].some(ch => glyph(ch)));
   if (!lines.length) return null;
   const widths = lines.map(l => lineWidth(l)), cols = Math.max(...widths), dots = [];
   // (each dot carries its letter + word index: the drone show's colour per letter / per word)
@@ -143,36 +146,36 @@ export function skytypeLayout(text, max = 16) {
   });
   return { lines, cols, rows: lines.length * FONT_H + (lines.length - 1), dots };
 }
-// the skywriting alphabet: single strokes in a 10 × 14 box (the tube alphabet's letters + digits, a heart, ! and ?)
-const EXTRA = {
-  0: 'M5 0 Q0 0 0 7 Q0 14 5 14 Q10 14 10 7 Q10 0 5 0', 1: 'M2 3 L6 0 L6 14', 2: 'M0.5 3 Q1 0 5 0 Q9.5 0 9.5 4 Q9.5 7 0 14 L10 14',
-  3: 'M0.5 1.5 Q2 0 5 0 Q9 0 9 3.5 Q9 7 4.5 7 Q9.5 7 9.5 10.5 Q9.5 14 5 14 Q2 14 0.5 12', 4: 'M7.5 14 L7.5 0 L0 9.5 L10 9.5',
-  5: 'M9 0 L1.5 0 L1 6 Q3 5 5 5 Q9.5 5 9.5 9.5 Q9.5 14 5 14 Q2 14 0.5 12', 6: 'M8.5 1 Q7 0 5 0 Q0.5 0 0.5 8 Q0.5 14 5 14 Q9.5 14 9.5 9.5 Q9.5 5.5 5 5.5 Q1.5 5.5 0.5 8.5',
-  7: 'M0 0 L10 0 L3.5 14', 8: 'M5 7 Q1 7 1 3.5 Q1 0 5 0 Q9 0 9 3.5 Q9 7 5 7 Q0.5 7 0.5 10.5 Q0.5 14 5 14 Q9.5 14 9.5 10.5 Q9.5 7 5 7',
-  9: 'M9.5 5.5 Q8.5 8.5 5 8.5 Q0.5 8.5 0.5 4.5 Q0.5 0 5 0 Q9.5 0 9.5 6 Q9.5 14 5 14 Q3 14 1.5 13',
-  '♥': 'M5 14 Q-0.5 9 -0.5 4.2 Q-0.5 0 2.6 0 Q5 0 5 3.4 Q5 0 7.4 0 Q10.5 0 10.5 4.2 Q10.5 9 5 14', '!': 'M5 0 L5 9.5 M5 12.6 L5 14',
-  '?': 'M1 3 Q1 0 5 0 Q9 0 9 3.5 Q9 6 5 7.5 L5 10 M5 12.6 L5 14',
-};
-export const SKYWRITE_MAX = 10;
-/** SKYWRITING: a word or two as smoke strokes, in letter units (a letter 10 wide × 14 tall, 13 apart; a space 8).
- *  → { text, w, h: 14, strokes: [{ pts: [[x, y], …], len }], len (all the strokes) } or null (nothing to write) */
-export function skywriteStrokes(text) {
-  const t = String(text || '').toUpperCase().replace(/<3/g, '♥').slice(0, SKYWRITE_MAX).trim();
-  const strokes = [];
-  let x = 0;
-  for (const ch of t) {
-    if (ch === ' ') { x += 8; continue; }
-    const d = LETTERS[ch] || EXTRA[ch];
-    if (!d) continue;
-    for (const p of flattenPath(d, 1, x, 0, 0.7)) {
-      if (p.pts.length < 2) continue;
-      let len = 0; for (let i = 1; i < p.pts.length; i++) len += Math.hypot(p.pts[i][0] - p.pts[i - 1][0], p.pts[i][1] - p.pts[i - 1][1]);
-      strokes.push({ pts: p.pts, len: Math.max(0.6, len) });
+/** 6b — ONE LAYOUT FOR EVERY SKY MESSAGE (skytyping by day, the drone show at night): up to `lines` lines of ≤ `max` characters a
+ *  PAGE, up to `pages` pages (≈ 140 characters); " | " forces a new page. Each page's words are wrapped into however many lines (1 …
+ *  `lines`) make its letters BIGGEST in a box `aspect` times as wide as it is tall. → [[line, …], …] (pages) — [] when nothing types */
+export const MSG = Object.freeze({ max: 16, lines: 3, pages: 3 });
+export function messagePages(text, { max = MSG.max, lines = MSG.lines, pages = MSG.pages, aspect = 1.4 } = {}) {
+  const out = [];
+  for (const part of String(text || '').split(/\s*\|\s*/)) {
+    let words = normText(part, 400).trim().split(/\s+/).filter(w => w && [...w].some(ch => glyph(ch))).map(w => w.slice(0, max));
+    while (words.length && out.length < pages) {
+      const fill = wrapLines(words.join(' '), max, lines);
+      const n = fill.join(' ').split(' ').length;
+      out.push(bestWrap(words.slice(0, n), max, lines, aspect));
+      words = words.slice(n);
     }
-    x += 13;
   }
-  if (!strokes.length) return null;
-  return { text: t, w: x - 3, h: 14, strokes, len: strokes.reduce((s, k) => s + k.len, 0) };
+  return out;
+}
+// a page's words in the line count (≤ lines) that gives the biggest letters in a box of this aspect (w / h)
+function bestWrap(words, max, lines, aspect) {
+  let best = null, bestP = -1;
+  for (let L = 1; L <= lines; L++) {
+    // the narrowest line length that still fits the words in L lines → the most even lines
+    let got = null;
+    for (let m = Math.max(...words.map(w => w.length)); m <= max; m++) { const w = wrapLines(words.join(' '), m, L); if (w.join(' ').split(' ').length === words.length) { got = w; break; } }
+    if (!got) continue;
+    const cols = Math.max(...got.map(l => lineWidth(l))), rows = got.length * FONT_H + got.length - 1;
+    const p = Math.min(aspect / Math.max(1, cols), 1 / rows);
+    if (p > bestP * 1.02) { bestP = p; best = got; }
+  }
+  return best || wrapLines(words.join(' '), max, lines);
 }
 /** the banner plane's panels: an array as given (≤ 3), or a string cut at " | " / " · ", or wrapped to ≤ 24 characters a panel */
 export function bannerPanels(msg, max = 24) {
@@ -183,12 +186,10 @@ export function bannerPanels(msg, max = 24) {
 /** what the random sky events carry (in-world: the city's own little ads and greetings — never anything about the player) */
 export const BANNER_POOL = [['FRESH LEMONADE', 'AT THE PIER'], ['RIDE THE WHEEL'], ['ROSIE SAILS AT SIX'], ['JAZZ TONIGHT', "NINE O'CLOCK"], ['HELLO DOWN THERE!'],
   ['ICE COLD ROOT BEER', '5¢ A GLASS'], ['WATCH THE SKIES'], ['HARBOR DAYS', 'THIS WEEKEND']];
-export const SKYWRITE_POOL = ['HI', '♥', 'SMILE', 'JOY', 'HELLO', 'WOW', 'LOVE'];
 export const SKYTYPE_POOL = ['HAVE A NICE DAY', 'LOOK UP!', 'SEE YOU AT THE PIER', 'HELLO DOWN THERE', 'JAZZ TONIGHT AT NINE', 'WHAT A DAY'];
 /** a random event's message: from its pool by its seed (the same for everyone) — the banner may carry a game's name */
 export function eventMessage(kind, seed, games = []) {
   const s = seed >>> 0;
-  if (kind === 'skywrite') return SKYWRITE_POOL[s % SKYWRITE_POOL.length];
   if (kind === 'skytype') return SKYTYPE_POOL[s % SKYTYPE_POOL.length];
   if (games.length && s % 3 === 0) { const g = games[(s >>> 3) % games.length]; return ['TONIGHT', String(g.name || g.id).toUpperCase().slice(0, 24)]; }
   return BANNER_POOL[s % BANNER_POOL.length];
@@ -220,17 +221,17 @@ export function birdsNow(L) {
 // that holiday's own moments (NYE: the evening, long before the countdown, the ball drop and the fireworks; July 4th: before
 // the fireworks). Regular party nights get NO automatic show. Parts 11a–c fill the entries in (more shapes, timings); CITY
 // CONTROL can cancel or override any of them (setSkyHoliday). Sky messages are otherwise API-only (skyfx.js): no random ones.
-//   entry: { id, date(y) → { m, d }, day?: { kind: 'skywrite'|'skytype', text, h (local hour, fractional) }, night?: { show: [shape
+//   entry: { id, date(y) → { m, d }, day?: { kind: 'skytype' (6b: skywriting cut), text, h (local hour, fractional) }, night?: { show: [shape
 //   specs: { text } | { shape }], h }, calm?: true (a respectful show: slower, steady lights, no burst) }
 const lastMonday = (y, m) => { const d = new Date(Date.UTC(y, m, 0)); return d.getUTCDate() - ((d.getUTCDay() + 6) % 7); };
 export const SKY_HOLIDAYS = [
-  { id: 'valentine', date: () => ({ m: 2, d: 14 }), day: { kind: 'skywrite', text: '♥', h: 13 }, night: { show: [{ shape: 'heart' }, { text: 'LOVE' }, { shape: 'heart' }], h: 21 } },
+  { id: 'valentine', date: () => ({ m: 2, d: 14 }), day: { kind: 'skytype', text: '♥ LOVE ♥', h: 13 }, night: { show: [{ shape: 'heart' }, { text: 'LOVE' }, { shape: 'heart' }], h: 21 } },
   { id: 'stpatrick', date: () => ({ m: 3, d: 17 }), day: { kind: 'skytype', text: 'HAPPY ST PATRICKS DAY', h: 13 }, night: { show: [{ shape: 'shamrock' }, { text: 'SLAINTE' }], h: 21 } },
   { id: 'easter', date: y => easter(y), day: { kind: 'skytype', text: 'HAPPY EASTER', h: 13 }, night: { show: [{ shape: 'egg' }, { text: 'EASTER' }], h: 21 } },
-  { id: 'memorial', date: y => ({ m: 5, d: lastMonday(y, 5) }), calm: true, day: { kind: 'skytype', text: 'WE REMEMBER', h: 12 }, night: { show: [{ shape: 'flag' }], h: 21.25 } },
-  { id: 'july4', date: () => ({ m: 7, d: 4 }), day: { kind: 'skytype', text: 'HAPPY 4TH OF JULY', h: 13 }, night: { show: [{ shape: 'flag' }, { text: 'USA' }, { shape: 'star' }], h: 21.25 } },
-  { id: 'halloween', date: () => ({ m: 10, d: 31 }), day: { kind: 'skywrite', text: 'BOO', h: 14 }, night: { show: [{ shape: 'pumpkin' }, { text: 'BOO' }], h: 20.5 } },
-  { id: 'veterans', date: () => ({ m: 11, d: 11 }), calm: true, day: { kind: 'skytype', text: 'THANK YOU VETERANS', h: 12 }, night: { show: [{ shape: 'flag' }, { text: 'THANK YOU' }], h: 21 } },
+  { id: 'memorial', date: y => ({ m: 5, d: lastMonday(y, 5) }), calm: true, show: { kind: 'missing', h: 11 }, day: { kind: 'skytype', text: 'WE REMEMBER', h: 12 }, night: { show: [{ shape: 'flag' }], h: 21.25 } },
+  { id: 'july4', date: () => ({ m: 7, d: 4 }), show: { kind: 'airshow', h: 15.5 }, day: { kind: 'skytype', text: 'HAPPY 4TH OF JULY', h: 13 }, night: { show: [{ shape: 'flag' }, { text: 'USA' }, { shape: 'star' }], h: 21.25 } },
+  { id: 'halloween', date: () => ({ m: 10, d: 31 }), day: { kind: 'skytype', text: 'BOO!', h: 14 }, night: { show: [{ shape: 'pumpkin' }, { text: 'BOO' }], h: 20.5 } },
+  { id: 'veterans', date: () => ({ m: 11, d: 11 }), calm: true, show: { kind: 'missing', h: 11 }, day: { kind: 'skytype', text: 'THANK YOU VETERANS', h: 12 }, night: { show: [{ shape: 'flag' }, { text: 'THANK YOU' }], h: 21 } },
   { id: 'thanksgiving', date: y => thanksgiving(y), day: { kind: 'skytype', text: 'HAPPY THANKSGIVING', h: 12.5 }, night: { show: [{ text: 'THANKS' }, { shape: 'pumpkin' }, { shape: 'heart' }], h: 20.5 } },
   { id: 'christmas-eve', date: () => ({ m: 12, d: 24 }), day: { kind: 'skytype', text: 'MERRY CHRISTMAS', h: 13 }, night: { show: [{ shape: 'tree' }, { text: 'MERRY' }, { text: 'CHRISTMAS' }, { shape: 'star' }], h: 19.5 } },
   { id: 'nye', date: () => ({ m: 12, d: 31 }), day: { kind: 'skytype', text: 'HAPPY NEW YEAR', h: 14 }, night: { show: [{ shape: 'burst' }, { text: 'HAPPY' }, { text: 'NEW YEAR' }, { text: '{next}' }], h: 21 } },
@@ -300,7 +301,8 @@ function samplePaths(paths, n) {
  */
 export function droneShape(spec, n = 160, { year = 2026, marks = null } = {}) {
   if (spec && spec.text != null) {
-    const T = skytypeLayout(fillText(spec.text, year), 12);
+    // (6b: the one message layout — a page's lines as given, else the text's first page: ≤ 3 lines of ≤ 16, wrapped for the biggest letters)
+    const T = dotLayout(Array.isArray(spec.lines) && spec.lines.length ? spec.lines : messagePages(fillText(spec.text, year))[0] || []);
     if (!T) return null;
     // its colour (NEON PASS 2): one colour (col), a colour per word or per letter (cols + by: 'word' | 'letter'), or a rainbow
     // across the letters (col: 'rainbow'); the default a cool white

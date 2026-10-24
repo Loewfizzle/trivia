@@ -12,6 +12,7 @@
 //                  flying right: its starboard side is ours; red flying left), a white tail light, a red beacon on the fin
 //   VAPOUR + SMOKE a vapour cone round the wing on a hard pull (the air show), a white smoke trail by day (the air show's smoke on)
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { FORMATIONS, missingManAt } from '../../core/harbor-legend.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -209,5 +210,115 @@ export function createJets() {
     draw,
     setDpr(d) { if (d !== dpr) { dpr = d; for (const v of cache.values()) v.cv.width = 0; cache.clear(); } },
     destroy() { for (const v of cache.values()) v.cv.width = 0; cache.clear(); },
+  };
+}
+
+// ------------------------------------------------------------------ THE AIR SHOW + THE MISSING MAN (6b — plan.md "THE MILITARY JETS")
+// Flights are a function of the seconds since they began (every phone the same sky, a late arrival mid-show). The formation flies
+// one PATH (the lead's); each jet holds its slot in the lead's own frame (rotated with the heading), so a loop turns the whole diamond.
+//   'airshow'   our own unbranded team: a DIAMOND of four, smoke on by day — a low pass left → right, a big LOOP in the open sky right →
+//               left (the smoke drawing the circle), then a VERTICAL PULL-UP in the middle on full afterburner (vapour cones on the
+//               pull), climbing out of the top. ~24 s.
+//   'missing'   THE MISSING MAN (Memorial + Veterans Day): a finger-four in a calm flat pass right → left; #3 pulls up and away,
+//               climbing out alone while the three fly on. ~11 s, no smoke.
+export const SHOW_LEN = { airshow: 24, missing: 11 };
+const sm01 = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+/** the lead's place at s (box: the open sky { x, y, w, h }) → { x, y, ang (screen heading, rad: 0 = right, −π/2 = up), on, vapour, burn } */
+export function showLead(kind, s, box) {
+  const { x: X, y: Y, w: Wd, h: Hh } = box, low = Y + Hh * 0.82, mid = Y + Hh * 0.5;
+  if (kind === 'missing') {
+    const u = s / SHOW_LEN.missing, x = X + Wd * (1.25 - 1.5 * u);
+    return { x, y: Y + Hh * 0.62 - u * Hh * 0.08, ang: Math.PI - 0.05, on: u > 0 && u < 1, vapour: 0, burn: 0.25, u, dir: -1 };
+  }
+  // the air show: pass 1 (0–3.6 s) → the loop (6–15 s) → the pull-up (17–24 s)
+  if (s < 3.6) { const u = s / 3.6; return { x: X - Wd * 0.25 + Wd * 1.5 * u, y: low - Math.sin(u * Math.PI) * Hh * 0.06, ang: -0.06 * Math.cos(u * Math.PI), on: true, vapour: 0, burn: 0.35, dir: 1 }; }
+  if (s >= 6 && s < 15.5) {
+    // in from the right, a full loop round the middle of the sky (the circle's bottom on the flight line), out to the left
+    const R = Math.min(Wd * 0.3, Hh * 0.38), cx = X + Wd * 0.5, cy = mid + Hh * 0.04, v = R * 1.25;            // (pt / s)
+    const inLen = (X + Wd * 1.25) - cx, loopLen = 2 * Math.PI * R, e = s - 6, d = e * v + (s >= 6 ? 0 : 0);
+    const by = cy + R;
+    if (d < inLen) return { x: X + Wd * 1.25 - d, y: by, ang: Math.PI, on: true, vapour: 0, burn: 0.35, dir: -1 };
+    if (d < inLen + loopLen) { const a = (d - inLen) / R; return { x: cx - Math.sin(a) * R, y: cy + Math.cos(a) * R, ang: Math.PI + a, on: true, vapour: sm01(0, 0.4, a) * (1 - sm01(0.9, 1.6, a)), burn: 0.8, dir: -1 }; }
+    return { x: cx - (d - inLen - loopLen), y: by, ang: Math.PI + 2 * Math.PI, on: true, vapour: 0, burn: 0.35, dir: -1 };
+  }
+  if (s >= 17 && s < 24) {
+    const e = s - 17, x0 = X + Wd * 0.5, v = Wd * 0.42, turn = Math.min(Hh * 0.22, Wd * 0.2);
+    const run = Wd * 0.75 + x0 - X;                   // (in from the left, along the low line, then up)
+    const d = e * v;
+    if (d < run) return { x: X - Wd * 0.25 + d, y: low, ang: 0, on: true, vapour: 0, burn: 0.5, dir: 1 };
+    const q = d - run, a = Math.min(Math.PI / 2, q / turn);
+    if (a < Math.PI / 2) return { x: x0 + Math.sin(a) * turn, y: low - (1 - Math.cos(a)) * turn, ang: -a, on: true, vapour: sm01(0.1, 0.5, a) * (1 - sm01(1.2, 1.57, a)), burn: 1, dir: 1 };
+    const up = q - turn * Math.PI / 2;
+    return { x: x0 + turn, y: low - turn - up, ang: -Math.PI / 2, on: true, vapour: 0, burn: 1, dir: 1 };
+  }
+  return { on: false };
+}
+/** the formation at s → [{ x, y, ang, burn, vapour, i }] (the missing man's #3 its own way) */
+export function showJets(kind, s, box, len) {
+  const slots = kind === 'missing' ? FORMATIONS.finger : FORMATIONS.diamond, out = [];
+  slots.forEach(([fx, fy], i) => {
+    // (each jet a moment behind the lead on the same path — a formation turns as one)
+    const lag = -fx * len * 0.9 / Math.max(60, box.w * 0.42), L0 = showLead(kind, s - lag, box);
+    if (!L0.on) return;
+    let { x, y, ang } = L0;
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    x += -sa * fy * len * 0.62; y += ca * fy * len * 0.62;
+    let burn = L0.burn, climb = 0;
+    if (kind === 'missing' && i === 2) { const m = missingManAt(L0.u); climb = m.climb; y -= m.rise * len; x -= m.rise * len * 0.25; burn = 0.25 + 0.75 * Math.min(1, m.climb * 2); }
+    out.push({ x, y, ang: ang + (kind === 'missing' && i === 2 ? climb : 0), burn, vapour: L0.vapour, i, dir: L0.dir });
+  });
+  return out;
+}
+
+/** a jet's nose-up angle for jets.draw from its screen heading θ and its leg's mirror direction (a loop goes inverted over the top) */
+export const climbOf = (theta, dir) => (dir > 0 ? -theta : theta - Math.PI);
+
+/** THE AIR SHOW / THE MISSING MAN on the screen: start(kind, at) · draw(c, s, box) · on() · listen() (the sound's moment) */
+export function createAirShow() {
+  const jets = createJets();
+  let cur = null, dpr = 2;
+  const lenOf = box => Math.max(30, Math.min(box.w * 0.11, 64));
+  function smoke(c, s, box, e, len, night) {
+    if (cur.kind !== 'airshow' || night > 0.5) return;
+    // the smoke: each jet's own past positions on the analytic path (every phone the same), widening + fading over ~6 s
+    c.save(); c.lineCap = 'round';
+    const N = 34, dt = 0.18, day = 1 - night;
+    for (let i = 0; i < 4; i++) {
+      let prev = null;
+      for (let k = 0; k <= N; k++) {
+        const t = e - k * dt; if (t < 0) break;
+        const J = showJets(cur.kind, t, box, len).find(j => j.i === i);
+        if (!J) { prev = null; continue; }
+        const ca = Math.cos(J.ang), sa = Math.sin(J.ang), pt = [J.x - ca * len * 0.5, J.y - sa * len * 0.5];
+        if (prev) { const age = k * dt, a = 0.7 * (1 - age / (N * dt)) * day; c.strokeStyle = `rgba(250,250,252,${a.toFixed(3)})`; c.lineWidth = 1.4 + age * 1.3; c.beginPath(); c.moveTo(prev[0], prev[1]); c.lineTo(pt[0], pt[1]); c.stroke(); }
+        prev = pt;
+      }
+    }
+    c.restore();
+  }
+  return {
+    start(kind, at) { if (!SHOW_LEN[kind]) return false; cur = { kind, at }; return true; },
+    on: () => !!cur,
+    kind: () => (cur ? cur.kind : null),
+    stop() { cur = null; },
+    setDpr(d) { dpr = d; jets.setDpr(d); },
+    draw(c, s, box) {
+      if (!cur || !box) return;
+      const e = (s.now - cur.at) / 1000;
+      if (e > SHOW_LEN[cur.kind] + 2) { cur = null; return; }
+      if (e < 0) return;
+      const len = lenOf(box), look = jetLook(s.L);
+      smoke(c, s, box, e, len, look.dark);
+      for (const J of showJets(cur.kind, e, box, len)) jets.draw(c, { x: J.x, y: J.y, dir: J.dir, ang: climbOf(J.ang, J.dir), len, look, burn: J.burn, vapour: J.vapour, t: performance.now() / 1000 + J.i * 0.29, i: J.i });
+    },
+    /** the sound: the jets' pass ({ dir }) at the moments their roar should start (each pass's peak lands mid-screen) */
+    listen(s) {
+      if (!cur) return null;
+      const e = (s.now - cur.at) / 1000, at = cur.kind === 'missing' ? [0.4] : [-3.7, 4.9, 14.2];
+      for (const t0 of at) if (e >= t0 && e < t0 + 0.6) return { dir: cur.kind === 'missing' ? -1 : t0 > 10 ? 1 : t0 > 0 ? -1 : 1, gain: 1 };
+      return null;
+    },
+    debug: () => (cur ? { kind: cur.kind, at: cur.at } : null),
+    destroy() { jets.destroy(); cur = null; },
   };
 }

@@ -115,7 +115,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const qp = new URLSearchParams(q);
   // THE EVERYDAY SKY (Part 6a): the planes, the banner plane, skywriting + skytyping, the helicopter, the birds, balloons, the
   // drone show, the moon's + the aurora's art (screens/harbor/skyfx.js)
-  const sky = createSkyFx({ games, clock, qp });
+  const sky = createSkyFx({ games, clock, qp, dim: (id, o) => signDim.set(id, o) });   // (6b: sky messages dim the sign — the hook below)
   sky.setTier(tier);
   // PART 6b — THE LEGENDARY SKY (screens/harbor/legends.js: the UFO abduction, the TR-3B + its jet chase) — LAZILY loaded: only on a
   // legendary night (core/harbor-legend.js#legendNight, a minute ahead), a preview (&force=ufo / tr3b) or the API (harbor().legend)
@@ -1052,8 +1052,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (key !== haloKey || !haloSp) { haloKey = key; if (haloSp) haloSp.cv.width = 0; haloSp = haloSprite(nr, wr); }
     if (!haloSp) return;
     // (by night a firm shadow — it only shows on something bright; by day softer: a quiet shade on the blue)
-    c.save(); c.globalAlpha = 0.3 + 0.25 * litK(DK, 'logo'); c.drawImage(haloSp.cv, haloSp.x, haloSp.y, haloSp.w, haloSp.h); c.restore();
+    // (6b: while a sky message dims the sign to a ghost the halo goes with it — by day it would read as a dark NEON on the blue behind the message)
+    const sd = signDim.now(), want = sd.logo < 0.9 ? Math.max(0, (sd.logo - 0.15) / 0.75) : 1;
+    haloK += (want - haloK) * 0.06; if (Math.abs(want - haloK) < 0.004) haloK = want;
+    if (haloK < 0.01) return;
+    c.save(); c.globalAlpha = (0.3 + 0.25 * litK(DK, 'logo')) * haloK; c.drawImage(haloSp.cv, haloSp.x, haloSp.y, haloSp.w, haloSp.h); c.restore();
   }
+  let haloK = 1;
   function haloSprite(nr, wr) {
     // the logo's own box from its inset rect (title.js#logoRect: 7 % / 18 % in) → the SVG viewBox (logo.js: pad 26, +4 / +8)
     const w0 = nr.w / 0.86, h0 = nr.h / 0.64, x0 = nr.x - w0 * 0.07, y0 = nr.y - h0 * 0.18, k = w0 / (LOGO_W + 52);

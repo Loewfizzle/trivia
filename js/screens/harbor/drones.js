@@ -13,7 +13,7 @@
 // Drones: 180 / 140 / 90 by tier (the shapes resample to them). The formation fills the sky-low lane (+ a little of the
 // skyline below it: the drones are in front of the city, over the harbor); drawn after the city and before the water (the mirror
 // doubles them), the ones still low by the barge after the water.
-import { droneShape, droneTimeline, hsv } from '../../core/harbor-sky.js';
+import { droneShape, droneTimeline, hsv, dotLayout, messagePages, fillText } from '../../core/harbor-sky.js';
 import { MARKS } from '../district/marks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
@@ -23,6 +23,8 @@ const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 export const DRONES_BY_TIER = [90, 140, 180];
+// (6b: a page of up to 3 lines × 16 letters needs a drone a dot — the fleet grows to the show's longest page, up to these per tier)
+export const DRONES_CAP = [200, 280, 360];
 const IDLE = [190, 222, 255];
 
 export function createDrones() {
@@ -60,7 +62,8 @@ export function createDrones() {
   /** a show: specs [{ text } | { shape }], at (clock ms), o: { calm, box: { x, y, w, h } (the formation area), barge: { x, y, w },
    *  waterTop, year, seed } */
   function start(specs, at, o) {
-    const n = DRONES_BY_TIER[tier], R = rng(o.seed || 11);
+    const need = Math.max(0, ...specs.filter(sp => sp.text != null).map(sp => { const T = dotLayout(Array.isArray(sp.lines) && sp.lines.length ? sp.lines : messagePages(fillText(sp.text, o.year || 2026))[0] || []); return T ? T.dots.length : 0; }));
+    const n = Math.min(DRONES_CAP[tier], Math.max(DRONES_BY_TIER[tier], need)), R = rng(o.seed || 11);
     const shapes = specs.map(sp => droneShape(sp, n, { year: o.year || 2026, marks: MARKS })).filter(Boolean);
     if (!shapes.length || !o.box || !o.barge) return false;
     const B = bargeArt(o.barge);
@@ -92,7 +95,7 @@ export function createDrones() {
       // (each drone's place across the box: the colour wave sweeps left to right through a morph)
       xns.push(pos.map(p => clamp01((p[0] - box.x) / Math.max(1, box.w))));
       // (a letter's drones glow wide enough that each cell's cluster merges into one solid pixel)
-      sizes.push(sh.kind === 'text' ? Math.max(3.3 * K, sc * 0.44) : 3.3 * K);
+      sizes.push(sh.kind === 'text' ? Math.max(3.3 * K, sc * 0.62) : 3.3 * K);   // (6b: wider — the dots merge into solid letters at the bigger sizes)
     }
     const glw = cols.map(arr => arr.map(cc => glow(cc)));
     cur = { at, n, home, sets, sizes, cols, glw, xns, idleG: glow(IDLE), on, tl, wave: o.wave !== false, calm: !!o.calm, seed: o.seed || 11, box, waterTop: o.waterTop, phase: Array.from({ length: n }, () => R() * TAU), lift: Array.from({ length: n }, (_, i) => 1.5 + (i / n) * 7 + R() * 0.8), land: Array.from({ length: n }, () => R() * 5), specs };
@@ -186,6 +189,10 @@ export function createDrones() {
       c.restore();
       return true;
     },
+    /** 6b: the sign may come back — the show's last formation has been read (its scatter has begun): clock ms now */
+    released: now => !cur || (now - cur.at) / 1000 >= cur.tl.scatter,
+    /** s since the show began (clock ms now) */
+    since: now => (cur ? (now - cur.at) / 1000 : -1),
     /** what the show is doing (tests + previews) */
     debug: () => {
       if (!cur) return null;

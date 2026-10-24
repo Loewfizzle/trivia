@@ -20,15 +20,18 @@ import { createBirds } from './birds.js';
 import { createBalloons } from './balloons.js';
 import { createDrones } from './drones.js';
 import { createCelestial } from './moon.js';
+import { createAirShow, SHOW_LEN } from './jets.js';
+import { createBarnstorm } from './barnstorm.js';
+import { barnstormDay, BARN_LEN } from '../../core/harbor-legend.js';
 import { project } from '../../core/harbor-layout.js';
-import { bannerPanels, eventMessage, smokeWeather, balloonWeather, bannerWeather, skyHolidayOn, fillText, droneTimeline, DRONE_SHAPES, SKYWRITE_MAX } from '../../core/harbor-sky.js';
+import { bannerPanels, eventMessage, smokeWeather, balloonWeather, bannerWeather, skyHolidayOn, fillText, droneTimeline, DRONE_SHAPES, messagePages } from '../../core/harbor-sky.js';
 import { LANES } from '../../core/harbor-events.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const hexRgb = h => { const n = parseInt(String(h).replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 
-export function createSkyFx({ games = [], clock, qp } = {}) {
-  const air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
+export function createSkyFx({ games = [], clock, qp, dim = null } = {}) {
+  const barn = createBarnstorm(), show = createAirShow(), air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
   let W = 1, H = 1, HZ = 1, L = null, lanes = null, waterTop = 0, waterY1 = 0, barge = null;
   const handled = new Set();                 // the scheduler's events already turned into pieces (id|start)
   const holiday = new Set();                 // the holiday sky's moments already started (date|day / date|night)
@@ -41,23 +44,49 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
   // ---- the pieces' lanes (what a plane may not use; what a scheduled event finds taken)
   function used() {
     const u = new Set();
-    if (banner.on()) u.add('sky-high');
+    if (banner.on()) u.add('tagline');
     if (smoke.on()) { u.add('sky-high'); u.add('sky-low'); }
     if (balloons.on()) { u.add('sky-low'); if (festival) u.add('sky-high'); }
     if (air.heliOn()) u.add('sky-low');
     if (drones.on()) { u.add('sky-high'); u.add('sky-low'); u.add('water'); }
+    if (show.on()) { u.add('sky-high'); u.add('sky-low'); }      // (6b: the air show / the missing man take the whole sky)
     return u;
   }
-  const heavy = () => smoke.on() || drones.on() || (balloons.on() && festival);
+  const heavy = () => smoke.on() || drones.on() || show.on() || (balloons.on() && festival);
 
   // ---- starting pieces (s: the frame state)
   const startBanner = (s, lines, at, o = {}) => { const p = bannerPanels(lines); if (!p.length) return false; banner.start(p, at, { colour: o.colour, passes: o.passes || 2, dir: o.dir || (Math.floor(at / 1000) % 2 ? -1 : 1) }); return true; };
+  // (6b: SKYWRITING IS CUT — every sky text message is skytyped; 'skywrite' stays an alias for old callers + links)
   function startSmoke(s, kind, text, at) {
     const t = String(text || '').trim();
     if (!t || !lanes) return false;
-    // (a message too long for one plane's letters goes to the skytypers)
-    const k = kind === 'skywrite' && t.length > SKYWRITE_MAX ? 'skytype' : kind;
-    return smoke.start(k, t, lanes['sky-high'], at);
+    const box = msgBox(s);
+    if (!box) return false;
+    const wd = s.L.windDir == null ? 250 : s.L.windDir;
+    return smoke.start('skytype', t, box, at, { gust: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1 });
+  }
+  // 6b — THE MESSAGE BOX: ONE layout for every sky message (skytyping by day, the drone show at night) — the whole open sky, from under
+  // the corner buttons down to just above the TALLEST crown across it (its spire + the needle's tube: a margin); the NEON sign + the
+  // tagline dim to a ghost while it's up (signFor). A wide screen keeps it to the middle ~60 %.
+  function crownIn(s, x, w, y0) {
+    let crown = H * 0.6;
+    const sk = s && s.skyline;
+    if (sk) for (let i = Math.max(0, Math.floor(x / 4)); i <= Math.min(sk.length - 1, Math.ceil((x + w) / 4)); i++) if (sk[i] < crown) crown = sk[i];
+    if (L && L.towers) for (const t of L.towers) { const tp = t.tiers[t.tiers.length - 1], cx = (tp.x0 + tp.x1) / 2, [sx, sy] = project(L.cam, cx, tp.y0 + tp.h + (tp.crown ? tp.crown.h : 0) + (t.needle || 0), tp.z0); if (sx > x && sx < x + w && sy - 4 < crown && sy > y0 + 60) crown = sy - 4; }
+    return crown;
+  }
+  function msgBox(s) {
+    if (!L) return null;
+    const wide = L.cam.wide, x = wide ? W * 0.2 : W * 0.04, w = wide ? W * 0.6 : W * 0.92;
+    const y0 = Math.max(0, (s.safeTop || 0)) + 52;
+    const y1 = crownIn(s, x, w, y0) - 14;
+    return { x, y: y0, w, h: Math.max(60, y1 - y0) };
+  }
+  // THE BANNER'S LANE (6b, the owner): just under SPEAKEASY, through the tagline's band (the tagline fades out while it passes)
+  function bannerLane(s) {
+    const wr = s.textRects && s.textRects.word, tg = lanes && lanes.tagline;
+    if (!wr) return tg ? { x: 0, y: tg.y - 6, w: W, h: 40 } : lanes && lanes['sky-high'];
+    return { x: 0, y: wr.y + wr.h + 2, w: W, h: 40 };
   }
   // THE FORMATION'S BOX (NEON PASS 3, the owner: it sat down among the towers, lost in the city): OPEN SKY ONLY — from under the
   // tagline (or under the SPEAKEASY word once the tagline has faded: the freed band) down to the TALLEST crown across the box (its
@@ -77,8 +106,14 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     const y1 = crown - 12;
     return { x, y: y0, w, h: Math.max(24, y1 - y0) };
   }
-  function startDrones(s, specs, at, o = {}) {
-    const box = droneBox(s);
+  function startDrones(s, specs0, at, o = {}) {
+    const box = msgBox(s) || droneBox(s);
+    // (6b: a long message plays as PAGES — each its own formation, wrapped for the biggest letters in the box)
+    const specs = [];
+    for (const sp of specs0 || []) {
+      if (sp && sp.text != null && !sp.lines) { for (const pg of messagePages(fillText(sp.text, s.L.local ? s.L.local.y : 2026), { aspect: box ? box.w / box.h : 1.4 })) specs.push({ ...sp, text: pg.join(' '), lines: pg }); }
+      else specs.push(sp);
+    }
     if (!box || !barge || !specs || !specs.length) return false;
     // THE COLOURS (NEON PASS 2; CITY CONTROL's colour picker later): o.colour (one colour for the messages), o.colours + o.by
     // ('word' | 'letter': a colour per word / per letter), o.colour 'rainbow', o.cycle (the colours drift while a formation holds),
@@ -91,8 +126,31 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     if (!lanes) return false;
     festival = !!fest;
     const wd = s.L.windDir == null ? 250 : s.L.windDir;
-    balloons.start({ at, seed, festival: fest, lanes: { 'sky-high': lanes['sky-high'], 'sky-low': lanes['sky-low'] }, windSign: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1 });
+    // (6b: BALLOONS USE THE WHOLE SKY — from under the corner buttons to the crowns, behind the sign, in front of the sun + the moon)
+    const mb = msgBox(s), box = mb ? { x: 0, y: mb.y, w: W, h: mb.h + 10 } : null;
+    balloons.start({ at, seed, festival: fest, box, lanes: { 'sky-high': lanes['sky-high'], 'sky-low': lanes['sky-low'] }, windSign: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1 });
     return true;
+  }
+
+  // ---- 6b — THE SIGN MAKES ROOM FOR SKY MESSAGES (plan.md depth rule 2): while a message types / a drone show flies, the NEON sign +
+  // the tagline power down on purpose — a dim with a flicker or two — to a faint GHOST (15 %), so unlit tubes never cut through the
+  // message drawn behind them; it re-ignites once the last page has been read (~15 s after it's complete) while the message carries on
+  // fading behind it. The banner plane only fades the tagline (it flies through its band). core/harbor-signdim.js via the scene.
+  let msgAt = -1, msgOn = false;
+  const FLICK = [[0, 0.55], [0.18, 1], [0.34, 0.3], [0.5, 0.8], [0.66, 0.15]];
+  function signFor(s) {
+    if (!dim) return;
+    const now = s.now, on = (smoke.on() && !smoke.released(s)) || (drones.on() && !drones.released(now));
+    if (on && !msgOn) msgAt = performance.now();
+    msgOn = on;
+    if (on) {
+      const e = (performance.now() - msgAt) / 1000;
+      let lv = 0.15; for (const [t0, v] of FLICK) if (e >= t0) lv = v;
+      dim('msg', { logo: s.motion ? lv : 0.15, tag: 0, ms: e < 0.8 ? 70 : 1400 });
+    } else dim('msg', null);
+    dim('banner', banner.on() ? { logo: 1, tag: 0, ms: 1500 } : null);
+    const wk = barn.on() && clamp01(s.L.w.night + s.L.w.late) > 0.5 && s.motion ? barn.wake(s) : null;
+    dim('barn', wk != null ? { logo: wk, tag: 1, ms: 60 } : null);
   }
 
   // ---- what the frame starts: the scheduler's events, the holiday sky, the previews
@@ -115,6 +173,15 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
       if (ent && ent.day && !holiday.has(`${date}|day`) && hr >= ent.day.h && hr < ent.day.h + 0.08 && smokeWeather(Lk) && !smoke.on()) {
         if (startSmoke(s, ent.day.kind, fillText(ent.day.text, lc.y), atOf(ent.day.h))) holiday.add(`${date}|day`);
       }
+      // (6b: THE MILITARY JETS on their days — the missing man on Memorial + Veterans Day, the air show on July 4th; clear + by day)
+      if (ent && ent.show && !holiday.has(`${date}|show`) && hr >= ent.show.h && hr < ent.show.h + SHOW_LEN[ent.show.kind] / 3600 && !show.on() && !Lk.rain && !Lk.storm && (Lk.cloud || 0) < 0.8) {
+        if (show.start(ent.show.kind, atOf(ent.show.h))) holiday.add(`${date}|show`);
+      }
+      // (6b: THE BARNSTORMER — ~3 days a week at its seeded hour: through the letters, weather allowing)
+      const bd = barnstormDay(lc.y, lc.m, lc.d);
+      if (bd && !holiday.has(`${date}|barn`) && hr >= bd.h && hr < bd.h + BARN_LEN / 3600 && !barn.on() && !Lk.rain && !Lk.storm && (Lk.wind || 0) < 12 && (Lk.fog || 0) < 0.4) {
+        if (barn.start(atOf(bd.h))) holiday.add(`${date}|barn`);
+      }
       if (ent && ent.night && !holiday.has(`${date}|night`) && hr >= ent.night.h && hr < ent.night.h + droneTimeline(ent.night.show.length, ent.calm).end / 3600 && !drones.on()
         && clamp01(Lk.w.night + Lk.w.late) > 0.6 && !(Lk.rain > 0.1) && !Lk.storm && (Lk.wind || 0) < 12) {
         if (startDrones(s, ent.night.show, atOf(ent.night.h), { calm: ent.calm, seed: lc.y * 400 + lc.m * 31 + lc.d })) holiday.add(`${date}|night`);
@@ -129,9 +196,12 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     if (s.textRects && s.textRects.neon && lanes) {
       const text = qp && qp.get('text');
       again('banner', banner.on(), at => startBanner(s, text ? text.split('|') : ['FRESH LEMONADE', 'AT THE PIER'], at, { passes: 2 }));
-      again('skywrite', smoke.on(), at => startSmoke(s, 'skywrite', text || 'HELLO', at));
-      again('skytype', smoke.on(), at => startSmoke(s, 'skytype', text || 'HAPPY BIRTHDAY STEVE', at));
+      again('skywrite', smoke.on(), at => startSmoke(s, 'skytype', text || 'HELLO', at));     // (6b: skywriting cut — an old link types it)
+      again('skytype', smoke.on(), at => startSmoke(s, 'skytype', text || 'HAPPY BIRTHDAY JESSICA', at));
       again('helicopter', air.heliOn(), at => air.heli(s, at, Math.floor(at / 1000)));
+      again('jets', show.on(), at => show.start('airshow', at));
+      again('missing-man', show.on(), at => show.start('missing', at));
+      again('barnstormer', barn.on(), at => barn.start(at));
       again('balloons', balloons.on(), at => startBalloons(s, at, false, 3));
       again('balloon-festival', balloons.on(), at => startBalloons(s, at, true, 5));
       again('drones', drones.on(), at => {
@@ -151,7 +221,7 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
       const cam = l.cam, z = 108, xs = W * (cam.wide ? 0.6 : 0.71), wx = (xs - cam.VPX) * z / cam.F, [bx, by] = project(cam, wx, -0.8, z);
       barge = { x: bx, y: by, w: cam.F * 13 / z };
       for (const m of [air, banner, smoke, birds, balloons, drones, cel]) if (m.resize) m.resize(W, H, HZ);
-      for (const m of [air, banner, smoke, balloons, drones]) if (m.setDpr) m.setDpr(o.dpr);
+      for (const m of [air, banner, smoke, balloons, drones, show, barn]) if (m.setDpr) m.setDpr(o.dpr);
     },
     setLanes(l) { lanes = l; },
     /** THE PREVIEW PANEL changed the flags: gone = the &force= ids switched off (or changed: their pieces leave the sky at once);
@@ -163,6 +233,8 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
         if (id === 'banner') banner.stop();
         else if (id === 'skywrite' || id === 'skytype') smoke.stop();
         else if (id === 'drones') drones.stop();
+        else if (id === 'jets' || id === 'missing-man') show.stop();
+        else if (id === 'barnstormer') barn.stop();
         else if (id === 'balloons' || id === 'balloon-festival') balloons.stop();
       }
     },
@@ -170,7 +242,7 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     /** tonight's aurora (the scene: auroraTonight + the sky) — strength for the art */
     setAurora(a) { aurora = a || { on: false, strength: 0 }; },
     /** the frame's state: start what the scheduler / the clock / the previews ask (call once a frame, before drawing) */
-    tick(s, active) { last = s; if (lanes) sync(s, active); },
+    tick(s, active) { last = s; if (lanes) sync(s, active); signFor(s); },
     // ---- the draw passes (scene.js, far → near)
     /** the sun's golden-hour haze (after the sun's disc) */
     sunHaze: (c, s, sun) => cel.sunHaze(c, s, sun),
@@ -180,8 +252,10 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
       const free = { 'sky-high': !u.has('sky-high'), 'sky-low': !u.has('sky-low') };
       if (!s.force.has('no-planes')) air.draw(c, s, free);
       balloons.draw(c, s);
-      if (lanes) banner.draw(c, s, lanes['sky-high']);
+      if (lanes) banner.draw(c, s, bannerLane(s));
       smoke.draw(c, s);
+      if (show.on()) show.draw(c, s, msgBox(s));                 // (6b: the air show / the missing man — the whole open sky)
+      if (barn.on()) barn.draw(c, s);                            // (6b: the barnstormer — its smoke here, the plane on its overlay THROUGH the letters)
       if (!s.force.has('no-birds') && s.motion) birds.sky(c, s, { 'sky-high': free['sky-high'] && !inUse.has('sky-high'), 'sky-low': free['sky-low'] && !inUse.has('sky-low') });
     },
     /** over the far rows: swifts + bats round the rooftops */
@@ -208,24 +282,28 @@ export function createSkyFx({ games = [], clock, qp } = {}) {
     /** lanes a heavy piece quiets (merged into the scheduler's quiet → fs.density) */
     quiet() { if (!heavy()) return []; const u = used(); return LANES.filter(l => !u.has(l)); },
     /** anything fast up there (the calm frame rate: 60 fps while it flies) */
-    busy: () => air.busy() || banner.on() || smoke.on() || drones.on() || birds.busy() || balloons.on(),
-    /** a drone show holds the freed band under the word: the tagline steps aside (title.js) */
-    holdTag: () => drones.on(),
+    busy: () => barn.on() || show.on() || air.busy() || banner.on() || smoke.on() || drones.on() || birds.busy() || balloons.on(),
+    /** (6b: the tagline steps aside through the sign-dim hook now — signFor) */
+    holdTag: () => false,
     /** PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js reads it ~4× a second): what's up there now — the planes + the
      *  helicopter (where), the banner plane, the skywriters, the balloons, the drone show, the birds */
-    listen: () => ({ air: air.debug(), banner: banner.on(), smoke: smoke.on(), balloons: balloons.on(), drones: drones.on(), birds: birds.debug() }),
+    listen: () => ({ barn: barn.on(), jets: last ? show.listen(last) : null, air: air.debug(), banner: banner.on(), smoke: smoke.on(), balloons: balloons.on(), drones: drones.on(), birds: birds.debug() }),
     // ---- THE API (harbor().sky): each piece starts now, or at o.at (clock ms); → true if it could start
     api: {
       banner: (lines, o = {}) => !!last && startBanner(last, lines, o.at || last.now, o),
-      skywrite: (text, o = {}) => !!last && startSmoke(last, 'skywrite', text, o.at || last.now),
+      skywrite: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now),   // (6b: skywriting cut — typed)
       skytype: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now),
       drones: (specs, o = {}) => !!last && startDrones(last, (Array.isArray(specs) ? specs : [specs]).map(x => (typeof x === 'string' ? (DRONE_SHAPES.includes(x) || x.startsWith('mark:') ? { shape: x } : { text: x }) : x)), o.at || last.now, o),
       balloons: (o = {}) => !!last && startBalloons(last, o.at || last.now, !!o.festival, o.seed || 3),
       helicopter: (o = {}) => { if (!last) return false; air.heli(last, o.at || last.now, o.seed || 1); return air.heliOn(); },
+      /** 6b: the jets — airshow('airshow' | 'missing', { at }) */
+      airshow: (kind = 'airshow', o = {}) => !!last && show.start(kind, o.at || last.now),
+      /** 6b: the barnstormer through the letters, now (or at o.at) */
+      barnstorm: (o = {}) => !!last && barn.start(o.at || last.now),
       fly: (route, o = {}) => { if (!last) return false; air.fly(last, route, o); return true; },
-      stop: () => { banner.stop(); smoke.stop(); drones.stop(); balloons.stop(); },
+      stop: () => { banner.stop(); smoke.stop(); drones.stop(); balloons.stop(); show.stop(); barn.stop(); },
     },
-    debug: () => ({ cel: cel.debug(), air: air.debug(), banner: banner.debug(), smoke: smoke.debug(), birds: birds.debug(), balloons: balloons.debug(), drones: drones.debug(), barge, aurora, used: [...used()], heavy: heavy() }),
-    destroy() { for (const m of [air, banner, smoke, balloons, drones, cel]) m.destroy(); },
+    debug: () => ({ barn: barn.debug(), show: show.debug(), cel: cel.debug(), air: air.debug(), banner: banner.debug(), smoke: smoke.debug(), birds: birds.debug(), balloons: balloons.debug(), drones: drones.debug(), barge, aurora, used: [...used()], heavy: heavy() }),
+    destroy() { for (const m of [air, banner, smoke, balloons, drones, cel, show, barn]) m.destroy(); },
   };
 }

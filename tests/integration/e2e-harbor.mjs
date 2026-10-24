@@ -371,7 +371,7 @@ async function neonPass5Panel() {
   await D.ctx.close();
   // every sky piece fired from the panel appears within a few seconds (JUST ME; the night pieces at night, the day ones by day)
   const SKY = [
-    ['banner', 'st.banner'], ['skywrite', 'st.smoke && st.smoke.kind === "skywrite"'], ['skytype', 'st.smoke && st.smoke.kind === "skytype"'], ['helicopter', 'st.air.heli'],
+    ['banner', 'st.banner'], ['skywrite', 'st.smoke && st.smoke.kind === "skytype"'], ['skytype', 'st.smoke && st.smoke.kind === "skytype"'], ['helicopter', 'st.air.heli'],
     ['balloons', 'st.balloons'], ['balloon-festival', 'st.balloons'], ['planes', 'st.air.planes.length > 0'], ['approach', 'st.air.planes.some(p => p.approach)'],
     ['geese', 'st.birds.geese > 0'], ['swifts', 'st.birds.swifts > 0'], ['bats-dusk', 'st.birds.bats > 0'], ['heron', 'st.birds.heron'],
   ];
@@ -716,7 +716,10 @@ G('sky', async () => {
     await waitFor(I.page, '(() => { const h = window.__district.harbor(), st = h.sky.state; return st.banner && st.smoke && st.smoke.puffs > 100 && h.density.road < 1; })()', 'the banner + the skytypers (+ the city calmed)', 8000).catch(() => {});
     const st = (await ev(I.page, 'window.__district.harbor()')).sky.state;
     ok(b && st.banner && st.banner.lines.length === 2 && st.banner.panels.every(p => p.h >= 19), `THE BANNER PLANE (API): ${st.banner && st.banner.lines.join(' / ')} — panels ${st.banner && st.banner.panels.map(p => p.w + '×' + p.h).join(', ')} pt`);
-    ok(t && st.smoke && st.smoke.kind === 'skytype' && st.smoke.text === 'HAPPY BIRTHDAY / STEVE' && st.smoke.puffs > 100, `SKYTYPING (API): "${st.smoke && st.smoke.text}" — ${st.smoke && st.smoke.puffs} puffs, 16 a line, 2 lines`);
+    ok(t && st.smoke && st.smoke.kind === 'skytype' && st.smoke.text === 'HAPPY / BIRTHDAY / STEVE' && st.smoke.pages === 1 && st.smoke.puffs > 100, `SKYTYPING (API): "${st.smoke && st.smoke.text}" — ${st.smoke && st.smoke.puffs} puffs, one page wrapped for the biggest letters (6b)`);
+    // (6b: the sign makes room — the NEON sign a ghost + the tagline gone while it types; the banner fades the tagline only)
+    const sd = await ev(I.page, 'window.__district.signDim()');
+    ok(sd && sd.by.includes('msg') && sd.logo <= 0.2 && sd.tag === 0, `THE SIGN MAKES ROOM: the NEON sign dims to ${sd && sd.logo} + the tagline to ${sd && sd.tag} while the message types (${sd && sd.by.join(', ')})`);
     const h = await ev(I.page, 'window.__district.harbor()');
     ok(st.used.includes('sky-high') && st.used.includes('sky-low') && st.heavy && h.density.road < 1 && h.density['sky-high'] === 1, `HEAVY SKY: the skytypers hold both sky lanes (no plane there), the rest of the city calms (road density ${h.density.road})`);
     ok(h.rate.fast !== '', `THE SKY KEEPS 60 FPS while it writes (${h.rate.fast})`);
@@ -2131,6 +2134,24 @@ G('legends', async () => {
     const d = await ev(Q.page, `${P}.legend.drain()`), deep = d.filter(cl => cl.k > 0.95).length;
     ok(d.length >= 6 && deep >= 3 && d.length < 40, `THE TR-3B's DRAIN: ${d.length} columns of the city dimming under it, ${deep} dead`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- 6b: THE BARNSTORMER (its overlay over the sign while it flies, gone after), THE AIR SHOW, a 3-PAGE drone message
+  { const Q = await open({ slot: 'lg3', qs: `when=2026-10-21T13:00${GR}&force=barnstormer`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!${P}.sky.state.barn && !!document.querySelector('canvas.nd-skyfront')`, 'the barnstormer + its overlay', 15000);
+    const z = await ev(Q.page, "+getComputedStyle(document.querySelector('canvas.nd-skyfront')).zIndex");
+    ok(z > 5 && z < 70, `THE BARNSTORMER: its overlay above the sign (z ${z}) — under the corner buttons (70)`);
+    await ev(Q.page, `${P}.sky.stop()`); await sleep(400);
+    ok(!(await ev(Q.page, "!!document.querySelector('canvas.nd-skyfront')")), 'THE BARNSTORMER: the overlay removed when it is gone');
+    await ev(Q.page, `${P}.sky.airshow('airshow')`);
+    await waitFor(Q.page, `!!${P}.sky.state.show && ${P}.sky.state.heavy`, 'the air show', 8000);
+    ok(true, 'THE AIR SHOW: the diamond up (both sky lanes, the city calmed)');
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'lg4', qs: `${NIGHT}&force=drones&text=WELCOME%20TO%20THE%20NEON%20SPEAKEASY%20WHERE%20YOUR%20FRIENDS%20ARE%20ALREADY%20INSIDE%20AND%20THE%20MUSIC%20NEVER%20STOPS&show=heart`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!${P}.sky.state.drones`, 'the drone show', 15000);
+    const d = (await ev(Q.page, `${P}`)).sky.state.drones;
+    ok(d.shapes.length === 4 && d.n >= 180, `THE DRONE SHOW pages a long message: ${d.shapes.length - 1} pages after the heart (${d.shapes.slice(1).join(' | ')}), ${d.n} drones`);
     await Q.ctx.close(); }
 });
 

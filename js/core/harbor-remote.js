@@ -73,12 +73,15 @@ export const catOf = id => { const e = EV[id]; return e && CAT_IDS.has(e.cat) ? 
 // joins mid-flight; the rest are states (on while the remote is on). ready: false = not drawn on the Harbor yet: the panel hides the
 // row (the id stays valid for the URL + the server) until the part that builds it flips it.
 export const EVENTS = [
-  { id: 'drones', label: 'DRONE SHOW', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text', 'show', 'colours', 'colour', 'by', 'cycle'], text: 40, night: true },
+  { id: 'drones', label: 'DRONE SHOW', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text', 'show', 'colours', 'colour', 'by', 'cycle'], text: 140, night: true },
   { id: 'drones-calm', label: 'DRONES · CALM', cat: 'sky', group: 'MESSAGES', hint: 'with DRONE SHOW: slower, steady lights' },
   { id: 'banner', label: 'BANNER PLANE', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 74, hint: 'A | B | C: up to 3 banners' },
-  { id: 'skywrite', label: 'SKYWRITING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 10 },
-  { id: 'skytype', label: 'SKYTYPING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 33 },
+  { id: 'skywrite', label: 'SKYWRITING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 140, ready: false },   // (6b: CUT — an old link types it)
+  { id: 'skytype', label: 'SKYTYPING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 140, hint: 'up to 3 lines × ~16 letters a page, 3 pages; | starts a page' },
   { id: 'helicopter', label: 'HELICOPTER', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
+  { id: 'jets', label: 'AIR SHOW (F-16s)', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a diamond of four: a low pass, a loop, a pull-up on afterburner (smoke by day) — July 4th' },
+  { id: 'barnstormer', label: 'BARNSTORMER', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a red 1920s biplane threading THROUGH the NEON letters + a loop (~3 days a week)' },
+  { id: 'missing-man', label: 'MISSING MAN', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a finger-four, #3 pulls up + away — Memorial + Veterans Day' },
   { id: 'balloons', label: 'BALLOONS', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   { id: 'balloon-festival', label: 'BALLOON FESTIVAL', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   { id: 'planes', label: 'PLANES', cat: 'sky', group: 'AIRCRAFT' },

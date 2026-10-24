@@ -698,7 +698,7 @@ test('the boats (Part 5): RUNS for the thinning — the taxi crosses twice a cyc
 
 // ------------------------------------------------------------------ Part 6a: THE EVERYDAY SKY (core/harbor-sky.js) + section 0
 import { auroraNight2, auroraTonight, stormKp, parseKp, kpAt, STORM_KP, moonLook, harvestMoon, supermoon, balloonWeather, smokeWeather, bannerWeather, balloonTime,
-  wrapLines, skytypeLayout, skywriteStrokes, SKYWRITE_MAX, bannerPanels, eventMessage, birdsNow, SKY_HOLIDAYS, skyHolidayOn, setSkyHoliday, fillText,
+  wrapLines, skytypeLayout, messagePages, dotLayout, MSG, bannerPanels, eventMessage, birdsNow, SKY_HOLIDAYS, skyHolidayOn, setSkyHoliday, fillText,
   droneShape, droneTimeline, DRONE_SHAPES } from '../js/core/harbor-sky.js';
 
 test('the aurora (the owner\'s call): ~2 seeded nights a month for everyone, never two in a row; a bonus night on a real Kp ≥ 7 storm anywhere', () => {
@@ -749,7 +749,7 @@ test('what may fly: balloons (calm, clear; mornings Apr–Oct, summer evenings),
   assert.equal(balloonTime(8, 250, 1, true), 'morning');            // (the south: January is summer, the morning sun in the east = az > 180 facing north)
 });
 
-test('sky messages: skytyping ≤ 16 a line, ≤ 2 lines in the window font\'s 5 rows; skywriting strokes; the banner\'s ≤ 3 panels of ≤ 24', () => {
+test('sky messages: skytyping ≤ 16 a line in the window font\'s 5 rows; 6b — ONE layout: ≤ 3 lines a page, ≤ 3 pages, wrapped for the biggest letters; the banner\'s ≤ 3 panels of ≤ 24', () => {
   assert.deepEqual(wrapLines('HAPPY BIRTHDAY STEVE', 16, 2), ['HAPPY BIRTHDAY', 'STEVE']);
   for (const t of ['HAPPY NEW YEAR', 'MERRY CHRISTMAS', 'HAPPY THANKSGIVING', 'HAPPY BIRTHDAY STEVE']) {
     const L = skytypeLayout(t);
@@ -757,10 +757,15 @@ test('sky messages: skytyping ≤ 16 a line, ≤ 2 lines in the window font\'s 5
     assert.ok(L.dots.every(([c, r]) => c >= 0 && c < L.cols && r >= 0 && r < L.rows));
   }
   assert.equal(skytypeLayout('   '), null);
-  const H = skywriteStrokes('HI');
-  assert.ok(H.strokes.length >= 4 && H.w > 20 && H.h === 14 && H.len > 50, `HI: ${H.strokes.length} strokes`);
-  for (const t of ['♥', '2027', 'BOO', 'HELLO', 'WOW!']) assert.ok(skywriteStrokes(t), t);
-  assert.equal(skywriteStrokes('X'.repeat(30)).text.length, SKYWRITE_MAX);
+  // (6b: the owner's examples — each one page; a long message pages; " | " forces a page; every line ≤ 16, every page ≤ 3 lines)
+  assert.deepEqual(messagePages('HAPPY BIRTHDAY JESSICA'), [['HAPPY', 'BIRTHDAY', 'JESSICA']]);
+  assert.deepEqual(messagePages('HAPPY NEW YEAR FROM NEON SPEAKEASY'), [['HAPPY NEW YEAR', 'FROM NEON', 'SPEAKEASY']]);
+  assert.equal(messagePages('GAME NIGHT TONIGHT · 9 PM · BRING FRIENDS').length, 1);
+  assert.deepEqual(messagePages('HI | THERE'), [['HI'], ['THERE']]);
+  const long = messagePages('WELCOME TO THE NEON SPEAKEASY WHERE YOUR FRIENDS ARE ALREADY INSIDE AND THE MUSIC NEVER STOPS TONIGHT WE DANCE UNTIL THE SUN COMES UP');
+  assert.ok(long.length === MSG.pages && long.every(pg => pg.length <= MSG.lines && pg.every(l => l.length <= MSG.max)), JSON.stringify(long));
+  assert.deepEqual(messagePages('   '), []);
+  for (const pg of long) assert.ok(dotLayout(pg).rows <= 3 * 5 + 2);
   assert.deepEqual(bannerPanels('FRESH LEMONADE | AT THE PIER'), ['FRESH LEMONADE', 'AT THE PIER']);
   assert.ok(bannerPanels('A VERY LONG MESSAGE THAT NEEDS MORE THAN ONE PANEL TO FIT').every(p => p.length <= 24));
   assert.equal(bannerPanels(['a', 'b', 'c', 'd']).length, 3);
@@ -783,7 +788,7 @@ test('the holiday sky (the owner\'s call): a skywriting / skytyping message by d
   assert.equal(skyHolidayOn(2026, 12, 24).id, 'christmas-eve');
   assert.equal(skyHolidayOn(2026, 10, 23), null, 'a regular party Friday: no automatic show');
   for (const h of SKY_HOLIDAYS) {
-    assert.ok(h.day && ['skywrite', 'skytype'].includes(h.day.kind) && h.day.h >= 10 && h.day.h <= 16, `${h.id}: a daytime message`);
+    assert.ok(h.day && h.day.kind === 'skytype' && h.day.h >= 10 && h.day.h <= 16, `${h.id}: a daytime message (skytyped — 6b cut skywriting)`);
     assert.ok(skytypeLayout(fillText(h.day.text, 2026)), `${h.id}: its message fits`);
     assert.ok(h.night && h.night.show.length >= 1 && h.night.show.every(sp => droneShape(sp, 140, { year: 2026, marks: MARKS })), `${h.id}: its show's formations exist`);
     const end = h.night.h + droneTimeline(h.night.show.length, h.calm).end / 3600;
@@ -793,10 +798,10 @@ test('the holiday sky (the owner\'s call): a skywriting / skytyping message by d
   assert.ok(SKY_HOLIDAYS.filter(h => h.calm).map(h => h.id).sort().join() === 'memorial,veterans', 'Memorial + Veterans Day: respectful (calm) shows');
   setSkyHoliday('halloween', null);
   assert.equal(skyHolidayOn(2026, 10, 31), null, 'CITY CONTROL cancels one');
-  setSkyHoliday('halloween', { day: { kind: 'skywrite', text: 'EEK', h: 15 } });
+  setSkyHoliday('halloween', { day: { kind: 'skytype', text: 'EEK', h: 15 } });
   assert.equal(skyHolidayOn(2026, 10, 31).day.text, 'EEK', 'or overrides it');
   setSkyHoliday('halloween', undefined);
-  assert.equal(skyHolidayOn(2026, 10, 31).day.text, 'BOO');
+  assert.equal(skyHolidayOn(2026, 10, 31).day.text, 'BOO!');
   assert.equal(fillText('{next}', 2026), '2027');
 });
 
@@ -890,7 +895,7 @@ test('THE DRONES\' COLOURS: one colour, a colour per word or per letter, a rainb
   assert.deepEqual([...new Set(one.pts.map(key))], ['255,0,0']);
   const word = droneShape({ text: 'HI THERE', cols: [[255, 0, 0], [0, 255, 0]], by: 'word' }, 180);
   assert.deepEqual([...new Set(word.pts.map(key))].sort(), ['0,255,0', '255,0,0']);
-  assert.ok(word.pts.filter(p => p[0] < 8).every(p => key(p) === '255,0,0'), 'HI is the first colour');
+  assert.ok(word.pts.filter(p => p[1] < 5).every(p => key(p) === '255,0,0'), 'HI (its own line now: 6b wraps for the biggest letters) is the first colour');
   const letter = droneShape({ text: 'ABC', cols: [[255, 0, 0], [0, 255, 0], [0, 0, 255]], by: 'letter' }, 180);
   assert.equal(new Set(letter.pts.map(key)).size, 3, 'a colour per letter');
   const rb = droneShape({ text: 'HELLO', col: 'rainbow' }, 180);
@@ -1125,8 +1130,8 @@ test('the preview panel: validation keeps plain values only (the server refuses 
   assert.equal(r.state.show, 'heart,mark:pulse');
   assert.equal(r.state.colours, 'ff2e97');
   assert.ok(!('evil' in r.state));
-  r = cleanRemote({ force: 'skywrite,spell', text: 'a very long message for the sky' });
-  assert.equal(r.state.text.length, 10, 'the shortest limit of the text events on');
+  r = cleanRemote({ force: 'banner,spell', text: 'a very long message for the sky — longer than any banner can carry across' });
+  assert.equal(r.state.text.length, 60, 'the shortest limit of the text events on');
   assert.equal(textMax(['banner']), 74);
   r = cleanRemote({ text: 'HELLO', scheme: 'halloween' });
   assert.ok(isEmpty(r.state), 'inputs with no event using them are dropped quietly');
@@ -1768,7 +1773,7 @@ test('THE DAY PASS §0 — the dark corner: the block right of the lighthouse is
 test('the panel: rows a later part still has to build stay hidden (ready: false), their ids stay valid', async () => {
   const { EVENTS, PANEL_EVENTS, cleanRemote } = await import('../js/core/harbor-remote.js');
   const hidden = EVENTS.filter(e => !PANEL_EVENTS.includes(e)).map(e => e.id);
-  assert.deepEqual(hidden.sort(), ['cat', 'window']);   // (7b: 'window' needs &moment= — the links; the panel has a row per moment; 6b showed the UFO)
+  assert.deepEqual(hidden.sort(), ['cat', 'skywrite', 'window']);   // (7b: 'window' needs &moment= — the links; the panel has a row per moment; 6b showed the UFO)
   assert.deepEqual(cleanRemote({ force: ['cat', 'ufo', 'tr3b'] }).bad, []);
 });
 
