@@ -856,12 +856,19 @@ G('perf', async () => {
     for (let k = 0; k < 2; k++) {
       try {
         await ev(Q.page, `window.__district.setTier(${t})`);
-        await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 're-bake', 15000);
+        // (FP2: 30 s — at 4× CPU without a GPU a frame costs ~110 ms here and the bake runs a step a frame; FP2's smaller night steps
+        // (the setts two rows a step, the street, the neon's depth plan) pushed the re-bake past 15 s — the commit before missed it too on
+        // its first try)
+        await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 're-bake', 30000);
         await sleep(6000);   // (the measuring window)
         const r = await ev(Q.page, '(() => { const d = window.__district, c = d.cost(), f = [...d.frames()].sort((a, b) => a - b); return { now: d.scene().tier, cost: c.reduce((a, b) => a + b, 0) / Math.max(1, c.length), p50: f.length ? f[Math.floor(f.length / 2)] : 0 }; })()');
         perf.push({ tier: t, now: r.now, cost: +r.cost.toFixed(2), p50: +r.p50.toFixed(1) });
         break;
-      } catch (e) { if (k) throw e; log('perf: retrying tier', t, e.message); }
+      } catch (e) {
+        // (FP2: say WHAT is still pending — the bake, the windows' light key, a fade — before retrying / failing)
+        const st = await ev(Q.page, '(() => { const h = window.__district.harbor(), w = h.windows || {}; return JSON.stringify({ tier: window.__district.scene().tier, pending: h.pending, fading: h.fading, bakes: h.bakes, key: h.key, win: { key: w.key, pending: w.pending, bakes: w.bakes } }); })()').catch(x => x.message);
+        log('perf: state', st);
+        if (k) throw e; log('perf: retrying tier', t, e.message); }
     }
   }
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
@@ -1504,17 +1511,22 @@ G('speakeasy', async () => {
       ok(a === b && ld < lp * 0.6, `THE RAID's hook: the pole dark (${ld.toFixed(0)}) + still`);
       { const nd = []; for (const [i, p] of nearAt.entries()) nd.push(on1.near[i] - await lumP(p)); const fd = []; for (const [i, p] of farAt.entries()) fd.push(on1.far[i] - await lumP(p));
         ok(Math.max(...nd) > 10 && fd.every(v => Math.abs(v) < 6), `NO SMOKE round the pole: its light on the brick beside it +${nd.map(v => v.toFixed(1)).join(' / +')}; ~15–28 pt away ${fd.map(v => v.toFixed(1)).join(' / ')} (≈ 0)`); }
-      await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: true })'); await sleep(400);
-      ok(lumA(await col()) > lp * 0.85, 'THE RAID over: the pole lit again'); }
+      await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: true })');
+      // (the condition, not a fixed pause: the parallel run's loaded frames can take longer than 400 ms to show it)
+      let lit = 0; for (let i = 0; i < 25 && !(lit > lp * 0.85); i++) { await sleep(200); lit = lumA(await col()); }
+      ok(lit > lp * 0.85, `THE RAID over: the pole lit again (${lit.toFixed(0)} vs ${lp.toFixed(0)})`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}speakeasy-night-402x874.png` });
     await Q.ctx.close(); }
   // ---- FP2: a PARTY night — the pole's stripes in the party's neon (magenta + electric blue on gold), the same slow turn
   { const Q = await open({ slot: 'sp3', qs: `${NIGHT}&force=party`, view: [402, 874] });
     await harborUp(Q.page); await settle(Q.page);
     await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.9 && window.__district.party().on > 0.9', 'the party on, the rooms lit', 20000);
-    const sp = await ev(Q.page, 'window.__district.harbor().speakeasy'), pr = sp.poleRect, cs = [];
-    for (let f = 0.15; f < 0.86; f += 0.035) cs.push(await px(Q.page, pr.x + pr.w * 0.5, pr.y + pr.h * f));
-    ok(cs.some(c => c[0] > 180 && c[2] > 100 && c[1] < 130) && cs.some(c => c[2] > 180 && c[0] < 150) && !cs.some(c => c[0] > 180 && c[1] < 110 && c[2] < 90), `THE POLE on a party night: neon magenta + electric blue, no plain red (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
+    const sp = await ev(Q.page, 'window.__district.harbor().speakeasy'), pr = sp.poleRect;
+    // (a column down the glass; up to 5 sweeps — a loaded parallel run can catch a sweep mid-punch, washed toward white)
+    const party = cs => cs.some(c => c[0] > 180 && c[2] > 100 && c[1] < 130) && cs.some(c => c[2] > 180 && c[0] < 150), red = cs => cs.some(c => c[0] > 180 && c[1] < 110 && c[2] < 90);
+    let cs = [], sawRed = false;
+    for (let k = 0; k < 5; k++) { cs = []; for (let f = 0.15; f < 0.86; f += 0.035) cs.push(await px(Q.page, pr.x + pr.w * 0.5, pr.y + pr.h * f)); sawRed ||= red(cs); if (party(cs)) break; await sleep(300); }
+    ok(party(cs) && !sawRed, `THE POLE on a party night: neon magenta + electric blue, no plain red (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
     const ph0 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), t0 = Date.now(); await sleep(1500);
     const ph1 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), d = ((ph1 - ph0 + 1) % 1) / ((Date.now() - t0) / 1000);
     ok(d > 0.08 && d < 0.3, `THE POLE's party turn: the same slow turn (${d.toFixed(3)} periods a second)`);

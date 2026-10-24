@@ -3494,10 +3494,18 @@ clash), `ringBase`; at 390 / 402 / 430 something in front of both word towers, z
 12 scenes, neighbours never one main colour, six distinct non-white tower colours, ≤ 2 non-pale all-white buildings, the front tube never
 finer / dimmer than the one behind. The smoke check (GAMES=cipher — `title.js` is shared): 3 / 3.
 
-### Performance (A/B in one run, `title-perf.mjs --ab` against 0a297dc, 402×874, the laptop without a GPU)
-NOT RUN YET — the machine ran out of memory (Claude Code stopped the dev server + the whole-suite e2e run mid-way: 23 / 23 checks had
-passed); every touched group passed on its own (party + music 122 / 122, promenade + core 24 / 24, speakeasy 16 / 16, neon + party 41 / 41).
-What changes a frame: the pole's per-pixel glass (~10 × 56 px, < 0.1 ms), the car (a few blits, only at rest while it crosses), the
+### Performance (A/B in one run, `title-perf.mjs --ab` against 0a297dc, 390×844, the laptop without a GPU, 3 + 3 windows)
+| scene | t0 work A → B (ms) | frame p95 · slow | verdict |
+| --- | --- | --- | --- |
+| `np-day` (4×) | 6.52 → 6.76 | 17 · 0.3 % both | same (noise ±0.48) |
+| `np-night` (4×) | 10.73 → 12.65 | 33.4 · 18.3 → 30.5 % | same (noise ±7.03 / ±38 pts) |
+INCOMPLETE: the laptop was short of memory all session — at 4× both builds stepped down to tier 0 inside every window (t2 / t1: no valid
+window, A or B), and the 2× re-run with the party (`np-day,np-night,np-party --cpu 2`) was stopped by Claude Code for low memory before its
+first scene; so tier 2 + the party are UNMEASURED by the A/B — the owner's iPhone (`&debug=1`) decides. The whole e2e-harbor suite: 264 / 266
+(the two misses were the pole's RAID-over + party-colour checks reading a single frame under the parallel load — 16 / 16 alone; both now wait
+for the condition) + the `perf` group's re-bake wait raised 15 → 30 s (at 4× a frame costs ~110 ms here and the bake runs a step a frame:
+FP2's smaller night steps + the street + the neon's depth plan pushed it past 15 s; the commit before missed 15 s on its first try too —
+its numbers there: t2→1 work 112 ms, t1→0 55 ms, t0 26 ms at the party's peak). What changes a frame: the pole's per-pixel glass (~10 × 56 px, < 0.1 ms), the car (a few blits, only at rest while it crosses), the
 party's racers ~15 % more paths (94 vs 80 at 402); the bakes: the night ground ~102 → ~190 ms total (5–10 ms a step), the neon layout +10–20 ms once.
 
 ### Known issues (FP2)
