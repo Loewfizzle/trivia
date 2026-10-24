@@ -34,12 +34,14 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | F1 | ✅ (294e105) FIX PASS: the iPhone music bug (still broken — a diagnostic first), the billboard lit at night, the beat lead, brick texture at noon | Opus 5.5 high | 45–75 min |
 | DB | ✅ (ed141a3, Oct 23) MUSIC FIXES (drop slip8, the iOS music-dies-after-leaving bug, party beat latency) + DAY BUILDINGS (the owner: "a little flat", 7–8 / 10): cast shadows between buildings, ambient occlusion, recessed windows, materials — the "BUILDINGS BY DAY" notes | Opus 5.5 high | 60–90 min |
 | 7 | ✅ 7a (12a4f9c, Oct 23 — the owner: 7–8 / 10 at night, cozy; the ghost ad = the BLADE, not the corner turn; the smaller corner buttons feel better) ( add-ons sent: the sun's colour by altitude — golden hour too white; SUNRISE + SUNSET presets in the panel's TIME category; the AUDIO panel's header says "sounding" while the detail says NO) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
-| FP2 | ✅ (Oct 24 — docs/harbor.md#fp2; + the owner's add-on NEON BY DEPTH; as built: the medallion at 273 + the cart at 213 — a little right of ~265 / ~200 so the umbrella clears the bench; the parked cars off with the bus) FOREGROUND POLISH 2: the beat SKEW after returning (re-converge the output lead), the promenade tweaks (far-left tree + urn removed, the medallion to the middle with a height cap, cart left of it, bench + a crabapple shifted left, the bus removed until 8b, the framing maple fixed), grout in the cobbles at night, the finished street under the dock, crisp lights (no smoke), the barber pole (bright LED-like, smooth, neon on party nights), party timing 8:30 / 9:30 | Opus 5.5 high | 75–100 min |
+| PF | ← NEXT PROMENADE FINAL TOUCHES (Oct 24): the GitHub CI job (full e2e-harbor in the cloud, lean for the private repo), the final layout (cart + bus hidden until 8b, the bench + crabapple left of the crossing, the brick compass inlay, the lamps re-thought + tree uplights, the darker street under the dock, the string lights off for now, brighter sign lamps, an olive-green mailbox), the car's sound in sync, the neon-outline check, the SKY SOUNDS imported (Grok's 12 files, wired to the existing sky events) | Opus 5.5 high | 75–90 min |
+| BEAT | THE BEAT AFTER RETURNING — a focused FABLE pass (the evidence: "re-measure gave up" before leaving; "heard +237 ms SKEW" after; the tier drop 2→1→2 on return) — waits on the owner's answer: did it LOOK off by eye? | Fable high | 45–60 min |
+| FP2 | ✅ (Oct 24) FOREGROUND POLISH 2: the beat SKEW after returning (re-converge the output lead), the promenade tweaks (far-left tree + urn removed, the medallion to the middle with a height cap, cart left of it, bench + a crabapple shifted left, the bus removed until 8b, the framing maple fixed), grout in the cobbles at night, the finished street under the dock, crisp lights (no smoke), the barber pole (bright LED-like, smooth, neon on party nights), party timing 8:30 / 9:30 | Opus 5.5 high | 75–100 min |
 | FP | ✅ (fb332a1, Oct 23 — the owner: "a big jump", ~8 / 10) FOREGROUND POLISH (Oct 23): the beat-after-returning fix (count beats from the song's position, not the context clock — the owner's evidence: ~1.3 s drift), the promenade re-layout (approved sketch), the billboard on a short frame, the blade in front of the tree, the barber pole (smooth + brighter), the stop lights + a WALK/WAIT lantern, one crafted planter, the bench at night, quieter water + varied gulls, pulse default 175, readout + AUDIO toggles in the panel | Opus 5.5 high | 75–100 min |
 | 8a | ✅ (2aecda7, Oct 23) (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
-| 6b | ← NEXT the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
+| 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 8b | THE LIFE (after 6b): people, vehicles, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
-| C2 | cleanup pass 2 | Opus 5.5 medium | 15–30 min |
+| C2 | cleanup pass 2 (+ DEPENDENCY UPGRADES on a branch with the full tests: firebase-admin 13 → 14, the browser Firebase SDK past 11.10 — not urgent, Oct 24) | Opus 5.5 medium | 15–30 min |
 | 9 | seasons + weather | Opus 5.5 medium | 45–75 min |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11a | autumn holidays: the shared holiday system (calendar, build-ups, sign dressings), the parade system, the banner plane's messages, Halloween, Day of the Dead, Thanksgiving | Opus 5.5 high | 60–90 min |
@@ -54,6 +56,13 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 16 | Board 2.0 | Opus 5.5 high | 60–90 min |
 | 17 | Progression 2.0 | Opus 5.5 high | 90–120 min |
 | R-ALL | FABLE WHOLE-APP READ-ONLY REVIEW (the very end — the games, lobby + rooms + sync, profiles + progression, every /api, City 1.0 / the Harbor, security before app stores + payments); a report, then a cleanup prompt | Fable | ~60–90 min |
+
+**FASTER RUNS (the owner, Oct 24 — "this takes so long"; the laptop is the bottleneck: low memory, 4× CPU throttling,
+browser tests):** (1) add a GitHub CI job that runs the FULL e2e-harbor suite on every push (the cloud does the heavy run,
+not the laptop); (2) locally each pass runs only the unit suite + the test groups it touched; (3) the A-B-B-A speed check
+runs only when a pass changes what's drawn every frame (new animations, lights, layers), not for layout / art / sound
+tweaks — the owner's iPhone readout stays the judge; (4) the speed check never waits on bakes under 4× throttling (bakes
+are measured separately). The CI job goes in the next pass.
 
 **TESTING SCOPE (the owner, Oct 22 — no traffic yet, the games will be reworked):** City 2.0 passes test the CITY only. No
 game-by-game or every-phone game sweeps. Only when a pass touches files the whole app shares (title.js / title.css, the
@@ -612,6 +621,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   translucent layer, the cumulus' body too transparent at night, or the draw order (cirrus after cumulus). Rule: a
   cumulus' body is OPAQUE — nothing behind it shows through (only its thin edges let the sky through); high clouds always
   draw first. Check at night, party night and by day.
+- 6b section 0 — THE AURORA BLENDS MORE (the owner, Oct 24): City 2.0's aurora has too much definition in its vertical
+  shafts of light — soften them: the rays fade into each other (soft-edged, overlapping, blurred along their length), a
+  smooth glowing curtain that shimmers and drifts, not separate stripes; keep its colours and its reflection on the water.
 - 6b section 0 — CIRRUS SOFTER + LONGER (the owner, Oct 23): the high streaks are too sharp — more diffusion (soft,
   blurred, feathered edges, lower contrast) and longer, more stretched strands.
 - 6b section 0 — CLOUDS EVOLVE (the owner said OK, Oct 23 — she'll judge the clouds only once 6b's full system is in): clouds slowly swell, change shape and dissipate over minutes,
@@ -733,6 +745,36 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   + run one script (trim, level to the city's loudness, encode, register) — like add-city2-music.py. The preview panel's
   SOUNDS category lists every slot: filled / empty, with a play button. + anything the owner
   finds when she checks 7a.
+- FINAL PROMENADE TOUCHES (the owner, Oct 24, after FP2 — collecting): (a) MOVE THE BENCH + ITS CRABAPPLE to where the cart's
+  umbrella is now — just LEFT of the crosswalk — brought slightly FORWARD, the tree a bit BIGGER (it frees the OVERCLOCK blade
+  and shows the tree); (b) the CART is HIDDEN for now, like the bus (the owner likes it — it comes back in 8b with
+  moving things, placed once the layout is set); keep its art; (c) THE STREET UNDER THE DOCK must read as a different
+  surface from the promenade — darker asphalt-toned setts / tarred granite with the rails, a clear curb step between;
+  (d) THE CENTREPIECE becomes a PAVING INLAY, flush with the ground — an old-school brick compass rose / circle laid in red
+  (and a second tone) brick within the cobbles, no raised ring or medallion object; it stays the holiday centrepiece spot;
+  (e) RETHINK THE LAMP PLACEMENT now the layout is known (Claude's starting idea: a matched pair of tall double lamps
+  FLANKING the crosswalk so the crossing is framed + lit; the two short globes at the front corners; nothing in front of the
+  shopfront or the blade; every pool where people walk / sit — the bench lit, the inlay lit); (f) REMOVE THE STRING LIGHTS
+  from the speakeasy roof for now — the owner still wants them, RE-RENDERED properly later (7b with the rooftop); (g) THE
+  SPEAKEASY'S SIGN LAMPS AT NIGHT: the roof billboard's lamps a little BRIGHTER; the vertical blade's lamps clearly brighter
+  and more CONCENTRATED — tighter cones aimed down the board so the whole blade face is evenly lit and the name pops at
+  night (undo FP's "dimmed the blade a little"); still crisp light-on-surface, never a haze; (h) lamps strategic + future-
+  proof (people readable everywhere they walk / wait / line up); (i) warm UPLIGHTS at each tree's base so the trees read at
+  night; (j) a 1920s OLIVE-GREEN pillar mailbox on the right side by the curb (not the bottom-left — the lobby line's corner);
+  a NEWSSTAND / NEWSBOY idea → 8b with the people; (k) EVENT LIGHTING for the centrepiece (the owner): the inlay always inside
+  the permanent pools + a hook rig of 3–4 flush brass FLOOR SPOTS in its ring, off normally, on (warm, aimed up) when an event
+  piece stands there; holiday parts drive it via an API + add their own lights.
+- THE LIGHTHOUSE BEAM ON PARTY NIGHTS — DECIDED: STAYS WHITE (the owner asked, then left it to Claude, Oct 24): on a party
+  night nearly everything is already in colour (the skyline, the sky beams, the wheel, the string lights, the barber pole);
+  the lighthouse's clean white beam sweeping across it is the calm anchor + contrast that makes the colour pop. Do NOT
+  colour it.
+- NEON OUTLINES MERGE INTO ONE SHAPE (the owner, Oct 24, party night, the right side: the BLUFF + DOUBLE AGENT towers and the
+  buildings in front of them): overlapping buildings share the same pink outline, so front and back read as one strange
+  blob. RULE: a building in FRONT never shares its outline colour with the building directly behind it — contrasting hues
+  per depth layer (e.g. pink tower behind → gold / cyan / white front), on normal AND party nights (the party scheme assigns
+  colours by layer, not one colour for all); the front building's outline cleanly OCCLUDES the one behind (a thin dark gap
+  where they cross, the back outline stops behind the front silhouette); near outlines a touch thicker / brighter, far ones
+  finer / dimmer (Neon Pass 3's depth rule). Check every overlap across the skyline at 402.
 - THE LINE AT THE SPEAKEASY (the owner, Oct 23 — for Lobby 2.0 + 8b): friends in a lobby line up LEFT of the left globe lamp —
   along the barbershop front, to the left of the door, toward the bottom-left corner. Space check (Claude): that corner holds
   ~4–5 figures in a single file at phone size, so the line runs along the shopfront and bends down toward the corner (two-deep
