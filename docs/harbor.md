@@ -4091,6 +4091,10 @@ party night decides**; if it shows slow frames, the steps: fewer figures at tier
   flake: the party neon's blue stripe probably comes out too pale (`speakeasy.js#poleColours`' neon `b`) or the probe lands on the white
   band; on CI it's a warning (`okF`) — for FREV / the next pass that touches the pole.
 - The `speakeasy` group's light probes now run with `&force=no-people` (a walker passing between two readings moved a probe by 18 levels).
+- **THE CLOUD (2 runs, Ben's cap):** run 1 (ab46b44, the `[harbor]` push — the first on the 4-job split, ≈ 4¼ min wall, 4 jobs): audio, show,
+  city green; street 73 / 74 — "THE POLE at night" read its red stripe at 210,121,139 against a hard `g < 120` (passing here at 120 / 119:
+  the probe on the pole's lit core, a borderline threshold, the pole untouched) → the probe moved off the core + the red test relative (red
+  leading by 60 / 50). Run 2: only the `street` job by hand (`gh workflow run harbor -f job=street`).
 
 ### Handoff → FREV (the Fable foreground review), then 6b + 8b
 The foreground is alive: people, the bus, the cart, the roof, the line + the sign as Lobby 2.0's hooks. FREV reviews it with fresh eyes (the

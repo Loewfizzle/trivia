@@ -1516,8 +1516,8 @@ G('speakeasy', async () => {
       const ph1 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), d = ((ph1 - ph0 + 1) % 1) / ((Date.now() - t0) / 1000);
       okT(d > 0.08 && d < 0.3, `THE POLE turns slowly at night: ${d.toFixed(3)} periods a second`);
       // FP2 — red / white / blue on a normal night (vivid through the LED-lit glass)
-      { const cs = []; for (let f = 0.15; f < 0.86; f += 0.035) cs.push(await px(Q.page, pr.x + pr.w * 0.5, pr.y + pr.h * f));
-        ok(cs.some(c => c[0] > 180 && c[1] < 120 && c[2] < 140) && cs.some(c => c[2] > 180 && c[0] < 140) && cs.some(c => Math.min(...c) > 200), `THE POLE at night: red, blue + a bright cool white on the glass (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`); }
+      { const cs = []; for (let f = 0.15; f < 0.86; f += 0.035) cs.push(await px(Q.page, pr.x + pr.w * 0.3, pr.y + pr.h * f));   // (8P: off the LED core down the middle — a red stripe under it read pink, g 120–121 vs < 120)
+        ok(cs.some(c => c[0] > 180 && c[0] > c[1] + 60 && c[0] > c[2] + 50) && cs.some(c => c[2] > 180 && c[0] < 140) && cs.some(c => Math.min(...c) > 200), `THE POLE at night: red, blue + a bright cool white on the glass (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`); }
       // FP2 — THE SLIDE, frame by frame: the stripes' rendered offset (the column's fundamental, in device px) follows the clock's phase on
       // every drawn frame — even, never a stall or a jump (the owner: "still jittery")
       { const run = await ev(Q.page, `new Promise(res => { const hb = window.__district.harbor(), r = hb.speakeasy.poleRect, cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, g = cv.getContext('2d');
