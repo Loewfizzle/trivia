@@ -4221,8 +4221,8 @@ smoke `GAMES=cipher` 3/3.
   deleted `L.people` — fixed); `city` — "DEBUG STRIPS 430: a second tap opens them" (the AUDIO strip's tap landed while the readout
   above it was opening — the test now waits for each fold to flip, one retry). Run 2 (a80da9e): audio, show, street green; `city` —
   `skyline`'s wait "the city laid out on the real text rects" asked for < 1 pt while the load gate re-lays only for moves over 2 pt
-  (FREV B1's threshold): the wait now accepts ≤ 2 pt (passes here, `ONLY=skyline,water` 18/18; NOT re-run in the cloud — the cap; the
-  next `[harbor]` push confirms it). Everything else in the `city` job (core, water, load, panel, perf) passed in both runs.
+  (FREV B1's threshold): the wait now accepts ≤ 2 pt (passes here, `ONLY=skyline,water` 18/18) — CONFIRMED green in FP3b's first
+  `[harbor]` run (c5b1e9c: the whole `city` job). Everything else in the `city` job (core, water, load, panel, perf) passed in both runs.
 
 ## FP3b — FOREGROUND POLISH 3b: THE PEOPLE WALK RIGHT + REAL DOORS + THE DANCE CIRCLE + THE FACADE (Oct 24 2026; behind `?city=2`)
 From `docs/harbor/review-3.md` §C items 7–13 + the owner's checks after FP3a (plan.md 8P REVIEW NOTES (14)) + two add-ons sent during
@@ -4354,7 +4354,12 @@ trail quads a wand; tier 0 drops the trails + the halos and two dancers. The roa
   the cloud. **THE CLOUD (2 runs, the cap):** run 1 (c5b1e9c): audio, show (+ the new `life` group), **city** green — FP3a's skyline wait
   fix confirmed — and the quick tests green; `street` red on "NO SMOKE round the pole" (one far point +15 between the two readings: the
   CI machine's slower power-on, its wait times out silently, the facade still ramping up). Fixed: `speakeasy.quiet()` also freezes the
-  facade's light levels while it holds (locally every far point 0.0 apart). Run 2: the `street` job alone by hand — see the commit after.
+  facade's light levels while it holds (locally every far point 0.0 apart). Run 2 (29b3ecd, the `street` job alone): 72 / 74 — the
+  same far point still +17.9 in the cloud (0.0 in every local reading: so it is not the facade ramping; the likeliest cause is the CI
+  machine's LOWER TIER — the pole's halo / its light on the brick drawn differently there, reaching ~16 pt left of the pole's top) and a
+  one-off "THE BAR at night: warm light in its window" (passed in run 1; rgb 150,92,45 read mid-ramp). Both logged, not re-run (the
+  two-run cap). NEXT: force the tier to 2 for the NO SMOKE probe (`setTier(2)` before it) or compare the pole's own halo radius by tier;
+  the bar probe's wait the same way as the pole's.
 - The ROOF's guests still come up + go down through the hatch with a short fade (the hatch has no door art yet — 8b's roof pass).
 - The bus's grille + headlamp are ~3 pt at the far road: detail that only shows zoomed.
 - The dance circle's moves are the same four for every song; the beat is the song's (`PT.beatsF`) — a song without a beat analysis
