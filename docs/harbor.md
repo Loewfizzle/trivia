@@ -4217,6 +4217,12 @@ smoke `GAMES=cipher` 3/3.
   boarders than 8P on a slow day; by design.
 - The reveal holds the city dark up to ~1 s on a fast phone (the first bake + the lit windows); on the throttled 3G + 4× CPU run the
   dark title showed ~1.2 s before the fade.
+- **THE CLOUD (2 runs, the cap):** run 1 (478e222): show + street green; `audio` — the `dock` group threw (`street()`'s debug still read the
+  deleted `L.people` — fixed); `city` — "DEBUG STRIPS 430: a second tap opens them" (the AUDIO strip's tap landed while the readout
+  above it was opening — the test now waits for each fold to flip, one retry). Run 2 (a80da9e): audio, show, street green; `city` —
+  `skyline`'s wait "the city laid out on the real text rects" asked for < 1 pt while the load gate re-lays only for moves over 2 pt
+  (FREV B1's threshold): the wait now accepts ≤ 2 pt (passes here, `ONLY=skyline,water` 18/18; NOT re-run in the cloud — the cap; the
+  next `[harbor]` push confirms it). Everything else in the `city` job (core, water, load, panel, perf) passed in both runs.
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against

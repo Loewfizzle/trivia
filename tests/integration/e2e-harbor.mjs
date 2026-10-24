@@ -528,9 +528,10 @@ G('flags', async () => {
 G('skyline', async () => {
   // ================================================================ 3b. Part 2 (+ Part 5): the tagline rests with the dock, the words, the searchlights, the wheel
   { const T = await open({ slot: 'h7', qs: `${NIGHT}&force=spell,searchlights&text=2027` });
-    // (the city laid out on the title's REAL text rects before the first reading: a sub-pt re-layout after it is not the bug)
+    // (the city laid out on the title's REAL text rects before the first reading: a sub-pt re-layout after it is not the bug; FP3a —
+    // THE LOAD GATE re-lays the city only for a move over 2 pt (scene.js#maybeRelayout), so within 2 pt is "laid out on them")
     await harborUp(T.page);
-    await waitFor(T.page, '(() => { const h = window.__district.harbor(), tr = window.__district.scene().textRects; return h && !h.pending && tr && Math.abs(h.cam.limitY - (tr.tag.y + tr.tag.h + 10)) < 1; })()', 'the city laid out on the real text rects', 9000);
+    await waitFor(T.page, '(() => { const h = window.__district.harbor(), tr = window.__district.scene().textRects; return h && !h.pending && tr && Math.abs(h.cam.limitY - (tr.tag.y + tr.tag.h + 10)) <= 2.01; })()', 'the city laid out on the real text rects', 9000);
     const h0 = await ev(T.page, 'window.__district.harbor()');
     // PART 5 (the owner's call): the tagline stays while the dock is up — no timer — and rests WITH the dock
     await sleep(2500);
