@@ -522,7 +522,8 @@ export function createTitle() {
     if (!createHarbor || destroyed || !scene) return;
     const tag = els.sign.querySelector('.nd-tag');
     const msg = tag && tag.classList.contains('nd-tag-msg');
-    scene.set({ tagGone: !msg && (els.root.classList.contains('is-idle') || els.sign.classList.contains('nd-tag-gone')) });
+    // (FP2: + the dock at rest — the street under it shows, and the implied road's car is seen rolling across it)
+    scene.set({ tagGone: !msg && (els.root.classList.contains('is-idle') || els.sign.classList.contains('nd-tag-gone')), dockGone: els.root.classList.contains('is-idle') });
   }
   function tagSlot(text, ms = 6000) {
     if (destroyed || !createHarbor) return false;

@@ -4,10 +4,11 @@
 //   MORNING      dawn → 11 am            (dawn = the sun back above -6°, the same twilight the neon's power-down runs in)
 //   DAY          11 am → golden hour     (golden hour = the sun at 10° and falling: harbor-dark.js#DUSK's top knot)
 //   EVENING      golden hour → 11 pm
-//   PARTY        Friday + Saturday nights, the party show's hours (core/party.js: 8 pm → 2 am) — once the city has powered up
-//                (harbor-dark.js#partyReady, the same gate the show starts on), so a long summer dusk is still EVENING
-import { inPartyWindow } from './party.js';
+//   PARTY        Friday + Saturday nights, the party show's hours (FP2: from the 8:30 pm warm-up → 2 am) — once the city has
+//                powered up (harbor-dark.js#partyReady, the same gate the show starts on), so a long summer dusk is still EVENING
+import { inPartyWindow, partyHour } from './party.js';
 import { darkness, partyReady } from './harbor-dark.js';
+import { HARBOR_PARTY } from './harbor-show.js';
 
 export const MOOD_IDS = ['late', 'morning', 'day', 'evening', 'party'];
 export const DAWN_EL = -6;          // °: the morning starts when the sun is back above this
@@ -21,7 +22,7 @@ export const LATE_FROM_H = 23;      // the late night begins
  */
 export function cityMoodAt(local, el = null) {
   const sun = el != null && Number.isFinite(+el);
-  if (inPartyWindow(local) && (!sun || partyReady(darkness({ el: +el })))) return 'party';
+  if (inPartyWindow(local) && partyHour(local) >= HARBOR_PARTY.warm && (!sun || partyReady(darkness({ el: +el })))) return 'party';
   const hr = local.h + (local.mi || 0) / 60;
   if (hr < 12) {
     if (hr >= MORNING_TO_H) return 'day';

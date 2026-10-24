@@ -26,8 +26,9 @@ const MIX = {
     autumn: MAPLE_AUTUMN,
   },
   crab: {
-    // the BLOSSOM (its big moment): white-pink petals, pink, the deep-pink buds
-    spring: [[[255, 222, 232], 0.34], [[250, 170, 200], 0.32], [[255, 246, 248], 0.18], [[232, 100, 152], 0.14], [[150, 196, 96], 0.02]],
+    // the BLOSSOM (its big moment): white-pink petals, pink, the deep-pink buds (FP2 — the owner: "fluffier / whiter": more of the
+    // open white-blush petals, the pink a softer share, the deep buds a sprinkle)
+    spring: [[[255, 240, 244], 0.36], [[255, 252, 250], 0.24], [[252, 196, 216], 0.24], [[236, 120, 166], 0.13], [[150, 196, 96], 0.02]],
     summer: [[[64, 106, 56], 0.42], [[82, 124, 62], 0.32], [[52, 90, 50], 0.18], [[104, 132, 66], 0.08]],
     // a crabapple turns yellow-bronze (its red fruit carry the colour)
     autumn: [[[214, 160, 52], 0.36], [[190, 118, 40], 0.28], [[164, 132, 54], 0.18], [[228, 190, 80], 0.12], [[126, 120, 52], 0.06]],
@@ -45,6 +46,11 @@ export function treeMix(kind, season, i = 0) {
   const m = k[s] || k.summer;
   const list = Array.isArray(m[0][0][0]) ? m[i % m.length] : m;
   return season === 'winter' ? list.map(([c, w]) => [mixc(c, [118, 84, 58], 0.55), w]) : list;
+}
+/** a back cluster's richer colour (FP2): saturated + a step darker, warm toward red in autumn */
+function deepen(c, season, crab) {
+  const k = season === 'autumn' ? (crab ? [1, 0.82, 0.62] : [1, 0.7, 0.52]) : season === 'spring' && crab ? [1, 0.88, 0.92] : [0.84, 0.92, 0.82];
+  return [Math.round(c[0] * k[0]), Math.round(c[1] * k[1]), Math.round(c[2] * k[2])];
 }
 const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const pickW = (R, list) => { let r = R() * list.reduce((s, [, w]) => s + w, 0); for (const it of list) { r -= it[1]; if (r <= 0) return it[0]; } return list[0][0]; };
@@ -83,7 +89,9 @@ export function treePlan(t, { season = 'autumn', phase = 0.5, i = 0 } = {}) {
   const key = `${Math.round(t.x * 10)}|${Math.round(t.z * 10)}|${t.kind}`;
   // --- THE SKELETON (always to the finest twig; the season picks how deep it shows)
   const R = rngFrom(`tree-sk|${key}`), segs = [];
-  const trunkW = crab ? 0.27 : 0.4, fork = t.trunk * (crab ? 0.74 : 0.86), lean = (R() - 0.5) * 0.16;
+  // (FP2: the big framing maple's trunk sturdier — the owner: "a lopsided crown on a thin trunk" — and it forks a little lower, so
+  // the limbs visibly branch up into the crown)
+  const big = !!t.big, trunkW = crab ? 0.27 : big ? 0.54 : 0.4, fork = t.trunk * (crab ? 0.74 : big ? 0.8 : 0.86), lean = (R() - 0.5) * (big ? 0.08 : 0.16);
   segs.push({ x0: 0, y0: 0, x1: lean, y1: fork, w0: trunkW, w1: trunkW * 0.84, d: 0 });
   const grow = (x, y, ang, len, wid, d) => {
     // a gently bent limb (two pieces), fitted into the crown's envelope (a twig that would poke out is shortened, then dropped)
@@ -108,10 +116,11 @@ export function treePlan(t, { season = 'autumn', phase = 0.5, i = 0 } = {}) {
       grow(sx, sy, ca, L * (0.66 + R() * 0.14), we * (0.64 + R() * 0.06), d + 1);
     }
   };
-  const limbs = crab ? [-0.98, -0.52, -0.06, 0.4, 0.86] : [-0.66, -0.24, 0.2, 0.6];
+  // (FP2: the big maple's five limbs spread evenly either side — a full, round, balanced crown)
+  const limbs = crab ? [-0.98, -0.52, -0.06, 0.4, 0.86] : big ? [-0.78, -0.38, 0, 0.38, 0.78] : [-0.66, -0.24, 0.2, 0.6];
   limbs.forEach((ang, k) => {
     const a0 = ang + (R() - 0.5) * 0.18, at = fork - (crab ? 0 : (k % 2) * 0.25);
-    grow(lean * at / fork, at, a0, t.h * (crab ? 0.4 : 0.36) * (0.9 + R() * 0.2), trunkW * (crab ? 0.5 : 0.56), 1);
+    grow(lean * at / fork, at, a0, t.h * (crab ? 0.4 : big ? 0.4 : 0.36) * (0.9 + R() * 0.2), trunkW * (crab ? 0.5 : 0.56), 1);
   });
   if (!crab) grow(lean, fork, lean * 0.5, t.h * 0.42, trunkW * 0.6, 1);   // the maple's leader
 
@@ -119,12 +128,13 @@ export function treePlan(t, { season = 'autumn', phase = 0.5, i = 0 } = {}) {
   const C = rngFrom(`tree-cl|${key}`), clusters = [];
   const density = densityOf(t.kind, season, phase);
   const mix = treeMix(t.kind, season, i), H = rngFrom(`tree-hue|${key}|${season}|${i}`);
-  const want = crab ? 21 : 34, r0 = crab ? 0.13 * t.w : 0.15 * t.w, r1 = crab ? 0.2 * t.w : 0.21 * t.w;
+  // (FP2: the big maple fuller — more clusters, fewer of them hung on the limbs' tips: a round, even crown, no bald side)
+  const want = crab ? 24 : big ? 46 : 34, r0 = crab ? 0.13 * t.w : 0.15 * t.w, r1 = crab ? 0.2 * t.w : 0.21 * t.w, onTips = big ? 0.35 : 0.55;
   const tips = segs.filter(s => s.d >= 3 && s.d <= 4).map(s => [s.x1, s.y1]);
   for (let n = 0, tries = 0; n < want && tries < want * 12; tries++) {
     const r = r0 + C() * (r1 - r0);
     let u, v;
-    if (tips.length && C() < 0.55) { const p = tips[Math.floor(C() * tips.length)]; u = p[0] + (C() - 0.5) * r; v = p[1] + (C() - 0.5) * r; }
+    if (tips.length && C() < onTips) { const p = tips[Math.floor(C() * tips.length)]; u = p[0] + (C() - 0.5) * r; v = p[1] + (C() - 0.5) * r; }
     else { const th = C() * TAU, rr = Math.sqrt(0.12 + C() * 0.88); u = Math.cos(th) * rr * a; v = cv + Math.sin(th) * rr * b; }
     if (!env.inside(u, v, 1 - r / Math.min(a, b) * 0.9)) continue;
     // (the leaves' reach stays inside the crown's box: never past t.w / 2 sideways — the layout keeps that inside the screen — or
@@ -135,7 +145,8 @@ export function treePlan(t, { season = 'autumn', phase = 0.5, i = 0 } = {}) {
     const nr = Math.hypot(u / a, (v - cv) / b);
     let back = nr < 0.42 || C() < 0.36;
     // the window into the crown: the fork and the lower limbs show (front clusters stay off the lower middle)
-    if (!back && Math.abs(u) < a * (crab ? 0.42 : 0.34) && v < cv - b * (crab ? 0.05 : 0.18)) back = true;
+    // (FP2: the big maple's window smaller — just the fork, the limbs showing as they rise into the crown)
+    if (!back && Math.abs(u) < a * (crab ? 0.42 : big ? 0.24 : 0.34) && v < cv - b * (crab ? 0.05 : big ? 0.4 : 0.18)) back = true;
     const nz = Math.sqrt(Math.max(0, 1 - nr * nr)) * (back ? -0.5 : 0.35 + C() * 0.65);
     const young = season === 'spring' && !crab ? 0.66 + 0.34 * Math.min(1, phase * 2.5) : 1;
     clusters.push({ u, v, r: r * young, back, nz, rank: C(), seed: C() });
@@ -152,6 +163,10 @@ export function treePlan(t, { season = 'autumn', phase = 0.5, i = 0 } = {}) {
     // (a second colour from the mix for some of its leaves: neighbouring clusters blend, never a ball of one colour)
     cl.col2 = (season === 'autumn' && phase < 0.35 && !crab ? mixc(pickW(H, mix), GREEN, 0.3) : pickW(H, mix)).map(Math.round);
     cl.blooms = crab && season === 'spring' && cl.col[0] > 200;
+    // FP2 — THE INSIDE OF THE CROWN (the owner: "a dark brown-black blob inside the big maple"): the back clusters (the crown's core,
+    // in shade) take a DEEPER, richer version of their own colour — an autumn maple's inside a deep orange-red / crimson, a summer's
+    // a deep green, a blossom's a deeper pink — never the same colour darkened to brown (trees.js lifts their light too)
+    if (cl.back) { cl.col = deepen(cl.col, season, crab); cl.col2 = deepen(cl.col2, season, crab); }
   }
   // the clusters' own shapes: a few overlapping discs (the body) + leaf dabs round the edge and over the lit cap (unit = r)
   for (const cl of clusters) {

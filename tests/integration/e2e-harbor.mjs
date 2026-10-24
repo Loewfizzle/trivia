@@ -805,6 +805,15 @@ G('party', async () => {
     const p = await ev(Q.page, 'window.__district.party()');
     ok(p.name === 'warm' && p.show.lights === 0 && ['glow', 'sweep-slow', 'climb-slow', 'chase-heroes'].includes(p.show.scene), `THE WARM-UP (9 pm): a classy scene ("${p.show.scene}"), no searchlights yet`);
     await Q.ctx.close(); }
+  // FP2 — PARTY TIMING EARLIER: nothing at 8:15 pm (the warm-up is 8:30), THE PEAK from 9:30 pm (core/harbor-show.js#harborPartyPlan)
+  for (const [when, want] of [['2026-10-24T20:15', 'off'], ['2026-10-24T21:45', 'peak']]) {
+    const Q = await open({ slot: 'h12', qs: `when=${when}${GR}`, view: [402, 874] });
+    await harborUp(Q.page);
+    if (want === 'peak') await waitFor(Q.page, "window.__district.party().name === 'peak'", 'the peak at 9:45 pm', 20000);
+    else await sleep(1500);         // (timed: the party would have switched on by now)
+    const p = await ev(Q.page, '({ on: window.__district.party().on, name: window.__district.party().name, plan: window.__district.party().plan })');
+    ok(want === 'off' ? !(p.on > 0) : p.name === 'peak' && p.on > 0, `FP2 TIMING ${when.slice(11)}: ${want === 'off' ? 'no show before the 8:30 warm-up' : 'THE PEAK'} (on ${p.on}, ${p.name}; plan ${p.plan ? `${p.plan.warm}/${p.plan.peak}` : '?'})`);
+    await Q.ctx.close(); }
 });
 // ================================================================ 3i. THE PREVIEW PANEL (JUST ME + EVERYONE ON CITY 2)
 G('panel', async () => { await panelSection(); await neonPass5Panel(); });
@@ -950,7 +959,7 @@ G('music', async () => {
     const s = songs.songs[id];
     ok(b && b.id === id && ((s.grid.trusted === false && b.untrusted && !b.grid) || (s.grid.trusted !== false && b.grid && Math.abs(b.grid.bpm - s.grid.bpm) < 0.01)), `MUSIC ${mood}: the beat follows ${id}'s ${s.grid.trusted === false ? 'kicks (grid not trusted)' : `grid (${s.grid.bpm} bpm)`}`);
     ok(/music/i.test(line) && line.includes(id), `MUSIC ${mood}: the readout names it ("${line}")`);
-    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead -?\d+ ms \(\d+ kicks\) · lag \d+ ms$/.test(sl || ''), `SYNC: the readout says what the beat subtracts ("${sl}")`); }
+    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead [+−-]?\d+( → [+−-]?\d+)? ms \([^)]*\) · lag \d+ ms$/.test(sl || ''), `SYNC: the readout says what the beat subtracts ("${sl}")`); }
     if (SHOTS && mood === 'party') await P.page.screenshot({ path: `${OUT}music-party-402x874.png` });
     await P.ctx.close();
   }
@@ -988,13 +997,13 @@ G('music', async () => {
     const nx = String(await ev(P.page, 'window.__arcade.musicDebug().next')).replace(/^m:/, '');
     ok(deck('day').includes(nx) && nx !== first, `NATURAL CHANGE: the next song (${nx}) comes from the DAY deck`);
     await P.ctx.close(); }
-  { const P = await open({ slot: 'mu', qs: `when=2026-10-23T19:58:30&speed=20${GR}`, view: [402, 874] });
+  { const P = await open({ slot: 'mu', qs: `when=2026-10-23T20:28:30&speed=20${GR}`, view: [402, 874] });
     const first = await start(P.page);
     ok(deck('evening').includes(first), `PARTY START: evening plays ${first}`);
-    await waitFor(P.page, `window.__arcade.mood() === 'party'`, 'the party starting (8 pm)', 15000);
+    await waitFor(P.page, `window.__arcade.mood() === 'party'`, 'the party starting (FP2: 8:30 pm)', 15000);
     await changed(P.page, first, 'the forced switch');
     const now = await ev(P.page, NOW);
-    ok(deck('party').includes(now), `PARTY START: 8 pm switches at once to the PARTY deck (${now}) — the evening song did not have to end`);
+    ok(deck('party').includes(now), `PARTY START: 8:30 pm (FP2) switches at once to the PARTY deck (${now}) — the evening song did not have to end`);
     await P.ctx.close(); }
   { const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00&mood=late${GR}`, view: [402, 874] });
     const id = await start(P.page);
@@ -1465,14 +1474,50 @@ G('speakeasy', async () => {
       await sleep(1500);
       const ph1 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), d = ((ph1 - ph0 + 1) % 1) / ((Date.now() - t0) / 1000);
       ok(d > 0.08 && d < 0.3, `THE POLE turns slowly at night: ${d.toFixed(3)} periods a second`);
+      // FP2 — red / white / blue on a normal night (vivid through the LED-lit glass)
+      { const cs = []; for (let f = 0.15; f < 0.86; f += 0.035) cs.push(await px(Q.page, pr.x + pr.w * 0.5, pr.y + pr.h * f));
+        ok(cs.some(c => c[0] > 180 && c[1] < 120 && c[2] < 140) && cs.some(c => c[2] > 180 && c[0] < 140) && cs.some(c => Math.min(...c) > 200), `THE POLE at night: red, blue + a bright cool white on the glass (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`); }
+      // FP2 — THE SLIDE, frame by frame: the stripes' rendered offset (the column's fundamental, in device px) follows the clock's phase on
+      // every drawn frame — even, never a stall or a jump (the owner: "still jittery")
+      { const run = await ev(Q.page, `new Promise(res => { const hb = window.__district.harbor(), r = hb.speakeasy.poleRect, cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, g = cv.getContext('2d');
+          const x = Math.round((r.x + r.w / 2) * k), y0 = Math.round((r.y + r.w * 0.6) * k), y1 = Math.round((r.y + r.h - r.w * 0.6) * k), rows = []; let last = '', n = 0;
+          const tick = ts => { const d = g.getImageData(x - 1, y0, 3, y1 - y0).data, pf = []; for (let i = 0; i < y1 - y0; i++) { let s = 0; for (let j = 0; j < 3; j++) s += d[(i * 3 + j) * 4] - d[(i * 3 + j) * 4 + 2]; pf.push(s / 3); }
+            const key = pf.join(','); if (key !== last) { last = key; rows.push({ ts, pf, ph: window.__district.harbor().speakeasy.polePh }); } if (++n < 50) requestAnimationFrame(tick); else res({ rows, Pd: 4.4 * (r.w / 2) * k }); };
+          requestAnimationFrame(tick); })`);
+        const Pd = run.Pd, phaseOf = pf => { const m = pf.reduce((a, b) => a + b, 0) / pf.length; let re = 0, im = 0; pf.forEach((v, i) => { re += (v - m) * Math.cos(2 * Math.PI * i / Pd); im += (v - m) * Math.sin(2 * Math.PI * i / Pd); }); return Math.atan2(im, re) / (2 * Math.PI) * Pd; };
+        const wrap = v => { while (v > Pd / 2) v -= Pd; while (v < -Pd / 2) v += Pd; return v; };
+        const res = [0], st = [];
+        for (let i = 1; i < run.rows.length; i++) { const m = wrap(phaseOf(run.rows[i].pf) - phaseOf(run.rows[i - 1].pf)), dph = run.rows[i].ph - run.rows[i - 1].ph, e = -((dph + 1.5) % 1 - 0.5) * Pd; st.push(m); res.push(res[i - 1] + m - e); }
+        const mr = res.reduce((a, b) => a + b, 0) / res.length, dev = Math.max(...res.map(v => Math.abs(v - mr)));
+        ok(run.rows.length >= 12 && dev < 0.45 && st.every(s => s < 0), `THE POLE'S SLIDE: ${run.rows.length} drawn frames, every one moving the same way (steps ${Math.min(...st.map(Math.abs)).toFixed(2)}–${Math.max(...st.map(Math.abs)).toFixed(2)} px), within ${dev.toFixed(2)} px of the clock`); }
+      // FP2 — NO SMOKE: what the lit pole adds round it (lit − the raid's dark) — light on the brick right beside the glass, nothing ~15 pt
+      // away (FP's warm wash reached ~28 pt: ~17–20 levels at 15 pt; the noise floor here ±5)
+      const lumP = async ([X, Y]) => { let t = 0, n = 0; for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const c = await px(Q.page, X + dx, Y + dy); t += 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; n++; } return t / n; };
+      await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.985', 'the power-on done (the city still brightening would read as a difference)', 15000).catch(() => {});
+      const pcx = pr.x + pr.w / 2, mid = pr.y + pr.h / 2;
+      const nearAt = [[pr.x - 3.5, mid], [pr.x + pr.w + 3.5, mid - 6]], farAt = [[pcx - 15, mid], [pcx, pr.y - 15], [pcx - 16, pr.y + 4], [pcx + 28, mid]];
+      const on1 = { near: [], far: [] }; for (const p of nearAt) on1.near.push(await lumP(p)); for (const p of farAt) on1.far.push(await lumP(p));
       await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: false })');
       await sleep(300);
       const a = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'); await sleep(500);
       const b = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), ld = lumA(await col());
       ok(a === b && ld < lp * 0.6, `THE RAID's hook: the pole dark (${ld.toFixed(0)}) + still`);
+      { const nd = []; for (const [i, p] of nearAt.entries()) nd.push(on1.near[i] - await lumP(p)); const fd = []; for (const [i, p] of farAt.entries()) fd.push(on1.far[i] - await lumP(p));
+        ok(Math.max(...nd) > 10 && fd.every(v => Math.abs(v) < 6), `NO SMOKE round the pole: its light on the brick beside it +${nd.map(v => v.toFixed(1)).join(' / +')}; ~15–28 pt away ${fd.map(v => v.toFixed(1)).join(' / ')} (≈ 0)`); }
       await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: true })'); await sleep(400);
       ok(lumA(await col()) > lp * 0.85, 'THE RAID over: the pole lit again'); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}speakeasy-night-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- FP2: a PARTY night — the pole's stripes in the party's neon (magenta + electric blue on gold), the same slow turn
+  { const Q = await open({ slot: 'sp3', qs: `${NIGHT}&force=party`, view: [402, 874] });
+    await harborUp(Q.page); await settle(Q.page);
+    await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.9 && window.__district.party().on > 0.9', 'the party on, the rooms lit', 20000);
+    const sp = await ev(Q.page, 'window.__district.harbor().speakeasy'), pr = sp.poleRect, cs = [];
+    for (let f = 0.15; f < 0.86; f += 0.035) cs.push(await px(Q.page, pr.x + pr.w * 0.5, pr.y + pr.h * f));
+    ok(cs.some(c => c[0] > 180 && c[2] > 100 && c[1] < 130) && cs.some(c => c[2] > 180 && c[0] < 150) && !cs.some(c => c[0] > 180 && c[1] < 110 && c[2] < 90), `THE POLE on a party night: neon magenta + electric blue, no plain red (${cs.slice(0, 6).map(c => c.join(',')).join(' · ')}…)`);
+    const ph0 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), t0 = Date.now(); await sleep(1500);
+    const ph1 = await ev(Q.page, 'window.__district.harbor().speakeasy.polePh'), d = ((ph1 - ph0 + 1) % 1) / ((Date.now() - t0) / 1000);
+    ok(d > 0.08 && d < 0.3, `THE POLE's party turn: the same slow turn (${d.toFixed(3)} periods a second)`);
     await Q.ctx.close(); }
   // ---- by day: the windows not lit, the basement's amber still glowing (the one hint), the pole turning
   { const Q = await open({ slot: 'sp2', qs: `when=2026-10-22T12:30${GR}`, view: [402, 874] });
@@ -1498,7 +1543,8 @@ G('promenade', async () => {
     ok(pr.season === 'autumn' && !pr.flag && pr.impliedOn, `THE PROMENADE (Oct 21): autumn by the real date, no flag, the implied road on (${pr.season})`);
     const tall = pr.lamps.filter(l => l.kind === 'tall'), globes = pr.lamps.filter(l => l.kind === 'globe');
     ok(tall.length >= 1 && globes.length >= 2 && pr.lamps.every(l => l.heads >= 1), `THE LAMPS: ${tall.length} tall double-head + ${globes.length} globes, every one with its glass on screen`);
-    ok(pr.trees.length >= 3 && pr.trees.filter(t => t.kind === 'maple').length >= 2 && pr.trees.every(t => t.at[0] - t.r >= 0 && t.at[0] + t.r <= 402), `THE TREES: ${pr.trees.map(t => t.kind).join(', ')} — none cut by the screen's edges`);
+    // (FP2: the framing maple + the curb crabapple over the bench — the red maple by the blade is gone)
+    ok(pr.trees.length >= 2 && pr.trees.some(t => t.kind === 'maple') && pr.trees.some(t => t.kind === 'crab') && pr.trees.every(t => t.at[0] - t.r >= 0 && t.at[0] + t.r <= 402), `THE TREES: ${pr.trees.map(t => t.kind).join(', ')} — none cut by the screen's edges`);
     const door = await ev(Q.page, 'window.__district.harbor().door');
     ok(pr.medallion[0] > door.x + 40 && pr.medallion[1] < 758, `THE MEDALLION in the open plaza, right of the door (${pr.medallion[0]} vs the door ${Math.round(door.x)})`);
     // (a patch's mean, 14 × 4 pt: the setts' joints + tops average out)
@@ -1528,6 +1574,31 @@ G('promenade', async () => {
     await waitFor(Q.page, '!!window.__district.harbor().road.pass', 'a car passing on the implied road', 20000);
     const rd = await ev(Q.page, 'window.__district.harbor().road'), pr = await ev(Q.page, 'window.__district.harbor().promenade');
     ok(rd.pass && Math.abs(rd.pass.dir) === 1 && pr.season === 'winter', `THE IMPLIED ROAD: a car passing (${rd.pass && rd.pass.id}, dir ${rd.pass && rd.pass.dir}); &force=season-winter → ${pr.season}`);
+    await Q.ctx.close(); }
+  // FP2 — THE STREET UNDER THE DOCK (full-bleed) + THE MOTORCAR: with the dock shown no car is drawn; at rest the band is a finished
+  // street (not the old flat asphalt) and the forced pass's car rolls across it, inside the band; the dock back → the car gone
+  { const Q = await open({ slot: 'pr5', qs: `${NIGHT}&force=road-pass`, view: [402, 874] });
+    await harborUp(Q.page); await settle(Q.page);
+    await waitFor(Q.page, '!!window.__district.harbor().road.pass', 'a pass under way', 20000);
+    const r0 = await ev(Q.page, 'window.__district.harbor().road');
+    ok(r0.vis === 0 && !r0.car, `FP2 — THE DOCK SHOWN: no car drawn (vis ${r0.vis}) — only the implied light`);
+    await ev(Q.page, 'window.__district.idle()');
+    await waitFor(Q.page, 'window.__district.isIdle() && window.__district.harbor().road.vis >= 0.99', 'the dock at rest, the car visible', 8000);
+    const cam = await ev(Q.page, 'window.__district.harbor().cam');
+    // the band's texture: the setts + the rails (the old asphalt was one flat tone: σ ≈ 2)
+    const band = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, y0 = ${cam.dock.y} + 14, h = 874 - 8 - y0;
+      const d = cv.getContext('2d').getImageData(Math.round(20 * k), Math.round(y0 * k), Math.round(362 * k), Math.round(h * k)).data; let s = 0, s2 = 0, n = 0;
+      for (let i = 0; i < d.length; i += 16) { const l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; s += l; s2 += l * l; n++; } const m = s / n; res({ m, sd: Math.sqrt(Math.max(0, s2 / n - m * m)) }); }))`);
+    ok(band.sd > 5 && band.m > 14, `FP2 — THE STREET at rest: the band under the dock is cobbled (σ ${band.sd.toFixed(1)}, mean ${band.m.toFixed(0)}) — never the old flat grey, never black`);
+    await waitFor(Q.page, '!!window.__district.harbor().road.car', 'the motorcar on screen', 16000);
+    const car = (await ev(Q.page, 'window.__district.harbor().road')).car;
+    ok(car.drawn && car.top >= cam.dock.y - 1 && car.y <= 874 && car.h > 36 && car.h < 52 && car.w / car.h > 2.2, `FP2 — THE MOTORCAR: ${car.look}, dir ${car.dir}, ${car.w.toFixed(0)} × ${car.h.toFixed(0)} pt, roof ${car.top.toFixed(0)} under the dock's top ${cam.dock.y}, wheels ${car.y.toFixed(0)}`);
+    const fast = await ev(Q.page, 'window.__district.harbor().rate.fast');
+    ok(fast !== '', `FP2 — 60 fps while it shows (its wheels; the reason now: ${fast} — 'car' when nothing else asks)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}street-car-night-402x874.png` });
+    await tapAt(Q.page, 30, 300);
+    await waitFor(Q.page, '!window.__district.isIdle() && window.__district.harbor().road.vis === 0 && !window.__district.harbor().road.car', 'the car gone with the dock back', 3000);
+    ok(true, 'FP2 — THE DOCK BACK: the car gone at once (vis 0)');
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'pr3', qs: `${NIGHT}&force=no-implied-road`, view: [402, 874] });
     await harborUp(Q.page);

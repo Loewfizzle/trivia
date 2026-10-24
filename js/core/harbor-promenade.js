@@ -12,9 +12,10 @@
 //   THE FRONT WALK       z ≈ 36.5–38: short warm globe lamps along its curb (their bases = the promenade's bottom edge), the
 //                        flowering crabapples
 // NO FLAGPOLE (the owner, 8a: flags only on holidays / special events — a later part dresses the lamp posts then)
-//   THE IMPLIED ROAD     z < 36: its granite curb just under the dock's top edge, the asphalt below — never a visible car:
-//                        passing cars are LIGHT only (headlight sweeps across the cobbles at night, a soft shadow by day)
-// NOTHING UNDER THE DOCK. Positions are by SCREEN FRACTION on an upright phone (every phone the same picture); a wide screen
+//   THE IMPLIED ROAD     z < 36: its granite curb just under the dock's top edge, THE STREET below (FP2: full-bleed — setts, a
+//                        streetcar track, a manhole, a drain); while the dock shows, passing cars are LIGHT only (headlight
+//                        sweeps at night, a soft shadow by day); while it rests (hidden) the car itself rolls across (streetPlan)
+// NOTHING ALIVE UNDER THE DOCK while it shows. Positions are by SCREEN FRACTION on an upright phone (every phone the same picture); a wide screen
 // (desktop, sideways) repeats the curb band to the right and keeps the front row either side of the dock.
 
 import { rngFrom } from './rng.js';
@@ -54,15 +55,42 @@ export const PHONE = Object.freeze({
   // the crossing (f ~0.58–0.76), and the framing maple's crown covers the right quarter — so the back row's trees + bench sit LEFT
   // of the crossing, beside the blade + under the wheel's deck, its second tall lamp right of it; the sketch's curb planter would
   // stand hidden behind the framing maple — the ONE crafted planter is the speakeasy's corner one)
-  tall: [{ f: 0.455, z: 52.6 }, { f: 0.776, z: 52.6 }],
-  maples: [{ f: 0.373, z: 52.9 }, { f: 0.507, z: 53.1 }, { f: 0.888, z: 38.2, big: true }],
-  crabs: [],
+  // FP2 — THE OWNER'S TWEAKS (Oct 24): the red curb maple beside / behind the DOUBLE AGENT blade is GONE (the corner clean, the wheel's
+  // left leg shows again); the corner URN is gone (the promenade has no planter now — the speakeasy has its window boxes + ivy;
+  // props.js#drawPlanter stays for later); THE MEDALLION moves to the middle of the open floor, in front of the crossing (~265 pt at
+  // 402); THE CART rests LEFT of it (~200 pt); THE BENCH + its tree shift LEFT (~160 pt: the cart's umbrella never hides the bench —
+  // tested) and that tree is a FLOWERING CRABAPPLE (pink-white blossom in spring — spring reads again; golden autumn + red fruit).
+  // So the back row is: crabapple with the bench · tall lamp · [the crossing's landing] · tall lamp. The framing maple keeps its
+  // own colour (v: the BLAZING ORANGE mix — core/harbor-trees.js#MAPLE_AUTUMN 1, "the big one on the front walk").
+  tall: [{ f: 0.44, z: 52.6 }, { f: 0.776, z: 52.6 }],   // (FP2: the first 0.455 → 0.44 — beside the bench's right end, clear of the cart's umbrella)
+  maples: [{ f: 0.888, z: 38.2, big: true, v: 1 }],
+  crabs: [{ f: 0.405, z: 52.9, k: 1.25 }],   // (k: a touch bigger than the panorama's front-row accent — at the curb it frames the bench)
   globes: [0.322, 0.962],                  // (the front edge's two corners: by the speakeasy's corner, by the right edge)
-  medallion: { f: 0.49, z: 43.4 },          // (the owner: the CENTRE of the open floor, roughly under the wheel)
-  bench: { f: 0.505, z: 50.4 },             // (under the second curb maple, by the first tall lamp: its cool light)
-  cart: { f: 0.667, z: 41.8 },              // (the open right side of the floor, in front of the crossing, room round it)
-  planters: [{ f: 0.378, z: 45.6, corner: true }],
+  medallion: { f: 0.68, z: 43.4 },          // (FP2: the middle of the open floor, in front of the crossing — its landing's centre)
+  bench: { f: 0.392, z: 50.4 },             // (FP2: under the crabapple, left of the first tall lamp: its cool light)
+  cart: { f: 0.53, z: 41.8 },               // (FP2: left of the medallion — its rest spot; 8b rolls it: L.cart.route)
+  planters: [],
 });
+
+/**
+ * THE CENTREPIECE'S RULES (FP2 — for 8b + the seasonal pieces):
+ * - EVENT_CLEAR (world units, from the medallion's centre): on a normal day the cart may roll ACROSS the medallion (8b: L.cart.route)
+ *   and people walk over it; while an EVENT stands on the medallion (a seasonal centrepiece, a show, a crowd) the cart stops short —
+ *   its centre never nearer than this (L.cart.stopX: the furthest right it may stand) — and the walkers go round the ring.
+ * - CENTRE_PAD (pt): a centrepiece's top stays this far under the skyline's vertical neon blade's bottom (the game blade on the HOTEL
+ *   — CIPHER / PRISM …) and under the wheel's hub — centrepieceCap() turns that into a height in world units at the medallion.
+ */
+export const EVENT_CLEAR = 4;   // (the ring 2.6 + the cart's half-body 1.22 + a little)
+export const CENTRE_PAD = 8;
+/**
+ * The tallest a seasonal CENTREPIECE on the medallion may stand (world units, from the paving): its top `pad` pt under every screen
+ * y in `limits` (the blade's bottom — core/harbor-neon.js#signSpots 'n-blade' — and the wheel's hub, project(wheel.x, wheel.y,
+ * wheel.z)). PURE: cam + the medallion + the limits. At 390 / 402 / 430: ≈ 11.5 units (≈ 160 pt at 402 — a Christmas tree fits).
+ */
+export function centrepieceCap(cam, m, limits, pad = CENTRE_PAD) {
+  const gy = cam.VPY + cam.F * cam.CAMH / m.z, top = Math.max(...limits) + pad;   // (under the LOWEST of them)
+  return Math.max(0, Math.floor((gy - top) * m.z / cam.F * 10) / 10);
+}
 
 /** the WALK / WAIT lantern (world units): at the crosswalk's far end (`at`: its place across the crosswalk's width, 0 = the left
  *  edge — the open gap between the curb row's tall lamp and maple, the west stop light clear), z by the railing, h the post to the
@@ -114,18 +142,23 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   const lamps = [], trees = [], planters = [], more = [];
   const tall = (x, i) => lamps.push({ x, z: PROM.curb, h: P.tall.h, kind: 'tall', dir: i % 2 ? -1 : 1, arm: P.tall.arm });
   const maple = (x, z = PROM.curb + 0.15) => trees.push({ x, z, kind: 'maple', trunk: P.maple.trunk, w: P.maple.w, h: P.maple.h, r: P.maple.w / 2, grate: true });
-  const crab = (x, z = PROM.front) => trees.push({ x, z, kind: 'crab', trunk: P.crab.trunk, w: P.crab.w, h: P.crab.h, r: P.crab.w / 2, grate: true });
+  const crab = (x, z = PROM.front, k = 1) => trees.push({ x, z, kind: 'crab', trunk: P.crab.trunk * (0.6 + 0.4 * k), w: P.crab.w * k, h: P.crab.h * k, r: P.crab.w * k / 2, grate: true });
   const globe = (x, z = PROM.globes) => lamps.push({ x, z, h: P.globe.h, kind: 'globe', dir: 1 });
   const S = PHONE;
   const signals = S.signals.map(s => ({ id: s.id, x: X(s.f, 54.6), z: 54.6, dir: s.dir, arm: s.arm, h: stopH, state: 'green' }));
   S.tall.forEach((t, i) => tall(X(t.f, t.z), i));
-  S.maples.forEach(m => { maple(X(m.f, m.z), m.z); if (m.big) Object.assign(trees[trees.length - 1], { big: true, w: P.maple.w * 1.12, r: P.maple.w * 0.56, h: P.maple.h * 1.1, trunk: P.maple.trunk * 1.05 }); });
+  // (FP2: the framing maple's crown a little rounder — h 1.1 → 1.14 × — its trunk sturdier: core/harbor-trees.js#treePlan's big; v: its colour mix)
+  S.maples.forEach(m => { maple(X(m.f, m.z), m.z); const t = trees[trees.length - 1]; if (m.v != null) t.v = m.v; if (m.big) Object.assign(t, { big: true, w: P.maple.w * 1.12, r: P.maple.w * 0.56, h: P.maple.h * 1.14, trunk: P.maple.trunk * 1.02 }); });
   S.globes.forEach(f => globe(X(f, PROM.globes)));
-  S.crabs.forEach(c => crab(X(c.f, c.z), c.z));
+  S.crabs.forEach(c => crab(X(c.f, c.z), c.z, c.k || 1));
   for (const p of S.planters) planters.push({ x: X(p.f, p.z), z: p.z, w: P.planter.w * (p.corner ? 1.08 : 0.92), corner: !!p.corner });
   const bench = { x: X(S.bench.f, S.bench.z), z: S.bench.z, w: P.bench.w };
   const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts' };
-  const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring };
+  const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring, clear: EVENT_CLEAR };
+  // (FP2 — THE CART'S RULE for 8b: it rests LEFT of the medallion; on a normal day its route rolls across the floor — over the
+  // medallion — to the open right side and back; during an event on the medallion it stops short: never right of stopX)
+  cart.route = { x0: cart.x, x1: X(0.8, cart.z), z: cart.z };
+  cart.stopX = medallion.x - EVENT_CLEAR;
   const crosswalk = { x0: X(S.crosswalk[0], 59), x1: X(S.crosswalk[1], 59), z0: 54, z1: 64 };
   // (FP: THE WALK / WAIT LANTERN — on the FAR side of the crossing, at the railing where the crosswalk lands, facing us: the people
   // waiting on the promenade's kerb read it across the road, the way a pedestrian signal stands)
@@ -150,9 +183,10 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   }
   if (more.length) bench.more = more;
   // THE FRONT EDGE + THE IMPLIED ROAD (the owner's idea, behind &force=implied-road; on by default for her review): the promenade's
-  // granite curb at z PROM.edge (just under the dock's top on a phone), the road's asphalt nearer — no car is ever drawn on it
+  // granite curb at z PROM.edge (just under the dock's top on a phone), THE STREET nearer (FP2: setts, a streetcar track, a manhole,
+  // a drain — full-bleed to the screen's foot; its car seen only while the dock rests: streetPlan below)
   const edge = { z: PROM.edge, curbW: 0.45 };
-  const impliedRoad = { z0: PROM.road[0], z1: PROM.road[1], lane: 30 };
+  const impliedRoad = { z0: PROM.road[0], z1: PROM.road[1], lane: 30, street: streetPlan(cam, PROM.edge) };
   // THE WALKABLE ZONES (8b's people + dogs): world rects + the pieces they walk round (never through the cart, into the water, under
   // the dock — the dock is a screen rect: zones stop at its top)
   const zones = {
@@ -222,3 +256,59 @@ export function roadPassAt(ms, hourAt = () => 12, { seed = 1924, force = false }
   }
   return null;
 }
+
+// ------------------------------------------------------------------ FP2 — THE STREET UNDER THE DOCK (full-bleed; PURE)
+// The band under the dock is a FINISHED STREET (the implied road made real — the owner, Oct 23): the near granite curb (its top at
+// the dock's top edge), a granite gutter, the street's own setts, ONE streetcar track (two steel rails, inset), a manhole, a storm
+// drain at the curb, a wet hook (Part 9). While the dock rests (hidden), the implied road's passes are SEEN: a 1920s motorcar rolls
+// across (screens/harbor/motorcar.js), the same pass + sound as before (roadPassAt). Two lanes, by direction (the traffic keeps
+// right: westbound ← along the far side by the curb, eastbound → nearer us); the far lane's roof stays under the dock's top (the
+// dock covers the car whole while it fades back in), the near lane's wheels above the screen's foot (else both use the far lane).
+/** the street's sizes (world units — 1 ≈ 0.85 m): the gutter's width, a street sett (x × z), the track's gauge, the car (a 1928
+ *  sedan: 4.2 m long, 1.75 m tall, 1.8 m wide, 0.78 m wheels), the lanes' preferred depth, the manhole + the drain */
+export const STREET = Object.freeze({
+  gutter: 1.4, sett: [0.82, 0.6], gauge: 1.7, rail: 0.07,     // (the gutter: ~0.8 of it hidden under the curb's 27 cm face)
+  car: { len: 4.95, h: 2.06, w: 2.1, r: 0.46, base: 3.09 },
+  far: 30.4, near: 25.6,
+  manhole: { f: 0.7, r: 0.72 }, drain: { f: 0.17, w: 1.3 },
+});
+/** the z of the screen's foot on this camera (the street paints down to it) */
+export const footZ = cam => (cam.H - cam.VPY > 1 ? (cam.F * cam.CAMH) / (cam.H - cam.VPY) : 12);
+/**
+ * The street for a camera: { z0 (the curb's road edge), gutter: [z0, z1], foot (the screen's foot), lanes: [{ dir: -1, z }, { dir: 1, z }]
+ * (z = the car's near side, its wheels' line), rails: [z, z], manhole: { x, z, r }, drain: { x, z0, z1, w } (a grate in the gutter's
+ * visible strip + the inlet in the curb's face) }.
+ */
+export function streetPlan(cam, edgeZ = PROM.edge) {
+  const S = STREET, C = S.car, foot = Math.min(edgeZ - 2, footZ(cam));
+  // (the car's roof at the dock's top + 2 pt on a phone; a wide screen's dock is a short bar in the middle: the street shows either side)
+  const zRoof = cam.wide ? Infinity : (cam.F * (cam.CAMH - C.h)) / Math.max(1, cam.dock.y + 2 - cam.VPY);
+  const zWheel = (cam.F * cam.CAMH) / Math.max(1, cam.H - 8 - cam.VPY);                     // the near wheels 8 pt over the foot
+  const g1 = edgeZ - S.gutter;
+  const far = Math.max(Math.min(S.far, zRoof, g1 - C.w - 0.4), foot + 0.5);
+  const near = Math.max(S.near, zWheel), two = near + C.w + 0.9 < far;
+  const tc = two ? (near + C.w + far) / 2 : Math.max(foot + S.gauge, far - S.gauge - 0.6);
+  const rails = [tc - S.gauge / 2, tc + S.gauge / 2];
+  const mz = (g1 + far + C.w) / 2;
+  return {
+    z0: edgeZ, gutter: [g1, edgeZ], foot, rails,
+    lanes: [{ dir: -1, z: far }, { dir: 1, z: two ? near : far }], two,
+    manhole: { x: xOfF(cam, S.manhole.f, mz), z: mz, r: S.manhole.r },
+    drain: { x: xOfF(cam, S.drain.f, edgeZ), z0: g1 + 0.06, z1: g1 + 0.62, w: S.drain.w },
+  };
+}
+/**
+ * Where the pass's car is at ms (PURE): { x (world, its middle), z (its lane), dir, env (0..1 — 1 when nearest), speed (u / s),
+ * on (any of it inside the screen) }. center: the ms the car is nearest (x 0) — the take's peak after the pass's start
+ * (roadlight.js). ~6 u / s along the road (a 1920s cruise): it crosses a phone in ~4 s, round the sound's loudest.
+ */
+export function carAt(pass, center, ms, cam, street) {
+  const lane = pass.dir < 0 ? street.lanes[0] : street.lanes[1], z = lane.z;
+  const span = cam.hw(z) + 14, speed = (span * 2) / 9, x = pass.dir * ((ms - center) / 1000) * speed;
+  return { x, z, dir: pass.dir, speed, env: Math.max(0, 1 - Math.abs(x) / span) ** 0.6, on: Math.abs(x) < cam.hw(z) + STREET.car.len / 2 + 0.5 };
+}
+/** the car's visibility (0..1) — it shows only while the dock rests: up over the dock's 1.8 s fade-out, gone in 0.25 s when the dock
+ *  comes back (its own fade-in is 0.45 s: the car never shows through the dock) */
+export const carVis = (v, gone, dtMs) => Math.max(0, Math.min(1, v + (gone ? dtMs / 1800 : -dtMs / 250)));
+/** THE WET HOOK (Part 9 sets `wet` from the real rain + how long since; &force=wet-street → 1): 0..1 — the street's puddles + sheen */
+export const streetWet = ({ force = false, wet = 0 } = {}) => (force ? 1 : Math.max(0, Math.min(1, +wet || 0)));

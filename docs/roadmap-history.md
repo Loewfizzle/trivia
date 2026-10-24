@@ -786,6 +786,17 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — FOREGROUND POLISH 2 (Oct 24, 2026) — `docs/harbor.md#fp2`, `docs/audio.md#fp2` (the owner on FP: "a big jump", ~8 / 10)
+- [x] The beat after returning: the lead RE-MEASURED on every resume / rebuild / page return / route change + on a SKEW alone (`leadRefresh`, `leadKick`); +100–146 ms in ~10 kicks; the readout shows it converging
+- [x] The promenade: the corner maple + the urn removed; the medallion at 273 pt (in front of the crossing) + `centrepieceCap`; the cart at 213 + `L.cart.route` / `stopX` / `EVENT_CLEAR` (8b); the bench at 158 under a FLOWERING CRABAPPLE; the parked bus + cars off (`PARKED_TRAFFIC`); the lantern on a far kerb + a cast-iron post; the framing maple rebuilt (`deepen`, a bounce light, five limbs, a fuller crown)
+- [x] The cobbles at night: a packed-sand grout lit by the pools, soft rounded stones (`street.js#paintSett`, shared with the street)
+- [x] THE STREET UNDER THE DOCK (full-bleed): gutter, setts, a streetcar track, a manhole, a drain, the season in the gutter, a wet hook (`streetWet`); a 1928 Tudor sedan in five paints crossing it on the implied road's clock while the dock rests (`motorcar.js`, `carAt`, `carVis`)
+- [x] CRISP LIGHTS: the pole's + the shop lamp's + the sconce's clouds → a core, a tight halo, light landing (baked); tighter halos on the lamps + the cart (`POLE_HALO`, `SHOP_GLOW`, `LAMP_HALO`)
+- [x] THE BARBER POLE: LED cool white; per-device-pixel analytic stripes placed 1 : 1, the phase a pure function of time (the jitter's likely cause: a downsampled texture); party nights magenta / electric blue / gold with a gentle punch
+- [x] PARTY TIMING: 8:30 warm-up / 9:30 peak / calming after 1 am, both after tonight's power-up (`harborPartyPlan`, `partyReadyHour`); the party music from the warm-up
+- [x] NEON BY DEPTH (the owner's add-on): `DEPTH_HUE` 60°, the pairs by contact + "directly behind", `fixDepth`, `partyPlan` on the hue ring, the keyline gap (`eraseFront`), near / far ±6 % — 10 → 0 city clashes, 18 → 0 party clashes at 402
+- [x] Tests: harbor.test 131 → 144, the unit suite 539; e2e-harbor groups party, music, promenade, core, speakeasy, neon (all green); the smoke check 3 / 3
+
 ### ✅ CITY 2.0 — FOREGROUND POLISH (Oct 23, 2026) — `docs/harbor.md#fp`, `docs/audio.md#fp`
 - [x] §0 the beat after returning: a pure SONG CLOCK on the element's currentTime (re-anchored on every element event, visibility, rebuild; > 30 ms drift), the song's own bar + beat + `drift` on the readout, the HEARD OFFSET (`SKEW`: the kicks ignored, never applied)
 - [x] The promenade re-layout: the back row (maple · tall lamp · maple + bench · [the crossing] · tall lamp), the open floor (the medallion, the cart, the corner urn), the front edge (two corner globes + the framing maple); the sketch's curb planter + the phone's crabapple dropped (hidden / not in the row)

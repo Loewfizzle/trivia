@@ -15,12 +15,15 @@
 //   safe areas (62 / 34 pt upright, 21 pt at the bottom sideways); --crop stage = the near stage (the road to the dock);
 //   --crop skyline = the skyline close up (above the crowns to the far quay); skyl / skyr = its left / right half (signs + neon
 //   up close); logo = the NEON logo; water = the harbor's water close up (Part 4: from 60 pt above the waterline to the road).
-//   bill = THE BILLBOARD close up (its lamps, the poster, the steel; M3).
+//   bill = THE BILLBOARD close up (its lamps, the poster, the steel; M3). shop = the barbershop's front close up (FP2's lights);
+//   pole = the barber pole alone (with --every 16 --count 12 --zoom 4 --dsf 3: its turn frame by frame, at an iPhone's dpr).
 //   e.g. node shots.mjs "<browser>" --preview --city 2 --safe --sizes harbor --scenes day,golden,night,party,rain,snow
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
 // valentine rejoin sun rain rainbow rainbow2 moonbow neonbow blossom summer autumn autumn-night winter plow owl day-bus golden
 // street-party street-rain umbrellas party-line hail small-hours halloween-kids nye-sparklers door door-day party snow. --crop street: the street strip (the towers' feet down to the dock). "first" has no profile; --guest makes every scene a first-time visitor.
+// --idle: the screen AT REST before the shot (the dock + the tagline faded away: title.js#goIdle, then the 1.8 s fade) — FP2's
+//   street under the dock. --crop band = the band under the dock (the promenade's front edge down to the screen's foot).
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
@@ -41,6 +44,9 @@ const PLACE = PLACES[opt('place', 'gr')] ?? PLACES.gr;
 const CITY = opt('city', '') ? `&city=${opt('city')}` : '';
 const SAFE = !!opt('safe', false);
 const TIER = opt('tier', '') === '' ? null : Number(opt('tier')), ZOOM = Number(opt('zoom', 0)) || 0, ZX = Number(opt('zx', 0.5));
+const IDLE = !!opt('idle', false);
+// --dsf N: the device scale factor (default 2 on a phone size, 1 on desktop) — FP2: the barber pole's frame burst at dpr 3 (an iPhone)
+const DSF = Number(opt('dsf', 0)) || 0;
 const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
 const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900', harbor: '390x844,402x874,412x915,430x932,874x402,1440x900' };
 const SIZES = String(SIZE_SETS[opt('sizes', 'quick')] || opt('sizes')).split(',').map(s => s.split('x').map(Number));
@@ -83,6 +89,8 @@ const SCENE = {
   'd-morn': ['2026-10-22T09:00'], 'd-noon': ['2026-10-22T12:30'], 'd-aft': ['2026-10-22T16:00'], 'd-golden': ['2026-10-22T18:20'],
   'd-clouds': ['2026-10-22T13:00', { qs: 'wx=clouds' }], 'd-overcast': ['2026-10-22T13:00', { qs: 'wx=overcast' }],
   'd-night': ['2026-10-22T22:00'], 'd-party': ['2026-10-24T23:00'],
+  // FP2 (Oct 24): the party's earlier night (the warm-up from 8:30, the peak from 9:30) + spring noon (the crabapple's blossom)
+  'fp-warm': ['2026-10-24T20:45'], 'fp-peak': ['2026-10-24T21:45'], 'fp-spring': ['2026-10-22T12:30', { qs: 'season=spring' }],
   // (8a — the trees through a season, by the real date: the crabapple's buds, its full blossom, the maples' late autumn thinning)
   'tr-bud': ['2026-04-16T11:00'], 'tr-bloom': ['2026-05-05T11:00'], 'tr-early': ['2026-10-01T11:00'], 'tr-late': ['2026-11-15T11:00'],
   // (7a §0: the title's ☰ menu open — the split corners: it drops from the top-left)
@@ -144,7 +152,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   const p = await ctx.newPage();
   p.on('pageerror', e => console.log(`${name} ${w}x${h} PAGEERROR`, e.message));
   const mobile = w < 1000;
-  await p.setViewport({ width: w, height: h, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile });
+  await p.setViewport({ width: w, height: h, deviceScaleFactor: DSF || (mobile ? 2 : 1), isMobile: mobile, hasTouch: mobile });
   if (SAFE) await p.evaluateOnNewDocument((st, sb) => { document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.textContent = `:root{--safe-t:${st}px !important;--safe-b:${sb}px !important}`; document.head.appendChild(s); }); }, mobile && h > w ? 62 : 0, mobile ? (h > w ? 34 : 21) : 0);
   await p.evaluateOnNewDocument(guest => {
     try { localStorage.setItem('nd:entered', '1'); if (!guest) localStorage.setItem('na:sh:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
@@ -164,9 +172,10 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   }
   if (o.act === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm-panel'); await sleep(400); }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
+  if (IDLE) { await p.evaluate(() => window.__district.idle()); await p.waitForFunction(() => window.__district.isIdle(), { timeout: 5000 }).catch(() => {}); await sleep(2100); }
   for (let shot = 0; shot < COUNT; shot++) {
   if (shot) await sleep(EVERY);
-  const file = `${OUT}${name}-${w}x${h}${TIER !== null ? `-t${TIER}` : ''}${COUNT > 1 ? `-${shot}` : ''}`;
+  const file = `${OUT}${name}-${w}x${h}${IDLE ? '-idle' : ''}${TIER !== null ? `-t${TIER}` : ''}${COUNT > 1 ? `-${shot}` : ''}`;
   if (!CROPS.length) { await p.screenshot({ path: `${file}.png` }); n++; }
   for (const c of CROPS) {
     let clip;
@@ -175,6 +184,16 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else if (c === 'stage') {
       // CITY 2.0: the near stage — from above the road's stop lights down to the dock's top
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, k = c.F / 600; const y = Math.max(0, c.VPY + c.F * c.CAMH / 64 - 70 * k); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight, c.dock.y + 8) - y }; });
+    } else if (c === 'band') {
+      // CITY 2.0 (FP2): the band under the dock — from a little above the promenade's front edge to the screen's foot
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const y = Math.max(0, hb.cam.dock.y - 40); return { x: 0, y, width: innerWidth, height: innerHeight - y }; });
+    } else if (c === 'shop' || c === 'pole') {
+      // CITY 2.0 (FP2): the barbershop's front close up (the window, the pole, the side door + its sconce, the cobbles under them) /
+      // the barber pole alone (padded 8 pt: its glass, halo + the brick beside it — the frame burst's crop)
+      clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); const sp = hb && hb.speakeasy; if (!sp || !sp.poleRect) return null; const r = sp.poleRect, k = hb.cam.F / 600;
+        if (cc === 'pole') return { x: Math.max(0, r.x - 8), y: Math.max(0, r.y - 8), width: r.w + 16, height: r.h + 16 };
+        const sx = sp.glowAt && sp.glowAt.sconce ? sp.glowAt.sconce[0] : r.x, x1 = Math.min(innerWidth, Math.max(r.x + r.w, sx) + 40 * k), y = Math.max(0, r.y - 44 * k);
+        return { x: 0, y, width: x1, height: Math.min(innerHeight - y, r.h + 100 * k) }; }, c);
     } else if (c === 'skyline') {
       // CITY 2.0: the skyline close up — from above the tallest crown down to the far quay
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, y = Math.max(0, c.limitY - 24); return { x: 0, y, width: innerWidth, height: c.VPY + c.F * c.CAMH / 230 + 14 - y }; });
@@ -221,8 +240,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    if (ZOOM > 1) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    if (ZOOM > 1 && c !== 'shop' && c !== 'pole') { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'pole', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

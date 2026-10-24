@@ -91,7 +91,9 @@ for (const k of Object.keys(SIZES)) {
       assert.ok(ptAt(cam, L.cars[0].len, L.cars[0].z) > 48 * f && ptAt(cam, L.cars[0].len, L.cars[0].z) < 62 * f);
       // (8a: the promenade at the owner's scale — the tall curb lamp ~70 pt, a curb maple's crown ~55 pt across)
       assert.ok(ptAt(cam, L.lamps[0].h, L.lamps[0].z) > 62 * f && ptAt(cam, L.lamps[0].h, L.lamps[0].z) < 78 * f);
-      assert.ok(ptAt(cam, L.trees[0].r * 2, L.trees[0].z) > 48 * f && ptAt(cam, L.trees[0].r * 2, L.trees[0].z) < 64 * f);
+      // (FP2: no curb maple on the phone any more — the rule holds for the panorama's curb maples; the phone's curb crabapple ~47 pt)
+      assert.ok(ptAt(cam, PROM_PIECE.maple.w, 52.75) > 48 * f && ptAt(cam, PROM_PIECE.maple.w, 52.75) < 64 * f);
+      const crab = L.trees.find(t => t.kind === 'crab'); assert.ok(ptAt(cam, crab.r * 2, crab.z) > 40 * f && ptAt(cam, crab.r * 2, crab.z) < 54 * f, `the curb crabapple ${ptAt(cam, crab.r * 2, crab.z)}`);
       assert.ok(ptAt(cam, L.signals[0].h, L.signals[0].z) > 50 * f && ptAt(cam, L.signals[0].h, L.signals[0].z) < 60 * f);
     } else if (s.H < 500) {
       assert.ok(person >= 8.5, `sideways people ${person}`);   // the owner's call: the whole city, smaller
@@ -960,9 +962,9 @@ test('the party show (NEON PASS 4): racing light on most buildings, a HARD beat 
   assert.equal(sceneAt({ bar: 0, energy: 1, name: 'peak', scene: 'call+chase' }).sc.name, 'call+chase', 'a scene held for a preview (&scene=)');
   assert.ok(SHOW_SCENES.peak.some(s2 => s2.name === 'race+strobe'));
   for (const list of Object.values(SHOW_SCENES)) assert.equal(new Set(list.map(s2 => s2.name)).size, list.length);
-  // THE NIGHT (the harbor's curve): 9 pm warm-up → 11 pm peak → calming after 1 am
+  // THE NIGHT (the harbor's curve; FP2: 8:30 pm warm-up → 9:30 pm peak → calming after 1 am — the default plan, no late dusk)
   const e = h => harborParty(h).energy;
-  assert.ok(e(21) < 0.8 && e(23) > 0.97 && e(25.8) < 0.8 && e(22) < e(23), `the night builds: 9 pm ${e(21).toFixed(2)}, 11 pm ${e(23).toFixed(2)}, 1:48 am ${e(25.8).toFixed(2)}`);
+  assert.ok(e(20.75) < 0.8 && e(22) > 0.97 && e(25.8) < 0.8 && e(21) < e(22), `the night builds: 8:45 pm ${e(20.75).toFixed(2)}, 10 pm ${e(22).toFixed(2)}, 1:48 am ${e(25.8).toFixed(2)}`);
   assert.deepEqual([harborParty(21).name, harborParty(23).name, harborParty(25.5).name], ['warm', 'peak', 'after']);
   // the beat with no song: a party's 120 bpm inside the slow breath
   assert.ok(Math.abs(beatOf(0.3, 1 / 3.5, 0, () => 1).T - 0.5) < 0.01);
@@ -2170,7 +2172,7 @@ test('8a — PULSE STRENGTH: pulseGain parses percent / multiplier, clamps, defa
 });
 
 // ------------------------------------------------------------------ 8a — THE PROMENADE
-import { promenadeLayout, seasonOf, PHONE as PROM_PHONE } from '../js/core/harbor-promenade.js';
+import { promenadeLayout, seasonOf, PHONE as PROM_PHONE, PIECE as PROM_PIECE } from '../js/core/harbor-promenade.js';
 test('8a — THE PROMENADE: the centrepiece spot in the open plaza (clear of the door, the shop window, the furniture; a tall seasonal piece stays under the wheel\'s hub), nothing under the dock, no tree cut by the edge', () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), m = L.medallion, P = (x, y, z) => project(cam, x, y, z);
@@ -2201,22 +2203,20 @@ test('FP — THE PROMENADE RE-LAYOUT: furniture on the edges (the back row clear
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
     const crown = t => cam.F * t.w / 2 / t.z;
-    // THE BACK ROW (the curb): two maples, two tall lamps, the bench — every tree's crown clear of both stop lights' heads + the lantern
+    // THE BACK ROW (the curb): (FP2) the crabapple, two tall lamps, the bench — every tree's crown clear of both stop lights' heads + the lantern
     const back = [...L.trees, ...L.lamps].filter(it => it.z >= 50);
-    assert.equal(back.filter(t => t.kind === 'maple').length, 2, `${k}: two curb maples`); assert.equal(back.filter(l => l.kind === 'tall').length, 2, `${k}: two tall lamps`);
+    assert.deepEqual(back.filter(t => t.kind === 'maple' || t.kind === 'crab').map(t => t.kind), ['crab'], `${k}: one curb tree — the crabapple (FP2: the red maple by the blade is gone)`); assert.equal(back.filter(l => l.kind === 'tall').length, 2, `${k}: two tall lamps`);
     assert.ok(L.bench.z >= 50, `${k}: the bench in the back row`);
     const keep = [...L.signals.map(sg => sx(sg)), sx(L.crosswalk.lantern)];
     for (const t of L.trees.filter(t => t.z >= 50)) for (const kx of keep) assert.ok(Math.abs(sx(t) - kx) > crown(t) + 4, `${k}: a curb maple (${sx(t).toFixed(0)}) clear of a stop light / the lantern (${kx.toFixed(0)})`);
     // the crossing's landing on the curb stays open: no tree trunk, lamp post or bench in the crosswalk's width
     const [c0] = P(L.crosswalk.x0, 53), [c1] = P(L.crosswalk.x1, 53);
     for (const it of [...back, L.bench]) { const x = sx(it), hw = it === L.bench ? cam.F * L.bench.w / 2 / L.bench.z : 3; assert.ok(x + hw < c0 || x - hw > c1, `${k}: the crossing's landing open (${x.toFixed(0)} vs ${c0.toFixed(0)}–${c1.toFixed(0)})`); }
-    // THE OPEN FLOOR (z 38.4–50): only the medallion, the cart + the urn at the speakeasy's corner
+    // THE OPEN FLOOR (z 38.4–50): only the medallion + the cart (FP2: the corner urn is gone — no planter on the promenade)
     const floor = [...L.trees, ...L.lamps, ...L.planters].filter(it => it.z > 38.4 && it.z < 50);
-    assert.deepEqual(floor.map(it => it.kind || 'planter'), ['planter'], `${k}: the floor holds no tree or lamp — only the corner urn`);
-    const u = L.planters[0], s = L.speakeasy, [ux] = P(u.x, u.z), uw = cam.F * u.w / 2 / u.z, [wallX] = P(s.x1, u.z);
-    assert.ok(ux - uw > wallX && ux - uw < wallX + 14, `${k}: the urn tucked against the side wall (${(ux - uw).toFixed(0)} vs the wall ${wallX.toFixed(0)})`);
-    assert.ok(ux - uw > L.door.x + L.door.w / 2, `${k}: the urn clear of the door`);
-    assert.equal(L.planters.length, 1, `${k}: ONE crafted planter`);
+    assert.deepEqual(floor, [], `${k}: the floor holds no tree, lamp or planter`);
+    const s = L.speakeasy;
+    assert.equal(L.planters.length, 0, `${k}: no planter (FP2)`);
     // THE FRONT EDGE (nearer than z 38.4): only the two corner globes + the framing maple at the right — not covering the cart
     const front = [...L.trees, ...L.lamps, ...L.planters].filter(it => it.z <= 38.4);
     const globes = front.filter(l => l.kind === 'globe').map(sx).sort((a, b) => a - b), [faceX] = P(s.x1, s.z0);
@@ -2276,7 +2276,7 @@ test('8a — THE TREES: one seeded skeleton through the year, the crown inside i
   const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = promenadeLayout(cam);
   // (FP: the phone's re-laid promenade has three maples — the crabapple stays for the panorama's front row: tested here as one)
   const { PIECE: PC } = await import('../js/core/harbor-promenade.js'), CRAB = { x: 0, z: 49, kind: 'crab', trunk: PC.crab.trunk, w: PC.crab.w, h: PC.crab.h, r: PC.crab.w / 2, grate: true };
-  assert.equal(L.trees.filter(t => t.kind === 'maple').length, 3, 'the phone: two curb maples + the big framing one');
+  assert.deepEqual(L.trees.map(t => t.kind), ['maple', 'crab'], 'the phone (FP2): the big framing maple + the curb crabapple');
   [...L.trees, CRAB].forEach((t, i) => {
     const a = treePlan(t, { season: 'autumn', phase: 0.5, i });
     assert.deepEqual(JSON.stringify(a), JSON.stringify(treePlan(t, { season: 'autumn', phase: 0.5, i })), 'deterministic');
@@ -2429,6 +2429,81 @@ test('FP — THE HEARD OFFSET: strong kicks vs the grid over ± half a beat; ste
   assert.ok(Math.abs(a.level - b.level) < 1e-9 && Math.abs(a.punch - b.punch) < 1e-9 && a.kick === 0, `skewed kicks ignored (level ${a.level.toFixed(2)} = ${b.level.toFixed(2)})`);
 });
 
+// ------------------------------------------------------------------ FP2 — THE LEAD RE-MEASURED (her readout: heard +107 ms SKEW, lead −39 ms)
+test('FP2 — THE LEAD RE-MEASURED: a +100 ms shift after a return re-converges within a few bars (on the event, or on the SKEW alone); no shift = no wander; scattered kicks never move it', async () => {
+  const { createLead, leadKick, leadRefresh, kickErrWide, heardPos, createHeard, heardStep, heardSkew, KICK_LAG, LIVE_MAX, REFRESH_MAX } = await import('../js/core/harbor-beat.js');
+  const grid = { bpm: 140, t0: 0.197, down: 1 }, p = 60 / grid.bpm, out = 0.018;   // (c2-party7, her song)
+  const jit = k => (((k * 37) % 13) - 6) / 1000;                                    // ±6 ms of listener jitter
+  // a strong kick on beat k with the element → graph offset L: detected at element clock x = beat + lag + L (+ jitter); every 5th
+  // hit a 16th-note bass hit a quarter beat early (it must never teach the lead)
+  const kickAt = (k, L) => grid.t0 + k * p + KICK_LAG + L + jit(k) - (k % 5 === 4 ? p / 4 : 0);
+  const feed = (c, k0, n, L, onKick) => { let k = k0; for (; k < k0 + n; k++) { const w = kickErrWide(kickAt(k, L), grid); const r = leadKick(c, w, grid, k * p * 1000); if (onKick && onKick(k, r, w) === false) break; } return k; };
+  const L1 = -0.039, L2 = L1 + 0.1;
+  // the lead she had: −39 ms, learned
+  const c = createLead(L1); let k = feed(c, 8, 40, L1);
+  assert.ok(Math.abs(c.v - L1) < 0.006, `learned ${c.v}`);
+  // before FP2 nothing could follow: every kick is now > 80 ms from the old lead → the ordinary learning ignores them all
+  { const old = createLead(L1); feed(old, k, 60, L2); assert.ok(Math.abs(old.v - L2) > 0.08, `without a re-measure the lead never reaches it (the bug): ${Math.round(old.v * 1000)} ms`); }
+  // (a) THE EVENT (resume / rebuild / visible / route): the shift happens with the return
+  leadRefresh(c, 'visible', 0);
+  let n = 0, over = 0;
+  k = feed(c, k, 40, L2, (kk, r) => { n++; over = Math.max(over, c.v - L2); return Math.abs(c.v - L2) > 0.01; });
+  assert.ok(n <= 16, `converged in ${n} kicks (≤ 4 bars at 140 bpm)`);
+  assert.ok(over < 0.01, `never overshoots (${Math.round(over * 1000)} ms)`);
+  feed(c, k, 60, L2);
+  assert.ok(Math.abs(c.v - L2) < 0.008 && !c.fast, `settled at ${Math.round(c.v * 1000)} ms, the ordinary learning carries on round it`);
+  // the lights land on the beat AS HEARD again (the graph at b + out → the element at b + out + L2)
+  const b = grid.t0 + 200 * p;
+  assert.ok(Math.abs(heardPos(b + out + L2, out, c.v) - b) < 0.01, 'heard = the beat when it sounds');
+  // (b) NO EVENT — the SKEW seen on its own starts it (audio/beat.js: heardSkew → refresh('skew'))
+  const d = createLead(L1), h = createHeard(); feed(d, 8, 40, L1);
+  let m = 0, startedAt = null;
+  feed(d, 100, 60, L2, (kk, r, w) => { m++; heardStep(h, w); if (!d.fast && heardSkew(h, d.v)) { leadRefresh(d, 'skew', 0); startedAt ??= m; } return Math.abs(d.v - L2) > 0.01; });
+  assert.ok(startedAt != null && startedAt <= 10 && m <= 26, `SKEW seen after ${startedAt} kicks, converged after ${m} (≈ 6 bars)`);
+  // (c) a re-measure that finds the old lead right changes nothing
+  const e = createLead(L1); feed(e, 8, 40, L1); const v0 = e.v;
+  leadRefresh(e, 'resume', 0); let res = null; feed(e, 60, 30, L1, (kk, r) => { if (r === 'done') { res = r; return false; } });
+  assert.ok(res === 'done' && Math.abs(e.v - v0) < 0.006 && !e.fast, `no shift: done, ${Math.round(v0 * 1000)} → ${Math.round(e.v * 1000)} ms`);
+  // (d) scattered kicks during a re-measure: it gives up after REFRESH_MAX, the lead untouched
+  const s = createLead(L1); leadRefresh(s, 'route', 0);
+  for (let i = 0; i < REFRESH_MAX + 2; i++) leadKick(s, ((i * 7) % 11) / 11 * 0.3 - 0.15, grid, i);
+  assert.ok(!s.fast && s.v === createLead(L1).v && s.last && !s.last.ok, 'scattered: gave up, unchanged');
+  // (e) bounded: a slow song's big shift stops at the live range
+  const slow = { bpm: 90, t0: 0 }, q = 60 / 90, f = createLead(0); leadRefresh(f, 'route', 0);
+  for (let i = 0; i < 40; i++) leadKick(f, kickErrWide(i * q + KICK_LAG + 0.26, slow), slow, i);
+  assert.ok(f.v <= LIVE_MAX + 1e-9 && f.v > 0.2, `bounded at ${f.v}`);
+});
+
+// ------------------------------------------------------------------ FP2 — PARTY-NIGHT TIMING, EARLIER (8:30 warm-up, 9:30 peak — after the dark)
+test('FP2 — PARTY TIMING: warm-up 8:30 / peak 9:30 in October; in midsummer both slide after the power-up; calming after 1 am; the show never before the warm-up', async () => {
+  const { harborParty, harborPartyPlan, partyReadyHour, HARBOR_PARTY } = await import('../js/core/harbor-show.js');
+  const { darkness, partyReady } = await import('../js/core/harbor-dark.js');
+  const { sunPosition, localParts } = await import('../js/core/sky.js');
+  const lat = 42.96, lon = -85.67, tz = 'America/Detroit';
+  const evening = iso => { const ms = Date.parse(iso), lc = localParts(ms, tz); return Date.UTC(lc.y, lc.m - 1, lc.d) - lc.off * 60000; };
+  const dark = ms => darkness({ el: sunPosition(ms, lat, lon).el });
+  // October (Sat 24): the power-up is done ~7:15 pm → the fixed times
+  const oct = partyReadyHour(evening('2026-10-24T12:00:00-04:00'), dark, partyReady);
+  assert.ok(oct > 18.8 && oct < 19.8, `October ready at ${oct.toFixed(2)} h`);
+  const po = harborPartyPlan(oct);
+  assert.deepEqual([po.warm, po.peak, po.calm, po.end], [20.5, 21.5, 25, 26]);
+  assert.equal(harborParty(20.4, po).on, false, '8:24 pm: not yet');
+  assert.ok(harborParty(20.5, po).on && harborParty(20.75, po).name === 'warm', '8:45 pm: the warm-up');
+  assert.equal(harborParty(21.75, po).name, 'peak', '9:45 pm: THE PEAK');
+  assert.equal(harborParty(24.5, po).name, 'peak', '12:30 am: still the peak (the finale at midnight)');
+  assert.equal(harborParty(25.2, po).name, 'after', '1:12 am: calming');
+  const e = h => harborParty(h, po).energy;
+  assert.ok(e(20.6) < e(21.2) && e(21.2) < e(21.8) && e(21.8) > 0.97 && e(25.8) < 0.75, `energy ${[20.6, 21.2, 21.8, 25.8].map(e).map(v => v.toFixed(2))}`);
+  // midsummer (Sat 20 June 2026): sunset ~9:20 pm, the power-up done ~10 pm → the warm-up then, the peak 45 min later
+  const jun = partyReadyHour(evening('2026-06-20T12:00:00-04:00'), dark, partyReady), pj = harborPartyPlan(jun);
+  assert.ok(jun > 21.7 && jun < 22.3, `June ready at ${jun.toFixed(2)} h`);
+  assert.ok(Math.abs(pj.warm - jun) < 1e-9 && Math.abs(pj.peak - (jun + HARBOR_PARTY.gap)) < 1e-9, `June: warm ${pj.warm.toFixed(2)}, peak ${pj.peak.toFixed(2)}`);
+  assert.equal(harborParty(21.6, pj).on, false, 'June 9:36 pm: still the blue hour — no show');
+  // a white night (the sun never low enough): no ready hour — the live darkness gate (partyReady) keeps the show off
+  assert.equal(partyReadyHour(evening('2026-06-20T12:00:00+03:00'), ms => darkness({ el: sunPosition(ms, 66, 25).el }), partyReady), null);
+  assert.deepEqual(harborPartyPlan(null), { warm: 20.5, peak: 21.5, calm: 25, end: 26 });
+});
+
 // ------------------------------------------------------------------ FP — THE STOP LIGHTS + THE CROSSING
 import { signalAt, SIGNAL_CYCLE, SIGNAL_PERIOD, LANTERN } from '../js/core/harbor-promenade.js';
 import { SIG } from '../js/screens/harbor/road.js';
@@ -2496,4 +2571,284 @@ test("FP — THE BARBER POLE turns continuously: the same phase at 60 and 30 Hz,
   assert.ok(step > 0 && step < 0.1 && Math.abs(step - Math.round(step)) > 1e-3, `a frame's step ${step.toFixed(4)} pt`);
   assert.equal(poleTurn(0.99, 0.1, 0), (0.99 + 0.042) % 1, 'wraps round (the strip is one period: seamless)');
   assert.equal(poleTurn(0.5, -1, 1), 0.5, 'never backwards');
+});
+
+// ---------------------------------------------------------------- FP2 — THE PROMENADE (the owner's tweaks: no red maple by the blade, no urn,
+// the medallion in the middle in front of the crossing + the cart left of it, the centrepiece's height cap, the bench + its crabapple left of
+// the cart's umbrella, no parked bus, the lantern's post on the far kerb, the crabapple's seasons, the framing maple's inside)
+import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR } from '../js/core/harbor-promenade.js';
+import { benchBox, umbrellaBox } from '../js/screens/harbor/props.js';
+import { PARKED_TRAFFIC, FAR_KERB, drawTraffic, drawLanternBody } from '../js/screens/harbor/road.js';
+test("FP2 — THE PROMENADE: the medallion in front of the crossing, the cart left of it (its 8b rule), the bench + crabapple left of the umbrella, the centrepiece's height cap, the corner clean", () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { s, cam, L } = setup(k), f = s.W / 402, P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
+    const m = L.medallion, mx = sx(m), ring = cam.F * m.ring / m.z, cx = sx(L.cart), bx = sx(L.bench), cartW = cam.F * 1.3 / L.cart.z;
+    // the spots (402: the medallion ~273 — the crossing's landing's centre, the cart ~213, the bench ~158; the others by the width)
+    assert.ok(Math.abs(mx - 273 * f) < 6 * f && Math.abs(cx - 213 * f) < 6 * f && Math.abs(bx - 158 * f) < 6 * f, `${k}: medallion ${mx.toFixed(0)}, cart ${cx.toFixed(0)}, bench ${bx.toFixed(0)}`);
+    const [c0] = P(L.crosswalk.x0, 53), [c1] = P(L.crosswalk.x1, 53);
+    assert.ok(mx > c0 && mx < c1, `${k}: the medallion in front of the crossing (${c0.toFixed(0)}–${c1.toFixed(0)})`);
+    assert.ok(bx < cx && cx < mx, `${k}: bench · cart · medallion, left to right`);
+    assert.ok(cx + cartW < mx - ring - 3, `${k}: the cart's body clear of the ring (${(mx - ring - cx - cartW).toFixed(1)} pt)`);
+    // the door + the shop window clear of the cart and the medallion; nothing at the speakeasy's corner (no urn, no curb tree there)
+    const d = L.door, [w1] = P(L.speakeasy.x0 + L.speakeasy.shop.win[1], L.speakeasy.z0);
+    for (const x of [cx - cam.F * PROM_PIECE.cart.umb / L.cart.z, mx - ring]) assert.ok(x > d.x + d.w + 4 && x > w1, `${k}: clear of the door + the shop window`);
+    assert.equal(L.planters.length, 0, `${k}: no urn`);
+    const [faceX] = P(L.speakeasy.x1, L.speakeasy.z0);
+    for (const t of L.trees.filter(t => t.z > 50)) assert.ok(sx(t) > faceX + 30 * f, `${k}: no curb tree at the corner (${sx(t).toFixed(0)})`);
+    // THE CART'S RULE (8b): its route crosses the medallion; during an event it stops short — its rest spot already clear
+    assert.ok(P(L.cart.route.x0, L.cart.z)[0] < mx - ring && P(L.cart.route.x1, L.cart.z)[0] > mx + ring, `${k}: the route rolls across the medallion`);
+    assert.equal(m.clear, EVENT_CLEAR); assert.ok(L.cart.stopX <= m.x - EVENT_CLEAR + 1e-9 && L.cart.x <= L.cart.stopX, `${k}: the rest spot outside the event's clearance`);
+    // THE BENCH vs THE UMBRELLA: never overlapping (a clear gap), the crabapple over the bench
+    const b = benchBox(cam, L.bench), u = umbrellaBox(cam, L.cart);
+    assert.ok(b.x + b.w + 2 < u.x || b.y > u.y + u.h, `${k}: the umbrella (${u.x.toFixed(0)}–${(u.x + u.w).toFixed(0)}) clear of the bench (${b.x.toFixed(0)}–${(b.x + b.w).toFixed(0)})`);
+    const crab = L.trees.find(t => t.kind === 'crab');
+    assert.ok(crab && Math.abs(sx(crab) - bx) < 8 * f, `${k}: the crabapple over the bench`);
+    // THE HEIGHT CAP: under the game blade's bottom and the wheel's hub (by CENTRE_PAD), a Christmas tree's height at least
+    const bl = signSpots(L).find(sp => sp.id === 'n-blade'), blade = bl.rect.y + bl.rect.h, hub = P(L.wheel.x, L.wheel.z, L.wheel.y)[1];
+    const cap = centrepieceCap(cam, m, [blade, hub]), [, top] = P(m.x, m.z, cap);
+    assert.ok(cap >= 10 && cap < 13, `${k}: the cap ${cap} units`);
+    assert.ok(top >= blade + CENTRE_PAD - 0.01 && top >= hub + CENTRE_PAD - 0.01 && top < blade + CENTRE_PAD + 2, `${k}: its top ${top.toFixed(1)} under the blade ${blade.toFixed(1)} + the hub ${hub.toFixed(1)}`);
+    assert.equal(centrepieceCap(cam, m, [P(m.x, m.z)[1]]), 0, 'no room → 0');
+  }
+});
+test('FP2 — no parked traffic (the bus waits for 8b); THE WALK / WAIT LANTERN on a proper post down to the far kerb, its foot in view', () => {
+  assert.equal(PARKED_TRAFFIC, false);
+  let drawn = 0; const ctx = new Proxy({}, { get: () => () => { drawn++; }, set: () => true });
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k);
+    drawTraffic(ctx, L, { night: 0, bus: [1, 2, 3], car: [1, 2, 3], glass: [1, 2, 3] });
+    assert.equal(drawn, 0, `${k}: nothing parked on the road`);
+    // the post: drawn down to the kerb's top (its footing stone), and that foot is above the promenade's back row (in view)
+    const ln = L.crosswalk.lantern; let low = -1e9;
+    const track = y => { if (Number.isFinite(y)) low = Math.max(low, y); };
+    const rec = new Proxy({ measureText: () => ({ width: 20 }) }, { get: (t, p) => (p in t ? t[p] : p === 'fillRect' ? (a, y, w, h) => track(y + h) : p === 'moveTo' || p === 'lineTo' ? (a, y) => track(y) : () => {}), set: () => true });
+    drawLanternBody(rec, cam, ln, { day: 1, gold: 0, night: 0, sunDir: 0.4 });
+    const [lx, kerb] = project(cam, ln.x, FAR_KERB.h, ln.z), [, road] = project(cam, ln.x, 0, ln.z);
+    assert.ok(low >= kerb - 0.5 && low <= road + 1.5, `${k}: the post's foot ${low.toFixed(1)} on the kerb (${kerb.toFixed(1)}–${road.toFixed(1)})`);
+    assert.ok(road < groundY(cam, 54) - 15, `${k}: its foot above the promenade's curb`);
+    // nothing on the promenade stands in front of the post's foot (no curb tree, no lamp right there)
+    for (const it of [...L.trees, ...L.lamps]) { const [x] = project(cam, it.x, 0, it.z), r = it.kind === 'tall' ? cam.F * 0.3 / it.z : cam.F * (it.w || 0.5) / 2 / it.z; assert.ok(Math.abs(x - lx) > r + 2, `${k}: a ${it.kind} at ${x.toFixed(0)} in front of the lantern's post (${lx.toFixed(0)})`); }
+  }
+});
+test("FP2 — THE CURB CRABAPPLE through the year (white-pink blossom → green → gold + red fruit → bare + fruit) and the framing maple's inside: deep warm colour, never brown-black; a sturdier trunk, a balanced crown", async () => {
+  const { treePlan } = await import('../js/core/harbor-trees.js');
+  const { L } = setup('402x874'), crab = L.trees.find(t => t.kind === 'crab'), big = L.trees.find(t => t.big);
+  const lum = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+  const sp = treePlan(crab, { season: 'spring', phase: 0.5, i: 1 });
+  const bl = sp.clusters.filter(c => c.blooms);
+  assert.ok(bl.length > sp.clusters.length * 0.7, 'in blossom');
+  assert.ok(bl.reduce((a, c) => a + lum(c.col), 0) / bl.length > 205, 'the blossom whiter (the owner: "fluffier / whiter")');
+  const su = treePlan(crab, { season: 'summer', phase: 0.5, i: 1 });
+  assert.ok(su.clusters.every(c => c.col[1] > c.col[0]), 'summer green');
+  const au = treePlan(crab, { season: 'autumn', phase: 0.5, i: 1 });
+  assert.ok(au.clusters.every(c => c.col[0] >= c.col[1] && c.col[1] > c.col[2] + 20) && au.fruit.length > 8, 'golden autumn + red fruit');
+  const wi = treePlan(crab, { season: 'winter', phase: 0.3, i: 1 });
+  assert.ok(wi.clusters.length === 0 && wi.fruit.length > 0, 'bare winter, a few apples left');
+  // the framing maple (its own mix: the blaze) — its inside (the back clusters) a deep orange-red / crimson: bright red, warm, saturated
+  assert.equal(big.v, 1);
+  const a = treePlan(big, { season: 'autumn', phase: 0.5, i: big.v }), backs = a.clusters.filter(c => c.back);
+  assert.ok(backs.length >= 8);
+  for (const c of backs) assert.ok(c.col[0] >= 150 && c.col[0] - c.col[2] >= 120 && c.col[1] < c.col[0] * 0.8, `an inside cluster ${c.col} — deep warm, never brown`);
+  const sm = treePlan(big, { season: 'summer', phase: 0.5, i: big.v });
+  for (const c of sm.clusters.filter(c => c.back)) assert.ok(c.col[1] > c.col[0] && c.col[1] > c.col[2], 'summer: a deeper green inside');
+  // the trunk sturdier than a curb maple's, the crown balanced either side of it
+  assert.ok(a.segs[0].w0 >= 0.5, `the trunk ${a.segs[0].w0}`);
+  const left = a.clusters.filter(c => c.u < 0).length, right = a.clusters.length - left;
+  assert.ok(Math.min(left, right) / Math.max(left, right) > 0.6, `balanced: ${left} / ${right}`);
+  assert.ok(a.clusters.length >= 40, `a full crown: ${a.clusters.length} clusters`);
+});
+
+// ---------------------------------------------------------------- FP2 — CRISP LIGHTS + THE POLE (the owner: "looks smoky"; the pole "still jittery")
+import { polePhase, poleAnchor, poleRate, poleStripe, poleColours, poleHalo, POLE_HALO, POLE_LIT, POLE_PAINT, SHOP_GLOW } from '../js/screens/harbor/speakeasy.js';
+import { LAMP_HALO } from '../js/screens/harbor/stage.js';
+import { rngFrom as fp2Rng } from '../js/core/rng.js';
+test('FP2 — THE POLE BY REAL TIME: the phase a pure function of the frame timestamp — the same at 60 / 30 / irregular frames, never snapped', () => {
+  for (const lit of [0, 1]) {
+    const rate = poleRate(lit), a0 = poleAnchor(null, 1.25, rate);
+    // three cadences over the same 4 s: 60 Hz, the 30 fps battery saver, an irregular phone (hitches, a long frame)
+    const r = fp2Rng(7), irregular = [1.25]; while (irregular[irregular.length - 1] < 5.25) irregular.push(irregular[irregular.length - 1] + (r() < 0.1 ? 0.05 + r() * 0.12 : 0.012 + r() * 0.03));
+    for (const times of [Array.from({ length: 241 }, (_, i) => 1.25 + i / 60), Array.from({ length: 121 }, (_, i) => 1.25 + i / 30), irregular]) {
+      let a = a0;
+      for (const t of times) { a = poleAnchor(a, t, rate); const want = (0.3 + (t - 1.25) * rate) % 1; assert.ok(Math.abs(polePhase(a, t) - want) < 1e-9, `lit ${lit} t ${t}: ${polePhase(a, t)} vs ${want}`); }
+    }
+    // the stripes' offset in device pixels (a 10 pt period, dpr 2 / 3): fractional — never rounded to a whole pixel
+    for (const dpr of [2, 3]) { const fr = Array.from({ length: 30 }, (_, i) => (polePhase(a0, 1.25 + i / 30) * 10 * dpr) % 1); assert.ok(fr.filter(f => f > 0.02 && f < 0.98).length > 20, `dpr ${dpr}: sub-pixel offsets ${fr.map(f => f.toFixed(2)).join(' ')}`); }
+  }
+  // re-anchoring (dusk's ramp, the raid) keeps the phase continuous; the raid (rate 0) holds it still
+  const a = poleAnchor(null, 0, poleRate(0)), b = poleAnchor(a, 3.7, poleRate(1));
+  assert.ok(Math.abs(polePhase(b, 3.7) - polePhase(a, 3.7)) < 1e-12 && b !== a && poleAnchor(b, 9, poleRate(1)) === b, 'continuous at a rate change; same rate = same anchor');
+  const still = poleAnchor(b, 5, 0); assert.equal(polePhase(still, 50), polePhase(still, 5), 'the raid: still');
+  assert.ok(poleRate(1) < poleRate(0) && poleRate(1) <= 0.2, `slow at night: ${poleRate(1)} periods a second (day ${poleRate(0)})`);
+});
+test('FP2 — THE POLE\'S STRIPES: box-filtered coverage (analytic antialiasing) — continuous in the slide (no step), periodic, never more than the glass', () => {
+  const band = 5.2, P = 2 * band;
+  for (const w of [0.3, 0.5, 1.2]) {
+    let prev = poleStripe(0, band, w);
+    for (let v = 0.01; v < 3 * P; v += 0.01) {
+      const c = poleStripe(v, band, w);
+      assert.ok(c[0] >= 0 && c[1] >= 0 && c[0] + c[1] <= 1 + 1e-9, `v ${v}: ${c}`);
+      // (a 0.01 pt slide changes a pixel by at most 0.01 / w: smooth, never a jump)
+      assert.ok(Math.abs(c[0] - prev[0]) <= 0.01 / w + 1e-9 && Math.abs(c[1] - prev[1]) <= 0.01 / w + 1e-9, `w ${w} v ${v.toFixed(2)}: ${prev} → ${c}`);
+      const q = poleStripe(v + P, band, w); assert.ok(Math.abs(q[0] - c[0]) < 1e-9 && Math.abs(q[1] - c[1]) < 1e-9, 'periodic: one period = two bands');
+      prev = c;
+    }
+  }
+  // each stripe ≈ 0.42 of a band (red, then blue a band later)
+  const n = 1040, cov = [0, 0]; for (let i = 0; i < n; i++) { const c = poleStripe(i * P / n, band, 0.4); cov[0] += c[0] / n; cov[1] += c[1] / n; }
+  assert.ok(Math.abs(cov[0] - 0.21) < 0.01 && Math.abs(cov[1] - 0.21) < 0.01, `stripe shares ${cov.map(v => v.toFixed(3))}`);
+});
+test('FP2 — THE POLE\'S COLOURS: LED-bright lit, the paint by day, NEON on a party night (on / off with the party\'s ramp), the beat a gentle lift', () => {
+  const lit = poleColours({ lit: 1 }), day = poleColours({ lum: 1 }), dusk = poleColours({ lum: 0.2 });
+  assert.deepEqual(lit.r, POLE_LIT.r); assert.deepEqual(day.b, POLE_PAINT.b);
+  assert.ok(lit.w[2] >= lit.w[0] && Math.min(...lit.w) > 230, `the lit white a cool LED white ${lit.w}`);
+  assert.ok(dusk.w[0] < day.w[0] * 0.4, 'unlit at dusk: the paint dims');
+  const pal = [[255, 63, 176], [63, 224, 255], [166, 91, 255], [255, 204, 90]];
+  const on = poleColours({ lit: 1, party: 1, pal }), half = poleColours({ lit: 1, party: 0.5, pal }), off = poleColours({ lit: 1, party: 0, pal });
+  assert.deepEqual(on.r, pal[0], 'red → magenta');
+  assert.ok(on.b[2] > 240 && on.b[0] < 70, `blue → electric blue ${on.b}`);
+  assert.ok(on.w[0] > 250 && on.w[2] < on.w[0] - 60, `white → gold ${on.w}`);
+  assert.deepEqual(off, lit, 'the party ramped out (after the 2 am wind-down): red / white / blue again');
+  for (const k of ['r', 'w', 'b']) for (let i = 0; i < 3; i++) assert.ok(Math.abs(half[k][i] - (on[k][i] + off[k][i]) / 2) < 1e-9, 'the ramp crossfades');
+  const pk = poleColours({ lit: 1, party: 1, pal, punch: 1 });
+  assert.ok(pk.b[0] > on.b[0] && pk.b[0] <= on.b[0] * 1.25 && pk.r[2] <= 255, 'the beat: a gentle lift (≤ 22 %)');
+  assert.deepEqual(poleColours({ lit: 1, punch: 1 }), lit, 'no party: no punch');
+});
+test('FP2 — CRISP LIGHTS, NEVER SMOKE: every halo tight + bounded (the pole, the shop lamp, the sconce, the promenade lamps)', () => {
+  const r = 2.34;   // (the pole's glass radius at 402: pt)
+  assert.ok(poleHalo(0, r) <= POLE_HALO.a + POLE_HALO.aLand + 1e-9 && poleHalo(0, r) > 0.4, `the halo at the glass ${poleHalo(0, r)}`);
+  for (let d = 0.05; d < 15; d += 0.05) assert.ok(poleHalo(d, r) <= poleHalo(d - 0.05, r) + 1e-12, 'falls off monotonically');
+  assert.equal(poleHalo(POLE_HALO.land * r, r), 0, 'gone at the landing light\'s reach');
+  assert.ok(POLE_HALO.land * r <= 11 && POLE_HALO.tight * r <= 5, `the pole's light: tight ${(POLE_HALO.tight * r).toFixed(1)} pt, on the brick ${(POLE_HALO.land * r).toFixed(1)} pt (FP's wash: ~28 pt)`);
+  assert.ok(poleHalo(3 * r, r) < 0.04, `a patch of brick ~7 pt from the glass gets little: ${poleHalo(3 * r, r).toFixed(3)}`);
+  // (wall units × G.K ≈ 13.8 pt at 402: the shop lamp's halo ≈ 4.7 pt — FP's cloud 13.8; the sconce's ≈ 5.8 — FP's wash 23.5)
+  assert.ok(SHOP_GLOW.lamp <= 0.4 && SHOP_GLOW.sconce <= 0.5 && SHOP_GLOW.landR <= 1.5, JSON.stringify(SHOP_GLOW));
+  assert.ok(LAMP_HALO.globe <= 2.5 && LAMP_HALO.tall <= 2.5 && LAMP_HALO.inner < LAMP_HALO.tall, `the lamps' halos ${JSON.stringify(LAMP_HALO)} globe radii (FP: 3.2–3.6)`);
+});
+
+// ---------------------------------------------------------------- FP2 — THE STREET UNDER THE DOCK (full-bleed) + THE MOTORCAR
+import { streetPlan, STREET, footZ, carAt, carVis, streetWet, roadPassAt as passAt, ROAD_PASS as PASS, PROM as PROM2 } from '../js/core/harbor-promenade.js';
+test('FP2 — THE STREET fills the band under the dock to the screen\'s foot on every phone; its lanes, rails, manhole + drain inside it', () => {
+  for (const [W, H, sb] of [[390, 844, 34], [402, 874, 34], [430, 932, 34], [393, 852, 34], [402, 874, 0]]) {
+    const cam = cameraFor(W, H, {}, { top: 62, bottom: sb }), L = harborLayout(cam), st = L.impliedRoad.street, k = `${W}x${H}/${sb}`;
+    const y = z => groundY(cam, z), C = STREET.car, top = z => cam.VPY + cam.F * (cam.CAMH - C.h) / z;
+    assert.ok(st && st === L.impliedRoad.street, `${k}: the plan on the layout`);
+    // full-bleed: the street paints down to (past) the screen's foot; the curb still lines up with the dock's top
+    assert.ok(y(st.foot) >= H - 0.5, `${k}: the street's foot ${y(st.foot).toFixed(1)} at the screen's foot ${H}`);
+    assert.ok(Math.abs(y(PROM2.edge) - cam.dock.y) < 4, `${k}: the curb ${y(PROM2.edge).toFixed(1)} at the dock's top ${cam.dock.y}`);
+    // the band's height is the dock's (+ the safe area): 96–120 pt on these phones, all of it street
+    assert.ok(H - cam.dock.y >= 90 && H - cam.dock.y <= 122, `${k}: the band ${H - cam.dock.y} pt`);
+    // the lanes: the far (westbound) car's roof under the dock's top (the dock covers it whole while it fades back); the near
+    // (eastbound) car's wheels above the screen's foot; the near car in front of the far one
+    const [far, near] = st.lanes;
+    assert.equal(far.dir, -1); assert.equal(near.dir, 1);
+    assert.ok(top(far.z) >= cam.dock.y - 0.01, `${k}: the far car's roof ${top(far.z).toFixed(1)} under the dock's top ${cam.dock.y}`);
+    assert.ok(y(near.z) <= H - 7.9 && y(far.z) < H, `${k}: the near car's wheels ${y(near.z).toFixed(1)} above the foot`);
+    assert.ok(st.two && near.z + C.w < far.z, `${k}: two lanes, the near car clear in front of the far one`);
+    assert.ok(far.z + C.w < st.gutter[0], `${k}: the far car clear of the gutter`);
+    // the track between the lanes, inside the band; the manhole between the curb and the far lane; the drain in the gutter's
+    // visible strip (the curb's 27 cm face hides the rest)
+    for (const r of st.rails) assert.ok(r > near.z && r < far.z && y(r) > cam.dock.y && y(r) < H, `${k}: a rail at z ${r.toFixed(2)} (y ${y(r).toFixed(0)})`);
+    assert.ok(Math.abs(st.rails[1] - st.rails[0] - STREET.gauge) < 1e-9, 'the gauge');
+    assert.ok(st.manhole.z > far.z + C.w && st.manhole.z < st.gutter[0] && Math.abs(project(cam, st.manhole.x, 0, st.manhole.z)[0] - W * STREET.manhole.f) < 1, `${k}: the manhole`);
+    const face = Math.max(1.2, cam.F * 0.32 / PROM2.edge), faceZ = cam.F * cam.CAMH / (y(PROM2.edge) + face - cam.VPY);
+    assert.ok(y(st.drain.z0) - (y(PROM2.edge) + face) > 1.5 && st.drain.z1 <= faceZ + 0.05, `${k}: the drain's grate in the gutter's visible strip`);
+  }
+  // a wide screen: the street fills too (both lanes: the dock is a short bar in the middle there)
+  const wd = cameraFor(1440, 900, {}, {}), sw = streetPlan(wd);
+  assert.ok(groundY(wd, sw.foot) >= 899.5 && footZ(wd) > 0);
+});
+test('FP2 — THE MOTORCAR: the implied road\'s pass (the same schedule + sound), nearest when the take peaks, by direction in its lane; in proportion', () => {
+  const cam = cameraFor(402, 874, {}, { top: 62, bottom: 34 }), st = streetPlan(cam), C = STREET.car;
+  let seen = 0;
+  for (let ms = Date.UTC(2026, 9, 22, 22), end = ms + 40 * 60e3; ms < end; ms += 1000) {
+    const pass = passAt(ms, () => 22);
+    if (!pass) continue;
+    const center = pass.t0 + PASS.peak, car = carAt(pass, center, ms, cam, st), later = carAt(pass, center, ms + 100, cam, st);
+    assert.equal(car.z, (pass.dir < 0 ? st.lanes[0] : st.lanes[1]).z, 'its lane by direction');
+    assert.ok(Math.sign(later.x - car.x) === pass.dir, 'it rolls the way the pass goes');
+    if (car.on) seen++;
+  }
+  assert.ok(seen > 10, `cars on screen over 40 min of a 10 pm (${seen} s)`);
+  // nearest (x 0, env 1) at the take's peak; on screen ~3–6 s round it (the sound's loudest); the old light's speed
+  const pass = passAt(0, () => 12, { force: true }), center = pass.t0 + PASS.peak;
+  const at0 = carAt(pass, center, center, cam, st);
+  assert.ok(Math.abs(at0.x) < 1e-9 && at0.env === 1 && at0.on);
+  let onS = 0; for (let t = -10e3; t <= 10e3; t += 50) if (carAt(pass, center, center + t, cam, st).on) onS += 0.05;
+  assert.ok(onS > 3 && onS < 6.5, `on screen ${onS.toFixed(2)} s`);
+  assert.ok(Math.abs(at0.speed - (cam.hw(at0.z) + 14) * 2 / 9) < 1e-9);
+  // in proportion at 402: a person on the promenade (z 44) ~29 pt; the car nearer — ~1.4–1.8× taller, ~2.4× as long as tall
+  const person = SIZE.person.pt * (SIZE.person.z / 44) * (cam.F / 600);
+  for (const l of st.lanes) {
+    const h = cam.F * C.h / l.z, len = cam.F * C.len / l.z;
+    assert.ok(h > person * 1.25 && h < person * 1.9, `lane ${l.z.toFixed(1)}: the car ${h.toFixed(1)} pt vs a person ${person.toFixed(1)}`);
+    assert.ok(len / h > 2.2 && len / h < 2.6 && len < 130, `lane ${l.z.toFixed(1)}: ${len.toFixed(0)} pt long`);
+  }
+});
+test('FP2 — the car only while the dock rests (carVis); THE WET HOOK (streetWet: 0 today, &force=wet-street 1, Part 9 hands it the rain)', () => {
+  let v = 0;
+  for (let i = 0; i < 300; i++) v = carVis(v, false, 16.7);
+  assert.equal(v, 0, 'the dock shown: never');
+  for (let t = 0; t < 900; t += 16.7) v = carVis(v, true, 16.7);
+  assert.ok(v > 0.4 && v < 0.6, `half-way through the dock's 1.8 s fade-out: ${v.toFixed(2)}`);
+  for (let t = 0; t < 1000; t += 16.7) v = carVis(v, true, 16.7);
+  assert.equal(v, 1);
+  let ms = 0; while (v > 0) { v = carVis(v, false, 16.7); ms += 16.7; }
+  assert.ok(ms <= 260, `gone ${ms.toFixed(0)} ms after the dock comes back (its own fade-in: 450)`);
+  assert.equal(streetWet(), 0); assert.equal(streetWet({ force: true }), 1); assert.equal(streetWet({ wet: 0.4 }), 0.4); assert.equal(streetWet({ wet: 3 }), 1); assert.equal(streetWet({ wet: 'x' }), 0);
+});
+
+// ------------------------------------------------------------------ FP2 — NEON BY DEPTH (the owner: overlapping buildings shared one
+// pink outline — the BLUFF / DOUBLE AGENT towers + the buildings in front read as one blob)
+import { DEPTH_HUE, neonClash, neonHue, depthContacts, depthClashes, depthLinks, partyPieces, lineKey } from '../js/core/harbor-neon.js';
+import { PARTY_RING, partyPlan, planColours, ringBase } from '../js/core/harbor-show.js';
+
+test('FP2 — NEON BY DEPTH: the clash rule (a clear hue distance; two pale tubes always clash, a pale one beside a colour never)', () => {
+  assert.equal(DEPTH_HUE, 60);
+  assert.ok(neonClash(roleColour('h0'), roleColour('m0')), 'pink + magenta read as one');
+  assert.ok(neonClash(roleColour('b1'), roleColour('t0')), 'cyan + teal read as one');
+  assert.ok(neonClash(roleColour('w0'), roleColour('b2')), 'white + ice read as one');
+  assert.ok(!neonClash(roleColour('h0'), roleColour('a3')) && !neonClash(roleColour('b1'), roleColour('m0')) && !neonClash(roleColour('w0'), roleColour('h0')), 'pink / gold, cyan / magenta, white / pink stand apart');
+  assert.ok(Math.abs(neonHue([255, 0, 0]).h) < 1e-9 && Math.abs(neonHue([0, 0, 255]).h - 240) < 1e-9);
+  // THE PARTY RING: two or three places apart round it is always a clear hue distance — one place can clash (pink → red)
+  for (let j = 0; j < 6; j++) for (const d of [2, 3, 4]) assert.ok(!neonClash(PARTY_PAL[PARTY_RING[j]], PARTY_PAL[PARTY_RING[(j + d) % 6]]), `ring ${j} + ${d}`);
+  assert.ok([0, 1, 2, 3, 4, 5].some(j => neonClash(PARTY_PAL[PARTY_RING[j]], PARTY_PAL[PARTY_RING[(j + 1) % 6]])), 'one place apart can clash');
+  for (let r = 1; r < 40; r++) { const d = ((ringBase(r) - ringBase(r - 1)) % 6 + 6) % 6; assert.ok(d >= 2 && d <= 4, `ringBase ${r}`); }
+});
+
+test('FP2 — NEON BY DEPTH at 390 / 402 / 430: no building in front shares its outline colour with the one behind (the city palette, every party scene, tier 0\'s still), near tubes a touch bolder', () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { L } = setup(k), O = outlines(L), C = O.contacts;
+    // the meetings: tubes within reach + each building with the one showing right above its roof (the owner's case: the near band +
+    // PAR in front of the word towers)
+    assert.ok(C.length >= 30 && C.some(c => c.over) && C.some(c => !c.over), `${k}: ${C.length} meetings`);
+    for (const w of ['wordA', 'wordB']) assert.ok(C.some(c => lineKey(O[c.b], c.bl) === w && O[c.f].z < O[c.b].z), `${k}: something in front of ${w}`);
+    // the city's palette: no clash anywhere (a band building re-paired, the towers' roles designed)
+    const bad = depthClashes(C, 'city').map(c => `${lineKey(O[c.f], c.fl)} ${c.fr} / ${lineKey(O[c.b], c.bl)} ${c.br}`);
+    assert.deepEqual(bad, [], `${k}: city clashes`);
+    // the party: every building's colours from the plan, in every scene — the links never clash, neighbours never share a main,
+    // the six towers six colours (never white), all six colours on the skyline
+    const pieces = partyPieces(L, O), links = depthLinks(O), P = partyPlan(pieces, links);
+    assert.ok(P.solved, `${k}: the party plan solved`);
+    const col = (key, slot, n) => PARTY_PAL[planColours(P.get(key), n)[slot]];
+    const seq = [...P.entries()].sort((a, b) => a[1].rank - b[1].rank);
+    const towers = pieces.filter(p => p.tower).map(p => p.key);
+    assert.equal(towers.length, 6, `${k}: the six towers`);
+    for (let n = 0; n < 12; n++) {
+      for (const l of links) assert.ok(!neonClash(col(l.f, l.fs, n), col(l.b, l.bs, n)), `${k} scene ${n}: ${l.f}(${l.fs}) / ${l.b}(${l.bs})`);
+      for (let r = 1; r < seq.length; r++) assert.notEqual(planColours(seq[r][1], n)[0], planColours(seq[r - 1][1], n)[0], `${k} scene ${n}: neighbours ${seq[r - 1][0]} + ${seq[r][0]}`);
+      const tc = towers.map(t => planColours(P.get(t), n)[0]);
+      assert.equal(new Set(tc).size, 6, `${k} scene ${n}: the towers' colours ${tc}`); assert.ok(!tc.includes(5), 'no white tower');
+      assert.ok(new Set(seq.map(([, e]) => planColours(e, n)[0]).filter(c => c !== 5)).size === 6, `${k} scene ${n}: six colours`);
+    }
+    // (an all-white building: never a tower; the calm / white ones first, at most two others — a knot of buildings all meeting each
+    // other that six colours can't untie)
+    const allW = pieces.filter(p => P.get(p.key).off === 6);
+    assert.ok(allW.every(p => !p.tower) && allW.filter(p => !p.pale).length <= 2, `${k}: all white ${allW.map(p => p.key + (p.pale ? '' : '!'))}`);
+    // near tubes a touch bolder: the one in front is never finer or dimmer than the one behind
+    for (const c of C) { const f = depthStrength(O[c.f]), b = depthStrength(O[c.b]); assert.ok(f.w >= b.w - 1e-9 && f.a >= b.a - 1e-9, `${k}: ${O[c.f].id} ${f.w.toFixed(2)} / ${O[c.b].id} ${b.w.toFixed(2)}`); }
+  }
+  // within a step: the front a touch bolder (+6 %), the back a touch finer (−6 %); the softness the step's (the far ones stay crisp)
+  const s0 = depthStrength({ z: 228 }), s1 = depthStrength({ z: 251 }), m0 = depthStrength({ z: 300 }), m1 = depthStrength({ z: 379 });
+  assert.ok(s0.w > s1.w && s1.w > DEPTH[0].w * 0.93 && s0.w < DEPTH[0].w * 1.07 && s0.soft === s1.soft && m0.w > m1.w && m0.soft === m1.soft);
+  assert.ok(depthStrength({ z: 251 }).w > depthStrength({ z: 253 }).w, 'the steps still step');
 });

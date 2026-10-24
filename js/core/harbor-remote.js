@@ -127,7 +127,8 @@ export const EVENTS = [
   { id: 'season-autumn', label: 'AUTUMN', cat: 'promenade', group: 'SEASON', hint: 'the maples red / orange / gold, leaves falling, mums' },
   { id: 'season-winter', label: 'WINTER', cat: 'promenade', group: 'SEASON', hint: 'bare branches, evergreen boughs (snow comes with Part 9)' },
   { id: 'no-implied-road', label: 'IMPLIED ROAD OFF', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the curb + the passing cars’ light gone — compare' },
-  { id: 'road-pass', label: 'A CAR PASSING', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'a car every ~13 s: headlights at night, a shadow by day, its sound' },
+  { id: 'road-pass', label: 'A CAR PASSING', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'a car every ~13 s: headlights at night, a shadow by day, its sound — seen on the street while the dock rests' },
+  { id: 'wet-street', label: 'WET STREET', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the street under the dock after rain: puddles, the lamps’ reflections (Part 9’s hook)' },
   { id: 'strings-party', label: 'STRING LIGHTS · PARTY', cat: 'speakeasy', group: 'SPEAKEASY', night: true, hint: 'the speakeasy roof’s string lights in party mode' },
   // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the
   // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set

@@ -13,6 +13,7 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 import { person, rgb, shade, mix } from './shapes.js';
 import { drawTree, treeShadow } from './trees.js';
 import { drawBench, drawCart, drawPlanter, drawMedallion, propShadow } from './props.js';
+import { paintSett, streetSteps, streetOver } from './street.js';
 
 const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.gold || 0) + n[i] * (T.night || 0));
 const cl = v => (v < 0 ? 0 : v > 255 ? 255 : v);
@@ -24,21 +25,26 @@ const mulc = (c, m) => [c[0] * m, c[1] * m, c[2] * m];
 export const pieceCtx = L => ({ season: L.season || 'autumn', phase: L.seasonPhase ?? 0.5, lights: L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), lampK: L.lampK || 0, snow: L.snow || 0, wet: L.wet || 0 });
 
 // ------------------------------------------------------------------ THE GROUND (baked into 'stage')
-// the granite setts (warm grey by day, rosy at golden hour, a deep violet-grey at night), the joints (sand + grime), the asphalt
+// the granite setts (warm grey by day, rosy at golden hour, a deep violet-grey at night), the joints (sand + grime); the street
+// under the dock: street.js (FP2)
 const SETT = { d: [154, 148, 140], g: [176, 130, 112], n: [64, 59, 86] };
-const JOINT = { d: [112, 105, 97], g: [120, 86, 78], n: [30, 28, 46] };
-const ASPH = { d: [72, 72, 80], g: [68, 52, 62], n: [12, 12, 22] };
+// (FP2 — THE COBBLES AT NIGHT, the owner's "piano keys": the joints a mid-tone GROUT of packed sand at night — was a near-black
+// [30, 28, 46] — lit by the lamps a little less than the stones' tops: paint below)
+const JOINT = { d: [112, 105, 97], g: [120, 86, 78], n: [54, 50, 66] };
 // the lamps' light per unit of T.lamps: the tall street lamps a clean cool white, the globes warm, the speakeasy's spill amber
 // FP — THE NIGHT LIGHT PLAN (the re-layout): cool pools under the two tall curb lamps (the back row, the road's edge, the bench), warm
 // pools from the two corner globes across the front of the open floor, the speakeasy's warm spill in front of it, the cart's
 // string-light glow round the cart, the medallion where they overlap; dim (never black) between, no haze
-const LIGHT = { tall: [150, 162, 184], globe: [236, 166, 88], spill: [196, 120, 54], cart: [226, 150, 70] };
-const REACH = { tall: 10.5, globe: 7.6, spill: 4.2, cart: 6 };
+// (FP2 — CRISP LIGHTS: the barber pole's cool LED light LANDS on the cobbles at its foot — a small cool pool, baked like the rest)
+const LIGHT = { tall: [150, 162, 184], globe: [236, 166, 88], spill: [196, 120, 54], cart: [226, 150, 70], pole: [140, 158, 200] };
+const REACH = { tall: 10.5, globe: 7.6, spill: 4.2, cart: 6, pole: 2.6 };
 
-/** the speakeasy's warm spill on the cobbles: its side door's sconce, the shop's one dim lamp through the big window */
+/** the speakeasy's warm spill on the cobbles: its side door's sconce, the shop's one dim lamp through the big window (+ FP2: the
+ *  barber pole's small cool pool) */
 function speakSpill(L) {
   const s = L.speakeasy, z = s.z0 - 1.3;
-  return [{ x: s.x0 + (s.door.u0 + s.door.u1) / 2, z, kind: 'spill', k: 0.95 }, { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2, z, kind: 'spill', k: 0.5 }];
+  return [{ x: s.x0 + (s.door.u0 + s.door.u1) / 2, z, kind: 'spill', k: 0.95 }, { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2, z, kind: 'spill', k: 0.5 },
+    ...(s.shop && s.shop.pole ? [{ x: s.x0 + s.shop.pole.u, z: s.z0 - 0.8, kind: 'pole', k: 0.6 }] : [])];
 }
 const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: 1 })), ...speakSpill(L), ...(L.cart ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];
 /** the light on the ground at (x, z) at night — every lamp's pool (overlapping: every path lit, the shadows between dim) + the
@@ -69,9 +75,10 @@ export function sunShadow(T, h) {
 }
 
 /**
- * THE PAVING (baked, in small steps): the implied road's asphalt + its granite curb, the front walk + the plaza's SETTS (rounded
- * granite, exaggerated ~3× so they read on a phone like the bricks: stone by stone its own shade, the far half — the top facing the
- * sky — lighter, a bright lip by day; at night each stone takes the light where it lies: lit tops, dark joints = the POOLS), the
+ * THE PAVING (baked, in small steps): THE STREET under the dock (FP2: street.js) + the promenade's granite front curb, the front walk +
+ * the plaza's SETTS (rounded granite, exaggerated ~3× so they read on a phone like the bricks: stone by stone its own shade, the far
+ * half — the top facing the sky — lighter, a bright lip by day; at night each stone takes the light where it lies — the POOLS — and
+ * so does the GROUT round it, a little less: FP2, soft rounded stones on a mid-tone sand, never black "piano key" gaps), the
  * curb band's big pavers, then the shadows by day (the lamps, the trees, the props) and the medallion inlaid in the plaza.
  * L.impliedOn === false (&force=no-implied-road): the setts run down to the screen's foot, no curb, no road.
  */
@@ -83,17 +90,11 @@ export function promenadeSteps(L, T) {
   const hw = z => cam.hw(z) * 1.04 + 1;
   const P = (x, z) => project(cam, x, 0, z);
   const steps = [];
-  // 1. the base: the joints' colour under everything, the implied road's asphalt (its grain + two worn wheel tracks), the lamps'
-  //    light low in the joints
+  // 1. the base: the joints' colour under everything, the lamps' light low in the joints (FP2: the implied road's asphalt became THE
+  //    STREET — street.js, its steps right after this one)
   steps.push(x => {
     const y0 = groundY(cam, L.prom.z1);
     x.fillStyle = rgb(joint); x.fillRect(0, y0, cam.W, cam.H - y0);
-    if (on) {
-      const ya = groundY(cam, e.z), asph = tri(T, ASPH.d, ASPH.g, ASPH.n), r = rngFrom(811);
-      x.fillStyle = rgb(asph); x.fillRect(0, ya, cam.W, cam.H - ya);
-      for (let i = 0; i < 260; i++) { x.fillStyle = rgb(shade(asph, r() < 0.5 ? 0.08 : -0.1), 0.6); x.fillRect(r() * cam.W, ya + r() * (cam.H - ya), 1 + r() * 2, 0.6); }
-      for (const z of [31.5, 28.2]) { const yy = groundY(cam, z); x.fillStyle = rgb(shade(asph, 0.07), 0.5); x.fillRect(0, yy - 1.2, cam.W, 2.4); }
-    }
     if (lightAt) {
       x.globalCompositeOperation = 'lighter';
       for (const s of lightSources(L)) {
@@ -105,34 +106,42 @@ export function promenadeSteps(L, T) {
       x.globalCompositeOperation = 'source-over';
     }
   });
-  // 2. THE SETTS
-  const DZ = 0.72, DX = 0.95, GAP = 0.085;
+  // THE STREET under the dock (FP2): the gutter, the setts, the track, the manhole, the drain, the wet hook — under the front curb
+  if (on) steps.push(...streetSteps(L, T, lightAt));
+  // 2. THE SETTS (FP2: each course's GROUT first — the joints' sand, lit where it lies at ~0.7 of a stone's light — then the stones,
+  //    rounded + soft at night: street.js#paintSett, the painter the street shares)
+  const DZ = 0.72, DX = 0.95, GAP = 0.085, night = T.night || 0;
   const rows = [];
   for (let z = zFront, i = 0; z < zBack - 0.05; z += DZ, i++) rows.push([z, Math.min(zBack, z + DZ), i]);
   const lip = tri(T, [255, 248, 232], [255, 206, 160], [70, 66, 96]);
   const paint = (x, z0, z1, ri) => {
-    const r = rngFrom(4049 + ri * 131), off = (ri % 2) * DX * 0.5, H = hw(z0);
+    const r = rngFrom(4049 + ri * 131), off = (ri % 2) * DX * 0.5, H = hw(z0), zc = (z0 + z1) / 2, stones = [];
     for (let wx = -H - off; wx < H; wx += DX) {
-      const w = DX * (0.84 + r() * 0.28), x0 = wx + GAP / 2, x1 = wx + w - GAP / 2, za = z0 + GAP / 2, zb = z1 - GAP / 2;
-      const [ax, ay] = P(x0, zb), [bx, by] = P(x1, za);              // ay: the stone's far edge (higher on screen), by: its near edge
-      const ww = bx - ax, hh = by - ay, v = 0.84 + r() * 0.28, tint = r();
+      const w = DX * (0.84 + r() * 0.28);
+      stones.push({ wx, x0: wx + GAP / 2, x1: wx + w - GAP / 2, v: 0.84 + r() * 0.28, tint: r(), a: r(), b: r() });
+    }
+    // the grout: this course's band, cell by cell, lit where it lies (the joints catch the lamps too — a little less than the tops)
+    for (const st of stones) {
+      const [gx, gy] = P(st.wx, z1), [hx, hy] = P(st.wx + DX, z0);
+      if (hx < -2 || gx > cam.W + 2) continue;
+      const lt = lightAt ? lightAt(st.wx + DX / 2, zc) : null;
+      x.fillStyle = rgb(lt ? addc(joint, lt, 0.42) : joint); x.fillRect(gx, gy, hx - gx + 0.6, hy - gy + 0.4);
+    }
+    const za = z0 + GAP / 2, zb = z1 - GAP / 2;
+    for (const st of stones) {
+      const [ax, ay] = P(st.x0, zb), [bx, by] = P(st.x1, za);              // ay: the stone's far edge (higher on screen), by: its near edge
+      const ww = bx - ax, hh = by - ay;
       if (ww < 0.6 || hh < 0.4 || bx < -2 || ax > cam.W + 2) continue;
-      let c = mulc(sett, v);
-      if (tint < 0.2) c = addc(c, [10, 4, -4], 0.6 + 0.4 * day); else if (tint < 0.32) c = addc(c, [-6, -2, 7], 0.6 + 0.4 * day);
-      const lt = lightAt ? lightAt((x0 + x1) / 2, (za + zb) / 2) : null;
+      let c = mulc(sett, st.v);
+      if (st.tint < 0.2) c = addc(c, [10, 4, -4], 0.6 + 0.4 * day); else if (st.tint < 0.32) c = addc(c, [-6, -2, 7], 0.6 + 0.4 * day);
+      const lt = lightAt ? lightAt((st.x0 + st.x1) / 2, zc) : null;
       if (lt) c = addc(c, lt, 0.58);
-      const rad = Math.min(hh * 0.34, ww * 0.2);
-      x.fillStyle = rgb(c); x.beginPath(); x.roundRect(ax, ay, ww, hh, rad); x.fill();
-      let top = shade(c, 0.1 + 0.06 * day);
-      if (lt) top = addc(top, lt, 0.5);
-      x.fillStyle = rgb(top); x.beginPath(); x.roundRect(ax + ww * 0.08, ay, ww * 0.84, hh * 0.48, rad * 0.8); x.fill();
-      const la = day * 0.5 + (lt ? Math.min(0.85, (lt[0] + lt[1] + lt[2]) / 240) : 0);
-      if (la > 0.03 && hh > 1.1) { x.fillStyle = rgb(lt && day < 0.3 ? addc(lip, lt, 0.8) : lip, Math.min(0.8, la) * (0.55 + r() * 0.45)); x.fillRect(ax + ww * 0.24, ay + hh * 0.12, ww * 0.5, Math.max(0.35, hh * 0.13)); }
-      if (r() < 0.08) { x.fillStyle = 'rgba(0,0,0,0.12)'; x.beginPath(); x.roundRect(ax, ay, ww, hh, rad); x.fill(); }
-      x.fillStyle = 'rgba(0,0,0,0.07)'; x.fillRect(ax + rad * 0.5, by - Math.max(0.3, hh * 0.12), ww - rad, Math.max(0.3, hh * 0.12));
+      paintSett(x, ax, ay, ww, hh, c, { lt, day, night, lip, grout: joint, a: st.a, b: st.b });
     }
   };
-  for (let i = 0; i < rows.length; i += 4) { const part = rows.slice(i, i + 4); steps.push(x => { for (const [z0, z1, ri] of part) paint(x, z0, z1, ri); }); }
+  // (FP2: the soft night stones cost ~2× a day stone — two rows a step at night, so no bake step grows past a tree's)
+  const per = night > 0.05 ? 2 : 4;
+  for (let i = 0; i < rows.length; i += per) { const part = rows.slice(i, i + per); steps.push(x => { for (const [z0, z1, ri] of part) paint(x, z0, z1, ri); }); }
   // 3. THE CURB BAND (z 51.2 → the road's kerb): big granite pavers in a running bond, each its own shade, a lit far edge
   steps.push(x => {
     const r = rngFrom(977), pv = shade(sett, 0.04);
@@ -161,6 +170,7 @@ export function promenadeSteps(L, T) {
       x.fillStyle = rgb(shade(c, -0.32)); x.fillRect(ax, yb, bx - ax, face);
     }
   });
+  if (on) { const ov = streetOver(L, T); if (ov) steps.push(ov); }          // (FP2: the storm drain's inlet in the curb's face)
   // 5. the shadows by day (along the real sun), then the medallion inlaid in the paving
   steps.push(x => {
     const cx = pieceCtx(L);
@@ -289,6 +299,8 @@ export function drawPeople(c, L, T) {
  * heart, the warm (globe) / cool-white (street lamp) glass — and a small soft halo round it (never a screen-wide wash). k: the
  * lamps' ramp now. The sprites are cached per kind + size.
  */
+/** FP2: the lamps' halos in globe radii (tight: the outer glow, the inner bloom) */
+export const LAMP_HALO = Object.freeze({ globe: 2.4, tall: 2.2, inner: 1.45 });
 const litCache = new Map();
 function litGlass(kind, rw, rh, dpr) {
   const key = `${kind}|${Math.round(rw * 4)}|${Math.round(rh * 4)}|${dpr}`;
@@ -316,9 +328,10 @@ export function drawLampLight(c, L, k, glow, cool = glow, dpr = 2) {
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, k * 1.1);
       c.drawImage(litGlass(l.kind, h.rw, h.rh, dpr), h.x - h.rw - 0.5, h.y - h.rh - 0.5, h.rw * 2 + 1, h.rh * 2 + 1);
       c.globalCompositeOperation = 'lighter';
-      const r = Math.max(h.rw, h.rh) * (tall ? 3.2 : 3.6);
-      c.globalAlpha = (tall ? 0.42 : 0.5) * k; c.drawImage(tall ? cool : glow, h.x - r, h.y - r, r * 2, r * 2);
-      const r2 = Math.max(h.rw, h.rh) * 1.7; c.globalAlpha = 0.55 * k; c.drawImage(tall ? cool : glow, h.x - r2, h.y - r2, r2 * 2, r2 * 2);
+      // (FP2 — CRISP LIGHTS: a TIGHT halo — LAMP_HALO globe radii, was 3.2–3.6 — the light itself lands on the cobbles, baked)
+      const r = Math.max(h.rw, h.rh) * (tall ? LAMP_HALO.tall : LAMP_HALO.globe);
+      c.globalAlpha = (tall ? 0.44 : 0.52) * k; c.drawImage(tall ? cool : glow, h.x - r, h.y - r, r * 2, r * 2);
+      const r2 = Math.max(h.rw, h.rh) * LAMP_HALO.inner; c.globalAlpha = 0.6 * k; c.drawImage(tall ? cool : glow, h.x - r2, h.y - r2, r2 * 2, r2 * 2);
     }
   }
   c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';

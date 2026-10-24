@@ -17,6 +17,12 @@ export function roadSteps(L, T) {
     const [, yr] = project(cam, 0, rail.y, rail.z), sr = cam.F / rail.z;
     x.fillStyle = rgb(T.rail); x.fillRect(0, yr, cam.W, Math.max(1.2, sr * 0.1));
     for (let sx = 0; sx < cam.W; sx += 1.1 * sr) x.fillRect(sx, yr, 0.7, yRail - yr);
+    // FP2 — THE FAR KERB under the railing (granite, FAR_KERB high): the WALK / WAIT lantern's post stands on it
+    { const zk = r.z1 - FAR_KERB.d, [, yk] = project(cam, 0, FAR_KERB.h, zk), [, yf] = project(cam, 0, 0, zk), [, yt] = project(cam, 0, FAR_KERB.h, r.z1);
+      const kb = mix(T.road, T.lane, 0.32);
+      x.fillStyle = rgb(shade(kb, 0.1)); x.fillRect(0, yt, cam.W, yk - yt + 0.2);
+      x.fillStyle = rgb(shade(kb, -0.22)); x.fillRect(0, yk, cam.W, Math.max(0.8, yf - yk));
+      x.fillStyle = rgb(shade(kb, -0.4), 0.6); for (let sx = (cam.W / 2) % 19; sx < cam.W; sx += 19) x.fillRect(sx, yt, 0.5, yf - yt); }
     // THE CROSSWALK (8a) between the two stop lights: wide white bars across the road, worn
     if (L.crosswalk) {
       const cw = L.crosswalk, n = 9;
@@ -147,6 +153,8 @@ export function drawSignalLamps(c, L, st, o) {
 // letters are cut in coloured glass (WAIT a warm red-orange, WALK a pale green-white): unlit by day they read faintly in their glass;
 // the lit pane glows (drawLantern, live). In step with the stop lights (signalAt): WAIT steady while the road is green, WALK steady on
 // red, then WAIT BLINKING before the road turns green again.
+/** FP2: the far kerb along the railing (world units: its height + its depth from the railing back toward us) */
+export const FAR_KERB = Object.freeze({ h: 0.18, d: 0.9 });
 export const WORDS = [{ word: 'WAIT', col: [255, 118, 52], dim: [84, 40, 34] }, { word: 'WALK', col: [176, 255, 212], dim: [40, 70, 62] }];
 function word(x, p, text, col, a = 1) {
   const px = p.h * 0.74;
@@ -156,12 +164,18 @@ function word(x, p, text, col, a = 1) {
 }
 /** the lantern's post, box, cap + its unlit panes (baked into the road, behind the traffic); ln.box = its panes on screen */
 export function drawLanternBody(x, cam, ln, T) {
-  const M = ironLook(T), s = cam.F / ln.z, [cx, gy] = project(cam, ln.x, 0, ln.z), Y = v => gy - v * s;
+  const M = ironLook(T), s = cam.F / ln.z, [cx, gy] = project(cam, ln.x, FAR_KERB.h, ln.z), Y = v => gy - v * s;   // (FP2: on the far kerb's top)
   const sd = (T.sunDir == null ? 0.6 : T.sunDir) >= 0 ? 1 : -1, { seg, band } = post(x, cx, Y, s, sd, M);
-  seg(0, 0.24, 0.6, 0.6, M.iron, M.ironLit); seg(0.24, 0.38, 0.46, 0.3, M.iron, M.ironLit);
-  seg(0.38, ln.h - 0.2, 0.22, 0.16, M.iron, M.ironLit, 0.22);
-  band(0.48, 0.3, 0.08, M.brass, M.brassLit); band(ln.h - 0.36, 0.24, 0.08, M.brass, M.brassLit);
-  seg(ln.h - 0.2, ln.h, 0.16, 0.5, M.iron, M.ironLit);                    // (the cup under the box)
+  // FP2 — A PROPER CAST-IRON POST standing on the far kerb (it looked like it floated while the parked bus hid its foot): a granite
+  // footing stone on the kerb, a stepped Deco plinth, a fluted shaft tapering up (two brass collars), a flared cup under the box
+  const stone = tri(T, [170, 164, 152], [196, 150, 128], [52, 50, 70]);
+  x.fillStyle = rgb(shade(stone, -0.3)); x.fillRect(cx - 0.5 * s, Y(0.12), s, 0.12 * s + Math.max(0.6, 0.05 * s));    // (the footing's face)
+  x.fillStyle = rgb(stone); x.fillRect(cx - 0.5 * s, Y(0.12) - Math.max(0.6, 0.06 * s), s, Math.max(0.6, 0.06 * s));    // (its lit top)
+  seg(0.12, 0.36, 0.78, 0.74, M.iron, M.ironLit); band(0.36, 0.62, 0.08, M.iron, M.ironLit); seg(0.44, 0.62, 0.5, 0.32, M.iron, M.ironLit);
+  seg(0.62, ln.h - 0.2, 0.3, 0.2, M.iron, M.ironLit, 0.22);
+  x.fillStyle = rgb(M.ironSh, 0.8); x.fillRect(cx - Math.max(0.3, 0.025 * s), Y(ln.h - 0.3), Math.max(0.5, 0.045 * s), (ln.h - 0.98) * s);   // (a flute)
+  band(0.68, 0.36, 0.09, M.brass, M.brassLit); band(ln.h - 0.38, 0.28, 0.09, M.brass, M.brassLit);
+  seg(ln.h - 0.2, ln.h, 0.2, 0.52, M.iron, M.ironLit);                    // (the cup under the box)
   // the box
   const w = ln.w * s, bh = ln.bh * s, bx = cx - w / 2, by = Y(ln.h + ln.bh);
   x.fillStyle = rgb(M.iron); x.beginPath(); x.roundRect(bx, by, w, bh, Math.max(0.5, 0.08 * s)); x.fill();
@@ -207,9 +221,15 @@ export function drawLantern(c, L, st, o) {
   c.globalAlpha = 1;
 }
 
-/** the traffic: the bus (~110 pt) and the cars (~55 pt), far lane first. density (fs.density.road): a heavy event elsewhere
- *  thins the road to that share of its vehicles (the bus stays) */
+/** FP2 — THE PARKED BUS IS GONE until 8b brings moving vehicles (the owner: frozen behind the stop lights it looked stuck and hid the
+ *  crossing + the WALK / WAIT lantern) — and the parked placeholder cars with it (behind the speakeasy + the framing maple, but in
+ *  winter the sedan showed through the bare crown, stopped in the road). L.bus + L.cars stay in the layout (the road lane's height,
+ *  8b's traffic); true draws them again. */
+export const PARKED_TRAFFIC = false;
+/** the traffic: the bus (~110 pt) and the cars (~55 pt), far lane first — off while PARKED_TRAFFIC is false. density
+ *  (fs.density.road): a heavy event elsewhere thins the road to that share of its vehicles (the bus stays) */
 export function drawTraffic(c, L, T, density = 1) {
+  if (!PARKED_TRAFFIC) return;
   const cam = L.cam, night = T.night > 0.5;
   const cars = density >= 1 ? L.cars : L.cars.slice(0, Math.floor(L.cars.length * density));
   const vs = [{ ...L.bus, bus: true }, ...cars].sort((a, b) => b.z - a.z);

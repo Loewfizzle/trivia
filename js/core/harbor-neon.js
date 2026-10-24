@@ -62,9 +62,11 @@ const ROLES = {
   sunburst: ['h0', 'a0'], needle: ['h1', 'h0'], empire: ['b2', 'b0'],
   wordA: ['b1', 'b1'], wordB: ['b1', 'b2'], wordV: ['b0', 'b2'],
   // (NEON PASS 3: the middle tier in contrasting pairs — teal / violet / magenta / gold — so the midsection reads as lit)
-  'm-edge': ['a0', 'm0'], 'm-dome': ['b1', 'a3'], 'm-step': ['t0', 'h0'], 'm-twin': ['h1', 'b1'], 'm-right': ['m0', 'b1'],
+  // (FP2 — NEON BY DEPTH: m-step's ledges violet, not the sunburst's pink in front of them; m-right's accent gold, not word tower B's
+  // cyan in front of it; the HOTEL's trims white — its red met the sunburst's pink + amber behind it)
+  'm-edge': ['a0', 'm0'], 'm-dome': ['b1', 'a3'], 'm-step': ['t0', 'h1'], 'm-twin': ['h1', 'b1'], 'm-right': ['m0', 'a3'],
   glassL: ['b2', 'b2'], glassR: ['b2', 'b2'],
-  hotel: ['a1', 'a1'], pulse: ['h1', 'h1'], par: ['h0', 'h0'],
+  hotel: ['w0', 'w0'], pulse: ['h1', 'h1'], par: ['h0', 'h0'],
 };
 // NEON PASS 4 (the owner: "remove the JAZZ sign — that left corner is cluttered"): the old JAZZ club is PLAIN CITY now — no sign, no
 // frame — lit like its neighbours in the near band (NEON PASS 3's trims): [kind, main, accent, detail] (a WARM_L pairing)
@@ -89,9 +91,17 @@ export const DEPTH = [
 export const HAZE = [118, 96, 172];
 /** an outline's strength from its depth (+ the landmark towers' bit of extra light) */
 export function depthStrength(o) {
-  const st = DEPTH.find(d => (o.z ?? 240) < d.z) || DEPTH[DEPTH.length - 1];
-  return o.strength === 'hero' || o.strength === 'pano' ? { ...st, a: Math.min(1, st.a + 0.06), glow: st.glow * 1.08 } : st;
+  const z = o.z ?? 240, i = DEPTH.findIndex(d => z < d.z), st = DEPTH[i < 0 ? DEPTH.length - 1 : i];
+  // FP2 — NEON BY DEPTH (the owner: "near outlines a touch thicker / brighter, far ones finer / dimmer"): within its step a tube
+  // eases from a touch bolder at the step's front (+6 % width, +3 % light) to a touch finer at its back (−6 %, −4 %) — so a
+  // building standing in front of another of the same step (the near band before the word towers) still reads nearer. The
+  // softness stays the step's: the far ones keep their crispness.
+  const z0 = DEPTH_FRONT[i < 0 ? DEPTH.length - 1 : i], z1 = Number.isFinite(st.z) ? st.z : z0 + 220, f = Math.max(0, Math.min(1, (z - z0) / (z1 - z0)));
+  const k = { ...st, w: st.w * (1.06 - 0.12 * f), a: Math.min(1, st.a * (1.03 - 0.07 * f)), f: +f.toFixed(3) };
+  return o.strength === 'hero' || o.strength === 'pano' ? { ...k, a: Math.min(1, k.a + 0.06), glow: st.glow * 1.08 } : k;
 }
+/** where each DEPTH step begins (z): the near step from the quay's heroes (the lighthouse in front is nearer still: clamped) */
+const DEPTH_FRONT = [228, 252, 296, 380];
 
 /**
  * The outlines: [{ id, group: 'far'|'near', strength, roles: [main, accent], z, lines: [{ pts: [[x,y,z]…], role, closed?,
@@ -122,6 +132,7 @@ export function lhEdgeBlocks(L) {
 }
 export function outlines(L, signRects = new Map()) {
   const out = [];
+  const rec = new Map();          // (FP2: every building NEON BY DEPTH may re-pair — the bands' + the panorama's: its pairing + tubes)
   const cam0 = L.cam;
   // NEON PASS 6 — THE LIGHTHOUSE'S CALM ZONE (the owner: "tidy the neon around the lighthouse", like the wheel's quiet zone): the
   // buildings standing right behind it keep only a quiet roofline (no outline boxes, no bands, no fins), so its red-and-white tower
@@ -136,7 +147,7 @@ export function outlines(L, signRects = new Map()) {
   for (const t of L.towers) {
     const pano = t.rank === 'pano', hero = t.rank === 'hero' || pano, word = t.rank === 'word', mid = t.rank === 'mid', modern = t.rank === 'modern';
     const k = pano ? Math.abs(t.seed) % 4 : 0;
-    const roles = ROLES[t.id] || (modern ? ['b1', 'b1'] : pano ? [['b0', 'b1'], ['h0', 'a0'], ['b2', 'b0'], ['h1', 'b1']][k] : ['b0', 'b0']);
+    const roles = ROLES[t.id] || (modern ? ['b1', 'b1'] : pano ? PANO[k] : ['b0', 'b0']);
     const lines = [], n = t.tiers.length, topT = t.tiers[n - 1];
     // (DT1 — the owner: the thin glass tower was the only building dark on every night: the glass towers get a FINE full outline
     // like the other far buildings — up both edges from the foot, over the roof; the cut keeps what stands in front)
@@ -196,7 +207,10 @@ export function outlines(L, signRects = new Map()) {
         if (mid) { const tr = topT, w = tr.x1 - tr.x0; if (w > 3) for (const x of uniq((w > 6 ? [0.3, 0.5, 0.7] : [0.35, 0.65]).map(f => pierX(tr, tr.x0 + w * f))).filter(x => x > tr.x0 + 0.3 && x < tr.x1 - 0.3)) lines.push({ pts: [[x, tr.y0 + tr.h * (n > 1 ? 0.12 : 0.6), tr.z0 - 0.05], [x, tr.y0 + tr.h - 0.35, tr.z0 - 0.05]], role: roles[0], thin: true, part: 'fin', lvl: Math.round((x - tr.x0) / w * 10) }); }
       }
     }
-    add({ id: t.id, group: t.z0 >= 300 ? 'far' : 'near', strength: hero ? 'hero' : word ? 'word' : modern ? 'far' : pano ? 'pano' : 'mid', roles, z: t.z0, lines });
+    const tit = { id: t.id, group: t.z0 >= 300 ? 'far' : 'near', strength: hero ? 'hero' : word ? 'word' : modern ? 'far' : pano ? 'pano' : 'mid', roles, z: t.z0, lines, rank: t.rank };
+    add(tit);
+    // (FP2: a panorama tower may re-pair too — its tubes' place in its pair: 0 main, 1 accent)
+    if (pano && !ROLES[t.id]) { for (const ln of lines) ln.slot = ln.role === roles[0] ? 0 : 1; rec.set(t.id, { b: t.tiers[0], band: 'pano', fam: PANO, pair: roles, lines, item: tit }); }
   }
   // the hero blocks on the quay: their rooflines (their signs are the signs)
   // (NEON PASS 2: + a Deco LEDGE BAND across the second floor and CORNER TRIMS up the upper floors — warm, the storefront city;
@@ -211,7 +225,7 @@ export function outlines(L, signRects = new Map()) {
     }
     // (NEON PASS 6: a block right behind the lighthouse — PAR on a phone — keeps only a quiet roofline: its pink frame read as a
     // floating box crowding the tower)
-    if (behindLh(b.x0, b.x1, b.z0, b.h)) { const lines = []; bandNeon(lines, b, 'roof', 'w0', 'w0', 'w0', true, false, L.cam); add({ id: b.id, group: 'near', strength: 'farband', roles: ['w0', 'w0'], z: b.z0, lines, calm: true }); continue; }
+    if (behindLh(b.x0, b.x1, b.z0, b.h)) { const lines = []; bandNeon(lines, b, 'roof', CALM, CALM, CALM, true, false, L.cam); add({ id: b.id, group: 'near', strength: 'farband', roles: [CALM, CALM], z: b.z0, lines, calm: true }); continue; }
     const role = (ROLES[b.id] || ['a0'])[0], z = b.z0 - 0.05, w = b.x1 - b.x0;
     const lines = [{ pts: [[b.x0, b.h, z], [b.x1, b.h, z]], role }];
     lines.push({ pts: [[b.x0 + 0.3, b.h * 0.3, z], [b.x1 - 0.3, b.h * 0.3, z]], role, thin: true });
@@ -274,12 +288,15 @@ export function outlines(L, signRects = new Map()) {
     // (NEON PASS 6: the blocks behind the lighthouse — a quiet roofline each, dimmer, in one item of their own)
     const calmLines = [], calmIds = [];
     const lhEdge = near ? lhEdgeBlocks(L) : new Set();
-    for (const b of blocks) if (behindLh(b.x0, b.x1, b.z0, b.h) && !lhEdge.has(b.id)) { const ln = []; bandNeon(ln, b, 'roof', 'w0', 'w0', 'w0', near, false, cam); calmLines.push(...ln); calmIds.push(b.id); }
-    if (calmLines.length) add({ id: `threads-${bd.id}-calm`, group: near ? 'near' : 'far', strength: 'farband', roles: ['w0'], z: Math.min(...blocks.filter(b => calmIds.includes(b.id)).map(b => b.z0)), lines: calmLines, band: bd.id, blocks: calmIds });
+    const calm = near ? CALM : CALM_FAR;
+    for (const b of blocks) if (behindLh(b.x0, b.x1, b.z0, b.h) && !lhEdge.has(b.id)) { const ln = []; bandNeon(ln, b, 'roof', calm, calm, calm, near, false, cam); calmLines.push(...ln); calmIds.push(b.id); }
+    if (calmLines.length) add({ id: `threads-${bd.id}-calm`, group: near ? 'near' : 'far', strength: 'farband', roles: [calm], z: Math.min(...blocks.filter(b => calmIds.includes(b.id)).map(b => b.z0)), lines: calmLines, band: bd.id, blocks: calmIds });
     const flush = () => {
       if (!cluster.length) return;
       const lines = cluster.flatMap(c => c.lines), roles = [...new Set(lines.map(l => l.role))];
-      add({ id: `threads-${bd.id}-${ci++}`, group: near ? 'near' : 'far', strength: near ? 'band' : mid ? 'midband' : 'farband', roles: roles.length ? roles : ['b0'], z: Math.min(...cluster.map(c => c.b.z0)), lines, band: bd.id, blocks: cluster.map(c => c.b.id) });
+      const it = { id: `threads-${bd.id}-${ci++}`, group: near ? 'near' : 'far', strength: near ? 'band' : mid ? 'midband' : 'farband', roles: roles.length ? roles : ['b0'], z: Math.min(...cluster.map(c => c.b.z0)), lines, band: bd.id, blocks: cluster.map(c => c.b.id) };
+      add(it);
+      for (const c of cluster) { const r = rec.get(c.b.id); if (r) r.item = it; }
       cluster = [];
     };
     for (const b of blocks) {
@@ -294,7 +311,12 @@ export function outlines(L, signRects = new Map()) {
         while (tries++ < fam.length && prevMain && (fam[i][0] === prevMain || (fam[i][0][0] === prevMain[0] && fam[i][0] !== 'w0'))) i = (i + 1) % fam.length;
         const [main, acc, det] = fam[i];
         const kind = lhEdge.has(b.id) ? 'roofledge' : bandKind(b, near, mid, dice, prevKind);
-        if (kind !== 'quiet') { bandNeon(lines, b, kind, main, acc, det, near, !underFace(b), cam); prevMain = main; }
+        if (kind !== 'quiet') {
+          bandNeon(lines, b, kind, main, acc, det, near, !underFace(b), cam); prevMain = main;
+          // (FP2: each tube's place in the pairing — 0 main · 1 accent · 2 detail — so NEON BY DEPTH can re-pair the building)
+          for (const ln of lines) ln.slot = ln.role === main ? 0 : ln.role === (acc || main) ? 1 : 2;
+          rec.set(b.id, { b, band: bd.id, fam, pair: fam[i], lines, item: null });
+        }
         prevKind = kind;
       } else prevKind = 'quiet';
       if (!lines.length) continue;
@@ -303,7 +325,78 @@ export function outlines(L, signRects = new Map()) {
     }
     flush();
   }
+  // FP2 — NEON BY DEPTH: where a building's tubes meet a nearer / farther building's, the colours contrast (a band building re-pairs)
+  const contacts = cam ? depthContacts(L, out) : [];
+  if (cam) fixDepth(contacts, rec);
+  Object.defineProperty(out, 'contacts', { value: contacts, enumerable: false });
   return out;
+}
+/** the calm zone's quiet roofline colour (behind the lighthouse — FP2: gold in the near band, where the lighthouse's own white edges
+ *  cross it; white farther back, as before) */
+const CALM = 'a3', CALM_FAR = 'w0';
+/** the panorama towers' pairs (by their seed) + the extra pairs NEON BY DEPTH may give one */
+const PANO = [['b0', 'b1'], ['h0', 'a0'], ['b2', 'b0'], ['h1', 'b1']], PANO_X = [['t0', 'a3'], ['m0', 'b1'], ['a3', 't0'], ['g0', 'm0']];
+/**
+ * FP2 — NEON BY DEPTH, the city's palette: every contact whose two colours clash is resolved by RE-PAIRING a band building (the
+ * front one first, else the back one) — the next pairing of its district's family (then the other districts' of its band) whose
+ * colours clash with none of that building's contacts and whose main colour differs from its neighbours' (the old rule). The
+ * designed towers + heroes keep their roles (ROLES is set so they never clash with each other). Each re-pair clears every clash of
+ * its building and makes none, so it settles in a pass or two.
+ */
+function fixDepth(contacts, rec) {
+  const byLine = new Map();
+  for (const r of rec.values()) for (const ln of r.lines) byLine.set(ln, r);
+  const mine = new Map();
+  for (const c of contacts) for (const ln of [c.fl, c.bl]) { const r = byLine.get(ln); if (r) { if (!mine.has(r)) mine.set(r, []); mine.get(r).push(c); } }
+  // the neighbours (by x, in the band): their main colours must differ
+  const seqs = new Map(), nb = new Map();
+  for (const r of rec.values()) { if (!seqs.has(r.band)) seqs.set(r.band, []); seqs.get(r.band).push(r); }
+  for (const s of seqs.values()) { s.sort((p, q) => (p.b.x0 + p.b.x1) - (q.b.x0 + q.b.x1)); s.forEach((r, i) => nb.set(r, [s[i - 1], s[i + 1]].filter(Boolean))); }
+  const roleOf = (pair, slot) => { const a2 = pair[1] || pair[0]; return [pair[0], a2, pair[2] || a2][slot || 0]; };
+  const fams = { near: [WARM_L, WARM_M, WARM_R], mid: [COOL_L, COOL_M, COOL_R], far: [FAR_P], pano: [PANO_X] };
+  // (every band pairing carries white: where its white tubes meet a pale tube behind / in front — an ice tower, the white hotel — a
+  // variant with the white swapped for a colour)
+  const swapW = ps => ps.flatMap(p => (p.includes('w0') ? ['a3', 'b1', 'g0', 'h1'].filter(c => !p.includes(c)).map(c => p.map(x => (x === 'w0' ? c : x))) : []));
+  const clashC = new Map(), clash = (a, b) => { const k = a < b ? a + b : b + a; let v = clashC.get(k); if (v == null) clashC.set(k, (v = roleClash(a, b))); return v; };
+  const candsOf = r => {
+    const own = r.fam, i0 = own.indexOf(r.pair);
+    const fam0 = [...own.slice(i0 + 1), ...own.slice(0, Math.max(0, i0)), ...(fams[r.band] || []).filter(f => f !== own).flat()];
+    return [...fam0, ...swapW([r.pair, ...fam0])].filter(p => !(p[0] === r.pair[0] && p[1] === r.pair[1] && p[2] === r.pair[2]));
+  };
+  // does pairing p fit building r (its neighbours' mains, every contact's colours) — with `alt` (another building → its trial pair)
+  const fits = (r, p, alt = null) => {
+    const pairOf = o => (alt && o === alt.r ? alt.p : o.pair);
+    if (nb.get(r).some(o => pairOf(o)[0] === p[0])) return false;
+    return (mine.get(r) || []).every(c => {
+      const rf = byLine.get(c.fl), rb = byLine.get(c.bl);
+      const a = rf === r ? roleOf(p, c.fl.slot) : alt && rf === alt.r ? roleOf(alt.p, c.fl.slot) : c.fl.role;
+      const b = rb === r ? roleOf(p, c.bl.slot) : alt && rb === alt.r ? roleOf(alt.p, c.bl.slot) : c.bl.role;
+      return !clash(a, b);
+    });
+  };
+  const apply = (r, p) => { r.pair = p; for (const ln of r.lines) ln.role = roleOf(p, ln.slot); if (r.item) r.item.roles = [...new Set(r.item.lines.map(l => l.role))]; };
+  const repick = r => { for (const p of candsOf(r)) if (fits(r, p)) { apply(r, p); return true; } return false; };
+  // (two buildings that only fit together — packed neighbours of a wide screen's near band: both re-paired at once)
+  const repick2 = (r1, r2) => {
+    const c1 = [r1.pair, ...candsOf(r1)], c2 = [r2.pair, ...candsOf(r2)];
+    for (const p1 of c1) for (const p2 of c2) if (fits(r1, p1, { r: r2, p: p2 }) && fits(r2, p2, { r: r1, p: p1 })) { apply(r1, p1); apply(r2, p2); return true; }
+    return false;
+  };
+  for (let pass = 0; pass < 6; pass++) {
+    let changed = false;
+    for (const c of contacts) {
+      if (!clash(c.fl.role, c.bl.role)) continue;
+      const rs = [byLine.get(c.fl), byLine.get(c.bl)].filter(Boolean);
+      if (rs.some(r => repick(r)) || (rs.length === 2 && rs[0] !== rs[1] && repick2(rs[0], rs[1]))) { changed = true; continue; }
+      // (no pairing fits — a far-band thread wedged behind several bright towers: it goes QUIET, the towers in front read clean)
+      const q = rs.find(r => r.band === 'far');
+      if (q && q.item) { const gone = new Set(q.lines); q.item.lines = q.item.lines.filter(l => !gone.has(l)); q.item.roles = [...new Set(q.item.lines.map(l => l.role))]; for (const l of gone) byLine.delete(l); q.lines = []; q.quiet = true; changed = true; }
+    }
+    if (!changed) break;
+  }
+  // (the contacts of a thread gone quiet are gone with it)
+  const live = new Set([...rec.values()].flatMap(r => r.quiet ? [] : r.lines));
+  for (let i = contacts.length - 1; i >= 0; i--) { const c = contacts[i]; if ((c.fl.block && rec.has(c.fl.block) && !live.has(c.fl)) || (c.bl.block && rec.has(c.bl.block) && !live.has(c.bl))) contacts.splice(i, 1); }
 }
 // THE PAIRINGS (NEON PASS 3): [main, accent, detail] — designed like a sign shop's combinations. The near city WARM (its
 // districts: left / middle / right), the mid city COOL, the far threads single colours.
@@ -482,6 +575,156 @@ function crownPath(t, tr) {
     extras.push({ pts: [[cx - hw, y + H, z], [cx + hw, y + H * 0.25, z]] });
   }
   return { path: path && dedupe(path), extras };
+}
+
+// ------------------------------------------------------------------ FP2 — NEON BY DEPTH
+// The owner (party night, the right side): "overlapping buildings share the same pink outline, so the BLUFF / DOUBLE AGENT towers
+// and the buildings in front read as one blob". THE RULE: where a building's tubes meet the tubes of a building at another depth
+// (a front roofline under a back tower's edge, a back ledge ending at a front building's side, two edges running side by side),
+// the two colours differ by a clear hue distance — on the city's palette, tier 0's party scheme and THE ROTATING PARTY PALETTE
+// (core/harbor-show.js#partyOffsets). A band building adapts (another pairing of its family); the designed towers keep theirs.
+/** the hue distance (degrees) two meeting tubes keep; two PALE tubes (white, ice) always clash, a pale one beside a colour never */
+export const DEPTH_HUE = 60, PALE = 0.35;
+/** a colour's hue (0..360) + saturation (0..1) */
+export function neonHue([r, g, b]) {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, s = mx ? d / mx : 0;
+  let h = 0;
+  if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: (h * 60 + 360) % 360, s };
+}
+/** do two neon colours read as one where they meet? */
+export function neonClash(a, b, th = DEPTH_HUE) {
+  const A = neonHue(a), B = neonHue(b);
+  if (A.s < PALE || B.s < PALE) return A.s < PALE && B.s < PALE;
+  const d = Math.abs(A.h - B.h) % 360;
+  return Math.min(d, 360 - d) < th;
+}
+/** two roles clash in a scheme (the city's; tier 0's party scheme) */
+export const roleClash = (r1, r2, scheme = 'city') => neonClash(roleColour(r1, scheme), roleColour(r2, scheme));
+/**
+ * Every building's screen silhouette as the neon's cut sees it (neon.js#silhouette: the top edge + the side face the camera sees,
+ * the crown's middle) + the lighthouse (it stands in front of the skyline): [{ key (block / tower / hero id), z, segs: [[x0, x1, top]] }]
+ */
+export function depthPieces(L) {
+  const cam = L.cam, out = [];
+  const sil = b => {
+    const y0 = b.y0 || 0, y1 = y0 + b.h, [a, ty] = project(cam, b.x0, y1, b.z0), [c] = project(cam, b.x1, y0, b.z0);
+    let x0 = a, x1 = c;
+    if (b.z1 != null && b.x1 < 0) x1 = Math.max(x1, project(cam, b.x1, 0, b.z1)[0]);
+    if (b.z1 != null && b.x0 > 0) x0 = Math.min(x0, project(cam, b.x0, 0, b.z1)[0]);
+    const segs = [[x0, x1, ty]];
+    if (b.crown) { const s = cam.F / b.z0, cw = (c - a) * 0.36, cx = (a + c) / 2; segs.push([cx - cw, cx + cw, ty - b.crown.h * s * 0.5]); }
+    return segs;
+  };
+  for (const bd of L.bands) for (const b of bd.blocks) out.push({ key: b.id, z: b.z0, segs: sil(b) });
+  for (const t of L.towers) for (const tr of t.tiers) out.push({ key: t.id, z: tr.z0, segs: sil(tr) });
+  for (const b of L.heroes) out.push({ key: b.id, z: b.z0, segs: sil(b) });
+  if (L.lighthouse) for (const lb of lighthouseBoxes(L.lighthouse)) { const [a, ty] = project(cam, lb.x0, lb.y1, lb.z0), [c] = project(cam, lb.x1, lb.y0, lb.z0); out.push({ key: 'lighthouse', z: lb.z0, segs: [[a, c, ty]], lh: true }); }
+  return out;
+}
+/** the building a tube belongs to (its silhouette's key) */
+export const lineKey = (o, ln) => ln.block || o.id;
+/**
+ * Where the neon of two buildings at DIFFERENT depths meets on screen: every pair of visible tubes (one of a nearer building, one of
+ * a farther one) that come within d pt (the glows merge) — the junctions where a back tube is cut at a front roofline or side, and
+ * two edges running side by side. O: outlines(L). → [{ f, b (indices into O: front, back), fl, bl (the line objects), x, y (a
+ * meeting point, screen pt), n (how many samples meet) }]; o.d: the distance (pt at the reference scale, default 4.5).
+ */
+export function depthContacts(L, O, o = {}) {
+  const cam = L.cam, K = cam.F / 600, D = (o.d ?? 4.5) * K, W = cam.W, P = depthPieces(L);
+  const wh = L.wheel, [wx, wy] = project(cam, wh.x, wh.y, wh.z), wr2 = (cam.F * wh.r / wh.z * 1.08 + 3) ** 2;
+  // (visibility as the neon's cut sees it: the top envelope of every building nearer than the tube — the lines walked from the
+  // nearest back, the envelope growing as they go: one pass, no per-sample search)
+  const env = new Float32Array(Math.ceil(W) + 2).fill(1e9), ps = [...P].sort((a, b) => a.z - b.z);
+  const lines = [];
+  O.forEach((oo, oi) => oo.lines.forEach((ln, li) => lines.push({ oo, oi, ln, li, z: ln.z != null ? ln.z : oo.z })));
+  lines.sort((a, b) => a.z - b.z);
+  const cells = new Map(), cell = (x, y) => (Math.floor(x / D) + 512) * 65536 + Math.floor(y / D) + 512, all = [];
+  let pi = 0;
+  for (const { oo, oi, ln, li, z } of lines) {
+    for (; pi < ps.length && ps[pi].z < z - 0.04; pi++) for (const [x0, x1, ty] of ps[pi].segs) for (let x = Math.max(0, Math.floor(x0)); x <= Math.min(env.length - 1, Math.ceil(x1)); x++) if (ty < env[x]) env[x] = ty;
+    const key = lineKey(oo, ln), quiet = oo.group !== 'harbor' && !oo.accent;
+    const pts = ln.pts.map(([x, y, zz]) => project(cam, x, y, zz ?? ln.pts[0][2]));
+    for (let i = 0; i < pts.length; i++) {
+      const [ax, ay] = pts[Math.max(0, i - 1)], [bx, by] = pts[i], n = i ? Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay))) : 1;
+      for (let k = i ? 1 : 0; k <= (i ? n : 0); k++) {
+        const x = i ? ax + (bx - ax) * k / n : bx, y = i ? ay + (by - ay) * k / n : by;
+        if (x < 2.5 || x > W - 2.5 || y > env[Math.round(x)] - 0.4) continue;
+        if (quiet && (x - wx) ** 2 + (y - wy) ** 2 < wr2) continue;           // (the wheel's quiet zone: no tube shows there)
+        const sm = { x, y, z, oi, li, ln, key }, c = cell(x, y);
+        if (!cells.has(c)) cells.set(c, []);
+        cells.get(c).push(sm); all.push(sm);
+      }
+    }
+  }
+  const found = new Map();
+  for (const s of all) {
+    const cx = Math.floor(s.x / D), cy = Math.floor(s.y / D);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const q of cells.get((cx + i + 512) * 65536 + cy + j + 512) || []) {
+      if (q.key === s.key || !(q.z < s.z - 0.3) || Math.hypot(q.x - s.x, q.y - s.y) > D) continue;      // (q in front of s)
+      const k = `${q.oi}|${q.li}|${s.oi}|${s.li}`;
+      const e = found.get(k);
+      if (e) e.n++; else found.set(k, { f: q.oi, b: s.oi, fl: q.ln, bl: s.ln, x: +s.x.toFixed(1), y: +s.y.toFixed(1), n: 1 });
+    }
+  }
+  // + DIRECTLY BEHIND (the owner's words: "a building in FRONT never shares its outline colour with the building directly behind
+  // it"): a front building's roofline reads as one with the outline of the building that rises right above it even where the
+  // tubes don't touch (a word tower's edges come down beside the block in front, its face between) — so every lit building + the
+  // lit building showing just above its roof (the nearest one there) pair up by their MAIN colours too (over: true)
+  const vis = new Set(all.map(sm => sm.key)), mainOf = new Map();
+  O.forEach((oo, oi) => oo.lines.forEach(ln => { const k = lineKey(oo, ln); if (!mainOf.has(k) && (ln.slot != null ? ln.slot === 0 : ln.role === oo.roles[0])) mainOf.set(k, { oi, ln }); }));
+  const byKey = new Map(); for (const p of P) { if (!byKey.has(p.key)) byKey.set(p.key, []); byKey.get(p.key).push(p); }
+  const zs = [...P].sort((a, b) => a.z - b.z), M = 2 * K;
+  const over = new Set();
+  for (const [fk, fps] of byKey) {
+    const F = mainOf.get(fk); if (!F || !vis.has(fk)) continue;
+    const fz = Math.min(...fps.map(p => p.z));
+    for (const fp of fps) for (const [fx0, fx1, fty] of fp.segs.slice(0, 1)) {
+      // (the columns along the front roof: who shows just above it — the nearest building farther than the front one)
+      for (let x = Math.max(3, fx0 + 1); x <= Math.min(W - 3, fx1 - 1); x += Math.max(2, (fx1 - fx0) / 8)) {
+        const y = fty - M;
+        let hit = null;
+        for (const p of zs) { if (p.key === fk || !(p.z > fz + 0.3)) continue; if (p.segs.some(([a, b, t]) => x >= a && x <= b && y > t)) { hit = p; break; } }
+        if (!hit || over.has(`${fk}|${hit.key}`)) continue;
+        // (hidden there by something nearer than the front building itself: not a pair)
+        if (zs.some(p => p.z < fz - 0.04 && p.key !== fk && p.segs.some(([a, b, t]) => x >= a && x <= b && y > t))) continue;
+        const B = mainOf.get(hit.key); if (!B || !vis.has(hit.key)) continue;
+        if (B.oi === F.oi && O[F.oi].roles.length === 1) continue;     // (one designed single-colour layer — the wheel's backdrop accent, the calm zone)
+        over.add(`${fk}|${hit.key}`);
+        found.set(`over|${fk}|${hit.key}`, { f: F.oi, b: B.oi, fl: F.ln, bl: B.ln, x: +x.toFixed(1), y: +y.toFixed(1), n: 0, over: true });
+      }
+    }
+  }
+  return [...found.values()];
+}
+/** a tube's party slot: 0 its building's main colour, 1 its accent (a band building's accent + detail tubes; a tower's second role) */
+export const partySlot = (o, ln) => (ln.slot != null ? (ln.slot === 0 ? 0 : 1) : ln.role === o.roles[0] ? 0 : 1);
+/**
+ * The contacts per BUILDING for THE PARTY COLOURS (core/harbor-show.js#partyPlan): [{ f, b (building keys: in front, behind), fs, bs
+ * (their tubes' party slots) }] — each pair of buildings + slots once
+ */
+export function depthLinks(O, contacts = O.contacts || []) {
+  const seen = new Map();
+  for (const c of contacts) {
+    const f = lineKey(O[c.f], c.fl), b = lineKey(O[c.b], c.bl), fs = partySlot(O[c.f], c.fl), bs = partySlot(O[c.b], c.bl), k = `${f}|${b}|${fs}|${bs}`;
+    if (!seen.has(k)) seen.set(k, { f, b, fs, bs });
+  }
+  return [...seen.values()];
+}
+/** every outlined building for THE PARTY COLOURS: [{ key, x (0..1: its tubes' middle across the screen), pale (its main colour on
+ *  a normal night is white / ice, or it stands in the lighthouse's calm zone), tower (a hero / word tower: the six of them wear six different colours) }] */
+export function partyPieces(L, O) {
+  const cam = L.cam, acc = new Map();
+  for (const o of O) for (const ln of o.lines) {
+    const k = lineKey(o, ln); let e = acc.get(k); if (!e) acc.set(k, (e = { sx: 0, n: 0, pale: false, tower: o.rank === 'hero' || o.rank === 'word' }));
+    if ((partySlot(o, ln) === 0 && neonHue(roleColour(ln.role)).s < PALE) || o.calm || o.accent || /-calm$/.test(o.id)) e.pale = true;   // (+ the calm layers — the lighthouse's zone, the wheel's backdrop accent: quiet, white in a party)
+    for (const p of [ln.pts[0], ln.pts[ln.pts.length - 1]]) { e.sx += project(cam, p[0], p[1], p[2] ?? ln.pts[0][2])[0]; e.n++; }
+  }
+  return [...acc].map(([key, e]) => ({ key, x: e.sx / e.n / cam.W, pale: e.pale, tower: e.tower }));
+}
+/** the colour clashes among the contacts in a scheme: [{ …contact, fr, br }] */
+export function depthClashes(contacts, scheme = 'city') {
+  return contacts.filter(c => roleClash(c.fl.role, c.bl.role, scheme)).map(c => ({ ...c, fr: c.fl.role, br: c.bl.role }));
 }
 
 // ------------------------------------------------------------------ THE SIGNS' SPOTS

@@ -25,6 +25,10 @@ const FONT = (px, w = 700) => `${w} ${px}px "Chakra Petch", Orbitron, sans-serif
 const V = SPEAK_V;
 const W_FRONT = 11.2;
 const GLASS_IN = 0.16;                   // a window's recess (exaggerated a little: the jamb reads as depth at phone size)
+/** FP2 — CRISP LIGHTS, NEVER SMOKE (the owner: the shopfront "looks smoky"): a light is its SOURCE, a small TIGHT halo, and its light
+ *  LANDING on the surfaces near it — never a translucent wash. The halos' radii (wall units: × G.K pt) — the shop lamp's globe, the
+ *  sconce's glass — and landR: the sconce's light landing on the brick + the door's frame (baked: paintGround), gone by then. */
+export const SHOP_GLOW = Object.freeze({ lamp: 0.34, sconce: 0.42, landR: 1.3 });
 
 // ------------------------------------------------------------------ geometry
 /** the building on screen: the front's affine map, the side wall's perspective, the inverse for the strips */
@@ -363,6 +367,16 @@ function paintGround(x, M, s) {
     x.fillStyle = rgb(M.iron); for (let u = b0 + 0.2; u < b1; u += 0.24) x.fillRect(u - 0.025, bv0, 0.05, bv1 - bv0); }
   // THE SCONCE over the side door (its bracket + lantern; lit at night: live)
   { const sc = sh.sconce; R(x, sc.u - 0.05, sc.v - 0.32, sc.u + 0.05, sc.v + 0.02, M.iron); R(x, sc.u - 0.14, sc.v - 0.05, sc.u + 0.14, sc.v + 0.32, M.iron); R(x, sc.u - 0.1, sc.v, sc.u + 0.1, sc.v + 0.26, night ? [60, 40, 26] : mix(M.glassTop, [255, 240, 200], 0.4)); R(x, sc.u - 0.17, sc.v + 0.32, sc.u + 0.17, sc.v + 0.38, M.iron); }
+  // FP2 — THE SCONCE'S LIGHT LANDING (at night, by the lamps' ramp — baked like the cobbles' pools): a warm scallop on the brick round
+  // it, falling down over the door's granite frame + the oak, gone within SHOP_GLOW.landR (the live layer adds only the lit glass + a
+  // tight halo); its iron cap shades the wall just above it
+  { const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
+    if (lk > 0.01) { const sc = sh.sconce, R0 = SHOP_GLOW.landR;
+      x.save(); x.globalCompositeOperation = 'lighter'; x.translate(sc.u, sc.v - 0.05); x.scale(1, 1.25);
+      const g = x.createRadialGradient(0, -0.12, 0, 0, -0.12, R0);
+      for (const [t, a] of [[0, 0.5], [0.18, 0.36], [0.4, 0.17], [0.65, 0.05], [0.85, 0.012], [1, 0]]) g.addColorStop(t, rgb([255, 178, 108], a * lk));
+      x.fillStyle = g; x.fillRect(-R0, -R0 - 0.12, 2 * R0, 2 * R0); x.restore();
+      R(x, sc.u - 0.2, sc.v + 0.38, sc.u + 0.2, sc.v + 0.5, M.soot, 0.25 * lk); } }
 }
 
 /** THE LIGHT on a painted wall (day: warm at the top, the street's occlusion at the foot, the sun's side across; night: the
@@ -591,10 +605,50 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
 /** THE BARBER POLE's turn (FP, PURE): the stripes' phase (0..1 of a period) after dt s — the shop's pace by day, the slow night turn
  *  when lit; continuous (never rounded to a pixel or a frame: the strip slides at a fractional offset) */
 export const POLE_DAY = 0.42, POLE_NIGHT = 0.16;        // (periods a second)
-export const poleTurn = (ph, dt, lit) => (ph + Math.max(0, dt) * (POLE_DAY + (POLE_NIGHT - POLE_DAY) * Math.max(0, Math.min(1, lit)))) % 1;
+export const poleRate = lit => POLE_DAY + (POLE_NIGHT - POLE_DAY) * clamp01(lit);
+export const poleTurn = (ph, dt, lit) => (ph + Math.max(0, dt) * poleRate(lit)) % 1;
+/** FP2 — THE TURN BY REAL TIME (the owner: "still jittery" on her iPhone): the phase is a pure function of the frame's timestamp from
+ *  an ANCHOR { t, ph, rate } — never a sum of frame steps (a skipped frame, the 30 fps battery saver or a long frame can't step it).
+ *  poleAnchor() re-anchors only when the rate changes (dusk's ramp, the raid, reduced motion), keeping the phase continuous. */
+export const polePhase = (a, t) => { const v = a.ph + Math.max(0, t - a.t) * a.rate; return v - Math.floor(v); };
+export const poleAnchor = (a, t, rate, ph0 = 0.3) => (a && Math.abs(a.rate - rate) < 1e-9 && t >= a.t ? a : { t, ph: a ? polePhase(a, t) : ph0, rate });   // (a clock that went back: re-anchored, held)
+/** the helix's stripes at a point (PURE): v = the distance along the glass in the helix's frame (pt), band (pt), w = the pixel's
+ *  footprint along v (pt: a box filter — the analytic antialiasing) → [red, blue] coverage 0..1 (the rest: the white) */
+export const POLE_RISE = 0.9, POLE_TH = 0.42;          // (a helix's rise across the glass's front, the stripe's thickness — in bands)
+export function poleStripe(v, band, w) {
+  const P = 2 * band, TH = POLE_TH * band, hw = Math.max(1e-4, w) / 2;
+  const seg = a => { let u = v - a; u -= Math.floor(u / P) * P; let s = 0; for (const o of [-P, 0, P]) s += Math.max(0, Math.min(u + hw, o + TH) - Math.max(u - hw, o)); return Math.min(1, s / (2 * hw)); };
+  return [seg(0), seg(band)];
+}
+/** the pole's three colours (PURE): the paint by day (dimmed by the light: lum), the glass LIT from inside at night (FP2: a cool,
+ *  LED-bright white, the red + blue vivid), a PARTY night's neon (red → magenta, blue → electric blue, white → gold; party = the
+ *  party's ramp × lit — back to red / white / blue as the 2 am wind-down ramps it out), punch: the beat's gentle lift */
+export const POLE_PAINT = { w: [244, 242, 236], r: [200, 30, 40], b: [30, 60, 160] };
+export const POLE_LIT = { w: [240, 247, 255], r: [255, 52, 70], b: [58, 112, 255] };
+export function poleColours({ lum = 1, lit = 0, party = 0, pal = null, punch = 0 } = {}) {
+  const P = pal && pal.length >= 2 ? pal : [[255, 63, 176], [63, 224, 255], [166, 91, 255], [255, 204, 90]];
+  const neon = { r: P[0], b: mix(P[1], [60, 110, 255], 0.35), w: mix([255, 246, 226], P[3] || P[2] || [255, 204, 90], 0.62) };
+  const lift = 1 + 0.22 * clamp01(punch) * clamp01(party);
+  const o = {};
+  for (const k of ['w', 'r', 'b']) {
+    const day = POLE_PAINT[k].map(v => v * lum + 8 * (1 - lum));
+    const c = mix(mix(day, POLE_LIT[k], clamp01(lit)), neon[k], clamp01(party));
+    o[k] = c.map(v => Math.min(255, v * lift));
+  }
+  return o;
+}
+/** the light round the lit glass (PURE, FP2 — no smoke): a TIGHT halo hugging the glass (gone within POLE_HALO.tight glass radii of
+ *  its edge) + the light LANDING on the brick beside it (faint, gone within POLE_HALO.land radii). d = the distance from the glass (pt),
+ *  r = its radius (pt) → alpha 0..1 */
+export const POLE_HALO = Object.freeze({ tight: 1.8, land: 4.2, a: 0.42, aLand: 0.17 });
+export function poleHalo(d, r) {
+  const H = POLE_HALO, t = Math.max(0, d) / r;
+  return (t < H.tight ? H.a * Math.pow(1 - t / H.tight, 2) : 0) + (t < H.land ? H.aLand * Math.pow(1 - t / H.land, 2) : 0);
+}
 /**
  * createSpeakeasy(): what changes at night (and the pole by day). layout(L, { dpr }) → the windows on screen; draw(c, f) with
- * f = { k (the windows' light 0..1), lamp (the ad's lamps), sconce, day, night, t, motion, fade, hour, game }.
+ * f = { k (the windows' light 0..1), lamp (the ad's lamps), sconce, day, night, t (the frame's timestamp, s), motion, fade, hour, game,
+ * party: { ramp, punch, pal } | null (FP2: the barber pole's party neon + the beat) }.
  * HOOKS (7b): windows() → [{ id, room, floor, col, edge, rect }], light(id, k|null) (a window's own level, null = the
  * timeline's), mirror(k) (the hidden door's opening 0..1 — 7b animates it; today a hook only), roomDraw(id, fn) (a moment's own
  * painter over a window).
@@ -628,9 +682,12 @@ export function createSpeakeasy() {
     // the barbershop after hours: one dim lamp over the empty chair, its pool on the floor + the chair, the mirror catching it
     const [w0, w1, wv0, wv1] = G.s.shop.win, lx = w0 + (w1 - w0) * 0.38;
     x.save(); x.beginPath(); x.rect(w0, wv0, w1 - w0, wv1 - wv0); x.clip();
-    const g = x.createRadialGradient(lx, wv1 - 0.5, 0, lx, wv1 - 0.5, 2.6); g.addColorStop(0, 'rgba(255,214,150,0.4)'); g.addColorStop(0.2, 'rgba(244,184,120,0.26)'); g.addColorStop(0.5, 'rgba(220,150,90,0.1)'); g.addColorStop(1, 'rgba(120,70,40,0)');
+    // (FP2 — the lamp's light LANDS in the shop — the mirror wall, the chair, the floor — a step warmer + brighter than FP's, so the
+    // window keeps its cozy glow now the soft cloud over the glass is gone; the globe itself a bright core)
+    const g = x.createRadialGradient(lx, wv1 - 0.5, 0, lx, wv1 - 0.5, 2.9); g.addColorStop(0, 'rgba(255,214,150,0.6)'); g.addColorStop(0.2, 'rgba(246,186,120,0.42)'); g.addColorStop(0.5, 'rgba(224,152,90,0.18)'); g.addColorStop(1, 'rgba(120,70,40,0)');
     x.fillStyle = g; x.fillRect(w0, wv0, w1 - w0, wv1 - wv0);
-    x.fillStyle = 'rgba(255,232,196,0.65)'; x.beginPath(); x.arc(lx, wv1 - 0.48, 0.1, 0, Math.PI * 2); x.fill();
+    { const fg = x.createRadialGradient(lx, wv0 + 0.3, 0, lx, wv0 + 0.3, 1.6); fg.addColorStop(0, 'rgba(255,200,130,0.3)'); fg.addColorStop(1, 'rgba(255,190,120,0)'); x.fillStyle = fg; x.fillRect(w0, wv0, w1 - w0, 1.6); }
+    x.fillStyle = 'rgba(255,240,210,0.95)'; x.beginPath(); x.arc(lx, wv1 - 0.48, 0.11, 0, Math.PI * 2); x.fill();
     x.restore();
     x.restore();
   }
@@ -757,86 +814,93 @@ export function createSpeakeasy() {
   // THE BARBER POLE (live): a glass cylinder of red / white / blue spirals in chrome caps. It ALWAYS turns — by day unlit, at the
   // shop's pace; from DUSK until MORNING lit from inside and turning SLOWLY, even with the CLOSED card up: the secret "we're open".
   // (7b's raid: pole({ on: false }) snaps it dark and stops it; pole({ on: true }) gives it back.)
-  // FP — the owner: at night it looked glitchy (jagged, not continuous) and should POP. The stripes were straight parallelograms
-  // re-rasterised at a new position every frame: their hard diagonal edges crawled pixel by pixel as they moved (a staircase
-  // marching up the glass, worst at 30 Hz). Now the spirals are painted ONCE into a strip texture (true helices: curving round the
-  // glass, steep at its edges; antialiased at 3 px a point) and the strip SLIDES under the glass at a fractional offset — the GPU
-  // resamples it smoothly, so the motion is continuous at any frame rate. Lit, it is a bright warm WHITE (the hero light of the
-  // shopfront, brighter than the old soft yellow), with a soft halo; the sconce + the shop's lamp beside it toned down.
+  // FP2 — the owner, on her iPhone: "still jittery". FP slid a strip texture (3 px a point) under the glass: on the phone's canvas
+  // (dpr 1.5 at tier 1, 2 at tier 2) that is a 2:1 / 3:2 DOWNSAMPLE every frame — bilinear minification aliases a slow slide (the
+  // helices' edges crawl + shimmer), and any browser that snaps an image to whole pixels steps it. Now the glass is computed PER
+  // DEVICE PIXEL every drawn frame (a ~10 × 60 px patch: < 0.1 ms): each pixel's helix coordinate at the exact fractional phase, its
+  // stripe coverage box-filtered over the pixel's footprint (analytic antialiasing, band-limited: no crawl), the cylinder's edges
+  // antialiased the same way — then put at a WHOLE device pixel, 1:1, so nothing resamples it at all. The phase is a pure function
+  // of the frame's timestamp (polePhase: never a sum of frame steps), so the 30 fps battery saver only draws fewer, evenly spaced
+  // positions of the same smooth slide (night 1.6 pt/s ≈ 0.05 pt a frame; day ≈ 0.14 pt). Lit: an LED-bright cool white, the red +
+  // blue vivid, a TIGHT halo + a little light on the brick beside it (no smoky wash: poleHalo); a party night: neon colours + the beat.
   const BLADE_LIT = 0.78;                                // (the blade's lit board at night: FP's busy check)
-  let polePh = 0.3, poleT = -1, poleOff = false, poleRect = null;
+  let poleA = null, polePh = 0.3, poleOff = false, poleRect = null, polePx = null;
   const glowAt = {};                                    // (the e2e: where the sconce + the shop lamp glow)
-  const POLE_RISE = 0.9, POLE_TH = 0.42, POLE_PX = 3;   // (a helix's rise across the glass's front, the stripe's thickness — in bands; px a point)
-  const POLE_LIT = { r: [255, 92, 72], w: [255, 250, 238], b: [128, 140, 236] };
-  let poleTex = null, poleKey = '';
-  // the stripe strip for a pole of radius r (pt) and band b: one PERIOD (2 bands: red, white, blue, white) + the glass's height, in
-  // two colourings — [0] by day (the paint), [1] lit (the colours through the lamp-lit glass)
-  function poleStrip(r, band, h) {
-    const P = 2 * band, key = [r, band, h].map(v => v.toFixed(2)).join('|');
-    if (poleTex && poleKey === key) return poleTex;
-    for (const cv of poleTex || []) cv.width = cv.height = 0;
-    const W = Math.max(2, Math.ceil(2 * r * POLE_PX)), H = Math.ceil((h + P + band) * POLE_PX);
-    poleTex = [0, 1].map(lit => {
-      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-      const x = safeCtx(cv); x.scale(POLE_PX, POLE_PX);
-      x.fillStyle = rgb(lit ? POLE_LIT.w : [244, 242, 236]); x.fillRect(0, 0, 2 * r, h + P + band);
-      const N = 16, ys = [];
-      for (let i = 0; i <= N; i++) { const xn = -1 + 2 * i / N; ys.push([r + xn * r, -(POLE_RISE * band / 2) * (Math.asin(xn) / (Math.PI / 2))]); }
-      for (const [k, c0] of [[0, lit ? POLE_LIT.r : [200, 30, 40]], [1, lit ? POLE_LIT.b : [30, 60, 160]]]) {
-        x.fillStyle = rgb(c0);
-        for (let y = k * band - P; y < h + P + band * 2; y += P) {
-          x.beginPath();
-          ys.forEach(([px, dy], i) => (i ? x.lineTo(px, y + dy) : x.moveTo(px, y + dy)));
-          for (let i = N; i >= 0; i--) x.lineTo(ys[i][0], y + ys[i][1] + POLE_TH * band);
-          x.fill();
-        }
+  let poleCv = null, poleImg = null, haloCv = null, haloKey = '';
+  // the glass, per device pixel (m: the canvas's transform — device px a point + its offset): → { cv, X, Y } (whole device pixels)
+  function poleGlass(m, gx, gy, gh, cx, r, band, ph, C) {
+    const k = m.a, X0 = Math.floor((cx - r) * k + m.e), X1 = Math.ceil((cx + r) * k + m.e), Y0 = Math.floor(gy * k + m.f), Y1 = Math.ceil((gy + gh) * k + m.f);
+    const W = Math.max(1, X1 - X0), H = Math.max(1, Y1 - Y0);
+    if (!poleCv) poleCv = document.createElement('canvas');
+    if (poleCv.width !== W || poleCv.height !== H) { poleCv.width = W; poleCv.height = H; poleImg = null; }
+    const x = safeCtx(poleCv); if (!x || !x.createImageData) return null;
+    if (!poleImg) poleImg = x.createImageData(W, H);
+    const d = poleImg.data, P = 2 * band, rise = POLE_RISE * band / 2, off = ph * P, top = gy - r * 0.35 - off - band;
+    for (let i = 0; i < W; i++) {
+      const px = (X0 + i + 0.5 - m.e) / k, dx = px - cx, cvx = clamp01(0.5 + (r - Math.abs(dx)) * k);
+      const xn = Math.max(-0.995, Math.min(0.995, dx / r)), dy = -rise * Math.asin(xn) / (Math.PI / 2);
+      const slope = rise * (2 / Math.PI) / Math.sqrt(1 - xn * xn) / r, w = Math.min(band * 0.8, Math.hypot(1, slope) * 1.15 / k);
+      for (let j = 0; j < H; j++) {
+        const o = (j * W + i) * 4;
+        if (cvx <= 0) { d[o + 3] = 0; continue; }
+        const py = (Y0 + j + 0.5 - m.f) / k, cvy = clamp01(0.5 + Math.min(py - gy, gy + gh - py) * k);
+        const [cr, cb] = poleStripe(py - top - dy, band, w), cw = 1 - cr - cb;
+        d[o] = C.w[0] * cw + C.r[0] * cr + C.b[0] * cb; d[o + 1] = C.w[1] * cw + C.r[1] * cr + C.b[1] * cb; d[o + 2] = C.w[2] * cw + C.r[2] * cr + C.b[2] * cb;
+        d[o + 3] = 255 * cvx * cvy;
       }
-      return cv;
-    });
-    poleKey = key; poleTex.P = P;
-    return poleTex;
+    }
+    x.putImageData(poleImg, 0, 0);
+    return { cv: poleCv, X: X0, Y: Y0, W, H };
+  }
+  // the halo sprite (per size + colour step; device pixels): the tight halo + the light landing on the brick beside the glass
+  function poleHaloCv(m, gx, gy, gh, r, col) {
+    const k = m.a, R = POLE_HALO.land * r, key = [r, gh, k, col.join(',')].map(v => (typeof v === 'number' ? v.toFixed(2) : v)).join('|');
+    const X0 = Math.floor((gx - R) * k + m.e), Y0 = Math.floor((gy - R) * k + m.f), W = Math.ceil((2 * r + 2 * R) * k) + 2, H = Math.ceil((gh + 2 * R) * k) + 2;
+    if (haloCv && haloKey === key) return { cv: haloCv, X: X0, Y: Y0 };
+    haloCv = haloCv || document.createElement('canvas'); haloCv.width = W; haloCv.height = H; haloKey = key;
+    const x = safeCtx(haloCv); if (!x || !x.createImageData) return null;
+    const im = x.createImageData(W, H), d = im.data;
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const px = (X0 + i + 0.5 - m.e) / k, py = (Y0 + j + 0.5 - m.f) / k;
+      const ex = Math.max(gx - px, 0, px - gx - 2 * r), ey = Math.max(gy - py, 0, py - gy - gh), a = poleHalo(Math.hypot(ex, ey), r), o = (j * W + i) * 4;
+      d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = Math.min(255, 255 * a);
+    }
+    x.putImageData(im, 0, 0);
+    return { cv: haloCv, X: X0, Y: Y0 };
   }
   function drawPole(c, f) {
     const s = G.s, p = s.shop.pole, z = s.z0 - 0.42, [cx, y0] = project(G.cam, s.x0 + p.u, p.v1, z), [, y1] = project(G.cam, s.x0 + p.u, p.v0, z), sc = G.cam.F / z, r = 0.17 * sc, h = y1 - y0;
     const day = clamp01(f.day), lit = poleOff ? 0 : clamp01(f.pole == null ? f.k : f.pole), fade = f.fade == null ? 1 : f.fade;
-    const lum = 0.2 + 0.8 * day, dim = c2 => c2.map(v => Math.round(v * lum + 8 * (1 - lum)));
-    const dt = poleT < 0 ? 0 : Math.min(0.1, Math.max(0, f.t - poleT)); poleT = f.t;
-    if (f.motion && !poleOff) polePh = poleTurn(polePh, dt, lit);
+    const pt = f.party || null, partyK = pt ? clamp01(pt.ramp == null ? pt.on : pt.ramp) * lit : 0, punch = pt && f.motion ? clamp01(pt.punch || 0) : 0;
+    const lum = 0.2 + 0.8 * day;
+    // the turn: the frame's timestamp → the phase (re-anchored only when the rate changes; still when the motion is off or the raid)
+    poleA = poleAnchor(poleA, f.t, f.motion && !poleOff ? poleRate(lit) : 0, polePh); polePh = polePhase(poleA, f.t);
     poleRect = { x: cx - r, y: y0, w: 2 * r, h };
-    const band = r * 2.2, tex = poleStrip(r, band, h), gx = cx - r, gy = y0 + r * 0.35, gh = h - r * 0.7;
+    const m = c.getTransform(), kk = m.a || 1, band = r * 2.2;
+    const gx = cx - r, gy = y0 + r * 0.35, gh = h - r * 0.7, C = poleColours({ lum, lit, party: partyK, pal: pt && pt.pal, punch });
     c.save();
-    // the halo the lit glass throws on the wall + the pavement: soft + round, a warm white, the brightest light of the shopfront
-    if (lit > 0.01 && f.tier !== 0) {
-      c.globalCompositeOperation = 'lighter';
-      soft(c, [255, 226, 180], cx, (y0 + y1) / 2, h * 1.0, 0.55 * lit * fade, 1.1);
-      soft(c, [255, 246, 228], cx, (y0 + y1) / 2, r * 4.6, 0.7 * lit * fade, h / (r * 4.6) * 0.62);
-      c.globalCompositeOperation = 'source-over';
+    // the TIGHT halo + the light on the brick beside it (FP2: no wide wash — poleHalo), cool white; tinted by a party night's neon
+    if (lit > 0.01) {
+      const q = Math.round(partyK * 8) / 8, hc = mix([214, 232, 255], mix(C.r, C.b, 0.5), q * 0.6).map(Math.round), hs = poleHaloCv(m, gx, gy, gh, r, hc);
+      if (hs) { c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, lit * fade * (f.tier === 0 ? 0.8 : 1) * (1 + 0.5 * punch)); c.drawImage(hs.cv, hs.X, hs.Y); c.restore(); }
     }
     c.globalAlpha = fade;
-    // the chrome cap + finial, the base (lit: catching the glass's light)
-    c.fillStyle = rgb(mix(dim([196, 200, 210]), [214, 196, 170], lit * 0.6)); c.beginPath(); c.ellipse(cx, y0, r * 1.25, r * 0.5, 0, Math.PI, 0); c.fill(); c.fillRect(cx - r * 1.25, y0, r * 2.5, r * 0.35);
+    // the chrome cap + finial, the base (lit: catching the glass's cool light)
+    c.fillStyle = rgb(mix([196, 200, 210].map(v => v * lum + 8 * (1 - lum)), [206, 218, 236], lit * 0.6)); c.beginPath(); c.ellipse(cx, y0, r * 1.25, r * 0.5, 0, Math.PI, 0); c.fill(); c.fillRect(cx - r * 1.25, y0, r * 2.5, r * 0.35);
     c.beginPath(); c.arc(cx, y0 - r * 0.85, r * 0.35, 0, Math.PI * 2); c.fill();
     c.fillRect(cx - r * 1.25, y1 - r * 0.35, r * 2.5, r * 0.5);
+    // the glass: computed per device pixel at the exact phase, put at a whole device pixel (no resampling: never stepped, never crawling)
+    const pg = poleGlass(m, gx, gy, gh, cx, r, band, polePh, C);
+    if (pg) { c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = fade; c.drawImage(pg.cv, pg.X, pg.Y); c.restore(); polePx = { X: pg.X, Y: pg.Y, W: pg.W, H: pg.H, band: +band.toFixed(3), k: kk }; }
     c.beginPath(); c.rect(gx, gy, r * 2, gh); c.clip();
-    // the spirals: the strip slid up by the turn (a fractional offset: resampled smoothly, never stepped)
-    const off = polePh * tex.P, ty = y0 - off - band;
-    c.imageSmoothingEnabled = true;
-    if (lit < 0.999) {
-      c.drawImage(tex[0], gx, ty, r * 2, tex[0].height / POLE_PX);
-      if (lum < 0.999) { c.globalAlpha = fade * (1 - lum); c.fillStyle = 'rgb(8,8,8)'; c.fillRect(gx, gy, r * 2, gh); }
-    }
-    if (lit > 0.001) { c.globalAlpha = fade * Math.min(1, lit * 1.05); c.drawImage(tex[1], gx, ty, r * 2, tex[1].height / POLE_PX); }
-    c.globalAlpha = fade;
-    // the glass's roundness: lit — a bright core down the middle, the edges warm-dark; by day dark edges + a highlight
+    // the glass's roundness: lit — the edges a cool dark, an LED-bright core ADDED down the middle; by day dark edges + a highlight
     const g = c.createLinearGradient(gx, 0, gx + r * 2, 0);
-    // (lit: only the edges darken — the stops share the dark's colour, so the clear middle never greys — then the light's core ADDED
-    // down the middle: the glass glows from inside)
-    if (lit > 0.01) { const e0 = (0.5 - 0.18 * lit).toFixed(3), e1 = (0.5 - 0.14 * lit).toFixed(3); g.addColorStop(0, `rgba(70,30,14,${e0})`); g.addColorStop(0.32, 'rgba(70,30,14,0)'); g.addColorStop(0.68, 'rgba(56,22,12,0)'); g.addColorStop(1, `rgba(56,22,12,${e1})`); }
+    if (lit > 0.01) { const e0 = (0.46 - 0.2 * lit).toFixed(3), e1 = (0.5 - 0.18 * lit).toFixed(3); g.addColorStop(0, `rgba(16,20,40,${e0})`); g.addColorStop(0.3, 'rgba(16,20,40,0)'); g.addColorStop(0.7, 'rgba(12,14,32,0)'); g.addColorStop(1, `rgba(12,14,32,${e1})`); }
     else { g.addColorStop(0, 'rgba(0,0,0,0.45)'); g.addColorStop(0.3, 'rgba(255,255,255,0.32)'); g.addColorStop(0.42, 'rgba(255,255,255,0.05)'); g.addColorStop(1, 'rgba(0,0,0,0.5)'); }
     c.fillStyle = g; c.fillRect(gx, gy, r * 2, gh);
     if (lit > 0.01) {
-      const hg = c.createLinearGradient(gx, 0, gx + r * 2, 0), a = (0.42 * lit).toFixed(3);
-      hg.addColorStop(0.18, 'rgba(255,240,214,0)'); hg.addColorStop(0.46, `rgba(255,240,214,${a})`); hg.addColorStop(0.74, 'rgba(255,240,214,0)');
+      const hg = c.createLinearGradient(gx, 0, gx + r * 2, 0), a = (0.5 * lit * (1 + 0.4 * punch)).toFixed(3);
+      hg.addColorStop(0.2, 'rgba(236,244,255,0)'); hg.addColorStop(0.45, `rgba(236,244,255,${a})`); hg.addColorStop(0.7, 'rgba(236,244,255,0)');
       c.globalCompositeOperation = 'lighter'; c.fillStyle = hg; c.fillRect(gx, gy, r * 2, gh); c.globalCompositeOperation = 'source-over';
     }
     c.restore();
@@ -853,14 +917,20 @@ export function createSpeakeasy() {
       // the light spilling onto the brick round each lit window + the shop's lamp + the sconce
       c.globalCompositeOperation = 'lighter';
       if (f.tier !== 0) wins.forEach((w, i) => { const r = w.rect; blob(c, r.x + r.w / 2, r.y + r.h * 0.55, Math.max(r.w, r.h) * 1.05, 0.22 * k * levels[i]); });
-      const [w0, w1, , wv1] = G.s.shop.win, [lx, ly] = G.front(w0 + (w1 - w0) * 0.38, wv1 - 0.48); soft(c, [255, 214, 156], lx, ly, G.K * 1.0, 0.26 * k); glowAt.lamp = [lx, ly];
+      // (FP2 — no smoke: the shop lamp's light lands INSIDE the window — paintLit's pool on the floor, the chair, the mirror — and the globe
+      // keeps a small tight halo; the 14 pt soft cloud it threw over the glass + the gold leaf is gone)
+      const [w0, w1, , wv1] = G.s.shop.win, [lx, ly] = G.front(w0 + (w1 - w0) * 0.38, wv1 - 0.48); soft(c, [255, 222, 172], lx, ly, G.K * SHOP_GLOW.lamp, 0.62 * k); glowAt.lamp = [lx, ly];
       c.globalCompositeOperation = 'source-over';
     }
     // for 7b: a moment's own painter over its window
     for (const [id, fn] of drawers) { const w = wins.find(o => o.id === id); if (w) fn(c, w, f); }
     c.globalCompositeOperation = 'lighter';
-    // the sconce by the side door (warm, from dusk)
-    { const sc = G.s.shop.sconce, [sx, sy] = G.front(sc.u, sc.v + 0.13), a = clamp01(f.sconce == null ? f.k : f.sconce) * fade; soft(c, [255, 206, 140], sx, sy, G.K * 0.5, 0.55 * a); glowAt.sconce = [sx, sy]; if (f.tier !== 0) soft(c, [255, 186, 120], sx, sy + G.K * 0.5, G.K * 1.7, 0.16 * a, 1.15); }
+    // the sconce by the side door (warm, from dusk). FP2 — no smoke: the SOURCE (its glass lit: a warm bright pane), a small TIGHT halo,
+    // and its light LANDING on the brick, the door's granite frame + the oak (baked into the night's facade: paintGround) — the 46 pt
+    // soft wash it threw over the door is gone
+    { const sc = G.s.shop.sconce, [sx, sy] = G.front(sc.u, sc.v + 0.13), a = clamp01(f.sconce == null ? f.k : f.sconce) * fade;
+      if (a > 0.004) { const [p, py] = G.front(sc.u - 0.1, sc.v + 0.26), [q, qy] = G.front(sc.u + 0.1, sc.v); c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,226,170)'; c.fillRect(p, py, q - p, qy - py); c.globalCompositeOperation = 'lighter'; }
+      soft(c, [255, 210, 150], sx, sy, G.K * SHOP_GLOW.sconce, 0.72 * a); glowAt.sconce = [sx, sy]; }
     // THE BASEMENT WINDOW: the one hint of the secret — a faint warm amber, day + night, breathing a little
     { const b = basement, br = 0.75 + 0.1 * (f.motion ? Math.sin(f.t * 1.3) + 0.5 * Math.sin(f.t * 3.7) : 0), a = (0.26 + 0.2 * clamp01(f.night)) * br * fade;
       c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,150,60)'; c.fillRect(b.x, b.y, b.w, b.h);
@@ -874,7 +944,7 @@ export function createSpeakeasy() {
       // blade's lit board is the biggest warm slab there; its lamps' wash a step dimmer so the billboard + the pole lead; the bulbs as before)
       c.globalAlpha = clamp01(f.lamp) * fade * BLADE_LIT; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h);
       c.globalCompositeOperation = 'lighter';
-      for (const l of bladeLamps(bladeGeo(G))) { blob(c, l.x, l.y + l.W * 0.1, l.W * 0.75, f.lamp * fade); if (f.tier !== 0) blob(c, l.x, l.y + l.W * 2.4, l.W * 3, 0.16 * f.lamp * fade, 1.6); }
+      for (const l of bladeLamps(bladeGeo(G))) { blob(c, l.x, l.y + l.W * 0.1, l.W * 0.75, f.lamp * fade); if (f.tier !== 0) blob(c, l.x, l.y + l.W * 1.3, l.W * 1.5, 0.14 * f.lamp * fade, 1.3); }   // (FP2: the board itself is lit — bladeCv; the wash under the lamps tight, no haze past the board)
       c.globalCompositeOperation = 'source-over';
     }
     c.globalAlpha = fade;
@@ -889,7 +959,7 @@ export function createSpeakeasy() {
     /** the barber pole: { on: false } dark + still (7b's raid), { on: true } back to its lamp + its turn */
     pole(o = {}) { if ('on' in o) poleOff = !o.on; },
     roomDraw(id, fn) { if (fn) drawers.set(id, fn); else drawers.delete(id); },
-    debug: () => ({ poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(3), box, dpr, k: lastK, lit: !!litCv, adLit: !!adCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (adCv ? adCv.width * adCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
-    destroy() { for (const cv of [litCv, adCv, glowCv, bladeCv, ...(poleTex || []), ...softs.values()]) if (cv) cv.width = cv.height = 0; litCv = adCv = glowCv = bladeCv = poleTex = null; softs.clear(); },
+    debug: () => ({ poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(4), poleRate: poleA ? +poleA.rate.toFixed(3) : 0, polePx, box, dpr, k: lastK, lit: !!litCv, adLit: !!adCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (adCv ? adCv.width * adCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
+    destroy() { for (const cv of [litCv, adCv, glowCv, bladeCv, poleCv, haloCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; litCv = adCv = glowCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
   };
 }

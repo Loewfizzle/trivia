@@ -11,13 +11,13 @@
 //               light of the evening), each with its sputter-on / stutter-off, its tubes one by one; a rare flicker; a core flutter
 //   moments     hooks for later parts, previewed now with &force=: party (chasers + the beat + colour shifts), flash (a game's
 //               colours sweeping across the skyline: Lobby 2.0's start), scheme (holidays, CITY CONTROL)
-import { outlines, signSpots, assignSigns, billboardPick, nightKey, roleColour, SCHEMES, depthStrength, HAZE } from '../../core/harbor-neon.js';
+import { outlines, signSpots, assignSigns, billboardPick, nightKey, roleColour, SCHEMES, depthStrength, HAZE, depthLinks, partyPieces, lineKey, partySlot, neonClash } from '../../core/harbor-neon.js';
 import { project } from '../../core/harbor-layout.js';
 import { skyItems } from './skyline.js';
 import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from './tubes.js';
 import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHousing, frameLight } from './signs.js';
 import { hexRgb, markFor } from '../district/marks.js';
-import { showItems, showFrame, newShowOut, FX, everyday, signMotion, spellNow, spellParty, spellMotion, sceneAt, nightStage, rotateMix, burnout, burnoutFlicker, PARTY_PAL, partyColours } from '../../core/harbor-show.js';
+import { showItems, showFrame, newShowOut, FX, everyday, signMotion, spellNow, spellParty, spellMotion, sceneAt, nightStage, rotateMix, burnout, burnoutFlicker, PARTY_PAL, partyPlan, planColours } from '../../core/harbor-show.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { powerOrder, lightOn, litK, STAGE } from '../../core/harbor-dark.js';
 // NEON PASS 4: the racing light's head (white-hot) and the shimmer's glints
@@ -85,7 +85,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     for (const sp of spots) if (sp.kind !== 'icon' && sp.w) { if (!signRects.has(sp.host)) signRects.set(sp.host, []); signRects.get(sp.host).push(sp.w); }
     // (NEON PASS 3 — DEPTH: each building's tubes weighted by how far away it stands: core/harbor-neon.js#DEPTH)
     // (DT1: the wheel backdrop's roof accent — calm: a fine tube, a soft glow, well under the wheel's brightness)
-    outs = outlines(L, signRects).map(o2 => { const st = depthStrength(o2); return { ...o2, st: o2.accent ? { ...st, w: st.w * 0.62, glow: st.glow * 0.55, a: st.a * 0.42, soft: 0.3 } : st }; });
+    // (FP2 — NEON BY DEPTH: the party colours by building, solved once here — core/harbor-show.js#partyPlan; each outline keeps the
+    // colours of the tubes it meets at another depth, so a normal night's colour rotation never takes one of them)
+    const O = outlines(L, signRects), plan = partyPlan(partyPieces(L, O), depthLinks(O)), partners = O.map(() => new Set());
+    for (const c of O.contacts || []) { partners[c.f].add(c.bl.role); partners[c.b].add(c.fl.role); }
+    outs = O.map((o2, oi) => { const st = depthStrength(o2); return { ...o2, plan, partners: [...partners[oi]], st: o2.accent ? { ...st, w: st.w * 0.62, glow: st.glow * 0.55, a: st.a * 0.42, soft: 0.3 } : st }; });
     glassFaces = [];
     cutOutlines(); dropStubs();
     // the power items: the signs, the billboards, then each building's outline (the boot-up order: the neon plan's)
@@ -152,6 +156,22 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     for (let x = 0; x < env.length; x++) { let m = env[x]; for (let d = 1; d <= r; d++) { if (x - d >= 0 && env[x - d] < m) m = env[x - d]; if (x + d < env.length && env[x + d] < m) m = env[x + d]; } out[x] = m; }
     return out;
   }
+  /** FP2: the keyline gap (pt) a tube keeps from a nearer building's roof + edges — a touch more than its own width (≥ 1.2 pt) */
+  const keyGap = o2 => Math.max(1.2, o2.st.w * 1.3) * cam.F / 600;
+  /**
+   * FP2 — THE FRONT OCCLUDES CLEANLY: erase a baked outline sprite's light (its glow) where a nearer building of its group stands — from
+   * just above that building's roof down — so a back tube's glow never washes over the front building + its roofline (with the
+   * keyline gap above: the front's own tube reads alone, a thin dark line between). Baked: no cost a frame.
+   */
+  function eraseFront(x, o2) {
+    const m = o2.mask; if (!m) return;
+    if (!o2.maskPath) {
+      const p = new Path2D(), up = keyGap(o2) * 0.45;
+      for (let i = 0; i < m.length; i++) if (m[i] < 1e8) { let j = i; while (j + 1 < m.length && m[j + 1] < 1e8 && Math.abs(m[j + 1] - m[i]) < 0.01) j++; p.rect(i - 0.5, m[i] - up, j - i + 1, 1e4); i = j; }
+      o2.maskPath = p;
+    }
+    x.save(); x.globalCompositeOperation = 'destination-out'; x.globalAlpha = 1; x.fillStyle = '#000'; x.fill(o2.maskPath); x.restore();
+  }
   function cutOutlines() {
     const groups = skyItems(L);
     const K = cam.F / 600, R = Math.max(3, Math.round(5 * K)), EDGE = 2.5, minLen = 5 * K, bl = blockersOf();
@@ -163,11 +183,16 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       for (const it of groups[g] || []) if (it.b) ev.push({ z: it.b.z0, b: it.b });
       // (each line at its own depth: a band's threads belong to many buildings — each roofline is cut by what stands in front of
       // ITS building, never by its own block)
-      for (const o2 of outs) if (o2.group === g) { o2.runs = []; for (const ln of o2.lines) ev.push({ z: (ln.z != null ? ln.z : o2.z) - 0.04, o: o2, ln }); }
+      for (const o2 of outs) if (o2.group === g) { o2.runs = []; o2.mask = null; o2.maskPath = null; for (const ln of o2.lines) ev.push({ z: (ln.z != null ? ln.z : o2.z) - 0.04, o: o2, ln }); }
       ev.sort((a, b) => a.z - b.z || (a.o ? -1 : 1));
       for (const e of ev) {
         if (e.b) { for (const [x0, x1, y] of silhouette(e.b)) for (let x = Math.max(0, Math.floor(x0)); x <= Math.min(env.length - 1, Math.ceil(x1)); x++) if (y < env[x]) env[x] = y; continue; }
-        const o2 = e.o, runs = o2.runs, envD = dilate(env, o2.band ? 1 : R);   // (the dilation keeps a TOWER's edge out of narrow gaps; a band's rooflines need none)
+        // FP2 — THE KEYLINE (NEON BY DEPTH): a tube behind a nearer building ends a clear GAP above its roof / beside its edge — a thin
+        // dark line between the back tube's electrode and the front's own roofline tube, never a T-junction of light (gap: a touch more
+        // than the tube's width at its depth)
+        const o2 = e.o, runs = o2.runs, gap = keyGap(o2), envD = dilate(env, o2.band ? Math.max(1, Math.round(gap)) : R);   // (the dilation keeps a TOWER's edge out of narrow gaps; a band's rooflines only the gap's)
+        // (the nearer buildings' envelope at this item's nearest tube: its light is erased under it when its sprites bake — eraseFront)
+        if (sky && !o2.mask) o2.mask = env.slice();
         for (const ln of [e.ln]) {
           const z0 = ln.pts[0][2];
           const pts = ln.pts.map(([x, y, z]) => project(cam, x, y, z ?? z0));
@@ -178,11 +203,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
           let run = null;
           tb.pts.forEach(([x, y], i) => {
             const xi = Math.round(x);
-            let vis = x >= EDGE && x <= W - EDGE && (xi < 0 || xi >= env.length || y < envD[xi] - 0.4);
+            let vis = x >= EDGE && x <= W - EDGE && (xi < 0 || xi >= env.length || y < envD[xi] - gap);
             if (vis && sky) for (const r of bl.rs) if (x > r.x0 && x < r.x1 && y > r.y0 && y < r.y1) { vis = false; break; }
             if (vis && sky && !o2.accent && (x - bl.wheel.x) ** 2 + (y - bl.wheel.y) ** 2 < bl.wheel.r2) vis = false;
             // (each run keeps its PART — contour, roof, ledge, fin, trim, crown — its level and its building: the party show plays them)
-            if (vis) { if (!run) { run = { pts: [], lv: [], role: ln.role, needle: !!ln.needle, thin: !!ln.thin, block: ln.block, part: ln.part || (ln.thin ? 'fin' : 'contour'), lvl: ln.lvl || 0 }; runs.push(run); } run.pts.push([x, y]); run.lv.push(tb.lv[i]); }
+            if (vis) { if (!run) { run = { pts: [], lv: [], role: ln.role, needle: !!ln.needle, thin: !!ln.thin, block: ln.block, part: ln.part || (ln.thin ? 'fin' : 'contour'), lvl: ln.lvl || 0, key: lineKey(o2, ln), slot: partySlot(o2, ln) }; runs.push(run); } run.pts.push([x, y]); run.lv.push(tb.lv[i]); }
             else run = null;
           });
         }
@@ -209,17 +234,18 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     else if (it.kind === 'board') { it.night = it.b.nightS; }
     else {
       const o2 = it.o, k = cam.F / 600;
-      const tubes = o2.runs.map(r => ({ pts: r.pts, lv: capLight(r.lv), closed: false, ends: [true, true], role: r.role, needle: r.needle, thin: r.thin, part: r.part, lvl: r.lvl, block: r.block }));
-      const byRole = new Map();
-      for (const t of tubes) { const kk = `${t.role}|${t.needle ? 1 : t.thin ? 2 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
+      const tubes = o2.runs.map(r => ({ pts: r.pts, lv: capLight(r.lv), closed: false, ends: [true, true], role: r.role, needle: r.needle, thin: r.thin, part: r.part, lvl: r.lvl, block: r.block, key: r.key, slot: r.slot }));
+      // (tier 0's party still: the plan's colours for one scene — FP2, the same depth rule as the rotating palette)
+      const n0 = scheme === 'party' && o2.plan ? palBase ?? 0 : null;
+      const byCol = groupTubes(tubes, t => (n0 != null ? palCol(o2, tubeParty(o2, t, n0)) : colOf(t.role, o2)));
       const b = bbox(tubes), glow = o2.st.glow * k;
       it.lit = [sprite(b, glow * 2.6, dpr, x => {
-        for (const [kk, ts] of byRole) {
-          const [role, nd] = kk.split('|');
-          const tw = o2.st.w * k * (nd === '1' ? 1.5 : nd === '2' ? THIN : 1);
-          drawLit(x, ts, colOf(role, o2), { w: tw, glow: glow * (nd === '1' ? 1.6 : nd === '2' ? 0.7 : 1), a: o2.st.a * (nd === '2' ? 0.85 : 1), dpr, soft: o2.st.soft });
+        for (const { col, nd, ts } of byCol) {
+          const tw = o2.st.w * k * (nd === 1 ? 1.5 : nd === 2 ? THIN : 1);
+          drawLit(x, ts, col, { w: tw, glow: glow * (nd === 1 ? 1.6 : nd === 2 ? 0.7 : 1), a: o2.st.a * (nd === 2 ? 0.85 : 1), dpr, soft: o2.st.soft });
           caps(x, ts, tw, 0);
         }
+        eraseFront(x, o2);
         // SOLID SIGNS, baked: the signs' + billboards' cabinets cut out of the outline's light once, here (the per-frame clip
         // cost a slow phone ~0.6 ms a frame); only the live chasers + the flash still draw through the clip
         x.globalCompositeOperation = 'destination-out'; x.globalAlpha = 1; x.fillStyle = '#000';
@@ -237,10 +263,17 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       const fx = (part, key, rev) => tubes.filter(r => r.part === part).map(r => ({ p: P2(r), role: r.role, thin: r.thin, k: key(r) })).sort((a, b) => (rev ? b.k - a.k : a.k - b.k));
       it.fx = { ledges: fx('ledge', yOf, true), fins: fx('fin', xOf), crown: fx('crown', yOf), chase: tubes.filter(r => !r.thin || r.part === 'trim').map(r => ({ p: P2(r), role: r.role, thin: r.thin })) };
       // (NEON PASS 4: THE RACING LIGHT — the whole outline as one path per colour role: a few strokes a building, not one a run)
-      const byR = new Map();
+      const byR = new Map(), byP = new Map();
       let rl = 0;
-      for (const r of tubes) if (!r.thin || r.part === 'trim') { if (!byR.has(r.role)) byR.set(r.role, new Path2D()); const p = byR.get(r.role); p.moveTo(r.pts[0][0], r.pts[0][1]); for (let j = 1; j < r.pts.length; j++) { p.lineTo(r.pts[j][0], r.pts[j][1]); rl += Math.hypot(r.pts[j][0] - r.pts[j - 1][0], r.pts[j][1] - r.pts[j - 1][1]); } }
-      it.fx.race = [...byR].map(([role, p]) => ({ role, p }));
+      // (FP2: + one path per building + party slot for the party's racing — a cluster's buildings each race in their own colours; ~15 %
+      // more paths than by colour role across the city at 402, only the racing clusters' count a frame; a normal night's chasers keep
+      // the paths by role)
+      const add2 = (m, k, o, r) => { if (!m.has(k)) m.set(k, { ...o, p: new Path2D() }); const p = m.get(k).p; p.moveTo(r.pts[0][0], r.pts[0][1]); for (let j = 1; j < r.pts.length; j++) p.lineTo(r.pts[j][0], r.pts[j][1]); };
+      for (const r of tubes) if (!r.thin || r.part === 'trim') {
+        add2(byR, r.role, { role: r.role }, r); add2(byP, `${r.key}|${r.slot}`, { role: r.role, key: r.key, slot: r.slot }, r);
+        for (let j = 1; j < r.pts.length; j++) rl += Math.hypot(r.pts[j][0] - r.pts[j - 1][0], r.pts[j][1] - r.pts[j - 1][1]);
+      }
+      it.fx.race = [...byR.values()]; it.fx.raceP = [...byP.values()];
       it.raceLen = rl;
       // (the shimmer's glints: a few points along the tubes)
       // (at most 28 a building, spread along its tubes — chosen once here: the shimmer's cost is per glint)
@@ -270,6 +303,16 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   function freePal(it) { if (it.ps) for (const v of it.ps.values()) free(v); it.ps = null; }
   // a tube's colour at its building's depth: the far ones sink toward the night haze (aerial perspective)
   const colOf = (role, o2) => { const c = roleColour(role, scheme); return o2 && o2.st && o2.st.haze ? mix(c, HAZE, o2.st.haze) : c; };
+  /** FP2: a tube's party colour in scene n (an index into PARTY_PAL) — its building's plan (core/harbor-show.js#partyPlan), its slot */
+  const tubeParty = (o2, t, n) => { const e = o2.plan && o2.plan.get(t.key); return e ? planColours(e, n)[t.slot || 0] : 0; };
+  /** tubes grouped by their colour + kind (1 the needle, 2 a thin detail, 0 the bold tube): [{ col, nd, ts }] */
+  const groupTubes = (tubes, colFn) => {
+    const m = new Map();
+    for (const t of tubes) { const col = colFn(t), nd = t.needle ? 1 : t.thin ? 2 : 0, kk = `${col.map(v => v | 0).join(',')}|${nd}`; if (!m.has(kk)) m.set(kk, { col, nd, ts: [] }); m.get(kk).ts.push(t); }
+    return [...m.values()];
+  };
+  /** FP2: may a whole building take this colour (a rotation, a scheme stage, a sweep) — never one the tubes it meets at another depth wear */
+  const depthOk = (o2, col) => !(o2.partners || []).some(r => neonClash(col, roleColour(r, scheme)));
   // THE CAST (the party show): one descriptor per outline item, in the items' order (the show's arrays are indexed by item)
   function castFor() {
     if (castOf === items && cast.length === items.length) return cast;
@@ -284,10 +327,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     if (!it.tubes || it.alt) return;
     const own = roleColour(it.o.roles[0], scheme), k = cam.F / 600, o2 = it.o;
     let col = SWEEP[(it.i * 2) % SWEEP.length];
-    for (let j = 0; j < SWEEP.length && Math.hypot(col[0] - own[0], col[1] - own[1], col[2] - own[2]) < 160; j++) col = SWEEP[(it.i * 2 + j + 1) % SWEEP.length];
+    for (let j = 0; j < SWEEP.length && (Math.hypot(col[0] - own[0], col[1] - own[1], col[2] - own[2]) < 160 || !depthOk(o2, col)); j++) col = SWEEP[(it.i * 2 + j + 1) % SWEEP.length];
     const b = bbox(it.tubes), glow = o2.st.glow * k;
     it.alt = sprite(b, glow * 2.6, dpr, x => {
       drawLit(x, it.tubes, mix(col, HAZE, o2.st.haze || 0), { w: o2.st.w * k, glow, a: o2.st.a, dpr, soft: o2.st.soft });
+      eraseFront(x, o2);
       x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000';
       for (const r of solidRects(o2.group, it)) x.fillRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
     });
@@ -301,21 +345,27 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     it.vars.set(key, null);
     queue.push(() => {
       if (!it.tubes || !it.vars) return;
-      const o2 = it.o, k = cam.F / 600, col = mix(SWEEP[+key.slice(1) % SWEEP.length], HAZE, o2.st.haze || 0), b = bbox(it.tubes), glow = o2.st.glow * k;
+      const o2 = it.o, k = cam.F / 600, b = bbox(it.tubes), glow = o2.st.glow * k;
+      let ci = +key.slice(1); for (let j = 0; j < SWEEP.length && !depthOk(o2, SWEEP[ci % SWEEP.length]); j++) ci++;   // (FP2: never a colour it meets at another depth)
+      const col = mix(SWEEP[ci % SWEEP.length], HAZE, o2.st.haze || 0);
       it.vars.set(key, sprite(b, glow * 2.6, dpr, x => {
         drawLit(x, it.tubes, col, { w: o2.st.w * k, glow, a: o2.st.a, dpr, soft: o2.st.soft });
+        eraseFront(x, o2);
         x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000';
         for (const r of solidRects(o2.group, it)) x.fillRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
       }));
     });
     return null;
   }
-  // THE ROTATING PARTY PALETTE (NEON PASS 5): a building's tubes in a [main, accent] pair of PARTY_PAL (its first colour role in
-  // the main, the rest in the accent), built a few a frame — the next scene's pair is requested from the scene's start, so it's
-  // ready long before the sweep reaches it; a building keeps only the pairs it wears now (its cur + next)
+  // THE ROTATING PARTY PALETTE (NEON PASS 5): a building's tubes in a [main, accent] pair of PARTY_PAL, built a few a frame — the
+  // next scene's colours are requested from the scene's start, so they're ready long before the sweep reaches them; an item keeps
+  // only the scenes it wears now (its cur + next). FP2 — BY DEPTH: every BUILDING of an item (a cluster's three) wears its own
+  // pair from the plan (core/harbor-show.js#partyPlan: a front building + the one behind it never the same colour); its main role's
+  // tubes the main, the rest the accent. The colours repeat every 6 scenes: a sprite is keyed by the scene mod 6.
   const palCol = (o2, i) => mix(PARTY_PAL[i % PARTY_PAL.length], HAZE, o2.st.haze || 0);
-  function partySprite(it, pair, keep) {
-    const key = pair[0] * 8 + pair[1];
+  const m6 = n => ((n % 6) + 6) % 6;
+  function partySprite(it, n, keep) {
+    const key = m6(n);
     it.ps = it.ps || new Map();
     if (it.ps.has(key)) return it.ps.get(key);
     it.ps.set(key, null);
@@ -323,14 +373,14 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       if (!it.tubes || !it.ps || !it.ps.has(key)) return;
       for (const [k2, v] of it.ps) if (k2 !== key && !keep.includes(k2) && v) { free(v); it.ps.delete(k2); }
       const o2 = it.o, k = cam.F / 600, b = bbox(it.tubes), glow = o2.st.glow * k;
-      const byRole = new Map();
-      for (const t of it.tubes) { const kk = `${t.role}|${t.needle ? 1 : t.thin ? 2 : 0}`; if (!byRole.has(kk)) byRole.set(kk, []); byRole.get(kk).push(t); }
+      const byCol = groupTubes(it.tubes, t => palCol(o2, tubeParty(o2, t, n)));
       const sp = sprite(b, glow * 2.6, dpr, x => {
-        for (const [kk, ts] of byRole) {
-          const [role, nd] = kk.split('|'), tw = o2.st.w * k * (nd === '1' ? 1.5 : nd === '2' ? THIN : 1);
-          drawLit(x, ts, palCol(o2, role === o2.roles[0] ? pair[0] : pair[1]), { w: tw, glow: glow * (nd === '1' ? 1.6 : nd === '2' ? 0.7 : 1), a: o2.st.a * (nd === '2' ? 0.85 : 1), dpr, soft: o2.st.soft });
+        for (const { col, nd, ts } of byCol) {
+          const tw = o2.st.w * k * (nd === 1 ? 1.5 : nd === 2 ? THIN : 1);
+          drawLit(x, ts, col, { w: tw, glow: glow * (nd === 1 ? 1.6 : nd === 2 ? 0.7 : 1), a: o2.st.a * (nd === 2 ? 0.85 : 1), dpr, soft: o2.st.soft });
           caps(x, ts, tw, 0);
         }
+        eraseFront(x, o2);
         x.globalCompositeOperation = 'destination-out'; x.globalAlpha = 1; x.fillStyle = '#000';
         for (const r of solidRects(o2.group, it)) x.fillRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
         x.globalCompositeOperation = 'source-over';
@@ -341,14 +391,19 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     });
     return null;
   }
-  /** this frame's palette pairs for an outline item (scene n's + the next) and the mix between them (the sweep / the strobe) */
+  /** this frame's palette scenes for an outline item (scene n + the next) and the mix between them (the sweep / the strobe) */
   function palOf(it) {
-    const cs = cast[it.i] || { rank: it.i, h: 0 }, n = showOut.cn;
-    return { A: partyColours(cs.rank, n, cs.h), B: partyColours(cs.rank, n + 1, cs.h), m: showOut.cm[it.i] || 0 };
+    const n = showOut.cn || 0;
+    return { A: n, B: n + 1, m: showOut.cm[it.i] || 0 };
   }
   const usePal = () => showOn && !schemeX && tier > 0;
   const palMb = () => items.reduce((a, it) => a + (it.ps ? [...it.ps.values()].reduce((b, v) => b + (v ? v.mb : 0), 0) : 0), 0);
-  const palDebug = () => { const cols = new Set(); let built = 0; for (const it of items) if (it.ps) for (const [k, v] of it.ps) if (v) { built++; cols.add(k >> 3); } return { on: usePal(), scene: showOut.cn || 0, built, mains: cols.size }; };
+  const palDebug = () => {
+    const cols = new Set(); let built = 0;
+    for (const it of items) if (it.ps) for (const [k, v] of it.ps) if (v) { built++; if (it.o && it.tubes) for (const t of it.tubes) if (!t.slot) cols.add(tubeParty(it.o, t, k)); }
+    const pl = outs[0] && outs[0].plan;
+    return { on: usePal(), scene: showOut.cn || 0, built, mains: cols.size, solved: pl ? !!pl.solved : null, white: pl ? [...pl.values()].filter(e => e.off === 6).length : 0 };
+  };
   // the burnt-out letter's sign text: the dead letter cut out (its unlit glass shows from the housing), a weak sputter now and then
   function deadText(c, it, s, a, dm, t) {
     const bx = it.sg.letterBoxes[burn.letter];
@@ -471,7 +526,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     // (tier 0, the calm city: the party's motion — the chasers, the beat — is dropped; the neon stays lit, steady)
     const pe = f.party ? f.party.ramp * (f.party.energy || 0) : 0, partyK = tier === 0 ? 0 : Math.max(pe, moment.party);
     // THE PARTY SCHEME (every tier: the still picture is a party too) — on above 0.3, off under 0.15
-    if (group === 'far') { const pl = Math.max(pe, moment.party); const want = partyLook ? pl > 0.15 : pl > 0.3; if (want !== partyLook) { partyLook = want; applyScheme(); } }
+    if (group === 'far') { const pl = Math.max(pe, moment.party); const want = partyLook ? pl > 0.15 : pl > 0.3; if (want !== partyLook) { partyLook = want; if (palBase == null && f.hour != null) palBase = Math.floor(f.hour * 2); applyScheme(); } }
     // tonight's burnt-out letter (the night's date; the named signs; a forced preview)
     { const bk = `${assignKey}|${signs.length}|${moment.burnout ? 1 : 0}`; if (bk !== burnKey) { burnKey = bk; const m = /^(\d+)-(\d+)-(\d+)$/.exec(assignKey); burn = m ? burnout({ y: +m[1], m: +m[2], d: +m[3] }, signs.filter(sg => sg.kind === 'named' && sg.nText).map(sg => ({ id: sg.id, n: sg.nText })), moment.burnout) : null; dropComp(); } }
     // tonight's everyday motion (once every item is built; a new pick each night)
@@ -552,7 +607,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
         if (usePal() && it.tubes) {
           // THE ROTATING PALETTE (NEON PASS 5): scene n's pair, crossfading to the next as the sweep front passes (or a colour sweep /
           // a strobe flashes it early); the building's own colours until its pair is built (then a 1 s fade into it)
-          const pl = palOf(it), kA = pl.A[0] * 8 + pl.A[1], kB = pl.B[0] * 8 + pl.B[1];
+          const pl = palOf(it), kA = m6(pl.A), kB = m6(pl.B);
           const A = partySprite(it, pl.A, [kA, kB]), B = partySprite(it, pl.B, [kA, kB]);
           const s0 = it.lit[0], SA = A || s0, SB = B || SA, fa = A ? clamp01((performance.now() - A.at) / 1000) : 0;
           const m = Math.max(pl.m, alt), a = alpha(it, 0, t, motion) * base * beat;
@@ -797,8 +852,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     }
     const o = it.raceO, lead = L2 => (dir > 0 ? o - tail + L2 : o);       // (a dash of length L2 ending at the pulse's leading end)
     const pal = party && usePal() ? palOf(it) : null;
-    for (const r of it.fx.race) {
-      const col = pal ? palCol(it.o, (pal.m > 0.5 ? pal.B : pal.A)[r.role === it.o.roles[0] ? 0 : 1]) : colOf(r.role, it.o);
+    for (const r of pal ? it.fx.raceP : it.fx.race) {
+      const col = pal ? palCol(it.o, tubeParty(it.o, r, pal.m > 0.5 ? pal.B : pal.A)) : colOf(r.role, it.o);
       if (party) {
         // the glow (tier 2) · the long tail · its brighter last third · the head's halo · the white-hot head
         const t3 = tail * 0.38;
@@ -953,7 +1008,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     /** NEON PASS 4: the sky beams' colours — each tower's own neon colour (its party colour while a sweep / strobe holds it) */
     beamCols: ids => ids.map(id => { const it = items.find(x => x.kind === 'outline' && x.id === id); if (!it || !it.o) return [255, 255, 255];
       // (NEON PASS 5: on a party night the tower's colour in THE ROTATING PALETTE — it changes with the show, scene by scene)
-      if (usePal()) { const pl = palOf(it), m = Math.max(pl.m, showOut.alt[it.i] || 0); return mix(PARTY_PAL[pl.A[0]], PARTY_PAL[pl.B[0]], m).map(Math.round); }
+      if (usePal()) { const pl = palOf(it), m = Math.max(pl.m, showOut.alt[it.i] || 0), t = { key: it.id, slot: 0 }; return mix(PARTY_PAL[tubeParty(it.o, t, pl.A)], PARTY_PAL[tubeParty(it.o, t, pl.B)], m).map(Math.round); }
       if (showOn && showOut.alt[it.i] > 0.5 && it.altCol) return it.altCol; return roleColour(it.o.roles[0], scheme); }),
     /** the party show's state this frame (the scene reads it: the searchlights, the wheel's sparkle, the NEON word's big drops) */
     show: () => showState,

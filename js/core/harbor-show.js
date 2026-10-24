@@ -37,13 +37,97 @@ export const FX = { none: 0, chase: 1, ledges: 2, fins: 3, flash: 4 };
  * 20–40 s) in a sweep across the skyline; neighbours never share a main colour; pink is one colour of seven.
  */
 export const PARTY_PAL = [[40, 120, 255], [255, 196, 50], [255, 44, 64], [50, 255, 120], [160, 70, 255], [255, 244, 236], [255, 46, 151]];
-/** a building's party colours in scene n: [main, accent] (indices into PARTY_PAL). rank: its place left → right among the cast.
- *  The six bright colours take turns as the MAIN (neighbours always differ); WHITE is an accent only — a white tower read as no
- *  colour at all under the racing light's white-hot heads (the review) */
-const MAINS = [0, 1, 2, 3, 4, 6];
-export function partyColours(rank, n, h = 0) {
-  const k = (((rank + n * 2) % 6) + 6) % 6, main = MAINS[k];
-  return [main, h > 0.55 ? 5 : MAINS[(k + 3) % 6]];
+/**
+ * FP2 — THE PARTY RING (NEON BY DEPTH): the six bright colours in their order ROUND THE HUE CIRCLE — gold, green, blue, violet, pink,
+ * red (indices into PARTY_PAL). A building sits at a place on the ring (its OFFSET, partyOffsets) and every scene the whole city steps
+ * one place on; so two buildings keep the SAME distance round the ring all night. Two or three places apart is always ≥ 73° of hue
+ * (one place can be as close as pink → red, 24°): neighbours stand 2–3 places apart, a front building + the one behind it 3 —
+ * opposite colours, still ≥ 73° apart while a sweep has carried one of them a scene ahead.
+ */
+export const PARTY_RING = [1, 3, 0, 4, 6, 2];
+/** a building's party colours in scene n: [main, accent] (indices into PARTY_PAL). off: its offset on the ring (partyOffsets; a
+ *  plain place index gives neighbours that always differ). The accent is the opposite colour, or WHITE (h > 0.55) — white is an
+ *  accent only: a white tower read as no colour at all under the racing light's white-hot heads (the review) */
+export function partyColours(off, n, h = 0) {
+  const k = (((off + n) % 6) + 6) % 6;
+  return [PARTY_RING[k], h > 0.55 ? 5 : PARTY_RING[(k + 3) % 6]];
+}
+/** a place on the ring for the r-th building left → right: neighbours 2 or 3 places apart, all six colours on the skyline */
+export const ringBase = r => (2 * r + Math.floor(r / 3)) % 6;
+/**
+ * FP2 — THE PARTY COLOURS BY DEPTH, solved once a layout. Each BUILDING (a piece: a band block, a tower, a hero —
+ * core/harbor-neon.js#partyPieces) gets a place on the ring (off) and an accent (acc: 3 the opposite colour · 'w' white · 1 / 5 the
+ * colour next to its main round the ring — the accent that lets both of a front building's colours stand apart from the one behind).
+ * pieces: [{ key, x (0..1 across), pale (its normal-night colour is white / ice), tower (a hero / word tower: up to six, each its
+ * own colour in every scene) }]; links: [{ f, b (piece keys: in front, behind), fs, bs (0: the main colour's tubes, 1: the
+ * accent's) }] (core/harbor-neon.js#depthLinks). HARD: a link's two colours never clash in any scene (their places 2–4 apart round
+ * the ring — ≥ 73° of hue —, or one of them white, never both); neighbours left → right never share a main colour. SOFT: a link 3
+ * places apart (it stays ≥ 73° while a sweep / a strobe holds one of them a scene ahead), neighbours 2–3 apart, the plain place
+ * (ringBase) + the plain accent (white for about half the buildings, as before). → Map(key → { off, acc, rank }) + .solved
+ */
+export function partyPlan(pieces, links = []) {
+  const lit = [...pieces].sort((a, b) => a.x - b.x || (a.key < b.key ? -1 : 1)).map((p, r) => ({ ...p, rank: r, h: hash(r + 7, 3) }));
+  const idx = new Map(lit.map((p, i) => [p.key, i]));
+  const by = lit.map(() => []);
+  for (const l of links) { const f = idx.get(l.f), b = idx.get(l.b); if (f == null || b == null || f === b) continue; const e = { f, b, fs: l.fs, bs: l.bs }; by[f].push(e); by[b].push(e); }
+  const ACC = [3, 'w', 1, 5], off = new Int8Array(lit.length).fill(-1), acc = new Array(lit.length).fill(null);
+  const towers = lit.map((p, k) => (p.tower ? k : -1)).filter(k => k >= 0);
+  // (off 6: an all-WHITE building — the way out of a knot of three buildings all meeting each other, which six colours kept 2+
+  // places apart can't untie; cheap for a building that is white / ice on a normal night, the HOTEL, dear for any other)
+  const posOf = (i, slot, o = off[i], a = acc[i]) => (o === 6 ? -1 : slot === 0 ? o : a === 'w' ? -1 : (o + a) % 6);   // (-1: white)
+  const cost = (k, o, a) => {
+    const c = lit[k];
+    let s = o === 6 ? (c.pale ? 2.5 : 8) : (o === ringBase(c.rank) ? 0 : 0.5) + (a === (c.h > 0.55 ? 'w' : 3) ? 0 : a === 'w' || a === 3 ? 0.4 : 0.8);
+    for (const j of [k - 1, k + 1]) {
+      if (j < 0 || j >= lit.length || off[j] < 0) continue;
+      if (o === 6 || off[j] === 6) { if (o === off[j]) return Infinity; continue; }
+      const d = ((o - off[j]) % 6 + 6) % 6; if (d === 0) return Infinity; if (d === 1 || d === 5) s += 1;
+    }
+    // (the hero + word towers — the tall ones that race + throw the sky beams — each in its own colour: never two pink at once)
+    // (+ the towers side by side two or three places apart round the ring: never pink beside red)
+    if (c.tower && o !== 6) towers.forEach((t, ti) => { if (t === k || off[t] < 0 || off[t] === 6) return; const d = ((o - off[t]) % 6 + 6) % 6; if (d === 0) s = Infinity; else if ((d === 1 || d === 5) && Math.abs(ti - towers.indexOf(k)) === 1) s += 4; });
+    for (const e of by[k]) {
+      const other = e.f === k ? e.b : e.f; if (off[other] < 0) continue;
+      const pf = e.f === k ? posOf(k, e.fs, o, a) : posOf(other, e.fs), pb = e.b === k ? posOf(k, e.bs, o, a) : posOf(other, e.bs);
+      if (pf < 0 || pb < 0) { if (pf < 0 && pb < 0) return Infinity; continue; }
+      const g = ((pb - pf) % 6 + 6) % 6;
+      if (g < 2 || g > 4) return Infinity;
+      if (g !== 3) s += 2;
+    }
+    return s;
+  };
+  // A DEPTH-FIRST SEARCH over the towers + the LINKED buildings, the most constrained one next (the fewest choices left: a dead end
+  // shows at once), the cheapest choice first — capped; then the rest left → right (only their neighbours to differ from: always a
+  // choice). First without an all-white building that isn't white on a normal night (+ never a white tower: it races its border);
+  // only if that fails, with them; past both, the
+  // links that can't all be kept give way (never on the phones' layouts: tested).
+  const core = [...towers, ...lit.map((_, k) => k).filter(k => !lit[k].tower && by[k].length).sort((a, b) => by[b].length - by[a].length || a - b)];
+  let steps = 0, white = false;
+  const choices = k => { const out = []; for (let o = 0; o < 6; o++) for (const a of ACC) { const c = cost(k, o, a); if (c < Infinity) out.push([o, a, c]); } const w = white || (lit[k].pale && !lit[k].tower) ? cost(k, 6, 'w') : Infinity; if (w < Infinity) out.push([6, 'w', w]); return out.sort((x, y) => x[2] - y[2]); };
+  // (the next building: the most constrained of the FRONTIER — the unplaced ones linked to a placed one — else the next unplaced)
+  const near = k => by[k].some(e => off[e.f === k ? e.b : e.f] >= 0);
+  const solve = () => {
+    let best = -1, bc = null;
+    for (const k of core) if (off[k] < 0 && near(k)) { const ch = choices(k); if (!ch.length) return false; if (!bc || ch.length < bc.length) { best = k; bc = ch; } }
+    if (best < 0) { best = core.find(k => off[k] < 0) ?? -1; if (best >= 0) { bc = choices(best); if (!bc.length) return false; } }
+    if (best < 0) return true;
+    for (const [o, a] of bc) { if (++steps > 4000) return false; off[best] = o; acc[best] = a; if (solve()) return true; }
+    off[best] = -1; acc[best] = null;
+    return false;
+  };
+  let solved = solve();
+  if (!solved) { white = true; steps = 0; off.fill(-1); acc.fill(null); solved = solve(); }
+  if (!solved) { off.fill(-1); acc.fill(null); for (const k of core) { const ch = choices(k); const [o, a] = ch.length ? ch[0] : [ringBase(k), 3]; off[k] = o; acc[k] = a; } }
+  for (let k = 0; k < lit.length; k++) if (off[k] < 0) { const ch = choices(k); const [o, a] = ch.length ? ch[0] : [ringBase(k), 3]; off[k] = o; acc[k] = a; }
+  const out = new Map(lit.map((p, i) => [p.key, { off: off[i], acc: acc[i], rank: i }]));
+  out.solved = solved;
+  return out;
+}
+/** a building's party colours in scene n from its plan entry ({ off, acc }): [main, accent] (indices into PARTY_PAL; 5 = white) */
+export function planColours(e, n) {
+  if (e.off === 6) return [5, 5];
+  const k = (((e.off + n) % 6) + 6) % 6;
+  return [PARTY_RING[k], e.acc === 'w' ? 5 : PARTY_RING[(k + e.acc) % 6]];
 }
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -67,12 +151,38 @@ export function beatOf(phase, rate, bpm, breathDiv) {
   const div = bpm ? breathDiv(bpm) : Math.max(1, Math.round(1 / (Math.max(0.05, rate || 0.3) * 0.5))), x = (phase - Math.floor(phase)) * div, idx = Math.floor(x);
   return { u: x - idx, idx, T: 1 / Math.max(0.05, (rate || 0.3) * div), div };
 }
-/** the harbor's party night (the owner: 9 pm warm-up → 11 pm peak → calming after 1 am → the 2 am wind-down; core/party.js's
- *  window + wind-down are kept): h = core/party.js#partyHour → { energy 0.55..1, name } */
-export function harborParty(h) {
-  if (h == null) return { energy: 0, name: null };
-  const energy = 0.55 + 0.2 * smooth(20.6, 22, h) + 0.25 * smooth(22.2, 23, h) - 0.3 * smooth(24.9, 25.6, h);
-  return { energy, name: h < 22.6 ? 'warm' : h < 25 ? 'peak' : 'after' };
+// FP2 — PARTY-NIGHT TIMING, EARLIER (the owner, Oct 23: "so beautiful, I don't want it missed"): the warm-up from 8:30 pm, THE PEAK
+// from 9:30 pm, the midnight finale (Part 10's hook), calming after 1 am, back to normal at 2 am (core/party.js's window + wind-down).
+// The show needs darkness: the warm-up starts at 8:30 OR when the blue hour's power-up has finished (harbor-dark.js#partyReady),
+// whichever is LATER, and the peak at 9:30 OR PEAK_GAP after the warm-up — so in midsummer (Grand Rapids' sunset ~9:20 pm, the
+// power-up done ~10 pm) the whole night slides later on its own. Hours as core/party.js#partyHour (the evening's day: 1 am = 25).
+export const HARBOR_PARTY = Object.freeze({ warm: 20.5, peak: 21.5, gap: 0.75, calm: 25, end: 26 });
+/** tonight's plan: readyH = the hour the power-up finished tonight (partyReadyHour) or null (unknown / ALWAYS NIGHT) → { warm, peak, calm, end } */
+export function harborPartyPlan(readyH = null) {
+  const P = HARBOR_PARTY, warm = Math.max(P.warm, readyH != null && Number.isFinite(+readyH) ? +readyH : 0);
+  return { warm, peak: Math.max(P.peak, warm + P.gap), calm: P.calm, end: P.end };
+}
+/**
+ * When the power-up finishes tonight (pure maths on the real sun): dark(ms) → the darkness at that moment (the caller's
+ * harbor-dark.js#darkness on core/sky.js#sunPosition), ready(k) → partyReady; eveningMs = the evening's local midnight (ms) →
+ * the hour (partyHour scale) the city is first ready between 5 pm and 3 am, or null (it never gets dark enough: a white night).
+ */
+export function partyReadyHour(eveningMs, dark, ready) {
+  const at = h => ready(dark(eveningMs + h * 3600000));
+  let lo = null;
+  for (let h = 17; h <= 27; h += 1 / 6) { if (at(h)) { lo = h; break; } }
+  if (lo == null) return null;
+  if (lo <= 17) return 17;
+  let a = lo - 1 / 6, b = lo;
+  for (let i = 0; i < 14; i++) { const m = (a + b) / 2; if (at(m)) b = m; else a = m; }
+  return b;
+}
+/** the harbor's party night: h = core/party.js#partyHour, plan = harborPartyPlan → { energy 0.55..1, name, on (the show may run) } */
+export function harborParty(h, plan = harborPartyPlan()) {
+  if (h == null) return { energy: 0, name: null, on: false };
+  const { warm, peak, calm } = plan;
+  const energy = 0.55 + 0.2 * smooth(warm, peak - 0.1, h) + 0.25 * smooth(peak - 0.2, peak + 0.3, h) - 0.3 * smooth(calm - 0.1, calm + 0.6, h);
+  return { energy, name: h < peak ? 'warm' : h < calm ? 'peak' : 'after', on: h >= warm };
 }
 
 /** the cast: the descriptors of the outline items in draw order */

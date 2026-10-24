@@ -11,7 +11,7 @@ import { lobbyNow } from './lobby-music.js';
 import { moodData } from './mood.js';
 import { settings } from './settings.js';
 import { getContext, getMusicBus, clockFrozen, onRebuild, onResume } from './engine.js';
-import { createOnsets, onsetStep, kickLag, kickErr, createLead, learnLead, heardPos, createSongClock, songClockStep, kickErrWide, createHeard, heardStep, heardSkew } from '../core/harbor-beat.js';
+import { createOnsets, onsetStep, kickLag, createLead, leadKick, leadRefresh, heardPos, createSongClock, songClockStep, kickErrWide, createHeard, heardStep, heardSkew } from '../core/harbor-beat.js';
 
 // ---- WHEN THE BEAT IS HEARD (M2, the owner: the party's sync "kind of — not perfect")
 // Two delays sit between a song's clock and the ear:
@@ -58,13 +58,24 @@ const cal = (() => {
   return { el: createLead(), buf: createLead() };
 })();
 let calSaved = 0;
-function learn(kind, err) {
-  if (!learnLead(cal[kind], err)) return;
+function learn(kind, wide, grid, nowMs) {
+  const r = leadKick(cal[kind], wide, grid, nowMs);
+  if (r !== 'learn' && r !== 'done') return;
   if (performance.now() - calSaved > 10000) {
     calSaved = performance.now();
+    // (the device value is saved within the ordinary range — a re-measured return offset is this visit's, createLead clamps it)
     try { localStorage.setItem(CAL_KEY, JSON.stringify({ el: cal.el.n ? +cal.el.v.toFixed(3) : null, buf: cal.buf.n ? +cal.buf.v.toFixed(3) : null })); } catch { /* private mode */ }
   }
 }
+// FP2 — RE-MEASURE THE LEAD (core/harbor-beat.js#leadRefresh): on every resume / context rebuild / page return / output route change
+// (and on a SKEW seen on its own) the lead is re-measured from the next kicks heard, within a few bars; the output latency is re-read
+// fresh too (the smoothed timestamp estimate starts over).
+function refresh(why) {
+  const now = performance.now();
+  for (const k of ['el', 'buf']) { const c = cal[k]; if (!c.fast) leadRefresh(c, why, now); else { c.fast.why = why; c.fast.errs.length = 0; c.fast.seen = 0; } }
+  stamp.v = 0; stamp.at = -1e9;
+}
+let routeOut = null;           // the reported outputLatency last seen: a jump > 15 ms = a new route (speaker ↔ headphones ↔ Bluetooth)
 
 // FP — THE SONG CLOCK (core/harbor-beat.js#songClockStep): the beat's position always comes from the SONG — the element's
 // currentTime — run forward between its (coarse, iOS) updates and re-anchored on every event that can move the song against the
@@ -80,10 +91,11 @@ function wire(el) {
   for (const e of EL_EVENTS) el.addEventListener(e, () => reanchor(e));
 }
 if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => reanchor(document.visibilityState === 'visible' ? 'visible' : 'hidden'));
-  addEventListener('pageshow', () => reanchor('pageshow'));
+  document.addEventListener('visibilitychange', () => { const v = document.visibilityState === 'visible'; reanchor(v ? 'visible' : 'hidden'); if (v) refresh('visible'); });
+  addEventListener('pageshow', () => { reanchor('pageshow'); refresh('pageshow'); });
+  try { if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', () => refresh('route')); } catch { /* unsupported */ }
 }
-try { onRebuild(() => reanchor('rebuild')); onResume(() => reanchor('ctx resume')); } catch { /* no engine (tests) */ }
+try { onRebuild(() => { reanchor('rebuild'); refresh('rebuild'); }); onResume(() => { reanchor('ctx resume'); refresh('resume'); }); } catch { /* no engine (tests) */ }
 let stepAt = -1, stepPos = -1;
 /** the song's position on its own clock this frame (s), the same value for every caller in the frame */
 function songPos(np, nowMs) {
@@ -182,6 +194,9 @@ export function beatKick(nowMs = performance.now()) {
   if (lastFrame && nowMs - lastFrame < 100) frameS += ((nowMs - lastFrame) / 1000 - frameS) * 0.05;
   lastFrame = nowMs;
   const lag = kickLag(frameS);
+  { const ro = A.ctx.outputLatency > 0 ? A.ctx.outputLatency : null;
+    if (ro != null && routeOut != null && Math.abs(ro - routeOut) > 0.015) refresh('route');
+    if (ro != null) routeOut = ro; }
   const hit = onsetStep(ons, rms, nowMs / 1000);
   // (released when HEARD: the kick entered the graph a listener's delay ago, and sounds the output latency after that)
   if (hit > 0) queue.push([nowMs + Math.max(0, outLatency() - lag) * 1000, hit]);
@@ -193,10 +208,11 @@ export function beatKick(nowMs = performance.now()) {
       const at = songPos(np, nowMs);
       if (heardId !== np.id) { heardId = np.id; heard.errs.length = 0; heard.n = 0; heard.steady = false; }
       if (heardAnch !== sclock.anchors) { heardAnch = sclock.anchors; heard.errs.length = 0; heard.steady = false; }   // (a re-anchor: what was measured before it is history)
-      const wide = kickErrWide(at, g, lag);
+      const wide = kickErrWide(at, g, lag), kind = lob ? 'buf' : 'el';
       if (wide != null) heardStep(heard, wide);
-      const err = kickErr(at, g, lag);
-      if (err != null) learn(lob ? 'buf' : 'el', err);
+      // (FP2: a SKEW seen on its own — the kicks steadily off the lead — starts a re-measure too)
+      if (!cal[kind].fast && heardSkew(heard, cal[kind].v)) refresh('skew');
+      if (wide != null) learn(kind, wide, g, nowMs);
     }
   }
   let out = 0;
@@ -209,15 +225,28 @@ export function beatKick(nowMs = performance.now()) {
 export function beatDebug() {
   const c = getContext();
   return { analyser: !!an, peak: +ons.peak.toFixed(4), level: +ons.level.toFixed(4), latency: +outLatency().toFixed(3),
-    reported: c ? +(c.outputLatency || 0).toFixed(3) : 0, stamp: +stamp.v.toFixed(3), lead: +cal.el.v.toFixed(3), leadN: cal.el.errs.length, buf: +cal.buf.v.toFixed(3), bufN: cal.buf.errs.length,
+    reported: c ? +(c.outputLatency || 0).toFixed(3) : 0, base: c ? +(c.baseLatency || 0).toFixed(3) : 0, stamp: +stamp.v.toFixed(3), lead: +cal.el.v.toFixed(3), leadN: cal.el.errs.length, buf: +cal.buf.v.toFixed(3), bufN: cal.buf.errs.length,
+    remeasure: remeasureOf(lobbyNow() ? cal.buf : cal.el),
     lag: +kickLag(frameS).toFixed(3), fps: Math.round(1 / frameS),
     clock: { id: sclock.id, pos: +sclock.pos.toFixed(3), err: +sclock.err.toFixed(3), stuck: sclock.stuck, anchors: sclock.anchors, why: sclock.why },
     heard: { v: +heard.v.toFixed(3), n: heard.n, steady: heard.steady, skew: heardSkew(heard, cal.el.v) } };
 }
 /** the &debug=1 readout's line: what the beat subtracts to land on the sound as HEARD */
+/** FP2: the lead's re-measure for the readout: { state: 'measuring' | 'done' | 'gave up', why, from, to (ms), n (kicks agreeing / seen), ago (s) } | null */
+function remeasureOf(c) {
+  const ms = v => Math.round(v * 1000);
+  if (c.fast && c.fast.seen > 0) return { state: 'measuring', why: c.fast.why, from: ms(c.fast.from), to: ms(c.v), n: c.fast.errs.length, seen: c.fast.seen };
+  if (c.last && performance.now() - c.last.at < 20000) return { state: c.last.ok ? 'done' : 'gave up', why: c.last.why, from: ms(c.last.from), to: ms(c.last.to), n: c.last.kicks, ago: Math.round((performance.now() - c.last.at) / 1000) };
+  return null;
+}
 export function syncLine() {
-  const d = beatDebug();
-  return `sync out ${Math.round(d.latency * 1000)} ms${d.reported ? '' : d.stamp ? ' (stamp)' : ' (est)'} · lead ${Math.round(d.lead * 1000)} ms (${d.leadN} kicks) · lag ${Math.round(d.lag * 1000)} ms`;
+  const d = beatDebug(), r = d.remeasure, sg = v => `${v >= 0 ? '+' : '−'}${Math.abs(v)}`, kind = lobbyNow() ? 'buf' : 'el';
+  // (FP2: the lead re-converging after a return: "lead −39 → +62 ms (re-measuring · 8 kicks · visible)"; then "(re-measured −39 → +107 · 4 s ago)")
+  const lead = Math.round(cal[kind].v * 1000);
+  const leadTxt = r && r.state === 'measuring' ? `lead ${sg(r.from)} → ${sg(lead)} ms (re-measuring · ${r.seen} kicks · ${r.why})`
+    : r ? `lead ${sg(lead)} ms (${r.state === 'done' ? `re-measured ${sg(r.from)} → ${sg(r.to)}` : 're-measure gave up'} · ${r.ago} s ago)`
+    : `lead ${sg(lead)} ms (${kind === 'buf' ? d.bufN : d.leadN} kicks)`;
+  return `sync out ${Math.round(d.latency * 1000)} ms${d.reported ? '' : d.stamp ? ' (stamp)' : ' (est)'} · ${leadTxt} · lag ${Math.round(d.lag * 1000)} ms`;
 }
 /** FP — the readout's song-clock line: the last element reading vs the run-forward clock, the re-anchors (+ the last why), the heard
  *  kicks' offset from the grid (`~` = not steady yet, SKEW = steady + beyond the lead: the kicks are ignored) */

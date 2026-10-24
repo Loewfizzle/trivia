@@ -434,7 +434,8 @@ function umbrella(x, P, Lt, K, pu, pd, R, glow, snow) {
     const bp = [mx, my + 0.16 * s];
     x.fillStyle = glow > 0.05 ? rgb(mix([255, 214, 150], [255, 248, 220], glow)) : rgb(lit(Lt, [236, 232, 220], FRONT, 1), 0.8);
     x.beginPath(); x.arc(bp[0], bp[1], Math.max(0.5, 0.045 * s), 0, Math.PI * 2); x.fill();
-    if (glow > 0.05) { const gr = x.createRadialGradient(bp[0], bp[1], 0, bp[0], bp[1], 0.32 * s); gr.addColorStop(0, `rgba(255,200,130,${(0.5 * glow).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,180,110,0)'); x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = gr; x.fillRect(bp[0] - 0.32 * s, bp[1] - 0.32 * s, 0.64 * s, 0.64 * s); x.restore(); }
+    // (FP2 — crisp lights: each bulb's halo tight — 0.24 units, a quick falloff; was a 0.32-unit linear cone)
+    if (glow > 0.05) { const gr = x.createRadialGradient(bp[0], bp[1], 0, bp[0], bp[1], 0.24 * s); gr.addColorStop(0, `rgba(255,206,140,${(0.6 * glow).toFixed(3)})`); gr.addColorStop(0.35, `rgba(255,190,120,${(0.2 * glow).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,180,110,0)'); x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = gr; x.fillRect(bp[0] - 0.24 * s, bp[1] - 0.24 * s, 0.48 * s, 0.48 * s); x.restore(); }
   }
   // the finial: a brass ball on a short spike
   x.fillStyle = rgb(lit(Lt, BRASS, [0, 0.8, -0.6], 1.3)); x.beginPath(); x.arc(ap[0], ap[1] - 0.1 * s, 0.075 * s, 0, Math.PI * 2); x.fill();
@@ -446,7 +447,9 @@ function lantern(x, P, Lt, u, y, d, glow) {
   line(x, [cx, hook], [cx, top], lit(Lt, [60, 56, 50], FRONT), Math.max(0.3, 0.02 * s));
   const glass = glow > 0.05 ? mix([255, 196, 110], [255, 240, 200], glow) : lit(Lt, [214, 200, 160], FRONT, 1.2);
   fillPts(x, [[cx - w, top + 0.06 * s], [cx + w, top + 0.06 * s], [cx + w * 0.85, top + h], [cx - w * 0.85, top + h]], glass);
-  if (glow > 0.05) { const gr = x.createRadialGradient(cx, top + h * 0.55, 0, cx, top + h * 0.55, 0.55 * s); gr.addColorStop(0, `rgba(255,190,110,${(0.6 * glow).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,170,90,0)'); x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = gr; x.fillRect(cx - 0.55 * s, top + h * 0.55 - 0.55 * s, 1.1 * s, 1.1 * s); x.restore(); }
+  // (FP2 — crisp lights: the lantern's halo tight — 0.4 units with a quick falloff, was a 0.55-unit linear cone; the cart's own
+  // surfaces catch its light: Lt.own)
+  if (glow > 0.05) { const gr = x.createRadialGradient(cx, top + h * 0.55, 0, cx, top + h * 0.55, 0.4 * s); gr.addColorStop(0, `rgba(255,200,124,${(0.7 * glow).toFixed(3)})`); gr.addColorStop(0.3, `rgba(255,184,104,${(0.24 * glow).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,170,90,0)'); x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = gr; x.fillRect(cx - 0.4 * s, top + h * 0.55 - 0.4 * s, 0.8 * s, 0.8 * s); x.restore(); }
   const br = lit(Lt, BRASS, FRONT, 1);
   x.strokeStyle = rgb(br); x.lineWidth = Math.max(0.3, 0.025 * s); x.strokeRect(cx - w, top + 0.06 * s, w * 2, h - 0.06 * s);
   line(x, [cx, top + 0.06 * s], [cx, top + h], br, Math.max(0.25, 0.018 * s));
@@ -864,4 +867,20 @@ export function propShadow(x, cam, item, kind, T, ctx = {}) {
     const a = P(X + c.x0, 0, c.d0), b = P(X + c.x1, 0, c.d1), cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2, rx = Math.abs(b[0] - a[0]) / 2, ry = Math.max(0.8, Math.abs(b[1] - a[1]) / 2);
     soft(x, () => x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2), [20, 16, 30], Math.min(0.75, c.a * ak), Math.max(0.6, ry * 0.9));
   }
+}
+
+// ------------------------------------------------------------------ THE BOXES (FP2 — tested: the cart's umbrella never hides the bench)
+const boxOf = pts => { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys); return { x: x0, y: y0, w: Math.max(...xs) - x0, h: Math.max(...ys) - y0 }; };
+/** the bench on screen (pt): its two ends, from the paving up to the back posts' finials (drawBench's frame) */
+export function benchBox(cam, b) {
+  const P = frame(cam, b.z, 1.8), hw = (b.w || PIECE.bench.w) / 2, pts = [];
+  for (const u of [-hw - 0.05, hw + 0.05]) for (const [y, d] of [[0, 0], [0, 0.92], [1.55, 0.92], [1.55, 0]]) pts.push(P(b.x + u, y, d));
+  return boxOf(pts);
+}
+/** the cart's umbrella on screen (pt): the canopy's rim all round + its scalloped valance and bulbs hanging under it, the apex +
+ *  the finial (umbrella(): apex 4.88, rim 4.06, valance 0.3 + its scallop + a bulb ≈ 0.56 under the rim; the pole at x − 0.05) */
+export function umbrellaBox(cam, c) {
+  const P = frame(cam, c.z, 1.5), R = PIECE.cart.umb, pu = c.x - 0.05, pd = 0.85, pts = [P(pu, 5.05, pd)];
+  for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2, u = pu + Math.cos(a) * R, d = pd + Math.sin(a) * R; pts.push(P(u, 4.06, d), P(u, 3.5, d)); }
+  return boxOf(pts);
 }

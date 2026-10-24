@@ -23,7 +23,8 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 // a plan per tree + season (the plan is pure and cheap, but a look's re-bake needn't redo it)
 const plans = new Map();
 function planOf(t, ctx) {
-  const season = ctx.season || 'autumn', phase = ctx.phase ?? 0.5, i = ctx.i || 0;
+  // (FP2: t.v — a tree's own colour mix when the layout names one: the framing maple keeps its blaze whatever its index)
+  const season = ctx.season || 'autumn', phase = ctx.phase ?? 0.5, i = t.v ?? (ctx.i || 0);
   const k = `${t.x.toFixed(2)}|${t.z}|${t.kind}|${t.w}|${t.h}|${season}|${Math.round(phase * 40)}|${i}`;
   let p = plans.get(k);
   if (!p) { if (plans.size > 48) plans.clear(); p = treePlan(t, { season, phase, i }); plans.set(k, p); }
@@ -58,8 +59,11 @@ function rigOf(T, ctx, t) {
   if (lampK > 0.4 && lamps.length) { let best = 0; for (const lp of lamps) { const f = lp.k / (1 + (Math.hypot(lp.x, lp.y - t.trunk, lp.w) / 3) ** 2); if (f > best) { best = f; barkSide = Math.sign(lp.x) || 1; } } }
   const rig = { L, sunCol, sunK, amb, lamps, lampK, n, rim: n * (1 - flat * 0.5), barkSide };
   // the leaves' shade: an autumn crown's shadows go deep warm (burnt orange, crimson, plum — never olive), a summer's cool green
-  const tint = ctx.season === 'autumn' ? [1.14, 0.86, 0.8] : ctx.season === 'summer' ? [0.9, 1, 0.98] : [1, 1, 1];
-  rig.leaf = { ...rig, amb: amb.map((v, k) => v * tint[k]) };
+  const tint = ctx.season === 'autumn' ? [1.17, 0.84, 0.72] : ctx.season === 'summer' ? [0.9, 1, 0.98] : [1, 1, 1];
+  // (FP2: + the BOUNCE under the crown — the sunlit cobbles by day, the lamps' pools at night — a warm fill on the leaves facing
+  // down, so the crown's underside reads as leaves in shade, never a brown-black mass)
+  const bounce = (0.24 * (d + g) * (1 - flat * 0.5) + 0.14 * n * lampK);
+  rig.leaf = { ...rig, amb: amb.map((v, k) => v * tint[k]), bounce, bcol: n > 0.5 ? [1.2, 0.86, 0.6] : [1.05, 0.95, 0.82] };
   // (a blossom's petals are thin and bright: light through them — the shade side stays pink, never a lilac grey)
   rig.bloom = { ...rig, amb: amb.map((v, k) => v * [1.32, 1.08, 1.02][k]) };
   return rig;
@@ -80,6 +84,7 @@ const knee = v => (v <= 200 ? v : 255 - 3025 / (v - 145));
 function shadeN(rig, lp, base, nx, ny, nz, ao) {
   const up = 0.68 + 0.32 * ny;
   let r = rig.amb[0] * up * ao, g = rig.amb[1] * up * ao, b = rig.amb[2] * up * ao;
+  if (rig.bounce) { const k = rig.bounce * (0.35 + 0.65 * Math.max(0, -ny)); r += rig.bcol[0] * k; g += rig.bcol[1] * k; b += rig.bcol[2] * k; }
   const dt = nx * rig.L[0] + ny * rig.L[1] + nz * rig.L[2];
   const dif = (dt > -0.12 ? (dt + 0.12) / 1.12 : 0) * rig.sunK * (0.45 + 0.55 * ao);
   r += rig.sunCol[0] * dif; g += rig.sunCol[1] * dif; b += rig.sunCol[2] * dif;
@@ -246,7 +251,9 @@ function drawCluster(x, s, bx, by, cl, env, rig, leafPt, gr, flush = true) {
   const gx = cl.u / env.a, gy = (cl.v - env.cv) / env.b, nr = Math.min(1, Math.hypot(gx, gy)), gz = cl.nz;
   rig = (cl.blooms ? rig.bloom : rig.leaf) || rig;
   const pw = cl.nz * env.a, lp = lampsAt(rig, cl.u, cl.v, pw);
-  const ao = cl.back ? 0.5 + 0.2 * nr : 0.74 + 0.26 * nr;
+  // (FP2: the crown's inside lifted — 0.5 → 0.62 at the core: a deep rich colour in shade, never a brown-black mass; the front
+  // clusters stay brighter, so the depth still reads)
+  const ao = cl.back ? 0.62 + 0.16 * nr : 0.76 + 0.24 * nr;
   const sh = (a, b, c, k) => { const l = Math.hypot(a, b, c) || 1; return shadeN(rig, lp, cl.col, a / l, b / l, c / l, k); };
   // the body (the shade side's tone) and the cap (toward the light, smaller)
   x.fillStyle = rgb(sh(gx - rig.L[0] * 0.15 * rig.sunK, gy - 0.3, Math.max(0.05, gz) + 0.25, ao * 0.8));
@@ -255,7 +262,9 @@ function drawCluster(x, s, bx, by, cl, env, rig, leafPt, gr, flush = true) {
   x.fillStyle = rgb(sh(gx + rig.L[0] * 0.25 * rig.sunK, gy + 0.3, Math.max(0.1, gz) + 0.3, ao * 0.93));
   x.beginPath(); for (const b of cl.blobs) { const px = cx + b.dx * r * 0.85 + ox, py = cy + b.dy * r * 0.85 + oy, rr = b.r * r * 0.72; x.moveTo(px + rr, py); x.arc(px, py, rr, 0, TAU); } x.fill();
   // the dabs: each lit by its own normal (the cluster's bulge blended with the crown's)
-  const round = cl.blooms ? 0.9 : 0.7, hiK = 0.2 * rig.sunK, hi = cl.blooms ? [255, 250, 252] : [255, 236, 190], back = gz >= 0 ? 1 : 0.4;
+  // (FP2: a blossom's dabs rounder + a fifth bigger — soft, fluffy clouds of petals — and more of them catch the light white)
+  const round = cl.blooms ? 1 : 0.7, hiK = (cl.blooms ? 0.34 : 0.2) * rig.sunK, hi = cl.blooms ? [255, 252, 252] : [255, 236, 190], back = gz >= 0 ? 1 : 0.4;
+  const big = cl.blooms ? 1.2 : 1;
   const thin = cl.back ? 2 : 1;
   for (let di = 0; di < cl.dabs.length; di += thin) {
     const d = cl.dabs[di];
@@ -266,8 +275,8 @@ function drawCluster(x, s, bx, by, cl, env, rig, leafPt, gr, flush = true) {
     const l = Math.sqrt(q + nz * nz) || 1; nx /= l; ny /= l; nz /= l;
     let col = shadeN(rig, lp, d.alt && cl.col2 ? cl.col2 : cl.col, nx, ny, nz, d.dark ? ao * 0.7 : ao * (0.86 + 0.14 * (d.dx * d.dx + d.dy * d.dy)));
     // a few leaves catch a highlight (a blossom's petals glow white)
-    if (hiK > 0.02 && d.k > 1.15 && !d.dark && nx * rig.L[0] + ny * rig.L[1] + nz * rig.L[2] > 0.55) col = mix(col, hi, hiK);
-    const rx = leafPt * d.k * 1.12;
+    if (hiK > 0.02 && d.k > (cl.blooms ? 1.0 : 1.15) && !d.dark && nx * rig.L[0] + ny * rig.L[1] + nz * rig.L[2] > (cl.blooms ? 0.4 : 0.55)) col = mix(col, hi, hiK);
+    const rx = leafPt * d.k * 1.12 * big;
     gr.add(col, cx + d.dx * r, cy + d.dy * r, rx, rx * round, d.rot);
   }
   if (flush) gr.fill(x);
@@ -375,7 +384,7 @@ export function createLeaves() {
   return {
     layout(L) {
       cam = L && L.cam; leaves = []; acc = 0;
-      trees = !cam ? [] : L.trees.map((t, i) => ({ t, i, s: cam.F / t.z, bx: project(cam, t.x, 0, t.z)[0], by: project(cam, t.x, 0, t.z)[1], env: envelopeOf(t) }));
+      trees = !cam ? [] : L.trees.map((t, i) => ({ t, i: t.v ?? i, s: cam.F / t.z, bx: project(cam, t.x, 0, t.z)[0], by: project(cam, t.x, 0, t.z)[1], env: envelopeOf(t) }));
     },
     draw(c, o = {}) {
       if (!cam || !trees.length || !o.motion || !(o.tier > 0)) { leaves.length = 0; return; }

@@ -466,6 +466,31 @@ recordings imported into theirs; every event that exists today calls its slot; a
   `music` §11 (playing 0.009 beats off; the element paused 2 s → 0.024; the context suspended 2 s → 0.029; a 17 s seek → 0.012; the readout
   + clock lines) and §9's line now with `drift`.
 
+## FP2 — THE LEAD RE-MEASURED AFTER A RETURN (Oct 24 2026; City 2.0's party) — `core/harbor-beat.js`, `audio/beat.js`
+- **The owner's readout** (back from the home screen, c2-party7 @ 140 BPM, grid trusted, WEB AUDIO): `drift −0 ms` but `anchors … (jump) ·
+  heard +107 ms SKEW`, `lead −39 ms (29 kicks)`, `lag 24 ms`. The song clock was right (FP's fix holds); what she HEARD was off it by ~¼ beat.
+- **What moved:** the kick listener taps the graph BEFORE the speaker, so `heard` measures the element → graph offset — the lead itself
+  (the same formula: the kick's element time − the listener's lag − the beat). It went from −39 to +107 ms: iOS rebuilt the session's route /
+  buffer on the return. The lead could never follow: the learning took only kicks within ±80 ms OF A BEAT (+107 is outside), so it kept −39
+  and the lights ran ~146 ms early on the sound. (A change in the speaker's own latency, after the graph, can't be heard by the listener —
+  only Safari's `outputLatency` tells; it is read live every frame, and now its jumps count as a route change.)
+- **The fix — a RE-MEASURE** (`leadRefresh`, `leadKick`, PURE + tested): started on every context resume, rebuild, page return (`visible`,
+  `pageshow`), output route change (`mediaDevices` `devicechange`, or the reported `outputLatency` jumping > 15 ms) — and on a SKEW seen on
+  its own (`heardSkew` steady, whatever caused it). The strong kicks within ± half a beat are gathered; once 6 agree (their middle half
+  within 50 ms) the lead moves to their median in smoothed steps (half the gap a kick, ≤ 60 ms a kick), bounded to the LIVE range −150 …
+  +250 ms (a saved device value stays clamped to M3's −80 … +120). It ends when it has caught up (≤ 6 ms) or after 32 kicks (then: gave up,
+  unchanged); a re-measure that finds the old lead right changes nothing. The ordinary learning then carries on, its ±80 ms window CENTRED on
+  the current lead (it was centred on the beat). The output timestamp estimate starts over on each re-measure. While the kicks read as SKEW
+  the grid runs alone (FP); as the lead catches up the SKEW clears and the kicks count again.
+- **How fast** (the pure test, her song, ±6 ms jitter, every 5th hit a 16th-note bass hit): +100 ms → 10 kicks (≈ 2½ bars at 140 BPM, ~4 s;
+  the lead −39 → +12 → +37 → +50 → +57 → +63); +146 ms (her case) → 10 kicks to +104; on the SKEW alone (no event) ~16 kicks.
+- **The readout's `sync` line:** `lead −39 → +50 ms (re-measuring · 8 kicks · visible)` while it converges, then `lead +104 ms (re-measured −39 →
+  +104 · 3 s ago)` for 20 s, then `lead +104 ms (12 kicks)`. `beatDebug().remeasure` + `.base` (Safari's `baseLatency`).
+- **What the owner should look at:** leave + return on a party night: the `sync` line shows `re-measuring` then `re-measured −39 → +N`, and the
+  `clock` line's `heard` lands near the new lead (no SKEW) within a few bars.
+- **Tests:** `harbor.test.mjs` "FP2 — THE LEAD RE-MEASURED" (a +100 ms shift: stuck without the re-measure; on the event ≤ 16 kicks, no
+  overshoot, settled, heard = the beat; on the SKEW alone; no shift = no change; scattered kicks give up; bounded).
+
 ## FP — THE SOUNDS (Oct 23 2026; the owner listened on her iPhone) — `core/city-sounds.js`, `audio/city-sound.js`, `screens/harbor/sounds.js`
 The owner: the water FAR too loud ("like you're right next to a lake", noticeable over the music); the gulls good but patterned; the cars fine.
 - **THE WATER** — a harbor quay heard from the promenade, not a beach: its gain 0.125 → **0.07** and a new per-slot low-pass (`lp`, loops only,

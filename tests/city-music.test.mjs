@@ -49,10 +49,11 @@ test('CITY 2.0 mood rule: dawn → 11 am MORNING · DAY · golden hour → 11 pm
   assert.equal(cityMoodAt(L(2, 18, 0), null), 'evening');
 });
 
-test('CITY 2.0 PARTY: the party show\'s hours (Fri + Sat 8 pm → 2 am), once the city has powered up', () => {
+test('CITY 2.0 PARTY: the party show\'s hours (Fri + Sat, FP2: the 8:30 pm warm-up → 2 am), once the city has powered up', () => {
   const L = (dow, h, mi = 0) => ({ dow, h, mi, s: 0 });
   assert.equal(cityMoodAt(L(5, 19, 59), -20), 'evening');
-  assert.equal(cityMoodAt(L(5, 20, 0), -20), 'party');
+  assert.equal(cityMoodAt(L(5, 20, 29), -20), 'evening', 'FP2: before the 8:30 warm-up');
+  assert.equal(cityMoodAt(L(5, 20, 30), -20), 'party');
   assert.equal(cityMoodAt(L(6, 0, 30), -40), 'party', 'after midnight, Friday night');
   assert.equal(cityMoodAt(L(6, 1, 59), -40), 'party');
   assert.equal(cityMoodAt(L(6, 2, 0), -40), 'late', 'the party is over at 2 am');

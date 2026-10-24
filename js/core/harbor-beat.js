@@ -181,16 +181,70 @@ export function kickErr(at, grid, lag = KICK_LAG) {
   return Math.abs(err) <= Math.min(0.08, 0.2 * p) ? err : null;
 }
 const clampLead = v => Math.max(LEAD_MIN, Math.min(LEAD_MAX, +v || 0));
-/** a lead being learned: v (s, applied), n (readings behind it), errs (the last 32) — a saved value starts it (clamped) */
-export function createLead(saved = null) { return saved == null ? { v: 0, n: 0, errs: [] } : { v: clampLead(saved), n: 12, errs: [] }; }
+/** a lead being learned: v (s, applied), n (readings behind it), errs (the last 32) — a saved value starts it (clamped);
+ *  fast: a re-measure under way (FP2, leadRefresh) or null; last: the last re-measure (the readout) */
+export function createLead(saved = null) { return { v: saved == null ? 0 : clampLead(saved), n: saved == null ? 0 : 12, errs: [], fast: null, last: null }; }
 /** one reading → true when the lead changed: the median of the last 32 once ≥ 12 agree (their middle half within 50 ms), clamped */
 export function learnLead(c, err) {
   c.errs.push(err); if (c.errs.length > 32) c.errs.shift();
   if (c.errs.length < 12) return false;
   const s = c.errs.slice().sort((a, b) => a - b), med = s[s.length >> 1];
   if (s[Math.floor(s.length * 0.75)] - s[Math.floor(s.length * 0.25)] > 0.05) return false;   // (not consistent yet: keep what we had)
-  c.v = clampLead(med); c.n = c.errs.length;
+  c.v = clampLive(med); c.n = c.errs.length;          // (FP2: the live range — a saved device value is still clamped to LEAD_MIN…LEAD_MAX)
   return true;
+}
+
+// ---- FP2 — THE LEAD RE-MEASURED (the owner's readout after the home screen: `drift −0 ms` — the song clock right — but `heard +107 ms
+// SKEW` with `lead −39 ms (29 kicks)`: the kicks reaching Web Audio now sat ~146 ms later against the element's clock than the lead
+// she had learned, so the lights ran ~¼ beat early on the sound she heard). The kick listener taps the graph BEFORE the speaker, so
+// what moved is the element → graph offset (iOS rebuilt the session's route / buffer on the return); the lead could never follow: it
+// only took kicks within ±80 ms OF A BEAT, and +107 is outside. Now every resume / route change / context rebuild / page return — and
+// a SKEW seen on its own — starts a RE-MEASURE: the strong kicks within ± half a beat (kickErrWide) are gathered; once REFRESH_N of
+// them agree (their middle half within 50 ms) the lead moves to their median in smoothed steps (half the gap a kick, at most
+// REFRESH_STEP), bounded to the live range; it ends when it has caught up (or after REFRESH_MAX kicks), and the ordinary learning
+// carries on from there, centred on the new lead (kickErr's `center`). A re-measure that finds the old lead right changes nothing.
+export const REFRESH_N = 6, REFRESH_MAX = 32, REFRESH_STEP = 0.06, REFRESH_DONE = 0.006;
+/** the live range a re-measured lead may take (wider than a saved device value: a return can move it more) */
+export const LIVE_MIN = -0.15, LIVE_MAX = 0.25;
+const clampLive = v => Math.max(LIVE_MIN, Math.min(LIVE_MAX, +v || 0));
+/** start a re-measure (why: 'resume' | 'rebuild' | 'visible' | 'route' | 'skew' …; now: ms, for the readout) */
+export function leadRefresh(c, why = '', now = 0) {
+  c.fast = { why, at: now, from: c.v, errs: [], seen: 0, moved: false };
+  return c;
+}
+/**
+ * One strong kick on a trusted grid, its wide error (s: kickErrWide — within ± half a beat) → what it did: 'fast' (the re-measure moved
+ * the lead), 'wait' (gathering), 'done' (the re-measure finished: the lead caught up), 'learn' (the ordinary learning moved it), null.
+ * The ordinary learning only takes kicks within ±min(80 ms, a fifth of a beat) of where the CURRENT lead says they land.
+ */
+export function leadKick(c, wide, grid, now = 0) {
+  if (wide == null || !grid || !(grid.bpm > 0)) return null;
+  const p = 60 / grid.bpm;
+  if (c.fast) {
+    const f = c.fast;
+    f.seen++;
+    if (Math.abs(wide) <= Math.min(0.4 * p, 0.3)) { f.errs.push(wide); if (f.errs.length > 16) f.errs.shift(); }
+    let out = 'wait';
+    if (f.errs.length >= REFRESH_N) {
+      const s = f.errs.slice().sort((a, b) => a - b), med = s[s.length >> 1];
+      if (s[Math.floor(s.length * 0.75)] - s[Math.floor(s.length * 0.25)] <= 0.05) {
+        const target = clampLive(med), gap = target - c.v;
+        if (Math.abs(gap) <= REFRESH_DONE) out = 'done';
+        else { c.v += Math.sign(gap) * Math.min(REFRESH_STEP, Math.max(REFRESH_DONE, Math.abs(gap) * 0.5)); f.moved = true; out = Math.abs(target - c.v) <= REFRESH_DONE ? 'done' : 'fast'; }
+      }
+    }
+    if (out === 'done' || f.seen >= REFRESH_MAX) {
+      c.last = { why: f.why, from: f.from, to: c.v, at: now, kicks: f.seen, moved: f.moved, ok: out === 'done' };
+      // (the ordinary learning carries on from the kicks that just agreed, re-centred on the new lead)
+      c.errs = out === 'done' ? f.errs.filter(e => Math.abs(e - c.v) <= Math.min(0.08, 0.2 * p)) : c.errs;
+      if (out === 'done') c.n = c.errs.length;
+      c.fast = null;
+      return out === 'done' ? 'done' : null;
+    }
+    return out;
+  }
+  if (Math.abs(wide - c.v) > Math.min(0.08, 0.2 * p)) return null;
+  return learnLead(c, wide) ? 'learn' : null;
 }
 /** the song's position AS HEARD: the element's clock − the output latency − the element's lead */
 export const heardPos = (at, out, lead) => Math.max(0, at - out - lead);

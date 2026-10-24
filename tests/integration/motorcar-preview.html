@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motorcar preview</title>
+<!-- CITY 2.0 FP2: THE MOTORCAR (js/screens/harbor/motorcar.js) without the city — every paint in every look (day / golden / night /
+     night under a lamp, with its lamps lit) on a strip of the street's setts, at the phone's size (?s=pt-per-unit, default 20 = the far
+     lane at 402) and blown up (?zoom=, default 2). Shoot it: node shots.mjs "<browser>" --page "tests/integration/motorcar-preview.html" -->
+<style>body{margin:0;background:#222;color:#ddd;font:12px ui-monospace,monospace}canvas{display:block;image-rendering:pixelated}</style>
+</head><body>
+<canvas id="cv"></canvas>
+<script type="module">
+import { createMotorcar, PAINTS } from '../../js/screens/harbor/motorcar.js';
+const q = new URLSearchParams(location.search), sp = +(q.get('s') || 20), zoom = +(q.get('zoom') || 2), dpr = 2;
+const looks = [['day', { day: 1, sunEl: 40, sunDir: 0.6 }, 0], ['golden', { gold: 1, sunEl: 8, sunDir: 0.8 }, 0], ['night', { night: 1 }, 1], ['lamp', { night: 1 }, 1]];
+const cellW = 6 * sp, cellH = 3 * sp, W = cellW * PAINTS.length, H = cellH * looks.length;
+const cv = document.getElementById('cv');
+cv.width = W * dpr; cv.height = H * dpr; cv.style.width = `${W * zoom}px`; cv.style.height = `${H * zoom}px`;
+const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+const car = createMotorcar();
+looks.forEach(([name, T, night], r) => PAINTS.forEach((_, i) => {
+  const ox = i * cellW, oy = r * cellH;
+  c.fillStyle = night ? '#2a2840' : name === 'golden' ? '#a8786a' : '#8a8784'; c.fillRect(ox, oy, cellW, cellH);
+  c.fillStyle = night ? '#232136' : name === 'golden' ? '#966a5e' : '#7a7774'; for (let y = 0; y < cellH; y += 5) for (let x = (y / 5) % 2 ? 0 : 7; x < cellW; x += 14) c.fillRect(ox + x, oy + y, 12, 4);
+  // a camera where the car's lane sits at the cell's foot: F / z = sp
+  const z = 30, cam = { F: sp * z, CAMH: 0, VPX: ox + cellW / 2, VPY: oy + cellH - 6, W, H, hw: zz => (W / 2) * zz / (sp * z) };
+  car.draw(c, { x: 0, z, dir: i % 2 ? -1 : 1, speed: 5, env: 1, on: true }, { cam, T, k: 1, night, lampAt: () => (name === 'lamp' ? 1 : 0), paint: i, dpr, t: 0, motion: 0, wet: 0, rails: [] });
+}));
+document.body.dataset.ready = '1';
+</script>
+</body></html>

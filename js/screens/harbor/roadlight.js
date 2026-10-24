@@ -1,12 +1,16 @@
-// CITY 2.0 — THE HARBOR, PART 8a: THE IMPLIED ROAD's cars — never seen (no car behind the dock: the owner's rule), shown only as
-// LIGHT: at night a car's headlights sweep across the near cobbles, gliding left or right with it; by day a soft passing shadow
-// along the front walk. Its sound (the car-1920s-pass slot: harbor/sounds.js) starts with the pass, the light peaks when the car is
-// nearest. The schedule is on the clock (core/harbor-promenade.js#roadPassAt: every phone the same, joins mid-way). Behind the
-// owner's flag: &force=no-implied-road switches the road off (the setts then run to the screen's foot); &force=road-pass a car
-// every ~13 s. THE RAID's hook (7b): wash({ col, k }) — a red / blue wash rolling up from the front.
+// CITY 2.0 — THE HARBOR, PART 8a + FP2: THE IMPLIED ROAD's cars. While the dock SHOWS they are never seen (no moving car behind JOIN /
+// HOST: the owner's rule), only their LIGHT: at night a car's headlights sweep across the near cobbles, gliding left or right with it;
+// by day a soft passing shadow along the front walk. FP2 — while the dock RESTS (hidden, the street under it full-bleed: street.js)
+// the same pass is SEEN: a 1920s motorcar rolls across the street (motorcar.js — its own headlamps' pool + its shadow then, the old
+// sweep fading out), fading in with the dock's fade-out and gone in 0.25 s when the dock comes back (core/harbor-promenade.js#carVis).
+// Its sound (the car-1920s-pass slot: harbor/sounds.js) starts with the pass, the car is nearest (x 0) when the take peaks. The
+// schedule is on the clock (core/harbor-promenade.js#roadPassAt: every phone the same, joins mid-way); where the car is: #carAt.
+// Behind the owner's flag: &force=no-implied-road switches the road off (the setts then run to the screen's foot); &force=road-pass a
+// car every ~13 s. THE RAID's hook (7b): wash({ col, k }) — a red / blue wash rolling up from the front.
 import { project, groundY } from '../../core/harbor-layout.js';
-import { roadPassAt, ROAD_PASS } from '../../core/harbor-promenade.js';
+import { roadPassAt, ROAD_PASS, carAt, carVis } from '../../core/harbor-promenade.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { createMotorcar, PAINTS } from './motorcar.js';
 
 const sprite = (rgbStr, soft = 0.5) => {
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -17,18 +21,26 @@ const sprite = (rgbStr, soft = 0.5) => {
 
 export function createRoadLight() {
   let L = null, cam = null, beam = null, shade = null, washSp = null;
-  let cur = null, center = 0, washCol = null, washK = 0;
-  const playing = new Set();
+  let cur = null, center = 0, washCol = null, washK = 0, vis = 0, seen = false;
+  const playing = new Set(), motor = createMotorcar();
+  // the street lamps' light on the car as it passes (x → 0..1): the front walk's globes + the speakeasy's corner
+  const lampAt = x => { let k = 0; for (const l of L.lamps) { if (l.z > 40) continue; const d = (x - l.x) / 7; if (d * d < 1) k += (1 - d * d) ** 2; } return Math.min(1, k); };
   return {
     layout(l) { L = l; cam = l.cam; },
     /** the raid (7b): a coloured wash from the front ({ col: [r,g,b], k: 0..1 }; null clears) */
     wash(o) { washCol = o && o.col ? o.col : null; washK = o ? Math.max(0, Math.min(1, +o.k || 0)) : 0; },
+    /** a car is on screen (seen): the scene keeps 60 fps for its wheels */
+    busy: () => seen,
     /**
-     * f: { ms (the city's clock), now (performance.now), hour (local, for the busy-ness — a function of ms), night (the lamps'
-     * darkness 0..1), day (0..1), motion, fade, on (the implied road is on), force (a pass every ~13 s), play(slot, o) → handle | null }
+     * f: { ms (the city's clock), hourAt (local hour at a ms — the busy-ness), night (the lamps' darkness 0..1), day (0..1), motion,
+     * fade, on (the implied road is on), force (a pass every ~13 s), play(slot, o) → handle | null; FP2: gone (the dock rests),
+     * dt (ms), T (the bake's tones: the sun's side + height), dpr, t (s), wet (0..1) }
      */
     draw(c, f) {
-      if (!L || !f.on || f.fade <= 0) return;
+      seen = false;
+      // (reduced motion: no car rolls — the implied light stays, as with the dock shown)
+      vis = carVis(vis, !!f.gone && !!f.on && !!f.motion, f.dt || 16.7);
+      if (!L || !f.on || f.fade <= 0) { motor.reset(); return; }
       const pass = roadPassAt(f.ms, f.hourAt, { force: f.force });
       if (pass && (!cur || cur.id !== pass.id)) {
         cur = pass; center = pass.t0 + ROAD_PASS.peak;
@@ -46,7 +58,18 @@ export function createRoadLight() {
         const W = cam.W, r = W * 0.9;
         c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.5 * washK * f.fade; c.drawImage(washSp, W / 2 - r, cam.H - r * 0.55, r * 2, r * 1.1); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       }
-      if (!cur) return;
+      if (!cur) { motor.reset(); return; }
+      // FP2: THE CAR ITSELF while the dock rests (its own light + shadow); the implied light below fades out as it fades in
+      const st = L.impliedRoad && L.impliedRoad.street;
+      if (st && vis > 0.004) {
+        const car = carAt(cur, center, f.ms, cam, st);
+        if (car.on) {
+          motor.draw(c, car, { cam, T: f.T, k: vis * f.fade, night: f.night, lampAt, paint: Math.floor(cur.take * PAINTS.length) % PAINTS.length, dpr: f.dpr || 2, t: f.t || 0, motion: f.motion, wet: f.wet || 0, rails: st.rails });
+          seen = true;
+        } else motor.reset();
+      } else motor.reset();
+      const iv = 1 - vis;
+      if (iv <= 0.01) return;
       // the car's x (world) along the road just below the frame: nearest (x 0) at `center`, ~6 u/s (a 1920s cruise)
       const tt = (f.ms - center) / 1000, zc = L.edge ? L.edge.z - 4 : 31.5, span = cam.hw(zc) + 14;
       const carX = cur.dir * tt * (span * 2 / 9);
@@ -57,7 +80,7 @@ export function createRoadLight() {
       // curb's top catching it; warm 1920s incandescent
       if (f.night > 0.05) {
         if (!beam) beam = sprite('255,226,170', 0.35);
-        const k = f.night * env * f.fade;
+        const k = f.night * env * f.fade * iv;
         c.globalCompositeOperation = 'lighter';
         for (const [dz, rx, rz, a] of [[4.2, 10, 5, 0.34], [2.2, 6, 2.6, 0.55], [0.9, 3.4, 1.1, 0.7]]) {
           const z = (L.edge ? L.edge.z : 35.6) + dz, [cx] = P(carX + cur.dir * 5, z), ya = groundY(cam, z + rz), yb = groundY(cam, z - rz), rw = cam.F * rx / z;
@@ -69,10 +92,10 @@ export function createRoadLight() {
       if (f.day > 0.2) {
         if (!shade) shade = sprite('20,16,34', 0.55);
         const z = (L.edge ? L.edge.z : 35.6) + 0.9, [cx] = P(carX, z), rx = 3.4, ya = groundY(cam, z + 0.9), yb = groundY(cam, z - 0.9), rw = cam.F * rx / z;
-        c.globalAlpha = 0.22 * f.day * env * f.fade; c.drawImage(shade, cx - rw, ya, rw * 2, yb - ya); c.globalAlpha = 1;
+        c.globalAlpha = 0.22 * f.day * env * f.fade * iv; c.drawImage(shade, cx - rw, ya, rw * 2, yb - ya); c.globalAlpha = 1;
       }
     },
-    debug: () => ({ pass: cur ? { id: cur.id, dir: cur.dir, center } : null, played: playing.size, wash: washK }),
-    destroy() { for (const s of [beam, shade, washSp]) if (s) s.width = s.height = 0; beam = shade = washSp = null; },
+    debug: () => ({ pass: cur ? { id: cur.id, dir: cur.dir, center } : null, played: playing.size, wash: washK, vis: +vis.toFixed(3), car: seen ? motor.debug() : null }),
+    destroy() { motor.destroy(); for (const s of [beam, shade, washSp]) if (s) s.width = s.height = 0; beam = shade = washSp = null; },
   };
 }
