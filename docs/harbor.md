@@ -3955,6 +3955,9 @@ the canopy has fewer bulbs than 7b's string lights) — no speed round.
   mid-punch: 210,210,197 · 209,137,209 …) — the barber pole's code wasn't touched by this pass, it passed on run 1, and it's the known
   "a loaded run catches a sweep mid-punch" flake the check already retries for. Not re-run (the owner: never spend a cloud run to confirm a
   flake); if it repeats, the check should sample between beats (`party().beatU` < 0.5) rather than on a timer.
+- **THE QUICK `tests` WORKFLOW's smoke test** timed out on `golf: back to lobby` on the two docs / CI commits after SP2 (the SP2 commit's own
+  run passed; the code under test identical; NEON PAR's flow, untouched by this pass) — the known GitHub-machine flake 793141d raised to 60 s.
+  It now repeats: worth a real look in the next pass that touches the games or the smoke test (what the lobby waits on after NEON PAR).
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against
