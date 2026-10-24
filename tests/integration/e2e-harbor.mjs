@@ -481,7 +481,17 @@ G('core', async () => {
         folded: [...document.querySelectorAll('.dbg-s')].map(s => s.classList.contains('dbg-fold')) }; })()`);
     const g0 = await geo();
     ok(g0.col.bottom <= g0.H * 0.4 && g0.col.bottom < g0.dock && !g0.overBtn && g0.col.top < g0.limitY, `DEBUG STRIPS ${w}: at the top under the corner buttons (${Math.round(g0.col.top)}–${Math.round(g0.col.bottom)} pt of ${g0.H}; the skyline's limit ${Math.round(g0.limitY)}, the dock ${Math.round(g0.dock)})`);
-    const head = async id => { const b = await ev(D.page, `(() => { const r = document.querySelector('.dbg-s[data-id=${id}] .dbg-h').getBoundingClientRect(); return { x: r.left + 20, y: r.top + r.height / 2 }; })()`); await tapAt(D.page, b.x, b.y); };
+    // (one tap, then wait for THAT strip's fold to flip before the next — the other strip moves as one opens; a tap the loaded cloud
+    // machine dropped is tried once more)
+    const head = async id => {
+      const folded = () => ev(D.page, `document.querySelector('.dbg-s[data-id=${id}]').classList.contains('dbg-fold')`);
+      const was = await folded();
+      for (let k = 0; k < 2; k++) {
+        const b = await ev(D.page, `(() => { const r = document.querySelector('.dbg-s[data-id=${id}] .dbg-h').getBoundingClientRect(); return { x: r.left + 20, y: r.top + r.height / 2 }; })()`);
+        await tapAt(D.page, b.x, b.y);
+        if (await waitFor(D.page, `document.querySelector('.dbg-s[data-id=${id}]').classList.contains('dbg-fold') === ${!was}`, `${id} flipped`, 2000).then(() => true, () => false)) return;
+      }
+    };
     await head('readout'); await head('audio');
     await waitFor(D.page, "[...document.querySelectorAll('.dbg-s')].every(s => s.classList.contains('dbg-fold'))", 'both folded', 3000).catch(() => {});
     await sleep(600);

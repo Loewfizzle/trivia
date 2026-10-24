@@ -1405,7 +1405,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wakeLoop: why => wakeLoop(why),
     partyLight: () => null,                   // the party's light for the lobby's still: Part 11
     /** THE STAGE (test hook): the layout's stage pieces + the knocks */
-    street: () => (L ? { city: 2, HZ: Math.round(groundY(cam, Z.road[1])), K: cam.F / 600, lamps: L.lamps.map(l => ({ x: project(cam, l.x, 0, l.z)[0], lit: T0(), tree: false })), trees: L.trees.length, signals: L.signals.map(s => ({ x: project(cam, s.x, 0, s.z)[0], state: s.state })), door: { ...L.door }, people: { knocks, peds: L.people.length } } : null),
+    street: () => (L ? { city: 2, HZ: Math.round(groundY(cam, Z.road[1])), K: cam.F / 600, lamps: L.lamps.map(l => ({ x: project(cam, l.x, 0, l.z)[0], lit: T0(), tree: false })), trees: L.trees.length, signals: L.signals.map(s => ({ x: project(cam, s.x, 0, s.z)[0], state: s.state })), door: { ...L.door }, people: { knocks, peds: people.debug().n } } : null),
     knock: () => { knockAt = performance.now(); knocks++; },
     /** BATTERY: keep 60 fps for ms (a later part starting something fast: a boat casting off, a bird landing on the sign) */
     wake: (ms = 1500) => { fastUntil = Math.max(fastUntil, performance.now() + ms); },
