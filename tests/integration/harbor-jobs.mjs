@@ -16,6 +16,7 @@ export const SECONDS = {
   core: 27, flags: 7, skyline: 12, water: 27, harbor: 8, speakeasy: 45, promenade: 30,
   neon: 95, dock: 15, sky: 27, party: 66, music: 161, sounds: 51, windows: 45,
   panel: 55, perf: 79,
+  people: 70,          // (8P: measured on the laptop — refine from the first cloud run)
 };
 
 // ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
@@ -23,7 +24,7 @@ export const CI_JOBS = {
   audio: ['music', 'flags', 'harbor', 'dock'],
   show: ['neon', 'party', 'sky'],
   city: ['core', 'skyline', 'water', 'panel', 'perf'],
-  street: ['speakeasy', 'windows', 'sounds', 'promenade'],
+  street: ['speakeasy', 'windows', 'sounds', 'promenade', 'people'],
 };
 
 export const SERIAL = ['panel', 'perf'];

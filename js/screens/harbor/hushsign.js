@@ -4,7 +4,7 @@
 // its unlit glass (per look), one LIT sprite per letter + the keyhole + the border (per text + size), so a new word re-lights
 // letter by letter for the cost of a few drawImages. Lobby 2.0: set(word) (null = no lobby → a plain neon OPEN by day).
 import { hushPlan, hushState, strikeLevel, HUSH } from '../../core/harbor-hush.js';
-import { tube, drawLit, drawGlass, sprite, free, bbox } from './tubes.js';
+import { tube, drawLit, sprite, free, bbox } from './tubes.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -59,7 +59,11 @@ export function createHushSign() {
       x.strokeStyle = `rgba(${night > 0.5 ? '120,96,64' : '206,164,86'},0.9)`; x.lineWidth = Math.max(0.5, sc.w * 0.45); x.stroke();
       const g = x.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, `rgba(255,255,255,${0.08 * day})`); g.addColorStop(0.4, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fill();
       const all = [...sc.border, ...sc.key, ...sc.letters.flat()];
-      drawGlass(x, all, HUSH.col, T, { w: sc.w, clips: false, shadow: day > 0.05 });
+      // the tubes UNLIT: dull glass on the dark board — a faint grey line with a fine highlight (drawGlass's pale sunlit glass read as lit
+      // neon against the dark board), so an OPEN that's off reads OFF at a glance
+      const line = (wd, style, dx = 0, dy = 0) => { x.beginPath(); for (const t of all) { x.moveTo(t.pts[0][0] + dx, t.pts[0][1] + dy); for (let i = 1; i < t.pts.length; i++) x.lineTo(t.pts[i][0] + dx, t.pts[i][1] + dy); } x.lineWidth = wd; x.strokeStyle = style; x.lineCap = 'round'; x.lineJoin = 'round'; x.stroke(); };
+      line(sc.w, `rgba(${Math.round(46 + 64 * day)},${Math.round(40 + 48 * day)},${Math.round(52 + 52 * day)},0.95)`);
+      line(Math.max(0.3, sc.w * 0.28), `rgba(255,255,255,${(0.08 + 0.14 * day).toFixed(3)})`, -sc.w * 0.2, -sc.w * 0.22);
     });
     return base;
   }

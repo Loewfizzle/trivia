@@ -1489,7 +1489,7 @@ G('speakeasy', async () => {
   const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
   const settle = p => waitFor(p, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 20000);
   // ---- the night: the rooms lit, the edge windows half cut, the blade sign (the corner as it is), the knock's door unchanged
-  { const Q = await open({ slot: 'sp1', qs: NIGHT, view: [402, 874] });
+  { const Q = await open({ slot: 'sp1', qs: `${NIGHT}&force=no-people`, view: [402, 874] });   // (8P: nobody walking through the light probes)
     await harborUp(Q.page); await settle(Q.page);
     await waitFor(Q.page, 'window.__district.harbor().speakeasy.k > 0.9', 'the city powered on (the rooms lit)', 20000);
     const sp = await ev(Q.page, '(() => { const s = window.__district.harbor().speakeasy; return { ...s, wins: s.windows() }; })()');
@@ -1861,6 +1861,60 @@ G('sounds', async () => {
       `FP3 — THE CAR IN SYNC (car files held back 2.5 s): ${pairs.map(q => `${q.f} on screen ${q.on.toFixed(2)} s (its swell's ${q.cross} s), its sound's peak ${q.skipped ? 'SKIPPED (late, silent by design)' : q.dt == null ? 'MISSING' : `${q.dt >= 0 ? '+' : ''}${q.dt.toFixed(2)} s`} from mid-crossing`).join(' · ')}`);
     ok(res.sounds.every(x => Math.abs(x.pan) <= 0.6 + 1e-6) && res.sounds.some(x => Math.abs(x.pan) > 0.3), `FP3 — THE PAN: each sound starts on its car's side, gentle (${res.sounds.map(x => x.pan).join(', ')}; ±0.6 at most)`);
     await C.ctx.close(); }
+});
+
+// ================================================================ 8P — THE PEOPLE (+ section 0's hush word sign + the lamps' life)
+G('people', async () => {
+  const P = 'window.__district.harbor()';
+  const settle = p => waitFor(p, `!${P}.pending && !${P}.fading`, 'settled', 20000);
+  // the stage band's pixels, as one fingerprint (the A/B against &force=no-people)
+  const band = p => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, c = ${P}.cam, y0 = Math.round((c.dock.y - 130) * k), h = Math.round(120 * k);
+    const d = cv.getContext('2d').getImageData(0, y0, cv.width, h).data, out = []; for (let i = 0; i < d.length; i += 4 * 97) out.push(d[i] + d[i + 1] + d[i + 2]); res(out); }))`);
+  // ---- midday (a Thursday): people out on the promenade, inside the cap, on screen + never under the dock; THE HUSH SIGN says OPEN
+  { const Q = await open({ slot: 'pp1', qs: `when=2026-10-22T12:30${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await settle(Q.page);
+    await waitFor(Q.page, `${P}.people.n >= 3`, 'people out at midday', 10000).catch(() => {});
+    const pp = await ev(Q.page, `${P}.people`), cam = await ev(Q.page, `${P}.cam`);
+    ok(pp.n >= 3 && pp.n <= 12, `THE PEOPLE at 12:30: ${pp.n} out (+ ${pp.dogs} dogs) — ${[...new Set(pp.members.map(m => m.kind))].join(', ')}`);
+    ok(pp.members.every(m => m.z >= 38.1), `nobody under the dock (nearest z ${Math.min(...pp.members.map(m => m.z)).toFixed(2)})`);
+    const hs = await ev(Q.page, `${P}.speakeasy.hush()`);
+    ok(hs.text === 'OPEN' && hs.lit === 1 && hs.capPt >= 14, `THE HUSH WORD SIGN at noon, no lobby: a neon ${hs.text} lit (${hs.capPt} pt letters)`);
+    const a = await band(Q.page);
+    const O = await open({ slot: 'pp1b', qs: `when=2026-10-22T12:30${GR}&force=no-people`, view: [402, 874] });
+    await harborUp(O.page); await settle(O.page);
+    const b = await band(O.page), diff = a.reduce((s, v, i) => s + (Math.abs(v - b[i]) > 30 ? 1 : 0), 0);
+    ok(diff > 8, `THE PEOPLE are drawn: the promenade's band differs from &force=no-people in ${diff} samples`);
+    void cam; await O.ctx.close(); await Q.ctx.close(); }
+  // ---- THE LOBBY LINE preview + THE HUSH SIGN with a lobby word at night (lit, letter by letter)
+  { const Q = await open({ slot: 'pp2', qs: `when=2026-10-22T22:30${GR}&force=line,hushsign&n=6&hush=SWING`, view: [402, 874] });
+    await harborUp(Q.page); await settle(Q.page);
+    const pp = await ev(Q.page, `${P}.people`);
+    ok(pp.line === 6, `THE LOBBY LINE: &force=line&n=6 → ${pp.line} guests at the door`);
+    await waitFor(Q.page, `${P}.speakeasy.hush().since > 3`, 'the word lit through', 8000).catch(() => {});
+    const hs = await ev(Q.page, `${P}.speakeasy.hush()`);
+    const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hs.rect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i] > d[i + 2] + 40) n++; res(n / (d.length / 4)); }))`);
+    ok(hs.text === 'SWING' && hs.lit === 1 && red > 0.04, `THE HUSH WORD SIGN at night with a lobby: ${hs.text} lit in warm neon (${(red * 100).toFixed(1)} % of its board glowing)`);
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'pp3', qs: `when=2026-10-22T22:30${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await settle(Q.page);
+    const hs = await ev(Q.page, `${P}.speakeasy.hush()`), lamps = await ev(Q.page, `${P}.lampLife()`);
+    ok(hs.lit === 0, `THE HUSH WORD SIGN at night, no lobby: dark (${hs.text} unlit)`);
+    ok(lamps && lamps.levels.length >= 4 && lamps.levels.filter((v, i) => !(lamps.moment && lamps.moment.i === i)).every(v => v === 1), `THE LAMPS' LIFE at 10:30 pm: every lamp on (${lamps && lamps.levels.join(' ')}; switch-on order ${lamps && lamps.th.join(' ')})`);
+    await Q.ctx.close(); }
+  // ---- THE BUS (&force=bus: one a minute): it comes, stops at the curb short of the crossing with its door open, then goes
+  { const Q = await open({ slot: 'pp4', qs: `when=2026-10-22T11:00${GR}&force=bus`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.buses.some(b => b.door)`, 'a bus at the stop, its door open', 60000);
+    const pp = await ev(Q.page, `${P}.people`), cw = await ev(Q.page, `${P}.crossing`), b = pp.buses.find(x => x.door);
+    ok(b && Math.abs(b.x - b.stop) < 0.05, `THE BUS stopped at the curb (x ${b && b.x}, its stop ${b && b.stop}), door open`);
+    await waitFor(Q.page, `!${P}.people.buses.some(b => b.door)`, 'the door shut, away', 45000);
+    void cw; await Q.ctx.close(); }
+  // ---- THE ROOF on a party night: guests up there (through the hatch), the promenade's party guests
+  { const Q = await open({ slot: 'pp5', qs: `when=2026-10-24T21:45${GR}`, view: [402, 874] });
+    await harborUp(Q.page);
+    const pp = await ev(Q.page, `${P}.people`);
+    ok(pp.roof >= 2 && pp.roof <= 6, `THE ROOF on a party night: ${pp.roof} guests (${pp.roofMembers.map(m => m.pose).join(', ')})`);
+    await Q.ctx.close(); }
 });
 
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups

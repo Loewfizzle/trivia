@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
 import { hushPlan, hushState, strikeLevel, HUSH } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
+import { FOLK, MIX, mixNow, folkMap, folkAt, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS } from '../js/core/harbor-people.js';
+import { signalAt } from '../js/core/harbor-promenade.js';
 
 const SIZES = {
   '390x844': { W: 390, H: 844, safe: { top: 47, bottom: 34 } },
@@ -99,5 +101,127 @@ test('8P — THE CROSSWALK LIT: the two lamps framing it light the crossing — 
     assert.ok(f(mid, 56.5) > 1, `${k}: the pools overlap on the crossing (${f(mid, 56.5).toFixed(2)})`);
     for (const x of [cw.x0, mid, cw.x1]) assert.ok(f(x, 55.5) > 0.6, `${k}: lit across its width`);
     assert.ok(f(mid, 63.9) < 0.2, `${k}: fading by the far kerb`);
+  }
+});
+
+// ------------------------------------------------------------------ THE PEOPLE (section 1)
+const OFF = -240, DAY = Date.UTC(2026, 9, 22, 4) / 1000;     // (Thu Oct 22 2026, local midnight in Grand Rapids)
+const inR = (p, r) => p.x > r.x0 + 0.05 && p.x < r.x1 - 0.05 && p.z > r.z0 + 0.05 && p.z < r.z1 - 0.05;
+test('8P — WHO\'S OUT WHEN: the mix by the clock (joggers + dogs early, the commute, lunch on the bench, couples + guests at night, nearly empty at 3 am), weekends busier, party nights a stream of guests, rain fewer', () => {
+  const at = (h, o = {}) => mixNow({ h, dow: 4, ...o });
+  assert.ok(at(3.5).n < 1, 'the small hours: almost empty');
+  assert.ok(at(6.5).mix.jogger && at(6.5).mix.dogwalker && at(6.5).mix.worker, 'early: joggers, dog walkers, a worker to the bus');
+  assert.ok(at(8.5).mix.brisk && at(8.5).mix.busrider && at(8.5).mix.newsboy, 'the commute');
+  assert.ok(at(12.5).mix.lunch && at(12.5).mix.window && at(12.5).mix.customer, 'midday: lunch on the bench, a window-shopper, a customer');
+  assert.ok(at(17).mix.homeward, 'late afternoon: heading home');
+  assert.ok(at(20).mix.couple >= 3 && at(20).mix.guests, 'evening: couples, guests to the side door');
+  assert.ok(at(23.5).mix.straggler && at(23.5).mix.leaving, 'late: stragglers, a couple leaving');
+  assert.ok(at(12.5).n > at(3.5).n * 8 && at(12.5).n <= FOLK.cap, 'busiest at midday, never past the cap');
+  assert.ok(mixNow({ h: 20.5, dow: 6 }).n >= at(20.5).n, 'a weekend evening busier');
+  assert.ok(at(21, { party: true }).mix.guests > at(21).mix.guests * 2, 'party nights: a stream of guests');
+  assert.ok(at(12.5, { rain: 1 }).n < at(12.5).n * 0.6 && !at(12.5, { rain: 1 }).mix.lunch, 'rain: fewer, nobody lunching on the bench');
+  assert.ok(MIX.every(p => Object.keys(p.mix).every(k => KINDS[k])), 'every kind in the mix has a builder');
+});
+test('8P — THE PEOPLE over two days at 390 / 402 / 430: never past the cap, never under the dock or inside a wall / the bench\'s back / the cart\'s front, crossing only on WALK, arriving + leaving through an edge, a door, the bus or the crossing', () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), M = folkMap(L), cache = new Map();
+    const block = M.rects.filter(r => ['building', 'back-left', 'cart'].includes(r.id));
+    let maxN = 0; const seenKinds = new Set();
+    for (let t = DAY + 5 * 3600; t < DAY + 2 * 86400; t += 9) {
+      const R = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
+      const heads = R.members.filter(m => m.m.role !== 'dog');
+      maxN = Math.max(maxN, heads.length);
+      for (const m of heads) {
+        const s = m.s; seenKinds.add(m.kind);
+        assert.ok(s.z >= FOLK.zMin - 0.6, `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);
+        if (s.a >= 0.999 && m.m.role === 'lead') for (const r of block) assert.ok(!inR(s, r), `${k}: ${m.kind} inside ${r.id} at ${s.x.toFixed(2)}, ${s.z.toFixed(2)} (${s.pose})`);
+        if (s.z > FOLK.roadZ + 0.2 && s.z < FOLK.farZ - 0.35 && m.m.role === 'lead') {
+          const nearBus = Math.abs(s.x - busStopX(L)) < 2.2;
+          assert.ok(s.cross || nearBus || s.a < 1, `${k}: ${m.kind} on the road, not crossing (${s.x.toFixed(2)}, ${s.z.toFixed(2)})`);
+          if (s.cross) { const S = signalAt(t * 1000); assert.ok(S.walk === 'walk' || S.phase === 'blink', `${k}: crossing on ${S.phase}`); }
+        }
+      }
+    }
+    assert.ok(maxN <= FOLK.cap, `${k}: at most ${FOLK.cap} at once (${maxN})`);
+    for (const kind of ['stroller', 'couple', 'dogwalker', 'lunch', 'guests', 'water', 'busrider', 'jogger']) assert.ok(seenKinds.has(kind), `${k}: ${kind} seen`);
+    const R = folkAt(DAY + 13 * 3600, { L, M, ctx: { off: OFF } }, cache);
+    for (const v of R.visits) {
+      const first = v.legs[0], last = v.legs[v.legs.length - 1];
+      const off = p => Math.abs(p.x) > cam.hw(p.z) || (p.z >= FOLK.farZ - 0.01 && p.x < L.speakeasy.x1);
+      const p0 = first.k === 'walk' ? first.pts[0] : first, p1 = last.k === 'walk' ? last.pts[last.pts.length - 1] : last;
+      assert.ok(first.k === 'fade' || off(p0), `${v.kind} appears on screen at ${p0.x.toFixed(1)}, ${p0.z.toFixed(1)}`);
+      assert.ok(last.k === 'fade' || off(p1), `${v.kind} leaves on screen at ${p1.x.toFixed(1)}, ${p1.z.toFixed(1)}`);
+    }
+  }
+});
+test('8P — JOIN MID-WAY: the promenade at any moment is the same on every phone (a cold start mid-afternoon = a phone that watched all day)', () => {
+  const { L } = setup('402x874'), M = folkMap(L), warm = new Map();
+  for (let t = DAY + 14 * 3600; t < DAY + 14 * 3600 + 900; t += 3) folkAt(t, { L, M, ctx: { off: OFF } }, warm);
+  for (const t of [DAY + 14 * 3600 + 901, DAY + 14 * 3600 + 1333.3]) {
+    const a = folkAt(t, { L, M, ctx: { off: OFF } }, warm), b = folkAt(t, { L, M, ctx: { off: OFF } }, new Map());
+    assert.deepEqual(b.members.map(m => [m.vid, m.m.role, m.s.x.toFixed(4), m.s.z.toFixed(4), m.s.pose]), a.members.map(m => [m.vid, m.m.role, m.s.x.toFixed(4), m.s.z.toFixed(4), m.s.pose]));
+    assert.ok(a.members.length > 2, 'people already there, mid-stroll');
+  }
+});
+test('8P — THE BUS: a few an hour by day, none in the small hours; it stops short of the crossing, pulls away only on green, never stands on the crosswalk', () => {
+  const { L } = setup('402x874'), cw = L.crosswalk;
+  let day = 0;
+  for (let h = 0; h < 24; h++) {
+    const bs = busesOf(L, '2026-10-22', h, DAY + h * 3600);
+    if (h >= 2 && h < 5) assert.equal(bs.length, 0, `none at ${h}:00`);
+    if (h >= 7 && h < 22) { assert.ok(bs.length >= 2 && bs.length <= 4, `${bs.length} at ${h}:00`); day += bs.length; }
+    for (const b of bs) {
+      assert.ok(b.xc + b.len / 2 <= cw.x0 - 0.3, 'its front short of the crosswalk at the stop');
+      assert.ok(b.xc - b.len / 2 > L.speakeasy.x1, 'its rear clear of the speakeasy at the stop');
+      assert.equal(signalAt(b.tD * 1000).road, 'green', 'away on green');
+      for (let t = b.tE; t < b.tX; t += 0.25) {
+        const x = b.x(t), on = x + b.len / 2 > cw.x0 && x - b.len / 2 < cw.x1;
+        if (on) assert.ok(['green', 'amber'].includes(signalAt(t * 1000).road), 'over the crosswalk only while the road is green');
+      }
+      assert.ok(b.tD - b.tA >= 15, 'it stops a while');
+    }
+  }
+  assert.ok(day >= 30 && day <= 60, `${day} buses through the day`);
+});
+test('8P — THE LOBBY LINE: left of the door along the shopfront, bending toward the bottom-left corner; never cut by the left edge, never under the dock, the door clear', () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), s = L.speakeasy;
+    for (const n of [4, 6, 8]) {
+      const P = linePlaces(L, n);
+      assert.equal(P.length, n);
+      for (const p of P) {
+        const sx = cam.VPX + cam.F * p.x / p.z;
+        assert.ok(sx >= 9, `${k} n${n}: on screen (${sx.toFixed(1)} pt)`);
+        assert.ok(p.z >= FOLK.zMin - 0.01, `${k}: never under the dock`);
+        assert.ok(p.x < s.x0 + s.door.u0 - 0.3, `${k} n${n}: left of the door, the door clear (${p.x.toFixed(2)})`);
+      }
+      const q = P.filter(p => !p.wait);
+      assert.ok(q[0].z > FOLK.doorZ - 0.6, 'the head of the line by the shopfront');
+    }
+  }
+});
+test('8P — THE ROOF: a crowd on party nights + summer weekend nights (≤ the roof\'s cap), 0–1 otherwise; up + down through the hatch only', () => {
+  assert.ok(roofCrowd({ h: 21.5, dow: 6, month: 10, party: true }).n >= 4);
+  assert.ok(roofCrowd({ h: 21.5, dow: 6, month: 7 }).n >= 4, 'a summer Saturday');
+  assert.ok(roofCrowd({ h: 12, dow: 3, month: 10 }).n <= 1 && roofCrowd({ h: 21.5, dow: 3, month: 10 }).n <= 1);
+  assert.equal(roofCrowd({ h: 21.5, dow: 6, party: true, rain: 1 }).n, 0, 'nobody up there in the rain');
+  const { L } = setup('402x874'), cache = new Map(), sat = Date.UTC(2026, 9, 25, 1, 30) / 1000;     // (Sat Oct 24, 9:30 pm local)
+  let mx = 0, sum = 0, k = 0;
+  for (let t = sat; t < sat + 3600; t += 5) { const R = roofAt(t, L, { off: OFF, party: () => true }, cache); mx = Math.max(mx, R.members.length); sum += R.members.length; k++;
+    for (const v of R.visits) { assert.equal(v.legs[0].k, 'fade'); assert.equal(v.legs[v.legs.length - 1].k, 'fade'); } }
+  assert.ok(mx <= FOLK.roofCap, `≤ ${FOLK.roofCap} (${mx})`);
+  assert.ok(sum / k >= 2.5, `a party up there (${(sum / k).toFixed(1)} on average)`);
+});
+test('8P — THE WALK never slides: the planted foot stays put on the ground while the body walks on', async () => {
+  const { jointsOf, lookOf } = await import('../js/screens/harbor/folk.js');
+  for (const name of ['commuter', 'lady', 'jogger', 'newsboy']) {
+    const L = lookOf(name, 5, {}), H = 2.1 * L.h, v = name === 'jogger' ? 3 : 1.5;
+    let prev = null, drift = 0, stance = 0;
+    for (let d = 0; d < 6; d += 0.02) {
+      const J = jointsOf({ pose: 'walk', dir: 1, dist: d, v }, L, 0, false), f = J.feet[0], wx = d + f[0] * H;
+      if (f[1] === 0 && prev && prev.planted) { drift = Math.max(drift, Math.abs(wx - prev.wx)); stance++; }
+      prev = { wx, planted: f[1] === 0 };
+    }
+    assert.ok(stance > 50 && drift < 1e-4, `${name}: the planted foot drifts ${drift.toFixed(5)} units a step`);
   }
 });

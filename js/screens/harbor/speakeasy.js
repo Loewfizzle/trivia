@@ -225,10 +225,36 @@ function paintFrontDeco(x, M, P) {
     R(x, cm - hw, v0, cm + hw, v1, shade(M.brick, -0.04)); R(x, cm - hw - 0.04, v1 - 0.1, cm + hw + 0.04, v1, trim); R(x, cm - hw - 0.04, v1 - 0.03, cm + hw + 0.04, v1, hi);
     R(x, cm + hw - 0.05, v0, cm + hw, v1 - 0.1, sd >= 0 ? shade(M.brick, -0.3) : mix(M.brick, hi, 0.3));
   }
-  x.fillStyle = rgb(trim); x.beginPath(); x.arc(cm, V.parapet + 0.02, 0.52, 0, Math.PI); x.fill();
-  fan(x, cm, V.parapet + 0.02, 0.46, 9, mix(trim, hi, 0.5), shade(trim, -0.16), 0, Math.PI);
-  x.fillStyle = rgb(M.gilt); x.beginPath(); x.arc(cm, V.parapet + 0.02, 0.12, 0, Math.PI); x.fill();
+  // 8P — THE DATE STONE (Ben: "EST. 1924" on the awning was unreadable): a carved stone tablet at the top centre of the facade, where the
+  // sunburst sat — "1924" in big carved numerals, the way a 1920s building showed its year; softly lit at night (paintDateStone)
+  paintDateStone(x, M, cm, hi, lo);
   for (const u of [3.55, 6.75, 9.95]) { R(x, u - 0.24, V.parapet - 0.02, u + 0.24, V.parapet + 0.18, trim); R(x, u - 0.13, V.parapet + 0.18, u + 0.13, V.parapet + 0.32, trim); R(x, u - 0.24, V.parapet + 0.14, u + 0.24, V.parapet + 0.18, hi); }
+}
+
+/** 8P — THE DATE STONE: a pale limestone tablet with a moulded frame set into the parapet + the crest's lower step, "1924" in big incised
+ *  numerals (one crisp fill — a carved letter is darker than its face; no offset copy), a hidden lamp on the cornice washing it softly
+ *  from below at night. DATE: its size + place (wall units) */
+export const DATE = Object.freeze({ w: 2.3, v0: 10.58, v1: 11.52, cap: 0.6, text: '1924' });
+function paintDateStone(x, M, cm, hi, lo) {
+  const D = DATE, a = cm - D.w / 2, b = cm + D.w / 2, stone = mix(mix(M.trim, [236, 228, 208], 0.45 * (1 - M.night)), hi, 0.15 + 0.25 * M.night);
+  R(x, a - 0.08, D.v0 - 0.08, b + 0.08, D.v1 + 0.08, shade(stone, -0.22));           // (the moulding's shadowed outer edge)
+  R(x, a - 0.04, D.v0 - 0.04, b + 0.04, D.v1 + 0.04, mix(stone, hi, 0.4));             // (its lit fillet)
+  R(x, a, D.v0, b, D.v1, stone);
+  R(x, a, D.v1 - 0.06, b, D.v1, shade(stone, -0.12));                                  // (the top edge's shade under the coping)
+  R(x, a, D.v0, b, D.v0 + 0.04, mix(stone, [255, 255, 255], 0.2 * (1 - M.night)));    // (the sill's lit lower edge)
+  // the year: incised — the cut a deep shadow inside the stone (one fill + a thin darker rim), centred
+  const carve = mix(shade(stone, -0.55), [40, 30, 28], 0.35);
+  text(x, D.text, cm, D.v0 + (D.v1 - D.v0 - D.cap) / 2 + 0.02, D.cap / 0.72, { fill: rgb(carve), stroke: rgb(shade(carve, -0.25)), lw: 0.02, sq: 1.05, font: (px, w = 800) => `${w} ${px}px "Chakra Petch", Orbitron, sans-serif` });
+  // at night: a soft warm wash from a lamp hidden on the cornice, brightest at the foot (baked by the lamps' ramp)
+  const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
+  if (lk > 0.01) {
+    x.save(); x.globalCompositeOperation = 'lighter';
+    const g = x.createLinearGradient(0, D.v0, 0, D.v1 + 0.3); g.addColorStop(0, rgb([255, 204, 150], 0.72 * lk)); g.addColorStop(0.75, rgb([255, 192, 134], 0.34 * lk)); g.addColorStop(1, rgb([255, 190, 130], 0));
+    x.fillStyle = g; x.fillRect(a - 0.1, D.v0 - 0.1, D.w + 0.2, D.v1 - D.v0 + 0.4); x.restore();
+    R(x, cm - 0.25, D.v0 - 0.16, cm + 0.25, D.v0 - 0.08, M.iron);                     // (the little lamp's hood on the cornice)
+    text(x, D.text, cm, D.v0 + (D.v1 - D.v0 - D.cap) / 2 + 0.02, D.cap / 0.72, { fill: rgb(mix(carve, [30, 18, 16], 0.5)), sq: 1.05, font: (px, w = 800) => `${w} ${px}px "Chakra Petch", Orbitron, sans-serif` });
+  }
+  void lo;
 }
 
 /** an upper window, by day (the sky in the glass, a shade at its height, curtains) or dark (the night's base: the lit layer
@@ -270,13 +296,33 @@ function paintWindow(x, M, a, b, r0, r1, o) {
   }
   // the meeting rail (slim, high) + the frame's lit edges
   R(x, g0, rail - 0.025, g1, rail + 0.025, M.frame); R(x, g0, rail + 0.025, g1, rail + 0.04, M.frameHi); R(x, gs, r1 - 0.02, b, r1, M.frameHi);
-  // the WINDOW BOX (the apartment): geraniums by day
+  // 8P — THE WINDOW BOX (the apartment), crafted to read at phone size (Ben: "too small, low detail"): a deeper painted planter on two iron
+  // brackets under the sill, a trim + its lit lip, a full mound of foliage with BOLD flower heads (by the season: geraniums in summer,
+  // bronze + gold mums in autumn, tulips + pansies in spring, evergreen boughs + red berries in winter) and trailing ivy hanging over the front
   if (o.box) {
-    R(x, a + 0.05, r0 - 0.5, b - 0.05, r0 - 0.16, tri(M.T, [44, 82, 60], [60, 64, 44], [12, 16, 22]));
-    R(x, a + 0.05, r0 - 0.2, b - 0.05, r0 - 0.16, tri(M.T, [80, 130, 100], [96, 96, 64], [20, 24, 32]));
-    const rr = rngFrom(19), leaf = tri(M.T, [58, 112, 54], [74, 90, 40], [12, 16, 16]), red = tri(M.T, [214, 44, 52], [226, 70, 50], [40, 14, 22]);
-    for (let i = 0; i < 16; i++) { const u = a + 0.15 + rr() * (b - a - 0.3), v = r0 - 0.16 + rr() * 0.26; x.fillStyle = rgb(leaf); x.beginPath(); x.arc(u, v, 0.09, 0, Math.PI * 2); x.fill(); }
-    for (let i = 0; i < 9; i++) { const u = a + 0.2 + rr() * (b - a - 0.4), v = r0 + 0.02 + rr() * 0.2; x.fillStyle = rgb(red); x.beginPath(); x.arc(u, v, 0.075, 0, Math.PI * 2); x.fill(); }
+    const m = o.month || 10, rr = rngFrom(19), x0 = a - 0.02, x1 = b + 0.02, top = r0 - 0.16, bot = r0 - 0.72;
+    const boxC = tri(M.T, [46, 86, 64], [62, 66, 46], [12, 16, 22]), trimC = tri(M.T, [96, 140, 110], [110, 104, 70], [22, 26, 34]);
+    // the brackets + the box (a darker base, the front panel, a raised trim band, the lit lip)
+    for (const u of [x0 + 0.2, x1 - 0.2]) { R(x, u - 0.04, bot - 0.22, u + 0.04, bot, M.iron); R(x, u - 0.04, bot - 0.22, u + 0.22 * (u < (x0 + x1) / 2 ? 1 : -1), bot - 0.16, M.iron); }
+    R(x, x0, bot, x1, top, boxC); R(x, x0 + 0.06, bot + 0.07, x1 - 0.06, top - 0.07, shade(boxC, -0.12));
+    R(x, x0, top - 0.07, x1, top, trimC); R(x, x0, top - 0.02, x1, top, mix(trimC, [255, 255, 255], 0.25 * (1 - M.night)));
+    R(x, x0, bot, x1, bot + 0.04, shade(boxC, -0.35));
+    const leaf = m === 12 || m <= 2 ? [[38, 74, 50], [48, 88, 58]] : m <= 5 ? [[96, 160, 70], [120, 176, 84]] : m <= 8 ? [[52, 110, 54], [66, 128, 60]] : [[60, 96, 50], [84, 110, 56]];
+    const flowers = m === 12 || m <= 2 ? [[196, 30, 40], [214, 50, 46]] : m <= 5 ? [[236, 120, 160], [248, 214, 80], [150, 90, 200]] : m <= 8 ? [[220, 40, 50], [236, 70, 70], [250, 240, 236]] : [[214, 116, 40], [230, 170, 60], [140, 36, 44]];
+    const night = c => mix(c, [12, 12, 22], 0.84 * M.night);
+    // the trailing ivy over the front (a few strands with small leaves)
+    for (let i = 0; i < 6; i++) { const u = x0 + 0.15 + i * (x1 - x0 - 0.3) / 5 + (rr() - 0.5) * 0.1, len = 0.25 + rr() * 0.35; for (let k = 0; k < 5; k++) { const v = top - 0.05 - k * len / 4; x.fillStyle = rgb(night(leaf[(i + k) % 2])); x.beginPath(); x.ellipse(u + Math.sin(k * 1.3 + i) * 0.04, v, 0.06, 0.045, 0.6, 0, Math.PI * 2); x.fill(); } }
+    // the foliage mound (dark under-layer, then the leaves), the bold blooms on top
+    for (let i = 0; i < 22; i++) { const u = x0 + 0.08 + rr() * (x1 - x0 - 0.16), v = top + 0.02 + rr() * 0.24; x.fillStyle = rgb(night(shade(leaf[0], -0.3))); x.beginPath(); x.arc(u, v - 0.03, 0.12, 0, Math.PI * 2); x.fill(); }
+    for (let i = 0; i < 26; i++) { const u = x0 + 0.08 + rr() * (x1 - x0 - 0.16), v = top + 0.04 + rr() * 0.26; x.fillStyle = rgb(night(leaf[i % 2])); x.beginPath(); x.ellipse(u, v, 0.11, 0.08, rr() * 3, 0, Math.PI * 2); x.fill(); }
+    const nB = m === 12 || m <= 2 ? 7 : 9;
+    for (let i = 0; i < nB; i++) {
+      const u = x0 + 0.18 + (i + 0.5) * (x1 - x0 - 0.36) / nB + (rr() - 0.5) * 0.08, v = top + 0.2 + rr() * 0.16, col = flowers[i % flowers.length];
+      if (m === 12 || m <= 2) { x.fillStyle = rgb(night(col)); for (let k = 0; k < 3; k++) { x.beginPath(); x.arc(u + (k - 1) * 0.05, v + (k % 2) * 0.04, 0.035, 0, Math.PI * 2); x.fill(); } continue; }
+      x.fillStyle = rgb(night(shade(col, -0.25))); x.beginPath(); x.arc(u + 0.02, v - 0.02, 0.1, 0, Math.PI * 2); x.fill();
+      x.fillStyle = rgb(night(col)); x.beginPath(); x.arc(u, v, 0.095, 0, Math.PI * 2); x.fill();
+      x.fillStyle = rgb(night(mix(col, [255, 255, 255], 0.35))); x.beginPath(); x.arc(u - 0.03, v + 0.03, 0.035, 0, Math.PI * 2); x.fill();
+    }
   }
 }
 
@@ -329,8 +375,8 @@ function paintGround(x, M, s) {
     x.fillStyle = 'rgba(255,255,255,0.08)'; for (const [p, q] of [[0.1, 0.55], [0.62, 0.78]]) { x.beginPath(); x.moveTo(w0 + (w1 - w0) * p, wv1); x.lineTo(w0 + (w1 - w0) * q, wv1); x.lineTo(w0 + (w1 - w0) * (q - 0.22), wv0); x.lineTo(w0 + (w1 - w0) * (p - 0.22), wv0); x.fill(); }
   } else R(x, w0, wv0, w1, wv1, M.inside, 0.55);
   R(x, w0, wv1 - 0.3, w1, wv1, [0, 0, 0], 0.3 * (M.day + M.gold) + 0.1);
-  // THE GOLD LEAF (7b: its own painter — the live layer lays it over the people inside: it is ON the glass)
-  paintGilt(x, M, sh);
+  // THE GOLD LEAF: NOT baked (8P — Ben's zoom: the bake's copy + the live layer's copy, a hair apart, read as a ghost — the blur): the live
+  // layer draws it ONCE every frame, on the glass, over whatever moves inside (giltOver)
   x.restore();
   // the window's frame: a bronze bar sash, mullion
   R(x, w0 - 0.07, wv0 - 0.07, w1 + 0.07, wv0, M.frameHi); R(x, w0 - 0.07, wv1, w1 + 0.07, wv1 + 0.07, M.frame);
@@ -483,27 +529,48 @@ function paintLight(x, M, u0, u1, side, seed) {
   for (let i = 0; i < 10; i++) { const u = u0 + r() * (u1 - u0), v = r() < 0.5 ? V.ground + 0.05 + r() * 0.35 : V.cornice[0] + r() * 0.6, w = 0.04 + r() * 0.07; x.fillStyle = rgb(shade(mix(side ? M.trimS : M.trim, side ? M.brickS : M.brick, 0.45), -0.12), 0.7); x.beginPath(); x.ellipse(u, v, w, w * (0.5 + r() * 0.4), r() * 3, 0, Math.PI * 2); x.fill(); }
 }
 
-/** IVY up the corner (both walls meet there): stems + leaves, the season's colour (autumn red, summer green, winter bare twigs) */
-function paintIvy(x, M, u, dir, seed, month) {
-  const r = rngFrom(seed), m = month || 10;
-  const leafC = m >= 9 && m <= 11 ? [[138, 36, 34], [164, 58, 38], [112, 30, 36], [178, 96, 44], [96, 70, 40]] : m === 12 || m <= 2 ? null : m <= 5 ? [[96, 150, 64], [124, 170, 76]] : [[48, 104, 50], [64, 124, 56], [40, 86, 44]];
-  const stem = tri(M.T, [86, 62, 46], [96, 62, 44], [20, 14, 18]);
-  // the vine's shape: a fan from the foot of the corner — wide and thick low down, a few runners climbing the quoins
-  const pts = [];
-  for (let i = 0; i < 260; i++) {
-    const t = Math.pow(r(), 0.75), v = 0.3 + t * 4.6, spread = 0.25 + (1 - t) * 0.55 + 0.25 * Math.sin(v * 2.1 + seed);
-    if (v > 3.6 && r() < 0.7) continue;                       // (only runners above the belt course)
-    pts.push([u + dir * r() * spread, v]);
+/** 8P — BOSTON IVY up the corner pier (Ben: the little plant by the door was barely visible): from a small bed at the pier's foot, climbing
+ *  the brick past the door to about the first floor — a dense mat of three-lobed leaves (a dark under-layer + the leaves, lighter toward the
+ *  sky) on a network of woody vines. By the season: deep RED / crimson in autumn, green in summer, fresh light green (thinner) in spring,
+ *  bare woody vines in winter. width(v): how far from the corner it may spread at height v (never over the door, the sconce or the blade) */
+export const IVY = Object.freeze({ top: 5.6, bed: [10.78, 11.2] });
+function ivyColours(m) {
+  if (m >= 9 && m <= 11) return { leaves: [[150, 22, 32], [176, 30, 38], [128, 18, 34], [196, 46, 40], [112, 20, 42], [206, 84, 44]], k: 1 };
+  if (m === 12 || m <= 2) return { leaves: null, k: 0 };
+  if (m <= 5) return { leaves: [[108, 168, 78], [128, 186, 88], [94, 150, 66]], k: 0.7 };
+  return { leaves: [[44, 96, 44], [56, 114, 50], [36, 84, 40], [70, 126, 56]], k: 1 };
+}
+function paintIvy(x, M, u, dir, seed, month, width = () => 0.4) {
+  const r = rngFrom(seed), m = month || 10, C = ivyColours(m), top = IVY.top;
+  const stem = tri(M.T, [92, 66, 50], [100, 64, 46], [22, 16, 20]), dark = c => mix(c, [12, 8, 20], 0.82 * M.night);
+  // the woody vines: a few leaders up from the bed, branching sideways (they ARE the look in winter)
+  x.strokeStyle = rgb(dark(stem), 0.9); x.lineCap = 'round';
+  for (let sI = 0; sI < 5; sI++) {
+    let pu = u + dir * (0.04 + r() * 0.12), pv = 0.25; x.lineWidth = 0.035; x.beginPath(); x.moveTo(pu, pv);
+    while (pv < top - 0.1) { pv += 0.16; pu = u + dir * Math.min(width(pv) - 0.05, Math.max(0.03, Math.abs(pu - u) + (r() - 0.35) * 0.12)); x.lineTo(pu, pv);
+      if (r() < 0.35) { x.moveTo(pu, pv); x.lineTo(u + dir * Math.min(width(pv), Math.abs(pu - u) + 0.25 + r() * 0.3), pv + 0.1 + r() * 0.15); x.moveTo(pu, pv); } }
+    x.stroke();
   }
-  x.strokeStyle = rgb(stem, 0.8); x.lineWidth = 0.025; x.lineCap = 'round';
-  for (let sI = 0; sI < 4; sI++) { x.beginPath(); let pu = u + dir * r() * 0.15, pv = 0.2; x.moveTo(pu, pv); while (pv < 2.4 + sI * 0.7) { pv += 0.2; pu += dir * (r() - 0.4) * 0.12; x.lineTo(pu, pv); } x.stroke(); }
-  if (!leafC) return;
-  for (const [lu, lv] of pts) {
-    const c = leafC[Math.floor(r() * leafC.length)], lc = mix(shade(c, (r() - 0.5) * 0.25), [12, 8, 20], 0.86 * M.night);
-    x.fillStyle = rgb(lc); const rr = 0.045 + r() * 0.04;
-    x.beginPath(); x.ellipse(lu, lv, rr, rr * 0.75, r() * 3, 0, Math.PI * 2); x.fill();
-    if (r() < 0.3) { x.fillStyle = rgb(shade(lc, 0.2)); x.beginPath(); x.arc(lu - rr * 0.3, lv + rr * 0.3, rr * 0.35, 0, Math.PI * 2); x.fill(); }
+  if (!C.leaves) return;
+  // the mat: leaves where the shape allows, denser low down, a ragged top
+  const leaves = [];
+  for (let v = 0.3; v < top; v += 0.07) {
+    const w = width(v) * (0.62 + 0.38 * (0.5 + 0.5 * Math.sin(v * 5.3 + seed) * Math.cos(v * 2.1))), fade = v > top - 0.7 ? (top - v) / 0.7 : 1, n = Math.round(w / 0.085 * C.k * fade);
+    for (let i = 0; i < n; i++) if (r() < 0.85) leaves.push([u + dir * r() * w, v + (r() - 0.5) * 0.06, r()]);
   }
+  for (const [lu, lv] of leaves) { x.fillStyle = rgb(dark(shade(C.leaves[0], -0.45)), 0.9); x.beginPath(); x.arc(lu, lv - 0.035, 0.075, 0, Math.PI * 2); x.fill(); }
+  for (const [lu, lv, q] of leaves) {
+    const c = dark(shade(C.leaves[Math.floor(q * C.leaves.length)], (r() - 0.4) * 0.22 + 0.08 * (lv / top)));
+    x.fillStyle = rgb(c); const a = 0.05 + r() * 0.015, rot = (r() - 0.5) * 1.2;
+    // a three-lobed leaf: three small rounds round a point
+    for (const t of [rot - 1.1, rot, rot + 1.1]) { x.beginPath(); x.arc(lu + Math.sin(t) * a * 0.75, lv + Math.cos(t) * a * 0.75, a, 0, Math.PI * 2); x.fill(); }
+  }
+}
+/** the bed at the corner pier's foot: a little granite kerb + its soil (the ivy's roots) */
+function paintIvyBed(x, M) {
+  const [a, b] = IVY.bed, g = M.stone;
+  R(x, a, 0, b + 0.02, 0.3, shade(g, -0.05)); R(x, a, 0.26, b + 0.02, 0.3, mix(g, [255, 250, 240], 0.2 * (1 - M.night)));
+  R(x, a + 0.05, 0.22, b - 0.03, 0.27, tri(M.T, [58, 40, 30], [64, 40, 30], [14, 10, 14]));
 }
 
 // ------------------------------------------------------------------ THE BLADE SIGN (the weekly ghost ad's home — the owner's pick, 8a)
@@ -676,7 +743,7 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
         R(sx, len * 0.2 - 0.08, 1.38, len * 0.2 + 0.98, 1.5, M.trimS);
       }
       paintLight(sx, M, 0, len, true, 33);
-      paintIvy(sx, M, 0.05, 1, 3, ctx.month);
+      paintIvy(sx, M, 0.04, 1, 3, ctx.month, () => 0.3);
       st.sideK = k;
     },
     // … projected: one source column per device pixel (exact perspective for a vertical wall)
@@ -711,7 +778,7 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       const r = rngFrom(23), curtains = [tri(T, [140, 40, 44], [150, 50, 44], [20, 10, 18]), tri(T, [70, 92, 58], [90, 80, 50], [12, 14, 16]), tri(T, [196, 168, 110], [200, 150, 100], [26, 22, 30])];
       ROOMS.forEach(rm => {
         const [a, b] = s.windows[rm.col], [r0, r1] = s.rows[rm.floor - 2];
-        const o = { blind: rm.clear ? 0.12 : 0.25 + r() * 0.45, curtain: rm.edge || rm.room === 'apartment' ? curtains[(rm.floor + rm.col) % 3] : null, plant: rm.id === 'edge2', box: rm.room === 'apartment' };
+        const o = { blind: rm.clear ? 0.12 : 0.25 + r() * 0.45, curtain: rm.edge || rm.room === 'apartment' ? curtains[(rm.floor + rm.col) % 3] : null, plant: rm.id === 'edge2', box: rm.room === 'apartment', month: ctx.month };
         paintWindow(x, M, a, b, r0, r1, o);
       });
       x.restore();
@@ -719,7 +786,7 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
     // the ground floor: the barbershop, the side door, the basement window, the sconce
     x => { x.save(); frontMap(x); paintGround(x, M, s); x.restore(); },
     // the light + the weather + the ivy on the corner
-    x => { x.save(); frontMap(x); paintLight(x, M, 0, W_FRONT, false, 51); paintIvy(x, M, W_FRONT - 0.05, -1, 4, ctx.month); x.restore(); },
+    x => { x.save(); frontMap(x); paintLight(x, M, 0, W_FRONT, false, 51); paintIvyBed(x, M); paintIvy(x, M, W_FRONT - 0.03, -1, 4, ctx.month, v => (v < 3.0 ? 0.38 : v < 3.6 ? 0.38 + (v - 3.0) * 0.6 : v < 4.4 ? 0.74 + (v - 3.6) * 0.75 : 1.34)); x.restore(); },
     // what stands out from the walls: the awning, the side door's steps, the parapet's posts, the ad's lamps
     x => {
       const aw = s.awning, at = (u, y, z) => [s.x0 + u, y, z];
@@ -730,17 +797,16 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
         poly(x, cam, [at(u0, aw.y0, s.z0), at(u1, aw.y0, s.z0), at(u1, aw.y1, aw.z), at(u0, aw.y1, aw.z)], rgb(mix(col, [255, 240, 220], 0.1 * M.day)));
       }
       // (the patch: a newer, redder square sewn over a tear; the canvas's sun-fade toward the top)
-      poly(x, cam, [at(aw.u0 + 3.1, aw.y0 - 0.22, s.z0 - 0.45), at(aw.u0 + 3.75, aw.y0 - 0.22, s.z0 - 0.45), at(aw.u0 + 3.75, aw.y0 - 0.5, s.z0 - 0.98), at(aw.u0 + 3.1, aw.y0 - 0.5, s.z0 - 0.98)], rgb(shade(M.awnR, 0.06)));
+      // (8P — Ben: a notch broke the stripes near the right end — the side flap's triangle + the patch: both gone, the stripes run clean)
       { const [a, y0] = project(cam, s.x0 + aw.u0, aw.y0, s.z0), [b, y1] = project(cam, s.x0 + aw.u1, aw.y1, aw.z), g = x.createLinearGradient(0, y0, 0, y1);
         g.addColorStop(0, `rgba(255,248,230,${(0.18 * M.day).toFixed(3)})`); g.addColorStop(1, 'rgba(0,0,0,0.12)'); x.fillStyle = g; x.fillRect(a, y0, b - a, y1 - y0); }
-      poly(x, cam, [at(aw.u1, aw.y0, s.z0), at(aw.u1, aw.y1, aw.z), at(aw.u1, aw.y1 - VAL, aw.z)], rgb(shade(M.awnR, -0.25)));
       // the valance: a red band with the year, the scallops under it
       const [va, vy0] = project(cam, s.x0 + aw.u0, aw.y1, aw.z), [vb, vy1] = project(cam, s.x0 + aw.u1, aw.y1 - VAL, aw.z), vh = vy1 - vy0, sc = cam.F / aw.z;
       x.fillStyle = rgb(shade(M.awnR, -0.08)); x.fillRect(va, vy0, vb - va, vh);
       x.fillStyle = rgb(shade(M.awnR, -0.08)); const ns = 14, sw = (vb - va) / ns;
       for (let i = 0; i < ns; i++) { x.beginPath(); x.arc(va + sw * (i + 0.5), vy1, sw / 2, 0, Math.PI); x.fill(); }
       x.fillStyle = rgb(M.awnC, 0.9); x.fillRect(va, vy0 + vh * 0.1, vb - va, Math.max(0.4, vh * 0.05)); x.fillRect(va, vy1 - vh * 0.14, vb - va, Math.max(0.4, vh * 0.05));
-      x.save(); x.font = FONT(vh * 0.6); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = rgb(mix(M.awnC, M.gilt, 0.35)); x.fillText('EST.  1924', project(cam, s.x0 + 6.0, 0, aw.z)[0], vy0 + vh * 0.52); x.restore();
+      // (8P: "EST. 1924" was unreadable on the valance — the year is the DATE STONE in the parapet now: paintDateStone)
       // the awning's iron arms
       x.strokeStyle = rgb(M.iron); x.lineWidth = Math.max(0.5, 0.05 * sc);
       for (const u of [aw.u0 + 0.1, aw.u1 - 0.1]) { const [p, py] = project(cam, s.x0 + u, aw.y0 - 0.9, s.z0), [q, qy] = project(cam, s.x0 + u, aw.y1, aw.z); x.beginPath(); x.moveTo(p, py); x.lineTo(q, qy); x.stroke(); }
@@ -945,8 +1011,10 @@ export function createSpeakeasy() {
     if (key !== giltKey || !giltCv) {
       giltKey = key;
       const [w0, w1, wv0, wv1] = G.s.shop.win, [ax, ay] = G.front(w0, wv1), [bx, by] = G.front(w1, wv0);
-      giltAt = { x: Math.floor(ax), y: Math.floor(ay), w: Math.ceil(bx - ax) + 2, h: Math.ceil(by - ay) + 2 };
-      giltCv = giltCv || document.createElement('canvas'); giltCv.width = Math.ceil(giltAt.w * dpr); giltCv.height = Math.ceil(giltAt.h * dpr);
+      // (on whole DEVICE pixels, drawn at its natural size: never resampled)
+      giltAt = { x: Math.floor(ax * dpr) / dpr, y: Math.floor(ay * dpr) / dpr, w: 0, h: 0 };
+      giltCv = giltCv || document.createElement('canvas'); giltCv.width = Math.ceil((bx - giltAt.x + 2) * dpr); giltCv.height = Math.ceil((by - giltAt.y + 2) * dpr);
+      giltAt.w = giltCv.width / dpr; giltAt.h = giltCv.height / dpr;
       const x = safeCtx(giltCv), [ox, oy] = G.front(0, 0);
       x.setTransform(dpr, 0, 0, dpr, -giltAt.x * dpr, -giltAt.y * dpr);
       x.save(); wallMap(x, ox, oy, G.K); x.beginPath(); x.rect(w0, wv0, w1 - w0, wv1 - wv0); x.clip();
@@ -1100,13 +1168,15 @@ export function createSpeakeasy() {
     // PART 7b — THE LIFE: the people, the cat, the TV, the night lamp, the bar's afternoon + last light, the shop's day, the mirror door
     c.globalAlpha = 1;
     const [ox, oy] = G.front(0, 0), d = G.s.shop.door;
-    life.draw(c, { map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: x => giltOver(x, f), play: f.play });
+    life.draw(c, { map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
     void d;
     // 8P — THE HUSH WORD SIGN (inside the glass, in front of the shop's life): the lobby's word lit; no lobby → OPEN while the shop is
     // open by day (it lights at the opening routine's flip, a third of the way in), unlit before + after, dark at night
     { const op = fr.on.find(e => e.id === 'shop-open'), shopSt = fr.states.shop === 'open' || (op && op.el / op.len >= 0.33) ? 'open' : 'closed';
       if (f.hush !== undefined) hush.set(f.hush);
       hush.draw(c, { t: f.t || 0, T: f.tw || { day: 1 - k, gold: 0, night: k }, night: clamp01(f.night || 0), shop: shopSt, fade, motion: f.motion }); }
+    // THE GOLD LEAF on the glass — once (8P), over the shop's life + the sign inside
+    c.save(); c.globalAlpha = fade; giltOver(c, f); c.restore();
     bedsNow = { ...life.bedLevels(k, !!(f.party && (f.party.ramp == null ? 1 : f.party.ramp) > 0.3)), fr, k, motion: f.motion !== false };   // (8P: the moments' + the shop's sound cues read the frame — sounds.js)
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     // for 7b: a moment's own painter over its window

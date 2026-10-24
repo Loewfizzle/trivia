@@ -4,6 +4,17 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — PART 8P: THE PEOPLE + THE SPEAKEASY POLISH CARRY-OVER (Oct 24, 2026) — `docs/harbor.md#part-8p`, `docs/audio.md` 8P
+- [x] Section 0 (its own commit, 7dc3a8d): the barbershop front crisp (the gilt arch rebuilt, the glass's haze + the door card gone), THE HUSH WORD
+      SIGN (neon tube capitals + a keyhole, 14.4 pt at 390 — the shop window widened; OPEN by day, a lobby's word day + night;
+      `&force=hushsign&hush=JAZZ`), three awning lamps, crisp lamp globes, the TV bluer, SLIP / STREAM (+ RUM / RUNNER, OVER / CLOCK) stacked,
+      an oxblood brick street + flat cobbles, the crosswalk lit, the basement window (copper, shadows, the beat), the lamps' life; the speakeasy
+      + people sounds, the jets' duck; CI: 4 parallel jobs, the full suite only on a `[harbor]` push, flaky visual checks → warnings
+- [x] The people: planned per seeded block in two overlapping phases (`core/harbor-people.js`), three depth passes, 1920s silhouettes with a
+      stride-locked walk (`folk.js`), the bus (stops left of the crossing, away on green), the cart placed right of the inlay, the roof's guests,
+      the lobby line (`&force=line&n=6`)
+- [x] Tests: unit 590 (`harbor-people.test.mjs` 12), e2e `people` 10/10 (in the `street` cloud job)
+
 ### ✅ CITY 2.0 — SPEAKEASY POLISH (Oct 24, 2026) — `docs/harbor.md#sp2` (the owner's 7b review on her iPhone)
 - [x] THE BLADE: dark enamel for every game, the name in big bold letters filling the width (cream + gold by day, self-lit warm-white at night,
       a tight baked glow), one column a word, the bulbs on the crest + foot only, a little wider + up to the parapet; `&ad=<game>` previews

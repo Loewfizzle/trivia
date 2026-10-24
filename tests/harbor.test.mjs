@@ -2642,7 +2642,7 @@ test("FP — THE BARBER POLE turns continuously: the same phase at 60 and 30 Hz,
 import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR, CART_SHOWN } from '../js/core/harbor-promenade.js';
 import { benchBox, umbrellaBox } from '../js/screens/harbor/props.js';
 import { PARKED_TRAFFIC, FAR_KERB, drawTraffic, drawLanternBody } from '../js/screens/harbor/road.js';
-test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flanking tall lamps, the bench + its crabapple just left of the crossing (the blade free), the cart hidden (its 8b rule kept), the centrepiece's height cap, the corner clean", () => {
+test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flanking tall lamps, the bench + its crabapple just left of the crossing (the blade free), the cart placed right of the inlay (8P), the centrepiece's height cap, the corner clean", () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { s, cam, L } = setup(k), f = s.W / 402, P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
     const m = L.medallion, mx = sx(m), ring = cam.F * m.ring / m.z, bx = sx(L.bench);
@@ -2667,11 +2667,11 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     const d = L.door, [w1] = P(L.speakeasy.x0 + L.speakeasy.shop.win[1], L.speakeasy.z0);
     assert.ok(mx - ring > d.x + d.w + 4 && mx - ring > w1, `${k}: the inlay clear of the door + the shop window`);
     assert.equal(L.planters.length, 0, `${k}: no urn`);
-    // THE CART: hidden (CART_SHOWN) but kept — its 8b route + event rule still in the layout
-    assert.equal(CART_SHOWN, false); assert.equal(L.cart.shown, false);
-    assert.ok(P(L.cart.route.x0, L.cart.z)[0] < mx - ring && P(L.cart.route.x1, L.cart.z)[0] > mx + ring, `${k}: the route rolls across the inlay`);
-    assert.equal(m.clear, EVENT_CLEAR); assert.ok(L.cart.stopX <= m.x - EVENT_CLEAR + 1e-9 && L.cart.x <= L.cart.stopX, `${k}: the rest spot outside the event's clearance`);
-    assert.ok(!L.zones.block.some(b => b.x === L.cart.x && b.z === L.cart.z), `${k}: a hidden cart blocks nobody`);
+    // 8P — THE CART BACK, PLACED: on the open floor right of the inlay — outside an event's clearance, clear of the crossing (right of
+    // its landing), left of the framing maple; it blocks the walkers (they go round)
+    assert.equal(CART_SHOWN, true); assert.ok(L.cart.shown !== false);
+    assert.ok(L.cart.x - m.x >= EVENT_CLEAR - 0.1, `${k}: right of the inlay, outside an event's clearance (${(L.cart.x - m.x).toFixed(2)})`);
+    assert.ok(L.zones.block.some(b => b.x === L.cart.x && b.z === L.cart.z), `${k}: the cart blocks the walkers`);
     // THE HEIGHT CAP: under the game blade's bottom and the wheel's hub (by CENTRE_PAD), a Christmas tree's height at least
     const bl = signSpots(L).find(sp => sp.id === 'n-blade'), nb = bl.rect.y + bl.rect.h, hub = P(L.wheel.x, L.wheel.z, L.wheel.y)[1];
     const cap = centrepieceCap(cam, m, [nb, hub]), [, top] = P(m.x, m.z, cap);

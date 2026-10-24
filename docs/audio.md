@@ -691,6 +691,10 @@ owner's "sky sounds louder again". Grok measured, didn't listen; **every trim he
 envelope + onsets, band energies, **speech** = the 2–8 Hz modulation of the 300–3400 Hz envelope (one clear talker ≈ 0.5–1.1, a crowd's
 babble ≈ 0.1–0.3), **music** = tonal lines held ≥ 0.45 s within ±1.5 % (a note holds its pitch; a voice glides). **83 slots, 42 filled;
 `audio/city/` 7.19 MB (+1.65 MB: 43 new files, the low-passed beds at 40 kbps; the aircraft re-encoded at the same size).**
+**Who calls them (8P — `screens/harbor/people.js`):** `snd.step` on the nearest walker's footfalls (its stride's step count changing; heels for
+a woman, cobbles otherwise; gain by nearness), `snd.laugh` from a pair chatting (≤ one a 6 s, by chance), `snd.cart({ on })` while the vendor's
+there, `snd.line(level)` while the lobby line stands, `snd.rooftop(level)` while ≥ 3 guests are up on the roof, `snd.bus(…)` driven by the bus's
+own timetable (arrive with `stopIn` = the seconds to its stop → idle → the door open / shut → depart, the pan following it, gone).
 - **The importer's new recipe keys:** `presence` (dB, Hz: a broad Q 0.7 lift), `gainenv` [(t0, t1, dB)] (a creak softened, a slam taken
   down), `gate` (a soft 1:2 expander under the loudest 10 ms − n dB: the hiss between quiet snips / steps), `seq` (a take ASSEMBLED from
   pieces, other files of the folder included — credited too), `mark` (s into the take → `hit`: where its event lands), `to` (one source,

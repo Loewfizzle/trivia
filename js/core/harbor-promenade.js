@@ -74,13 +74,15 @@ export const PHONE = Object.freeze({
   globes: [0.322, 0.962],                  // (the front edge's two corners: by the speakeasy's corner, by the right edge)
   medallion: { f: 0.6675, z: 44.8 },        // (PF: on the crossing's axis, between the flanking lamps — inside both their pools)
   bench: { f: 0.515, z: 47.8 },             // (PF: in front of the crabapple, a little right — its trunk + uplight show at the bench's left end; its right end by the left flanking lamp)
-  cart: { f: 0.53, z: 41.8 },               // (hidden — CART_SHOWN; kept for 8b's route: L.cart.route)
+  // (8P — THE CART BACK, PLACED: on the open floor RIGHT of the inlay, clear of the crossing + the bench + the crabapple; the vendor
+  // stands behind it; people stop there for chestnuts; nobody walks in front of it — core/harbor-people.js#folkMap)
+  cart: { f: 0.825, z: 42.4 },
   planters: [],
   // (PF placed a 1920s pillar box here — `mailbox: { f: 0.81, z: 38.6 }`; the owner didn't like the olive-green box: gone, Oct 24. props.js keeps the art.)
   mailbox: null,
 });
 /** PF: the vendor cart is HIDDEN until 8b brings the moving things (the owner likes it — its art + route are kept; L.cart.shown) */
-export const CART_SHOWN = false;
+export const CART_SHOWN = true;
 
 /**
  * THE CENTREPIECE'S RULES (FP2 — for 8b + the seasonal pieces):
