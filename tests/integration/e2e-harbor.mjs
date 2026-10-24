@@ -2131,8 +2131,8 @@ G('legends', async () => {
   { const Q = await open({ slot: 'lg2', qs: `${NIGHT}&force=tr3b&lgs=15`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.legend.state.phase === 'cross'`, 'the TR-3B loaded + crossing', 20000);
-    const d = await ev(Q.page, `${P}.legend.drain()`), deep = d.filter(cl => cl.k > 0.95).length;
-    ok(d.length >= 6 && deep >= 3 && d.length < 40, `THE TR-3B's DRAIN: ${d.length} columns of the city dimming under it, ${deep} dead`);
+    const d = await ev(Q.page, `${P}.legend.drain()`), span = d.reduce((a, cl) => a + cl.x1 - cl.x0, 0), dead = d.filter(cl => cl.k > 0.95).reduce((a, cl) => a + cl.x1 - cl.x0, 0);
+    ok(span >= 120 && dead >= 40 && span < 402, `THE TR-3B's DRAIN: ${Math.round(span)} pt of the city dimming under it (${d.length} strips), ${Math.round(dead)} pt dead`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-402x874.png` });
     await Q.ctx.close(); }
   // ---- 6b: THE BARNSTORMER (its overlay over the sign while it flies, gone after), THE AIR SHOW, a 3-PAGE drone message

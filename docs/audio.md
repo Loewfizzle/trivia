@@ -837,6 +837,21 @@ files — the two long police passes 0.5 MB of it).** Importer: `--only <the new
   small-group file); `duck-quack`, `milk-bottles`, `trash-can-lid`, `ladder-clank`, `crates-clink`, `ships-bell`, `ship-horn`, `boat-putter` are
   the lossy Pixabay copies (the lossless CC0 originals: credits.txt's Freesound links — drop them in under the same names and re-run).
 
+## 6b — THE LEGENDARY SKY, HEARD + THE TAPE STOP (Oct 24 2026; City 2.0's title) — `screens/harbor/sounds.js#legendSounds`, `audio/music.js#bendMusic`
+The legendary events (docs/harbor.md#part-6b) report their state through `legends.listen()` (the scene hands it to `snd.tick` as `legend`):
+- **THE ABDUCTION:** `ufo-hum` (a bed, panned with the saucer, up as it comes in, out as it leaves), `ufo-beam` once (its riser's peak —
+  6.65 s into the take — lands as he leaves the ground, ~10.6 s in). The music DIPS (to ~0.42) and is MUFFLED (a low-pass down to ~900 Hz)
+  while it's here, eased back after (`ufoAt().music`).
+- **THE TR-3B:** `tr3b-drone` (a bed, louder as it passes overhead), `tr3b-power-down` once (its thump — `hit` 3.25 s in — as the city under
+  it dies, ~6 s in), `tr3b-crackle` (Grok's, now filled) every ~1.6–4.2 s while the drain pulls, panned near it; THE CHASE: `jet-flyby` through
+  the existing `jets()` pass (panned along their direction, the music ducked round its peak — the 8P duck), started ~30.2 s in so its peak
+  lands as the jets cross the middle. THE MUSIC POWERS DOWN: a TAPE STOP — `bendMusic(rate, s)` ramps the playing element's speed (the pitch
+  sagging with it: `preservesPitch` off while bent) to 0.42, a low-pass to ~380 Hz, the level to ~0.1; after the jets it powers back up
+  (the speed to 1 over 1.5 s, the filter opening, the level back). The time the song fell behind while bent is COUNTED and skipped when the
+  speed is back at 1 — a lobby's synced song is on the room's clock again (no drift). A new track resets it; music off: only the sounds play.
+- **THE AIR SHOW / THE MISSING MAN:** `jet-flyby` on each pass (skyfx `listen().jets`); **THE BARNSTORMER:** the `prop-plane` run while it flies.
+- Never left bent / muffled / ducked: the scene's destroy restores the filter, the rate and the duck.
+
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
   level = rain + 0.25 in a storm). A breathing bed of filtered noise, a low roar that only a downpour brings, and droplet ticks

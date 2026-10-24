@@ -230,7 +230,7 @@ export function createCitySounds() {
       }
       return;
     }
-    const key = `${lg.kind}|${Math.round(t / 1000 - lg.s)}`;
+    const key = `${lg.kind}|${lg.id}`;                 // (the run's own start: its one-shots fire once)
     if (!lgRun || lgRun.key !== key) lgRun = { key, beam: false, down: false, jets: false, crack: 0 };
     const st = lg.st, pan = clamp(((lg.x == null ? 0.5 : lg.x) - 0.5) * 1.6, -0.9, 0.9);
     if (lg.kind === 'ufo') {

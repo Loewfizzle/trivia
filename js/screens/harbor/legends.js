@@ -281,7 +281,7 @@ export function createLegends({ clock, qp } = {}) {
     for (let i = 0; i < n; i++) motes.push({ a: (hash01(i, 3) - 0.5) * 1.7, ph: hash01(i, 5), sp: 0.035 + 0.05 * hash01(i, 7), r: 0.5 + 1.1 * hash01(i, 9), down: hash01(i, 11) < 0.18, col: hash01(i, 13) < 0.3 ? [200, 180, 255] : hash01(i, 13) < 0.5 ? [180, 255, 240] : [240, 246, 255] });
   }
   const hoverY = () => Math.max((lanes && lanes['sky-low'] ? lanes['sky-low'].y + 30 : H * 0.42), med.y - Math.min(H * 0.27, 250));
-  const triLen = () => Math.max(200, Math.min(W * 0.66, 540));
+  const triLen = () => Math.max(200, Math.min(W * 0.66, 420));
 
   /** the scheduled legendary now (null) or the forced one; starts / ends the run */
   function tick(fs, allow = null) {
@@ -329,7 +329,13 @@ export function createLegends({ clock, qp } = {}) {
   function drainCols() {
     if (!st || run.kind !== 'tr3b' || st.drain <= 0.003) return null;
     const n = Math.max(16, Math.round(W / 12)), cw = W / n, out = [];
-    for (let i = 0; i < n; i++) { const p = power((i + 0.5) / n, 'city', i); if (p < 0.985) out.push({ x0: i * cw, x1: (i + 1) * cw, k: 1 - p }); }
+    // (neighbours at the same level — in eighths — merge into one strip: the dead middle is one draw, not a dozen)
+    for (let i = 0; i < n; i++) {
+      const p = power((i + 0.5) / n, 'city', i); if (p >= 0.985) continue;
+      const k = Math.round((1 - p) * 8) / 8, last = out[out.length - 1];
+      if (k <= 0) continue;
+      if (last && last.x1 === i * cw && last.k === k) last.x1 = (i + 1) * cw; else out.push({ x0: i * cw, x1: (i + 1) * cw, k });
+    }
     return out;
   }
 
@@ -445,7 +451,7 @@ export function createLegends({ clock, qp } = {}) {
       // the shimmer: a second pass a touch wider, its strength wandering — the light breathing
       pass(beamK * (mo ? 0.18 + 0.12 * Math.sin(t * 1.3 + 1) : 0.2), 1.08);
       // the motes: slowly rising (a few falling), drifting toward the axis as they climb; twinkling
-      if (tier > 0 || true) for (const m of motes) {
+      for (const m of motes) {
         let v = ((m.ph + (mo ? t * m.sp * (m.down ? 1 : -1) : 0)) % 1 + 1) % 1;
         const y = top + v * len; if (y > top + reach - soft * 0.4) continue;
         const hw = lerp(beam.w * 0.25, bw * 0.48, v), x = med.x + m.a * hw * 0.55;
@@ -522,12 +528,12 @@ export function createLegends({ clock, qp } = {}) {
     start(kind, at, o = {}) { if (kind !== 'ufo' && kind !== 'tr3b') return false; run = { kind, at, dir: o.dir || 1, forced: false }; return true; },
     stop() { run = null; st = null; },
     /** the sounds (sounds.js reads it ~4× a second) */
-    listen: () => (run && st ? { kind: run.kind, s: sNow, st, dir: run.dir, x: run.kind === 'ufo' ? (saucer ? saucerAt().x / W : 0.6) : st.x } : null),
+    listen: () => (run && st ? { id: run.at, kind: run.kind, s: sNow, st, dir: run.dir, x: run.kind === 'ufo' ? (saucer ? saucerAt().x / W : 0.6) : st.x } : null),
     /** the sign's glitch while the TR-3B passes under it: a level 0..1 (or null) */
     signGlitch() {
       if (!st || run.kind !== 'tr3b' || st.drain < 0.2) return null;
       if (Math.abs(st.x - 0.5) > 0.5) return null;
-      const t = performance.now() / 1000, n = hash01(7, Math.floor(t * 9));
+      const t = performance.now() / 1000, n = hash01(7, Math.floor(t * (tier === 0 ? 4 : 9)));   // (tier 0: a slower glitch — each restyles the page's sign)
       return n < 0.4 ? 0.15 + 0.3 * n : 0.6 + 0.3 * n;
     },
     busy: () => !!run,

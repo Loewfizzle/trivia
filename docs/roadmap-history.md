@@ -4,6 +4,19 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — PART 6b: THE SPECIAL SKY (Oct 24, 2026) — `docs/harbor.md#part-6b`, `docs/audio.md#6b`
+- [x] Group 0: the FP3b flaky probes (tier pinned, polled, the far reading a warning); Grok's life + workers + wildlife sounds (28 slots)
+- [x] THE UFO ABDUCTION + THE TR-3B (the power drain in columns, the sign's glitch, the tape stop) + THE F-16 CHASE (Mach diamonds); seeded
+      ~1.5 nights a month each, never two in a row; lazily loaded; &force=ufo / tr3b (+ &lgs=); the `legends` E2E group
+- [x] THE AIR SHOW + THE MISSING MAN (holidays on the clock); THE BARNSTORMER through the letters (an overlay, the strokes cut out)
+- [x] THE BALLOONS premium + the whole sky + the ₿ + the alien head; SKY MESSAGES in one layout (pages, the biggest letters, the sign
+      a ghost, jets typing, the drones' fleet by page); SKYWRITING cut; the banner under SPEAKEASY with the tagline fading
+- [x] The everyday sky: the geese's V + the bats' flight (pure: harbor-flight.js), Rosie backs in, the helicopter's depth, fluffy
+      contrails, rarer meteors + their art + the fireball, City 1.0's aurora re-fit + its reflection, the rainbows tall, the real moon
+      (NASA LRO, turned to the player's sky), THE DIRECTOR (budget + priorities + the 10-min readout line)
+- [x] The clouds (high first, solid cumulus at night, no puffs under a deck, longer softer cirrus, evolving, the veil + the 22° halo),
+      the arch higher + seasonal (pow 0.75), the lighthouse beam + the beacons in fog
+
 ### ✅ CITY 2.0 — FP3b: THE PEOPLE WALK RIGHT + REAL DOORS + THE DANCE CIRCLE + THE FACADE (Oct 24, 2026) — `docs/harbor.md#fp3b`, `docs/harbor/review-3.md` §C 7–13
 - [x] THE FACING: one 2.5-D rig from the heading (side / 3/4 / front / back), turns blended at corners + poses (through the front),
       partners in the lead's frame stepping into a chat; the walk cycle with straight stance legs + a pendulum hip, the swing knee, the

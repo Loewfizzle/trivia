@@ -149,8 +149,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const cols = legends.drainCols(); if (!cols || !cols.length || fadeIn <= 0) return;
     for (const name of ['far', 'near']) {
       const g = baker.group(name); if (!g || !g.ready) continue;
-      const k = g.cur.width / W, sh = g.cur.height;
-      for (const cl of cols) { c.globalAlpha = Math.min(1, cl.k) * fadeIn; c.drawImage(g.cur, cl.x0 * k, 0, (cl.x1 - cl.x0) * k, sh, cl.x0, g.show.y0, cl.x1 - cl.x0, g.show.h); }
+      const k = g.cur.width / W, ky = g.cur.height / g.show.h;
+      for (const cl of cols) {
+        if (tier === 0 && name === 'near' && cl.k < 0.9) continue;     // (tier 0: the near rows only where it's dead — the far ones carry the sputter)
+        // (only from the roofs down: the transparent sky above them costs the same to copy — the skyline's own top over the strip)
+        let top = g.show.y0 + g.show.h;
+        if (skyline) for (let i = Math.max(0, Math.floor(cl.x0 / 4)); i <= Math.min(skyline.length - 1, Math.ceil(cl.x1 / 4)); i++) if (skyline[i] < top) top = skyline[i];
+        const y0 = Math.max(g.show.y0, top - 48), hh = g.show.y0 + g.show.h - y0;   // (48: the roof signs stand above their roofs)
+        if (hh <= 1) continue;
+        c.globalAlpha = Math.min(1, cl.k) * fadeIn; c.drawImage(g.cur, cl.x0 * k, (y0 - g.show.y0) * ky, (cl.x1 - cl.x0) * k, hh * ky, cl.x0, y0, cl.x1 - cl.x0, hh);
+      }
     }
     c.globalAlpha = 1;
   }
