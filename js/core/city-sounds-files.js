@@ -17,6 +17,9 @@ export const FILES = /*FILES*/{
   "bar-open": [
     {"f": "bar-open.mp3", "v": "18a43fd0", "d": 8.0, "lufs": -20.4, "peak": 0.8, "sw": [0.35, 7.25], "from": [62.0, 70.0], "src": "bar-ambience-close", "r": 16000}
   ],
+  "boat-putter": [
+    {"f": "boat-putter.mp3", "v": "732f29bc", "d": 32.5, "lufs": -24.4, "loop": 30.0, "xf": 2.5, "from": [11.4, 43.9], "src": "boat-putter", "r": 16000}
+  ],
   "broom-sweep": [
     {"f": "broom-sweep.mp3", "v": "526b1c0c", "d": 26.0, "lufs": -24.4, "loop": 24.0, "xf": 2.0, "from": [16.7, 42.7], "src": "broom-sweep", "r": 16000}
   ],
@@ -59,6 +62,32 @@ export const FILES = /*FILES*/{
   "club-murmur-party": [
     {"f": "club-murmur-party.mp3", "v": "10254d03", "d": 42.5, "lufs": -24.4, "loop": 40.0, "xf": 2.5, "from": [24.1, 66.6], "src": "club-murmur", "r": 16000}
   ],
+  "coyote-howl": [
+    {"f": "coyote-howl_1.mp3", "v": "fdaab645", "d": 10.1, "lufs": -20.4, "peak": 8.0, "sw": [6.95, 9.45], "from": [24.5, 34.6], "src": "coyote-howl", "r": 16000},
+    {"f": "coyote-howl_2.mp3", "v": "eb507b62", "d": 5.5, "lufs": -20.4, "peak": 2.55, "sw": [0.45, 2.85], "from": [35.4, 40.9], "src": "coyote-howl", "r": 16000}
+  ],
+  "coyote-yip": [
+    {"f": "coyote-yip_1.mp3", "v": "69b2f73f", "d": 1.8, "lufs": -20.4, "peak": 0.65, "sw": [0.25, 1.4], "from": [15.9, 17.7], "src": "coyote-yip"},
+    {"f": "coyote-yip_2.mp3", "v": "4de11255", "d": 3.1, "lufs": -20.4, "peak": 2.45, "sw": [1.65, 2.85], "from": [32.9, 36.0], "src": "coyote-yip"},
+    {"f": "coyote-yip_3.mp3", "v": "c42f6c95", "d": 2.3, "lufs": -20.4, "peak": 0.7, "sw": [0.25, 1.85], "from": [46.4, 48.7], "src": "coyote-yip"}
+  ],
+  "crates-clink": [
+    {"f": "crates-clink_1.mp3", "v": "051d062d", "d": 2.5, "lufs": -20.9, "peak": 0.9, "sw": [0.65, 1.15], "from": [1.5, 4.0], "src": "crates-clink"},
+    {"f": "crates-clink_2.mp3", "v": "d3827e2f", "d": 1.6, "lufs": -20.5, "peak": 0.35, "sw": [0.15, 1.45], "from": [5.7, 7.3], "src": "crates-clink"},
+    {"f": "crates-clink_3.mp3", "v": "662b59c9", "d": 1.9, "lufs": -20.5, "peak": 0.55, "sw": [0.15, 0.8], "from": [13.7, 15.6], "src": "crates-clink"}
+  ],
+  "crowd-clap": [
+    {"f": "crowd-clap_1.mp3", "v": "8c7727e0", "d": 6.0, "lufs": -20.4, "peak": 1.1, "sw": [0.2, 5.4], "from": [9.0, 15.0], "src": "crowd-clap", "r": 16000},
+    {"f": "crowd-clap_2.mp3", "v": "f739550a", "d": 6.0, "lufs": -20.4, "peak": 1.6, "sw": [0.25, 5.1], "from": [14.5, 20.5], "src": "crowd-clap", "r": 16000},
+    {"f": "crowd-clap_3.mp3", "v": "70450a72", "d": 6.0, "lufs": -20.4, "peak": 0.95, "sw": [0.25, 5.4], "from": [20.0, 26.0], "src": "crowd-clap", "r": 16000}
+  ],
+  "crowd-whoop": [
+    {"f": "crowd-whoop.mp3", "v": "4d83f702", "d": 4.6, "lufs": -20.4, "peak": 1.25, "sw": [0.25, 3.95], "from": [0.0, 4.6], "src": "crowd-whoop"}
+  ],
+  "dog-bark": [
+    {"f": "dog-bark_1.mp3", "v": "219b8c6d", "d": 1.25, "lufs": -20.5, "peak": 0.25, "sw": [0.15, 0.55], "from": [0.0, 1.25], "src": "dog-bark"},
+    {"f": "dog-bark_2.mp3", "v": "160f8aeb", "d": 1.01, "lufs": -20.4, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.24, 1.25], "src": "dog-bark", "w": 0.7}
+  ],
   "door-heavy": [
     {"f": "door-heavy.mp3", "v": "3b1575d5", "d": 2.1, "lufs": -20.4, "peak": 0.75, "sw": [0.5, 1.35], "from": [0.15, 2.25], "hit": 0.07, "src": "mirror-door"}
   ],
@@ -70,6 +99,11 @@ export const FILES = /*FILES*/{
   ],
   "drone-swarm": [
     {"f": "drone-swarm.mp3", "v": "e58dfe45", "d": 43.0, "lufs": -24.4, "loop": 40.0, "xf": 3.0, "from": [3.0, 46.0], "src": "drone-swarm", "r": 16000}
+  ],
+  "duck-quack": [
+    {"f": "duck-quack_1.mp3", "v": "8d015c57", "d": 2.3, "lufs": -20.4, "peak": 1.05, "sw": [0.15, 2.1], "from": [5.8, 8.1], "src": "duck-quack"},
+    {"f": "duck-quack_2.mp3", "v": "e5ad4f3a", "d": 2.4, "lufs": -20.5, "peak": 0.3, "sw": [0.15, 2.15], "from": [0.1, 2.5], "src": "duck-quack"},
+    {"f": "duck-quack_3.mp3", "v": "e3c19a60", "d": 2.7, "lufs": -20.5, "peak": 0.35, "sw": [0.15, 2.35], "from": [23.9, 26.6], "src": "duck-quack", "w": 0.8}
   ],
   "footsteps-cobble": [
     {"f": "footsteps-cobble_1.mp3", "v": "16f9486b", "d": 0.46, "lufs": -20.4, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.14, 0.6], "src": "footsteps-cobble"},
@@ -95,6 +129,12 @@ export const FILES = /*FILES*/{
     {"f": "glasses-clink-3.mp3", "v": "42f3d0ca", "d": 0.7, "lufs": -21.9, "peak": 0.15, "sw": [0.15, 0.35], "from": [0.0, 0.7], "hit": 0.01, "src": "glasses-clink-3", "w": 0.8},
     {"f": "glasses-clink.mp3", "v": "1279df18", "d": 1.55, "lufs": -20.6, "peak": 0.2, "sw": [0.15, 0.45], "from": [0.05, 1.6], "hit": 0.05, "src": "glasses-clink"}
   ],
+  "glow-wand-swish": [
+    {"f": "glow-wand-swish_1.mp3", "v": "ec45f1f7", "d": 0.37, "lufs": -21.8, "peak": 0.15, "sw": [0.15, 0.2], "from": [0.05, 0.42], "src": "glow-wand-swish"},
+    {"f": "glow-wand-swish_2.mp3", "v": "7c0a2ca4", "d": 0.37, "lufs": -21.6, "peak": 0.2, "sw": [0.15, 0.2], "from": [1.95, 2.32], "src": "glow-wand-swish"},
+    {"f": "glow-wand-swish_3.mp3", "v": "cdfda657", "d": 0.37, "lufs": -22.0, "peak": 0.2, "sw": [0.15, 0.2], "from": [3.85, 4.22], "src": "glow-wand-swish"},
+    {"f": "glow-wand-swish_4.mp3", "v": "8e11c99e", "d": 0.4, "lufs": -21.7, "peak": 0.2, "sw": [0.15, 0.25], "from": [6.05, 6.45], "src": "glow-wand-swish"}
+  ],
   "gulls": [
     {"f": "gulls_1.mp3", "v": "4e8867d6", "d": 1.8, "lufs": -20.4, "peak": 0.87, "from": [0.15, 1.95], "src": "gulls"},
     {"f": "gulls_2.mp3", "v": "5b853e65", "d": 1.6, "lufs": -20.4, "peak": 1.06, "from": [2.05, 3.65], "src": "gulls"},
@@ -108,12 +148,43 @@ export const FILES = /*FILES*/{
   "jet-flyby": [
     {"f": "jets-formation.mp3", "v": "55b5e33c", "d": 23.0, "lufs": -20.4, "peak": 5.5, "sw": [1.5, 9.1], "from": [11.0, 34.0], "src": "jets-formation", "r": 16000}
   ],
+  "jogger-trip": [
+    {"f": "jogger-trip.mp3", "v": "bbd94afa", "d": 0.95, "lufs": -20.7, "peak": 0.2, "sw": [0.15, 0.65], "from": [0.05, 1.0], "hit": 0.06, "src": "jogger-trip"}
+  ],
+  "ladder-clank": [
+    {"f": "ladder-clank_1.mp3", "v": "5a070cb0", "d": 2.2, "lufs": -20.9, "peak": 0.25, "sw": [0.15, 0.3], "from": [4.3, 6.5], "hit": 0.1, "src": "ladder-clank"},
+    {"f": "ladder-clank_2.mp3", "v": "5a42c10f", "d": 1.75, "lufs": -21.6, "peak": 0.35, "sw": [0.15, 1.6], "from": [0.35, 2.1], "src": "ladder-clank", "w": 0.8}
+  ],
   "laugh-distant": [
     {"f": "laugh-distant_1.mp3", "v": "d990b77f", "d": 2.75, "lufs": -20.4, "peak": 0.95, "sw": [0.15, 2.5], "from": [0.0, 2.75], "src": "laugh-distant"},
     {"f": "laugh-distant_2.mp3", "v": "2e63c0c4", "d": 1.32, "lufs": -20.4, "peak": 0.45, "sw": [0.15, 1.05], "from": [2.8, 4.12], "src": "laugh-distant"}
   ],
   "line-murmur": [
     {"f": "line-murmur.mp3", "v": "7ca5e8ac", "d": 26.5, "lufs": -24.4, "loop": 24.0, "xf": 2.5, "from": [163.5, 190.0], "src": "bar-ambience-close", "r": 16000}
+  ],
+  "market-murmur": [
+    {"f": "market-murmur.mp3", "v": "bf342119", "d": 24.0, "lufs": -24.5, "loop": 22.0, "xf": 2.0, "from": [62.5, 86.5], "src": "market-murmur", "r": 16000}
+  ],
+  "milk-bottles": [
+    {"f": "milk-bottles_1.mp3", "v": "9d84ce98", "d": 0.98, "lufs": -20.5, "peak": 0.15, "sw": [0.15, 0.4], "from": [0.0, 0.98], "src": "milk-bottles"},
+    {"f": "milk-bottles_2.mp3", "v": "16c78314", "d": 2.07, "lufs": -20.5, "peak": 1.7, "sw": [1.2, 1.9], "from": [0.98, 3.05], "src": "milk-bottles"}
+  ],
+  "newspaper-rustle": [
+    {"f": "newspaper-rustle.mp3", "v": "7beeccf9", "d": 0.778, "lufs": -20.2, "peak": 0.35, "sw": [0.15, 0.6], "from": [0.0, 0.78], "src": "newspaper-rustle"}
+  ],
+  "pigeon-coo": [
+    {"f": "pigeon-coo_1.mp3", "v": "6f9892a8", "d": 3.2, "lufs": -20.4, "peak": 2.45, "sw": [1.9, 2.9], "from": [0.4, 3.6], "src": "pigeon-coo"},
+    {"f": "pigeon-coo_2.mp3", "v": "0837fb3e", "d": 2.1, "lufs": -20.4, "peak": 0.85, "sw": [0.35, 1.2], "from": [4.0, 6.1], "src": "pigeon-coo"}
+  ],
+  "pigeon-flutter": [
+    {"f": "pigeon-flutter.mp3", "v": "db85a61c", "d": 4.8, "lufs": -20.4, "peak": 0.3, "sw": [0.15, 4.3], "from": [0.0, 4.8], "src": "pigeon-flutter"}
+  ],
+  "police-car-1920s": [
+    {"f": "police-car-1920s_1.mp3", "v": "ba4c51ec", "d": 31.0, "lufs": -20.7, "peak": 14.65, "sw": [12.7, 17.15], "from": [7.0, 38.0], "src": "car-1920s-pass"},
+    {"f": "police-car-1920s_2.mp3", "v": "b300282c", "d": 32.5, "lufs": -20.7, "peak": 20.35, "sw": [18.45, 22.6], "from": [116.0, 148.5], "src": "car-1920s-pass"}
+  ],
+  "police-whistle": [
+    {"f": "police-whistle.mp3", "v": "fd81b718", "d": 1.25, "lufs": -20.4, "peak": 0.45, "sw": [0.15, 0.8], "from": [0.05, 1.3], "src": "police-whistle"}
   ],
   "prop-plane": [
     {"f": "prop-plane.mp3", "v": "0818f33b", "d": 39.0, "lufs": -20.4, "peak": 7.55, "sw": [0.8, 23.6], "from": [1.0, 40.0], "src": "prop-plane", "r": 16000}
@@ -130,16 +201,55 @@ export const FILES = /*FILES*/{
     {"f": "scissors-snip_3.mp3", "v": "64f15302", "d": 1.37, "lufs": -28.2, "peak": 0.85, "sw": [0.15, 1.1], "from": [2.38, 3.75], "src": "scissors-snip"},
     {"f": "scissors-snip_4.mp3", "v": "23583fda", "d": 1.23, "lufs": -28.7, "peak": 0.15, "sw": [0.15, 0.2], "from": [3.92, 5.15], "src": "scissors-snip"}
   ],
+  "ship-horn": [
+    {"f": "ship-horn.mp3", "v": "971761ed", "d": 6.4, "lufs": -20.4, "peak": 0.45, "sw": [0.15, 4.1], "from": [0.0, 6.4], "src": "ship-horn", "r": 16000}
+  ],
+  "ships-bell": [
+    {"f": "ships-bell.mp3", "v": "4e76742b", "d": 4.3, "lufs": -20.5, "peak": 0.3, "sw": [0.15, 1.0], "from": [0.0, 4.3], "src": "ships-bell"}
+  ],
   "shop-bell": [
     {"f": "shop-bell_1.mp3", "v": "e62ee545", "d": 2.55, "lufs": -20.4, "peak": 1.05, "sw": [0.15, 2.0], "from": [1.3, 3.85], "src": "shop-bell"},
     {"f": "shop-bell_2.mp3", "v": "69bd6abe", "d": 2.45, "lufs": -20.5, "peak": 0.2, "sw": [0.15, 0.75], "from": [3.9, 6.35], "src": "shop-bell"},
     {"f": "shop-bell_3.mp3", "v": "ff9d8ed1", "d": 2.85, "lufs": -20.4, "peak": 0.75, "sw": [0.15, 1.35], "from": [6.5, 9.35], "src": "shop-bell", "w": 0.8}
+  ],
+  "siren-1920s": [
+    {"f": "siren-1920s_1.mp3", "v": "dbd2a0b9", "d": 14.5, "lufs": -20.4, "peak": 6.15, "sw": [1.7, 11.9], "from": [0.5, 15.0], "src": "siren-1920s", "r": 16000},
+    {"f": "siren-1920s_2.mp3", "v": "8b4fede4", "d": 32.0, "lufs": -20.4, "peak": 6.25, "sw": [1.4, 18.35], "from": [14.5, 46.5], "src": "siren-1920s", "w": 0.6, "r": 16000}
+  ],
+  "squeegee": [
+    {"f": "squeegee_1.mp3", "v": "964340ae", "d": 2.2, "lufs": -20.4, "peak": 1.65, "sw": [0.3, 1.95], "from": [0.0, 2.2], "src": "squeegee"},
+    {"f": "squeegee_2.mp3", "v": "2ea1a202", "d": 1.5, "lufs": -20.3, "peak": 1.05, "sw": [0.2, 1.35], "from": [3.9, 5.4], "src": "squeegee"},
+    {"f": "squeegee_3.mp3", "v": "40d7963b", "d": 2.5, "lufs": -20.4, "peak": 0.95, "sw": [0.15, 2.35], "from": [21.3, 23.8], "src": "squeegee"},
+    {"f": "squeegee_4.mp3", "v": "1bd70792", "d": 2.5, "lufs": -20.4, "peak": 1.25, "sw": [0.35, 2.35], "from": [25.4, 27.9], "src": "squeegee"}
+  ],
+  "squirrel-chatter": [
+    {"f": "squirrel-chatter.mp3", "v": "d9e8ca81", "d": 3.0, "lufs": -20.2, "peak": 1.0, "sw": [0.25, 2.8], "from": [7.4, 10.4], "src": "squirrel-chatter"}
+  ],
+  "steam-whistle": [
+    {"f": "steam-whistle.mp3", "v": "11db392f", "d": 3.2, "lufs": -20.4, "peak": 0.9, "sw": [0.3, 2.75], "from": [1.7, 4.9], "src": "steam-whistle"}
+  ],
+  "street-door": [
+    {"f": "street-door_1.mp3", "v": "7bcb1e24", "d": 1.15, "lufs": -21.2, "peak": 0.45, "sw": [0.15, 0.85], "from": [0.5, 1.65], "hit": 0.4, "src": "street-door"},
+    {"f": "street-door_2.mp3", "v": "aeecc01e", "d": 1.1, "lufs": -20.4, "peak": 0.4, "sw": [0.15, 0.75], "from": [4.45, 5.55], "hit": 0.3, "src": "street-door"},
+    {"f": "street-door_3.mp3", "v": "27c38b3c", "d": 1.15, "lufs": -20.3, "peak": 0.5, "sw": [0.15, 0.9], "from": [9.6, 10.75], "hit": 0.4, "src": "street-door"}
+  ],
+  "street-door-close": [
+    {"f": "street-door-close_1.mp3", "v": "ad8b3663", "d": 1.15, "lufs": -20.5, "peak": 0.35, "sw": [0.15, 0.6], "from": [1.85, 3.0], "hit": 0.25, "src": "street-door"},
+    {"f": "street-door-close_2.mp3", "v": "6fc90b2c", "d": 1.15, "lufs": -20.7, "peak": 0.4, "sw": [0.15, 0.65], "from": [6.85, 8.0], "hit": 0.25, "src": "street-door"},
+    {"f": "street-door-close_3.mp3", "v": "b32747ae", "d": 1.25, "lufs": -20.9, "peak": 0.45, "sw": [0.2, 0.7], "from": [12.55, 13.8], "hit": 0.35, "src": "street-door"},
+    {"f": "street-door-close_4.mp3", "v": "e83644b0", "d": 1.1, "lufs": -20.9, "peak": 0.35, "sw": [0.15, 0.85], "from": [19.0, 20.1], "hit": 0.3, "src": "street-door", "w": 0.6}
+  ],
+  "tr3b-crackle": [
+    {"f": "tr3b-crackle.mp3", "v": "c15b09e5", "d": 3.6, "lufs": -20.4, "peak": 1.3, "sw": [0.15, 3.15], "from": [0.0, 3.6], "src": "tr3b-crackle"}
   ],
   "tr3b-drone": [
     {"f": "tr3b-drone.mp3", "v": "9821dd12", "d": 43.0, "lufs": -24.4, "loop": 40.0, "xf": 3.0, "from": [68.0, 111.0], "src": "tr3b-drone", "r": 16000}
   ],
   "tr3b-power-down": [
     {"f": "tr3b-powerdown.mp3", "v": "e638ac76", "d": 30.5, "lufs": -20.4, "peak": 3.25, "sw": [0.3, 5.45], "from": [131.5, 162.0], "hit": 3.25, "src": "tr3b-powerdown", "r": 16000}
+  ],
+  "trash-can-lid": [
+    {"f": "trash-can-lid.mp3", "v": "1e81a64e", "d": 3.25, "lufs": -20.4, "peak": 0.85, "sw": [0.15, 2.55], "from": [0.05, 3.3], "hit": 0.07, "src": "trash-can-lid"}
   ],
   "truck-delivery": [
     {"f": "car-1920s-pass-3.mp3", "v": "28684b80", "d": 23.5, "lufs": -20.4, "peak": 9.35, "sw": [0.35, 22.1], "from": [283.0, 306.5], "src": "car-1920s-pass-3", "w": 0.35}

@@ -24,14 +24,21 @@ test('every slot: a unique kebab-case id, a known part, loop | once, a mix level
     'implosion-rumble', 'hammering', 'crane', 'ghost-ship-creak', 'ghost-bell', 'monster-splash']) assert.ok(slotOf(id), `slot ${id}`);
 });
 
-test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people (8P) fill their slots; everything else is empty', () => {
-  assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'bar-open', 'broom-sweep', 'bus-arrive', 'bus-door', 'bus-idle', 'bus-pull-away', 'car-1920s-pass',
-    'cart-bell', 'cat-land', 'cat-meow', 'city-hum-day', 'city-hum-night', 'club-murmur-calm', 'club-murmur-party', 'door-heavy', 'door-heavy-close', 'door-knock',
-    'drone-swarm', 'footsteps-cobble', 'footsteps-heels', 'geese', 'glasses-clink', 'gulls', 'helicopter', 'jet-flyby', 'laugh-distant', 'line-murmur', 'prop-plane',
-    'roller-blind', 'rooftop-party', 'scissors-snip', 'shop-bell', 'tr3b-drone', 'tr3b-power-down', 'truck-delivery', 'ufo-beam', 'ufo-hum', 'water-lapping',
-    'window-sash-down', 'window-sash-up']);
+test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people (8P) + the life + workers + wildlife (6b) fill their slots; everything else is empty', () => {
+  assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'bar-open', 'boat-putter', 'broom-sweep', 'bus-arrive', 'bus-door', 'bus-idle', 'bus-pull-away', 'car-1920s-pass',
+    'cart-bell', 'cat-land', 'cat-meow', 'city-hum-day', 'city-hum-night', 'club-murmur-calm', 'club-murmur-party', 'coyote-howl', 'coyote-yip', 'crates-clink', 'crowd-clap',
+    'crowd-whoop', 'dog-bark', 'door-heavy', 'door-heavy-close', 'door-knock', 'drone-swarm', 'duck-quack', 'footsteps-cobble', 'footsteps-heels', 'geese', 'glasses-clink',
+    'glow-wand-swish', 'gulls', 'helicopter', 'jet-flyby', 'jogger-trip', 'ladder-clank', 'laugh-distant', 'line-murmur', 'market-murmur', 'milk-bottles', 'newspaper-rustle',
+    'pigeon-coo', 'pigeon-flutter', 'police-car-1920s', 'police-whistle', 'prop-plane', 'roller-blind', 'rooftop-party', 'scissors-snip', 'ship-horn', 'ships-bell', 'shop-bell',
+    'siren-1920s', 'squeegee', 'squirrel-chatter', 'steam-whistle', 'street-door', 'street-door-close', 'tr3b-crackle', 'tr3b-drone', 'tr3b-power-down', 'trash-can-lid',
+    'truck-delivery', 'ufo-beam', 'ufo-hum', 'water-lapping', 'window-sash-down', 'window-sash-up']);
   assert.equal(isFilled('tv-murmur'), false, '8P: the TV file had music + a clear talker in it — left empty');
   assert.equal(isFilled('bus-brake-hiss'), false, 'an air brake is post-1920s');
+  // 6b: the owner's calls — modern traffic, a standing modern diesel (no arrival / departure in it), a hissing raccoon: left empty
+  for (const id of ['traffic-far', 'trash-truck', 'raccoon-chitter']) assert.equal(isFilled(id), false, `6b: ${id} left empty`);
+  assert.ok(takesOf('police-car-1920s').length === 2 && takesOf('police-car-1920s').every(t => t.src === 'car-1920s-pass'), '6b: the police cars are the 1929 Volvo’s whole passes');
+  assert.ok(takesOf('market-murmur')[0].from[1] <= 88, '6b: the market never uses 88–98 s (voices)');
+  assert.ok(slotOf('siren-1920s').gain < 0.06 && slotOf('police-whistle').gain < 0.06 && takesOf('siren-1920s').every(t => t.r === 16000), '6b: the siren + the whistle far + soft');
   assert.equal(takesOf('car-1920s-pass').length, 4, 'two Volvo passes + the MG (rare) + the truck');
   assert.equal(takesOf('gulls').length, 4);
   assert.equal(takesOf('truck-delivery')[0].f, 'car-1920s-pass-3.mp3', 'the delivery truck shares the 1945 truck\'s take');
@@ -51,7 +58,7 @@ test('every take points at a real, small file whose content matches its cache ke
       assert.ok(t.lufs < -18 && t.lufs > (s.kind === 'once' ? -30 : -27), `${t.f}: levelled (${t.lufs} LUFS)`);
       if (s.kind === 'loop') {
         // (beds 30 s+; 8P's smaller beds — heard less often or under the music — 20 s+; the bus's idle a short engine loop)
-        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20 }[id] ?? 30;
+        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20 }[id] ?? 30;
         assert.ok(t.loop >= min && t.xf >= (min < 20 ? 0.5 : 2) && t.xf <= 3, `${t.f}: a ${min} s+ loop with its seam (${t.loop} + ${t.xf})`);
         assert.ok(Math.abs(t.loop + t.xf - t.d) < 0.1, `${t.f}: the file is the loop + its tail`);
       } else assert.ok(t.peak >= 0 && t.peak <= t.d, `${t.f}: its loudest moment is inside it`);
@@ -59,18 +66,19 @@ test('every take points at a real, small file whose content matches its cache ke
   }
   const total = Object.values(FILES).flat().filter((t, i, a) => a.findIndex(x => x.f === t.f) === i).reduce((n, t) => n + statSync(new URL(`audio/city/${t.f}`, ROOT)).size, 0);
   // (8a's bed + car + gulls 2.35 MB; the sky +3.19 MB — 16 files, the same lean encode: mono 32 kHz 64 kbps; 8P +1.65 MB — 43 files,
-  // the low-passed beds at 40 kbps: 7.2 MB in all. Only what plays is ever fetched)
-  assert.ok(total < 8e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // the low-passed beds at 40 kbps: 7.2 MB in all; 6b's life + workers + wildlife +2.05 MB — 54 files, the long police passes + the
+  // siren the biggest: 9.2 MB. Only what plays is ever fetched)
+  assert.ok(total < 10e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');
 });
 
 test('pickTake: weighted, never the same take twice running; an empty slot gives nothing', () => {
-  assert.equal(pickTake('siren-1920s'), null);
+  assert.equal(pickTake('witch-cackle'), null);
   assert.equal(pickTake('no-such-slot'), null);
-  assert.deepEqual(takesOf('siren-1920s'), []);
-  assert.equal(isFilled('siren-1920s'), false);
+  assert.deepEqual(takesOf('witch-cackle'), []);
+  assert.equal(isFilled('witch-cackle'), false);
   let last = -1, n = 0;
   const seen = new Map();
   let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -86,13 +94,13 @@ test('pickTake: weighted, never the same take twice running; an empty slot gives
 
 test('an EMPTY slot is silent: citySound → null, cityLoop → a handle that does nothing; a filled slot with audio locked → null, no throw', async () => {
   const { citySound, cityLoop, cityPreview, citySoundsDebug } = await import('../js/audio/city-sound.js');
-  assert.equal(citySound('siren-1920s'), null);
+  assert.equal(citySound('witch-cackle'), null);
   assert.equal(citySound('nope'), null);
   const h = cityLoop('tv-murmur', { gain: 1 });
   assert.equal(h.silent, true);
   assert.doesNotThrow(() => { h.set({ gain: 0.5, pan: 0.2 }); h.stop(1); });
   assert.equal(h.playing(), false);
-  assert.equal(cityPreview('siren-1920s').why, 'empty');
+  assert.equal(cityPreview('witch-cackle').why, 'empty');
   // (node: no AudioContext — the engine was never unlocked)
   assert.equal(citySound('gulls'), null, 'locked: nothing, quietly');
   const l = cityLoop('water-lapping');

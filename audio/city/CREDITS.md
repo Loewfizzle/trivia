@@ -37,6 +37,17 @@ are kept anyway, with each source file's MD5.
 - Original: Freesound user SpliceSound, "Bar restaurant closing, chatter, glasses, walla, medium adult murmur" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## boat-putter.mp3  →  boat-putter
+
+- MD5 `8dc3461fefdb6b931b89358e99756c0d`
+- boat-putter.mp3   (1,970,880 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)
+- "Narrow Boat Engine" - James2nd (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-narrow-boat-engine-57048/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/13/audio_05098ca674.mp3?filename=freesound_community-narrow-boat-engine-57048.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user James2nd, "Narrow Boat Engine" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## broom-sweep.mp3  →  broom-sweep
 
 - MD5 `153d45749031af41c131f1c6bf2c816a`
@@ -58,7 +69,7 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - NOTE: A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.
 
-## car-1920s-pass.wav  →  car-1920s-pass
+## car-1920s-pass.wav  →  car-1920s-pass, police-car-1920s
 
 - MD5 `428986bdbef2d41c12d768e66bd79fb4`
 - car-1920s-pass.wav   (same file as sent earlier in the speakeasy pack)
@@ -134,6 +145,59 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/GriffinSound%20-%20Places%20With%20People/AMB_INT_Party_50_people.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## coyote-howl.wav  →  coyote-howl
+
+- MD5 `0f02bfb76eba4e2c8df9ca5bc3aa77e8`
+- coyote-howl.wav   (14,935,808 bytes)
+- "Coyotes 2015 Medlock Loudest Quiet Coyotes 1" - Discover Oregon - Coyotes, Sonniss GDC 2018 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Discover%20Oregon%20-%20Coyotes/Coyotes%202015%20Medlock%20Loudest%20Quiet%20Coyotes%201.WAV
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## coyote-yip.wav  →  coyote-yip
+
+- MD5 `0c2b7c69b330e67bebb4b871188f23d2`
+- coyote-yip.wav   (9,744,080 bytes)
+- "Coyotes 2015.13.28_Sutton_CloseCoyoteNR1" - Discover Oregon - Coyotes, Sonniss GDC 2018 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Discover%20Oregon%20-%20Coyotes/Coyotes%202015.13.28_Sutton_CloseCoyoteNR1.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## crates-clink.mp3  →  crates-clink
+
+- MD5 `32c70aa92baf6a89cdbbe218277f1735`
+- crates-clink.mp3   (856,816 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)
+- "BottlesCrate" - stijn (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-bottlescrate-78519/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_c12d35635a.mp3?filename=freesound_community-bottlescrate-78519.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user stijn, "BottlesCrate" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## crowd-clap.mp3  →  crowd-clap
+
+- MD5 `87b91b3901a33ed51216bf4b756a4993`
+- crowd-clap.mp3   (960,768 bytes)   (LOSSY Pixabay MP3)
+- "Free Crowd Cheering Sounds - 02 - Strong cheering / rhythmic cheering" - GregorQuendel (Pixabay)
+- Page: https://pixabay.com/sound-effects/people-free-crowd-cheering-sounds-02-strong-cheering-rhythmic-cheering-116190/
+- Source: https://cdn.pixabay.com/download/audio/2022/08/02/audio_4d8bda8a46.mp3?filename=gregorquendel-free-crowd-cheering-sounds-02-strong-cheering-rhythmic-cheering-116190.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- NOTE: A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.
+
+## crowd-whoop.wav  →  crowd-whoop
+
+- MD5 `decb7e208593ca680f42af74ad4850dd`
+- crowd-whoop.wav   (2,774,538 bytes)
+- "audience_cheers_13" - Soundrangers - Audience Reactions, Sonniss GDC 2018 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20-%20Audience%20Reactions/audience_cheers_13.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## dog-bark.wav  →  dog-bark
+
+- MD5 `8c67f5b4b1f944a6ed3f5fcedb9b717a`
+- dog-bark.wav   (116,278 bytes)
+- "Dog_small_far_barking_echo-017" - Bart Kamski - Dogs - game ready, Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Bart%20Kamski%20-%20Dogs%20-%20game%20ready/Dog_small_far_barking_echo-017.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
 ## door-slot.wav  →  door-knock
 
 - MD5 `fd441508090d267f5e335563c5fd0e04`
@@ -150,6 +214,16 @@ are kept anyway, with each source file's MD5.
 - "SW006_Quadcopter_engine_right_constant_coilmic" - ShapingWaves (SW006 Quadcopter), Sonniss GDC 2016 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/ShapingWaves%20-%20%20QUADCOPTER/SW006_Quadcopter_engine_right_constant_coilmic.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## duck-quack.mp3  →  duck-quack
+
+- MD5 `12b72fd4b9a394546d07e259706e4325`
+- duck-quack.mp3   (1,131,360 bytes)   (LOSSY Pixabay MP3 - Freesound uploader account deleted, no lossless copy known)
+- "Ducks" - deleted_user_8803593 (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/nature-ducks-68659/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_c7cf265fd2.mp3?filename=freesound_community-ducks-68659.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- NOTE: A Pixabay copy (Pixabay Content License) of a Freesound upload whose account was deleted — no lossless original known.
 
 ## footsteps-cobble.wav  →  footsteps-cobble
 
@@ -207,6 +281,14 @@ are kept anyway, with each source file's MD5.
 - Source: https://assets.mixkit.co/active_storage/sfx/2936/2936.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
+## glow-wand-swish.wav  →  glow-wand-swish
+
+- MD5 `c9c5b2903f1417c3cb59ed71aa55ebbc`
+- glow-wand-swish.wav   (4,166,374 bytes)
+- "SWSH_Woodstick Swish 03_JSE_TW1" - Justsoundeffects - Transition Whooshes Vol. 1, Sonniss GDC 2023 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/Justsoundeffects%20-%20Transition%20Whooshes%20Vol.%201/SWSH_Woodstick%20Swish%2003_JSE_TW1.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
 ## gulls.flac  →  gulls
 
 - MD5 `99ddb8f947981a5e1ffc87bcec1bb7b2`
@@ -245,6 +327,25 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Sound%20Ex%20Machina%20-%20F16%20Maneuvers/Group%20of%20F-16%20Jet%20Fighters%20passing%20from%20right%20to%20left%20and%20vanishing%20into%20the%20horizon.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## jogger-trip.wav  →  jogger-trip
+
+- MD5 `673427537a4d890c43a887d6efcd620d`
+- jogger-trip.wav   (351,508 bytes)
+- "RL_bodyfall_Concrete_Generic_Feet_Mid_Mono_Med_Impact_02" - Red Libraries - Bodyfall, Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Red%20Libraries%20-%20Bodyfall/RL_bodyfall_Concrete_Generic_Feet_Mid_Mono_Med_Impact_02.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## ladder-clank.mp3  →  ladder-clank
+
+- MD5 `af8f02c87992a0c5f746fa557c0b636f`
+- ladder-clank.mp3   (291,735 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)
+- "ladder" - MalMan35 (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-ladder-82581/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_c11a707c3e.mp3?filename=freesound_community-ladder-82581.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user MalMan35, "ladder" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## laugh-distant.wav  →  laugh-distant
 
 - MD5 `04c7e2a9f2c61409a156c43e47fe6ecb`
@@ -254,6 +355,25 @@ are kept anyway, with each source file's MD5.
 - Source: https://assets.mixkit.co/active_storage/sfx/424/424.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
+## market-murmur.wav  →  market-murmur
+
+- MD5 `2c0ab689b46888a08d393c62410126ca`
+- market-murmur.wav   (57,789,978 bytes)
+- "CHIL Market Village calm with voices light activity with sand ground footsteps" - Charlie Atanasyan - Chile sound library by Faunethic, Sonniss GDC 2018 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Charlie%20Atanasyan%20-%20Chile%20sound%20library%20by%20Faunethic/CHIL%20Market%20Village%20calm%20with%20voices%20light%20activity%20with%20sand%20ground%20footsteps.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## milk-bottles.mp3  →  milk-bottles
+
+- MD5 `0f932c8694d4a8882c744f15fe596321`
+- milk-bottles.mp3   (97,802 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)
+- "Milk bottles_1" - waterboy920 (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-milk-bottles-1-93930/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/17/audio_7edbe2fdaf.mp3?filename=freesound_community-milk-bottles_1-93930.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user waterboy920, "Milk bottles_1" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## mirror-door.wav  →  door-heavy, door-heavy-close
 
 - MD5 `16b7e2988db8acba074b3b29d64c5ee8`
@@ -261,6 +381,41 @@ are kept anyway, with each source file's MD5.
 - "DOORCreak_Wooden Door, Opening and Closing 09_RogueWaves_CreakingDoor" - Rogue Waves - Creaking Door, Sonniss GDC 2024 bundle
 - Source: https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Rogue%20Waves%20-%20Creaking%20Door/DOORCreak_Wooden%20Door%2C%20Opening%20and%20Closing%2009_RogueWaves_CreakingDoor.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## newspaper-rustle.wav  →  newspaper-rustle
+
+- MD5 `5046befd7ced5547a2c604a2bcba8dba`
+- newspaper-rustle.wav   (896,872 bytes)
+- "newspaper_opening_009" - SpillAudio - Paper, Sonniss GDC 2020 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/SpillAudio%20-%20Paper/newspaper_opening_009.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## pigeon-coo.wav  →  pigeon-coo
+
+- MD5 `8fa454a63ff3db7fbabdf1156388326b`
+- pigeon-coo.wav   (1,630,538 bytes)
+- "Pigeon coo ambiance sounds" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/bird/
+- Source: https://assets.mixkit.co/active_storage/sfx/74/74.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
+## pigeon-flutter.wav  →  pigeon-flutter
+
+- MD5 `70c56514a1d9c12ac998bc50ccb9cf31`
+- pigeon-flutter.wav   (1,290,794 bytes)
+- "Pigeons flutter ambience" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/bird/
+- Source: https://assets.mixkit.co/active_storage/sfx/73/73.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
+## police-whistle.wav  →  police-whistle
+
+- MD5 `6f18e678cc35029eb5583c48a81557bb`
+- police-whistle.wav   (381,890 bytes)
+- "Police whistle" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/whistle/
+- Source: https://assets.mixkit.co/active_storage/sfx/614/614.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
 ## prop-plane.mp3  →  prop-plane
 
@@ -312,6 +467,28 @@ are kept anyway, with each source file's MD5.
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 - NOTE: THE SECRET KNOCK is assembled from four of its knocks + door-slot.wav (credited below) as the peephole slot.
 
+## ship-horn.mp3  →  ship-horn
+
+- MD5 `633dc5c11d31c6e97ff7c6331184f1dc`
+- ship-horn.mp3   (213,159 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)
+- "Ship Horn Distant" - oddbro2020 (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/musical-ship-horn-distant-38390/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/10/audio_a2578e7280.mp3?filename=freesound_community-ship-horn-distant-38390.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user oddbro2020, "Ship Horn Distant" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## ships-bell.mp3  →  ships-bell
+
+- MD5 `2bc3a96759f07938193e233afe71c859`
+- ships-bell.mp3   (137,926 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)
+- "Ship Bell Single Ring" - Sojan (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-ship-bell-single-ring-81833/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_2b08b6e711.mp3?filename=freesound_community-ship-bell-single-ring-81833.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user Sojan, "Ship Bell Single Ring" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## shop-bell.mp3  →  shop-bell
 
 - MD5 `b198ac984cde9fac4648b4079ae99362`
@@ -322,6 +499,57 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - Original: Freesound user lazymonk, "Door Bell old style" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## siren-1920s.wav  →  siren-1920s
+
+- MD5 `f56b1d4c29a557e4c1990a1675d0e7be`
+- siren-1920s.wav   (8,398,022 bytes)
+- "Vintage manual fire siren" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/siren/
+- Source: https://assets.mixkit.co/active_storage/sfx/1651/1651.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
+## squeegee.mp3  →  squeegee
+
+- MD5 `71bd2f79660072429436ecb9006db6df`
+- squeegee.mp3   (1,603,291 bytes)   (LOSSY Pixabay MP3)
+- "Squeaky Window Cleaning (Squeegee & Sponge)" - VoiceBosch (Pixabay)
+- Page: https://pixabay.com/sound-effects/film-special-effects-squeaky-window-cleaning-squeegee-amp-sponge-202534/
+- Source: https://cdn.pixabay.com/download/audio/2024/04/15/audio_a1a9cb4e48.mp3?filename=voicebosch-squeaky-window-cleaning-squeegee-amp-sponge-202534.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- NOTE: A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.
+
+## squirrel-chatter.wav  →  squirrel-chatter
+
+- MD5 `690859484cec1a7c818048cdc650e6f8`
+- squirrel-chatter.wav   (5,058,820 bytes)
+- "Squirrel 2017 Lookout Hood Dawn Loud Squirrel 3" - Discover Oregon - Forest Meadow Birds, Sonniss GDC 2018 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Discover%20Oregon%20-%20Forest%20Meadow%20Birds/Squirrel%202017%20Lookout%20Hood%20Dawn%20Loud%20Squirrel%203.WAV
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## steam-whistle.wav  →  steam-whistle
+
+- MD5 `8e54e4ed6d5197ae534ab125e66cf5b3`
+- steam-whistle.wav   (3,623,136 bytes)
+- "Train,Steam,4-6-4,Royal Hudson,H1e Class,No 2860,Whistle,Engine POV,Tired - While moving" - Airborne Sound - Steam Train, Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Airborne%20Sound%20-%20Steam%20Train/Train%2CSteam%2C4-6-4%2CRoyal%20Hudson%2CH1e%20Class%2CNo%202860%2CWhistle%2CEngine%20POV%2CTired%20-%20While%20moving.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## street-door.wav  →  street-door, street-door-close
+
+- MD5 `751cfddc662fd46abada817ad8cf9872`
+- street-door.wav   (13,079,868 bytes)
+- "EFX INT HOUSE DOOR Front O_C Far Soft 01" - Coll Anderson - House, Sonniss GDC bundle (undated first edition)
+- Source: https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Coll%20Anderson%20-%20House/EFX%20INT%20HOUSE%20DOOR%20Front%20O_C%20Far%20Soft%2001.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## tr3b-crackle.wav  →  tr3b-crackle
+
+- MD5 `dac89af8ad7b3a7a22177e6aabf1e77f`
+- tr3b-crackle.wav   (4,223,678 bytes)
+- "Electric_Arc_Reverberant_Shock_Long_05" - Sound Spark LLC - Electric Arcs and Energy, Sonniss GDC 2020 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Sound%20Spark%20LLC%20-%20Electric%20Arcs%20and%20Energy/Electric_Arc_Reverberant_Shock_Long_05.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
 ## tr3b-drone.wav  →  tr3b-drone
 
@@ -338,6 +566,17 @@ are kept anyway, with each source file's MD5.
 - "black_hawk_t16_ext_idle_turbine_rotors_off_left_Co100k" - Pole Position Production (Black Hawk UH-60M), Sonniss GDC 2019 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Pole%20Position%20-%20Black%20Hawk%20UH-60M/black_hawk_t16_ext_idle_turbine_rotors_off_left_Co100k.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## trash-can-lid.mp3  →  trash-can-lid
+
+- MD5 `80e05a76107667c122430a3363b5ff2e`
+- trash-can-lid.mp3   (66,720 bytes)   (LOSSY Pixabay copy - lossless original is on Freesound, see below)
+- "lid drop" - pel2na (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-lid-drop-85396/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_f264b31cd1.mp3?filename=freesound_community-lid-drop-85396.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user pel2na, "lid drop" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
 ## ufo-beam.wav  →  ufo-beam
 

@@ -775,6 +775,68 @@ own timetable (arrive with `stopIn` = the seconds to its stop → idle → the d
   speakeasy.js); `door-slot`, `cat-land` + `bus-door` are stand-ins; the rooftop's remaining 178–214 Hz lines read as voices, not notes
   — the owner's ear decides.
 
+## 6b — THE LIFE + WORKERS + WILDLIFE SOUNDS IMPORTED (Oct 24 2026; City 2.0) — `scripts/add-city-sfx.py`, `core/city-sounds.js`, `screens/harbor/people.js`
+Grok's third folder (`~/Downloads/city-sfx`, credits.txt "Life + workers + wildlife sounds (added Sat Oct 24 2026)": Sonniss GDC, Mixkit,
+Pixabay — 30 files, **every MD5 matches**; no CC-BY, no credit lines required; CREDITS.md carries each block + MD5, the Pixabay copies of
+CC0 Freesound originals noted). Grok screened by speech-to-text + a music detector and named no trims for this set: **every cut here
+comes from the analysis** — the 0.1–1 s RMS envelope in five bands (< 120 Hz, 120–400, 400–1500, 1.5–4 k, 4–15 k), onsets, **VOICING**
+(the 300–3400 Hz signal's autocorrelation peak at 2.5–12 ms lags > 0.6 = a voiced frame: a talker's vowels, a whoop, a coo, a howl),
+held tonal lines (music: ≥ 0.45 s within ±1.5 %), the 2–8 Hz speech modulation. Same encode (mono 32 kHz MP3, 64 kbps; the low-passed
+beds + the siren 40 kbps; the low / distant ones decode at 16 kHz). **102 slots, 70 filled; `audio/city/` 9.24 MB (+2.05 MB: 54 new
+files — the two long police passes 0.5 MB of it).** Importer: `--only <the new slots>`; the Volvo's road takes re-encoded byte-identical.
+| slot (part) | source → kept | processing · slot gain (≈ LUFS into the bus) | what the analysis found |
+| --- | --- | --- | --- |
+| street-door ×3 · street-door-close ×4 (7) | street-door.wav (22.7 s, a house's front door opened + closed far + soft, ×4) → opens **0.5–1.65 / 4.45–5.55 / 9.6–10.75 s** (`hit` = the latch), closes **1.85–3.0 / 6.85–8.0 / 12.55–13.8 / 19.0–20.1 s** (`hit` = the thud; the last w 0.6) | 70–80 Hz, +3–4 dB at 300 Hz, +3 dB at 1.5 kHz, gate −32 / −34 · 0.08 / 0.07 (× 0.8 / 0.75 from people.js ≈ −44) | peaks −21 dBFS; the thuds are mostly < 120 Hz (lifted where a phone plays); a rattly fourth open (15–16.2 s) left out |
+| police-car-1920s ×2 (7) | **car-1920s-pass.wav (the 1929 Volvo — the owner's pick)** → the WHOLE passes **7.0–38.0 / 116.0–148.5 s** | fades 2.5 / 3 s · 0.14 → **0.1** (−40: a car's) | roll in from far (22 / 36 dB under the peak), by, away: 31–32 s vs the road's 18 s takes. Grok's `police-car-1920s.wav` (Fox Audio, a short pass of an unknown old car) not used |
+| siren-1920s ×2 (7) | siren-1920s.wav (48 s, a manual fire siren, HOT) → **0.5–15.0 s** (one wail) + **14.5–46.5 s** (the long one, w 0.6) | 250 Hz, **low-pass 1.8 kHz**, 16 kHz, 40 kbps · 0.08 → **0.045** (−47) | FAR + SOFT: up 0–4 s, held 4–9, down to −28 dB at 14.5, up again, held 19–29, a long fall to 46 s |
+| police-whistle (7, new) | police-whistle.wav (Mixkit, a pea whistle) → **0.05–1.3 s** | 400 Hz, low-pass 4.5 kHz · **0.035** (−49) | one blast, its ~3.5 kHz fundamental kept, the upper partials gone (far) |
+| dog-bark ×2 (8) | dog-bark.wav (a small dog far off) → **0–1.25** (the double bark) + **0.24–1.25 s** (the single, w 0.7) | 300 Hz · 0.1 → **0.06** (−44) | two barks at 0.05 / 0.3 s + their echo |
+| market-murmur (8, loop) | market-murmur.wav (1:38, a Chilean village market) → **62.5 + 22 s** + a 2 s tail (≤ 86.5 s) | 150 Hz, **low-pass 1.4 kHz**, 16 kHz, 40 kbps · 0.1 → **0.06** (−48) | voices + steps on sand throughout, no music; voiced frames lowest in 64–87 s (0.00–0.08 a second); **never 88–98 s** (the owner); after the low-pass no word readable |
+| milk-bottles ×2 (8) | milk-bottles.mp3 → **0–0.98 / 0.98–3.05 s** | 300 Hz · 0.1 → **0.05** (−46) | four clink groups |
+| trash-can-lid (8, new) | trash-can-lid.mp3 (HOT, clipped in places) → **0.05–3.3 s** | 150 Hz · **0.05** | the rattle 0.1–2.5 s, the lid's ring (922 / 859 / 422 Hz) after |
+| crates-clink ×3 (8, new) | crates-clink.mp3 (27 s) → **1.5–4.0 / 5.7–7.3 / 13.7–15.6 s** | 250 Hz · **0.05** | three busy stretches of a bottle crate |
+| newspaper-rustle (8, new) | newspaper-rustle.wav → whole (0.78 s) | 200 Hz · **0.04** (−48) | one opening |
+| ladder-clank ×2 (8, new) | ladder-clank.mp3 (9.1 s) → **4.3–6.5** (the big clank at 4.4) + **0.35–2.1 s** (small ones, w 0.8) | 150 Hz · **0.05** | |
+| squeegee ×4 (8, new) | squeegee.mp3 (50 s, 13 strokes between digital silences) → the squeaks **0–2.2 / 3.9–5.4 / 21.3–23.8 / 25.4–27.9 s** | 250 Hz · **0.04** | 1.5–4 kHz on top (centroid ~3.5 kHz); the sponge's wipes (400–1500 Hz) + a filtered 14–19 s stretch left out |
+| jogger-trip (8, new) | jogger-trip.wav (a body-fall, feet first) → **0.05–1.0 s**, `hit` 0.06 | 90 Hz, +3 dB at 300 Hz · **0.05** | the hit at 0.1 s + its scuff; no voice (voiced 0.00) |
+| ships-bell (8) | ships-bell.mp3 → whole (one ring, 4.3 s) | 300 Hz · 0.14 (unchanged) | the bell's partials (437 / 875 / 1172 / 1594 / 1828 … Hz) held 1–4 s — the bell, not music |
+| steam-whistle (8) | steam-whistle.wav (12 s, a Royal Hudson from the cab) → **1.7–4.9 s** | 250 Hz, low-pass 3.5 kHz · 0.16 (unchanged) | 0–2 s the engine's noise (no tone), **the whistle 2.0–4.3 s** (437.5 Hz held), then the engine chuffing to the end |
+| ship-horn (8) | ship-horn.mp3 → **0–6.4 s** | 80 Hz, 16 kHz · 0.16 (unchanged) | one blast on 109.4 Hz + harmonics, the echo to 5.8 s |
+| boat-putter (8, loop) | boat-putter.mp3 (1:39, a narrow boat's engine) → **11.4 + 30 s** + tail | 100 Hz, **low-pass 1.8 kHz**, 16 kHz, 40 kbps · 0.09 → **0.07** (−47.5) | steady (±2 dB); seam +0.4 dB — **the water taxi now putters across** (sounds.js already keeps it while it crosses) |
+| pigeon-flutter · pigeon-coo ×2 (8, new) | pigeon-flutter.wav → whole · pigeon-coo.wav → **0.4–3.6 / 4.0–6.1 s** | 300 / 150 Hz · **0.04** | quiet sources (−46 / −43 LUFS); no voice |
+| duck-quack ×3 (8, new) | duck-quack.mp3 (57 s of a pond) → **5.8–8.1 / 0.1–2.5 / 23.9–26.6 s** | 300 Hz (a low rumble under them cut) · **0.04** | the liveliest stretches |
+| squirrel-chatter (8, new) | squirrel-chatter.wav → **7.4–10.4 s** | 400 Hz · **0.035** | the chatter (−31 dB over a −60 floor); a softer bout at 11–13.5 s left out |
+| coyote-howl ×2 (8, new) | coyote-howl.wav (1:25, very quiet: −57 LUFS) → **24.5–34.6 / 35.4–40.9 s** | **350 Hz–2.8 kHz**, 16 kHz · **0.04** | the howls (voiced 0.3–0.55) ~13 dB over the floor there; band-passed so the hiss stays under them |
+| coyote-yip ×3 (8, new) | coyote-yip.wav (a close coyote, noise-reduced) → **15.9–17.7 / 32.9–36.0 / 46.4–48.7 s** | 350 Hz, low-pass 3.5 kHz (made distant) · **0.035** | the three most voiced bursts (0.31–0.37) |
+| glow-wand-swish ×4 (10, new) | glow-wand-swish.wav (four wooden-stick swishes, HOT) → each **~0.37 s** | 200 Hz · **0.03** (× 0.5–0.8 ≈ −53) | 0.1 / 2.0 / 3.9 / 6.1 s, digital silence between |
+| crowd-clap ×3 (10, new) | crowd-clap.mp3 (30 s, a crowd cheering + clapping) → **9–15 / 14.5–20.5 / 20–26 s** | 200 Hz, **low-pass 3 kHz**, 16 kHz · **0.04** | **no voiced frames** (≤ 0.07: no chant, no words), no held line; the steady middle, faded 0.8 / 1.8 s |
+| crowd-whoop (10, new) | crowd-whoop.wav → **0–4.6 s** | 200 Hz, low-pass 4 kHz · **0.04** | the whoops 0–1.5 s (voiced 0.67–0.92: "whoo"s, no words), applause after |
+| tr3b-crackle (sky) | tr3b-crackle.wav (an electric arc + its reverb) → **0–3.6 s** | 60 Hz, +3 dB at 2 kHz · 0.1 (unchanged) | energy mostly < 400 Hz (the presence lift for a phone). **Not wired here** — the TR-3B's event calls it |
+
+- **Left EMPTY (`SKIP`, each with its reason in the slot's `what`):** `traffic-far` — MODERN traffic (the owner); `trash-truck` — a modern
+  ZIL diesel STANDING STILL (start, revs at −20…−28 dB, the dips between them, the stop at ~128 s): there is no arrival or departure in it to cut, so
+  8b builds the visit from its own pieces (the lid + the crates are in); `raccoon-chitter` (new slot) — the file is a hiss + growl ATTACK: **not
+  one voiced frame in 83 s**, broadband — scary, so no; `tv-murmur` still empty (no retry file); `police-car-1920s.wav` not imported (the Volvo
+  instead). `bus-brake-hiss` stays empty.
+- **New slots** (19): police-whistle (7) · trash-can-lid, crates-clink, newspaper-rustle, ladder-clank, squeegee, jogger-trip, pigeon-flutter,
+  pigeon-coo, duck-quack, squirrel-chatter, coyote-howl, coyote-yip, raccoon-chitter (8) · glow-wand-swish, crowd-clap, crowd-whoop (10).
+- **WIRED (only events that exist):** the side door — `people.js#doorSounds` already played `street-door` on the swing open + `street-door-close`
+  as it swings back (FP3b): filling the slots makes them sound. The water taxi — `sounds.js` already keeps `boat-putter` while it crosses.
+  **THE DANCE CIRCLE** (`people.js#danceSounds`, run from `tick` — never inside a painter): on each beat crossing (the wands' own beat: the party's
+  song clock, else 120 bpm) during a BIG move — the swing's cross + the signal's swap (the arms' fastest moment: wands.js#danceMoves), a spin as it
+  starts — 30 % of the time one dancer's `glow-wand-swish` (panned to them, × 0.5–0.8, ≥ 0.9 s apart: ~1 every 3–4 s); while watchers are in their
+  'clap' pose (1–2 of the 3–5), a `crowd-clap` take 3–9 s after they start, then every 18–40 s (× 0.55–0.8, × 0.75 with a single clapper, panned to
+  the circle); on a new phrase (every 8 beats) a 6 % chance of a `crowd-whoop` (≥ 90 s apart). Checked in node on a forced circle (6 dancers, 4
+  watchers, one of them clapping): 120 s → 35 swishes, 6 clap bursts, 1 whoop. The ship's bell, the noon whistle, the 7 pm horn, the dog, the market, the workers +
+  the wildlife have no event yet: filled, silent until 8b / the city schedule calls them.
+- **Tests:** `city-sounds.test.mjs` — the 70 filled; traffic-far / trash-truck / raccoon-chitter / tv-murmur / bus-brake-hiss empty; the police
+  cars from the Volvo; the market's window ≤ 88 s; the siren + whistle soft (+ the siren at 16 kHz); the market's 20 s loop minimum; the folder
+  < 10 MB; the empty-slot examples are `witch-cackle` now (also `harbor-sounds.test.mjs#takeAt` + e2e-harbor's EMPTY SLOTS line).
+- **Known issues:** levels by LUFS arithmetic, not by ear; Grok's "readable words" screen was speech-to-text, mine voicing + modulation —
+  the market (low-passed) and the crowd-clap (no voiced frames) are the ones for the owner's ear; crowd-clap is a big crowd made distant (no
+  small-group file); `duck-quack`, `milk-bottles`, `trash-can-lid`, `ladder-clank`, `crates-clink`, `ships-bell`, `ship-horn`, `boat-putter` are
+  the lossy Pixabay copies (the lossless CC0 originals: credits.txt's Freesound links — drop them in under the same names and re-run).
+
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
   level = rain + 0.25 in a storm). A breathing bed of filtered noise, a low roar that only a downpour brings, and droplet ticks

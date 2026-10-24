@@ -87,7 +87,12 @@ CUTS = {
     # a presence lift)
     'city-hum-night': [{'loop': (100.0, 70.0), 'xf': 2.5, 'hp': 140, 'lift': 3.0, 'rate': 16000}],
     # (3:10, a 1929 Volvo PV4, two slow passes with digital silence between: the first peaks at ~21 s, the second at ~135.5 s)
-    'car-1920s-pass': [{'cut': (13.0, 31.5)}, {'cut': (127.0, 146.5)}],
+    # 6b — THE POLICE CARS (the owner: cut from the Volvo, not Grok's Fox Audio "Old_Car_Short_Passby_06"): each WHOLE pass — the
+    # slow roll in from far (7 / 116 s: 22 / 36 dB under its peak), by, and away (to 38 / 148.5 s) — 31–32 s, longer + slower than the road's
+    # everyday 18 s takes: old engines rolling by
+    'car-1920s-pass': [{'cut': (13.0, 31.5)}, {'cut': (127.0, 146.5)},
+                       {'cut': (7.0, 38.0), 'to': 'police-car-1920s', 'name': 'police-car-1920s_1', 'fin': 2.5, 'fout': 3.0},
+                       {'cut': (116.0, 148.5), 'to': 'police-car-1920s', 'name': 'police-car-1920s_2', 'fin': 2.5, 'fout': 3.0}],
     # (0:31, a 1954 MG TF: a quick sporty pass peaking at ~18.5 s — newer than the era: a rare variety take)
     'car-1920s-pass-2': [{'cut': (9.0, 27.0), 'w': 0.15}],
     # (7:01 mono, a 1945 Mercedes L3750 truck — "Start_Slow_Away_Up_Reverse_Stop_Away_By_Up_Stop_Off": four takes, 2–31 / 72–131
@@ -272,6 +277,118 @@ CUTS = {
     'bus-door': [{'cut': (0.0, 0.47), 'fin': 0.003, 'fout': 0.12, 'hp': 120}],
     # (6.9 s Sonniss, a metal hand bell: one ring (1.24 kHz + 2.47 / 2.67 / 3.19 kHz), a 6 s decay; a 200 Hz line under it (cut))
     'cart-bell': [{'cut': (0.0, 3.6), 'fin': 0.003, 'fout': 1.6, 'hp': 400, 'rate': 32000}],
+    # ---- 6b — THE LIFE + WORKERS + WILDLIFE SOUNDS (Grok's picks, Oct 24 — screened by speech-to-text + a music detector, NOT listened
+    # to; his notes named no trims for this set, so every cut here is from the analysis: the 0.1–1 s RMS envelope per band (< 120 Hz,
+    # 120–400, 400–1500, 1.5–4 k, 4–15 k), onsets, VOICING (the 300–3400 Hz signal's autocorrelation peak at 2.5–12 ms lags > 0.6 = a
+    # voiced frame: a talker's vowels, a whoop, a coo), held tonal lines (music: ≥ 0.45 s within ±1.5 %), the 2–8 Hz speech
+    # modulation; docs/audio.md#6b-life has the table)
+    # (22.7 s Sonniss, a house's front door opened + closed FAR + SOFT, four times (peaks −21 dBFS): the opens' latch at 0.9 / 4.75 /
+    # 10.0 s (a rattly fourth 15.0–16.2 s: left out), the closes' thud at 2.1 / 7.1 / 12.9 / 19.3 s — mostly < 120 Hz, so low-mids +
+    # presence lifted where a phone plays; the room's hiss between gated; `mark` = the latch / the thud)
+    'street-door': [
+        {'cut': (0.5, 1.65), 'name': 'street-door_1', 'fin': 0.02, 'fout': 0.35, 'hp': 80, 'lowmid': 3.0, 'presence': (3.0, 1500), 'gate': -32, 'mark': 0.4},
+        {'cut': (4.45, 5.55), 'name': 'street-door_2', 'fin': 0.02, 'fout': 0.35, 'hp': 80, 'lowmid': 3.0, 'presence': (3.0, 1500), 'gate': -32, 'mark': 0.3},
+        {'cut': (9.6, 10.75), 'name': 'street-door_3', 'fin': 0.02, 'fout': 0.35, 'hp': 80, 'lowmid': 3.0, 'presence': (3.0, 1500), 'gate': -32, 'mark': 0.4},
+        {'cut': (1.85, 3.0), 'to': 'street-door-close', 'name': 'street-door-close_1', 'fin': 0.02, 'fout': 0.45, 'hp': 70, 'lowmid': 4.0, 'presence': (3.0, 1500), 'gate': -34, 'mark': 0.25},
+        {'cut': (6.85, 8.0), 'to': 'street-door-close', 'name': 'street-door-close_2', 'fin': 0.02, 'fout': 0.45, 'hp': 70, 'lowmid': 4.0, 'presence': (3.0, 1500), 'gate': -34, 'mark': 0.25},
+        {'cut': (12.55, 13.8), 'to': 'street-door-close', 'name': 'street-door-close_3', 'fin': 0.02, 'fout': 0.45, 'hp': 70, 'lowmid': 4.0, 'presence': (3.0, 1500), 'gate': -34, 'mark': 0.35},
+        {'cut': (19.0, 20.1), 'to': 'street-door-close', 'name': 'street-door-close_4', 'fin': 0.02, 'fout': 0.45, 'hp': 70, 'lowmid': 4.0, 'presence': (3.0, 1500), 'gate': -34, 'mark': 0.3, 'w': 0.6},
+    ],
+    # (1.1 s Sonniss, a body-fall on concrete — feet first: the hit at 0.1 s, its scuff to 0.6 s; no voice (voiced 0.00))
+    'jogger-trip': [{'cut': (0.05, 1.0), 'fin': 0.005, 'fout': 0.35, 'hp': 90, 'lowmid': 3.0, 'mark': 0.06}],
+    # (7.2 s Sonniss, four wooden-stick swishes at 0.1 / 2.0 / 3.9 / 6.1 s, ~0.25 s each, digital silence between; HOT (+1.6 dBFS))
+    'glow-wand-swish': [
+        {'cut': (0.05, 0.42), 'fin': 0.005, 'fout': 0.15, 'hp': 200},
+        {'cut': (1.95, 2.32), 'fin': 0.005, 'fout': 0.15, 'hp': 200},
+        {'cut': (3.85, 4.22), 'fin': 0.005, 'fout': 0.15, 'hp': 200},
+        {'cut': (6.05, 6.45), 'fin': 0.005, 'fout': 0.15, 'hp': 200},
+    ],
+    # (1.3 s Sonniss, a small dog far off: two barks at 0.05 + 0.3 s (400–1500 Hz) and their echo; the double bark + the second alone)
+    'dog-bark': [{'cut': (0.0, 1.25), 'fin': 0.003, 'fout': 0.5, 'hp': 300}, {'cut': (0.24, 1.25), 'fin': 0.005, 'fout': 0.5, 'hp': 300, 'w': 0.7}],
+    # (1:38 Sonniss, a Chilean village market: voices + footsteps on sand throughout, no music (no held line); VOICED frames 0.1–0.3 a
+    # second in places, lowest in 64–87 s (0.00–0.08) — the owner: never 88–98 s. THE LOOP: 63 + 22 s (+ a 2 s tail: ≤ 87.5 s),
+    # low-passed 1.4 kHz (heard across the square: no word readable, the sand's crunch gone), 40 kbps, 16 kHz)
+    'market-murmur': [{'loop': (63.0, 22.0), 'xf': 2.0, 'search': 0.5, 'hp': 150, 'lp': 1400, 'rate': 16000, 'kbps': 40}],
+    # (3.1 s Pixabay MP3 of a CC0 original, milk bottles: clinks at 0–0.3, 1.0–1.6, 2.1–2.3, 2.5–2.8 s — two takes)
+    'milk-bottles': [{'cut': (0.0, 0.98), 'fin': 0.003, 'fout': 0.35, 'hp': 300}, {'cut': (0.98, 3.05), 'fin': 0.005, 'fout': 0.45, 'hp': 300}],
+    # (3.3 s Pixabay MP3 of a CC0 original, a metal lid dropped: its rattle 0.1–2.5 s, a ring (922 / 859 / 422 Hz: the lid) to 3.2 s;
+    # HOT (+0.8 dBFS, clipped in places))
+    'trash-can-lid': [{'cut': (0.05, 3.3), 'fin': 0.003, 'fout': 0.8, 'hp': 150, 'mark': 0.07}],
+    # (0.8 s Sonniss, a newspaper opened: one rustle)
+    'newspaper-rustle': [{'cut': (0.0, 0.78), 'fin': 0.01, 'fout': 0.2, 'hp': 200}],
+    # (1.4 s Mixkit, a pea whistle: one blast 0.1–0.8 s, its fundamental ~3.5 kHz (all in 1.5–4 kHz). FAR (the owner): its upper
+    # partials low-passed (4.5 kHz), a low slot gain)
+    'police-whistle': [{'cut': (0.05, 1.3), 'fin': 0.01, 'fout': 0.4, 'hp': 400, 'lp': 4500}],
+    # (9.1 s Pixabay MP3 of a CC0 original, a ladder handled: small clanks throughout, the big one at 4.4 s (120–400 Hz) — two takes)
+    'ladder-clank': [{'cut': (4.3, 6.5), 'fin': 0.005, 'fout': 0.5, 'hp': 150, 'mark': 0.1}, {'cut': (0.35, 2.1), 'fin': 0.01, 'fout': 0.4, 'hp': 150, 'w': 0.8}],
+    # (50 s Pixabay MP3, a squeegee + sponge on glass: 13 strokes between digital silences; the squeaks (1.5–4 kHz on top, centroid
+    # ~3.5 kHz) at 0–2.0, 4.0–5.2, 21.5–23.6, 25.5–27.7 s; the sponge's wipes (400–1500 Hz) + a filtered 14–19 s stretch left out)
+    'squeegee': [
+        {'cut': (0.0, 2.2), 'fin': 0.03, 'fout': 0.3, 'hp': 250},
+        {'cut': (3.9, 5.4), 'fin': 0.03, 'fout': 0.3, 'hp': 250},
+        {'cut': (21.3, 23.8), 'fin': 0.03, 'fout': 0.3, 'hp': 250},
+        {'cut': (25.4, 27.9), 'fin': 0.03, 'fout': 0.3, 'hp': 250},
+    ],
+    # (27 s Pixabay MP3 of a CC0 original, a crate of bottles handled: clinks + rattles throughout — three busy stretches)
+    'crates-clink': [
+        {'cut': (1.5, 4.0), 'fin': 0.01, 'fout': 0.4, 'hp': 250},
+        {'cut': (5.7, 7.3), 'fin': 0.01, 'fout': 0.4, 'hp': 250},
+        {'cut': (13.7, 15.6), 'fin': 0.01, 'fout': 0.4, 'hp': 250},
+    ],
+    # (48 s Mixkit, a vintage manual fire siren — HOT (+1.7 dBFS): up 0–4 s, held 4–9, down 9–15 (−28 dB at 14.5 s), up again 15–20,
+    # held 19–29, a long fall to 46 s. Two takes (one wail, the long one rarer). FAR + SOFT (the owner): low-passed 1.8 kHz, 16 kHz)
+    'siren-1920s': [
+        {'cut': (0.5, 15.0), 'fin': 1.0, 'fout': 2.5, 'hp': 250, 'lp': 1800, 'rate': 16000, 'kbps': 40},
+        {'cut': (14.5, 46.5), 'fin': 1.5, 'fout': 4.0, 'hp': 250, 'lp': 1800, 'rate': 16000, 'kbps': 40, 'w': 0.6},
+    ],
+    # (4.3 s Pixabay MP3 of a CC0 original, ONE ship's bell ring: partials 437 / 875 / 1172 / 1594 / 1828 / 2094 / 3000 Hz… held
+    # 1–4 s — the bell itself, not music)
+    'ships-bell': [{'cut': (0.0, 4.3), 'fin': 0.003, 'fout': 1.2, 'hp': 300}],
+    # (12 s Sonniss, a Royal Hudson's whistle from the cab: the engine's noise 0–2 s (no tone), THE WHISTLE 2.0–4.3 s (437.5 Hz held:
+    # voiced 0.5–0.67), then the engine chuffing (modulation 0.75–0.8) to the end — 1.7–4.9 s, low-passed 3.5 kHz (far off at noon))
+    'steam-whistle': [{'cut': (1.7, 4.9), 'fin': 0.3, 'fout': 0.6, 'hp': 250, 'lp': 3500}],
+    # (6.7 s Pixabay MP3 of a CC0 original, a distant ship's horn: one blast 0–3 s on a 109.4 Hz fundamental (+ its harmonics), the
+    # harbor's echo to 5.8 s)
+    'ship-horn': [{'cut': (0.0, 6.4), 'fin': 0.05, 'fout': 2.5, 'hp': 80, 'rate': 16000}],
+    # (1:39 Pixabay MP3 of a CC0 original, a narrow boat's engine: steady throughout (±2 dB). A 30 s loop, low-passed 1.8 kHz (across
+    # the water), 40 kbps, 16 kHz)
+    'boat-putter': [{'loop': (12.0, 30.0), 'xf': 2.5, 'search': 3.0, 'hp': 100, 'lp': 1800, 'rate': 16000, 'kbps': 40}],
+    # (4.9 s Mixkit, pigeons fluttering — quiet (−46 LUFS), no voice)
+    'pigeon-flutter': [{'cut': (0.0, 4.8), 'fin': 0.05, 'fout': 0.8, 'hp': 300}],
+    # (6.2 s Mixkit, pigeons cooing at 0.5–1.5, 2.5–3.0, 4.5–5.0 s — two takes)
+    'pigeon-coo': [{'cut': (0.4, 3.6), 'fin': 0.1, 'fout': 0.5, 'hp': 150}, {'cut': (4.0, 6.1), 'fin': 0.1, 'fout': 0.5, 'hp': 150}],
+    # (1:25 Sonniss, coyotes far off — very quiet (−57 LUFS, a −61 dB floor): the howls (400–1500 Hz, voiced 0.3–0.55) clearest at
+    # 24.5–40.5 s, ~13 dB over the floor; band-passed 350 Hz–2.8 kHz so the hiss stays under them)
+    'coyote-howl': [
+        {'cut': (24.5, 34.6), 'fin': 0.8, 'fout': 2.0, 'hp': 350, 'lp': 2800, 'rate': 16000},
+        {'cut': (35.4, 40.9), 'fin': 0.6, 'fout': 1.6, 'hp': 350, 'lp': 2800, 'rate': 16000},
+    ],
+    # (51 s Sonniss, a close coyote, noise-reduced: bursts of yips between near-silences — the three most voiced (0.31–0.37); made
+    # distant: low-passed 3.5 kHz)
+    'coyote-yip': [
+        {'cut': (15.9, 17.7), 'fin': 0.02, 'fout': 0.5, 'hp': 350, 'lp': 3500},
+        {'cut': (32.9, 36.0), 'fin': 0.02, 'fout': 0.5, 'hp': 350, 'lp': 3500},
+        {'cut': (46.4, 48.7), 'fin': 0.02, 'fout': 0.5, 'hp': 350, 'lp': 3500},
+    ],
+    # (57 s Pixabay MP3, ducks on a pond: quacks throughout (1.5–4 kHz), a low rumble under them (cut); the liveliest stretches)
+    'duck-quack': [
+        {'cut': (5.8, 8.1), 'fin': 0.05, 'fout': 0.5, 'hp': 300},
+        {'cut': (0.1, 2.5), 'fin': 0.05, 'fout': 0.5, 'hp': 300},
+        {'cut': (23.9, 26.6), 'fin': 0.05, 'fout': 0.5, 'hp': 300, 'w': 0.8},
+    ],
+    # (26 s Sonniss, a squirrel at dawn: its chatter 7.5–10.2 s (−31 dB; a −60 floor), a softer bout 11–13.5 s)
+    'squirrel-chatter': [{'cut': (7.4, 10.4), 'fin': 0.05, 'fout': 0.5, 'hp': 400}],
+    # (3.65 s Sonniss, an electric arc with its reverb: crackle from the start, energy mostly < 400 Hz — presence lifted for a phone)
+    'tr3b-crackle': [{'cut': (0.0, 3.6), 'fin': 0.005, 'fout': 1.0, 'hp': 60, 'presence': (3.0, 2000)}],
+    # (30 s Pixabay MP3, a crowd cheering + clapping: no voiced frames (≤ 0.07: no chant, no words), no held line; three 6 s stretches
+    # of the steady middle, low-passed 3 kHz (across the promenade) — a burst of clapping round the dance circle)
+    'crowd-clap': [
+        {'cut': (9.0, 15.0), 'fin': 0.8, 'fout': 1.8, 'hp': 200, 'lp': 3000, 'rate': 16000},
+        {'cut': (14.5, 20.5), 'fin': 0.8, 'fout': 1.8, 'hp': 200, 'lp': 3000, 'rate': 16000},
+        {'cut': (20.0, 26.0), 'fin': 0.8, 'fout': 1.8, 'hp': 200, 'lp': 3000, 'rate': 16000},
+    ],
+    # (4.8 s Sonniss, an audience cheering: the whoops 0–1.5 s (voiced 0.67–0.92: "whoo"s, no words), applause after; low-passed 4 kHz)
+    'crowd-whoop': [{'cut': (0.0, 4.6), 'fin': 0.05, 'fout': 1.2, 'hp': 200, 'lp': 4000}],
 }
 # source files named after what they are, not their slot (the folder's names) → the slot
 ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-formation': 'jet-flyby', 'tr3b-powerdown': 'tr3b-power-down',
@@ -279,13 +396,22 @@ ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-form
          'secret-knock': 'door-knock'}
 # never imported (8P): the diesel bus stand-ins (the 1945 truck's takes instead), the "haunted" door alternatives, the TV murmur (MUSIC
 # held in it — G4 / E5 / G5 notes for 1–1.9 s at 26–41 s — and one clear talker: modulation 0.5–1.1), the slot (inside the knock)
-SKIP = {'bus-idle', 'bus-depart', 'mirror-door-open', 'mirror-door-close', 'tv-murmur', 'door-slot'}
+# 6b: traffic-far (MODERN traffic — the owner: leave the slot empty), trash-truck (a modern ZIL diesel standing still: start, revs, stop —
+# no arrival or departure in it to cut), raccoon-chitter (a hiss + growl attack: not one voiced frame in 83 s, broadband — scary),
+# police-car-1920s (Fox Audio's short pass — the owner: cut the police cars from the 1929 Volvo instead)
+SKIP = {'bus-idle', 'bus-depart', 'mirror-door-open', 'mirror-door-close', 'tv-murmur', 'door-slot',
+        'traffic-far', 'trash-truck', 'raccoon-chitter', 'police-car-1920s'}
 PIXABAY = ('The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — '
            'the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).')
 CREDIT_NOTE = {
     'heli-flyby': PIXABAY, 'prop-plane': PIXABAY, 'balloon-burner': PIXABAY, 'geese': PIXABAY,
     'bar-ambience-close': PIXABAY, 'shop-bell': PIXABAY, 'broom-sweep': PIXABAY, 'window-sash': PIXABAY, 'roller-blind': PIXABAY,
     'cat-land': PIXABAY, 'rooftop-party': PIXABAY,
+    'milk-bottles': PIXABAY, 'trash-can-lid': PIXABAY, 'ladder-clank': PIXABAY, 'crates-clink': PIXABAY, 'ships-bell': PIXABAY,
+    'ship-horn': PIXABAY, 'boat-putter': PIXABAY,
+    'duck-quack': 'A Pixabay copy (Pixabay Content License) of a Freesound upload whose account was deleted — no lossless original known.',
+    'squeegee': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',
+    'crowd-clap': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',
     'bus-door': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',
     'secret-knock': 'THE SECRET KNOCK is assembled from four of its knocks + door-slot.wav (credited below) as the peephole slot.',
     'door-slot': 'Used inside door-knock (THE SECRET KNOCK: the peephole slot after the knocks).',

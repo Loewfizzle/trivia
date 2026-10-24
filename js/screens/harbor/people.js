@@ -9,7 +9,8 @@
 //   'roof'  (the speakeasy's roof deck) — clipped to the sky above the building's silhouette (the parapet hides their feet), before
 //           the café lights
 // Sounds (sounds.js — all through their slots, silent when empty): footsteps for the NEAREST walker only (cobbles / heels, very soft),
-// a distant laugh from a pair chatting now and then, the cart's bell, the lobby line's murmur, the rooftop party's bed, the bus.
+// a distant laugh from a pair chatting now and then, the cart's bell, the lobby line's murmur, the rooftop party's bed, the bus, the
+// speakeasy's doors (6b: filled), the dance circle (6b: the wands' swish on big moves, the watchers' clapping, a rare whoop).
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '../../core/harbor-people.js';
@@ -225,14 +226,47 @@ export function createPeople() {
       if (k < 0.01 && st !== 'closing') doorSt[id] = 'shut';
     }
   }
+  // 6b — THE DANCE CIRCLE, heard (quiet; through their slots — silent while empty): a few dancers' BIG MOVES swish their wands ON THE
+  // BEAT (the swing's cross + the signal's swap are the arms' fastest moment there — wands.js#danceMoves; a spin as it starts), at most
+  // one swish every ~0.9 s; while the watchers clap (their 'clap' pose: 1–2 of the 3–5), a burst of clapping from the circle every
+  // ~18–40 s; a rare whoop as a new phrase starts (6 %, ≥ 90 s apart). The beat is the one the wands are
+  // drawn on (the party's song clock, else a steady 120 bpm)
+  const dz = { beat: null, ph: null, swishAt: -1e9, clapAt: 0, whoopAt: -1e9 };
+  function danceSounds(env) {
+    const snd = env.snd, d = now.dance, t = env.t || 0;
+    if (!snd.play || env.mo === false || !d || !d.on || (d.k || 0) < 0.6) { dz.beat = dz.ph = null; dz.clapAt = 0; return; }
+    const ms = capByTier(now.members, env.tier == null ? 2 : env.tier).filter(m => m.routine === 'dance');
+    const dancers = ms.filter(m => m.kind === 'dancer' && m.s.pose === 'wands'), clappers = ms.filter(m => m.kind === 'watcher' && m.s.pose === 'clap').length;
+    if (!dancers.length) { dz.beat = dz.ph = null; return; }
+    const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : t * 2, beat = Math.floor(beatsF), ph = Math.floor(beatsF / 8);
+    const cx = dancers.reduce((a, m) => a + m.s.x, 0) / dancers.length;
+    if (dz.beat != null && beat !== dz.beat && t - dz.swishAt > 0.9) {
+      const mv = danceMoves(0, beatsF).move, q = ((beat % 8) + 8) % 8;
+      if ((mv === 'swing' || mv === 'signal' || (mv === 'spin' && q % 4 === 0)) && Math.random() < 0.3) {
+        const m = dancers[Math.floor(Math.random() * dancers.length)];
+        snd.play('glow-wand-swish', { pan: panOf(m.s.x), gain: 0.5 + Math.random() * 0.3 });
+        dz.swishAt = t;
+      }
+    }
+    if (clappers >= 1) {
+      if (!dz.clapAt) dz.clapAt = t + 3 + Math.random() * 6;
+      else if (t > dz.clapAt) { snd.play('crowd-clap', { pan: panOf(cx), gain: (0.55 + Math.random() * 0.25) * (clappers >= 2 ? 1 : 0.75) }); dz.clapAt = t + 18 + Math.random() * 22; }
+    } else dz.clapAt = 0;
+    if (dz.ph != null && ph !== dz.ph && t - dz.whoopAt > 90 && Math.random() < 0.06) {
+      snd.play('crowd-whoop', { pan: panOf(cx + (Math.random() - 0.5) * 2), gain: 0.6 + Math.random() * 0.2 });
+      dz.whoopAt = t;
+    }
+    dz.beat = beat; dz.ph = ph;
+  }
   /** FP3a (FREV H3 — no sound inside a painter): the footsteps, the laughs, the cart, the line, the roof, the bus — every frame the
-   *  scene runs (after frame()), whether or not the people were drawn this frame */
+   *  scene runs (after frame()), whether or not the people were drawn this frame (6b: + the dance circle's) */
   function tick(env) {
     if (!L || !env || !env.snd) return;
     const near = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...lineMembers(env.t || 0)].filter(m => m.s.z <= FOLK.roadZ);
     sounds(env, near);
     busSounds(env);
     doorSounds(env);
+    danceSounds(env);
   }
   const roofY = () => L.speakeasy.h;
   // the roof's clip: the sky ABOVE the building's front silhouette, as ONE small polygon over the deck (a whole-screen even-odd path

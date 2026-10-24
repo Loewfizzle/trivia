@@ -39,7 +39,7 @@ test('FP3 — takeAt: the pass\'s take from its clock number — the same on eve
   }
   const w = takesOf('car-1920s-pass').reduce((s, t) => s + (t.w ?? 1), 0);
   for (const t of takesOf('car-1920s-pass')) assert.ok(Math.abs(n.get(t.f) / 10000 - (t.w ?? 1) / w) < 0.01, `${t.f}: ${n.get(t.f)} of 10000 (weight ${t.w ?? 1})`);
-  assert.equal(takeAt('siren-1920s', 0.5), null, 'an empty slot');
+  assert.equal(takeAt('witch-cackle', 0.5), null, 'an empty slot');
   assert.ok(takeAt('car-1920s-pass', 1).i >= 0 && takeAt('car-1920s-pass', -3).i === 0 && takeAt('car-1920s-pass', NaN).i === 0, 'out-of-range numbers still pick');
 });
 
