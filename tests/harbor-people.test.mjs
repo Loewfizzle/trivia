@@ -192,9 +192,9 @@ test('FP3a — THE BUS DOOR shuts 3–5 s after the LAST rider (off or on) — n
   assert.ok(n >= 20, `${n} buses with riders over the day`);
 });
 
-test('FP3a — THE PACE: ~25 % slower than 8P, strollers + couples slowest, commuters brisker, joggers clearly faster', () => {
+test('FP3b — THE PACE: FP3a’s ~25 % slower, then back up ~12 % (the owner: "a little too slow"); strollers + couples slowest, commuters brisker, joggers clearly faster', () => {
   const S = FOLK.speed;
-  assert.ok(S.walk <= 1.5 * 0.8 && S.walk >= 1.5 * 0.7, `walk ${S.walk}`);
+  assert.ok(S.walk >= 1.15 * 1.08 && S.walk <= 1.15 * 1.16, `walk ${S.walk}`);
   assert.ok(S.stroll < S.walk && S.walk < S.brisk && S.brisk * 1.8 < S.jog, 'stroll < walk < brisk, the jog clearly faster');
   assert.equal(KINDS.couple(() => 0.5, { nodes: { inlay: { x: 0, z: 45 } } }).gait, 'stroll', 'couples stroll');
 });
@@ -245,16 +245,61 @@ test('8P — THE ROOF: a crowd on party nights + summer weekend nights (≤ the 
   assert.ok(mx <= FOLK.roofCap, `≤ ${FOLK.roofCap} (${mx})`);
   assert.ok(sum / k >= 2.5, `a party up there (${(sum / k).toFixed(1)} on average)`);
 });
-test('8P — THE WALK never slides: the planted foot stays put on the ground while the body walks on', async () => {
-  const { jointsOf, lookOf } = await import('../js/screens/harbor/folk.js');
-  for (const name of ['commuter', 'lady', 'jogger', 'newsboy']) {
-    const L = lookOf(name, 5, {}), H = 2.1 * L.h, v = name === 'jogger' ? 3 : 1.5;
+test('FP3b — THE WALK never skates, on a DIAGONAL too: the planted foot stays put ON SCREEN (x and y) while the body walks on — side-on, 3/4, toward + away', async () => {
+  const { rigOf, lookOf } = await import('../js/screens/harbor/folk.js');
+  const { cam } = setup('402x874');
+  for (const name of ['commuter', 'lady', 'jogger', 'newsboy']) for (const hd of [0, Math.PI, 0.7, -0.6, 2.4, Math.PI / 2, -Math.PI / 2]) {
+    const L = lookOf(name, 5, {}), v = name === 'jogger' ? 3.1 : 1.3, cx = Math.cos(hd), cz = Math.sin(hd);
     let prev = null, drift = 0, stance = 0;
     for (let d = 0; d < 6; d += 0.02) {
-      const J = jointsOf({ pose: 'walk', dir: 1, dist: d, v }, L, 0, false), f = J.feet[0], wx = d + f[0] * H;
-      if (f[1] === 0 && prev && prev.planted) { drift = Math.max(drift, Math.abs(wx - prev.wx)); stance++; }
-      prev = { wx, planted: f[1] === 0 };
+      const st = { pose: 'walk', hd, dist: d, v, x: 2 + cx * d, z: 45 + cz * d }, { J, fx, fy, H } = rigOf(cam, st, L, 0, false);
+      const f = J.feet[0], p = [fx + f[0] * H, fy - f[1] * H];
+      // (flat on the ground — the heel's rise at push-off lifts the ankle off it, by design)
+      const flat = J.planted[0] && J.heel[0] === 0;
+      if (flat && prev && prev.planted) { drift = Math.max(drift, Math.hypot(p[0] - prev.p[0], p[1] - prev.p[1])); stance++; }
+      prev = { p, planted: flat };
     }
-    assert.ok(stance > 50 && drift < 1e-4, `${name}: the planted foot drifts ${drift.toFixed(5)} units a step`);
+    assert.ok(stance > 30 && drift < 0.03, `${name} at ${hd.toFixed(2)}: the planted foot moves ${drift.toFixed(3)} pt a frame`);
   }
+});
+test('FP3b — STRAIGHT LEGS (the owner: "they look like they\'re squatting"): standing, waiting, chatting + the contact pose have straight legs at full height; the knee bends on the swing leg only', async () => {
+  const { jointsOf, lookOf } = await import('../js/screens/harbor/folk.js');
+  const L = lookOf('walker', 9, {});
+  const bend = (J, i) => { const h = J.hips[i], k = J.knees[i], f = J.feet[i]; const a = Math.atan2(k[1] - h[1], k[0] - h[0]), b = Math.atan2(f[1] - k[1], f[0] - k[0]); return Math.abs(((a - b + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) * 180 / Math.PI; };
+  for (const pose of ['wait', 'chat', 'watch', 'look', 'shop', 'point']) for (const hd of [0, -Math.PI / 2, 0.8]) {
+    const J = jointsOf({ pose, hd, dist: 0, v: 0 }, L, 0, false);
+    assert.ok(bend(J, 0) < 4 && bend(J, 1) < 4, `${pose} at ${hd}: straight (${bend(J, 0).toFixed(1)}°, ${bend(J, 1).toFixed(1)}°)`);
+    assert.ok(J.hip[1] >= 0.49, `${pose}: the hips at full height (${J.hip[1].toFixed(3)})`);
+  }
+  // walking side-on: the stance legs nearly straight all the way, the swing knee bending clearly at the passing pose
+  let maxSwing = 0, maxStance = 0;
+  for (let d = 0; d < 1.6; d += 0.01) {
+    const J = jointsOf({ pose: 'walk', hd: 0, dist: d, v: 1.3 }, L, 0, false);
+    for (let i = 0; i < 2; i++) { const b = bend(J, i); if (J.planted[i] && J.heel[i] === 0) maxStance = Math.max(maxStance, b); else if (!J.planted[i]) maxSwing = Math.max(maxSwing, b); }
+  }
+  assert.ok(maxStance < 10, `the stance leg straight while the foot is flat (≤ ${maxStance.toFixed(1)}°)`);
+  assert.ok(maxSwing > 35, `the swing knee bends (${maxSwing.toFixed(1)}°)`);
+});
+test('FP3b — THEY FACE WHERE THEY GO: the heading follows the route, turns at a corner are blended (no snap), a pose turns to its facing through a 3/4 frame, a half turn goes through the front', async () => {
+  const { lerpHd, hdOfDir, dirOfHd, TURN } = await import('../js/core/harbor-people.js');
+  assert.equal(dirOfHd(0), 1); assert.equal(dirOfHd(Math.PI), -1); assert.equal(dirOfHd(Math.PI / 2), 2); assert.equal(dirOfHd(-Math.PI / 2), 0);
+  // a half turn right → left goes through the FRONT (sin < 0 half way)
+  assert.ok(Math.sin(lerpHd(0, Math.PI, 0.5)) < -0.9 && Math.sin(lerpHd(Math.PI, 0, 0.5)) < -0.9, 'a half turn faces us half way');
+  // over a day at 402: no frame-to-frame heading jump bigger than a turn could make in 1/30 s (except a member appearing)
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), ctx = { off: -240, seed: 1924 };
+  const t0 = DAY + 12 * 3600, prev = new Map();
+  let worst = 0, n = 0, turns = 0;
+  for (let t = t0; t < t0 + 1200; t += 1 / 30) {
+    const f = folkAt(t, { L, M, ctx }, cache);
+    for (const m of f.members) {
+      if (m.m.role === 'dog') continue;
+      const id = m.vid + m.m.role, p = prev.get(id);
+      if (p != null) { const d = Math.abs(((m.s.hd - p + 3 * Math.PI) % (2 * Math.PI)) - Math.PI); worst = Math.max(worst, d); n++; if (d > 0.01) turns++; }
+      prev.set(id, m.s.hd);
+    }
+  }
+  assert.ok(n > 10000 && turns > 50, `enough walking (${n} frames, ${turns} turning)`);
+  assert.ok(worst < 0.5, `no snap: the biggest heading change in a frame ${worst.toFixed(3)} rad`);
+  assert.ok(TURN.corner > 0.3 && TURN.pose > 0.3, 'turns take a few frames');
+  assert.equal(hdOfDir(1), 0);
 });

@@ -29,6 +29,8 @@ const SUMMER = [[226, 222, 208], [198, 208, 214], [214, 196, 160], [184, 202, 17
 const SCARVES = [[178, 48, 48], [206, 156, 60], [58, 96, 150], [150, 70, 120], [60, 120, 90], [224, 214, 196]];
 const SKIN = [[226, 186, 152], [204, 160, 120], [160, 112, 78], [112, 76, 56], [236, 200, 170]];
 const HAIR = [[40, 30, 26], [86, 58, 36], [150, 108, 60], [24, 20, 22], [200, 170, 110]];
+const SIT_COATS = [[52, 66, 112], [58, 104, 82], [132, 50, 62], [84, 98, 124], [168, 170, 176], [216, 206, 178], [70, 112, 140]];
+const SIT_LEGS = [[70, 74, 92], [96, 98, 108], [52, 56, 78]];
 const DOGS = [[120, 82, 50], [36, 32, 34], [214, 196, 160], [170, 120, 66], [236, 232, 224]];
 
 /**
@@ -60,75 +62,168 @@ export function lookOf(name, seed, o = {}) {
   }
   if (name === 'night') { L.cols.coat = pick(r, [[58, 58, 70], [74, 66, 60], [52, 62, 84]]); L.coat = 'long'; if (!L.woman) L.hat = 'fedora'; }
   if (L.woman && L.coat === 'long') L.dress = L.dress || 'day';
+  // (FP3b, the owner after FP3a: people ON THE BENCH blended into its wood at noon — a sitter wears cloth AWAY from the oak's browns:
+  // navy, bottle green, burgundy, slate, dove grey, a cream mac; grey / navy trousers)
+  if (o.sit) { L.cols.coat = pick(r, SIT_COATS); L.cols.legs = pick(r, SIT_LEGS); if (L.coat === 'none') L.coat = 'short'; if (L.woman) L.cols.dress = pick(r, SIT_COATS); }
   L.h = kid ? 0.72 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08);
   L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.8 ? pick(r, [[30, 30, 36], [120, 40, 44], [44, 60, 96], [70, 64, 56]]) : null;
   L.dog = pick(r, DOGS); L.dogSize = 0.75 + r() * 0.5;
   return L;
 }
 
-// ------------------------------------------------------------------ THE BODY (figure space: x across, y up, in heights; d: facing)
-/** the joints for a state (PURE): st = { pose, dir, dist, v }; t: the clock (s) for the idle motions; mo: motion on */
-export function jointsOf(st, L, t, mo = true) {
-  const d = st.dir === -1 ? -1 : 1, side = st.dir === 1 || st.dir === -1, pose = st.pose || 'walk', jog = L.jog && st.v > 2;
-  const S = (jog ? 0.56 : L.kid ? 0.42 : 0.38) * L.h * 2.1;                    // (a step, world units — a stride is two)
-  const walking = pose === 'walk' && st.v > 0.05, p = walking ? (st.dist / (2 * S)) % 1 : 0;
-  const J = { side, d, face: st.dir, hip: [0, 0.49], sh: [0, 0.8], head: [0, 0.915], lean: 0, feet: [], knees: [], hands: [], elbows: [], pose, walking, p, jog };
-  const breath = mo ? 0.004 * Math.sin(t * 1.7 + (L.h * 37)) : 0;
-  J.sh[1] += breath; J.head[1] += breath;
-  if (pose === 'sit') { J.hip = [0, 0.27]; J.sh = [0, 0.58 + breath]; J.head = [0, 0.69 + breath]; }
-  if (pose === 'garden') { J.hip = [-0.03 * d, 0.34]; J.sh = [0.08 * d, 0.61]; J.head = [0.13 * d, 0.7]; }
-  const thigh = 0.262, shin = 0.262, hip = J.hip;
-  // the feet: stride-locked (the stance foot moves back exactly as far as the body moves on — no sliding)
+// ------------------------------------------------------------------ THE BODY — ONE 2.5-D RIG (FP3b, the owner's 8P notes 1 + 2)
+// Every joint lives in the figure's own frame — a (FORWARD along its heading), b (LATERAL: +b is the side deeper at hd 0), y (UP) —
+// in body heights, and ONE projection draws every facing: screen x = a·cos hd − b·sin hd; depth = a·sin hd + b·cos hd. So walking
+// across the screen is side-on, a diagonal a 3/4 view, toward us the front, away the back, and a turn (core/harbor-people.js#lerpHd)
+// sweeps continuously through them. Depth does two things: the far limbs are a shade darker + drawn first, and a joint further away
+// sits a little higher on screen (the ground's slope at that distance — kD) — so a front walker's stride reads, and the planted foot
+// stays put on the ground in x AND y (the stride is locked to the distance walked; tests/harbor-people.test.mjs on a diagonal).
+// THE WALK (keyed like a classic 8-pose cycle: contact · down · passing · up, per leg): the stance foot planted (a duty factor of 0.6),
+// the STANCE LEG STRAIGHT (the owner after FP3a: "they look like they're squatting" — the leg is exactly the hip's height: standing +
+// contact poses have straight legs), the hip riding over it like a pendulum (a small bob, highest at mid-stance), the knee bending
+// only on the swing leg (most at the passing pose, ~50°), the pelvis + the shoulders counter-rotating a little, the arms opposite the
+// legs. THE JOG: its own cycle — a short stance with a flexed knee, a flight phase (both feet up, the hip highest), the heel kicked up
+// behind in the swing, the arms bent ~90° pumping, a forward lean.
+const LEG = 0.47, ANKLE = 0.03, HIP0 = ANKLE + LEG, HALF = LEG / 2, HR = 0.066;
+export const GAIT = Object.freeze({
+  walk: { stance: 0.6, lift: 0.08, bob: 0.3, hip: 0.1, sh: 0.13, arm: 0.42, bend: 0.25 },
+  jog: { stance: 0.38, lift: 0.19, bob: 0, hip: 0.12, sh: 0.18, arm: 0.62, bend: 1.62, kick: 0.55, sink: 0.05, rise: 0.025 },
+});
+const smooth = u => u * u * (3 - 2 * u);
+/** a person's step (body heights): the walk, a kid's, the jog's */
+export const STEP = L => (L.jog ? 0.56 : L.kid ? 0.4 : 0.35);
+const headingOf = st => (st.hd != null ? st.hd : st.dir === 1 ? 0 : st.dir === -1 ? Math.PI : st.dir === 2 ? Math.PI / 2 : -Math.PI / 2);
+
+/**
+ * The joints for a state (PURE): st = { pose, hd (or the old dir), dist, v, link }; t: the clock (s) for the idle motions; mo: motion
+ * on; kD: [the depth → screen-height slope at the ground, its fall with height] (rigOf passes the camera's). → J with every joint
+ * already ON SCREEN in body heights from the figure's ground point (x right, y up): feet, knees, hips, hip (centre), shs, sh (centre),
+ * elbows, hands, head; D (each limb's depth: legs / arms), cx / cz (the heading's cos / sin), d (the side it faces on screen), side
+ * (profile-ish), tw (the torso's half width on screen), planted (each foot), heel (each heel's rise 0..1).
+ */
+export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
+  const hd = headingOf(st), cx = Math.cos(hd), cz = Math.sin(hd), pose = st.pose || 'walk', jog = !!L.jog && st.v > 2, G = jog ? GAIT.jog : GAIT.walk;
+  // (a step in heights — a stride is two; FP3b: a relaxed 1920s pace takes SHORTER steps — a long step at a slow speed reads as a
+  // slow-motion glide — so the cadence stays ~1.8 steps a second)
+  const S = STEP(L);
+  const walking = pose === 'walk' && st.v > 0.05, p = walking ? ((st.dist / (2 * S * 2.1 * L.h)) % 1 + 1) % 1 : 0;
+  const breath = mo ? 0.004 * Math.sin(t * 1.7 + L.h * 37) : 0;
+  const sg = [-1, 1], A = G.stance * S;
+  // ---- the legs (figure frame: a, b, y)
+  const foot = [], hipJ = [], planted = [false, false], heel = [0, 0];
+  let hipY = HIP0, lean = 0;
   for (let i = 0; i < 2; i++) {
-    let fx = (i ? -0.06 : 0.06) * (side ? 0.4 : 1), fy = 0;
-    if (walking && side) {
-      const q = (p + i * 0.5) % 1, s = S / (2.1 * L.h);   // (the step in heights)
-      // (stance: the foot goes from s/2 ahead to s/2 behind while the body moves one step s on — fixed on the ground; swing: back to the front)
-      if (q < 0.5) fx = d * s * (0.5 - q * 2); else { const u = (q - 0.5) / 0.5; fx = d * s * (-0.5 + u); fy = Math.sin(u * Math.PI) * (jog ? 0.09 : 0.045); }
-    } else if (walking) { const q = (p + i * 0.5) % 1; fy = q > 0.5 ? Math.sin((q - 0.5) * 2 * Math.PI) * 0.035 : 0; }
-    if (pose === 'sit') { fx = (i ? -0.07 : 0.07); fy = 0; }
-    J.feet.push([fx, fy]);
-    // the knee: two-segment IK — in profile it bends FORWARD (toward d); from the front / the back it stays nearly straight
-    const hx0 = hip[0] + (side ? 0 : i ? -0.035 : 0.035), dx = fx - hx0, dy = fy - hip[1], dl = Math.hypot(dx, dy), L2 = Math.min(dl, thigh + shin - 1e-3);
-    const a = Math.acos(clamp01((thigh * thigh + L2 * L2 - shin * shin) / (2 * thigh * L2))), base = Math.atan2(dy, dx), ang = base + (side ? d : (i ? -0.25 : 0.25)) * a;
-    J.knees.push(pose === 'sit' ? [fx * 1.1, 0.27] : [hx0 + Math.cos(ang) * thigh, hip[1] + Math.sin(ang) * thigh]);
+    let fa = 0, fy = ANKLE;
+    if (walking) {
+      const q = (p + i * 0.5) % 1, s = G.stance;
+      if (q < s) { fa = A - 2 * A * q / s; planted[i] = true; heel[i] = q > s - 0.14 ? (q - (s - 0.14)) / 0.14 : 0; fy = ANKLE + 0.02 * heel[i]; }
+      else {
+        const u = (q - s) / (1 - s);
+        // (the swing: forward with a smooth start + stop; the foot lifts most just before the passing pose; the jog kicks the heel up behind)
+        fa = -A + 2 * A * (jog ? Math.pow(smooth(u), 1.35) : smooth(u));
+        fy = ANKLE + G.lift * Math.sin(Math.PI * Math.pow(u, jog ? 0.55 : 0.7));
+      }
+    }
+    foot.push({ a: fa, b: sg[i] * (walking ? 0.038 : 0.05), y: fy });
   }
-  // the arms: a swing against the legs; the poses
-  const sw = walking ? Math.sin(p * TAU) * (jog ? 0.75 : 0.42) : 0, up = 0.155, fore = 0.15;
-  const arm = (i, ang, bendA) => { const sh = [J.sh[0] + (side ? 0 : i ? -0.11 : 0.11), J.sh[1] - 0.015], e = [sh[0] + Math.sin(ang) * up * (side ? d : 1), sh[1] - Math.cos(ang) * up], h = [e[0] + Math.sin(ang + bendA) * fore * (side ? d : 1), e[1] - Math.cos(ang + bendA) * fore]; J.elbows[i] = e; J.hands[i] = h; };
+  if (walking) {
+    if (!jog) {
+      // the pendulum: the hip as high as the straightest stance leg allows, half way back toward standing height (a gentle bob)
+      let pend = HIP0;
+      for (let i = 0; i < 2; i++) if (planted[i]) pend = Math.min(pend, ANKLE + Math.sqrt(Math.max(0, LEG * LEG - foot[i].a * foot[i].a)));
+      hipY = HIP0 - G.bob * (HIP0 - pend);
+      lean = 0.02;
+    } else {
+      // the run: the hip sinks through the stance (the knee flexes), rises into the flight
+      let st0 = -1; for (let i = 0; i < 2; i++) if (planted[i]) st0 = i;
+      const q = st0 >= 0 ? ((p + st0 * 0.5) % 1) / G.stance : 0;
+      hipY = HIP0 - 0.035 + (st0 >= 0 ? -G.sink * Math.sin(Math.PI * q) : G.rise);
+      lean = 0.075;
+    }
+  }
+  if (pose === 'sit') hipY = 0.27;
+  if (pose === 'garden') hipY = 0.36;
+  for (let i = 0; i < 2; i++) hipJ.push({ a: (walking ? G.hip * foot[i].a : 0) + (pose === 'garden' ? -0.04 : 0), b: sg[i] * 0.045, y: hipY });
+  // the knees: two-segment IK in each leg's own plane, always bending FORWARD; sitting: the thighs forward along the seat
+  const knee = [];
+  for (let i = 0; i < 2; i++) {
+    if (pose === 'sit') { foot[i] = { a: 0.25, b: sg[i] * 0.065, y: ANKLE }; knee.push({ a: 0.235, b: sg[i] * 0.06, y: 0.28 }); continue; }
+    const h = hipJ[i], f = foot[i], dx = f.a - h.a, dy = f.y - h.y, dl = Math.hypot(dx, dy), l = Math.min(dl, LEG - 1e-4);
+    const ang = Math.atan2(dy, dx) + Math.acos(clamp01(l / (2 * HALF)));
+    knee.push({ a: h.a + Math.cos(ang) * HALF, b: (h.b + f.b) / 2, y: h.y + Math.sin(ang) * HALF });
+  }
+  // ---- the upper body: the shoulders (counter-rotating against the hips), the head; a forward lean tips the torso
+  const shY = (pose === 'sit' ? 0.58 : pose === 'garden' ? 0.61 : HIP0 + 0.3) + breath, up = shY - hipY;
+  let shA = lean * up, headA = lean * (up + 0.115);
+  if (pose === 'garden') { shA = 0.12; headA = 0.17; }
+  const shJ = [0, 1].map(i => ({ a: shA - (walking ? G.sh * foot[i].a : 0), b: sg[i] * 0.11, y: shY - 0.015 }));
+  const head = { a: headA, b: 0, y: shY + 0.115 + (pose === 'garden' ? -0.025 : 0) };
+  // ---- the arms: arm(i, ang (from hanging down, + forward), bend (the elbow, + forward), out (lifted sideways))
+  const elbow = [null, null], hand = [null, null], upA = 0.155, foreA = 0.15;
+  const arm = (i, ang, bend, out = 0.06) => {
+    const s0 = shJ[i], co = Math.cos(out), so = Math.sin(out);
+    const e = { a: s0.a + Math.sin(ang) * upA * co, b: s0.b + sg[i] * so * upA, y: s0.y - Math.cos(ang) * upA * co };
+    const a2 = ang + bend;
+    elbow[i] = e; hand[i] = { a: e.a + Math.sin(a2) * foreA * co, b: e.b + sg[i] * so * foreA * 0.6, y: e.y - Math.cos(a2) * foreA * co };
+  };
+  const near = cx >= 0 ? 0 : 1, farA = 1 - near;                                   // (the arm nearer us — the one a pose uses)
   const idle = mo ? Math.sin(t * 0.9 + L.h * 11) * 0.04 : 0;
-  if (side) { arm(0, sw, jog ? 1.6 : 0.25 + Math.max(0, sw) * 0.4); arm(1, -sw, jog ? 1.6 : 0.25 + Math.max(0, -sw) * 0.4); }
-  else { arm(0, 0.12 + idle, 0.12); arm(1, 0.12 - idle, 0.12); }
-  // arm in arm (a couple strolling): the lead's far arm + the partner's near arm hooked together, no swing
-  if (side && st.link === 'far') arm(1, 0.55, 1.2);
-  if (side && st.link === 'near') arm(0, 0.55, 1.2);
-  if (pose === 'point') { arm(0, 2.75, 0.05); }
-  if (pose === 'wave') { const w = mo ? Math.sin(t * 7) * 0.35 : 0; arm(0, 2.6 + w * 0.3, -0.5 + w); }
-  if (pose === 'watch') { arm(0, 1.0, 1.9); arm(1, 0.9, 1.6); }
-  if (pose === 'chat') { const g = mo ? Math.sin(t * 2.3 + L.h * 5) : 0; arm(0, 0.7 + 0.25 * g, 1.1); }
-  if (pose === 'lean') { arm(0, 1.3, 0.3); arm(1, 1.25, 0.35); J.lean = 0.06; }
-  if (pose === 'cart' || pose === 'shop') { arm(0, 0.55, 0.9); }
+  for (let i = 0; i < 2; i++) {
+    if (walking) { const sw = -G.arm * foot[i].a / (A || 1); arm(i, sw, jog ? G.bend : G.bend + Math.max(0, sw) * 0.4); }
+    else arm(i, 0.1 + (i ? -idle : idle), 0.12);
+  }
+  // arm in arm (a couple strolling): the arm on the partner's side hooked, no swing (link: the side's sign, ±1)
+  if (st.link === 1 || st.link === -1) arm(st.link > 0 ? 1 : 0, 0.5, 1.25, 0.32);
+  const N = near, Fa = farA;
+  if (pose === 'point') arm(N, 2.75, 0.05);
+  if (pose === 'wave') { const w = mo ? Math.sin(t * 7) * 0.35 : 0; arm(N, 2.6 + w * 0.3, -0.5 + w, 0.3); }
+  if (pose === 'watch') { arm(N, 1.0, 1.9); arm(Fa, 0.9, 1.6); }
+  if (pose === 'chat') { const g = mo ? Math.sin(t * 2.3 + L.h * 5) : 0; arm(N, 0.7 + 0.25 * g, 1.1); }
+  if (pose === 'lean') { arm(0, 1.3, 0.3); arm(1, 1.25, 0.35); headA += 0.03; }
+  if (pose === 'cart' || pose === 'shop') arm(N, 0.55, 0.9);
   if (pose === 'sit') { arm(0, 0.5, 0.9); arm(1, 0.4, 0.9); }
+  if (pose === 'clap') { const k = mo ? Math.abs(Math.sin(t * Math.PI * (st.bps || 2))) : 0.5; for (let i = 0; i < 2; i++) arm(i, 1.15, 0.95, 0.42 - 0.34 * (1 - k)); }
+  if (pose === 'bob') { const k = mo ? Math.sin(t * Math.PI * (st.bps || 2)) : 0; arm(0, 0.25 + 0.15 * k, 0.6); arm(1, 0.25 - 0.15 * k, 0.6); hipY += 0; }
   // the roof's poses: a DANCE (a sway + the arms trading up / out on a slow count), a TOAST (the glass raised), the GARDENER bending
-  if (pose === 'dance') { const b = mo ? Math.sin(t * 3.4 + L.h * 9) : 0; J.sh[0] += 0.02 * b; J.head[0] += 0.03 * b; J.hip[0] -= 0.015 * b; arm(0, 1.4 + 0.9 * Math.max(0, b), 0.6); arm(1, 0.9 - 0.5 * b, 0.9); }
-  if (pose === 'toast') { const up = mo ? 0.5 + 0.5 * Math.sin(t * 0.6 + L.h * 3) : 1; arm(0, 1.2 + 1.5 * up, 0.4); J.toast = up; }
-  if (pose === 'garden') { arm(0, 0.35, 0.2); arm(1, 0.25, 0.25); J.lean = 0.09; }
-  if (jog) J.lean = 0.07;
-  else if (walking) J.lean = 0.02;
-  return J;
+  let toast = 0;
+  if (pose === 'dance') { const b = mo ? Math.sin(t * 3.4 + L.h * 9) : 0; shJ.forEach(s => { s.b += 0.02 * b; }); head.b += 0.03 * b; arm(N, 1.4 + 0.9 * Math.max(0, b), 0.6, 0.25); arm(Fa, 0.9 - 0.5 * b, 0.9, 0.2); }
+  if (pose === 'toast') { toast = mo ? 0.5 + 0.5 * Math.sin(t * 0.6 + L.h * 3) : 1; arm(N, 1.2 + 1.5 * toast, 0.4); }
+  if (pose === 'garden') { arm(0, 0.35, 0.2); arm(1, 0.25, 0.25); }
+  // THE WANDS' dancer (FP3b item 9): st.moves = { arms: [[ang, bend, out], [ang, bend, out]], sway, dip } from people.js's routine
+  if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) arm(i, m.arms[i][0], m.arms[i][1], m.arms[i][2]); shJ.forEach((s, i) => { s.b += (m.sway || 0) * 0.03; s.y -= m.dip || 0; }); head.b += (m.sway || 0) * 0.045; head.y -= m.dip || 0; hipJ.forEach(h => { h.y -= (m.dip || 0) * 0.7; }); }
+  // ---- onto the screen
+  const k0 = kD[0], k1 = kD[1];
+  const scr = j => { const D = j.a * cz + j.b * cx; return [j.a * cx - j.b * cz, j.y + D * (k0 - k1 * j.y)]; };
+  const dep = j => j.a * cz + j.b * cx;
+  const feetS = foot.map(scr), kneesS = knee.map(scr), hipsS = hipJ.map(scr), shsS = shJ.map(scr);
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const tw = Math.hypot(0.138 * cz, 0.1 * cx);
+  return {
+    hd, cx, cz, d: cx >= 0 ? 1 : -1, side: Math.abs(cx) > 0.72, face: st.dir, pose, walking, p, jog, toast, near: N,
+    feet: feetS, knees: kneesS, hips: hipsS, hip: mid(hipsS[0], hipsS[1]), shs: shsS, sh: mid(shsS[0], shsS[1]),
+    elbows: elbow.map(scr), hands: hand.map(scr), head: scr(head), tw, planted, heel,
+    D: { legs: foot.map(dep), arms: hand.map(dep) },
+  };
+}
+
+/** the rig on the screen for a state: { J, fx, fy (its ground point), H (its height in pt) } — drawFolk, the leash, the tests */
+export function rigOf(cam, st, L, t = 0, mo = true, yUp = 0) {
+  const [fx, fy] = project(cam, st.x, yUp, st.z), H = 2.1 * L.h * cam.F / st.z, ch = cam.CAMH == null ? 13 : cam.CAMH;
+  return { fx, fy, H, J: jointsOf(st, L, t, mo, [(ch - yUp) / st.z, 2.1 * L.h / st.z]) };
 }
 
 // ------------------------------------------------------------------ DRAWING ONE FIGURE
 /**
- * drawFolk(c, cam, it, env): it = { s (the state: x, z, pose, dir, dist, v, a), L (the look), arm (arm in arm with the partner: ±1) },
- * env = { t, mo, T (day / gold / night, sunDir, sunEl), dark (the lamps' ramp 0..1), lightAt(x, z) → [r, g, b] | null (the lamps'
- * light on the ground there), rimSide(x, z) → ±1 (the nearest lamp's side), shadow(h) → { dx, dz, a } | null, yUp (world height of
- * the ground: the roof deck) } → the figure's screen box
+ * drawFolk(c, cam, it, env): it = { s (the state: x, z, pose, hd / dir, dist, v, a, link), L (the look) }, env = { t, mo, T (day / gold /
+ * night, sunDir, sunEl, ovc), dark (the lamps' ramp 0..1), lightAt(x, z) → [r, g, b] | null (the lamps' light on the ground there),
+ * rimSide(x, z) → ±1 (the nearest lamp's side), shadow(h) → { dx, dz, a } | null, yUp (world height of the ground: the roof deck),
+ * tier } → the figure's screen box
  */
 export function drawFolk(c, cam, it, env) {
-  const st = it.s, L = it.L, yUp = env.yUp || 0, [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 2.1 * L.h * s;
+  const st = it.s, L = it.L, yUp = env.yUp || 0;
+  const { fx, fy, H, J } = rigOf(cam, st, L, env.t || 0, env.mo !== false, yUp);
   if (H < 3 || fx + H * 0.45 < 0 || fx - H * 0.45 > cam.W) return null;     // (off the screen's edges: walking in / out — not drawn)
-  const J = jointsOf(st, L, env.t || 0, env.mo !== false), a = clamp01(st.a == null ? 1 : st.a);
+  const a = clamp01(st.a == null ? 1 : st.a);
   // (the figure's night tone follows the SCENE's darkness — T.night, the bake's tones — the lamps' ramp only lights it)
   const T = env.T || { day: 1 }, day = clamp01((T.day || 0) + 0.8 * (T.gold || 0)), lampK = clamp01(env.dark || 0), dark = Math.max(lampK, clamp01(T.night || 0));
   const lt = env.lightAt ? env.lightAt(st.x, st.z) : null, lk = lt ? Math.min(1.3, (lt[0] + lt[1] + lt[2]) / 380) : 0;
@@ -137,11 +232,12 @@ export function drawFolk(c, cam, it, env) {
   const lit = (col, k = 1) => {
     let cc = col;
     if (T.gold) cc = mix(cc, [cc[0] * 1.08 + 10, cc[1] * 0.95, cc[2] * 0.82], T.gold * 0.5);
-    if (dark > 0.01) { cc = mix(cc, NIGHT, 0.86 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); cc = [cc[0] + lt[0] * q * 0.1 * k * lampK, cc[1] + lt[1] * q * 0.1 * k * lampK, cc[2] + lt[2] * q * 0.1 * k * lampK]; } }   // (FP3a: 0.17 → 0.1 — mostly silhouette; the rim carries the light)
+    if (dark > 0.01) { cc = mix(cc, NIGHT, 0.86 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); cc = [cc[0] + lt[0] * q * 0.1 * k * lampK, cc[1] + lt[1] * q * 0.1 * k * lampK, cc[2] + lt[2] * q * 0.1 * k * lampK]; } }   // (FP3a: mostly silhouette; the rim carries the light)
     return cc.map(v => Math.min(255, v));
   };
-  const X = u => fx + u * H, Y = v => fy - v * H, d = J.d;
+  const X = u => fx + u * H, Y = v => fy - v * H;
   c.save(); c.globalAlpha = a * (c.globalAlpha || 1);
+  if (env.clip) env.clip(c);
   // ---- the shadows: a soft contact shadow; by day the sun's cast shadow along the ground
   const sh = env.shadow ? env.shadow(2.1 * L.h) : null;
   if (sh && st.pose !== 'sit') {
@@ -151,103 +247,105 @@ export function drawFolk(c, cam, it, env) {
   }
   c.fillStyle = `rgba(8,6,16,${(0.32 + 0.18 * (1 - day) + 0.1 * lk).toFixed(3)})`;
   c.beginPath(); c.ellipse(fx, fy, H * (st.pose === 'sit' ? 0.12 : 0.14), H * 0.035, 0, 0, TAU); c.fill();
-  // ---- the RIM (night, under a lamp — FP3a, the owner's 8P note 3: on the HEAD + SHOULDERS only, never the whole outline): the head,
-  // the hat and the top of the shoulders laid down first in the lamp's warm colour, offset toward the light — the body drawn over
-  // them leaves a crisp lit edge where a lamp would catch a face + a collar
+  // ---- the RIM (night, under a lamp — FP3a, the owner's 8P note 3: on the HEAD + SHOULDERS only, never the whole outline)
   if (dark > 0.3 && lt && lk > 0.12 && env.tier !== 0) {              // (tier 0: no rim pass)
-    // (warm: lamplight on skin + wool — a cool street lamp's rim is pulled toward a warm white)
     const side = env.rimSide ? env.rimSide(st.x, st.z) : 1, n = Math.max(lt[0], lt[1], lt[2]) || 1, rc = mix(lt.map(v => Math.min(255, 52 + v / n * 200)), [255, 214, 160], 0.45);
     c.save(); c.translate(side * Math.max(0.7, H * 0.034), -Math.max(0.35, H * 0.01)); c.globalAlpha = a * 0.95 * clamp01(0.35 + lk * 0.8) * lampK;
     rimUpper(c, J, L, X, Y, H, rgb(rc)); c.restore();
   }
-  body(c, J, L, X, Y, H, lit, env, false);
+  // ---- A SITTER BY DAY (FP3b, the owner after FP3a: "people on the bench are hard to see at noon"): a light edge round the head +
+  // shoulders where they meet the dark bench's back — the sky's light on the cloth's outline
+  if (st.pose === 'sit' && day > 0.2) {
+    c.save(); c.globalAlpha = a * 0.6 * day;
+    for (const [ox, oy] of [[-0.8, -0.5], [0.8, -0.5], [0, -0.9]]) { c.save(); c.translate(ox, oy); rimUpper(c, J, L, X, Y, H, 'rgb(236,232,220)'); c.restore(); }
+    c.restore();
+  }
+  body(c, J, L, X, Y, H, lit, env);
   c.restore();
   return { x: fx - H * 0.2, y: fy - H, w: H * 0.4, h: H };
 }
 
-/** the figure's parts, far side first (fill: col → style; flat: one colour for everything — the rim pass) */
-function body(c, J, L, X, Y, H, lit, env, flat) {
-  const f = (col, k = 1) => (flat ? lit() : rgb(lit(col, k)));
-  const d = J.d, side = J.side, cols = L.cols, lean = J.lean * d;
+/** the figure's parts, far side first */
+function body(c, J, L, X, Y, H, lit, env) {
+  const f = (col, k = 1) => rgb(lit(col, k));
+  const cols = L.cols, cx = J.cx, cz = J.cz, d = J.d, ax = Math.abs(cx);
+  const far = col => col.map(v => v * 0.78);
   const leg = (i, col, w) => {
-    const hp = [J.hip[0] + (side ? 0 : i ? -0.035 : 0.035) + lean * 0.2, J.hip[1]], k = J.knees[i], ft = J.feet[i];
+    const hp = J.hips[i], k = J.knees[i], ft = J.feet[i];
     c.strokeStyle = f(col); c.lineWidth = w * H; c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath(); c.moveTo(X(hp[0]), Y(hp[1])); c.lineTo(X(k[0]), Y(k[1])); c.lineTo(X(ft[0]), Y(ft[1] + 0.02)); c.stroke();
-    // the shoe
-    c.fillStyle = f([24, 20, 22]); c.beginPath(); c.ellipse(X(ft[0] + (side ? d * 0.025 : 0)), Y(ft[1] + 0.012), H * (side ? 0.042 : 0.03), H * 0.018, 0, 0, TAU); c.fill();
+    c.beginPath(); c.moveTo(X(hp[0]), Y(hp[1])); c.lineTo(X(k[0]), Y(k[1])); c.lineTo(X(ft[0]), Y(ft[1] - 0.012)); c.stroke();
+    // the shoe: long in profile, short + round from the front / the back; the heel lifting at push-off
+    const tip = 0.024 * cx, hl = J.heel[i] * 0.012;
+    c.fillStyle = f([24, 20, 22]); c.beginPath(); c.ellipse(X(ft[0] + tip), Y(ft[1] - 0.018 + hl), H * (0.028 + 0.016 * ax), H * 0.017, (J.heel[i] * 0.35) * -d * ax, 0, TAU); c.fill();
   };
   const armP = (i, col, w) => {
-    const sh = [J.sh[0] + (side ? 0 : i ? -0.11 : 0.11) + lean, J.sh[1] - 0.015], e = J.elbows[i], h = J.hands[i];
+    const s0 = J.shs[i], e = J.elbows[i], h = J.hands[i];
     c.strokeStyle = f(col); c.lineWidth = w * H; c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath(); c.moveTo(X(sh[0]), Y(sh[1])); c.lineTo(X(e[0] + lean), Y(e[1])); c.lineTo(X(h[0] + lean), Y(h[1])); c.stroke();
-    c.fillStyle = f(cols.skin, 0.9); c.beginPath(); c.arc(X(h[0] + lean), Y(h[1]), H * 0.022, 0, TAU); c.fill();
-    return [X(h[0] + lean), Y(h[1])];
+    c.beginPath(); c.moveTo(X(s0[0]), Y(s0[1])); c.lineTo(X(e[0]), Y(e[1])); c.lineTo(X(h[0]), Y(h[1])); c.stroke();
+    c.fillStyle = f(cols.skin, 0.9); c.beginPath(); c.arc(X(h[0]), Y(h[1]), H * 0.022, 0, TAU); c.fill();
+    return [X(h[0]), Y(h[1])];
   };
-  const legCol = L.dress && L.dress !== null && !L.tux ? (L.woman ? [196, 170, 150] : cols.legs) : cols.legs, legW = L.woman ? 0.05 : L.jog ? 0.066 : 0.078;
-  const sleeve = L.coat === 'none' ? (L.jog ? cols.shirt : L.woman ? cols.dress : cols.shirt) : L.woman && L.coat === 'none' ? cols.dress : cols.coat;
-  // far limbs (a shade darker)
-  const far = col => col.map(v => v * 0.78);
-  if (side) { armP(1, far(sleeve), 0.062); leg(1, far(legCol), legW); }
-  else { leg(1, legCol, legW); }
+  const legCol = L.dress && !L.tux ? (L.woman ? [196, 170, 150] : cols.legs) : cols.legs, legW = L.woman ? 0.05 : L.jog ? 0.066 : 0.078;
+  const sleeve = L.coat === 'none' ? (L.jog ? cols.shirt : L.woman ? cols.dress : cols.shirt) : cols.coat;
+  // the legs (both under the coat: its hem covers the thighs), the far one first + darker
+  const lo = J.D.legs[0] > J.D.legs[1] ? [0, 1] : [1, 0], lgap = Math.abs(J.D.legs[0] - J.D.legs[1]) > 0.02;
+  leg(lo[0], lgap ? far(legCol) : legCol, legW); leg(lo[1], legCol, legW);
+  // the far arm behind the torso when it's turned side-on enough to hide it
+  const ao = J.D.arms[0] > J.D.arms[1] ? [0, 1] : [1, 0], armsSide = ax > 0.35 && Math.abs(J.D.arms[0] - J.D.arms[1]) > 0.04;
+  if (armsSide) armP(ao[0], far(sleeve), 0.062);
   // the torso / the coat / the dress
-  const top = J.sh[1] + 0.01, hipY = J.hip[1], sx = side ? 0.1 : 0.138;
+  const top = J.sh[1] + 0.01, hipY = J.hip[1], sx = J.tw, tX = J.sh[0], hX = J.hip[0];
   const hem = J.pose === 'sit' ? hipY - 0.02 : L.coat === 'long' ? 0.27 : L.dress === 'flapper' ? 0.3 : L.dress ? 0.24 : L.coat === 'short' ? hipY - 0.06 : hipY - 0.02;
   const swingHem = J.walking ? Math.sin(J.p * TAU * 2) * 0.012 : 0;
   const torsoCol = L.coat !== 'none' ? cols.coat : L.dress ? cols.dress : cols.shirt;
-  c.fillStyle = f(torsoCol);
-  c.beginPath();
   const flare = L.coat === 'long' ? 0.03 : L.dress === 'flapper' ? 0.035 : L.dress ? 0.045 : 0.01;
-  c.moveTo(X(-sx + lean), Y(top)); c.lineTo(X(sx + lean), Y(top));
-  c.lineTo(X(sx * 0.82 + lean * 0.5), Y(hipY + 0.05)); c.lineTo(X(sx * 0.9 + flare + swingHem * d), Y(hem)); c.lineTo(X(-sx * 0.9 - flare + swingHem * d), Y(hem)); c.lineTo(X(-sx * 0.82 + lean * 0.5), Y(hipY + 0.05));
-  c.closePath(); c.fill();
-  if (!flat) {
-    // a dress showing under a coat; the flapper's fringe + sash; a tux's white shirt front; the coat's lit side by day
-    if (L.dress && L.coat !== 'none' && L.dress !== 'flapper' && J.pose !== 'sit') { c.fillStyle = f(cols.dress); c.fillRect(X(-sx * 0.85), Y(hem), (sx * 1.7) * H, Math.max(0.6, 0.035 * H)); }
-    if (L.dress === 'flapper' && L.coat === 'none') {
-      c.fillStyle = f(cols.dress.map(v => Math.min(255, v * 1.15))); c.fillRect(X(-sx), Y(hipY + 0.02), sx * 2 * H, Math.max(0.5, 0.02 * H));
-      c.strokeStyle = f(cols.dress.map(v => Math.min(255, v * 1.25))); c.lineWidth = Math.max(0.3, H * 0.006);
-      c.beginPath(); for (let u = -sx - flare; u <= sx + flare; u += 0.018) { c.moveTo(X(u + swingHem * d), Y(hem + 0.03)); c.lineTo(X(u + swingHem * d * 2), Y(hem - 0.012)); } c.stroke();   // (one path: the fringe's ~18 strands)
-    }
-    if (L.tux) { c.fillStyle = f(cols.shirt, 1.2); c.beginPath(); c.moveTo(X(-0.03 + lean), Y(top)); c.lineTo(X(0.03 + lean), Y(top)); c.lineTo(X(lean * 0.6), Y(top - 0.13)); c.closePath(); c.fill(); }
-    if (L.coat !== 'none' && side) { c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(X(-sx * 0.1 * d + lean * 0.7), Y(top - 0.05), Math.max(0.4, H * 0.012), (top - 0.05 - hem) * H * 0.95); }
-    if (cols.scarf && L.coat !== 'none') { c.fillStyle = f(cols.scarf); c.beginPath(); c.ellipse(X(lean), Y(top - 0.005), sx * H * 0.92, H * 0.026, 0, 0, TAU); c.fill(); if (side) c.fillRect(X(-d * 0.05 + lean), Y(top - 0.005), Math.max(0.6, 0.03 * H), 0.13 * H); }
-    // THE DAY'S LIGHT (FP3a, note 3): a LIT side + a SHADE side across the whole torso from the real sun (warm at golden hour), over
-    // the cloth's own colour — the torso's path filled again with a gradient, so it stays inside the figure
-    const sun = sunSide(env);
-    if (sun) {
-      const g = c.createLinearGradient(X(-sx * sun.s + lean), 0, X(sx * sun.s + lean), 0);
-      g.addColorStop(0, `rgba(${sun.hi},${(0.26 * sun.k).toFixed(3)})`); g.addColorStop(0.45, `rgba(${sun.hi},0)`); g.addColorStop(0.62, 'rgba(24,20,44,0)'); g.addColorStop(1, `rgba(24,20,44,${(0.3 * sun.k).toFixed(3)})`);
-      c.fillStyle = g; c.beginPath();
-      c.moveTo(X(-sx + lean), Y(top)); c.lineTo(X(sx + lean), Y(top));
-      c.lineTo(X(sx * 0.82 + lean * 0.5), Y(hipY + 0.05)); c.lineTo(X(sx * 0.9 + flare + swingHem * d), Y(hem)); c.lineTo(X(-sx * 0.9 - flare + swingHem * d), Y(hem)); c.lineTo(X(-sx * 0.82 + lean * 0.5), Y(hipY + 0.05));
-      c.closePath(); c.fill();
-    }
+  const torso = () => {
+    c.beginPath();
+    c.moveTo(X(tX - sx), Y(top)); c.lineTo(X(tX + sx), Y(top));
+    c.lineTo(X(hX + sx * 0.82), Y(hipY + 0.05)); c.lineTo(X(hX + sx * 0.9 + flare + swingHem * d), Y(hem)); c.lineTo(X(hX - sx * 0.9 - flare + swingHem * d), Y(hem)); c.lineTo(X(hX - sx * 0.82), Y(hipY + 0.05));
+    c.closePath();
+  };
+  c.fillStyle = f(torsoCol); torso(); c.fill();
+  // a dress showing under a coat; the flapper's fringe + sash; a tux's white shirt front (from the front + 3/4); the coat's seam in profile
+  if (L.dress && L.coat !== 'none' && L.dress !== 'flapper' && J.pose !== 'sit') { c.fillStyle = f(cols.dress); c.fillRect(X(hX - sx * 0.85), Y(hem), (sx * 1.7) * H, Math.max(0.6, 0.035 * H)); }
+  if (L.dress === 'flapper' && L.coat === 'none') {
+    c.fillStyle = f(cols.dress.map(v => Math.min(255, v * 1.15))); c.fillRect(X(hX - sx), Y(hipY + 0.02), sx * 2 * H, Math.max(0.5, 0.02 * H));
+    c.strokeStyle = f(cols.dress.map(v => Math.min(255, v * 1.25))); c.lineWidth = Math.max(0.3, H * 0.006);
+    c.beginPath(); for (let u = -sx - flare; u <= sx + flare; u += 0.018) { c.moveTo(X(hX + u + swingHem * d), Y(hem + 0.03)); c.lineTo(X(hX + u + swingHem * d * 2), Y(hem - 0.012)); } c.stroke();
   }
-  // the near leg (a walker's; sitting: both visible under the coat's hem)
-  leg(0, legCol, legW);
-  // the head + the neck, hair, hat
-  const hx = J.head[0] + lean * 1.3, hy = J.head[1], hr = 0.066;
+  if (L.tux && cz < 0.4) { const v0 = tX + cx * sx * 0.45; c.fillStyle = f(cols.shirt, 1.2); c.beginPath(); c.moveTo(X(v0 - 0.03 * (1 - ax * 0.5)), Y(top)); c.lineTo(X(v0 + 0.03 * (1 - ax * 0.5)), Y(top)); c.lineTo(X(v0), Y(top - 0.13)); c.closePath(); c.fill(); }
+  if (L.coat !== 'none' && ax > 0.5) { c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(X(tX - sx * 0.1 * d), Y(top - 0.05), Math.max(0.4, H * 0.012), (top - 0.05 - hem) * H * 0.95); }
+  if (cols.scarf && L.coat !== 'none') { c.fillStyle = f(cols.scarf); c.beginPath(); c.ellipse(X(tX), Y(top - 0.005), sx * H * 0.92, H * 0.026, 0, 0, TAU); c.fill(); if (ax > 0.5 || cz < -0.5) c.fillRect(X(tX + (ax > 0.5 ? -d * 0.05 : 0.02)), Y(top - 0.005), Math.max(0.6, 0.03 * H), 0.13 * H); }
+  // THE DAY'S LIGHT (FP3a, note 3): a LIT side + a SHADE side across the whole torso from the real sun (warm at golden hour)
+  const sun = sunSide(env);
+  if (sun) {
+    const g = c.createLinearGradient(X(tX - sx * sun.s), 0, X(tX + sx * sun.s), 0);
+    g.addColorStop(0, `rgba(${sun.hi},${(0.26 * sun.k).toFixed(3)})`); g.addColorStop(0.45, `rgba(${sun.hi},0)`); g.addColorStop(0.62, 'rgba(24,20,44,0)'); g.addColorStop(1, `rgba(24,20,44,${(0.3 * sun.k).toFixed(3)})`);
+    c.fillStyle = g; torso(); c.fill();
+  }
+  // ---- the head: skin, then the hair by the facing (the back of the head walking away, the back half in profile, a fringe from the
+  // front), the nose in profile, the sun's cheek, the hat, the brim's shadow across the face (no drawn features — the owner)
+  const hx = J.head[0], hy = J.head[1], hr = HR, front = Math.max(0, -cz), back = Math.max(0, cz);
   c.fillStyle = f(cols.skin, 0.9); c.fillRect(X(hx - 0.022), Y(hy - hr * 0.6), 0.044 * H, 0.06 * H);
-  c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill();
-  if (side && !flat) { c.beginPath(); c.moveTo(X(hx + d * hr * 0.9), Y(hy + 0.005)); c.lineTo(X(hx + d * hr * 1.25), Y(hy - 0.012)); c.lineTo(X(hx + d * hr * 0.85), Y(hy - 0.025)); c.fill(); }   // (the nose in profile)
-  // THE HAIR (FP3a, note 3 — it never drew from behind: the facing wasn't passed): walking away (dir 0) the back of the head is hair;
-  // in profile the back of the head under the hat; a woman without a cloche her bob
-  if (!flat) {
+  if (L.woman && L.hat !== 'cloche') { c.fillStyle = f(cols.hair); c.beginPath(); c.ellipse(X(hx - cx * hr * 0.22), Y(hy - hr * 0.05), hr * (1.12 - 0.06 * ax) * H, hr * 1.08 * H, 0, 0, TAU); c.fill(); }   // (her bob, behind the face)
+  c.fillStyle = f(cols.skin, 0.9); c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill();
+  if (ax > 0.6 && back < 0.6) { c.beginPath(); c.moveTo(X(hx + d * hr * 0.9), Y(hy + 0.005)); c.lineTo(X(hx + d * hr * (0.9 + 0.35 * ax)), Y(hy - 0.012)); c.lineTo(X(hx + d * hr * 0.85), Y(hy - 0.025)); c.fill(); }   // (the nose in profile)
+  {
     c.fillStyle = f(cols.hair);
-    if (J.face === 0 && J.pose !== 'sit') { c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); }
-    else if (side && !L.woman) { c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip(); c.fillRect(Math.min(X(hx - d * hr * 1.1), X(hx - d * hr * 0.15)), Y(hy + hr), hr * 0.95 * H, hr * 1.25 * H); c.restore(); }
+    c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip();
+    c.beginPath(); c.arc(X(hx - cx * hr * 1.05 * (1 - back)), Y(hy + hr * 0.62 * front), hr * H * (1 + 0.12 * back), 0, TAU); c.fill();
+    c.restore();
   }
-  if (L.woman && L.hat !== 'cloche') { c.fillStyle = f(cols.hair); c.beginPath(); c.arc(X(hx - (side ? d * 0.012 : 0)), Y(hy + 0.012), hr * 1.05 * H, Math.PI * 0.95, Math.PI * 2.05); c.fill(); c.fillRect(X(hx - hr * 1.05), Y(hy + 0.005), hr * 2.1 * H, 0.04 * H); }
-  // the head's own light by day: the lit cheek + the shaded one (the same sun as the torso)
-  if (!flat) { const sun = sunSide(env); if (sun) { const g = c.createLinearGradient(X(hx - hr * sun.s), 0, X(hx + hr * sun.s), 0); g.addColorStop(0, `rgba(${sun.hi},${(0.24 * sun.k).toFixed(3)})`); g.addColorStop(0.5, `rgba(${sun.hi},0)`); g.addColorStop(0.55, 'rgba(30,20,40,0)'); g.addColorStop(1, `rgba(30,20,40,${(0.3 * sun.k).toFixed(3)})`); c.fillStyle = g; c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); } }
-  hat(c, L, X, Y, H, hx, hy, hr, d, side, f);
-  // THE BRIM'S SHADOW across the face (FP3a, note 3 — no drawn features: the hat's shade reads as a face under it), by day + at dusk
-  if (!flat && L.hat && BRIM[L.hat] != null) { const k = sunSide(env, true); if (k > 0.05) { const by = BRIM[L.hat]; c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip(); c.fillStyle = `rgba(26,18,30,${(0.42 * k).toFixed(3)})`; c.fillRect(X(hx - hr * 1.2), Y(hy + hr * by), hr * 2.4 * H, hr * 0.55 * H); c.restore(); } }
-  // the near arm (+ what it carries)
-  const hand = side ? armP(0, sleeve, 0.062) : (armP(0, sleeve, 0.062), armP(1, sleeve, 0.062));
-  if (!flat && L.carry && !['point', 'wave', 'toast', 'dance', 'garden'].includes(J.pose)) carry(c, L.carry, hand, H, f, d);
-  if (!flat && J.pose === 'toast') { const [gx, gy] = hand; c.fillStyle = 'rgba(236,226,190,0.9)'; c.beginPath(); c.moveTo(gx - H * 0.03, gy - H * 0.05); c.lineTo(gx + H * 0.03, gy - H * 0.05); c.lineTo(gx, gy - H * 0.015); c.closePath(); c.fill(); c.fillRect(gx - 0.25, gy - H * 0.015, 0.5, H * 0.03); }
-  if (!flat && L.umbrella && J.pose !== 'sit') { const [ux, uy] = hand; c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(ux, Y(1.18)); c.stroke(); c.fillStyle = f(L.umbrella); c.beginPath(); c.ellipse(ux, Y(1.18), H * 0.3, H * 0.12, 0, Math.PI, 0); c.fill(); }
+  if (sun) { const g = c.createLinearGradient(X(hx - hr * sun.s), 0, X(hx + hr * sun.s), 0); g.addColorStop(0, `rgba(${sun.hi},${(0.24 * sun.k).toFixed(3)})`); g.addColorStop(0.5, `rgba(${sun.hi},0)`); g.addColorStop(0.55, 'rgba(30,20,40,0)'); g.addColorStop(1, `rgba(30,20,40,${(0.3 * sun.k).toFixed(3)})`); c.fillStyle = g; c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); }
+  hat(c, L, X, Y, H, hx, hy, hr, J, f);
+  if (L.hat && BRIM[L.hat] != null && back < 0.7) { const k = sunSide(env, true) * (1 - back); if (k > 0.05) { const by = BRIM[L.hat]; c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip(); c.fillStyle = `rgba(26,18,30,${(0.42 * k).toFixed(3)})`; c.fillRect(X(hx - hr * 1.2), Y(hy + hr * by), hr * 2.4 * H, hr * 0.55 * H); c.restore(); } }
+  // the near arm (or both, from the front / the back) + what it carries
+  let hand;
+  if (armsSide) hand = armP(ao[1], sleeve, 0.062);
+  else { const h0 = armP(ao[0], sleeve, 0.062), h1 = armP(ao[1], sleeve, 0.062); hand = J.near === ao[1] ? h1 : h0; }
+  if (J.pose !== 'wands' && L.carry && !['point', 'wave', 'toast', 'dance', 'garden', 'clap'].includes(J.pose)) carry(c, L.carry, hand, H, f, d);
+  if (J.pose === 'toast') { const [gx, gy] = hand; c.fillStyle = 'rgba(236,226,190,0.9)'; c.beginPath(); c.moveTo(gx - H * 0.03, gy - H * 0.05); c.lineTo(gx + H * 0.03, gy - H * 0.05); c.lineTo(gx, gy - H * 0.015); c.closePath(); c.fill(); c.fillRect(gx - 0.25, gy - H * 0.015, 0.5, H * 0.03); }
+  if (L.umbrella && J.pose !== 'sit') { const [ux, uy] = hand; c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(ux, Y(1.18)); c.stroke(); c.fillStyle = f(L.umbrella); c.beginPath(); c.ellipse(ux, Y(1.18), H * 0.3, H * 0.12, 0, Math.PI, 0); c.fill(); }
 }
 // the brim's line on the head (in head radii above its centre) per hat — the band under it is in shade
 const BRIM = { fedora: 0.55, top: 0.6, boater: 0.6, cloche: 0.18, flatcap: 0.62, newsboy: 0.62 };
@@ -263,21 +361,26 @@ function sunSide(env, level = false) {
 }
 /** THE RIM's shapes (night): the head, the hat's crown + brim, the top of the shoulders — one colour (FP3a: head + shoulders only) */
 function rimUpper(c, J, L, X, Y, H, col) {
-  const lean = J.lean * J.d, top = J.sh[1] + 0.01, sx = J.side ? 0.1 : 0.138, hx = J.head[0] + lean * 1.3, hy = J.head[1], hr = 0.066;
+  const top = J.sh[1] + 0.01, sx = J.tw, tX = J.sh[0], hx = J.head[0], hy = J.head[1], hr = HR;
   c.fillStyle = col;
-  c.beginPath(); c.moveTo(X(-sx + lean), Y(top)); c.lineTo(X(sx + lean), Y(top)); c.lineTo(X(sx * 0.95 + lean), Y(top - 0.11)); c.lineTo(X(-sx * 0.95 + lean), Y(top - 0.11)); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(X(tX - sx), Y(top)); c.lineTo(X(tX + sx), Y(top)); c.lineTo(X(tX + sx * 0.95), Y(top - 0.11)); c.lineTo(X(tX - sx * 0.95), Y(top - 0.11)); c.closePath(); c.fill();
   c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill();
-  if (L.hat) hat(c, L, X, Y, H, hx, hy, hr, J.d, J.side, () => col);
+  if (L.hat) hat(c, L, X, Y, H, hx, hy, hr, J, () => col);
 }
-function hat(c, L, X, Y, H, hx, hy, hr, d, side, f) {
-  const k = L.cols.hat;
+function hat(c, L, X, Y, H, hx, hy, hr, J, f) {
+  const k = L.cols.hat, cx = J.cx, ax = Math.abs(cx);
   if (!L.hat) return;
   c.fillStyle = f(k);
-  if (L.hat === 'fedora') { c.fillRect(X(hx - hr * 1.6), Y(hy + hr * 0.55), hr * 3.2 * H, Math.max(0.6, 0.016 * H)); c.beginPath(); c.moveTo(X(hx - hr * 0.95), Y(hy + hr * 0.55)); c.lineTo(X(hx - hr * 0.8), Y(hy + hr * 1.45)); c.lineTo(X(hx + hr * 0.8), Y(hy + hr * 1.5)); c.lineTo(X(hx + hr * 0.95), Y(hy + hr * 0.55)); c.fill(); c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(X(hx - hr * 0.92), Y(hy + hr * 0.8), hr * 1.84 * H, Math.max(0.4, 0.012 * H)); }
+  if (L.hat === 'fedora') { c.fillRect(X(hx - hr * 1.6), Y(hy + hr * 0.55), hr * 3.2 * H, Math.max(0.6, 0.016 * H)); c.beginPath(); c.moveTo(X(hx - hr * 0.95), Y(hy + hr * 0.55)); c.lineTo(X(hx - hr * 0.8 + cx * hr * 0.06), Y(hy + hr * 1.45)); c.lineTo(X(hx + hr * 0.8 + cx * hr * 0.06), Y(hy + hr * 1.5)); c.lineTo(X(hx + hr * 0.95), Y(hy + hr * 0.55)); c.fill(); c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(X(hx - hr * 0.92), Y(hy + hr * 0.8), hr * 1.84 * H, Math.max(0.4, 0.012 * H)); }
   else if (L.hat === 'top') { c.fillRect(X(hx - hr * 1.4), Y(hy + hr * 0.6), hr * 2.8 * H, Math.max(0.6, 0.014 * H)); c.fillRect(X(hx - hr * 0.8), Y(hy + hr * 2.1), hr * 1.6 * H, hr * 1.5 * H); }
   else if (L.hat === 'boater') { c.fillStyle = f([214, 196, 150]); c.fillRect(X(hx - hr * 1.5), Y(hy + hr * 0.6), hr * 3 * H, Math.max(0.6, 0.014 * H)); c.fillRect(X(hx - hr * 0.85), Y(hy + hr * 1.25), hr * 1.7 * H, hr * 0.65 * H); c.fillStyle = f([40, 40, 52]); c.fillRect(X(hx - hr * 0.85), Y(hy + hr * 0.82), hr * 1.7 * H, Math.max(0.4, hr * 0.22 * H)); }
   else if (L.hat === 'cloche') { c.beginPath(); c.arc(X(hx), Y(hy + hr * 0.15), hr * 1.16 * H, Math.PI, 0); c.fill(); c.fillRect(X(hx - hr * 1.25), Y(hy + hr * 0.18), hr * 2.5 * H, Math.max(0.5, hr * 0.3 * H)); }
-  else if (L.hat === 'newsboy' || L.hat === 'flatcap') { c.beginPath(); c.ellipse(X(hx + (side ? d * hr * 0.15 : 0)), Y(hy + hr * 0.6), hr * 1.18 * H, hr * 0.62 * H, 0, Math.PI, 0); c.fill(); c.fillRect(X(hx + (side ? (d > 0 ? hr * 0.3 : -hr * 1.5) : -hr * 0.9)), Y(hy + hr * 0.62), (side ? hr * 1.2 : hr * 1.8) * H, Math.max(0.5, 0.012 * H)); }
+  else if (L.hat === 'newsboy' || L.hat === 'flatcap') {
+    // the cap + its PEAK pointing the way they face (long in profile, a band across the brow from the front, hidden from behind)
+    c.beginPath(); c.ellipse(X(hx + cx * hr * 0.15), Y(hy + hr * 0.6), hr * 1.18 * H, hr * 0.62 * H, 0, Math.PI, 0); c.fill();
+    const pw = hr * (0.9 + 0.3 * ax), px = hx + cx * hr * 0.75;
+    if (J.cz < 0.6) c.fillRect(X(px - pw), Y(hy + hr * 0.62), pw * 2 * H * (0.55 + 0.45 * (1 - ax)), Math.max(0.5, 0.012 * H));
+  }
   else if (L.hat === 'band') { c.fillStyle = f([210, 180, 90]); c.fillRect(X(hx - hr), Y(hy + hr * 0.62), hr * 2 * H, Math.max(0.5, hr * 0.25 * H)); c.fillStyle = f([236, 230, 220]); c.beginPath(); c.ellipse(X(hx + hr * 0.6), Y(hy + hr * 1.3), Math.max(0.5, hr * 0.18 * H), hr * 0.65 * H, 0.4, 0, TAU); c.fill(); }
 }
 function carry(c, what, [hx, hy], H, f, d) {
@@ -289,7 +392,9 @@ function carry(c, what, [hx, hy], H, f, d) {
 
 /** a DOG at (x, z) trotting with its walker (dir ±1, dist: its own stride), or sitting (pose) → its collar on screen (the leash) */
 export function drawDog(c, cam, st, L, env, yUp = 0) {
-  const [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 0.62 * L.dogSize * s, d = st.dir === -1 ? -1 : 1, X = u => fx + u * H * d, Y = v => fy - v * H;
+  // (FP3b: the dog foreshortened by its heading — side-on crossing the screen, shorter on a diagonal, never a flat profile toward us)
+  const hc = st.hd != null ? Math.cos(st.hd) : st.dir === -1 ? -1 : 1, fs = Math.max(0.42, Math.abs(hc));
+  const [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 0.62 * L.dogSize * s, d = hc < 0 ? -1 : 1, X = u => fx + u * H * d * fs, Y = v => fy - v * H;
   if (fx + H < 0 || fx - H > cam.W) return [fx, fy];
   const lampK = clamp01(env.dark || 0), dark = Math.max(lampK, clamp01((env.T && env.T.night) || 0)), lt = env.lightAt ? env.lightAt(st.x, st.z) : null;
   let col = L.dog; if (dark > 0.01) { col = mix(col, [18, 16, 28], 0.74 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); col = col.map((v, i) => Math.min(255, v + lt[i] * q * 0.17 * lampK)); } }

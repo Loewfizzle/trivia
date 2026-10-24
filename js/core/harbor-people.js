@@ -25,7 +25,8 @@ export const FOLK = Object.freeze({
   block: 480, cap: 12, roofCap: 6, h: 2.1,
   // (FP3a, the owner's 8P note 4 — "they walk too fast": the everyday pace ~25 % slower, a relaxed 1920s stroll; strollers + couples
   // the slowest, commuters brisker, joggers clearly faster; each person ±12 % of their gait: planVisit)
-  speed: { walk: 1.15, brisk: 1.5, stroll: 0.8, jog: 3.1, kid: 1.35, line: 0.7 },
+  // (FP3b, the owner after FP3a — "a little TOO SLOW now": the everyday gaits back up ~12 %; the jog unchanged)
+  speed: { walk: 1.29, brisk: 1.68, stroll: 0.9, jog: 3.1, kid: 1.5, line: 0.75 },
   zMin: 38.75, zMax: 52.25, curbZ: 53.2, roadZ: 53.6, farZ: 63.55, doorZ: 43.55, busZ: 55.4,
 });
 
@@ -330,33 +331,84 @@ function planVisit(spec, t, M, ctx = {}) {
   return legs.length ? { legs, t0: t, t1: now, end: cur, v } : null;
 }
 
+// ------------------------------------------------------------------ THE HEADING (FP3b — the owner's 8P notes 1 + 2)
+// A person FACES WHERE THEY'RE GOING: `hd` = the heading on the ground (radians: 0 → right, π/2 → away from us toward the water,
+// π → left, −π/2 → toward the camera). folk.js draws one 2.5-D rig from it: side-on only crossing the screen, 3/4 on diagonals, the
+// front walking toward us, the back walking away. Turns are never a snap: at a route's corner the heading blends over ~0.55 units
+// either side; a pose turns from the arrival heading to its own facing over ~0.6 s; a walk after a pose turns over its first steps.
+// `dir` (the old 4-way facing: −1 left, 1 right, 0 toward the camera, 2 away) is derived from hd for the code that still reads it.
+export const TURN = Object.freeze({ corner: 0.55, pose: 0.6, start: 0.6 });
+const PI = Math.PI;
+/** a pose's facing (−1 left, 1 right, 0 toward the camera, 2 away) → a heading */
+export const hdOfDir = d => (d === 1 ? 0 : d === -1 ? PI : d === 2 ? PI / 2 : -PI / 2);
+/** the old 4-way facing from a heading (|cos| > 0.33 → side) */
+export const dirOfHd = h => { const c = Math.cos(h); return Math.abs(c) > 0.33 ? (c > 0 ? 1 : -1) : Math.sin(h) > 0 ? 2 : 0; };
+/** the shortest turn a → b at t (0..1); a half turn goes through the FRONT (a person turns to face us, never away) */
+export function lerpHd(a, b, t) {
+  let d = ((b - a) % (2 * PI) + 3 * PI) % (2 * PI) - PI;
+  if (Math.abs(d) > PI - 0.35) { const alt = d - Math.sign(d || 1) * 2 * PI; if (Math.sin(a + alt / 2) < Math.sin(a + d / 2)) d = alt; }
+  return a + d * Math.max(0, Math.min(1, t));
+}
+const segHd = (a, b) => Math.atan2(b.z - a.z, b.x - a.x);
+/** a walk leg's point at distance d along it */
+function pointAt(pts, d) {
+  let c = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], sl = Math.hypot(b.x - a.x, b.z - a.z);
+    if (d <= c + sl || i === pts.length - 1) { const u = sl ? Math.max(0, Math.min(1, (d - c) / sl)) : 1; return { x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u }; }
+    c += sl;
+  }
+  return { ...pts[pts.length - 1] };
+}
+/** a walk leg's position + heading at distance d along it: the heading is the CHORD from TURN.corner behind to TURN.corner ahead on
+ *  the route — straight on a straight, turning smoothly through a corner (any corner, however short its segments: never a snap) */
+function alongLeg(pts, d, len = pathLen(pts)) {
+  const p = pointAt(pts, d), a = pointAt(pts, Math.max(0, d - TURN.corner)), b = pointAt(pts, Math.min(len, d + TURN.corner));
+  const dx = b.x - a.x, dz = b.z - a.z;
+  return { x: p.x, z: p.z, hd: Math.hypot(dx, dz) > 1e-4 ? Math.atan2(dz, dx) : (endHd(pts) || 0) };
+}
+const endHd = pts => { for (let i = pts.length - 1; i > 0; i--) if (Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z) > 1e-3) return segHd(pts[i - 1], pts[i]); return null; };
+
 // ------------------------------------------------------------------ A MEMBER'S STATE at t (PURE)
 /**
- * Where a visit's lead is at t → { x, z, pose ('walk' | a pose), dir (−1 left, 1 right, 0 toward the water), dist (along its walk —
- * the stride's phase: never sliding), v, a (0..1 — fading through a door / onto the bus), leg } or null (not on screen).
+ * Where a visit's lead is at t → { x, z, pose ('walk' | a pose), hd (the heading — above), dir (the 4-way facing from hd), dist (along
+ * its walk — the stride's phase: never sliding), v, a (0..1 — fading onto the bus's far side only), since / left (a pose: s into it /
+ * to go), door (a door leg: { id, k ('in' | 'out'), u }) } or null (not on screen).
  */
 function visitAt(vis, t) {
   if (t < vis.t0 || t >= vis.t1) return null;
-  let dist = 0, lastDir = 1;
+  let dist = 0, lastHd = null;
+  const out = (s, hd) => ({ ...s, hd, dir: dirOfHd(hd) });
   for (const lg of vis.legs) {
     if (lg.k === 'walk') {
       const len = pathLen(lg.pts);
       if (t < lg.t1) {
         if (t < lg.t0) break;
-        let d = (t - lg.t0) * lg.v; const d0 = d;
-        for (let i = 1; i < lg.pts.length; i++) {
-          const a = lg.pts[i - 1], b = lg.pts[i], sl = Math.hypot(b.x - a.x, b.z - a.z);
-          if (d <= sl || i === lg.pts.length - 1) { const u = sl ? Math.min(1, d / sl) : 1, dx = b.x - a.x, dz = b.z - a.z; return { x: a.x + dx * u, z: a.z + dz * u, pose: 'walk', dir: Math.abs(dx) > Math.abs(dz) * 0.35 ? Math.sign(dx) : dz > 0 ? 2 : 0, dist: dist + d0, v: lg.v, a: 1, cross: !!lg.cross }; }
-          d -= sl;
-        }
+        const d = (t - lg.t0) * lg.v, p = alongLeg(lg.pts, d, len);
+        // (setting off after a pose / a door: turn from where they faced over the first steps)
+        let hd = p.hd; if (lastHd != null && d < TURN.start) hd = lerpHd(lastHd, p.hd, d / TURN.start);
+        return out({ x: p.x, z: p.z, pose: 'walk', dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross }, hd);
       }
       dist += len;
-      const e = lg.pts[lg.pts.length - 1], s0 = lg.pts[lg.pts.length - 2] || e; if (Math.abs(e.x - s0.x) > 1e-3) lastDir = Math.sign(e.x - s0.x);
+      // (the heading they really ended the leg with — a short leg may end mid-turn: the next leg turns on from there)
+      if (len > 1e-3) { const e = alongLeg(lg.pts, len, len).hd; lastHd = lastHd != null && len < TURN.start ? lerpHd(lastHd, e, len / TURN.start) : e; }
+    } else if (lg.k === 'door') {
+      // a REAL door (FP3b item 8): walking through it — in: from the step into the dark doorway; out: from the doorway onto the step
+      const ln = Math.hypot(lg.x1 - lg.x0, lg.z1 - lg.z0);
+      if (t < lg.t1 && t >= lg.t0) {
+        const u = (t - lg.t0) / (lg.t1 - lg.t0), w = Math.max(0, Math.min(1, (u - lg.w0) / (lg.w1 - lg.w0))), hd = segHd({ x: lg.x0, z: lg.z0 }, { x: lg.x1, z: lg.z1 });
+        const moving = u >= lg.w0 && u < lg.w1;
+        return out({ x: lg.x0 + (lg.x1 - lg.x0) * w, z: lg.z0 + (lg.z1 - lg.z0) * w, pose: moving ? 'walk' : 'wait', dist: dist + ln * w, v: moving ? ln / ((lg.w1 - lg.w0) * (lg.t1 - lg.t0)) : 0, a: 1, door: { id: lg.door, k: lg.dir, u } }, lastHd != null && !moving && u < lg.w0 ? lerpHd(lastHd, hd, u / Math.max(1e-3, lg.w0)) : hd);
+      }
+      dist += ln; lastHd = segHd({ x: lg.x0, z: lg.z0 }, { x: lg.x1, z: lg.z1 });
     } else if (t < lg.t1 && t >= lg.t0) {
-      if (lg.k === 'pose') return { x: lg.x, z: lg.z, pose: lg.pose, dir: lg.face === 0 ? 0 : lg.face || lastDir, dist, v: 0, a: 1, since: t - lg.t0, left: lg.t1 - t };
+      if (lg.k === 'pose') {
+        const want = lg.hd != null ? lg.hd : hdOfDir(lg.face === 0 ? 0 : lg.face || (lastHd != null && Math.cos(lastHd) < 0 ? -1 : 1)), since = t - lg.t0;
+        return out({ x: lg.x, z: lg.z, pose: lg.pose, dist, v: 0, a: 1, since, left: lg.t1 - t, from: lastHd == null ? want : lastHd, to: want }, lastHd != null && since < TURN.pose ? lerpHd(lastHd, want, since / TURN.pose) : want);
+      }
       const u = (t - lg.t0) / (lg.t1 - lg.t0);
-      return { x: lg.x, z: lg.z, pose: 'walk', dir: lg.out ? 2 : 0, dist: dist + u * 0.6, v: 0.8, a: lg.out ? 1 - u : u, door: lg.door || null };
-    }
+      return out({ x: lg.x, z: lg.z, pose: 'walk', dist: dist + u * 0.6, v: 0.8, a: lg.out ? 1 - u : u, bus: lg.bus || null }, lg.out ? PI / 2 : -PI / 2);
+    } else if (lg.k === 'pose' && t >= lg.t1) lastHd = lg.hd != null ? lg.hd : hdOfDir(lg.face === 0 ? 0 : lg.face || (lastHd != null && Math.cos(lastHd) < 0 ? -1 : 1));
   }
   return null;
 }
@@ -451,19 +503,45 @@ export function folkAt(t, world, cache = new Map()) {
     for (const m of v.members) {
       const s = visitAt(v, t - m.lag);
       if (!s) continue;
-      const ang = s.dir === 1 || s.dir === -1 ? 0 : 1;   // (walking along x: a partner beside = deeper; along z: beside = across)
-      let off = ang ? { x: m.dz, z: -m.dx * (s.dir === 2 ? -1 : 1) } : { x: m.dx * (s.dir || 1), z: m.dz }, dir = s.dir;
-      // (talking: the partner / friend steps round to face the lead; sitting: beside on the bench; a group at a pose: in a loose knot)
-      if (m.role !== 'lead' && m.role !== 'dog' && s.pose !== 'walk') {
-        const d = s.dir === 1 || s.dir === -1 ? s.dir : 1;
-        if (s.pose === 'chat' || s.pose === 'shop' || s.pose === 'cart') { off = { x: d * 0.95, z: 0.12 }; dir = s.pose === 'chat' ? -d : s.dir; }
-        else if (s.pose === 'sit') off = { x: 0.72, z: 0 };
-        else { const i = Math.max(1, Math.round(Math.abs(m.dx) / 0.9)); off = { x: (m.lag % 1.1 > 0.5 ? -1 : 1) * 0.75 * i, z: (i % 2 ? 0.2 : -0.15) }; }   // (waiting: a loose knot beside the lead)
+      if (m.role === 'lead') { members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, m, s }); continue; }
+      // (FP3b: beside / behind the lead in the lead's OWN frame — forward along its heading, the lateral to its left — so the offset
+      // turns smoothly with it, never jumping at a 4-way threshold; a dog keeps the old world offsets: it trots on the walker's right)
+      // (in a pose: the walking offset of the heading they arrived with / will leave with — fixed, never the lead's turn in place)
+      const fh = s.pose === 'walk' ? s.hd : (s.since || 0) < (s.left || 0) ? (s.from == null ? s.hd : s.from) : (s.to == null ? s.hd : s.to);
+      const cx = Math.cos(fh), cz = Math.sin(fh);
+      const walkOff = { x: m.dx * cx - m.dz * cz, z: m.dx * cz + m.dz * cx };
+      let off = walkOff, hd = s.hd, st = s;
+      // (talking: the partner / friend steps round to face the lead; sitting: beside on the bench; a group at a pose: in a loose knot —
+      // FP3b: walked into place over ~0.8 s at the pose's start + back at its end, never a jump)
+      if (m.role !== 'dog' && s.pose !== 'walk') {
+        const dd = dirOfHd(s.to == null ? s.hd : s.to), d = dd === 1 || dd === -1 ? dd : 1;   // (the lead's settled facing, not its turn)
+        let poseOff, poseHd = s.hd;
+        if (s.pose === 'chat' || s.pose === 'shop' || s.pose === 'cart') { poseOff = { x: d * 0.95, z: 0.12 }; if (s.pose === 'chat') poseHd = hdOfDir(-d); }
+        else if (s.pose === 'sit') poseOff = { x: 0.72, z: 0 };
+        else { const i = Math.max(1, Math.round(Math.abs(m.dx) / 0.9)); poseOff = { x: (m.lag % 1.1 > 0.5 ? -1 : 1) * 0.75 * i, z: (i % 2 ? 0.2 : -0.15) }; }   // (waiting: a loose knot beside the lead)
+        // (a short pose — a moment at the kerb — keeps the walking formation: nobody shuffles round for a second and a half)
+        const total = (s.since || 0) + (s.left || 0), B = Math.min(1.2, total / 2);
+        if (total < 3) poseOff = walkOff;
+        const k = B <= 0 ? 1 : Math.max(0, Math.min(1, Math.min(s.since == null ? B : s.since, s.left == null ? B : s.left) / B));
+        off = { x: walkOff.x + (poseOff.x - walkOff.x) * k, z: walkOff.z + (poseOff.z - walkOff.z) * k };
+        if (k < 1) {
+          // (stepping into place: turning from where they faced onto the move, a few steps, then turning to where they face next)
+          const mx = poseOff.x - walkOff.x, mz = poseOff.z - walkOff.z, ml = Math.hypot(mx, mz), entering = (s.since || 0) < (s.left || 0);
+          // (fixed ends — the lead's arrival heading + its pose's facing — never a heading that is itself still turning)
+          const leadTo = s.to == null ? s.hd : s.to, poseTo = s.pose === 'chat' ? poseHd : leadTo;
+          const u = entering ? k : 1 - k, hs = entering ? (s.from == null ? s.hd : s.from) : poseTo, he = entering ? poseTo : leadTo;
+          if (ml > 0.05) {
+            const mh = Math.atan2(entering ? mz : -mz, entering ? mx : -mx);
+            st = { ...s, pose: 'walk', v: ml / B, dist: (m.seed % 97) + ml * u };
+            hd = u < 0.4 ? lerpHd(hs, mh, u / 0.4) : u > 0.6 ? lerpHd(mh, he, (u - 0.6) / 0.4) : mh;
+          } else hd = lerpHd(hs, he, u);
+        } else hd = s.pose === 'chat' ? poseHd : s.hd;
       }
+      if (m.role === 'dog') { const dd = s.dir === 1 || s.dir === -1 ? s.dir : 1, ang = s.dir === 1 || s.dir === -1 ? 0 : 1; off = ang ? { x: m.dz, z: -m.dx * (s.dir === 2 ? -1 : 1) } : { x: m.dx * dd, z: m.dz }; }
       // (never past the railing, never under the dock)
-      const zz = s.z + (m.role === 'lead' ? 0 : off.z);
-      if (m.role !== 'lead' && (zz > FOLK.farZ + 0.25 || zz < FOLK.zMin - 0.3)) off.z = Math.max(FOLK.zMin - 0.3, Math.min(FOLK.farZ + 0.25, zz)) - s.z;
-      members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, m, s: { ...s, dir, x: s.x + (m.role === 'lead' ? 0 : off.x), z: s.z + (m.role === 'lead' ? 0 : off.z) } });
+      const zz = s.z + off.z;
+      if (zz > FOLK.farZ + 0.25 || zz < FOLK.zMin - 0.3) off.z = Math.max(FOLK.zMin - 0.3, Math.min(FOLK.farZ + 0.25, zz)) - s.z;
+      members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, m, s: { ...st, hd, dir: dirOfHd(hd), x: s.x + off.x, z: s.z + off.z } });
     }
   }
   return { visits: all, members, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
@@ -566,9 +644,9 @@ export function roofAt(t, L, ctx = {}, cache = new Map()) {
   const members = [];
   for (const v of all) for (const m of v.members) {
     const s = visitAt(v, t - m.lag); if (!s) continue;
-    let off = { x: (s.dir === 1 || s.dir === -1 ? -s.dir * 0.4 : 0.5), z: m.role === 'lead' ? 0 : 0.35 }, dir = s.dir;
-    if (m.role !== 'lead' && s.pose !== 'walk') { const d = s.dir === 1 || s.dir === -1 ? s.dir : 1; off = { x: d * 0.85, z: 0.1 }; if (s.pose === 'dance' || s.pose === 'toast') dir = -d; }
-    members.push({ vid: v.id, kind: v.kind, look: v.look, party: !!v.party, m, s: { ...s, dir, x: s.x + (m.role === 'lead' ? 0 : off.x), z: s.z + (m.role === 'lead' ? 0 : off.z) } });
+    let off = { x: (s.dir === 1 || s.dir === -1 ? -s.dir * 0.4 : 0.5), z: m.role === 'lead' ? 0 : 0.35 }, hd = s.hd;
+    if (m.role !== 'lead' && s.pose !== 'walk') { const d = s.dir === 1 || s.dir === -1 ? s.dir : 1; off = { x: d * 0.85, z: 0.1 }; if (s.pose === 'dance' || s.pose === 'toast') hd = hdOfDir(-d); }
+    members.push({ vid: v.id, kind: v.kind, look: v.look, party: !!v.party, m, s: { ...s, hd, dir: dirOfHd(hd), x: s.x + (m.role === 'lead' ? 0 : off.x), z: s.z + (m.role === 'lead' ? 0 : off.z) } });
   }
   return { visits: all, members };
 }

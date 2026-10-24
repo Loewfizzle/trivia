@@ -13,7 +13,7 @@
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '../../core/harbor-people.js';
-import { lookOf, drawFolk, drawDog, drawLeash, jointsOf } from './folk.js';
+import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP } from './folk.js';
 import { drawBus } from './bus.js';
 import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
 import { frontProfile } from './strings.js';
@@ -33,9 +33,9 @@ export function createPeople() {
     M = folkMap(L, { event, line: lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
   }
   const lookFor = (mem, env) => {
-    const key = `${mem.vid}|${mem.m.seed}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${mem.party ? 1 : 0}`;
+    const key = `${mem.vid}|${mem.m.seed}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${mem.party ? 1 : 0}`, sit = mem.kind === 'lunch';
     let lk = looks.get(key);
-    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, role: mem.m.role }); looks.set(key, lk); if (looks.size > 160) looks.delete(looks.keys().next().value); }
+    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, role: mem.m.role, sit }); looks.set(key, lk); if (looks.size > 160) looks.delete(looks.keys().next().value); }
     return lk;
   };
   /**
@@ -63,7 +63,7 @@ export function createPeople() {
     if (!lineN) return [];
     return linePlaces(L, lineN).map(p => {
       const seed = 4000 + p.i * 131, ph = (t / 11 + p.i * 0.37) % 1, pose = p.wait ? (p.i % 2 ? 'chat' : 'wait') : ph < 0.12 && p.i % 3 === 1 ? 'watch' : 'wait';
-      return { vid: `line${p.i}`, kind: 'line', look: 'guest', party: false, m: { role: 'lead', seed, lag: 0 }, s: { x: p.x, z: p.z, pose, dir: p.wait ? (p.i % 2 ? 1 : -1) : 1, dist: 0, v: 0, a: 1 } };
+      return { vid: `line${p.i}`, kind: 'line', look: 'guest', party: false, m: { role: 'lead', seed, lag: 0 }, s: { x: p.x, z: p.z, pose, dir: p.wait ? (p.i % 2 ? 1 : -1) : 1, hd: p.wait ? (p.i % 2 ? 0 : Math.PI) : 0, dist: 0, v: 0, a: 1 } };
     });
   }
   /**
@@ -82,7 +82,7 @@ export function createPeople() {
       items = roofNow.members;
     } else {
       const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...(pass === 'near' ? lineMembers(env.t || 0) : [])];   // (FP3a: the cap by tier)
-      if (pass === 'near' && env.vendor && M.nodes.vendor) all.push({ vid: 'vendor', kind: 'vendor', look: 'worker', party: false, m: { role: 'lead', seed: 777, lag: 0 }, s: { ...M.nodes.vendor, pose: 'cart', dir: -1, dist: 0, v: 0, a: 1 } });
+      if (pass === 'near' && env.vendor && M.nodes.vendor) all.push({ vid: 'vendor', kind: 'vendor', look: 'worker', party: false, m: { role: 'lead', seed: 777, lag: 0 }, s: { ...M.nodes.vendor, pose: 'cart', dir: -1, hd: Math.PI, dist: 0, v: 0, a: 1 } });
       // (behind the speakeasy on the waterside sidewalk: hidden by the building — not drawn)
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ));
     }
@@ -97,11 +97,12 @@ export function createPeople() {
       if (it.b) { drawBus(c, cam, { ...it.b, dist: it.b.xNow - it.b.xc + 40, seed: it.b.id.length, riders: 2 }, E); continue; }
       const mem = it.m, look = lookFor(mem, env), st = mem.s;
       if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { collars.set(mem.vid, drawDog(c, cam, { ...st, dist: st.dist * 1.6 }, look, E, pass === 'roof' ? roofY() : 0)); continue; }
-      const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 'far' : 'near') : null;
+      // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
+      const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
       const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() : 0 });
       if (box && mem.kind === 'dogwalker' && mem.m.role === 'lead') {
-        const J = jointsOf(st, look, env.t || 0, env.mo !== false), [fx, fy] = project(cam, st.x, 0, st.z), H = 2.1 * look.h * cam.F / st.z, h = J.hands[0];
-        hands.set(mem.vid, [fx + (h[0] + J.lean * J.d) * H, fy - h[1] * H]);
+        const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near];
+        hands.set(mem.vid, [fx + h[0] * H, fy - h[1] * H]);
       }
     }
     for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E); }
@@ -134,7 +135,7 @@ export function createPeople() {
     // footsteps: the nearest walker on the promenade (its stride's footfalls), very soft
     let near = null; for (const m of items) if (m.s.pose === 'walk' && m.s.v > 0.1 && m.m.role !== 'dog' && m.s.z < 47 && (!near || m.s.z < near.s.z)) near = m;
     if (near && snd.step) {
-      const look = lookFor(near, env), S = (look.jog ? 0.56 : look.kid ? 0.42 : 0.38) * look.h * 2.1, k = Math.floor(near.s.dist / S), id = near.vid + near.m.role;
+      const look = lookFor(near, env), S = STEP(look) * look.h * 2.1, k = Math.floor(near.s.dist / S), id = near.vid + near.m.role;
       if (steps.get(id) != null && steps.get(id) !== k) snd.step(look.woman && !look.jog ? 'heels' : 'cobble', { pan: panOf(near.s.x), gain: 0.35 + 0.4 * clamp01((47 - near.s.z) / 8) });
       steps.set(id, k); if (steps.size > 20) steps.delete(steps.keys().next().value);
     }

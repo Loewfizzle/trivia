@@ -26,7 +26,8 @@ import { FONT, FRONT, TOP, fillPts, frame, hull2, lightFor, line, lit, norm, pbo
 // A 1920s park bench facing us (its back toward the road): painted cast-iron Deco ends (a scrolled foot turned out, a stepped knee,
 // the armrest ending in a curl, the back post's stepped finial), a centre support, oak slats (the seat seen from above, three back
 // slats leaning back with gaps that show the street behind), grain + a lit top edge on every slat, a small brass plaque.
-export const OAK = [158, 106, 62], IRON_B = [40, 52, 48], BRASS = [204, 160, 72];
+// (FP3b, the owner: a DARK GREEN cast-iron frame — the oak slats + the sitters separate from it)
+export const OAK = [158, 106, 62], IRON_B = [26, 70, 50], BRASS = [204, 160, 72];
 
 /** ctx (every prop): { season, phase, lights: [{ x, z, kind }] (the lamps — the side facing one catches its light at night), lampK
  *  (0..1: the lamps' brightness in this look), snow, wet (Part 9) }. b: { x, z, w } (world; the bench faces us, its back toward

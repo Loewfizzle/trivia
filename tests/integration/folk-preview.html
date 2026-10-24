@@ -17,15 +17,16 @@
 <script type="module">
 import { lookOf, drawFolk, drawDog, drawLeash, jointsOf } from '/js/screens/harbor/folk.js';
 const qs = new URLSearchParams(location.search);
+const ONLY = (qs.get('only') || '').split(',').filter(Boolean), show = k => !ONLY.length || ONLY.includes(k);
 const LIGHT = qs.get('light') || 'day', SCALE = Number(qs.get('scale') || 2), season = qs.get('season') || 'autumn', party = qs.get('party') === '1', rain = qs.get('rain') === '1' ? 1 : 0;
 const T = LIGHT === 'night' ? { night: 1, sunDir: 0 } : LIGHT === 'gold' ? { gold: 1, sunDir: -0.6, sunEl: 8 } : { day: 1, sunDir: -0.5, sunEl: 34 };
 const dark = LIGHT === 'night' ? 1 : 0;
-const W = 402 * SCALE, H = 1060, dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
+const W = 402 * SCALE, H = 1060 + 4 * (34 * SCALE + 14), dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
 cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
 const c = cv.getContext('2d'); c.scale(dpr, dpr);
 c.fillStyle = dark ? '#3a3650' : LIGHT === 'gold' ? '#b08870' : '#9a948c'; c.fillRect(0, 0, W, H);
 // a fake camera: z 47 → the phone's promenade scale × SCALE
-const z = 47, cam = { F: 600 * SCALE, VPX: 0, VPY: 0, CAMH: 0 };
+const z = 47, cam = { F: 600 * SCALE, VPX: 0, VPY: -600 * SCALE * 13.2 / 47, CAMH: 13.2, W: 402 * SCALE };
 const at = (sx, sy) => ({ x: sx * z / cam.F, z, y0: sy });
 const env = { t: 1.3, mo: true, T, dark, lightAt: dark ? () => [200, 150, 90] : null, rimSide: () => 1, shadow: dark ? null : () => ({ dx: 0.9, dz: 0.6, a: 0.25 }) };
 const draw = (sx, sy, st, look, seed, role = 'lead') => {
@@ -34,26 +35,54 @@ const draw = (sx, sy, st, look, seed, role = 'lead') => {
   return L;
 };
 const label = (s, x, y) => { c.fillStyle = dark ? '#ccc' : '#222'; c.fillText(s, x, y); };
-let y = 90;
+let y = Math.max(90, 34 * SCALE);
 // walk cycles: 8 frames of one stride, per look (facing right, then one facing left)
 const looks = [['commuter', 11], ['lady', 12], ['walker', 13], ['guest', 14], ['worker', 15], ['newsboy', 16], ['couple', 17], ['night', 18]];
-for (const [lk, seed] of looks) {
+for (const [lk, seed] of show('looks') ? looks : []) {
   label(lk, 4, y - 70);
   for (let i = 0; i < 8; i++) { const S = 0.44 * 2.1, dist = i / 8 * 2 * S; draw(40 * SCALE / 2 + i * 44 * SCALE / 2, y, { pose: 'walk', dir: i === 7 ? -1 : 1, dist, v: 1.4 }, lk, seed); }
   y += 34 * SCALE + 14;
 }
+// FP3b — THE FACING: one walker at 8 headings (right · 3/4 away-right · away · 3/4 away-left · left · 3/4 toward-left · toward · 3/4
+// toward-right), mid-stride; then a TURN from right to left through the front (lerpHd), standing
+if (show('headings')) {
+label('headings: R · 3/4 away-R · AWAY · 3/4 away-L · L · 3/4 toward-L · TOWARD · 3/4 toward-R', 4, y - 70);
+for (let i = 0; i < 8; i++) draw(40 * SCALE / 2 + i * 44 * SCALE / 2, y, { pose: 'walk', hd: i * Math.PI / 4, dist: 0.55, v: 1.3 }, 'commuter', 11);
+y += 34 * SCALE + 14;
+}
+if (show('lady')) {
+label('the same, a lady (her bob) + a newsboy (the cap’s peak)', 4, y - 70);
+for (let i = 0; i < 8; i++) draw(40 * SCALE / 2 + i * 44 * SCALE / 2, y, { pose: 'walk', hd: i * Math.PI / 4, dist: 0.55, v: 1.2 }, i % 2 ? 'newsboy' : 'lady', 12 + (i % 2) * 4);
+y += 34 * SCALE + 14;
+}
+if (show('turn')) {
+label('a turn on the spot, right → left through the front (standing)', 4, y - 70);
+for (let i = 0; i < 8; i++) draw(40 * SCALE / 2 + i * 44 * SCALE / 2, y, { pose: 'wait', hd: -i * Math.PI / 7, dist: 0, v: 0 }, 'walker', 13);
+y += 34 * SCALE + 14;
+}
+if (show('toward')) {
+label('walking TOWARD us · 8 frames of one stride', 4, y - 70);
+for (let i = 0; i < 8; i++) { const S = 0.35 * 2.1, dist = i / 8 * 2 * S; draw(40 * SCALE / 2 + i * 44 * SCALE / 2, y, { pose: 'walk', hd: -Math.PI / 2 + 0.25, dist, v: 1.3 }, 'commuter', 11); }
+y += 34 * SCALE + 14;
+}
 // the jog
+if (show('jog')) {
 label('jogger', 4, y - 70);
 for (let i = 0; i < 8; i++) { const S = 0.62 * 2.1, dist = i / 8 * 2 * S; draw(40 * SCALE / 2 + i * 44 * SCALE / 2, y, { pose: 'walk', dir: 1, dist, v: 3 }, 'jogger', 21); }
 y += 34 * SCALE + 14;
+}
 // the poses (front, back, side)
+if (show('poses')) {
 label('poses: wait · watch · chat · point · wave · shop · cart · sit · lean(back) · dance · toast · garden · walk away · walk toward', 4, y - 70);
 const poses = [['wait', 0], ['watch', 1], ['chat', 1], ['point', 1], ['wave', 0], ['shop', 2], ['cart', 1], ['sit', 0], ['lean', 2], ['dance', 1], ['toast', -1], ['garden', 1], ['walk', 2], ['walk', 0]];
 poses.forEach(([p, dir], i) => draw(20 * SCALE / 2 + i * 28 * SCALE / 2, y + (i > 6 ? 34 * SCALE + 10 : 0), { pose: p, dir, dist: 0.3, v: p === 'walk' ? 1.4 : 0 }, i % 2 ? 'lady' : 'guest', 30 + i));
 y += 2 * (34 * SCALE + 10) + 14;
+}
 // a couple arm in arm + a dog walker
+if (show('couple')) {
 label('arm in arm · a dog walker', 4, y - 70);
-for (let i = 0; i < 4; i++) { const dist = i * 0.5; draw(40 * SCALE / 2 + i * 90 * SCALE / 2 + 6, y - 6, { pose: 'walk', dir: 1, dist, v: 1, link: 'near' }, 'couple', 40, 'partner'); draw(40 * SCALE / 2 + i * 90 * SCALE / 2, y, { pose: 'walk', dir: 1, dist, v: 1, link: 'far' }, 'couple', 41, 'lead'); }
+for (let i = 0; i < 4; i++) { const dist = i * 0.5; draw(40 * SCALE / 2 + i * 90 * SCALE / 2 + 6, y - 6, { pose: 'walk', dir: 1, dist, v: 1, link: -1 }, 'couple', 40, 'partner'); draw(40 * SCALE / 2 + i * 90 * SCALE / 2, y, { pose: 'walk', dir: 1, dist, v: 1, link: 1 }, 'couple', 41, 'lead'); }
+}
 document.body.dataset.ready = '1';
 </script>
 </body>
