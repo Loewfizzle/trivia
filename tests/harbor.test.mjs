@@ -1768,8 +1768,8 @@ test('THE DAY PASS §0 — the dark corner: the block right of the lighthouse is
 test('the panel: rows a later part still has to build stay hidden (ready: false), their ids stay valid', async () => {
   const { EVENTS, PANEL_EVENTS, cleanRemote } = await import('../js/core/harbor-remote.js');
   const hidden = EVENTS.filter(e => !PANEL_EVENTS.includes(e)).map(e => e.id);
-  assert.deepEqual(hidden.sort(), ['cat', 'ufo', 'window']);   // (7b: 'window' needs &moment= — the links; the panel has a row per moment)
-  assert.deepEqual(cleanRemote({ force: ['ufo'] }).bad, []);
+  assert.deepEqual(hidden.sort(), ['cat', 'window']);   // (7b: 'window' needs &moment= — the links; the panel has a row per moment; 6b showed the UFO)
+  assert.deepEqual(cleanRemote({ force: ['cat', 'ufo', 'tr3b'] }).bad, []);
 });
 
 test('one darkness input (C1.5) on THE DUSK CURVE (DT1): the sun\'s elevation → darkness, golden hour barely dark, the power-up through the blue hour, every ramp full by night', async () => {

@@ -26,7 +26,7 @@ import { citySound, cityLoop, citySoundsDebug } from '../../audio/city-sound.js'
 import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { isUnlocked } from '../../audio/engine.js';
-import { musicSounding, duckMusic } from '../../audio/music.js';
+import { musicSounding, duckMusic, filterMusic, bendMusic } from '../../audio/music.js';
 import { settings } from '../../audio/settings.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -47,6 +47,8 @@ export function createCitySounds() {
   const bus = { arrive: null, idle: null, depart: null, pan: 0, gain: 1 };
   const ducks = [];                     // { h, take, depth, pan: [w, dir] | null } — the jets: the music dips round their peak
   let duckNow = 1;
+  // PART 6b — THE LEGENDARY SKY: the run heard (its one-shots fired once), the music's dip / muffle / tape stop while it lasts
+  let lgRun = null, lgDuck = 1, lgHz = 20000, lgRate = 1;
 
   /** keep a bed at this gain (0 = fade it out; stopped after `linger` s at zero: its buffer is freed) */
   function keep(slot, gain, pan = 0, { ramp = 1.5, linger = 20, fadeIn = 2 } = {}) {
@@ -83,7 +85,7 @@ export function createCitySounds() {
     } else if (r) { for (const h of r.hs) h.stop(fade); runs.delete(slot); }
   }
 
-  function tick(fs, { dark = 0, sky = null, boats = false, W = 1 } = {}) {
+  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null } = {}) {
     if (dead) return;
     const t = performance.now();
     if (t - lastT < 250) return;
@@ -149,6 +151,7 @@ export function createCitySounds() {
     }
     // ---- THE JETS (8P): when the sky says they're passing (a future 6b event: listen().jets), their pass; the music's duck + their pan
     if (s && s.jets && !ducks.length) jets(typeof s.jets === 'object' ? s.jets : {});
+    legendSounds(legend, t);
     ducking();
     // ---- THE HARBOR: the water taxi's engine while it crosses; the foghorn in real fog
     keep('boat-putter', boats ? 1 : 0, 0, { ramp: 1.5, linger: 8 });
@@ -207,7 +210,47 @@ export function createCitySounds() {
       lv = Math.min(lv, duckAt(el, d.take, d.depth));
       if (d.pan) d.h.set({ pan: sweepPan(el, d.take, d.pan[0], d.pan[1]) }, 0.3);
     }
+    lv = Math.min(lv, lgDuck);
     if (Math.abs(lv - duckNow) > 0.015 || (lv === 1 && duckNow !== 1)) { duckNow = lv; duckMusic(lv, 0.3); }
+  }
+
+  // ---------------------------------------------------------------- PART 6b — THE LEGENDARY SKY, heard
+  // THE ABDUCTION: the saucer's low hum while it's here (panned with it), the beam's riser (its peak as he leaves the ground); the
+  // music DIPPED + MUFFLED (a low-pass) while it's here. THE TR-3B: its deep drone (louder overhead), the POWER-DOWN thump as the city
+  // dies, electrical crackles while it drains, then the CHASE's roar (jets(): panned along their pass, the music ducked round its peak);
+  // the music POWERS DOWN — a tape stop (the speed + the pitch sagging: music.js#bendMusic), muffled, almost gone — and comes back after
+  // the jets (a soft power-on, the filter opening). Title only (the scene lives there); music off: only the sounds.
+  function legendSounds(lg, t) {
+    if (!lg) {
+      if (lgRun) {
+        lgRun = null; keep('ufo-hum', 0); keep('tr3b-drone', 0);
+        if (lgDuck !== 1) lgDuck = 1;
+        if (lgHz < 20000) { lgHz = 20000; filterMusic(20000, 2); }
+        if (lgRate < 1) { lgRate = 1; bendMusic(1, 1.5); }
+      }
+      return;
+    }
+    const key = `${lg.kind}|${Math.round(t / 1000 - lg.s)}`;
+    if (!lgRun || lgRun.key !== key) lgRun = { key, beam: false, down: false, jets: false, crack: 0 };
+    const st = lg.st, pan = clamp(((lg.x == null ? 0.5 : lg.x) - 0.5) * 1.6, -0.9, 0.9);
+    if (lg.kind === 'ufo') {
+      keep('ufo-hum', clamp(st.craft.k * (1 - st.craft.out), 0, 1), pan, { ramp: 0.8, linger: 6, fadeIn: 3 });
+      // (the riser's peak — 6.65 s into its take — lands as he leaves the ground, ~10.6 s in)
+      if (!lgRun.beam && lg.s > 3.8 && lg.s < 9) { lgRun.beam = true; citySound('ufo-beam', { pan, jitter: 0 }); }
+    } else {
+      const over = lg.s < 33 ? clamp(1.25 - Math.abs(lg.x - 0.5) * 1.2, 0, 1) : 0;
+      keep('tr3b-drone', over, pan, { ramp: 1, linger: 8, fadeIn: 4 });
+      // (the power-down's thump — `hit` 3.25 s into its take — as the city under it dies, ~6 s in)
+      if (!lgRun.down && lg.s > 2.6 && lg.s < 8) { lgRun.down = true; citySound('tr3b-power-down', { pan, jitter: 0 }); }
+      if (st.music.crackle > 0.3 && t > lgRun.crack) { if (lgRun.crack) citySound('tr3b-crackle', { gain: rnd(0.55, 1) * st.music.crackle, pan: clamp(pan + rnd(-0.5, 0.5), -1, 1) }); lgRun.crack = t + rnd(1600, 4200); }
+      // (the jets' roar: the take's peak — 5.5 s in — as they cross the middle of the screen, ~35.7 s in)
+      if (!lgRun.jets && lg.s > 30.2 && lg.s < 33) { lgRun.jets = true; jets({ gain: 1.15, dir: lg.dir || 1 }); }
+    }
+    // the music: the dip + the muffle (+ the tape stop for the TR-3B) — eased, a few steps a second
+    lgDuck = st.music.duck;
+    if (Math.abs(st.music.hz - lgHz) > lgHz * 0.06) { lgHz = st.music.hz; filterMusic(lgHz, 0.6); }
+    const r = st.music.rate == null ? 1 : st.music.rate;
+    if (Math.abs(r - lgRate) > 0.02 || (r === 1 && lgRate !== 1)) { lgRate = r; bendMusic(r, r < 1 ? 1.2 : 1.5); }
   }
 
   // ---------------------------------------------------------------- 8P — THE BUS (its takes: the 1945 truck's — core/city-sounds.js)
@@ -308,6 +351,7 @@ export function createCitySounds() {
       busEvent('gone'); pending.length = 0;
       for (const d of ducks) d.h.stop(1.2); ducks.length = 0;
       if (duckNow !== 1) { duckNow = 1; duckMusic(1, 0.8); }              // (never leave the music ducked)
+      if (lgHz < 20000) filterMusic(20000, 0.5); if (lgRate < 1) bendMusic(1, 0.5);   // (6b: nor muffled, nor bent)
     },
   };
 }

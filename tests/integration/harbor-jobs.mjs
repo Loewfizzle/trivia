@@ -19,11 +19,12 @@ export const SECONDS = {
   people: 70,          // (8P: measured on the laptop — refine from the first cloud run)
   life: 90,            // (FP3b: real doors + the dance circle — a circle forming ~40 s after the page opens)
   load: 30,            // (FP3a: the load gate — measured on the laptop)
+  legends: 40,         // (6b: the legendary sky — three pages, a guess)
 };
 
 // ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
 export const CI_JOBS = {
-  audio: ['music', 'flags', 'harbor', 'dock'],
+  audio: ['music', 'flags', 'harbor', 'dock', 'legends'],
   show: ['neon', 'party', 'sky', 'life'],
   city: ['core', 'skyline', 'water', 'load', 'panel', 'perf'],
   street: ['speakeasy', 'windows', 'sounds', 'promenade', 'people'],

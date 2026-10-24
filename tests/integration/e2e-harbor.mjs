@@ -2105,6 +2105,35 @@ G('life', async () => {
 });
 
 
+// ================================================================ PART 6b — THE LEGENDARY SKY (ONLY=legends)
+G('legends', async () => {
+  const P = 'window.__district.harbor()';
+  const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
+  // ---- a normal night never loads the legendary module (it's lazy: a legendary night, a preview or the API only)
+  { const Q = await open({ slot: 'lg0', qs: NIGHT, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1500);
+    const st = await ev(Q.page, `${P}.legend.state`);
+    ok(!Q.files.some(f => /harbor\/(legends|jets)\.js/.test(f)) && !st.run, `THE LEGENDARY SKY: a normal night never loads its module (${Q.files.filter(f => /legends|jets/.test(f)).length} files)`);
+    await Q.ctx.close(); }
+  // ---- THE UFO ABDUCTION held mid-lift (&lgs=14): the module loaded on demand, the beam a bright pale column over the compass
+  { const Q = await open({ slot: 'lg1', qs: `${NIGHT}&force=ufo&lgs=14&force=no-people`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.legend.state.phase === 'lift'`, 'the abduction loaded + lifting', 20000);
+    const m = (await ev(Q.page, `${P}.promenade`)).medallion, c = await px(Q.page, m[0] - 22, m[1] - 70);
+    ok(lum(c) > 150 && c[2] >= c[0] - 30, `THE ABDUCTION: the beam lights the air over the compass (rgb ${c.join(',')} — pale + bright)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-ufo-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- THE TR-3B held over the city (&lgs=15): the drain's columns under it, the city dead right below it, untouched far away
+  { const Q = await open({ slot: 'lg2', qs: `${NIGHT}&force=tr3b&lgs=15`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.legend.state.phase === 'cross'`, 'the TR-3B loaded + crossing', 20000);
+    const d = await ev(Q.page, `${P}.legend.drain()`), deep = d.filter(cl => cl.k > 0.95).length;
+    ok(d.length >= 6 && deep >= 3 && d.length < 40, `THE TR-3B's DRAIN: ${d.length} columns of the city dimming under it, ${deep} dead`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-402x874.png` });
+    await Q.ctx.close(); }
+});
+
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
 async function runGroup(name) {
   const fns = GROUPS.get(name);

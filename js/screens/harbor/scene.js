@@ -75,6 +75,7 @@ import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip } from '../../ui/debug-strip.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
+import { legendNight, eveningOf, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
@@ -116,6 +117,41 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // drone show, the moon's + the aurora's art (screens/harbor/skyfx.js)
   const sky = createSkyFx({ games, clock, qp });
   sky.setTier(tier);
+  // PART 6b — THE LEGENDARY SKY (screens/harbor/legends.js: the UFO abduction, the TR-3B + its jet chase) — LAZILY loaded: only on a
+  // legendary night (core/harbor-legend.js#legendNight, a minute ahead), a preview (&force=ufo / tr3b) or the API (harbor().legend)
+  let legends = null, legendsLoading = false, legendCheckAt = -1e9, legendWant = null;
+  const legendLayout = () => ({ dpr: Math.min(2, dpr), crown: skyline ? Array.from(skyline).sort((a, b) => a - b)[Math.floor(skyline.length * 0.08)] : null });
+  function needLegends() {
+    if (legends || legendsLoading) return;
+    legendsLoading = true;
+    import('./legends.js').then(m => {
+      if (destroyed) return;
+      legends = m.createLegends({ clock, qp }); legends.setTier(tier);
+      if (L) legends.layout(L, legendLayout());
+      if (legendWant) { legends.start(legendWant.kind, legendWant.at, legendWant); legendWant = null; }
+    }).catch(e => { legendsLoading = false; console.warn('[harbor] legends', e); });
+  }
+  /** tonight's legendary is due within a minute (or running) */
+  function legendSoon() {
+    const lc = LK.local; if (!lc || LK.alwaysNight) return false;
+    const ev = eveningOf(lc), lg = legendNight(ev.y, ev.m, ev.d);
+    if (!lg) return false;
+    const s = (ev.hr - lg.h) * 3600;
+    return s > -60 && s < (lg.kind === 'ufo' ? UFO_LEN : TR3B_LEN);
+  }
+  // THE TR-3B's DRAIN over the baked city: each column's unlit facade laid back over its lit windows, neon, signs + beacons (the
+  // column's own sputter + lag: legends.js#drainCols) — the far rows, then the near ones
+  function drainCity(c, fadeIn) {
+    const cols = legends.drainCols(); if (!cols || !cols.length || fadeIn <= 0) return;
+    for (const name of ['far', 'near']) {
+      const g = baker.group(name); if (!g || !g.ready) continue;
+      const k = g.cur.width / W, sh = g.cur.height;
+      for (const cl of cols) { c.globalAlpha = Math.min(1, cl.k) * fadeIn; c.drawImage(g.cur, cl.x0 * k, 0, (cl.x1 - cl.x0) * k, sh, cl.x0, g.show.y0, cl.x1 - cl.x0, g.show.h); }
+    }
+    c.globalAlpha = 1;
+  }
+  /** what's left of the power at a screen x for a band (1 without a legendary) — the harbor, the promenade's lights */
+  const legendPow = (x, band, i) => (legends && legends.busy() ? legends.power(x / W, band, i) : 1);
   // PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js): the bed (water + the hum by the darkness) and every event's slot
   const snd = createCitySounds();
   const roadLight = createRoadLight();
@@ -256,6 +292,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     clouds.resize(W, safeTopV, skyGlowY, HZ, dpr);
     clouds.avoid(tagBand());
     sky.layout(L, { HZ, waterTop: waterBand(L).y0, waterY1: waterBand(L).y1, dpr: Math.min(2, dpr) });
+    if (legends) legends.layout(L, legendLayout());
     skyBeams.layout(L, { textRects: S.textRects, corner: rects().corner });
     { const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z); cam.wheelQuiet = { x: wx, y: wy, r: cam.F * w.r / w.z, z: w.z }; }
     cam.lhLit = lhEdgeBlocks(L);
@@ -340,6 +377,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       lampWas[i] = on;
       let lv = on ? (mo ? warmUp(t - lampOnAt[i]) : 1) : 0;
       if (m && m.i === i) lv *= m.level(ms);
+      if (legends && legends.busy()) lv *= legendPow(project(cam, L.lamps[i].x, 0, L.lamps[i].z)[0], 'near', 100 + i);   // (6b: a legendary's power)
       levels.push(lv); off.push(1 - lv); if (lv < 0.98) dim = true;
     }
     lampDbg = { levels: levels.map(v => +v.toFixed(2)), th: lampTh.map(v => +v.toFixed(2)), moment: m ? { i: m.i, kind: m.kind, at: m.at, len: +m.len.toFixed(2) } : null };
@@ -590,6 +628,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (now - knockAt < 1200) return 'knock';
     for (const e of events.active) if (e.id !== 'spell') return 'event';
     if (sky.busy()) return 'sky';
+    if (legends && legends.busy()) return 'legend';
     if (roadLight.busy()) return 'car';              // (FP2: the motorcar crossing the street while the dock rests — its wheels at 60)
     return '';
   }
@@ -626,6 +665,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
     const fs = { lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
+    // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
+    if (now - legendCheckAt > 1000) { legendCheckAt = now; if (!legends && (off.has('ufo') || off.has('tr3b') || legendSoon())) needLegends(); }
+    if (legends) {
+      legends.tick(fs);
+      const gl = legends.signGlitch();
+      if (gl != null) signDim.set('tr3b', { logo: gl, tag: Math.min(1, gl + 0.15), ms: 60 }); else if (signDim.ids().includes('tr3b')) signDim.clear('tr3b');
+    }
     // ---- the sky
     c.globalAlpha = 1;
     { const dk = LK.w.night + LK.w.late, moonWash = LK.moon.el > 0 ? 1 - 0.5 * LK.moon.illum : 1;
@@ -660,13 +706,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.sunHaze(c, fs, sun.debug());
     sun.draw(c, fs);
     sky.tick(fs, events.active);
-    snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W });
+    snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W, legend: legends ? legends.listen() : null });
     sky.sky(c, fs);
     // THE DAY PASS — THE CLOUDS (clouds.js: the Harbor's own, every hour, the real cover + wind); City 1.0's weather-fx only for
     // the lightning now (its clouds off: cloud 0)
     // (DT2: the sun's whole place — its x + y on the screen, how visible, and its side when it has set: each cloud is lit from it)
     { const sd = sun.debug(); if (!off.has('no-clouds')) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }); }
     if (LK.storm) wfx.sky(c, { ...fs, L: { ...LK, cloud: 0 } });
+    // (6b: THE TR-3B + its chase — under the cloud base, in front of the stars + the moon, behind the city's crowns)
+    if (legends && !off.has('no-legends')) legends.sky(c, fs);
     signHalo(c);
     if (shownAt < 0) tryReveal(now);
     sun.through(c, fs, (x, y) => clouds.coverAt(x, y));
@@ -739,6 +787,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the far quay's lamps (Part 4: lit at night, with the city's power-on; their light runs down into the water)
     drawQuayLamps(c, quayLamps, fadeIn * litK(DK, 'lamps') * lit);
     lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
+    if (legends && legends.busy()) drainCity(c, fadeIn);       // (6b: THE TR-3B's power drain rolling across the city under it)
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
@@ -790,7 +839,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // sconce, the basement's amber (day + night), the ghost ad's lamps, the barber pole (turning while the shop is open)
     // FP3b — REAL DOORS: the doors' swing from the people's plan + whoever is in a doorway (drawn between its opening + its leaf)
     speak.doors(pplLive ? { ...people.doors(), inside: (cc, id) => { if (pplOn) people.drawInside(cc, id, pplEnv); } } : { side: 0, shop: 0 });
-    if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
+    if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0) * legendPow(W * 0.16, 'near', 200), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
       tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment() }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     snd.speakeasy(speak.beds());                    // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them)
     // PF — THE CENTREPIECE on the inlay + its rig's floor spots (nothing without one; &force=centrepiece-test: the test obelisk)
@@ -802,6 +851,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // maple, the cart stand nearer than anyone on the floor) + the ROOF's guests (clipped to the sky over the parapet)
     if (pplOn) { people.draw(c, 'near', pplEnv); people.draw(c, 'roof', pplEnv); }
     if (pplLive) people.tick(pplEnv);
+    // PART 6b — THE UFO ABDUCTION over the compass (its pool, the beam, the walker + the figure lifted, the saucer) — in front of everyone
+    // on the floor, behind the front row (the framing maple + the near lamps stand in front of the beam)
+    if (legends && legends.busy() && fadeIn > 0 && !off.has('no-legends')) legends.near(c, fs, { ...(pplEnv || peopleEnv(lit, fadeIn)), waterLight: (x, y, col, k, r) => water.light(x, y, col, k, r) });
     layer('front');
     // THE IMPLIED ROAD (8a): a passing car's headlights sweeping the near cobbles at night, its soft shadow by day, its sound
     if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps'), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
@@ -817,7 +869,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (fadeIn > 0 && !off.has('no-strings') && (STRINGS_ON || clock.force.has('strings-party'))) {
       const fp = clock.force.has('strings-party') || clock.force.has('neon-party'), tb = t / 0.5;
       const sp = PT.on > 0 ? { on: PT.ramp, energy: PT.energy, beats: PT.beats, beatU: PT.beatU, punch: PT.punch } : fp ? { on: 1, energy: 1, beats: Math.floor(tb), beatU: tb % 1, punch: S.motion ? pulseOut(punchEnv(tb % 1, 0.5), PT.pulse) : 0 } : null;
-      strings.draw(c, { k: fadeIn * litK(DK, 'strings') * (lit > 0 ? lit : 0), day: TW.day || 0, party: sp, t, motion: S.motion, tier });
+      strings.draw(c, { k: fadeIn * litK(DK, 'strings') * (lit > 0 ? lit : 0) * legendPow(W * 0.16, 'near', 201), day: TW.day || 0, party: sp, t, motion: S.motion, tier });
     }
     { const k = 1 - smooth(0, 900, (performance.now() - knockAt)); if (k > 0) { const d = L.door; c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.7 * k; const r = d.h * 1.6; c.drawImage(glow, d.x - r, d.y - d.h * 0.7 - r, r * 2, r * 2); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; } }
     // before the power-on the city sits in near-darkness (only at night)
@@ -906,9 +958,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (reduced motion: the boats hold still where the hour began — no zipping taxi, no wakes)
     boats.tick(motion ? ms : Math.floor(ms / 3600000) * 3600000, nightAt, { quiet: waterQuiet });
     const heel = clamp01((LK.wind || 0) / 10) * 0.16;
-    const sh0 = neon.show(), hw = { t, ms, T, sunDir, lights: glowK, fade: fadeIn, motion, party: PT.on > 0 ? PT : null, sparkle: PT.on > 0 ? sh0.sparkle : 0, cn: sh0.cn || 0, drop: sh0.drop || 0 };
-    const hb = { t, T, lights: glowK, motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes') };
-    const hl = { ms, now: performance.now(), k: fadeIn * Math.max(litK(DK, 'beams') * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, motion, tier, dim: !!lights.spelling, water };
+    const lgW = legendPow(cam.wheelQuiet ? cam.wheelQuiet.x : W * 0.45, 'harbor', 301);   // (6b: the legendary's pull on the wheel + the pier's lamps)
+    const sh0 = neon.show(), hw = { t, ms, T, sunDir, lights: glowK * lgW, fade: fadeIn, motion, party: PT.on > 0 ? PT : null, sparkle: PT.on > 0 ? sh0.sparkle : 0, cn: sh0.cn || 0, drop: sh0.drop || 0 };
+    const hb = { t, T, lights: glowK * legendPow(W * 0.55, 'harbor', 302), motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes') };
+    const hl = { ms, now: performance.now(), k: legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) * fadeIn * Math.max(litK(DK, 'beams') * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, motion, tier, dim: !!lights.spelling, water };
     // (NEON PASS 6, the owner: on a party night the lighthouse holds its own — a stronger, wider beam; now and then (4 bars in 16) it
     // picks up the party's colour — the right word tower's palette colour, eased in + out)
     if (PT.on > 0) { const u = (PT.bar % 16) + (PT.phase || 0); hl.party = PT.ramp * Math.max(0.6, PT.energy || 0); hl.pm = S.motion ? smooth(8, 9, u) * (1 - smooth(12, 13, u)) : 0; hl.pcol = hl.pm > 0 ? (neon.beamCols(['wordB'])[0] || null) : null; }
@@ -918,7 +971,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (hl.k > 0.01) water.reflect(cx => beam.reflect(cx, hl), axisAt(L, L.lighthouse.z));
       if (lastNf && lastNf.night > 0.02) water.reflect(cx => neon.draw(cx, 'harbor', lastNf), axisAt(L, L.lighthouse.z));
     }
-    return { wheel: hw, boat: hb, beam: hl, lamps: glowK };
+    return { wheel: hw, boat: hb, beam: hl, lamps: glowK * lgW };
   }
   // the pier's lamps (night, with the city's power-on): a warm globe + its halo, a column in the water under each
   // (all of them in ONE sprite per layout — like the quay lamps — drawn in one call)
@@ -1104,6 +1157,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (an event whose own flags changed — a new text, other shapes — starts over)
     const redo = [...f].filter(id => before.has(id) && (eventDef(id) && eventDef(id).inputs || []).some(k => q0.get(k) !== qp.get(k)));
     sky.remote(clock.now() - (srv() - at) * (clock.speed || 1), [...[...before].filter(id => gone(id)), ...redo], [...[...f].filter(id => came(id)), ...redo]);
+    if (legends) legends.remote(clock.now() - (srv() - at) * (clock.speed || 1), [...before].filter(id => gone(id)), [...f].filter(id => came(id)));
     lookAt = 0; skyKey = '';                                       // (the look follows at once: the clock, the weather)
     fastUntil = Math.max(fastUntil, performance.now() + 3000);
     return true;
@@ -1250,7 +1304,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let tierHold = 0, perfN = 0, tierAt = performance.now(), ups = 0, upAt = 0, upLock = false, manualTier = false, probe = null, capped = 0;
   const tierHist = [tier];                      // (the readout shows the steps: 2→1→2)
   function stepTier(t) { fastUntil = Math.max(fastUntil, performance.now() + 1500); tier = Math.max(0, Math.min(2, t));   // (NEON PASS 5: build() clears the canvas — the battery saver must never skip the next draw: a black frame)
-     tierHist.push(tier); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); build(); if (DEBUG) console.info('[harbor] tier', tier); }
+     tierHist.push(tier); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); if (legends) legends.setTier(tier); build(); if (DEBUG) console.info('[harbor] tier', tier); }
   function setTier(t) { manualTier = true; stepTier(t); }
 
   // 8a — THE LOOP COMES BACK (the owner's iPhone after 7a: back from the home screen the music + Web Audio recovered — the DOM AUDIO
@@ -1447,6 +1501,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },
       strings: { ...strings.debug(), on: STRINGS_ON || clock.force.has('strings-party'), set: o => strings.set(o) },
       sky: { state: sky.debug(), ...sky.api },
+      // (6b: THE LEGENDARY SKY — start('ufo' | 'tr3b', { at, dir }) loads the module if it must; state: what runs, its phase)
+      legend: { state: legends ? legends.debug() : { run: null, loaded: false, loading: legendsLoading },
+        start: (kind, o = {}) => { const w = { kind, at: o.at || clock.now(), dir: o.dir || 1 }; if (legends) return legends.start(kind, w.at, w); legendWant = w; needLegends(); return true; },
+        stop: () => { legendWant = null; if (legends) legends.stop(); }, power: (x, band) => legendPow(x, band || 'city', 0), drain: () => (legends ? legends.drainCols() : null) },
       sounds: { ...snd.debug(), play: snd.play, loop: snd.loop, jets: snd.jets, bus: snd.bus },
       road: { ...roadLight.debug(), wash: o => roadLight.wash(o) },
       // (FP: the crossing now — the cycle's state, the lantern's box + the heads on screen)
@@ -1476,7 +1534,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pageshow', onShow); window.removeEventListener('focus', onFocus); window.removeEventListener('pointerdown', onTapWake, { capture: true }); clearInterval(watchdog);
       window.removeEventListener('resize', onResize);
-      baker.destroy(); litBaker.destroy(); sky.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
+      baker.destroy(); litBaker.destroy(); sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
       fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();

@@ -93,8 +93,10 @@ export const EVENTS = [
   { id: 'finale', label: 'PARTY FINALE', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
   { id: 'sleigh', label: 'SLEIGH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
   { id: 'witch', label: 'WITCH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
-  { id: 'ufo', label: 'UFO', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, ready: false },          // (ready: false — hidden in the panel until Part 6b
-  { id: 'cat', label: 'THE MOON CAT', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, ready: false },  //  builds them for the Harbor; still a valid id)
+  // (PART 6b — THE LEGENDARY SKY: ~1–2 nights a month each for everyone; here on demand, repeating while on — JUST ME or EVERYONE, the same moment)
+  { id: 'ufo', label: 'UFO ABDUCTION', cat: 'sky', group: 'LEGENDARY', oneShot: true, night: true, hint: 'the saucer, the beam, someone lifted off the compass (~30 s)' },
+  { id: 'tr3b', label: 'TR-3B + JET CHASE', cat: 'sky', group: 'LEGENDARY', oneShot: true, night: true, hint: 'the black triangle drains the city’s power, then F-16s chase it (~50 s)' },
+  { id: 'cat', label: 'THE MOON CAT', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, ready: false },  // (ready: false — not on the Harbor yet; still a valid id)
   { id: 'geese', label: 'GEESE', cat: 'sky', group: 'BIRDS' },
   { id: 'swifts', label: 'SWIFTS', cat: 'sky', group: 'BIRDS' },
   { id: 'bats-dusk', label: 'BATS AT DUSK', cat: 'sky', group: 'BIRDS' },

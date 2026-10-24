@@ -498,6 +498,41 @@ export function duckMusic(level, seconds = 0.6) {
   applyDirectVolume();
 }
 
+/**
+ * THE TAPE STOP (City 2.0, 6b — the TR-3B "bends the music"): ramp the playing song's speed to `rate` (0.25..1) over `seconds`, the pitch
+ * sagging with it (preservesPitch off while bent) — like a record player losing power. The time it falls behind is counted, and when the
+ * speed is back at 1 the song skips ahead by exactly that much: a lobby's synced song is on the room's clock again (no drift). A new
+ * track resets it. Silent no-op without a song.
+ */
+let bendNow = { rate: 1, lost: 0, el: null, timer: 0, to: 1, step: 0 };
+export function bendMusic(rate, seconds = 0.5) {
+  const to = Math.max(0.25, Math.min(1, +rate || 1));
+  const el = current && current.voice && current.voice.el;
+  if (!el) { bendNow.to = 1; return; }
+  if (bendNow.el !== el) { clearInterval(bendNow.timer); bendNow = { rate: el.playbackRate || 1, lost: 0, el, timer: 0, to: 1, step: 0 }; }
+  if (Math.abs(to - bendNow.to) < 0.004 && bendNow.timer) return;
+  bendNow.to = to;
+  const n = Math.max(1, Math.round(Math.max(0.05, seconds) / 0.05));
+  bendNow.step = (to - bendNow.rate) / n;
+  clearInterval(bendNow.timer);
+  let last = performance.now();
+  bendNow.timer = setInterval(() => {
+    const b = bendNow, now = performance.now(), dt = (now - last) / 1000; last = now;
+    if (!b.el || b.el !== (current && current.voice && current.voice.el)) { clearInterval(b.timer); b.timer = 0; return; }
+    b.lost += (1 - b.rate) * dt;
+    const r = Math.abs(b.to - b.rate) <= Math.abs(b.step) + 1e-4 ? b.to : b.rate + b.step;
+    b.rate = r;
+    try { b.el.preservesPitch = r >= 0.999; b.el.webkitPreservesPitch = r >= 0.999; b.el.playbackRate = r; } catch { /* fine */ }
+    if (r === b.to && b.to >= 0.999) {
+      clearInterval(b.timer); b.timer = 0;
+      if (b.lost > 0.05 && isFinite(b.el.duration)) { try { b.el.currentTime = Math.min(b.el.duration - 0.5, b.el.currentTime + b.lost); } catch { /* fine */ } }
+      b.lost = 0;
+    } else if (r === b.to) { /* held bent: keep counting the time it loses */ b.step = 0; }
+  }, 50);
+}
+/** the tape stop's state (tests, the AUDIO panel): { rate, lost (s behind), bent } */
+export const musicBend = () => ({ rate: +bendNow.rate.toFixed(3), lost: +bendNow.lost.toFixed(2), bent: bendNow.rate < 0.999 });
+
 /** Test hook: cut the playing voice off from the probe (what WebKit does after the lock screen: its clock runs, nothing comes out). */
 export function musicSimulateDead() {
   if (!current || current.voice.direct) return;
