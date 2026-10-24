@@ -47,7 +47,9 @@ export function speakGeo(L) {
 
 // ------------------------------------------------------------------ the materials for a look
 export function mats(T) {
-  const br = faces(T, 'brick', 44), tc = faces(T, 'cream', 44), gr = faces(T, 'granite', 44);
+  const br = faces(T, 'brick', 44), gr = faces(T, 'granite', 44);
+  // (FP3b — THE STONE TRIM, the owner's 8P note 8: a warm cream LIMESTONE / terracotta, never flat white — the cream faces warmed)
+  const tc0 = faces(T, 'cream', 44), warm3 = c => [c[0] * 1.0, c[1] * 0.92, c[2] * 0.78], tc = { ...tc0, front: warm3(tc0.front), lit: warm3(tc0.lit || tc0.front), dark: warm3(tc0.dark || tc0.front) };
   const sd = T.sunDir || 0, ov = T.ovc || 0;
   // the side wall (facing west, to the right): lit by an afternoon sun, in shade in the morning, a calm step darker at noon
   const sideOf = f => (sd > 0.05 ? mix(f.front, f.lit, Math.min(1, sd) * (1 - ov * 0.7)) : mix(f.front, f.dark, Math.max(0.42, -sd) * (1 - ov * 0.5)));
