@@ -160,7 +160,7 @@ export function momentsAt(entries, sec) {
   return on;
 }
 /** the next start after `sec` (the readout + the e2e): { id, win, in: seconds } or null */
-export function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); return e ? { id: e.id, win: e.win, in: Math.round(e.t0 - sec) } : null; }
+function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); return e ? { id: e.id, win: e.win, in: Math.round(e.t0 - sec) } : null; }
 
 // ------------------------------------------------------------------ THE ROOMS' STATES BY THE HOUR
 /**
@@ -171,7 +171,7 @@ export function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); re
  *   bar        'closed' (4 am → the bartender) · 'open' (the bartender → 3 am: by day the half-drawn shade, at night the full bar) · 'last' (3 → 4 am)
  *   shop       'closed' · 'open' (the opening's end → 6 pm)
  */
-export const BAR_LAST = [3, 4], SHOP_CLOSE = 18, TV_END = 3;
+const BAR_LAST = [3, 4], SHOP_CLOSE = 18, TV_END = 3;
 export function roomState(id, h, routines = {}) {
   const s = h * 3600, start = k => (routines[k] == null ? MOMENT[k].at * 3600 : routines[k]), end = k => start(k) + MOMENT[k].len;
   if (id === 'apartment') {
@@ -193,7 +193,7 @@ export function roomState(id, h, routines = {}) {
  * level (0.38–1) + tint (cool blue ↔ a whiter blue, now and then a warm scene), a slow drift inside a scene and a fine flicker.
  * → { k (0..1.1), tint (0 cool … 1 white-blue), warm (0..1), cut (s since the last cut) }
  */
-export const TV_STEP = 0.35;
+const TV_STEP = 0.35;
 const h01 = (n, salt) => { let x = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b) ^ salt; x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
 export function tvLight(t, seed = 7) {
   const b = Math.floor(t / TV_STEP);

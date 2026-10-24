@@ -1,8 +1,8 @@
 // CITY 2.0 — THE HARBOR: the waterside road (z 54–64) behind the promenade: the railing at the water's edge, the asphalt, the
-// lane line, the curb; the two stop lights at the near curb; the bus and the cars. Part 1: the road baked, the signals in the
-// stage layer (in front of the traffic), the traffic drawn every frame as placeholders at their places. Part 8 builds them.
+// lane line, the curb; the two stop lights at the near curb. The road is baked, the signals in the stage layer; the moving bus is
+// 8P's (bus.js, through people.js), the motorcar FP2's (motorcar.js); 8b's traffic plugs in beside them.
 import { project, groundY } from '../../core/harbor-layout.js';
-import { rgb, shade, mix, vehicle } from './shapes.js';
+import { rgb, shade, mix } from './shapes.js';
 
 export function roadSteps(L, T) {
   const cam = L.cam, r = L.road, rail = L.rail;
@@ -31,8 +31,7 @@ export function roadSteps(L, T) {
     if (lk > 0.01 && L.crosswalk) {
       x.save(); x.globalCompositeOperation = 'lighter';
       for (const p of crossPools(L)) {
-        const [cx] = project(cam, p.x, 0, p.z), ya = groundY(cam, p.z + p.rz), yb = groundY(cam, p.z - p.rz), rw = cam.F * p.rx / p.z, g = null;
-        void g;
+        const [cx] = project(cam, p.x, 0, p.z), ya = groundY(cam, p.z + p.rz), yb = groundY(cam, p.z - p.rz), rw = cam.F * p.rx / p.z;
         x.save(); x.beginPath(); x.rect(0, yRail, cam.W, yCurb - yRail); x.clip();
         // (concentric rings, each adding a little: a clear pool with a soft edge — (1 − d²)² summed in 9 steps)
         x.translate(cx, (ya + yb) / 2); x.scale(rw, (yb - ya) / 2);
@@ -252,20 +251,4 @@ export function drawLantern(c, L, st, o) {
   c.globalAlpha = 1;
 }
 
-/** FP2 — THE PARKED BUS IS GONE until 8b brings moving vehicles (the owner: frozen behind the stop lights it looked stuck and hid the
- *  crossing + the WALK / WAIT lantern) — and the parked placeholder cars with it (behind the speakeasy + the framing maple, but in
- *  winter the sedan showed through the bare crown, stopped in the road). L.bus + L.cars stay in the layout (the road lane's height,
- *  8b's traffic); true draws them again. */
-export const PARKED_TRAFFIC = false;
-/** the traffic: the bus (~110 pt) and the cars (~55 pt), far lane first — off while PARKED_TRAFFIC is false. density
- *  (fs.density.road): a heavy event elsewhere thins the road to that share of its vehicles (the bus stays) */
-export function drawTraffic(c, L, T, density = 1) {
-  if (!PARKED_TRAFFIC) return;
-  const cam = L.cam, night = T.night > 0.5;
-  const cars = density >= 1 ? L.cars : L.cars.slice(0, Math.floor(L.cars.length * density));
-  const vs = [{ ...L.bus, bus: true }, ...cars].sort((a, b) => b.z - a.z);
-  for (const v of vs) {
-    if (Math.abs(v.x) > cam.hw(v.z) + v.len) continue;
-    vehicle(c, cam, v, v.bus ? T.bus : v.id === 'suv' ? shade(T.car, -0.3) : T.car, { bus: !!v.bus, win: night ? [255, 220, 160] : shade(T.glass, 0.2), cabin: v.bus ? 0 : 0.55 });
-  }
-}
+/* (FP3a, FREV H5: the parked placeholder bus + cars are gone — 8P's bus.js drives the real bus; 8b's traffic is its own module) */

@@ -29,33 +29,4 @@ export function box(x, cam, b, col, { y0 = 0, light = 1, top = true, sideK = 0.1
   return { x: a, y: b2, w: c - a, h: d - b2 };
 }
 
-/** a placeholder person: legs, a coat, a head (+ a hat), ~h world units tall, standing at (x, 0, z) */
-export function person(x, cam, p, col, { hat = col, rim = null } = {}) {
-  const [sx, sy] = project(cam, p.x, 0, p.z), s = cam.F / p.z, hh = p.h * s, w = hh * 0.28;
-  x.fillStyle = rgb(shade(col, -0.35));
-  x.fillRect(sx - w * 0.38, sy - hh * 0.44, w * 0.28, hh * 0.44); x.fillRect(sx + w * 0.1, sy - hh * 0.44, w * 0.28, hh * 0.44);   // legs
-  x.fillStyle = rgb(col);
-  x.beginPath(); x.roundRect(sx - w / 2, sy - hh * 0.82, w, hh * 0.44, w * 0.3); x.fill();                                        // the coat
-  x.beginPath(); x.arc(sx, sy - hh * 0.9, hh * 0.085, 0, Math.PI * 2); x.fill();                                                 // the head
-  if (p.hat) { x.fillStyle = rgb(hat); x.fillRect(sx - hh * 0.12, sy - hh * 0.99, hh * 0.24, hh * 0.035); x.fillRect(sx - hh * 0.07, sy - hh * 1.06, hh * 0.14, hh * 0.07); }
-  if (p.dog) { x.fillStyle = rgb(shade(col, -0.2)); x.fillRect(sx + p.dir * hh * 0.35 - hh * 0.09, sy - hh * 0.2, hh * 0.22, hh * 0.1); }
-  if (rim) { x.fillStyle = rgb(rim, 0.55); x.fillRect(sx + (rim.side || 1) * w * 0.4, sy - hh * 0.82, Math.max(0.6, w * 0.1), hh * 0.44); }
-  return { x: sx - w / 2, y: sy - hh, w, h: hh };
-}
-
-/** a placeholder vehicle seen side-on: body, cabin, wheels */
-export function vehicle(x, cam, v, col, { cabin = 0.55, win = null, bus = false } = {}) {
-  const [a, ay] = project(cam, v.x - v.len / 2, 0.25, v.z), [b, by] = project(cam, v.x + v.len / 2, v.h, v.z), s = cam.F / v.z;
-  const w = b - a, hgt = ay - by;
-  x.fillStyle = rgb(col);
-  if (bus) { x.beginPath(); x.roundRect(a, by, w, hgt, s * 0.35); x.fill(); }
-  else {
-    x.beginPath(); x.roundRect(a, by + hgt * 0.42, w, hgt * 0.58, s * 0.2); x.fill();
-    const c0 = a + w * (v.dir > 0 ? 0.22 : 0.78 - cabin), cw = w * cabin;
-    x.beginPath(); x.roundRect(c0, by, cw, hgt * 0.5, s * 0.25); x.fill();
-  }
-  if (win) { x.fillStyle = rgb(win); if (bus) for (let i = 0; i < 6; i++) x.fillRect(a + w * (0.08 + i * 0.145), by + hgt * 0.16, w * 0.11, hgt * 0.3); else x.fillRect(a + w * (v.dir > 0 ? 0.27 : 0.27), by + hgt * 0.1, w * 0.46, hgt * 0.3); }
-  x.fillStyle = '#0b0b12';
-  for (const f of [0.18, 0.82]) { x.beginPath(); x.arc(a + w * f, ay, Math.max(1.2, s * 0.36), 0, Math.PI * 2); x.fill(); }
-  return { x: a, y: by, w, h: hgt };
-}
+// (FP3a, FREV H4 / H5: the placeholder person + vehicle are gone — 8P's folk.js draws the people, bus.js the bus)

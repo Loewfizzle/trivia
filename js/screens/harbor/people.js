@@ -12,10 +12,10 @@
 // a distant laugh from a pair chatting now and then, the cart's bell, the lobby line's murmur, the rooftop party's bed, the bus.
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
-import { FOLK, folkMap, folkAt, roofAt, roofMap, linePlaces, lineRect } from '../../core/harbor-people.js';
+import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect } from '../../core/harbor-people.js';
 import { lookOf, drawFolk, drawDog, drawLeash, jointsOf } from './folk.js';
 import { drawBus } from './bus.js';
-import { lightField, lightSources, sunShadow } from './stage.js';
+import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
 import { frontProfile } from './strings.js';
 import { SPEAK_V } from '../../core/harbor-speakeasy.js';
 
@@ -87,7 +87,7 @@ export function createPeople() {
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ));
     }
     const buses = pass === 'far' ? now.buses : [];
-    if (!items.length && !buses.length) { if (pass === 'near' && env.snd) sounds(env, items); if (pass === 'far' && env.snd) busSounds(env); return; }
+    if (!items.length && !buses.length) return;
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);
     // far first; a bus is one item at its own depth
@@ -106,8 +106,14 @@ export function createPeople() {
     }
     for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E); }
     c.restore();
-    if (pass === 'near' && env.snd) sounds(env, items);
-    if (pass === 'far' && env.snd) busSounds(env);
+  }
+  /** FP3a (FREV H3 — no sound inside a painter): the footsteps, the laughs, the cart, the line, the roof, the bus — every frame the
+   *  scene runs (after frame()), whether or not the people were drawn this frame */
+  function tick(env) {
+    if (!L || !env || !env.snd) return;
+    const near = [...now.members, ...lineMembers(env.t || 0)].filter(m => m.s.z <= FOLK.roadZ);
+    sounds(env, near);
+    busSounds(env);
   }
   const roofY = () => L.speakeasy.h;
   // the roof's clip: the sky ABOVE the building's front silhouette, as ONE small polygon over the deck (a whole-screen even-odd path
@@ -155,7 +161,7 @@ export function createPeople() {
     for (const id of [...busSt.keys()]) if (!seen.has(id)) { busSt.delete(id); snd.bus('gone', {}); }
   }
   return {
-    layout, frame, draw,
+    layout, frame, draw, tick,
     /** Lobby 2.0: n guests in the line at the speakeasy's door (0 = none) */
     line(n) { lineN = Math.max(0, Math.min(12, Math.round(n || 0))); },
     /** 6b's director: the street's share of its people (0..1) */
@@ -167,4 +173,3 @@ export function createPeople() {
     destroy() { cache.clear(); roofCache.clear(); looks.clear(); },
   };
 }
-void roofMap;

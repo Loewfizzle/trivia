@@ -23,7 +23,9 @@ import { partyAt } from './harbor-moments.js';
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
 export const FOLK = Object.freeze({
   block: 480, cap: 12, roofCap: 6, h: 2.1,
-  speed: { walk: 1.5, brisk: 1.9, stroll: 1.05, jog: 3.1, kid: 1.75, line: 0.9 },
+  // (FP3a, the owner's 8P note 4 — "they walk too fast": the everyday pace ~25 % slower, a relaxed 1920s stroll; strollers + couples
+  // the slowest, commuters brisker, joggers clearly faster; each person ±12 % of their gait: planVisit)
+  speed: { walk: 1.15, brisk: 1.5, stroll: 0.8, jog: 3.1, kid: 1.35, line: 0.7 },
   zMin: 38.75, zMax: 52.25, curbZ: 53.2, roadZ: 53.6, farZ: 63.55, doorZ: 43.55, busZ: 55.4,
 });
 
@@ -46,7 +48,7 @@ export const MIX = Object.freeze([
 export const MOOD = Object.freeze({ party: 3.2, partyN: 1.3, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2 });
 
 /** the period at local hour h (0..24, a weekend shifts the evening on by MOOD.lateShift) */
-export function periodAt(h, weekend = false) {
+function periodAt(h, weekend = false) {
   let x = h < MIX[0].from ? h + 24 : h;
   if (weekend && x >= 18.5 && x < 26 + MOOD.lateShift) x = x - MOOD.lateShift < 18.5 ? 18.6 : x - MOOD.lateShift;   // (the evening runs later)
   return MIX.find(p => x >= p.from && x < p.to) || MIX[0];
@@ -163,7 +165,7 @@ const pathLen = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += Ma
 // ------------------------------------------------------------------ THE CROSSING: wait for WALK (core/harbor-promenade.js#signalAt)
 /** the next moment (s, absolute) at or after t when a walker may start across: in the WALK phase, early enough to be over before the
  *  blinking WAIT ends (`cross` s to cross — a walker may finish during the blink, never start in it) */
-export function walkStart(t, cross = 8) {
+function walkStart(t, cross = 8) {
   let u = t;
   for (let i = 0; i < 14; i++) {
     const S = signalAt(u * 1000);
@@ -176,8 +178,11 @@ export function walkStart(t, cross = 8) {
 const crossV = v => Math.max(v, FOLK.speed.brisk * 0.85);
 
 // ------------------------------------------------------------------ THE BUS (a 1920s bus on the back road: arrive, stop, pull away)
-/** the bus's numbers: its length (units), cruising speed, braking + pulling-away (units / s²), dwell at the stop (s) */
-export const BUS = Object.freeze({ len: 7.8, v: 6.5, brake: 2.2, go: 1.4, dwell: [16, 26], perHour: { day: [2, 4], late: [1, 1], night: [0, 0] } });
+/** the bus's numbers: its length (units), cruising speed, braking + pulling-away (units / s²), the riders' timing at the stop (s) */
+// (FP3a, the owner's 8P note 12 — "the door stays open far too long": the stop is the riders' — off first (offAt, offGap), then the
+// boarders' window (board s, when someone boards), the door SHUTS 3–5 s after the LAST rider (folkAt#doorShut, from the riders the
+// planner really placed) and the bus pulls away on the next green after a beat (go0) — its departure planned for the latest shut)
+export const BUS = Object.freeze({ len: 7.8, v: 6.5, brake: 2.2, go: 1.4, offAt: 2.2, offGap: 1.5, board: 6, shut: [3, 5], go0: 1, perHour: { day: [2, 4], late: [1, 1], night: [0, 0] } });
 /**
  * The buses of local hour `hour` on day `key` (PURE): [{ id, tE (enters the screen, s abs), tA (stops), tD (pulls away), tX (gone),
  * x(t) (its centre, world), riders: { off, on } }]. It comes from behind the speakeasy (left), stops at the curb just short of the
@@ -194,13 +199,16 @@ export function busesOf(L, key, hour, t0, { force = false } = {}) {
   const through = (cw.x1 + 0.4) - (xc - B.len / 2), tThrough = Math.sqrt(2 * Math.max(0, through) / B.go) + 0.5;
   for (let i = 0; i < n; i++) {
     const tA = t0 + (force ? i + 0.25 : i + 0.15 + r() * 0.7) * 3600 / n, tE = tA - tBr - dCruise / B.v, tb = tA - tBr;
-    // the dwell, then away on GREEN with time to clear the crossing (else it waits for the next green)
-    let tD = tA + B.dwell[0] + r() * (B.dwell[1] - B.dwell[0]);
+    // the riders: off first (one every offGap from offAt), then the boarders' window [tB, tB + board] (only when someone boards: on);
+    // the door shuts 3–5 s after the last rider; then away on GREEN with time to clear the crossing (else the next green)
+    const off = hour >= 6 && hour < 23 ? Math.floor(r() * 3.2) : Math.floor(r() * 1.5), on = Math.floor(r() * 3);
+    const tB = tA + B.offAt + off * B.offGap, last = on ? tB + B.board : off ? tA + B.offAt + (off - 1) * B.offGap : tA + 1;
+    const tShut = last + B.shut[1];                    // (the latest the door can shut: the departure waits for it)
+    let tD = tShut + B.go0;
     for (let k = 0; k < 40; k++) { const S = signalAt(tD * 1000); if (S.road === 'green' && S.left >= tThrough + 1) break; tD += S.road === 'green' ? S.left + 0.05 : S.left + 0.05; }
     const dGo = xOut - xc, tGo = Math.sqrt(2 * dGo / B.go);
     const x = tt => (tt <= tE ? xIn : tt < tb ? xIn + (tt - tE) * B.v : tt < tA ? (u => xIn + dCruise + B.v * u - 0.5 * B.brake * u * u)(tt - tb) : tt < tD ? xc : xc + 0.5 * B.go * (tt - tD) * (tt - tD));
-    out.push({ id: `bus-${key}-${hour}-${i}`, tE, tA, tD, tX: tD + tGo, xc, len: B.len, z: FOLK.busZ + 0.9, x,
-      riders: { off: hour >= 6 && hour < 23 ? Math.floor(r() * 3.2) : Math.floor(r() * 1.5), on: Math.floor(r() * 3) } });
+    out.push({ id: `bus-${key}-${hour}-${i}`, tE, tA, tB, tShut, tD, tX: tD + tGo, xc, len: B.len, z: FOLK.busZ + 0.9, x, riders: { off, on } });
   }
   return out;
 }
@@ -245,9 +253,9 @@ export const KINDS = {
  * A visit's itinerary from its goals, starting at t (s abs) → { legs: [{ k: 'walk', pts, t0, t1, v } | { k: 'pose', pose, x, z, t0,
  * t1, face } | { k: 'fade', x, z, t0, t1, out: bool }], t0, t1 } or null when it can't be laid out (a closed shop, no bus).
  */
-export function planVisit(spec, t, M, ctx = {}) {
+function planVisit(spec, t, M, ctx = {}) {
   const F = FOLK, r = ctx.r || Math.random, legs = [], rain = ctx.rain || 0;
-  const v = F.speed[spec.gait] * (1 + MOOD.rainFast * rain) * (0.92 + r() * 0.16);
+  const v = F.speed[spec.gait] * (1 + MOOD.rainFast * rain) * (0.88 + r() * 0.24);
   let cur = ctx.start ? { ...ctx.start } : null, now = t;
   const walkTo = (p, vv = v) => { const pts = route(M, cur, p), len = pathLen(pts); if (len < 0.05) { cur = p; return; } legs.push({ k: 'walk', pts, t0: now, t1: now + len / vv, v: vv }); now += len / vv; cur = { x: p.x, z: p.z }; };
   const exitPt = side => { const ex = M.exits[side]; return Array.isArray(ex) ? ex[Math.floor(r() * ex.length)] : ex; };
@@ -285,10 +293,13 @@ export function planVisit(spec, t, M, ctx = {}) {
       walkTo({ x: d.x + (r() - 0.5) * 0.3, z: F.doorZ - 0.5 }); walkTo({ x: cur.x, z: F.doorZ + 0.25 }, v * 0.7);
       legs.push({ k: 'fade', x: cur.x, z: cur.z, t0: now, t1: now + 0.7, out: true, door: g.door }); now += 0.7;
     } else if (g.bus) {
-      const bus = (ctx.buses || []).find(b => b.tA > now + 8 && b.tA < now + 240);
+      // (a bus someone boards — riders.on — with time to walk to the stop; they step up in its boarders' window, right after the
+      // riders off: the door shuts 3–5 s after them — FP3a)
+      const bus = (ctx.buses || []).find(b => b.riders.on > 0 && b.tB > now + 20 && b.tA < now + 240);
       if (!bus) return null;
       walkTo({ x: M.nodes.busStop.x + (r() - 0.3) * 0.9, z: M.nodes.busStop.z - r() * 0.25 });
-      const tb = bus.tD - 3.5 - (ctx.boardN || 0) * 1.4;
+      if (now > bus.tB + 1.4) return null;                 // (too slow to make it: no such visit)
+      const tb = bus.tB + r() * 1.4;
       if (tb > now) { legs.push({ k: 'pose', pose: r() < 0.5 ? 'wait' : 'watch', x: cur.x, z: cur.z, t0: now, t1: tb, face: -1 }); now = tb; }
       // (to the door: a few direct steps from the kerb — the stop is right beside it)
       const door = { x: bus.x(bus.tA) + bus.len / 2 - 0.9, z: F.busZ }, pts = [cur, { x: door.x + 0.15, z: F.curbZ }, door], dl = pathLen(pts);
@@ -310,7 +321,7 @@ export function planVisit(spec, t, M, ctx = {}) {
  * Where a visit's lead is at t → { x, z, pose ('walk' | a pose), dir (−1 left, 1 right, 0 toward the water), dist (along its walk —
  * the stride's phase: never sliding), v, a (0..1 — fading through a door / onto the bus), leg } or null (not on screen).
  */
-export function visitAt(vis, t) {
+function visitAt(vis, t) {
   if (t < vis.t0 || t >= vis.t1) return null;
   let dist = 0, lastDir = 1;
   for (const lg of vis.legs) {
@@ -353,7 +364,7 @@ const tailOf = m => Math.max(0, ...m.map(x => x.lag));
  * rain, budget, shopOpen(t), buses(t0, t1), others (the occupancy to respect: [{ t0, t1, n }]) } → [{ id, kind, look, gait, t0, t1,
  * legs, members }]
  */
-export function blockVisits(phase, k, M, ctx = {}) {
+function blockVisits(phase, k, M, ctx = {}) {
   const B = FOLK.block, t0 = k * B + (phase ? B / 2 : 0), t1 = t0 + B, loc = localOf(t0 + B / 2, ctx.off);
   const r = rngFrom(hashString(`folk|${ctx.seed || 1924}|${loc.key}|${phase}|${k}`));
   const party = ctx.party ? ctx.party(t0 + B / 2) : partyAt(loc.dow, loc.h);
@@ -381,10 +392,10 @@ export function blockVisits(phase, k, M, ctx = {}) {
   return out;
 }
 /** the bus riders of a bus (PURE): who steps off at the stop + walks away; who boards (planned by blockVisits via { bus: true }) */
-export function busRiders(bus, M, ctx = {}) {
+function busRiders(bus, M, ctx = {}) {
   const r = rngFrom(hashString(`riders|${bus.id}`)), out = [];
   for (let i = 0; i < bus.riders.off; i++) {
-    const t = bus.tA + 2.2 + i * 1.5, door = { x: bus.x(bus.tA) + bus.len / 2 - 0.9, z: FOLK.busZ };
+    const t = bus.tA + BUS.offAt + i * BUS.offGap, door = { x: bus.x(bus.tA) + bus.len / 2 - 0.9, z: FOLK.busZ };
     const spec = { look: r() < 0.5 ? 'commuter' : r() < 0.5 ? 'lady' : 'walker', gait: 'walk', goals: [{ from: 'bus' }, { at: { x: door.x + 0.7, z: FOLK.curbZ - 0.3 } }, ...(r() < 0.3 ? [{ door: 'shop' }] : [{ exit: r() < 0.25 ? 'cross' : 'any' }])] };
     const vis = planVisit(spec, t, M, { r, rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(t) : true });
     if (!vis) continue;
@@ -405,6 +416,15 @@ export function folkAt(t, world, cache = new Map()) {
   const hourBuses = hAbs => get(`bus|${hAbs}|${ctx.forceBus ? 1 : 0}`, () => { const loc = localOf(hAbs * 3600 + 1, ctx.off); return busesOf(L, loc.key, Math.floor(loc.h), hAbs * 3600 - (((ctx.off || 0) * 60) % 3600 + 3600) % 3600, { force: !!ctx.forceBus }); });
   const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600); };
   const riders = bus => get(`riders|${bus.id}`, () => busRiders(bus, M, ctx));
+  // (FP3a: the bus's door shuts 3–5 s after the LAST rider the planner placed — off or on — seeded per bus; never after the departure)
+  const doorShut = b => get(`shut|${b.id}`, () => {
+    let last = b.tA + 1;
+    const k0 = Math.floor(b.tB / B);
+    for (let k = k0 - 1; k <= k0 + 1; k++) for (const v of [...A(k), ...Bv(k)]) for (const lg of v.legs) if (lg.k === 'fade' && lg.bus === b.id) last = Math.max(last, lg.t1);
+    for (const v of riders(b)) for (const lg of v.legs) if (lg.k === 'fade' && lg.bus === b.id) last = Math.max(last, lg.t1);
+    const r = rngFrom(hashString(`shut|${b.id}`));
+    return Math.min(b.tD - 0.5, last + BUS.shut[0] + r() * (BUS.shut[1] - BUS.shut[0]));
+  });
   const cx = { ...ctx, buses: busesNear };
   const occOf = vs => vs.map(v => ({ t0: v.t0, t1: v.tEnd || v.t1, n: heads(v.members) }));
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))) }); });
@@ -432,7 +452,7 @@ export function folkAt(t, world, cache = new Map()) {
       members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, m, s: { ...s, dir, x: s.x + (m.role === 'lead' ? 0 : off.x), z: s.z + (m.role === 'lead' ? 0 : off.z) } });
     }
   }
-  return { visits: all, members, buses: buses.map(b => ({ ...b, xNow: b.x(t), door: t >= b.tA + 0.8 && t < b.tD - 0.8 })) };
+  return { visits: all, members, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
 }
 
 // ------------------------------------------------------------------ THE LOBBY LINE (Lobby 2.0's hook — the owner's "LINE AT THE SPEAKEASY")
@@ -490,7 +510,7 @@ export function roofMap(L) {
  * summer weekend nights: guests (dancing in pairs, a toast, at the bar cart, at the parapet); otherwise 0–1 (someone stepping out for
  * the view; the gardener by day in the growing months). ctx: { off, seed, party(t), rain }
  */
-export function roofVisits(phase, k, L, ctx = {}) {
+function roofVisits(phase, k, L, ctx = {}) {
   const B = 600, t0 = k * B + (phase ? B / 2 : 0), t1 = t0 + B, loc = localOf(t0 + B / 2, ctx.off), R = roofMap(L), F = FOLK;
   const r = rngFrom(hashString(`roof|${ctx.seed || 1924}|${loc.key}|${phase}|${k}`));
   const party = ctx.party ? ctx.party(t0 + B / 2) : partyAt(loc.dow, loc.h), crowd = roofCrowd({ h: loc.h, dow: loc.dow, month: loc.month, party, rain: ctx.rain || 0 });

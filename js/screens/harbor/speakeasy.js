@@ -36,11 +36,11 @@ const GLASS_IN = 0.16;                   // a window's recess (exaggerated a lit
  *  than SP2's single one, so together they wash the shopfront EVENLY; crisp SOURCES — a small brass shade hung under the valance's
  *  scallops with a lit bulb + a tight halo (live) — and their light landing on the canvas, the shopfront, the pavement (baked). The
  *  barber pole stays the brightest light on the front (tested). */
-export const AWNING_LAMP = Object.freeze({ us: [2.5, 5.6, 7.85], k: 0.72, reach: 1.45, cream: 0.3, red: 0.14, rim: 0.55, drop: 0.03, bulb: 0.07, halo: 0.34 });
+const AWNING_LAMP = Object.freeze({ us: [2.5, 5.6, 7.85], k: 0.72, reach: 1.45, cream: 0.3, red: 0.14, rim: 0.55, drop: 0.03, bulb: 0.07, halo: 0.34 });
 /** the awning lamps' bulbs (wall units u across + world y / z): just under the valance's foot */
 /** 8P — the valance's depth (world units; was 0.42: it hid the window's head — the gold arch + the sign need the room) */
-export const VAL = 0.34;
-export const awningBulbs = aw => AWNING_LAMP.us.map(u => ({ u, y: aw.y1 - VAL - AWNING_LAMP.drop, z: aw.z + 0.05 }));
+const VAL = 0.34;
+const awningBulbs = aw => AWNING_LAMP.us.map(u => ({ u, y: aw.y1 - VAL - AWNING_LAMP.drop, z: aw.z + 0.05 }));
 export const SHOP_GLOW = Object.freeze({ lamp: 0.2, sconce: 0.24, landR: 0.95 });   // (SP2: tighter — a few pt)
 
 // ------------------------------------------------------------------ geometry
@@ -254,7 +254,6 @@ function paintDateStone(x, M, cm, hi, lo) {
     R(x, cm - 0.25, D.v0 - 0.16, cm + 0.25, D.v0 - 0.08, M.iron);                     // (the little lamp's hood on the cornice)
     text(x, D.text, cm, D.v0 + (D.v1 - D.v0 - D.cap) / 2 + 0.02, D.cap / 0.72, { fill: rgb(mix(carve, [30, 18, 16], 0.5)), sq: 1.05, font: (px, w = 800) => `${w} ${px}px "Chakra Petch", Orbitron, sans-serif` });
   }
-  void lo;
 }
 
 /** an upper window, by day (the sky in the glass, a shade at its height, curtains) or dark (the night's base: the lit layer
@@ -436,7 +435,7 @@ function paintGround(x, M, s) {
 
 /** THE GOLD LEAF on the shop window: "HARBOR BARBERS" arched, "SHAVE & HAIRCUT" under it — gilt with a dark keyline and a shade, a
  *  little faded (in wall units; the bake paints it on the glass, the live layer lays it again over whatever moves inside) */
-export function paintGilt(x, M, sh) {
+function paintGilt(x, M, sh) {
   const [w0, w1, , wv1] = sh.win, G0 = GILT;
   // (8P — THE BARBERSHOP FRONT WAS BLURRY, the owner's biggest note: the letters were ~3 pt caps with a drop-shade offset by under a
   // point — at phone size that read as a double image, a smear. Now bigger, ONE crisp dark keyline round a clean gold fill, no offset
@@ -584,7 +583,7 @@ function paintIvyBed(x, M) {
  *  the parapet (the classic blade tops the cornice) — ~25 × 112 pt on a 402 phone (was 24 × 102, its letters ~30 % narrower). */
 export const BLADE = Object.freeze({ w: 0.42, out: 0.22, bw: 1.86, v0: 2.75, v1: 11.0 });
 /** the lit letters' glow (pt — tight: the letter stays crisp, never a haze) */
-export const BLADE_GLOW = 1.6;
+const BLADE_GLOW = 1.6;
 export function bladeGeo(G) {
   const B = BLADE, [ox, oy] = G.side(B.w, 0, B.out), z = G.zAt(B.w), k = G.cam.F / z;
   const [x0, y0] = G.side(B.w, B.v1, B.out), [x1, y1] = G.side(B.w, B.v0, B.out + B.bw);
@@ -625,7 +624,7 @@ export const LETTER = Object.freeze({ fill: 0.86, tall: 1.5, wide: 1.9, gap: 0.0
 /** 8P — a long ONE-WORD name reads as two stacked columns at its seam (the owner: SLIPSTREAM was ~8.6 pt, under the 10 pt rule; one
  *  column of 9–10 letters can't get bigger on a ~25 pt board): SLIP / STREAM like the two-word names. Unknown long words split at
  *  their middle; ≤ BLADE_ONE letters stay one column. */
-export const BLADE_SPLIT = Object.freeze({ SLIPSTREAM: ['SLIP', 'STREAM'], RUMRUNNER: ['RUM', 'RUNNER'], OVERCLOCK: ['OVER', 'CLOCK'] });
+const BLADE_SPLIT = Object.freeze({ SLIPSTREAM: ['SLIP', 'STREAM'], RUMRUNNER: ['RUM', 'RUNNER'], OVERCLOCK: ['OVER', 'CLOCK'] });
 export const BLADE_ONE = 8;
 export function bladeWords(name) {
   const words = String(name || '').toUpperCase().split(/\s+/).filter(Boolean).slice(0, 2);
@@ -898,7 +897,7 @@ export const polePhase = (a, t) => { const v = a.ph + Math.max(0, t - a.t) * a.r
 export const poleAnchor = (a, t, rate, ph0 = 0.3) => (a && Math.abs(a.rate - rate) < 1e-9 && t >= a.t ? a : { t, ph: a ? polePhase(a, t) : ph0, rate });   // (a clock that went back: re-anchored, held)
 /** the helix's stripes at a point (PURE): v = the distance along the glass in the helix's frame (pt), band (pt), w = the pixel's
  *  footprint along v (pt: a box filter — the analytic antialiasing) → [red, blue] coverage 0..1 (the rest: the white) */
-export const POLE_RISE = 0.9, POLE_TH = 0.42;          // (a helix's rise across the glass's front, the stripe's thickness — in bands)
+const POLE_RISE = 0.9, POLE_TH = 0.42;          // (a helix's rise across the glass's front, the stripe's thickness — in bands)
 export function poleStripe(v, band, w) {
   const P = 2 * band, TH = POLE_TH * band, hw = Math.max(1e-4, w) / 2;
   const seg = a => { let u = v - a; u -= Math.floor(u / P) * P; let s = 0; for (const o of [-P, 0, P]) s += Math.max(0, Math.min(u + hw, o + TH) - Math.max(u - hw, o)); return Math.min(1, s / (2 * hw)); };
@@ -938,9 +937,9 @@ export function poleHalo(d, r) {
  * painter over a window).
  */
 export function createSpeakeasy() {
-  let G = null, dpr = 1, wins = [], box = null, litCv = null, adCv = null, litKey = '', adKey = '', basement = null;
+  let G = null, dpr = 1, wins = [], box = null, litCv = null, litKey = '', basement = null;
   const own = new Map(), drawers = new Map();
-  let mirror = 0, lastK = -1;
+  let mirror = 0, lastK = -1;   // (mirror: the hidden door's hook — FP3b's real doors read it; lastK: debug().k)
   // PART 7b — THE LIFE: the window moments, the rooms' states, the taps (screens/harbor/windows.js; the plan: core/harbor-moments.js)
   const life = createWindowLife();
   // 8P — THE HUSH WORD SIGN in the shop window (hushsign.js; Lobby 2.0: hush(word))
@@ -956,7 +955,7 @@ export function createSpeakeasy() {
     box = { x: Math.max(0, Math.floor(bx0)), y: Math.floor(by0), w: Math.ceil(Math.min(G.cam.W, bx1) - Math.max(0, bx0)) + 1, h: Math.ceil(by1 - by0) + 1 };
     const [b0, b1, bv0, bv1] = s.shop.basement, [p, py] = G.front(b0, bv1), [q, qy] = G.front(b1, bv0);
     basement = { x: p, y: py, w: q - p, h: qy - py };
-    litKey = adKey = bladeKey = '';
+    litKey = bladeKey = '';
     hush.layout(G, { dpr });
   }
   // the window's level now: its own (a hook) or the timeline's (core/harbor-speakeasy.js#roomLight)
@@ -1145,8 +1144,13 @@ export function createSpeakeasy() {
     }
     c.restore();
   }
-  function draw(c, f) {
+  // FP3a (FREV H1) — THE FACADE'S ONE POWER HOOK: power(k) dims every light on the building at once — the rooms (k), the blade +
+  // its bulbs (lamp), the sconce + the awning's lamps, the barber pole, the basement, the hush sign. 1 = untouched (the frame f
+  // passes through as it is); 8b's raid drives it (harbor().raid → speak.power)
+  let power = 1;
+  function draw(c, f0) {
     if (!G) return;
+    const P = power, f = P >= 1 ? f0 : { ...f0, k: clamp01(f0.k) * P, lamp: (f0.lamp || 0) * P, sconce: clamp01(f0.sconce == null ? f0.k : f0.sconce) * P, pole: clamp01(f0.pole == null ? f0.k : f0.pole) * P };
     const fade = f.fade == null ? 1 : f.fade;
     c.save();
     const k = clamp01(f.k) * fade; lastK = k; lastT = f.t || 0; lastGame = f.game || null;
@@ -1167,13 +1171,12 @@ export function createSpeakeasy() {
     }
     // PART 7b — THE LIFE: the people, the cat, the TV, the night lamp, the bar's afternoon + last light, the shop's day, the mirror door
     c.globalAlpha = 1;
-    const [ox, oy] = G.front(0, 0), d = G.s.shop.door;
+    const [ox, oy] = G.front(0, 0);
     life.draw(c, { map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
-    void d;
     // 8P — THE HUSH WORD SIGN: bare neon tubes inside the lower-right upstairs window (the jazz room — its life shows between the letters),
     // only while a lobby is open (hushsign.js); the window's meeting rail laid back over them (they hang inside the glass)
     { if (f.hush !== undefined) hush.set(f.hush);
-      hush.draw(c, { t: f.t || 0, T: f.tw || { day: 1 - k, gold: 0, night: k }, fade, motion: f.motion });
+      hush.draw(c, { t: f.t || 0, T: f.tw || { day: 1 - k, gold: 0, night: k }, fade: fade * P, motion: f.motion });
       if (hush.debug().text) { const [a, b] = G.s.windows[2], [r0, r1] = G.s.rows[0], h0 = r0 + 0.12, h1 = r1 - 0.06, rail = h0 + (h1 - h0) * SASH_RAIL;
         c.save(); wallMap(c, ox, oy, G.K); c.globalAlpha = fade; R(c, a + 0.18, rail - 0.025, b - 0.05, rail + 0.025, k > 0.3 ? 'rgb(26,18,20)' : 'rgb(30,48,42)'); c.restore(); } }
     // THE GOLD LEAF on the glass — once (8P), over the shop's life + the sign inside
@@ -1203,7 +1206,7 @@ export function createSpeakeasy() {
     // (the light warming + dimming as they pass), a gentle pulse with the beat on party nights (the music's heart is down there), a very
     // rare brief flicker (an old wire). basementLight() is PURE (tested).
     { const b = basement, t = f.t || 0, pt = f.party, beat = pt && f.motion ? clamp01(pt.ramp == null ? 1 : pt.ramp) * clamp01(pt.punch || 0) : 0;
-      const L0 = basementLight(f.motion ? t : 0, { night: clamp01(f.night), beat });
+      const L1 = basementLight(f.motion ? t : 0, { night: clamp01(f.night), beat }), L0 = P >= 1 ? L1 : { ...L1, a: L1.a * P };
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, L0.a * fade);
       const g = c.createLinearGradient(0, b.y, 0, b.y + b.h); g.addColorStop(0, rgb(BASEMENT.top)); g.addColorStop(0.55, rgb(BASEMENT.mid)); g.addColorStop(1, rgb(BASEMENT.low));
       c.fillStyle = g; c.fillRect(b.x, b.y, b.w, b.h);
@@ -1251,6 +1254,8 @@ export function createSpeakeasy() {
     windows: () => wins.map(w => ({ id: w.id, room: w.room, floor: w.floor, col: w.col, edge: !!w.edge, rect: { ...w.rect } })),
     light(id, k) { if (k == null) own.delete(id); else own.set(id, clamp01(k)); },
     mirror(k) { mirror = clamp01(k || 0); },
+    /** FP3a: every light on the facade × k (0 = dark, 1 = as the night has it) → the level now; power() reads it */
+    power(k) { if (k !== undefined) power = clamp01(+k); return power; },
     /** the barber pole: { on: false } dark + still (7b's raid), { on: true } back to its lamp + its turn */
     pole(o = {}) { if ('on' in o) poleOff = !o.on; },
     roomDraw(id, fn) { if (fn) drawers.set(id, fn); else drawers.delete(id); },
@@ -1261,7 +1266,7 @@ export function createSpeakeasy() {
     life: () => life.debug(),
     /** PART 7b: the speakeasy's sound beds now (sounds.js#speakeasy): { club, tv, party } */
     beds: () => bedsNow,
-    debug: () => ({ basement: basementDbg ? { a: +basementDbg.a.toFixed(3), shadows: basementDbg.shadows.length, flick: basementDbg.flick } : null, marquee: G && lastGame ? marqueeScreen(bladeGeo(G)).map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1) })) : [], poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(4), poleRate: poleA ? +poleA.rate.toFixed(3) : 0, polePx, box, dpr, k: lastK, lit: !!litCv, adLit: !!adCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (adCv ? adCv.width * adCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
-    destroy() { life.destroy(); hush.destroy(); for (const cv of [litCv, adCv, bladeCv, poleCv, haloCv, giltCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = adCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
+    debug: () => ({ basement: basementDbg ? { a: +basementDbg.a.toFixed(3), shadows: basementDbg.shadows.length, flick: basementDbg.flick } : null, marquee: G && lastGame ? marqueeScreen(bladeGeo(G)).map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1) })) : [], poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(4), poleRate: poleA ? +poleA.rate.toFixed(3) : 0, polePx, box, dpr, k: lastK, lit: !!litCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
+    destroy() { life.destroy(); hush.destroy(); for (const cv of [litCv, bladeCv, poleCv, haloCv, giltCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
   };
 }

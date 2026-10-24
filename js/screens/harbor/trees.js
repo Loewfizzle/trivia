@@ -16,6 +16,7 @@ import { project } from '../../core/harbor-layout.js';
 import { PIECE } from '../../core/harbor-promenade.js';
 import { treePlan, envelopeOf, treeMix, BARK, FRUIT, LEAF } from '../../core/harbor-trees.js';
 import { rgb, mix } from './shapes.js';
+import { treeLamps } from '../../core/harbor-light.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -46,15 +47,8 @@ function rigOf(T, ctx, t) {
   const fl = flat * (d + g);
   const amb = [0.46 * d + 0.36 * g + 0.27 * n + 0.3 * fl, 0.52 * d + 0.3 * g + 0.22 * n + 0.3 * fl, 0.66 * d + 0.5 * g + 0.46 * n + 0.32 * fl];
   const lampK = ctx.lampK ?? clamp01(n * 1.1);
-  const lamps = [];
-  if (lampK > 0.01) for (const l of ctx.lights || []) {
-    if (Math.abs(l.x - t.x) > 10 || Math.abs(l.z - t.z) > 14) continue;
-    const tall = l.kind === 'tall', w = -(l.z - t.z);
-    const col = tall ? [0.84, 0.95, 1.2] : [1.35, 0.86, 0.46];
-    // (PF: a tall lamp 0.8 → 0.58 — the crabapple now stands right beside the left flanking lamp: its crown's side went one flat orange)
-    if (tall) for (const s of [-1, 1]) lamps.push({ x: l.x - t.x + s * PIECE.tall.arm, y: PIECE.tall.h - 0.45, w, col, k: 0.58 });
-    else lamps.push({ x: l.x - t.x, y: PIECE.globe.h + 0.18, w, col, k: 1.15 });
-  }
+  // (the lamps near the tree as local lights: core/harbor-light.js#treeLamps — FP3a, the one light model)
+  const lamps = lampK > 0.01 ? treeLamps(ctx, t) : [];
   // PF — THE UPLIGHT (the owner: the trees read at night): a small warm brass fixture in the grate, just in front of the trunk, aimed
   // up — a light with a SHORT reach (UPLIGHT.fall): the trunk + the crown's underside glow softly, the crown's top fades to dark
   if (lampK > 0.01 && t.grate) lamps.push({ x: UPLIGHT.u, y: 0.12, w: -UPLIGHT.dz, col: UPLIGHT.col, k: UPLIGHT.k, fall: UPLIGHT.fall, up: true });

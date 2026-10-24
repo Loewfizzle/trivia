@@ -81,7 +81,7 @@ export const PHONE = Object.freeze({
   // (PF placed a 1920s pillar box here — `mailbox: { f: 0.81, z: 38.6 }`; the owner didn't like the olive-green box: gone, Oct 24. props.js keeps the art.)
   mailbox: null,
 });
-/** PF: the vendor cart is HIDDEN until 8b brings the moving things (the owner likes it — its art + route are kept; L.cart.shown) */
+/** the vendor cart is SHOWN (8P brought it back, placed right of the inlay — PF had hidden it); false hides it (L.cart.shown) */
 export const CART_SHOWN = true;
 
 /**

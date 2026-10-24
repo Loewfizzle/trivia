@@ -82,13 +82,13 @@ for (const k of Object.keys(SIZES)) {
 
   test(`layout ${k}: the sizes`, () => {
     const { s, cam, L } = setup(k);
-    const person = ptAt(cam, units('person'), SIZE.person.z), bus = ptAt(cam, L.bus.len, L.bus.z);
+    const person = ptAt(cam, units('person'), SIZE.person.z), bus = ptAt(cam, units('bus'), SIZE.bus.z);   // (FP3a: the size rules for 8b's traffic — the parked placeholders are gone)
     if (!cam.wide) {
       // the SIZE rules on a phone held upright (390–430 pt follow the width)
       const f = s.W / REF.W;
       assert.ok(person > 24 * f && person < 30 * f, `person ${person}`);
       assert.ok(bus > 100 * f && bus < 120 * f, `bus ${bus}`);
-      assert.ok(ptAt(cam, L.cars[0].len, L.cars[0].z) > 48 * f && ptAt(cam, L.cars[0].len, L.cars[0].z) < 62 * f);
+      assert.ok(ptAt(cam, units('car'), SIZE.car.z) > 48 * f && ptAt(cam, units('car'), SIZE.car.z) < 62 * f);
       // (8a: the promenade at the owner's scale — the tall curb lamp ~70 pt, a curb maple's crown ~55 pt across)
       assert.ok(ptAt(cam, L.lamps[0].h, L.lamps[0].z) > 62 * f && ptAt(cam, L.lamps[0].h, L.lamps[0].z) < 78 * f);
       // (FP2: no curb maple on the phone any more — the rule holds for the panorama's curb maples; the phone's curb crabapple ~47 pt)
@@ -2337,7 +2337,8 @@ test('8a — THE IMPLIED ROAD: one car a slot at most, on the clock (the same fo
 // ------------------------------------------------------------------ PART 8a: THE PROPS' ART (props.js) — every prop, season and look
 // draws with real colours (never NaN), and the shadows follow the rules: a cast shadow only in the sun, the contact shadow always
 test('8a — the props draw in every season + look with finite colours; cast shadows only in the sun (none at night / overcast)', async () => {
-  const { drawBench, drawCart, drawPlanter, drawMedallion, propShadow } = await import('../js/screens/harbor/props.js');
+  const { drawBench, drawCart, drawMedallion, propShadow } = await import('../js/screens/harbor/props.js');
+  const { drawPlanter } = await import('../js/screens/harbor/props-garden.js');
   const { promenadeLayout } = await import('../js/core/harbor-promenade.js');
   const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = promenadeLayout(cam);
   const grad = { addColorStop() {} };
@@ -2681,7 +2682,8 @@ test("FP — THE BARBER POLE turns continuously: the same phase at 60 and 30 Hz,
 // the cart's umbrella, no parked bus, the lantern's post on the far kerb, the crabapple's seasons, the framing maple's inside)
 import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR, CART_SHOWN } from '../js/core/harbor-promenade.js';
 import { benchBox, umbrellaBox } from '../js/screens/harbor/props.js';
-import { PARKED_TRAFFIC, FAR_KERB, drawTraffic, drawLanternBody } from '../js/screens/harbor/road.js';
+import { FAR_KERB, drawLanternBody } from '../js/screens/harbor/road.js';
+import * as roadMod from '../js/screens/harbor/road.js';
 test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flanking tall lamps, the bench + its crabapple just left of the crossing (the blade free), the cart placed right of the inlay (8P), the centrepiece's height cap, the corner clean", () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { s, cam, L } = setup(k), f = s.W / 402, P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
@@ -2720,13 +2722,11 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     assert.equal(centrepieceCap(cam, m, [P(m.x, m.z)[1]]), 0, 'no room → 0');
   }
 });
-test('FP2 — no parked traffic (the bus waits for 8b); THE WALK / WAIT LANTERN on a proper post down to the far kerb, its foot in view', () => {
-  assert.equal(PARKED_TRAFFIC, false);
-  let drawn = 0; const ctx = new Proxy({}, { get: () => () => { drawn++; }, set: () => true });
+test('FP2 — no parked traffic (FP3a: the placeholders deleted — 8P’s bus.js drives the real bus); THE WALK / WAIT LANTERN on a proper post down to the far kerb, its foot in view', () => {
+  assert.ok(!('drawTraffic' in roadMod) && !('PARKED_TRAFFIC' in roadMod), 'no parked-traffic painter left');
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k);
-    drawTraffic(ctx, L, { night: 0, bus: [1, 2, 3], car: [1, 2, 3], glass: [1, 2, 3] });
-    assert.equal(drawn, 0, `${k}: nothing parked on the road`);
+    assert.ok(!('cars' in L) && !('bus' in L) && !('people' in L), `${k}: no placeholder cars / bus / people in the layout`);
     // the post: drawn down to the kerb's top (its footing stone), and that foot is above the promenade's back row (in view)
     const ln = L.crosswalk.lantern; let low = -1e9;
     const track = y => { if (Number.isFinite(y)) low = Math.max(low, y); };
@@ -3035,7 +3035,7 @@ test('PF — THE CENTREPIECE\'s state: cleaned (the rig on with a piece, its col
   assert.ok(centreActive(a) && !centreActive(c) && !centreActive(null), 'an EVENT = a piece standing there (8b: the cart stops short)');
 });
 test('PF — the centrepiece\'s sprite box holds the inlay + the piece\'s height; THE TEST PIECE stands within the cap on every phone', async () => {
-  const { TEST_PIECE } = await import('../js/screens/harbor/props.js');
+  const { TEST_PIECE } = await import('../js/screens/harbor/props-test.js');
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), m = L.medallion, P = (x, y, z) => project(cam, x, y, z);
     const bl = signSpots(L).find(sp => sp.id === 'n-blade'), cap = centrepieceCap(cam, m, [bl.rect.y + bl.rect.h, P(L.wheel.x, L.wheel.y, L.wheel.z)[1]]);
@@ -3047,7 +3047,7 @@ test('PF — the centrepiece\'s sprite box holds the inlay + the piece\'s height
   }
 });
 test('THE MAILBOX IS GONE (Oct 24, the owner: the olive-green box): no mailbox in the plan on any phone, no walkers\' block for it; the art stays in props.js', async () => {
-  const { mailboxBox } = await import('../js/screens/harbor/props.js');
+  const { mailboxBox } = await import('../js/screens/harbor/props-garden.js');
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k);
     assert.equal(L.mailbox, null, `${k}: no mailbox`);
@@ -3057,7 +3057,9 @@ test('THE MAILBOX IS GONE (Oct 24, the owner: the olive-green box): no mailbox i
   }
 });
 test('PF — the inlay, the mailbox\'s art + the test piece (+ its light pass) draw with finite colours in every look; the mailbox casts a shadow only in the sun', async () => {
-  const { drawInlay, drawMailbox, drawObelisk, obeliskLight, propShadow } = await import('../js/screens/harbor/props.js');
+  const { drawInlay, propShadow } = await import('../js/screens/harbor/props.js');
+  const { drawMailbox } = await import('../js/screens/harbor/props-garden.js');
+  const { drawObelisk, obeliskLight } = await import('../js/screens/harbor/props-test.js');
   const { cam, L: L0 } = setup('402x874'), grad = { addColorStop() {} };
   const L = { ...L0, mailbox: { x: L0.medallion.x + 1.6, z: 38.6 } };     // (the box is out of the plan; its art is still checked at its old spot)
   const rec = () => {

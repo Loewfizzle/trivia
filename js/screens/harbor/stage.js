@@ -6,12 +6,14 @@
 // This file: THE GROUND (granite setts whose tops catch the light, the curb band's pavers, the front curb, the asphalt) with the
 // lamps' POOLS baked into the stones at night (T.lamps — the lamps' ramp in sixths: no haze, no per-frame cost), the cast shadows
 // by day, THE LAMPS (crafted Deco ironwork + opal glass; their glass lit live: drawLampLight); the trees (trees.js) and the props
-// (props.js) are drawn from here; the people are placeholders (8b walks them).
+// (props.js) are drawn from here; the people are 8P's (people.js + folk.js, drawn live by the scene).
 import { project, groundY } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
-import { person, rgb, shade, mix } from './shapes.js';
+import { rgb, shade, mix } from './shapes.js';
 import { drawTree, treeShadow } from './trees.js';
-import { drawBench, drawCart, drawPlanter, drawMedallion, drawMailbox, propShadow } from './props.js';
+import { drawBench, drawCart, drawMedallion, propShadow } from './props.js';
+import { drawPlanter, drawMailbox } from './props-garden.js';
+import { pieceCtx, LIGHT, REACH, lightSources, lightField, sunShadow } from '../../core/harbor-light.js';
 import { paintSett, streetSteps, streetOver } from './street.js';
 
 const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.gold || 0) + n[i] * (T.night || 0));
@@ -19,9 +21,7 @@ const cl = v => (v < 0 ? 0 : v > 255 ? 255 : v);
 const addc = (c, l, k = 1) => [cl(c[0] + l[0] * k), cl(c[1] + l[1] * k), cl(c[2] + l[2] * k)];
 const mulc = (c, m) => [c[0] * m, c[1] * m, c[2] * m];
 
-/** what every piece's art gets (trees.js, props.js): the season + how far into it, the lamps (their light at night: lampK = the
- *  lamps' ramp baked), Part 9's hooks (snow on the ground + branches, a wet sheen) */
-export const pieceCtx = L => ({ season: L.season || 'autumn', phase: L.seasonPhase ?? 0.5, lights: L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), lampK: L.lampK || 0, snow: L.snow || 0, wet: L.wet || 0 });
+// (FP3a: pieceCtx, the pools' LIGHT / REACH, lightSources, lightField + sunShadow live in core/harbor-light.js — one light model)
 
 // ------------------------------------------------------------------ THE GROUND (baked into 'stage')
 // the granite setts (warm grey by day, rosy at golden hour, a deep violet-grey at night), the joints (sand + grime); the street
@@ -30,55 +30,6 @@ const SETT = { d: [154, 148, 140], g: [176, 130, 112], n: [64, 59, 86] };
 // (FP2 — THE COBBLES AT NIGHT, the owner's "piano keys": the joints a mid-tone GROUT of packed sand at night — was a near-black
 // [30, 28, 46] — lit by the lamps a little less than the stones' tops: paint below)
 const JOINT = { d: [112, 105, 97], g: [120, 86, 78], n: [54, 50, 66] };
-// the lamps' light per unit of T.lamps: the tall street lamps a clean cool white, the globes warm, the speakeasy's spill amber
-// FP — THE NIGHT LIGHT PLAN (the re-layout): cool pools under the two tall curb lamps (the back row, the road's edge, the bench), warm
-// pools from the two corner globes across the front of the open floor, the speakeasy's warm spill in front of it, the cart's
-// string-light glow round the cart, the medallion where they overlap; dim (never black) between, no haze
-// (FP2 — CRISP LIGHTS: the barber pole's cool LED light LANDS on the cobbles at its foot — a small cool pool, baked like the rest)
-const LIGHT = { tall: [150, 162, 184], globe: [236, 166, 88], spill: [196, 120, 54], cart: [226, 150, 70], pole: [140, 158, 200] };
-// PF — THE LAMPS RE-THOUGHT (the final layout: the tall pair flanking the crossing, the globes at the front corners, the cart hidden):
-// wider pools so the promenade reads EVERYWHERE people will walk, wait or line up (the bench, the inlay between the flanking lamps —
-// ~0.55 of a lamp's heart on its ring, the door's approach, the lobby line along the shopfront toward the bottom-left corner), dim
-// (never black) between; the tall pair a touch lower each (TALL_K) where their pools overlap on the curb. (tall 10.5 → 13.5, globe
-// 7.6 → 9.5, the speakeasy's spill 4.2 → 5.2 — the shopfront's line). Room left for 8b / holiday lights: the centre's rig.
-const REACH = { tall: 13.5, globe: 9.5, spill: 5.2, cart: 6, pole: 2.6 };
-const TALL_K = 0.85;
-
-/** the speakeasy's warm spill on the cobbles: its side door's sconce, the shop's one dim lamp through the big window (+ FP2: the
- *  barber pole's small cool pool) */
-function speakSpill(L) {
-  const s = L.speakeasy, z = s.z0 - 1.3;
-  return [{ x: s.x0 + (s.door.u0 + s.door.u1) / 2, z, kind: 'spill', k: 0.95 }, { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2, z, kind: 'spill', k: 0.5 },
-    ...(s.shop && s.shop.pole ? [{ x: s.x0 + s.shop.pole.u, z: s.z0 - 0.8, kind: 'pole', k: 0.6 }] : [])];
-}
-export const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: l.kind === 'tall' ? TALL_K : 1 })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];
-/** the light on the ground at (x, z) at night — every lamp's pool (overlapping: every path lit, the shadows between dim) + the
- *  speakeasy's spill; null by day (T.lamps 0) */
-export function lightField(L, T) {
-  const k = T.lamps || 0;
-  if (k < 0.01) return null;
-  const src = lightSources(L);
-  return (x, z) => {
-    let r = 0, g = 0, b = 0;
-    for (const s of src) {
-      const R = REACH[s.kind], dx = x - s.x, dz = (z - s.z) * 1.15, d2 = (dx * dx + dz * dz) / (R * R);
-      if (d2 >= 1) continue;
-      const f = (1 - d2) * (1 - d2) * s.k, c = LIGHT[s.kind];
-      r += c[0] * f; g += c[1] * f; b += c[2] * f;
-    }
-    return r + g + b > 0.5 ? [r * k, g * k, b * k] : null;
-  };
-}
-
-/** the sun's shadow on the ground for something h units tall: { dx, dz, a } (world units; a = its darkness) or null (night,
- *  overcast). The camera looks north across the harbor: a morning sun on the left throws shadows right, and away from us. */
-export function sunShadow(T, h) {
-  const day = (T.day || 0) + (T.gold || 0);
-  if (day < 0.15 || (T.ovc || 0) >= 0.5) return null;
-  const el = Math.max(6, T.sunEl || 30), len = Math.min(3.2, 1 / Math.tan(el * Math.PI / 180)) * h, sd = T.sunDir || 0;
-  return { dx: -sd * len * 0.9, dz: len * (0.35 + 0.4 * (1 - Math.abs(sd))), a: 0.3 * Math.min(1, day) * (1 - 0.6 * (T.ovc || 0)) };
-}
-
 /**
  * THE PAVING (baked, in small steps): THE STREET under the dock (FP2: street.js) + the promenade's granite front curb, the front walk +
  * the plaza's SETTS (rounded granite, exaggerated ~3× so they read on a phone like the bricks: stone by stone its own shade, the far
@@ -281,7 +232,7 @@ export function furnitureSteps(L, T, keep = null) {
     ...L.trees.map((t, i) => ({ z: t.z, heavy: true, f: x => drawTree(x, cam, t, T, { ...cx, i }) })),
     ...[L.bench, ...(L.bench.more || [])].map(b => ({ z: b.z, f: x => drawBench(x, cam, b, T, cx) })),
     ...L.planters.map(p => ({ z: p.z, f: x => drawPlanter(x, cam, p, T, cx) })),
-    ...(L.cart.shown !== false ? [{ z: L.cart.z, f: x => drawCart(x, cam, L.cart, T, cx) }] : []),   // (PF: hidden until 8b)
+    ...(L.cart.shown !== false ? [{ z: L.cart.z, f: x => drawCart(x, cam, L.cart, T, cx) }] : []),   // (8P: back, placed — CART_SHOWN)
     ...(L.mailbox ? [{ z: L.mailbox.z, f: x => drawMailbox(x, cam, L.mailbox, T, cx) }] : []),     // (PF: the 1920s pillar box)
   ].filter(it => !keep || keep(it)).sort((a, b) => b.z - a.z);
   const steps = [];
@@ -291,16 +242,6 @@ export function furnitureSteps(L, T, keep = null) {
   for (const it of items) { if (it.heavy) { flush(); steps.push(x => it.f(x)); } else { part.push(it); if (part.length === 3) flush(); } }
   flush();
   return steps;
-}
-
-const COATS = [[200, 50, 62], [60, 74, 106], [60, 122, 90], [224, 168, 58], [138, 79, 168], [42, 42, 54], [200, 66, 58], [30, 30, 40]];
-/** the people, far first (drawn every frame: Part 8 walks them; nobody under the dock) */
-export function drawPeople(c, L, T) {
-  const cam = L.cam, night = T.night > 0.5;
-  [...L.people].sort((a, b) => b.z - a.z).forEach((p, i) => {
-    const col = night ? shade(COATS[i % COATS.length], -0.55) : COATS[i % COATS.length];
-    person(c, cam, p, col, { hat: shade(col, -0.4), rim: night ? Object.assign([255, 210, 150], { side: p.x < 0 ? 1 : -1 }) : null });
-  });
 }
 
 /**
@@ -317,7 +258,6 @@ const GLASS_STOPS = { tall: ['236,244,255', '196,214,246'], globe: ['255,236,196
  * 1 when absent. The glass: a white-hot heart, the warm (globe) / cool-white (street lamp) opal, a crisp rim; a TIGHT halo.
  */
 export function drawLampLight(c, L, k, glow, cool = glow, dpr = 2, levels = null) {
-  void dpr;
   if (k < 0.02) return;
   L.lamps.forEach((l, li) => {
     const lv = levels ? levels[li] : 1;
@@ -352,4 +292,3 @@ export function dimPools(c, L, off, baked) {
   });
   c.restore();
 }
-export function freeLampLight() { /* (8P: the lit glass is drawn as vectors now — nothing cached) */ }

@@ -8,7 +8,7 @@
 //              standing on the inlay m (L.medallion); ctx = the props' ctx (season, lamps, snow…) + { cap, rig: { col, spots }, h }.
 //              light(): its own LIGHT PASS — only the rig's light landing on its faces (black elsewhere); without one the rig's
 //              light is laid on the piece's own pixels (its colour × the light, falling off upward from each spot).
-//              The props' light model for the art: props.js#PROP_KIT; within h ≤ the cap (centrepieceCap: under the blade + the hub).
+//              The props’ light model for the art: props-light.js#PROP_KIT; within h ≤ the cap (centrepieceCap: under the blade + the hub).
 //     rig    — on (default: while a piece stands), its colour (default a warm white), its strength k (0..2). It comes up with the
 //              street lamps (their ramp): by day nothing shows.
 //     lights — the piece's own lights (a tree's bulbs, lanterns, string lights on poles): world x, z relative to the inlay's
@@ -24,8 +24,9 @@ import { signSpots } from '../../core/harbor-neon.js';
 import { centrepieceCap } from '../../core/harbor-promenade.js';
 import { rigSpots, normCentre, rigLevel, centreBox, centreActive, RIG } from '../../core/harbor-centre.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
-import { pieceCtx } from './stage.js';
-import { TEST_PIECE } from './props.js';
+import { pieceCtx } from '../../core/harbor-light.js';
+// (FP3a: THE TEST PIECE lives in props-test.js, loaded only when &force=centrepiece-test asks for it)
+let TEST_PIECE = null, testLoad = null;
 
 export function createCentre() {
   let L = null, cam = null, dpr = 2, cap = 0, spots = [], api = null, testOn = false, rev = 0;
@@ -44,7 +45,7 @@ export function createCentre() {
       const [x, y] = project(cam, sp.x, 0, sp.z), s = cam.F / sp.z, [, yn] = project(cam, sp.x, 0, sp.z - 1), [, yf] = project(cam, sp.x, 0, sp.z + 1);
       return { ...sp, sx: x, sy: y, s, flat: (yn - yf) / 2 / s };   // (flat: how squashed a circle on the paving is here)
     });
-    TEST = normCentre({ piece: TEST_PIECE.piece, h: TEST_PIECE.h }, cap);
+    TEST = TEST_PIECE ? normCentre({ piece: TEST_PIECE.piece, h: TEST_PIECE.h }, cap) : null;
     if (api && api.raw) { const st = normCentre(api.raw, cap); api = st ? { ...st, raw: api.raw } : null; }   // (a new layout: the cap re-applied)
   }
   // ---- the cached glow sprites (a radial falloff per colour: the halo + the paving spot)
@@ -118,7 +119,10 @@ export function createCentre() {
     set(o) { const st = normCentre(o, cap || Infinity); api = st ? { ...st, raw: o } : null; rev++; sprKey = ''; return st ? { h: st.h, rig: { ...st.rig }, lights: st.lights.length, cap } : null; },
     clear() { api = null; rev++; sprKey = ''; },
     /** &force=centrepiece-test (the scene, every frame) */
-    test(on) { if (!!on !== testOn) { testOn = !!on; rev++; sprKey = ''; } },
+    test(on) {
+      if (!!on !== testOn) { testOn = !!on; rev++; sprKey = ''; }
+      if (testOn && !TEST_PIECE && !testLoad) testLoad = import('./props-test.js').then(m => { TEST_PIECE = m.TEST_PIECE; if (cam) { TEST = normCentre({ piece: TEST_PIECE.piece, h: TEST_PIECE.h }, cap); rev++; sprKey = ''; } }).catch(() => { testLoad = null; });
+    },
     /** 8b's rule: an event stands on the inlay now (the cart stops short, the walkers go round) */
     active: () => centreActive(current()),
     /**

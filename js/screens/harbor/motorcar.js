@@ -11,7 +11,7 @@ import { groundY } from '../../core/harbor-layout.js';
 import { STREET } from '../../core/harbor-promenade.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { rgb, shade, mix } from './shapes.js';
-import { sunShadow } from './stage.js';
+import { sunShadow } from '../../core/harbor-light.js';
 
 const C = STREET.car;                                  // len 4.95, h 2.06, w 2.1, r 0.46, base 3.09 (world units)
 const WHEELS = [0.86, 0.86 + C.base];                  // the wheels' centres from the rear (u)
@@ -204,7 +204,7 @@ export function createMotorcar() {
       const sh = day > 0.15 ? sunShadow(T, C.h) : null;
       if (sh) {
         // the sun's cast shadow: the car's footprint swept along the sun (a box's shadow — the hull of the footprint + its shifted copy),
-        // a crisp-soft edge (a fill + a wide faint stroke), its alpha the lamps' + the trees' (stage.js#sunShadow)
+        // a crisp-soft edge (a fill + a wide faint stroke), its alpha the lamps' + the trees' (core/harbor-light.js#sunShadow)
         const P = (wx, wz) => [cam.VPX + cam.F * wx / wz, groundY(cam, wz)], a = car.x - C.len / 2 + 0.25, b = car.x + C.len / 2 - 0.15, z0 = car.z + 0.1, z1 = car.z + C.w - 0.1;
         const dx = sh.dx * 0.85, dz = sh.dz * 0.85;
         const pts = dx >= 0 ? [[a, z0], [b, z0], [b + dx, z0 + dz], [b + dx, z1 + dz], [a + dx, z1 + dz], [a, z1]] : [[b, z0], [a, z0], [a + dx, z0 + dz], [a + dx, z1 + dz], [b + dx, z1 + dz], [b, z1]];

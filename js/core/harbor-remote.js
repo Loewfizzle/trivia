@@ -141,7 +141,6 @@ export const EVENTS = [
   { id: 'no-people', label: 'NO PEOPLE', cat: 'promenade', group: 'THE PEOPLE', hint: 'the promenade + the roof empty — compare' },
   // (8P: THE HUSH WORD SIGN in the barbershop window — JAZZ by default, &hush=<word> another; Lobby 2.0 lights the real word)
   { id: 'hushsign', label: 'HUSH WORD SIGN', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the lobby’s password in neon in the barbershop window (JAZZ; &hush=<word>)' },
-  { id: 'placeholders', label: 'PLACEHOLDER PEOPLE', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the promenade’s placeholder people (hidden until 8b walks the real ones)' },
   // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the
   // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set
   // (harbor().flags.force / the scene's clock — a title-level regex on location.search can't be switched from the panel). Rename

@@ -169,11 +169,36 @@ test('8P — THE BUS: a few an hour by day, none in the small hours; it stops sh
         const x = b.x(t), on = x + b.len / 2 > cw.x0 && x - b.len / 2 < cw.x1;
         if (on) assert.ok(['green', 'amber'].includes(signalAt(t * 1000).road), 'over the crosswalk only while the road is green');
       }
-      assert.ok(b.tD - b.tA >= 15, 'it stops a while');
+      assert.ok(b.tD > b.tShut && b.tD - b.tA >= 4, 'it stops for its riders, and leaves after its door could shut');
     }
   }
   assert.ok(day >= 30 && day <= 60, `${day} buses through the day`);
 });
+test('FP3a — THE BUS DOOR shuts 3–5 s after the LAST rider (off or on) — never open long with nobody coming; nobody steps on after it shuts', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), buses = new Map(), last = new Map();
+  for (let t = DAY + 6 * 3600; t < DAY + 30 * 3600; t += 2) {
+    const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
+    for (const b of f.buses) buses.set(b.id, b);
+    for (const v of f.visits) for (const lg of v.legs) if (lg.k === 'fade' && lg.bus) last.set(lg.bus, Math.max(last.get(lg.bus) || 0, lg.t1));
+  }
+  let n = 0;
+  for (const [id, b] of buses) {
+    const l = last.get(id);
+    if (l == null) { assert.ok(b.shut - (b.tA + 1) >= 3 - 1e-6 && b.shut - (b.tA + 1) <= 5 + 1e-6, `${id}: nobody — shut soon after it stops`); continue; }
+    n++;
+    assert.ok(b.shut - l >= 3 - 1e-6 && b.shut - l <= 5 + 1e-6, `${id}: shut ${(b.shut - l).toFixed(2)} s after the last rider`);
+    assert.ok(b.shut < b.tD, `${id}: shut before it pulls away`);
+  }
+  assert.ok(n >= 20, `${n} buses with riders over the day`);
+});
+
+test('FP3a — THE PACE: ~25 % slower than 8P, strollers + couples slowest, commuters brisker, joggers clearly faster', () => {
+  const S = FOLK.speed;
+  assert.ok(S.walk <= 1.5 * 0.8 && S.walk >= 1.5 * 0.7, `walk ${S.walk}`);
+  assert.ok(S.stroll < S.walk && S.walk < S.brisk && S.brisk * 1.8 < S.jog, 'stroll < walk < brisk, the jog clearly faster');
+  assert.equal(KINDS.couple(() => 0.5, { nodes: { inlay: { x: 0, z: 45 } } }).gait, 'stroll', 'couples stroll');
+});
+
 test('8P — THE LOBBY LINE: left of the door along the shopfront, bending toward the bottom-left corner; never cut by the left edge, never under the dock, the door clear', () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), s = L.speakeasy;

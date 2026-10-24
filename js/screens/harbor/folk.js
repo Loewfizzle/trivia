@@ -15,7 +15,6 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const rgb = (c, a = 1) => (a >= 1 ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` : `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a.toFixed(3)})`);
 const pick = (r, a) => a[Math.floor(r() * a.length)];
-const sm = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 
 // ------------------------------------------------------------------ THE WARDROBE (1920s, muted, one accent each)
 const COATS = [[52, 50, 58], [44, 52, 74], [92, 72, 52], [64, 70, 60], [96, 46, 50], [118, 104, 84], [70, 62, 76], [38, 40, 46], [134, 112, 80]];
@@ -268,4 +267,3 @@ export function drawLeash(c, a, b, env) {
   c.strokeStyle = dark > 0.5 ? 'rgba(10,8,16,0.9)' : 'rgba(40,30,26,0.85)'; c.lineWidth = 0.6;
   c.beginPath(); c.moveTo(a[0], a[1]); c.quadraticCurveTo((a[0] + b[0]) / 2, Math.max(a[1], b[1]) + 2, b[0], b[1]); c.stroke();
 }
-void sm;

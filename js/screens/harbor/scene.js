@@ -6,9 +6,11 @@
 //   windows [baked 'farLit', the light timeline] + glitter → the sun's halo + the golden-hour rays through the sun gaps, swifts →
 //   the landmark towers, the near band, the hero blocks, the quay [baked 'near'] → their lit windows [baked 'nearLit'] + the
 //   TVs, the switched lights, the words in the windows, the beacons → the rays' veil, the searchlights → the water [baked] →
-//   the pier + wheel, the breakwater + lighthouse [baked 'harbor'] → the boats → the road [baked] → the traffic → the stop
-//   lights, the promenade, the speakeasy, the lamps, trees, bench, planters, cart [baked 'stage'] → the people → the lights →
-//   events → rain, snow, the lightning flash, frost → the vignette → &grid=1.
+//   the pier + wheel, the breakwater + lighthouse [baked 'harbor'] → the boats → the road [baked] → the FAR people (8P: the
+//   crosswalk, the waterside sidewalk, the bus) → the stop lights, the promenade, the lamps, trees, bench, cart [baked 'stage'] →
+//   the speakeasy's live layer → the NEAR people (the promenade) + the ROOF's guests → the front row [baked 'front'] → the lights
+//   → the café lights → events → rain, snow, the lightning flash, frost → the vignette → &grid=1. (FP3a: the lamps' light lives
+//   in core/harbor-light.js; the sounds run in ticks — people.tick, roadLight.tick, sounds.js#life — never inside a painter.)
 //
 // The camera + every position come from core/harbor-layout.js (pure, tested); the static layers are baked per look key in
 // small chunks into a second set of canvases and crossfaded in (bake.js: the memory budget); only lights and moving things
@@ -44,12 +46,12 @@ import { pierSteps, pierLamps } from './pier.js';
 import { lighthouseSteps, createBeam } from './lighthouse.js';
 import { createBoats } from './boats.js';
 import { createWheel } from './wheel.js';
-import { roadSteps, signalSteps, drawTraffic, drawSignalLamps, drawLantern, LENS, WORDS } from './road.js';
+import { roadSteps, signalSteps, drawSignalLamps, drawLantern, LENS, WORDS } from './road.js';
 import { speakeasySteps, bladeStep, createSpeakeasy } from './speakeasy.js';
 import { lateTvK } from '../../core/harbor-moments.js';
 import { createCentre } from './centre.js';
 import { ghostAdGame } from '../../core/harbor-speakeasy.js';
-import { promenadeSteps, furnitureSteps, drawPeople, drawLampLight, freeLampLight, dimPools } from './stage.js';
+import { promenadeSteps, furnitureSteps, drawLampLight, dimPools } from './stage.js';
 import { lampThresholds, warmUp, lampMoment } from '../../core/harbor-lamps.js';
 import { createPeople } from './people.js';
 import { seasonOf, seasonPhase, signalAt, streetWet } from '../../core/harbor-promenade.js';
@@ -61,7 +63,7 @@ import { createRoadLight } from './roadlight.js';
 import { createLeaves } from './trees.js';
 import { createWaterfront } from './waterfront.js';
 import { createSkyBeams } from './skybeams.js';
-import { createStrings, STRINGS_ON } from './strings.js';   // (PF: the roof's string lights OFF until 7b — strings.js#STRINGS_ON)
+import { createStrings, STRINGS_ON } from './strings.js';   // (the roof's café-light canopy — SP2; STRINGS_ON is true)
 import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
 import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
 import { setCityClock } from '../../core/city.js';
@@ -763,12 +765,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (FP: the crossing's cycle on the city's clock — the stop lights + the WALK / WAIT lantern across the road, lit before the traffic)
     const sigSt = signalAt(clock.now()), sigO = { fade: fadeIn, lk: litK(DK, 'lamps'), glow: i => sigGlow[i] || (sigGlow[i] = radial(LENS[i].join(','))) };
     if (fadeIn > 0) drawLantern(c, L, sigSt, { ...sigO, glow: k => sigGlow[3 + k] || (sigGlow[3 + k] = radial(WORDS[k].col.join(','))) });
-    if (fadeIn > 0 && !off.has('no-road')) { c.globalAlpha = fadeIn; drawTraffic(c, L, T, density.road); c.globalAlpha = 1; }
     // 8P — THE PEOPLE: who's where now (a pure function of the city clock), then the FAR pass — the crosswalk, the waterside sidewalk,
     // the bus — before the stage (the stop lights, the lamps, the trees + the speakeasy stand in front of them)
-    const pplOn = fadeIn > 0 && !off.has('no-people') && !!bakeTones && !!(baker.group('stage') || {}).ready;   // (only over a baked stage)
-    const pplEnv = pplOn ? peopleEnv(lit, fadeIn) : null;
-    if (pplOn) { people.frame(peopleFrame()); people.draw(c, 'far', pplEnv); }
+    // (FP3a, FREV H3: the people's clock + their sounds run every frame — tick() — whether or not they're drawn; drawn only over a baked stage)
+    const pplLive = !off.has('no-people'), pplOn = pplLive && fadeIn > 0 && !!bakeTones && !!(baker.group('stage') || {}).ready;
+    const pplEnv = pplLive ? peopleEnv(lit, fadeIn) : null;
+    if (pplLive) people.frame(peopleFrame());
+    if (pplOn) people.draw(c, 'far', pplEnv);
     layer('bill');
     neon.draw(c, 'bill', nf);                        // (8a: the roof billboard's lamps + their light on the poster)
     layer('stage');
@@ -790,21 +793,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // 8P — THE PEOPLE on the promenade (after the stage + the speakeasy's live layer, before the front row: the corner globes, the framing
     // maple, the cart stand nearer than anyone on the floor) + the ROOF's guests (clipped to the sky over the parapet)
     if (pplOn) { people.draw(c, 'near', pplEnv); people.draw(c, 'roof', pplEnv); }
+    if (pplLive) people.tick(pplEnv);
     layer('front');
     // THE IMPLIED ROAD (8a): a passing car's headlights sweeping the near cobbles at night, its soft shadow by day, its sound
-    if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; roadLight.draw(c, { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps'), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
-      gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0 }); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen)
+    if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps'), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
+      gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0 }; roadLight.tick(rf); roadLight.draw(c, rf); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
     // the trees' falling leaves (autumn) / the crabapple's petals (its blossom) in the real wind (8a: trees.js)
     if (fadeIn > 0 && !off.has('no-leaves')) { const wd = LK.windDir == null ? 250 : LK.windDir; leaves.draw(c, { t, dt, motion: S.motion, wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), season: L.season, phase: L.seasonPhase, fade: fadeIn, night: litK(DK, 'lamps'), tier }); }
-    // (SP2 — the owner: the placeholder people HIDDEN until 8b walks the real ones, like the cart + the bus; &force=placeholders shows them)
-    if (fadeIn > 0 && !off.has('no-people') && clock.force.has('placeholders')) { c.globalAlpha = fadeIn; drawPeople(c, L, T); c.globalAlpha = 1; }
     // ---- the lights (every frame): the lamps' light on the promenade, the knock's warm flash at the door
     // (DT1: the darkness's lamps ramp — around sunset; 8P: each lamp catches at its own point of the ramp, then burns full: LL.levels)
     const lampK = fadeIn * (LL.ramp > 0.02 ? 1 : 0) * (lit > 0 ? 1 : 0.3);
     drawLampLight(c, L, lampK, glow, coolGlow || (coolGlow = radial('205,222,255')), Math.min(2, dpr), LL.levels);
     // THE STRING LIGHTS on the speakeasy's roof (NEON PASS 4): warm from dusk; a party night's colours chasing on the beat.
-    // PF (the owner's iPhone review): OFF again until 7b re-renders them with the rooftop — strings.js#STRINGS_ON (their parapet posts
-    // go with them: speakeasy.js); &force=strings-party still previews them
+    // (SP2: the CAFÉ-LIGHT CANOPY over the roof's deck — strings.js; STRINGS_ON is true, &force=strings-party previews the party's colours)
     if (fadeIn > 0 && !off.has('no-strings') && (STRINGS_ON || clock.force.has('strings-party'))) {
       const fp = clock.force.has('strings-party') || clock.force.has('neon-party'), tb = t / 0.5;
       const sp = PT.on > 0 ? { on: PT.ramp, energy: PT.energy, beats: PT.beats, beatU: PT.beatU, punch: PT.punch } : fp ? { on: 1, energy: 1, beats: Math.floor(tb), beatU: tb % 1, punch: S.motion ? pulseOut(punchEnv(tb % 1, 0.5), PT.pulse) : 0 } : null;
@@ -1433,7 +1434,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       lampLife: () => lampDbg,
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
       people: { ...people.debug(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
-      speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), pole: o => speak.pole(o), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
+      speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },
       strings: { ...strings.debug(), on: STRINGS_ON || clock.force.has('strings-party'), set: o => strings.set(o) },
@@ -1471,7 +1472,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
       fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
-      freeLampLight();
       if (roStrip) { roStrip.remove(); roStrip = null; }
       for (const c of [skyCv, vignette, glow, coolGlow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;

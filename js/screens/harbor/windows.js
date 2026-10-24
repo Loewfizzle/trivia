@@ -270,7 +270,6 @@ const pals = n => DAY_PALS[((n % 3) + 3) % 3];
 export function createWindowLife() {
   const blocks = new Map();           // `${key}|${hour}` → that hour's plan
   let dark = null, darkKey = '', routines = {}, rKey = '';
-  const played = new Set();            // (a moment's sound once per instance)
   const taps = [];                     // { id, kind, at (frame s) } — the viewer's own taps (local, not synced)
   let catTap = -1, forcedT0 = -1, forcedId = null, last = { on: [], states: {}, sec: 0, key: '', next: null, forced: null };
   const sprites = new Map();
@@ -351,7 +350,6 @@ export function createWindowLife() {
     for (const e of fr.on) {
       if (e.win === 'all') { for (const id of TANGO_PATH) (byWin.get(id) || byWin.set(id, []).get(id)).push(e); }
       else (byWin.get(e.win) || byWin.set(e.win, []).get(e.win)).push(e);
-      if (!played.has(`${e.id}|${e.n}`)) { played.add(`${e.id}|${e.n}`); if (played.size > 64) played.delete(played.values().next().value); sound(e, env); }
     }
     c.save(); env.map(c);
     // the glints: the glasses + the shaker catching the light where they are (warm at night, a cool sparkle by day)
@@ -384,12 +382,11 @@ export function createWindowLife() {
 
   // ---------------------------------------------------------------- THE ROOMS' STATES
   function apartmentState(E, st, list) {
-    const { c, G, k, t } = E;
+    const { k } = E;
     const routine = list.find(e => e.id === 'wake' || e.id === 'lights-out');
     if (routine) return false;                      // (the routine's painter draws the whole room)
     if (st === 'tv') { if (k > 0.01) { tvRoom(E, 1, true); return true; } return false; }
     if (st === 'nightlamp') { if (k > 0.01) { nightLamp(E, 0); return true; } return false; }
-    void c; void G; void t;
     return false;
   }
   function barState(E, st, list) {
@@ -644,11 +641,7 @@ export function createWindowLife() {
   }
 
   // ---------------------------------------------------------------- the sounds (each calls its slot; an empty slot is silent)
-  function sound(e, env) {
-    const play = env.play; if (!play) return;
-    if (e.id === 'mirror') play('door-heavy', { gain: 0.8, pan: -0.55 });
-    else if (e.id === 'cat') play('cat-meow', { gain: 0.7, pan: -0.6 });
-  }
+  // (FP3a, FREV H3: the mirror's door + the cat's meow are MOMENT_CUES now — core/city-sounds.js; sounds.js#life plays them on the clock)
   /** the beds' levels (sounds.js#speakeasy keeps them, ducked under the music like the city's bed): the club's murmur through the
    *  wall while the bar is open at night (louder on a party night), the TV's murmur upstairs late */
   function bedLevels(k, party) {
@@ -658,7 +651,7 @@ export function createWindowLife() {
 
   // ---------------------------------------------------------------- THE TAPS
   function tapPaint(E, tap) {
-    const { c, G, t, k, day } = E, el = t - tap.at, p = clamp01(el / 3.2);
+    const { c, G, t, k } = E, el = t - tap.at, p = clamp01(el / 3.2);
     if (tap.kind === 'twitch') {
       // a curtain twitches: its edge pulled aside a hand's width and let go (the room's light through the gap)
       const o = sm(0, 0.12, p) * (1 - sm(0.45, 0.8, p)) * (1 + 0.15 * Math.sin(el * 14) * (1 - p)), gx = G.g0 + G.cw * 0.5;
@@ -672,7 +665,6 @@ export function createWindowLife() {
       const sw = Math.sin(el * 5) * 0.25 * (1 - p), tx = G.cx + sw, ty = G.h0 + G.ch * 0.22;
       c.globalCompositeOperation = 'lighter'; glow(c, [255, 214, 140], tx, ty + 0.2, 0.7, 0.3 * k * (1 - p)); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     } else peekPaint(E, Math.min(1, 0.15 + p * 0.85), tap.at * 7);
-    void day;
   }
   function peekPaint(E, p, seed = 0) {
     const { c, G, k, w } = E, night = k > 0.3;
@@ -744,7 +736,6 @@ export function createWindowLife() {
         c.fillStyle = night ? 'rgba(255,220,170,0.85)' : 'rgba(200,226,255,0.95)';
         for (let i = 0; i < 6; i++) { const q = ((t * 1.6 + i / 6) % 1), dx = sx + 0.05 * Math.sin(i * 2.3), dy = sy - q * 0.85; if (dy > G.r0 - 0.42) { c.beginPath(); c.arc(dx, dy, 0.035, 0, TAU); c.fill(); } }
       });
-      void t;
     },
     'lights-out'(E, el, len) {
       const { c, G, k } = E, p = el / len;

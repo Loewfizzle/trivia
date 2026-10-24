@@ -1960,7 +1960,8 @@ G('sounds', async () => {
   const N = await open({ slot: 'sn', qs: NIGHT, view: [390, 844] });
   await harborUp(N.page);
   await tapAt(N.page, 30, 300);
-  await waitFor(N.page, `${SND}.player.loops.filter(l => l.ready && l.voices > 0).length >= 2`, 'the night bed', 20000);
+  // (FP3a: wait for the two loops checked — "any two" let the club's murmur, also a night bed, win the race against the hum's file)
+  await waitFor(N.page, `(() => { const on = ${SND}.player.loops.filter(l => l.ready && l.voices > 0).map(l => l.slot); return on.includes('city-hum-night') && on.includes('water-lapping'); })()`, 'the night bed', 20000).catch(() => {});
   const n = await ev(N.page, `(() => { const s = ${SND}; return { mix: s.mix, loops: s.player.loops.filter(l => l.voices > 0).map(l => l.slot) }; })()`);
   ok(n.loops.includes('city-hum-night') && n.loops.includes('water-lapping') && !n.loops.includes('city-hum-day') && n.mix.night > 0.95, `BED at night: ${n.loops.join(' + ')} (mix night ${n.mix.night}, darkness ${n.mix.dark})`);
   const lr = await ev(N.page, "(() => { const s = document.querySelector('.nd-logo-wrap svg.nd-logo') || document.querySelector('svg.nd-logo'); const b = s.getBoundingClientRect(); return { x: b.left + b.width * 0.12, y: b.top + b.height / 2 }; })()");

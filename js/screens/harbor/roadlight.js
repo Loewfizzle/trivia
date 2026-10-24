@@ -18,6 +18,7 @@ import { takeAt, crossFor, carPre, panOf } from '../../core/city-sounds.js';
 import { cityPrefetch } from '../../audio/city-sound.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { createMotorcar, PAINTS } from './motorcar.js';
+import { roadLampAt } from '../../core/harbor-light.js';
 
 const sprite = (rgbStr, soft = 0.5) => {
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -37,7 +38,7 @@ export function createRoadLight() {
   // where a pass's car is along the road (world x) at ms, at depth z — its own speed (its take's swell)
   const xAt = (p, ms, z) => p.dir * ((ms - p.center) / 1000) * carSpeed(cam, z, p.cross);
   // the street lamps' light on the car as it passes (x → 0..1): the front walk's globes + the speakeasy's corner
-  const lampAt = x => { let k = 0; for (const l of L.lamps) { if (l.z > 40) continue; const d = (x - l.x) / 7; if (d * d < 1) k += (1 - d * d) ** 2; } return Math.min(1, k); };
+  const lampAt = x => roadLampAt(L.lamps, x);          // (core/harbor-light.js — FP3a, the one light model)
   return {
     layout(l) { L = l; cam = l.cam; },
     /** the raid (7b): a coloured wash from the front ({ col: [r,g,b], k: 0..1 }; null clears) */
@@ -49,11 +50,12 @@ export function createRoadLight() {
      * fade, on (the implied road is on), force (a pass every ~13 s), play(slot, o) → handle | null; FP2: gone (the dock rests),
      * dt (ms), T (the bake's tones: the sun's side + height), dpr, t (s), wet (0..1) }
      */
-    draw(c, f) {
-      seen = false;
+    /** FP3a (FREV H3 — no sound inside a painter): the pass on the clock, its sound placed + panned, the next take fetched ahead —
+     *  every frame the scene runs, whether or not the light is drawn (the same f as draw) */
+    tick(f) {
       // (reduced motion: no car rolls — the implied light stays, as with the dock shown)
       vis = carVis(vis, !!f.gone && !!f.on && !!f.motion, f.dt || 16.7);
-      if (!L || !f.on || f.fade <= 0) { motor.reset(); return; }
+      if (!L || !f.on) return;
       skew = f.ms - performance.now();
       const st0 = L.impliedRoad && L.impliedRoad.street, zc = L.edge ? L.edge.z - 4 : 31.5;
       const laneZ = p => (st0 ? (p.dir < 0 ? st0.lanes[0] : st0.lanes[1]).z : zc);
@@ -86,6 +88,11 @@ export function createRoadLight() {
         const nx = roadPassAt(f.ms + 12e3, f.hourAt, { force: f.force });
         if (nx && !fetched.has(nx.id)) { const tk = takeAt(SLOT, nx.take); if (tk && cityPrefetch(SLOT, tk.i)) { fetched.add(nx.id); if (fetched.size > 8) fetched.delete(fetched.values().next().value); } }
       }
+    },
+    draw(c, f) {
+      seen = false;
+      if (!L || !f.on || f.fade <= 0) { motor.reset(); return; }
+      const zc = L.edge ? L.edge.z - 4 : 31.5;
       // the wash (the raid's lights) first, under the car's own light
       if (washCol && washK > 0.01) {
         if (!washSp || washSp.key !== washCol.join()) { washSp = sprite(washCol.join(), 0.4); washSp.key = washCol.join(); }
