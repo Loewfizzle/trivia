@@ -28,7 +28,7 @@
 //   everyday(key, cast, signs)  tonight's calm motion: blinking / spelling signs, a colour-cycling sign, slow chasers, rotations
 //                    + scheme stages through the night — seeded by the night (the same all night)
 
-import { halfTime, pulseOut } from './harbor-beat.js';
+import { beatPunch, pulseOut } from './harbor-beat.js';
 
 export const FX = { none: 0, chase: 1, ledges: 2, fins: 3, flash: 4 };
 /**
@@ -279,10 +279,10 @@ export function showFrame(cast, f, out = newShowOut(cast.length)) {
   // late across the skyline for the ripple (f.punchAt(s)); without it (the tests, the previews) the half-time beat from the clock
   const T = f.beatT || 0.5, bu = f.beatU ?? ph;
   const beatsF = f.beatsF ?? ((f.beats ?? bar * 4) + bu);
-  const ht = halfTime(beatsF, T), strong = ht.strong;
+  const ht = beatPunch(beatsF, T), strong = ht.strong;      // (the beat-sync pass: every beat punches — the downbeat hardest, 2 + 4 lighter)
   const hit = (1 + 0.6 * out.drop) * (sc.pulse ?? 0.6) * amp;
   // (8a: f.punchAt is already × PULSE STRENGTH at its source — scene.js; the clock's own beat takes f.pulse when given: the previews)
-  const pAt = f.punchAt ? s2 => f.punchAt(s2) : s2 => { const h2 = halfTime(beatsF - s2 / T, T); return f.pulse ? pulseOut(h2.env * h2.strong, f.pulse) : h2.env * h2.strong; };
+  const pAt = f.punchAt ? s2 => f.punchAt(s2) : s2 => { const h2 = beatPunch(beatsF - s2 / T, T); return f.pulse ? pulseOut(h2.env * h2.strong, f.pulse) : h2.env * h2.strong; };
   out.punch = pAt(0) * hit;
   const maxMove = MAX_MOVING[f.tier ?? 2] ?? 64, maxRace = MAX_RACE[f.tier ?? 2] ?? 999;
   const sweepPos = sc.sweep ? (((bar % sc.sweep.every) + ph) / sc.sweep.every) * 1.5 - 0.25 : 0;

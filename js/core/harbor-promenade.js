@@ -76,7 +76,8 @@ export const PHONE = Object.freeze({
   bench: { f: 0.515, z: 47.8 },             // (PF: in front of the crabapple, a little right — its trunk + uplight show at the bench's left end; its right end by the left flanking lamp)
   cart: { f: 0.53, z: 41.8 },               // (hidden — CART_SHOWN; kept for 8b's route: L.cart.route)
   planters: [],
-  mailbox: { f: 0.81, z: 38.6 },            // (PF: the 1920s pillar box by the front curb — right of the crossing, left of the framing maple's trunk)
+  // (PF placed a 1920s pillar box here — `mailbox: { f: 0.81, z: 38.6 }`; the owner didn't like the olive-green box: gone, Oct 24. props.js keeps the art.)
+  mailbox: null,
 });
 /** PF: the vendor cart is HIDDEN until 8b brings the moving things (the owner likes it — its art + route are kept; L.cart.shown) */
 export const CART_SHOWN = false;

@@ -757,7 +757,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (8a: `· pulse 0.87` — the punch the lights got, its peak since the last refresh: 0 = they aren't pulsing; ~0.6–1.2 on the beats at
   // the default strength, up to ~2 cranked — the owner's iPhone: "the pulse doesn't come back after returning" — + `×1.8` when the
   // PULSE STRENGTH isn't the default)
-  const beatLine = () => `beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.songBar != null ? hbeat.songBar : hbeat.bar} · ${(hbeat.songIdx != null ? hbeat.songIdx : hbeat.idx) + 1}/4${hbeat.drift != null ? ` · drift ${hbeat.drift >= 0 ? '+' : '−'}${Math.abs(Math.round(hbeat.drift))} ms` : ''} · pulse ${roPulse.toFixed(2)}${PT.pulse && PT.pulse !== pulseGain(null) ? ` ×${PT.pulse.toFixed(2)}` : ''}${hbeat.live ? ` · kick ${hbeat.level.toFixed(2)}` : hbeat.src === 'grid' ? ' · kick unheard' : ''}`;
+  // (the beat-sync pass: `beat grid 106.0 · bar 12 · 3/4 · drift −0 ms · pulse 1.18 · level 0.86` — the source never changes mid-song; `level`
+  // is how hard it punches from the music's loudness, `level steady` when nothing is heard; the lead + its calibration are on the sync line)
+  const beatLine = () => `beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.songBar != null ? hbeat.songBar : hbeat.bar} · ${(hbeat.songIdx != null ? hbeat.songIdx : hbeat.idx) + 1}/4${hbeat.drift != null ? ` · drift ${hbeat.drift >= 0 ? '+' : '−'}${Math.abs(Math.round(hbeat.drift))} ms` : ''} · pulse ${roPulse.toFixed(2)}${PT.pulse && PT.pulse !== pulseGain(null) ? ` ×${PT.pulse.toFixed(2)}` : ''}${hbeat.live ? ` · level ${hbeat.level.toFixed(2)}` : hbeat.src === 'grid' ? ' · level steady' : ''}`;
   let roAt = 0, roText = null, roN = 0, roT0 = 0;
   function drawReadout(c, now) {
     roN++;
@@ -1174,14 +1176,23 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (running && !stalled) return false;
     if (stalled) { loopLog.stalls++; cancelAnimationFrame(raf); running = false; }
     loopLog.restarts++; loopLog.why = why; loopLog.at = performance.now();
+    returnGrace();                                    // (a restart is a return too: its first frames never cost a tier)
     start();
     return true;
   }
-  const onVis = () => { if (document.visibilityState === 'visible') wakeLoop('visible'); else stop(); };
-  const onShow = () => wakeLoop('pageshow'), onFocus = () => wakeLoop('focus'), onTapWake = () => wakeLoop('tap');
+  // THE BEAT-SYNC PASS — A RETURN NEVER COSTS A TIER (the owner's readout: back from the home screen the tier went 2→1→2 with a run
+  // of 38 slow frames): the first seconds back are iOS rebuilding the audio session, the song clock re-anchoring, a resize from the
+  // toolbar, the bakes a step-down itself would start — not the city's steady cost. The frame window is emptied and nothing steps
+  // for RETURN_GRACE ms after a return (the frames in it never count), the way the first seconds after the city shows don't.
+  const RETURN_GRACE = 3000;
+  function returnGrace() { tierHold = Math.max(tierHold, performance.now() + RETURN_GRACE); frames.length = 0; cool = Math.max(cool, 30); returns++; }
+  let returns = 0;
+  const onVis = () => { if (document.visibilityState === 'visible') { returnGrace(); wakeLoop('visible'); } else stop(); };
+  const onShow = () => { returnGrace(); wakeLoop('pageshow'); }, onFocus = () => wakeLoop('focus'), onTapWake = () => wakeLoop('tap');
   const watchdog = setInterval(() => wakeLoop('watchdog'), 1000);
   let resizeT = 0, relayT = 0, laneKey = '';
-  const onResize = () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (!destroyed) build(); }, 180); };
+  // (a resize that changed nothing — iOS fires one on the way back from the home screen — never re-bakes the city)
+  const onResize = () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (destroyed) return; const r = canvas.getBoundingClientRect(); if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr) === dpr) return; build(); }, 180); };
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('pageshow', onShow); window.addEventListener('focus', onFocus);
   window.addEventListener('pointerdown', onTapWake, { capture: true, passive: true });
@@ -1258,7 +1269,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** C1.5: the session's frame pacing since the city showed (the readout's 'session' line) */
     session: () => ({ ...sess, after: { ...sess.after } }),
     /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
-    tiering: () => ({ tier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), manual: manualTier }),
+    tiering: () => ({ tier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())) }),
     cost: () => costs.slice(),
     party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
     finale: () => startFinale(),

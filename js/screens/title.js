@@ -28,9 +28,9 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, neonFlicker, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource, beatKick, beatWhy, songInfo, syncLine, clockLine } from '../audio/beat.js';
-import { moodNow, MOOD_LABEL } from '../audio/mood.js';
+import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
 import { cityFailed } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
@@ -51,8 +51,10 @@ export const harborPending = () => !harborSettled;
 /** CITY 2.0 MUSIC: the &debug=1 readout's lines — the mood, the song, whether its beat grid can be trusted; + what the beat subtracts to
  *  land on the sound as heard (M2: the output latency, the song element's measured lead) */
 function musicLine() {
-  const i = songInfo();
-  const m = `music ${MOOD_LABEL[moodNow()]}${i ? ` · ${i.id}${i.bpm ? ` ${i.bpm.toFixed(1)}` : ''} · grid ${i.grid}${i.lock != null ? ` (lock ${i.lock})` : ''}` : ' · no song'}`;
+  const i = songInfo(), fx = fixedMoodFrom();
+  // (the mood + the party show read the SAME clock — the Harbor's, the preview's &when= included; a mood that doesn't follow it is
+  // a CHOICE, and the line says whose: `music DAY (setting)` / `(panel)` — then the party may pulse to a non-party song, by design)
+  const m = `music ${MOOD_LABEL[moodNow()]}${fx ? ` (${fx.from})` : ''}${i ? ` · ${i.id}${i.bpm ? ` ${i.bpm.toFixed(1)}` : ''} · grid ${i.grid}${i.lock != null ? ` (lock ${i.lock})` : ''}` : ' · no song'}`;
   return i ? [m, syncLine(), clockLine()] : [m];
 }
 
@@ -1079,8 +1081,9 @@ export function createTitle() {
         const seq = drop ? [0, 50, 90, 1050, 1110, 1160, 1230] : [0, 60, 95, 130, 190];
         seq.forEach((ms, k) => setTimeout(() => { if (destroyed) return; const on = k % 2 === 1 || k === seq.length - 1; l.classList.toggle('on', on); dockLight(li, on); }, ms + off));
       }
-      // (City 2.0: the flicker sounds — rare and random, one of four recordings, never the same twice running)
-      if (createHarbor && document.visibilityState === 'visible') neonFlicker({ level: 0.8 });
+      // (City 2.0: the flicker sounds — rare and random, one of four recordings, never the same twice running. Oct 24, the owner: at the
+      // TAP's level — what a tapped letter plays at — about one in three a little louder, never a startle: ambience.js#neonTwitch)
+      if (createHarbor && document.visibilityState === 'visible') neonTwitch({ gain: NEON_TAP_LEVEL * NEON_GAINS.dropout, louder: Math.random() < 1 / 3 });
       neonTick();
       scene.set({ logo: 0.8 }); setTimeout(() => scene && scene.set({ logo: 1 }), 200);
       scheduleFlicker();

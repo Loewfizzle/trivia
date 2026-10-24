@@ -132,7 +132,7 @@ const FLICKER_TRIM = [1.6, 1.15, 1.15, 1.05];
 // waveshaper: linear up to half the cap, then a tanh knee — the absolute ceiling, whatever the level, whether the music plays or
 // not) and a gentle low-pass, so they sit under the music. The power-on / the dropout get a higher cap, no filter.
 const NEON_ATTACK = 0.006;                                   // s
-const NEON_CAP = { flicker: 0.08, strike: 0.35 };            // linear peak into the SFX bus: −22 dBFS / −9 dBFS (the bus ≤ 1 after it)
+const NEON_CAP = { flicker: 0.08, strike: 0.35, twitch: 0.35 };   // linear peak into the SFX bus: −22 dBFS / −9 dBFS (the bus ≤ 1 after it)
 const NEON_LP = 4500;                                        // Hz, the flickers only
 const NEON_NO_MUSIC = 0.71;                                  // −3 dB more while the music is off: nothing to sit under
 /** what the neon one-shots did (the newest last; tests read it): { name, kind, gain, at } */
@@ -147,7 +147,7 @@ function neonChain(ctx, kind) {
     curve[i] = Math.sign(x) * (a < k ? a : k + (C - k) * Math.tanh((a - k) / (C - k)));
   }
   const ws = ctx.createWaveShaper(); ws.curve = curve;
-  if (kind === 'flicker') { const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = NEON_LP; lp.Q.value = 0.707; ws.connect(lp).connect(getSfxBus()); }
+  if (kind === 'flicker' || kind === 'twitch') { const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = NEON_LP; lp.Q.value = 0.707; ws.connect(lp).connect(getSfxBus()); }
   else ws.connect(getSfxBus());
   return (neonChains[kind] = ws);
 }
@@ -179,6 +179,23 @@ export function neonFlicker({ level = 1 } = {}) {
   if (i >= lastFlicker && lastFlicker >= 0) i++;
   lastFlicker = i;
   playNeon(NEON_REC.flicker[i], level, () => neonBuzz({ on: true, dur: 0.35, level: level * 0.5 }), 'flicker', NEON_GAINS.flicker * FLICKER_TRIM[i]);
+}
+/**
+ * THE LIT SIGN'S OWN TWITCHES (Oct 24, the owner: the random flickers while nobody touches the sign were too loud — "the same volume as
+ * when I tap it", that level is good): one of the four flicker recordings at the TAP's gain (`gain` = the tap's level × NEON_GAINS.dropout:
+ * what a tapped letter's dropout / power-on plays at) through the tap's own peak cap (0.35, not the old flickers' 0.08 — a cap that low
+ * squashed every peak and made them read LOUDER than their gain) + the flickers' low-pass, so they sit under the music like the taps do.
+ * The trims only even the four files out (normalised to their mean: no level of their own). `louder` (about 1 in 3, the caller rolls it)
+ * = +2 dB, never a startle. The warm-up's flickers (neonFlicker) and the catch keep their levels.
+ */
+const TRIM_MEAN = FLICKER_TRIM.reduce((a, b) => a + b, 0) / FLICKER_TRIM.length;
+export const TWITCH_LOUDER = 1.26;
+export function neonTwitch({ gain = NEON_GAINS.dropout * 0.5625, louder = false } = {}) {
+  let i = Math.floor(Math.random() * (NEON_REC.flicker.length - 1));
+  if (i >= lastFlicker && lastFlicker >= 0) i++;
+  lastFlicker = i;
+  const g = gain * (louder ? TWITCH_LOUDER : 1) * FLICKER_TRIM[i] / TRIM_MEAN;
+  playNeon(NEON_REC.flicker[i], 1, () => neonBuzz({ on: true, dur: 0.35, level: g }), 'twitch', g);
 }
 /** a tube CUTTING OUT */
 export function neonDropout({ level = 1 } = {}) { playNeon(NEON_REC.dropout, level, () => neonBuzz({ on: false, level: level * 0.5 }), 'strike', NEON_GAINS.dropout); }

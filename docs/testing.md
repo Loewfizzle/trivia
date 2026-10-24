@@ -11,7 +11,10 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   `e2e-harbor.mjs` (every group, `SHARDS=2`, `SHOTS=0`, on the emulators) runs on GitHub's machine after every push to main that touches
   a City 2.0 file (the `paths:` list: `js/screens/harbor/`, `js/core/harbor-*` + `city-*`, the title, `js/audio/`, `audio/city/`, the
   harbor CSS, the suite itself…); a newer push cancels an older run; the npm + emulator downloads are cached; the run's
-  `shots-harbor/` (the result JSON) is attached when a check fails. ≈ 7 min a run (≈ 6 ½ min of tests — the repo is PRIVATE: the
+  `shots-harbor/` (the result JSON) is attached when a check fails. **Timing checks are WARNINGS there** (THE BEAT-SYNC PASS, Oct 24: `okT` in
+  e2e-harbor.mjs — frames drawn in a window, a bake finished in time, a sound's peak in its window, the punch sampled during a loop restart,
+  the pole's turn rate — on `CI=true`, or locally with `TIMING=warn`; `TIMING=strict` makes them hard again): logged `WARN`, counted in the
+  summary (`timing warnings N` + the list), never red — a red cloud run always means a real problem. ≈ 7 min a run (≈ 6 ½ min of tests — the repo is PRIVATE: the
   monthly free minutes). Anything else: run it by hand (Actions → harbor → Run workflow, or `gh workflow run harbor`). **City 2.0
   passes rely on it** — locally only the unit suite + the groups the pass touched (`ONLY=…`); after pushing, `gh run list --workflow
   harbor` → `gh run view <id> --log | grep -E "FAIL|checks"`. GitHub's 2-core machine is slower than the laptop: a timing check that

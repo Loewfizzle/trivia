@@ -4,31 +4,31 @@
 // loading): the city then breathes slowly on its own (core/party.js#advanceBeat; City 2.0: core/harbor-beat.js).
 //
 // NEON PASS 5 (City 2.0): the song's BEAT GRID (data/mood-music.json `grid`: the exact bpm, the first beat, the downbeat) and
-// THE SOUND ITSELF — beatKick() reads the low end (kick + bass) off the music bus through an AnalyserNode and reports the kicks
-// it hears (core/harbor-beat.js#onsetStep), late by the output's latency so the light lands when the sound does.
+// THE SOUND ITSELF — beatKick() reads the low end (kick + bass) off the music bus through an AnalyserNode. THE BEAT-SYNC PASS
+// (Oct 24 2026, docs/audio.md#the-beat-sync-pass): what it hears never drives the lights — it CALIBRATES THE LEAD (where the song's
+// clock sits against the sound: core/harbor-beat.js#leadKick) and reports the music's loudness (how hard the city punches).
 import { nowPlaying, musicOut } from './music.js';
 import { lobbyNow } from './lobby-music.js';
 import { moodData } from './mood.js';
 import { settings } from './settings.js';
 import { getContext, getMusicBus, clockFrozen, onRebuild, onResume } from './engine.js';
-import { createOnsets, onsetStep, kickLag, createLead, leadKick, leadRefresh, heardPos, createSongClock, songClockStep, kickErrWide, createHeard, heardStep, heardSkew } from '../core/harbor-beat.js';
+import { createOnsets, onsetStep, onsetEnergy, kickLag, createLead, leadKick, leadFast, leadAnchor, leadState, leadToSave, heardPos, createSongClock, songClockStep, kickErrWide } from '../core/harbor-beat.js';
 
 // ---- WHEN THE BEAT IS HEARD (M2, the owner: the party's sync "kind of — not perfect")
 // Two delays sit between a song's clock and the ear:
-//  1. OUTPUT: the graph → the speaker. Chrome reports `outputLatency`; Safari does NOT (only a tiny `baseLatency`), so on an iPhone
-//     the lights ran a little early. Without it: the context's output timestamp (how far the graph runs ahead of what is heard),
-//     else a measured-ish iPhone speaker figure.
+//  1. OUTPUT: the graph → the speaker. Chrome reports `outputLatency`; Safari does NOT always (only a tiny `baseLatency`), so on an
+//     iPhone the lights ran a little early. Without it: the context's output timestamp (how far the graph runs ahead of what is
+//     heard), else a measured-ish iPhone speaker figure.
 //  2. THE ELEMENT'S LEAD: the mood song is an <audio> element; its currentTime can run ahead of (or behind) the samples that reach
-//     the graph (WebKit buffers the element's audio on the way in). Nothing reports it — so each phone MEASURES it: every strong kick
-//     the kick listener hears on a song with a trusted grid whose kicks land on its beats (agree ≥ 0.5) says how far the element's
-//     clock is from that beat, minus the listener's own lag (KICK_LAG, measured offline on the party songs). The median of the last
-//     kicks is the lead; kept per device (localStorage) so the next visit starts in sync. The lobby's synced song (decoded buffers on
-//     the audio clock) learns its own (≈ 0).
-// M3 (her iPhone: "sync out 18 ms · lead −42 ms"): the sign is right (core/harbor-beat.js has the maths + its test); the learning now
-// takes only kicks within ±80 ms (a fifth of a beat) of a beat — a 16th-note bass hit no longer counts — clamped to −80…+120 ms;
-// the listener's delay follows the frame rate (a 30 Hz phone hears a kick ~8 ms later); a heard kick is released when it is HEARD
-// (its detection − the listener's delay + the output), no longer a listener's delay late.
+//     the graph (WebKit buffers the element's audio on the way in) — and on iOS that changes after the home screen (+107 / +237 ms
+//     on the owner's phone). Nothing reports it, so each phone MEASURES it, always (core/harbor-beat.js#leadKick): every strong kick
+//     the listener hears on a song with a trusted grid whose kicks land on its beats (agree ≥ 0.5) says how far the sound sits from
+//     where the lights land; the lead follows that in bounded steps — fast for a while after every resume / return / route change
+//     (leadFast), gently otherwise. Kept per device (localStorage, the steady-state value) so the next visit starts in sync. The
+//     lobby's synced song (decoded buffers on the audio clock) learns its own (≈ 0). The default with nothing learned: iOS −40 ms
+//     (her phone's steady −34…−42), elsewhere 0.
 const IOS_OUT = 0.02;                // an iPhone's built-in speaker after the graph when Safari reports nothing
+const IOS_LEAD = -0.04;              // the element → graph lead on an iPhone in a fresh session (measured on the owner's phone)
 const WEBKIT = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|Android/.test(navigator.userAgent);
 const stamp = { v: 0, at: -1e9 };
 function stampLatency(c) {
@@ -54,25 +54,26 @@ function outLatency() {
 }
 const CAL_KEY = 'na:beatcal';
 const cal = (() => {
-  try { const s = JSON.parse(localStorage.getItem(CAL_KEY) || 'null'); if (s) return { el: createLead(s.el), buf: createLead(s.buf) }; } catch { /* private mode */ }
-  return { el: createLead(), buf: createLead() };
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(CAL_KEY) || 'null'); } catch { /* private mode */ }
+  return { el: createLead(s ? s.el : null, WEBKIT ? IOS_LEAD : 0), buf: createLead(s ? s.buf : null, 0) };
 })();
 let calSaved = 0;
 function learn(kind, wide, grid, nowMs) {
   const r = leadKick(cal[kind], wide, grid, nowMs);
-  if (r !== 'learn' && r !== 'done') return;
+  if (r !== 'learn' && r !== 'locked' && r !== 'ok') return;
   if (performance.now() - calSaved > 10000) {
     calSaved = performance.now();
-    // (the device value is saved within the ordinary range — a re-measured return offset is this visit's, createLead clamps it)
-    try { localStorage.setItem(CAL_KEY, JSON.stringify({ el: cal.el.n ? +cal.el.v.toFixed(3) : null, buf: cal.buf.n ? +cal.buf.v.toFixed(3) : null })); } catch { /* private mode */ }
+    // (the device value is the steady-state lead within the saved range — a return's shift is this visit's: leadToSave)
+    try { localStorage.setItem(CAL_KEY, JSON.stringify({ el: leadToSave(cal.el), buf: leadToSave(cal.buf) })); } catch { /* private mode */ }
   }
 }
-// FP2 — RE-MEASURE THE LEAD (core/harbor-beat.js#leadRefresh): on every resume / context rebuild / page return / output route change
-// (and on a SKEW seen on its own) the lead is re-measured from the next kicks heard, within a few bars; the output latency is re-read
-// fresh too (the smoothed timestamp estimate starts over).
+// SETTLE THE LEAD AGAIN (core/harbor-beat.js#leadFast): on every resume / context rebuild / page return / output route change the lead
+// re-converges on the next kicks heard, within a few bars; the output latency is re-read fresh too (the smoothed timestamp estimate
+// starts over).
 function refresh(why) {
   const now = performance.now();
-  for (const k of ['el', 'buf']) { const c = cal[k]; if (!c.fast) leadRefresh(c, why, now); else { c.fast.why = why; c.fast.errs.length = 0; c.fast.seen = 0; } }
+  for (const k of ['el', 'buf']) leadFast(cal[k], why, now);
   stamp.v = 0; stamp.at = -1e9;
 }
 let routeOut = null;           // the reported outputLatency last seen: a jump > 15 ms = a new route (speaker ↔ headphones ↔ Bluetooth)
@@ -118,7 +119,7 @@ export function beatSource(nowMs = performance.now()) {
   const song = d.songs && d.songs[np.id];
   if (!song || !(song.bpm > 0)) { why = 'song unknown'; return null; }
   const all = song.grid && song.grid.bpm > 0 ? song.grid : null;
-  // (CITY 2.0 MUSIC: add-city2-music.py marks a grid it couldn't verify — `trusted: false`: the city then follows the kicks it hears)
+  // (CITY 2.0 MUSIC: add-city2-music.py marks a grid it couldn't verify — `trusted: false`: the city then keeps a steady pulse at its tempo)
   const untrusted = !!(all && all.trusted === false);
   const g = untrusted ? null : all;
   why = '';
@@ -149,7 +150,6 @@ export function songInfo() {
 // nodes that reach the destination). Built the first time a party asks; the RMS of the analyser's last window a frame.
 let an = null;
 const ons = createOnsets();
-const queue = [];              // the hits heard, waiting out the output latency: [release (ms), strength]
 let heardAt = -1e9;
 let frameS = 1 / 60, lastFrame = 0;   // the frame interval (smoothed): the listener's delay depends on it
 function analyser() {
@@ -166,8 +166,9 @@ function analyser() {
   return an;
 }
 /**
- * This frame's kick (call once a frame while a party wants the beat): { hit (0..1 a kick that sounds now, its strength), live
- * (the analyser hears the music: a signal in the last 2 s) } — or null (no music, muted, no Web Audio).
+ * This frame's listening (call once a frame while a party wants the beat): { live (the analyser hears the music: a signal in the
+ * last 2 s), energy (0..1: the low end's loudness against its recent peak — how hard the city punches), hit (0..1: a kick heard
+ * this frame — counted against the grid for the readout, never a punch) } — or null (no music, muted, no Web Audio).
  */
 // 7a — THE DEAF LISTENER: a graph whose clock has stopped (iOS after the background) keeps the analyser's LAST window for ever — the
 // music that was playing when it froze. Its RMS then never changes, so it looked "live" (a signal in the last 2 s) with no kicks: the
@@ -175,13 +176,11 @@ function analyser() {
 // coming back. The same RMS frame after frame (a real signal never repeats to 1e-7 for 8 frames), a frozen clock, or the song on the
 // direct element = nothing heard.
 let lastRms = -1, sameN = 0;
-// FP — THE HEARD OFFSET (core/harbor-beat.js#heardStep): where the strong kicks land vs the grid (± half a beat), per song
-const heard = createHeard();
-let heardId = null, heardAnch = 0;
+let leadId = null, leadAnch = 0;
 export function beatKick(nowMs = performance.now()) {
   if (settings.musicOff || settings.muted || !(lobbyNow() || nowPlaying())) return null;
-  // (the song on THE DIRECT ELEMENT or the graph frozen: the listener can't hear it — no kicks, not live; the grid leads: 'direct-grid')
-  if ((!lobbyNow() && musicOut() === 'direct') || clockFrozen()) { heardAt = -1e9; queue.length = 0; sameN = 0; return { hit: 0, live: false, deaf: true }; }
+  // (the song on THE DIRECT ELEMENT or the graph frozen: the listener can't hear it — not live; the grid leads: 'direct-grid')
+  if ((!lobbyNow() && musicOut() === 'direct') || clockFrozen()) { heardAt = -1e9; sameN = 0; return { hit: 0, live: false, deaf: true, energy: 0 }; }
   const A = analyser();
   if (!A || A.ctx.state !== 'running') return null;
   let s = 0, n;
@@ -189,7 +188,7 @@ export function beatKick(nowMs = performance.now()) {
   else { A.a.getByteTimeDomainData(A.b); n = A.b.length; for (let i = 0; i < n; i++) { const v = (A.b[i] - 128) / 128; s += v * v; } }
   const rms = Math.sqrt(s / n);
   sameN = rms > 1e-3 && Math.abs(rms - lastRms) < 1e-7 ? sameN + 1 : 0; lastRms = rms;
-  if (sameN >= 8) { heardAt = -1e9; return { hit: 0, live: false, deaf: true }; }
+  if (sameN >= 8) { heardAt = -1e9; return { hit: 0, live: false, deaf: true, energy: 0 }; }
   if (rms > 1e-3) heardAt = nowMs;
   if (lastFrame && nowMs - lastFrame < 100) frameS += ((nowMs - lastFrame) / 1000 - frameS) * 0.05;
   lastFrame = nowMs;
@@ -198,59 +197,44 @@ export function beatKick(nowMs = performance.now()) {
     if (ro != null && routeOut != null && Math.abs(ro - routeOut) > 0.015) refresh('route');
     if (ro != null) routeOut = ro; }
   const hit = onsetStep(ons, rms, nowMs / 1000);
-  // (released when HEARD: the kick entered the graph a listener's delay ago, and sounds the output latency after that)
-  if (hit > 0) queue.push([nowMs + Math.max(0, outLatency() - lag) * 1000, hit]);
-  // a strong kick on a song whose kicks land on its trusted grid: how far the song's clock is from that beat (the element's lead)
+  // a strong kick on a song whose kicks land on its trusted grid: how far the sound sits from where the lights land → the lead
   if (hit >= 0.6) {
     const lob = lobbyNow(), np = lob || nowPlaying(), d = moodData();
     const g = np && d && d.songs && d.songs[np.id] && d.songs[np.id].grid;
     if (g && g.bpm > 0 && g.trusted !== false && (g.agree == null || g.agree >= 0.5)) {
+      const kind = lob ? 'buf' : 'el', c = cal[kind];
       const at = songPos(np, nowMs);
-      if (heardId !== np.id) { heardId = np.id; heard.errs.length = 0; heard.n = 0; heard.steady = false; }
-      if (heardAnch !== sclock.anchors) { heardAnch = sclock.anchors; heard.errs.length = 0; heard.steady = false; }   // (a re-anchor: what was measured before it is history)
-      const wide = kickErrWide(at, g, lag), kind = lob ? 'buf' : 'el';
-      if (wide != null) heardStep(heard, wide);
-      // (FP2: a SKEW seen on its own — the kicks steadily off the lead — starts a re-measure too)
-      if (!cal[kind].fast && heardSkew(heard, cal[kind].v)) refresh('skew');
-      if (wide != null) learn(kind, wide, g, nowMs);
+      // (a new song, or the song clock re-anchored — a jump, a seek, a return: what was measured before it is history; the lead stays)
+      if (leadId !== np.id || leadAnch !== sclock.anchors) { leadId = np.id; leadAnch = sclock.anchors; leadAnchor(c); }
+      learn(kind, kickErrWide(at, g, lag), g, nowMs);
     }
   }
-  let out = 0;
-  while (queue.length && queue[0][0] <= nowMs) out = Math.max(out, queue.shift()[1]);
-  // (the heard kicks steadily off the grid beyond the lead: not listened to — they'd add off-beat punches; the grid leads alone)
-  if (heardSkew(heard, cal[lobbyNow() ? 'buf' : 'el'].v)) return { hit: 0, live: false, skew: true };
-  return { hit: out, live: nowMs - heardAt < 2000 };
+  return { hit, live: nowMs - heardAt < 2000, energy: onsetEnergy(ons) };
 }
 /** the debug view (window.__arcade.beat / the readout) */
 export function beatDebug() {
-  const c = getContext();
-  return { analyser: !!an, peak: +ons.peak.toFixed(4), level: +ons.level.toFixed(4), latency: +outLatency().toFixed(3),
-    reported: c ? +(c.outputLatency || 0).toFixed(3) : 0, base: c ? +(c.baseLatency || 0).toFixed(3) : 0, stamp: +stamp.v.toFixed(3), lead: +cal.el.v.toFixed(3), leadN: cal.el.errs.length, buf: +cal.buf.v.toFixed(3), bufN: cal.buf.errs.length,
-    remeasure: remeasureOf(lobbyNow() ? cal.buf : cal.el),
+  const c = getContext(), now = performance.now();
+  return { analyser: !!an, peak: +ons.peak.toFixed(4), level: +ons.level.toFixed(4), energy: +onsetEnergy(ons).toFixed(3), latency: +outLatency().toFixed(3),
+    reported: c ? +(c.outputLatency || 0).toFixed(3) : 0, base: c ? +(c.baseLatency || 0).toFixed(3) : 0, stamp: +stamp.v.toFixed(3), lead: +cal.el.v.toFixed(3), leadN: cal.el.n, buf: +cal.buf.v.toFixed(3), bufN: cal.buf.n,
+    cal: leadState(lobbyNow() ? cal.buf : cal.el, now), res: cal.el.res == null ? null : +cal.el.res.toFixed(3), seen: cal.el.seen,
     lag: +kickLag(frameS).toFixed(3), fps: Math.round(1 / frameS),
-    clock: { id: sclock.id, pos: +sclock.pos.toFixed(3), err: +sclock.err.toFixed(3), stuck: sclock.stuck, anchors: sclock.anchors, why: sclock.why },
-    heard: { v: +heard.v.toFixed(3), n: heard.n, steady: heard.steady, skew: heardSkew(heard, cal.el.v) } };
+    clock: { id: sclock.id, pos: +sclock.pos.toFixed(3), err: +sclock.err.toFixed(3), stuck: sclock.stuck, anchors: sclock.anchors, why: sclock.why } };
 }
-/** the &debug=1 readout's line: what the beat subtracts to land on the sound as HEARD */
-/** FP2: the lead's re-measure for the readout: { state: 'measuring' | 'done' | 'gave up', why, from, to (ms), n (kicks agreeing / seen), ago (s) } | null */
-function remeasureOf(c) {
-  const ms = v => Math.round(v * 1000);
-  if (c.fast && c.fast.seen > 0) return { state: 'measuring', why: c.fast.why, from: ms(c.fast.from), to: ms(c.v), n: c.fast.errs.length, seen: c.fast.seen };
-  if (c.last && performance.now() - c.last.at < 20000) return { state: c.last.ok ? 'done' : 'gave up', why: c.last.why, from: ms(c.last.from), to: ms(c.last.to), n: c.last.kicks, ago: Math.round((performance.now() - c.last.at) / 1000) };
-  return null;
-}
+/** the &debug=1 readout's line: what the beat subtracts to land on the sound as HEARD, and the lead's calibration state —
+ *  `sync out 18 ms · lead −40 ms (default) · lag 24 ms` / `lead −34 ms (locked · 22 kicks)` / `lead −34 → +180 ms (settling · visible · 8 kicks)` /
+ *  `lead +237 ms (settled −34 → +237 · 4 s ago)` */
 export function syncLine() {
-  const d = beatDebug(), r = d.remeasure, sg = v => `${v >= 0 ? '+' : '−'}${Math.abs(v)}`, kind = lobbyNow() ? 'buf' : 'el';
-  // (FP2: the lead re-converging after a return: "lead −39 → +62 ms (re-measuring · 8 kicks · visible)"; then "(re-measured −39 → +107 · 4 s ago)")
-  const lead = Math.round(cal[kind].v * 1000);
-  const leadTxt = r && r.state === 'measuring' ? `lead ${sg(r.from)} → ${sg(lead)} ms (re-measuring · ${r.seen} kicks · ${r.why})`
-    : r ? `lead ${sg(lead)} ms (${r.state === 'done' ? `re-measured ${sg(r.from)} → ${sg(r.to)}` : 're-measure gave up'} · ${r.ago} s ago)`
-    : `lead ${sg(lead)} ms (${kind === 'buf' ? d.bufN : d.leadN} kicks)`;
+  const d = beatDebug(), c = d.cal, sg = v => `${v >= 0 ? '+' : '−'}${Math.abs(v)}`;
+  const leadTxt = c.state === 'settling' ? `lead ${sg(c.from)} → ${sg(c.ms)} ms (settling · ${c.why} · ${c.n} kicks)`
+    : c.state === 'settled' ? `lead ${sg(c.ms)} ms (${c.ok ? 'settled' : 'kept'} ${sg(c.from)} → ${sg(c.ms)} · ${c.ago} s ago)`
+    : c.state === 'locked' ? `lead ${sg(c.ms)} ms (locked · ${c.n} kicks)`
+    : `lead ${sg(c.ms)} ms (default)`;
   return `sync out ${Math.round(d.latency * 1000)} ms${d.reported ? '' : d.stamp ? ' (stamp)' : ' (est)'} · ${leadTxt} · lag ${Math.round(d.lag * 1000)} ms`;
 }
-/** FP — the readout's song-clock line: the last element reading vs the run-forward clock, the re-anchors (+ the last why), the heard
- *  kicks' offset from the grid (`~` = not steady yet, SKEW = steady + beyond the lead: the kicks are ignored) */
+/** FP — the readout's song-clock line: the last element reading vs the run-forward clock, the re-anchors (+ the last why), and `heard`:
+ *  where the strong kicks land against the lights (the agreed residual; `~` while the last kicks don't agree) */
 export function clockLine() {
   const d = beatDebug(), ms = v => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v * 1000))}`;
-  return `clock el ${ms(d.clock.err)} ms${d.clock.stuck ? ' STUCK' : ''} · anchors ${d.clock.anchors}${d.clock.why ? ` (${d.clock.why})` : ''}${d.heard.n >= 8 ? ` · heard ${ms(d.heard.v)} ms${d.heard.steady ? '' : ' ~'}${d.heard.skew ? ' SKEW' : ''}` : ''}`;
+  const heard = d.res != null ? ` · heard ${ms(d.res)} ms` : d.seen >= 6 ? ' · heard ~' : '';
+  return `clock el ${ms(d.clock.err)} ms${d.clock.stuck ? ' STUCK' : ''} · anchors ${d.clock.anchors}${d.clock.why ? ` (${d.clock.why})` : ''}${heard}`;
 }

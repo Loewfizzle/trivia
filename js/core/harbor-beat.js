@@ -2,34 +2,50 @@
 //
 // The owner: "the way it interacts with the beat just is a little off… not very impressive". Neon Pass 4 counted beats from a
 // song's start at a rounded BPM (librosa's tempo bins: 129.2 for a 130 song drifts a beat in ~40 s), with no first-beat offset
-// and no downbeats. Now three layers:
+// and no downbeats. Now:
 //   THE GRID       every mood song is analysed offline (scripts/build-mood-music.py → data/mood-music.json `grid`: the exact bpm,
 //                  the first beat t0, which beat is a bar's first) — the clock locks to it: bars, the beat in the bar, the steady
 //                  effects (racing laps, sweeps, scene changes) on the real bar lines
-//   THE SOUND      an AnalyserNode on the music bus (audio/beat.js) hears the low end (kick + bass); onsetStep() finds the hits.
-//                  On the grid's strong beats a measured kick sets how hard the city punches (a loud drop hits hard, a quiet
-//                  passage — or a breakdown with no kick at all — calms it); a kick between the strong beats is a small hit of
-//                  its own; a song without a grid punches on every real kick
-//   HALF-TIME      the pulse punches on beats 1 and 3 (the downbeat hardest), a fast attack, a slightly longer decay — it punches
-//                  instead of flickering
+//   THE SOUND      an AnalyserNode on the music bus (audio/beat.js) hears the low end (kick + bass). ONE SOURCE (the beat-sync pass,
+//                  Oct 24): the kicks it hears never drive the lights — they only CALIBRATE the lead (where the song's clock sits
+//                  against the sound) and its loudness sets how hard the city punches (a loud drop hits hard, a breakdown calms it).
+//                  Before this pass a kick between the beats was a punch of its own and a kick missing from a strong beat calmed the
+//                  city: with the sound offset from the song's clock (iOS after the home screen: +237 ms) the lights punched on the
+//                  grid AND on every offset kick ("all over the place"), then the offset was declared a SKEW and the kicks dropped
+//                  (only beats 1 + 3 left: "a slower rhythm"), then a re-anchor forgot the SKEW and it began again ("lost")
+//   EVERY BEAT     the pulse punches on every beat — the downbeat hardest, beat 3 next, 2 + 4 lighter — a fast attack, a slightly
+//                  longer decay. (Half-time, beats 1 + 3 only, read as "a slower rhythm" the moment the kicks' little hits on 2 + 4 went.)
 // Without music the city keeps a calm 120 bpm pulse of its own (one punch a second).
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const CALM_BPM = 120;
-/** the punch's attack (before the strong beat: the light lands ON it) and its decay */
+/** the punch's attack (before the beat: the light lands ON it) and its decay */
 export const ATTACK_S = 0.05, DECAY_S = 0.24;
 
 /** FP: a gap this big (s) between the lights' grid and the song re-locks at once (the owner: "more than ~30 ms") */
 export const DRIFT_SNAP = 0.03;
 export function createHarborBeat(seed = 0) {
-  return { beats: seed * 4, rate: CALM_BPM / 60, bpm: 0, src: 'calm', locked: 0, bar: 0, barMax: Math.floor(seed), level: 0.7, kick: 0, lastHit: -99, missAt: null, live: false,
-    drift: null, songBar: null, songIdx: null,
+  return { beats: seed * 4, rate: CALM_BPM / 60, bpm: 0, src: 'calm', locked: 0, bar: 0, barMax: Math.floor(seed), level: 0.7, kick: 0, lastHit: -99, live: false,
+    drift: null, songBar: null, songIdx: null, energy: 0,
     u: 0, T: 0.5, idx: 0, barU: 0, env: 0, strong: 1, punch: 0, hits: { on: 0, off: 0 } };
 }
 
+/** how hard each beat of the bar punches: the downbeat, beat 2, beat 3, beat 4 */
+export const BEAT_WEIGHT = [1, 0.45, 0.72, 0.45];
 /**
- * The half-time punch at a beat position b (beats; 0 = a downbeat), T = s a beat → { env (0..1), strong (1 the downbeat · 0.72
- * beat 3), unit (the strong beat's index: beat 2·unit) }. The attack runs over the last ~50 ms before the strong beat.
+ * THE PUNCH at a beat position b (beats; 0 mod 4 = a downbeat), T = s a beat → { env (0..1), strong (BEAT_WEIGHT of the beat it
+ * belongs to), unit (that beat's index), v (0..1 through the beat) }. The attack runs over the last ~50 ms before each beat (the
+ * light lands on it), the decay after it.
+ */
+export function beatPunch(b, T = 0.5) {
+  const k = Math.floor(b), v = b - k, Tb = Math.max(0.1, T), a = Math.min(0.3, ATTACK_S / Tb);
+  let env, unit;
+  if (v > 1 - a) { const y = (v - (1 - a)) / a; env = y * y * (3 - 2 * y); unit = k + 1; } else { env = Math.exp(-v * Tb / DECAY_S); unit = k; }
+  return { env, strong: BEAT_WEIGHT[((unit % 4) + 4) % 4], unit, v };
+}
+/**
+ * (NEON PASS 5's half-time envelope — beats 1 + 3 only — kept for the harbor-show's older previews / tests; the city's lights
+ * use beatPunch since the beat-sync pass)
  */
 export function halfTime(b, T = 0.5) {
   const x = b / 2, k = Math.floor(x), v = x - k, T2 = 2 * Math.max(0.1, T), a = Math.min(0.3, ATTACK_S / T2);
@@ -39,24 +55,21 @@ export function halfTime(b, T = 0.5) {
 }
 
 /**
- * 7a — WHAT THE BEAT FOLLOWS (docs/audio.md#7a-the-beat-in-direct-mode). One of:
- *   'grid'         the song's trusted grid, the kick listener setting how hard it punches
- *   'direct-grid'  the song plays on THE DIRECT ELEMENT (M4: the Web Audio graph is dead, so the kick listener hears nothing): the
- *                  grid alone, on the element's own clock, at a steady strength
- *   'kicks'        no trusted grid: the kicks the listener hears (a song we know nothing about)
- *   'tempo'        no trusted grid and nothing heard (the direct element, a deaf analyser): a gentle steady pulse at the song's tempo
+ * WHAT THE BEAT FOLLOWS (7a, simplified in the beat-sync pass — docs/audio.md#the-beat-sync-pass). One of:
+ *   'grid'         the song's trusted grid through the Web Audio graph (the kick listener calibrates the lead + sets the strength)
+ *   'direct-grid'  the song's trusted grid on THE DIRECT ELEMENT (M4: the graph is dead, the listener hears nothing): the grid
+ *                  alone, on the element's own clock, at a steady strength
+ *   'tempo'        no trusted grid: a steady pulse at the song's measured tempo on its loose grid's phase — never chasing kicks
  *   'calm'         no song: a calm 120 bpm of its own
- * song: { bpm, pos, grid?, untrusted?, loose? (the untrusted grid: its tempo + phase, the best guess there is), direct? } | null
+ * A song never switches source mid-song: the source depends only on the song's grid and the way it is played.
+ * song: { bpm, pos, grid?, untrusted?, loose? (the untrusted grid: its tempo + phase), direct? } | null
  */
-export function beatMode(song, kick) {
-  const heard = !!(kick && kick.live) && !(song && song.direct);
+export function beatMode(song) {
   if (song && song.pos >= 0) {
     if (song.grid && song.grid.bpm > 0) return song.direct ? 'direct-grid' : 'grid';
-    if (song.bpm > 0 && !song.untrusted) return 'tempo';          // (a song with a tempo but no grid at all: as before)
-    if (heard) return 'kicks';
     if (song.bpm > 0 || (song.loose && song.loose.bpm > 0)) return 'tempo';
   }
-  return heard ? 'kicks' : 'calm';
+  return 'calm';
 }
 // ---- 8a — PULSE STRENGTH (the owner: "crank it up higher" — and stop guessing: THE PREVIEW PANEL's LIGHTS → PULSE STRENGTH slider,
 // the &pulse=<percent> flag). ONE multiplier on the city's punch at its source (scene.js#partyTick: PT.punch + the ripple's history),
@@ -85,35 +98,36 @@ export function pulseOut(p, k = PULSE_DEFAULT) {
   return PULSE_KNEE + o / (1 + o / r);
 }
 
-/** the strength a beat settles at when no kick is heard: the grid 0.85, the gentle tempo pulse 0.6, the calm pulse 0.7 */
-export const SETTLE = { grid: 0.85, 'direct-grid': 0.85, tempo: 0.6, calm: 0.7, kicks: 0.7 };
+/** the strength a beat settles at when nothing is heard: the grid 0.85, the tempo pulse 0.6, the calm pulse 0.7 */
+export const SETTLE = { grid: 0.85, 'direct-grid': 0.85, tempo: 0.6, calm: 0.7 };
+/** the strength from the music's loudness (the listener's low-band energy 0..1 against its recent peak): a breakdown 0.45, a drop 1 */
+export const levelOf = energy => 0.45 + 0.55 * clamp01(energy);
 
 /**
  * Advance the clock by dt ms.
- *   song: { bpm, pos (s: the song's position AS HEARD), grid?: { bpm, t0, down }, untrusted?, loose?, direct? } | null
- *   kick: { hit (0..1: a kick heard this frame, its strength), live (the analyser hears the music) } | null
+ *   song: { bpm, pos (s: the song's position AS HEARD), grid?: { bpm, t0, down }, untrusted?, loose?, direct?, snap? } | null
+ *   kick: { live (the analyser hears the music), energy (0..1: the low end's loudness against its recent peak), hit? (a kick
+ *          heard this frame — counted against the grid for the readout, never a punch) } | null
  * → hb (mutated): beats (continuous; with a grid 0 mod 4 = a downbeat), u (0..1 of the beat), T (s a beat), idx (0..3 in the
- * bar), bar (bars counted — never backwards), barU (0..1 of the bar), punch (0..~1.4), src (beatMode: 'grid'|'direct-grid'|
- * 'kicks'|'tempo'|'calm')
+ * bar), bar (bars counted — never backwards), barU (0..1 of the bar), punch (0..~1), src (beatMode), level, live, drift (ms)
  */
 export function advanceHarborBeat(hb, dt, song, kick) {
   const sec = Math.min(0.25, Math.max(0, dt / 1000));
-  const mode = beatMode(song, kick);
+  const mode = beatMode(song);
   // (on the direct element the kick listener's graph is dead: whatever it reports is stale — never trusted)
   if (song && song.direct) kick = null;
-  // the phase source: the trusted grid; for the gentle tempo pulse the untrusted grid's own tempo + phase when there is one
+  // the phase source: the trusted grid; for the tempo pulse the untrusted grid's own tempo + phase when there is one
   const g = mode === 'grid' || mode === 'direct-grid' ? song.grid : mode === 'tempo' && song.loose && song.loose.bpm > 0 ? song.loose : null;
-  // (CITY 2.0 MUSIC: a song whose grid the importer couldn't trust — song.untrusted — follows the kicks it hears; heard nothing: its tempo)
   const bpm = g ? g.bpm : mode === 'tempo' ? song.bpm : 0;
   hb.beats += hb.rate * sec;                     // (advance first, then pull toward the song as it sounds NOW: no frame of lead)
   if (bpm && song.pos >= 0) {
     const target = bpm / 60;
     const tb = g ? (song.pos - (g.t0 || 0)) * target - (g.down || 0) : song.pos * target;
-    hb.rate += (target - hb.rate) * Math.min(1, sec * 3);
     // the bar's phase, the shortest way round (in beats): a new song, a seek, a re-anchored song clock (song.snap) or a drift beyond
-    // ~30 ms re-locks at once (FP: the lights never ease toward the beat for half a second after a return); a smaller one is pulled in
+    // ~30 ms re-locks at once (FP: the lights never ease toward the beat for half a second after a return); a smaller one is pulled in.
+    // The TEMPO is the song's from the first locked frame (a new song: at once; it never eases, never follows anything heard)
     let d = tb - hb.beats; d -= 4 * Math.round(d / 4);
-    if (song.snap || Math.abs(d) * 60 / bpm > DRIFT_SNAP) hb.beats += d; else hb.beats += d * Math.min(1, sec * 4);
+    if (song.snap || hb.bpm !== bpm || Math.abs(d) * 60 / bpm > DRIFT_SNAP) { hb.beats += d; hb.rate = target; } else hb.beats += d * Math.min(1, sec * 4);
     hb.locked = Math.min(1, hb.locked + sec / 1.5); hb.bpm = bpm;
     // (the readout: the song's own bar + beat from its grid, and how far the lights' grid sits from the song as heard — ms)
     let d2 = tb - hb.beats; d2 -= 4 * Math.round(d2 / 4);
@@ -123,36 +137,27 @@ export function advanceHarborBeat(hb, dt, song, kick) {
     hb.locked = Math.max(0, hb.locked - sec / 2.5); hb.bpm = 0;
     hb.drift = null; hb.songBar = null; hb.songIdx = null;
   }
-  // (FP: the heard kicks systematically off the grid — audio/beat.js#beatKick's `skew` — are not listened to: the grid alone)
-  if (kick && kick.skew) kick = null;
   hb.src = mode;
   const b = hb.beats, T = 1 / Math.max(0.2, hb.rate), fb = Math.floor(b);
   hb.T = T; hb.u = b - fb; hb.idx = ((fb % 4) + 4) % 4;
   const bi = Math.floor(b / 4);
   if (bi > hb.barMax) { hb.bar += 1; hb.barMax = bi; }
   hb.barU = b / 4 - bi;
-  const ht = halfTime(b, T);
-  hb.env = ht.env; hb.strong = ht.strong;
-  // THE SOUND: the measured kicks set the strength (fast toward a hit; a strong beat with no kick calms it)
-  hb.kick *= Math.exp(-sec / DECAY_S);
-  if (kick && kick.live) {
-    hb.live = true;
-    if (kick.hit > 0) {
-      hb.lastHit = b;
-      if (bpm) { if (Math.abs(b - Math.round(b)) < 0.15) hb.hits.on++; else hb.hits.off++; }   // (the readout + the tests: do the kicks land on the grid?)
-      const nb = Math.round(b), onStrong = Math.abs(b - nb) < 0.22 && ((nb % 2) + 2) % 2 === 0;
-      if (bpm && onStrong) hb.level += (clamp01(kick.hit) - hb.level) * 0.65;
-      else hb.kick = Math.max(hb.kick, clamp01(kick.hit) * (bpm ? 0.38 : 1));
-    }
-    if (bpm && ht.v > 0.3 && ht.v < 0.5 && hb.missAt !== ht.unit) {
-      hb.missAt = ht.unit;
-      if (hb.lastHit < 2 * ht.unit - 0.25) hb.level = Math.max(0.25, hb.level * 0.8);
-    }
+  const be = beatPunch(b, T);
+  hb.env = be.env; hb.strong = be.strong;
+  // THE SOUND sets only HOW HARD the city punches — from the music's loudness (never from when a kick lands: a kick heard between
+  // the beats, or missing from one, changes nothing about the timing)
+  hb.kick = 0;
+  hb.live = !!(kick && kick.live);
+  if (hb.live && kick.hit > 0) { hb.lastHit = b; if (bpm) { if (Math.abs(b - Math.round(b)) < 0.15) hb.hits.on++; else hb.hits.off++; } }   // (the readout + the tests: do the kicks land on the grid?)
+  if (hb.live && mode === 'grid') {
+    hb.energy = kick.energy == null ? 1 : clamp01(kick.energy);
+    hb.level += (levelOf(hb.energy) - hb.level) * Math.min(1, sec * 2);
   } else {
-    hb.live = false;
+    // (the tempo pulse of a song without a trusted grid, the calm pulse, the direct element: a steady strength — never chasing the sound)
     hb.level += (SETTLE[mode] - hb.level) * Math.min(1, sec * 1.5);
   }
-  hb.punch = bpm || !hb.live ? ht.env * ht.strong * hb.level + hb.kick : hb.kick;
+  hb.punch = be.env * be.strong * hb.level;
   return hb;
 }
 
@@ -161,91 +166,119 @@ export function advanceHarborBeat(hb, dt, song, kick) {
  * the last reading against an adaptive threshold (the recent rises' mean + 1.5 σ), at least 0.18 s apart, at least 30 % of the
  * recent peak. → the hit's strength (0..1, against the peak of the last ~45 s: a quiet passage hits softly) or 0.
  */
-// ---- THE ELEMENT'S LEAD (M2, checked in M3 — docs/audio.md#m3-the-learned-lead). A mood song is an <audio> element; the samples that
-// reach the graph can run ahead of (lead < 0) or behind (lead > 0) its currentTime. A kick the listener hears at element-clock `at`
-// entered the graph `lag` earlier (the listener's own delay), so at − lag − the beat = the lead. Heard = at − the output − the lead.
+export function createOnsets() { return { prev: 0, h: [], peak: 1e-4, last: -9, t: null, level: 0 }; }
+export function onsetStep(o, e, t) {
+  const dt = o.t == null ? 0 : Math.max(0, Math.min(0.25, t - o.t)); o.t = t;
+  const flux = Math.max(0, e - o.prev); o.prev = e;
+  o.peak = Math.max(e, o.peak * Math.exp(-dt / 45), 1e-4);              // (a quiet passage stays calmer for ~45 s)
+  o.level += (e - o.level) * Math.min(1, dt / 2);
+  o.h.push(flux); if (o.h.length > 45) o.h.shift();
+  let m = 0; for (const v of o.h) m += v; m /= o.h.length;
+  let s = 0; for (const v of o.h) s += (v - m) * (v - m); s = Math.sqrt(s / o.h.length);
+  const thr = m + 1.5 * s + 0.04 * o.peak;
+  if (flux > thr && e > 0.3 * o.peak && t - o.last > 0.18) { o.last = t; return clamp01(Math.pow(e / o.peak, 0.8)); }
+  return 0;
+}
+/** the music's loudness right now, 0..1: the smoothed low-band level against the recent peak (a drop ≈ 1, a breakdown ≈ 0.2) */
+export const onsetEnergy = o => clamp01(o.level / (0.6 * Math.max(1e-4, o.peak)));
+
+// ---- THE LEAD (M2 → the beat-sync pass, Oct 24 2026 — docs/audio.md#the-beat-sync-pass). A mood song is an <audio> element; the
+// samples that reach the Web Audio graph (and the speaker after it) can run ahead of (lead < 0) or behind (lead > 0) its currentTime.
+// Nothing reports it, so each phone MEASURES it: a kick the listener hears at element-clock `at` entered the graph `lag` earlier (the
+// listener's own delay), so at − lag − the beat = the lead. Heard = at − the output − the lead. On iOS it MOVES: her phone read −34…−42
+// ms in a fresh session and +107 / +237 ms after coming back from the home screen (WebKit re-buffers the element's audio on the way
+// into the graph) — so the lead is ONE estimator that is always running:
+//   · every strong kick on a trusted grid gives its distance from the nearest beat AS THE LIGHTS PLACE IT (wrapped to ± half a beat
+//     round the current lead); the median of the last LEAD_KEEP, once LEAD_N agree (their middle half within LEAD_SPREAD), is the
+//     residual — how far the sound sits from the lights
+//   · SETTLING (leadFast: after a resume / rebuild / page return / route change): the lead moves to the residual in bounded steps
+//     (half the gap a kick, ≤ FAST_STEP) — a +240 ms shift is absorbed in ~5 agreeing kicks after the first LEAD_N; it ends when the
+//     residual is within LEAD_DONE (locked), or quietly after FAST_S s (the lead stays where it is: never a wrong value)
+//   · LOCKED: small nudges only (≤ SLOW_STEP a kick toward the residual); a residual steadily past SKEW_S (the sound moved with no
+//     event) starts a settle on its own
+//   · scattered kicks (the middle half past LEAD_SPREAD) never move it; the lead is bounded to LIVE_MIN…LIVE_MAX; the value SAVED per
+//     device stays within LEAD_MIN…LEAD_MAX (a return's shift is this visit's)
+//   · the kicks never change the tempo, the beat index or the source — only this one number, slowly
 // (Her iPhone: −42 ms with Safari's own outputLatency 18 ms — WebKit taps an element's audio ahead of its player clock; the sign is
 // right: the lights land 24 ms before the element's clock reaches a beat, i.e. when the beat is heard.)
 export const KICK_LAG = 0.024;              // the listener at 60 frames a second (offline replay of the party songs: 15–37 ms per song)
-export const LEAD_MIN = -0.08, LEAD_MAX = 0.12;   // a sane element lead; anything outside is a bad reading, never applied
+export const LEAD_MIN = -0.08, LEAD_MAX = 0.12;   // the range a SAVED device lead may take (a sane steady-state element lead)
+export const LIVE_MIN = -0.25, LIVE_MAX = 0.35;   // the range the live lead may take (a return can move it a quarter beat and more)
+export const LEAD_N = 6, LEAD_KEEP = 24, LEAD_SPREAD = 0.06, LEAD_DONE = 0.006;
+export const FAST_STEP = 0.08, SLOW_STEP = 0.01, FAST_S = 40, SKEW_S = 0.08;
 /** the listener's delay at this frame interval (s): it samples once a frame, so a slower frame hears a kick later (30 Hz: +8 ms) */
 export const kickLag = frameS => KICK_LAG + Math.max(0, Math.min(0.03, ((frameS || 1 / 60) - 1 / 60) / 2));
-/**
- * A strong kick heard at element-clock `at` on a trusted grid → its distance from the nearest beat (the lead), or null when it isn't
- * a beat's kick: only within ±min(80 ms, a fifth of a beat) — a 16th-note bass hit (a quarter beat away: 117 ms at 128 BPM) or a
- * syncopated kick never teaches the lead.
- */
-export function kickErr(at, grid, lag = KICK_LAG) {
-  if (!grid || !(grid.bpm > 0)) return null;
-  const p = 60 / grid.bpm, x = at - lag - (grid.t0 || 0), err = x - Math.round(x / p) * p;
-  return Math.abs(err) <= Math.min(0.08, 0.2 * p) ? err : null;
-}
-const clampLead = v => Math.max(LEAD_MIN, Math.min(LEAD_MAX, +v || 0));
-/** a lead being learned: v (s, applied), n (readings behind it), errs (the last 32) — a saved value starts it (clamped);
- *  fast: a re-measure under way (FP2, leadRefresh) or null; last: the last re-measure (the readout) */
-export function createLead(saved = null) { return { v: saved == null ? 0 : clampLead(saved), n: saved == null ? 0 : 12, errs: [], fast: null, last: null }; }
-/** one reading → true when the lead changed: the median of the last 32 once ≥ 12 agree (their middle half within 50 ms), clamped */
-export function learnLead(c, err) {
-  c.errs.push(err); if (c.errs.length > 32) c.errs.shift();
-  if (c.errs.length < 12) return false;
-  const s = c.errs.slice().sort((a, b) => a - b), med = s[s.length >> 1];
-  if (s[Math.floor(s.length * 0.75)] - s[Math.floor(s.length * 0.25)] > 0.05) return false;   // (not consistent yet: keep what we had)
-  c.v = clampLive(med); c.n = c.errs.length;          // (FP2: the live range — a saved device value is still clamped to LEAD_MIN…LEAD_MAX)
-  return true;
-}
-
-// ---- FP2 — THE LEAD RE-MEASURED (the owner's readout after the home screen: `drift −0 ms` — the song clock right — but `heard +107 ms
-// SKEW` with `lead −39 ms (29 kicks)`: the kicks reaching Web Audio now sat ~146 ms later against the element's clock than the lead
-// she had learned, so the lights ran ~¼ beat early on the sound she heard). The kick listener taps the graph BEFORE the speaker, so
-// what moved is the element → graph offset (iOS rebuilt the session's route / buffer on the return); the lead could never follow: it
-// only took kicks within ±80 ms OF A BEAT, and +107 is outside. Now every resume / route change / context rebuild / page return — and
-// a SKEW seen on its own — starts a RE-MEASURE: the strong kicks within ± half a beat (kickErrWide) are gathered; once REFRESH_N of
-// them agree (their middle half within 50 ms) the lead moves to their median in smoothed steps (half the gap a kick, at most
-// REFRESH_STEP), bounded to the live range; it ends when it has caught up (or after REFRESH_MAX kicks), and the ordinary learning
-// carries on from there, centred on the new lead (kickErr's `center`). A re-measure that finds the old lead right changes nothing.
-export const REFRESH_N = 6, REFRESH_MAX = 32, REFRESH_STEP = 0.06, REFRESH_DONE = 0.006;
-/** the live range a re-measured lead may take (wider than a saved device value: a return can move it more) */
-export const LIVE_MIN = -0.15, LIVE_MAX = 0.25;
+const clampSaved = v => Math.max(LEAD_MIN, Math.min(LEAD_MAX, +v || 0));
 const clampLive = v => Math.max(LIVE_MIN, Math.min(LIVE_MAX, +v || 0));
-/** start a re-measure (why: 'resume' | 'rebuild' | 'visible' | 'route' | 'skew' …; now: ms, for the readout) */
-export function leadRefresh(c, why = '', now = 0) {
-  c.fast = { why, at: now, from: c.v, errs: [], seen: 0, moved: false };
+const wrap = (e, p) => e - p * Math.round(e / p);
+/**
+ * a lead estimator: v (s, applied), n (kicks behind the current value), errs (the last LEAD_KEEP residuals, relative to v), res (the
+ * agreed residual or null), fast ({ why, at, from } while settling), last (the last settle: the readout), def (the platform default).
+ * saved: the device's stored lead (clamped to the saved range) or null; def: the platform default when nothing is saved (iOS: −40 ms).
+ */
+export function createLead(saved = null, def = 0) {
+  const v = saved == null ? clampLive(def) : clampSaved(saved);
+  return { v, n: saved == null ? 0 : LEAD_N, errs: [], res: null, fast: null, last: null, def: clampLive(def), seen: 0 };
+}
+/** start SETTLING (why: 'resume' | 'rebuild' | 'visible' | 'pageshow' | 'route' | 'skew'; now: ms) — the kicks before it are history */
+export function leadFast(c, why = '', now = 0) {
+  c.fast = { why, at: now, from: c.v };
+  c.errs = []; c.res = null;
   return c;
 }
+/** the song clock re-anchored (a jump, a seek, an event): the residuals measured before it are history; the lead stays */
+export function leadAnchor(c) { c.errs = []; c.res = null; return c; }
+/** a strong kick heard at element-clock `at` → its distance from the nearest grid beat (s, within ± half a beat), or null with no grid */
+export function kickErrWide(at, grid, lag = KICK_LAG) {
+  if (!grid || !(grid.bpm > 0)) return null;
+  const p = 60 / grid.bpm, x = at - lag - (grid.t0 || 0);
+  return x - Math.round(x / p) * p;
+}
 /**
- * One strong kick on a trusted grid, its wide error (s: kickErrWide — within ± half a beat) → what it did: 'fast' (the re-measure moved
- * the lead), 'wait' (gathering), 'done' (the re-measure finished: the lead caught up), 'learn' (the ordinary learning moved it), null.
- * The ordinary learning only takes kicks within ±min(80 ms, a fifth of a beat) of where the CURRENT lead says they land.
+ * One strong kick on a trusted grid, its wide error (kickErrWide) → what it did: 'wait' (gathering), 'scatter' (the kicks don't
+ * agree: nothing moves), 'fast' (settling: the lead stepped), 'locked' (a settle finished), 'learn' (a locked lead nudged), 'ok'
+ * (agreed, nothing to move), null (no grid).
  */
 export function leadKick(c, wide, grid, now = 0) {
   if (wide == null || !grid || !(grid.bpm > 0)) return null;
   const p = 60 / grid.bpm;
-  if (c.fast) {
-    const f = c.fast;
-    f.seen++;
-    if (Math.abs(wide) <= Math.min(0.4 * p, 0.3)) { f.errs.push(wide); if (f.errs.length > 16) f.errs.shift(); }
-    let out = 'wait';
-    if (f.errs.length >= REFRESH_N) {
-      const s = f.errs.slice().sort((a, b) => a - b), med = s[s.length >> 1];
-      if (s[Math.floor(s.length * 0.75)] - s[Math.floor(s.length * 0.25)] <= 0.05) {
-        const target = clampLive(med), gap = target - c.v;
-        if (Math.abs(gap) <= REFRESH_DONE) out = 'done';
-        else { c.v += Math.sign(gap) * Math.min(REFRESH_STEP, Math.max(REFRESH_DONE, Math.abs(gap) * 0.5)); f.moved = true; out = Math.abs(target - c.v) <= REFRESH_DONE ? 'done' : 'fast'; }
-      }
-    }
-    if (out === 'done' || f.seen >= REFRESH_MAX) {
-      c.last = { why: f.why, from: f.from, to: c.v, at: now, kicks: f.seen, moved: f.moved, ok: out === 'done' };
-      // (the ordinary learning carries on from the kicks that just agreed, re-centred on the new lead)
-      c.errs = out === 'done' ? f.errs.filter(e => Math.abs(e - c.v) <= Math.min(0.08, 0.2 * p)) : c.errs;
-      if (out === 'done') c.n = c.errs.length;
-      c.fast = null;
-      return out === 'done' ? 'done' : null;
-    }
-    return out;
+  if (c.fast && now - c.fast.at > FAST_S * 1000) { c.last = { why: c.fast.why, from: c.fast.from, to: c.v, at: now, ok: false }; c.fast = null; }
+  // (the kick's distance from where the LIGHTS land — the residual — wrapped round the current lead: a +280 ms and a −280 ms reading
+  // at 106 BPM are the same 6 ms apart)
+  const e = wrap(wide - c.v, p);
+  c.errs.push(e); if (c.errs.length > LEAD_KEEP) c.errs.shift();
+  c.seen++;
+  if (c.errs.length < LEAD_N) { c.res = null; return 'wait'; }
+  const stats = arr => { const s = arr.slice().sort((a, b) => a - b); return { med: s[s.length >> 1], spread: s[Math.floor(s.length * 0.75)] - s[Math.floor(s.length * 0.25)] }; };
+  const move = step => { const v2 = clampLive(c.v + step), d = v2 - c.v; c.v = v2; for (let i = 0; i < c.errs.length; i++) c.errs[i] -= d; if (c.res != null) c.res -= d; c.n = c.errs.length; };
+  // (the sound moved with no event we saw — iOS re-buffering mid-song: the LAST LEAD_N kicks agree among themselves, steadily past
+  // SKEW_S from where the lights land, while the older residuals sit near 0. Settle on the new ones: the old are history)
+  if (!c.fast && c.errs.length >= LEAD_N + 2) {
+    const r = stats(c.errs.slice(-LEAD_N));
+    if (r.spread <= LEAD_SPREAD && Math.abs(r.med) > SKEW_S) { c.fast = { why: 'skew', at: now, from: c.v }; c.errs = c.errs.slice(-LEAD_N); }
   }
-  if (Math.abs(wide - c.v) > Math.min(0.08, 0.2 * p)) return null;
-  return learnLead(c, wide) ? 'learn' : null;
+  const { med, spread } = stats(c.errs);
+  if (spread > LEAD_SPREAD) { c.res = null; return 'scatter'; }
+  c.res = med;
+  if (c.fast) {
+    if (Math.abs(med) <= LEAD_DONE) { c.last = { why: c.fast.why, from: c.fast.from, to: c.v, at: now, ok: true }; c.fast = null; c.n = c.errs.length; return 'locked'; }
+    move(Math.sign(med) * Math.min(FAST_STEP, Math.max(0.004, Math.abs(med) * 0.5)));
+    return 'fast';
+  }
+  if (Math.abs(med) > 0.004) { move(Math.sign(med) * Math.min(SLOW_STEP, Math.abs(med) * 0.25)); return 'learn'; }
+  c.n = c.errs.length;
+  return 'ok';
 }
+/** the lead for the readout: { state: 'default' | 'settling' | 'locked' | 'settled', ms, from?, why?, n, ago? } */
+export function leadState(c, now = 0) {
+  const ms = v => Math.round(v * 1000);
+  if (c.fast) return { state: 'settling', ms: ms(c.v), from: ms(c.fast.from), why: c.fast.why, n: c.errs.length };
+  if (c.last && now - c.last.at < 20000) return { state: 'settled', ms: ms(c.v), from: ms(c.last.from), why: c.last.why, ok: c.last.ok, n: c.errs.length, ago: Math.round((now - c.last.at) / 1000) };
+  if (!c.n) return { state: 'default', ms: ms(c.v), n: 0 };
+  return { state: 'locked', ms: ms(c.v), n: c.n };
+}
+/** the value to SAVE for this device (the steady-state lead, within the saved range) — or null while settling / with nothing learned */
+export const leadToSave = c => (c.fast || !c.n ? null : +clampSaved(c.v).toFixed(3));
 /** the song's position AS HEARD: the element's clock − the output latency − the element's lead */
 export const heardPos = (at, out, lead) => Math.max(0, at - out - lead);
 
@@ -294,44 +327,4 @@ export function songClockStep(sc, r, now, why = '') {
   } else if ((now - sc.rawPerf) / 1000 > SC_STUCK) sc.stuck = true;
   // (a reading that stopped changing: run forward SC_HOLD s past it at most — then hold)
   return (sc.pos = run(Math.min(now, sc.rawPerf + SC_HOLD * 1000)));
-}
-
-// ---- FP — THE HEARD OFFSET: where the strong kicks the listener HEARS land against the grid, over a wide window (± half a beat —
-// the learned lead only takes ±80 ms). After a return from the background WebKit may feed the graph from a different point of the
-// element than its currentTime says; then the heard kicks sit systematically off the grid. Measured, shown on the readout (`heard`),
-// never applied to the lights' timing. While it is steady AND beyond the lead's reach (SKEW_MS from the learned lead) the clock
-// stops listening to the kicks (they'd land between the grid's beats: extra "random" punches, and the strong beats would look
-// kick-less and calm the city) — the lights then run on the grid alone at its steady strength.
-export const SKEW_MS = 0.08;
-/** a heard kick at element-clock `at` → its distance from the nearest beat (s, within ± half a beat), or null with no grid */
-export function kickErrWide(at, grid, lag = KICK_LAG) {
-  if (!grid || !(grid.bpm > 0)) return null;
-  const p = 60 / grid.bpm, x = at - lag - (grid.t0 || 0);
-  return x - Math.round(x / p) * p;
-}
-export function createHeard() { return { errs: [], v: 0, n: 0, steady: false }; }
-/** one reading (s) → the median of the last 24 once ≥ 8, steady when their middle half is within 50 ms */
-export function heardStep(h, err) {
-  h.errs.push(err); if (h.errs.length > 24) h.errs.shift();
-  if (h.errs.length < 8) { h.n = h.errs.length; h.steady = false; return h; }
-  const s = h.errs.slice().sort((a, b) => a - b);
-  h.v = s[s.length >> 1]; h.n = s.length;
-  h.steady = s[Math.floor(s.length * 0.75)] - s[Math.floor(s.length * 0.25)] <= 0.05;
-  return h;
-}
-/** the heard kicks are systematically off the grid, beyond what the learned lead covers */
-export const heardSkew = (h, lead = 0) => !!(h && h.steady && Math.abs(h.v - lead) > SKEW_MS);
-
-export function createOnsets() { return { prev: 0, h: [], peak: 1e-4, last: -9, t: null, level: 0 }; }
-export function onsetStep(o, e, t) {
-  const dt = o.t == null ? 0 : Math.max(0, Math.min(0.25, t - o.t)); o.t = t;
-  const flux = Math.max(0, e - o.prev); o.prev = e;
-  o.peak = Math.max(e, o.peak * Math.exp(-dt / 45), 1e-4);              // (a quiet passage stays calmer for ~45 s)
-  o.level += (e - o.level) * Math.min(1, dt / 2);
-  o.h.push(flux); if (o.h.length > 45) o.h.shift();
-  let m = 0; for (const v of o.h) m += v; m /= o.h.length;
-  let s = 0; for (const v of o.h) s += (v - m) * (v - m); s = Math.sqrt(s / o.h.length);
-  const thr = m + 1.5 * s + 0.04 * o.peak;
-  if (flux > thr && e > 0.3 * o.peak && t - o.last > 0.18) { o.last = t; return clamp01(Math.pow(e / o.peak, 0.8)); }
-  return 0;
 }

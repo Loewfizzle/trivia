@@ -51,10 +51,11 @@ loading) — the city then breathes slowly on its own. The title's scene polls i
   → a kick and its strength, released after the output latency (the light lands when the sound does). `{ hit, live }` or null
   (music off / muted / no Web Audio).
 - **THE CLOCK** (`core/harbor-beat.js#advanceHarborBeat`, City 2.0 only — City 1.0 keeps `core/party.js#advanceBeat`): locks to the
-  grid (bars on the real downbeats, a new song re-locks at once, the bar count never runs backwards); the pulse HALF-TIME (beats 1 +
+  grid (bars on the real downbeats, a new song re-locks at once, the bar count never runs backwards); ~~the pulse HALF-TIME (beats 1 +
   3, the downbeat hardest, a 50 ms attack, a 0.24 s decay); a kick heard on a strong beat sets how hard the city punches (a quiet
   passage or a breakdown with no kick calms it), a kick between them is a small hit of its own; a song with no grid punches on
-  every real kick; no music: a calm 120 bpm of its own. Checked on real songs in headless Chrome (overclock, late2, slip5): locked
+  every real kick~~ — **since THE BEAT-SYNC PASS (Oct 24, below): EVERY beat punches from the grid alone, the kicks only calibrate the
+  lead and the loudness sets the strength**; no music: a calm 120 bpm of its own. Checked on real songs in headless Chrome (overclock, late2, slip5): locked
   to the grid, the analyser live 97–100 %, 63–78 % of the kicks it hears within ±0.15 beat of the grid's beats (chance: ~30 %).
   The `&debug=1` readout shows `beat grid 130.0 · bar 12 · 3/4 · kick 0.86` on a party night. NEON PASS 6: when it's calm it says
   why (`beatWhy()`: `beat calm — music off` / `muted` / `tap for sound` / `classic music` / `songs loading` / `no song`), and
@@ -290,8 +291,8 @@ pulse any more".
   | --- | --- | --- |
   | `grid` | a trusted grid through the graph | the kicks heard set it (0.25–1); nothing heard: 0.85 |
   | `direct-grid` | a trusted grid on the direct element | steady 0.85 (no listener) |
-  | `kicks` | no trusted grid, the listener hears the music | every real kick |
-  | `tempo` | no trusted grid, nothing heard (the direct element, a deaf analyser) | a gentle steady 0.6 at the song's tempo, on its loose grid's phase |
+  | ~~`kicks`~~ | ~~no trusted grid, the listener hears the music~~ — gone in THE BEAT-SYNC PASS (never chase kicks) | ~~every real kick~~ |
+  | `tempo` | no trusted grid (whatever the listener hears) | a gentle steady 0.6 at the song's tempo, on its loose grid's phase |
   | `calm` | no song (`— music off` / `muted` / `tap for sound` …) | a calm 120 bpm, 0.7 |
   e.g. `beat direct-grid 128.0 · bar 12 · 3/4 · pulse 0.87`; `· kick 0.86` only while the listener hears; `· kick unheard` only on `grid`
   (8a: `· pulse` = the punch the lights got, its peak over the last ½ s — 0 means they aren't pulsing; `×1.80` when PULSE STRENGTH
@@ -491,6 +492,78 @@ recordings imported into theirs; every event that exists today calls its slot; a
   `clock` line's `heard` lands near the new lead (no SKEW) within a few bars.
 - **Tests:** `harbor.test.mjs` "FP2 — THE LEAD RE-MEASURED" (a +100 ms shift: stuck without the re-measure; on the event ≤ 16 kicks, no
   overshoot, settled, heard = the beat; on the SKEW alone; no shift = no change; scattered kicks give up; bounded).
+
+## THE BEAT-SYNC PASS (Oct 24 2026; City 2.0's party) — `core/harbor-beat.js`, `audio/beat.js`, `screens/harbor/scene.js`, `core/harbor-show.js`
+Three passes (FP, FP2, 7a) had patched the sync and the owner's iPhone still said no: "kind of all over the place — slightly off beat, then it
+comes back into beat but at a SLOWER rhythm (half time?), kind of on beat, then it gets lost again"; "when it works it looks great". Her
+readouts: before leaving (c2-party5, 106 BPM, grid trusted) `heard −34 ms`, `re-measure GAVE UP`, `anchors 5 (jump)`, drift −0; back from the home
+screen (~30 s) `heard +237 ms SKEW`, `lead → −27 ms (re-measuring · 8 kicks)`, `anchors 8 (jump)`, drift +0, the tier 2→1→2 with 38 slow frames;
+earlier on c2-party7 (140 BPM) `heard +107 ms SKEW`. This pass REASONED from those numbers and replaced the layers with one simple design.
+- **The causes, ranked (the code as it was):**
+  1. **Two sources mixed, flipping mid-song.** With a trusted grid the lights punched on the grid AND on every kick heard off the strong beats
+     (`advanceHarborBeat`: `hb.kick = max(…, hit × 0.38)` — a punch of its own between beats), and a strong beat with no kick within ±0.22 beat
+     calmed the city toward 0.25 (`missAt`). With the sound +237 ms off the element's clock (0.42 beat at 106 BPM) every kick was an off-beat
+     punch and every strong beat looked kick-less: "all over the place" + fading. Once 8 kicks agreed, `heardSkew` flagged SKEW and the kicks
+     were dropped: the grid alone, HALF-TIME (beats 1 + 3 only — NEON PASS 5's design) = "a slower rhythm". Then every song-clock re-anchor
+     (`anchors 5 → 8 (jump)`: iOS's `currentTime` jumping > 250 ms mid-song) cleared `heard` (`beat.js`: `heardAnch !== sclock.anchors`), the
+     SKEW flag dropped, the off-beat kicks counted again for 8 kicks… = "gets lost again". The cycle repeated on every jump.
+  2. **The re-measure could not measure her case.** FP2 gathered kicks only within `±min(0.4 beat, 0.3 s)` of a beat (`leadKick`: `|wide| ≤ 0.4p`)
+     — at 106 BPM that is ±226 ms, so a +237 ms offset was excluded from the very window meant to find it: 32 kicks seen, < 6 gathered,
+     `re-measure GAVE UP`, the lead stuck at −34 → −27 (the few readings that fell inside were biased, so it crept). At 140 BPM (±171 ms) +107 was
+     inside, which is why FP2's test passed and her 140 BPM song did re-converge.
+  3. **Converging slowly by design:** 6 agreeing kicks before any move, then ≤ 60 ms a kick, and the ordinary learning's ±80 ms window
+     could never follow a shift on its own.
+  4. **Half / double tempo:** no lock as such — the `kicks` source (no trusted grid through the graph) punched on raw kicks with no tempo at
+     all, and the half-time envelope read as "half tempo" whenever the 2 + 4 kick hits went. Her songs were trusted, so cause 1 explains it.
+  5. **Is `heard +237` real?** Yes, as far as the lights are concerned: the listener taps the graph that the speaker plays, so a steady offset of
+     the kicks from the element's clock IS the sound's offset at the ear (the speaker's own latency after the graph is Safari's `outputLatency`,
+     read live). WebKit re-buffers the element's audio into the graph after the home screen; the amount varies (+107, +237) — so it has to be
+     measured live and followed, not clamped to a device constant. It is measured modulo one beat (a +240 ms shift on a 128 BPM song reads
+     −229: the lights land on the beat either way, a beat along).
+  6. **The tier drop:** the frames right after a return (the audio session rebuilt, the song clock re-anchored, a resize from the toolbar, a
+     step-down's own re-bake) were judged like steady frames: p75 > 19.5 ms → 2→1 → a probe → back to 2.
+- **THE DESIGN — ONE SOURCE OF TRUTH** (`core/harbor-beat.js`, PURE, tested):
+  - **The lights follow ONLY the song's grid**, positioned from the song's time (FP's song clock, unchanged: `drift 0` proved it right) minus
+    ONE lead. `beatMode(song)` depends on the song alone: `grid` / `direct-grid` / `tempo` / `calm` — the `kicks` source is gone; a song never
+    changes source mid-song, and its tempo is the grid's from the first locked frame (set, never eased; never touched by anything heard).
+  - **EVERY BEAT punches** (`beatPunch`, `BEAT_WEIGHT = [1, 0.45, 0.72, 0.45]`): the downbeat hardest, beat 3 next, 2 + 4 lighter but there — the
+    look she liked "when it worked" was the grid's strong beats + the kicks' little hits on 2 + 4; now it is deterministic. (`halfTime` stays
+    exported for the old previews; `harbor-show.js` uses `beatPunch`.)
+  - **The kicks only CALIBRATE the lead** (`createLead`, `leadKick`, `leadFast`, `leadAnchor`, `leadState`, `leadToSave`): one estimator, always
+    running. Each strong kick on a trusted grid (`agree ≥ 0.5`) gives its distance from the nearest beat AS THE LIGHTS PLACE IT (wrapped ± half a
+    beat round the current lead: no window can exclude the answer any more); the median of the last 24, once 6 agree (middle half within 60
+    ms), is the residual. SETTLING (after every resume / rebuild / page return / route change — `leadFast`): the lead steps to the residual, half
+    the gap a kick, ≤ 80 ms a kick → +240 ms is absorbed in ~5 agreeing kicks after the first 6 (the test: ≤ 16 kicks at 106 BPM ≈ 4 bars; the
+    whole chain through a +237 ms return lands within 25 ms of the sound in < 4 bars). It ends LOCKED when the residual ≤ 6 ms, or quietly
+    after 40 s (the lead as it was — never "gives up" into a wrong value). LOCKED: nudges ≤ 10 ms a kick; the last 6 kicks agreeing among
+    themselves > 80 ms off (the sound moved with no event) start a settle on their own. Scattered kicks never move it. Bounded −250 … +350 ms
+    live; the device saves only the steady-state value within −80 … +120. A song-clock re-anchor forgets the residuals, never the lead. The
+    kicks never change the tempo, the beat index or the source.
+  - **The default lead** with nothing learned: iOS −40 ms (`IOS_LEAD`, her phone's steady −34…−42), elsewhere 0; re-settled on every return.
+  - **THE STRENGTH** comes from the music's LOUDNESS, not from when kicks land (`onsetEnergy`: the smoothed low-band level against its 45 s
+    peak → `levelOf`: a breakdown 0.45, a drop 1). Nothing heard: the steady 0.85. The `tempo` pulse (no trusted grid: c2-party3 and the other
+    untrusted songs) is steady at 0.6 on the loose grid's phase — never chasing kicks.
+  - **RETURNING** (`scene.js`): the song clock re-anchors at once (FP), the lead re-settles (`leadFast('visible')`), and a return NEVER costs a
+    tier — `returnGrace()`: the frame window is emptied and nothing steps for 3 s after `visible` / `pageshow` / a watchdog restart
+    (`__district.tiering().returns`, `.holdMs`); a resize that changed nothing (iOS fires one on the way back) no longer re-bakes the city.
+- **The readout** (`&debug=1`): `music PARTY · c2-party5 106.0 · grid trusted (lock 1.15)` (`music DAY (setting)` / `(panel)` when the mood is a
+  CHOICE and not the clock's — then the party pulses to a non-party song by design; the mood and the party show read the SAME clock, the
+  Harbor's, `&when=` included); `beat grid 106.0 · bar 12 · 3/4 · drift −0 ms · pulse 1.18 · level 0.86` (`level steady` when nothing is heard);
+  `sync out 18 ms · lead −40 ms (default)` → `lead −34 ms (locked · 22 kicks)` → after a return `lead −34 → +180 ms (settling · visible · 8 kicks)` →
+  `lead +237 ms (settled −34 → +237 · 4 s ago)` (`kept` when a settle timed out without agreement); `clock el +3 ms · anchors 8 (jump) · heard +12 ms`
+  — `heard` is now the RESIDUAL (how far the kicks sit from where the lights land: in sync ≈ 0; `~` while the last kicks don't agree).
+  `beatDebug().cal` / `.res` / `.energy`.
+- **Tests:** `harbor.test.mjs` "THE BEAT-SYNC PASS" ×5 (every beat; the strength from loudness, kicks half a beat off = the same punches as kicks on
+  the beat = no kicks; ONE SOURCE through six listener reports incl. half-tempo kicks — the source, the tempo and the beat index never move; the
+  lead: +100 / +146 ms at 140 and +240 / +271 ms at 106 BPM absorbed in ≤ 14 / 16 kicks with no overshoot, a shift with no event in ≤ 16, no shift
+  = locked unchanged, scattered kicks time out quietly; THE WHOLE CHAIN: song clock + lead + beat clock through a +237 ms return → within 25 ms
+  of the sound in < 4 bars) + the lead's basics (M3's, rewritten); e2e-harbor `music` §10 "RETURN never costs a tier". The CI's timing checks
+  are warnings there (`okT`; docs/testing.md).
+- **What the owner should look at** (iPhone, a party night or the panel's party, `&debug=1`): tap so the music plays; ~20 s: `beat grid … · drift
+  ±0–30 ms`, `heard` within ~±30 ms, `lead … (locked)`; home screen ~30 s, back WITHOUT tapping; ~20 s: the lights keep the same every-beat
+  rhythm (never a slower one), `lead −34 → +N ms (settling · visible …)` then `(settled …)` within a few bars, `heard` back near 0, the tier line
+  unchanged (`t2`, no `2→1`). Then skip to another song (the panel's MUSIC row): the same. If `heard` stays large with `lead … (locked)` for more
+  than ~8 bars, send the three lines — that is the one case this design doesn't cover (kicks that agree among themselves yet never settle).
 
 ## FP — THE SOUNDS (Oct 23 2026; the owner listened on her iPhone) — `core/city-sounds.js`, `audio/city-sound.js`, `screens/harbor/sounds.js`
 The owner: the water FAR too loud ("like you're right next to a lake", noticeable over the music); the gulls good but patterned; the cars fine.

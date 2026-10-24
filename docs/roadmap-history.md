@@ -786,6 +786,26 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — THE BEAT-SYNC PASS (Oct 24, 2026) — `docs/audio.md#the-beat-sync-pass`, `docs/harbor.md#bs` (the owner after three patches: "all over the place … a slower rhythm … gets lost again"; "losing hope on it")
+- [x] The causes from her readouts: two sources mixed (grid punches + off-beat kick hits + a calm-on-miss), the SKEW flag flipping on every
+      song-clock re-anchor (the "slower rhythm" = the half-time grid alone; "lost" = the kicks back in); FP2's gathering window (±0.4 beat =
+      ±226 ms at 106 BPM) could never measure her +237 ms; the tier judged the return's frames
+- [x] ONE SOURCE (`core/harbor-beat.js`): `beatMode(song)` from the song alone (`grid` / `direct-grid` / `tempo` / `calm`), the tempo set from the
+      grid and never eased or touched; EVERY BEAT punches (`beatPunch`, weights 1 / 0.45 / 0.72 / 0.45); the strength from the loudness
+      (`onsetEnergy` → `levelOf`), never from when a kick lands
+- [x] THE LEAD, one estimator (`createLead` / `leadKick` / `leadFast` / `leadAnchor` / `leadState` / `leadToSave`): residuals wrapped ± half a beat
+      round the current lead, the median of 24 once 6 agree; SETTLING after every resume / return / route change (half the gap, ≤ 80 ms a kick:
+      +240 ms in ~5 agreeing kicks), LOCKED nudges ≤ 10 ms, a shift with no event found from the last 6 kicks; bounded −250…+350 live, the device
+      saves −80…+120; the iOS default −40 ms
+- [x] `audio/beat.js`: `beatKick()` → `{ live, energy, hit }`; the heard / skew / re-measure layers gone; the readout: `level`, `lead … (default |
+      locked | settling · why · n kicks | settled a → b)`, `heard` = the residual; `music DAY (setting | panel)` when the mood is a choice
+- [x] `scene.js`: `returnGrace()` — a return never costs a tier (3 s hold, the frame window emptied); a no-change resize never re-bakes
+- [x] The extras: `ambience.js#neonTwitch` (the lit sign's random flickers at the tap's gain through the tap's cap, 1 in 3 +2 dB); SPEAKEASY
+      white on party nights (`--pw`); the mailbox out of the plan; `e2e-harbor.mjs#okT` (pure-speed checks are warnings on CI, listed in the
+      summary); the PULSE STRENGTH panel check waits for the scene's frame
+- [x] Tests: `harbor.test.mjs` 157 (+ THE BEAT-SYNC PASS ×5 incl. THE WHOLE CHAIN through a +237 ms return; the lead's basics rewritten; the
+      mailbox gone); the unit suite 560; e2e-harbor `music` (+ RETURN never costs a tier)
+
 ### ✅ CITY 2.0 — PROMENADE FINAL TOUCHES (Oct 24, 2026) — `docs/harbor.md#pf`, `docs/audio.md` (FP3 + THE SKY SOUNDS) (the owner on FP2: the promenade is filled out — lock its final layout)
 - **The cloud test job** (`.github/workflows/harbor.yml`): the whole e2e-harbor suite on GitHub after a City 2.0 push (≈ 7–9 min; a newer push cancels; cached); its slow-machine flakes made to wait for their conditions.
 - **The final layout:** the cart HIDDEN (`CART_SHOWN`, back in 8b), the bench + a bigger crabapple just left of the crossing (the DOUBLE AGENT blade free), the tall lamps a matched pair FLANKING the crossing, the globes at the front corners, a 1920s OLIVE-GREEN PILLAR MAILBOX by the right curb.

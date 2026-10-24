@@ -932,11 +932,11 @@ test('the party show (NEON PASS 4): racing light on most buildings, a HARD beat 
     assert.ok(step <= 0.16, `the attack takes ≥ 40 ms at ${bt} s a beat (a 5 ms step moves it ${step.toFixed(3)})`);
     assert.equal(punchEnv(0, bt), 1); assert.ok(punchEnv(0.15 / bt, bt) < 0.4, 'a quick decay');
   }
-  // (NEON PASS 5 — HALF-TIME: the punch lands on beats 1 + 3, the downbeat hardest; beats 2 + 4 stay calm)
+  // (THE BEAT-SYNC PASS — EVERY BEAT: the punch lands on every beat, the downbeat hardest, beat 3 next, 2 + 4 lighter but there)
   const pAt = sx => showFrame(cast, frame(9, sx, 1, 'peak'), newShowOut(cast.length)).punch;
   const down = pAt(0), b3 = pAt(32), b2 = pAt(16), b4 = pAt(48);
   assert.ok(down > b3 * 1.2 && down > 0.7, `harder on the downbeat (${down.toFixed(2)} vs beat 3 ${b3.toFixed(2)})`);
-  assert.ok(b3 > 0.45 && b2 < 0.25 && b4 < 0.25, `half-time: beat 3 punches (${b3.toFixed(2)}), beats 2 + 4 don't (${b2.toFixed(2)}, ${b4.toFixed(2)})`);
+  assert.ok(b3 > 0.45 && b2 > 0.25 && b2 < b3 && b4 > 0.25 && b4 < b3, `every beat: beat 3 punches (${b3.toFixed(2)}), beats 2 + 4 lighter (${b2.toFixed(2)}, ${b4.toFixed(2)})`);
   // tier 1: a few effects + a few racers at once; tier 0: none (the whole neon punches as one image)
   const t1 = run(1, 'peak', 1);
   assert.ok(t1.maxMoving <= MAX_MOVING[1] && t1.maxRacing <= MAX_RACE[1], `tier 1: ≤ ${MAX_MOVING[1]} effects + ≤ ${MAX_RACE[1]} racing (${t1.maxMoving} + ${t1.maxRacing})`);
@@ -1388,7 +1388,7 @@ test('7a — THE SPELL-ON ROUND: every sign spells on in its turn, never two at 
 });
 
 // ------------------------------------------------------------------ NEON PASS 5: the real beat, the palette, the signs, the tired tube
-import { createHarborBeat, advanceHarborBeat, halfTime, createOnsets, onsetStep, CALM_BPM, beatMode } from '../js/core/harbor-beat.js';
+import { createHarborBeat, advanceHarborBeat, beatPunch, BEAT_WEIGHT, levelOf, SETTLE, createOnsets, onsetStep, onsetEnergy, CALM_BPM, beatMode } from '../js/core/harbor-beat.js';
 import { PARTY_PAL, partyColours, tiredLetters } from '../js/core/harbor-show.js';
 
 test('NEON PASS 5 — THE BEAT locks to the song\'s grid: bars on the real downbeats, a new song re-locks at once, the bar count never runs backwards', () => {
@@ -1411,62 +1411,100 @@ test('NEON PASS 5 — THE BEAT locks to the song\'s grid: bars on the real downb
   assert.ok(Math.abs(1 / c.T - CALM_BPM / 60) < 0.02 && c.src === 'calm', 'no song: the calm pulse');
 });
 
-test('NEON PASS 5 — HALF-TIME: the punch on beats 1 + 3 (the downbeat hardest), a ≥ 40 ms attack before the beat, a longer decay; nothing on 2 + 4', () => {
-  const at = b => { const h = halfTime(b, 0.5); return h.env * h.strong; };
-  assert.equal(at(0), 1); assert.ok(Math.abs(at(2) - 0.72) < 1e-9, 'beat 3: 0.72');
-  assert.ok(at(1) < 0.15 && at(3) < 0.15, `beats 2 + 4 calm (${at(1).toFixed(2)}, ${at(3).toFixed(2)})`);
-  assert.ok(at(0.25) > 0.25 && at(0.25) < 0.75, `a decay you can see (${at(0.25).toFixed(2)} an eighth later)`);
+test('THE BEAT-SYNC PASS — EVERY BEAT punches: the downbeat hardest, beat 3 next, 2 + 4 lighter but visible; a ≥ 40 ms attack before each beat, a decay you can see, never a hard on', () => {
+  const at = b => { const h = beatPunch(b, 0.5); return h.env * h.strong; };
+  assert.equal(at(0), 1); assert.ok(Math.abs(at(2) - BEAT_WEIGHT[2]) < 1e-9, 'beat 3: 0.72');
+  assert.ok(Math.abs(at(1) - BEAT_WEIGHT[1]) < 1e-9 && Math.abs(at(3) - BEAT_WEIGHT[1]) < 1e-9 && BEAT_WEIGHT[1] >= 0.35 && BEAT_WEIGHT[1] <= 0.55, `beats 2 + 4 lighter (${at(1).toFixed(2)}) — a pulse on EVERY beat, never half-time`);
+  assert.ok(at(0.25) > 0.25 && at(0.25) < 0.75, `a decay you can see (${at(0.25).toFixed(2)} a quarter beat later)`);
+  assert.ok(at(3.95) > 0.3 && at(3.95) < 1 && at(3.89) < 0.2, `the attack over the last ~50 ms before a downbeat (0.5 s a beat: ${at(3.89).toFixed(2)} → ${at(3.95).toFixed(2)} → 1)`);
   let step = 0; for (let ms = 0; ms < 2000; ms += 5) step = Math.max(step, Math.abs(at((ms + 5) / 500) - at(ms / 500)));
   assert.ok(step <= 0.16, `never a hard on (a 5 ms step moves it ${step.toFixed(3)})`);
 });
 
-test('NEON PASS 5 — THE SOUND: kicks on the strong beats set how hard the city punches; a breakdown with no kick calms it; a song with no grid punches on every real kick', () => {
+test('THE BEAT-SYNC PASS — THE SOUND sets only HOW HARD: the music\'s loudness (a drop 1, a breakdown ~0.45); a kick between the beats is never a punch, a beat without a kick never calms the city; nothing heard: the steady strength', () => {
   const grid = { bpm: 120, t0: 0, down: 0 }, hb = createHarborBeat(0);
-  let pos = 0; const run = (n, kickAt) => { const out = []; for (let i = 0; i < n; i++) { pos += 1 / 60; const b = pos * 2, hit = kickAt(b); advanceHarborBeat(hb, 1000 / 60, { bpm: 120, pos, grid }, { hit, live: true }); out.push(hb.punch); } return out; };
-  // loud kicks on 1 + 3
-  const loud = run(600, b => (Math.abs(b - Math.round(b)) < 0.017 && Math.round(b) % 2 === 0 ? 1 : 0));
+  let pos = 0; const run = (n, kick) => { const out = []; for (let i = 0; i < n; i++) { pos += 1 / 60; advanceHarborBeat(hb, 1000 / 60, { bpm: 120, pos, grid }, kick(pos * 2)); out.push(hb.punch); } return out; };
+  const loud = run(600, () => ({ live: true, energy: 1, hit: 0 }));
   const lvLoud = hb.level;
-  // quiet kicks
-  run(600, b => (Math.abs(b - Math.round(b)) < 0.017 && Math.round(b) % 2 === 0 ? 0.35 : 0));
+  run(600, () => ({ live: true, energy: 0.1, hit: 0 }));
   const lvQuiet = hb.level;
-  // a breakdown: no kicks at all
-  run(600, () => 0);
-  assert.ok(lvLoud > 0.85 && lvQuiet < 0.5 && hb.level <= 0.3, `the level follows the song (loud ${lvLoud.toFixed(2)}, quiet ${lvQuiet.toFixed(2)}, breakdown ${hb.level.toFixed(2)})`);
-  assert.ok(Math.max(...loud) > 0.9, 'a loud downbeat punches fully');
-  // no grid, kicks heard: every kick is a hit (the attack at the kick: a song we know nothing about)
-  const k2 = createHarborBeat(0); let hit = 0;
-  for (let i = 0; i < 120; i++) { advanceHarborBeat(k2, 16, null, { hit: i % 30 === 0 ? 0.9 : 0, live: true }); if (i % 30 === 0) hit = Math.max(hit, k2.punch); }
-  assert.ok(k2.src === 'kicks' && hit > 0.85, `no grid: the kicks themselves (${hit.toFixed(2)})`);
+  assert.ok(lvLoud > 0.95 && lvQuiet < 0.55 && lvQuiet >= 0.45, `the level follows the loudness (loud ${lvLoud.toFixed(2)}, a breakdown ${lvQuiet.toFixed(2)})`);
+  assert.ok(Math.max(...loud) > 0.95, 'a loud downbeat punches fully');
+  assert.ok(Math.abs(levelOf(1) - 1) < 1e-9 && Math.abs(levelOf(0) - 0.45) < 1e-9);
+  // kicks heard HALF A BEAT OFF every beat (the sound offset from the song's clock — her iPhone after the home screen): the punch is the
+  // grid's alone — identical, frame for frame, to the same song with kicks exactly on the beats, and to no kicks at all
+  const runWith = kick => { const h = createHarborBeat(0); let p = 0; const out = []; for (let i = 0; i < 900; i++) { p += 1 / 60; advanceHarborBeat(h, 1000 / 60, { bpm: 120, pos: p, grid }, kick(p * 2)); out.push(+h.punch.toFixed(6)); } return { h, out }; };
+  const onBeat = runWith(b => ({ live: true, energy: 0.8, hit: Math.abs(b - Math.round(b)) < 0.017 ? 0.9 : 0 }));
+  const offBeat = runWith(b => ({ live: true, energy: 0.8, hit: Math.abs(b - Math.round(b) - 0.45) < 0.017 ? 0.9 : 0 }));
+  const noKick = runWith(() => ({ live: true, energy: 0.8, hit: 0 }));
+  assert.deepEqual(offBeat.out, onBeat.out, 'kicks half a beat off: the same punches as kicks on the beat');
+  assert.deepEqual(noKick.out, onBeat.out, 'no kicks at all: the same punches');
+  assert.ok(onBeat.h.hits.on > 20 && offBeat.h.hits.off > 20, `(the readout still counts where they land: on ${onBeat.h.hits.on}, off ${offBeat.h.hits.off})`);
+  // nothing heard (a deaf listener, no Web Audio): the steady strength
+  const deaf = runWith(() => ({ live: false, energy: 0, hit: 0 }));
+  assert.ok(Math.abs(deaf.h.level - SETTLE.grid) < 0.01, `nothing heard: ${deaf.h.level.toFixed(2)} (the grid's steady ${SETTLE.grid})`);
+  // the listener's energy: the smoothed level against the recent peak
+  const o = createOnsets(); for (let i = 0; i < 300; i++) onsetStep(o, 0.3, i / 60);
+  assert.ok(onsetEnergy(o) > 0.95, `a steady loud low end reads ${onsetEnergy(o).toFixed(2)}`);
+  for (let i = 300; i < 900; i++) onsetStep(o, 0.03, i / 60);
+  assert.ok(onsetEnergy(o) < 0.3, `a breakdown reads ${onsetEnergy(o).toFixed(2)} after 10 s (the level eases over ~2 s, the peak remembers ~45 s)`);
 });
 
-test('7a — THE BEAT IN DIRECT MODE: the source is chosen (grid / direct-grid / kicks / tempo / calm); on the direct element the grid punches at full strength whatever the dead listener says; an untrusted song a gentle pulse at its tempo', () => {
+test('THE BEAT-SYNC PASS — ONE SOURCE: a trusted-grid song never changes its source or its tempo mid-song, whatever the listener reports — live, deaf, kicks on the beat, off it, at half the tempo; the lights\' beat index stays the song\'s', () => {
+  const grid = { bpm: 106, t0: 0.21, down: 2 }, p = 60 / grid.bpm, hb = createHarborBeat(0.4);
+  let pos = 12; const srcs = new Set(), rates = [];
+  const reports = [
+    b => ({ live: true, energy: 0.9, hit: Math.abs(b - Math.round(b)) < 0.017 ? 0.9 : 0 }),                       // kicks on every beat
+    b => ({ live: true, energy: 0.9, hit: Math.abs(b - 2 * Math.round(b / 2)) < 0.017 ? 0.9 : 0 }),               // kicks on every OTHER beat (half tempo)
+    b => ({ live: true, energy: 0.6, hit: Math.abs(b - Math.round(b) - 0.42) < 0.017 ? 0.9 : 0 }),                // kicks 0.42 beat off (an offset sound)
+    () => ({ live: false, energy: 0, hit: 0, deaf: true }),                                                      // a dead graph's listener
+    () => null,                                                                                                  // no listener at all
+    b => ({ live: true, energy: 0.2, hit: Math.abs(b - 4 * Math.round(b / 4)) < 0.017 ? 0.9 : 0 }),               // a kick a bar
+  ];
+  for (let r = 0; r < reports.length; r++) {
+    for (let i = 0; i < 480; i++) {
+      pos += 1 / 60; const b = (pos - grid.t0) / p;
+      advanceHarborBeat(hb, 1000 / 60, { bpm: grid.bpm, pos, grid }, reports[r](b));
+      srcs.add(hb.src); if (i > 60) rates.push(hb.rate);
+      const want = ((Math.floor(b - grid.down) % 4) + 4) % 4;
+      if (i > 60) assert.equal(hb.idx, want, `report ${r}, frame ${i}: the lights' beat ${hb.idx + 1}/4 = the song's ${want + 1}/4`);
+    }
+  }
+  assert.deepEqual([...srcs], ['grid'], `one source all song long (${[...srcs].join(', ')})`);
+  assert.ok(Math.max(...rates) - Math.min(...rates) < 1e-6 && Math.abs(1 / Math.max(...rates) - p) < 0.001, `the tempo never moves: ${(60 * Math.min(...rates)).toFixed(3)}–${(60 * Math.max(...rates)).toFixed(3)} bpm (the song's ${grid.bpm})`);
+  // and a half-tempo kick pattern never halves the lights' tempo: the weak beats still punch
+  const hb2 = createHarborBeat(0); let p2 = 5; const peaks = [];
+  let lastIdx = -1, pk = 0;
+  for (let i = 0; i < 1200; i++) { p2 += 1 / 60; const b = (p2 - grid.t0) / p; advanceHarborBeat(hb2, 1000 / 60, { bpm: grid.bpm, pos: p2, grid }, reports[1](b)); if (hb2.idx !== lastIdx) { if (lastIdx >= 0) peaks.push(pk); lastIdx = hb2.idx; pk = 0; } pk = Math.max(pk, hb2.punch); }
+  assert.ok(peaks.length > 30 && peaks.slice(4).every(v => v > 0.3), `every beat punches with kicks at half the tempo (the weakest ${Math.min(...peaks.slice(4)).toFixed(2)})`);
+});
+
+test('7a — THE BEAT IN DIRECT MODE: the source is chosen (grid / direct-grid / tempo / calm) from the song alone; on the direct element the grid punches at full strength whatever the dead listener says; an untrusted song a steady pulse at its tempo', () => {
   const grid = { bpm: 128, t0: 0.2, down: 1 }, loose = { bpm: 106.904, t0: 0.485, down: 1, trusted: false };
   const live = { hit: 0, live: true }, deaf = { hit: 0, live: false };
-  assert.equal(beatMode({ bpm: 128, pos: 10, grid }, live), 'grid');
-  assert.equal(beatMode({ bpm: 128, pos: 10, grid }, deaf), 'grid');
-  assert.equal(beatMode({ bpm: 128, pos: 10, grid, direct: true }, live), 'direct-grid', 'the direct element: a "live" listener is stale, the grid leads');
-  assert.equal(beatMode({ bpm: 106.9, pos: 10, grid: null, untrusted: true, loose }, live), 'kicks', 'an untrusted song through the graph: the kicks heard');
-  assert.equal(beatMode({ bpm: 106.9, pos: 10, grid: null, untrusted: true, loose, direct: true }, live), 'tempo', 'an untrusted song on the direct element: its tempo');
-  assert.equal(beatMode({ bpm: 106.9, pos: 10, grid: null, untrusted: true, loose }, deaf), 'tempo', 'an untrusted song, nothing heard: its tempo (was a calm 120)');
-  assert.equal(beatMode(null, null), 'calm');
-  assert.equal(beatMode(null, live), 'kicks');
-  // THE BUG: back from the home screen the frozen graph's analyser repeats its last window — "live", no kicks. Through the graph that is
-  // a breakdown (the city calms to a quarter); on the direct element it must not matter: the grid punches as it did before leaving.
+  assert.equal(beatMode({ bpm: 128, pos: 10, grid }), 'grid');
+  assert.equal(beatMode({ bpm: 128, pos: 10, grid, direct: true }), 'direct-grid', 'the direct element: the grid on its own clock');
+  assert.equal(beatMode({ bpm: 106.9, pos: 10, grid: null, untrusted: true, loose }), 'tempo', 'an untrusted song: a steady pulse at its tempo (never the kicks)');
+  assert.equal(beatMode({ bpm: 106.9, pos: 10, grid: null, untrusted: true, loose, direct: true }), 'tempo');
+  assert.equal(beatMode(null), 'calm');
+  assert.equal(beatMode({ bpm: 0, pos: 3 }), 'calm');
+  // back from the home screen the frozen graph's analyser repeats its last window (audio/beat.js reports it deaf); on the direct element
+  // whatever it says is ignored: the grid punches as it did before leaving
   const swing = (direct, kick, n = 600, g = grid, extra = {}) => {
     const hb = createHarborBeat(0); let pos = 30, lo = 9, hi = 0;
     for (let i = 0; i < n; i++) { pos += 1 / 60; advanceHarborBeat(hb, 1000 / 60, { bpm: g ? g.bpm : 106.9, pos, grid: g, direct, ...extra }, kick); if (i > n - 240) { lo = Math.min(lo, hb.punch); hi = Math.max(hi, hb.punch); } }
     return { hb, lo, hi };
   };
-  const stale = swing(false, live), direct = swing(true, live), graph = swing(false, deaf);
-  assert.ok(stale.hb.level <= 0.3, `(the bug, through the graph: a stale "live" listener calms it to ${stale.hb.level.toFixed(2)})`);
-  assert.ok(direct.hb.src === 'direct-grid' && direct.hb.level > 0.8 && direct.hi - direct.lo > 0.75, `direct-grid: the punch swings ${direct.lo.toFixed(2)} → ${direct.hi.toFixed(2)} (level ${direct.hb.level.toFixed(2)})`);
+  const direct = swing(true, live), graph = swing(false, deaf);
+  assert.ok(direct.hb.src === 'direct-grid' && direct.hb.level > 0.8 && direct.hi - direct.lo > 0.75 && !direct.hb.live, `direct-grid: the punch swings ${direct.lo.toFixed(2)} → ${direct.hi.toFixed(2)} (level ${direct.hb.level.toFixed(2)})`);
   assert.ok(Math.abs(direct.hi - graph.hi) < 0.02, `direct-grid punches as hard as the grid with nothing heard (${direct.hi.toFixed(2)} vs ${graph.hi.toFixed(2)})`);
   assert.ok(Math.abs(direct.hb.T - 60 / 128) < 0.002, `direct-grid: at the grid's tempo (${(60 / direct.hb.T).toFixed(2)} bpm)`);
   // its phase is the grid's: the downbeat where the grid puts it
   const k = ((30 + 600 / 60) - grid.t0) * 128 / 60 - grid.down, d = ((k - direct.hb.beats) % 4 + 4) % 4;
   assert.ok(Math.min(d, 4 - d) < 0.05, `direct-grid: on the grid's bars (${Math.min(d, 4 - d).toFixed(3)} beats off)`);
-  // an untrusted song on the direct element: a steady, GENTLER pulse at its tempo, on its (loose) grid's phase
-  const t = swing(true, live, 600, null, { untrusted: true, loose });
+  // an untrusted song (on the direct element or through the graph alike): a steady, GENTLER pulse at its tempo, on its (loose) grid's phase
+  const t = swing(true, live, 600, null, { untrusted: true, loose }), t2 = swing(false, live, 600, null, { untrusted: true, loose });
+  assert.ok(t2.hb.src === 'tempo' && Math.abs(t2.hi - t.hi) < 0.05, `through the graph too: '${t2.hb.src}' at the same strength (${t2.hi.toFixed(2)} vs ${t.hi.toFixed(2)})`);
   assert.ok(t.hb.src === 'tempo' && Math.abs(60 / t.hb.T - 106.904) < 0.05, `tempo: ${(60 / t.hb.T).toFixed(2)} bpm (the song's 106.90)`);
   assert.ok(t.hi - t.lo > 0.45 && t.hi < direct.hi * 0.8, `tempo: a gentle pulse (${t.lo.toFixed(2)} → ${t.hi.toFixed(2)}, the grid's ${direct.hi.toFixed(2)})`);
 });
@@ -1960,33 +1998,42 @@ test('M2 billboard lamps: four, ~6–8 pt shades, two each side of the middle, e
 });
 
 // ------------------------------------------------------------------ M3: the element's learned lead (her iPhone: "lead −42 ms")
-import { kickErr, learnLead, createLead, heardPos, kickLag, KICK_LAG, LEAD_MIN, LEAD_MAX } from '../js/core/harbor-beat.js';
+import { createLead, leadKick, leadFast, leadAnchor, leadState, leadToSave, kickErrWide, heardPos, kickLag, KICK_LAG, LEAD_MIN, LEAD_MAX, LIVE_MIN, LIVE_MAX, LEAD_N, FAST_S } from '../js/core/harbor-beat.js';
 
-test('M3 — THE LEAD: the sign is right (a kick heard → the lead; heard = clock − out − lead), only beats\' kicks teach it, clamped', () => {
-  const grid = { bpm: 128, t0: 0.31 }, p = 60 / 128, L = -0.042, out = 0.018;
-  // the element's clock x runs L ahead of the graph's sound: graph = x − L. A beat b enters the graph, the listener fires lag later.
-  const lead = createLead();
-  for (let k = 4; k < 40; k++) {
-    const b = grid.t0 + k * p;
-    const err = kickErr(b + KICK_LAG + L, grid);                  // x when the kick is detected
-    assert.ok(Math.abs(err - L) < 1e-9, `kick ${k}: err ${err}`);
-    learnLead(lead, err);
-    // a 16th-note bass hit a quarter beat before the beat: never teaches the lead
-    assert.equal(kickErr(b - p / 4 + KICK_LAG + L, grid), null, '16th note rejected');
-  }
-  assert.ok(Math.abs(lead.v - L) < 1e-9, `learned ${lead.v}`);
+// a strong kick on beat k with the element → graph offset L: detected at element clock x = beat + lag + L (+ jitter); every 5th hit a
+// 16th-note bass hit a quarter beat early (an outlier the estimator must reject)
+const leadRig = (grid, { jitter = 0.006, bass = true } = {}) => {
+  const p = 60 / grid.bpm, jit = k => (((k * 37) % 13) - 6) / 6 * jitter;
+  const kickAt = (k, L) => (grid.t0 || 0) + k * p + KICK_LAG + L + jit(k) - (bass && k % 5 === 4 ? p / 4 : 0);
+  const feed = (c, k0, n, L, onKick) => { let k = k0; for (; k < k0 + n; k++) { const w = kickErrWide(kickAt(k, L), grid); const r = leadKick(c, w, grid, k * p * 1000); if (onKick && onKick(k, r, w) === false) break; } return k; };
+  return { p, kickAt, feed };
+};
+
+test('THE LEAD (M3 → the beat-sync pass): the sign is right (a kick heard → the lead; heard = clock − out − lead); a locked lead takes only small nudges, the 16th-note hits + scattered kicks never move it; bounded; the saved value within the device range', () => {
+  const grid = { bpm: 128, t0: 0.31 }, { p, feed } = leadRig(grid), L = -0.042, out = 0.018;
+  const lead = createLead(null, 0);
+  assert.deepEqual(leadState(lead), { state: 'default', ms: 0, n: 0 });
+  let n = 0; feed(lead, 4, 60, L, (k, r) => { n++; return Math.abs(lead.v - L) > 0.005; });
+  assert.ok(Math.abs(lead.v - L) < 0.006, `learned ${Math.round(lead.v * 1000)} ms in ${n} kicks (small nudges from a fresh start)`);
+  assert.equal(leadState(lead).state, 'locked');
   // heard position: when the beat is HEARD (graph at b + out → x = b + out + L), the heard position is exactly the beat
   const b = grid.t0 + 20 * p;
-  assert.ok(Math.abs(heardPos(b + out + L, out, lead.v) - b) < 1e-9, 'heard = the beat when it sounds');
-  // clamped: a wild reading set never applies past the sane range; a saved wild value is clamped too
-  const w = createLead();
-  for (let i = 0; i < 20; i++) learnLead(w, -0.075 - 0.001 * (i % 3));
-  assert.ok(w.v >= LEAD_MIN && w.v <= LEAD_MAX);
-  assert.equal(createLead(0.4).v, LEAD_MAX); assert.equal(createLead(-0.3).v, LEAD_MIN); assert.equal(createLead(null).n, 0);
-  // inconsistent readings (spread > 50 ms) keep the old value
-  const m = createLead(0.01);
-  for (let i = 0; i < 20; i++) learnLead(m, i % 2 ? 0.07 : -0.07);
-  assert.equal(m.v, 0.01);
+  assert.ok(Math.abs(heardPos(b + out + L, out, L) - b) < 1e-9, 'heard = the beat when it sounds');
+  // locked: a run of kicks does not wander (± jitter + the bass hits)
+  const v0 = lead.v; feed(lead, 64, 80, L);
+  assert.ok(Math.abs(lead.v - v0) < 0.004, `no wander (${Math.round((lead.v - v0) * 1000)} ms over 80 kicks)`);
+  // scattered kicks never move it
+  const m = createLead(0.01, 0); for (let i = 0; i < 40; i++) leadKick(m, ((i * 7) % 11) / 11 * 0.3 - 0.15, grid, i);
+  assert.equal(m.v, 0.01, 'scattered: unchanged');
+  // bounded: the live range; a saved wild value is clamped to the device range; the default too
+  const f = createLead(null, 0); leadFast(f, 'route', 0);
+  for (let i = 0; i < 60; i++) leadKick(f, kickErrWide(i * (60 / 90) + KICK_LAG + 0.4, { bpm: 90, t0: 0 }), { bpm: 90, t0: 0 }, i);
+  assert.ok(f.v <= LIVE_MAX + 1e-9 && f.v >= LIVE_MIN, `bounded at ${f.v}`);
+  assert.equal(createLead(0.4).v, LEAD_MAX); assert.equal(createLead(-0.3).v, LEAD_MIN); assert.equal(createLead(null, -0.04).v, -0.04); assert.equal(createLead(null, -0.9).v, LIVE_MIN);
+  assert.equal(leadToSave(createLead(null, -0.04)), null, 'nothing learned: nothing saved (the default is the platform\'s)');
+  // (a shift is measured modulo one beat: +240 ms is more than half a beat at 128 BPM — on a slower song it is applied as is)
+  const big = createLead(null, 0), rig2 = leadRig({ bpm: 100, t0: 0.1 }); leadFast(big, 'visible', 0); rig2.feed(big, 0, 40, 0.24);
+  assert.ok(Math.abs(big.v - 0.24) < 0.01 && leadToSave(big) === LEAD_MAX, `a return's +240 ms is applied live (${Math.round(big.v * 1000)}) but the device keeps ≤ ${LEAD_MAX * 1000} ms`);
   // the listener's delay follows the frame rate: 60 Hz = KICK_LAG, 30 Hz ≈ +8 ms, never less at 120 Hz
   assert.equal(kickLag(1 / 60), KICK_LAG); assert.ok(Math.abs(kickLag(1 / 30) - KICK_LAG - 1 / 120) < 1e-9); assert.equal(kickLag(1 / 120), KICK_LAG);
 });
@@ -2406,73 +2453,85 @@ test('FP — THE SONG CLOCK: the beat follows the SONG (the element\'s currentTi
   assert.ok(sc.snap && sc.why === 'visible');
 });
 
-test('FP — THE HEARD OFFSET: strong kicks vs the grid over ± half a beat; steady + beyond the lead = SKEW, and then the kicks are not listened to (no off-beat punches, the strong beats don\'t calm the city)', async () => {
-  const { kickErrWide, createHeard, heardStep, heardSkew, KICK_LAG } = await import('../js/core/harbor-beat.js');
-  const grid = { bpm: 125, t0: 0.009, down: 2 }, p = 60 / grid.bpm;
-  assert.ok(Math.abs(kickErrWide(grid.t0 + 10 * p + KICK_LAG + 0.2, grid) - 0.2) < 1e-9, 'a kick 200 ms late reads +200 ms (the lead\'s ±80 ms would drop it)');
-  const h = createHeard();
-  for (let i = 0; i < 7; i++) heardStep(h, 0.2 + (i % 3) * 0.004);
-  assert.ok(!h.steady && !heardSkew(h), 'fewer than 8: not judged');
-  heardStep(h, 0.2);
-  assert.ok(h.steady && Math.abs(h.v - 0.2) < 0.01 && heardSkew(h, -0.04), `steady at +${Math.round(h.v * 1000)} ms: SKEW`);
-  const ok = createHeard(); for (let i = 0; i < 12; i++) heardStep(ok, -0.04 + (i % 4) * 0.005);
-  assert.ok(ok.steady && !heardSkew(ok, -0.04), 'near the learned lead: in sync');
-  const messy = createHeard(); for (let i = 0; i < 16; i++) heardStep(messy, ((i * 7) % 11) / 11 * 0.4 - 0.2);
-  assert.ok(!messy.steady && !heardSkew(messy), 'scattered kicks: never a skew');
-  // the beat clock with skewed kicks: as if nothing were heard (the grid at its steady strength)
-  const a = createHarborBeat(0), b = createHarborBeat(0);
-  let pos = 0;
-  for (let i = 0; i < 900; i++) {
-    pos += 1 / 60; const beat = (pos - grid.t0) / p, hit = Math.abs(beat - Math.round(beat) - 0.45) < 0.03 ? 0.9 : 0;   // (kicks ~half a beat off)
-    advanceHarborBeat(a, 1000 / 60, { bpm: 125, pos, grid }, { hit, live: true, skew: true });
-    advanceHarborBeat(b, 1000 / 60, { bpm: 125, pos, grid }, { hit: 0, live: false });
+// ------------------------------------------------------------------ THE BEAT-SYNC PASS — THE LEAD SETTLES AFTER A RETURN (her readouts: heard +107 ms
+// SKEW at 140 BPM; heard +237 ms SKEW · re-measure GAVE UP at 106 BPM — FP2's gathering window was ±0.4 beat = ±226 ms there, so +237 could
+// never be measured; and the SKEW flag flipped the kicks in and out as the song clock re-anchored: "all over the place")
+test('THE BEAT-SYNC PASS — a +100 ms and a +240 ms shift of the sound after a return (visible / resume / route) are absorbed by the lead within a few bars, at 140 and at 106 BPM; no overshoot; the song clock\'s re-anchors never undo it; no shift = no change; the settle ends quietly when the kicks never agree', () => {
+  for (const [grid, shift, maxKicks] of [[{ bpm: 140, t0: 0.197, down: 1 }, 0.1, 14], [{ bpm: 140, t0: 0.197, down: 1 }, 0.146, 14], [{ bpm: 106, t0: 0.33, down: 0 }, 0.24, 16], [{ bpm: 106, t0: 0.33, down: 0 }, 0.271, 16]]) {
+    const { p, feed } = leadRig(grid), out = 0.018, L1 = -0.039, L2 = L1 + shift;
+    const c = createLead(L1, -0.04); let k = feed(c, 8, 40, L1);
+    assert.ok(Math.abs(c.v - L1) < 0.006, `${grid.bpm} bpm: the lead she had, ${Math.round(c.v * 1000)} ms`);
+    // the return: the settle starts with the event, the sound now L2 off the element's clock
+    leadFast(c, 'visible', 0);
+    let n = 0, over = 0, flips = 0;
+    k = feed(c, k, 60, L2, (kk, r) => { n++; over = Math.max(over, c.v - L2); if (r === 'locked') flips++; return Math.abs(c.v - L2) > 0.01; });
+    assert.ok(n <= maxKicks, `${grid.bpm} bpm, +${Math.round(shift * 1000)} ms: within 10 ms after ${n} kicks (≤ ${maxKicks}: ~${(maxKicks / 4).toFixed(0)} bars)`);
+    assert.ok(over < 0.012, `never overshoots (${Math.round(over * 1000)} ms)`);
+    feed(c, k, 40, L2);
+    assert.ok(Math.abs(c.v - L2) < 0.008 && !c.fast && leadState(c, 1e9).state === 'locked', `settled at ${Math.round(c.v * 1000)} ms (the sound's ${Math.round(L2 * 1000)}), locked`);
+    const b = grid.t0 + 200 * p;
+    assert.ok(Math.abs(heardPos(b + out + L2, out, c.v) - b) < 0.01, 'heard = the beat when it sounds');
+    // the song clock re-anchoring mid-song (a jump, a seek) forgets the residuals, never the lead
+    leadAnchor(c); assert.ok(Math.abs(c.v - L2) < 0.008 && c.errs.length === 0 && c.res === null, 'a re-anchor keeps the lead');
+    feed(c, k + 40, 30, L2); assert.ok(Math.abs(c.v - L2) < 0.008, 'and the kicks after it agree with it');
   }
-  assert.ok(Math.abs(a.level - b.level) < 1e-9 && Math.abs(a.punch - b.punch) < 1e-9 && a.kick === 0, `skewed kicks ignored (level ${a.level.toFixed(2)} = ${b.level.toFixed(2)})`);
+  const grid = { bpm: 140, t0: 0.197, down: 1 }, { feed } = leadRig(grid), L1 = -0.039;
+  // no event — the sound moves on its own (the residual steadily past 80 ms): the lead settles on it by itself
+  const d = createLead(L1, 0); feed(d, 8, 40, L1);
+  let m = 0; feed(d, 100, 80, L1 + 0.12, (kk, r) => { m++; return Math.abs(d.v - L1 - 0.12) > 0.01; });
+  assert.ok(m <= 16, `a +120 ms shift with no event: absorbed after ${m} kicks (≈ ${(m / 4).toFixed(0)} bars)`);
+  // a settle that finds the old lead right changes nothing, and reports 'locked'
+  const e = createLead(L1, 0); feed(e, 8, 40, L1); const v0 = e.v;
+  leadFast(e, 'resume', 0); let res = null; feed(e, 60, 30, L1, (kk, r) => { if (r === 'locked') { res = r; return false; } });
+  assert.ok(res === 'locked' && Math.abs(e.v - v0) < 0.006 && !e.fast, `no shift: locked again, ${Math.round(v0 * 1000)} → ${Math.round(e.v * 1000)} ms`);
+  assert.equal(leadState(e, 1000).state, 'settled');
+  // scattered kicks during a settle: nothing moves; after FAST_S s the settle ends quietly — the lead as it was, never a wrong value
+  const s = createLead(L1, 0); leadFast(s, 'route', 0);
+  for (let i = 0; i < 40; i++) leadKick(s, ((i * 7) % 11) / 11 * 0.3 - 0.15, grid, i * 500);
+  assert.ok(s.fast && s.v === createLead(L1).v, 'scattered: still settling, unchanged');
+  leadKick(s, 0.01, grid, FAST_S * 1000 + 1);
+  assert.ok(!s.fast && s.v === createLead(L1).v && s.last && !s.last.ok && leadState(s, FAST_S * 1000 + 2).state === 'settled', 'timed out quietly, unchanged (the readout: kept)');
+  assert.ok(LEAD_N >= 5, 'at least five agreeing kicks before anything moves');
 });
 
-// ------------------------------------------------------------------ FP2 — THE LEAD RE-MEASURED (her readout: heard +107 ms SKEW, lead −39 ms)
-test('FP2 — THE LEAD RE-MEASURED: a +100 ms shift after a return re-converges within a few bars (on the event, or on the SKEW alone); no shift = no wander; scattered kicks never move it', async () => {
-  const { createLead, leadKick, leadRefresh, kickErrWide, heardPos, createHeard, heardStep, heardSkew, KICK_LAG, LIVE_MAX, REFRESH_MAX } = await import('../js/core/harbor-beat.js');
-  const grid = { bpm: 140, t0: 0.197, down: 1 }, p = 60 / grid.bpm, out = 0.018;   // (c2-party7, her song)
-  const jit = k => (((k * 37) % 13) - 6) / 1000;                                    // ±6 ms of listener jitter
-  // a strong kick on beat k with the element → graph offset L: detected at element clock x = beat + lag + L (+ jitter); every 5th
-  // hit a 16th-note bass hit a quarter beat early (it must never teach the lead)
-  const kickAt = (k, L) => grid.t0 + k * p + KICK_LAG + L + jit(k) - (k % 5 === 4 ? p / 4 : 0);
-  const feed = (c, k0, n, L, onKick) => { let k = k0; for (; k < k0 + n; k++) { const w = kickErrWide(kickAt(k, L), grid); const r = leadKick(c, w, grid, k * p * 1000); if (onKick && onKick(k, r, w) === false) break; } return k; };
-  const L1 = -0.039, L2 = L1 + 0.1;
-  // the lead she had: −39 ms, learned
-  const c = createLead(L1); let k = feed(c, 8, 40, L1);
-  assert.ok(Math.abs(c.v - L1) < 0.006, `learned ${c.v}`);
-  // before FP2 nothing could follow: every kick is now > 80 ms from the old lead → the ordinary learning ignores them all
-  { const old = createLead(L1); feed(old, k, 60, L2); assert.ok(Math.abs(old.v - L2) > 0.08, `without a re-measure the lead never reaches it (the bug): ${Math.round(old.v * 1000)} ms`); }
-  // (a) THE EVENT (resume / rebuild / visible / route): the shift happens with the return
-  leadRefresh(c, 'visible', 0);
-  let n = 0, over = 0;
-  k = feed(c, k, 40, L2, (kk, r) => { n++; over = Math.max(over, c.v - L2); return Math.abs(c.v - L2) > 0.01; });
-  assert.ok(n <= 16, `converged in ${n} kicks (≤ 4 bars at 140 bpm)`);
-  assert.ok(over < 0.01, `never overshoots (${Math.round(over * 1000)} ms)`);
-  feed(c, k, 60, L2);
-  assert.ok(Math.abs(c.v - L2) < 0.008 && !c.fast, `settled at ${Math.round(c.v * 1000)} ms, the ordinary learning carries on round it`);
-  // the lights land on the beat AS HEARD again (the graph at b + out → the element at b + out + L2)
-  const b = grid.t0 + 200 * p;
-  assert.ok(Math.abs(heardPos(b + out + L2, out, c.v) - b) < 0.01, 'heard = the beat when it sounds');
-  // (b) NO EVENT — the SKEW seen on its own starts it (audio/beat.js: heardSkew → refresh('skew'))
-  const d = createLead(L1), h = createHeard(); feed(d, 8, 40, L1);
-  let m = 0, startedAt = null;
-  feed(d, 100, 60, L2, (kk, r, w) => { m++; heardStep(h, w); if (!d.fast && heardSkew(h, d.v)) { leadRefresh(d, 'skew', 0); startedAt ??= m; } return Math.abs(d.v - L2) > 0.01; });
-  assert.ok(startedAt != null && startedAt <= 10 && m <= 26, `SKEW seen after ${startedAt} kicks, converged after ${m} (≈ 6 bars)`);
-  // (c) a re-measure that finds the old lead right changes nothing
-  const e = createLead(L1); feed(e, 8, 40, L1); const v0 = e.v;
-  leadRefresh(e, 'resume', 0); let res = null; feed(e, 60, 30, L1, (kk, r) => { if (r === 'done') { res = r; return false; } });
-  assert.ok(res === 'done' && Math.abs(e.v - v0) < 0.006 && !e.fast, `no shift: done, ${Math.round(v0 * 1000)} → ${Math.round(e.v * 1000)} ms`);
-  // (d) scattered kicks during a re-measure: it gives up after REFRESH_MAX, the lead untouched
-  const s = createLead(L1); leadRefresh(s, 'route', 0);
-  for (let i = 0; i < REFRESH_MAX + 2; i++) leadKick(s, ((i * 7) % 11) / 11 * 0.3 - 0.15, grid, i);
-  assert.ok(!s.fast && s.v === createLead(L1).v && s.last && !s.last.ok, 'scattered: gave up, unchanged');
-  // (e) bounded: a slow song's big shift stops at the live range
-  const slow = { bpm: 90, t0: 0 }, q = 60 / 90, f = createLead(0); leadRefresh(f, 'route', 0);
-  for (let i = 0; i < 40; i++) leadKick(f, kickErrWide(i * q + KICK_LAG + 0.26, slow), slow, i);
-  assert.ok(f.v <= LIVE_MAX + 1e-9 && f.v > 0.2, `bounded at ${f.v}`);
+// ------------------------------------------------------------------ THE BEAT-SYNC PASS — THE WHOLE CHAIN: the song clock + the lead + the beat clock
+// through a return with the sound shifted +237 ms (her case at 106 BPM): the lights land on the sound again within a few bars, the
+// source never flips, the tempo never moves, no half-time
+test('THE BEAT-SYNC PASS — THE WHOLE CHAIN: a return that shifts the sound +237 ms at 106 BPM — the lights are back on the beat AS HEARD within 4 bars, one source throughout, the tempo untouched, every beat punching', async () => {
+  const { createSongClock, songClockStep } = await import('../js/core/harbor-beat.js');
+  const grid = { bpm: 106, t0: 0.33, down: 0 }, p = 60 / grid.bpm, out = 0.018;
+  const sc = createSongClock(), hb = createHarborBeat(0), lead = createLead(-0.034, -0.04);
+  let now = 0, el = 20, L = -0.034;                  // the frame clock (ms), the element's currentTime (s), the element → sound offset
+  const srcs = new Set(), rates = new Set();
+  let shown = el, shownAt = 0, lastKick = -1;
+  // one frame: the element's coarse clock; a strong kick heard when the SOUND (el − L) crosses a grid beat, KICK_LAG later
+  const frame = (why = '') => {
+    now += 1000 / 60; el += 1 / 60;
+    if (now - shownAt >= 250) { shown = el; shownAt = now; }
+    const at = songClockStep(sc, { id: 'c2-party5', t: shown }, now, why);
+    if (sc.snap) leadAnchor(lead);
+    const soundBeat = Math.floor((el - L - KICK_LAG - grid.t0) / p);
+    let hit = 0;
+    if (soundBeat !== lastKick && soundBeat >= 0) { lastKick = soundBeat; hit = 0.9; leadKick(lead, kickErrWide(at, grid), grid, now); }
+    const pos = heardPos(at, out, lead.v);
+    advanceHarborBeat(hb, 1000 / 60, { bpm: grid.bpm, pos, grid, snap: sc.snap }, { live: true, energy: 0.9, hit });
+    srcs.add(hb.src); rates.add(+hb.rate.toFixed(4));
+  };
+  // how far the lights' beat sits from the sound's beat (ms): the sound at the ear is el − L − out behind the element's clock
+  const offMs = () => { const sb = (el - L - out - grid.t0) / p; let d = sb - hb.beats; d -= 4 * Math.round(d / 4); return d * p * 1000; };
+  for (let i = 0; i < 1800; i++) frame();
+  assert.ok(Math.abs(offMs()) < 25, `before leaving: the lights ${offMs().toFixed(0)} ms from the sound`);
+  // the home screen for 30 s: the element plays on, the frame clock stops; back with the sound now +237 ms off the element's clock
+  now += 30000; el += 30; shown = el; shownAt = now; L = -0.034 + 0.271;
+  leadFast(lead, 'visible', now);
+  frame('visible');
+  let bars = 0, settledAt = null;
+  for (let i = 0; i < 1800; i++) { frame(); if (settledAt == null && i > 60 && Math.abs(offMs()) < 25) settledAt = i; }
+  bars = settledAt == null ? 99 : settledAt / 60 / (4 * p);
+  assert.ok(settledAt != null && bars <= 4, `back on the sound ${bars.toFixed(1)} bars after the return (${offMs().toFixed(0)} ms off at the end)`);
+  assert.ok(Math.abs(offMs()) < 25, `and it stays there (${offMs().toFixed(0)} ms)`);
+  assert.deepEqual([...srcs], ['grid'], 'one source throughout');
+  assert.ok(rates.size <= 2 && [...rates].every(r => Math.abs(60 * r - 106) < 0.1), `the tempo never moved (${[...rates].map(r => (60 * r).toFixed(2)).join(', ')} bpm)`);
 });
 
 // ------------------------------------------------------------------ FP2 — PARTY-NIGHT TIMING, EARLIER (8:30 warm-up, 9:30 peak — after the dark)
@@ -2944,23 +3003,20 @@ test('PF — the centrepiece\'s sprite box holds the inlay + the piece\'s height
     assert.ok(b.w * b.h < 300 * 260, `${k}: small (${b.w} × ${b.h} pt — not a full-screen layer)`);
   }
 });
-test('PF — THE MAILBOX: by the front curb right of the crossing, left of the framing maple\'s trunk, above the dock, ~25–33 pt tall; nothing in front of the crossing', async () => {
+test('THE MAILBOX IS GONE (Oct 24, the owner: the olive-green box): no mailbox in the plan on any phone, no walkers\' block for it; the art stays in props.js', async () => {
   const { mailboxBox } = await import('../js/screens/harbor/props.js');
   for (const k of ['390x844', '402x874', '430x932']) {
-    const { s, cam, L } = setup(k), mb = L.mailbox, b = mailboxBox(cam, mb);
-    assert.ok(mb && mb.z < L.speakeasy.z0, `${k}: on the front walk (the front row's bake)`);
-    const [c1] = project(cam, L.crosswalk.x1, 0, 53), maple = L.trees.find(t => t.big), [mt] = project(cam, maple.x, 0, maple.z), trunk = cam.F * maple.trunk * 0.12 / maple.z;
-    assert.ok(b.x > c1 + 4, `${k}: right of the crossing (${b.x.toFixed(0)} > ${c1.toFixed(0)})`);
-    assert.ok(b.x + b.w < mt - trunk - 2, `${k}: left of the maple's trunk (${(b.x + b.w).toFixed(0)} < ${mt.toFixed(0)})`);
-    assert.ok(b.y + b.h < s.dock.y - 2, `${k}: its foot above the dock`);
-    assert.ok(b.h > 25 && b.h < 36, `${k}: ${b.h.toFixed(1)} pt tall`);
-    for (const l of L.lamps.filter(l => l.kind === 'globe')) assert.ok(Math.abs(project(cam, l.x, 0, l.z)[0] - (b.x + b.w / 2)) > b.w, `${k}: clear of the globe lamp`);
-    assert.ok(L.zones.block.some(z => Math.abs(z.x - mb.x) < 1e-9), 'the walkers go round it (8b)');
+    const { cam, L } = setup(k);
+    assert.equal(L.mailbox, null, `${k}: no mailbox`);
+    assert.ok(!L.zones.block.some(z => Math.abs(z.z - 38.9) < 0.01 && z.r === 0.6), `${k}: no block zone where it stood`);
+    const b = mailboxBox(cam, { x: 2, z: 38.6 });
+    assert.ok(b.h > 20 && b.h < 40, `${k}: (the art still measures: ${b.h.toFixed(1)} pt tall at its old spot)`);
   }
 });
-test('PF — the inlay, the mailbox + the test piece (+ its light pass) draw with finite colours in every look; the mailbox casts a shadow only in the sun', async () => {
+test('PF — the inlay, the mailbox\'s art + the test piece (+ its light pass) draw with finite colours in every look; the mailbox casts a shadow only in the sun', async () => {
   const { drawInlay, drawMailbox, drawObelisk, obeliskLight, propShadow } = await import('../js/screens/harbor/props.js');
-  const { cam, L } = setup('402x874'), grad = { addColorStop() {} };
+  const { cam, L: L0 } = setup('402x874'), grad = { addColorStop() {} };
+  const L = { ...L0, mailbox: { x: L0.medallion.x + 1.6, z: 38.6 } };     // (the box is out of the plan; its art is still checked at its old spot)
   const rec = () => {
     const o = { bad: [], soft: 0, fills: 0 }, base = { getTransform: () => ({ a: 2, b: 0, c: 0, d: 2, e: 0, f: 0 }), createLinearGradient: () => grad, createRadialGradient: () => grad, measureText: () => ({ width: 40 }), fill: () => { o.fills++; if (base.shadowBlur > 0) o.soft++; } };
     const chk = v => { if (typeof v === 'string' && /NaN|undefined|Infinity/.test(v)) o.bad.push(v); };

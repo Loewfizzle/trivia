@@ -251,9 +251,12 @@ body.reduced-fx .nd-gate-txt { animation: none; }
 .nd-word-s { position: absolute; inset: 0; opacity: 0; color: transparent; pointer-events: none; will-change: transform; transform: translateZ(0);
   background: linear-gradient(100deg, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0) 60%) no-repeat;
   background-size: 240% 100%; background-position: 170% 0; -webkit-background-clip: text; background-clip: text; }
-.nd.is-party .nd-sign.is-steady .nd-word-g { color: var(--pcc);
-  text-shadow: 0 0 1px #fff, 0 0 2px var(--pcb), 0 0 5px var(--pc), 0 0 10px var(--pc), 0 0 18px color-mix(in srgb, var(--pc) 80%, transparent), 0 0 34px color-mix(in srgb, var(--pc) 45%, transparent);
-  transition: color 4s ease, text-shadow 4s ease; }   /* (the 2 am wind-down: a slow cross-fade back to white, never a snap) */
+/* (Oct 24, the owner: "too much pink" — SPEAKEASY stays WHITE neon on party nights; the race, the shimmer and the beat punch keep
+   running, in white: --pw the word's own light. The NEON logo + the bloom keep the party colour.) */
+.nd { --pw: #ffffff; --pwb: rgba(255, 255, 255, 0.85); --pwd: rgba(214, 226, 255, 0.55); }
+.nd.is-party .nd-sign.is-steady .nd-word-g { color: #fff;
+  text-shadow: 0 0 1px #fff, 0 0 2px var(--pwb), 0 0 5px var(--pw), 0 0 10px var(--pwb), 0 0 18px var(--pwd), 0 0 34px rgba(214, 226, 255, 0.3);
+  transition: color 4s ease, text-shadow 4s ease; }   /* (the 2 am wind-down: a slow cross-fade back to the plain glow, never a snap) */
 .nd.is-party .nd-sign.is-steady .nd-word-s { opacity: 1; animation: nd-shimmer 6.5s ease-in-out infinite; }
 /* (City 2.0, NEON PASS 4 — THE HARD BEAT: SPEAKEASY punches on every beat — a second glow layer in the party colour, its opacity
    written per frame on this small element alone: title.js#partyFrame) */
@@ -278,6 +281,7 @@ body.reduced-fx .nd-logo-glow { display: none; }
 .nd-word-r { position: absolute; inset: 0; pointer-events: none; color: #fff; }
 .nd-word-r i { font-style: normal; opacity: 0; will-change: opacity;
   text-shadow: 0 0 2px #fff, 0 0 6px var(--pcb), 0 0 14px var(--pc), 0 0 26px var(--pc); }
+.nd.is-party .nd-word-r i { text-shadow: 0 0 2px #fff, 0 0 6px var(--pwb), 0 0 14px var(--pw), 0 0 26px var(--pwd); }   /* (the race across SPEAKEASY: white on party nights) */
 .nd-sign:not(.is-steady) .nd-race, .nd-sign.is-day .nd-race, .nd-sign:not(.is-steady) .nd-word-r, .nd-sign.is-day .nd-word-r { display: none; }
 @media (prefers-reduced-motion: reduce) { .nd-race, .nd-word-r { display: none; } }
 body.reduced-fx .nd-race, body.reduced-fx .nd-word-r { display: none; }
@@ -296,10 +300,10 @@ body.reduced-fx .nd-race, body.reduced-fx .nd-word-r { display: none; }
 .nd-logo .ndl.is-tired .ndl-glow2, .is-warm .nd-logo .ndl.is-tired .ndl-glow2 { opacity: 0.5; }
 .nd-logo .ndl.is-tired .ndl-glow1, .is-warm .nd-logo .ndl.is-tired .ndl-glow1 { opacity: 0.72; }
 .nd-word-p { position: absolute; inset: 0; opacity: 0; pointer-events: none; will-change: opacity; color: #fff;
-  text-shadow: 0 0 2px #fff, 0 0 6px var(--pcb), 0 0 14px var(--pc), 0 0 28px var(--pc), 0 0 46px color-mix(in srgb, var(--pc) 70%, transparent); }
+  text-shadow: 0 0 2px #fff, 0 0 6px var(--pwb), 0 0 14px var(--pw), 0 0 28px var(--pwb), 0 0 46px var(--pwd); }   /* (the beat punch: white) */
 .nd:not(.is-party) .nd-word-p, .nd-sign:not(.is-steady) .nd-word-p { display: none; }
 @keyframes nd-shimmer { 0% { background-position: 170% 0; } 38%, 100% { background-position: -110% 0; } }
-.nd.is-party .nd-sign.is-steady .nd-word::before, .nd.is-party .nd-sign.is-steady .nd-word::after { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--pc) 80%, transparent)); }
+.nd.is-party .nd-sign.is-steady .nd-word::before, .nd.is-party .nd-sign.is-steady .nd-word::after { filter: drop-shadow(0 0 3px var(--pwd)); }
 /* the rings breathe together on the beat (the small icons and the corner buttons stay steady) */
 .nd.is-party .nd-ringbtn {
   transition: transform 0.18s var(--ease), --hg1 1.4s ease, --hg2 1.4s ease, --hg3 1.4s ease, --hg4 1.4s ease,
