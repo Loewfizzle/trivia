@@ -785,7 +785,8 @@ G('neon', async () => {
     await sleep(600);
     const dim = await ev(N.page, "(() => { const s = document.querySelector('.nd-sign'); return { logo: +getComputedStyle(s.querySelector('.nd-logo-wrap')).opacity, word: +getComputedStyle(s.querySelector('.nd-word-g')).opacity, tag: +getComputedStyle(s.querySelector('.nd-tag')).opacity, by: window.__district.signDim().by }; })()");
     await ev(N.page, "window.__district.signDim('test', null)");
-    await sleep(600);
+    // (the tagline eases back over its own transition: wait for it, never a fixed sleep — the cloud's machine read 0.969 at 600 ms)
+    await waitFor(N.page, "+getComputedStyle(document.querySelector('.nd-sign .nd-tag')).opacity > 0.98", 'the tagline back', 5000).catch(() => {});
     const back = await ev(N.page, "(() => { const s = document.querySelector('.nd-sign'); return { logo: +getComputedStyle(s.querySelector('.nd-logo-wrap')).opacity, word: +getComputedStyle(s.querySelector('.nd-word-g')).opacity, tag: +getComputedStyle(s.querySelector('.nd-tag')).opacity }; })()");
     ok(Math.abs(dim.logo - 0.3) < 0.02 && Math.abs(dim.word - 0.3) < 0.02 && dim.tag < 0.02 && dim.by.includes('test') && back.logo === 1 && back.word === 1 && back.tag > 0.98, `THE SIGN-DIM HOOK: dimmed logo ${dim.logo} / SPEAKEASY ${dim.word} / tagline ${dim.tag} → back ${back.logo} / ${back.word} / ${back.tag}`);
     await N.ctx.close(); }
