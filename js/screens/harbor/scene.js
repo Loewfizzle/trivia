@@ -323,7 +323,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const now = performance.now();
     if (speakMemo && now - speakMemo.at < 4000) return speakMemo.v;
     const board = (neon.debug().boards[0] || {}).game || null;
-    const id = ghostAdGame(clock.now(), playable.map(g => g.id), board), month = seasonForced() ? { spring: 5, summer: 7, autumn: 10, winter: 1 }[seasonForced()] : LK && LK.local ? LK.local.m : 10;   // (8a: a forced season's month — the ivy matches the trees)
+    const want = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('ad') : null;     // (SP2: &ad=<game> previews any game's blade)
+    const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(clock.now(), playable.map(g => g.id), board), month = seasonForced() ? { spring: 5, summer: 7, autumn: 10, winter: 1 }[seasonForced()] : LK && LK.local ? LK.local.m : 10;   // (8a: a forced season's month — the ivy matches the trees)
     const v = { game: playable.find(g => g.id === id) || null, month, key: `${id}|${month}` };
     speakMemo = { at: now, v };
     return v;
@@ -733,7 +734,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0 }); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen)
     // the trees' falling leaves (autumn) / the crabapple's petals (its blossom) in the real wind (8a: trees.js)
     if (fadeIn > 0 && !off.has('no-leaves')) { const wd = LK.windDir == null ? 250 : LK.windDir; leaves.draw(c, { t, dt, motion: S.motion, wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), season: L.season, phase: L.seasonPhase, fade: fadeIn, night: litK(DK, 'lamps'), tier }); }
-    if (fadeIn > 0 && !off.has('no-people')) { c.globalAlpha = fadeIn; drawPeople(c, L, T); c.globalAlpha = 1; }
+    // (SP2 — the owner: the placeholder people HIDDEN until 8b walks the real ones, like the cart + the bus; &force=placeholders shows them)
+    if (fadeIn > 0 && !off.has('no-people') && clock.force.has('placeholders')) { c.globalAlpha = fadeIn; drawPeople(c, L, T); c.globalAlpha = 1; }
     // ---- the lights (every frame): the lamps' light on the promenade, the knock's warm flash at the door
     const lampK = fadeIn * litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3);           // (DT1: the darkness's lamps ramp — around sunset)
     drawLampLight(c, L, lampK, glow, coolGlow || (coolGlow = radial('205,222,255')), Math.min(2, dpr));

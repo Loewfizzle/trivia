@@ -812,7 +812,7 @@ G('party', async () => {
     ok(hq.skyBeams.beams.length >= 2 && p.show.beams > 0.5, `THE SKY BEAMS: ${hq.skyBeams.beams.map(b => b.id + (b.under ? '' : ' (to the top)')).join(', ')}`);
     ok(pk.hi - pk.lo > 0.5, `THE HARD BEAT: the punch swings ${pk.lo.toFixed(2)} → ${pk.hi.toFixed(2)} over ~2.5 s`);
     // PART 7a: the roof string lights are ON, mounted on the parapet's posts (NEON PASS 5 had them off until the speakeasy was built)
-    ok(hq.strings.on === true && hq.strings.bulbs >= 20 && hq.strings.runs >= 5, `STRING LIGHTS: ON again (7b — real bulbs on the parapet's posts: ${hq.strings.runs} swags, ${hq.strings.bulbs} bulbs)`);
+    ok(hq.strings.on === true && hq.strings.bulbs >= 8 && hq.strings.runs >= 3, `THE CAFÉ LIGHTS: ON (SP2 — big Edison bulbs on deep swags between posts on the roof: ${hq.strings.runs} swags, ${hq.strings.bulbs} bulbs)`);
     await Q.ctx.close(); }
   await neonPass5Party();
   { const Q = await open({ slot: 'h11', qs: `when=2026-10-24T21:00${GR}`, view: [402, 874] });
@@ -1579,14 +1579,14 @@ G('windows', async () => {
     ok(L0.states.bar === 'open' && L0.states.apartment === 'lamp' && L0.states.shop === 'closed' && !L0.forced, `THE ROOMS AT 9:30 PM: the bar open, the apartment's lamp, the shop closed (${JSON.stringify(L0.states)})`);
     ok(L0.on.length > 0 || (L0.next && L0.next.in <= 30), `THE SCHEDULE at night: ${L0.on.length ? `on now: ${L0.on.map(e => `${e.id} in ${e.win}`).join(', ')}` : `the next (${L0.next && L0.next.id}) in ${L0.next && L0.next.in} s`}`);
     // the wall-washers: the pier between the bar + the jazz room lit warm (light on the brick, never the windows)
-    const W = await wins(Q.page), x = (W.apartment.x + W.apartment.w + W.back.x) / 2, pier = await px(Q.page, x, W.apartment.y + W.apartment.h * 0.3);
+    const W = await wins(Q.page), x = (W.back.x + W.back.w + W.apartment.x) / 2, pier = await px(Q.page, x, W.apartment.y + W.apartment.h * 0.35);   // (SP2: the hot spot under the lamp, the pier between the back room + the apartment)
     ok(pier[0] > 70 && pier[0] > pier[2] + 20, `THE WALL-WASHERS: the pier between the windows lit warm (rgb ${pier.join(',')})`);
     // the marquee: its bulbs lit (a warm-white bulb on the blade's frame)
     const mq = await ev(Q.page, 'window.__district.harbor().speakeasy.marquee'), mb = [];
     for (const b of mq.slice(0, 12)) mb.push(lum(await px(Q.page, b.x, b.y)));
-    ok(mq.length >= 40 && Math.max(...mb) > 200, `THE MARQUEE: ${mq.length} bulbs round the blade, lit (the brightest of 12: ${Math.max(...mb).toFixed(0)})`);
+    ok(mq.length >= 10 && Math.max(...mb) > 200, `THE MARQUEE: ${mq.length} bulbs on the blade's crest + foot, lit (the brightest of 12: ${Math.max(...mb).toFixed(0)})`);
     const st = await ev(Q.page, 'window.__district.harbor().strings');
-    ok(st.on && st.bulbs >= 20, `THE STRING LIGHTS on the roof: ${st.bulbs} bulbs on ${st.runs} swags`);
+    ok(st.on && st.bulbs >= 8 && st.bulbs <= 12, `THE CAFÉ LIGHTS on the roof: ${st.bulbs} bulbs on ${st.runs} swags`);
     // a TAP on the jazz room's window answers (a head peeks out) — the window's kind
     const tap = await ev(Q.page, `window.__district.harbor().speakeasy.hit(${W.jazz.x + W.jazz.w / 2}, ${W.jazz.y + W.jazz.h / 2})`);
     ok(tap && tap.kind === 'window' && tap.id === 'jazz' && tap.tap === 'peek', `A TAP on a window: ${JSON.stringify(tap)}`);

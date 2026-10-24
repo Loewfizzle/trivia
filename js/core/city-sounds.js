@@ -83,16 +83,17 @@ export const SLOTS = [
   S('party-yacht-music', '10', 'loop', 0.1, 'the party yacht’s music across the water'),
   S('helicopter-landing', '10', 'once', 0.14, 'a helicopter landing (on the party yacht)'),
   // ---- 6b + THE SKY (Oct 24: filled. The aircraft are FLYBYS — one-shots with their own swell, chained take after take while
-  // their thing is up (harbor/sounds.js#run), panned with it. Their mix (each file's LUFS × its gain): WELL UNDER the harbor's
-  // bed — the day hum ≈ −43.6 LUFS (−24.4 × 0.11); a passing airliner ≈ −52.8, the helicopter ≈ −49, the banner plane ≈ −50, the
-  // jets ≈ −49.5, a burner burst ≈ −49.5, the swarm ≈ −55 — and ducked with the bed under the music (bedMix's k))
-  S('helicopter', 'sky', 'once', 0.037, 'a helicopter, distant + a flyby (two takes)', 'the helicopter while it’s up: its flybys chained, panned with it, louder while it hovers'),
-  S('airliner-far', 'sky', 'once', 0.024, 'an airliner far up (a long, slow flyby)', 'the airliners while one crosses (the nearest: its flyby from the start of its crossing, panned, swelling with it)'),
-  S('prop-plane', 'sky', 'once', 0.033, 'a vintage prop plane overhead (two swells: a plane circling)', 'the banner plane, the skywriters'),
-  S('jet-flyby', 'sky', 'once', 0.035, 'jets flying by right → left (the air show; low: far off)'),
-  S('balloon-burner', 'sky', 'once', 0.035, 'a hot air balloon’s burner whoosh, far off (five bursts, low-passed)', 'the balloons while they’re up: a burn every ~6–18 s'),
-  S('geese', 'sky', 'once', 0.05, 'a skein of geese honking overhead (~28 s: one crossing)', 'the geese while a V crosses: one flyover a V, panned with it'),
-  S('drone-swarm', 'sky', 'loop', 0.03, 'the drone show’s faint swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
+  // their thing is up (harbor/sounds.js#run), panned with it. Their mix (each file's LUFS × its gain) — SP2, the owner: LOUDER, clearly
+  // heard over the music yet still distant (low-passed takes; the player's peak cap): the jets, the helicopter + the burner +6 dB (≈ the
+  // day hum's −43.6 LUFS: −43 to −43.5), the airliners, the banner plane, the geese + the drone hum +3.5 dB (an airliner ≈ −49.3, the
+  // banner plane ≈ −46.5, the swarm ≈ −51.5) — and ducked with the bed under the music (bedMix's k))
+  S('helicopter', 'sky', 'once', 0.074, 'a helicopter, distant + a flyby (two takes)', 'the helicopter while it’s up: its flybys chained, panned with it, louder while it hovers'),
+  S('airliner-far', 'sky', 'once', 0.036, 'an airliner far up (a long, slow flyby)', 'the airliners while one crosses (the nearest: its flyby from the start of its crossing, panned, swelling with it)'),
+  S('prop-plane', 'sky', 'once', 0.05, 'a vintage prop plane overhead (two swells: a plane circling)', 'the banner plane, the skywriters'),
+  S('jet-flyby', 'sky', 'once', 0.07, 'jets flying by right → left (the air show; low: far off)'),
+  S('balloon-burner', 'sky', 'once', 0.07, 'a hot air balloon’s burner whoosh, far off (five bursts, low-passed)', 'the balloons while they’re up: a burn every ~6–18 s'),
+  S('geese', 'sky', 'once', 0.075, 'a skein of geese honking overhead (~28 s: one crossing)', 'the geese while a V crosses: one flyover a V, panned with it'),
+  S('drone-swarm', 'sky', 'loop', 0.045, 'the drone show’s faint swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
   S('ufo-hum', 'sky', 'loop', 0.06, 'the UFO saucer’s low tonal hum (soft top — lower / filter it under the music)'),
   S('ufo-beam', 'sky', 'once', 0.1, 'the abduction beam (a riser, its peak ~6 s in)'),
   S('tr3b-drone', 'sky', 'loop', 0.08, 'the TR-3B’s deep drone (low-mids kept: a phone still hears it)'),

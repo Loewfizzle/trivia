@@ -663,9 +663,11 @@ turbine), narrow-band peaks for drones. MD5s match `credits.txt`. **+3.19 MB** (
 - **Loops checked by analysis:** the runtime crossfade simulated (body → the equal-power seam → the next pass): the level jump across every seam
   within the body's own variation (drone-swarm 0.8 / ufo-hum 1.8 / tr3b-drone 0.6 dB vs the body's max 0.9 / 1.8 / 0.8), the low/high balance
   steady.
-- **The mix — WELL UNDER the bed** (each file's LUFS × its slot gain; the day hum −43.6): airliner-far 0.024 → **−52.8** · helicopter 0.037 → −49 ·
-  prop-plane 0.033 → −50 · jet-flyby 0.035 → −49.5 · balloon-burner 0.035 → −49.5 (+ its low-pass) · geese 0.05 → −46.8 · drone-swarm 0.03 →
-  −54.9. **The sky now ducks with the bed** under the music (× bedMix's `k` 0.71). The flybys' peaks run ~5–6 dB over their integrated level: an
+- **The mix — LOUDER (SP2, Oct 24 — the owner: "clearly heard over the music", still distant; was "well under the bed")** (each file's LUFS ×
+  its slot gain; the day hum −43.6): +6 dB — helicopter 0.074 → −43 · jet-flyby 0.07 → −43.5 · balloon-burner 0.07 → −43.5 (+ its low-pass);
+  +3.5 dB — airliner-far 0.036 → **−49.3** · prop-plane 0.05 → −46.5 · geese 0.075 → −43.3 · drone-swarm 0.045 → −51.4. Peaks stay capped by the
+  player (`audio/city-sound.js#CAP`, −10.5 dBFS into the SFX bus); the takes keep their low-pass (distant). (Before SP2: 0.037 / 0.035 / 0.035 ·
+  0.024 / 0.033 / 0.05 / 0.03.) **The sky now ducks with the bed** under the music (× bedMix's `k` 0.71). The flybys' peaks run ~5–6 dB over their integrated level: an
   airliner at its nearest still under the hum.
 - **The wiring** (`screens/harbor/sounds.js`; `run(slot, gain, pan)` = the FLYBYS: a slot's takes chained while their thing is up — each take its
   own swell, the next one (never the same twice running) starting when the playing one has 2.5 s left (`chainDue`), level + pan ramped with the

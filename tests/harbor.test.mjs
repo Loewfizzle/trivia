@@ -3045,8 +3045,9 @@ test('PF — THE PREVIEW PANEL lists the centrepiece test under PROMENADE', () =
 // ---------------------------------------------------------------- PF — THE STREET'S SURFACE / THE STRING LIGHTS OFF / THE BLADE'S LAMPS
 // (helper B: street.js, strings.js, speakeasy.js's blade, signs.js's billboard lamps)
 import { streetLook, CURB_STEP, SHEEN } from '../js/screens/harbor/street.js';
-import { STRINGS_ON, createStrings, BULB } from '../js/screens/harbor/strings.js';
-import { BLADE_LIGHT, bladeLevel, MARQUEE, MARQUEE_LIGHT, marqueeBulbs, marqueeScreen, marqueeLevel, WASH } from '../js/screens/harbor/speakeasy.js';
+import { STRINGS_ON, createStrings, BULB, CANOPY, frontProfile } from '../js/screens/harbor/strings.js';
+import { MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, WASH, washCone, BLADE, LETTER, bladeLetters } from '../js/screens/harbor/speakeasy.js';
+import { ROOM_TINT, LATE_TINT, lateOf, SASH_RAIL } from '../js/screens/harbor/windows.js';
 const pfLum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 test('PF — THE STREET reads as its own surface: tarred setts darker + cooler than the promenade\'s, tar in the joints (never black at night), the worn paths\' sheen, a clear curb step', () => {
   const PROM = { d: [154, 148, 140], n: [64, 59, 86] };      // (stage.js#SETT — the promenade's own setts, unchanged by PF)
@@ -3063,24 +3064,33 @@ test('PF — THE STREET reads as its own surface: tarred setts darker + cooler t
   assert.ok(C.face[1] > C.face[0] && C.face[0] > 0.1 && C.faceN[1] > 0.1, 'the curb\'s face deeper in shade toward its foot, day + night');
   assert.ok(C.arris > 0.4 && C.arrisN > 0.2 && C.shadow > 0.2, 'a crisp lit arris day + night, the curb\'s shadow on the gutter');
 });
-test('7b — THE STRING LIGHTS are ON again: real round bulbs on sagging swags between the parapet\'s posts, spaced to read one by one', () => {
+test('SP2 — THE CAFÉ-LIGHT CANOPY: fewer, bigger Edison bulbs (8–12 in view) widely spaced on deep swags between tall posts set back on the roof deck; the crest + the parapet hide what hangs behind them', () => {
   assert.equal(STRINGS_ON, true);
-  assert.ok(BULB.r >= 1 && BULB.halo <= 4 && BULB.haloA <= 0.5, 'a real globe, a TIGHT halo (no blurry dot)');
+  assert.ok(BULB.r >= 2 && BULB.halo <= 3 && BULB.haloA <= 0.5, 'a big globe, a TIGHT halo (no haze)');
+  assert.ok(CANOPY.back >= 1 && CANOPY.posts.length + 1 >= 3 && CANOPY.posts.length + 1 <= 4, 'three or four posts, set back on the deck');
+  const prof = frontProfile();
+  assert.ok(Math.max(...prof.map(p => p[1])) === SPEAK_V.crest && Math.min(...prof.map(p => p[1])) === SPEAK_V.parapet, 'the silhouette: the parapet up to the crest');
   for (const k of ['390x844', '402x874', '430x932']) {
-    const { L } = setup(k), s = createStrings();
-    s.layout(L);
-    const d = s.debug();
-    assert.ok(d.runs >= 5 && d.bulbs >= 20, `${k}: ${d.runs} swags, ${d.bulbs} bulbs`);
+    const { L } = setup(k), st = createStrings();
+    st.layout(L);
+    const d = st.debug();
+    assert.ok(d.runs === CANOPY.swags.length && d.posts >= 3, `${k}: ${d.runs} swags, ${d.posts} posts`);
+    assert.ok(d.bulbs >= 8 && d.bulbs <= 12, `${k}: ${d.bulbs} bulbs in view`);
+    const xs = d.at.map(b => b.x).sort((a, b) => a - b), gaps = xs.slice(1).map((x, i) => x - xs[i]);
+    assert.ok(Math.min(...gaps) >= 8 * L.cam.F / 600, `${k}: widely spaced (≥ ${Math.min(...gaps).toFixed(1)} pt)`);
   }
 });
-test('7b — THE MARQUEE: a border of bulbs on the blade\'s frame (no gooseneck lamps), inside the board, spaced to read; steady, a slow chase on party nights; the board dimmer', () => {
+test('SP2 — THE MARQUEE (crest + foot only — the letters get the long sides): bulbs on the board, spaced to read; steady, a slow chase on party nights', () => {
   const B = marqueeBulbs();
-  assert.ok(B.length >= 40 && B.length <= 70, `${B.length} bulbs`);
-  for (const [u, v] of B) assert.ok(u > 0 && u < 1.76 && v > 2.75 && v < 10.3, 'on the board');
+  assert.ok(B.length >= 10 && B.length <= 24, `${B.length} bulbs`);
+  for (const [u, v] of B) {
+    assert.ok(u > 0 && u < BLADE.bw && v > BLADE.v0 && v < BLADE.v1, 'on the board');
+    assert.ok(v > BLADE.v1 - 0.6 || v < BLADE.v0 + 0.25, `no bulb down the long sides (v ${v.toFixed(2)})`);
+  }
   for (const k of ['390x844', '402x874', '430x932']) {
     const { L } = setup(k), bg = bladeGeo(speakGeo(L)), R = bg.rect, S = marqueeScreen(bg);
     for (const b of S) assert.ok(b.x >= R.x - 0.5 && b.x <= R.x + R.w + 0.5 && b.y >= R.y - 0.5 && b.y <= R.y + R.h + 0.5, `${k}: a bulb inside the board's outline`);
-    const gaps = S.slice(1).map((b, i) => Math.hypot(b.x - S[i].x, b.y - S[i].y));
+    const gaps = S.slice(1).map((b, i) => Math.hypot(b.x - S[i].x, b.y - S[i].y)).filter(g => g < 15);
     assert.ok(Math.min(...gaps) >= 3.2, `${k}: bulbs ≥ ${Math.min(...gaps).toFixed(1)} pt apart (each one reads)`);
     assert.ok(S[0].r * 2 >= 1.6, `${k}: a globe ${(S[0].r * 2).toFixed(1)} pt across`);
   }
@@ -3089,31 +3099,44 @@ test('7b — THE MARQUEE: a border of bulbs on the blade\'s frame (no gooseneck 
   assert.equal(lv(0).filter(v => v === 1).length, Math.ceil(B.length / 3), 'a party night: every third bulb leads');
   assert.notDeepEqual(lv(0), lv(1), 'the chase steps a bulb a beat');
   assert.deepEqual(lv(0), lv(3), 'a three-bulb chase');
-  assert.ok(MARQUEE.board < 0.8, 'the board under the bulbs dimmer');
-  for (let i = 0; i < 3; i++) assert.ok(MARQUEE_LIGHT.fill[i] <= BLADE_LIGHT.fill[i] && MARQUEE_LIGHT.edge[i] >= MARQUEE_LIGHT.fill[i], 'an even fill, a warmer edge by the bulbs');
 });
-test('7b — THE WALL-WASHERS: a lamp over each brick pier, never over a window; the scallop\'s light falls off down the pier', () => {
+test('SP2 — THE BLADE READS for every game: big letters filling the board (one column a word), never a sliver', () => {
+  const { L } = setup('402x874'), k = bladeGeo(speakGeo(L)).k;
+  for (const g of GAMES.filter(x => x.playable !== false)) {
+    const T = bladeLetters(g.name), words = g.name.trim().split(/\s+/);
+    assert.equal(T.cols.length, Math.min(2, words.length), `${g.name}: a column a word`);
+    assert.ok(T.cap * k >= 8.5, `${g.name}: letters ${(T.cap * k).toFixed(1)} pt tall at 402`);
+    assert.ok(T.cap <= T.cw * LETTER.tall + 1e-9 && T.cap <= T.lh, `${g.name}: never taller than its slot or a sliver of its column`);
+    for (const c of T.cols) assert.ok(c.top <= BLADE.v1 - LETTER.v1 + 1e-9 && c.top - c.lh * c.word.length >= BLADE.v0 + LETTER.v0 - 1e-9, `${g.name}: between the crest's bulbs + the foot's`);
+  }
+});
+test('SP2 — THE WALL-WASHERS: accents, not panels — a lamp over each brick pier (never a window); a hot spot under it fanning down in a soft V, gone within the top third, no outline', () => {
   const wins = [[1.0, 2.9], [4.2, 6.1], [7.4, 9.3]];
   for (const [a, b] of WASH.piers) {
     assert.ok(b > a + 0.9, 'a pier');
     for (const [w0, w1] of wins) assert.ok(b <= w0 + 1e-9 || a >= w1 - 1e-9, `pier ${a}–${b} clear of the window ${w0}–${w1}`);
   }
   assert.ok(WASH.lampV < SPEAK_V.cornice[0] - 0.6 && WASH.lampV > SPEAK_V.rows[1][1] - 0.6, 'under the capitals, by the top floor\'s heads');
-  const st = WASH.stops;
-  for (let i = 2; i < st.length; i++) assert.ok(st[i][1] < st[i - 1][1], 'falling off down the pier');
-  assert.ok(st[0][1] === 0 && st[1][1] === 1, 'dark right under the lamp, the bright scallop edge');
+  assert.ok(WASH.drop <= 0.4 * (WASH.lampV - SPEAK_V.belt), `gone within the pier's top third-ish (${WASH.drop} of ${(WASH.lampV - SPEAK_V.belt).toFixed(2)})`);
+  assert.ok(WASH.a <= 0.7, 'dimmer than 7b\'s');
+  assert.equal(washCone(0, WASH.drop), 0, 'gone at the drop');
+  const hot = Math.max(...[0.05, 0.1, 0.15, 0.2].map(d => washCone(0, d)));
+  assert.ok(hot > 0.6 && washCone(0, 0.8) < 0.45 * hot, 'a hot spot under the lamp, fading fast');
+  for (let d = 0.2; d < WASH.drop; d += 0.1) assert.ok(washCone(0, d + 0.1) <= washCone(0, d) + 1e-9, 'falling off down the pier');
+  for (const d of [0.3, 0.8, 1.2]) { const hw = WASH.w0 + d * WASH.spread; assert.ok(washCone(hw * 0.25, d) > washCone(hw * 0.7, d) && washCone(hw * 0.97, d) < 0.03, `a soft V: widening + fading to its edges at ${d}`); }
+  assert.ok(WASH.w0 + 0.3 * WASH.spread < WASH.w0 + 1.2 * WASH.spread, 'widening down (a V, never a rounded arch)');
 });
-test('PF — THE BLADE\'S LEVEL: a dark board back to full + a boost (FP\'s × 0.78 undone); a glaring light board (OVERCLOCK, SLIP, BLUFF) steps back, well back on a party night — never the biggest warm slab', () => {
-  const lumOf = id => { const f = dayPaint({ id }).face; return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; };
-  for (const id of ['agent', 'stakes', 'signal', 'cipher', 'pulse', 'prism', 'golf', 'rum', 'gridlock']) {
-    const n = bladeLevel(lumOf(id)), p = bladeLevel(lumOf(id), 1);
-    assert.ok(n.lit === 1 && n.boost > 0.2, `${id}: full + a boost`);
-    assert.deepEqual(p, n, `${id}: the same on a party night`);
+test('SP2 — THE ROOMS: the TV window upper-RIGHT, clean panes (the rail high), each room its own incandescent bulb (the TV the only cool light), late night dimmer + warmer', () => {
+  const ap = ROOMS.find(r => r.id === 'apartment'), back = ROOMS.find(r => r.id === 'back');
+  assert.ok(ap.floor === 3 && ap.col === 2 && back.floor === 3 && back.col === 1, 'the apartment (the TV) upper-right, the back room upper-middle');
+  assert.ok(SASH_RAIL >= 0.66, 'the meeting rail in the upper third');
+  for (const [id, c] of Object.entries(ROOM_TINT)) {
+    assert.ok(c[0] >= c[1] && c[1] >= c[2] && c[2] >= 160, `${id}: warm, never a colour (${c})`);
+    assert.ok(c[0] - c[2] <= 90, `${id}: subtle`);
   }
-  for (const id of ['overclock', 'slip', 'bluff']) {
-    const n = bladeLevel(lumOf(id)), p = bladeLevel(lumOf(id), 1), half = bladeLevel(lumOf(id), 0.5);
-    assert.ok(n.glare === 1 && n.boost === 0 && n.lit >= 0.85 && n.lit < 1, `${id}: a step less, no boost (${n.lit})`);
-    assert.ok(p.lit + p.boost <= 0.6 && p.lit >= 0.4, `${id}: well back on a party night (${p.lit.toFixed(2)})`);
-    assert.ok(half.lit < n.lit && half.lit > p.lit, `${id}: eased in with the party's ramp`);
-  }
+  const keys = Object.values(ROOM_TINT).map(c => c.join(','));
+  assert.equal(new Set(keys).size, keys.length, 'each room a touch off its neighbours');
+  assert.ok(ROOM_TINT.bar[2] < ROOM_TINT.apartment[2] && ROOM_TINT.jazz[2] < ROOM_TINT.apartment[2], 'the bar + jazz deeper amber than the apartment');
+  assert.ok(ROOM_TINT.edge2[0] < 245 && ROOM_TINT.edge3[0] < 245, 'the edge windows a little dimmer');
+  assert.ok(LATE_TINT[0] > LATE_TINT[2] && lateOf(22) === 0 && lateOf(1.5) === 1 && lateOf(0.5) > 0 && lateOf(12) === 0, 'late: dimmer + warmer from ~11:30 pm, full by 1:30');
 });

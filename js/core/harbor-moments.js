@@ -22,7 +22,7 @@ export const RARITY = Object.freeze({ common: 1, uncommon: 0.34, rare: 0.008 });
 export const RARITIES = Object.freeze(['routine', 'common', 'uncommon', 'rare', 'legendary']);
 export const WINDOW_IDS = Object.freeze(['edge2', 'bar', 'jazz', 'edge3', 'apartment', 'back', 'shop']);
 /** the tango's way round the building: the top floor left → right, then the bar floor right → left */
-export const TANGO_PATH = Object.freeze(['edge3', 'apartment', 'back', 'jazz', 'bar', 'edge2']);
+export const TANGO_PATH = Object.freeze(['edge3', 'back', 'apartment', 'jazz', 'bar', 'edge2']);
 export const MAX_AT_ONCE = 2;
 
 export const MOMENTS = Object.freeze([

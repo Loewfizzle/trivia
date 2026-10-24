@@ -4,6 +4,17 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — SPEAKEASY POLISH (Oct 24, 2026) — `docs/harbor.md#sp2` (the owner's 7b review on her iPhone)
+- [x] THE BLADE: dark enamel for every game, the name in big bold letters filling the width (cream + gold by day, self-lit warm-white at night,
+      a tight baked glow), one column a word, the bulbs on the crest + foot only, a little wider + up to the parapet; `&ad=<game>` previews
+- [x] THE WINDOWS: a slim one-over-one sash with the rail high, less inside (one light + one or two shapes a room), the TV window upper-right
+      (the apartment ↔ the back room), the light landing on the sills + reveals (no blobs), a bulb tint per room (late: dimmer + warmer)
+- [x] THE WALL-WASHERS: a visible fixture, a soft V from a hot spot, gone within the pier's top third, no outline, dimmer
+- [x] CRISP SHOPFRONT LIGHTS: the shop lamp's light landing on the mirrors, the chair, the floor; the sconce's on the door's frame + planks
+- [x] THE CAFÉ-LIGHT CANOPY (8 big Edison bulbs on 3 swags between tall posts set back on the deck, clipped behind the crest) + THE AWNING lit
+      from beneath at night (the cream stripes glowing, a warm rim on the scallops)
+- [x] The sky sounds louder (+6 / +3.5 dB); the placeholder people hidden until 8b (`&force=placeholders`)
+
 ### ✅ CITY 2.0 — PART 7b: THE SPEAKEASY'S LIFE (Oct 24, 2026) — `docs/harbor.md#part-7b` (built overnight, unattended)
 - [x] THE MOMENTS CATALOGUE (`core/harbor-moments.js`, PURE + `tests/harbor-moments.test.mjs`): one entry a moment (windows, hours, light, rarity, length,
       cooldown, party weight), routines on the clock (seeded minutes) that move their room on, a legendary calendar (4 nights a year × 3 plays), the schedule

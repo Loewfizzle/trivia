@@ -131,13 +131,12 @@ test('THE SKY SOUNDS: every recording in its slot, cut as measured — flybys ar
   for (const id of ['helicopter', 'airliner-far', 'prop-plane', 'jet-flyby', 'geese', 'balloon-burner']) for (const t of one(id)) assert.ok(t.d <= 45, `${t.f}: ${t.d} s`);
 });
 
-test('THE SKY SOUNDS sit WELL UNDER the harbor\'s bed (the aircraft distant) — levels into the mix', () => {
+test('THE SKY SOUNDS (SP2 — the owner: louder, clearly heard, still distant): the jets, the helicopter + the burner about level with the harbor\'s bed; the airliners, the banner plane + the swarm a step under it', () => {
   const lvl = id => { const t = takesOf(id)[0]; return t.lufs + 20 * Math.log10(slotOf(id).gain); };
   const bed = lvl('city-hum-day');
-  for (const id of ['airliner-far', 'helicopter', 'prop-plane', 'jet-flyby', 'balloon-burner', 'drone-swarm']) {
-    assert.ok(bed - lvl(id) >= 4, `${id} ${lvl(id).toFixed(1)} LUFS: ${(bed - lvl(id)).toFixed(1)} dB under the bed's hum ${bed.toFixed(1)}`);
-  }
-  assert.ok(bed - lvl('airliner-far') >= 8, 'an airliner far up: well under');
+  for (const id of ['helicopter', 'jet-flyby', 'balloon-burner']) assert.ok(Math.abs(lvl(id) - bed) <= 2, `${id} ${lvl(id).toFixed(1)} LUFS ≈ the bed's hum ${bed.toFixed(1)}`);
+  for (const id of ['airliner-far', 'prop-plane', 'drone-swarm']) assert.ok(bed - lvl(id) >= 2, `${id} ${lvl(id).toFixed(1)} LUFS: ${(bed - lvl(id)).toFixed(1)} dB under the bed`);
+  assert.ok(bed - lvl('airliner-far') >= 5, 'an airliner far up: well under');
   assert.ok(lvl('drone-swarm') < lvl('helicopter'), 'the swarm a faint hum');
 });
 

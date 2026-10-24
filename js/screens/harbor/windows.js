@@ -27,95 +27,124 @@ const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.g
 const hsh = (n, s = 0) => { let x = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b) ^ (s * 0x27d4eb2d); x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
 const R = (x, u0, v0, u1, v1, col) => { if (col) x.fillStyle = col; x.fillRect(u0, v0, u1 - u0, v1 - v0); };
 
-/** a window's glass in wall units (the same numbers as speakeasy.js's paintWindow / room) */
+/** SP2 — the sash's meeting rail, this far up the glass: a 1920s one-over-one with a SHORT upper sash, so the room's scene plays in one
+ *  big clean lower pane (the owner: the old bar through the middle cut every scene in half). speakeasy.js#paintWindow bakes the same. */
+export const SASH_RAIL = 0.74;
+/** a window's glass in wall units (the same numbers as speakeasy.js's paintWindow / room): mid = the glass's middle (the moments'
+ *  curves), rail = the meeting rail's height */
 export function glassOf(w) {
   const [a, b] = w.u, [r0, r1] = w.v, g0 = a + 0.13 + 0.05, g1 = b - 0.05, h0 = r0 + 0.12, h1 = r1 - 0.06;
-  return { a, b, r0, r1, g0, g1, h0, h1, mid: h0 + (h1 - h0) * 0.46, cw: g1 - g0, ch: h1 - h0, cx: (g0 + g1) / 2 };
+  return { a, b, r0, r1, g0, g1, h0, h1, mid: h0 + (h1 - h0) * 0.46, rail: h0 + (h1 - h0) * SASH_RAIL, cw: g1 - g0, ch: h1 - h0, cx: (g0 + g1) / 2 };
 }
 
 // ------------------------------------------------------------------ THE ROOMS' STILL LOOKS (cached in the lit canvas)
-/** a room's still look at night (7a; 7b took its people out — the bartender, the patron and the sax player are live now) */
+/** a room's still look at night. SP2 — LESS INSIDE (the owner: the rooms read as busy fragments at ~25 pt): each room is a warm wall,
+ *  ONE light source and one or two strong shapes; furniture dim + simple; curtains only framing the edges. (7b: the people are live.) */
 export function paintRoom(x, w, o = {}) {
   const G = glassOf(w), { g0, g1, h0, h1, cw, ch } = G;
   x.save(); x.beginPath(); x.rect(g0, h0, cw, ch); x.clip();
   const warm = (c0, c1) => { const g = x.createLinearGradient(0, h1, 0, h0); g.addColorStop(0, c0); g.addColorStop(1, c1); x.fillStyle = g; x.fillRect(g0, h0, cw, ch); };
   if (w.lit === 'bar') paintBar(x, G, 1, o.dim || 0);
   else if (w.lit === 'shade') {
-    // THE JAZZ ROOM behind an amber shade (three quarters down) — the sax player is live (his shadow sways)
-    warm('rgb(255,170,90)', 'rgb(150,70,40)');
+    // THE JAZZ ROOM behind an amber shade (three quarters down: the room's lamp behind it the one light) — the sax player is live
+    warm('rgb(232,150,80)', 'rgb(120,56,34)');
     const sv = h0 + ch * 0.26;
-    const g = x.createLinearGradient(0, sv, 0, h1); g.addColorStop(0, 'rgb(255,200,120)'); g.addColorStop(1, 'rgb(236,150,70)'); x.fillStyle = g; x.fillRect(g0, sv, cw, h1 - sv);
+    const g = x.createRadialGradient(G.cx, h0 + ch * 0.62, 0, G.cx, h0 + ch * 0.62, ch * 0.75);
+    g.addColorStop(0, 'rgb(255,214,140)'); g.addColorStop(0.55, 'rgb(246,168,84)'); g.addColorStop(1, 'rgb(214,124,58)');
+    x.fillStyle = g; x.fillRect(g0, sv, cw, h1 - sv);
     R(x, g0, sv, g1, sv + 0.05, 'rgba(110,60,30,0.8)');
-    x.fillStyle = 'rgba(110,60,30,0.25)'; for (let v = sv + 0.22; v < h1; v += 0.22) x.fillRect(g0, v, cw, 0.012);
   } else if (w.lit === 'lamp') paintLampRoom(x, G, 1);
   else if (w.lit === 'table') {
-    // THE BACK ROOM: dark, a green-shaded lamp low over a round table, its pool of light, three heads around it, a soft haze
-    R(x, g0, h0, g1, h1, 'rgb(70,40,26)');
-    const tx = g0 + cw / 2, ty = h0 + ch * 0.22;
-    const pg = x.createRadialGradient(tx, ty + 0.2, 0, tx, ty + 0.2, 1.1); pg.addColorStop(0, 'rgba(255,214,140,0.95)'); pg.addColorStop(0.5, 'rgba(200,130,70,0.5)'); pg.addColorStop(1, 'rgba(70,40,26,0)'); x.fillStyle = pg; x.fillRect(g0, h0, cw, ch);
+    // THE BACK ROOM: dark, ONE green-shaded lamp low over a round table (its pool of light), the heads round it
+    R(x, g0, h0, g1, h1, 'rgb(58,32,22)');
+    const tx = G.cx, ty = h0 + ch * 0.22;
+    const pg = x.createRadialGradient(tx, ty + 0.18, 0, tx, ty + 0.18, 0.95); pg.addColorStop(0, 'rgba(255,214,140,0.95)'); pg.addColorStop(0.45, 'rgba(206,134,72,0.5)'); pg.addColorStop(1, 'rgba(58,32,22,0)'); x.fillStyle = pg; x.fillRect(g0, h0, cw, ch);
+    x.fillStyle = 'rgba(255,214,140,0.12)'; x.beginPath(); x.moveTo(tx - 0.16, ty + 0.78); x.lineTo(tx + 0.16, ty + 0.78); x.lineTo(tx + 0.6, ty + 0.04); x.lineTo(tx - 0.6, ty + 0.04); x.fill();
     const sil = 'rgb(22,12,10)';
-    for (const [dx, sc, hat] of [[0.02, 0.82, false], [-0.56, 1, true], [0.58, 0.96, false]]) {
+    for (const [dx, sc, hat] of [[-0.56, 1, true], [0.58, 0.96, false]]) {
       const px = tx + dx, sh = 0.34 * sc;
       x.fillStyle = sil; x.beginPath(); x.moveTo(px - 0.25 * sc, ty); x.quadraticCurveTo(px - 0.25 * sc, ty + sh, px, ty + sh + 0.02); x.quadraticCurveTo(px + 0.25 * sc, ty + sh, px + 0.25 * sc, ty); x.fill();
       x.beginPath(); x.arc(px, ty + sh + 0.13 * sc, 0.12 * sc, 0, TAU); x.fill();
       if (hat) { R(x, px - 0.19 * sc, ty + sh + 0.2 * sc, px + 0.19 * sc, ty + sh + 0.235 * sc, sil); R(x, px - 0.11 * sc, ty + sh + 0.23 * sc, px + 0.11 * sc, ty + sh + 0.33 * sc, sil); }
-      x.fillStyle = 'rgba(255,190,110,0.35)'; x.beginPath(); x.arc(px + (dx < 0 ? 0.06 : -0.06) * sc, ty + sh + 0.16 * sc, 0.1 * sc, 0, Math.PI); x.fill();
+      x.fillStyle = 'rgba(255,190,110,0.4)'; x.beginPath(); x.arc(px + (dx < 0 ? 0.06 : -0.06) * sc, ty + sh + 0.16 * sc, 0.1 * sc, 0, Math.PI); x.fill();
     }
-    x.fillStyle = 'rgb(46,104,62)'; x.beginPath(); x.ellipse(tx, ty, 0.66, 0.14, 0, 0, TAU); x.fill();
-    x.fillStyle = 'rgb(92,160,98)'; x.beginPath(); x.ellipse(tx, ty + 0.02, 0.5, 0.08, 0, 0, TAU); x.fill();
-    R(x, tx - 0.66, ty - 0.1, tx + 0.66, ty - 0.02, 'rgb(40,22,14)');
-    x.fillStyle = 'rgba(250,246,236,0.9)'; for (const d of [-0.22, 0.05, 0.28]) x.fillRect(tx + d, ty + 0.01, 0.07, 0.04);
+    x.fillStyle = 'rgb(46,104,62)'; x.beginPath(); x.ellipse(tx, ty, 0.62, 0.13, 0, 0, TAU); x.fill();
+    x.fillStyle = 'rgb(98,166,104)'; x.beginPath(); x.ellipse(tx, ty + 0.02, 0.46, 0.075, 0, 0, TAU); x.fill();
+    R(x, tx - 0.62, ty - 0.1, tx + 0.62, ty - 0.02, 'rgb(36,20,14)');
     R(x, tx - 0.008, ty + 0.92, tx + 0.008, h1, 'rgb(30,20,16)');
-    x.fillStyle = 'rgba(255,214,140,0.16)'; x.beginPath(); x.moveTo(tx - 0.16, ty + 0.78); x.lineTo(tx + 0.16, ty + 0.78); x.lineTo(tx + 0.62, ty + 0.04); x.lineTo(tx - 0.62, ty + 0.04); x.fill();
     x.fillStyle = 'rgb(36,104,58)'; x.beginPath(); x.moveTo(tx - 0.1, ty + 0.94); x.lineTo(tx + 0.1, ty + 0.94); x.lineTo(tx + 0.24, ty + 0.78); x.lineTo(tx - 0.24, ty + 0.78); x.fill();
-    R(x, tx - 0.24, ty + 0.76, tx + 0.24, ty + 0.79, 'rgb(255,226,160)');
-    R(x, g0, h0 + ch * 0.6, g1, h1, 'rgba(255,220,180,0.06)');
+    R(x, tx - 0.24, ty + 0.76, tx + 0.24, ty + 0.79, 'rgb(255,232,170)');
   } else {
-    // an EDGE window: curtains drawn, glowing with the room's light; a brighter gap between them
+    // an EDGE window (ambient only): curtains drawn, glowing with the room's light, a brighter gap between them, two soft folds
     warm('rgb(240,150,80)', 'rgb(170,80,44)');
     R(x, g0 + cw * 0.46, h0, g0 + cw * 0.56, h1, 'rgb(255,214,150)');
-    x.fillStyle = 'rgba(120,40,24,0.35)'; for (let u = g0 + 0.05; u < g1; u += 0.12) x.fillRect(u, h0, 0.035, ch);
+    x.fillStyle = 'rgba(120,40,24,0.28)'; for (const f of [0.22, 0.76]) x.fillRect(g0 + cw * f, h0, 0.05, ch);
     if (w.id === 'edge2') { x.fillStyle = 'rgba(30,20,14,0.9)'; for (let i = 0; i < 6; i++) { x.beginPath(); x.ellipse(g0 + 0.32 + i * 0.12, h0 + 0.2 + (i % 3) * 0.1, 0.13, 0.08, 0.4 * (i - 3), 0, TAU); x.fill(); } R(x, g0 + 0.28, h0, g0 + 0.95, h0 + 0.16, 'rgb(30,18,14)'); }
   }
+  // SP2 — each room its OWN bulb (the owner): one incandescent family, never colours — multiplied over the room (+ late: dimmer, warmer)
+  { const tn = ROOM_TINT[w.id], lt = clamp01(o.late || 0);
+    if (tn || lt > 0) { x.globalCompositeOperation = 'multiply'; if (tn) { x.fillStyle = rgb(tn); x.fillRect(g0, h0, cw, ch); } if (lt > 0) { x.fillStyle = rgb(mixc([255, 255, 255], LATE_TINT, lt)); x.fillRect(g0, h0, cw, ch); } x.globalCompositeOperation = 'source-over'; } }
   x.restore();
   sash(x, G, 'rgb(26,18,20)');
-  R(x, G.a - 0.16, G.r0 - 0.03, G.b + 0.16, G.r0, 'rgba(255,200,140,0.55)');
+  { const tn = ROOM_TINT[w.id] || [255, 255, 255]; landing(x, G, [255, 196, 130].map((v, i) => v * tn[i] / 255), 1 - 0.25 * clamp01(o.late || 0)); }
 }
-/** the sash over the light (dark against it): the meeting rail, the muntins (re-drawn over anything a moment painted) */
+/** SP2 — THE ROOMS' BULBS (the owner: the facade shouldn't be one uniform glow): a multiply over each lit room, all ~2200–3000 K — the
+ *  bar + the jazz room the deepest amber edging to red, the back room a dim low amber, the apartment a soft peach / lampshade gold, the
+ *  edge windows a little dimmer + each a touch off its neighbour. (The barbershop — the cleanest warm-white — is speakeasy.js's shop
+ *  lamp; the TV's blue stays the only cool light.) LATE_TINT: the small hours (from ~11:30 pm, full by 1:30) dimmer + warmer. */
+export const ROOM_TINT = Object.freeze({ bar: [255, 214, 184], jazz: [252, 206, 178], back: [246, 216, 186], apartment: [255, 238, 214], edge2: [232, 214, 196], edge3: [226, 214, 204] });
+export const LATE_TINT = [222, 190, 160];
+export const lateOf = h => (h == null ? 0 : (v => clamp01((v - 23.5) / 2))(h < 12 ? h + 24 : h));
+/** the room's light LANDING outside the glass (crisp, no haze — SP2 replaced the soft blob round each window): the sill's lit top, the
+ *  left reveal's face (we look into the opening from the right), a short fall down the sill's front edge. col: the light, a: 0..1 */
+export function landing(x, G, col, a) {
+  if (a <= 0.004) return;
+  const c = (al) => `rgba(${col[0] | 0},${col[1] | 0},${col[2] | 0},${(al * a).toFixed(3)})`;
+  R(x, G.a - 0.16, G.r0 - 0.03, G.b + 0.16, G.r0, c(0.6));
+  { const g = x.createLinearGradient(G.a, 0, G.a + 0.13, 0); g.addColorStop(0, c(0.06)); g.addColorStop(1, c(0.42)); x.fillStyle = g; x.fillRect(G.a, G.r0 + 0.07, 0.13, G.r1 - G.r0 - 0.07); }
+  { const g = x.createLinearGradient(0, G.r0 - 0.03, 0, G.r0 - 0.16); g.addColorStop(0, c(0.3)); g.addColorStop(1, c(0)); x.fillStyle = g; x.fillRect(G.a - 0.16, G.r0 - 0.16, G.b - G.a + 0.32, 0.13); }
+}
+/** the sash over the light (dark against it): the slim meeting rail high up (re-drawn over anything a moment painted) */
 export function sash(x, G, fc) {
-  R(x, G.g0, G.mid - 0.04, G.g1, G.mid + 0.04, fc);
-  for (let i = 1; i < 3; i++) { const ww = (G.cw - 0.12) / 3; R(x, G.g0 + i * (ww + 0.06) - 0.06, G.mid, G.g0 + i * (ww + 0.06), G.h1, fc); }
+  R(x, G.g0, G.rail - 0.025, G.g1, G.rail + 0.025, fc);
 }
-/** THE BAR's room: the gold back-bar mirror, three shelves of bottles, a pendant, the counter (lit 0..1: the shelves' lights one by
- *  one while the bartender switches them on — lit ≥ 1 all; dim: the last light, only the pendant) */
+/** THE BAR's room: the gold back-bar's glow (the pendant over the counter the one light), two shelves of bottles, the counter (lit
+ *  0..1: the shelves' lights one by one while the bartender switches them on — lit ≥ 1 all; dim: the last light, only the pendant) */
 function paintBar(x, G, lit = 1, dim = 0) {
-  const { g0, g1, h0, h1, cw, ch } = G;
+  const { g0, g1, h0, h1, cw, ch } = G, L = (a, b) => Math.round(lerp(a, b, dim));
   const g = x.createLinearGradient(0, h1, 0, h0);
-  g.addColorStop(0, `rgb(${Math.round(lerp(255, 120, dim))},${Math.round(lerp(196, 84, dim))},${Math.round(lerp(112, 50, dim))})`); g.addColorStop(1, `rgb(${Math.round(lerp(176, 60, dim))},${Math.round(lerp(98, 34, dim))},${Math.round(lerp(46, 22, dim))})`);
+  g.addColorStop(0, `rgb(${L(150, 50)},${L(80, 28)},${L(40, 18)})`); g.addColorStop(0.42, `rgb(${L(255, 120)},${L(192, 84)},${L(108, 50)})`); g.addColorStop(1, `rgb(${L(176, 60)},${L(98, 34)},${L(46, 22)})`);
   x.fillStyle = g; x.fillRect(g0, h0, cw, ch);
   const r = rngFrom(31), bc = [[255, 170, 60], [90, 200, 110], [230, 60, 60], [255, 230, 170], [120, 170, 255], [255, 140, 40]];
-  [h0 + ch * 0.42, h0 + ch * 0.62, h0 + ch * 0.8].forEach((v, si) => {
-    const on = clamp01((lit * 3 - si)) * (1 - dim * 0.75);
+  [h0 + ch * 0.44, h0 + ch * 0.64].forEach((v, si) => {
+    const on = clamp01((lit * 2 - si)) * (1 - dim * 0.75);
     R(x, g0, v - 0.04, g1, v, 'rgb(96,52,28)');
-    for (let u = g0 + 0.05; u < g1 - 0.05; u += 0.09 + r() * 0.05) { const c = bc[Math.floor(r() * bc.length)], hh = 0.12 + r() * 0.1; R(x, u, v, u + 0.055, v + hh, rgb(mixc([60, 34, 24], c, 0.25 + 0.75 * on))); if (on > 0.05) R(x, u + 0.012, v + hh * 0.4, u + 0.024, v + hh * 0.9, `rgba(255,255,240,${(0.7 * on).toFixed(3)})`); }
+    for (let u = g0 + 0.1; u < g1 - 0.1; u += 0.15 + r() * 0.05) {
+      const c = bc[Math.floor(r() * bc.length)], hh = 0.14 + r() * 0.08;
+      R(x, u, v, u + 0.07, v + hh, rgb(mixc([60, 34, 24], c, 0.25 + 0.75 * on))); R(x, u + 0.022, v + hh, u + 0.048, v + hh + 0.05, rgb(mixc([60, 34, 24], c, 0.2 + 0.6 * on)));
+      if (on > 0.05) R(x, u + 0.014, v + hh * 0.35, u + 0.028, v + hh * 0.85, `rgba(255,255,240,${(0.75 * on).toFixed(3)})`);
+    }
   });
-  const px = g0 + cw * 0.5; R(x, px - 0.008, h1 - 0.25, px + 0.008, h1, 'rgb(60,40,30)');
-  const lg = x.createRadialGradient(px, h1 - 0.3, 0, px, h1 - 0.3, 0.6); lg.addColorStop(0, 'rgba(255,250,220,1)'); lg.addColorStop(0.25, 'rgba(255,214,140,0.6)'); lg.addColorStop(1, 'rgba(255,190,100,0)'); x.fillStyle = lg; x.fillRect(px - 0.6, h1 - 0.9, 1.2, 1.2);
-  R(x, g0, h0, g1, h0 + ch * 0.3, 'rgb(70,34,20)'); R(x, g0, h0 + ch * 0.3 - 0.05, g1, h0 + ch * 0.3, `rgb(${Math.round(lerp(230, 120, dim))},${Math.round(lerp(170, 80, dim))},${Math.round(lerp(90, 40, dim))})`);
+  // the pendant: its cord, a small shade, the bulb (a crisp core + a tight halo)
+  const px = g0 + cw * 0.5, py = h1 - 0.34; R(x, px - 0.008, py, px + 0.008, h1, 'rgb(60,40,30)');
+  x.fillStyle = 'rgb(70,44,28)'; x.beginPath(); x.moveTo(px - 0.05, py + 0.06); x.lineTo(px + 0.05, py + 0.06); x.lineTo(px + 0.13, py - 0.02); x.lineTo(px - 0.13, py - 0.02); x.fill();
+  const lg = x.createRadialGradient(px, py - 0.04, 0, px, py - 0.04, 0.3); lg.addColorStop(0, 'rgba(255,250,224,1)'); lg.addColorStop(0.3, 'rgba(255,220,150,0.55)'); lg.addColorStop(1, 'rgba(255,190,100,0)'); x.fillStyle = lg; x.fillRect(px - 0.3, py - 0.34, 0.6, 0.6);
+  R(x, g0, h0, g1, h0 + ch * 0.3, 'rgb(70,34,20)'); R(x, g0, h0 + ch * 0.3 - 0.05, g1, h0 + ch * 0.3, `rgb(${L(230, 120)},${L(170, 80)},${L(90, 40)})`);
 }
-/** THE APARTMENT's lamp room: warm wallpaper, a fringed floor lamp, a picture, the armchair's back, the curtains tied back (lamp:
- *  the lamp's light 0..1 — the lights-out click takes it down) */
+/** THE APARTMENT's lamp room: a warm wall, ONE fringed floor lamp (its light on the wall round it), the armchair's back, the curtains
+ *  tied back at the edges (lamp: the lamp's light 0..1 — the lights-out click takes it down) */
 function paintLampRoom(x, G, lamp = 1) {
   const { g0, g1, h0, h1, cw, ch } = G;
-  const c0 = mixc([40, 26, 30], [250, 190, 120], lamp), c1 = mixc([22, 14, 20], [190, 110, 64], lamp);
+  const c0 = mixc([40, 26, 30], [226, 160, 100], lamp), c1 = mixc([22, 14, 20], [150, 84, 50], lamp);
   const g = x.createLinearGradient(0, h1, 0, h0); g.addColorStop(0, rgb(c0)); g.addColorStop(1, rgb(c1)); x.fillStyle = g; x.fillRect(g0, h0, cw, ch);
-  x.fillStyle = `rgba(150,80,40,${(0.18 * lamp).toFixed(3)})`; for (let u = g0; u < g1; u += 0.16) x.fillRect(u, h0, 0.05, ch);
-  R(x, g0 + cw * 0.55, h0 + ch * 0.55, g0 + cw * 0.85, h0 + ch * 0.8, rgb(mixc([30, 20, 20], [120, 64, 36], lamp))); R(x, g0 + cw * 0.58, h0 + ch * 0.58, g0 + cw * 0.82, h0 + ch * 0.77, rgb(mixc([34, 24, 26], [214, 150, 90], lamp)));
-  const lx = g0 + cw * 0.22; R(x, lx - 0.01, h0, lx + 0.01, h0 + ch * 0.66, 'rgb(70,40,26)');
-  x.fillStyle = rgb(mixc([60, 46, 40], [255, 232, 170], lamp)); x.beginPath(); x.moveTo(lx - 0.2, h0 + ch * 0.66); x.lineTo(lx + 0.2, h0 + ch * 0.66); x.lineTo(lx + 0.12, h0 + ch * 0.8); x.lineTo(lx - 0.12, h0 + ch * 0.8); x.fill();
-  if (lamp > 0.02) { const lg = x.createRadialGradient(lx, h0 + ch * 0.72, 0, lx, h0 + ch * 0.72, 0.9); lg.addColorStop(0, `rgba(255,240,200,${(0.7 * lamp).toFixed(3)})`); lg.addColorStop(1, 'rgba(255,200,120,0)'); x.fillStyle = lg; x.fillRect(lx - 0.9, h0, 1.8, ch); }
-  x.fillStyle = 'rgb(84,34,30)'; x.beginPath(); x.ellipse(g0 + cw * 0.6, h0 + 0.05, 0.42, 0.32, 0, Math.PI, 0, true); x.fill();
-  for (const [p, q, d] of [[g0, g0 + 0.3, 1], [g1 - 0.3, g1, -1]]) { x.fillStyle = rgb(mixc([40, 14, 18], [130, 36, 40], lamp)); x.beginPath(); x.moveTo(p, h1); x.lineTo(q, h1); x.quadraticCurveTo(d > 0 ? q - 0.05 : p + 0.05, h0 + ch * 0.45, d > 0 ? q - 0.12 : p + 0.12, h0); x.lineTo(d > 0 ? p : q, h0); x.fill(); }
+  const lx = g0 + cw * 0.3, ly = h0 + ch * 0.72;
+  if (lamp > 0.02) { const lg = x.createRadialGradient(lx, ly, 0, lx, ly, 1.0); lg.addColorStop(0, `rgba(255,236,190,${(0.75 * lamp).toFixed(3)})`); lg.addColorStop(0.4, `rgba(255,200,130,${(0.32 * lamp).toFixed(3)})`); lg.addColorStop(1, 'rgba(255,190,120,0)'); x.fillStyle = lg; x.fillRect(g0, h0, cw, ch); }
+  R(x, lx - 0.012, h0, lx + 0.012, ly - 0.08, 'rgb(64,38,26)');
+  x.fillStyle = rgb(mixc([60, 46, 40], [255, 236, 180], lamp)); x.beginPath(); x.moveTo(lx - 0.2, ly - 0.08); x.lineTo(lx + 0.2, ly - 0.08); x.lineTo(lx + 0.12, ly + 0.08); x.lineTo(lx - 0.12, ly + 0.08); x.fill();
+  x.fillStyle = rgb(mixc([40, 30, 28], [200, 130, 70], lamp)); for (let u = -0.18; u <= 0.18; u += 0.06) x.fillRect(lx + u - 0.008, ly - 0.14, 0.016, 0.06);
+  // the armchair's back (one dim shape low in the room)
+  x.fillStyle = rgb(mixc([26, 14, 16], [96, 40, 34], lamp)); x.beginPath(); x.ellipse(g0 + cw * 0.66, h0 + 0.05, 0.44, 0.34, 0, Math.PI, 0, true); x.fill();
+  for (const [p, q, d] of [[g0, g0 + 0.22, 1], [g1 - 0.22, g1, -1]]) { x.fillStyle = rgb(mixc([40, 14, 18], [130, 36, 40], lamp)); x.beginPath(); x.moveTo(p, h1); x.lineTo(q, h1); x.quadraticCurveTo(d > 0 ? q - 0.04 : p + 0.04, h0 + ch * 0.45, d > 0 ? q - 0.09 : p + 0.09, h0); x.lineTo(d > 0 ? p : q, h0); x.fill(); }
 }
 
 // ------------------------------------------------------------------ THE FIGURE KIT (wall units, v up)
@@ -601,13 +630,14 @@ export function createWindowLife() {
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
   }
 
-  // ---------------------------------------------------------------- the spills on the brick (the TV's blue)
+  // ---------------------------------------------------------------- the TV's blue LANDING outside the glass (SP2: crisp — the sill's
+  // lit top + the reveal + a short fall, flickering with the set; the soft blob over the brick is gone)
   function spills(c, env, fr, t) {
     const w = env.wins.find(o => o.id === 'apartment');
-    if (!w || fr.states.apartment !== 'tv' || env.k < 0.02 || env.f.tier === 0) return;
-    const tv = env.f.motion !== false ? tvLight(t, 11) : { k: 0.75, tint: 0.4 }, r = w.rect;
-    c.save(); c.globalCompositeOperation = 'lighter';
-    glow(c, mixc([96, 140, 255], [188, 206, 255], tv.tint), r.x + r.w / 2, r.y + r.h * 0.55, Math.max(r.w, r.h) * 1.1, 0.16 * env.k * tv.k);
+    if (!w || fr.states.apartment !== 'tv' || env.k < 0.02) return;
+    const tv = env.f.motion !== false ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0 };
+    c.save(); env.map(c); c.globalCompositeOperation = 'lighter';
+    landing(c, glassOf(w), tv.warm ? [255, 214, 170] : mixc([96, 140, 255], [188, 206, 255], tv.tint), 0.75 * env.k * tv.k);
     c.restore();
   }
 
@@ -685,7 +715,7 @@ export function createWindowLife() {
     wake(E, el, len) {
       const { c, G, k, t, mo } = E, p = el / len, day = 1 - k;
       // the room: the lamp room at night (the morning before the sun), the dark glass by day
-      if (k > 0.01) { c.globalAlpha = k; paintLampRoom(c, G, 1); c.globalAlpha = 1; }
+      if (k > 0.01) { c.globalAlpha = k; paintLampRoom(c, G, 1); c.fillStyle = 'rgba(236,240,255,0.14)'; c.fillRect(G.g0, G.h0, G.cw, G.ch); c.globalAlpha = 1; }   // (SP2: the dawn's lamp a little paler)
       if (day > 0.01) { c.globalAlpha = day; R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(40,32,38)'); c.globalAlpha = 1; }
       const night = k > 0.4, col = night ? SIL : null, pal = night ? null : DAY_PALS[0];
       // the figure: in from the back (0.18), THE STRETCH (arms up in a V, a yawn, side to side), the watering can at the box
@@ -697,8 +727,8 @@ export function createWindowLife() {
         const arms = st > 0.02 ? [[0.2 + 2.6 * st, 0.15], [0.2 + 2.6 * st, 0.15]] : can > 0.02 ? [[0.15, 0.2], [0.5 + 0.6 * can, 0.5 + 0.2 * pour]] : [[0.12, 0.15], [0.12, 0.15]];
         figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.22 * can, tilt: -0.3 * st, face: can > 0.2 ? 1 : 0, arms, hold: [null, can > 0.02 ? 'can' : null], pour: pour * 0.9, hair: 'bun', col, pal });
       }
-      // the lower sash raised for the watering (its frame across the upper panes, the gap open)
-      if (sashUp > 0.01) { const sv = G.mid + (G.h1 - G.mid) * 0.75 * sashUp; R(c, G.g0, sv - 0.06, G.g1, sv, E.frameC); }
+      // the lower sash raised for the watering (its bottom rail up a third of the glass, the gap open under it)
+      if (sashUp > 0.01) { const sv = G.h0 + G.ch * 0.3 * sashUp; R(c, G.g0, sv - 0.06, G.g1, sv, E.frameC); }
       // the blind: down until the wake, rolled up in its first seconds
       const up = sm(0.02, 0.16, p), bv = lerp(G.h0, G.h1, up);
       if (up < 0.995) {

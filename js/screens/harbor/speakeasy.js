@@ -18,8 +18,7 @@ import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
-import { STRINGS_ON } from './strings.js';
-import { paintRoom, createWindowLife } from './windows.js';
+import { paintRoom, createWindowLife, SASH_RAIL, lateOf } from './windows.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.gold || 0) + n[i] * (T.night || 0));
@@ -30,7 +29,10 @@ const GLASS_IN = 0.16;                   // a window's recess (exaggerated a lit
 /** FP2 — CRISP LIGHTS, NEVER SMOKE (the owner: the shopfront "looks smoky"): a light is its SOURCE, a small TIGHT halo, and its light
  *  LANDING on the surfaces near it — never a translucent wash. The halos' radii (wall units: × G.K pt) — the shop lamp's globe, the
  *  sconce's glass — and landR: the sconce's light landing on the brick + the door's frame (baked: paintGround), gone by then. */
-export const SHOP_GLOW = Object.freeze({ lamp: 0.34, sconce: 0.42, landR: 1.3 });
+/** SP2 — the awning's night lamp (wall units): over the shop window's middle; reach: its light's fall along the awning; the canvas's
+ *  glow by stripe (the cream ones let more through), the scallops' rim */
+export const AWNING_LAMP = Object.freeze({ u: 5.6, reach: 2.1, cream: 0.3, red: 0.14, rim: 0.55 });
+export const SHOP_GLOW = Object.freeze({ lamp: 0.2, sconce: 0.24, landR: 0.95 });   // (SP2: tighter — a few pt)
 
 // ------------------------------------------------------------------ geometry
 /** the building on screen: the front's affine map, the side wall's perspective, the inverse for the strips */
@@ -77,8 +79,9 @@ function devRect(x, u0, v0, u1, v1) {
 }
 function fillPat(x, pat, u0, v0, u1, v1) { const r = devRect(x, u0, v0, u1, v1); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = pat; x.fillRect(Math.round(r[0]), Math.round(r[1]), Math.round(r[2]), Math.round(r[3])); x.restore(); }
 /** text in wall units (v up): centred at (u, v) baseline, size in units */
-function text(x, s, u, v, size, { fill, stroke = null, lw = 0, align = 'center', sq = 1, font = FONT, rot = 0 } = {}) {
+function text(x, s, u, v, size, { fill, stroke = null, lw = 0, align = 'center', sq = 1, font = FONT, rot = 0, glow = null } = {}) {
   x.save(); x.translate(u, v); x.scale(1, -1); if (rot) x.rotate(rot); x.scale(sq / 100, 1 / 100);
+  if (glow && glow[0] > 0) { x.shadowBlur = glow[0]; x.shadowColor = glow[1]; }          // (a baked glow: the blade's lit letters — device px)
   x.font = font(size * 100); x.textAlign = align; x.textBaseline = 'alphabetic';
   if (stroke) { x.lineJoin = 'round'; x.strokeStyle = stroke; x.lineWidth = lw * 100; x.strokeText(s, 0, 0); }
   if (fill) { x.fillStyle = fill; x.fillText(s, 0, 0); }
@@ -228,8 +231,9 @@ function paintWindow(x, M, a, b, r0, r1, o) {
   const j = 0.13, gs = a + j, gb = r0 + 0.07;
   R(x, a, r0, gs, r1, sd > 0.1 ? shade(M.brick, -0.32) : mix(M.brick, [255, 226, 190], 0.12 * (M.day + M.gold)));
   R(x, a, r0, b, gb, mix(M.trim, [255, 250, 236], 0.15 * M.day));
-  // the sash: a frame, the meeting rail, three lites over one
-  const g0 = gs + 0.05, g1 = b - 0.05, h0 = gb + 0.05, h1 = r1 - 0.06, mid = h0 + (h1 - h0) * 0.46;
+  // SP2 — BIG CLEAN PANES (the owner: the thick bar through the middle split every scene): a slim frame, a 1920s one-over-one sash
+  // with its meeting rail HIGH (SASH_RAIL of the glass up: the upper sash a short band) — one big lower pane for the room's scene
+  const g0 = gs + 0.05, g1 = b - 0.05, h0 = gb + 0.05, h1 = r1 - 0.06, rail = h0 + (h1 - h0) * SASH_RAIL;
   R(x, gs, gb, b, r1, M.frame);
   const pane = (p0, p1, q0, q1) => {
     if (!night) {
@@ -238,16 +242,14 @@ function paintWindow(x, M, a, b, r0, r1, o) {
       x.fillStyle = g; x.fillRect(p0, q0, p1 - p0, q1 - q0);
     } else R(x, p0, q0, p1, q1, mix(M.inside, M.glassTop, 0.25));
   };
-  pane(g0, g1, h0, mid - 0.04);
-  for (let i = 0; i < 3; i++) { const w = (g1 - g0 - 0.12) / 3; pane(g0 + i * (w + 0.06), g0 + i * (w + 0.06) + w, mid + 0.04, h1); }
-  // the shade (roller blind) pulled to its height, the curtains, by day; a soft shadow line under the blind
+  pane(g0, g1, h0, h1);
+  // the shade (roller blind) pulled to its height, the curtains framing the edges (never across the middle), by day
   if (!night && o.blind != null) {
     const bv = h1 - (h1 - h0) * o.blind;
     R(x, g0, bv, g1, h1, M.blind); R(x, g0, bv, g1, bv + 0.04, shade(M.blind, -0.25));
-    x.fillStyle = rgb(shade(M.blind, -0.12)); for (let v = bv + 0.18; v < h1; v += 0.22) x.fillRect(g0, v, g1 - g0, 0.012);
     R(x, (g0 + g1) / 2 - 0.03, bv - 0.1, (g0 + g1) / 2 + 0.03, bv, M.frame);
   }
-  if (!night && o.curtain) for (const [p, q] of [[g0, g0 + 0.32], [g1 - 0.32, g1]]) { R(x, p, h0, q, h1, o.curtain); x.fillStyle = rgb(shade(o.curtain, -0.3)); for (let u = p + 0.06; u < q; u += 0.1) x.fillRect(u, h0, 0.03, h1 - h0); }
+  if (!night && o.curtain) for (const [p, q, d] of [[g0, g0 + 0.2, 1], [g1 - 0.2, g1, -1]]) { R(x, p, h0, q, h1, o.curtain); R(x, d > 0 ? q - 0.04 : p, h0, d > 0 ? q : p + 0.04, h1, shade(o.curtain, 0.12)); R(x, (p + q) / 2 - 0.015, h0, (p + q) / 2 + 0.015, h1, shade(o.curtain, -0.25)); }
   if (!night && o.plant) { x.fillStyle = rgb(tri(M.T, [52, 96, 52], [70, 80, 40], [10, 14, 14])); for (let i = 0; i < 6; i++) { x.beginPath(); x.ellipse(g0 + 0.35 + i * 0.12, h0 + 0.18 + (i % 3) * 0.1, 0.13, 0.08, 0.4 * (i - 3), 0, Math.PI * 2); x.fill(); } R(x, g0 + 0.28, h0, g0 + 0.95, h0 + 0.16, [150, 80, 54]); }
   // the glass's reflections by day: a diagonal sheen, the head's shadow at the top of the panes
   if (!night) {
@@ -257,9 +259,8 @@ function paintWindow(x, M, a, b, r0, r1, o) {
     R(x, g0, h1 - hs, g1, h1, [0, 0, 0], 0.22 * (M.day + M.gold) * (1 - 0.6 * M.ov));
     x.restore();
   }
-  // the frame's lit edges
-  R(x, gs, mid - 0.04, b, mid + 0.04, M.frame); R(x, gs, r1 - 0.02, b, r1, M.frameHi);
-  for (let i = 1; i < 3; i++) { const w = (g1 - g0 - 0.12) / 3; R(x, g0 + i * (w + 0.06) - 0.06, mid, g0 + i * (w + 0.06), h1, M.frame); }
+  // the meeting rail (slim, high) + the frame's lit edges
+  R(x, g0, rail - 0.025, g1, rail + 0.025, M.frame); R(x, g0, rail + 0.025, g1, rail + 0.04, M.frameHi); R(x, gs, r1 - 0.02, b, r1, M.frameHi);
   // the WINDOW BOX (the apartment): geraniums by day
   if (o.box) {
     R(x, a + 0.05, r0 - 0.5, b - 0.05, r0 - 0.16, tri(M.T, [44, 82, 60], [60, 64, 44], [12, 16, 22]));
@@ -366,8 +367,16 @@ function paintGround(x, M, s) {
     if (lk > 0.01) { const sc = sh.sconce, R0 = SHOP_GLOW.landR;
       x.save(); x.globalCompositeOperation = 'lighter'; x.translate(sc.u, sc.v - 0.05); x.scale(1, 1.25);
       const g = x.createRadialGradient(0, -0.12, 0, 0, -0.12, R0);
-      for (const [t, a] of [[0, 0.5], [0.18, 0.36], [0.4, 0.17], [0.65, 0.05], [0.85, 0.012], [1, 0]]) g.addColorStop(t, rgb([255, 178, 108], a * lk));
+      for (const [t, a] of [[0, 0.46], [0.15, 0.3], [0.35, 0.12], [0.6, 0.03], [1, 0]]) g.addColorStop(t, rgb([255, 184, 116], a * lk));
       x.fillStyle = g; x.fillRect(-R0, -R0 - 0.12, 2 * R0, 2 * R0); x.restore();
+      // (SP2 — CRISP: the light catching what's under it — the granite surround's top edge, the door's upper planks fading down, the
+      // two steps' fronts faintly; the brick round it only a small tight pool)
+      const d = s.door, W = [255, 196, 130];
+      x.save(); x.globalCompositeOperation = 'lighter';
+      { const g2 = x.createLinearGradient(d.u0 - 0.2, 0, d.u1 + 0.2, 0); g2.addColorStop(0, rgb(W, 0.1 * lk)); g2.addColorStop((sc.u - d.u0 + 0.2) / (d.u1 - d.u0 + 0.4), rgb(W, 0.6 * lk)); g2.addColorStop(1, rgb(W, 0.12 * lk)); x.fillStyle = g2; x.fillRect(d.u0 - 0.2, d.h + 0.2, d.u1 - d.u0 + 0.4, 0.08); }
+      { const g3 = x.createLinearGradient(0, d.h, 0, d.h - 1.2); g3.addColorStop(0, rgb(W, 0.3 * lk)); g3.addColorStop(0.4, rgb(W, 0.1 * lk)); g3.addColorStop(1, rgb(W, 0)); x.fillStyle = g3; x.fillRect(d.u0, d.h - 1.2, d.u1 - d.u0, 1.2); }
+      x.fillStyle = rgb(W, 0.18 * lk); x.fillRect(d.u0 - 0.3, 0.12, d.u1 - d.u0 + 0.6, 0.02); x.fillRect(d.u0 - 0.15, 0.25, d.u1 - d.u0 + 0.3, 0.02);
+      x.restore();
       R(x, sc.u - 0.2, sc.v + 0.38, sc.u + 0.2, sc.v + 0.5, M.soot, 0.25 * lk); } }
 }
 
@@ -390,38 +399,52 @@ export function paintGilt(x, M, sh) {
 
 // ------------------------------------------------------------------ 7b — THE WALL-WASHERS (the owner: "something's missing" at night)
 /** small warm lamps under the capitals, aimed DOWN, GRAZING the brick PIERS between the windows (never the windows): from dusk all
- *  night. Crisp light ON the surface, no haze — the pier's own bricks re-laid in their lit colour (the same tile seed: the courses
- *  line up) through a SCALLOP (the classic downlight's arc: dark right under the lamp, a bright curved edge, then a long falloff
- *  to the belt course), so the light shows the brick's texture. piers: the front's brick piers [u0, u1] (the edge one is off screen) */
-export const WASH = Object.freeze({ piers: [[2.9, 4.2], [6.1, 7.4], [9.3, 11.2]], lampV: 9.13, brick: [196, 112, 74], a: 0.8, stops: [[0, 0], [0.05, 1], [0.2, 0.74], [0.48, 0.34], [0.78, 0.12], [1, 0.03]] });
+ *  night. SP2 (the owner: the lit piers read as more ARCHED WINDOWS — tall, evenly bright, a hard rounded top): ACCENTS, not panels —
+ *  a hot spot just under each VISIBLE fixture, fanning DOWN in a soft V and gone within the top third of the pier (drop units); no
+ *  outline anywhere (the cone's edges + its foot fade per pixel); dimmer. The pier's own bricks re-laid in their LIT colour (the same
+ *  tile seed: the courses line up), so the brick's texture shows through the light. washCone(): the light at (du across from the
+ *  pier's middle, d down from the lamp) — PURE, tested. piers: the front's brick piers [u0, u1] (the edge one is off screen) */
+export const WASH = Object.freeze({ piers: [[2.9, 4.2], [6.1, 7.4], [9.3, 11.2]], lampV: 9.13, brick: [196, 112, 74], a: 0.6, drop: 1.75, w0: 0.1, spread: 0.42, hot: 0.3 });
+export function washCone(du, d) {
+  const W = WASH;
+  if (d <= 0 || d >= W.drop) return 0;
+  const hw = W.w0 + d * W.spread, xn = Math.abs(du) / hw;
+  if (xn >= 1) return 0;
+  const side = 1 - smooth(0.45, 1, xn), on = smooth(0, 0.07, d), fall = (0.3 + 0.7 * Math.exp(-d / W.hot)) * (1 - smooth(0.45 * W.drop, W.drop, d));
+  return on * side * fall;
+}
+const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 function paintWashers(x, M, lk, tile) {
-  const m = x.getTransform(), k = Math.hypot(m.a, m.b), top = WASH.lampV, foot = V.belt + 0.04;
+  const m = x.getTransform(), top = WASH.lampV - 0.05, foot = top - WASH.drop;
   for (const [a0, b0] of WASH.piers) {
     const a = a0 + 0.07, b = b0 - 0.07, mid = (a + b) / 2;
-    // the pier's rect in device px (the bake's own pixels): an offscreen of lit brick, aligned to the wall's pattern, masked by the scallop
+    // the pier's rect in device px (the bake's own pixels): an offscreen of lit brick, aligned to the wall's pattern, its alpha the cone
     const p = (u, v) => [m.a * u + m.c * v + m.e, m.b * u + m.d * v + m.f], [X0, Y0] = p(a, top), [X1, Y1] = p(b, foot);
     const X = Math.floor(Math.min(X0, X1)), Y = Math.floor(Math.min(Y0, Y1)), W = Math.ceil(Math.abs(X1 - X0)) + 1, H = Math.ceil(Math.abs(Y1 - Y0)) + 1;
     if (W < 2 || H < 2) continue;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-    const o = safeCtx(cv); if (!o) continue;
+    const o = safeCtx(cv); if (!o || !o.getImageData) continue;
     o.setTransform(1, 0, 0, 1, -X, -Y); o.fillStyle = o.createPattern(tile, 'repeat'); o.fillRect(X, Y, W, H);
-    // the scallop's mask: from the lamp, the arc's edge sweeping out + down to the pier's sides, then straight down; the light's falloff
-    o.globalCompositeOperation = 'destination-in'; o.setTransform(m.a, m.b, m.c, m.d, m.e - X, m.f - Y);
-    const g = o.createLinearGradient(0, top, 0, foot); for (const [t, v] of WASH.stops) g.addColorStop(t, `rgba(0,0,0,${(v * WASH.a * lk).toFixed(3)})`);
-    const hw = (b - a) / 2, arc = Math.min(1.1, hw * 1.4);
-    o.fillStyle = g; o.beginPath(); o.moveTo(mid, top - 0.12); o.quadraticCurveTo(mid + hw * 0.92, top - 0.18, b, top - arc); o.lineTo(b, foot); o.lineTo(a, foot); o.lineTo(a, top - arc); o.quadraticCurveTo(mid - hw * 0.92, top - 0.18, mid, top - 0.12); o.closePath(); o.fill();
+    const im = o.getImageData(0, 0, W, H), d = im.data;
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const u = (X + i + 0.5 - m.e) / m.a, v = (Y + j + 0.5 - m.f) / m.d;
+      const al = u < a || u > b ? 0 : washCone(u - mid, top - v) * WASH.a * lk;
+      d[(j * W + i) * 4 + 3] = Math.round(d[(j * W + i) * 4 + 3] * al);
+    }
+    o.putImageData(im, 0, 0);
     x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(cv, X, Y); x.restore();
     cv.width = cv.height = 0;
-    void k;
   }
 }
-/** the washers' little lamps: a black iron hood on a short arm under each capital (by day too); lit, a hot sliver under the hood */
+/** the washers' fixtures, VISIBLE (by day too): a short iron arm out of the capital's foot, a black bowl-shaped hood aimed down; lit,
+ *  its rim a crisp warm line + a white-hot lamp just showing under it */
 function paintWasherLamps(x, M, lk) {
   for (const [a0, b0] of WASH.piers) {
     const u = (a0 + b0) / 2, v = WASH.lampV;
-    R(x, u - 0.025, v + 0.02, u + 0.025, v + 0.2, M.iron);
-    x.fillStyle = rgb(M.iron); x.beginPath(); x.moveTo(u - 0.15, v - 0.02); x.lineTo(u + 0.15, v - 0.02); x.lineTo(u + 0.1, v + 0.08); x.lineTo(u - 0.1, v + 0.08); x.closePath(); x.fill();
-    if (lk > 0.01) { R(x, u - 0.11, v - 0.05, u + 0.11, v - 0.01, rgb([255, 236, 196], lk)); R(x, u - 0.06, v - 0.06, u + 0.06, v - 0.03, rgb([255, 252, 236], lk)); }
+    R(x, u - 0.03, v + 0.06, u + 0.03, v + 0.32, M.iron);
+    x.fillStyle = rgb(M.iron); x.beginPath(); x.moveTo(u - 0.2, v - 0.04); x.lineTo(u + 0.2, v - 0.04); x.quadraticCurveTo(u + 0.2, v + 0.12, u + 0.06, v + 0.14); x.lineTo(u - 0.06, v + 0.14); x.quadraticCurveTo(u - 0.2, v + 0.12, u - 0.2, v - 0.04); x.closePath(); x.fill();
+    R(x, u - 0.2, v + 0.02, u + 0.2, v + 0.045, shade(M.iron, 0.6));
+    if (lk > 0.01) { R(x, u - 0.19, v - 0.06, u + 0.19, v - 0.025, rgb([255, 214, 160], lk)); R(x, u - 0.08, v - 0.075, u + 0.08, v - 0.04, rgb([255, 252, 236], lk)); }
   }
 }
 
@@ -472,39 +495,38 @@ function paintIvy(x, M, u, dir, seed, month) {
 }
 
 // ------------------------------------------------------------------ THE BLADE SIGN (the weekly ghost ad's home — the owner's pick, 8a)
-/** the painted BLADE: a wooden board on iron brackets out from the side wall near the corner, facing us (parallel to the front),
- *  the same weekly game as the ghost ad — the plan's fallback (3) while the corner stays as it is (the turned wall hides the
- *  wheel's legs + the pier). Board units: b 0 … bw across (from the brackets), v up (wall units). */
-// (8a — the owner picked the BLADE for the weekly ad + "the name BIGGER, readable at a glance like the neon signs": it can't grow
-// wider — the wheel's left leg lands ~3 pt right of it — so it grows DOWN the side wall (its foot just above door height, clear of
-// the west stop light) and up to the cornice: ~24 × 104 pt on a 402 phone (was 22 × 75); the letters fill their column)
-export const BLADE = Object.freeze({ w: 0.42, out: 0.32, bw: 1.76, v0: 2.75, v1: 10.3 });
+/** the BLADE: a board on iron brackets out from the side wall near the corner, facing us (parallel to the front), the same weekly game
+ *  as the ghost ad. Board units: b 0 … bw across (from the brackets), v up (wall units).
+ *  SP2 — THE CLASSIC 1920s THEATRE BLADE (the owner: "you just can't read it well at all" — thin dark letters on a dim board, the bulbs
+ *  crowding it): a DARK enamel board (deep navy-black) for every game, the name in BIG BOLD letters filling the board's width — cream +
+ *  gold paint by day, LIT warm-white at night (they light themselves: a crisp tube-bright letter + a tight glow) — the marquee bulbs only
+ *  along the stepped crest + the foot (none on the long sides: the letters get the room), the game's colour a thin pinstripe. It can't
+ *  grow right (the wheel's left leg is ~1.5 pt away): it gains its width from shorter brackets + the thin side frame, and it rises to
+ *  the parapet (the classic blade tops the cornice) — ~25 × 112 pt on a 402 phone (was 24 × 102, its letters ~30 % narrower). */
+export const BLADE = Object.freeze({ w: 0.42, out: 0.22, bw: 1.86, v0: 2.75, v1: 11.0 });
+/** the lit letters' glow (pt — tight: the letter stays crisp, never a haze) */
+export const BLADE_GLOW = 1.6;
 export function bladeGeo(G) {
   const B = BLADE, [ox, oy] = G.side(B.w, 0, B.out), z = G.zAt(B.w), k = G.cam.F / z;
   const [x0, y0] = G.side(B.w, B.v1, B.out), [x1, y1] = G.side(B.w, B.v0, B.out + B.bw);
   return { ox, oy, k, z, rect: { x: Math.min(x0, x1), y: y0, w: Math.abs(x1 - x0), h: y1 - y0 } };
 }
-/** the blade's two gooseneck lamps over its top edge (the billboard's lamp, scaled to the board) */
-export function bladeLamps(bg) {
-  const R = bg.rect, W = Math.max(4.6, Math.min(6.5, R.w * 0.3)), a = W * 1.25;
-  return [0.22, 0.78].map(f => { const dir = f < 0.5 ? 1 : -1, x0 = R.x + R.w * f; return { x: x0 + dir * W * 0.45, y: R.y - W * 0.3, top: R.y - a * 1.15, x0, dir, a, W }; });
-}
-/** 7b — THE MARQUEE (the owner: "the blade sign → the marquee route"): a border of soft warm-white BULBS round the board on its frame —
- *  steady at night, a slow CHASE on party nights (a step a beat), unlit glass globes by day (the classic theatre look). They replace the
- *  two gooseneck lamps (two lights fighting); the board under them a step DIMMER (board × the lit board). gap / inset / r: board units */
-export const MARQUEE = Object.freeze({ gap: 0.36, inset: 0.11, r: 0.075, frame: 0.21, board: 0.66, halo: 3.1, chase: 3 });
-/** the bulbs round the board's stepped outline, in board units (u across from the brackets, v up), in order round the frame */
+/** the board's stepped Deco outline (board units, v up) */
+const bladeOutline = (bw = BLADE.bw, v0 = BLADE.v0, v1 = BLADE.v1) => [[0, v1 - 0.35], [0.25, v1 - 0.35], [0.25, v1 - 0.18], [0.5, v1 - 0.18], [0.5, v1], [bw - 0.5, v1], [bw - 0.5, v1 - 0.18], [bw - 0.25, v1 - 0.18], [bw - 0.25, v1 - 0.35], [bw, v1 - 0.35], [bw, v0], [0, v0]];
+/** 7b — THE MARQUEE (SP2: the crest + the foot only): soft warm-white BULBS — steady at night, a slow CHASE on party nights (a step a
+ *  beat), unlit glass globes by day. gap / inset / r: board units; edge: the thin gilt frame down the long sides; halo: × r */
+export const MARQUEE = Object.freeze({ gap: 0.34, inset: 0.1, r: 0.08, edge: 0.07, halo: 3.1, chase: 3 });
+/** the bulbs along the stepped crest (left → right) then the foot (right → left), in board units, in order round the board */
 export function marqueeBulbs(bw = BLADE.bw, v0 = BLADE.v0, v1 = BLADE.v1) {
-  const i = MARQUEE.inset, poly = [[i, v0 + i], [i, v1 - 0.35 - i], [0.25 + i, v1 - 0.35 - i], [0.25 + i, v1 - 0.18 - i], [0.5 + i, v1 - 0.18 - i], [0.5 + i, v1 - i],
-    [bw - 0.5 - i, v1 - i], [bw - 0.5 - i, v1 - 0.18 - i], [bw - 0.25 - i, v1 - 0.18 - i], [bw - 0.25 - i, v1 - 0.35 - i], [bw - i, v1 - 0.35 - i], [bw - i, v0 + i], [i, v0 + i]];
-  const out = [];
-  let carry = 0;
-  for (let j = 0; j + 1 < poly.length; j++) {
-    const [a, b] = poly[j], [c, d] = poly[j + 1], L = Math.hypot(c - a, d - b);
-    for (let t = carry; t < L - 1e-6; t += MARQUEE.gap) { const u = a + (c - a) * t / L, v = b + (d - b) * t / L; if (!out.length || Math.hypot(u - out[out.length - 1][0], v - out[out.length - 1][1]) > MARQUEE.gap * 0.7) out.push([u, v]); }
-    carry = (carry - L) % MARQUEE.gap; if (carry < 0) carry += MARQUEE.gap;
-  }
-  if (out.length > 2 && Math.hypot(out[0][0] - out[out.length - 1][0], out[0][1] - out[out.length - 1][1]) < MARQUEE.gap * 0.7) out.pop();
+  const i = MARQUEE.inset, out = [];
+  // the crest: one on each outer step, one on each middle step, the top flat evenly (symmetric — the steps' corners never crowd a pair)
+  const flat = [0.5 + i, bw - 0.5 - i], nf = Math.max(1, Math.round((flat[1] - flat[0]) / MARQUEE.gap));
+  out.push([i, v1 - 0.35 - i], [0.375, v1 - 0.18 - i]);
+  for (let q = 0; q <= nf; q++) out.push([flat[0] + (flat[1] - flat[0]) * q / nf, v1 - i]);
+  out.push([bw - 0.375, v1 - 0.18 - i], [bw - i, v1 - 0.35 - i]);
+  // the foot, right → left
+  const nb = Math.max(1, Math.round((bw - 2 * i) / MARQUEE.gap));
+  for (let q = 0; q <= nb; q++) out.push([bw - i - (bw - 2 * i) * q / nb, v0 + i]);
   return out;
 }
 /** the marquee's bulbs on screen (pt): { x, y, r, i } */
@@ -516,64 +538,69 @@ export function marqueeLevel(i, party = 0, beats = 0, beatU = 0) {
   const n = MARQUEE.chase, on = j => (((i + j) % n) + n) % n === 0 ? 1 : 0.5, f = Math.min(1, Math.max(0, beatU * 3));
   return 1 + (on(beats) * f + on(beats - 1) * (1 - f) - 1) * party;
 }
-
-/** 7b — the marquee's light on its board (multiplied over the lit paint: speakeasy.js#paintBladeLit): an even fill + the bulbs' warm
- *  edge just inside the frame */
-export const MARQUEE_LIGHT = Object.freeze({ fill: [168, 124, 86], edge: [255, 214, 160] });
-/** PF — the blade's LIGHT MAP at night (7b: kept for reference; the marquee's MARQUEE_LIGHT replaced it) (multiplied over the paint: speakeasy.js#paintBladeLit): fill = the even warm light over the
- *  whole face, cone = inside each lamp's tight cone (hot right under its mouth, foot at the board's foot), spread = a cone's
- *  half-width at the foot (× the board's width: the two cones reach both edges there) */
-export const BLADE_LIGHT = Object.freeze({ fill: [176, 128, 86], cone: [255, 192, 128], foot: [240, 178, 118], hot: [255, 224, 174], spread: 0.36 });
-/** PF — THE BLADE'S LEVEL at night (PURE): how strongly its lit board is laid over the dark one. FP's busy check dimmed every board
- *  (× 0.78 + a 100 → 40 % fall-off); PF (the owner: "clearly brighter, the name pops") puts it back to FULL + a BOOST (the lit paint
- *  added once more, 'lighter': the face + the letters brighten in proportion, never a veil) for a dark board (DOUBLE AGENT's navy);
- *  a GLARING board (a light face — OVERCLOCK's orange, SLIP's gold, BLUFF's cream: glare 1) takes no boost, a step less, and on a
- *  PARTY night steps well back (it was the biggest warm slab on screen there: ≈ FP's average level, but even top to bottom).
- *  faceLum: the board's paint (luma 0..255), party: the party's ramp 0..1 → { lit, boost } */
-export const BLADE_LEVEL = Object.freeze({ boost: 0.34, glareLit: 0.9, glareParty: 0.55, lum0: 100, lum1: 140 });   // (the faded paints: GOLF 92, PRISM 90 · OVERCLOCK 147, SLIP 183, BLUFF 225)
-export function bladeLevel(faceLum, party = 0) {
-  const B = BLADE_LEVEL, g = clamp01((faceLum - B.lum0) / (B.lum1 - B.lum0)), p = clamp01(party);
-  const pk = 1 - (1 - B.glareParty) * g * p;
-  return { glare: g, lit: (1 - (1 - B.glareLit) * g) * pk, boost: B.boost * (1 - g) };
+/** SP2 — the name's layout on the board (PURE): one column a word (a two-word name side by side: each column reads top-down), the
+ *  letters as big as the column allows — each letter's slot height, its cap height (never taller than LETTER.tall × the column's width:
+ *  a sliver of a letter doesn't read) and its width (filling LETTER.fill of the column, at most LETTER.wide × a natural letter) →
+ *  { cols: [{ word, cx, lh, cap, top }], cw, cap } (board units) */
+export const LETTER = Object.freeze({ fill: 0.86, tall: 1.5, wide: 1.9, gap: 0.08, v0: 0.32, v1: 0.52 });
+export function bladeLetters(name, bw = BLADE.bw, v0 = BLADE.v0, v1 = BLADE.v1) {
+  const words = String(name || '').toUpperCase().split(/\s+/).filter(Boolean).slice(0, 2), nc = Math.max(1, words.length);
+  const x0 = MARQUEE.edge + 0.05, x1 = bw - MARQUEE.edge - 0.05, top = v1 - LETTER.v1, foot = v0 + LETTER.v0, ih = top - foot;
+  const cw = (x1 - x0 - LETTER.gap * (nc - 1)) / nc, n = Math.max(1, ...words.map(w => w.length)), lh = ih / n;
+  const cap = Math.min(lh * 0.86, cw * LETTER.tall);
+  return { cw, cap, lh, cols: words.map((w, ci) => ({ word: w, cx: x0 + cw * (ci + 0.5) + LETTER.gap * ci, lh, cap, top: top - (ih - lh * w.length) / 2 })) };
 }
-/** the board, painted (lit: under its lamps' warm light, for the live layer) */
+/** paint the name (board units, v up): each letter centred in its slot, squeezed / stretched to fill the column; style: 'day' (cream +
+ *  gold paint, a dark keyline, a drop shade), 'dark' (the night's unlit letters: dull paint), 'lit' (the warm-white self-lit letter
+ *  + a tight glow — the live layer) */
+function paintLetters(x, game, style, M) {
+  const L = bladeLetters(game.name || game.id);
+  x.save(); x.font = FONT(100); const cap = (x.measureText('H').actualBoundingBoxAscent || 70) / 100; x.restore();
+  for (const col of L.cols) [...col.word].forEach((ch, i) => {
+    const size = col.cap / cap, vb = col.top - col.lh * (i + 1) + (col.lh - col.cap) / 2;
+    // (one stretch for every letter, from an H: an I stays a narrow stroke, never a block)
+    x.save(); x.font = FONT(size * 100); const nat = x.measureText('H').width / 100, own = x.measureText(ch).width / 100; x.restore();
+    const sq = Math.max(0.6, Math.min(LETTER.wide, (L.cw * LETTER.fill) / Math.max(1e-3, nat), (L.cw * 0.98) / Math.max(1e-3, own)));   // (a wide M / W never past its column)
+    if (style === 'day') {
+      text(x, ch, col.cx + size * 0.05, vb - size * 0.05, size, { fill: rgb(mix(M.giltLo, [10, 10, 20], 0.3), 0.85), sq });
+      text(x, ch, col.cx, vb, size, { fill: rgb(mix([246, 232, 196], M.inside, 0.5 * M.night)), stroke: rgb(mix(M.gilt, M.inside, 0.5 * M.night)), lw: size * 0.07, sq });
+    } else if (style === 'dark') text(x, ch, col.cx, vb, size, { fill: rgb(M.letterN), stroke: rgb(M.letterN), lw: size * 0.06, sq });
+    else {
+      text(x, ch, col.cx, vb, size, { fill: 'rgb(255,214,150)', stroke: 'rgb(255,190,120)', lw: size * 0.1, sq, glow: [M.glowPx, 'rgba(255,170,90,0.95)'] });
+      text(x, ch, col.cx, vb, size, { fill: 'rgb(255,246,226)', stroke: 'rgb(255,236,200)', lw: size * 0.05, sq });
+    }
+  });
+}
+/** the board, painted (by day / the night's unlit board: the baked layer; lit: only what lights — the letters + the bulbs' glass) */
 function paintBlade(x, M, game, lit = false) {
-  const B = BLADE, p = dayPaint(game), bw = B.bw, v0 = B.v0, v1 = B.v1, r = rngFrom(17);
-  const fade = lit ? 0.12 : 0.22, f = c => (lit ? c : mix(mix(c, [236, 226, 204], fade), M.inside, 0.82 * M.night));
-  const iron = lit ? [40, 34, 32] : M.iron;
+  const B = BLADE, p = dayPaint(game), bw = B.bw, v0 = B.v0, v1 = B.v1, r = rngFrom(17), outline = bladeOutline(bw, v0, v1);
+  if (lit) {
+    paintLetters(x, game, 'lit', M);
+    return;
+  }
+  const enamel = tri(M.T, [24, 30, 50], [30, 28, 44], [10, 11, 22]), giltE = mix(M.gilt, enamel, 0.15);
   // the iron brackets from the wall (scrolled arms) at the top and the foot
-  x.strokeStyle = rgb(iron); x.lineWidth = 0.07; x.lineCap = 'round';
-  for (const v of [v1 - 0.35, v0 + 0.35]) { x.beginPath(); x.moveTo(-B.out, v); x.lineTo(0.15, v); x.stroke(); x.beginPath(); x.arc(-B.out * 0.4, v - 0.14, 0.12, 0, Math.PI * 1.6); x.stroke(); }
-  x.lineWidth = 0.045; x.beginPath(); x.moveTo(-B.out, v1 - 0.9); x.lineTo(0.05, v1 - 0.38); x.stroke();
-  // the board: a moulded frame, a stepped Deco top, the painted face
-  const top = [[0, v1 - 0.35], [0.25, v1 - 0.35], [0.25, v1 - 0.18], [0.5, v1 - 0.18], [0.5, v1], [bw - 0.5, v1], [bw - 0.5, v1 - 0.18], [bw - 0.25, v1 - 0.18], [bw - 0.25, v1 - 0.35], [bw, v1 - 0.35], [bw, v0], [0, v0]];
-  x.fillStyle = rgb(f(p.edge)); x.beginPath(); top.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.fill();
-  // (7b — THE MARQUEE: the frame a band wide enough for the bulbs, the painted face inside it)
-  const fr = MARQUEE.frame;
-  R(x, fr, v0 + fr, bw - fr, v1 - 0.35 - fr, f(p.face));
-  R(x, 0.5 + fr, v1 - 0.35 - fr, bw - 0.5 - fr, v1 - fr, f(p.face));
-  R(x, fr, v0 + fr, bw - fr, v0 + fr + 0.03, f(shade(p.edge, -0.3))); R(x, fr, v1 - 0.35 - fr - 0.03, fr + 0.03, v1 - 0.35 - fr, f(shade(p.edge, -0.3)));
-  // the name: stacked letters, one column a word (two words: side by side), the keyline + a drop shade
-  // (8a: split on whitespace — the old /s+/ never split, so a two-word name ran down one column with a gap)
-  const words = String(game.name || game.id).toUpperCase().split(/\s+/).filter(Boolean).slice(0, 2), nc = words.length, iw = bw - 2 * fr - 0.1, ih = (v1 - 0.6) - (v0 + fr + 0.08);
-  const n = Math.max(...words.map(w => w.length)), lh = Math.min(ih / n, (iw / nc) * 1.18), size = lh * 1.02;
-  // the letters fill their column: as wide as it allows (a sign-writer's broad stroke), up to 1.5× the face's own width
-  const sq = Math.max(1, Math.min(1.5, (iw / nc) * 0.86 / (size * 0.62)));
-  words.forEach((w, ci) => { const cx = fr + 0.05 + iw * (ci + 0.5) / nc, start = v1 - 0.6 - (ih - lh * w.length) / 2;
-    [...w].forEach((ch, i) => { const vb = start - lh * (i + 1) + lh * 0.14;
-      text(x, ch, cx + 0.05, vb - 0.05, size, { fill: rgb(f(p.shade || [0, 0, 0]), 0.6), sq });
-      text(x, ch, cx, vb, size, { fill: rgb(f(p.ink)), stroke: rgb(f(p.edge)), lw: size * 0.09, sq }); }); });
-  // the weather: the wood's grain + the paint worn at the edges + a rain streak
-  x.fillStyle = 'rgba(0,0,0,0.07)'; for (let v = v0 + 0.2; v < v1 - 0.4; v += 0.13 + r() * 0.1) x.fillRect(0.1, v, bw - 0.2, 0.012);
-  for (let i = 0; i < 26; i++) { const e = r() < 0.5, u = e ? 0.1 + r() * 0.12 : bw - 0.22 + r() * 0.12, v = v0 + 0.1 + r() * (v1 - v0 - 0.5); R(x, u, v, u + 0.05 + r() * 0.06, v + 0.05 + r() * 0.12, f(shade(p.face, -0.25)), 0.6); }
-  if (!lit) streak(x, bw * 0.3, v1 - 0.45, 0.12, 1.6, M.soot, 0.18);
-  // THE MARQUEE'S BULBS on the frame: a dark socket ring, the glass globe (unlit: pale glass + a highlight — lit: the warm-white filament
-  // glass, the live layer adds each bulb's glow)
-  const glass = lit ? [255, 236, 200] : mix(tri(M.T, [226, 222, 210], [240, 214, 180], [44, 40, 52]), [255, 255, 255], 0.1), ring = lit ? [70, 52, 40] : shade(M.iron, 0.25);
+  x.strokeStyle = rgb(M.iron); x.lineWidth = 0.07; x.lineCap = 'round';
+  for (const v of [v1 - 0.55, v0 + 0.35]) { x.beginPath(); x.moveTo(-B.out, v); x.lineTo(0.1, v); x.stroke(); x.beginPath(); x.arc(-B.out * 0.45, v - 0.12, 0.09, 0, Math.PI * 1.6); x.stroke(); }
+  // the board: a thin gilt frame (the crest a little deeper — its bulbs ride on it), the dark enamel face with a soft sheen
+  x.fillStyle = rgb(giltE); x.beginPath(); outline.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.fill();
+  const e = MARQUEE.edge;
+  { const g = x.createLinearGradient(0, 0, bw, 0); g.addColorStop(0, rgb(shade(enamel, -0.25))); g.addColorStop(0.35, rgb(shade(enamel, 0.18 * (M.day + M.gold)))); g.addColorStop(1, rgb(shade(enamel, -0.12)));
+    x.fillStyle = g; x.beginPath(); bladeOutline(bw - 2 * e, v0 + e, v1 - e).forEach(([a, b], i) => (i ? x.lineTo(a + e, b) : x.moveTo(a + e, b))); x.closePath(); x.fill(); }
+  // the game's colour: a thin pinstripe just inside the frame (the board's identity — the name itself is the theatre's white + gold)
+  { const pc = mix(p.face, enamel, 0.25 + 0.55 * M.night), q = 0.14;
+    x.strokeStyle = rgb(pc); x.lineWidth = 0.035; x.beginPath(); bladeOutline(bw - 2 * q, v0 + q, v1 - q).forEach(([a, b], i) => (i ? x.lineTo(a + q, b) : x.moveTo(a + q, b))); x.closePath(); x.stroke(); }
+  // the name: painted cream + gold by day (the night's bake: the letters' dull paint — the live layer lights them)
+  paintLetters(x, game, M.night > 0.5 ? 'dark' : 'day', { ...M, letterN: mix([120, 108, 92], enamel, 0.55) });
+  // the weather: a few chips in the enamel at the edges, a rain streak from the crest
+  for (let i = 0; i < 12; i++) { const ed = r() < 0.5, u = ed ? e + r() * 0.08 : bw - e - 0.1 + r() * 0.08, v = v0 + 0.2 + r() * (v1 - v0 - 0.8); R(x, u, v, u + 0.03 + r() * 0.04, v + 0.03 + r() * 0.06, rgb(mix(enamel, [120, 110, 100], 0.4), 0.7)); }
+  streak(x, bw * 0.7, v1 - 0.5, 0.1, 1.4, M.soot, 0.14 * (M.day + M.gold));
+  // THE MARQUEE'S BULBS (crest + foot): a dark socket ring, the glass globe — unlit: pale glass + a highlight (the live layer lights them)
+  const glass = mix(tri(M.T, [226, 222, 210], [240, 214, 180], [44, 40, 52]), [255, 255, 255], 0.1), ring = shade(M.iron, 0.25);
   for (const [u, v] of marqueeBulbs(bw, v0, v1)) {
     x.fillStyle = rgb(ring); x.beginPath(); x.arc(u, v, MARQUEE.r * 1.32, 0, Math.PI * 2); x.fill();
     x.fillStyle = rgb(glass); x.beginPath(); x.arc(u, v, MARQUEE.r, 0, Math.PI * 2); x.fill();
-    if (!lit) { x.fillStyle = rgb([255, 255, 255], 0.75 * (1 - 0.8 * M.night)); x.beginPath(); x.arc(u - MARQUEE.r * 0.35, v + MARQUEE.r * 0.35, MARQUEE.r * 0.36, 0, Math.PI * 2); x.fill(); }
+    x.fillStyle = rgb([255, 255, 255], 0.75 * (1 - 0.8 * M.night)); x.beginPath(); x.arc(u - MARQUEE.r * 0.35, v + MARQUEE.r * 0.35, MARQUEE.r * 0.36, 0, Math.PI * 2); x.fill();
   }
 }
 
@@ -694,17 +721,38 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       // the awning's iron arms
       x.strokeStyle = rgb(M.iron); x.lineWidth = Math.max(0.5, 0.05 * sc);
       for (const u of [aw.u0 + 0.1, aw.u1 - 0.1]) { const [p, py] = project(cam, s.x0 + u, aw.y0 - 0.9, s.z0), [q, qy] = project(cam, s.x0 + u, aw.y1, aw.z); x.beginPath(); x.moveTo(p, py); x.lineTo(q, qy); x.stroke(); }
+      // SP2 — THE AWNING AT NIGHT, the 1920s way (the owner; never a backlit 1980s awning): a small shaded lamp under it at the wall over
+      // the shop window, lighting the canvas from beneath — warm near the lamp, fading out to the front edge, the cream stripes glowing a
+      // little through (the canvas is thin) — the scallops catching a warm rim, the shopfront under it + the pavement below a soft pool.
+      // Subtle: the barber pole stays the brightest light on the front. Baked (by the lamps' ramp).
+      { const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
+        if (lk > 0.01) {
+          const lu = AWNING_LAMP.u, W = [255, 196, 132], fall = u => Math.exp(-(((u - lu) / AWNING_LAMP.reach) ** 2));
+          x.save(); x.globalCompositeOperation = 'lighter';
+          for (let i = 0; i < n; i++) {
+            const u0 = aw.u0 + i * du, u1 = u0 + du, f = fall((u0 + u1) / 2) * lk * (i % 2 ? AWNING_LAMP.cream : AWNING_LAMP.red);
+            const [, ya] = project(cam, s.x0 + u0, aw.y0, s.z0), [, yb] = project(cam, s.x0 + u0, aw.y1, aw.z), g = x.createLinearGradient(0, ya, 0, yb);
+            g.addColorStop(0, rgb(W, f)); g.addColorStop(1, rgb(W, f * 0.25));
+            poly(x, cam, [at(u0, aw.y0, s.z0), at(u1, aw.y0, s.z0), at(u1, aw.y1, aw.z), at(u0, aw.y1, aw.z)], g);
+          }
+          // the scallops' warm rim (their lower edges), brightest over the lamp
+          x.lineWidth = Math.max(0.5, 0.035 * sc);
+          for (let i = 0; i < ns; i++) { const cx = va + sw * (i + 0.5), u = aw.u0 + (aw.u1 - aw.u0) * (i + 0.5) / ns; x.strokeStyle = rgb([255, 214, 160], AWNING_LAMP.rim * fall(u) * lk); x.beginPath(); x.arc(cx, vy1, sw / 2 - x.lineWidth / 2, 0.15, Math.PI - 0.15); x.stroke(); }
+          // the shopfront under it (the wall over the window + the window's head) + the pavement in front: soft, short
+          { const [p0, py0] = project(cam, s.x0 + lu, aw.y0 - 0.12, s.z0), [, py1] = project(cam, s.x0 + lu, 2.6, s.z0), r = (py1 - py0);
+            const g = x.createRadialGradient(p0, py0, 0, p0, py0, r * 1.6); g.addColorStop(0, rgb(W, 0.22 * lk)); g.addColorStop(0.5, rgb(W, 0.07 * lk)); g.addColorStop(1, rgb(W, 0));
+            x.fillStyle = g; x.beginPath(); x.rect(project(cam, s.x0 + aw.u0, 0, s.z0)[0], py0, project(cam, s.x0 + aw.u1, 0, s.z0)[0] - project(cam, s.x0 + aw.u0, 0, s.z0)[0], r * 1.6); x.fill(); }
+          { const [pc, pyc] = project(cam, s.x0 + lu, 0, s.z0 - 0.9), rw = 2.6 * cam.F / s.z0, g = x.createRadialGradient(pc, pyc, 0, pc, pyc, rw);
+            g.addColorStop(0, rgb(W, 0.12 * lk)); g.addColorStop(1, rgb(W, 0)); x.save(); x.translate(pc, pyc); x.scale(1, 0.16); x.translate(-pc, -pyc); x.fillStyle = g; x.fillRect(pc - rw, pyc - rw, 2 * rw, 2 * rw); x.restore(); }
+          x.restore();
+          // (the lamp itself hangs UNDER the canvas, at the wall: from this camera, above the awning, it is hidden — only its light shows)
+        } }
       // the side door's two worn granite steps (a dip worn in the middle)
       const d = s.door;
       box(x, cam, { x0: s.x0 + d.u0 - 0.3, x1: s.x0 + d.u1 + 0.3, z0: s.z0 - 0.75, z1: s.z0, h: 0.13 }, shade(M.stone, 0.05), { light: 1, sideK: 0.12 });
       box(x, cam, { x0: s.x0 + d.u0 - 0.15, x1: s.x0 + d.u1 + 0.15, z0: s.z0 - 0.4, z1: s.z0, h: 0.13 }, shade(M.stone, 0.12), { y0: 0.13, light: 1, sideK: 0.12 });
       { const [a, y] = project(cam, s.x0 + (d.u0 + d.u1) / 2, 0.26, s.z0 - 0.2), w = 0.5 * cam.F / s.z0; x.fillStyle = rgb(M.soot, 0.25); x.beginPath(); x.ellipse(a, y, w, w * 0.12, 0, 0, Math.PI * 2); x.fill(); }
-      // the string lights' iron posts on the parapet (front, then down the side wall) — PF: only while the lights are on
-      // (strings.js#STRINGS_ON: off until 7b — bare posts would stand on the parapet holding nothing)
-      if (!STRINGS_ON) return;
-      x.strokeStyle = rgb(M.iron); x.lineWidth = Math.max(0.6, 0.06 * G.K);
-      for (const px of roof.posts) { const [a, y0] = project(cam, px, V.parapet, s.z0 - 0.05), [, y1] = project(cam, px, V.parapet + 1.15, s.z0 - 0.05); x.beginPath(); x.moveTo(a, y0); x.lineTo(a, y1); x.stroke(); }
-      for (const f of [0.4, 0.75, 1]) { const [a, y0] = G.side(G.len * f - 0.1, V.parapet), [, y1] = G.side(G.len * f - 0.1, V.parapet + 1.15); x.beginPath(); x.moveTo(a, y0); x.lineTo(a, y1); x.stroke(); }
+      // (SP2: the café canopy's posts stand on the roof deck, set back — drawn live with the lights: strings.js)
     },
   ];
 }
@@ -762,7 +810,7 @@ export function poleHalo(d, r) {
  * painter over a window).
  */
 export function createSpeakeasy() {
-  let G = null, dpr = 1, wins = [], box = null, litCv = null, adCv = null, litKey = '', adKey = '', glowCv = null, basement = null;
+  let G = null, dpr = 1, wins = [], box = null, litCv = null, adCv = null, litKey = '', adKey = '', basement = null;
   const own = new Map(), drawers = new Map();
   let mirror = 0, lastK = -1;
   // PART 7b — THE LIFE: the window moments, the rooms' states, the taps (screens/harbor/windows.js; the plan: core/harbor-moments.js)
@@ -783,54 +831,46 @@ export function createSpeakeasy() {
   const levelOf = (rm, f) => (own.has(rm.id) ? own.get(rm.id) : roomLight(rm.id, f.hour));
   function canvasFor(cv) { cv = cv || document.createElement('canvas'); const w = Math.ceil(box.w * dpr), h = Math.ceil(box.h * dpr); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } return cv; }
   // the rooms, lit (one canvas over the speakeasy's box; re-painted only when a window's level moves a step)
-  function paintLit(levels) {
+  function paintLit(levels, late = 0) {
     litCv = canvasFor(litCv);
     const x = safeCtx(litCv);
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, litCv.width, litCv.height);
     x.setTransform(dpr, 0, 0, dpr, -box.x * dpr, -box.y * dpr);
     const [ox, oy] = G.front(0, 0);
     x.save(); wallMap(x, ox, oy, G.K);
-    wins.forEach((w, i) => { const a = levels[i]; if (a > 0.01) { x.globalAlpha = a; paintRoom(x, w); x.globalAlpha = 1; } });
+    wins.forEach((w, i) => { const a = levels[i]; if (a > 0.01) { x.globalAlpha = a; paintRoom(x, w, { late }); x.globalAlpha = 1; } });
     // the barbershop after hours: one dim lamp over the empty chair, its pool on the floor + the chair, the mirror catching it
     const [w0, w1, wv0, wv1] = G.s.shop.win, lx = w0 + (w1 - w0) * 0.38;
     x.save(); x.beginPath(); x.rect(w0, wv0, w1 - w0, wv1 - wv0); x.clip();
-    // (FP2 — the lamp's light LANDS in the shop — the mirror wall, the chair, the floor — a step warmer + brighter than FP's, so the
-    // window keeps its cozy glow now the soft cloud over the glass is gone; the globe itself a bright core)
-    const g = x.createRadialGradient(lx, wv1 - 0.5, 0, lx, wv1 - 0.5, 2.9); g.addColorStop(0, 'rgba(255,214,150,0.6)'); g.addColorStop(0.2, 'rgba(246,186,120,0.42)'); g.addColorStop(0.5, 'rgba(224,152,90,0.18)'); g.addColorStop(1, 'rgba(120,70,40,0)');
-    x.fillStyle = g; x.fillRect(w0, wv0, w1 - w0, wv1 - wv0);
-    { const fg = x.createRadialGradient(lx, wv0 + 0.3, 0, lx, wv0 + 0.3, 1.6); fg.addColorStop(0, 'rgba(255,200,130,0.3)'); fg.addColorStop(1, 'rgba(255,190,120,0)'); x.fillStyle = fg; x.fillRect(w0, wv0, w1 - w0, 1.6); }
-    x.fillStyle = 'rgba(255,240,210,0.95)'; x.beginPath(); x.arc(lx, wv1 - 0.48, 0.11, 0, Math.PI * 2); x.fill();
+    // SP2 — CRISP, the shop the cleanest warm-white of the facade (the owner): the globe a bright source with a TIGHT halo, its light
+    // LANDING — a cone down the back wall + the mirror panels under it, the chair's top edges + the headrest catching it, a pool on the
+    // floor, a glint in the mirror; the dark shop round it stays dark (no wide glow over the glass)
+    { const ly = wv1 - 0.48, W = [255, 238, 210], c = a => `rgba(${W},${a})`;
+      // (the pool on the back wall + the mirrors under the lamp: an upright oval, bright near the lamp, gone within ~1.3 units)
+      { const g = x.createRadialGradient(lx, ly - 0.25, 0, lx, ly - 0.25, 1.35); g.addColorStop(0, c(0.55)); g.addColorStop(0.35, c(0.28)); g.addColorStop(0.7, c(0.08)); g.addColorStop(1, c(0));
+        x.save(); x.translate(lx, ly - 0.25); x.scale(0.72, 1); x.translate(-lx, -(ly - 0.25)); x.fillStyle = g; x.fillRect(lx - 1.35, ly - 1.6, 2.7, 2.7); x.restore(); }
+      const cx = w0 + (w1 - w0) * 0.36, base = wv0 + 0.02;
+      x.fillStyle = c(0.9); x.fillRect(cx - 0.36, base + 0.84, 0.82, 0.05); x.fillRect(cx - 0.42, base + 1.58, 0.2, 0.05); x.fillRect(cx - 0.48, base + 1.99, 0.36, 0.05); x.fillRect(cx - 0.3, base + 1.03, 0.72, 0.03);
+      const fl = x.createRadialGradient(lx, wv0 + 0.44, 0, lx, wv0 + 0.44, 1.1); fl.addColorStop(0, c(0.4)); fl.addColorStop(1, c(0));
+      x.save(); x.translate(lx, wv0 + 0.44); x.scale(1, 0.18); x.translate(-lx, -(wv0 + 0.44)); x.fillStyle = fl; x.fillRect(lx - 1.1, wv0 + 0.44 - 1.1, 2.2, 2.2); x.restore();
+      x.fillStyle = c(0.55); x.fillRect(lx + 0.62, wv0 + 1.0, 0.035, 0.9);
+      const hg = x.createRadialGradient(lx, ly, 0, lx, ly, 0.28); hg.addColorStop(0, c(0.9)); hg.addColorStop(0.45, c(0.3)); hg.addColorStop(1, c(0)); x.fillStyle = hg; x.fillRect(lx - 0.28, ly - 0.28, 0.56, 0.56); }
+    x.fillStyle = 'rgb(255,250,236)'; x.beginPath(); x.arc(lx, wv1 - 0.48, 0.1, 0, Math.PI * 2); x.fill();
     x.restore();
     x.restore();
   }
-  // the blade under its lamps (the corner as it is): the board painted in their warm light, brightest at the top
+  // SP2 — THE BLADE AT NIGHT: its letters LIT (warm-white, a crisp bright letter + a tight baked glow), one canvas per game + size
   let bladeCv = null, bladeKey = '', bladeAt = null;
   function paintBladeLit(game) {
-    const bg = bladeGeo(G), R0 = bg.rect, pad = 2, ow = R0.w + pad * 2 + G.K, oh = R0.h + pad * 2;
+    const bg = bladeGeo(G), R0 = bg.rect, pad = 4, ow = R0.w + pad * 2 + G.K, oh = R0.h + pad * 2;
     bladeCv = bladeCv || document.createElement('canvas');
     bladeCv.width = Math.ceil(ow * dpr); bladeCv.height = Math.ceil(oh * dpr);
     const x = safeCtx(bladeCv), ox = R0.x - pad - G.K * 0.5, oy = R0.y - pad;
-    x.setTransform(dpr, 0, 0, dpr, -ox * dpr, -oy * dpr);
+    x.setTransform(dpr, 0, 0, dpr, -ox * dpr, -oy * dpr); x.clearRect(ox, oy, ow, oh);
     x.save(); wallMap(x, bg.ox, bg.oy, bg.k);
-    paintBlade(x, mats({ day: 1, gold: 0, night: 0, sunDir: 0, sunEl: 30, ovc: 0, haze: [188, 208, 232] }), game, true);
+    paintBlade(x, { ...mats({ day: 0, gold: 0, night: 1, sunDir: 0, sunEl: 30, ovc: 0, haze: [40, 40, 70] }), glowPx: BLADE_GLOW * dpr }, game, true);
     x.restore();
-    const keep = document.createElement('canvas'); keep.width = bladeCv.width; keep.height = bladeCv.height; safeCtx(keep).drawImage(bladeCv, 0, 0);
-    // 7b — THE MARQUEE'S LIGHT MAP, multiplied over the paint: an even warm fill (the board a step dimmer than PF's lamps) + the bulbs'
-    // light landing on the board's edges just inside the frame (a warm band fading inward, 'lighten': the corners never double). The
-    // light lands ON the board only (cut to the paint: destination-in)
-    const lc = document.createElement('canvas'); lc.width = bladeCv.width; lc.height = bladeCv.height;
-    const lx = safeCtx(lc); lx.setTransform(dpr, 0, 0, dpr, -ox * dpr, -oy * dpr);
-    lx.fillStyle = `rgb(${MARQUEE_LIGHT.fill})`; lx.fillRect(ox, oy, ow, oh);
-    lx.globalCompositeOperation = 'lighten';
-    { const e = Math.min(R0.w * 0.34, bg.k * 0.6), ec = `rgb(${MARQUEE_LIGHT.edge})`, ef = `rgba(${MARQUEE_LIGHT.edge},0)`;
-      for (const [x0, y0, x1, y1, rx, ry, rw, rh] of [[R0.x, 0, R0.x + e, 0, R0.x, oy, e, oh], [R0.x + R0.w, 0, R0.x + R0.w - e, 0, R0.x + R0.w - e, oy, e, oh], [0, R0.y, 0, R0.y + e, ox, R0.y, ow, e], [0, R0.y + R0.h, 0, R0.y + R0.h - e, ox, R0.y + R0.h - e, ow, e]]) {
-        const g = lx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, ec); g.addColorStop(1, ef); lx.fillStyle = g; lx.fillRect(rx, ry, rw, rh);
-      } }
-    x.globalCompositeOperation = 'multiply'; x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(lc, 0, 0); x.restore(); lc.width = lc.height = 0;
-    x.globalCompositeOperation = 'destination-in'; x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(keep, 0, 0); x.restore(); keep.width = keep.height = 0;
-    x.globalCompositeOperation = 'source-over';
-    const fc = dayPaint(game).face;
-    return { x: ox, y: oy, w: ow, h: oh, lum: 0.2126 * fc[0] + 0.7152 * fc[1] + 0.0722 * fc[2] };
+    return { x: ox, y: oy, w: ow, h: oh };
   }
   // the gold leaf laid again over whatever moves behind the shop's glass (7b: the barber, the customer, the mirror door's light) —
   // one small canvas per look (the gilt's colours by the day / golden / night tones), drawn 1:1 over the window
@@ -866,15 +906,6 @@ export function createSpeakeasy() {
       soft(x, [255, 252, 240], b.x, b.y, b.r * 0.95, lv);
     }
   }
-  function glow() {
-    if (glowCv) return glowCv;
-    glowCv = document.createElement('canvas'); glowCv.width = glowCv.height = 64;
-    const x = safeCtx(glowCv), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-    g.addColorStop(0, 'rgba(255,200,130,1)'); g.addColorStop(0.35, 'rgba(255,170,90,0.4)'); g.addColorStop(1, 'rgba(255,150,70,0)');
-    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
-    return glowCv;
-  }
-  const blob = (c, cx, cy, r, a, sy = 1) => { if (a <= 0.004) return; c.globalAlpha = Math.min(1, a); c.drawImage(glow(), cx - r, cy - r * sy, r * 2, r * 2 * sy); };
   // FP — A SOFT GLOW (the owner: the sconce + the shop's lamp read as hard-edged blobs): a near-gaussian falloff, no knee, per colour
   const softs = new Map();
   function softGlow(col) {
@@ -989,12 +1020,12 @@ export function createSpeakeasy() {
     const fr = life.frame(f);
     const levels = wins.map(w => (fr.full.has(w.id) ? 0 : Math.round(levelOf(w, f) * 8) / 8));
     if (k > 0.004) {
-      const key = levels.join(',') + '|' + dpr;
-      if (key !== litKey || !litCv) { paintLit(levels); litKey = key; }
+      const late = Math.round(lateOf(f.hour) * 4) / 4, key = levels.join(',') + '|' + late + '|' + dpr;
+      if (key !== litKey || !litCv) { paintLit(levels, late); litKey = key; }
       c.globalAlpha = k; c.drawImage(litCv, box.x, box.y, box.w, box.h);
-      // the light spilling onto the brick round each lit window + the shop's lamp + the sconce
+      // (SP2 — no smoke: the soft blob round each lit window is gone; their light LANDS on the sill, the reveal + the sill's edge — the lit
+      // canvas: windows.js#landing)
       c.globalCompositeOperation = 'lighter';
-      if (f.tier !== 0) wins.forEach((w, i) => { const r = w.rect; blob(c, r.x + r.w / 2, r.y + r.h * 0.55, Math.max(r.w, r.h) * 1.05, 0.22 * k * levels[i]); });
       // (FP2 — no smoke: the shop lamp's light lands INSIDE the window — paintLit's pool on the floor, the chair, the mirror — and the globe
       // keeps a small tight halo; the 14 pt soft cloud it threw over the glass + the gold leaf is gone)
       const [w0, w1, , wv1] = G.s.shop.win, [lx, ly] = G.front(w0 + (w1 - w0) * 0.38, wv1 - 0.48); soft(c, [255, 222, 172], lx, ly, G.K * SHOP_GLOW.lamp, 0.62 * k); glowAt.lamp = [lx, ly];
@@ -1018,19 +1049,17 @@ export function createSpeakeasy() {
     // THE BASEMENT WINDOW: the one hint of the secret — a faint warm amber, day + night, breathing a little
     { const b = basement, br = 0.75 + 0.1 * (f.motion ? Math.sin(f.t * 1.3) + 0.5 * Math.sin(f.t * 3.7) : 0), a = (0.26 + 0.2 * clamp01(f.night)) * br * fade;
       c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,150,60)'; c.fillRect(b.x, b.y, b.w, b.h);
-      blob(c, b.x + b.w / 2, b.y + b.h * 0.5, b.w * 0.75, a * 0.45, 0.4); }
+      c.globalAlpha = Math.min(1, a * 0.7); c.fillRect(b.x - 1, b.y + b.h, b.w + 2, Math.max(0.6, b.h * 0.12)); }   // (SP2: its light lands on the sill under it — no soft blob)
     c.globalCompositeOperation = 'source-over';
-    // THE BLADE'S LAMPS (the corner as it is): the lit board, the bulbs
+    // THE BLADE AT NIGHT: the lit letters, the bulbs
     if (f.game && (f.lamp || 0) > 0.004) {
       const key = f.game.id + '|' + dpr + '|' + G.K.toFixed(2);
       if (key !== bladeKey || !bladeCv) { bladeAt = paintBladeLit(f.game); bladeKey = key; }
-      // (PF: back to full + a boost for a dark board — FP's × 0.78 undone; a glaring board steps back, more on a party night: bladeLevel)
-      const lv = bladeLevel(bladeAt.lum, f.party ? clamp01(f.party.ramp == null ? 1 : f.party.ramp) : 0), a = clamp01(f.lamp) * fade;
-      c.globalAlpha = a * lv.lit * MARQUEE.board; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h);
+      const a = clamp01(f.lamp) * fade;
+      c.globalAlpha = a; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h);
       c.globalCompositeOperation = 'lighter';
-      if (lv.boost > 0.004) { c.globalAlpha = a * lv.boost * MARQUEE.board; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h); }
       // 7b — THE MARQUEE'S BULBS lit: each a crisp warm-white globe (the hot core) + a small TIGHT halo (none at tier 0) — steady; a
-      // party night's slow chase (marqueeLevel: a step a beat). The board under them is dimmer (MARQUEE.board)
+      // party night's slow chase (marqueeLevel: a step a beat)
       const pt = f.party, pk = pt && f.motion ? clamp01(pt.ramp == null ? 1 : pt.ramp) : 0;
       // (one sprite of every lit bulb, re-painted only when the level or the chase steps — a steady night is one drawImage a frame)
       const beats = pt ? pt.beats || 0 : 0, fq = pt ? Math.round(clamp01((pt.beatU || 0) * 3) * 4) / 4 : 1, aq = Math.round(a * 16) / 16;
@@ -1057,6 +1086,6 @@ export function createSpeakeasy() {
     /** PART 7b: the speakeasy's sound beds now (sounds.js#speakeasy): { club, tv, party } */
     beds: () => bedsNow,
     debug: () => ({ marquee: G && lastGame ? marqueeScreen(bladeGeo(G)).map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1) })) : [], poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(4), poleRate: poleA ? +poleA.rate.toFixed(3) : 0, polePx, box, dpr, k: lastK, lit: !!litCv, adLit: !!adCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (adCv ? adCv.width * adCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
-    destroy() { life.destroy(); for (const cv of [litCv, adCv, glowCv, bladeCv, poleCv, haloCv, giltCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = adCv = glowCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
+    destroy() { life.destroy(); for (const cv of [litCv, adCv, bladeCv, poleCv, haloCv, giltCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = adCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
   };
 }

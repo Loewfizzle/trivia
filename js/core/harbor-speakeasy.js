@@ -9,7 +9,7 @@
 //   3.85 – 4.3   the belt course (terracotta)
 //   4.6 – 6.8    floor 2 — the speakeasy's rooms: the edge window, THE BAR (the one clear window), THE JAZZ ROOM
 //   6.8 – 7.6    the carved spandrels
-//   7.6 – 9.6    floor 3 — the edge window, THE APARTMENT (the cat's sill, the TV), THE BACK ROOM
+//   7.6 – 9.6    floor 3 — the edge window, THE BACK ROOM, THE APARTMENT (the cat's sill, the TV: the upper-RIGHT window — the owner, SP2)
 //   9.85 – 10.5  the cornice; 10.5 – 11.25 the parapet; the Deco crest to 12.05
 
 /** the facade's heights (wall units) */
@@ -25,8 +25,8 @@ export const ROOMS = Object.freeze([
   { id: 'bar', floor: 2, col: 1, room: 'bar', clear: true, lit: 'bar' },
   { id: 'jazz', floor: 2, col: 2, room: 'jazz', lit: 'shade' },
   { id: 'edge3', floor: 3, col: 0, room: 'edge', edge: true, lit: 'curtain' },
-  { id: 'apartment', floor: 3, col: 1, room: 'apartment', lit: 'lamp' },
-  { id: 'back', floor: 3, col: 2, room: 'back', lit: 'table' },
+  { id: 'back', floor: 3, col: 1, room: 'back', lit: 'table' },
+  { id: 'apartment', floor: 3, col: 2, room: 'apartment', lit: 'lamp' },     // (SP2 — the owner: the TV window belongs upper-RIGHT)
 ]);
 /** the ground floor's rooms (hooks): the barbershop (its mirror wall is 7b's hidden door), the basement (the bar's glow) */
 export const GROUND = Object.freeze([{ id: 'shop', room: 'shop', mirror: true }, { id: 'basement', room: 'basement' }]);

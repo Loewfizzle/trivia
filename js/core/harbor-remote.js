@@ -134,7 +134,8 @@ export const EVENTS = [
   { id: 'wet-street', label: 'WET STREET', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the street under the dock after rain: puddles, the lamps’ reflections (Part 9’s hook)' },
   // (PF: the centrepiece spot's EVENT RIG at work — a placeholder obelisk on the brick inlay, lit from below by its floor spots at night)
   { id: 'centrepiece-test', label: 'CENTREPIECE TEST', cat: 'promenade', group: 'THE CENTREPIECE', hint: 'a test obelisk on the brick inlay, lit by its floor spots after dark (the holidays’ pieces stand here)' },
-  { id: 'strings-party', label: 'STRING LIGHTS · PARTY', cat: 'speakeasy', group: 'SPEAKEASY', night: true, hint: 'the speakeasy roof’s string lights in party mode' },
+  { id: 'strings-party', label: 'CAFÉ LIGHTS · PARTY', cat: 'speakeasy', group: 'SPEAKEASY', night: true, hint: 'the speakeasy roof’s café-light canopy in party mode' },
+  { id: 'placeholders', label: 'PLACEHOLDER PEOPLE', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the promenade’s placeholder people (hidden until 8b walks the real ones)' },
   // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the
   // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set
   // (harbor().flags.force / the scene's clock — a title-level regex on location.search can't be switched from the panel). Rename
