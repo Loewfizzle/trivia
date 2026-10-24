@@ -2681,7 +2681,7 @@ test("FP — THE BARBER POLE turns continuously: the same phase at 60 and 30 Hz,
 // the medallion in the middle in front of the crossing + the cart left of it, the centrepiece's height cap, the bench + its crabapple left of
 // the cart's umbrella, no parked bus, the lantern's post on the far kerb, the crabapple's seasons, the framing maple's inside)
 import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR, CART_SHOWN } from '../js/core/harbor-promenade.js';
-import { benchBox, umbrellaBox } from '../js/screens/harbor/props.js';
+import { benchBox } from '../js/screens/harbor/props.js';
 import { FAR_KERB, drawLanternBody } from '../js/screens/harbor/road.js';
 import * as roadMod from '../js/screens/harbor/road.js';
 test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flanking tall lamps, the bench + its crabapple just left of the crossing (the blade free), the cart placed right of the inlay (8P), the centrepiece's height cap, the corner clean", () => {
@@ -2712,7 +2712,7 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     // FP3b — THE VENDOR SPOT (the owner, Oct 24): the cart at the FRONT CURB, just in front of the compass — on screen right of it, its
     // body never over the inlay (the ring's width at the cart's counter row), its wheels above the dock, short of the framing maple's
     // trunk; LIVE (drawn by the people on its schedule — core/harbor-routines.js#VENDOR), its handles on the right, its umbrella furled
-    assert.equal(CART_SHOWN, true); assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === 1 && L.cart.fold);
+    assert.equal(CART_SHOWN, true); assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === 1);
     { const sc = L.cart.scale, [cxs, gy] = P(L.cart.x, L.cart.z), hw = cam.F * 1.3 * sc / L.cart.z, [, cy] = P(L.cart.x, L.cart.z, 1.92 * sc);
       const [, ry0] = P(m.x, m.z + m.ring), [, ry1] = P(m.x, m.z - m.ring), ec = (ry0 + ry1) / 2, eh = (ry1 - ry0) / 2, dy = Math.min(1, Math.abs(Math.max(cy, Math.min(gy, ec)) - ec) / eh);
       const ringR = mx + ring * Math.sqrt(Math.max(0, 1 - dy * dy)), maple = L.trees.find(t => t.big), mapleL = P(maple.x, maple.z)[0] - cam.F * 0.3 / maple.z;

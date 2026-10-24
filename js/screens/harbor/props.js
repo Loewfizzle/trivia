@@ -138,40 +138,125 @@ const GILT = [214, 170, 82];
  *  winter, ice cream in summer, flowers in spring); PIECE.cart: w, h (the box), umb (the umbrella's radius) */
 export function drawCart(x, cam, c, T, ctx = {}) {
   const kind = c.kind && c.kind !== 'chestnuts' ? c.kind : CART_KIND[ctx.season || 'autumn'] || 'chestnuts';
-  const K = CART_LOOK[kind] || CART_LOOK.chestnuts, C = PIECE.cart;
+  const K = CART_LOOK[kind] || CART_LOOK.chestnuts;
   const P = frame(cam, c.z, 1.5), s = P.s, Lt = lightFor(T, ctx, c.x, c.z + 0.6), X = c.x, r = rngFrom(seedOf(c.x, c.z));
-  const bx0 = X - 1.22, bx1 = X + 1.22, by0 = 0.8, by1 = 1.92, D0 = 0.12, D1 = 1.18;
+  // FP3b (the owner: "REMOVE the big umbrella — it blocks too much of the promenade"): a LOW, COMPACT period ROASTER cart — the body a
+  // step lower (its counter at 1.55), no umbrella; on it a black-iron coal STOVE with a glowing grate, a roasting pan of chestnuts, a
+  // TIN CHIMNEY with its cap (people.js lifts the smoke + the steam from the anchors this returns), a small LANTERN on an iron hook
+  const bx0 = X - 1.22, bx1 = X + 1.22, by0 = 0.74, by1 = 1.55, D0 = 0.12, D1 = 1.18;
   x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
-  const glow = Lt.night * Lt.lampK;            // its own lights (the bulbs, the lantern, the coals) by the lamps' ramp
-  if (glow > 0.02) Lt.own = { k: 0.42 * Lt.lampK, col: [255, 178, 108] };   // (their warm light on the cart itself: it reads at night)
-  // (FP3b — THE VENDOR SPOT: c.hand = 1 puts the push handles on the RIGHT end (the vendor wheels it in from the right, and the left
-  // end stays clear of the compass inlay); c.fold furls the umbrella (the evening: no sun to keep off — the road + the maple stay
-  // clear); c.roll turns the wheels with the distance it has been wheeled)
-  const hEnd = c.hand === 1 ? bx1 : bx0, hDir = c.hand === 1 ? 1 : -1, roll = c.roll || 0;
+  const glow = Lt.night * Lt.lampK;            // the lantern + the stove by the lamps' ramp (the coals glow by day too, softer)
+  if (glow > 0.02) Lt.own = { k: 0.28 * Lt.lampK, col: [255, 176, 110] };   // (their warm light on the cart itself: it reads at night)
+  // (c.hand = 1: the push handles on the RIGHT end — wheeled in from the right, the left end clear of the compass; c.roll turns the
+  // wheels with the distance wheeled; c.hood: the drizzle's little canvas hood up over the stove — Part 9's hook)
+  const hEnd = c.hand === 1 ? bx1 : bx0, hDir = c.hand === 1 ? 1 : -1, roll = c.roll || 0, out = {};
   // 1. the far wheels (behind the body), the chassis + the handles' far shaft
   for (const u of [X - 0.8, X + 0.8]) wheel(x, P, Lt, K, u, 0.6, 1.24, 0.58, true, roll);
-  pbox(x, P, Lt, [40, 38, 40], { x0: bx0 + 0.1, x1: bx1 - 0.1, y0: 0.66, y1: 0.8, d0: D0 + 0.05, d1: D1 - 0.05 }, { top: false, rim: false });
+  pbox(x, P, Lt, [40, 38, 40], { x0: bx0 + 0.1, x1: bx1 - 0.1, y0: 0.62, y1: by0, d0: D0 + 0.05, d1: D1 - 0.05 }, { top: false, rim: false });
   handle(x, P, Lt, X, hEnd, 0.95, hDir);
-  // 2. the body: its side, its top (the counter), its front (panelled), the mouldings
+  // 2. the body: its side, its top (the counter), its front (panelled), the mouldings — painted wood WORN at its edges
   pbox(x, P, Lt, K.body, { x0: bx0, x1: bx1, y0: by0, y1: by1, d0: D0, d1: D1 }, { rim: false });
   bodyFront(x, P, Lt, K, bx0, bx1, by0, by1, D0);
-  pbox(x, P, Lt, K.trim, { x0: bx0 - 0.07, x1: bx1 + 0.07, y0: by1, y1: by1 + 0.08, d0: D0 - 0.07, d1: D1 + 0.07 });     // the counter's moulded edge
-  pbox(x, P, Lt, K.trim, { x0: bx0 - 0.04, x1: bx1 + 0.04, y0: by0 - 0.04, y1: by0 + 0.08, d0: D0 - 0.04, d1: D1 + 0.04 }, { top: false });   // the skirt
-  // 3. the umbrella's pole (from the back of the counter up through the canopy)
-  const pu = X - 0.05, pd = 0.85;
-  { const a = P(pu, by1, pd), b = P(pu, 4.85, pd); line(x, a, b, lit(Lt, [70, 64, 60], FRONT, 0.6), Math.max(0.6, 0.07 * s));
-    line(x, [a[0] + 0.02 * s, a[1]], [b[0] + 0.02 * s, b[1]], rimCol(Lt, [120, 110, 100], [0.7, 0, -0.7]), Math.max(0.25, 0.018 * s), 0.6); }
-  // 4. the trade on the counter
-  if (kind === 'chestnuts') chestnutTop(x, P, Lt, X, by1 + 0.08, glow, r);
+  wear(x, P, Lt, K, bx0, bx1, by0, by1, D0, r);
+  // the counter's edge: a BRASS rail catching the light (lit top, its glint), the skirt below
+  pbox(x, P, Lt, [176, 132, 60], { x0: bx0 - 0.07, x1: bx1 + 0.07, y0: by1, y1: by1 + 0.07, d0: D0 - 0.07, d1: D1 + 0.07 }, { gloss: 1 });
+  line(x, P(bx0 - 0.05, by1 + 0.07, D0 - 0.07), P(bx1 + 0.05, by1 + 0.07, D0 - 0.07), rimCol(Lt, BRASS, [0.2, 0.9, -0.5]), Math.max(0.35, 0.025 * s), 0.9);
+  pbox(x, P, Lt, K.trim, { x0: bx0 - 0.04, x1: bx1 + 0.04, y0: by0 - 0.04, y1: by0 + 0.08, d0: D0 - 0.04, d1: D1 + 0.04 }, { top: false });
+  // 3. the trade on the counter: the roaster (the tray + the stove + the chimney) — or the summer / spring trades
+  if (kind === 'chestnuts') roasterTop(x, P, Lt, X, by1 + 0.07, glow, r, out, !!c.hood);
   else if (kind === 'icecream') iceTop(x, P, Lt, X, by1 + 0.08);
   else flowerTop(x, P, Lt, X, by1 + 0.08, r);
-  // 5. the near shaft of the handles + the near wheels (in front of the body)
+  // 4. the near shaft of the handles + the near wheels (in front of the body)
   handle(x, P, Lt, X, hEnd, 0.25, hDir);
   for (const u of [X - 0.8, X + 0.8]) wheel(x, P, Lt, K, u, 0.6, -0.04, 0.6, false, roll);
-  // 6. the umbrella (+ its bulbs), the lantern on its hook — or FURLED, the lantern on a crossbar off the pole
-  if (c.fold) { furled(x, P, Lt, K, pu, pd); line(x, P(pu, 3.62, pd), P(pu + 0.62 * -hDir, 3.62, pd), lit(Lt, [60, 56, 50], FRONT), Math.max(0.4, 0.035 * s)); lantern(x, P, Lt, pu + 0.6 * -hDir, 3.32, pd, glow); }
-  else { umbrella(x, P, Lt, K, pu, pd, C.umb, glow, ctx.snow || 0); lantern(x, P, Lt, X + 1.15, 3.98, 0.15, glow); }
+  // 5. the LANTERN on its hook: an iron post at the counter's right corner, a scrolled arm, the lantern hanging over the handles
+  { const pu = bx1 - 0.12, pd = 0.3, iron = lit(Lt, [34, 32, 36], FRONT, 0.4), a = P(pu, by1 + 0.07, pd), b = P(pu, by1 + 1.32, pd), e = P(pu + 0.42, by1 + 1.32, pd);
+    line(x, a, b, iron, Math.max(0.7, 0.07 * s)); line(x, [a[0] + 0.02 * s, a[1]], [b[0] + 0.02 * s, b[1]], rimCol(Lt, [70, 70, 76], [0.7, 0.2, -0.7]), Math.max(0.25, 0.018 * s), 0.7);
+    line(x, b, e, iron, Math.max(0.55, 0.05 * s));
+    x.strokeStyle = rgb(iron); x.lineWidth = Math.max(0.4, 0.035 * s); x.beginPath(); x.arc((b[0] + e[0]) / 2, b[1] + 0.09 * s, 0.09 * s, Math.PI * 1.05, Math.PI * 1.95); x.stroke();   // (the scroll under the arm)
+    lantern(x, P, Lt, pu + 0.4, by1 + 0.98, pd, glow);
+    const [lx, ly] = P(pu + 0.4, by1 + 0.86, pd); out.lantern = [lx, ly]; }
   x.restore();
+  return out;
+}
+/** FP3b — the painted wood WORN: the paint rubbed back to the grain along the counter's front edge + the corners, scuffs low down by
+ *  the wheels, a darker grime band at the skirt */
+function wear(x, P, Lt, K, x0, x1, y0, y1, d, r) {
+  const s = P.s, bare = lit(Lt, [146, 108, 70], FRONT), grime = lit(Lt, shade(K.body, -0.45), FRONT);
+  for (let i = 0; i < 16; i++) { const u = x0 + 0.05 + r() * (x1 - x0 - 0.1), p = P(u, y1 - 0.02 - r() * 0.05, d - 0.01); x.fillStyle = rgb(bare, 0.55 + r() * 0.3); x.fillRect(p[0], p[1], (0.04 + r() * 0.1) * s, Math.max(0.35, 0.02 * s)); }
+  for (const u of [x0, x1]) for (let i = 0; i < 4; i++) { const p = P(u + (u < X0(x0, x1) ? 0.02 : -0.06), y0 + 0.1 + r() * (y1 - y0 - 0.2), d - 0.01); x.fillStyle = rgb(bare, 0.5); x.fillRect(p[0], p[1], 0.04 * s, (0.05 + r() * 0.08) * s); }
+  fillPts(x, [P(x0, y0, d - 0.005), P(x1, y0, d - 0.005), P(x1, y0 + 0.12, d - 0.005), P(x0, y0 + 0.12, d - 0.005)], grime, 0.35);
+}
+const X0 = (a, b) => (a + b) / 2;
+/** FP3b — THE ROASTER on the counter: the tray of chestnuts (left), the black-iron coal STOVE (right) on its short legs — a brass band,
+ *  the GRATE's coals glowing orange (bright at night, a warm ember by day), a shallow roasting pan of chestnuts on top, a TIN CHIMNEY
+ *  rising from the stove's back (galvanised, ~0.15 wide — never hair-thin — seamed, its little conical cap on three stays); in drizzle a
+ *  small canvas HOOD up over it. out ← { chimney, pan, grate } (screen points for the live smoke, steam + glow) */
+function roasterTop(x, P, Lt, X, y, glow, r, out, hood) {
+  const s = P.s, iron = [34, 32, 36], tin = [150, 154, 160];
+  // the tray (left) — chestnuts heaped in a brass tray, the scoop, the paper bags
+  // (FP3b, the second pass: the STOVE on the LEFT half — its chimney + smoke clear of the framing maple's crown, by the vendor who
+  // tends it — the tray on the right)
+  const tx = X + 1.16;
+  pbox(x, P, Lt, [150, 112, 54], { x0: tx - 1.08, x1: tx - 0.08, y0: y, y1: y + 0.1, d0: 0.25, d1: 1.0 }, { gloss: 0.8 });
+  const nuts = Array.from({ length: 34 }, () => [tx - 1.0 + r() * 0.85, 0.32 + r() * 0.62]).sort((a, b) => b[1] - a[1]);
+  for (const [u, dd] of nuts) {
+    const i = (u * 100) | 0, h = y + 0.1 + 0.13 * Math.max(0, 1 - Math.abs(u - (tx - 0.58)) * 2.1), p = P(u, h, dd);
+    x.fillStyle = rgb(lit(Lt, i % 4 ? [96, 50, 28] : [128, 70, 38], [0, 0.6, -0.8], 0.8)); x.beginPath(); x.ellipse(p[0], p[1], 0.05 * s, 0.04 * s, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = rgb(rimCol(Lt, [150, 90, 50], [0.2, 0.8, -0.5]), 0.6); x.fillRect(p[0] - 0.02 * s, p[1] - 0.03 * s, 0.025 * s, 0.015 * s);
+  }
+  { const a = P(tx - 0.35, y + 0.14, 0.45), b = P(tx - 0.1, y + 0.3, 0.6); line(x, a, b, lit(Lt, BRASS, TOP, 1.2), Math.max(0.4, 0.04 * s)); x.fillStyle = rgb(lit(Lt, BRASS, [0, 0.7, -0.7], 1.2)); x.beginPath(); x.ellipse(a[0], a[1], 0.1 * s, 0.05 * s, 0, 0, Math.PI * 2); x.fill(); }
+  pbox(x, P, Lt, [232, 220, 196], { x0: tx - 0.4, x1: tx - 0.06, y0: y, y1: y + 0.12, d0: 0.15, d1: 0.4 });
+  // the stove: four short iron legs, the firebox (a squat iron drum-box), the brass band, the grate + its coals
+  const sx0 = X - 1.08, sx1 = X - 0.08, sy0 = y + 0.12, sy1 = y + 0.6, sd0 = 0.28, sd1 = 0.98;
+  for (const [u, dd] of [[sx0 + 0.08, sd0 + 0.05], [sx1 - 0.08, sd0 + 0.05]]) line(x, P(u, y, dd), P(u, sy0, dd), lit(Lt, iron, FRONT, 0.3), Math.max(0.5, 0.05 * s));
+  pbox(x, P, Lt, iron, { x0: sx0, x1: sx1, y0: sy0, y1: sy1, d0: sd0, d1: sd1 }, { gloss: 0.35 });
+  // the cast ribs on its face (catching the light)
+  for (const v of [sy0 + 0.04, sy1 - 0.04]) line(x, P(sx0 + 0.02, v, sd0 - 0.005), P(sx1 - 0.02, v, sd0 - 0.005), rimCol(Lt, [80, 78, 84], [0, 0.6, -0.8]), Math.max(0.3, 0.02 * s), 0.7);
+  line(x, P(sx0, sy1 - 0.01, sd0 - 0.01), P(sx1, sy1 - 0.01, sd0 - 0.01), lit(Lt, BRASS, [0, 0.7, -0.7], 1.3), Math.max(0.45, 0.04 * s));
+  // THE GRATE: the opening, the coals (dark red → orange → a yellow-hot heart: by day an ember, at night bright), its iron bars
+  const g0 = sx0 + 0.16, g1 = sx1 - 0.16, gv0 = sy0 + 0.08, gv1 = sy1 - 0.12, k = 0.45 + 0.55 * glow;
+  const G = [P(g0, gv0, sd0 - 0.01), P(g1, gv0, sd0 - 0.01), P(g1, gv1, sd0 - 0.01), P(g0, gv1, sd0 - 0.01)];
+  fillPts(x, G, [20, 8, 6]);
+  { const [ax, ay] = G[3], [bx, by] = G[1], cg = x.createLinearGradient(0, ay, 0, by);
+    cg.addColorStop(0, `rgba(150,36,14,${(0.9 * k).toFixed(3)})`); cg.addColorStop(0.55, `rgba(255,118,34,${k.toFixed(3)})`); cg.addColorStop(1, `rgba(255,${(190 + 50 * glow) | 0},${(70 + 80 * glow) | 0},${k.toFixed(3)})`);
+    x.fillStyle = cg; x.fillRect(ax, ay, bx - ax, by - ay);
+    for (let i = 0; i < 8; i++) { const p = P(g0 + 0.06 + i * (g1 - g0 - 0.12) / 7, gv0 + 0.05 + r() * 0.06, sd0 - 0.012); x.fillStyle = `rgba(255,${(214 + 30 * glow) | 0},${(120 + 90 * glow) | 0},${(0.6 + 0.4 * k).toFixed(3)})`; x.beginPath(); x.arc(p[0], p[1], 0.035 * s, 0, Math.PI * 2); x.fill(); } }
+  for (let i = 1; i < 6; i++) line(x, P(g0 + i * (g1 - g0) / 6, gv0, sd0 - 0.015), P(g0 + i * (g1 - g0) / 6, gv1, sd0 - 0.015), [18, 14, 16], Math.max(0.35, 0.03 * s));
+  // its crisp glow: a tight warm halo off the grate + its light on the counter's front (never a blur over the cart)
+  if (k > 0.3) { const [cx, cy] = P((g0 + g1) / 2, (gv0 + gv1) / 2, sd0), R = 0.55 * s, h = x.createRadialGradient(cx, cy, 0, cx, cy, R);
+    h.addColorStop(0, `rgba(255,150,60,${(0.5 * glow).toFixed(3)})`); h.addColorStop(0.4, `rgba(255,120,40,${(0.16 * glow).toFixed(3)})`); h.addColorStop(1, 'rgba(255,110,40,0)');
+    x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = h; x.fillRect(cx - R, cy - R, 2 * R, 2 * R); x.restore(); }
+  out.grate = P((g0 + g1) / 2, (gv0 + gv1) / 2, sd0);
+  // the roasting pan on top: a shallow black pan with its handle, chestnuts in it (split + roasting), a lit rim
+  pbox(x, P, Lt, [26, 24, 28], { x0: sx0 + 0.06, x1: sx1 - 0.06, y0: sy1, y1: sy1 + 0.07, d0: sd0 + 0.03, d1: sd1 - 0.06 }, { gloss: 0.5 });
+  for (let i = 0; i < 14; i++) { const p = P(sx0 + 0.16 + r() * (sx1 - sx0 - 0.32), sy1 + 0.08, sd0 + 0.12 + r() * 0.5); x.fillStyle = rgb(lit(Lt, i % 3 ? [110, 58, 30] : [160, 110, 64], [0, 0.7, -0.7], 0.8)); x.beginPath(); x.ellipse(p[0], p[1], 0.05 * s, 0.035 * s, 0, 0, Math.PI * 2); x.fill(); }
+  line(x, P(sx0 + 0.06, sy1 + 0.05, (sd0 + sd1) / 2), P(sx0 - 0.3, sy1 + 0.1, (sd0 + sd1) / 2), lit(Lt, iron, FRONT, 0.4), Math.max(0.45, 0.04 * s));
+  out.pan = P((sx0 + sx1) / 2, sy1 + 0.12, (sd0 + sd1) / 2);
+  // THE TIN CHIMNEY from the stove's back-right: galvanised pipe (a lit edge, a shade edge, two seams), its conical cap on stays
+  const cu = sx0 + 0.22, cd = sd1 - 0.1, ch0 = sy1, ch1 = sy1 + 1.08, cw = 0.075;
+  { const a = P(cu - cw, ch0, cd), b = P(cu + cw, ch0, cd), c2 = P(cu + cw, ch1, cd), d2 = P(cu - cw, ch1, cd);
+    const w = Math.max(1.6, b[0] - a[0]), ox = (a[0] + b[0]) / 2;   // (never hair-thin: at least ~1.6 pt)
+    fillPts(x, [[ox - w / 2, a[1]], [ox + w / 2, b[1]], [ox + w / 2, c2[1]], [ox - w / 2, d2[1]]], lit(Lt, tin, FRONT, 0.9));
+    const sd = Lt.sd >= 0 ? 1 : -1;
+    fillPts(x, [[ox + sd * w * 0.12, a[1]], [ox + sd * w / 2, b[1]], [ox + sd * w / 2, c2[1]], [ox + sd * w * 0.12, d2[1]]], rimCol(Lt, tin, [sd * 0.8, 0.2, -0.6]), 0.75);
+    fillPts(x, [[ox - sd * w / 2, a[1]], [ox - sd * w * 0.2, a[1]], [ox - sd * w * 0.2, d2[1]], [ox - sd * w / 2, d2[1]]], lit(Lt, shade(tin, -0.4), FRONT, 0.6), 0.8);
+    for (const v of [ch0 + 0.35, ch0 + 0.75]) { const p = P(cu, v, cd); x.fillStyle = rgb(lit(Lt, shade(tin, -0.3), FRONT, 0.6)); x.fillRect(ox - w / 2 - 0.2, p[1], w + 0.4, Math.max(0.5, 0.03 * s)); }
+    // the cap: a little cone on three stays, a gap under it (the smoke comes out there)
+    const top = P(cu, ch1 + 0.13, cd)[1], capW = Math.max(w * 2.3, 0.3 * s);
+    line(x, [ox - w * 0.4, d2[1]], [ox - capW * 0.35, top + 0.06 * s], lit(Lt, iron, FRONT, 0.4), Math.max(0.3, 0.02 * s)); line(x, [ox + w * 0.4, d2[1]], [ox + capW * 0.35, top + 0.06 * s], lit(Lt, iron, FRONT, 0.4), Math.max(0.3, 0.02 * s));
+    fillPts(x, [[ox - capW / 2, top + 0.06 * s], [ox + capW / 2, top + 0.06 * s], [ox, top - 0.1 * s]], lit(Lt, shade(tin, -0.15), [0, 0.7, -0.7], 0.8));
+    line(x, [ox - capW / 2, top + 0.06 * s], [ox + capW / 2, top + 0.06 * s], rimCol(Lt, tin, [0, 0.9, -0.4]), Math.max(0.3, 0.022 * s), 0.8);
+    out.chimney = [ox, (d2[1] + top) / 2 + 0.02 * s]; }
+  // the drizzle's HOOD (Part 9): a small canvas quarter-dome on two bent rods over the stove — much smaller than the old umbrella
+  if (hood) {
+    const hx0 = sx0 - 0.05, hx1 = sx1 + 0.05, hy = sy1 + 0.75, hd = sd0 - 0.08, canvas = [176, 52, 44], cream = [234, 222, 196];
+    for (const u of [hx0 + 0.04, hx1 - 0.04]) line(x, P(u, sy1, sd1 - 0.05), P(u, hy, sd1 - 0.15), lit(Lt, iron, FRONT, 0.4), Math.max(0.35, 0.03 * s));
+    const n = 6;
+    for (let i = 0; i < n; i++) { const a0 = hx0 + (hx1 - hx0) * i / n, a1 = hx0 + (hx1 - hx0) * (i + 1) / n;
+      fillPts(x, [P(a0, hy, sd1 - 0.15), P(a1, hy, sd1 - 0.15), P(a1, hy - 0.22, hd), P(a0, hy - 0.22, hd)], lit(Lt, i % 2 ? cream : canvas, [0, 0.6, -0.8])); }
+    line(x, P(hx0, hy - 0.22, hd), P(hx1, hy - 0.22, hd), rimCol(Lt, canvas, [0, 0.4, -0.9]), Math.max(0.35, 0.03 * s), 0.85);
+  }
 }
 function wheel(x, P, Lt, K, u, yc, d, R, far, roll = 0) {
   const s = P.s, [cx, cy] = P(u, yc, d), rr = R * s, spin = -roll / R;
@@ -232,50 +317,6 @@ function bodyFront(x, P, Lt, K, x0, x1, y0, y1, d) {
   // the body's corner posts (turned, a lit edge)
   for (const u of [x0, x1]) { const a = P(u, y0, d - 0.02), b = P(u, y1, d - 0.02); line(x, a, b, lit(Lt, K.trim, FRONT), Math.max(0.6, 0.09 * s)); line(x, [a[0] + 0.025 * s, a[1]], [b[0] + 0.025 * s, b[1]], rimCol(Lt, K.trim, [0.6, 0.3, -0.7]), Math.max(0.25, 0.02 * s), 0.7); }
 }
-function chestnutTop(x, P, Lt, X, y, glow, r) {
-  const s = P.s;
-  // the firebox (iron), its grate opening with the coals (a red glow, bright at night)
-  pbox(x, P, Lt, [44, 42, 46], { x0: X + 0.2, x1: X + 1.06, y0: y, y1: y + 0.36, d0: 0.3, d1: 0.98 }, { gloss: 0.3 });
-  const g = [P(X + 0.32, y + 0.06, 0.29), P(X + 0.94, y + 0.06, 0.29), P(X + 0.94, y + 0.26, 0.29), P(X + 0.32, y + 0.26, 0.29)];
-  const coal = mix(lit(Lt, [210, 74, 30], FRONT), [255, 150, 60], 0.35 + 0.6 * glow);
-  fillPts(x, g, [24, 12, 10]);
-  for (let i = 0; i < 9; i++) { const p = P(X + 0.36 + 0.07 * i, y + 0.1 + r() * 0.06, 0.29); x.fillStyle = rgb(i % 3 ? coal : mix(coal, [255, 230, 150], 0.5 + 0.4 * glow)); x.beginPath(); x.arc(p[0], p[1], 0.04 * s, 0, Math.PI * 2); x.fill(); }
-  if (glow > 0.05) {   // the coals' warm light on the counter + the roaster
-    const [cx, cy] = P(X + 0.63, y + 0.2, 0.3), gr = x.createRadialGradient(cx, cy, 0, cx, cy, 0.9 * s);
-    gr.addColorStop(0, `rgba(255,140,60,${(0.55 * glow).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,120,40,0)');
-    x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = gr; x.fillRect(cx - s, cy - s, 2 * s, 2 * s); x.restore();
-  }
-  // the firebox's brass band along its top edge
-  line(x, P(X + 0.2, y + 0.34, 0.3), P(X + 1.06, y + 0.34, 0.3), lit(Lt, BRASS, [0, 0.6, -0.8], 1.2), Math.max(0.4, 0.045 * s));
-  // the grate's bars
-  for (let i = 1; i < 5; i++) line(x, P(X + 0.32 + i * 0.124, y + 0.06, 0.28), P(X + 0.32 + i * 0.124, y + 0.26, 0.28), [20, 18, 20], Math.max(0.3, 0.025 * s));
-  // the brass roaster on top: a shallow drum + a domed lid + a knob (gleaming)
-  const [cx, cy] = P(X + 0.63, y + 0.36, 0.64), rw = 0.4 * s, rh = 0.16 * s;
-  x.fillStyle = rgb(lit(Lt, [150, 112, 54], FRONT, 0.8)); x.fillRect(cx - rw, cy - 0.12 * s, rw * 2, 0.12 * s);
-  const dome = x.createLinearGradient(cx - rw, 0, cx + rw, 0), lc = lit(Lt, BRASS, [-0.6, 0.6, -0.5], 1.4), mc = lit(Lt, BRASS, [0, 0.7, -0.7], 1.4), rc = lit(Lt, BRASS, [0.6, 0.6, -0.5], 1.4);
-  dome.addColorStop(0, rgb(lc)); dome.addColorStop(0.5, rgb(mc)); dome.addColorStop(1, rgb(rc));
-  x.fillStyle = dome; x.beginPath(); x.ellipse(cx, cy - 0.12 * s, rw, rh * 1.9, 0, Math.PI, 0); x.fill();
-  x.strokeStyle = rgb(lit(Lt, [120, 84, 36], FRONT)); x.lineWidth = Math.max(0.3, 0.03 * s); x.beginPath(); x.ellipse(cx, cy - 0.12 * s, rw, rh * 0.5, 0, 0, Math.PI); x.stroke();
-  x.fillStyle = rgb(rimCol(Lt, BRASS, [0.2, 0.9, -0.4])); x.beginPath(); x.ellipse(cx - rw * 0.3, cy - 0.12 * s - rh * 1.3, rw * 0.28, rh * 0.28, -0.3, 0, Math.PI * 2); x.fill();
-  x.fillStyle = rgb(lit(Lt, [40, 36, 40], TOP)); x.beginPath(); x.arc(cx, cy - 0.12 * s - rh * 1.9 - 0.03 * s, 0.05 * s, 0, Math.PI * 2); x.fill();
-  // the chimney: an iron pipe from the firebox's back, a conical rain cap (no smoke here — the city's smoke is live)
-  const c0 = P(X + 0.95, y + 0.36, 0.9), c1 = P(X + 0.95, y + 1.4, 0.9);
-  line(x, c0, c1, lit(Lt, [50, 48, 52], FRONT, 0.4), Math.max(0.7, 0.1 * s));
-  line(x, [c0[0] + 0.03 * s, c0[1]], [c1[0] + 0.03 * s, c1[1]], rimCol(Lt, [80, 80, 86], [0.7, 0, -0.7]), Math.max(0.25, 0.02 * s), 0.6);
-  fillPts(x, [[c1[0] - 0.13 * s, c1[1]], [c1[0] + 0.13 * s, c1[1]], [c1[0], c1[1] - 0.1 * s]], lit(Lt, [56, 54, 58], [0, 0.7, -0.7], 0.4));
-  // the tray of chestnuts (a heap of glossy brown nuts) + the paper cones standing in their rack
-  pbox(x, P, Lt, [150, 112, 54], { x0: X - 1.08, x1: X + 0.08, y0: y, y1: y + 0.1, d0: 0.25, d1: 1.0 }, { gloss: 0.8 });
-  const nuts = Array.from({ length: 40 }, () => [X - 1.0 + r() * 0.98, 0.32 + r() * 0.62]).sort((a, b) => b[1] - a[1]);
-  for (const [u, dd] of nuts) {
-    const i = (u * 100) | 0, h = y + 0.1 + 0.14 * Math.max(0, 1 - Math.abs(u - (X - 0.5)) * 1.9), p = P(u, h, dd);
-    x.fillStyle = rgb(lit(Lt, i % 4 ? [96, 50, 28] : [128, 70, 38], [0, 0.6, -0.8], 0.8)); x.beginPath(); x.ellipse(p[0], p[1], 0.05 * s, 0.04 * s, 0, 0, Math.PI * 2); x.fill();
-    x.fillStyle = rgb(rimCol(Lt, [150, 90, 50], [0.2, 0.8, -0.5]), 0.6); x.fillRect(p[0] - 0.02 * s, p[1] - 0.03 * s, 0.025 * s, 0.015 * s);
-  }
-  // the brass scoop resting on the heap, a stack of folded paper bags at the front corner
-  { const a = P(X - 0.25, y + 0.14, 0.45), b = P(X + 0.05, y + 0.3, 0.6); line(x, a, b, lit(Lt, BRASS, TOP, 1.2), Math.max(0.4, 0.04 * s)); x.fillStyle = rgb(lit(Lt, BRASS, [0, 0.7, -0.7], 1.2)); x.beginPath(); x.ellipse(a[0], a[1], 0.1 * s, 0.05 * s, 0, 0, Math.PI * 2); x.fill(); }
-  pbox(x, P, Lt, [232, 220, 196], { x0: X - 1.1, x1: X - 0.72, y0: y, y1: y + 0.12, d0: 0.15, d1: 0.4 });
-  line(x, P(X - 1.1, y + 0.06, 0.15), P(X - 0.72, y + 0.06, 0.15), lit(Lt, [190, 176, 150], FRONT), Math.max(0.25, 0.015 * s), 0.8);
-}
 function iceTop(x, P, Lt, X, y) {
   const s = P.s;
   // three chrome tub lids set in the counter (bright rims, knobs) + the big cone on its rod (a waffle cone, a pink scoop, a cherry)
@@ -319,60 +360,6 @@ function flowerTop(x, P, Lt, X, y, r) {
     line(x, [cx - w * 0.9, (cy + ty) / 2], [cx + w * 0.9, (cy + ty) / 2], lit(Lt, shade(zinc, -0.3), FRONT), Math.max(0.25, 0.02 * s), 0.8);
   });
 }
-/** the striped canvas umbrella: gores from the apex to the rim (painter's order, far first), a scalloped valance on the near half,
- *  a little bulb at each scallop (lit at night), a brass finial */
-function umbrella(x, P, Lt, K, pu, pd, R, glow, snow) {
-  const s = P.s, yA = 4.88, yR = 4.06, n = 14, ap = P(pu, yA, pd), rot = 0.11;
-  const rim = i => { const a = rot + i * Math.PI * 2 / n; return [pu + Math.cos(a) * R, yR, pd + Math.sin(a) * R, a]; };
-  const gores = Array.from({ length: n }, (_, i) => ({ i, a: rim(i), b: rim(i + 1), m: Math.sin(rot + (i + 0.5) * Math.PI * 2 / n) }));
-  gores.sort((g, h) => h.m - g.m);            // far (sin > 0: behind the pole) first
-  const slope = (yA - yR) / R;
-  for (const g of gores) {
-    const am = rot + (g.i + 0.5) * Math.PI * 2 / n, nrm = [Math.cos(am) * slope, 1, Math.sin(am) * slope];
-    const base = K.umb[g.i % 2], col = lit(Lt, mix(base, [255, 250, 240], 0.04), nrm);
-    const pa = P(g.a[0], g.a[1], g.a[2]), pb = P(g.b[0], g.b[1], g.b[2]);
-    fillPts(x, [ap, pa, pb], col);
-    // the canvas's sag between the ribs: a soft darker crease along each rib
-    line(x, ap, pa, lit(Lt, shade(base, -0.25), nrm), Math.max(0.25, 0.02 * s), 0.5);
-    if (snow > 0.05) { x.globalAlpha = Math.min(1, snow * 1.3); fillPts(x, [ap, [pa[0] * 0.5 + ap[0] * 0.5, pa[1] * 0.5 + ap[1] * 0.5], [pb[0] * 0.5 + ap[0] * 0.5, pb[1] * 0.5 + ap[1] * 0.5]], lit(Lt, [242, 246, 252], nrm)); x.globalAlpha = 1; }
-  }
-  // the valance: a hanging flap under each near gore, scalloped (its own colour, a step darker: it hangs vertical)
-  const vh = 0.3, near = gores.filter(g => g.m < 0.25).sort((g, h) => h.m - g.m);
-  for (const g of near) {
-    const am = rot + (g.i + 0.5) * Math.PI * 2 / n, nrm = [Math.cos(am), 0.1, Math.sin(am)], base = K.umb[g.i % 2];
-    const pa = P(g.a[0], yR, g.a[2]), pb = P(g.b[0], yR, g.b[2]), qa = P(g.a[0], yR - vh, g.a[2]), qb = P(g.b[0], yR - vh, g.b[2]);
-    const col = lit(Lt, base, nrm);
-    x.beginPath(); x.moveTo(pa[0], pa[1]); x.lineTo(pb[0], pb[1]); x.lineTo(qb[0], qb[1]);
-    const mx = (qa[0] + qb[0]) / 2, my = (qa[1] + qb[1]) / 2;
-    x.quadraticCurveTo(mx, my + 0.22 * s, qa[0], qa[1]); x.closePath(); x.fillStyle = rgb(col); x.fill();
-    line(x, pa, pb, rimCol(Lt, base, [nrm[0], 0.6, nrm[2]]), Math.max(0.3, 0.025 * s), 0.7);
-    // a bulb at the scallop's point (clear glass by day; a warm spark at night — the cart's string lights)
-    const bp = [mx, my + 0.16 * s];
-    x.fillStyle = glow > 0.05 ? rgb(mix([255, 214, 150], [255, 248, 220], glow)) : rgb(lit(Lt, [236, 232, 220], FRONT, 1), 0.8);
-    x.beginPath(); x.arc(bp[0], bp[1], Math.max(0.5, 0.045 * s), 0, Math.PI * 2); x.fill();
-    // (FP2 — crisp lights: each bulb's halo tight — 0.24 units, a quick falloff; was a 0.32-unit linear cone)
-    if (glow > 0.05) { const gr = x.createRadialGradient(bp[0], bp[1], 0, bp[0], bp[1], 0.24 * s); gr.addColorStop(0, `rgba(255,206,140,${(0.6 * glow).toFixed(3)})`); gr.addColorStop(0.35, `rgba(255,190,120,${(0.2 * glow).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,180,110,0)'); x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = gr; x.fillRect(bp[0] - 0.24 * s, bp[1] - 0.24 * s, 0.48 * s, 0.48 * s); x.restore(); }
-  }
-  // the finial: a brass ball on a short spike
-  x.fillStyle = rgb(lit(Lt, BRASS, [0, 0.8, -0.6], 1.3)); x.beginPath(); x.arc(ap[0], ap[1] - 0.1 * s, 0.075 * s, 0, Math.PI * 2); x.fill();
-  x.fillStyle = rgb(rimCol(Lt, BRASS, [0.3, 0.9, -0.3])); x.beginPath(); x.arc(ap[0] - 0.025 * s, ap[1] - 0.13 * s, 0.03 * s, 0, Math.PI * 2); x.fill();
-}
-/** FP3b — the umbrella FURLED round its pole (the evening): the canvas a slim spindle with its stripes, tied with a strap, the finial */
-function furled(x, P, Lt, K, pu, pd) {
-  const s = P.s, y0 = 2.95, y1 = 4.72, ym = 4.05, wm = 0.17;
-  const half = y => (y < ym ? wm * (y - y0) / (ym - y0) * 0.9 + 0.05 : wm * (1 - (y - ym) / (y1 - ym) * 0.85));
-  const n = 9;
-  for (let i = 0; i < n; i++) {
-    const ya = y0 + (y1 - y0) * i / n, yb = y0 + (y1 - y0) * (i + 1) / n, base = K.umb[i % 2];
-    const pts = [P(pu - half(ya), ya, pd), P(pu + half(ya), ya, pd), P(pu + half(yb), yb, pd), P(pu - half(yb), yb, pd)];
-    fillPts(x, pts, lit(Lt, base, FRONT));
-    fillPts(x, [pts[1], [pts[1][0] - 0.06 * s, pts[1][1]], [pts[2][0] - 0.05 * s, pts[2][1]], pts[2]], lit(Lt, shade(base, -0.3), [0.8, 0, -0.6]));   // (the shade side)
-  }
-  line(x, P(pu - wm * 0.95, 3.9, pd), P(pu + wm * 0.95, 3.84, pd), lit(Lt, [70, 46, 30], FRONT), Math.max(0.4, 0.04 * s));      // (the tie)
-  const ap = P(pu, y1 + 0.04, pd);
-  x.fillStyle = rgb(lit(Lt, BRASS, [0, 0.8, -0.6], 1.3)); x.beginPath(); x.arc(ap[0], ap[1] - 0.06 * s, 0.07 * s, 0, Math.PI * 2); x.fill();
-}
-/** a small brass lantern on a hook under the umbrella's rim: a frame, glass (a warm flame at night), a cap + ring */
 function lantern(x, P, Lt, u, y, d, glow) {
   const s = P.s, [cx, top] = P(u, y, d), w = 0.12 * s, h = 0.3 * s, [, hook] = P(u, y + 0.25, d);
   line(x, [cx, hook], [cx, top], lit(Lt, [60, 56, 50], FRONT), Math.max(0.3, 0.02 * s));
@@ -558,9 +545,9 @@ function shadowShapes(kind, it) {
       ...[-hw + 0.2, 0, hw - 0.2].map(u => ({ x0: u - 0.06, x1: u + 0.06, y0: 0, y1: 0.95, d0: 0.02, d1: 0.76 }))], contact: [{ x0: -hw, x1: hw, d0: 0, d1: 0.8, a: 0.42 }] };
   }
   if (kind === 'cart') {
-    const R = PIECE.cart.umb;
-    return { e: 1.5, boxes: [{ x0: -1.22, x1: 1.22, y0: 0.8, y1: 1.92, d0: 0.12, d1: 1.18 }, { x0: -1.0, x1: 1.0, y0: 0, y1: 1.2, d0: 0, d1: 1.24 }, { x0: -0.08, x1: 0.02, y0: 1.9, y1: 4.06, d0: 0.8, d1: 0.9 }, { x0: 0.25, x1: 1.0, y0: 1.9, y1: 3.3, d0: 0.4, d1: 0.95 }],
-      disc: { u: -0.05, d: 0.85, r: R, y: 4.2 }, contact: [{ x0: -1.3, x1: 1.3, d0: 0, d1: 1.25, a: 0.32 }, { x0: -1.05, x1: -0.55, d0: -0.08, d1: 0.1, a: 0.55 }, { x0: 0.55, x1: 1.05, d0: -0.08, d1: 0.1, a: 0.55 }] };
+    // (FP3b: the low roaster cart — the body, the wheels, the stove, its chimney; no umbrella any more)
+    return { e: 1.5, boxes: [{ x0: -1.22, x1: 1.22, y0: 0.74, y1: 1.62, d0: 0.12, d1: 1.18 }, { x0: -1.0, x1: 1.0, y0: 0, y1: 1.2, d0: 0, d1: 1.24 }, { x0: -1.08, x1: -0.08, y0: 1.62, y1: 2.3, d0: 0.28, d1: 0.98 }, { x0: -0.93, x1: -0.79, y0: 2.2, y1: 3.4, d0: 0.82, d1: 0.94 }],
+      contact: [{ x0: -1.3, x1: 1.3, d0: 0, d1: 1.25, a: 0.32 }, { x0: -1.05, x1: -0.55, d0: -0.08, d1: 0.1, a: 0.55 }, { x0: 0.55, x1: 1.05, d0: -0.08, d1: 0.1, a: 0.55 }] };
   }
   // (FP: the urn — its plinth, its bowl + lip, the planting over it)
   const k = (it.w || PIECE.planter.w) / 2.6, c = 0.95 * k;
@@ -594,12 +581,5 @@ export const boxOf = pts => { const xs = pts.map(p => p[0]), ys = pts.map(p => p
 export function benchBox(cam, b) {
   const P = frame(cam, b.z, 1.8), hw = (b.w || PIECE.bench.w) / 2, pts = [];
   for (const u of [-hw - 0.05, hw + 0.05]) for (const [y, d] of [[0, 0], [0, 0.92], [1.55, 0.92], [1.55, 0]]) pts.push(P(b.x + u, y, d));
-  return boxOf(pts);
-}
-/** the cart's umbrella on screen (pt): the canopy's rim all round + its scalloped valance and bulbs hanging under it, the apex +
- *  the finial (umbrella(): apex 4.88, rim 4.06, valance 0.3 + its scallop + a bulb ≈ 0.56 under the rim; the pole at x − 0.05) */
-export function umbrellaBox(cam, c) {
-  const P = frame(cam, c.z, 1.5), R = PIECE.cart.umb, pu = c.x - 0.05, pd = 0.85, pts = [P(pu, 5.05, pd)];
-  for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2, u = pu + Math.cos(a) * R, d = pd + Math.sin(a) * R; pts.push(P(u, 4.06, d), P(u, 3.5, d)); }
   return boxOf(pts);
 }

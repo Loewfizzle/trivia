@@ -554,7 +554,8 @@ export function folkAt(t, world, cache = new Map()) {
   // THE VENDOR SPOT (FP3b — core/harbor-routines.js#VENDOR): the chestnut cart's evening, wheeled in from the right edge + out again;
   // never while the inlay is in use (a centrepiece: ctx.event; the dance circle: &force=dance — the real circles start after it's gone)
   const cartX = L.cart ? L.cart.x : 0, cartIn = cam => (cam ? cam.hw(L.cart.z) + 3.2 : cartX + 12);
-  const cartEv = tt => { if (!L.cart || L.cart.shown === false || ctx.event || ctx.forceDance) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
+  // (Part 9's hook: in HEAVY rain — ctx.rain > 0.6 — the cart doesn't come out; in drizzle people.js puts its little hood up)
+  const cartEv = tt => { if (!L.cart || L.cart.shown === false || ctx.event || ctx.forceDance || (ctx.rain || 0) > 0.6) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
     return get(`CE|${loc.key}`, () => cartEvening(loc.key, loc.month, day0, cartIn(L.cam), cartX, { seed: ctx.seed })); };
   const cartOut = (a, b) => { for (const tt of [a, b]) { const e = cartEv(tt); if (e && b > e.t0 - 10 && a < e.t1 + 10) return true; } return false; };
   const cartParked = (a, b) => { const e = cartEv(a); return !!(e && a >= e.ta && b <= e.tb); };

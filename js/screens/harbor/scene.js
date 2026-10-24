@@ -355,7 +355,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     people.line(clock.force.has('line') ? Number(qp.get('n') || 6) : lobbyLine);
     return { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), t: performance.now() / 1000, mo: S.motion, season: L.season, rain: LK.rain || 0, fade: fadeIn, tier, party: PT.on > 0.3, snd: S.motion ? snd : null,
       // (FP3b — the dance circle's beat: the party's song clock + its punch + palette; null off a party → wands.js keeps a steady 120 bpm)
-      beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette } : null };
+      beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette } : null,
+      // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
+      wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
   }
   let lobbyLine = 0;
   // 8P — THE HUSH WORD SIGN's preview: &force=hushsign&hush=JAZZ (the lobby's word; Lobby 2.0 calls harbor().speakeasy.hush(word));

@@ -30,7 +30,7 @@ export const PIECE = Object.freeze({
   maple: { trunk: 2.9, w: 4.9, h: 4.6 },  // a sugar maple in an iron grate (≈ 56 pt across at the curb, ≈ 78 on the front walk)
   crab: { trunk: 1.7, w: 3.3, h: 2.8 },   // a flowering crabapple — a smaller ACCENT (the owner), never the biggest tree
   bench: { w: 3.3, h: 1.25 },
-  cart: { w: 3.3, h: 1.5, umb: 2.1 },     // the vendor cart + its umbrella (≈ 4.7 tall)
+  cart: { w: 3.3, h: 1.5 },               // the chestnut roaster cart (FP3b: no umbrella — ≈ 3.4 tall to its chimney's cap)
   planter: { w: 2.6, h: 1.35, d: 1.6 },
   medallion: { r: 1.55, ring: 2.6 },
 });
@@ -168,8 +168,9 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   S.crabs.forEach(c => crab(X(c.f, c.z), c.z, c.k || 1));
   for (const p of S.planters) planters.push({ x: X(p.f, p.z), z: p.z, w: P.planter.w * (p.corner ? 1.08 : 0.92), corner: !!p.corner });
   const bench = { x: X(S.bench.f, S.bench.z), z: S.bench.z, w: P.bench.w };
-  // (live: drawn by the people's near pass on its schedule, never baked; hand 1: its handles on the right end; fold: its umbrella furled)
-  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: CART_SHOWN, live: true, scale: S.cart.scale || 1, hand: 1, fold: true };
+  // (live: drawn by the people's near pass on its schedule, never baked; hand 1: its handles on the right end — FP3b: a low roaster
+  // cart, no umbrella: props.js#drawCart)
+  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: CART_SHOWN, live: true, scale: S.cart.scale || 1, hand: 1 };
   const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring, clear: EVENT_CLEAR };
   // (FP2 — THE CART'S RULE for 8b: it rests LEFT of the medallion; on a normal day its route rolls across the floor — over the
   // medallion — to the open right side and back; during an event on the medallion it stops short: never right of stopX)

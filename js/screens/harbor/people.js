@@ -140,47 +140,64 @@ export function createPeople() {
   // parked at the front curb in the evening; a sprite while it stands (re-painted when the look changes), painted directly while it
   // rolls (its wheels turning); ~0.9 of its size round its ground point (it stands nearer than its old spot); a little steam off the
   // roaster's chimney, warm under the lamps at night
-  let cartCv = null, cartT = null, cartKey = '', cartBox = null;
-  function paintCart(x, st, T) {
-    const cam = L.cam, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, L.cart.z), cc = { ...L.cart, x: st.x, roll: st.roll }, cx = pieceCtx(L);
-    x.save(); x.translate(gx, gy); x.scale(sc, sc); x.translate(-gx, -gy); propShadow(x, cam, cc, 'cart', T, cx); drawCart(x, cam, cc, T, cx); x.restore();
+  let cartCv = null, cartT = null, cartKey = '', cartBox = null, cartAnch = null;
+  // the roaster's painter: drawCart (props.js) round its ground point at ~0.9 size → its anchors (the chimney, the pan) on screen
+  function paintCart(x, st, T, hood) {
+    const cam = L.cam, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, L.cart.z), cc = { ...L.cart, x: st.x, roll: st.roll, hood }, cx = pieceCtx(L);
+    x.save(); x.translate(gx, gy); x.scale(sc, sc); x.translate(-gx, -gy); propShadow(x, cam, cc, 'cart', T, cx); const a = drawCart(x, cam, cc, T, cx) || {}; x.restore();
+    const map = p => (p ? [gx + (p[0] - gx) * sc, gy + (p[1] - gy) * sc] : null);
+    return { chimney: map(a.chimney), pan: map(a.pan), grate: map(a.grate), dx: st.x };
   }
   function drawCartLive(c, st, env) {
     const T = env.T; if (!T || !L.cart) return;
-    const cam = L.cam, s = cam.F / L.cart.z, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, L.cart.z);
-    // its warm pool on the cobbles at night (the lantern + the coals — FP3b: the live cart lays its own; a crisp ellipse, no haze)
+    const cam = L.cam, s = cam.F / L.cart.z, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, L.cart.z), rain = clamp01(env.rain || 0), hood = rain > 0.08;
+    // its warm pool on the cobbles at night (the lantern + the stove — the live cart lays its own; a crisp ellipse, no haze)
     const nk = clamp01(env.dark || 0);
     if (nk > 0.05) {
       const r = 2.2 * s * sc, g = c.createRadialGradient(gx, gy, 0, gx, gy, r);
       g.addColorStop(0, `rgba(${LIGHT.cart.join(',')},${(0.32 * nk).toFixed(3)})`); g.addColorStop(0.6, `rgba(${LIGHT.cart.join(',')},${(0.12 * nk).toFixed(3)})`); g.addColorStop(1, `rgba(${LIGHT.cart.join(',')},0)`);
       c.save(); c.globalCompositeOperation = 'lighter'; c.translate(gx, gy); c.scale(1, 0.32); c.translate(-gx, -gy); c.fillStyle = g; c.fillRect(gx - r, gy - r, 2 * r, 2 * r); c.restore();
     }
-    if (st.moving) paintCart(c, st, T);
+    let anch;
+    if (st.moving) anch = paintCart(c, st, T, hood);
     else {
-      const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}`;
+      const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}|${hood ? 1 : 0}`;
       if (T !== cartT || key !== cartKey || !cartCv) {
         cartT = T; cartKey = key;
         const bx = Math.floor(gx - 4.2 * s * sc), by = Math.floor(gy - 5.4 * s * sc), bw = Math.ceil(8.4 * s * sc), bh = Math.ceil(6.6 * s * sc);
         cartBox = { x: bx, y: by, w: bw, h: bh };
         cartCv = cartCv || document.createElement('canvas'); cartCv.width = Math.ceil(bw * dpr); cartCv.height = Math.ceil(bh * dpr);
-        const x = safeCtx(cartCv); if (!x) return; x.setTransform(dpr, 0, 0, dpr, -bx * dpr, -by * dpr); x.clearRect(bx, by, bw, bh); paintCart(x, st, T);
+        const x = safeCtx(cartCv); if (!x) return; x.setTransform(dpr, 0, 0, dpr, -bx * dpr, -by * dpr); x.clearRect(bx, by, bw, bh); cartAnch = paintCart(x, st, T, hood);
       }
-      c.drawImage(cartCv, cartBox.x, cartBox.y, cartBox.w, cartBox.h);
+      c.drawImage(cartCv, cartBox.x, cartBox.y, cartBox.w, cartBox.h); anch = cartAnch;
     }
-    // the steam off the roaster's chimney: a few small puffs rising + thinning, drifting a little (warm-lit at night)
-    if (env.mo !== false) {
-      // (from the roaster's lid — props.js#chestnutTop: X + 0.63, its dome's top, ~0.64 deep (× the props' depth exaggeration) — scaled round its foot;
-      // the chimney's cap stands behind the framing maple's lowest leaves at phone size, where steam would never be seen)
-      const [px, py] = project(cam, st.x + 0.63, 2.95, L.cart.z + 0.96), ox = gx + (px - gx) * sc, oy = gy + (py - gy) * sc, t = env.t || 0, night = clamp01(env.dark || 0);
-      const col = night > 0.3 ? '255,226,196' : '242,242,238';
-      c.save();
-      for (let i = 0; i < 5; i++) {
-        // (short — under the framing maple's lowest leaves, where it can be seen)
-        const u = (t * 0.4 + i / 5) % 1, a = 0.5 * (1 - u) * Math.min(1, u / 0.1) * (0.7 + 0.3 * night);
-        c.fillStyle = `rgba(${col},${a.toFixed(3)})`; c.beginPath(); c.arc(ox + u * 0.45 * s * sc + Math.sin(t * 1.3 + i) * 0.05 * s, oy - u * 0.95 * s * sc, (0.12 + 0.3 * u) * s * sc, 0, Math.PI * 2); c.fill();
+    if (env.mo !== false && anch) roasterSmoke(c, anch, s * sc, env, rain);
+  }
+  // THE SMOKE + THE STEAM (FP3b — the owner: "a soft wisp of smoke + steam, drifting with the real wind … big enough to notice, smooth
+  // + natural"): a plume of soft puffs off the chimney's cap — each a radial falloff, growing + thinning as it rises, bending downwind
+  // (env.wind: the real wind, signed by its side) with a slow wobble — warm-lit low down at night by the stove, a smoky grey above;
+  // a shorter, whiter breath of steam off the roasting pan (into the rain too)
+  function roasterSmoke(c, a, u1, env, rain) {
+    const t = env.t || 0, night = clamp01(env.dark || 0), w = Math.max(-1.3, Math.min(1.3, (env.wind == null ? 2 : env.wind) / 6));
+    const puff = (x, y, r, col, al) => { if (al < 0.01 || r < 0.3) return; const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${col},${al.toFixed(3)})`); g.addColorStop(0.55, `rgba(${col},${(al * 0.55).toFixed(3)})`); g.addColorStop(1, `rgba(${col},0)`); c.fillStyle = g; c.fillRect(x - r, y - r, 2 * r, 2 * r); };
+    c.save();
+    if (a.chimney) {
+      const [cx, cy] = a.chimney, n = 11, per = 3.8;
+      for (let i = n - 1; i >= 0; i--) {
+        const u = ((t / per + i / n) % 1 + 1) % 1, rise = 1.75 * u, drift = w * 1.1 * u ** 1.5 + 0.06 * Math.sin(t * 0.9 + i * 1.7) * u;
+        const warm = night * Math.max(0, 1 - u * 2.2), base = night > 0.3 ? [150, 144, 156] : [196, 194, 200];
+        const col = [0, 1, 2].map(k => Math.round(base[k] + ([255, 170, 110][k] - base[k]) * warm)).join(',');
+        puff(cx + drift * u1, cy - rise * u1, (0.13 + 0.5 * u) * u1, col, 0.72 * (1 - u) ** 1.25 * Math.min(1, u / 0.05) * (1 - 0.4 * rain));
       }
-      c.restore();
     }
+    if (a.pan) {
+      const [px, py] = a.pan, n = 5, per = 2.4;
+      for (let i = 0; i < n; i++) {
+        const u = ((t / per + i / n) % 1 + 1) % 1;
+        puff(px + (w * 0.4 * u + 0.08 * Math.sin(t * 1.4 + i)) * u1 + (i - 2) * 0.12 * u1, py - 0.8 * u * u1, (0.08 + 0.26 * u) * u1, night > 0.3 ? '255,232,210' : '246,246,242', 0.5 * (1 - u) * Math.min(1, u / 0.1) * (1 + 0.4 * rain));
+      }
+    }
+    c.restore();
   }
   /** FP3b — REAL DOORS: whoever is in the doorway `id` ('side' | 'shop'), drawn by the speakeasy between its opening + its leaf
    *  (doors.js — already clipped to the opening), dimming into the passage's darkness the deeper they go */
