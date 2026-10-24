@@ -357,7 +357,7 @@ recordings imported into theirs; every event that exists today calls its slot; a
   | 9 · seasons + weather | birdsong-morning, crickets-night, wind-leaves, wind-winter, snow-hush, foghorn, rain-pavement, rain-water |
   | 9 · the construction tower | tower-siren, tower-horn, implosion-charges, implosion-rumble, hammering, crane |
   | 10 · party nights + fireworks | firework-launch, firework-burst, firework-burst-far, firework-crackle, crowd-cheer, party-yacht-music, helicopter-landing |
-  | 6b + the sky | helicopter, airliner-far, prop-plane, jet-flyby, balloon-burner, geese, drone-swarm, ufo-hum, ufo-beam, tr3b-drone, tr3b-crackle, tr3b-power-down, witch-cackle, sleigh-bells |
+  | 6b + the sky | **helicopter** (2 takes), **airliner-far**, **prop-plane**, **jet-flyby**, **balloon-burner** (5 takes), **geese**, **drone-swarm**, **ufo-hum**, **ufo-beam**, **tr3b-drone**, tr3b-crackle, **tr3b-power-down**, witch-cackle, sleigh-bells (Oct 24 — THE SKY SOUNDS below) |
   | legendary | ghost-ship-creak, ghost-bell, monster-splash |
   Not on the hunt list, added for events that already exist: `door-knock` (tapping the door), `boat-putter` (the water taxi), `drone-swarm` (the drone
   show). Thunder (audio/weather/) and the neon (audio/sfx/) keep their own recordings.
@@ -368,7 +368,8 @@ recordings imported into theirs; every event that exists today calls its slot; a
   gulls fly: a call every ~20–60 s, fewer with fewer gulls, none at night — `birds.debug().who.gulls`), boat-putter (the water taxi crossing), foghorn
   (real fog > 0.45: every ~40–80 s, from the lighthouse's side); `ambience.js#knock` → door-knock and `#fireworkBurst` → firework-burst once filled (the
   synthesized ones until then). Waiting for their events (Parts 7–11): the rest — e.g. ships-bell / steam-whistle / ship-horn are the CITY SCHEDULE's.
-- **THE CARS — wired in 8a** (`screens/harbor/roadlight.js`: a pass on the implied road plays a take as it starts; the headlights peak at the take's `peak`). **The API:** `harbor().sounds.play('car-1920s-pass', { pan, gain })` (in scene.js: `snd.play(…)`; anywhere:
+- **THE CARS — wired in 8a** (`screens/harbor/roadlight.js`: a pass on the implied road plays a take as it starts; the headlights peak at the take's `peak`
+  — **superseded by FP3 below**: the pass's own take, placed on the clock). **The API:** `harbor().sounds.play('car-1920s-pass', { pan, gain })` (in scene.js: `snd.play(…)`; anywhere:
   `audio/city-sound.js#citySound`) → `{ take, peak, dur, stop(fade) }` or null. `peak` = seconds after the start when the car is NEAREST (the
   loudest 400 ms: 8.6–9.4 s) — start the sound `peak` s before the headlights sweep the middle; `pan` −1…1 follows the direction; `gain` × the slot's
   0.12. Takes: the two 1929 Volvo passes (weight 1 each), the 1945 Mercedes truck (0.35), the 1954 MG (0.15, rare).
@@ -515,7 +516,88 @@ The owner: the water FAR too loud ("like you're right next to a lake", noticeabl
 - **Tests:** `city-sounds.test.mjs` (the bed's levels + duck / hold, the gulls' pattern, the debug switches); e2e-harbor `sounds` (the water
   through its 1.6 kHz low-pass under the day hum, the bed × 0.71 with the music on, × 1 with it off).
 - **Known issues:** only the bed ducks (the sky loops — helicopter, airliner — and the one-shots don't); levels by LUFS arithmetic, not by ear
-  (the owner's ear decides); the wait-for-the-music hold is unit-tested only (in headless Chrome the music sounds at once).
+  (the owner's ear decides); the wait-for-the-music hold is unit-tested only (in headless Chrome the music sounds at once). (Oct 24: the sky now
+  ducks with the bed — THE SKY SOUNDS below.)
+
+## FP3 — THE CAR AND ITS SOUND IN SYNC (Oct 24 2026; the owner's iPhone) — `core/city-sounds.js`, `audio/city-sound.js`, `screens/harbor/roadlight.js`, `core/harbor-promenade.js#carAt`
+The owner: a car crossed the street under the resting dock and its sound came **~5–6 s after it had passed**.
+- **The cause** (measured, not the recordings): the car is drawn on the CITY'S CLOCK — nearest at the pass's centre, t0 + 9 s (`ROAD_PASS.peak`);
+  its sound was started by `citySound` **whenever its file had been fetched + decoded** (`load()` → `e.p.then(start now)`), and the centre was
+  taken as t0 + the take's peak — so every second of that wait put the sound's loudest moment a second behind the car. The wait was real on a
+  phone: nothing was fetched ahead; `pickTake` never repeats a take, so most passes asked for a file not yet decoded (the one-shots' buffers are
+  LRU, 10 MB, and each car take is ~2.3 MB decoded); `/audio` passes the service worker (a network fetch the first time, a week's HTTP cache
+  after) + iOS's decode — and a playback-rate jitter (±3 %) shifted the peak ±0.3 s on top. **The recordings' peaks were right** (re-measured
+  as the loudest 0.3 s of the RMS envelope: 8.65 / 9.35 / 9.45 / 9.35 s vs the stored 8.6 / 9.12 / 9.36 / 9.22 — within 0.25 s).
+- **The fix — the sound placed ON THE CLOCK:** `citySound(slot, { take, sync: { peakIn, pre, fade, late } })` asks `peakIn()` (s from now to the
+  car's centre) **when its buffer is ready** and places the take with `syncStart` (PURE): its PEAK lands on the centre — the start delayed when
+  early; joined part-way (an offset into the take, a 0.8 s fade-in) when late; **silent when the centre is under 1 s away** (never out of sync).
+  A synced sound plays at exactly rate 1 (no jitter). The NEXT pass's take is fetched + decoded ~12 s ahead (`cityPrefetch`), so normally there
+  is no wait at all. Measured in Chrome with an artificial 2.5 s delay on every car file: the sound's peak −0.13 … +0.01 s from the car's
+  mid-crossing (it was 2.5 s + the decode behind before).
+- **The pass's own take** (`takeAt(slot, pass.take)`: weighted like `pickTake`, but a pure function of the clock's pass — the same take, the
+  same car, the same timing on every phone). **The car's speed from its take** (`crossFor(take)` → `carSpeed(cam, z, cross)`): it crosses the
+  visible street (entering → leaving) in the take's SWELL — where its RMS envelope stays within 15 dB of the peak (`sw`, measured by the
+  importer), clamped to 2.6–7 s: the Volvo passes 4.25 / 3.95 s, the MG (a quick sporty pass, 1.5 s of swell) 2.6 s, the truck (a broad
+  swell) 7 s. Mid-crossing = the centre = the take's peak. **The sound starts just before the car enters:** `carPre(cross)` = cross / 2 +
+  `CAR_LEAD` 1.5 s of the take before its peak (the far approach before that is skipped, faded in over 0.8 s).
+- **The pan follows the car** (`panOf(x, half)` = 0.6 · tanh(x / half), x the car's world x, half the visible street's half-width at its lane):
+  smooth, ±0.6 at most (~0.46 at the screen's edge), left → right for a car driving right; updated ~8× a second with a 0.15 s ramp
+  (`handle.set({ pan })`; a StereoPannerNode, or an equal-power PannerNode where there's none). It pans on after the next pass begins (the
+  sound keeps its own pass's timing).
+- **Kept:** while the dock covers the street the sound alone plays (a car passing behind); the headlight sweeps / the day shadow (the implied
+  light) use the same centre + speed (`xAt` in roadlight.js), so light, car and sound agree. `&force=road-pass` passes (every 13 s, the centre
+  3 s into the slot) now sound too — joined part-way (they never did: the old rule only played a pass caught in its first 1.5 s).
+- **Debug:** `harbor().road.pass` `{ id, dir, center, take, cross }`, `.sound` `{ take, started, late }`; the player's `cityLog` rows carry
+  `off` (s into the take) + `wait` (s until it starts), or `late: true`.
+- **Tests:** `tests/harbor-sounds.test.mjs` — the takes' measured peaks + swells; `takeAt` deterministic + weighted; `syncStart` (early / on time /
+  late / too late / `pre`) and, for every take and every wait 0–12 s, the peak lands on the centre or the sound is silent (the old way: late
+  by the wait); the car on screen exactly `cross` s, mid-crossing at the centre, the sound starting 1.5 s before it enters (four screens); the
+  empty-slot speed unchanged; the pan smooth, ±0.6, left → right.
+
+## THE SKY SOUNDS (Oct 24 2026; 6b's sky + today's events) — `scripts/add-city-sfx.py`, `core/city-sounds.js`, `screens/harbor/sounds.js`
+The owner's sky folder (`~/Downloads/city-sfx`, the "SKY SOUNDS" block of its `credits.txt`: every file CC0 or Sonniss GDC; four are the Pixabay
+MP3 copies of CC0 Freesound originals — noted in the credits; drop the lossless originals in under the same names and re-run to upgrade). Her
+notes were picked by measurement, not by ear: **every trim was CONFIRMED by analysis** — per-second band energies (< 80 Hz, 80–300, 300 Hz–3 kHz,
+3–8 kHz), the 0.3 s RMS envelope, spectrograms (0–4 kHz for voices / PA / crowd: formant movement, syllabic 3–8 Hz bursts; 0–12 kHz for the
+turbine), narrow-band peaks for drones. MD5s match `credits.txt`. **+3.19 MB** (16 files; `audio/city/` 5.54 MB in all), the same encode (mono
+32 kHz MP3 64 kbps); the low / distant ones decode at 16 kHz (`r`: half the memory).
+- **The importer's RECIPE** (a `CUTS` row's extras): `lp` (a low-pass: distance), `notch` [Hz] (a modern drone's lines), `lowmid` (+dB at 300 Hz),
+  `layers` [(offset s, rate, gain)] (a loop built from detuned, offset copies), `blackout` (s: the mains hum cut + a thump → `hit`); `ALIAS` maps
+  a source named after what it is to its slot. A one-shot's `peak` is now the RMS envelope's (0.3 s) and it carries its swell `sw`.
+  | slot | source → kept | length · size | processing | what was cut, and why |
+  | --- | --- | --- | --- | --- |
+  | helicopter (take 1) | heli-flyby.mp3 (0:44) → **1.0–44.0 s** | 43 s · 337 KB | low cut 100 Hz, fades 2 / 2 s | ~all of its energy is wind rumble under 80 Hz: the chop (100 Hz–1.5 kHz) is the sound; no voices |
+  | helicopter (take 2) | heli-flyby-2.wav (0:36) → **whole** | 35.6 s · 279 KB | 90 Hz, fades 2.5 / 3 s | a clean closer swell (8–18 s), a ground-reflection comb; nothing else |
+  | airliner-far | airliner-high.wav (1:11) → **4.5–46.0 s** | 41.5 s · 325 KB | 90 Hz, fades 3.5 / 4 s | its swell 5–35 s (peak 26 s); from ~36 s leaves + wind (3–8 kHz) take over — cut after 46 s |
+  | prop-plane | prop-plane.mp3 (0:41, "a vintage plane at an airshow") → **1.0–40.0 s** | 39 s · 305 KB | 90 Hz, fades 2 / 3 s | two swells (4–12 s, 19–35 s), engine harmonics only: **no PA, crowd or voices found** (no formants, no syllabic bursts) — nothing to cut |
+  | jet-flyby | jets-formation.wav (0:40, F-16s right → left) → **11.0–34.0 s** | 23 s · 180 KB | 90 Hz, fades 1.5 / 4 s | a lone jet at 4–9 s left out; THE FORMATION 12–23 s + its roar fading to 34 s; silence after |
+  | balloon-burner ×5 | balloon-burner.mp3 (0:49, LOUD, clipped) → **0–5.6, 5.85–10.9, 11.3–14.6, 15.75–21.5, 22.45–32.0 s** | 3.3–9.6 s · 26–75 KB | 100 Hz + **low-pass 2.2 kHz** (far off), fades 0.1–0.15 / 0.7–1 s | the bursts found on the envelope (> −24 dB): the notes' "6–14 s" is two bursts (a 1.1 s gap) — two takes; "22–37 s" — the long 22.7–31.5 s burn, the little gusts after it left out; the rare long ones weighted down |
+  | geese | geese.mp3 (1:38, Brent geese) → **12.0–34.0 s** | 22 s · 173 KB | 100 Hz + **notches 285.3 / 297.5 / 387 Hz** | **a MODERN engine drone** under the whole recording (lines +13–21 dB over the floor, loudest 9–20 s) — notched out (gone after: no line above the noise); the far chatter + the flock overhead (22–33 s); the notes' 5–12 s left out so the flyover lines up with a V's ~30 s crossing |
+  | drone-swarm (loop) | drone-swarm.wav (1:10, ONE quadcopter, a coil mic) → **3–40 s ×5 layers** + a 3 s tail | 40 s · 337 KB | 110 Hz + **low-pass 1.4 kHz**; five copies offset 0 / 5.5 / 11 / 16.5 / 22 s, rates 1 / 0.968 / 1.034 / 0.955 / 1.021, gains 1–0.5 | a 50 Hz mains line (+37 dB: the coil mic) under the low cut; the whine (400 Hz–1 kHz) kept, nothing above 2.5 kHz (−93 dB): **a soft hum, never a mosquito**; seam −0.3 dB |
+  | ufo-hum (loop) | ufo-hum.wav (2:39) → **41.0–71.0 s** + tail | 30 s · 259 KB | 80 Hz + low-pass 2.5 kHz | the best seam inside the notes' 20–80 s (scanned; longer windows never closed on themselves: the pad evolves); seam +0.0 dB. **Its key:** partials at 41.5 Hz (≈ E1), 70.8 Hz (between C♯2 and D2), 729 / 791 / 883 Hz — no one key: kept low + soft-topped; **6b should duck + low-pass it under the music** (the loop slot's `lp` exists) |
+  | ufo-beam | ufo-beam.wav (0:18, a riser) → **3.0–17.0 s** | 14 s · 110 KB | 90 Hz, fades 0.4 / 1.5 s | the rise to its peak (6.65 s in) + the reverb tail; decodes at 32 kHz (its sheen) |
+  | tr3b-drone (loop) | tr3b-drone.wav (3:00, 104 MB — **never copied**) → **68.0–108.0 s** + tail | 40 s · 337 KB | **no low cut** (a 25 Hz subsonic only) + **+3 dB at 300 Hz** | flat 20–400 Hz: the low-mids kept (a phone's speaker still hears it); seam searched ±10 s → +0.2 dB |
+  | tr3b-power-down | tr3b-powerdown.wav (2:46, a Black Hawk's turbine) → **131.5–162.0 s** | 30.5 s · 239 KB | 25 Hz + **low-pass 6 kHz** + **THE BLACKOUT** | **the notes' 0:12–0:32 is only the rotor wash thinning — no wind-down**; the TURBINE CUTS at 134.75 s (a clunk, then its whine gliding ~10 → 1 kHz for 30 s): that's the power-down. Built on it: the city's 60 Hz mains hum (+ harmonics) under the roar until the clunk, cut dead (8 ms) with a LOW THUMP (55 → 38 Hz + harmonics to ~170 Hz, 0.35 s) — `hit: 3.25` s into the take (= its peak) |
+- **Loops checked by analysis:** the runtime crossfade simulated (body → the equal-power seam → the next pass): the level jump across every seam
+  within the body's own variation (drone-swarm 0.8 / ufo-hum 1.8 / tr3b-drone 0.6 dB vs the body's max 0.9 / 1.8 / 0.8), the low/high balance
+  steady.
+- **The mix — WELL UNDER the bed** (each file's LUFS × its slot gain; the day hum −43.6): airliner-far 0.024 → **−52.8** · helicopter 0.037 → −49 ·
+  prop-plane 0.033 → −50 · jet-flyby 0.035 → −49.5 · balloon-burner 0.035 → −49.5 (+ its low-pass) · geese 0.05 → −46.8 · drone-swarm 0.03 →
+  −54.9. **The sky now ducks with the bed** under the music (× bedMix's `k` 0.71). The flybys' peaks run ~5–6 dB over their integrated level: an
+  airliner at its nearest still under the hum.
+- **The wiring** (`screens/harbor/sounds.js`; `run(slot, gain, pan)` = the FLYBYS: a slot's takes chained while their thing is up — each take its
+  own swell, the next one (never the same twice running) starting when the playing one has 2.5 s left (`chainDue`), level + pan ramped with the
+  thing, faded out when it's gone): **helicopter** (`air.debug().heli`: hover 1 / flying 0.75, panned with its x) · **airliner-far** (the loudest
+  plane crossing: `sin(πk)` × its size, from the START of its crossing — the take's swell peaks ~22 s in, mid-crossing on a phone — panned) ·
+  **prop-plane** (`banner.on()` / `smoke.on()`) · **geese** (`birds.debug().geese` + the new `geeseX`: ONE flyover a V — it was a honk every
+  2.5–7 s — panned with the V, faded as it leaves) · **drone-swarm** (a bed while `drones.on()`) · **balloon-burner** (a burn every 6–18 s while
+  `balloons.on()`). jet-flyby / ufo-hum / ufo-beam / tr3b-drone / tr3b-power-down are filled for 6b (no event yet). Debug: `harbor().sounds.runs`.
+- **Tests:** `tests/harbor-sounds.test.mjs` — every file in its slot; the kinds; the cuts (the airliner before the leaves, the formation not the lone
+  jet, the geese, the blackout's `hit` on the turbine's clunk = its peak); the loops' windows; the 16 kHz decodes; the flybys ≤ 45 s; the levels
+  under the bed; `chainDue`. `city-sounds.test.mjs` — the filled slots, every file real / matching its hash / levelled, the folder < 6 MB.
+- **Known issues:** levels by LUFS arithmetic, not by ear; the burner / geese / heli-flyby / prop-plane are the lossy Pixabay copies (the lossless
+  CC0 originals: credits.txt's Freesound links); the airliner's take starts with its crossing, so a crossing longer than ~40 s (a wide desktop)
+  chains a second take.
 
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,

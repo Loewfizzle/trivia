@@ -93,7 +93,7 @@ for (const k of Object.keys(SIZES)) {
       assert.ok(ptAt(cam, L.lamps[0].h, L.lamps[0].z) > 62 * f && ptAt(cam, L.lamps[0].h, L.lamps[0].z) < 78 * f);
       // (FP2: no curb maple on the phone any more — the rule holds for the panorama's curb maples; the phone's curb crabapple ~47 pt)
       assert.ok(ptAt(cam, PROM_PIECE.maple.w, 52.75) > 48 * f && ptAt(cam, PROM_PIECE.maple.w, 52.75) < 64 * f);
-      const crab = L.trees.find(t => t.kind === 'crab'); assert.ok(ptAt(cam, crab.r * 2, crab.z) > 40 * f && ptAt(cam, crab.r * 2, crab.z) < 54 * f, `the curb crabapple ${ptAt(cam, crab.r * 2, crab.z)}`);
+      const crab = L.trees.find(t => t.kind === 'crab'); assert.ok(ptAt(cam, crab.r * 2, crab.z) > 48 * f && ptAt(cam, crab.r * 2, crab.z) < 64 * f, `the bench's crabapple (PF: bigger, ~56 pt) ${ptAt(cam, crab.r * 2, crab.z)}`);
       assert.ok(ptAt(cam, L.signals[0].h, L.signals[0].z) > 50 * f && ptAt(cam, L.signals[0].h, L.signals[0].z) < 60 * f);
     } else if (s.H < 500) {
       assert.ok(person >= 8.5, `sideways people ${person}`);   // the owner's call: the whole city, smaller
@@ -1852,7 +1852,8 @@ test("8a — THE BILLBOARD on the speakeasy's roof: over the left half-plus of t
     const dunY = project(cam, 0, b.dun, b.z)[1], parY = project(cam, 0, SPEAK_V.parapet, s.z0)[1];
     assert.ok(dunY < parY - 4 * cam.F / 600, `${k}: the feet ${(parY - dunY).toFixed(1)} pt above the parapet`);
     // FP (the owner: the tall open frame showed the brick city through the gap — "chaotic"): a short frame, ≤ ⅙ of the board, the
-    // board's foot 1.5–6 pt above the string lights' posts (on the parapet's front edge) — never behind them, never a tall gap
+    // board's foot 1.5–6 pt above the string lights' posts (on the parapet's front edge) — never behind them, never a tall gap.
+    // (PF: the lights + their posts are OFF until 7b — strings.js#STRINGS_ON — this keeps the line they return to clear of the board)
     const open = b.y0 - b.dun, hb = b.y1 - b.y0;
     assert.ok(open / hb > 0.05 && open / hb <= 1 / 6, `${k}: frame ${(open / hb).toFixed(2)} of the board`);
     const footY = project(cam, 0, b.y0, b.z)[1], strY = project(cam, 0, SPEAK_V.parapet + 1.12, s.z0 - 0.05)[1], gap = strY - footY, pt = cam.F / 600;
@@ -2199,14 +2200,14 @@ test('8a — THE PROMENADE: the centrepiece spot in the open plaza (clear of the
     for (const sg of L.signals) assert.ok(P(sg.x, 0, sg.z)[0] > wx + base, `${k}: the ${sg.id} stop light right of the wheel's base`);
   }
 });
-test('FP — THE PROMENADE RE-LAYOUT: furniture on the edges (the back row clear of the stop lights, the lantern + the crossing\'s landing), an open floor (only the medallion, the cart, the corner urn), the front edge clear (two corner globes + the framing maple), the bench by a tall lamp', () => {
+test('FP / PF — THE PROMENADE: furniture on the edges (the back row clear of the stop lights, the lantern + the crossing\'s landing), an open floor, the front edge clear (two corner globes + the framing maple), the bench by a tall lamp', () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
     const crown = t => cam.F * t.w / 2 / t.z;
     // THE BACK ROW (the curb): (FP2) the crabapple, two tall lamps, the bench — every tree's crown clear of both stop lights' heads + the lantern
     const back = [...L.trees, ...L.lamps].filter(it => it.z >= 50);
     assert.deepEqual(back.filter(t => t.kind === 'maple' || t.kind === 'crab').map(t => t.kind), ['crab'], `${k}: one curb tree — the crabapple (FP2: the red maple by the blade is gone)`); assert.equal(back.filter(l => l.kind === 'tall').length, 2, `${k}: two tall lamps`);
-    assert.ok(L.bench.z >= 50, `${k}: the bench in the back row`);
+    assert.ok(L.bench.z > 47 && L.bench.z < 50, `${k}: the bench a little forward of the back row (PF)`);
     const keep = [...L.signals.map(sg => sx(sg)), sx(L.crosswalk.lantern)];
     for (const t of L.trees.filter(t => t.z >= 50)) for (const kx of keep) assert.ok(Math.abs(sx(t) - kx) > crown(t) + 4, `${k}: a curb maple (${sx(t).toFixed(0)}) clear of a stop light / the lantern (${kx.toFixed(0)})`);
     // the crossing's landing on the curb stays open: no tree trunk, lamp post or bench in the crosswalk's width
@@ -2222,9 +2223,9 @@ test('FP — THE PROMENADE RE-LAYOUT: furniture on the edges (the back row clear
     const globes = front.filter(l => l.kind === 'globe').map(sx).sort((a, b) => a - b), [faceX] = P(s.x1, s.z0);
     assert.equal(globes.length, 2, `${k}: two globes`); assert.ok(Math.abs(globes[0] - faceX) < 0.04 * cam.W && globes[1] > 0.93 * cam.W, `${k}: one at each corner (${globes.map(v => v.toFixed(0))})`);
     const big = front.filter(t => t.kind === 'maple'); assert.equal(big.length, 1, `${k}: one framing maple`);
-    const cartR = sx(L.cart) + cam.F * 1.25 / L.cart.z; assert.ok(sx(big[0]) - crown(big[0]) >= cartR - 4 && sx(big[0]) > 0.82 * cam.W, `${k}: the framing maple at the right edge, clear of the cart`);
-    // the bench in a tall lamp's light (it must read at night)
-    assert.ok(L.lamps.some(l => l.kind === 'tall' && Math.hypot(l.x - L.bench.x, l.z - L.bench.z) < 3.5), `${k}: the bench by a tall lamp`);
+    const inR = sx(L.medallion) + cam.F * L.medallion.ring / L.medallion.z; assert.ok(sx(big[0]) - crown(big[0]) >= inR && sx(big[0]) > 0.82 * cam.W, `${k}: the framing maple at the right edge, clear of the inlay`);
+    // the bench in a tall lamp's light (it must read at night: PF — the left flanking lamp behind its right end)
+    assert.ok(L.lamps.some(l => l.kind === 'tall' && Math.hypot(l.x - L.bench.x, l.z - L.bench.z) < 5.5 && sx(l) > sx(L.bench)), `${k}: the bench by a tall lamp`);
   }
 });
 test('8a — THE SEASON by the real date (Michigan), forced by &season=, the south shifted', () => {
@@ -2319,7 +2320,7 @@ test('8a — THE TREES draw in every season + look with finite colours; cast sha
   const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = { ...promenadeLayout(cam), cam };
   { const { PIECE: PC } = await import('../js/core/harbor-promenade.js'); L.trees = [...L.trees, { x: 0, z: 49, kind: 'crab', trunk: PC.crab.trunk, w: PC.crab.w, h: PC.crab.h, r: PC.crab.w / 2, grate: true }]; }   // (FP: a crabapple — the panorama's)
   const rec = () => {
-    const o = { bad: [], fills: 0 }, base = { fill: () => { o.fills++; } };
+    const grad = { addColorStop: () => {} }, o = { bad: [], fills: 0 }, base = { fill: () => { o.fills++; }, createLinearGradient: () => grad, createRadialGradient: () => grad };
     const chk = v => { if (typeof v === 'string' && /NaN|undefined|Infinity/.test(v)) o.bad.push(v); };
     const num = (...a) => { if (a.some(v => typeof v === 'number' && !Number.isFinite(v))) o.bad.push('a NaN point'); };
     return { o, x: new Proxy(base, { get: (t, k) => (k in t ? t[k] : num), set: (t, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle') chk(v); t[k] = v; return true; } }) };
@@ -2576,38 +2577,44 @@ test("FP — THE BARBER POLE turns continuously: the same phase at 60 and 30 Hz,
 // ---------------------------------------------------------------- FP2 — THE PROMENADE (the owner's tweaks: no red maple by the blade, no urn,
 // the medallion in the middle in front of the crossing + the cart left of it, the centrepiece's height cap, the bench + its crabapple left of
 // the cart's umbrella, no parked bus, the lantern's post on the far kerb, the crabapple's seasons, the framing maple's inside)
-import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR } from '../js/core/harbor-promenade.js';
+import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR, CART_SHOWN } from '../js/core/harbor-promenade.js';
 import { benchBox, umbrellaBox } from '../js/screens/harbor/props.js';
 import { PARKED_TRAFFIC, FAR_KERB, drawTraffic, drawLanternBody } from '../js/screens/harbor/road.js';
-test("FP2 — THE PROMENADE: the medallion in front of the crossing, the cart left of it (its 8b rule), the bench + crabapple left of the umbrella, the centrepiece's height cap, the corner clean", () => {
+test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flanking tall lamps, the bench + its crabapple just left of the crossing (the blade free), the cart hidden (its 8b rule kept), the centrepiece's height cap, the corner clean", () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { s, cam, L } = setup(k), f = s.W / 402, P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
-    const m = L.medallion, mx = sx(m), ring = cam.F * m.ring / m.z, cx = sx(L.cart), bx = sx(L.bench), cartW = cam.F * 1.3 / L.cart.z;
-    // the spots (402: the medallion ~273 — the crossing's landing's centre, the cart ~213, the bench ~158; the others by the width)
-    assert.ok(Math.abs(mx - 273 * f) < 6 * f && Math.abs(cx - 213 * f) < 6 * f && Math.abs(bx - 158 * f) < 6 * f, `${k}: medallion ${mx.toFixed(0)}, cart ${cx.toFixed(0)}, bench ${bx.toFixed(0)}`);
+    const m = L.medallion, mx = sx(m), ring = cam.F * m.ring / m.z, bx = sx(L.bench);
+    const crab = L.trees.find(t => t.kind === 'crab'), cx = sx(crab), crown = cam.F * crab.w / 2 / crab.z;
+    // the spots (402: the inlay ~268 — the crossing's centre, the bench ~207, the crabapple ~181)
+    assert.ok(Math.abs(mx - 268 * f) < 6 * f && Math.abs(bx - 207 * f) < 6 * f && Math.abs(cx - 181 * f) < 6 * f, `${k}: inlay ${mx.toFixed(0)}, bench ${bx.toFixed(0)}, crab ${cx.toFixed(0)}`);
     const [c0] = P(L.crosswalk.x0, 53), [c1] = P(L.crosswalk.x1, 53);
-    assert.ok(mx > c0 && mx < c1, `${k}: the medallion in front of the crossing (${c0.toFixed(0)}–${c1.toFixed(0)})`);
-    assert.ok(bx < cx && cx < mx, `${k}: bench · cart · medallion, left to right`);
-    assert.ok(cx + cartW < mx - ring - 3, `${k}: the cart's body clear of the ring (${(mx - ring - cx - cartW).toFixed(1)} pt)`);
-    // the door + the shop window clear of the cart and the medallion; nothing at the speakeasy's corner (no urn, no curb tree there)
+    // (the crossing's axis on screen: the crosswalk's middle, z 59 — the pieces stand by screen fraction)
+    const ax = (P(L.crosswalk.x0, 59)[0] + P(L.crosswalk.x1, 59)[0]) / 2;
+    assert.ok(Math.abs(mx - ax) < 3 * f, `${k}: the inlay on the crossing's axis (${mx.toFixed(0)} vs ${ax.toFixed(0)})`);
+    // THE TALL PAIR flanking the crossing: one either side, symmetric about its centre, outside the stop lights
+    const tall = L.lamps.filter(l => l.kind === 'tall').map(sx).sort((a, b) => a - b), sg = L.signals.map(sx).sort((a, b) => a - b);
+    assert.equal(tall.length, 2); assert.ok(tall[0] < c0 && tall[1] > c1 && tall[0] < sg[0] && tall[1] > sg[1], `${k}: the tall lamps flank the crossing (${tall.map(v => v.toFixed(0))})`);
+    assert.ok(Math.abs((tall[0] + tall[1]) / 2 - ax) < 3 * f, `${k}: a matched pair, symmetric about the crossing`);
+    // the bench + its crabapple just LEFT of the crossing; the crabapple's crown clear of the blade (the blade free, the tree shows)
+    const bw = cam.F * L.bench.w / 2 / L.bench.z;
+    assert.ok(bx + bw < c0 && cx < bx, `${k}: the crabapple · the bench · the crossing, left to right`);
+    const blade = bladeGeo(speakGeo({ ...L, cam })).rect;
+    assert.ok(cx - crown >= blade.x + blade.w - 1, `${k}: the crabapple's crown (${(cx - crown).toFixed(0)}) right of the blade (${(blade.x + blade.w).toFixed(0)})`);
+    assert.ok(cx + crown < tall[0] - cam.F * PROM_PIECE.tall.arm / 52.6 + 3 * f, `${k}: … and left of the flanking lamp's head`);
+    // the door + the shop window clear of the inlay; nothing at the speakeasy's corner
     const d = L.door, [w1] = P(L.speakeasy.x0 + L.speakeasy.shop.win[1], L.speakeasy.z0);
-    for (const x of [cx - cam.F * PROM_PIECE.cart.umb / L.cart.z, mx - ring]) assert.ok(x > d.x + d.w + 4 && x > w1, `${k}: clear of the door + the shop window`);
+    assert.ok(mx - ring > d.x + d.w + 4 && mx - ring > w1, `${k}: the inlay clear of the door + the shop window`);
     assert.equal(L.planters.length, 0, `${k}: no urn`);
-    const [faceX] = P(L.speakeasy.x1, L.speakeasy.z0);
-    for (const t of L.trees.filter(t => t.z > 50)) assert.ok(sx(t) > faceX + 30 * f, `${k}: no curb tree at the corner (${sx(t).toFixed(0)})`);
-    // THE CART'S RULE (8b): its route crosses the medallion; during an event it stops short — its rest spot already clear
-    assert.ok(P(L.cart.route.x0, L.cart.z)[0] < mx - ring && P(L.cart.route.x1, L.cart.z)[0] > mx + ring, `${k}: the route rolls across the medallion`);
+    // THE CART: hidden (CART_SHOWN) but kept — its 8b route + event rule still in the layout
+    assert.equal(CART_SHOWN, false); assert.equal(L.cart.shown, false);
+    assert.ok(P(L.cart.route.x0, L.cart.z)[0] < mx - ring && P(L.cart.route.x1, L.cart.z)[0] > mx + ring, `${k}: the route rolls across the inlay`);
     assert.equal(m.clear, EVENT_CLEAR); assert.ok(L.cart.stopX <= m.x - EVENT_CLEAR + 1e-9 && L.cart.x <= L.cart.stopX, `${k}: the rest spot outside the event's clearance`);
-    // THE BENCH vs THE UMBRELLA: never overlapping (a clear gap), the crabapple over the bench
-    const b = benchBox(cam, L.bench), u = umbrellaBox(cam, L.cart);
-    assert.ok(b.x + b.w + 2 < u.x || b.y > u.y + u.h, `${k}: the umbrella (${u.x.toFixed(0)}–${(u.x + u.w).toFixed(0)}) clear of the bench (${b.x.toFixed(0)}–${(b.x + b.w).toFixed(0)})`);
-    const crab = L.trees.find(t => t.kind === 'crab');
-    assert.ok(crab && Math.abs(sx(crab) - bx) < 8 * f, `${k}: the crabapple over the bench`);
+    assert.ok(!L.zones.block.some(b => b.x === L.cart.x && b.z === L.cart.z), `${k}: a hidden cart blocks nobody`);
     // THE HEIGHT CAP: under the game blade's bottom and the wheel's hub (by CENTRE_PAD), a Christmas tree's height at least
-    const bl = signSpots(L).find(sp => sp.id === 'n-blade'), blade = bl.rect.y + bl.rect.h, hub = P(L.wheel.x, L.wheel.z, L.wheel.y)[1];
-    const cap = centrepieceCap(cam, m, [blade, hub]), [, top] = P(m.x, m.z, cap);
+    const bl = signSpots(L).find(sp => sp.id === 'n-blade'), nb = bl.rect.y + bl.rect.h, hub = P(L.wheel.x, L.wheel.z, L.wheel.y)[1];
+    const cap = centrepieceCap(cam, m, [nb, hub]), [, top] = P(m.x, m.z, cap);
     assert.ok(cap >= 10 && cap < 13, `${k}: the cap ${cap} units`);
-    assert.ok(top >= blade + CENTRE_PAD - 0.01 && top >= hub + CENTRE_PAD - 0.01 && top < blade + CENTRE_PAD + 2, `${k}: its top ${top.toFixed(1)} under the blade ${blade.toFixed(1)} + the hub ${hub.toFixed(1)}`);
+    assert.ok(top >= nb + CENTRE_PAD - 0.01 && top >= hub + CENTRE_PAD - 0.01 && top < nb + CENTRE_PAD + 2, `${k}: its top ${top.toFixed(1)} under the blade ${nb.toFixed(1)} + the hub ${hub.toFixed(1)}`);
     assert.equal(centrepieceCap(cam, m, [P(m.x, m.z)[1]]), 0, 'no room → 0');
   }
 });
@@ -2851,4 +2858,187 @@ test('FP2 — NEON BY DEPTH at 390 / 402 / 430: no building in front shares its 
   const s0 = depthStrength({ z: 228 }), s1 = depthStrength({ z: 251 }), m0 = depthStrength({ z: 300 }), m1 = depthStrength({ z: 379 });
   assert.ok(s0.w > s1.w && s1.w > DEPTH[0].w * 0.93 && s0.w < DEPTH[0].w * 1.07 && s0.soft === s1.soft && m0.w > m1.w && m0.soft === m1.soft);
   assert.ok(depthStrength({ z: 251 }).w > depthStrength({ z: 253 }).w, 'the steps still step');
+});
+
+// ---------------------------------------------------------------- PF — THE INLAY / THE RIG / THE MAILBOX (core/harbor-centre.js PURE; props.js
+// drawInlay / drawMailbox / the test obelisk; screens/harbor/centre.js — harbor().centrepiece)
+import { INLAY, inlayPlan, wearAt, RIG, rigSpots, normCentre, rigLevel, centreActive, centreBox, MAX_LIGHTS } from '../js/core/harbor-centre.js';
+test('PF — THE INLAY: a brick compass rose — the bands nest (soldier ⊃ header ⊃ field ⊃ centre), every ring a multiple of 4, north away from us, the star inside the field; readable on the phones', () => {
+  const m = { x: 3, z: 44.8, ring: 2.6 }, pl = inlayPlan(m);
+  assert.equal(pl.R, 2.6);
+  for (const ring of [pl.soldier, pl.header, pl.centre, ...pl.courses]) assert.ok(ring.n >= 4 && ring.n % 4 === 0 && ring.r1 > ring.r0, `a ring of ${ring.n}`);
+  assert.ok(pl.soldier.r1 === pl.R && pl.soldier.r0 === pl.header.r1 && pl.header.r0 === pl.courses[pl.courses.length - 1].r1, 'soldier · header · field touch');
+  for (let i = 1; i < pl.courses.length; i++) assert.ok(Math.abs(pl.courses[i].r0 - pl.courses[i - 1].r1) < 1e-9 && pl.courses[i].off !== pl.courses[i - 1].off, 'the courses contiguous + staggered');
+  assert.ok(Math.abs(pl.courses[0].r0 - pl.centre.r1) < 1e-9 && pl.stone === pl.centre.r0, 'the field meets the centre ring, the stone inside it');
+  for (const c of pl.courses) assert.ok(c.r1 - c.r0 > 0.25 && c.r1 - c.r0 < 0.4, 'a course ~0.3 deep (exaggerated like the setts)');
+  // the star: 8 points, the 4 long (cardinal) ones reach the header course, the short ones about ⅔ of that; each split into two tones
+  assert.equal(pl.star.length, 8);
+  const north = pl.star.find(p => Math.abs(p.a - Math.PI / 2) < 1e-9);
+  assert.ok(north && north.cardinal && Math.sin(north.a) > 0.99, 'a long point due north (+z — away from us: the camera looks north)');
+  for (const p of pl.star) {
+    assert.ok(p.len <= pl.header.r0 + 1e-9 && p.len > pl.stone, 'inside the field');
+    assert.ok(p.cardinal ? p.len > 0.7 * pl.R : p.len < 0.6 * pl.R, `point ${p.a.toFixed(2)}: long ${p.cardinal}`);
+    assert.ok(p.tones.length === 2 && p.tones[0] !== p.tones[1] && p.tones.includes('buff'), 'two tones, one of them buff');
+  }
+  // on the phones: the inlay at its spot reads (≥ 66 pt across, ≥ 14 pt deep on screen), a field brick ≥ 3.5 pt long at the front
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), M = L.medallion, P = (x, z) => project(cam, x, 0, z), p2 = inlayPlan(M);
+    const w = P(M.x + M.ring, M.z)[0] - P(M.x - M.ring, M.z)[0], d = P(M.x, M.z - M.ring)[1] - P(M.x, M.z + M.ring)[1];
+    assert.ok(w >= 66 && d >= 14, `${k}: ${w.toFixed(0)} × ${d.toFixed(1)} pt`);
+    const c = p2.courses[p2.courses.length - 1], rm = (c.r0 + c.r1) / 2, a = -Math.PI / 2, da = Math.PI * 2 / c.n;
+    const bw = Math.hypot(...[0, 1].map(i => P(M.x + Math.cos(a + da) * rm, M.z + Math.sin(a + da) * rm)[i] - P(M.x + Math.cos(a) * rm, M.z + Math.sin(a) * rm)[i]));
+    assert.ok(bw >= 3.5, `${k}: a front brick ${bw.toFixed(1)} pt`);
+  }
+});
+test('PF — THE WEAR: 0..1, worn most along the line across the floor + toward the crossing, least at the border', () => {
+  const R = 2.6;
+  for (let u = -1; u <= 1; u += 0.1) for (let v = -1; v <= 1; v += 0.1) { const w = wearAt(u * R, v * R, R); assert.ok(w >= 0 && w <= 1 && Number.isFinite(w)); }
+  assert.ok(wearAt(0, -0.2, R) > 0.5, 'the middle well worn');
+  assert.ok(wearAt(0, -0.2, R) > wearAt(0, -0.95 * R, R) + 0.3 && wearAt(-0.7 * R, -0.2, R) > wearAt(-0.7 * R, -0.7 * R, R), 'the border + the corners least');
+  assert.ok(wearAt(0.3, 0.7 * R, R) > wearAt(-0.7 * R, 0.7 * R, R), 'the path back toward the crossing');
+});
+test('PF — THE RIG: four floor spots flush in the soldier course on the diagonals (two in front of a piece, two behind), clear of the star', () => {
+  const m = { x: 5.2, z: 44.8, ring: 2.6 }, pl = inlayPlan(m), sp = rigSpots(m);
+  assert.equal(sp.length, 4);
+  assert.equal(sp.filter(s => s.front).length, 2);
+  for (const s of sp) {
+    const r = Math.hypot(s.x - m.x, s.z - m.z);
+    assert.ok(r - RIG.ring > pl.soldier.r0 && r + RIG.ring < pl.soldier.r1, `inside the soldier course (r ${r.toFixed(2)})`);
+    assert.ok(r - RIG.ring > Math.max(...pl.star.map(p => p.len)) + 0.2, 'beyond the star\'s reach');
+    assert.ok(Math.abs(Math.abs(Math.cos(s.a)) - Math.SQRT1_2) < 1e-9, 'on a diagonal');
+    assert.equal(s.front, s.z < m.z);
+  }
+  assert.ok(RIG.lens < RIG.ring && RIG.ring < 0.25, 'small: a brass ring round a dark lens');
+});
+test('PF — THE CENTREPIECE\'s state: cleaned (the rig on with a piece, its colour + strength clamped, h within the cap, the lights capped), the level by the lamps, the event rule', () => {
+  const fn = () => {};
+  assert.equal(normCentre(null), null); assert.equal(normCentre({}), null); assert.equal(normCentre({ rig: { on: false } }), null);
+  const a = normCentre({ piece: fn, h: 30 }, 11.4);
+  assert.ok(a.piece === fn && a.rig.on === true && a.rig.k === 1 && a.h === 11.4 && a.lights.length === 0, 'a piece: the rig on, h capped');
+  assert.deepEqual(a.rig.col, [...RIG.col]);
+  assert.equal(normCentre({ piece: { draw: fn, light: fn }, h: 5 }, 11.4).h, 5);
+  assert.equal(normCentre({ piece: { nope: 1 } }), null, 'not a piece');
+  const b = normCentre({ piece: fn, rig: { on: false } });
+  assert.equal(b.rig.on, false);
+  const c = normCentre({ rig: { on: true, col: [300, -4, 100.4], k: 9 } });
+  assert.ok(c && !c.piece && c.rig.on && c.rig.k === 2, 'the rig alone (a show) may be on');
+  assert.deepEqual(c.rig.col, [255, 0, 100]);
+  const many = Array.from({ length: MAX_LIGHTS + 50 }, (_, i) => ({ x: i % 3, y: i % 7, z: 0, col: [255, 0, 0], tw: 99 }));
+  const d = normCentre({ piece: fn, lights: [...many, { x: NaN, y: 1, z: 0 }, null] }, 4);
+  assert.equal(d.lights.length, MAX_LIGHTS);
+  assert.ok(d.lights.every(l => l.y <= 4 && l.tw <= 8 && l.r > 0 && l.k >= 0), 'each light clamped (under the cap)');
+  // the level: with the street lamps (by day nothing), × k; off → 0
+  assert.equal(rigLevel(a, 0), 0); assert.equal(rigLevel(a, 1), 1); assert.equal(rigLevel(a, 0.5), 0.5);
+  assert.equal(rigLevel(b, 1), 0); assert.equal(rigLevel(c, 1), 2); assert.equal(rigLevel(null, 1), 0);
+  assert.ok(centreActive(a) && !centreActive(c) && !centreActive(null), 'an EVENT = a piece standing there (8b: the cart stops short)');
+});
+test('PF — the centrepiece\'s sprite box holds the inlay + the piece\'s height; THE TEST PIECE stands within the cap on every phone', async () => {
+  const { TEST_PIECE } = await import('../js/screens/harbor/props.js');
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { cam, L } = setup(k), m = L.medallion, P = (x, y, z) => project(cam, x, y, z);
+    const bl = signSpots(L).find(sp => sp.id === 'n-blade'), cap = centrepieceCap(cam, m, [bl.rect.y + bl.rect.h, P(L.wheel.x, L.wheel.y, L.wheel.z)[1]]);
+    assert.ok(TEST_PIECE.h <= cap, `${k}: the test piece ${TEST_PIECE.h} ≤ the cap ${cap}`);
+    const b = centreBox(cam, m, cap);
+    const [l] = P(m.x - m.ring, 0, m.z), [r] = P(m.x + m.ring, 0, m.z), [, near] = P(m.x, 0, m.z - m.ring), [, top] = P(m.x, cap, m.z);
+    assert.ok(b.x <= l && b.x + b.w >= r && b.y <= top && b.y + b.h >= near, `${k}: the box holds the ring + the cap`);
+    assert.ok(b.w * b.h < 300 * 260, `${k}: small (${b.w} × ${b.h} pt — not a full-screen layer)`);
+  }
+});
+test('PF — THE MAILBOX: by the front curb right of the crossing, left of the framing maple\'s trunk, above the dock, ~25–33 pt tall; nothing in front of the crossing', async () => {
+  const { mailboxBox } = await import('../js/screens/harbor/props.js');
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { s, cam, L } = setup(k), mb = L.mailbox, b = mailboxBox(cam, mb);
+    assert.ok(mb && mb.z < L.speakeasy.z0, `${k}: on the front walk (the front row's bake)`);
+    const [c1] = project(cam, L.crosswalk.x1, 0, 53), maple = L.trees.find(t => t.big), [mt] = project(cam, maple.x, 0, maple.z), trunk = cam.F * maple.trunk * 0.12 / maple.z;
+    assert.ok(b.x > c1 + 4, `${k}: right of the crossing (${b.x.toFixed(0)} > ${c1.toFixed(0)})`);
+    assert.ok(b.x + b.w < mt - trunk - 2, `${k}: left of the maple's trunk (${(b.x + b.w).toFixed(0)} < ${mt.toFixed(0)})`);
+    assert.ok(b.y + b.h < s.dock.y - 2, `${k}: its foot above the dock`);
+    assert.ok(b.h > 25 && b.h < 36, `${k}: ${b.h.toFixed(1)} pt tall`);
+    for (const l of L.lamps.filter(l => l.kind === 'globe')) assert.ok(Math.abs(project(cam, l.x, 0, l.z)[0] - (b.x + b.w / 2)) > b.w, `${k}: clear of the globe lamp`);
+    assert.ok(L.zones.block.some(z => Math.abs(z.x - mb.x) < 1e-9), 'the walkers go round it (8b)');
+  }
+});
+test('PF — the inlay, the mailbox + the test piece (+ its light pass) draw with finite colours in every look; the mailbox casts a shadow only in the sun', async () => {
+  const { drawInlay, drawMailbox, drawObelisk, obeliskLight, propShadow } = await import('../js/screens/harbor/props.js');
+  const { cam, L } = setup('402x874'), grad = { addColorStop() {} };
+  const rec = () => {
+    const o = { bad: [], soft: 0, fills: 0 }, base = { getTransform: () => ({ a: 2, b: 0, c: 0, d: 2, e: 0, f: 0 }), createLinearGradient: () => grad, createRadialGradient: () => grad, measureText: () => ({ width: 40 }), fill: () => { o.fills++; if (base.shadowBlur > 0) o.soft++; } };
+    const chk = v => { if (typeof v === 'string' && /NaN|undefined|Infinity/.test(v)) o.bad.push(v); };
+    return { o, x: new Proxy(base, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle' || k === 'shadowColor') chk(v); t[k] = v; if (k === 'shadowBlur' && !v) t[k] = 0; return true; } }) };
+  };
+  const looks = { day: { day: 1, gold: 0, night: 0, sunDir: 0.4, sunEl: 40, ovc: 0 }, gold: { day: 0, gold: 1, night: 0, sunDir: 1, sunEl: 6, ovc: 0 },
+    night: { day: 0, gold: 0, night: 1, sunDir: 0, sunEl: 6, ovc: 0, lamps: 1 }, overcast: { day: 1, gold: 0, night: 0, sunDir: 0, sunEl: 40, ovc: 0.75 } };
+  for (const [name, T] of Object.entries(looks)) {
+    const ctx = { season: 'autumn', phase: 0.5, lights: L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), lampK: T.lamps || 0, lightAt: T.night ? () => [120, 110, 90] : null, rig: { col: [...RIG.col], spots: rigSpots(L.medallion) } };
+    const { o, x } = rec();
+    drawInlay(x, cam, L.medallion, T, ctx); drawMailbox(x, cam, L.mailbox, T, ctx); drawObelisk(x, cam, L.medallion, T, ctx); obeliskLight(x, cam, L.medallion, T, ctx);
+    assert.deepEqual(o.bad, [], name);
+    assert.ok(o.fills > 200, `${name}: the inlay laid brick by brick (${o.fills} fills)`);
+    const sh = rec(); propShadow(sh.x, cam, L.mailbox, 'mailbox', T, ctx);
+    assert.equal(sh.o.soft, name === 'night' || name === 'overcast' ? 1 : 2, `${name}: the mailbox's shadows`);
+  }
+});
+test('PF — THE PREVIEW PANEL lists the centrepiece test under PROMENADE', () => {
+  const e = EVENTS.find(v => v.id === 'centrepiece-test');
+  assert.ok(e && e.cat === 'promenade' && e.ready !== false);
+});
+
+// ---------------------------------------------------------------- PF — THE STREET'S SURFACE / THE STRING LIGHTS OFF / THE BLADE'S LAMPS
+// (helper B: street.js, strings.js, speakeasy.js's blade, signs.js's billboard lamps)
+import { streetLook, CURB_STEP, SHEEN } from '../js/screens/harbor/street.js';
+import { STRINGS_ON, createStrings } from '../js/screens/harbor/strings.js';
+import { BLADE_LIGHT, bladeLamps, bladeLevel } from '../js/screens/harbor/speakeasy.js';
+const pfLum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+test('PF — THE STREET reads as its own surface: tarred setts darker + cooler than the promenade\'s, tar in the joints (never black at night), the worn paths\' sheen, a clear curb step', () => {
+  const PROM = { d: [154, 148, 140], n: [64, 59, 86] };      // (stage.js#SETT — the promenade's own setts, unchanged by PF)
+  for (const [name, T, prom] of [['day', { day: 1 }, PROM.d], ['night', { night: 1 }, PROM.n]]) {
+    const K = streetLook(T);
+    assert.ok(pfLum(K.sett) < 0.8 * pfLum(prom), `${name}: the street's setts ${pfLum(K.sett).toFixed(0)} vs the promenade's ${pfLum(prom).toFixed(0)}`);
+    assert.ok(K.sett[2] >= K.sett[0], `${name}: cool (blue ≥ red)`);
+    assert.ok(pfLum(K.grout) < 0.75 * pfLum(K.sett), `${name}: tar in the joints, darker than the stones`);
+    assert.ok(pfLum(K.grout) > (name === 'night' ? 20 : 40), `${name}: the joints never black (${pfLum(K.grout).toFixed(0)})`);
+    assert.ok(pfLum(K.gut) < pfLum(prom), `${name}: the gutter darker than the promenade's stone`);
+  }
+  assert.ok(SHEEN > 0.1 && SHEEN < 0.5, 'the worn paths: a glaze, never water');
+  const C = CURB_STEP;
+  assert.ok(C.face[1] > C.face[0] && C.face[0] > 0.1 && C.faceN[1] > 0.1, 'the curb\'s face deeper in shade toward its foot, day + night');
+  assert.ok(C.arris > 0.4 && C.arrisN > 0.2 && C.shadow > 0.2, 'a crisp lit arris day + night, the curb\'s shadow on the gutter');
+});
+test('PF — THE STRING LIGHTS are OFF (their posts too) until 7b; the code stays ready (the swags + bulbs still lay out on the parapet)', () => {
+  assert.equal(STRINGS_ON, false);
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { L } = setup(k), s = createStrings();
+    s.layout(L);
+    const d = s.debug();
+    assert.ok(d.runs >= 5 && d.bulbs >= 20, `${k}: ${d.runs} swags, ${d.bulbs} bulbs ready for 7b`);
+  }
+});
+test('PF — THE BLADE\'S LAMPS: tight cones down the board — the face lit evenly top to bottom, the two cones reach both edges at the foot, the mouths above the board', () => {
+  const B = BLADE_LIGHT;
+  for (let i = 0; i < 3; i++) {
+    assert.ok(B.cone[i] >= B.fill[i] && B.hot[i] >= B.cone[i], 'hot ≥ cone ≥ fill');
+    assert.ok(B.foot[i] >= 0.9 * B.cone[i], 'even top to bottom: the foot ≥ 90 % of the cone (FP: 40 %)');
+    assert.ok(B.fill[i] >= 0.6 * B.cone[i], 'between the cones never dark');
+  }
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { L } = setup(k), R = bladeGeo(speakGeo(L)).rect, ls = bladeLamps(bladeGeo(speakGeo(L))), w1 = R.w * B.spread;
+    assert.ok(Math.min(...ls.map(l => l.x - w1)) <= R.x + 0.5 && Math.max(...ls.map(l => l.x + w1)) >= R.x + R.w - 0.5, `${k}: the cones cover the foot`);
+    // the cones overlap only a little in the middle (no doubled bright stripe; 'lighten' keeps it at one cone's light anyway)
+    assert.ok(ls[0].x + w1 - (ls[1].x - w1) < R.w * 0.75, `${k}: the cones are cones, not one wash`);
+    for (const l of ls) assert.ok(l.y < R.y, `${k}: the lamp's mouth above the board`);
+  }
+});
+test('PF — THE BLADE\'S LEVEL: a dark board back to full + a boost (FP\'s × 0.78 undone); a glaring light board (OVERCLOCK, SLIP, BLUFF) steps back, well back on a party night — never the biggest warm slab', () => {
+  const lumOf = id => { const f = dayPaint({ id }).face; return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; };
+  for (const id of ['agent', 'stakes', 'signal', 'cipher', 'pulse', 'prism', 'golf', 'rum', 'gridlock']) {
+    const n = bladeLevel(lumOf(id)), p = bladeLevel(lumOf(id), 1);
+    assert.ok(n.lit === 1 && n.boost > 0.2, `${id}: full + a boost`);
+    assert.deepEqual(p, n, `${id}: the same on a party night`);
+  }
+  for (const id of ['overclock', 'slip', 'bluff']) {
+    const n = bladeLevel(lumOf(id)), p = bladeLevel(lumOf(id), 1), half = bladeLevel(lumOf(id), 0.5);
+    assert.ok(n.glare === 1 && n.boost === 0 && n.lit >= 0.85 && n.lit < 1, `${id}: a step less, no boost (${n.lit})`);
+    assert.ok(p.lit + p.boost <= 0.6 && p.lit >= 0.4, `${id}: well back on a party night (${p.lit.toFixed(2)})`);
+    assert.ok(half.lit < n.lit && half.lit > p.lit, `${id}: eased in with the party's ramp`);
+  }
 });

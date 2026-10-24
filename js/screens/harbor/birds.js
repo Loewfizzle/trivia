@@ -246,6 +246,6 @@ export function createBirds() {
     /** birds on the wing (geese, swifts, bats, the heron) keep 60 fps; the gulls glide slowly (30 is smooth) */
     busy: () => !!(geese || swifts || bats || heron),
     hit: () => null,
-    debug: () => ({ who: Object.fromEntries(Object.entries(who).map(([k, v]) => [k, +v.toFixed(2)])), gulls: gulls.length, geese: geese ? geese.n : 0, swifts: swifts ? swifts.b.length : 0, bats: bats ? bats.b.length : 0, heron: !!heron }),
+    debug: () => ({ who: Object.fromEntries(Object.entries(who).map(([k, v]) => [k, +v.toFixed(2)])), gulls: gulls.length, geese: geese ? geese.n : 0, geeseX: geese ? Math.round(geese.x) : null, swifts: swifts ? swifts.b.length : 0, bats: bats ? bats.b.length : 0, heron: !!heron }),
   };
 }

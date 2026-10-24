@@ -736,11 +736,12 @@ G('neon', async () => {
     ok(!h.show.scene && h.beams === 0, 'A NORMAL NIGHT: no party show, no searchlights');
     ok(h.daily.rotate.length >= 1 && h.daily.stages.length >= 1, `COLOURS THROUGH THE NIGHT: ${h.daily.rotate.join(' + ')} rotate slowly, ${h.daily.stages.join(' + ')} change scheme by the hour`);
     await N.ctx.close(); }
-  // 7a — THE SPELL-ON ROUND's preview (&force=spell-on): the next sign every 6 s, every named sign in turn, never two at once
+  // 7a — THE SPELL-ON ROUND's preview (&force=spell-on): the next sign every 6 s, every named sign in turn, never two at once (PF: watched
+  // until every sign has spelled — up to 40 s on the CI's slower machine — never a fixed window only)
   { const N = await open({ slot: 'h9', qs: `${NIGHT}&force=spell-on`, view: [402, 874] });
     await harborUp(N.page);
     await waitFor(N.page, 'window.__district.harbor().neon.signs.every(s => s.on) && !!window.__district.harbor().daily', 'the neon on', 15000);
-    const r = await ev(N.page, `new Promise(res => { const seen = [], t0 = performance.now(); let shot = null; const tick = () => { const d = window.__district.harbor().daily; const s = d && d.spellOn; if (s && (!seen.length || seen[seen.length - 1].k !== s.k)) seen.push({ id: s.id, k: s.k }); if (performance.now() - t0 < 19500) requestAnimationFrame(tick); else res({ seen, all: d.spell }); }; requestAnimationFrame(tick); })`);
+    const r = await ev(N.page, `new Promise(res => { const seen = [], t0 = performance.now(); let shot = null; const tick = () => { const d = window.__district.harbor().daily; const s = d && d.spellOn; if (s && (!seen.length || seen[seen.length - 1].k !== s.k)) seen.push({ id: s.id, k: s.k }); const n = new Set(seen.map(v => v.id)).size, el = performance.now() - t0; if ((el < 19500 || n < Math.min(3, (d && d.spell || []).length)) && el < 40000) requestAnimationFrame(tick); else res({ seen, all: d.spell }); }; requestAnimationFrame(tick); })`);
     const ids = new Set(r.seen.map(s => s.id));
     ok(r.seen.length >= 3 && ids.size >= Math.min(3, r.all.length) && r.seen.every((s, i) => !i || s.id !== r.seen[i - 1].id), `SPELL-ON ROUND (&force=spell-on): ${r.seen.map(s => s.id).join(' → ')} — every sign in turn (${r.all.join(', ')})`);
     if (SHOTS) { await waitFor(N.page, '(() => { const s = window.__district.harbor().daily.spellOn; return s && s.u > 1.4 && s.u < 1.9; })()', 'mid-spell', 8000).catch(() => {}); await N.page.screenshot({ path: `${OUT}neon-spell-on-402x874.png` }); }
@@ -801,7 +802,7 @@ G('party', async () => {
     ok(hq.skyBeams.beams.length >= 2 && p.show.beams > 0.5, `THE SKY BEAMS: ${hq.skyBeams.beams.map(b => b.id + (b.under ? '' : ' (to the top)')).join(', ')}`);
     ok(pk.hi - pk.lo > 0.5, `THE HARD BEAT: the punch swings ${pk.lo.toFixed(2)} → ${pk.hi.toFixed(2)} over ~2.5 s`);
     // PART 7a: the roof string lights are ON, mounted on the parapet's posts (NEON PASS 5 had them off until the speakeasy was built)
-    ok(hq.strings.on === true && hq.strings.bulbs >= 20 && hq.strings.runs >= 5, `STRING LIGHTS: on, mounted on the parapet (${hq.strings.runs} swags, ${hq.strings.bulbs} bulbs)`);
+    ok(hq.strings.on === false && hq.strings.bulbs >= 20 && hq.strings.runs >= 5, `STRING LIGHTS: OFF for now (PF — the owner: re-rendered with the rooftop in 7b), still laid out on the parapet (${hq.strings.runs} swags, ${hq.strings.bulbs} bulbs)`);
     await Q.ctx.close(); }
   await neonPass5Party();
   { const Q = await open({ slot: 'h11', qs: `when=2026-10-24T21:00${GR}`, view: [402, 874] });
@@ -1636,7 +1637,8 @@ G('sounds', async () => {
   const PLAYER = "import('/js/audio/city-sound.js')";
   const loops = p => ev(p, `${SND}.player.loops`);
   // ---- 1. BY DAY (1 pm): silent until the first tap; then the bed — the water + the DAY hum (the night hum not even loaded)
-  const P = await open({ slot: 'sd', qs: `when=2026-10-22T13:00${GR}&panel=1`, view: [402, 874] });
+  // (&force=no-planes: a passing airliner's flyby — 2.7 MB decoded — would cloud the bed's memory check)
+  const P = await open({ slot: 'sd', qs: `when=2026-10-22T13:00${GR}&panel=1&force=no-planes`, view: [402, 874] });
   await harborUp(P.page);
   const l0 = await loops(P.page);
   ok(l0.every(l => !l.voices), `BED: nothing sounds before the first tap (audio locked: ${l0.map(l => l.slot).join(', ') || 'no loops'})`);
@@ -1701,6 +1703,34 @@ G('sounds', async () => {
   const tapLog = await ev(N.page, `import('/js/audio/ambience.js').then(m => m.neonLog.slice(${n0}).map(x => ({ name: x.name, gain: x.gain })))`);
   ok(tapLog.length >= 2 && tapLog.every(x => Math.abs(x.gain - 0.5 * 0.5625) < 1e-6), `NEON TAP: its dropout + power-on at ${tapLog.map(x => `${x.name.replace('neon-', '').replace('.wav', '')} ${x.gain}`).join(', ')} (was 0.375: × 0.75 ≈ −2.5 dB)`);
   await N.ctx.close();
+  // ---- 7. FP3 — THE CAR IN SYNC (the owner: its sound came 5–6 s after the car): every car file held back 2.5 s (a slow phone
+  // network) — the take's PEAK still lands on the car's mid-crossing (it used to start whenever its file arrived: late by the wait);
+  // the pass's own take; the car on screen for its take's crossing; the pan follows the car's side
+  { const C = await open({ slot: 'sc', qs: `${NIGHT}&force=road-pass`, view: [402, 874] });
+    await C.page.setRequestInterception(true);
+    C.page.on('request', r => { if (r.isInterceptResolutionHandled()) return; if (/\/audio\/city\/car-/.test(r.url())) setTimeout(() => r.continue().catch(() => {}), 2500); else r.continue().catch(() => {}); });
+    await harborUp(C.page);
+    await tapAt(C.page, 30, 300);
+    await waitFor(C.page, "import('/js/audio/engine.js').then(m => m.isUnlocked())", 'audio unlocked', 8000);
+    await ev(C.page, 'window.__district.idle()');
+    const res = await ev(C.page, `(async () => {
+      const m = await import('/js/audio/city-sound.js'), cs = await import('/js/core/city-sounds.js'), seen = new Map(), t0 = performance.now();
+      await new Promise(done => { const f = () => { const rd = window.__district.harbor().road; if (rd.car && rd.pass) { const now = performance.now(), s = seen.get(rd.pass.id) || { first: 1e12, last: 0, take: rd.pass.take, cross: rd.pass.cross }; s.first = Math.min(s.first, now); s.last = Math.max(s.last, now); seen.set(rd.pass.id, s); }
+        if (performance.now() - t0 < 30000) requestAnimationFrame(f); else done(); }; f(); });
+      const takes = cs.takesOf('car-1920s-pass');
+      const sounds = m.cityLog.filter(x => x.slot === 'car-1920s-pass' && !x.late).map(x => { const t = takes.find(k => k.f === x.f); return { f: x.f, pan: x.pan, peakAt: x.at + (x.wait + t.peak - x.off) * 1000 }; });
+      const late = m.cityLog.filter(x => x.slot === 'car-1920s-pass' && x.late).map(x => x.f);
+      return { late, cars: [...seen.values()].filter(s => s.first > t0 + 200 && s.last < t0 + 29800).map(s => ({ mid: (s.first + s.last) / 2, on: (s.last - s.first) / 1000, cross: s.cross, f: takes[s.take].f })), sounds };
+    })()`);
+    // (PF: a sound is paired with its own car only — one whose peak lands within 8 s of it; a car whose sound was SKIPPED by design
+    // (its file arrived under 1 s before the centre: `late`, silent rather than out of sync — the first pass after the page opened)
+    // has none, and is listed as such)
+    const pairs = res.cars.map(c => { const s = res.sounds.filter(x => x.f === c.f && Math.abs(x.peakAt - c.mid) < 8000).sort((a, b) => Math.abs(a.peakAt - c.mid) - Math.abs(b.peakAt - c.mid))[0]; return { ...c, dt: s ? (s.peakAt - c.mid) / 1000 : null, skipped: !s && res.late.includes(c.f) }; });
+    const heard = pairs.filter(q => !q.skipped);
+    ok(heard.length >= 1 && heard.every(q => q.dt != null && Math.abs(q.dt) < 0.35) && pairs.every(q => Math.abs(q.on - q.cross) < 0.4),
+      `FP3 — THE CAR IN SYNC (car files held back 2.5 s): ${pairs.map(q => `${q.f} on screen ${q.on.toFixed(2)} s (its swell's ${q.cross} s), its sound's peak ${q.skipped ? 'SKIPPED (late, silent by design)' : q.dt == null ? 'MISSING' : `${q.dt >= 0 ? '+' : ''}${q.dt.toFixed(2)} s`} from mid-crossing`).join(' · ')}`);
+    ok(res.sounds.every(x => Math.abs(x.pan) <= 0.6 + 1e-6) && res.sounds.some(x => Math.abs(x.pan) > 0.3), `FP3 — THE PAN: each sound starts on its car's side, gentle (${res.sounds.map(x => x.pan).join(', ')}; ±0.6 at most)`);
+    await C.ctx.close(); }
 });
 
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups

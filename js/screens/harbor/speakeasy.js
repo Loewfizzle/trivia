@@ -18,6 +18,7 @@ import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint, drawGooseneck, LAMP_C } from './signs.js';
+import { STRINGS_ON } from './strings.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.gold || 0) + n[i] * (T.night || 0));
@@ -443,6 +444,22 @@ export function bladeLamps(bg) {
   const R = bg.rect, W = Math.max(4.6, Math.min(6.5, R.w * 0.3)), a = W * 1.25;
   return [0.22, 0.78].map(f => { const dir = f < 0.5 ? 1 : -1, x0 = R.x + R.w * f; return { x: x0 + dir * W * 0.45, y: R.y - W * 0.3, top: R.y - a * 1.15, x0, dir, a, W }; });
 }
+/** PF — the blade's LIGHT MAP at night (multiplied over the paint: speakeasy.js#paintBladeLit): fill = the even warm light over the
+ *  whole face, cone = inside each lamp's tight cone (hot right under its mouth, foot at the board's foot), spread = a cone's
+ *  half-width at the foot (× the board's width: the two cones reach both edges there) */
+export const BLADE_LIGHT = Object.freeze({ fill: [176, 128, 86], cone: [255, 192, 128], foot: [240, 178, 118], hot: [255, 224, 174], spread: 0.36 });
+/** PF — THE BLADE'S LEVEL at night (PURE): how strongly its lit board is laid over the dark one. FP's busy check dimmed every board
+ *  (× 0.78 + a 100 → 40 % fall-off); PF (the owner: "clearly brighter, the name pops") puts it back to FULL + a BOOST (the lit paint
+ *  added once more, 'lighter': the face + the letters brighten in proportion, never a veil) for a dark board (DOUBLE AGENT's navy);
+ *  a GLARING board (a light face — OVERCLOCK's orange, SLIP's gold, BLUFF's cream: glare 1) takes no boost, a step less, and on a
+ *  PARTY night steps well back (it was the biggest warm slab on screen there: ≈ FP's average level, but even top to bottom).
+ *  faceLum: the board's paint (luma 0..255), party: the party's ramp 0..1 → { lit, boost } */
+export const BLADE_LEVEL = Object.freeze({ boost: 0.34, glareLit: 0.9, glareParty: 0.55, lum0: 100, lum1: 140 });   // (the faded paints: GOLF 92, PRISM 90 · OVERCLOCK 147, SLIP 183, BLUFF 225)
+export function bladeLevel(faceLum, party = 0) {
+  const B = BLADE_LEVEL, g = clamp01((faceLum - B.lum0) / (B.lum1 - B.lum0)), p = clamp01(party);
+  const pk = 1 - (1 - B.glareParty) * g * p;
+  return { glare: g, lit: (1 - (1 - B.glareLit) * g) * pk, boost: B.boost * (1 - g) };
+}
 /** the board, painted (lit: under its lamps' warm light, for the live layer) */
 function paintBlade(x, M, game, lit = false) {
   const B = BLADE, p = dayPaint(game), bw = B.bw, v0 = B.v0, v1 = B.v1, r = rngFrom(17);
@@ -593,7 +610,9 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       box(x, cam, { x0: s.x0 + d.u0 - 0.3, x1: s.x0 + d.u1 + 0.3, z0: s.z0 - 0.75, z1: s.z0, h: 0.13 }, shade(M.stone, 0.05), { light: 1, sideK: 0.12 });
       box(x, cam, { x0: s.x0 + d.u0 - 0.15, x1: s.x0 + d.u1 + 0.15, z0: s.z0 - 0.4, z1: s.z0, h: 0.13 }, shade(M.stone, 0.12), { y0: 0.13, light: 1, sideK: 0.12 });
       { const [a, y] = project(cam, s.x0 + (d.u0 + d.u1) / 2, 0.26, s.z0 - 0.2), w = 0.5 * cam.F / s.z0; x.fillStyle = rgb(M.soot, 0.25); x.beginPath(); x.ellipse(a, y, w, w * 0.12, 0, 0, Math.PI * 2); x.fill(); }
-      // the string lights' iron posts on the parapet (front, then down the side wall)
+      // the string lights' iron posts on the parapet (front, then down the side wall) — PF: only while the lights are on
+      // (strings.js#STRINGS_ON: off until 7b — bare posts would stand on the parapet holding nothing)
+      if (!STRINGS_ON) return;
       x.strokeStyle = rgb(M.iron); x.lineWidth = Math.max(0.6, 0.06 * G.K);
       for (const px of roof.posts) { const [a, y0] = project(cam, px, V.parapet, s.z0 - 0.05), [, y1] = project(cam, px, V.parapet + 1.15, s.z0 - 0.05); x.beginPath(); x.moveTo(a, y0); x.lineTo(a, y1); x.stroke(); }
       for (const f of [0.4, 0.75, 1]) { const [a, y0] = G.side(G.len * f - 0.1, V.parapet), [, y1] = G.side(G.len * f - 0.1, V.parapet + 1.15); x.beginPath(); x.moveTo(a, y0); x.lineTo(a, y1); x.stroke(); }
@@ -783,12 +802,25 @@ export function createSpeakeasy() {
     paintBlade(x, mats({ day: 1, gold: 0, night: 0, sunDir: 0, sunEl: 30, ovc: 0, haze: [188, 208, 232] }), game, true);
     x.restore();
     const keep = document.createElement('canvas'); keep.width = bladeCv.width; keep.height = bladeCv.height; safeCtx(keep).drawImage(bladeCv, 0, 0);
-    x.globalCompositeOperation = 'multiply'; x.fillStyle = 'rgb(255,190,126)'; x.fillRect(ox, oy, ow, oh);
+    // PF (the owner: the blade's lamps "clearly brighter + more CONCENTRATED — the whole face evenly lit top to bottom, the name pops,
+    // no haze"): the lamps' LIGHT MAP, multiplied over the paint — an even warm fill down the whole face (was 100 → 75 → 40 % top to
+    // foot) + two TIGHT CONES aimed straight down the board from the lamps' mouths (crisp edges on the paint, 'lighten' so where they
+    // meet nothing doubles), a hot spot right under each mouth. The light lands ON the board only (cut to the paint: destination-in)
+    const lc = document.createElement('canvas'); lc.width = bladeCv.width; lc.height = bladeCv.height;
+    const lx = safeCtx(lc); lx.setTransform(dpr, 0, 0, dpr, -ox * dpr, -oy * dpr);
+    lx.fillStyle = `rgb(${BLADE_LIGHT.fill})`; lx.fillRect(ox, oy, ow, oh);
+    lx.globalCompositeOperation = 'lighten';
+    for (const l of bladeLamps(bg)) {
+      const w0 = l.W * 0.42, w1 = R0.w * BLADE_LIGHT.spread, y0 = l.y, y1 = R0.y + R0.h + pad;
+      const cg = lx.createLinearGradient(0, y0, 0, y1);
+      cg.addColorStop(0, `rgb(${BLADE_LIGHT.hot})`); cg.addColorStop(0.16, `rgb(${BLADE_LIGHT.cone})`); cg.addColorStop(1, `rgb(${BLADE_LIGHT.foot})`);
+      lx.fillStyle = cg; lx.beginPath(); lx.moveTo(l.x - w0, y0); lx.lineTo(l.x + w0, y0); lx.lineTo(l.x + w1, y1); lx.lineTo(l.x - w1, y1); lx.closePath(); lx.fill();
+    }
+    x.globalCompositeOperation = 'multiply'; x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(lc, 0, 0); x.restore(); lc.width = lc.height = 0;
     x.globalCompositeOperation = 'destination-in'; x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(keep, 0, 0); x.restore(); keep.width = keep.height = 0;
-    const g = x.createLinearGradient(0, R0.y, 0, R0.y + R0.h); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.55, 'rgba(0,0,0,0.75)'); g.addColorStop(1, 'rgba(0,0,0,0.4)');
-    x.fillStyle = g; x.fillRect(ox, oy, ow, oh);
     x.globalCompositeOperation = 'source-over';
-    return { x: ox, y: oy, w: ow, h: oh };
+    const fc = dayPaint(game).face;
+    return { x: ox, y: oy, w: ow, h: oh, lum: 0.2126 * fc[0] + 0.7152 * fc[1] + 0.0722 * fc[2] };
   }
   function glow() {
     if (glowCv) return glowCv;
@@ -823,7 +855,6 @@ export function createSpeakeasy() {
   // of the frame's timestamp (polePhase: never a sum of frame steps), so the 30 fps battery saver only draws fewer, evenly spaced
   // positions of the same smooth slide (night 1.6 pt/s ≈ 0.05 pt a frame; day ≈ 0.14 pt). Lit: an LED-bright cool white, the red +
   // blue vivid, a TIGHT halo + a little light on the brick beside it (no smoky wash: poleHalo); a party night: neon colours + the beat.
-  const BLADE_LIT = 0.78;                                // (the blade's lit board at night: FP's busy check)
   let poleA = null, polePh = 0.3, poleOff = false, poleRect = null, polePx = null;
   const glowAt = {};                                    // (the e2e: where the sconce + the shop lamp glow)
   let poleCv = null, poleImg = null, haloCv = null, haloKey = '';
@@ -940,11 +971,19 @@ export function createSpeakeasy() {
     if (f.game && (f.lamp || 0) > 0.004) {
       const key = f.game.id + '|' + dpr + '|' + G.K.toFixed(2);
       if (key !== bladeKey || !bladeCv) { bladeAt = paintBladeLit(f.game); bladeKey = key; }
-      // (FP — THE BUSY CHECK: with the roof billboard, the string lights + the lit pole the corner read crowded on a party night — the
-      // blade's lit board is the biggest warm slab there; its lamps' wash a step dimmer so the billboard + the pole lead; the bulbs as before)
-      c.globalAlpha = clamp01(f.lamp) * fade * BLADE_LIT; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h);
+      // (PF: back to full + a boost for a dark board — FP's × 0.78 undone; a glaring board steps back, more on a party night: bladeLevel)
+      const lv = bladeLevel(bladeAt.lum, f.party ? clamp01(f.party.ramp == null ? 1 : f.party.ramp) : 0), a = clamp01(f.lamp) * fade;
+      c.globalAlpha = a * lv.lit; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h);
       c.globalCompositeOperation = 'lighter';
-      for (const l of bladeLamps(bladeGeo(G))) { blob(c, l.x, l.y + l.W * 0.1, l.W * 0.75, f.lamp * fade); if (f.tier !== 0) blob(c, l.x, l.y + l.W * 1.3, l.W * 1.5, 0.14 * f.lamp * fade, 1.3); }   // (FP2: the board itself is lit — bladeCv; the wash under the lamps tight, no haze past the board)
+      if (lv.boost > 0.004) { c.globalAlpha = a * lv.boost; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h); }
+      // THE LAMP HEADS (PF: the source + a small TIGHT halo — no wash, no cloud round the blade; the light is ON the board: bladeCv's
+      // cones): the shade's inside lit (a flat warm crescent under the rim), a white-hot bulb, a halo gone within ~0.6 of the shade
+      for (const l of bladeLamps(bladeGeo(G))) {
+        soft(c, [255, 200, 132], l.x, l.y + l.W * 0.04, l.W * 0.85, a, 0.5);
+        soft(c, [255, 226, 170], l.x, l.y, l.W * 0.55, a, 0.32);
+        soft(c, [255, 240, 204], l.x, l.y + l.W * 0.05, l.W * 0.34, a, 0.7);
+        soft(c, [255, 252, 238], l.x, l.y + l.W * 0.06, l.W * 0.16, a);
+      }
       c.globalCompositeOperation = 'source-over';
     }
     c.globalAlpha = fade;

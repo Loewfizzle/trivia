@@ -62,15 +62,24 @@ export const PHONE = Object.freeze({
   // tested) and that tree is a FLOWERING CRABAPPLE (pink-white blossom in spring — spring reads again; golden autumn + red fruit).
   // So the back row is: crabapple with the bench · tall lamp · [the crossing's landing] · tall lamp. The framing maple keeps its
   // own colour (v: the BLAZING ORANGE mix — core/harbor-trees.js#MAPLE_AUTUMN 1, "the big one on the front walk").
-  tall: [{ f: 0.44, z: 52.6 }, { f: 0.776, z: 52.6 }],   // (FP2: the first 0.455 → 0.44 — beside the bench's right end, clear of the cart's umbrella)
+  // PF — THE FINAL LAYOUT (the owner, Oct 24): THE CART is HIDDEN (CART_SHOWN — it returns in 8b with the moving things); THE BENCH +
+  // ITS CRABAPPLE move to where the cart's umbrella stood — just LEFT of the crossing, a little FORWARD, the tree bigger (the DOUBLE
+  // AGENT blade free, the tree shows); THE TALL LAMPS a matched PAIR FLANKING THE CROSSING (symmetric about its centre, 0.6675 — just
+  // outside the two stop lights: the crossing framed + lit, the bench in the left one's light); the two short globes stay at the
+  // front corners; nothing in front of the shopfront or the blade. THE CENTREPIECE is a brick PAVING INLAY now (props.js) on the
+  // crossing's axis, a little further back (z 43.4 → 44.8) — inside both flanking lamps' pools. THE MAILBOX by the front curb, right.
+  tall: [{ f: 0.559, z: 52.6 }, { f: 0.776, z: 52.6 }],
   maples: [{ f: 0.888, z: 38.2, big: true, v: 1 }],
-  crabs: [{ f: 0.405, z: 52.9, k: 1.25 }],   // (k: a touch bigger than the panorama's front-row accent — at the curb it frames the bench)
+  crabs: [{ f: 0.45, z: 50.9, k: 1.45 }],    // (PF: 0.405 / z 52.9 / k 1.25 → its crown 153–209 pt at 402: right of the blade, left of the lamp's arm)
   globes: [0.322, 0.962],                  // (the front edge's two corners: by the speakeasy's corner, by the right edge)
-  medallion: { f: 0.68, z: 43.4 },          // (FP2: the middle of the open floor, in front of the crossing — its landing's centre)
-  bench: { f: 0.392, z: 50.4 },             // (FP2: under the crabapple, left of the first tall lamp: its cool light)
-  cart: { f: 0.53, z: 41.8 },               // (FP2: left of the medallion — its rest spot; 8b rolls it: L.cart.route)
+  medallion: { f: 0.6675, z: 44.8 },        // (PF: on the crossing's axis, between the flanking lamps — inside both their pools)
+  bench: { f: 0.515, z: 47.8 },             // (PF: in front of the crabapple, a little right — its trunk + uplight show at the bench's left end; its right end by the left flanking lamp)
+  cart: { f: 0.53, z: 41.8 },               // (hidden — CART_SHOWN; kept for 8b's route: L.cart.route)
   planters: [],
+  mailbox: { f: 0.81, z: 38.6 },            // (PF: the 1920s pillar box by the front curb — right of the crossing, left of the framing maple's trunk)
 });
+/** PF: the vendor cart is HIDDEN until 8b brings the moving things (the owner likes it — its art + route are kept; L.cart.shown) */
+export const CART_SHOWN = false;
 
 /**
  * THE CENTREPIECE'S RULES (FP2 — for 8b + the seasonal pieces):
@@ -153,7 +162,7 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   S.crabs.forEach(c => crab(X(c.f, c.z), c.z, c.k || 1));
   for (const p of S.planters) planters.push({ x: X(p.f, p.z), z: p.z, w: P.planter.w * (p.corner ? 1.08 : 0.92), corner: !!p.corner });
   const bench = { x: X(S.bench.f, S.bench.z), z: S.bench.z, w: P.bench.w };
-  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts' };
+  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: CART_SHOWN };
   const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring, clear: EVENT_CLEAR };
   // (FP2 — THE CART'S RULE for 8b: it rests LEFT of the medallion; on a normal day its route rolls across the floor — over the
   // medallion — to the open right side and back; during an event on the medallion it stops short: never right of stopX)
@@ -195,9 +204,11 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
     walk: { x0: X(0.0, 46), x1: X(1.0, 46), z0: 40, z1: 51.6 },
     front: { x0: X(0.0, 38), x1: X(1.0, 38), z0: 36.9, z1: 40 },
     curb: { x0: X(0.36, 53), x1: X(1.0, 53), z0: 51.6, z1: 53.6 },
-    block: [...trees.map(t => ({ x: t.x, z: t.z, r: 0.8 })), ...lamps.map(l => ({ x: l.x, z: l.z, r: 0.35 })), { x: cart.x, z: cart.z, r: 1.6 }, { x: bench.x, z: bench.z, r: 1.4 }, ...planters.map(p => ({ x: p.x, z: p.z, r: 1.1 }))],
+    block: [...trees.map(t => ({ x: t.x, z: t.z, r: 0.8 })), ...lamps.map(l => ({ x: l.x, z: l.z, r: 0.35 })), ...(cart.shown ? [{ x: cart.x, z: cart.z, r: 1.6 }] : []), { x: bench.x, z: bench.z, r: 1.4 }, ...planters.map(p => ({ x: p.x, z: p.z, r: 1.1 }))],
   };
-  return { lamps, trees, bench, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones };
+  const mailbox = S.mailbox ? { x: X(S.mailbox.f, S.mailbox.z), z: S.mailbox.z } : null;   // (PF: props.js#drawMailbox)
+  if (mailbox) zones.block.push({ x: mailbox.x, z: mailbox.z + 0.3, r: 0.6 });
+  return { lamps, trees, bench, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones, mailbox };
 }
 
 // ------------------------------------------------------------------ THE SEASON (the trees, the planters)
@@ -231,7 +242,8 @@ export function seasonPhase(month, day = 15, { south = false } = {}) {
 }
 
 // ------------------------------------------------------------------ THE IMPLIED ROAD'S CARS (on the clock: every phone the same)
-/** a slot of the near road: at most one car a slot; its window: the sound starts at t0, the car is nearest at t0 + its take's peak */
+/** a slot of the near road: at most one car a slot; its window from t0; the car is nearest at its CENTRE, t0 + peak — the same on
+ *  every phone, whatever its take (FP3: the sound's take is placed so its own loudest moment lands there — core/city-sounds.js#syncStart) */
 export const ROAD_PASS = Object.freeze({ slot: 40e3, lead: 12e3, dur: 22e3, peak: 9e3 });
 /** how busy the road is by the local hour (0..1 — a pass's chance a slot): the evening rush busiest, the small hours nearly empty */
 export function roadBusy(hour) {
@@ -299,14 +311,18 @@ export function streetPlan(cam, edgeZ = PROM.edge) {
 }
 /**
  * Where the pass's car is at ms (PURE): { x (world, its middle), z (its lane), dir, env (0..1 — 1 when nearest), speed (u / s),
- * on (any of it inside the screen) }. center: the ms the car is nearest (x 0) — the take's peak after the pass's start
- * (roadlight.js). ~6 u / s along the road (a 1920s cruise): it crosses a phone in ~4 s, round the sound's loudest.
+ * on (any of it inside the screen) }. center: the ms the car is nearest (x 0) — the pass's t0 + ROAD_PASS.peak, where its sound's
+ * take peaks (FP3). cross: s to cross the visible street (its take's swell — carSpeed); none → ~6 u / s (a 1920s cruise).
  */
-export function carAt(pass, center, ms, cam, street) {
+export function carAt(pass, center, ms, cam, street, cross = null) {
   const lane = pass.dir < 0 ? street.lanes[0] : street.lanes[1], z = lane.z;
-  const span = cam.hw(z) + 14, speed = (span * 2) / 9, x = pass.dir * ((ms - center) / 1000) * speed;
+  const span = cam.hw(z) + 14, speed = carSpeed(cam, z, cross), x = pass.dir * ((ms - center) / 1000) * speed;
   return { x, z, dir: pass.dir, speed, env: Math.max(0, 1 - Math.abs(x) / span) ** 0.6, on: Math.abs(x) < cam.hw(z) + STREET.car.len / 2 + 0.5 };
 }
+/** FP3 — the car's speed along the road at depth z (u / s): it crosses the visible street (entering → leaving: 2 hw + its length
+ *  + 1) in `cross` s — its sound's take's swell (core/city-sounds.js#crossFor: the car passes within the audible rise and fall);
+ *  no take (an empty slot) → FP2's ~6 u / s */
+export const carSpeed = (cam, z, cross = null) => (cross > 0 ? (2 * cam.hw(z) + STREET.car.len + 1) / cross : ((cam.hw(z) + 14) * 2) / 9);
 /** the car's visibility (0..1) — it shows only while the dock rests: up over the dock's 1.8 s fade-out, gone in 0.25 s when the dock
  *  comes back (its own fade-in is 0.45 s: the car never shows through the dock) */
 export const carVis = (v, gone, dtMs) => Math.max(0, Math.min(1, v + (gone ? dtMs / 1800 : -dtMs / 250)));

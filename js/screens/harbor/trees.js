@@ -51,13 +51,17 @@ function rigOf(T, ctx, t) {
     if (Math.abs(l.x - t.x) > 10 || Math.abs(l.z - t.z) > 14) continue;
     const tall = l.kind === 'tall', w = -(l.z - t.z);
     const col = tall ? [0.84, 0.95, 1.2] : [1.35, 0.86, 0.46];
-    if (tall) for (const s of [-1, 1]) lamps.push({ x: l.x - t.x + s * PIECE.tall.arm, y: PIECE.tall.h - 0.45, w, col, k: 0.8 });
+    // (PF: a tall lamp 0.8 → 0.58 — the crabapple now stands right beside the left flanking lamp: its crown's side went one flat orange)
+    if (tall) for (const s of [-1, 1]) lamps.push({ x: l.x - t.x + s * PIECE.tall.arm, y: PIECE.tall.h - 0.45, w, col, k: 0.58 });
     else lamps.push({ x: l.x - t.x, y: PIECE.globe.h + 0.18, w, col, k: 1.15 });
   }
+  // PF — THE UPLIGHT (the owner: the trees read at night): a small warm brass fixture in the grate, just in front of the trunk, aimed
+  // up — a light with a SHORT reach (UPLIGHT.fall): the trunk + the crown's underside glow softly, the crown's top fades to dark
+  if (lampK > 0.01 && t.grate) lamps.push({ x: UPLIGHT.u, y: 0.12, w: -UPLIGHT.dz, col: UPLIGHT.col, k: UPLIGHT.k, fall: UPLIGHT.fall, up: true });
   // which side of the bark catches the light (by day the sun's; at night the strongest lamp's)
   let barkSide = Math.abs(L[0]) > 0.12 ? Math.sign(L[0]) : 1;
-  if (lampK > 0.4 && lamps.length) { let best = 0; for (const lp of lamps) { const f = lp.k / (1 + (Math.hypot(lp.x, lp.y - t.trunk, lp.w) / 3) ** 2); if (f > best) { best = f; barkSide = Math.sign(lp.x) || 1; } } }
-  const rig = { L, sunCol, sunK, amb, lamps, lampK, n, rim: n * (1 - flat * 0.5), barkSide };
+  if (lampK > 0.4 && lamps.length) { let best = 0; for (const lp of lamps) { if (lp.up) continue; const f = lp.k / (1 + (Math.hypot(lp.x, lp.y - t.trunk, lp.w) / 3) ** 2); if (f > best) { best = f; barkSide = Math.sign(lp.x) || 1; } } }
+  const rig = { L, sunCol, sunK, amb, lamps, lampK, n, rim: n * (1 - flat * 0.5), barkSide, up: t.grate ? lampK : 0 };
   // the leaves' shade: an autumn crown's shadows go deep warm (burnt orange, crimson, plum — never olive), a summer's cool green
   const tint = ctx.season === 'autumn' ? [1.17, 0.84, 0.72] : ctx.season === 'summer' ? [0.9, 1, 0.98] : [1, 1, 1];
   // (FP2: + the BOUNCE under the crown — the sunlit cobbles by day, the lamps' pools at night — a warm fill on the leaves facing
@@ -69,12 +73,16 @@ function rigOf(T, ctx, t) {
   return rig;
 }
 
+/** PF — THE TREES' UPLIGHTS: where the fixture sits in the grate (u across, dz toward us — world units from the trunk), its warm
+ *  colour (× the base: ~2700 K), its strength, its reach (a lamp's falloff distance: 3; this one 2.2 — the crown's top fades out) */
+export const UPLIGHT = Object.freeze({ u: -0.26, dz: -0.5, col: [1.3, 0.9, 0.52], k: 0.62, fall: 2.2 });
+
 /** the lamps' light at a local point: [[dirX, dirY, dirW, strength, col], …] (a cluster computes it once for all its leaves) */
 function lampsAt(rig, px, py, pw) {
   const out = [];
   for (const lp of rig.lamps) {
     const dx = lp.x - px, dy = lp.y - py, dw = lp.w - pw, d = Math.hypot(dx, dy, dw) || 1;
-    out.push([dx / d, dy / d, dw / d, lp.k * rig.lampK * 1.6 / (1 + (d / 3) ** 2), lp.col]);
+    out.push([dx / d, dy / d, dw / d, lp.k * rig.lampK * 1.6 / (1 + (d / (lp.fall || 3)) ** 2), lp.col]);
   }
   return out;
 }
@@ -196,6 +204,39 @@ function drawTrunk(x, s, bx, by, seg, rig, bark, t) {
   }
 }
 
+/** PF — THE UPLIGHT, seen: the warm light washing UP the trunk's front (bright at the root flare, gone by the first fork — additive,
+ *  clipped to the trunk), the light landing on the mulch + the grate round the fixture, and the fixture itself: a low brass cylinder
+ *  with a hood, its lens a warm spark + a TIGHT halo (crisp: source, small halo, light on the surfaces — never haze) */
+function drawUplight(x, cam, t, s, bx, by, seg, rig) {
+  const k = rig.up, w0 = seg.w0 * s, tx = bx + seg.x1 * s, ty = by - seg.y1 * s;
+  const [fx, fy] = project(cam, t.x + UPLIGHT.u, 0, t.z + UPLIGHT.dz), fs = cam.F / (t.z + UPLIGHT.dz);
+  x.save();
+  x.globalCompositeOperation = 'lighter';
+  // the trunk's front, lit from below (a narrow wedge up the bark: the fixture is a spot)
+  const g = x.createLinearGradient(0, by, 0, ty);
+  g.addColorStop(0, `rgba(255,178,96,${(0.5 * k).toFixed(3)})`); g.addColorStop(0.45, `rgba(255,160,84,${(0.2 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(255,150,80,0)');
+  x.fillStyle = g; x.beginPath();
+  x.moveTo(bx - w0 * 0.42, by); x.lineTo(bx + w0 * 0.3, by); x.lineTo(tx + w0 * 0.16, ty); x.lineTo(tx - w0 * 0.28, ty); x.closePath(); x.fill();
+  // the light landing on the mulch + the grate's bars round the fixture (a small warm ellipse on the ground)
+  const rx = 0.95 * fs, ry = Math.max(1, rx * 0.3), gg = x.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gg.addColorStop(0, `rgba(255,170,90,${(0.42 * k).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,150,80,0)');
+  x.translate(fx + rx * 0.15, fy - ry * 0.4); x.scale(rx, ry); x.fillStyle = gg; x.beginPath(); x.arc(0, 0, 1, 0, TAU); x.fill();
+  x.restore();
+  // the fixture: a squat brass can, its hood, the lens's spark
+  const cw = Math.max(1.1, 0.2 * fs), ch = Math.max(0.8, 0.13 * fs);
+  x.fillStyle = rgb(lit(rig, [120, 96, 60], 0, 0.2, 1, UPLIGHT.u, 0.06, -UPLIGHT.dz, 0.8)); x.fillRect(fx - cw / 2, fy - ch, cw, ch);
+  x.fillStyle = rgb(lit(rig, [176, 140, 84], 0, 1, 0.3, UPLIGHT.u, 0.13, -UPLIGHT.dz, 1)); x.fillRect(fx - cw * 0.6, fy - ch - Math.max(0.4, ch * 0.3), cw * 1.2, Math.max(0.4, ch * 0.3));
+  if (k > 0.02) {
+    const lr = Math.max(0.5, cw * 0.32), hr = lr * 3.2;
+    x.save(); x.globalCompositeOperation = 'lighter';
+    const h = x.createRadialGradient(fx, fy - ch, 0, fx, fy - ch, hr);
+    h.addColorStop(0, `rgba(255,214,150,${(0.7 * k).toFixed(3)})`); h.addColorStop(0.35, `rgba(255,170,90,${(0.22 * k).toFixed(3)})`); h.addColorStop(1, 'rgba(255,150,80,0)');
+    x.fillStyle = h; x.beginPath(); x.arc(fx, fy - ch, hr, 0, TAU); x.fill();
+    x.restore();
+    x.fillStyle = `rgba(255,246,222,${Math.min(1, 1.1 * k).toFixed(3)})`; x.beginPath(); x.ellipse(fx, fy - ch, lr, lr * 0.45, 0, 0, TAU); x.fill();
+  }
+}
+
 /** the limbs + branches + twigs (depth 1 … maxD), thin first so the thick ones lie over their joints; a lit side on the thick */
 function drawLimbs(x, s, bx, by, segs, maxD, rig, bark, ctx) {
   const dark = lit(rig, bark, -rig.barkSide * 0.6, 0.1, 0.6, 0, 5, 0, 0.68), light = lit(rig, bark, rig.barkSide * 0.6, 0.3, 0.75, 0, 5, 0, 1);
@@ -301,6 +342,7 @@ export function drawTree(x, cam, t, T, ctx = {}) {
   back.forEach((cl, k) => drawCluster(x, s, bx, by, cl, env, rig, leafPt, gr, k % B === B - 1 || k === back.length - 1));
   drawLimbs(x, s, bx, by, plan.segs, plan.depth, rig, bark, ctx);
   drawTrunk(x, s, bx, by, plan.segs[0], rig, bark, t);
+  if (rig.up > 0.01) drawUplight(x, cam, t, s, bx, by, plan.segs[0], rig);
   front.forEach((cl, k) => drawCluster(x, s, bx, by, cl, env, rig, leafPt, gr, k % B === B - 1 || k === front.length - 1));
   // a crabapple's fruit: little red apples with a glint
   if (plan.fruit.length) {

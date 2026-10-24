@@ -14,7 +14,7 @@
 // The first pass starts at a random place in the loop and fades in.
 import { getContext, getSfxBus, isUnlocked, onRebuild, clockFrozen } from './engine.js';
 import { settings } from './settings.js';
-import { slotOf, takesOf, pickTake } from '../core/city-sounds.js';
+import { slotOf, takesOf, pickTake, syncStart } from '../core/city-sounds.js';
 
 /** one knob for the whole city's level (× each slot's gain × the caller's) — trim by ear */
 export const CITY_GAIN = 1;
@@ -44,9 +44,26 @@ function out(c) {
   chain = { c, in: g };
   return g;
 }
-function panNode(c, pan, into) {
-  if (!pan || !c.createStereoPanner) return into;
-  const p = c.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); p.connect(into); return p;
+/** a panner into `into` → { node, set(pan, ramp) }: a StereoPannerNode, or (an engine without one) an equal-power PannerNode on a
+ *  half circle in front of the listener; neither → straight through (centred) */
+function panner(c, pan, into) {
+  const v0 = Math.max(-1, Math.min(1, +pan || 0));
+  try {
+    if (c.createStereoPanner) {
+      const p = c.createStereoPanner(); p.pan.value = v0; p.connect(into);
+      return { node: p, own: true, set: (v, ramp) => setP(p.pan, Math.max(-1, Math.min(1, v)), c, ramp) };
+    }
+    if (c.createPanner) {
+      const p = c.createPanner(); p.panningModel = 'equalpower'; p.distanceModel = 'linear'; p.rolloffFactor = 0;
+      const place = (v, ramp) => {
+        const a = Math.max(-1, Math.min(1, v)) * Math.PI / 2, x = Math.sin(a), z = -Math.cos(a);
+        if (p.positionX) { setP(p.positionX, x, c, ramp); setP(p.positionZ, z, c, ramp); } else p.setPosition(x, 0, z);
+      };
+      place(v0, 0); p.connect(into);
+      return { node: p, own: true, set: place };
+    }
+  } catch { /* fall through */ }
+  return { node: into, set() {} };
 }
 
 // ---------------------------------------------------------------- the buffers
@@ -101,11 +118,16 @@ const lastTake = new Map();
 /** what the city played lately (newest last; tests + the panel): { slot, f, gain, at } */
 export const cityLog = [];
 /**
- * A one-shot from a slot. gain: × the slot's mix level; pan −1..1; rate: playback rate (a little pitch variety: ±3 % is added);
- * delay: s from now; take: an index to force one. → { slot, take: the file, peak: s into it where it's loudest, stop(fade) } or
- * null (an empty slot, audio locked, effects off).
+ * A one-shot from a slot. gain: × the slot's mix level; pan −1..1; rate: playback rate (+ a little pitch variety: ±jitter, 3 % by
+ * default); delay: s from now; take: an index to force one.
+ * sync (FP3 — a sound placed on a clock, whatever the wait for its file): { peakIn: () => s from NOW until the take's peak must
+ * sound, pre: s of the take before its peak at most, fade, late } — evaluated when the buffer is ready (core/city-sounds.js#
+ * syncStart): the start is delayed, or joined part-way with a fade, so the peak lands on time; too late → it stays silent. A synced
+ * sound plays at exactly `rate` (no jitter: the peak's time is in the take's own seconds).
+ * → { slot, take: the file, i, peak: s into it where it's loudest, dur, set({ gain, pan }, ramp), stop(fade), started(): the
+ * performance.now() it began (0 = not yet), ended(), late() } or null (an empty slot, audio locked, effects off).
  */
-export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take = null } = {}) {
+export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take = null, jitter = 0.03, sync = null } = {}) {
   try {
     const s = slotOf(slot);
     if (!s || !takesOf(slot).length || !isUnlocked() || !audible()) return null;
@@ -113,21 +135,40 @@ export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take =
     if (!pick) return null;
     lastTake.set(slot, pick.i);
     const c = getContext(), t = pick.take, e = load(t);
-    const v = s.gain * gain;
-    let src = null, g = null, stopped = false;
+    let v = s.gain * gain, p = pan;
+    let src = null, g = null, pn = null, stopped = false, startedAt = 0, ended = false, late = false, r = rate;
     e.p.then(buf => {
       if (!buf || stopped || getContext() !== c) return;
-      const at = Math.max(c.currentTime, c.currentTime + delay);
-      src = c.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate * (0.97 + Math.random() * 0.06);
+      let at = Math.max(c.currentTime, c.currentTime + delay), off = 0, fade = 0.012;
+      if (sync && typeof sync.peakIn === 'function') {
+        const plan = syncStart(t, sync.peakIn(), sync);
+        if (!plan) { late = true; ended = true; cityLog.push({ slot, f: t.f, late: true, at: performance.now() }); if (cityLog.length > 40) cityLog.shift(); return; }
+        at = c.currentTime + plan.delay; off = plan.offset; fade = Math.max(0.012, plan.fade);
+      } else r = rate * (1 - jitter + Math.random() * 2 * jitter);
+      src = c.createBufferSource(); src.buffer = buf; src.playbackRate.value = r;
       g = c.createGain(); g.gain.value = 0;
-      try { g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + 0.012); } catch { g.gain.value = v; }
-      src.connect(g).connect(panNode(c, pan, out(c)));
-      src.onended = () => { try { g.disconnect(); } catch { /* gone */ } };
-      src.start(at);
-      cityLog.push({ slot, f: t.f, gain: +v.toFixed(4), pan: +(+pan).toFixed(2), at: performance.now() }); if (cityLog.length > 40) cityLog.shift();
-    });
+      try { g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + fade); } catch { g.gain.value = v; }
+      pn = panner(c, p, out(c));
+      src.connect(g).connect(pn.node);
+      src.onended = () => { ended = true; try { g.disconnect(); } catch { /* gone */ } try { if (pn.own) pn.node.disconnect(); } catch { /* gone */ } };
+      src.start(at, off);
+      startedAt = performance.now() + (at - c.currentTime) * 1000 - (off / r) * 1000;    // (as if the take had begun from its start)
+      cityLog.push({ slot, f: t.f, gain: +v.toFixed(4), pan: +(+p).toFixed(2), off: +off.toFixed(2), wait: +(at - c.currentTime).toFixed(2), at: performance.now() }); if (cityLog.length > 40) cityLog.shift();
+    }).catch(() => { ended = true; });
     return {
-      slot, take: t.f, peak: t.peak ?? 0, dur: t.d,
+      slot, take: t.f, i: pick.i, peak: t.peak ?? 0, dur: t.d,
+      /** follow the thing it belongs to: × the slot's level, the pan (ramped) — before it starts, its start takes them */
+      set(o = {}, ramp = 0.25) {
+        if (o.gain != null) v = s.gain * o.gain;
+        if (o.pan != null) p = o.pan;
+        if (!src || stopped) return;
+        if (o.gain != null) setP(g.gain, v, c, ramp);
+        if (o.pan != null) pn.set(p, ramp);
+      },
+      started: () => startedAt,
+      ended: () => ended || stopped,
+      late: () => late,
+      rate: () => r,
       stop(fade = 0.6) {
         stopped = true;
         if (!src) return;
@@ -135,6 +176,16 @@ export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take =
       },
     };
   } catch { return null; }
+}
+
+/** fetch + decode a take ahead of its moment (the motorcar's next pass: its sound then starts on time) → true when asked */
+export function cityPrefetch(slot, i = 0) {
+  try {
+    const t = takesOf(slot)[i];
+    if (!t || !isUnlocked() || !audible()) return false;
+    load(t);
+    return true;
+  } catch { return false; }
 }
 
 // ---------------------------------------------------------------- loops

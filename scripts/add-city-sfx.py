@@ -15,6 +15,12 @@ For each file (the originals are never touched — read only, decoded through ff
   * mono 32 kHz (the city's ambience sits under the music on a phone speaker: mono is fine and the decoded buffers stay small)
   * a gentle LOW CUT (2nd-order high-pass, 120 Hz by default) so it reads on phone speakers; an optional presence LIFT (+dB at
     2.5 kHz) for bass-heavy recordings
+  * THE RECIPE (the sky, Oct 24 — a CUTS row's extras): `lp` a low-pass (Hz: distance), `notch` [Hz …] (a modern drone's lines
+    cut out), `lowmid` +dB at 300 Hz (a rumble a phone's speaker still hears), `layers` [(offset s, rate, gain) …] (a loop built
+    from copies of one recording, detuned + offset: the drone swarm), `blackout` s (the power-down: the mains hum cut dead with
+    a low thump there → `hit` in the registry). A source named after what it is maps to its slot through ALIAS
+  * a one-shot's PEAK = the loudest 0.3 s of its RMS envelope (s) and its SWELL `sw` = where it stays within 15 dB of that —
+    measured on the encoded file (the motorcar lines its crossing up with them: FP3)
   * a LOOP keeps its window + a TAIL (the audio right after it, `xf` s): audio/city-sound.js crossfades the tail into the head at
     runtime (equal power) — seamless whatever padding the MP3 decoder adds; no fades baked in
   * a ONE-SHOT gets a raised-cosine fade in / out over its tail
@@ -87,8 +93,57 @@ CUTS = {
         {'cut': (3.7, 5.2), 'fin': 0.08, 'fout': 0.6, 'hp': 350, 'w': 0.6},
         {'cut': (6.85, 8.6), 'fin': 0.08, 'fout': 0.7, 'hp': 350},
     ],
+    # ---- THE SKY (6b, Oct 24 — the owner's notes, every cut CONFIRMED by measurement: per-second band energies, the 0.3 s RMS
+    # envelope, spectrograms 0–4 / 0–12 kHz for voices / PA / crowd in 300 Hz–3 kHz; docs/audio.md#the-sky-sounds has the why).
+    # The aircraft are FLYBYS — one-shots with their own swell, chained while their thing is up (harbor/sounds.js#run)
+    # (0:44 Pixabay MP3, a distant helicopter: ~all of its energy under 80 Hz (wind rumble) — the chop 100 Hz–1.5 kHz is the sound)
+    'heli-flyby': [{'cut': (1.0, 44.0), 'fin': 2.0, 'fout': 2.0, 'hp': 100, 'rate': 16000}],
+    # (0:36 Sonniss, a closer clean flyby: the swell 8–18 s, a ground-reflection comb; nothing else in it)
+    'heli-flyby-2': [{'cut': (0.0, 35.6), 'fin': 2.5, 'fout': 3.0, 'hp': 90, 'rate': 16000}],
+    # (1:11, an airliner far up: its swell 5–35 s (peak ~27 s), then leaves + wind (3–8 kHz) to the end — 4.5–46 s, long fades)
+    'airliner-high': [{'cut': (4.5, 46.0), 'fin': 3.5, 'fout': 4.0, 'hp': 90, 'rate': 16000}],
+    # (0:41 Pixabay MP3, a vintage plane overhead: two swells (4–12 s, 19–35 s), engine harmonics only — no PA / crowd / voices
+    # found (no formant movement, no syllabic 3–8 Hz bursts in 300 Hz–3 kHz)) — for the banner plane
+    'prop-plane': [{'cut': (1.0, 40.0), 'fin': 2.0, 'fout': 3.0, 'hp': 90, 'rate': 16000}],
+    # (0:40, F-16s right → left: a single jet at 4–9 s, THE FORMATION 12–23 s, its roar fading to 34 s; then silence)
+    'jets-formation': [{'cut': (11.0, 34.0), 'fin': 1.5, 'fout': 4.0, 'hp': 90, 'rate': 16000}],
+    # (0:49 Pixabay MP3, a burner up close — LOUD, clipped in places: its bursts (RMS > −24 dB) at 0.25–5.15, 6.1–10.45,
+    # 11.55–14.2, 16.0–21.1 (three short gusts), 22.7–31.5 s — each a take, low-passed for distance; the slot's gain is low)
+    'balloon-burner': [
+        {'cut': (0.0, 5.6), 'fin': 0.1, 'fout': 0.8, 'hp': 100, 'lp': 2200, 'rate': 16000},
+        {'cut': (5.85, 10.9), 'fin': 0.15, 'fout': 0.8, 'hp': 100, 'lp': 2200, 'rate': 16000},
+        {'cut': (11.3, 14.6), 'fin': 0.15, 'fout': 0.7, 'hp': 100, 'lp': 2200, 'w': 0.8, 'rate': 16000},
+        {'cut': (15.75, 21.5), 'fin': 0.15, 'fout': 0.8, 'hp': 100, 'lp': 2200, 'w': 0.6, 'rate': 16000},
+        {'cut': (22.45, 32.0), 'fin': 0.15, 'fout': 1.0, 'hp': 100, 'lp': 2200, 'w': 0.5, 'rate': 16000},
+    ],
+    # (1:38 Pixabay MP3, Brent geese: far chatter (1.0–1.6 kHz lines) 0–14 s, the flock overhead 22–33 s; a MODERN engine drone
+    # under all of it (285 / 297 / 387 Hz lines, +13–21 dB over the floor, loudest 9–20 s) — notched out)
+    'geese': [{'cut': (12.0, 34.0), 'fin': 2.5, 'fout': 2.5, 'hp': 100, 'notch': [285.3, 297.5, 387.0], 'rate': 16000}],
+    # (1:10 Sonniss, ONE quadcopter (a coil mic: a 50 Hz mains line, +37 dB — under the low cut); its whine 400–1000 Hz. THE
+    # SWARM: five copies, detuned (−4.5 … +3.4 %) and offset in time, low-passed: a soft hum, never a mosquito)
+    'drone-swarm': [{'loop': (3.0, 40.0), 'xf': 3.0, 'hp': 110, 'lp': 1400, 'rate': 16000,
+                     'layers': [(0.0, 1.0, 1.0), (5.5, 0.968, 0.8), (11.0, 1.034, 0.7), (16.5, 0.955, 0.55), (22.0, 1.021, 0.5)]}],
+    # (2:39 Sonniss, a tonal sci-fi drone: its partials 41.5 Hz (≈ E1), 70.8 Hz (between C♯2 and D2), 729 / 791 / 883 Hz — no one
+    # key: it sits low (soft top) so it never fights the song; 6b lowers / filters it under the music. The loop: the best-matching
+    # 30 s inside 20–80 s (scanned: head vs tail level + tilt) — it evolves, a longer window never closed on itself)
+    'ufo-hum': [{'loop': (41.0, 30.0), 'xf': 3.0, 'search': 2.0, 'hp': 80, 'lp': 2500, 'rate': 16000}],
+    # (0:18 Sonniss, a riser: up from ~2 s to its peak at 9 s, a reverb tail to 17 s)
+    'ufo-beam': [{'cut': (3.0, 17.0), 'fin': 0.4, 'fout': 1.5, 'hp': 90}],
+    # (3:00 Sonniss, 104 MB — never copied: a 40 s loop from 30–120 s, its seam searched ±10 s. Flat 20–400 Hz: NO low cut (a
+    # 25 Hz subsonic cut only) + a low-mid lift (+3 dB at 300 Hz) so a phone's speaker still hears it)
+    'tr3b-drone': [{'loop': (60.0, 40.0), 'xf': 3.0, 'hp': 25, 'lowmid': 3.0, 'search': 10.0, 'rate': 16000}],
+    # (2:46 Sonniss, a Black Hawk's turbine at idle, the rotors off. MEASURED: the 12–32 s the notes named is only the rotor wash
+    # thinning (no wind-down); the TURBINE CUTS at 134.75 s (a clunk, then its whine gliding ~10 kHz → 1 kHz for 30 s) — that's
+    # the power-down: 131.5–162 s, low-passed at 6 kHz, + THE BLACKOUT built on it: the city's 60 Hz hum under the roar, cut dead
+    # at the clunk with a low thump (`hit` in the registry: s into the take))
+    'tr3b-powerdown': [{'cut': (131.5, 162.0), 'fin': 1.0, 'fout': 3.0, 'hp': 25, 'lp': 6000, 'blackout': 3.25, 'rate': 16000}],
 }
+# source files named after what they are, not their slot (the folder's names) → the slot
+ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-formation': 'jet-flyby', 'tr3b-powerdown': 'tr3b-power-down'}
+PIXABAY = ('The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — '
+           'the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).')
 CREDIT_NOTE = {
+    'heli-flyby': PIXABAY, 'prop-plane': PIXABAY, 'balloon-burner': PIXABAY, 'geese': PIXABAY,
     'gulls': 'The file imported is the lossless Freesound original named in this block (TRP, sound 574388, CC0 1.0; FLAC 48 kHz '
              '24-bit stereo, 0:52), not the Pixabay MP3 copy.',
 }
@@ -162,6 +217,77 @@ def momentary_peak(x):
     cs = np.concatenate([[0.0], np.cumsum(y)])
     c = cs[w:] - cs[:-w]
     return (int(np.argmax(c)) + w / 2) / SR
+
+
+SWELL_DB = 15.0
+
+
+def envelope(x, win=0.3, hop=0.05):
+    """the short-time RMS envelope (dB): win s windows every hop s → (times at the windows' centres, dB)"""
+    w, h = int(win * SR), int(hop * SR)
+    if len(x) <= w: return np.array([len(x) / SR / 2]), np.array([10 * np.log10(np.mean(x ** 2) + 1e-15)])
+    cs = np.concatenate([[0.0], np.cumsum(x ** 2)])
+    idx = np.arange(0, len(x) - w + 1, h)
+    return idx / SR + win / 2, 10 * np.log10((cs[idx + w] - cs[idx]) / w + 1e-15)
+
+
+def swell(x, db=SWELL_DB):
+    """the take's PEAK (s: the loudest 0.3 s of its RMS envelope — what the ear hears as 'nearest') + its SWELL [a, b] (s: where
+    the envelope stays within `db` of the peak round it) — the motorcar crosses the visible street within it (FP3)"""
+    t, e = envelope(x)
+    i = int(np.argmax(e)); a = b = i
+    while a > 0 and e[a - 1] > e[i] - db: a -= 1
+    while b < len(e) - 1 and e[b + 1] > e[i] - db: b += 1
+    return round(float(t[i]), 2), [round(float(t[a]), 2), round(float(t[b]), 2)]
+
+
+def notch(y, freqs, q=12.0):
+    from scipy.signal import iirnotch
+    for f0 in freqs or []:
+        b, a = iirnotch(f0, q, fs=SR)
+        y = lfilter(b, a, y)
+    return y
+
+
+def lowpass(y, fc, order=4):
+    return sosfiltfilt(butter(order, fc, 'lowpass', fs=SR, output='sos'), y)
+
+
+def layered(path, t0, L, layers, pad=0.0):
+    """THE SWARM: copies of one recording summed — each (offset s, rate, gain): read from t0 + offset at `rate` (a resample:
+    pitch + speed × rate) for L s. Each copy is a continuous stretch of the source, so the loop's tail flows on from its body"""
+    from scipy.signal import resample_poly
+    out = np.zeros(int(round(L * SR)))
+    for off, rate, g in layers:
+        need = L * rate + 0.5
+        raw = decode(path, t0 + off, t0 + off + need)
+        # resample by rate (≈ p / q in thousandths): rate > 1 = faster + higher
+        q, p = 1000, int(round(1000 / rate))
+        y = resample_poly(raw, p, q)
+        n = min(len(out), len(y))
+        out[:n] += g * y[:n]
+    return out
+
+
+def blackout(y, at, k_hum=0.22, k_thump=1.6):
+    """THE BLACKOUT (the TR-3B's power-down): the city's mains hum (60 Hz + its harmonics, a little buzzy) under the roar until
+    `at` s, cut dead there (8 ms) with a LOW THUMP (55 → 38 Hz, its harmonics up to ~170 Hz so a phone hears it, ~0.35 s) on the
+    turbine's own clunk. Levels relative to the recording's RMS before the cut."""
+    n, i = len(y), int(at * SR)
+    ref = np.sqrt(np.mean(y[max(0, i - SR):i] ** 2) + 1e-12)
+    t = np.arange(n) / SR
+    hum = sum((1 / k) * np.sin(2 * np.pi * 60 * k * t + k) for k in range(1, 7))
+    hum = hum / (np.sqrt(np.mean(hum ** 2)) + 1e-12) * ref * k_hum
+    env = np.zeros(n); env[:i] = 1.0
+    ramp = min(i, int(0.6 * SR)); env[:ramp] *= np.linspace(0, 1, ramp)       # (eased in with the take)
+    cut = int(0.008 * SR); env[i:i + cut] = np.linspace(1, 0, len(env[i:i + cut]))
+    tt = np.maximum(0, t - at)
+    f = 38 + 17 * np.exp(-tt / 0.08)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    body = (np.sin(ph) + 0.5 * np.sin(2 * ph) + 0.28 * np.sin(3 * ph)) * np.exp(-tt / 0.22) * (t >= at)
+    att = np.minimum(1, tt / 0.004)
+    thump = body * att / 1.78 * ref * k_thump * 1.414
+    return y + hum * env + thump
 
 
 def seam_search(y, L, xf, span):
@@ -281,8 +407,10 @@ def write_credits(sources):
 # ---- one source file → its takes
 def slot_of(stem, slots):
     if stem in slots: return stem, 1
+    if ALIAS.get(stem) in slots: return ALIAS[stem], 1
     m = re.match(r'^(.*)-(\d+)$', stem)
     if m and m.group(1) in slots: return m.group(1), int(m.group(2))
+    if m and ALIAS.get(m.group(1)) in slots: return ALIAS[m.group(1)], int(m.group(2))
     return None, 0
 
 
@@ -298,20 +426,36 @@ def default_cuts(path, kind):
     return [{'cut': (max(0.0, a - 0.05), min(d, b + 0.3)), 'fin': 0.03, 'fout': min(1.5, (b - a) * 0.3)}]
 
 
+def shape(y, cut):
+    """the recipe's colour: the presence lift, the low-mid lift, notches, the low-pass (distance)"""
+    if cut.get('lift'):
+        b, a = biquad('peak', 2500, 0.8, cut['lift'])
+        y = lfilter(b, a, y)
+    if cut.get('lowmid'):
+        b, a = biquad('peak', 300, 0.7, cut['lowmid'])
+        y = lfilter(b, a, y)
+    if cut.get('notch'): y = notch(y, cut['notch'])
+    if cut.get('lp'): y = lowpass(y, cut['lp'])
+    return y
+
+
 def process(path, stem, slot, kind, cut, k, ncuts, tmp):
     hp = cut.get('hp', 120 if kind == 'loop' else 100)
     sos = butter(2, hp, 'highpass', fs=SR, output='sos')
     pad = 1.0
-    if 'loop' in cut:
+    if 'loop' in cut and cut.get('layers'):
+        # THE SWARM: layered copies (each a continuous stretch: the tail flows on from the body; no seam search)
+        t0, L = cut['loop']; xf = cut.get('xf', 2.5)
+        raw = layered(path, t0, L + xf + 2 * pad, cut['layers'])
+        y = shape(sosfiltfilt(sos, raw), cut)
+        off = int(round(pad * SR))
+    elif 'loop' in cut:
         t0, L = cut['loop']; xf = cut.get('xf', 2.5)
         # the seam: the start nudged (± `search` s, default 5) to where the head and the tail match best
         span = cut.get('search', 5.0)
         a0 = max(0.0, t0 - span - pad)
         raw = decode(path, a0, t0 + span + L + xf + pad)
-        f = sosfiltfilt(sos, raw)
-        if cut.get('lift'):
-            b, a = biquad('peak', 2500, 0.8, cut['lift'])
-            f = lfilter(b, a, f)
+        f = shape(sosfiltfilt(sos, raw), {**cut, 'lp': None})
         s0 = max(a0 + pad, t0 - span)
         i0 = int(round((s0 - a0) * SR))
         dt, _ = seam_search(f[i0:], L, xf, (t0 + span - s0) / 2)
@@ -319,14 +463,13 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
         cut = {**cut, 'loop': (round(t0, 2), L)}
         raw = decode(path, max(0.0, t0 - pad), t0 + L + xf + pad)
         off = int(round((t0 - max(0.0, t0 - pad)) * SR))
+        y = shape(sosfiltfilt(sos, raw), cut)
     else:
         t0, t1 = cut['cut']
         raw = decode(path, max(0.0, t0 - pad), t1 + pad)
         off = int(round((t0 - max(0.0, t0 - pad)) * SR))
-    y = sosfiltfilt(sos, raw)
-    if cut.get('lift'):
-        b, a = biquad('peak', 2500, 0.8, cut['lift'])
-        y = lfilter(b, a, y)
+        y = shape(sosfiltfilt(sos, raw), cut)
+    hit = None
     if 'loop' in cut:
         y = y[off:off + int(round((L + xf) * SR))]
         body = int(round(L * SR))
@@ -340,13 +483,18 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
         note = f'from {t0:.2f} s · seam: head vs tail {seam:+.1f} dB'
     else:
         y = y[off:off + int(round((t1 - t0) * SR))]
+        if cut.get('blackout') is not None:
+            hit = float(cut['blackout'])
+            y = blackout(y, hit)
         fin, fout = cut.get('fin', 0.6), cut.get('fout', 1.8)
         nI, nO = int(fin * SR), int(min(fout, (t1 - t0) * 0.6) * SR)
         if nI: y[:nI] *= 0.5 - 0.5 * np.cos(np.linspace(0, np.pi, nI))
         if nO: y[-nO:] *= 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, nO))
         y = level(y, ONCE_LUFS)
-        info = {'peak': round(momentary_peak(y), 2), 'from': [round(t0, 2), round(t1, 2)]}
-        note = f'peak at {info["peak"]:.1f} s'
+        pk, sw = swell(y)
+        info = {'peak': pk, 'sw': sw, 'from': [round(t0, 2), round(t1, 2)]}
+        if hit is not None: info['hit'] = round(hit, 2)
+        note = f'peak at {pk:.2f} s, swell {sw[0]:.2f}–{sw[1]:.2f} s'
     name = f'{stem}{f"_{k + 1}" if ncuts > 1 else ""}.mp3'
     wav = Path(tmp) / (name + '.wav')
     import scipy.io.wavfile as wf
@@ -355,6 +503,9 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
     run_ff(['-y', '-i', str(wav), '-map_metadata', '-1', '-ac', '1', '-ar', str(SR), '-c:a', 'libmp3lame', '-b:a', BITRATE, str(dst)])
     back = decode(dst)
     take = {'f': name, 'v': md5(dst)[:8], 'd': round(len(back) / SR, 3), 'lufs': round(lufs(back[:int(info['loop'] * SR)] if 'loop' in info else back), 1), **info, 'src': stem}
+    if 'peak' in info:
+        # (measured again on the file as it ships: the MP3's own delay + padding shift it a few ms)
+        take['peak'], take['sw'] = swell(back)
     if cut.get('w') is not None: take['w'] = cut['w']
     if cut.get('rate'): take['r'] = cut['rate']
     pkdb = 20 * np.log10(np.abs(back).max() + 1e-9)

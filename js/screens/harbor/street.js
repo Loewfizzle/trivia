@@ -63,15 +63,23 @@ export function paintSett(x, ax, ay, ww, hh, c, o) {
 }
 
 // ------------------------------------------------------------------ THE STREET's colours
-const SETT = { d: [130, 127, 126], g: [152, 112, 100], n: [52, 50, 72] };      // cooler + a touch darker than the promenade's (the traffic's grime)
-const GROUT = { d: [106, 99, 91], g: [114, 82, 74], n: [46, 43, 58] };        // packed sand + grit, a mid tone (never a black gap)
-const GUT = { d: [164, 158, 150], g: [186, 142, 122], n: [64, 60, 84] };       // the gutter's dressed slabs (smoother, paler)
-const STRETCH = { d: [162, 156, 148], g: [186, 140, 120], n: [64, 60, 84] };   // the rails' granite stretchers (dressed smooth, paler)
+// PF (the owner's iPhone review: "the street must read as a different SURFACE from the promenade"): TARRED setts — the granite
+// darkened + cooled by decades of tar, oil + tyre grime (an asphalt tone, blue-grey, never the promenade's warm sand-grey), TAR in the
+// joints (a dark pitch line, lifted where the lamps reach so the night never goes black), the gutter a step darker than the curb
+const SETT = { d: [98, 100, 108], g: [122, 96, 94], n: [44, 45, 66] };          // (FP2 [130,127,126] · [152,112,100] · [52,50,72])
+const GROUT = { d: [56, 55, 61], g: [66, 52, 54], n: [28, 28, 42] };          // tar in the joints (FP2 sand [106,99,91] · [114,82,74] · [46,43,58])
+const GUT = { d: [118, 118, 122], g: [140, 112, 104], n: [46, 46, 66] };      // the gutter's dressed slabs (FP2 [164,158,150] · [186,142,122] · [64,60,84])
+const STRETCH = { d: [126, 126, 130], g: [148, 118, 108], n: [50, 50, 70] };  // the rails' granite stretchers (FP2 [162,156,148] · [186,140,120] · [64,60,84])
 const HEAD = { d: [226, 232, 242], g: [255, 214, 172], n: [138, 138, 170] };  // a railhead's polished running top (the sky / the sun in it)
 const FLANK = { d: [92, 90, 94], g: [96, 72, 68], n: [30, 29, 42] };          // the rail's rusty flank + the groove beside it
 const IRON = { d: [72, 70, 74], g: [84, 62, 58], n: [32, 31, 44] };
 const SKYREF = { d: [170, 196, 226], g: [246, 176, 138], n: [34, 38, 70] };    // what a puddle / a wet stone mirrors
-const LIP = { d: [255, 248, 232], g: [255, 206, 160], n: [70, 66, 96] };
+const LIP = { d: [212, 216, 226], g: [238, 198, 162], n: [70, 66, 96] };   // (PF: the tarred crowns duller + cooler — FP2 [255,248,232] · [255,206,160]; the worn paths shine: SHEEN)
+/** PF: the tyres' worn paths — their crowns' sky sheen (paintSett's wet glaze at this strength) */
+export const SHEEN = 0.3;
+/** PF — THE CURB STEP (streetOver, over stage.js's front curb): the face's extra shade (top → foot), its crisp lit ARRIS (the top's
+ *  near edge: the sun by day, the sky + the lamps at night), the curb's shadow on the gutter (pt tall at 402 ≈ face × 0.6) */
+export const CURB_STEP = Object.freeze({ face: [0.26, 0.46], faceN: [0.16, 0.3], arris: 0.75, arrisN: 0.4, shadow: 0.42 });
 
 /** the street's look for these tones — the colours a car / a test needs too */
 export function streetLook(T, wet = 0) {
@@ -134,10 +142,11 @@ export function streetSteps(L, T, lightAt) {
       const [ax, ay] = P(s.x0, s.zb), [bx, by] = P(s.x1, s.za), ww = bx - ax, hh = by - ay;
       if (ww < 0.6 || hh < 0.4 || bx < -2 || ax > cam.W + 2) continue;
       let c = mulc(K.sett, polished ? 0.94 + (s.v - 0.82) * 0.5 : s.v);
-      if (s.tint < 0.2) c = addc(c, [12, 6, -4], 0.6 + 0.4 * day); else if (s.tint < 0.36) c = addc(c, [-6, -2, 9], 0.6 + 0.4 * day);
+      if (s.tint < 0.2) c = addc(c, [12, 6, -4], 0.6 + 0.4 * day); else if (s.tint < 0.36) c = addc(c, [-4, -1, 6], 0.6 + 0.4 * day);   // (PF: the cool tint 9 → 6 on the darker stone)
       const lt = lit((s.x0 + s.x1) / 2, zc);
       if (lt) c = addc(c, lt, 0.6);
-      paintSett(x, ax, ay, ww, hh, c, { ...so, lt, a: polished ? 0.9 : s.a, b: polished ? 1 : s.b, day: polished ? Math.min(1, day * 1.25) : day });
+      // (PF: the tyres' paths WORN SMOOTH — their crowns take a faint sheen of the sky, through the painter's wet path: a glaze, not water)
+      paintSett(x, ax, ay, ww, hh, c, { ...so, lt, a: polished ? 0.9 : s.a, b: polished ? 1 : s.b, day: polished ? Math.min(1, day * 1.25) : day, wet: polished ? Math.max(wet, SHEEN) : wet });
     }
   };
   // (FP2: the soft night stones cost ~2× a day stone — two rows a step at night, so no bake step grows past a tree's)
@@ -190,13 +199,24 @@ export function streetSteps(L, T, lightAt) {
   if (wet > 0.01) steps.push(x => wetPass(x, L, st, K, T, wet));
   return steps;
 }
-/** after the front curb (stage.js): the drain's inlet in the curb's face */
+/** after the front curb (stage.js): THE CURB STEP (PF) + the drain's inlet in the curb's face */
 export function streetOver(L, T) {
   const cam = L.cam, st = L.impliedRoad && L.impliedRoad.street;
   if (!st) return null;
   return x => {
     const d = st.drain, za = st.z0, yb = groundY(cam, za), face = Math.max(1.2, cam.F * 0.32 / za), s = cam.F / za;
     const [cx] = project(cam, d.x, 0, za), w = d.w * s * 0.92, h = face * 0.62, K = streetLook(T, L.wet || 0);
+    // PF — THE CURB STEP (the owner: "a CLEAR step between the promenade and the street"): the face deeper in shade (the street's
+    // tar-dark below it), a crisp lit ARRIS along the top's near edge, the curb's own shadow on the gutter just under the face
+    { const day = (T.day || 0) + 0.7 * (T.gold || 0), night = T.night || 0, C = CURB_STEP;
+      const fa = C.face.map((v, i) => v * (1 - night) + C.faceN[i] * night), g = x.createLinearGradient(0, yb, 0, yb + face);
+      g.addColorStop(0, `rgba(10,10,22,${fa[0].toFixed(3)})`); g.addColorStop(1, `rgba(10,10,22,${fa[1].toFixed(3)})`);
+      x.fillStyle = g; x.fillRect(0, yb, cam.W, face);
+      const sh = Math.max(1, face * 0.6), sg = x.createLinearGradient(0, yb + face, 0, yb + face + sh);
+      sg.addColorStop(0, `rgba(8,8,18,${(C.shadow * (0.6 + 0.4 * day)).toFixed(3)})`); sg.addColorStop(1, 'rgba(8,8,18,0)');
+      x.fillStyle = sg; x.fillRect(0, yb + face, cam.W, sh);
+      const ac = mix(mix(K.lip, [255, 255, 255], 0.2 * day), [150, 156, 190], night), aa = C.arris * (1 - night) * Math.min(1, 0.45 + day) + C.arrisN * night;
+      x.fillStyle = rgb(ac, aa); x.fillRect(0, yb - 0.55, cam.W, 0.55); }
     x.fillStyle = rgb(shade(K.iron, -0.35)); x.beginPath(); x.roundRect(cx - w / 2, yb + face - h, w, h, [1.4, 1.4, 0, 0]); x.fill();
     x.fillStyle = rgb(shade(K.iron, 0.18)); x.fillRect(cx - w / 2 - 0.6, yb + face - h - 0.7, w + 1.2, 0.9);   // the iron lintel
     x.fillStyle = 'rgba(0,0,0,0.35)';

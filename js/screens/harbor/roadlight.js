@@ -3,12 +3,19 @@
 // by day a soft passing shadow along the front walk. FP2 — while the dock RESTS (hidden, the street under it full-bleed: street.js)
 // the same pass is SEEN: a 1920s motorcar rolls across the street (motorcar.js — its own headlamps' pool + its shadow then, the old
 // sweep fading out), fading in with the dock's fade-out and gone in 0.25 s when the dock comes back (core/harbor-promenade.js#carVis).
-// Its sound (the car-1920s-pass slot: harbor/sounds.js) starts with the pass, the car is nearest (x 0) when the take peaks. The
-// schedule is on the clock (core/harbor-promenade.js#roadPassAt: every phone the same, joins mid-way); where the car is: #carAt.
+// Its sound (the car-1920s-pass slot) is the PASS'S OWN take (core/city-sounds.js#takeAt: the same on every phone) placed ON THE
+// CLOCK (FP3 — the owner's iPhone heard it 5–6 s after the car: it used to start whenever its file had loaded): the take's peak
+// lands on the car's centre wherever the wait for the file ended (city-sound.js's sync: joined part-way with a fade if late, silent
+// once the car has passed), the next pass's take fetched ~12 s ahead, the car's speed from the take's swell (carSpeed: it crosses
+// the visible street within the audible rise and fall), the pan following its x (±0.6, gentle). While the dock covers the street
+// the sound alone plays — a car passing behind. The schedule is on the clock (core/harbor-promenade.js#roadPassAt: every phone the
+// same, joins mid-way); where the car is: #carAt.
 // Behind the owner's flag: &force=no-implied-road switches the road off (the setts then run to the screen's foot); &force=road-pass a
 // car every ~13 s. THE RAID's hook (7b): wash({ col, k }) — a red / blue wash rolling up from the front.
 import { project, groundY } from '../../core/harbor-layout.js';
-import { roadPassAt, ROAD_PASS, carAt, carVis } from '../../core/harbor-promenade.js';
+import { roadPassAt, ROAD_PASS, carAt, carVis, carSpeed } from '../../core/harbor-promenade.js';
+import { takeAt, crossFor, carPre, panOf } from '../../core/city-sounds.js';
+import { cityPrefetch } from '../../audio/city-sound.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { createMotorcar, PAINTS } from './motorcar.js';
 
@@ -21,8 +28,14 @@ const sprite = (rgbStr, soft = 0.5) => {
 
 export function createRoadLight() {
   let L = null, cam = null, beam = null, shade = null, washSp = null;
-  let cur = null, center = 0, washCol = null, washK = 0, vis = 0, seen = false;
-  const playing = new Set(), motor = createMotorcar();
+  let cur = null, center = 0, cross = null, ti = -1, washCol = null, washK = 0, vis = 0, seen = false;
+  // FP3: the sound playing (its own pass's centre / direction / speed, so it pans on after the next pass begins); the city's clock
+  // vs performance.now() (the sync reads the clock when the file is ready, between frames); the passes whose take was fetched
+  let snd = null, skew = 0, panAt = 0, nextAt = 0;
+  const playing = new Set(), fetched = new Set(), motor = createMotorcar();
+  const SLOT = 'car-1920s-pass';
+  // where a pass's car is along the road (world x) at ms, at depth z — its own speed (its take's swell)
+  const xAt = (p, ms, z) => p.dir * ((ms - p.center) / 1000) * carSpeed(cam, z, p.cross);
   // the street lamps' light on the car as it passes (x → 0..1): the front walk's globes + the speakeasy's corner
   const lampAt = x => { let k = 0; for (const l of L.lamps) { if (l.z > 40) continue; const d = (x - l.x) / 7; if (d * d < 1) k += (1 - d * d) ** 2; } return Math.min(1, k); };
   return {
@@ -41,17 +54,38 @@ export function createRoadLight() {
       // (reduced motion: no car rolls — the implied light stays, as with the dock shown)
       vis = carVis(vis, !!f.gone && !!f.on && !!f.motion, f.dt || 16.7);
       if (!L || !f.on || f.fade <= 0) { motor.reset(); return; }
+      skew = f.ms - performance.now();
+      const st0 = L.impliedRoad && L.impliedRoad.street, zc = L.edge ? L.edge.z - 4 : 31.5;
+      const laneZ = p => (st0 ? (p.dir < 0 ? st0.lanes[0] : st0.lanes[1]).z : zc);
       const pass = roadPassAt(f.ms, f.hourAt, { force: f.force });
       if (pass && (!cur || cur.id !== pass.id)) {
+        // the car is nearest at the pass's CENTRE (the same on every phone); its take = the pass's own (takeAt): its swell sets the speed
         cur = pass; center = pass.t0 + ROAD_PASS.peak;
-        // its sound: only when caught at its start (a pass already under way when the page opened shows its light, silently)
-        if (f.play && f.ms - pass.t0 < 1500 && !playing.has(pass.id)) {
-          const h = f.play('car-1920s-pass', { pan: 0, gain: pass.lane ? 0.8 : 1 });
+        const tk = takeAt(SLOT, pass.take);
+        cross = crossFor(tk && tk.take); ti = tk ? tk.i : -1;
+        // its sound, placed on the clock: the take's peak on the centre (city-sound.js#citySound's sync — whenever its file is ready);
+        // a pass whose centre is under 1.5 s away (the page opened mid-pass) stays silent
+        if (f.play && tk && !playing.has(pass.id) && center - f.ms > 1500) {
+          const me = { center, cross, dir: pass.dir, lane: pass.lane };
+          const h = f.play(SLOT, { take: tk.i, gain: pass.lane ? 0.8 : 1, pan: panOf(xAt(me, f.ms, laneZ(me)), cam.hw(laneZ(me))),
+            sync: { peakIn: () => (me.center - (performance.now() + skew)) / 1000, pre: carPre(cross), fade: 0.8, late: 1 } });
           playing.add(pass.id); if (playing.size > 8) playing.delete(playing.values().next().value);
-          if (h && h.peak) center = pass.t0 + h.peak * 1000;
+          if (h) snd = { h, ...me };
         }
       }
       if (!pass) cur = null;
+      // the sound follows its car: a gentle pan from its x (~8× a second); dropped once it has played out
+      if (snd && f.ms - panAt > 120) {
+        panAt = f.ms;
+        if (snd.h.ended()) snd = null;
+        else { const z = laneZ(snd); snd.h.set({ pan: panOf(xAt(snd, f.ms, z), cam.hw(z)) }, 0.15); }
+      }
+      // the next pass's take fetched + decoded ahead (~12 s): its sound then starts on time, never waiting on the network
+      if (f.play && f.ms - nextAt > 1000) {
+        nextAt = f.ms;
+        const nx = roadPassAt(f.ms + 12e3, f.hourAt, { force: f.force });
+        if (nx && !fetched.has(nx.id)) { const tk = takeAt(SLOT, nx.take); if (tk && cityPrefetch(SLOT, tk.i)) { fetched.add(nx.id); if (fetched.size > 8) fetched.delete(fetched.values().next().value); } }
+      }
       // the wash (the raid's lights) first, under the car's own light
       if (washCol && washK > 0.01) {
         if (!washSp || washSp.key !== washCol.join()) { washSp = sprite(washCol.join(), 0.4); washSp.key = washCol.join(); }
@@ -62,7 +96,7 @@ export function createRoadLight() {
       // FP2: THE CAR ITSELF while the dock rests (its own light + shadow); the implied light below fades out as it fades in
       const st = L.impliedRoad && L.impliedRoad.street;
       if (st && vis > 0.004) {
-        const car = carAt(cur, center, f.ms, cam, st);
+        const car = carAt(cur, center, f.ms, cam, st, cross);
         if (car.on) {
           motor.draw(c, car, { cam, T: f.T, k: vis * f.fade, night: f.night, lampAt, paint: Math.floor(cur.take * PAINTS.length) % PAINTS.length, dpr: f.dpr || 2, t: f.t || 0, motion: f.motion, wet: f.wet || 0, rails: st.rails });
           seen = true;
@@ -70,9 +104,10 @@ export function createRoadLight() {
       } else motor.reset();
       const iv = 1 - vis;
       if (iv <= 0.01) return;
-      // the car's x (world) along the road just below the frame: nearest (x 0) at `center`, ~6 u/s (a 1920s cruise)
-      const tt = (f.ms - center) / 1000, zc = L.edge ? L.edge.z - 4 : 31.5, span = cam.hw(zc) + 14;
-      const carX = cur.dir * tt * (span * 2 / 9);
+      // the car's x (world) along the road just below the frame: nearest (x 0) at `center`, at its take's speed (the same timing as
+      // the car itself + its sound: carSpeed)
+      const span = cam.hw(zc) + 14;
+      const carX = xAt({ center, cross, dir: cur.dir }, f.ms, zc);
       if (Math.abs(carX) > span) return;
       const env = Math.max(0, 1 - Math.abs(carX) / span) ** 0.6;
       const P = (x, z) => project(cam, x, 0, z);
@@ -95,7 +130,8 @@ export function createRoadLight() {
         c.globalAlpha = 0.22 * f.day * env * f.fade * iv; c.drawImage(shade, cx - rw, ya, rw * 2, yb - ya); c.globalAlpha = 1;
       }
     },
-    debug: () => ({ pass: cur ? { id: cur.id, dir: cur.dir, center } : null, played: playing.size, wash: washK, vis: +vis.toFixed(3), car: seen ? motor.debug() : null }),
+    debug: () => ({ pass: cur ? { id: cur.id, dir: cur.dir, center, take: ti, cross } : null, played: playing.size,
+      sound: snd ? { take: snd.h.take, started: snd.h.started() > 0, late: snd.h.late(), center: snd.center } : null, wash: washK, vis: +vis.toFixed(3), car: seen ? motor.debug() : null }),
     destroy() { motor.destroy(); for (const s of [beam, shade, washSp]) if (s) s.width = s.height = 0; beam = shade = washSp = null; },
   };
 }

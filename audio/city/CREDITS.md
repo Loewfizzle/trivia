@@ -5,6 +5,25 @@ recording here is CC0 (public domain) or from the Sonniss GDC Game Audio Bundles
 attribution required; the raw files are not redistributed — only these edited, cut and re-encoded excerpts ship). Credits
 are kept anyway, with each source file's MD5.
 
+## airliner-high.wav  →  airliner-far
+
+- MD5 `14e8aa3342acef39389e4415ad43e483`
+- airliner-high.wav   (40,966,706 bytes)
+- "Jet - Airliner - Fly - By - Overhead - Distant - Some Leaves and Wind - CMC6" - Pole Position Production (The Aircraft Ambient Library), Sonniss GDC 2024 bundle (archive.org "normalized" item; peak -19.4 dBFS)
+- Source: https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Pole%20Position%20-%20The%20Aircraft%20Ambient%20Library/Jet%20-%20Airliner%20-%20Fly%20-%20By%20-%20Overhead%20-%20Distant%20-%20Some%20Leaves%20and%20Wind%20-%20CMC6.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## balloon-burner.mp3  →  balloon-burner
+
+- MD5 `17e4d746c66d92ebddb4637d77a12f13`
+- balloon-burner.mp3   (987,840 bytes)   (LOSSY Pixabay copy - lossless original on Freesound, download it yourself)
+- "HotAirBaloonTorch" - Dr. Macak (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-hotairbaloontorch-60586/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_808e342ce8.mp3?filename=freesound_community-hotairbaloontorch-60586.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: https://freesound.org/s/491300/ (CC0 1.0) - WAV 44.1 kHz/32-bit stereo
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## car-1920s-pass.wav  →  car-1920s-pass
 
 - MD5 `428986bdbef2d41c12d768e66bd79fb4`
@@ -46,6 +65,25 @@ are kept anyway, with each source file's MD5.
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 - NOTE: church bells in the first ~12 s - trim them off.
 
+## drone-swarm.wav  →  drone-swarm
+
+- MD5 `8898cff5544b498922f7cbab1072f1c9`
+- drone-swarm.wav   (22,610,336 bytes)
+- "SW006_Quadcopter_engine_right_constant_coilmic" - ShapingWaves (SW006 Quadcopter), Sonniss GDC 2016 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/ShapingWaves%20-%20%20QUADCOPTER/SW006_Quadcopter_engine_right_constant_coilmic.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## geese.mp3  →  geese
+
+- MD5 `62f3d56a5712bc8b7373254dba5e9fc9`
+- geese.mp3   (1,954,080 bytes)   (LOSSY Pixabay copy - lossless original on Freesound, download it yourself)
+- "Brent geese flying overhead in Essex Wetland" - jackmichaelking (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/nature-brent-geese-flying-overhead-in-essex-wetland-23296/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/09/audio_e604c20e47.mp3?filename=freesound_community-brent-geese-flying-overhead-in-essex-wetland-23296.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user jackmichaelking, https://freesound.org/people/jackmichaelking/ (CC0 1.0) - "Brent geese flying overhead in Essex Wetland.WAV"
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## gulls.flac  →  gulls
 
 - MD5 `99ddb8f947981a5e1ffc87bcec1bb7b2`
@@ -56,6 +94,76 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - Original: https://freesound.org/people/TRP/sounds/574388/ (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/) - "Seagulls distant urban St John 190529.flac", FLAC 48 kHz/24-bit stereo
 - NOTE: The file imported is the lossless Freesound original named in this block (TRP, sound 574388, CC0 1.0; FLAC 48 kHz 24-bit stereo, 0:52), not the Pixabay MP3 copy.
+
+## heli-flyby.mp3  →  helicopter
+
+- MD5 `9821929b10632c64f117d3718deb3da0`
+- heli-flyby.mp3   (894,240 bytes)   (LOSSY Pixabay copy - lossless original on Freesound, download it yourself)
+- "200217 Helicopter slow distant pass outside TORONTO" - TRP (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/city-200217-helicopter-slow-distant-pass-outside-toronto-26269/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/09/audio_2774f81d11.mp3?filename=freesound_community-200217-helicopter-slow-distant-pass-outside-toronto-26269.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: https://freesound.org/people/TRP/sounds/567106/ (CC0 1.0) - WAV 48 kHz/24-bit stereo
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## heli-flyby-2.wav  →  helicopter
+
+- MD5 `2fa7d90c63624d39dd571152052878d3`
+- heli-flyby-2.wav   (20,608,386 bytes)
+- "Helicopter - Military - FLY - By - Overhead - ORTF - MKH8040" - Pole Position Production (The Aircraft Ambient Library), Sonniss GDC 2024 bundle (archive.org "normalized" item; measured peak -10.2 dBFS, no clipping)
+- Source: https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Pole%20Position%20-%20The%20Aircraft%20Ambient%20Library/Helicopter%20-%20Military%20-%20FLY%20-%20By%20-%20Overhead%20-%20ORTF%20-%20MKH8040.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## jets-formation.wav  →  jet-flyby
+
+- MD5 `de51139e0abe0eaa8471a5e1c3f6a97c`
+- jets-formation.wav   (23,555,388 bytes)
+- "Group of F-16 Jet Fighters passing from right to left and vanishing into the horizon" - Sound Ex Machina (F16 Maneuvers), Sonniss GDC 2020 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Sound%20Ex%20Machina%20-%20F16%20Maneuvers/Group%20of%20F-16%20Jet%20Fighters%20passing%20from%20right%20to%20left%20and%20vanishing%20into%20the%20horizon.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## prop-plane.mp3  →  prop-plane
+
+- MD5 `4a992ec5d49d102be3188ab39db47904`
+- prop-plane.mp3   (820,800 bytes)   (LOSSY Pixabay copy - lossless original on Freesound, download it yourself)
+- "Distant old plane overhead 77mel binaural 2-8-12" - TRP (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/city-028698-distant-old-plane-overhead-77mel-binaural-2-8-12flac-62001/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_a1e3eb08b3.mp3?filename=freesound_community-028698_distant-old-plane-overhead-77mel-binaural-2-8-12flac-62001.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: https://freesound.org/people/TRP/sounds/577775/ (CC0 1.0) - FLAC 48 kHz/16-bit stereo
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## tr3b-drone.wav  →  tr3b-drone
+
+- MD5 `68b4be633e4a23e05a8da9aa76c351ef`
+- tr3b-drone.wav   (104,230,894 bytes)
+- "Huge Planet, Rumble, Empty, Large, Space, Sci-Fi, Planet, Ambience, Exterior" - 344 Audio (Alien Atmospheres), Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/344%20Audio%20-%20Alien%20Atmospheres/Huge%20Planet%2C%20Rumble%2C%20Empty%2C%20Large%2C%20Space%2C%20Sci-Fi%2C%20Planet%2C%20Ambience%2C%20Exterior.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## tr3b-powerdown.wav  →  tr3b-power-down
+
+- MD5 `360faf20e8c989fa8ca9055b4a738957`
+- tr3b-powerdown.wav   (48,514,124 bytes)
+- "black_hawk_t16_ext_idle_turbine_rotors_off_left_Co100k" - Pole Position Production (Black Hawk UH-60M), Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Pole%20Position%20-%20Black%20Hawk%20UH-60M/black_hawk_t16_ext_idle_turbine_rotors_off_left_Co100k.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## ufo-beam.wav  →  ufo-beam
+
+- MD5 `6ac6650346a20560cdadec47e3fa7430`
+- ufo-beam.wav   (12,084,258 bytes)
+- "Riser Reverb Synth Tone 01" - L.A. Sound (Transitions 002), Sonniss GDC 2020 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/L.A.%20Sounds%20-%20Transitions%20002/Riser%20Reverb%20Synth%20Tone%2001.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## ufo-hum.wav  →  ufo-hum
+
+- MD5 `3e1e54d23f3d125458f38e46f40201b0`
+- ufo-hum.wav   (96,694,092 bytes)
+- "DSGNDron_Sci-Fi Drone Light Space Exploration_SYSO_SYSO018" - Systematic Sound / Daniel Meuser (Tonal Elements: High Tech Soul), Sonniss GDC 2023 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/Systematic%20Sound%20-%20Tonal%20Elements%20High%20Tech%20Soul%20%E2%80%93%20Evolving%20Pads%20%26%20Sci-Fi%20Textures/DSGNDron_Sci-Fi%20Drone%20Light%20Space%20Exploration_SYSO_SYSO018.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
 ## water-lapping.wav  →  water-lapping
 

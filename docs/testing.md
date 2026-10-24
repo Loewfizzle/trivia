@@ -7,6 +7,15 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   then the rules tests, the `/api` tests and the smoke test on the emulators with headless Chrome. They run **next to** the Vercel
   deploy, never in front of it — a push goes live as fast as before; a failure is a red ✗ on the commit (and an email). The smoke
   test's screenshots are attached to a failed run. Nothing there needs a secret. `gh run list` / `gh run watch` from the terminal.
+- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, Oct 24 — the laptop runs out of memory on the full suite): the WHOLE
+  `e2e-harbor.mjs` (every group, `SHARDS=2`, `SHOTS=0`, on the emulators) runs on GitHub's machine after every push to main that touches
+  a City 2.0 file (the `paths:` list: `js/screens/harbor/`, `js/core/harbor-*` + `city-*`, the title, `js/audio/`, `audio/city/`, the
+  harbor CSS, the suite itself…); a newer push cancels an older run; the npm + emulator downloads are cached; the run's
+  `shots-harbor/` (the result JSON) is attached when a check fails. ≈ 7 min a run (≈ 6 ½ min of tests — the repo is PRIVATE: the
+  monthly free minutes). Anything else: run it by hand (Actions → harbor → Run workflow, or `gh workflow run harbor`). **City 2.0
+  passes rely on it** — locally only the unit suite + the groups the pass touched (`ONLY=…`); after pushing, `gh run list --workflow
+  harbor` → `gh run view <id> --log | grep -E "FAIL|checks"`. GitHub's 2-core machine is slower than the laptop: a timing check that
+  passes here and fails there waits for its condition (never a longer fixed sleep).
 - **What a phone loads + errors from phones:** `node e2e-loading.mjs "<browser>" ./shots-loading` (≈ 1 min): the title links no
   game stylesheet; a game's sheets load with its screen, in the old cascade order; the lobby warms them; an error thrown in our code
   reaches `errlog/` once, noise doesn't, two phones share one entry.

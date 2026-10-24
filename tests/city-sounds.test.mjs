@@ -24,8 +24,9 @@ test('every slot: a unique kebab-case id, a known part, loop | once, a mix level
     'implosion-rumble', 'hammering', 'crane', 'ghost-ship-creak', 'ghost-bell', 'monster-splash']) assert.ok(slotOf(id), `slot ${id}`);
 });
 
-test('the first recordings (Part 8a) fill their slots; everything else is empty', () => {
-  assert.deepEqual(filledSlots().sort(), ['car-1920s-pass', 'city-hum-day', 'city-hum-night', 'gulls', 'truck-delivery', 'water-lapping']);
+test('the first recordings (Part 8a) + the sky (Oct 24) fill their slots; everything else is empty', () => {
+  assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'car-1920s-pass', 'city-hum-day', 'city-hum-night', 'drone-swarm', 'geese', 'gulls', 'helicopter',
+    'jet-flyby', 'prop-plane', 'tr3b-drone', 'tr3b-power-down', 'truck-delivery', 'ufo-beam', 'ufo-hum', 'water-lapping']);
   assert.equal(takesOf('car-1920s-pass').length, 4, 'two Volvo passes + the MG (rare) + the truck');
   assert.equal(takesOf('gulls').length, 4);
   assert.equal(takesOf('truck-delivery')[0].f, 'car-1920s-pass-3.mp3', 'the delivery truck shares the 1945 truck\'s take');
@@ -49,7 +50,8 @@ test('every take points at a real, small file whose content matches its cache ke
     }
   }
   const total = Object.values(FILES).flat().filter((t, i, a) => a.findIndex(x => x.f === t.f) === i).reduce((n, t) => n + statSync(new URL(`audio/city/${t.f}`, ROOT)).size, 0);
-  assert.ok(total < 4e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (8a's bed + car + gulls 2.35 MB; the sky +3.19 MB — 16 files, the same lean encode: mono 32 kHz 64 kbps)
+  assert.ok(total < 6e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');

@@ -82,19 +82,22 @@ export const SLOTS = [
   S('crowd-cheer', '10', 'once', 0.12, 'a crowd cheering (the fireworks, the NYE countdown)'),
   S('party-yacht-music', '10', 'loop', 0.1, 'the party yacht’s music across the water'),
   S('helicopter-landing', '10', 'once', 0.14, 'a helicopter landing (on the party yacht)'),
-  // ---- 6b + THE SKY
-  S('helicopter', 'sky', 'loop', 0.1, 'a helicopter, distant + a flyby', 'the helicopter while it’s up (panned with it)'),
-  S('airliner-far', 'sky', 'loop', 0.07, 'an airliner far up', 'the airliners while one crosses (the nearest, panned)'),
-  S('prop-plane', 'sky', 'loop', 0.08, 'a prop plane’s drone', 'the banner plane, the skywriters'),
-  S('jet-flyby', 'sky', 'once', 0.14, 'jets flying by (the air show)'),
-  S('balloon-burner', 'sky', 'once', 0.1, 'a hot air balloon’s burner whoosh', 'the balloons while they’re up: a burn every ~6–18 s'),
-  S('geese', 'sky', 'once', 0.1, 'geese honking', 'the geese while a V crosses'),
-  S('drone-swarm', 'sky', 'loop', 0.05, 'the drone show’s faint swarm hum', 'the drone show while it flies'),
-  S('ufo-hum', 'sky', 'loop', 0.08, 'the UFO saucer’s low hum'),
-  S('ufo-beam', 'sky', 'once', 0.1, 'the abduction beam'),
-  S('tr3b-drone', 'sky', 'loop', 0.08, 'the TR-3B’s deep drone'),
+  // ---- 6b + THE SKY (Oct 24: filled. The aircraft are FLYBYS — one-shots with their own swell, chained take after take while
+  // their thing is up (harbor/sounds.js#run), panned with it. Their mix (each file's LUFS × its gain): WELL UNDER the harbor's
+  // bed — the day hum ≈ −43.6 LUFS (−24.4 × 0.11); a passing airliner ≈ −52.8, the helicopter ≈ −49, the banner plane ≈ −50, the
+  // jets ≈ −49.5, a burner burst ≈ −49.5, the swarm ≈ −55 — and ducked with the bed under the music (bedMix's k))
+  S('helicopter', 'sky', 'once', 0.037, 'a helicopter, distant + a flyby (two takes)', 'the helicopter while it’s up: its flybys chained, panned with it, louder while it hovers'),
+  S('airliner-far', 'sky', 'once', 0.024, 'an airliner far up (a long, slow flyby)', 'the airliners while one crosses (the nearest: its flyby from the start of its crossing, panned, swelling with it)'),
+  S('prop-plane', 'sky', 'once', 0.033, 'a vintage prop plane overhead (two swells: a plane circling)', 'the banner plane, the skywriters'),
+  S('jet-flyby', 'sky', 'once', 0.035, 'jets flying by right → left (the air show; low: far off)'),
+  S('balloon-burner', 'sky', 'once', 0.035, 'a hot air balloon’s burner whoosh, far off (five bursts, low-passed)', 'the balloons while they’re up: a burn every ~6–18 s'),
+  S('geese', 'sky', 'once', 0.05, 'a skein of geese honking overhead (~28 s: one crossing)', 'the geese while a V crosses: one flyover a V, panned with it'),
+  S('drone-swarm', 'sky', 'loop', 0.03, 'the drone show’s faint swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
+  S('ufo-hum', 'sky', 'loop', 0.06, 'the UFO saucer’s low tonal hum (soft top — lower / filter it under the music)'),
+  S('ufo-beam', 'sky', 'once', 0.1, 'the abduction beam (a riser, its peak ~6 s in)'),
+  S('tr3b-drone', 'sky', 'loop', 0.08, 'the TR-3B’s deep drone (low-mids kept: a phone still hears it)'),
   S('tr3b-crackle', 'sky', 'once', 0.1, 'electrical crackle'),
-  S('tr3b-power-down', 'sky', 'once', 0.12, 'the power-down (the blackout)'),
+  S('tr3b-power-down', 'sky', 'once', 0.12, 'the power-down (the blackout): the hum cut dead with a thump at `hit` s, a turbine winding down'),
   S('witch-cackle', 'sky', 'once', 0.1, 'a witch’s cackle (Halloween)'),
   S('sleigh-bells', 'sky', 'once', 0.1, 'sleigh bells (Christmas)'),
   // ---- LEGENDARY EVENTS
@@ -144,6 +147,8 @@ export function checkSlots() {
       if (!(t.d > 0)) bad.push(`files:${id}:${t.f}:d`);
       if (s.kind === 'loop' && !(t.loop > 1 && t.xf > 0 && t.loop + t.xf <= t.d + 0.05)) bad.push(`files:${id}:${t.f}:loop`);
       if (t.w != null && !(t.w > 0)) bad.push(`files:${id}:${t.f}:w`);
+      if (s.kind === 'once' && t.sw != null && !(Array.isArray(t.sw) && t.sw[0] >= 0 && t.sw[0] <= t.peak && t.peak <= t.sw[1] && t.sw[1] <= t.d)) bad.push(`files:${id}:${t.f}:sw`);
+      if (t.hit != null && !(t.hit > 0 && t.hit < t.d)) bad.push(`files:${id}:${t.f}:hit`);
     }
   }
   return bad;
@@ -183,3 +188,53 @@ export function gullGap(g = 1, rnd = Math.random, calls = 1) {
   const k = Math.max(0.5, Math.min(1, g));
   return Math.round((14000 + 52000 * Math.pow(rnd(), 1.4)) / k + (calls >= 3 ? 8000 : 0));
 }
+
+// ---------------------------------------------------------------- FP3 — A PASS IN SYNC: the motorcar + its sound (the owner's iPhone:
+// "the sound came 5–6 s after the car had passed"). The car is drawn on the city's clock (nearest at the pass's centre); its sound
+// used to start whenever its file had been fetched + decoded after the pass began — every ms of that wait (a fresh fetch each new
+// take, iOS's decode) put the sound behind the car. Now the sound is placed ON THE CLOCK when its buffer is ready: its take's
+// PEAK (the loudest 0.3 s of its RMS envelope, measured by the importer) lands on the car's centre, wherever the wait ended —
+// joining part-way with a fade when the buffer came late, silent when the car has already passed (never out of sync). The take is
+// the pass's own (the same on every phone: takeAt), the car's speed comes from its take's SWELL (it crosses the visible street
+// within the audible rise and fall), and the sound pans gently with the car's x.
+export const CAR_CROSS = Object.freeze([2.6, 7]);      // s: the car's crossing of the visible street (entering → leaving) — its take's swell, within
+export const CAR_LEAD = 1.5;                            // s: the sound starts this long before the car enters
+export const CAR_PAN = 0.6;                             // the pan's ceiling (gentle: never hard left / right)
+/** a take picked by a number u in 0..1 (weighted like pickTake — but the SAME on every phone: the pass's `take` from the clock)
+ *  → { take, i } or null (an empty slot) */
+export function takeAt(id, u) {
+  const t = takesOf(id);
+  if (!t.length) return null;
+  const tot = t.reduce((a, x) => a + (x.w ?? 1), 0);
+  let r = Math.max(0, Math.min(0.999999, +u || 0)) * tot;
+  for (let i = 0; i < t.length; i++) { r -= t[i].w ?? 1; if (r < 0) return { take: t[i], i }; }
+  return { take: t[t.length - 1], i: t.length - 1 };
+}
+/** the car's crossing of the visible street for a take (s): its swell's width, within CAR_CROSS; null = no take (the old speed) */
+export function crossFor(take) {
+  if (!take || !Array.isArray(take.sw)) return null;
+  return Math.max(CAR_CROSS[0], Math.min(CAR_CROSS[1], take.sw[1] - take.sw[0]));
+}
+/** how much of a take plays before its peak for the car (s): from just before the car enters (CAR_LEAD) */
+export const carPre = cross => (cross == null ? Infinity : cross / 2 + CAR_LEAD);
+/**
+ * Where to start a take so its PEAK sounds `peakIn` s from now (PURE): { delay (s from now), offset (s into the take), fade (s,
+ * 0 = the take's own start) } — or null when it's too late (the peak is under `late` s away: silence beats a sound out of sync).
+ * pre: at most this many s of the take before its peak (the head before that is skipped, faded in).
+ */
+export function syncStart(take, peakIn, { pre = Infinity, fade = 0.8, late = 1 } = {}) {
+  if (!take || !Number.isFinite(peakIn)) return null;
+  const peak = Math.max(0, Math.min(take.d ?? Infinity, take.peak ?? 0));
+  const head = Math.min(peak, Math.max(0, pre));
+  const startIn = peakIn - head;
+  if (startIn >= 0) return { delay: +startIn.toFixed(4), offset: +(peak - head).toFixed(4), fade: head < peak - 0.01 ? fade : 0 };
+  if (peakIn < late) return null;
+  return { delay: 0, offset: +(peak - peakIn).toFixed(4), fade };
+}
+/** the pan of a sound at x (world) where the visible street is ±half wide at its depth: gentle, smooth, ±max (CAR_PAN) */
+export const panOf = (x, half, max = CAR_PAN) => +(max * Math.tanh(x / Math.max(1e-6, half))).toFixed(4);
+
+// ---------------------------------------------------------------- THE SKY's flybys (harbor/sounds.js#run)
+/** a flyby chained while its thing is up: the next take starts when the one playing has `xf` s left (its baked fade-out overlaps
+ *  the next one's fade-in) — elapsed / dur in s (dur: the take's length ÷ its rate) */
+export const chainDue = (elapsed, dur, xf = 2.5) => elapsed >= Math.max(0.5, dur - xf);

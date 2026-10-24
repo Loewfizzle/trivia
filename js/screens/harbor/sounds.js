@@ -5,9 +5,12 @@
 //                blue hour — the same input every light reads) LEAD it · water-lapping always, far + soft under the hum (FP).
 //                FP: ducked while the music is on (core/city-sounds.js#bedMix); with the music on it waits for the song to sound
 //                and fades in slowly — it never starts louder than the music
-//   THE SKY      helicopter (a bed while it's up, panned with it) · airliner-far (the loudest plane crossing, panned, faded at
-//                its ends) · prop-plane (the banner plane, the skywriters) · drone-swarm (the drone show) · balloon-burner (a
-//                burn every ~6–18 s while balloons are up) · geese (honks while a V crosses)
+//   THE SKY      (Oct 24: filled — the owner's recordings.) The aircraft are FLYBYS, chained while their thing is up (run(): each
+//                take its own swell, the next one starting as the last fades — never a seam): helicopter (its two flybys, panned
+//                with it, louder while it hovers) · airliner-far (the loudest plane crossing: its flyby from the start of the
+//                crossing, panned, swelling with it) · prop-plane (the banner plane, the skywriters) · geese (one flyover a V,
+//                panned with it) · drone-swarm (a bed: the drone show) · balloon-burner (a burn every ~6–18 s while balloons are
+//                up, far + low-passed). All of it WELL UNDER the bed and ducked with it under the music (bedMix's k)
 //   THE HARBOR   gulls (by day while gulls fly: mostly one call, now and then two or three in a row, random gaps of ~14–66 s,
 //                fewer when there are fewer — core/city-sounds.js#gullCalls / gullGap) · boat-putter (the water taxi
 //                crossing) · foghorn (the lighthouse, in real fog: every ~40–80 s)
@@ -15,7 +18,7 @@
 //                `peak` = s after the start when the car is nearest), anything later
 // City 2.0's title only (the scene lives there); the Effects slider + Mute rule it (the SFX bus); all of it fails silently.
 import { citySound, cityLoop, citySoundsDebug } from '../../audio/city-sound.js';
-import { isFilled, bedMix, gullCalls, gullGap, BED_FADE_IN, BED_RAMP } from '../../core/city-sounds.js';
+import { isFilled, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP } from '../../core/city-sounds.js';
 import { isUnlocked } from '../../audio/engine.js';
 import { musicSounding } from '../../audio/music.js';
 import { settings } from '../../audio/settings.js';
@@ -27,7 +30,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 export function createCitySounds() {
   let lastT = 0, born = performance.now(), dead = false;
   const beds = new Map();               // slot → { h, zeroAt }
-  const next = { gulls: born + rnd(8000, 25000), burner: 0, geese: 0, fog: born + rnd(6000, 20000) };
+  const next = { gulls: born + rnd(8000, 25000), burner: 0, fog: born + rnd(6000, 20000) };
   let mix = { dark: 0, day: 0, night: 0, k: 1, hold: false };
   let unlockedAt = 0, bedOn = false, bedK = -1;
 
@@ -45,6 +48,26 @@ export function createCitySounds() {
     }
   }
   const panX = (x, W) => clamp((x / Math.max(1, W)) * 2 - 1, -0.85, 0.85);
+  // THE SKY's FLYBYS: a slot's takes chained while its thing is up — each take its own natural swell (fades baked in), the next one
+  // (pickTake: never the same twice running) starting when the playing one has CHAIN_XF s left; the level + pan follow the thing
+  // (ramped); its thing gone → faded out. chain: false = one take a time (the geese: one flyover a V)
+  const CHAIN_XF = 2.5;
+  const runs = new Map();               // slot → { hs: [handles], g, p, wait }
+  function run(slot, gain, pan = 0, { ramp = 0.8, fade = 2.5, chain = true } = {}) {
+    if (!isFilled(slot)) return;
+    let r = runs.get(slot);
+    const now = performance.now();
+    if (gain > 0.002) {
+      if (!r) { r = { hs: [], g: gain, p: pan, wait: 0, n: 0 }; runs.set(slot, r); }
+      // (a take that ended without ever starting — its file failed: wait a little before the next try)
+      for (const h of r.hs) if (h.ended() && !h.started()) r.wait = now + 5000;
+      r.hs = r.hs.filter(h => !h.ended());
+      const last = r.hs[r.hs.length - 1];
+      const due = !last ? (chain || !r.n) : chain && last.started() > 0 && chainDue((now - last.started()) / 1000, last.dur / last.rate(), CHAIN_XF);
+      if (due && now >= r.wait) { const h = citySound(slot, { gain, pan }); if (h) { r.hs.push(h); r.n++; } }
+      if (Math.abs(r.g - gain) > 0.01 || Math.abs(r.p - pan) > 0.02) { for (const h of r.hs) h.set({ gain, pan }, ramp); r.g = gain; r.p = pan; }
+    } else if (r) { for (const h of r.hs) h.stop(fade); runs.delete(slot); }
+  }
 
   function tick(fs, { dark = 0, sky = null, boats = false, W = 1 } = {}) {
     if (dead) return;
@@ -69,25 +92,26 @@ export function createCitySounds() {
       keep('city-hum-night', mix.night * bm.k, 0, { ramp: r, linger: 60, fadeIn: fi });
       bedOn = bedOn || beds.size > 0;
     }
-    // ---- THE SKY (skyfx.listen(): what's up there now)
+    // ---- THE SKY (skyfx.listen(): what's up there now) — under the bed, ducked with it under the music (bm.k)
     const s = sky && sky.listen ? sky.listen() : null;
+    const sk = bm.k;
     if (s) {
       const heli = s.air && s.air.heli;
-      keep('helicopter', heli ? (heli.hover ? 1 : 0.75) : 0, heli ? panX(heli.x, W) : 0, { ramp: 0.6, linger: 4 });
+      run('helicopter', heli ? (heli.hover ? 1 : 0.75) * sk : 0, heli ? panX(heli.x, W) : 0, { ramp: 0.6 });
       // the loudest airliner: fading in / out at the ends of its crossing, the bigger (nearer) ones louder, panned with it
       let best = null, bl = 0;
       for (const p of (s.air && s.air.planes) || []) {
         const k = clamp(p.k, 0, 1), l = Math.sin(Math.PI * k) * (p.approach ? 1 : clamp(p.len / 26, 0.35, 1));
         if (l > bl) { bl = l; best = p; }
       }
-      keep('airliner-far', bl, best ? panX(best.x0 + (best.x1 - best.x0) * clamp(best.k, 0, 1), W) : 0, { ramp: 0.8, linger: 6 });
-      keep('prop-plane', s.banner || s.smoke ? 1 : 0, 0, { ramp: 1.2, linger: 6 });
-      keep('drone-swarm', s.drones ? 1 : 0, 0, { ramp: 2, linger: 6 });
-      if (s.balloons && t > next.burner) { if (next.burner) citySound('balloon-burner', { pan: rnd(-0.6, 0.6), gain: rnd(0.6, 1) }); next.burner = t + rnd(6000, 18000); }
+      run('airliner-far', bl * sk, best ? panX(best.x0 + (best.x1 - best.x0) * clamp(best.k, 0, 1), W) : 0, { ramp: 0.8, fade: 4 });
+      run('prop-plane', s.banner || s.smoke ? sk : 0, 0, { ramp: 1.2, fade: 3 });
+      keep('drone-swarm', s.drones ? sk : 0, 0, { ramp: 2, linger: 6 });
+      if (s.balloons && t > next.burner) { if (next.burner) citySound('balloon-burner', { pan: rnd(-0.6, 0.6), gain: rnd(0.6, 1) * sk }); next.burner = t + rnd(6000, 18000); }
       if (!s.balloons) next.burner = 0;
+      // the geese: ONE flyover while a V crosses (~22 s; a crossing ~30 s), panned with it, faded out as it leaves
       const geese = s.birds && s.birds.geese;
-      if (geese && t > next.geese) { if (next.geese) citySound('geese', { pan: rnd(-0.5, 0.5), gain: rnd(0.6, 1) }); next.geese = t + rnd(2500, 7000); }
-      if (!geese) next.geese = 0;
+      run('geese', geese ? sk : 0, geese && s.birds.geeseX != null ? panX(s.birds.geeseX, W) : 0, { ramp: 1, fade: 3, chain: false });
       // the gulls: by day while gulls fly over the harbor — a distant call now and then (fewer gulls, fewer calls)
       const g = s.birds && s.birds.who ? s.birds.who.gulls || 0 : 0;
       // (FP: mostly one call, now and then two or three in a row — different takes, levels, pitches — at random gaps: never a pattern)
@@ -108,7 +132,8 @@ export function createCitySounds() {
     play: (slot, o) => citySound(slot, o),
     /** a bed from a slot → { set({ gain, pan }), stop(fade) } (an empty slot: a handle that does nothing) */
     loop: (slot, o) => cityLoop(slot, o),
-    debug: () => ({ mix, beds: [...beds.entries()].map(([slot, b]) => ({ slot, zero: !!b.zeroAt, ...(b.h.debug ? b.h.debug() : {}) })), next: Object.fromEntries(Object.entries(next).map(([k, v]) => [k, v ? Math.round((v - performance.now()) / 1000) : null])), player: citySoundsDebug() }),
-    destroy() { dead = true; for (const b of beds.values()) b.h.stop(1.2); beds.clear(); },
+    debug: () => ({ mix, beds: [...beds.entries()].map(([slot, b]) => ({ slot, zero: !!b.zeroAt, ...(b.h.debug ? b.h.debug() : {}) })),
+      runs: [...runs.entries()].map(([slot, r]) => ({ slot, gain: +r.g.toFixed(3), pan: +r.p.toFixed(2), takes: r.hs.map(h => h.take), started: r.n })), next: Object.fromEntries(Object.entries(next).map(([k, v]) => [k, v ? Math.round((v - performance.now()) / 1000) : null])), player: citySoundsDebug() }),
+    destroy() { dead = true; for (const b of beds.values()) b.h.stop(1.2); beds.clear(); for (const r of runs.values()) for (const h of r.hs) h.stop(1.2); runs.clear(); },
   };
 }

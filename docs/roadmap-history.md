@@ -786,6 +786,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
+### ✅ CITY 2.0 — PROMENADE FINAL TOUCHES (Oct 24, 2026) — `docs/harbor.md#pf`, `docs/audio.md` (FP3 + THE SKY SOUNDS) (the owner on FP2: the promenade is filled out — lock its final layout)
+- **The cloud test job** (`.github/workflows/harbor.yml`): the whole e2e-harbor suite on GitHub after a City 2.0 push (≈ 7–9 min; a newer push cancels; cached); its slow-machine flakes made to wait for their conditions.
+- **The final layout:** the cart HIDDEN (`CART_SHOWN`, back in 8b), the bench + a bigger crabapple just left of the crossing (the DOUBLE AGENT blade free), the tall lamps a matched pair FLANKING the crossing, the globes at the front corners, a 1920s OLIVE-GREEN PILLAR MAILBOX by the right curb.
+- **The centrepiece:** a flush BRICK COMPASS-ROSE INLAY (red + buff + dark brick, worn where feet go, lit by the pools) + an EVENT LIGHTING RIG (four flush brass floor spots, `harbor().centrepiece.set()` for 11a–c, `&force=centrepiece-test`: a lit obelisk).
+- **The light:** the pools re-baked for the new lamps (people readable everywhere — the bench, the inlay, the door, the lobby line's corner); warm UPLIGHTS in every tree grate (the trunk + the crown's underside glow, the top fades out).
+- **The speakeasy corner + the street:** the street under the dock TARRED setts + tar joints + a clear curb step; the string lights OFF until 7b; the blade's lamps concentrated (even face, the name pops), the billboard's a step brighter.
+- **Sound:** the car's sound placed on the clock (its peak on the car's mid-crossing, prefetched, panned — it came 5–6 s late); THE SKY SOUNDS (12 files → 16 takes, 3.2 MB) wired to the helicopter, airliners, banner plane, geese, drone show, balloons (UFO / TR-3B / jets filled for 6b).
+- Neon by depth verified at 402 (normal + party): clean.
+
 ### ✅ CITY 2.0 — FOREGROUND POLISH 2 (Oct 24, 2026) — `docs/harbor.md#fp2`, `docs/audio.md#fp2` (the owner on FP: "a big jump", ~8 / 10)
 - [x] The beat after returning: the lead RE-MEASURED on every resume / rebuild / page return / route change + on a SKEW alone (`leadRefresh`, `leadKick`); +100–146 ms in ~10 kicks; the readout shows it converging
 - [x] The promenade: the corner maple + the urn removed; the medallion at 273 pt (in front of the crossing) + `centrepieceCap`; the cart at 213 + `L.cart.route` / `stopX` / `EVENT_CLEAR` (8b); the bench at 158 under a FLOWERING CRABAPPLE; the parked bus + cars off (`PARKED_TRAFFIC`); the lantern on a far kerb + a cast-iron post; the framing maple rebuilt (`deepen`, a bounce light, five limbs, a fuller crown)

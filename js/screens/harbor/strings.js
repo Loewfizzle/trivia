@@ -12,6 +12,11 @@ import { project } from '../../core/harbor-layout.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+/** THE SWITCH for the speakeasy roof's string lights (scene.js draws them, speakeasy.js bakes their iron posts on the parapet only
+ *  while it is on). PF (the owner's iPhone review, Oct 24): OFF for now — every night + party nights — until 7b re-renders them
+ *  properly with the rooftop; all the code stays (createStrings(), the layout, the schemes). `&force=strings-party` still previews
+ *  the party mode (without the posts: a preview, not the look). Flip to true to bring them + their posts back. */
+export const STRINGS_ON = false;
 const SCHEMES = {
   warm: [[255, 214, 150]],
   party: [[255, 170, 60], [255, 70, 150], [255, 60, 70], [255, 206, 84], [176, 96, 255]],

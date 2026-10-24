@@ -12,7 +12,7 @@ import { rngFrom } from '../../core/rng.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { person, rgb, shade, mix } from './shapes.js';
 import { drawTree, treeShadow } from './trees.js';
-import { drawBench, drawCart, drawPlanter, drawMedallion, propShadow } from './props.js';
+import { drawBench, drawCart, drawPlanter, drawMedallion, drawMailbox, propShadow } from './props.js';
 import { paintSett, streetSteps, streetOver } from './street.js';
 
 const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.gold || 0) + n[i] * (T.night || 0));
@@ -37,7 +37,13 @@ const JOINT = { d: [112, 105, 97], g: [120, 86, 78], n: [54, 50, 66] };
 // string-light glow round the cart, the medallion where they overlap; dim (never black) between, no haze
 // (FP2 — CRISP LIGHTS: the barber pole's cool LED light LANDS on the cobbles at its foot — a small cool pool, baked like the rest)
 const LIGHT = { tall: [150, 162, 184], globe: [236, 166, 88], spill: [196, 120, 54], cart: [226, 150, 70], pole: [140, 158, 200] };
-const REACH = { tall: 10.5, globe: 7.6, spill: 4.2, cart: 6, pole: 2.6 };
+// PF — THE LAMPS RE-THOUGHT (the final layout: the tall pair flanking the crossing, the globes at the front corners, the cart hidden):
+// wider pools so the promenade reads EVERYWHERE people will walk, wait or line up (the bench, the inlay between the flanking lamps —
+// ~0.55 of a lamp's heart on its ring, the door's approach, the lobby line along the shopfront toward the bottom-left corner), dim
+// (never black) between; the tall pair a touch lower each (TALL_K) where their pools overlap on the curb. (tall 10.5 → 13.5, globe
+// 7.6 → 9.5, the speakeasy's spill 4.2 → 5.2 — the shopfront's line). Room left for 8b / holiday lights: the centre's rig.
+const REACH = { tall: 13.5, globe: 9.5, spill: 5.2, cart: 6, pole: 2.6 };
+const TALL_K = 0.85;
 
 /** the speakeasy's warm spill on the cobbles: its side door's sconce, the shop's one dim lamp through the big window (+ FP2: the
  *  barber pole's small cool pool) */
@@ -46,7 +52,7 @@ function speakSpill(L) {
   return [{ x: s.x0 + (s.door.u0 + s.door.u1) / 2, z, kind: 'spill', k: 0.95 }, { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2, z, kind: 'spill', k: 0.5 },
     ...(s.shop && s.shop.pole ? [{ x: s.x0 + s.shop.pole.u, z: s.z0 - 0.8, kind: 'pole', k: 0.6 }] : [])];
 }
-const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: 1 })), ...speakSpill(L), ...(L.cart ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];
+const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: l.kind === 'tall' ? TALL_K : 1 })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : [])];
 /** the light on the ground at (x, z) at night — every lamp's pool (overlapping: every path lit, the shadows between dim) + the
  *  speakeasy's spill; null by day (T.lamps 0) */
 function lightField(L, T) {
@@ -171,15 +177,17 @@ export function promenadeSteps(L, T) {
     }
   });
   if (on) { const ov = streetOver(L, T); if (ov) steps.push(ov); }          // (FP2: the storm drain's inlet in the curb's face)
-  // 5. the shadows by day (along the real sun), then the medallion inlaid in the paving
+  // 5. THE INLAY laid in the paving (PF: the brick compass rose — lit by the same baked pools as the setts), then the shadows by day
+  //    along the real sun (over it: a tree's shadow falls across the bricks too)
   steps.push(x => {
     const cx = pieceCtx(L);
+    drawMedallion(x, cam, L.medallion, T, { ...cx, lightAt });
     lampShadows(x, L, T);
     L.trees.forEach((t, i) => treeShadow(x, cam, t, T, { ...cx, i }));
     for (const b of [L.bench, ...(L.bench.more || [])]) propShadow(x, cam, b, 'bench', T, cx);
-    propShadow(x, cam, L.cart, 'cart', T, cx);
+    if (L.cart.shown !== false) propShadow(x, cam, L.cart, 'cart', T, cx);
     for (const p of L.planters) propShadow(x, cam, p, 'planter', T, cx);
-    drawMedallion(x, cam, L.medallion, T, cx);
+    if (L.mailbox) propShadow(x, cam, L.mailbox, 'mailbox', T, cx);   // (PF)
   });
   return steps;
 }
@@ -273,7 +281,8 @@ export function furnitureSteps(L, T, keep = null) {
     ...L.trees.map((t, i) => ({ z: t.z, heavy: true, f: x => drawTree(x, cam, t, T, { ...cx, i }) })),
     ...[L.bench, ...(L.bench.more || [])].map(b => ({ z: b.z, f: x => drawBench(x, cam, b, T, cx) })),
     ...L.planters.map(p => ({ z: p.z, f: x => drawPlanter(x, cam, p, T, cx) })),
-    { z: L.cart.z, f: x => drawCart(x, cam, L.cart, T, cx) },
+    ...(L.cart.shown !== false ? [{ z: L.cart.z, f: x => drawCart(x, cam, L.cart, T, cx) }] : []),   // (PF: hidden until 8b)
+    ...(L.mailbox ? [{ z: L.mailbox.z, f: x => drawMailbox(x, cam, L.mailbox, T, cx) }] : []),     // (PF: the 1920s pillar box)
   ].filter(it => !keep || keep(it)).sort((a, b) => b.z - a.z);
   const steps = [];
   // (a tree is the heavy piece — ~1.1–1.5 ms at 1× CPU, ~5–6 at 4×: each in a step of its own; the rest three to a step)

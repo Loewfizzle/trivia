@@ -1,6 +1,8 @@
 // CITY 2.0 — THE HARBOR, PART 8a: THE PROMENADE'S PROPS — the bench, the vendor cart, the stone flower planters (their flowers by
-// the season), the centrepiece MEDALLION inlaid in the plaza (an Art Deco disc in a ring of smooth stone — the big seasonal pieces
-// stand on it later). Baked into the stage (stage.js); their cast shadows on the cobbles by day (propShadow, drawn with the ground).
+// the season), the centrepiece spot's INLAY (PF: a brick compass rose laid flush in the setts — the big seasonal pieces stand on
+// it — with its event rig's floor spots), THE MAILBOX (PF: a 1920s olive-green pillar box), THE TEST PIECE (PF: an obelisk on a
+// stepped plinth — &force=centrepiece-test). Baked into the stage (stage.js); their cast shadows on the cobbles by day (propShadow,
+// drawn with the ground).
 //
 // HOW THEY'RE DRAWN — crafted like an illustration, every surface lit by ONE light model (lightFor + lit): a face's colour comes from
 // its NORMAL — by day the sky's cool ambient + the real sun (its side T.sunDir, its height T.sunEl; the city's convention: the light
@@ -10,10 +12,11 @@
 // surfaces get a specular glint (the sun by day, the lamp at night).
 // Each prop is built in its own little frame (frame(): world x + height y + depth d behind its front), the true perspective
 // linearised at the prop's depth with the depth EXAGGERATED a little (e: 1.35–1.8) — the glance test: from this high camera a
-// bench's seat would be a 2-pt sliver; a touch more of its top reads as a seat. The medallion is in the paving: true perspective.
+// bench's seat would be a 2-pt sliver; a touch more of its top reads as a seat. The inlay is in the paving: true perspective.
 import { project } from '../../core/harbor-layout.js';
 import { rgb, shade, mix } from './shapes.js';
 import { PIECE } from '../../core/harbor-promenade.js';
+import { inlayPlan, wearAt, rigSpots, RIG } from '../../core/harbor-centre.js';
 import { rngFrom } from '../../core/rng.js';
 import { sunShadow } from './stage.js';
 
@@ -81,7 +84,7 @@ function frame(cam, oz, e) {
 }
 function fillPts(x, pts, col, a = 1) {
   x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.closePath();
-  x.fillStyle = typeof col === 'string' ? col : rgb(col, a); x.fill();
+  x.fillStyle = Array.isArray(col) ? rgb(col, a) : col; x.fill();   // (a colour [r, g, b], a css string or a gradient)
 }
 function line(x, a, b, col, w, alpha = 1) { x.strokeStyle = rgb(col, alpha); x.lineWidth = w; x.beginPath(); x.moveTo(a[0], a[1]); x.lineTo(b[0], b[1]); x.stroke(); }
 /** a lit box in a frame: { x0, x1, y0, y1, d0, d1 } (world x, height, depth); faces: what the camera sees */
@@ -753,86 +756,314 @@ function evergreens(x, P, Lt, B, r, snow) {
   }
 }
 
-// ------------------------------------------------------------------ THE MEDALLION
-// Inlaid flush in the setts: a RING OF SMOOTH STONE (polished pale granite, cut in twelve slabs, a fine joint all round, flecked,
-// its sheen — the sky by day) round an Art Deco COMPASS SUNBURST: a dark verde-granite field, eight long brass rays + eight short
-// cream terrazzo rays, a brass band at the rim and round the heart, a brass boss. Each ray in two halves (lit / shade: the brass
-// reads as relief), the brass catching the sun by day; at night dim, the halves toward the nearest lamp catch its light.
-const GRANITE_R = [198, 188, 178], VERDE = [40, 62, 56], TERRAZZO = [234, 224, 202];
+// ------------------------------------------------------------------ THE INLAY (PF — the centrepiece spot: a BRICK COMPASS ROSE)
+// The owner (PF): no raised ring, no medallion object — PAVING people walk over: an old-school compass rose laid in brick within
+// the setts (core/harbor-centre.js#inlayPlan: a soldier-course border of bricks on end, a buff header course, the red field in
+// concentric stretcher courses, an 8-point star in buff + a dark brown-red — each point split light / dark down its axis — round a
+// small buff centre in a ring of dark headers; north away from us). Flush: every brick is a flat face in true perspective
+// (project()), lit like the setts — by day the sky + the sun, a hair of light on each brick's far arris, the WEAR where feet go
+// (polished smooth, lighter, the sky's sheen); at night the same baked LAMP POOLS the setts take (ctx.lightAt — stage.js#lightField),
+// the polished bricks catching a little more. The event rig's four FLOOR SPOTS sit flush in the soldier course: a brass ring + a
+// dark glass lens (barely a glint by day); centre.js lights them while a centrepiece stands here.
+const BRICK = { red: { d: [168, 80, 58], g: [198, 100, 72], n: [80, 46, 56] }, buff: { d: [222, 196, 152], g: [242, 186, 138], n: [100, 92, 104] },
+  dark: { d: [82, 42, 38], g: [104, 52, 46], n: [44, 30, 42] }, mortar: { d: [146, 136, 122], g: [164, 124, 104], n: [58, 54, 70] } };
+// (at night the lamps' light lands on a brick by its colour — the red stays red under the cool street lamps, never a grey wash)
+const ALB = { red: [0.66, 0.31, 0.23], buff: [0.87, 0.77, 0.6], dark: [0.32, 0.17, 0.15] };
+const triT = (T, k) => [0, 1, 2].map(i => k.d[i] * (T.day || 0) + k.g[i] * (T.gold || 0) + k.n[i] * (T.night || 0));
+const addL = (c, l, k) => [Math.min(255, c[0] + l[0] * k), Math.min(255, c[1] + l[1] * k), Math.min(255, c[2] + l[2] * k)];
 
-/** THE MEDALLION, inlaid in the paving (drawn with the ground, before everything that stands): m = { x, z, r, ring } */
-export function drawMedallion(x, cam, m, T, ctx = {}) {
-  const Lt = lightFor(T, ctx, m.x, m.z), r = rngFrom(seedOf(m.x, m.z) + 5), G = (rad, a) => project(cam, m.x + Math.cos(a) * rad, 0, m.z + Math.sin(a) * rad);
-  const ring = (rad, n = 72) => { x.beginPath(); for (let i = 0; i <= n; i++) { const p = G(rad, i / n * Math.PI * 2); if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); } x.closePath(); };
-  const annulus = (r0, r1, n = 72) => { x.beginPath(); for (let i = 0; i <= n; i++) { const p = G(r1, i / n * Math.PI * 2); if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); } for (let i = n; i >= 0; i--) { const p = G(r0, i / n * Math.PI * 2); x.lineTo(p[0], p[1]); } x.closePath(); };
-  const s = cam.F / m.z, R = m.ring, Rin = m.r, gnd = mix(lit(Lt, GRANITE_R, TOP, 0.25), [74, 70, 96], 0.4 * Lt.night);   // (at night the polish holds the lit city's glow: a step above the setts)
-  // the ring's setting: a dark joint all round (the setts meet it), then the polished slabs
-  ring(R + 0.08); x.fillStyle = rgb(lit(Lt, [70, 64, 60], TOP)); x.fill();
-  annulus(Rin, R); x.fillStyle = rgb(gnd); x.fill();
-  // the polish: a soft sheen (the sky's light by day, the lamp's at night) across the far side, the near side a touch deeper
-  x.save(); annulus(Rin, R); x.clip();
-  const [cx0] = project(cam, m.x, 0, m.z), [, yFar] = project(cam, m.x, 0, m.z + R), [, yNear] = project(cam, m.x, 0, m.z - R);
-  { const g = x.createLinearGradient(0, yFar, 0, yNear), shn = Lt.night > 0.5 ? mix(gnd, Lt.lcol, 0.5 * Lt.lk + 0.12) : mix(gnd, [250, 252, 255], 0.35 * (1 - Lt.ov * 0.5));
-    g.addColorStop(0, rgb(shn, 0.85)); g.addColorStop(0.45, rgb(gnd, 0)); g.addColorStop(1, rgb(shade(gnd, -0.12), 0.7)); x.fillStyle = g; x.fillRect(cx0 - R * s, yFar, 2 * R * s, yNear - yFar); }
-  // flecks: feldspar + mica (the polished granite's grain)
-  for (let i = 0; i < 260; i++) {
-    const a = r() * Math.PI * 2, rr = Rin + (R - Rin) * Math.sqrt(r() * 0.98 + 0.02), p = G(rr, a), q = r();
-    x.fillStyle = q < 0.45 ? rgb(shade(gnd, -0.32), 0.55) : q < 0.75 ? rgb(mix(gnd, [214, 150, 140], 0.4), 0.55) : rgb(shade(gnd, 0.35), 0.7);
-    x.fillRect(p[0], p[1], Math.max(0.3, 0.03 * s), Math.max(0.3, 0.02 * s));
-  }
-  // the slab joints (twelve radial cuts)
-  x.strokeStyle = rgb(shade(gnd, -0.35), 0.7); x.lineWidth = Math.max(0.3, 0.02 * s);
-  for (let i = 0; i < 12; i++) { const a = (i + 0.5) / 12 * Math.PI * 2, p = G(Rin, a), q = G(R, a); x.beginPath(); x.moveTo(p[0], p[1]); x.lineTo(q[0], q[1]); x.stroke(); }
-  x.restore();
-  // the outer edge's bevel (a fine lit line on the far rim, a dark one on the near: the stone sits flush, its arris catches light)
-  x.lineWidth = Math.max(0.3, 0.025 * s);
-  x.strokeStyle = rgb(rimCol(Lt, GRANITE_R, [0, 0.8, -0.6]), 0.6); x.beginPath(); for (let i = 0; i <= 36; i++) { const p = G(R - 0.03, Math.PI * (i / 36)); if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); } x.stroke();
-  // the brass rim band, the verde field
-  annulus(Rin - 0.11, Rin); x.fillStyle = rgb(lit(Lt, BRASS, TOP, 1)); x.fill();
-  ring(Rin - 0.11); x.fillStyle = rgb(lit(Lt, VERDE, TOP, 0.6)); x.fill();
-  // the field's own fine grain (dark green-black with lighter veins)
-  x.save(); ring(Rin - 0.11); x.clip();
-  for (let i = 0; i < 90; i++) { const a = r() * 6.28, rr = Math.sqrt(r()) * (Rin - 0.12), p = G(rr, a); x.fillStyle = rgb(shade(lit(Lt, VERDE, TOP), r() < 0.5 ? 0.25 : -0.3), 0.6); x.fillRect(p[0], p[1], Math.max(0.3, 0.03 * s), Math.max(0.3, 0.02 * s)); }
-  x.restore();
-  // the rays: 8 short terrazzo (between), 8 long brass (the compass points) — each in two halves for relief
-  const L = Lt.night > 0.5 ? Lt.ld : Lt.L, lAng = Math.atan2(L[2], L[0]);   // (where the light comes from, on the ground)
-  const ray = (a, len, half, col, gloss) => {
-    const tip = G(len, a), base = G(0.3, a);
-    const w = half, pa = project(cam, m.x + Math.cos(a) * 0.3 + Math.cos(a + Math.PI / 2) * w, 0, m.z + Math.sin(a) * 0.3 + Math.sin(a + Math.PI / 2) * w);
-    const pb = project(cam, m.x + Math.cos(a) * 0.3 + Math.cos(a - Math.PI / 2) * w, 0, m.z + Math.sin(a) * 0.3 + Math.sin(a - Math.PI / 2) * w);
-    // the two halves: the one facing the light lit, the other shaded (a raised, bevelled ray)
-    const facing = Math.cos(a + Math.PI / 2 - lAng);
-    const hiN = [Math.cos(a + Math.PI / 2) * 0.6, 0.8, Math.sin(a + Math.PI / 2) * 0.6], loN = [-hiN[0], 0.8, -hiN[2]];
-    fillPts(x, [base, pa, tip], lit(Lt, col, facing > 0 ? hiN : loN, gloss));
-    fillPts(x, [base, pb, tip], lit(Lt, col, facing > 0 ? loN : hiN, gloss));
+/** THE INLAY, flush in the paving (drawn with the ground, before everything that stands): m = { x, z, ring } (L.medallion);
+ *  ctx.lightAt(x, z) → the baked lamps' light there (stage.js), or none by day */
+export function drawInlay(x, cam, m, T, ctx = {}) {
+  const pl = inlayPlan(m), R = pl.R, r = rngFrom(seedOf(m.x, m.z) + 5), s = cam.F / m.z;
+  const day = (T.day || 0) + 0.7 * (T.gold || 0), night = T.night || 0, ovc = T.ovc || 0;
+  const G = (rad, a) => project(cam, m.x + Math.cos(a) * rad, 0, m.z + Math.sin(a) * rad);
+  const W = (wx, wz) => project(cam, wx, 0, wz);
+  const lightAt = ctx.lightAt || null;
+  const tone = { red: triT(T, BRICK.red), buff: triT(T, BRICK.buff), dark: triT(T, BRICK.dark) }, mortar = triT(T, BRICK.mortar);
+  // the sky's sheen on polished brick by day (warm at golden hour), the arris's hair of light
+  const sheen = mix([238, 236, 232], [255, 206, 160], (T.gold || 0) / Math.max(0.01, (T.day || 0) + (T.gold || 0))), lipK = 0.16 * day * (1 - 0.5 * ovc);
+  /** a brick's colour: its tone, its own shade, the wear, the lamps' pool where it lies */
+  const brickCol = (tn, bx, bz, v, hj = 0) => {
+    // its own shade (v) + a hue of its own (hj: a warmer orange one, a cooler purple-brown clinker), the wear, the lamps
+    let c = tone[tn].map((q, i) => q * v + hj * [16, 5, -7][i] * (0.4 + 0.6 * day));
+    const w = wearAt(bx - m.x, bz - m.z, R);
+    if (day > 0) c = mix(c, sheen, 0.2 * w * day * (1 - 0.4 * ovc));
+    const lt = lightAt ? lightAt(bx, bz) : null, al = ALB[tn];
+    if (lt) c = c.map((q, i) => Math.min(255, q + lt[i] * (0.2 + 0.95 * al[i]) * (1 + 0.35 * w)));
+    else if (night > 0) c = addL(c, [10, 10, 16], w * night);   // (the polish holds a little of the city's glow)
+    return c.map(q => Math.max(0, q));
   };
-  for (let i = 0; i < 8; i++) ray((i + 0.5) / 8 * Math.PI * 2, Rin * 0.66, 0.2, TERRAZZO, 0.3);
-  for (let i = 0; i < 8; i++) ray(i / 8 * Math.PI * 2 + Math.PI / 2, i % 2 ? Rin * 0.78 : Rin - 0.16, i % 2 ? 0.16 : 0.22, BRASS, 1.3);
-  // the heart: a brass ring, a terrazzo disc, a brass boss with its glint
-  ring(0.4); x.fillStyle = rgb(lit(Lt, BRASS, TOP, 1.2)); x.fill();
-  ring(0.32); x.fillStyle = rgb(lit(Lt, TERRAZZO, TOP, 0.3)); x.fill();
-  ring(0.15); x.fillStyle = rgb(lit(Lt, BRASS, [0, 0.9, -0.4], 1.4)); x.fill();
-  // a fine brass circle between the rays (the Deco ring at two-thirds)
-  x.strokeStyle = rgb(lit(Lt, BRASS, TOP, 1), 0.9); x.lineWidth = Math.max(0.3, 0.03 * s); ring(Rin * 0.5, 48); x.stroke();
-  // the brass's glint: a few bright sparks on the rays toward the light (the sun by day; at night the lamp's, faint)
-  const gk = (Lt.day + Lt.gold) * (1 - Lt.ov * 0.8) + Lt.night * Math.max(0.25 * Lt.lampK, Lt.lk);
-  if (gk > 0.04) {
-    const gc = Lt.night > 0.5 ? Lt.lcol : Lt.gold > Lt.day ? [255, 210, 150] : [255, 250, 236];
-    x.save(); x.globalCompositeOperation = 'lighter';
-    for (const [rr, da, k] of [[Rin - 0.35, 0, 1], [Rin * 0.55, 0.5, 0.7], [Rin - 0.06, -0.35, 0.8], [0.36, 0.2, 0.6]]) {
-      const p = G(rr, lAng + Math.PI + da), g = x.createRadialGradient(p[0], p[1], 0, p[0], p[1], 0.2 * s);
-      g.addColorStop(0, rgb(gc, Math.min(0.85, 0.7 * gk * k))); g.addColorStop(1, rgb(gc, 0));
-      x.fillStyle = g; x.fillRect(p[0] - 0.2 * s, p[1] - 0.2 * s, 0.4 * s, 0.4 * s);
+  const poly = (pts, col) => { x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.closePath(); x.fillStyle = rgb(col); x.fill(); };
+  const lineW = Math.max(0.3, 0.035 * s);
+  /** an annular brick: radii r0..r1, angles a0..a1 (inset by the joint) → filled, its far arris lit */
+  const GAP = 0.05;
+  const arcBrick = (r0, r1, a0, a1, tn, v) => {
+    const ga = GAP / 2 / Math.max(0.2, (r0 + r1) / 2), q0 = r0 + GAP / 2, q1 = r1 - GAP / 2, b0 = a0 + ga, b1 = a1 - ga, am = (a0 + a1) / 2, rm = (r0 + r1) / 2;
+    const n = Math.max(1, Math.ceil((b1 - b0) * rm / 0.3)), pts = [];
+    for (let i = 0; i <= n; i++) pts.push(G(q1, b0 + (b1 - b0) * i / n));
+    for (let i = n; i >= 0; i--) pts.push(G(q0, b0 + (b1 - b0) * i / n));
+    const c = brickCol(tn, m.x + Math.cos(am) * rm, m.z + Math.sin(am) * rm, v, r() - 0.5);
+    poly(pts, c);
+    // (the far arris — the edge away from us catches the sky: the outer edge on the far half, the inner on the near half)
+    if (lipK > 0.01) {
+      const far = Math.sin(am) > 0 ? q1 : q0;
+      x.strokeStyle = rgb(mix(c, [255, 252, 244], 0.55), lipK * 2.4); x.lineWidth = lineW * 0.8;
+      x.beginPath(); for (let i = 0; i <= n; i++) { const p = G(far, b0 + (b1 - b0) * i / n); if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); } x.stroke();
     }
-    x.restore();
+  };
+  // 1. the setting: a mortar disc a little wider than the inlay (the setts meet its border in a clean joint)
+  { const pts = []; for (let i = 0; i < 96; i++) pts.push(G(R + 0.06, i / 96 * Math.PI * 2)); poly(pts, lightAt ? addL(mortar, lightAt(m.x, m.z) || [0, 0, 0], 0.42) : mortar); }
+  // 2. the soldier course (bricks on end, radial), each its own shade, now and then a darker flashed one
+  { const S = pl.soldier;
+    for (let i = 0; i < S.n; i++) { const a0 = i / S.n * Math.PI * 2, q = r(); arcBrick(S.r0, S.r1, a0, a0 + Math.PI * 2 / S.n, q < 0.1 ? 'dark' : 'red', 0.8 + r() * 0.3); } }
+  // 3. the buff header course
+  { const S = pl.header; for (let i = 0; i < S.n; i++) { const a0 = (i + 0.5) / S.n * Math.PI * 2; arcBrick(S.r0, S.r1, a0, a0 + Math.PI * 2 / S.n, 'buff', 0.88 + r() * 0.2); } }
+  // 4. the red field: concentric stretcher courses, staggered (the joints never line up course to course)
+  for (const c of pl.courses) for (let i = 0; i < c.n; i++) { const a0 = (i + c.off) / c.n * Math.PI * 2; arcBrick(c.r0, c.r1, a0, a0 + Math.PI * 2 / c.n, r() < 0.06 ? 'dark' : 'red', 0.8 + r() * 0.3); }
+  // 5. THE STAR: the short points first, the long over them; each point's two halves in its two tones, laid in courses along the
+  //    point's axis (a joint line down each half + cross joints) — the light half's far arris lit
+  const order = [...pl.star].sort((a, b) => (a.cardinal ? 1 : 0) - (b.cardinal ? 1 : 0));
+  for (const p of order) {
+    const ax = [Math.cos(p.a), Math.sin(p.a)], pp = [-ax[1], ax[0]];
+    const O = [m.x, m.z], Tp = [m.x + ax[0] * p.len, m.z + ax[1] * p.len];
+    for (const [side, tn] of [[1, p.tones[0]], [-1, p.tones[1]]]) {
+      const S = [m.x + ax[0] * p.w + pp[0] * p.w * side, m.z + ax[1] * p.w + pp[1] * p.w * side];
+      const tri = [W(O[0], O[1]), W(S[0], S[1]), W(Tp[0], Tp[1])];
+      const cx = (O[0] + S[0] + Tp[0]) / 3, cz = (O[1] + S[1] + Tp[1]) / 3;
+      const c = brickCol(tn, cx, cz, 0.94 + r() * 0.1);
+      poly(tri, c);
+      // its bricks: a joint along the half (from the axis' middle toward the tip) + cross joints, in the mortar's tone
+      x.save(); x.beginPath(); x.moveTo(tri[0][0], tri[0][1]); x.lineTo(tri[1][0], tri[1][1]); x.lineTo(tri[2][0], tri[2][1]); x.closePath(); x.clip();
+      const jc = lightAt ? addL(mortar, lightAt(cx, cz) || [0, 0, 0], 0.42) : mortar;
+      x.strokeStyle = rgb(jc, 0.85); x.lineWidth = lineW;
+      x.beginPath();
+      for (const f of [0.5]) { const a = W(O[0] + pp[0] * p.w * side * f, O[1] + pp[1] * p.w * side * f), b = W(Tp[0], Tp[1]); x.moveTo(a[0], a[1]); x.lineTo(b[0], b[1]); }
+      for (let d = 0.42; d < p.len; d += 0.42) { const a = W(m.x + ax[0] * d, m.z + ax[1] * d), b = W(m.x + ax[0] * d + pp[0] * side * 0.6, m.z + ax[1] * d + pp[1] * side * 0.6); x.moveTo(a[0], a[1]); x.lineTo(b[0], b[1]); }
+      x.stroke(); x.restore();
+      // the axis joint (the point's spine) — a fine mortar line; the light half's outer arris catching the sky by day
+      if (lipK > 0.01 && tn === 'buff') { x.strokeStyle = rgb(mix(c, [255, 252, 244], 0.6), lipK * 2.2); x.lineWidth = lineW * 0.8; x.beginPath(); x.moveTo(tri[1][0], tri[1][1]); x.lineTo(tri[2][0], tri[2][1]); x.stroke(); }
+    }
+    x.strokeStyle = rgb(mortar, 0.9); x.lineWidth = lineW; const a = W(O[0], O[1]), b = W(Tp[0], Tp[1]); x.beginPath(); x.moveTo(a[0], a[1]); x.lineTo(b[0], b[1]); x.stroke();
+  }
+  // 6. the centre: a ring of dark headers round a buff stone
+  { const S = pl.centre; for (let i = 0; i < S.n; i++) { const a0 = i / S.n * Math.PI * 2; arcBrick(S.r0, S.r1, a0, a0 + Math.PI * 2 / S.n, 'dark', 0.9 + r() * 0.2); } }
+  { const pts = []; for (let i = 0; i < 24; i++) pts.push(G(pl.stone - 0.02, i / 24 * Math.PI * 2)); poly(pts, brickCol('buff', m.x, m.z, 1.02)); }
+  // 7. THE RIG's floor spots, flush in the soldier course: a brass ring (a glint by day) round a dark glass lens
+  const Lt = lightFor(T, ctx, m.x, m.z);
+  for (const sp of rigSpots(m)) {
+    const ell = (rad, col, a = 1) => { const [cx0, cy0] = W(sp.x, sp.z), [xr] = W(sp.x + rad, sp.z), [, yn] = W(sp.x, sp.z - rad), [, yf] = W(sp.x, sp.z + rad); x.fillStyle = rgb(col, a); x.beginPath(); x.ellipse(cx0, (yn + yf) / 2, Math.max(0.3, xr - cx0), Math.max(0.2, (yn - yf) / 2), 0, 0, Math.PI * 2); x.fill(); return [cx0, (yn + yf) / 2, xr - cx0, (yn - yf) / 2]; };
+    ell(RIG.ring + 0.03, lightAt ? addL(mortar, lightAt(sp.x, sp.z) || [0, 0, 0], 0.42) : mortar);
+    ell(RIG.ring, lit(Lt, shade(BRASS, -0.12), TOP, 0.9));
+    const [lx, ly, rx, ry] = ell(RIG.lens, lit(Lt, [30, 34, 40], TOP, 0.6));
+    // the glass's glint: the sky by day, the lamps' light at night (tiny — a lens set flush, not a lamp)
+    const gk = day * (1 - 0.6 * ovc) * 0.55 + night * Math.max(0.15, Lt.lk) * 0.35;
+    if (gk > 0.03) { x.fillStyle = rgb(night > 0.5 ? Lt.lcol : [255, 255, 255], Math.min(0.8, gk)); x.beginPath(); x.ellipse(lx - rx * 0.3, ly - ry * 0.35, Math.max(0.25, rx * 0.32), Math.max(0.15, ry * 0.3), 0, 0, Math.PI * 2); x.fill(); }
   }
 }
+/** (the old name: stage.js + the tests call the centrepiece spot's ground piece by it) */
+export const drawMedallion = drawInlay;
+
+// ------------------------------------------------------------------ THE MAILBOX (PF — a street-furniture accent)
+// A 1920s U.S. collection box in its period OLIVE GREEN (the Post Office's colour until the 1950s): a cast-iron pillar on a short
+// pedestal (a stepped foot, a tapering neck, a collar), the box's square body with chamfered corners, a flanged DOMED cap + a knob;
+// on its face the hinged SLOT FLAP under a little hood, the raised "U.S. MAIL" band, the collection door (inset, its lock) with the
+// enamel COLLECTION-TIMES plate, a small eagle boss on the neck. Worn the way old ironwork wears: the corners + the flap rubbed
+// down to dark iron, a few chips, rust at the foot, rain streaks under the cap. Exaggerated a little for the phone (~1.85 units —
+// like the bench). Lit by the ONE light model: the sun by day, the nearest lamp at night (+ the bounce off the lit cobbles).
+const OLIVE = [92, 104, 58], IRON_D = [46, 44, 40], ENAMEL = [232, 226, 206];
+/** b = { x, z } (world: the box's front face at z) */
+export function drawMailbox(x, cam, b, T, ctx = {}) {
+  const e = 1.5, P = frame(cam, b.z, e), s = P.s, X = b.x, Lt = lightFor(T, ctx, b.x, b.z + 0.3), r = rngFrom(seedOf(b.x, b.z) + 11);
+  const seeL = X > 0, sideN = seeL ? LEFT : RIGHT, sgn = seeL ? -1 : 1;     // (we see the side facing the middle of the screen)
+  const col = n => lit(Lt, OLIVE, n, 0.35);
+  x.save(); x.lineJoin = 'round'; x.lineCap = 'round';
+  /** a vertical face from (xa, da) to (xb, db) between heights y0..y1, its colour shaded toward the foot (ambient occlusion) */
+  const vface = (xa, da, xb, db, y0, y1, n, c = OLIVE, k = 0.16) => {
+    const top = lit(Lt, c, n, 0.35), q = [P(xa, y0, da), P(xb, y0, db), P(xb, y1, db), P(xa, y1, da)];
+    const g = x.createLinearGradient(0, q[0][1], 0, q[3][1]); g.addColorStop(0, rgb(shade(top, -k))); g.addColorStop(1, rgb(top));
+    fillPts(x, q, g);
+    return q;
+  };
+  // 1. the pedestal: the stepped foot, the tapering neck, the collar
+  const ped = (hw0, hw1, y0, y1, d0, d1) => {
+    vface(X + sgn * hw0, d1, X + sgn * hw0, d0, y0, y1, sideN);   // (its side — straight; the taper reads on the front)
+    const q = [P(X - hw0, y0, d0), P(X + hw0, y0, d0), P(X + hw1, y1, d0), P(X - hw1, y1, d0)];
+    const g = x.createLinearGradient(0, q[0][1], 0, q[2][1]); g.addColorStop(0, rgb(shade(col(FRONT), -0.2))); g.addColorStop(1, rgb(col(FRONT)));
+    fillPts(x, q, g);
+    if (y1 < P.camh) fillPts(x, [P(X - hw1, y1, d0), P(X + hw1, y1, d0), P(X + hw1, y1, d1), P(X - hw1, y1, d1)], col(TOP));
+  };
+  pbox(x, P, Lt, OLIVE, { x0: X - 0.38, x1: X + 0.38, y0: 0, y1: 0.08, d0: 0, d1: 0.74 });
+  pbox(x, P, Lt, OLIVE, { x0: X - 0.32, x1: X + 0.32, y0: 0.08, y1: 0.15, d0: 0.07, d1: 0.67 });
+  ped(0.24, 0.18, 0.15, 0.46, 0.17, 0.57);
+  pbox(x, P, Lt, OLIVE, { x0: X - 0.36, x1: X + 0.36, y0: 0.46, y1: 0.53, d0: 0.05, d1: 0.69 });
+  // the eagle boss on the neck (a small raised oval: lit on its top, shade under)
+  { const p = P(X, 0.3, 0.17); x.fillStyle = rgb(col([0, -0.3, -1])); x.beginPath(); x.ellipse(p[0], p[1], 0.09 * s, 0.065 * s, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = rgb(rimCol(Lt, OLIVE, [0, 0.8, -0.6]), 0.8); x.beginPath(); x.ellipse(p[0], p[1] - 0.02 * s, 0.06 * s, 0.03 * s, 0, Math.PI, 0); x.fill(); }
+  // rust at the foot (the iron where the rain splashes)
+  for (let i = 0; i < 9; i++) { const p = P(X + (r() - 0.5) * 0.8, r() * 0.12, 0); x.fillStyle = rgb(lit(Lt, r() < 0.5 ? [132, 70, 40] : [96, 56, 36], FRONT), 0.55); x.fillRect(p[0], p[1], Math.max(0.35, 0.05 * s), Math.max(0.3, 0.03 * s)); }
+  // 2. the body: the side, the near chamfer, the front (square with chamfered corners)
+  const B = { hw: 0.33, c: 0.08, d0: 0.1, d1: 0.62, y0: 0.53, y1: 1.5 };
+  vface(X + sgn * B.hw, B.d1 - B.c, X + sgn * B.hw, B.d0 + B.c, B.y0, B.y1, sideN);
+  const chN = norm([sgn, 0, -1]);
+  vface(X + sgn * B.hw, B.d0 + B.c, X + sgn * (B.hw - B.c), B.d0, B.y0, B.y1, chN);
+  vface(X + sgn * (B.hw - B.c), B.d0, X - sgn * (B.hw - B.c), B.d0, B.y0, B.y1, FRONT);
+  // the far chamfer, seen edge-on: a thin strip (it catches the light from its side)
+  vface(X - sgn * (B.hw - B.c), B.d0, X - sgn * (B.hw - B.c * 0.4), B.d0 + B.c * 0.6, B.y0, B.y1, norm([-sgn, 0, -1]));
+  // the corners rubbed to dark iron + a lit edge (the wear)
+  const F = (u, y) => P(X + u, y, B.d0);
+  for (const u of [-(B.hw - B.c), B.hw - B.c]) line(x, F(u, B.y0 + 0.05), F(u, B.y1 - 0.02), rimCol(Lt, OLIVE, norm([Math.sign(u), 0.2, -1])), Math.max(0.3, 0.022 * s), 0.7);
+  // 3. the face: the collection door (an inset panel: its top + left edges in shade, the bottom + right lit), its lock
+  { const x0 = -0.2, x1 = 0.2, y0 = 0.62, y1 = 1.04, dk = lit(Lt, shade(OLIVE, -0.4), FRONT), hi = rimCol(Lt, OLIVE, [0, -0.5, -1]), w = Math.max(0.3, 0.02 * s);
+    line(x, F(x0, y1), F(x1, y1), dk, w, 0.9); line(x, F(x0, y0), F(x0, y1), dk, w, 0.9);
+    line(x, F(x0, y0), F(x1, y0), hi, w, 0.7); line(x, F(x1, y0), F(x1, y1), hi, w, 0.7);
+    const k = F(0.14, 0.72); x.fillStyle = rgb(lit(Lt, BRASS, FRONT, 0.9)); x.beginPath(); x.arc(k[0], k[1], Math.max(0.4, 0.028 * s), 0, Math.PI * 2); x.fill();
+    // the enamel COLLECTION-TIMES plate (cream, its lines of hours in dark ink)
+    const pa = F(-0.13, 1.0), pb = F(0.13, 0.82);
+    x.fillStyle = rgb(lit(Lt, ENAMEL, FRONT, 0.6)); x.fillRect(pa[0], pa[1], pb[0] - pa[0], pb[1] - pa[1]);
+    x.fillStyle = rgb(lit(Lt, [40, 52, 70], FRONT), 0.75);
+    for (let i = 0; i < 4; i++) { const ya = pa[1] + (pb[1] - pa[1]) * (0.18 + i * 0.2); x.fillRect(pa[0] + (pb[0] - pa[0]) * 0.14, ya, (pb[0] - pa[0]) * (i ? 0.72 : 0.5), Math.max(0.25, 0.012 * s)); } }
+  // the raised "U.S. MAIL" band (a lit top edge, the letters cast in relief — a band of light + shade, not meant to be read)
+  { const ya = 1.1, yb = 1.22, a = F(-B.hw + B.c + 0.02, yb), c2 = F(B.hw - B.c - 0.02, ya);
+    x.fillStyle = rgb(col([0, 0.15, -1])); x.fillRect(a[0], a[1], c2[0] - a[0], c2[1] - a[1]);
+    line(x, F(-B.hw + B.c + 0.02, yb), F(B.hw - B.c - 0.02, yb), rimCol(Lt, OLIVE, [0, 0.9, -0.5]), Math.max(0.3, 0.018 * s), 0.8);
+    const px = Math.max(1.6, 0.1 * s), m = F(0, (ya + yb) / 2);
+    x.font = FONT(px); x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = rgb(lit(Lt, shade(OLIVE, -0.45), FRONT), 0.9); x.fillText('U.S. MAIL', m[0] + 0.012 * s, m[1] + 0.012 * s);
+    x.fillStyle = rgb(rimCol(Lt, OLIVE, [0, 0.6, -0.8]), 0.85); x.fillText('U.S. MAIL', m[0], m[1]); }
+  // the SLOT under its hinged flap: a hood standing out from the face (its top lit, its lip worn to iron), the dark slot beneath
+  { const ya = 1.3, yb = 1.42, hw = 0.19, out = 0.07;
+    const slot = [F(-hw + 0.02, ya + 0.015), F(hw - 0.02, ya + 0.015), F(hw - 0.02, ya - 0.025), F(-hw + 0.02, ya - 0.025)];
+    fillPts(x, slot, lit(Lt, [16, 16, 18], FRONT));
+    fillPts(x, [P(X - hw, yb, B.d0), P(X + hw, yb, B.d0), P(X + hw, ya + 0.02, B.d0 - out), P(X - hw, ya + 0.02, B.d0 - out)], col(norm([0, 0.55, -0.8])));
+    line(x, P(X - hw, ya + 0.02, B.d0 - out), P(X + hw, ya + 0.02, B.d0 - out), lit(Lt, IRON_D, FRONT, 0.6), Math.max(0.35, 0.03 * s), 0.95);
+    line(x, P(X - hw + 0.05, ya + 0.025, B.d0 - out), P(X + hw - 0.05, ya + 0.025, B.d0 - out), rimCol(Lt, IRON_D, [0, 0.3, -1]), Math.max(0.25, 0.012 * s), 0.6); }
+  // paint chips + rain streaks (from under the cap, down the face + the side)
+  for (let i = 0; i < 7; i++) { const p = F((r() - 0.5) * 0.6, 0.58 + r() * 0.86); x.fillStyle = rgb(lit(Lt, IRON_D, FRONT), 0.6); x.fillRect(p[0], p[1], Math.max(0.3, 0.025 * s), Math.max(0.25, 0.018 * s)); }
+  for (let i = 0; i < 6; i++) { const u = (r() - 0.5) * 0.62, l = 0.25 + r() * 0.5; line(x, F(u, B.y1 - 0.02), F(u + (r() - 0.5) * 0.02, B.y1 - l), lit(Lt, shade(OLIVE, -0.35), FRONT), Math.max(0.25, 0.016 * s), 0.35); }
+  for (let i = 0; i < 3; i++) { const d = B.d0 + B.c + r() * (B.d1 - B.d0 - 2 * B.c), l = 0.2 + r() * 0.4; line(x, P(X + sgn * B.hw, B.y1 - 0.02, d), P(X + sgn * B.hw, B.y1 - l, d), lit(Lt, shade(OLIVE, -0.35), sideN), Math.max(0.25, 0.016 * s), 0.35); }
+  // 4. the cap: a flange standing out all round, the dome over it, a knob on top
+  const dc = (B.d0 + B.d1) / 2, flange = 0.39, dome = 0.36;
+  const ellAt = (y, rr) => { const [cx0, cy0] = P(X, y, dc), [xr] = P(X + rr, y, dc), [, yn] = P(X, y, dc - rr), [, yf] = P(X, y, dc + rr); return { cx: cx0, cy: (yn + yf) / 2, rx: xr - cx0, ry: Math.max(0.3, (yn - yf) / 2), cy0 }; };
+  { const a = ellAt(1.5, flange), c2 = ellAt(1.56, flange);
+    x.fillStyle = rgb(lit(Lt, shade(OLIVE, -0.12), [0, -0.2, -1])); x.beginPath(); x.ellipse(a.cx, a.cy, a.rx, a.ry, 0, 0, Math.PI); x.ellipse(c2.cx, c2.cy, c2.rx, c2.ry, 0, Math.PI, 0, true); x.closePath(); x.fill();
+    x.fillStyle = rgb(col(TOP)); x.beginPath(); x.ellipse(c2.cx, c2.cy, c2.rx, c2.ry, 0, 0, Math.PI * 2); x.fill();
+    line(x, [c2.cx - c2.rx * 0.8, c2.cy + c2.ry * 0.62], [c2.cx + c2.rx * 0.8, c2.cy + c2.ry * 0.62], rimCol(Lt, OLIVE, [0, 0.7, -0.7]), Math.max(0.3, 0.02 * s), 0.6); }
+  { const a = ellAt(1.56, dome), [, top] = P(X, 1.84, dc), hh = a.cy - top;
+    const g = x.createLinearGradient(a.cx - a.rx, 0, a.cx + a.rx, 0), lsd = Lt.night > 0.5 ? Math.sign(Lt.ld[0]) || 1 : Lt.sd >= 0 ? 1 : -1;
+    const sh = col([-0.7 * lsd, 0.55, -0.45]), hi = col([0.6 * lsd, 0.65, -0.45]);
+    g.addColorStop(0, rgb(lsd > 0 ? sh : hi)); g.addColorStop(0.5, rgb(col([0, 0.75, -0.65]))); g.addColorStop(1, rgb(lsd > 0 ? hi : sh));
+    x.fillStyle = g; x.beginPath(); x.ellipse(a.cx, a.cy, a.rx, a.ry, 0, 0, Math.PI); x.ellipse(a.cx, a.cy, a.rx, hh, 0, Math.PI, 0); x.closePath(); x.fill();
+    // the dome's sheen (the sky by day, the lamp at night) + its knob
+    x.fillStyle = rgb(rimCol(Lt, OLIVE, [0.3 * lsd, 0.9, -0.3]), 0.55); x.beginPath(); x.ellipse(a.cx + lsd * a.rx * 0.32, a.cy - hh * 0.55, a.rx * 0.28, hh * 0.22, 0, 0, Math.PI * 2); x.fill();
+    const k = P(X, 1.88, dc); x.fillStyle = rgb(col([0, 0.6, -0.8])); x.beginPath(); x.arc(k[0], k[1], Math.max(0.5, 0.06 * s), 0, Math.PI * 2); x.fill();
+    x.fillStyle = rgb(rimCol(Lt, OLIVE, [0.4 * lsd, 0.8, -0.4]), 0.8); x.beginPath(); x.arc(k[0] + lsd * 0.02 * s, k[1] - 0.025 * s, Math.max(0.25, 0.022 * s), 0, Math.PI * 2); x.fill(); }
+  // snow on the cap (Part 9)
+  if (ctx.snow > 0.05) { const a = ellAt(1.62, 0.36); x.globalAlpha = Math.min(1, ctx.snow * 1.4); x.fillStyle = rgb(lit(Lt, [240, 244, 250], TOP)); x.beginPath(); x.ellipse(a.cx, a.cy - a.ry * 0.6, a.rx, a.ry * 1.2, 0, 0, Math.PI * 2); x.fill(); x.globalAlpha = 1; }
+  x.restore();
+}
+/** the mailbox on screen (pt): its foot to the knob (drawMailbox's frame) */
+export function mailboxBox(cam, b) {
+  const P = frame(cam, b.z, 1.5), pts = [];
+  for (const u of [-0.45, 0.45]) for (const [y, d] of [[0, 0], [0, 0.74], [1.92, 0.36], [1.92, 0]]) pts.push(P(b.x + u, y, d));
+  return boxOf(pts);
+}
+
+// ------------------------------------------------------------------ THE TEST PIECE (PF — &force=centrepiece-test)
+// A tasteful placeholder for the centrepiece spot, to show the EVENT RIG at work: a granite OBELISK (~5.5 units) on a stepped
+// plinth — two steps, a die with a bronze plaque under a cornice, the tapering shaft, a gilt bronze pyramidion. Drawn with the one
+// light model (the sun / the nearest lamp); its LIGHT PASS (obeliskLight) paints only the rig's light landing on its faces: each
+// face takes the up-light by how it faces the floor spots in front of it + how far up it is (brightest at the foot, gone near the
+// top) — crisp, on the stone, never a haze.
+const GRANITE = [190, 186, 178], BRONZE = [150, 108, 62], GILT_B = [218, 176, 92];
+/** the obelisk's faces in its frame (the inlay's centre m; built once per draw): [{ q: [[u, y, d] × 4 | 3], n, c, gloss }] far → near */
+function obeliskFaces(X) {
+  const F = [], S = X > 0 ? -1 : 1, sideN = X > 0 ? LEFT : RIGHT;
+  const box = (hw, y0, y1, hd, c = GRANITE, gloss = 0.1) => {
+    const d0 = 1 - hd, d1 = 1 + hd;
+    F.push({ q: [[S * hw, y0, d1], [S * hw, y0, d0], [S * hw, y1, d0], [S * hw, y1, d1]], n: sideN, c, gloss });
+    F.push({ q: [[-hw, y1, d0], [hw, y1, d0], [hw, y1, d1], [-hw, y1, d1]], n: TOP, c, gloss });
+    F.push({ q: [[-hw, y0, d0], [hw, y0, d0], [hw, y1, d0], [-hw, y1, d0]], n: FRONT, c, gloss });
+  };
+  box(1.0, 0, 0.28, 1.0); box(0.8, 0.28, 0.54, 0.8);
+  box(0.66, 0.54, 0.66, 0.66); box(0.58, 0.66, 1.9, 0.58); box(0.68, 1.9, 2.04, 0.68); box(0.6, 2.04, 2.14, 0.6);
+  // the shaft (tapering 0.42 → 0.27 half-width over 2.14 → 5.0) + the pyramidion (5.0 → 5.55)
+  const b = 0.42, t = 0.27, y0 = 2.14, y1 = 5.0, ap = 5.55, tl = (b - t) / (y1 - y0);
+  F.push({ q: [[S * b, y0, 1 + b], [S * b, y0, 1 - b], [S * t, y1, 1 - t], [S * t, y1, 1 + t]], n: norm([S, tl, 0]), c: GRANITE, gloss: 0.15 });
+  F.push({ q: [[-b, y0, 1 - b], [b, y0, 1 - b], [t, y1, 1 - t], [-t, y1, 1 - t]], n: norm([0, tl, -1]), c: GRANITE, gloss: 0.15 });
+  F.push({ q: [[S * t, y1, 1 + t], [S * t, y1, 1 - t], [0, ap, 1]], n: norm([S, 0.5, 0]), c: GILT_B, gloss: 1.2 });
+  F.push({ q: [[-t, y1, 1 - t], [t, y1, 1 - t], [0, ap, 1]], n: norm([0, 0.5, -1]), c: GILT_B, gloss: 1.2 });
+  return F;
+}
+const OB_E = 1.15;
+/** THE TEST PIECE's art: drawn standing on the inlay (m = L.medallion), its sun shadow first */
+export function drawObelisk(x, cam, m, T, ctx = {}) {
+  const z0 = m.z - 1, P = frame(cam, z0, OB_E), s = P.s, X = m.x, Lt = lightFor(T, ctx, m.x, m.z), r = rngFrom(seedOf(m.x, m.z) + 23);
+  propShadow(x, cam, { x: X, z: z0, shapes: OBELISK_SHADOW }, 'custom', T, ctx);
+  for (const f of obeliskFaces(X)) {
+    const pts = f.q.map(([u, y, d]) => P(X + u, y, d)), c = lit(Lt, f.c, f.n, f.gloss);
+    fillPts(x, pts, c);
+    // the granite's speckle on the big faces, a lit arris on each top's front edge
+    if (f.c === GRANITE && f.q.length === 4) {
+      const [a, b2, c2] = pts, n = Math.min(40, Math.round(Math.abs((b2[0] - a[0]) * (c2[1] - b2[1])) / 6));
+      for (let i = 0; i < n; i++) { const u = r(), v = r(), p = [a[0] + (b2[0] - a[0]) * u + (pts[3][0] - a[0]) * v, a[1] + (b2[1] - a[1]) * u + (pts[3][1] - a[1]) * v]; x.fillStyle = rgb(shade(c, r() < 0.5 ? -0.18 : 0.12), 0.6); x.fillRect(p[0], p[1], Math.max(0.3, 0.03 * s), Math.max(0.3, 0.025 * s)); }
+      if (f.n === TOP) line(x, pts[0], pts[1], rimCol(Lt, f.c, [0, 0.8, -0.6]), Math.max(0.3, 0.025 * s), 0.8);
+    }
+  }
+  // the bronze plaque on the die's face (a raised border, its lines of letters), a wreath boss over it
+  const fr = (u, y) => P(X + u, y, 1 - 0.58);
+  { const a = fr(-0.34, 1.62), b2 = fr(0.34, 0.92);
+    x.fillStyle = rgb(lit(Lt, shade(BRONZE, -0.25), FRONT, 0.6)); x.fillRect(a[0], a[1], b2[0] - a[0], b2[1] - a[1]);
+    x.strokeStyle = rgb(lit(Lt, BRONZE, [0, 0.4, -1], 1)); x.lineWidth = Math.max(0.35, 0.03 * s); x.strokeRect(a[0] + 0.03 * s, a[1] + 0.03 * s, b2[0] - a[0] - 0.06 * s, b2[1] - a[1] - 0.06 * s);
+    x.fillStyle = rgb(lit(Lt, shade(BRONZE, 0.25), FRONT, 0.8), 0.8);
+    for (let i = 0; i < 5; i++) { const y = a[1] + (b2[1] - a[1]) * (0.22 + i * 0.14); x.fillRect(a[0] + (b2[0] - a[0]) * (0.2 + (i % 2) * 0.08), y, (b2[0] - a[0]) * (0.6 - (i % 2) * 0.16), Math.max(0.3, 0.02 * s)); }
+    const w = fr(0, 1.75); x.strokeStyle = rgb(lit(Lt, BRONZE, FRONT, 1)); x.lineWidth = Math.max(0.35, 0.035 * s); x.beginPath(); x.ellipse(w[0], w[1], 0.11 * s, 0.075 * s, 0, 0, Math.PI * 2); x.stroke(); }
+}
+/** THE TEST PIECE's light pass: only the rig's light landing on its faces (black where none — added with 'lighter'). ctx.rig:
+ *  { col, spots: [{ x, z, front }] } */
+export function obeliskLight(x, cam, m, T, ctx = {}) {
+  const z0 = m.z - 1, P = frame(cam, z0, OB_E), X = m.x, rig = ctx.rig || {}, col = rig.col || RIG.col, spots = (rig.spots || rigSpots(m)).filter(sp => sp.front);
+  // the light a point (world u, y, d in the frame) with normal n takes from the spots in front: the spot's cone aims up at the
+  // piece's middle; brightest low, gone by ~4.5 units up
+  const at = (u, y, d, n) => {
+    let k = 0;
+    const wx = X + u, wz = z0 + d;
+    for (const sp of spots) {
+      const v = [sp.x - wx, -y, sp.z - wz], dl = Math.hypot(v[0], v[1], v[2]) || 1, L = [v[0] / dl, v[1] / dl, v[2] / dl];
+      const face = Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2]);
+      const aim = norm([m.x - sp.x, 2.2, m.z - sp.z]), c = -(L[0] * aim[0] + L[1] * aim[1] + L[2] * aim[2]);
+      const cone = clamp01((c - 0.55) / 0.35);
+      k += face * cone / (1 + (dl / 2.4) ** 2);
+    }
+    return k;
+  };
+  for (const f of obeliskFaces(X)) {
+    const pts = f.q.map(([u, y, d]) => P(X + u, y, d));
+    const ys = f.q.map(q => q[1]), y0 = Math.min(...ys), y1 = Math.max(...ys), mid = q => f.q.reduce((a, p) => a + p[q], 0) / f.q.length;
+    const kb = at(mid(0), y0 + 0.02, mid(2), f.n), kt = at(mid(0), y1, mid(2), f.n), alb = f.c.map(v => v / 255);
+    const cb = col.map((v, i) => Math.min(255, v * alb[i] * kb * 2.2)), ct = col.map((v, i) => Math.min(255, v * alb[i] * kt * 2.2));
+    const ya = Math.max(...pts.map(p => p[1])), yb = Math.min(...pts.map(p => p[1]));
+    const g = x.createLinearGradient(0, ya, 0, yb); g.addColorStop(0, rgb(cb)); g.addColorStop(1, rgb(ct));
+    fillPts(x, pts, g);
+  }
+}
+const OBELISK_SHADOW = { e: OB_E, boxes: [{ x0: -1, x1: 1, y0: 0, y1: 0.28, d0: 0, d1: 2 }, { x0: -0.8, x1: 0.8, y0: 0, y1: 0.54, d0: 0.2, d1: 1.8 }, { x0: -0.62, x1: 0.62, y0: 0, y1: 2.12, d0: 0.4, d1: 1.6 },
+  { x0: -0.42, x1: 0.42, y0: 2.1, y1: 5.0, d0: 0.58, d1: 1.42 }, { x0: -0.12, x1: 0.12, y0: 5, y1: 5.5, d0: 0.88, d1: 1.12 }], contact: [{ x0: -1.05, x1: 1.05, d0: -0.03, d1: 2.05, a: 0.45 }] };
+/** THE TEST PIECE for harbor().centrepiece (its height, its art + its light pass) */
+export const TEST_PIECE = Object.freeze({ h: 5.6, piece: Object.freeze({ draw: drawObelisk, light: obeliskLight }) });
+/** the props' light model + frame for the holiday parts' centrepieces (11a–c): frame(cam, z, e) → P(x, y, d); lightFor(T, ctx, x, z)
+ *  → Lt; lit(Lt, colour, normal, gloss) → [r, g, b]; rimCol; pbox (a lit box); fillPts; line; propShadow(x, cam, { x, z, shapes },
+ *  'custom', T) — shapes: { e, boxes, contact } like shadowShapes' */
+export const PROP_KIT = Object.freeze({ frame, lightFor, lit, rimCol, pbox, fillPts, line, norm });
 
 // ------------------------------------------------------------------ THE SHADOWS
 // The boxes a prop's shadow is made of (in its own frame's numbers): { x0, x1, y0, y1, d0, d1 } relative to the prop's x (u) and z
 // (d); the cart's umbrella a disc. Every box's shadow on the ground = the hull of its foot + its top, each pushed along the sun by
 // its height (stage.js#sunShadow): ONE soft fill for the whole prop (the overlaps union), then a contact shadow under it always.
 function shadowShapes(kind, it) {
+  if (it.shapes) return it.shapes;                     // (PF: a centrepiece's own — { e, boxes, contact })
+  if (kind === 'mailbox') return { e: 1.5, boxes: [{ x0: -0.4, x1: 0.4, y0: 0, y1: 0.53, d0: 0.05, d1: 0.7 }, { x0: -0.42, x1: 0.42, y0: 0.53, y1: 1.62, d0: 0.05, d1: 0.7 }, { x0: -0.3, x1: 0.3, y0: 1.62, y1: 1.88, d0: 0.15, d1: 0.6 }],
+    contact: [{ x0: -0.47, x1: 0.47, d0: -0.03, d1: 0.78, a: 0.5 }] };
   if (kind === 'bench') {
     const hw = (it.w || PIECE.bench.w) / 2;
     return { e: 1.8, boxes: [{ x0: -hw, x1: hw, y0: 0.53, y1: 0.6, d0: 0.04, d1: 0.7 }, { x0: -hw + 0.04, x1: hw - 0.04, y0: 0.82, y1: 1.32, d0: 0.75, d1: 0.86 },
@@ -848,7 +1079,7 @@ function shadowShapes(kind, it) {
   return { e: 1.35, boxes: [{ x0: -0.86 * k, x1: 0.86 * k, y0: 0, y1: 0.34, d0: c - 0.86 * k, d1: c + 0.86 * k }, { x0: -0.4 * k, x1: 0.4 * k, y0: 0.34, y1: 0.75, d0: c - 0.4 * k, d1: c + 0.4 * k }, { x0: -1.15 * k, x1: 1.15 * k, y0: 0.9, y1: 1.76, d0: c - 0.9 * k, d1: c + 0.9 * k }, { x0: -0.8 * k, x1: 0.8 * k, y0: 1.76, y1: 2.6, d0: c - 0.6 * k, d1: c + 0.6 * k }],
     contact: [{ x0: -0.92 * k, x1: 0.92 * k, d0: c - 0.92 * k, d1: c + 0.9 * k, a: 0.5 }] };
 }
-/** a prop's cast shadow on the cobbles by day (kind: 'bench' | 'cart' | 'planter'), along the real sun (T.sunDir, T.sunEl); none
+/** a prop's cast shadow on the cobbles by day (kind: 'bench' | 'cart' | 'planter' | 'mailbox' | 'custom' with item.shapes), along the real sun (T.sunDir, T.sunEl); none
  *  under an overcast deck (T.ovc ≥ 0.5) or at night — and its CONTACT shadow, always (soft, a little darker right under it) */
 export function propShadow(x, cam, item, kind, T, ctx = {}) {
   const S = shadowShapes(kind, item), P = frame(cam, item.z, S.e), s = P.s, X = item.x;

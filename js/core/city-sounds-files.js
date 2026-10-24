@@ -4,11 +4,21 @@
 // loudest, s), from: [start, end] in the source (s), w: weight, src: the source file's stem }. A slot not listed here is EMPTY
 // (silent). Where each source came from + its credit: audio/city/sources.json, audio/city/CREDITS.md.
 export const FILES = /*FILES*/{
+  "airliner-far": [
+    {"f": "airliner-high.mp3", "v": "25107768", "d": 41.5, "lufs": -20.4, "peak": 21.65, "sw": [9.3, 30.2], "from": [4.5, 46.0], "src": "airliner-high", "r": 16000}
+  ],
+  "balloon-burner": [
+    {"f": "balloon-burner_1.mp3", "v": "9be6b999", "d": 5.6, "lufs": -20.4, "peak": 0.5, "sw": [0.15, 5.15], "from": [0.0, 5.6], "src": "balloon-burner", "r": 16000},
+    {"f": "balloon-burner_2.mp3", "v": "005844ce", "d": 5.05, "lufs": -20.4, "peak": 0.55, "sw": [0.2, 4.6], "from": [5.85, 10.9], "src": "balloon-burner", "r": 16000},
+    {"f": "balloon-burner_3.mp3", "v": "99cae7a0", "d": 3.3, "lufs": -20.4, "peak": 0.7, "sw": [0.15, 2.95], "from": [11.3, 14.6], "src": "balloon-burner", "w": 0.8, "r": 16000},
+    {"f": "balloon-burner_4.mp3", "v": "ca89d2c5", "d": 5.75, "lufs": -20.4, "peak": 0.55, "sw": [0.15, 4.05], "from": [15.75, 21.5], "src": "balloon-burner", "w": 0.6, "r": 16000},
+    {"f": "balloon-burner_5.mp3", "v": "929ce84b", "d": 9.55, "lufs": -20.4, "peak": 7.25, "sw": [0.15, 9.05], "from": [22.45, 32.0], "src": "balloon-burner", "w": 0.5, "r": 16000}
+  ],
   "car-1920s-pass": [
-    {"f": "car-1920s-pass-2.mp3", "v": "a44deb47", "d": 18.0, "lufs": -20.5, "peak": 9.36, "from": [9.0, 27.0], "src": "car-1920s-pass-2", "w": 0.15},
-    {"f": "car-1920s-pass-3.mp3", "v": "28684b80", "d": 23.5, "lufs": -20.4, "peak": 9.22, "from": [283.0, 306.5], "src": "car-1920s-pass-3", "w": 0.35},
-    {"f": "car-1920s-pass_1.mp3", "v": "56820fdc", "d": 18.5, "lufs": -20.4, "peak": 8.6, "from": [13.0, 31.5], "src": "car-1920s-pass"},
-    {"f": "car-1920s-pass_2.mp3", "v": "3aacb26a", "d": 19.5, "lufs": -20.5, "peak": 9.12, "from": [127.0, 146.5], "src": "car-1920s-pass"}
+    {"f": "car-1920s-pass-2.mp3", "v": "a44deb47", "d": 18.0, "lufs": -20.5, "peak": 9.45, "sw": [8.8, 10.3], "from": [9.0, 27.0], "src": "car-1920s-pass-2", "w": 0.15},
+    {"f": "car-1920s-pass-3.mp3", "v": "28684b80", "d": 23.5, "lufs": -20.4, "peak": 9.35, "sw": [0.35, 22.1], "from": [283.0, 306.5], "src": "car-1920s-pass-3", "w": 0.35},
+    {"f": "car-1920s-pass_1.mp3", "v": "56820fdc", "d": 18.5, "lufs": -20.4, "peak": 8.65, "sw": [6.85, 11.1], "from": [13.0, 31.5], "src": "car-1920s-pass"},
+    {"f": "car-1920s-pass_2.mp3", "v": "3aacb26a", "d": 19.5, "lufs": -20.5, "peak": 9.35, "sw": [7.6, 11.55], "from": [127.0, 146.5], "src": "car-1920s-pass"}
   ],
   "city-hum-day": [
     {"f": "city-hum-day.mp3", "v": "f29db512", "d": 72.5, "lufs": -24.4, "loop": 70.0, "xf": 2.5, "from": [3.5, 76.0], "src": "city-hum-day", "r": 16000}
@@ -16,14 +26,42 @@ export const FILES = /*FILES*/{
   "city-hum-night": [
     {"f": "city-hum-night.mp3", "v": "e07aa6d4", "d": 72.5, "lufs": -24.4, "loop": 70.0, "xf": 2.5, "from": [98.8, 171.3], "src": "city-hum-night", "r": 16000}
   ],
+  "drone-swarm": [
+    {"f": "drone-swarm.mp3", "v": "f0ebf4cb", "d": 43.0, "lufs": -24.4, "loop": 40.0, "xf": 3.0, "from": [3.0, 46.0], "src": "drone-swarm", "r": 16000}
+  ],
+  "geese": [
+    {"f": "geese.mp3", "v": "bc5363bd", "d": 22.0, "lufs": -20.8, "peak": 19.2, "sw": [17.9, 20.15], "from": [12.0, 34.0], "src": "geese", "r": 16000}
+  ],
   "gulls": [
     {"f": "gulls_1.mp3", "v": "4e8867d6", "d": 1.8, "lufs": -20.4, "peak": 0.87, "from": [0.15, 1.95], "src": "gulls"},
     {"f": "gulls_2.mp3", "v": "5b853e65", "d": 1.6, "lufs": -20.4, "peak": 1.06, "from": [2.05, 3.65], "src": "gulls"},
     {"f": "gulls_3.mp3", "v": "547a9f4e", "d": 1.5, "lufs": -20.5, "peak": 0.37, "from": [3.7, 5.2], "src": "gulls", "w": 0.6},
     {"f": "gulls_4.mp3", "v": "0639841f", "d": 1.75, "lufs": -20.4, "peak": 0.97, "from": [6.85, 8.6], "src": "gulls"}
   ],
+  "helicopter": [
+    {"f": "heli-flyby-2.mp3", "v": "adfbb4cb", "d": 35.6, "lufs": -20.4, "peak": 9.25, "sw": [3.65, 18.9], "from": [0.0, 35.6], "src": "heli-flyby-2", "r": 16000},
+    {"f": "heli-flyby.mp3", "v": "377a27b8", "d": 43.0, "lufs": -20.4, "peak": 4.7, "sw": [1.55, 27.2], "from": [1.0, 44.0], "src": "heli-flyby", "r": 16000}
+  ],
+  "jet-flyby": [
+    {"f": "jets-formation.mp3", "v": "b1eb7375", "d": 23.0, "lufs": -20.4, "peak": 5.55, "sw": [1.5, 9.1], "from": [11.0, 34.0], "src": "jets-formation", "r": 16000}
+  ],
+  "prop-plane": [
+    {"f": "prop-plane.mp3", "v": "a40b6470", "d": 39.0, "lufs": -20.4, "peak": 7.55, "sw": [0.8, 23.5], "from": [1.0, 40.0], "src": "prop-plane", "r": 16000}
+  ],
+  "tr3b-drone": [
+    {"f": "tr3b-drone.mp3", "v": "9821dd12", "d": 43.0, "lufs": -24.4, "loop": 40.0, "xf": 3.0, "from": [68.0, 111.0], "src": "tr3b-drone", "r": 16000}
+  ],
+  "tr3b-power-down": [
+    {"f": "tr3b-powerdown.mp3", "v": "e638ac76", "d": 30.5, "lufs": -20.4, "peak": 3.25, "sw": [0.3, 5.45], "from": [131.5, 162.0], "hit": 3.25, "src": "tr3b-powerdown", "r": 16000}
+  ],
   "truck-delivery": [
-    {"f": "car-1920s-pass-3.mp3", "v": "28684b80", "d": 23.5, "lufs": -20.4, "peak": 9.22, "from": [283.0, 306.5], "src": "car-1920s-pass-3", "w": 0.35}
+    {"f": "car-1920s-pass-3.mp3", "v": "28684b80", "d": 23.5, "lufs": -20.4, "peak": 9.35, "sw": [0.35, 22.1], "from": [283.0, 306.5], "src": "car-1920s-pass-3", "w": 0.35}
+  ],
+  "ufo-beam": [
+    {"f": "ufo-beam.mp3", "v": "b05b355b", "d": 14.0, "lufs": -20.4, "peak": 6.65, "sw": [3.35, 9.45], "from": [3.0, 17.0], "src": "ufo-beam"}
+  ],
+  "ufo-hum": [
+    {"f": "ufo-hum.mp3", "v": "4814831a", "d": 33.0, "lufs": -24.4, "loop": 30.0, "xf": 3.0, "from": [41.0, 74.0], "src": "ufo-hum", "r": 16000}
   ],
   "water-lapping": [
     {"f": "water-lapping.mp3", "v": "5ec91343", "d": 62.5, "lufs": -24.4, "loop": 60.0, "xf": 2.5, "from": [9.4, 71.9], "src": "water-lapping"}

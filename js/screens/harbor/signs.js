@@ -466,12 +466,13 @@ export function drawGooseneck(x, lamps, day, sd = 0) {
  *  fall-off at the two ends: a lit painted billboard, never a dark board with a lit strip */
 export function lampLightMap(lx, R, lamps) {
   const wash = lx.createLinearGradient(0, 0, 0, R.h);
-  wash.addColorStop(0, 'rgb(236,200,152)'); wash.addColorStop(0.35, 'rgb(214,176,132)'); wash.addColorStop(0.75, 'rgb(178,142,108)'); wash.addColorStop(1, 'rgb(150,118,92)');
+  // (PF — the owner: "a little BRIGHTER": the wash ~+7 % top to foot, the pools under the lamps 0.5 → 0.6)
+  wash.addColorStop(0, 'rgb(248,212,164)'); wash.addColorStop(0.35, 'rgb(228,190,144)'); wash.addColorStop(0.75, 'rgb(192,156,118)'); wash.addColorStop(1, 'rgb(162,128,100)');
   lx.fillStyle = wash; lx.fillRect(0, 0, R.w, R.h);
   lx.globalCompositeOperation = 'lighter';
   for (const l of lamps) {
     const cx = l.x - R.x, g = lx.createRadialGradient(cx, -R.h * 0.08, 0, cx, -R.h * 0.08, R.h * 0.8);
-    g.addColorStop(0, 'rgba(255,226,180,0.5)'); g.addColorStop(0.4, 'rgba(250,200,140,0.22)'); g.addColorStop(1, 'rgba(220,160,110,0)');
+    g.addColorStop(0, 'rgba(255,230,186,0.6)'); g.addColorStop(0.4, 'rgba(250,204,146,0.27)'); g.addColorStop(1, 'rgba(220,160,110,0)');
     lx.fillStyle = g; lx.fillRect(0, 0, R.w, R.h);
   }
   lx.globalCompositeOperation = 'multiply';
@@ -489,15 +490,16 @@ export function lampGlows(x, lamps, R, k = 1) {
     const W = l.W || l.a * 0.72, hw = W / 2, foot = R.y + R.h * 0.62, spread = W * 1.15;
     // the cone: from the mouth down the board, widening, fading
     const cone = x.createLinearGradient(0, l.y, 0, foot);
-    cone.addColorStop(0, rgba(LAMP_C, 0.32 * k)); cone.addColorStop(0.45, rgba(LAMP_C, 0.12 * k)); cone.addColorStop(1, rgba(LAMP_C, 0));
+    // (PF: a little brighter — the cone 0.32 → 0.38, the shade's inside 0.9 → 1, the bulb's halo brighter but TIGHTER: W 0.9 → 0.8)
+    cone.addColorStop(0, rgba(LAMP_C, 0.38 * k)); cone.addColorStop(0.45, rgba(LAMP_C, 0.14 * k)); cone.addColorStop(1, rgba(LAMP_C, 0));
     x.fillStyle = cone; x.beginPath(); x.moveTo(l.x - hw * 0.9, l.y); x.lineTo(l.x + hw * 0.9, l.y); x.lineTo(l.x + spread, foot); x.lineTo(l.x - spread, foot); x.closePath(); x.fill();
     // the inside of the shade lit (a warm crescent under the rim)
     const inG = x.createRadialGradient(l.x, l.y, 0, l.x, l.y, hw * 1.05);
-    inG.addColorStop(0, rgba([255, 226, 170], 0.9 * k)); inG.addColorStop(0.6, rgba(LAMP_C, 0.35 * k)); inG.addColorStop(1, rgba(LAMP_C, 0));
+    inG.addColorStop(0, rgba([255, 230, 178], 1 * k)); inG.addColorStop(0.6, rgba(LAMP_C, 0.42 * k)); inG.addColorStop(1, rgba(LAMP_C, 0));
     x.fillStyle = inG; x.beginPath(); x.ellipse(l.x, l.y, hw * 1.05, W * 0.3, 0, 0, Math.PI * 2); x.fill();
     // the bulb: a white-hot point in the mouth + its glow
-    const by = l.y + W * 0.02, bg = x.createRadialGradient(l.x, by, 0, l.x, by, W * 0.9);
-    bg.addColorStop(0, rgba([255, 252, 236], 1 * k)); bg.addColorStop(0.12, rgba([255, 236, 190], 0.95 * k)); bg.addColorStop(0.4, rgba(LAMP_C, 0.4 * k)); bg.addColorStop(1, rgba(LAMP_C, 0));
+    const by = l.y + W * 0.02, bg = x.createRadialGradient(l.x, by, 0, l.x, by, W * 0.8);
+    bg.addColorStop(0, rgba([255, 252, 236], 1 * k)); bg.addColorStop(0.16, rgba([255, 238, 196], 1 * k)); bg.addColorStop(0.45, rgba(LAMP_C, 0.42 * k)); bg.addColorStop(1, rgba(LAMP_C, 0));
     x.fillStyle = bg; x.fillRect(l.x - W, by - W * 0.9, W * 2, W * 1.8);
   }
   x.restore();
