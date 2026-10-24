@@ -34,9 +34,10 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | F1 | ✅ (294e105) FIX PASS: the iPhone music bug (still broken — a diagnostic first), the billboard lit at night, the beat lead, brick texture at noon | Opus 5.5 high | 45–75 min |
 | DB | ✅ (ed141a3, Oct 23) MUSIC FIXES (drop slip8, the iOS music-dies-after-leaving bug, party beat latency) + DAY BUILDINGS (the owner: "a little flat", 7–8 / 10): cast shadows between buildings, ambient occlusion, recessed windows, materials — the "BUILDINGS BY DAY" notes | Opus 5.5 high | 60–90 min |
 | 7 | ✅ 7a (12a4f9c, Oct 23 — the owner: 7–8 / 10 at night, cozy; the ghost ad = the BLADE, not the corner turn; the smaller corner buttons feel better) ( add-ons sent: the sun's colour by altitude — golden hour too white; SUNRISE + SUNSET presets in the panel's TIME category; the AUDIO panel's header says "sounding" while the detail says NO) REORDERED (Oct 23 — the owner: the placeholder foreground is ~half the phone screen and skews every judgement of the city's look; 6b's sky doesn't depend on it): the speakeasy + rooftop, day and night (the ghost ad + the corner-turn preview) — ask the owner a few look questions first | Opus 5.5 high | 60–90 min |
-| FP | ✅ (Oct 23 — docs/harbor.md#fp; as built: the sketch's curb planter dropped — it would stand hidden behind the framing maple — and no crabapple on the phone; the blade dimmer at night) FOREGROUND POLISH (Oct 23): the beat-after-returning fix (count beats from the song's position, not the context clock — the owner's evidence: ~1.3 s drift), the promenade re-layout (approved sketch), the billboard on a short frame, the blade in front of the tree, the barber pole (smooth + brighter), the stop lights + a WALK/WAIT lantern, one crafted planter, the bench at night, quieter water + varied gulls, pulse default 175, readout + AUDIO toggles in the panel | Opus 5.5 high | 75–100 min |
+| FP2 | ← NEXT FOREGROUND POLISH 2: the beat SKEW after returning (re-converge the output lead), the promenade tweaks (far-left tree + urn removed, the medallion to the middle with a height cap, cart left of it, bench + a crabapple shifted left, the bus removed until 8b, the framing maple fixed), grout in the cobbles at night, the finished street under the dock, crisp lights (no smoke), the barber pole (bright LED-like, smooth, neon on party nights), party timing 8:30 / 9:30 | Opus 5.5 high | 75–100 min |
+| FP | ✅ (fb332a1, Oct 23 — the owner: "a big jump", ~8 / 10) FOREGROUND POLISH (Oct 23): the beat-after-returning fix (count beats from the song's position, not the context clock — the owner's evidence: ~1.3 s drift), the promenade re-layout (approved sketch), the billboard on a short frame, the blade in front of the tree, the barber pole (smooth + brighter), the stop lights + a WALK/WAIT lantern, one crafted planter, the bench at night, quieter water + varied gulls, pulse default 175, readout + AUDIO toggles in the panel | Opus 5.5 high | 75–100 min |
 | 8a | ✅ (2aecda7, Oct 23) (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
-| 6b | ← NEXT the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
+| 6b | the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
 | 8b | THE LIFE (after 6b): people, vehicles, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines | Opus 5.5 high | 60–90 min |
 | C2 | cleanup pass 2 | Opus 5.5 medium | 15–30 min |
 | 9 | seasons + weather | Opus 5.5 medium | 45–75 min |
@@ -732,6 +733,51 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   + run one script (trim, level to the city's loudness, encode, register) — like add-city2-music.py. The preview panel's
   SOUNDS category lists every slot: filled / empty, with a play button. + anything the owner
   finds when she checks 7a.
+- THE LINE AT THE SPEAKEASY (the owner, Oct 23 — for Lobby 2.0 + 8b): friends in a lobby line up LEFT of the left globe lamp —
+  along the barbershop front, to the left of the door, toward the bottom-left corner. Space check (Claude): that corner holds
+  ~4–5 figures in a single file at phone size, so the line runs along the shopfront and bends down toward the corner (two-deep
+  if needed); guests 6–8 wait in the open floor beside it; never cut by the left screen edge, never under the dock, the door
+  always clear.
+- THE BAND UNDER THE DOCK (the owner, Oct 23): with the dock showing, the promenade's curb lines up neatly against it; when
+  the dock fades away (rest), an empty grey band shows below the curb. DECIDED (Claude's recommendation): NO camera slide (it
+  would move the sign + sky on every tap / rest and cost a re-layout) — instead the scene is FULL-BLEED to the bottom of the
+  screen and the band under the dock becomes a FINISHED STREET (the implied road made real): the near granite curb, a
+  cobbled street with streetcar rails, a storm drain / manhole, puddle sheen when wet, the headlight sweeps on it; while the
+  dock is hidden, an occasional 1920s car may visibly roll across (the same pass + sound); when the dock returns it simply
+  covers the street again. Check at 390 / 402 / 430 (the band's height differs per phone).
+- THE COBBLES AT NIGHT (the owner, Oct 23): the joints read as hard black gaps between bright stone tops (a "piano key"
+  look) — fill them with a mid-tone GROUT / packed sand that catches some of the lamplight, lower the top-vs-joint contrast
+  at night (soft, rounded falloff on each stone, no sharp black shadows), keep the lit tops' sheen; check by day too.
+- THE SHOPFRONT LIGHT LOOKS SMOKY (the owner, Oct 23, night close-up): the light around the barbershop reads as a big soft
+  warm FOG over the facade instead of light. The pro fix — light shows as three things, never a translucent wash: (1) the
+  SOURCE (a bright core), (2) a TIGHT halo / bloom, small, (3) light LANDING on surfaces — the brick, the awning, the door
+  frame, the cobbles near each lamp, with a clear falloff. Remove the big warm haze behind / around the barber pole; the
+  POLE becomes a crisp, BRIGHT, cool-white "LED-like" glow — the glass tube lit from within, red / blue stripes vivid, a
+  small tight halo, a little light on the wall beside it; the door sconce and the shop's inside lamp keep their warmth and
+  level but get the same treatment (tight bloom + light on the surfaces, no smoky cloud). Apply the rule to every light on
+  the promenade (globes, curb lamps, the cart).
+  THE POLE'S TURNING IS STILL JITTERY on her iPhone (FP said smooth at 60 / 30 Hz): drive the stripe offset by real TIME
+  (not frames), draw it at fractional positions with anti-aliasing (never snapped to whole pixels), keep it drawing every
+  frame even under the day's 30 fps battery saver if that's what steps it; verify with a frame burst at phone dpr.
+  PARTY NIGHTS (the owner's idea — agreed, kept classy): the pole's stripes turn NEON in the party colours (magenta /
+  electric blue / gold instead of red / blue), a gentle punch on the beat, the same slow turn (never spinning fast); back to
+  red / white / blue after the 2 am wind-down.
+- AFTER FP — MORE (the owner's screenshot, Oct 23): the BENCH TREE becomes a FLOWERING CRABAPPLE (pink-white spring blossom;
+  golden autumn with small red fruit) — the owner said yes; REMOVE THE PARKED BUS until 8b brings moving vehicles (a bus
+  frozen behind the stop lights hides the crossing and looks stuck); the CART moves left of the medallion (it blocks the
+  crosswalk today); the WAIT / WALK lantern FLOATS in the air over the road — mount it on a proper cast-iron post on the far
+  curb (base visible); THE BIG FRAMING MAPLE (bottom right) looks off — a dark brown-black blob inside / behind its crown,
+  a lopsided crown on a thin trunk: shade its inner leaves as a deeper orange-red (never a brown-black mass), a fuller rounder
+  crown, the trunk visibly branching up into it, lit from the sun's side; the car sounds play with no car visible — fine
+  while the dock covers the street; once the street under the dock exists, the car is visible when the dock is hidden.
+- AFTER FP — CLAUDE'S + THE OWNER'S TWEAKS (Oct 23): REMOVE the red tree behind the DOUBLE AGENT blade (keep the orange
+  maple); REMOVE the urn planter at the speakeasy's corner; MOVE THE MEDALLION to the middle of the promenade — the cart
+  rolls across it on normal days, people walk over it; during an event the cart stops short / stays away; every seasonal
+  centrepiece gets a HEIGHT CAP (below the vertical neon blade's bottom and the wheel's hub).
+- PARTY-NIGHT TIMING MOVED EARLIER (the owner, Oct 23 — "so beautiful, I don't want it missed"): warm-up from 8:30 pm,
+  PEAK from 9:30 pm, the midnight fireworks finale (Part 10), calming after 1 am, back to normal at 2 am. GUARDRAIL (Claude):
+  the show needs darkness — in summer Grand Rapids' sunset is ~9:20 pm — so the warm-up starts at 8:30 OR when the blue-hour
+  power-up has finished, whichever is LATER, and the peak at 9:30 OR ~45 min after that; the shared darkness value decides.
 - THE PROMENADE RE-LAYOUT (APPROVED by the owner, Oct 23 — Claude's sketch promenade-layout.png): FURNITURE ON THE EDGES,
   AN OPEN FLOOR IN THE MIDDLE, THE FRONT EDGE CLEAR. Back row along the curb by the waterside road: tree · tall double lamp ·
   tree (the bench under it) · a planter · tall double lamp; the open walking floor in the middle with the MEDALLION at its
