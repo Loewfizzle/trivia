@@ -852,6 +852,23 @@ The legendary events (docs/harbor.md#part-6b) report their state through `legend
 - **THE AIR SHOW / THE MISSING MAN:** `jet-flyby` on each pass (skyfx `listen().jets`); **THE BARNSTORMER:** the `prop-plane` run while it flies.
 - Never left bent / muffled / ducked: the scene's destroy restores the filter, the rate and the duck.
 
+## POLISH 4 — THE JETS IN SYNC, THE DRONES HEARD (Oct 25 2026; City 2.0's title) — `core/city-sounds.js#JET_SYNC`, `jetPan`, `audio/city-sound.js` (`sync.at`), `screens/harbor/sounds.js#jets`, `#legendSounds`
+- **WHY IT LAGGED ~5 s** (the owner, the TR-3B's chase + the air show): `jet-flyby`'s 23 s take (`jets-formation.mp3`) was never fetched ahead
+  and never placed on the clock — `citySound()` started it whenever its file had loaded (on a phone: seconds after they'd gone).
+- **NOW**: the take is FETCHED as the event starts (`cityPrefetch('jet-flyby')` — the TR-3B's run, the air show's start) and STARTED with a
+  `sync` (`{ peakIn, at, pre, fade, late }`): its roar's MIDDLE — `JET_SYNC.at` 4.8 s into the take (measured in Chrome: the loudness
+  plateau 3.8 → 5.6 s in 0.2 s windows; the importer's stored `peak` 5.5 sits at its end) — lands as the formation's middle crosses the
+  screen's centre (the TR-3B: `harbor-legend.js#chasePeakS`; the air show / the missing man / the surprise flyby: `jets.js` `listen().peakIn`
+  per pass, once per pass). Its quiet head is trimmed (`pre` 2.2 s kept: it starts ~0.6 s before they come in), joined part-way with a
+  0.25 s fade if the file came late, SILENT under 0.35 s from the peak (a roar after they've gone is worse than none). `audio/city-sound.js`:
+  `sync.at` = a moment of the take's own placed on the clock instead of its measured peak (new, general).
+- **PANNED WITH THEM**: `jetPan(x)` from the jets' real place on the screen each tick (±0.85, gentle at the edges) instead of the recording's
+  own right → left sweep; the music's duck round the same peak (`duckAt` on the take with `peak: JET_SYNC.at`).
+- **THE DRONE SHOW's HUM** (`drone-swarm`, "a soft swarm hum, five quadcopters layered + detuned, low-passed"): it was wired (`keep('drone-
+  swarm', …)`) but ~51.5 LUFS down and under the bed's duck — never heard; its gain 0.064 → 0.15 (+7.4 dB), still under the helicopter;
+  plays while the show flies (now a message — docs/harbor.md#polish-4).
+- **THE BARNSTORMER's prop** (`prop-plane`) follows the plane's own flight (`barn.flying()`), not its smoke lingering ~10 s after.
+
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
   level = rain + 0.25 in a storm). A breathing bed of filtered noise, a low roar that only a downpour brings, and droplet ticks

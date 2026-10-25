@@ -43,7 +43,9 @@ export function capByTier(members, tier = 2) {
   const ms = tt === 0 ? members.filter(m => !(m.routine === 'dance' && m.kind === 'dancer' && m.idx >= DANCE.tier0)) : members;
   if (cap >= FOLK.cap) return ms;
   const dancers = ms.filter(m => m.routine === 'dance' && m.kind === 'dancer'), crowd = ms.filter(m => !(m.routine === 'dance' && m.kind === 'dancer'));
-  return [...dancers, ...capCrowd(crowd, cap)];
+  // (POLISH 4's speed round: at TIER 0 — the slow phone — the square of dancers counts INSIDE the cap again, as before this pass; tiers 1–2
+  // keep the circle on top of the crowd)
+  return [...dancers, ...capCrowd(crowd, tt === 0 ? Math.max(0, cap - dancers.length) : cap)];
 }
 function capCrowd(ms, cap) {
   const heads = new Map(), rank = new Map();

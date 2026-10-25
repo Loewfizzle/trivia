@@ -4,6 +4,33 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — POLISH 4: THE OWNER'S FP3b + 6b REVIEWS (Oct 25, 2026) — `docs/harbor.md#polish-4`, `docs/audio.md#polish-4`
+- [x] Group 1 — THE TR-3B: the lag found (the tier stepping mid-event = two full rebakes; the sprites baked on the frame it came on screen)
+      → a legendary holds the tier, the sprites baked ahead; THE TOTAL BLACKOUT (`blackAt` pure: dying from the entry side, dark through the
+      crossing + the jets, back far skyline → near rows → the sign → the harbor → the promenade, stuttering) + THE DARK CITY bake (no
+      floodlit crowns); the craft's size kept, more texture (matte skin, engraved seams, sawtooth panels, the hub) + THE CIRCUITRY with
+      racing pulses; the orb on the centroid
+- [x] Group 1 — THE JETS: a real F-16 (canopy + pilot, chin intake, strakes, the fin + a flag, two-tone camo, panel lines, star-and-bar,
+      AIM-9 / AIM-120 / a tank); THE ROAR IN SYNC (prefetched, its plateau's middle on the clock, panned with them); THE AIR SHOW as two
+      straight diamond flybys + ribbon smoke + the eased missing man; THE SURPRISE FLYBY (~2 evenings a week, golden hour → 11 pm)
+- [x] Group 2 — the mirror-silver saucer (a glass dome, the orange underbelly the beam overtakes, a concentrated beam); the premium
+      barnstormer (struts + wires, a radial engine, the pilot's scarf) looping AROUND THE O + threading the last N in thick lasting smoke;
+      the 22° halo a thin ring + rarer sun dogs; the aurora's real colours; the drone show = a MESSAGE + its hum heard; skytyping's
+      sun-aware halo; the beams in fog volumetric (`fogbeam.js`)
+- [x] Group 3 — the doors (eased swing at 60 fps, a straight approach + the steps, the lamps flooding them, the left lamp centred); the
+      dance circle (each dancer's own fluid moves on the beat, spread round the compass); CHESTNUTS bold + the stove's glow + smoke; the
+      date stone set into the parapet + aged; the ivy removed; the bus cream over navy (its door 6–9 s); THE VEHICLE KIT (Model T, Model A,
+      Packard, roadster, coupe, van, Checker cab — both roads, never the same twice, party underglow) + the back road's pure traffic; the
+      hidden lamp behind the blade + stronger uplights; the facade's blackout
+- [x] The owner's add-ons: THE WINDOW WORDS (4×5 / 5×5 / 5×7 by the windows' aspect, the face dark, bridged warm letters), THE SIGNALS
+      (one head a pole, a tight halo, no green haze), THE POSTERS (no warm fields), THE PEOPLE CALMER (the counts per band, linger more,
+      the speakeasy secret, the party line + the doorman, arrivals spread)
+- [x] Tests: the unit suite 638 (+ the blackout, the chase, the flyby, the jets in sync, the air show, the barnstormer, the halo, the
+      drone message, the traffic, the people's counts + the line, the posters); E2E legends / sky / life / speakeasy / promenade /
+      people / windows green locally; the cloud run (`[harbor]`)
+- [x] Perf (A-B-B-A vs 3637716): the TR-3B arriving the same, the blackout FASTER (−2.8 ms t2), a party night + the dance the same after
+      one fix (tier 0's cap)
+
 ### ✅ CITY 2.0 — PART 6b: THE SPECIAL SKY (Oct 24, 2026) — `docs/harbor.md#part-6b`, `docs/audio.md#6b`
 - [x] Group 0: the FP3b flaky probes (tier pinned, polled, the far reading a warning); Grok's life + workers + wildlife sounds (28 slots)
 - [x] THE UFO ABDUCTION + THE TR-3B (the power drain in columns, the sign's glitch, the tape stop) + THE F-16 CHASE (Mach diamonds); seeded
