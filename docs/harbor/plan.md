@@ -1585,3 +1585,61 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   ~one a week in all; seeded (the same for everyone); never during holiday moments, the midnight finale, a legendary sky
   event or a worker show. THE LIGHTS: keep the red + blue wash (reads instantly as police on a phone — the neon-1920s
   fusion) on period black-and-white cars from the shared 1920s vehicle kit.
+
+## OWNER'S NOTES — OCT 25 (after 8b2)
+- **THE TR-3B's MUSIC — STILL BROKEN ON THE IPHONE** (8b2 Group 0's raised-floor bend was ALREADY LIVE when he tested, 11:29–11:36
+  am): his AUDIO panel during the TR-3B (looping from the panel, party on): "NOT SOUNDING", "song clock still at 96.6 s …
+  moving … still at 98.4 s", probe 0.000, heals 13 (reload (stalled)) all failing, "STILL". With the TR-3B OFF + a reload:
+  "sounding", probe 0.224, heals 0. So the music system is healthy and THE BEND ALONE kills the song: changing the <audio>
+  element's playbackRate on iOS Safari stalls / silences it. DECIDED APPROACH: never touch the element's playbackRate again.
+  Do the tape stop in WEB AUDIO: as the craft nears, decode a ~20 s slice of the current song from its current position
+  into an AudioBuffer, crossfade from the element (paused) to an AudioBufferSourceNode playing that slice, and ramp ITS
+  playbackRate down (speed + pitch drop together, smoothly) to ~0.5, with a slow warble LFO on the rate (±2–3 %), a light
+  duck (a few dB), a partial low-pass; hold while the craft is overhead; after the jets leave, ramp back to 1.0 and
+  crossfade back to the element resumed at the right song time (a lobby's synced song stays on the room clock). On the
+  DIRECT path (no usable Web Audio): skip the bend, only a volume dip. A RECOVERY WATCHDOG: if the song clock doesn't move
+  within ~1 s once the event is over (or the element stalls at any point), restart the song at the right time. It must
+  read "sounding" with the clock moving through the whole event, and after it, every time — even when the panel loops the
+  event back to back.
+- **THE JETS → AN F-22 RAPTOR-STYLE STEALTH FIGHTER** (the owner chose it; they "look too cartoonish — they need to look like
+  modern, real, menacing flying death machines"): ONE shared jet for the TR-3B chase, the air show, the missing man and the
+  surprise flyby. Realism at phone size comes from SILHOUETTE + SHADING: the angular faceted body, diamond-shaped wings,
+  twin canted tails, internal weapons bays (stealth jets carry missiles inside — no wingtip missiles), dark GUNMETAL grey
+  with real specular highlights + panel shading (no flat colours, no thick outlines), low-visibility grey USAF markings, a
+  gold-tinted canopy, heat haze behind the engines, a hint of motion blur; slightly larger in the chase so the detail reads;
+  keep the Mach diamonds + afterburners.
+- **NO TRAFFIC DURING THE LEGENDARIES:** no vehicle drives by (the street under the dock, the back road, the bus, cabs, trucks,
+  the raid) while the TR-3B makes its pass or during the UFO abduction — it's distracting. Vehicles already on screen
+  finish quickly / stop (in the TR-3B blackout their lamps die with the city); none start until the event (and the jets)
+  are gone; nothing pops out.
+- **THE TRASH CAN** by the front-left lamppost looks like a fire hydrant (for C2): a bit larger, the classic shape (a ribbed
+  galvanized cylinder with a domed lid + handle, or a wire-mesh litter basket on a short post), metal texture + a bright
+  rim, scraps of paper poking out, close to / strapped to the lamppost; clear of the dock + the lobby line.
+- **THE PREVIEW PANEL REWORK** (for C2): "very busy and unorganized" — FULL SCREEN; a 3-SECOND DELAY after it closes before the
+  event fires (a 3-2-1 chip; adjustable now / 3 s / 5 s); a SEARCH box; a RECENT row; clean collapsible categories (SKY,
+  LEGENDARY, PEOPLE + WORKERS, WILDLIFE, HARBOR, WEATHER, TIME, LIGHTS + MUSIC, TOOLS), bigger rows. It stays the owner's
+  testing tool; CITY CONTROL (Part 13) is the separate admin tool for running the live city, on the same event registry,
+  with its own STATS category like City 1.0's /admin (core/insights.js: who's online / in which rooms + games, matches per
+  day / week / game, players + new profiles, peak hours) + the city's own (events run, legendaries seen, daily-puzzle plays
+  + streaks once they exist). Both admin-only.
+- **ONBOARDING + SOLO** (for the GAME LINEUP CHAT, then Lobby 2.0 / Progression 2.0): the typical first player is a FRIEND WITH
+  A LINK → that path effortless (land in the lobby, type a name, done); no tutorial walls — a one-line "what is this" near
+  JOIN / HOST for first-timers ("Party games for 2–8 friends · one phone each · no app"), the hush word explained where
+  it's used, each game taught in its first round, the city's secrets left to discover. SOLO: THREE DAILY SOLO PUZZLES (new
+  every day, the same for everyone, released ~8 am / noon / 5 pm on the player's clock; each playable until midnight;
+  streaks + achievements; a spoiler-free shareable result; THE BOARD per puzzle) from PRISM DROP, OVERCLOCK and two NEW
+  games he wants (a MINESWEEPER-type, a WORDLE-type); GRIDLOCK vs AI as practice; bots later, game by game. ANNOUNCED by a
+  badge on the dock's middle (grid) button + the TAGLINE changing ("THE MORNING PUZZLE IS OUT.", tap to play) — the
+  newsboy / noon whistle / evening edition stay background detail only; web push later for home-screen installs.
+- **A NEON MOON for party nights** — PARKED in Future Ideas (a neon ring round the real moon, or a rare full neon-moon night);
+  never replace the real moon by default.
+- **8b2 REVIEW** (for C2, the next pass): (1) THE RAID "looks great" — (a) the FRONT CAR's SPOTLIGHT must land on the WINDOWS
+  (and the door), never the building's corners / blank brick, and sweep FLUIDLY with randomness (lingering on a window,
+  darting to another, a different eased path every raid — no fixed back-and-forth); (b) the whole raid ~10 s SHORTER; (c)
+  the BACK-ROAD OFFICER shines on the speakeasy's FRONT while standing at its SIDE — he must WALK to where he can see the
+  front (the waterside sidewalk / the crossing, facing the facade) first, the beam starting from his hand. (2) ROSIE's 3D
+  TURN feels CHOPPY on his iPhone — investigate (dropped frames, coarse rotation steps, a per-frame re-render of the model
+  or its reflection) and make it glide. (3) THE WORKERS + PAINTERS look better, but the painters' LADDER POPS UP at the
+  sign — two men must CARRY it ON from the screen edge (level between them, in step), raise it, and carry it OFF after;
+  the same for every worker prop (the billposter's ladder + bucket, the repairmen's ladders, the window washers' gear):
+  props arrive and leave in hands, never pop. (4) THE CAB drop-off looks fine.
