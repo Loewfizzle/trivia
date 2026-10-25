@@ -727,7 +727,7 @@ G('sky', async () => {
     if (SHOTS) await I.page.screenshot({ path: `${OUT}part6-skytype-390x844.png` });
     await I.ctx.close(); }
   // (the drone show runs on the clock: &speed=4 flies its first formation in a quarter of the time — the same checks)
-  { const D = await open({ slot: 'h7', qs: `${NIGHT}&force=drones&text=HELLO&show=heart&speed=4` });
+  { const D = await open({ slot: 'h7', qs: `${NIGHT}&force=drones&text=HELLO%20THERE&speed=4` });   // (POLISH 4: a message only — no heart)
     await harborUp(D.page);
     await waitFor(D.page, '!!window.__district.harbor().sky.state.drones', 'the drone show', 10000);
     await waitFor(D.page, '(() => { const d = window.__district.harbor().sky.state.drones; return d && d.lit > 100; })()', 'the formation lit', 30000);
@@ -778,10 +778,10 @@ G('sky', async () => {
 });
 G('sky', async () => {
   // (&speed=8: the message holds after ~36 s of the show's clock — ~5 s here)
-  { const D = await open({ slot: 'h8', qs: `${NIGHT}&force=drones&text=HI%20THERE&colours=ff2e97,2ee6ff&by=word&show=heart&speed=8` });
+  { const D = await open({ slot: 'h8', qs: `${NIGHT}&force=drones&text=HI%20THERE&colours=ff2e97,2ee6ff&by=word&speed=8` });
     await harborUp(D.page);
     await waitFor(D.page, '!!window.__district.harbor().sky.state.drones', 'the drone show', 10000);
-    await waitFor(D.page, "(() => { const d = window.__district.harbor().sky.state.drones; return d && d.e > 36.5; })()", 'the message held', 45000);
+    await waitFor(D.page, "(() => { const d = window.__district.harbor().sky.state.drones; return d && d.e > 22; })()", 'the message held', 45000);   // (POLISH 4: the drones rise straight into the message: formed by ~15 s, held to ~30)
     const d = (await ev(D.page, 'window.__district.harbor()')).sky.state.drones;
     ok(d.colours === 2 && d.lit > 60, `THE DRONES' COLOURS (&colours=…&by=word): "HI THERE" in ${d.colours} colours, a colour per word (${d.lit} lit)`);
     // (6b, the owner: "it only uses a very small part of the sky") the formation fills the OPEN SKY — from under the corner buttons down
@@ -2160,11 +2160,11 @@ G('legends', async () => {
     await waitFor(Q.page, `!!${P}.sky.state.show && ${P}.sky.state.heavy`, 'the air show', 8000);
     ok(true, 'THE AIR SHOW: the diamond up (both sky lanes, the city calmed)');
     await Q.ctx.close(); }
-  { const Q = await open({ slot: 'lg4', qs: `${NIGHT}&force=drones&text=WELCOME%20TO%20THE%20NEON%20SPEAKEASY%20WHERE%20YOUR%20FRIENDS%20ARE%20ALREADY%20INSIDE%20AND%20THE%20MUSIC%20NEVER%20STOPS&show=heart`, view: [402, 874] });
+  { const Q = await open({ slot: 'lg4', qs: `${NIGHT}&force=drones&text=WELCOME%20TO%20THE%20NEON%20SPEAKEASY%20WHERE%20YOUR%20FRIENDS%20ARE%20ALREADY%20INSIDE%20AND%20THE%20MUSIC%20NEVER%20STOPS`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `!!${P}.sky.state.drones`, 'the drone show', 15000);
     const d = (await ev(Q.page, `${P}`)).sky.state.drones;
-    ok(d.shapes.length === 4 && d.n >= 180, `THE DRONE SHOW pages a long message: ${d.shapes.length - 1} pages after the heart (${d.shapes.slice(1).join(' | ')}), ${d.n} drones`);
+    ok(d.shapes.length === 3 && d.n >= 180, `THE DRONE SHOW pages a long message (POLISH 4: the message only — no figures): ${d.shapes.length} pages (${d.shapes.join(' | ')}), ${d.n} drones`);
     await Q.ctx.close(); }
 });
 

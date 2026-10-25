@@ -137,7 +137,7 @@ test('THE SKY SOUNDS (8P — the owner, after SP2: louder again, the F-16s REALL
   const bed = lvl('city-hum-day');
   // SP2's gains → 8P's: the jets +6 dB, the helicopter + the burner +4, the airliners, the banner plane + the drone hum +3
   const sp2 = { 'jet-flyby': [0.07, 9],   // (FP3b: the jets +3 more — 8P's +6 then FP3b's +3)
-    helicopter: [0.074, 4], 'balloon-burner': [0.07, 4], 'airliner-far': [0.036, 3], 'prop-plane': [0.05, 3], 'drone-swarm': [0.045, 3] };
+    helicopter: [0.074, 4], 'balloon-burner': [0.07, 4], 'airliner-far': [0.036, 3], 'prop-plane': [0.05, 3], 'drone-swarm': [0.045, 10.46] };   // (POLISH 4: the swarm +7.4 more — the owner never heard it)
   for (const [id, [g, db]] of Object.entries(sp2)) assert.ok(Math.abs(20 * Math.log10(slotOf(id).gain / g) - db) < 0.15, `${id}: ${(20 * Math.log10(slotOf(id).gain / g)).toFixed(2)} dB (asked ${db})`);
   assert.equal(slotOf('geese').gain, 0.075, 'the geese unchanged');
   assert.equal(slotOf('gulls').gain, 0.11, 'the gulls unchanged');

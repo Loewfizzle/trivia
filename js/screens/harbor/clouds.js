@@ -19,7 +19,7 @@
 // whole sky for rain, storms, snow; re-lit at once). Part 6b: the sky messages drift through the same sky (skywriting is drawn after).
 import { rngFrom } from '../../core/rng.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
-import { cloudMix, cloudPlan, driftX, skyLight, cloudLit, sunOnClouds } from '../../core/harbor-clouds.js';
+import { cloudMix, cloudPlan, driftX, skyLight, cloudLit, sunOnClouds, haloOf } from '../../core/harbor-clouds.js';
 import { harborSky } from './tones.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -804,16 +804,41 @@ export function createClouds() {
       const r = Math.min(W, H0) * 0.32, gg = c.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, r);
       gg.addColorStop(0, `rgba(255,252,240,${(0.22 * k * sun.vis).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,252,240,0)');
       c.fillStyle = gg; c.fillRect(sun.x - r, sun.y - r, r * 2, r * 2);
-      // (the rare 22° halo: its radius ~0.6 of a phone's width — the real ring at this camera's field — a reddish inner edge, fading out)
-      const rare = lc ? ((lc.y * 400 + lc.m * 31 + lc.d) * 2654435761 >>> 0) % 4 === 0 : false;
-      if ((rare || fs.force.has('halo')) && k > 0.25) {
-        const R = Math.min(W * 0.6, H0 * 0.55), band = R * 0.05;
-        const rg = c.createRadialGradient(sun.x, sun.y, R - band, sun.x, sun.y, R + band * 2.2);
-        rg.addColorStop(0, 'rgba(255,170,140,0)'); rg.addColorStop(0.25, `rgba(255,190,160,${(0.3 * k * sun.vis).toFixed(3)})`); rg.addColorStop(0.45, `rgba(255,250,240,${(0.26 * k * sun.vis).toFixed(3)})`); rg.addColorStop(1, 'rgba(220,235,255,0)');
-        c.beginPath(); c.rect(0, 0, W, roof + 20); c.clip();
-        c.fillStyle = rg; c.beginPath(); c.arc(sun.x, sun.y, R + band * 2.2, 0, Math.PI * 2); c.arc(sun.x, sun.y, Math.max(0, R - band), 0, Math.PI * 2, true); c.fill('evenodd');
-      }
       c.restore();
+      // THE 22° HALO (POLISH 4, the owner: "a very obvious circle of clouds" — wrong): a FAINT, THIN ring of LIGHT in the veil — barely
+      // there, a slightly REDDISH INNER EDGE, the sky a touch DARKER inside it; ~1 veil day in 4 (seeded). SUN DOGS (a rarer bonus, ~1
+      // halo day in 2): two small bright rainbow-tinted spots level with the sun, one each side just outside the ring, red toward the sun.
+      // (R: the real ring at this camera's field, pulled in a little so the sun dogs stay on a phone's screen; drawn under the roofs' line)
+      const hk = haloOf(lc, { halo: fs.force.has('halo'), dogs: fs.force.has('sundogs') });
+      if (hk.halo && k > 0.25) {
+        const R = Math.min(W * 0.42, H0 * 0.5), band = Math.max(2.5, R * 0.03), v = k * sun.vis;
+        c.save(); c.beginPath(); c.rect(0, 0, W, roof + 20); c.clip();
+        // the sky inside the ring a touch darker (never at the sun itself: its own glow is there)
+        const dg = c.createRadialGradient(sun.x, sun.y, R * 0.35, sun.x, sun.y, R - band * 0.5);
+        dg.addColorStop(0, 'rgba(40,60,110,0)'); dg.addColorStop(0.75, `rgba(40,60,110,${(0.045 * v).toFixed(3)})`); dg.addColorStop(1, `rgba(40,60,110,${(0.065 * v).toFixed(3)})`);
+        c.fillStyle = dg; c.beginPath(); c.arc(sun.x, sun.y, R - band * 0.5, 0, Math.PI * 2); c.fill();
+        // the ring itself: light added — the red inner edge, a pale band, fading out wider than in (as the real one does)
+        c.globalCompositeOperation = 'lighter';
+        const r0 = R - band, r1 = R + band * 3;
+        const rg = c.createRadialGradient(sun.x, sun.y, r0, sun.x, sun.y, r1);
+        rg.addColorStop(0, 'rgba(255,120,90,0)'); rg.addColorStop(0.12, `rgba(255,120,90,${(0.075 * v).toFixed(3)})`); rg.addColorStop(0.26, `rgba(255,214,170,${(0.09 * v).toFixed(3)})`);
+        rg.addColorStop(0.42, `rgba(240,244,255,${(0.07 * v).toFixed(3)})`); rg.addColorStop(0.7, `rgba(210,226,255,${(0.025 * v).toFixed(3)})`); rg.addColorStop(1, 'rgba(210,226,255,0)');
+        c.fillStyle = rg; c.beginPath(); c.arc(sun.x, sun.y, r1, 0, Math.PI * 2); c.arc(sun.x, sun.y, r0, 0, Math.PI * 2, true); c.fill('evenodd');
+        // THE SUN DOGS (parhelia): level with the sun, just outside the ring; red on the sun's side → amber → white → a faint blue, a
+        // short white tail pointing away; a gentle shimmer as the veil's crystals drift
+        if (hk.dogs) for (const side of [-1, 1]) {
+          const dx = sun.x + side * R * 1.03, dy = sun.y, sh = 0.85 + 0.15 * Math.sin(fs.t * 0.7 + side), a = v * sh;
+          if (dx < -band * 6 || dx > W + band * 6) continue;
+          const spot = (ox, rx, ry, col, al) => { const gx = c.createRadialGradient(0, 0, 0, 0, 0, 1); gx.addColorStop(0, `rgba(${col},${al.toFixed(3)})`); gx.addColorStop(1, `rgba(${col},0)`);
+            c.save(); c.translate(dx + side * ox, dy); c.scale(rx, ry); c.fillStyle = gx; c.beginPath(); c.arc(0, 0, 1, 0, Math.PI * 2); c.fill(); c.restore(); };
+          spot(-band * 1.1, band * 1.7, band * 3.8, '255,70,50', 0.42 * a);
+          spot(-band * 0.1, band * 1.8, band * 4, '255,180,60', 0.4 * a);
+          spot(band * 0.9, band * 1.7, band * 3.4, '255,250,225', 0.4 * a);
+          spot(band * 2.1, band * 1.9, band * 3.4, '150,190,255', 0.22 * a);
+          spot(band * 6, band * 6.5, band * 1.3, '245,248,255', 0.1 * a);                         // (the tail away from the sun)
+        }
+        c.restore();
+      }
     }
   }
   function drawAll(c, fs, sunInfo, part) {

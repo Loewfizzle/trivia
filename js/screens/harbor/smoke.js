@@ -73,6 +73,27 @@ export function createSmoke() {
     x.fillStyle = g; x.fillRect(0, 0, 64, 64);
     return puffSpr;
   }
+  // POLISH 4 — THE DARK SOFT HALO (the owner: "in front of the SUN the letters lose contrast"): the NEON sign's + the tagline's own
+  // trick — a soft dark shade under every puff (drawn first, the puffs over it), merging into one quiet shadow round the letters. On
+  // the blue it is a faint shade; in front of the sun's glare it is what keeps the white dots readable.
+  let haloSpr = null;
+  function haloSprite() {
+    if (haloSpr) return haloSpr;
+    haloSpr = mk(64, 64);
+    const x = safeCtx(haloSpr), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(8,14,34,0.62)'); g.addColorStop(0.45, 'rgba(8,14,34,0.36)'); g.addColorStop(1, 'rgba(8,14,34,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    return haloSpr;
+  }
+  const HALO_R = 2.3;                                   // (the shade's radius, of the puff's)
+  // (only where something bright is behind: a faint shade on the open blue, FIRM in front of the sun's glare — its place from the sun
+  // pass, skyfx.sunHaze — so the letters never turn into grey smudges on a plain sky)
+  let sunG = null;
+  const haloA = (light, x = 0, y = 0) => {
+    let g = 0;
+    if (sunG && sunG.vis > 0.05) { const d = Math.hypot(x - sunG.x, y - sunG.y) / sunG.R; const u = d >= 1 ? 0 : 1 - d; g = Math.min(1, sunG.vis * u * u * (3 - 2 * u) * 1.4); }
+    return (0.12 + 0.06 * light.gold) + 0.46 * g;
+  };
   // one puff's look at e (s since the writing began): { r, a } (null = not yet / gone)
   function puffNow(q, e, motion) {
     const age = e - q.t;
@@ -101,14 +122,17 @@ export function createSmoke() {
     const d = Math.min(2, dpr), x = safeCtx(layer), spr = puffSprite(light);
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, layer.width, layer.height);
     x.setTransform(d, 0, 0, d, 0, 0);
-    const [vx, vy] = drift(s);
+    const [vx, vy] = drift(s), hs = haloSprite(), live = [];
     for (const q of cur.puffs) {
       if (q.t > e) break;
       const n = puffNow(q, e, s.motion);
       if (!n || n.a < 0.01) continue;
       const age = e - q.t, gust = blowOf(q, e), px = q.x + (s.motion ? vx * age + gust[0] : 0), py = q.y + (s.motion ? vy * age + gust[1] : 0);
-      x.globalAlpha = Math.min(1, n.a); x.drawImage(spr, px - n.r * 1.25, py - n.r * 1.25, n.r * 2.5, n.r * 2.5);
+      live.push(px, py, n.r, n.a);
     }
+    // (the dark halo first — every puff's — then the puffs over it)
+    for (let i = 0; i < live.length; i += 4) { const r = live[i + 2] * HALO_R; x.globalAlpha = Math.min(1, live[i + 3] * haloA(light, live[i], live[i + 1])); x.drawImage(hs, live[i] - r, live[i + 1] - r, r * 2, r * 2); }
+    for (let i = 0; i < live.length; i += 4) { const r = live[i + 2]; x.globalAlpha = Math.min(1, live[i + 3]); x.drawImage(spr, live[i] - r * 1.25, live[i + 1] - r * 1.25, r * 2.5, r * 2.5); }
     x.globalAlpha = 1;
     layerAt = performance.now(); layerE = e;
   }
@@ -141,8 +165,9 @@ export function createSmoke() {
     kind: () => (cur ? cur.kind : null),
     stop() { cur = null; },
     /** the sky layer (after the planes, before the clouds) */
-    draw(c, s) {
+    draw(c, s, sun = null) {
       if (!cur) return false;
+      sunG = sun && sun.x != null ? { x: sun.x, y: sun.y, vis: sun.vis || 0, R: Math.min(W, H) * 0.34 } : null;
       const e = (s.now - cur.at) / 1000;
       if (e > cur.end) { cur = null; return false; }
       if (e < 0) return true;
@@ -155,13 +180,14 @@ export function createSmoke() {
       const [vx, vy] = drift(s), dt = s.motion ? e - layerE : 0, d = Math.min(2, dpr);
       c.drawImage(layer, vx * dt, vy * dt, layer.width / d, layer.height / d);
       // the newest puffs (born since the layer): live
-      const spr = puffSprite(light);
-      for (const q of cur.puffs) {
+      const spr = puffSprite(light), hs = haloSprite();
+      for (const pass of [0, 1]) for (const q of cur.puffs) {
         if (q.t <= layerE) continue;
         if (q.t > e) break;
         const n = puffNow(q, e, s.motion);
         if (!n) continue;
-        c.globalAlpha = Math.min(1, n.a); c.drawImage(spr, q.x - n.r * 1.25, q.y - n.r * 1.25, n.r * 2.5, n.r * 2.5);
+        if (pass === 0) { const r = n.r * HALO_R; c.globalAlpha = Math.min(1, n.a * haloA(light, q.x, q.y)); c.drawImage(hs, q.x - r, q.y - r, r * 2, r * 2); }
+        else { c.globalAlpha = Math.min(1, n.a); c.drawImage(spr, q.x - n.r * 1.25, q.y - n.r * 1.25, n.r * 2.5, n.r * 2.5); }
       }
       c.globalAlpha = 1;
       // the jets (their afterburners lit: brighter toward dusk)
@@ -174,6 +200,6 @@ export function createSmoke() {
     },
     /** what's written (tests + previews): { kind, text, puffs, done (all puffs out), k (0..1 of its whole life) } */
     debug: () => (cur ? { kind: cur.kind, text: cur.text, pages: cur.pages.length, puffs: cur.puffs.length, last: +cur.last.toFixed(1), release: +cur.release.toFixed(1), end: +cur.end.toFixed(1) } : null),
-    destroy() { if (layer) layer.width = layer.height = 0; if (puffSpr) puffSpr.width = 0; jets.destroy(); layer = null; cur = null; },
+    destroy() { if (layer) layer.width = layer.height = 0; if (puffSpr) puffSpr.width = 0; if (haloSpr) haloSpr.width = 0; haloSpr = null; jets.destroy(); layer = null; cur = null; },
   };
 }

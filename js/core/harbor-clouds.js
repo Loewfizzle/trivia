@@ -318,3 +318,14 @@ export function cloudLit(G, d, x, box) {
   const key = [G.key, q(lx, qd), q(ly, qd), q(lz, qd), q(back, qd), q(glowK, 16), glow.map(v => v >> 4).join('.')].join('/');
   return { lx, ly, lz, l2: [lx / n2, ly / n2], back, rim, below, haze, farA, glow, glowK, key };
 }
+
+/**
+ * POLISH 4 — THE 22° HALO + THE SUN DOGS on a veil day (lc: the city clock's local { y, m, d }; force: the preview flags) →
+ * { halo, dogs }: the halo on ~1 veil day in 4 (seeded by the date — every phone the same), the sun dogs on ~half of those (a rarer
+ * bonus); forced = { halo, dogs } (&force=halo shows the ring, &force=sundogs the ring + the dogs).
+ */
+export function haloOf(lc, forced = {}) {
+  const h = lc ? (((lc.y * 400 + lc.m * 31 + lc.d) * 2654435761) >>> 0) : 1;
+  const seeded = h % 4 === 0;
+  return { halo: seeded || !!forced.halo || !!forced.dogs, dogs: (seeded && ((h >>> 2) & 1) === 1) || !!forced.dogs };
+}

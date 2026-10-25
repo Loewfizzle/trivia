@@ -144,7 +144,9 @@ export const SLOTS = [
   S('jet-flyby', 'sky', 'once', 0.198, 'jets flying by right → left (the air show) — REALLY loud: the music ducks for the pass (`duck`)', 'the jets’ pass (8P: sounds.jets(o) — panned right → left over its swell, the music dipped ~5 dB round its peak)', { duck: 0.56 }),
   S('balloon-burner', 'sky', 'once', 0.111, 'a hot air balloon’s burner whoosh, far off (five bursts, low-passed)', 'the balloons while they’re up: a burn every ~6–18 s'),
   S('geese', 'sky', 'once', 0.075, 'a skein of geese honking overhead (~28 s: one crossing)', 'the geese while a V crosses: one flyover a V, panned with it'),
-  S('drone-swarm', 'sky', 'loop', 0.064, 'the drone show’s faint swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
+  // (POLISH 4, the owner: "the drones have NO SOUND" — at −51.5 LUFS under the music's duck it was never heard: +7.4 dB (0.064 → 0.15),
+  // a soft hum under the helicopter, clearly there while the fleet flies)
+  S('drone-swarm', 'sky', 'loop', 0.15, 'the drone show’s soft swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
   S('ufo-hum', 'sky', 'loop', 0.06, 'the UFO saucer’s low tonal hum (soft top — lower / filter it under the music)'),
   S('ufo-beam', 'sky', 'once', 0.1, 'the abduction beam (a riser, its peak ~6 s in)'),
   S('tr3b-drone', 'sky', 'loop', 0.08, 'the TR-3B’s deep drone (low-mids kept: a phone still hears it)'),

@@ -73,7 +73,7 @@ export const catOf = id => { const e = EV[id]; return e && CAT_IDS.has(e.cat) ? 
 // joins mid-flight; the rest are states (on while the remote is on). ready: false = not drawn on the Harbor yet: the panel hides the
 // row (the id stays valid for the URL + the server) until the part that builds it flips it.
 export const EVENTS = [
-  { id: 'drones', label: 'DRONE SHOW', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text', 'show', 'colours', 'colour', 'by', 'cycle'], text: 140, night: true },
+  { id: 'drones', label: 'DRONE SHOW', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text', 'colours', 'colour', 'by', 'cycle'], text: 140, night: true, hint: 'the night version of skytyping: the drones rise into your MESSAGE, a page at a time' },
   { id: 'drones-calm', label: 'DRONES · CALM', cat: 'sky', group: 'MESSAGES', hint: 'with DRONE SHOW: slower, steady lights' },
   { id: 'banner', label: 'BANNER PLANE', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 74, hint: 'A | B | C: up to 3 banners' },
   { id: 'skywrite', label: 'SKYWRITING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 140, ready: false },   // (6b: CUT — an old link types it)
@@ -114,6 +114,7 @@ export const EVENTS = [
   { id: 'lightning', label: 'LIGHTNING', cat: 'weather', group: 'WEATHER FX', hint: 'with WEATHER = STORM' },
   { id: 'freeze', label: 'FROST', cat: 'weather', group: 'WEATHER FX' },
   { id: 'halo', label: '22° SUN HALO', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL (a thin cirrostratus sky): the rare faint ring round the sun' },
+  { id: 'sundogs', label: 'SUN DOGS', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL: the 22° halo + its two sun dogs (the rarer bonus)' },
   { id: 'beams', label: 'SKY BEAMS', cat: 'party', group: 'ANY NIGHT', night: true, hint: 'the party’s vertical beams from the tall towers' },
   { id: 'searchlights', label: 'SEARCHLIGHTS', cat: 'lights', group: 'THE TOWERS', night: true },
   { id: 'spell', label: 'WORDS IN THE WINDOWS', cat: 'lights', group: 'THE TOWERS', inputs: ['text', 'style', 'tower'], text: 60, night: true, hint: 'type a message: one word per tower, a word too long for its tower scrolls on it' },
