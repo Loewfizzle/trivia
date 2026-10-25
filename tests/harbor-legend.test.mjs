@@ -48,12 +48,14 @@ test('the TR-3B: crosses the whole screen, drains while over the city, the chase
     assert.ok(dir > 0 ? a.x < -0.3 && b.x > 1.3 : a.x > 1.3 && b.x < -0.3);
     assert.ok(tr3bAt(15, dir).drain > 0.99 && tr3bAt(34, dir).drain === 0);
     assert.ok(tr3bAt(35.5, dir).chase.on && !tr3bAt(20, dir).chase.on);
-    assert.ok(tr3bAt(15, dir).music.rate <= 0.5 && tr3bAt(15, dir).music.duck < 0.2);
+    // (8b1 — THE DRAIN DRAMATIC: overhead the song is held LOW but audible — deep (~0.56 ×, warbling), muffled (900 Hz), at half volume)
+    { const m = tr3bAt(15, dir).music; assert.ok(m.rate <= 0.62 && m.rate >= 0.5 && m.duck > 0.35 && m.duck < 0.6 && m.hz < 1000 && m.warble > 0.9, `held low: ${m.rate.toFixed(2)} at ${m.duck.toFixed(2)}`); }
+    { let lo = 9, hi = 0; for (let t = 12; t < 30; t += 0.05) { const r = tr3bAt(t, dir).music.rate; lo = Math.min(lo, r); hi = Math.max(hi, r); } assert.ok(hi - lo > 0.05, `a heavy warble (${lo.toFixed(3)}–${hi.toFixed(3)})`); }
     // (POLISH 4 — THE TAPE STOP HEARD: the speed sags while the music is still loud, never under half speed (iOS mutes below it); after
     // the jets the volume is back first at the low speed, then it spins up)
     const m8 = tr3bAt(8.2, dir).music; assert.ok(m8.rate < 0.75 && m8.duck > 0.9, `sagging while loud: ${m8.rate.toFixed(2)} at ${m8.duck.toFixed(2)}`);
     for (let t = 0; t < TR3B_LEN; t += 0.25) assert.ok(tr3bAt(t, dir).music.rate >= 0.5 - 1e-9);
-    const m41 = tr3bAt(40.6, dir).music; assert.ok(m41.duck > 0.85 && m41.rate < 0.62, `back loud, still slow: ${m41.rate.toFixed(2)} at ${m41.duck.toFixed(2)}`);
+    const m41 = tr3bAt(40.6, dir).music; assert.ok(m41.duck > 0.85 && m41.rate < 0.7, `back loud, still slow: ${m41.rate.toFixed(2)} at ${m41.duck.toFixed(2)}`);
     assert.ok(tr3bAt(38.5, dir).music.catchUp && !tr3bAt(30, dir).music.catchUp && tr3bAt(38.5, dir).music.duck < 0.2, 'the time made up while silent');
     const e = tr3bAt(TR3B_LEN - 0.01, dir).music; assert.ok(e.rate === 1 && e.duck > 0.95 && e.hz > 15000);
   }
