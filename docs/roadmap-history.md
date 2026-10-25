@@ -4,6 +4,15 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — C2: CLEANUP 2 + THE OWNER'S REVIEW FIXES (Oct 25, 2026) — `docs/harbor.md#c2`
+- **The TR-3B**: `CHASE` t0 34 → 29.2 + dur 3.4 → 2.72, `JETS_GONE` drives everything after (the run 50 → 44 s); the chase's F-22s 0.2 W; the sign + the promenade's lamps stutter shallow then rise as the power returns; the far drain strips drawn after the far layer only.
+- **The raid**: `spotTargets` / `spotTour` / `spotOn` (only windows + doors, seeded, linger / glance / sweep / dart); the officer walks onto the promenade in front of the facade; his sweep stretches to the green (70 → ~59 s).
+- **Rosie + the boats**: two cached headings blended every frame; `churn()` + the stern's wake; `openAt` (the turns in open water); the second sloop out on a phone.
+- **The workers**: one extension ladder (`tallLadder` / `ladderAt`), the stepladder (`stepsAt`), every prop in hands (the kit, the can at its real size, the newsstand, the platform, unload).
+- **The cab's door** (`cabDoorLeg`, `drawDoorOpen`); **the trash can** (`CAN` h 1.24 r 0.4, by the post, strapped).
+- **The preview panel** (full screen, START NOW / 3 S / 5 S + the 3-2-1 chip, search, RECENT, `R.SECTIONS`; `cityLive` `delay`).
+- **Cleanup**: the harness (90 s launch + one retry on CI, `[net]` warnings), `STRINGS_ON` + `CART_SHOWN` gone, `shots.mjs --cast`; the Firebase upgrades on `deps/firebase-upgrade` (b2487bf: admin 14.5, SDK 13.0.0; CI green; not merged).
+
 ### ✅ CITY 2.0 — THE TR-3B's MUSIC, THE F-22, NO TRAFFIC DURING THE LEGENDARIES (Oct 25, 2026) — `docs/harbor.md#the-tr-3bs-music-the-f-22-no-traffic`, `docs/audio.md#the-tape-stop-in-web-audio`
 - [x] THE TAPE STOP IN WEB AUDIO: the owner's panel proved the bend alone killed the song (iOS Safari stalls a media element whose
       playbackRate changes; a reload keeps the bent rate) — now `audio/tape-stop.js`: the song's MP3 frames walked (`core/mp3-slice.js`,

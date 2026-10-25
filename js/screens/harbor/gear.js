@@ -10,7 +10,8 @@ const TAU = Math.PI * 2;
 const WOOD = [150, 118, 78], WOOD_LO = [108, 82, 54], ZINC = [156, 160, 166], ZINC_LO = [96, 100, 108], GLASS = [236, 240, 238];
 const shoulderOf = g => { const s = g.J.shs[g.J.near]; return [g.X(s[0]), g.Y(s[1] + 0.03)]; };
 // (8b2: a load on the shoulder sits a little BEHIND the neck — side-on it no longer covers the face)
-const loadOf = g => { const [x, y] = shoulderOf(g); return [x - g.d * g.H * 0.065 * Math.abs(g.J.cx), y]; };
+// (8b2 — 'unload': from the hands over the truck's bed up to the shoulder as J.uk runs 0 → 1)
+const loadOf = g => { const [x, y] = shoulderOf(g), sx = x - g.d * g.H * 0.065 * Math.abs(g.J.cx); if (g.pose !== 'unload') return [sx, y]; const k = g.J.uk || 0, [hx, hy] = g.hand; return [hx + (sx - hx) * k, hy + (y - hy) * k]; };
 const lw = (g, k) => Math.max(0.35, g.H * k);
 
 export const GEAR = {
@@ -43,15 +44,20 @@ export const GEAR = {
     c.fillStyle = g.f([220, 214, 196]); c.fillRect(x - H * 0.025 * g.d - H * 0.03, y - H * 0.06, H * 0.06, H * 0.11);
   },
   can(c, g) {
-    const H = g.H; let [x, y] = loadOf(g), rot = 0.12 * g.d;
-    if (g.pose === 'tip') { const [hx, hy] = g.hand; x = hx; y = hy - H * 0.05; rot = (1.25 + 0.2 * Math.sin(g.t * 2)) * g.d; }
-    else y -= H * 0.08;
+    // 8b2 — THE STREET'S OWN CAN at its real size (core/harbor-promenade.js#CAN: 1.24 × 0.8 units — 0.59 × 0.38 of a man): gripped at its
+    // sides where it stands (its centre with the hands — the street's can hides at that moment), swung up onto the shoulder as he rises
+    // (folk.js's squat curve, J.sq), leaning back over it; tipped over the truck's side; the same down again
+    const H = g.H, cw = H * 0.37, ch = H * 0.57, sh = g.J.sh0 ? { ...g, J: { ...g.J, shs: g.J.sh0 } } : g, [sx, sy] = loadOf(sh), onSh = [sx - g.d * H * 0.07, sy - H * 0.17];
+    let x, y, rot;
+    if (g.pose === 'tip') { const [hx, hy] = g.hand; x = hx; y = hy - H * 0.1; rot = (1.25 + 0.2 * Math.sin(g.t * 2)) * g.d; }
+    else if (g.pose === 'pick' || g.pose === 'set') { const k = 1 - (g.J.sq == null ? 1 : g.J.sq), [hx, hy] = g.hand; x = hx + (onSh[0] - hx) * k; y = hy + H * 0.1 + (onSh[1] - hy - H * 0.1) * k; rot = -0.55 * g.d * k; }
+    else { [x, y] = onSh; rot = -0.55 * g.d; }
     c.save(); c.translate(x, y); c.rotate(rot);
-    const w = H * 0.12, h = H * 0.16;
-    c.fillStyle = g.f(ZINC); c.fillRect(-w / 2, -h / 2, w, h);
-    c.fillStyle = g.f(ZINC_LO); for (const v of [-0.22, 0.2]) c.fillRect(-w / 2, h * v, w, lw(g, 0.008));
-    c.fillStyle = g.f([226, 230, 236], 1.2); c.fillRect(-w * 0.28, -h / 2, lw(g, 0.014), h);
-    if (g.pose !== 'tip') { c.fillStyle = g.f(ZINC_LO); c.fillRect(-w * 0.56, -h / 2 - H * 0.015, w * 1.12, H * 0.02); }
+    c.fillStyle = g.f(ZINC); c.beginPath(); c.moveTo(-cw / 2, -ch / 2); c.lineTo(cw / 2, -ch / 2); c.lineTo(cw * 0.46, ch / 2); c.lineTo(-cw * 0.46, ch / 2); c.closePath(); c.fill();
+    c.fillStyle = g.f(ZINC_LO); for (let i = -2; i <= 2; i++) c.fillRect(i * cw * 0.17 - lw(g, 0.005), -ch * 0.44, lw(g, 0.01), ch * 0.9);
+    for (const v of [-0.18, 0.22]) c.fillRect(-cw / 2, ch * v, cw, lw(g, 0.014));
+    c.fillStyle = g.f([232, 236, 240], 1.25); c.fillRect(-cw * 0.3, -ch * 0.44, lw(g, 0.016), ch * 0.88); c.fillRect(-cw * 0.52, -ch / 2 - H * 0.012, cw * 1.04, Math.max(0.6, H * 0.018));
+    if (g.pose !== 'tip') { c.fillStyle = g.f(ZINC_LO); c.beginPath(); c.ellipse(0, -ch / 2 - H * 0.016, cw * 0.5, H * 0.022, 0, Math.PI, 0); c.fill(); }
     c.restore();
   },
   ice(c, g) {
@@ -92,11 +98,30 @@ export const GEAR = {
   },
   chalk(c, g) { const [x, y] = g.hand; c.fillStyle = g.f([250, 250, 246], 1.2); c.fillRect(x - 0.5, y - 1.2, 1, 1.2); },
   ladder(c, g) { carriedLadder(c, g, 1.95, 0.075); },
-  // (8b2 — THE LONG LADDER CARRIED BY TWO, core/harbor-crew.js#LADDER: the lead's front end on his shoulder, the rest reaching back the
-  // gap (3.55 units ≈ 1.69 body heights) to his mate's shoulder; the mate's end draws nothing more — his hand is up on it)
-  ladderA(c, g) { carriedLadder(c, g, 1.83, 0.075, 0.925); },
-  ladderB() { /* the back end: drawn by the lead's ladderA */ },
-  steps(c, g) { carriedLadder(c, g, 0.95, 0.06); },
+  // (8b2 — THE TALL LADDER + THE STEPLADDER are PROPS from edge to edge (screens/harbor/workers.js draws them from core/harbor-crew.js's
+  // state on the clock — carried, set down, raised, worked, lowered, carried off): the carriers' hands only hold them)
+  ladderA() {}, ladderB() {}, steps() {}, walkup() {},
+  // 8b2 — THE BILLPOSTER on the roof (hatch → ladder → catwalk → back): his paste bucket hooked at his hip, the roll of sheets slung at
+  // his back, the long brush in his hand — up the board while he pastes, upright in his hand the rest of the time (never put away)
+  poster(c, g) {
+    const H = g.H, J = g.J, h = J.hips[J.near];
+    GEAR.bucket(c, { ...g, hand: [g.X(h[0] + 0.035 * g.d), g.Y(h[1] + 0.02)] });
+    const [sx, sy] = shoulderOf(g);
+    c.save(); c.translate(sx - g.d * H * 0.05, sy + H * 0.06); c.rotate(-0.5 * g.d);
+    c.fillStyle = g.f([226, 220, 200]); c.fillRect(-H * 0.1, -H * 0.022, H * 0.2, H * 0.044); c.restore();
+    if (g.pose === 'paste' || g.pose === 'pastehi') { GEAR.brush(c, g); return; }
+    const [x, y] = g.hand, tx = x + g.d * H * 0.03, ty = y - H * 0.42;
+    c.strokeStyle = g.f([120, 96, 64]); c.lineWidth = lw(g, 0.011); c.beginPath(); c.moveTo(x - g.d * H * 0.005, y + H * 0.06); c.lineTo(tx, ty); c.stroke();
+    c.fillStyle = g.f([206, 196, 166]); c.fillRect(tx - H * 0.045, ty - H * 0.03, H * 0.09, H * 0.032);
+  },
+  // (8b2 — THE PAINTERS' KIT off their ladder: the rolled drop cloth on the shoulder, the paint bucket in the other hand)
+  kit(c, g) {
+    const H = g.H, [x, y] = loadOf(g), far = g.J.hands[1 - g.J.near], lift = g.pose === 'pick' || g.pose === 'set';
+    const [bx, by] = lift ? g.hand : [g.X(far[0]), g.Y(far[1])];
+    kitBucket(c, g.f, bx, by, H);
+    const [rx, ry] = lift ? [g.hand[0], g.hand[1] - H * 0.06] : [x, y - H * 0.035];
+    kitRoll(c, g.f, rx, ry, H, g.d);
+  },
   paste(c, g) {
     GEAR.bucket(c, g);
     const H = g.H, [sx, sy] = shoulderOf(g);
@@ -154,6 +179,21 @@ export const GEAR = {
     const h = g.J.hips[g.J.near]; c.strokeStyle = g.f([30, 26, 24]); c.lineWidth = Math.max(0.6, H * 0.015); c.beginPath(); c.moveTo(g.X(h[0] + 0.02 * g.d), g.Y(h[1] + 0.02)); c.lineTo(g.X(h[0] + 0.035 * g.d), g.Y(h[1] - 0.14)); c.stroke();
   },
 };
+/** the painters' paint bucket hanging from a hand (its bail) — also on their cloth + hung on the ladder (workers.js) */
+export function kitBucket(c, f, x, y, H) {
+  c.strokeStyle = f(ZINC_LO); c.lineWidth = lw({ H }, 0.007); c.beginPath(); c.moveTo(x - H * 0.036, y + H * 0.035); c.lineTo(x, y); c.lineTo(x + H * 0.036, y + H * 0.035); c.stroke();
+  c.fillStyle = f([226, 220, 206]); c.beginPath(); c.moveTo(x - H * 0.04, y + H * 0.035); c.lineTo(x + H * 0.04, y + H * 0.035); c.lineTo(x + H * 0.033, y + H * 0.105); c.lineTo(x - H * 0.033, y + H * 0.105); c.closePath(); c.fill();
+  c.fillStyle = f([40, 44, 70]); c.fillRect(x - H * 0.04, y + H * 0.035, H * 0.08, Math.max(0.5, H * 0.018));        // (the enamel's dark blue run down its lip)
+  c.fillStyle = f([196, 150, 60], 1.1); c.fillRect(x - H * 0.02, y + H * 0.06, H * 0.016, H * 0.03);
+}
+/** the rolled drop cloth: a canvas cylinder (its rolled end showing) */
+export function kitRoll(c, f, x, y, H, d = 1) {
+  const l = H * 0.2, r = H * 0.032;
+  c.fillStyle = f([216, 208, 188]); c.beginPath(); c.roundRect(x - l / 2, y - r, l, r * 2, r); c.fill();
+  c.fillStyle = f([176, 166, 146]); c.fillRect(x - l / 2 + r, y + r * 0.35, l - r * 2, Math.max(0.4, r * 0.4));
+  c.strokeStyle = f([150, 120, 80]); c.lineWidth = lw({ H }, 0.006); c.beginPath(); c.moveTo(x - l * 0.22, y - r); c.lineTo(x - l * 0.22, y + r); c.moveTo(x + l * 0.22, y - r); c.lineTo(x + l * 0.22, y + r); c.stroke();
+  c.fillStyle = f([196, 188, 166]); c.beginPath(); c.ellipse(x + d * l / 2, y, r * 0.5, r, 0, 0, TAU); c.fill();
+}
 /** a ladder carried on the shoulder, level, along the way they walk (foreshortened as they turn) */
 function carriedLadder(c, g, len, gap, back = 0.58) {
   const H = g.H, [sx, sy] = shoulderOf(g), ax = Math.max(0.3, Math.abs(g.J.cx)), L2 = len * H * ax;

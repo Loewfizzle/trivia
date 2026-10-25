@@ -138,3 +138,71 @@ test('NO TRAFFIC DURING THE LEGENDARIES: no worker show (its truck) runs across 
   }
   assert.ok(n >= 3, `${n} legendary nights checked`);
 });
+
+// ---------------------------------------------------------------- 8b2 — THE PROPS NEVER POP (the owner: "props arrive and leave in hands")
+test('8b2 — THE TALL LADDER is one object edge to edge: carried in + out level by two IN STEP, never a jump; it stands on its foot + top', async () => {
+  const { visitAt } = await import('../js/core/harbor-people.js');
+  const { jointsOf, lookOf } = await import('../js/screens/harbor/folk.js');
+  const { LADDER } = await import('../js/core/harbor-crew.js');
+  const { L, M } = setup(), P = crewSpots(L, M), key = '2026-10-26', w = plan(key).find(x => x.kind === 'painters');
+  const res = crewSpan(w.t0, w.t1, { L, M, ctx: { off: OFF } }), lad = res.props.find(p => p.kind === 'xladder'), [a, b] = res.visits;
+  assert.ok(lad && res.props.some(p => p.kind === 'ladder' && p.mark), 'the ladder as one prop + the moment it stands');
+  // off the screen's right edge at both ends (the whole ladder: its foot end leads in + trails out)
+  const hw = L.cam.hw(lad.z);
+  for (const t of [lad.t0, lad.t1 - 0.06]) assert.ok(lad.at(t).x > hw, `off the edge at ${t === lad.t0 ? 'the start' : 'the end'} (${lad.at(t).x.toFixed(2)} > ${hw.toFixed(2)})`);
+  // never a jump: its state moves less than a walk's worth in any 1/60 s (the long stand skipped)
+  let prev = null, worst = 0;
+  for (let t = lad.t0; t < lad.t1; t += 1 / 60) {
+    const s = lad.at(t); if (!s) { prev = null; continue; }
+    if (prev) worst = Math.max(worst, Math.abs(s.x - prev.x) / 0.08, Math.abs(s.y - prev.y) / 0.08, Math.abs(s.th - prev.th) / 0.05, Math.abs(s.e - prev.e) / 0.08);
+    prev = s; if (t > lad.t0 + 60 && t < w.t1 - 200) { t = w.t1 - 200; prev = null; }
+  }
+  assert.ok(worst <= 1, `continuous (worst step ${worst.toFixed(2)} of the allowance)`);
+  // standing: its centreline from the foot to the top, the fly run up
+  const s = lad.at((w.t0 + w.t1) / 2), cx = s.x - Math.sin(s.th) * LADDER.w / 2, top = cx + Math.cos(s.th) * (LADDER.len + s.e);
+  assert.ok(Math.abs(cx - P.ladder.foot.x) < 0.01 && Math.abs(top - P.ladder.top.x) < 0.02, 'leaning from its foot to the blade');
+  // the two carriers in step (the same stride phase) + the ladder at the holder's hands
+  const La = lookOf('painter', a.members[0].seed), Lb = lookOf('painter', b.members[0].seed);
+  let n = 0;
+  for (let t = w.t0 + 1; t < w.t1; t += 0.25) {
+    const sa = visitAt(a, t), sb = visitAt(b, t); if (!sa || !sb || sa.pose !== 'walk' || sb.pose !== 'walk' || sb.carry !== 'ladderA') continue;
+    const d = Math.abs(((jointsOf(sa, La, t).p - jointsOf(sb, Lb, t).p) % 1 + 1.5) % 1 - 0.5); assert.ok(d < 1e-6, `in step at ${t}`);
+    assert.ok(Math.abs(lad.at(t).x - (sb.x - LADDER.hA)) < 1e-6, 'carried at the holder\'s hands'); n++;
+    if (t > w.t0 + 30 && t < w.t1 - 200) t = w.t1 - 200;
+  }
+  assert.ok(n > 40, `carried in + out (${n} samples)`);
+  // the painters' kit: off the ladder at the moment the holder's hands have it; the cloth from his set's middle
+  const kit = lad.kit[0], hold = b.legs.find(l => l.k === 'pose' && l.pose === 'pick' && l.carry === 'kit');
+  assert.ok(Math.abs(kit[1] - (hold.t0 + hold.t1) / 2) < 1e-6, 'the kit leaves the ladder at the pick\'s middle');
+  const set = b.legs.find(l => l.k === 'pose' && l.pose === 'set' && l.carry === 'kit'), cloth = res.props.find(p => p.kind === 'cloth');
+  assert.ok(Math.abs(cloth.t0 - (set.t0 + set.t1) / 2) < 1e-6 && cloth.un > 0, 'the drop cloth unrolled from the set\'s middle');
+  // the bulb's repairmen carry the same ladder the same way
+  const fw = forcedWork('bulb', Date.UTC(2026, 9, 22, 18) / 1000 + 400)[0], rb = crewSpan(fw.t0, fw.t1, { L, M, ctx: { off: OFF, force: 'bulb' } });
+  assert.ok(rb.props.some(p => p.kind === 'xladder') && rb.visits.filter(v => v.kind === 'repairman').length >= 2, 'two repairmen + the ladder');
+});
+
+test('8b2 — THE STEPLADDER from the lampman\'s shoulder (never out of the cobbles), clear of the litter can; the can never doubled', () => {
+  const { L, M } = setup(), P = crewSpots(L, M), w0 = Date.UTC(2026, 9, 22, 18) / 1000 + 400;
+  // (every forced slot of a day picks its lamp: the slots' lamps between them)
+  const seen = new Set();
+  for (let k = 0; k < 12; k++) {
+    const fw = forcedWork('lamp', w0 + k * 180)[0], res = crewSpan(fw.t0, fw.t0 + 2, { L, M, ctx: { off: OFF, force: 'lamp' } });
+    const st = res.props.find(p => p.kind === 'xsteps' && Math.abs(p.t0 - fw.t0) < 1); if (!st) continue;
+    let prev = null, worst = 0;
+    for (let t = st.t0; t < st.t1; t += 1 / 60) {
+      const q = st.at(t); if (!q) { prev = null; continue; }
+      if (prev) worst = Math.max(worst, Math.hypot(q.tp.x - prev.tp.x, q.tp.y - prev.tp.y, q.tp.z - prev.tp.z), Math.hypot(q.fb.x - prev.fb.x, q.fb.y - prev.fb.y));
+      prev = q; if (t > st.t0 + 40 && t < st.t1 - 40) { t = st.t1 - 40; prev = null; }
+    }
+    const ft = res.props.find(p => p.kind === 'steps' && p.mark).foot; seen.add(ft.x.toFixed(1));
+    assert.ok(worst < 0.12, `the stepladder moves, never jumps (${worst.toFixed(3)})`);
+    assert.ok(!(Math.abs(P.can.x - ft.x) < 0.7 && Math.abs(P.can.z - ft.z) < 0.7), 'never behind the litter can');
+  }
+  assert.ok(seen.size >= 1, 'a stepladder planned');
+  // the litter can: hidden from the middle of the collector's lift (his hands on it) to the middle of his set
+  const key = '2026-10-26', tr = plan(key).find(x => x.kind === 'trash'), res = crewSpan(tr.t0, tr.t1, { L, M, ctx: { off: OFF } });
+  const v = res.visits.find(x => x.kind === 'trash'), pick = v.legs.find(l => l.pose === 'pick'), held = tracesAt;
+  const w = { L, M, ctx: { off: OFF } }, cache = new Map();
+  assert.equal(held(pick.t0 + 0.7, w, cache).canHeld, false, 'still standing as he squats');
+  assert.equal(held(pick.t0 + 0.85, w, cache).canHeld, true, 'in his hands from the lift\'s middle');
+});

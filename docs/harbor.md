@@ -1502,6 +1502,22 @@ The seed of Part 13's CITY CONTROL: every `&force=` preview, the party show's sc
 sheet on the owner's phone — on that phone only (JUST ME) or on every phone on `?city=2` at once (EVERYONE). City 1.0 never loads
 or listens to any of it (the E2E checks: no `remote.js` request, no pill, no listener without the flag).
 
+**C2 (Oct 25) — REWORKED** (the owner: "very busy and unorganized"; the old sheet's notes below still hold for the registry, the sync
+and the server): **FULL SCREEN** (inside the safe areas; a centred 820 px sheet on desktop). Pinned at the top: the title + a coloured
+line — **JUST ME — ONLY THIS PHONE** (green) / **EVERYONE — EVERY PHONE ON CITY 2** (pink; the mode's colour also on the sheet's edge,
+the switched-on rows, the countdown, the pill), the mode switch, the status + CLEAR ALL, a **SEARCH** box (every row's label, hint,
+keywords, group + section; each typed word must start a word: "f22", "police", "milk truck"; 16 px, a 44 pt ✕) and **START: NOW / 3 S
+/ 5 S** (remembered: `nd:hr-delay`, default 3). **THE DELAY:** in JUST ME taps QUEUE while the sheet is open (a yellow QUEUED line);
+closing it starts a small **3-2-1 chip** in the pill's row ("3 JUST ME · AURORA · RAIN"), then the whole queued state starts at
+once; reopening during the countdown CANCELS it (the queue stays — closing again restarts it). Instruments start at once (CLEAR
+ALL, the pill's ✕, READOUT / AUDIO PANEL, SKIP SONG, the ▶ sound previews). In EVERYONE, SEND passes `delay` → the server sets
+`startAt = now + delay` and every phone counts down + starts together (closing without sending keeps the draft: "NOT SENT — DRAFT
+KEPT"). **RECENT:** the last 6 rows fired (`nd:hr-recent`), one tap fires again (EVERYONE: adds to the draft). **NINE SECTIONS**
+(`R.SECTIONS` over the unchanged areas `CATS` + `cat`; `AREA_SECTION`, per-event `sec`): SKY · LEGENDARY · PEOPLE + WORKERS ·
+WILDLIFE · HARBOR · WEATHER · TIME · LIGHTS + MUSIC · TOOLS; 2-up 52 pt rows (4-up on desktop), 3-up 46 pt for short options. Hooks:
+`remote().search(q)`, `.delay(v)`, `.previewCountdown()`, `openCats` takes a section id or an old area id; `setMine` still applies at
+once (the other groups' tests). Shots: `--scenes panel-legend,panel-lights` (+ `--qs panel=1`).
+
 ### Who sees what
 - **Everyone on `?city=2`:** `title.js` imports `screens/harbor/remote.js` 1.5 s after the city starts (never in the title's first
   second). It listens to `city2/live` once Firebase is up (signed-in read; only the server writes it) and plays it.
@@ -1554,7 +1570,8 @@ re-laid; the rainbow restarted), and the look refreshes at once. `params` null =
 - **Weather:** the live weather stays unless the state sets `wx` or moves the clock (then the preview's seeded weather, like a link).
 
 ### EVERYONE: `city2/live` + `/api/admin`
-- `POST /api/admin { action: 'cityLive', state, mins? }` (ADMIN_PIDS only): `cleanRemote` (any drop → 400 `bad_state`; empty → 400
+- `POST /api/admin { action: 'cityLive', state, mins?, delay? }` (ADMIN_PIDS only; C2: `delay` 0–10 whole s (the panel sends 0, 3 or 5) → `startAt` that far ahead, `until`
+  counted from it; anything else → 400 `bad_delay`): `cleanRemote` (any drop → 400 `bad_state`; empty → 400
   `empty_state`; `mins` 1–240, default 30) → writes **`city2/live` = `{ v: 1, kind: 'preview', state, params, label, startAt (server
   ms), until, by (pid) }`** + an audit entry (`cityLive`, the label, the minutes). `{ action: 'cityClear' }` removes it (+ audit).
 - Every phone on `?city=2`: JUST ME (if any) wins; else the node while `until` is ahead (checked every 4 s → the real city on its own);
@@ -5659,6 +5676,145 @@ speakeasy's power hook dark under it; with PARTY ON the show + the sky beams off
   after; then once more with the party on `&force=tr3b,party`; the panel looping it back to back.
 - **THE F-22**: the chase `&when=2026-10-22T22:00&force=tr3b&lgs=36` · the air show by day `&when=2026-10-22T13:00&force=jets`.
 - **NO TRAFFIC**: `&when=2026-10-22T22:00&force=tr3b` — no car, bus or cab enters while it crosses; the street under the dock still.
+
+## C2 — CLEANUP 2 + THE OWNER'S REVIEW FIXES (Oct 25 2026; plan.md "OWNER'S NOTES — OCT 25 (after the TR-3B pass)" + the 8b2 REVIEW in "(after 8b2)"; behind `?city=2`)
+
+### 1. THE TR-3B's JETS + THE POWER COMING BACK (`core/harbor-legend.js`, `legends.js`, `scene.js`, `sounds.js`, `core/harbor-witness.js`)
+- **THE GAP → ~2 s** (`CHASE.t0` 34 → 29.2): on a phone the craft's tail clears the edge ~27.5 s in, the lead's nose shows ~29.5 s
+  (a desktop's wider screen: ~4.5 s). **The F-22s 25 % faster** (`CHASE.dur` 3.4 → 2.72) **+ 15 % smaller** (`chaseLen` 0.235 W /
+  64–140 pt → 0.2 W / 54–119). Everything after the jets is measured from **`JETS_GONE`** (= t0 + dur × uOff, 33.1 s): the power back
+  (`BLACK.on0` = JETS_GONE + 1.3), the music's volume + spin-up, the catch-up, the restore hum, the people's return (`WITNESS.tr3b.back`),
+  the run's end (`TR3B_LEN` 50 → 44) and the traffic's hold (39.9 s) — the same shape, ~5.8 s sooner. The chase now: `&lgs=30.4`.
+- **THE "WHOLE SCREEN" FLICKER** (found with a 44 fps screencast + per-band luminance — `shots.mjs --cast`): the band holding the
+  NEON sign jumped 18 → 33–49 → 18 several times a second as the power came back — the sign snapping between dead (0.07) and ~85 %
+  with its halo lighting half the sky; the promenade's band did the same (25 ⇄ 66: the lamps' pools). `blackAt` now gives the BIG
+  lights (`depth` 'sign' + 'near') a SHALLOW stutter (dim flicks ≤ ⅓) then a smooth rise over 1.3 s, never a drop-out after; the
+  skyline's small lights keep the full stutter. The sky, the moon + the stars never change.
+- **THE BUILDINGS FLICKERING BEHIND THE JETS**: `drainCity` laid the FAR skyline's dark strips AFTER the near rows were drawn — in
+  the dying + the power coming back (it began 38.8 s in, while the jets were still on screen) the far facades covered the near
+  buildings + the lighthouse in flickering strips. Each depth's strips now go right after its own layer (`drainCity(c, fade, 'far')`
+  after the far neon). With the jets earlier, the power-back no longer overlaps them at all.
+
+### 2. THE 8b2 REVIEW
+- **THE RAID's SPOTLIGHT** (`core/harbor-raid.js#SPOT`, `spotTargets`, `spotTour`, `spotOn`; `raid.js#spotPath`): the targets are the
+  facade's own openings in its units (the side door, the shop door, the shop window's two halves, the six upper windows — only those
+  wholly ON SCREEN: at 402 the left column is cut); a tour seeded by the raid's key (every phone the same, every raid different):
+  each stop LINGERS (1.4–2.5 s, a slow searching drift inside the opening) or GLANCES (0.5–0.95 s), then SWEEPS to a neighbour (eased,
+  a gentle arc) or DARTS across the front (fast off the mark, settling — never faster than ~32 units / s). Tested: it rests only
+  inside an opening, never the same twice in a row, no frame jumps more than 0.75 units.
+- **THE OFFICER OUT FRONT** (`RAID.officer`): out of the stopped car he strides (1.9 u/s) over the kerb, round the bench's baked
+  corner, onto the promenade IN FRONT of the facade (`stand` x 1.2, z 42.6 — the front's plane is z 44), turns to the windows and
+  shines from his hand; back the same way. (His map is the people's without the road + kerb blocks: a cop doesn't use the crosswalk.)
+- **THE RAID ~10 s SHORTER** (70 → ~59 s from the first car): the stopper waited ~17 s for its green every time (the convoy's phase
+  was always the same) — his sweep now STRETCHES 5–11 s so he's back as the road turns green; the shift picks the start with the
+  least wait (+ 0.3 × each second later); the lights back sooner (`back.delay` 4.5 → 3, `full` 11 → 9). A forced preview arrives
+  ~10–50 s after the force (median ~28; it was ~21) — the convoy still waits to cross on green.
+- **ROSIE GLIDES** (`boats.js#pairOf`, `mixOf`, `drawOne`): her sprite was re-rendered ~6×/s at a rounded heading — between renders it
+  held still ~5 frames, then jumped (0.56–1.1 pt at her far end, 2–3 device px at dpr 3; a screencast showed a spike every ~9 frames).
+  Now the two cached headings either side of the true one are BLENDED every frame ('lighter' in a scratch per layer, shared with the
+  reflection), each step still one render; her wheel, lights, the lantern + the noon steam on her true heading. **Her wake while
+  turning**: the foam from the stern's speed (its curved track as she swings in place) + `churn()` boiling at her wheel. Memory in a
+  turn ~0.65 MB (released 2 s after). **OPEN WATER** (`core/harbor-boats.js#openAt`): the tug's idle + swings, the sloops' tacks and
+  the fishing tug's dawn swing never behind the lighthouse, the cottage or docked Rosie (on a phone: just right of the cottage — the
+  tug idles bow-on there; the fishing tug backs out 80 s first); the timetables unchanged. On a phone that open water is one ~23 pt
+  strip, so **the second sloop stays out of the harbor** there (both sail on a wide screen). Tests: `tests/harbor-boats.test.mjs`.
+- **THE PROPS NEVER POP** (`core/harbor-crew.js#LADDER`, `tallLadder`, `ladderAt`, `stepsAt`, `KIT`; `workers.js#extLadder`, `steps`;
+  `folk.js`'s new poses walkback, lower, push / catch, haul, upend / lay, spread / fold, unload): the cause was a 3.8-unit ladder
+  drawn on the man vanishing at the raise and a 10.5-unit prop appearing 0.55 s later, lying the wrong way. Now ONE two-section
+  extension ladder from edge to edge, its state a function of the clock built from the same numbers as the two men's walks: carried
+  in LEVEL on their far shoulders, IN STEP (their stride phase from their street position — tested at 0), set down together, the
+  holder foots it, the climber walks it up hand over hand, hauls the fly up its rope, tips it onto the blade; the exact reverse +
+  carried off. The bulb repairman is two men too. The lampman's stepladder: off the shoulder, stood up, spread, climbed, folded,
+  carried away (now on the post's clear side, not hidden by the can). The painters' bucket + drop cloth ride on the ladder, the cloth
+  unrolls. The billposter's bucket hooked at his hip + the brush always in hand; the washers' squeegee in hand + their platform
+  swung out over the parapet; the trash can lifted at its real size (never two cans); the barber fetches his broom; the newsboy's
+  stand set down folded; loads come OFF the truck beds into the hands ('unload'). The ladder's end coming down + the stepladder
+  clank too (`people.js`). Preview: `tests/integration/folk-preview.html?only=carry,raise&scale=3`.
+- **THE CAB's DOOR** (`core/harbor-cabs.js#CAB.door`, `cabDoorLeg`, `doorOf`; `vehicles.js#drawDoorOpen`, `doorsOf`; `people.js`): the
+  kerb-side door swings out on its front hinge (foreshortened, the free edge a little lower, its glass, the checker band, the
+  handle, the lit edge), the doorway dark behind (the seat's red leather, the far window, a warm courtesy lamp at night); the fares
+  step DOWN from the cab's floor through it (a 'door' leg like the bus's — drawn clipped into the doorway, between the doorway + the
+  door) or up + in; it shuts after the last.
+
+### 3. THE PREVIEW PANEL + THE TRASH CAN
+- **THE PANEL** — see "THE PREVIEW PANEL" → "C2 (Oct 25) — REWORKED" above (full screen, the START delay + the 3-2-1 chip, search,
+  RECENT, nine sections, JUST ME green / EVERYONE pink; `/api/admin cityLive` takes `delay`; `tests/harbor-remote.test.mjs`).
+- **THE TRASH CAN** (`core/harbor-promenade.js#CAN`, `fauna.js#drawTrashCan`): it read as a fire hydrant (its ear handles = nozzles,
+  the dome = the bonnet). Now the classic 1920s galvanized can a size up (h 0.98 → 1.24, r 0.3 → 0.4): vertical corrugations, two
+  raised hoops + the foot's, a BRIGHT rolled rim, flat drop handles under it, a shallow lid with its bail handle, crumpled paper +
+  newsprint poking out under the lid; against the front-left lamppost (dx 1.75 → 0.8) held by an iron strap + clamp. Day + night.
+
+### 4. CLEANUP 2
+- **THE DEPENDENCY UPGRADES — branch `deps/firebase-upgrade` (b2487bf), NOT merged (Ben decides)**: firebase-admin `^13.4.0` →
+  `^14.5.0` (`/api`; it needs Node ≥ 22 → `engines` `>=22`); the browser SDK 11.10.0 → **13.0.0** (the newest ≥ 2 weeks old; 13.1.0 is
+  Oct 21) in `js/firebase.js`'s `SDK`; the tests' `firebase` 13.0.0 + `@firebase/rules-unit-testing` ^6.0.0 (it needs Node 24 → the
+  tests workflow's integration job on Node 24). No app code changed (the majors' breaking changes are in AI Logic / the removed
+  namespaces / Instance ID — none used here). CI on the branch (run 40226828173): unit ✓, rules 45/45 + `/api` 20/20 + smoke 14/14 ✓;
+  the Vercel preview built. **Verdict: safe to merge** — check Vercel's functions run Node 22+ (the preview's function logs / the
+  project's settings). Not proven: the production `cert()` path with the real key, WebKit.
+- **THE HARNESS HARDENED** (`e2e-harbor.mjs`): Chrome's launch 90 s on CI + ONE retry of the launch only (the `wild` job's "waiting
+  for the WS endpoint URL"); a Firebase NETWORK error (auth/network-request-failed, the RTDB websocket) is a `[net]` WARNING outside the
+  `panel` group (the `street` job's emulator dropping after 75/75 passed; on this laptop every run's console noise) — a real need of
+  Firebase fails its own hard check.
+- **Dead flags**: the always-true `STRINGS_ON` (strings.js) + `CART_SHOWN` (harbor-promenade.js) gone with their stale comments;
+  review-3's H4 / H5 / H6 were already done. **`shots.mjs --cast <ms>`**: a CDP screencast — every painted frame (the true frame
+  burst; `--js` can await a condition first, e.g. the raid's phase).
+
+### Decisions made (each the most reasonable reading; easy to reverse)
+- The jets' gap is tuned for the phone (~2 s at 402); a desktop's wider sky shows ~4.5 s.
+- The power-back's shallow stutter only for the BIG lights (the sign + the promenade); the skyline keeps its full stutter.
+- The officer stands at x 1.2, z 42.6 — in front of the facade's plane, right of the bench, facing the windows (the nearest spot
+  from which the front can be seen; ~7 s each way at a cop's stride).
+- The raid's shortening comes from the officer's flexible sweep (5–11 s) + the least-wait start, not from rushing the convoy.
+- The spotlight's tour opens on a door (the side door most raids — what they're after).
+- On a phone the second sloop stays out of the harbor (one strip of open water); a wide screen keeps both.
+- The bulb repairman is two men now (one man can't raise a ladder that tall).
+- The cab's door is its one side door, front-hinged; a fare in the doorway is drawn clipped into it (the bus's way).
+- The trash can is the galvanized can (not a wire basket), strapped to the post.
+- The panel: reopening during a JUST ME countdown CANCELS it (the queue kept); an EVERYONE countdown was sent, so it isn't cancelled.
+- The Firebase SDK stops at 13.0.0 (13.1.0 is under two weeks old).
+
+### Performance (ONE A-B-B-A round, `title-perf.mjs --ab` against 71e6cdf — the commit before the pass — 402×874, 2× CPU, tiers 2 + 0, 2 + 2 windows of 5 s, the laptop without a GPU, with an agent's browser running beside it)
+| scene | t2 work ms (A → B) | t0 work ms (A → B) | verdict |
+| --- | --- | --- | --- |
+| the TR-3B, the city dark (`tr3b-dark`) | 4.82 → 3.64 (±1.29) | 3.47 → 3.32 (±0.59) | same / same |
+| the raid (`raid`) | 20.74 → 13.43 (±8.38) | 5.36 → 5.77 (±2.61) | same / same |
+| Rosie's turn (`r-turn`) | 9.44 → 8.0 (±4.77) | 22.03 → 11.73 (±18.74) | same / same |
+- Rosie's blend measured on one page, the old path vs the new interleaved: at night 10.65 → 10.34 ms (same), by day 6.56 → 7.25
+  (+0.7 on this laptop's software canvas; a GPU blit on the iPhone).
+
+### Known issues (C2)
+- **The EVERYONE half of the panel group** (+ `server.test.mjs`'s new `delay` checks) needs the emulators — not run on this laptop;
+  the quick `tests` workflow runs `/api` on push, the `[harbor]` run the panel group.
+- **The ladder's hands** are placed a fixed distance ahead of the body, not from the figure's joints — up to ~3 px off the rails
+  during the hoist + the walk-up; the paint bucket + the cloth roll are 2–3 px at 402 (a pale blob); the washers' platform keeps a
+  1 s fade crossing the parapet line (the roof's convention); the billposter's long brush re-grips (upright ⇄ up the board).
+- **On a 390 phone the far tug's stern** touches the screen's edge (≤ 2 pt) for a moment mid-swing.
+- **Rosie's churn is subtle at night** (the night foam is dimmer everywhere, by design).
+- **A forced raid** arrives up to ~50 s after the preview starts (median ~28 s) — the convoy waits for the green crossing.
+- **The panel's looping previews** (the workers, the wildlife, the raid every 2½ min) run on the city's clock: after the countdown
+  the next turn may still be a while away (passing `at` to their planners is a follow-up).
+- **The cab** still stands half behind the crabapple at 402 (unchanged spot — the workers' truck stop).
+
+### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
+- **THE TR-3B + THE JETS**: `&when=2026-10-22T22:00&force=tr3b` (the whole run: the jets ~2 s after it leaves, the power back without
+  the flashes) · the chase held `&lgs=30.4` · the power coming back held `&lgs=35`.
+- **THE RAID**: `&when=2026-10-22T22:00&force=raid` — let the dock rest (the front car's spotlight on the windows + doors; the officer
+  walking out onto the promenade); with the panel: LEGENDARY → THE RAID.
+- **ROSIE TURNING**: `&when=2026-10-26T11:38:30` (coming home, her turn + the churn) · on a loop `&force=rosie-turn`.
+- **THE PAINTERS' LADDER**: `&when=2026-10-26T13:00` (carried in by two, raised onto the blade) · the rig up close
+  `tests/integration/folk-preview.html?only=carry,raise&scale=3`.
+- **THE CAB**: a drop `&when=2026-10-22T20:44:50` (the door opens, two fares step down) · a pick-up `&when=2026-10-22T21:00:50`.
+- **THE TRASH CAN**: by day `&when=2026-10-26T14:00` · by night `&when=2026-10-26T22:30` (by the front-left lamppost).
+- **THE NEW PANEL**: tap the TEST pill (your admin profile) — try the search ("raid", "f22"), START 3 S, then close it.
+
+### Handoff → Part 9 (seasons + weather)
+- **The sounds** are waiting in ~/Downloads/city-sfx (plan.md "OWNER'S NOTES — OCT 25 (after the TR-3B pass)"): Part 9 imports the
+  WEATHER ones only (listen-check; reject words / melody / modern; the "-lossless" originals stay out of the repo).
+- The raid's wash already reads `wet`; the cabs could come more often in the rain (`CAB.p` × the rain); the ladder + the stepladder
+  are props the snow shovelers / leaf rakers can reuse (`core/harbor-crew.js#ladderAt`'s pattern: a prop's state as one function of
+  the clock from the crew's own walks); the trash can takes snow on its lid; Rosie's churn + the boats' wakes take the rain's chop.
+- The panel's new sections: Part 9's rows go in WEATHER (`AREA_SECTION`), their search words in each row's keywords.
 
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against

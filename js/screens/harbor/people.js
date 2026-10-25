@@ -332,7 +332,7 @@ export function createPeople() {
       const id = m.vid, pz = m.s.pose, prev = wk.pose.get(id), pan = panOf(m.s.x), carry = m.s.carry || null;
       seen.add(id);
       if (prev && prev.pose !== pz) {
-        if (pz === 'garden' || pz === 'set' || pz === 'pick' || pz === 'raise') {
+        if (pz === 'garden' || pz === 'set' || pz === 'pick' || pz === 'raise' || pz === 'lower' || pz === 'upend' || pz === 'lay') {   // (C2: the ladder's end coming down + the stepladder stood up / laid down clank too)
           const cs = prev.carry || carry, slot = m.kind === 'milk' || m.kind === 'barber' ? 'milk-bottles' : m.kind === 'trash' ? 'trash-can-lid' : m.kind === 'newsdrop' || m.kind === 'newsboy' ? 'newspaper-rustle' : cs === 'crate' ? 'crates-clink' : cs === 'ladder' || cs === 'ladderA' || cs === 'steps' ? 'ladder-clank' : null;
           if (slot) snd.play(slot, { pan, gain: 0.55 });
         } else if (pz === 'cart' && m.kind === 'buyer') snd.play('newspaper-rustle', { pan, gain: 0.45 });

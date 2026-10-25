@@ -15,6 +15,8 @@ import { rgb, mix } from './shapes.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { bladeGeo, paintBlade, BLADE, bladeLetters } from './speakeasy-blade.js';
 import { speakGeo, mats, wallMap } from './speakeasy-geo.js';
+import { LADDER, KIT } from '../../core/harbor-crew.js';
+import { kitBucket, kitRoll } from './gear.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -27,7 +29,8 @@ function litAt(env, col, x, z, k = 1) {
   if (dark > 0.01) { c = mix(c, NIGHT, 0.84 * dark); const lt = env.lightAt ? env.lightAt(x, z) : null; if (lt) { const q = Math.min(1, 160 / Math.max(1, ...lt)); c = c.map((v, i) => v + lt[i] * q * 0.14 * k * clamp01(env.dark || 0)); } }
   return c.map(v => Math.min(255, v));
 }
-const WOOD = [150, 118, 78], STEEL = [70, 72, 80], ZINC = [156, 160, 166];
+const WOOD = [150, 118, 78], WOOD_D = [104, 80, 52], STEEL = [70, 72, 80], ZINC = [156, 160, 166];
+const sm = u => { const x = clamp01(u); return x * x * (3 - 2 * x); };
 
 /** the props as depth ITEMS for a pass: crew = folkAt(t).crew, pass 'near' | 'far' → [{ z, draw(c, env) }] (z: the depth people.js sorts
  *  by; ground marks get a huge z so they draw first, under everyone) */
@@ -35,17 +38,22 @@ export function propItems(L, crew, pass, t) {
   if (!crew || pass !== 'near') return [];
   const out = [], cam = L.cam, s = L.speakeasy, tr = crew.traces || {};
   for (const p of crew.props || []) {
-    if (p.kind === 'ladder') out.push({ z: p.foot.z, draw: (c, env) => tallLadder(c, cam, p, env, t) });
+    if (p.mark) continue;                                   // (8b2: 'ladder' / 'steps' — only the moment it stands: the clank, the E2E)
+    // 8b2 — THE LADDERS, ONE OBJECT FROM EDGE TO EDGE (core/harbor-crew.js#tallLadder / PLAN.lamp: their state on the clock)
+    if (p.kind === 'xladder') { const st = p.at(t); if (st) out.push({ z: st.z, draw: (c, env) => extLadder(c, cam, p, st, env, t) }); }
+    else if (p.kind === 'xsteps') { const st = p.at(t); if (st) out.push({ z: st.z + 0.02, draw: (c, env) => steps(c, cam, p, st, env) }); }
+    else if (p.kind === 'kit') out.push({ z: p.z, draw: (c, env) => kitDown(c, cam, p, env) });
+    else if (p.kind === 'ladder') out.push({ z: p.foot.z, draw: (c, env) => tallLadder(c, cam, p, env, t) });
     else if (p.kind === 'steps') out.push({ z: p.foot.z + 0.05, draw: (c, env) => stepLadder(c, cam, p, env, t) });
-    else if (p.kind === 'stand') out.push({ z: p.z, draw: (c, env) => newsstand(c, cam, p, env, t) });
-    else if (p.kind === 'cloth') out.push({ z: 1e3, draw: (c, env) => cloth(c, cam, p, env, t) });
+    else if (p.kind === 'stand') { out.push({ z: p.z, draw: (c, env) => newsstand(c, cam, p, env, t) }); const b = p.bundles; if (b && t >= b.untie && t < p.fold) { const k = 1 - clamp01((t - b.untie) / Math.max(1, p.fold - 6 - b.untie)); if (k > 0.02) out.push({ z: b.z, draw: (c, env) => bundles(c, cam, b, env, k) }); } }
+    else if (p.kind === 'cloth') { out.push({ z: 1e3, draw: (c, env) => cloth(c, cam, p, env, t) }); if (p.un) out.push({ z: p.z - 0.15, draw: (c, env) => clothBucket(c, cam, p, env) }); }
     else if (p.kind === 'wet') out.push({ z: 1e3 + 1, draw: (c, env) => wetStreak(c, cam, p, env, t) });
     else if (p.kind === 'hatch') { out.push({ z: 1e3 + 2, draw: (c, env) => hatchHole(c, cam, p, env, t) }, { z: p.z + 0.4, draw: (c, env) => hatchLeaves(c, cam, p, env, t) }); }
     else if (p.kind === 'platform') { out.push({ z: p.z + 0.25, draw: (c, env) => platform(c, cam, s, p, env, t, 'back') }, { z: p.z - 0.4, draw: (c, env) => platform(c, cam, s, p, env, t, 'front') }); }
   }
   // THE TRACES (core/harbor-crew.js#tracesAt): the milk on the step, the bundles at the vendor spot
   if (tr.milk && crew.spots) { const st = crew.spots.step; out.push({ z: st.z, draw: (c, env) => bottles(c, cam, st, env) }); }
-  if (tr.bundles && crew.spots) { const v = crew.spots.vendor; out.push({ z: v.z + 0.9, draw: (c, env) => bundles(c, cam, { x: v.x - 0.9, z: v.z + 0.9 }, env) }); }
+  if (tr.bundles && crew.spots) { const v = crew.spots.bundles || { x: crew.spots.vendor.x - 0.9, z: crew.spots.vendor.z + 0.9 }; out.push({ z: v.z, draw: (c, env) => bundles(c, cam, v, env) }); }
   return out;
 }
 
@@ -73,6 +81,88 @@ function tallLadder(c, cam, p, env, t) {
   c.fillStyle = 'rgba(8,6,16,0.35)'; c.beginPath(); c.ellipse(f[0], f[1], w * 1.6, Math.max(0.6, 0.07 * sp), 0, 0, TAU); c.fill();
   c.restore();
 }
+// ---- 8b2 — THE EXTENSION LADDER (the painters', the repairmen's): ONE object from the edge of the screen to the edge — carried on edge on
+// two shoulders, set down, its top walked up to upright, the FLY run up its rope, tipped onto the blade; back down, carried off. st: its
+// state (core/harbor-crew.js#ladderAt: x, y — the lower rail's foot (the pivot), th, e — the fly run up, z). Bold rails that read at 402
+// pt (a dark edge + a lit edge), rungs at the pitch the climber steps, the fly a little narrower + in front, its rope; the painters'
+// kit hung on it while it travels.
+function railPair(c, A0, A1, B0, B1, lw, col, lo, hi) {
+  c.lineCap = 'butt';
+  c.strokeStyle = lo; c.lineWidth = lw * 1.5; c.beginPath(); c.moveTo(A0[0], A0[1] + lw * 0.35); c.lineTo(A1[0], A1[1] + lw * 0.35); c.moveTo(B0[0], B0[1] + lw * 0.35); c.lineTo(B1[0], B1[1] + lw * 0.35); c.stroke();
+  c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); c.moveTo(...A0); c.lineTo(...A1); c.moveTo(...B0); c.lineTo(...B1); c.stroke();
+  c.strokeStyle = hi; c.lineWidth = Math.max(0.3, lw * 0.35); c.beginPath(); c.moveTo(A0[0], A0[1] - lw * 0.3); c.lineTo(A1[0], A1[1] - lw * 0.3); c.moveTo(B0[0], B0[1] - lw * 0.3); c.lineTo(B1[0], B1[1] - lw * 0.3); c.stroke();
+}
+function extLadder(c, cam, p, st, env, t) {
+  const W = p.w, ct = Math.cos(st.th), sn = Math.sin(st.th), nx = -sn, ny = ct, z = st.z, len = p.len;
+  const cx = st.x + nx * W / 2, cy = st.y + ny * W / 2;                       // (the centreline's foot)
+  const P3 = (d, o, dz = 0) => project(cam, cx + ct * d + nx * o, cy + sn * d + ny * o, z + dz), sp = cam.F / z;
+  const lit = (col, k) => rgb(litAt(env, col, cx, z, k)), col = lit(WOOD), lo = lit(WOOD.map(v => v * 0.5)), hi = lit([222, 196, 150], 1.2);
+  const lw = Math.max(0.75, 0.07 * sp), rw = Math.max(0.5, 0.045 * sp), T = env.T || {};
+  c.save();
+  // the shadows: lying, a soft band along the cobbles under it; standing, its contact + (by day) the cast line beside it
+  const day = (T.day || 0) + (T.gold || 0) > 0.2, lowY = Math.min(st.y, cy + sn * len);
+  if (st.th < 0.5 && st.y < 0.6) { const a = project(cam, cx, 0, z), b = project(cam, cx + ct * len, 0, z); c.strokeStyle = `rgba(8,6,16,${(0.28 * (1 - st.y / 0.6)).toFixed(3)})`; c.lineWidth = Math.max(1, 0.16 * sp); c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); }
+  else if (lowY < 0.3) { const f0 = project(cam, cx, 0, z); c.fillStyle = 'rgba(8,6,16,0.35)'; c.beginPath(); c.ellipse(f0[0], f0[1], W * 0.9 * sp, Math.max(0.6, 0.07 * sp), 0, 0, TAU); c.fill(); if (day && st.th > 1.2) { const tp = P3(len + st.e, 0); c.strokeStyle = 'rgba(20,14,30,0.2)'; c.lineWidth = Math.max(1, 0.12 * sp); c.beginPath(); c.moveTo(f0[0] + 0.25 * sp, f0[1]); c.lineTo(tp[0] + 0.5 * sp, tp[1] + 0.4 * sp); c.stroke(); } }
+  // the BASE section: its rails + rungs
+  c.strokeStyle = col; c.lineWidth = rw; c.beginPath();
+  for (let d = 0.28; d < len - 0.08; d += LADDER.pitch) { const a = P3(d, -W / 2), b = P3(d, W / 2); c.moveTo(...a); c.lineTo(...b); }
+  c.stroke();
+  railPair(c, P3(0, -W / 2), P3(len, -W / 2), P3(0, W / 2), P3(len, W / 2), lw, col, lo, hi);
+  // the FLY (nested in front of it; run up its rope): its rails + rungs, the pulley at the base's top, the rope
+  const wf = p.wf, e = st.e, dz = -0.05;
+  c.strokeStyle = col; c.lineWidth = rw; c.beginPath();
+  for (let d = 0.12; d < len - 0.1; d += LADDER.pitch) { const a = P3(e + d, -wf / 2, dz), b = P3(e + d, wf / 2, dz); c.moveTo(...a); c.lineTo(...b); }
+  c.stroke();
+  railPair(c, P3(e, -wf / 2, dz), P3(e + len, -wf / 2, dz), P3(e, wf / 2, dz), P3(e + len, wf / 2, dz), lw * 0.9, col, lo, hi);
+  const rope = rgb(litAt(env, [206, 192, 156], cx, z, 1.1)), pul = P3(len - 0.12, 0, dz * 2), rb = P3(e + 0.15, 0.02, dz * 2), rf = P3(Math.min(len - 0.3, 1.1), -0.05, dz * 2);
+  c.strokeStyle = rope; c.lineWidth = Math.max(0.4, 0.022 * sp); c.beginPath(); c.moveTo(...rb); c.lineTo(...pul); c.lineTo(...rf); c.stroke();
+  c.fillStyle = rgb(litAt(env, STEEL, cx, z)); c.beginPath(); c.arc(pul[0], pul[1], Math.max(0.5, 0.06 * sp), 0, TAU); c.fill();
+  // the painters' KIT hung on it as it travels (the bucket from the lower rail — down on the cobbles once the ladder is; the roll tied in)
+  if (p.kit && p.kit.some(([a, b]) => t >= a && t < b)) {
+    const H = 2.1 * sp, f = (cc, k) => rgb(litAt(env, cc, cx, z, k)), dK = p.kd;
+    const rail = [cx + ct * dK + nx * -W / 2, cy + sn * dK + ny * -W / 2], by = Math.max(rail[1], 0.105 * 2.1 + 0.005), [bx, byS] = project(cam, rail[0], by, z - 0.08);
+    if (by > rail[1] + 0.01) { const [hx, hy] = project(cam, rail[0], rail[1], z - 0.08); c.strokeStyle = f(ZINC.map(v => v * 0.6)); c.lineWidth = Math.max(0.35, 0.015 * sp); c.beginPath(); c.moveTo(hx, hy); c.lineTo(bx, byS); c.stroke(); }
+    kitBucket(c, f, bx, byS, H);
+    const [rx, ry] = P3(dK + 0.85, 0, -0.03); kitRoll(c, f, rx, ry, H, 1);
+  }
+  c.restore();
+}
+// ---- 8b2 — THE STEPLADDER as ONE object (the lampman's: core/harbor-crew.js#PLAN.lamp): st = { fb (the front legs' foot), bb (the back
+// legs'), tp (the top), n (the front legs' width across), z } — carried on edge on the shoulder, swung down, stood up, spread, folded
+function steps(c, cam, p, st, env) {
+  const z = st.z, sp = cam.F / z, ws = p.ws, n = st.n, P = (q, o = 0, dz = 0) => project(cam, q.x + n[0] * o, q.y + n[1] * o, q.z + n[2] * o + dz);
+  const lit = (col, k) => rgb(litAt(env, col, st.tp.x, z, k)), col = lit(WOOD), lo = lit(WOOD.map(v => v * 0.5)), hi = lit([222, 196, 150], 1.2), dark = lit(WOOD_D);
+  const lw = Math.max(0.7, 0.065 * sp), L = Math.hypot(st.tp.x - st.fb.x, st.tp.y - st.fb.y, st.tp.z - st.fb.z) || 1;
+  c.save(); c.lineCap = 'round';
+  const spread = Math.hypot(st.bb.x - st.fb.x, st.bb.z - st.fb.z);
+  // its contact shadow (standing on the cobbles)
+  if (st.fb.y < 0.05) { const a = project(cam, (st.fb.x + st.bb.x) / 2, 0, z); c.fillStyle = 'rgba(8,6,16,0.32)'; c.beginPath(); c.ellipse(a[0], a[1], (spread / 2 + 0.25) * sp, Math.max(0.6, 0.06 * sp), 0, 0, TAU); c.fill(); }
+  // the back legs (a plain frame, behind) + the spreader bars
+  const bb0 = P(st.bb, 0, 0.06), tp0 = P(st.tp, 0, 0.06);
+  c.strokeStyle = dark; c.lineWidth = lw; c.beginPath(); c.moveTo(...bb0); c.lineTo(...tp0); c.stroke();
+  if (spread > 0.05) { const u = 0.42, a = project(cam, st.fb.x + (st.tp.x - st.fb.x) * u, st.fb.y + (st.tp.y - st.fb.y) * u, z), b = project(cam, st.bb.x + (st.tp.x - st.bb.x) * u, st.bb.y + (st.tp.y - st.bb.y) * u, z); c.strokeStyle = lit(STEEL); c.lineWidth = Math.max(0.4, 0.025 * sp); c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); }
+  // the front legs: two rails + the flat treads between them
+  c.strokeStyle = col; c.lineWidth = Math.max(0.5, 0.05 * sp); c.beginPath();
+  for (let u = 0.2; u < 0.92; u += 0.23) { const q = { x: st.fb.x + (st.tp.x - st.fb.x) * u, y: st.fb.y + (st.tp.y - st.fb.y) * u, z: st.fb.z + (st.tp.z - st.fb.z) * u }; const a = P(q, -ws / 2), b = P(q, ws / 2); c.moveTo(...a); c.lineTo(...b); }
+  c.stroke();
+  railPair(c, P(st.fb, -ws / 2), P(st.tp, -ws / 2), P(st.fb, ws / 2), P(st.tp, ws / 2), lw, col, lo, hi);
+  // the top cap (across its top: level when it stands)
+  const ax = (st.tp.x - st.fb.x) / L, ay = (st.tp.y - st.fb.y) / L, az = (st.tp.z - st.fb.z) / L, cp = q => project(cam, st.tp.x + ax * q[0] + n[0] * q[1], st.tp.y + ay * q[0] + n[1] * q[1], st.tp.z + az * q[0] + n[2] * q[1]);
+  const q4 = [[0.0, -0.2], [0.0, 0.2], [0.07, 0.2], [0.07, -0.2]].map(cp);
+  c.fillStyle = col; c.beginPath(); q4.forEach((q, i) => (i ? c.lineTo(...q) : c.moveTo(...q))); c.closePath(); c.fill();
+  c.restore();
+}
+// ---- the painters' drop cloth's BUCKET (on the cloth while it's spread) + THE KIT set down on the cobbles by the ladder (the takedown)
+function clothBucket(c, cam, p, env) {
+  const x = p.x + KIT.cloth[1] - 0.45, z = p.z - 0.15, sp = cam.F / z, H = 2.1 * sp, [bx, by] = project(cam, x, 0.105 * 2.1, z);
+  c.save(); c.fillStyle = 'rgba(8,6,16,0.3)'; const g = project(cam, x, 0, z); c.beginPath(); c.ellipse(g[0], g[1], 0.2 * sp, Math.max(0.5, 0.05 * sp), 0, 0, TAU); c.fill();
+  kitBucket(c, (cc, k) => rgb(litAt(env, cc, x, z, k)), bx, by, H); c.restore();
+}
+function kitDown(c, cam, p, env) {
+  const sp = cam.F / p.z, H = 2.1 * sp, f = (cc, k) => rgb(litAt(env, cc, p.x, p.z, k)), [bx, by] = project(cam, p.x - 0.15, 0.105 * 2.1, p.z), [rx, ry] = project(cam, p.x + 0.32, 0.032 * 2.1, p.z + 0.05), g = project(cam, p.x, 0, p.z);
+  c.save(); c.fillStyle = 'rgba(8,6,16,0.3)'; c.beginPath(); c.ellipse(g[0], g[1], 0.45 * sp, Math.max(0.5, 0.05 * sp), 0, 0, TAU); c.fill();
+  kitRoll(c, f, rx, ry, H, 1); kitBucket(c, f, bx, by, H); c.restore();
+}
 // ---- THE STEPLADDER (an A-frame beside the lamp)
 function stepLadder(c, cam, p, env, t) {
   const k = clamp01((t - p.t0) / 1.4) * clamp01((p.t1 - t) / 1.4);
@@ -88,29 +178,33 @@ function stepLadder(c, cam, p, env, t) {
 }
 // ---- THE NEWSSTAND (the newsboy's folding rack: two legs, a slanted board of papers fanned out, a cash tin) — it unfolds as he sets it up
 function newsstand(c, cam, p, env, t) {
-  const k = clamp01((t - p.t0) / (p.unfold || 4)) * clamp01((p.t1 - t) / 3);
-  if (k <= 0.02) return;
-  const sp = cam.F / p.z, [x, y] = project(cam, p.x, 0, p.z), h = 1.25 * sp * k, w = 1.3 * sp, wood = litAt(env, WOOD, p.x, p.z), paper = litAt(env, [232, 226, 206], p.x, p.z, 1.3), ink = litAt(env, [70, 66, 66], p.x, p.z);
+  // (8b2: set down FOLDED from under the newsboy's arm, opened out from `open` (the legs splaying, the board widening), folded from
+  // `fold`, picked up — the old fallback grew it out of the cobbles)
+  const ko = p.open != null ? sm((t - p.open) / (p.unfold || 4)) * (1 - sm((t - p.fold) / 3)) : clamp01((t - p.t0) / (p.unfold || 4)) * clamp01((p.t1 - t) / 3);
+  if (p.open == null && ko <= 0.02) return;
+  const k = p.open != null ? 1 : ko, sp = cam.F / p.z, [x, y] = project(cam, p.x, 0, p.z), h = 1.25 * sp * k, w = 1.3 * sp * (p.open != null ? 0.16 + 0.84 * ko : 1), wood = litAt(env, WOOD, p.x, p.z), paper = litAt(env, [232, 226, 206], p.x, p.z, 1.3), ink = litAt(env, [70, 66, 66], p.x, p.z);
   c.save();
   c.fillStyle = 'rgba(8,6,16,0.32)'; c.beginPath(); c.ellipse(x, y, w * 0.6, Math.max(0.6, 0.09 * sp), 0, 0, TAU); c.fill();
   c.strokeStyle = rgb(mix(wood, [0, 0, 0], 0.25)); c.lineWidth = Math.max(0.6, 0.07 * sp);
   c.beginPath(); c.moveTo(x - w * 0.42, y); c.lineTo(x - w * 0.3, y - h); c.moveTo(x + w * 0.42, y); c.lineTo(x + w * 0.3, y - h); c.stroke();
   // the slanted board + its papers in three rows (each a cream sheet, a black masthead line, a grey column)
   c.fillStyle = rgb(wood); c.beginPath(); c.moveTo(x - w * 0.5, y - h * 0.42); c.lineTo(x + w * 0.5, y - h * 0.42); c.lineTo(x + w * 0.42, y - h); c.lineTo(x - w * 0.42, y - h); c.closePath(); c.fill();
-  if (k > 0.6) for (let row = 0; row < 2; row++) for (let i = 0; i < 3; i++) {
+  if (ko > 0.6) for (let row = 0; row < 2; row++) for (let i = 0; i < 3; i++) {
     const px = x - w * 0.36 + i * w * 0.25, py = y - h * (0.95 - row * 0.28), pw = w * 0.22, ph = h * 0.25;
     c.fillStyle = rgb(paper); c.fillRect(px, py, pw, ph); c.fillStyle = rgb(ink); c.fillRect(px + pw * 0.08, py + ph * 0.1, pw * 0.84, Math.max(0.5, ph * 0.16));
     c.fillStyle = rgb(mix(paper, ink, 0.35)); c.fillRect(px + pw * 0.08, py + ph * 0.42, pw * 0.38, ph * 0.44); c.fillRect(px + pw * 0.54, py + ph * 0.42, pw * 0.38, ph * 0.44);
   }
-  // the bundles stacked at its foot + the cash tin
-  c.fillStyle = rgb(mix(paper, wood, 0.15)); c.fillRect(x + w * 0.5, y - 0.35 * sp, 0.55 * sp, 0.35 * sp); c.fillStyle = rgb([120, 84, 50].map((v, i) => wood[i] * 0.4 + v * 0.6)); c.fillRect(x + w * 0.5, y - 0.2 * sp, 0.55 * sp, Math.max(0.4, 0.04 * sp));
+  // the bundles stacked at its foot + the cash tin (the old fallback only — 8b2: a stand set down + opened has none; the morning's
+  // twine-tied bundles stand at its foot apart: p.bundles)
+  if (p.open == null) { c.fillStyle = rgb(mix(paper, wood, 0.15)); c.fillRect(x + w * 0.5, y - 0.35 * sp, 0.55 * sp, 0.35 * sp); c.fillStyle = rgb([120, 84, 50].map((v, i) => wood[i] * 0.4 + v * 0.6)); c.fillRect(x + w * 0.5, y - 0.2 * sp, 0.55 * sp, Math.max(0.4, 0.04 * sp)); }
   c.restore();
 }
 // ---- THE BUNDLES waiting (two twine-tied stacks), THE MILK on the step (a wire carrier of four white bottles)
-function bundles(c, cam, p, env) {
+function bundles(c, cam, p, env, left = 1) {
+  // (left: what's still there — the newsboy's morning sells them down: 8b2)
   const sp = cam.F / p.z, [x, y] = project(cam, p.x, 0, p.z), paper = litAt(env, [226, 220, 200], p.x, p.z, 1.2), twine = litAt(env, [120, 84, 50], p.x, p.z);
   c.save(); c.fillStyle = 'rgba(8,6,16,0.3)'; c.beginPath(); c.ellipse(x + 0.3 * sp, y, 0.75 * sp, Math.max(0.5, 0.08 * sp), 0, 0, TAU); c.fill();
-  for (const [dx, h] of [[-0.05, 0.42], [0.62, 0.3]]) { c.fillStyle = rgb(paper); c.fillRect(x + dx * sp - 0.28 * sp, y - h * sp, 0.56 * sp, h * sp); c.fillStyle = rgb(mix(paper, [0, 0, 0], 0.2)); for (let v = 0.1; v < h; v += 0.08) c.fillRect(x + dx * sp - 0.28 * sp, y - v * sp, 0.56 * sp, Math.max(0.3, 0.012 * sp)); c.strokeStyle = rgb(twine); c.lineWidth = Math.max(0.4, 0.03 * sp); c.beginPath(); c.moveTo(x + dx * sp, y); c.lineTo(x + dx * sp, y - h * sp); c.moveTo(x + dx * sp - 0.28 * sp, y - h * 0.5 * sp); c.lineTo(x + dx * sp + 0.28 * sp, y - h * 0.5 * sp); c.stroke(); }
+  for (const [dx, h0] of [[-0.05, 0.42], [0.62, 0.3]]) { const h = h0 * left; if (h < 0.03) continue; c.fillStyle = rgb(paper); c.fillRect(x + dx * sp - 0.28 * sp, y - h * sp, 0.56 * sp, h * sp); c.fillStyle = rgb(mix(paper, [0, 0, 0], 0.2)); for (let v = 0.1; v < h; v += 0.08) c.fillRect(x + dx * sp - 0.28 * sp, y - v * sp, 0.56 * sp, Math.max(0.3, 0.012 * sp)); c.strokeStyle = rgb(twine); c.lineWidth = Math.max(0.4, 0.03 * sp); c.beginPath(); c.moveTo(x + dx * sp, y); c.lineTo(x + dx * sp, y - h * sp); c.moveTo(x + dx * sp - 0.28 * sp, y - h * 0.5 * sp); c.lineTo(x + dx * sp + 0.28 * sp, y - h * 0.5 * sp); c.stroke(); }
   c.restore();
 }
 function bottles(c, cam, p, env) {
@@ -122,12 +216,24 @@ function bottles(c, cam, p, env) {
 }
 // ---- THE DROP CLOTH under the blade, THE WET STREAK drying
 function cloth(c, cam, p, env, t) {
-  const k = clamp01((t - p.t0) / 3) * clamp01((p.t1 - t) / 3); if (k <= 0) return;
-  const pts = [[-1.2, -0.7], [1.3, -0.8], [1.5, 0.6], [-1.0, 0.75]].map(([dx, dz]) => project(cam, p.x + dx, 0.01, p.z + dz));
-  c.save(); c.globalAlpha *= k; c.fillStyle = rgb(litAt(env, [218, 210, 192], p.x, p.z)); c.beginPath(); pts.forEach((q, i) => (i ? c.lineTo(...q) : c.moveTo(...q))); c.closePath(); c.fill();
-  c.fillStyle = rgb(litAt(env, [150, 120, 100], p.x, p.z), 0.5); for (let i = 0; i < 6; i++) { const q = project(cam, p.x - 0.8 + i * 0.4, 0.01, p.z - 0.2 + (i % 3) * 0.25); c.fillRect(q[0], q[1], 1.2, 0.8); }
+  // 8b2: never faded in — UNROLLED from the painter's feet (8b2's kit: core/harbor-crew.js#KIT), its roll travelling away along the
+  // cobbles; ROLLED UP toward him at the end (p.un s each way). (A cloth without p.un: the old fade.)
+  const k = p.un ? Math.min(sm((t - p.t0) / p.un), sm((p.t1 - t) / p.un)) : clamp01((t - p.t0) / 3) * clamp01((p.t1 - t) / 3); if (k <= 0) return;
+  const R = [[1.3, -0.8], [1.5, 0.6]], Lf = [[-1.2, -0.7], [-1.0, 0.75]], at = i => [R[i][0] + (Lf[i][0] - R[i][0]) * k, R[i][1] + (Lf[i][1] - R[i][1]) * k];
+  const quad = p.un ? [at(0), R[0], R[1], at(1)] : [Lf[0], R[0], R[1], Lf[1]];
+  const pts = quad.map(([dx, dz]) => project(cam, p.x + dx, 0.01, p.z + dz));
+  c.save(); if (!p.un) c.globalAlpha *= k;
+  c.fillStyle = rgb(litAt(env, [218, 210, 192], p.x, p.z)); c.beginPath(); pts.forEach((q, i) => (i ? c.lineTo(...q) : c.moveTo(...q))); c.closePath(); c.fill();
+  c.fillStyle = rgb(litAt(env, [150, 120, 100], p.x, p.z), 0.5); for (let i = 0; i < 6; i++) { const x = p.x - 0.8 + i * 0.4; if (p.un && x < p.x + at(0)[0]) continue; const q = project(cam, x, 0.01, p.z - 0.2 + (i % 3) * 0.25); c.fillRect(q[0], q[1], 1.2, 0.8); }
+  if (p.un && k < 0.995) {
+    // the roll at its leading edge (fatter the more is still rolled)
+    const a = at(0), b = at(1), r = 0.05 + 0.07 * (1 - k), sp = cam.F / p.z, A = project(cam, p.x + a[0], r, p.z + a[1]), B = project(cam, p.x + b[0], r, p.z + b[1]);
+    c.lineCap = 'round'; c.strokeStyle = rgb(litAt(env, [176, 166, 146], p.x, p.z)); c.lineWidth = Math.max(1, 2 * r * sp); c.beginPath(); c.moveTo(...A); c.lineTo(...B); c.stroke();
+    c.strokeStyle = rgb(litAt(env, [226, 218, 198], p.x, p.z, 1.1)); c.lineWidth = Math.max(0.5, r * sp); c.beginPath(); c.moveTo(A[0], A[1] - r * sp * 0.4); c.lineTo(B[0], B[1] - r * sp * 0.4); c.stroke();
+  }
   c.restore();
 }
+
 function wetStreak(c, cam, p, env, t) {
   // the sweeper's cart sprinkles as he goes: a dark damp band along his passes, laid down behind him, drying out from its edges (WET.dry)
   c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
@@ -169,20 +275,24 @@ function hatchLeaves(c, cam, p, env, t) {
 }
 // ---- THE WINDOW WASHERS' HANGING PLATFORM: two davits over the parapet, the ropes down to the stirrups, the plank deck, the rails
 function platform(c, cam, s, p, env, t, part) {
-  const u = t - p.start, st = platformAt(u, p.len, s.rows || [[4.6, 6.8], [7.6, 9.6]]), y = st.y;
+  const u = t - p.start, st = platformAt(u, p.len, s.rows || [[4.6, 6.8], [7.6, 9.6]]);
   if (t < p.t0 || t > p.t1) return;
-  const x0 = p.x0 + p.u0, x1 = p.x0 + p.u1, z = p.z, sp = cam.F / z, wood = litAt(env, [138, 112, 78], x0, z), steel = litAt(env, STEEL, x0, z), rope = litAt(env, [196, 182, 148], x0, z);
+  // (8b2 — THE SWING: kw 0 → 1 over p.swing s after p.t0 (the deck up off the roof over the parapet's edge, out, down to its park — the
+  // davits turning out with it), 1 → 0 before p.t1; a breath of fade only while it clears the parapet's top)
+  const kw = p.swing ? Math.min(sm((t - p.t0) / p.swing), sm((p.t1 - t) / p.swing)) : 1, top = 11.55, lift = kw < 1 ? Math.sin(Math.PI * kw) * 0.5 : 0;
+  const y = kw < 1 ? top + 0.25 + (st.y - top - 0.25) * kw + lift : st.y, z = kw < 1 ? s.z0 + 0.12 + (p.z - s.z0 - 0.12) * sm(kw / 0.6) : p.z;
+  const x0 = p.x0 + p.u0, x1 = p.x0 + p.u1, sp = cam.F / z, wood = litAt(env, [138, 112, 78], x0, z), steel = litAt(env, STEEL, x0, z), rope = litAt(env, [196, 182, 148], x0, z);
   const P = (x, yy, zz = z) => project(cam, x, yy, zz);
-  c.save(); c.lineCap = 'round';
+  c.save(); c.lineCap = 'round'; if (kw < 0.12) c.globalAlpha *= kw / 0.12;
   if (part === 'back') {
     // the davits: an iron arm out over the parapet's top at each end, the ropes hanging down to the stirrups
     for (const xx of [x0 + 0.35, x1 - 0.35]) {
-      const base = P(xx, 11.25, s.z0 + 0.15), out = P(xx, 11.85, z - 0.05), tipD = P(xx, 11.55, z - 0.05);
+      const hang = Math.max(0, y + 1.3 - 11.5), base = P(xx, 11.25, s.z0 + 0.15), out = P(xx, 11.85 + hang, z - 0.05), tipD = P(xx, 11.55 + hang, z - 0.05);   // (8b2: the arms ride up over the deck while it swings over the parapet)
       c.strokeStyle = rgb(steel); c.lineWidth = Math.max(0.7, 0.09 * sp); c.beginPath(); c.moveTo(...base); c.lineTo(...out); c.lineTo(...tipD); c.stroke();
-      const top = P(xx, 11.5, z - 0.05), bot = P(xx, y + 1.15, z - 0.05);
+      const top = P(xx, 11.5 + hang, z - 0.05), bot = P(xx, Math.min(11.5 + hang, y + 1.15), z - 0.05);
       c.strokeStyle = rgb(rope); c.lineWidth = Math.max(0.45, 0.035 * sp); c.beginPath(); c.moveTo(...top); c.lineTo(...bot); c.stroke();
       // the stirrup: a steel frame from the deck up to the rope's block
-      const s0 = P(xx, y, z), s1 = P(xx, y + 1.15, z);
+      const s0 = P(xx, y, z), s1 = P(xx, Math.min(11.5 + hang, y + 1.15), z);
       c.strokeStyle = rgb(steel); c.lineWidth = Math.max(0.6, 0.06 * sp); c.beginPath(); c.moveTo(...s0); c.lineTo(...s1); c.stroke();
     }
     // the plank deck (its top edge lit by day) + the buckets on it

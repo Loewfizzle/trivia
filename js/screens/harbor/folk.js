@@ -10,6 +10,7 @@
 import { project } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
 import { GEAR, gearCart } from './gear.js';
+import { LADDER, liftSq, raiseK } from '../../core/harbor-crew.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -125,8 +126,10 @@ export const GAIT = Object.freeze({
 });
 const smooth = u => u * u * (3 - 2 * u);
 /** 8b2 — the loads: on the shoulder (one hand up on it) vs heavy in the hand (that arm straight, no swing) */
-const SHOULDER = new Set(['ice', 'crate', 'can', 'ladder', 'steps', 'ladderA', 'ladderB']);
+const SHOULDER = new Set(['ice', 'crate', 'can', 'ladder', 'steps', 'ladderA', 'ladderB', 'kit']);
 const HAND_HEAVY = new Set(['bottles', 'bucket', 'bundle', 'paste']);
+/** 8b2 — the tall ladder rides the FAR shoulder (the far hand up on it; the carrier walks in front of it — his head never behind it) */
+const FAR_SH = new Set(['ladderA', 'ladderB']);
 /** a person's step (body heights): the walk, a kid's, the jog's */
 export const STEP = L => (L.jog ? 0.56 : L.kid ? 0.4 : 0.35);
 const headingOf = st => (st.hd != null ? st.hd : st.dir === 1 ? 0 : st.dir === -1 ? Math.PI : st.dir === 2 ? Math.PI / 2 : -Math.PI / 2);
@@ -143,18 +146,26 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // (a step in heights — a stride is two; FP3b: a relaxed 1920s pace takes SHORTER steps — a long step at a slow speed reads as a
   // slow-motion glide — so the cadence stays ~1.8 steps a second)
   const S = st.run ? STEP({ jog: true }) : STEP(L);
-  const walking = pose === 'walk' && st.v > 0.05, p = walking ? ((st.dist / (2 * S * 2.1 * L.h)) % 1 + 1) % 1 : 0;
+  // (8b2 — THE TALL LADDER: its two carriers walk IN STEP — their stride's phase from where they are along the street (the climber's a
+  // ladder's gap back), a common stride; 'walkback' — lowering it, stepping BACKWARD at LADDER.vUp: the stride run in reverse)
+  const back = pose === 'walkback', cr0 = st.carry != null ? st.carry : L.carry, wrap = v => ((v % 1) + 1) % 1;
+  const walking = (pose === 'walk' && st.v > 0.05) || back, sync = walking && !back && st.x != null && (cr0 === 'ladderA' || cr0 === 'ladderB');
+  const p = !walking ? 0 : back ? wrap(-(st.since || 0) * LADDER.vUp / (2 * S * 2.1 * L.h)) : sync ? wrap((cx < 0 ? -1 : 1) * (st.x - (cr0 === 'ladderB' ? LADDER.gap : 0)) / (2 * S * 2.1)) : wrap(st.dist / (2 * S * 2.1 * L.h));
   const breath = mo ? 0.004 * Math.sin(t * 1.7 + L.h * 37) : 0;
   const sg = [-1, 1], A = G.stance * S;
   // 8b2 — THE WORKERS MOVE RIGHT: a LIFT with the knees ('pick' — down empty, up with it; 'set' — down with it, up empty; 'raise' — a
   // ladder hoisted from a squat to arms overhead): the knees bend, the back stays near straight, down over ~0.55 s, a beat, up over ~0.6
-  const lift = pose === 'pick' || pose === 'set' || pose === 'raise';
+  // ('lower' — the tall ladder's end let down: the raise run backward; a SHOULDER load — a ladder, the kit — set down / lifted from the
+  // cobbles: a deeper squat, the hands right down to it — the props follow the same curves: core/harbor-crew.js#liftSq / #raiseK)
+  const hoist = pose === 'raise' || pose === 'lower', lift = pose === 'pick' || pose === 'set' || hoist;
   const sN = st.since == null ? 9 : st.since, lN = st.left == null ? 9 : st.left, uP = sN / Math.max(1e-3, sN + lN);
+  const mir = pose === 'lower', sA = mir ? lN : sN, uA = mir ? 1 - uP : uP;
+  const deep = lift && (hoist || cr0 === 'ladderA' || cr0 === 'ladderB' || cr0 === 'kit') ? 1.4 : 1;   // (the litter can is gripped at its rim: no deeper)
   let sq = 0, rk = 0;
   if (lift) {
-    sq = pose === 'raise' ? smooth(clamp01(sN / 0.5)) * (1 - smooth(clamp01((uP - 0.3) / 0.35))) : smooth(clamp01(sN / 0.55)) * smooth(clamp01(lN / 0.6));
-    if (pose === 'raise') rk = smooth(clamp01((uP - 0.28) / 0.5));
-    if (!mo) { sq = pose === 'raise' ? 0 : 0.8; rk = pose === 'raise' ? 1 : 0; }
+    sq = hoist ? smooth(clamp01(sA / 0.5)) * (1 - smooth(clamp01((uA - 0.3) / 0.35))) : liftSq(sN, lN);
+    if (hoist) rk = raiseK(uA);
+    if (!mo) { sq = hoist ? 0 : 0.8; rk = hoist ? 1 : 0; }
   }
   // (what's carried — the leg's own prop, else the look's — and how: a load on the SHOULDER (one hand up steadying it), a heavy one in
   // the HAND (that arm straight, no swing), a light one swings with the walk; heavy loads lean the body + weigh the step down)
@@ -193,7 +204,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   }
   if (pose === 'sit') hipY = 0.27;
   if (pose === 'garden') hipY = 0.36;
-  if (lift) { foot[0] = { a: 0.075, b: -0.06, y: ANKLE }; foot[1] = { a: -0.05, b: 0.06, y: ANKLE + 0.012 * sq }; hipY = HIP0 - 0.215 * sq; }
+  if (lift) { foot[0] = { a: 0.075, b: -0.06, y: ANKLE }; foot[1] = { a: -0.05, b: 0.06, y: ANKLE + 0.012 * sq }; hipY = HIP0 - 0.215 * sq * deep; }
   // 8b1 — ON A LADDER: the feet on the rungs (just in front), climbing = the legs + arms trading rung by rung with the height gained;
   // working at a height one foot a rung up
   const onRungs = pose === 'climb' || ((pose === 'reach' || pose === 'paint') && (st.y || 0) > 0.3 && !st.plat);
@@ -228,7 +239,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
     knee.push({ a: h.a + Math.cos(ang) * HALF, b: (h.b + f.b) / 2, y: h.y + Math.sin(ang) * HALF });
   }
   // ---- the upper body: the shoulders (counter-rotating against the hips), the head; a forward lean tips the torso
-  const shY = (pose === 'sit' ? 0.58 : pose === 'garden' ? 0.61 : HIP0 + 0.3 - 0.2 * sq) + breath - dip, up = shY - hipY;
+  const shY = (pose === 'sit' ? 0.58 : pose === 'garden' ? 0.61 : HIP0 + 0.3 - 0.2 * sq * deep) + breath - dip, up = shY - hipY;
   let shA = lean * up, headA = lean * (up + 0.115);
   if (pose === 'garden') { shA = 0.12; headA = 0.17; }
   if (lift) { shA = 0.15 * sq; headA = 0.17 * sq; }
@@ -249,7 +260,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
     else arm(i, 0.1 + (i ? -idle : idle), 0.12);
   }
   // (8b2: a load on the shoulder — the near hand up on it; a heavy one in the hand — that arm straight down, a little out, no swing)
-  if (onSh && (walking || pose === 'wait')) arm(near, 2.62, 2.6, 0.14);
+  if (onSh && (walking || pose === 'wait')) arm(FAR_SH.has(cr) ? farA : near, 2.62, 2.6, 0.14);
   else if (inHand && (walking || pose === 'wait')) arm(near, 0.06, 0.04, 0.2);
   // arm in arm (a couple strolling): the arm on the partner's side hooked, no swing (link: the side's sign, ±1)
   if (st.link === 1 || st.link === -1) arm(st.link > 0 ? 1 : 0, 0.5, 1.25, 0.32);
@@ -270,8 +281,30 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'toast') { toast = mo ? 0.5 + 0.5 * Math.sin(t * 0.6 + L.h * 3) : 1; arm(N, 1.2 + 1.5 * toast, 0.4); }
   if (pose === 'garden') { arm(0, 0.35, 0.2); arm(1, 0.25, 0.25); }
   if (lift) {
-    if (pose === 'raise') for (let i = 0; i < 2; i++) arm(i, 0.45 + 2.3 * rk + 0.25 * sq, 0.3 - 0.15 * rk, 0.1);
-    else for (let i = 0; i < 2; i++) arm(i, 0.3 + 0.42 * sq, 0.12 + 0.18 * sq, 0.12 + 0.06 * sq);
+    if (hoist) for (let i = 0; i < 2; i++) arm(i, 0.45 + 2.3 * rk + 0.25 * sq, 0.3 - 0.15 * rk, 0.1);
+    else {
+      // (the arms from where the load is — the near hand up on a shoulder load as it comes down / goes up — to the load at the feet)
+      const held = onSh && ((pose === 'set' && uP < 0.5) || (pose === 'pick' && uP >= 0.5)), lo = deep > 1 ? [0.35, 0.1, 0.12] : [0.72, 0.3, 0.18];
+      for (let i = 0; i < 2; i++) { const a0 = held && i === (FAR_SH.has(cr0) ? 1 - near : near) ? [2.62, 2.6, 0.14] : [0.3, 0.12, 0.12]; arm(i, a0[0] + (lo[0] - a0[0]) * sq, a0[1] + (lo[1] - a0[1]) * sq, a0[2] + (lo[2] - a0[2]) * sq); }
+    }
+  }
+  // 8b2 — THE TALL LADDER's moves (core/harbor-crew.js#tallLadder): WALKED UP / back hand over hand (the arms overhead on its rails),
+  // PUSHED upright (the arms from overhead out to the front) / caught coming down, the fly HAULED up its rope hand over hand (a pull a
+  // LADDER.pull — the fly rises pull by pull with it); THE STEPLADDER swung down off the shoulder + stood up ('upend' / back: 'lay'),
+  // spread / folded (both hands at its top)
+  if ((walking && cr0 === 'walkup') || back) for (let i = 0; i < 2; i++) arm(i, 2.75, 0.15, 0.1);
+  if (pose === 'push' || pose === 'catch') { const k = smooth(pose === 'push' ? uP : 1 - uP); for (let i = 0; i < 2; i++) arm(i, 2.75 - 0.95 * k + (i === near ? 0 : 0.06), 0.15 + 0.25 * k, 0.1); shJ.forEach(q => { q.a += 0.03 * k; }); head.a += 0.03 * k; }
+  if (pose === 'haul') { const c8 = Math.cos((mo ? sN : 0) / LADDER.pull * Math.PI); arm(near, 2.0 + 0.55 * c8, 0.5, 0.08); arm(1 - near, 2.0 - 0.55 * c8, 0.5, 0.08); }
+  if (pose === 'upend' || pose === 'lay') { const k = smooth(pose === 'upend' ? uP : 1 - uP); arm(near, 2.62 + (1.25 - 2.62) * k, 2.6 + (0.35 - 2.6) * k, 0.14); arm(1 - near, 0.1 + 1.5 * k, 0.12 + 0.28 * k, 0.1); }
+  if (pose === 'spread' || pose === 'fold') { arm(near, 1.95, 0.35); arm(1 - near, 1.85, 0.4); }
+  // 8b2 — 'unload': both hands in over a truck's bed EMPTY, then out WITH the load — up onto the shoulder for a shoulder load (gear.js
+  // follows the hands there: J.uk), down to the carry for a hand load — the next leg's carry picks up exactly where this one ends
+  let uk = 0;
+  if (pose === 'unload') {
+    const ki = smooth(clamp01(uP / 0.4)), R0 = [0.1, 0.12, 0.06], IN = [1.5, 0.35, 0.1], OUT = onSh ? [2.62, 2.6, 0.14] : inHand ? [0.06, 0.04, 0.2] : R0;
+    uk = smooth(clamp01((uP - 0.45) / 0.55));
+    const L3 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k], A = uP < 0.45 ? L3(R0, IN, ki) : L3(IN, OUT, uk), B = uP < 0.45 ? L3(R0, IN, ki) : L3(IN, R0, uk);
+    arm(near, ...A); arm(1 - near, ...B);
   }
   // 8b1 — THE WORKERS' POSES (big, readable motions: the broom's push, the crank's turn, the brush's strokes, the squeegee's sweep)
   const tw8 = mo ? t : 0;
@@ -314,7 +347,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const tw = Math.hypot(0.138 * cz, 0.1 * cx);
   return {
     hd, cx, cz, d: cx >= 0 ? 1 : -1, side: Math.abs(cx) > 0.72, face: st.dir, pose, walking, p, jog, toast, near: N,
-    noCarry: (pose === 'pick' && uP < 0.5) || (pose === 'set' && uP >= 0.5),
+    noCarry: (pose === 'pick' && uP < 0.5) || (pose === 'set' && uP >= 0.5) || (pose === 'unload' && uP < 0.45), uk, sq,
     feet: feetS, knees: kneesS, hips: hipsS, hip: mid(hipsS[0], hipsS[1]), shs: shsS, sh: mid(shsS[0], shsS[1]),
     elbows: elbow.map(scr), hands: hand.map(scr), head: scr(head), tw, planted, heel,
     D: { legs: foot.map(dep), arms: hand.map(dep) },
@@ -497,7 +530,7 @@ function body(c, J, L, X, Y, H, lit, env) {
   if (liftP && L.carry && !J.noCarry && GEAR[L.carry]) {
     // (8b2: lifting with the knees — the load between both hands, low, not on the shoulder)
     const mx = (J.hands[0][0] + J.hands[1][0]) / 2, my = (J.hands[0][1] + J.hands[1][1]) / 2;
-    GEAR[L.carry](c, { hand: [X(mx), Y(my)], J: { ...J, shs: [[mx, my - 0.06], [mx, my - 0.06]] }, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
+    GEAR[L.carry](c, { hand: [X(mx), Y(my)], J: { ...J, shs: [[mx, my - 0.06], [mx, my - 0.06]], sh0: J.shs }, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
   } else if (J.pose !== 'wands' && L.carry && !J.noCarry && GEAR[L.carry]) GEAR[L.carry](c, { hand, J, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
   else if (J.pose !== 'wands' && L.carry && !['point', 'wave', 'toast', 'dance', 'garden', 'clap'].includes(J.pose)) carry(c, L.carry, hand, H, f, d);
   if (J.pose === 'toast') { const [gx, gy] = hand; c.fillStyle = 'rgba(236,226,190,0.9)'; c.beginPath(); c.moveTo(gx - H * 0.03, gy - H * 0.05); c.lineTo(gx + H * 0.03, gy - H * 0.05); c.lineTo(gx, gy - H * 0.015); c.closePath(); c.fill(); c.fillRect(gx - 0.25, gy - H * 0.015, 0.5, H * 0.03); }

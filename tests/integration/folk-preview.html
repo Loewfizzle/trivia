@@ -16,12 +16,14 @@
 <canvas id="c"></canvas>
 <script type="module">
 import { lookOf, drawFolk, drawDog, drawLeash, jointsOf } from '/js/screens/harbor/folk.js';
+import { propItems } from '/js/screens/harbor/workers.js';
+import { LADDER, STEPS } from '/js/core/harbor-crew.js';
 const qs = new URLSearchParams(location.search);
 const ONLY = (qs.get('only') || '').split(',').filter(Boolean), show = k => !ONLY.length || ONLY.includes(k);
 const LIGHT = qs.get('light') || 'day', SCALE = Number(qs.get('scale') || 2), season = qs.get('season') || 'autumn', party = qs.get('party') === '1', rain = qs.get('rain') === '1' ? 1 : 0;
 const T = LIGHT === 'night' ? { night: 1, sunDir: 0 } : LIGHT === 'gold' ? { gold: 1, sunDir: -0.6, sunEl: 8 } : { day: 1, sunDir: -0.5, sunEl: 34 };
 const dark = LIGHT === 'night' ? 1 : 0;
-const W = 402 * SCALE, H = 1060 + 12 * (34 * SCALE + 14), dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
+const W = 402 * SCALE, H = 1060 + 12 * (34 * SCALE + 14) + 190 * SCALE, dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
 cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
 const c = cv.getContext('2d'); c.scale(dpr, dpr);
 c.fillStyle = dark ? '#3a3650' : LIGHT === 'gold' ? '#b08870' : '#9a948c'; c.fillRect(0, 0, W, H);
@@ -34,6 +36,9 @@ const draw = (sx, sy, st, look, seed, role = 'lead') => {
   c.save(); c.translate(0, sy); drawFolk(c, cam, { s: { x: sx * z / cam.F, z, a: 1, ...st }, L }, env); c.restore();
   return L;
 };
+// (8b2: the ladders are props — drawn from a state by workers.js, as on the title)
+const ladder = (sy, st) => { const it = propItems({ cam, speakeasy: {} }, { props: [{ kind: 'xladder', t0: 0, t1: 1e9, at: () => ({ z, ...st }), len: LADDER.len, w: LADDER.w, wf: LADDER.wf, kit: null }] }, 'near', 1)[0]; c.save(); c.translate(0, sy); it.draw(c, env); c.restore(); };
+const stepsAt = (sy, st) => { const it = propItems({ cam, speakeasy: {} }, { props: [{ kind: 'xsteps', t0: 0, t1: 1e9, at: () => st, ws: STEPS.ws }] }, 'near', 1)[0]; c.save(); c.translate(0, sy); it.draw(c, env); c.restore(); };
 const label = (s, x, y) => { c.fillStyle = dark ? '#ccc' : '#222'; c.fillText(s, x, y); };
 let y = Math.max(90, 34 * SCALE);
 // walk cycles: 8 frames of one stride, per look (facing right, then one facing left)
@@ -116,8 +121,37 @@ if (show('carry')) {
   for (let i = 0; i < 4; i++) { const dist = i * 0.4; draw(at8(i), y, { pose: 'walk', hd: 0, dist, v: 1.1, carry: i < 2 ? 'crate' : 'bottles' }, i < 2 ? 'bootlegger' : 'milkman', 65 + i); }
   for (let i = 0; i < 2; i++) draw(at8(4 + i * 2), y, { pose: 'walk', hd: Math.PI, dist: i * 0.5, v: 1, carry: 'ice' }, 'iceman', 70);
   y += ROW;
-  const gapPt = 3.55 * cam.F / z;
-  for (let i = 0; i < 2; i++) { const x0 = 30 * SCALE + i * (gapPt + 60 * SCALE); draw(x0 + gapPt, y, { pose: 'walk', hd: 0, dist: 0.3 + i * 0.4, v: 1.1, carry: 'ladderA' }, 'painter', 71); draw(x0, y, { pose: 'walk', hd: 0, dist: 0.55 + i * 0.4, v: 1.1, carry: 'ladderB' }, 'painter', 72); }
+  // (8b2: the tall ladder is a PROP — workers.js draws it from its state; on the carriers' FAR shoulders, they in front of it, in step)
+  const gapPt = LADDER.gap * cam.F / z;
+  for (let i = 0; i < 2; i++) { const x0 = 24 * SCALE + i * (gapPt + 70 * SCALE), xw = x0 * z / cam.F + i * 0.21; ladder(y, { x: xw - LADDER.hA, y: LADDER.ys, th: 0, e: 0 }); draw(x0, y, { pose: 'walk', hd: 0, dist: 0, v: 1.1, carry: 'ladderA' }, 'painter', 71); draw(x0 + gapPt, y, { pose: 'walk', hd: 0, dist: 0, v: 1.1, carry: 'ladderB' }, 'painter', 72); }
+  y += ROW;
+}
+// 8b2 — THE TALL LADDER RAISED (core/harbor-crew.js#tallLadder), frame by frame: set down on edge · its end hoisted · walked up hand over
+// hand · pushed upright · the fly hauled up its rope · tipped onto the blade (the holder foots it from behind) · then the STEPLADDER:
+// on the shoulder · swung down · stood folded · spread
+if (show('raise')) {
+  label('THE TALL LADDER: set down · hoisted · walked up · pushed up · the fly hauled · on the blade (the holder footing it)', 4, y - 70);
+  const yb = y + 118 * SCALE, X = LADDER, E = 4.76, thL = 1.677, wx = sx => sx * z / cam.F, up = 0.17;
+  const fr = [[6, 'set', 0, 0, 0], [92, 'raise', 0.38, 0, 0], [172, 'walk', 0.6, 0, 0], [250, 'walk', 1.05, 0, 0], [300, 'push', Math.PI / 2, 0, 0], [340, 'haul', Math.PI / 2, E / 2, 0], [376, 'hold', thL, E, 0]];
+  for (const [sx0, pz, th, e] of fr) {
+    const px = wx(sx0 * SCALE), hx = th > 1.5 ? px + 0.45 : px + X.hR / Math.tan(th || 0.01) + up, manPt = (pz === 'set' ? px + X.len - X.hB : th === 0 ? px + 5.45 : hx) * cam.F / z;
+    draw((px - 0.25) * cam.F / z, yb, { pose: 'hold', hd: -Math.PI / 2, dist: 0, v: 0 }, 'painter', 81);
+    ladder(yb, { x: px + 0.2, y: pz === 'set' ? 0.5 : 0, th, e });
+    draw(manPt, yb, pz === 'walk' ? { pose: 'walk', hd: Math.PI, dist: sx0 / 40, v: 0.8, carry: 'walkup' } : { pose: pz, hd: Math.PI, dist: 0, v: 0, since: pz === 'raise' ? 2.4 : 1, left: pz === 'raise' ? 0.8 : 1, carry: pz === 'set' ? 'ladderB' : null }, 'painter', 82);
+  }
+  y = yb + 64 * SCALE;
+  label('THE STEPLADDER: on the shoulder · swung down · stood folded · spread · climbed', 4, y - 70);
+  const Ls = Math.hypot(STEPS.d, 1.85), st5 = [[30, 'carry'], [110, 'upend', 0.35], [190, 'upend', 1], [270, 'spread', 1], [350, 'climb', 1]];
+  for (const [sx0, k, u] of st5) {
+    const gx = wx(sx0 * SCALE), d = k === 'spread' || k === 'climb' ? STEPS.d : 0, h = Math.sqrt(Ls * Ls - d * d);
+    let S;
+    if (k === 'carry') S = { fb: { x: gx - Ls / 2, y: STEPS.ys + STEPS.ws / 2, z: z - 0.2 }, tp: { x: gx + Ls / 2, y: STEPS.ys + STEPS.ws / 2, z: z - 0.2 }, n: [0, 1, 0] };
+    else if (k === 'upend' && u < 1) { const phi = 0.9 * u / 0.5 > 0.9 ? 0.9 : 0.9 * u / 0.5, B = { x: gx - 0.62 - Ls / 2 * (1 - u), y: (STEPS.ys) * (1 - u / 0.5) }; S = { fb: { ...B, z }, tp: { x: B.x + Ls * Math.cos(phi), y: B.y + Ls * Math.sin(phi), z }, n: [-Math.sin(phi), Math.cos(phi), 0] }; }
+    else S = { fb: { x: gx - 0.62 - d, y: 0, z }, tp: { x: gx - 0.62, y: h, z }, n: [-h / Ls, d / Ls, 0] };
+    S.bb = k === 'spread' || k === 'climb' ? { x: gx - 0.62 + d, y: 0, z } : S.fb; S.z = z;
+    stepsAt(y, S);
+    draw(k === 'climb' ? (gx - 0.62) * cam.F / z : sx0 * SCALE, y, k === 'carry' ? { pose: 'walk', hd: Math.PI, dist: 0.3, v: 1.1, carry: 'steps' } : k === 'climb' ? { pose: 'climb', hd: Math.PI, y: 1.0, rung: { n: 1, q: 0.4 } } : { pose: k, hd: Math.PI, since: u * 1.9, left: (1 - u) * 1.9 + 0.01, carry: k === 'upend' ? 'steps' : null }, 'repairman', 83);
+  }
   y += ROW;
 }
 document.body.dataset.ready = '1';
