@@ -1554,7 +1554,7 @@ G('music', async () => {
     await ev(r, 'window.__suspend = false'); await fire('vis');
     await sleep(900);
     const p2 = await PUNCH(2600);
-    ok(p2.loop.running && p2.loop.drawn > l2.drawn + 20 && ['visible', 'watchdog'].includes(p2.loop.why) && p2.loop.stalls >= 2 && p2.hi - p2.lo > 0.5 && p2.hi > p0.hi * 0.7, `RETURN (rAF dropped): restarted (${JSON.stringify(p2.loop)} · rAF ${JSON.stringify(await ev(r, 'window.__raf'))} · suspend ${await ev(r, 'window.__suspend')} · ticks ${p2.n}, max gap ${p2.gap} ms), the punch swings again ${p2.lo} → ${p2.hi} (before ${p0.hi})`);
+    ok(p2.loop.running && p2.loop.drawn > l2.drawn + 20 && ['visible', 'watchdog'].includes(p2.loop.why) && p2.loop.stalls >= 2 && p2.hi - p2.lo > 0.3 && p2.hi > p0.hi * 0.7, `RETURN (rAF dropped): restarted (${JSON.stringify(p2.loop)} · rAF ${JSON.stringify(await ev(r, 'window.__raf'))} · suspend ${await ev(r, 'window.__suspend')} · ticks ${p2.n}, max gap ${p2.gap} ms), the punch swings again ${p2.lo} → ${p2.hi} (before ${p0.hi})`);
     // (b2) the same with NO event at all on return: the watchdog (once a second) finds it
     await ev(r, 'window.__suspend = true'); await sleep(2000); await ev(r, 'window.__suspend = false'); await nudge();
     ok(await waitFor(r, `window.__district.loop().ago < 300 && window.__district.loop().why === 'watchdog'`, 'the watchdog', 4500).catch(() => false), `RETURN (no event): the watchdog restarts it (${JSON.stringify(await ev(r, 'window.__district.loop()'))})`);
@@ -2150,6 +2150,7 @@ G('wildlife', async () => {
   { const Q = await open({ slot: 'wl5', qs: `when=2026-05-12T10:00${GR}&force=ducks`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${W}.ducks > 0`, 'the ducks', 30000);
+    await waitFor(Q.page, `${W}.ducks >= 2`, 'the whole row out (they come in one after another)', 12000).catch(() => {});
     const wl = await ev(Q.page, W);
     ok(wl.ducks >= 2, `THE DUCK CROSSING: ${wl.ducks} mallards out`);
     await Q.ctx.close(); }

@@ -5343,6 +5343,7 @@ The split (one server, `--vs`, tier 0): the workers ~0.8 ms (noise ±3.2), the f
 hot spot — the cost is spread over more figures drawn (folk.js + fauna.js paths). The owner's iPhone readout (`&debug=1`) decides.
 
 ## PART 8b1 — Known issues
+- **THE CLOUD (2 runs, the allowed two)**: run 1 (d4b77f2 `[harbor]`): street / city / show green; two TEST-side failures — the music job's "RETURN (rAF dropped)" still asked for the old full punch (Group 0's safety rule makes that path breathe: 0.37) and the wild job's duck check sampled the moment the FIRST mallard appeared (they come in one after another) — both fixed (a swing > 0.3; wait for the row), green locally (wildlife + music 118/118); run 2 on the fix push.
 - **Not heard by ear**: every new sound was judged by analysis (Group 0) — the reversed truck arrival, the drain's warble, the presence hum; the
   harbor's horns + whistle are the existing takes at new moments.
 - The workers: the awning isn't re-baked by the barber's crank; the repairman's / the lamp's test flicker show only after dark; the flower
