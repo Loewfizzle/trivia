@@ -5647,6 +5647,11 @@ speakeasy's power hook dark under it; with PARTY ON the show + the sky beams off
 - The tape's first bend can start late on a cold cache (the 4 MB fetch): the sag begins when the slice is ready, skipped past ~12 s in
   (`minAhead`) — the duck still dips the music.
 - The panel's forced run + a worker's truck in the same minute (above).
+- **The cloud (two runs, 40220340354 + 40221373738)**: the `tape`, `legends`, `workers` + the audio / show / city groups green; the first
+  run's `wild` job failed on the workers group because the people's new `traffic` hook threw inside `harbor()` (a crew truck carries no
+  `tE`) — fixed in 38431fa; the second run's `wild` job lost 30 s launching Chrome for the wildlife group ("waiting for the WS endpoint
+  URL", then workers + tape 24/24) and its `street` job passed 75/75 but the speakeasy page's emulator dropped (auth/network-request-failed
+  + the RTDB websocket) and the harness counts those as errors. Both the cloud's own; not re-run (the two-run rule).
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
 - **THE TR-3B's MUSIC**: `&when=2026-10-22T22:00&force=tr3b` — tap so the music plays, watch the whole event with the AUDIO panel open:
