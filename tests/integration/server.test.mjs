@@ -517,7 +517,8 @@ test('CITY 2.0 preview panel: cityLive / cityClear — admins only, validated pl
     const live = await val('city2/live');
     assert.deepEqual(live, r.live);
     assert.equal(live.startAt, now); assert.equal(live.until, now + 45 * 60_000); assert.equal(live.by, boss.pid);
-    assert.deepEqual(live.state, { force: ['drones', 'aurora'], text: 'HAPPY BIRTHDAY', show: 'heart', when: '2026-10-24T23:00', speed: 20, wx: 'rain' });
+    // (POLISH 4: the drone show is a MESSAGE now — no shapes: its `show` is no longer one of its inputs, so it's dropped, never stored)
+    assert.deepEqual(live.state, { force: ['drones', 'aurora'], text: 'HAPPY BIRTHDAY', when: '2026-10-24T23:00', speed: 20, wx: 'rain' });
     assert.equal(live.params.force, 'drones,aurora'); assert.equal(live.params.speed, '20');
     assert.match(live.label, /DRONE SHOW “HAPPY BIRTHDAY” · AURORA/);
     // the default is 30 minutes; anything the registry doesn't know is refused, nothing half-written
