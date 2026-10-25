@@ -213,7 +213,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return d && d.ready && dark.key === baker.key && g && d.y0 === g.show.y0 && d.h === g.show.h ? d : null;
   }
   /** what's left of the power at a screen x for a band (1 without a legendary) — the harbor, the promenade's lights */
-  const legendPow = (x, band, i) => (legends && legends.busy() ? legends.power(x / W, band, i) : 1);
+  const legendPow = (x, band, i) => (legends && legends.active() ? legends.power(x / W, band, i) : 1);
   let LB = null, speakPw = false, raidPole = false, raidLit = new Set(), raidCue = new Set(), raidFrame = { R: null, spotAt: null };
   // 8b2 — THE RAID (core/harbor-raid.js): the night's raid (seeded by the date: the night after the bootleggers' delivery, a rare party
   // night) or the preview (&force=raid: one every 2½ min from the moment it's on) → its plan for this layout, kept 4 h after (the people's
@@ -515,7 +515,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (m && m.i === i) lv *= m.level(ms);
       // (8b1 — CAUSE AND EFFECT: a lamp's BAD NIGHT — it stutters every minute or so until the morning's short ladder fixes it)
       if (lv > 0 && mo && lampFaultNow && lampFaultNow.lamp === i && ms / 1000 >= lampFaultNow.from) { const u = ((ms / 1000 - lampFaultNow.from) % lampFaultNow.period); if (u < 1.1) lv *= u < 0.12 ? 0.1 : u < 0.3 ? 0.75 : u < 0.42 ? 0.05 : u < 0.62 ? 0.6 : u < 0.75 ? 0.15 : 1; }
-      if (legends && legends.busy()) lv *= legendPow(project(cam, L.lamps[i].x, 0, L.lamps[i].z)[0], 'near', 100 + i);   // (6b: a legendary's power)
+      if (legends && legends.active()) lv *= legendPow(project(cam, L.lamps[i].x, 0, L.lamps[i].z)[0], 'near', 100 + i);   // (6b: a legendary's power)
       levels.push(lv); off.push(1 - lv); if (lv < 0.98) dim = true;
     }
     lampDbg = { levels: levels.map(v => +v.toFixed(2)), th: lampTh.map(v => +v.toFixed(2)), moment: m ? { i: m.i, kind: m.kind, at: m.at, len: +m.len.toFixed(2) } : null };
@@ -765,7 +765,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (FP2: and never before tonight's warm-up — 8:30 pm at the earliest: harborParty(…).on)
     const plan = partyPlanNow(), hp0 = harborParty(partyHour(LK.local), plan);
     const ps = clock.force.has('no-party') ? { on: 0, energy: 0, phase: null, forced: true } : partyState(LK.local, { caught: caught && lit > 0.5 && partyReady(DK) && hp0.on, force: clock.force.has('party') });
-    PT.name = ps.phase; PT.on = ps.on; PT.ramp = ps.on; PT.energy = ps.energy; PT.motion = S.motion; PT.tier = tier; PT.plan = plan;
+    // (8b2 — THE BLACKOUT WINS (the owner: the TR-3B forced with PARTY ON left the neon, the windows, the sky beams + the show lit): the
+    // party show is scaled by what's left of the city's power at its SOURCE — every party light (the chasers, the LED facades, the punch,
+    // the sky beams, the searchlights' turn) reads PT.on / PT.ramp; dark while the city is dead, ramping back with the power)
+    const blk = legends && legends.active() ? legends.blackout() : null, pwK = blk ? clamp01(1 - blk.k) : 1;
+    if (pwK < 1) ps.on *= pwK;
+    PT.name = ps.phase; PT.on = ps.on; PT.ramp = ps.on; PT.energy = ps.energy; PT.motion = S.motion; PT.tier = tier; PT.plan = plan; PT.power = pwK;
     // (the harbor's own night — FP2: 8:30 pm warm-up → 9:30 pm peak → calming after 1 am; core/party.js keeps the window + the 2 am wind-down)
     if (ps.on > 0 && !ps.forced) { PT.energy = hp0.energy; PT.name = hp0.name; }
     PT.palette = partyPalette(hol);
@@ -907,14 +912,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
     if (now - legendCheckAt > 1000) { legendCheckAt = now; if (!legends && (off.has('ufo') || off.has('tr3b') || legendSoon())) needLegends(); }
     // (THE DIRECTOR's view of this frame: what heavy is on screen now)
-    director.frame([PT.on > 0.5 ? { id: 'party', kind: 'party' } : null, ...sky.heavies(), legends && legends.busy() ? { id: 'legend', kind: 'legendary' } : null], tier);
+    director.frame([PT.on > 0.5 ? { id: 'party', kind: 'party' } : null, ...sky.heavies(), legends && legends.active() ? { id: 'legend', kind: 'legendary' } : null], tier);
     if (legends) {
       legends.tick(fs, (id, kind) => director.may(id, kind));
       const gl = legends.signGlitch();
       if (gl != null) signDim.set('tr3b', { logo: gl, tag: Math.min(1, gl + 0.05), ms: 60 }); else if (signDim.ids().includes('tr3b')) signDim.clear('tr3b');
     }
     // POLISH 4 — THE TR-3B's BLACKOUT this frame: { k (how dark the city is), dead: { far, city, harbor, near } } or null
-    LB = legends && legends.busy() ? legends.blackout() : null;
+    LB = legends && legends.active() ? legends.blackout() : null;
     const deadFar = !!(LB && LB.dead.far), deadCity = !!(LB && LB.dead.city), dk0 = LB ? LB.k : 0;
     // ---- the sky
     c.globalAlpha = 1;
@@ -1035,7 +1040,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the far quay's lamps (Part 4: lit at night, with the city's power-on; their light runs down into the water)
     drawQuayLamps(c, quayLamps, fadeIn * litK(DK, 'lamps') * lit * pQuay);
     if (!deadCity) lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
-    if (legends && legends.busy()) drainCity(c, fadeIn);       // (6b: THE TR-3B's power drain rolling across the city under it)
+    if (legends && legends.active()) drainCity(c, fadeIn);       // (6b: THE TR-3B's power drain rolling across the city under it)
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
     // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)
@@ -1154,7 +1159,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (wlLive) wild.tick({ snd: S.motion ? snd : null });
     // PART 6b — THE UFO ABDUCTION over the compass (its pool, the beam, the walker + the figure lifted, the saucer) — in front of everyone
     // on the floor, behind the front row (the framing maple + the near lamps stand in front of the beam)
-    if (legends && legends.busy() && fadeIn > 0 && !off.has('no-legends')) legends.near(c, fs, { ...(pplEnv || peopleEnv(lit, fadeIn)), waterLight: (x, y, col, k, r) => water.light(x, y, col, k, r) });
+    if (legends && legends.active() && fadeIn > 0 && !off.has('no-legends')) legends.near(c, fs, { ...(pplEnv || peopleEnv(lit, fadeIn)), waterLight: (x, y, col, k, r) => water.light(x, y, col, k, r) });
     layer('front');
     // (POLISH 4 — THE BLACKOUT on the promenade's BAKED night light: the lamps' pools, the trees' uplights, the hidden lamp's glow, the
     // spill on the cobbles are part of the stage's bake — a multiply veil from the back road down takes them out with the power, the
@@ -1612,7 +1617,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // TIER_GRACE after the city shows, and the first window it judges holds no frame from before)
     // (POLISH 4 — A LEGENDARY HOLDS THE TIER: the owner's iPhone stepped 2→1→2 during the TR-3B — each step REBAKES the whole city,
     // mid-event; its ~50 s are judged by nobody, and the window after it starts fresh)
-    if (legends && legends.busy()) { legendHeld = true; return; }
+    if (legends && legends.active()) { legendHeld = true; return; }
     if (legendHeld) { legendHeld = false; frames.length = 0; tierHold = Math.max(tierHold, now + 3000); return; }
     if (frames.length < 90 || document.visibilityState !== 'visible' || now < tierHold || shownAt < 0 || now - shownAt < TIER_GRACE) return;
     if (!graceDone) { graceDone = true; frames.length = 0; return; }

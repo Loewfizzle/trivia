@@ -2262,7 +2262,18 @@ G('legends', async () => {
     await waitFor(Q.page, `(() => { const k = ${P}.legend.dark(); return k.far && k.near; })()`, 'the dark city baked', 20000);
     const bo = await ev(Q.page, `${P}.legend.blackout()`);
     ok(bo && bo.dead.far && bo.dead.city && bo.dead.harbor && bo.dead.near && bo.k > 0.99, `THE TR-3B's BLACKOUT: every depth dead (${JSON.stringify(bo && bo.dead)}), k ${bo && bo.k}`);
+    // (8b2 — the scene APPLIES it: the speakeasy's power hook dark — the check the old test lacked when the scene stopped reading it)
+    await waitFor(Q.page, `${P}.speakeasy.power() < 0.05`, 'the speakeasy dark', 10000).catch(() => {});
+    ok((await ev(Q.page, `${P}.speakeasy.power()`)) < 0.05, 'THE TR-3B BLACKOUT reaches the scene: the speakeasy dark');
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- 8b2: THE BLACKOUT WINS OVER THE PARTY (the owner forced the TR-3B with PARTY ON: the show stayed lit) — the show off while dead
+  { const Q = await open({ slot: 'lg2p', qs: `${NIGHT}&force=tr3b,party&lgs=15`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.legend.state.phase === 'cross'`, 'the TR-3B loaded + crossing', 20000);
+    await waitFor(Q.page, `window.__district.party().on < 0.05 && ${P}.speakeasy.power() < 0.05`, 'the party show dark under the blackout', 15000).catch(() => {});
+    const pt = await ev(Q.page, 'window.__district.party()');
+    ok(pt.on < 0.05 && pt.beams < 0.05, `THE BLACKOUT WINS OVER THE PARTY: the show ${pt.on.toFixed(2)}, the sky beams ${pt.beams}`);
     await Q.ctx.close(); }
   // ---- 6b: THE BARNSTORMER (its overlay over the sign while it flies, gone after), THE AIR SHOW, a 3-PAGE drone message
   { const Q = await open({ slot: 'lg3', qs: `when=2026-10-21T13:00${GR}&force=barnstormer`, view: [402, 874] });

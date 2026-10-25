@@ -862,6 +862,8 @@ export function createLegends({ clock, qp } = {}) {
     // scream across (their pass is fast); the rest runs at the calm night's 30 like any quiet night. The abduction keeps 60 (the beam,
     // the lift, the saucer's dash).)
     busy: () => !!run && (run.kind !== 'tr3b' || !st || !!(st.chase && st.chase.on)),
+    /** a legendary is running (its blackout, its power, its people, its director slot) — busy() is only the 60 fps request */
+    active: () => !!run,
     /** POLISH 4: the scene's dark city bake is wanted (a TR-3B due within the minute, or running) */
     darkWanted: () => (run ? run.kind === 'tr3b' : warmFor === 'tr3b'),
     debug: () => ({ run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, warm: warmFor }),
