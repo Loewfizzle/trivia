@@ -18,6 +18,7 @@
 import { rngFrom, hashString } from './rng.js';
 import { signalAt, SIGNAL_CYCLE, xOfF } from './harbor-promenade.js';
 import { partyAt } from './harbor-moments.js';
+import { carsAt } from './harbor-traffic.js';
 import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
@@ -669,7 +670,9 @@ export function folkAt(t, world, cache = new Map()) {
   const live = nowSess.find(x => t > x.s0 - 5 && t < x.s1 + 40), dance = live ? { on: true, k: danceLevel(live, t), id: live.id, s0: live.s0, s1: live.s1 } : { on: false, k: 0 };
   // the cart now: where it is (wheeled in / parked / wheeled out) — people.js draws it
   const cart = evNow ? { ...cartAt(evNow, t, cartIn(L.cam), cartX), z: L.cart.z, parked: t >= evNow.ta && t < evNow.tb } : { on: false };
-  return { visits: all, members, doors, dance, cart, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
+  // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
+  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: busesNear, off: ctx.off, seed: ctx.seed, party: ctx.party });
+  return { visits: all, members, doors, dance, cart, cars, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
 }
 
 // ------------------------------------------------------------------ THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vehicles preview</title>
+<!-- CITY 2.0 POL4: THE VEHICLE KIT (js/screens/harbor/vehicles.js) without the city — every model (columns) in every look (rows: day /
+     golden / night / night under a lamp / a party night's underglow), its lamps lit at night, on a strip of setts. ?s=pt-per-unit (default
+     20 = the street's far lane at 402; 10 = the back road), ?zoom= (default 1), ?paint=n (each model's nth paint), ?dir=-1 (facing left).
+     Shoot it: node shots.mjs "<browser>" --page "tests/integration/vehicles-preview.html?s=20" -->
+<style>body{margin:0;background:#222;color:#ddd;font:12px ui-monospace,monospace}canvas{display:block}</style>
+</head><body>
+<canvas id="cv"></canvas>
+<script type="module">
+import { createVehicles, MODEL_IDS, MODELS, UNDERGLOW } from '../../js/screens/harbor/vehicles.js';
+const q = new URLSearchParams(location.search), sp = +(q.get('s') || 20), zoom = +(q.get('zoom') || 1), dpr = 2, paint = +(q.get('paint') || 0), dir = +(q.get('dir') || 1);
+const looks = [['day', 0, 0, null], ['golden', 0, 0, null], ['night', 1, 0, null], ['lamp', 1, 1, null], ['party', 1, 0.4, 1]].filter(l => !q.get('looks') || q.get('looks').split(',').includes(l[0]));   // (?looks=day,night: only those rows)
+const ONLY = (q.get('only') || '').split(',').filter(Boolean), IDS = MODEL_IDS.filter(id => !ONLY.length || ONLY.includes(id));
+const cellW = 7 * sp, cellH = 3.4 * sp, W = cellW * IDS.length, H = cellH * looks.length;
+const cv = document.getElementById('cv');
+cv.width = W * dpr * zoom; cv.height = H * dpr * zoom; cv.style.width = `${W * zoom}px`; cv.style.height = `${H * zoom}px`;
+const c = cv.getContext('2d'); c.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
+const V = createVehicles();
+looks.forEach(([name, night, lampK, party], r) => IDS.forEach((id, i) => {
+  const ox = i * cellW, oy = r * cellH;
+  c.fillStyle = night ? '#2a2840' : name === 'golden' ? '#a8786a' : '#8a8784'; c.fillRect(ox, oy, cellW, cellH);
+  c.fillStyle = night ? '#232136' : name === 'golden' ? '#966a5e' : '#7a7774'; for (let y = cellH * 0.7; y < cellH; y += 5) for (let x = (Math.round(y / 5)) % 2 ? 0 : 7; x < cellW; x += 14) c.fillRect(ox + x, oy + y, 12, 4);
+  const look = name === 'party' || name === 'lamp' ? 'night' : name;
+  V.draw(c, { id, paint, trade: i % 4, rumble: true, x: ox + cellW / 2, y: oy + cellH - 0.35 * sp, sp, dir, dist: 1.1 * i, speed: 0, look, lampK, lit: night ? 1 : 0, underglow: party ? UNDERGLOW[i % UNDERGLOW.length] : null, glowK: party ? 1 : 0, dpr: dpr * zoom });
+  c.fillStyle = night ? '#bbb' : '#222'; c.fillText(`${id} · ${name}`, ox + 4, oy + 12);
+}));
+document.body.dataset.ready = '1';
+</script>
+</body></html>

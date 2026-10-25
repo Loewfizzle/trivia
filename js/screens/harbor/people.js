@@ -16,6 +16,7 @@ import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '../../core/harbor-people.js';
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP } from './folk.js';
 import { drawBus } from './bus.js';
+import { createVehicles, UNDERGLOW } from './vehicles.js';
 import { danceMoves, drawWands } from './wands.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
@@ -96,13 +97,13 @@ export function createPeople() {
       // (behind the speakeasy on the waterside sidewalk: hidden by the building — not drawn)
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ && !insideDoor(m)));
     }
-    const buses = pass === 'far' ? now.buses : [];
-    if (!items.length && !buses.length) return;
+    const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? now.cars || [] : [];
+    if (!items.length && !buses.length && !cars.length) return;
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);
     // far first; a bus is one item at its own depth
     const cartNow = pass === 'near' && now.cart && now.cart.on ? now.cart : null;
-    const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : [])].sort((a, b) => b.z - a.z);
+    const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...cars.map(car => ({ z: car.z, car })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : [])].sort((a, b) => b.z - a.z);
     const hands = new Map(), collars = new Map();
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
     const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, advance = pass === 'near' && env.t !== wandT;
@@ -119,6 +120,7 @@ export function createPeople() {
         continue;
       }
       if (it.cart) { drawCartLive(c, it.cart, env); continue; }
+      if (it.car) { drawCar(c, it.car, env); continue; }
       if (riding.has(it.m)) continue;
       const mem = it.m, look = lookFor(mem, env);
       let st = mem.s, mv = null;
@@ -136,6 +138,28 @@ export function createPeople() {
     }
     for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E); }
     c.restore();
+  }
+  // ---- POL4 — THE BACK ROAD'S MOTORCARS (core/harbor-traffic.js plans them; vehicles.js paints them): side-on on the waterside road,
+  // their wheels turning by the distance rolled, a soft contact shadow, at night the lamps lit (× env.power — a legendary's blackout)
+  // with their pool on the asphalt ahead + the tall lamps' light on the body near them; a party night's underglow on a few
+  const kit = createVehicles();
+  let carPool = null;
+  function drawCar(c, car, env) {
+    const cam = L.cam, sp = cam.F / car.z, [cx, gy] = project(cam, car.x, 0, car.z), T = env.T || {}, night = clamp01(env.dark || 0), pw = env.power == null ? 1 : clamp01(env.power);
+    const look = night > 0.5 ? 'night' : (T.gold || 0) > (T.day || 0) ? 'golden' : 'day', len = car.len * sp;
+    if (cx + len < -10 || cx - len > cam.W + 10) return;
+    // the contact shadow (the body keeps the light off the road between its wheels)
+    c.save(); c.globalAlpha = (env.fade == null ? 1 : env.fade) * (0.42 - 0.12 * night); c.fillStyle = 'rgb(14,12,24)';
+    c.beginPath(); c.ellipse(cx, gy - 0.05 * sp, len * 0.5, Math.max(1, 0.32 * sp), 0, 0, Math.PI * 2); c.fill(); c.restore();
+    const lit = night * pw;
+    if (lit > 0.05) {
+      if (!carPool) { carPool = document.createElement('canvas'); carPool.width = carPool.height = 64; const x = safeCtx(carPool); if (x) { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,226,172,1)'); g.addColorStop(0.4, 'rgba(255,226,172,0.4)'); g.addColorStop(1, 'rgba(255,226,172,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); } }
+      const fx = cx + car.dir * (len / 2 + 2.4 * sp), rw = 2.8 * sp, rh = Math.max(1.5, 0.55 * sp);
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.32 * lit; c.drawImage(carPool, fx - rw, gy - rh, rw * 2, rh * 2); c.restore();
+    }
+    let lampK = 0; for (const l of L.lamps) if (l.kind === 'tall') { const d = (car.x - l.x) / 7; if (d * d < 1) lampK = Math.max(lampK, (1 - d * d) ** 2); }
+    const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
+    kit.draw(c, { id: car.model, paint: car.paint, trade: car.trade, rumble: car.rumble, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
   }
   // ---- THE CHESTNUT CART, live (FP3b item 11b — the vendor spot: core/harbor-routines.js#VENDOR): wheeled in + out by its vendor,
   // parked at the front curb in the evening; a sprite while it stands (re-painted when the look changes), painted directly while it
@@ -318,6 +342,9 @@ export function createPeople() {
     layout, frame, draw, tick, drawInside,
     /** FP3b — REAL DOORS: how open each speakeasy door is now ({ side, shop }: 0..1 — the speakeasy draws the leaf) */
     doors: () => ({ ...(now.doors || { side: 0, shop: 0 }) }),
+    /** POL4: a motorcar rolling on the back road now (the scene keeps 60 fps for it) */
+    driving: () => (now.cars || []).some(c => c.speed > 0.3),
+    cars: () => (now.cars || []).map(c => ({ id: c.id, model: c.model, lane: c.lane, x: +c.x.toFixed(2), speed: +c.speed.toFixed(2), glow: c.glow })),
     /** FP3b — THE DANCE CIRCLE now: { on, k (0..1 formed), id, s0, s1 } (the scene lights the inlay's floor spots + keeps the cart away) */
     dance: () => ({ ...(now.dance || { on: false, k: 0 }) }),
     /** FP3b — THE VENDOR SPOT now: the chestnut cart { on, x, parked, moving } */

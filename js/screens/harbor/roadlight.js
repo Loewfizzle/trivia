@@ -17,7 +17,8 @@ import { roadPassAt, ROAD_PASS, carAt, carVis, carSpeed } from '../../core/harbo
 import { takeAt, crossFor, carPre, panOf } from '../../core/city-sounds.js';
 import { cityPrefetch } from '../../audio/city-sound.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
-import { createMotorcar, PAINTS } from './motorcar.js';
+import { createMotorcar } from './motorcar.js';
+import { vehicleFor, UNDERGLOW } from './vehicles.js';
 import { roadLampAt } from '../../core/harbor-light.js';
 
 const sprite = (rgbStr, soft = 0.5) => {
@@ -105,7 +106,9 @@ export function createRoadLight() {
       if (st && vis > 0.004) {
         const car = carAt(cur, center, f.ms, cam, st, cross);
         if (car.on) {
-          motor.draw(c, car, { cam, T: f.T, k: vis * f.fade, night: f.night, lampAt, paint: Math.floor(cur.take * PAINTS.length) % PAINTS.length, dpr: f.dpr || 2, t: f.t || 0, motion: f.motion, wet: f.wet || 0, rails: st.rails });
+          // (POL4: the pass's vehicle from the street's cycle — never the same model twice in a row; a party night: one in three glows)
+          const n = parseInt(String(cur.id).slice(1), 10) || 0, veh = vehicleFor(n, 'street'), ug = f.party && ((n * 2654435761) >>> 0) % 3 === 0 ? UNDERGLOW[((n >>> 0) % UNDERGLOW.length)] : null;
+          motor.draw(c, car, { cam, T: f.T, k: vis * f.fade, night: f.night, lampAt, vehicle: veh, underglow: ug, dpr: f.dpr || 2, t: f.t || 0, motion: f.motion, wet: f.wet || 0, rails: st.rails });
           seen = true;
         } else motor.reset();
       } else motor.reset();

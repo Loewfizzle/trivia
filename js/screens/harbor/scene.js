@@ -652,6 +652,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (legends && legends.busy()) return 'legend';
     if (roadLight.busy()) return 'car';              // (FP2: the motorcar crossing the street while the dock rests — its wheels at 60)
     { const d = people.doors(); if ((d.side > 0.002 && d.side < 0.998) || (d.shop > 0.002 && d.shop < 0.998)) return 'door'; }   // (POL4: a door swinging — every frame, never a stepped swing)
+    if (people.driving()) return 'traffic';          // (POL4: a motorcar rolling on the back road — its wheels + its glide at 60)
     return '';
   }
 
@@ -883,7 +884,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     layer('front');
     // THE IMPLIED ROAD (8a): a passing car's headlights sweeping the near cobbles at night, its soft shadow by day, its sound
     if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps'), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
-      gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0 }; roadLight.tick(rf); roadLight.draw(c, rf); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
+      gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0, party: PT.on > 0.5 /* (POL4: a party night — a few cars glow) */ }; roadLight.tick(rf); roadLight.draw(c, rf); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
     // the trees' falling leaves (autumn) / the crabapple's petals (its blossom) in the real wind (8a: trees.js)
     if (fadeIn > 0 && !off.has('no-leaves')) { const wd = LK.windDir == null ? 250 : LK.windDir; leaves.draw(c, { t, dt, motion: S.motion, wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), season: L.season, phase: L.seasonPhase, fade: fadeIn, night: litK(DK, 'lamps'), tier }); }
     // ---- the lights (every frame): the lamps' light on the promenade, the knock's warm flash at the door
@@ -1532,7 +1533,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (6b: THE DIRECTOR — the budget, what runs, who asked + got a yes)
       director: director.state(),
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
-      people: { ...people.debug(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
+      people: { ...people.debug(), cars: people.cars(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },
