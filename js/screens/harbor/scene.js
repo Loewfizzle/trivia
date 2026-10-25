@@ -67,7 +67,7 @@ import { createStrings, STRINGS_ON } from './strings.js';   // (the roof's café
 import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
 import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
 import { setCityClock } from '../../core/city.js';
-import { lhEdgeBlocks, signSpots, assignSigns, billboardPick } from '../../core/harbor-neon.js';
+import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
 import { tracesAt } from '../../core/harbor-crew.js';
 import { folkMap } from '../../core/harbor-people.js';
 import { drawSheets, sheetArt, bladeArt, drawBlade } from './workers.js';
@@ -288,7 +288,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function workTraceNow() {
     if (!L || !LK.local || clock.force.has('no-work')) return null;
     if (workCacheL !== L) { workCache = new Map(); workCacheL = L; }
-    try { return tracesAt(clock.now() / 1000, { L, M: folkMap(L), ctx: { off: LK.local.off, seed: L.seed || 1924, force: workForced(), dusk: duskFor } }, workCache); } catch (e) { console.error('WT', e && e.stack); return null; }
+    try { return tracesAt(clock.now() / 1000, { L, M: folkMap(L), ctx: { off: LK.local.off, seed: L.seed || 1924, force: workForced(), dusk: duskFor } }, workCache); } catch { return null; }
   }
   // (DT1: the palette + the facades' tones from the Harbor's weights — the sky model's + THE BLUE HOUR: tones.js#harborWeights)
   let LH = harborWeights(LK), P = paletteFor(LH), skyKey = '', lookAt = 0, TW = toneWeights(LH);
@@ -333,7 +333,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     skyline = roofline(L);
     archFor();
     lights.layout(L);
-    { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
+    { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardGame: bt ? boardGameOf(bt.board.key, L) : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
     water.layout(L, { dpr, tier });
     waterfront.layout(L, { dpr });
     wheel.layout(L, { dpr, tier }); beam.layout(L); boats.layout(L, { dpr, tier, taxi: clock.force.has('taxi') });
@@ -477,7 +477,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // 8b1 — the roof board + the blade, kept in step with the workers' traces
   const BOARD_ID = 'bb-left';
   let sheetK = '', sheetV = null, bladeK = '', bladeV = null, boardCheck = 0;
-  const boardGameOf = key => { try { const sp = signSpots(L); return billboardPick(games, sp, assignSigns(games, sp, key), key, 0); } catch { return null; } };
+  // (8b1: the BLADE is the week's — stable from the Monday painters to the next; the roof board steps aside from the blade's game, never the
+  // other way round, so the billposter's daily change can never flip the blade)
+  const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), games.filter(g => g.playable !== false).map(g => g.id), null); };
+  const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g; } catch { return null; } };
   function workBoard(c, tr) {
     lampFaultNow = tr.lampFault || null;
     const now = performance.now();
@@ -529,8 +532,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let speakMemo = null;
   // (8b1 — THE SIGN PAINTERS: on Monday the blade keeps LAST week's name until they've finished repainting it, ~4 pm)
   function speakCtxFor(ms) {
-    const board = (neon.debug().boards[0] || {}).game || null;
-    const id = ghostAdGame(ms, playable.map(g => g.id), board);
+    const id = ghostAdGame(ms, playable.map(g => g.id), null);
     return { game: playable.find(g => g.id === id) || null };
   }
   function bladeMs() {
@@ -544,7 +546,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (speakMemo && now - speakMemo.at < 4000) return speakMemo.v;
     const board = (neon.debug().boards[0] || {}).game || null;
     const want = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('ad') : null;     // (SP2: &ad=<game> previews any game's blade)
-    const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(bladeMs(), playable.map(g => g.id), board), month = seasonForced() ? { spring: 5, summer: 7, autumn: 10, winter: 1 }[seasonForced()] : LK && LK.local ? LK.local.m : 10;   // (8a: a forced season's month — the ivy matches the trees)
+    const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(bladeMs(), playable.map(g => g.id), null), month = seasonForced() ? { spring: 5, summer: 7, autumn: 10, winter: 1 }[seasonForced()] : LK && LK.local ? LK.local.m : 10;   // (8a: a forced season's month — the ivy matches the trees)
     const v = { game: playable.find(g => g.id === id) || null, month, key: `${id}|${month}` };
     speakMemo = { at: now, v };
     return v;
@@ -1702,7 +1704,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (6b: THE DIRECTOR — the budget, what runs, who asked + got a yes)
       director: director.state(),
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
-      people: { ...people.debug(), cars: people.cars(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
+      people: { ...people.debug(), cars: people.cars(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },

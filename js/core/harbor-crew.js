@@ -436,8 +436,10 @@ export function tracesAt(t, world, cache = new Map()) {
   const today = crewDay(d.key, d.day0, world, cache), yday = crewDay(prevKey(d.key), d.day0 - 86400, world, cache);
   // (a &force=work-<kind> preview: the marks of its latest slot)
   const m = ctx.force ? resultsOf(worksIn(t - 1500, t + 1, ctx, cache).filter(w => w.t0 <= t).sort((p, q) => p.t0 - q.t0), world, cache).marks : today.marks, my = ctx.force ? {} : yday.marks;
-  const milk = m.milk && t >= m.milk.milkDrop && !(m.barber && m.barber.milkTake != null && t >= m.barber.milkTake) && t < d.day0 + 13 * 3600;
-  const bundles = m.newsdrop && t >= m.newsdrop.bundles && !(m.newsboy && t >= m.newsboy.untie) && t < d.day0 + 12 * 3600;
+  // (a preview — &force=work-milk / -newsdrop — keeps its trace until its slot ends; a real day: until the barber / the newsboy, or midday)
+  const until = (mk, noon) => (ctx.force ? mk.t1 + 60 : d.day0 + noon * 3600);
+  const milk = m.milk && t >= m.milk.milkDrop && !(m.barber && m.barber.milkTake != null && t >= m.barber.milkTake) && t < until(m.milk, 13);
+  const bundles = m.newsdrop && t >= m.newsdrop.bundles && !(m.newsboy && t >= m.newsboy.untie) && t < until(m.newsdrop, 12);
   const bp = m.billposter && m.billposter.sheets;
   // the board's game: TODAY's once the billposter's last sheet is up (no billposter today: from 17:30); before that, yesterday's
   const boardDone = bp ? bp.done : d.day0 + 17.5 * 3600;

@@ -105,7 +105,7 @@ export function createPeople() {
     }
     const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? [...(now.cars || []), ...((now.crew && now.crew.trucks) || [])] : [];
     // 8b1 — THE WORKERS' PROPS at their own depths (ladders, the platform, the stand, the bottles, the hatch, the wet streak…)
-    const props = pass === 'near' ? propItems(L, now.crew, pass, env.t || 0) : [];
+    const props = pass === 'near' ? propItems(L, now.crew, pass, lastT) : [];   // (the props' states run on the CITY clock)
     if (!items.length && !buses.length && !cars.length && !props.length) return;
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);

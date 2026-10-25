@@ -5016,6 +5016,106 @@ the importer to try its ready cut). The sounds were judged by analysis + a phone
 the warble's depth and the presence hum's saturation want the owner's ears. The warble moves the media element's playbackRate ~10 × a second
 — if iOS clicks on it, lower `DRAIN_M.wow / flutter` or the step rate. A 5-letter word on wordA can't be bigger than the 3 × 5 (19 columns).
 
+### Group 1 — THE WORKERS' SCHEDULE (plan.md "THE WORKERS' SCHEDULE — DECIDED")
+THE ROUTINES LAYER, grown up: a SCHEDULED set-piece layer beside the people's random visits (review-3 §A2). Three pure modules + two
+drawn ones:
+- **`core/harbor-workers.js` — THE TIMETABLE** (PURE): `SHOWS` (one at a time on the stage) + `REGULARS` (small; may overlap a show), each a
+  row of days + a FIXED `at` (set-your-watch: the milk 5:59 so the bottles touch the step at 6:00, the newsboy 7:00, the barber 8:30, the
+  beat cop 9:00 + the 9 pm `patrol`) or a seeded WINDOW for its start + a length. `workDay(key, ctx)` → the local day's workers, planned once
+  from the date (every phone the same, a page opened mid-way joins mid-way): fixed shows first, then the windowed ones sliding later inside
+  their window (+ `SLACK` 1 h) round the others — **NEVER TWO SHOWS AT ONCE** — or skipped that day. `forcedWork(kind, t)` = the previews
+  (`&force=work-<kind>`: that worker every 3 min, the long shows on 10–36-min slots, joined mid-way). The prop states on the clock: `MILK`,
+  `BUNDLES`, `WET` (the streak dries in 45 min), `PAINT_STAGES` + `paintStage(u)` (setup · out · chalk · letters · gilt · pack — a preview
+  compresses them into its slot), `SHEETS` + `sheetsUp(u)` (3 × 2 sheets, the top row first), `platformAt(u, len)` (the upper floor, then a
+  floor lower). CAUSE AND EFFECT, seeded by the evening's date: `bulbOut` (a marquee bulb, ~once a week), `lampFault` (a lamppost's bad night,
+  ~2 a week), `boardLampOut` (a billboard gooseneck, ~every 9 days), `bootlegNight` (a few quiet weeknights a month — **THE RAID's HOOK**:
+  8b2 reads it for "rarely the raid comes the night after a delivery").
+- **`core/harbor-crew.js` — THE CREW** (PURE): each kind's itinerary (`PLAN[kind]`) on the people's map with a small builder over the
+  people's legs — routed walks, REAL doors, `inside(dur)` (indoors between two doors: off the promenade), `climb()` (rung by rung along a
+  leaning ladder: `onLadder`), the roof by its hatch (the roof's fade convention), a height on every leg (`y`: a ladder, the platform, the
+  catwalk), a carried prop on every leg (`carry`). **THE TRUCKS** (`truckPlan`): they take the BUS's stop (its nose at the car's stop line
+  left of the crossing — the clearest view), brake in, wait for their crew, pull away on GREEN with time to clear the crossing; the crew
+  come + go round the truck's NOSE from the cab's far side (hidden by its body) and load at the BED's side, standing on the road (the kerb
+  behind the truck is the bench + crabapple's corner). `crewSpan(a, b)` / `crewAt(t)` → { visits, roof, trucks, props, marks };
+  `tracesAt(t)` → what outlasts a show: the milk on the step (6:00 → the barber), the bundles (→ the newsboy), the roof board's game (the
+  key it shows: YESTERDAY's until the billposter's last sheet; the paste in progress), the blade's repaint (Monday: the old name until the
+  painters finish), the dead bulb (`FLICK`: the repairman's test flicker), the lamp's bad night, the dead gooseneck, the can held, the
+  doorman's watch, the cop's whistle.
+- **`core/harbor-people.js`** — the routines layer's join: `folkAt` adds the crew's visits to the routines (kept first by the tier cap), their
+  occupancy to the blocks' (the crowd plans round them, never past the cap — the window washers' platform included), and **THE CROWD GIVES
+  WAY TO THE WORKERS** (`workLoad`: a block's crowd budget starts with half the workers' time on the promenade already spent — the owner's
+  calmer counts hold with the milkman, the newsboy, the cop out); the trucks join the back road as LEADERS (`harbor-traffic.js`: a truck
+  HOLDS the stop — no near-lane car enters from 45 s before it until it's gone) and a bus due while a truck holds the stop doesn't come
+  (`busBlocked`). `folkAt().crew` = { roof, props, trucks, traces, spots, works }. New in the people's legs: `carry`, `y`, `x1/z1 + y0/y1`
+  (a climb), `k: 'gap'`, `plat`.
+- **`screens/harbor/folk.js` + `gear.js`** — THE WORKERS' CLOTHES (`WORKWEAR`: the white-wing sweeper all in white, the milkman's white
+  jacket + cap, the cop's navy tunic + peaked cap + brass buttons + badge + baton, the mailman's grey-blue + bag, the barber's white jacket,
+  the painters' white overalls, the iceman's leather apron, the billposter's apron, the bootleggers' dark caps, the lookout's long coat, the
+  flower seller's shawl + basket, the musician's long coat + his DOUBLE-BASS CASE, the staff's shirt-sleeves + waistcoats; the new PEAKED cap)
+  + their POSES (sweep, crank, climb, reach, paint, paste, pastehi — the long brush to the top row, squeegee, tip — the can over the bed's
+  side, hold, twirl, tipHat, offer, post, lookout — his head turning) + their GEAR (`gear.js`: the wire carrier of white bottles, the bundles,
+  the folding stand, the papers held up, the galvanized can on the shoulder, the ice block on its leather pad with the tongs, a crate (the
+  bottle caps), buckets, the squeegee, the brushes, the ladder + the stepladder carried level, the paste bucket + the roll of sheets, the
+  mailbag, the flower basket, the bass case, the white wing's can cart, the broom, the watering can, a sack, the baton twirled).
+- **`screens/harbor/workers.js`** — THE PROPS as depth items in people.js's sorted passes (on the CITY clock): the tall ladder against the
+  BLADE's outer edge (raised + lowered with the man), the stepladder at a lamp, the HANGING PLATFORM (davits over the parapet, the ropes,
+  the plank deck + buckets behind the washers, the front rail in front of their legs), the NEWSSTAND (unfolding, papers fanned), the
+  BUNDLES, the MILK BOTTLES on the step, the bootleggers' CELLAR HATCH (two steel leaves up, the amber glow below), the painters' DROP
+  CLOTH, the sweeper's WET STREAK drying; and the two OVERLAYS — `drawSheets` (THE BILLPOSTER: the new poster pasted sheet by sheet over the
+  old, each unrolled downward, a damp sheen fading, the seams a hair; the art = `signs.js#buildBillboard`'s `poster` + `light`, lit like the
+  board: the sun's wash by day, × the gooseneck lamps' map at night) and `drawBlade` (THE SIGN PAINTERS: `bladeArt` paints a blank + the new
+  board with `speakeasy-blade.js#paintBlade`; out → chalk → letters → gilt).
+- **`screens/harbor/vehicles.js`** — two new kit MODELS on a `cab` body (a closed cab behind the hood + a bed): `dump` (the city's riveted
+  steel dump body, its ribs + rivets, CITY SANITATION stencilled) and `stake` (the bootleggers': wooden stakes + a canvas TARP lashed over
+  the hoops, a crate's corner at the tail; it runs WITHOUT LAMPS). The vans letter their trade per truck (`word`: HARBOR DAIRY, THE HERALD,
+  ICE CO., SODA WATER).
+- **`scene.js`** — the traces on the city: THE ROOF BOARD follows the billposter (`neon.layout({ board, boardGame, boardDead })` at a layout —
+  no rebake pop at load — + `neon.billboard()` when his last sheet is up; `neon.boardPick(key)` = the layout's own pick; the board steps aside
+  from the blade's game — the BLADE is the week's, never flipped by the board); THE BLADE's week turns when the Monday painters finish
+  (`bladeMs`); `speak.bulb(i, k)` (the dead marquee bulb — one of the two crest bulbs at the outer edge, where the ladder leans); a lamp's bad
+  night (`lampLife`: a stutter every ~40–80 s until the morning's stepladder); the real DUSK (`duskFor`: the doorman's post, the flower seller).
+- **The sounds** (people.js#workSounds — through their slots, quiet): milk-bottles (set down + taken in), newspaper-rustle (the bundles, a
+  sale), trash-can-lid (the lift + the tip), crates-clink, broom-sweep, squeegee, ladder-clank (up + down), police-whistle (the cop, now and
+  then), the trucks (`trash-truck-arrive / -depart` for the dump truck — Group 0's takes; `truck-delivery` for the vans; the bootleggers' quiet).
+
+**THE DAY** (a weekday; Saturday: no trash / ice / soda, the big delivery ~6:30 pm; Sunday: no milk / barber / mailman, the weekend edition):
+5:30 the sweeper · 5:59 THE MILK (fixed) · ~6:35 the newspaper van · 7:00 THE NEWSBOY (fixed; weekends 8:00) · ~6:20–7:20 the trash truck ·
+8:30 THE BARBER (fixed) · 9:00 THE BEAT COP (fixed) · ~9:10–9:40 a repair (the morning after a bulb / a bad lamp) · Wed ~9:20 the roof gardener ·
+~9:45–10:40 the ice man · ~10:15–10:45 the mailman · Tue + Fri ~10:35 → 12:00 the WINDOW WASHERS · Mon 1:00 → 3:50 THE SIGN PAINTERS ·
+~1:45–2:20 the soda water truck · ~3:55 the bartender · 4:30 → 6:30 the evening edition · ~4:50–5:20 → +34 min THE BILLPOSTER · dusk + 10 min
+→ 1:50 am THE DOORMAN (party nights: until THE LINE's doorman takes over at ~8:35) · Wed–Sat dusk + 20 min → +2.4 h THE FLOWER SELLER · ~8:00
+THE MUSICIAN (not Mondays) · 9:00 pm THE PATROL (fixed) · ~10:40–11:15 THE BOOTLEGGERS (a few weeknights a month) · ~1:58 am THE STAFF LOCK UP.
+
+**HOW TO ADD A WORKER**: (1) a row in `SHOWS` / `REGULARS` (`core/harbor-workers.js`: days, `at` or `win`, `len`, `prio`, `truck`); (2) its
+itinerary `PLAN[kind]` in `core/harbor-crew.js` (the builder: `edge / door / go / line / pose / climb / inside / hold / fade / fromTruck /
+tail / toTruck`); (3) a look in `folk.js#WORKWEAR`, gear in `gear.js#GEAR`, a pose in `jointsOf`, props in `workers.js#propItems`; (4) a
+row `work-<kind>` in `core/harbor-remote.js`'s WORKERS category (the registry test finds it); (5) a case in `tests/harbor-workers.test.mjs`.
+
+Previews (`https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`): every worker on a loop, any day —
+`&when=2026-10-22T13:00&force=work-<kind>` with kind = sweeper · milk · newsdrop · trash · newsboy · barber · cop · bulb · lamp · ice · mail ·
+washers · gardener · soda · painters · sweep2 · crew · bartender · evening · billposter · doorman · flowers · musician · patrol · bootleg ·
+delivery · staff (night ones look best at `T22:00`) — the panel's WORKERS rows; `&force=no-work` = everyone home. THE REAL WEEK: Monday
+`&when=2026-10-26T08:31` (the barber + the newsboy), `T13:40` (the painters painting out), `T15:00` (lettering), `T17:15` (the billposter
+pasting), Tuesday `&when=2026-10-27T11:20` (the window washers), `&when=2026-10-26T06:00` (the milk at night), a Saturday party night
+`&when=2026-10-24T18:40` (the big delivery).
+
+Tests (Group 1): `tests/harbor-workers.test.mjs` (the fixed times to the minute, never two shows at once over a fortnight, the weekly days,
+Sunday quiet, every phone the same, the bootleggers' rarity, cause → effect, the stages, the traces — the milk until the barber, the board's
+key until the billposter, the blade's week — a truck parked short of the crosswalk + away on green + no bus at the stop meanwhile, every
+`&force=work-<kind>` showing someone); `harbor-people.test` (the counts with the workers out; a worker by his truck on the road; the
+collector at the front-row can); e2e `G('workers')` (the milk truck + the bottles, the billposter on the catwalk pasting, the painters'
+ladder + the repaint, the real Monday 8:31).
+
+Decisions (Group 1): see the overnight list in the summary — the trucks on the back road (not the street under the dock), the billboard
+keeps yesterday's poster until the billposter, the blade is the week's + the board steps aside from it, the workers count in the calmer
+crowd, the awning cranked (not re-baked), the barbershop opens 8:30 Mon–Sat, the flower seller Wed–Sat, the musician not on Mondays.
+
+Known issues (Group 1): the awning isn't re-baked by the barber's crank (it's always out — the crank is a gesture); the repairman's test
+flicker shows only after dark (the marquee is unlit by day); the stepladder's lamp test flicker isn't drawn by day either; the flower
+seller's sale is a gesture only (no couple stops yet); the stream guests don't stop to whisper the password to the doorman yet; the
+sweeper's wet streak is a stroke along his passes (not per-cobble); `&force=work-<kind>` slots are on the clock (a page may wait up to ~3
+min for a short worker to start).
+
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against
 title.js / title-dock.js / backdrop.js, the baker + the budget, the scheduler, the flag, and what Parts 2–12 will hit. The camera

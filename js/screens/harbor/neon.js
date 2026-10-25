@@ -76,7 +76,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       if (sp.kind === 'billboard') {
         // tonight's billboard advertises the game with NO sign tonight (NEON PASS 5: 11 signs for 12 games — the nightly shuffle
         // picks which), else one with no named sign (an icon one), never the one up the street
-        const show = billboardPick(games, spots, bPick, bKey, boards.length) || sp.show;
+        const show = (boards.length === 0 && o.boardGame) || billboardPick(games, spots, bPick, bKey, boards.length) || sp.show;
         boards.push({ ...buildBillboard(sp, billboardContent({ game: show }, games), { dpr, roofY, dead: o.boardDead }), roofY, item: true }); continue;
       }
       const g = sp.kind === 'fixed' ? null : games.find(x => x.id === pick.get(sp.id));
@@ -992,6 +992,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       else if (name === 'flash') { const g = v && v.game && games.find(x => x.id === v.game); const cols = (v && v.cols) || (g ? markFor(g).tubes.map(t => hexRgb(t.col)).concat([hexRgb(SIGN_ACC[g.id] || '#ffffff')]) : [[255, 46, 151], [46, 230, 255]]); moment.flash = { t0: performance.now(), dur: 1.6, cols }; }
       else if (name === 'scheme' && (SCHEMES[v] || v === 'city')) { schemeX = v === 'city' ? null : v; applyScheme(); }
     },
+    /** 8b1 — the roof board's game for a night key (the same pick its layout makes: neon's own games, with their signs' full names) */
+    boardPick(key, n = 0, l = L) { if (!l) return null; const sp = signSpots(l); return billboardPick(games, sp, assignSigns(games, sp, key), key, n); },
     /** 8b1 — THE BILLPOSTER: a board built for `show` (not hung — its poster + light for the sheets he pastes) */
     boardArt(id, show) { const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return null; const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY }); free(b.nightS); return b; },
     /** the game a board shows now (null: none / CITY CONTROL's own content) */
