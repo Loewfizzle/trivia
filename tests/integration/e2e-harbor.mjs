@@ -187,6 +187,7 @@ async function panelSection() {
   ok(/T0[5-8]:\d\d$/.test(f1.q.when || ''), `JUST ME: DAWN from the real sun (${f1.q.when}), the city's look follows`);
   await chip('BACK TO NOW'); await chip('REAL'); await chip('1×');
   await chip('WORDS IN THE WINDOWS');
+  await waitFor(O.page, "!!document.querySelector('.hr-text')", 'the text box under its row', 6000);   // (8b1: the cloud once grabbed it before the panel drew it)
   await O.page.evaluate(() => { const i = document.querySelector('.hr-text'); i.scrollIntoView({ block: 'center', behavior: 'instant' }); i.focus(); });
   await O.page.keyboard.type('hey you');
   await waitFor(O.page, "window.__district.harbor().flags.q.text === 'HEY YOU'", 'the text applied', 5000);
