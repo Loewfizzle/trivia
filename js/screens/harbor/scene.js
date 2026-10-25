@@ -80,6 +80,9 @@ import { createDebugStrip } from '../../ui/debug-strip.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { raidEvening, raidPlan, raidAt, forcedRaid, RAID } from '../../core/harbor-raid.js';
+import { dayOf as workDayOf } from '../../core/harbor-workers.js';
+import { createRaid } from './raid.js';
 import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
 import { hornsBetween } from '../../core/harbor-boats.js';
 import { createDirector } from '../../core/harbor-director.js';
@@ -116,6 +119,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const speak = createSpeakeasy();                 // PART 7a: THE SPEAKEASY's live layer (the rooms lit, the pole, the ad's lamps; 7b's hooks)
   const centre = createCentre();                   // PF: THE CENTREPIECE on the inlay + its event lighting rig (harbor().centrepiece; 11a–c)
   const people = createPeople();                   // 8P: THE PEOPLE — the promenade's visitors, the bus, the line, the roof (harbor().people)
+  const raidFx = createRaid();                     // 8b2: THE RAID's light — the wash, the shades, the flashlight (harbor().raid)
   const wild = createWildlife();                   // 8b1: THE WILDLIFE — pigeons, gulls, the owl, the squirrel, the coyote, the trash can, the cat, fish, the heron, fireflies (harbor().wildlife)
   const strings = createStrings();                 // NEON PASS 4: STRING LIGHTS on the speakeasy's roof (Parts 8 + 11 reuse them)          // NEON PASS 2: THE WATERFRONT STRIP — the far shore's bars, diners, the theatre
   let pierLampsAt = [];
@@ -209,7 +213,44 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   /** what's left of the power at a screen x for a band (1 without a legendary) — the harbor, the promenade's lights */
   const legendPow = (x, band, i) => (legends && legends.busy() ? legends.power(x / W, band, i) : 1);
-  let LB = null, speakPw = false;                 // (POLISH 4: this frame's blackout — legends.blackout(); the speakeasy's power hook held)
+  let LB = null, speakPw = false, raidPole = false, raidLit = new Set(), raidCue = new Set();
+  // 8b2 — THE RAID (core/harbor-raid.js): the night's raid (seeded by the date: the night after the bootleggers' delivery, a rare party
+  // night) or the preview (&force=raid: one every 2½ min from the moment it's on) → its plan for this layout, kept 4 h after (the people's
+  // reaction holds on their new paths — never the old ones popping back)
+  const raidMemo = { key: '', plan: null }, raidDays = new Map();
+  let raidSince = null, raidAtS = -1e9, raidRd = null;
+  function raidPlanNow() {
+    if (clock.force.has('no-raid') || !L || !L.crosswalk) return null;
+    const nowS = clock.now() / 1000;
+    let rd = null;
+    if (clock.force.has('raid')) { if (raidSince == null) raidSince = nowS - 2; rd = forcedRaid(nowS, raidSince, PT.on > 0.3 || clock.force.has('party')); }
+    else {
+      raidSince = null;
+      if (Math.abs(nowS - raidAtS) > 2) {
+        raidAtS = nowS; raidRd = null;
+        if (LK.local && !LK.alwaysNight) for (const back of [0, 1]) {
+          const dd = workDayOf(nowS - back * 86400, LK.local.off || 0);
+          if (!raidDays.has(dd.key)) { raidDays.set(dd.key, raidEvening(dd.key, { off: LK.local.off || 0, seed: L.seed || 1924, day0: dd.day0 })); if (raidDays.size > 6) raidDays.delete(raidDays.keys().next().value); }
+          const r0 = raidDays.get(dd.key); if (r0 && nowS >= r0.t0 - 20 && nowS < r0.t0 + RAID.cap) { raidRd = r0; break; }
+        }
+      }
+      rd = raidRd;
+    }
+    if (rd && rd.key !== raidMemo.key) { raidMemo.key = rd.key; raidMemo.plan = raidPlan(rd, L); }
+    const P = raidMemo.plan;
+    return P && nowS < P.tEnd + 4 * 3600 && nowS > P.t0 - 30 ? P : null;
+  }
+  /** the raid's sounds on the city clock (once each): the far hand-crank siren as they come, the 1920s police cars' engines rolling by, the
+   *  officer's whistle at the stop (soft + distant, through their slots — silent while empty) */
+  function raidSounds(P, nowS) {
+    if (!P || !S.motion) return;
+    const cue = (id, at, fn) => { const k = `${P.key}|${id}`; if (nowS >= at && nowS < at + 3 && !raidCue.has(k)) { raidCue.add(k); if (raidCue.size > 40) raidCue.clear(); fn(); } };
+    cue('siren', P.t0 - 5, () => snd.play('siren-1920s', { gain: 0.75, pan: -0.7 }));
+    cue('cars', P.t0 + 0.5, () => snd.play('police-car-1920s', { gain: 0.9, pan: -0.5 }));
+    cue('cars2', P.t0 + 6, () => snd.play('car-1920s-pass', { gain: 0.6, pan: -0.2 }));
+    if (P.tStop != null) cue('whistle', P.tStop + 2.4, () => snd.play('police-whistle', { gain: 0.6, pan: -0.1 }));
+    cue('siren2', P.tPast + 1, () => snd.play('siren-1920s', { gain: 0.45, pan: 0.75 }));
+  }                 // (POLISH 4: this frame's blackout — legends.blackout(); the speakeasy's power hook held)
   // PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js): the bed (water + the hum by the darkness) and every event's slot
   const snd = createCitySounds();
   const roadLight = createRoadLight();
@@ -388,6 +429,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     centre.layout(L, { dpr: Math.min(2, dpr) });
     people.layout(L);
     wild.layout(L);
+    raidFx.layout(L); raidMemo.plan = null; raidMemo.key = '';
     frost.resize(W, H);
     bow.resize(W, H, HZ, dpr); bow.setTier(tier); fw.setTier(tier);
     if (vignette) vignette.width = vignette.height = 0;
@@ -546,7 +588,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }
     return null;
   }
-  const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(),
+  const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(),
     forceWork: workForced(), noWork: clock.force.has('no-work'), dusk: duskFor,
     forceBus: clock.force.has('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
@@ -1038,6 +1080,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const pplLive = !off.has('no-people'), pplOn = pplLive && fadeIn > 0 && !!bakeTones && !!(baker.group('stage') || {}).ready;
     const pplEnv = pplLive ? peopleEnv(lit, fadeIn) : null;
     if (pplLive) people.frame(peopleFrame());
+    // 8b2 — THE RAID now: its red + blue wash on the wet road, the kerb + the near water — under the patrol cars (drawn in the far pass)
+    const RP = raidPlanNow(), nowRS = clock.now() / 1000, RR = RP ? raidAt(RP, nowRS) : null;
+    raidSounds(RP, nowRS);
+    if (RR && RR.cars.length && fadeIn > 0) raidFx.ground(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), wet: (LK.rain || 0) > 0.1 ? 1 : 0.55, fade: fadeIn });
     // (8b1: the animals on the far side — gulls on the railing, the coyote — sorted in by depth with the people)
     if (pplOn) people.draw(c, 'far', wlOn ? { ...pplEnv, extra: wild.items('far', wlEnv), dogLunge: vid => wild.dogLunge(vid) } : pplEnv);
     else if (wlOn) wild.draw(c, 'far', wlEnv);
@@ -1071,11 +1117,18 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // FP3b — REAL DOORS: the doors' swing from the people's plan + whoever is in a doorway (drawn between its opening + its leaf)
     speak.doors(pplLive ? { ...people.doors(), inside: (cc, id) => { if (pplOn) people.drawInside(cc, id, pplEnv); } } : { side: 0, shop: 0 });
     // (POLISH 4: the TR-3B's blackout drives the facade's ONE power hook — every light on the building, its rooms + their life too)
-    if (LB) { speak.power(legendPow(W * 0.16, 'near', 200)); speakPw = true; } else if (speakPw) { speakPw = false; speak.power(1); }
+    // (8b2 — THE RAID: every light on the building cut the instant the cars show — the same hook; each window's own level as they come back)
+    const rpw = RR ? RR.power : 1;
+    if (LB || rpw < 1) { speak.power(Math.min(LB ? legendPow(W * 0.16, 'near', 200) : 1, rpw)); speakPw = true; } else if (speakPw) { speakPw = false; speak.power(1); }
+    if (RR && (RR.dark || RR.power < 1)) { const ws = speak.windows(); ws.forEach((wn, i) => { const lv = RR.win(i); if (lv == null) { if (raidLit.has(wn.id)) { raidLit.delete(wn.id); speak.light(wn.id, null); } } else { raidLit.add(wn.id); speak.light(wn.id, lv); } }); }
+    else if (raidLit.size) { for (const id of raidLit) speak.light(id, null); raidLit.clear(); }
+    if (RR && RR.dark) { if (!raidPole) { raidPole = true; speak.pole({ on: false }); } } else if (raidPole) { raidPole = false; speak.pole({ on: true }); }
     { const bd = wTr && wTr.bulbDead; speak.bulb(bd ? bd.i : null, bd ? bd.k : 1); }
     if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
       tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment() }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
-    snd.speakeasy(speak.beds());                    // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them)
+    { const bd = speak.beds(); snd.speakeasy(RR && bd ? { ...bd, club: (bd.club || 0) * RR.club } : bd); }   // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them; 8b2: the raid hushes it, it creeps back — louder on a party night)
+    // 8b2 — THE RAID on the facade: the wash up the side wall, the shades down, the officer's flashlight sweeping the windows
+    if (RR && fadeIn > 0 && !off.has('no-speakeasy')) raidFx.facade(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn }, { side: speak.sidePoly(), windows: speak.windows(), officer: people.officer() });
     // PF — THE CENTREPIECE on the inlay + its rig's floor spots (nothing without one; &force=centrepiece-test: the test obelisk)
     centre.test(off.has('centrepiece-test'));
     // FP3b — THE DANCE CIRCLE lights the inlay's floor spots (the rig without a piece), in the party palette's colour of the phrase
@@ -1779,6 +1832,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
       people: { ...people.debug(), cars: people.cars(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       // (8b1: THE WILDLIFE — who's where; scare(x, z, r) / startle(): Group 3's witnesses; budget(k): THE DIRECTOR)
+      raid: (() => { const P = raidPlanNow(), nowS = clock.now() / 1000, R = P ? raidAt(P, nowS) : null; return P ? { key: P.key, why: P.why, party: P.party, s: +(nowS - P.t0).toFixed(1), tAppear: +(P.tAppear - P.t0).toFixed(1), tStop: P.tStop != null ? +(P.tStop - P.t0).toFixed(1) : null, tDepart: P.tDepart != null ? +(P.tDepart - P.t0).toFixed(1) : null, tBack: +(P.tBack - P.t0).toFixed(1), tEnd: +(P.tEnd - P.t0).toFixed(1), phase: R ? R.phase : 'after', power: R ? +R.power.toFixed(2) : 1, cars: R ? R.cars.length : 0, beam: R ? +R.beam.toFixed(2) : 0, club: R ? +R.club.toFixed(2) : 1 } : null; })(),
       wildlife: { ...wild.debug(), scare: (x, z, r) => wild.scare(x, z, r), startle: () => wild.startle(), budget: k => wild.budget(k), canState: () => wild.canState(), busy: wild.busy() },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)

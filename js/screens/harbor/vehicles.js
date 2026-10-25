@@ -30,6 +30,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const PAINT = Object.freeze({
   black: [22, 22, 28], maroon: [100, 22, 34], green: [24, 66, 44], navy: [26, 38, 76], niagara: [58, 90, 132], cream: [218, 204, 164],
   primrose: [216, 192, 112], burgundy: [76, 18, 30], taxi: [226, 178, 44], dairy: [226, 222, 204], forest: [36, 72, 50], grey: [96, 100, 108],
+  white: [232, 230, 222],
 });
 const BLACK = [20, 20, 26];
 
@@ -60,6 +61,11 @@ export const MODELS = Object.freeze({
     bed: { u0: 0.1, u1: 3.48, v1: 2.42, kind: 'dump' }, paints: [['forest', 'black', 'cream'], ['grey', 'black', 'cream']], trades: ['CITY SANITATION'] },
   stake: { len: 6.25, h: 2.26, r: 0.5, base: 3.95, ovR: 1.05, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.86, cab: [3.86, 4.74], rake: 0.04, roof: 'cab', grille: 'brass', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
     bed: { u0: 0.1, u1: 3.72, v1: 2.5, kind: 'tarp' }, paints: [['black', 'black'], ['green', 'black']] },
+  // 8b2 — THE PATROL CAR (the raid): a 1929 police sedan on the Model A's lines — BLACK with WHITE DOORS (the owner: "period black-and-
+  // white cars"), POLICE lettered on them with the city's gold star, a chrome SPOTLIGHT on the windshield post, the BEACON on the roof
+  // (its red + blue lit live: people.js#drawCar — the owner's neon-1920s fusion), whitewall wire wheels
+  police: { len: 4.75, h: 2.1, r: 0.46, base: 3.1, ovR: 0.8, sill: 0.64, belt: 1.38, hood: 1.42, cowl: 2.98, cab: [0.5, 2.84], rake: 0.12, roof: 'hard', grille: 'nickel', fender: 'sweep', wheel: 'wire', white: true, spare: 'rear', louvre: 14, police: true, beacon: true,
+    paints: [['black', 'black', 'white']] },
 });
 export const MODEL_IDS = Object.freeze(Object.keys(MODELS));
 /** 8b1: the paint a slot wears AFTER DARK — the VAN's pale body (luminance > 150: the cream dairy livery) steps on to its next deep
@@ -99,7 +105,8 @@ export function anatomy(id) {
   const nose = M.len - (M.grille === 'shield' ? 0.12 : 0.16);
   return {
     wheels: [rw, fw], head: [M.len - 0.06, M.hood - 0.32], fog: M.fog ? [M.len + 0.02, M.sill - 0.02] : null, tail: [0.1, M.belt - 0.36],
-    nose, top: M.h + (M.taxiSign ? 0.34 : 0.06), pad: 0.36, len: M.len, h: M.h, r: M.r,
+    nose, top: M.h + (M.taxiSign ? 0.34 : M.beacon ? 0.26 : 0.06), pad: 0.36, len: M.len, h: M.h, r: M.r,
+    beacon: M.beacon ? [(M.cab[0] + M.cab[1]) / 2 + 0.15, M.h + 0.12] : null,
   };
 }
 
@@ -189,6 +196,19 @@ export function bodySprite(id, s, K, o = {}) {
     x.save(); shell(); x.clip();
     for (let i = 0; i < n; i++) for (let j = 0; j < 2; j++) { x.fillStyle = rgb((i + j) % 2 ? mix([238, 236, 228], K.p, 0.12) : shade(K.bk, 0.1)); x.fillRect(X(0.2 + i * 0.12), Y(v1 - j * 0.09), 0.12 * s + 0.5, 0.09 * s + 0.5); }
     x.restore();
+  } else if (M.police) {
+    // THE WHITE DOORS: the lower body from the rear door's seam to the front one's, below the belt (the belt moulding stays black)
+    const wc = trimC || [232, 230, 222], u0 = 0.5, u1 = M.cowl - 0.06, v0 = M.sill + 0.05, v1 = M.belt - 0.04;
+    x.save(); shell(); x.clip();
+    const wg = x.createLinearGradient(0, Y(v1), 0, Y(v0)); wg.addColorStop(0, rgb(mix(wc, K.hi, 0.25))); wg.addColorStop(0.25, rgb(wc)); wg.addColorStop(1, rgb(shade(wc, -0.28)));
+    x.fillStyle = wg; x.fillRect(X(u0), Y(v1), (u1 - u0) * s, (v1 - v0) * s);
+    x.restore();
+    // POLICE in black block letters + the city's gold star between the doors' handles
+    x.save(); x.font = `800 ${0.27 * s}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    const word = 'POLICE', tw = x.measureText(word).width, sq = Math.min(1, (u1 - u0 - 0.5) * s / Math.max(1, tw));
+    x.translate(X((u0 + u1) / 2 + 0.1), Y((v0 + v1) / 2 - 0.02)); x.scale(sq, 1); x.fillStyle = rgb(K.bk); x.fillText(word, 0, 0); x.restore();
+    const sx0 = X(u1 - 0.32), sy0 = Y(v1 - 0.18), sr = 0.1 * s;
+    x.fillStyle = rgb(mix([214, 170, 70], K.hi, 0.15)); x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? sr * 0.45 : sr; x.lineTo(sx0 + Math.cos(a) * rr, sy0 + Math.sin(a) * rr); } x.closePath(); x.fill();
   } else if (trimC) {
     x.save(); shell(); x.clip(); x.fillStyle = rgb(trimC); x.fillRect(X(0), Y(M.belt + 0.02), M.len * s, 0.07 * s); x.restore();
   }
@@ -234,7 +254,7 @@ export function bodySprite(id, s, K, o = {}) {
     x.fillStyle = rgb(K.chrome); x.fillRect(X(a + 0.07), Y(M.belt - 0.08), 0.13 * s, Math.max(0.6, 0.03 * s));
     x.fillStyle = rgb([255, 255, 255], 0.7); x.fillRect(X(a + 0.08), Y(M.belt - 0.08), Math.max(0.4, 0.03 * s), Math.max(0.4, 0.012 * s));   // (its glint)
   }
-  if (!M.checker) { x.fillStyle = rgb(trimC ? mix(trimC, K.hi, 0.2) : mix(p, [236, 220, 170], 0.5), 0.85); x.fillRect(X(0.16), Y(M.belt - 0.005), (rU - 0.2) * s, Math.max(0.5, 0.014 * s)); }
+  if (!M.checker) { x.fillStyle = rgb(trimC && !M.police ? mix(trimC, K.hi, 0.2) : mix(p, [236, 220, 170], 0.5), 0.85); x.fillRect(X(0.16), Y(M.belt - 0.005), (rU - 0.2) * s, Math.max(0.5, 0.014 * s)); }
   if (M.deck) { x.fillStyle = rgb(K.chrome, 0.85); x.fillRect(X(0.2), Y(M.belt - 0.16), (rU - 0.3) * s, Math.max(0.5, 0.02 * s)); }   // (the coupe's chrome strip)
   // THE VAN's trade, lettered on its box (gilt, shadowed — a sign-writer's hand)
   if (M.roof === 'van') {
@@ -312,6 +332,18 @@ export function bodySprite(id, s, K, o = {}) {
   x.fillStyle = 'rgba(255,255,255,0.8)'; x.fillRect(X(M.len - 0.02), Y(M.sill + 0.03), Math.max(0.5, 0.05 * s), Math.max(0.4, 0.025 * s));
   const [tu, tv] = A.tail; x.fillStyle = rgb(K.bk); x.beginPath(); x.roundRect(X(tu), Y(tv + 0.07), 0.14 * s, 0.13 * s, 0.03 * s); x.fill();
   x.fillStyle = rgb([150, 20, 24]); x.fillRect(X(tu - 0.02), Y(tv + 0.05), 0.04 * s, 0.09 * s);
+  // THE PATROL CAR's roof BEACON housing (a chrome base + a domed lens — lit live) + the SPOTLIGHT on the windshield post
+  if (M.beacon) {
+    const [bu, bv] = A.beacon;
+    x.fillStyle = rgb(K.chrome); x.fillRect(X(bu - 0.2), Y(M.h + 0.04), 0.4 * s, 0.05 * s);
+    const lg = x.createLinearGradient(X(bu - 0.16), 0, X(bu + 0.16), 0); lg.addColorStop(0, rgb([150, 30, 34])); lg.addColorStop(0.5, rgb([120, 60, 120])); lg.addColorStop(1, rgb([30, 52, 160]));
+    x.fillStyle = lg; x.beginPath(); x.ellipse(X(bu), Y(bv - 0.02), 0.16 * s, 0.13 * s, 0, Math.PI, 0); x.fill();
+    x.fillStyle = 'rgba(255,255,255,0.55)'; x.fillRect(X(bu - 0.08), Y(bv + 0.06), Math.max(0.4, 0.05 * s), Math.max(0.4, 0.02 * s));
+    const pu = M.cowl + M.rake * 0.6, pv = M.belt + 0.42;
+    x.strokeStyle = rgb(K.chrome); x.lineWidth = lw(0.025); x.beginPath(); x.moveTo(X(pu - 0.02), Y(M.belt + 0.12)); x.lineTo(X(pu), Y(pv)); x.stroke();
+    x.fillStyle = rgb(K.chrome); x.beginPath(); x.ellipse(X(pu + 0.07), Y(pv), 0.09 * s, 0.07 * s, 0, 0, TAU); x.fill();
+    x.fillStyle = rgb(mix(K.chrome, [255, 255, 255], 0.5)); x.beginPath(); x.ellipse(X(pu + 0.15), Y(pv), 0.025 * s, 0.06 * s, 0, 0, TAU); x.fill();
+  }
   // THE TAXI sign on the roof (its lamp lit live at night)
   if (M.taxiSign) {
     const u = (M.cab[0] + M.cab[1]) / 2 + 0.2;

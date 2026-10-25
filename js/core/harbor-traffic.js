@@ -124,7 +124,7 @@ const sims = new Map();
 export function carsAt(t, world) {
   const L = world.L; if (!L || !L.crosswalk) return [];
   const lanes = trafficLanes(L), B = TRAFFIC.block, j = Math.floor(t / B), out = [];
-  const key0 = `${L.cam ? L.cam.W : 0}x${L.cam ? L.cam.H : 0}|${world.seed || 1924}|${world.off || 0}`;
+  const key0 = `${L.cam ? L.cam.W : 0}x${L.cam ? L.cam.H : 0}|${world.seed || 1924}|${world.off || 0}|${world.tag || ''}`;   // (8b2: tag — a raid's convoy holding the near lane)
   for (const lane of Object.keys(lanes)) for (const jj of [j - 1, j]) {
     const key = `${key0}|${lane}|${jj}`;
     let sim = sims.get(key);

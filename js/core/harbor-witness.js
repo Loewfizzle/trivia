@@ -18,17 +18,22 @@ const PI = Math.PI;
 export const WITNESS = Object.freeze({
   ufo: { notice: [0.8, 3.2], flee: 5.7, react: [0.15, 1.1], run: 3.5, hide: [3.2, 4.6], empty: 240, len: 30, point: 0.35 },
   tr3b: { notice: [3.6, 7.5], back: 41, after: [0.5, 3], indoors: 0.3, len: 50, empty: 60, point: 0.3 },
+  // 8b2 — THE RAID (lg: { kind: 'raid', t0: the first car showing, len: until the last car is past the crossing }): a beat after the cars
+  // show, people FREEZE (watching the road), or casually walk off / look away like nothing's happening; the DOORMAN slips inside at the
+  // side door; once the cars are gone they pick up their own way again (the doorman back out a little after the lights)
+  raid: { notice: [0.2, 1.8], len: 40, empty: 12, freeze: 0.45, away: 0.3, after: [1, 4], doorman: 8 },
 });
+const lenOf = lg => (lg.len != null ? lg.len : WITNESS[lg.kind].len);
 /** is t inside the legend's people window (its own length + the empty tail)? */
 export function witnessWindow(lg, t) {
   if (!lg) return false;
   const W = WITNESS[lg.kind]; if (!W) return false;
-  return t >= lg.t0 && t < lg.t0 + W.len + W.empty;
+  return t >= lg.t0 && t < lg.t0 + lenOf(lg) + W.empty;
 }
 /** a visit that would START during the event or its empty tail doesn't come (the promenade stays empty) */
 export function suppressed(lg, v) {
   const W = lg && WITNESS[lg.kind]; if (!W) return false;
-  return v.t0 >= lg.t0 - 0.5 && v.t0 < lg.t0 + W.len + W.empty;
+  return v.t0 >= lg.t0 - 0.5 && v.t0 < lg.t0 + lenOf(lg) + W.empty;
 }
 
 /** the nearest way out for someone running from (x, z): a screen edge (by side), the side door (when close), across the road (from the kerb) */
@@ -58,7 +63,38 @@ export function reactVisit(v, lg, M, ctx = {}) {
   const at = { x: s.x, z: s.z }, look = -PI / 2;          // (they turn to us + look up: the pose carries the sky)
   const legs = [...keep], push = lg2 => legs.push(lg2);
   let now = tn;
-  if (lg.kind === 'ufo') {
+  if (lg.kind === 'raid') {
+    const end = lg.t0 + lenOf(lg), tb = end + W.after[0] + r() * (W.after[1] - W.after[0]), road = PI / 2;
+    const doorman = v.kind === 'doorman' || v.look === 'doorman';
+    if (doorman) {
+      // the doorman slips inside at the side door (the nearest way in), and steps back out a little after the lights are back
+      const d = M.nodes.sideDoor, zs = M.face - DOOR.stepSide;
+      const vis = planVisit({ look: 'walker', gait: 'brisk', goals: [{ at: { x: d.x, z: zs - DOOR.approach } }, { at: { x: d.x, z: zs } }] }, now, M, { r, start: at });
+      if (vis) { for (const l2 of vis.legs) push(l2); now = vis.t1; }
+      const dl = doorLeg('side', 'in', d.x, now, FOLK.speed.brisk, M.face); push(dl); now = dl.t1;
+      if (v.routine) {
+        const back = Math.max(now + 4, end + W.doorman + r() * 4), dl2 = doorLeg('side', 'out', d.x, back, FOLK.speed.walk, M.face);
+        push({ k: 'gap', x: d.x, z: zs, t0: now, t1: back }); push(dl2); now = dl2.t1;
+        now = resume(v, legs, { x: dl2.x1, z: dl2.z1 }, now, r) || now;
+      }
+    } else {
+      const u = r();
+      if (!v.routine && u >= W.freeze && u < W.freeze + W.away) {
+        // casually away: a walk (never a run) to the nearest way out
+        const out = wayOut(M, at, r), to = out.edge || M.exits[at.x < 2 ? 'left' : 'right'][0];
+        push({ k: 'pose', pose: 'wait', x: at.x, z: at.z, t0: now, t1: now + 0.6, hd: road }); now += 0.6;
+        const vis = planVisit({ look: 'walker', gait: 'walk', goals: [{ at: { x: to.x, z: to.z } }] }, now, M, { r, start: at });
+        if (vis) { for (const l2 of vis.legs) push(l2); now = vis.t1; }
+      } else {
+        // FREEZE watching the road (a routine always) — or LOOK AWAY, like nothing's happening — then carry on their own way
+        const lookAway = !v.routine && u >= W.freeze + W.away;
+        push({ k: 'pose', pose: 'wait', x: at.x, z: at.z, t0: now, t1: tb, hd: lookAway ? -PI / 2 + (r() - 0.5) * 0.9 : road + (r() - 0.5) * 0.5 }); now = tb;
+        const back = resume(v, legs, at, now, r);
+        if (back) now = back;
+        else { const out = wayOut(M, at, r), to = out.edge || M.exits[at.x < 2 ? 'left' : 'right'][0], vis = planVisit({ look: 'walker', gait: 'walk', goals: [{ at: { x: to.x, z: to.z } }] }, now, M, { r, start: at }); if (vis) { for (const l2 of vis.legs) push(l2); now = vis.t1; } }
+      }
+    }
+  } else if (lg.kind === 'ufo') {
     // STOP + LOOK UP (a couple point) until the beam opens, then a startled beat
     const tf = lg.t0 + W.flee + W.react[0] + r() * (W.react[1] - W.react[0]);
     push({ k: 'pose', pose: r() < W.point ? 'point' : 'watch', x: at.x, z: at.z, t0: now, t1: tf, hd: look });

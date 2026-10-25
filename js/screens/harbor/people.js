@@ -17,6 +17,7 @@ import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP } from './folk.js';
 import { drawBus } from './bus.js';
 import { createVehicles, UNDERGLOW } from './vehicles.js';
+import { beaconOf } from './raid.js';
 import { danceMoves, drawWands } from './wands.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
@@ -56,7 +57,9 @@ export function createPeople() {
     const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.noWork ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
     const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
-      forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null };
+      forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
+      // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
+      raid: f.raid || null };
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
     lastT = t;
@@ -145,6 +148,8 @@ export function createPeople() {
       // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
       const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
       const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 });
+      // (8b2 — THE RAID: the officer's flashlight hand on screen, for the beam raid.js draws from it)
+      if (box && mem.kind === 'officer' && st.pose === 'flash') { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near], e = J.elbows[J.near]; officerAt = { hand: [fx + h[0] * H, fy - h[1] * H], dir: [h[0] - e[0], -(h[1] - e[1])], H, t: env.t || 0 }; }
       if (box && mv) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false); drawWands(c, J, fx, fy, H, { idx: mem.idx || 0, n: nDancers, beatsF, punch: bt ? bt.punch || 0 : (1 - (beatsF % 1)) ** 3, pal: bt && bt.pal, move: mv.move, t: env.t || 0, tier: env.tier, k: now.dance ? Math.max(0.35, now.dance.k) : 1, trails: env.mo === false ? null : trails, key: mem.vid, advance }); }
       if (box && mem.kind === 'dogwalker' && mem.m.role === 'lead') {
         const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near];
@@ -158,7 +163,7 @@ export function createPeople() {
   // their wheels turning by the distance rolled, a soft contact shadow, at night the lamps lit (× env.power — a legendary's blackout)
   // with their pool on the asphalt ahead + the tall lamps' light on the body near them; a party night's underglow on a few
   const kit = createVehicles();
-  let carPool = null;
+  let carPool = null, officerAt = null;
   function drawCar(c, car, env) {
     const cam = L.cam, sp = cam.F / car.z, [cx, gy] = project(cam, car.x, 0, car.z), T = env.T || {}, night = clamp01(env.dark || 0), pw = env.power == null ? 1 : clamp01(env.power);
     const look = night > 0.5 ? 'night' : (T.gold || 0) > (T.day || 0) ? 'golden' : 'day', len = car.len * sp;
@@ -175,6 +180,16 @@ export function createPeople() {
     let lampK = 0; for (const l of L.lamps) if (l.kind === 'tall') { const d = (car.x - l.x) / 7; if (d * d < 1) lampK = Math.max(lampK, (1 - d * d) ** 2); }
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
     kit.draw(c, { id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
+    // 8b2 — THE PATROL CAR's BEACON: red, then blue, each a hard double flash (the raid's wash comes from it: raid.js)
+    if (car.beacon) { const A = kit.anatomy(car.model); if (A.beacon) drawBeacon(c, cx + car.dir * (A.beacon[0] - car.len / 2) * sp, gy - A.beacon[1] * sp + bob, sp, beaconOf(env.t || 0, car.n), env.fade == null ? 1 : env.fade, night); }
+  }
+  /** the beacon's lamps lit: b = { red, blue } (0..1 each) — a hot core + a halo each, 'lighter' */
+  let beaconSpr = null;
+  function drawBeacon(c, x, y, sp, b, k, night) {
+    if (!beaconSpr) { beaconSpr = {}; for (const [n, col] of [['red', '255,40,46'], ['blue', '60,110,255']]) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g2 = safeCtx(cv); if (g2) { const gr = g2.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.12, `rgba(${col},1)`); gr.addColorStop(0.4, `rgba(${col},0.35)`); gr.addColorStop(1, `rgba(${col},0)`); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); } beaconSpr[n] = cv; } }
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for (const [n, dx] of [['red', -0.09], ['blue', 0.09]]) { const v = b[n]; if (v < 0.02) continue; const r = (0.8 + 1.7 * night) * sp * (0.55 + 0.45 * v); c.globalAlpha = k * v; c.drawImage(beaconSpr[n], x + dx * sp - r, y - r, r * 2, r * 2); }
+    c.restore();
   }
   // ---- THE CHESTNUT CART, live (FP3b item 11b — the vendor spot: core/harbor-routines.js#VENDOR): wheeled in + out by its vendor,
   // parked at the front curb in the evening; a sprite while it stands (re-painted when the look changes), painted directly while it
@@ -399,6 +414,8 @@ export function createPeople() {
     doors: () => ({ ...(now.doors || { side: 0, shop: 0 }) }),
     /** POL4: a motorcar rolling on the back road now (the scene keeps 60 fps for it) */
     driving: () => (now.cars || []).some(c => c.speed > 0.3),
+    /** 8b2 — THE RAID: the officer's flashlight hand as last drawn ({ hand: [x, y], dir, H, t }) or null */
+    officer: () => officerAt,
     cars: () => (now.cars || []).map(c => ({ id: c.id, model: c.model, lane: c.lane, x: +c.x.toFixed(2), speed: +c.speed.toFixed(2), glow: c.glow })),
     /** FP3b — THE DANCE CIRCLE now: { on, k (0..1 formed), id, s0, s1 } (the scene lights the inlay's floor spots + keeps the cart away) */
     dance: () => ({ ...(now.dance || { on: false, k: 0 }) }),

@@ -141,6 +141,13 @@ export const GEAR = {
     const [x, y] = g.hand, H = g.H;
     c.fillStyle = g.f([170, 146, 104]); c.beginPath(); c.moveTo(x - H * 0.02, y); c.quadraticCurveTo(x - H * 0.08, y + H * 0.1, x - H * 0.03, y + H * 0.16); c.lineTo(x + H * 0.05, y + H * 0.16); c.quadraticCurveTo(x + H * 0.08, y + H * 0.08, x + H * 0.02, y); c.closePath(); c.fill();
   },
+  // 8b2 — THE OFFICER's FLASHLIGHT: a short black barrel along his forearm, its lens a hot point (the beam itself: raid.js)
+  flashlight(c, g) {
+    const [x, y] = g.hand, e = g.J.elbows[g.J.near], ex = g.X(e[0]), ey = g.Y(e[1]), dx = x - ex, dy = y - ey, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l, L2 = g.H * 0.07;
+    c.strokeStyle = g.f([30, 30, 34]); c.lineWidth = Math.max(0.8, g.H * 0.024); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x - ux * L2 * 0.3, y - uy * L2 * 0.3); c.lineTo(x + ux * L2, y + uy * L2); c.stroke();
+    c.fillStyle = 'rgba(255,248,226,0.95)'; c.beginPath(); c.arc(x + ux * L2, y + uy * L2, Math.max(0.6, g.H * 0.016), 0, TAU); c.fill();
+  },
   baton(c, g) {
     const H = g.H;
     if (g.pose === 'twirl') { const [x, y] = g.hand, a = g.mo ? g.t * 9 : 0.6, l = H * 0.09; c.strokeStyle = g.f([30, 26, 24]); c.lineWidth = Math.max(0.6, H * 0.016); c.beginPath(); c.moveTo(x - Math.cos(a) * l, y - Math.sin(a) * l); c.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); c.stroke(); return; }

@@ -22,6 +22,7 @@ import { carsAt } from './harbor-traffic.js';
 import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
 import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
 import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbor-witness.js';
+import { raidAt, raidHold } from './harbor-raid.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -790,11 +791,15 @@ export function folkAt(t, world, cache = new Map()) {
   })).filter(Boolean) : [];
   const crewNow = ctx.noWork ? { visits: [], roof: [], trucks: [], props: [], marks: {} } : crewAt(t, crewW, cache.crew);
   const evNow = cartEv(t), nowSess = sessionsNear(t - 120, t + 10), routine = [...nowSess.flatMap(danceVisits), ...(evNow && t >= evNow.t0 && t < evNow.t1 ? [vendorVisit(evNow)] : []), ...lineVisits(t - 2, t + 2), ...crewNow.visits];
+  // 8b2 — THE RAID (ctx.raid: core/harbor-raid.js#raidPlan): its officer is a routine visit while he's out; the crowd reacts (the witnesses'
+  // 'raid' kind: freeze / casually away / look away, the doorman in at the side door) from the moment the first car shows
+  const RP = ctx.raid && t >= ctx.raid.t0 - 20 && t < ctx.raid.tEnd + 4 * 3600 ? ctx.raid : null;
+  if (RP && RP.officer && t >= RP.officer.t0 && t < RP.officer.t1) routine.push(RP.officer);
   let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   // 8b1 — THE WITNESSES (core/harbor-witness.js): a legendary night (ctx.legend: { kind, t0 }) — everyone on the promenade when it comes
   // reacts (the UFO: they look up, then FLEE; the TR-3B: they stare up, a few hurry indoors); nobody new comes until the empty spell ends
   // (the reaction holds after the window too — a routine back at its post on its new path, never the old one popping back — for a few hours)
-  const LG = ctx.legend && t >= ctx.legend.t0 && t < ctx.legend.t0 + 4 * 3600 ? ctx.legend : null, inWin = LG && witnessWindow(LG, t);
+  const LG = ctx.legend && t >= ctx.legend.t0 && t < ctx.legend.t0 + 4 * 3600 ? ctx.legend : RP && t >= RP.tAppear ? { kind: 'raid', t0: RP.tAppear, len: Math.max(8, RP.tPast - RP.tAppear) } : null, inWin = LG && witnessWindow(LG, t);
   let reacted = [];
   if (LG) {
     reacted = get(`WIT|${LG.kind}|${LG.t0}`, () => {
@@ -802,10 +807,11 @@ export function folkAt(t, world, cache = new Map()) {
       const cand = [...A(kA), ...Bv(kB), ...busesNear(T - 400, T + 10).flatMap(b => riders(b)), ...sessionsNear(T - 120, T + 10).flatMap(danceVisits), ...(ev && T >= ev.t0 && T < ev.t1 ? [vendorVisit(ev)] : []), ...lineVisits(T - 30, T + 30), ...(ctx.noWork ? [] : crewAt(T, crewW, cache.crew).visits)]
         .filter((v, i, arr) => arr.findIndex(o => o.id === v.id) === i && v.t0 < LG.t0 + 1 && (v.tEnd || v.t1) > LG.t0);
       const hide = LG.kind === 'ufo' ? hiderOf(cand, LG, M) : null;
+      if (LG.kind === 'raid') return cand.filter(v => v.kind !== 'officer').map(v => reactVisit(v, LG, M, {})).filter(Boolean);
       return cand.map(v => reactVisit(v, LG, M, { hide })).filter(Boolean);
     });
     const ids = new Set(reacted.map(v => v.id));
-    all = [...reacted.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...all.filter(v => !ids.has(v.id) && (!inWin || v.t0 < LG.t0 + 1 || !suppressed(LG, v)))];   // (someone out of reach — on the road, in a doorway — carries on)
+    all = [...reacted.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...all.filter(v => !ids.has(v.id) && (!inWin || v.t0 < LG.t0 + 1 || !suppressed(LG, v) || v.kind === 'officer'))];   // (someone out of reach — on the road, in a doorway — carries on)
   }
   const members = [];
   for (const v of all) {
@@ -868,7 +874,10 @@ export function folkAt(t, world, cache = new Map()) {
   // the cart now: where it is (wheeled in / parked / wheeled out) — people.js draws it
   const cart = evNow ? { ...cartAt(evNow, t, cartIn(L.cam), cartX), z: L.cart.z, parked: t >= evNow.ta && t < evNow.tb } : { on: false };
   // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
-  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b)], off: ctx.off, seed: ctx.seed, party: ctx.party });
+  // (8b2: the raid's convoy holds the near lane — nobody enters it behind them — and its patrol cars join the road's cars)
+  const raidIn = (a, b) => (ctx.raid && ctx.raid.tEnd > a && ctx.raid.t0 < b ? [raidHold(ctx.raid)] : []);
+  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b), ...raidIn(a, b)], off: ctx.off, seed: ctx.seed, party: ctx.party, tag: ctx.raid ? ctx.raid.key : '' });
+  if (RP) { const R = raidAt(RP, t); if (R) cars.push(...R.cars); }
   // 8b1 — THE CREW now: the roof's workers (the billposter, the gardener, the cleanup crew), their props, their trucks, the traces
   const crewRoof = [];
   for (const v of crewNow.roof) { const s = visitAt(v, t); if (s) crewRoof.push({ vid: v.id, kind: v.kind, look: v.look, party: false, routine: 'work', m: v.members[0], s, roof: true }); }

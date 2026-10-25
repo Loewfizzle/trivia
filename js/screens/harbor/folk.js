@@ -299,6 +299,9 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'offer') { arm(N, 1.45 + 0.06 * Math.sin(tw8 * 1.3), 0.25); }
   if (pose === 'post') { arm(N, 1.3, 0.55); }
   if (pose === 'lookout') { arm(0, 0.18, 0.45); arm(1, 0.18, 0.45); }
+  // 8b2 — THE RAID's officer: the flashlight held out at shoulder height, swept slowly across the dark windows (the same sweep as the
+  // beam: core/harbor-raid.js#raidAt — sin(u · 2.5π) over the pose), the other hand on his belt
+  if (pose === 'flash') { const sw = Math.sin(uP * Math.PI * 2.5); arm(N, 1.62 + 0.12 * Math.abs(sw), 0.08, 0.05 + 0.32 * (sw + 1) / 2); arm(Fa, 0.35, 1.2, 0.25); }
   // THE WANDS' dancer (FP3b item 9): st.moves = { arms: [[ang, bend, out], [ang, bend, out]], sway, dip } from people.js's routine
   // (phi: the arm raised in the FRONTAL plane — 0 hanging, π/2 out to the side, π straight up — so the moves read from the front)
   if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) { const [phi, bend] = m.arms[i]; arm(i, phi <= Math.PI / 2 ? 0 : Math.PI, bend, phi <= Math.PI / 2 ? phi : Math.PI - phi); } shJ.forEach(s => { s.b += (m.sway || 0) * 0.03; }); head.b += (m.sway || 0) * 0.045; }

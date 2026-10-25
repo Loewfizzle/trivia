@@ -488,6 +488,8 @@ export function createSpeakeasy() {
   return {
     layout, draw,
     windows: () => wins.map(w => ({ id: w.id, room: w.room, floor: w.floor, col: w.col, edge: !!w.edge, rect: { ...w.rect } })),
+    /** 8b2 — THE RAID's wash: the side wall (the face toward the road) on screen → [[x, y] × 4] | null */
+    sidePoly: () => (G ? [G.side(0, -0.05), G.side(0, V.parapet), G.side(G.len, V.parapet), G.side(G.len, -0.05)] : null),
     light(id, k) { if (k == null) own.delete(id); else own.set(id, clamp01(k)); },
     mirror(k) { mirror = clamp01(k || 0); },
     /** FP3b — tests: quiet(true) holds the basement's light steady + pauses the windows' moments (the mirror door's light), quiet(false) back */

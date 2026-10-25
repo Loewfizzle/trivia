@@ -2212,6 +2212,18 @@ G('workers', async () => {
     await waitFor(Q.page, `${P}.people.members.filter(m => m.role !== 'dog' && m.z < 53).length === 0`, 'the promenade empty', 40000);
     ok(true, 'THE WITNESSES: the promenade empty after they fled');
     await Q.ctx.close(); }
+  // ---- 8b2 — THE RAID (&force=raid on a weeknight): the patrol cars out, the speakeasy dark the instant they show, the officer's flashlight,
+  // the lights back after they're gone
+  { const Q = await open({ slot: 'wk6', qs: `when=2026-10-22T22:00:00${GR}&force=raid`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(${P}.raid || {}).phase === 'dark' && ${P}.raid.cars > 0 && ${P}.speakeasy.power() < 0.05`, 'the patrol cars out + the speakeasy dark', 90000);
+    const r1 = await ev(Q.page, `${P}.raid`), pw = await ev(Q.page, `${P}.speakeasy.power()`);
+    ok(r1.cars >= 1 && pw === 0, `THE RAID: ${r1.cars} patrol cars on the road, the speakeasy's power ${pw}`);
+    await waitFor(Q.page, `(${P}.raid || {}).beam > 0.5`, 'the officer flashlight', 60000);
+    ok(true, 'THE RAID: the officer sweeps the windows with his flashlight');
+    await waitFor(Q.page, `(${P}.raid || {}).phase === 'back' && ${P}.raid.power > 0.9`, 'the lights back', 80000);
+    ok(true, 'THE RAID: the lights back after the cars are gone');
+    await Q.ctx.close(); }
 });
 
 

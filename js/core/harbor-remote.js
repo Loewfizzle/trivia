@@ -203,6 +203,8 @@ export const EVENTS = [
   { id: 'fish', label: 'FISH JUMPING', cat: 'wildlife', group: 'ON THE WATER', hint: 'a fish jumps in the near water every 45 s — the ripple rings' },
   { id: 'no-wildlife', label: 'NO WILDLIFE', cat: 'wildlife', group: 'ON THE GROUND', hint: 'every animal off — compare (the speed A/B)' },
   // (8P: THE HUSH WORD SIGN in the barbershop window — JAZZ by default, &hush=<word> another; Lobby 2.0 lights the real word)
+  // (8b2 — THE RAID: the patrol cars every 2½ minutes; RAID + PARTY = a party night's — the club comes back louder)
+  { id: 'raid', label: 'THE RAID', cat: 'speakeasy', group: 'THE RAID', night: true, hint: 'black-and-white patrol cars, red + blue on the walls — every light in the speakeasy cuts out, an officer sweeps the windows with his flashlight (every 2½ min)' },
   { id: 'hushsign', label: 'HUSH WORD SIGN', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the lobby’s password in neon in the barbershop window (JAZZ; &hush=<word>)' },
   // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the
   // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set
