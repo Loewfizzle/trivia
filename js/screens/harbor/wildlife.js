@@ -20,6 +20,7 @@ import { FOLK } from '../../core/harbor-people.js';
 import { sunTimes } from '../../core/sky.js';
 import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
 import { hourPlan } from '../../core/harbor-moments.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 import {
   localOf, wildSpots, spotPoint, offPoint, canSpot, pilingSpot, PIGEON, pigeonAt, groundLife, GULL, gullSlot, gullSlotLen, OWL, owlDay, owlAt,
   SQUIRREL, squirrelSlot, squirrelSlotLen, fishSlotLen, coyoteNight, coyotePath, pathAt, coyoteTracks, raccoonNight, raccoonPath, canAt, catEvening, catPath, catSpot,
@@ -132,7 +133,7 @@ export function createWildlife() {
     const r = hash('flush', b.i, b.flushes++, Math.floor(t / 600)), from = { x: cur.x, y: cur.y, z: cur.z };
     const t0 = t + delay;
     const occ0 = occupancy(), free0 = spots.filter(s => s.kind !== 'ground' && s.who.includes('pigeon') && (occ0.get(s.id) || 0) < s.cap && !owlNear(s));
-    if (r() < PIGEON.awayP || (force.has('pigeons-scatter') && r() < 0.5) || !free0.length) {
+    if (r() < PIGEON.awayP || !free0.length) {
       const dir = src && src.x > cur.x ? 'left' : src ? 'right' : r() < 0.5 ? 'left' : 'right', to = offPoint(L, r() < 0.25 ? 'back' : dir, from);
       b.ov = { kind: 'fly', a: from, b: to, t0, t1: t0 + 2.4 + r() * 0.8, off: dir, then: { kind: 'away', until: t0 + PIGEON.away[0] + r() * (PIGEON.away[1] - PIGEON.away[0]) * (force.has('pigeons-scatter') ? 0.12 : 1), back: dir === 'left' ? 'right' : 'left' } };
     } else {
@@ -204,7 +205,8 @@ export function createWildlife() {
     for (const q of scareQ) { const k = q.all ? scareAt(0, null, 1e9, null) : scareAt(q.x, q.z, q.r, { x: q.x, z: q.z }); if (k) flutter(q.x, 1.2); }
     if (lunges.size > 30) for (const [k, v] of lunges) if (t - v.t0 > 120 || v.t0 < 0 && lunges.size > 30) lunges.delete(k);
     // THE PREVIEW: &force=pigeons-scatter — a walker's scare every 25 s at the flock on the cobbles
-    if (force.has('pigeons-scatter') && Math.floor(t / 25) !== scatterN) { scatterN = Math.floor(t / 25); const g = pig.find(b => b.now && b.now.spotKind === 'ground'); if (g) { scareAt(g.now.x, g.now.z, 3, { x: g.now.x + 2, z: g.now.z }); flutter(g.now.x, 1.2); } }
+    const sk = force.has('pigeons-scatter') ? Math.floor((t - fbase('pigeons-scatter', 25).s0 - 6) / 25) : -1;   // (6 s after the row comes on, then every 25 s)
+    if (sk >= 0 && sk !== scatterN) { scatterN = sk; const g = pig.find(b => b.now && b.now.spotKind === 'ground'); if (g) { scareAt(g.now.x, g.now.z, 3, { x: g.now.x + 2, z: g.now.z }); flutter(g.now.x, 1.2); } }
   }
   function flutter(x, k) { if (t - lastFlutter < 1.2) return; lastFlutter = t; sounds.push({ slot: 'pigeon-flutter', x, gain: 0.55 * k }); }
   /** a bird's state now → { x, y, z, hd, pose, air, flap, spread, legs, pitch, turn, step, peck, spotKind, seed, layer } */
@@ -489,7 +491,7 @@ export function createWildlife() {
   }
 
   // ---------------------------------------------------------------- DRAWING
-  let lightKey = '', lightFn = null, srcs = null;
+  let lightKey = '', lightFn = null, srcs = null, pileKey = '', pileCv = null, pileBox = null;
   function envOf(env) {
     const dark = clamp01(env.dark || 0), k = Math.round(dark * 20) / 20, key = String(k);
     if (key !== lightKey) { lightKey = key; lightFn = k > 0.01 ? lightField(L, { lamps: k }) : null; }
@@ -536,7 +538,16 @@ export function createWildlife() {
     const E = envOf(env), cam = L.cam, fade = env.fade == null ? 1 : env.fade;
     c.save(); c.globalAlpha = fade;
     if (pass === 'water') {
-      drawPiling(c, cam, piling, E);
+      // (the piling never moves: painted once into a sprite per look — re-painted when the light changes a step)
+      const T = E.T || {}, key = `${cam.W}x${cam.H}|${[T.day, T.gold, T.night, T.ovc, E.dark].map(v => Math.round((v || 0) * 20)).join(',')}`;
+      if (key !== pileKey) {
+        pileKey = key; const s = cam.F / piling.z, [px, py] = project(cam, piling.x, piling.y, piling.z), [, wy] = project(cam, piling.x, piling.water, piling.z);
+        const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bx = Math.floor(px - piling.r * s * 1.6), by = Math.floor(py - 0.4 * s), bw = Math.ceil(piling.r * s * 3.2), bh = Math.ceil(wy - by + (wy - py) * 0.6 + 2);
+        pileCv = pileCv || document.createElement('canvas'); pileCv.width = Math.max(1, Math.ceil(bw * dpr)); pileCv.height = Math.max(1, Math.ceil(bh * dpr));
+        const x = safeCtx(pileCv); if (x) { x.setTransform(dpr, 0, 0, dpr, -bx * dpr, -by * dpr); drawPiling(x, cam, piling, E); }
+        pileBox = { x: bx, y: by, w: bw, h: bh };
+      }
+      if (pileCv && pileBox) c.drawImage(pileCv, pileBox.x, pileBox.y, pileBox.w, pileBox.h);
       for (const j of now.fish) drawJump(c, cam, j, E);
       if (now.heron) drawHeron(c, cam, now.heron, E);
     } else if (pass === 'bill') {
@@ -602,7 +613,7 @@ export function createWildlife() {
       ducks: now.ducks.length, fish: now.fish.length, heron: now.heron ? { pose: now.heron.pose, strike: +(now.heron.strike || 0).toFixed(2) } : null, fireflies: now.ff.length,
       sun: { rise: +sun.rise.toFixed(2), set: +sun.set.toFixed(2) }, spots: spots.map(s => s.id), piling: piling ? { x: +piling.x.toFixed(2), z: piling.z } : null,
     }),
-    destroy() { cache.clear(); },
+    destroy() { cache.clear(); if (pileCv) pileCv.width = pileCv.height = 0; pileCv = null; pileKey = ''; },
   };
   function lastSq() { return sqId; }
 }

@@ -32,7 +32,7 @@ export const SIZE = Object.freeze({
   pigeon: { len: 0.7, k: 1.85 },         // (0.32 m true → ~9–10 pt on the floor, ~8 on the blade's top: they read as a flock in motion)
   gull: { len: 1.05, span: 2.3, k: 1.55 },
   owl: { h: 1.05, k: 1.6 },              // (the snowy owl: ~10–13 pt on its perch)
-  squirrel: { len: 0.42, tail: 0.42, k: 1.5 },
+  squirrel: { len: 0.56, tail: 0.56, k: 2.0 },  // (8b1 phone test: 1.5× was lost among the autumn leaves at 402 — 2×, a dark coat)
   coyote: { len: 1.55, h: 0.95, k: 1.15 },
   raccoon: { len: 0.95, h: 0.42, k: 1.2 },
   cat: { len: 0.72, h: 0.34, k: 1.25 },
@@ -411,7 +411,7 @@ export function catPath(L, t0, len, spot) {
 }
 
 // ------------------------------------------------------------------ FIREFLIES (summer nights)
-export const FIREFLY = Object.freeze({ n: 16, tier: [7, 11, 16], from: 21.2, to: 24.6 });
+export const FIREFLY = Object.freeze({ n: 24, tier: [10, 16, 24], from: 21.2, to: 24.6 });
 /** how many fireflies now (PURE): Jun 10 – Aug 31, after dark (21:15 → 00:35), no rain, a light wind; 0 otherwise */
 export function fireflyCount({ h = 22, month = 7, day = 15, rain = 0, wind = 2, dark = 1, force = false } = {}) {
   if (force) return FIREFLY.n;
@@ -426,7 +426,7 @@ export function fireflyAt(q, t, homes) {
   const x = h.x + Math.sin(t * w + ph) * 1.6 + Math.sin(t * w * 2.3 + ph * 2) * 0.5, z = h.z + Math.sin(t * w * 0.7 + ph * 3) * 1.0;
   const y = 0.5 + r() * 1.6 + Math.sin(t * w * 1.6 + ph) * 0.35;
   const per = 3.2 + r() * 3.4, u = ((t + ph * 7) / per) % 1, dbl = r() < 0.3;
-  const flash = u < 0.08 ? u / 0.08 : u < 0.34 ? Math.exp(-(u - 0.08) * 11) : dbl && u > 0.4 && u < 0.62 ? Math.max(0, Math.sin((u - 0.4) / 0.22 * PI)) * 0.7 : 0;
+  const flash = u < 0.08 ? u / 0.08 : u < 0.42 ? Math.exp(-(u - 0.08) * 6.5) : dbl && u > 0.4 && u < 0.62 ? Math.max(0, Math.sin((u - 0.4) / 0.22 * PI)) * 0.7 : 0;
   return { x, y, z, k: flash };
 }
 

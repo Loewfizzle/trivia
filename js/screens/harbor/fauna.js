@@ -66,6 +66,7 @@ const fillE = (c, e, col) => { c.fillStyle = col; c.beginPath(); c.ellipse(e.x, 
 /** an ellipsoid body lit by the sun from its side (a linear gradient across it) — col: the lit colour → the shade */
 function bodyE(c, e, col, env, x, z, k = 1) {
   const base = litCol(col, env, x, z, k), sun = sunOf(env);
+  if (env.tier === 0) { fillE(c, e, rgb(base)); return; }   // (tier 0 — the slow phone: one flat fill, no gradient a body)
   if (sun.k > 0.12) {
     const r = Math.max(e.rx, e.ry), g = c.createLinearGradient(e.x - sun.s * r, e.y - r * 0.6, e.x + sun.s * r, e.y + r * 0.5);
     const hi = mix(base, sun.warm ? [255, 214, 160] : [255, 248, 236], 0.28 * sun.k), lo = mix(base, [26, 24, 44], 0.38 * sun.k);
@@ -343,7 +344,9 @@ const QUAD = {
   coyote: { L: SIZE.coyote.len, H: SIZE.coyote.h * 1.22, coat: [150, 128, 100], belly: [214, 196, 168], dark: [74, 62, 54], ear: 'big', tail: 'brush', legW: 0.042, head: 0.13, snout: 0.15, bodyH: 0.13, tailW: 0.075 },
   raccoon: { L: SIZE.raccoon.len, H: SIZE.raccoon.h * 1.5, coat: [124, 120, 120], belly: [168, 162, 156], dark: [36, 34, 38], ear: 'round', tail: 'ringed', legW: 0.055, head: 0.15, snout: 0.09, mask: true, bodyH: 0.21, tailW: 0.1, tailL: 0.78 },
   cat: { L: SIZE.cat.len, H: SIZE.cat.h * 1.6, coat: [26, 24, 30], belly: [36, 34, 40], dark: [12, 12, 16], ear: 'cat', tail: 'cat', legW: 0.05, head: 0.13, snout: 0.05, bodyH: 0.18 },
-  squirrel: { L: SIZE.squirrel.len, H: SIZE.squirrel.len * 0.7, coat: [146, 112, 84], belly: [222, 210, 190], dark: [96, 72, 54], ear: 'small', tail: 'plume', legW: 0.07, head: 0.18, snout: 0.06 },
+  // (Michigan's BLACK squirrel — the eastern grey's dark form, common in Grand Rapids: a charcoal coat that stands out on the grey cobbles + the
+  // autumn leaves, a frosted fringe on its plume)
+  squirrel: { L: SIZE.squirrel.len, H: SIZE.squirrel.len * 0.7, coat: [52, 46, 44], belly: [92, 82, 76], dark: [30, 26, 26], ear: 'small', tail: 'plume', legW: 0.07, head: 0.18, snout: 0.06, fringe: [176, 168, 160] },
 };
 /**
  * q = { kind, x, y, z, hd, gait (the stride's phase, by distance), moving (0..1), pose ('stand' | 'trot' | 'sit' | 'rear' | 'rummage' |
@@ -390,7 +393,7 @@ export function drawQuad(c, cam, q, env) {
     c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); c.bezierCurveTo(pts[1][0], pts[1][1], pts[2][0], pts[2][1], pts[3][0], pts[3][1]); c.stroke();
     if (S.tail === 'brush' && w > 1.2) { c.strokeStyle = rgb(col(S.dark)); c.lineWidth = w * 0.8; c.beginPath(); c.moveTo(pts[3][0] * 0.7 + pts[2][0] * 0.3, pts[3][1] * 0.7 + pts[2][1] * 0.3); c.lineTo(pts[3][0], pts[3][1]); c.stroke(); }
     if (S.tail === 'ringed' && w > 1) { c.strokeStyle = rgb(col(S.dark)); c.lineWidth = w * 1.02; for (const u of [0.3, 0.55, 0.8]) { const a = bez(pts, u - 0.05), b = bez(pts, u + 0.05); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); } }
-    if (S.tail === 'plume' && w > 2) { c.strokeStyle = rgb(col([236, 220, 200]), 0.45); c.lineWidth = Math.max(0.4, w * 0.18); c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); c.bezierCurveTo(pts[1][0] - w * 0.4, pts[1][1], pts[2][0] - w * 0.3, pts[2][1] - w * 0.3, pts[3][0], pts[3][1] - w * 0.4); c.stroke(); }
+    if (S.tail === 'plume' && w > 2) { c.strokeStyle = rgb(col(S.fringe || [236, 220, 200]), 0.55); c.lineWidth = Math.max(0.4, w * 0.18); c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); c.bezierCurveTo(pts[1][0] - w * 0.4, pts[1][1], pts[2][0] - w * 0.3, pts[2][1] - w * 0.3, pts[3][0], pts[3][1] - w * 0.4); c.stroke(); }
   };
   const facingUs = Math.sin(q.hd || 0) < -0.3;
   if (facingUs || climb) drawTail();
@@ -529,7 +532,7 @@ export function drawJump(c, cam, j, env) {
 /** a firefly's glow (x, y on screen, k 0..1): a tiny hot core + a soft yellow-green halo (additive) */
 export function drawFirefly(c, x, y, k, s, sprite) {
   if (k < 0.02) return;
-  const r = Math.max(2.2, 0.32 * s);
+  const r = Math.max(3, 0.46 * s);
   c.globalAlpha = Math.min(1, k); c.drawImage(sprite, x - r, y - r, r * 2, r * 2);
 }
 export function fireflySprite() {
