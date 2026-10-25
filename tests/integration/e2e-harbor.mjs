@@ -2212,6 +2212,14 @@ G('workers', async () => {
     await waitFor(Q.page, `${P}.people.members.filter(m => m.role !== 'dog' && m.z < 53).length === 0`, 'the promenade empty', 40000);
     ok(true, 'THE WITNESSES: the promenade empty after they fled');
     await Q.ctx.close(); }
+  // ---- 8b2 — THE CABS: a weeknight's drop at the curb (20:44:54 on Thu Oct 22 — core/harbor-cabs.js, seeded): the cab at the stop, its
+  // lamp dark with a fare aboard, its fare out onto the promenade
+  { const Q = await open({ slot: 'wk7', qs: `when=2026-10-22T20:44:40${GR}`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(${P}.people.cars || []).some(c => c.model === 'taxi' && Math.abs(c.speed) < 0.05)`, 'the cab at the curb', 40000).catch(() => {});
+    const cab = await ev(Q.page, `(${P}.people.cars || []).find(c => c.model === 'taxi' && Math.abs(c.speed) < 0.05) || null`);
+    ok(!!cab, `THE CABS: a cab stopped at the curb (${cab ? cab.x : '—'})`);
+    await Q.ctx.close(); }
   // ---- 8b2 — THE RAID (&force=raid on a weeknight): the patrol cars out, the speakeasy dark the instant they show, the officer's flashlight,
   // the lights back after they're gone
   { const Q = await open({ slot: 'wk6', qs: `when=2026-10-22T22:00:00${GR}&force=raid`, view: [402, 874] });

@@ -1089,7 +1089,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // 8b2 — THE RAID now: its red + blue wash on the wet road, the kerb + the near water — under the patrol cars (drawn in the far pass)
     const RP = raidPlanNow(), nowRS = clock.now() / 1000, RR = RP ? raidAt(RP, nowRS) : null;
     raidSounds(RP, nowRS);
-    if (RR && RR.cars.length && fadeIn > 0) raidFx.ground(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), wet: (LK.rain || 0) > 0.1 ? 1 : 0.55, fade: fadeIn });
+    if (RR && RR.cars.length && fadeIn > 0) raidFx.ground(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), wet: (LK.rain || 0) > 0.1 ? 1 : 0.55, fade: fadeIn, tier });
     // (8b1: the animals on the far side — gulls on the railing, the coyote — sorted in by depth with the people)
     if (pplOn) people.draw(c, 'far', wlOn ? { ...pplEnv, extra: wild.items('far', wlEnv), dogLunge: vid => wild.dogLunge(vid) } : pplEnv);
     else if (wlOn) wild.draw(c, 'far', wlEnv);
@@ -1139,7 +1139,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const side = speak.sidePoly(), ws = speak.windows();
       // (the add-on: the FRONT car's spotlight — where its circle lands on the facade this frame: the door, the windows, the blade)
       raidFrame.spotAt = RR.spot > 0.01 ? raidFx.spotPath(RR.spotU, { windows: ws, side }) : null;
-      raidFx.facade(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn }, { side, windows: ws, officer: people.officer(), spotAt: raidFrame.spotAt });
+      raidFx.facade(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn, tier }, { side, windows: ws, officer: people.officer(), spotAt: raidFrame.spotAt });
     }
     // PF — THE CENTREPIECE on the inlay + its rig's floor spots (nothing without one; &force=centrepiece-test: the test obelisk)
     centre.test(off.has('centrepiece-test'));

@@ -348,7 +348,7 @@ pulse any more".
 ONE registry of every sound the city will ever make (the owner's CITY SOUNDS hunt list, docs/harbor/plan.md), each a named SLOT; the first
 recordings imported into theirs; every event that exists today calls its slot; an EMPTY slot is simply silent.
 - **The slots** (`core/city-sounds.js#SLOTS`, PURE): `{ id (kebab-case, stable), part, kind: 'loop' | 'once', gain (its mix level), what, by (what calls
-  it today) }` — 65 slots. A one-shot may hold several TAKES (one slot, one picked at random, weighted, never the same twice running — `pickTake`);
+  it today) }` — 63 slots (8b2: duck-quack + raccoon-chitter removed with their animals). A one-shot may hold several TAKES (one slot, one picked at random, weighted, never the same twice running — `pickTake`);
   the alternative (a slot per take) would make every caller pick, and a fourth car would mean code changes. FILLED = it has takes in the GENERATED
   `core/city-sounds-files.js` (no network probe); `checkSlots()` guards ids / parts / kinds / gains / the takes' shape.
   | part | slots (**filled**) |
@@ -1057,8 +1057,21 @@ Every one through its slot (silent while empty), quiet — felt more than heard:
   trucks — `trash-truck-arrive` / `trash-truck-depart` (the dump truck: Group 0's cuts of trash-truck-2), `truck-delivery` (the vans; the
   bootleggers' stake truck at a quarter level — a quiet truck).
 - **THE WILDLIFE** (Group 2 — docs/harbor.md#group-2): pigeon-coo, pigeon-flutter, gulls, squirrel-chatter, coyote-yip / -howl, trash-can-lid
-  (the raccoon), cat-meow, duck-quack, dog-bark; `raccoon-chitter` stays EMPTY.
+  (the raccoon — 8b2: the raccoon + the ducks removed, their slots too), cat-meow, dog-bark.
 - **THE HARBOR'S TIMETABLE** (`scene.js#harborClock`, on the city clock — a jump never fires a burst): `ships-bell` every hour (one ring, under the
   music, no dip; not at noon), `steam-whistle` at noon and `ship-horn` for the 7 pm dinner cruise WITH THE MUSIC DIPPED (`sounds.js#ducked`: to
   0.5 / 0.55 over 0.6 s, held 3.5 s, eased back over 5 s — plan.md's "the big moments duck the music"; a few a day), `ship-horn` at 0.7 with no
   dip as Rosie casts off at 10, 2 + 6. Previews: `&force=ships-bell / steam-whistle / dinner-horn` (every 30 s).
+
+## 8b2 — the drain you can hear, the raid + the cabs heard (Oct 25 2026; docs/harbor.md#part-8b2)
+- **THE TR-3B's DRAIN, AUDIBLE** (the owner's iPhone: the AUDIO panel read NOT SOUNDING through it): `core/harbor-legend.js#DRAIN_M` — the speed
+  + pitch sag to ~0.6 × (never under `floor` 0.58; `audio/music.js#bendMusic` floors any bend at `BEND_FLOOR` 0.55 — iOS Safari mutes a media
+  element near half speed), a gentle warped-record WARBLE (a 0.55 Hz wow ± 2 % + a 1.9 Hz flutter ± 0.7 %), a LIGHT duck (0.72 ≈ −3 dB overhead;
+  0.55 under the jets' roar, where the lost time is made up by a seek) and a PARTIAL low-pass (2.6 kHz). Slow, deep + wrong, clearly there; it
+  spins back up after the jets. Not verified on WebKit here (no Mac) — the owner's AUDIO panel decides.
+- **THE BOAT WHISTLE +1 dB**: `steam-whistle` + `ship-horn` 0.16 → 0.18.
+- **THE RAID** (`scene.js#raidSounds`, on the city clock — once each): `siren-1920s` far as they come (0.75, panned left) and again as they go,
+  `police-car-1920s` (the engines rolling by) + a `car-1920s-pass`, `police-whistle` at the stop (soft); the CLUB's murmur (the speakeasy's bed)
+  × the raid's `club` — cut to ~4 % the instant the cars show, creeping back over ~12 s after the lights, up to 1.35 × on a party night.
+- **THE CABS**: the cab's engine is the back road's car sound (no slot of its own yet — a `cab-door` slot is a candidate for the owner's next
+  hunt list).

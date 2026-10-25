@@ -77,16 +77,17 @@ export function createRaid() {
       if (gx < -12 * sp || gx > cam.W + 12 * sp) continue;
       // the road round the car (wide + flat), the promenade's back edge toward us, the near water behind
       // (8b2 review 1: it must read as POLICE at a glance on a phone — a strong pool round each car, its glow up the car's own flanks)
+      const lite = env.tier === 0;          // (tier 0: the road's pool + the water only — the speed round's +2 ms)
       pool(c, gx, gy, 8.5 * sp, 1.9 * sp, w, 1.0 * k0);
-      pool(c, gx, gy + 0.3 * sp, 3.6 * sp, 0.9 * sp, w, 0.55 * k0);
+      if (!lite) pool(c, gx, gy + 0.3 * sp, 3.6 * sp, 0.9 * sp, w, 0.55 * k0);
       pool(c, gx, gy - 1.1 * sp, 4.5 * sp, 1.6 * sp, w, 0.32 * k0);
-      { const z = 51.5, s2 = cam.F / z, [px, py] = project(cam, car.x - 0.6, 0, z); pool(c, px, py, 6.5 * s2, 1.5 * s2, w, 0.42 * k0); }
+      if (!lite) { const z = 51.5, s2 = cam.F / z, [px, py] = project(cam, car.x - 0.6, 0, z); pool(c, px, py, 6.5 * s2, 1.5 * s2, w, 0.42 * k0); }
       { const z = 74, s3 = cam.F / z, [wx, wy] = project(cam, car.x + 1, 0, z); pool(c, wx, wy, 13 * s3, 2.8 * s3, w, 0.5 * k0); }
       // the far quay's facades across the water catch it faintly
-      { const z = 112, s4 = cam.F / z, [fx, fy] = project(cam, car.x + 2, 3.5, z); pool(c, fx, fy, 18 * s4, 6 * s4, w, 0.22 * k0); }
+      if (!lite) { const z = 112, s4 = cam.F / z, [fx, fy] = project(cam, car.x + 2, 3.5, z); pool(c, fx, fy, 18 * s4, 6 * s4, w, 0.22 * k0); }
       // THE WET ROAD: the beacon's own colour mirrored in the asphalt below the car (a narrow streak toward us, its flashes)
       const bx = gx + car.dir * 0.15 * sp, bh = 2.2 * sp, S = sprites();
-      for (const [n, col] of [['red', S.r], ['blue', S.b]]) { const v = b[n]; if (v < 0.03) continue; c.globalAlpha = v * k0 * (0.25 + 0.4 * wet); c.drawImage(col, bx - 0.35 * sp, gy - 0.1 * sp, 0.7 * sp, bh * 0.9); }
+      if (!lite) for (const [n, col] of [['red', S.r], ['blue', S.b]]) { const v = b[n]; if (v < 0.03) continue; c.globalAlpha = v * k0 * (0.25 + 0.4 * wet); c.drawImage(col, bx - 0.35 * sp, gy - 0.1 * sp, 0.7 * sp, bh * 0.9); }
     }
     c.restore();
   }
@@ -114,7 +115,7 @@ export function createRaid() {
     if (R.front && L.speakeasy) {
       const fc = R.front, w = washOf(t, 7), k = (0.3 + 0.7 * dk) * fade, sx0 = cam.VPX + cam.F * fc.x / fc.z;
       c.save(); c.globalCompositeOperation = 'lighter';
-      for (const [z, y, rx, ry, a] of [[L.speakeasy.z0, 3.2, 8.5, 5.5, 0.5], [41, 0, 6.5, 1.6, 0.32], [37.5, 0, 6, 1.5, 0.4]]) {
+      for (const [z, y, rx, ry, a] of (env.tier === 0 ? [[L.speakeasy.z0, 3.2, 8.5, 5.5, 0.5], [39, 0, 7, 2, 0.45]] : [[L.speakeasy.z0, 3.2, 8.5, 5.5, 0.5], [41, 0, 6.5, 1.6, 0.32], [37.5, 0, 6, 1.5, 0.4]])) {
         const wx = ((sx0 - cam.VPX) * z) / cam.F, [px, py] = project(cam, wx, y, z), sp = cam.F / z;
         pool(c, px, py, rx * sp, ry * sp, w, a * k);
       }
