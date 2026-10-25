@@ -5892,6 +5892,9 @@ doesn't bend in the hand — the owner read it as a glitch; the dim flicker stay
   (a warning; the phone decides).
 
 ### Known issues (PEO)
+- **The cloud (two runs):** 40239281525 — `street` red on the dancers' p99 bound (23.6 rad/s on the cloud's uneven frames) and `city` red
+  on the perf group's BATTERY page waiting for a calm city that now walks at 60 fps; both fixed (the bound a warning, `&force=no-people`
+  there) → 40240720303: all five jobs green (`show` confirms C2's billboard fix).
 - **The dancers' check skips an arm under 0.08 heights on screen:** mid-spin, facing side-on, an arm points at the camera and projects to
   a 1–2 px stub whose angle flips (9 such "jumps" in the first run, all in `spin` at hd ≈ 0 / π) — nothing visible moves.
 - **The pivot sweep:** a figure's rig rotates about its ground point, so through a turn (0.6 s) the planted foot sweeps an arc of ~4 px
