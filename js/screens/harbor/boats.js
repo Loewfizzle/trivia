@@ -227,6 +227,16 @@ export function createBoats() {
     c.translate(sx, sy + bob);
     if (s.bodyL && face < 0) { c.scale(-face, 1); c.drawImage(s.bodyL, -s.ox, -s.oy, s.w, s.h); c.scale(-1, 1); }
     else { c.scale(face, 1); c.drawImage(s.body, -s.ox, -s.oy, s.w, s.h); }
+    // (POLISH 4 — THE TR-3B's BLACKOUT: Rosie's lit windows are painted into her night sprite — dark glass laid over them by the power)
+    if (r.kind === 'rosie' && f.power != null && f.power < 0.99 && f.T && f.T.night > 0.35) {
+      const X = a => (a - r.len / 2) * u, Y = y => -y * u;
+      c.globalAlpha = 1 - f.power; c.fillStyle = 'rgb(26,22,34)';
+      for (let a = 3.2; a < 21.2; a += 1.05) { c.beginPath(); c.roundRect(X(a), Y(3.4), 0.62 * u, 1.25 * u, [0.31 * u, 0.31 * u, 0, 0]); c.fill(); }
+      for (let a = 5.0; a < 19; a += 1.15) c.fillRect(X(a), Y(5.6), 0.72 * u, 0.95 * u);
+      for (let a = 9.3; a < 15; a += 1.1) c.fillRect(X(a), Y(7.35), 0.6 * u, 0.7 * u);
+      c.fillRect(X(12.8), Y(8.75), (15 - 12.8 - 0.4) * u, 0.75 * u);
+      c.globalAlpha = 1;
+    }
     if (s.lights && f.lights > 0.01) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, f.lights) * (mirror ? 0.9 : 1); c.drawImage(s.lights, -s.ox, -s.oy, s.w, s.h); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
     // Rosie's paddlewheel (turning while she moves: its spokes + the wash's white water) — after the sprite
     if (r.kind === 'rosie' && tier > 0) {

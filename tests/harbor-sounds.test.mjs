@@ -228,3 +228,34 @@ test('THE SKY\'s flybys chain: the next take starts as the playing one fades (it
   assert.equal(chainDue(0.2, 1), false, 'a very short take: never back to back in a frame');
   assert.equal(chainDue(0.6, 1), true);
 });
+
+test('POLISH 4 — THE JETS IN SYNC: the roar’s middle placed where they cross the centre, its head trimmed, joined late only while it counts', async () => {
+  const { JET_SYNC, jetPan, syncStart: ss, takesOf: tk } = await import('../js/core/city-sounds.js');
+  const t = { ...tk('jet-flyby')[0] }, at = { ...t, peak: JET_SYNC.at };
+  assert.ok(JET_SYNC.at > 3.8 && JET_SYNC.at < 5.6 && JET_SYNC.at < t.d, 'inside the measured plateau');
+  // on time: started pre s before the peak, from (at − pre) into the take
+  const a = ss(at, 3, JET_SYNC); assert.ok(Math.abs(a.delay - (3 - JET_SYNC.pre)) < 1e-6 && Math.abs(a.offset - (JET_SYNC.at - JET_SYNC.pre)) < 1e-6);
+  // the file came late: joined part-way so the peak still lands on time
+  const b = ss(at, 1, JET_SYNC); assert.ok(b.delay === 0 && Math.abs(b.offset - (JET_SYNC.at - 1)) < 1e-6);
+  // too late (they've crossed): silent
+  assert.equal(ss(at, 0.1, JET_SYNC), null);
+  // the pan follows them across the screen, gently
+  assert.ok(jetPan(0) < -0.8 && jetPan(1) > 0.8 && jetPan(0.5) === 0 && jetPan(0.3) < jetPan(0.7));
+});
+
+test('POLISH 4 — THE AIR SHOW: straight formation flybys (no loops), the missing man’s pull-up eased, the passes announced for the roar', async () => {
+  globalThis.document = globalThis.document || { createElement: () => ({ getContext: () => null }) };
+  const { showJets, showLead, SHOW_PASSES, SHOW_LEN, mmClimb } = await import('../js/screens/harbor/jets.js');
+  const box = { x: 0, y: 60, w: 402, h: 300 };
+  // the diamond flies STRAIGHT: its heading within a few degrees of level the whole show (a loop would turn it through 2π)
+  for (let s = 0; s < SHOW_LEN.airshow; s += 0.05) { const L0 = showLead('airshow', s, box); if (!L0.on) continue; const a = Math.abs(Math.sin(L0.ang)); assert.ok(a < 0.05, `level at ${s}: ${a}`); }
+  assert.equal(SHOW_PASSES.airshow.length, 2);
+  // the missing man: #3 climbs smoothly — its climb rate never jumps, its heading eases up (no snap)
+  let prev = 0, prevD = 0;
+  for (let e = 0; e < 10.5; e += 0.05) { const c = mmClimb(e), d = (c - prev) / 0.05; assert.ok(Math.abs(d - prevD) < 0.08, `eased at ${e.toFixed(2)}`); prev = c; prevD = d; }
+  assert.ok(mmClimb(3) === 0 && mmClimb(10) > 0.75);
+  const J = showJets('missing', 9, box, 60), j3 = J.find(j => j.i === 2), j1 = J.find(j => j.i === 0);
+  assert.ok(j3.y < j1.y - 40, 'number three has climbed away');
+  assert.ok(J.filter(j => j.i !== 2).every(j => Math.abs(Math.sin(j.ang)) < 0.05), 'the others fly on, level');
+});
+

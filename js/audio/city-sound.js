@@ -142,7 +142,8 @@ export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take =
       if (!buf || stopped || getContext() !== c) return;
       let at = Math.max(c.currentTime, c.currentTime + delay), off = 0, fade = 0.012;
       if (sync && typeof sync.peakIn === 'function') {
-        const tk = sync.mark === 'hit' && t.hit != null ? { ...t, peak: t.hit } : sync.mark === 'start' ? { ...t, peak: 0 } : t;
+        // (POLISH 4: sync.at — a moment of the take's own, s in, placed on the clock instead of its measured peak: the jets' roar)
+        const tk = sync.at != null ? { ...t, peak: sync.at } : sync.mark === 'hit' && t.hit != null ? { ...t, peak: t.hit } : sync.mark === 'start' ? { ...t, peak: 0 } : t;
         const plan = syncStart(tk, sync.peakIn(), sync);
         if (!plan) { late = true; ended = true; cityLog.push({ slot, f: t.f, late: true, at: performance.now() }); if (cityLog.length > 40) cityLog.shift(); return; }
         at = c.currentTime + plan.delay; off = plan.offset; fade = Math.max(0.012, plan.fade);

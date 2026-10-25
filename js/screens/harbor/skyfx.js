@@ -24,7 +24,8 @@ import { createAirShow, SHOW_LEN } from './jets.js';
 import { createBarnstorm } from './barnstorm.js';
 import { createMeteors } from './meteors.js';
 import { createAurora } from './aurora.js';
-import { barnstormDay, BARN_LEN } from '../../core/harbor-legend.js';
+import { barnstormDay, BARN_LEN, flybyDay } from '../../core/harbor-legend.js';
+import { sunTimes } from '../../core/sky.js';
 import { project } from '../../core/harbor-layout.js';
 import { bannerPanels, eventMessage, smokeWeather, balloonWeather, bannerWeather, skyHolidayOn, fillText, droneTimeline, DRONE_SHAPES, messagePages } from '../../core/harbor-sky.js';
 import { LANES } from '../../core/harbor-events.js';
@@ -37,6 +38,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
   const aur = createAurora(), met = createMeteors(), barn = createBarnstorm(), show = createAirShow(), air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
   let W = 1, H = 1, HZ = 1, L = null, lanes = null, waterTop = 0, waterY1 = 0, barge = null;
   const handled = new Set();                 // the scheduler's events already turned into pieces (id|start)
+  let duskOf = null;                         // (POLISH 4: tonight's sunset hour for the surprise flyby, per date)
   const holiday = new Set();                 // the holiday sky's moments already started (date|day / date|night)
   let aurNow = 0, festival = false, last = null, forcedAt = new Map(), aurora = { on: false, strength: 0 };
   // THE PREVIEW PANEL: a preview it switched on flies FIRST from the clock ms its state began (every phone the same moment, a
@@ -180,6 +182,13 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       if (ent && ent.show && !holiday.has(`${date}|show`) && hr >= ent.show.h && hr < ent.show.h + SHOW_LEN[ent.show.kind] / 3600 && !show.on() && !Lk.rain && !Lk.storm && (Lk.cloud || 0) < 0.8 && may('airshow', 'holiday')) {
         if (show.start(ent.show.kind, atOf(ent.show.h))) holiday.add(`${date}|show`);
       }
+      // (POLISH 4: THE SURPRISE FLYBY — ~2 evenings a week, golden hour → 11 pm, mostly after dark; a few F-16s straight across on
+      // afterburner, in a random direction; weather allowing; never over a show already flying)
+      if (!duskOf || duskOf.date !== date) { const st = Lk.lat != null ? sunTimes(s.now, 'UTC', Lk.lat, Lk.lon) : null; duskOf = { date, h: st && st.set ? ((((st.set / 60000 + (lc.off || 0)) % 1440) + 1440) % 1440) / 60 : 19 }; }
+      const fb = flybyDay(lc.y, lc.m, lc.d, duskOf.h);
+      if (fb && !holiday.has(`${date}|flyby`) && hr >= fb.h && hr < fb.h + SHOW_LEN.flyby / 3600 && !show.on() && !Lk.storm && !(Lk.rain > 0.3) && (Lk.fog || 0) < 0.5) {
+        if (show.start('flyby', atOf(fb.h), { dir: fb.dir, n: fb.n })) holiday.add(`${date}|flyby`);
+      }
       // (6b: THE BARNSTORMER — ~3 days a week at its seeded hour: through the letters, weather allowing)
       const bd = barnstormDay(lc.y, lc.m, lc.d);
       if (bd && !holiday.has(`${date}|barn`) && hr >= bd.h && hr < bd.h + BARN_LEN / 3600 && !barn.on() && !Lk.rain && !Lk.storm && (Lk.wind || 0) < 12 && (Lk.fog || 0) < 0.4) {
@@ -204,6 +213,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       again('helicopter', air.heliOn(), at => air.heli(s, at, Math.floor(at / 1000)));
       again('jets', show.on(), at => show.start('airshow', at));
       again('missing-man', show.on(), at => show.start('missing', at));
+      again('flyby', show.on(), at => show.start('flyby', at, { dir: (Math.floor(at / 1000) & 1) ? 1 : -1, n: 2 + (Math.floor(at / 7000) % 3) }));
       again('barnstormer', barn.on(), at => barn.start(at));
       again('balloons', balloons.on(), at => startBalloons(s, at, false, 3));
       again('balloon-festival', balloons.on(), at => startBalloons(s, at, true, 5));
@@ -236,7 +246,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
         if (id === 'banner') banner.stop();
         else if (id === 'skywrite' || id === 'skytype') smoke.stop();
         else if (id === 'drones') drones.stop();
-        else if (id === 'jets' || id === 'missing-man') show.stop();
+        else if (id === 'jets' || id === 'missing-man' || id === 'flyby') show.stop();
         else if (id === 'barnstormer') barn.stop();
         else if (id === 'balloons' || id === 'balloon-festival') balloons.stop();
       }
@@ -288,7 +298,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       aur.draw(c, st, { y0, y1 }, s.t, s.motion); aurNow = st;
     },
     /** 6b — THE DIRECTOR: the heavy pieces up now ([{ id, kind }]) */
-    heavies: () => [drones.on() ? { id: 'drones', kind: 'holiday' } : null, show.on() ? { id: 'airshow', kind: 'holiday' } : null, smoke.on() ? { id: 'skytype', kind: 'holiday' } : null, balloons.on() && festival ? { id: 'festival', kind: 'rare' } : null].filter(Boolean),
+    heavies: () => [drones.on() ? { id: 'drones', kind: 'holiday' } : null, show.on() && show.kind() !== 'flyby' ? { id: 'airshow', kind: 'holiday' } : null, smoke.on() ? { id: 'skytype', kind: 'holiday' } : null, balloons.on() && festival ? { id: 'festival', kind: 'rare' } : null].filter(Boolean),
     /** lanes a heavy piece quiets (merged into the scheduler's quiet → fs.density) */
     quiet() { if (!heavy()) return []; const u = used(); return LANES.filter(l => !u.has(l)); },
     /** anything fast up there (the calm frame rate: 60 fps while it flies) */

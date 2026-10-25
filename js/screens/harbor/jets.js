@@ -12,7 +12,7 @@
 //                  flying right: its starboard side is ours; red flying left), a white tail light, a red beacon on the fin
 //   VAPOUR + SMOKE a vapour cone round the wing on a hard pull (the air show), a white smoke trail by day (the air show's smoke on)
 import { safeCtx } from '../../ui/canvas-safe.js';
-import { FORMATIONS, missingManAt } from '../../core/harbor-legend.js';
+import { FORMATIONS } from '../../core/harbor-legend.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -23,84 +23,173 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Mat
 /** the hour's light on a jet (from the look): day / golden / dark (0..1) */
 export function jetLook(L) { return { day: clamp01(L.w.day + L.w.dawn * 0.7), golden: L.w.golden || 0, dark: clamp01(L.w.night + L.w.late) }; }
 
-// ------------------------------------------------------------------ the airframe (nose → +x, in jet lengths; y down)
+// ------------------------------------------------------------------ the airframe (nose → +x, in jet lengths; y down; the nozzle at 0)
+// POLISH 4 — THE F-16, MUCH MORE DETAIL (the owner: "a real F-16 shape, two-tone grey camouflage with panel lines, USAF roundels, a
+// small American flag on the tail, wingtip missiles + ordnance on pylons"). Seen from the side + a little below: the ogive radome +
+// its pitot, the gold-tinted BUBBLE canopy far forward (the pilot's helmet in it), the CHIN INTAKE's big mouth under the cockpit,
+// the leading-edge STRAKE flowing into the cropped delta (the near wing seen from just below), the tall swept FIN (its rudder line,
+// the flag, the cap), the all-moving stabilator, the ventral fins, the nozzle's petals; THE CAMO — the medium grey sides, the
+// darker grey upper surfaces in a soft disruptive pattern, the light grey belly; engraved panel lines + access panels; THE STAR-AND-
+// BAR on the intake + under the near wing; THE STORES — an AIM-9 on the wingtip rail, an AIM-120 on the outer pylon, a 370-gal tank
+// on the inner one. Lit by the hour: the sun on the spine by day (warm at golden hour), a dark shape with the moon's cool hair on its
+// back at night (the city is dark under the TR-3B).
+const FUSE = [   // the fuselage outline (cubic beziers: c1, c2, end)
+  ['M', 1.0, 0.004],
+  ['C', 0.96, -0.012, 0.91, -0.03, 0.84, -0.04],            // the radome up to the windscreen's foot
+  ['L', 0.6, -0.05],                                         // (under the canopy)
+  ['C', 0.5, -0.058, 0.38, -0.056, 0.27, -0.05],             // the dorsal spine
+  ['C', 0.16, -0.046, 0.08, -0.04, 0.035, -0.033],           // down to the nozzle
+  ['L', 0.035, 0.03],
+  ['C', 0.1, 0.04, 0.24, 0.05, 0.36, 0.052],                 // the engine's belly
+  ['C', 0.42, 0.06, 0.5, 0.08, 0.58, 0.084],                 // the intake duct's underside
+  ['L', 0.655, 0.086],                                       // the lower lip
+  ['L', 0.69, 0.034],                                        // the mouth's leading edge, up to the fuselage
+  ['C', 0.8, 0.03, 0.92, 0.022, 1.0, 0.004],                 // the chin up to the nose
+];
+function fusePath(x) {
+  x.beginPath();
+  for (const s of FUSE) { if (s[0] === 'M') x.moveTo(s[1], s[2]); else if (s[0] === 'L') x.lineTo(s[1], s[2]); else x.bezierCurveTo(s[1], s[2], s[3], s[4], s[5], s[6]); }
+  x.closePath();
+}
+const FIN = [[0.3, -0.049], [0.125, -0.325], [0.05, -0.325], [0.04, -0.04]];
+const WING = [[0.54, 0.028], [0.305, 0.142], [0.215, 0.142], [0.19, 0.042]];
+const FARW = [[0.5, -0.052], [0.36, -0.088], [0.29, -0.088], [0.23, -0.05]];
+const STAB = [[0.13, 0.028], [0.005, 0.094], [-0.035, 0.092], [-0.008, 0.028]];
+const VENT = [[0.16, 0.045], [0.115, 0.088], [0.085, 0.088], [0.1, 0.045]];
 function paintJet(x, look) {
   const day = clamp01(look.day + look.golden * 0.8) * (1 - look.dark), gold = clamp01(look.golden * 1.3) * (1 - look.dark), dark = look.dark;
-  // (the camo: the light grey underside + the darker grey on top; at night a deep blue-grey lit faintly from below)
-  const top = mix(mix([34, 38, 48], [104, 112, 124], day), [150, 120, 104], gold * 0.5);
-  const side = mix(mix([40, 44, 56], [128, 136, 148], day), [176, 140, 118], gold * 0.45);
-  const belly = mix(mix([52, 50, 68], [164, 172, 184], day), [190, 150, 140], gold * 0.4);
-  const farW = mix(top, [20, 22, 30], 0.35), edge = mix([80, 86, 104], [220, 226, 236], day);
   const poly = (pts, col) => { x.fillStyle = col; x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.fill(); };
-  // the FAR wing + the far stabilator (behind the body, darker): just their edges showing above the fuselage
-  poly([[0.56, -0.01], [0.26, -0.11], [0.17, -0.11], [0.2, -0.02]], rgb(farW));
-  poly([[0.13, -0.01], [0.0, -0.07], [-0.04, -0.065], [0.0, -0.005]], rgb(farW));
-  // THE FIN: tall, swept, the leading edge lit
-  poly([[0.27, -0.035], [0.11, -0.3], [0.04, -0.3], [0.05, -0.035]], rgb(side));
-  x.fillStyle = rgb(mix(side, [0, 0, 0], 0.25)); x.fillRect(0.05, -0.3, 0.07, 0.02);                                         // (its antenna cap)
-  x.strokeStyle = rgb(edge, 0.55 + 0.3 * day); x.lineWidth = 0.008; x.beginPath(); x.moveTo(0.27, -0.035); x.lineTo(0.11, -0.3); x.stroke();
-  // THE FUSELAGE: the radome's point, the long spine, the engine bulge to the nozzle; the chin intake under the cockpit
-  x.beginPath();
-  x.moveTo(1.0, 0.012);
-  x.bezierCurveTo(0.93, -0.012, 0.84, -0.035, 0.74, -0.042);    // the radome up to the canopy's foot
-  x.lineTo(0.42, -0.045); x.bezierCurveTo(0.24, -0.046, 0.12, -0.04, 0.04, -0.03);   // the spine
-  x.lineTo(0.0, -0.026); x.lineTo(0.0, 0.028);                    // the nozzle's face
-  x.bezierCurveTo(0.1, 0.04, 0.3, 0.05, 0.46, 0.05);             // the engine's belly
-  x.lineTo(0.62, 0.062); x.lineTo(0.64, 0.05);                   // the intake's lip
-  x.bezierCurveTo(0.8, 0.044, 0.92, 0.035, 1.0, 0.012);
-  x.closePath();
-  const g = x.createLinearGradient(0, -0.05, 0, 0.06);
-  g.addColorStop(0, rgb(mix(top, [255, 250, 240], 0.12 * day))); g.addColorStop(0.45, rgb(side)); g.addColorStop(1, rgb(belly));
-  x.fillStyle = g; x.fill();
-  // the chin intake (a dark mouth under the cockpit)
-  poly([[0.66, 0.03], [0.6, 0.068], [0.52, 0.066], [0.55, 0.04]], rgb(mix(belly, [8, 8, 14], 0.75)));
-  // panel lines + the camo's soft blotches (subtle — read as a real airframe at 3×, invisible at a glance)
-  x.strokeStyle = rgb([0, 0, 0], 0.16); x.lineWidth = 0.004;
-  for (const px of [0.82, 0.58, 0.36, 0.2]) { x.beginPath(); x.moveTo(px, -0.044); x.lineTo(px - 0.01, 0.048); x.stroke(); }
-  x.fillStyle = rgb(mix(top, [0, 0, 0], 0.18), 0.5);
-  x.beginPath(); x.ellipse(0.48, -0.025, 0.08, 0.016, 0, 0, TAU); x.ellipse(0.22, -0.02, 0.06, 0.014, 0, 0, TAU); x.fill();
-  // THE CANOPY: the F-16's gold-tinted bubble, a highlight along its top
-  x.beginPath(); x.moveTo(0.84, -0.036); x.bezierCurveTo(0.8, -0.085, 0.68, -0.09, 0.6, -0.046); x.closePath();
-  const cg = x.createLinearGradient(0.6, -0.09, 0.8, -0.04);
-  cg.addColorStop(0, rgb(mix([30, 26, 20], [214, 170, 80], day * 0.9 + 0.1))); cg.addColorStop(1, rgb(mix([12, 10, 10], [110, 80, 40], day)));
-  x.fillStyle = cg; x.fill();
-  x.strokeStyle = rgb([255, 244, 220], 0.35 + 0.4 * day); x.lineWidth = 0.006; x.beginPath(); x.moveTo(0.81, -0.06); x.quadraticCurveTo(0.73, -0.088, 0.65, -0.07); x.stroke();
-  // THE NEAR WING seen from just below (the cropped delta under the body) + its leading edge
-  poly([[0.6, 0.04], [0.28, 0.15], [0.16, 0.152], [0.17, 0.045]], rgb(mix(belly, [255, 255, 255], 0.06 * day)));
-  x.strokeStyle = rgb(edge, 0.5); x.lineWidth = 0.006; x.beginPath(); x.moveTo(0.6, 0.04); x.lineTo(0.28, 0.15); x.stroke();
-  // the stabilator (near) + a ventral fin
-  poly([[0.13, 0.03], [0.0, 0.1], [-0.045, 0.098], [-0.005, 0.03]], rgb(belly));
-  poly([[0.16, 0.045], [0.1, 0.085], [0.07, 0.085], [0.09, 0.045]], rgb(mix(belly, [0, 0, 0], 0.2)));
-  // THE STORES: the wingtip missile (an AIM-9 on the tip rail, its fins), an under-wing pylon with a missile, a centreline tank
-  const missile = (x0, x1, y, w, col) => {
-    x.fillStyle = rgb(col); x.fillRect(x1, y - w / 2, x0 - x1, w);
-    x.beginPath(); x.moveTo(x0, y - w / 2); x.lineTo(x0 + w * 2.2, y); x.lineTo(x0, y + w / 2); x.fill();          // (the seeker's point)
-    poly([[x1 + 0.03, y], [x1 - 0.005, y - w * 2.2], [x1 - 0.015, y - w * 2.2], [x1, y]], rgb(col));                  // (its fins)
-    poly([[x1 + 0.03, y], [x1 - 0.005, y + w * 2.2], [x1 - 0.015, y + w * 2.2], [x1, y]], rgb(col));
-    poly([[x0 - 0.04, y], [x0 - 0.055, y - w * 1.6], [x0 - 0.065, y - w * 1.6], [x0 - 0.06, y]], rgb(col));
-  };
-  const store = mix(mix([60, 62, 70], [196, 200, 206], day), [210, 176, 150], gold * 0.4);
-  missile(0.36, 0.13, 0.158, 0.011, store);
-  x.fillStyle = rgb(mix(belly, [0, 0, 0], 0.3)); x.fillRect(0.33, 0.09, 0.012, 0.03);                                   // (the pylon)
-  missile(0.42, 0.24, 0.124, 0.01, store);
-  x.fillStyle = rgb(mix(belly, [0, 0, 0], 0.1)); x.beginPath(); x.ellipse(0.4, 0.064, 0.1, 0.014, 0, 0, TAU); x.fill();   // (the centreline tank)
-  // the nozzle ring
-  x.fillStyle = rgb([22, 20, 26]); x.fillRect(-0.012, -0.026, 0.02, 0.054);
-  x.strokeStyle = rgb(mix([60, 56, 60], [150, 140, 130], day)); x.lineWidth = 0.005; x.beginPath(); x.moveTo(-0.012, -0.026); x.lineTo(-0.012, 0.028); x.stroke();
-  // night: the city's glow on the belly (a faint warm-violet underlight)
-  if (dark > 0.05) {
-    x.globalCompositeOperation = 'source-atop';
-    const u = x.createLinearGradient(0, -0.1, 0, 0.16); u.addColorStop(0, 'rgba(0,0,0,0)'); u.addColorStop(1, `rgba(150,90,170,${(0.28 * dark).toFixed(3)})`);
-    x.fillStyle = u; x.fillRect(-0.05, -0.32, 1.1, 0.5);
-    x.globalCompositeOperation = 'source-over';
+  // (the hour's light on a paint colour: warm at golden hour, a dark blue-grey at night that keeps a little of the colour)
+  const lit = c => mix(mix(c, c.map((v, i) => (v + [190, 140, 110][i]) / 2), gold * 0.55), c.map(v => 22 + v * 0.18), dark * 0.85);
+  // THE GREYS (FS 36118 gunship grey on top, 36270 on the sides, 36375 under) — lit by the hour
+  const gTop = lit([84, 90, 98]), gSide = lit([128, 134, 140]), gBelly = lit([166, 171, 176]), gDark = lit([62, 66, 74]);
+  const line = (a = 0.3) => rgb([0, 0, 0], a * (0.6 + 0.4 * day));
+  const hair = (a = 0.16) => rgb([255, 255, 255], a * day);
+  // the FAR wing + the far stabilator (behind the body, darker): their edges just showing above the spine
+  poly(FARW, rgb(mix(gTop, [10, 12, 18], 0.35)));
+  poly([[0.12, -0.03], [0.0, -0.08], [-0.035, -0.077], [-0.005, -0.028]], rgb(mix(gTop, [10, 12, 18], 0.4)));
+  // THE FIN: tall + swept; the camo's dark grey on its upper half, the rudder's hinge, the cap, the flag, the leading edge lit
+  poly(FIN, rgb(gSide));
+  x.save(); x.beginPath(); FIN.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.clip();
+  x.fillStyle = rgb(gTop); x.beginPath(); x.moveTo(0.3, -0.12); x.bezierCurveTo(0.22, -0.16, 0.14, -0.1, 0.02, -0.15); x.lineTo(0.02, -0.34); x.lineTo(0.3, -0.34); x.closePath(); x.fill();
+  x.fillStyle = rgb(gDark); x.fillRect(0.04, -0.33, 0.12, 0.022);                                      // (the antenna cap)
+  x.strokeStyle = line(0.35); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.072, -0.3); x.lineTo(0.074, -0.06); x.stroke();   // (the rudder)
+  // THE FLAG (a small one, mid-fin): seven stripes + the blue canton with its stars as a speckle
+  { const fx = 0.105, fy = -0.235, fw = 0.072, fh = 0.042, R = lit([178, 34, 52]), Wt = lit([238, 238, 236]), B = lit([40, 52, 104]);
+    for (let k = 0; k < 7; k++) { x.fillStyle = rgb(k % 2 ? Wt : R); x.fillRect(fx, fy + fh * k / 7, fw, fh / 7 + 0.0006); }
+    x.fillStyle = rgb(B); x.fillRect(fx, fy, fw * 0.42, fh * 4 / 7);
+    x.fillStyle = rgb(Wt, 0.8); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) x.fillRect(fx + 0.006 + i * 0.01, fy + 0.006 + j * 0.01, 0.003, 0.003);
+    x.strokeStyle = line(0.25); x.lineWidth = 0.0015; x.strokeRect(fx, fy, fw, fh); }
+  x.restore();
+  x.strokeStyle = hair(0.45); x.lineWidth = 0.004; x.beginPath(); x.moveTo(0.3, -0.049); x.lineTo(0.125, -0.325); x.stroke();
+  // THE FUSELAGE: the side grey, the top dark grey in a wavy disruptive band, the light grey belly (+ the intake's shadowed mouth)
+  fusePath(x); x.fillStyle = rgb(gSide); x.fill();
+  x.save(); fusePath(x); x.clip();
+  x.fillStyle = rgb(gBelly); x.beginPath(); x.moveTo(0, 0.03); x.bezierCurveTo(0.3, 0.025, 0.6, 0.04, 1.0, 0.016); x.lineTo(1.0, 0.1); x.lineTo(0, 0.1); x.closePath(); x.fill();
+  x.fillStyle = rgb(gTop); x.beginPath(); x.moveTo(0, -0.06);
+  for (let i = 0; i <= 24; i++) { const u = i / 24, py = -0.024 + 0.012 * Math.sin(u * 19 + 0.8) + 0.007 * Math.sin(u * 41 + 2) + (u > 0.82 ? (u - 0.82) * 0.08 : 0); x.lineTo(u, py); }
+  x.lineTo(1, -0.1); x.lineTo(0, -0.1); x.closePath(); x.fill();
+  // the disruptive patches: soft blobs of the darker grey across the side (the old wraparound pattern, toned down)
+  x.fillStyle = rgb(gDark, 0.7);
+  for (const [cx, cy, rx, ry, a] of [[0.47, -0.02, 0.07, 0.014, 0.1], [0.22, -0.015, 0.06, 0.013, -0.12], [0.78, -0.02, 0.045, 0.01, 0.15]]) { x.beginPath(); x.ellipse(cx, cy, rx, ry, a, 0, TAU); x.fill(); }
+  // the light: the sun on the spine (a lit band) by day, the shade under
+  const lg = x.createLinearGradient(0, -0.07, 0, 0.09);
+  lg.addColorStop(0, `rgba(255,250,240,${(0.22 * day).toFixed(3)})`); lg.addColorStop(0.35, 'rgba(255,250,240,0)'); lg.addColorStop(0.7, 'rgba(0,0,0,0)'); lg.addColorStop(1, `rgba(0,0,10,${(0.22 + 0.1 * dark).toFixed(3)})`);
+  x.fillStyle = lg; x.fillRect(0, -0.1, 1.05, 0.2);
+  // PANEL LINES: the stations, the strake's seam along the side, access panels (engraved: a dark cut + a hair of light)
+  x.lineWidth = 0.0026;
+  for (const [px, top, bot] of [[0.885, -0.03, 0.02], [0.6, -0.05, 0.035], [0.5, -0.056, 0.07], [0.4, -0.056, 0.057], [0.31, -0.052, 0.05], [0.2, -0.047, 0.045], [0.1, -0.04, 0.038]]) {
+    x.strokeStyle = line(0.32); x.beginPath(); x.moveTo(px, top); x.lineTo(px - 0.004, bot); x.stroke();
+    x.strokeStyle = hair(0.1); x.beginPath(); x.moveTo(px + 0.003, top); x.lineTo(px - 0.001, bot); x.stroke();
   }
+  x.strokeStyle = line(0.3); x.beginPath(); x.moveTo(0.84, 0.008); x.bezierCurveTo(0.7, 0.012, 0.5, 0.016, 0.22, 0.012); x.stroke();
+  for (const [ax, ay, aw, ah] of [[0.55, -0.035, 0.03, 0.014], [0.34, -0.04, 0.035, 0.012], [0.25, 0.018, 0.03, 0.016], [0.43, 0.02, 0.025, 0.014]]) { x.strokeStyle = line(0.26); x.strokeRect(ax, ay, aw, ah); }
+  // the intake's mouth (dark, its lip lit) + the boundary-layer gap above it
+  x.fillStyle = rgb(mix(gBelly, [6, 6, 10], 0.7)); x.beginPath(); x.moveTo(0.69, 0.036); x.lineTo(0.655, 0.084); x.lineTo(0.641, 0.083); x.quadraticCurveTo(0.66, 0.055, 0.676, 0.037); x.closePath(); x.fill();
+  x.strokeStyle = hair(0.35); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.69, 0.035); x.lineTo(0.655, 0.085); x.stroke();
+  x.strokeStyle = line(0.4); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.69, 0.031); x.bezierCurveTo(0.6, 0.033, 0.5, 0.04, 0.4, 0.045); x.stroke();
+  // THE STAR-AND-BAR on the intake's side
+  roundel(x, 0.5, 0.055, 0.019, 1, lit);
+  x.restore();
+  // the radome's tip + the pitot probe
+  x.strokeStyle = rgb(gDark); x.lineWidth = 0.0035; x.beginPath(); x.moveTo(0.995, 0.004); x.lineTo(1.045, 0.003); x.stroke();
+  x.fillStyle = rgb(mix(gSide, [20, 22, 28], 0.25)); x.beginPath(); x.moveTo(1.0, 0.004); x.bezierCurveTo(0.975, -0.004, 0.955, -0.012, 0.93, -0.018); x.lineTo(0.93, 0.016); x.bezierCurveTo(0.955, 0.012, 0.975, 0.009, 1.0, 0.004); x.fill();
+  // THE LEADING-EDGE STRAKE (a lit edge from under the canopy into the wing root)
+  x.strokeStyle = hair(0.4); x.lineWidth = 0.0035; x.beginPath(); x.moveTo(0.8, 0.006); x.bezierCurveTo(0.7, 0.01, 0.6, 0.016, 0.54, 0.027); x.stroke();
+  // THE CANOPY: the frameless bubble, gold-tinted; the pilot's helmet + the ejection seat's head inside; a long highlight
+  { x.beginPath(); x.moveTo(0.84, -0.04); x.bezierCurveTo(0.815, -0.118, 0.69, -0.124, 0.6, -0.05); x.closePath();
+    const cg = x.createLinearGradient(0.6, -0.105, 0.82, -0.04);
+    cg.addColorStop(0, rgb(mix([24, 22, 20], [196, 150, 70], day * 0.9 + 0.06))); cg.addColorStop(0.6, rgb(mix([14, 14, 16], [120, 88, 44], day))); cg.addColorStop(1, rgb(mix([30, 30, 34], [210, 176, 110], day)));
+    x.fillStyle = cg; x.fill();
+    x.save(); x.clip();
+    x.fillStyle = rgb(mix([10, 10, 14], [44, 46, 52], day)); x.beginPath(); x.arc(0.715, -0.079, 0.018, 0, TAU); x.fill();      // the helmet
+    x.fillStyle = rgb(mix([8, 8, 10], [26, 26, 30], day)); x.fillRect(0.664, -0.088, 0.022, 0.04);                                  // the seat's head
+    x.fillStyle = rgb(mix([20, 16, 10], [150, 110, 40], day), 0.8); x.beginPath(); x.ellipse(0.728, -0.08, 0.008, 0.007, 0, 0, TAU); x.fill();   // the visor
+    x.restore();
+    x.strokeStyle = rgb([255, 246, 226], 0.3 + 0.45 * day); x.lineWidth = 0.004; x.beginPath(); x.moveTo(0.818, -0.072); x.quadraticCurveTo(0.745, -0.113, 0.645, -0.088); x.stroke();
+    x.strokeStyle = line(0.5); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.84, -0.04); x.lineTo(0.6, -0.05); x.stroke(); }
+  // THE NEAR WING seen from just below (the cropped delta; its underside the light grey) + its flaperon line + the roundel under it
+  poly(WING, rgb(mix(gBelly, [255, 255, 255], 0.05 * day)));
+  x.save(); x.beginPath(); WING.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.clip();
+  const wg = x.createLinearGradient(0, 0.03, 0, 0.14); wg.addColorStop(0, rgb([0, 0, 10], 0.18)); wg.addColorStop(1, rgb([255, 255, 255], 0.06 * day)); x.fillStyle = wg; x.fillRect(0.1, 0, 0.5, 0.15);
+  x.strokeStyle = line(0.3); x.lineWidth = 0.0026; x.beginPath(); x.moveTo(0.235, 0.055); x.lineTo(0.235, 0.135); x.stroke();
+  roundel(x, 0.33, 0.1, 0.022, 0.42, lit);
+  x.restore();
+  x.strokeStyle = hair(0.45); x.lineWidth = 0.004; x.beginPath(); x.moveTo(WING[0][0], WING[0][1]); x.lineTo(WING[1][0], WING[1][1]); x.stroke();
+  // the stabilator (near) + the ventral fins
+  poly(STAB, rgb(mix(gSide, gBelly, 0.4)));
+  x.strokeStyle = hair(0.35); x.lineWidth = 0.003; x.beginPath(); x.moveTo(STAB[0][0], STAB[0][1]); x.lineTo(STAB[1][0], STAB[1][1]); x.stroke();
+  poly(VENT, rgb(mix(gBelly, [0, 0, 0], 0.22)));
+  // THE STORES: the 370-gal tank on the inner pylon, an AIM-120 on the outer one, the AIM-9 on the wingtip rail
+  const white = lit([228, 230, 232]), grey = lit([150, 154, 160]), pyl = rgb(mix(gBelly, [0, 0, 0], 0.32));
+  x.fillStyle = pyl; x.fillRect(0.335, 0.052, 0.04, 0.016); x.fillRect(0.285, 0.098, 0.035, 0.012);
+  { const tg = x.createLinearGradient(0, 0.06, 0, 0.088); tg.addColorStop(0, rgb(mix(grey, [255, 255, 255], 0.2 * day))); tg.addColorStop(1, rgb(mix(grey, [0, 0, 0], 0.3)));
+    x.fillStyle = tg; x.beginPath(); x.moveTo(0.47, 0.074); x.bezierCurveTo(0.44, 0.062, 0.3, 0.062, 0.24, 0.07); x.lineTo(0.215, 0.074); x.lineTo(0.24, 0.078); x.bezierCurveTo(0.3, 0.087, 0.44, 0.087, 0.47, 0.074); x.fill();
+    poly([[0.25, 0.071], [0.215, 0.06], [0.21, 0.062], [0.235, 0.074]], rgb(grey)); }
+  const missile = (x0, x1, y, w, body, nose) => {
+    x.fillStyle = rgb(body); x.fillRect(x1, y - w / 2, x0 - x1, w);
+    x.fillStyle = rgb(nose); x.beginPath(); x.moveTo(x0, y - w / 2); x.quadraticCurveTo(x0 + w * 2.4, y - w * 0.2, x0 + w * 2.6, y); x.quadraticCurveTo(x0 + w * 2.4, y + w * 0.2, x0, y + w / 2); x.fill();
+    x.fillStyle = rgb(mix(body, [0, 0, 0], 0.3)); x.fillRect(x1, y + w * 0.1, x0 - x1, w * 0.4);                // (its shaded underside)
+    x.fillStyle = rgb(lit([200, 170, 60])); x.fillRect(x0 - 0.03, y - w / 2, 0.006, w);                         // (the warhead band)
+    poly([[x1 + 0.028, y], [x1 - 0.004, y - w * 2.1], [x1 - 0.014, y - w * 2.1], [x1, y]], rgb(body));
+    poly([[x1 + 0.028, y], [x1 - 0.004, y + w * 2.1], [x1 - 0.014, y + w * 2.1], [x1, y]], rgb(mix(body, [0, 0, 0], 0.2)));
+    poly([[x0 - 0.045, y], [x0 - 0.058, y - w * 1.5], [x0 - 0.066, y - w * 1.5], [x0 - 0.062, y]], rgb(body));
+  };
+  missile(0.4, 0.17, 0.112, 0.012, white, grey);                           // AIM-120 (under the wing)
+  x.fillStyle = pyl; x.fillRect(0.21, 0.138, 0.1, 0.006);                   // (the wingtip rail)
+  missile(0.35, 0.16, 0.15, 0.011, white, lit([120, 120, 128]));           // AIM-9 (on the tip)
+  // THE NOZZLE: the petals ("turkey feathers") round the exhaust
+  { const ng = x.createLinearGradient(0, -0.032, 0, 0.03); ng.addColorStop(0, rgb(lit([92, 86, 80]))); ng.addColorStop(1, rgb(lit([40, 38, 40])));
+    x.fillStyle = ng; x.beginPath(); x.moveTo(0.04, -0.033); x.lineTo(-0.012, -0.027); x.lineTo(-0.012, 0.025); x.lineTo(0.04, 0.03); x.closePath(); x.fill();
+    x.strokeStyle = line(0.45); x.lineWidth = 0.0022; for (let i = 0; i < 5; i++) { const yy = -0.026 + i * 0.0125; x.beginPath(); x.moveTo(0.035, yy * 1.1); x.lineTo(-0.01, yy); x.stroke(); }
+    x.fillStyle = rgb([14, 12, 14]); x.fillRect(-0.014, -0.025, 0.005, 0.05); }
+  // night: the moon's cool hair along the spine + the fin's edge (a dark shape that still reads against the sky)
+  if (dark > 0.05) {
+    x.strokeStyle = `rgba(170,186,220,${(0.32 * dark).toFixed(3)})`; x.lineWidth = 0.004;
+    x.beginPath(); x.moveTo(0.93, -0.022); x.bezierCurveTo(0.8, -0.045, 0.5, -0.06, 0.3, -0.052); x.stroke();
+    x.beginPath(); x.moveTo(0.3, -0.05); x.lineTo(0.125, -0.325); x.stroke();
+  }
+}
+/** the USAF star-and-bar at (cx, cy), radius r (jet lengths), sq: its vertical squash (seen at a slant under the wing) */
+function roundel(x, cx, cy, r, sq, lit) {
+  const B = rgb(lit([34, 48, 104])), Wt = rgb(lit([236, 236, 234])), R = rgb(lit([178, 34, 52]));
+  x.save(); x.translate(cx, cy); x.scale(1, sq);
+  // the bars: blue outline, white field, the red stripe — then the blue disc + the white star
+  x.fillStyle = B; x.fillRect(-r * 2.05, -r * 0.5, r * 4.1, r * 1.0);
+  x.fillStyle = Wt; x.fillRect(-r * 1.95, -r * 0.4, r * 3.9, r * 0.8);
+  x.fillStyle = R; x.fillRect(-r * 1.95, -r * 0.13, r * 3.9, r * 0.26);
+  x.fillStyle = B; x.beginPath(); x.arc(0, 0, r, 0, TAU); x.fill();
+  x.fillStyle = Wt; x.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.38 : r * 0.92; x.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+  x.closePath(); x.fill();
+  x.restore();
 }
 
 /** a jet sprite: len pt long, nose toward +x (mirrored when drawn) → { cv, w, h, ox, oy (the nozzle's place in the sprite, pt) } */
 export function jetSprite(len, look, dpr) {
-  const W = len * 1.12, H = len * 0.56, d = Math.min(3, Math.max(1.5, dpr));
+  const W = len * 1.14, H = len * 0.64, d = 3;                  // (3× always: a small sprite — the detail needs the pixels)
   const cv = mk(W * d, H * d), x = safeCtx(cv);
-  const ox = len * 0.06, oy = H * 0.56;
+  const ox = len * 0.06, oy = len * 0.36;
   x.setTransform(d, 0, 0, d, ox * d, oy * d); x.scale(len, len);
   paintJet(x, look);
   return { cv, w: W, h: H, ox, oy };
@@ -170,12 +259,12 @@ export function drawJetLights(c, len, navDir, night, t, i = 0) {
   c.save(); c.lineCap = 'round';
   c.globalCompositeOperation = 'lighter';
   c.globalAlpha = 0.5 * night; const gs = len * 0.14;
-  for (const [a, b] of [[0.7, -0.03], [0.2, -0.04], [0.15, -0.17]]) c.drawImage(tinted(G), a * len - gs, b * len - gs * 0.5, gs * 2, gs);
+  for (const [a, b] of [[0.72, -0.02], [0.21, -0.04], [0.19, -0.17]]) c.drawImage(tinted(G), a * len - gs, b * len - gs * 0.5, gs * 2, gs);
   c.globalAlpha = 1;
-  strip(0.76, -0.032, 0.66, -0.036); strip(0.3, -0.042, 0.12, -0.036); strip(0.2, -0.12, 0.13, -0.22);
+  strip(0.78, -0.018, 0.67, -0.022); strip(0.3, -0.042, 0.12, -0.036); strip(0.22, -0.12, 0.165, -0.22);
   const nav = navDir > 0 ? [90, 255, 140] : [255, 60, 60];
-  c.globalAlpha = 0.85 * night; c.drawImage(tinted(nav), 0.26 * len - gs * 0.6, 0.158 * len - gs * 0.6, gs * 1.2, gs * 1.2);
-  c.globalAlpha = night; c.fillStyle = rgb(nav); c.beginPath(); c.arc(0.27 * len, 0.158 * len, Math.max(0.6, len * 0.012), 0, TAU); c.fill();
+  c.globalAlpha = 0.85 * night; c.drawImage(tinted(nav), 0.6 * len - gs * 0.6, 0.062 * len - gs * 0.6, gs * 1.2, gs * 1.2);
+  c.globalAlpha = night; c.fillStyle = rgb(nav); c.beginPath(); c.arc(0.6 * len, 0.062 * len, Math.max(0.6, len * 0.012), 0, TAU); c.fill();
   c.fillStyle = 'rgb(255,250,240)'; c.beginPath(); c.arc(-0.005 * len, -0.03 * len, Math.max(0.5, len * 0.009), 0, TAU); c.fill();
   const bk = Math.sin(t * 7.5 + i * 1.3) > 0.55 ? 1 : 0.15;
   c.globalAlpha = night * bk; c.drawImage(tinted([255, 40, 30]), 0.07 * len - gs * 0.5, -0.3 * len - gs * 0.5, gs, gs);
@@ -208,114 +297,141 @@ export function createJets() {
   }
   return {
     draw,
+    /** bake a jet's sprite ahead of its pass (never on the frame it screams in) */
+    warm(len, look) { sprite(len, look); },
     setDpr(d) { if (d !== dpr) { dpr = d; for (const v of cache.values()) v.cv.width = 0; cache.clear(); } },
     destroy() { for (const v of cache.values()) v.cv.width = 0; cache.clear(); },
   };
 }
 
-// ------------------------------------------------------------------ THE AIR SHOW + THE MISSING MAN (6b — plan.md "THE MILITARY JETS")
-// Flights are a function of the seconds since they began (every phone the same sky, a late arrival mid-show). The formation flies
-// one PATH (the lead's); each jet holds its slot in the lead's own frame (rotated with the heading), so a loop turns the whole diamond.
-//   'airshow'   our own unbranded team: a DIAMOND of four, smoke on by day — a low pass left → right, a big LOOP in the open sky right →
-//               left (the smoke drawing the circle), then a VERTICAL PULL-UP in the middle on full afterburner (vapour cones on the
-//               pull), climbing out of the top. ~24 s.
-//   'missing'   THE MISSING MAN (Memorial + Veterans Day): a finger-four in a calm flat pass right → left; #3 pulls up and away,
-//               climbing out alone while the three fly on. ~11 s, no smoke.
-export const SHOW_LEN = { airshow: 24, missing: 11 };
+// ------------------------------------------------------------------ THE AIR SHOW + THE MISSING MAN (POLISH 4 — plan.md 6b note 8)
+// The owner after 6b: "comically bad" (flat jets, jerky smoke, an abrupt pull-up into a perfect circle) → DECIDED: no loops; only
+// what can look great. Flights are a function of the seconds since they began (every phone the same sky, a late arrival mid-show):
+//   'airshow'   THE FORMATION FLYBY: a tight DIAMOND of four, straight across the sky, smooth + fast, smoke on by day — a pass left →
+//               right low in the open sky, then (after a breath) a second pass right → left higher up. ~16 s.
+//   'missing'   THE MISSING MAN (Memorial + Veterans Day): a finger-four straight across right → left; #3 pulls up in a smooth, gentle
+//               climb (an eased curve, never a snap) and peels away into the sky alone while the three fly on. ~11 s, no smoke.
+// THE SMOKE: each jet's trail is ONE continuous ribbon along its own past path (analytic: sampled densely every frame, sub-pixel),
+// widening + thinning with age, drifting a touch, a wide faint body under a brighter core — never segmented.
+export const SHOW_LEN = { airshow: 16, missing: 11, flyby: 5 };
 const sm01 = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
-/** the lead's place at s (box: the open sky { x, y, w, h }) → { x, y, ang (screen heading, rad: 0 = right, −π/2 = up), on, vapour, burn } */
-export function showLead(kind, s, box) {
-  const { x: X, y: Y, w: Wd, h: Hh } = box, low = Y + Hh * 0.82, mid = Y + Hh * 0.5;
-  if (kind === 'missing') {
-    const u = s / SHOW_LEN.missing, x = X + Wd * (1.25 - 1.5 * u);
-    return { x, y: Y + Hh * 0.62 - u * Hh * 0.08, ang: Math.PI - 0.05, on: u > 0 && u < 1, vapour: 0, burn: 0.25, u, dir: -1 };
-  }
-  // the air show: pass 1 (0–3.6 s) → the loop (6–15 s) → the pull-up (17–24 s)
-  if (s < 3.6) { const u = s / 3.6; return { x: X - Wd * 0.25 + Wd * 1.5 * u, y: low - Math.sin(u * Math.PI) * Hh * 0.06, ang: -0.06 * Math.cos(u * Math.PI), on: true, vapour: 0, burn: 0.35, dir: 1 }; }
-  if (s >= 6 && s < 15.5) {
-    // in from the right, a full loop round the middle of the sky (the circle's bottom on the flight line), out to the left
-    const R = Math.min(Wd * 0.3, Hh * 0.38), cx = X + Wd * 0.5, cy = mid + Hh * 0.04, v = R * 1.25;            // (pt / s)
-    const inLen = (X + Wd * 1.25) - cx, loopLen = 2 * Math.PI * R, e = s - 6, d = e * v + (s >= 6 ? 0 : 0);
-    const by = cy + R;
-    if (d < inLen) return { x: X + Wd * 1.25 - d, y: by, ang: Math.PI, on: true, vapour: 0, burn: 0.35, dir: -1 };
-    if (d < inLen + loopLen) { const a = (d - inLen) / R; return { x: cx - Math.sin(a) * R, y: cy + Math.cos(a) * R, ang: Math.PI + a, on: true, vapour: sm01(0, 0.4, a) * (1 - sm01(0.9, 1.6, a)), burn: 0.8, dir: -1 }; }
-    return { x: cx - (d - inLen - loopLen), y: by, ang: Math.PI + 2 * Math.PI, on: true, vapour: 0, burn: 0.35, dir: -1 };
-  }
-  if (s >= 17 && s < 24) {
-    const e = s - 17, x0 = X + Wd * 0.5, v = Wd * 0.42, turn = Math.min(Hh * 0.22, Wd * 0.2);
-    const run = Wd * 0.75 + x0 - X;                   // (in from the left, along the low line, then up)
-    const d = e * v;
-    if (d < run) return { x: X - Wd * 0.25 + d, y: low, ang: 0, on: true, vapour: 0, burn: 0.5, dir: 1 };
-    const q = d - run, a = Math.min(Math.PI / 2, q / turn);
-    if (a < Math.PI / 2) return { x: x0 + Math.sin(a) * turn, y: low - (1 - Math.cos(a)) * turn, ang: -a, on: true, vapour: sm01(0.1, 0.5, a) * (1 - sm01(1.2, 1.57, a)), burn: 1, dir: 1 };
-    const up = q - turn * Math.PI / 2;
-    return { x: x0 + turn, y: low - turn - up, ang: -Math.PI / 2, on: true, vapour: 0, burn: 1, dir: 1 };
+/** the passes: [{ t0, dur, dir (±1), y (fraction of the box's height) }] */
+export const SHOW_PASSES = Object.freeze({ airshow: [{ t0: 0, dur: 5.2, dir: 1, y: 0.85 }, { t0: 8, dur: 5.6, dir: -1, y: 0.68 }], missing: [{ t0: 0, dur: 10.5, dir: -1, y: 0.8 }],
+  // POLISH 4 — THE SURPRISE FLYBY: one fast pass, full afterburner, low over the crowns (its direction + size per evening)
+  flyby: [{ t0: 0, dur: 3.6, dir: 1, y: 0.8 }] });
+/** each kind's formation: the flyby's 2–4 (an echelon, four in a finger), the missing man's finger-four, the air show's diamond */
+const slotsOf = (kind, n = 4) => (kind === 'missing' ? FORMATIONS.finger : kind === 'flyby' ? (n >= 4 ? FORMATIONS.finger : FORMATIONS.chase.slice(0, Math.max(2, n))) : FORMATIONS.diamond);
+/** the missing man's #3: its climb (rad, nose up) e seconds into the pass — eased in over 2.8 s from 4.4 s, held, a little more later */
+export const mmClimb = e => 0.62 * sm01(4.4, 7.2, e) + 0.22 * sm01(7.6, 9.6, e);
+/** the lead's place at s (box: the open sky { x, y, w, h }) → { x, y, ang (screen heading: 0 = right, π = left), on, burn, dir, pass, u } */
+export function showLead(kind, s, box, flip = 1) {
+  const { x: X, y: Y, w: Wd, h: Hh } = box;
+  const P = SHOW_PASSES[kind] || [];
+  for (let k = 0; k < P.length; k++) {
+    const p0 = P[k], p = flip < 0 ? { ...p0, dir: -p0.dir } : p0, e = s - p.t0;
+    if (e < -0.6 || e > p.dur + 1.2) continue;
+    const u = e / p.dur, xf = -0.22 + 1.44 * u;            // (from just off one edge to just off the other)
+    // a gentle, shallow drift — the formation's line never quite flat, never a bump
+    const y = Y + Hh * (p.y + 0.025 * Math.sin(u * Math.PI));
+    return { x: p.dir > 0 ? X + Wd * xf : X + Wd * (1 - xf), y, ang: p.dir > 0 ? -0.025 * Math.cos(u * Math.PI) : Math.PI + 0.025 * Math.cos(u * Math.PI), on: true, burn: kind === 'missing' ? 0.3 : kind === 'flyby' ? 1 : 0.4, dir: p.dir, pass: k, u, e, v: Wd * 1.44 / p.dur };
   }
   return { on: false };
 }
-/** the formation at s → [{ x, y, ang, burn, vapour, i }] (the missing man's #3 its own way) */
-export function showJets(kind, s, box, len) {
-  const slots = kind === 'missing' ? FORMATIONS.finger : FORMATIONS.diamond, out = [];
+/** the formation at s → [{ x, y, ang, burn, i, dir }] (the missing man's #3 its own way: its climb integrated along its path) */
+export function showJets(kind, s, box, len, flip = 1, n = 4) {
+  const slots = slotsOf(kind, n), out = [];
+  const L0 = showLead(kind, s, box, flip);
+  if (!L0.on) return out;
   slots.forEach(([fx, fy], i) => {
-    // (each jet a moment behind the lead on the same path — a formation turns as one)
-    const lag = -fx * len * 0.9 / Math.max(60, box.w * 0.42), L0 = showLead(kind, s - lag, box);
-    if (!L0.on) return;
-    let { x, y, ang } = L0;
-    const ca = Math.cos(ang), sa = Math.sin(ang);
-    x += -sa * fy * len * 0.62; y += ca * fy * len * 0.62;
-    let burn = L0.burn, climb = 0;
-    if (kind === 'missing' && i === 2) { const m = missingManAt(L0.u); climb = m.climb; y -= m.rise * len; x -= m.rise * len * 0.25; burn = 0.25 + 0.75 * Math.min(1, m.climb * 2); }
-    out.push({ x, y, ang: ang + (kind === 'missing' && i === 2 ? climb : 0), burn, vapour: L0.vapour, i, dir: L0.dir });
+    // (each slot in the lead's own frame: fx jet lengths back along the heading, fy across it)
+    const ca = Math.cos(L0.ang), sa = Math.sin(L0.ang);
+    let x = L0.x + ca * fx * len * 1.05 - sa * fy * len * 0.58, y = L0.y + sa * fx * len * 1.05 + ca * fy * len * 0.58;
+    let ang = L0.ang, burn = L0.burn;
+    if (kind === 'missing' && i === 2) {
+      // THE PULL-UP: the heading eases up from level (a smooth curve, integrated — the path is the heading's own), the burner lit as it climbs
+      const n = 40, e1 = L0.e, e0 = 4.2;
+      if (e1 > e0) {
+        let px = 0, py = 0;
+        for (let k = 0; k < n; k++) { const e = e0 + (e1 - e0) * (k + 0.5) / n, c = mmClimb(e); px += Math.cos(c) * (e1 - e0) / n; py -= Math.sin(c) * (e1 - e0) / n; }
+        const straight = e1 - e0, v = L0.v;                                    // (pt / s along the path)
+        x += L0.dir * (px - straight) * v; y += py * v;
+        const c = mmClimb(e1); ang = L0.dir > 0 ? -c : Math.PI + c;
+        burn = 0.3 + 0.7 * sm01(4.6, 6, e1);
+      }
+    }
+    out.push({ x, y, ang, burn, i, dir: L0.dir, vapour: 0 });
   });
   return out;
 }
 
-/** a jet's nose-up angle for jets.draw from its screen heading θ and its leg's mirror direction (a loop goes inverted over the top) */
+/** a jet's nose-up angle for jets.draw from its screen heading θ and its leg's mirror direction */
 export const climbOf = (theta, dir) => (dir > 0 ? -theta : theta - Math.PI);
 
 /** THE AIR SHOW / THE MISSING MAN on the screen: start(kind, at) · draw(c, s, box) · on() · listen() (the sound's moment) */
 export function createAirShow() {
   const jets = createJets();
-  let cur = null, dpr = 2;
-  const lenOf = box => Math.max(30, Math.min(box.w * 0.11, 64));
-  function smoke(c, s, box, e, len, night) {
+  let cur = null, lastBox = null;
+  const lenOf = box => Math.max(36, Math.min(box.w * 0.15, 86));
+  // the smoke's ribbons: sampled along each jet's own past positions (dense, analytic — smooth at any frame rate)
+  function smoke(c, e, box, len, night) {
     if (cur.kind !== 'airshow' || night > 0.5) return;
-    // the smoke: each jet's own past positions on the analytic path (every phone the same), widening + fading over ~6 s
-    c.save(); c.lineCap = 'round';
-    const N = 34, dt = 0.18, day = 1 - night;
+    const day = 1 - night, AGE = 5.5, N = 30;
     for (let i = 0; i < 4; i++) {
-      let prev = null;
+      const pts = [];
       for (let k = 0; k <= N; k++) {
-        const t = e - k * dt; if (t < 0) break;
-        const J = showJets(cur.kind, t, box, len).find(j => j.i === i);
-        if (!J) { prev = null; continue; }
-        const ca = Math.cos(J.ang), sa = Math.sin(J.ang), pt = [J.x - ca * len * 0.5, J.y - sa * len * 0.5];
-        if (prev) { const age = k * dt, a = 0.7 * (1 - age / (N * dt)) * day; c.strokeStyle = `rgba(250,250,252,${a.toFixed(3)})`; c.lineWidth = 1.4 + age * 1.3; c.beginPath(); c.moveTo(prev[0], prev[1]); c.lineTo(pt[0], pt[1]); c.stroke(); }
-        prev = pt;
+        const a = (k / N) * (k / N) * AGE, t = e - a;                 // (denser near the jet, where the trail is thin + crisp)
+        const J = showJets(cur.kind, t, box, len, cur.flip, cur.n).find(j => j.i === i);
+        if (!J) break;
+        const ca = Math.cos(J.ang), sa = Math.sin(J.ang);
+        // the nozzle's place, the smoke drifting down a touch + billowing as it ages
+        pts.push({ x: J.x - ca * len * 0.5 + Math.sin(a * 1.3 + i) * a * 0.8, y: J.y - sa * len * 0.5 + a * a * 0.9 + Math.sin(a * 2.1 + i * 2) * a * 0.5, a, nx: -sa, ny: ca });
+      }
+      if (pts.length < 2) continue;
+      for (const [wk, ak] of [[3.2, 0.16], [1.6, 0.3], [0.7, 0.42]]) {
+        c.beginPath();
+        for (let k = 0; k < pts.length; k++) { const p = pts[k], w = (0.9 + p.a * 2.4) * wk * 0.5; k ? c.lineTo(p.x + p.nx * w, p.y + p.ny * w) : c.moveTo(p.x + p.nx * w, p.y + p.ny * w); }
+        for (let k = pts.length - 1; k >= 0; k--) { const p = pts[k], w = (0.9 + p.a * 2.4) * wk * 0.5; c.lineTo(p.x - p.nx * w, p.y - p.ny * w); }
+        c.closePath();
+        const p0 = pts[0], p1 = pts[pts.length - 1], g = c.createLinearGradient(p0.x, p0.y, p1.x, p1.y), fade = p1.a / AGE;
+        g.addColorStop(0, `rgba(252,252,254,${(ak * day).toFixed(3)})`); g.addColorStop(Math.min(0.99, 0.5 / Math.max(0.5, fade)) * 0.6, `rgba(250,250,252,${(ak * 0.6 * day).toFixed(3)})`); g.addColorStop(1, 'rgba(248,248,250,0)');
+        c.fillStyle = g; c.fill();
       }
     }
-    c.restore();
   }
   return {
-    start(kind, at) { if (!SHOW_LEN[kind]) return false; cur = { kind, at }; return true; },
+    /** o (the surprise flyby): { dir (±1), n (2–4 jets) } */
+    start(kind, at, o = {}) { if (!SHOW_LEN[kind]) return false; cur = { kind, at, flip: o.dir === -1 ? -1 : 1, n: o.n || 4 }; return true; },
     on: () => !!cur,
     kind: () => (cur ? cur.kind : null),
     stop() { cur = null; },
-    setDpr(d) { dpr = d; jets.setDpr(d); },
+    setDpr(d) { jets.setDpr(d); },
     draw(c, s, box) {
       if (!cur || !box) return;
+      lastBox = box;
       const e = (s.now - cur.at) / 1000;
       if (e > SHOW_LEN[cur.kind] + 2) { cur = null; return; }
-      if (e < 0) return;
+      if (e < -1) return;
       const len = lenOf(box), look = jetLook(s.L);
-      smoke(c, s, box, e, len, look.dark);
-      for (const J of showJets(cur.kind, e, box, len)) jets.draw(c, { x: J.x, y: J.y, dir: J.dir, ang: climbOf(J.ang, J.dir), len, look, burn: J.burn, vapour: J.vapour, t: performance.now() / 1000 + J.i * 0.29, i: J.i });
+      // (the jets' sprite baked in the second before they come — never on the frame they enter)
+      if (e < 0) { jets.warm(len, look); return; }
+      c.save(); smoke(c, e, box, len, look.dark); c.restore();
+      for (const J of showJets(cur.kind, e, box, len, cur.flip, cur.n)) jets.draw(c, { x: J.x, y: J.y, dir: J.dir, ang: climbOf(J.ang, J.dir), len, look, burn: J.burn, vapour: 0, t: performance.now() / 1000 + J.i * 0.29, i: J.i });
     },
-    /** the sound: the jets' pass ({ dir }) at the moments their roar should start (each pass's peak lands mid-screen) */
+    /** THE SOUND (POLISH 4: in sync): the pass coming — { key (once per pass), dir, peakIn (s until the formation's middle crosses
+     *  the screen's centre: the roar's peak lands there), x (the formation's middle now, a fraction of the box's width) } from ~5 s
+     *  before it, or null */
     listen(s) {
       if (!cur) return null;
-      const e = (s.now - cur.at) / 1000, at = cur.kind === 'missing' ? [0.4] : [-3.7, 4.9, 14.2];
-      for (const t0 of at) if (e >= t0 && e < t0 + 0.6) return { dir: cur.kind === 'missing' ? -1 : t0 > 10 ? 1 : t0 > 0 ? -1 : 1, gain: 1 };
+      const e = (s.now - cur.at) / 1000, P = SHOW_PASSES[cur.kind] || [];
+      for (let k = 0; k < P.length; k++) {
+        // (the lead crosses the centre at u 0.5; the formation's middle trails it by its mean slot, at the pass's speed)
+        const box = lastBox || { w: 400 }, slots = slotsOf(cur.kind, cur.n), back = -slots.reduce((q, [fx]) => q + fx, 0) / slots.length;
+        const p = P[k], mid = p.t0 + 0.5 * p.dur + back * lenOf(box) * 1.05 / (box.w * 1.44 / p.dur);
+        if (e > mid - 5.5 && e < mid + 1.5) {
+          const L0 = lastBox ? showLead(cur.kind, Math.max(p.t0, e), lastBox, cur.flip) : null;
+          return { key: `${cur.at}|${k}`, dir: p.dir * cur.flip, peakIn: mid - e, x: L0 && L0.on ? (L0.x - lastBox.x) / lastBox.w : (p.dir > 0 ? 0 : 1), gain: 1 };
+        }
+      }
       return null;
     },
     debug: () => (cur ? { kind: cur.kind, at: cur.at } : null),

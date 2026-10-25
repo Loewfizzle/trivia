@@ -22,7 +22,7 @@
 //   power — the edge of its range sputters, the middle dies, the lights come back late + unevenly behind it), the music POWERING DOWN
 //   (sounds.js), then THE CHASE: three F-16s screaming across after it in an echelon, afterburners with MACH DIAMONDS (jets.js)
 import { project } from '../../core/harbor-layout.js';
-import { ufoAt, tr3bAt, legendAt, tr3bDir, eveningOf, drainAt, FORMATIONS, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { ufoAt, tr3bAt, legendAt, legendNight, tr3bDir, eveningOf, drainAt, blackAt, blackAll, CHASE, chaseX, chasePeakS, FORMATIONS, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
 import { lookOf, drawFolk } from './folk.js';
 import { createJets, jetLook } from './jets.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -129,51 +129,171 @@ function beamSprite(top, bot, len, dpr) {
   return { cv, w: w / d, h: len };
 }
 
-// ================================================================== THE TR-3B (baked once per size)
+// ================================================================== THE TR-3B (baked once per size, ahead of its night — never on the
+// frame it comes on screen; POLISH 4: ~15 % smaller, a MATTE radar-absorbent skin with a subtle sheen, ENGRAVED panel seams (a dark
+// cut + a hair of light under it), SAWTOOTH edge panels, the recessed corner pods, the central HUB (its bevel, vents, the emitter's
+// lens); the lights + the rim of the city's glow are live)
+let noiseC = null;
+function noiseTile() {
+  if (noiseC) return noiseC;
+  const n = 96, cv = mk(n, n), x = safeCtx(cv), img = x.createImageData(n, n), D = img.data;
+  for (let i = 0; i < n * n; i++) { const v = 128 + (hash01(i, 5) - 0.5) * 90 + (hash01(i >> 3, 9) - 0.5) * 40; D[i * 4] = D[i * 4 + 1] = D[i * 4 + 2] = v; D[i * 4 + 3] = 255; }
+  x.putImageData(img, 0, 0);
+  return (noiseC = cv);
+}
 function tr3bSprite(len, dpr) {
-  const W = len * 1.08, H = len * 0.6, d = Math.min(2, Math.max(1.25, dpr));
+  const W = len * 1.2, H = len * 0.62, d = Math.min(2.5, Math.max(1.5, dpr));
   const cv = mk(W * d, H * d), x = safeCtx(cv);
-  x.setTransform(d, 0, 0, d, (W / 2) * d, (H / 2) * d);
+  x.setTransform(d, 0, 0, d, (W * 0.45) * d, (H * 0.47) * d);      // (the origin = the triangle's CENTRE: the hub + the red orb sit there)
   // seen from below as it crosses: the nose toward +x (the flight), the far rear corner up, the near one down (flattened by the view)
-  const P = tr3bCorners(len);
-  const path = () => {
-    const r = len * 0.035, n = P.length;
+  const P = tr3bCorners(len), at = (p, k) => [p[0] * k, p[1] * k];
+  const path = (k = 1, r = len * 0.035) => {
+    const n = P.length, Q = P.map(p => at(p, k));
     x.beginPath();
     for (let i = 0; i < n; i++) {
-      const a = P[(i + n - 1) % n], b = P[i], cN = P[(i + 1) % n];
-      const ux = (a[0] - b[0]) / Math.hypot(a[0] - b[0], a[1] - b[1]), uy = (a[1] - b[1]) / Math.hypot(a[0] - b[0], a[1] - b[1]);
-      const vx = (cN[0] - b[0]) / Math.hypot(cN[0] - b[0], cN[1] - b[1]), vy = (cN[1] - b[1]) / Math.hypot(cN[0] - b[0], cN[1] - b[1]);
+      const a = Q[(i + n - 1) % n], b = Q[i], cN = Q[(i + 1) % n];
+      const la = Math.hypot(a[0] - b[0], a[1] - b[1]), lc = Math.hypot(cN[0] - b[0], cN[1] - b[1]);
+      const ux = (a[0] - b[0]) / la, uy = (a[1] - b[1]) / la, vx = (cN[0] - b[0]) / lc, vy = (cN[1] - b[1]) / lc;
       if (i === 0) x.moveTo(b[0] + ux * r, b[1] + uy * r); else x.lineTo(b[0] + ux * r, b[1] + uy * r);
       x.quadraticCurveTo(b[0], b[1], b[0] + vx * r, b[1] + vy * r);
     }
     x.closePath();
   };
-  // ITS THICKNESS: the hull's side wall along the near edges (a dark grey band under the belly's outline — a solid craft, not a sheet)
-  x.save(); x.translate(0, len * 0.026); path(); x.fillStyle = 'rgb(34,28,44)'; x.fill(); x.restore();
-  x.save(); x.translate(0, len * 0.013); path(); x.fillStyle = 'rgb(22,18,30)'; x.fill(); x.restore();
-  // the matte black belly: near-black, a faint violet-pink cast toward its near (lower) edge — the city's glow from below
+  // an ENGRAVED line: the cut (dark) + a hair of light just under it (the lip catching what light there is)
+  const lw = Math.max(0.35, len * 0.0032);
+  const cut = (draw, a = 1) => {
+    x.strokeStyle = `rgba(0,0,0,${0.62 * a})`; x.lineWidth = lw * 1.3; x.beginPath(); draw(); x.stroke();
+    x.save(); x.translate(0, lw * 1.1); x.strokeStyle = `rgba(150,140,180,${0.16 * a})`; x.lineWidth = lw * 0.8; x.beginPath(); draw(); x.stroke(); x.restore();
+  };
+  // ITS THICKNESS: the hull's side wall along the near edges (gunmetal, darker down its face) + the bevel's lit lip
+  x.save(); x.translate(0, len * 0.034); path();
+  let g = x.createLinearGradient(0, -len * 0.1, 0, len * 0.26); g.addColorStop(0, 'rgb(30,28,38)'); g.addColorStop(1, 'rgb(14,13,19)');
+  x.fillStyle = g; x.fill(); x.restore();
+  x.save(); x.translate(0, len * 0.017); path(); x.fillStyle = 'rgb(20,18,26)'; x.fill(); x.restore();
+  x.save(); x.translate(0, len * 0.034); x.strokeStyle = 'rgba(120,112,140,0.28)'; x.lineWidth = lw; x.beginPath(); x.moveTo(P[0][0] - len * 0.03, P[0][1] + len * 0.006); x.lineTo(P[2][0] + len * 0.02, P[2][1] - len * 0.004); x.stroke(); x.restore();
+  // THE BELLY: matte near-black (radar-absorbent), a little lighter toward the near edge
   path();
-  const g = x.createLinearGradient(0, -len * 0.22, 0, len * 0.24);
-  g.addColorStop(0, 'rgb(6,5,10)'); g.addColorStop(0.6, 'rgb(12,9,18)'); g.addColorStop(1, 'rgb(34,20,40)');
+  g = x.createLinearGradient(0, -len * 0.22, 0, len * 0.24);
+  g.addColorStop(0, 'rgb(9,9,13)'); g.addColorStop(0.55, 'rgb(14,13,19)'); g.addColorStop(1, 'rgb(22,19,28)');
   x.fillStyle = g; x.fill();
-  // panel lines (only just there) + the three spars from the centre to the corners
   x.save(); path(); x.clip();
-  x.strokeStyle = 'rgba(120,100,150,0.12)'; x.lineWidth = len * 0.003;
-  for (const p of P) { x.beginPath(); x.moveTo(0, 0); x.lineTo(p[0] * 0.86, p[1] * 0.86); x.stroke(); }
-  for (const k of [0.32, 0.6]) { x.beginPath(); P.forEach((p, i) => (i ? x.lineTo(p[0] * k, p[1] * k) : x.moveTo(p[0] * k, p[1] * k))); x.closePath(); x.stroke(); }
-  // the recessed housings of the corner lights + the centre's ring
-  x.fillStyle = 'rgb(20,16,26)';
-  for (const p of P) { x.beginPath(); x.ellipse(p[0] * 0.8, p[1] * 0.8, len * 0.04, len * 0.016, 0, 0, TAU); x.fill(); }
-  x.strokeStyle = 'rgba(90,40,40,0.5)'; x.lineWidth = len * 0.006; x.beginPath(); x.ellipse(0, 0, len * 0.085, len * 0.032, 0, 0, TAU); x.stroke();
+  // the skin's grain (a fine noise, barely there) + the SHEEN: one broad soft band across it (matte, never glossy)
+  x.globalAlpha = 0.055; x.globalCompositeOperation = 'overlay';
+  const pat = x.createPattern(noiseTile(), 'repeat'); x.fillStyle = pat; x.save(); x.scale(1 / d, 1 / d); x.fillRect(-W * d, -H * d, W * d * 2, H * d * 2); x.restore();
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  g = x.createLinearGradient(-len * 0.4, -len * 0.2, len * 0.35, len * 0.2);
+  g.addColorStop(0, 'rgba(160,150,200,0)'); g.addColorStop(0.42, 'rgba(160,150,200,0)'); g.addColorStop(0.55, 'rgba(160,150,200,0.075)'); g.addColorStop(0.68, 'rgba(160,150,200,0)'); g.addColorStop(1, 'rgba(160,150,200,0)');
+  x.fillStyle = g; x.fillRect(-W, -H, W * 2, H * 2);
+  // THE PANELS: the outer band's edge (an inset outline), a second band, the spars from the hub to the corners, cross seams
+  cut(() => { const Q = P.map(p => at(p, 0.86)); x.moveTo(Q[0][0], Q[0][1]); x.lineTo(Q[1][0], Q[1][1]); x.lineTo(Q[2][0], Q[2][1]); x.closePath(); });
+  cut(() => { const Q = P.map(p => at(p, 0.6)); x.moveTo(Q[0][0], Q[0][1]); x.lineTo(Q[1][0], Q[1][1]); x.lineTo(Q[2][0], Q[2][1]); x.closePath(); }, 0.8);
+  for (const p of P) cut(() => { x.moveTo(p[0] * 0.2, p[1] * 0.2); x.lineTo(p[0] * 0.6, p[1] * 0.6); }, 0.85);
+  // cross seams: each band split into panels (lines from the inner outline to the outer one, square to the edge)
+  for (let e = 0; e < 3; e++) {
+    const A = P[e], B = P[(e + 1) % 3];
+    for (const f of [0.22, 0.4, 0.6, 0.78]) cut(() => { const ax = lerp(A[0], B[0], f), ay = lerp(A[1], B[1], f); x.moveTo(ax * 0.6, ay * 0.6); x.lineTo(ax * 0.86, ay * 0.86); }, 0.6);
+    // the SAWTOOTH panels round the rim (the stealth edge: teeth between the band's outline and the edge)
+    cut(() => {
+      const n = 9;
+      for (let t = 0; t <= n * 2; t++) {
+        const f = 0.05 + 0.9 * t / (n * 2), k = t % 2 ? 0.95 : 0.88, px = lerp(A[0], B[0], f) * k, py = lerp(A[1], B[1], f) * k;
+        if (t) x.lineTo(px, py); else x.moveTo(px, py);
+      }
+    }, 0.7);
+  }
+  // small access hatches near each corner pod
+  for (const p of P) {
+    const cx = p[0] * 0.66, cy = p[1] * 0.66;
+    cut(() => { x.rect(cx - len * 0.022, cy - len * 0.008, len * 0.044, len * 0.016); }, 0.55);
+  }
+  // THE CORNER PODS: recessed, a bevel ring lit on its lower lip, a dark glass lens (the orb lights it live)
+  for (const p of P) {
+    const cx = p[0] * 0.8, cy = p[1] * 0.8, rx = len * 0.05, ry = len * 0.021;
+    x.fillStyle = 'rgb(6,6,9)'; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, TAU); x.fill();
+    x.strokeStyle = 'rgba(140,130,165,0.32)'; x.lineWidth = lw; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0.1, Math.PI - 0.1); x.stroke();
+    g = x.createRadialGradient(cx, cy - ry * 0.3, 0, cx, cy, rx * 0.7); g.addColorStop(0, 'rgb(70,64,62)'); g.addColorStop(1, 'rgb(16,15,18)');
+    x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy, rx * 0.62, ry * 0.62, 0, 0, TAU); x.fill();
+  }
+  // THE HUB: a wide bevelled ring, a ring of vents, the recess, the emitter's lens (deep red-black — the glow is live)
+  { const rx = len * HUB_R, ry = rx * 0.4;
+    g = x.createLinearGradient(0, -ry, 0, ry); g.addColorStop(0, 'rgb(12,11,15)'); g.addColorStop(1, 'rgb(34,31,40)');
+    x.fillStyle = g; x.beginPath(); x.ellipse(0, 0, rx, ry, 0, 0, TAU); x.fill();
+    x.strokeStyle = 'rgba(150,140,175,0.34)'; x.lineWidth = lw; x.beginPath(); x.ellipse(0, 0, rx, ry, 0, 0.15, Math.PI - 0.15); x.stroke();
+    x.strokeStyle = 'rgba(0,0,0,0.7)'; x.lineWidth = lw * 1.4; x.beginPath(); x.ellipse(0, 0, rx, ry, 0, Math.PI + 0.1, TAU - 0.1); x.stroke();
+    x.strokeStyle = 'rgba(0,0,0,0.75)'; x.lineWidth = lw * 1.2;
+    for (let i = 0; i < 28; i++) { const a = (i / 28) * TAU, c0 = Math.cos(a), s0 = Math.sin(a); x.beginPath(); x.moveTo(c0 * rx * 0.74, s0 * ry * 0.74); x.lineTo(c0 * rx * 0.93, s0 * ry * 0.93); x.stroke(); }
+    x.fillStyle = 'rgb(7,6,9)'; x.beginPath(); x.ellipse(0, 0, rx * 0.68, ry * 0.68, 0, 0, TAU); x.fill();
+    x.strokeStyle = 'rgba(140,120,140,0.3)'; x.lineWidth = lw * 0.8; x.beginPath(); x.ellipse(0, 0, rx * 0.68, ry * 0.68, 0, 0.2, Math.PI - 0.2); x.stroke();
+    g = x.createRadialGradient(0, 0, 0, 0, 0, rx * 0.46); g.addColorStop(0, 'rgb(84,22,14)'); g.addColorStop(0.7, 'rgb(36,10,8)'); g.addColorStop(1, 'rgb(14,6,6)');
+    x.fillStyle = g; x.save(); x.scale(1, 0.4); x.beginPath(); x.arc(0, 0, rx * 0.46, 0, TAU); x.fill(); x.restore(); }
   x.restore();
-  // a THIN RIM of the city's light along its lower edges (the edge toward us catches the glow below)
-  x.strokeStyle = 'rgba(200,120,190,0.55)'; x.lineWidth = Math.max(0.8, len * 0.004);
-  x.beginPath(); x.moveTo(P[0][0], P[0][1]); x.lineTo(P[2][0], P[2][1]); x.stroke();
-  x.strokeStyle = 'rgba(160,110,200,0.32)'; x.beginPath(); x.moveTo(P[2][0], P[2][1]); x.lineTo(P[1][0], P[1][1]); x.stroke();
-  return { cv, w: W, h: H };
+  // THE CIRCUITRY (POLISH 4, the owner: "glowing circuitry traces etched across the black hull" — alien tech): each trace an etched
+  // groove with a faint teal glow in it + its pads; the pulses racing along them are live (drawTr3b)
+  x.save(); path(); x.clip();
+  for (const tr of circuit(len)) {
+    const go = () => { tr.pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); };
+    x.lineCap = 'round'; x.lineJoin = 'round';
+    x.strokeStyle = 'rgba(0,0,0,0.7)'; x.lineWidth = lw * 2.1; x.beginPath(); go(); x.stroke();
+    x.strokeStyle = 'rgba(90,220,255,0.26)'; x.lineWidth = lw * 0.9; x.beginPath(); go(); x.stroke();
+    x.fillStyle = 'rgba(110,232,255,0.32)';
+    for (const [a, b] of tr.vias) { x.beginPath(); x.arc(a, b, lw * 1.1, 0, TAU); x.fill(); }
+    const [ea, eb] = tr.pts[tr.pts.length - 1]; x.fillStyle = 'rgba(0,0,0,0.8)'; x.fillRect(ea - lw * 1.8, eb - lw * 1.2, lw * 3.6, lw * 2.4);
+    x.fillStyle = 'rgba(110,232,255,0.35)'; x.fillRect(ea - lw * 1.1, eb - lw * 0.7, lw * 2.2, lw * 1.4);
+  }
+  x.restore();
+  return { cv, w: W, h: H, ox: W * 0.45, oy: H * 0.47 };
 }
 /** the TR-3B's corners (pt, its centre at 0; the nose toward +x): the nose, the far rear (up), the near rear (down) */
-const tr3bCorners = len => [[len * 0.5, len * 0.015], [-len * 0.42, -len * 0.19], [-len * 0.36, len * 0.22]];
+// (POLISH 4, the owner: "the red orb in the DEAD CENTRE of the triangle" — the corners about its CENTROID (the balance point: it reads
+// as the centre to the eye — the incenter, equidistant from the edges, sat too far back toward the wide end: the owner's pick), so the
+// hub, the orb, the inset outlines + the pods sit there)
+const tr3bCorners = len => [[len * 0.5933, 0], [-len * 0.3267, -len * 0.205], [-len * 0.2667, len * 0.205]];
+/** the hub's radius (of the length): inside the 0.163 to every edge with room for its bevel */
+const HUB_R = 0.135;
+/** THE CIRCUITRY's traces (len pt): routed on the hull's own plane — in the seen triangle UN-flattened (y ÷ 0.4, the hub's own
+ *  ellipse a circle) along the 8 compass directions with seeded 45° turns, out from round the hub (+ a family starting mid-hull and
+ *  running round it), never into the hub, inside the rim band; then flattened back → [{ pts: [[x, y]…], vias, len, cum, ph, sp }] */
+const FLAT = 0.4;
+const circCache = new Map();
+function circuit(len) {
+  const key = Math.round(len); if (circCache.has(key)) return circCache.get(key);
+  const S = tr3bCorners(1);
+  // inside the triangle scaled by k about the centre (the edges' half-planes, the centre on their inner side)
+  const edges = S.map((A, i) => { const B = S[(i + 1) % 3], nx = B[1] - A[1], ny = A[0] - B[0], c = nx * A[0] + ny * A[1]; return { nx, ny, c }; });
+  const inside = (q, k) => { const x0 = q[0], y0 = q[1] * FLAT; return edges.every(e => Math.sign(e.c) * (e.nx * x0 + e.ny * y0) <= Math.abs(e.c) * k); };
+  const map = ([x0, y0]) => [x0 * len, y0 * FLAT * len];
+  const out = [], N = 24;
+  for (let i = 0; i < N; i++) {
+    const ring = i >= 16, a = ((ring ? i - 16 : i) / (ring ? 8 : 16)) * TAU + (hash01(i, 61) - 0.5) * 0.35 + (ring ? 0.2 : 0);
+    let dir = (Math.round(a / (Math.PI / 4)) + (ring ? 2 : 0)) & 7;
+    const r0 = ring ? 0.3 : HUB_R + 0.025;
+    let p = [Math.cos(a) * r0, Math.sin(a) * r0];
+    if (!inside(p, 0.84)) continue;
+    const pts = [p], vias = [], maxL = 0.28 + 0.4 * hash01(i, 63);
+    let L = 0;
+    for (let k = 0; k < 12 && L < maxL; k++) {
+      const seg = 0.03 + 0.06 * hash01(i, 70 + k), da = dir * Math.PI / 4, q = [p[0] + Math.cos(da) * seg, p[1] + Math.sin(da) * seg];
+      if (!inside(q, 0.84) || Math.hypot(q[0], q[1]) < HUB_R + 0.015) break;          // (never into the hub)
+      p = q; pts.push(p); L += seg;
+      const r = hash01(i, 90 + k);
+      if (r < 0.52) { dir = (dir + (r < 0.26 ? 1 : 7)) & 7; vias.push(p); }
+    }
+    if (pts.length < 2) continue;
+    const sp = pts.map(map);
+    let tl = 0; const cum = [0]; for (let k = 1; k < sp.length; k++) { tl += Math.hypot(sp[k][0] - sp[k - 1][0], sp[k][1] - sp[k - 1][1]); cum.push(tl); }
+    out.push({ pts: sp, vias: vias.map(map), len: tl, cum, ph: hash01(i, 99), sp: 0.7 + 0.6 * hash01(i, 101) });
+  }
+  circCache.set(key, out);
+  return out;
+}
+/** a point + the one a little behind it along a trace (dist from its start, pt) */
+function along(tr, d) {
+  const c = tr.cum; let k = 1; while (k < c.length - 1 && c[k] < d) k++;
+  const u = Math.max(0, Math.min(1, (d - c[k - 1]) / Math.max(1e-6, c[k] - c[k - 1])));
+  return [tr.pts[k - 1][0] + (tr.pts[k][0] - tr.pts[k - 1][0]) * u, tr.pts[k - 1][1] + (tr.pts[k][1] - tr.pts[k - 1][1]) * u, k];
+}
+/** the edge lights: small lamps along each edge (the edge, the place along it 0..1) — a slow pulse running toward the nose */
+const EDGE_LAMPS = (() => { const o = []; for (let e = 0; e < 3; e++) for (let k = 0; k < 7; k++) o.push({ e, f: 0.12 + 0.76 * k / 6 }); return o; })();
 
 // ================================================================== THE ABDUCTEE — the classic arched pose (a 2.5-D rig of its own)
 // joints in body heights, origin = the CHEST (the lift point), x = the body's front (standing) / its length (arched), y up, z lateral
@@ -271,17 +391,34 @@ export function createLegends({ clock, qp } = {}) {
     const sw = Math.min(W * 0.37, 168), key = `${Math.round(sw)}|${dpr}|${Math.round(W)}`;
     if (key === sizeKey) return;
     sizeKey = key;
-    for (const s of [saucer, beam, tri]) if (s) s.cv.width = 0;
+    for (const s of [saucer, beam]) if (s) s.cv.width = 0;
     saucer = saucerSprite(sw, dpr);
     const top = sw * 0.5, len = Math.max(60, med.y - hoverY() - sw * 0.06), bot = sw * 1.12;
     beam = beamSprite(top, bot, len, dpr);
-    tri = tr3bSprite(triLen(), dpr);
     motes = [];
     const n = tier === 2 ? 70 : tier === 1 ? 44 : 22;
     for (let i = 0; i < n; i++) motes.push({ a: (hash01(i, 3) - 0.5) * 1.7, ph: hash01(i, 5), sp: 0.035 + 0.05 * hash01(i, 7), r: 0.5 + 1.1 * hash01(i, 9), down: hash01(i, 11) < 0.18, col: hash01(i, 13) < 0.3 ? [200, 180, 255] : hash01(i, 13) < 0.5 ? [180, 255, 240] : [240, 246, 255] });
   }
   const hoverY = () => Math.max((lanes && lanes['sky-low'] ? lanes['sky-low'].y + 30 : H * 0.42), med.y - Math.min(H * 0.27, 250));
+  // (POLISH 4: the size kept — the owner tried it again from the panel: smooth, and he likes it as it is)
   const triLen = () => Math.max(200, Math.min(W * 0.66, 420));
+  let triKey = '';
+  function triSizes() {
+    const key = `${Math.round(triLen())}|${dpr}`;
+    if (key === triKey && tri) return;
+    triKey = key; if (tri) tri.cv.width = 0;
+    tri = tr3bSprite(triLen(), dpr);
+  }
+  // PRE-BAKE (POLISH 4 — the owner's iPhone: "jaggy / laggy when it comes on screen"): the craft's sprite + the jets' are baked in
+  // their own tasks as soon as a run is due (a minute ahead on a legendary night, at once for a preview), never on the frame the
+  // craft first shows
+  let warmT = 0, warmFor = '', jetsWarm = '';
+  function warm(kind) {
+    if (!L || warmFor === kind) return;
+    warmFor = kind; clearTimeout(warmT);
+    warmT = setTimeout(() => { if (!L) return; if (kind === 'tr3b') triSizes(); else sizes(); }, 30);
+  }
+  const chaseLen = () => Math.max(56, Math.min(W * 0.2, 120));
 
   /** the scheduled legendary now (null) or the forced one; starts / ends the run */
   function tick(fs, allow = null) {
@@ -305,10 +442,23 @@ export function createLegends({ clock, qp } = {}) {
     if (run) {
       sNow = run.forced && hold != null && isFinite(hold) ? hold : (now - run.at) / 1000;
       const len = run.kind === 'ufo' ? UFO_LEN : TR3B_LEN;
-      if (sNow >= len || sNow < -1) { if (run.forced) lastForce = performance.now(); run = null; st = null; }
-      else st = run.kind === 'ufo' ? ufoAt(Math.max(0, sNow)) : tr3bAt(Math.max(0, sNow), run.dir);
-    } else st = null;
+      if (sNow >= len || sNow < -1) { if (run.forced) lastForce = performance.now(); run = null; st = null; if (!forced) warmFor = ''; }
+      else {
+        st = run.kind === 'ufo' ? ufoAt(Math.max(0, sNow)) : tr3bAt(Math.max(0, sNow), run.dir);
+        warm(run.kind);
+        // (the chase's jets: their sprite baked long before they scream across)
+        if (run.kind === 'tr3b' && sNow > 6 && sNow < CHASE.t0 - 2) { const lk = jetLook(fs.L), key = `${Math.round(chaseLen())}|${Math.round(lk.dark * 8)}`; if (key !== jetsWarm) { jetsWarm = key; setTimeout(() => jets.warm(chaseLen(), lk), 0); } }
+      }
+    } else {
+      st = null;
+      // (a legendary due within the minute: its craft baked now, in a task of its own)
+      if (fs.L.local && !fs.L.alwaysNight && now - upAt > 2000) {
+        upAt = now; const ev = eveningOf(fs.L.local), lg = legendNight(ev.y, ev.m, ev.d);
+        if (lg) { const s = (ev.hr - lg.h) * 3600; if (s > -60 && s < 0) warm(lg.kind); }
+      }
+    }
   }
+  let upAt = -1e9;
 
   // ---------------------------------------------------------------- THE POWER (the scene asks for each light)
   /** what's left of the power at a screen x (fraction of W) in a band ('city' | 'harbor' | 'near'), i = a light's own id (its lag +
@@ -316,7 +466,12 @@ export function createLegends({ clock, qp } = {}) {
   function power(xf, band = 'city', i = 0) {
     if (!st) return 1;
     const t = performance.now() / 1000;
-    if (run.kind === 'tr3b') return drainAt(xf, st.x, st.drain, band, run.dir, hash01(i, 77), hash01(i, Math.floor(t * 11)));
+    // THE TR-3B: its drain's sputter round the craft as it comes in (6b — the owner liked it), then THE BLACKOUT (POLISH 4: every
+    // light in the city dark through the crossing + the jets, back from the far skyline to the promenade — core/harbor-legend.js#blackAt)
+    if (run.kind === 'tr3b') {
+      const d = band === 'far' || band === 'sign' ? 'city' : band;
+      return Math.min(drainAt(xf, st.x, st.drain, d, run.dir, hash01(i, 77), hash01(i, Math.floor(t * 11))), blackAt(Math.max(0, sNow), xf, band, run.dir, i));
+    }
     // the abduction: the lights near the craft dip + stutter as it comes in and while it beams
     const k = st.lamps;
     if (k <= 0.01) return 1;
@@ -325,13 +480,17 @@ export function createLegends({ clock, qp } = {}) {
     const stut = hash01(i, Math.floor(t * 9)) < 0.35 ? 0.35 : 1;
     return clamp01(1 - k * near * depth * (st.phase === 'approach' ? (stut < 1 ? 1 : 0.4) : stut < 1 ? 0.9 : 0.55));
   }
-  /** THE DRAIN's columns over the baked city: [{ x0, x1 (pt), k (how much of the unlit facade to lay back over) }] — the TR-3B only */
-  function drainCols() {
-    if (!st || run.kind !== 'tr3b' || st.drain <= 0.003) return null;
-    const n = Math.max(16, Math.round(W / 12)), cw = W / n, out = [];
+  /** THE DRAIN's columns over the baked city (depth: 'far' — the skyline's far rows — or 'city', its near rows): [{ x0, x1 (pt), k
+   *  (how much of the unlit facade to lay back over) }] — the TR-3B only; null when nothing is drained or the whole depth is DEAD
+   *  (the scene then draws none of its lights at all: cheaper than a normal night) */
+  function drainCols(depth = 'city') {
+    if (!st || run.kind !== 'tr3b') return null;
+    const s = Math.max(0, sNow), B = blackAll(s, depth);
+    if (B.dead || (st.drain <= 0.003 && B.k <= 0.001)) return null;
+    const n = Math.max(16, Math.round(W / 12)), cw = W / n, out = [], id0 = depth === 'far' ? 400 : 0;
     // (neighbours at the same level — in eighths — merge into one strip: the dead middle is one draw, not a dozen)
     for (let i = 0; i < n; i++) {
-      const p = power((i + 0.5) / n, 'city', i); if (p >= 0.985) continue;
+      const p = power((i + 0.5) / n, depth, id0 + i); if (p >= 0.985) continue;
       const k = Math.round((1 - p) * 8) / 8, last = out[out.length - 1];
       if (k <= 0) continue;
       if (last && last.x1 === i * cw && last.k === k) last.x1 = (i + 1) * cw; else out.push({ x0: i * cw, x1: (i + 1) * cw, k });
@@ -346,35 +505,86 @@ export function createLegends({ clock, qp } = {}) {
   }
   function drawTr3b(c, fs) {
     if (!st || run.kind !== 'tr3b') return;
-    sizes();
     const p = triPos(), len = triLen(), dir = run.dir, t = sNow;
     if (p.x + len < -20 || p.x - len > W + 20) { drawChase(c, fs); return; }
+    triSizes();                                    // (baked ahead by warm(); a no-op here unless the size changed)
+    const mo = fs.motion !== false && fs.motion !== 0;
+    const lit = 1 - blackAll(Math.max(0, sNow), 'city').k;      // (the city's glow under it — gone in the blackout)
     c.save(); c.translate(p.x, p.y); c.scale(dir, 1); c.rotate(-0.02);
-    // its own faint downwash in the haze (the dark shape reads against the glow it sits in)
-    c.drawImage(tri.cv, -tri.w / 2, -tri.h / 2, tri.w, tri.h);
+    c.drawImage(tri.cv, -tri.ox, -tri.oy, tri.w, tri.h);
     const P = tr3bCorners(len), pulse = st.pulse;
+    // THE RIM: a thin line of the city's light along its near (lower) edges while the city still glows under it; the moon's cool
+    // hair along the far edge always
+    c.lineCap = 'round';
+    if (lit > 0.02) {
+      c.strokeStyle = `rgba(214,130,200,${(0.55 * lit).toFixed(3)})`; c.lineWidth = Math.max(0.7, len * 0.0042);
+      c.beginPath(); c.moveTo(P[0][0], P[0][1]); c.lineTo(P[2][0], P[2][1]); c.stroke();
+      c.strokeStyle = `rgba(170,120,210,${(0.32 * lit).toFixed(3)})`; c.beginPath(); c.moveTo(P[2][0], P[2][1]); c.lineTo(P[1][0], P[1][1]); c.stroke();
+    }
+    c.strokeStyle = 'rgba(170,185,220,0.16)'; c.lineWidth = Math.max(0.5, len * 0.003);
+    c.beginPath(); c.moveTo(P[1][0] * 0.98, P[1][1] * 0.98); c.lineTo(P[0][0] * 0.98, P[0][1] * 0.98); c.stroke();
     c.globalCompositeOperation = 'lighter';
-    // the corner orbs (pale, a faint amber; pulsing slowly in turn) + the red-orange centre (a slow heavy pulse)
+    // its own red glow on the belly round the hub (the matte skin catching it — a wide, faint sheen)
+    glow(c, [255, 50, 24], 0, 0, len * 0.42, len * 0.17, 0.12 + 0.1 * pulse);
+    // THE CIRCUITRY's PULSES (POLISH 4): light racing out along the etched traces from the hub — a bright head, a fading tail, a
+    // touch of glow; each trace its own speed + phase, now and then a second pulse close behind (tier 0: one pulse a trace, no glow)
+    { const T = circuit(len), sp = len * 0.32, tail = len * 0.09, lwP = Math.max(0.7, len * 0.0042);
+      c.lineCap = 'round';
+      for (const tr of T) {
+        const per = (tr.len + tail * 2) / (sp * tr.sp) + 0.6 + 1.4 * tr.ph, ts = mo ? t : 0.6 * per;
+        for (const off of tier === 0 ? [0] : [0, 0.22]) {
+          if (off && tr.ph < 0.5) continue;
+          const u = (((ts / per) + tr.ph + off) % 1 + 1) % 1, d = u * per * sp * tr.sp;
+          if (d > tr.len + tail) continue;
+          const hd = Math.min(d, tr.len), d0 = Math.max(0, d - tail), fade = 1 - smooth(tr.len - tail * 0.2, tr.len + tail, d);
+          if (hd <= d0) continue;
+          const A = along(tr, d0), B = along(tr, hd);
+          c.globalAlpha = 0.85 * fade; c.strokeStyle = 'rgb(150,240,255)'; c.lineWidth = lwP;
+          c.beginPath(); c.moveTo(A[0], A[1]); for (let k = A[2]; k < B[2]; k++) c.lineTo(tr.pts[k][0], tr.pts[k][1]); c.lineTo(B[0], B[1]); c.stroke();
+          c.globalAlpha = 1;
+          if (tier > 0) glow(c, [120, 236, 255], B[0], B[1], len * 0.022, len * 0.014, 0.75 * fade);
+          glow(c, [230, 255, 255], B[0], B[1], len * 0.007, len * 0.006, fade);
+        }
+      }
+      c.globalAlpha = 1; }
+    // THE EDGE LIGHTS: small lamps along every edge, a slow pulse running from the rear to the nose
+    for (const e of EDGE_LAMPS) {
+      const A = P[e.e], B = P[(e.e + 1) % 3], f = e.f, x = lerp(A[0], B[0], f) * 0.93, y = lerp(A[1], B[1], f) * 0.93;
+      const toNose = e.e === 2 ? 1 - f : e.e === 0 ? f : 0.5, w = mo ? Math.pow(0.5 + 0.5 * Math.cos(t * 2.4 - toNose * 5), 6) : 0.3;
+      const col = e.e === 1 ? [255, 214, 170] : [236, 240, 255];
+      glow(c, col, x, y, len * 0.016, len * 0.009, 0.35 + 0.65 * w);
+      c.globalAlpha = 0.5 + 0.5 * w; c.fillStyle = 'rgb(255,250,240)'; c.fillRect(x - 0.5, y - 0.4, 1, 0.8);
+    }
+    // the corner orbs (pale, a faint amber; pulsing slowly in turn) + the hub: a ring of lamps round it chasing, the red-orange
+    // centre's slow heavy pulse
     P.forEach((q, i) => {
       const k = 0.65 + 0.35 * Math.sin(t * 1.6 + i * 2.1);
-      glow(c, [255, 236, 210], q[0] * 0.8, q[1] * 0.8, len * 0.07, len * 0.04, 0.55 * k);
-      glow(c, [255, 252, 244], q[0] * 0.8, q[1] * 0.8, len * 0.02, len * 0.014, 0.95 * k);
+      glow(c, [255, 236, 210], q[0] * 0.8, q[1] * 0.8, len * 0.085, len * 0.045, 0.5 * k);
+      glow(c, [255, 252, 244], q[0] * 0.8, q[1] * 0.8, len * 0.026, len * 0.016, 0.95 * k);
     });
-    glow(c, [255, 60, 30], 0, 0, len * (0.16 + 0.04 * pulse), len * (0.07 + 0.02 * pulse), 0.35 + 0.35 * pulse);
-    glow(c, [255, 140, 70], 0, 0, len * 0.05, len * 0.024, 0.75 + 0.25 * pulse);
-    glow(c, [255, 236, 210], 0, 0, len * 0.018, len * 0.01, 0.9);
+    { const rx = len * HUB_R * 0.83, ry = rx * 0.4, n = 12;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * TAU, w = mo ? Math.pow(0.5 + 0.5 * Math.cos(a - t * 2.2), 4) : 0.4;
+        glow(c, [255, 96, 40], Math.cos(a) * rx, Math.sin(a) * ry, len * 0.014, len * 0.008, (0.3 + 0.7 * w) * (0.6 + 0.4 * pulse));
+      } }
+    glow(c, [255, 60, 30], 0, 0, len * (0.15 + 0.035 * pulse), len * (0.065 + 0.018 * pulse), 0.35 + 0.35 * pulse);
+    glow(c, [255, 140, 70], 0, 0, len * 0.055, len * 0.024, 0.75 + 0.25 * pulse);
+    glow(c, [255, 236, 210], 0, 0, len * 0.02, len * 0.01, 0.9);
     c.restore();
     drawChase(c, fs);
   }
+  /** the chase's jets on the screen u into their pass: [{ x, y, i }] (the lead first) */
+  function chaseJets(u) {
+    const len = chaseLen(), dir = run.dir, y0 = lerp(bandY0, crown, 0.48);
+    return FORMATIONS.chase.map(([fx, fy], i) => {
+      const xu = chaseX(u, fx, len / W);
+      return { x: dir > 0 ? xu * W : (1 - xu) * W, y: y0 + fy * len * 0.62 - u * len * 0.3, i };
+    });
+  }
   function drawChase(c, fs) {
     if (!st || run.kind !== 'tr3b' || !st.chase.on) return;
-    const look = jetLook(fs.L), len = Math.max(48, Math.min(W * 0.16, 96)), dir = run.dir, u = st.chase.u;
-    const y0 = lerp(bandY0, crown, 0.5);
-    FORMATIONS.chase.forEach(([fx, fy], i) => {
-      const xu = lerp(-0.25, 1.25, u) + fx * len / W * 1.0;
-      const x = dir > 0 ? xu * W : (1 - xu) * W, y = y0 + fy * len - u * len * 0.35;
-      jets.draw(c, { x, y, dir, ang: 0.06, len, look, burn: 1, t: performance.now() / 1000 + i * 0.37, i });
-    });
+    const look = jetLook(fs.L), len = chaseLen(), dir = run.dir;
+    for (const J of chaseJets(st.chase.u)) jets.draw(c, { x: J.x, y: J.y, dir, ang: 0.05, len, look, burn: 1, t: performance.now() / 1000 + J.i * 0.37, i: J.i });
   }
 
   // ---------------------------------------------------------------- THE ABDUCTION (before the front row)
@@ -528,16 +738,40 @@ export function createLegends({ clock, qp } = {}) {
     start(kind, at, o = {}) { if (kind !== 'ufo' && kind !== 'tr3b') return false; run = { kind, at, dir: o.dir || 1, forced: false }; return true; },
     stop() { run = null; st = null; },
     /** the sounds (sounds.js reads it ~4× a second) */
-    listen: () => (run && st ? { id: run.at, kind: run.kind, s: sNow, st, dir: run.dir, x: run.kind === 'ufo' ? (saucer ? saucerAt().x / W : 0.6) : st.x } : null),
-    /** the sign's glitch while the TR-3B passes under it: a level 0..1 (or null) */
+    // (POLISH 4: the chase's roar placed on the clock — `jets`: { peakIn (s until the formation's middle crosses the screen's centre),
+    // x (its middle now, a fraction of W) } from a few seconds before they come; the sounds start the take so its peak lands there)
+    listen: () => {
+      if (!run || !st) return null;
+      const o = { id: run.at, kind: run.kind, s: sNow, st, dir: run.dir, x: run.kind === 'ufo' ? (saucer ? saucerAt().x / W : 0.6) : st.x };
+      if (run.kind === 'tr3b' && sNow > CHASE.t0 - 6 && sNow < CHASE.t0 + CHASE.dur * CHASE.uOff) {
+        const pk = chasePeakS(chaseLen() / W), js = chaseJets((sNow - CHASE.t0) / CHASE.dur), mx = js.reduce((a, j) => a + j.x, 0) / js.length;
+        o.jets = { peakIn: pk - sNow, x: mx / W };
+      }
+      return o;
+    },
+    /** THE BLACKOUT for the scene's layers: { k (0..1: how dark the city is overall — the sky's glow, the beams), dead: { far, city,
+     *  harbor, near } (that whole depth off: its lights are not drawn at all) } or null */
+    blackout() {
+      if (!st || run.kind !== 'tr3b') return null;
+      const s = Math.max(0, sNow), o = { k: blackAll(s, 'city').k, dead: {} };
+      for (const d of ['far', 'city', 'harbor', 'near']) o.dead[d] = blackAll(s, d).dead;
+      return o;
+    },
+    /** the NEON sign + the tagline in the blackout: their level (0.07 — a dead tube's ghost — … 1) or null (untouched); quantized, so
+     *  a steady sign never restyles the page */
     signGlitch() {
-      if (!st || run.kind !== 'tr3b' || st.drain < 0.2) return null;
-      if (Math.abs(st.x - 0.5) > 0.5) return null;
-      const t = performance.now() / 1000, n = hash01(7, Math.floor(t * (tier === 0 ? 4 : 9)));   // (tier 0: a slower glitch — each restyles the page's sign)
-      return n < 0.4 ? 0.15 + 0.3 * n : 0.6 + 0.3 * n;
+      if (!st || run.kind !== 'tr3b') return null;
+      const s = Math.max(0, sNow);
+      // (the sign's own stutter as it dies + as it catches — at tier 0 a slower one: each change restyles the page's sign)
+      const sq = tier === 0 ? Math.floor(s * 5) / 5 : s;
+      const p = Math.min(power(0.5, 'sign', 900), blackAt(sq, 0.5, 'sign', run.dir, 900));
+      if (p >= 0.995) return null;
+      return Math.max(0.07, Math.round(p * 10) / 10);
     },
     busy: () => !!run,
-    debug: () => ({ run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null }),
+    /** POLISH 4: the scene's dark city bake is wanted (a TR-3B due within the minute, or running) */
+    darkWanted: () => (run ? run.kind === 'tr3b' : warmFor === 'tr3b'),
+    debug: () => ({ run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, warm: warmFor }),
     destroy() { for (const s of [saucer, beam, tri]) if (s) s.cv.width = 0; jets.destroy(); },
   };
 }

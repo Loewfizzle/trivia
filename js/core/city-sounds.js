@@ -305,6 +305,13 @@ export function duckAt(el, take, depth) {
   const k = el < b ? (el - a) / DUCK_ATTACK : el <= c ? 1 : 1 - (el - c) / DUCK_RELEASE;
   return +(1 - (1 - depth) * k).toFixed(4);
 }
+/** POLISH 4 — THE JETS IN SYNC (jet-flyby, jets-formation.mp3 — its loudness measured in 0.2 s windows: the roar's plateau
+ *  3.8 → 5.6 s, its middle 4.8): `at` the moment placed where the jets cross the screen's centre, `pre` s of the take kept before it
+ *  (it starts ~0.6 s before they enter — the head's quiet build trimmed), a short `fade` in, joined part-way unless under `late` s
+ *  from the peak (then silent: a roar after they've gone is worse than none) */
+export const JET_SYNC = Object.freeze({ at: 4.8, pre: 2.2, fade: 0.25, late: 0.35 });
+/** the jets' pan from their place on the screen (x: 0 = the left edge … 1 = the right), gentle at the edges */
+export const jetPan = x => +Math.max(-0.85, Math.min(0.85, ((Number.isFinite(x) ? x : 0.5) - 0.5) * 1.7)).toFixed(3);
 /** the jets' pan over their pass: right → left across the take's swell (the recording's own direction), ±`w` */
 export function sweepPan(el, take, w = 0.55, dir = -1) {
   if (!take || !Array.isArray(take.sw)) return 0;

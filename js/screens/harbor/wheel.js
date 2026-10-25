@@ -349,7 +349,8 @@ export function createWheel() {
     for (let i = 0; i < CARS; i++) {
       const ai = a + (i / CARS) * Math.PI * 2, px = Math.cos(ai) * r * 1.0, py = Math.sin(ai) * r * 1.0;
       const sw = f.motion ? 0.07 * Math.sin(f.t * 0.85 + i * 1.7) + 0.03 * Math.sin(f.t * 2.1 + i) : 0;
-      const cv = cars[f.T.night > 0.3 ? (i % 8 === 5 ? 4 + (i % 2) : i % 4) : i % 4];     // (NEON PASS 5: 2 of 16 dark, the rest warm-lit)
+      // (POLISH 4: the TR-3B's blackout — f.lights falls with the city's power — darkens them all, a few flicking back first)
+      const cv = cars[f.T.night > 0.3 ? (i % 8 === 5 || (f.lights != null && f.lights < 0.3 + 0.4 * ((i * 7) % 16) / 16) ? 4 + (i % 2) : i % 4) : i % 4];     // (NEON PASS 5: 2 of 16 dark, the rest warm-lit)
       const W = cv.width / dpr, H = cv.height / dpr;
       c.save(); c.translate(px, py); if (sw) c.rotate(sw); c.drawImage(cv, -W / 2, -2, W, H); c.restore();
     }

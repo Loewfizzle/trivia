@@ -22,8 +22,8 @@
 //                while he cuts), the 3 am broom · THE BUS (bus(event, o)) · THE PEOPLE (step / laugh / cart / cartBell / line /
 //                rooftop) · THE JETS (jets(o): panned right → left, the music ducked round their peak — the slot's `duck`)
 // City 2.0's title only (the scene lives there); the Effects slider + Mute rule it (the SFX bus); all of it fails silently.
-import { citySound, cityLoop, citySoundsDebug } from '../../audio/city-sound.js';
-import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween } from '../../core/city-sounds.js';
+import { citySound, cityLoop, cityPrefetch, citySoundsDebug } from '../../audio/city-sound.js';
+import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { isUnlocked } from '../../audio/engine.js';
 import { musicSounding, duckMusic, filterMusic, bendMusic } from '../../audio/music.js';
@@ -46,7 +46,7 @@ export function createCitySounds() {
   const people = { line: 0, linePan: -0.45, roof: 0, roofPan: -0.5 };
   const bus = { arrive: null, idle: null, depart: null, pan: 0, gain: 1 };
   const ducks = [];                     // { h, take, depth, pan: [w, dir] | null } — the jets: the music dips round their peak
-  let duckNow = 1;
+  let duckNow = 1, jetX = 0.5, jetKey = '', jetFetch = '';
   // PART 6b — THE LEGENDARY SKY: the run heard (its one-shots fired once), the music's dip / muffle / tape stop while it lasts
   let lgRun = null, lgDuck = 1, lgHz = 20000, lgRate = 1;
 
@@ -150,7 +150,14 @@ export function createCitySounds() {
       } else if (t > next.gulls) next.gulls = t + rnd(5000, 15000);
     }
     // ---- THE JETS (8P): when the sky says they're passing (a future 6b event: listen().jets), their pass; the music's duck + their pan
-    if (s && s.jets && !ducks.length) jets(typeof s.jets === 'object' ? s.jets : {});
+    // (POLISH 4 — IN SYNC: the air show's passes are announced ahead — { key, dir, peakIn, x }: the take fetched as the show starts,
+    // started so its PEAK lands as the formation's middle crosses the screen's centre, panned with them; once per pass)
+    if (s && s.jets && typeof s.jets === 'object' && s.jets.peakIn != null) {
+      jetX = s.jets.x;
+      if (jetFetch !== 'show') { jetFetch = 'show'; cityPrefetch('jet-flyby', 0); }
+      if (s.jets.key !== jetKey && s.jets.peakIn < JET_SYNC.pre + 1.2) { jetKey = s.jets.key; jets({ dir: s.jets.dir, peakIn: s.jets.peakIn, follow: true, gain: s.jets.gain || 1 }); }
+    } else if (s && s.jets && !ducks.length) jets(typeof s.jets === 'object' ? s.jets : {});
+    else if (!s || !s.jets) { if (jetFetch === 'show') jetFetch = ''; }
     legendSounds(legend, t);
     ducking();
     // ---- THE HARBOR: the water taxi's engine while it crosses; the foghorn in real fog
@@ -194,9 +201,15 @@ export function createCitySounds() {
   // ---------------------------------------------------------------- 8P — THE JETS' DUCK
   /** the jets' pass: jet-flyby panned right → left over its swell (dir 1 = left → right); the music ducked round its peak (the
    *  slot's `duck`) → the handle or null */
-  function jets({ gain = 1, dir = -1, width = 0.55 } = {}) {
-    const h = citySound('jet-flyby', { gain, pan: -dir * width, jitter: 0 });
-    if (h) ducks.push({ h, take: h.t, depth: (slotOf('jet-flyby') || {}).duck || 1, pan: [width, dir] });
+  // (POLISH 4 — IN SYNC: with `peakIn` (s from now until the jets cross the screen's centre) the take is placed on the clock — its peak
+  // (JET_SYNC.at s in: the roar's loudest, measured) lands there, its head trimmed to JET_SYNC.pre s (it starts just before they come
+  // in), joined part-way with a short fade if the file came late; `follow`: panned with the jets' real place (jetX) instead of the
+  // recording's own sweep. The owner: "it lags ~5 s" — the take used to start whenever its 23 s file finished loading)
+  function jets({ gain = 1, dir = -1, width = 0.55, peakIn = null, follow = false } = {}) {
+    const t0 = performance.now();
+    const sync = peakIn != null ? { peakIn: () => peakIn - (performance.now() - t0) / 1000, at: JET_SYNC.at, pre: JET_SYNC.pre, fade: JET_SYNC.fade, late: JET_SYNC.late } : null;
+    const h = citySound('jet-flyby', { gain, pan: follow ? jetPan(jetX) : -dir * width, jitter: 0, sync });
+    if (h) ducks.push({ h, take: sync ? { ...h.t, peak: JET_SYNC.at } : h.t, depth: (slotOf('jet-flyby') || {}).duck || 1, pan: follow ? null : [width, dir], follow });
     return h;
   }
   function ducking() {
@@ -209,6 +222,7 @@ export function createCitySounds() {
       const el = ((performance.now() - st) / 1000) * d.h.rate();
       lv = Math.min(lv, duckAt(el, d.take, d.depth));
       if (d.pan) d.h.set({ pan: sweepPan(el, d.take, d.pan[0], d.pan[1]) }, 0.3);
+      else if (d.follow) d.h.set({ pan: jetPan(jetX) }, 0.22);
     }
     lv = Math.min(lv, lgDuck);
     if (Math.abs(lv - duckNow) > 0.015 || (lv === 1 && duckNow !== 1)) { duckNow = lv; duckMusic(lv, 0.3); }
@@ -243,8 +257,10 @@ export function createCitySounds() {
       // (the power-down's thump — `hit` 3.25 s into its take — as the city under it dies, ~6 s in)
       if (!lgRun.down && lg.s > 2.6 && lg.s < 8) { lgRun.down = true; citySound('tr3b-power-down', { pan, jitter: 0 }); }
       if (st.music.crackle > 0.3 && t > lgRun.crack) { if (lgRun.crack) citySound('tr3b-crackle', { gain: rnd(0.55, 1) * st.music.crackle, pan: clamp(pan + rnd(-0.5, 0.5), -1, 1) }); lgRun.crack = t + rnd(1600, 4200); }
-      // (the jets' roar: the take's peak — 5.5 s in — as they cross the middle of the screen, ~35.7 s in)
-      if (!lgRun.jets && lg.s > 30.2 && lg.s < 33) { lgRun.jets = true; jets({ gain: 1.15, dir: lg.dir || 1 }); }
+      // (THE CHASE's roar, IN SYNC — POLISH 4: the take fetched as the TR-3B arrives, started so its peak lands as the formation's
+      // middle crosses the screen's centre (lg.jets.peakIn), panned with them)
+      if (!lgRun.fetched) { lgRun.fetched = true; cityPrefetch('jet-flyby', 0); }
+      if (lg.jets) { jetX = lg.jets.x; if (!lgRun.jets && lg.jets.peakIn < JET_SYNC.pre + 1.2) { lgRun.jets = true; jets({ gain: 1.15, dir: lg.dir || 1, peakIn: lg.jets.peakIn, follow: true }); } }
     }
     // the music: the dip + the muffle (+ the tape stop for the TR-3B) — eased, a few steps a second
     lgDuck = st.music.duck;

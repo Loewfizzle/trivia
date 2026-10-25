@@ -533,6 +533,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     if (group === 'far' && dailyKey !== `${assignKey}|${items.length}` && items.length && items.every(it => it.ready)) { dailyKey = `${assignKey}|${items.length}`; castOf = null; castFor(); daily = everyday(assignKey, cast, signs.map(sg => ({ id: sg.id, kind: sg.kind, edge: !!sg.rect && (sg.rect.x < 36 * cam.F / 600 || sg.rect.x + sg.rect.w > W - 36 * cam.F / 600) }))); }
     // THE PARTY SHOW (NEON PASS 3): this frame's plan, once a frame (the far group draws first)
     if (group === 'far') { planShow(f, partyK); spellSt = planSpell(f); }
+    // (POLISH 4 — THE TR-3B's BLACKOUT: the whole group is dead — its bookkeeping above still runs, nothing is drawn)
+    if (f.off) { c.restore(); return; }
     // the glass towers' LED facades (far): slow, smooth colour gradients sweeping across the face (a calm night: subtle)
     if (group === 'far' && f.night > 0.05 && tier > 1) for (const gf of glassFaces) ledFacade(c, gf, t, f, partyK);
     else if (group === 'far' && f.night > 0.05 && tier === 1 && glassFaces.length) ledStill(c, f, partyK);

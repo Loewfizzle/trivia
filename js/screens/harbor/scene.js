@@ -43,7 +43,7 @@ import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
 import { createNeon, nightKey } from './neon.js';
 import { waterSteps, createWater, waterBand, axisAt } from './water.js';
 import { pierSteps, pierLamps } from './pier.js';
-import { lighthouseSteps, createBeam } from './lighthouse.js';
+import { lighthouseSteps, createBeam, harborBlackout } from './lighthouse.js';
 import { createBoats } from './boats.js';
 import { createWheel } from './wheel.js';
 import { roadSteps, signalSteps, drawSignalLamps, drawLantern, LENS, WORDS } from './road.js';
@@ -146,9 +146,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // THE TR-3B's DRAIN over the baked city: each column's unlit facade laid back over its lit windows, neon, signs + beacons (the
   // column's own sputter + lag: legends.js#drainCols) — the far rows, then the near ones
   function drainCity(c, fadeIn) {
-    const cols = legends.drainCols(); if (!cols || !cols.length || fadeIn <= 0) return;
+    if (fadeIn <= 0) return;
     for (const name of ['far', 'near']) {
+      // (POLISH 4: the far rows + the near rows each their own depth — the far skyline comes back first; a DEAD depth draws no lights
+      // at all, so it has nothing to cover)
+      const cols = legends.drainCols(name === 'far' ? 'far' : 'city'); if (!cols || !cols.length) continue;
       const g = baker.group(name); if (!g || !g.ready) continue;
+      const dk = darkOf(name), src = dk ? dk.cv : g.cur;
       const k = g.cur.width / W, ky = g.cur.height / g.show.h;
       for (const cl of cols) {
         if (tier === 0 && name === 'near' && cl.k < 0.9) continue;     // (tier 0: the near rows only where it's dead — the far ones carry the sputter)
@@ -157,13 +161,48 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         if (skyline) for (let i = Math.max(0, Math.floor(cl.x0 / 4)); i <= Math.min(skyline.length - 1, Math.ceil(cl.x1 / 4)); i++) if (skyline[i] < top) top = skyline[i];
         const y0 = Math.max(g.show.y0, top - 48), hh = g.show.y0 + g.show.h - y0;   // (48: the roof signs stand above their roofs)
         if (hh <= 1) continue;
-        c.globalAlpha = Math.min(1, cl.k) * fadeIn; c.drawImage(g.cur, cl.x0 * k, (y0 - g.show.y0) * ky, (cl.x1 - cl.x0) * k, hh * ky, cl.x0, y0, cl.x1 - cl.x0, hh);
+        c.globalAlpha = Math.min(1, cl.k) * fadeIn; c.drawImage(src, cl.x0 * k, (y0 - g.show.y0) * ky, (cl.x1 - cl.x0) * k, hh * ky, cl.x0, y0, cl.x1 - cl.x0, hh);
       }
     }
     c.globalAlpha = 1;
   }
+  // POLISH 4 — THE DARK CITY (the owner: "pre-bake the dark city states"): on a TR-3B's night the far + near skyline are baked once
+  // more with every FLOODLIT crown + uplight off (the crowns' floods are part of the facades' bake) — in slices, behind the city's
+  // own bake, a minute ahead (legends.darkWanted()); the blackout draws it in place of the lit facades and lays it back in the
+  // drain's strips. Freed once the run is over. Without it (not baked yet) the lit facades stand in.
+  const dark = { key: '', q: [], g: {}, want: false };
+  function darkStart() {
+    dark.q = []; dark.key = baker.key;
+    const T = { ...(bakeTones || lookTones()), flood: 0, floodFront: false };
+    for (const name of ['far', 'near']) {
+      const g0 = baker.group(name); if (!g0 || !g0.ready) { dark.key = ''; return; }
+      const d = dark.g[name] || (dark.g[name] = { cv: document.createElement('canvas'), ready: false });
+      d.ready = false;
+      const cw = g0.cur.width, ch = g0.cur.height, sc = cw / W, y0 = g0.show.y0, h = g0.show.h, x = safeCtx(d.cv);
+      dark.q.push(() => { if (d.cv.width !== cw || d.cv.height !== ch) { d.cv.width = cw; d.cv.height = ch; } x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cw, ch); x.setTransform(sc, 0, 0, ch / h, 0, -y0 * ch / h); });
+      const steps = name === 'far' ? [...facadeSteps(L, T, 'far', 6, neon.glass), neon.housingStep('far', T)]
+        : [...facadeSteps(L, T, 'near', 6, neon.glass), neon.housingStep('near', T), searchlightStep(L, T), ...quaySteps(L, T)];
+      for (const st of steps) dark.q.push(() => { x.save(); st(x); x.restore(); });
+      dark.q.push(() => { d.ready = true; d.y0 = y0; d.h = h; });
+    }
+  }
+  function darkPump(ms) {
+    const want = !!(legends && legends.darkWanted && legends.darkWanted());
+    if (!want) { if (dark.want) { dark.want = false; dark.q = []; dark.key = ''; for (const d of Object.values(dark.g)) { d.cv.width = d.cv.height = 0; d.ready = false; } } return; }
+    dark.want = true;
+    if (baker.pending) return;
+    if (dark.key !== baker.key && !dark.q.length) darkStart();
+    const t0 = performance.now();
+    while (dark.q.length && performance.now() - t0 < ms) dark.q.shift()();
+  }
+  /** the dark facade of a group when it's baked for the band the city shows now (else null) */
+  function darkOf(name) {
+    const d = dark.g[name], g = baker.group(name);
+    return d && d.ready && dark.key === baker.key && g && d.y0 === g.show.y0 && d.h === g.show.h ? d : null;
+  }
   /** what's left of the power at a screen x for a band (1 without a legendary) — the harbor, the promenade's lights */
   const legendPow = (x, band, i) => (legends && legends.busy() ? legends.power(x / W, band, i) : 1);
+  let LB = null, speakPw = false;                 // (POLISH 4: this frame's blackout — legends.blackout(); the speakeasy's power hook held)
   // PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js): the bed (water + the hum by the darkness) and every event's slot
   const snd = createCitySounds();
   const roadLight = createRoadLight();
@@ -674,6 +713,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (litBaker.bakes > 1 && shownAt >= 0) litFadeFrom = now; else litBaker.settle();
       lights.swap(litMeta.far, litMeta.near);
     }
+    darkPump(TIERS[tier].bakeMs);
     // the neon's sprites build a few a frame (behind the facades' bake: never in the same frame as its first bake)
     if (!baker.pending || shownAt >= 0) neon.pump(baker.pending ? 1 : TIERS[tier].bakeMs);
     const lit = S.lit, night = DK;
@@ -693,8 +733,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (legends) {
       legends.tick(fs, (id, kind) => director.may(id, kind));
       const gl = legends.signGlitch();
-      if (gl != null) signDim.set('tr3b', { logo: gl, tag: Math.min(1, gl + 0.15), ms: 60 }); else if (signDim.ids().includes('tr3b')) signDim.clear('tr3b');
+      if (gl != null) signDim.set('tr3b', { logo: gl, tag: Math.min(1, gl + 0.05), ms: 60 }); else if (signDim.ids().includes('tr3b')) signDim.clear('tr3b');
     }
+    // POLISH 4 — THE TR-3B's BLACKOUT this frame: { k (how dark the city is), dead: { far, city, harbor, near } } or null
+    LB = legends && legends.busy() ? legends.blackout() : null;
+    const deadFar = !!(LB && LB.dead.far), deadCity = !!(LB && LB.dead.city), dk0 = LB ? LB.k : 0;
     // ---- the sky
     c.globalAlpha = 1;
     { const dk = LK.w.night + LK.w.late, moonWash = LK.moon.el > 0 ? 1 - 0.5 * LK.moon.illum : 1;
@@ -719,6 +762,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         c.drawImage(skyCv, 0, 0, W, HZ);
         stars.draw(c, W, HZ, LK, clock.now(), vis, milky, t, S.motion, 0, twilight);
       } }
+    // (POLISH 4 — THE BLACKOUT: the city's glow on the low sky goes with its lights — the haze over the skyline darker while it's dead)
+    if (dk0 > 0.01) { const nk = clamp01(LK.w.night + LK.w.late), y1 = cam.horizon != null ? cam.horizon : HZ, g = c.createLinearGradient(0, y1 - HZ * 0.55, 0, y1);
+      g.addColorStop(0, 'rgba(3,2,9,0)'); g.addColorStop(1, `rgba(3,2,9,${(0.42 * dk0 * nk).toFixed(3)})`); c.fillStyle = g; c.fillRect(0, y1 - HZ * 0.55, W, HZ * 0.55); }
     fs.moonVeil = wfx.moonVeil(LK) * tagMoonDim(dt);
     sky.moonSky({ band: tagBand(), veil: clouds.veil() });
     moonNow = fs.moonAt || null;
@@ -768,8 +814,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (lx >= 1 && litFadeFrom >= 0) { litFadeFrom = -1; if (!litBaker.pending) litBaker.settle(); }
     const winK = fadeIn * (0.82 + 0.18 * T.night) * (lit > 0 ? 1 : 0);
     const nightK = litK(DK, 'city') * fadeIn * lit;
-    pair('far', 'farLit', winK, lx, xf, fadeIn);
-    lights.draw(c, 'far', now, nightK, S.motion);
+    { const dkF = deadFar && darkOf('far'); if (dkF && fadeIn > 0) { const g = baker.group('far'); c.globalAlpha = fadeIn; c.drawImage(dkF.cv, 0, g.show.y0, W, g.show.h); c.globalAlpha = 1; } else pair('far', 'farLit', deadFar ? 0 : winK, lx, xf, fadeIn); }
+    if (!deadFar) lights.draw(c, 'far', now, nightK, S.motion);
     const sp0 = lights.spelling;
     // (DT1 — THE BILLBOARD'S LAMPS: on from late golden hour (the first light), a soft dim wash once the neon is up, on again at
     // dawn until a little after sunrise; &force=lamps-on / lamps-off — the previews (+ neon.moment('lamps') for later parts))
@@ -777,18 +823,18 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (lampsF !== lampsForced) { lampsForced = lampsF; neon.moment('lamps', lampsF); }
     const billK = lampsF != null ? lampsF : litK(DK, 'bill') * (1 - LAMP_DIM * litK(DK, 'neon'));
     const nf = { t, now, ms: clock.now(), dt, night: litK(DK, 'neon'), bill: billK, fade: fadeIn, motion: S.motion, tier, party: PT.on > 0 ? PT : null, spelling: sp0 ? sp0.towers : null, finale: fw.busy(), hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, force: clock.force, pulse: PT.pulse };
-    neon.draw(c, 'far', nf);
+    neon.draw(c, 'far', deadFar ? { ...nf, off: true } : nf);
     const sunNow = sun.debug(), rk = off.has('no-rays') ? 0 : rayStrength(LK, sunNow);
     sun.halo(c, fs); drawRays(c, L, sunNow, rk * fadeIn, t, 'behind', S.motion, tier); sky.low(c, fs);
     wfx.fogLayer(c, fs, 1, t);
-    pair('near', 'nearLit', winK, lx, xf, fadeIn);
+    { const dkN = deadCity && darkOf('near'); if (dkN && fadeIn > 0) { const g = baker.group('near'); c.globalAlpha = fadeIn; c.drawImage(dkN.cv, 0, g.show.y0, W, g.show.h); c.globalAlpha = 1; } else pair('near', 'nearLit', deadCity ? 0 : winK, lx, xf, fadeIn); }
     eventsTick(now, nightK);
     // (7b: the LATE TVs across the skyline — ~10 pm → ~3 am, eased in + out over 20 min — core/harbor-moments.js#lateTvK)
     lights.lateTv(LK.local ? lateTvK(LK.local.h + LK.local.mi / 60) * nightK : 0);
-    lights.draw(c, 'near', now, nightK, S.motion);
-    neon.draw(c, 'near', nf);
+    if (!deadCity) lights.draw(c, 'near', now, nightK, S.motion);
+    neon.draw(c, 'near', deadCity ? { ...nf, off: true } : nf);
     // (DT1: the lighthouse's beam brightens the floodlit wall behind it as it sweeps past — under the lighthouse, drawn later)
-    if (cam.lhWall && !off.has('no-beam')) beam.wall(c, { k: fadeIn * litK(DK, 'beams') * litK(DK, 'flood') * (lit > 0 ? lit : 0), wallZ: 241, motion: S.motion, now: performance.now(), ms: clock.now() });
+    if (cam.lhWall && !off.has('no-beam')) beam.wall(c, { k: fadeIn * litK(DK, 'beams') * litK(DK, 'flood') * (lit > 0 ? lit : 0) * legendPow(cam.lhWall.x, 'harbor', 303), wallZ: 241, motion: S.motion, now: performance.now(), ms: clock.now() });
     // THE DAY PASS — the day's motion: flags on the roofs in the real wind, sun glints on the towers' glass (dayfx.js)
     if (!off.has('no-dayfx')) dayfx.draw(c, { t, LK, T: bakeTones, fade: fadeIn, motion: S.motion, tier });
     // THE SKY BEAMS (NEON PASS 4): straight up from the tall towers' crowns on a party night — one by one through the warm-up (FP2: 8:30 →
@@ -797,7 +843,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (NEON PASS 5: every tower's beam at the peak — a desktop has a dozen; the warm-up switches them on one by one, FP2: from tonight's
       // warm-up to its peak)
       const hr = partyHour(LK.local), nB = skyBeams.count(), pl = PT.plan || harborPartyPlan(), onN = forced || PT.name === 'peak' || PT.name === 'after' || hr == null ? nB : 1 + (nB - 1) * smooth(pl.warm + 0.15, pl.peak, hr);
-      const k = off.has('no-beams') ? 0 : (forced ? 1 : PT.on > 0 ? PT.ramp * (sh.beams || (tier === 0 ? 0.8 : 0)) : 0) * litK(DK, 'beams') * lit;
+      const k = (off.has('no-beams') ? 0 : (forced ? 1 : PT.on > 0 ? PT.ramp * (sh.beams || (tier === 0 ? 0.8 : 0)) : 0) * litK(DK, 'beams') * lit) * (1 - dk0);
       if (k > 0.004) skyBeams.draw(c, { k, on: onN, signs: neon.signRects(), cols: ids => neon.beamCols(ids), punch: PT.punch || 0, haze: Math.max(LK.fog || 0, (LK.cloud || 0) * 0.6), fade: fadeIn, motion: S.motion, tier, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, gw) => clouds.beamPatch(c, h, col, a, gw) }); }
     // the party show's drops for the title (the NEON word joins the biggest ones) + the wheel (its sparkle, its party colours)
     { const sh = neon.show(); PT.drop = sh.drop; PT.big = sh.big; PT.scene = sh.scene;
@@ -806,17 +852,18 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (NEON PASS 4: Rosie in her party bulbs all party night — boats.set is a no-op while unchanged)
       if (!clock.force.has('rosie-lights')) boats.set({ rosie: wantParty ? 'party' : 'city' }); }
     // the far shore's storefronts (before the quay's lamps + the water: the harbor reflects them)
-    if (!off.has('no-waterfront')) waterfront.draw(c, T, fadeIn * litK(DK, 'lamps') * (lit > 0 ? lit : 0), fadeIn, t, S.motion, off.has('no-water') ? null : water);
+    const pQuay = LB ? legendPow(W * 0.5, 'harbor', 304) : 1;
+    if (!off.has('no-waterfront')) waterfront.draw(c, T, fadeIn * litK(DK, 'lamps') * (lit > 0 ? lit : 0) * pQuay, fadeIn, t, S.motion, off.has('no-water') ? null : water);
     // the far quay's lamps (Part 4: lit at night, with the city's power-on; their light runs down into the water)
-    drawQuayLamps(c, quayLamps, fadeIn * litK(DK, 'lamps') * lit);
-    lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
+    drawQuayLamps(c, quayLamps, fadeIn * litK(DK, 'lamps') * lit * pQuay);
+    if (!deadCity) lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
     if (legends && legends.busy()) drainCity(c, fadeIn);       // (6b: THE TR-3B's power drain rolling across the city under it)
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
     // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)
-    if ((LK.fog || 0) > 0.35) lights.beacons(c, now, nightK * (lit > 0 ? lit : 0), 0, S.motion, LK.fog, true);
+    if ((LK.fog || 0) > 0.35 && !deadCity) lights.beacons(c, now, nightK * (lit > 0 ? lit : 0) * (1 - dk0), 0, S.motion, LK.fog, true);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
-    if (beamK > 0.01) drawBeams(c, L, beamK * nightK, t, { fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, w, ux, uy) => clouds.beamPatch(c, h, col, a, w, ux, uy) });
+    if (beamK * (1 - dk0) > 0.01) drawBeams(c, L, beamK * nightK * (1 - dk0), t, { fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, w, ux, uy) => clouds.beamPatch(c, h, col, a, w, ux, uy) });
     // the drones up in the sky + the gulls over the harbor (in front of the city, before the water: the mirror doubles them)
     sky.city(c, fs);
     // ---- THE HARBOR'S HERO PIECES (Part 5): their state for this frame, their reflections queued for the water's mirror
@@ -830,8 +877,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const noB = off.has('no-boats');
     if (!noB) boats.draw(c, hf.boat, L.lighthouse.z, 1e9);
     layer('harbor');
+    if (LB) harborBlackout(c, L, 1 - legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303));   // (POLISH 4: its baked lights go dark too)
     if (!off.has('no-beam')) beam.draw(c, hf.beam);
-    neon.draw(c, 'harbor', nf);                      // (NEON PASS 3: the lighthouse + the keeper's house in neon)
+    neon.draw(c, 'harbor', LB ? { ...nf, fade: nf.fade * legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) } : nf);   // (NEON PASS 3: the lighthouse + the keeper's house in neon)
     if (!noB) boats.draw(c, hf.boat, L.wheel.z + L.wheel.frame + 0.5, L.lighthouse.z);
     if (!off.has('no-wheel')) wheel.draw(c, hf.wheel);
     drawPierLamps(c, hf.lamps * (PT.on > 0 ? 0.85 + 0.7 * (PT.punch || 0) : 1));
@@ -841,7 +889,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wfx.fogLayer(c, fs, 3, t);
     layer('road');
     // (FP: the crossing's cycle on the city's clock — the stop lights + the WALK / WAIT lantern across the road, lit before the traffic)
-    const sigSt = signalAt(clock.now()), sigO = { fade: fadeIn, lk: litK(DK, 'lamps'), glow: i => sigGlow[i] || (sigGlow[i] = radial(LENS[i].join(','))) };
+    const sigSt = signalAt(clock.now()), sigO = { fade: fadeIn * (LB ? legendPow(W * 0.62, 'near', 206) : 1), lk: litK(DK, 'lamps'), glow: i => sigGlow[i] || (sigGlow[i] = radial(LENS[i].join(','))) };
     if (fadeIn > 0) drawLantern(c, L, sigSt, { ...sigO, glow: k => sigGlow[3 + k] || (sigGlow[3 + k] = radial(WORDS[k].col.join(','))) });
     // 8P — THE PEOPLE: who's where now (a pure function of the city clock), then the FAR pass — the crosswalk, the waterside sidewalk,
     // the bus — before the stage (the stop lights, the lamps, the trees + the speakeasy stand in front of them)
@@ -851,7 +899,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (pplLive) people.frame(peopleFrame());
     if (pplOn) people.draw(c, 'far', pplEnv);
     layer('bill');
-    neon.draw(c, 'bill', nf);                        // (8a: the roof billboard's lamps + their light on the poster)
+    neon.draw(c, 'bill', LB ? { ...nf, fade: nf.fade * legendPow(W * 0.16, 'near', 205) } : nf);   // (8a: the roof billboard's lamps + their light on the poster)
     layer('stage');
     // 8P — THE LAMPS' LIFE: one by one at dusk with a warm-up stutter, a rare flicker / a rarer short outage (core/harbor-lamps.js); a
     // lamp that is off takes its baked pool back down
@@ -864,14 +912,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // sconce, the basement's amber (day + night), the ghost ad's lamps, the barber pole (turning while the shop is open)
     // FP3b — REAL DOORS: the doors' swing from the people's plan + whoever is in a doorway (drawn between its opening + its leaf)
     speak.doors(pplLive ? { ...people.doors(), inside: (cc, id) => { if (pplOn) people.drawInside(cc, id, pplEnv); } } : { side: 0, shop: 0 });
-    if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0) * legendPow(W * 0.16, 'near', 200), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
+    // (POLISH 4: the TR-3B's blackout drives the facade's ONE power hook — every light on the building, its rooms + their life too)
+    if (LB) { speak.power(legendPow(W * 0.16, 'near', 200)); speakPw = true; } else if (speakPw) { speakPw = false; speak.power(1); }
+    if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
       tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment() }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     snd.speakeasy(speak.beds());                    // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them)
     // PF — THE CENTREPIECE on the inlay + its rig's floor spots (nothing without one; &force=centrepiece-test: the test obelisk)
     centre.test(off.has('centrepiece-test'));
     // FP3b — THE DANCE CIRCLE lights the inlay's floor spots (the rig without a piece), in the party palette's colour of the phrase
     { const dn = pplLive ? people.dance() : null; centre.dance(dn && dn.on ? { k: dn.k, col: PT.palette && PT.palette.length ? PT.palette[Math.floor((PT.beatsF || 0) / 8) % PT.palette.length] : null } : null); }
-    if (fadeIn > 0 && bakeTones) centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), fade: fadeIn, t });
+    if (fadeIn > 0 && bakeTones) centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * (LB ? legendPow(W * 0.5, 'near', 207) : 1), fade: fadeIn, t });
     // 8P — THE PEOPLE on the promenade (after the stage + the speakeasy's live layer, before the front row: the corner globes, the framing
     // maple, the cart stand nearer than anyone on the floor) + the ROOF's guests (clipped to the sky over the parapet)
     if (pplOn) { people.draw(c, 'near', pplEnv); people.draw(c, 'roof', pplEnv); }
@@ -881,7 +931,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (legends && legends.busy() && fadeIn > 0 && !off.has('no-legends')) legends.near(c, fs, { ...(pplEnv || peopleEnv(lit, fadeIn)), waterLight: (x, y, col, k, r) => water.light(x, y, col, k, r) });
     layer('front');
     // THE IMPLIED ROAD (8a): a passing car's headlights sweeping the near cobbles at night, its soft shadow by day, its sound
-    if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps'), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
+    if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps') * (LB ? legendPow(W * 0.5, 'near', 208) : 1), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
       gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0 }; roadLight.tick(rf); roadLight.draw(c, rf); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
     // the trees' falling leaves (autumn) / the crabapple's petals (its blossom) in the real wind (8a: trees.js)
     if (fadeIn > 0 && !off.has('no-leaves')) { const wd = LK.windDir == null ? 250 : LK.windDir; leaves.draw(c, { t, dt, motion: S.motion, wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), season: L.season, phase: L.seasonPhase, fade: fadeIn, night: litK(DK, 'lamps'), tier }); }
@@ -985,7 +1035,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const heel = clamp01((LK.wind || 0) / 10) * 0.16;
     const lgW = legendPow(cam.wheelQuiet ? cam.wheelQuiet.x : W * 0.45, 'harbor', 301);   // (6b: the legendary's pull on the wheel + the pier's lamps)
     const sh0 = neon.show(), hw = { t, ms, T, sunDir, lights: glowK * lgW, fade: fadeIn, motion, party: PT.on > 0 ? PT : null, sparkle: PT.on > 0 ? sh0.sparkle : 0, cn: sh0.cn || 0, drop: sh0.drop || 0 };
-    const hb = { t, T, lights: glowK * legendPow(W * 0.55, 'harbor', 302), motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes') };
+    const hb = { t, T, lights: glowK * legendPow(W * 0.55, 'harbor', 302), power: LB ? legendPow(W * 0.55, 'harbor', 302) : 1, motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes') };
     const hl = { ms, now: performance.now(), k: legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) * fadeIn * Math.max(litK(DK, 'beams') * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, motion, tier, dim: !!lights.spelling, water };
     // (NEON PASS 6, the owner: on a party night the lighthouse holds its own — a stronger, wider beam; now and then (4 bars in 16) it
     // picks up the party's colour — the right word tower's palette colour, eased in + out)
@@ -1305,6 +1355,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (DT1 — LOAD HITCHES NEVER COST A TIER: the owner's readout showed 2→1→2 at load — the first bakes, the lit windows, the
     // neon's sprites, the fonts + images landing; a probe there could even read the hitch as a capped phone. Nothing steps for
     // TIER_GRACE after the city shows, and the first window it judges holds no frame from before)
+    // (POLISH 4 — A LEGENDARY HOLDS THE TIER: the owner's iPhone stepped 2→1→2 during the TR-3B — each step REBAKES the whole city,
+    // mid-event; its ~50 s are judged by nobody, and the window after it starts fresh)
+    if (legends && legends.busy()) { legendHeld = true; return; }
+    if (legendHeld) { legendHeld = false; frames.length = 0; tierHold = Math.max(tierHold, now + 3000); return; }
     if (frames.length < 90 || document.visibilityState !== 'visible' || now < tierHold || shownAt < 0 || now - shownAt < TIER_GRACE) return;
     if (!graceDone) { graceDone = true; frames.length = 0; return; }
     if (wantStep) { const w = wantStep; wantStep = null; if (tier > 0) { stepWhy.push(w); stepTier(tier - 1); cool = 150; frames.length = 0; return; } }
@@ -1334,7 +1388,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }
   }
   const TOP_TIER = 2, TIER_GRACE = 8000;
-  let graceDone = false;
+  let graceDone = false, legendHeld = false;
   let tierHold = 0, perfN = 0, tierAt = performance.now(), ups = 0, upAt = 0, upLock = false, manualTier = false, probe = null, capped = 0;
   const tierHist = [tier];                      // (the readout shows the steps: 2→1→2)
   function stepTier(t) { fastUntil = Math.max(fastUntil, performance.now() + 1500); tier = Math.max(0, Math.min(2, t));   // (NEON PASS 5: build() clears the canvas — the battery saver must never skip the next draw: a black frame)
@@ -1540,7 +1594,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (6b: THE LEGENDARY SKY — start('ufo' | 'tr3b', { at, dir }) loads the module if it must; state: what runs, its phase)
       legend: { state: legends ? legends.debug() : { run: null, loaded: false, loading: legendsLoading },
         start: (kind, o = {}) => { const w = { kind, at: o.at || clock.now(), dir: o.dir || 1 }; if (legends) return legends.start(kind, w.at, w); legendWant = w; needLegends(); return true; },
-        stop: () => { legendWant = null; if (legends) legends.stop(); }, power: (x, band) => legendPow(x, band || 'city', 0), drain: () => (legends ? legends.drainCols() : null) },
+        stop: () => { legendWant = null; if (legends) legends.stop(); }, power: (x, band) => legendPow(x, band || 'city', 0), drain: (d = 'city') => (legends ? legends.drainCols(d) : null), blackout: () => (legends ? legends.blackout() : null), dark: () => ({ far: !!darkOf('far'), near: !!darkOf('near') }) },
       sounds: { ...snd.debug(), play: snd.play, loop: snd.loop, jets: snd.jets, bus: snd.bus },
       road: { ...roadLight.debug(), wash: o => roadLight.wash(o) },
       // (FP: the crossing now — the cycle's state, the lantern's box + the heads on screen)
@@ -1570,7 +1624,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pageshow', onShow); window.removeEventListener('focus', onFocus); window.removeEventListener('pointerdown', onTapWake, { capture: true }); clearInterval(watchdog);
       window.removeEventListener('resize', onResize);
-      baker.destroy(); litBaker.destroy(); sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
+      baker.destroy(); litBaker.destroy(); for (const d of Object.values(dark.g)) d.cv.width = d.cv.height = 0; sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
       fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();

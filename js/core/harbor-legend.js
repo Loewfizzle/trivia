@@ -60,6 +60,21 @@ export function barnstormDay(y, m, d) {
 }
 export const BARN_LEN = 16;
 
+/**
+ * THE SURPRISE FLYBY (POLISH 4, the owner): now and then, unannounced, a few F-16s scream straight across the sky — from GOLDEN
+ * HOUR until 11 pm, weighted toward after dark (when the afterburners look best), in a random direction. ~2 evenings a week, the
+ * same for everyone (seeded by the date). duskH: tonight's sunset as a local hour (the golden hour starts ~1 h before it).
+ * → { h (local hour), dir (±1), n (2–4 jets), night (after dark) } | null
+ */
+export const FLYBY_P = 0.3;
+export function flybyDay(y, m, d, duskH = 19) {
+  const r = rngFrom(hashString(`flyby|${dateKey(y, m, d)}`));
+  if (r() >= FLYBY_P) return null;
+  const night = r() < 0.72, u = r(), dark0 = Math.min(22.4, duskH + 0.6), gold0 = Math.min(dark0 - 0.25, duskH - 1);
+  const h = night ? lerp(dark0, 23, u) : lerp(gold0, dark0, u);
+  return { h: Math.round(h * 120) / 120, dir: r() < 0.5 ? 1 : -1, n: 2 + Math.floor(r() * 3), night };
+}
+
 // ------------------------------------------------------------------ THE UFO ABDUCTION (a short film, ~30 s)
 /**
  * The abduction s seconds in → {
@@ -109,19 +124,77 @@ export function tr3bAt(s, dir = 1) {
   const u = clamp01(s / TR3B_CROSS);
   const x0 = -0.5, x1 = 1.5, xf = lerp(x0, x1, u);
   const x = dir > 0 ? xf : 1 - xf;
-  const chaseU = (s - 34) / 3.4;
-  const P = s < TR3B_CROSS ? 'cross' : s < 34 ? 'gap' : s < 37.6 ? 'chase' : s < TR3B_LEN - 4 ? 'restore' : s < TR3B_LEN ? 'restore' : 'gone';
+  const chaseU = (s - CHASE.t0) / CHASE.dur;
+  const P = s < TR3B_CROSS ? 'cross' : s < CHASE.t0 ? 'gap' : s < BLACK.on0 ? 'chase' : s < TR3B_LEN ? 'restore' : 'gone';
   // THE MUSIC POWERS DOWN as it nears (a tape stop: the speed sags, muffled, a warble), almost gone overhead, comes back after the jets
-  const down = smooth(3, 10, s) * (1 - smooth(38, 44, s));
+  const down = smooth(3, 10, s) * (1 - smooth(38.8, 45, s));
   return {
     phase: P, len: TR3B_LEN, x, dir, u,
     dip: smooth(0, 8, s) * 0.6 + 0.4 * smooth(8, TR3B_CROSS, s) * 0.5,
     pulse: 0.5 + 0.5 * Math.sin(s * 2.1),
     drain: smooth(0.5, 3.5, s) * (1 - smooth(TR3B_CROSS - 1, TR3B_CROSS + 3, s)),
-    chase: { on: chaseU > -0.15 && chaseU < 1.2, u: chaseU },
-    music: { rate: lerp(1, 0.42, smooth(4, 11, s) * (1 - smooth(38.5, 40, s))), hz: lerp(20000, 380, down), duck: lerp(1, 0.1, down), crackle: smooth(4, 9, s) * (1 - smooth(30, 36, s)) },
+    chase: { on: chaseU > -0.15 && chaseU < CHASE.uOff, u: chaseU },
+    music: { rate: lerp(1, 0.42, smooth(4, 11, s) * (1 - smooth(39, 40.5, s))), hz: lerp(20000, 380, down), duck: lerp(1, 0.1, down), crackle: smooth(4, 9, s) * (1 - smooth(30, 36, s)) },
   };
 }
+/** THE CHASE's pass (s into the event): three F-16s a few seconds behind the TR-3B, across the screen in `dur` s — the lead's x
+ *  (fraction of W) goes −0.25 → 1.25 over u 0..1 (each jet `back` jet lengths behind it); `uOff` — the last plume is off the screen */
+export const CHASE = Object.freeze({ t0: 34, dur: 3.4, uOff: 1.45 });
+/** the chase's lead x (fraction of W, as if flying right) u into its pass, a jet `back` lengths behind (len: a jet's length as a fraction of W) */
+export const chaseX = (u, back = 0, len = 0.2) => lerp(-0.25, 1.25, u) + back * len;
+/** when (s into the event) the chase formation's middle crosses the screen's centre — the roar's peak lands there */
+export function chasePeakS(len = 0.2) {
+  const mid = FORMATIONS.chase.reduce((a, [fx]) => a + fx, 0) / FORMATIONS.chase.length;   // (the formation's centre, in jet lengths behind)
+  return CHASE.t0 + CHASE.dur * ((0.5 - mid * len + 0.25) / 1.5);
+}
+
+/**
+ * THE BLACKOUT (POLISH 4, the owner: "a COMPLETE BLACKOUT — the whole city dark while it crosses, staying dark through the JET FLYBY;
+ * only after the jets leave does the power FLICKER BACK ON from the BACK of the city to the FRONT, uneven and stuttering").
+ * A light's power s seconds in (0 = dead … 1 = on), on top of the drain's own sputter near the craft (drainAt):
+ *   DYING   each light dies at its own moment — the side the craft comes in on first (`die0` s in), the far side `dieSpan` s later,
+ *           ± a little — after `sput` s of STUTTER (quick on/off flicks, the off share growing, the light sagging); the promenade
+ *           holds a beat longer. By ~10 s the whole city is dark.
+ *   DARK    everything, through the crossing, the gap and the jets' pass
+ *   BACK    after the jets have gone (`on0` s in), depth by depth — the FAR skyline first, then its near rows, the NEON sign, the
+ *           harbor, the promenade last — each light after its own stutter (dim flicks, more of them as it catches), now and then
+ *           one dropping out once more just after it came on
+ * depth: 'far' (the skyline's far rows) | 'city' (its near rows) | 'sign' (the NEON sign + the tagline) | 'harbor' | 'near' (the
+ * promenade); xf: the light's place across the screen (fraction of W); i: its own id (its moments). PURE (every phone the same).
+ */
+export const BLACK = Object.freeze({ die0: 3.4, dieSpan: 5.2, sput: 1.4, on0: 40.2, onSpan: 1.5, depth: Object.freeze({ far: 0, city: 1.0, sign: 1.8, harbor: 2.5, near: 3.4 }) });
+const h01 = (a, b) => { let h = (a * 374761393 + b * 668265263 + 1013904223) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+export function blackAt(s, xf, depth = 'city', dir = 1, i = 0) {
+  const B = BLACK, dz = B.depth[depth] ?? B.depth.city;
+  // dying: the entry side first
+  const xd = clamp01(dir > 0 ? xf : 1 - xf);
+  const tDie = B.die0 + B.dieSpan * xd + 0.9 * h01(i, 11) + (depth === 'near' ? 0.5 : depth === 'harbor' ? 0.25 : 0);
+  // back on: the far skyline first … the promenade last
+  const tOn = B.on0 + dz + B.onSpan * h01(i, 23);
+  if (s < tDie - B.sput) return 1;
+  if (s < tDie) {
+    const u = (s - (tDie - B.sput)) / B.sput, n = h01(i + 31, Math.floor(s * 12));
+    return n < 0.12 + 0.78 * u ? 0 : 1 - 0.55 * u;
+  }
+  if (s < tOn - B.sput) return 0;
+  if (s < tOn) {
+    const u = (s - (tOn - B.sput)) / B.sput, n = h01(i + 57, Math.floor(s * 13));
+    return n < 0.14 + 0.62 * u * u ? 0.35 + 0.5 * u : 0;
+  }
+  // caught: a quick warm-up, and one light in four drops out once more just after
+  const v = s - tOn;
+  if (h01(i, 41) < 0.25 && v > 0.3 && v < 0.3 + 0.18 + 0.2 * h01(i, 43)) return 0.12;
+  return 0.6 + 0.4 * smooth(0, 0.7, v);
+}
+/** the whole blackout's shape s seconds in: 0 = every light on … 1 = all dark (for the sky's glow + the dead layers) — `depth` dead
+ *  everywhere means every light of that depth is fully off (the scene skips drawing them) */
+export function blackAll(s, depth = 'city') {
+  const B = BLACK, dz = B.depth[depth] ?? B.depth.city;
+  const allDead = s >= B.die0 + B.dieSpan + 0.9 + 0.5 + 0.05 && s < B.on0 + dz - B.sput;
+  const k = smooth(B.die0 - B.sput, B.die0 + B.dieSpan + 0.9, s) * (1 - smooth(B.on0 + dz - B.sput, B.on0 + dz + B.onSpan + 0.7, s));
+  return { k, dead: allDead };
+}
+
 /** the TR-3B's direction for tonight (seeded by the evening's date) */
 export const tr3bDir = (y, m, d) => (hashString(`tr3b-dir|${dateKey(y, m, d)}`) & 1 ? 1 : -1);
 

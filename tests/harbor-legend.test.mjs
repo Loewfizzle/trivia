@@ -1,7 +1,7 @@
 // CITY 2.0 — PART 6b: THE LEGENDARY SKY's rules (core/harbor-legend.js) — rarity, the nights, the timelines, the drain.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { legendNight, legendAt, eveningOf, barnstormDay, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt } from '../js/core/harbor-legend.js';
+import { legendNight, legendAt, eveningOf, barnstormDay, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX } from '../js/core/harbor-legend.js';
 
 const days = (y, n) => Array.from({ length: n }, (_, i) => { const d = new Date(Date.UTC(y, 0, 1) + i * 864e5); return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()]; });
 
@@ -65,6 +65,42 @@ test('the drain: dead right under it, untouched out of range, a floor by distanc
   for (let x = 0; x <= 1; x += 0.05) for (const f of [0, 0.5, 1]) { const v = drainAt(x, 0.4, 0.7, 'city', 1, 0.3, f); assert.ok(v >= 0 && v <= 1); }
 });
 
+test('POLISH 4 — THE BLACKOUT: the flicker-out as it arrives, the WHOLE city dark through the crossing + the jets, back from the far skyline to the promenade', () => {
+  const mean = (s, d, dir = 1) => { let a = 0, n = 0; for (let x = 0.02; x < 1; x += 0.04) for (let i = 0; i < 12; i++) { a += blackAt(s, x, d, dir, i * 31 + Math.round(x * 100)); n++; } return a / n; };
+  for (const dir of [1, -1]) {
+    // untouched before it comes; the entry side dies first
+    assert.equal(mean(1, 'city', dir), 1);
+    const entry = dir > 0 ? 0.1 : 0.9, far = 1 - entry;
+    let e = 0, f = 0; for (let i = 0; i < 40; i++) { e += blackAt(6, entry, 'city', dir, i); f += blackAt(6, far, 'city', dir, i); }
+    assert.ok(e < f, `the side it comes in on dies first (${e} < ${f})`);
+    // every light of every depth dead from ~10.5 s through the crossing, the gap and the jets' pass
+    for (const d of ['far', 'city', 'sign', 'harbor', 'near']) for (let s = 10.5; s < BLACK.on0 - 1.5; s += 0.5) assert.equal(mean(s, d, dir), 0, `${d} dead at ${s}`);
+    // the jets are gone before anything comes back
+    assert.ok(BLACK.on0 - BLACK.sput >= CHASE.t0 + CHASE.dur * 1.2, 'the power waits for the jets to leave');
+    // back to front: the far skyline is back before the near rows, the sign, the harbor, the promenade last
+    const back = d => { for (let s = BLACK.on0 - 2; s < TR3B_LEN; s += 0.05) if (mean(s, d, dir) > 0.9) return s; return Infinity; };
+    const order = ['far', 'city', 'sign', 'harbor', 'near'].map(back);
+    for (let i = 1; i < order.length; i++) assert.ok(order[i] > order[i - 1], `back to front: ${order.map(v => v.toFixed(2)).join(' < ')}`);
+    assert.ok(order[order.length - 1] < TR3B_LEN - 2, 'all back before the event ends');
+    // it STUTTERS back (on/off flicks before a light holds), never a single fade
+    let flips = 0, prev = 0; for (let s = BLACK.on0 - 2; s < BLACK.on0 + 1; s += 0.02) { const v = blackAt(s, 0.5, 'far', dir, 7) > 0.2 ? 1 : 0; if (v !== prev) flips++; prev = v; }
+    assert.ok(flips >= 3, `stutters back (${flips} flips)`);
+  }
+  // blackAll: dead flags + the overall darkness
+  assert.ok(blackAll(20, 'near').dead && blackAll(20, 'far').dead && blackAll(20).k > 0.99);
+  assert.ok(!blackAll(5, 'city').dead && !blackAll(TR3B_LEN - 0.5, 'near').dead && blackAll(TR3B_LEN - 0.5).k < 0.02);
+  for (let s = 0; s < TR3B_LEN; s += 0.1) for (const d of ['far', 'near']) { const v = blackAt(s, 0.3, d, 1, 3); assert.ok(v >= 0 && v <= 1); }
+});
+
+test('POLISH 4 — THE CHASE: its middle crosses the centre when chasePeakS says; the last plume is off the screen before it ends', () => {
+  const len = 0.2, pk = chasePeakS(len), u = (pk - CHASE.t0) / CHASE.dur;
+  const mid = FORMATIONS.chase.reduce((a, [fx]) => a + chaseX(u, fx, len), 0) / FORMATIONS.chase.length;
+  assert.ok(Math.abs(mid - 0.5) < 1e-9, `the middle at the centre (${mid})`);
+  // the last jet + its ~0.9-length plume past the right edge when the chase stops drawing
+  assert.ok(chaseX(CHASE.uOff, FORMATIONS.chase[2][0], len) - 0.5 * len - 0.9 * len > 1, 'the last plume gone');
+  assert.ok(tr3bAt(chasePeakS(len), 1).chase.on && !tr3bAt(CHASE.t0 + CHASE.dur * (CHASE.uOff + 0.05), 1).chase.on);
+});
+
 test('the jets: formations + the missing man pulls up', () => {
   assert.equal(FORMATIONS.chase.length, 3); assert.equal(FORMATIONS.diamond.length, 4); assert.equal(FORMATIONS.finger.length, 4);
   assert.ok(missingManAt(0.2).climb === 0 && missingManAt(0.9).climb > 0.8);
@@ -83,4 +119,21 @@ test('THE DIRECTOR: a spectacle budget per tier, holidays > party > legendary > 
   assert.ok(!d.may('festival', 'rare') && d.may('legend', 'legendary'), 'the budget full: a rare one waits; a running one keeps its slot');
   d.frame([{ id: 'festival', kind: 'rare' }], 0);
   assert.ok(d.may('drones', 'holiday'), 'a holiday outranks what runs below it');
+});
+
+test('POLISH 4 — THE SURPRISE FLYBY: ~2 evenings a week, golden hour → 11 pm, mostly after dark, either way', async () => {
+  const { flybyDay } = await import('../js/core/harbor-legend.js');
+  let n = 0, night = 0, dirs = new Set();
+  for (let d = 0; d < 730; d++) {
+    const dt = new Date(Date.UTC(2026, 0, 1) + d * 864e5), dusk = 17 + 4 * Math.sin(((d % 365) / 365) * Math.PI);   // (a dusk between 17:00 and 21:00)
+    const f = flybyDay(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate(), dusk);
+    if (!f) continue;
+    n++; if (f.night) night++; dirs.add(f.dir);
+    assert.ok(f.h >= dusk - 1.01 && f.h <= 23, `in its window (${f.h} vs dusk ${dusk.toFixed(2)})`);
+    assert.ok(f.n >= 2 && f.n <= 4);
+  }
+  const perWeek = n / (730 / 7);
+  assert.ok(perWeek > 1.5 && perWeek < 3, `${perWeek.toFixed(2)} a week`);
+  assert.ok(night / n > 0.6, 'weighted toward after dark'); assert.equal(dirs.size, 2);
+  assert.deepEqual(flybyDay(2026, 10, 24, 18.6), flybyDay(2026, 10, 24, 18.6), 'the same for everyone');
 });

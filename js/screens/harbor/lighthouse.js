@@ -345,3 +345,27 @@ export function createBeam() {
     destroy() { for (const cv of [halo, flareC]) if (cv) { cv.width = 0; cv.height = 0; } L = null; },
   };
 }
+
+/**
+ * POLISH 4 — THE TR-3B's BLACKOUT on the harbor's BAKED lights (the lantern room's warm glass, the tower's lit slit window, the
+ * keeper's cottage windows — part of the harbor layer's night bake): dark glass laid over each, `k` = how dead (0 untouched … 1 dark).
+ * Drawn right after the harbor layer, only while a legendary pulls the power.
+ */
+export function harborBlackout(c, L, k) {
+  if (!(k > 0.01) || !L || !L.lighthouse) return;
+  const cam = L.cam, l = L.lighthouse, b = L.breakwater, ck = L.cottage, P = (x, y, z) => project(cam, x, y, z);
+  c.save(); c.globalAlpha = Math.min(1, k);
+  // the lantern room's glass: the night's dim glazing
+  { const lw = l.r1 * 0.7, [la, ly0] = P(l.x - lw, l.h + 3.4, l.z), [lc, ly1] = P(l.x + lw, l.h + 0.45, l.z);
+    const g = c.createLinearGradient(la, ly0, lc, ly1); g.addColorStop(0, 'rgb(38,40,58)'); g.addColorStop(0.5, 'rgb(18,18,30)'); g.addColorStop(1, 'rgb(34,34,52)');
+    c.fillStyle = g; c.fillRect(la, ly0, lc - la, ly1 - ly0);
+    c.strokeStyle = 'rgba(14,12,22,0.9)'; c.lineWidth = Math.max(0.3, cam.F / l.z * 0.06);
+    c.beginPath(); for (let i = -3; i <= 4; i++) { const xa = la + (lc - la) * (i / 4); c.moveTo(xa, ly1); c.lineTo(xa + (lc - la) * 0.5, ly0); c.moveTo(xa + (lc - la) * 0.5, ly1); c.lineTo(xa, ly0); } c.stroke(); }
+  // the tower's one lit slit (the fourth up the spiral)
+  { const R = y => l.r0 + (l.r1 - l.r0) * (y / l.h), yy = l.h * 0.76, s = cam.F / l.z, [wx, wy] = P(l.x - 0.1 * R(yy), yy + 0.9, l.z);
+    c.fillStyle = 'rgb(28,24,40)'; c.beginPath(); c.roundRect(wx - s * 0.17, wy, s * 0.34, s * 0.82, [s * 0.17, s * 0.17, 0, 0]); c.fill(); }
+  // the keeper's cottage windows
+  if (ck && b) { const cz = ck.z + 1;
+    for (const u0 of [0.16, 0.62]) { const [a, ya] = P(ck.x + ck.w * u0, b.h + 2.6, cz), [cc, yc] = P(ck.x + ck.w * (u0 + 0.2), b.h + 1.3, cz); c.fillStyle = 'rgb(22,20,32)'; c.fillRect(a, ya, cc - a, yc - ya); } }
+  c.restore();
+}

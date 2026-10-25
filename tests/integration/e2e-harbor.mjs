@@ -2131,12 +2131,21 @@ G('legends', async () => {
     ok(lum(c) > 150 && c[2] >= c[0] - 30, `THE ABDUCTION: the beam lights the air over the compass (rgb ${c.join(',')} — pale + bright)`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-ufo-402x874.png` });
     await Q.ctx.close(); }
-  // ---- THE TR-3B held over the city (&lgs=15): the drain's columns under it, the city dead right below it, untouched far away
+  // ---- THE TR-3B arriving (&lgs=6): the city flickering out from the side it comes in on — some strips dead, not all
+  { const Q = await open({ slot: 'lg2a', qs: `${NIGHT}&force=tr3b&lgs=6`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.legend.state.phase === 'cross'`, 'the TR-3B loaded + arriving', 20000);
+    const d = (await ev(Q.page, `${P}.legend.drain('city')`)) || [], span = d.reduce((a, cl) => a + cl.x1 - cl.x0, 0);
+    ok(span >= 60 && span < 402, `THE TR-3B ARRIVING: ${Math.round(span)} pt of the city flickering out (${d.length} strips) — not all of it yet`);
+    await Q.ctx.close(); }
+  // ---- THE TR-3B over the city (&lgs=15) — POLISH 4: THE TOTAL BLACKOUT: every depth dead (its lights not drawn at all), the dark
+  // city's bake in place (no floodlit crowns), the lit windows gone from the skyline
   { const Q = await open({ slot: 'lg2', qs: `${NIGHT}&force=tr3b&lgs=15`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.legend.state.phase === 'cross'`, 'the TR-3B loaded + crossing', 20000);
-    const d = await ev(Q.page, `${P}.legend.drain()`), span = d.reduce((a, cl) => a + cl.x1 - cl.x0, 0), dead = d.filter(cl => cl.k > 0.95).reduce((a, cl) => a + cl.x1 - cl.x0, 0);
-    ok(span >= 120 && dead >= 40 && span < 402, `THE TR-3B's DRAIN: ${Math.round(span)} pt of the city dimming under it (${d.length} strips), ${Math.round(dead)} pt dead`);
+    await waitFor(Q.page, `(() => { const k = ${P}.legend.dark(); return k.far && k.near; })()`, 'the dark city baked', 20000);
+    const bo = await ev(Q.page, `${P}.legend.blackout()`);
+    ok(bo && bo.dead.far && bo.dead.city && bo.dead.harbor && bo.dead.near && bo.k > 0.99, `THE TR-3B's BLACKOUT: every depth dead (${JSON.stringify(bo && bo.dead)}), k ${bo && bo.k}`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-402x874.png` });
     await Q.ctx.close(); }
   // ---- 6b: THE BARNSTORMER (its overlay over the sign while it flies, gone after), THE AIR SHOW, a 3-PAGE drone message
