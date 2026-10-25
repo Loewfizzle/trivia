@@ -1120,7 +1120,14 @@ test('THE WORD TOWERS from the panel (7a §0): each tower\'s room, one word per 
   const side = {};
   for (const k of Object.keys(SIZES)) {
     const { L } = setup(k);
-    for (const t of L.towers.filter(x => x.word)) { const f = { cols: t.tiers[0].win.cols, rows: t.face.rows, word: t.word }; if (k === '874x402') side[t.id] = f; else assert.deepEqual(f, WORD_FACES[t.id], `${k}: ${t.id}`); }
+    for (const t of L.towers.filter(x => x.word)) {
+      const g = t.tiers[0].win, f = { cols: g.cols, rows: t.face.rows, word: t.word };
+      if (k === '874x402') { side[t.id] = f; continue; }
+      const { ar, ...dims } = WORD_FACES[t.id];
+      assert.deepEqual(f, dims, `${k}: ${t.id}`);
+      // (POLISH 4: the windows' aspect the fonts are picked by — the pitch's height ÷ its width — matches the default within 5 %)
+      assert.ok(Math.abs(g.pitch[1] / g.pitch[0] - ar) / ar < 0.05, `${k}: ${t.id} aspect ${(g.pitch[1] / g.pitch[0]).toFixed(2)} vs ${ar}`);
+    }
   }
   assert.equal(towerCapacity(side).wordB.letters, 4, 'on its side: B still holds a word (A 19 × 3 — no room; B 15 × 12; V 5 × 8 — one letter)');
   assert.deepEqual(towerCapacity(WORD_FACES), {

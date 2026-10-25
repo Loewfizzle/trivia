@@ -62,26 +62,109 @@ const G = {
   '⚑': ['#.#.#.#', '.#.####', '#.#.#.#', '#######', '.......'],   // the flag: the canton top-left, the stripes (Part 10 colours it)
   ' ': ['..', '..', '..', '..', '..'],
 };
+// ------------------------------------------------------------------ POLISH 4 — THE BIGGER FONTS (the owner: "BUY BTC" read as a jumble)
+// Three more sizes for the word towers — a tower picks the BIGGEST that fits its face AND keeps a letter's natural shape once the
+// window's own aspect is applied (fontsFor): wordA + wordB's windows are ~1.75× taller than their pitch is wide, so a 5×7 letter there
+// would read as a skinny 0.4 — the 5 × 5 is the corrected 5 × 7 there (it reads as ~5 : 8.8); wordV's windows are square, so it takes
+// the real 5 × 7. Every font draws every character of the 3 × 5 (tested).
+const G4 = {   // the middle size: 4 wide (M, W, V, Y, T, I 5 / 3 wide), 5 tall
+  A: ['.##.', '#..#', '####', '#..#', '#..#'], B: ['###.', '#..#', '###.', '#..#', '###.'], C: ['.###', '#...', '#...', '#...', '.###'],
+  D: ['###.', '#..#', '#..#', '#..#', '###.'], E: ['####', '#...', '###.', '#...', '####'], F: ['####', '#...', '###.', '#...', '#...'],
+  G: ['.###', '#...', '#.##', '#..#', '.###'], H: ['#..#', '#..#', '####', '#..#', '#..#'], I: ['###', '.#.', '.#.', '.#.', '###'],
+  J: ['...#', '...#', '...#', '#..#', '.##.'], K: ['#..#', '#.#.', '##..', '#.#.', '#..#'], L: ['#...', '#...', '#...', '#...', '####'],
+  M: ['#...#', '##.##', '#.#.#', '#...#', '#...#'], N: ['#..#', '##.#', '#.##', '#..#', '#..#'], O: ['.##.', '#..#', '#..#', '#..#', '.##.'],
+  P: ['###.', '#..#', '###.', '#...', '#...'], Q: ['.##.', '#..#', '#..#', '#.#.', '.#.#'], R: ['###.', '#..#', '###.', '#.#.', '#..#'],
+  S: ['.###', '#...', '.##.', '...#', '###.'], T: ['#####', '..#..', '..#..', '..#..', '..#..'], U: ['#..#', '#..#', '#..#', '#..#', '.##.'],
+  V: ['#...#', '#...#', '#...#', '.#.#.', '..#..'], W: ['#...#', '#...#', '#.#.#', '##.##', '#...#'], X: ['#..#', '#..#', '.##.', '#..#', '#..#'],
+  Y: ['#...#', '.#.#.', '..#..', '..#..', '..#..'], Z: ['####', '...#', '.##.', '#...', '####'],
+  0: ['####', '#..#', '#..#', '#..#', '####'], 1: ['.#.', '##.', '.#.', '.#.', '###'], 2: ['###.', '...#', '.##.', '#...', '####'],
+  3: ['###.', '...#', '.##.', '...#', '###.'], 4: ['#..#', '#..#', '####', '...#', '...#'], 5: ['####', '#...', '###.', '...#', '###.'],
+  6: ['.##.', '#...', '###.', '#..#', '.##.'], 7: ['####', '...#', '..#.', '.#..', '.#..'], 8: ['.##.', '#..#', '.##.', '#..#', '.##.'],
+  9: ['.##.', '#..#', '.###', '...#', '.##.'], '!': ['#', '#', '#', '.', '#'], '?': ['###.', '...#', '.##.', '....', '.#..'],
+  '-': ['...', '...', '###', '...', '...'], '.': ['.', '.', '.', '.', '#'], "'": ['#', '#', '.', '.', '.'],
+  '♥': ['##.##', '#####', '#####', '.###.', '..#..'], '★': ['..#..', '#####', '.###.', '.#.#.', '#...#'],
+  '⚑': ['#.#.#.#', '.#.####', '#.#.#.#', '#######', '.......'], ' ': ['..', '..', '..', '..', '..'],
+};
+const G5 = {   // 5 × 5: the corrected 5 × 7 for the tall-windowed towers (and a big letter anywhere)
+  A: ['.###.', '#...#', '#####', '#...#', '#...#'], B: ['####.', '#...#', '####.', '#...#', '####.'], C: ['.####', '#....', '#....', '#....', '.####'],
+  D: ['####.', '#...#', '#...#', '#...#', '####.'], E: ['#####', '#....', '####.', '#....', '#####'], F: ['#####', '#....', '####.', '#....', '#....'],
+  G: ['.####', '#....', '#..##', '#...#', '.####'], H: ['#...#', '#...#', '#####', '#...#', '#...#'], I: ['###', '.#.', '.#.', '.#.', '###'],
+  J: ['....#', '....#', '....#', '#...#', '.###.'], K: ['#...#', '#..#.', '###..', '#..#.', '#...#'], L: ['#....', '#....', '#....', '#....', '#####'],
+  M: ['#...#', '##.##', '#.#.#', '#...#', '#...#'], N: ['#...#', '##..#', '#.#.#', '#..##', '#...#'], O: ['.###.', '#...#', '#...#', '#...#', '.###.'],
+  P: ['####.', '#...#', '####.', '#....', '#....'], Q: ['.###.', '#...#', '#.#.#', '#..#.', '.##.#'], R: ['####.', '#...#', '####.', '#..#.', '#...#'],
+  S: ['.####', '#....', '.###.', '....#', '####.'], T: ['#####', '..#..', '..#..', '..#..', '..#..'], U: ['#...#', '#...#', '#...#', '#...#', '.###.'],
+  V: ['#...#', '#...#', '#...#', '.#.#.', '..#..'], W: ['#...#', '#...#', '#.#.#', '##.##', '#...#'], X: ['#...#', '.#.#.', '..#..', '.#.#.', '#...#'],
+  Y: ['#...#', '.#.#.', '..#..', '..#..', '..#..'], Z: ['#####', '...#.', '..#..', '.#...', '#####'],
+  0: ['.###.', '#..##', '#.#.#', '##..#', '.###.'], 1: ['.#.', '##.', '.#.', '.#.', '###'], 2: ['####.', '....#', '.###.', '#....', '#####'],
+  3: ['####.', '....#', '.###.', '....#', '####.'], 4: ['#...#', '#...#', '#####', '....#', '....#'], 5: ['#####', '#....', '####.', '....#', '####.'],
+  6: ['.###.', '#....', '####.', '#...#', '.###.'], 7: ['#####', '....#', '...#.', '..#..', '..#..'], 8: ['.###.', '#...#', '.###.', '#...#', '.###.'],
+  9: ['.###.', '#...#', '.####', '....#', '.###.'], '!': ['#', '#', '#', '.', '#'], '?': ['.###.', '....#', '..##.', '.....', '..#..'],
+  '-': ['....', '....', '####', '....', '....'], '.': ['.', '.', '.', '.', '#'], "'": ['#', '#', '.', '.', '.'],
+  // (the symbols WIDE on the tall windows: 7 × 5 reads as a round heart / a star once the windows' aspect stretches it)
+  '♥': ['.##.##.', '#######', '.#####.', '..###..', '...#...'], '★': ['...#...', '#######', '.#####.', '.##.##.', '##...##'],
+  '⚑': ['#.#.#.#', '.#.####', '#.#.#.#', '#######', '.......'], ' ': ['...', '...', '...', '...', '...'],
+};
+const G7 = {   // 5 × 7 — the classic LCD letter, for square windows (wordV)
+  A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'], B: ['####.', '#...#', '#...#', '####.', '#...#', '#...#', '####.'],
+  C: ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'], D: ['###..', '#..#.', '#...#', '#...#', '#...#', '#..#.', '###..'],
+  E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'], F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
+  G: ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.####'], H: ['#...#', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  I: ['###', '.#.', '.#.', '.#.', '.#.', '.#.', '###'], J: ['..###', '...#.', '...#.', '...#.', '...#.', '#..#.', '.##..'],
+  K: ['#...#', '#..#.', '#.#..', '##...', '#.#..', '#..#.', '#...#'], L: ['#....', '#....', '#....', '#....', '#....', '#....', '#####'],
+  M: ['#...#', '##.##', '#.#.#', '#.#.#', '#...#', '#...#', '#...#'], N: ['#...#', '#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#'],
+  O: ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'], P: ['####.', '#...#', '#...#', '####.', '#....', '#....', '#....'],
+  Q: ['.###.', '#...#', '#...#', '#...#', '#.#.#', '#..#.', '.##.#'], R: ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
+  S: ['.####', '#....', '#....', '.###.', '....#', '....#', '####.'], T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
+  U: ['#...#', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'], V: ['#...#', '#...#', '#...#', '#...#', '#...#', '.#.#.', '..#..'],
+  W: ['#...#', '#...#', '#...#', '#.#.#', '#.#.#', '#.#.#', '.#.#.'], X: ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '#...#'],
+  Y: ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '..#..'], Z: ['#####', '....#', '...#.', '..#..', '.#...', '#....', '#####'],
+  0: ['.###.', '#...#', '#..##', '#.#.#', '##..#', '#...#', '.###.'], 1: ['.#.', '##.', '.#.', '.#.', '.#.', '.#.', '###'],
+  2: ['.###.', '#...#', '....#', '...#.', '..#..', '.#...', '#####'], 3: ['#####', '...#.', '..#..', '...#.', '....#', '#...#', '.###.'],
+  4: ['...#.', '..##.', '.#.#.', '#..#.', '#####', '...#.', '...#.'], 5: ['#####', '#....', '####.', '....#', '....#', '#...#', '.###.'],
+  6: ['..##.', '.#...', '#....', '####.', '#...#', '#...#', '.###.'], 7: ['#####', '....#', '...#.', '..#..', '.#...', '.#...', '.#...'],
+  8: ['.###.', '#...#', '#...#', '.###.', '#...#', '#...#', '.###.'], 9: ['.###.', '#...#', '#...#', '.####', '....#', '...#.', '.##..'],
+  '!': ['#', '#', '#', '#', '#', '.', '#'], '?': ['.###.', '#...#', '....#', '...#.', '..#..', '.....', '..#..'],
+  '-': ['....', '....', '....', '####', '....', '....', '....'], '.': ['.', '.', '.', '.', '.', '.', '#'], "'": ['#', '#', '.', '.', '.', '.', '.'],
+  '♥': ['.##.##.', '#######', '#######', '#######', '.#####.', '..###..', '...#...'], '★': ['...#...', '..###..', '#######', '.#####.', '..###..', '.##.##.', '##...##'],
+  '⚑': ['#.#.####', '.#.#....', '#.#.####', '........', '########', '........', '########'], ' ': ['...', '...', '...', '...', '...', '...', '...'],
+};
+/** the fonts, smallest first: s 3 × 5 (the original), m 4 × 5, l 5 × 5, x 5 × 7 */
+export const FONTS = Object.freeze({ s: { id: 's', g: G, h: 5 }, m: { id: 'm', g: G4, h: 5 }, l: { id: 'l', g: G5, h: 5 }, x: { id: 'x', g: G7, h: 7 } });
+const fontOf = f => (f && f.g ? f : FONTS[f] || FONTS.s);
+/** a letter's typical width in a font (its A) */
+const fontW = f => fontOf(f).g.A[0].length;
+/**
+ * The fonts a face may use, biggest first (POLISH 4): its windows' aspect `ar` (pitch height ÷ width: ~1.75 on wordA + wordB, ~1 on
+ * wordV) turns a glyph's w × h into what the eye sees; a font stays in the list only while its letters keep a natural shape there
+ * (seen aspect 0.44 … 1.02 — never a skinny stretched letter, never a squat one); the original 3 × 5 always last (the fallback).
+ */
+export function fontsFor(face) {
+  const ar = face && face.ar > 0 ? face.ar : 1.75;
+  const seen = f => (fontW(f) / f.h) / ar;
+  const big = [FONTS.x, FONTS.l, FONTS.m].filter(f => seen(f) >= 0.44 && seen(f) <= 1.02).sort((a, b) => fontW(b) * b.h - fontW(a) * a.h);
+  return [...big, FONTS.s];
+}
+
 export const FONT = G;
 export const FONT_H = 5;
 const ALIAS = { '<3': '♥', '*': '★', HEART: '♥', STAR: '★', FLAG: '⚑' };
-/** the glyph of a character (unknown characters are skipped) */
-export const glyph = ch => G[ch] || G[String(ch).toUpperCase()] || null;
+/** the glyph of a character in a font (default the 3 × 5; unknown characters are skipped) */
+export const glyph = (ch, f) => { const g = fontOf(f).g; return g[ch] || g[String(ch).toUpperCase()] || null; };
 /** normalise a message: upper case, the aliases (<3 → ♥, * → ★, [flag] → ⚑) */
 export function normText(s, max = 40) {
   let t = String(s || '').toUpperCase().slice(0, max);
   t = t.replace(/<3/g, '♥').replace(/\*/g, '★').replace(/\[FLAG\]/g, '⚑').replace(/\[HEART\]/g, '♥').replace(/\[STAR\]/g, '★');
   return [...t].filter(ch => G[ch]).join('').replace(/ +/g, ' ').trim();     // (7a §0: a dropped character leaves no double space)
 }
-/** a line's width in columns (1 column between glyphs) */
-export const lineWidth = line => [...line].reduce((w, ch, i) => w + glyph(ch)[0].length + (i ? 1 : 0), 0);
+/** a line's width in columns (1 column between glyphs) in a font */
+export const lineWidth = (line, f) => [...line].reduce((w, ch, i) => w + glyph(ch, f)[0].length + (i ? 1 : 0), 0);
 
-/** the lit cells of a line, left-aligned from (0, 0) at the top-left: [[col, row], …] (row 0 = the top) */
-export function lineCells(line) {
+/** the lit cells of a line in a font, left-aligned from (0, 0) at the top-left: [[col, row], …] (row 0 = the top) */
+export function lineCells(line, f) {
   const out = [];
   let x = 0;
   [...line].forEach((ch, i) => {
-    const g = glyph(ch); if (i) x += 1;
+    const g = glyph(ch, f); if (i) x += 1;
     g.forEach((row, r) => [...row].forEach((v, c) => { if (v === '#') out.push([x + c, r]); }));
     x += g[0].length;
   });
@@ -89,11 +172,11 @@ export function lineCells(line) {
 }
 
 /**
- * Lay out a message on the word towers. towers: { id: { cols, rows, word: 'h'|'v' } } (the face: its free rows from the top).
- * Returns [{ tower, cells: [[col, row-from-the-face-top], …], rows: the rows the message uses }] or null if it can't fit.
+ * Lay out a message on the word towers. towers: { id: { cols, rows, word: 'h'|'v', ar? (the windows' aspect: pitch h ÷ w) } }.
+ * Returns [{ tower, cells: [[col, row-from-the-face-top], …], rows: the rows the message uses, font }] or null if it can't fit.
  *   vertical (a 'v' tower): one letter under the other, a row between — "JOY", "BOO", "USA", a short name
  *   horizontal: one line on A; else two lines on A; else across A and B (the first word(s) on A, the rest on B), each centred
- * opts.tower forces a tower ('wordA' | 'wordB' | 'wordV').
+ * Each part in the BIGGEST font that fits its face and reads right there (fontsFor — POLISH 4). opts.tower forces a tower.
  */
 export function layoutText(text, towers, opts = {}) {
   const t = normText(text);
@@ -101,23 +184,35 @@ export function layoutText(text, towers, opts = {}) {
   const V = towers.wordV, A = towers.wordA, B = towers.wordB;
   const centre = (cells, cols, w, rowOff) => cells.map(([c, r]) => [c + Math.floor((cols - w) / 2), r + rowOff]);
   const vertical = tw => {
+    if (!tw) return null;
     const chars = [...t.replace(/ /g, '')];
-    const need = chars.length * FONT_H + (chars.length - 1);
-    if (!tw || need > tw.rows || chars.some(ch => glyph(ch)[0].length > tw.cols)) return null;
-    const top = Math.max(0, Math.floor((tw.rows - need) / 2));
-    const cells = chars.flatMap((ch, i) => centre(lineCells(ch), tw.cols, glyph(ch)[0].length, top + i * (FONT_H + 1)));
-    return [{ tower: 'wordV', cells, rows: need, text: chars.join('') }];
+    for (const f of fontsFor(tw)) {
+      const need = chars.length * f.h + (chars.length - 1);
+      if (need > tw.rows || chars.some(ch => glyph(ch, f)[0].length > tw.cols)) continue;
+      const top = Math.max(0, Math.floor((tw.rows - need) / 2));
+      const cells = chars.flatMap((ch, i) => centre(lineCells(ch, f), tw.cols, glyph(ch, f)[0].length, top + i * (f.h + 1)));
+      return [{ tower: 'wordV', cells, rows: need, text: chars.join(''), font: f.id }];
+    }
+    return null;
   };
   const oneLine = (line, tw, id) => {
-    const w = lineWidth(line); if (!tw || w > tw.cols || FONT_H > tw.rows) return null;
-    const top = Math.max(0, Math.floor((tw.rows - FONT_H) / 2));
-    return { tower: id, cells: centre(lineCells(line), tw.cols, w, top), rows: FONT_H, text: line };
+    if (!tw) return null;
+    for (const f of fontsFor(tw)) {
+      const w = lineWidth(line, f); if (w > tw.cols || f.h > tw.rows) continue;
+      const top = Math.max(0, Math.floor((tw.rows - f.h) / 2));
+      return { tower: id, cells: centre(lineCells(line, f), tw.cols, w, top), rows: f.h, text: line, font: f.id };
+    }
+    return null;
   };
   const twoLines = (l1, l2, tw, id) => {
-    const w1 = lineWidth(l1), w2 = lineWidth(l2);
-    if (!tw || Math.max(w1, w2) > tw.cols || 2 * FONT_H + 1 > tw.rows) return null;
-    const top = Math.max(0, Math.floor((tw.rows - 2 * FONT_H - 1) / 2));
-    return { tower: id, cells: [...centre(lineCells(l1), tw.cols, w1, top), ...centre(lineCells(l2), tw.cols, w2, top + FONT_H + 1)], rows: 2 * FONT_H + 1, text: `${l1} / ${l2}` };
+    if (!tw) return null;
+    for (const f of fontsFor(tw)) {
+      const w1 = lineWidth(l1, f), w2 = lineWidth(l2, f);
+      if (Math.max(w1, w2) > tw.cols || 2 * f.h + 1 > tw.rows) continue;
+      const top = Math.max(0, Math.floor((tw.rows - 2 * f.h - 1) / 2));
+      return { tower: id, cells: [...centre(lineCells(l1, f), tw.cols, w1, top), ...centre(lineCells(l2, f), tw.cols, w2, top + f.h + 1)], rows: 2 * f.h + 1, text: `${l1} / ${l2}`, font: f.id };
+    }
+    return null;
   };
   if (opts.tower === 'wordV') return vertical(V);
   if (opts.tower === 'wordA' || opts.tower === 'wordB') { const r = oneLine(t, towers[opts.tower], opts.tower); return r ? [r] : null; }
@@ -125,6 +220,10 @@ export function layoutText(text, towers, opts = {}) {
   if (!opts.tower && /^[A-Z]{2,4}$/.test(t) && opts.vertical !== false) { const v = vertical(V); if (v) return v; }
   const one = oneLine(t, A, 'wordA'); if (one) return [one];
   const words = t.split(' ').filter(Boolean);
+  // (POLISH 4: two words that each stand on a tower of their own in a BIG font go across A + B before two small lines on A —
+  // "BUY BTC": BUY on A, BTC on B, each as big as its face allows)
+  const big = p => p && p.font !== 's';
+  if (words.length === 2) { const a = oneLine(words[0], A, 'wordA'), b = oneLine(words[1], B, 'wordB'); if (big(a) && big(b)) return [a, b]; }
   for (let i = 1; i < words.length; i++) {
     const l1 = words.slice(0, i).join(' '), l2 = words.slice(i).join(' ');
     const two = twoLines(l1, l2, A, 'wordA'); if (two) return [two];
@@ -141,18 +240,18 @@ export function layoutText(text, towers, opts = {}) {
 }
 
 /** a message as columns for THE SCROLL (a ticker across a tower's face): one bitmask per column (bit r = row r from the top),
- *  1 blank column between glyphs; up to 120 characters */
-export function scrollColumns(text) {
+ *  1 blank column between glyphs; up to 120 characters; in a font (POLISH 4: the biggest the face's rows + windows take) */
+export function scrollColumns(text, f) {
   const t = normText(text, 120);
-  const w = t ? lineWidth(t) : 0, cols = new Array(w).fill(0);
-  for (const [c, r] of lineCells(t)) cols[c] |= 1 << r;
-  return { text: t, cols };
+  const w = t ? lineWidth(t, f) : 0, cols = new Array(w).fill(0);
+  for (const [c, r] of lineCells(t, f)) cols[c] |= 1 << r;
+  return { text: t, cols, h: fontOf(f).h };
 }
 
 // ------------------------------------------------------------------ PART 7a §0 — THE WORD TOWERS from the panel: capacity + the fit
 /** the word towers' faces on every phone + desktop today (harbor.test.mjs checks them against the layout): the panel's fallback
  *  when the live faces (harbor().windows.faces) aren't there */
-export const WORD_FACES = { wordA: { cols: 19, rows: 11, word: 'h' }, wordB: { cols: 15, rows: 9, word: 'h' }, wordV: { cols: 5, rows: 18, word: 'v' } };
+export const WORD_FACES = { wordA: { cols: 19, rows: 11, word: 'h', ar: 1.75 }, wordB: { cols: 15, rows: 9, word: 'h', ar: 1.75 }, wordV: { cols: 5, rows: 18, word: 'v', ar: 0.97 } };
 /** the tower choices: AUTO (layoutText: the best layout, else ONE WORD PER TOWER on A + B), one tower, or a list of towers (one
  *  word each, in order; the last takes the rest) — a word too long for its tower SCROLLS on it */
 export const TOWER_CHOICES = ['', 'wordA', 'wordB', 'wordV', 'wordA,wordB', 'wordA,wordB,wordV'];

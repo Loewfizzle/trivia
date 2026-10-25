@@ -9,7 +9,7 @@
 //    spell(text, { tower, style }) lights a message on the word towers (core/harbor-windows.js#layoutText) — steady, a wipe-on
 //    floor by floor, or a gentle twinkle — while the rest of that tower dims so it reads. Night only. Any later part addresses
 //    a window by (building, tier, col, row) with set() (party waves, flags, holiday windows).
-import { winTraits, buildingDice, winHash, layoutText, normText, scrollColumns, fitText, FONT_H } from '../../core/harbor-windows.js';
+import { winTraits, buildingDice, winHash, layoutText, normText, scrollColumns, fitText, fontsFor } from '../../core/harbor-windows.js';
 import { tvLight } from '../../core/harbor-moments.js';
 import { windowThreshold } from '../../core/harbor-dark.js';
 import { cellRect, isDeco, behindWheel } from './blocks.js';
@@ -163,7 +163,8 @@ export function wordFaces(L) {
     const s = L.cam.F / tr.z0, bw = g.pitch[0] * s, bh = g.pitch[1] * s;
     // cell: the window's pane; bay: a letter's window — fuller (the pane opened up to most of its bay: bold, readable letters)
     const cell = (c, rr) => cellRect(L.cam, box, c, g.rows - 1 - rr, true);
-    out[t.id] = { cols: g.cols, rows: t.face.rows, word: t.word, cell, bay: (c, rr) => { const [x, y, w, h] = cell(c, rr); return [x + w / 2 - bw * 0.47, y + h / 2 - bh * 0.45, bw * 0.94, bh * 0.9]; } };
+    // (ar: the windows' aspect — the pitch's height ÷ its width: the fonts that read right on this face, core/harbor-windows.js#fontsFor)
+    out[t.id] = { cols: g.cols, rows: t.face.rows, word: t.word, ar: bh / Math.max(1e-6, bw), cell, bay: (c, rr) => { const [x, y, w, h] = cell(c, rr); return [x + w / 2 - bw * 0.47, y + h / 2 - bh * 0.45, bw * 0.94, bh * 0.9]; } };
   }
   return out;
 }
@@ -189,7 +190,7 @@ export function createLights() {
   let metaFar = newMeta(), metaNear = newMeta();
 
   function layout(l) {
-    L = l; faces = wordFaces(l); toggles = []; spell = spell && respell(spell);
+    L = l; faces = wordFaces(l); faceDark.clear(); toggles = []; spell = spell && respell(spell);
     beacons = [];
     const u = l.cam.F / 600;
     let best = null;
@@ -232,8 +233,9 @@ export function createLights() {
     if (sp.sprite) sp.sprite.cv.width = sp.sprite.cv.height = 0;
     const b = build(sp.raw, sp.opts); return b ? { ...sp, ...b, sprite: null } : null;
   }
-  const dims = () => Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word }]));
-  const ticker = (text, id) => { const sc = scrollColumns(text), f = faces[id]; return sc.cols.length && f && f.rows >= FONT_H ? { cols: sc.cols, face: f, tower: id, top: Math.max(0, Math.floor((f.rows - FONT_H) / 2)) } : null; };
+  const dims = () => Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word, ar: f.ar }]));
+  // (POLISH 4: the ticker in the biggest font the face's rows + windows take)
+  const ticker = (text, id) => { const f = faces[id]; if (!f) return null; const fn = fontsFor(f).find(o => o.h <= f.rows); if (!fn) return null; const sc = scrollColumns(text, fn); return sc.cols.length ? { cols: sc.cols, h: sc.h, face: f, tower: id, top: Math.max(0, Math.floor((f.rows - sc.h) / 2)) } : null; };
   /** PART 7a §0: a message → { text, style, parts (still words), scrolls (a ticker per tower whose word is too long) } from the
    *  shared plan (core/harbor-windows.js#fitText — the panel's readout says the same): the best layout; else ONE WORD PER TOWER */
   function build(text, opts = {}) {
@@ -254,11 +256,12 @@ export function createLights() {
     return { text: fit.text, style: parts.length ? opts.style || 'wipe' : 'scroll', parts, scrolls };
   }
   function place(text, opts = {}) {
-    const lay = layoutText(text, Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word }])), opts);
+    const lay = layoutText(text, dims(), opts);
     if (!lay) return null;
     const parts = lay.map(p => {
       const f = faces[p.tower], top = Math.max(0, Math.floor((f.rows - p.rows) / 2));
-      return { tower: p.tower, cells: p.cells.map(([c, rr]) => ({ rect: f.bay(c, rr), rr: rr - top })), face: f, rows: p.rows };
+      const lit = new Set(p.cells.map(([c, rr]) => `${c}|${rr}`));
+      return { tower: p.tower, cells: p.cells.map(([c, rr]) => ({ rect: f.bay(c, rr), rr: rr - top, c, r: rr, right: lit.has(`${c + 1}|${rr}`), below: lit.has(`${c}|${rr + 1}`) })), face: f, rows: p.rows, font: p.font };
     });
     return { parts };
   }
@@ -270,7 +273,7 @@ export function createLights() {
    */
   function spellIt(text, opts = {}) {
     if (!L) return false;
-    const base = { opts, colour: opts.colour || [255, 226, 168], t0: opts.at ?? performance.now(), until: opts.ms ? (opts.at ?? performance.now()) + opts.ms : Infinity, out: -1 };
+    const base = { opts, colour: opts.colour || [255, 238, 206], t0: opts.at ?? performance.now(), until: opts.ms ? (opts.at ?? performance.now()) + opts.ms : Infinity, out: -1 };
     dropSpell();                                   // (a word replacing a word: its sprite goes)
     // THE SCROLL: asked for (one face), or a word too long for its tower — it tickers across THAT tower's face (7a §0: one word
     // per tower; the others stand still); opts.tower may list towers ('wordA,wordB' — core/harbor-windows.js#TOWER_CHOICES)
@@ -384,18 +387,39 @@ export function createLights() {
     c.restore();
   }
 
-  // the face behind a message: dark (the facade and its other windows sink back, so the letters read from arm's length)
+  // the face behind a message (POLISH 4, the owner: "EVERY other window on that face goes DARK"): each of its windows laid back as an
+  // unlit pane (opaque — none of the timeline's lit windows shows through), the stone between them sunk a little, so only the
+  // letters are lit; one sprite per face, built once
+  const faceDark = new Map();
   function dimFace(c, f, a) {
-    const p = f.bay(0, 0), q = f.bay(f.cols - 1, f.rows - 1), pad = 1.2;
-    c.fillStyle = rgba([5, 5, 14], 0.82 * a); c.fillRect(p[0] - pad, p[1] - pad, q[0] + q[2] - p[0] + pad * 2, q[1] + q[3] - p[1] + pad * 2);
+    if (a <= 0.004) return;
+    let S = faceDark.get(f);
+    const dpr = c.getTransform().a || 1;
+    if (!S || S.dpr !== dpr) {
+      const p = f.cell(0, 0), q = f.cell(f.cols - 1, f.rows - 1), x0 = Math.min(p[0], q[0]) - 2, y0 = Math.min(p[1], q[1]) - 2, x1 = Math.max(p[0] + p[2], q[0] + q[2]) + 2, y1 = Math.max(p[1] + p[3], q[1] + q[3]) + 2;
+      const cv = (S && S.cv) || document.createElement('canvas'); cv.width = Math.ceil((x1 - x0) * dpr); cv.height = Math.ceil((y1 - y0) * dpr);
+      const x = safeCtx(cv); x.setTransform(dpr, 0, 0, dpr, -x0 * dpr, -y0 * dpr);
+      x.fillStyle = 'rgba(5,5,14,0.4)'; x.fillRect(x0 + 1, y0 + 1, x1 - x0 - 2, y1 - y0 - 2);
+      x.fillStyle = rgba(DARK, 1);
+      for (let cc = 0; cc < f.cols; cc++) for (let rr = 0; rr < f.rows; rr++) { const [wx, wy, ww, wh] = f.cell(cc, rr); x.fillRect(wx - 0.25, wy - 0.25, ww + 0.5, wh + 0.5); }
+      S = { cv, x0, y0, w: x1 - x0, h: y1 - y0, dpr }; faceDark.set(f, S);
+    }
+    c.globalAlpha = Math.min(1, a); c.drawImage(S.cv, S.x0, S.y0, S.w, S.h); c.globalAlpha = 1;
   }
-  // a letter's window: full, warm and bright — the room's light, a hotter centre, a soft glow spilling onto the stone
-  function letter(c, rect, col, a, D) {
+  // a letter's window (POLISH 4: brighter, a warm white): full, a hotter centre, a soft glow; `nb` = its lit neighbours' rects (right,
+  // below) — the stone between two lit windows of the same letter glows too, so each letter reads as ONE shape, not a grid of dots
+  function letter(c, rect, col, a, D, nb = null) {
     const [x, y, ww, wh] = rect;
+    if (nb) {
+      c.fillStyle = rgba(mixc(col, [255, 200, 140], 0.25), a * 0.78);
+      const [qr, qb] = nb;
+      if (qr) c.fillRect(x + ww - 0.3, y + wh * 0.08, Math.max(0.6, qr[0] - (x + ww) + 0.6), wh * 0.84);                 // (the gap to its right)
+      if (qb) { const top = Math.min(y + wh, qb[1] + qb[3]), bot = Math.max(y, qb[1]); c.fillRect(x + ww * 0.08, Math.min(top, bot) - 0.3, ww * 0.84, Math.abs(bot - top) + 0.6); }   // (the gap to the next row)
+    }
     c.fillStyle = rgba(col, a); c.fillRect(x, y, ww, wh);
-    c.fillStyle = rgba(mixc(col, [255, 255, 255], 0.55), a * 0.9); c.fillRect(x + ww * 0.18, y + wh * 0.14, ww * 0.64, wh * 0.5);
+    c.fillStyle = rgba(mixc(col, [255, 255, 255], 0.65), a * 0.95); c.fillRect(x + ww * 0.14, y + wh * 0.1, ww * 0.72, wh * 0.62);
     c.globalCompositeOperation = 'lighter';
-    const r = Math.max(ww, wh) * 1.25; c.globalAlpha = 0.3 * a; c.drawImage(D.warm, x + ww / 2 - r, y + wh / 2 - r, r * 2, r * 2); c.globalAlpha = 1;
+    const r = Math.max(ww, wh) * 1.35; c.globalAlpha = 0.34 * a; c.drawImage(D.warm, x + ww / 2 - r, y + wh / 2 - r, r * 2, r * 2); c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
   }
   function drawSpell(c, now, k, motion) {
@@ -414,7 +438,7 @@ export function createLights() {
         const m = col + shift - f.cols;
         if (m < 0 || m >= n) continue;
         const mask = S.cols[m];
-        for (let r = 0; r < FONT_H; r++) if (mask & (1 << r)) letter(c, f.bay(col, S.top + r), sp.colour, fadeOut * k, D);
+        for (let r = 0; r < S.h; r++) if (mask & (1 << r)) letter(c, f.bay(col, S.top + r), sp.colour, fadeOut * k, D, [S.cols[m + 1] & (1 << r) && col + 1 < f.cols ? f.bay(col + 1, S.top + r) : null, mask & (1 << (r + 1)) ? f.bay(col, S.top + r + 1) : null]);
       }
     }
     if (!sp.parts.length) return;
@@ -446,7 +470,7 @@ export function createLights() {
           if (sp.style === 'wipe' && motion) a = Math.max(0, Math.min(1, (el - (rows - 1 - cl.rr) * 160) / 260));
           else if (sp.style === 'twinkle' && motion) a = 0.72 + 0.28 * Math.sin(now / 420 + i * 1.7);
           if (a <= 0) continue;
-          letter(x, cl.rect, sp.colour, a, D);
+          letter(x, cl.rect, sp.colour, a, D, [cl.right ? p.face.bay(cl.c + 1, cl.r) : null, cl.below ? p.face.bay(cl.c, cl.r + 1) : null]);
         }
       }
     }
@@ -488,7 +512,7 @@ export function createLights() {
       return { text: spell.text, style: spell.style, towers: [...new Set([...spell.parts.map(p => p.tower), ...spell.scrolls.map(S => S.tower)])], scrolls: spell.scrolls.map(S => S.tower),
         cells: spell.parts.reduce((n, p) => n + p.cells.length, 0) + spell.scrolls.reduce((n, S) => n + bits(S.cols), 0) };
     },
-    faces: () => Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word, rect: (() => { const a = f.cell(0, 0), b = f.cell(f.cols - 1, f.rows - 1); return { x: a[0], y: a[1], w: b[0] + b[2] - a[0], h: b[1] + b[3] - a[1] }; })() }])),
+    faces: () => Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word, ar: +f.ar.toFixed(3), rect: (() => { const a = f.cell(0, 0), b = f.cell(f.cols - 1, f.rows - 1); return { x: a[0], y: a[1], w: b[0] + b[2] - a[0], h: b[1] + b[3] - a[1] }; })() }])),
     debug: () => ({ lateTvs: lateTvs.length, lateK: +lateK.toFixed(2), beacons: beacons.length, twinkle: metaFar.twinkle.length, tv: metaNear.tv.length, cands: metaNear.cands.length, toggles: toggles.length, sets: sets.size }),
   };
 }
