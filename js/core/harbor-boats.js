@@ -3,22 +3,59 @@
 // (move with an easing, hold, turn, away). They live in the water right of the pier (it runs from z 118 to the quay: nothing
 // beyond its head can cross it) — Rosie docks at her landing beside the pier's platform, the tug noses up to the pier, the
 // sailboats reach back and forth — except the water taxi, out in front of the pier head, which zips across the whole harbor.
-// A boat turns by foreshortening (its side view squeezes to its bow and opens the other way: `face` −1 … 1) — the small ones
-// only: Rosie never turns in sight (she backs in to her landing, `astern`: moving against her face).
+// 8b2 Group 3 — THE BOATS IN 3D (screens/harbor/boat3d.js): every state carries a real HEADING `hd` (radians in the world's xz
+// plane: 0 = heading right +x, π/2 = away from the camera +z, −π/2 = toward it) + its depth `z` (a turn may swing a boat a few
+// units nearer); `face` = cos(hd) is kept for anything that reads it. A boat TURNS by sweeping its heading — the model turns on
+// the water; never a squashed picture. ROSIE now comes home BOW-FIRST from the right, swings round in the open water right of
+// her berth (her bow toward us), then eases the last half length ASTERN into her landing — bow-out as before, at the same times.
 // Which boats sail is decided per CYCLE from the hour at the cycle's start (the tug at night, the sailboats by day) — a boat
 // never pops in or out while you watch. docs/harbor.md#the-boats.
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+const PI = Math.PI;
 const EASE = {
   lin: u => u,
   out: u => 1 - (1 - u) * (1 - u),                    // arriving: at speed, slowing to a stop
   in: u => u * u,                                     // leaving: from a stop, gathering way
   both: u => u * u * (3 - 2 * u),
 };
+// a cubic Hermite (p0 → p1 with the end tangents m0, m1 in units per segment) — a run that arrives still moving
+const herm = (p0, p1, m0, m1, k) => { const k2 = k * k, k3 = k2 * k; return (2 * k3 - 3 * k2 + 1) * p0 + (k3 - 2 * k2 + k) * m0 + (-2 * k3 + 3 * k2) * p1 + (k3 - k2) * m1; };
+const hdOf = face => (face >= 0 ? 0 : PI);
+
+/** ROSIE's homecoming (154 s, the same window as before): A — in BOW-FIRST from past the right edge along a lane 6 units in front
+ *  of her berth (the breakwater at z 150 stays clear of her stern through the turn), slowing; B — the TURN: her bow swings toward
+ *  us (a paddle steamer turns nearly in place: her centre drifts a couple of units, nearer at the middle of the swing), 140° round
+ *  to a heading 40° off her berth's line; C — ASTERN the last half length into her landing on a gentle curve, straightening to
+ *  bow-out as she stops. Times in s. */
+export const ROSIE_ARRIVE = Object.freeze({ A: 58, B: 62, C: 34, lane: 6, dip: 2.4, turnAt: 13, endAt: 11, endZ: 6.5, ctl: 4.6, v0: 0.85, v1: 0.15 });
+/** the arrival's plan for a layout (berth x xB at depth zB; x0 = where she comes in from, off the right edge) */
+function arrivePlan(xB, zB, x0) {
+  const P = ROSIE_ARRIVE, zL = zB - P.lane, zE = zB - P.endZ, xT = xB + P.turnAt, xE = xB + P.endAt, c1 = xB + P.ctl;
+  const phi = Math.atan2(zB - zE, xE - c1);              // (her heading at the end of the swing: along the astern curve's start)
+  return { x0, xT, xE, zL, zE, xB, zB, c1, phi };
+}
+/** where she is s seconds into her homecoming (PURE) → { x, z, hd, astern, phase } */
+export function arriveAt(a, s) {
+  const P = ROSIE_ARRIVE;
+  if (s < P.A) { const k = clamp01(s / P.A); return { x: herm(a.x0, a.xT, -P.v0 * P.A, -P.v1 * P.A, k), z: a.zL, hd: PI, astern: false, phase: 'in' }; }
+  if (s < P.A + P.B) {
+    const k = clamp01((s - P.A) / P.B), e = EASE.both(k);
+    return { x: herm(a.xT, a.xE, -P.v1 * P.B, 0, k), z: a.zL + (a.zE - a.zL) * e - P.dip * Math.sin(PI * e), hd: PI + (PI - a.phi) * e, astern: false, phase: 'turn' };
+  }
+  // C: astern on a quadratic curve (P0 = the swing's end, the control on her berth's line, P2 = the berth), eased from rest to rest
+  const k = clamp01((s - P.A - P.B) / P.C), u = EASE.both(k), w = 1 - u;
+  const x = w * w * a.xE + 2 * w * u * a.c1 + u * u * a.xB, z = w * w * a.zE + 2 * w * u * a.zB + u * u * a.zB;
+  const dx = 2 * w * (a.c1 - a.xE) + 2 * u * (a.xB - a.c1), dz = 2 * w * (a.zB - a.zE);
+  return { x, z, hd: Math.atan2(-dz, -dx), astern: true, phase: 'astern' };
+}
+/** THE FISHING TUG's dawn: it swings from its moored heading (bow toward the pier) to head out — its bow toward us, its centre a few
+ *  units nearer through the swing (the quay behind it) — then steams out. s: seconds into its departure */
+export const FISH_TURN = Object.freeze({ d: 44, dip: 3.6, fwd: 1.6 });
 
 /**
  * The routes for a layout: per boat { id, z, len, h, kind, when ('day'|'night'|null), period (s), offset (s), segs: [{ d (s),
- * type: 'move'|'hold'|'turn'|'away', xa, xb, face, ease }], lane: [xMin, xMax] (world, the boat's centre) }.
+ * type: 'move'|'hold'|'turn'|'away'|'arrive', xa, xb, face, ease }], lane: [xMin, xMax] (world, the boat's centre) }.
  */
 export function boatRoutes(L, { taxi = false } = {}) {
   const cam = L.cam, P = L.pier, head = P.head || P;
@@ -42,18 +79,15 @@ export function boatRoutes(L, { taxi = false } = {}) {
       r.table = 'fish'; r.kind = 'fish';
       r.lane = [Lf + 0.6, R + 2]; r.segs = [{ d: 1, type: 'hold', xa: Lf + 0.6, face: 1 }];
     } else if (b.id === 'rosie') {
-      // ROSIE: she BACKS IN from the right to her landing beside the platform (astern, slowing to a stop), four minutes alongside
-      // BOW-OUT, steams out bow-first; ten minutes a cycle. She NEVER TURNS IN SIGHT (the owner, Oct 24: her flat side view
-      // squeezing round on open water looked like a picture flipping — until her 3D model, she keeps facing out the whole cycle:
-      // nothing in view hides her — the pier, the platform and the breakwater are drawn UNDER her — so the only blind spot is past
-      // the right edge, and a turn there is never needed). She reaches her berth at the same moment (154 s into the cycle) and
-      // holds at the same spot. (NEON PASS 4: she rests facing out — bow-in, her twin stacks + their bulb strings stood right in
-      // front of THE GAME BLADE's last letters for the whole four minutes; bow-out they stand clear of every sign:
-      // tests/harbor.test.mjs)
+      // ROSIE: home BOW-FIRST from the right, a turn in the open water right of her berth, the last half length astern into her
+      // landing (arriveAt); four minutes alongside BOW-OUT (NEON PASS 4: bow-in, her twin stacks + their bulb strings stood in
+      // front of THE GAME BLADE's last letters; bow-out they stand clear of every sign: tests/harbor.test.mjs), steams out
+      // bow-first; ten minutes a cycle. She reaches her berth at the same moment (154 s into the cycle) and holds at the same spot.
       const out = Lf + 1.2, Rr = R + 3;                 // (Rr: her stern wheel + flagstaff, 2 units past the hull, off too)
+      r.arrive = arrivePlan(out, b.z, offR(b.z - ROSIE_ARRIVE.lane, b.len) + 0.8);
       r.offset = 140;
       r.segs = [
-        { d: 154, type: 'move', xa: Rr, xb: out, face: 1, ease: 'out', astern: true },
+        { d: 154, type: 'arrive', xa: r.arrive.x0, xb: out, face: 1 },
         { d: 230, type: 'hold', xa: out, face: 1 },
         { d: 110, type: 'move', xa: out, xb: Rr, face: 1, ease: 'in' },
         { d: 106, type: 'away', xa: Rr, face: 1 },
@@ -73,7 +107,7 @@ export function boatRoutes(L, { taxi = false } = {}) {
       if (taxi) r.segs = r.segs.map(g => (g.type === 'away' ? { ...g, d: 1.5 } : g));     // (&force=taxi: back and forth, 1.5 s apart — perf + review)
       r.lane = [A, B];
     } else if (b.id === 'tug') {
-      // THE TUG (night): noses in toward the pier, idles, swings round, chugs out
+      // THE TUG (night): noses in toward the pier, idles, swings round (its bow toward us), chugs out
       // (on Rosie's ten minutes, phased so it comes in as she steams out and leaves as she returns: never idling behind her)
       // (NEON PASS 4: a unit nearer the pier — idling, its masthead lights stood against THE GAME BLADE's foot)
       const stop = Math.max(Lf + 5, clearOf(b.z, b.len));
@@ -87,8 +121,8 @@ export function boatRoutes(L, { taxi = false } = {}) {
       ];
       r.lane = [stop, R];
     } else {
-      // THE SAILBOATS (day): a long slow reach toward the pier, a tack, back out past the lighthouse — on Rosie's ten minutes,
-      // phased so they reach the pier while her landing is empty (never tacking unseen behind her)
+      // THE SAILBOATS (day): a long slow reach toward the pier, a tack (the bow through the wind, toward us), back out past the
+      // lighthouse — on Rosie's ten minutes, phased so they reach the pier while her landing is empty (never tacking unseen behind her)
       const two = b.id === 'sail2', tack = Math.max(Lf + (two ? 12 : 4), clearOf(b.z, b.len) + (two ? 4 : 0)), d1 = 200;
       r.offset = two ? 400 : 490;
       r.segs = [
@@ -119,26 +153,32 @@ export const ROSIE_TABLE = Object.freeze([{ dep: 10, ret: 11.67, horn: 'day' }, 
 export const FISH = Object.freeze({ out: 6.15, back: 16.5, move: 170 });
 const ROSIE_OUT = 110, ROSIE_IN = 154;
 const dayStartOf = (ms, off) => { const lt = ms / 1000 + off * 60, d = Math.floor(lt / 86400); return (d * 86400 - off * 60) * 1000; };
+const withHd = (st, hd, z) => ({ ...st, hd, z, face: Math.cos(hd) });
 /** a timetabled boat at ms (PURE: off = the local minutes from UTC) → the same shape as boatAt; + horn: the departure it is leaving on */
 export function tableAt(r, ms, off = 0) {
   const d0 = dayStartOf(ms, off), H = 3600e3, inLane = r.lane[0], outLane = r.lane[1];
-  const move = (xa, xb, t0, d, ease, face, extra = {}) => ({ x: xa + (xb - xa) * EASE[ease](clamp01((ms - t0) / (d * 1000))), face, on: true, moving: true, seg: 'move', run: Math.floor(t0 / 1000), ...extra });
-  const hold = x => ({ x, face: 1, on: true, moving: false, seg: 'hold', run: 0 });
+  const move = (xa, xb, t0, d, ease, face, extra = {}) => withHd({ x: xa + (xb - xa) * EASE[ease](clamp01((ms - t0) / (d * 1000))), on: true, moving: true, seg: 'move', run: Math.floor(t0 / 1000), ...extra }, hdOf(face), r.z);
+  const hold = (x, hd = 0) => withHd({ x, on: true, moving: false, seg: 'hold', run: 0 }, hd, r.z);
   if (r.table === 'rosie') {
     for (const e of ROSIE_TABLE) {
       const dep = d0 + e.dep * H, ret = d0 + e.ret * H;
       if (ms >= dep && ms < dep + ROSIE_OUT * 1000) return move(inLane, outLane, dep, ROSIE_OUT, 'in', 1, { cruise: e.horn });
-      if (ms >= dep + ROSIE_OUT * 1000 && ms < ret - ROSIE_IN * 1000) return { x: outLane, face: 1, on: false, moving: false, seg: 'away', next: Math.floor(ret / 1000), cruise: e.horn };
-      if (ms >= ret - ROSIE_IN * 1000 && ms < ret) return move(outLane, inLane, ret - ROSIE_IN * 1000, ROSIE_IN, 'out', 1, { astern: true, cruise: e.horn });
+      if (ms >= dep + ROSIE_OUT * 1000 && ms < ret - ROSIE_IN * 1000) return withHd({ x: outLane, on: false, moving: false, seg: 'away', next: Math.floor(ret / 1000), cruise: e.horn }, PI, r.z);
+      if (ms >= ret - ROSIE_IN * 1000 && ms < ret) { const t0 = ret - ROSIE_IN * 1000, a = arriveAt(r.arrive, (ms - t0) / 1000); return withHd({ x: a.x, on: true, moving: true, seg: 'move', run: Math.floor(t0 / 1000), phase: a.phase, cruise: e.horn, ...(a.astern ? { astern: true } : null) }, a.hd, a.z); }
     }
     return hold(inLane);
   }
-  // THE FISHING TUG: out bow-first to the right at dawn, back (turned, bow-first) in the late afternoon; its bow lantern on while it moves
-  const out = d0 + FISH.out * H, back = d0 + FISH.back * H, D = FISH.move;
-  if (ms >= out && ms < out + D * 1000) return move(inLane, outLane, out, D, 'in', 1, { lantern: true });
-  if (ms >= out + D * 1000 && ms < back - D * 1000) return { x: outLane, face: 1, on: false, moving: false, seg: 'away', next: Math.floor(back / 1000) };
+  // THE FISHING TUG: at dawn it swings from its mooring (bow toward the pier) and heads out bow-first to the right; back (bow-first,
+  // heading left) in the late afternoon; its bow lantern on while it moves
+  const out = d0 + FISH.out * H, back = d0 + FISH.back * H, D = FISH.move, T = FISH_TURN;
+  if (ms >= out && ms < out + T.d * 1000) {
+    const e = EASE.both(clamp01((ms - out) / (T.d * 1000)));
+    return withHd({ x: inLane + T.fwd * e, on: true, moving: true, seg: 'turn', run: Math.floor(out / 1000), lantern: true }, PI + PI * e, r.z - T.dip * Math.sin(PI * e));
+  }
+  if (ms >= out + T.d * 1000 && ms < out + D * 1000) return move(inLane + T.fwd, outLane, out + T.d * 1000, D - T.d, 'in', 1, { lantern: true });
+  if (ms >= out + D * 1000 && ms < back - D * 1000) return withHd({ x: outLane, on: false, moving: false, seg: 'away', next: Math.floor(back / 1000) }, 0, r.z);
   if (ms >= back - D * 1000 && ms < back) return move(outLane, inLane, back - D * 1000, D, 'out', -1, { lantern: true });
-  return { ...hold(inLane), face: -1, moored: true };
+  return { ...hold(inLane, PI), moored: true };
 }
 /** the timetable's moments between a and b (ms, PURE): [{ t, kind: 'rosie-day' | 'rosie-dinner' }] — the horn as she casts off */
 export function hornsBetween(a, b, off = 0) {
@@ -154,27 +194,28 @@ export function cycleOf(r, ms) {
 }
 
 /**
- * Where a boat is at ms: { x (world, its centre), face (−1 facing left … 1 facing right; |face| < 1 while turning), on (in the
- * water this cycle and not away), moving, seg }. nightAt(ms) → bool decides a day / night boat per cycle (at its start).
+ * Where a boat is at ms: { x, z (world, its centre), hd (its heading, radians), face (= cos hd), on (in the water this cycle and
+ * not away), moving, seg }. nightAt(ms) → bool decides a day / night boat per cycle (at its start).
+ * A 'turn' sweeps the heading through its bow toward the camera (face −1 → 1: π → 2π; 1 → −1: 0 → −π).
  */
 export function boatAt(r, ms, nightAt = () => true, o = {}) {
   if (r.table && o.off != null) return tableAt(r, ms, o.off);
   const c = cycleOf(r, ms);
-  if (r.when) { const night = !!nightAt(c.start); if ((r.when === 'night') !== night) return { x: r.lane[1], face: 1, on: false, moving: false, seg: 'off' }; }
+  if (r.when) { const night = !!nightAt(c.start); if ((r.when === 'night') !== night) return withHd({ x: r.lane[1], on: false, moving: false, seg: 'off' }, 0, r.z); }
   let u = c.u;
   for (let i = 0; i < r.segs.length; i++) {
     const g = r.segs[i];
     if (u > g.d) { u -= g.d; continue; }
     const k = clamp01(u / g.d), run = g.run >= 0 ? c.n * (r.runs || 1) + g.run : -1;
-    if (g.type === 'move') return { x: g.xa + (g.xb - g.xa) * EASE[g.ease || 'lin'](k), face: g.face, on: true, moving: true, seg: 'move', run, ...(g.astern ? { astern: true } : null) };
-    if (g.type === 'hold') return { x: g.xa, face: g.face, on: true, moving: false, seg: 'hold', run };
-    if (g.type === 'turn') { const e = EASE.both(k); return { x: g.xa + (g.xb - g.xa) * e, face: g.face + (g.to - g.face) * e, on: true, moving: true, seg: 'turn', run }; }
+    if (g.type === 'arrive') { const a = arriveAt(r.arrive, u); return withHd({ x: a.x, on: true, moving: true, seg: 'move', run, phase: a.phase, ...(a.astern ? { astern: true } : null) }, a.hd, a.z); }
+    if (g.type === 'move') return withHd({ x: g.xa + (g.xb - g.xa) * EASE[g.ease || 'lin'](k), on: true, moving: true, seg: 'move', run, ...(g.astern ? { astern: true } : null) }, hdOf(g.face), r.z);
+    if (g.type === 'hold') return withHd({ x: g.xa, on: true, moving: false, seg: 'hold', run }, hdOf(g.face), r.z);
+    if (g.type === 'turn') { const e = EASE.both(k), h0 = hdOf(g.face); return withHd({ x: g.xa + (g.xb - g.xa) * e, on: true, moving: true, seg: 'turn', run }, h0 + (g.to > g.face ? PI : -PI) * e, r.z); }
     // (away: the run that comes next — the thinning decides it while the boat is out of sight)
     let next = -1;
     for (let j = i + 1; j < r.segs.length; j++) if (r.segs[j].run >= 0) { next = c.n * (r.runs || 1) + r.segs[j].run; break; }
     if (next < 0) next = (c.n + 1) * (r.runs || 1);
-    return { x: g.xa, face: g.face, on: false, moving: false, seg: 'away', next };
+    return withHd({ x: g.xa, on: false, moving: false, seg: 'away', next }, hdOf(g.face), r.z);
   }
-  return { x: r.lane[1], face: 1, on: false, moving: false, seg: 'away' };
+  return withHd({ x: r.lane[1], on: false, moving: false, seg: 'away' }, 0, r.z);
 }
-

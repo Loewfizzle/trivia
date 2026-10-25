@@ -136,6 +136,7 @@ export const EVENTS = [
   { id: 'beam-green', label: 'GREEN BEAM', cat: 'harbor', group: 'HARBOR', night: true },
   { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', cat: 'harbor', group: 'HARBOR', inputs: ['scheme'] },
   { id: 'taxi', label: 'WATER TAXI', cat: 'harbor', group: 'HARBOR' },
+  { id: 'rosie-turn', label: 'ROSIE’S TURN', cat: 'harbor', group: 'HARBOR', hint: 'her homecoming swing on a loop — the 3D model turning in the open water, bow toward us' },
   // (PART 8a — THE PROMENADE: the trees + planters in each season (the real date otherwise); the owner's implied road (on by default)
   // switched off to compare; a car passing along it now (its headlights at night, its shadow by day, its sound))
   { id: 'season-spring', label: 'SPRING', cat: 'promenade', group: 'SEASON', hint: 'the crabapple in blossom, fresh light-green maples, tulips' },

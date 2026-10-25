@@ -382,7 +382,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardGame: bt ? boardGameOf(bt.board.key, L) : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
     water.layout(L, { dpr, tier });
     waterfront.layout(L, { dpr });
-    wheel.layout(L, { dpr, tier }); beam.layout(L); boats.layout(L, { dpr, tier, taxi: clock.force.has('taxi') });
+    wheel.layout(L, { dpr, tier }); beam.layout(L); boats.layout(L, { dpr, tier, taxi: clock.force.has('taxi'), turn: clock.force.has('rosie-turn') });
     pierLampsAt = pierLamps(L).map(lp => { const [x, y] = project(cam, lp.x, lp.y, lp.z); return { x, y, s: cam.F / lp.z }; });
     if (pierLampCv) { pierLampCv.cv.width = 0; pierLampCv = null; }
     // the lighthouse + its cottage + the breakwater mirror from the baked harbor layer (they stand still); the wheel, the beam
@@ -1490,7 +1490,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (gone('burnout')) neon.moment('burnout', false);
     if (!f.has('neon-scheme')) neon.moment('scheme', 'city');
     if (['demo', 'searchlights'].some(id => gone(id) || came(id))) { sched = null; events = { active: [], quiet: [] }; }
-    if ((gone('taxi') || came('taxi')) && L) boats.layout(L, { dpr, tier, taxi: f.has('taxi') });
+    if ((gone('taxi') || came('taxi') || gone('rosie-turn') || came('rosie-turn')) && L) boats.layout(L, { dpr, tier, taxi: f.has('taxi'), turn: f.has('rosie-turn') });
     if (['rainbow', 'rainbow2', 'moonbow', 'neonbow'].some(id => gone(id) || came(id))) bowForcedAt = null;
     if (came('finale')) PT.finaleForced = false;
     // the sky's pieces: the ones the state asks for start at o.at (clock ms); the ones that went stop

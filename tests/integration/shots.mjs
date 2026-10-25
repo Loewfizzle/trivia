@@ -254,13 +254,15 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       // CITY 2.0: THE BILLBOARD close up (its lamps, the poster, the steel down to the roof)
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); const b = hb && hb.neon.boards[0]; if (!b || !b.rect) return null; const r = b.rect, k = hb.cam.F / 600;
         return { x: Math.max(0, r.x - 30 * k), y: Math.max(0, r.y - 24 * k), width: r.w + 60 * k, height: r.h + 44 * k }; });
-    } else if (['wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c)) {
+    } else if (['wheel', 'lighthouse', 'rosie', 'harbor', 'boats'].includes(c) || c.startsWith('boat-')) {
       // CITY 2.0 (Part 5): close-ups of the harbor's hero pieces — the wheel (with its legs on the pier), the lighthouse (+ the
       // beam's sweep), Rosie (wherever she is now), the harbor strip (the wheel's top to the road)
       clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb || !hb.wheel) return null; const w = hb.wheel, k = hb.cam.F / 600, box = (x, y, ww, hh) => ({ x: Math.max(0, x), y: Math.max(0, y), width: Math.min(innerWidth - Math.max(0, x), ww), height: Math.min(innerHeight - Math.max(0, y), hh) });
         if (cc === 'wheel') return box(w.x - w.r * 1.35, w.y - w.r * 1.2, w.r * 2.7, w.deck - w.y + w.r * 1.2 + 40 * k);
         if (cc === 'lighthouse') { const l = hb.lighthouse; return box(l.x - 90 * k, l.y - 60 * k, 180 * k, 190 * k); }
         if (cc === 'rosie') { const b = hb.boats.boats.find(o => o.id === 'rosie'); return b ? box(b.x - 75 * k, w.y - 10 * k, 150 * k, 120 * k) : null; }
+        // (8b2 Group 3: any other boat, close — boat-taxi / boat-tug / boat-fish / boat-sail / boat-sail2: a box round it wherever it is)
+        if (cc.startsWith('boat-')) { const b = hb.boats.boats.find(o => o.id === cc.slice(5)); return b && b.y != null ? box(b.x - 40 * k, b.y - 44 * k, 80 * k, 56 * k) : null; }
         return box(0, w.y - w.r - 12, innerWidth, hb.water.y1 + 10 - (w.y - w.r - 12)); }, c);
     } else if (PRESET[c]) {
       clip = await p.evaluate(([sel, pad]) => {
@@ -273,7 +275,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
     if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper', 'crest', 'cart', 'treel', 'compass'].includes(c)) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass'].includes(c) || c.startsWith('boat-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

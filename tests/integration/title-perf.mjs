@@ -76,6 +76,10 @@ const SCENES = {
   'h-nb': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-boats', 'h-nw': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-wakes',
   'h-nwh': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-wheel', 'h-nbm': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-beam',
   'h-none': 'when=2026-10-14T21:30&wx=clear&force=no-planes,taxi,no-boats,no-wheel,no-beam', 'h-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes,taxi',
+  // 8b2 Group 3 — ROSIE IN 3D: at her landing at night (lit, her bulbs, the wheel idling) / by day; coming home (on any commit: she
+  // moves — before 8b2 astern, now bow-first into her turn); her turn on a loop (&force=rosie-turn; --vs r-dock: the turn's cost)
+  'r-dock': 'when=2026-10-14T22:30&wx=clear&force=no-planes', 'r-dock-day': 'when=2026-10-14T13:00&wx=clear&force=no-planes',
+  'r-arrive': 'when=2026-10-14T21:38:20&wx=clear&force=no-planes', 'r-turn': 'when=2026-10-14T22:30&wx=clear&force=no-planes,rosie-turn', 'r-turn-day': 'when=2026-10-14T13:00&wx=clear&force=no-planes,rosie-turn',
   // CITY 2.0, Part 6a: THE EVERYDAY SKY — each piece forced (on the commit before, the same URL is the plain scene: A-B-B-A gives
   // the piece's whole cost): planes by day (+ the gulls, the capped contrails), a night approach, the banner plane, skytyping, the
   // helicopter at night (its searchlight), the drone show (its launch + the first formation), the aurora, and the worst sky: a

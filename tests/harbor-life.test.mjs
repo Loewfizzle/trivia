@@ -43,7 +43,19 @@ test('8b1 — THE HARBOR\'S TIMETABLE: Rosie at her landing between runs, out at
   const out = boatAt(rosie, ms(10 + 50 / 3600), undefined, o);
   assert.ok(out.on && out.moving && out.x > rosie.lane[0], '10:00:50: casting off, steaming out');
   assert.equal(boatAt(rosie, ms(11), undefined, o).seg, 'away', '11 am: out on her cruise');
-  assert.ok(boatAt(rosie, ms(11.66), undefined, o).astern, '11:40: backing in to her landing');
+  // 11:40 — home: bow-first in from the right (11:40:12 → ~11:41:10), the turn in view (→ ~11:42:12), astern the last half length (→ 11:42:46)
+  const ret = ms(11.67), back = s => boatAt(rosie, ret - s * 1000, undefined, o);
+  assert.ok(back(130).on && !back(130).astern && Math.abs(back(130).hd - Math.PI) < 1e-9, '11:40:36: coming home bow-first, heading left');
+  assert.equal(back(70).phase, 'turn', '11:41:36: swinging round right of her berth');
+  assert.ok(back(20).astern && back(20).x > rosie.lane[0], '11:42:26: easing astern into her landing');
+  assert.ok(Math.abs(Math.cos(back(0.5).hd) - 1) < 0.01, '11:42:46: bow-out at her landing');
+  assert.equal(boatAt(rosie, ret + 1000, undefined, o).seg, 'hold');
+  // the fishing tug's dawn: it swings from its mooring (bow toward the pier, heading left) to head out right, its bow toward us mid-swing
+  const fo = ms(6.15), fishAt = s => boatAt(fish, fo + s * 1000, undefined, o);
+  assert.ok(Math.abs(boatAt(fish, fo - 5000, undefined, o).hd - Math.PI) < 1e-9, 'moored bow toward the pier');
+  assert.ok(Math.sin(fishAt(22).hd) < -0.9 && fishAt(22).lantern, 'dawn: mid-swing, its bow toward us, the lantern lit');
+  assert.ok(Math.abs(Math.cos(fishAt(60).hd) - 1) < 1e-9 && fishAt(60).x > fishAt(46).x, 'then out bow-first to the right');
+  assert.ok(Math.abs(boatAt(fish, ms(16.48), undefined, o).hd - Math.PI) < 1e-9, 'home bow-first, heading left');
   assert.equal(boatAt(rosie, ms(12.5), undefined, o).seg, 'hold', 'lunchtime: at her landing (the noon whistle off her stacks)');
   assert.equal(boatAt(rosie, ms(20), undefined, o).seg, 'away', '8 pm: the dinner cruise');
   assert.equal(boatAt(rosie, ms(23), undefined, o).seg, 'hold', '11 pm: home');

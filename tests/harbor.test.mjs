@@ -680,29 +680,46 @@ test('the boats (Part 5): a day / night boat is decided per cycle (never pops in
   }
 });
 
-test('ROSIE never turns in sight (the owner, Oct 24: her flat side view squeezing round looked like a picture flipping): over a whole day, whenever her facing changes she is wholly off the screen — at every size; she still docks at her landing at the same moments', () => {
-  // (the pier, its platform and the breakwater are drawn UNDER her — scene order: the baked harbor layer, then Rosie — and the
-  // wheel in front of her is open spokes: nothing in view can hide her, so "out of sight" means past the screen's edge)
+test('ROSIE TURNS NATURALLY (8b2 Group 3 — her 3D model): home bow-first from past the right edge, a turn in the open water right of her berth (in view, clear of the pier + its platform on screen, her stern clear of the breakwater), the last half length astern into her landing, bow-out — at every size, the same berth times', () => {
+  // her footprint at a state (boat-models.js#rosieModel, from her centre): the bow staff's pennant (+12.6), the bow's shoulders
+  // (+8, ±3), the stern's corners (−11, ±2.7), the wheel's hood (−14.1, ±2.35) — in the world
+  const FOOT = [[12.6, 0], [8, 3], [8, -3], [-11, 2.7], [-11, -2.7], [-14.1, 2.35], [-14.1, -2.35]];
+  const corners = st => { const fx = Math.cos(st.hd), fz = Math.sin(st.hd); return FOOT.map(([f, sd]) => [st.x + fx * f + fz * sd, st.z + fz * f - fx * sd]); };
+  const angDiff = (a, b) => Math.abs(((a - b + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
   for (const k of Object.keys(SIZES)) {
-    const { cam, L } = setup(k), rosie = boatRoutes(L).find(r => r.id === 'rosie');
-    // her drawn extent (boats.js#drawRosie, her own units: the stern wheel + flagstaff to -2, the bow staff to 24.6) + 1 unit
-    const offScreen = st => { const u0 = st.face >= 0 ? -3 : -25.6, u1 = st.face >= 0 ? 25.6 : 3, x0 = st.x - rosie.len / 2;
-      const a = project(cam, x0 + Math.min(u0, u1), 0, rosie.z)[0], b = project(cam, x0 + Math.max(u0, u1), 0, rosie.z)[0];
-      return a >= cam.W || b <= 0; };
-    let prev = null, changes = 0, inView = 0;
+    const { cam, L } = setup(k), rosie = boatRoutes(L).find(r => r.id === 'rosie'), head = L.pier.head;
+    const headR = project(cam, head.x1, 0, head.z0)[0], bwZ = L.breakwater.z;
+    let prev = null, turnsSeen = 0, inView = 0;
     for (let ms = Date.UTC(2026, 9, 21, 4); ms < Date.UTC(2026, 9, 22, 4); ms += 1000) {
       const st = boatAt(rosie, ms);
-      if (st.on && !offScreen(st)) inView++;
-      if (prev && (st.face !== prev.face || Math.abs(st.face) < 1)) { changes++; assert.ok(offScreen(st) && offScreen(prev), `${k}: Rosie's facing changes in sight (x ${project(cam, st.x, 0, rosie.z)[0].toFixed(0)} pt, ${new Date(ms).toISOString()})`); }
+      if (!st.on) { prev = null; continue; }
+      const cs = corners(st), sx = cs.map(([x, z]) => project(cam, x, 0, z)[0]);
+      if (Math.max(...sx) > 0 && Math.min(...sx) < cam.W) inView++;
+      // never over the pier / platform on screen, never into the breakwater behind her
+      assert.ok(Math.min(...sx) >= headR + 2, `${k}: Rosie (${Math.min(...sx).toFixed(0)} pt) over the pier's platform (${headR.toFixed(0)}) at ${new Date(ms).toISOString()}`);
+      const behind = cs.filter(([x]) => x >= L.breakwater.x0 - 0.5 && x <= L.breakwater.x1 + 0.5).map(c => c[1]);
+      assert.ok(!behind.length || Math.max(...behind) <= bwZ - 0.4, `${k}: Rosie's stern into the breakwater (z ${Math.max(...behind).toFixed(1)})`);
+      if (prev) {
+        // the heading changes smoothly (never a flip): ≤ 6° a second
+        assert.ok(angDiff(st.hd, prev.hd) < 6 * Math.PI / 180, `${k}: her heading jumps ${(angDiff(st.hd, prev.hd) * 180 / Math.PI).toFixed(1)}° at ${new Date(ms).toISOString()}`);
+        // a TURN happens in sight: her whole hull on the screen
+        if (st.phase === 'turn' && angDiff(st.hd, prev.hd) > 0.002) { turnsSeen++; assert.ok(Math.max(...sx) <= cam.W + (Math.abs(Math.cos(st.hd)) > 0.98 ? 16 : 1), `${k}: her turn runs off the screen (${Math.max(...sx).toFixed(0)} pt)`); }
+      }
       prev = st;
     }
+    assert.ok(turnsSeen > 100, `${k}: her turns are seen (${turnsSeen} s)`);
     assert.ok(inView > 86400 * 0.6, `${k}: she is still out on the water most of the day (${inView} s)`);
-    // her schedule's feel: in astern (bow out) to her berth by 154 s into each ten-minute cycle, four minutes alongside, out
+    // her schedule's feel: in BOW-FIRST (heading left), the turn, astern the last stretch, at her berth by 154 s into each
+    // ten-minute cycle bow-out; four minutes alongside; out bow-first
     const c0 = cycleOf(rosie, Date.UTC(2026, 9, 21, 12)).start, at = s => boatAt(rosie, c0 + s * 1000);
     assert.equal(rosie.period, 600); assert.equal(rosie.offset, 140);
-    assert.equal(at(153).seg, 'move'); assert.ok(at(153).astern && at(40).x > at(120).x, `${k}: she backs in (bow out)`);
-    assert.equal(at(155).seg, 'hold'); assert.equal(at(383).seg, 'hold'); assert.equal(at(385).seg, 'move'); assert.ok(!at(385).astern && at(450).x > at(400).x, `${k}: she steams out bow-first`);
-    assert.ok(project(cam, at(0).x - rosie.len / 2 - 3, 0, rosie.z)[0] >= cam.W, `${k}: she backs in from past the right edge`);
+    assert.ok(Math.abs(at(20).hd - Math.PI) < 1e-9 && !at(20).astern && at(10).x > at(40).x, `${k}: she comes in bow-first, heading left`);
+    assert.equal(at(90).phase, 'turn'); assert.ok(Math.sin(at(90).hd) < -0.8, `${k}: mid-turn her bow toward us (hd ${(at(90).hd * 180 / Math.PI).toFixed(0)}°)`);
+    assert.equal(at(153).seg, 'move'); assert.ok(at(153).astern && at(130).x > at(150).x, `${k}: she eases the last stretch astern`);
+    assert.ok(Math.abs(Math.cos(at(153.9).hd) - 1) < 0.01, `${k}: bow-out as she stops`);
+    assert.equal(at(155).seg, 'hold'); assert.equal(at(155).hd, 0); assert.ok(Math.abs(at(153.99).x - at(155).x) < 0.05 && Math.abs(at(153.99).z - at(155).z) < 0.05, `${k}: she ends exactly at her berth`);
+    assert.equal(at(383).seg, 'hold'); assert.equal(at(385).seg, 'move'); assert.ok(!at(385).astern && at(450).x > at(400).x && at(450).hd === 0, `${k}: she steams out bow-first`);
+    const c = corners(at(0)); assert.ok(Math.min(...c.map(([x, z]) => project(cam, x, 0, z)[0])) >= cam.W, `${k}: she comes in from past the right edge`);
   }
 });
 
