@@ -5878,7 +5878,8 @@ doesn't bend in the hand — the owner read it as a glitch; the dim flicker stay
 
 ### 4. The proof (`tests/integration/e2e-harbor.mjs` `motion` — the `street` cloud job; `tests/harbor-people.test.mjs` +2)
 - **`motion`** (new, ~75 s): a 12-s trace of the afternoon + a 15-s trace of the dance circle, judged per figure and dt-NORMALISED (the
-  cloud draws ~8–10 fps): every walker's per-ms step ≤ 2.5× its median; the planted foot's slide on a straight (on the flat) ≤ 25 % of
+  cloud draws ~8–10 fps): no walker JUDDERS (a frame under half its median speed beside one over 1.5× — the stop-then-double signature; ≤ 1 % of
+  its walking frames; the single worst step ≤ 4× a warning — a partner stepping round the lead legitimately doubles for a frame); the planted foot's slide on a straight (on the flat) ≤ 25 % of
   the body's speed (a turn is reported); the pace 0.8–2.9 m/s + 75–175 steps a minute; ≥ 90 % of the frames with a walker "fast"; the
   dancers: 0 jumps over 1 rad between frames closer than 60 ms, the p99 angular speed ≤ 16 rad/s. `promenade` moved from the `street`
   job to `city` to keep `street` under 5 min.
