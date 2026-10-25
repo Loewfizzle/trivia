@@ -4,6 +4,29 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — PART 8b2: THE LIFE, PART 2 (Oct 25, 2026) — `docs/harbor.md#part-8b2`, `docs/audio.md` 8b2
+- [x] Step 0 — the owner's Oct 25 notes in plan.md
+- [x] Group 0 — the TR-3B's frame cost (60 fps only during the F-16s; `legends.active()` for everything else a legendary does), THE DRAIN
+      AUDIBLE (`DRAIN_M`: 0.58 × floor, ±2 % wow + ±0.7 % flutter, 2.6 kHz, a −3 dB duck; `BEND_FLOOR` 0.55), the boat whistle + horn +1 dB,
+      THE BENCH's three reserved seats, the ducks + the raccoon removed (63 city-sound slots)
+- [x] Group 1 — THE WORKERS' QUALITY PASS: clothes per trade (the cop's custodian helmet, the white wing's pith helmet, the painters' caps +
+      smocks, bow ties, belts, aprons, gloves, the washers' bibs; pale cloth pale at night), lifts (`pick` / `set` / `raise`), rung-by-rung
+      climbs (`CLIMB`), strokes (paint, paste, squeegee, sweep), weight (`HEAVY`), the long ladder carried by two, every leg blending out of
+      the one before (`BLEND` 0.34 s); the folk preview's rows
+- [x] Group 2 — THE RAID (`core/harbor-raid.js` + `screens/harbor/raid.js`): the schedule after the bootleggers' nights (+ 12 % of party
+      nights), the convoy on the near lane timed to green, the police car model + its beacon, the power cut + the shades + the pole, the
+      officer's flashlight, the wash (a slow alternation; tier 0 lite), the crowd's reactions + the doorman, the lights' return, the sounds,
+      the panel's THE RAID; + THE RAID FROM THE FRONT (the owner's add-on: the front street's patrol car, its spotlight's crisp beam + hard
+      circle sweeping the facade)
+- [x] THE FIX (the owner's add-on) — the TR-3B blacks the city out again and wins over the party show (`PT.on` × the remaining power); E2E
+      with the party on + off
+- [x] Group 3a — THE CABS (`core/harbor-cabs.js`): the night's calls at the truck stop, drops round the nose to the side door, pick-ups with
+      the hail, the TAXI lamp lit when free, the riders in the crowd's budget
+- [x] Group 3b — ROSIE + EVERY BOAT IN 3D (`boat3d.js` + `boat-models.js` + `boats.js`): the mesh kit, five models, Rosie's natural turn
+      (bow-first home, the swing in view, astern into the berth; the timetable unchanged), the fishing tug's dawn swing, the live wheel,
+      smoke, running lights, wakes, reflections, the heading-keyed sprite cache, the bulbs' CHASE hook (Part 10), `&force=rosie-turn`
+- [x] One A-B-B-A round (TR-3B dark / dying / + party, the raid, Rosie by day + mid-turn at night): same or faster everywhere (docs/harbor.md)
+
 ### ✅ CITY 2.0 — PART 8b1: THE LIFE, PART 1 (Oct 25, 2026) — `docs/harbor.md#part-8b1`, `docs/audio.md#8b1`
 - [x] Group 0 — Polish 4's fixes: THE SURPRISE FLYBY ~twice a month (never on a legendary night; 3–4 jets), the signal heads face their own
       traffic, wordA's real limits (a 5-letter word already in the biggest font that fits), a billboard swap shows at once by day, the van's
