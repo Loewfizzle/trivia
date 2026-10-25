@@ -162,7 +162,7 @@ PLAN.newsdrop = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
 });
 PLAN.trash = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
   // the collector to the can beside the front-left lamppost: the lid off, the can up on his shoulder, to the truck's tail, tipped in
-  // over the side, carried back, set down, the lid on — the raccoon (Group 2) bolts if it's there
+  // over the side, carried back, set down, the lid on
   const c = crewOf(M, P, r, 'walk', T.tA + 1.6).fromTruck(T).go(P.canStand).pose('garden', 1.6, { hd: PI + 0.4 });
   const lift = c.now; c.hold('can').tail(T).pose('tip', 2.8, { hd: PI / 2 }).fromTail(T).go(P.canStand);
   const set = c.now + 0.8; c.pose('garden', 1.8, { hd: PI + 0.4 }).hold(null).toTruck(T);
@@ -336,14 +336,12 @@ PLAN.newsboy = (w, M, P, r) => {
 };
 PLAN.evening = PLAN.newsboy;
 PLAN.barber = (w, M, P, r, L, ctx) => {
-  // 8:30 (fixed): in from the left, the milk taken in off the step, (a raccoon's night: the can's lid righted), into the shop; out
+  // 8:30 (fixed): in from the left, the milk taken in off the step, into the shop; out
   // again with his broom: the step swept, the awning cranked out, back in
   const c = crewOf(M, P, r, 'walk', w.t0 - 6).edge('left', 43.2).go(P.stepStand).go(P.step);
   const take = c.now + 0.8; c.pose('garden', 1.8, { hd: PI / 2 }).hold('bottles');
-  let fixLid = null;
-  if (ctx && ctx.canAskew && ctx.canAskew(w.t0)) { c.hold(null).go(P.canStand); fixLid = c.now + 0.7; c.pose('garden', 1.6, { hd: PI + 0.4 }).hold('bottles').go(P.stepStand); }
   c.door('shop', 'in').hold(null).inside(5.5 * 60).door('shop', 'out').hold('broom').go(P.stepStand).pose('sweep', 48, { face: -1 }).hold(null).go(P.awning).pose('crank', 7.5, { hd: PI / 2 }).door('shop', 'in');
-  return { visits: [c.out(w.id, 'barber', 'barber')], marks: { milkTake: take, lidFix: fixLid } };
+  return { visits: [c.out(w.id, 'barber', 'barber')], marks: { milkTake: take } };
 };
 PLAN.cop = (w, M, P, r) => {
   // the beat cop's friendly stroll: through the middle of the floor, a pause (the baton's twirl), a tip of the hat, on his way
@@ -412,7 +410,7 @@ function resultsOf(ws, world, cache) {
 const trim = cache => { if (cache.size > 400) { let n = cache.size - 300; for (const k of cache.keys()) { if (k === 'P') continue; cache.delete(k); if (--n <= 0) break; } } };
 /**
  * THE CREW over [a, b] (PURE given the cache): every show touching the span → { visits (promenade), roof (on the roof deck), trucks,
- * props, marks }. world: { L, M, ctx: { off, seed, party, force (a kind), canAskew(t), dusk(key) } }
+ * props, marks }. world: { L, M, ctx: { off, seed, party, force (a kind), dusk(key) } }
  */
 export function crewSpan(a, b, world, cache = new Map()) { trim(cache); return resultsOf(worksIn(a, b, world.ctx || {}, cache), world, cache); }
 export function crewAt(t, world, cache = new Map()) {
@@ -454,5 +452,5 @@ export function tracesAt(t, world, cache = new Map()) {
   const lf = [[lampFault(yKey, y0, ctx), m.lamp && m.lamp.lampFix ? m.lamp.lampFix.t : d.day0 + 86400], [lampFault(d.key, d.day0, ctx), Infinity]].find(([o, fx]) => o && t >= o.from && t < fx);
   const bl = [[boardLampOut(yKey, y0, ctx), bp ? bp.fixAt : d.day0 + 86400], [boardLampOut(d.key, d.day0, ctx), Infinity]].find(([o, fx]) => o && t >= o.t && t < fx);
   return { bulbDead, lampFault: lf ? { lamp: lf[0].lamp, from: lf[0].from, period: lf[0].period } : null, boardLampDead: bl ? bl[0].lamp : ctx.force === 'billposter' && bp && t < bp.fixAt ? 1 : null,
-    milk: !!milk, bundles: !!bundles, board, blade, bladeDone: pt ? pt.t1 : null, monday: d.dow === 1, bulbFix: m.bulb && m.bulb.bulbFix ? m.bulb.bulbFix.t : null, lampFix: m.lamp && m.lamp.lampFix ? { t: m.lamp.lampFix.t, t0: m.lamp.lampFix.t0, t1: m.lamp.lampFix.t1 } : null, lidFix: m.barber ? m.barber.lidFix : null, canHeld: m.trash && m.trash.canHeld && t >= m.trash.canHeld[0] && t < m.trash.canHeld[1], doorman: m.doorman ? m.doorman.doorman : (my.doorman ? my.doorman.doorman : null), whistle: [m.cop && m.cop.whistle, m.patrol && m.patrol.whistle].filter(Boolean), day: d };
+    milk: !!milk, bundles: !!bundles, board, blade, bladeDone: pt ? pt.t1 : null, monday: d.dow === 1, bulbFix: m.bulb && m.bulb.bulbFix ? m.bulb.bulbFix.t : null, lampFix: m.lamp && m.lamp.lampFix ? { t: m.lamp.lampFix.t, t0: m.lamp.lampFix.t0, t1: m.lamp.lampFix.t1 } : null, canHeld: m.trash && m.trash.canHeld && t >= m.trash.canHeld[0] && t < m.trash.canHeld[1], doorman: m.doorman ? m.doorman.doorman : (my.doorman ? my.doorman.doorman : null), whistle: [m.cop && m.cop.whistle, m.patrol && m.patrol.whistle].filter(Boolean), day: d };
 }

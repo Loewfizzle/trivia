@@ -2,12 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cameraFor, harborLayout, project } from '../js/core/harbor-layout.js';
-import { FOLK, folkAt, folkMap, linePlaces } from '../js/core/harbor-people.js';
-import { signalAt } from '../js/core/harbor-promenade.js';
+import { FOLK, linePlaces } from '../js/core/harbor-people.js';
 import {
   localOf, wildSpots, spotPoint, canSpot, pilingSpot, PIGEON, pigeonCount, groundShare, pigeonSlot, pigeonAt, groundLife, gullSlot, owlDay, owlAt,
-  squirrelSlot, coyoteNight, pathAt, coyoteTracks, raccoonNight, canAt, lidFixed, catEvening, fireflyCount, fireflyAt, heronMorning, fishSlot,
-  duckDay, duckPlan, ducksBlock, SIZE,
+  squirrelSlot, coyoteNight, pathAt, coyoteTracks, catEvening, fireflyCount, fireflyAt, heronMorning, fishSlot, SIZE,
 } from '../js/core/harbor-wildlife.js';
 
 const SIZES = {
@@ -139,20 +137,6 @@ test('8b1 — THE COYOTE: rare, quiet nights only (10 pm → 4 am, the promenade
   assert.ok(nights > 8 && nights < 90, `rare (${nights} of 200 nights)`);
 });
 
-test('8b1 — THE RACCOON + THE CAN: late nights at the can; the lid tipped (off), left askew until the barber rights it at 8:30 — or whoever empties it first (lidFixedAt)', () => {
-  let found = null;
-  for (let k = 0; k < 40 && !found; k++) { const day0 = at(2026, 10, 1, 0) + k * 86400, key = localOf(day0 + 43200, OFF).key, p = raccoonNight(key, day0, L, ctxOf()); if (p) found = { p, key, day0 }; }
-  assert.ok(found, 'a raccoon night within 40');
-  const { p } = found, c = ctxOf();
-  const h = localOf(p.t0, OFF).h; assert.ok(h >= 23 || h < 4, 'late');
-  assert.equal(canAt(p.tTip - 5, L, c).lid, 'on');
-  assert.equal(canAt(p.tTip + 5, L, c).lid, 'off');
-  assert.equal(canAt(p.tb + 60, L, c).lid, 'askew');
-  const fix = lidFixed(p.tTip, c); assert.equal(Math.round(localOf(fix, OFF).h * 60), 510, 'the barber at 8:30');
-  assert.equal(canAt(fix - 60, L, c).lid, 'askew'); assert.equal(canAt(fix + 60, L, c).lid, 'on');
-  const c2 = ctxOf({ lidFixedAt: tt => tt + 3 * 3600 }); assert.equal(canAt(p.tTip + 3 * 3600 + 5, L, c2).lid, 'on', 'the trash collector puts it back (Group 1)');
-});
-
 test('8b1 — THE CAT OUTSIDE: some evenings, never while the window moment shows the cat inside', () => {
   let n = 0, blocked = 0;
   for (let k = 0; k < 120; k++) {
@@ -174,27 +158,6 @@ test('8b1 — FIREFLIES: summer nights only; THE HERON: dawn, April–October; F
   assert.ok(mornings > 60 && mornings < 140, `~45 % of the warm mornings (${mornings})`);
   const jumps = h0 => { let n = 0; for (let d = 1; d <= 20; d++) for (let m = 0; m < 60; m += 0.75) { const t = at(2026, 7, d, h0, m); if (fishSlot(Math.floor(t / 45), L, ctxOf())) n++; } return n; };
   assert.ok(jumps(8) > jumps(13), 'more at dawn than at midday'); assert.ok(jumps(13) > jumps(2), 'rare at night');
-});
-
-test('8b1 — THE DUCK CROSSING: spring only, rare; 2–4 mallards cross on WALK; the people at the kerb wait (crossBlocked) — nobody sets off across while they\'re on it', () => {
-  let days = 0;
-  for (let k = 0; k < 365; k++) { const day0 = at(2026, 1, 1, 0) + k * 86400, lc = localOf(day0 + 43200, OFF), p = duckDay(lc.key, day0, L, ctxOf()); if (!p) continue; days++; assert.ok(lc.month >= 4 && lc.month <= 6); assert.ok(p.n >= 2 && p.n <= 4); assert.equal(signalAt(p.tw * 1000 + 100).phase, 'walk', 'they set off on WALK'); }
-  assert.ok(days > 5 && days < 30, `rare (${days} days)`);
-  // the people wait: plan a crossing near a walk, check no walker STARTS across while the ducks are on it
-  const plan = duckPlan(L, at(2026, 5, 12, 10), 3, Math.random);
-  assert.ok(ducksBlock(plan, plan.tw, plan.tw + 1) && !ducksBlock(plan, plan.onX[1] + 1, plan.onX[1] + 2));
-  const M = folkMap(L), cache = new Map(), ctx = { off: OFF, seed: 1924, crossBlocked: (a, b) => ducksBlock(plan, a, b) };
-  const starts = new Set();
-  for (let t = plan.onX[0] - 300; t < plan.onX[1] + 60; t += 0.5) {
-    const r = folkAt(t, { L, M, ctx }, cache);
-    for (const v of r.visits) for (const lg of v.legs) if (lg.k === 'walk' && lg.cross) starts.add(lg.t0);
-  }
-  assert.ok(starts.size > 0, 'walkers do cross round it (the check is not empty)');
-  for (const s of starts) assert.ok(!(s > plan.onX[0] && s < plan.onX[1]), `a walker set off across at ${s - plan.tw} s with the ducks on it`);
-  // (+ the same window WITHOUT the hook does have someone setting off during it — the hook is what holds them)
-  const free = new Set(), c2 = new Map();
-  for (let t = plan.onX[0] - 300; t < plan.onX[1] + 60; t += 0.5) for (const v of folkAt(t, { L, M, ctx: { off: OFF, seed: 1924 } }, c2).visits) for (const lg of v.legs) if (lg.k === 'walk' && lg.cross && lg.t0 > plan.onX[0] && lg.t0 < plan.onX[1]) free.add(lg.t0);
-  console.log(`# duck crossing: ${starts.size} crossings round it with the hook, ${free.size} would have started during it without`);
 });
 
 test('8b1 — THE SIZES: every animal cheated up for the phone (the owner\'s phone test) — pigeons ~9 pt on the floor, the squirrel ~1.5×, the owl ~10+ pt, the heron ~15 pt', () => {

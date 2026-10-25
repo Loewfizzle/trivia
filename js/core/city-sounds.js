@@ -78,8 +78,9 @@ export const SLOTS = [
   S('laugh-distant', '8', 'once', 0.04, 'a group laughing, distant (two takes)', 'a group of people (8P: sounds.laugh(o))'),
   S('cart-bell', '8', 'once', 0.05, 'the chestnut cart’s hand bell (one ring)', 'the cart, now and then (8P: sounds.cart({ on, pan }) / sounds.cartBell(o))'),
   S('ships-bell', '8', 'once', 0.14, 'the HOURLY SHIP’S BELL (one ring)'),
-  S('steam-whistle', '8', 'once', 0.16, 'the NOON STEAM WHISTLE (a 1920s steamboat / factory; a steam engine’s whistle, low-passed)'),
-  S('ship-horn', '8', 'once', 0.16, 'a big ship’s horn, distant (the 7 pm dinner cruise)'),
+  // (8b2 — the owner: the boat whistle ~10 % louder: the noon whistle + Rosie's horn 0.16 → 0.18, +1 dB)
+  S('steam-whistle', '8', 'once', 0.18, 'the NOON STEAM WHISTLE (a 1920s steamboat / factory; a steam engine’s whistle, low-passed)'),
+  S('ship-horn', '8', 'once', 0.18, 'a big ship’s horn, distant (the 7 pm dinner cruise)'),
   S('gulls', '8', 'once', 0.11, 'a gull’s call, distant (several takes)', 'the gulls over the harbor by day: mostly one call, now and then two or three in a row (sounds.js#gullCalls)'),
   // (6b — the life + workers + wildlife sounds, Grok's Oct 24 set: filled, waiting for their events (8b's people + workers, the city
   // schedule) — soft: one-shots ≈ −46 … −49 LUFS into the bus, the market's bed ≈ −48)
@@ -102,11 +103,9 @@ export const SLOTS = [
   // (6b — the wildlife: soft, far)
   S('pigeon-flutter', '8', 'once', 0.04, 'pigeons fluttering up'),
   S('pigeon-coo', '8', 'once', 0.04, 'pigeons cooing (two takes)'),
-  S('duck-quack', '8', 'once', 0.04, 'ducks quacking on the water (three takes)'),
   S('squirrel-chatter', '8', 'once', 0.035, 'a squirrel chattering in a tree'),
   S('coyote-howl', '8', 'once', 0.04, 'coyotes howling far off (late night; two takes)'),
   S('coyote-yip', '8', 'once', 0.035, 'a coyote’s yips, distant (three takes)'),
-  S('raccoon-chitter', '8', 'once', 0.04, 'a raccoon chittering by the bins — EMPTY: the file was a hiss + growl attack (scary)'),
   // ---- PART 9 — seasons + weather
   S('birdsong-morning', '9', 'loop', 0.08, 'morning birdsong (spring / summer)'),
   S('crickets-night', '9', 'loop', 0.07, 'summer-night crickets'),

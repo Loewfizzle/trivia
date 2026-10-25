@@ -2090,7 +2090,7 @@ G('people', async () => {
 
 });
 // ---- PART 8b1 — THE WILDLIFE (core/harbor-wildlife.js + screens/harbor/wildlife.js + fauna.js): the animals drawn where they stand,
-// the pigeons flushing + coming back, the night's coyote + raccoon + the can, the gulls landing, every panel row showing its animal
+// the pigeons flushing + coming back, the night's coyote, the can, the gulls landing, every panel row showing its animal
 G('wildlife', async () => {
   const P = 'window.__district.harbor()', W = `${P}.wildlife`;
   const band = p => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, c = ${P}.cam, y0 = Math.round((c.dock.y - 130) * k), h = Math.round(120 * k);
@@ -2120,19 +2120,16 @@ G('wildlife', async () => {
     const wl = await ev(Q.page, W);
     ok(wl.pigeons.some(p => p.ov), `THE SCATTER: the flock burst up — now ${wl.pigeons.map(p => (p.away ? 'away' : p.spot) + (p.ov ? `(${p.ov})` : '')).join(' ')}`);
     await Q.ctx.close(); }
-  // ---- THE NIGHT: the coyote (its stop under the lamp + the eye-flash) and the raccoon at the can (the lid tipped off)
-  { const Q = await open({ slot: 'wl3', qs: `when=2026-10-22T23:40${GR}&force=coyote,raccoon`, view: [402, 874] });
+  // ---- THE NIGHT: the coyote (its stop under the lamp + the eye-flash)
+  { const Q = await open({ slot: 'wl3', qs: `when=2026-10-22T23:40${GR}&force=coyote`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `!!${W}.coyote`, 'the coyote', 15000);
     const eyes = await waitFor(Q.page, `${W}.coyote && ${W}.coyote.eyes > 0.3`, 'the eye-flash under the lamp', 40000).then(() => true).catch(() => false);
     ok(eyes, 'THE COYOTE: trots in, stops under the tall lamp, turns its head to us — the green-gold eye-flash');
-    await waitFor(Q.page, `${W}.canState().lid !== 'on'`, 'the lid off', 30000);
-    const wl = await ev(Q.page, W);
-    ok(wl.raccoon && /rear|rummage/.test(wl.raccoon.pose), `THE RACCOON at the can: ${wl.raccoon && wl.raccoon.pose}, the lid ${wl.can && wl.can.lid}`);
     await Q.ctx.close(); }
   // ---- THE PANEL: every WILDLIFE row brings its animal (JUST ME), the night ones at night
   for (const [when, list] of [[`when=2026-07-10T12:00${GR}`, [['pigeons', 'w.pigeons.some(p => !p.away)'], ['gulls-land', 'w.gulls.length > 0'], ['squirrel', '!!w.squirrel'], ['snowy-owl', '!!w.owl'], ['heron', '!!w.heron'], ['fish', 'w.fish > 0'], ['cat-out', '!!w.cat']]],
-    [`when=2026-07-10T23:30${GR}`, [['coyote', '!!w.coyote'], ['raccoon', '!!w.raccoon'], ['fireflies', 'w.fireflies > 0']]]]) {
+    [`when=2026-07-10T23:30${GR}`, [['coyote', '!!w.coyote'], ['fireflies', 'w.fireflies > 0']]]]) {
     const Q = await open({ slot: `wl4${list.length}`, qs: `${when}&panel=1`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, '!!window.__district.remote()', 'the panel', 10000);
@@ -2147,14 +2144,6 @@ G('wildlife', async () => {
     ok(!missing.length, `THE PANEL'S WILDLIFE (${/T12/.test(when) ? 'by day' : 'at night'}): ${got.join(', ')} each appeared within 12 s${missing.length ? ` — MISSING: ${missing.join(', ')}` : ''}`);
     await Q.ctx.close();
   }
-  // ---- THE DUCK CROSSING (&force=ducks): the mallards out, the people at the kerb held back while they're on the crossing
-  { const Q = await open({ slot: 'wl5', qs: `when=2026-05-12T10:00${GR}&force=ducks`, view: [402, 874] });
-    await harborUp(Q.page);
-    await waitFor(Q.page, `${W}.ducks > 0`, 'the ducks', 30000);
-    await waitFor(Q.page, `${W}.ducks >= 2`, 'the whole row out (they come in one after another)', 12000).catch(() => {});
-    const wl = await ev(Q.page, W);
-    ok(wl.ducks >= 2, `THE DUCK CROSSING: ${wl.ducks} mallards out`);
-    await Q.ctx.close(); }
 });
 // ---- FP3b — THE PEOPLE'S LIFE: REAL DOORS + THE GLOW-WAND DANCE CIRCLE (their own group: the `show` cloud job has the room)
 G('life', async () => {

@@ -6,14 +6,14 @@
 // (core/harbor-routines.js), every animal's SCHEDULE is planned from a seed (the local date + a slot), so where the pigeons sit, when
 // the gulls land, the owl's day, the coyote's night are a pure function of the clock: a page opened mid-way finds them mid-way. Nothing
 // pops in or out — they fly / walk / climb in and out. Only the REACTIONS are live (screens/harbor/wildlife.js): a person walking
-// close flushes the pigeons, the squirrel dashes up its tree, the coyote + the raccoon bolt — the people themselves are a pure function
+// close flushes the pigeons, the squirrel dashes up its tree, the coyote bolts — the people themselves are a pure function
 // of the clock, so every phone watching sees the same scare.
 //
 // ADDING AN ANIMAL: its plan here (a function of a slot / a day + ctx → its sessions, seeded; the season, the hour, the weather as
 // weights; a `force` loop for the preview), its painter in fauna.js (3-D points projected through the camera: the facing comes for
 // free), its live state + pass in wildlife.js, a row in core/harbor-remote.js (cat 'wildlife'), a check in the unit test.
 import { rngFrom, hashString } from './rng.js';
-import { xOfF, seasonOf, signalAt, SIGNAL_CYCLE, CAN, trashCanSpot } from './harbor-promenade.js';
+import { xOfF, seasonOf, CAN, trashCanSpot } from './harbor-promenade.js';
 import { mixNow, FOLK } from './harbor-people.js';
 import { SPEAK_V } from './harbor-speakeasy.js';
 
@@ -22,8 +22,6 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** the local clock at t (s, absolute) → { key, dow, h, month, day, day0 (the local midnight, s abs) } */
 export const localOf = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 1000), h = ((lt / 3600) % 24 + 24) % 24; return { key: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`, dow: d.getUTCDay(), h, month: d.getUTCMonth() + 1, day: d.getUTCDate(), day0: t - h * 3600 }; };
 const R = (...k) => rngFrom(hashString(k.join('|')));
-/** the evening's day (a night after midnight belongs to the evening before): its key + its local midnight */
-const nightOf = (t, off) => { const lc = localOf(t, off); return lc.h < 12 ? localOf(t - 43200, off) : lc; };
 
 // ------------------------------------------------------------------ THE SIZES (world units; 1 ≈ 0.85 m) — the phone cheats
 /** each animal's size in world units WITH the phone's cheat (the true size × k): at ~13 pt a unit on the promenade a true pigeon is
@@ -34,9 +32,7 @@ export const SIZE = Object.freeze({
   owl: { h: 1.05, k: 1.6 },              // (the snowy owl: ~10–13 pt on its perch)
   squirrel: { len: 0.56, tail: 0.56, k: 2.0 },  // (8b1 phone test: 1.5× was lost among the autumn leaves at 402 — 2×, a dark coat)
   coyote: { len: 1.55, h: 0.95, k: 1.15 },
-  raccoon: { len: 0.95, h: 0.42, k: 1.2 },
   cat: { len: 0.72, h: 0.34, k: 1.25 },
-  duck: { len: 0.82, k: 1.4 },
   heron: { h: 2.6, k: 2.0 },             // (a big readable shape on its piling out at z 100 — 1.1 m true, ~16 pt)
 });
 
@@ -45,7 +41,8 @@ export const SIZE = Object.freeze({
  *  (screens/harbor/speakeasy-blade.js#BLADE: out 0.22, bw 1.86, v1 11.0, set back w 0.42 along the side wall) — kept in step by hand */
 const CANOPY = { back: 1.2, top: 13.0, posts: [2.55, 9.75] };
 const BLADE = { w: 0.42, out: 0.22, bw: 1.86, v1: 11.0 };
-/** THE TRASH CAN's spot: the layout's (core/harbor-promenade.js#trashCanSpot — L.trashCan) */
+/** THE TRASH CAN's spot: the layout's (core/harbor-promenade.js#trashCanSpot — L.trashCan); its lid is always on (the trash
+ *  collector carries it — screens/harbor/wildlife.js reads f.canHeld) */
 export { CAN };
 export const canSpot = L => L.trashCan || trashCanSpot(L.cam, L.lamps);
 /** THE MOORING PILING (the heron's): a weathered three-timber dolphin out in the open water between the WALK / WAIT lantern and the
@@ -348,42 +345,6 @@ export function coyoteTracks(plan, t, fade = 1500) {
   return out.filter(p => p.a > 0.02);
 }
 
-// ------------------------------------------------------------------ THE RACCOON + THE TRASH CAN
-/** a night's raccoon (PURE): late (11 pm – 4 am) on ~40 % of nights: in along the front walk from the left edge, up onto the can, the
- *  lid tipped off (a clang), rummaging, then away — the lid left askew until someone rights it (the barber at 8:30; Group 1's trash
- *  collector: ctx.lidFixedAt) */
-export const RACCOON = Object.freeze({ chance: 0.4, walk: 1.0, rear: 2.2, rummage: [70, 160], barber: 8.5 });
-export function raccoonNight(key, day0, L, ctx = {}) {
-  const f = ctx.force || new Set(), r = R('rac', ctx.seed || 1924, key);
-  if (!f.has('raccoon') && r() >= RACCOON.chance) return null;
-  const t0 = day0 + (23 + r() * 4.5) * 3600;
-  return raccoonPath(L, t0, r);
-}
-export function raccoonPath(L, t0, r = Math.random) {
-  const can = canSpot(L), cam = L.cam, z = can.z + 0.35, edge = { x: -cam.hw(z) - 1.2, z }, at = { x: can.x - can.r - 0.36, z };
-  const d = Math.hypot(at.x - edge.x, at.z - edge.z) / RACCOON.walk, rum = RACCOON.rummage[0] + r() * (RACCOON.rummage[1] - RACCOON.rummage[0]);
-  const ta = t0 + d, tTip = ta + RACCOON.rear + 0.8, tb = tTip + rum, t1 = tb + d * 0.85;
-  return { t0, ta, tTip, tb, t1, legs: [{ k: 'walk', pts: [edge, at], t0, t1: ta, v: RACCOON.walk }, { k: 'stop', x: at.x, z: at.z, t0: ta, t1: tb, hd: 0 }, { k: 'walk', pts: [at, edge], t0: tb, t1, v: RACCOON.walk / 0.85 }] };
-}
-/** the next time after tTip someone puts the lid back: the barber's 8:30 the next morning (ctx.lidFixedAt(tTip) overrides — the trash
- *  collector, Group 1) */
-export function lidFixed(tTip, ctx = {}) {
-  if (ctx.lidFixedAt) { const v = ctx.lidFixedAt(tTip); if (v != null) return v; }
-  const lc = localOf(tTip, ctx.off); let t = lc.day0 + RACCOON.barber * 3600; if (t <= tTip) t += 86400; return t;
-}
-/** THE CAN's state at t (PURE): { lid: 'on' | 'off' (tipped, in the raccoon's paws' reach) | 'askew' (left after), since } — the
- *  raccoon of this night + the night before (its lid may still be askew in the morning) */
-export function canAt(t, L, ctx = {}, plans = null) {
-  for (const back of [0, 1]) {
-    const ev = nightOf(t - back * 86400, ctx.off), p = plans ? plans(ev) : raccoonNight(ev.key, ev.day0, L, ctx);
-    if (!p || t < p.tTip) continue;
-    const fixed = lidFixed(p.tTip, ctx);
-    if (t >= fixed) continue;
-    return { lid: t < p.tb ? 'off' : 'askew', since: p.tTip, fixed };
-  }
-  return { lid: 'on', since: null };
-}
-
 // ------------------------------------------------------------------ THE SPEAKEASY CAT, OUTSIDE (some evenings)
 /** an evening's outing (PURE): ~35 % of warm evenings (winter ~12 %) between dusk and 11 pm, 6–16 minutes on the barbershop's outside
  *  window SILL or the side door's step; never while the window moment shows the cat inside (ctx.catInside(a, b)); now + then it stalks
@@ -459,35 +420,3 @@ export function fishSlot(j, L, ctx = {}) {
   const z = FISH.band[0] + r() * (FISH.band[1] - FISH.band[0]), fx = FISH.f[0] + r() * (FISH.f[1] - FISH.f[0]);
   return { t0: j * S + (f.has('fish') ? 2 : r() * (S - 6)), x: xOfF(L.cam, fx, z), z, big: r() < 0.25, dir: r() < 0.5 ? -1 : 1 };
 }
-
-// ------------------------------------------------------------------ THE DUCK CROSSING (spring, rare)
-/** a spring day's ducks (PURE): Apr 1 – Jun 15, ~1 day in 6, once between 7 am and 6 pm: 2–4 adult mallards waddle along the waterside
- *  sidewalk from the right, wait for WALK, cross the crosswalk toward us in single file (the people at the kerb stop + wait —
- *  crossBlocked), then waddle off along the curb to the right edge. → { tw (WALK starts), n, legs per duck } | null */
-export const DUCKS = Object.freeze({ chance: 0.17, v: 0.82, cross: 0.78, gap: 1.0 });
-export function duckDay(key, day0, L, ctx = {}) {
-  const f = ctx.force || new Set(), r = R('duck', ctx.seed || 1924, key), month = Number(String(key).split('-')[1]), dd = Number(String(key).split('-')[2]);
-  if (f.has('ducks')) return null;              // (the preview: duckForced)
-  const md = month * 100 + dd;
-  if (md < 401 || md > 615 || r() >= DUCKS.chance) return null;
-  return duckPlan(L, day0 + (7 + r() * 11) * 3600, 2 + Math.floor(r() * 3), r);
-}
-export const duckForced = (L, t) => { const n = Math.floor(t / 90); return duckPlan(L, n * 90 + 4, 3, rngFrom(n + 7)); };
-export function duckPlan(L, tFrom, n, r = Math.random) {
-  // the next WALK long enough to cross from tFrom (with time to waddle up to the crossing first)
-  const cw = L.crosswalk, cam = L.cam, cx = cw.x0 + (cw.x1 - cw.x0) * (0.4 + r() * 0.2), zf = FOLK.farZ - 0.15, zn = FOLK.curbZ - 0.4;
-  const xIn = cam.hw(zf) + 2, lead = (xIn - cx) / DUCKS.v;
-  let tw = tFrom + lead;
-  for (let i = 0; i < 20; i++) { const S = signalAt(tw * 1000); if (S.phase === 'walk' && S.left > SIGNAL_CYCLE.walk - 0.5) break; tw += S.left + 0.01; }
-  const ducks = [], cross = (zf - zn) / DUCKS.cross, zc = zn - 0.6, xOut = cam.hw(zc) + 2;
-  for (let q = 0; q < n; q++) {
-    const d0 = q * DUCKS.gap, ts = tw + q * DUCKS.gap / DUCKS.cross;
-    const p1 = [{ x: xIn + d0, z: zf }, { x: cx, z: zf }], t1 = ts, t0 = t1 - polyLen(p1) / DUCKS.v;
-    const p3 = [{ x: cx, z: zn }, { x: cx + 0.9, z: zc }, { x: xOut, z: zc }];
-    const legs = [{ k: 'walk', pts: p1, t0, t1, v: DUCKS.v }, { k: 'walk', pts: [{ x: cx, z: zf }, { x: cx, z: zn }], t0: t1, t1: t1 + cross, v: DUCKS.cross }, { k: 'walk', pts: p3, t0: t1 + cross, t1: t1 + cross + polyLen(p3) / DUCKS.v, v: DUCKS.v }];
-    ducks.push({ q, drake: q === 0 || (q === 2 && n > 3), legs, t0: legs[0].t0, t1: legs[2].t1 });
-  }
-  return { tw, n, ducks, t0: Math.min(...ducks.map(d => d.t0)), t1: Math.max(...ducks.map(d => d.t1)), onX: [tw - 1.5, tw + (n - 1) * DUCKS.gap / DUCKS.cross + cross + 1.5] };
-}
-/** are the ducks on the crossing anywhere in [a, b]? (core/harbor-people.js#walkStart asks before a walker sets off — the people wait) */
-export const ducksBlock = (plan, a, b) => !!(plan && plan.onX && b > plan.onX[0] && a < plan.onX[1]);

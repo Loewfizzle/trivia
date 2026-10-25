@@ -216,7 +216,7 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   };
   const mailbox = S.mailbox ? { x: X(S.mailbox.f, S.mailbox.z), z: S.mailbox.z } : null;   // (PF: props.js#drawMailbox)
   if (mailbox) zones.block.push({ x: mailbox.x, z: mailbox.z + 0.3, r: 0.6 });
-  // 8b1 wildlife — THE TRASH CAN (the raccoon's; Group 1's trash collector empties it): just right of the front-left globe lamp
+  // 8b1 wildlife — THE TRASH CAN (Group 1's trash collector empties it): just right of the front-left globe lamp
   const trashCan = trashCanSpot(cam, lamps);
   zones.block.push({ x: trashCan.x, z: trashCan.z, r: 0.7 });
   return { lamps, trees, bench, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones, mailbox, trashCan };

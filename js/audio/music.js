@@ -499,14 +499,16 @@ export function duckMusic(level, seconds = 0.6) {
 }
 
 /**
- * THE TAPE STOP (City 2.0, 6b — the TR-3B "bends the music"): ramp the playing song's speed to `rate` (0.25..1) over `seconds`, the pitch
+ * THE TAPE STOP (City 2.0, 6b — the TR-3B "bends the music"): ramp the playing song's speed to `rate` (BEND_FLOOR 0.55..1) over `seconds`, the pitch
  * sagging with it (preservesPitch off while bent) — like a record player losing power. The time it falls behind is counted, and when the
  * speed is back at 1 the song skips ahead by exactly that much: a lobby's synced song is on the room's clock again (no drift). A new
  * track resets it. Silent no-op without a song.
  */
 let bendNow = { rate: 1, lost: 0, el: null, timer: 0, to: 1, step: 0 };
+export const BEND_FLOOR = 0.55;
 export function bendMusic(rate, seconds = 0.5) {
-  const to = Math.max(0.25, Math.min(1, +rate || 1));
+  // (8b2: never under 0.55 — iOS Safari mutes a media element near half speed; the AUDIO panel read NOT SOUNDING through the TR-3B)
+  const to = Math.max(BEND_FLOOR, Math.min(1, +rate || 1));
   const el = current && current.voice && current.voice.el;
   if (!el) { bendNow.to = 1; return; }
   if (bendNow.el !== el) { clearInterval(bendNow.timer); bendNow = { rate: el.playbackRate || 1, lost: 0, el, timer: 0, to: 1, step: 0 }; }

@@ -370,12 +370,6 @@ CUTS = {
         {'cut': (32.9, 36.0), 'fin': 0.02, 'fout': 0.5, 'hp': 350, 'lp': 3500},
         {'cut': (46.4, 48.7), 'fin': 0.02, 'fout': 0.5, 'hp': 350, 'lp': 3500},
     ],
-    # (57 s Pixabay MP3, ducks on a pond: quacks throughout (1.5–4 kHz), a low rumble under them (cut); the liveliest stretches)
-    'duck-quack': [
-        {'cut': (5.8, 8.1), 'fin': 0.05, 'fout': 0.5, 'hp': 300},
-        {'cut': (0.1, 2.5), 'fin': 0.05, 'fout': 0.5, 'hp': 300},
-        {'cut': (23.9, 26.6), 'fin': 0.05, 'fout': 0.5, 'hp': 300, 'w': 0.8},
-    ],
     # (26 s Sonniss, a squirrel at dawn: its chatter 7.5–10.2 s (−31 dB; a −60 floor), a softer bout 11–13.5 s)
     'squirrel-chatter': [{'cut': (7.4, 10.4), 'fin': 0.05, 'fout': 0.5, 'hp': 400}],
     # (3.65 s Sonniss, an electric arc with its reverb: crackle from the start, energy mostly < 400 Hz — presence lifted for a phone)
@@ -422,8 +416,9 @@ ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-form
 # 6b: traffic-far (MODERN traffic — the owner: leave the slot empty), trash-truck (a modern ZIL diesel standing still: start, revs, stop —
 # no arrival or departure in it to cut), raccoon-chitter (a hiss + growl attack: not one voiced frame in 83 s, broadband — scary),
 # police-car-1920s (Fox Audio's short pass — the owner: cut the police cars from the 1929 Volvo instead)
+# Oct 25: duck-quack + raccoon-chitter — the owner removed THE DUCK CROSSING + THE RACCOON from the Harbor (no slots any more)
 SKIP = {'bus-idle', 'bus-depart', 'mirror-door-open', 'mirror-door-close', 'tv-murmur', 'door-slot',
-        'traffic-far', 'trash-truck', 'raccoon-chitter', 'police-car-1920s',
+        'traffic-far', 'trash-truck', 'raccoon-chitter', 'police-car-1920s', 'duck-quack',
         # 8b1: the second try at far traffic still measures as MODERN (a continuous wash: CUTS['traffic-far-2'] has its cut, ready)
         'traffic-far-2'}
 PIXABAY = ('The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — '
@@ -435,7 +430,6 @@ CREDIT_NOTE = {
     'tv-murmur-2': PIXABAY, 'trash-truck-2': PIXABAY, 'power-failure': PIXABAY, 'power-restore': PIXABAY,   # (8b1: the second-try set)
     'milk-bottles': PIXABAY, 'trash-can-lid': PIXABAY, 'ladder-clank': PIXABAY, 'crates-clink': PIXABAY, 'ships-bell': PIXABAY,
     'ship-horn': PIXABAY, 'boat-putter': PIXABAY,
-    'duck-quack': 'A Pixabay copy (Pixabay Content License) of a Freesound upload whose account was deleted — no lossless original known.',
     'squeegee': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',
     'crowd-clap': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',
     'bus-door': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',

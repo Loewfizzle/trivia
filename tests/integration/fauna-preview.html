@@ -16,13 +16,13 @@
 <body>
 <canvas id="c"></canvas>
 <script type="module">
-import { drawBird, drawDuck, drawOwl, drawHeron, drawQuad, drawTrashCan, drawPiling, drawJump } from '/js/screens/harbor/fauna.js';
+import { drawBird, drawOwl, drawHeron, drawQuad, drawTrashCan, drawPiling, drawJump } from '/js/screens/harbor/fauna.js';
 const qs = new URLSearchParams(location.search);
 const ONLY = (qs.get('only') || '').split(',').filter(Boolean), show = k => !ONLY.length || ONLY.includes(k);
 const LIGHT = qs.get('light') || 'day', SCALE = Number(qs.get('scale') || 3);
 const T = LIGHT === 'night' ? { night: 1, sunDir: 0 } : LIGHT === 'gold' ? { gold: 1, sunDir: -0.6, sunEl: 8 } : { day: 1, sunDir: -0.5, sunEl: 34 };
 const dark = LIGHT === 'night' ? 1 : 0;
-const ROW = 46 * SCALE, rows = ['pigeon', 'pigeon-poses', 'pigeon-fly', 'gull', 'gull-land', 'owl', 'heron', 'duck', 'coyote', 'raccoon', 'cat', 'squirrel', 'can'].filter(show);
+const ROW = 46 * SCALE, rows = ['pigeon', 'pigeon-poses', 'pigeon-fly', 'gull', 'gull-land', 'owl', 'heron', 'coyote', 'cat', 'squirrel', 'can'].filter(show);
 const W = 402 * SCALE / 2 * 2, H = 30 + rows.length * (ROW + 20), dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
 cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
 const c = cv.getContext('2d'); c.scale(dpr, dpr);
@@ -45,11 +45,10 @@ for (const row of rows) {
     if (row === 'gull-land') drawBird(c, cam, { kind: 'gull', x, y: 0.5, z, hd: i < 4 ? 0.3 : -0.6, pose: i < 6 ? 'land' : 'takeoff', flap: i * 0.9, spread: i === 5 ? 0.4 : 1, legs: Math.min(1, i / 4), pitch: 0.1 + i * 0.07, seed, ground: 0 }, env);
     if (row === 'owl') drawOwl(c, cam, { x, y: 0, z, hd: -Math.PI / 2, turn: (i - 3.5) * 0.4, blink: i === 6 ? 1 : 0, eyes: i === 7 ? 1 : 0, fly: i === 5 ? 1 : 0, flap: 0.3 }, env);
     if (row === 'heron') drawHeron(c, cam, i < 6 ? { x, y: 0, z, hd: hd - Math.PI / 2, pose: 'stand', strike: i === 5 ? 1 : i === 4 ? 0.5 : 0 } : { x, y: 1.2, z, hd: i === 6 ? 0 : 3, pose: 'fly', flap: 1.2, spread: 1 }, env);
-    if (row === 'duck') drawDuck(c, cam, { x, z, hd, step: 0.3, moving: true, drake: i % 2 === 0 }, env);
-    if (row === 'coyote' || row === 'raccoon' || row === 'cat' || row === 'squirrel') {
-      const poses = { coyote: ['trot', 'trot', 'trot', 'trot', 'trot', 'stand', 'stand', 'stand'], raccoon: ['trot', 'trot', 'trot', 'trot', 'rear', 'rummage', 'stand', 'trot'], cat: ['trot', 'trot', 'trot', 'sit', 'lick', 'crouch', 'pounce', 'trot'], squirrel: ['trot', 'trot', 'trot', 'trot', 'sitUp', 'stand', 'climb', 'climb'] }[row];
+    if (row === 'coyote' || row === 'cat' || row === 'squirrel') {
+      const poses = { coyote: ['trot', 'trot', 'trot', 'trot', 'trot', 'stand', 'stand', 'stand'], cat: ['trot', 'trot', 'trot', 'sit', 'lick', 'crouch', 'pounce', 'trot'], squirrel: ['trot', 'trot', 'trot', 'trot', 'sitUp', 'stand', 'climb', 'climb'] }[row];
       const p = poses[i];
-      drawQuad(c, cam, { kind: row, x, y: p === 'climb' ? 0.3 : 0, z, hd: p === 'trot' ? hd * 2 : row === 'raccoon' && (p === 'rear' || p === 'rummage') ? 0 : -Math.PI / 2 + 0.4, pose: p, gait: 0.3 + i * 0.1, moving: p === 'trot' || p === 'crouch' ? 1 : 0, eyes: row === 'coyote' && i >= 6 && dark ? 1 : 0, turn: row === 'coyote' && i === 6 ? 0.8 : 0, headUp: row === 'coyote' && i === 7 ? 1 : 0, dir: i === 7 ? -1 : 1, tailFlick: 0.4 }, env);
+      drawQuad(c, cam, { kind: row, x, y: p === 'climb' ? 0.3 : 0, z, hd: p === 'trot' ? hd * 2 : -Math.PI / 2 + 0.4, pose: p, gait: 0.3 + i * 0.1, moving: p === 'trot' || p === 'crouch' ? 1 : 0, eyes: row === 'coyote' && i >= 6 && dark ? 1 : 0, turn: row === 'coyote' && i === 6 ? 0.8 : 0, headUp: row === 'coyote' && i === 7 ? 1 : 0, dir: i === 7 ? -1 : 1, tailFlick: 0.4 }, env);
     }
     if (row === 'can') drawTrashCan(c, cam, { x, z, h: 0.98, r: 0.3, lid: i < 4 ? 'on' : 'askew' }, env);
   }
@@ -59,8 +58,7 @@ for (const row of rows) {
   if (row.startsWith('gull')) drawBird(c, cam1, { kind: 'gull', x: x1, y: 0, z, hd: 0.3, pose: 'stand', seed: 3 }, env);
   if (row === 'owl') drawOwl(c, cam1, { x: x1, y: 0, z, hd: -Math.PI / 2 }, env);
   if (row === 'heron') drawHeron(c, cam1, { x: x1, y: 0, z, hd: -2, pose: 'stand' }, env);
-  if (row === 'duck') drawDuck(c, cam1, { x: x1, z, hd: 0.3, step: 0.3, moving: true, drake: true }, env);
-  if (['coyote', 'raccoon', 'cat', 'squirrel'].includes(row)) drawQuad(c, cam1, { kind: row, x: x1, y: 0, z, hd: 0.3, pose: 'trot', gait: 0.3, moving: 1 }, env);
+  if (['coyote', 'cat', 'squirrel'].includes(row)) drawQuad(c, cam1, { kind: row, x: x1, y: 0, z, hd: 0.3, pose: 'trot', gait: 0.3, moving: 1 }, env);
   if (row === 'can') drawTrashCan(c, cam1, { x: x1, z, h: 0.98, r: 0.3, lid: 'on' }, env);
   y += ROW + 20;
 }

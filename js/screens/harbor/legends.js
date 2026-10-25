@@ -857,7 +857,11 @@ export function createLegends({ clock, qp } = {}) {
       if (p >= 0.995) return null;
       return Math.max(0.07, Math.round(p * 10) / 10);
     },
-    busy: () => !!run,
+    // (8b2 — THE TR-3B ON THE IPHONE: it kept the whole city at 60 fps for its 50 s — every frame drawn — while everything in it is
+    // SLOW: the craft glides ~0.9 pt a frame at 30, the circuitry crawls, the dark city is still. So it asks for 60 only while the F-16s
+    // scream across (their pass is fast); the rest runs at the calm night's 30 like any quiet night. The abduction keeps 60 (the beam,
+    // the lift, the saucer's dash).)
+    busy: () => !!run && (run.kind !== 'tr3b' || !st || !!(st.chase && st.chase.on)),
     /** POLISH 4: the scene's dark city bake is wanted (a TR-3B due within the minute, or running) */
     darkWanted: () => (run ? run.kind === 'tr3b' : warmFor === 'tr3b'),
     debug: () => ({ run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, warm: warmFor }),

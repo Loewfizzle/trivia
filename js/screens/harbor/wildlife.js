@@ -1,18 +1,18 @@
 // CITY 2.0 — THE HARBOR, PART 8b1 (Group 2): THE WILDLIFE, live — the plan (core/harbor-wildlife.js: who is where by the clock, every
 // phone the same, joined mid-way) + the REACTIONS (the people walking close: the pigeons burst up, some to a ledge, some away for
-// minutes and back from another side; the squirrel dashes up its tree; the coyote + the raccoon bolt; a dog lunges at the flock; the
+// minutes and back from another side; the squirrel dashes up its tree; the coyote bolts; a dog lunges at the flock; the
 // cat stalks a pigeon) + the passes the scene draws them in, each where it really stands (the painters: fauna.js):
 //   'water'  the heron on its mooring piling + the fish jumping (before the road layer: the railing stands in front of them)
-//   'far'    → items() into the people's far pass (sorted by depth with them): gulls on the waterside railing, the ducks on the road,
-//            the coyote on the waterside sidewalk
+//   'far'    → items() into the people's far pass (sorted by depth with them): gulls on the waterside railing, the coyote on the
+//            waterside sidewalk
 //   'bill'   after the roof billboard: the birds on its top edge + its catwalk's railing (pigeons, gulls, the snowy owl)
 //   'near'   → items() into the people's near pass: the pigeons on the cobbles + the lamps' arms, every bird in flight, the cat, the
-//            coyote, the squirrel on the cobbles, the ducks on the curb
-//   'front'  after the people: the trash can + the raccoon (nearer than anyone on the floor)
+//            coyote, the squirrel on the cobbles
+//   'front'  after the people: the trash can (nearer than anyone on the floor)
 //   'high'   after the café lights: the birds on the speakeasy (the blade's top, the parapet, the date stone, the canopy's posts)
 //   'top'    after the front row + the leaves: the squirrel on the big maple's trunk, the fireflies
-// HOOKS: scare(x, z, r) + startle() (Group 3's witnesses: the pigeons burst up), crossBlocked(a, b) (the people wait for the ducks),
-// dogLunge(vid) (people.js: a dog lunging at the flock), canState() (the trash can's lid), busy() (60 fps while anything flies),
+// HOOKS: scare(x, z, r) + startle() (Group 3's witnesses: the pigeons burst up),
+// dogLunge(vid) (people.js: a dog lunging at the flock), canState() (the trash can), busy() (60 fps while anything flies),
 // budget(k) (THE DIRECTOR — a big sky moment thins the new arrivals), positions of the people in: frame({ people }).
 import { project } from '../../core/harbor-layout.js';
 import { rngFrom, hashString } from '../../core/rng.js';
@@ -23,10 +23,10 @@ import { hourPlan } from '../../core/harbor-moments.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import {
   localOf, wildSpots, spotPoint, offPoint, canSpot, pilingSpot, PIGEON, pigeonAt, groundLife, GULL, gullSlot, gullSlotLen, OWL, owlDay, owlAt,
-  SQUIRREL, squirrelSlot, squirrelSlotLen, fishSlotLen, coyoteNight, coyotePath, pathAt, coyoteTracks, raccoonNight, raccoonPath, canAt, catEvening, catPath, catSpot,
-  fireflyCount, fireflyAt, FIREFLY, heronMorning, heronForced, HERON, FISH, fishSlot, duckDay, duckPlan, ducksBlock, SIZE,
+  SQUIRREL, squirrelSlot, squirrelSlotLen, fishSlotLen, coyoteNight, coyotePath, pathAt, coyoteTracks, catEvening, catPath, catSpot,
+  fireflyCount, fireflyAt, FIREFLY, heronMorning, heronForced, HERON, FISH, fishSlot,
 } from '../../core/harbor-wildlife.js';
-import { drawBird, drawDuck, drawOwl, drawHeron, drawQuad, drawTrashCan, drawPiling, drawJump, drawFirefly, fireflySprite } from './fauna.js';
+import { drawBird, drawOwl, drawHeron, drawQuad, drawTrashCan, drawPiling, drawJump, drawFirefly, fireflySprite } from './fauna.js';
 
 const TAU = Math.PI * 2, PI = Math.PI;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -34,16 +34,16 @@ const smooth = u => { const x = clamp01(u); return x * x * (3 - 2 * x); };
 const lerp = (a, b, u) => a + (b - a) * u;
 const hash = (...k) => rngFrom(hashString(k.join('|')));
 /** the forced previews (THE PREVIEW PANEL's WILDLIFE rows + &force=…) */
-export const WILD_FORCES = ['pigeons', 'pigeons-scatter', 'dog-pigeons', 'cat-out', 'cat-stalk', 'gulls-land', 'squirrel', 'snowy-owl', 'coyote', 'raccoon', 'fireflies', 'heron', 'fish', 'ducks'];
+export const WILD_FORCES = ['pigeons', 'pigeons-scatter', 'dog-pigeons', 'cat-out', 'cat-stalk', 'gulls-land', 'squirrel', 'snowy-owl', 'coyote', 'fireflies', 'heron', 'fish'];
 
 export function createWildlife() {
   let L = null, spots = [], byId = new Map(), can = null, piling = null, maple = null, cache = new Map(), budgetK = 1;
   let ctx = null, t = 0, frameT = 0, forceKey = '', lastT = null, people = [], force = new Set(), tier = 2, motion = true, season = 'autumn';
   let sunKey = '', sun = { rise: 7.2, set: 18.6 }, catWinKey = '', catWin = null;
   const pig = Array.from({ length: PIGEON.max }, (_, i) => ({ i, ov: null, now: null, flushes: 0, hold: 0 }));
-  const gullOv = new Map(), lunges = new Map(), bolts = { coyote: null, raccoon: null, squirrel: null };
+  const gullOv = new Map(), lunges = new Map(), bolts = { coyote: null, squirrel: null };
   let catOv = null, catStalkDone = -1, sqHide = -1, sqId = null, lastFlutter = -1e9, nextCoo = 0, nextCall = 0, sounds = [];
-  let scareQ = [], ffSprite = null, now = { birds: [], gulls: [], owl: null, sq: null, coyote: null, raccoon: null, cat: null, ducks: [], fish: [], heron: null, ff: [], can: null };
+  let scareQ = [], ffSprite = null, now = { birds: [], gulls: [], owl: null, sq: null, coyote: null, cat: null, fish: [], heron: null, ff: [], can: null };
 
   function layout(l) {
     L = l; spots = wildSpots(L); byId = new Map(spots.map(s => [s.id, s])); can = canSpot(L); piling = pilingSpot(L);
@@ -59,7 +59,7 @@ export function createWildlife() {
     if (Array.isArray(o)) return o.map(v => (typeof v === 'number' ? v + d : shiftPlan(v, d)));
     if (typeof o !== 'object') return o;
     const out = {};
-    for (const [k, v] of Object.entries(o)) out[k] = typeof v === 'number' && ['t0', 't1', 'ta', 'tb', 'tTip', 'back', 'tw', 'stalk'].includes(k) ? v + d : k === 'onX' || k === 'strikes' ? v.map(x => x + d) : v && typeof v === 'object' && k !== 'pts' ? shiftPlan(v, d) : v;
+    for (const [k, v] of Object.entries(o)) out[k] = typeof v === 'number' && ['t0', 't1', 'ta', 'tb', 'back', 'stalk'].includes(k) ? v + d : k === 'strikes' ? v.map(x => x + d) : v && typeof v === 'object' && k !== 'pts' ? shiftPlan(v, d) : v;
     return out;
   };
   const get = (key, make) => { if (!cache.has(key)) { cache.set(key, make()); if (cache.size > 80) cache.delete(cache.keys().next().value); } return cache.get(key); };
@@ -70,8 +70,8 @@ export function createWildlife() {
   /**
    * frame(f): once a frame. f = { ms (the city clock), off (minutes from UTC), tz, lat, lon, season, month, rain, snow, wind, moon (illum
    * 0..1), force (Set), tier, motion, people: [{ x, z, v, kind, vid, role }] (people.js#positions), dark (the lamps' ramp), catInside?
-   * (a, b) → bool, windowDark? ([duskH, dawnH] — the window life's, for the outside cat's rule), truck? (a, b) → bool (Group 1's trash
-   * truck), lidFixedAt? (tTip → t) }
+   * (a, b) → bool, windowDark? ([duskH, dawnH] — the window life's, for the outside cat's rule), canHeld? (t) → the trash collector's
+   * hold on the can }
    */
   function frame(f) {
     if (!L) return;
@@ -86,7 +86,7 @@ export function createWildlife() {
       sunKey = lc.key;
       try { const st = sunTimes(f.ms, f.tz, f.lat, f.lon), hr = ms => ((((ms + (f.off || 0) * 60000) / 3.6e6) % 24) + 24) % 24; if (st.rise && st.set) sun = { rise: hr(st.rise), set: hr(st.set) }; } catch { /* keep the last */ }
     }
-    ctx = { off: f.off || 0, seed: f.seed || 1924, spots, sun, rain: f.rain || 0, wind: f.wind || 3, force, season, moon: f.moon || 0, lidFixedAt: f.lidFixedAt || null,
+    ctx = { off: f.off || 0, seed: f.seed || 1924, spots, sun, rain: f.rain || 0, wind: f.wind || 3, force, season, moon: f.moon || 0,
       catInside: (a, b) => catInsideFn(a, b, f) };
     ctx.owl = tt => { const d = owlDayAt(tt); const o = owlAt(d, tt); return o ? o.spot || o.to || o.from : null; };
     lastT = t;
@@ -95,10 +95,8 @@ export function createWildlife() {
     now.owl = owlNow();
     now.sq = squirrelNow();
     now.coyote = coyoteNow(f);
-    now.raccoon = raccoonNow(f);
     now.can = canNow(f);
     now.cat = catNow();
-    now.ducks = ducksNow();
     now.fish = fishNow();
     now.heron = heronNow();
     now.ff = firefliesNow(f);
@@ -332,7 +330,7 @@ export function createWildlife() {
     return climb(clamp01((t - s.back - SQUIRREL.hop * 1.2) / SQUIRREL.climb), false);
   }
 
-  // ---------------------------------------------------------------- THE COYOTE + THE RACCOON + THE CAN
+  // ---------------------------------------------------------------- THE COYOTE + THE CAN
   const nightKeyOf = tt => { const lc = localOf(tt, ctx.off); return lc.h < 12 ? localOf(tt - 43200, ctx.off) : lc; };
   function coyotePlan() {
     if (force.has('coyote')) { const { n, base } = fbase('coyote', 70); return get(`coyF|${n}`, () => ({ ...coyotePath(L, base + 1, rngFrom(n + 3)), howl: n % 3 === 1 })); }
@@ -364,27 +362,9 @@ export function createWildlife() {
     out.tracks = (f.snow || 0) > 0.3 ? coyoteTracks(plan, t) : null;
     return out;
   }
-  function raccoonPlan(ev) { if (force.has('raccoon')) return null; return get(`rac|${ev.key}`, () => raccoonNight(ev.key, ev.day0, L, ctx)); }
-  function raccoonForcedPlan() { const { n, base } = fbase('raccoon', 95); return get(`racF|${n}`, () => raccoonPath(L, base + 1, rngFrom(n + 11))); }
-  function raccoonNow(f) {
-    const plan = force.has('raccoon') ? raccoonForcedPlan() : raccoonPlan(nightKeyOf(t)); if (!plan) return null;
-    let st = pathAt(plan, t); if (!st) return null;
-    const bo = bolts.raccoon && bolts.raccoon.t0 >= plan.t0 && bolts.raccoon.t0 <= plan.t1 ? bolts.raccoon : null;
-    if (bo) { const el = t - bo.t0, ex = { x: -L.cam.hw(st.z) - 1.5, z: st.z }, d = Math.hypot(ex.x - bo.x, ex.z - bo.z), u = el * 4.5 / Math.max(0.1, d); if (u >= 1) return null; return { kind: 'raccoon', x: lerp(bo.x, ex.x, u), y: 0, z: bo.z, hd: PI, pose: 'trot', gait: el * 4.5 / 0.9, moving: 1 }; }
-    if (motion && !force.has('raccoon') && (peopleNear(st.x, st.z, 3.6) || (f.truck && f.truck(t - 2, t + 6)))) { bolts.raccoon = { t0: t, x: st.x, z: st.z }; }
-    if (st.moving) return { kind: 'raccoon', x: st.x, y: 0, z: st.z, hd: st.hd, pose: 'trot', gait: st.dist / 0.75, moving: 0.75 };
-    // at the can: up on its hind legs, the paws on the rim → the lid off (the clang) → rummaging (the head in, popping up now + then)
-    if (t < plan.tTip) return { kind: 'raccoon', x: st.x, y: 0, z: st.z, hd: 0, pose: 'rear', turn: t < plan.tTip - 1 ? -0.8 * smooth((t - plan.ta) / 1.2) : 0 };
-    if (raccoonNow.clang !== plan.tTip) { raccoonNow.clang = plan.tTip; sounds.push({ slot: 'trash-can-lid', x: st.x, gain: 0.7 }); }
-    const u = (t - plan.tTip) % 7, up = u > 5.2;
-    return { kind: 'raccoon', x: st.x + 0.08, y: 0, z: st.z, hd: 0, pose: up ? 'rear' : 'rummage', turn: up ? -1.1 * Math.sin((u - 5.2) / 1.8 * PI) : 0 };
-  }
   function canNow(f) {
-    const plans = ev => (force.has('raccoon') ? null : raccoonPlan(ev));
-    let st = canAt(t, L, ctx, plans);
-    if (force.has('raccoon')) { const p = raccoonForcedPlan(); st = t >= p.tTip && t < p.t1 + 20 ? { lid: t < p.tb ? 'off' : 'askew', since: p.tTip } : { lid: 'on', since: null }; }
-    const held = f.canHeld ? f.canHeld(t) : null;
-    return { ...can, lid: st.lid, held };
+    const held = f.canHeld ? f.canHeld(t) : null;   // (the trash collector carries it to the truck + back)
+    return { ...can, lid: 'on', held };
   }
 
   // ---------------------------------------------------------------- THE SPEAKEASY CAT, OUTSIDE
@@ -444,18 +424,7 @@ export function createWildlife() {
     return { kind: 'cat', x: sp.x, y: sp.y, z: sp.z, hd: sp.hd + 0.25 * Math.sin(t * 0.05), pose: lick ? 'lick' : 'sit', turn: lick ? 0.3 : 0.9 * Math.sin(t * 0.27 + plan.t0) * (Math.sin(t * 0.08) > 0 ? 1 : 0.2), tailFlick: Math.sin(t * 2.1) * 0.5 };
   }
 
-  // ---------------------------------------------------------------- THE DUCKS · THE FISH · THE HERON · THE FIREFLIES
-  function duckPlanNow() {
-    if (force.has('ducks')) return duckRound(t);
-    const lc = localOf(t, ctx.off); return get(`duck|${lc.key}`, () => duckDay(lc.key, lc.day0, L, ctx));
-  }
-  /** the preview's round at tt: three mallards every 90 s from the row's start (the WALK they wait for is the real one) */
-  function duckRound(tt) { const { n, base } = fbase('ducks', 90, tt); return get(`duckF|${n}`, () => duckPlan(L, base - 18, 3, rngFrom(n + 7))); }   // (joined part-way: already waddling along the waterside sidewalk)
-  function ducksNow() {
-    const plan = duckPlanNow(); if (!plan || t < plan.t0 || t > plan.t1) return [];
-    if (plan.tw <= t && ducksNow.quack !== plan.tw) { ducksNow.quack = plan.tw; sounds.push({ slot: 'duck-quack', x: 0, gain: 0.5 }); }
-    return plan.ducks.map(d => { const st = pathAt({ legs: d.legs, t0: d.t0, t1: d.t1 }, t); return st ? { x: st.x, z: st.z, hd: st.hd, step: st.dist / 0.24, moving: true, drake: d.drake } : null; }).filter(Boolean);
-  }
+  // ---------------------------------------------------------------- THE FISH · THE HERON · THE FIREFLIES
   function fishNow() {
     const S = fishSlotLen(force), j = Math.floor(t / S), out = [];
     for (const jj of [j - 1, j]) { const f = get(`fish|${jj}|${force.has('fish') ? 1 : 0}`, () => fishSlot(jj, L, ctx)); if (f && t >= f.t0 && t < f.t0 + 4.2) out.push({ ...f, t: t - f.t0, water: -1.2 }); }
@@ -503,7 +472,6 @@ export function createWildlife() {
     const cam = L.cam;
     if (it.kind === 'pigeon' || it.kind === 'gull') drawBird(c, cam, it, E);
     else if (it.kind === 'owl') drawOwl(c, cam, it, E);
-    else if (it.kind === 'duck') drawDuck(c, cam, it, E);
     else drawQuad(c, cam, it, E);
   };
   /** what goes into the people's 'far' / 'near' pass this frame: [{ z, draw(c) }] — sorted by depth with them (people.js) */
@@ -512,14 +480,12 @@ export function createWildlife() {
     const E = envOf(env), out = [], add = it => out.push({ z: it.z, draw: c => drawOne(c, it, E) });
     if (pass === 'far') {
       for (const g of now.gulls) if (g.spot.startsWith('rail') && !g.air) add(g);
-      for (const d of now.ducks) if (d.z > FOLK.roadZ - 0.2) add({ ...d, kind: 'duck', moving: true });
       if (now.coyote && now.coyote.z > FOLK.roadZ) add(now.coyote);
       if (now.coyote && now.coyote.tracks) out.push({ z: 99, draw: c => tracks(c, now.coyote.tracks, E, true) });
     } else if (pass === 'near') {
       for (const b of pig) { const n = b.now; if (!n || n.hide) continue; if (n.air || n.spotKind === 'ground' || (n.spot || '').startsWith('lamp')) add({ ...n, kind: 'pigeon' }); }
       for (const g of now.gulls) if (g.air) add(g);
       if (now.owl && now.owl.state === 'glide') add({ ...now.owl, kind: 'owl' });
-      for (const d of now.ducks) if (d.z <= FOLK.roadZ - 0.2) add({ ...d, kind: 'duck' });
       if (now.coyote && now.coyote.z <= FOLK.roadZ) add(now.coyote);
       if (now.cat) add(now.cat);
       if (now.sq && !now.sq.onTree) add({ ...now.sq, kind: 'squirrel' });
@@ -558,7 +524,6 @@ export function createWildlife() {
       for (const b of pig) { const n = b.now; if (n && !n.hide && !n.air && (n.spot === 'blade' || (n.spot || '').startsWith('parapet') || (n.spot || '').startsWith('post'))) drawBird(c, cam, { ...n, kind: 'pigeon' }, E); }
       if (now.owl && now.owl.state === 'at' && !now.owl.spot.startsWith('bill')) drawOwl(c, cam, now.owl, E);
     } else if (pass === 'front') {
-      if (now.raccoon) drawQuad(c, cam, now.raccoon, E);
       const cn = now.can; if (cn && !(cn.held && cn.held.hidden)) drawTrashCan(c, cam, cn.held ? { ...cn, ...cn.held } : cn, E);   // (8b1: hidden — on the collector's shoulder)
     } else if (pass === 'top') {
       if (season === 'winter' && maple) hollow(c, E);
@@ -591,16 +556,14 @@ export function createWildlife() {
     layout, frame, items, draw, tick,
     /** Group 3 — THE WITNESSES: scare everything within r of (x, z) / everything at once */
     scare(x, z, r = 4) { scareQ.push({ x, z, r }); if (now.sq) bolts.squirrel = bolts.squirrel || { id: lastSq(), t0: t, x: now.sq.x, z: now.sq.z }; },
-    startle() { scareQ.push({ all: true }); if (now.coyote) bolts.coyote = { t0: t, x: now.coyote.x, z: now.coyote.z, to: { x: L.cam.hw(now.coyote.z) + 3, z: now.coyote.z } }; if (now.raccoon) bolts.raccoon = { t0: t, x: now.raccoon.x, z: now.raccoon.z }; if (now.sq && !now.sq.onTree) bolts.squirrel = { id: lastSq(), t0: t, x: now.sq.x, z: now.sq.z }; },
-    /** core/harbor-people.js#walkStart asks: are the ducks on the crossing in [a, b] (s, the city clock)? (PURE: their plan) */
-    crossBlocked(a, b) { if (!L || !ctx) return false; const lc = localOf(a, ctx.off); const p = force.has('ducks') ? duckRound(a) : get(`duck|${lc.key}`, () => duckDay(lc.key, lc.day0, L, ctx)); return ducksBlock(p, a, b); },
+    startle() { scareQ.push({ all: true }); if (now.coyote) bolts.coyote = { t0: t, x: now.coyote.x, z: now.coyote.z, to: { x: L.cam.hw(now.coyote.z) + 3, z: now.coyote.z } }; if (now.sq && !now.sq.onTree) bolts.squirrel = { id: lastSq(), t0: t, x: now.sq.x, z: now.sq.z }; },
     /** people.js: how far a dog is into its lunge at the flock now (0..1) */
     dogLunge(vid) { const l = lunges.get(vid); if (!l || l.t0 < 0) return 0; const e = t - l.t0; return e < 0 || e > 1.6 ? 0 : e < 0.25 ? e / 0.25 : 1 - (e - 0.25) / 1.35; },
-    /** the trash can now (Group 1: its position + the lid; canHeld comes in through frame) */
+    /** the trash can now (Group 1: its position + the lid, always on; canHeld comes in through frame) */
     canState: () => (now.can ? { x: now.can.x, z: now.can.z, lid: now.can.lid } : null),
     canSpot: () => can,
     /** anything flying / climbing / running now (the scene keeps 60 fps) */
-    busy: () => pig.some(b => b.now && b.now.air) || now.gulls.some(g => g.air) || !!(now.owl && now.owl.state === 'glide') || !!(now.sq && (now.sq.pose === 'trot' || now.sq.onTree)) || !!(now.coyote && now.coyote.moving) || now.ducks.length > 0 || now.fish.length > 0 || !!(now.heron && now.heron.pose === 'fly') || !!(now.cat && now.cat.moving),
+    busy: () => pig.some(b => b.now && b.now.air) || now.gulls.some(g => g.air) || !!(now.owl && now.owl.state === 'glide') || !!(now.sq && (now.sq.pose === 'trot' || now.sq.onTree)) || !!(now.coyote && now.coyote.moving) || now.fish.length > 0 || !!(now.heron && now.heron.pose === 'fly') || !!(now.cat && now.cat.moving),
     /** THE DIRECTOR: the share of the flock drawn (0..1) */
     budget(k) { budgetK = clamp01(k == null ? 1 : k); },
     debug: () => ({
@@ -608,9 +571,9 @@ export function createWildlife() {
       gulls: now.gulls.map(g => ({ id: g.id, spot: g.spot, pose: g.pose, air: !!g.air })), owl: now.owl ? { state: now.owl.state, spot: now.owl.spot || null } : null,
       squirrel: now.sq ? { pose: now.sq.pose, onTree: !!now.sq.onTree, x: +now.sq.x.toFixed(2), z: +now.sq.z.toFixed(2) } : null,
       coyote: now.coyote ? { x: +now.coyote.x.toFixed(2), z: +now.coyote.z.toFixed(2), pose: now.coyote.pose, eyes: +(now.coyote.eyes || 0).toFixed(2) } : null,
-      raccoon: now.raccoon ? { pose: now.raccoon.pose, x: +now.raccoon.x.toFixed(2) } : null, can: now.can ? { lid: now.can.lid, x: +now.can.x.toFixed(2), z: +now.can.z.toFixed(2), held: !!now.can.held } : null,
+      can: now.can ? { lid: now.can.lid, x: +now.can.x.toFixed(2), z: +now.can.z.toFixed(2), held: !!now.can.held } : null,
       cat: now.cat ? { pose: now.cat.pose, x: +now.cat.x.toFixed(2), y: +now.cat.y.toFixed(2), z: +now.cat.z.toFixed(2) } : null,
-      ducks: now.ducks.length, fish: now.fish.length, heron: now.heron ? { pose: now.heron.pose, strike: +(now.heron.strike || 0).toFixed(2) } : null, fireflies: now.ff.length,
+      fish: now.fish.length, heron: now.heron ? { pose: now.heron.pose, strike: +(now.heron.strike || 0).toFixed(2) } : null, fireflies: now.ff.length,
       sun: { rise: +sun.rise.toFixed(2), set: +sun.set.toFixed(2) }, spots: spots.map(s => s.id), piling: piling ? { x: +piling.x.toFixed(2), z: piling.z } : null,
     }),
     destroy() { cache.clear(); if (pileCv) pileCv.width = pileCv.height = 0; pileCv = null; pileKey = ''; },

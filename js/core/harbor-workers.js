@@ -68,7 +68,7 @@ export const REGULARS = Object.freeze({
   // 7:00 THE NEWSBOY (fixed) at his stand till ~10 (the weekend edition 8 → 11); the EVENING EDITION 4:30 → 6:30 on weekdays
   newsboy: { days: WEEKDAY, at: 7.0, len: 3 * H, weekend: { at: 8.0, len: 3 * H } },
   evening: { days: WEEKDAY, at: 16.5, len: 2 * H },
-  // 8:30 THE BARBER (fixed, Mon–Sat): takes in the milk, rights the can's lid (a raccoon's night), sweeps the step, cranks the awning
+  // 8:30 THE BARBER (fixed, Mon–Sat): takes in the milk, sweeps the step, cranks the awning
   barber: { days: MON_SAT, at: 8.5, len: 13.5 * 60 },
   // 9:00 am + 9:00 pm THE BEAT COP (fixed, every day): a friendly stroll through — the baton's twirl, a tip of the hat
   cop: { days: EVERY, at: 9.0, len: 110 },

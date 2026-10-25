@@ -232,8 +232,8 @@ export function createCitySounds() {
   // THE ABDUCTION: the saucer's low hum while it's here (panned with it), the beam's riser (its peak as he leaves the ground); the
   // music DIPPED + MUFFLED (a low-pass) while it's here. THE TR-3B: its deep drone (louder overhead), the POWER-DOWN thump as the city
   // dies, electrical crackles while it drains, then the CHASE's roar (jets(): panned along their pass, the music ducked round its peak);
-  // the music POWERS DOWN — a tape stop (the speed + the pitch sagging: music.js#bendMusic), muffled, almost gone — and comes back after
-  // the jets (a soft power-on, the filter opening). Title only (the scene lives there); music off: only the sounds.
+  // the music POWERS DOWN — a tape stop (the speed + the pitch sagging: music.js#bendMusic) to a slow, deep, warbling ~0.6 × that stays
+  // CLEARLY AUDIBLE (8b2: a light duck, a partial low-pass — never near iOS's mute floor) — and spins back up after the jets. Title only (the scene lives there); music off: only the sounds.
   function legendSounds(lg, t) {
     if (!lg) {
       if (lgRun) {

@@ -53,11 +53,10 @@ export function createPeople() {
   function frame(f) {
     if (!L) return;
     ensureMap(!!f.event);
-    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.noWork ? 1 : 0}${f.forceDucks ? 1 : 0}`;   // (8b1 wildlife: the ducks' preview re-plans the crossings) if (fk !== forced) { forced = fk; cache.clear(); }
+    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.noWork ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
     const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
-      forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, canAskew: f.canAskew || null, legend: f.legend || null,
-      crossBlocked: f.crossBlocked || null };   // (8b1 wildlife: crossBlocked — the ducks on the crossing)
+      forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null };
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
     lastT = t;

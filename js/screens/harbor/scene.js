@@ -70,7 +70,6 @@ import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
 import { setCityClock } from '../../core/city.js';
 import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
 import { tracesAt } from '../../core/harbor-crew.js';
-import { canAt } from '../../core/harbor-wildlife.js';
 import { folkMap } from '../../core/harbor-people.js';
 import { drawSheets, sheetArt, bladeArt, drawBlade } from './workers.js';
 import { createDayFx } from './dayfx.js';
@@ -117,7 +116,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const speak = createSpeakeasy();                 // PART 7a: THE SPEAKEASY's live layer (the rooms lit, the pole, the ad's lamps; 7b's hooks)
   const centre = createCentre();                   // PF: THE CENTREPIECE on the inlay + its event lighting rig (harbor().centrepiece; 11a–c)
   const people = createPeople();                   // 8P: THE PEOPLE — the promenade's visitors, the bus, the line, the roof (harbor().people)
-  const wild = createWildlife();                   // 8b1: THE WILDLIFE — pigeons, gulls, the owl, the squirrel, the coyote, the raccoon + its can, the cat, ducks, fish, the heron, fireflies (harbor().wildlife)
+  const wild = createWildlife();                   // 8b1: THE WILDLIFE — pigeons, gulls, the owl, the squirrel, the coyote, the trash can, the cat, fish, the heron, fireflies (harbor().wildlife)
   const strings = createStrings();                 // NEON PASS 4: STRING LIGHTS on the speakeasy's roof (Parts 8 + 11 reuse them)          // NEON PASS 2: THE WATERFRONT STRIP — the far shore's bars, diners, the theatre
   let pierLampsAt = [];
   let litFadeFrom = -1, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
@@ -549,11 +548,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(),
     forceWork: workForced(), noWork: clock.force.has('no-work'), dusk: duskFor,
-    // (8b1: the barber rights the can's lid on a morning after the raccoon — the wildlife's own pure plan: core/harbor-wildlife.js#canAt)
-    canAskew: t => { try { return canAt(t - 1, L, { off: LK.local ? LK.local.off : 0, seed: L.seed || 1924 }).lid !== 'on'; } catch { return false; } },
-    forceBus: clock.force.has('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; },
-    // (8b1 wildlife: the people wait at the kerb while the ducks are on the crossing — the ducks' plan, pure)
-    crossBlocked: clock.force.has('no-wildlife') ? null : (a, b) => wild.crossBlocked(a, b), forceDucks: clock.force.has('ducks') });
+    forceBus: clock.force.has('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
   // life's dusk (the outside cat never with the window cat), the previews (&force=pigeons, coyote, … — wildlife.js#WILD_FORCES)
   let moonK = 0, moonAt = -1e12, winDark = null, winDarkAt = -1e12;
@@ -563,10 +558,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (Math.abs(ms - winDarkAt) > 6e4) { winDarkAt = ms; try { const d = speak.life().dark; winDark = Array.isArray(d) ? d : null; } catch { winDark = null; } }
     return { ms, off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, season: L.season, seed: L.seed || 1924, rain: LK.rain || 0, snow: LK.snow || 0, wind: LK.wind == null ? 3 : LK.wind,
       moon: moonK, force: clock.force, tier, motion: S.motion, people: clock.force.has('no-people') ? [] : people.positions(), dark: litK(DK, 'lamps'), windowDark: winDark, t: performance.now() / 1000,
-      // (8b1 — THE WORKERS ↔ THE WILDLIFE: the collector carries the can to his truck (it's on his shoulder — folk.js's gear — not at its spot);
-      // the raccoon bolts when a truck pulls up at the stop)
-      canHeld: () => { const cr = people.crew(); return cr && cr.traces && cr.traces.canHeld ? { hidden: true } : null; },
-      truck: () => { const cr = people.crew(); return !!(cr && cr.trucks && cr.trucks.length); } };
+      // (8b1 — THE WORKERS ↔ THE WILDLIFE: the collector carries the can to his truck (it's on his shoulder — folk.js's gear — not at its spot))
+      canHeld: () => { const cr = people.crew(); return cr && cr.traces && cr.traces.canHeld ? { hidden: true } : null; } };
   };
   function peopleEnv(lit, fadeIn) {
     const h = LK.local ? LK.local.h + LK.local.mi / 60 : 12;
@@ -1045,7 +1038,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const pplLive = !off.has('no-people'), pplOn = pplLive && fadeIn > 0 && !!bakeTones && !!(baker.group('stage') || {}).ready;
     const pplEnv = pplLive ? peopleEnv(lit, fadeIn) : null;
     if (pplLive) people.frame(peopleFrame());
-    // (8b1: the animals on the far side — gulls on the railing, the ducks, the coyote — sorted in by depth with the people)
+    // (8b1: the animals on the far side — gulls on the railing, the coyote — sorted in by depth with the people)
     if (pplOn) people.draw(c, 'far', wlOn ? { ...pplEnv, extra: wild.items('far', wlEnv), dogLunge: vid => wild.dogLunge(vid) } : pplEnv);
     else if (wlOn) wild.draw(c, 'far', wlEnv);
     layer('bill');
@@ -1093,7 +1086,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // 8b1 — MONDAY's REPAINT over the baked blade (still the old week's name until the painters finish)
     if (wTr && wTr.blade && fadeIn > 0 && bakeTones) workBlade(c, wTr);
     // (8b1: the animals on the promenade — the pigeons on the cobbles + in flight, the cat, the coyote, the squirrel — in by depth;
-    // then the trash can + the raccoon, nearer than anyone on the floor)
+    // then the trash can, nearer than anyone on the floor)
     if (pplOn) { people.draw(c, 'near', wlOn ? { ...pplEnv, extra: wild.items('near', wlEnv), dogLunge: vid => wild.dogLunge(vid) } : pplEnv); people.draw(c, 'roof', pplEnv); }
     else if (wlOn) wild.draw(c, 'near', wlEnv);
     if (wlOn) wild.draw(c, 'front', wlEnv);
@@ -1786,7 +1779,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
       people: { ...people.debug(), cars: people.cars(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       // (8b1: THE WILDLIFE — who's where; scare(x, z, r) / startle(): Group 3's witnesses; budget(k): THE DIRECTOR)
-      wildlife: { ...wild.debug(), scare: (x, z, r) => wild.scare(x, z, r), startle: () => wild.startle(), budget: k => wild.budget(k), crossBlocked: (a, b) => wild.crossBlocked(a, b), canState: () => wild.canState(), busy: wild.busy() },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
+      wildlife: { ...wild.debug(), scare: (x, z, r) => wild.scare(x, z, r), startle: () => wild.startle(), budget: k => wild.budget(k), canState: () => wild.canState(), busy: wild.busy() },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },

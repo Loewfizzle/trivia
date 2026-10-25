@@ -215,16 +215,6 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/ShapingWaves%20-%20%20QUADCOPTER/SW006_Quadcopter_engine_right_constant_coilmic.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
-## duck-quack.mp3  →  duck-quack
-
-- MD5 `12b72fd4b9a394546d07e259706e4325`
-- duck-quack.mp3   (1,131,360 bytes)   (LOSSY Pixabay MP3 - Freesound uploader account deleted, no lossless copy known)
-- "Ducks" - deleted_user_8803593 (re-hosted on Pixabay as freesound_community)
-- Page: https://pixabay.com/sound-effects/nature-ducks-68659/
-- Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_c7cf265fd2.mp3?filename=freesound_community-ducks-68659.mp3
-- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
-- NOTE: A Pixabay copy (Pixabay Content License) of a Freesound upload whose account was deleted — no lossless original known.
-
 ## footsteps-cobble.wav  →  footsteps-cobble
 
 - MD5 `cd6fea1db75c694efc0c9aaa315f4502`

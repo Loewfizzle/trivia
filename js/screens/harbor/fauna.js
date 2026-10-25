@@ -99,7 +99,7 @@ function cast(c, cam, x, y, z, h, w, env) {
 const line = (c, a, b, col, w) => { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); };
 const poly = (c, pts, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath(); c.fill(); };
 
-// ------------------------------------------------------------------ BIRDS: one rig (pigeon, gull, duck) — the wings, the body, the head
+// ------------------------------------------------------------------ BIRDS: one rig (pigeon, gull) — the wings, the body, the head
 /** the birds' looks (true colours; the light does the rest) */
 const PIGEON_MORPHS = [
   { body: [132, 140, 158], wing: [150, 156, 170], head: [104, 110, 128], bar: [40, 40, 48], tail: [96, 100, 116], neck: [[96, 150, 120], [148, 96, 150]] },   // blue bar (the common one)
@@ -212,39 +212,6 @@ export function drawBird(c, cam, b, env) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE MALLARD
-/** a mallard waddling (d = { x, z, hd, step, drake, a }): a boat-shaped body that rolls with each step, the drake's bottle-green head +
- *  white collar + chestnut breast + grey flanks + black stern with its curl, the hen mottled brown; orange feet */
-export function drawDuck(c, cam, d, env) {
-  const B = SIZE.duck.len, s = cam.F / d.z, o = { x: d.x, y: 0, z: d.z }, roll = Math.sin((d.step || 0) * TAU) * 0.16 * (d.moving ? 1 : 0.2);
-  const F = frameOf(o, d.hd || 0);
-  c.save(); c.globalAlpha *= d.a == null ? 1 : d.a;
-  contact(c, cam, o.x, 0, o.z, B * 0.36, 0.34); cast(c, cam, o.x, 0, o.z, B * 0.4, B * 0.3, env);
-  const col = k => litCol(k, env, o.x, o.z);
-  // the feet: paddling forward each step
-  for (const side of [-1, 1]) { const st = Math.sin((d.step || 0) * TAU + (side > 0 ? 0 : PI)) * 0.1 * B * (d.moving ? 1 : 0); const hip = P(cam, F(0.02 * B, side * 0.07 * B, 0.12 * B)), ft = P(cam, F(st + 0.04 * B, side * 0.08 * B, 0)); line(c, hip, ft, rgb(col([236, 130, 40])), Math.max(0.6, s * B * 0.06)); }
-  const C = { x: o.x, y: 0.22 * B, z: o.z }, E = ellipsoid(cam, C, axesOf(d.hd || 0, 0.06, 0.38 * B, 0.2 * B * Math.cos(roll) + 0.04 * B, 0.16 * B));
-  const rim = rimOf(env, o.x, o.z);
-  if (rim) { c.save(); c.translate(rim.side * 0.6, -0.4); c.globalAlpha *= rim.a; fillE(c, E, rgb(rim.col)); c.restore(); }
-  bodyE(c, E, d.drake ? [178, 176, 168] : [150, 116, 82], env, o.x, o.z);
-  // the drake's stern (black, the white tail edge + the curl) + chestnut breast; the hen's mottling
-  const st0 = ellipsoid(cam, F(-0.3 * B, 0, 0.24 * B), axesOf(d.hd || 0, 0.3, 0.12 * B, 0.12 * B, 0.1 * B));
-  fillE(c, st0, rgb(col(d.drake ? [30, 30, 36] : [118, 90, 64])));
-  if (d.drake) { const br = ellipsoid(cam, F(0.24 * B, 0, 0.24 * B), axesOf(d.hd || 0, 0, 0.12 * B, 0.15 * B, 0.12 * B)); fillE(c, br, rgb(col([120, 64, 44]))); const cu = P(cam, F(-0.4 * B, 0, 0.36 * B)), cb = P(cam, F(-0.34 * B, 0, 0.3 * B)); line(c, cb, cu, rgb(col([24, 24, 30])), Math.max(0.5, s * B * 0.04)); }
-  else if (s * B > 9) { c.fillStyle = rgb(col([92, 66, 46]), 0.6); for (let q = 0; q < 5; q++) { const p = P(cam, F((-0.2 + q * 0.1) * B, (q % 2 ? 0.08 : -0.08) * B, 0.27 * B)); c.fillRect(p[0] - 0.4, p[1] - 0.3, 0.8, 0.6); } }
-  // the speculum (the blue wing patch) on the near side
-  if (s * B > 8) { const p0 = P(cam, F(-0.12 * B, (Math.cos(d.hd || 0) >= 0 ? -1 : 1) * 0.17 * B, 0.27 * B)), p1 = P(cam, F(-0.24 * B, (Math.cos(d.hd || 0) >= 0 ? -1 : 1) * 0.17 * B, 0.29 * B)); line(c, p0, p1, rgb(col([60, 80, 200])), Math.max(0.5, s * B * 0.05)); }
-  // the head + neck, the bill
-  const bob = d.moving ? Math.sin((d.step || 0) * TAU * 2) * 0.02 * B : 0, H = F(0.34 * B, 0, 0.5 * B + bob), n0 = P(cam, F(0.24 * B, 0, 0.3 * B)), hp = P(cam, H), hR = Math.max(0.6, 0.095 * B * s);
-  line(c, n0, hp, rgb(col(d.drake ? [30, 92, 54] : [150, 116, 82])), hR * 1.6);
-  if (d.drake) { const nr = [n0[0] * 0.55 + hp[0] * 0.45, n0[1] * 0.55 + hp[1] * 0.45]; c.fillStyle = rgb(col([236, 236, 230])); c.beginPath(); c.ellipse(nr[0], nr[1], hR * 0.85, hR * 0.35, 0, 0, TAU); c.fill(); }
-  c.fillStyle = rgb(col(d.drake ? [28, 96, 56] : [140, 104, 72])); c.beginPath(); c.arc(hp[0], hp[1], hR, 0, TAU); c.fill();
-  if (d.drake && s * B > 8) { c.fillStyle = 'rgba(160,255,190,0.18)'; c.beginPath(); c.arc(hp[0] - hR * 0.3, hp[1] - hR * 0.35, hR * 0.45, 0, TAU); c.fill(); }
-  const bt = P(cam, F(0.5 * B, 0, 0.46 * B + bob));
-  line(c, [hp[0], hp[1] + hR * 0.2], bt, rgb(col(d.drake ? [222, 206, 70] : [206, 130, 60])), Math.max(0.5, hR * 0.7));
-  c.restore();
-}
-
 // ------------------------------------------------------------------ THE SNOWY OWL
 /** o = { x, y, z, hd (the body: toward us), turn (the head's yaw), blink (0..1 eyes shut), eyes (0..1 the yellow at dusk), fly (0..1 —
  *  a glide: the wings out), flap, a } — big, white, a few dark flecks; round head, no ear tufts */
@@ -339,17 +306,16 @@ export function drawHeron(c, cam, h, env) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE QUADRUPEDS (coyote, raccoon, cat, squirrel): one rig
+// ------------------------------------------------------------------ THE QUADRUPEDS (coyote, cat, squirrel): one rig
 const QUAD = {
   coyote: { L: SIZE.coyote.len, H: SIZE.coyote.h * 1.22, coat: [150, 128, 100], belly: [214, 196, 168], dark: [74, 62, 54], ear: 'big', tail: 'brush', legW: 0.042, head: 0.13, snout: 0.15, bodyH: 0.13, tailW: 0.075 },
-  raccoon: { L: SIZE.raccoon.len, H: SIZE.raccoon.h * 1.5, coat: [124, 120, 120], belly: [168, 162, 156], dark: [36, 34, 38], ear: 'round', tail: 'ringed', legW: 0.055, head: 0.15, snout: 0.09, mask: true, bodyH: 0.21, tailW: 0.1, tailL: 0.78 },
   cat: { L: SIZE.cat.len, H: SIZE.cat.h * 1.6, coat: [26, 24, 30], belly: [36, 34, 40], dark: [12, 12, 16], ear: 'cat', tail: 'cat', legW: 0.05, head: 0.13, snout: 0.05, bodyH: 0.18 },
   // (Michigan's BLACK squirrel — the eastern grey's dark form, common in Grand Rapids: a charcoal coat that stands out on the grey cobbles + the
   // autumn leaves, a frosted fringe on its plume)
   squirrel: { L: SIZE.squirrel.len, H: SIZE.squirrel.len * 0.7, coat: [52, 46, 44], belly: [92, 82, 76], dark: [30, 26, 26], ear: 'small', tail: 'plume', legW: 0.07, head: 0.18, snout: 0.06, fringe: [176, 168, 160] },
 };
 /**
- * q = { kind, x, y, z, hd, gait (the stride's phase, by distance), moving (0..1), pose ('stand' | 'trot' | 'sit' | 'rear' | 'rummage' |
+ * q = { kind, x, y, z, hd, gait (the stride's phase, by distance), moving (0..1), pose ('stand' | 'trot' | 'sit' |
  * 'crouch' | 'pounce' | 'sitUp' | 'climb' | 'lick'), turn (the head's yaw), headUp (0..1 — the howl), eyes (0..1 eyeshine), tailFlick,
  * up (a climbing squirrel: its body along the trunk, vertical), a }
  */
@@ -359,19 +325,18 @@ export function drawQuad(c, cam, q, env) {
   if (L * s < 1.5) return;
   const climb = pose === 'climb';
   // (climbing: the body pitched up the trunk — nose to the sky — the frame's forward is up)
-  const pitch = climb ? (q.dir < 0 ? -(PI / 2 - 0.15) : PI / 2 - 0.15) : pose === 'rear' ? 0.95 : pose === 'sit' || pose === 'sitUp' || pose === 'lick' ? 0.75 : pose === 'rummage' ? 0.55 : pose === 'crouch' ? -0.04 : 0;
+  const pitch = climb ? (q.dir < 0 ? -(PI / 2 - 0.15) : PI / 2 - 0.15) : pose === 'sit' || pose === 'sitUp' || pose === 'lick' ? 0.75 : pose === 'crouch' ? -0.04 : 0;
   const F = frameOf(o, q.hd || 0), Fp = frameOf(o, q.hd || 0, pitch);
   c.save(); c.globalAlpha *= q.a == null ? 1 : q.a;
   if (!climb) { contact(c, cam, o.x, o.y, o.z, L * 0.36, 0.34); cast(c, cam, o.x, o.y, o.z, Ht * 0.6, L * 0.3, env); }
   const col = k => litCol(k, env, o.x, o.z, 1), rim = rimOf(env, o.x, o.z), mv = q.moving || 0;
   const low = pose === 'crouch' ? 0.62 : pose === 'pounce' ? 0.8 : 1;
   const shY = Ht * 0.62 * low, hipY = Ht * 0.6 * low;
-  // ---- the legs: a trot (diagonal pairs), a walk; sitting / rearing: the hind legs folded, the front ones straight / on the rim
+  // ---- the legs: a trot (diagonal pairs), a walk; sitting: the hind legs folded, the front ones straight
   const legs = [], gp = (q.gait || 0) * TAU, st = 0.16 * L * mv;
   const leg = (a, side, ph, top) => { const sw = Math.sin(gp + ph) * st, lift = Math.max(0, Math.cos(gp + ph)) * 0.08 * Ht * mv; return { top: Fp(a, side * 0.09 * L, top), foot: F(a * Math.cos(pitch) + sw, side * 0.09 * L, lift), side }; };
   if (!climb) {
     if (pose === 'sit' || pose === 'sitUp' || pose === 'lick') { for (const side of [-1, 1]) { legs.push({ top: Fp(0.3 * L, side * 0.07 * L, shY * 0.4), foot: F(0.2 * L, side * 0.07 * L, 0), side }); } }
-    else if (pose === 'rear' || pose === 'rummage') { for (const side of [-1, 1]) legs.push({ top: F(-0.08 * L, side * 0.08 * L, hipY * 0.7), foot: F(-0.02 * L, side * 0.08 * L, 0), side }); }
     else for (const [a, ph, side] of [[0.3 * L, 0, 1], [-0.3 * L, PI, 1], [0.3 * L, PI, -1], [-0.3 * L, 0, -1]]) legs.push(leg(a, side, ph, a > 0 ? shY * 0.9 : hipY * 0.9));
     const lw = Math.max(0.55, S.legW * L * s), farSide = Math.cos(q.hd || 0) >= 0 ? 1 : -1;
     for (const lg of legs.sort((a, b) => (b.side === farSide) - (a.side === farSide))) line(c, P(cam, lg.top), P(cam, lg.foot), rgb(col(lg.side === farSide ? S.dark : mix(S.coat, S.dark, 0.35))), lw);
@@ -381,7 +346,6 @@ export function drawQuad(c, cam, q, env) {
     const flick = q.tailFlick || 0;
     if (S.tail === 'plume') { const up = climb ? 0.3 : 1; return [Fp(-0.3 * L, 0, 0.3 * Ht), Fp(-0.55 * L, flick * 0.1 * L, (0.55 + 0.4 * up) * Ht), Fp(-0.3 * L, flick * 0.15 * L, (1.05 + 0.5 * up) * Ht), Fp(-0.1 * L + 0.1 * flick * L, 0, (1.15 + 0.4 * up) * Ht)]; }
     if (S.tail === 'cat') return [Fp(-0.42 * L, 0, hipY * 0.95), Fp(-0.62 * L, flick * 0.1 * L, hipY * 0.7), Fp(-0.78 * L, 0, hipY * 1.1 + 0.2 * Ht), Fp(-0.74 * L + flick * 0.06, 0, hipY * 1.35 + 0.28 * Ht)];
-    if (S.tail === 'ringed') { const k = S.tailL || 1; return [Fp(-0.4 * L, 0, hipY * 0.85), Fp(-(0.4 + 0.2 * k) * L, 0, hipY * 0.72), Fp(-(0.4 + 0.33 * k) * L, flick * 0.05, hipY * 0.58), Fp(-(0.4 + 0.42 * k) * L, 0, hipY * 0.5)]; }
     // (the coyote's brush: hanging low behind, a gentle droop — never a straight log)
     return [Fp(-0.42 * L, 0, hipY * 0.92), Fp(-0.55 * L, 0, hipY * 0.7), Fp(-0.63 * L, 0, hipY * 0.44), Fp(-0.66 * L, flick * 0.05, hipY * 0.24)];
   })();
@@ -392,7 +356,6 @@ export function drawQuad(c, cam, q, env) {
     c.strokeStyle = rgb(col(S.tail === 'plume' ? mix(S.coat, [200, 170, 140], 0.25) : S.coat)); c.lineWidth = Math.max(0.6, w);
     c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); c.bezierCurveTo(pts[1][0], pts[1][1], pts[2][0], pts[2][1], pts[3][0], pts[3][1]); c.stroke();
     if (S.tail === 'brush' && w > 1.2) { c.strokeStyle = rgb(col(S.dark)); c.lineWidth = w * 0.8; c.beginPath(); c.moveTo(pts[3][0] * 0.7 + pts[2][0] * 0.3, pts[3][1] * 0.7 + pts[2][1] * 0.3); c.lineTo(pts[3][0], pts[3][1]); c.stroke(); }
-    if (S.tail === 'ringed' && w > 1) { c.strokeStyle = rgb(col(S.dark)); c.lineWidth = w * 1.02; for (const u of [0.3, 0.55, 0.8]) { const a = bez(pts, u - 0.05), b = bez(pts, u + 0.05); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); } }
     if (S.tail === 'plume' && w > 2) { c.strokeStyle = rgb(col(S.fringe || [236, 220, 200]), 0.55); c.lineWidth = Math.max(0.4, w * 0.18); c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); c.bezierCurveTo(pts[1][0] - w * 0.4, pts[1][1], pts[2][0] - w * 0.3, pts[2][1] - w * 0.3, pts[3][0], pts[3][1] - w * 0.4); c.stroke(); }
   };
   const facingUs = Math.sin(q.hd || 0) < -0.3;
@@ -404,24 +367,22 @@ export function drawQuad(c, cam, q, env) {
   bodyE(c, hipE, S.coat, env, o.x, o.z); bodyE(c, chE, S.coat, env, o.x, o.z);
   if (q.kind !== 'cat' && L * s > 10) { const be = ellipsoid(cam, Fp(0.02 * L, 0, shY * 0.68), axesOf(q.hd || 0, pitch, 0.3 * L, 0.09 * L, 0.06 * Ht)); fillE(c, be, rgb(col(S.belly), 0.55)); }
   // ---- the head: on the neck, turned by `turn`, raised for the howl; the snout along its heading; the ears; the eyes / eyeshine
-  const hy = q.headUp || 0, hdH = (q.hd || 0) + (q.turn || 0), Fh = frameOf(o, hdH, climb ? pitch : hy * 0.9 - (pose === 'rummage' ? 0.8 : pose === 'crouch' ? 0.15 : 0));
+  const hy = q.headUp || 0, hdH = (q.hd || 0) + (q.turn || 0), Fh = frameOf(o, hdH, climb ? pitch : hy * 0.9 - (pose === 'crouch' ? 0.15 : 0));
   const neck = Fp(0.38 * L, 0, shY + 0.14 * Ht);
-  const hc = pose === 'rummage' ? Fp(0.45 * L, 0, shY + 0.06 * Ht) : { x: neck.x, y: neck.y + 0.05 * Ht + hy * 0.08 * Ht, z: neck.z };
-  const Fhc = frameOf(hc, hdH, climb ? pitch : hy * 0.9 - (pose === 'rummage' ? 0.8 : 0));
+  const hc = { x: neck.x, y: neck.y + 0.05 * Ht + hy * 0.08 * Ht, z: neck.z };
+  const Fhc = frameOf(hc, hdH, climb ? pitch : hy * 0.9);
   const head = ellipsoid(cam, hc, axesOf(hdH, climb ? pitch : hy * 0.9, S.head * L * 1.05, S.head * L * 0.85, S.head * L * 0.85));
   if (rim) { c.save(); c.translate(rim.side * 0.6, -0.4); c.globalAlpha *= rim.a; fillE(c, head, rgb(rim.col)); c.restore(); }
   line(c, P(cam, Fp(0.22 * L, 0, shY + 0.1 * Ht)), [head.x, head.y], rgb(col(S.coat)), Math.max(0.8, S.head * L * s * 1.3));
   // the ears (behind the head's outline)
-  const earPts = side => { const big = S.ear === 'big' ? 1.4 : S.ear === 'cat' ? 1.1 : S.ear === 'round' ? 0.8 : 0.7; return [Fhc(-0.02 * L, side * S.head * L * 0.4, S.head * L * 0.55), Fhc(-0.06 * L, side * S.head * L * 0.55, S.head * L * (0.55 + 0.75 * big)), Fhc(-0.1 * L, side * S.head * L * 0.15, S.head * L * 0.6)].map(p => P(cam, p)); };
-  for (const side of [-1, 1]) poly(c, earPts(side), rgb(col(S.ear === 'round' ? [70, 66, 66] : S.dark)));
+  const earPts = side => { const big = S.ear === 'big' ? 1.4 : S.ear === 'cat' ? 1.1 : 0.7; return [Fhc(-0.02 * L, side * S.head * L * 0.4, S.head * L * 0.55), Fhc(-0.06 * L, side * S.head * L * 0.55, S.head * L * (0.55 + 0.75 * big)), Fhc(-0.1 * L, side * S.head * L * 0.15, S.head * L * 0.6)].map(p => P(cam, p)); };
+  for (const side of [-1, 1]) poly(c, earPts(side), rgb(col(S.dark)));
   bodyE(c, head, S.coat, env, o.x, o.z);
-  // the snout (the coyote's long one, the cat's short, the raccoon's pointed dark nose)
+  // the snout (the coyote's long one, the cat's short)
   const sn = Fhc(S.head * L * 0.8 + S.snout * L * 0.6, 0, -S.head * L * 0.2), snP = P(cam, sn);
-  if (S.snout > 0.06) { line(c, [head.x, head.y], snP, rgb(col(q.kind === 'raccoon' ? [196, 190, 182] : S.belly)), Math.max(0.6, S.head * L * s * 0.75)); }
+  if (S.snout > 0.06) { line(c, [head.x, head.y], snP, rgb(col(S.belly)), Math.max(0.6, S.head * L * s * 0.75)); }
   c.fillStyle = rgb(col([20, 18, 20])); c.beginPath(); c.arc(snP[0], snP[1], Math.max(0.3, L * s * 0.022), 0, TAU); c.fill();
-  // the raccoon's mask: a dark band across the eyes, white brows
   const face = -Math.sin(hdH);
-  if (S.mask && L * s > 8) { const mk = ellipsoid(cam, Fhc(S.head * L * 0.35, 0, S.head * L * 0.08), axesOf(hdH, 0, S.head * L * 0.45, S.head * L * 0.75, S.head * L * 0.22)); fillE(c, mk, rgb(col([22, 20, 24]))); const br = ellipsoid(cam, Fhc(S.head * L * 0.3, 0, S.head * L * 0.36), axesOf(hdH, 0, S.head * L * 0.4, S.head * L * 0.7, S.head * L * 0.1)); fillE(c, br, rgb(col([220, 216, 210]), 0.85)); }
   // the eyes: by day two dark dots when it faces us; the EYESHINE at night (the coyote's green-gold flash in the lamplight, the cat's)
   if (face > -0.2 && L * s > 7) {
     const ey = Fhc(S.head * L * 0.62, 0, S.head * L * 0.15), shine = clamp01(q.eyes || 0);
@@ -434,9 +395,8 @@ export function drawQuad(c, cam, q, env) {
   if (!facingUs && !climb) drawTail();
   c.restore();
 }
-const bez = (p, u) => { const v = 1 - u; return [v * v * v * p[0][0] + 3 * v * v * u * p[1][0] + 3 * v * u * u * p[2][0] + u * u * u * p[3][0], v * v * v * p[0][1] + 3 * v * v * u * p[1][1] + 3 * v * u * u * p[2][1] + u * u * u * p[3][1]]; };
 
-// ------------------------------------------------------------------ THE TRASH CAN (the raccoon's, the trash collector's)
+// ------------------------------------------------------------------ THE TRASH CAN (the trash collector's)
 /** a small period GALVANIZED steel can with a domed lid + a handle (+ the corrugated ribs): can = { x, z, h, r, lid: 'on' | 'askew' |
  *  'off', lift (0..1 — carried by the collector: off the ground), tilt (radians — tipped as it's emptied), lidT (0..1 the lid's slide) } */
 export function drawTrashCan(c, cam, can, env) {

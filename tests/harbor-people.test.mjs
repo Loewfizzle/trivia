@@ -424,3 +424,17 @@ test('POLISH 4 — ARRIVALS SPREAD OUT, never a burst: a new arrival (not a bus\
   let close = 0; for (let i = 1; i < ts.length; i++) if (ts[i] - ts[i - 1] < 3) close++;
   assert.ok(close / ts.length < 0.05, `${close} of ${ts.length} arrivals within 3 s of another`);
 });
+test('8b2 — THE BENCH\'S SEATS: reserved — two sitters never share a seat (nobody sits on anybody), each at least a body apart; a full bench means they walk on', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), seen = new Map();
+  let both = 0;
+  for (let t = DAY + 6 * 3600; t < DAY + 2 * 86400; t += 4) {
+    const R = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
+    const sitting = R.members.filter(m => m.m.role === 'lead' && m.s.pose === 'sit');
+    for (let i = 0; i < sitting.length; i++) for (let j = i + 1; j < sitting.length; j++) assert.ok(Math.abs(sitting[i].s.x - sitting[j].s.x) > 0.9, `two on one seat at ${((t - DAY) / 3600).toFixed(2)} h`);
+    if (sitting.length >= 2) both++;
+    for (const v of R.visits) if (v.seat) seen.set(v.id, v.seat);
+  }
+  const S = [...seen.values()];
+  for (let i = 0; i < S.length; i++) for (let j = i + 1; j < S.length; j++) if (S[i].i === S[j].i) assert.ok(S[i].t1 <= S[j].t0 || S[j].t1 <= S[i].t0, 'a seat reserved twice at once');
+  assert.ok(S.length >= 20 && both > 0, `the bench is used (${S.length} sitters, ${both} samples with two at once)`);
+});

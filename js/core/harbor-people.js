@@ -216,12 +216,11 @@ const pathLen = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += Ma
 // ------------------------------------------------------------------ THE CROSSING: wait for WALK (core/harbor-promenade.js#signalAt)
 /** the next moment (s, absolute) at or after t when a walker may start across: in the WALK phase, early enough to be over before the
  *  blinking WAIT ends (`cross` s to cross — a walker may finish during the blink, never start in it) */
-function walkStart(t, cross = 8, blocked = null) {
+function walkStart(t, cross = 8) {
   let u = t;
   for (let i = 0; i < 14; i++) {
     const S = signalAt(u * 1000);
-    // (8b1 wildlife — THE DUCK CROSSING: never set off while the ducks are on the crossing — blocked(a, b); the people wait for the next WALK)
-    if (S.phase === 'walk' && S.left + SIGNAL_CYCLE.blink - 0.6 >= cross && S.left >= 2 && !(blocked && blocked(u, u + cross))) return u;
+    if (S.phase === 'walk' && S.left + SIGNAL_CYCLE.blink - 0.6 >= cross && S.left >= 2) return u;
     u += S.left + 0.02;                       // (on to the next phase's start)
   }
   return t;
@@ -279,7 +278,7 @@ const floor = (r, M) => {
 export const KINDS = {
   stroller: (r, M) => ({ look: 'stroll', gait: 'stroll', goals: [{ from: anySide(r) }, ...(r() < 0.7 ? [{ at: jitter(r, M.nodes.inlay, 2.5, 1.5) }, { pose: 'look', dur: 8 + r() * 16 }] : []), { exit: 'any' }] }),
   // (POLISH 4 — the bench at any hour: one or two sitting a few minutes, reading the day, watching the harbor)
-  bench: (r, M) => ({ look: r() < 0.5 ? 'walker' : 'lady', gait: 'stroll', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: { x: M.nodes.bench.x + (r() < 0.5 ? -0.75 : 0.75), z: M.nodes.bench.z } }, { pose: 'sit', dur: 120 + r() * 200, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
+  bench: (r, M) => ({ look: r() < 0.5 ? 'walker' : 'lady', gait: 'stroll', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: 120 + r() * 200, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
   brisk: (r) => ({ look: 'commuter', gait: 'brisk', goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { exit: r() < 0.3 ? 'cross' : 'any' }] }),
   jogger: (r) => ({ look: 'jogger', gait: 'jog', goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, { exit: r() < 0.25 ? 'cross' : 'any' }] }),
   dogwalker: (r, M) => ({ look: 'walker', gait: 'stroll', dog: true, goals: [{ from: r() < 0.2 ? 'cross' : anySide(r) }, { at: floor(r, M) }, { pose: 'wait', dur: 14 + r() * 26 }, { exit: 'any' }] }),
@@ -287,7 +286,7 @@ export const KINDS = {
   busrider: (r) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { bus: true }] }),
   newsboy: (r, M) => ({ look: 'newsboy', gait: 'kid', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.inlay, 3, 1.2) }, { pose: 'wave', dur: 5 + r() * 6 }, { exit: 'any' }] }),
   couple: (r, M) => ({ look: 'couple', gait: 'stroll', pair: true, goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, ...(r() < 0.85 ? [{ at: r() < 0.5 || !M.exits ? jitter(r, M.nodes.inlay, 2.5, 1.2) : floor(r, M) }, { pose: 'chat', dur: 30 + r() * 60 }] : []), { exit: r() < 0.25 ? 'cross' : 'any' }] }),
-  lunch: (r, M) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: { x: M.nodes.bench.x + (r() < 0.5 ? -0.75 : 0.75), z: M.nodes.bench.z } }, { pose: 'sit', dur: 60 + r() * 150, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
+  lunch: (r, M) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: 60 + r() * 150, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
   window: (r, M) => ({ look: r() < 0.6 ? 'lady' : 'walker', gait: 'stroll', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.shopWin, 0.6, 0.15) }, { pose: 'shop', dur: 8 + r() * 14 }, { exit: 'any' }] }),
   customer: (r) => ({ look: 'walker', gait: 'walk', hours: [9, 17.8], goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { door: 'shop' }] }),
   cart: (r, M) => ({ look: r() < 0.5 ? 'lady' : 'walker', gait: 'stroll', need: 'cart', goals: [{ from: anySide(r) }, { at: M.nodes.cart }, { pose: 'cart', dur: 10 + r() * 14, face: 1 }, { exit: 'any' }] }),
@@ -361,7 +360,7 @@ export function planVisit(spec, t, M, ctx = {}) {
         // across from the waterside sidewalk: along it to the crossing, wait for WALK, cross
         cur = { ...M.exits[r() < 0.5 ? 'farLeft' : 'farRight'] };
         walkTo({ x: M.cw.x0 + r() * (M.cw.x1 - M.cw.x0), z: F.farZ });
-        const cv = crossV(v), react = 0.3 + r() * 0.8, ws = walkStart(now, (F.farZ - F.curbZ) / cv + react + 0.3, ctx.crossBlocked);
+        const cv = crossV(v), react = 0.3 + r() * 0.8, ws = walkStart(now, (F.farZ - F.curbZ) / cv + react + 0.3);
         if (ws > now) { legs.push({ k: 'pose', pose: 'wait', x: cur.x, z: cur.z, t0: now, t1: ws + react, face: 0 }); now = ws + react; }
         else if (signalAt(now * 1000).phase !== 'walk') return null;
         const p = { x: cur.x + (r() - 0.5) * 0.4, z: F.curbZ }, d = Math.hypot(p.x - cur.x, p.z - cur.z);
@@ -377,7 +376,7 @@ export function planVisit(spec, t, M, ctx = {}) {
     else if (g.pose) { legs.push({ k: 'pose', pose: g.pose, x: cur.x, z: cur.z, t0: now, t1: now + g.dur, face: g.face == null ? (r() < 0.5 ? -1 : 1) : g.face }); now += g.dur; }
     else if (g.cross === 'out') {
       walkTo({ x: M.cw.x0 + r() * (M.cw.x1 - M.cw.x0), z: F.curbZ });
-      const cv = crossV(v), react = 0.3 + r() * 0.9, ws = walkStart(now, (F.farZ - F.curbZ) / cv + react + 0.3, ctx.crossBlocked);
+      const cv = crossV(v), react = 0.3 + r() * 0.9, ws = walkStart(now, (F.farZ - F.curbZ) / cv + react + 0.3);
       if (ws > now) { const w = ws + react; legs.push({ k: 'pose', pose: 'wait', x: cur.x, z: cur.z, t0: now, t1: w, face: 2 }); now = w; }
       else { const S = signalAt(now * 1000); if (S.phase !== 'walk') return null; }
       const p = { x: cur.x + (r() - 0.5) * 0.4, z: F.farZ }, d = Math.hypot(p.x - cur.x, p.z - cur.z);
@@ -423,6 +422,9 @@ export function planVisit(spec, t, M, ctx = {}) {
 // either side; a pose turns from the arrival heading to its own facing over ~0.6 s; a walk after a pose turns over its first steps.
 // `dir` (the old 4-way facing: −1 left, 1 right, 0 toward the camera, 2 away) is derived from hd for the code that still reads it.
 export const TURN = Object.freeze({ corner: 0.55, pose: 0.6, start: 0.6 });
+/** 8b2 — a ladder climbed rung by rung: the rungs' pitch (world units — workers.js's ladders: top.y / n ≈ 0.32), the share of each
+ *  rung's time spent moving (the rest a beat on the rung) */
+export const CLIMB = Object.freeze({ rung: 0.32, move: 0.7 });
 const PI = Math.PI;
 /** a pose's facing (−1 left, 1 right, 0 toward the camera, 2 away) → a heading */
 export const hdOfDir = d => (d === 1 ? 0 : d === -1 ? PI : d === 2 ? PI / 2 : -PI / 2);
@@ -464,7 +466,11 @@ export function visitAt(vis, t) {
   if (t < vis.t0 || t >= vis.t1) return null;
   let dist = 0, lastHd = null;
   const out = (s, hd) => ({ ...s, hd, dir: dirOfHd(hd) });
-  for (const lg of vis.legs) {
+  // (8b2 — NO SNAPPING BETWEEN POSES: each state names the leg before + after it (`prev` / `next`: 'walk' or the pose) with `since` / `left`,
+  // so folk.js#rigOf blends one into the other over a third of a second)
+  const kindOf = lg => (!lg ? null : lg.k === 'pose' ? lg.pose : lg.k === 'walk' || lg.k === 'door' ? 'walk' : null);
+  for (let li = 0; li < vis.legs.length; li++) {
+    const lg = vis.legs[li], prev = kindOf(vis.legs[li - 1]), next = kindOf(vis.legs[li + 1]);
     if (lg.k === 'walk') {
       const len = pathLen(lg.pts);
       if (t < lg.t1) {
@@ -472,7 +478,7 @@ export function visitAt(vis, t) {
         const d = (t - lg.t0) * lg.v, p = alongLeg(lg.pts, d, len);
         // (setting off after a pose / a door: turn from where they faced over the first steps)
         let hd = p.hd; if (lastHd != null && d < TURN.start) hd = lerpHd(lastHd, p.hd, d / TURN.start);
-        return out({ x: p.x, z: p.z, y: lg.y || 0, pose: 'walk', dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross, carry: lg.carry, run: !!lg.run }, hd);
+        return out({ x: p.x, z: p.z, y: lg.y || 0, pose: 'walk', dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross, carry: lg.carry, run: !!lg.run, since: t - lg.t0, left: lg.t1 - t, prev, next }, hd);
       }
       dist += len;
       // (the heading they really ended the leg with — a short leg may end mid-turn: the next leg turns on from there)
@@ -494,8 +500,12 @@ export function visitAt(vis, t) {
       if (lg.k === 'pose') {
         const want = lg.hd != null ? lg.hd : hdOfDir(lg.face === 0 ? 0 : lg.face || (lastHd != null && Math.cos(lastHd) < 0 ? -1 : 1)), since = t - lg.t0;
         // (8b1 — the workers: a carried prop, a height — a ladder's rungs, the platform, the catwalk — and a climb moving along its ladder)
-        const uu = (t - lg.t0) / Math.max(1e-3, lg.t1 - lg.t0), px = lg.x1 != null ? lg.x + (lg.x1 - lg.x) * uu : lg.x, pz = lg.z1 != null ? lg.z + (lg.z1 - lg.z) * uu : lg.z, py = lg.y0 != null ? lg.y0 + (lg.y1 - lg.y0) * uu : lg.y || 0;
-        return out({ x: px, z: pz, y: py, pose: lg.pose, dist, v: 0, a: 1, since, left: lg.t1 - t, from: lastHd == null ? want : lastHd, to: want, carry: lg.carry, plat: !!lg.plat }, lastHd != null && since < TURN.pose ? lerpHd(lastHd, want, since / TURN.pose) : want);
+        // (8b2 — RUNG BY RUNG: a climb moves one rung (CLIMB.rung units) at a time — a step up, a beat's pause on the rung — never a glide;
+        // `rung` = { n (the step), q (0..1 through it) } for the arms + legs)
+        let uu = (t - lg.t0) / Math.max(1e-3, lg.t1 - lg.t0), rung = null;
+        if (lg.pose === 'climb' && lg.y0 != null) { const nR = Math.max(1, Math.round(Math.abs(lg.y1 - lg.y0) / CLIMB.rung)), w = uu * nR, n = Math.min(nR - 1, Math.floor(w)), q = w - n, e = q < CLIMB.move ? smooth01(q / CLIMB.move) : 1; uu = (n + e) / nR; rung = { n, q: Math.min(1, q / CLIMB.move), up: lg.y1 >= lg.y0 }; }
+        const px = lg.x1 != null ? lg.x + (lg.x1 - lg.x) * uu : lg.x, pz = lg.z1 != null ? lg.z + (lg.z1 - lg.z) * uu : lg.z, py = lg.y0 != null ? lg.y0 + (lg.y1 - lg.y0) * uu : lg.y || 0;
+        return out({ x: px, z: pz, y: py, pose: lg.pose, dist, v: 0, a: 1, since, left: lg.t1 - t, from: lastHd == null ? want : lastHd, to: want, carry: lg.carry, plat: !!lg.plat, prev, next, rung }, lastHd != null && since < TURN.pose ? lerpHd(lastHd, want, since / TURN.pose) : want);
       }
       const u = (t - lg.t0) / (lg.t1 - lg.t0);
       return out({ x: lg.x, z: lg.z, y: lg.y || 0, pose: 'walk', dist: dist + u * 0.6, v: 0.8, a: lg.out ? 1 - u : u, bus: lg.bus || null, carry: lg.carry }, lg.out ? PI / 2 : -PI / 2);
@@ -592,6 +602,25 @@ export function lineNight(day0, key, M, L, ctx = {}) {
 // ------------------------------------------------------------------ THE BLOCKS (the promenade over time)
 const localOf = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 1000); return { key: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`, dow: d.getUTCDay(), h: ((lt / 3600) % 24 + 24) % 24, month: d.getUTCMonth() + 1 }; };
 /** members of a visit (the lead, a partner, a group, a dog): offsets behind / beside the lead (world units) + their own looks */
+/** 8b2 — THE BENCH's SEATS (the owner: "a person walks to the bench where someone already sits, sits ON TOP of them and disappears"):
+ *  three seats along its 3.3 units (x offsets from its middle); a seat is RESERVED from the step toward it until they've stood up and
+ *  walked off (`seat: { i, t0, t1 }` on the visit) — a taken seat is never chosen; with the bench full they walk on (no such visit) */
+export const SEATS = Object.freeze([-1.05, 0, 1.05]);
+const seatFree = (taken, i, a, b) => !taken.some(o => o.i === i && b > o.t0 - 1 && a < o.t1 + 1);
+/** a sitter's visit on the first free seat (in a seeded order) — or null when the bench is full the whole time they'd sit */
+function planSeated(spec, start, M, vctx, vseed, taken, order) {
+  for (const i of order) {
+    const goals = spec.goals.map(g => (g.seat ? { at: { x: M.nodes.bench.x + SEATS[i], z: M.nodes.bench.z } } : g));
+    const vis = planVisit({ ...spec, goals }, start, M, { ...vctx, r: rngFrom(vseed) });
+    if (!vis) return null;
+    const j = vis.legs.findIndex(lg => lg.k === 'pose' && lg.pose === 'sit');
+    if (j < 0) return vis;
+    const a = (vis.legs[j - 1] || vis.legs[j]).t0, b = (vis.legs[j + 1] || vis.legs[j]).t1;
+    if (seatFree(taken, i, a, b)) { vis.seat = { i, t0: a, t1: b }; return vis; }
+  }
+  return null;
+}
+export const seatsOf = vs => vs.filter(v => v.seat).map(v => v.seat);
 function membersOf(spec, r) {
   const m = [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }];
   if (spec.pair) m.push({ role: spec.pair === 'meet' ? 'friend' : 'partner', dx: 0, dz: 0.55, lag: spec.pair === 'meet' ? 0 : 0.05, seed: Math.floor(r() * 1e6), arm: spec.pair !== 'meet' });
@@ -613,7 +642,7 @@ function blockVisits(phase, k, M, ctx = {}) {
   const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: ctx.rain || 0, budget: ctx.budget == null ? 1 : ctx.budget });
   // (×1.3: a phase's visits must fit inside its block, so its load falls off toward the block's end — the other phase fills in)
   const want = mn.n / 2 * B * 1.3, cap = phase === 0 ? Math.ceil(FOLK.cap * 0.65) : FOLK.cap, out = [];
-  const occ = [...(ctx.others || [])];
+  const occ = [...(ctx.others || [])], taken = [...(ctx.seats || [])];
   // (the peak count over [a, b): exact — it can only rise at a or where someone arrives inside it)
   const load = (a, b) => { let mx = 0; for (const tt of [a, ...occ.filter(o => o.t0 > a && o.t0 < b).map(o => o.t0)]) { let n = 0; for (const o of occ) if (tt >= o.t0 && tt < o.t1) n += o.n; if (n > mx) mx = n; } return mx; };
   // (8b1 — THE WORKERS ARE PART OF THE COUNT: the crowd gives way to them — a phase's budget starts with half the workers' time out
@@ -625,7 +654,7 @@ function blockVisits(phase, k, M, ctx = {}) {
   // evening, leavers later; on party nights the guests go in by THE LINE (lineNight) and only the leavers come out here)
   if (phase === 0) for (const e of streamOf(k, t0, ctx, party)) {
     if (!spaced(e.t)) continue;
-    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, r: rngFrom(e.seed), crossBlocked: ctx.crossBlocked || null });
+    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, r: rngFrom(e.seed) });
     if (!vis || vis.t1 > t1 - 1) continue;
     const members = membersOf(e.spec, rngFrom(e.seed + 1)), n = heads(members);
     if (load(vis.t0, vis.t1) + n > cap) continue;
@@ -640,17 +669,20 @@ function blockVisits(phase, k, M, ctx = {}) {
     const start = t0 + 2 + r() * (B * 0.75);
     // (FP3b: each visit on its own seed — one that would still be out while the dance circle closes the compass is planned again
     // round it: ctx.closed(t0, t1) + ctx.Mev)
-    const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [], crossBlocked: ctx.crossBlocked || null };
+    const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [] };
     if (!spaced(start)) continue;
-    let vis = planVisit(spec, start, M, { ...vctx, r: rngFrom(vseed) });
+    // (8b2: a sitter takes a FREE seat — this block's own sitters + the other phase's: ctx.seats — the seat order seeded with the visit)
+    const order = spec.sit ? (r() < 0.5 ? [0, 2, 1] : [2, 0, 1]) : null, plan = Mx => (spec.sit ? planSeated(spec, start, Mx, vctx, vseed, taken, order) : planVisit(spec, start, Mx, { ...vctx, r: rngFrom(vseed) }));
+    let vis = plan(M);
     // (a visit while the dance circle closes the compass / the cart stands / THE LINE queues: planned again on that map — mapAt)
-    if (vis && ctx.mapAt) { const Mx = ctx.mapAt(vis.t0, vis.t1, M); if (Mx !== M) vis = planVisit(spec, start, Mx, { ...vctx, r: rngFrom(vseed) }); }
+    if (vis && ctx.mapAt) { const Mx = ctx.mapAt(vis.t0, vis.t1, M); if (Mx !== M) vis = plan(Mx); }
     if (vis && spec.need === 'cart' && !(ctx.cartParked && ctx.cartParked(vis.t0, vis.t1))) continue;
     if (!vis || vis.t1 > t1 - 1 || vis.t1 - vis.t0 < 4) continue;
     const members = membersOf(spec, r), n = heads(members);
     if (load(vis.t0, vis.t1) + n > cap) continue;
     if (vis.t1 + tailOf(members) > t1 - 0.5) continue;
     occ.push({ t0: vis.t0, t1: vis.t1 + tailOf(members), n });
+    if (vis.seat) taken.push(vis.seat);
     out.push({ id: `${phase}.${k}.${out.length}`, kind, look: spec.look, gait: spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members, party });
     spent += n * (vis.t1 - vis.t0);
   }
@@ -663,7 +695,7 @@ function busRiders(bus, M, ctx = {}) {
     // (FP3b: each steps DOWN out of the open door onto the road by the kerb — no fade)
     const t = bus.tA + BUS.offAt + i * BUS.offGap, dx = bus.x(bus.tA) + bus.len / 2 - 0.9, lg = doorLeg(bus.id, 'out', dx, t - 1.2, FOLK.speed.walk, bus.z, { bus: true });
     const spec = { look: r() < 0.5 ? 'commuter' : r() < 0.5 ? 'lady' : 'walker', gait: 'walk', goals: [{ from: 'bus' }, { at: { x: dx + 0.7, z: FOLK.curbZ - 0.3 } }, ...(r() < 0.3 ? [{ door: 'shop' }] : [{ exit: r() < 0.25 ? 'cross' : 'any' }])] };
-    const vis = planVisit(spec, lg.t1, M, { r, crossBlocked: ctx.crossBlocked || null, rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(lg.t1) : true, start: { x: lg.x1, z: lg.z1 } });
+    const vis = planVisit(spec, lg.t1, M, { r, rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(lg.t1) : true, start: { x: lg.x1, z: lg.z1 } });
     if (!vis) continue;
     vis.legs.unshift(lg); vis.t0 = lg.t0;
     const members = membersOf(spec, r);
@@ -700,7 +732,7 @@ export function folkAt(t, world, cache = new Map()) {
   // 8b1 — THE CREW (core/harbor-crew.js): the workers' visits on the clock (planned on the base map: every phone the same), their trucks
   // at the stop (leaders for the back road's cars; a bus due while one stands there doesn't come); their people count against the cap
   if (cache.crewM !== M || cache.crewF !== (ctx.forceWork || '')) { cache.crew = new Map(); cache.crewM = M; cache.crewF = ctx.forceWork || ''; }
-  const crewW = { L, M, ctx: { off: ctx.off, seed: ctx.seed, party: ctx.party, force: ctx.forceWork || null, canAskew: ctx.canAskew || null, dusk: ctx.dusk || null } };
+  const crewW = { L, M, ctx: { off: ctx.off, seed: ctx.seed, party: ctx.party, force: ctx.forceWork || null, dusk: ctx.dusk || null } };
   const crewIn = (a, b) => (ctx.noWork ? { visits: [], roof: [], trucks: [], props: [], marks: {} } : crewSpan(a, b, crewW, cache.crew));
   const trucksNear = (a, b) => crewIn(a - 300, b + 300).trucks.filter(T => T.tX > a && T.tE < b);
   // THE ROUTINES (FP3b — core/harbor-routines.js): the dance circle's sessions near t, their people; while one runs the inlay is
@@ -745,7 +777,7 @@ export function folkAt(t, world, cache = new Map()) {
   const workLoad = (a, b) => get(`WL|${a}`, () => crewIn(a, b).visits.filter(v => !v.plat).reduce((s, v) => s + Math.max(0, Math.min(b, v.tEnd || v.t1) - Math.max(a, v.t0)), 0));
   const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt, workLoad };
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
-  const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
+  const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)], seats: [...seatsOf(A(k)), ...seatsOf(A(k + 1))] }); });
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
   const buses = busesNear(t, t).filter(b => t >= b.tE && t < b.tX);
   // (&force=doors — the preview: every 24 s someone walks through a door — at night guests in at the side door / a pair out of it, by

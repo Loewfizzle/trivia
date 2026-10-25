@@ -445,7 +445,7 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   const PR = promenadeLayout(cam, { seed, wide: cam.spread > 1.6, stopH, front: cam.wide, face });
   const signals = PR.signals;
   const prom = { z0: Z.prom[0], z1: Z.prom[1] };
-  const { lamps, trees, bench, planters, cart, medallion, crosswalk, edge, impliedRoad, zones, mailbox, trashCan } = PR;   // (8b1: trashCan — the raccoon's can)
+  const { lamps, trees, bench, planters, cart, medallion, crosswalk, edge, impliedRoad, zones, mailbox, trashCan } = PR;   // (8b1: trashCan — the trash collector's can)
   // the rooftop (7a): the string lights' POSTS on the parapet (each pier) + their tall POLE at the back, the stair BULKHEAD, the
   // CHIMNEY; the deck between them is left open for 7b's parties + the seasonal garden (planters: where its beds go)
   const roofBack = Math.min(side.z, 56);

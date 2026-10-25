@@ -27,7 +27,7 @@ test('every slot: a unique kebab-case id, a known part, loop | once, a mix level
 test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people (8P) + the life + workers + wildlife (6b) fill their slots; everything else is empty', () => {
   assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'bar-open', 'boat-putter', 'broom-sweep', 'bus-arrive', 'bus-door', 'bus-idle', 'bus-pull-away', 'car-1920s-pass',
     'cart-bell', 'cat-land', 'cat-meow', 'city-hum-day', 'city-hum-night', 'club-murmur-calm', 'club-murmur-party', 'coyote-howl', 'coyote-yip', 'crates-clink', 'crowd-clap',
-    'crowd-whoop', 'dog-bark', 'door-heavy', 'door-heavy-close', 'door-knock', 'drone-swarm', 'duck-quack', 'footsteps-cobble', 'footsteps-heels', 'geese', 'glasses-clink',
+    'crowd-whoop', 'dog-bark', 'door-heavy', 'door-heavy-close', 'door-knock', 'drone-swarm', 'footsteps-cobble', 'footsteps-heels', 'geese', 'glasses-clink',
     'glow-wand-swish', 'gulls', 'helicopter', 'jet-flyby', 'jogger-trip', 'ladder-clank', 'laugh-distant', 'line-murmur', 'market-murmur', 'milk-bottles', 'newspaper-rustle',
     'pigeon-coo', 'pigeon-flutter', 'police-car-1920s', 'police-whistle', 'power-failure', 'power-restore', 'prop-plane', 'roller-blind', 'rooftop-party', 'scissors-snip', 'ship-horn', 'ships-bell', 'shop-bell',
     'siren-1920s', 'squeegee', 'squirrel-chatter', 'steam-whistle', 'street-door', 'street-door-close', 'tr3b-crackle', 'tr3b-drone', 'tr3b-power-down', 'tr3b-presence', 'trash-can-lid',
@@ -36,8 +36,8 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
   assert.ok(takesOf('tv-murmur')[0].src === 'tv-murmur-2' && takesOf('tv-murmur')[0].r === 16000, '8b1: the second try fills the TV window');
   assert.ok(takesOf('trash-truck-arrive')[0].hit > 10 && takesOf('trash-truck-depart')[0].hit > 10, '8b1: the truck stops / pulls out at its `hit`');
   assert.equal(isFilled('bus-brake-hiss'), false, 'an air brake is post-1920s');
-  // 6b: the owner's calls — modern traffic, a standing modern diesel (no arrival / departure in it), a hissing raccoon: left empty
-  for (const id of ['traffic-far', 'trash-truck', 'raccoon-chitter']) assert.equal(isFilled(id), false, `6b: ${id} left empty`);
+  // 6b: the owner's calls — modern traffic, a standing modern diesel (no arrival / departure in it): left empty
+  for (const id of ['traffic-far', 'trash-truck']) assert.equal(isFilled(id), false, `6b: ${id} left empty`);
   assert.ok(takesOf('police-car-1920s').length === 2 && takesOf('police-car-1920s').every(t => t.src === 'car-1920s-pass'), '6b: the police cars are the 1929 Volvo’s whole passes');
   assert.ok(takesOf('market-murmur')[0].from[1] <= 88, '6b: the market never uses 88–98 s (voices)');
   assert.ok(slotOf('siren-1920s').gain < 0.06 && slotOf('police-whistle').gain < 0.06 && takesOf('siren-1920s').every(t => t.r === 16000), '6b: the siren + the whistle far + soft');

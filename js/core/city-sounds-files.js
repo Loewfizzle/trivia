@@ -100,11 +100,6 @@ export const FILES = /*FILES*/{
   "drone-swarm": [
     {"f": "drone-swarm.mp3", "v": "e58dfe45", "d": 43.0, "lufs": -24.4, "loop": 40.0, "xf": 3.0, "from": [3.0, 46.0], "src": "drone-swarm", "r": 16000}
   ],
-  "duck-quack": [
-    {"f": "duck-quack_1.mp3", "v": "8d015c57", "d": 2.3, "lufs": -20.4, "peak": 1.05, "sw": [0.15, 2.1], "from": [5.8, 8.1], "src": "duck-quack"},
-    {"f": "duck-quack_2.mp3", "v": "e5ad4f3a", "d": 2.4, "lufs": -20.5, "peak": 0.3, "sw": [0.15, 2.15], "from": [0.1, 2.5], "src": "duck-quack"},
-    {"f": "duck-quack_3.mp3", "v": "e3c19a60", "d": 2.7, "lufs": -20.5, "peak": 0.35, "sw": [0.15, 2.35], "from": [23.9, 26.6], "src": "duck-quack", "w": 0.8}
-  ],
   "footsteps-cobble": [
     {"f": "footsteps-cobble_1.mp3", "v": "16f9486b", "d": 0.46, "lufs": -20.4, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.14, 0.6], "src": "footsteps-cobble"},
     {"f": "footsteps-cobble_2.mp3", "v": "3f20108f", "d": 0.58, "lufs": -20.7, "peak": 0.15, "sw": [0.15, 0.4], "from": [0.72, 1.3], "src": "footsteps-cobble"},
