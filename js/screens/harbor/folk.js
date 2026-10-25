@@ -61,11 +61,13 @@ export function lookOf(name, seed, o = {}) {
     else { L.cols.coat = pick(r, [[22, 22, 28], [30, 30, 38], [44, 40, 46]]); L.cols.legs = [24, 24, 30]; L.hat = party && r() < 0.3 ? 'top' : 'fedora'; L.cols.hat = [24, 22, 28]; L.coat = cold ? 'long' : 'short'; L.cols.shirt = [236, 232, 222]; L.tux = true; }
   }
   if (name === 'night') { L.cols.coat = pick(r, [[58, 58, 70], [74, 66, 60], [52, 62, 84]]); L.coat = 'long'; if (!L.woman) L.hat = 'fedora'; }
+  // (POLISH 4 — THE DOORMAN at the side door on party nights: a big man in a long dark overcoat, a dark fedora, gloves — broad, still)
+  if (name === 'doorman') { L.woman = false; L.dress = null; L.coat = 'long'; L.hat = 'fedora'; L.carry = null; L.cols.coat = [52, 58, 96]; L.cols.legs = [30, 30, 40]; L.cols.hat = [26, 26, 34]; L.cols.scarf = null; L.scarf = null; }
   if (L.woman && L.coat === 'long') L.dress = L.dress || 'day';
   // (FP3b, the owner after FP3a: people ON THE BENCH blended into its wood at noon — a sitter wears cloth AWAY from the oak's browns:
   // navy, bottle green, burgundy, slate, dove grey, a cream mac; grey / navy trousers)
   if (o.sit) { L.cols.coat = pick(r, SIT_COATS); L.cols.legs = pick(r, SIT_LEGS); if (L.coat === 'none') L.coat = 'short'; if (L.woman) L.cols.dress = pick(r, SIT_COATS); }
-  L.h = kid ? 0.72 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08);
+  L.h = kid ? 0.72 : name === 'doorman' ? 1.1 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08);
   L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.8 ? pick(r, [[30, 30, 36], [120, 40, 44], [44, 60, 96], [70, 64, 56]]) : null;
   L.dog = pick(r, DOGS); L.dogSize = 0.75 + r() * 0.5;
   return L;
