@@ -472,7 +472,7 @@ export function createLegends({ clock, qp } = {}) {
     warmFor = kind; clearTimeout(warmT);
     warmT = setTimeout(() => { if (!L) return; if (kind === 'tr3b') triSizes(); else sizes(); }, 30);
   }
-  const chaseLen = () => Math.max(64, Math.min(W * 0.235, 140));   // (Oct 25: the F-22 a little bigger in the chase — its facets read at 402)
+  const chaseLen = () => Math.max(54, Math.min(W * 0.2, 119));   // (C2 — the owner: "way too big" → 15 % smaller than Oct 25's 0.235 W / 64–140 pt)
 
   /** the scheduled legendary now (null) or the forced one; starts / ends the run */
   function tick(fs, allow = null) {

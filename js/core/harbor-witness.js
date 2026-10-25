@@ -11,13 +11,14 @@
 // rest replaced by the reaction (on the people's map, routed); visits that would START during the event (+ the empty tail) don't come.
 import { FOLK, planVisit, visitAt, doorLeg, DOOR } from './harbor-people.js';
 import { rngFrom, hashString } from './rng.js';
+import { BLACK, TR3B_LEN } from './harbor-legend.js';
 
 const PI = Math.PI;
 /** the numbers (s from the legend's start): noticing (spread), the flight, the run's pace (u / s), the crouch behind the bench, the empty
  *  promenade after; the TR-3B's stare + the share going indoors */
 export const WITNESS = Object.freeze({
   ufo: { notice: [0.8, 3.2], flee: 5.7, react: [0.15, 1.1], run: 3.5, hide: [3.2, 4.6], empty: 240, len: 30, point: 0.35 },
-  tr3b: { notice: [3.6, 7.5], back: 41, after: [0.5, 3], indoors: 0.3, len: 50, empty: 60, point: 0.3 },
+  tr3b: { notice: [3.6, 7.5], back: BLACK.on0 + 0.8, after: [0.5, 3], indoors: 0.3, len: TR3B_LEN, empty: 60, point: 0.3 },
   // 8b2 — THE RAID (lg: { kind: 'raid', t0: the first car showing, len: until the last car is past the crossing }): a beat after the cars
   // show, people FREEZE (watching the road), or casually walk off / look away like nothing's happening; the DOORMAN slips inside at the
   // side door; once the cars are gone they pick up their own way again (the doorman back out a little after the lights)

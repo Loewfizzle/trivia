@@ -98,7 +98,7 @@ const SCENES = {
   'tr3b': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b', 'tr3b-night': 'when=2026-10-22T22:00&wx=clear&force=no-planes',
   // (held moments of it: the city dead overhead, the flicker-out as it arrives, the jets' pass; + PARTY ON under it)
   'tr3b-dark': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b&lgs=20', 'tr3b-dying': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b&lgs=6',
-  'tr3b-jets': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b&lgs=35.5', 'tr3b-party': 'when=2026-10-22T22:00&wx=clear&force=no-planes,party,tr3b&lgs=20',
+  'tr3b-jets': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b&lgs=30.4', 'tr3b-party': 'when=2026-10-22T22:00&wx=clear&force=no-planes,party,tr3b&lgs=20',
   // 8b2's raid (the patrol cars, the wash, the flashlight + the front car's spotlight) on a weeknight; on the commit before: the plain night
   'raid': 'when=2026-10-22T22:00&wx=clear&force=no-planes,raid',
   // 8b2: a busy harbor by day with Rosie in 3D on the move (casting off at 2 pm; the taxi crossing) — and at night returning lit

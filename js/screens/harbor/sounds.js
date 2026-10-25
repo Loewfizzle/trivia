@@ -25,6 +25,7 @@
 import { citySound, cityLoop, cityPrefetch, citySoundsDebug } from '../../audio/city-sound.js';
 import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
+import { CHASE, BLACK } from '../../core/harbor-legend.js';
 import { isUnlocked } from '../../audio/engine.js';
 import { musicSounding, duckMusic, filterMusic, bendMusic, musicCatchUp, prepareBend } from '../../audio/music.js';
 import { settings } from '../../audio/settings.js';
@@ -256,16 +257,16 @@ export function createCitySounds() {
     } else {
       // (THE TAPE STOP: the song's slice decoded now, so the sag at 3 s starts on time)
       if (!lgRun.prep && lg.s < 2.5) { lgRun.prep = true; prepareBend(); }
-      const over = lg.s < 33 ? clamp(1.25 - Math.abs(lg.x - 0.5) * 1.2, 0, 1) : 0;
+      const over = lg.s < CHASE.t0 - 1 ? clamp(1.25 - Math.abs(lg.x - 0.5) * 1.2, 0, 1) : 0;
       keep('tr3b-drone', over, pan, { ramp: 1, linger: 8, fadeIn: 4 });
       // (8b1 — HEARD ON A PHONE: its electromagnetic PRESENCE while it crosses (saturated: its harmonics carry it), panned with it)
-      keep('tr3b-presence', lg.s < 34 ? clamp(Math.min((lg.s - 0.5) / 3.5, (34 - lg.s) / 4), 0, 1) : 0, pan, { ramp: 0.8, linger: 6, fadeIn: 3 });
+      keep('tr3b-presence', lg.s < CHASE.t0 ? clamp(Math.min((lg.s - 0.5) / 3.5, (CHASE.t0 - lg.s) / 4), 0, 1) : 0, pan, { ramp: 0.8, linger: 6, fadeIn: 3 });
       // (8b1: THE POWER FAILING — a big machine spinning down as the lights die (BLACK.die0 3.4 s → all dead ~10 s); the old power-down
       // stays under it as texture (its thump + turbine, 0.55 ×))
       if (!lgRun.fail && lg.s > 3.2 && lg.s < 6) { lgRun.fail = true; citySound('power-failure', { pan: pan * 0.5, jitter: 0 }); }
       if (!lgRun.down && lg.s > 2.6 && lg.s < 8) { lgRun.down = true; citySound('tr3b-power-down', { pan, gain: 0.55, jitter: 0 }); }
-      // (8b1: THE POWER COMING BACK — a tube hum swelling (audible ~3 s into its take) as the lights stutter back from 40.2 s)
-      if (!lgRun.restore && lg.s > 37.4 && lg.s < 41) { lgRun.restore = true; citySound('power-restore', { pan: 0, jitter: 0 }); }
+      // (8b1: THE POWER COMING BACK — a tube hum swelling (audible ~3 s into its take) as the lights stutter back from BLACK.on0)
+      if (!lgRun.restore && lg.s > BLACK.on0 - 2.8 && lg.s < BLACK.on0 + 0.8) { lgRun.restore = true; citySound('power-restore', { pan: 0, jitter: 0 }); }
       if (st.music.crackle > 0.3 && t > lgRun.crack) { if (lgRun.crack) citySound('tr3b-crackle', { gain: rnd(0.55, 1) * st.music.crackle, pan: clamp(pan + rnd(-0.5, 0.5), -1, 1) }); lgRun.crack = t + rnd(1600, 4200); }
       // (THE CHASE's roar, IN SYNC — POLISH 4: the take fetched as the TR-3B arrives, started so its peak lands as the formation's
       // middle crosses the screen's centre (lg.jets.peakIn), panned with them)

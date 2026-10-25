@@ -28,9 +28,12 @@
 //   intro), so the reveal is seen frame by frame. --net 3g|4g: a cellular network (Fast 3G 1.6 Mbps / 150 ms; 4G 9 Mbps / 60 ms) —
 //   a fresh context has no cache: a first visit on a phone. --cpu N: the CPU slowed N × (4 ≈ a phone's worst moments).
 //   e.g. node shots.mjs "<browser>" --city 2 --scenes day --sizes 402x874 --load --net 3g --cpu 4 --every 250 --count 24
+// --cast ms: C2 — a TRUE frame burst: a CDP screencast for ms after the wait (+ --js), every frame the page paints saved as
+//   <scene>-<w>x<h>-cast-<nnn>-<t ms>.jpg (t from the cast's start) — a flicker a 200 ms screenshot burst steps over shows here
+//   (e.g. the TR-3B's power coming back: --qs "force=tr3b" --js "__district.harbor().legend.start('tr3b',{at:Date.now()-32000})" --cast 9000)
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from 'puppeteer-core';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 
 const argv = process.argv.slice(2);
 const BROWSER = argv[0];
@@ -190,6 +193,14 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   // (POL4: --js "<expression>": run in the page before the shot — e.g. "__district.harbor().speakeasy.power(0)")
   if (opt('js', '')) { await p.evaluate(String(opt('js'))); await sleep(400); }
   if (IDLE) { await p.evaluate(() => window.__district.idle()); await p.waitForFunction(() => window.__district.isIdle(), { timeout: 5000 }).catch(() => {}); await sleep(2100); }
+  const CAST = Number(opt('cast', 0)) || 0;
+  if (CAST) {
+    const cdp = await p.target().createCDPSession(), t0 = Date.now(); let k = 0;
+    cdp.on('Page.screencastFrame', f => { writeFileSync(`${OUT}${name}-${w}x${h}-cast-${String(k++).padStart(3, '0')}-${Date.now() - t0}.jpg`, Buffer.from(f.data, 'base64')); cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); });
+    await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 80, everyNthFrame: 1 });
+    await sleep(CAST); await cdp.send('Page.stopScreencast'); n += k; console.log(`${name} ${w}x${h}: ${k} frames in ${CAST} ms`);
+    await ctx.close(); continue;
+  }
   for (let shot = 0; shot < COUNT; shot++) {
   if (shot) await sleep(EVERY);
   const file = `${OUT}${name}-${w}x${h}${IDLE ? '-idle' : ''}${TIER !== null ? `-t${TIER}` : ''}${COUNT > 1 ? `-${shot}` : ''}`;

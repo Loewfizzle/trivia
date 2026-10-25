@@ -157,9 +157,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   // THE TR-3B's DRAIN over the baked city: each column's unlit facade laid back over its lit windows, neon, signs + beacons (the
   // column's own sputter + lag: legends.js#drainCols) — the far rows, then the near ones
-  function drainCity(c, fadeIn) {
+  // (C2 — each depth's strips go right after ITS OWN layer: the far ones were laid after the near rows were drawn, so in the dying
+  // + the power coming back the far facades covered the near buildings in flickering strips — the owner's "buildings behind the
+  // jets flicker")
+  function drainCity(c, fadeIn, only) {
     if (fadeIn <= 0) return;
-    for (const name of ['far', 'near']) {
+    for (const name of only ? [only] : ['far', 'near']) {
       // (POLISH 4: the far rows + the near rows each their own depth — the far skyline comes back first; a DEAD depth draws no lights
       // at all, so it has nothing to cover)
       const cols = legends.drainCols(name === 'far' ? 'far' : 'city'); if (!cols || !cols.length) continue;
@@ -1015,6 +1018,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const billK = lampsF != null ? lampsF : litK(DK, 'bill') * (1 - LAMP_DIM * litK(DK, 'neon'));
     const nf = { t, now, ms: clock.now(), dt, night: litK(DK, 'neon'), bill: billK, fade: fadeIn, motion: S.motion, tier, party: PT.on > 0 ? PT : null, spelling: sp0 ? sp0.towers : null, finale: fw.busy(), hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, force: clock.force, pulse: PT.pulse };
     neon.draw(c, 'far', deadFar ? { ...nf, off: true } : nf);
+    if (legends && legends.active()) drainCity(c, fadeIn, 'far');   // (C2: the far strips over the far layer only — before the near rows)
     const sunNow = sun.debug(), rk = off.has('no-rays') ? 0 : rayStrength(LK, sunNow);
     sun.halo(c, fs); drawRays(c, L, sunNow, rk * fadeIn, t, 'behind', S.motion, tier); sky.low(c, fs);
     wfx.fogLayer(c, fs, 1, t);
@@ -1048,7 +1052,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the far quay's lamps (Part 4: lit at night, with the city's power-on; their light runs down into the water)
     drawQuayLamps(c, quayLamps, fadeIn * litK(DK, 'lamps') * lit * pQuay);
     if (!deadCity) lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
-    if (legends && legends.active()) drainCity(c, fadeIn);       // (6b: THE TR-3B's power drain rolling across the city under it)
+    if (legends && legends.active()) drainCity(c, fadeIn, 'near');   // (6b: THE TR-3B's power drain rolling across the city under it)
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
     // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)

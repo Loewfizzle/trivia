@@ -1,7 +1,7 @@
 // CITY 2.0 — PART 6b: THE LEGENDARY SKY's rules (core/harbor-legend.js) — rarity, the nights, the timelines, the drain.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { legendNight, legendAt, eveningOf, barnstormDay, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD } from '../js/core/harbor-legend.js';
+import { legendNight, legendAt, eveningOf, barnstormDay, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD, JETS_GONE } from '../js/core/harbor-legend.js';
 
 test('Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold from 4 s before the craft until the jets are gone + the power is back', () => {
   const h = trafficHold({ kind: 'tr3b', t0: 1000 });
@@ -57,7 +57,7 @@ test('the TR-3B: crosses the whole screen, drains while over the city, the chase
     const a = tr3bAt(0, dir), b = tr3bAt(29.9, dir);
     assert.ok(dir > 0 ? a.x < -0.3 && b.x > 1.3 : a.x > 1.3 && b.x < -0.3);
     assert.ok(tr3bAt(15, dir).drain > 0.99 && tr3bAt(34, dir).drain === 0);
-    assert.ok(tr3bAt(35.5, dir).chase.on && !tr3bAt(20, dir).chase.on);
+    assert.ok(tr3bAt(30.5, dir).chase.on && !tr3bAt(20, dir).chase.on && !tr3bAt(JETS_GONE + 0.1, dir).chase.on);
     // (Oct 25 — THE TAPE STOP IN WEB AUDIO: overhead the song is slow + deep (~0.5 ×, no iOS floor on a buffer source) but CLEARLY there —
     // duller (2.2 kHz), −3 dB; `rate` is the BASE (steady while held): the warble is the tape's oscillators, their depths here)
     { const m = tr3bAt(15, dir).music; assert.ok(m.rate <= 0.52 && m.rate >= 0.48 && m.duck > 0.65 && m.duck < 0.8 && m.hz > 1800 && m.hz < 2600 && m.warble > 0.9 && m.wow > 0.02 && m.wow < 0.03 && m.flutter > 0.005 && m.flutter < 0.01, `held audible: ${m.rate.toFixed(2)} at ${m.duck.toFixed(2)}, wow ${m.wow}`); }
@@ -67,8 +67,8 @@ test('the TR-3B: crosses the whole screen, drains while over the city, the chase
     // speed, then it spins up)
     const m8 = tr3bAt(8.2, dir).music; assert.ok(m8.rate < 0.75 && m8.duck > 0.9, `sagging while loud: ${m8.rate.toFixed(2)} at ${m8.duck.toFixed(2)}`);
     for (let t = 0; t < TR3B_LEN; t += 0.05) { const m = tr3bAt(t, dir).music; assert.ok(m.rate >= 0.4 - 1e-9 && m.rate <= 1 && m.duck >= 0.5, `the rate sane, never ducked deep (${t.toFixed(2)} s)`); }
-    const m41 = tr3bAt(40.6, dir).music; assert.ok(m41.duck > 0.85 && m41.rate < 0.7, `back loud, still slow: ${m41.rate.toFixed(2)} at ${m41.duck.toFixed(2)}`);
-    assert.ok(tr3bAt(38.5, dir).music.catchUp && !tr3bAt(30, dir).music.catchUp && tr3bAt(38.5, dir).music.duck < 0.6, 'the time made up under the jets');
+    const m41 = tr3bAt(JETS_GONE + 1.67, dir).music; assert.ok(m41.duck > 0.85 && m41.rate < 0.7, `back loud, still slow: ${m41.rate.toFixed(2)} at ${m41.duck.toFixed(2)}`);
+    assert.ok(tr3bAt(JETS_GONE - 0.4, dir).music.catchUp && !tr3bAt(28, dir).music.catchUp && tr3bAt(JETS_GONE - 0.4, dir).music.duck < 0.6, 'the time made up under the jets');
     const e = tr3bAt(TR3B_LEN - 0.01, dir).music; assert.ok(e.rate === 1 && e.duck > 0.95 && e.hz > 15000);
   }
   assert.ok([1, -1].includes(tr3bDir(2026, 10, 24)));

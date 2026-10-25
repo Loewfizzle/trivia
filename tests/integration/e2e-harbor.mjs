@@ -2346,7 +2346,7 @@ G('legends', async () => {
     // no car, cab, bus or truck ENTERED inside it (one already rolling finishes); the street under the dock adopts no new pass
     { const hd = await ev(Q.page, `${P}.legend.hold`), tr = await ev(Q.page, `${P}.people.traffic`), rd = await ev(Q.page, `${P}.road`);
       const entered = [...tr.cars.map(c => c.ts), ...tr.buses.map(b => b.tE), ...tr.trucks.map(T => T.tE)].filter(x => x != null && hd && x >= hd.t0 && x < hd.t1);
-      ok(hd && hd.on && hd.t1 - hd.t0 > 40 && entered.length === 0 && !(rd.pass && rd.pass.center / 1000 > hd.t0), `NO TRAFFIC DURING THE LEGENDARIES: the hold on (${hd && (hd.t1 - hd.t0).toFixed(1)} s), nothing entered under it (${tr.cars.length} cars, ${tr.buses.length} buses, ${tr.trucks.length} trucks on screen — all from before), the street's pass ${rd.pass ? 'from before' : 'none'}`); }
+      ok(hd && hd.on && hd.t1 - hd.t0 > 35 && entered.length === 0 && !(rd.pass && rd.pass.center / 1000 > hd.t0), `NO TRAFFIC DURING THE LEGENDARIES: the hold on (${hd && (hd.t1 - hd.t0).toFixed(1)} s), nothing entered under it (${tr.cars.length} cars, ${tr.buses.length} buses, ${tr.trucks.length} trucks on screen — all from before), the street's pass ${rd.pass ? 'from before' : 'none'}`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-402x874.png` });
     await Q.ctx.close(); }
   // ---- 8b2: THE BLACKOUT WINS OVER THE PARTY (the owner forced the TR-3B with PARTY ON: the show stayed lit) — the show off while dead

@@ -19,7 +19,15 @@ const prevDay = (y, m, d) => { const p = new Date(Date.UTC(y, m - 1, d) - DAY); 
 /** each legendary's share of the nights: ~1.5 a month each (the owner: "~1–2 a month") */
 export const LEGEND_P = 0.05;
 /** how long each runs (s): the abduction's short film, the TR-3B's crossing + the chase + the power coming back */
-export const UFO_LEN = 30, TR3B_LEN = 50;
+/** THE CHASE's pass (s into the event): three F-22s a few seconds behind the TR-3B, across the screen in `dur` s — the lead's x
+ *  (fraction of W) goes −0.25 → 1.25 over u 0..1 (each jet `back` jet lengths behind it); `uOff` — the last plume is off the screen.
+ *  (C2 — the owner: the gap after the craft leaves "too long → ~2 s", the jets "~25 % faster": t0 34 → 29.2 — on a phone the craft's
+ *  tail clears the edge ~27.5 s in and the lead's nose shows ~29.5 s — and dur 3.4 → 2.72; everything after the jets (the power back,
+ *  the music's spin-up, the people's return, the run's end) is measured from JETS_GONE, so it moved up with them) */
+export const CHASE = Object.freeze({ t0: 29.2, dur: 2.72, uOff: 1.45 });
+/** the last plume off the screen (s into the TR-3B) */
+export const JETS_GONE = CHASE.t0 + CHASE.dur * CHASE.uOff;
+export const UFO_LEN = 30, TR3B_LEN = Math.round(JETS_GONE + 11);
 /** the legendary hours (local, the evening's clock: 24.5 = 00:30 the next morning) */
 export const LEGEND_HOURS = [21.5, 24.75];
 
@@ -118,7 +126,7 @@ export const TR3B_CROSS = 30;
  *   dip    0..1 its height in the band (it sinks a touch over the city, then holds)
  *   pulse  the centre orb's slow pulse 0..1
  *   drain  0..1 how hard it pulls (on while it's over the city; 0 before it arrives — the city comes back behind it)
- *   chase  { on, u (0..1 across the screen) } — 2–3 F-16s screaming after it, a few seconds after it leaves
+ *   chase  { on, u (0..1 across the screen) } — three F-22s screaming after it, a few seconds after it leaves
  *   music  { rate (the tape's speed), hz (the low-pass), duck (level), crackle (0..1 the interference) }
  * }
  */
@@ -127,7 +135,7 @@ export function tr3bAt(s, dir = 1) {
   const x0 = -0.5, x1 = 1.5, xf = lerp(x0, x1, u);
   const x = dir > 0 ? xf : 1 - xf;
   const chaseU = (s - CHASE.t0) / CHASE.dur;
-  const P = s < TR3B_CROSS ? 'cross' : s < CHASE.t0 ? 'gap' : s < BLACK.on0 ? 'chase' : s < TR3B_LEN ? 'restore' : 'gone';
+  const P = s < CHASE.t0 ? (s < TR3B_CROSS ? 'cross' : 'gap') : s < BLACK.on0 ? 'chase' : s < TR3B_LEN ? 'restore' : 'gone';
   // THE MUSIC POWERS DOWN as it nears — a record player losing power (POLISH 4, the owner's iPhone: "it doesn't do that weird drone
   // down … and slowly get back up to speed"): the SPEED + PITCH sag first while it's still LOUD (3.5 → 10.5 s: an audible drone-down,
   // never under 0.5 — iOS Safari mutes a media element below half speed), only then muffled + faded to a hum (8.5 → 12.5 s); after the
@@ -143,7 +151,10 @@ export function tr3bAt(s, dir = 1) {
   // 0.55 Hz wow ± 2.5 % + a 1.9 Hz flutter ± 0.8 % while held — `rate` is the BASE, no wobble in it), a LIGHT duck (−3 dB overhead; a
   // little more under the jets' roar) and a PARTIAL low-pass (2.2 kHz: duller, never gone); after the jets the volume first, then the
   // slow spin-up as the filter opens; the song goes on from where the tape got to)
-  const sag = smooth(3.0, 9.5, s), up = smooth(39.4, 45.5, s), fadeOut = smooth(8.5, 12.5, s), back = smooth(38.6, 40.4, s), hush = smooth(30.5, 33.5, s);
+  // (C2: the jets came ~5 s sooner — everything round them is measured from CHASE.t0 (J) + JETS_GONE (G): the hush under the roar
+  // J − 3.5 → J − 0.5, the volume back G − 0.3 → G + 1.5, the spin-up G + 0.5 → G + 6.6 — the same shape as before, earlier)
+  const J = CHASE.t0, G = JETS_GONE;
+  const sag = smooth(3.0, 9.5, s), up = smooth(G + 0.5, G + 6.6, s), fadeOut = smooth(8.5, 12.5, s), back = smooth(G - 0.3, G + 1.5, s), hush = smooth(J - 3.5, J - 0.5, s);
   const bent = sag * (1 - up);
   const rate = Math.max(DRAIN_M.floor, lerp(1, DRAIN_M.rate, bent));
   return {
@@ -152,16 +163,13 @@ export function tr3bAt(s, dir = 1) {
     pulse: 0.5 + 0.5 * Math.sin(s * 2.1),
     drain: smooth(0.5, 3.5, s) * (1 - smooth(TR3B_CROSS - 1, TR3B_CROSS + 3, s)),
     chase: { on: chaseU > -0.15 && chaseU < CHASE.uOff, u: chaseU },
-    music: { rate, hz: lerp(20000, DRAIN_M.hz, smooth(5, 12, s) * (1 - smooth(39.4, 45, s))), duck: lerp(1, lerp(DRAIN_M.held, DRAIN_M.jets, hush), fadeOut * (1 - back)), crackle: smooth(4, 9, s) * (1 - smooth(30, 36, s)), catchUp: s > 38.2 && s < 38.9, warble: bent, wow: DRAIN_M.wow * bent, flutter: DRAIN_M.flutter * bent },
+    music: { rate, hz: lerp(20000, DRAIN_M.hz, smooth(5, 12, s) * (1 - smooth(G + 0.5, G + 6.1, s))), duck: lerp(1, lerp(DRAIN_M.held, DRAIN_M.jets, hush), fadeOut * (1 - back)), crackle: smooth(4, 9, s) * (1 - smooth(J - 4, J + 2, s)), catchUp: s > G - 0.7 && s < G, warble: bent, wow: DRAIN_M.wow * bent, flutter: DRAIN_M.flutter * bent },
   };
 }
 /** 8b1 → Oct 25 (THE TAPE STOP IN WEB AUDIO) — the drain's numbers: the base speed it sags to, a floor (a sanity clamp: the tape has no
  *  iOS floor any more), the wow + the flutter (the oscillators' depths, fractions of the speed), the low-pass it closes to (Hz), the
  *  level it holds while the craft is overhead, the level under the jets' roar */
 export const DRAIN_M = Object.freeze({ rate: 0.5, floor: 0.4, wow: 0.025, flutter: 0.008, hz: 2200, held: 0.72, jets: 0.55 });
-/** THE CHASE's pass (s into the event): three F-16s a few seconds behind the TR-3B, across the screen in `dur` s — the lead's x
- *  (fraction of W) goes −0.25 → 1.25 over u 0..1 (each jet `back` jet lengths behind it); `uOff` — the last plume is off the screen */
-export const CHASE = Object.freeze({ t0: 34, dur: 3.4, uOff: 1.45 });
 /** the chase's lead x (fraction of W, as if flying right) u into its pass, a jet `back` lengths behind (len: a jet's length as a fraction of W) */
 export const chaseX = (u, back = 0, len = 0.2) => lerp(-0.25, 1.25, u) + back * len;
 /** when (s into the event) the chase formation's middle crosses the screen's centre — the roar's peak lands there */
@@ -184,7 +192,7 @@ export function chasePeakS(len = 0.2) {
  * depth: 'far' (the skyline's far rows) | 'city' (its near rows) | 'sign' (the NEON sign + the tagline) | 'harbor' | 'near' (the
  * promenade); xf: the light's place across the screen (fraction of W); i: its own id (its moments). PURE (every phone the same).
  */
-export const BLACK = Object.freeze({ die0: 3.4, dieSpan: 5.2, sput: 1.4, on0: 40.2, onSpan: 1.5, depth: Object.freeze({ far: 0, city: 1.0, sign: 1.8, harbor: 2.5, near: 3.4 }) });
+export const BLACK = Object.freeze({ die0: 3.4, dieSpan: 5.2, sput: 1.4, on0: JETS_GONE + 1.3, onSpan: 1.5, depth: Object.freeze({ far: 0, city: 1.0, sign: 1.8, harbor: 2.5, near: 3.4 }) });
 const h01 = (a, b) => { let h = (a * 374761393 + b * 668265263 + 1013904223) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 export function blackAt(s, xf, depth = 'city', dir = 1, i = 0) {
   const B = BLACK, dz = B.depth[depth] ?? B.depth.city;
@@ -199,12 +207,18 @@ export function blackAt(s, xf, depth = 'city', dir = 1, i = 0) {
     return n < 0.12 + 0.78 * u ? 0 : 1 - 0.55 * u;
   }
   if (s < tOn - B.sput) return 0;
+  // (C2 — the owner: "the power coming back looks glitchy — the WHOLE SCREEN seems to go black / flicker": the BIG lights — the NEON
+  // sign, whose halo is half the sky, and the promenade's lamps, whose pools are the whole foreground — snapped dead ⇄ ~85 % at 13 Hz.
+  // They stutter SHALLOW now (dim flicks under a third) and then RISE smoothly, never dropping out again; the skyline's small lights
+  // keep the full stutter)
+  const big = depth === 'sign' || depth === 'near';
   if (s < tOn) {
     const u = (s - (tOn - B.sput)) / B.sput, n = h01(i + 57, Math.floor(s * 13));
-    return n < 0.14 + 0.62 * u * u ? 0.35 + 0.5 * u : 0;
+    return n < 0.14 + 0.62 * u * u ? (big ? 0.1 + 0.18 * u : 0.35 + 0.5 * u) : 0;
   }
-  // caught: a quick warm-up, and one light in four drops out once more just after
   const v = s - tOn;
+  if (big) return 0.28 + 0.72 * smooth(0, 1.3, v);
+  // caught: a quick warm-up, and one light in four drops out once more just after
   if (h01(i, 41) < 0.25 && v > 0.3 && v < 0.3 + 0.18 + 0.2 * h01(i, 43)) return 0.12;
   return 0.6 + 0.4 * smooth(0, 0.7, v);
 }
