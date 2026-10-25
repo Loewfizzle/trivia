@@ -410,7 +410,8 @@ export function createPeople() {
     officer: () => officerAt,
     cars: () => (now.cars || []).map(c => ({ id: c.id, model: c.model, lane: c.lane, x: +c.x.toFixed(2), speed: +c.speed.toFixed(2), glow: c.glow })),
     /** Oct 25 — the vehicles on screen + when each ENTERED (abs s): the test of NO TRAFFIC DURING THE LEGENDARIES */
-    traffic: () => ({ cars: (now.cars || []).map(c => ({ id: c.id, ts: c.ts == null ? null : +c.ts.toFixed(1), cab: !!c.cab })), buses: (now.buses || []).map(b => ({ id: b.id, tE: +b.tE.toFixed(1) })), trucks: ((now.crew && now.crew.trucks) || []).map(T => ({ id: T.id, tE: +T.tE.toFixed(1) })) }),
+    traffic: (() => { const at = v => (typeof v === 'number' && isFinite(v) ? +v.toFixed(1) : null);   // (never throw inside harbor(): the panel reads it too)
+      return () => ({ cars: (now.cars || []).map(c => ({ id: c.id, ts: at(c.ts), cab: !!c.cab })), buses: (now.buses || []).map(b => ({ id: b.id, tE: at(b.tE) })), trucks: ((now.crew && now.crew.trucks) || []).map(T => ({ id: T.id, tE: at(T.tE != null ? T.tE : T.tA) })) }); })(),
     /** FP3b — THE DANCE CIRCLE now: { on, k (0..1 formed), id, s0, s1 } (the scene lights the inlay's floor spots + keeps the cart away) */
     dance: () => ({ ...(now.dance || { on: false, k: 0 }) }),
     /** 8b1 — THE WORKERS now: who's out (kinds), the traces (the milk on the step, the board's game, the blade's repaint, the faults…), the props, the trucks */
