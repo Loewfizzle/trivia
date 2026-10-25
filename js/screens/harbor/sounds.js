@@ -220,7 +220,7 @@ export function createCitySounds() {
       const st = d.h.started();
       if (!st) continue;
       const el = ((performance.now() - st) / 1000) * d.h.rate();
-      lv = Math.min(lv, duckAt(el, d.take, d.depth));
+      lv = Math.min(lv, d.env ? d.env(el) : duckAt(el, d.take, d.depth));
       if (d.pan) d.h.set({ pan: sweepPan(el, d.take, d.pan[0], d.pan[1]) }, 0.3);
       else if (d.follow) d.h.set({ pan: jetPan(jetX) }, 0.22);
     }
@@ -330,6 +330,14 @@ export function createCitySounds() {
     /** PART 7b: the speakeasy's beds now { club, tv, party } (the scene passes speak.beds() every frame; tick() keeps them) — 8P:
      *  + fr (the windows' frame: its moments + rooms → their sounds), k (the night 0..1), motion (false = Reduced motion: no moments) */
     speakeasy(b) { if (b) speakBeds = b; },
+    /** 8b1 — THE BIG MOMENTS DUCK THE MUSIC (plan.md: the noon steam whistle, the 7 pm dinner cruise's horn): play a slot with the music
+     *  dipped to `depth` as it starts (over 0.6 s), held while it sounds (`hold` s), then eased back up over `release` s — a few a day
+     *  → the handle or null (an empty slot: silent, no dip) */
+    ducked(slot, { gain = 1, pan = 0, depth = 0.55, hold = 3.5, release = 5 } = {}) {
+      const h = citySound(slot, { gain, pan: clamp(pan, -1, 1) });
+      if (h) ducks.push({ h, depth, pan: null, follow: false, env: el => (el < 0 ? 1 : el < 0.6 ? 1 - (1 - depth) * (el / 0.6) : el < hold ? depth : el < hold + release ? depth + (1 - depth) * ((el - hold) / release) : 1) });
+      return h;
+    },
     /** 8P — THE BUS: bus('arrive' | 'idle' | 'door' | 'depart' | 'pan' | 'gone', { pan, gain, stopIn }) — see busEvent */
     bus: busEvent,
     /** 8P — ONE FOOTSTEP of the nearest walking figure: kind 'cobble' | 'heels', pan −1…1, gain 0..1 (its distance); very soft;

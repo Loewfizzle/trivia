@@ -87,6 +87,9 @@ const SCENES = {
   // night with the coyote, the raccoon + the cat out (wl-party); -off: the same with every animal off (--vs: the wildlife's cost)
   'wl-noon': 'when=2026-10-14T12:15&wx=clear&force=no-planes,pigeons,gulls-land,squirrel,fish', 'wl-noon-off': 'when=2026-10-14T12:15&wx=clear&force=no-planes,pigeons,gulls-land,squirrel,fish,no-wildlife',
   'wl-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes,coyote,raccoon,cat-out', 'wl-party-off': 'when=2026-10-17T23:00&wx=clear&force=no-planes,coyote,raccoon,cat-out,no-wildlife',
+  // 8b1's speed round (A-B-B-A against the commit before the pass): a busy weekday late morning with the workers (the window washers,
+  // the newsboy, a truck) + the wildlife, and a Saturday party night (the line, the doorman, the dance, the animals)
+  'life-noon': 'when=2026-10-27T11:20&wx=clear&force=no-planes', 'life-noon-forced': 'when=2026-10-27T11:20&wx=clear&force=no-planes,pigeons,gulls-land', 'life-party': 'when=2026-10-24T22:30&wx=clear&force=no-planes',
   's-aurora': 'when=2026-10-14T23:30&wx=clear&force=no-planes,aurora', 's-worst': 'when=2026-10-17T23:00&wx=clear&force=no-planes,neon-party,drones&text=HELLO&show=heart',
 };
 const names = arg('scenes', 'party,night,day').split(',');

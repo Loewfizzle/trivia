@@ -184,6 +184,10 @@ export const EVENTS = [
   { id: 'work-delivery', label: 'THE BIG DELIVERY', cat: 'workers', group: 'NIGHT', hint: 'Saturdays ~6:30 pm: the bootleggers’ big load before the party night' },
   { id: 'work-staff', label: 'THE BAR STAFF LOCK UP', cat: 'workers', group: 'NIGHT', hint: '~2 am: out of the side door, the last one locks it' },
   { id: 'no-work', label: 'NO WORKERS', cat: 'workers', group: 'COMPARE', hint: 'every worker stays home — compare (their cost)' },
+  // PART 8b1 — THE HARBOR'S TIMETABLE, heard (every 30 s while on)
+  { id: 'ships-bell', label: 'THE SHIP’S BELL', cat: 'harbor', group: 'THE TIMETABLE', hint: 'the hourly bell (one ring, under the music) — every 30 s' },
+  { id: 'steam-whistle', label: 'THE NOON WHISTLE', cat: 'harbor', group: 'THE TIMETABLE', hint: 'the noon steam whistle off Rosie’s stacks (a white plume, the music dipped) — every 30 s' },
+  { id: 'dinner-horn', label: 'THE DINNER CRUISE HORN', cat: 'harbor', group: 'THE TIMETABLE', hint: 'Rosie’s long blast as she casts off at 7 pm (the music dipped) — every 30 s' },
   // ---- PART 8b1 — THE WILDLIFE (screens/harbor/wildlife.js#WILD_FORCES; each on a loop, any hour — the light is the hour's)
   { id: 'pigeons', label: 'PIGEONS', cat: 'wildlife', group: 'THE PIGEONS', hint: 'the whole flock of 8 on the cobbles + the ledges (they flush when people walk close)' },
   { id: 'pigeons-scatter', label: 'PIGEONS SCATTER', cat: 'wildlife', group: 'THE PIGEONS', hint: 'a scare every 25 s: they burst up — some to a ledge, some away a while and back from another side' },

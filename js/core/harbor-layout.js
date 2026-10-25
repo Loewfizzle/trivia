@@ -433,6 +433,8 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
     { id: 'tug', x: bx(0.585, 214), z: 214, len: 9.5, h: 5.2, dir: 1, when: 'night' },
     { id: 'sail', x: bx(0.585, 214), z: 214, len: 6.5, h: 10, dir: 1, when: 'day' },
     { id: 'sail2', x: bx(0.92, 205), z: 205, len: 6.5, h: 10, dir: -1, when: 'day' },
+    // (8b1 — THE HARBOR'S TIMETABLE: a Great Lakes fishing tug — out at dawn with a bow lantern, back late afternoon; moored by the pier)
+    { id: 'fish', x: bx(0.62, 232), z: 232, len: 8, h: 4.6, dir: 1 },
   ];
   const face = speakeasy.x1, rel = dx => face + dx;            // the phone's stage, relative to the face (−5.6 on the phone)
   const rail = { z: Z.rail, y: 1.1 };

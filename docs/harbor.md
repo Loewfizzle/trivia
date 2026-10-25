@@ -5238,6 +5238,143 @@ crown (no occlusion by the leaves themselves); the speed: one A/B on a loaded la
 noon +1.1 ms at tier 2 (noise ±1.3) and +1.7–2.9 ms at tier 0 (noise ±2.5–5.7) → tier 0 now one flat fill a body + the piling baked;
 the final A-B-B-A round decides.
 
+### Group 3 — THE WITNESSES + THE HARBOR'S TIMETABLE
+- **WITNESSES FLEE THE ABDUCTION** (plan.md, the owner Oct 25 — `core/harbor-witness.js` PURE + `tests/harbor-life.test.mjs`): a legendary night
+  reshapes everyone on the promenade, planned on the clock (every phone the same, joined mid-way). `folkAt(ctx.legend = { kind, t0 })` hands
+  each visit out at the moment they notice to `reactVisit`: its legs up to then kept (a walk cut where they stand), the rest replaced.
+  **THE UFO**: as the saucer comes in (0 → 5.5 s) they STOP + LOOK UP, a beat apart, ~a third POINTING; when the beam opens they FLEE — a real
+  RUN (folk.js: `st.run` → the jog cycle + its stride for anyone), to the nearest way out on the map (a screen edge, the side door when close,
+  straight across the road from the kerb); the one nearest the bench (`hiderOf`) DUCKS BEHIND IT first, crouches 3–5 s, then bolts; a dog walker
+  runs with the dog in front; the pigeons BURST UP as the beam opens (`wild.startle()`). Nobody new comes for `WITNESS.ufo.empty` (240 s) after
+  the 30 s event — the promenade stays EMPTY — then the ordinary crowd drifts back in from the edges; the REGULARS (the doorman, the vendor, a
+  worker) come back on their own a little after (`resume`: in from where they fled — the side door for the doorman — walking back into their
+  own day's itinerary), never popping back at their posts; the reaction holds for hours on their new paths. Anyone out of reach when it
+  comes (on the road, in a doorway, up a ladder) simply carries on. **THE TR-3B**: as the city goes dark (3.6 → 7.5 s) they STOP + STARE UP
+  (some point); ~30 % hurry IN at the side door; when the power comes back (~41 s) the rest go on their way out of here (a quieter promenade
+  for a minute); the regulars stare, then pick up their day in place. The scene hands the people the legendary's start: live
+  (`legends.state()`), REMEMBERED after it ends, or a scheduled one's tail for a page opened mid-way (`legendNight` + the same weather gates as
+  `legends.js#tick`) — `scene.js#legendForPeople`. Debug: `harbor().people.witness`, `.running`.
+- **THE HARBOR'S TIMETABLE, through boats + light** (`core/harbor-boats.js#ROSIE_TABLE`, `FISH`, `tableAt`, `hornsBetween`; `boats.js`):
+  **ROSIE** now keeps a DAY's timetable instead of a 10-minute loop: she lies at her landing between runs, casts off at **10 am, 2 pm, 6 pm**
+  (out ~1 h 40; the 6 pm sunset run back by ~6:50) and at **7 pm the DINNER CRUISE**, lit up (back ~9:40), home overnight; bow-first out, astern
+  in (she still never turns in sight). The far boats (the sailboats' tacks, the tug's idle) now turn + wait CLEAR of her docked hull on screen at
+  390 / 402 / 430 (`clearOf` — never a tack hidden behind her). **THE FISHING TUG** (new, `L.boats` id `fish`, z 232 — a Great Lakes fish tug in
+  white with a green sheer stripe on the tug's build): moored just right of the pier, out at **dawn** (6:09, 170 s across, its BOW LANTERN lit
+  while it's dark), away all day, home at **4:30 pm** (its lantern again), its riding lights at night. The lighthouse lamp on at dusk was already
+  the light timeline's. **THE SOUNDS** (`scene.js#harborClock` — on the city clock, never a burst after a jump): the **SHIP'S BELL** every hour
+  (one ring, under the music — no dip; not at noon), the **NOON STEAM WHISTLE** off Rosie's stacks (a shaded white PLUME — a grey body, a darker
+  underside + a bright crown so it reads on the cream towers — 9 s, drifting with the real wind) with THE MUSIC DIPPED (`sounds.js#ducked`: to
+  0.5 over 0.6 s, held 3.5 s, eased back over 5 s), **ROSIE's HORN** as she casts off at 10 / 2 / 6, and the **7 pm DINNER CRUISE's long blast**
+  (dipped the same way). Previews: `&force=ships-bell` / `steam-whistle` / `dinner-horn` (every 30 s; the panel's HARBOR → THE TIMETABLE).
+
+Tests (Group 3): `tests/harbor-life.test.mjs` (the UFO: they look up, run, the promenade empty through the spell, people back after — three
+nights; the TR-3B's stare; Rosie's day — at her landing, casting off at 10, away, backing in, the dinner cruise, home — one horn a departure;
+the fishing tug's dawn + its lantern, midday away, home, moored; the far boats clear of Rosie at three sizes); e2e `workers` + THE WITNESSES
+(&force=ufo on a Saturday night: running, then the promenade empty).
+
+## PART 8b1 — THE HOUR-BY-WEEK PLANNING TABLE (what runs when — the gaps show; local time, Grand Rapids)
+The WORKERS (core/harbor-workers.js — **bold** = a SHOW: one at a time), the WILDLIFE (core/harbor-wildlife.js), THE HARBOR (Rosie, the fishing
+tug, the bells), THE SKY (the legendaries + the flyby + the barnstormer: core/harbor-legend.js; the everyday sky — planes, the helicopter,
+balloons, birds — is the scheduler's random slots all day + night). Party nights = Fri + Sat (Part 10's show: warm-up 8:30, peak 9:30).
+
+| local hour | Mon | Tue · Thu | Wed | Fri | Sat | Sun | every day (wildlife · harbor · sky) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0–2 | the doorman till ~1:50, staff lock up ~2 | = | = | = | (after Fri's party) the line till ~1:25, the dance till ~0:45, staff ~2 | (after Sat's party) the same | the raccoon (~40 %, 11 pm–3:30) · the coyote (rare, 10 pm–4 am) · fireflies (summer, till ~0:35) · a legendary (UFO / TR-3B, ~1–2 a month each, ≤ 0:45) |
+| 2–5 | — | — | — | — | — | — | the coyote's likeliest · 2 pigeons roosting · the city asleep (**a gap: by design**) |
+| 5–6 | **the sweeper ~5:30** | **the sweeper** | **the sweeper** | **the sweeper** | **the sweeper** | — | the heron at sunrise (Apr–Oct ~45 %) · the bell |
+| 6–7 | **the MILK 5:59** · **the news van ~6:35** · **the trash truck** (6:20–7:20) | = | = | = | **milk** · **news van** | **news van ~7:35** | the fishing tug OUT at dawn (its lantern) · fish jumping (dawn) · pigeons (a full flock) |
+| 7–8 | the NEWSBOY 7:00 → 10 | = | = | = | **the extra sweep 7:30** (after Fri) | **the extra sweep** (after Sat) | the duck crossing (spring, ~1 day in 6, 7 am–6 pm) |
+| 8–9 | the BARBER 8:30 (the milk in; the raccoon's lid righted) | = | = | = | the barber · the newsboy 8 → 11 | the newsboy 8 → 11 (Sunday paper) | |
+| 9–10 | the BEAT COP 9:00 · **a repair** (after a bulb / a bad lamp) | = | **the GARDENER on the roof** (~9:20 → 11) | = | **the roof CLEANUP CREW 9:00** | **the roof crew** | the squirrel (by day, autumn most) · gulls on the billboard + the railing (by day) · the snowy owl (Dec–Mar days ~28 %) |
+| 10–11 | **the ICE MAN** · the mailman ~10:30 | **the WINDOW WASHERS ~10:35 → 12** · ice · mail | ice (slides after the gardener) · mail | **washers** · ice · mail | the mailman | — | ROSIE out at 10 (her horn) · the bell |
+| 11–12 | | washers | | washers | | | Rosie back ~11:40 |
+| 12–13 | | | | | | | **the NOON WHISTLE** off Rosie's stacks (the plume, the music dipped) |
+| 13–14 | **THE SIGN PAINTERS 1:00 → 3:50** (the blade repainted) | **the SODA truck** (1:45–2:20) | soda | soda | (a busy afternoon: more strollers) | | the barnstormer (~3 days a week, 10:30–5:30 or a night run) |
+| 14–15 | painters | | | | | | ROSIE out at 2 (her horn) |
+| 15–16 | painters (the new name gilded) · the bartender ~3:55 | the bartender | = | = | = | = | Rosie back ~3:40 |
+| 16–17 | the EVENING EDITION 4:30 → 6:30 · **the BILLPOSTER ~4:50–5:20 → +34 min** (the board's new game; a dead gooseneck fixed) | = | = | = | **the billposter** | **the billposter** | the fishing tug HOME 4:30 |
+| 17–18 | (the billposter's last sheet) | | | | | | golden hour → 11 pm: the SURPRISE FLYBY (~twice a month) |
+| 18–19 | | | | | **THE BIG DELIVERY ~6:30** (the bootleggers' truck) | | ROSIE's sunset run at 6 · dusk: the DOORMAN takes his post, the lamps on one by one, the cat out (~35 %, till 11) · fish at dusk |
+| 19–20 | the doorman · the flower seller from Wed | the doorman | + the FLOWER SELLER (Wed–Sat) | + flowers · the party warm-up from 8:30 | + flowers · the warm-up | the doorman | THE DINNER CRUISE 7 pm (its long blast, the music dipped) |
+| 20–21 | — (no musician Mondays) | the MUSICIAN ~8 pm | the musician | the musician · THE LINE from ~8:35 (+ its doorman) | the musician · THE LINE | the musician | |
+| 21–22 | the 9 PM PATROL | = | = | = + the party PEAK 9:30 | = + the peak | = | Rosie home ~9:40 · fireflies (summer, from 9:15) |
+| 22–23 | | | | the DANCE CIRCLE (10 → 12:45) | the dance circle | | the legendaries from 9:30 |
+| 23–24 | **the BOOTLEGGERS ~11** (a few weeknights a month: the quiet truck, the cellar hatch, the lookout) | = | = | (Fri: never — the party) | — | **bootleggers** (Sun night) | the raccoon from 11 pm |
+
+THE GAPS (deliberate or to fill): 2–5 am is asleep by design (the coyote + the raccoon own it); weekday 11 am–1 pm and 3–4:30 pm hold only
+regulars + the harbor (Rosie's moves, the noon whistle) — 8b2's cabs + Part 9's weather crews (snow shovelers, leaf rakers, coal down the chute)
+are the candidates; Sunday afternoon is quiet on purpose ("sleepy").
+
+## PART 8b1 — Decisions made overnight (each the most reasonable reading; easy to reverse)
+1. **plan.md had no "WITNESSES FLEE…", "THE BEAT SYNC IS STILL OFF", "THE SURPRISE FLYBY", "THE PEOPLE: CALMER" sections at the start** — the
+   owner's new plan.md arrived mid-run (committed alone: "docs: plan.md — the owner's latest decisions"); built from the prompt, then checked
+   against it (the flyby: 3–4 jets, set after).
+2. **The workers' trucks stop on the BACK ROAD at the bus's stop** (not the street under the dock, which the dock covers most of the time): the
+   clearest view; a bus due then doesn't come; no car enters the near lane while a truck holds the stop; the crew go round the truck's NOSE (the
+   kerb behind it is the bench + crabapple's corner).
+3. **The roof billboard keeps YESTERDAY's poster until the billposter has pasted today's** (~5–6 pm) — the board's game turns with his last
+   sheet, never at 5 am; the BLADE is the WEEK's (stable from Monday's painters to the next) and the board steps aside from the blade's game.
+4. **The workers count in the owner's calmer crowd**: the random crowd gives way to them (a block's budget starts with their time on the
+   promenade), so the counts on screen hold.
+5. **The barber cranks the awning as a gesture** (it's baked; always out); **the barbershop opens 8:30 Mon–Sat** (the window moment's OPEN at
+   ~8:37); **Saturday's barber 8:30 too**.
+6. **The flower seller Wed–Sat** (most weeks); **the musician every night but Monday**; **the bootleggers Sun–Thu nights only** (a few a month;
+   Friday + Saturday are party nights — Saturday's big delivery is ~6:30 pm).
+7. **The trash collector carries the can on his shoulder to the truck's bed** (the can hidden at its spot meanwhile); the raccoon bolts from a
+   truck; the barber rights the lid the morning after (the wildlife's own `canAt`).
+8. **The dead blade bulb is always a crest bulb at the outer edge** (where the ladder leans); the far signs' dead letter keeps fixing itself by
+   the spell-on (no worker — too far to see).
+9. **The witnesses' regulars come BACK** after the empty spell (in from where they fled) — the doorman's post isn't left empty all night.
+10. **Rosie's day replaces her 10-minute loop** (the old cycle stays in the code for the tests + as the fallback with no local time); her horn
+    on every departure, the dinner cruise's dipped; the far boats moved clear of her docked hull.
+11. **The fishing tug reuses the tug's build** in white + green (8b2 rebuilds the boats in 3D).
+12. **A fifth cloud job `wild`** (wildlife + workers) — the four were within a minute of their 5-minute cap.
+13. **Group 0's beat safety rule** makes the unconfirmed paths (headless, iOS's direct element) BREATHE — the E2E music checks now ask for a
+    visible swing (> 0.3), not a punch.
+(Group 0's own decisions are in its section above; Group 2's in its section.)
+
+## PART 8b1 — Performance (ONE A-B-B-A round, `title-perf.mjs --ab` against 6f65ce8 — the commit before the pass — 390×844, 4× CPU, the laptop without a GPU, 3 + 3 windows of 5 s)
+| scene | tier 2: work A → B | tier 0: work A → B | verdict |
+| --- | --- | --- | --- |
+| a busy weekday late morning, natural (`life-noon`: Tue 11:20 — the window washers, the newsboy gone, the day's wildlife) | 8.12 → 10.91 ms (noise ±5.6), 0 → 0.3 % slow | 6.30 → 8.52 (noise ±2.3), 0 → 0 % | **same** (inside the noise) |
+| the same with the whole flock + the gulls FORCED (`life-noon-forced` — the preview flags bypass the wildlife's tier cap) | 8.41 → 14.31 (±4.5) | 4.31 → 9.16 (±2.5) | slower — a preview's cost, not a real day's |
+| a Saturday party night (`life-party`, 22:30 — the line, the doorman, the dance, the animals) | 35.2 → 31.5 (1 + 1 windows: the tier moved) | 14.26 → 12.78 (±2.3) | **same** |
+The split (one server, `--vs`, tier 0): the workers ~0.8 ms (noise ±3.2), the forced wildlife ~3.9 ms (±6.2). A profile of the forced noon shows no
+hot spot — the cost is spread over more figures drawn (folk.js + fauna.js paths). The owner's iPhone readout (`&debug=1`) decides.
+
+## PART 8b1 — Known issues
+- **Not heard by ear**: every new sound was judged by analysis (Group 0) — the reversed truck arrival, the drain's warble, the presence hum; the
+  harbor's horns + whistle are the existing takes at new moments.
+- The workers: the awning isn't re-baked by the barber's crank; the repairman's / the lamp's test flicker show only after dark; the flower
+  seller's sale is a gesture; the stream guests don't stop to whisper the password to the doorman yet; `&force=work-<kind>` slots run on the
+  clock (a short worker may take up to ~3 min to start).
+- The witnesses: a page opened DURING a forced (`&force=ufo`) flight joins the reaction from the run's start (live) — fine; a held preview
+  (`&lgs=`) re-plans every ~2 s (the start drifts with the held time).
+- The harbor: the noon plume is drawn on Rosie's own canvas pass (not in the water's mirror); the fishing tug's lantern isn't in the mirror either.
+- (Group 0 + Group 2 known issues: in their sections.)
+
+## PART 8b1 — Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
+THE WORKERS (any day, on a loop): `&when=2026-10-22T13:00&force=work-<kind>` — milk · newsdrop · trash · newsboy · barber · cop · bulb · lamp · ice ·
+mail · washers · gardener · soda · painters · sweep2 · crew · bartender · evening · billposter · doorman · flowers · musician · patrol · staff ·
+`&when=2026-10-22T22:00&force=work-bootleg` (+ `work-delivery`, `work-sweeper`, `work-staff` look best in the dark). THE REAL WEEK: Monday
+`&when=2026-10-26T08:31` (the barber + the newsboy) · `T13:40` (the painters painting the old name out) · `T15:00` (lettering) · `T17:15` (the
+billposter pasting) · Tuesday `&when=2026-10-27T11:20` (the window washers) · `&when=2026-10-26T06:00` (the milk at night) · Saturday
+`&when=2026-10-24T18:40` (the big delivery). THE WILDLIFE: Group 2's section. THE WITNESSES: `&when=2026-10-24T22:10&force=ufo` (a busy party
+night — they look up, then run) · `&when=2026-10-22T21:40&force=tr3b` (they stare up). THE HARBOR: `&when=2026-10-26T09:59:30` (Rosie's horn, casting
+off) · `&when=2026-10-26T11:59:40` (the noon whistle + plume) · `&when=2026-10-26T18:59:30` (the dinner cruise's blast) · `&when=2026-10-26T06:08:30`
+(the fishing tug out with its lantern) · `&when=2026-10-26T16:27` (home) · the panel's HARBOR → THE TIMETABLE rows (every 30 s).
+
+## PART 8b1 — Handoff → 8b2 (the raid + police cars, cabs, Rosie + the boats in 3D)
+- **THE RAID's hook**: `core/harbor-workers.js#bootlegNight(dayKey)` (the quiet weeknight deliveries) + Saturday's `delivery`: "rarely the raid
+  comes the night after a delivery" — read the previous evening's flag. The police car = a new kit MODEL (vehicles.js, a `cab` / `hard` body), its
+  stop = a truck-like `truckPlan` on the back road (a `hold` leader); the witnesses' module is the model for the crowd's reaction (freeze /
+  scatter); the blackout's `speak.power()` + `blackAt` for the lights; `harbor().wildlife.startle()` for the pigeons.
+- **CABS**: the back road's `harbor-traffic.js` + a stop like the trucks' (`hold`), riders like the bus's (`busRiders`).
+- **ROSIE + THE BOATS IN 3D**: keep `ROSIE_TABLE` / `FISH` / `tableAt` (her day) + `clearOf` (the far boats clear of her hull); the noon plume's
+  anchor = her stacks (`boats.js`, a = 16.4 / 17.6, y 11.75); the fishing tug's lantern at its stem.
+- **THE WORKERS** grow by rows (`SHOWS` / `REGULARS` + `PLAN[kind]`); Part 9 adds the weather crews (snow shovelers + the salt cart, leaf rakers,
+  coal down the chute) — the gaps in the planning table above.
+
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against
 title.js / title-dock.js / backdrop.js, the baker + the budget, the scheduler, the flag, and what Parts 2–12 will hit. The camera

@@ -1047,3 +1047,18 @@ Files: `core/city.js` (which city is showing + the clock it runs on), `core/city
   + a heavy warble (a wow ± 5.5 % at 0.55 Hz + a flutter ± 2.2 % at 1.9 Hz, never under 0.5 × — iOS's floor), a 900 Hz low-pass, held at ½
   volume overhead, near silent under the jets (31 → 38.6 s: the catch-up seek), then the volume back, the slow spin-up, the filter open.
 - **THE BEAT's SAFETY RULE** + **a forced show plays a party song**: docs/harbor.md#part-8b1 (Group 0).
+
+## 8b1 — the workers, the wildlife + the harbor's timetable, heard (Oct 25 2026; docs/harbor.md#part-8b1)
+Every one through its slot (silent while empty), quiet — felt more than heard:
+- **THE WORKERS** (`screens/harbor/people.js#workSounds`, by pose change): `milk-bottles` (the milkman sets his carrier down, the barber takes
+  it in), `newspaper-rustle` (the bundles dropped, a paper sold), `trash-can-lid` (the lid off, the can tipped into the truck), `crates-clink`
+  (a crate lifted off a truck / set down at the cellar hatch), `broom-sweep` (every ~2.4 s while sweeping), `squeegee` (every ~5 s on the
+  platform), `ladder-clank` (a ladder raised against the wall, taken down), `police-whistle` (the beat cop, now + then at the crossing), the
+  trucks — `trash-truck-arrive` / `trash-truck-depart` (the dump truck: Group 0's cuts of trash-truck-2), `truck-delivery` (the vans; the
+  bootleggers' stake truck at a quarter level — a quiet truck).
+- **THE WILDLIFE** (Group 2 — docs/harbor.md#group-2): pigeon-coo, pigeon-flutter, gulls, squirrel-chatter, coyote-yip / -howl, trash-can-lid
+  (the raccoon), cat-meow, duck-quack, dog-bark; `raccoon-chitter` stays EMPTY.
+- **THE HARBOR'S TIMETABLE** (`scene.js#harborClock`, on the city clock — a jump never fires a burst): `ships-bell` every hour (one ring, under the
+  music, no dip; not at noon), `steam-whistle` at noon and `ship-horn` for the 7 pm dinner cruise WITH THE MUSIC DIPPED (`sounds.js#ducked`: to
+  0.5 / 0.55 over 0.6 s, held 3.5 s, eased back over 5 s — plan.md's "the big moments duck the music"; a few a day), `ship-horn` at 0.7 with no
+  dip as Rosie casts off at 10, 2 + 6. Previews: `&force=ships-bell / steam-whistle / dinner-horn` (every 30 s).

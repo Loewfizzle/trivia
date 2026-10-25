@@ -2212,6 +2212,15 @@ G('workers', async () => {
     const c = await ev(Q.page, `${P}.people.crew`);
     ok(c.works.includes('newsboy') && c.props.includes('stand'), `THE REAL DAY (Mon 8:31): out — ${c.works.join(', ')}; props ${c.props.join(', ')}`);
     await Q.ctx.close(); }
+  // ---- THE WITNESSES (Group 3, &force=ufo on a busy Saturday night): they look up, then RUN as the beam opens; the promenade empties
+  { const Q = await open({ slot: 'wk5', qs: `when=2026-10-24T22:10:00${GR}&force=ufo`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.running >= 2`, 'the witnesses fleeing at a run', 60000);
+    const p1 = await ev(Q.page, `${P}.people`);
+    ok(p1.witness && p1.witness.kind === 'ufo', `THE WITNESSES: ${p1.running} running from the saucer (${p1.witness && p1.witness.n} reacting)`);
+    await waitFor(Q.page, `${P}.people.members.filter(m => m.role !== 'dog' && m.z < 53).length === 0`, 'the promenade empty', 40000);
+    ok(true, 'THE WITNESSES: the promenade empty after they fled');
+    await Q.ctx.close(); }
 });
 
 

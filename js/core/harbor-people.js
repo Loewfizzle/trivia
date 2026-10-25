@@ -21,6 +21,7 @@ import { partyAt } from './harbor-moments.js';
 import { carsAt } from './harbor-traffic.js';
 import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
 import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
+import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbor-witness.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -459,7 +460,7 @@ const endHd = pts => { for (let i = pts.length - 1; i > 0; i--) if (Math.hypot(p
  * its walk — the stride's phase: never sliding), v, a (0..1 — fading onto the bus's far side only), since / left (a pose: s into it /
  * to go), door (a door leg: { id, k ('in' | 'out'), u }) } or null (not on screen).
  */
-function visitAt(vis, t) {
+export function visitAt(vis, t) {
   if (t < vis.t0 || t >= vis.t1) return null;
   let dist = 0, lastHd = null;
   const out = (s, hd) => ({ ...s, hd, dir: dirOfHd(hd) });
@@ -471,7 +472,7 @@ function visitAt(vis, t) {
         const d = (t - lg.t0) * lg.v, p = alongLeg(lg.pts, d, len);
         // (setting off after a pose / a door: turn from where they faced over the first steps)
         let hd = p.hd; if (lastHd != null && d < TURN.start) hd = lerpHd(lastHd, p.hd, d / TURN.start);
-        return out({ x: p.x, z: p.z, y: lg.y || 0, pose: 'walk', dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross, carry: lg.carry }, hd);
+        return out({ x: p.x, z: p.z, y: lg.y || 0, pose: 'walk', dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross, carry: lg.carry, run: !!lg.run }, hd);
       }
       dist += len;
       // (the heading they really ended the leg with — a short leg may end mid-turn: the next leg turns on from there)
@@ -757,7 +758,23 @@ export function folkAt(t, world, cache = new Map()) {
   })).filter(Boolean) : [];
   const crewNow = ctx.noWork ? { visits: [], roof: [], trucks: [], props: [], marks: {} } : crewAt(t, crewW, cache.crew);
   const evNow = cartEv(t), nowSess = sessionsNear(t - 120, t + 10), routine = [...nowSess.flatMap(danceVisits), ...(evNow && t >= evNow.t0 && t < evNow.t1 ? [vendorVisit(evNow)] : []), ...lineVisits(t - 2, t + 2), ...crewNow.visits];
-  const all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
+  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
+  // 8b1 — THE WITNESSES (core/harbor-witness.js): a legendary night (ctx.legend: { kind, t0 }) — everyone on the promenade when it comes
+  // reacts (the UFO: they look up, then FLEE; the TR-3B: they stare up, a few hurry indoors); nobody new comes until the empty spell ends
+  // (the reaction holds after the window too — a routine back at its post on its new path, never the old one popping back — for a few hours)
+  const LG = ctx.legend && t >= ctx.legend.t0 && t < ctx.legend.t0 + 4 * 3600 ? ctx.legend : null, inWin = LG && witnessWindow(LG, t);
+  let reacted = [];
+  if (LG) {
+    reacted = get(`WIT|${LG.kind}|${LG.t0}`, () => {
+      const T = LG.t0 + 3, kA = Math.floor(T / B), kB = Math.floor((T - B / 2) / B), ev = cartEv(T);
+      const cand = [...A(kA), ...Bv(kB), ...busesNear(T - 400, T + 10).flatMap(b => riders(b)), ...sessionsNear(T - 120, T + 10).flatMap(danceVisits), ...(ev && T >= ev.t0 && T < ev.t1 ? [vendorVisit(ev)] : []), ...lineVisits(T - 30, T + 30), ...(ctx.noWork ? [] : crewAt(T, crewW, cache.crew).visits)]
+        .filter((v, i, arr) => arr.findIndex(o => o.id === v.id) === i && v.t0 < LG.t0 + 1 && (v.tEnd || v.t1) > LG.t0);
+      const hide = LG.kind === 'ufo' ? hiderOf(cand, LG, M) : null;
+      return cand.map(v => reactVisit(v, LG, M, { hide })).filter(Boolean);
+    });
+    const ids = new Set(reacted.map(v => v.id));
+    all = [...reacted.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...all.filter(v => !ids.has(v.id) && (!inWin || v.t0 < LG.t0 + 1 || !suppressed(LG, v)))];   // (someone out of reach — on the road, in a doorway — carries on)
+  }
   const members = [];
   for (const v of all) {
     for (const m of v.members) {
@@ -810,7 +827,7 @@ export function folkAt(t, world, cache = new Map()) {
   }
   // THE DOORS' openness now (FP3b: the leaf's swing — every member through it, each on its own lag, the closing tail included)
   const doors = { side: 0, shop: 0 };
-  for (const v of [...A(ka), ...Bv(kb), ...forced, ...routine]) {
+  for (const v of LG ? all : [...A(ka), ...Bv(kb), ...forced, ...routine]) {
     if (t < v.t0 - 1 || t > (v.tEnd || v.t1) + 2) continue;
     for (const lg of v.legs) if (lg.k === 'door' && lg.door in doors) for (const m of v.members) if (m.role !== 'dog') doors[lg.door] = Math.max(doors[lg.door], doorOpenK(lg, t - m.lag));
   }
@@ -826,7 +843,7 @@ export function folkAt(t, world, cache = new Map()) {
   const trucks = crewNow.trucks.map(T => { const x = T.x(t); return { id: T.id, model: T.model, word: T.word, trade: T.trade, paint: T.paint, dark: T.dark, len: T.len, z: T.z, dir: 1, x, dist: T.dist(t), speed: t < T.tA ? Math.max(0, (T.x(t + 0.05) - x) / 0.05) : t >= T.tD ? (T.x(t + 0.05) - x) / 0.05 : 0, n: 3, glow: -1, truck: true, parked: t >= T.tA && t < T.tD, tA: T.tA, tD: T.tD }; });
   const crew = { roof: crewRoof, props: crewNow.props, trucks, marks: crewNow.marks, traces: ctx.noWork ? null : tracesAt(t, crewW, cache.crew), spots: cache.crew.get('P') || null, works: (crewNow.works || []).map(w => w.kind) };
   const ln = lineOf(t), line = ln && t >= ln.T0 - 60 && t < ln.T1 + 120 ? { on: true, n: members.filter(m => m.kind === 'liner' && m.s.pose === 'wait' && !m.s.door).length, admits: ln.admits.filter(a => a > t - 600 && a < t + 600).length } : { on: false, n: 0 };
-  return { visits: all, members, doors, dance, cart, cars, line, crew, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
+  return { visits: all, members, doors, dance, cart, cars, line, crew, witness: inWin ? { kind: LG.kind, t0: LG.t0, n: reacted.length } : null, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
 }
 
 // ------------------------------------------------------------------ THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)

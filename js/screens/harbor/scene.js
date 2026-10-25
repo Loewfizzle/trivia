@@ -81,6 +81,8 @@ import { createDebugStrip } from '../../ui/debug-strip.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
+import { hornsBetween } from '../../core/harbor-boats.js';
 import { createDirector } from '../../core/harbor-director.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 
@@ -508,7 +510,44 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   // 8P — THE PEOPLE's inputs: the clock + the place (every phone the same), the rain (Part 9: only when real), an event on the inlay,
   // the shop's hours; the previews: &force=line&n=6 (the lobby line), &force=bus (a bus every 90 s), &force=no-people
-  const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924,
+  // 8b1 — THE WITNESSES (core/harbor-witness.js): the legendary's start for the people — live (legends.state()), REMEMBERED after it ends
+  // (they stay off the promenade through the empty spell, the routines walk back on their new paths), or a scheduled one's tail for a page
+  // opened mid-way (tonight's legendNight + the same weather gates as legends.js#tick); the pigeons burst up as the beam opens
+  // 8b1 — THE HARBOR'S TIMETABLE, heard + seen (core/harbor-boats.js#ROSIE_TABLE, hornsBetween): the SHIP'S BELL every hour (one ring, under
+  // the music — no dip), the NOON STEAM WHISTLE off Rosie's stacks (a white plume + the music dipped, then eased back), ROSIE's HORN as she
+  // casts off (10, 2, 6) and the 7 pm DINNER CRUISE's long blast (dipped too). Previews: &force=ships-bell / steam-whistle / dinner-horn.
+  let hcLast = null, steamAt = -1e12;
+  const harborSteam = () => { const u = (clock.now() - steamAt) / 1000; return u < 0 || u > 9 ? 0 : u < 0.6 ? u / 0.6 : u < 5 ? 1 : 1 - (u - 5) / 4; };
+  function harborClock(ms) {
+    const off = LK.local ? LK.local.off : null, f = clock.force;
+    if (off == null || !S.motion) { hcLast = ms; return; }
+    const a = hcLast == null ? ms : hcLast; hcLast = ms;
+    if (ms - a > 5000 || ms <= a) return;                                // (a jump: a preview, a return from the background — never a burst)
+    const hourAt = t => Math.floor((t / 1000 + off * 60) / 3600);
+    const tick30 = Math.floor(ms / 30000) !== Math.floor(a / 30000);   // (the previews: every 30 s)
+    if (hourAt(ms) !== hourAt(a) || (f.has('ships-bell') && tick30)) { const h = ((hourAt(ms) % 24) + 24) % 24; if (h !== 12 || f.has('ships-bell')) snd.play('ships-bell', { gain: 0.8, pan: 0.45 }); }
+    if ((hourAt(ms) !== hourAt(a) && ((hourAt(ms) % 24) + 24) % 24 === 12) || (f.has('steam-whistle') && tick30)) { steamAt = ms; if (snd.ducked) snd.ducked('steam-whistle', { gain: 1, pan: 0.4, depth: 0.5 }); }
+    for (const h of hornsBetween(a, ms, off)) { if (h.kind === 'rosie-dinner') { if (snd.ducked) snd.ducked('ship-horn', { gain: 1, pan: 0.4, depth: 0.55 }); } else snd.play('ship-horn', { gain: 0.7, pan: 0.4 }); }
+    if (f.has('dinner-horn') && tick30) { if (snd.ducked) snd.ducked('ship-horn', { gain: 1, pan: 0.4, depth: 0.55 }); }
+  }
+  let lgMemo = null, lgStartled = -1;
+  function legendForPeople() {
+    if (!legends || clock.force.has('no-legends')) return null;
+    const nowS = clock.now() / 1000, st = legends.state();
+    if (st) {
+      const t0 = Math.round((nowS - Math.max(0, st.s)) * 2) / 2;
+      if (!lgMemo || lgMemo.kind !== st.kind || Math.abs(lgMemo.t0 - t0) > 2) lgMemo = { kind: st.kind, t0 };
+      if (st.kind === 'ufo' && st.s >= 5.6 && lgStartled !== lgMemo.t0 && wild) { lgStartled = lgMemo.t0; try { wild.startle(); } catch { /* no wildlife */ } }
+      return lgMemo;
+    }
+    if (lgMemo && nowS - lgMemo.t0 < 4 * 3600) return lgMemo;
+    if (LK.local && !LK.alwaysNight && !LK.storm) {
+      const ev = eveningOf(LK.local), lg = legendNight(ev.y, ev.m, ev.d);
+      if (lg && !(lg.kind === 'ufo' && (LK.rain || 0) > 0.2)) { const s = (ev.hr - lg.h) * 3600; if (s >= 0 && s < 4 * 3600) { lgMemo = { kind: lg.kind, t0: Math.round((nowS - s) * 2) / 2 }; return lgMemo; } }
+    }
+    return null;
+  }
+  const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(),
     forceWork: workForced(), noWork: clock.force.has('no-work'), dusk: duskFor,
     // (8b1: the barber rights the can's lid on a morning after the raccoon — the wildlife's own pure plan: core/harbor-wildlife.js#canAt)
     canAskew: t => { try { return canAt(t - 1, L, { off: LK.local ? LK.local.off : 0, seed: L.seed || 1924 }).lid !== 'on'; } catch { return false; } },
@@ -1186,11 +1225,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const show = (party ? 1 : 0) + (beamK > 0.3 ? 1 : 0) + (lights.spelling ? 1 : 0);
     waterQuiet = show >= 2 || (tier === 1 && party) || density.water < 1;
     // (reduced motion: the boats hold still where the hour began — no zipping taxi, no wakes)
-    boats.tick(motion ? ms : Math.floor(ms / 3600000) * 3600000, nightAt, { quiet: waterQuiet });
+    boats.tick(motion ? ms : Math.floor(ms / 3600000) * 3600000, nightAt, { quiet: waterQuiet, off: LK.local ? LK.local.off : null });
+    harborClock(ms);
     const heel = clamp01((LK.wind || 0) / 10) * 0.16;
     const lgW = legendPow(cam.wheelQuiet ? cam.wheelQuiet.x : W * 0.45, 'harbor', 301);   // (6b: the legendary's pull on the wheel + the pier's lamps)
     const sh0 = neon.show(), hw = { t, ms, T, sunDir, lights: glowK * lgW, fade: fadeIn, motion, party: PT.on > 0 ? PT : null, sparkle: PT.on > 0 ? sh0.sparkle : 0, cn: sh0.cn || 0, drop: sh0.drop || 0 };
-    const hb = { t, T, lights: glowK * legendPow(W * 0.55, 'harbor', 302), power: LB ? legendPow(W * 0.55, 'harbor', 302) : 1, motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes') };
+    const hb = { t, T, lights: glowK * legendPow(W * 0.55, 'harbor', 302), power: LB ? legendPow(W * 0.55, 'harbor', 302) : 1, motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes'), steam: harborSteam(), wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
     const hl = { ms, now: performance.now(), k: legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) * fadeIn * Math.max(litK(DK, 'beams') * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, motion, tier, dim: !!lights.spelling, water };
     // (NEON PASS 6, the owner: on a party night the lighthouse holds its own — a stronger, wider beam; now and then (4 bars in 16) it
     // picks up the party's colour — the right word tower's palette colour, eased in + out)
@@ -1737,7 +1777,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),
       lighthouse: { ...beam.debug(), set: o => beam.set(o), spin: () => beam.spin() },
-      boats: { ...boats.debug(), set: o => boats.set(o) },
+      boats: { ...boats.debug(), set: o => boats.set(o), steam: harborSteam(), clock: hcLast },
       waterfront: waterfront.debug(),
       skyBeams: { ...skyBeams.debug(), set: o => skyBeams.set(o) },
       lampLife: () => lampDbg,

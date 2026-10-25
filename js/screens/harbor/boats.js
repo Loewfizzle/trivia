@@ -19,7 +19,7 @@ import { mix, rgb, shade, clamp01 } from './shapes.js';
 import { LEVEL, axisAt } from './water.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
-const WAKE = { rosie: { life: 10, spread: 0.55, n: 16 }, taxi: { life: 3.4, spread: 1.6, n: 14 }, tug: { life: 8, spread: 0.6, n: 12 }, sail: { life: 6, spread: 0.45, n: 10 } };
+const WAKE = { rosie: { life: 10, spread: 0.55, n: 16 }, taxi: { life: 3.4, spread: 1.6, n: 14 }, tug: { life: 8, spread: 0.6, n: 12 }, sail: { life: 6, spread: 0.45, n: 10 }, fish: { life: 7, spread: 0.5, n: 10 } };
 const BULBS = { city: [[255, 214, 140]], valentine: [[255, 90, 140], [255, 200, 220]], parade: [[255, 70, 70], [80, 255, 120], [255, 214, 120], [90, 160, 255]], party: [[255, 70, 190], [70, 220, 255], [255, 214, 90]], halloween: [[255, 140, 30], [170, 70, 255]], christmas: [[255, 60, 60], [80, 255, 120], [255, 236, 200]] };
 
 function cvs(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
@@ -62,7 +62,7 @@ export function createBoats() {
       const warmWin = [255, 204, 128];
       if (r.kind === 'rosie') nameAt = drawRosie(x, g, X, Y, u, r, lit, day, night, gold, T, bulb, warmWin);
       else if (r.kind === 'taxi') drawTaxi(x, g, X, Y, u, r, lit, day, night, bulb);
-      else if (r.kind === 'tug') drawTug(x, g, X, Y, u, r, lit, day, night, bulb);
+      else if (r.kind === 'tug' || r.kind === 'fish') drawTug(x, g, X, Y, u, r, lit, day, night, bulb);
       else drawSail(x, X, Y, u, r, lit, day, night, gold, T);
       // Rosie's name reads the right way whichever way she heads: a pre-mirrored sprite for heading left, each with the name
       let bodyL = null;
@@ -170,11 +170,13 @@ export function createBoats() {
     if (g) { g.globalAlpha = 0.45; const gg = g.createRadialGradient(X(2.7), Y(1.9), 0, X(2.7), Y(1.9), 1.8 * u); gg.addColorStop(0, 'rgba(255,200,120,0.8)'); gg.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = gg; g.fillRect(X(0.5), Y(3.4), 4 * u, 2.6 * u); g.globalAlpha = 1; }
   }
   function drawTug(x, g, X, Y, u, r, lit, day, night, bulb) {
-    const red = lit([176, 36, 36]), black = lit([22, 20, 26], 0.3), cream = lit([236, 226, 200]), buff = lit([200, 160, 90]);
+    // (8b1: the FISHING TUG shares the build — a Great Lakes fish tug in white with a green sheer stripe, a buff cabin, a green stack band)
+    const fish = r.kind === 'fish';
+    const red = lit(fish ? [44, 104, 74] : [176, 36, 36]), black = lit(fish ? [226, 224, 216] : [22, 20, 26], fish ? 1 : 0.3), cream = lit(fish ? [214, 196, 150] : [236, 226, 200]), buff = lit(fish ? [44, 104, 74] : [200, 160, 90]);
     x.fillStyle = rgb(black); x.beginPath(); x.moveTo(X(0.2), Y(1.3)); x.lineTo(X(8.3), Y(1.6)); x.quadraticCurveTo(X(9.6), Y(1.8), X(9.4), Y(1.0)); x.lineTo(X(8.6), Y(-0.05)); x.lineTo(X(0.5), Y(-0.05)); x.closePath(); x.fill();
     x.fillStyle = rgb(red); x.fillRect(X(0.4), Y(1.25), X(8.5) - X(0.4), 0.5 * u);
     x.fillStyle = rgb(shade(black, 0.1)); x.beginPath(); x.ellipse(X(9.15), Y(1.0), 0.55 * u, 0.75 * u, 0, 0, Math.PI * 2); x.fill();   // the bow fender
-    x.fillStyle = rgb(shade(black, 0.15)); for (let a = 1; a < 8.3; a += 1.2) { x.beginPath(); x.arc(X(a), Y(1.0), 0.28 * u, 0, Math.PI * 2); x.fill(); }   // tyre fenders
+    if (!fish) { x.fillStyle = rgb(shade(black, 0.15)); for (let a = 1; a < 8.3; a += 1.2) { x.beginPath(); x.arc(X(a), Y(1.0), 0.28 * u, 0, Math.PI * 2); x.fill(); } }   // tyre fenders (a tug's)
     x.fillStyle = rgb(cream); x.fillRect(X(2.4), Y(3.1), X(6.6) - X(2.4), 1.4 * u);
     x.fillRect(X(4.2), Y(4.3), X(6.8) - X(4.2), 1.2 * u);
     x.fillStyle = rgb(red); x.fillRect(X(4), Y(4.45), X(7) - X(4), 0.18 * u);
@@ -207,9 +209,11 @@ export function createBoats() {
   // only while the boat is out of sight, so nothing pops; one already on the water finishes. Tier 0 (the calm city): the taxi
   // crosses every other time.
   const skipped = new Set();
-  function tick(ms, nightAt, { quiet = false } = {}) {
+  let offNow = null;                 // (8b1: the local minutes from UTC — Rosie + the fishing tug run on the DAY's timetable)
+  function tick(ms, nightAt, { quiet = false, off = null } = {}) {
+    offNow = off;
     states = routes.map(r => {
-      const st = { r, ...boatAt(r, ms, nightAt), ms };
+      const st = { r, ...boatAt(r, ms, nightAt, { off: offNow }), ms };
       if (!r.thin) return st;
       if (!st.on && st.next != null && quiet) { skipped.add(`${r.id}|${st.next}`); if (skipped.size > 64) skipped.delete(skipped.values().next().value); }
       if (st.on && (skipped.has(`${r.id}|${st.run}`) || (tier === 0 && r.id === 'taxi' && st.run % 2 === 1))) { st.on = false; st.moving = false; st.seg = 'waits'; }
@@ -227,6 +231,35 @@ export function createBoats() {
     c.translate(sx, sy + bob);
     if (s.bodyL && face < 0) { c.scale(-face, 1); c.drawImage(s.bodyL, -s.ox, -s.oy, s.w, s.h); c.scale(-1, 1); }
     else { c.scale(face, 1); c.drawImage(s.body, -s.ox, -s.oy, s.w, s.h); }
+    // (8b1 — THE FISHING TUG's BOW LANTERN while she heads out at dawn / comes home: a warm white point + a tight glow at her stem, a glint
+    // on the water under it — only while it's dark enough to need one)
+    if (r.kind === 'fish' && st.lantern && f.T && (f.T.night + 0.6 * (1 - Math.min(1, f.T.day + f.T.gold))) > 0.3 && (f.power == null || f.power > 0.3)) {
+      const X = a => (a - r.len / 2) * u, Y = y => -y * u, bx = X(r.len - 0.35), by = Y(2.1), k = Math.min(1, (f.T.night || 0) + 0.5) * (f.power == null ? 1 : f.power);
+      const gg = c.createRadialGradient(bx, by, 0, bx, by, Math.max(3, 1.6 * u)); gg.addColorStop(0, `rgba(255,236,190,${(0.95 * k).toFixed(3)})`); gg.addColorStop(0.25, `rgba(255,214,150,${(0.45 * k).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,200,120,0)');
+      c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = gg; c.fillRect(bx - 1.6 * u - 3, by - 1.6 * u - 3, 3.2 * u + 6, 3.2 * u + 6); c.fillStyle = `rgba(255,250,236,${k.toFixed(3)})`; c.beginPath(); c.arc(bx, by, Math.max(0.7, 0.2 * u), 0, Math.PI * 2); c.fill(); c.restore();
+    }
+    // (8b1 — THE NOON STEAM WHISTLE: a white plume off Rosie's stacks, puffing up + drifting with the wind, f.steam 0..1 its envelope)
+    if (r.kind === 'rosie' && (f.steam || 0) > 0.01 && !mirror) {
+      const X = a => (a - r.len / 2) * u, Y = y => -y * u, sx0 = X(17.0), sy0 = Y(11.8), tt = f.t || 0, n = 14;
+      // (8b1 — the steam SHADED, not just white: on the city's cream towers a white puff vanished — each puff a grey body, a darker
+      // underside + a bright crown toward the sky, so it reads against light stone by day + glows faintly at night)
+      const night = f.T ? f.T.night || 0 : 0;
+      for (let i = n - 1; i >= 0; i--) {
+        const q = ((tt / 2.2 + i / n) % 1 + 1) % 1, rise = q * 8.5 * u, drift = q * q * 3.2 * u * (f.wind == null ? 1 : Math.max(-1.3, Math.min(1.3, f.wind / 5))), rr = (0.7 + 2.7 * q) * u;
+        const a = 0.9 * (1 - q) ** 0.8 * Math.min(1, q / 0.05) * f.steam, cx2 = sx0 + drift, cy2 = sy0 - rise;
+        if (a < 0.01) continue;
+        const body = night > 0.5 ? [120, 124, 140] : [196, 200, 210], under = night > 0.5 ? [70, 72, 88] : [132, 138, 154], crown = night > 0.5 ? [180, 184, 200] : [255, 255, 255];
+        const lo = c.createRadialGradient(cx2, cy2 + rr * 0.25, 0, cx2, cy2 + rr * 0.25, rr);
+        lo.addColorStop(0, `rgba(${under.join(',')},${(a * 0.75).toFixed(3)})`); lo.addColorStop(1, `rgba(${under.join(',')},0)`);
+        c.fillStyle = lo; c.fillRect(cx2 - rr, cy2 - rr * 0.75, rr * 2, rr * 2);
+        const md = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, rr * 0.85);
+        md.addColorStop(0, `rgba(${body.join(',')},${(a * 0.9).toFixed(3)})`); md.addColorStop(1, `rgba(${body.join(',')},0)`);
+        c.fillStyle = md; c.fillRect(cx2 - rr, cy2 - rr, rr * 2, rr * 2);
+        const hi = c.createRadialGradient(cx2 - rr * 0.15, cy2 - rr * 0.3, 0, cx2 - rr * 0.15, cy2 - rr * 0.3, rr * 0.55);
+        hi.addColorStop(0, `rgba(${crown.join(',')},${(a * 0.85).toFixed(3)})`); hi.addColorStop(1, `rgba(${crown.join(',')},0)`);
+        c.fillStyle = hi; c.fillRect(cx2 - rr, cy2 - rr, rr * 2, rr * 2);
+      }
+    }
     // (POLISH 4 — THE TR-3B's BLACKOUT: Rosie's lit windows are painted into her night sprite — dark glass laid over them by the power)
     if (r.kind === 'rosie' && f.power != null && f.power < 0.99 && f.T && f.T.night > 0.35) {
       const X = a => (a - r.len / 2) * u, Y = y => -y * u;
@@ -293,9 +326,9 @@ export function createBoats() {
   function sample(r, st, f, n, W) {
     const pts = [];
     for (let i = 0; i <= n; i++) {
-      const age = (i / n) * W.life, p = i ? boatAt(r, st.ms - age * 1000, f.nightAt) : st;
+      const age = (i / n) * W.life, p = i ? boatAt(r, st.ms - age * 1000, f.nightAt, { off: offNow }) : st;
       if (!p.on) break;
-      const q = boatAt(r, st.ms - age * 1000 + 250, f.nightAt), v = i ? Math.abs(q.x - p.x) * 4 : Math.abs(boatAt(r, st.ms - 250, f.nightAt).x - st.x) * 4;
+      const q = boatAt(r, st.ms - age * 1000 + 250, f.nightAt, { off: offNow }), v = i ? Math.abs(q.x - p.x) * 4 : Math.abs(boatAt(r, st.ms - 250, f.nightAt, { off: offNow }).x - st.x) * 4;
       const dir = Math.sign(p.face || 1), stern = p.x - dir * r.len * 0.47;
       pts.push({ age, v, stern, spread: 0.2 + age * W.spread * Math.min(1.4, v / 2), k: (1 - age / W.life) * Math.min(1, v / 0.7) });
     }

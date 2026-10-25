@@ -131,10 +131,10 @@ const headingOf = st => (st.hd != null ? st.hd : st.dir === 1 ? 0 : st.dir === -
  * (profile-ish), tw (the torso's half width on screen), planted (each foot), heel (each heel's rise 0..1).
  */
 export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
-  const hd = headingOf(st), cx = Math.cos(hd), cz = Math.sin(hd), pose = st.pose || 'walk', jog = !!L.jog && st.v > 2, G = jog ? GAIT.jog : GAIT.walk;
+  const hd = headingOf(st), cx = Math.cos(hd), cz = Math.sin(hd), pose = st.pose || 'walk', jog = (!!L.jog || !!st.run) && st.v > 2, G = jog ? GAIT.jog : GAIT.walk;   // (8b1: st.run — anyone RUNNING, the witnesses fleeing)
   // (a step in heights — a stride is two; FP3b: a relaxed 1920s pace takes SHORTER steps — a long step at a slow speed reads as a
   // slow-motion glide — so the cadence stays ~1.8 steps a second)
-  const S = STEP(L);
+  const S = st.run ? STEP({ jog: true }) : STEP(L);
   const walking = pose === 'walk' && st.v > 0.05, p = walking ? ((st.dist / (2 * S * 2.1 * L.h)) % 1 + 1) % 1 : 0;
   const breath = mo ? 0.004 * Math.sin(t * 1.7 + L.h * 37) : 0;
   const sg = [-1, 1], A = G.stance * S;

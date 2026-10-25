@@ -56,7 +56,7 @@ export function createPeople() {
     const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.noWork ? 1 : 0}${f.forceDucks ? 1 : 0}`;   // (8b1 wildlife: the ducks' preview re-plans the crossings) if (fk !== forced) { forced = fk; cache.clear(); }
     const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
-      forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, canAskew: f.canAskew || null,
+      forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, canAskew: f.canAskew || null, legend: f.legend || null,
       crossBlocked: f.crossBlocked || null };   // (8b1 wildlife: crossBlocked — the ducks on the crossing)
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
@@ -414,7 +414,7 @@ export function createPeople() {
     /** 8b1 wildlife — everyone on the promenade now, cheaply (the plan's people, not the tier's cut: every phone reacts alike) */
     positions: () => now.members.map(m => ({ x: m.s.x, z: m.s.z, v: m.s.v || 0, kind: m.kind, vid: m.vid, role: m.m.role })),
     /** what's on the promenade now (tests, the readout) */
-    debug: () => ({ n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
+    debug: () => ({ witness: now.witness || null, running: now.members.filter(m => m.s.run).length, n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
       doors: { ...(now.doors || {}) }, cart: now.cart ? { on: !!now.cart.on, parked: !!now.cart.parked, x: +(now.cart.x || 0).toFixed(2) } : null, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
       roofMembers: roofNow.members.map(m => ({ kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })), map: M ? { nodes: M.nodes, rects: M.rects.length } : null }),

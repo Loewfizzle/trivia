@@ -4,6 +4,24 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — PART 8b1: THE LIFE, PART 1 (Oct 25, 2026) — `docs/harbor.md#part-8b1`, `docs/audio.md#8b1`
+- [x] Group 0 — Polish 4's fixes: THE SURPRISE FLYBY ~twice a month (never on a legendary night; 3–4 jets), the signal heads face their own
+      traffic, wordA's real limits (a 5-letter word already in the biggest font that fits), a billboard swap shows at once by day, the van's
+      night paint; THE BEAT's SAFETY RULE (punch only when the heard offset is confirmed within 45 ms, else a breathing pulse; the readout says
+      which + why) + a forced show plays a party song; Grok's second-try sounds (tv-murmur, the trash truck's arrive / depart, the TR-3B's
+      presence + power failing + power restored — saturated so a phone hears them) + THE DRAIN dramatic (~0.56 × + a warble + 900 Hz); the
+      blackout's last lights (the SPEAKEASY diamonds + rule lines, the tug + taxi windows, the cottage in the water, the café globes, the uplights)
+- [x] Group 1 — THE WORKERS' SCHEDULE: `core/harbor-workers.js` (the timetable: fixed regulars to the minute, windowed shows, never two at
+      once, the weekly shows, cause + effect seeded by the night) + `core/harbor-crew.js` (itineraries on the people's map: real doors, ladders,
+      the roof by its hatch, the catwalk; trucks at the bus's stop as the back road's leaders; the traces) + their clothes, poses + gear
+      (folk.js, gear.js) + their props + the billboard's sheets + the blade's Monday repaint (workers.js) + the dump + stake trucks; the roof
+      board keeps yesterday's poster until the billposter, the blade is the week's; a dead bulb / a lamp's bad night / a dead gooseneck fixed
+      next visit; the WORKERS panel rows; tests + the `workers` E2E group
+- [x] Group 2 — THE WILDLIFE (`core/harbor-wildlife.js`, `screens/harbor/wildlife.js` + `fauna.js`): docs/harbor.md#group-2
+- [x] Group 3 — THE WITNESSES (`core/harbor-witness.js`: look up → run → the promenade empty → people + the regulars back; the TR-3B's stare)
+      + THE HARBOR's TIMETABLE (Rosie's day, the fishing tug, the hourly bell, the noon whistle + its plume, the dinner cruise's horn — the
+      big ones dip the music); the hour-by-week planning table; one A-B-B-A round (a natural busy noon: same; a party night: same)
+
 ### ✅ CITY 2.0 — POLISH 4: THE OWNER'S FP3b + 6b REVIEWS (Oct 25, 2026) — `docs/harbor.md#polish-4`, `docs/audio.md#polish-4`
 - [x] Group 1 — THE TR-3B: the lag found (the tier stepping mid-event = two full rebakes; the sprites baked on the frame it came on screen)
       → a legendary holds the tier, the sprites baked ahead; THE TOTAL BLACKOUT (`blackAt` pure: dying from the entry side, dark through the
