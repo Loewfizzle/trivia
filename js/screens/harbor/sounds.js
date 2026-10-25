@@ -48,7 +48,7 @@ export function createCitySounds() {
   const ducks = [];                     // { h, take, depth, pan: [w, dir] | null } — the jets: the music dips round their peak
   let duckNow = 1, jetX = 0.5, jetKey = '', jetFetch = '';
   // PART 6b — THE LEGENDARY SKY: the run heard (its one-shots fired once), the music's dip / muffle / tape stop while it lasts
-  let lgRun = null, lgDuck = 1, lgHz = 20000, lgRate = 1;
+  let lgRun = null, lgDuck = 1, lgHz = 20000, lgRate = 1, lgBendAt = 0;
 
   /** keep a bed at this gain (0 = fade it out; stopped after `linger` s at zero: its buffer is freed) */
   function keep(slot, gain, pan = 0, { ramp = 1.5, linger = 20, fadeIn = 2 } = {}) {
@@ -237,7 +237,7 @@ export function createCitySounds() {
   function legendSounds(lg, t) {
     if (!lg) {
       if (lgRun) {
-        lgRun = null; keep('ufo-hum', 0); keep('tr3b-drone', 0);
+        lgRun = null; keep('ufo-hum', 0); keep('tr3b-drone', 0); keep('tr3b-presence', 0);
         if (lgDuck !== 1) lgDuck = 1;
         if (lgHz < 20000) { lgHz = 20000; filterMusic(20000, 2); }
         if (lgRate < 1) { lgRate = 1; bendMusic(1, 1.5); }
@@ -254,8 +254,14 @@ export function createCitySounds() {
     } else {
       const over = lg.s < 33 ? clamp(1.25 - Math.abs(lg.x - 0.5) * 1.2, 0, 1) : 0;
       keep('tr3b-drone', over, pan, { ramp: 1, linger: 8, fadeIn: 4 });
-      // (the power-down's thump — `hit` 3.25 s into its take — as the city under it dies, ~6 s in)
-      if (!lgRun.down && lg.s > 2.6 && lg.s < 8) { lgRun.down = true; citySound('tr3b-power-down', { pan, jitter: 0 }); }
+      // (8b1 — HEARD ON A PHONE: its electromagnetic PRESENCE while it crosses (saturated: its harmonics carry it), panned with it)
+      keep('tr3b-presence', lg.s < 34 ? clamp(Math.min((lg.s - 0.5) / 3.5, (34 - lg.s) / 4), 0, 1) : 0, pan, { ramp: 0.8, linger: 6, fadeIn: 3 });
+      // (8b1: THE POWER FAILING — a big machine spinning down as the lights die (BLACK.die0 3.4 s → all dead ~10 s); the old power-down
+      // stays under it as texture (its thump + turbine, 0.55 ×))
+      if (!lgRun.fail && lg.s > 3.2 && lg.s < 6) { lgRun.fail = true; citySound('power-failure', { pan: pan * 0.5, jitter: 0 }); }
+      if (!lgRun.down && lg.s > 2.6 && lg.s < 8) { lgRun.down = true; citySound('tr3b-power-down', { pan, gain: 0.55, jitter: 0 }); }
+      // (8b1: THE POWER COMING BACK — a tube hum swelling (audible ~3 s into its take) as the lights stutter back from 40.2 s)
+      if (!lgRun.restore && lg.s > 37.4 && lg.s < 41) { lgRun.restore = true; citySound('power-restore', { pan: 0, jitter: 0 }); }
       if (st.music.crackle > 0.3 && t > lgRun.crack) { if (lgRun.crack) citySound('tr3b-crackle', { gain: rnd(0.55, 1) * st.music.crackle, pan: clamp(pan + rnd(-0.5, 0.5), -1, 1) }); lgRun.crack = t + rnd(1600, 4200); }
       // (THE CHASE's roar, IN SYNC — POLISH 4: the take fetched as the TR-3B arrives, started so its peak lands as the formation's
       // middle crosses the screen's centre (lg.jets.peakIn), panned with them)
@@ -266,7 +272,9 @@ export function createCitySounds() {
     lgDuck = st.music.duck;
     if (Math.abs(st.music.hz - lgHz) > lgHz * 0.06) { lgHz = st.music.hz; filterMusic(lgHz, 0.6); }
     const r = st.music.rate == null ? 1 : st.music.rate;
-    if (Math.abs(r - lgRate) > 0.02 || (r === 1 && lgRate !== 1)) { lgRate = r; bendMusic(r, r < 1 ? 1.2 : 1.5); }
+    // (8b1: the drain's WARBLE — the envelope already carries the wow + flutter: followed closely while bent, at most ~10 steps a second)
+    const warb = (st.music.warble || 0) > 0.05;
+    if ((warb ? Math.abs(r - lgRate) > 0.006 && t - lgBendAt > 90 : Math.abs(r - lgRate) > 0.02) || (r === 1 && lgRate !== 1)) { lgRate = r; lgBendAt = t; bendMusic(r, warb ? 0.12 : r < 1 ? 1.2 : 1.5); }
     // (POLISH 4: the time the tape stop lost made up while the music is still silent, before it powers back on — never a skip)
     if (st.music.catchUp && !lgRun.caught) { lgRun.caught = true; musicCatchUp(); }
   }

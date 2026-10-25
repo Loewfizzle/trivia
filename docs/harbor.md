@@ -4951,6 +4951,71 @@ screen — both gone (a legendary holds the tier; the sprites baked ahead) — h
   (`darkWanted`) — a raid only needs its own timeline.
 - **THE BACK-ROAD CARS' LAMPS** read `env.power` (the scene passes the legendary's); the street sedan's lamps follow `rf.night` (× the power).
 
+## PART 8b1 — THE LIFE, PART 1 (Oct 25 2026; behind `?city=2`)
+
+### Group 0 — the fixes from Polish 4 + the beat + the second-try sounds
+- **THE SURPRISE FLYBY ~TWICE A MONTH** (`core/harbor-legend.js#flybyDay`, `FLYBY_P` 0.3 → 0.073): random days seeded by the date, golden
+  hour → 23:00 as before, and NEVER on a legendary night (`legendNight` — the UFO / the TR-3B own that sky). Measured over two years: ~2.0 a month.
+- **THE SIGNALS** (`road.js#signalSteps`): each pole's head faces the traffic IT controls — `face = −sg.dir` (the west pole holds the cars driving
+  right: its lamps face left; the east pole the cars driving left: its lamps face right). At 402 both poles stand left of the crossing's
+  middle, so POL4's "outward from the middle" turned both heads left.
+- **THE WINDOW WORDS — the real limits on wordA** (19 columns, tall windows; `tests/harbor-8b1-g0.test.mjs`): one line takes 3 letters in the
+  5 × 5, 4 letters in the 4 × 5, 5 letters in the 3 × 5 (5 × 3 + 4 gaps = 19 exactly; the 4 × 5 needs 24). So a 5-letter word already sets in
+  the biggest font that fits — no code change; 6+ letters go to two lines / across A + B / the scroll as before.
+- **A BILLBOARD SWAP SHOWS AT ONCE BY DAY** (`neon.js#billboard` → `fresh()`; `scene.js` after `layer('bill')`): the day poster is baked with
+  the stage, so a swap showed only once the city's re-bake landed + crossfaded (~1–2 s, the old poster coming back during the crossfade). Now
+  the new board is painted over the baked one (in the baked look's tones, a fresh text state) until a bake carrying that change has landed
+  AND finished its crossfade (`revOfBake`: each bake's neon rev). The night poster was already live. The billposter (Group 1) calls the same.
+- **THE VAN AT NIGHT** (`vehicles.js#nightPaint`): the cream DAIRY livery is a daytime van — after dark its slot wears one of the van's deep
+  paints (forest / navy / maroon, cream lettering), which keep their colour + a lamp-lit gloss; its headlamps a size up (0.2 → 0.26).
+  Only the van (the sedans' small cream / primrose bodies read fine). Preview: `tests/integration/vehicles-preview.html?s=22&only=van`.
+- **THE BEAT — THE SAFETY RULE** (`core/harbor-beat.js#stepSafety`, `safePunch`, `SAFE`; `audio/beat.js#beatCal`; `scene.js#partyTick`): the
+  lights PUNCH on the trusted grid only while the heard offset is CONFIRMED — the strong kicks agree (leadKick's residual) AND land within
+  45 ms of where the lights put the beat. A device with a lead saved from an earlier visit may punch for 4 bars while it confirms; past that,
+  or with nothing to confirm with (no trusted grid, the direct element's deaf listener, nothing heard, a settle after a return / resume /
+  route change, a residual off by more), the city BREATHES — one slow raised-cosine swell a bar (≤ 0.32 × the level), no attack, never a hard
+  punch that may land off the beat. Once confirmed the punch holds through a breakdown for 8 bars. The switch crossfades over ~a bar. The
+  READOUT's new line under the beat line: `lights PUNCH · lead confirmed · 14 kicks` / `lights BREATHE · no kicks confirmed yet (bar 3)` /
+  `lights BREATHE · settling after visible (bar 2)` / `… (→ punch 40 %)` while it crossfades; `harbor().party().safe`, `debug().safety`.
+  (The beat-stepped effects — the racing laps, the marquee chase — still step on the grid; only the punch is gated.)
+- **A FORCED SHOW PLAYS A PARTY SONG** (`scene.js` → `setCityClock({ show })`; `audio/mood.js#moodNow`): the panel's PARTY and every forced show
+  (`&force=party / neon-party / finale / fireworks / drones / dance / strings-party / beams`, not with `no-party`) set the MUSIC MOOD to PARTY
+  over AUTO — app.js#moodWatch crossfades to a party song at once; an explicit MUSIC MOOD choice (the setting / `&mood=`) still wins.
+- **THE BLACKOUT'S LEFTOVERS** (the owner's add-on + a frame burst at `&force=tr3b&lgs=20`, 402×874): the lit DIAMONDS + RULE LINES beside
+  SPEAKEASY (`css/title.css .nd-word::before/::after` — they now follow `--sd-logo` with the letters: dark with the sign, flickering back with
+  it; a sky message dims them with the word too); the TUG's wheelhouse + cabin windows and the water TAXI's cabin windows (painted warm into
+  their night sprites — dark glass like Rosie's, `boats.js`); the lighthouse cottage's lit windows IN THE WATER (the mirror copies the baked
+  harbor layer — `harborBlackout` now laid on the mirror's copy too, + a hair wider on the cottage); the ROOF GUESTS still lit by the dead café
+  lights + every figure's lamp light / rim (`people.js#envOf` × the power — their night tone stays); the café-light GLOBES' unlit glass (the
+  daylight's pale glass + white glint read as lit bulbs at night — dark glass after dark, `strings.js`); the TREES' UPLIGHTS up the trunks (a
+  narrow dark band up each trunk in the promenade's veil). KEPT LIT: the chestnut cart's stove + lantern — they are FIRE. Checked dark: the
+  NEON sign + tagline, the skyline, the signs, the billboard's lamps, the wheel, Rosie, the lighthouse, the quay, the signals, WAIT / WALK,
+  the street lamps, the speakeasy (the moon + its reflection stay).
+- **GROK'S SECOND-TRY SOUNDS** (`scripts/add-city-sfx.py` CUTS + the new recipe steps `sat` (harmonic saturation of the band under ~160 Hz,
+  its harmonics mixed back), `dup` (a high-passed duplicate layer), `seq` pieces REVERSED + equal-power crossfaded) → docs/audio.md#8b1:
+  `tv-murmur` FILLED (wired already: the TV glow upstairs), `trash-truck-arrive` + `trash-truck-depart` NEW + filled (Group 1 wires them),
+  `tr3b-presence` / `power-failure` / `power-restore` NEW + filled + wired, `traffic-far` still EMPTY (measured modern; its cut ready),
+  `raccoon-chitter` EMPTY. THE TR-3B: its presence hum while it crosses, the power failing at 3.2 s (the lights die 3.4 → ~10 s; the old
+  power-down under it at 0.55 ×), the power coming back at 37.4 s (audible ~3 s in, as the lights stutter on from 40.2 s). THE DRAIN
+  DRAMATIC (`tr3bAt` music, `DRAIN_M`): the speed + pitch sag to ~0.56 × with a heavy WARBLE (a 0.55 Hz wow ± 5.5 % + a 1.9 Hz flutter ±
+  2.2 %, never under 0.5 ×), the low-pass closing to 900 Hz, HELD at half volume overhead (it was ducked to 12 % — inaudible), near silent
+  only under the jets (31 → 38.6 s, where the lost time is made up), then the volume back, the slow spin-up, the filter opening (sounds.js
+  follows the warble ≤ ~10 steps a second).
+
+Previews (`https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`): THE BLACKOUT `&when=2026-10-22T22:00&force=tr3b`
+(`&lgs=20` held dark, `&lgs=42` coming back) · THE SIGNALS `&when=2026-10-22T22:00` · THE VAN at night `&when=2026-10-22T21:40` (or
+`tests/integration/vehicles-preview.html?s=22&only=van`) · A BILLBOARD SWAP by day `&when=2026-10-22T13:00` then the console
+`__district.harbor().billboard('bb-left', { game: 'gridlock' })` · THE BEAT's mode: any party night `&when=2026-10-24T22:30` (the readout's
+`lights PUNCH / BREATHE` line) · A FORCED PARTY → a party song `&when=2026-10-22T22:00&force=party` · THE FLYBY `&when=2026-10-22T21:30&force=flyby`.
+
+Tests: `tests/harbor-8b1-g0.test.mjs` (the safety rule's five cases, the van's night paint, wordA's limits); `harbor-legend.test` (the flyby
+~2 a month + never on a legendary night; the drain held low, warbling); `city-sounds.test` (the new slots filled, the loop lengths).
+
+Known issues (Group 0): `traffic-far` stays EMPTY (measured, not heard: a continuous modern-density wash — drop `traffic-far-2` from SKIP in
+the importer to try its ready cut). The sounds were judged by analysis + a phone-band level check, not by ear: the reversed truck arrival,
+the warble's depth and the presence hum's saturation want the owner's ears. The warble moves the media element's playbackRate ~10 × a second
+— if iOS clicks on it, lower `DRAIN_M.wow / flutter` or the step rate. A 5-letter word on wordA can't be bigger than the 3 × 5 (19 columns).
+
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against
 title.js / title-dock.js / backdrop.js, the baker + the budget, the scheduler, the flag, and what Parts 2–12 will hit. The camera

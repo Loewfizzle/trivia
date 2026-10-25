@@ -48,12 +48,14 @@ test('the TR-3B: crosses the whole screen, drains while over the city, the chase
     assert.ok(dir > 0 ? a.x < -0.3 && b.x > 1.3 : a.x > 1.3 && b.x < -0.3);
     assert.ok(tr3bAt(15, dir).drain > 0.99 && tr3bAt(34, dir).drain === 0);
     assert.ok(tr3bAt(35.5, dir).chase.on && !tr3bAt(20, dir).chase.on);
-    assert.ok(tr3bAt(15, dir).music.rate <= 0.5 && tr3bAt(15, dir).music.duck < 0.2);
+    // (8b1 — THE DRAIN DRAMATIC: overhead the song is held LOW but audible — deep (~0.56 ×, warbling), muffled (900 Hz), at half volume)
+    { const m = tr3bAt(15, dir).music; assert.ok(m.rate <= 0.62 && m.rate >= 0.5 && m.duck > 0.35 && m.duck < 0.6 && m.hz < 1000 && m.warble > 0.9, `held low: ${m.rate.toFixed(2)} at ${m.duck.toFixed(2)}`); }
+    { let lo = 9, hi = 0; for (let t = 12; t < 30; t += 0.05) { const r = tr3bAt(t, dir).music.rate; lo = Math.min(lo, r); hi = Math.max(hi, r); } assert.ok(hi - lo > 0.05, `a heavy warble (${lo.toFixed(3)}–${hi.toFixed(3)})`); }
     // (POLISH 4 — THE TAPE STOP HEARD: the speed sags while the music is still loud, never under half speed (iOS mutes below it); after
     // the jets the volume is back first at the low speed, then it spins up)
     const m8 = tr3bAt(8.2, dir).music; assert.ok(m8.rate < 0.75 && m8.duck > 0.9, `sagging while loud: ${m8.rate.toFixed(2)} at ${m8.duck.toFixed(2)}`);
     for (let t = 0; t < TR3B_LEN; t += 0.25) assert.ok(tr3bAt(t, dir).music.rate >= 0.5 - 1e-9);
-    const m41 = tr3bAt(40.6, dir).music; assert.ok(m41.duck > 0.85 && m41.rate < 0.62, `back loud, still slow: ${m41.rate.toFixed(2)} at ${m41.duck.toFixed(2)}`);
+    const m41 = tr3bAt(40.6, dir).music; assert.ok(m41.duck > 0.85 && m41.rate < 0.7, `back loud, still slow: ${m41.rate.toFixed(2)} at ${m41.duck.toFixed(2)}`);
     assert.ok(tr3bAt(38.5, dir).music.catchUp && !tr3bAt(30, dir).music.catchUp && tr3bAt(38.5, dir).music.duck < 0.2, 'the time made up while silent');
     const e = tr3bAt(TR3B_LEN - 0.01, dir).music; assert.ok(e.rate === 1 && e.duck > 0.95 && e.hz > 15000);
   }
@@ -127,19 +129,20 @@ test('THE DIRECTOR: a spectacle budget per tier, holidays > party > legendary > 
   assert.ok(d.may('drones', 'holiday'), 'a holiday outranks what runs below it');
 });
 
-test('POLISH 4 — THE SURPRISE FLYBY: ~2 evenings a week, golden hour → 11 pm, mostly after dark, either way', async () => {
-  const { flybyDay } = await import('../js/core/harbor-legend.js');
+test('POLISH 4 — THE SURPRISE FLYBY: ~twice a month (8b1), never on a legendary night, golden hour → 11 pm, mostly after dark, either way', async () => {
+  const { flybyDay, legendNight } = await import('../js/core/harbor-legend.js');
   let n = 0, night = 0, dirs = new Set();
   for (let d = 0; d < 730; d++) {
     const dt = new Date(Date.UTC(2026, 0, 1) + d * 864e5), dusk = 17 + 4 * Math.sin(((d % 365) / 365) * Math.PI);   // (a dusk between 17:00 and 21:00)
     const f = flybyDay(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate(), dusk);
     if (!f) continue;
     n++; if (f.night) night++; dirs.add(f.dir);
+    assert.equal(legendNight(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()), null, 'never on a legendary night');
     assert.ok(f.h >= dusk - 1.01 && f.h <= 23, `in its window (${f.h} vs dusk ${dusk.toFixed(2)})`);
     assert.ok(f.n >= 2 && f.n <= 4);
   }
-  const perWeek = n / (730 / 7);
-  assert.ok(perWeek > 1.5 && perWeek < 3, `${perWeek.toFixed(2)} a week`);
+  const perMonth = n / (730 / 30.44);
+  assert.ok(perMonth > 1.3 && perMonth < 2.8, `${perMonth.toFixed(2)} a month`);
   assert.ok(night / n > 0.6, 'weighted toward after dark'); assert.equal(dirs.size, 2);
   assert.deepEqual(flybyDay(2026, 10, 24, 18.6), flybyDay(2026, 10, 24, 18.6), 'the same for everyone');
 });

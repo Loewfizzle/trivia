@@ -6,7 +6,8 @@ export const city = { two: typeof location !== 'undefined' && /[?&]city=2(?:&|$)
 export const isCity2 = () => city.two;
 export function cityFailed() { city.two = false; city.clock = null; }
 
-/** The Harbor registers the clock it runs on: { now(): ms, tz(): zone, wx(): the weather it shows|null, q(name): a preview flag's value }.
+/** The Harbor registers the clock it runs on: { now(): ms, tz(): zone, wx(): the weather it shows|null, q(name): a preview flag's value,
+ *  show(): a forced show's mood ('party' — 8b1: the panel's PARTY + the forced shows play a party song) | null }.
  *  They are the scene's own live values, so the preview panel's time jumps and speeds move the music with the light. */
 export function setCityClock(c) { city.clock = c; }
 export const cityClock = () => city.clock;

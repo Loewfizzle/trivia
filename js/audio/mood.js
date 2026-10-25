@@ -56,6 +56,9 @@ export function moodNow(clock, ms, tz) {
   if (chosen) return chosen;
   if (isCity2()) {
     const cc = clock ? null : cityClock();
+    // (8b1: a forced party SHOW — the preview panel's PARTY, &force=party / neon-party / finale / fireworks / drones / dance — plays a
+    // party song over AUTO, so the show's lights follow a party song's grid; app.js#moodWatch switches to it at once)
+    { const sh = cc && cc.show ? cc.show() : null; if (sh && MOODS.includes(sh)) return sh; }
     if (cc) return cityMoodNow(cc.now(), cc.tz(), cc.wx ? cc.wx() : null);
     const c = clock || pageClock || (pageClock = skyClock());
     return cityMoodNow(ms != null ? ms : c.now(), tz || c.tz, c.wx || null);

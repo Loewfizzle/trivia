@@ -47,7 +47,8 @@ export const SLOTS = [
   S('door-knock', '7', 'once', 0.16, 'THE SECRET KNOCK on the speakeasy’s door — knock … knock-knock … knock — then the peephole slot sliding open', 'tapping the door (ambience.js#knock; the synthesized knock if it were ever empty)'),
   S('cat-meow', '7', 'once', 0.1, 'the alley cat’s meow', 'the cat jumping up onto a sill + a tap on the cat (7b)'),
   S('cat-land', '7', 'once', 0.05, 'the cat landing (soft)', 'the cat landing on the sill + hopping down (8P: sounds.js#life)'),
-  S('tv-murmur', '7', 'loop', 0.08, 'a TV murmur through a window (late night) — EMPTY: the file had music + a clear talker in it', 'the TV glow upstairs, ~10 pm → 3 am (7b)'),
+  // (8b1: filled — Grok's second try, a house party's indistinct walla heard through the upstairs glass: 300 Hz–1.8 kHz, no word readable)
+  S('tv-murmur', '7', 'loop', 0.08, 'a murmur of voices through the upstairs window (late night): indistinct walla, through glass (300 Hz–1.8 kHz)', 'the TV glow upstairs, ~10 pm → 3 am (7b: sounds.js#speakeasy)'),
   S('line-murmur', '7', 'loop', 0.05, 'the line at the speakeasy’s door: a few people murmuring, low-passed (no word readable)', 'the lobby line (8P: sounds.line(level))'),
   S('rooftop-party', '7', 'loop', 0.06, 'a party up on the roof, heard from the street (low-passed)', 'the rooftop guests (8P: sounds.rooftop(level))'),
   // (6b — the life + workers + wildlife sounds: the police cars cut from the 1929 Volvo's whole passes (as loud as the road's cars);
@@ -62,7 +63,7 @@ export const SLOTS = [
   S('water-lapping', '8', 'loop', 0.07, 'harbor water lapping at the quay, far + soft', 'always, quietly under the city hum', { lp: 1600 }),
   S('city-hum-day', '8', 'loop', 0.11, 'a distant city hum by day', 'by day (crossfades with the night hum on the darkness)'),
   S('city-hum-night', '8', 'loop', 0.09, 'a distant city hum at night (calmer, never silent)', 'at night (crossfades with the day hum on the darkness)'),
-  S('traffic-far', '8', 'loop', 0.08, 'light far-off traffic — EMPTY: the file was MODERN traffic (the owner)'),
+  S('traffic-far', '8', 'loop', 0.08, 'light far-off traffic — EMPTY: both tries were MODERN traffic (8b1: the second a continuous wash — its cut is ready in the importer)'),
   S('car-1920s-pass', '8', 'once', 0.1, 'a single 1920s car passing, far → near → far', 'the road’s cars (harbor().sounds.play / citySound — Part 8’s headlight sweeps)'),
   S('bus-brake-hiss', '8', 'once', 0.12, 'the bus’s air-brake hiss (an air brake is post-1920s: kept empty — bus-arrive brings it to a stop)'),
   // (8P — THE BUS: the 1945 Mercedes truck's own takes — its approach + stop, its idle, its slow pull-away — rather than the diesel
@@ -86,7 +87,10 @@ export const SLOTS = [
   S('market-murmur', '8', 'loop', 0.06, 'a farmers’ market murmur (Saturday morning; low-passed 1.4 kHz: no word readable)'),
   S('milk-bottles', '8', 'once', 0.05, 'milk bottles clinking (dawn; two takes)'),
   S('truck-delivery', '8', 'once', 0.12, 'a delivery truck (dawn)'),
-  S('trash-truck', '8', 'once', 0.14, 'the trash truck (Monday) — EMPTY: the file was a modern diesel standing still (no arrival / departure to cut)'),
+  S('trash-truck', '8', 'once', 0.14, 'the trash truck (Monday) — EMPTY: the file was a modern diesel standing still (no arrival / departure to cut) — 8b1: see trash-truck-arrive / -depart'),
+  // (8b1 — Grok's second try: an OLD large truck, no air brakes, no beeps — the weekday trash round's arrival + departure (Group 1 wires it))
+  S('trash-truck-arrive', '8', 'once', 0.12, 'the trash truck coming in + stopping (an old truck: its pull-out played backwards into its idle; stopped at `hit` s)'),
+  S('trash-truck-depart', '8', 'once', 0.12, 'the trash truck idling, revving + pulling away, fading off (the pull-out at `hit` s)'),
   S('trash-can-lid', '8', 'once', 0.05, 'a metal trash-can lid dropped + rattling (the trash round)'),
   S('crates-clink', '8', 'once', 0.05, 'a crate of bottles clinking (deliveries; three takes)'),
   S('newspaper-rustle', '8', 'once', 0.04, 'a newspaper opened (a reader on the bench)'),
@@ -152,6 +156,12 @@ export const SLOTS = [
   S('tr3b-drone', 'sky', 'loop', 0.08, 'the TR-3B’s deep drone (low-mids kept: a phone still hears it)'),
   S('tr3b-crackle', 'sky', 'once', 0.1, 'electrical crackle (an electric arc + its reverb, ~3.6 s)'),
   S('tr3b-power-down', 'sky', 'once', 0.12, 'the power-down (the blackout): the hum cut dead with a thump at `hit` s, a turbine winding down'),
+  // (8b1 — the TR-3B HEARD ON A PHONE (Grok's second try): its electromagnetic presence (saturated so its harmonics carry it), the city's
+  // power spinning down as the lights die, a tube hum swelling back as the power stutters on — each checked through a phone-speaker
+  // filter (HPF 200 Hz + LPF 4 kHz) against the drained music: docs/audio.md#8b1)
+  S('tr3b-presence', 'sky', 'loop', 0.22, 'the TR-3B’s presence: a real electromagnetic hum, saturated (its harmonics carry it on a phone), ominous', 'the TR-3B while it crosses (sounds.js#legendSounds)'),
+  S('power-failure', 'sky', 'once', 0.2, 'the city’s power failing: a big machine spinning down (~9 s)', 'the TR-3B’s blackout as the lights die (sounds.js#legendSounds)'),
+  S('power-restore', 'sky', 'once', 0.2, 'the power coming back: a tube hum swelling up (~9 s, saturated + a high-passed layer for a phone)', 'the lights stuttering back after the jets (sounds.js#legendSounds)'),
   S('witch-cackle', 'sky', 'once', 0.1, 'a witch’s cackle (Halloween)'),
   S('sleigh-bells', 'sky', 'once', 0.1, 'sleigh bells (Christmas)'),
   // ---- LEGENDARY EVENTS

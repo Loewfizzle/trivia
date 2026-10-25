@@ -384,6 +384,6 @@ export function harborBlackout(c, L, k) {
     const [wa, wy] = P(bx0 + 0.35, dy + 1.75, bz), [wb, wy2] = P(bx1 - 0.35, dy + 0.95, bz); c.fillStyle = 'rgb(24,22,34)'; c.fillRect(wa - 0.3, wy - 0.3, wb - wa + 0.6, wy2 - wy + 0.6); }
   // the keeper's cottage windows
   if (ck && b) { const cz = ck.z + 1;
-    for (const u0 of [0.16, 0.62]) { const [a, ya] = P(ck.x + ck.w * u0, b.h + 2.6, cz), [cc, yc] = P(ck.x + ck.w * (u0 + 0.2), b.h + 1.3, cz); c.fillStyle = 'rgb(22,20,32)'; c.fillRect(a, ya, cc - a, yc - ya); } }
+    for (const u0 of [0.16, 0.62]) { const [a, ya] = P(ck.x + ck.w * u0, b.h + 2.6, cz), [cc, yc] = P(ck.x + ck.w * (u0 + 0.2), b.h + 1.3, cz); c.fillStyle = 'rgb(22,20,32)'; c.fillRect(a - 0.6, ya - 0.6, cc - a + 1.2, yc - ya + 1.2); } }   // (8b1: + a hair all round — a warm rim of the lit pane showed)
   c.restore();
 }
