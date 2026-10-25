@@ -24,7 +24,9 @@ export function setDebugTool(id, on) {
 /** called with (id, on) whenever a tool is switched → an unsubscribe */
 export function onDebugTools(fn) { subs.add(fn); return () => subs.delete(fn); }
 /** FP3a: is this tool's strip folded to one line? (ui/debug-strip.js — remembered on this device, beside the switches) */
-export const debugFold = id => !!saved[`fold:${id}`];
+// (POLISH 5: the LOAD LOG's strip starts FOLDED — its one line says the reveal + how many changes followed; a tap opens the rows)
+const FOLD_DEFAULT = { load: true };
+export const debugFold = id => (`fold:${id}` in saved ? !!saved[`fold:${id}`] : !!FOLD_DEFAULT[id]);
 export function setDebugFold(id, folded) {
   saved = { ...saved, [`fold:${id}`]: !!folded };
   try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* private mode: this visit only */ }

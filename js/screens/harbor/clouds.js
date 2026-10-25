@@ -545,6 +545,10 @@ export function createClouds() {
   let W = 1, top = 0, roof = 200, HZ = 300, box = null, list = [], old = null, oldK = 0, planKey = '', jobs = [], born = 0, G = null, gKey = '';
   let extra = { grey: 0, dark: 0, base: 0 };              // (Part 9: set())
   let res = 1.8, N = null, epoch = 0, rr = 0, lastA = 0, lastT = 0, mix = null, t0Clock = 0, e0 = 0, windSgn = 1;
+  // (POLISH 5 — THE LOAD: the plans made (the load log names each), the new set's fade (1.6 s; SLOW_MS once the city has shown —
+  // the weather landing, a new block: a slow blend, never a pop) and whether the scene has settled the first set (settle()))
+  let plans = 0, appearMs = 1600, shown = false;
+  const SLOW_MS = 6000;
   // (the readout: what the clouds cost a frame — the draw + the background jobs — and how often a cloud is re-lit)
   const perf = { ms: 0, jobMs: 0, n: 0, relit: 0, beamMs: 0, hitMs: 0, renders: 0, patches: 0 };
   const windX = LK => Math.sin(((LK.windDir == null ? 250 : LK.windDir)) * Math.PI / 180);
@@ -552,6 +556,7 @@ export function createClouds() {
   function plan(LK, seed, motion) {
     if (old) free(old);
     old = list.length && born ? list : null; oldK = old ? 1 : 0;
+    plans++; appearMs = old && shown ? SLOW_MS : 1600;
     if (!old) free(list);
     jobs = [];
     mix = cloudMix(LK, seed);
@@ -783,6 +788,11 @@ export function createClouds() {
       perf.ms = perf.ms * 0.97 + ms * 0.03; perf.n++;
     },
     coverAt,
+    /** POLISH 5: the load gate's view — plans made, how many clouds + their kinds, READY (planned + every cloud baked, or a clear sky),
+     *  slow (the current set's blend in ms when it is a slow one) */
+    stats: () => ({ plans, n: list.length, kinds: [...new Set(list.map(d => d.kind))].join(' ') || 'clear', ready: !!planKey && (!!born || (!list.length && !jobs.length)), slow: appearMs > 1600 ? appearMs : 0 }),
+    /** POLISH 5: the city is revealed — the set baked in the dark shows at once (no fade of its own), the old one gone; later sets blend slowly */
+    settle() { shown = true; if (born) born = performance.now() - appearMs - 1; if (old) { free(old); old = null; } },
     /** SP: tonight's cirrostratus veil 0..1 (the moon's 22° halo lives under it) */
     veil: () => (mix && list.length ? mix.veil || 0 : 0),
     debug: () => ({
@@ -868,7 +878,7 @@ export function createClouds() {
       if (!born && !jobs.length) born = performance.now();
       const now = performance.now(), dt = Math.min(100, fs.dt || 16);
       for (const d of list) if (d.prev && d.fade < 1) { d.fade = Math.min(1, d.fade + dt / 900); if (d.fade >= 1) { d.prev.width = 0; d.prev = null; } }
-      const appear = born ? smooth(0, 1600, now - born) : 0;
+      const appear = born ? smooth(0, appearMs, now - born) : 0;
       // (the time on the cloud field: seconds into this 6-hour block on the city's clock — every phone the same sky)
       const tSec = e0 + ((fs.now - t0Clock) / 1000);
       // 6b — THE HIGH VEIL (cirrostratus: core/weather.js#veilOf → mix.veil): a MILKY SHEEN over the blue (whiter toward the horizon), the

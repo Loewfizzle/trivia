@@ -7,7 +7,7 @@ import { debugFold, setDebugFold } from './debug-tools.js';
 
 const CSS = `
 .dbg-col { position: fixed; z-index: 2147483000; left: calc(var(--safe-l, 0px) + 8px); right: calc(var(--safe-r, 0px) + 56px);
-  top: calc(var(--safe-t, env(safe-area-inset-top, 0px)) + 10px + var(--cb, 36px) + 8px); max-width: 460px; max-height: 38vh; max-height: 38svh;
+  top: calc(var(--safe-t, env(safe-area-inset-top, 0px)) + 10px + var(--cb, 36px) + 8px); max-width: 460px; max-height: calc(40vh - 56px - var(--safe-t, env(safe-area-inset-top, 0px))); max-height: calc(40svh - 56px - var(--safe-t, env(safe-area-inset-top, 0px)));
   display: flex; flex-direction: column; gap: 4px; pointer-events: none; overflow: hidden; }
 .dbg-s { align-self: flex-start; max-width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.72); color: #c9f7de; border-radius: 7px; padding: 2px 7px 3px; min-height: 0;
   font: 600 9px/12px ui-monospace, "JetBrains Mono", monospace; white-space: pre-wrap; word-break: break-all; overflow: hidden; }
@@ -21,7 +21,7 @@ const CSS = `
 `;
 
 let col = null, st = null, count = 0;
-const ORDER = { readout: 0, audio: 1 };
+const ORDER = { readout: 0, load: 1, audio: 2 };   // (POLISH 5: the LOAD LOG's strip — screens/harbor/scene.js#loadStrip)
 
 /**
  * a strip in the shared column. id: 'readout' | 'audio' (its fold is remembered by id).

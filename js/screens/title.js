@@ -299,7 +299,9 @@ export function createTitle() {
     els.sceneWrap = h('div.nd-scene', { 'aria-hidden': 'true' }, els.canvas = h('canvas'));
     // (FP3a — THE LOAD GATE: City 2.0's canvas stays DARK until the scene says its first full frame is ready — onReveal below —
     // so Safari's bars settling, the bakes and the fonts never show as a jump: dark → the city fades in, with the NEON sign)
-    if (createHarbor) { els.sceneWrap.classList.add('is-hold'); els.holdT = setTimeout(reveal, 6000); }
+    // (POLISH 5: City 2.0's canvas is the LARGE viewport — 100lvh — so a Safari tab's bars settling or sliding never resize it: the
+    // city stays put under them (css/title.css .nd-scene.nd-lvh))
+    if (createHarbor) { els.sceneWrap.classList.add('is-hold', 'nd-lvh'); els.holdT = setTimeout(reveal, 6000); }
     document.body.prepend(els.sceneWrap);
     // (City 2.0 starts every phone at tier 2 — iOS reports a capped core count, so the old guess put every iPhone at tier 1 while it
     // ran the Harbor in 1–3 ms; the Harbor's own step-down still protects a slow phone: docs/harbor.md#performance)
@@ -431,10 +433,29 @@ export function createTitle() {
     return els.sign.classList.contains('is-steady') ? 1 : 0.45;
   }
 
+  // POLISH 5 — THE LOAD (the owner's jumping load): the screen ENTERS with a transform (.screen: translateY(14px) scale(0.985) → none
+  // over 0.42 s, css/base.css — far longer under a busy first second), so every rect read while it runs is up to ~19 pt off; the
+  // city was laid out on those, then re-laid when the title reported again after its power-on — AFTER the reveal: the skyline
+  // shifted + crossfaded. Each rect handed to the scene is measured through the screen's transform UNDONE: where it will rest.
+  function restRect(el) {
+    const r = el.getBoundingClientRect(), scr = els.root;
+    if (!scr || !scr.contains(el)) return r;
+    const tf = getComputedStyle(scr).transform;
+    if (!tf || tf === 'none') return r;
+    const m = tf.match(/^matrix\(([^)]+)\)$/);
+    if (!m) return r;
+    const [a, , , d, e, f] = m[1].split(',').map(Number);
+    if (!(a > 0) || !(d > 0)) return r;
+    // (the origin: the screen's own untransformed centre — its offset box inside the stage, which never moves)
+    const st = scr.offsetParent ? scr.offsetParent.getBoundingClientRect() : { left: 0, top: 0 };
+    const ox = st.left + scr.offsetLeft + scr.offsetWidth / 2, oy = st.top + scr.offsetTop + scr.offsetHeight / 2;
+    const left = ox + (r.left - ox - e) / a, top = oy + (r.top - oy - f) / d;
+    return { left, top, width: r.width / a, height: r.height / d, right: left + r.width / a, bottom: top + r.height / d };
+  }
   function logoRect() {
     const svg = els.sign.querySelector('svg');
     if (!svg) return null;
-    const r = svg.getBoundingClientRect();
+    const r = restRect(svg);
     return { x: r.left + r.width * 0.07, y: r.top + r.height * 0.18, w: r.width * 0.86, h: r.height * 0.64 };
   }
 
@@ -1014,7 +1035,7 @@ export function createTitle() {
   }
   function clearZones() {
     const out = [];
-    const add = el => { if (!el) return; const r = el.getBoundingClientRect(); if (r.width && r.height) out.push({ x: r.left, y: r.top, w: r.width, h: r.height }); };
+    const add = el => { if (!el) return; const r = restRect(el); if (r.width && r.height) out.push({ x: r.left, y: r.top, w: r.width, h: r.height }); };
     add(els.sign); add(els.actions);
     // open sky under the tagline too, so the city frames the sign instead of crowding it
     if (out[0]) out[0].h += 34;
@@ -1023,7 +1044,7 @@ export function createTitle() {
   }
   // the NEON letters, SPEAKEASY and the tagline, for the phone sun's arch (it passes behind the words, never the letters)
   function textRects() {
-    const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return r.width && r.height ? { x: r.left, y: r.top, w: r.width, h: r.height } : null; };
+    const box = el => { if (!el) return null; const r = restRect(el); return r.width && r.height ? { x: r.left, y: r.top, w: r.width, h: r.height } : null; };
     const neon = logoRect(), word = box(els.sign.querySelector('.nd-word')), tag = box(els.sign.querySelector('.nd-tag'));
     // (sub: a first visit's "12 PARTY GAMES · ONE PHONE EACH" under the tagline — the rainbow keeps under it too)
     // (DT1: + glyphs — SPEAKEASY's own letters, without the word's decorative rules: City 2.0's dark halo hugs them)

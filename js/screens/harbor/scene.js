@@ -87,6 +87,8 @@ import { roadLampAt } from '../../core/harbor-light.js';
 import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
 import { hornsBetween } from '../../core/harbor-boats.js';
 import { createDirector } from '../../core/harbor-director.js';
+import { createLoadLog, keyDiff } from '../../core/harbor-loadlog.js';
+import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled } from '../district/live-weather.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
@@ -269,6 +271,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now();
   let drawn = 0, fastUntil = 0, fastWhy = '';      // BATTERY: the frames actually drawn; what keeps the city at 60 fps right now
   let shownAt = -1;                         // THE REVEAL (FP3a): when the city was let in — its first bake ready, the viewport settled
+  // POLISH 5 — THE LOAD LOG (core/harbor-loadlog.js; &debug=1 → the 'load' strip; harbor().loadLog): every change to the picture from
+  // the first frame to 15 s after the reveal, each with its cause (a resize's sizes before → after, a re-layout, a bake, a tier step,
+  // the weather landing, the clouds, the sky, the fonts, the dock's rects)
+  const LOADLOG = createLoadLog(t0);
+  const vpSize = () => { const vv = window.visualViewport; return `win ${innerWidth}×${innerHeight}${vv ? ` vv ${Math.round(vv.width)}×${Math.round(vv.height)}@${Math.round(vv.offsetTop)}` : ''} scr ${screen.width}×${screen.height}`; };
+  let vpLast = '', wxSig = '', wxKindLast = '', wxChangedAt = -1e9, extrasIn = false, cloudPlans = 0;
+  // (a change the weather brought after the reveal blends SLOWLY: the bakes, the sky + the clouds over WX_BLEND ms — never a jump)
+  const WX_BLEND = 6000, WX_WAIT = 2500;
+  let fadeMs = 1200, skyPrev = null, skyFadeFrom = -1, skyFadeMs = 1500;
+  const wxRecent = () => performance.now() - wxChangedAt < 12000;
   // FP3a — THE LOAD GATE (FREV B1: on an iPhone the city "shrinks, enlarges and snaps" while Safari's bars settle): during the LOAD
   // WINDOW (until the reveal + LOAD_WIN) a height-only resize under 25 % is coalesced into ONE build 400 ms after the LAST one; a
   // build runs from the next frame (the clear + the redraw share it); the title measures its rects at once (S.measure) so a change
@@ -300,20 +312,23 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let wfx = { resize: NOOP, sky: NOOP, fogLayer: NOOP, flash: NOOP, flashNow: () => 0, moonVeil: () => 1, debug: () => ({}), destroy: NOOP };
   let rain = { resize: NOOP, veils: NOOP, drops: NOOP, debug: () => ({}), destroy: NOOP };
   let frost = { resize: NOOP, pane: NOOP, debug: () => ({}), destroy: NOOP };
-  let liveWeather = () => null, lastWet = () => null, liveKp = () => null;
+  // (POLISH 5: the live weather is read at once — the answer this device kept — so the FIRST bake already has it; the ask starts now)
+  const liveWeather = liveWx, lastWet = lastWetAt, liveKp = liveKpNow;
+  // (POLISH 5: the weather's effects load AT ONCE — the city is held dark until they're in (or REVEAL_MAX): fog / rain / frost never
+  // fade in over a city already showing; they used to wait 1.2 s to keep out of the first paint, which the load gate now covers)
   const extrasT = setTimeout(() => {
     // (Part 6a: the planes + the birds are the Harbor's own now — screens/harbor/skyfx.js; the district's aircraft + wildlife
     // modules are no longer loaded here)
-    Promise.all([import('../district/weather-fx.js'), import('../district/rain.js'), import('../district/live-weather.js'), import('../district/frost.js')]).then(([a, b, e, f]) => {
+    Promise.all([import('../district/weather-fx.js'), import('../district/rain.js'), import('../district/frost.js')]).then(([a, b, f]) => {
       if (destroyed) return;
       wfx = a.createWeatherFx({ onFlash: ev => { if (S.onFlash) S.onFlash(ev); } }); rain = b.createRain(); frost = f.createFrost();
       for (const m of [wfx, rain]) m.resize(W, H, HZ);
       frost.resize(W, H);
-      if (!clock.preview) e.startWeather();
-      liveWeather = e.liveWeather; lastWet = e.lastWetAt; liveKp = e.liveKp || liveKp;
+      extrasIn = true; LOADLOG.add('extras', 'the weather\'s effects in (fog, rain, frost)');
       lookAt = 0;
-    }).catch(e => { console.warn('harbor extras', e); reportError(e, 'harbor extras'); });
-  }, 1200);
+    }).catch(e => { extrasIn = true; console.warn('harbor extras', e); reportError(e, 'harbor extras'); });
+  }, 0);
+  if (!clock.preview) startWeather();
   const wxNow = () => clock.wx || (clock.preview ? null : liveWeather());
   // CITY 2.0 MUSIC (core/city.js): the music follows THIS clock — the scene's own, so the preview panel's time jumps + speeds move it too —
   // the weather it shows (the sun's place) and the flags it runs on (&mood=)
@@ -368,18 +383,20 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const cornerL = (S.clear || []).find(r => r.w < 70 && r.h < 70 && r.x + r.w < W * 0.4 && r.y < H * 0.4) || null;
     return { tag, dock, neon: tr && tr.neon ? tr.neon : null, word: tr && tr.word ? tr.word : null, corner, cornerL };
   }
-  function build() {
-    const r = canvas.getBoundingClientRect();
+  function build(why = 'the start') {
+    const r = canvas.getBoundingClientRect(), was = W ? `${Math.round(W)}×${Math.round(H)}@${dpr}` : '';
     W = Math.max(320, r.width); H = Math.max(320, r.height);
     dpr = Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    layout();
+    { const now = `${Math.round(W)}×${Math.round(H)}@${dpr}`; if (now !== was) LOADLOG.add('canvas', `${was || 'none'} → ${now} (${why})`); }
+    layout(why);
   }
-  function layout() {
-    const rr = rects();
+  function layout(why = 'a re-layout') {
+    const rr = rects(), sig0 = camSig;
     cam = cameraFor(W, H, rr, { top: safeTopV, bottom: safeBotV });
     cam.tagGone = !!S.tagGone;                    // (a re-layout keeps the faded tagline: its band stays sky-low's)
     camSig = [W, H, Math.round(cam.dock.y), Math.round(cam.limitY), tier].join('|');
+    LOADLOG.add('layout', `${why}${sig0 ? (sig0 !== camSig ? ` · camera ${sig0} → ${camSig}` : ' · the camera unchanged') : ''}`);
     L = harborLayout(cam, seed);
     HZ = Math.round(groundY(cam, Z.quay));
     // the roofline (the highest roof over every 4 pt): the sun fits its arch to it, the planes keep above it
@@ -458,7 +475,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function frontTop() { const zs = L.speakeasy.z0, yOf = (y, z) => project(cam, 0, y, z)[1]; let t = cam.H - 40; for (const tr of L.trees) if (tr.z < zs) t = Math.min(t, yOf(tr.trunk + (tr.h || tr.r * 2), tr.z)); for (const l of L.lamps) if (l.z < zs) t = Math.min(t, yOf(l.h + 0.5, l.z)); if (L.cart.shown !== false && !L.cart.live && L.cart.z < zs) t = Math.min(t, yOf(4.2, L.cart.z)); for (const p of L.planters) if (p.z < zs) t = Math.min(t, yOf(1.8, p.z)); return t; }
   // the very first bake waits (≤ 300 ms) for the title's real text rects: a bake on the estimates would be thrown away a frame
   // later (the re-layout), and the city + its windows would land late in the title's power-on
-  const waitRects = () => !S.textRects && performance.now() - t0 < 300;
+  // (POLISH 5: + the title's fonts — they swap in late and move the tagline: the first bake waits for them too (≤ FONT_WAIT) and the
+  // title is measured again before it starts — one bake on the final rects, not three)
+  const waitRects = () => { const now = performance.now(); return (!S.textRects && now - t0 < 1200) || (shownAt < 0 && !fontsReady(now)); };
+  /** the title's rects measured now vs the camera's: did the dock or the tagline's foot move over 2 pt? */
+  function rectsMoved() {
+    measure();
+    const rr = rects(), dy = rr.dock && cam ? Math.abs(rr.dock.y - cam.dock.y) : 0, ty = rr.tag && cam ? Math.abs(rr.tag.y + rr.tag.h + 10 - cam.limitY) : 0;
+    return dy > 2 || ty > 2 ? `dock ${cam ? Math.round(cam.dock.y) : '—'} → ${rr.dock ? Math.round(rr.dock.y) : '—'}, tag foot ${cam ? Math.round(cam.limitY) : '—'} → ${rr.tag ? Math.round(rr.tag.y + rr.tag.h + 10) : '—'}` : '';
+  }
   // THE SUN'S + THE MOON'S ARCHES (Part 2; the behaviour unchanged, the arch re-fit): they rise and set BEHIND the skyline — the
   // arch fits the base's roofline (the bands + the quay), so they may pass behind the towers, the wheel, the lighthouse — and
   // the top of the arch stays clear under the tagline (summer) / lower among the crowns (winter: the low sun reads as behind the
@@ -504,7 +529,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const impliedOn = () => !clock.force.has('no-implied-road');
   // FP2 — THE STREET's WET HOOK (Part 9 hands it the real rain: streetWet({ wet })); &force=wet-street previews it (baked: in the key)
   const wetNow = () => streetWet({ force: clock.force.has('wet-street') });
-  const bakeKey = () => `${seasonNow()}|l${lampsNow()}|${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}|${toneKey(TW)}|${sunKey(sunLook(LK, P))}|${camSig}|${neon.rev}|f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}|${speakCtx().key}`;
+  // (POLISH 5: named parts — the load log says WHICH changed: bakeKey is their values joined, the same string as before)
+  const bakeParts = () => ({ season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key });
+  const bakeKey = () => Object.values(bakeParts()).join('|');
+  let bakeParts0 = null;
+  const partsDiff = (a, b) => (a ? Object.keys(b).filter(k => String(a[k]) !== String(b[k])).join(', ') || 'same' : 'first');
   // 8P — THE LAMPS' LIFE (core/harbor-lamps.js): the switch-on order + the warm-up, the rare moment on the city clock (the same lamp on
   // every phone); a lamp already on when the page opens never stutters; the crossing's pair stays steady while an event is on the inlay
   let lampTh = null, lampThKey = '', lampOnAt = [], lampWas = [];
@@ -663,7 +692,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wantBake = false;
     L.impliedOn = impliedOn(); L.lampK = lampsNow(); L.wet = wetNow();
     L.season = seasonNow(); L.seasonPhase = seasonForced() ? 0.5 : seasonPhase(LK && LK.local ? LK.local.m : 10, LK && LK.local ? LK.local.d : 15, { south: !!(LK && LK.south) });
-    const T = lookTones(), bk = bakeKey();
+    const T = lookTones(), parts = bakeParts(), bk = Object.values(parts).join('|');
+    { const d = partsDiff(bakeParts0, parts), slow = shownAt >= 0 && wxRecent() && /tones|sun|road/.test(d);
+      fadeMs = slow ? WX_BLEND : 1200;
+      LOADLOG.add('bake', `${shownAt >= 0 ? `crossfade ${fadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: shownAt >= 0 && !slow }); bakeParts0 = parts; }
     revOfBake.set(bk, neon.rev); if (revOfBake.size > 8) revOfBake.delete(revOfBake.keys().next().value);   // (8b1: the board swap's overlay)
     baker.start(bk, {
       far: [...facadeSteps(L, T, 'far', 6, neon.glass), neon.housingStep('far', T)],
@@ -690,6 +722,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (NEON PASS 3: a party night's windows — re-baked once when the party starts and once when it ends)
   const partyLit = () => PT.on > 0.5 || clock.force.has('neon-party');
   function rebakeLights() {
+    LOADLOG.add('lit', `${shownAt >= 0 && litBaker.bakes >= 1 ? 'crossfade' : 'swap (dark)'} · ${keyDiff(litBaker.key, lightKey(), ['share', 'bias', 'warm', 'night', 'W', 'H', 'dock', 'limit', 'tier', 'party'])}`, { fade: shownAt >= 0 && litBaker.bakes >= 1 });
     litLook = { share: Math.round(winShare() * 60) / 60, bias: winBias(), warm: P.winWarm || 0, night: DK, party: partyLit() };
     const mf = newMeta(), mn = newMeta();
     litMeta = { far: mf, near: mn };
@@ -715,6 +748,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     P = paletteFor(LH);
     DK = darkNow();
     TW = toneWeights(LH);
+    { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none';
+      if (sig !== wxSig) { if (wxSig && LK.wxKind !== wxKindLast) wxChangedAt = now; LOADLOG.add('wx', `${w ? `${clock.wx ? 'forced' : 'live'} ${w.kind}` : 'none (seeded)'} → the city reads ${LK.wxKind || 'seeded'}${wxSig ? '' : ' (at the start)'}`); wxSig = sig; wxKindLast = LK.wxKind; } }
     // THE AURORA (Part 6a, the owner's call): a rare timed event for everyone (~2 nights a month, seeded, never two in a row) +
     // a bonus night on a real strong storm (NOAA Kp >= 7, via /api/sky) — at night, under clear-enough skies only
     { const lc = LK.local, ev = lc ? new Date(Date.UTC(lc.y, lc.m - 1, lc.d) - (lc.h < 12 ? 864e5 : 0)) : null;
@@ -731,8 +766,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       sched = createScheduler(HARBOR_EVENTS, t => { const sp = sunPosition(t, lat, lon); return { ms: t, force: clock.force, night: an || sp.el < -6, el: an ? -30 : sp.el, az: sp.az, month: new Date(t).getUTCMonth() + 1, south: lat < 0 }; }, { seed, forced: ['demo', 'searchlights'].filter(id => clock.force.has(id)), anchor: anchorFor(ms, LK.local) });
     }
     // (NEON PASS 4: the party's warmer glow over the skyline — repainted when the party starts / ends)
-    if (skyKeyNow() !== skyKey || (partyLit() ? 1 : 0) !== skyParty) { skyKey = skyKeyNow(); skyParty = partyLit() ? 1 : 0; skyMix.sky = null; paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK), dark: DK }); }
-    if (L && neon.night(nightKey(LK.local), TW.day + TW.gold)) layout();          // (tonight's signs: a new pick, only while they are dark + unpainted)
+    if (skyKeyNow() !== skyKey || (partyLit() ? 1 : 0) !== skyParty) { holdSky(now); skyKey = skyKeyNow(); skyParty = partyLit() ? 1 : 0; skyMix.sky = null; paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK), dark: DK }); }
+    if (L && neon.night(nightKey(LK.local), TW.day + TW.gold)) layout('tonight\'s signs');          // (tonight's signs: a new pick, only while they are dark + unpainted)
     // (never during a crossfade: its source is the canvas the next bake draws into)
     if (L && bakeKey() !== baker.key && !baker.pending && fadeFrom < 0 && !waitRects()) rebake();
     if (L && lightKey() !== litBaker.key && !litBaker.pending && litFadeFrom < 0) rebakeLights();
@@ -829,7 +864,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function frame(now) {
     if (!running) return;
     raf = requestAnimationFrame(frame);
-    if (wantBuild) { wantBuild = false; measure(); build(); }      // (FP3a: the clear and the redraw in ONE frame — never a blank one)
+    if (wantBuild) { const why = typeof wantBuild === 'string' ? wantBuild : 'a rebuild'; wantBuild = false; measure(); build(why); }      // (FP3a: the clear and the redraw in ONE frame — never a blank one)
     seenAt = performance.now();                          // (8a: THE LOOP'S PULSE — the watchdog below restarts a loop that stopped getting frames)
     perf(Math.min(100, Math.max(0, now - lastRaf) || 16.7));          // (the frame intervals the tiering watches: every rAF, drawn or not)
     lastRaf = now;
@@ -851,7 +886,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the Safari floor: a frame that throws — iOS out of canvas memory, a layer's context refused — never takes the city down
     // every frame: it steps the tier down to free memory, and after many in a row stops the loop on the last good frame)
     try { draw(t, dt, now); fails = 0; } catch (e) { if (!frameFailed(e)) return; }
-    if (starvedCount() !== starvedSeen && now - starvedAt > 2000) { starvedSeen = starvedCount(); starvedAt = now; if (tier > 0) { if (loadFrozen(now)) wantStep = wantStep || 'starved'; else stepTier(tier - 1); } }
+    if (starvedCount() !== starvedSeen && now - starvedAt > 2000) { starvedSeen = starvedCount(); starvedAt = now; if (tier > 0) { if (loadFrozen(now)) { wantStep = wantStep || 'starved'; LOADLOG.add('tier', 'a starved canvas: a step recorded for later'); } else stepTier(tier - 1, 'starved'); } }
     drawn++;
     costs.push(performance.now() - c0); if (costs.length > 90) costs.shift();
   }
@@ -859,7 +894,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function frameFailed(e) {
     fails++;
     if (!failLogged) { failLogged = true; console.warn('[harbor] a frame failed', e); }
-    if (fails === 3 && tier > 0) { if (loadFrozen(performance.now())) wantStep = wantStep || 'failed'; else stepTier(tier - 1); fails = 0; }
+    if (fails === 3 && tier > 0) { if (loadFrozen(performance.now())) { wantStep = wantStep || 'failed'; LOADLOG.add('tier', '3 failed frames: a step recorded for later'); } else stepTier(tier - 1, 'failed frames'); fails = 0; }
     else if (fails >= 30) { running = false; failStop = true; cancelAnimationFrame(raf); return false; }
     return true;
   }
@@ -868,7 +903,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (now < fastUntil) return 'wake';
     if ((clock.speed || 1) > 1) return 'speed';
     if (shownAt < 0 || now - shownAt < 900) return 'start';
-    if (fadeFrom >= 0 || litFadeFrom >= 0 || wantBake || baker.pending || litBaker.pending || neon.pending) return 'bake';
+    if (fadeFrom >= 0 || litFadeFrom >= 0 || skyFadeFrom >= 0 || wantBake || baker.pending || litBaker.pending || neon.pending) return 'bake';
     if (boats.busy()) return 'boats';                // (the water taxi zipping across; the rest of the harbor is slow: 30 fps is smooth)
     if (beam.busy()) return 'beam';                  // (the lighthouse spinning: tapped 3x)
     if ((S.wave != null && S.wave < 1) || (S.lit != null && S.lit < 1)) return 'power-on';
@@ -958,6 +993,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         c.drawImage(skyCv, 0, 0, W, HZ);
         stars.draw(c, W, HZ, LK, clock.now(), vis, milky, t, S.motion, 0, twilight);
       } }
+    // (POLISH 5: a sky repainted after the reveal fades in under the old one — 1.5 s, the weather's change WX_BLEND — never a jump)
+    if (skyFadeFrom >= 0 && skyPrev) { const k = 1 - smooth(0, skyFadeMs, now - skyFadeFrom); if (k <= 0.002) { skyFadeFrom = -1; skyPrev.width = skyPrev.height = 0; } else { c.globalAlpha = k; c.drawImage(skyPrev, 0, 0, W, HZ); c.globalAlpha = 1; } }
     // (POLISH 4 — THE BLACKOUT: the city's glow on the low sky goes with its lights — the haze over the skyline darker while it's dead)
     if (dk0 > 0.01) { const nk = clamp01(LK.w.night + LK.w.late), y1 = cam.horizon != null ? cam.horizon : HZ, g = c.createLinearGradient(0, y1 - HZ * 0.55, 0, y1);
       g.addColorStop(0, 'rgba(3,2,9,0)'); g.addColorStop(1, `rgba(3,2,9,${(0.42 * dk0 * nk).toFixed(3)})`); c.fillStyle = g; c.fillRect(0, y1 - HZ * 0.55, W, HZ * 0.55); }
@@ -991,9 +1028,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     drawEvents(c, 'sky');
     // ---- the city: the baked layers, far → near, with the moving things between them
     const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - shownAt);
-    const xf = fadeFrom < 0 ? 1 : smooth(0, 1200, now - fadeFrom);
+    const xf = fadeFrom < 0 ? 1 : smooth(0, fadeMs, now - fadeFrom);
     if (xf >= 1 && fadeFrom >= 0) { fadeFrom = -1; if (!baker.pending) baker.settle(); }
-    if (wantBake && fadeFrom < 0 && !waitRects()) { wantBake = false; rebake(); }
+    if (wantBake && fadeFrom < 0 && !waitRects()) { const mv = shownAt < 0 && S.measure ? rectsMoved() : ''; if (mv) { LOADLOG.add('dock', `measured before the first bake: ${mv}`); layout('measured before the bake'); } else { wantBake = false; rebake(); } }
+    // (POLISH 5: the clouds re-planned — the weather landing, a new 6-hour block, the tagline's band — logged; slow after the reveal)
+    { const cs = clouds.stats(); if (cs.plans !== cloudPlans) { cloudPlans = cs.plans; LOADLOG.add('clouds', `${cs.plans > 1 ? 're-planned' : 'planned'} · ${cs.n} (${cs.kinds})${cs.slow ? ` · blended ${cs.slow} ms` : ''}`, { replan: cs.plans > 1 && shownAt >= 0, slow: !!cs.slow }); } }
     const T = liveTones || tones(TW);
     // a layer: its current canvas in the band it was baked for (a re-layout keeps drawing the stale one there — stretched into
     // the new band after a resize or a tier change — until the new bake swaps in; then the crossfade from the old one)
@@ -1127,8 +1166,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     layer('stage');
     // 8P — THE LAMPS' LIFE: one by one at dusk with a warm-up stutter, a rare flicker / a rarer short outage (core/harbor-lamps.js); a
     // lamp that is off takes its baked pool back down
-    const LL = lampLife(t);
-    if (LL.dim && fadeIn > 0 && bakeTones) dimPools(c, L, LL.off, bakeTones.lamps || 0);
+    const LLF = lampLife(t);
+    if (LLF.dim && fadeIn > 0 && bakeTones) dimPools(c, L, LLF.off, bakeTones.lamps || 0);
     // the stop lights' lamps: lit at every hour, a glow after dark (FP: side-on, the glow spilling along the road; the cycle: signalAt) —
     // right after their bake, so the people + the front row stand in front of them
     if (fadeIn > 0) drawSignalLamps(c, L, sigSt, sigO);
@@ -1199,9 +1238,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the trees' falling leaves (autumn) / the crabapple's petals (its blossom) in the real wind (8a: trees.js)
     if (fadeIn > 0 && !off.has('no-leaves')) { const wd = LK.windDir == null ? 250 : LK.windDir; leaves.draw(c, { t, dt, motion: S.motion, wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), season: L.season, phase: L.seasonPhase, fade: fadeIn, night: litK(DK, 'lamps'), tier }); }
     // ---- the lights (every frame): the lamps' light on the promenade, the knock's warm flash at the door
-    // (DT1: the darkness's lamps ramp — around sunset; 8P: each lamp catches at its own point of the ramp, then burns full: LL.levels)
-    const lampK = fadeIn * (LL.ramp > 0.02 ? 1 : 0) * (lit > 0 ? 1 : 0.3);
-    drawLampLight(c, L, lampK, glow, coolGlow || (coolGlow = radial('205,222,255')), Math.min(2, dpr), LL.levels);
+    // (DT1: the darkness's lamps ramp — around sunset; 8P: each lamp catches at its own point of the ramp, then burns full: LOADLOG.levels)
+    const lampK = fadeIn * (LOADLOG.ramp > 0.02 ? 1 : 0) * (lit > 0 ? 1 : 0.3);
+    drawLampLight(c, L, lampK, glow, coolGlow || (coolGlow = radial('205,222,255')), Math.min(2, dpr), LOADLOG.levels);
     // THE STRING LIGHTS on the speakeasy's roof (NEON PASS 4): warm from dusk; a party night's colours chasing on the beat.
     // (SP2: the CAFÉ-LIGHT CANOPY over the roof's deck — strings.js; &force=strings-party previews the party's colours)
     if (fadeIn > 0 && !off.has('no-strings')) {
@@ -1225,7 +1264,35 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     drawForeground(c, W, H, vignette, night);
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
     // (FP: or THE PREVIEW PANEL → TOOLS → READOUT on this device — ui/debug-tools.js, live, remembered; &debug=1 still shows it)
-    if (debugTool('readout', DEBUG)) readout(now); else if (roStrip) { roStrip.remove(); roStrip = null; }
+    if (debugTool('readout', DEBUG)) { readout(now); loadStrip(now); pixWatch(now); } else { if (roStrip) { roStrip.remove(); roStrip = null; } if (llStrip) { llStrip.remove(); llStrip = null; } }
+  }
+  // POLISH 5 — THE LOAD LOG's strip (&debug=1, foldable like the readout; remembered per device): the reveal's why + ms and every
+  // change to the picture after it, ⚠ on the ones the eye sees. Twice a second while the log records, once more when it closes.
+  let llStrip = null, llAt = 0, llDone = false;
+  function loadStrip(now) {
+    if (now - llAt < 500 && llStrip) return;
+    llAt = now;
+    const open = LOADLOG.open();
+    if (!open && llDone && llStrip) return;
+    if (!open) llDone = true;
+    if (!llStrip) llStrip = createDebugStrip('load');
+    llStrip.set({ head: `${LOADLOG.head()} ▾`, line: `${LOADLOG.head()} ▸`, rows: LOADLOG.lines().map(t => [t.includes('⚠') ? 'dbg-bad' : 'dbg-ev', t]), ok: LOADLOG.visible().length === 0 });
+  }
+  // the PIXEL WATCH (&debug=1 only): from 1 s after the reveal (the fade) to the log's end, 4× a second the picture shrunk to 12×24 →
+  // six bands' mean brightness; a band jumping > 9 levels between two looks is logged — anything the instruments above don't name
+  let pxCv = null, pxPrev = null, pxAt = 0;
+  function pixWatch(now) {
+    if (shownAt < 0 || now - shownAt < 1000 || !LOADLOG.open() || now - pxAt < 250) return;
+    pxAt = now;
+    try {
+      if (!pxCv) { pxCv = document.createElement('canvas'); pxCv.width = 12; pxCv.height = 24; }
+      const x = safeCtx(pxCv, { willReadFrequently: true });
+      x.drawImage(canvas, 0, 0, 12, 24);
+      const d = x.getImageData(0, 0, 12, 24).data, band = [0, 0, 0, 0, 0, 0];
+      for (let i = 0; i < 12 * 24; i++) band[Math.floor(Math.floor(i / 12) / 4)] += (d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11) / 48;
+      if (pxPrev) { const names = ['the high sky', 'the sky', 'the skyline', 'the harbor', 'the promenade', 'the dock']; const pw = (S.wave < 1 || S.lit < 1 || S.bill < 1 || neon.busy(nowT)) ? 'power' : 'pix'; band.forEach((v, i) => { const dv = v - pxPrev[i]; if (Math.abs(dv) > 9) LOADLOG.add(pw, `${names[i]} ${dv > 0 ? '+' : '−'}${Math.abs(dv).toFixed(0)} levels in 250 ms${pw === 'power' ? ' (the power-on: the neon / the windows lighting, by design)' : ''}`); }); }
+      pxPrev = band;
+    } catch { /* a tainted / lost canvas: no watch */ }
   }
   // &debug=1: THE FRAME-TIME READOUT (the owner's request: the real speed on her own phone) — top left, under the safe area:
   // the tier + DPR, frames drawn a second, the scene's work per drawn frame (mean / p95 over the last 90 DRAWN frames), the frame
@@ -1666,8 +1733,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let graceDone = false, legendHeld = false;
   let tierHold = 0, perfN = 0, tierAt = performance.now(), ups = 0, upAt = 0, upLock = false, manualTier = false, probe = null, capped = 0;
   const tierHist = [tier];                      // (the readout shows the steps: 2→1→2)
-  function stepTier(t) { fastUntil = Math.max(fastUntil, performance.now() + 1500); tier = Math.max(0, Math.min(2, t));   // (NEON PASS 5: build() clears the canvas — the battery saver must never skip the next draw: a black frame)
-     tierHist.push(tier); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); if (legends) legends.setTier(tier); build(); if (DEBUG) console.info('[harbor] tier', tier); }
+  function stepTier(t, why = 'the frame rate') { fastUntil = Math.max(fastUntil, performance.now() + 1500); const was = tier; tier = Math.max(0, Math.min(2, t));   // (NEON PASS 5: build() clears the canvas — the battery saver must never skip the next draw: a black frame)
+     LOADLOG.add('tier', `${was} → ${tier} (${why})`, { applied: shownAt >= 0 });
+     tierHist.push(tier); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); if (legends) legends.setTier(tier); build('a tier step'); if (DEBUG) console.info('[harbor] tier', tier); }
   function setTier(t) { manualTier = true; stepTier(t); }
 
   // 8a — THE LOOP COMES BACK (the owner's iPhone after 7a: back from the home screen the music + Web Audio recovered — the DOM AUDIO
@@ -1711,15 +1779,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const onResize = () => {
     const now = performance.now(), r0 = canvas.getBoundingClientRect();
     lastResizeAt = now;
+    { const vp = vpSize(); LOADLOG.add('resize', `${vpLast || '?'} → ${vp} · canvas ${Math.round(r0.width)}×${Math.round(r0.height)} (city ${Math.round(W)}×${Math.round(H)})`); vpLast = vp; }
     const big = Math.abs(Math.max(320, r0.width) - W) >= 0.5 || Math.abs(Math.max(320, r0.height) - H) >= 0.25 * H;
     clearTimeout(resizeT);
     resizeT = setTimeout(() => {
       resizeT = 0;
       if (destroyed) return;
       const r = canvas.getBoundingClientRect();
-      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr) === dpr) return;
+      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr) === dpr) { LOADLOG.add('note', 'the resize changed nothing the city uses: kept'); return; }
       fastUntil = Math.max(fastUntil, performance.now() + 1500);
-      if (running) wantBuild = true; else { measure(); build(); }
+      if (running) wantBuild = 'a resize'; else { measure(); build('a resize'); }
     }, inLoad(now) && !big ? 400 : 180);
   };
   const inLoad = now => shownAt < 0 || now < shownAt + LOAD_WIN;
@@ -1733,18 +1802,63 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (m && m.textRects) S.textRects = m.textRects;
   }
   /** THE REVEAL: the first full frame is ready → the city fades in (900 ms) and the title lets the canvas show */
+  // (POLISH 5: + the weather — the answer this device kept, or the live ask answered, or WX_WAIT — the weather's effects in, the
+  // clouds baked, and a tier step recorded during the load APPLIED HERE, while the city is still dark: nothing changes after)
   function tryReveal(now) {
+    if (wantStep && tier > 0 && now - t0 < REVEAL_MAX) { const w = wantStep; wantStep = null; stepWhy.push(w); LOADLOG.add('tier', `${tier} → ${tier - 1} before the reveal (${w})`); stepTier(tier - 1); return; }
     const ready = baker.bakes >= 1 && litBaker.bakes >= 1 && !baker.pending && !litBaker.pending && !wantBake && !wantBuild && !resizeT && now - lastResizeAt > 400;
-    const fonts = typeof document === 'undefined' || !document.fonts || document.fonts.status === 'loaded' || now - t0 > 1200;
+    const fonts = fontsReady(now);
+    const wx = clock.preview || clock.wx || weatherSettled() || now - t0 > WX_WAIT;
+    const cs = clouds.stats(), sky = extrasIn && (cs.ready || clock.force.has('no-clouds'));
     const late = now - t0 > REVEAL_MAX;
-    if (!(ready && fonts) && !late) return;
-    shownAt = now; revealWhy = ready && fonts ? 'ready' : 'late';
+    if (!(ready && fonts && wx && sky) && !late) return;
+    // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is
+    // read now, and a changed look re-bakes once more, still dark)
+    { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; return; } }
+    if (!late && L && bakeKey() !== baker.key) { lookAt = 0; return; }
+    // (POLISH 5: the title's rects measured NOW, once — a font swapped in, the intro's dock — and the city re-laid in the dark if they
+    // moved: the title only reports them again after its power-on, which used to land AFTER the reveal: a re-layout + a crossfade)
+    if (!late && L && S.measure) { const mv = rectsMoved(); if (mv) { LOADLOG.add('dock', `measured before the reveal: ${mv}`); layout('measured before the reveal'); return; } }
+    shownAt = now; revealWhy = ready && fonts && wx && sky ? 'ready' : 'late';
+    clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
+    const waits = [!ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds'].filter(Boolean);
+    LOADLOG.reveal(revealWhy, `t${tier} dpr ${dpr} · ${Math.round(W)}×${Math.round(H)} · wx ${LK.wxKind || 'seeded'}${waits.length ? ` · still waiting for ${waits.join(', ')}` : ''}`, now);
     if (S.onReveal) { try { S.onReveal({ why: revealWhy, ms: Math.round(now - t0) }); } catch { /* the title's */ } }
+  }
+  // POLISH 5 — THE FONTS (the owner's jumping load): the title's fonts come from Google's stylesheet, loaded late (a preload swapped
+  // to a stylesheet) — until it lands document.fonts holds NO face of theirs and reads 'loaded', so the old check let the reveal
+  // through and the tagline's JetBrains Mono swapped in after it (the tagline 16 pt lower → the skyline re-laid). Now: the three
+  // families must be registered and their title weights loaded (asked for once they are), or FONT_WAIT ms passed.
+  const FONT_WAIT = 3000, TITLE_FONTS = ['700 10px "JetBrains Mono"', '700 16px Orbitron', '900 16px Orbitron', '600 16px "Chakra Petch"', '700 16px "Chakra Petch"'];
+  let fontsIn = false, fontsAsked = false;
+  function fontsReady(now) {
+    if (fontsIn || typeof document === 'undefined' || !document.fonts) return true;
+    if (now - t0 > FONT_WAIT) { fontsIn = true; LOADLOG.add('fonts', `not all in after ${FONT_WAIT} ms: revealed on the fallbacks`); return true; }
+    const fams = new Set(); try { document.fonts.forEach(f => fams.add(String(f.family).replace(/["']/g, ''))); } catch { return true; }
+    if (!['Orbitron', 'Chakra Petch', 'JetBrains Mono'].every(f => fams.has(f))) return false;
+    if (!fontsAsked) { fontsAsked = true; Promise.all(TITLE_FONTS.map(f => document.fonts.load(f))).then(() => { fontsIn = true; LOADLOG.add('fonts', 'the title faces loaded'); }, () => { fontsIn = true; }); }
+    return false;
+  }
+  /** the sky about to be repainted after the reveal: the old one kept to fade out over it (slow when the weather changed it) */
+  function holdSky(now) {
+    if (shownAt < 0 || !skyCv.width) return;
+    const src = skyMix.sky && skyMix.cv.width === skyCv.width && skyMix.cv.height === skyCv.height ? skyMix.cv : skyCv;
+    if (!skyPrev) skyPrev = document.createElement('canvas');
+    if (skyPrev.width !== src.width || skyPrev.height !== src.height) { skyPrev.width = src.width; skyPrev.height = src.height; }
+    const x = safeCtx(skyPrev); x.globalCompositeOperation = 'copy'; x.globalAlpha = 1; x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-over';
+    skyFadeFrom = now; skyFadeMs = wxRecent() ? WX_BLEND : 1500;
+    LOADLOG.add('sky', `repainted · faded over ${skyFadeMs} ms${wxRecent() ? ' (the weather)' : ''}`, { slow: true });
   }
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('pageshow', onShow); window.addEventListener('focus', onFocus);
   window.addEventListener('pointerdown', onTapWake, { capture: true, passive: true });
   window.addEventListener('resize', onResize);
+  // (POLISH 5: the visualViewport's own changes + the fonts landing, for the load log)
+  const onVV = () => { const vp = vpSize(); if (vp !== vpLast) { LOADLOG.add('resize', `visualViewport: ${vpLast || '?'} → ${vp}`); vpLast = vp; } };
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', onVV);
+  const onFonts = e => LOADLOG.add('fonts', `${(e.fontfaces || []).map(f => f.family).filter((v, i, a) => a.indexOf(v) === i).join(', ') || 'fonts'} in`);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', onFonts);
+  vpLast = vpSize();
   function start() { if (running || destroyed) return; running = true; last = lastRaf = startAt = performance.now(); if (!seenAt) seenAt = startAt; fastUntil = last + 1500; raf = requestAnimationFrame(frame); }
   function stop() { running = false; cancelAnimationFrame(raf); }
   // the title reports the sign's and the dock's real rects a frame after mount (and every 500 ms): a moved rect re-lays the city
@@ -1752,7 +1866,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!cam) return;
     const rr = rects();
     const moved = (rr.dock && Math.abs(rr.dock.y - cam.dock.y) > 2) || (rr.tag && Math.abs(rr.tag.y + rr.tag.h + 10 - cam.limitY) > 2);   // (FP3a: > 2 pt)
-    if (moved) { clearTimeout(relayT); relayT = setTimeout(() => { if (!destroyed) layout(); }, 60); return; }
+    // (POLISH 5: after the reveal a move that came with Safari's bars — a resize in the last 2 s, the canvas itself unchanged (it is
+    // 100lvh: the bars never resize it) — keeps the city where it is: the dock is glass over it, the city never jumps under it)
+    if (moved && shownAt >= 0 && performance.now() - lastResizeAt < 2000) { LOADLOG.add('dock', `the dock moved with the bars (${Math.round(cam.dock.y)} → ${rr.dock ? Math.round(rr.dock.y) : '—'}): the city kept`); cam.dock = rr.dock || cam.dock; return; }
+    if (moved) { LOADLOG.add('dock', `the title's rects moved: dock ${Math.round(cam.dock.y)} → ${rr.dock ? Math.round(rr.dock.y) : '—'}, tag foot ${Math.round(cam.limitY)} → ${rr.tag ? Math.round(rr.tag.y + rr.tag.h + 10) : '—'}`); clearTimeout(relayT); relayT = setTimeout(() => { if (!destroyed) layout('the title\'s rects moved'); }, 60); return; }
     // the sign or the corner buttons moved, the city didn't: only the lanes follow (no bake)
     const sig = r => (r ? `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}` : '-');
     const lk = [rr.neon, rr.word, rr.corner, rr.cornerL].map(sig).join('|');
@@ -1802,7 +1919,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     signCol: () => S.signCol || null,
     refresh: () => { lookAt = 0; skyKey = ''; },
     safeTop: v => { safeTopV = v || 0; fx.safeTop(v); },
-    safeBottom: v => { const n = v || 0; if (n !== safeBotV) { safeBotV = n; if (W) layout(); } },
+    safeBottom: v => { const n = v || 0; if (n !== safeBotV) { LOADLOG.add('note', `the safe area's bottom ${safeBotV} → ${n}`); safeBotV = n; if (W) layout('the safe area'); } },
     get state() { return S; },
     setTier,
     tier: () => tier,
@@ -1894,7 +2011,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3) },
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
-      rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
+      rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {
       destroyed = true;
@@ -1903,12 +2020,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pageshow', onShow); window.removeEventListener('focus', onFocus); window.removeEventListener('pointerdown', onTapWake, { capture: true }); clearInterval(watchdog);
       window.removeEventListener('resize', onResize);
+      if (window.visualViewport) window.visualViewport.removeEventListener('resize', onVV);
+      if (document.fonts && document.fonts.removeEventListener) document.fonts.removeEventListener('loadingdone', onFonts);
       baker.destroy(); litBaker.destroy(); wild.destroy(); for (const d of Object.values(dark.g)) d.cv.width = d.cv.height = 0; sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
       fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
       if (roStrip) { roStrip.remove(); roStrip = null; }
-      for (const c of [skyCv, vignette, glow, coolGlow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
+      if (llStrip) { llStrip.remove(); llStrip = null; }
+      for (const c of [skyCv, skyPrev, pxCv, vignette, glow, coolGlow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;
     },
   };

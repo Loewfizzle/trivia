@@ -10,6 +10,8 @@
 .nd-scene.is-out { opacity: 0; }
 /* FP3a — THE LOAD GATE (City 2.0): dark until the city's first full frame is ready, then one clean fade in (docs/harbor.md#performance) */
 .nd-scene.is-hold { opacity: 0; transition: none; }
+/* POLISH 5 — City 2.0: the LARGE viewport (Safari's bars retracted), anchored at the top — the bars never resize the canvas */
+.nd-scene.nd-lvh { bottom: auto; height: 100vh; height: 100lvh; }
 .nd-scene.is-reveal { transition: opacity 0.6s ease; }
 body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: none; }
 /* on the title the corner buttons sit in the real corner (elsewhere they hug the phone-width column) */

@@ -19,6 +19,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { CI_JOBS, SERIAL, jobProblems, localShards } from './harbor-jobs.mjs';
+import { normalize as wxNormalize } from '../../js/core/weather.js';
 
 const BROWSER = process.argv[2];
 const OUT = (process.argv[3] || './shots-harbor').replace(/\/?$/, '/');
@@ -577,7 +578,7 @@ G('core', async () => {
         if (await waitFor(D.page, `document.querySelector('.dbg-s[data-id=${id}]').classList.contains('dbg-fold') === ${!was}`, `${id} flipped`, 2000).then(() => true, () => false)) return;
       }
     };
-    await head('readout'); await head('audio');
+    await head('readout'); await head('audio');   // (POLISH 5: the LOAD strip starts folded)
     await waitFor(D.page, "[...document.querySelectorAll('.dbg-s')].every(s => s.classList.contains('dbg-fold'))", 'both folded', 3000).catch(() => {});
     await sleep(600);
     const g1 = await geo(), line1 = await ev(D.page, "document.querySelector('.dbg-s[data-id=readout] .dbg-h').textContent");
@@ -586,7 +587,7 @@ G('core', async () => {
     await D.page.reload(); await waitFor(D.page, "!!document.querySelector('.dbg-s[data-id=readout]') && !!document.querySelector('.dbg-s[data-id=audio]')", 'the strips again', 15000);
     const g2 = await geo();
     ok(g2.folded.every(Boolean), `DEBUG STRIPS ${w}: the fold remembered on this device (${g2.folded.join(' / ')})`);
-    await head('readout'); await head('audio');
+    await head('readout'); await head('audio'); await head('load');
     await waitFor(D.page, "[...document.querySelectorAll('.dbg-s')].every(s => !s.classList.contains('dbg-fold'))", 'unfolded', 3000).catch(() => {});
     await sleep(600);
     const g3 = await geo();
@@ -1107,7 +1108,40 @@ G('load', async () => {
   await p.setViewport({ width: 874, height: 402, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   let rot = true; await waitFor(p, 'window.__district.harbor().cam.W === 874', 'the rotation', 8000).catch(() => { rot = false; });
   ok(rot, 'LOAD: a rotation re-lays the city within 8 s');
+  // POLISH 5 — THE LOAD LOG (core/harbor-loadlog.js): from the reveal on, nothing the eye sees changes (no re-layout, no crossfade over
+  // the city, no instant sky repaint, no clouds popping, no tier step) — the measured load above, then the live weather three ways
+  { const LG = hb.loadLog;
+    ok(LG && LG.rows.some(r => r.kind === 'reveal') && LG.visible.length === 0, `LOAD LOG: the bars settling → 0 changes after the reveal (${LG ? LG.visible.map(r => `${r.kind} ${r.msg}`).join(' | ') || 'none' : 'no log'})`); }
   await ctx.close();
+  // THE WEATHER AT LOAD — the real clock (no &when), /api/sky answered by the test: overcast, after `delay` ms; cached = the answer
+  // already on this device (localStorage nd:wx, fresh). The owner's iPhone faded clear → overcast after the city showed, EVERY load.
+  const wxLoad = async (name, { delay, cached, intro }) => {
+    const c2 = await (await launch()).createBrowserContext();
+    const q = await c2.newPage();
+    q.on('pageerror', e => { errors.push(`load-wx pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
+    await q.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const ans = { ...wxNormalize({ weather_code: 3, cloud_cover: 100, cloud_cover_low: 95, cloud_cover_mid: 40, cloud_cover_high: 10, visibility: 20000, wind_speed_10m: 12, wind_direction_10m: 250, temperature_2m: 9 }, { lat: 42.96, lon: -85.67 }, Date.now()), kp: [] };
+    await q.evaluateOnNewDocument((cachedAns) => {
+      try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:lw:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); if (cachedAns) localStorage.setItem('nd:wx', JSON.stringify({ ...cachedAns, at: Date.now(), got: Date.now() })); else localStorage.removeItem('nd:wx'); } catch { /* fine */ }
+    }, cached ? ans : null);
+    await q.setRequestInterception(true);
+    q.on('request', r => { if (r.url().includes('/api/sky')) setTimeout(() => r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...ans, at: Date.now() }) }).catch(() => {}), delay); else r.continue().catch(() => {}); });
+    await q.goto(`${BASE}/?emu&slot=lw${intro ? '&intro=1' : ''}&city=2`);
+    await waitFor(q, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'the reveal', 20000);
+    await sleep(Math.max(4000, delay + 4000 - 2000));
+    const h = await ev(q, '(() => { const h = window.__district.harbor(); return { log: h.loadLog, wx: window.__district.scene().wxKind }; })()');
+    const rv = h.log.rows.find(r => r.kind === 'reveal'), late = h.log.rows.filter(r => r.a != null && (r.kind === 'bake' || r.kind === 'sky' || r.kind === 'clouds'));
+    await c2.close();
+    return { ...h, rv, late };
+  };
+  { const r = await wxLoad('cached', { delay: 3000, cached: true });
+    ok(/wx overcast/.test(r.rv.msg) && r.log.visible.length === 0, `LOAD WEATHER — kept on this device: the first frame is already overcast, 0 changes after (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
+  { const r = await wxLoad('fast', { delay: 1200, cached: false });
+    ok(/wx overcast/.test(r.rv.msg) && r.log.visible.length === 0, `LOAD WEATHER — answered in 1.2 s: the reveal waits for it, revealed overcast, 0 changes after (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
+  { const r = await wxLoad('slow', { delay: 6000, cached: false });
+    ok(r.wx === 'overcast' && r.log.visible.length === 0 && !/wx overcast/.test(r.rv.msg), `LOAD WEATHER — answered after 6 s (past the wait): revealed first, the weather then BLENDS slowly — 0 jumps (now ${r.wx}; after: ${r.late.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'nothing re-baked'})`); }
+  { const r = await wxLoad('intro', { delay: 300, cached: false, intro: true });
+    ok(r.log.visible.length === 0, `LOAD — THE FULL POWER-ON (&intro=1: the screen's entrance, the fonts, the dock easing in): 0 changes after the reveal (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
 });
 G('perf', async () => {
   // ================================================================ 5. frame pacing at 4× CPU, memory over 20 cycles, a hidden tab
