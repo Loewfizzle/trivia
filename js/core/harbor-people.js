@@ -39,8 +39,13 @@ export const TIER_CAP = Object.freeze([6, 9, 12]);
 export function capByTier(members, tier = 2) {
   const tt = Math.max(0, Math.min(2, tier | 0)), cap = TIER_CAP[tt];
   // (FP3b: the dance circle at tier 0 is its first DANCE.tier0 dancers — the square — and a routine's people are kept FIRST)
+  // (POLISH 4: the dance circle is ON TOP of the crowd — its dancers always drawn (tier 0: the square), the cap is the crowd's)
   const ms = tt === 0 ? members.filter(m => !(m.routine === 'dance' && m.kind === 'dancer' && m.idx >= DANCE.tier0)) : members;
   if (cap >= FOLK.cap) return ms;
+  const dancers = ms.filter(m => m.routine === 'dance' && m.kind === 'dancer'), crowd = ms.filter(m => !(m.routine === 'dance' && m.kind === 'dancer'));
+  return [...dancers, ...capCrowd(crowd, cap)];
+}
+function capCrowd(ms, cap) {
   const heads = new Map(), rank = new Map();
   for (const m of ms) { heads.set(m.vid, (heads.get(m.vid) || 0) + (m.m.role === 'dog' ? 0 : 1)); if (m.routine) rank.set(m.vid, m.kind === 'dancer' ? 2 : 1); }
   const keep = new Set(); let n = 0;
@@ -52,19 +57,26 @@ export function capByTier(members, tier = 2) {
 /** periods of the day (local hours [from, to)): n = the people out on average [weekday, weekend] (~¾ of them on screen: the rest are
  *  walking in / out past the edges or round behind the speakeasy); mix = the kinds' weights
  *  (KINDS below). Weekends: busier (n) and LATER (lateShift moves the evening's hours on by an hour). */
+// (POLISH 4 — THE PEOPLE CALMER, the owner: "a little too chaotic — too many people walking briskly, in and out of the speakeasy".
+// ON SCREEN: a weekday daytime 4–5; lunch + after work 6–7; a normal night after dark 3–4; weekend + party nights 8–12 (the dance
+// circle on top); late at night 0–3 — tests/harbor-people.test.mjs measures it over a simulated day. LINGER MORE, PASS THROUGH LESS:
+// the mix is mostly people who STAY a while — the bench (minutes), the railing over the water, a pair stopped chatting, the bus stop,
+// the cart — and only a few walking straight through. THE SPEAKEASY STAYS SECRET: nobody walks into it from the mix — the barbershop's
+// occasional customer by day; the side door's guests come on their own schedule (DOOR_STREAM) + THE LINE on party nights (lineNight))
 export const MIX = Object.freeze([
-  { id: 'small-hours', from: 2, to: 5.5, n: [0.4, 0.7], mix: { nightworker: 3, lone: 1 } },
-  { id: 'early', from: 5.5, to: 8, n: [4.4, 3.1], mix: { jogger: 4, dogwalker: 4, worker: 3, stroller: 1 } },
-  { id: 'commute', from: 8, to: 9.25, n: [8.8, 5], mix: { brisk: 5, busrider: 4, newsboy: 1.5, dogwalker: 1.5, worker: 1 } },
-  { id: 'morning', from: 9.25, to: 11.5, n: [7.5, 8.8], mix: { stroller: 3, couple: 1.5, window: 1.5, customer: 1.2, cart: 1, water: 1.2, dogwalker: 1.5, busrider: 1, meet: 1 } },
-  { id: 'midday', from: 11.5, to: 14, n: [11.2, 12], mix: { stroller: 3, couple: 2, lunch: 2.5, window: 1.2, customer: 1.2, cart: 2, water: 1.2, meet: 1.2, brisk: 1.5, busrider: 1 } },
-  { id: 'afternoon', from: 14, to: 16.25, n: [8.8, 11.2], mix: { stroller: 3, couple: 2, window: 1, customer: 1, cart: 1.5, water: 1.5, dogwalker: 1.5, newsboy: 1, meet: 1 } },
-  { id: 'homeward', from: 16.25, to: 18.5, n: [11.2, 11.2], mix: { homeward: 5, busrider: 3, stroller: 1.5, cart: 1.2, couple: 1.2, dogwalker: 1 } },
-  { id: 'evening', from: 18.5, to: 22, n: [10, 12], mix: { couple: 4, guests: 3, jogger: 0.8, dogwalker: 2, water: 1.5, stargazer: 1, stroller: 1.5, cart: 1.6 } },
-  { id: 'late', from: 22, to: 26, n: [5, 7.5], mix: { straggler: 3, leaving: 2.5, lone: 2, couple: 1.2, guests: 1 } },
+  { id: 'small-hours', from: 2, to: 5.5, n: [0.3, 0.5], mix: { nightworker: 2, lone: 1 } },
+  { id: 'early', from: 5.5, to: 8, n: [2.3, 1.7], mix: { jogger: 1.6, dogwalker: 3, worker: 2, water: 1, bench: 1 } },
+  { id: 'commute', from: 8, to: 9.25, n: [5.2, 3.4], mix: { busrider: 4, brisk: 1.6, newsboy: 1.5, dogwalker: 1.5, worker: 1, bench: 0.6 } },
+  { id: 'morning', from: 9.25, to: 11.5, n: [3.5, 4.6], mix: { bench: 3, water: 2.5, couple: 2.5, dogwalker: 1.5, window: 1.5, meet: 1.5, busrider: 1.5, stroller: 0.8, customer: 0.3, newsboy: 0.5 } },
+  { id: 'midday', from: 11.5, to: 14, n: [5, 5.2], mix: { lunch: 4, bench: 1.2, couple: 2.5, water: 2, meet: 2, window: 1.2, busrider: 1.2, stroller: 0.8, brisk: 0.5, customer: 0.3 } },
+  { id: 'afternoon', from: 14, to: 16.25, n: [3.3, 4.6], mix: { bench: 3, water: 2.5, couple: 2.5, dogwalker: 1.5, window: 1, meet: 1.5, busrider: 1.2, newsboy: 0.6, stroller: 0.8, customer: 0.3 } },
+  { id: 'homeward', from: 16.25, to: 18.5, n: [5.1, 4.6], mix: { busrider: 3.5, homeward: 1.2, couple: 2, bench: 2, water: 1.5, cart: 1.5, meet: 1.5, dogwalker: 1, stroller: 0.6, customer: 0.2 } },
+  { id: 'evening', from: 18.5, to: 22, n: [2.5, 3.3], mix: { couple: 3, water: 2, stargazer: 1.5, dogwalker: 1.5, cart: 2, bench: 1.5, meet: 1, stroller: 0.6, jogger: 0.25 } },
+  { id: 'late', from: 22, to: 24, n: [2.3, 3.1], mix: { couple: 2, water: 1.5, lone: 1.5, stargazer: 1, bench: 0.8, straggler: 0.4 } },
+  { id: 'night', from: 24, to: 26, n: [1.3, 1.9], mix: { lone: 2, couple: 1, straggler: 0.6, water: 0.5 } },
 ]);
 /** party nights: the guests' weight × this, the count × partyN; rain (0..1): the count × (1 − rainCut × rain), the gaits × (1 + rainFast) */
-export const MOOD = Object.freeze({ party: 3.2, partyN: 1.3, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2 });
+export const MOOD = Object.freeze({ party: 3.2, partyN: 3.3, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2 });
 
 /** the period at local hour h (0..24, a weekend shifts the evening on by MOOD.lateShift) */
 function periodAt(h, weekend = false) {
@@ -79,10 +91,10 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1 } 
   n *= 1 - MOOD.rainCut * Math.max(0, Math.min(1, rain));
   n *= Math.max(0, Math.min(1, budget));
   const mix = { ...p.mix };
-  if (party && mix.guests) mix.guests *= MOOD.party;
-  if (party && !mix.guests) mix.guests = 2;
+  // (POLISH 4: party nights — more people out ENJOYING it: couples, the water, the bench; the guests themselves come by THE LINE)
+  if (party) { mix.couple = (mix.couple || 1) * 1.6; mix.meet = (mix.meet || 0) + 1.2; mix.water = (mix.water || 0) + 0.8; }
   if (rain > 0.3) { delete mix.lunch; delete mix.water; delete mix.stargazer; if (mix.jogger) mix.jogger *= 0.3; }
-  return { id: p.id, n: Math.min(FOLK.cap, n), mix, weekend };
+  return { id: p.id, n: Math.min(FOLK.cap, n), mix, weekend, party: !!party };
 }
 
 // ------------------------------------------------------------------ THE WALKABLE MAP (world x, z on the ground)
@@ -258,26 +270,28 @@ const floor = (r, M) => {
   return { ...M.nodes.inlay };
 };
 export const KINDS = {
-  stroller: (r, M) => ({ look: 'stroll', gait: 'stroll', goals: [{ from: anySide(r) }, ...(r() < 0.5 ? [{ at: jitter(r, M.nodes.inlay, 2.5, 1.5) }, { pose: 'look', dur: 3 + r() * 8 }] : []), { exit: 'any' }] }),
+  stroller: (r, M) => ({ look: 'stroll', gait: 'stroll', goals: [{ from: anySide(r) }, ...(r() < 0.7 ? [{ at: jitter(r, M.nodes.inlay, 2.5, 1.5) }, { pose: 'look', dur: 8 + r() * 16 }] : []), { exit: 'any' }] }),
+  // (POLISH 4 — the bench at any hour: one or two sitting a few minutes, reading the day, watching the harbor)
+  bench: (r, M) => ({ look: r() < 0.5 ? 'walker' : 'lady', gait: 'stroll', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: { x: M.nodes.bench.x + (r() < 0.5 ? -0.75 : 0.75), z: M.nodes.bench.z } }, { pose: 'sit', dur: 120 + r() * 200, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
   brisk: (r) => ({ look: 'commuter', gait: 'brisk', goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { exit: r() < 0.3 ? 'cross' : 'any' }] }),
   jogger: (r) => ({ look: 'jogger', gait: 'jog', goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, { exit: r() < 0.25 ? 'cross' : 'any' }] }),
-  dogwalker: (r, M) => ({ look: 'walker', gait: 'stroll', dog: true, goals: [{ from: r() < 0.2 ? 'cross' : anySide(r) }, { at: floor(r, M) }, { pose: 'wait', dur: 4 + r() * 10 }, { exit: 'any' }] }),
+  dogwalker: (r, M) => ({ look: 'walker', gait: 'stroll', dog: true, goals: [{ from: r() < 0.2 ? 'cross' : anySide(r) }, { at: floor(r, M) }, { pose: 'wait', dur: 14 + r() * 26 }, { exit: 'any' }] }),
   worker: (r) => ({ look: 'worker', gait: 'walk', goals: [{ from: anySide(r) }, { bus: true }] }),
   busrider: (r) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { bus: true }] }),
   newsboy: (r, M) => ({ look: 'newsboy', gait: 'kid', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.inlay, 3, 1.2) }, { pose: 'wave', dur: 5 + r() * 6 }, { exit: 'any' }] }),
-  couple: (r, M) => ({ look: 'couple', gait: 'stroll', pair: true, goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, ...(r() < 0.45 ? [{ at: jitter(r, M.nodes.inlay, 2.5, 1.2) }, { pose: 'chat', dur: 6 + r() * 12 }] : []), { exit: r() < 0.25 ? 'cross' : 'any' }] }),
-  lunch: (r, M) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: { x: M.nodes.bench.x + (r() < 0.5 ? -0.75 : 0.75), z: M.nodes.bench.z } }, { pose: 'sit', dur: 60 + r() * 150, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
+  couple: (r, M) => ({ look: 'couple', gait: 'stroll', pair: true, goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, ...(r() < 0.85 ? [{ at: r() < 0.5 || !M.exits ? jitter(r, M.nodes.inlay, 2.5, 1.2) : floor(r, M) }, { pose: 'chat', dur: 30 + r() * 60 }] : []), { exit: r() < 0.25 ? 'cross' : 'any' }] }),
+  lunch: (r, M) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: { x: M.nodes.bench.x + (r() < 0.5 ? -0.75 : 0.75), z: M.nodes.bench.z } }, { pose: 'sit', dur: 60 + r() * 150, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
   window: (r, M) => ({ look: r() < 0.6 ? 'lady' : 'walker', gait: 'stroll', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.shopWin, 0.6, 0.15) }, { pose: 'shop', dur: 8 + r() * 14 }, { exit: 'any' }] }),
   customer: (r) => ({ look: 'walker', gait: 'walk', hours: [9, 17.8], goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { door: 'shop' }] }),
   cart: (r, M) => ({ look: r() < 0.5 ? 'lady' : 'walker', gait: 'stroll', need: 'cart', goals: [{ from: anySide(r) }, { at: M.nodes.cart }, { pose: 'cart', dur: 10 + r() * 14, face: 1 }, { exit: 'any' }] }),
-  water: (r) => ({ look: r() < 0.5 ? 'stroll' : 'lady', gait: 'stroll', goals: [{ from: anySide(r) }, { cross: 'out' }, { pose: 'lean', dur: 18 + r() * 40, face: 2 }, { exit: r() < 0.5 ? 'farLeft' : 'farRight' }] }),
-  meet: (r, M) => ({ look: 'walker', gait: 'walk', pair: 'meet', goals: [{ from: 'left' }, { at: M.nodes.meetA }, { pose: 'chat', dur: 14 + r() * 24 }, { exit: 'any' }] }),
-  homeward: (r) => ({ look: 'commuter', gait: 'brisk', goals: [{ from: r() < 0.5 ? 'shop' : anySide(r) }, { exit: r() < 0.35 ? 'cross' : r() < 0.6 ? 'bus' : 'any' }] }),
+  water: (r) => ({ look: r() < 0.5 ? 'stroll' : 'lady', gait: 'stroll', goals: [{ from: anySide(r) }, { cross: 'out' }, { pose: 'lean', dur: 60 + r() * 110, face: 2 }, { exit: r() < 0.5 ? 'farLeft' : 'farRight' }] }),
+  meet: (r, M) => ({ look: 'walker', gait: 'walk', pair: 'meet', goals: [{ from: 'left' }, { at: M.nodes.meetA }, { pose: 'chat', dur: 40 + r() * 70 }, { exit: 'any' }] }),
+  homeward: (r) => ({ look: 'commuter', gait: 'brisk', goals: [{ from: r() < 0.1 ? 'shop' : anySide(r) }, { exit: r() < 0.35 ? 'cross' : r() < 0.6 ? 'bus' : 'any' }] }),
   guests: (r) => ({ look: 'guest', gait: 'walk', group: 2 + Math.floor(r() * 3), goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { door: 'side' }] }),
-  stargazer: (r, M) => ({ look: 'stroll', gait: 'stroll', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.sky, 1.5, 0.8) }, { pose: 'point', dur: 5 + r() * 6 }, { exit: 'any' }] }),
+  stargazer: (r, M) => ({ look: 'stroll', gait: 'stroll', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.sky, 1.5, 0.8) }, { pose: 'point', dur: 6 + r() * 6 }, { pose: 'watch', dur: 20 + r() * 40 }, { exit: 'any' }] }),
   straggler: (r) => ({ look: 'guest', gait: 'stroll', goals: [{ from: r() < 0.5 ? 'side' : anySide(r) }, { exit: r() < 0.3 ? 'cross' : 'any' }] }),
   leaving: (r) => ({ look: 'guest', gait: 'stroll', pair: true, goals: [{ from: 'side' }, { exit: r() < 0.3 ? 'cross' : 'any' }] }),
-  lone: (r, M) => ({ look: 'night', gait: 'walk', goals: [{ from: anySide(r) }, ...(r() < 0.4 ? [{ at: floor(r, M) }, { pose: 'watch', dur: 4 + r() * 5 }] : []), { exit: 'any' }] }),
+  lone: (r, M) => ({ look: 'night', gait: 'walk', goals: [{ from: anySide(r) }, ...(r() < 0.6 ? [{ at: floor(r, M) }, { pose: 'watch', dur: 15 + r() * 30 }] : []), { exit: 'any' }] }),
   nightworker: (r) => ({ look: 'worker', gait: 'walk', goals: [{ from: anySide(r) }, { exit: 'any' }] }),
 };
 
@@ -479,6 +493,91 @@ function visitAt(vis, t) {
   return null;
 }
 
+// ------------------------------------------------------------------ POLISH 4 — THE SPEAKEASY STAYS SECRET (the owner)
+/** THE SIDE DOOR's own schedule (never the random mix): evenings a trickle — a pair going in every few minutes (`inGap` s, from
+ *  `inHours`), leavers later (`outGap`, from `outHours`); party nights only the leavers here (the guests queue in THE LINE); by day
+ *  nobody. `gap`: two arrivals on the promenade at least this far apart (never a burst). Hours on the evening's clock (25 = 1 am). */
+export const STREAM = Object.freeze({ gap: 9, inGap: [170, 290], inHours: [18.5, 23.25], outGap: [220, 380], outHours: [21, 25.75], party: { outGap: [95, 165], outHours: [21.5, 26.25] } });
+const evHour = (tt, off) => { const h = localOf(tt, off).h; return h < 12 ? h + 24 : h; };
+function streamOf(k, t0, ctx, party) {
+  const B = FOLK.block, out = [], r = rngFrom(hashString(`stream|${ctx.seed || 1924}|${k}`));
+  const P = party ? STREAM.party : STREAM;
+  const lane = (gap, hours, make) => {
+    for (let tt = t0 + r() * gap[0]; tt < t0 + B - 70; tt += gap[0] + r() * (gap[1] - gap[0])) { const h = evHour(tt, ctx.off); if (h >= hours[0] && h < hours[1]) out.push(make(tt)); }
+  };
+  if (!party) lane(STREAM.inGap, STREAM.inHours, tt => ({ t: tt, kind: 'guests', seed: Math.floor(r() * 2147483647), spec: { look: 'guest', gait: 'walk', group: 2, goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, { door: 'side' }] } }));
+  lane(P.outGap, P.outHours, tt => ({ t: tt, kind: 'leaving', seed: Math.floor(r() * 2147483647), spec: { look: 'guest', gait: 'stroll', pair: true, goals: [{ from: 'side' }, { exit: r() < 0.3 ? 'cross' : 'any' }] } }));
+  return out.sort((a, b) => a.t - b.t);
+}
+
+/**
+ * THE LINE AT THE DOOR on party nights (the owner: "a steady stream + A LINE AT THE DOOR — queued where the lobby line forms, the doorman
+ * letting them in a few at a time"). PURE, one simulation a night (seeded by the evening's date): groups of 1–3 arrive every `arrive` s
+ * from `from` to `to` (evening hours), walk in from an edge to the back of the queue (linePlaces: along the shopfront left of the side
+ * door, bending toward the corner); every `admit` s the DOORMAN (beside the door, facing the line) lets in up to `batch` (whole
+ * groups); the rest shuffle up. Never longer than `max` (a group that would make it longer doesn't come); emptied by `to`.
+ * → { visits (each guest + the doorman), admits: [t] } — the same on every phone, joined mid-way.
+ */
+export const LINE = Object.freeze({ from: 20.6, to: 25.4, arrive: [55, 95], admit: [70, 105], batch: 3, max: 7, slots: 12, step: 0.85 });
+export function lineNight(day0, key, M, L, ctx = {}) {
+  const r = rngFrom(hashString(`line|${ctx.seed || 1924}|${key}`)), T0 = day0 + LINE.from * 3600, T1 = day0 + LINE.to * 3600;
+  const P = linePlaces(L, LINE.slots), D = M.nodes.sideDoor;
+  const groups = [];
+  for (let t = T0 + 20 + r() * 20; t < T1 - 300; t += LINE.arrive[0] + r() * (LINE.arrive[1] - LINE.arrive[0])) groups.push({ ta: t, n: r() < 0.6 ? 2 : r() < 0.5 ? 1 : 3, side: r() < 0.62 ? 'right' : 'left', seed: Math.floor(r() * 2147483647), moves: [] });
+  // the queue, event by event (an arrival joins the back; an admission lets the front in; the rest step up)
+  const queue = [], admits = [];
+  let gi = 0, d = T0 + 50 + r() * 25;
+  for (let guard = 0; guard < 5000 && (gi < groups.length || queue.length); guard++) {
+    if (gi < groups.length && groups[gi].ta <= d) {
+      const g = groups[gi++], n0 = queue.reduce((a, q) => a + q.n, 0);
+      if (n0 + g.n > LINE.max) { g.skip = true; continue; }
+      g.at = n0; queue.push(g);
+    } else {
+      let h = 0; const inn = [];
+      while (queue.length && (!inn.length || h + queue[0].n <= LINE.batch)) { const g = queue.shift(); g.tIn = d; h += g.n; inn.push(g); }
+      if (inn.length) { admits.push(d); for (const g of queue) g.moves.push({ t: d + 1.6, by: h }); }
+      d += LINE.admit[0] + r() * (LINE.admit[1] - LINE.admit[0]);
+    }
+  }
+  const visits = [];
+  const hdAt = i => (i <= 0 ? 0 : Math.atan2(P[i - 1].z - P[i].z, P[i - 1].x - P[i].x));
+  for (const g of groups) {
+    if (g.skip || g.tIn == null) continue;
+    for (let j = 0; j < g.n; j++) {
+      const rr = rngFrom(g.seed + j * 7919), slot0 = g.at + j;
+      const ap = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: g.side }, { at: P[slot0] }] }, 0, M, { r: rr });
+      if (!ap) continue;
+      const sh = g.ta + j * 0.7 - ap.t1, legs = ap.legs.map(lg => ({ ...lg, t0: lg.t0 + sh, t1: lg.t1 + sh }));
+      let now = g.ta + j * 0.7, i = slot0;
+      for (const mv of g.moves) {
+        if (mv.t <= now) continue;
+        legs.push({ k: 'pose', pose: 'wait', x: P[i].x, z: P[i].z, t0: now, t1: mv.t, hd: hdAt(i) });
+        const to = Math.max(j, i - mv.by), pts = []; for (let q = i; q >= to; q--) pts.push({ x: P[q].x, z: P[q].z });
+        const len = pathLen(pts), dt = Math.max(0.6, len / LINE.step);
+        legs.push({ k: 'walk', pts, t0: mv.t, t1: mv.t + dt, v: len / dt }); now = mv.t + dt; i = to;
+      }
+      const tGo = Math.max(now + 0.3, g.tIn + 0.6 + j * 0.9);
+      legs.push({ k: 'pose', pose: 'wait', x: P[i].x, z: P[i].z, t0: now, t1: tGo, hd: hdAt(i) });
+      const inn = planVisit({ look: 'guest', gait: 'walk', goals: [{ door: 'side' }] }, tGo, M, { r: rr, start: { x: P[i].x, z: P[i].z } });
+      if (!inn) continue;
+      legs.push(...inn.legs);
+      visits.push({ id: `line.${key}.${groups.indexOf(g)}.${j}`, kind: 'liner', look: 'guest', gait: 'walk', party: true, legs, t0: legs[0].t0, t1: inn.t1, tEnd: inn.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(rr() * 1e6) }] });
+    }
+  }
+  // THE DOORMAN: out of the side door before the first guests, beside it facing the line; a beckoning wave at each admission
+  if (admits.length) {
+    const spot = { x: D.x + 1.15, z: FOLK.doorZ - 0.8 }, rr = rngFrom(hashString(`doorman|${key}`));
+    const out = planVisit({ look: 'doorman', gait: 'walk', goals: [{ from: 'side' }, { at: spot }] }, T0 - 40, M, { r: rr });
+    if (out) {
+      const legs = [...out.legs]; let now = out.t1;
+      for (const a of admits) { if (a - 0.6 > now) legs.push({ k: 'pose', pose: 'watch', x: spot.x, z: spot.z, t0: now, t1: a - 0.6, hd: PI }); const e = Math.max(now, a - 0.6); legs.push({ k: 'pose', pose: 'wave', x: spot.x, z: spot.z, t0: e, t1: e + 2.4, hd: PI }); now = e + 2.4; }
+      const back = planVisit({ look: 'doorman', gait: 'walk', goals: [{ door: 'side' }] }, now + 12, M, { r: rr, start: spot });
+      if (back) { legs.push({ k: 'pose', pose: 'watch', x: spot.x, z: spot.z, t0: now, t1: now + 12, hd: PI }, ...back.legs); visits.push({ id: `line.${key}.doorman`, kind: 'doorman', look: 'doorman', gait: 'walk', party: true, legs, t0: legs[0].t0, t1: back.t1, tEnd: back.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(rr() * 1e6) }] }); }
+    }
+  }
+  return { visits, admits, T0, T1 };
+}
+
 // ------------------------------------------------------------------ THE BLOCKS (the promenade over time)
 const localOf = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 1000); return { key: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`, dow: d.getUTCDay(), h: ((lt / 3600) % 24 + 24) % 24, month: d.getUTCMonth() + 1 }; };
 /** members of a visit (the lead, a partner, a group, a dog): offsets behind / beside the lead (world units) + their own looks */
@@ -507,6 +606,20 @@ function blockVisits(phase, k, M, ctx = {}) {
   // (the peak count over [a, b): exact — it can only rise at a or where someone arrives inside it)
   const load = (a, b) => { let mx = 0; for (const tt of [a, ...occ.filter(o => o.t0 > a && o.t0 < b).map(o => o.t0)]) { let n = 0; for (const o of occ) if (tt >= o.t0 && tt < o.t1) n += o.n; if (n > mx) mx = n; } return mx; };
   let spent = 0;
+  // (POLISH 4 — NEVER A BURST: two arrivals at least STREAM.gap s apart, whoever they are — the other phase's, the bus's riders' too)
+  const spaced = tt => !occ.some(o => Math.abs(o.t0 - tt) < STREAM.gap);
+  // (POLISH 4 — THE SIDE DOOR's GUESTS on their own schedule, before the mix: phase A only, seeded per block — a pair now and then in the
+  // evening, leavers later; on party nights the guests go in by THE LINE (lineNight) and only the leavers come out here)
+  if (phase === 0) for (const e of streamOf(k, t0, ctx, party)) {
+    if (!spaced(e.t)) continue;
+    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, r: rngFrom(e.seed) });
+    if (!vis || vis.t1 > t1 - 1) continue;
+    const members = membersOf(e.spec, rngFrom(e.seed + 1)), n = heads(members);
+    if (load(vis.t0, vis.t1) + n > cap) continue;
+    occ.push({ t0: vis.t0, t1: vis.t1 + tailOf(members), n });
+    out.push({ id: `${phase}.${k}.${out.length}`, kind: e.kind, look: e.spec.look, gait: e.spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members, party });
+    spent += n * (vis.t1 - vis.t0);
+  }
   for (let tries = 0; tries < 140 && spent < want; tries++) {
     const kind = pickW(r, mn.mix), spec = KINDS[kind](r, M);
     if (spec.need === 'cart' && (!M.nodes.cart || !ctx.cartOut)) continue;
@@ -515,9 +628,10 @@ function blockVisits(phase, k, M, ctx = {}) {
     // (FP3b: each visit on its own seed — one that would still be out while the dance circle closes the compass is planned again
     // round it: ctx.closed(t0, t1) + ctx.Mev)
     const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [] };
+    if (!spaced(start)) continue;
     let vis = planVisit(spec, start, M, { ...vctx, r: rngFrom(vseed) });
-    if (vis && ctx.closed && ctx.closed(vis.t0, vis.t1)) vis = planVisit(spec, start, ctx.Mev, { ...vctx, r: rngFrom(vseed) });
-    else if (vis && ctx.cartOut && ctx.cartOut(vis.t0, vis.t1)) vis = planVisit(spec, start, ctx.Mc, { ...vctx, r: rngFrom(vseed) });
+    // (a visit while the dance circle closes the compass / the cart stands / THE LINE queues: planned again on that map — mapAt)
+    if (vis && ctx.mapAt) { const Mx = ctx.mapAt(vis.t0, vis.t1, M); if (Mx !== M) vis = planVisit(spec, start, Mx, { ...vctx, r: rngFrom(vseed) }); }
     if (vis && spec.need === 'cart' && !(ctx.cartParked && ctx.cartParked(vis.t0, vis.t1))) continue;
     if (!vis || vis.t1 > t1 - 1 || vis.t1 - vis.t0 < 4) continue;
     const members = membersOf(spec, r), n = heads(members);
@@ -594,8 +708,20 @@ export function folkAt(t, world, cache = new Map()) {
       { k: 'walk', pts: [{ x: v.x, z: v.z }, { x: xin, z: v.z }], t0: e.tb, t1: e.t1, v: VENDOR.roll }];
     return { id: `vendor.${Math.round(e.t0)}`, kind: 'vendor', routine: 'cart', idx: 0, look: 'worker', gait: 'walk', legs, t0: e.t0, t1: e.t1, tEnd: e.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }] };
   });
-  const routineOcc = (a, b) => [...sessionsNear(a, b).flatMap(x => occOf(danceVisits(x))), ...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 }))];
-  const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc };
+  // POLISH 4 — THE LINE AT THE DOOR (party nights — lineNight): one simulation an evening, its guests + the doorman; never with Lobby
+  // 2.0's own line (ctx.lobby) or the &force=doors preview
+  const lineOf = tt => { if (ctx.lobby || ctx.forceDoors) return null; const lc = localOf(tt, ctx.off), eh = lc.h < 12 ? lc.h + 24 : lc.h, day0 = tt - eh * 3600, ek = localOf(day0 + 43200, ctx.off);
+    if (eh < LINE.from - 0.1 || eh > LINE.to + 0.2) return null; const party = ctx.party ? ctx.party(day0 + 22 * 3600) : partyAt(ek.dow, 22);
+    if (!party) return null; return get(`LN|${ek.key}`, () => lineNight(day0, ek.key, Mev, L, ctx)); };   // (planned round the compass: the dance circle may close it)
+  const linesNear = (a, b) => [...new Set([a, b].map(lineOf).filter(Boolean))];
+  const lineOn = (a, b) => linesNear(a, b).some(x => b > x.T0 - 60 && a < x.T1 + 60);
+  const lineVisits = (a, b) => linesNear(a, b).flatMap(x => x.visits).filter(v => v.tEnd > a && v.t0 < b);
+  // (the map a visit is planned on: the compass closed by the dance circle, the cart standing, the line queuing — any mix of them)
+  const mapAt = (a, b, M0) => { const ev = closed(a, b), ct = cartOut(a, b), ln = lineOn(a, b); if (!ev && !ct && !ln) return M0;
+    return get(`MX|${ev ? 1 : 0}${ct ? 1 : 0}${ln ? 1 : 0}`, () => folkMap(L, { event: ev, cart: ct, line: ln ? lineRect(L, LINE.max) : null })); };
+  // (POLISH 4: the dance circle is ON TOP of the crowd's count — the owner: "8–12 (the dance circle on top)"; the vendor + the line count)
+  const routineOcc = (a, b) => [...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 })), ...occOf(lineVisits(a, b))];
+  const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt };
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
   const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
@@ -608,7 +734,7 @@ export function folkAt(t, world, cache = new Map()) {
     const st0 = k * 24 + (spec.goals[0].from === 'right' ? -9 : 1), vis = planVisit(spec, st0, M, { r, shopOpen: true });
     if (!vis) return null; const members = membersOf(spec, r); return { id: `door.${k}`, kind: spec.group ? 'guests' : spec.pair ? 'leaving' : 'customer', look: spec.look, gait: spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members };
   })).filter(Boolean) : [];
-  const evNow = cartEv(t), nowSess = sessionsNear(t - 120, t + 10), routine = [...nowSess.flatMap(danceVisits), ...(evNow && t >= evNow.t0 && t < evNow.t1 ? [vendorVisit(evNow)] : [])];
+  const evNow = cartEv(t), nowSess = sessionsNear(t - 120, t + 10), routine = [...nowSess.flatMap(danceVisits), ...(evNow && t >= evNow.t0 && t < evNow.t1 ? [vendorVisit(evNow)] : []), ...lineVisits(t - 2, t + 2)];
   const all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   const members = [];
   for (const v of all) {
@@ -672,7 +798,8 @@ export function folkAt(t, world, cache = new Map()) {
   const cart = evNow ? { ...cartAt(evNow, t, cartIn(L.cam), cartX), z: L.cart.z, parked: t >= evNow.ta && t < evNow.tb } : { on: false };
   // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
   const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: busesNear, off: ctx.off, seed: ctx.seed, party: ctx.party });
-  return { visits: all, members, doors, dance, cart, cars, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
+  const ln = lineOf(t), line = ln && t >= ln.T0 - 60 && t < ln.T1 + 120 ? { on: true, n: members.filter(m => m.kind === 'liner' && m.s.pose === 'wait' && !m.s.door).length, admits: ln.admits.filter(a => a > t - 600 && a < t + 600).length } : { on: false, n: 0 };
+  return { visits: all, members, doors, dance, cart, cars, line, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
 }
 
 // ------------------------------------------------------------------ THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)

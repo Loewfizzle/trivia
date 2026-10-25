@@ -105,11 +105,12 @@ test('8P — WHO\'S OUT WHEN: the mix by the clock (joggers + dogs early, the co
   assert.ok(at(8.5).mix.brisk && at(8.5).mix.busrider && at(8.5).mix.newsboy, 'the commute');
   assert.ok(at(12.5).mix.lunch && at(12.5).mix.window && at(12.5).mix.customer, 'midday: lunch on the bench, a window-shopper, a customer');
   assert.ok(at(17).mix.homeward, 'late afternoon: heading home');
-  assert.ok(at(20).mix.couple >= 3 && at(20).mix.guests, 'evening: couples, guests to the side door');
-  assert.ok(at(23.5).mix.straggler && at(23.5).mix.leaving, 'late: stragglers, a couple leaving');
+  // (POLISH 4: the speakeasy stays secret — no guests in the random mix: they come by the side door's own schedule + THE LINE)
+  assert.ok(at(20).mix.couple >= 3 && !at(20).mix.guests && !at(23.5).mix.leaving, 'evening: couples; the guests are not in the mix');
+  assert.ok(at(23.5).mix.straggler && at(23.5).mix.lone, 'late: a straggler, a lone walker');
   assert.ok(at(12.5).n > at(3.5).n * 8 && at(12.5).n <= FOLK.cap, 'busiest at midday, never past the cap');
   assert.ok(mixNow({ h: 20.5, dow: 6 }).n >= at(20.5).n, 'a weekend evening busier');
-  assert.ok(at(21, { party: true }).mix.guests > at(21).mix.guests * 2, 'party nights: a stream of guests');
+  assert.ok(at(21, { party: true }).n > at(21).n * 2 && at(21, { party: true }).mix.couple > at(21).mix.couple, 'party nights: busier, more people out enjoying it');
   assert.ok(at(12.5, { rain: 1 }).n < at(12.5).n * 0.6 && !at(12.5, { rain: 1 }).mix.lunch, 'rain: fewer, nobody lunching on the bench');
   assert.ok(MIX.every(p => Object.keys(p.mix).every(k => KINDS[k])), 'every kind in the mix has a builder');
 });
@@ -121,7 +122,7 @@ test('8P — THE PEOPLE over two days at 390 / 402 / 430: never past the cap, ne
     for (let t = DAY + 5 * 3600; t < DAY + 2 * 86400; t += 9) {
       const R = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
       const heads = R.members.filter(m => m.m.role !== 'dog');
-      maxN = Math.max(maxN, heads.length);
+      maxN = Math.max(maxN, heads.filter(m => m.routine !== 'dance').length);   // (POLISH 4: the dance circle on top of the crowd's cap)
       for (const m of heads) {
         const s = m.s; seenKinds.add(m.kind);
         assert.ok(s.z >= FOLK.zMin - 0.6, `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);
@@ -153,7 +154,7 @@ test('8P — JOIN MID-WAY: the promenade at any moment is the same on every phon
   for (const t of [DAY + 14 * 3600 + 901, DAY + 14 * 3600 + 1333.3]) {
     const a = folkAt(t, { L, M, ctx: { off: OFF } }, warm), b = folkAt(t, { L, M, ctx: { off: OFF } }, new Map());
     assert.deepEqual(b.members.map(m => [m.vid, m.m.role, m.s.x.toFixed(4), m.s.z.toFixed(4), m.s.pose]), a.members.map(m => [m.vid, m.m.role, m.s.x.toFixed(4), m.s.z.toFixed(4), m.s.pose]));
-    assert.ok(a.members.length > 2, 'people already there, mid-stroll');
+    assert.ok(a.members.length >= 1, 'people already there, mid-stroll');
   }
 });
 test('8P — THE BUS: a few an hour by day, none in the small hours; it stops short of the crossing, pulls away only on green, never stands on the crosswalk', () => {
@@ -337,7 +338,8 @@ test('FP3b — THE DANCE CIRCLE (the routines layer): party nights only, at the 
   let formed = 0;
   for (let t = sat; t < sat + 2 * 3600; t += 4) {
     const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
-    assert.ok(f.members.filter(x => x.m.role !== 'dog').length <= FOLK.cap, 'within the cap');
+    // (POLISH 4: the dance circle is ON TOP of the crowd — the crowd itself stays within the cap)
+    assert.ok(f.members.filter(x => x.m.role !== 'dog' && x.routine !== 'dance').length <= FOLK.cap, 'the crowd within the cap');
     if (!f.dance.on || f.dance.k < 1) continue;
     formed++;
     const d = f.members.filter(x => x.kind === 'dancer');
@@ -369,4 +371,56 @@ test('FP3b — THE VENDOR SPOT: the chestnut cart wheeled in ~6:30 pm + out ~9:3
   // the inlay in use (a centrepiece / the dance circle): it doesn't come out
   for (const [, f] of run('2026-10-22T18:00:00-04:00', 4, { event: true })) assert.ok(!f.cart.on, 'not while a centrepiece stands');
   for (const [, f] of run('2026-10-22T18:00:00-04:00', 4, { forceDance: true })) assert.ok(!f.cart.on, 'not while the circle dances');
+});
+
+// ------------------------------------------------------------------ POLISH 4 — THE PEOPLE CALMER (the owner: "a little too chaotic")
+const onScreen = (cam, R) => R.members.filter(m => m.m.role !== 'dog' && m.routine !== 'dance' && m.s.z >= FOLK.zMin - 0.3 && Math.abs(m.s.x) < cam.hw(m.s.z));
+const bandMean = (cam, L, M, day, h0, h1, cache, step = 30) => { let n = 0, k = 0; for (let t = day + h0 * 3600; t < day + h1 * 3600; t += step) { n += onScreen(cam, folkAt(t, { L, M, ctx: { off: OFF } }, cache)).length; k++; } return n / k; };
+test('POLISH 4 — THE COUNTS ON SCREEN: a weekday daytime 4–5, lunch + after work 6–7, a normal night 3–4, a party night 8–12 (the dance circle on top), late at night 0–3', () => {
+  const { cam, L } = setup('402x874'), M = folkMap(L), cache = new Map(), SAT = DAY + 2 * 86400;
+  const bands = [['weekday daytime', DAY, 9.5, 11, 3.6, 5.4], ['weekday afternoon', DAY, 14.2, 16, 3.6, 5.4], ['lunch', DAY, 12, 13.5, 5.6, 7.4], ['after work', DAY, 16.6, 18.2, 5.6, 7.6],
+    ['a normal night', DAY, 19, 22, 2.8, 4.4], ['a party night', SAT, 21, 24, 7.6, 12], ['late at night', DAY + 86400, 0.25, 1.75, 0, 3]];
+  for (const [name, day, h0, h1, lo, hi] of bands) { const v = bandMean(cam, L, M, day, h0, h1, cache); assert.ok(v >= lo && v <= hi, `${name}: ${v.toFixed(2)} on screen (want ${lo}–${hi})`); }
+});
+test('POLISH 4 — LINGER MORE: most of the day\'s people stay a while (a pose of 20 s or more) — the bench for minutes, the railing, a chat, the bus stop; few walk straight through', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), seen = new Map();
+  for (let t = DAY + 9 * 3600; t < DAY + 18 * 3600; t += 20) for (const v of folkAt(t, { L, M, ctx: { off: OFF } }, cache).visits) seen.set(v.id, v);
+  const vs = [...seen.values()].filter(v => !v.routine), stay = vs.filter(v => v.legs.some(lg => lg.k === 'pose' && lg.t1 - lg.t0 >= 20));
+  assert.ok(stay.length / vs.length > 0.55, `${stay.length} of ${vs.length} stay a while`);
+  const sit = vs.filter(v => v.legs.some(lg => lg.k === 'pose' && lg.pose === 'sit' && lg.t1 - lg.t0 >= 100));
+  assert.ok(sit.length >= 10, `${sit.length} sat on the bench for minutes`);
+});
+test('POLISH 4 — THE SPEAKEASY STAYS SECRET: by day only the barbershop\'s odd customer (nobody at the side door); evenings a trickle at the side door; party nights THE LINE — queued left of the door, the doorman letting a few in at a time', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), SAT = DAY + 2 * 86400;
+  const doorsIn = (day, h0, h1) => { const seen = new Map(); for (let t = day + h0 * 3600; t < day + h1 * 3600; t += 15) for (const v of folkAt(t, { L, M, ctx: { off: OFF } }, cache).visits) seen.set(v.id, v);
+    const c = { side: 0, shop: 0 }; for (const v of seen.values()) if (!v.routine) for (const lg of v.legs) if (lg.k === 'door' && lg.dir === 'in' && lg.door in c) c[lg.door]++; return c; };
+  const day = doorsIn(DAY, 10, 16), eve = doorsIn(DAY, 19, 22);
+  assert.equal(day.side, 0, 'nobody at the side door by day');
+  assert.ok(day.shop / 6 <= 10, `the barbershop: ${(day.shop / 6).toFixed(1)} customers an hour`);
+  assert.ok(eve.side / 3 >= 6 && eve.side / 3 <= 22, `an evening: ${(eve.side / 3).toFixed(1)} in at the side door an hour — a trickle`);
+  // the party night's line: on, a few in it most of the time, never past its max; the doorman by the door; admissions a few at a time
+  let on = 0, sum = 0, k = 0, doorman = 0;
+  for (let t = SAT + 21.5 * 3600; t < SAT + 23.5 * 3600; t += 10) {
+    const R = folkAt(t, { L, M, ctx: { off: OFF } }, cache); k++;
+    if (R.line.on) on++;
+    sum += R.line.n; assert.ok(R.line.n <= 7, `the line ${R.line.n}`);
+    if (R.members.some(m => m.kind === 'doorman' && m.s.pose !== 'walk')) doorman++;
+    for (const m of R.members.filter(m => m.kind === 'liner' && m.s.pose === 'wait' && !m.s.door)) assert.ok(m.s.x < M.nodes.sideDoor.x && m.s.z > FOLK.zMin, 'queued left of the side door');
+  }
+  assert.ok(on === k && sum / k >= 1.5, `the line: ${(sum / k).toFixed(1)} waiting on average`);
+  assert.ok(doorman / k > 0.95, 'the doorman at the door');
+  const ln = folkAt(SAT + 22 * 3600, { L, M, ctx: { off: OFF } }, cache);
+  assert.ok(ln.visits.filter(v => v.kind === 'liner').every(v => v.legs[v.legs.length - 1].k === 'door' && v.legs[v.legs.length - 1].dir === 'in'), 'every guest in the line goes in by the door');
+  // never with Lobby 2.0's own line
+  assert.equal(folkAt(SAT + 22 * 3600, { L, M, ctx: { off: OFF, lobby: 4 } }, new Map()).line.on, false);
+});
+test('POLISH 4 — ARRIVALS SPREAD OUT, never a burst: a new arrival (not a bus\'s riders, not the dance circle) at most every ~9 s', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), starts = new Map();
+  for (const day of [DAY, DAY + 2 * 86400]) for (let t = day + 7 * 3600; t < day + 24 * 3600; t += 15)
+    for (const v of folkAt(t, { L, M, ctx: { off: OFF } }, cache).visits) if (!v.routine && v.kind !== 'busrider' && v.kind !== 'doorman') starts.set(v.kind === 'liner' ? v.id.replace(/\.\d+$/, '') : v.id, v.t0);
+  const ts = [...starts.values()].sort((a, b) => a - b);
+  let perMin = new Map(); for (const t of ts) { const m = Math.floor(t / 60); perMin.set(m, (perMin.get(m) || 0) + 1); }
+  assert.ok(Math.max(...perMin.values()) <= 7, `at most ${Math.max(...perMin.values())} arrivals in a minute`);
+  let close = 0; for (let i = 1; i < ts.length; i++) if (ts[i] - ts[i - 1] < 3) close++;
+  assert.ok(close / ts.length < 0.05, `${close} of ${ts.length} arrivals within 3 s of another`);
 });
