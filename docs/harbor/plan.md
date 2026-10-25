@@ -1560,3 +1560,28 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   own; one shared day/night helper from the city's sky code; the walk-in from the city into a game matches the skin.
 - **Later:** single-player / vs-AI modes and the 3 daily challenges (morning Wordle-style, afternoon Minesweeper, evening
   Overclock ×6) announced by the banner plane; profile pages for other players.
+
+## OWNER'S NOTES — OCT 25 (after 8b1)
+- **THE TR-3B ON THE IPHONE AFTER 8b1:** (1) STILL LAGGY — his readout during it: 53 fps, 16 % slow (session 11.8 %, "heavy
+  1/2") at tier 2. Profile what runs per frame during the event (the blackout strips, the circuitry pulses, the people
+  reacting, the jets' trails, the sounds' per-frame work) and cut it to a normal night's cost on a phone. (2) THE MUSIC
+  EFFECT STILL ISN'T RIGHT: the AUDIO panel read "NOT SOUNDING" during it. audio/music.js#bendMusic bends the <audio>
+  element's playbackRate as low as 0.25, AND screens/harbor/sounds.js#legendSounds ducks the music AND closes a low-pass
+  ("muffled, almost gone") — and iOS Safari likely MUTES a media element below ~0.5× speed, so the song just dies. FIX:
+  floor the rate at ~0.55–0.6 (verify on WebKit it still sounds), pitch drop on (preservesPitch off), add a WARBLE (a slow
+  ±2–3 % wobble on the rate, like a warped record), only a LIGHT duck (a few dB) and a partial low-pass — the song stays
+  clearly audible, slow, deep and wrong; it spins back up after the jets. The AUDIO panel reads "sounding" throughout.
+- **8b1 REVIEW:** (1) the BOAT WHISTLE ~10 % louder (the noon steam whistle + Rosie's horn, ~+1 dB). (2) BENCH BUG: a person
+  walks to the bench where someone already sits, sits ON TOP of them and disappears — seats must be RESERVED (a bench has
+  2–3 seats; a taken seat is never chosen; if full they walk on or stand nearby). (3) REMOVE THE DUCKS (the crossing) and
+  THE RACCOON ("you can hardly see them") — keep the trash can (the trash truck uses it). (4) THE WORKERS — EXTREMELY HIGH
+  QUALITY: they must LOOK great and MOVE great — distinct period work clothes per trade (the milkman's white cap + coat,
+  overalls, the cop's uniform + helmet, the painters' caps + spattered smocks, aprons), real props in their hands (crates,
+  the ladder carried by two, the paste bucket + brush, the squeegee), believable WORK MOTIONS (a ladder climbed rung by
+  rung, brush strokes, lifting with the knees, the billposter smoothing a sheet), weight + timing (heavy things slow), no
+  sliding, no snapping between poses.
+- **THE RAID — REVISED SCHEDULE (supersedes "2 raid nights a week"):** it follows the BOOTLEGGERS — the night after a
+  bootlegger delivery has ~50 % chance of ONE raid, in prime time (~9–11 pm); plus a rare PARTY-NIGHT raid ~once a month;
+  ~one a week in all; seeded (the same for everyone); never during holiday moments, the midnight finale, a legendary sky
+  event or a worker show. THE LIGHTS: keep the red + blue wash (reads instantly as police on a phone — the neon-1920s
+  fusion) on period black-and-white cars from the shared 1920s vehicle kit.
