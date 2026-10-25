@@ -128,8 +128,8 @@ test('8P — THE PEOPLE over two days at 390 / 402 / 430: never past the cap, ne
         assert.ok(s.z >= FOLK.zMin - (m.kind === 'trash' ? 1.4 : 0.6), `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);   // (8b1: the collector at the can, beside the front-left globe)
         if (s.a >= 0.999 && m.m.role === 'lead' && !s.door) for (const r of block) assert.ok(!inR(s, r), `${k}: ${m.kind} inside ${r.id} at ${s.x.toFixed(2)}, ${s.z.toFixed(2)} (${s.pose})`);
         if (s.z > FOLK.roadZ + 0.2 && s.z < FOLK.farZ - 0.35 && m.m.role === 'lead') {
-          const nearBus = Math.abs(s.x - busStopX(L)) < 2.2, nearTruck = m.routine === 'work' && (R.crew.trucks || []).some(T => s.x > T.x - T.len / 2 - 0.6 && s.x < T.x + T.len / 2 + 1.4);   // (8b1: a worker by his truck: round its nose, at its bed)
-          assert.ok(s.cross || nearBus || nearTruck || s.a < 1 || s.door, `${k}: ${m.kind} on the road, not crossing (${s.x.toFixed(2)}, ${s.z.toFixed(2)})`);
+          const nearBus = Math.abs(s.x - busStopX(L)) < 2.2, nearCab = (R.cars || []).some(c => c.cab && s.x > c.x - c.len / 2 - 0.6 && s.x < c.x + c.len / 2 + 1.4), nearTruck = m.routine === 'work' && (R.crew.trucks || []).some(T => s.x > T.x - T.len / 2 - 0.6 && s.x < T.x + T.len / 2 + 1.4);   // (8b1: a worker by his truck: round its nose, at its bed)
+          assert.ok(s.cross || nearBus || nearTruck || nearCab || s.a < 1 || s.door, `${k}: ${m.kind} on the road, not crossing (${s.x.toFixed(2)}, ${s.z.toFixed(2)})`);
           if (s.cross) { const S = signalAt(t * 1000); assert.ok(S.walk === 'walk' || S.phase === 'blink', `${k}: crossing on ${S.phase}`); }
         }
       }

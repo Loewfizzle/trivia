@@ -23,6 +23,7 @@ import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VEN
 import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
 import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbor-witness.js';
 import { raidAt, raidHold } from './harbor-raid.js';
+import { cabEvents, cabPlan } from './harbor-cabs.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -736,6 +737,27 @@ export function folkAt(t, world, cache = new Map()) {
   const crewW = { L, M, ctx: { off: ctx.off, seed: ctx.seed, party: ctx.party, force: ctx.forceWork || null, dusk: ctx.dusk || null } };
   const crewIn = (a, b) => (ctx.noWork ? { visits: [], roof: [], trucks: [], props: [], marks: {} } : crewSpan(a, b, crewW, cache.crew));
   const trucksNear = (a, b) => crewIn(a - 300, b + 300).trucks.filter(T => T.tX > a && T.tE < b);
+  // 8b2 — THE CABS (core/harbor-cabs.js): the night's cab calls near [a, b] — each kept only with the stop free (no bus, no worker's truck,
+  // no raid, no other cab) — their cab holds the near lane like a truck; their riders walk the promenade like the bus's
+  const cabBlock = k => get(`CB|${k}`, () => {
+    const out = [];
+    for (const e of cabEvents(k, ctx)) {
+      const pl = cabPlan(e, L, M); if (!pl) continue;
+      const T = pl.T, clash = (x0, x1) => x0 < T.tX + 18 && x1 > T.tE - 18;
+      if (ctx.raid && clash(ctx.raid.t0 - 30, ctx.raid.tEnd)) continue;
+      if (busesNear(T.tE - 120, T.tX + 120).some(bb => clash(bb.tE, bb.tX))) continue;
+      if (trucksNear(T.tE - 60, T.tX + 60).some(tr => clash(tr.tE, tr.tX))) continue;
+      out.push(pl);
+    }
+    return out;
+  });
+  const cabsNear = (a, b) => {
+    if (ctx.noCabs) return [];
+    const all = []; for (let k = Math.floor(a / B) - 1; k <= Math.floor(b / B) + 1; k++) all.push(...cabBlock(k));
+    all.sort((p, q) => p.T.tE - q.T.tE);
+    const kept = []; for (const pl of all) if (!kept.some(o => pl.T.tE < o.T.tX + 10 && pl.T.tX > o.T.tE - 10)) kept.push(pl);
+    return kept.filter(pl => pl.T.tX > a - 60 && pl.T.tE < b + 60);
+  };
   // THE ROUTINES (FP3b — core/harbor-routines.js): the dance circle's sessions near t, their people; while one runs the inlay is
   // CLOSED to the crowd (the blocks route round it: Mev) and its people count against the cap (the blocks plan around them)
   const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceDance };
@@ -775,10 +797,12 @@ export function folkAt(t, world, cache = new Map()) {
     return get(`MX|${ev ? 1 : 0}${ct ? 1 : 0}${ln ? 1 : 0}`, () => folkMap(L, { event: ev, cart: ct, line: ln ? lineRect(L, LINE.max) : null })); };
   // (POLISH 4: the dance circle is ON TOP of the crowd's count — the owner: "8–12 (the dance circle on top)"; the vendor + the line count)
   const routineOcc = (a, b) => [...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 })), ...occOf(lineVisits(a, b)), ...occOf(crewIn(a, b).visits)];
-  const workLoad = (a, b) => get(`WL|${a}`, () => crewIn(a, b).visits.filter(v => !v.plat).reduce((s, v) => s + Math.max(0, Math.min(b, v.tEnd || v.t1) - Math.max(a, v.t0)), 0));
+  // (8b2: the cabs' riders count in the crowd's budget too — the calmer counts hold on a night of cabs)
+  const workLoad = (a, b) => get(`WL|${a}`, () => [...crewIn(a, b).visits.filter(v => !v.plat), ...cabsNear(a, b).flatMap(pl => pl.riders)].reduce((s, v) => s + Math.max(0, Math.min(b, v.tEnd || v.t1) - Math.max(a, v.t0)), 0));
   const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt, workLoad };
-  const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
-  const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)], seats: [...seatsOf(A(k)), ...seatsOf(A(k + 1))] }); });
+  const cabOcc = (a, b) => cabsNear(a, b).flatMap(pl => occOf(pl.riders));
+  const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)] }); });
+  const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)], seats: [...seatsOf(A(k)), ...seatsOf(A(k + 1))] }); });
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
   const buses = busesNear(t, t).filter(b => t >= b.tE && t < b.tX);
   // (&force=doors — the preview: every 24 s someone walks through a door — at night guests in at the side door / a pair out of it, by
@@ -795,7 +819,7 @@ export function folkAt(t, world, cache = new Map()) {
   // 'raid' kind: freeze / casually away / look away, the doorman in at the side door) from the moment the first car shows
   const RP = ctx.raid && t >= ctx.raid.t0 - 20 && t < ctx.raid.tEnd + 4 * 3600 ? ctx.raid : null;
   if (RP && RP.officer && t >= RP.officer.t0 && t < RP.officer.t1) routine.push(RP.officer);
-  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
+  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   // 8b1 — THE WITNESSES (core/harbor-witness.js): a legendary night (ctx.legend: { kind, t0 }) — everyone on the promenade when it comes
   // reacts (the UFO: they look up, then FLEE; the TR-3B: they stare up, a few hurry indoors); nobody new comes until the empty spell ends
   // (the reaction holds after the window too — a routine back at its post on its new path, never the old one popping back — for a few hours)
@@ -804,7 +828,7 @@ export function folkAt(t, world, cache = new Map()) {
   if (LG) {
     reacted = get(`WIT|${LG.kind}|${LG.t0}`, () => {
       const T = LG.t0 + 3, kA = Math.floor(T / B), kB = Math.floor((T - B / 2) / B), ev = cartEv(T);
-      const cand = [...A(kA), ...Bv(kB), ...busesNear(T - 400, T + 10).flatMap(b => riders(b)), ...sessionsNear(T - 120, T + 10).flatMap(danceVisits), ...(ev && T >= ev.t0 && T < ev.t1 ? [vendorVisit(ev)] : []), ...lineVisits(T - 30, T + 30), ...(ctx.noWork ? [] : crewAt(T, crewW, cache.crew).visits)]
+      const cand = [...A(kA), ...Bv(kB), ...busesNear(T - 400, T + 10).flatMap(b => riders(b)), ...cabsNear(T - 400, T + 10).flatMap(pl => pl.riders), ...sessionsNear(T - 120, T + 10).flatMap(danceVisits), ...(ev && T >= ev.t0 && T < ev.t1 ? [vendorVisit(ev)] : []), ...lineVisits(T - 30, T + 30), ...(ctx.noWork ? [] : crewAt(T, crewW, cache.crew).visits)]
         .filter((v, i, arr) => arr.findIndex(o => o.id === v.id) === i && v.t0 < LG.t0 + 1 && (v.tEnd || v.t1) > LG.t0);
       const hide = LG.kind === 'ufo' ? hiderOf(cand, LG, M) : null;
       if (LG.kind === 'raid') return cand.filter(v => v.kind !== 'officer').map(v => reactVisit(v, LG, M, {})).filter(Boolean);
@@ -876,7 +900,9 @@ export function folkAt(t, world, cache = new Map()) {
   // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
   // (8b2: the raid's convoy holds the near lane — nobody enters it behind them — and its patrol cars join the road's cars)
   const raidIn = (a, b) => (ctx.raid && ctx.raid.tEnd > a && ctx.raid.t0 < b ? [raidHold(ctx.raid)] : []);
-  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b), ...raidIn(a, b)], off: ctx.off, seed: ctx.seed, party: ctx.party, tag: ctx.raid ? ctx.raid.key : '' });
+  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b), ...raidIn(a, b), ...cabsNear(a, b).map(pl => pl.T)], off: ctx.off, seed: ctx.seed, party: ctx.party, tag: ctx.raid ? ctx.raid.key : '' });
+  // (8b2: the cabs at the curb — the back road's cars drawn the same way; sign: the TAXI lamp, lit when free)
+  if (!ctx.noCars) for (const pl of cabsNear(t - 5, t + 5)) { const T = pl.T; if (t < T.tE || t > T.tX) continue; const x = T.x(t); cars.push({ id: T.id, model: 'taxi', paint: 0, len: T.len, z: T.z, dir: 1, x, dist: T.dist(t), speed: t < T.tA ? Math.max(0, (T.x(t + 0.05) - x) / 0.05) : t >= T.tD ? (T.x(t + 0.05) - x) / 0.05 : 0, n: 5, glow: -1, cab: true, sign: T.sign(t) }); }
   if (RP) { const R = raidAt(RP, t); if (R) cars.push(...R.cars); }
   // 8b1 — THE CREW now: the roof's workers (the billposter, the gardener, the cleanup crew), their props, their trucks, the traces
   const crewRoof = [];

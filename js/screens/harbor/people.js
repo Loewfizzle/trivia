@@ -179,7 +179,7 @@ export function createPeople() {
     }
     let lampK = 0; for (const l of L.lamps) if (l.kind === 'tall') { const d = (car.x - l.x) / 7; if (d * d < 1) lampK = Math.max(lampK, (1 - d * d) ** 2); }
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
-    kit.draw(c, { id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
+    kit.draw(c, { id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
     // 8b2 — THE PATROL CAR's BEACON: red, then blue, each a hard double flash (the raid's wash comes from it: raid.js)
     if (car.beacon) { const A = kit.anatomy(car.model); if (A.beacon) drawBeacon(c, cx + car.dir * (A.beacon[0] - car.len / 2) * sp, gy - A.beacon[1] * sp + bob, sp, beaconOf(env.t || 0, car.n), env.fade == null ? 1 : env.fade, night); }
   }

@@ -560,7 +560,8 @@ export function createVehicles() {
       if (A.fog) { const fx = (A.fog[0] - M.len / 2 - 0.05) * sp, fy = -A.fog[1] * sp + (v.bob || 0), rf = 0.3 * sp; c.globalAlpha = 0.7 * hk; c.drawImage(glowOf([255, 200, 120]), fx - rf, fy - rf, rf * 2, rf * 2); }
       const tx = (A.tail[0] - M.len / 2) * sp, ty = -A.tail[1] * sp + (v.bob || 0), r3 = 0.22 * sp;
       c.globalAlpha = 0.85 * hk; c.drawImage(glowR, tx - r3, ty - r3, r3 * 2, r3 * 2);
-      if (M.taxiSign) { const u = (M.cab[0] + M.cab[1]) / 2 + 0.2 - M.len / 2, rs = 0.55 * sp; c.globalAlpha = 0.6 * hk; c.drawImage(glowOf([255, 220, 120]), u * sp - rs, -(M.h + 0.18) * sp - rs * 0.6, rs * 2, rs * 1.2); }
+      // (8b2 — THE CABS: the TAXI lamp lit only while it's FREE — v.sign 0..1; a fare aboard: dark)
+      if (M.taxiSign && (v.sign == null || v.sign > 0.02)) { const sg = v.sign == null ? 1 : v.sign, u = (M.cab[0] + M.cab[1]) / 2 + 0.2 - M.len / 2, rs = 0.55 * sp; c.globalAlpha = 0.6 * hk * sg; c.drawImage(glowOf([255, 220, 120]), u * sp - rs, -(M.h + 0.18) * sp - rs * 0.6, rs * 2, rs * 1.2); c.globalAlpha = 0.9 * hk * sg; c.fillStyle = 'rgb(255,236,170)'; c.fillRect(u * sp - 0.26 * sp, -(M.h + 0.29) * sp, 0.52 * sp, 0.2 * sp); }
       c.globalCompositeOperation = 'source-over';
     }
     c.restore();
