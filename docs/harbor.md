@@ -5784,6 +5784,11 @@ speakeasy's power hook dark under it; with PARTY ON the show + the sky beams off
   (+0.7 on this laptop's software canvas; a GPU blit on the iPhone).
 
 ### Known issues (C2)
+- **The cloud (two runs)**: the full `[harbor]` run 40231326857 — audio, city, street + wild green; `show` failed ONE check (the
+  billboard set by the test was put back within 500 ms by the workers' board sync → fixed: a manual / preview board holds a minute).
+  The `show` re-run 40232054665 then hit a bug IN that fix (an inline `//` comment cut the rest of `harbor()`'s line — `beacons`,
+  `reflections` …) → fixed in the next commit and the `neon` group re-run locally: 32/32 incl. the billboard. Not re-run in the
+  cloud (the two-run rule) — the next pass's `[harbor]` run confirms `show`.
 - **The EVERYONE half of the panel group** (+ `server.test.mjs`'s new `delay` checks) needs the emulators — not run on this laptop;
   the quick `tests` workflow runs `/api` on push, the `[harbor]` run the panel group.
 - **The ladder's hands** are placed a fixed distance ahead of the body, not from the figure's joints — up to ~3 px off the rails
