@@ -161,6 +161,54 @@ export function advanceHarborBeat(hb, dt, song, kick) {
   return hb;
 }
 
+// ---- 8b1 — THE SAFETY RULE (the owner, "THE BEAT SYNC IS STILL OFF"): the lights PUNCH on the trusted grid only while the heard
+// offset (the lead the kicks calibrate — leadKick) is CONFIRMED: the strong kicks agree among themselves AND land within SAFE.tol of
+// where the lights put the beat. Until then — a new song, a re-anchor, a settle after a return / a resume / a route change — the
+// punch is allowed for SAFE.grace bars only when this device already knows its lead (a saved value, nothing settling); past that, or
+// with nothing to confirm with (no trusted grid, the direct element's deaf listener, nothing heard), the city falls back to a gentle
+// BREATHING pulse — one slow swell a bar, no attack — never a hard punch that may land off the beat. Once confirmed the punch holds
+// through a breakdown (kicks scattered or quiet) for SAFE.hold bars, then breathes again until the kicks confirm it anew.
+// The switch is a crossfade over ~a bar (k). PURE (tests/harbor.test.mjs).
+export const SAFE = Object.freeze({ grace: 4, tol: 0.045, hold: 8, fade: 1.2, breathe: 0.32 });
+export function createSafety() { return { mode: 'breathe', why: 'starting', k: 0, startBar: 0, okBar: null, key: '', n: 0 }; }
+/**
+ * One frame: x = { src (beatMode), bar (bars counted — hb.bar), song (its id | null), anchors (the song clock's re-anchors), live (the
+ * listener hears the music), cal: { res (the agreed residual, s | null), fast (settling: { why } | null), n, seen, errs }, saved (this
+ * device has a lead from an earlier visit) }, dt (ms) → sf (mutated): mode 'punch' | 'breathe', why (the readout), k (0..1 the punch's
+ * share — eased), bars (bars since the song / the re-anchor / the settle began)
+ */
+export function stepSafety(sf, x, dt = 16) {
+  const cal = x.cal || {}, src = x.src, bar = x.bar || 0;
+  // (a new song, a re-anchored song clock or a settle starting: what was confirmed before is history)
+  const key = `${x.song || ''}|${x.anchors || 0}|${cal.fast ? cal.fast.why || 'fast' : ''}`;
+  if (key !== sf.key) { sf.key = key; sf.startBar = bar; sf.okBar = null; }
+  const bars = Math.max(0, bar - sf.startBar);
+  let mode = 'breathe', why = '';
+  if (src === 'calm') { mode = 'punch'; why = 'no song — the city’s own 120'; }
+  else if (src === 'tempo') why = 'no trusted grid — nothing to confirm';
+  else if (src === 'direct-grid') why = 'direct element — the listener can’t hear it';
+  else if (src === 'grid') {
+    const confirmed = !cal.fast && cal.res != null && Math.abs(cal.res) <= SAFE.tol;
+    if (confirmed) { sf.okBar = bar; mode = 'punch'; why = `lead confirmed · ${cal.errs || cal.n || 0} kicks`; }
+    else if (!cal.fast && sf.okBar != null && bar - sf.okBar <= SAFE.hold) { mode = 'punch'; why = `confirmed ${bar - sf.okBar} bar${bar - sf.okBar === 1 ? '' : 's'} ago`; }
+    else if (!cal.fast && x.saved && bars < SAFE.grace) { mode = 'punch'; why = `the saved lead — confirming (bar ${bars + 1}/${SAFE.grace})`; }
+    else why = !x.live ? 'nothing heard (the listener is deaf)'
+      : cal.fast ? `settling after ${cal.fast.why || 'a change'} (bar ${bars + 1})`
+      : (cal.errs || 0) < LEAD_N ? `no kicks confirmed yet (bar ${bars + 1})`
+      : cal.res == null ? 'the kicks don’t agree'
+      : `heard ${Math.round(cal.res * 1000)} ms off the lights`;
+  } else why = 'no beat';
+  sf.mode = mode; sf.why = why; sf.bars = bars;
+  sf.k += ((mode === 'punch' ? 1 : 0) - sf.k) * Math.min(1, Math.max(0, dt / 1000) * SAFE.fade);
+  return sf;
+}
+/** the light's pulse now: the punch (the grid's) crossfaded with the breath — a gentle swell once a bar, peaking on its downbeat (a
+ *  raised cosine: no attack, never a hard edge); b: hb.beats, level: hb.level */
+export function safePunch(sf, punch, b, level = 0.7) {
+  const u = ((b / 4) % 1 + 1) % 1, breath = SAFE.breathe * level * (0.5 + 0.5 * Math.cos(2 * Math.PI * u));
+  return sf.k * punch + (1 - sf.k) * breath;
+}
+
 /**
  * ONSETS in the low end (kick + bass): e = the low band's level now (RMS, linear), t = s. Spectral-flux style: the rise since
  * the last reading against an adaptive threshold (the recent rises' mean + 1.5 σ), at least 0.18 s apart, at least 30 % of the

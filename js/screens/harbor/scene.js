@@ -24,7 +24,7 @@ import { createFireworks } from '../district/fireworks.js';
 import { createRainbow } from '../district/rainbow.js';
 import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, partyPalette, partySeed } from '../../core/party.js';
 import { harborParty, harborPartyPlan, partyReadyHour, punchEnv } from '../../core/harbor-show.js';
-import { createHarborBeat, advanceHarborBeat, pulseGain, pulseOut } from '../../core/harbor-beat.js';
+import { createHarborBeat, advanceHarborBeat, pulseGain, pulseOut, createSafety, stepSafety, safePunch } from '../../core/harbor-beat.js';
 import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainbow.js';
 import { cameraFor, harborLayout, laneRects, roofline, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
 import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core/harbor-events.js';
@@ -240,6 +240,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const fw = createFireworks({ onBurst: e => { PT.swell = Math.min(1, PT.swell + 0.55); PT.bursts++; if (S.onBurst) S.onBurst(e); } });
   const bc = createBeatClock();
   const hbeat = createHarborBeat(Math.random());     // NEON PASS 5: THE BEAT (the song's grid + the kicks heard: core/harbor-beat.js)
+  const safety = createSafety();                     // 8b1: THE SAFETY RULE — punch only on a confirmed lead, else a gentle breath
   const punchHist = new Float32Array(64); let punchI = 0;   // (the punch over the last ~1 s: the show's ripple reads it late across the skyline)
   const PT = { on: 0, ramp: 0, energy: 0, phase: 0, breath: 0.5, beat: false, bar: 0, swell: 0, wave: null, name: null, bursts: 0, finaleDone: '', finaleForced: false, lastHour: null, wasOn: false };
   const NOOP = () => {};
@@ -263,7 +264,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const wxNow = () => clock.wx || (clock.preview ? null : liveWeather());
   // CITY 2.0 MUSIC (core/city.js): the music follows THIS clock — the scene's own, so the preview panel's time jumps + speeds move it too —
   // the weather it shows (the sun's place) and the flags it runs on (&mood=)
-  setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k) });
+  // (8b1 — THE BEAT, the owner: the panel's PARTY and every forced SHOW drive the MUSIC MOOD too — a party show plays a party song, so
+  // the lights' grid is a party song's; audio/mood.js#moodNow asks show() over AUTO — an explicit MUSIC MOOD choice still wins)
+  const SHOW_FORCES = ['party', 'neon-party', 'finale', 'fireworks', 'drones', 'dance', 'strings-party', 'beams'];
+  setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k), show: () => (!clock.force.has('no-party') && SHOW_FORCES.some(f => clock.force.has(f)) ? 'party' : null) });
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
   // 8b1 — THE WORKERS: &force=work-<kind> previews that worker (one every few minutes, any day); &force=no-work keeps them all home
   const workForced = () => { for (const id of clock.force) if (id.startsWith('work-')) return id.slice(5); return null; };
@@ -549,8 +553,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wantBake = false;
     L.impliedOn = impliedOn(); L.lampK = lampsNow(); L.wet = wetNow();
     L.season = seasonNow(); L.seasonPhase = seasonForced() ? 0.5 : seasonPhase(LK && LK.local ? LK.local.m : 10, LK && LK.local ? LK.local.d : 15, { south: !!(LK && LK.south) });
-    const T = lookTones();
-    baker.start(bakeKey(), {
+    const T = lookTones(), bk = bakeKey();
+    revOfBake.set(bk, neon.rev); if (revOfBake.size > 8) revOfBake.delete(revOfBake.keys().next().value);   // (8b1: the board swap's overlay)
+    baker.start(bk, {
       far: [...facadeSteps(L, T, 'far', 6, neon.glass), neon.housingStep('far', T)],
       near: [...facadeSteps(L, T, 'near', 6, neon.glass), neon.housingStep('near', T), searchlightStep(L, T), ...quaySteps(L, T)],
       water: waterSteps(L, T),
@@ -563,6 +568,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     bakeTones = T;
   }
   let bakeTones = null, liveTones = null, wantBake = false;
+  const revOfBake = new Map();                    // (8b1: the neon's content rev each bake was started with — bakeKey → rev)
+  let freshDone = 0;                              // (8b1: the last board swap whose bake has landed + finished its crossfade)
   // THE LIGHT KEY: City 1.0's timeline — the hour's share of windows (P.win) in 1/60 steps, the season's warmth
   // (DT1 — THE BLUE HOUR: the share is the power-up's (core/harbor-dark.js#windowShare: a few lower-floor windows in golden hour,
   // every window by the blue hour's end), capped by City 1.0's timeline — P.win, golden hour's own half counted whole — so the small
@@ -674,8 +681,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (8a — PULSE STRENGTH: ONE multiplier on the punch here, at its source — every beat-driven light reads PT.punch or the ripple's
     // history; the preview panel's slider / &pulse= (core/harbor-beat.js#pulseGain, PULSE_DEFAULT), with the soft knee: pulseOut)
     const pq = qp.get('pulse'); if (pq !== pulseQ) { pulseQ = pq; PT.pulse = pulseGain(pq); }
-    PT.punch = S.motion && ps.on > 0 ? pulseOut(hbeat.punch * ps.on * (0.72 + 0.28 * Math.min(1, Math.max(0, (PT.energy - 0.55) / 0.45))), PT.pulse) : 0;
-    punchHist[punchI = (punchI + 1) & 63] = S.motion ? pulseOut(hbeat.punch, PT.pulse) : 0;          // (the show scales it by the scene + the night)
+    // (8b1 — THE SAFETY RULE, core/harbor-beat.js#stepSafety: the punch only while the heard offset is confirmed — else a gentle breath;
+    // the punch itself stays on the trusted grid)
+    if (ps.on > 0) { const cb = S.beatCal ? S.beatCal() : {}; stepSafety(safety, { src: hbeat.src, bar: hbeat.bar, song: cb.song || (song && song.id) || null, anchors: cb.anchors, live: hbeat.live, cal: cb, saved: !!cb.saved }, dt); }
+    const sp0 = safePunch(safety, hbeat.punch, hbeat.beats, hbeat.level);
+    PT.safe = safety.mode; PT.safeK = safety.k;
+    PT.punch = S.motion && ps.on > 0 ? pulseOut(sp0 * ps.on * (0.72 + 0.28 * Math.min(1, Math.max(0, (PT.energy - 0.55) / 0.45))), PT.pulse) : 0;
+    punchHist[punchI = (punchI + 1) & 63] = S.motion ? pulseOut(sp0, PT.pulse) : 0;          // (the show scales it by the scene + the night)
     roPk = Math.max(roPk, PT.punch); if (t - roPkAt > 0.5 || t < roPkAt) { roPulse = roPk; roPk = 0; roPkAt = t; }   // (the readout's `pulse`: the peak of the last ½ s)
     PT.punchAt = punchAt;
     PT.swell = Math.max(0, PT.swell - dt / 3800);
@@ -965,6 +977,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (pplLive) people.frame(peopleFrame());
     if (pplOn) people.draw(c, 'far', pplEnv);
     layer('bill');
+    // (8b1 — THE BOARD SWAP AT ONCE: a billboard just changed (the billposter, the API) — its new board painted over the baked one in the
+    // baked look's tones until a bake carrying that change has landed AND its crossfade is over (the crossfade lays the OLD layer under
+    // the new one — without this the old poster came back for a second); the night poster is live already)
+    { const fr = neon.fresh(), landed = fr && (revOfBake.get(baker.key) ?? -1) >= fr.rev;
+      if (fr && landed && xf >= 1) freshDone = Math.max(freshDone, fr.rev);
+      if (fr && fr.rev > freshDone && bakeTones && fadeIn > 0) {
+        // (a bake canvas's fresh text state — the screen's own may carry another align / spacing from earlier painters)
+        c.save(); c.globalAlpha = fadeIn; c.textAlign = 'start'; c.textBaseline = 'alphabetic'; c.direction = 'ltr'; if ('letterSpacing' in c) c.letterSpacing = '0px'; if ('fontStretch' in c) c.fontStretch = 'normal'; if ('fontKerning' in c) c.fontKerning = 'auto';
+        fr.b.dayDraw(c, bakeTones); c.restore();
+      } }
     neon.draw(c, 'bill', LB ? { ...nf, fade: nf.fade * legendPow(W * 0.16, 'near', 205) } : nf);   // (8a: the roof billboard's lamps + their light on the poster)
     // 8b1 — THE WORKERS' TRACES on the city (core/harbor-crew.js#tracesAt): the roof board's game follows the billposter (+ its dead
     // gooseneck until he fixes it), his sheets pasted over the old poster, the blade's dead bulb, a lamppost's bad night
@@ -1010,7 +1032,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       c.save(); c.globalCompositeOperation = 'multiply'; c.globalAlpha = (1 - pn) * nk; c.fillStyle = 'rgb(118,116,150)'; c.fillRect(0, y0, W, H - y0);
       // (the trees' baked UPLIGHTS: their warm glow under each crown + up the trunk taken down a little more — the crown a dark mass)
       for (const tr of L.trees) { if (!tr.grate) continue; const ch = (tr.h || (tr.w || 3)) * 0.3, [tx, ty] = project(cam, tr.x, (tr.trunk || 2) + ch, tr.z), r = cam.F * (tr.w || 3) / 2 / tr.z, g = c.createRadialGradient(tx, ty, 0, tx, ty, r * 1.25);
-        g.addColorStop(0, 'rgb(84,76,100)'); g.addColorStop(0.55, 'rgb(150,140,164)'); g.addColorStop(1, 'rgb(255,255,255)'); c.fillStyle = g; c.fillRect(tx - r * 1.25, ty - r * 1.25, r * 2.5, r * 2.9); }
+        g.addColorStop(0, 'rgb(84,76,100)'); g.addColorStop(0.55, 'rgb(150,140,164)'); g.addColorStop(1, 'rgb(255,255,255)'); c.fillStyle = g; c.fillRect(tx - r * 1.25, ty - r * 1.25, r * 2.5, r * 2.9);
+        // (8b1 — the owner's "check every other light": the uplight's warm wash up the TRUNK still read lit — a narrow dark band
+        // up each trunk from its grate to the crown, soft at its sides)
+        const [bx, by] = project(cam, tr.x, 0, tr.z), [, topY] = project(cam, tr.x, (tr.trunk || 2) + ch * 0.5, tr.z), tw = cam.F * 0.85 / tr.z;
+        const gt = c.createLinearGradient(bx - tw, 0, bx + tw, 0); gt.addColorStop(0, 'rgb(255,255,255)'); gt.addColorStop(0.3, 'rgb(104,94,118)'); gt.addColorStop(0.7, 'rgb(104,94,118)'); gt.addColorStop(1, 'rgb(255,255,255)');
+        c.fillStyle = gt; c.fillRect(bx - tw, topY, tw * 2, by - topY + tw * 0.3); }
       c.restore(); } }
     // THE IMPLIED ROAD (8a): a passing car's headlights sweeping the near cobbles at night, its soft shadow by day, its sound
     if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps') * (LB ? legendPow(W * 0.5, 'near', 208) : 1), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
@@ -1054,6 +1081,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // PULSE STRENGTH isn't the default)
   // (the beat-sync pass: `beat grid 106.0 · bar 12 · 3/4 · drift −0 ms · pulse 1.18 · level 0.86` — the source never changes mid-song; `level`
   // is how hard it punches from the music's loudness, `level steady` when nothing is heard; the lead + its calibration are on the sync line)
+  // (8b1 — THE SAFETY RULE on the readout: which light the beat drives now + why — `lights PUNCH · lead confirmed · 14 kicks`,
+  // `lights BREATHE · no kicks confirmed yet (bar 3)`, `lights BREATHE → PUNCH 40 %` while the crossfade runs)
+  const safeLine = () => { const k = safety.k, m = safety.mode === 'punch' ? 'PUNCH' : 'BREATHE', tr = k > 0.03 && k < 0.97 ? ` (${safety.mode === 'punch' ? '→' : '←'} punch ${Math.round(k * 100)} %)` : '';
+    return `lights ${m}${tr} · ${safety.why}`; };
   const beatLine = () => `beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.songBar != null ? hbeat.songBar : hbeat.bar} · ${(hbeat.songIdx != null ? hbeat.songIdx : hbeat.idx) + 1}/4${hbeat.drift != null ? ` · drift ${hbeat.drift >= 0 ? '+' : '−'}${Math.abs(Math.round(hbeat.drift))} ms` : ''} · pulse ${roPulse.toFixed(2)}${PT.pulse && PT.pulse !== pulseGain(null) ? ` ×${PT.pulse.toFixed(2)}` : ''}${hbeat.live ? ` · level ${hbeat.level.toFixed(2)}` : hbeat.src === 'grid' ? ' · level steady' : ''}`;
   // (FP3a, FREV B4: a DOM strip at the TOP under the corner buttons — ui/debug-strip.js — never over the promenade or the dock: it
   // sat on the canvas over the promenade's middle (and ran measureText per line per frame inside the very `work` it reported). Its
@@ -1068,7 +1099,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
     const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
     const head = `t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`;
-    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine()] : [])];
+    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
     if (!roStrip) roStrip = createDebugStrip('readout');
     roStrip.set({ head: `${head} ▾`, line: `t${tier} · ${fps} fps · ${slow}% slow${PT.on > 0 ? ` · beat ${hbeat.src}` : ''} ▸`, rows });
   }
@@ -1127,6 +1158,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (!clock.force.has('no-boats')) boats.mirrors(water, hb);
       if (hl.k > 0.01) water.reflect(cx => beam.reflect(cx, hl), axisAt(L, L.lighthouse.z));
       if (lastNf && lastNf.night > 0.02) water.reflect(cx => neon.draw(cx, 'harbor', lastNf), axisAt(L, L.lighthouse.z));
+      // (8b1 — the blackout's leftovers: the mirrored lighthouse piece is a copy of the BAKED harbor layer — the cottage's lit windows,
+      // the lantern + the slit came back lit in the water; the same dark glass laid on the mirror's copy, inside the piece's rect)
+      if (LB) { const kb = 1 - legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303);
+        if (kb > 0.01) for (const m of waterMirrors) water.reflect(cx => { cx.save(); cx.beginPath(); cx.rect(m.x, m.y, m.w, m.h); cx.clip(); harborBlackout(cx, L, kb); cx.restore(); }, m.axis); }
     }
     return { wheel: hw, boat: hb, beam: hl, lamps: glowK * lgW };
   }
@@ -1629,7 +1664,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
     tiering: () => ({ tier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())) }),
     cost: () => costs.slice(),
-    party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
+    party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, safe: PT.safe || null, safeK: PT.safeK == null ? null : +PT.safeK.toFixed(3), pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
     finale: () => startFinale(),
     /** 8a — THE LOOP: running, ms since its last frame, frames drawn, the watchdog's restarts (stalls: 'running' with no frame) + why */
     loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, failStop, ...loopLog, at: Math.round(loopLog.at) }),
@@ -1695,7 +1730,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
-      beatLine: PT.on > 0 ? beatLine() : null,
+      beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3) },
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),

@@ -237,6 +237,15 @@ export function createBoats() {
       c.fillRect(X(12.8), Y(8.75), (15 - 12.8 - 0.4) * u, 0.75 * u);
       c.globalAlpha = 1;
     }
+    // (8b1 — the blackout's leftovers: the TUG's wheelhouse + cabin windows and the water TAXI's cabin windows are painted warm into
+    // their night sprites too — the same dark glass, the same rects as drawTug / drawTaxi)
+    if ((r.kind === 'tug' || r.kind === 'taxi') && f.power != null && f.power < 0.99 && f.T && f.T.night > 0.35) {
+      const X = a => (a - r.len / 2) * u, Y = y => -y * u;
+      c.globalAlpha = 1 - f.power; c.fillStyle = 'rgb(26,22,34)';
+      if (r.kind === 'tug') { for (let a = 4.5; a < 6.6; a += 0.7) c.fillRect(X(a) - 0.05 * u, Y(4.15), 0.58 * u, 0.7 * u); for (let a = 2.8; a < 4; a += 0.8) c.fillRect(X(a) - 0.05 * u, Y(2.75), 0.55 * u, 0.6 * u); }
+      else { c.save(); c.rotate(-0.035); for (let a = 1.35; a < 4.1; a += 0.72) c.fillRect(X(a) - 0.05 * u, Y(2.25), 0.6 * u, 0.65 * u); c.restore(); }
+      c.globalAlpha = 1;
+    }
     if (s.lights && f.lights > 0.01) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, f.lights) * (mirror ? 0.9 : 1); c.drawImage(s.lights, -s.ox, -s.oy, s.w, s.h); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
     // Rosie's paddlewheel (turning while she moves: its spokes + the wash's white water) — after the sprite
     if (r.kind === 'rosie' && tier > 0) {

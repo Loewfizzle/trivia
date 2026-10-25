@@ -38,7 +38,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   const games = allGames.filter(g => g.playable !== false).map(g => ({ ...g, short: signName(g) }));
   let L = null, cam = null, dpr = 1, tier = 2, W = 0;
   let signs = [], boards = [], outs = [], items = [], queue = [], key = '', scheme = 'city', assignKey = '';
-  let built = 0, lastOn = false, mbSprites = 0, rev = 0;
+  let built = 0, lastOn = false, mbSprites = 0, rev = 0, fresh = null;
   const comp = { far: null, near: null, harbor: null };   // tier 0: each group's lit neon as one image (when it is steady)
   const moment = { party: 0, flash: null, chase: false, scene: null, burnout: false, lamps: null };
   let glassFaces = [], pending = null;
@@ -1003,9 +1003,12 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY, dead: show ? show.dead : null });
       const i = boards.indexOf(it.b);
       free(it.night); it.b = { ...b, roofY: it.b.roofY }; it.night = b.nightS; if (i >= 0) boards[i] = it.b;
-      dropComp(); rev++; onContent();
+      dropComp(); rev++; fresh = { b: it.b, rev }; onContent();
       return true;
     },
+    /** 8b1 — THE SWAP AT ONCE (POL4's known issue: by day the new poster showed only once the city's re-bake landed, ~1–2 s): the board
+     *  just changed + the rev it came with — the scene paints it over the baked one until a bake carrying that rev has landed */
+    fresh: () => fresh,
     /** a tap on a game's sign → { kind: 'sign', id } */
     hit(x, y) {
       for (const sg of signs) { const R = sg.rect; if (sg.game && x >= R.x - 4 && x <= R.x + R.w + 4 && y >= R.y - 4 && y <= R.y + R.h + 4) return { kind: 'sign', id: sg.game, sign: sg.id }; }

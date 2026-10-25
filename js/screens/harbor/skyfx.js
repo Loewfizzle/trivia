@@ -183,7 +183,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       if (ent && ent.show && !holiday.has(`${date}|show`) && hr >= ent.show.h && hr < ent.show.h + SHOW_LEN[ent.show.kind] / 3600 && !show.on() && !Lk.rain && !Lk.storm && (Lk.cloud || 0) < 0.8 && may('airshow', 'holiday')) {
         if (show.start(ent.show.kind, atOf(ent.show.h))) holiday.add(`${date}|show`);
       }
-      // (POLISH 4: THE SURPRISE FLYBY — ~2 evenings a week, golden hour → 11 pm, mostly after dark; a few F-16s straight across on
+      // (POLISH 4: THE SURPRISE FLYBY — ~twice a month, golden hour → 11 pm, mostly after dark; a few F-16s straight across on
       // afterburner, in a random direction; weather allowing; never over a show already flying)
       if (!duskOf || duskOf.date !== date) { const st = Lk.lat != null ? sunTimes(s.now, 'UTC', Lk.lat, Lk.lon) : null; duskOf = { date, h: st && st.set ? ((((st.set / 60000 + (lc.off || 0)) % 1440) + 1440) % 1440) / 60 : 19 }; }
       const fb = flybyDay(lc.y, lc.m, lc.d, duskOf.h);

@@ -130,7 +130,10 @@ export function signalSteps(L, T) {
     x.fillStyle = rgb(M.brassLit); x.fillRect(cx - Math.max(0.3, 0.02 * s), Y(sg.h + 0.24), Math.max(0.6, 0.04 * s), 0.16 * s);
     // POLISH 4 (the owner): ONE signal head a pole — a single vertical stack (red / amber / green) on the side facing the traffic that
     // comes toward it (the left pole's lamps face left, the right pole's right), ONE lamp lit at a time: two lit in all, never four
-    const cxw = L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : 0, face = sg.x < cxw ? -1 : 1;
+    // (8b1 — POL4's known issue: at 402 both poles stand left of the crossing's middle, so "outward from the middle" turned BOTH heads
+    // left. Each pole's head faces the traffic IT controls: the west pole holds the cars driving right (sg.dir 1) — they come in from
+    // the left, so its lamps face left; the east pole holds the cars driving left (dir −1) — its lamps face right. One each way.)
+    const cxw = L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : 0, face = sg.dir === 1 || sg.dir === -1 ? -sg.dir : sg.x < cxw ? -1 : 1;
     const lens = [];
     for (let i = 0; i < 3; i++) {
       const y = Y(top - SIG.HH * ROW(i)), r = SIG.ry * s, sides = [];

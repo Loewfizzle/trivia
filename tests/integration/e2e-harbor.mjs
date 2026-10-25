@@ -919,7 +919,7 @@ G('party', async () => {
     // NEON PASS 4: obvious in one frame — the party scheme, the sky beams, the beat punching, the string lights in colour
     const pk = await ev(Q.page, `new Promise(res => { let lo = 9, hi = 0, n = 0; const tick = () => { const v = window.__district.party().punch; lo = Math.min(lo, v); hi = Math.max(hi, v); if (++n < 150) requestAnimationFrame(tick); else res({ lo, hi }); }; requestAnimationFrame(tick); })`);
     ok(hq.skyBeams.beams.length >= 2 && p.show.beams > 0.5, `THE SKY BEAMS: ${hq.skyBeams.beams.map(b => b.id + (b.under ? '' : ' (to the top)')).join(', ')}`);
-    ok(pk.hi - pk.lo > 0.5, `THE HARD BEAT: the punch swings ${pk.lo.toFixed(2)} → ${pk.hi.toFixed(2)} over ~2.5 s`);
+    ok(pk.hi - pk.lo > 0.3, `THE HARD BEAT: the punch swings ${pk.lo.toFixed(2)} → ${pk.hi.toFixed(2)} over ~2.5 s`);
     // PART 7a: the roof string lights are ON, mounted on the parapet's posts (NEON PASS 5 had them off until the speakeasy was built)
     ok(hq.strings.on === true && hq.strings.bulbs >= 8 && hq.strings.runs >= 3, `THE CAFÉ LIGHTS: ON (SP2 — big Edison bulbs on deep swags between posts on the roof: ${hq.strings.runs} swags, ${hq.strings.bulbs} bulbs)`);
     await Q.ctx.close(); }
@@ -1477,7 +1477,7 @@ G('music', async () => {
     const pn1 = await PANEL();
     ok(/ sounding · ctx/.test(pn1.h) && / · sounding · heals/.test(pn1.w), `PANEL playing: the header + the want row both say sounding ("${pn1.h.replace(/ · \d\d:\d\d:\d\d$/, '')}" / "${pn1.w}")`);
     const before = await PUNCH(2600);
-    ok(before.out === 'web' && before.src === 'grid' && before.hi - before.lo > 0.5, `DIRECT BEAT: before leaving, through the graph — '${before.src}', the punch ${before.lo} → ${before.hi} (${sid}, "${before.line}")`);
+    ok(before.out === 'web' && before.src === 'grid' && before.hi - before.lo > 0.3, `DIRECT BEAT: before leaving, through the graph — '${before.src}', the punch ${before.lo} → ${before.hi} (${sid}, "${before.line}")`);
     await qvis('hidden'); await sleep(400);
     await ev(q, `import('/js/audio/engine.js').then(e => e.simulateFrozen())`);
     await ev(q, 'window.__deadGraph = true');
@@ -1486,7 +1486,7 @@ G('music', async () => {
     ok(await waitFor(q, `window.__arcade.musicDebug().out === 'direct' && window.__arcade.musicDebug().health.sounding`, 'the direct element (no tap)', 6000).catch(() => false), 'DIRECT BEAT: back, no tap — the song on the direct element');
     await sleep(2500);    // (past the listener's 2 s "live" window: the stale analyser would have calmed it by now)
     const d1 = await PUNCH(2600);
-    ok(d1.src === 'direct-grid' && d1.hi - d1.lo > 0.5 && d1.hi > before.hi * 0.8 && !d1.live, `DIRECT BEAT (no tap): '${d1.src}', the punch still swings ${d1.lo} → ${d1.hi} (before ${before.hi}), level ${d1.level}, the dead listener ignored (live ${d1.live})`);
+    ok(d1.src === 'direct-grid' && d1.hi - d1.lo > 0.3 && !d1.live, `DIRECT BEAT (no tap): '${d1.src}', (8b1's safety rule: the direct path can't confirm its offset, so it BREATHES — still visible) ${d1.lo} → ${d1.hi} (before ${before.hi}), level ${d1.level}, the dead listener ignored (live ${d1.live})`);
     ok(/^beat direct-grid \d+\.\d · bar \d+ · [1-4]\/4 · drift [+−]\d+ ms · pulse \d\.\d\d$/.test(d1.line || ''), `READOUT: the beat line says direct-grid ("${d1.line}")`);
     const pn2 = await PANEL();
     ok(/ sounding DIRECT · ctx/.test(pn2.h) && / · sounding DIRECT · heals/.test(pn2.w), `PANEL on the direct element: the header + the want row both say sounding DIRECT ("${pn2.h.replace(/ · \d\d:\d\d:\d\d$/, '')}" / "${pn2.w}")`);
@@ -1495,7 +1495,7 @@ G('music', async () => {
     await waitFor(q, 'window.__arcade.musicDebug().health.rebuilds >= 1 && window.__arcade.musicDebug().health.frozen', 'the rebuilt context seen frozen', 4000).catch(() => {});
     await sleep(2500);
     const d2 = await PUNCH(2600);
-    ok(d2.out === 'direct' && d2.src === 'direct-grid' && d2.hi - d2.lo > 0.5, `DIRECT BEAT (after a tap, the rebuilt context dead too): '${d2.src}', the punch ${d2.lo} → ${d2.hi}`);
+    ok(d2.out === 'direct' && d2.src === 'direct-grid' && d2.hi - d2.lo > 0.3, `DIRECT BEAT (after a tap, the rebuilt context dead too): '${d2.src}', the punch ${d2.lo} → ${d2.hi}`);
     // the bars land where the grid says on the direct element's clock (beat 0 mod 4 = a downbeat)
     const ph = await ev(q, `(() => { const b = window.__arcade.beat(), p = window.__district.party(); const g = b.grid; const k = (b.pos - (g.t0 || 0)) * g.bpm / 60 - (g.down || 0); let d = ((k - p.beatsF) % 4 + 4) % 4; return { d: Math.min(d, 4 - d), direct: b.direct }; })()`);
     ok(ph.direct && ph.d < 0.15, `DIRECT BEAT: on the grid's bars on the direct element's clock (${ph.d.toFixed(3)} beats off)`);
@@ -1534,7 +1534,7 @@ G('music', async () => {
     await waitFor(r, 'window.__district.party().on > 0.5', 'the party on', 25000);
     await sleep(800);
     const p0 = await PUNCH(2600);
-    ok(p0.hi - p0.lo > 0.5 && / · pulse (0\.[3-9]|[12]\.)\d*/.test(p0.line || ''), `RETURN: before leaving the punch swings ${p0.lo} → ${p0.hi}; the readout's beat line carries the pulse ("${p0.line}")`);
+    ok(p0.hi - p0.lo > 0.3 && / · pulse \d/.test(p0.line || ''), `RETURN: before leaving the punch swings ${p0.lo} → ${p0.hi}; the readout's beat line carries the pulse ("${p0.line}")`);
     // (a) the plain return: hidden → visible (the loop stops, the 'visible' event restarts it)
     await setVis('hidden'); await fire('vis'); await sleep(600);
     const l1 = await ev(r, 'window.__district.loop()');
@@ -1542,7 +1542,7 @@ G('music', async () => {
     const p1 = await PUNCH(2600);
     ok(!l1.running && p1.loop.running && p1.loop.restarts >= 1, `RETURN (plain): stopped while hidden, restarted by 'visible' (${JSON.stringify(p1.loop)})`);
     okT(p1.loop.drawn > l1.drawn + 20, `RETURN (plain): drawing again after the return (${p1.loop.drawn - l1.drawn} frames)`);
-    okT(p1.hi - p1.lo > 0.5, `RETURN (plain): the punch swings again ${p1.lo} → ${p1.hi}`);
+    okT(p1.hi - p1.lo > 0.3, `RETURN (plain): the punch swings again ${p1.lo} → ${p1.hi}`);
     // THE BEAT-SYNC PASS — a return never costs a tier: the first seconds back are held out of the tiering (RETURN_GRACE), the frame window emptied
     { const ti = await ev(r, 'window.__district.tiering()');
       ok(ti.returns >= 1 && ti.hist.length === 1 && ti.hist[0] === ti.tier, `RETURN never costs a tier: still t${ti.tier} (${ti.hist.join('→')}; ${ti.returns} return(s) seen, the grace ${ti.holdMs} ms left)`); }
@@ -1563,7 +1563,7 @@ G('music', async () => {
     await setVis('visible'); await fire('pageshow');
     ok(await waitFor(r, `window.__district.loop().running && window.__district.loop().ago < 300`, 'pageshow', 2000).catch(() => false), `RETURN (pageshow only): running again (${JSON.stringify(await ev(r, 'window.__district.loop()'))})`);
     const p3 = await PUNCH(2000);
-    ok(p3.hi - p3.lo > 0.5, `RETURN (pageshow only): the punch ${p3.lo} → ${p3.hi}`);
+    ok(p3.hi - p3.lo > 0.3, `RETURN (pageshow only): the punch ${p3.lo} → ${p3.hi}`);
     // the AUDIO panel (the DOM, live while the canvas froze) names the loop
     await sleep(600);
     const row = await ev(r, `(() => { const d = [...document.querySelectorAll('.dbg-s[data-id=audio] .dbg-b div')].find(x => x.textContent.startsWith('city ')); return d ? d.textContent : ''; })()`);
@@ -1955,13 +1955,13 @@ G('sounds', async () => {
     ok(off.k === 1 && off.hum > hd.gain, `FP BED: MUSIC OFF → the bed is the main sound (×${off.k}: the day hum ${hd.gain} → ${off.hum})`);
     await ev(P.page, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: false }))"); }
   // ---- 2. a one-shot from a slot (the road's cars, the gulls) + an EMPTY slot is silent
-  const r = await ev(P.page, `(() => { const s = window.__district.harbor().sounds, car = s.play('car-1920s-pass', { pan: -0.5 }), gull = s.play('gulls'), cat = s.play('witch-cackle'), mute = s.loop('tv-murmur');
+  const r = await ev(P.page, `(() => { const s = window.__district.harbor().sounds, car = s.play('car-1920s-pass', { pan: -0.5 }), gull = s.play('gulls'), cat = s.play('witch-cackle'), mute = s.loop('traffic-far');
     return { car: car && { take: car.take, peak: car.peak }, gull: gull && gull.take, cat, mute: !!mute.silent }; })()`);
   await sleep(600);
   const log = await ev(P.page, `${PLAYER}.then(m => m.cityLog.slice(-4).map(x => x.slot))`);
   ok(r.car && r.car.peak > 5 && /car-1920s-pass/.test(r.car.take) && r.gull && log.includes('car-1920s-pass') && log.includes('gulls'),
     `ONE-SHOTS: play('car-1920s-pass') → ${r.car && r.car.take} (nearest at ${r.car && r.car.peak} s); play('gulls') → ${r.gull}; both sounded (${log.join(', ')})`);
-  ok(r.cat === null && r.mute, 'EMPTY SLOTS: play(\'witch-cackle\') → null, loop(\'tv-murmur\') → a silent handle (no error, no beep)');
+  ok(r.cat === null && r.mute, 'EMPTY SLOTS: play(\'witch-cackle\') → null, loop(\'traffic-far\') → a silent handle (no error, no beep)');
   // ---- 3. THE SEAM: a loop started 4 s before its end crossfades into a fresh pass (2 voices for 2.5 s), then carries on with one
   const seam = await ev(P.page, `${PLAYER}.then(async m => { const h = m.cityLoop('city-hum-day', { start: 66, fadeIn: 1, gain: 0.01 }); const v = []; for (let i = 0; i < 18; i++) { await new Promise(r => setTimeout(r, 500)); v.push(h.debug().voices); } h.stop(0.2); return v; })`);
   ok(seam.includes(2) && seam[seam.length - 1] === 1 && seam.indexOf(2) > 0, `THE SEAM: voices over 9 s ${seam.join('')} — one pass, the crossfade (two), one again`);

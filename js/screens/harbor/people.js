@@ -80,7 +80,9 @@ export function createPeople() {
    * draw(c, pass, env): pass 'far' | 'near' | 'roof'; env = { cam, T (the tones: day / gold / night, sunDir, sunEl, ovc), dark (the
    * lamps' ramp), t (s, the frame), mo (motion), season, rain, fade, vendor (the cart staffed), snd (sounds.js) }
    */
-  const envOf = env => { const dark = clamp01(env.dark || 0); return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: lights(dark), rimSide, shadow: h => sunShadow(env.T || {}, h) }; };
+  // (8b1 — the blackout's leftovers: the lamps' light on the figures — their lit cloth + the rim — follows the city's POWER (a dead
+  // lamp lights nobody); their night tone stays the scene's darkness (drawFolk: T.night), so they stay dark silhouettes)
+  const envOf = env => { const dark = clamp01(env.dark || 0) * (env.power == null ? 1 : clamp01(env.power)); return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: lights(dark), rimSide, shadow: h => sunShadow(env.T || {}, h) }; };
   /** FP3b — REAL DOORS: is this member inside a doorway (behind the facade's plane — drawn by drawInside through the opening)? */
   const insideDoor = m => !!(m.s.door && !m.s.door.bus && M && m.s.z > M.face - 0.02);
   const inBus = (m, b) => !!(m.s.door && m.s.door.bus && m.s.door.id === b.id && m.s.z > b.z - 0.02);
@@ -89,7 +91,7 @@ export function createPeople() {
     const cam = L.cam, fade = env.fade == null ? 1 : env.fade;
     const E = envOf(env);
     // the roof: lit by the café lights over the deck (warm, from above) — the guests read against the dark billboard; the party's colours
-    if (pass === 'roof') { const warm = env.party ? [255, 170, 150] : [255, 196, 128], k = 0.9 * E.dark; E.lightAt = k > 0.02 ? () => warm.map(v => v * k) : null; E.rimSide = () => -1; E.shadow = () => null; }
+    if (pass === 'roof') { const warm = env.party ? [255, 170, 150] : [255, 196, 128], k = 0.9 * E.dark; E.lightAt = k > 0.02 ? () => warm.map(v => v * k) : null; E.rimSide = () => -1; E.shadow = () => null; }   // (8b1: E.dark carries the power — the café lights dead in a blackout light nobody)
     let items;
     if (pass === 'roof') {
       // (FP3a: the roof's guests off at tier 0; 8b1: the roof's WORKERS — the billposter, the gardener, the crew — at every tier)

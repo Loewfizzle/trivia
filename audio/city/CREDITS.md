@@ -417,6 +417,28 @@ are kept anyway, with each source file's MD5.
 - Source: https://assets.mixkit.co/active_storage/sfx/614/614.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
+## power-failure.mp3  →  power-failure
+
+- MD5 `8a4384d124c23cf0ce805e672cceff60`
+- power-failure.mp3   (300,930 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "Spindown Huge" - Olaf464 (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-spindown-huge-90731/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_d9c58be169.mp3?filename=freesound_community-spindown-huge-90731.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user Olaf464, "Spindown Huge" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## power-restore.mp3  →  power-restore
+
+- MD5 `7beb9a488b4333f4a3050249487f720a`
+- power-restore.mp3   (487,340 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "60Hz_Tube_Radio_Hum" - hetanoyokozuki (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/musical-60hz-tube-radio-hum-63823/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_ae9cf06004.mp3?filename=freesound_community-60hz_tube_radio_hum-63823.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user hetanoyokozuki, "60Hz_Tube_Radio_Hum" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## prop-plane.mp3  →  prop-plane
 
 - MD5 `4a992ec5d49d102be3188ab39db47904`
@@ -567,6 +589,14 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Pole%20Position%20-%20Black%20Hawk%20UH-60M/black_hawk_t16_ext_idle_turbine_rotors_off_left_Co100k.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## tr3b-presence.wav  →  tr3b-presence
+
+- MD5 `12da8c05c936d634743d6ce57e7dd3ae`
+- tr3b-presence.wav   (19,747,548 bytes)
+- "Electro Magnetic Fields - Hums Bass-08" - Systematic Sound - Sound Themes - Electro Magnetic 01, Sonniss GDC 2020 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Systematic-Sound%20-%20Sound%20Themes%20%E2%80%93%20Electro%20Magnetic%2001/Electro%20Magnetic%20Fields%20-%20Hums%20Bass-08.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
 ## trash-can-lid.mp3  →  trash-can-lid
 
 - MD5 `80e05a76107667c122430a3363b5ff2e`
@@ -576,6 +606,28 @@ are kept anyway, with each source file's MD5.
 - Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_f264b31cd1.mp3?filename=freesound_community-lid-drop-85396.mp3
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - Original: Freesound user pel2na, "lid drop" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## trash-truck-2.mp3  →  trash-truck-arrive, trash-truck-depart
+
+- MD5 `144c3c5c2d2166d33de007fbb553e7ee`
+- trash-truck-2.mp3   (3,104,256 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "014953_R19-48-Old Large Truck Start Idle Out.wav" - craigsmith (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/city-014953-r19-48-old-large-truck-start-idle-outwav-56807/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/13/audio_315cac460f.mp3?filename=freesound_community-014953_r19-48-old-large-truck-start-idle-outwav-56807.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user craigsmith, "014953_R19-48-Old Large Truck Start Idle Out.wav" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## tv-murmur-2.mp3  →  tv-murmur
+
+- MD5 `d8783dcfff08f553a53d2d4c6c2ae506`
+- tv-murmur-2.mp3   (1,235,712 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "Medium house party walla, ambience, chatter.wav" - SpliceSound (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/household-medium-house-party-walla-ambience-chatterwav-14448/
+- Source: https://cdn.pixabay.com/download/audio/2022/01/18/audio_6dae06fce2.mp3?filename=freesound_community-medium-house-party-walla-ambience-chatterwav-14448.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user SpliceSound, "Medium house party walla, ambience, chatter.wav" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
 ## ufo-beam.wav  →  ufo-beam

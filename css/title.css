@@ -325,7 +325,9 @@ body.reduced-fx .nd-word-s, body.reduced-fx .nd-word-p { animation: none !import
   width: 2.7em;
   height: 0.6em;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10'%3E%3Cpath d='M0 5H48' stroke='%23edf0ff' stroke-opacity='.55' stroke-width='1.2'/%3E%3Cpath d='M0 7.5H40' stroke='%23edf0ff' stroke-opacity='.25' stroke-width='.8'/%3E%3Cpath d='M55 1l4 4-4 4-4-4z' fill='%23edf0ff'/%3E%3C/svg%3E") center / contain no-repeat;
-  opacity: 0.85;
+  /* (8b1 — the owner: in the TR-3B's blackout the lit diamonds + rules stayed bright beside a dead SPEAKEASY: they follow the
+     sign-dim level with the letters — dark with the sign, flickering back with it; a sky message dims them with the word too) */
+  opacity: calc(0.85 * var(--sd-logo, 1)); transition: opacity var(--sd-ms, 1.2s) ease;
 }
 /* the trailing letter-spacing sits before ::after; pull it back so both ornaments are the same distance away */
 .nd-word::after { transform: scaleX(-1); margin-left: -0.66em; }

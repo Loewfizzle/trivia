@@ -389,6 +389,29 @@ CUTS = {
     ],
     # (4.8 s Sonniss, an audience cheering: the whoops 0–1.5 s (voiced 0.67–0.92: "whoo"s, no words), applause after; low-passed 4 kHz)
     'crowd-whoop': [{'cut': (0.0, 4.6), 'fin': 0.05, 'fout': 1.2, 'hp': 200, 'lp': 4000}],
+    # ---- 8b1 — GROK'S SECOND-TRY SOUNDS (credits.txt "Second-try sounds"; analysed: tools in the 8b1 notes, docs/audio.md#8b1)
+    # (38.6 s Pixabay MP3, a house party's walla: ≤ 20 % voiced frames in any second, no held tone (no music) — indistinct; heard
+    # through an upstairs window: 300 Hz–1.8 kHz (the consonants a word needs live above 2 kHz — none readable), at 16 kHz)
+    'tv-murmur-2': [{'loop': (17.5, 15.0), 'xf': 2.0, 'search': 2.5, 'hp': 300, 'lp': 1800, 'rate': 16000}],   # (the steadier, livelier second half: 3–31 s had a 5.5 dB seam)
+    # (103.6 s, distant traffic: a continuous wash — only a 15 dB swing in 100 s, never a gap — + engine tones: MODERN density; kept in
+    # SKIP below (the owner: "if it still sounds modern, leave the slot empty"); the cut is ready: drop 'traffic-far-2' from SKIP to try it)
+    'traffic-far-2': [{'loop': (2.0, 62.0), 'xf': 3.0, 'search': 1.0, 'hp': 120, 'lp': 3500, 'rate': 16000}],
+    # (97 s, an old large truck: the start 0–2 s, the idle 2–65, revs 65–73, the pull-out 73–97 fading — no air brakes, no beeps. DEPART
+    # = 58–97 (idle → revs → away; `hit` the pull-out ~15 s in). There's no arrival in it: ARRIVE = the pull-out PLAYED BACKWARDS (a
+    # truck coming in from far, its engine winding down as it slows) crossfaded into the idle (`hit` = where it has stopped); LPF 5 kHz)
+    'trash-truck-2': [
+        {'to': 'trash-truck-arrive', 'name': 'trash-truck-arrive', 'seq': [(None, 80.0, 96.5, 0.0, 0.0, True, 1.2), (None, 3.0, 14.0, 15.3, -1.5, False, 1.2)], 'fin': 1.5, 'fout': 2.0, 'hp': 60, 'lp': 5000, 'mark': 16.0},
+        {'to': 'trash-truck-depart', 'name': 'trash-truck-depart', 'cut': (58.0, 96.9), 'fin': 1.0, 'fout': 5.0, 'hp': 60, 'lp': 5000, 'mark': 15.0},
+    ],
+    # (33 s Sonniss, an electromagnetic hum: 53 % of its energy under 150 Hz — a phone loses ~5 LU of it. HPF 90 Hz + HARMONIC
+    # SATURATION of the band under 160 Hz (its harmonics mixed back: the same hum through a phone), a loop 1–29.5 s + 2 s crossfade)
+    'tr3b-presence': [{'loop': (1.0, 28.5), 'xf': 2.0, 'search': 0.5, 'hp': 90, 'sat': (6.0, 2.6, 160), 'dup': (180, 4.0), 'rate': 16000}],
+    # (9.4 s Pixabay MP3, a big machine spinning down 480 → 240 Hz — 97 % mids already (a phone hears all of it); the whole file, levelled
+    # from −13.4 LUFS like every one-shot; it plays as the city's lights die — sounds.js#legendSounds)
+    'power-failure': [{'cut': (0.0, 9.35), 'fin': 0.005, 'fout': 1.2, 'hp': 90}],
+    # (15.2 s Pixabay MP3, a tube hum swelling up: 62 % under 150 Hz — a phone loses ~11 LU. 0–9 s (the swell + the hum), HEAVY
+    # saturation + a duplicate layer high-passed at 180 Hz so its harmonics carry it; it plays as the power stutters back)
+    'power-restore': [{'cut': (0.0, 9.0), 'fin': 0.3, 'fout': 2.2, 'hp': 50, 'sat': (8.0, 1.4, 170), 'dup': (180, 6.0)}],
 }
 # source files named after what they are, not their slot (the folder's names) → the slot
 ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-formation': 'jet-flyby', 'tr3b-powerdown': 'tr3b-power-down',
@@ -400,13 +423,16 @@ ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-form
 # no arrival or departure in it to cut), raccoon-chitter (a hiss + growl attack: not one voiced frame in 83 s, broadband — scary),
 # police-car-1920s (Fox Audio's short pass — the owner: cut the police cars from the 1929 Volvo instead)
 SKIP = {'bus-idle', 'bus-depart', 'mirror-door-open', 'mirror-door-close', 'tv-murmur', 'door-slot',
-        'traffic-far', 'trash-truck', 'raccoon-chitter', 'police-car-1920s'}
+        'traffic-far', 'trash-truck', 'raccoon-chitter', 'police-car-1920s',
+        # 8b1: the second try at far traffic still measures as MODERN (a continuous wash: CUTS['traffic-far-2'] has its cut, ready)
+        'traffic-far-2'}
 PIXABAY = ('The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — '
            'the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).')
 CREDIT_NOTE = {
     'heli-flyby': PIXABAY, 'prop-plane': PIXABAY, 'balloon-burner': PIXABAY, 'geese': PIXABAY,
     'bar-ambience-close': PIXABAY, 'shop-bell': PIXABAY, 'broom-sweep': PIXABAY, 'window-sash': PIXABAY, 'roller-blind': PIXABAY,
     'cat-land': PIXABAY, 'rooftop-party': PIXABAY,
+    'tv-murmur-2': PIXABAY, 'trash-truck-2': PIXABAY, 'power-failure': PIXABAY, 'power-restore': PIXABAY,   # (8b1: the second-try set)
     'milk-bottles': PIXABAY, 'trash-can-lid': PIXABAY, 'ladder-clank': PIXABAY, 'crates-clink': PIXABAY, 'ships-bell': PIXABAY,
     'ship-horn': PIXABAY, 'boat-putter': PIXABAY,
     'duck-quack': 'A Pixabay copy (Pixabay Content License) of a Freesound upload whose account was deleted — no lossless original known.',
@@ -712,8 +738,26 @@ def shape(y, cut):
         b, a = biquad('peak', 300, 0.7, cut['lowmid'])
         y = lfilter(b, a, y)
     if cut.get('notch'): y = notch(y, cut['notch'])
+    if cut.get('sat'): y = saturate(y, *cut['sat'])
+    if cut.get('dup'):
+        # (8b1: a DUPLICATE layer high-passed at `hz`, `db` louder — a hum's harmonics carry it on a phone's speaker)
+        hz, db = cut['dup']
+        y = y + sosfiltfilt(butter(4, hz, 'highpass', fs=SR, output='sos'), y) * 10 ** (db / 20)
     if cut.get('lp'): y = lowpass(y, cut['lp'])
     return y
+
+
+def saturate(y, drive, mix, lo):
+    """8b1 — HARMONIC SATURATION (`sat`: drive, mix, lo Hz): a hum whose energy sits under ~150 Hz vanishes on a phone's speaker; the
+    band under `lo` driven through a soft clipper (tanh, `drive` × its own peak) makes its harmonics, and only those (high-passed at
+    `lo`) are mixed back in at `mix` × the band's level — the same note, heard through a phone (the low end itself kept)"""
+    sos_lo = butter(4, lo, 'lowpass', fs=SR, output='sos')
+    low = sosfiltfilt(sos_lo, y)
+    pk = np.percentile(np.abs(low), 99.5) + 1e-9
+    h = np.tanh(drive * low / pk) * pk / np.tanh(drive)
+    h = sosfiltfilt(butter(4, lo, 'highpass', fs=SR, output='sos'), h)
+    g = np.sqrt(np.mean(low ** 2)) / (np.sqrt(np.mean(h ** 2)) + 1e-12)
+    return y + h * g * mix
 
 
 def gain_env(y, segs, ramp=0.03):
@@ -751,12 +795,21 @@ def gate(y, under_db, ratio=2.0, win=0.01, release=0.04):
 
 def assemble(path, seq, folder):
     """`seq`: a take built from pieces — (file | None, t0, t1, at, dB): `file` another recording in the folder (None = this one),
-    its t0–t1 placed at `at` s, a 3 ms fade in + 30 ms out on each piece"""
+    its t0–t1 placed at `at` s, a 3 ms fade in + 30 ms out on each piece. 8b1: two optional extras — `rev` (the piece played
+    BACKWARDS: a truck pulling away, reversed, is one coming in and slowing) and `xf` (s: equal-power fades in + out, for a crossfade
+    with the piece it overlaps)"""
     parts = []
-    for f, t0, t1, at, d in seq:
+    for p in seq:
+        f, t0, t1, at, d = p[:5]
+        rev, xf = (p[5] if len(p) > 5 else False), (p[6] if len(p) > 6 else 0.0)
         x = decode(folder / f if f else path, t0, t1) * 10 ** (d / 20)
-        nI, nO = int(0.003 * SR), min(len(x) // 3, int(0.03 * SR))
-        x[:nI] *= np.linspace(0, 1, nI); x[-nO:] *= np.linspace(1, 0, nO)
+        if rev: x = x[::-1].copy()
+        if xf:
+            n = min(len(x) // 3, int(xf * SR)); k = np.sin(np.linspace(0, np.pi / 2, n))
+            x[:n] *= k; x[-n:] *= k[::-1]
+        else:
+            nI, nO = int(0.003 * SR), min(len(x) // 3, int(0.03 * SR))
+            x[:nI] *= np.linspace(0, 1, nI); x[-nO:] *= np.linspace(1, 0, nO)
         parts.append((int(round(at * SR)), x))
     y = np.zeros(max(i + len(x) for i, x in parts))
     for i, x in parts: y[i:i + len(x)] += x

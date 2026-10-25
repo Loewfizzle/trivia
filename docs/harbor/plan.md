@@ -46,8 +46,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | FP | ✅ (fb332a1, Oct 23 — the owner: "a big jump", ~8 / 10) FOREGROUND POLISH (Oct 23): the beat-after-returning fix (count beats from the song's position, not the context clock — the owner's evidence: ~1.3 s drift), the promenade re-layout (approved sketch), the billboard on a short frame, the blade in front of the tree, the barber pole (smooth + brighter), the stop lights + a WALK/WAIT lantern, one crafted planter, the bench at night, quieter water + varied gulls, pulse default 175, readout + AUDIO toggles in the panel | Opus 5.5 high | 75–100 min |
 | 8a | ✅ (2aecda7, Oct 23) (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
 | 6b | ✅ (Oct 24 evening — the abduction (the arched pose, a soft beam) + the TR-3B (strip blackout, the tape-stop, F-16s with Mach diamonds), the air show + missing man + the biplane through the letters, premium balloons, shared sky-message layout (skywriting removed), real-photo moon, City 1.0 aurora, rainbows re-fit, clouds layered + evolving + the veil + halo, the higher seasonal arch, the soft fog beam + red fog beacons, Grok's 30 sounds imported; Known issues: searchlights + party beams still brighten in fog, the air show's first roar lags) the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
-| POL4 | ✅ (Oct 25 overnight — docs/harbor.md#polish-4: the TR-3B's total blackout + circuitry, detailed F-16s in sync, the air show as flybys, the surprise flyby, the chrome saucer, the barnstormer round the O, the halo + sun dogs, the aurora, the drone message, fog beams; the doors, the dance, the cart, the date stone, the navy bus, the vehicle kit, the hidden lamp; the window words, the signals, the posters, the people calmer; awaiting Ben's iPhone review) POLISH 4 — the owner's FP3b + 6b REVIEW NOTES | Opus 5.5 high | ~3–4 h |
-| 8b | ← NEXT: THE LIFE (after 6b; the people moved up to 8P): cabs, the raid + police cars, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines incl. THE WORKERS' SCHEDULE (decided Oct 24) | Opus 5.5 high | 90–120 min |
+| POL4 | ✅ (Oct 25 ~4 am, cloud 347/347 first try — every review note + add-on in; FIX NEXT: the surprise flyby shipped at ~2 evenings a WEEK, the decision was ~twice a MONTH; known: both signal heads face left at 402, a 5-letter word on wordA uses the small font, a daytime billboard swap shows only after the next redraw, the van greyish at night) POLISH 4 — the owner's FP3b + 6b REVIEW NOTES (plan.md) in one pass, foreground + sky | Opus 5.5 high | ~3–4 h |
+| 8b1 | ← NEXT: THE LIFE, part 1 — POL4's fixes + the beat (the panel's party drives the music, the safety rule) + THE WORKERS' SCHEDULE (the routines layer, the vendor spot, the cause-and-effect repairs, the billposter + sign painters, the window washers, the trash truck, the bootleggers) + THE WILDLIFE (the full new cast) + the witnesses fleeing the abduction + the harbor's schedule by boats + light | Opus 5.5 high | ~3–4 h |
+| 8b2 | THEN: THE LIFE, part 2 — the RAID + police cars (after a bootlegger night), CABS, ROSIE + every boat as real 3D models | Opus 5.5 high | ~3 h |
 | C2 | cleanup pass 2 (+ DEPENDENCY UPGRADES on a branch with the full tests: firebase-admin 13 → 14, the browser Firebase SDK past 11.10 — not urgent, Oct 24) | Opus 5.5 medium | 15–30 min |
 | 9 | seasons + weather | Opus 5.5 medium | 45–75 min |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
@@ -496,6 +497,11 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   upright chrome grille, big round headlamps on a bar, sweeping FENDERS that flow into RUNNING BOARDS, a spare wheel on the
   side or back, a rounded roof, spoked or wire wheels; deep glossy paint (black, maroon, bottle green, navy) with chrome
   glints and real shading; lit headlamps + a rear lamp at night. Premium, crafted, readable at phone size.
+  CLARIFIED (the owner, Oct 25 ~2 am): not ONE car type — a VARIETY across BOTH roads (the back road by the crossing + the bus,
+  and the street under the dock): a Model T, a Model A, a big Packard / Cadillac sedan, a roadster with a rumble seat, a
+  coupe, a delivery van, a checker taxi — period-styled (~1915–1935), varied colours, never the same car twice in a row.
+  The city is a neon-1920s FUSION, so the cars are period but may carry a touch of it (e.g. a soft neon underglow / lit
+  trim on a few cars on PARTY NIGHTS only). The sedan he saw on the near street was the one that looked off.
 - 6b REVIEW NOTES (the owner's iPhone, Oct 25 ~12:45 am — "a legendary run"; collecting):
   (1) THE UFO SAUCER looks CARTOONISH — the concept (rotating lights round the rim) is right, the craft needs a lot of work:
   a MIRROR-SILVER polished metal hull (reflecting the city's neon + the night sky, crisp specular highlights), a
@@ -505,11 +511,20 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   (2) THE TR-3B ("man, that looks good" for a first attempt — needs polish): (a) it's JAGGY / LAGGY when it comes on screen —
   his iPhone readout during it: 14 % slow (session 17.5 %, after-10-s 25.9 %), the tier stepping 2→1→2, "heavy 1/2" — a
   REAL performance problem on the phone, not just the laptop: make it smooth at tier 2 (pre-bake the blackout states, no
-  per-frame re-renders of the city, cheaper strips); (b) SHRINK the craft ~15 % and make it more polished + detailed
-  (panel lines, edge lights, the centre glow); (c) THE BLACKOUT: keep the flicker-out as it arrives (he likes it), but then
+  per-frame re-renders of the city, cheaper strips) — UPDATE 2:19 am: on a second try from the panel it ran SMOOTH (the
+  first lag may have been a first-run bake / load), keep the perf check anyway; (b) KEEP ITS SIZE (the owner changed his
+  mind: "I liked the size" — NO shrink) and make it more polished + detailed (panel lines, edge lights, the centre glow)
+  + "weird stuff": glowing CIRCUITRY traces etched across the hull with light PULSES RACING along them (alien tech); (c) THE BLACKOUT: keep the flicker-out as it arrives (he likes it), but then
   a COMPLETE BLACKOUT — the whole city dark (every building, window, neon, sign, lamp) while it crosses, staying dark
   through the JET FLYBY; only after the jets leave does the power FLICKER BACK ON from the BACK of the city to the FRONT
   (far skyline first, the foreground last), uneven and stuttering.
+  (2f) THE TR-3B's SOUND: he heard nothing / it wasn't noticeable — the tr3b-drone + tr3b-powerdown slots are filled but
+  sit too low (and too deep for phone speakers): raise them, add mid-range presence (a growl / buzz phones can play), the
+  power-down audible as the city dies, a power-restore sound as it flickers back (new slots — Grok's second try).
+  (2g) THE MUSIC DRAIN must be DRAMATIC (the owner: "really slow down… deepen… a crazy effect", never just cut out): as the
+  craft nears, the song SLOWS + its PITCH DROPS deep (a record losing power: down to ~50–60 % speed, a heavy warble +
+  wow, a low-pass closing, crackle), held low and strange while it's overhead, then after the jets leave it SPINS BACK UP
+  to speed + pitch and catches back to where the song should be (lobby songs stay in sync).
   (d) THE CHASE JETS' SOUND lags the jets by ~5 s (like the air show's known issue): sync it — the roar peaks as they cross
   the screen centre (trim the recording to its peak, start it just before they enter), panned with them. (e) THE JETS need
   MUCH MORE DETAIL ("a good start"; the night exhaust + Mach diamonds look good): a real F-16 shape (bubble canopy, the
@@ -543,6 +558,36 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   others continue. Both use the upgraded F-16 (note 2e: camo, emblems, flag, missiles, detail). Trails: continuous,
   sub-pixel, eased, spreading + fading — never segmented or jerky. Their sound in sync. If they still don't look premium
   after the polish pass, CUT the air show (the TR-3B chase keeps the jets).
+- THE PEOPLE: CALMER (the owner, Oct 25 ~2:50 am — "a little too chaotic": too many walking briskly, in and out of the
+  speakeasy). DECIDED: COUNTS on screen — weekday daytime 4–5; lunch + after work 6–7; normal nights after dark 3–4;
+  WEEKEND + PARTY NIGHTS 8–12 (the dance circle's dancers on top); late night 0–3. LINGER MORE, PASS THROUGH LESS: most
+  people stay a while (1–2 on the bench for minutes, one at the railing looking at the water, a pair chatting, someone at
+  the bus stop, someone at the cart); a few walk straight through (cross → the sidewalk → behind the speakeasy).
+  THE SPEAKEASY STAYS SECRET: by day only the occasional barbershop customer; evenings a trickle at the side door (a
+  couple every few minutes); PARTY NIGHTS a steady stream + A LINE AT THE DOOR (queued where the lobby line forms, left of
+  the left lamp, the doorman letting them in a few at a time). Arrivals SPREAD OUT (never a burst). Pace unchanged.
+- THE BEAT SYNC IS STILL OFF (the owner, Oct 25 2:38 am, frustrated): PARTY ON forced from the panel at 2:37 am (real time
+  Sunday), the song c2-evening5 — an EVENING song (its grid IS trusted, lock 3.39) — and the lights out of sync with it.
+  Found so far (Claude, reading the code): (1) forcing the PARTY from the panel doesn't switch the music to a PARTY song —
+  core/city-mood.js picks the mood from the real clock (the "same clock" rule from the BEAT pass isn't applied to the
+  panel's party toggle); (2) the sync itself is off even on a trusted grid → needs the readout's beat lines (asked).
+  Next sound/beat pass: the panel's party (and every forced show) drives the music mood too; the lights' punch stays on
+  the trusted grid; and a SAFETY RULE — if the measured "heard" offset can't be confirmed within a few bars, the lights
+  fall back to a gentle breathing pulse (never a hard punch that's visibly off-beat).
+- WITNESSES FLEE THE ABDUCTION (the owner, Oct 25 — for 8b): when the saucer arrives, everyone else on the promenade
+  REACTS: they stop, look up, a couple point; when the beam opens they FLEE IN FEAR — a real run cycle, scattering in
+  different directions to the nearest exits (the screen edges, the crossing, the side door), one ducking behind the bench
+  or a tree before bolting, a dog tugging its owner away, the pigeons bursting up; nobody stands calmly watching. The
+  promenade stays EMPTY for a while after the saucer leaves, then people slowly drift back. (The TR-3B: people stop and
+  stare up as the city goes dark, a few hurry indoors.)
+- THE DRONE SHOW = A MESSAGE, NOTHING ELSE (the owner, Oct 25): no intro formations, no heart / shapes — it's the NIGHT
+  version of skytyping. The drones rise / converge from below the skyline and form the MESSAGE right away (its pages in
+  turn), hold, then disperse. (Holiday shapes, if ever, only by an explicit holiday choice in Part 11.)
+- THE SURPRISE FLYBY (the owner, Oct 25 — agreed): a RARE unexplained military flyby, ~TWICE A MONTH on random days (seeded,
+  the same for everyone), from GOLDEN HOUR until 11 pm (the owner: they look best in low light + at night; weighted toward
+  after dark): 3–4 of the shared F-16s in tight formation scream straight across the whole screen, a random direction, afterburners lit with Mach diamonds, the roar in sync, the music
+  dipped briefly. No explanation, no story — a "did you see that?!" bonus. Never on a legendary night, never during the
+  TR-3B; a &force=flyby preview.
 - 6b — LEGENDARY SKY RARITY (the owner): the UFO abduction ~1–2 a month, the TR-3B + its jet chase ~1–2 a month (the same
   nights for everyone, seeded), never two legendaries the same night; the barnstormer a few times a week.
 - 6b — THE TR-3B BENDS THE MUSIC (the owner's idea): as it nears, the music POWERS DOWN like a record player losing
@@ -756,6 +801,10 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   while doing something else, then reads the session line (slow % over 30 min, any tier drop) and feels if the phone is
   hot. The readout can add a "since 10 min" slow % so the creep is visible.
 - FUTURE IDEAS (PARKED — not in any part yet; the owner, Oct 23: "let's not spend time on that right now"):
+  + A NEON MOON for party nights (the owner, Oct 25 — parked, "not sold on either yet"): Claude's two options — (a) the
+  real moon stays + a neon tube RING lights around it on party nights, cycling the party colours, pulsing on the beat
+  (none when the moon isn't up); (b) a RARE full "neon moon" night (New Year's Eve / a few times a year) where the moon
+  turns into a neon tube outline, flickering on like the roof signs. Never replace the real NASA-map moon by default.
   NOCTILUCENT CLOUDS (a RARE sky event, true to life): the highest clouds there are
   (~80 km), glowing electric blue-silver because they're still lit by the sun after it has set. Only when real-ish:
   SUMMER (late May → early August), only in deep TWILIGHT (the sun ~6–16° below the horizon — ~45–100 min after sunset or
