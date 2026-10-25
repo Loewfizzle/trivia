@@ -1660,3 +1660,134 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   Calls: SKIP periscope.wav (a modern tank turret — the slot stays empty); warning-horn → ship-horn.mp3 if the klaxon sounds
   synthetic; yacht-party only pushed far across the water; crane-work far + low or skipped; helicopter-landing far off;
   marching-drums loop 8–26 s only; carol-singers EMPTY; the big "-lossless" originals stay OUT of the repo (size).
+
+## OWNER'S NOTES — OCT 25 (after C2)
+(For LATER passes — POLISH 5 next, then Part 13 + Lobby 2.0. Recorded by the PEO pass as received; nothing here was built in PEO.)
+
+- C2 PHONE REVIEW (the owner, Oct 25 ~5 pm): THE JETS, THE RAID + ROSIE "awesome". Rosie still red + white = expected
+  (her navy / white is POLISH 5). BUG (for POLISH 5): a WORKER fired from the panel (the lamp repairman) POPPED IN already
+  on his ladder mid-job, then finished, picked up the ladder and walked off. Cause (read in the code): &force=work-<kind>
+  runs on a fixed clock grid (core/harbor-workers.js#forcedWork: a slot every FORCE.slot s, starting FORCE.lead s in), so
+  firing it from the panel joins a slot already under way. FIX: a panel- / &force-fired worker's slot STARTS AT THE MOMENT
+  IT FIRES (after the 3-2-1), so every preview shows the whole visit — walking (or driving) in from off screen with the
+  props in hand, the job, and leaving; check every worker kind + the raid's ~50 s wait the same way (any forced event:
+  start at the fire moment). Real days already walk in; joining a real visit mid-way (opening the city late) stays right.
+- THE LOBBY LINE — WHO IS WHO (the owner, Oct 25 ~5:15 pm, the panel's lobby line on his iPhone: 5–6 people packed close
+  = hard to tell what you're looking at). DECIDED: ALL the lobby's players (up to 8) wait OUTSIDE on the sidewalk — no cap,
+  nobody sent inside. Layout (Claude's recommendation, agreed in principle): a STAGGERED TWO-DEEP LINE — pairs offset half a
+  step so every head is clear (nobody fully behind anyone), the front pair at the door, the line running left along the
+  barbershop front and stepping DOWN the sidewalk toward the camera (nearer = a little bigger = easier to read), relaxed
+  poses (a lean, a turn to chat) so it reads as a line, not a crowd; a minimum gap between heads; clear of the dock, the
+  door + the left edge at 390 / 402 / 430. WHO IS WHO at ~20 pt (only colour, light + shape read — no logos / outfit
+  detail): each player's COAT in their player colour + a small glowing PIN above the head in that colour (YOURS a touch
+  brighter / a slow pulse); TAP a person → their name for a few seconds; arriving = walk up, knock, the name floats up +
+  fades. COSMETICS live in the big UI (the lobby list, the membership card, the podium, THE BOARD, the invite banner);
+  in the city only as colour + light (a coat colour, the pin's glow, an arrival sparkle). For LOBBY 2.0 — but POLISH 5
+  takes a FEASIBILITY SHOT first (no shipped change): 4 / 6 / 8 in the staggered line at 390 / 402 / 430, by day + at
+  night, with coloured coats + pins, so the owner judges it on his phone before Lobby 2.0 builds it.
+- CHAT IN THE CITY — SPEECH BUBBLES (the owner, Oct 25 ~5:20 pm — for LOBBY 2.0; to discuss, Claude's proposal): the old
+  idea = a bubble forming over your figure while you type, your message in it on send. With up to 8 people ~20 pt tall in a
+  staggered line, bubbles over every head would overlap and the text couldn't be big enough. PROPOSAL: (1) TYPING = three
+  dots blinking on that person's PIN (light reads at that size); (2) ON SEND = a bubble pops from their head and rises into
+  a BUBBLE LANE just above the line (DOM, not canvas: crisp 15–16 pt text, ≥ 4.5:1), edged in the speaker's colour with
+  their name, a thin leader line down to their figure; at most 3 stacked, newest at the bottom, each fading after ~6 s;
+  long messages clipped (the full text in the chat sheet); tap the lane → the full chat. With only one speaker, the bubble
+  can sit right over the head. Never over the dock, the door or the sign. Settle in the Lobby 2.0 chat.
+- C2 REVIEW FOLLOW-UPS (for POLISH 5): a forced raid (&force=raid / the panel) must start within a few seconds, not ~50 s;
+  the ladder men's hands on the rails; the cab no longer half hidden behind the tree at 402. The trash can is REPLACED by
+  the hydrant (below). The dependency branch deps/firebase-upgrade stays unmerged until the owner says so (check Vercel's
+  Node version ≥ 22 first).
+  (A fragment arrived with this note, from the 8b2 props rule: "ladder + bucket, the repairmen's ladders, the window
+  washers' gear): props arrive and leave in hands, never pop.")
+- THE HUSH WORD SIGN — LEGIBILITY (the owner, Oct 25, the JAZZ preview at night): pink-red neon on the warm amber room
+  behind it — low contrast, soft, hard to read. FIX: ICE-CYAN neon (the complement of the room's amber — maximum contrast),
+  a WHITE-HOT core in each tube with a TIGHT cyan halo (no wide blur), thicker strokes + bold block letters that fill the
+  glass (2×2 for 4 letters), and the room behind DIMMED a little while the sign is lit (a person inside switched the lamp
+  low to show the sign — the dancers' silhouettes still pass behind). Readable at a glance at 390 / 402 / 430, night AND
+  day (by day: bright cyan tubes on the dim glass).
+- SKY MESSAGES — CAPACITY + LEGIBILITY (the owner, Oct 25, "HAPPY BIRTHDAY JESSICA" skytyped by day): a page must hold
+  THREE LINES as wide as "HAPPY BIRTHDAY" (≥ 14–16 letters each — "HAPPY BIRTHDAY" three times in a row fits on one page),
+  so short messages are never a problem: size the dot-letters to fit 3 lines in the sky band (the NEON sign dimmed behind),
+  never more than 2 lines' worth of space wasted. LEGIBILITY: in his shot the letters are soft, low-contrast puffs and a
+  cumulus covers part of "JESSICA" — make the dots crisper + denser (each letter a clear shape at a glance), bright white
+  with a faint darker edge / the sign's dark halo where the sky behind is bright (the sun), and CLOUDS NEVER COVER A
+  MESSAGE (clouds in that band thin out / drift aside or draw behind the letters while a message shows). Same for the drone
+  messages at night (3 lines, crisp lights). Check a 1-, 2- and 3-line message at 390 / 402 / 430, by day near the sun
+  and at night.
+- REMOVE (the owner, Oct 25 — DECIDED): (1) THE BARNSTORMER (the biplane looping the O / threading the N) — "I don't like
+  it": remove the event, its preview + panel row, its schedule slot; (2) THE WINDOW BOX on the speakeasy's upper-right sill
+  (its probation is over) — remove it + its seasonal flowers; the morning "wake" moment keeps the blind + the stretch but
+  drops the watering.
+- THE BANNER PLANE + ITS BANNER (the owner, Oct 25): look too cartoonish. THE PLANE: a real 1920s–30s tow plane (a
+  high-wing monoplane or a biplane, a spinning prop, struts, real proportions + shading — judged at phone size: shape,
+  colour + light, not tiny detail). THE BANNER: real fabric on a TOW LINE — a thin line from the tail to a weighted
+  leading pole, the banner trailing BEHIND and slightly BELOW the plane, its letters readable; its motion NATURAL + FLUID:
+  a travelling ripple running down its length (stronger toward the tail end), slight slack + sag, the end fluttering, the
+  wind gusting it irregularly (varied, never a regular sine wave), the whole banner lagging the plane's path on turns.
+  Lettering stays big + crisp. Check with a frame burst at 402.
+- THE SPEAKEASY's WINDOWS → SINGLE BIG PANES (the owner, Oct 25 — DECIDED): remove the crossbar / meeting rail from ALL the
+  speakeasy's upper windows ("the whole point is to be able to see the scenes") — one clear pane each inside the slim
+  frame, deep reveal + sill kept so they still read as real 1920s windows (glass reflections / a faint sheen by day);
+  every window moment + the hush sign get the full glass.
+- JOIN + HOST TEXT ALWAYS LIT (the owner, Oct 25, by day the labels read dim grey on the dark buttons): the words JOIN and
+  HOST are bright + readable 24/7 (by day: crisp white / the button's light, ≥ 4.5:1 contrast — CLAUDE.md's rule); the
+  RINGS keep their own rules (unlit glass by day, the warm-up / neon power-up at dusk, the party behaviour) — only the text
+  changes. Check by day, at dusk, at night, at rest (dock faded) and during the TR-3B blackout (the buttons are UI: they
+  stay usable).
+- TOO MUCH RED + WHITE in the middle (the owner, Oct 25 — DECIDED): (1) ROSIE → white hull with DEEP NAVY trim + black
+  stacks (gold lettering only where it's big enough to read) — breaks the red where it's most crowded; (2) THE WHEEL's frame
+  stays RED (the landmark; cream would melt into the cream towers), deepened slightly to a heritage red (less candy); (3)
+  THE GONDOLAS: no more multicolour (it reads toy-like) — ALL ONE COLOUR, judged by what a phone shows (they're a few pt:
+  no windows, no trim will read — only COLOUR + SHAPE + LIGHT): a deep NAVY that contrasts with the cream towers behind and
+  matches Rosie's navy; at night each car a dark shape with ONE warm lit glow (light reads at that size, detail doesn't);
+  party nights keep the wheel's bulb show for colour. (4) The lighthouse, the barber pole + the awning unchanged.
+  SCOPE (the owner, clarified): the new COLOURS (the frame, the gondolas, Rosie) apply day AND night as they naturally
+  would; what must NOT change is the wheel's LIGHTS — its night bulbs + the PARTY-NIGHT light sequence "look amazing".
+- THE TREE BEHIND THE BLADE SIGN (the crabapple left of the crossing — the owner, Oct 25, zoomed shot): "not right yet" —
+  its crown reads as a flat, lumpy blob with pixel noise, a dark blotchy hollow in the middle, the red fruit as scattered
+  specks, the trunk + branches thin sticks. Rebuild it to the big maple's standard (that one reads well): a full, layered
+  crown of leaf clusters with a lit side (the sun) and a shade side, depth from darker inner clusters (never a hole),
+  a natural trunk + a few strong branches showing through gaps, the fruit as small bright clusters (not noise), the
+  season's colours; night: its uplight + the hidden lamp. Zoomed + full screen at 402, day + night.
+- THE TRASH CAN → A FIRE HYDRANT (the owner, Oct 25 — DECIDED, replacing the trash can whatever C2 did): a classic red
+  1920s cast-iron FIRE HYDRANT by the front-left lamppost (bold red, a domed bonnet, two side nozzles + caps, a chain,
+  a crisp highlight; instantly readable at 402; clear of the dock + the lobby line). The trash truck keeps its visit and
+  empties cans off-screen at the curb. EXTRAS: now and then a DOG on a walk stops to sniff it; on HOT SUMMER days (the real
+  temperature ~85 °F+ / 29 °C+, afternoon) a rare moment where a worker (or kids) OPENS it and it SPRAYS a sparkling arc of
+  water onto the cobbles (a wet patch spreading, people stepping round it / a kid running through, the spray glinting in
+  the sun, a soft hiss + splash), then it's shut and the wet patch dries over minutes.
+- THE PERISCOPE's SOUND (the owner, Oct 25 — replaces the skipped periscope.wav): ONE realistic SUBMARINE SONAR PING as the
+  periscope breaks the surface — a clear ~1–1.5 kHz "ping" with a long, deep underwater echo / reverb tail fading over
+  ~3–4 s; just once per appearance; clearly audible OVER the music (a brief music dip so it cuts through, never a startle,
+  the peak capped). Build it from a CC0 recording if one is in the folder, else SYNTHESIZE it (a sine ping + filtered
+  noise + a long convolution / feedback echo) — no Grok batch needed. Phone check: the ping lives in the mid-range, so
+  it reads on a phone speaker.
+- THE BALLOONS (the owner, Oct 25 3:40 pm — next pass): (1) the ₿ MARK is off — it reads as a "B" with short stubs; draw
+  the real Bitcoin symbol: a bold B with TWO vertical strokes that clearly extend ABOVE and BELOW the letter (the logo's
+  slight tilt), centred on the envelope, crisp, in Bitcoin orange (#F7931A) by day; at night the envelope lit orange
+  with a black ₿ (as decided). (The envelope's colour is RIGHT — the owner: it's black; the brown-grey was the burner
+  lighting it from inside. Keep it.) (2) THE FESTIVAL LAUNCH: real
+  balloons RISE from the ground — behind the buildings, one after another: the envelopes inflating / standing up out of
+  sight, then lifting slowly above the skyline, the burners flaring as they climb, drifting off with the wind. The forced
+  preview (&force=balloon-festival) must START at the launch (not fade in already aloft); a real festival day joining
+  mid-way may show them already up (that's right), but never fading in from nothing.
+- CITY CONTROL — SCHEDULED EVENTS (the owner, Oct 25 — Part 13): schedule ANY event in the registry (a drone-show / skytyping
+  message like "HAPPY BIRTHDAY JESSICA", the UFO, the TR-3B, fireworks, the flyby, the raid, a weather, a party…) to fire at
+  an EXACT date + time ("tell my nephew: look at the skyline at 8 o'clock"). Options per entry: ONE MOMENT for everyone (in
+  the owner's time zone — everyone sees it at the same instant) or AT THAT LOCAL TIME on each viewer's clock; one-off or
+  repeating (daily / weekly / yearly — a birthday every year); who sees it (everyone on City 2, or only people who open a
+  private link); a preview button; a list of upcoming + past scheduled events with edit / cancel; joins mid-way like every
+  hot. The readout can add a "since 10 min" slow % so the creep is visible.
+  (The note arrived cut here — "joins mid-way like every hot." — the rest of the sentence is missing in the owner's block.)
+- FRIENDS + INVITES + THE INBOX (the owner, Oct 25 — for Lobby 2.0 / Progression 2.0; agreed): FRIENDS are EXPLICIT +
+  MUTUAL only (nobody becomes friends automatically — playing with strangers in a big group must never make them
+  "friends"); a PRIVATE "Recent players" list (only you see it, it fades after ~2 weeks) is where you can tap ADD FRIEND
+  (or type a name tag); they accept. PRESENCE: friends see "in the city / in a lobby / playing <game> / offline"; anyone
+  can HIDE their online status (appear offline). INVITES: in a lobby, tap INVITE next to a friend → server-checked (friends
+  only, rate-limited) → if they're on the city a banner slides down "<name> invited you to his lobby · JOIN" (one tap
+  joins; optionally with the secret-knock sound) + the dock badge; offline → it waits in their inbox until the lobby
+  closes; home-screen installs → a phone notification later. Mute / block anyone. The text link stays for people without
+  a profile. THE DOCK: ONE "SOCIAL" icon (friends + the inbox as two tabs, one glowing count) rather than two icons — the
+  dock stays JOIN · BOARD · GAMES · SOCIAL · PROFILE · HOST (widen the dock a little / JOIN + HOST nudged outward only if
+  it fits at 390 with JOIN + HOST as big as today); the INBOX holds invites, the daily-puzzle drops, City Control
+  (The note arrived cut here — "…the daily-puzzle drops, City Control" — the rest is missing in the owner's block.)
