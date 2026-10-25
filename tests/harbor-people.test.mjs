@@ -176,7 +176,7 @@ test('8P — THE BUS: a few an hour by day, none in the small hours; it stops sh
   }
   assert.ok(day >= 30 && day <= 60, `${day} buses through the day`);
 });
-test('FP3a — THE BUS DOOR shuts 3–5 s after the LAST rider (off or on) — never open long with nobody coming; nobody steps on after it shuts', () => {
+test('FP3a + POL4 — THE BUS DOOR shuts 6–9 s after the LAST rider (off or on) — never open long with nobody coming; nobody steps on after it shuts', () => {
   const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), buses = new Map(), last = new Map();
   for (let t = DAY + 6 * 3600; t < DAY + 30 * 3600; t += 2) {
     const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
@@ -187,9 +187,9 @@ test('FP3a — THE BUS DOOR shuts 3–5 s after the LAST rider (off or on) — n
   let n = 0;
   for (const [id, b] of buses) {
     const l = last.get(id);
-    if (l == null) { assert.ok(b.shut - (b.tA + 1) >= 3 - 1e-6 && b.shut - (b.tA + 1) <= 5 + 1e-6, `${id}: nobody — shut soon after it stops`); continue; }
+    if (l == null) { assert.ok(b.shut - (b.tA + 1) >= 6 - 1e-6 && b.shut - (b.tA + 1) <= 9 + 1e-6, `${id}: nobody — shut soon after it stops`); continue; }
     n++;
-    assert.ok(b.shut - l >= 3 - 1e-6 && b.shut - l <= 5 + 1e-6, `${id}: shut ${(b.shut - l).toFixed(2)} s after the last rider`);
+    assert.ok(b.shut - l >= 6 - 1e-6 && b.shut - l <= 9 + 1e-6, `${id}: shut ${(b.shut - l).toFixed(2)} s after the last rider`);
     assert.ok(b.shut < b.tD, `${id}: shut before it pulls away`);
   }
   assert.ok(n >= 20, `${n} buses with riders over the day`);

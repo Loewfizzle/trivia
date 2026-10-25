@@ -135,7 +135,9 @@ export function folkMap(L, { event = false, line = null, cart = false } = {}) {
   // (the cart, only while it's OUT — FP3b's vendor spot is shared by time: nobody walks through it or behind its handles; the vendor's
   // own spot behind it stays free for him)
   if (cart && L.cart && L.cart.shown !== false) { rects.push({ id: 'cart', x0: L.cart.x - 1.3, x1: L.cart.x + 2.0, z0: F.zMin - 2, z1: L.cart.z + 0.75 }); }
-  if (event) circles.push({ id: 'event', x: L.medallion.x, z: L.medallion.z, r: L.medallion.ring + 0.5 });
+  // (POL4: the dance circle spreads round the compass — the closed floor reaches its outer dancers: DANCE.reach × the ring)
+  if (event) { const m = L.medallion; circles.push({ id: 'event', x: m.x, z: m.z, r: m.ring * DANCE.reach + 0.4 });
+    for (const sg of [-1, 1]) circles.push({ id: 'event', x: m.x + sg * m.ring * DANCE.side.at, z: m.z, r: DANCE.side.r }); }
   return { nodes, exits, rects, circles, face: s.z0, cw: { x0: cw.x0 + cww * 0.22, x1: cw.x1 - cww * 0.22, z0: F.curbZ, z1: F.farZ } };
 }
 /** the bus's door at the stop (world x): the stop is just LEFT of the crossing — in clear view (right of it the framing maple + the
@@ -163,12 +165,21 @@ export function clear(map, a, b) {
   return true;
 }
 /** the shortest route a → b round the obstacles: [{ x, z }, …] (a and b included); straight when clear */
-export function route(map, a, b) {
+export function route(map, a, b, depth = 0) {
+  // (POL4: a start just INSIDE a closed circle — someone planned before the dance circle spread — first steps straight out of it, then
+  // routes round it: clear() lets a segment leave a circle, which let them cut straight across the dancers)
+  if (depth < 3) for (const c of map.circles) {
+    const d = Math.hypot(a.x - c.x, a.z - c.z);
+    if (d < c.r - 1e-6 && d > 1e-3 && Math.hypot(b.x - c.x, b.z - c.z) > c.r) {
+      const e = { x: c.x + (a.x - c.x) / d * (c.r + 0.36), z: c.z + (a.z - c.z) / d * (c.r + 0.36) };
+      if (!map.rects.some(o => inRect(e, o))) return [a, ...route(map, e, b, depth + 1)];
+    }
+  }
   if (clear(map, a, b)) return [a, b];
   const pad = 0.35, way = [];
   for (const r of map.rects) for (const [x, z] of [[r.x0 - pad, r.z0 - pad], [r.x1 + pad, r.z0 - pad], [r.x0 - pad, r.z1 + pad], [r.x1 + pad, r.z1 + pad]])
     if (z >= FOLK.zMin - 0.3 && Math.abs(x) < 900 && !map.rects.some(o => inRect({ x, z }, o)) && !map.circles.some(c => Math.hypot(x - c.x, z - c.z) < c.r)) way.push({ x, z });   // (FP3b: never a corner inside a circle — the closed compass)
-  for (const c of map.circles) for (let i = 0; i < 6; i++) { const a2 = i * Math.PI / 3, p = { x: c.x + Math.cos(a2) * (c.r + pad), z: c.z + Math.sin(a2) * (c.r + pad) }; if (!map.rects.some(o => inRect(p, o))) way.push(p); }
+  for (const c of map.circles) for (let i = 0; i < 6; i++) { const a2 = i * Math.PI / 3, p = { x: c.x + Math.cos(a2) * (c.r + pad), z: c.z + Math.sin(a2) * (c.r + pad) }; if (!map.rects.some(o => inRect(p, o)) && !map.circles.some(o => o !== c && Math.hypot(p.x - o.x, p.z - o.z) < o.r)) way.push(p); }   // (POL4: never a way point inside another circle)
   const pts = [a, ...way, b], n = pts.length, dist = new Array(n).fill(Infinity), prev = new Array(n).fill(-1), done = new Array(n).fill(false);
   dist[0] = 0;
   for (;;) {
@@ -203,7 +214,7 @@ const crossV = v => Math.max(v, FOLK.speed.brisk * 0.85);
 // (FP3a, the owner's 8P note 12 — "the door stays open far too long": the stop is the riders' — off first (offAt, offGap), then the
 // boarders' window (board s, when someone boards), the door SHUTS 3–5 s after the LAST rider (folkAt#doorShut, from the riders the
 // planner really placed) and the bus pulls away on the next green after a beat (go0) — its departure planned for the latest shut)
-export const BUS = Object.freeze({ len: 7.8, v: 6.5, brake: 2.2, go: 1.4, offAt: 2.2, offGap: 1.5, board: 6, shut: [3, 5], go0: 1, perHour: { day: [2, 4], late: [1, 1], night: [0, 0] } });
+export const BUS = Object.freeze({ len: 7.8, v: 6.5, brake: 2.2, go: 1.4, offAt: 2.2, offGap: 1.5, board: 6, shut: [6, 9], go0: 1, perHour: { day: [2, 4], late: [1, 1], night: [0, 0] } });
 /**
  * The buses of local hour `hour` on day `key` (PURE): [{ id, tE (enters the screen, s abs), tA (stops), tD (pulls away), tX (gone),
  * x(t) (its centre, world), riders: { off, on } }]. It comes from behind the speakeasy (left), stops at the curb just short of the
@@ -221,7 +232,7 @@ export function busesOf(L, key, hour, t0, { force = false } = {}) {
   for (let i = 0; i < n; i++) {
     const tA = t0 + (force ? i + 0.25 : i + 0.15 + r() * 0.7) * 3600 / n, tE = tA - tBr - dCruise / B.v, tb = tA - tBr;
     // the riders: off first (one every offGap from offAt), then the boarders' window [tB, tB + board] (only when someone boards: on);
-    // the door shuts 3–5 s after the last rider; then away on GREEN with time to clear the crossing (else the next green)
+    // the door shuts 6–9 s after the last rider (POL4: between FP3a's 3–5 and the old whole dwell); then away on GREEN with time to clear the crossing (else the next green)
     const off = hour >= 6 && hour < 23 ? Math.floor(r() * 3.2) : Math.floor(r() * 1.5), on = Math.floor(r() * 3);
     const tB = tA + B.offAt + off * B.offGap, last = on ? tB + B.board : off ? tA + B.offAt + (off - 1) * B.offGap : tA + 1;
     const tShut = last + B.shut[1];                    // (the latest the door can shut: the departure waits for it)
@@ -274,17 +285,27 @@ export const KINDS = {
  *  they're `clear` units past the threshold and is shut `close` s later. Going in, they walk on into the dark while it shuts behind
  *  them (inside: drawn between the doorway + the leaf — screens/harbor/doors.js); coming out, it opens on them standing `inside`
  *  units in. The BUS: its own door is open at the stop — riders step up `bus.floor` onto its floor / down off it. */
-export const DOOR = Object.freeze({ open: 0.55, close: 0.65, pace: 0.75, step: 0.45, clear: 0.8, inside: 1.3, bus: { open: 0.15, floor: 0.6 } });
+// (POL4 — the owner: "the swing is jaggy", "people ENTERING walk in at a WEIRD angle": a slower, eased swing (open 0.8 s, close 0.9 s); the
+// last APPROACH units straight at the door, facing it; at the side door they STEP UP its two granite steps (SIDE_STEPS: the treads' z
+// from the wall + their heights) through the opening, then down the stair inside)
+export const DOOR = Object.freeze({ open: 0.8, close: 0.9, pace: 0.75, step: 0.45, stepSide: 0.95, approach: 1.4, clear: 0.8, inside: 1.3, bus: { open: 0.15, floor: 0.6 } });
+export const SIDE_STEPS = Object.freeze([[-0.75, 0.13], [-0.4, 0.26]]);
+/** the ground's height at z (world) in front of + through the side door: the two steps up, the stair going down inside (PURE) */
+export function sideStepY(z, face) {
+  const d = z - face, ease = (a, w) => smooth01((d - a + w) / (2 * w));
+  const up = 0.13 * ease(SIDE_STEPS[0][0], 0.06) + 0.13 * ease(SIDE_STEPS[1][0], 0.06);
+  return up - Math.max(0, d - 0.35) * 0.45;                    // (inside: down the stair to the club)
+}
 /** a door leg (PURE): kind 'side' | 'shop' | a bus's id, dir 'in' | 'out', at x, from t, the walker's gait v, the door's plane zFace */
 export function doorLeg(kind, dir, x, t, v, zFace, { bus = false } = {}) {
-  const u = Math.max(0.5, v * DOOR.pace), zs = zFace - DOOR.step, op = bus ? DOOR.bus.open : DOOR.open, tWalk = t + op;
+  const u = Math.max(0.5, v * DOOR.pace), zs = zFace - (kind === 'side' ? DOOR.stepSide : DOOR.step), op = bus ? DOOR.bus.open : DOOR.open, tWalk = t + op;
   const y = bus ? DOOR.bus.floor : 0;
   if (dir === 'in') {
     const tClose = tWalk + (zFace + DOOR.clear - zs) / u, t1 = tClose + DOOR.close, z1 = zs + (t1 - tWalk) * u;
-    return { k: 'door', door: kind, dir, x0: x, z0: zs, x1: x, z1, t0: t, t1, w0: op / (t1 - t), w1: 1, tOpen: t, tClose, y0: 0, y1: y, ...(bus ? { bus: kind } : {}) };
+    return { k: 'door', door: kind, dir, x0: x, z0: zs, x1: x, z1, t0: t, t1, w0: op / (t1 - t), w1: 1, tOpen: t, tClose, y0: 0, y1: y, ...(bus ? { bus: kind } : {}), ...(kind === 'side' ? { steps: zFace } : {}) };
   }
   const z0 = zFace + (bus ? 0.55 : DOOR.inside), t1 = tWalk + (z0 - zs) / u, tClose = Math.min(t1, tWalk + (z0 - (zFace - DOOR.clear)) / u);
-  return { k: 'door', door: kind, dir, x0: x, z0, x1: x, z1: zs, t0: t, t1, w0: op / (t1 - t), w1: 1, tOpen: t, tClose, y0: y, y1: 0, ...(bus ? { bus: kind } : {}) };
+  return { k: 'door', door: kind, dir, x0: x, z0, x1: x, z1: zs, t0: t, t1, w0: op / (t1 - t), w1: 1, tOpen: t, tClose, y0: y, y1: 0, ...(bus ? { bus: kind } : {}), ...(kind === 'side' ? { steps: zFace } : {}) };
 }
 const smooth01 = u => { const x = Math.max(0, Math.min(1, u)); return x * x * (3 - 2 * x); };
 /** how open a door leg holds its door at t (0..1, PURE): swinging open from tOpen, shutting from tClose */
@@ -304,7 +325,8 @@ function planVisit(spec, t, M, ctx = {}) {
   const free = q => q.z >= FOLK.zMin && q.z <= FOLK.zMax && !M.rects.some(o => inRect(q, o)) && !M.circles.some(c => c !== ev && Math.hypot(q.x - c.x, q.z - c.z) < c.r + 0.2);
   const outside = p => {
     const dx = p.x - ev.x, dz = p.z - ev.z, d = Math.hypot(dx, dz), a0 = d > 1e-3 ? Math.atan2(dz, dx) : Math.atan2(cur.z - ev.z, cur.x - ev.x);
-    for (const da of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, 2.2, -2.2, PI]) { const q = { x: ev.x + Math.cos(a0 + da) * (ev.r + 0.4), z: ev.z + Math.sin(a0 + da) * (ev.r + 0.4) }; if (free(q)) return q; }
+    // (POL4: two rings of candidates — the dance circle has a small closed spot out at each side: past it if the near ring is taken)
+    for (const rr of [0.4, 1.4]) for (const da of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, 2.2, -2.2, PI]) { const q = { x: ev.x + Math.cos(a0 + da) * (ev.r + rr), z: ev.z + Math.sin(a0 + da) * (ev.r + rr) }; if (free(q)) return q; }
     return { x: ev.x + (ev.r + 0.4), z: ev.z };
   };
   const walkTo = (p0, vv = v) => { let p = p0; if (ev && cur && Math.hypot(p.x - ev.x, p.z - ev.z) < ev.r + 0.3) p = outside(p);
@@ -343,7 +365,9 @@ function planVisit(spec, t, M, ctx = {}) {
       if (g.door === 'shop' && ctx.shopOpen === false) return null;
       const d = M.nodes[g.door === 'shop' ? 'shopDoor' : 'sideDoor'];
       // (FP3b: in through a REAL door — up to the step, it swings open, they step through, it shuts behind them)
-      walkTo({ x: d.x + (r() - 0.5) * 0.3, z: M.face - DOOR.step });
+      // (POL4: the last DOOR.approach units STRAIGHT at the door — facing it, never sidling in at an angle — then the step / the steps)
+      const dx0 = d.x + (r() - 0.5) * 0.3, zs = M.face - (g.door === 'side' ? DOOR.stepSide : DOOR.step);
+      walkTo({ x: dx0, z: zs - DOOR.approach }); walkTo({ x: dx0, z: zs });
       const lg = doorLeg(g.door, 'in', cur.x, now, v, M.face); legs.push(lg); now = lg.t1; cur = { x: lg.x1, z: lg.z1 };
     } else if (g.bus) {
       // (a bus someone boards — riders.on — with time to walk to the stop; they step up in its boarders' window, right after the
@@ -438,8 +462,8 @@ function visitAt(vis, t) {
         const u = (t - lg.t0) / (lg.t1 - lg.t0), w = Math.max(0, Math.min(1, (u - lg.w0) / (lg.w1 - lg.w0))), hd = segHd({ x: lg.x0, z: lg.z0 }, { x: lg.x1, z: lg.z1 });
         const moving = u >= lg.w0 && u < lg.w1;
         // (the bus's floor: on it for the first part of the walk out / the last part in — a step up or down over ~0.3 of the walk)
-        const yy = lg.y0 === lg.y1 ? lg.y0 || 0 : lg.dir === 'in' ? lg.y1 * smooth01((w - 0.32) / 0.3) : lg.y0 * (1 - smooth01((w - 0.38) / 0.3));
-        return out({ x: lg.x0 + (lg.x1 - lg.x0) * w, z: lg.z0 + (lg.z1 - lg.z0) * w, y: yy, pose: moving ? 'walk' : 'wait', dist: dist + ln * w, v: moving ? ln / ((lg.w1 - lg.w0) * (lg.t1 - lg.t0)) : 0, a: 1, door: { id: lg.door, k: lg.dir, u, bus: !!lg.bus } }, lastHd != null && !moving && u < lg.w0 ? lerpHd(lastHd, hd, u / Math.max(1e-3, lg.w0)) : hd);
+        const zNow = lg.z0 + (lg.z1 - lg.z0) * w, yy = lg.steps != null ? sideStepY(zNow, lg.steps) : lg.y0 === lg.y1 ? lg.y0 || 0 : lg.dir === 'in' ? lg.y1 * smooth01((w - 0.32) / 0.3) : lg.y0 * (1 - smooth01((w - 0.38) / 0.3));
+        return out({ x: lg.x0 + (lg.x1 - lg.x0) * w, z: zNow, y: yy, pose: moving ? 'walk' : 'wait', dist: dist + ln * w, v: moving ? ln / ((lg.w1 - lg.w0) * (lg.t1 - lg.t0)) : 0, a: 1, door: { id: lg.door, k: lg.dir, u, bus: !!lg.bus } }, lastHd != null && !moving && u < lg.w0 ? lerpHd(lastHd, hd, u / Math.max(1e-3, lg.w0)) : hd);
       }
       dist += ln; lastHd = segHd({ x: lg.x0, z: lg.z0 }, { x: lg.x1, z: lg.z1 });
     } else if (t < lg.t1 && t >= lg.t0) {
@@ -531,7 +555,7 @@ export function folkAt(t, world, cache = new Map()) {
   const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600); };
   // (FP3b: while the dance circle holds the promenade, nobody gets off here — they ride on: the circle's people stay within the cap)
   const riders = bus => get(`riders|${bus.id}`, () => (closed(bus.tA - 20, bus.tA + 90) ? [] : busRiders(bus, M, ctx)));
-  // (FP3a: the bus's door shuts 3–5 s after the LAST rider the planner placed — off or on — seeded per bus; never after the departure)
+  // (FP3a, POL4: the bus's door shuts 6–9 s after the LAST rider the planner placed — off or on — seeded per bus; never after the departure)
   const doorShut = b => get(`shut|${b.id}`, () => {
     let last = b.tA + 1;
     const k0 = Math.floor(b.tB / B);
@@ -656,7 +680,7 @@ function planDance(sess, M, L) {
   const m = L.medallion, r = rngFrom(sess.seed), out = [];
   const lead = () => [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }];
   for (let i = 0; i < sess.dancers; i++) {
-    const spot = danceSpot(m, i), start = sess.s0 + i * DANCE.stagger;
+    const spot = danceSpot(m, i, sess.seed), start = sess.s0 + i * DANCE.stagger;
     const a = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: 'side' }, { at: spot }] }, start, M, { r });
     const tEnd = sess.s1 + i * 1.3;
     if (!a || a.t1 >= tEnd - 20) continue;

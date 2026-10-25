@@ -128,7 +128,7 @@ function grain(x, P, Lt, c, n, x0, x1, at, r, nl = 3) {
 // (a wooden cart, zinc buckets of tulips + daffodils).
 const CART_KIND = { spring: 'flowers', summer: 'icecream', autumn: 'chestnuts', winter: 'chestnuts' };
 const CART_LOOK = {
-  chestnuts: { body: [34, 88, 64], trim: [22, 56, 42], wheel: [172, 46, 38], umb: [[186, 40, 42], [240, 228, 202]], word: 'HOT CHESTNUTS' },
+  chestnuts: { body: [34, 88, 64], trim: [22, 56, 42], wheel: [172, 46, 38], umb: [[186, 40, 42], [240, 228, 202]], word: 'CHESTNUTS', ink: [250, 236, 196], bold: true },
   icecream: { body: [238, 232, 216], trim: [126, 196, 184], wheel: [96, 160, 196], umb: [[236, 150, 170], [250, 244, 236]], word: 'ICE CREAM', board: [92, 170, 160], ink: [252, 248, 238] },
   flowers: { body: [174, 124, 74], trim: [70, 112, 74], wheel: [52, 92, 62], umb: [[240, 196, 64], [250, 244, 228]], word: 'FRESH FLOWERS', board: [62, 104, 68] },
 };
@@ -224,8 +224,8 @@ function roasterTop(x, P, Lt, X, y, glow, r, out, hood) {
     for (let i = 0; i < 8; i++) { const p = P(g0 + 0.06 + i * (g1 - g0 - 0.12) / 7, gv0 + 0.05 + r() * 0.06, sd0 - 0.012); x.fillStyle = `rgba(255,${(214 + 30 * glow) | 0},${(120 + 90 * glow) | 0},${(0.6 + 0.4 * k).toFixed(3)})`; x.beginPath(); x.arc(p[0], p[1], 0.035 * s, 0, Math.PI * 2); x.fill(); } }
   for (let i = 1; i < 6; i++) line(x, P(g0 + i * (g1 - g0) / 6, gv0, sd0 - 0.015), P(g0 + i * (g1 - g0) / 6, gv1, sd0 - 0.015), [18, 14, 16], Math.max(0.35, 0.03 * s));
   // its crisp glow: a tight warm halo off the grate + its light on the counter's front (never a blur over the cart)
-  if (k > 0.3) { const [cx, cy] = P((g0 + g1) / 2, (gv0 + gv1) / 2, sd0), R = 0.55 * s, h = x.createRadialGradient(cx, cy, 0, cx, cy, R);
-    h.addColorStop(0, `rgba(255,150,60,${(0.5 * glow).toFixed(3)})`); h.addColorStop(0.4, `rgba(255,120,40,${(0.16 * glow).toFixed(3)})`); h.addColorStop(1, 'rgba(255,110,40,0)');
+  if (k > 0.3) { const [cx, cy] = P((g0 + g1) / 2, (gv0 + gv1) / 2, sd0), R = 0.95 * s, h = x.createRadialGradient(cx, cy, 0, cx, cy, R);
+    h.addColorStop(0, `rgba(255,160,70,${(0.75 * glow).toFixed(3)})`); h.addColorStop(0.35, `rgba(255,120,40,${(0.3 * glow).toFixed(3)})`); h.addColorStop(1, 'rgba(255,110,40,0)');
     x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = h; x.fillRect(cx - R, cy - R, 2 * R, 2 * R); x.restore(); }
   out.grate = P((g0 + g1) / 2, (gv0 + gv1) / 2, sd0);
   // the roasting pan on top: a shallow black pan with its handle, chestnuts in it (split + roasting), a lit rim
@@ -234,9 +234,9 @@ function roasterTop(x, P, Lt, X, y, glow, r, out, hood) {
   line(x, P(sx0 + 0.06, sy1 + 0.05, (sd0 + sd1) / 2), P(sx0 - 0.3, sy1 + 0.1, (sd0 + sd1) / 2), lit(Lt, iron, FRONT, 0.4), Math.max(0.45, 0.04 * s));
   out.pan = P((sx0 + sx1) / 2, sy1 + 0.12, (sd0 + sd1) / 2);
   // THE TIN CHIMNEY from the stove's back-right: galvanised pipe (a lit edge, a shade edge, two seams), its conical cap on stays
-  const cu = sx0 + 0.22, cd = sd1 - 0.1, ch0 = sy1, ch1 = sy1 + 1.08, cw = 0.075;
+  const cu = sx0 + 0.22, cd = sd1 - 0.1, ch0 = sy1, ch1 = sy1 + 0.9, cw = 0.095;
   { const a = P(cu - cw, ch0, cd), b = P(cu + cw, ch0, cd), c2 = P(cu + cw, ch1, cd), d2 = P(cu - cw, ch1, cd);
-    const w = Math.max(1.6, b[0] - a[0]), ox = (a[0] + b[0]) / 2;   // (never hair-thin: at least ~1.6 pt)
+    const w = Math.max(2, b[0] - a[0]), ox = (a[0] + b[0]) / 2;   // (never hair-thin: at least ~1.6 pt)
     fillPts(x, [[ox - w / 2, a[1]], [ox + w / 2, b[1]], [ox + w / 2, c2[1]], [ox - w / 2, d2[1]]], lit(Lt, tin, FRONT, 0.9));
     const sd = Lt.sd >= 0 ? 1 : -1;
     fillPts(x, [[ox + sd * w * 0.12, a[1]], [ox + sd * w / 2, b[1]], [ox + sd * w / 2, c2[1]], [ox + sd * w * 0.12, d2[1]]], rimCol(Lt, tin, [sd * 0.8, 0.2, -0.6]), 0.75);
@@ -291,7 +291,8 @@ function bodyFront(x, P, Lt, K, x0, x1, y0, y1, d) {
   const s = P.s, body = lit(Lt, K.body, FRONT), dk = lit(Lt, shade(K.body, -0.3), FRONT), hi = rimCol(Lt, K.body, [0, 0.7, -0.7]);
   const gilt = lit(Lt, GILT, FRONT, 0.9), giltHi = rimCol(Lt, GILT, [0, 0.5, -0.9]);
   // the lettering board (top) + two panels under it
-  const bd = [x0 + 0.1, x1 - 0.1, y1 - 0.48, y1 - 0.08], pn = [[x0 + 0.1, (x0 + x1) / 2 - 0.05, y0 + 0.14, y1 - 0.56], [(x0 + x1) / 2 + 0.05, x1 - 0.1, y0 + 0.14, y1 - 0.56]];
+  // (POL4 — the owner: the lettering was hard to read at phone size: a BOLD trade gets a deeper board, the panels under it shorter)
+  const bh = K.bold ? 0.6 : 0.4, bd = [x0 + 0.08, x1 - 0.08, y1 - 0.06 - bh, y1 - 0.06], pn = [[x0 + 0.1, (x0 + x1) / 2 - 0.05, y0 + 0.12, y1 - bh - 0.14], [(x0 + x1) / 2 + 0.05, x1 - 0.1, y0 + 0.12, y1 - bh - 0.14]];
   for (const [a, b, c0, c1] of [bd, ...pn]) {
     // a recessed panel: its top + sun-away edge in shadow, its bottom + sunny edge lit (the lettering board in its own colour)
     fillPts(x, [P(a, c0, d), P(b, c0, d), P(b, c1, d), P(a, c1, d)], lit(Lt, a === bd[0] && c0 === bd[2] && K.board ? K.board : shade(K.body, -0.08), FRONT));
@@ -307,10 +308,12 @@ function bodyFront(x, P, Lt, K, x0, x1, y0, y1, d) {
     for (let k = 0; k < 7; k++) { const t0 = Math.PI + k * Math.PI / 7, t1 = t0 + Math.PI / 7 * 0.55; fillPts(x, [[cx, cy], [cx + Math.cos(t0) * R, cy + Math.sin(t0) * R], [cx + Math.cos(t1) * R, cy + Math.sin(t1) * R]], k % 2 ? gilt : giltHi, 0.9); }
   }
   // the trade, in gilt (shadowed letters: the sign-writer's drop shade)
-  const [lx, ly] = P((x0 + x1) / 2, (bd[2] + bd[3]) / 2 - 0.12, d), size = (bd[3] - bd[2]) * 0.62 * s, wmax = (bd[1] - bd[0] - 0.18) * s;
-  x.save(); x.font = FONT(size); x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  const big = !!K.bold, [lx, ly] = P((x0 + x1) / 2, (bd[2] + bd[3]) / 2 - (big ? 0.2 : 0.12), d), size = (bd[3] - bd[2]) * (big ? 0.86 : 0.62) * s, wmax = (bd[1] - bd[0] - (big ? 0.1 : 0.18)) * s;
+  x.save(); x.font = big ? `900 ${size}px "Chakra Petch", Orbitron, sans-serif` : FONT(size); x.textAlign = 'center'; x.textBaseline = 'alphabetic';
   const tw = x.measureText(K.word).width, sq = Math.min(1, wmax / Math.max(1, tw));
   x.translate(lx, ly); x.scale(sq, 1);
+  // (big: a dark outline round every letter so the cream reads on the green at night too — the sign-writer's keyline)
+  if (big) { x.lineJoin = 'round'; x.strokeStyle = rgb(shade(dk, -0.55)); x.lineWidth = Math.max(0.9, size * 0.16); x.strokeText(K.word, 0.04 * s, 0.04 * s); x.strokeText(K.word, 0, 0); }
   x.fillStyle = rgb(shade(dk, -0.4), 0.9); x.fillText(K.word, 0.06 * s, 0.05 * s);
   x.fillStyle = rgb(K.ink ? lit(Lt, K.ink, FRONT, 0.5) : giltHi); x.fillText(K.word, 0, 0);
   x.restore();

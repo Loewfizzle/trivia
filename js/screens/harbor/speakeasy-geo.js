@@ -26,12 +26,17 @@ export const GLASS_IN = 0.16;                   // a window's recess (exaggerate
  *  than SP2's single one, so together they wash the shopfront EVENLY; crisp SOURCES — a small brass shade hung under the valance's
  *  scallops with a lit bulb + a tight halo (live) — and their light landing on the canvas, the shopfront, the pavement (baked). The
  *  barber pole stays the brightest light on the front (tested). */
-export const AWNING_LAMP = Object.freeze({ us: [2.5, 5.6, 7.85], k: 0.72, reach: 1.45, cream: 0.3, red: 0.14, rim: 0.55, drop: 0.03, bulb: 0.07, halo: 0.34 });
+// (POL4 — the owner: "the LEFT door's lamp must be CENTRED above that door": the left lamp over the barbershop door's middle, 2.6)
+export const AWNING_LAMP = Object.freeze({ us: [2.6, 5.6, 7.85], k: 0.72, reach: 1.45, cream: 0.3, red: 0.14, rim: 0.55, drop: 0.03, bulb: 0.07, halo: 0.34 });
 /** the awning lamps' bulbs (wall units u across + world y / z): just under the valance's foot */
 /** 8P — the valance's depth (world units; was 0.42: it hid the window's head — the gold arch + the sign need the room) */
 export const VAL = 0.34;
 export const awningBulbs = aw => AWNING_LAMP.us.map(u => ({ u, y: aw.y1 - VAL - AWNING_LAMP.drop, z: aw.z + 0.05 }));
-export const SHOP_GLOW = Object.freeze({ lamp: 0.2, sconce: 0.24, landR: 0.95 });   // (SP2: tighter — a few pt)
+export const SHOP_GLOW = Object.freeze({ lamp: 0.2, sconce: 0.34, landR: 1.3 });   // (SP2: tighter — a few pt; POL4: the door lamps brighter — a bigger halo + landing)
+/** POL4 — THE DOORS FLOODED (the owner: "brighter, so the light FLOODS each speakeasy door and the door is clearly noticeable"): each
+ *  door's lamp throws a warm wash down over its door + its step(s) — live (× the facade's power: the TR-3B's blackout, 8b's raid).
+ *  k: its strength; w / h: the wash's half width + its height (× the door's own) */
+export const DOOR_FLOOD = Object.freeze({ k: 0.42, w: 0.85, h: 1.15, col: [255, 196, 128] });
 
 // ------------------------------------------------------------------ geometry
 /** the building on screen: the front's affine map, the side wall's perspective, the inverse for the strips */

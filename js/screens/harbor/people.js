@@ -122,7 +122,7 @@ export function createPeople() {
       if (riding.has(it.m)) continue;
       const mem = it.m, look = lookFor(mem, env);
       let st = mem.s, mv = null;
-      if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+      if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF, mem.vid); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
       else if (mem.kind === 'watcher') st = { ...st, beatF: beatsF };
       if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { collars.set(mem.vid, drawDog(c, cam, { ...st, dist: st.dist * 1.6 }, look, E, pass === 'roof' ? roofY() : 0)); continue; }
       // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
@@ -183,12 +183,13 @@ export function createPeople() {
     const puff = (x, y, r, col, al) => { if (al < 0.01 || r < 0.3) return; const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${col},${al.toFixed(3)})`); g.addColorStop(0.55, `rgba(${col},${(al * 0.55).toFixed(3)})`); g.addColorStop(1, `rgba(${col},0)`); c.fillStyle = g; c.fillRect(x - r, y - r, 2 * r, 2 * r); };
     c.save();
     if (a.chimney) {
-      const [cx, cy] = a.chimney, n = 11, per = 3.8;
+      // (POL4 — the owner saw no smoke: a THICKER plume — more, bigger puffs, denser near the cap, lighter at night so it reads on the dark)
+      const [cx, cy] = a.chimney, n = 16, per = 4.6;
       for (let i = n - 1; i >= 0; i--) {
-        const u = ((t / per + i / n) % 1 + 1) % 1, rise = 1.75 * u, drift = w * 1.1 * u ** 1.5 + 0.06 * Math.sin(t * 0.9 + i * 1.7) * u;
-        const warm = night * Math.max(0, 1 - u * 2.2), base = night > 0.3 ? [150, 144, 156] : [196, 194, 200];
+        const u = ((t / per + i / n) % 1 + 1) % 1, rise = 2.5 * u, drift = w * 1.25 * u ** 1.5 + 0.08 * Math.sin(t * 0.9 + i * 1.7) * u;
+        const warm = night * Math.max(0, 1 - u * 2), base = night > 0.3 ? [178, 172, 182] : [206, 204, 210];
         const col = [0, 1, 2].map(k => Math.round(base[k] + ([255, 170, 110][k] - base[k]) * warm)).join(',');
-        puff(cx + drift * u1, cy - rise * u1, (0.13 + 0.5 * u) * u1, col, 0.72 * (1 - u) ** 1.25 * Math.min(1, u / 0.05) * (1 - 0.4 * rain));
+        puff(cx + drift * u1, cy - rise * u1, (0.2 + 0.78 * u) * u1, col, 0.95 * (1 - u) ** 1.1 * Math.min(1, u / 0.04) * (1 - 0.4 * rain));
       }
     }
     if (a.pan) {
@@ -205,7 +206,7 @@ export function createPeople() {
   function drawInside(c, id, env) {
     if (!L || !env) return;
     const E = envOf(env), ms = now.members.filter(m => insideDoor(m) && m.s.door.id === id).sort((a, b) => b.s.z - a.s.z);
-    for (const m of ms) { c.save(); c.globalAlpha = (env.fade == null ? 1 : env.fade) * (1 - 0.8 * clamp01((m.s.z - M.face) / 1.8)); drawFolk(c, L.cam, { s: m.s, L: lookFor(m, env) }, E); c.restore(); }
+    for (const m of ms) { c.save(); c.globalAlpha = (env.fade == null ? 1 : env.fade) * (1 - 0.8 * clamp01((m.s.z - M.face) / 1.8)); drawFolk(c, L.cam, { s: m.s, L: lookFor(m, env) }, { ...E, yUp: m.s.y || 0 }); c.restore(); }
   }
   // the doors' sounds on the SWING (the street-door slots — silent while empty — and at night the club's burst through the open side
   // door; the shop's bell): open as it starts to swing, shut as it swings back
@@ -241,9 +242,9 @@ export function createPeople() {
     const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : t * 2, beat = Math.floor(beatsF), ph = Math.floor(beatsF / 8);
     const cx = dancers.reduce((a, m) => a + m.s.x, 0) / dancers.length;
     if (dz.beat != null && beat !== dz.beat && t - dz.swishAt > 0.9) {
-      const mv = danceMoves(0, beatsF).move, q = ((beat % 8) + 8) % 8;
-      if ((mv === 'swing' || mv === 'signal' || (mv === 'spin' && q % 4 === 0)) && Math.random() < 0.3) {
-        const m = dancers[Math.floor(Math.random() * dancers.length)];
+      // (POL4: each dancer their own moves — a random dancer whose move swishes on this beat)
+      const m = dancers[Math.floor(Math.random() * dancers.length)], mv = danceMoves(m.idx || 0, beatsF, m.vid).move, q = ((beat % 8) + 8) % 8;
+      if ((mv === 'swing' || mv === 'point' || mv === 'lasso' || (mv === 'spin' && q === 1)) && Math.random() < 0.3) {
         snd.play('glow-wand-swish', { pan: panOf(m.s.x), gain: 0.5 + Math.random() * 0.3 });
         dz.swishAt = t;
       }

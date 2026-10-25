@@ -185,6 +185,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   }
   if (o.act === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm-panel'); await sleep(400); }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
+  // (POL4: --js "<expression>": run in the page before the shot — e.g. "__district.harbor().speakeasy.power(0)")
+  if (opt('js', '')) { await p.evaluate(String(opt('js'))); await sleep(400); }
   if (IDLE) { await p.evaluate(() => window.__district.idle()); await p.waitForFunction(() => window.__district.isIdle(), { timeout: 5000 }).catch(() => {}); await sleep(2100); }
   for (let shot = 0; shot < COUNT; shot++) {
   if (shot) await sleep(EVERY);
@@ -197,6 +199,14 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else if (c === 'stage') {
       // CITY 2.0: the near stage — from above the road's stop lights down to the dock's top
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, k = c.F / 600; const y = Math.max(0, c.VPY + c.F * c.CAMH / 64 - 70 * k); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight, c.dock.y + 8) - y }; });
+    } else if (c === 'cart' || c === 'treel' || c === 'compass') {
+      // CITY 2.0 (POL4): the chestnut cart's spot close up (130 × 100 pt round it) / the tree left of the crossing (behind the blade) + the
+      // bench under it (the hidden lamp + its uplight)
+      clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); const pr = hb && hb.promenade; if (!pr) return null;
+        if (cc === 'compass') { const [x, y] = pr.medallion; return { x: Math.max(0, x - 100), y: Math.max(0, y - 75), width: Math.min(200, innerWidth - Math.max(0, x - 100)), height: 100 }; }
+        if (cc === 'cart') { const [x, y] = pr.cart; return { x: Math.max(0, x - 75), y: Math.max(0, y - 80), width: Math.min(150, innerWidth - Math.max(0, x - 75)), height: 100 }; }
+        const t = [...pr.trees].sort((a, b) => a.at[0] - b.at[0])[0]; if (!t) return null; const [x, y] = t.at, r = t.r;
+        return { x: Math.max(0, x - r * 1.6), y: Math.max(0, y - r * 3.4), width: Math.min(innerWidth, r * 3.6), height: r * 4 }; }, c);
     } else if (c === 'band') {
       // CITY 2.0 (FP2): the band under the dock — from a little above the promenade's front edge to the screen's foot
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const y = Math.max(0, hb.cam.dock.y - 40); return { x: 0, y, width: innerWidth, height: innerHeight - y }; });
@@ -207,11 +217,12 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
         if (cc === 'pole') return { x: Math.max(0, r.x - 8), y: Math.max(0, r.y - 8), width: r.w + 16, height: r.h + 16 };
         const sx = sp.glowAt && sp.glowAt.sconce ? sp.glowAt.sconce[0] : r.x, x1 = Math.min(innerWidth, Math.max(r.x + r.w, sx) + 40 * k), y = Math.max(0, r.y - 44 * k);
         return { x: 0, y, width: x1, height: Math.min(innerHeight - y, r.h + 100 * k) }; }, c);
-    } else if (c === 'facade' || c === 'upper') {
+    } else if (c === 'facade' || c === 'upper' || c === 'crest') {
       // CITY 2.0 (7b): THE SPEAKEASY's facade close up — facade: the whole front from the crest + its string lights down to the
       // pavement; upper: the six windows (the moments' stage). With --zoom the device pixels are blown up whole (no width cut).
       clip = await p.evaluate(cc => { const hb = window.__district.harbor && window.__district.harbor(); const sp = hb && hb.speakeasy; if (!sp || !sp.box) return null; const b = sp.box, k = hb.cam.F / 600;
         if (cc === 'upper') { const ws = sp.windows(); const x0 = 0, y0 = Math.min(...ws.map(w => w.rect.y)) - 10 * k, x1 = Math.max(...ws.map(w => w.rect.x + w.rect.w)) + 12 * k, y1 = Math.max(...ws.map(w => w.rect.y + w.rect.h)) + 8 * k; return { x: x0, y: Math.max(0, y0), width: Math.min(innerWidth, x1), height: y1 - Math.max(0, y0) }; }
+        if (cc === 'crest') { const y = Math.max(0, b.y - 6 * k); return { x: 0, y, width: Math.min(innerWidth, b.x + b.w * 0.75), height: b.h * 0.2 }; }   // (POL4: the crest + the date stone)
         const y = Math.max(0, b.y - 26 * k); return { x: 0, y, width: Math.min(innerWidth, b.x + b.w + 6 * k), height: Math.min(innerHeight - y, b.h + 30 * k) }; }, c);
     } else if (c === 'skyline') {
       // CITY 2.0: the skyline close up — from above the tallest crown down to the far quay
@@ -259,8 +270,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper'].includes(c)) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper', 'crest', 'cart', 'treel', 'compass'].includes(c)) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass'].includes(c) ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

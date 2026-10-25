@@ -51,11 +51,13 @@ function rigOf(T, ctx, t) {
   const lamps = lampK > 0.01 ? treeLamps(ctx, t) : [];
   // PF — THE UPLIGHT (the owner: the trees read at night): a small warm brass fixture in the grate, just in front of the trunk, aimed
   // up — a light with a SHORT reach (UPLIGHT.fall): the trunk + the crown's underside glow softly, the crown's top fades to dark
-  if (lampK > 0.01 && t.grate) lamps.push({ x: UPLIGHT.u, y: 0.12, w: -UPLIGHT.dz, col: UPLIGHT.col, k: UPLIGHT.k, fall: UPLIGHT.fall, up: true });
+  // (POL4: stronger — the crabapple behind the blade clearly, the big maple only a touch: UPLIGHT.kind)
+  const upK = UPLIGHT.kind[t.kind] || 1;
+  if (lampK > 0.01 && t.grate) lamps.push({ x: UPLIGHT.u, y: 0.12, w: -UPLIGHT.dz, col: UPLIGHT.col, k: UPLIGHT.k * upK, fall: UPLIGHT.fall * (0.85 + 0.2 * upK), up: true });
   // which side of the bark catches the light (by day the sun's; at night the strongest lamp's)
   let barkSide = Math.abs(L[0]) > 0.12 ? Math.sign(L[0]) : 1;
   if (lampK > 0.4 && lamps.length) { let best = 0; for (const lp of lamps) { if (lp.up) continue; const f = lp.k / (1 + (Math.hypot(lp.x, lp.y - t.trunk, lp.w) / 3) ** 2); if (f > best) { best = f; barkSide = Math.sign(lp.x) || 1; } } }
-  const rig = { L, sunCol, sunK, amb, lamps, lampK, n, rim: n * (1 - flat * 0.5), barkSide, up: t.grate ? lampK : 0 };
+  const rig = { L, sunCol, sunK, amb, lamps, lampK, n, rim: n * (1 - flat * 0.5), barkSide, up: t.grate ? lampK * upK : 0 };
   // the leaves' shade: an autumn crown's shadows go deep warm (burnt orange, crimson, plum — never olive), a summer's cool green
   const tint = ctx.season === 'autumn' ? [1.17, 0.84, 0.72] : ctx.season === 'summer' ? [0.9, 1, 0.98] : [1, 1, 1];
   // (FP2: + the BOUNCE under the crown — the sunlit cobbles by day, the lamps' pools at night — a warm fill on the leaves facing
@@ -69,7 +71,7 @@ function rigOf(T, ctx, t) {
 
 /** PF — THE TREES' UPLIGHTS: where the fixture sits in the grate (u across, dz toward us — world units from the trunk), its warm
  *  colour (× the base: ~2700 K), its strength, its reach (a lamp's falloff distance: 3; this one 2.2 — the crown's top fades out) */
-export const UPLIGHT = Object.freeze({ u: -0.26, dz: -0.5, col: [1.3, 0.9, 0.52], k: 0.62, fall: 2.2 });
+export const UPLIGHT = Object.freeze({ u: -0.26, dz: -0.5, col: [1.3, 0.9, 0.52], k: 0.62, fall: 2.2, kind: { crab: 1.4, maple: 1.15 } });
 
 /** the lamps' light at a local point: [[dirX, dirY, dirW, strength, col], …] (a cluster computes it once for all its leaves) */
 function lampsAt(rig, px, py, pw) {
@@ -208,7 +210,7 @@ function drawUplight(x, cam, t, s, bx, by, seg, rig) {
   x.globalCompositeOperation = 'lighter';
   // the trunk's front, lit from below (a narrow wedge up the bark: the fixture is a spot)
   const g = x.createLinearGradient(0, by, 0, ty);
-  g.addColorStop(0, `rgba(255,178,96,${(0.5 * k).toFixed(3)})`); g.addColorStop(0.45, `rgba(255,160,84,${(0.2 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(255,150,80,0)');
+  g.addColorStop(0, `rgba(255,178,96,${Math.min(0.85, 0.5 * k).toFixed(3)})`); g.addColorStop(0.45, `rgba(255,160,84,${Math.min(0.4, 0.2 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(255,150,80,0)');
   x.fillStyle = g; x.beginPath();
   x.moveTo(bx - w0 * 0.42, by); x.lineTo(bx + w0 * 0.3, by); x.lineTo(tx + w0 * 0.16, ty); x.lineTo(tx - w0 * 0.28, ty); x.closePath(); x.fill();
   // the light landing on the mulch + the grate's bars round the fixture (a small warm ellipse on the ground)
@@ -224,7 +226,7 @@ function drawUplight(x, cam, t, s, bx, by, seg, rig) {
     const lr = Math.max(0.5, cw * 0.32), hr = lr * 3.2;
     x.save(); x.globalCompositeOperation = 'lighter';
     const h = x.createRadialGradient(fx, fy - ch, 0, fx, fy - ch, hr);
-    h.addColorStop(0, `rgba(255,214,150,${(0.7 * k).toFixed(3)})`); h.addColorStop(0.35, `rgba(255,170,90,${(0.22 * k).toFixed(3)})`); h.addColorStop(1, 'rgba(255,150,80,0)');
+    h.addColorStop(0, `rgba(255,214,150,${Math.min(1, 0.7 * k).toFixed(3)})`); h.addColorStop(0.35, `rgba(255,170,90,${(0.22 * k).toFixed(3)})`); h.addColorStop(1, 'rgba(255,150,80,0)');
     x.fillStyle = h; x.beginPath(); x.arc(fx, fy - ch, hr, 0, TAU); x.fill();
     x.restore();
     x.fillStyle = `rgba(255,246,222,${Math.min(1, 1.1 * k).toFixed(3)})`; x.beginPath(); x.ellipse(fx, fy - ch, lr, lr * 0.45, 0, 0, TAU); x.fill();
