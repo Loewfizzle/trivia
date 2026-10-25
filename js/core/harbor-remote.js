@@ -71,20 +71,69 @@ export const CATS = [
 const CAT_IDS = new Set(CATS.map(c => c.id));
 export const catOf = id => { const e = EV[id]; return e && CAT_IDS.has(e.cat) ? e.cat : 'tools'; };
 
+/** C2 — THE PANEL REWORK (the owner, Oct 25: "very busy and unorganized"): the full-screen sheet's NINE SECTIONS, in this order. The
+ *  CATS above stay the registry's AREAS (an event's `cat`: what part of the city it belongs to — the tests + the links know them);
+ *  each area lands in one section (AREA_SECTION) and an event may move on its own with `sec` (the legendaries, the birds in the sky,
+ *  the people on the promenade). Inside a section the rows sit in blocks: the panel's own controls + one block per event `group`. */
+export const SECTIONS = [
+  { id: 'sky', label: 'SKY' },
+  { id: 'legendary', label: 'LEGENDARY' },
+  { id: 'people', label: 'PEOPLE + WORKERS' },
+  { id: 'wildlife', label: 'WILDLIFE' },
+  { id: 'harbor', label: 'HARBOR' },
+  { id: 'weather', label: 'WEATHER' },
+  { id: 'time', label: 'TIME' },
+  { id: 'lightsmusic', label: 'LIGHTS + MUSIC' },
+  { id: 'tools', label: 'TOOLS' },
+];
+const SEC_IDS = new Set(SECTIONS.map(s => s.id));
+/** each area's section (the panel's own blocks use the same ids: time, holidays, weather, party, lights = PULSE, music, sounds, tools) */
+export const AREA_SECTION = {
+  time: 'time', holidays: 'time', weather: 'weather', sky: 'sky', lights: 'lightsmusic', signs: 'lightsmusic', party: 'lightsmusic',
+  speakeasy: 'lightsmusic', music: 'lightsmusic', harbor: 'harbor', promenade: 'harbor', windows: 'people', workers: 'people',
+  wildlife: 'wildlife', sounds: 'tools', tools: 'tools',
+};
+/** an event's section (an unknown id → TOOLS, never lost) */
+export const sectionOf = id => { const e = EV[id]; if (!e) return 'tools'; if (e.sec && SEC_IDS.has(e.sec)) return e.sec; return AREA_SECTION[catOf(id)] || 'tools'; };
+/** a section id, or an area id (the old categories: the tests' + the shots' openCats(['lights'])), → its section id (null = unknown) */
+export const toSection = id => (SEC_IDS.has(id) ? id : AREA_SECTION[id] || null);
+/** the block heading an event sits under in its section (its group; a few areas name themselves first) */
+const BLOCK_PREFIX = { workers: 'WORKERS', windows: 'WINDOWS' };
+export const blockOf = id => { const e = EV[id]; if (!e) return ''; const p = BLOCK_PREFIX[e.cat]; return p && !(e.group || '').startsWith(p) ? `${p} · ${e.group}` : e.group || ''; };
+
+/** SEARCH (the panel's box): lower case, no accents, no hyphens (F-22 = f22), one space — every word typed must START a word of the row's
+ *  text ("rain" finds RAIN + RAINBOW, never the satellite tRAIN) */
+export const normQ = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[\u2018\u2019`]/g, "'").replace(/-/g, '').replace(/[^a-z0-9'+#\u00d7\u263e ]+/g, ' ').replace(/\s+/g, ' ').trim();
+export const matchQuery = (q, text) => { const t = normQ(text).split(' '), w = normQ(q).split(' ').filter(Boolean); return w.length > 0 && w.every(x => t.some(y => y.startsWith(x))); };
+/** an event's searchable text: its label, hint, keywords, group, area, section, id */
+export function eventText(id) {
+  const e = EV[id]; if (!e) return '';
+  const area = CATS.find(c => c.id === e.cat), sec = SECTIONS.find(s => s.id === sectionOf(id));
+  return [e.label, e.hint, e.kw, e.group, blockOf(id), area && area.label, sec && sec.label, e.id.replace(/-/g, ' '), e.night ? 'night' : ''].filter(Boolean).join(' ');
+}
+
+/** THE DELAY (C2): the panel's changes start this many seconds after the sheet closes (EVERYONE: the server's startAt is pushed by it,
+ *  so every phone starts on the same beat) — NOW / 3 S / 5 S; the server takes 0–10 */
+export const DELAYS = [0, 3, 5];
+export const DEFAULT_DELAY = 3;
+export const MAX_DELAY = 10;
+/** a requested delay → whole seconds 0–MAX_DELAY, or null (not a delay) */
+export const cleanDelay = v => { if (v == null || v === '') return 0; const n = Number(v); return Number.isInteger(n) && n >= 0 && n <= MAX_DELAY ? n : null; };
+
 // THE EVENTS: every &force= preview that runs on ?city=2 (cat → its category in the panel, group → the sub-heading inside it). Each
 // is a TOGGLE in `force` (several on at once, together with a time / weather / scene / holiday). text: the longest text it takes.
 // oneShot: a sky piece started through harbor().sky — EVERYONE's phones start it at the same moment (startAt), a late arrival
 // joins mid-flight; the rest are states (on while the remote is on). ready: false = not drawn on the Harbor yet: the panel hides the
 // row (the id stays valid for the URL + the server) until the part that builds it flips it.
 export const EVENTS = [
-  { id: 'drones', label: 'DRONE SHOW', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text', 'colours', 'colour', 'by', 'cycle'], text: 140, night: true, hint: 'the night version of skytyping: the drones rise into your MESSAGE, a page at a time' },
+  { id: 'drones', label: 'DRONE SHOW', cat: 'sky', kw: 'message text words', group: 'MESSAGES', oneShot: true, inputs: ['text', 'colours', 'colour', 'by', 'cycle'], text: 140, night: true, hint: 'the night version of skytyping: the drones rise into your MESSAGE, a page at a time' },
   { id: 'drones-calm', label: 'DRONES · CALM', cat: 'sky', group: 'MESSAGES', hint: 'with DRONE SHOW: slower, steady lights' },
-  { id: 'banner', label: 'BANNER PLANE', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 74, hint: 'A | B | C: up to 3 banners' },
+  { id: 'banner', label: 'BANNER PLANE', cat: 'sky', kw: 'message text words', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 74, hint: 'A | B | C: up to 3 banners' },
   { id: 'skywrite', label: 'SKYWRITING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 140, ready: false },   // (6b: CUT — an old link types it)
-  { id: 'skytype', label: 'SKYTYPING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 140, hint: 'up to 3 lines × ~16 letters a page, 3 pages; | starts a page' },
+  { id: 'skytype', label: 'SKYTYPING', cat: 'sky', kw: 'message text words smoke', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 140, hint: 'up to 3 lines × ~16 letters a page, 3 pages; | starts a page' },
   { id: 'helicopter', label: 'HELICOPTER', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
-  { id: 'jets', label: 'AIR SHOW (F-22s)', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a diamond of four stealth fighters: two straight formation flybys, smooth smoke trails by day — July 4th' },
-  { id: 'flyby', label: 'SURPRISE FLYBY', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: '2–4 F-22s straight across on afterburner — ~twice a month, golden hour → 11 pm' },
+  { id: 'jets', label: 'AIR SHOW (F-22s)', cat: 'sky', kw: 'fighter jets raptor formation', group: 'AIRCRAFT', oneShot: true, hint: 'a diamond of four stealth fighters: two straight formation flybys, smooth smoke trails by day — July 4th' },
+  { id: 'flyby', label: 'SURPRISE FLYBY', cat: 'sky', kw: 'f-22 fighter jets raptor afterburner', group: 'AIRCRAFT', oneShot: true, hint: '2–4 F-22s straight across on afterburner — ~twice a month, golden hour → 11 pm' },
   { id: 'barnstormer', label: 'BARNSTORMER', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a red 1920s biplane threading THROUGH the NEON letters + a loop (~3 days a week)' },
   { id: 'missing-man', label: 'MISSING MAN', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a finger-four, #3 pulls up + away — Memorial + Veterans Day' },
   { id: 'balloons', label: 'BALLOONS', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
@@ -103,14 +152,14 @@ export const EVENTS = [
   { id: 'sleigh', label: 'SLEIGH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
   { id: 'witch', label: 'WITCH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
   // (PART 6b — THE LEGENDARY SKY: ~1–2 nights a month each for everyone; here on demand, repeating while on — JUST ME or EVERYONE, the same moment)
-  { id: 'ufo', label: 'UFO ABDUCTION', cat: 'sky', group: 'LEGENDARY', oneShot: true, night: true, hint: 'the saucer, the beam, someone lifted off the compass (~30 s)' },
-  { id: 'tr3b', label: 'TR-3B + JET CHASE', cat: 'sky', group: 'LEGENDARY', oneShot: true, night: true, hint: 'the black triangle drains the city’s power, then F-16s chase it (~50 s)' },
+  { id: 'ufo', label: 'UFO ABDUCTION', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'alien saucer beam', oneShot: true, night: true, hint: 'the saucer, the beam, someone lifted off the compass (~30 s)' },
+  { id: 'tr3b', label: 'TR-3B + JET CHASE', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'triangle ufo blackout power drain f-16 jets tape stop', oneShot: true, night: true, hint: 'the black triangle drains the city’s power, then F-16s chase it (~50 s)' },
   { id: 'cat', label: 'THE MOON CAT', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, ready: false },  // (ready: false — not on the Harbor yet; still a valid id)
-  { id: 'geese', label: 'GEESE', cat: 'sky', group: 'BIRDS' },
-  { id: 'swifts', label: 'SWIFTS', cat: 'sky', group: 'BIRDS' },
-  { id: 'bats-dusk', label: 'BATS AT DUSK', cat: 'sky', group: 'BIRDS' },
-  { id: 'bats', label: 'HALLOWEEN BATS', cat: 'sky', group: 'BIRDS', night: true },
-  { id: 'heron-sky', label: 'HERON (NIGHT CROSSING)', cat: 'sky', group: 'BIRDS', hint: 'the rare slow heron crossing a night sky, neck folded (spring → autumn)' },
+  { id: 'geese', sec: 'wildlife', label: 'GEESE', cat: 'sky', group: 'FLYING OVER' },
+  { id: 'swifts', sec: 'wildlife', label: 'SWIFTS', cat: 'sky', group: 'FLYING OVER' },
+  { id: 'bats-dusk', sec: 'wildlife', label: 'BATS AT DUSK', cat: 'sky', group: 'FLYING OVER' },
+  { id: 'bats', sec: 'wildlife', label: 'HALLOWEEN BATS', cat: 'sky', group: 'FLYING OVER', night: true },
+  { id: 'heron-sky', sec: 'wildlife', label: 'HERON (NIGHT CROSSING)', cat: 'sky', group: 'FLYING OVER', hint: 'the rare slow heron crossing a night sky, neck folded (spring → autumn)' },
   { id: 'rainbow', label: 'RAINBOW', cat: 'weather', group: 'RAINBOWS' },
   { id: 'rainbow2', label: 'DOUBLE RAINBOW', cat: 'weather', group: 'RAINBOWS' },
   { id: 'moonbow', label: 'MOONBOW', cat: 'weather', group: 'RAINBOWS', night: true },
@@ -119,11 +168,11 @@ export const EVENTS = [
   { id: 'freeze', label: 'FROST', cat: 'weather', group: 'WEATHER FX' },
   { id: 'halo', label: '22° SUN HALO', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL (a thin cirrostratus sky): the rare faint ring round the sun' },
   { id: 'sundogs', label: 'SUN DOGS', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL: the 22° halo + its two sun dogs (the rarer bonus)' },
-  { id: 'beams', label: 'SKY BEAMS', cat: 'party', group: 'ANY NIGHT', night: true, hint: 'the party’s vertical beams from the tall towers' },
+  { id: 'beams', label: 'SKY BEAMS', cat: 'party', group: 'PARTY · ANY NIGHT', night: true, hint: 'the party’s vertical beams from the tall towers' },
   { id: 'searchlights', label: 'SEARCHLIGHTS', cat: 'lights', group: 'THE TOWERS', night: true },
-  { id: 'spell', label: 'WORDS IN THE WINDOWS', cat: 'lights', group: 'THE TOWERS', inputs: ['text', 'style', 'tower'], text: 60, night: true, hint: 'type a message: one word per tower, a word too long for its tower scrolls on it' },
+  { id: 'spell', label: 'WORDS IN THE WINDOWS', cat: 'lights', kw: 'message text towers', group: 'THE TOWERS', inputs: ['text', 'style', 'tower'], text: 60, night: true, hint: 'type a message: one word per tower, a word too long for its tower scrolls on it' },
   { id: 'burnout', label: 'BURNT-OUT LETTER', cat: 'signs', group: 'THE CITY’S NEON', night: true },
-  { id: 'neon-party', label: 'NEON PARTY', cat: 'party', group: 'ANY NIGHT', night: true },
+  { id: 'neon-party', label: 'NEON PARTY', cat: 'party', group: 'PARTY · ANY NIGHT', night: true },
   { id: 'neon-flash', label: 'NEON FLASH', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['game'], night: true },
   { id: 'neon-scheme', label: 'NEON SCHEME', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['scheme'], night: true },
   { id: 'spell-on', label: 'SPELL-ON ROUND', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'every named sign spells itself on in turn — the next one every 6 s' },
@@ -132,17 +181,17 @@ export const EVENTS = [
   { id: 'lamps-on', label: 'BILLBOARD LAMPS ON', cat: 'signs', group: 'THE BILLBOARD', hint: 'its 4 gooseneck lamps held on (by day too)' },
   { id: 'lamps-off', label: 'BILLBOARD LAMPS OFF', cat: 'signs', group: 'THE BILLBOARD', night: true, hint: 'the night without them — compare' },
   { id: 'no-halo', label: 'SIGN HALO OFF', cat: 'signs', group: 'THE NEON SIGN', hint: 'the tagline + NEON’s dark halo off — compare (the moon behind it)' },
-  { id: 'wheel-scheme', label: 'WHEEL SCHEME', cat: 'harbor', group: 'HARBOR', inputs: ['scheme'] },
-  { id: 'beam-green', label: 'GREEN BEAM', cat: 'harbor', group: 'HARBOR', night: true },
-  { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', cat: 'harbor', group: 'HARBOR', inputs: ['scheme'] },
-  { id: 'taxi', label: 'WATER TAXI', cat: 'harbor', group: 'HARBOR' },
-  { id: 'rosie-turn', label: 'ROSIE’S TURN', cat: 'harbor', group: 'HARBOR', hint: 'her homecoming swing on a loop — the 3D model turning in the open water, bow toward us' },
+  { id: 'wheel-scheme', label: 'WHEEL SCHEME', cat: 'harbor', group: 'THE PIER + BOATS', inputs: ['scheme'] },
+  { id: 'beam-green', label: 'GREEN BEAM', cat: 'harbor', group: 'THE PIER + BOATS', night: true },
+  { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', cat: 'harbor', group: 'THE PIER + BOATS', inputs: ['scheme'] },
+  { id: 'taxi', label: 'WATER TAXI', cat: 'harbor', group: 'THE PIER + BOATS' },
+  { id: 'rosie-turn', label: 'ROSIE’S TURN', cat: 'harbor', group: 'THE PIER + BOATS', hint: 'her homecoming swing on a loop — the 3D model turning in the open water, bow toward us' },
   // (PART 8a — THE PROMENADE: the trees + planters in each season (the real date otherwise); the owner's implied road (on by default)
   // switched off to compare; a car passing along it now (its headlights at night, its shadow by day, its sound))
-  { id: 'season-spring', label: 'SPRING', cat: 'promenade', group: 'SEASON', hint: 'the crabapple in blossom, fresh light-green maples, tulips' },
-  { id: 'season-summer', label: 'SUMMER', cat: 'promenade', group: 'SEASON', hint: 'full green trees, geraniums' },
-  { id: 'season-autumn', label: 'AUTUMN', cat: 'promenade', group: 'SEASON', hint: 'the maples red / orange / gold, leaves falling, mums' },
-  { id: 'season-winter', label: 'WINTER', cat: 'promenade', group: 'SEASON', hint: 'bare branches, evergreen boughs (snow comes with Part 9)' },
+  { id: 'season-spring', label: 'SPRING', cat: 'promenade', group: 'THE SEASON', hint: 'the crabapple in blossom, fresh light-green maples, tulips' },
+  { id: 'season-summer', label: 'SUMMER', cat: 'promenade', group: 'THE SEASON', hint: 'full green trees, geraniums' },
+  { id: 'season-autumn', label: 'AUTUMN', cat: 'promenade', group: 'THE SEASON', hint: 'the maples red / orange / gold, leaves falling, mums' },
+  { id: 'season-winter', label: 'WINTER', cat: 'promenade', group: 'THE SEASON', hint: 'bare branches, evergreen boughs (snow comes with Part 9)' },
   { id: 'no-implied-road', label: 'IMPLIED ROAD OFF', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the curb + the passing cars’ light gone — compare' },
   { id: 'road-pass', label: 'A CAR PASSING', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'a car every ~13 s: headlights at night, a shadow by day, its sound — seen on the street while the dock rests' },
   { id: 'wet-street', label: 'WET STREET', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the street under the dock after rain: puddles, the lamps’ reflections (Part 9’s hook)' },
@@ -150,12 +199,12 @@ export const EVENTS = [
   { id: 'centrepiece-test', label: 'CENTREPIECE TEST', cat: 'promenade', group: 'THE CENTREPIECE', hint: 'a test obelisk on the brick inlay, lit by its floor spots after dark (the holidays’ pieces stand here)' },
   { id: 'strings-party', label: 'CAFÉ LIGHTS · PARTY', cat: 'speakeasy', group: 'SPEAKEASY', night: true, hint: 'the speakeasy roof’s café-light canopy in party mode' },
   // (8P: THE PEOPLE — the lobby line at the door (&n= guests, 6 by default; Lobby 2.0 fills it), a bus every minute, everyone off to compare)
-  { id: 'line', label: 'THE LOBBY LINE', cat: 'promenade', group: 'THE PEOPLE', hint: 'guests lined up at the speakeasy’s door (6; &n=<guests>) — Lobby 2.0 fills it with the room' },
-  { id: 'bus', label: 'A BUS EVERY MINUTE', cat: 'promenade', group: 'THE PEOPLE', hint: 'the 1920s bus arriving, stopping at the curb, riders on + off, pulling away on green' },
-  { id: 'dance', label: 'THE DANCE CIRCLE', cat: 'promenade', group: 'THE PEOPLE', hint: 'the glow-wand dancers on the compass inlay — a circle every 5 minutes (best with PARTY ON)' },
-  { id: 'doors', label: 'THE DOORS', cat: 'promenade', group: 'THE PEOPLE', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
-  { id: 'no-dance', label: 'NO DANCE CIRCLE', cat: 'promenade', group: 'THE PEOPLE', hint: 'a party night without the glow-wand circle — compare (its cost)' },
-  { id: 'no-people', label: 'NO PEOPLE', cat: 'promenade', group: 'THE PEOPLE', hint: 'the promenade + the roof empty — compare' },
+  { id: 'line', sec: 'people', label: 'THE LOBBY LINE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'guests lined up at the speakeasy’s door (6; &n=<guests>) — Lobby 2.0 fills it with the room' },
+  { id: 'bus', sec: 'people', label: 'A BUS EVERY MINUTE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the 1920s bus arriving, stopping at the curb, riders on + off, pulling away on green' },
+  { id: 'dance', sec: 'people', label: 'THE DANCE CIRCLE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the glow-wand dancers on the compass inlay — a circle every 5 minutes (best with PARTY ON)' },
+  { id: 'doors', sec: 'people', label: 'THE DOORS', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
+  { id: 'no-dance', sec: 'people', label: 'NO DANCE CIRCLE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'a party night without the glow-wand circle — compare (its cost)' },
+  { id: 'no-people', sec: 'people', label: 'NO PEOPLE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the promenade + the roof empty — compare' },
   // PART 8b1 — THE WORKERS' SCHEDULE: each one on a loop (its own clock: a few minutes, the long shows joined mid-way); NO WORKERS: compare
   { id: 'work-sweeper', label: 'THE STREET SWEEPER', cat: 'workers', group: 'MORNING', hint: '~5:30 Mon–Sat: a white wing with his can cart, slow passes, a wet streak drying on the cobbles' },
   { id: 'work-milk', label: 'THE MILK TRUCK', cat: 'workers', group: 'MORNING', hint: '6:00 sharp: the milkman leaves his bottles on the barbershop step (they wait there till the barber, 8:30)' },
@@ -164,7 +213,6 @@ export const EVENTS = [
   { id: 'work-newsboy', label: 'THE NEWSBOY', cat: 'workers', group: 'MORNING', hint: '7:00 sharp (weekends 8:00): his folding stand, papers held up, buyers now + then' },
   { id: 'work-barber', label: 'THE BARBER', cat: 'workers', group: 'MORNING', hint: '8:30 sharp: the milk taken in, into the shop, out with his broom, the awning cranked' },
   { id: 'work-cop', label: 'THE BEAT COP', cat: 'workers', group: 'MORNING', hint: '9:00 am + 9:00 pm: a friendly stroll, the baton twirled, a tip of the hat' },
-  { id: 'work-patrol', label: 'THE 9 PM PATROL', cat: 'workers', group: 'EVENING', hint: 'the beat cop again at 9:00 pm, the other way along the promenade' },
   { id: 'work-bulb', label: 'BULB REPAIR (THE BLADE)', cat: 'workers', group: 'MORNING', hint: 'the morning after a blade bulb dies: a tall ladder at the corner, the swap, a test flicker' },
   { id: 'work-lamp', label: 'LAMP REPAIR', cat: 'workers', group: 'MORNING', hint: 'the morning after a lamppost’s bad night: a stepladder at that lamp' },
   { id: 'work-ice', label: 'THE ICE MAN', cat: 'workers', group: 'MIDDAY', hint: 'mid-morning weekdays: an ice block on his shoulder to the side door' },
@@ -176,6 +224,7 @@ export const EVENTS = [
   { id: 'work-sweep2', label: 'THE EXTRA SWEEP', cat: 'workers', group: 'MIDDAY', hint: 'the morning after a party night' },
   { id: 'work-crew', label: 'THE ROOF CLEANUP CREW', cat: 'workers', group: 'MIDDAY', hint: 'the morning after a party night: the roof deck swept, the bottles gathered' },
   { id: 'work-bartender', label: 'THE BARTENDER', cat: 'workers', group: 'EVENING', hint: '~4 pm: in at the side door (the bar’s window lights up behind him)' },
+  { id: 'work-patrol', label: 'THE 9 PM PATROL', cat: 'workers', group: 'EVENING', hint: 'the beat cop again at 9:00 pm, the other way along the promenade' },
   { id: 'work-evening', label: 'THE EVENING EDITION', cat: 'workers', group: 'EVENING', hint: '4:30 → 6:30 pm weekdays: the newsboy back at his stand' },
   { id: 'work-billposter', label: 'THE BILLPOSTER', cat: 'workers', group: 'EVENING', hint: '~5–6 pm daily: up on the catwalk, the new poster pasted sheet by sheet (a dead lamp fixed)' },
   { id: 'work-doorman', label: 'THE DOORMAN', cat: 'workers', group: 'EVENING', hint: 'from dusk: at his post by the side door' },
@@ -205,7 +254,7 @@ export const EVENTS = [
   { id: 'no-wildlife', label: 'NO WILDLIFE', cat: 'wildlife', group: 'ON THE GROUND', hint: 'every animal off — compare (the speed A/B)' },
   // (8P: THE HUSH WORD SIGN in the barbershop window — JAZZ by default, &hush=<word> another; Lobby 2.0 lights the real word)
   // (8b2 — THE RAID: the patrol cars every 2½ minutes; RAID + PARTY = a party night's — the club comes back louder)
-  { id: 'raid', label: 'THE RAID', cat: 'speakeasy', group: 'THE RAID', night: true, hint: 'black-and-white patrol cars, red + blue on the walls — every light in the speakeasy cuts out, an officer sweeps the windows with his flashlight (every 2½ min)' },
+  { id: 'raid', label: 'THE RAID', cat: 'speakeasy', sec: 'legendary', group: 'ON THE STREET', kw: 'police cops patrol cars flashlight', night: true, hint: 'black-and-white patrol cars, red + blue on the walls — every light in the speakeasy cuts out, an officer sweeps the windows with his flashlight (every 2½ min)' },
   { id: 'hushsign', label: 'HUSH WORD SIGN', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the lobby’s password in neon in the barbershop window (JAZZ; &hush=<word>)' },
   // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the
   // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set
@@ -214,7 +263,7 @@ export const EVENTS = [
   // ---- PART 7b — THE WINDOWS: &force=window&moment=<id> (the links; hidden: the panel can't type a moment) + one row per moment
   // (&force=window-<id>), grouped by rarity — the catalogue's own list (core/harbor-moments.js#MOMENTS), so a new moment is a new row
   { id: 'window', label: 'WINDOW MOMENT', cat: 'windows', group: 'ROUTINES', ready: false, hint: 'with &moment=<id>' },
-  ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', group: m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
+  ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', sec: m.rarity === 'legendary' ? 'legendary' : undefined, group: m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
   { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', group: 'THE NEON SIGN', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
 ];
 export const EVENT_GROUPS = [...new Set(EVENTS.map(e => e.group))];
@@ -229,10 +278,13 @@ export function checkRegistry() {
     if (!/^[a-z0-9-]+$/.test(e.id || '')) bad.push(`id:${e.id}`);
     if (seen.has(e.id)) bad.push(`dup:${e.id}`); seen.add(e.id);
     if (!CAT_IDS.has(e.cat)) bad.push(`cat:${e.id}:${e.cat}`);
+    if (e.sec != null && !SEC_IDS.has(e.sec)) bad.push(`sec:${e.id}:${e.sec}`);
     if (!e.label || typeof e.label !== 'string') bad.push(`label:${e.id}`);
     for (const k of e.inputs || []) if (!INPUTS[k] || !REMOTE_KEYS.includes(k)) bad.push(`input:${e.id}:${k}`);
   }
   if (CAT_IDS.size !== CATS.length) bad.push('cats:dup');
+  if (SEC_IDS.size !== SECTIONS.length) bad.push('sections:dup');
+  for (const c of CATS) if (!SEC_IDS.has(AREA_SECTION[c.id])) bad.push(`area:${c.id}`);
   return bad;
 }
 

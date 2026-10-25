@@ -51,13 +51,35 @@ const GR = '&tz=America/Detroit&at=42.96,-85.67';
 const NIGHT = `when=2026-10-21T22:00${GR}`;
 
 let browser = null;               // (launched when this process first runs a group itself: a parent that only shards never opens one)
-const launch = async () => browser || (browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : [])] }));
+// (C2 — HARDENED, the cloud's own flakes: the `wild` job once lost its group to Chrome taking > 30 s to hand over its endpoint ("waiting
+// for the WS endpoint URL") — the launch gets 90 s on CI and ONE retry of the launch itself (only that error: a page or a check that
+// fails is never retried))
+const LAUNCH_MS = process.env.CI ? 90000 : 30000;
+const launchOnce = () => puppeteer.launch({ executablePath: BROWSER, headless: true, timeout: LAUNCH_MS, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : [])] });
+const launch = async () => {
+  if (browser) return browser;
+  try { browser = await launchOnce(); } catch (e) {
+    if (!/WS endpoint|Timed out|timeout|Failed to launch/i.test(e.message)) throw e;
+    const first = String(e.message).split(String.fromCharCode(10))[0].trim();
+    log('LAUNCH', `the browser didn't start (${first}) — one more try`); warnings.push(`[launch] the browser's first launch failed: ${first}`);
+    browser = await launchOnce();
+  }
+  return browser;
+};
+// (C2 — the `street` job passed 75/75 but its page's EMULATOR dropped afterwards (auth/network-request-failed + the RTDB websocket) and the
+// harness counted those as errors. A Firebase NETWORK error is a warning [net] — every group but `panel` (the one that needs city2/live)
+// renders the city without Firebase, and a real dependence on it fails its own hard check. On this laptop (no emulators) they're the
+// console noise every run printed as errors.)
+const NET_NOISE = /auth\/network-request-failed|WebSocket connection to .* failed|FIREBASE WARNING: .*(?:websocket|transport|connection)/i;
+let curGroup = '';
 async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0, init = null, wait = true } = {}) {
   const ctx = await (await launch()).createBrowserContext();
   const p = await ctx.newPage();
   const files = [];
   p.on('pageerror', e => { errors.push(`${slot} pageerror: ${e.message}`); log(slot, 'PAGEERROR', e.message); });
-  p.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/favicon|ERR_|Failed to load|permission_denied|PERMISSION_DENIED|Client is offline/i.test(t)) { errors.push(`${slot}: ${t}`); log(slot, 'console.error', t); } });
+  p.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/favicon|ERR_|Failed to load|permission_denied|PERMISSION_DENIED|Client is offline/i.test(t)) {
+    if (curGroup !== 'panel' && NET_NOISE.test(t)) { const w = `[net] ${slot}: ${t.slice(0, 160)}`; if (!warnings.includes(w)) warnings.push(w); return; }
+    errors.push(`${slot}: ${t}`); log(slot, 'console.error', t); } });
   p.on('request', r => files.push(r.url()));
   const [w, h] = view, mobile = w < 1000;
   await p.setViewport({ width: w, height: h, deviceScaleFactor: dpr || (mobile ? 2 : 1), isMobile: mobile, hasTouch: mobile });
@@ -105,35 +127,46 @@ async function panelSection() {
   await tap(O.page, '.hr-pill');
   await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);
-  // PART 7a §0 — THE CATEGORIES: collapsed by default; each preview sits in its registry category (no positions hard-coded here)
+  // C2 — THE PANEL REWORK: the sheet FULL SCREEN; NINE SECTIONS in the owner's order, collapsed by default; each preview sits in its
+  // registry section (core/harbor-remote.js#sectionOf — no positions hard-coded here); JUST ME marked green
+  // (the C2 helpers: close = the queue starts — after the delay; NOW (0) for the steps that aren't about the delay)
+  const R0 = await import('../../js/core/harbor-remote.js');
+  const sheetUp = async p => { await waitFor(p, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(p, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(300); };
+  const closeSheet = async p => { await ev(p, 'window.__district.remote().close()'); await waitFor(p, '!document.querySelector(".hr-modal")', 'the sheet gone', 4000); };
+  const reopen = async p => { await tap(p, '.hr-pill'); await sheetUp(p); };
+  await ev(O.page, 'window.__district.remote().delay(0)');
   {
-    const { PANEL_EVENTS, CATS } = await import('../../js/core/harbor-remote.js');
-    const c = await ev(O.page, `(() => { const secs = [...document.querySelectorAll('.hr-sheet .hr-sec')]; return { cats: secs.map(s => s.dataset.cat), open: secs.filter(s => s.classList.contains('is-open') || !s.querySelector('.hr-body').hidden).length,
-      heads: secs.map(s => s.querySelector('.hr-cat').getBoundingClientRect().height).filter(h => h > 0), ev: Object.fromEntries([...document.querySelectorAll('.hr-sheet .hr-b[data-ev]')].map(b => [b.dataset.ev, b.closest('.hr-sec').dataset.cat])) }; })()`);
-    const wrong = PANEL_EVENTS.filter(e => c.ev[e.id] !== e.cat).map(e => `${e.id}→${c.ev[e.id]}`);
-    ok(c.open === 0 && !wrong.length && c.cats.join() === CATS.map(x => x.id).filter(id => c.cats.includes(id)).join() && c.heads.every(h => h >= 44),
-      `PANEL: ${c.cats.length} categories (${c.cats.join(' · ')}), all collapsed at first, headers ≥ 44 pt (${Math.min(...c.heads)}), every preview in its registry category${wrong.length ? ` — WRONG: ${wrong.join(', ')}` : ''}`);
+    const c = await ev(O.page, `(() => { const secs = [...document.querySelectorAll('.hr-sheet .hr-s')], sh = document.querySelector('.hr-sheet').getBoundingClientRect(); return { secs: secs.map(s => s.dataset.sec), open: secs.filter(s => s.classList.contains('is-open') || !s.querySelector('.hr-body').hidden).length,
+      heads: secs.map(s => s.querySelector('.hr-cat').getBoundingClientRect().height).filter(h => h > 0), full: sh.top <= 1 && sh.height >= innerHeight - 1 && sh.width >= innerWidth - 1, edge: getComputedStyle(document.querySelector('.hr-top')).borderTopColor,
+      ev: Object.fromEntries([...document.querySelectorAll('.hr-sheet .hr-b[data-ev]')].map(b => [b.dataset.ev, b.closest('.hr-s').dataset.sec])) }; })()`);
+    const wrong = R0.PANEL_EVENTS.filter(e => c.ev[e.id] !== R0.sectionOf(e.id)).map(e => `${e.id}→${c.ev[e.id]}`);
+    ok(c.open === 0 && !wrong.length && c.secs.join() === R0.SECTIONS.map(x => x.id).join() && c.heads.every(h => h >= 44) && c.full && /125, 255, 156/.test(c.edge),
+      `PANEL: full screen (${c.full}), ${c.secs.length} sections (${c.secs.join(' · ')}), all collapsed at first, headers ≥ 44 pt (${Math.min(...c.heads)}), JUST ME's green edge (${c.edge}), every preview in its section${wrong.length ? ` — WRONG: ${wrong.join(', ')}` : ''}`);
   }
-  // 8a — PULSE STRENGTH (LIGHTS): the slider drags the city's punch live (JUST ME), the number shown, the status says it, BACK TO 130 %
+  // 8a — PULSE STRENGTH (LIGHTS + MUSIC): the slider, the number shown, QUEUED in the status; closing the sheet (delay NOW) sets the
+  // city's punch; BACK TO 175 %
   {
     await ev(O.page, "window.__district.remote().openCats(['lights'])");
     await waitFor(O.page, "!!document.querySelector('.hr-sec[data-cat=\"lights\"] .hr-range')", 'the slider', 3000);
     const s0 = await ev(O.page, `(() => { const r = document.querySelector('.hr-range'), b = r.getBoundingClientRect(); return { v: r.value, min: r.min, max: r.max, h: b.height, w: b.width, num: document.querySelector('.hr-pv').textContent }; })()`);
-    await ev(O.page, `(() => { const r = document.querySelector('.hr-range'); r.value = '180'; r.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-    await waitFor(O.page, "window.__district.harbor().flags.q.pulse === '180'", 'the pulse flag live', 3000).catch(() => {});
+    await ev(O.page, `(() => { const r = document.querySelector('.hr-range'); r.value = '180'; r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    await sleep(200);
+    const held = await ev(O.page, 'window.__district.harbor().flags.q.pulse || null');
+    const st = await ev(O.page, "document.querySelector('.hr-s[data-sec=\"lightsmusic\"] .hr-cat').textContent + ' | ' + document.querySelector('.hr-status').textContent");
+    await closeSheet(O.page);
+    await waitFor(O.page, "window.__district.harbor().flags.q.pulse === '180'", 'the pulse flag', 3000).catch(() => {});
     await waitFor(O.page, 'window.__district.party().pulse === 1.8', 'the scene read the flag (a frame)', 3000).catch(() => {});   // (the scene reads it once a frame: the cloud's machine needed one)
-    const live = await ev(O.page, `({ q: window.__district.harbor().flags.q.pulse, pulse: window.__district.party().pulse, num: document.querySelector('.hr-pv').textContent })`);
-    await ev(O.page, `(() => { const r = document.querySelector('.hr-range'); r.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-    await sleep(200);
-    const st = await ev(O.page, "document.querySelector('.hr-sec[data-cat=\"lights\"] .hr-cat').textContent + ' | ' + document.querySelector('.hr-status').textContent");
-    ok(s0.v === '175' && s0.min === '50' && s0.max === '250' && s0.num === '175 %' && s0.h >= 44 && live.q === '180' && live.num === '180 %' && /PULSE 180 %/.test(st),
-      `PANEL: PULSE STRENGTH — ${s0.min}–${s0.max} %, starts at ${s0.num} (${Math.round(s0.w)}×${Math.round(s0.h)} pt); dragged to 180 % (&pulse=${live.q}), the number "${live.num}", the status "${st.slice(0, 90)}"`);
+    const live = await ev(O.page, `({ q: window.__district.harbor().flags.q.pulse, pulse: window.__district.party().pulse })`);
+    ok(s0.v === '175' && s0.min === '50' && s0.max === '250' && s0.num === '175 %' && s0.h >= 44 && held === null && /QUEUED/.test(st) && /PULSE 180 %/.test(st) && live.q === '180',
+      `PANEL: PULSE STRENGTH — ${s0.min}–${s0.max} %, starts at ${s0.num} (${Math.round(s0.w)}×${Math.round(s0.h)} pt); 180 % QUEUED while the sheet is open (&pulse ${held}; "${st.slice(0, 90)}"), on as it closes (&pulse=${live.q})`);
     // (the scene reads the flag once a FRAME: on the cloud's loaded machine a frame can come after the 3-s wait — speed, not the rule)
-    okT(live.pulse === 1.8, `PANEL: PULSE STRENGTH — the city's punch ×${live.pulse} live (×1.8 expected)`);
+    okT(live.pulse === 1.8, `PANEL: PULSE STRENGTH — the city's punch ×${live.pulse} (×1.8 expected)`);
+    await reopen(O.page);
     const back = await O.page.evaluate(() => { const b = [...document.querySelectorAll('.hr-sec[data-cat="lights"] .hr-b')].find(x => /^BACK TO 175/.test(x.textContent)); if (b) b.click(); return !!b; });
-    await sleep(200);
+    await closeSheet(O.page); await sleep(200);
     const q2 = await ev(O.page, 'window.__district.harbor().flags.q.pulse || null');
     ok(back && q2 === null && (await ev(O.page, 'window.__district.party().pulse')) === 1.75, `PANEL: BACK TO 175 % — the default again (no &pulse: ${q2})`);
+    await reopen(O.page);
     await ev(O.page, 'window.__district.remote().openCats([])');
   }
   // FP — THE DEBUG TOOLS (TOOLS): READOUT + AUDIO PANEL on this phone, live on / off, remembered (no &debug=1 on this page)
@@ -160,16 +193,14 @@ async function panelSection() {
     await M.ctx.close();
     await ev(O.page, 'window.__district.remote().openCats([])');
   }
-  // a row's category opens (a real tap on its header) before the row is tapped
+  // a row's section opens (a real tap on its header) before the row is tapped
   const reveal = async label => {
-    const hd = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); const s = b && b.closest('.hr-sec'); if (!s || s.classList.contains('is-open')) return null; const hh = s.querySelector('.hr-cat'); hh.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = hh.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2, cat: s.dataset.cat }; }, label);
+    const hd = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); const s = b && b.closest('.hr-s'); if (!s || s.classList.contains('is-open')) return null; const hh = s.querySelector('.hr-cat'); hh.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = hh.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2, sec: s.dataset.sec }; }, label);
     if (!hd) return;
     await tapAt(O.page, hd.x, hd.y);
-    await waitFor(O.page, `document.querySelector('.hr-sec[data-cat="${hd.cat}"]').classList.contains('is-open')`, `${hd.cat} opens`, 3000);
+    await waitFor(O.page, `document.querySelector('.hr-s[data-sec="${hd.sec}"]').classList.contains('is-open')`, `${hd.sec} opens`, 3000);
   };
   const chip = async label => {
-    // (NEON PASS 5: a sky piece switched on makes the sheet PEEK — wait for its height to settle before measuring a button)
-    await waitFor(O.page, "!document.querySelector('.hr-sheet') || document.querySelector('.hr-sheet').getAnimations().every(x => x.playState !== 'running')", "the sheet still", 3000).catch(() => {});
     await reveal(label);
     const r = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }, label);
     if (!r) throw new Error(`no chip ${label}`);
@@ -177,19 +208,59 @@ async function panelSection() {
   };
   const small = await ev(O.page, `[...document.querySelectorAll('.hr-sheet button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && (r.height < 44 || r.width < 44); }).length`);
   ok(small === 0, `PANEL: every button in the sheet is a ≥ 44 pt target (${small} smaller)`);
+  // C2 — THE SEARCH: one box over every row; "police" leaves THE RAID alone (in LEGENDARY); a clear button; ≥ 16 px
+  { await O.page.focus('.hr-q'); await O.page.keyboard.type('police'); await sleep(150);
+    const s = await ev(O.page, `({ vis: [...document.querySelectorAll('.hr-sheet .hr-b[data-ev]')].filter(b => b.offsetParent).map(b => b.dataset.ev + '@' + b.closest('.hr-s').dataset.sec), fs: parseFloat(getComputedStyle(document.querySelector('.hr-q')).fontSize), x: !document.querySelector('.hr-qx').hidden })`);
+    await tap(O.page, '.hr-qx'); await sleep(150);
+    const back = await ev(O.page, `({ q: document.querySelector('.hr-q').value, secs: [...document.querySelectorAll('.hr-sheet .hr-s')].filter(x => x.offsetParent).length })`);
+    ok(s.vis.join() === 'raid@legendary' && s.fs >= 16 && s.x && back.q === '' && back.secs === R0.SECTIONS.length, `PANEL SEARCH: "police" → ${s.vis.join(', ')} (${s.fs} px, ✕ ${s.x}); cleared → all ${back.secs} sections back`); }
+  // C2 — THE DELAY: taps QUEUE while the sheet is open (the city unchanged, the status says QUEUED); closing starts a 3-2-1 chip
+  // in the pill's row (JUST ME's green); the whole queue starts after 3 s
+  await ev(O.page, 'window.__district.remote().delay(3)');
   await chip('AURORA'); await chip('RAIN'); await chip('20×');
   let f1 = await flags(O.page);
-  ok(f1.remote && f1.force.includes('aurora') && f1.wx === 'rain' && f1.speed === 20, `JUST ME: AURORA + RAIN + 20× live, no reload (force ${f1.force}, wx ${f1.wx}, ${f1.speed}×)`);
+  const q1 = await ev(O.page, "document.querySelector('.hr-status').textContent");
+  ok(!f1.force.includes('aurora') && f1.wx !== 'rain' && f1.speed === 1 && /QUEUED.*AURORA.*20×.*RAIN.*STARTS 3 S AFTER YOU CLOSE/.test(q1), `THE DELAY: AURORA + RAIN + 20× queued, the city unchanged while the sheet is open ("${q1.slice(0, 80)}")`);
+  await closeSheet(O.page);
+  const tc = Date.now();
+  await waitFor(O.page, '!!document.querySelector(".hr-cd")', 'the countdown chip', 2000);
+  const cdc = await ev(O.page, `(() => { const c = document.querySelector('.hr-cd'), r = c.getBoundingClientRect(), p = document.querySelector('.hr-pill').getBoundingClientRect(); return { t: c.textContent, mode: c.dataset.mode, near: Math.abs(r.top + r.height / 2 - (p.top + p.height / 2)) < 30 }; })()`);
+  await waitFor(O.page, "window.__district.harbor().flags.force.includes('aurora')", 'the queue starts', 6000);
+  const dt = Date.now() - tc;
+  f1 = await flags(O.page);
+  ok(/^3JUST ME · AURORA · RAIN/.test(cdc.t) && cdc.mode === 'me' && cdc.near && f1.wx === 'rain' && f1.speed === 20, `THE DELAY: the chip "${cdc.t}" in the pill's row (${cdc.near}), then AURORA + RAIN + 20× together (wx ${f1.wx}, ${f1.speed}×)`);
+  okT(dt > 2500 && dt < 4500, `THE DELAY: started ${dt} ms after the sheet closed (3 s)`);
   await waitFor(O.page, 'window.__district.scene().rain > 0', 'the rain falls', 6000);
-  await chip('DAWN');
+  // reopening during the countdown CANCELS it — the queue stays queued; closing again starts it
+  await reopen(O.page);
+  await chip('SNOW'); await closeSheet(O.page); await sleep(600);
+  await reopen(O.page);
+  { const d = await ev(O.page, 'window.__district.remote().debug()'); await sleep(3300);
+    const wx = (await flags(O.page)).wx;
+    ok(!d.countdown && d.queued && d.pend.wx === 'snow' && wx === 'rain', `THE DELAY: reopening cancels the countdown (${JSON.stringify(d.countdown)}), SNOW still QUEUED, the city still rain after 3 s (${wx})`); }
+  // RECENT: the rows fired (this device); one tap fires one again — the sheet closes, the countdown runs, the queued SNOW goes with it
+  { const rc = await ev(O.page, `[...document.querySelectorAll('.hr-rc')].map(b => b.dataset.rk)`);
+    const t = await ev(O.page, `(() => { const b = document.querySelector('.hr-rc[data-rk="ev:aurora"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, h: r.height }; })()`);
+    if (t) await tapAt(O.page, t.x, t.y);
+    await waitFor(O.page, '!document.querySelector(".hr-modal") && !!document.querySelector(".hr-cd")', 'RECENT → the countdown', 3000).catch(() => {});
+    await waitFor(O.page, "window.__district.harbor().flags.wx === 'snow'", 'the queue with it', 6000).catch(() => {});
+    const f = await flags(O.page);
+    ok(['ev:aurora', 'wx:rain'].every(k => rc.includes(k)) && t && t.h >= 44 && f.wx === 'snow' && f.force.includes('aurora') && JSON.parse(await ev(O.page, "localStorage.getItem('nd:hr-recent')")).length >= 3,
+      `RECENT: ${rc.join(' · ')} (remembered on this device); one tap fired AURORA again + the queued SNOW (wx ${f.wx})`); }
+  await ev(O.page, 'window.__district.remote().delay(0)');
+  await reopen(O.page);
+  await chip('DAWN'); await closeSheet(O.page);
   await waitFor(O.page, 'window.__district.scene().w.night < 0.5', 'the clock at dawn', 8000);
   f1 = await flags(O.page);
-  ok(/T0[5-8]:\d\d$/.test(f1.q.when || ''), `JUST ME: DAWN from the real sun (${f1.q.when}), the city's look follows`);
+  ok(/T0[5-8]:\d\d$/.test(f1.q.when || ''), `JUST ME: DAWN from the real sun (${f1.q.when}), the city's look follows (delay NOW: as the sheet closes)`);
+  await reopen(O.page);
   await chip('BACK TO NOW'); await chip('REAL'); await chip('1×');
   await chip('WORDS IN THE WINDOWS');
   await waitFor(O.page, "!!document.querySelector('.hr-text')", 'the text box under its row', 6000);   // (8b1: the cloud once grabbed it before the panel drew it)
   await O.page.evaluate(() => { const i = document.querySelector('.hr-text'); i.scrollIntoView({ block: 'center', behavior: 'instant' }); i.focus(); });
   await O.page.keyboard.type('hey you');
+  await sleep(400);
+  await closeSheet(O.page);
   await waitFor(O.page, "window.__district.harbor().flags.q.text === 'HEY YOU'", 'the text applied', 5000);
   await waitFor(O.page, "!!window.__district.harbor().windows.spelling && window.__district.harbor().windows.spelling.text === 'HEY YOU'", 'the word in the windows', 8000);
   ok(true, 'JUST ME: WORDS IN THE WINDOWS + typed text ("hey you" → HEY YOU) lights on the word towers');
@@ -200,12 +271,13 @@ async function panelSection() {
   await harborUp(O.page);
   await waitFor(O.page, "window.__district.harbor().flags.remote && window.__district.harbor().flags.force.includes('spell')", 'JUST ME after a reload', 8000);
   ok((await flags(O.page)).q.text === 'HEY YOU', 'JUST ME: a refresh keeps it (this tab)');
-  // CLEAR ALL: back to the real city (the page's own flags: the link's &at keeps clear weather)
-  await tap(O.page, '.hr-pill'); await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(450);
-  // (7a §0: the categories opened before the reload are open again — this device remembers; the pinned top stays in view at the bottom)
-  { const r = await ev(O.page, `(() => { const s = document.querySelector('.hr-sheet'); s.scrollTop = s.scrollHeight; const open = [...document.querySelectorAll('.hr-sec.is-open')].map(x => x.dataset.cat).sort();
+  // CLEAR ALL: back to the real city at once, no countdown (the page's own flags: the link's &at keeps clear weather)
+  await waitFor(O.page, '!!document.querySelector(".hr-pill")', 'the pill again', 10000);
+  await reopen(O.page);
+  // (the sections opened before the reload are open again — this device remembers; the pinned top stays in view at the bottom)
+  { const r = await ev(O.page, `(() => { const s = document.querySelector('.hr-sheet'); s.scrollTop = s.scrollHeight; const open = [...document.querySelectorAll('.hr-s.is-open')].map(x => x.dataset.sec).sort();
       const sb = s.getBoundingClientRect(), cb = document.querySelector('.hr-clear').getBoundingClientRect(); return { open, pinned: s.scrollTop > 100 && cb.top >= sb.top && cb.bottom <= sb.top + sb.height * 0.6, stored: JSON.parse(localStorage.getItem('nd:hr-open') || '[]').sort() }; })()`);
-    ok(['lights', 'sky', 'time', 'weather'].every(c => r.open.includes(c) && r.stored.includes(c)) && r.pinned, `PANEL: the open categories remembered on this device (${r.open.join(', ')}); CLEAR ALL pinned at the top when scrolled to the bottom (${r.pinned})`); }
+    ok(['lightsmusic', 'sky', 'time', 'weather'].every(c => r.open.includes(c) && r.stored.includes(c)) && r.pinned, `PANEL: the open sections remembered on this device (${r.open.join(', ')}); CLEAR ALL pinned at the top when scrolled to the bottom (${r.pinned})`); }
   await tap(O.page, '.hr-clear');
   await waitFor(O.page, '!window.__district.harbor().flags.remote', 'cleared', 5000);
   await waitFor(O.page, '!window.__district.harbor().windows.spelling', 'the word gone', 5000);
@@ -247,6 +319,15 @@ async function panelSection() {
   { const N = await open({ slot: 'he3', qs: NIGHT, city: false }); await sleep(2500);
     ok(!N.files.some(u => /remote\.js|harbor-remote/.test(u)) && (await ev(N.page, 'window.__district.harbor()')) === null && !(await ev(N.page, '!!document.querySelector(".hr-pill")')), 'EVERYONE: the default city never loads the panel or listens to city2/live');
     await N.ctx.close(); }
+  // C2 — THE DELAY for EVERYONE: a node whose startAt is 3 s ahead — the phones keep what they show until then, then start together
+  { const at = Date.now() + 3000;
+    await dbPut('city2/live', { v: 1, kind: 'preview', state: { force: ['banner', 'spell'], text: 'HI ALL', when: '2026-10-24T23:00', wx: 'snow' }, params: {}, label: 'test', startAt: at, until: at + 120_000, by: 'ptest00000000' });
+    await sleep(1200);
+    const early = await Promise.all([B.page, C.page].map(p => ev(p, 'window.__district.harbor().flags.wx')));
+    await Promise.all([B.page, C.page].map(p => waitFor(p, "window.__district.harbor().flags.wx === 'snow'", 'the delayed node', 8000).catch(() => {})));
+    const late = Date.now() - at, wx = await Promise.all([B.page, C.page].map(p => ev(p, 'window.__district.harbor().flags.wx')));
+    ok(early.every(w => w !== 'snow') && wx.every(w => w === 'snow'), `EVERYONE + THE DELAY: a startAt 3 s ahead — both phones waited (${early.join(', ')} at +1.2 s), then snow on both (${wx.join(', ')})`);
+    okT(late > -200 && late < 4500, `EVERYONE + THE DELAY: the phones started ${late} ms after startAt (the 4-s tick is the backstop; the timer is exact)`); }
   // until passes → the real city again; CLEAR (the node removed) → the real city at once
   await dbPut('city2/live', { v: 1, kind: 'preview', state: { force: ['aurora'] }, params: {}, label: 'test', startAt: Date.now(), until: Date.now() + 2500, by: 'ptest00000000' });
   await waitFor(B.page, "window.__district.harbor().flags.force.includes('aurora')", 'the new state', 6000);
@@ -360,12 +441,15 @@ async function neonPass5Panel() {
   await waitFor(D.page, '!!document.querySelector(".hr-pill")', 'the TEST pill', 10000);
   await tap(D.page, '.hr-pill');
   await waitFor(D.page, "!!document.querySelector('.hr-sheet') && document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 6000);
-  // (7a §0: PARTY ON sits in the PARTY SHOW category — collapsed at first: a tap on its header opens it)
-  const ph = await ev(D.page, `(() => { const h = document.querySelector('.hr-sec[data-cat="party"] .hr-cat'); h.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = h.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; })()`);
+  // (C2: PARTY ON sits in LIGHTS + MUSIC → PARTY SHOW — the section collapsed at first: a tap on its header opens it; the sheet's
+  // close starts it — the delay NOW here)
+  await ev(D.page, 'window.__district.remote().delay(0)');
+  const ph = await ev(D.page, `(() => { const h = document.querySelector('.hr-s[data-sec="lightsmusic"] .hr-cat'); h.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = h.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; })()`);
   await tapAt(D.page, ph.x, ph.y);
-  await waitFor(D.page, `document.querySelector('.hr-sec[data-cat="party"]').classList.contains('is-open')`, 'PARTY SHOW opens', 3000);
+  await waitFor(D.page, `document.querySelector('.hr-s[data-sec="lightsmusic"]').classList.contains('is-open')`, 'LIGHTS + MUSIC opens', 3000);
   const on = await ev(D.page, `(() => { const b = [...document.querySelectorAll('.hr-sec[data-cat="party"] .hr-b')].filter(x => x.textContent.trim() === 'ON')[0]; if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; })()`);
-  await tapAt(D.page, on.x, on.y);
+  await tapAt(D.page, on.x, on.y); await sleep(150);
+  await ev(D.page, 'window.__district.remote().close()');
   await waitFor(D.page, "(() => { const p = window.__district.party(), n = window.__district.harbor().neon; return p.on > 0.5 && n.pal && n.pal.on && window.__district.harbor().skyBeams.beams.length > 0 && window.__district.scene().w.night > 0.6; })()", 'PARTY ON at night', 20000).catch(() => {});
   const fd = await flags(D.page), pd = await ev(D.page, '({ on: window.__district.party().on, name: window.__district.party().name, night: window.__district.scene().w.night, beams: window.__district.harbor().skyBeams.beams.length, pal: window.__district.harbor().neon.pal.on })');
   ok(pd.on > 0.5 && pd.night > 0.6 && pd.pal && pd.beams === linkParty.beams && /T2[0-3]:\d\d$/.test(fd.q.when || ''), `PARTY ON BY DAY = THE PARTY LINK: the clock jumps to tonight (${fd.q.when}), the show at its ${pd.name} — ${pd.beams} beams (the link: ${linkParty.beams}), the palette ${pd.pal ? 'on' : 'off'}`);
@@ -2381,7 +2465,7 @@ G('legends', async () => {
 async function runGroup(name) {
   const fns = GROUPS.get(name);
   if (!fns) { errors.push(`unknown group ${name} (known: ${[...GROUPS.keys()].join(', ')})`); return; }
-  const g0 = Date.now();
+  const g0 = Date.now(); curGroup = name;
   for (const fn of fns) { try { await fn(); } catch (e) { errors.push(`FATAL [${name}] ${e.message}`); log('FAILED', name, e.message); } }
   log(`group ${name}: ${((Date.now() - g0) / 1000).toFixed(1)} s`);
 }

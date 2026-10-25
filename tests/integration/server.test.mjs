@@ -521,6 +521,11 @@ test('CITY 2.0 preview panel: cityLive / cityClear — admins only, validated pl
     assert.deepEqual(live.state, { force: ['drones', 'aurora'], text: 'HAPPY BIRTHDAY', when: '2026-10-24T23:00', speed: 20, wx: 'rain' });
     assert.equal(live.params.force, 'drones,aurora'); assert.equal(live.params.speed, '20');
     assert.match(live.label, /DRONE SHOW “HAPPY BIRTHDAY” · AURORA/);
+    // (C2 — THE PANEL'S DELAY: startAt pushed by 0–10 s, `until` counted from it; anything else refused)
+    { const d = (await adminAction('u-cityboss', { action: 'cityLive', state: { wx: 'snow' }, mins: 15, delay: 3 }, now)).live;
+      assert.equal(d.startAt, now + 3000); assert.equal(d.until, now + 3000 + 15 * 60_000); }
+    await rejects(adminAction('u-cityboss', { action: 'cityLive', state: { wx: 'snow' }, delay: 60 }), 400, 'bad_delay');
+    await rejects(adminAction('u-cityboss', { action: 'cityLive', state: { wx: 'snow' }, delay: 1.5 }), 400, 'bad_delay');
     // the default is 30 minutes; anything the registry doesn't know is refused, nothing half-written
     assert.equal((await adminAction('u-cityboss', { action: 'cityLive', state: { force: ['banner'], text: 'HI' } }, now)).live.until, now + 30 * 60_000);
     await rejects(adminAction('u-cityboss', { action: 'cityLive', state: { force: ['banner', '<img src=x>'] } }), 400, 'bad_state');

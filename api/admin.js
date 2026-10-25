@@ -11,8 +11,9 @@
 //   stats { fresh? }               → STATS (js/core/insights.js#summarize): live rooms, games, players, busiest times
 //   errors                         → { errors: [...] } errors from players' phones (api/log.js), newest first
 //   clearErrors { sig? }           → removes one error (sig) or all of them
-//   cityLive { state, mins? }      → CITY 2.0's PREVIEW PANEL, EVERYONE ON CITY 2: writes city2/live (every phone on ?city=2 plays
-//                                    it from startAt until `until`; js/core/harbor-remote.js validates the state) → { live }
+//   cityLive { state, mins?, delay? } → CITY 2.0's PREVIEW PANEL, EVERYONE ON CITY 2: writes city2/live (every phone on ?city=2 plays
+//                                    it from startAt until `until`; js/core/harbor-remote.js validates the state; C2: `delay` 0–10 s
+//                                    pushes startAt — every phone counts down + starts on the same beat) → { live }
 //   cityClear                      → removes city2/live (back to the real city) → { live: null }
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
@@ -23,7 +24,7 @@ import { nameKey } from '../js/core/names.js';
 import { weekKey } from '../js/core/week.js';
 import { summarize } from '../js/core/insights.js';
 import { activity } from './_lib/activity.js';
-import { cleanRemote, isEmpty, toParams, describe, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
+import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -132,7 +133,10 @@ async function cityLive(me, body, now) {
   if (isEmpty(state)) throw new ApiError(400, 'empty_state', 'Nothing to send (use cityClear).');
   const m = body.mins == null ? DEFAULT_MINS : Number(body.mins);
   if (!Number.isInteger(m) || m < 1 || m > MAX_MINS) throw new ApiError(400, 'bad_mins');
-  const live = { v: 1, kind: 'preview', state, params: toParams(state), label: describe(state), startAt: now, until: now + m * 60_000, by: me };
+  const d = cleanDelay(body.delay);
+  if (d == null) throw new ApiError(400, 'bad_delay');
+  const startAt = now + d * 1000;
+  const live = { v: 1, kind: 'preview', state, params: toParams(state), label: describe(state), startAt, until: startAt + m * 60_000, by: me };
   await ref('city2/live').set(live);
   await audit(me, 'cityLive', null, { b: live.label.slice(0, 140), mins: m });
   return { live };

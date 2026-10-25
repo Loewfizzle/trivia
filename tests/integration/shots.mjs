@@ -120,6 +120,10 @@ const SCENE = {
   'panel-all': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', mode: 'all', cats: ['time'] }], 'panel-time': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['time', 'weather'], on: { wx: 'snow' } }],
   'panel-end': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', scroll: 1, mode: 'all', cats: '*' }],
   'panel-towers': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['lights'], scroll: 0.36, on: { force: ['spell'], text: 'HAPPY BIRTHDAY SAM &', tower: 'wordA,wordB,wordV' } }],
+  // C2 — THE PANEL REWORK (full screen, nine sections): the legendaries + the people open; LIGHTS + MUSIC with the party on. The search
+  // and the 3-2-1 chip: --js "__district.remote().search('rain')" / --js "__district.remote().close(), __district.remote().previewCountdown('me', 3)"
+  'panel-legend': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['legendary', 'people'], on: { force: ['ufo', 'work-milk'] } }],
+  'panel-lights': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['lightsmusic'], on: { party: 'on', scene: 'climb+crowns', force: ['searchlights'] } }],
   drones: ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 26000 }], 'drones-launch': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 9000 }], 'drones-text': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 40000 }],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
@@ -197,7 +201,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (CAST) {
     const cdp = await p.target().createCDPSession(), t0 = Date.now(); let k = 0;
     cdp.on('Page.screencastFrame', f => { writeFileSync(`${OUT}${name}-${w}x${h}-cast-${String(k++).padStart(3, '0')}-${Date.now() - t0}.jpg`, Buffer.from(f.data, 'base64')); cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); });
-    await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 80, everyNthFrame: 1 });
+    await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 85, everyNthFrame: 1, maxWidth: w * (DSF || (mobile ? 2 : 1)), maxHeight: h * (DSF || (mobile ? 2 : 1)) });
     await sleep(CAST); await cdp.send('Page.stopScreencast'); n += k; console.log(`${name} ${w}x${h}: ${k} frames in ${CAST} ms`);
     await ctx.close(); continue;
   }
