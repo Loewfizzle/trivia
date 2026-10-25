@@ -2173,6 +2173,72 @@ G('people', async () => {
     await Q.ctx.close(); }
 
 });
+// ================================================================ PEO — THE PEOPLE'S MOTION (ONLY=motion; the `street` cloud job)
+// A trace of every drawn figure's rig ON SCREEN, frame by frame (harbor().people.rigs(), read right after the scene's own rAF: the state
+// the screen shows) on a weekday afternoon and on a party night's dance circle. Judged per figure and dt-NORMALISED (the cloud's software
+// GL draws ~8–10 fps, a phone 60): a walker's speed never jumps (its per-ms step at most 2.5× its own median), the planted foot never
+// skates on a straight (under 25 % of the body's speed; a turn is reported — the rig pivots about its middle there; a partner used to swing
+// round the lead at 28 px/s, 3× the body's speed, on the planner's shared distance: now the lead's own ~11), the pace + cadence in the human range, and the city at 60 fps while anyone walks
+// ('people' in rate.fast — the 30 ↔ 60 flips were the owner's afternoon stutter); the dancers' arms never jump (the hand's angle about
+// the shoulder: never over 1 rad between two frames closer than 60 ms, and under 20 rad/s at the p99 — the hand's angle carries the bend + the foreshortening too).
+const motionTrace = secs => `new Promise(res => { const D = window.__district, out = [], t0 = performance.now();
+  (function loop() { const h = D.harbor(), lp = D.loop();
+    out.push({ t: performance.now(), drawn: lp ? lp.drawn : 0, fast: h.rate ? h.rate.fast : '', rigs: h.people.rigs().map(r => ({ id: r.id + '|' + r.role, kind: r.kind, pose: r.pose, hd: r.hd || 0, y: r.y || 0, v: r.v, fx: r.fx, fy: r.fy, H: r.H, feet: r.feet, planted: r.planted, heel: r.heel, hands: r.hands, shs: r.shs })) });
+    if (performance.now() - t0 < ${secs * 1000}) requestAnimationFrame(loop); else res(out); })(); })`;
+function motionReport(frames) {
+  const D = []; for (let i = 1; i < frames.length; i++) if (frames[i].drawn !== frames[i - 1].drawn) D.push(frames[i]);
+  const med = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+  const pct = (a, q) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * q))]; };
+  const by = new Map(); for (const f of D) for (const r of f.rigs) { if (!by.has(r.id)) by.set(r.id, []); by.get(r.id).push({ t: f.t, ...r }); }
+  const walkers = [], dancers = [];
+  for (const [id, seq] of by) {
+    const sp = [], slide = [], slideT = [], ang = []; let plants = 0, walkT = 0, jump = 0, prevA = null, maxRs = 0;
+    for (let i = 1; i < seq.length; i++) {
+      const a = seq[i - 1], b = seq[i], dt = (b.t - a.t) / 1000; if (dt <= 0 || dt > 0.3) { prevA = null; continue; }
+      if (a.pose === 'wands' && b.pose === 'wands') {
+        const an = [0, 1].map(k => Math.atan2(b.hands[k][1] - b.shs[k][1], b.hands[k][0] - b.shs[k][0])), ln = [0, 1].map(k => Math.hypot(b.hands[k][1] - b.shs[k][1], b.hands[k][0] - b.shs[k][0]));
+        // (an arm pointing at / away from us mid-spin projects to a 1–2 px stub — its screen angle means nothing: skipped under 0.12 heights)
+        if (prevA) for (let k = 0; k < 2; k++) { if (ln[k] < 0.12 || prevA.ln[k] < 0.12) continue; let d = an[k] - prevA[k].a; d = Math.atan2(Math.sin(d), Math.cos(d)); ang.push(Math.abs(d) / dt); if (dt < 0.06 && Math.abs(d) > 1) jump++; if (Math.abs(d) / dt > maxRs) maxRs = Math.abs(d) / dt; }
+        prevA = { ...an.map((v, k) => ({ a: v, ln: ln[k] })), ln }; continue;
+      }
+      prevA = null;
+      if (!(a.pose === 'walk' && b.pose === 'walk' && a.v > 0.1 && b.v > 0.1)) continue;
+      const d = Math.hypot(b.fx - a.fx, b.fy - a.fy); sp.push(d / dt); walkT += dt;
+      for (let k = 0; k < 2; k++) {
+        if (!a.planted[k] && b.planted[k]) plants++;
+        if (a.planted[k] && b.planted[k] && a.heel[k] === 0 && b.heel[k] === 0 && a.y === b.y) { const s0 = Math.hypot((b.fx + b.feet[k][0] * b.H) - (a.fx + a.feet[k][0] * a.H), (b.fy - b.feet[k][1] * b.H) - (a.fy - a.feet[k][1] * a.H)) / dt; (Math.abs(b.hd - a.hd) < 0.005 ? slide : slideT).push(s0); }
+      }
+    }
+    if (ang.length > 60) dancers.push({ id, n: ang.length, p99: +pct(ang, 0.99).toFixed(1), max: +maxRs.toFixed(1), jumps: jump });
+    if (sp.length >= 20) { const m = med(sp); walkers.push({ id, kind: seq[0].kind, n: sp.length, pxs: +m.toFixed(1), ratio: +(Math.max(...sp) / (m || 1e-9)).toFixed(2), slide: +(pct(slide, 0.95) / (m || 1e-9)).toFixed(2), slideT: slideT.length >= 8 ? +(pct(slideT, 0.95) / (m || 1e-9)).toFixed(2) : null, spm: walkT > 3 ? Math.round(plants / walkT * 60) : null, mps: +(med(seq.filter(r => r.pose === 'walk').map(r => r.v)) * 0.833).toFixed(2) }); }
+  }
+  const walkingFrames = D.filter(f => f.rigs.some(r => r.pose === 'walk' && r.v > 0.1)), fast = walkingFrames.filter(f => f.fast).length;
+  const iv = []; for (let i = 1; i < D.length; i++) iv.push(D[i].t - D[i - 1].t);
+  return { frames: frames.length, drawn: D.length, iv: { med: +med(iv).toFixed(1), p95: +pct(iv, 0.95).toFixed(1) }, walkers, dancers, fastShare: walkingFrames.length ? +(fast / walkingFrames.length).toFixed(2) : null, why: [...new Set(D.map(f => f.fast || 'calm'))] };
+}
+G('motion', async () => {
+  const P = 'window.__district.harbor()';
+  // ---- a weekday afternoon (the owner's "stutter now and then on an ordinary afternoon")
+  { const Q = await open({ slot: 'mo1', qs: `when=2026-10-26T15:10${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await waitFor(Q.page, `!${P}.pending && !${P}.fading`, 'settled', 20000);
+    await waitFor(Q.page, `${P}.people.rigs().some(r => r.pose === 'walk' && r.v > 0.1)`, 'someone walking', 60000).catch(() => {});
+    const R = motionReport(await ev(Q.page, motionTrace(12)));
+    const W = R.walkers, worstR = W.reduce((a, w) => (w.ratio > a.ratio ? w : a), { ratio: 0 }), worstS = W.reduce((a, w) => (w.slide > a.slide ? w : a), { slide: 0 }), worstT = W.filter(w => w.slideT != null).reduce((a, w) => (w.slideT > a.slideT ? w : a), { slideT: 0 });
+    ok(W.length >= 1 && worstR.ratio <= 2.5, `THE WALKERS' SPEED IS EVEN (${W.length} walkers, ${R.drawn} drawn frames at ${R.iv.med} / ${R.iv.p95} ms): the worst per-frame step is ${worstR.ratio}× its median (${worstR.kind || '-'})`);
+    ok(W.length >= 1 && worstS.slide <= 0.25, `THE PLANTED FOOT NEVER SKATES on a straight: ≤ ${worstS.slide} of the body's speed (${worstS.kind || '-'}); through a turn ≤ ${worstT.slideT} (${worstT.kind || '-'} — the rig pivots about its middle there: a known sweep)`);
+    ok(W.every(w => w.mps >= 0.8 && w.mps <= 2.9 && (w.spm == null || (w.spm >= 75 && w.spm <= 175))), `THE PACE IS HUMAN: ${W.map(w => w.kind + ' ' + w.mps + ' m/s' + (w.spm != null ? ' · ' + w.spm + ' steps/min' : '')).join(', ')}`);
+    ok(R.fastShare != null && R.fastShare >= 0.9, `60 FPS WHILE ANYONE WALKS: ${R.fastShare == null ? 'nobody walked' : Math.round(R.fastShare * 100) + ' % of the walking frames fast'} (${R.why.join(', ')})`);
+    await Q.ctx.close(); }
+  // ---- the dance circle on a party night (&force=dance): the dancers' arms on the beat, never a jump
+  { const Q = await open({ slot: 'mo2', qs: `when=2026-10-24T22:30${GR}&force=dance`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.dancers >= 4 && ${P}.people.dance.k > 0.9`, 'the circle formed', 90000);
+    const R = motionReport(await ev(Q.page, motionTrace(15)));
+    const Dn = R.dancers, worst = Dn.reduce((a, d) => (d.p99 > a.p99 ? d : a), { p99: 0 }), jumps = Dn.reduce((a, d) => a + d.jumps, 0);
+    ok(Dn.length >= 4 && jumps === 0 && worst.p99 <= 20, `THE DANCERS' ARMS NEVER JUMP (${Dn.length} dancers over ${R.drawn} frames): ${jumps} jumps over 1 rad in a frame, the p99 angular speed ${worst.p99} rad/s (max ${Math.max(...Dn.map(d => d.max))})`);
+    await Q.ctx.close(); }
+});
+
 // ---- PART 8b1 — THE WILDLIFE (core/harbor-wildlife.js + screens/harbor/wildlife.js + fauna.js): the animals drawn where they stand,
 // the pigeons flushing + coming back, the night's coyote, the can, the gulls landing, every panel row showing its animal
 G('wildlife', async () => {

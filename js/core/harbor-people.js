@@ -33,7 +33,9 @@ export const FOLK = Object.freeze({
   // (FP3a, the owner's 8P note 4 — "they walk too fast": the everyday pace ~25 % slower, a relaxed 1920s stroll; strollers + couples
   // the slowest, commuters brisker, joggers clearly faster; each person ±12 % of their gait: planVisit)
   // (FP3b, the owner after FP3a — "a little TOO SLOW now": the everyday gaits back up ~12 %; the jog unchanged)
-  speed: { walk: 1.29, brisk: 1.68, stroll: 0.9, jog: 3.1, kid: 1.5, line: 0.75 },
+  // (PEO, Oct 25 — judged against real walking, 1 unit = 0.83 m: a walk 1.3 m/s, a stroll / window-shoppers / couples 1.0, the commuter's
+  // brisk 1.5, a kid 1.3, a jog 2.6; each person ± 12 % — before: walk 1.07 m/s, stroll 0.75, brisk 1.4)
+  speed: { walk: 1.57, brisk: 1.8, stroll: 1.2, jog: 3.1, kid: 1.57, line: 0.75 },
   zMin: 38.75, zMax: 52.25, curbZ: 53.2, roadZ: 53.6, farZ: 63.55, doorZ: 43.55, busZ: 55.4,
 });
 
@@ -713,7 +715,7 @@ function busRiders(bus, M, ctx = {}) {
  */
 export function folkAt(t, world, cache = new Map()) {
   const { M, ctx = {} } = world, L = world.L, B = FOLK.block;
-  const get = (key, make) => { if (!cache.has(key)) { cache.set(key, make()); if (cache.size > 40) cache.delete(cache.keys().next().value); } return cache.get(key); };
+  const get = (key, make) => { if (!cache.has(key)) { cache.set(key, make()); if (cache.size > 80) cache.delete(cache.keys().next().value); } return cache.get(key); };   // (PEO: 80 — the next block is warmed 70 s ahead; it must not evict the current one)
   // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: core/harbor-legend.js#trafficHold from ctx.legend { kind, t0 } — a bus, a cab or a car
   // that would ENTER inside the hold never comes; one already on screen when it starts finishes its business)
   const hold = trafficHold(ctx.legend), hk = hold ? Math.round(hold[0]) : '';

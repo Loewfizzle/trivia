@@ -14,7 +14,7 @@
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '../../core/harbor-people.js';
-import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP } from './folk.js';
+import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen } from './folk.js';
 import { drawBus } from './bus.js';
 import { createVehicles, UNDERGLOW } from './vehicles.js';
 import { beaconOf, drawBeacon } from './raid.js';
@@ -35,6 +35,10 @@ export function createPeople() {
   const busSt = new Map(), steps = new Map();
   let lastT = 0, laughAt = 0, forced = '';
   const trails = new Map(); let wandT = -1;
+  // PEO (Oct 25) — THE MOTION PROBE: the planner's cost this frame (folkAt + roofAt, ms) + the env of the last NEAR draw, so rigs() can
+  // hand a test the exact screen joints of the frame just drawn (tests/integration/e2e-harbor.mjs `street`: the judder + foot-slide check)
+  let frameMs = 0, frameMsMax = 0, lastEnv = null, lastBeatsF = 0;
+  const pnow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   function layout(l) { L = l; mapKey = ''; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; }
   function ensureMap(event) {
     const key = `${event ? 1 : 0}|${lineN}`;
@@ -60,9 +64,44 @@ export function createPeople() {
       forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
       raid: f.raid || null };
+    const p0 = pnow();
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
+    frameMs = pnow() - p0; if (frameMs > frameMsMax) frameMsMax = frameMs;
     lastT = t;
+    gait(now.members, f);
+    movingNow = now.members.some(m => m.s.pose === 'walk' && m.s.v > 0.1 && m.m.role !== 'dog' && onScreen(m.s)) || roofNow.members.some(m => m.s.pose === 'walk' && m.s.v > 0.1);
+    if (f.off != null) warm(t, ctx);
+  }
+  // PEO (Oct 25) — THE GAIT LOCKED TO THE GROUND FOR EVERY MEMBER: the stride's phase integrates each figure's OWN path frame to frame, in
+  // strides of its own length at its speed (folk.js#strideLen). The planner's shared `dist` only fits the lead: a partner swings round the
+  // lead at every turn (measured: 28 px/s of foot-slide at 60 fps), a group's knot, a dog, a step into a chat the same. The planner's
+  // distance seeds the phase (a page opened mid-stroll joins it); a leap (a door, a reappearance) re-seeds it.
+  const gaits = new Map();
+  let movingNow = false;
+  function gait(members, f) {
+    const seen = new Set(), env = { season: f.season, rain: f.rain || 0 };
+    for (const m of members) {
+      const key = m.vid + '|' + m.m.role, st = m.s, g = gaits.get(key), walking = st.pose === 'walk' && st.v > 0.05;
+      const sl = strideLen(lookFor(m, env), st.v);
+      let ph;
+      if (g && walking && g.walking) { const d = Math.hypot(st.x - g.x, st.z - g.z); ph = d < 1.5 ? g.ph + d / sl : (st.dist || 0) / sl; }
+      else ph = (st.dist || 0) / sl;
+      gaits.set(key, { x: st.x, z: st.z, ph, walking }); seen.add(key);
+      if (walking) st.dist = ph * sl;
+    }
+    for (const k of gaits.keys()) if (!seen.has(k)) gaits.delete(k);
+  }
+  const onScreen = s => { const x = project(L.cam, s.x, 0, s.z)[0]; return x > -30 && x < L.cam.W + 30; };
+  // PEO — THE NEXT BLOCK PLANNED IN IDLE TIME: a phase block (two every 480 s) costs 3–23 ms to plan, and it landed INSIDE a frame every
+  // four minutes (the measured hitch on an ordinary afternoon). Every 5 s the planner is asked for the city 70 s ahead in an idle callback,
+  // so the block's visits sit in the cache before any frame needs them (pure: the same result whenever it is computed)
+  let warmAt = -1e9, warmBusy = false;
+  function warm(t, ctx) {
+    if (warmBusy || t - warmAt < 5) return;
+    warmAt = t; warmBusy = true;
+    const Mw = M, run = () => { warmBusy = false; if (!L || M !== Mw) return; try { folkAt(t + 70, { L, M, ctx }, cache); roofAt(t + 70, L, ctx, roofCache); } catch { /* the frame will */ } };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 2500 }); else setTimeout(run, 300);
   }
   // the lamps' light where a figure stands (stage.js's pools, live by the lamps' ramp) + the side the strongest one is on
   function lights(dark) {
@@ -120,6 +159,7 @@ export function createPeople() {
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
     const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, advance = pass === 'near' && env.t !== wandT;
     if (advance) { wandT = env.t; if (trails.size > 40) trails.clear(); }
+    if (pass === 'near') { lastEnv = env; lastBeatsF = beatsF; }
     const nDancers = items.filter(m => m.kind === 'dancer').length || 1;
     const riding = new Set();
     for (const b of buses) for (const m of items) if (inBus(m, b)) riding.add(m);
@@ -380,7 +420,7 @@ export function createPeople() {
     // footsteps: the nearest walker on the promenade (its stride's footfalls), very soft
     let near = null; for (const m of items) if (m.s.pose === 'walk' && m.s.v > 0.1 && m.m.role !== 'dog' && m.s.z < 47 && (!near || m.s.z < near.s.z)) near = m;
     if (near && snd.step) {
-      const look = lookFor(near, env), S = STEP(look) * look.h * 2.1, k = Math.floor(near.s.dist / S), id = near.vid + near.m.role;
+      const look = lookFor(near, env), S = STEP(look, near.s.v) * look.h * 2.1, k = Math.floor(near.s.dist / S), id = near.vid + near.m.role;
       if (steps.get(id) != null && steps.get(id) !== k) snd.step(look.woman && !look.jog ? 'heels' : 'cobble', { pan: panOf(near.s.x), gain: 0.35 + 0.4 * clamp01((47 - near.s.z) / 8) });
       steps.set(id, k); if (steps.size > 20) steps.delete(steps.keys().next().value);
     }
@@ -412,6 +452,9 @@ export function createPeople() {
     doors: () => ({ ...(now.doors || { side: 0, shop: 0 }) }),
     /** POL4: a motorcar rolling on the back road now (the scene keeps 60 fps for it) */
     driving: () => (now.cars || []).some(c => c.speed > 0.3),
+    /** PEO: anyone WALKING on screen now (the scene keeps 60 fps for them — a walker at the battery saver's 30 fps judders, and the
+     *  30 ↔ 60 flips whenever the sky had something were the owner's "stutter now and then"; the saver returns when nobody moves) */
+    moving: () => movingNow,
     /** 8b2 — THE RAID: the officer's flashlight hand as last drawn ({ hand: [x, y], dir, H, t }) or null */
     officer: () => officerAt,
     cars: () => (now.cars || []).map(c => ({ id: c.id, model: c.model, lane: c.lane, x: +c.x.toFixed(2), speed: +c.speed.toFixed(2), glow: c.glow })),
@@ -430,6 +473,23 @@ export function createPeople() {
     budget(k) { budget = clamp01(k == null ? 1 : k); cache.clear(); },
     /** 8b1 wildlife — everyone on the promenade now, cheaply (the plan's people, not the tier's cut: every phone reacts alike) */
     positions: () => now.members.map(m => ({ x: m.s.x, z: m.s.z, v: m.s.v || 0, kind: m.kind, vid: m.vid, role: m.m.role })),
+    /** PEO — THE MOTION PROBE (tests): the planner's cost this frame + its worst since the last read (ms) */
+    cost: () => { const o = { ms: +frameMs.toFixed(3), max: +frameMsMax.toFixed(3) }; frameMsMax = 0; return o; },
+    /** PEO — THE MOTION PROBE (tests): every drawn promenade figure's rig ON SCREEN for the frame just drawn (the state the screen
+     *  shows: its ground point fx / fy + height H in pt, the feet / hands / elbows / shoulders / head in body heights from it, which
+     *  foot is planted) — the judder, foot-slide + arm-angle checks read these frame by frame. [] before the first near draw. */
+    rigs() {
+      if (!L || !lastEnv) return [];
+      const env = lastEnv, t = env.t || 0, out = [];
+      const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...lineMembers(t)].filter(m => m.s.z <= FOLK.roadZ && !insideDoor(m) && m.m.role !== 'dog');
+      for (const mem of all) {
+        let st = mem.s, mv = null;
+        if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, lastBeatsF, mem.vid); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+        const { J, fx, fy, H } = rigOf(L.cam, st, lookFor(mem, env), t, env.mo !== false, st.y || 0);
+        out.push({ id: mem.vid, role: mem.m.role, kind: mem.kind, pose: st.pose, x: st.x, z: st.z, y: st.y || 0, hd: st.hd, dist: st.dist || 0, v: st.v || 0, fx, fy, H, feet: J.feet, planted: J.planted, heel: J.heel, hands: J.hands, elbows: J.elbows, shs: J.shs, head: J.head, move: mv ? mv.move : null, beatsF: mv ? lastBeatsF : null });
+      }
+      return out;
+    },
     /** what's on the promenade now (tests, the readout) */
     debug: () => ({ witness: now.witness || null, running: now.members.filter(m => m.s.run).length, n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),

@@ -23,14 +23,15 @@ export const SECONDS = {
   workers: 75,         // (8b1: the workers — four pages, measured on the laptop)
   wildlife: 85,        // (8b1: the animals — eight pages incl. the panel rows; 81 s on the laptop)
   tape: 85,            // (Oct 25: THE TAPE STOP — one page, a whole TR-3B in real time + a second run; measured on the laptop)
+  motion: 75,          // (PEO, Oct 25: THE PEOPLE'S MOTION — a 12-s trace of an afternoon + the dance circle (a wait for it); measured on the laptop)
 };
 
 // ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
 export const CI_JOBS = {
   audio: ['music', 'flags', 'harbor', 'dock', 'legends'],
   show: ['neon', 'party', 'sky', 'life'],
-  city: ['core', 'skyline', 'water', 'load', 'panel', 'perf'],
-  street: ['speakeasy', 'windows', 'sounds', 'promenade', 'people'],
+  city: ['core', 'skyline', 'water', 'load', 'promenade', 'panel', 'perf'],   // (PEO: promenade moved here from street — motion took its room)
+  street: ['speakeasy', 'windows', 'sounds', 'people', 'motion'],   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room)
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
   wild: ['wildlife', 'workers', 'tape'],
 };

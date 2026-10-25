@@ -45,21 +45,50 @@ export function danceStyle(key) {
 /** the accent at beat phase b (0..1): a smooth peak ON the beat (1 at b = 0, ~0 by half way) */
 const acc = b => { const c = 0.5 + 0.5 * Math.cos(TAU * b); return c * c; };
 const eio = u => { const x = clamp01(u); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
-/** one move's pose at x beats into its phrase (0..8) */
+const L2 = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
+/** PEO — a smooth 0 | 1 toggle every P beats: it trades over the ONE BEAT before each boundary, landing on the beat (never a flip) */
+const tog = (x, P) => { const s = x / P, k = Math.floor(s), u = s - k, w = 1 / P, e = u > 1 - w ? smooth((u - (1 - w)) / w) : 0; return k % 2 ? 1 - e : e; };
+/**
+ * one move's pose at x beats into its phrase (0..8) — PEO (Oct 25): every pose is PERIODIC in 8 and CONTINUOUS everywhere (the owner:
+ * the arms "glitch"): measured at 120 Hz, the wave's hand-over jumped 2.3 rad in a frame, the point traded arms with a 0.75 rad snap
+ * every beat, the spin's arms snapped in + out of the turn, and a phrase change INTO wave / point snapped because the next pose was
+ * read at a negative x (floor(−0.3) % 2 = −1 picked the wrong arm). Now: x wrapped for the selectors, the trades eased over a half
+ * beat (wave) / into the next beat (point), the spin's arm pose blended in + out, the swing's middle no longer a whip.
+ */
 function pose(move, x, S) {
-  const b = ((x % 1) + 1) % 1, A = S.amp, m = S.mir, a = acc(b);
+  const xw = ((x % 8) + 8) % 8, b = xw % 1, A = S.amp, m = S.mir, a = acc(b);
   let a0, a1, sway = 0, dip = 0.034 * S.bounce * a, spin = 0;
   if (move === 'pump') { const v = 2.2 + 0.72 * A * a; a0 = [v, 0.5 - 0.35 * a]; a1 = [v, 0.5 - 0.35 * a]; dip = 0.05 * S.bounce * a; }
-  else if (move === 'swing') { const c = Math.cos(Math.PI * x), sg = Math.sign(c) * Math.pow(Math.abs(c), 0.6) * m; a0 = [1.7 + 1.1 * A * sg, 0.3 + 0.4 * (1 - Math.abs(c))]; a1 = [1.7 - 1.1 * A * sg, 0.3 + 0.4 * (1 - Math.abs(c))]; sway = 0.85 * sg; }
-  else if (move === 'wave') { const hi = Math.floor(x / 4) % 2 === 0 ? 0 : 1, c = Math.cos(Math.PI * x); const up = [2.65 + 0.32 * A * c, 0.45 + 0.45 * Math.sin(Math.PI * x)], low = [0.9 - 0.25 * c, 0.9]; a0 = hi ? low : up; a1 = hi ? up : low; sway = 0.5 * c * m; }
-  else if (move === 'spin') {
-    const u = (x - 1) / 4;                                         // (beats 1 → 5: the turn, landing on beat 5)
-    if (u > 0 && u < 1) { spin = m * TAU * eio(u); const o = 1.45 + 0.3 * Math.sin(Math.PI * u); a0 = [o, 0.15]; a1 = [o, 0.15]; dip = 0.02; }
-    else { const v = 2.0 + 0.5 * A * a; a0 = [v, 0.5]; a1 = [v, 0.5]; }
+  else if (move === 'swing') {
+    // (the turn-arounds hold a little on the beats; through the middle a finite speed — |c|^0.6 had an infinite slope there: a whip)
+    const c = Math.cos(Math.PI * xw), sg = c * (1.3 - 0.3 * c * c) * m, bd = 0.3 + 0.4 * (1 - Math.abs(c));
+    a0 = [1.7 + 1.1 * A * sg, bd]; a1 = [1.7 - 1.1 * A * sg, bd]; sway = 0.85 * sg;
   }
-  else if (move === 'lasso') { const p = Math.PI * (x + 1) / 2, s0 = Math.sin(p) * m; a0 = [1.75 + 1.0 * A * s0, 0.35 + 0.45 * Math.cos(p) ** 2]; a1 = [1.75 - 1.0 * A * s0, 0.35 + 0.45 * Math.sin(p) ** 2]; sway = 0.55 * s0; }
-  else if (move === 'point') { const k = b < 0.16 ? eio(b / 0.16) : 1 - 0.35 * eio((b - 0.16) / 0.84), side = (Math.floor(x) % 2 === 0) !== (m < 0); const up = [1.6 + 1.15 * A * k, 0.08], low = [0.75 + 0.3 * (1 - k), 0.85]; a0 = side ? up : low; a1 = side ? low : up; sway = (side ? 0.5 : -0.5) * k; }
-  else { const c = Math.cos(Math.PI * x / 2); a0 = [2.72 + 0.14 * Math.cos(Math.PI * x), 0.3]; a1 = [2.72 - 0.14 * Math.cos(Math.PI * x), 0.3]; sway = 1.05 * c; dip = 0.025 * a; }   // sway
+  else if (move === 'wave') {
+    // (one arm high waving, the other low; they trade every bar — the hand-over eased over the beat before it, ~5 rad/s)
+    const w = tog(xw, 4), c = Math.cos(Math.PI * xw);
+    const up = [2.65 + 0.32 * A * c, 0.45 + 0.45 * Math.sin(Math.PI * xw)], low = [0.9 - 0.25 * c, 0.9];
+    a0 = L2(up, low, w); a1 = L2(low, up, w); sway = 0.5 * c * m;
+  }
+  else if (move === 'spin') {
+    const u = (xw - 1) / 4, v = 2.0 + 0.5 * A * a, rest = [v, 0.5];   // (beats 1 → 5: the turn, landing on beat 5; a soft pump outside it)
+    if (u > 0 && u < 1) {
+      const w = Math.min(eio(u / 0.3), eio((1 - u) / 0.3)), o = 1.45 + 0.3 * Math.sin(Math.PI * u), out = [o, 0.15];
+      spin = m * TAU * eio(u); a0 = L2(rest, out, w); a1 = L2(rest, out, w); dip = dip * (1 - w) + 0.02 * w;
+    } else { a0 = rest; a1 = rest; }
+  }
+  else if (move === 'lasso') { const p = Math.PI * (xw + 1) / 2, s0 = Math.sin(p) * m; a0 = [1.75 + 1.0 * A * s0, 0.35 + 0.45 * Math.cos(p) ** 2]; a1 = [1.75 - 1.0 * A * s0, 0.35 + 0.45 * Math.sin(p) ** 2]; sway = 0.55 * s0; }
+  else if (move === 'point') {
+    // (a disco point up-and-out, the arms trading every beat: each arm RISES over the half beat before its beat — the point lands ON it —
+    // eases back to 65 % over the next half, comes down to rest over the half after, rests while the other arm rises: continuous, the
+    // snap ~12 rad/s at its fastest; before, each beat traded the arms with a 0.75–1.7 rad jump)
+    const hi = 1.6 + 1.15 * A, lo = 0.75, p65 = lo + (hi - lo) * 0.65, b65 = 0.85 + (0.08 - 0.85) * 0.65;
+    const armAt = u => (u < 0.5 ? [lo + (hi - lo) * smooth(u / 0.5), 0.85 + (0.08 - 0.85) * smooth(u / 0.5)] : u < 1 ? [hi + (p65 - hi) * smooth((u - 0.5) / 0.5), 0.08 + (b65 - 0.08) * smooth((u - 0.5) / 0.5)] : u < 1.5 ? [p65 + (lo - p65) * smooth((u - 1) / 0.5), b65 + (0.85 - b65) * smooth((u - 1) / 0.5)] : [lo, 0.85]);
+    const u0 = (xw + 0.5) % 2, u1 = (xw + 1.5) % 2, first = m < 0 ? 1 : 0;
+    const p0 = armAt(first ? u1 : u0), p1 = armAt(first ? u0 : u1);
+    a0 = p0; a1 = p1; sway = 0.5 * ((p0[0] - lo) - (p1[0] - lo)) / (hi - lo);
+  }
+  else { const c = Math.cos(Math.PI * xw / 2); a0 = [2.72 + 0.14 * Math.cos(Math.PI * xw), 0.3]; a1 = [2.72 - 0.14 * Math.cos(Math.PI * xw), 0.3]; sway = 1.05 * c; dip = 0.025 * a; }   // sway
   return { a0, a1, sway, dip, spin };
 }
 /** the phrase's move for a style (ph: the phrase index; one in six the whole circle sways together) */
@@ -70,21 +99,26 @@ const moveOf = (S, ph) => (((ph % 6) + 6) % 6 === 5 ? 'sway' : S.set[(((ph + S.o
  * beat's accent, for the wands) }
  */
 export function danceMoves(idx, beatsF, key = idx) {
-  const S = danceStyle(key), together = (((Math.floor(beatsF / 8)) % 6) + 6) % 6 === 5;
-  const x0 = beatsF + (together ? 0 : S.lag), ph = Math.floor(x0 / 8), x = x0 - ph * 8;
-  const St = together ? { ...S, mir: 1, amp: 1, lag: 0 } : S;
-  const cur = moveOf(S, ph), P = pose(cur, x, St);
-  // (FOLLOW-THROUGH: the forearm lags the upper arm — its bend grows with the arm's swing a beat-tenth ago)
-  const Q = pose(cur, x - 0.12, St);
+  // (PEO: the dancer's own lag applies in EVERY phrase — it used to drop to 0 on the together phrases, a shift of the whole pose at that boundary)
+  const S = danceStyle(key), x0 = beatsF + S.lag, ph = Math.floor(x0 / 8), x = x0 - ph * 8;
+  const styleAt = p => ((((p % 6) + 6) % 6) === 5 ? { ...S, mir: 1, amp: 1 } : S);
+  // the pose of phrase p at xx (−0.12 .. 8): its move, crossfaded over its LAST BEAT into the next phrase's first pose (PEO: a whole beat —
+  // the half beat moved an arm ~2 rad at up to 24 rad/s; every pose is periodic, so the next one read before its x = 0 is continuous)
+  const at = (p, xx) => {
+    const cur = moveOf(S, p), Pp = pose(cur, xx, styleAt(p));
+    if (xx > 7) {
+      const nx = moveOf(S, p + 1), N = pose(nx, xx - 8, styleAt(p + 1)), k = smooth(xx - 7);
+      Pp.a0 = L2(Pp.a0, N.a0, k); Pp.a1 = L2(Pp.a1, N.a1, k); Pp.sway += (N.sway - Pp.sway) * k; Pp.dip += (N.dip - Pp.dip) * k;
+      if (cur === 'spin' || nx === 'spin') Pp.spin = Pp.spin * (1 - k) + N.spin * k;
+    }
+    return Pp;
+  };
+  const cur = moveOf(S, ph), P = at(ph, x);
+  // (FOLLOW-THROUGH: the forearm lags the upper arm — its bend grows with the arm's swing a beat-tenth ago; PEO: read through the phrase
+  // boundary — the previous phrase's blended pose — so the term never jumps there)
+  const Q = x >= 0.12 ? at(ph, x - 0.12) : at(ph - 1, x - 0.12 + 8);
   P.a0 = [P.a0[0], P.a0[1] + Math.max(-0.3, Math.min(0.7, (P.a0[0] - Q.a0[0]) * 1.4))];
   P.a1 = [P.a1[0], P.a1[1] + Math.max(-0.3, Math.min(0.7, (P.a1[0] - Q.a1[0]) * 1.4))];
-  // (the phrase change: the last half beat crossfades into the next move's first pose — never a snap)
-  if (x > 7.5) {
-    const nx = moveOf(S, ph + 1), Sn = ((((ph + 1) % 6) + 6) % 6 === 5) ? { ...S, mir: 1, amp: 1, lag: 0 } : S, N = pose(nx, x - 8, Sn), k = eio((x - 7.5) / 0.5);
-    const mixA = (p, q) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
-    P.a0 = mixA(P.a0, N.a0); P.a1 = mixA(P.a1, N.a1); P.sway += (N.sway - P.sway) * k; P.dip += (N.dip - P.dip) * k;
-    if (cur === 'spin' || nx === 'spin') P.spin = P.spin * (1 - k) + N.spin * k;
-  }
   return { move: cur, arms: [P.a0, P.a1], sway: P.sway, dip: P.dip, spin: P.spin, hit: acc(((x % 1) + 1) % 1) };
 }
 
@@ -93,7 +127,7 @@ export function glitchOf(idx, i, t) {
   const w = Math.floor(t / WAND.win), h = hh(idx * 7 + i, w);
   if (h > WAND.glitch) return { k: 1, tw: 0 };
   const u = (t / WAND.win) % 1;
-  return { k: u < 0.3 ? WAND.dim : u < 0.4 ? 1 : u < 0.55 ? 0.3 : 1, tw: (hh(idx, w + 99) - 0.5) * 0.5 };
+  return { k: u < 0.3 ? WAND.dim : u < 0.4 ? 1 : u < 0.55 ? 0.3 : 1, tw: 0 };   // (PEO: no twitch — a tired tube flickers, it doesn't bend in the hand; the owner read the twitch as a glitch)
 }
 const hh = (n, s) => { let h = (n * 374761393 + s * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 

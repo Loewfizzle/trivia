@@ -103,6 +103,7 @@ export function lookOf(name, seed, o = {}) {
   L.h = kid ? 0.72 : name === 'doorman' ? 1.1 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08);
   L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.8 ? pick(r, [[30, 30, 36], [120, 40, 44], [44, 60, 96], [70, 64, 56]]) : null;
   L.dog = pick(r, DOGS); L.dogSize = 0.75 + r() * 0.5;
+  L.stride = 0.94 + r() * 0.12;   // (PEO: a little longer or shorter in the step, per person)
   return L;
 }
 
@@ -130,8 +131,13 @@ const SHOULDER = new Set(['ice', 'crate', 'can', 'ladder', 'steps', 'ladderA', '
 const HAND_HEAVY = new Set(['bottles', 'bucket', 'bundle', 'paste']);
 /** 8b2 — the tall ladder rides the FAR shoulder (the far hand up on it; the carrier walks in front of it — his head never behind it) */
 const FAR_SH = new Set(['ladderA', 'ladderB']);
-/** a person's step (body heights): the walk, a kid's, the jog's */
-export const STEP = L => (L.jog ? 0.56 : L.kid ? 0.4 : 0.35);
+/** a person's step (body heights) at their speed v (units/s). PEO (Oct 25, measured against real walking): the step grows with the
+ *  square root of the speed (≈ 0.65 m · √v — 1 unit = 0.83 m): a stroll at 1 m/s ≈ 0.65 m (92 steps a minute), a walk at 1.3 ≈ 0.74 m
+ *  (105), a brisk 1.5 ≈ 0.80 m (112), a jog at 2.6 ≈ 1.05 m (150) — in the person's OWN height, so a kid's step is shorter + quicker;
+ *  ± 6 % per person (L.stride). Before: 0.35 at every speed — a stroll took a brisk walk's step (74 a minute), the brisk shuffled at 138. */
+export const STEP = (L, v) => { const vv = v > 0.3 ? v : L.jog ? 3.1 : 1.3; return Math.max(0.28, Math.min(0.62, 0.338 * Math.sqrt(vv) * (L.stride || 1) / Math.sqrt(L.h || 1))); };
+/** one stride (two steps) in world units at speed v — folk.js's phase + people.js's per-frame integration share it */
+export const strideLen = (L, v) => 2 * STEP(L, v) * 2.1 * (L.h || 1);
 const headingOf = st => (st.hd != null ? st.hd : st.dir === 1 ? 0 : st.dir === -1 ? Math.PI : st.dir === 2 ? Math.PI / 2 : -Math.PI / 2);
 
 /**
@@ -145,12 +151,13 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const hd = headingOf(st), cx = Math.cos(hd), cz = Math.sin(hd), pose = st.pose || 'walk', jog = (!!L.jog || !!st.run) && st.v > 2, G = jog ? GAIT.jog : GAIT.walk;   // (8b1: st.run — anyone RUNNING, the witnesses fleeing)
   // (a step in heights — a stride is two; FP3b: a relaxed 1920s pace takes SHORTER steps — a long step at a slow speed reads as a
   // slow-motion glide — so the cadence stays ~1.8 steps a second)
-  const S = st.run ? STEP({ jog: true }) : STEP(L);
   // (8b2 — THE TALL LADDER: its two carriers walk IN STEP — their stride's phase from where they are along the street (the climber's a
   // ladder's gap back), a common stride; 'walkback' — lowering it, stepping BACKWARD at LADDER.vUp: the stride run in reverse)
   const back = pose === 'walkback', cr0 = st.carry != null ? st.carry : L.carry, wrap = v => ((v % 1) + 1) % 1;
+  const vS = back ? LADDER.vUp : st.v, S = st.run ? STEP({ ...L, jog: true }, vS) : STEP(L, vS), SL = strideLen(st.run ? { ...L, jog: true } : L, vS);   // (PEO: the step at this speed)
   const walking = (pose === 'walk' && st.v > 0.05) || back, sync = walking && !back && st.x != null && (cr0 === 'ladderA' || cr0 === 'ladderB');
-  const p = !walking ? 0 : back ? wrap(-(st.since || 0) * LADDER.vUp / (2 * S * 2.1 * L.h)) : sync ? wrap((cx < 0 ? -1 : 1) * (st.x - (cr0 === 'ladderB' ? LADDER.gap : 0)) / (2 * S * 2.1)) : wrap(st.dist / (2 * S * 2.1 * L.h));
+  const Ss = 0.338 * Math.sqrt(vS > 0.3 ? vS : 1.3);   // (the carriers' COMMON stride — not either man's own: they must stay in step)
+  const p = !walking ? 0 : back ? wrap(-(st.since || 0) * LADDER.vUp / SL) : sync ? wrap((cx < 0 ? -1 : 1) * (st.x - (cr0 === 'ladderB' ? LADDER.gap : 0)) / (2 * Ss * 2.1)) : wrap(st.dist / SL);
   const breath = mo ? 0.004 * Math.sin(t * 1.7 + L.h * 37) : 0;
   const sg = [-1, 1], A = G.stance * S;
   // 8b2 — THE WORKERS MOVE RIGHT: a LIFT with the knees ('pick' — down empty, up with it; 'set' — down with it, up empty; 'raise' — a
@@ -337,7 +344,8 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'flash') { const sw = Math.sin(uP * Math.PI * 2.5); arm(N, 1.62 + 0.12 * Math.abs(sw), 0.08, 0.05 + 0.32 * (sw + 1) / 2); arm(Fa, 0.35, 1.2, 0.25); }
   // THE WANDS' dancer (FP3b item 9): st.moves = { arms: [[ang, bend, out], [ang, bend, out]], sway, dip } from people.js's routine
   // (phi: the arm raised in the FRONTAL plane — 0 hanging, π/2 out to the side, π straight up — so the moves read from the front)
-  if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) { const [phi, bend] = m.arms[i]; arm(i, phi <= Math.PI / 2 ? 0 : Math.PI, bend, phi <= Math.PI / 2 ? phi : Math.PI - phi); } shJ.forEach(s => { s.b += (m.sway || 0) * 0.03; }); head.b += (m.sway || 0) * 0.045; }
+  // (PEO: the bend capped at 1.15 — the follow-through once pushed it to ~1.6: the forearm pointed straight at us and the wand shrank to a dot)
+  if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) { const [phi, bend0] = m.arms[i], bend = Math.max(0, Math.min(1.15, bend0)); arm(i, phi <= Math.PI / 2 ? 0 : Math.PI, bend, phi <= Math.PI / 2 ? phi : Math.PI - phi); } shJ.forEach(s => { s.b += (m.sway || 0) * 0.03; }); head.b += (m.sway || 0) * 0.045; }
   // ---- onto the screen
   const k0 = kD[0], k1 = kD[1];
   const scr = j => { const D = j.a * cz + j.b * cx; return [j.a * cx - j.b * cz, j.y + D * (k0 - k1 * j.y)]; };

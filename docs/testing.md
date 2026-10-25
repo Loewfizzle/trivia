@@ -17,7 +17,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - **4 parallel jobs** (the matrix `audio` · `show` · `city` · `street`; each job's groups in **`tests/integration/harbor-jobs.mjs`**,
     run in order in one process with `JOB=<name>` — the same command works locally): audio = music, flags, harbor, dock · show = neon,
     party, sky, life (FP3b: real doors + the dance circle) · city = core, skyline, water, load (FP3a: THE LOAD GATE — the reveal through two bar changes), then panel + perf (the
-    two serial groups, last) · street = speakeasy, windows, sounds, promenade, people. Each job has its own emulators + its own npm / emulator caches; a failed job attaches `harbor-results-<job>`. **A red job →
+    two serial groups, last) · street = speakeasy, windows, sounds, people, motion (PEO: the people's motion — a 12-s rig trace of the afternoon + the dance circle); promenade sits in `city`. Each job has its own emulators + its own npm / emulator caches; a failed job attaches `harbor-results-<job>`. **A red job →
     "Re-run failed jobs"** re-runs that job alone (≈ 4 min), never the whole suite.
   - **A NEW GROUP** (`G('people', …)`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
     `e2e-harbor.mjs` refuses to run (even with `ONLY=`) and `tests/harbor-jobs.test.mjs` fails in the quick workflow, so no group is ever

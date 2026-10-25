@@ -196,10 +196,11 @@ test('FP3a + POL4 — THE BUS DOOR shuts 6–9 s after the LAST rider (off or on
   assert.ok(n >= 20, `${n} buses with riders over the day`);
 });
 
-test('FP3b — THE PACE: FP3a’s ~25 % slower, then back up ~12 % (the owner: "a little too slow"); strollers + couples slowest, commuters brisker, joggers clearly faster', () => {
-  const S = FOLK.speed;
-  assert.ok(S.walk >= 1.15 * 1.08 && S.walk <= 1.15 * 1.16, `walk ${S.walk}`);
-  assert.ok(S.stroll < S.walk && S.walk < S.brisk && S.brisk * 1.8 < S.jog, 'stroll < walk < brisk, the jog clearly faster');
+test('FP3b → PEO — THE PACE, judged against real walking (1 unit = 0.83 m): a walk ~1.3 m/s, a stroll ~1.0, the commuter’s brisk ~1.5, a jog ~2.6; strollers + couples slowest, commuters brisker, joggers clearly faster', () => {
+  const S = FOLK.speed, mps = v => v * 0.833;
+  assert.ok(mps(S.walk) >= 1.2 && mps(S.walk) <= 1.4, `walk ${mps(S.walk).toFixed(2)} m/s`);
+  assert.ok(mps(S.stroll) >= 0.9 && mps(S.stroll) <= 1.1 && mps(S.brisk) >= 1.4 && mps(S.brisk) <= 1.6 && mps(S.jog) >= 2.4 && mps(S.jog) <= 2.9, `stroll ${mps(S.stroll).toFixed(2)}, brisk ${mps(S.brisk).toFixed(2)}, jog ${mps(S.jog).toFixed(2)} m/s`);
+  assert.ok(S.stroll < S.walk && S.walk < S.brisk && S.brisk * 1.6 < S.jog, 'stroll < walk < brisk, the jog clearly faster');
   assert.equal(KINDS.couple(() => 0.5, { nodes: { inlay: { x: 0, z: 45 } } }).gait, 'stroll', 'couples stroll');
 });
 
@@ -457,4 +458,43 @@ test('NO TRAFFIC DURING THE LEGENDARIES: a bus due under the hold never comes; o
   let entered = 0, seen = 0, lg = { kind: 'tr3b', t0 };
   for (let s = hold[0] - 30; s < hold[1] + 60; s += 1) { const f = folkAt(s, { L, M, ctx: { off: OFF, legend: lg } }, cache); for (const c of f.cars) { seen++; if (c.ts != null && c.ts >= hold[0] && c.ts < hold[1]) entered++; } }
   assert.equal(entered, 0, `no car entered under the hold (${seen} car-seconds seen round it)`);
+});
+
+// ---------------------------------------------------------------- PEO — THE PEOPLE'S MOTION (Oct 25)
+test('PEO — THE DANCERS’ ARMS never jump: danceMoves sampled at 120 Hz over 48 phrases × 6 dancers — every arm angle + bend moves < 0.13 rad a sample (≈ 15 rad/s), the spin’s turn continuous; the wave’s hand-over, the point’s trade, the spin’s arms and every phrase change eased', async () => {
+  const { danceMoves } = await import('../js/screens/harbor/wands.js');
+  const HZ = 120, dtB = 2 / HZ;   // (120 bpm: beats per sample)
+  let worst = 0, where = '';
+  for (let idx = 0; idx < 6; idx++) {
+    let prev = null;
+    for (let b = 0; b < 8 * 48; b += dtB) {
+      const m = danceMoves(idx, b, `dancer${idx}`);
+      if (prev) {
+        for (let i = 0; i < 2; i++) { const d = Math.max(Math.abs(m.arms[i][0] - prev.arms[i][0]), Math.abs(m.arms[i][1] - prev.arms[i][1])); if (d > worst) { worst = d; where = `${prev.move} → ${m.move} at beat ${(b % 8).toFixed(2)}, arm ${i}`; } }
+        const ds = Math.abs(m.spin - prev.spin); assert.ok(ds < 0.25 || Math.abs(ds - Math.PI * 2) < 0.25, `the spin's turn continuous (${ds.toFixed(2)} at beat ${b.toFixed(2)})`);
+        assert.ok(Math.abs(m.sway - prev.sway) < 0.08 && Math.abs(m.dip - prev.dip) < 0.02, `the sway + the dip continuous at beat ${b.toFixed(2)} (${prev.move} → ${m.move})`);
+      }
+      prev = m;
+    }
+  }
+  assert.ok(worst < 0.13, `the biggest arm move in one 120 Hz sample: ${worst.toFixed(3)} rad (${where})`);
+});
+
+test('PEO — THE STEP FOLLOWS THE SPEED: a stroll takes a shorter step than a brisk walk (real walking: ~0.65 m · √v), so every gait’s cadence lands in the human range (a walk ~105 steps a minute, 90–120; a jog ~150); the planted foot still never skates at any speed', async () => {
+  const { STEP, strideLen, rigOf, lookOf } = await import('../js/screens/harbor/folk.js');
+  const L = lookOf('commuter', 5, {}), M = 0.833;   // (1 unit = 0.833 m)
+  const spm = v => (v / (STEP(L, v) * 2.1 * L.h)) * 60;
+  assert.ok(STEP(L, FOLK.speed.stroll) < STEP(L, FOLK.speed.walk) && STEP(L, FOLK.speed.walk) < STEP(L, FOLK.speed.brisk), 'a longer step at a faster pace');
+  for (const [g, lo, hi] of [['stroll', 85, 105], ['walk', 95, 115], ['brisk', 100, 125], ['jog', 135, 170]]) { const c = spm(FOLK.speed[g]); assert.ok(c >= lo && c <= hi, `${g}: ${c.toFixed(0)} steps a minute at ${(FOLK.speed[g] * M).toFixed(2)} m/s, a step of ${(STEP(L, FOLK.speed[g]) * 2.1 * L.h * M).toFixed(2)} m`); }
+  const { cam } = setup('402x874');
+  for (const v of [FOLK.speed.stroll, FOLK.speed.walk, FOLK.speed.brisk]) for (const hd of [0, 0.7, Math.PI / 2]) {
+    const cx = Math.cos(hd), cz = Math.sin(hd);
+    let prev = null, drift = 0, stance = 0;
+    for (let d = 0; d < 6; d += 0.02) {
+      const { J, fx, fy, H } = rigOf(cam, { pose: 'walk', hd, dist: d, v, x: 2 + cx * d, z: 45 + cz * d }, L, 0, false), f = J.feet[0], p = [fx + f[0] * H, fy - f[1] * H], flat = J.planted[0] && J.heel[0] === 0;
+      if (flat && prev && prev.planted) { drift = Math.max(drift, Math.hypot(p[0] - prev.p[0], p[1] - prev.p[1])); stance++; }
+      prev = { p, planted: flat };
+    }
+    assert.ok(stance > 30 && drift < 0.03, `v ${v} at ${hd.toFixed(2)}: the planted foot moves ${drift.toFixed(3)} pt a step of 0.02 units (stride ${strideLen(L, v).toFixed(2)})`);
+  }
 });

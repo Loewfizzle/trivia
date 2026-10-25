@@ -4,6 +4,13 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — PEO: THE PEOPLE'S MOTION (Oct 25, 2026) — `docs/harbor.md#peo`
+- **Measured first** (`harbor().people.rigs()` + `people.cost()`: every drawn figure's rig on screen per frame; Chrome with the GPU at 60 Hz, 402×874, tiers 2 / 1 / 0 + 4× CPU): the city at 30 fps ("calm") 9–15 % of an afternoon with 1–3 flips to 60 per 30 s as the sky changed (walkers were no 60-fps reason); a partner's feet 27–29 px/s of slide round the lead at turns (3× its speed); the planner's new block 3–6 ms (13–33 ms slow) inside one frame; positions even, never pixel-snapped; the work 3 ms a frame.
+- **Fixed:** `people.moving()` → `'people'` in `scene.js#fastNow`; `people.js#gait` integrates each member's own path into its stride phase (`folk.js#strideLen`); `people.js#warm` plans 70 s ahead in `requestIdleCallback` (the cache cap 40 → 80).
+- **Real walking:** `FOLK.speed` walk 1.57 (1.3 m/s) · stroll 1.2 (1.0) · brisk 1.8 (1.5) · kid 1.57 · jog 3.1 (2.6); `STEP(L, v)` ≈ 0.65 m · √v (a stroll 92 steps a minute, a walk 105, brisk 112, a jog 150; ± 6 % `L.stride`); the ladder carriers' common stride.
+- **The dancers** (`wands.js`): periodic + continuous poses (the wave's one-beat hand-over, the point's 2-beat arm cycles landing on the beat, the spin's blended arms, the swing without the whip, a one-beat crossfade, the follow-through through the boundary, the bend capped at 1.15, the lag in every phrase, no wand twitch): max 0.10 rad a 120-Hz sample, 0 browser-frame jumps (was 2.3–2.6 rad every bar).
+- **Tests:** e2e-harbor `motion` (the `street` job; `promenade` → `city`), `tests/harbor-people.test.mjs` +2 (the arms at 120 Hz, the step vs the speed), the pace test re-based.
+
 ### ✅ CITY 2.0 — C2: CLEANUP 2 + THE OWNER'S REVIEW FIXES (Oct 25, 2026) — `docs/harbor.md#c2`
 - **The TR-3B**: `CHASE` t0 34 → 29.2 + dur 3.4 → 2.72, `JETS_GONE` drives everything after (the run 50 → 44 s); the chase's F-22s 0.2 W; the sign + the promenade's lamps stutter shallow then rise as the power returns; the far drain strips drawn after the far layer only.
 - **The raid**: `spotTargets` / `spotTour` / `spotOn` (only windows + doors, seeded, linger / glance / sweep / dart); the officer walks onto the promenade in front of the facade; his sweep stretches to the green (70 → ~59 s).
