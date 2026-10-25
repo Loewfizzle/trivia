@@ -45,8 +45,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | FP2 | ✅ (Oct 24) FOREGROUND POLISH 2: the beat SKEW after returning (re-converge the output lead), the promenade tweaks (far-left tree + urn removed, the medallion to the middle with a height cap, cart left of it, bench + a crabapple shifted left, the bus removed until 8b, the framing maple fixed), grout in the cobbles at night, the finished street under the dock, crisp lights (no smoke), the barber pole (bright LED-like, smooth, neon on party nights), party timing 8:30 / 9:30 | Opus 5.5 high | 75–100 min |
 | FP | ✅ (fb332a1, Oct 23 — the owner: "a big jump", ~8 / 10) FOREGROUND POLISH (Oct 23): the beat-after-returning fix (count beats from the song's position, not the context clock — the owner's evidence: ~1.3 s drift), the promenade re-layout (approved sketch), the billboard on a short frame, the blade in front of the tree, the barber pole (smooth + brighter), the stop lights + a WALK/WAIT lantern, one crafted planter, the bench at night, quieter water + varied gulls, pulse default 175, readout + AUDIO toggles in the panel | Opus 5.5 high | 75–100 min |
 | 8a | ✅ (2aecda7, Oct 23) (+ the 7a follow-ups in section 0; a grey-box STOP for the owner's OK; then a FOREGROUND POLISH pass for the speakeasy + promenade together) (+ the owner's idea, Oct 23: a second road along the bottom edge, behind the dock — Claude's counter, AGREED by the owner ("let's try it, we can remove it later" — build it behind a preview flag): NO visible traffic behind the dock (moving cars behind JOIN / HOST would be the busiest thing right behind the most important buttons, and the biggest, most detailed objects on screen); instead an IMPLIED road just below the frame: a curb + the lamp posts' bases along the bottom edge of the promenade, and passing cars shown only as LIGHT — headlight sweeps gliding across the paving at night, a soft passing shadow now and then by day, the raid's red / blue washing across the promenade from the front) THE PROMENADE'S LOOK (static scenery, day + night): real trees, street lamps, benches, railing, paving, the waterfront edge — designed around the dock; no people / routines yet | Opus 5.5 high | 60–90 min |
-| 6b | ✅ (Oct 24 — docs/harbor.md#part-6b; skydivers, the witch + Santa's sleigh → Part 11's holiday skies) the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
-| 8b | ← NEXT: THE LIFE (after 6b; the people moved up to 8P): cabs, the raid + police cars, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines incl. THE WORKERS' SCHEDULE (decided Oct 24) | Opus 5.5 high | 90–120 min |
+| 6b | ✅ (Oct 24 evening — the abduction (the arched pose, a soft beam) + the TR-3B (strip blackout, the tape-stop, F-16s with Mach diamonds), the air show + missing man + the biplane through the letters, premium balloons, shared sky-message layout (skywriting removed), real-photo moon, City 1.0 aurora, rainbows re-fit, clouds layered + evolving + the veil + halo, the higher seasonal arch, the soft fog beam + red fog beacons, Grok's 30 sounds imported; Known issues: searchlights + party beams still brighten in fog, the air show's first roar lags) the special sky (+ section 0: the moon, geese, meteors, contrails, helicopter depth, drones in front of the moon + the sign fading for sky messages) | Opus 5.5 high | 90–120 min |
+| POL4 | ← NEXT: POLISH 4 — the owner's FP3b + 6b REVIEW NOTES (plan.md) in one pass, foreground + sky | Opus 5.5 high | ~3–4 h |
+| 8b | THEN: THE LIFE (after 6b; the people moved up to 8P): cabs, the raid + police cars, wildlife, Rosie + the boats in 3D, the billposter + sign painters, the CITY SCHEDULE routines incl. THE WORKERS' SCHEDULE (decided Oct 24) | Opus 5.5 high | 90–120 min |
 | C2 | cleanup pass 2 (+ DEPENDENCY UPGRADES on a branch with the full tests: firebase-admin 13 → 14, the browser Firebase SDK past 11.10 — not urgent, Oct 24) | Opus 5.5 medium | 15–30 min |
 | 9 | seasons + weather | Opus 5.5 medium | 45–75 min |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
@@ -468,6 +469,80 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   near it; music handled like the TR-3B (a dip + filter). The TR-3B gets the same level of care: a huge, slow black
   triangle, corner lights + a pulsing centre glow, the power drain rolling across the city, then the jet chase. Both:
   the best-looking moments in the whole city, refine with frame bursts until they're truly jaw-dropping.
+- FP3b REVIEW NOTES (the owner's iPhone, Oct 25 ~1:30 am): (1) THE SPEAKEASY DOOR: close but not perfect — the swing is
+  jaggy; people EXITING look OK but people ENTERING walk in at a WEIRD, unnatural ANGLE (corrected by the owner: they do walk in, not fade) (seen at night on a party
+  night; even more noticeable by day). (2) THE DOOR LIGHTS: brighter, so the light FLOODS each speakeasy door and the door
+  is clearly noticeable; the LEFT door's lamp must be CENTRED above that door. (3) THE CHESTNUT CART looks good; its
+  lettering is very hard to read on the phone — bolder, or just "CHESTNUTS" so the letters can be bigger; the stovepipe is
+  hardly noticeable and he saw NO glow and NO smoke — reconsider the chimney (make the glow + smoke actually show, or drop
+  it and keep a plain, handsome cart). (4) THE "EST. 1924" STONE: all right at best by day; AT NIGHT it looks like CHEAP
+  PAPER with words on it (screenshot). (5) THE GLOW-WAND DANCE: looked cool-ish, but OFF-BEAT (it seemed to try to pulse
+  with the music but missed), the arm moves RIGID instead of fluid, and every dancer doing the EXACT same moves looks
+  weird — vary them. (6) REMOVE THE IVY altogether. (7) THE WINDOW BOX: keep for now, but it's close to being removed
+  ("looks too cheap"). (8) THE BUS looks like a FIRE TRUCK — not red (the maroon reads red at phone size): a different
+  colour. (9) THE BUS DOORS: open a bit longer — between the original (too long) and now (too short).
+  Claude's calls (Oct 25): the BUS → CREAM over DEEP NAVY BLUE with gold lettering (not red / maroon, not green — the cart
+  is green); the DATE STONE → set INTO the parapet as carved stone (not a pale panel standing on the roof edge), at night in
+  the stone's own dim tone lit by a soft grazing light from below so the carved letters cast shadows — if it still looks
+  cheap, remove it; the CART → "CHESTNUTS" big + bold on its side; the stove's glow + smoke made clearly visible, or drop
+  the chimney for a plain handsome cart; the DANCE → each dancer their own move set + timing offsets, fluid eased arms
+  (swings, waves, spins), on the SAME beat clock as the city's lights. SPREAD THEM OUT across and around the compass (not
+  all bunched in the exact centre), loosely in a ring; they may sway together now and then, but each moves in their own way.
+  (10) THE DATE STONE must not look so WHITE / clean: aged stone — a warm grey-buff tone, weathering STAINS + darker
+  streaks running down from the top edge, soot in the carved letters, a few chips + spots, lichen-dark corners.
+  (11) THE CARS on the street at the bottom (the sedan crossing under the dock, + every vehicle to come: the police cars,
+  cabs, the bootleggers' truck, the trash truck) look too CARTOONISH: rebuild them as late-1920s / early-1930s "MOBSTER"
+  cars (think Packard / Cadillac / a Ford Model A — not a boxy Model T): a LONG HOOD with LOUVERED side vents, a tall
+  upright chrome grille, big round headlamps on a bar, sweeping FENDERS that flow into RUNNING BOARDS, a spare wheel on the
+  side or back, a rounded roof, spoked or wire wheels; deep glossy paint (black, maroon, bottle green, navy) with chrome
+  glints and real shading; lit headlamps + a rear lamp at night. Premium, crafted, readable at phone size.
+- 6b REVIEW NOTES (the owner's iPhone, Oct 25 ~12:45 am — "a legendary run"; collecting):
+  (1) THE UFO SAUCER looks CARTOONISH — the concept (rotating lights round the rim) is right, the craft needs a lot of work:
+  a MIRROR-SILVER polished metal hull (reflecting the city's neon + the night sky, crisp specular highlights), a
+  TRANSLUCENT glass DOME on top (faintly lit inside), the rim lights rotating; the UNDERBELLY a PULSATING ORANGE glow,
+  which is then OVERTAKEN by the tractor beam when it opens. THE BEAM looks good — make it MORE CONCENTRATED in the centre
+  (a brighter core fading to the soft edges). THE ABDUCTED PERSON is PERFECT — don't change him.
+  (2) THE TR-3B ("man, that looks good" for a first attempt — needs polish): (a) it's JAGGY / LAGGY when it comes on screen —
+  his iPhone readout during it: 14 % slow (session 17.5 %, after-10-s 25.9 %), the tier stepping 2→1→2, "heavy 1/2" — a
+  REAL performance problem on the phone, not just the laptop: make it smooth at tier 2 (pre-bake the blackout states, no
+  per-frame re-renders of the city, cheaper strips); (b) SHRINK the craft ~15 % and make it more polished + detailed
+  (panel lines, edge lights, the centre glow); (c) THE BLACKOUT: keep the flicker-out as it arrives (he likes it), but then
+  a COMPLETE BLACKOUT — the whole city dark (every building, window, neon, sign, lamp) while it crosses, staying dark
+  through the JET FLYBY; only after the jets leave does the power FLICKER BACK ON from the BACK of the city to the FRONT
+  (far skyline first, the foreground last), uneven and stuttering.
+  (d) THE CHASE JETS' SOUND lags the jets by ~5 s (like the air show's known issue): sync it — the roar peaks as they cross
+  the screen centre (trim the recording to its peak, start it just before they enter), panned with them. (e) THE JETS need
+  MUCH MORE DETAIL ("a good start"; the night exhaust + Mach diamonds look good): a real F-16 shape (bubble canopy, the
+  intake under the nose, the single tail fin, strakes), grey two-tone CAMOUFLAGE paint with panel lines, USAF roundels
+  (the star-and-bar) on the wings / fuselage + a small AMERICAN FLAG on the tail, wingtip MISSILES + underwing ordnance on
+  pylons, formation + nav lights at night — readable at phone size (they're small: big shapes + light, then detail).
+  (3) THE SUN'S NEW ARCH (Dec / Oct / Jun noon): "looked amazing" — KEEP.
+  (4) THE BIPLANE looks CHEAP — make it premium (a real 1920s barnstormer: two wings with struts + wires, a radial engine
+  + spinning prop, fabric texture, red paint with a white trim, a pilot's head + scarf); its smoke trail THICKER, lasting
+  LONGER and more diffused (billowing, drifting with the wind); its route: LOOPS AROUND THE LETTER O, then threads
+  between the strokes of the final N on its way out.
+  (5) THE SUN HALO reads as "a very obvious circle of clouds" — wrong. A real 22° halo is a FAINT, THIN ring of light (not
+  a cloud) in a high thin veil: barely-there brightness, a slightly reddish inner edge, the sky a touch darker inside
+  the ring; very subtle. Add SUN DOGS as a rarer bonus with it: two small bright rainbow-tinted spots level with the sun,
+  one on each side at the same distance (~22°), red on the side facing the sun. The veil itself = a milky thin layer
+  over blue (the sun softened, never a grey deck).
+  (6) THE MOON: much better — he loves it. KEEP. THE AURORA: better (no vertical shafts) but ALL ONE GREEN: add the real
+  colours — green in the middle band, PINK / magenta along the lower fringe, deep RED / crimson high at the top,
+  sometimes a touch of violet; shifting slowly.
+  (7) FOG AT NIGHT: THE LIGHTHOUSE BEAM still reads as weird FLAT 2D beams — FABLE's next review must look at it (why it
+  looks flat: a 2D wedge with no volume / perspective / falloff?) and recommend a real volumetric look; the searchlights +
+  party beams in fog too (6b's known issue). THE DRONES look good but have NO SOUND — wire the drone-swarm slot (the
+  layered soft hum) to the show. SKYTYPING by day looks really good, except in front of the SUN the letters lose
+  contrast — give the sky letters the SAME dark soft halo the NEON sign / tagline have (only shows where something bright
+  is behind).
+  (8) THE AIR SHOW was "comically bad": basic flat jets, jerky contrails / smoke, an abrupt pull-up into a perfect circle.
+  DECIDED (Claude's recommendation, the owner: "if it doesn't look good, we shouldn't even do it"): DROP the loop
+  manoeuvres; keep only what can look great — (a) the FORMATION FLYBY: four jets in a tight diamond, straight across the
+  sky, smooth and fast, trailing smoothly spreading smoke / contrails; (b) THE MISSING MAN on its days: four jets straight
+  across, and one pulls up in a smooth, gentle climb (an eased curve, never a snap) and peels away into the sky while the
+  others continue. Both use the upgraded F-16 (note 2e: camo, emblems, flag, missiles, detail). Trails: continuous,
+  sub-pixel, eased, spreading + fading — never segmented or jerky. Their sound in sync. If they still don't look premium
+  after the polish pass, CUT the air show (the TR-3B chase keeps the jets).
 - 6b — LEGENDARY SKY RARITY (the owner): the UFO abduction ~1–2 a month, the TR-3B + its jet chase ~1–2 a month (the same
   nights for everyone, seeded), never two legendaries the same night; the barnstormer a few times a week.
 - 6b — THE TR-3B BENDS THE MUSIC (the owner's idea): as it nears, the music POWERS DOWN like a record player losing
