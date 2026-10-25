@@ -1028,3 +1028,22 @@ Files: `core/city.js` (which city is showing + the clock it runs on), `core/city
   `--regrid [--only a,b]` / `--retrust` redo the beat numbers. Then `node --test tests/city-music.test.mjs` (the decks, files, levels, trust list in this doc) and commit `audio/music/` + the JSON.
 - **Hook, not built:** once a deck reaches ~30 songs, play one half of it each week (`mood.js#deckForNow`, `HALVES_FROM`). Seasonal songs later.
 - **Size:** +144.5 MB in git (the repo's music was 97 MB) — see the owner's decision in the Oct 23 handoff (docs/harbor.md#m).
+
+## 8b1 — Grok's second-try sounds + the TR-3B heard on a phone (Oct 25 2026; docs/harbor.md#part-8b1)
+- **Imported** (`scripts/add-city-sfx.py` CUTS; analysed, not heard — per-second loudness, voiced frames, tonal peaks, the low-end share):
+  `tv-murmur` ← tv-murmur-2 (an indistinct walla: ≤ 20 % voiced frames in any second, no held tone; 16.3–31.3 s loop + 2 s tail, 300 Hz–1.8 kHz
+  "through glass", 16 kHz — the first cut 3–31 s had a 5.5 dB seam) · `trash-truck-arrive` (the old truck's pull-out 80–96.5 s REVERSED —
+  coming in, winding down — crossfaded into its idle 3–14 s; `hit` 16 s = stopped) + `trash-truck-depart` (58–96.9 s: idle → revs → away;
+  `hit` 15 s = the pull-out), LPF 5 kHz · `tr3b-presence` (1.5–30 s loop + 2 s, HPF 90 Hz, `sat` (6, 2.6, 160 Hz) + `dup` (180 Hz, +4 dB)) ·
+  `power-failure` (the whole 9.35 s spin-down, levelled from −13.4) · `power-restore` (0–9 s, `sat` (8, 1.4, 170) + `dup` (180, +6)).
+  NOT imported: traffic-far-2 (a continuous wash, a 15 dB swing in 100 s, never a gap — modern density; its cut is ready in CUTS, the stem in
+  SKIP) · raccoon-chitter (still the hiss: empty). New recipe steps: `sat`, `dup`, `seq` pieces with `rev` + an equal-power `xf`.
+- **THE PHONE-SPEAKER CHECK** (each file through HPF 200 Hz + LPF 4 kHz, × its slot gain, × the Effects default −6.2 dB; the music at its
+  default ≈ −34 LUFS out, a party song): the music LOUD on a phone ≈ −39.7 · DRAINED (½ volume, 900 Hz) ≈ −49 (the old drain, 12 % + 380 Hz:
+  −66, i.e. silent) · `tr3b-presence` 0.22 → **−46.0** on a phone (the saturation cut its phone loss 5.3 → 2.2 LU: ~3 dB over the drained
+  song) · `power-failure` 0.2 → **−40.6** (≈ the music, as the lights die) · `power-restore` 0.2 → **−40.7** (phone loss 10.6 → 0.1 LU) ·
+  for scale the jets −41.7 · `trash-truck-*` 0.12 → −45.6 / −45.9 · `tv-murmur` 0.08 → −52.4 (felt, through the glass).
+- **THE DRAIN** (`core/harbor-legend.js#tr3bAt` music + `DRAIN_M`; `screens/harbor/sounds.js#legendSounds`): deep (~0.56 ×, the pitch with it)
+  + a heavy warble (a wow ± 5.5 % at 0.55 Hz + a flutter ± 2.2 % at 1.9 Hz, never under 0.5 × — iOS's floor), a 900 Hz low-pass, held at ½
+  volume overhead, near silent under the jets (31 → 38.6 s: the catch-up seek), then the volume back, the slow spin-up, the filter open.
+- **THE BEAT's SAFETY RULE** + **a forced show plays a party song**: docs/harbor.md#part-8b1 (Group 0).
