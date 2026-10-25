@@ -531,7 +531,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let lampDbg = null, lampFaultNow = null;
   // 8b1 — the roof board + the blade, kept in step with the workers' traces
   const BOARD_ID = 'bb-left';
-  let sheetK = '', sheetV = null, bladeK = '', bladeV = null, boardCheck = 0;
+  let sheetK = '', sheetV = null, bladeK = '', bladeV = null, boardCheck = 0, boardHeld = 0;
   // (8b1: the BLADE is the week's — stable from the Monday painters to the next; the roof board steps aside from the blade's game, never the
   // other way round, so the billposter's daily change can never flip the blade)
   const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), games.filter(g => g.playable !== false).map(g => g.id), null); };
@@ -539,7 +539,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function workBoard(c, tr) {
     lampFaultNow = tr.lampFault || null;
     const now = performance.now();
-    if (now - boardCheck > 500) {
+    if (now - boardCheck > 500 && now > boardHeld) {
       boardCheck = now;
       const want = boardGameOf(tr.board.key), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
       // (the board shows the key's game; a paste in progress keeps the OLD one under the sheets until the last sheet is up)
@@ -1884,7 +1884,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
           pool: (() => { const g = L.lamps.filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0]; return g ? { lit: P(g.x + 2.2, g.z + 0.8) } : null; })() }; })() : null,   // (FP: the open floor beside the left corner globe)      // (8a: THE IMPLIED ROAD — the pass now; wash({ col, k }) for 7b's raid)      // (PART 8a: the city's sound slots — play('car-1920s-pass', { pan, gain }))
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
       water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },
-      neon: neon.debug(), neonRuns: () => neon.runs(), show: neon.show(), daily: neon.daily(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => neon.billboard(id, v), reflections: () => neon.reflections(), beacons: lights.beaconList(),
+      neon: neon.debug(), neonRuns: () => neon.runs(), show: neon.show(), daily: neon.daily(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => { boardHeld = performance.now() + 60000; return neon.billboard(id, v); },   // (C2: a manual / preview board holds a minute over the workers' sync) reflections: () => neon.reflections(), beacons: lights.beaconList(),
       dark: +DK.toFixed(3), power: +power(DK).toFixed(3), powerUp: neon.power(), lamps: +(litK(DK, 'bill')).toFixed(3),     // C1.5: the one darkness input (core/harbor-dark.js); DT1: the power-up's progress
       spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(),
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
