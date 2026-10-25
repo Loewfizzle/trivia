@@ -18,6 +18,7 @@
 // &force=work-<kind> (one every few minutes, any day) + a row in core/harbor-remote.js's WORKERS category.
 import { rngFrom, hashString } from './rng.js';
 import { partyAt } from './harbor-moments.js';
+import { legendNight } from './harbor-legend.js';
 
 const H = 3600;
 /** the days: 0 Sun … 6 Sat */
@@ -158,6 +159,10 @@ export function workDay(key, ctx = {}) {
   { const nb = REGULARS.newsboy, at = WEEKDAY.includes(dow) ? nb.at : nb.weekend.at; want.push({ kind: 'newsdrop', S: SHOWS.newsdrop, t0: day0 + at * H - SHOWS.newsdrop.lead, fixed: true }); }
   want.sort((a, b) => (b.fixed - a.fixed) || (b.S.prio - a.S.prio) || a.t0 - b.t0);
   const taken = [];
+  // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: tonight's legendary holds its minutes — no show (its truck would drive in under the
+  // craft) across them; a show slides past like past any other, or is skipped)
+  { const [yy, mm, dd] = key.split('-').map(Number), lg = legendNight(yy, mm, dd);
+    if (lg) taken.push({ t0: day0 + lg.h * H - 150, t1: day0 + lg.h * H + 120, legend: true }); }
   const free = (a, b) => !taken.some(o => a < o.t1 + 25 && b > o.t0 - 25);
   for (const w of want) {
     let t0 = w.t0;

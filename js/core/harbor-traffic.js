@@ -73,7 +73,10 @@ export function simulateLane(j, laneId, ctx = {}) {
   const lanes = ctx.lanes, ln = lanes[laneId], dir = ln.dir, B = TRAFFIC.block, dt = TRAFFIC.dt;
   const buses = laneId === 'near' ? (ctx.buses || []) : [];
   // (8b1: a worker's truck HOLDS the stop for minutes — `hold`: no car enters the near lane from just before it comes until it's gone)
-  const keep = s => !buses.some(b => s.t0 > b.tE - (b.hold ? 45 : 25) && s.t0 < (b.hold ? b.tX : b.tE + 3));
+  // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: ctx.hold = [t0, t1] (core/harbor-legend.js#trafficHold): no car enters inside it; one
+  // already on the road finishes its crossing)
+  const inHold = s => !!ctx.hold && s.t0 >= ctx.hold[0] && s.t0 < ctx.hold[1];
+  const keep = s => !inHold(s) && !buses.some(b => s.t0 > b.tE - (b.hold ? 45 : 25) && s.t0 < (b.hold ? b.tX : b.tE + 3));
   const prev = laneSpawns(j - 1, laneId, ctx).filter(keep), mine = laneSpawns(j, laneId, ctx).filter(keep);
   const all = [...prev, ...mine].map(s => ({ ...s, x: ln.xIn, vel: s.v, on: false, done: false, xs: [], ts: null, stopped: 0 }));
   const t0 = (j - 1) * B, t1 = (j + 1) * B + TRAFFIC.tail;
@@ -119,17 +122,18 @@ export function carState(car, t) {
 const sims = new Map();
 /**
  * THE BACK ROAD NOW (PURE but cached): every car on the road at t → [{ id, model, paint, trade, rumble, glow (an UNDERGLOW index or −1),
- * lane, z, dir, len, x, speed, dist }]. world: { L, busesIn(a, b) (the near lane's buses over a span: core/harbor-people.js — the same plan), off, seed, party }
+ * lane, z, dir, len, x, speed, dist }]. world: { L, busesIn(a, b) (the near lane's buses over a span: core/harbor-people.js — the same plan), off, seed, party,
+ * hold ([t0, t1]: a legendary's hold on every start — Oct 25) }
  */
 export function carsAt(t, world) {
   const L = world.L; if (!L || !L.crosswalk) return [];
   const lanes = trafficLanes(L), B = TRAFFIC.block, j = Math.floor(t / B), out = [];
-  const key0 = `${L.cam ? L.cam.W : 0}x${L.cam ? L.cam.H : 0}|${world.seed || 1924}|${world.off || 0}|${world.tag || ''}`;   // (8b2: tag — a raid's convoy holding the near lane)
+  const key0 = `${L.cam ? L.cam.W : 0}x${L.cam ? L.cam.H : 0}|${world.seed || 1924}|${world.off || 0}|${world.tag || ''}|${world.hold ? Math.round(world.hold[0]) : ''}`;   // (8b2: tag — a raid's convoy holding the near lane)
   for (const lane of Object.keys(lanes)) for (const jj of [j - 1, j]) {
     const key = `${key0}|${lane}|${jj}`;
     let sim = sims.get(key);
     if (!sim) { const a = (jj - 1) * B, b = (jj + 1) * B + TRAFFIC.tail, buses = lane === 'near' && world.busesIn ? world.busesIn(a, b).filter(o => o.tX > a && o.tE < b) : [];   // (the buses over the simulation's own span: the same on every phone, whenever the page opened)
-      sim = simulateLane(jj, lane, { lanes, buses, off: world.off, seed: world.seed, party: world.party }); sims.set(key, sim); if (sims.size > 24) sims.delete(sims.keys().next().value); }
+      sim = simulateLane(jj, lane, { lanes, buses, off: world.off, seed: world.seed, party: world.party, hold: world.hold || null }); sims.set(key, sim); if (sims.size > 24) sims.delete(sims.keys().next().value); }
     for (const c of sim.cars) { const s = carState(c, t); if (s) out.push({ ...c, xs: undefined, ...s }); }
   }
   return out;

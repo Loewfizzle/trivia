@@ -1075,3 +1075,39 @@ Every one through its slot (silent while empty), quiet — felt more than heard:
   × the raid's `club` — cut to ~4 % the instant the cars show, creeping back over ~12 s after the lights, up to 1.35 × on a party night.
 - **THE CABS**: the cab's engine is the back road's car sound (no slot of its own yet — a `cab-door` slot is a candidate for the owner's next
   hunt list).
+
+## THE TAPE STOP IN WEB AUDIO (Oct 25 2026; City 2.0's TR-3B) — `audio/tape-stop.js`, `core/mp3-slice.js`, `core/tape-math.js`, `audio/music.js#bendMusic`, `audio/diag.js`
+**The real cause** (the owner's iPhone, 11:29–11:36 am, 8b2's raised-floor bend already live): looping the TR-3B from the panel the AUDIO panel
+read NOT SOUNDING, the song clock still (96.6 → 98.4 s), the probe 0.000, 13 heals (reload (stalled)) all failing; with the TR-3B off + a
+reload: sounding, probe 0.224, heals 0. So the music system was healthy and THE BEND ALONE killed the song: **changing an `<audio>` element's
+`playbackRate` on iOS Safari stalls / silences it** — at any rate, not only under ½ × (8b2's floor was the wrong theory) — and a reload keeps
+the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **the element's playbackRate is never touched again.**
+- **THE TAPE STOP NOW** (`tape-stop.js`): `prepareBend()` as the craft arrives (~3 s before the sag) fetches the song's bytes (the cache has
+  them: `prefetch()` fetched the file before it played), walks its MP3 frames (`core/mp3-slice.js`: every file in audio/music is CBR with a
+  44-byte ID3 tag + a Xing frame — `tests/mp3-slice.test.mjs` walks all 91) and decodes the frames covering the next ~42 s of the song from
+  where the element is into an AudioBuffer (~15 MB, dropped after the run; placed to one frame = 26 ms). The first `bendMusic(rate < 1)`
+  starts an AudioBufferSourceNode at the element's exact song time through a gain into the voice's own level (so the ducks + the low-pass
+  still apply), crossfades it in over 0.35 s against the element's new `elGain` (the same audio: a linear fade sums flat) and PAUSES the
+  element. The source's `playbackRate` is ramped (speed + pitch together, no iOS floor: the drain sags to ~0.5 ×), and two oscillators on
+  that param make THE WARBLE in the audio thread (a 0.55 Hz wow ± 2.5 % + a 1.9 Hz flutter ± 0.8 % — `core/harbor-legend.js#tr3bAt` now
+  gives `rate` as the BASE and `wow` / `flutter` as depths; `sounds.js#legendSounds` sends a ramp when the base moves > 2 % + every 2 s while
+  bent). The song position is the EXACT integral of the rate schedule (`core/tape-math.js`), so `nowPlaying()` / `musicClock()` / the beat
+  still read a song clock, slowed. `bendMusic(1)` ramps back to 1; then the element is SEEKED to where the tape got to (+ 0.22 s, its start
+  latency), played, and once its clock is SEEN MOVING (nudged once if it landed > 0.12 s off, while still silent) the fade back; the source
+  stops. A room-clocked song (`setMusicClocked(true)` — nobody sets it yet; the lobby's synced song is `synced-songs.js`, not an element)
+  makes up the lost time instead (`musicCatchUp()`); the title's mood music goes on from where the tape got to — no skip.
+- **THE WATCHDOG**: the element's clock not moving within 1 s of play() → a fresh load at the right time (`reloadVoice`, `heals` "tape:
+  reload"); still not within 1.5 s more → the fade back happens anyway and the health watch takes over (its reloads work now: the rate is 1).
+  A frozen graph, the page hidden, a new context, a new song or the direct path ABORT the bend at once: the element resumes at the tape's
+  time, no fade, and no new bend on that run until the rate is asked back to 1. On THE DIRECT PATH nothing is bent (iOS's own pipeline,
+  no graph) — the legend's duck is the only dip (and iOS ignores an element's volume: the song simply plays on there).
+- **THE PANEL**: the `el` row reads `ON THE TAPE 0.50× (bent) · song 97.3 ▲ · behind 12.1 s · el paused at 96.6 · rate 1` while it carries
+  the song and the status stays `sounding`; after it `tape 2 runs, 1 reload`; the events: `tape ready`, `tape on`, `tape nudge`, `tape
+  watchdog … loaded again`, `tape off`, `tape aborted (why)`. `RATE n` on the el row means something set the element's rate (nothing does).
+- **Proof**: `tests/tape-stop.test.mjs` on a fake AudioContext + element (the element's `playbackRate` setter throws; a stalled element is
+  reloaded at the tape's time; back to back + a bend asked mid-release; a clocked song ends on the room's clock; aborts; the direct path;
+  a slice too short); `tests/mp3-slice.test.mjs`; e2e-harbor `tape` (Chrome: a whole TR-3B with the music on — the rate setter trapped
+  on every media element (0 writes), sounding + the panel's text through the drain, the song clock at ×0.5, the probe hearing the slice,
+  the element back with its clock moving after a swallowed play(), a second run back to back, 13 checks); the browser rig without the
+  city: `tests/integration/tape-preview.html` (RUN: a compressed drain you can hear). **WebKit**: Playwright's WebKit download stalled
+  twice on this machine (224 KB of ~100 MB); not run here — the owner's AUDIO panel decides (the test link in docs/harbor.md).

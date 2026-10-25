@@ -34,6 +34,7 @@ export function createRoadLight() {
   // FP3: the sound playing (its own pass's centre / direction / speed, so it pans on after the next pass begins); the city's clock
   // vs performance.now() (the sync reads the clock when the file is ready, between frames); the passes whose take was fetched
   let snd = null, skew = 0, panAt = 0, nextAt = 0;
+  let heldUntil = 0;        // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: f.hold — no pass adopted while it holds, nor one that began under it)
   const playing = new Set(), fetched = new Set(), motor = createMotorcar();
   const SLOT = 'car-1920s-pass';
   // where a pass's car is along the road (world x) at ms, at depth z — its own speed (its take's swell)
@@ -61,7 +62,11 @@ export function createRoadLight() {
       const st0 = L.impliedRoad && L.impliedRoad.street, zc = L.edge ? L.edge.z - 4 : 31.5;
       const laneZ = p => (st0 ? (p.dir < 0 ? st0.lanes[0] : st0.lanes[1]).z : zc);
       const pass = roadPassAt(f.ms, f.hourAt, { force: f.force });
-      if (pass && (!cur || cur.id !== pass.id)) {
+      // (a legendary's hold: the current pass finishes its crossing; no new one is adopted while it holds — nor afterwards one that
+      // began under it, which would pop in mid-street)
+      if (f.hold) heldUntil = f.ms;
+      const fresh = !!pass && (!heldUntil || pass.t0 > heldUntil);
+      if (pass && !f.hold && fresh && (!cur || cur.id !== pass.id)) {
         // the car is nearest at the pass's CENTRE (the same on every phone); its take = the pass's own (takeAt): its swell sets the speed
         cur = pass; center = pass.t0 + ROAD_PASS.peak;
         const tk = takeAt(SLOT, pass.take);
@@ -108,7 +113,7 @@ export function createRoadLight() {
         if (car.on) {
           // (POL4: the pass's vehicle from the street's cycle — never the same model twice in a row; a party night: one in three glows)
           const n = parseInt(String(cur.id).slice(1), 10) || 0, veh = vehicleFor(n, 'street'), ug = f.party && ((n * 2654435761) >>> 0) % 3 === 0 ? UNDERGLOW[((n >>> 0) % UNDERGLOW.length)] : null;
-          motor.draw(c, car, { cam, T: f.T, k: vis * f.fade, night: f.night, lampAt, vehicle: veh, underglow: ug, dpr: f.dpr || 2, t: f.t || 0, motion: f.motion, wet: f.wet || 0, rails: st.rails });
+          motor.draw(c, car, { cam, T: f.T, k: vis * f.fade, night: f.night, lampAt, vehicle: veh, underglow: ug, dpr: f.dpr || 2, t: f.t || 0, motion: f.motion, wet: f.wet || 0, rails: st.rails, lamps: f.power == null ? 1 : f.power });
           seen = true;
         } else motor.reset();
       } else motor.reset();
@@ -125,7 +130,7 @@ export function createRoadLight() {
       // curb's top catching it; warm 1920s incandescent
       if (f.night > 0.05) {
         if (!beam) beam = sprite('255,226,170', 0.35);
-        const k = f.night * env * f.fade * iv;
+        const k = f.night * env * f.fade * iv * (f.power == null ? 1 : f.power);   // (the TR-3B's blackout: its lamps die with the city)
         c.globalCompositeOperation = 'lighter';
         for (const [dz, rx, rz, a] of [[4.2, 10, 5, 0.34], [2.2, 6, 2.6, 0.55], [0.9, 3.4, 1.1, 0.7]]) {
           const z = (L.edge ? L.edge.z : 35.6) + dz, [cx] = P(carX + cur.dir * 5, z), ya = groundY(cam, z + rz), yb = groundY(cam, z - rz), rw = cam.F * rx / z;

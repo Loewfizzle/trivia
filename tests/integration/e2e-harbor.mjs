@@ -2236,6 +2236,75 @@ G('workers', async () => {
 
 
 // ================================================================ PART 6b — THE LEGENDARY SKY (ONLY=legends)
+// ================================================================ THE TAPE STOP IN WEB AUDIO (Oct 25 — the owner's iPhone: the TR-3B's bend ALONE
+// killed the song; docs/audio.md#the-tape-stop-in-web-audio). The TR-3B on the title with the music playing: the element's playbackRate is
+// NEVER assigned (a setter trap on every media element), the song is carried by a decoded slice through the graph — sounding, its clock
+// moving at the bent speed, the element paused on purpose, the AUDIO panel saying so; after the jets the element is back at the tape's
+// time with its clock moving; a stalled element (its play() swallowed once, as iOS does) is loaded again by the watchdog; a second run
+// back to back bends again and comes back; the panel's loop never leaves the music dead.
+G('tape', async () => {
+  const P = 'window.__district.harbor()';
+  const trap = { fn: () => {
+    const d = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate');
+    window.__rateSets = [];
+    Object.defineProperty(HTMLMediaElement.prototype, 'playbackRate', { configurable: true, get() { return d.get.call(this); }, set(v) { window.__rateSets.push(v); return d.set.call(this, v); } });
+    // (the stall: the next `n` play() calls on a SONG element do nothing but resolve — the element stays paused, its clock still)
+    window.__swallowPlays = 0;
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () { if (window.__swallowPlays > 0 && !String(this.src).startsWith('blob:')) { window.__swallowPlays--; window.__swallowed = (window.__swallowed || 0) + 1; return Promise.resolve(); } return play.call(this); };
+  } };
+  const Q = await open({ slot: 'tp', qs: `${NIGHT}&debug=1&force=no-people`, view: [402, 874], init: trap });
+  const p = Q.page;
+  await harborUp(p);
+  const D = 'window.__arcade.musicDebug()';
+  const PLAYING = `(() => { const d = ${D}; return !!d.playing && d.health.sounding && d.health.state === 'running' && d.at > 0.5; })()`;
+  await tapAt(p, 30, 300);
+  await waitFor(p, PLAYING, 'the music playing', 15000);
+  const at0 = await ev(p, `${D}.at`);
+  // the TR-3B started by the API (the forced flag would start it at the load, before the music): its slice is prepared as it arrives
+  await ev(p, `${P}.legend.start('tr3b')`);
+  await waitFor(p, `${D}.tape.phase === 'bent'`, 'the tape takes the song (the sag at ~3 s)', 20000);
+  const on = await ev(p, `(() => { const d = ${D}; return { phase: d.tape.phase, rate: d.tape.rate, at: d.tape.at, sounding: d.health.sounding, peak: d.health.peak, elPaused: (d.voices.find(v => v.id === d.playing) || {}).paused }; })()`);
+  ok(on.phase === 'bent' && on.sounding, `THE TAPE STOP: the tape carries the song as the craft arrives (rate ${on.rate}, song ${on.at} s, sounding ${on.sounding})`);
+  await waitFor(p, `${D}.tape.rate < 0.55`, 'the sag deep', 12000);
+  const a = await ev(p, `(() => { const d = ${D}; return { rate: d.tape.rate, at: d.tape.at, t: performance.now(), sounding: d.health.sounding, peak: d.health.peak, elPaused: (d.voices.find(v => v.id === d.playing) || {}).paused, frozen: d.health.frozen }; })()`);
+  await sleep(2000);
+  const b = await ev(p, `(() => { const d = ${D}; return { rate: d.tape.rate, at: d.tape.at, t: performance.now(), sounding: d.health.sounding, peak: d.health.peak, lost: d.tape.lost }; })()`);
+  const slope = (b.at - a.at) / ((b.t - a.t) / 1000);
+  ok(a.sounding && b.sounding && a.elPaused && a.rate < 0.55 && a.rate > 0.4, `HELD DEEP: ~0.5 × (${a.rate}), the element paused on purpose, the music SOUNDING (${a.sounding}, probe ${a.peak})`);
+  ok(slope > 0.35 && slope < 0.65, `THE SONG CLOCK MOVES AT THE TAPE'S SPEED: ${a.at} → ${b.at} s over ${((b.t - a.t) / 1000).toFixed(1)} s (×${slope.toFixed(2)}), ${b.lost} s behind real time`);
+  okT(a.peak > 0.002 && b.peak > 0.002, `SOUND FLOWS THROUGH THE BEND: the probe hears the slice (${a.peak.toFixed(3)}, ${b.peak.toFixed(3)})`);
+  const strip = await ev(p, `(() => { const d = document.querySelector('.dbg-s[data-id=audio]'); return d ? d.textContent : ''; })()`);
+  ok(/AUDIO ▾ sounding/.test(strip) && /ON THE TAPE 0\.[45]\d×/.test(strip) && !/NOT SOUNDING/.test(strip), `THE AUDIO PANEL reads "sounding" + ON THE TAPE through the drain ("${strip.slice(0, 120)}…")`);
+  ok((await ev(p, 'window.__rateSets.length')) === 0, 'THE ELEMENT\'S playbackRate IS NEVER ASSIGNED (the setter trap saw 0 writes)');
+  // the way back, with the element STALLED once (its play() swallowed: paused, its clock still — what iOS did): the watchdog reloads it
+  await ev(p, 'window.__swallowPlays = 1');
+  await waitFor(p, `${D}.tape.phase === 'idle' && ${D}.tape.runs === 1`, 'the tape gives the song back after the jets', 50000);
+  await waitFor(p, PLAYING, 'the element playing again', 6000).catch(() => {});
+  const back = await ev(p, `(() => { const d = ${D}; return { at: d.at, t: performance.now(), sounding: d.health.sounding, tape: d.tape, swallowed: window.__swallowed || 0, last: d.health.last, heals: d.health.heals, events: d.health && window.__arcade.musicDebug ? undefined : undefined }; })()`);
+  await sleep(1500);
+  const back2 = await ev(p, `(() => { const d = ${D}; return { at: d.at, t: performance.now(), sounding: d.health.sounding, playing: d.playing }; })()`);
+  ok(back.sounding && back2.sounding && back2.at > back.at + 1.0 && back2.at - back.at < 2.2, `BACK ON THE ELEMENT after the jets: sounding, its clock moving (${back.at} → ${back2.at} s)`);
+  ok(back.swallowed === 1 && back.tape.reloads === 1, `THE WATCHDOG: the stalled element (its play() swallowed ${back.swallowed}×) was loaded again at the right time (reloads ${back.tape.reloads}, last heal "${back.last}")`);
+  ok(back.at > at0 + 20 && back.at < at0 + 60, `THE SONG WENT ON from where the tape got to (${at0.toFixed(1)} → ${back.at.toFixed(1)} s: ~27 s of song in ~47 s of event — no skip ahead on the title)`);
+  ok((await ev(p, 'window.__rateSets.length')) === 0, 'THE ELEMENT\'S playbackRate still never assigned (through the release + the reload)');
+  const strip2 = await ev(p, `(() => { const d = document.querySelector('.dbg-s[data-id=audio]'); return d ? d.textContent : ''; })()`);
+  ok(/AUDIO ▾ sounding/.test(strip2) && !/ON THE TAPE/.test(strip2), `THE AUDIO PANEL reads "sounding" after it ("${strip2.slice(0, 100)}…")`);
+  // BACK TO BACK (the panel's loop): a second run right away bends again; stopped early it comes straight back
+  await ev(p, `${P}.legend.start('tr3b')`);
+  await waitFor(p, `${D}.tape.phase === 'bent' && ${D}.tape.runs === 2`, 'the second run bends again', 20000);
+  await waitFor(p, `${D}.tape.rate < 0.7`, 'the second sag', 10000);
+  const two = await ev(p, `(() => { const d = ${D}; return { rate: d.tape.rate, sounding: d.health.sounding, runs: d.tape.runs }; })()`);
+  ok(two.sounding && two.rate < 0.7, `BACK TO BACK: the second run bends the song again (${two.rate}×), sounding`);
+  await ev(p, `${P}.legend.stop()`);
+  await waitFor(p, `${D}.tape.phase === 'idle'`, 'stopped early: the song straight back', 12000);
+  await waitFor(p, PLAYING, 'the element playing after the stop', 6000).catch(() => {});
+  const end = await ev(p, `(() => { const d = ${D}; return { sounding: d.health.sounding, at: d.at, tape: d.tape, rateSets: window.__rateSets.length }; })()`);
+  ok(end.sounding && end.tape.phase === 'idle' && end.rateSets === 0, `NEVER LEFT DEAD: after two runs the music sounds on the element (${end.at} s), ${end.tape.runs} runs, ${end.tape.reloads} reload, ${end.tape.aborts} aborts, 0 rate writes`);
+  if (SHOTS) await p.screenshot({ path: `${OUT}tape-402x874.png` });
+  await Q.ctx.close();
+});
+
 G('legends', async () => {
   const P = 'window.__district.harbor()';
   const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
@@ -2273,6 +2342,11 @@ G('legends', async () => {
     // (8b2 — the scene APPLIES it: the speakeasy's power hook dark — the check the old test lacked when the scene stopped reading it)
     await waitFor(Q.page, `${P}.speakeasy.power() < 0.05`, 'the speakeasy dark', 10000).catch(() => {});
     ok((await ev(Q.page, `${P}.speakeasy.power()`)) < 0.05, 'THE TR-3B BLACKOUT reaches the scene: the speakeasy dark');
+    // Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold is on (from 4 s before the craft until the jets are gone + the power is back);
+    // no car, cab, bus or truck ENTERED inside it (one already rolling finishes); the street under the dock adopts no new pass
+    { const hd = await ev(Q.page, `${P}.legend.hold`), tr = await ev(Q.page, `${P}.people.traffic`), rd = await ev(Q.page, `${P}.road`);
+      const entered = [...tr.cars.map(c => c.ts), ...tr.buses.map(b => b.tE), ...tr.trucks.map(T => T.tE)].filter(x => x != null && hd && x >= hd.t0 && x < hd.t1);
+      ok(hd && hd.on && hd.t1 - hd.t0 > 40 && entered.length === 0 && !(rd.pass && rd.pass.center / 1000 > hd.t0), `NO TRAFFIC DURING THE LEGENDARIES: the hold on (${hd && (hd.t1 - hd.t0).toFixed(1)} s), nothing entered under it (${tr.cars.length} cars, ${tr.buses.length} buses, ${tr.trucks.length} trucks on screen — all from before), the street's pass ${rd.pass ? 'from before' : 'none'}`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-402x874.png` });
     await Q.ctx.close(); }
   // ---- 8b2: THE BLACKOUT WINS OVER THE PARTY (the owner forced the TR-3B with PARTY ON: the show stayed lit) — the show off while dead

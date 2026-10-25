@@ -438,3 +438,23 @@ test('8b2 — THE BENCH\'S SEATS: reserved — two sitters never share a seat (n
   for (let i = 0; i < S.length; i++) for (let j = i + 1; j < S.length; j++) if (S[i].i === S[j].i) assert.ok(S[i].t1 <= S[j].t0 || S[j].t1 <= S[i].t0, 'a seat reserved twice at once');
   assert.ok(S.length >= 20 && both > 0, `the bench is used (${S.length} sitters, ${both} samples with two at once)`);
 });
+
+// ---------------------------------------------------------------- Oct 25 — NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold)
+test('NO TRAFFIC DURING THE LEGENDARIES: a bus due under the hold never comes; one already at the curb finishes; no car enters the back road under it', () => {
+  const { L } = setup('402x874'), M = folkMap(L);
+  let b = null;
+  for (let h = 8; h < 23 && !b; h++) { const bs = busesOf(L, '2026-10-22', h, DAY + h * 3600); if (bs.length) b = bs[0]; }
+  assert.ok(b, 'a bus in the day');
+  const t = b.tA + 3;                                                        // (at the curb, its door open)
+  const plain = folkAt(t, { L, M, ctx: { off: OFF } }, new Map());
+  assert.ok(plain.buses.some(x => x.id === b.id), 'without a legendary: at the curb');
+  const held = folkAt(t, { L, M, ctx: { off: OFF, legend: { kind: 'tr3b', t0: b.tE - 1 } } }, new Map());
+  assert.ok(!held.buses.some(x => x.id === b.id), 'due under the hold: it never comes (it rides on)');
+  const before = folkAt(t, { L, M, ctx: { off: OFF, legend: { kind: 'tr3b', t0: b.tE + 6 } } }, new Map());
+  assert.ok(before.buses.some(x => x.id === b.id), 'already there when the hold starts: it finishes its stop');
+  // the back road over a whole TR-3B: no car ENTERS inside the hold (one from before may still be finishing)
+  const t0 = b.tE - 1, hold = [t0 - 4, t0 + 41.7], cache = new Map();
+  let entered = 0, seen = 0, lg = { kind: 'tr3b', t0 };
+  for (let s = hold[0] - 30; s < hold[1] + 60; s += 1) { const f = folkAt(s, { L, M, ctx: { off: OFF, legend: lg } }, cache); for (const c of f.cars) { seen++; if (c.ts != null && c.ts >= hold[0] && c.ts < hold[1]) entered++; } }
+  assert.equal(entered, 0, `no car entered under the hold (${seen} car-seconds seen round it)`);
+});

@@ -124,3 +124,17 @@ test('8b1 — &force=work-<kind>: every worker on a loop, any day; each kind has
     assert.ok(people > 0, `${kind}: someone shows up in its preview`);
   }
 });
+
+// ---------------------------------------------------------------- Oct 25 — NO TRAFFIC DURING THE LEGENDARIES
+test('NO TRAFFIC DURING THE LEGENDARIES: no worker show (its truck) runs across tonight\'s legendary minutes', async () => {
+  const { legendNight } = await import('../js/core/harbor-legend.js');
+  let n = 0;
+  for (let d = new Date(Date.UTC(2026, 9, 1)); d.getTime() < Date.UTC(2027, 3, 1); d.setUTCDate(d.getUTCDate() + 1)) {
+    const y = d.getUTCFullYear(), m = d.getUTCMonth() + 1, dd = d.getUTCDate(), lg = legendNight(y, m, dd);
+    if (!lg) continue;
+    const key = `${y}-${String(m).padStart(2, '0')}-${String(dd).padStart(2, '0')}`, D0 = day0(key), w0 = D0 + lg.h * 3600 - 150, w1 = D0 + lg.h * 3600 + 120;
+    for (const w of plan(key).filter(x => x.show)) assert.ok(w.t1 <= w0 || w.t0 >= w1, `${key}: ${w.kind} (${hOf(w.t0, key).toFixed(2)}–${hOf(w.t1, key).toFixed(2)}) across the legendary at ${lg.h}`);
+    n++;
+  }
+  assert.ok(n >= 3, `${n} legendary nights checked`);
+});

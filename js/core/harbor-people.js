@@ -19,6 +19,7 @@ import { rngFrom, hashString } from './rng.js';
 import { signalAt, SIGNAL_CYCLE, xOfF } from './harbor-promenade.js';
 import { partyAt } from './harbor-moments.js';
 import { carsAt } from './harbor-traffic.js';
+import { trafficHold, inHold } from './harbor-legend.js';
 import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
 import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
 import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbor-witness.js';
@@ -713,8 +714,11 @@ function busRiders(bus, M, ctx = {}) {
 export function folkAt(t, world, cache = new Map()) {
   const { M, ctx = {} } = world, L = world.L, B = FOLK.block;
   const get = (key, make) => { if (!cache.has(key)) { cache.set(key, make()); if (cache.size > 40) cache.delete(cache.keys().next().value); } return cache.get(key); };
+  // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: core/harbor-legend.js#trafficHold from ctx.legend { kind, t0 } — a bus, a cab or a car
+  // that would ENTER inside the hold never comes; one already on screen when it starts finishes its business)
+  const hold = trafficHold(ctx.legend), hk = hold ? Math.round(hold[0]) : '';
   const hourBuses = hAbs => get(`bus|${hAbs}|${ctx.forceBus ? 1 : 0}`, () => { const loc = localOf(hAbs * 3600 + 1, ctx.off); return busesOf(L, loc.key, Math.floor(loc.h), hAbs * 3600 - (((ctx.off || 0) * 60) % 3600 + 3600) % 3600, { force: !!ctx.forceBus }); });
-  const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600 && !busBlocked(x)); };
+  const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600 && !inHold(hold, x.tE) && !busBlocked(x)); };
   // (8b1: a bus due while a worker's truck holds the stop rides on — it never comes)
   const busBlocked = x => get(`BB|${x.id}`, () => trucksNear(x.tE - 60, x.tX + 60).some(T => x.tE < T.tX + 12 && x.tX > T.tE - 35));
   // (FP3b: while the dance circle holds the promenade, nobody gets off here — they ride on: the circle's people stay within the cap)
@@ -739,11 +743,12 @@ export function folkAt(t, world, cache = new Map()) {
   const trucksNear = (a, b) => crewIn(a - 300, b + 300).trucks.filter(T => T.tX > a && T.tE < b);
   // 8b2 — THE CABS (core/harbor-cabs.js): the night's cab calls near [a, b] — each kept only with the stop free (no bus, no worker's truck,
   // no raid, no other cab) — their cab holds the near lane like a truck; their riders walk the promenade like the bus's
-  const cabBlock = k => get(`CB|${k}`, () => {
+  const cabBlock = k => get(`CB|${k}|${hk}`, () => {
     const out = [];
     for (const e of cabEvents(k, ctx)) {
       const pl = cabPlan(e, L, M); if (!pl) continue;
       const T = pl.T, clash = (x0, x1) => x0 < T.tX + 18 && x1 > T.tE - 18;
+      if (inHold(hold, T.tE)) continue;                                   // (no cab during a legendary)
       if (ctx.raid && clash(ctx.raid.t0 - 30, ctx.raid.tEnd)) continue;
       if (busesNear(T.tE - 120, T.tX + 120).some(bb => clash(bb.tE, bb.tX))) continue;
       if (trucksNear(T.tE - 60, T.tX + 60).some(tr => clash(tr.tE, tr.tX))) continue;
@@ -900,9 +905,9 @@ export function folkAt(t, world, cache = new Map()) {
   // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
   // (8b2: the raid's convoy holds the near lane — nobody enters it behind them — and its patrol cars join the road's cars)
   const raidIn = (a, b) => (ctx.raid && ctx.raid.tEnd > a && ctx.raid.t0 < b ? [raidHold(ctx.raid)] : []);
-  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b), ...raidIn(a, b), ...cabsNear(a, b).map(pl => pl.T)], off: ctx.off, seed: ctx.seed, party: ctx.party, tag: ctx.raid ? ctx.raid.key : '' });
+  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b), ...raidIn(a, b), ...cabsNear(a, b).map(pl => pl.T)], off: ctx.off, seed: ctx.seed, party: ctx.party, tag: ctx.raid ? ctx.raid.key : '', hold });
   // (8b2: the cabs at the curb — the back road's cars drawn the same way; sign: the TAXI lamp, lit when free)
-  if (!ctx.noCars) for (const pl of cabsNear(t - 5, t + 5)) { const T = pl.T; if (t < T.tE || t > T.tX) continue; const x = T.x(t); cars.push({ id: T.id, model: 'taxi', paint: 0, len: T.len, z: T.z, dir: 1, x, dist: T.dist(t), speed: t < T.tA ? Math.max(0, (T.x(t + 0.05) - x) / 0.05) : t >= T.tD ? (T.x(t + 0.05) - x) / 0.05 : 0, n: 5, glow: -1, cab: true, sign: T.sign(t) }); }
+  if (!ctx.noCars) for (const pl of cabsNear(t - 5, t + 5)) { const T = pl.T; if (t < T.tE || t > T.tX) continue; const x = T.x(t); cars.push({ id: T.id, model: 'taxi', paint: 0, len: T.len, z: T.z, dir: 1, x, dist: T.dist(t), speed: t < T.tA ? Math.max(0, (T.x(t + 0.05) - x) / 0.05) : t >= T.tD ? (T.x(t + 0.05) - x) / 0.05 : 0, n: 5, glow: -1, cab: true, sign: T.sign(t), ts: T.tE }); }
   if (RP) { const R = raidAt(RP, t); if (R) cars.push(...R.cars); }
   // 8b1 — THE CREW now: the roof's workers (the billposter, the gardener, the cleanup crew), their props, their trucks, the traces
   const crewRoof = [];

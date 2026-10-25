@@ -4,6 +4,29 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — THE TR-3B's MUSIC, THE F-22, NO TRAFFIC DURING THE LEGENDARIES (Oct 25, 2026) — `docs/harbor.md#the-tr-3bs-music-the-f-22-no-traffic`, `docs/audio.md#the-tape-stop-in-web-audio`
+- [x] THE TAPE STOP IN WEB AUDIO: the owner's panel proved the bend alone killed the song (iOS Safari stalls a media element whose
+      playbackRate changes; a reload keeps the bent rate) — now `audio/tape-stop.js`: the song's MP3 frames walked (`core/mp3-slice.js`,
+      all 91 files CBR + a Xing frame) and ~42 s decoded from where the element is, a buffer source crossfaded in while the element pauses,
+      its rate ramped (~0.5 ×) with two oscillators for the warble, the song position the exact integral (`core/tape-math.js`), the element
+      seeked + played + seen moving before the fade back, a watchdog reload, aborts on a dead graph / hidden page / new song; the element's
+      playbackRate is never assigned; the AUDIO panel's `ON THE TAPE` row; `tests/tape-stop.test.mjs` (8), `tests/mp3-slice.test.mjs` (3),
+      e2e-harbor `tape` (13 checks; the `wild` cloud job), `tests/integration/tape-preview.html`
+- [x] THE F-22 (`jets.js`, one shared jet): the faceted chined body, the gold bubble canopy with a hot spot, raked intakes, the diamond
+      wing + stabilators, twin canted fins, serrated 2-D nozzles, closed sawtooth bay doors (no stores outside), gunmetal with a specular
+      spine line + per-panel tones, low-vis grey markings, heat haze + a hint of motion blur on full burn, the night strips moved; the
+      chase's jets W × 0.235 (was 0.2); three passes at 1440 + the chase at 402 at night + the air show by day; the panel's labels
+- [x] NO TRAFFIC DURING THE LEGENDARIES: `core/harbor-legend.js#trafficHold` ([t0 − 4 s, the jets gone + the power back] / the saucer
+      gone); the back road's spawns (`harbor-traffic.js`, keyed by the hold), the buses + the cabs (`harbor-people.js`), the workers'
+      shows on a legendary night (`harbor-workers.js`), the street under the dock (`roadlight.js`: no new pass, none that began under
+      it; its lamps die with the city via `motorcar.js#lamps`), a forced raid never starts under one; the scene knows a seeded
+      legendary a minute ahead; `people.traffic`, `legend.hold` for the tests; unit tests in the legend, traffic, people + workers suites,
+      the legends E2E group
+- [x] plan.md: the owner's Oct 25 notes, part 2 (the tape stop decision, the F-22, the traffic rule, the trash can, the panel rework,
+      onboarding + solo, the neon moon, the 8b2 review)
+- [ ] Known: WebKit not run here (Playwright's download stalled twice); the panel's forced run doesn't postpone a worker's truck already
+      scheduled in that minute (seeded nights avoid it)
+
 ### ✅ CITY 2.0 — PART 8b2: THE LIFE, PART 2 (Oct 25, 2026) — `docs/harbor.md#part-8b2`, `docs/audio.md` 8b2
 - [x] Step 0 — the owner's Oct 25 notes in plan.md
 - [x] Group 0 — the TR-3B's frame cost (60 fps only during the F-16s; `legends.active()` for everything else a legendary does), THE DRAIN

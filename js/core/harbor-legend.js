@@ -136,27 +136,29 @@ export function tr3bAt(s, dir = 1) {
   // heavy WARBLE on top (a wow + a flutter, deepening with the sag), a CLOSING low-pass (to 900 Hz — a phone still hears it muffled),
   // HELD LOW but audible (½ volume) while the craft is overhead; near silent only under the jets' roar (31 → 38.6 s: the lost time
   // made up there); then the volume back first, the spin-up slow, the filter opening — DRAIN below)
-  // (8b2 — THE OWNER'S IPHONE: the AUDIO panel read NOT SOUNDING through it — 0.5 × with a ±7.7 % warble dipped to the floor iOS
-  // mutes a media element at, under a 900 Hz low-pass at half volume: the song died. NOW the song stays CLEARLY AUDIBLE, slow, deep and
-  // wrong: the speed + pitch sag to ~0.6 × (never under DRAIN_M.floor 0.58), a gentle warped-record WARBLE (a 0.55 Hz wow ± 2 % + a
-  // 1.9 Hz flutter ± 0.7 %), a LIGHT duck (−3 dB overhead; a little more under the jets' roar, where the lost time is made up) and a
-  // PARTIAL low-pass (2.6 kHz: duller, never gone); after the jets the volume first, then the slow spin-up as the filter opens)
+  // (8b2 — THE OWNER'S IPHONE: the AUDIO panel read NOT SOUNDING through it, and again with the raised floor — the bend ALONE kills the
+  // song: iOS Safari stalls a media element whose playbackRate changes. Oct 25: THE TAPE STOP IS IN WEB AUDIO now (audio/tape-stop.js: a
+  // decoded slice of the song on a buffer source, its rate ramped — no iOS floor), so the drain goes DEEP again: the speed + pitch sag to
+  // ~0.5 ×, a warped-record WARBLE made by two oscillators on the rate (`wow` / `flutter` here are their depths, fractions of the rate: a
+  // 0.55 Hz wow ± 2.5 % + a 1.9 Hz flutter ± 0.8 % while held — `rate` is the BASE, no wobble in it), a LIGHT duck (−3 dB overhead; a
+  // little more under the jets' roar) and a PARTIAL low-pass (2.2 kHz: duller, never gone); after the jets the volume first, then the
+  // slow spin-up as the filter opens; the song goes on from where the tape got to)
   const sag = smooth(3.0, 9.5, s), up = smooth(39.4, 45.5, s), fadeOut = smooth(8.5, 12.5, s), back = smooth(38.6, 40.4, s), hush = smooth(30.5, 33.5, s);
-  const bent = sag * (1 - up), wob = bent * (DRAIN_M.wow * Math.sin(2 * Math.PI * 0.55 * s) + DRAIN_M.flutter * Math.sin(2 * Math.PI * 1.9 * s + 1.3));
-  const rate = Math.max(DRAIN_M.floor, lerp(1, DRAIN_M.rate, bent) * (1 + wob));
+  const bent = sag * (1 - up);
+  const rate = Math.max(DRAIN_M.floor, lerp(1, DRAIN_M.rate, bent));
   return {
     phase: P, len: TR3B_LEN, x, dir, u,
     dip: smooth(0, 8, s) * 0.6 + 0.4 * smooth(8, TR3B_CROSS, s) * 0.5,
     pulse: 0.5 + 0.5 * Math.sin(s * 2.1),
     drain: smooth(0.5, 3.5, s) * (1 - smooth(TR3B_CROSS - 1, TR3B_CROSS + 3, s)),
     chase: { on: chaseU > -0.15 && chaseU < CHASE.uOff, u: chaseU },
-    music: { rate, hz: lerp(20000, DRAIN_M.hz, smooth(5, 12, s) * (1 - smooth(39.4, 45, s))), duck: lerp(1, lerp(DRAIN_M.held, DRAIN_M.jets, hush), fadeOut * (1 - back)), crackle: smooth(4, 9, s) * (1 - smooth(30, 36, s)), catchUp: s > 38.2 && s < 38.9, warble: bent },
+    music: { rate, hz: lerp(20000, DRAIN_M.hz, smooth(5, 12, s) * (1 - smooth(39.4, 45, s))), duck: lerp(1, lerp(DRAIN_M.held, DRAIN_M.jets, hush), fadeOut * (1 - back)), crackle: smooth(4, 9, s) * (1 - smooth(30, 36, s)), catchUp: s > 38.2 && s < 38.9, warble: bent, wow: DRAIN_M.wow * bent, flutter: DRAIN_M.flutter * bent },
   };
 }
-/** 8b1 → 8b2 — the drain's numbers: the base speed it sags to, the floor it never goes under (iOS Safari mutes a media element near
- *  half speed), the wow + the flutter (fractions of the speed), the low-pass it closes to (Hz), the level it holds while the craft is
- *  overhead, the level under the jets' roar */
-export const DRAIN_M = Object.freeze({ rate: 0.6, floor: 0.58, wow: 0.02, flutter: 0.007, hz: 2600, held: 0.72, jets: 0.55 });
+/** 8b1 → Oct 25 (THE TAPE STOP IN WEB AUDIO) — the drain's numbers: the base speed it sags to, a floor (a sanity clamp: the tape has no
+ *  iOS floor any more), the wow + the flutter (the oscillators' depths, fractions of the speed), the low-pass it closes to (Hz), the
+ *  level it holds while the craft is overhead, the level under the jets' roar */
+export const DRAIN_M = Object.freeze({ rate: 0.5, floor: 0.4, wow: 0.025, flutter: 0.008, hz: 2200, held: 0.72, jets: 0.55 });
 /** THE CHASE's pass (s into the event): three F-16s a few seconds behind the TR-3B, across the screen in `dur` s — the lead's x
  *  (fraction of W) goes −0.25 → 1.25 over u 0..1 (each jet `back` jet lengths behind it); `uOff` — the last plume is off the screen */
 export const CHASE = Object.freeze({ t0: 34, dur: 3.4, uOff: 1.45 });
@@ -214,6 +216,23 @@ export function blackAll(s, depth = 'city') {
   const k = smooth(B.die0 - B.sput, B.die0 + B.dieSpan + 0.9, s) * (1 - smooth(B.on0 + dz - B.sput, B.on0 + dz + B.onSpan + 0.7, s));
   return { k, dead: allDead };
 }
+
+// ------------------------------------------------------------------ NO TRAFFIC DURING THE LEGENDARIES (Oct 25; plan.md)
+/**
+ * The owner: "no vehicle drives by (the street under the dock, the back road, the bus, cabs, trucks, the raid) while the TR-3B makes
+ * its pass or during the UFO abduction — it's distracting. Vehicles already on screen finish quickly / stop; none start until the event
+ * (and the jets) are gone; nothing pops out." THE HOLD on every vehicle's START: [t0, t1] (abs s) for a legend { kind, t0 (abs s: the
+ * run's start) } — from `lead` s before the craft shows until the jets are gone + the power is back (the TR-3B) / the saucer has left
+ * (the abduction). The planners (core/harbor-traffic.js, core/harbor-people.js: the cars, the buses, the cabs; screens/harbor/
+ * roadlight.js: the street under the dock) drop every start inside it; one already on the road finishes. PURE — every phone the same.
+ */
+export const HOLD = Object.freeze({ lead: 4, tr3b: BLACK.on0 + 1.5, ufo: UFO_LEN + 2 });
+export function trafficHold(legend) {
+  if (!legend || HOLD[legend.kind] == null || !Number.isFinite(legend.t0)) return null;
+  return [legend.t0 - HOLD.lead, legend.t0 + HOLD[legend.kind]];
+}
+/** is t (abs s) inside the hold? */
+export const inHold = (hold, t) => !!hold && t >= hold[0] && t < hold[1];
 
 /** the TR-3B's direction for tonight (seeded by the evening's date) */
 export const tr3bDir = (y, m, d) => (hashString(`tr3b-dir|${dateKey(y, m, d)}`) & 1 ? 1 : -1);

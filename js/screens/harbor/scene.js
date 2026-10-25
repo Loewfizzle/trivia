@@ -79,7 +79,7 @@ import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip } from '../../ui/debug-strip.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
-import { legendNight, eveningOf, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { legendNight, eveningOf, UFO_LEN, TR3B_LEN, trafficHold, inHold } from '../../core/harbor-legend.js';
 import { raidEvening, raidPlan, raidAt, forcedRaid, RAID } from '../../core/harbor-raid.js';
 import { dayOf as workDayOf } from '../../core/harbor-workers.js';
 import { createRaid } from './raid.js';
@@ -224,7 +224,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (clock.force.has('no-raid') || !L || !L.crosswalk) return null;
     const nowS = clock.now() / 1000;
     let rd = null;
-    if (clock.force.has('raid')) { if (raidSince == null) raidSince = nowS - 2; rd = forcedRaid(nowS, raidSince, PT.on > 0.3 || clock.force.has('party')); }
+    if (clock.force.has('raid')) {
+      // (Oct 25: a forced raid never STARTS under a legendary — its clock keeps moving back until the sky is clear; one already rolling finishes)
+      const held = trafficHoldNow(); if (raidSince == null || (held && held.on && nowS - raidSince < 3)) raidSince = nowS - 2;
+      rd = forcedRaid(nowS, raidSince, PT.on > 0.3 || clock.force.has('party'));
+    }
     else {
       raidSince = null;
       if (Math.abs(nowS - raidAtS) > 2) {
@@ -585,10 +589,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (lgMemo && nowS - lgMemo.t0 < 4 * 3600) return lgMemo;
     if (LK.local && !LK.alwaysNight && !LK.storm) {
       const ev = eveningOf(LK.local), lg = legendNight(ev.y, ev.m, ev.d);
-      if (lg && !(lg.kind === 'ufo' && (LK.rain || 0) > 0.2)) { const s = (ev.hr - lg.h) * 3600; if (s >= 0 && s < 4 * 3600) { lgMemo = { kind: lg.kind, t0: Math.round((nowS - s) * 2) / 2 }; return lgMemo; } }
+      // (Oct 25: known a minute AHEAD too — the traffic's hold starts a few seconds before the craft shows)
+      if (lg && !(lg.kind === 'ufo' && (LK.rain || 0) > 0.2)) { const s = (ev.hr - lg.h) * 3600; if (s >= -60 && s < 4 * 3600) { lgMemo = { kind: lg.kind, t0: Math.round((nowS - s) * 2) / 2 }; return lgMemo; } }
     }
     return null;
   }
+  // Oct 25 — NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold): the hold on every vehicle's start, now; the planners
+  // read it through peopleFrame's legend; the street under the dock (roadLight) + the raid read it here
+  const trafficHoldNow = () => { const h = trafficHold(legendForPeople()); return h ? { t0: h[0], t1: h[1], on: inHold(h, clock.now() / 1000) } : null; };
   const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(),
     forceWork: workForced(), noWork: clock.force.has('no-work'), dusk: duskFor,
     forceBus: clock.force.has('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
@@ -1176,8 +1184,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         c.fillStyle = gt; c.fillRect(bx - tw, topY, tw * 2, by - topY + tw * 0.3); }
       c.restore(); } }
     // THE IMPLIED ROAD (8a): a passing car's headlights sweeping the near cobbles at night, its soft shadow by day, its sound
-    if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps') * (LB ? legendPow(W * 0.5, 'near', 208) : 1), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
-      gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0, party: PT.on > 0.5 /* (POL4: a party night — a few cars glow) */ }; roadLight.tick(rf); roadLight.draw(c, rf); }
+    if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12, THN = trafficHoldNow(); const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps'), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
+      gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0, party: PT.on > 0.5 /* (POL4: a party night — a few cars glow) */,
+      hold: !!(THN && THN.on), power: LB ? legendPow(W * 0.5, 'near', 208) : 1 /* (Oct 25: no new pass under a legendary; its lamps die with the city — the lamps only, never its night look) */ }; roadLight.tick(rf); roadLight.draw(c, rf); }
     // 8b2 add-on — THE RAID FROM THE FRONT: its patrol car on the street under the dock (seen whole while the dock rests; behind JOIN / HOST
     // otherwise — its beam + its circle on the brick read above them), its red + blue, the spotlight's beam
     if (raidFrame.R && raidFrame.R.front && fadeIn > 0) { const st = L.impliedRoad && L.impliedRoad.street; raidFx.front(c, raidFrame.R, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn, T: bakeTones || T, night: litK(DK, 'lamps'), lampAt: x => roadLampAt(L.lamps, x), dpr, wet: L.wet || 0, rails: st ? st.rails : null, motion: S.motion }, { spotAt: raidFrame.spotAt }); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
@@ -1845,7 +1854,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (6b: THE DIRECTOR — the budget, what runs, who asked + got a yes)
       director: director.state(),
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
-      people: { ...people.debug(), cars: people.cars(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
+      people: { ...people.debug(), cars: people.cars(), traffic: people.traffic(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       // (8b1: THE WILDLIFE — who's where; scare(x, z, r) / startle(): Group 3's witnesses; budget(k): THE DIRECTOR)
       raid: (() => { const P = raidPlanNow(), nowS = clock.now() / 1000, R = P ? raidAt(P, nowS) : null; return P ? { key: P.key, why: P.why, party: P.party, s: +(nowS - P.t0).toFixed(1), tAppear: +(P.tAppear - P.t0).toFixed(1), tStop: P.tStop != null ? +(P.tStop - P.t0).toFixed(1) : null, tDepart: P.tDepart != null ? +(P.tDepart - P.t0).toFixed(1) : null, tBack: +(P.tBack - P.t0).toFixed(1), tEnd: +(P.tEnd - P.t0).toFixed(1), phase: R ? R.phase : 'after', power: R ? +R.power.toFixed(2) : 1, cars: R ? R.cars.length : 0, beam: R ? +R.beam.toFixed(2) : 0, club: R ? +R.club.toFixed(2) : 1 } : null; })(),
       wildlife: { ...wild.debug(), scare: (x, z, r) => wild.scare(x, z, r), startle: () => wild.startle(), budget: k => wild.budget(k), canState: () => wild.canState(), busy: wild.busy() },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
@@ -1857,7 +1866,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (6b: THE LEGENDARY SKY — start('ufo' | 'tr3b', { at, dir }) loads the module if it must; state: what runs, its phase)
       legend: { state: legends ? legends.debug() : { run: null, loaded: false, loading: legendsLoading },
         start: (kind, o = {}) => { const w = { kind, at: o.at || clock.now(), dir: o.dir || 1 }; if (legends) return legends.start(kind, w.at, w); legendWant = w; needLegends(); return true; },
-        stop: () => { legendWant = null; if (legends) legends.stop(); }, power: (x, band) => legendPow(x, band || 'city', 0), drain: (d = 'city') => (legends ? legends.drainCols(d) : null), blackout: () => (legends ? legends.blackout() : null), dark: () => ({ far: !!darkOf('far'), near: !!darkOf('near') }) },
+        stop: () => { legendWant = null; if (legends) legends.stop(); }, power: (x, band) => legendPow(x, band || 'city', 0), drain: (d = 'city') => (legends ? legends.drainCols(d) : null), blackout: () => (legends ? legends.blackout() : null), dark: () => ({ far: !!darkOf('far'), near: !!darkOf('near') }),
+        hold: trafficHoldNow() /* (Oct 25: the traffic's hold — { t0, t1 (abs s), on }) */ },
       sounds: { ...snd.debug(), play: snd.play, loop: snd.loop, jets: snd.jets, bus: snd.bus },
       road: { ...roadLight.debug(), wash: o => roadLight.wash(o) },
       // (FP: the crossing now — the cycle's state, the lantern's box + the heads on screen)

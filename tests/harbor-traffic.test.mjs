@@ -4,7 +4,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
 import { folkMap, folkAt } from '../js/core/harbor-people.js';
-import { trafficLanes, laneSpawns, backVehicle, TRAFFIC, carsAt } from '../js/core/harbor-traffic.js';
+import { trafficLanes, laneSpawns, backVehicle, TRAFFIC, carsAt, simulateLane } from '../js/core/harbor-traffic.js';
+
+test('Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: no car enters the back road under a hold; one already rolling finishes; the same through carsAt', () => {
+  const { L } = setup(), lanes = trafficLanes(L), ctx = { off: OFF, seed: 1924 };
+  const t0 = Date.parse('2026-10-22T13:00:00-04:00') / 1000, j = Math.floor(t0 / TRAFFIC.block);
+  const sp = laneSpawns(j, 'far', ctx);
+  assert.ok(sp.length >= 1, 'a day block has spawns');
+  const victim = sp[sp.length - 1], hold = [victim.t0 - 2, victim.t0 + 40];
+  const plain = simulateLane(j, 'far', { lanes, buses: [], ...ctx }), held = simulateLane(j, 'far', { lanes, buses: [], ...ctx, hold });
+  assert.ok(plain.cars.some(c => c.id === victim.id), 'without the hold it drives');
+  assert.ok(!held.cars.some(c => c.id === victim.id), 'under the hold it never enters');
+  for (const c of held.cars) assert.ok(c.ts < hold[0] || c.ts >= hold[1], `${c.id} entered outside the hold`);
+  // a car that entered before the hold keeps rolling under it — its samples run on past the hold's start
+  const earlier = held.cars.find(c => c.ts < hold[0] && c.ts + c.xs.length * TRAFFIC.dt > hold[0]);
+  if (earlier) assert.ok(earlier.xs.length > 2, 'the earlier car finishes its crossing');
+  // the public API: the simulation is keyed by the hold, so a hold appearing mid-session (a forced run) takes at once
+  const world = { L, busesIn: () => [], off: OFF, seed: 1924 };
+  const a = carsAt(victim.t0 + 3, world), b = carsAt(victim.t0 + 3, { ...world, hold });
+  assert.ok(a.some(c => c.id === victim.id) && !b.some(c => c.id === victim.id), 'carsAt: there without the hold, gone with it');
+});
 import { signalAt } from '../js/core/harbor-promenade.js';
 
 const OFF = -240;

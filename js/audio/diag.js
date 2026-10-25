@@ -57,7 +57,10 @@ export function mountAudioDiag() {
     prevCtx = E.time; prevEl = d.el ? d.el.t : null;
     const arrow = m => m == null ? '·' : m ? '▲' : '■';
     const ctxOk = E.state === 'running' && !E.frozen && ctxMoves !== false;
-    const elOk = !!d.el && !d.el.paused && !d.el.err && elMoves !== false;
+    // (THE TAPE STOP — the TR-3B: the element is PAUSED on purpose while a decoded slice plays bent through the graph; the row shows the
+    // tape's speed + the song's time on it instead, and "sounding" is the tape's)
+    const tp = d.tape && (d.tape.phase === 'bent' || d.tape.phase === 'releasing' || d.tape.phase === 'ending') ? d.tape : null;
+    const elOk = tp ? d.sounding : !!d.el && !d.el.paused && !d.el.err && elMoves !== false;
     const should = !!d.want && !d.off;
     // 7a (the owner: the header said "sounding" over a detail row saying "sounding NO · locked (no tap yet)"): ONE status, read by the
     // header AND the want row — sounding / SOUNDING DIRECT / silent (music off · muted · nothing to play) / LOCKED (no tap yet) /
@@ -65,13 +68,15 @@ export function mountAudioDiag() {
     const st = audioStatus(d, E, should);
     const okAll = st.ok;
     // (the title carries the clock: it changes every half second — the body only when something happened; folded: ONE short line)
-    const head = `AUDIO ▾ ${st.text} · ctx ${E.state} · el ${d.el ? (d.el.paused ? 'paused' : 'playing') : 'none'} · ${hhmmss(Date.now())}`;
+    const head = `AUDIO ▾ ${st.text} · ctx ${E.state} · el ${d.el ? (tp ? `TAPE ${tp.rate.toFixed(2)}×` : d.el.paused ? 'paused' : 'playing') : 'none'} · ${hhmmss(Date.now())}`;
     const fold = `AUDIO ▸ ${st.text} · ctx ${E.state}`;
     const rows = [
       line(ctxOk ? 'dbg-ok' : 'dbg-bad', `ctx ${E.state}${E.frozen ? ' FROZEN' : ''} · t ${E.time.toFixed(2)} ${arrow(ctxMoves)} · rebuilds ${E.rebuilds}${E.why ? ` (${E.why})` : ''}${E.stuck ? ' · STUCK' : ''}${E.unlocked ? '' : ' · locked (no tap yet)'} · alive ${E.alive} (made ${E.made}, closed ${E.closed})${E.session ? ` · session ${E.session}` : ''}`),
       line('dbg-ok', `set ${E.sessionSet && E.sessionSet.type ? `${E.sessionSet.type} at ${hhmmss(E.sessionSet.at)} (${E.sessionSet.why})` : E.session ? 'nothing yet' : 'no audioSession API'}`),
       line(elOk || !should ? 'dbg-ok' : 'dbg-bad', d.el
-        ? `el ${d.playing} ${d.el.paused ? 'PAUSED' : 'playing'} · ready ${d.el.ready} · net ${d.el.net} · err ${d.el.err || '–'} · t ${d.el.t.toFixed(1)} ${arrow(elMoves)} · gain ${d.el.gain.toFixed(2)}${d.el.broken ? ' · BROKEN' : ''}${d.still ? ' · STILL' : ''}`
+        ? tp
+          ? `el ${d.playing} ON THE TAPE ${tp.rate.toFixed(2)}× (${tp.phase}) · song ${tp.at.toFixed(1)} ▲ · behind ${tp.lost.toFixed(1)} s · el ${d.el.paused ? 'paused' : 'playing'} at ${d.el.t.toFixed(1)} · rate ${d.el.rate} · gain ${d.el.gain.toFixed(2)}`
+          : `el ${d.playing} ${d.el.paused ? 'PAUSED' : 'playing'} · ready ${d.el.ready} · net ${d.el.net} · err ${d.el.err || '–'} · t ${d.el.t.toFixed(1)} ${arrow(elMoves)} · gain ${d.el.gain.toFixed(2)}${d.el.rate !== 1 ? ` · RATE ${d.el.rate}` : ''}${d.el.broken ? ' · BROKEN' : ''}${d.still ? ' · STILL' : ''}${d.tape && d.tape.runs ? ` · tape ${d.tape.runs} run${d.tape.runs > 1 ? 's' : ''}${d.tape.reloads ? `, ${d.tape.reloads} reload` : ''}${d.tape.aborts ? `, ${d.tape.aborts} abort` : ''}${d.tape.ready ? ` · ${d.tape.ready} s ready` : ''}` : d.tape && d.tape.ready ? ` · tape ${d.tape.ready} s ready` : ''}`
         : `el none${d.carry ? ` (carrying ${d.carry} to new voices)` : ''} · voices ${d.voices}`),
       line(d.out === 'direct' ? 'dbg-ok' : 'dbg-ok', `out ${d.out === 'direct' ? 'DIRECT ELEMENT' : 'WEB AUDIO'} · direct ${d.direct} · src ${d.el ? d.el.src : '–'} · voices ${d.voices} (${d.armed} armed) · probe ${d.peak < 0 ? '?' : d.peak.toFixed(3)}`),
       line(okAll ? 'dbg-ok' : 'dbg-bad', `want ${d.want || 'nothing'}${d.off ? ` (${d.off})` : ''} · ${st.text}${d.needTap && st.key !== 'tap' ? ' · NEEDS TAP' : ''}${d.dead && st.key !== 'dead' ? ' · DEAD VOICE' : ''}${d.ended ? ' · ended' : ''} · heals ${d.heals}${d.last ? ` (${d.last})` : ''}`),

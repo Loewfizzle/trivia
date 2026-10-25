@@ -18,6 +18,7 @@
 import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, canStart, inGesture, clockFrozen, graphOk, onResume, onRebuild, onGesture, onFrozen, tapFoundSilence, audioHealth, audioLog, audioEvents } from './engine.js';
 import { settings, onSettings } from './settings.js';
 import { musicUrl } from './music-url.js';
+import { createTapeStop } from './tape-stop.js';
 
 const FILES = {
   menu1: 'menu', menu2: 'menu2', menu3: 'menu3', menu4: 'menu4', cipher: 'cipher-breach', signal: 'last-signal',
@@ -190,9 +191,14 @@ function makeVoices() {
     el.setAttribute('playsinline', '');
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    try { ctx.createMediaElementSource(el).connect(gain); } catch { continue; }
+    // (THE TAPE STOP: the element's own gain sits between its source and the voice's level, so the tape can fade the element out
+    // and in under the same fades + ducks — tape-stop.js)
+    const elGain = ctx.createGain();
+    elGain.gain.value = 1;
+    try { ctx.createMediaElementSource(el).connect(elGain); } catch { continue; }
+    elGain.connect(gain);
     gain.connect(tone());
-    const voice = { el, gain, id: null, busyUntil: 0, armed: false };
+    const voice = { el, gain, elGain, id: null, busyUntil: 0, armed: false };
     watchErrors(voice);
     activate(voice);
     voices.push(voice);
@@ -262,6 +268,7 @@ function stopVoice(voice, seconds) {
 
 // out: 'web' (a voice through the graph) | 'direct' (iOS's own pipeline) | undefined = the direct element while the graph is dead
 function startTrack(id, xf = XFADE, out) {
+  if (tape.active()) tape.abort('new song');
   let toDirect = out === 'direct' || (out !== 'web' && useDirect());
   if (!toDirect && !voices.length) { if (direct && direct.armed) toDirect = true; else return; }
   const voice = toDirect ? direct : freeVoice();
@@ -360,12 +367,15 @@ export function musicSounding() {
   if (!current) return !desired || isUnlocked();             // not started yet (before the first tap) = not sounding
   const el = current.voice.el, ctx = getContext();
   if (current.voice.direct) return !el.paused && !el.error && !current.voice.broken && !needTap && !stall.still;   // (the graph doesn't matter)
+  // (THE TAPE STOP carries the song: the element is paused on purpose — the graph running + the source inside its buffer is "sounding")
+  if (tape.active()) return !!ctx && ctx.state === 'running' && !clockFrozen() && tape.playing() && !el.error && !current.voice.broken && !dead;
   return !!ctx && ctx.state === 'running' && !clockFrozen() && !el.paused && !el.error && !current.voice.broken && !dead && !needTap && !stall.still;
 }
 /** THE MUSIC'S FIRST TAP (title.js, City 2.0): the playing song's own clock (s) while a song really sounds — playing, sounding, the
  *  music on, not muted, its volume up — else -1. The title's sign answers the moment this starts moving after a tap. */
 export function musicClock() {
   if (!current || current.ended || settings.musicOff || settings.muted || !(settings.music > 0) || !musicSounding()) return -1;
+  if (tape.active()) return tape.clock();
   const el = current.voice.el;
   return el && !el.paused && isFinite(el.currentTime) ? el.currentTime : -1;
 }
@@ -373,6 +383,7 @@ export function musicClock() {
 // Loop watcher: crossfade into a fresh copy before the end.
 let lastNudge = 0;
 function watchLoop() {
+  tape.tick();
   if (!current || !visible) return;
   const { voice, id } = current;
   const el = voice.el;
@@ -384,6 +395,8 @@ function watchLoop() {
     reloadVoice(voice, el.currentTime || positions[id] || 0);
     return;
   }
+  // (the tape carries the song: its element is paused on purpose, its clock still — the tape's own watchdog looks after the way back)
+  if (tape.active()) { stall = { t: -1, since: performance.now(), still: false }; return; }
   if (el.paused && !el.ended && (isUnlocked() || voice.direct) && !needTap && performance.now() - lastNudge > 1500) {
     lastNudge = performance.now();
     playEl(el, 'watchdog', voice);
@@ -499,50 +512,33 @@ export function duckMusic(level, seconds = 0.6) {
 }
 
 /**
- * THE TAPE STOP (City 2.0, 6b — the TR-3B "bends the music"): ramp the playing song's speed to `rate` (BEND_FLOOR 0.55..1) over `seconds`, the pitch
- * sagging with it (preservesPitch off while bent) — like a record player losing power. The time it falls behind is counted, and when the
- * speed is back at 1 the song skips ahead by exactly that much: a lobby's synced song is on the room's clock again (no drift). A new
- * track resets it. Silent no-op without a song.
+ * THE TAPE STOP (City 2.0, 6b → Oct 25 — the TR-3B "bends the music"; docs/audio.md#the-tape-stop-in-web-audio): the song's speed to
+ * `rate` (0.25..1) over `seconds`, the pitch sagging with it — like a record player losing power — IN WEB AUDIO (tape-stop.js): a
+ * decoded slice of the song on an AudioBufferSourceNode takes over from the element (paused), its playbackRate ramped, a wow + a
+ * flutter on it (`wow` / `flutter`: depths as fractions of the rate); rate 1 releases: the element resumes where the tape got to (a
+ * room-clocked song: where it would be) once its clock is seen moving. The element's own playbackRate is NEVER changed (iOS Safari
+ * stalls / silences a media element whose rate changes — the owner's panel, Oct 25). Nothing happens on the direct path or without
+ * a running graph (the caller's duck is the dip). Silent no-op without a song.
  */
-let bendNow = { rate: 1, lost: 0, el: null, timer: 0, to: 1, step: 0 };
-export const BEND_FLOOR = 0.55;
-export function bendMusic(rate, seconds = 0.5) {
-  // (8b2: never under 0.55 — iOS Safari mutes a media element near half speed; the AUDIO panel read NOT SOUNDING through the TR-3B)
-  const to = Math.max(BEND_FLOOR, Math.min(1, +rate || 1));
-  const el = current && current.voice && current.voice.el;
-  if (!el) { bendNow.to = 1; return; }
-  if (bendNow.el !== el) { clearInterval(bendNow.timer); bendNow = { rate: el.playbackRate || 1, lost: 0, el, timer: 0, to: 1, step: 0 }; }
-  if (Math.abs(to - bendNow.to) < 0.004 && bendNow.timer) return;
-  bendNow.to = to;
-  const n = Math.max(1, Math.round(Math.max(0.05, seconds) / 0.05));
-  bendNow.step = (to - bendNow.rate) / n;
-  clearInterval(bendNow.timer);
-  let last = performance.now();
-  bendNow.timer = setInterval(() => {
-    const b = bendNow, now = performance.now(), dt = (now - last) / 1000; last = now;
-    if (!b.el || b.el !== (current && current.voice && current.voice.el)) { clearInterval(b.timer); b.timer = 0; return; }
-    b.lost += (1 - b.rate) * dt;
-    const r = Math.abs(b.to - b.rate) <= Math.abs(b.step) + 1e-4 ? b.to : b.rate + b.step;
-    b.rate = r;
-    try { b.el.preservesPitch = r >= 0.999; b.el.webkitPreservesPitch = r >= 0.999; b.el.playbackRate = r; } catch { /* fine */ }
-    if (r === b.to && b.to >= 0.999) {
-      // (POLISH 4: back at speed — what it lost is made up WITHOUT a skip: a big debt seeks (the TR-3B seeks while the music is silent:
-      // musicCatchUp), a small one drains at 1.05 ×, the pitch kept)
-      if (b.lost > 3 && isFinite(b.el.duration)) { try { b.el.currentTime = Math.min(b.el.duration - 0.5, b.el.currentTime + b.lost); } catch { /* fine */ } b.lost = 0; }
-      if (b.lost > 0.05) { b.lost -= 0.05 * dt; try { b.el.preservesPitch = true; b.el.webkitPreservesPitch = true; b.el.playbackRate = 1.05; } catch { /* fine */ } return; }
-      try { b.el.playbackRate = 1; } catch { /* fine */ }
-      clearInterval(b.timer); b.timer = 0; b.lost = 0;
-    } else if (r === b.to) { /* held bent: keep counting the time it loses */ b.step = 0; }
-  }, 50);
+const tape = createTapeStop({
+  ctx: getContext, frozen: clockFrozen, log: audioLog,
+  fetchBytes: url => fetch(url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); }).then(ab => new Uint8Array(ab)),
+  decode: (c, ab) => new Promise((res, rej) => { try { const p = c.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); } catch (e) { rej(e); } }),
+  elPlay: (el, why) => playEl(el, why, current && current.voice.el === el ? current.voice : null),
+  elReload: (voice, at) => { heals++; lastHeal = 'tape: reload'; reloadVoice(voice, at); },
+  visible: () => visible,
+});
+export function bendMusic(rate, seconds = 0.5, o = {}) {
+  if (!current || current.ended || !current.id) return 'idle';
+  return tape.bend(current.voice, current.id, urlFor(current.id), rate, seconds, o);
 }
-/** POLISH 4: make up the time a tape stop lost NOW, by a seek — call it while the music is silent (the TR-3B: just before it comes back) */
-export function musicCatchUp() {
-  const b = bendNow; if (!b.el || !(b.lost > 0.05) || !isFinite(b.el.duration)) return false;
-  try { b.el.currentTime = Math.min(b.el.duration - 0.5, b.el.currentTime + b.lost); } catch { return false; }
-  b.lost = 0; return true;
-}
-/** the tape stop's state (tests, the AUDIO panel): { rate, lost (s behind), bent } */
-export const musicBend = () => ({ rate: +bendNow.rate.toFixed(3), lost: +bendNow.lost.toFixed(2), bent: bendNow.rate < 0.999 });
+/** decode the slice ahead of the first bend (the craft arriving: ~3 s before the sag starts) */
+export function prepareBend() { if (!current || current.ended || !current.id) return false; return tape.prepare(current.voice, current.id, urlFor(current.id)); }
+/** a room-clocked song makes up the time the tape lost when it comes back (the title's mood music goes on from where the tape got to) */
+export function musicCatchUp() { return tape.catchUp(); }
+export function setMusicClocked(v) { tape.setClocked(v); }
+/** the tape stop's state (tests, the AUDIO panel): { phase, rate, at, lost, bent, runs, aborts, reloads … } */
+export const musicBend = () => tape.state();
 
 /** Test hook: cut the playing voice off from the probe (what WebKit does after the lock screen: its clock runs, nothing comes out). */
 export function musicSimulateDead() {
@@ -560,6 +556,8 @@ export function musicSeek(secondsFromEnd) { if (current && current.voice.el.dura
 export function nowPlaying() {
   if (!current || !current.id || !current.id.startsWith('m:') || current.ended) return null;
   const el = current.voice.el;
+  // (on the tape: the song's time + speed are the tape's — the element is paused on purpose)
+  if (tape.active()) return { id: current.id.slice(2), at: tape.clock(), dur: isFinite(el.duration) && el.duration > 0 ? el.duration : 0, el, rate: tape.rate(), tape: true };
   if (!el || el.paused || !isFinite(el.currentTime)) return null;
   return { id: current.id.slice(2), at: el.currentTime || 0, dur: isFinite(el.duration) && el.duration > 0 ? el.duration : 0, el, rate: el.playbackRate || 1 };
 }
@@ -578,6 +576,7 @@ export function musicDebug() {
     voices: voices.map(v => ({ id: v.id, gain: +v.gain.gain.value.toFixed(3), paused: v.el.paused, t: +(v.el.currentTime || 0).toFixed(2), broken: !!v.broken })),
     out: musicOut(),
     health: { sounding: musicSounding(), needTap, dead, heals, last: lastHeal, peak: +probePeak().toFixed(4), out: musicOut(), ...audioHealth() },
+    tape: tape.state(),
   };
 }
 
@@ -589,15 +588,17 @@ export function musicDiag() {
     off: settings.musicOff ? 'music off' : settings.muted ? 'muted' : '',
     playing: current ? current.id : null, ended: !!(current && current.ended), carry: carry ? carry.id : null,
     el: el ? { paused: el.paused, ready: el.readyState, net: el.networkState, err: el.error ? el.error.code : 0, t: el.currentTime || 0,
-      src: short(el.src), gain: v.gain ? v.gain.gain.value : el.muted ? 0 : el.volume, broken: !!v.broken } : null,
+      src: short(el.src), gain: v.gain ? v.gain.gain.value : el.muted ? 0 : el.volume, broken: !!v.broken, rate: el.playbackRate } : null,
     voices: voices.length, armed: voices.filter(x => x.armed).length, out: musicOut(), direct: direct ? (direct.armed ? 'armed' : 'not armed') : 'none',
     sounding: musicSounding(), needTap, dead, still: !!stall.still, heals, last: lastHeal, peak: probePeak(),
+    tape: tape.state(),
     engine: audioHealth(), events: audioEvents(),
   };
 }
 
 // Throw the voices away and make new ones (inside a tap: iOS lets a new element start only there), keeping the song + its place.
 function remakeVoices(why) {
+  if (tape.active()) tape.abort('new voices');
   const onDirect = !!(current && current.voice.direct);
   if (current && !current.ended && current.id && !onDirect) {
     const el = current.voice.el;
@@ -617,6 +618,7 @@ function heal(why) {
   if (!visible) return;
   if (!current) { apply(); return; }
   if (current.ended) return;
+  if (tape.active()) { fade(current.voice, duckLevel, 0.6); apply(); return; }   // (the tape carries the song: its element is paused on purpose)
   const v = current.voice, el = v.el;
   // errored / no source left (iOS can drop it while the phone sleeps) / stuck still while "playing": load it again (inside a tap: allowed)
   // (networkState 3 = no source: right after a new src it reads 3 for a moment while the browser picks it up — only later is it lost)
@@ -654,6 +656,7 @@ function rescue(why) {
 // THE DIRECT PATH: the current song over to the direct element at its place (the voice pauses); or the other way round
 function goDirect(why) {
   if (!current || current.ended || current.voice.direct || !direct || !direct.armed) { if (!direct || !direct.armed) needTap = true; return; }
+  if (tape.active()) tape.abort('direct path');
   const el = current.voice.el;
   positions[current.id] = el.currentTime || positions[current.id] || 0;
   heals++; lastHeal = why + ': direct';
@@ -694,14 +697,14 @@ onGesture(() => {
   const ctx = getContext();
   // on the direct path with the graph seen running for 2 s: back onto a voice (its fades, the kick listener) at the same place
   if (current && current.voice.direct && graphOk()) { if (voices.length && voices[0].gain.context !== ctx) remakeVoices('new context'); backToGraph('tap'); return; }
-  const off = !!current && !current.ended && (current.voice.el.paused || current.voice.broken || !!current.voice.el.error);
+  const off = !!current && !current.ended && ((current.voice.el.paused && !tape.active()) || current.voice.broken || !!current.voice.el.error);
   if (needTap || dead || off || !musicSounding() || (voices.length && voices[0].gain.context !== ctx)) rescue('tap');
 });
 onVisibility(v => {
   visible = v;
   if (!current) { apply(); return; }
   // (an element still on its silent blob is being activated: pausing it would abort that — leave it)
-  if (!v) { positions[current.id] = current.voice.el.currentTime || 0; for (const x of [...voices, ...(direct ? [direct] : [])]) if (!x.el.src.startsWith('blob:')) x.el.pause(); stall = { t: -1, since: 0, still: false }; }
+  if (!v) { if (tape.active()) tape.abort('hidden'); positions[current.id] = current.voice.el.currentTime || 0; for (const x of [...voices, ...(direct ? [direct] : [])]) if (!x.el.src.startsWith('blob:')) x.el.pause(); stall = { t: -1, since: 0, still: false }; }
   else {
     heal('back on screen');
     // 1.5 s later: still not sounding? the next tap restarts it (the engine rebuilds a stuck context in that same tap)

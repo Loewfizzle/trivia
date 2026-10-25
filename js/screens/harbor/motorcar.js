@@ -31,6 +31,7 @@ export function createMotorcar() {
       const v = o.vehicle || { model: 'modelA', paint: 0 }, id = MODELS[v.model] ? v.model : 'modelA', M = MODELS[id], A = anatomy(id);
       const cam = o.cam, sp = cam.F / car.z, gy = groundY(cam, car.z), cx = cam.VPX + cam.F * car.x / car.z, dir = car.dir;
       const T = o.T || {}, day = (T.day || 0) + (T.gold || 0), night = o.night || 0;
+      const lamps = o.lamps == null ? 1 : Math.max(0, Math.min(1, o.lamps));   // (Oct 25: the TR-3B's blackout — its lamps + the street's light on it die with the city)
       const look = night > 0.5 ? 'night' : (T.gold || 0) > (T.day || 0) ? 'golden' : 'day';
       const len = M.len * sp, x0 = cx - len / 2, x1 = cx + len / 2;
       last = { x: cx, y: gy, w: len, h: M.h * sp, z: car.z, dir, look, top: gy - M.h * sp, model: id };
@@ -53,7 +54,7 @@ export function createMotorcar() {
         const ug = c.createLinearGradient(0, uy, 0, gy + 0.6); ug.addColorStop(0, 'rgba(14,12,26,0.25)'); ug.addColorStop(1, 'rgba(14,12,26,0.85)');
         c.globalAlpha = o.k * (0.75 - 0.25 * night); c.fillStyle = ug; c.fillRect(Math.min(ux0, ux1), uy, Math.abs(ux1 - ux0), gy + 0.6 - uy); }
       // ---- at night: the headlamps' pool on the cobbles ahead + the glints along the rails, the tail lamp's red on the ground
-      const hk = night * o.k;
+      const hk = night * o.k * lamps;
       if (hk > 0.02) {
         if (!pool) pool = glowSprite('255,226,172', 0.4);
         c.globalCompositeOperation = 'lighter';
@@ -76,9 +77,9 @@ export function createMotorcar() {
       // ---- the car (the kit): its wheels turning by the distance rolled, the body riding the cobbles, the street lamps' light on it,
       // its lamps lit at night, a party night's underglow
       const bob = o.motion ? 0.012 * sp * Math.sin(o.t * 17.3) + 0.006 * sp * Math.sin(o.t * 29.1 + 1) : 0;
-      const lampK = Math.max(0, Math.min(1, o.lampAt ? o.lampAt(car.x) * night : 0));
+      const lampK = Math.max(0, Math.min(1, o.lampAt ? o.lampAt(car.x) * night * lamps : 0));
       c.globalAlpha = 1;
-      kit.draw(c, { id, paint: v.paint || 0, trade: v.trade || 0, rumble: !!v.rumble, x: cx, y: gy, sp, dir, dist: car.x * dir, speed: car.speed, look, lampK, lit: night, underglow: o.underglow || null, glowK: night, dpr: o.dpr, bob, k: o.k });
+      kit.draw(c, { id, paint: v.paint || 0, trade: v.trade || 0, rumble: !!v.rumble, x: cx, y: gy, sp, dir, dist: car.x * dir, speed: car.speed, look, lampK, lit: night * lamps, underglow: o.underglow || null, glowK: night * lamps, dpr: o.dpr, bob, k: o.k });
       c.restore();
       last.drawn = true;
     },

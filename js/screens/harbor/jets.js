@@ -1,15 +1,19 @@
-// CITY 2.0 — THE HARBOR, PART 6b: THE JETS — F-16s that look BADASS (docs/harbor.md#part-6b; plan.md "THE MILITARY JETS", "MACH
-// DIAMONDS"). One painter shared by the TR-3B's CHASE, THE AIR SHOW (a diamond of four, smoke on) and THE MISSING MAN (a finger-four,
-// #3 pulling up and away). Seen from below + the side as they cross:
-//   THE AIRFRAME   a sharp F-16 silhouette — the pointed radome, the gold-tinted bubble canopy, the chin intake, the tall swept fin, the
-//                  cropped delta wing seen from just below, the stabilator, ventral fins; two-tone air-superiority grey camo (the sun on
-//                  its spine by day, warm at golden hour; a dark shape at night lit from below by the city); wingtip MISSILES + under-wing
-//                  pylons with their stores; a sprite per (size, light, direction), cached
+// CITY 2.0 — THE HARBOR, PART 6b → Oct 25: THE JETS — ONE stealth fighter shared by the TR-3B's CHASE, THE AIR SHOW (a diamond of four,
+// smoke on), THE MISSING MAN (a finger-four, #3 pulling up and away) and THE SURPRISE FLYBY (docs/harbor.md#the-f-22; plan.md "THE JETS →
+// AN F-22 RAPTOR-STYLE STEALTH FIGHTER": the F-16s "look too cartoonish — they need to look like modern, real, menacing flying death
+// machines"). Seen from below + the side as they cross. Realism at phone size comes from SILHOUETTE + SHADING:
+//   THE AIRFRAME   the angular FACETED body — a chined forebody with a hard light / dark edge along it, the long gold-tinted bubble canopy,
+//                  the raked parallelogram INTAKES, the DIAMOND wing seen from just below, the big diamond stabilators, TWIN CANTED
+//                  TAILS, the 2-D vectoring nozzles with SERRATED edges; INTERNAL weapons bays (their sawtooth doors closed on the
+//                  belly — nothing hangs outside); dark GUNMETAL grey with real specular highlights (the sun along the spine + the chine,
+//                  a hot spot on the canopy, a sheen across the fin) and per-panel shading (no flat fills, no thick outlines);
+//                  low-visibility grey USAF markings (a grey-on-grey star-and-bar, the fin's flash); a sprite per (size, light), cached
 //   THE AFTERBURNER (live, additive) a tapered plume from the nozzle with MACH DIAMONDS — 5 evenly spaced shock nodes: white-hot at
 //                  the nozzle, then blue-white, violet, orange, a dim orange — crisp rhombi with a tight glow, flickering a touch; at night
-//                  a soft glow round the whole plume (dimmer by day, still read)
-//   THE LIGHTS     at night: the green FORMATION ("slime") strips on the spine, the intake + the fin, the near wingtip's nav light (green
-//                  flying right: its starboard side is ours; red flying left), a white tail light, a red beacon on the fin
+//                  a soft glow round the whole plume (dimmer by day, still read); HEAT HAZE behind the engines (a shimmer of pale blobs)
+//   MOTION BLUR    (live) on full burn the airframe streaks: two fainter copies trail it by a hair
+//   THE LIGHTS     at night: the formation strips (the forebody's chine, the aft fuselage, the fin's tip), the near wingtip's nav light
+//                  (green flying right: its starboard side is ours; red flying left), a white tail light, the beacon on the spine
 //   VAPOUR + SMOKE a vapour cone round the wing on a hard pull (the air show), a white smoke trail by day (the air show's smoke on)
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { FORMATIONS } from '../../core/harbor-legend.js';
@@ -24,157 +28,165 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Mat
 export function jetLook(L) { return { day: clamp01(L.w.day + L.w.dawn * 0.7), golden: L.w.golden || 0, dark: clamp01(L.w.night + L.w.late) }; }
 
 // ------------------------------------------------------------------ the airframe (nose → +x, in jet lengths; y down; the nozzle at 0)
-// POLISH 4 — THE F-16, MUCH MORE DETAIL (the owner: "a real F-16 shape, two-tone grey camouflage with panel lines, USAF roundels, a
-// small American flag on the tail, wingtip missiles + ordnance on pylons"). Seen from the side + a little below: the ogive radome +
-// its pitot, the gold-tinted BUBBLE canopy far forward (the pilot's helmet in it), the CHIN INTAKE's big mouth under the cockpit,
-// the leading-edge STRAKE flowing into the cropped delta (the near wing seen from just below), the tall swept FIN (its rudder line,
-// the flag, the cap), the all-moving stabilator, the ventral fins, the nozzle's petals; THE CAMO — the medium grey sides, the
-// darker grey upper surfaces in a soft disruptive pattern, the light grey belly; engraved panel lines + access panels; THE STAR-AND-
-// BAR on the intake + under the near wing; THE STORES — an AIM-9 on the wingtip rail, an AIM-120 on the outer pylon, a 370-gal tank
-// on the inner one. Lit by the hour: the sun on the spine by day (warm at golden hour), a dark shape with the moon's cool hair on its
-// back at night (the city is dark under the TR-3B).
+// THE F-22 (Oct 25). Every edge is a straight facet or a long flat curve — nothing bulbous. The forebody is a wedge with a CHINE (the
+// sharp edge running from the nose along the side to the intake's top corner): above it the upper facet catches the sky and the sun,
+// below it the lower facet sits in shade — that one hard tone break is what makes it read as a stealth jet at 90 pt. The intakes are
+// raked parallelograms under the chine, their mouths dark with a lit sharp lip. The wing is a big diamond: its leading edge swept back
+// from the intake's top to the cropped tip, its trailing edge swept forward to the root at the nozzles. The stabilators are diamonds too,
+// overlapping the fins' feet. The twin fins are canted outward: the near one leans toward us (its outer face lit), the far one shows as
+// a sliver above it. The nozzles are flat 2-D wedges with serrated trailing edges. The belly carries the sawtooth outlines of the closed
+// weapons bay doors. The paint: a gunmetal grey that changes tone panel by panel, a bright specular line along the spine, a hair of light
+// on every leading edge, the gold canopy with a hot spot, grey-on-grey markings.
 const FUSE = [   // the fuselage outline (cubic beziers: c1, c2, end)
-  ['M', 1.0, 0.004],
-  ['C', 0.96, -0.012, 0.91, -0.03, 0.84, -0.04],            // the radome up to the windscreen's foot
-  ['L', 0.6, -0.05],                                         // (under the canopy)
-  ['C', 0.5, -0.058, 0.38, -0.056, 0.27, -0.05],             // the dorsal spine
-  ['C', 0.16, -0.046, 0.08, -0.04, 0.035, -0.033],           // down to the nozzle
-  ['L', 0.035, 0.03],
-  ['C', 0.1, 0.04, 0.24, 0.05, 0.36, 0.052],                 // the engine's belly
-  ['C', 0.42, 0.06, 0.5, 0.08, 0.58, 0.084],                 // the intake duct's underside
-  ['L', 0.655, 0.086],                                       // the lower lip
-  ['L', 0.69, 0.034],                                        // the mouth's leading edge, up to the fuselage
-  ['C', 0.8, 0.03, 0.92, 0.022, 1.0, 0.004],                 // the chin up to the nose
+  ['M', 1.0, 0.0],
+  ['C', 0.95, -0.01, 0.89, -0.026, 0.84, -0.034],           // the chined forebody up to the canopy's foot
+  ['L', 0.59, -0.047],                                       // (the canopy sill)
+  ['C', 0.5, -0.053, 0.4, -0.054, 0.33, -0.052],             // the spine behind the canopy
+  ['L', 0.2, -0.045],                                        // the aft deck between the fins
+  ['L', 0.05, -0.03],
+  ['L', 0.0, -0.026],                                        // the nozzle's top
+  ['L', 0.0, 0.03],
+  ['L', 0.14, 0.044],                                        // the engine bay's underside
+  ['C', 0.3, 0.056, 0.46, 0.064, 0.6, 0.083],                // the belly out to the intake's underside
+  ['L', 0.72, 0.085],                                        // the intake's lower lip
+  ['L', 0.78, 0.027],                                        // the mouth's raked edge up to the chine
+  ['C', 0.86, 0.02, 0.94, 0.009, 1.0, 0.0],                  // the chine to the nose
 ];
 function fusePath(x) {
   x.beginPath();
   for (const s of FUSE) { if (s[0] === 'M') x.moveTo(s[1], s[2]); else if (s[0] === 'L') x.lineTo(s[1], s[2]); else x.bezierCurveTo(s[1], s[2], s[3], s[4], s[5], s[6]); }
   x.closePath();
 }
-const FIN = [[0.3, -0.049], [0.125, -0.325], [0.05, -0.325], [0.04, -0.04]];
-const WING = [[0.54, 0.028], [0.305, 0.142], [0.215, 0.142], [0.19, 0.042]];
-const FARW = [[0.5, -0.052], [0.36, -0.088], [0.29, -0.088], [0.23, -0.05]];
-const STAB = [[0.13, 0.028], [0.005, 0.094], [-0.035, 0.092], [-0.008, 0.028]];
-const VENT = [[0.16, 0.045], [0.115, 0.088], [0.085, 0.088], [0.1, 0.045]];
+const FIN = [[0.33, -0.05], [0.175, -0.255], [0.09, -0.255], [0.1, -0.045]];                 // the near canted fin (short + broad: a Raptor's)
+const FINF = [[0.35, -0.058], [0.205, -0.268], [0.12, -0.268], [0.118, -0.056]];              // the far one (a sliver above + behind the near)
+const WING = [[0.62, 0.04], [0.33, 0.172], [0.255, 0.172], [0.2, 0.06]];                      // the near wing, from just below
+const FARW = [[0.56, -0.05], [0.4, -0.066], [0.33, -0.066], [0.25, -0.05]];                   // the far wing's edge: a sliver over the spine
+const STAB = [[0.26, 0.036], [0.075, 0.11], [-0.005, 0.108], [-0.03, 0.036]];                 // the near stabilator (a diamond)
+const MOUTH = [[0.78, 0.027], [0.72, 0.085], [0.705, 0.084], [0.762, 0.03]];                  // the intake's mouth (dark)
+const CHINE = [[1.0, 0.0], [0.94, 0.009], [0.86, 0.02], [0.78, 0.027], [0.64, 0.032], [0.6, 0.083], [0.72, 0.085]];   // (the lower forebody facet, under the chine)
 function paintJet(x, look) {
   const day = clamp01(look.day + look.golden * 0.8) * (1 - look.dark), gold = clamp01(look.golden * 1.3) * (1 - look.dark), dark = look.dark;
   const poly = (pts, col) => { x.fillStyle = col; x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.fill(); };
+  const clipPoly = pts => { x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.clip(); };
   // (the hour's light on a paint colour: warm at golden hour, a dark blue-grey at night that keeps a little of the colour)
-  const lit = c => mix(mix(c, c.map((v, i) => (v + [190, 140, 110][i]) / 2), gold * 0.55), c.map(v => 22 + v * 0.18), dark * 0.85);
-  // THE GREYS (FS 36118 gunship grey on top, 36270 on the sides, 36375 under) — lit by the hour
-  const gTop = lit([84, 90, 98]), gSide = lit([128, 134, 140]), gBelly = lit([166, 171, 176]), gDark = lit([62, 66, 74]);
-  const line = (a = 0.3) => rgb([0, 0, 0], a * (0.6 + 0.4 * day));
-  const hair = (a = 0.16) => rgb([255, 255, 255], a * day);
-  // the FAR wing + the far stabilator (behind the body, darker): their edges just showing above the spine
-  poly(FARW, rgb(mix(gTop, [10, 12, 18], 0.35)));
-  poly([[0.12, -0.03], [0.0, -0.08], [-0.035, -0.077], [-0.005, -0.028]], rgb(mix(gTop, [10, 12, 18], 0.4)));
-  // THE FIN: tall + swept; the camo's dark grey on its upper half, the rudder's hinge, the cap, the flag, the leading edge lit
+  const lit = c => mix(mix(c, c.map((v, i) => (v + [190, 140, 110][i]) / 2), gold * 0.5), c.map(v => 16 + v * 0.2), dark * 0.85);
+  // THE GUNMETAL: the upper surfaces darkest, the sides mid, the belly lighter (the Raptor's two greys, metallic)
+  const gTop = lit([50, 54, 60]), gSide = lit([72, 76, 83]), gBelly = lit([98, 102, 108]), gDark = lit([34, 37, 42]), gEdge = lit([120, 124, 130]);
+  const line = (a = 0.3) => rgb([0, 0, 0], a * (0.55 + 0.45 * day));
+  const hair = (a = 0.16) => rgb([255, 252, 246], a * (0.25 + 0.75 * day));
+  const sheen = (x0, y0, x1, y1, a0, a1 = 0) => { const g = x.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, rgb([255, 250, 240], a0)); g.addColorStop(1, rgb([255, 250, 240], a1)); return g; };
+  // ---- the far pieces (behind the body, darker): the far wing's edge over the spine, the far fin's sliver
+  poly(FARW, rgb(mix(gTop, [8, 10, 14], 0.4)));
+  x.strokeStyle = hair(0.12); x.lineWidth = 0.003; x.beginPath(); x.moveTo(FARW[0][0], FARW[0][1]); x.lineTo(FARW[1][0], FARW[1][1]); x.stroke();
+  poly(FINF, rgb(mix(gTop, [8, 10, 14], 0.45)));
+  // ---- THE NEAR FIN (canted toward us: its outer face catches the light — a diagonal sheen, a lit leading edge, the flash near the top)
   poly(FIN, rgb(gSide));
-  x.save(); x.beginPath(); FIN.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.clip();
-  x.fillStyle = rgb(gTop); x.beginPath(); x.moveTo(0.3, -0.12); x.bezierCurveTo(0.22, -0.16, 0.14, -0.1, 0.02, -0.15); x.lineTo(0.02, -0.34); x.lineTo(0.3, -0.34); x.closePath(); x.fill();
-  x.fillStyle = rgb(gDark); x.fillRect(0.04, -0.33, 0.12, 0.022);                                      // (the antenna cap)
-  x.strokeStyle = line(0.35); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.072, -0.3); x.lineTo(0.074, -0.06); x.stroke();   // (the rudder)
-  // THE FLAG (a small one, mid-fin): seven stripes + the blue canton with its stars as a speckle
-  { const fx = 0.105, fy = -0.235, fw = 0.072, fh = 0.042, R = lit([178, 34, 52]), Wt = lit([238, 238, 236]), B = lit([40, 52, 104]);
-    for (let k = 0; k < 7; k++) { x.fillStyle = rgb(k % 2 ? Wt : R); x.fillRect(fx, fy + fh * k / 7, fw, fh / 7 + 0.0006); }
-    x.fillStyle = rgb(B); x.fillRect(fx, fy, fw * 0.42, fh * 4 / 7);
-    x.fillStyle = rgb(Wt, 0.8); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) x.fillRect(fx + 0.006 + i * 0.01, fy + 0.006 + j * 0.01, 0.003, 0.003);
-    x.strokeStyle = line(0.25); x.lineWidth = 0.0015; x.strokeRect(fx, fy, fw, fh); }
+  x.save(); clipPoly(FIN);
+  x.fillStyle = sheen(0.3, -0.05, 0.12, -0.24, 0.0, 0.18 * (0.3 + 0.7 * day)); x.fillRect(0, -0.35, 0.4, 0.35);
+  x.fillStyle = rgb(gTop, 0.55); x.beginPath(); x.moveTo(0.33, -0.05); x.lineTo(0.25, -0.16); x.lineTo(0.1, -0.045); x.closePath(); x.fill();   // (the darker panel at its foot)
+  x.fillStyle = rgb(gEdge, 0.55); x.fillRect(0.07, -0.243, 0.14, 0.015);                                                   // (the fin's flash: a low-vis grey band)
+  x.fillStyle = rgb(gDark, 0.7); x.fillRect(0.095, -0.254, 0.085, 0.007);                                                  // (the tip's cap)
+  x.strokeStyle = line(0.3); x.lineWidth = 0.0024; x.beginPath(); x.moveTo(0.145, -0.235); x.lineTo(0.112, -0.05); x.stroke();   // (the rudder's hinge)
   x.restore();
-  x.strokeStyle = hair(0.45); x.lineWidth = 0.004; x.beginPath(); x.moveTo(0.3, -0.049); x.lineTo(0.125, -0.325); x.stroke();
-  // THE FUSELAGE: the side grey, the top dark grey in a wavy disruptive band, the light grey belly (+ the intake's shadowed mouth)
+  x.strokeStyle = hair(0.5); x.lineWidth = 0.0036; x.beginPath(); x.moveTo(FIN[0][0], FIN[0][1]); x.lineTo(FIN[1][0], FIN[1][1]); x.stroke();
+  // ---- THE FUSELAGE: the side grey, then the facets — the upper surfaces dark, the belly light, the lower forebody facet under the chine in shade
   fusePath(x); x.fillStyle = rgb(gSide); x.fill();
   x.save(); fusePath(x); x.clip();
-  x.fillStyle = rgb(gBelly); x.beginPath(); x.moveTo(0, 0.03); x.bezierCurveTo(0.3, 0.025, 0.6, 0.04, 1.0, 0.016); x.lineTo(1.0, 0.1); x.lineTo(0, 0.1); x.closePath(); x.fill();
-  x.fillStyle = rgb(gTop); x.beginPath(); x.moveTo(0, -0.06);
-  for (let i = 0; i <= 24; i++) { const u = i / 24, py = -0.024 + 0.012 * Math.sin(u * 19 + 0.8) + 0.007 * Math.sin(u * 41 + 2) + (u > 0.82 ? (u - 0.82) * 0.08 : 0); x.lineTo(u, py); }
-  x.lineTo(1, -0.1); x.lineTo(0, -0.1); x.closePath(); x.fill();
-  // the disruptive patches: soft blobs of the darker grey across the side (the old wraparound pattern, toned down)
-  x.fillStyle = rgb(gDark, 0.7);
-  for (const [cx, cy, rx, ry, a] of [[0.47, -0.02, 0.07, 0.014, 0.1], [0.22, -0.015, 0.06, 0.013, -0.12], [0.78, -0.02, 0.045, 0.01, 0.15]]) { x.beginPath(); x.ellipse(cx, cy, rx, ry, a, 0, TAU); x.fill(); }
-  // the light: the sun on the spine (a lit band) by day, the shade under
-  const lg = x.createLinearGradient(0, -0.07, 0, 0.09);
-  lg.addColorStop(0, `rgba(255,250,240,${(0.22 * day).toFixed(3)})`); lg.addColorStop(0.35, 'rgba(255,250,240,0)'); lg.addColorStop(0.7, 'rgba(0,0,0,0)'); lg.addColorStop(1, `rgba(0,0,10,${(0.22 + 0.1 * dark).toFixed(3)})`);
-  x.fillStyle = lg; x.fillRect(0, -0.1, 1.05, 0.2);
-  // PANEL LINES: the stations, the strake's seam along the side, access panels (engraved: a dark cut + a hair of light)
-  x.lineWidth = 0.0026;
-  for (const [px, top, bot] of [[0.885, -0.03, 0.02], [0.6, -0.05, 0.035], [0.5, -0.056, 0.07], [0.4, -0.056, 0.057], [0.31, -0.052, 0.05], [0.2, -0.047, 0.045], [0.1, -0.04, 0.038]]) {
-    x.strokeStyle = line(0.32); x.beginPath(); x.moveTo(px, top); x.lineTo(px - 0.004, bot); x.stroke();
-    x.strokeStyle = hair(0.1); x.beginPath(); x.moveTo(px + 0.003, top); x.lineTo(px - 0.001, bot); x.stroke();
+  // the vertical tone: dark on top, lighter under (the sky's light from below on a belly seen from under it)
+  { const vg = x.createLinearGradient(0, -0.055, 0, 0.09); vg.addColorStop(0, rgb(gTop)); vg.addColorStop(0.42, rgb(gSide)); vg.addColorStop(0.75, rgb(gBelly)); vg.addColorStop(1, rgb(mix(gBelly, [255, 255, 255], 0.06 * day)));
+    x.fillStyle = vg; x.fillRect(-0.05, -0.1, 1.1, 0.2); }
+  // the lower forebody facet (under the chine): in shade, a hard edge along the chine
+  poly(CHINE, rgb(mix(gSide, [0, 0, 6], 0.28)));
+  // the upper forebody facet (above the chine, under the canopy's foot): lit — the sun on the wedge
+  { x.fillStyle = sheen(0.95, -0.02, 0.8, 0.02, 0.22 * (0.2 + 0.8 * day), 0.02); x.beginPath(); x.moveTo(1.0, 0.0); x.lineTo(0.84, -0.034); x.lineTo(0.78, 0.027); x.lineTo(0.94, 0.009); x.closePath(); x.fill(); }
+  // the chine itself: a bright hairline the whole way (a sharp metal edge catching light), darker just under it
+  x.strokeStyle = hair(0.55); x.lineWidth = 0.0032; x.beginPath(); x.moveTo(0.995, 0.001); x.bezierCurveTo(0.94, 0.009, 0.86, 0.02, 0.78, 0.027); x.lineTo(0.64, 0.032); x.stroke();
+  x.strokeStyle = line(0.35); x.lineWidth = 0.0026; x.beginPath(); x.moveTo(0.98, 0.005); x.bezierCurveTo(0.93, 0.013, 0.86, 0.024, 0.78, 0.031); x.lineTo(0.64, 0.036); x.stroke();
+  // the intake's side panel (a touch darker than the side) + the mouth (dark, the lit lip on its raked edge)
+  poly([[0.78, 0.027], [0.64, 0.032], [0.6, 0.083], [0.72, 0.085]], rgb(mix(gSide, [0, 0, 4], 0.14)));
+  poly(MOUTH, rgb(mix(gDark, [0, 0, 2], 0.6)));
+  x.strokeStyle = hair(0.5); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.78, 0.027); x.lineTo(0.72, 0.085); x.stroke();
+  // the engine bay's underside behind the wing root: a darker facet to the nozzles
+  poly([[0.2, 0.052], [0.0, 0.03], [0.0, 0.0], [0.2, 0.0]], rgb(mix(gSide, [0, 0, 6], 0.2)));
+  // THE METALLIC PANELS: the tone shifting a couple of percent panel by panel along the stations (never flat, never a checkerboard)
+  for (const [px, py, pw, ph, a] of [[0.86, -0.03, 0.08, 0.06, -0.03], [0.72, -0.025, 0.06, 0.06, 0.025], [0.5, -0.053, 0.1, 0.11, 0.025], [0.4, -0.054, 0.1, 0.11, -0.03], [0.2, -0.045, 0.1, 0.1, 0.025], [0.06, -0.03, 0.08, 0.075, -0.03]]) {
+    x.fillStyle = rgb(a > 0 ? [255, 255, 255] : [0, 0, 0], Math.abs(a) * (0.5 + 0.5 * day)); x.fillRect(px, py, pw, ph);
   }
-  x.strokeStyle = line(0.3); x.beginPath(); x.moveTo(0.84, 0.008); x.bezierCurveTo(0.7, 0.012, 0.5, 0.016, 0.22, 0.012); x.stroke();
-  for (const [ax, ay, aw, ah] of [[0.55, -0.035, 0.03, 0.014], [0.34, -0.04, 0.035, 0.012], [0.25, 0.018, 0.03, 0.016], [0.43, 0.02, 0.025, 0.014]]) { x.strokeStyle = line(0.26); x.strokeRect(ax, ay, aw, ah); }
-  // the intake's mouth (dark, its lip lit) + the boundary-layer gap above it
-  x.fillStyle = rgb(mix(gBelly, [6, 6, 10], 0.7)); x.beginPath(); x.moveTo(0.69, 0.036); x.lineTo(0.655, 0.084); x.lineTo(0.641, 0.083); x.quadraticCurveTo(0.66, 0.055, 0.676, 0.037); x.closePath(); x.fill();
-  x.strokeStyle = hair(0.35); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.69, 0.035); x.lineTo(0.655, 0.085); x.stroke();
-  x.strokeStyle = line(0.4); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.69, 0.031); x.bezierCurveTo(0.6, 0.033, 0.5, 0.04, 0.4, 0.045); x.stroke();
-  // THE STAR-AND-BAR on the intake's side
-  roundel(x, 0.5, 0.055, 0.019, 1, lit);
+  // THE SPECULAR LINE along the spine (the sun / the moon on the top edge) — the one bright line on the jet
+  x.strokeStyle = dark > 0.5 ? `rgba(170,186,220,${(0.38 * dark + 0.1).toFixed(3)})` : hair(0.6); x.lineWidth = 0.0036;
+  x.beginPath(); x.moveTo(0.9, -0.024); x.bezierCurveTo(0.87, -0.03, 0.85, -0.033, 0.84, -0.034); x.moveTo(0.58, -0.048); x.bezierCurveTo(0.5, -0.054, 0.4, -0.055, 0.33, -0.053); x.lineTo(0.2, -0.046); x.stroke();
+  // PANEL LINES (engraved: a dark cut + a hair of light), the radome's SAWTOOTH seam, the canopy's rear deck, the bay doors' sawtooth outlines
+  x.lineWidth = 0.0022;
+  const saw = (x0, y0, x1, y1, n, amp) => { x.beginPath(); for (let i = 0; i <= n; i++) { const u = i / n, px = x0 + (x1 - x0) * u + (i % 2 ? amp : -amp) * (y1 - y0 === 0 ? 0 : 1), py = y0 + (y1 - y0) * u + (i % 2 ? amp : -amp) * (x1 - x0 === 0 ? 0 : 1); i ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); };
+  x.strokeStyle = line(0.38); saw(0.862, -0.028, 0.856, 0.022, 6, 0.004);                                    // the radome's seam
+  x.strokeStyle = line(0.3);
+  for (const [px, top, bot] of [[0.64, -0.05, 0.03], [0.5, -0.053, 0.06], [0.4, -0.054, 0.058], [0.3, -0.051, 0.052], [0.2, -0.045, 0.05], [0.1, -0.038, 0.042]]) { x.beginPath(); x.moveTo(px, top); x.lineTo(px - 0.003, bot); x.stroke(); }
+  x.strokeStyle = hair(0.12);
+  for (const [px, top, bot] of [[0.64, -0.05, 0.03], [0.5, -0.053, 0.06], [0.4, -0.054, 0.058], [0.3, -0.051, 0.052]]) { x.beginPath(); x.moveTo(px + 0.0025, top); x.lineTo(px - 0.0005, bot); x.stroke(); }
+  x.strokeStyle = line(0.32); saw(0.6, 0.058, 0.36, 0.058, 8, 0.0035); saw(0.6, 0.078, 0.36, 0.078, 8, 0.0035);          // the main bay doors (closed)
+  x.beginPath(); x.moveTo(0.6, 0.058); x.lineTo(0.6, 0.078); x.moveTo(0.36, 0.058); x.lineTo(0.36, 0.078); x.stroke();
+  x.strokeStyle = line(0.26); x.strokeRect(0.66, 0.045, 0.05, 0.03);                                           // the side bay
+  // THE STAR-AND-BAR, low-vis: grey on grey
+  roundel(x, 0.44, 0.004, 0.019, 1, lit, true);
   x.restore();
-  // the radome's tip + the pitot probe
-  x.strokeStyle = rgb(gDark); x.lineWidth = 0.0035; x.beginPath(); x.moveTo(0.995, 0.004); x.lineTo(1.045, 0.003); x.stroke();
-  x.fillStyle = rgb(mix(gSide, [20, 22, 28], 0.25)); x.beginPath(); x.moveTo(1.0, 0.004); x.bezierCurveTo(0.975, -0.004, 0.955, -0.012, 0.93, -0.018); x.lineTo(0.93, 0.016); x.bezierCurveTo(0.955, 0.012, 0.975, 0.009, 1.0, 0.004); x.fill();
-  // THE LEADING-EDGE STRAKE (a lit edge from under the canopy into the wing root)
-  x.strokeStyle = hair(0.4); x.lineWidth = 0.0035; x.beginPath(); x.moveTo(0.8, 0.006); x.bezierCurveTo(0.7, 0.01, 0.6, 0.016, 0.54, 0.027); x.stroke();
-  // THE CANOPY: the frameless bubble, gold-tinted; the pilot's helmet + the ejection seat's head inside; a long highlight
-  { x.beginPath(); x.moveTo(0.84, -0.04); x.bezierCurveTo(0.815, -0.118, 0.69, -0.124, 0.6, -0.05); x.closePath();
-    const cg = x.createLinearGradient(0.6, -0.105, 0.82, -0.04);
-    cg.addColorStop(0, rgb(mix([24, 22, 20], [196, 150, 70], day * 0.9 + 0.06))); cg.addColorStop(0.6, rgb(mix([14, 14, 16], [120, 88, 44], day))); cg.addColorStop(1, rgb(mix([30, 30, 34], [210, 176, 110], day)));
+  // ---- THE CANOPY: one long gold-tinted bubble (frameless), the pilot's helmet + the seat inside, a HOT SPOT + a long highlight
+  { const cp = () => { x.beginPath(); x.moveTo(0.84, -0.034); x.bezierCurveTo(0.83, -0.066, 0.795, -0.092, 0.74, -0.094); x.bezierCurveTo(0.67, -0.096, 0.615, -0.08, 0.59, -0.047); x.closePath(); };
+    cp();
+    const cg = x.createLinearGradient(0.6, -0.105, 0.84, -0.035);
+    cg.addColorStop(0, rgb(mix([22, 20, 18], [150, 112, 50], day * 0.9 + 0.08))); cg.addColorStop(0.55, rgb(mix([12, 12, 14], [96, 70, 34], day))); cg.addColorStop(1, rgb(mix([28, 28, 32], [190, 158, 96], day)));
     x.fillStyle = cg; x.fill();
-    x.save(); x.clip();
-    x.fillStyle = rgb(mix([10, 10, 14], [44, 46, 52], day)); x.beginPath(); x.arc(0.715, -0.079, 0.018, 0, TAU); x.fill();      // the helmet
-    x.fillStyle = rgb(mix([8, 8, 10], [26, 26, 30], day)); x.fillRect(0.664, -0.088, 0.022, 0.04);                                  // the seat's head
-    x.fillStyle = rgb(mix([20, 16, 10], [150, 110, 40], day), 0.8); x.beginPath(); x.ellipse(0.728, -0.08, 0.008, 0.007, 0, 0, TAU); x.fill();   // the visor
+    x.save(); cp(); x.clip();
+    x.fillStyle = rgb(mix([10, 10, 14], [40, 42, 48], day)); x.beginPath(); x.arc(0.74, -0.07, 0.016, 0, TAU); x.fill();       // the helmet
+    x.fillStyle = rgb(mix([8, 8, 10], [24, 24, 28], day)); x.fillRect(0.695, -0.078, 0.022, 0.036);                                // the seat's head
+    x.fillStyle = rgb(mix([20, 16, 10], [140, 100, 36], day), 0.8); x.beginPath(); x.ellipse(0.752, -0.071, 0.008, 0.006, 0, 0, TAU); x.fill();   // the visor
+    // the hot spot (the sun's reflection) + a soft gold bloom round it
+    { const hs = x.createRadialGradient(0.775, -0.08, 0, 0.775, -0.08, 0.05); hs.addColorStop(0, rgb([255, 248, 220], 0.75 * (0.15 + 0.85 * day))); hs.addColorStop(0.35, rgb([255, 220, 150], 0.3 * (0.1 + 0.9 * day))); hs.addColorStop(1, rgb([255, 220, 150], 0)); x.fillStyle = hs; x.fillRect(0.6, -0.12, 0.25, 0.09); }
     x.restore();
-    x.strokeStyle = rgb([255, 246, 226], 0.3 + 0.45 * day); x.lineWidth = 0.004; x.beginPath(); x.moveTo(0.818, -0.072); x.quadraticCurveTo(0.745, -0.113, 0.645, -0.088); x.stroke();
-    x.strokeStyle = line(0.5); x.lineWidth = 0.003; x.beginPath(); x.moveTo(0.84, -0.04); x.lineTo(0.6, -0.05); x.stroke(); }
-  // THE NEAR WING seen from just below (the cropped delta; its underside the light grey) + its flaperon line + the roundel under it
-  poly(WING, rgb(mix(gBelly, [255, 255, 255], 0.05 * day)));
-  x.save(); x.beginPath(); WING.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.clip();
-  const wg = x.createLinearGradient(0, 0.03, 0, 0.14); wg.addColorStop(0, rgb([0, 0, 10], 0.18)); wg.addColorStop(1, rgb([255, 255, 255], 0.06 * day)); x.fillStyle = wg; x.fillRect(0.1, 0, 0.5, 0.15);
-  x.strokeStyle = line(0.3); x.lineWidth = 0.0026; x.beginPath(); x.moveTo(0.235, 0.055); x.lineTo(0.235, 0.135); x.stroke();
-  roundel(x, 0.33, 0.1, 0.022, 0.42, lit);
+    x.strokeStyle = rgb([255, 246, 226], 0.28 + 0.5 * day); x.lineWidth = 0.0036; x.beginPath(); x.moveTo(0.828, -0.058); x.quadraticCurveTo(0.77, -0.098, 0.655, -0.086); x.stroke();
+    x.strokeStyle = line(0.5); x.lineWidth = 0.0026; x.beginPath(); x.moveTo(0.84, -0.034); x.lineTo(0.59, -0.047); x.stroke(); }   // (the sill)
+  // ---- THE NEAR WING (the diamond, from just below): the underside in shade, lighter out to the tip, a hair of light on the leading edge
+  poly(WING, rgb(mix(gBelly, [0, 0, 8], 0.08)));
+  x.save(); clipPoly(WING);
+  { const wg = x.createLinearGradient(0.6, 0.04, 0.3, 0.17); wg.addColorStop(0, rgb([0, 0, 10], 0.22)); wg.addColorStop(0.5, rgb([0, 0, 0], 0.04)); wg.addColorStop(1, rgb([255, 255, 255], 0.12 * day)); x.fillStyle = wg; x.fillRect(0.1, 0, 0.6, 0.2); }
+  x.fillStyle = rgb(gTop, 0.6); x.beginPath(); x.moveTo(0.62, 0.04); x.lineTo(0.5, 0.095); x.lineTo(0.3, 0.075); x.lineTo(0.2, 0.06); x.closePath(); x.fill();   // (the root's darker facet: the diamond's fold)
+  x.strokeStyle = line(0.3); x.lineWidth = 0.0024; x.beginPath(); x.moveTo(0.3, 0.085); x.lineTo(0.3, 0.17); x.moveTo(0.42, 0.06); x.lineTo(0.37, 0.165); x.stroke();   // (the flaperon + a station)
+  roundel(x, 0.37, 0.115, 0.02, 0.45, lit, true);
   x.restore();
-  x.strokeStyle = hair(0.45); x.lineWidth = 0.004; x.beginPath(); x.moveTo(WING[0][0], WING[0][1]); x.lineTo(WING[1][0], WING[1][1]); x.stroke();
-  // the stabilator (near) + the ventral fins
-  poly(STAB, rgb(mix(gSide, gBelly, 0.4)));
-  x.strokeStyle = hair(0.35); x.lineWidth = 0.003; x.beginPath(); x.moveTo(STAB[0][0], STAB[0][1]); x.lineTo(STAB[1][0], STAB[1][1]); x.stroke();
-  poly(VENT, rgb(mix(gBelly, [0, 0, 0], 0.22)));
-  // THE STORES: the 370-gal tank on the inner pylon, an AIM-120 on the outer one, the AIM-9 on the wingtip rail
-  const white = lit([228, 230, 232]), grey = lit([150, 154, 160]), pyl = rgb(mix(gBelly, [0, 0, 0], 0.32));
-  x.fillStyle = pyl; x.fillRect(0.335, 0.052, 0.04, 0.016); x.fillRect(0.285, 0.098, 0.035, 0.012);
-  { const tg = x.createLinearGradient(0, 0.06, 0, 0.088); tg.addColorStop(0, rgb(mix(grey, [255, 255, 255], 0.2 * day))); tg.addColorStop(1, rgb(mix(grey, [0, 0, 0], 0.3)));
-    x.fillStyle = tg; x.beginPath(); x.moveTo(0.47, 0.074); x.bezierCurveTo(0.44, 0.062, 0.3, 0.062, 0.24, 0.07); x.lineTo(0.215, 0.074); x.lineTo(0.24, 0.078); x.bezierCurveTo(0.3, 0.087, 0.44, 0.087, 0.47, 0.074); x.fill();
-    poly([[0.25, 0.071], [0.215, 0.06], [0.21, 0.062], [0.235, 0.074]], rgb(grey)); }
-  const missile = (x0, x1, y, w, body, nose) => {
-    x.fillStyle = rgb(body); x.fillRect(x1, y - w / 2, x0 - x1, w);
-    x.fillStyle = rgb(nose); x.beginPath(); x.moveTo(x0, y - w / 2); x.quadraticCurveTo(x0 + w * 2.4, y - w * 0.2, x0 + w * 2.6, y); x.quadraticCurveTo(x0 + w * 2.4, y + w * 0.2, x0, y + w / 2); x.fill();
-    x.fillStyle = rgb(mix(body, [0, 0, 0], 0.3)); x.fillRect(x1, y + w * 0.1, x0 - x1, w * 0.4);                // (its shaded underside)
-    x.fillStyle = rgb(lit([200, 170, 60])); x.fillRect(x0 - 0.03, y - w / 2, 0.006, w);                         // (the warhead band)
-    poly([[x1 + 0.028, y], [x1 - 0.004, y - w * 2.1], [x1 - 0.014, y - w * 2.1], [x1, y]], rgb(body));
-    poly([[x1 + 0.028, y], [x1 - 0.004, y + w * 2.1], [x1 - 0.014, y + w * 2.1], [x1, y]], rgb(mix(body, [0, 0, 0], 0.2)));
-    poly([[x0 - 0.045, y], [x0 - 0.058, y - w * 1.5], [x0 - 0.066, y - w * 1.5], [x0 - 0.062, y]], rgb(body));
+  x.strokeStyle = hair(0.5); x.lineWidth = 0.0036; x.beginPath(); x.moveTo(WING[0][0], WING[0][1]); x.lineTo(WING[1][0], WING[1][1]); x.stroke();
+  x.strokeStyle = line(0.25); x.lineWidth = 0.002; x.beginPath(); x.moveTo(WING[2][0], WING[2][1]); x.lineTo(WING[3][0], WING[3][1]); x.stroke();
+  // ---- the stabilator (near): a diamond over the fin's foot, its underside lighter
+  poly(STAB, rgb(mix(gSide, gBelly, 0.5)));
+  x.save(); clipPoly(STAB); x.fillStyle = sheen(0.26, 0.036, 0.05, 0.11, 0.0, 0.1 * day); x.fillRect(-0.05, 0.03, 0.35, 0.09); x.restore();
+  x.strokeStyle = hair(0.4); x.lineWidth = 0.003; x.beginPath(); x.moveTo(STAB[0][0], STAB[0][1]); x.lineTo(STAB[1][0], STAB[1][1]); x.stroke();
+  // ---- THE NOZZLES: flat 2-D wedges, heat-tinted titanium, SERRATED trailing edges (the far one a touch higher + darker)
+  const nozzle = (dx, dy, k) => {
+    const ng = x.createLinearGradient(0, -0.03 + dy, 0, 0.03 + dy);
+    ng.addColorStop(0, rgb(lit([96, 88, 82]).map(v => v * k))); ng.addColorStop(0.5, rgb(lit([64, 60, 66]).map(v => v * k))); ng.addColorStop(1, rgb(lit([40, 36, 40]).map(v => v * k)));
+    x.fillStyle = ng; x.beginPath(); x.moveTo(0.0 + dx, -0.026 + dy);
+    // the serrated exit: six teeth
+    for (let i = 0; i <= 6; i++) { const u = i / 6; x.lineTo(-0.056 + dx + (i % 2 ? 0.013 : 0), -0.016 + dy + 0.034 * u); }
+    x.lineTo(0.0 + dx, 0.03 + dy); x.closePath(); x.fill();
+    x.strokeStyle = line(0.4); x.lineWidth = 0.002; for (let i = 0; i < 4; i++) { const yy = -0.02 + dy + i * 0.013; x.beginPath(); x.moveTo(dx, yy * 1.05); x.lineTo(-0.048 + dx, yy * 0.9); x.stroke(); }
   };
-  missile(0.4, 0.17, 0.112, 0.012, white, grey);                           // AIM-120 (under the wing)
-  x.fillStyle = pyl; x.fillRect(0.21, 0.138, 0.1, 0.006);                   // (the wingtip rail)
-  missile(0.35, 0.16, 0.15, 0.011, white, lit([120, 120, 128]));           // AIM-9 (on the tip)
-  // THE NOZZLE: the petals ("turkey feathers") round the exhaust
-  { const ng = x.createLinearGradient(0, -0.032, 0, 0.03); ng.addColorStop(0, rgb(lit([92, 86, 80]))); ng.addColorStop(1, rgb(lit([40, 38, 40])));
-    x.fillStyle = ng; x.beginPath(); x.moveTo(0.04, -0.033); x.lineTo(-0.012, -0.027); x.lineTo(-0.012, 0.025); x.lineTo(0.04, 0.03); x.closePath(); x.fill();
-    x.strokeStyle = line(0.45); x.lineWidth = 0.0022; for (let i = 0; i < 5; i++) { const yy = -0.026 + i * 0.0125; x.beginPath(); x.moveTo(0.035, yy * 1.1); x.lineTo(-0.01, yy); x.stroke(); }
-    x.fillStyle = rgb([14, 12, 14]); x.fillRect(-0.014, -0.025, 0.005, 0.05); }
-  // night: the moon's cool hair along the spine + the fin's edge (a dark shape that still reads against the sky)
+  nozzle(-0.006, -0.012, 0.75);
+  nozzle(0, 0, 1);
+  x.fillStyle = rgb([12, 10, 12]); x.fillRect(-0.052, -0.011, 0.006, 0.024);                                   // (the exit's dark throat)
+  x.strokeStyle = hair(0.3); x.lineWidth = 0.0024; x.beginPath(); x.moveTo(0.0, -0.026); x.lineTo(-0.056, -0.016); x.stroke();
+  // ---- the belly's edge + the wing root's light (the lower outline catching the ground's light), the nose's tip
+  x.strokeStyle = hair(0.22); x.lineWidth = 0.0028; x.beginPath(); x.moveTo(0.14, 0.044); x.bezierCurveTo(0.3, 0.056, 0.46, 0.064, 0.6, 0.083); x.lineTo(0.72, 0.085); x.stroke();
+  x.fillStyle = rgb(mix(gSide, [20, 22, 28], 0.3)); x.beginPath(); x.moveTo(1.0, 0.0); x.lineTo(0.965, -0.012); x.lineTo(0.965, 0.006); x.closePath(); x.fill();
+  // ---- night: the moon's cool hair along the fin's edge + the canopy (a dark shape that still reads against the sky)
   if (dark > 0.05) {
-    x.strokeStyle = `rgba(170,186,220,${(0.32 * dark).toFixed(3)})`; x.lineWidth = 0.004;
-    x.beginPath(); x.moveTo(0.93, -0.022); x.bezierCurveTo(0.8, -0.045, 0.5, -0.06, 0.3, -0.052); x.stroke();
-    x.beginPath(); x.moveTo(0.3, -0.05); x.lineTo(0.125, -0.325); x.stroke();
+    x.strokeStyle = `rgba(170,186,220,${(0.3 * dark).toFixed(3)})`; x.lineWidth = 0.0036;
+    x.beginPath(); x.moveTo(0.33, -0.05); x.lineTo(0.175, -0.255); x.stroke();
+    x.beginPath(); x.moveTo(0.828, -0.058); x.quadraticCurveTo(0.77, -0.098, 0.655, -0.086); x.stroke();
   }
 }
-/** the USAF star-and-bar at (cx, cy), radius r (jet lengths), sq: its vertical squash (seen at a slant under the wing) */
-function roundel(x, cx, cy, r, sq, lit) {
-  const B = rgb(lit([34, 48, 104])), Wt = rgb(lit([236, 236, 234])), R = rgb(lit([178, 34, 52]));
+/** the USAF star-and-bar at (cx, cy), radius r (jet lengths), sq: its vertical squash (seen at a slant under the wing); lowVis: grey on grey */
+function roundel(x, cx, cy, r, sq, lit, lowVis = false) {
+  const B = rgb(lowVis ? lit([46, 50, 56]) : lit([34, 48, 104])), Wt = rgb(lowVis ? lit([104, 108, 114]) : lit([236, 236, 234])), R = rgb(lowVis ? lit([62, 66, 72]) : lit([178, 34, 52]));
   x.save(); x.translate(cx, cy); x.scale(1, sq);
-  // the bars: blue outline, white field, the red stripe — then the blue disc + the white star
+  // the bars: the outline, the field, the stripe — then the disc + the star
   x.fillStyle = B; x.fillRect(-r * 2.05, -r * 0.5, r * 4.1, r * 1.0);
   x.fillStyle = Wt; x.fillRect(-r * 1.95, -r * 0.4, r * 3.9, r * 0.8);
   x.fillStyle = R; x.fillRect(-r * 1.95, -r * 0.13, r * 3.9, r * 0.26);
@@ -189,7 +201,7 @@ function roundel(x, cx, cy, r, sq, lit) {
 export function jetSprite(len, look, dpr) {
   const W = len * 1.14, H = len * 0.64, d = 3;                  // (3× always: a small sprite — the detail needs the pixels)
   const cv = mk(W * d, H * d), x = safeCtx(cv);
-  const ox = len * 0.06, oy = len * 0.36;
+  const ox = len * 0.08, oy = len * 0.36;
   x.setTransform(d, 0, 0, d, ox * d, oy * d); x.scale(len, len);
   paintJet(x, look);
   return { cv, w: W, h: H, ox, oy };
@@ -216,13 +228,18 @@ function tinted(col) {
 }
 /**
  * The afterburner from the nozzle (nx, ny) back along the angle `ang` (the direction the jet flies, rad), len pt (the jet's length),
- * k (0..1 its burn), o = { night (0..1), t (s, the flicker), dir }. Additive.
+ * k (0..1 its burn), o = { night (0..1), t (s, the flicker), dir }. Additive. HEAT HAZE first: a shimmer of pale blobs wavering behind
+ * the engines, beyond the diamonds (the air boiling — no refraction on a canvas, but the eye reads the flutter).
  */
 export function drawBurner(c, nx, ny, ang, len, k, o = {}) {
   if (k <= 0.01) return;
   const night = o.night || 0, t = o.t || 0, fl = 0.92 + 0.08 * Math.sin(t * 61 + nx) * Math.sin(t * 37);
   const L = len * (0.82 + 0.1 * k) * fl, w = len * 0.05;
   c.save(); c.translate(nx, ny); c.rotate(ang + Math.PI); c.globalCompositeOperation = 'lighter';
+  // the heat haze: five soft blobs along the plume's axis, each wavering on its own, faint (fainter still by day)
+  { const hz = tinted([214, 206, 196]), a = (0.035 + 0.03 * night) * k;
+    for (let i = 0; i < 5; i++) { const u = 0.35 + i * 0.2, px = L * u + Math.sin(t * (29 + i * 7) + i) * w * 0.8, py = Math.sin(t * (23 + i * 5) + i * 2.1) * w * (0.9 + i * 0.3), s = w * (2.6 + i * 1.1) * (1 + 0.15 * Math.sin(t * 41 + i));
+      c.globalAlpha = a * (1 - i * 0.12); c.drawImage(hz, px - s, py - s * 0.6, s * 2, s * 1.2); } }
   // the soft night glow round the whole plume
   if (night > 0.05) { c.globalAlpha = 0.45 * night * k; c.drawImage(tinted([255, 140, 90]), -L * 0.1, -w * 3.6, L * 1.05, w * 7.2); }
   // the plume: an orange-pink outer cone + a hot inner core, tapering
@@ -255,19 +272,20 @@ export function drawBurner(c, nx, ny, ang, len, k, o = {}) {
 export function drawJetLights(c, len, navDir, night, t, i = 0) {
   if (night < 0.05) return;
   const G = [150, 255, 160];
-  const strip = (x0, y0, x1, y1) => { c.strokeStyle = rgb(G, 0.95 * night); c.lineWidth = Math.max(0.7, len * 0.012); c.beginPath(); c.moveTo(x0 * len, y0 * len); c.lineTo(x1 * len, y1 * len); c.stroke(); };
+  const strip = (x0, y0, x1, y1) => { c.strokeStyle = rgb(G, 0.9 * night); c.lineWidth = Math.max(0.7, len * 0.011); c.beginPath(); c.moveTo(x0 * len, y0 * len); c.lineTo(x1 * len, y1 * len); c.stroke(); };
   c.save(); c.lineCap = 'round';
   c.globalCompositeOperation = 'lighter';
-  c.globalAlpha = 0.5 * night; const gs = len * 0.14;
-  for (const [a, b] of [[0.72, -0.02], [0.21, -0.04], [0.19, -0.17]]) c.drawImage(tinted(G), a * len - gs, b * len - gs * 0.5, gs * 2, gs);
+  c.globalAlpha = 0.45 * night; const gs = len * 0.13;
+  for (const [a, b] of [[0.86, 0.012], [0.2, -0.04], [0.135, -0.24]]) c.drawImage(tinted(G), a * len - gs, b * len - gs * 0.5, gs * 2, gs);
   c.globalAlpha = 1;
-  strip(0.78, -0.018, 0.67, -0.022); strip(0.3, -0.042, 0.12, -0.036); strip(0.22, -0.12, 0.165, -0.22);
+  // the F-22's strips: along the forebody's chine, the aft fuselage, the fin's tip
+  strip(0.92, 0.01, 0.8, 0.018); strip(0.28, -0.04, 0.12, -0.036); strip(0.17, -0.24, 0.1, -0.24);
   const nav = navDir > 0 ? [90, 255, 140] : [255, 60, 60];
-  c.globalAlpha = 0.85 * night; c.drawImage(tinted(nav), 0.6 * len - gs * 0.6, 0.062 * len - gs * 0.6, gs * 1.2, gs * 1.2);
-  c.globalAlpha = night; c.fillStyle = rgb(nav); c.beginPath(); c.arc(0.6 * len, 0.062 * len, Math.max(0.6, len * 0.012), 0, TAU); c.fill();
-  c.fillStyle = 'rgb(255,250,240)'; c.beginPath(); c.arc(-0.005 * len, -0.03 * len, Math.max(0.5, len * 0.009), 0, TAU); c.fill();
+  c.globalAlpha = 0.85 * night; c.drawImage(tinted(nav), 0.295 * len - gs * 0.6, 0.168 * len - gs * 0.6, gs * 1.2, gs * 1.2);
+  c.globalAlpha = night; c.fillStyle = rgb(nav); c.beginPath(); c.arc(0.295 * len, 0.168 * len, Math.max(0.6, len * 0.011), 0, TAU); c.fill();
+  c.fillStyle = 'rgb(255,250,240)'; c.beginPath(); c.arc(-0.04 * len, 0.0, Math.max(0.5, len * 0.008), 0, TAU); c.fill();        // the tail light
   const bk = Math.sin(t * 7.5 + i * 1.3) > 0.55 ? 1 : 0.15;
-  c.globalAlpha = night * bk; c.drawImage(tinted([255, 40, 30]), 0.07 * len - gs * 0.5, -0.3 * len - gs * 0.5, gs, gs);
+  c.globalAlpha = night * bk; c.drawImage(tinted([255, 40, 30]), 0.47 * len - gs * 0.5, -0.06 * len - gs * 0.5, gs, gs);          // the beacon on the spine
   c.restore();
 }
 
@@ -288,8 +306,14 @@ export function createJets() {
     const s = sprite(j.len, j.look), night = j.look.dark, L = j.len;
     c.save(); c.translate(j.x, j.y); c.scale(j.dir < 0 ? -1 : 1, 1); c.rotate(-(j.ang || 0));
     c.translate(-L * 0.5, 0);                                   // (the jet's own frame: the nozzle at 0, the nose at +L)
-    // the afterburner first (behind the tail), then the airframe, the vapour, the lights
+    // the afterburner first (behind the tail), then the airframe (streaked on full burn — a hint of motion blur), the vapour, the lights
     if (j.burn > 0) drawBurner(c, 0, 0, 0, L, j.burn, { night, t: j.t });
+    if (j.burn > 0.5 && j.blur !== false) {
+      const b = (j.burn - 0.5) * 2;
+      c.globalAlpha = 0.09 * b; c.drawImage(s.cv, -s.ox - L * 0.07, -s.oy, s.w, s.h);
+      c.globalAlpha = 0.2 * b; c.drawImage(s.cv, -s.ox - L * 0.035, -s.oy, s.w, s.h);
+      c.globalAlpha = 1;
+    }
     c.drawImage(s.cv, -s.ox, -s.oy, s.w, s.h);
     if (j.vapour > 0.02) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.5 * j.vapour; c.drawImage(tinted([236, 240, 248]), L * 0.12, -L * 0.12, L * 0.56, L * 0.34); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
     if (night > 0.05) drawJetLights(c, L, j.dir, night, j.t, j.i || 0);

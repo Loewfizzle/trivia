@@ -1,0 +1,88 @@
+<!doctype html>
+<!-- THE TAPE STOP on a real browser, without the city (docs/audio.md#the-tape-stop-in-web-audio): one song in an <audio> element through
+     Web Audio, the tape stop module on it, a compressed TR-3B (the sag over 3 s, held 6 s, the release) — tape-webkit.mjs drives it on
+     Playwright WebKit (and Chrome): the element's playbackRate never assigned, a byte slice decoded to the frame, sound flowing through the
+     bend, the element back at the tape's time with its clock moving. Open it by hand (node scripts/serve.mjs →
+     http://localhost:5173/tests/integration/tape-preview.html) and tap RUN to hear it. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the tape stop</title>
+<style>body{font:16px/1.4 system-ui;background:#0b0e14;color:#dde;margin:0;padding:16px} button{font:inherit;padding:14px 22px;border-radius:12px;border:1px solid #6cf;background:#123;color:#fff} pre{white-space:pre-wrap;color:#9fb} .bad{color:#f88}</style></head>
+<body>
+<p>THE TAPE STOP — <button id="run">RUN (tap: starts the song at 96 s, bends it, brings it back)</button></p>
+<pre id="log"></pre>
+<script type="module">
+import { createTapeStop } from '../../js/audio/tape-stop.js';
+import { sliceAt, frameTable } from '../../js/core/mp3-slice.js';
+const out = document.getElementById('log'), lines = [];
+const log = m => { lines.push(m); out.textContent = lines.join('\n'); };
+// the owner's rule: the element's playbackRate is never assigned — count every assignment on every media element
+const rateSets = [];
+{ const d = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate');
+  Object.defineProperty(HTMLMediaElement.prototype, 'playbackRate', { configurable: true, get() { return d.get.call(this); }, set(v) { rateSets.push(v); return d.set.call(this, v); } }); }
+const R = window.__tape = { phase: 'idle', rateSets, log: lines, checks: {} };
+const URL_ = '/audio/music/c2-party1.mp3';
+let ctx, el, voice, tape, probe, probeBuf;
+const peak = () => { if (!probe) return -1; probe.getFloatTimeDomainData(probeBuf); let m = 0; for (let i = 0; i < probeBuf.length; i++) m = Math.max(m, Math.abs(probeBuf[i])); return m; };
+async function run() {
+  R.phase = 'starting';
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  await ctx.resume().catch(() => {});
+  // 1. a byte slice decodes, placed to the frame
+  const bytes = new Uint8Array(await (await fetch(URL_)).arrayBuffer());
+  const t = frameTable(bytes), sl = sliceAt(bytes, 96, 20);
+  const expected = sl.endS - sl.startS;
+  let decoded = null;
+  try { decoded = await new Promise((res, rej) => { const p = ctx.decodeAudioData(sl.bytes.slice().buffer, res, rej); if (p && p.then) p.then(res, rej); }); } catch (e) { log(`decode ✗ ${e && (e.name || e.message)}`); }
+  R.checks.decode = decoded ? { duration: decoded.duration, expected, sr: decoded.sampleRate, ok: Math.abs(decoded.duration - expected) < 0.06 } : { ok: false };
+  log(`slice ${sl.startS.toFixed(3)}–${sl.endS.toFixed(3)} s (${sl.frames} frames, ${(sl.length / 1024).toFixed(0)} KB) → decoded ${decoded ? decoded.duration.toFixed(3) : '✗'} s (expected ${expected.toFixed(3)}) — ${R.checks.decode.ok ? 'OK' : 'OFF'}; the file ${t.frames.length} frames`);
+  // 2. the song on an element through the graph
+  el = new Audio(); el.crossOrigin = 'anonymous'; el.setAttribute('playsinline', ''); el.preload = 'auto'; el.src = URL_;
+  const gain = ctx.createGain(), elGain = ctx.createGain();
+  ctx.createMediaElementSource(el).connect(elGain); elGain.connect(gain);
+  const an = ctx.createAnalyser(); an.fftSize = 512; probe = an; probeBuf = new Float32Array(512);
+  gain.connect(an); an.connect(ctx.destination);
+  voice = { el, gain, elGain, id: 'm:c2-party1' };
+  await new Promise(r => { el.addEventListener('loadedmetadata', r, { once: true }); el.load(); });
+  el.currentTime = 96;
+  await el.play().then(() => log('el play ok'), e => log(`el play ✗ ${e && e.name}`));
+  await new Promise(r => setTimeout(r, 1200));
+  R.checks.elPlays = { t: el.currentTime, moving: el.currentTime > 96.3, ctxT: ctx.currentTime, peak: peak() };
+  log(`el at ${el.currentTime.toFixed(2)} (ctx ${ctx.currentTime.toFixed(2)}) peak ${peak().toFixed(3)} — ${R.checks.elPlays.moving ? 'moving' : 'STILL'}`);
+  // 3. the tape stop: a compressed TR-3B
+  tape = createTapeStop({ ctx: () => ctx, frozen: () => false, log: m => log('  ' + m), fetchBytes: async () => bytes,
+    decode: (c, ab) => new Promise((res, rej) => { const p = c.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); }),
+    elPlay: (e, why) => e.play().then(() => log(`  play ok (${why})`), er => log(`  play ✗ ${er && er.name} (${why})`)), elReload: (v, at) => { log(`  RELOAD at ${at.toFixed(2)}`); v.el.load(); v.el.currentTime = at; v.el.play(); } });
+  R.tape = tape;
+  const tick = setInterval(() => tape.tick(), 200);
+  tape.prepare(voice, voice.id, URL_);
+  await new Promise(r => setTimeout(r, 1500));
+  log(`prepared: ${JSON.stringify(tape.state())}`);
+  const elBefore = el.currentTime;
+  R.phase = 'bent';
+  tape.bend(voice, voice.id, URL_, 0.8, 1, { wow: 0.025, flutter: 0.008 });
+  await new Promise(r => setTimeout(r, 1000));
+  tape.bend(voice, voice.id, URL_, 0.5, 2, { wow: 0.025, flutter: 0.008 });
+  const samples = [];
+  for (let i = 0; i < 30; i++) { await new Promise(r => setTimeout(r, 250)); samples.push({ t: +ctx.currentTime.toFixed(2), rate: tape.rate(), clock: +tape.clock().toFixed(2), peak: +peak().toFixed(3), elPaused: el.paused, elT: +el.currentTime.toFixed(2), playing: tape.playing() }); }
+  const mid = samples.slice(8);
+  R.checks.bent = { on: mid.every(s => s.playing), elPaused: mid.every(s => s.elPaused), rateLow: mid.every(s => s.rate < 0.52), clockMoves: mid[mid.length - 1].clock - mid[0].clock > 2, clockSlow: (mid[mid.length - 1].clock - mid[0].clock) / (mid[mid.length - 1].t - mid[0].t) < 0.6, sound: mid.filter(s => s.peak > 0.002).length >= mid.length * 0.8, samples };
+  log(`bent: playing ${R.checks.bent.on} · el paused ${R.checks.bent.elPaused} · rate ${mid[0].rate.toFixed(2)}…${mid[mid.length - 1].rate.toFixed(2)} · clock ${mid[0].clock} → ${mid[mid.length - 1].clock} over ${(mid[mid.length - 1].t - mid[0].t).toFixed(1)} s · sound in ${mid.filter(s => s.peak > 0.002).length}/${mid.length} samples`);
+  R.phase = 'releasing';
+  tape.bend(voice, voice.id, URL_, 1, 1.5);
+  const t0 = performance.now();
+  while (tape.active() && performance.now() - t0 < 8000) await new Promise(r => setTimeout(r, 100));
+  const st = tape.state();
+  const elAtBack = el.currentTime;
+  await new Promise(r => setTimeout(r, 1200));
+  R.checks.back = { phase: st.phase, elMoving: el.currentTime > elAtBack + 0.8 && !el.paused, elAt: el.currentTime, took: +((performance.now() - t0) / 1000).toFixed(2), reloads: st.reloads, peak: peak(), continuity: elAtBack - elBefore };
+  log(`back: ${st.phase} in ${R.checks.back.took} s · el ${elAtBack.toFixed(2)} → ${el.currentTime.toFixed(2)} ${R.checks.back.elMoving ? 'moving' : 'STILL'} · reloads ${st.reloads} · peak ${peak().toFixed(3)} · the song went on ${R.checks.back.continuity.toFixed(1)} s of song in ${((performance.now() - t0) / 1000 + 9.5).toFixed(1)} s real`);
+  R.checks.rateSets = rateSets.length;
+  log(`the element's playbackRate assigned ${rateSets.length} times (must be 0)`);
+  clearInterval(tick);
+  const ok = R.checks.decode.ok && R.checks.elPlays.moving && R.checks.bent.on && R.checks.bent.elPaused && R.checks.bent.rateLow && R.checks.bent.clockMoves && R.checks.bent.clockSlow && R.checks.bent.sound && R.checks.back.elMoving && rateSets.length === 0;
+  R.ok = ok; R.phase = 'done';
+  log(ok ? 'ALL OK' : 'FAILED'); if (!ok) out.classList.add('bad');
+}
+document.getElementById('run').addEventListener('click', () => { run().catch(e => { log(`✗ ${e && (e.stack || e)}`); R.phase = 'done'; R.ok = false; }); });
+</script>
+</body></html>

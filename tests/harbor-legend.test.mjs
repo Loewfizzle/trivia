@@ -1,7 +1,17 @@
 // CITY 2.0 — PART 6b: THE LEGENDARY SKY's rules (core/harbor-legend.js) — rarity, the nights, the timelines, the drain.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { legendNight, legendAt, eveningOf, barnstormDay, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX } from '../js/core/harbor-legend.js';
+import { legendNight, legendAt, eveningOf, barnstormDay, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD } from '../js/core/harbor-legend.js';
+
+test('Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold from 4 s before the craft until the jets are gone + the power is back', () => {
+  const h = trafficHold({ kind: 'tr3b', t0: 1000 });
+  assert.deepEqual(h, [1000 - HOLD.lead, 1000 + BLACK.on0 + 1.5]);
+  assert.ok(inHold(h, h[0]) && inHold(h, 1030) && !inHold(h, h[0] - 0.1) && !inHold(h, h[1]) && !inHold(null, 1000));
+  assert.ok(h[1] - 1000 > CHASE.t0 + CHASE.dur * CHASE.uOff, 'past the last plume');
+  assert.ok(h[1] - 1000 < TR3B_LEN, 'but before the run is over: a car starting then takes seconds to show, the lights back by then');
+  assert.deepEqual(trafficHold({ kind: 'ufo', t0: 50 }), [50 - HOLD.lead, 50 + UFO_LEN + 2]);
+  assert.equal(trafficHold(null), null); assert.equal(trafficHold({ kind: 'x', t0: 1 }), null); assert.equal(trafficHold({ kind: 'tr3b' }), null);
+});
 
 const days = (y, n) => Array.from({ length: n }, (_, i) => { const d = new Date(Date.UTC(y, 0, 1) + i * 864e5); return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()]; });
 
@@ -48,13 +58,15 @@ test('the TR-3B: crosses the whole screen, drains while over the city, the chase
     assert.ok(dir > 0 ? a.x < -0.3 && b.x > 1.3 : a.x > 1.3 && b.x < -0.3);
     assert.ok(tr3bAt(15, dir).drain > 0.99 && tr3bAt(34, dir).drain === 0);
     assert.ok(tr3bAt(35.5, dir).chase.on && !tr3bAt(20, dir).chase.on);
-    // (8b2 — THE DRAIN AUDIBLE: overhead the song is slow, deep + wrong but CLEARLY there — ~0.6 × warbling, duller (2.6 kHz), −3 dB)
-    { const m = tr3bAt(15, dir).music; assert.ok(m.rate <= 0.64 && m.rate >= 0.58 && m.duck > 0.65 && m.duck < 0.8 && m.hz > 2000 && m.hz < 3200 && m.warble > 0.9, `held audible: ${m.rate.toFixed(2)} at ${m.duck.toFixed(2)}`); }
-    { let lo = 9, hi = 0; for (let t = 12; t < 30; t += 0.05) { const r = tr3bAt(t, dir).music.rate; lo = Math.min(lo, r); hi = Math.max(hi, r); } assert.ok(hi - lo > 0.02 && hi - lo < 0.045, `a gentle warble ±2–3 % (${lo.toFixed(3)}–${hi.toFixed(3)})`); }
-    // (POLISH 4 — THE TAPE STOP HEARD: the speed sags while the music is still loud, never under half speed (iOS mutes below it); after
-    // the jets the volume is back first at the low speed, then it spins up)
+    // (Oct 25 — THE TAPE STOP IN WEB AUDIO: overhead the song is slow + deep (~0.5 ×, no iOS floor on a buffer source) but CLEARLY there —
+    // duller (2.2 kHz), −3 dB; `rate` is the BASE (steady while held): the warble is the tape's oscillators, their depths here)
+    { const m = tr3bAt(15, dir).music; assert.ok(m.rate <= 0.52 && m.rate >= 0.48 && m.duck > 0.65 && m.duck < 0.8 && m.hz > 1800 && m.hz < 2600 && m.warble > 0.9 && m.wow > 0.02 && m.wow < 0.03 && m.flutter > 0.005 && m.flutter < 0.01, `held audible: ${m.rate.toFixed(2)} at ${m.duck.toFixed(2)}, wow ${m.wow}`); }
+    { let lo = 9, hi = 0; for (let t = 12; t < 30; t += 0.05) { const r = tr3bAt(t, dir).music.rate; lo = Math.min(lo, r); hi = Math.max(hi, r); } assert.ok(hi - lo < 0.002, `the base rate steady while held — no wobble in it (${lo.toFixed(3)}–${hi.toFixed(3)})`); }
+    assert.ok(tr3bAt(1, dir).music.wow === 0 && tr3bAt(TR3B_LEN - 0.01, dir).music.wow === 0, 'no warble before + after');
+    // (POLISH 4 — THE TAPE STOP HEARD: the speed sags while the music is still loud; after the jets the volume is back first at the low
+    // speed, then it spins up)
     const m8 = tr3bAt(8.2, dir).music; assert.ok(m8.rate < 0.75 && m8.duck > 0.9, `sagging while loud: ${m8.rate.toFixed(2)} at ${m8.duck.toFixed(2)}`);
-    for (let t = 0; t < TR3B_LEN; t += 0.05) { const m = tr3bAt(t, dir).music; assert.ok(m.rate >= 0.58 - 1e-9 && m.duck >= 0.5, `never near iOS's mute floor, never ducked deep (${t.toFixed(2)} s)`); }
+    for (let t = 0; t < TR3B_LEN; t += 0.05) { const m = tr3bAt(t, dir).music; assert.ok(m.rate >= 0.4 - 1e-9 && m.rate <= 1 && m.duck >= 0.5, `the rate sane, never ducked deep (${t.toFixed(2)} s)`); }
     const m41 = tr3bAt(40.6, dir).music; assert.ok(m41.duck > 0.85 && m41.rate < 0.7, `back loud, still slow: ${m41.rate.toFixed(2)} at ${m41.duck.toFixed(2)}`);
     assert.ok(tr3bAt(38.5, dir).music.catchUp && !tr3bAt(30, dir).music.catchUp && tr3bAt(38.5, dir).music.duck < 0.6, 'the time made up under the jets');
     const e = tr3bAt(TR3B_LEN - 0.01, dir).music; assert.ok(e.rate === 1 && e.duck > 0.95 && e.hz > 15000);
