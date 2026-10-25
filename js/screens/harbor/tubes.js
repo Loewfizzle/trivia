@@ -46,7 +46,7 @@ function path(x, t, dx = 0, dy = 0) {
  * glow (pt), a (strength 0..1), dpr }. Wide glow → near glow → body (uneven) → core (uneven) → highlight.
  */
 export function drawLit(x, tubes, col, o) {
-  const w = o.w, a = o.a ?? 1, dpr = o.dpr || 1, glow = o.glow ?? w * 4, soft = o.soft || 0;   // (soft: far tubes — less white core, no sharp highlight)
+  const w = o.w, a = o.a ?? 1, dpr = o.dpr || 1, glow = o.glow ?? w * 4, soft = o.soft || 0, core = o.core ?? 0.4;   // (soft: far tubes — less white core, no sharp highlight; core: the white-hot core's width × w)
   x.save();
   x.lineCap = 'round'; x.lineJoin = 'round';
   // the light on the surroundings: a wide, soft glow, then a near one (gaussian: shadowBlur is in device pixels)
@@ -70,7 +70,7 @@ export function drawLit(x, tubes, col, o) {
   for (const t of tubes) {
     for (let i = 1; i < t.pts.length; i++) {
       const lv = (t.lv[i - 1] + t.lv[i]) / 2;
-      x.strokeStyle = rgba(mix(col, WHITE, Math.min(0.95, 0.62 + (lv - 0.86) * 0.9) * (1 - soft * 0.6)), a * Math.min(1, 0.55 + lv * 0.45) * (1 - soft * 0.45)); x.lineWidth = Math.max(0.3, w * 0.4 * (1 - soft * 0.25));
+      x.strokeStyle = rgba(mix(col, WHITE, Math.min(0.95, 0.62 + (lv - 0.86) * 0.9) * (1 - soft * 0.6)), a * Math.min(1, 0.55 + lv * 0.45) * (1 - soft * 0.45)); x.lineWidth = Math.max(0.3, w * core * (1 - soft * 0.25));
       x.beginPath(); x.moveTo(t.pts[i - 1][0], t.pts[i - 1][1]); x.lineTo(t.pts[i][0], t.pts[i][1]); x.stroke();
     }
   }

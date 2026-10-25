@@ -7,7 +7,7 @@ import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
-import { paintRoom, createWindowLife, SASH_RAIL, lateOf } from './windows.js';
+import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 

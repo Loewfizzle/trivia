@@ -27,14 +27,13 @@ const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.g
 const hsh = (n, s = 0) => { let x = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b) ^ (s * 0x27d4eb2d); x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
 const R = (x, u0, v0, u1, v1, col) => { if (col) x.fillStyle = col; x.fillRect(u0, v0, u1 - u0, v1 - v0); };
 
-/** SP2 — the sash's meeting rail, this far up the glass: a 1920s one-over-one with a SHORT upper sash, so the room's scene plays in one
- *  big clean lower pane (the owner: the old bar through the middle cut every scene in half). speakeasy.js#paintWindow bakes the same. */
-export const SASH_RAIL = 0.74;
+// (POLISH 5 — SINGLE BIG PANES, the owner: "the whole point is to be able to see the scenes": the meeting rail SP2 kept high up is gone
+// from every upper window — the bake, the lit rooms, the moments, the hush sign — one clear pane each)
 /** a window's glass in wall units (the same numbers as speakeasy.js's paintWindow / room): mid = the glass's middle (the moments'
- *  curves), rail = the meeting rail's height */
+ *  curves) */
 export function glassOf(w) {
   const [a, b] = w.u, [r0, r1] = w.v, g0 = a + 0.13 + 0.05, g1 = b - 0.05, h0 = r0 + 0.12, h1 = r1 - 0.06;
-  return { a, b, r0, r1, g0, g1, h0, h1, mid: h0 + (h1 - h0) * 0.46, rail: h0 + (h1 - h0) * SASH_RAIL, cw: g1 - g0, ch: h1 - h0, cx: (g0 + g1) / 2 };
+  return { a, b, r0, r1, g0, g1, h0, h1, mid: h0 + (h1 - h0) * 0.46, cw: g1 - g0, ch: h1 - h0, cx: (g0 + g1) / 2 };
 }
 
 // ------------------------------------------------------------------ THE ROOMS' STILL LOOKS (cached in the lit canvas)
@@ -85,7 +84,6 @@ export function paintRoom(x, w, o = {}) {
   { const tn = ROOM_TINT[w.id], lt = clamp01(o.late || 0);
     if (tn || lt > 0) { x.globalCompositeOperation = 'multiply'; if (tn) { x.fillStyle = rgb(tn); x.fillRect(g0, h0, cw, ch); } if (lt > 0) { x.fillStyle = rgb(mixc([255, 255, 255], LATE_TINT, lt)); x.fillRect(g0, h0, cw, ch); } x.globalCompositeOperation = 'source-over'; } }
   x.restore();
-  sash(x, G, 'rgb(26,18,20)');
   { const tn = ROOM_TINT[w.id] || [255, 255, 255]; landing(x, G, [255, 196, 130].map((v, i) => v * tn[i] / 255), 1 - 0.25 * clamp01(o.late || 0)); }
 }
 /** SP2 — THE ROOMS' BULBS (the owner: the facade shouldn't be one uniform glow): a multiply over each lit room, all ~2200–3000 K — the
@@ -103,10 +101,6 @@ export function landing(x, G, col, a) {
   R(x, G.a - 0.16, G.r0 - 0.03, G.b + 0.16, G.r0, c(0.6));
   { const g = x.createLinearGradient(G.a, 0, G.a + 0.13, 0); g.addColorStop(0, c(0.06)); g.addColorStop(1, c(0.42)); x.fillStyle = g; x.fillRect(G.a, G.r0 + 0.07, 0.13, G.r1 - G.r0 - 0.07); }
   { const g = x.createLinearGradient(0, G.r0 - 0.03, 0, G.r0 - 0.16); g.addColorStop(0, c(0.3)); g.addColorStop(1, c(0)); x.fillStyle = g; x.fillRect(G.a - 0.16, G.r0 - 0.16, G.b - G.a + 0.32, 0.13); }
-}
-/** the sash over the light (dark against it): the slim meeting rail high up (re-drawn over anything a moment painted) */
-export function sash(x, G, fc) {
-  R(x, G.g0, G.rail - 0.025, G.g1, G.rail + 0.025, fc);
 }
 /** THE BAR's room: the gold back-bar's glow (the pendant over the counter the one light), two shelves of bottles, the counter (lit
  *  0..1: the shelves' lights one by one while the bartender switches them on — lit ≥ 1 all; dim: the last light, only the pendant) */
@@ -361,16 +355,14 @@ export function createWindowLife() {
       if (!list.length && !tap && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp')) continue;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
       const E = { c, G, w, k, kl, day, t, mo, T, glints, f, env, frameC, after: [] };
-      let redrawSash = false;
-      // the room's own state
-      if (w.id === 'apartment') redrawSash = apartmentState(E, fr.states.apartment, list) || redrawSash;
-      if (w.id === 'bar') redrawSash = barState(E, fr.states.bar, list) || redrawSash;
-      if (w.id === 'jazz' && kl > 0.01) { saxPlayer(E, list.find(e => e.id === 'sax')); redrawSash = true; }
+      // the room's own state (POLISH 5: single panes — nothing is laid back over the glass after)
+      if (w.id === 'apartment') apartmentState(E, fr.states.apartment, list);
+      if (w.id === 'bar') barState(E, fr.states.bar, list);
+      if (w.id === 'jazz' && kl > 0.01) saxPlayer(E, list.find(e => e.id === 'sax'));
       // the moments in this window
-      for (const e of list) { const p = PAINT[e.id]; if (p) { p(E, e.el, e.len, e); redrawSash = true; } }
-      if (tap) { tapPaint(E, tap); redrawSash = true; }
+      for (const e of list) { const p = PAINT[e.id]; if (p) p(E, e.el, e.len, e); }
+      if (tap) tapPaint(E, tap);
       c.restore();
-      if (redrawSash) sash(c, G, kl > 0.3 ? 'rgb(26,18,20)' : frameC);
       for (const fn of E.after) fn();
     }
     c.restore();
@@ -712,17 +704,15 @@ export function createWindowLife() {
       if (k > 0.01) { c.globalAlpha = k; paintLampRoom(c, G, 1); c.fillStyle = 'rgba(236,240,255,0.14)'; c.fillRect(G.g0, G.h0, G.cw, G.ch); c.globalAlpha = 1; }   // (SP2: the dawn's lamp a little paler)
       if (day > 0.01) { c.globalAlpha = day; R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(40,32,38)'); c.globalAlpha = 1; }
       const night = k > 0.4, col = night ? SIL : null, pal = night ? null : DAY_PALS[0];
-      // the figure: in from the back (0.18), THE STRETCH (arms up in a V, a yawn, side to side), the watering can at the box
-      const inx = sm(0.17, 0.3, p), outx = sm(0.9, 0.99, p), x = G.g0 + G.cw * (1.05 - 0.55 * inx + 0.6 * outx);
+      // the figure: in from the back (0.18), THE STRETCH (arms up in a V, a yawn, side to side), a look out at the morning, away
+      // (POLISH 5: the window box is gone — no watering can, no raised sash)
+      const inx = sm(0.17, 0.3, p), outx = sm(0.86, 0.97, p), x = G.g0 + G.cw * (1.05 - 0.55 * inx + 0.6 * outx);
       const st = sm(0.3, 0.38, p) * (1 - sm(0.52, 0.58, p)), sway = mo ? Math.sin(el * 2.2) * st : 0;
-      const can = sm(0.58, 0.64, p) * (1 - sm(0.84, 0.9, p)), pour = sm(0.64, 0.68, p) * (1 - sm(0.8, 0.84, p));
-      const sashUp = sm(0.56, 0.62, p) * (1 - sm(0.84, 0.9, p));
+      const look = sm(0.58, 0.64, p) * (1 - sm(0.8, 0.86, p));
       if (inx > 0.01 && outx < 0.99) {
-        const arms = st > 0.02 ? [[0.2 + 2.6 * st, 0.15], [0.2 + 2.6 * st, 0.15]] : can > 0.02 ? [[0.15, 0.2], [0.5 + 0.6 * can, 0.5 + 0.2 * pour]] : [[0.12, 0.15], [0.12, 0.15]];
-        figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.22 * can, tilt: -0.3 * st, face: can > 0.2 ? 1 : 0, arms, hold: [null, can > 0.02 ? 'can' : null], pour: pour * 0.9, hair: 'bun', col, pal });
+        const arms = st > 0.02 ? [[0.2 + 2.6 * st, 0.15], [0.2 + 2.6 * st, 0.15]] : look > 0.02 ? [[0.12, 0.15], [0.3 + 0.2 * look, 0.25]] : [[0.12, 0.15], [0.12, 0.15]];
+        figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.08 * look, tilt: -0.3 * st, face: look > 0.2 ? 1 : 0, arms, hair: 'bun', col, pal });
       }
-      // the lower sash raised for the watering (its bottom rail up a third of the glass, the gap open under it)
-      if (sashUp > 0.01) { const sv = G.h0 + G.ch * 0.3 * sashUp; R(c, G.g0, sv - 0.06, G.g1, sv, E.frameC); }
       // the blind: down until the wake, rolled up in its first seconds
       const up = sm(0.02, 0.16, p), bv = lerp(G.h0, G.h1, up);
       if (up < 0.995) {
@@ -730,12 +720,6 @@ export function createWindowLife() {
         if (day > 0.01) { c.globalAlpha = day; R(c, G.g0, bv, G.g1, G.h1, rgb(tri(E.T, [232, 220, 192], [240, 196, 150], [60, 50, 50]))); c.globalAlpha = 1; }
         R(c, G.g0, bv, G.g1, bv + 0.05, 'rgb(90,60,40)'); R(c, G.cx - 0.03, bv - 0.1, G.cx + 0.03, bv, E.frameC);
       }
-      // the water: drops falling from the spout through the open sash onto the geraniums below the sill (outside)
-      if (pour > 0.05 && mo) E.after.push(() => {
-        const sx = x + 0.62, sy = G.h0 + 0.36;
-        c.fillStyle = night ? 'rgba(255,220,170,0.85)' : 'rgba(200,226,255,0.95)';
-        for (let i = 0; i < 6; i++) { const q = ((t * 1.6 + i / 6) % 1), dx = sx + 0.05 * Math.sin(i * 2.3), dy = sy - q * 0.85; if (dy > G.r0 - 0.42) { c.beginPath(); c.arc(dx, dy, 0.035, 0, TAU); c.fill(); } }
-      });
     },
     'lights-out'(E, el, len) {
       const { c, G, k } = E, p = el / len;

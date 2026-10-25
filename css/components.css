@@ -1330,6 +1330,23 @@ body.nd-glass .music-btn, body.nd-on .music-btn, body.bd-on .music-btn { right: 
 body.nd-on .menu-btn, body.cb-split .menu-btn { left: calc(var(--safe-l) + 12px); right: auto; }
 body.nd-on .music-btn, body.cb-split .music-btn { top: calc(var(--safe-t) + 10px); }
 body.nd-on .gm-panel, body.cb-split .gm-panel { left: calc(var(--safe-l) + 12px); right: auto; transform-origin: top left; }
+/* POLISH 5 — THE MUSIC BUTTON SAYS IT (no toast): OFF = the note dimmed + a crisp white slash on a dark edge, the glass a touch darker
+   (≥ 3:1 on a bright day sky as on the night); its words go to screen readers only (.mh-sr); ALL sound muted → a short hint pill in the
+   corner row, left of the button (never over the sign) */
+.music-btn .slash, .music-btn .slash-bg { opacity: 0; transition: opacity 0.18s; }
+.music-btn .slash-bg { stroke: rgba(5, 6, 18, 0.92); stroke-width: 4.4; }
+.music-btn .slash { stroke: #fff; stroke-width: 1.9; }
+.music-btn .nt { transition: opacity 0.18s; }
+.music-btn.is-off, body .music-btn.is-off { color: #fff; border-color: rgba(255, 255, 255, 0.26); background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 60%), rgba(8, 9, 24, 0.7); }
+.music-btn.is-off .nt { opacity: 0.42; }
+.music-btn.is-off .slash, .music-btn.is-off .slash-bg { opacity: 1; }
+.mh-sr { position: fixed; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.mh-hint { position: fixed; z-index: 71; top: calc(var(--safe-t) + 10px); right: calc(var(--safe-r) + 12px + var(--cb) + 8px); height: var(--cb); padding: 0 14px;
+  border-radius: 999px; font: 700 11px/1 var(--font-display); letter-spacing: 0.12em; color: #fff; white-space: nowrap;
+  background: rgba(10, 11, 28, 0.86); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  opacity: 0; transform: translateX(8px); transition: opacity 0.22s ease, transform 0.28s var(--ease); -webkit-tap-highlight-color: transparent; }
+.mh-hint.is-in { opacity: 1; transform: none; }
+.mh-hint.is-out { opacity: 0; transition-duration: 0.25s; }
 
 .gm { position: fixed; inset: 0; z-index: 90; }
 .gm-scrim { position: absolute; inset: 0; background: rgba(2, 3, 10, 0.35); animation: fade-in 0.18s both; }

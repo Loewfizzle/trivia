@@ -15,7 +15,8 @@ import { musicNeedsRescue } from '../audio/music.js';
 
 const GEAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 
-const NOTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="slash" d="M3 3l18 18"/></svg>';
+// (POLISH 5: the OFF look says it — the note dimmed + a crisp slash with a dark edge under it, readable on a bright day sky)
+const NOTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g class="nt"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></g><path class="slash-bg" d="M4 4l16 16"/><path class="slash" d="M4 4l16 16"/></svg>';
 
 let gear;
 let musicBtn;
@@ -159,10 +160,14 @@ export function installSettingsPanel() {
   musicBtn = h('button.music-btn', { type: 'button', html: NOTE, onclick: () => {
     // the music was meant to be ON but had gone quiet (iOS after leaving Safari, a call, the lock screen): this tap brings it back
     // (audio/music.js#musicNeedsRescue restarts it inside the tap) instead of switching it off
-    if (musicNeedsRescue()) { toast('MUSIC ON', 'info', 1600); return; }
+    // (POLISH 5, the owner: NO toast — the "MUSIC OFF / ON" pill covered the neon race the tap fires, and you HEAR the change; the
+    // button's own look says it, a screen reader hears it (an aria-live line, nothing visual). The one exception: ALL sound muted in
+    // settings — a tap that can't play anything shows a short hint in the corner row, clear of the sign)
+    if (settings.muted) { mutedHint(); return; }
+    if (musicNeedsRescue()) { say('Music on'); return; }
     updateSettings({ musicOff: !settings.musicOff });
     if (!settings.musicOff) musicNeedsRescue();     // switched on: make sure it really plays (still inside the tap)
-    toast(settings.musicOff ? 'MUSIC OFF — EFFECTS STAY ON' : 'MUSIC ON', 'info', 1600);
+    say(settings.musicOff ? 'Music off. Effects stay on.' : 'Music on');
   } });
   document.body.append(musicBtn);
   installGameMenu();
@@ -177,6 +182,22 @@ export function installSettingsPanel() {
 }
 
 export function closeSettings() { close(); }
+
+// POLISH 5 — the music button's words for screen readers only (visually hidden), and the muted hint
+let sr = null, hint = null, hintT = 0;
+function say(text) {
+  if (!sr) { sr = h('div.mh-sr', { role: 'status', 'aria-live': 'polite' }); document.body.append(sr); }
+  sr.textContent = '';
+  requestAnimationFrame(() => { if (sr) sr.textContent = text; });
+}
+/** ALL sound is muted: the tap can't play anything — "SOUND IS OFF — SETTINGS" beside the button for 2.6 s (a tap opens settings) */
+function mutedHint() {
+  say('All sound is muted. Turn it on in settings.');
+  if (!hint) { hint = h('button.mh-hint', { type: 'button', onclick: () => { hideHint(); open(); } }, 'SOUND IS OFF — SETTINGS'); document.body.append(hint); }
+  hint.classList.remove('is-out'); requestAnimationFrame(() => hint && hint.classList.add('is-in'));
+  clearTimeout(hintT); hintT = setTimeout(hideHint, 2600);
+}
+function hideHint() { if (!hint) return; const el = hint; hint = null; el.classList.remove('is-in'); el.classList.add('is-out'); setTimeout(() => el.remove(), 300); }
 
 // ---------------------------------------------------------------- the in-game menu
 // In a game the corner holds two buttons: ☰ (this menu) and the music on/off. The menu drops down a glass panel with

@@ -3153,7 +3153,7 @@ test('PF — THE PREVIEW PANEL lists the centrepiece test under PROMENADE', () =
 import { streetLook, CURB_STEP, SHEEN } from '../js/screens/harbor/street.js';
 import { createStrings, BULB, CANOPY, frontProfile } from '../js/screens/harbor/strings.js';
 import { MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, WASH, washCone, BLADE, LETTER, bladeLetters, bladeWords, BLADE_ONE } from '../js/screens/harbor/speakeasy.js';
-import { ROOM_TINT, LATE_TINT, lateOf, SASH_RAIL } from '../js/screens/harbor/windows.js';
+import { ROOM_TINT, LATE_TINT, lateOf } from '../js/screens/harbor/windows.js';
 const pfLum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 test('PF — THE STREET reads as its own surface: tarred setts darker + cooler than the promenade\'s, tar in the joints (never black at night), the worn paths\' sheen, a clear curb step', () => {
   const PROM = { d: [154, 148, 140], n: [64, 59, 86] };      // (stage.js#SETT — the promenade's own setts, unchanged by PF)
@@ -3235,10 +3235,9 @@ test('SP2 — THE WALL-WASHERS: accents, not panels — a lamp over each brick p
   for (const d of [0.3, 0.8, 1.2]) { const hw = WASH.w0 + d * WASH.spread; assert.ok(washCone(hw * 0.25, d) > washCone(hw * 0.7, d) && washCone(hw * 0.97, d) < 0.03, `a soft V: widening + fading to its edges at ${d}`); }
   assert.ok(WASH.w0 + 0.3 * WASH.spread < WASH.w0 + 1.2 * WASH.spread, 'widening down (a V, never a rounded arch)');
 });
-test('SP2 — THE ROOMS: the TV window upper-RIGHT, clean panes (the rail high), each room its own incandescent bulb (the TV the only cool light), late night dimmer + warmer', () => {
+test('SP2 — THE ROOMS: the TV window upper-RIGHT, single clean panes (POLISH 5: no rail), each room its own incandescent bulb (the TV the only cool light), late night dimmer + warmer', () => {
   const ap = ROOMS.find(r => r.id === 'apartment'), back = ROOMS.find(r => r.id === 'back');
   assert.ok(ap.floor === 3 && ap.col === 2 && back.floor === 3 && back.col === 1, 'the apartment (the TV) upper-right, the back room upper-middle');
-  assert.ok(SASH_RAIL >= 0.66, 'the meeting rail in the upper third');
   for (const [id, c] of Object.entries(ROOM_TINT)) {
     assert.ok(c[0] >= c[1] && c[1] >= c[2] && c[2] >= 160, `${id}: warm, never a colour (${c})`);
     assert.ok(c[0] - c[2] <= 90, `${id}: subtle`);

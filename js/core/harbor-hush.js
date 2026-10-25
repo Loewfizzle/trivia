@@ -9,8 +9,10 @@ import { LETTERS } from '../screens/district/marks.js';
 import { flattenPath } from './tube-path.js';
 
 /** the sign's proportions (× the cap height): a letter's width, the gaps across + between the rows; margin: inside the glass (units);
- *  col: the tubes' warm neon */
-export const HUSH = Object.freeze({ lw: 0.66, gap: 0.14, row: 0.2, tube: 0.12, margin: 0.09, col: [255, 52, 84] });   // (a hot classic neon red: it must read against the jazz room's amber shade)
+ *  col: the tubes' neon. POLISH 5 (the owner, the JAZZ preview at night: pink-red on the warm amber room read soft + low-contrast):
+ *  ICE-CYAN — the complement of the room's amber, the most contrast there is — with white-hot cores + TIGHT halos (hushsign.js), the
+ *  strokes thicker and the letters BOLD BLOCKS that fill the glass (wider, tighter gaps, a slimmer margin) */
+export const HUSH = Object.freeze({ lw: 0.84, gap: 0.1, row: 0.13, tube: 0.17, margin: 0.05, col: [96, 232, 255] });
 
 /** the window's glass (wall units) for the window [a, b] × [r0, r1] — the same insets as the speakeasy's sash (speakeasy.js#paintWindow) */
 export const hushGlass = (a, b, r0, r1) => [a + 0.18, b - 0.05, r0 + 0.12, r1 - 0.06];

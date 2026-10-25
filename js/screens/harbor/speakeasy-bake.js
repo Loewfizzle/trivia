@@ -7,7 +7,7 @@ import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
-import { paintRoom, createWindowLife, SASH_RAIL, lateOf } from './windows.js';
+import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
@@ -211,9 +211,9 @@ export function paintWindow(x, M, a, b, r0, r1, o) {
   const j = 0.13, gs = a + j, gb = r0 + 0.07;
   R(x, a, r0, gs, r1, sd > 0.1 ? shade(M.brick, -0.32) : mix(M.brick, [255, 226, 190], 0.12 * (M.day + M.gold)));
   R(x, a, r0, b, gb, mix(M.trim, [255, 250, 236], 0.15 * M.day));
-  // SP2 — BIG CLEAN PANES (the owner: the thick bar through the middle split every scene): a slim frame, a 1920s one-over-one sash
-  // with its meeting rail HIGH (SASH_RAIL of the glass up: the upper sash a short band) — one big lower pane for the room's scene
-  const g0 = gs + 0.05, g1 = b - 0.05, h0 = gb + 0.05, h1 = r1 - 0.06, rail = h0 + (h1 - h0) * SASH_RAIL;
+  // POLISH 5 — SINGLE BIG PANES (the owner: "the whole point is to be able to see the scenes"): a slim frame round ONE clear pane — no
+  // meeting rail; the deep reveal (the jamb's inner face, the head) + the sill keep it a real 1920s window, a faint sheen by day
+  const g0 = gs + 0.05, g1 = b - 0.05, h0 = gb + 0.05, h1 = r1 - 0.06;
   R(x, gs, gb, b, r1, M.frame);
   const pane = (p0, p1, q0, q1) => {
     if (!night) {
@@ -239,41 +239,8 @@ export function paintWindow(x, M, a, b, r0, r1, o) {
     R(x, g0, h1 - hs, g1, h1, [0, 0, 0], 0.22 * (M.day + M.gold) * (1 - 0.6 * M.ov));
     x.restore();
   }
-  // the meeting rail (slim, high) + the frame's lit edges
-  R(x, g0, rail - 0.025, g1, rail + 0.025, M.frame); R(x, g0, rail + 0.025, g1, rail + 0.04, M.frameHi); R(x, gs, r1 - 0.02, b, r1, M.frameHi);
-  // 8P — THE WINDOW BOX (the apartment), crafted to read at phone size (Ben: "too small, low detail"): a deeper painted planter on two iron
-  // brackets under the sill, a trim + its lit lip, a full mound of foliage with BOLD flower heads (by the season: geraniums in summer,
-  // bronze + gold mums in autumn, tulips + pansies in spring, evergreen boughs + red berries in winter) and trailing ivy hanging over the front
-  // (FP3b, the owner: the mound + the blooms rose above the sill into the glass and hid the TV room at night — now NOTHING rises above
-  // the sill line: the plants sit inside the box's top edge — clipped there — the trailing ivy hangs down its front; the morning's
-  // watering — windows.js 'wake' — still pours onto them)
-  if (o.box) {
-    const m = o.month || 10, rr = rngFrom(19), x0 = a - 0.02, x1 = b + 0.02, top = r0 - 0.16, bot = r0 - 0.72;
-    x.save(); x.beginPath(); x.rect(x0 - 0.5, bot - 0.6, x1 - x0 + 1, r0 - 0.02 - (bot - 0.6)); x.clip();
-    const boxC = tri(M.T, [46, 86, 64], [62, 66, 46], [12, 16, 22]), trimC = tri(M.T, [96, 140, 110], [110, 104, 70], [22, 26, 34]);
-    // the brackets + the box (a darker base, the front panel, a raised trim band, the lit lip)
-    for (const u of [x0 + 0.2, x1 - 0.2]) { R(x, u - 0.04, bot - 0.22, u + 0.04, bot, M.iron); R(x, u - 0.04, bot - 0.22, u + 0.22 * (u < (x0 + x1) / 2 ? 1 : -1), bot - 0.16, M.iron); }
-    R(x, x0, bot, x1, top, boxC); R(x, x0 + 0.06, bot + 0.07, x1 - 0.06, top - 0.07, shade(boxC, -0.12));
-    R(x, x0, top - 0.07, x1, top, trimC); R(x, x0, top - 0.02, x1, top, mix(trimC, [255, 255, 255], 0.25 * (1 - M.night)));
-    R(x, x0, bot, x1, bot + 0.04, shade(boxC, -0.35));
-    const leaf = m === 12 || m <= 2 ? [[38, 74, 50], [48, 88, 58]] : m <= 5 ? [[96, 160, 70], [120, 176, 84]] : m <= 8 ? [[52, 110, 54], [66, 128, 60]] : [[60, 96, 50], [84, 110, 56]];
-    const flowers = m === 12 || m <= 2 ? [[196, 30, 40], [214, 50, 46]] : m <= 5 ? [[236, 120, 160], [248, 214, 80], [150, 90, 200]] : m <= 8 ? [[220, 40, 50], [236, 70, 70], [250, 240, 236]] : [[214, 116, 40], [230, 170, 60], [140, 36, 44]];
-    const night = c => mix(c, [12, 12, 22], 0.84 * M.night);
-    // the trailing ivy over the front (a few strands with small leaves)
-    for (let i = 0; i < 6; i++) { const u = x0 + 0.15 + i * (x1 - x0 - 0.3) / 5 + (rr() - 0.5) * 0.1, len = 0.25 + rr() * 0.35; for (let k = 0; k < 5; k++) { const v = top - 0.05 - k * len / 4; x.fillStyle = rgb(night(leaf[(i + k) % 2])); x.beginPath(); x.ellipse(u + Math.sin(k * 1.3 + i) * 0.04, v, 0.06, 0.045, 0.6, 0, Math.PI * 2); x.fill(); } }
-    // the foliage mound (dark under-layer, then the leaves), the bold blooms on top
-    for (let i = 0; i < 22; i++) { const u = x0 + 0.08 + rr() * (x1 - x0 - 0.16), v = top - 0.1 + rr() * 0.1; x.fillStyle = rgb(night(shade(leaf[0], -0.3))); x.beginPath(); x.arc(u, v - 0.03, 0.1, 0, Math.PI * 2); x.fill(); }
-    for (let i = 0; i < 26; i++) { const u = x0 + 0.08 + rr() * (x1 - x0 - 0.16), v = top - 0.08 + rr() * 0.12; x.fillStyle = rgb(night(leaf[i % 2])); x.beginPath(); x.ellipse(u, v, 0.1, 0.07, rr() * 3, 0, Math.PI * 2); x.fill(); }
-    const nB = m === 12 || m <= 2 ? 7 : 9;
-    for (let i = 0; i < nB; i++) {
-      const u = x0 + 0.18 + (i + 0.5) * (x1 - x0 - 0.36) / nB + (rr() - 0.5) * 0.08, v = top - 0.02 + rr() * 0.06, col = flowers[i % flowers.length];
-      if (m === 12 || m <= 2) { x.fillStyle = rgb(night(col)); for (let k = 0; k < 3; k++) { x.beginPath(); x.arc(u + (k - 1) * 0.05, v + (k % 2) * 0.04, 0.035, 0, Math.PI * 2); x.fill(); } continue; }
-      x.fillStyle = rgb(night(shade(col, -0.25))); x.beginPath(); x.arc(u + 0.02, v - 0.02, 0.1, 0, Math.PI * 2); x.fill();
-      x.fillStyle = rgb(night(col)); x.beginPath(); x.arc(u, v, 0.095, 0, Math.PI * 2); x.fill();
-      x.fillStyle = rgb(night(mix(col, [255, 255, 255], 0.35))); x.beginPath(); x.arc(u - 0.03, v + 0.03, 0.035, 0, Math.PI * 2); x.fill();
-    }
-    x.restore();
-  }
+  // the frame's lit sill edge (POLISH 5 — SINGLE BIG PANES, the owner: no meeting rail — the deep reveal + the sill keep it a real 1920s window)
+  R(x, gs, r1 - 0.02, b, r1, M.frameHi);
 }
 
 /** THE GROUND FLOOR: the barbershop (its window with the chair + the mirror wall + gold leaf, its door + the OPEN / CLOSED card),
@@ -556,13 +523,13 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       paintWasherLamps(x, M, lk);
       x.restore();
     },
-    // the upper windows (by day: the sky in the glass, shades at their heights, curtains, the plant, the window box)
+    // the upper windows (by day: the sky in the glass, shades at their heights, curtains, the plant)
     x => {
       x.save(); frontMap(x);
       const r = rngFrom(23), curtains = [tri(T, [140, 40, 44], [150, 50, 44], [20, 10, 18]), tri(T, [70, 92, 58], [90, 80, 50], [12, 14, 16]), tri(T, [196, 168, 110], [200, 150, 100], [26, 22, 30])];
       ROOMS.forEach(rm => {
         const [a, b] = s.windows[rm.col], [r0, r1] = s.rows[rm.floor - 2];
-        const o = { blind: rm.clear ? 0.12 : 0.25 + r() * 0.45, curtain: rm.edge || rm.room === 'apartment' ? curtains[(rm.floor + rm.col) % 3] : null, plant: rm.id === 'edge2', box: rm.room === 'apartment', month: ctx.month };
+        const o = { blind: rm.clear ? 0.12 : 0.25 + r() * 0.45, curtain: rm.edge || rm.room === 'apartment' ? curtains[(rm.floor + rm.col) % 3] : null, plant: rm.id === 'edge2' };
         paintWindow(x, M, a, b, r0, r1, o);
       });
       x.restore();

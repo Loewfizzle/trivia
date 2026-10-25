@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR, 8P: THE HUSH WORD SIGN drawn (the plan: core/harbor-hush.js). BARE NEON TUBES hanging inside the speakeasy's
-// lower-right upstairs window (the jazz room) — the lobby's word as a 2 × 2 block (5 letters: 3 + 2), in the city's tube letters (the
+// lower-right upstairs window (the jazz room) — the lobby's word as a 2 × 2 block (5 letters: 3 + 2), ICE-CYAN (POLISH 5), in the city's tube letters (the
 // one tube system: harbor/tubes.js). Only while a lobby is open: lit letter by letter as it appears, glowing by day too (by day the tubes'
-// coloured glass, no white-hot core), a last flicker + gone when it closes — never an unlit sign. One lit sprite per letter (per word +
+// coloured glass round a near-white core), a last flicker + gone when it closes — never an unlit sign. One lit sprite per letter (per word +
 // size + day / night), so the strike costs a few drawImages. Lobby 2.0: set(word) (null = no lobby).
 import { hushPlan, hushState, strikeLevel, darkLevel, hushGlass, HUSH } from '../../core/harbor-hush.js';
 import { tube, drawLit, sprite, free, bbox } from './tubes.js';
@@ -14,8 +14,8 @@ function dayLit(x, tubes, col, w, a) {
   const line = (wd, style) => { x.beginPath(); for (const t of tubes) { x.moveTo(t.pts[0][0], t.pts[0][1]); for (let i = 1; i < t.pts.length; i++) x.lineTo(t.pts[i][0], t.pts[i][1]); } x.lineWidth = wd; x.strokeStyle = style; x.stroke(); };
   const c = (k, al) => `rgba(${col.map(v => Math.round(v + (255 - v) * k)).join(',')},${(al * a).toFixed(3)})`;
   x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
-  line(w * 2.2, 'rgba(20,10,14,0.35)');                 // (a dark edge: the tube reads against the bright day glass)
-  line(w * 1.05, c(0.08, 1)); line(w * 0.38, c(0.55, 0.95));
+  line(w * 2.2, 'rgba(6,14,22,0.42)');                  // (a dark edge: the tube reads against the bright day glass)
+  line(w * 1.05, c(0.05, 1)); line(w * 0.46, c(0.82, 1));   // (POLISH 5: bright cyan glass, a near-white core — it reads by day too)
   x.restore();
 }
 
@@ -37,10 +37,10 @@ export function createHushSign() {
     if (k === litKey && lit) return lit;
     if (lit) for (const s of lit) free(s);
     litKey = k;
-    const sc = plan.screen, glow = sc.w * 2.3;
+    const sc = plan.screen, glow = sc.w * 1.15;         // (POLISH 5: a TIGHT halo — crisp letters, no wide blur)
     // (at night too a thin dark edge first: the tubes separate from the lit room behind them, then the lit tube over it)
-    const edge = (x, t) => { x.save(); x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath(); for (const q of t) { x.moveTo(q.pts[0][0], q.pts[0][1]); for (let i = 1; i < q.pts.length; i++) x.lineTo(q.pts[i][0], q.pts[i][1]); } x.lineWidth = sc.w * 2.6; x.strokeStyle = 'rgba(24,6,12,0.55)'; x.stroke(); x.restore(); };
-    lit = sc.letters.map(t => (t.length ? sprite(bbox(t), glow * 2.4 + 2, dpr, x => (soft ? dayLit(x, t, HUSH.col, sc.w, 1) : (edge(x, t), drawLit(x, t, HUSH.col, { w: sc.w, glow, a: 1, dpr })))) : null));
+    const edge = (x, t) => { x.save(); x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath(); for (const q of t) { x.moveTo(q.pts[0][0], q.pts[0][1]); for (let i = 1; i < q.pts.length; i++) x.lineTo(q.pts[i][0], q.pts[i][1]); } x.lineWidth = sc.w * 2.4; x.strokeStyle = 'rgba(4,10,18,0.6)'; x.stroke(); x.restore(); };
+    lit = sc.letters.map(t => (t.length ? sprite(bbox(t), glow * 2.4 + 2, dpr, x => (soft ? dayLit(x, t, HUSH.col, sc.w, 1) : (edge(x, t), drawLit(x, t, HUSH.col, { w: sc.w, glow, a: 1, dpr, core: 0.55 })))) : null));
     return lit;
   }
   /** draw(c, f): f = { t (s), T (the tones), fade, motion } — over the jazz room's life (its silhouettes show between the letters) */
@@ -56,6 +56,9 @@ export function createHushSign() {
     ensure(shown.text);
     const day = clamp01(((f.T && f.T.day) || 0) + 0.8 * ((f.T && f.T.gold) || 0)), L = litSprites(day), fade = f.fade == null ? 1 : f.fade;
     c.save(); c.globalCompositeOperation = 'source-over';      // (over the room — its dark edge must show)
+    // (POLISH 5: the room behind DIMMED while the sign is lit — someone inside turned the lamp low to show it; the dancers' silhouettes
+    // still pass behind. By day the glass a little dimmer under the bright tubes)
+    if (rect) { const lv = Math.min(1, Math.max(0, (t - since - 0.2) / 0.6)) * out * fade; if (lv > 0.004) { c.fillStyle = `rgba(6,6,14,${((0.4 * (1 - day) + 0.2 * day) * lv).toFixed(3)})`; c.fillRect(rect.x, rect.y, rect.w, rect.h); } }
     L.forEach((s, i) => { if (!s) return; const lv = strikeLevel(i, t - since) * out; if (lv <= 0.004) return; c.globalAlpha = Math.min(1, lv * fade); c.drawImage(s.c, s.x, s.y, s.w, s.h); });
     c.restore();
   }

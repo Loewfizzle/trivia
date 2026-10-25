@@ -638,7 +638,9 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-hring .hr-clips { transition: opacity 1.4s ease; }
 .nd-hring .hr-clips rect { fill: #1d121c; opacity: 0.7; }
 .nd-host-label { position: relative; padding-left: 0.16em; font: 900 9.5px/1 var(--font-display); letter-spacing: 0.16em;
-  color: rgba(222, 218, 234, 0.9); transition: color 0.15s ease, text-shadow 0.15s ease; }   /* (unlit glass by day: still crisp, ≥ 4.5:1) */
+  color: #fff; text-shadow: 0 0 1px rgba(255, 255, 255, 0.55), 0 0 6px rgba(255, 255, 255, 0.2); transition: color 0.15s ease, text-shadow 0.15s ease; }
+/* (POLISH 5, the owner: JOIN + HOST ALWAYS LIT — the words crisp white 24/7 (by day, at dusk, at rest, in the TR-3B blackout: the buttons
+   are UI); only the RINGS keep their rules: unlit glass by day, the warm-up at dusk, the party. ~15:1 on the dark disc) */
 /* JOIN / HOST follow the sign (Oct 21): unlit glass by day — off with the sign's last letter, back at the catch. Going dark
    fades; a tap on a dark ring gives a brief glow (.is-flash, title-dock.js) */
 .nd-ringbtn:not(.is-lit) .hr-light, .nd-ringbtn:not(.is-lit) .nd-hglow { transition: opacity 0.6s ease; }

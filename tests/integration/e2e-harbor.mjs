@@ -2180,15 +2180,15 @@ G('people', async () => {
     await waitFor(Q.page, `${P}.speakeasy.hush().since > 3`, 'the word lit through', 8000).catch(() => {});
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`);
     hushRect = hs.rect;
-    const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hs.rect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 215 && d[i + 1] < 150 && d[i] > d[i + 2] + 60) n++; res(n / (d.length / 4)); }))`);   // (the neon's hot red, not the room's amber)
+    const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hs.rect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`);   // (POLISH 5: the neon's ice-cyan, never the room's amber)
     hushRed = red;
-    ok(hs.text === 'SWING' && hs.lit === 1 && red > 0.006 && hs.rows.join('/') === 'SWI/NG', `THE HUSH WORD SIGN at night with a lobby: ${hs.rows.join(' / ')} in warm neon tubes in the upstairs window (${(red * 100).toFixed(1)} % of its glass glowing, ${hs.capPt} pt)`);
+    ok(hs.text === 'SWING' && hs.lit === 1 && red > 0.006 && hs.rows.join('/') === 'SWI/NG', `THE HUSH WORD SIGN at night with a lobby: ${hs.rows.join(' / ')} in ice-cyan neon tubes in the upstairs window (${(red * 100).toFixed(1)} % of its glass glowing, ${hs.capPt} pt)`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'pp3', qs: `when=2026-10-22T22:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await settle(Q.page);
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`), lamps = await ev(Q.page, `${P}.lampLife()`);
-    const red0 = hushRect ? await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hushRect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 215 && d[i + 1] < 150 && d[i] > d[i + 2] + 60) n++; res(n / (d.length / 4)); }))`) : 0;
-    ok(!hs.text && hs.lit === 0 && red0 < hushRed / 3, `THE HUSH WORD SIGN at night, no lobby: absent (the window's neon red ${(red0 * 100).toFixed(2)} % vs ${(hushRed * 100).toFixed(2)} % with the word)`);
+    const red0 = hushRect ? await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hushRect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`) : 0;
+    ok(!hs.text && hs.lit === 0 && red0 < hushRed / 3, `THE HUSH WORD SIGN at night, no lobby: absent (the window's neon cyan ${(red0 * 100).toFixed(2)} % vs ${(hushRed * 100).toFixed(2)} % with the word)`);
     ok(lamps && lamps.levels.length >= 4 && lamps.levels.filter((v, i) => !(lamps.moment && lamps.moment.i === i)).every(v => v === 1), `THE LAMPS' LIFE at 10:30 pm: every lamp on (${lamps && lamps.levels.join(' ')}; switch-on order ${lamps && lamps.th.join(' ')})`);
     await Q.ctx.close(); }
   // ---- THE BUS (&force=bus: one a minute): it comes, stops at the curb short of the crossing with its door open, then goes

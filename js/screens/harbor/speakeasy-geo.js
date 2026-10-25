@@ -7,7 +7,7 @@ import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
-import { paintRoom, createWindowLife, SASH_RAIL, lateOf } from './windows.js';
+import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
 
 

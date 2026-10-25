@@ -27,7 +27,7 @@ export const MAX_AT_ONCE = 2;
 
 export const MOMENTS = Object.freeze([
   // ---- ROUTINES (fixed in the day; each also moves its room to its next state — roomState below)
-  { id: 'wake', label: 'THE UPSTAIRS WAKES', rarity: 'routine', windows: ['apartment'], at: 7, jitter: 8, len: 42, kind: 'a prop + a big silhouette motion: the blind up, a stretch, the window box watered' },
+  { id: 'wake', label: 'THE UPSTAIRS WAKES', rarity: 'routine', windows: ['apartment'], at: 7, jitter: 8, len: 42, kind: 'a big silhouette motion: the blind up, a stretch, a look out at the morning' },
   { id: 'shop-open', label: 'THE BARBERSHOP OPENS', rarity: 'routine', windows: ['shop'], at: 9, jitter: 3, len: 44, kind: 'a light change + people: the lamp on, the barber in, OPEN, the first customer in the chair' },
   { id: 'bartender', label: 'THE BARTENDER ARRIVES', rarity: 'routine', windows: ['bar'], at: 16, jitter: 6, len: 52, kind: 'lights on one by one behind a half-drawn shade, a glass polished' },
   { id: 'lights-out', label: 'LIGHTS OUT · THE TV', rarity: 'routine', windows: ['apartment'], at: 22, jitter: 12, len: 16, kind: 'the lamp clicks off, the TV flickers on, someone settles on the couch' },

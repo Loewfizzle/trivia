@@ -19,7 +19,7 @@ import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
-import { paintRoom, createWindowLife, SASH_RAIL, lateOf } from './windows.js';
+import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
 import { frontProfile } from './strings.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, DOOR_FLOOD, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
@@ -364,11 +364,10 @@ export function createSpeakeasy() {
     if (!quiet && P > 0.04) life.draw(c, {   // (POL4: in a blackout the life's own lit windows — the TV, the night lamp — go dark with the rest)
       map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
     // 8P — THE HUSH WORD SIGN: bare neon tubes inside the lower-right upstairs window (the jazz room — its life shows between the letters),
-    // only while a lobby is open (hushsign.js); the window's meeting rail laid back over them (they hang inside the glass)
+    // only while a lobby is open (hushsign.js) — POLISH 5: one clear pane, nothing laid over them
     { if (f.hush !== undefined) hush.set(f.hush);
       hush.draw(c, { t: f.t || 0, T: f.tw || { day: 1 - k, gold: 0, night: k }, fade: fade * P, motion: f.motion });
-      if (hush.debug().text) { const [a, b] = G.s.windows[2], [r0, r1] = G.s.rows[0], h0 = r0 + 0.12, h1 = r1 - 0.06, rail = h0 + (h1 - h0) * SASH_RAIL;
-        c.save(); wallMap(c, ox, oy, G.K); c.globalAlpha = fade; R(c, a + 0.18, rail - 0.025, b - 0.05, rail + 0.025, k > 0.3 ? 'rgb(26,18,20)' : 'rgb(30,48,42)'); c.restore(); } }
+    }
     // THE GOLD LEAF on the glass — once (8P), over the shop's life + the sign inside
     c.save(); c.globalAlpha = fade; giltOver(c, f); c.restore();
     // FP3b — REAL DOORS (doors.js): the side door + the shop door swinging open while someone walks through (people.js drives
