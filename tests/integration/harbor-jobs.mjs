@@ -26,7 +26,8 @@ export const SECONDS = {
 // ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
 export const CI_JOBS = {
   audio: ['music', 'flags', 'harbor', 'dock', 'legends'],
-  show: ['neon', 'party', 'sky', 'life', 'workers'],
+  show: ['neon', 'party', 'sky', 'life'],
+  wild: ['workers'],                      // (8b1: a fifth job — the four were near their 5-minute cap; the wildlife joins it)
   city: ['core', 'skyline', 'water', 'load', 'panel', 'perf'],
   street: ['speakeasy', 'windows', 'sounds', 'promenade', 'people'],
 };
