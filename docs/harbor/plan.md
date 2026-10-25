@@ -1778,8 +1778,9 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   the owner's time zone — everyone sees it at the same instant) or AT THAT LOCAL TIME on each viewer's clock; one-off or
   repeating (daily / weekly / yearly — a birthday every year); who sees it (everyone on City 2, or only people who open a
   private link); a preview button; a list of upcoming + past scheduled events with edit / cancel; joins mid-way like every
-  hot. The readout can add a "since 10 min" slow % so the creep is visible.
-  (The note arrived cut here — "joins mid-way like every hot." — the rest of the sentence is missing in the owner's block.)
+  event (someone opening a minute late still sees it running). Server-written (city2/… via /api/admin), admin-only.
+  (A stray fragment arrived inside this note, from another one: "The readout can add a "since 10 min" slow % so the creep
+  is visible.")
 - FRIENDS + INVITES + THE INBOX (the owner, Oct 25 — for Lobby 2.0 / Progression 2.0; agreed): FRIENDS are EXPLICIT +
   MUTUAL only (nobody becomes friends automatically — playing with strangers in a big group must never make them
   "friends"); a PRIVATE "Recent players" list (only you see it, it fades after ~2 weeks) is where you can tap ADD FRIEND
@@ -1791,4 +1792,31 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   a profile. THE DOCK: ONE "SOCIAL" icon (friends + the inbox as two tabs, one glowing count) rather than two icons — the
   dock stays JOIN · BOARD · GAMES · SOCIAL · PROFILE · HOST (widen the dock a little / JOIN + HOST nudged outward only if
   it fits at 390 with JOIN + HOST as big as today); the INBOX holds invites, the daily-puzzle drops, City Control
-  (The note arrived cut here — "…the daily-puzzle drops, City Control" — the rest is missing in the owner's block.)
+  announcements, streaks + achievements.
+
+## OWNER'S NOTES — OCT 25 (after PEO)
+(For POLISH 5 — both DECIDED. Recorded as received, Oct 25 evening.)
+
+- THE LOAD STILL JUMPS (the owner, Oct 25 ~6:40 pm, his iPhone): "upon loading, the buildings and stuff shift around and
+  fade around and jump around until it's loaded" — FP3a's load gate (dark → ONE fade-in) isn't holding everywhere. For
+  POLISH 5 GROUP 0 (first, before the look work): (1) a LOAD LOG in the &debug=1 readout (foldable): the reveal's why + ms,
+  then EVERY change to the picture in the first ~15 s after it, timestamped with its cause — a re-layout (the viewport /
+  visualViewport / screen sizes before → after), a re-bake or crossfade (which layer), a tier step (the gate's deferred
+  wantStep applied after the reveal?), the weather / clouds arriving (a fetch landing after the reveal → fog / clouds /
+  light fading in), the time-of-day or season state settling, fonts, the dock's rects moving; (2) reproduce on throttled
+  loads (3g, 4× CPU) in Safari-sized viewports, cold + warm cache, a Safari tab vs a home-screen install, + WebKit if it
+  installs; (3) fix the causes so NOTHING visible changes after the reveal: the reveal waits for the weather (the last
+  weather cached per device so the first frame already has it, the live one blending in only if it truly differs, slowly),
+  a deferred tier step decided BEFORE the reveal (or applied invisibly), no re-layout after the reveal unless the screen
+  really changed (a rotation), every late bake swapped without a crossfade over the whole city; (4) the owner then reloads
+  on his phone with &debug=1 and screenshots the LOAD LOG if anything still moves.
+  THE OWNER's ANSWERS (Oct 25 6:43 pm): it happens EVERY load (warm cache too → not the network), in a SAFARI TAB → suspect
+  first Safari's toolbar settling (the tab's dynamic bars; a home-screen install has none) + anything the gate lets through
+  after its window; compare a home-screen install on the same phone.
+- THE MUSIC ON / OFF TOAST — REMOVED (the owner, Oct 25 ~6:20 pm — DECIDED, for POLISH 5): the "MUSIC OFF — EFFECTS STAY
+  ON" / "MUSIC ON" pill (js/ui/settings-panel.js, the music button's onclick, incl. the rescue tap's "MUSIC ON") covers the
+  neon race the music-on tap fires — and you can HEAR the change. Remove it in both cities; the button's own state says it
+  (a clear OFF look: the note dimmed + a slash, crisp at 36 pt, ≥ 3:1 against the sky by day + night) + its aria-label /
+  an aria-live line for screen readers (no visual). ONE exception: if ALL sound is muted in settings, a tap that can't
+  play anything shows a short hint ("SOUND IS OFF — SETTINGS") placed clear of the sign. The toasts' LOOK in general
+  belongs to the menus / settings redesign (Lobby 2.0 era) — there no toast ever sits over the NEON sign during a race.
