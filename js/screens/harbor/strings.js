@@ -14,7 +14,6 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** THE SWITCH for the speakeasy roof's lights (scene.js draws them) */
-export const STRINGS_ON = true;
 /** the bulbs' look (pt × K, the camera's scale: ~1 on a phone): the globe's radius, the socket, the halo (× r) + its strength, the
  *  parapet's light (land: its face, edge: the coping's lit line) */
 export const BULB = Object.freeze({ r: 2.3, socket: 1.1, halo: 2.6, haloA: 0.42, land: 0.1, edge: 0.22 });

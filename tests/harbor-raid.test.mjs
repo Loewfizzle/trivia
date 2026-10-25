@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
-import { RAID, raidEvening, raidNear, raidPlan, raidAt, raidCarAt, forcedRaid } from '../js/core/harbor-raid.js';
+import { RAID, raidEvening, raidNear, raidPlan, raidAt, raidCarAt, forcedRaid, spotTargets, spotTour, spotOn } from '../js/core/harbor-raid.js';
 import { bootlegNight, prevKey } from '../js/core/harbor-workers.js';
 import { legendNight } from '../js/core/harbor-legend.js';
 import { holidayOf } from '../js/core/sky.js';
@@ -54,8 +54,14 @@ test('8b2 — THE RAID\'s CONVOY at 390 / 402 / 430: out from behind the speakea
       for (const c of P.cars.slice(0, -1)) for (let t = P.t0; t < P.tEnd; t += 0.2) { const s = raidCarAt(c, t); if (s && s.x + c.len / 2 > L.crosswalk.x0 - 0.6 && s.x - c.len / 2 < L.crosswalk.x1) assert.equal(signalAt(t * 1000).road, 'green', `${k}: car ${c.n} on the crossing at ${(t - P.t0).toFixed(1)} s`); }
       // the cars never overlap (a gap kept)
       for (let t = P.t0; t < P.tEnd; t += 0.5) { const xs = P.cars.map(c => raidCarAt(c, t)).map(s => (s ? s.x : null)); for (let i = 1; i < xs.length; i++) if (xs[i] != null && xs[i - 1] != null) assert.ok(xs[i - 1] - xs[i] > RAID.len + 0.6, `${k}: a gap kept`); }
-      // the officer: out at the kerb (on the road's edge, never on the promenade) while the beam sweeps
-      const o = P.officer.legs[1]; assert.equal(o.pose, 'flash'); assert.ok(o.z > FOLK.roadZ && o.z < FOLK.roadZ + 1, `${k}: at the kerb`);
+      // C2 — the officer WALKS to where he can see the FRONT (the owner): in front of the facade's plane, on the promenade, turned to
+      // it (facing left, toward the windows), his route round the bench's baked corner (never through 'back-left')
+      const o = P.officer.legs[1]; assert.equal(o.pose, 'flash');
+      assert.ok(o.z < L.speakeasy.z0 && o.z > FOLK.zMin && o.x > L.speakeasy.x1, `${k}: in front of the facade (${o.x.toFixed(1)}, ${o.z.toFixed(1)})`);
+      assert.ok(Math.cos(o.hd) < -0.9, `${k}: facing the windows (hd ${o.hd.toFixed(2)})`);
+      const back = folkMap(L).rects.find(r => r.id === 'back-left'), pts = P.officer.legs[0].pts;
+      for (let i = 1; i < pts.length; i++) for (let f = 0; f <= 1; f += 0.05) { const x = pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f, z = pts[i - 1].z + (pts[i].z - pts[i - 1].z) * f; assert.ok(!(x > back.x0 + 0.01 && x < back.x1 - 0.01 && z > back.z0 + 0.01 && z < back.z1 - 0.01), `${k}: his route clear of the bench's corner`); }
+      assert.ok(P.officer.beam.t0 >= o.t0, `${k}: the beam only once he's there`);
       assert.ok(P.officer.t1 < P.tDepart, `${k}: back in before it leaves`);
       // the lights: dark from the first car showing, back after the last is gone
       assert.equal(raidAt(P, P.tAppear - 0.5).power, 1);
@@ -76,7 +82,7 @@ test('8b2 — THE RAID on the promenade: people freeze / walk off / look away, t
   const P = raidPlan(forcedRaid(sat + 22 * 3600, sat + 22 * 3600 - 40, true), L);
   const ctx = { off: OFF, raid: P };
   const at = t => folkAt(t, { L, M, ctx }, cache);
-  const before = at(P.tAppear - 1), mid = at(P.tStop + 4), after = at(P.tBack + 60);
+  const before = at(P.tAppear - 1), mid = at(P.officer.legs[1].t0 + 1), after = at(P.tBack + 60);
   assert.ok(mid.members.some(m => m.kind === 'officer' && m.s.pose === 'flash'), 'the officer with his flashlight');
   const newcomers = mid.visits.filter(v => v.t0 > P.tAppear + 1 && v.kind !== 'officer' && !v.routine);
   assert.equal(newcomers.length, 0, 'nobody new while it lasts');
@@ -89,3 +95,33 @@ test('8b2 — THE RAID on the promenade: people freeze / walk off / look away, t
   // raidNear finds a scheduled raid
   for (let i = 0; i < 120; i++) { const key = keyOf(270 + i), day0 = day0Of(key), rd = raidEvening(key, { off: OFF, day0 }); if (rd) { assert.equal(raidNear(rd.t0 + 30, { off: OFF }).t0, rd.t0); break; } }
 });
+
+test('C2 — THE RAID ~10 s SHORTER: the last car leaves on the first green after the officer is back (no long wait); the first car to the end ≈ 1 min', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { L } = setup(k), base = day0Of('2026-10-26') + 21.5 * 3600;
+    for (let i = 0; i < 12; i++) {
+      const P = raidPlan({ key: `s${i}`, t0: base + i * 53, party: i % 3 === 0, why: 'test' }, L);
+      assert.ok(P.tDepart - P.tReady < 6, `${k}: a short wait for green (${(P.tDepart - P.tReady).toFixed(1)} s)`);
+      assert.ok(P.tEnd - P.tAppear < 62, `${k}: the raid ${(P.tEnd - P.tAppear).toFixed(1)} s from the first car (was ~70)`);
+    }
+  }
+});
+
+test('C2 — THE SPOTLIGHT TOUR: it rests only on the windows + the doors, moves smoothly, and every raid takes its own path', () => {
+  const { L } = setup('402x874'), s = L.speakeasy, T = spotTargets(s);
+  assert.deepEqual(T.map(q => q.id).sort(), ['shopDoor', 'shopL', 'shopR', 'side', 'w00', 'w01', 'w02', 'w10', 'w11', 'w12'].sort());
+  const a = spotTour('2026-10-22', T, 50), b = spotTour('2026-10-23', T, 50);
+  assert.notDeepEqual(a.map(x => x.i), b.map(x => x.i), 'a different path every raid');
+  assert.deepEqual(spotTour('2026-10-22', T, 50), a, 'the same on every phone');
+  assert.ok(a.some(x => x.lg) && a.some(x => !x.lg) && a.some(x => x.dart) && a.some(x => !x.dart), 'it lingers, glances, darts and sweeps');
+  for (let i = 1; i < a.length; i++) assert.notEqual(a[i].i, a[i - 1].i, 'never the same opening twice in a row');
+  let prev = null, maxStep = 0;
+  for (let t = 0; t < 50; t += 1 / 60) {
+    const p = spotOn(a, T, t), S = a.find(x => t >= x.t0 && t < x.t2);
+    if (S && t < S.t1) { const q = T[S.i]; assert.ok(Math.abs(p.u - q.u) <= q.hu + 1e-6 && Math.abs(p.v - q.v) <= q.hv + 1e-6, `resting INSIDE ${q.id} at ${t.toFixed(2)} s`); }
+    if (prev) maxStep = Math.max(maxStep, Math.hypot(p.u - prev.u, p.v - prev.v));
+    prev = p;
+  }
+  assert.ok(maxStep < 0.75, `fluid: never a jump (the biggest step in a 60 fps frame ${maxStep.toFixed(3)} units — a dart)`);
+});
+

@@ -123,6 +123,7 @@ export function createPeople() {
     const nDancers = items.filter(m => m.kind === 'dancer').length || 1;
     const riding = new Set();
     for (const b of buses) for (const m of items) if (inBus(m, b)) riding.add(m);
+    for (const car of cars) if (car.cab) for (const m of items) if (inBus(m, car)) riding.add(m);
     for (const it of list) {
       if (it.x) { c.save(); it.x.draw(c); c.restore(); continue; }   // (8b1 wildlife)
       if (it.b) {
@@ -133,7 +134,12 @@ export function createPeople() {
         continue;
       }
       if (it.cart) { drawCartLive(c, it.cart, env); continue; }
-      if (it.car) { drawCar(c, it.car, env); continue; }
+      if (it.car) {
+        // (C2 — THE CAB's DOOR: its fares in the doorway — stepping down out / up in — drawn between the doorway + the swung door)
+        const rs = it.car.cab ? items.filter(m => riding.has(m) && m.s.door.id === it.car.id).sort((a2, b2) => b2.s.z - a2.s.z) : [];
+        drawCar(c, it.car, env, rs.length ? cc => { for (const m of rs) drawFolk(cc, cam, { s: m.s, L: lookFor(m, env) }, { ...E, yUp: m.s.y || 0 }); } : null);
+        continue;
+      }
       if (it.prop) { it.prop.draw(c, E); continue; }
       if (riding.has(it.m)) continue;
       const mem = it.m, look = lookFor(mem, env);
@@ -164,7 +170,7 @@ export function createPeople() {
   // with their pool on the asphalt ahead + the tall lamps' light on the body near them; a party night's underglow on a few
   const kit = createVehicles();
   let carPool = null, officerAt = null;
-  function drawCar(c, car, env) {
+  function drawCar(c, car, env, inside = null) {
     const cam = L.cam, sp = cam.F / car.z, [cx, gy] = project(cam, car.x, 0, car.z), T = env.T || {}, night = clamp01(env.dark || 0), pw = env.power == null ? 1 : clamp01(env.power);
     const look = night > 0.5 ? 'night' : (T.gold || 0) > (T.day || 0) ? 'golden' : 'day', len = car.len * sp;
     if (cx + len < -10 || cx - len > cam.W + 10) return;
@@ -179,7 +185,7 @@ export function createPeople() {
     }
     let lampK = 0; for (const l of L.lamps) if (l.kind === 'tall') { const d = (car.x - l.x) / 7; if (d * d < 1) lampK = Math.max(lampK, (1 - d * d) ** 2); }
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
-    kit.draw(c, { id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
+    kit.draw(c, { door: car.door || 0, inside, id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
     // 8b2 — THE PATROL CAR's BEACON: red, then blue, each a hard double flash (the raid's wash comes from it: raid.js)
     if (car.beacon) { const A = kit.anatomy(car.model); if (A.beacon) drawBeacon(c, cx + car.dir * (A.beacon[0] - car.len / 2) * sp, gy - A.beacon[1] * sp + bob, sp, beaconOf(env.t || 0, car.n), env.fade == null ? 1 : env.fade, night); }
   }

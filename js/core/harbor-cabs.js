@@ -15,7 +15,27 @@ import { partyAt } from './harbor-moments.js';
 
 /** the numbers: the evening's window (local hours, 25 = 1 am), the chance of a call per block (normal / party), drops before `swap`
  *  (local hour) mostly, pick-ups after; the cab's length; the riders' walk */
-export const CAB = Object.freeze({ from: 19.25, to: 25.6, p: 0.5, party: [1, 2], swap: 23, len: 4.85, step: 1.15, hail: 4.5 });
+export const CAB = Object.freeze({ from: 19.25, to: 25.6, p: 0.5, party: [1, 2], swap: 23, len: 4.85, step: 1.15, hail: 4.5,
+  // C2 — THE CAB's DOOR (the owner: "passengers step out of / into the cab through a door that opens — no appearing from behind it"): the
+  // kerb-side door swings open (`open` s), each fare steps down from the cab's floor (`floor` units up) through the doorway to the road
+  // beside it (or up + in), the door shuts behind the last (`shut` s); `inZ` how far inside the doorway a fare starts / ends (units
+  // behind the cab's middle — drawn clipped into the doorway, like the bus's riders)
+  door: { open: 0.55, shut: 0.6, floor: 0.6, inZ: 0.2, out: 1.15, hold: 0.5 } });
+/** how open the cab's door is at t from its door legs (0..1): open from the first, shut after the last */
+function doorOf(legs) {
+  if (!legs.length) return () => 0;
+  const D = CAB.door, a = Math.min(...legs.map(l => l.tOpen)), b = Math.max(...legs.map(l => l.tClose));
+  const sm = u => { const x = u < 0 ? 0 : u > 1 ? 1 : u; return x * x * (3 - 2 * x); };
+  return t => (t < a || t > b + D.shut ? 0 : sm((t - a) / D.open) * (1 - sm((t - b) / D.shut)));
+}
+/** a fare's leg through the cab's door (k 'door', like the bus's: visitAt lifts them off the floor; people.js clips them into the doorway
+ *  while they're inside — `bus` names the cab) */
+function cabDoorLeg(id, dir, x, zCab, zOut, t, v) {
+  const D = CAB.door, zIn = zCab + D.inZ, u = v * 0.75, len = Math.abs(zIn - zOut), t1 = t + D.open + len / u + (dir === 'in' ? D.hold : 0);
+  return dir === 'out'
+    ? { k: 'door', door: id, bus: id, dir, x0: x, z0: zIn, x1: x, z1: zOut, t0: t, t1, w0: D.open / (t1 - t), w1: 1, tOpen: t, tClose: t1 - 0.15, y0: D.floor, y1: 0 }
+    : { k: 'door', door: id, bus: id, dir, x0: x, z0: zOut, x1: x, z1: zIn, t0: t, t1, w0: D.open / (t1 - t), w1: 1 - D.hold / (t1 - t), tOpen: t, tClose: t1 - D.hold * 0.6, y0: 0, y1: D.floor };
+}
 const localH = (t, off) => { const h = ((((t + (off || 0) * 60) / 3600) % 24) + 24) % 24; return h < 12 ? h + 24 : h; };
 const dowAt = (t, off) => new Date((t + (off || 0) * 60) * 1000).getUTCDay();
 
@@ -46,7 +66,7 @@ export const cabStop = L => { const ln = trafficLanes(L).near, cw = L.crosswalk;
 export function cabPlan(e, L, M) {
   const P = cabStop(L), r = rngFrom(e.seed), spec = { model: 'taxi', paint: 0 }, side = M.nodes.sideDoor;
   const pre = truckPlan(L, P, e.id, spec, e.t - 16, null), shift = e.t - pre.tA, tE = e.t - 16 + shift;
-  const T0 = truckPlan(L, P, e.id, spec, tE, null), zDoor = T0.z - 1.15, zIn = T0.z + 0.25, kerb = FOLK.curbZ - 0.35, front = T0.xc + T0.len / 2;
+  const T0 = truckPlan(L, P, e.id, spec, tE, null), zDoor = T0.z - CAB.door.out, kerb = FOLK.curbZ - 0.35, front = T0.xc + T0.len / 2;
   const riders = [];
   let tReady;
   if (e.kind === 'drop') {
@@ -54,7 +74,7 @@ export function cabPlan(e, L, M) {
     let last = T0.tA + 1;
     for (let i = 0; i < e.n; i++) {
       const t = T0.tA + 2.6 + i * CAB.step, x = T0.xc - 0.35 + (i % 2 ? 0.35 : 0), v = FOLK.speed.walk;
-      const legs = [{ k: 'walk', pts: [{ x, z: zIn }, { x, z: zDoor }], t0: t, t1: t + (zIn - zDoor) / (v * 0.8), v: v * 0.8 }];
+      const legs = [cabDoorLeg(T0.id, 'out', x, T0.z, zDoor, t, v)];
       // (round the cab's NOSE onto the kerb by the crossing — the kerb behind it is the bench + the crabapple's corner, like the trucks')
       const t2 = legs[0].t1, gap = { x: front + 0.3 + i * 0.25, z: kerb }, pts = [{ x, z: zDoor }, { x: front + 0.2 + i * 0.25, z: FOLK.roadZ + 0.45 }, gap];
       let d = 0; for (let j = 1; j < pts.length; j++) d += Math.hypot(pts[j].x - pts[j - 1].x, pts[j].z - pts[j - 1].z);
@@ -82,15 +102,16 @@ export function cabPlan(e, L, M) {
     let d = 0; for (let j = 1; j < pa.length; j++) d += Math.hypot(pa[j].x - pa[j - 1].x, pa[j].z - pa[j - 1].z);
     legs.push({ k: 'walk', pts: pa, t0: t3, t1: t3 + d / v, v });
     const t4 = legs[legs.length - 1].t1;
-    legs.push({ k: 'walk', pts: [{ x: dx, z: zDoor }, { x: dx, z: zIn }], t0: t4, t1: t4 + (zIn - zDoor) / (v * 0.8), v: v * 0.8 });
+    legs.push(cabDoorLeg(T1.id, 'in', dx, T1.z, zDoor, t4, v));
     const tEnd = legs[legs.length - 1].t1;
     riders.push({ id: `${e.id}.r0`, kind: 'leaving', look: 'guest', gait: 'stroll', legs, t0: vis.t0, t1: tEnd, tEnd, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }], party: e.party, cab: e.id });
     tReady = tEnd + 1.5;
     const T = truckPlan(L, P, e.id, spec, tE + (tA - T0.tA), tReady);
     const tOn = tEnd - 0.4;
-    return { id: e.id, kind: e.kind, T: { ...T, cab: true, sign: t => (t < tOn ? 1 : 0) }, riders };
+    return { id: e.id, kind: e.kind, T: { ...T, cab: true, sign: t => (t < tOn ? 1 : 0), door: doorOf([legs[legs.length - 1]]) }, riders };
   }
   if (!riders.length) return null;
   const T = truckPlan(L, P, e.id, spec, tE, tReady), tFree = tReady - 1;
-  return { id: e.id, kind: e.kind, T: { ...T, cab: true, sign: t => (t < tFree ? 0 : 1) }, riders };
+  const door = doorOf(riders.map(v => v.legs[0]));
+  return { id: e.id, kind: e.kind, T: { ...T, cab: true, sign: t => (t < tFree ? 0 : 1), door }, riders };
 }

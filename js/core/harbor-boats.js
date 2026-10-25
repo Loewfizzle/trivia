@@ -49,9 +49,10 @@ export function arriveAt(a, s) {
   const dx = 2 * w * (a.c1 - a.xE) + 2 * u * (a.xB - a.c1), dz = 2 * w * (a.zB - a.zE);
   return { x, z, hd: Math.atan2(-dz, -dx), astern: true, phase: 'astern' };
 }
-/** THE FISHING TUG's dawn: it swings from its moored heading (bow toward the pier) to head out — its bow toward us, its centre a few
- *  units nearer through the swing (the quay behind it) — then steams out. s: seconds into its departure */
-export const FISH_TURN = Object.freeze({ d: 44, dip: 3.6, fwd: 1.6 });
+/** THE FISHING TUG's dawn: it backs out of its mooring (bow toward the pier — behind docked Rosie) into OPEN WATER (`turnX`: clear
+ *  of her hull + the lighthouse + the keeper's cottage on screen), swings there to head out — its bow toward us, its centre a few
+ *  units nearer through the swing — then steams out. back: the astern run (s), d: the swing (s) */
+export const FISH_TURN = Object.freeze({ back: 80, d: 44, dip: 3.6, fwd: 1.6 });
 
 /**
  * The routes for a layout: per boat { id, z, len, h, kind, when ('day'|'night'|null), period (s), offset (s), segs: [{ d (s),
@@ -71,6 +72,13 @@ export function boatRoutes(L, { taxi = false } = {}) {
   const rb = L.boats.find(b => b.id === 'rosie');
   const rosieRightPt = rb ? cam.VPX + cam.F * (pierR(rb.z) + rb.len / 2 + 1.6 + 1.2 + rb.len / 2) / rb.z : -1e9;
   const clearOf = (z, len) => (rosieRightPt + 6 - cam.VPX) * z / cam.F + len / 2;
+  // (C2 — OPEN WATER, the owner: "the far tug + the sailboats never turn behind the lighthouse": a far boat's idle, turn or tack
+  // never lands behind the lighthouse + the keeper's cottage on screen either — `openAt(x, z, len)` keeps x when the boat stands
+  // clear of them, else moves it just right of the cottage: on a phone the far lane's only open water (Rosie's hull covers it up
+  // to the lighthouse); on a wide screen the old spots, left of the lighthouse, are already clear)
+  const lh = L.lighthouse, co = L.cottage, scrX = (x, z) => cam.VPX + cam.F * x / z;
+  const hidL = lh ? scrX(lh.x - lh.r0, lh.z) - 3 : 1e9, hidR = lh ? (co ? scrX(co.x + co.w + 0.4, co.z + 1) : scrX(lh.x + lh.r0, lh.z)) + 2 : -1e9;
+  const openAt = (x, z, len, m = 0) => (scrX(x + len / 2 + m, z) < hidL || scrX(x - len / 2 - m, z) > hidR ? x : (hidR - cam.VPX) * z / cam.F + len / 2 + m);
   for (const b of L.boats) {
     const r = { id: b.id, z: b.z, len: b.len, h: b.h, kind: b.id.startsWith('sail') ? 'sail' : b.id, when: b.when || null, segs: [], period: 0, offset: 0 };
     const R = offR(b.z, b.len), Lf = pierR(b.z) + b.len / 2 + 1.6;   // (≥ 1.6 units of water between the boat and the pier)
@@ -78,6 +86,7 @@ export function boatRoutes(L, { taxi = false } = {}) {
       // 8b1 — THE FISHING TUG on the day's clock (fishAt): moored just right of the pier overnight, out at dawn, back late afternoon
       r.table = 'fish'; r.kind = 'fish';
       r.lane = [Lf + 0.6, R + 2]; r.segs = [{ d: 1, type: 'hold', xa: Lf + 0.6, face: 1 }];
+      r.turnX = Math.max(Lf + 2.6, openAt(clearOf(b.z, b.len), b.z, b.len));   // (C2: its dawn swing out in the open, never behind Rosie)
     } else if (b.id === 'rosie') {
       // ROSIE: home BOW-FIRST from the right, a turn in the open water right of her berth, the last half length astern into her
       // landing (arriveAt); four minutes alongside BOW-OUT (NEON PASS 4: bow-in, her twin stacks + their bulb strings stood in
@@ -110,12 +119,21 @@ export function boatRoutes(L, { taxi = false } = {}) {
       // THE TUG (night): noses in toward the pier, idles, swings round (its bow toward us), chugs out
       // (on Rosie's ten minutes, phased so it comes in as she steams out and leaves as she returns: never idling behind her)
       // (NEON PASS 4: a unit nearer the pier — idling, its masthead lights stood against THE GAME BLADE's foot)
-      const stop = Math.max(Lf + 5, clearOf(b.z, b.len));
+      // (C2 — OPEN WATER: where that spot stands behind the lighthouse + the cottage — every phone — it stops just right of the
+      // cottage instead, and there it idles BOW-ON (half its swing before, half after): broadside it would run off the screen's edge)
+      const near = Math.max(Lf + 5, clearOf(b.z, b.len)), stop = openAt(near, b.z, b.len);
       r.offset = 356;
-      r.segs = [
+      r.segs = stop === near ? [
         { d: 140, type: 'move', xa: R, xb: stop, face: -1, ease: 'out' },
         { d: 70, type: 'hold', xa: stop, face: -1 },
         { d: 26, type: 'turn', xa: stop, xb: stop + 0.6, face: -1, to: 1 },
+        { d: 140, type: 'move', xa: stop + 0.6, xb: R, face: 1, ease: 'in' },
+        { d: 224, type: 'away', xa: R, face: 1 },
+      ] : [
+        { d: 140, type: 'move', xa: R, xb: stop, face: -1, ease: 'out' },
+        { d: 13, type: 'turn', xa: stop, xb: stop + 0.3, face: -1, to: 1, hd0: PI, hd1: 1.5 * PI },
+        { d: 70, type: 'hold', xa: stop + 0.3, face: -1, hd: 1.5 * PI },
+        { d: 13, type: 'turn', xa: stop + 0.3, xb: stop + 0.6, face: -1, to: 1, hd0: 1.5 * PI, hd1: 2 * PI },
         { d: 140, type: 'move', xa: stop + 0.6, xb: R, face: 1, ease: 'in' },
         { d: 224, type: 'away', xa: R, face: 1 },
       ];
@@ -123,9 +141,13 @@ export function boatRoutes(L, { taxi = false } = {}) {
     } else {
       // THE SAILBOATS (day): a long slow reach toward the pier, a tack (the bow through the wind, toward us), back out past the
       // lighthouse — on Rosie's ten minutes, phased so they reach the pier while her landing is empty (never tacking unseen behind her)
-      const two = b.id === 'sail2', tack = Math.max(Lf + (two ? 12 : 4), clearOf(b.z, b.len) + (two ? 4 : 0)), d1 = 200;
+      // (C2 — OPEN WATER: the tack never behind the lighthouse + the cottage — on a phone just right of the cottage)
+      const two = b.id === 'sail2', want = Math.max(Lf + (two ? 12 : 4), clearOf(b.z, b.len) + (two ? 4 : 0)), tack = openAt(want, b.z, b.len, 0.6), d1 = 200;     // (0.6: its tack drifts 0.4 back)
       r.offset = two ? 400 : 490;
-      r.segs = [
+      // (C2: on a phone the open water right of the cottage is one ~23 pt strip — the second sloop stays out of the harbor there rather
+      // than tacking beside / in front of the first; wide screens keep both)
+      if (two && Math.abs(tack - want) > 1e-6) r.segs = [{ d: 600, type: 'away', xa: R, face: 1 }];
+      else r.segs = [
         { d: d1, type: 'move', xa: R, xb: tack, face: -1, ease: 'both' },
         { d: 18, type: 'turn', xa: tack, xb: tack - 0.4, face: -1, to: 1 },
         { d: d1, type: 'move', xa: tack - 0.4, xb: R, face: 1, ease: 'both' },
@@ -168,14 +190,15 @@ export function tableAt(r, ms, off = 0) {
     }
     return hold(inLane);
   }
-  // THE FISHING TUG: at dawn it swings from its mooring (bow toward the pier) and heads out bow-first to the right; back (bow-first,
-  // heading left) in the late afternoon; its bow lantern on while it moves
-  const out = d0 + FISH.out * H, back = d0 + FISH.back * H, D = FISH.move, T = FISH_TURN;
-  if (ms >= out && ms < out + T.d * 1000) {
-    const e = EASE.both(clamp01((ms - out) / (T.d * 1000)));
-    return withHd({ x: inLane + T.fwd * e, on: true, moving: true, seg: 'turn', run: Math.floor(out / 1000), lantern: true }, PI + PI * e, r.z - T.dip * Math.sin(PI * e));
+  // THE FISHING TUG: at dawn it backs out of its mooring (bow toward the pier) into open water, swings there and heads out bow-first
+  // to the right; back (bow-first, heading left) in the late afternoon; its bow lantern on while it moves
+  const out = d0 + FISH.out * H, back = d0 + FISH.back * H, D = FISH.move, T = FISH_TURN, xT = r.turnX ?? inLane, sw = out + T.back * 1000;
+  if (ms >= out && ms < sw) return withHd({ x: inLane + (xT - inLane) * EASE.both(clamp01((ms - out) / (T.back * 1000))), on: true, moving: true, seg: 'move', run: Math.floor(out / 1000), lantern: true, astern: true }, PI, r.z);
+  if (ms >= sw && ms < sw + T.d * 1000) {
+    const e = EASE.both(clamp01((ms - sw) / (T.d * 1000)));
+    return withHd({ x: xT + T.fwd * e, on: true, moving: true, seg: 'turn', run: Math.floor(out / 1000), lantern: true }, PI + PI * e, r.z - T.dip * Math.sin(PI * e));
   }
-  if (ms >= out + T.d * 1000 && ms < out + D * 1000) return move(inLane + T.fwd, outLane, out + T.d * 1000, D - T.d, 'in', 1, { lantern: true });
+  if (ms >= sw + T.d * 1000 && ms < out + D * 1000) return move(xT + T.fwd, outLane, sw + T.d * 1000, D - T.back - T.d, 'in', 1, { lantern: true });
   if (ms >= out + D * 1000 && ms < back - D * 1000) return withHd({ x: outLane, on: false, moving: false, seg: 'away', next: Math.floor(back / 1000) }, 0, r.z);
   if (ms >= back - D * 1000 && ms < back) return move(outLane, inLane, back - D * 1000, D, 'out', -1, { lantern: true });
   return { ...hold(inLane, PI), moored: true };
@@ -209,8 +232,9 @@ export function boatAt(r, ms, nightAt = () => true, o = {}) {
     const k = clamp01(u / g.d), run = g.run >= 0 ? c.n * (r.runs || 1) + g.run : -1;
     if (g.type === 'arrive') { const a = arriveAt(r.arrive, u); return withHd({ x: a.x, on: true, moving: true, seg: 'move', run, phase: a.phase, ...(a.astern ? { astern: true } : null) }, a.hd, a.z); }
     if (g.type === 'move') return withHd({ x: g.xa + (g.xb - g.xa) * EASE[g.ease || 'lin'](k), on: true, moving: true, seg: 'move', run, ...(g.astern ? { astern: true } : null) }, hdOf(g.face), r.z);
-    if (g.type === 'hold') return withHd({ x: g.xa, on: true, moving: false, seg: 'hold', run }, hdOf(g.face), r.z);
-    if (g.type === 'turn') { const e = EASE.both(k), h0 = hdOf(g.face); return withHd({ x: g.xa + (g.xb - g.xa) * e, on: true, moving: true, seg: 'turn', run }, h0 + (g.to > g.face ? PI : -PI) * e, r.z); }
+    if (g.type === 'hold') return withHd({ x: g.xa, on: true, moving: false, seg: 'hold', run }, g.hd ?? hdOf(g.face), r.z);
+    // (a turn sweeps hd0 → hd1 when it names them — the tug's two half swings round its bow-on idle — else a half circle)
+    if (g.type === 'turn') { const e = EASE.both(k), h0 = g.hd0 ?? hdOf(g.face); return withHd({ x: g.xa + (g.xb - g.xa) * e, on: true, moving: true, seg: 'turn', run }, g.hd0 != null ? h0 + (g.hd1 - g.hd0) * e : h0 + (g.to > g.face ? PI : -PI) * e, r.z); }
     // (away: the run that comes next — the thinning decides it while the boat is out of sight)
     let next = -1;
     for (let j = i + 1; j < r.segs.length; j++) if (r.segs[j].run >= 0) { next = c.n * (r.runs || 1) + r.segs[j].run; break; }

@@ -110,6 +110,43 @@ export function anatomy(id) {
   };
 }
 
+/** a model's doors on our side: [[u0, u1]] (from the tail) — the seams the body bakes; the last one is the one that opens (C2: the cab) */
+export function doorsOf(id) {
+  const M = MODELS[id] || MODELS.modelA;
+  return M.roof === 'van' || M.roof === 'cab' ? [[M.cab[0] + 0.0, M.cowl - 0.04]] : M.roof === 'none' || M.deck ? [[M.cab[0] + 0.02, M.cowl - 0.06]] : M.roof === 'box' ? [[1.38, M.cowl - 0.06]] : id === 'packard' ? [[0.96, 2.0], [2.1, M.cowl - 0.06]] : [[1.8, M.cowl - 0.06]];
+}
+/**
+ * C2 — A DOOR THAT OPENS (the cab's fares): the doorway (the dark cabin behind it — the seat's back, the far window, a warm courtesy
+ * lamp at night) + the door itself swung out toward us on its front hinge (foreshortened, its free edge a little lower — nearer —
+ * its glass, the checker band, the handle, the edge's thickness lit). Local coords (the car's: x along it from its middle, y up from
+ * the ground, both × sp); `inside(rect)` is called between the doorway + the door with the doorway's LOCAL rect (whoever's in it).
+ */
+function drawDoorOpen(c, id, M, K, sp, k01, look, bob, inside) {
+  const [a, b] = doorsOf(id).slice(-1)[0], X = u => (u - M.len / 2) * sp, Y = v => -v * sp + bob;
+  const e = k01 * k01 * (3 - 2 * k01), th = e * 1.25, night = look === 'night' || look === 'lamp';
+  const v0 = M.sill + 0.05, v1 = M.h - 0.17, x0 = X(a + 0.03), x1 = X(b - 0.03);
+  // the doorway
+  c.fillStyle = rgb(night ? [22, 16, 18] : [30, 26, 30]); c.fillRect(x0, Y(v1), x1 - x0, Y(v0) - Y(v1));
+  c.fillStyle = rgb(night ? [70, 40, 34] : [62, 36, 34]); c.fillRect(x0, Y(M.belt - 0.02), x1 - x0, Math.max(0.6, 0.16 * sp));               // (the seat's back, red leather)
+  c.fillStyle = rgb(night ? [44, 48, 76] : [120, 136, 160], 0.55); c.fillRect(x0 + (x1 - x0) * 0.12, Y(v1 - 0.06), (x1 - x0) * 0.76, (v1 - M.belt - 0.2) * sp);   // (the far door's window)
+  if (night) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.35 * e; c.fillStyle = 'rgb(255,190,120)'; c.fillRect(x0, Y(v1), x1 - x0, (v1 - v0) * sp * 0.55); c.restore(); }   // (the courtesy lamp)
+  if (inside) inside({ x: x0, y: Y(v1), w: x1 - x0, h: Y(0.3) - Y(v1) });
+  // the door, swung out on its front hinge
+  const W = b - a, xf = X(b) - W * Math.cos(th) * sp, xh = X(b), drop = Math.sin(th) * 0.2 * sp, grow = 1 + 0.05 * Math.sin(th);
+  const yT = Y(M.h - 0.16), yB = Y(M.sill + 0.04), yTf = yT + drop - (yB - yT) * (grow - 1) * 0.5, yBf = yB + drop + (yB - yT) * (grow - 1) * 0.5;
+  const face = shade(K.p, -0.12 - 0.3 * e), quad = (p, q, r2, s2, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(...p); c.lineTo(...q); c.lineTo(...r2); c.lineTo(...s2); c.closePath(); c.fill(); };
+  const at = (f, v) => { const yh = Y(v), yf = yT + drop + (Y(v) - yT) * grow; return [xh + (xf - xh) * f, yh + (yf - yh) * f]; };
+  quad([xh, yT], [xf, yTf], [xf, yBf], [xh, yB], rgb(face));
+  // its glass (the upper part), a streak of sky in it
+  quad(at(0.06, M.h - 0.24), at(0.94, M.h - 0.24), at(0.94, M.belt + 0.1), at(0.06, M.belt + 0.1), rgb(mix(K.glassB, K.glassT, 0.35)));
+  quad(at(0.3, M.h - 0.26), at(0.45, M.h - 0.26), at(0.38, M.belt + 0.14), at(0.23, M.belt + 0.14), rgb(K.glassT, 0.45));
+  // the checker band (the cab) or the belt moulding
+  if (M.checker) for (let i = 0; i < 4; i++) quad(at(i / 4, M.belt - 0.02), at((i + 1) / 4, M.belt - 0.02), at((i + 1) / 4, M.belt - 0.2), at(i / 4, M.belt - 0.2), (i % 2) ? 'rgb(236,232,220)' : 'rgb(20,20,24)');
+  // the handle near the free edge + the edge's thickness (lit)
+  { const [hx, hy] = at(0.82, M.belt - 0.08); c.fillStyle = rgb(K.chrome); c.fillRect(hx - Math.max(0.6, 0.05 * sp), hy, Math.max(0.8, 0.1 * sp), Math.max(0.6, 0.03 * sp)); }
+  c.fillStyle = rgb(shade(K.p, 0.25)); c.fillRect(xf - Math.max(0.5, 0.05 * sp * Math.sin(th)), yTf, Math.max(0.5, 0.05 * sp * Math.sin(th)), yBf - yTf);
+}
+
 // ------------------------------------------------------------------ THE BODY (baked)
 /** the body (everything but the turning wheels) at s px a unit, facing right; o: { trade, rumble } → canvas */
 export function bodySprite(id, s, K, o = {}) {
@@ -248,7 +285,7 @@ export function bodySprite(id, s, K, o = {}) {
   if (id === 'packard') { x.strokeStyle = rgb(K.chrome); x.lineWidth = lw(0.035); x.beginPath(); x.moveTo(X(0.34), Y(M.belt + 0.42)); x.bezierCurveTo(X(0.64), Y(M.belt + 0.48), X(0.4), Y(M.belt + 0.12), X(0.72), Y(M.belt + 0.14)); x.stroke(); x.fillStyle = 'rgba(255,255,255,0.7)'; x.fillRect(X(0.4), Y(M.belt + 0.44), Math.max(0.4, 0.04 * s), Math.max(0.4, 0.015 * s)); }
   // ---- the doors (their seams + the handle), the belt moulding (a fine pinstripe), the cowl's vent
   x.strokeStyle = rgb(shade(p, -0.45), 0.9); x.lineWidth = lw(0.016);
-  const doors = M.roof === 'van' || M.roof === 'cab' ? [[M.cab[0] + 0.0, M.cowl - 0.04]] : M.roof === 'none' || M.deck ? [[M.cab[0] + 0.02, M.cowl - 0.06]] : M.roof === 'box' ? [[1.38, M.cowl - 0.06]] : id === 'packard' ? [[0.96, 2.0], [2.1, M.cowl - 0.06]] : [[1.8, M.cowl - 0.06]];
+  const doors = doorsOf(id);
   for (const [a, b] of doors) {
     x.beginPath(); x.moveTo(X(a), Y(M.sill + 0.04)); x.lineTo(X(a), Y(M.roof === 'none' ? M.belt + 0.06 : M.h - 0.14)); x.moveTo(X(b), Y(M.sill + 0.04)); x.lineTo(X(b), Y(M.roof === 'none' ? M.belt + 0.06 : M.h - 0.16)); x.moveTo(X(a), Y(M.sill + 0.04)); x.lineTo(X(b), Y(M.sill + 0.04)); x.stroke();
     x.fillStyle = rgb(K.chrome); x.fillRect(X(a + 0.07), Y(M.belt - 0.08), 0.13 * s, Math.max(0.6, 0.03 * s));
@@ -537,6 +574,17 @@ export function createVehicles() {
     const b = body(id, look, pnt, s, v), bw = b.width / dpr, bh = b.height / dpr, bx = (-A.pad - M.len / 2) * sp, by = -(A.top + 0.06) * sp + (v.bob || 0);
     c.drawImage(b, bx, by, bw, bh);
     if ((v.lampK || 0) > 0.03 && look === 'night') { c.globalAlpha = k * v.lampK; c.drawImage(body(id, 'lamp', pnt, s, v), bx, by, bw, bh); c.globalAlpha = k; }
+    // C2 — THE DOOR OPEN (the cab's fares step out / in through it): v.door 0..1; v.inside(c, rect) draws whoever's in the doorway
+    // (screen coords, clipped to it) between the doorway + the door
+    let doorBox = null;
+    if ((v.door || 0) > 0.01) {
+      const P = paintsOf(id, pnt), K = lookOf(look, P.body), sg = v.dir < 0 ? -1 : 1;
+      drawDoorOpen(c, id, M, K, sp, clamp01(v.door), look, v.bob || 0, r => {
+        const sx0 = v.x + sg * r.x, sx1 = v.x + sg * (r.x + r.w);
+        doorBox = { x: Math.min(sx0, sx1), y: v.y + r.y, w: Math.abs(sx1 - sx0), h: r.h };
+        if (v.inside) { c.save(); c.scale(sg, 1); c.translate(-v.x, -v.y); c.beginPath(); c.rect(doorBox.x, doorBox.y, doorBox.w, doorBox.h); c.clip(); c.globalAlpha = k; v.inside(c, doorBox); c.restore(); }
+      });
+    }
     // a party night's LIT TRIM: the running board's edge + the belt line in the underglow's colour (crisp, a tight glow)
     if (v.underglow && (v.glowK || 0) > 0.02) {
       const col = v.underglow, rb0 = A.wheels[0] + M.r + 0.12 - M.len / 2, rb1 = A.wheels[1] - M.r - 0.12 - M.len / 2;
@@ -565,7 +613,7 @@ export function createVehicles() {
       c.globalCompositeOperation = 'source-over';
     }
     c.restore();
-    return { x0: v.x - len / 2, x1: v.x + len / 2, top: v.y - M.h * sp, head: [v.x + v.dir * (A.head[0] - M.len / 2) * sp, v.y - A.head[1] * sp], len };
+    return { x0: v.x - len / 2, x1: v.x + len / 2, top: v.y - M.h * sp, head: [v.x + v.dir * (A.head[0] - M.len / 2) * sp, v.y - A.head[1] * sp], len, door: doorBox };
   }
   return {
     draw, body, wheel, anatomy,

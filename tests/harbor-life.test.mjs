@@ -53,8 +53,9 @@ test('8b1 — THE HARBOR\'S TIMETABLE: Rosie at her landing between runs, out at
   // the fishing tug's dawn: it swings from its mooring (bow toward the pier, heading left) to head out right, its bow toward us mid-swing
   const fo = ms(6.15), fishAt = s => boatAt(fish, fo + s * 1000, undefined, o);
   assert.ok(Math.abs(boatAt(fish, fo - 5000, undefined, o).hd - Math.PI) < 1e-9, 'moored bow toward the pier');
-  assert.ok(Math.sin(fishAt(22).hd) < -0.9 && fishAt(22).lantern, 'dawn: mid-swing, its bow toward us, the lantern lit');
-  assert.ok(Math.abs(Math.cos(fishAt(60).hd) - 1) < 1e-9 && fishAt(60).x > fishAt(46).x, 'then out bow-first to the right');
+  // (C2: it backs out into open water first — 80 s — and swings there: tests/harbor-boats.test.mjs)
+  assert.ok(Math.sin(fishAt(102).hd) < -0.9 && fishAt(102).lantern, 'dawn: mid-swing, its bow toward us, the lantern lit');
+  assert.ok(Math.abs(Math.cos(fishAt(140).hd) - 1) < 1e-9 && fishAt(140).x > fishAt(126).x, 'then out bow-first to the right');
   assert.ok(Math.abs(boatAt(fish, ms(16.48), undefined, o).hd - Math.PI) < 1e-9, 'home bow-first, heading left');
   assert.equal(boatAt(rosie, ms(12.5), undefined, o).seg, 'hold', 'lunchtime: at her landing (the noon whistle off her stacks)');
   assert.equal(boatAt(rosie, ms(20), undefined, o).seg, 'away', '8 pm: the dinner cruise');

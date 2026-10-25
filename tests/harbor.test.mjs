@@ -1952,7 +1952,7 @@ test("8a — THE BILLBOARD on the speakeasy's roof: over the left half-plus of t
     assert.ok(dunY < parY - 4 * cam.F / 600, `${k}: the feet ${(parY - dunY).toFixed(1)} pt above the parapet`);
     // FP (the owner: the tall open frame showed the brick city through the gap — "chaotic"): a short frame, ≤ ⅙ of the board, the
     // board's foot 1.5–6 pt above the string lights' posts (on the parapet's front edge) — never behind them, never a tall gap.
-    // (PF: the lights + their posts are OFF until 7b — strings.js#STRINGS_ON — this keeps the line they return to clear of the board)
+    // (PF: the café lights + their posts — on since SP2 — keep their line clear of the board)
     const open = b.y0 - b.dun, hb = b.y1 - b.y0;
     assert.ok(open / hb > 0.05 && open / hb <= 1 / 6, `${k}: frame ${(open / hb).toFixed(2)} of the board`);
     const footY = project(cam, 0, b.y0, b.z)[1], strY = project(cam, 0, SPEAK_V.parapet + 1.12, s.z0 - 0.05)[1], gap = strY - footY, pt = cam.F / 600;
@@ -2738,7 +2738,7 @@ test("FP — THE BARBER POLE turns continuously: the same phase at 60 and 30 Hz,
 // ---------------------------------------------------------------- FP2 — THE PROMENADE (the owner's tweaks: no red maple by the blade, no urn,
 // the medallion in the middle in front of the crossing + the cart left of it, the centrepiece's height cap, the bench + its crabapple left of
 // the cart's umbrella, no parked bus, the lantern's post on the far kerb, the crabapple's seasons, the framing maple's inside)
-import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR, CART_SHOWN } from '../js/core/harbor-promenade.js';
+import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR } from '../js/core/harbor-promenade.js';
 import { benchBox } from '../js/screens/harbor/props.js';
 import { FAR_KERB, drawLanternBody } from '../js/screens/harbor/road.js';
 import * as roadMod from '../js/screens/harbor/road.js';
@@ -2770,7 +2770,7 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     // FP3b — THE VENDOR SPOT (the owner, Oct 24): the cart at the FRONT CURB, just in front of the compass — on screen right of it, its
     // body never over the inlay (the ring's width at the cart's counter row), its wheels above the dock, short of the framing maple's
     // trunk; LIVE (drawn by the people on its schedule — core/harbor-routines.js#VENDOR), its handles on the right, its umbrella furled
-    assert.equal(CART_SHOWN, true); assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === 1);
+    assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === 1);
     { const sc = L.cart.scale, [cxs, gy] = P(L.cart.x, L.cart.z), hw = cam.F * 1.3 * sc / L.cart.z, [, cy] = P(L.cart.x, L.cart.z, 1.92 * sc);
       const [, ry0] = P(m.x, m.z + m.ring), [, ry1] = P(m.x, m.z - m.ring), ec = (ry0 + ry1) / 2, eh = (ry1 - ry0) / 2, dy = Math.min(1, Math.abs(Math.max(cy, Math.min(gy, ec)) - ec) / eh);
       const ringR = mx + ring * Math.sqrt(Math.max(0, 1 - dy * dy)), maple = L.trees.find(t => t.big), mapleL = P(maple.x, maple.z)[0] - cam.F * 0.3 / maple.z;
@@ -3151,7 +3151,7 @@ test('PF — THE PREVIEW PANEL lists the centrepiece test under PROMENADE', () =
 // ---------------------------------------------------------------- PF — THE STREET'S SURFACE / THE STRING LIGHTS OFF / THE BLADE'S LAMPS
 // (helper B: street.js, strings.js, speakeasy.js's blade, signs.js's billboard lamps)
 import { streetLook, CURB_STEP, SHEEN } from '../js/screens/harbor/street.js';
-import { STRINGS_ON, createStrings, BULB, CANOPY, frontProfile } from '../js/screens/harbor/strings.js';
+import { createStrings, BULB, CANOPY, frontProfile } from '../js/screens/harbor/strings.js';
 import { MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, WASH, washCone, BLADE, LETTER, bladeLetters, bladeWords, BLADE_ONE } from '../js/screens/harbor/speakeasy.js';
 import { ROOM_TINT, LATE_TINT, lateOf, SASH_RAIL } from '../js/screens/harbor/windows.js';
 const pfLum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
@@ -3173,7 +3173,6 @@ test('PF — THE STREET reads as its own surface: tarred setts darker + cooler t
   assert.ok(C.arris > 0.4 && C.arrisN > 0.2 && C.shadow > 0.2, 'a crisp lit arris day + night, the curb\'s shadow on the gutter');
 });
 test('SP2 — THE CAFÉ-LIGHT CANOPY: fewer, bigger Edison bulbs (8–12 in view) widely spaced on deep swags between tall posts set back on the roof deck; the crest + the parapet hide what hangs behind them', () => {
-  assert.equal(STRINGS_ON, true);
   assert.ok(BULB.r >= 2 && BULB.halo <= 3 && BULB.haloA <= 0.5, 'a big globe, a TIGHT halo (no haze)');
   assert.ok(CANOPY.back >= 1 && CANOPY.posts.length + 1 >= 3 && CANOPY.posts.length + 1 <= 4, 'three or four posts, set back on the deck');
   const prof = frontProfile();

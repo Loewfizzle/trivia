@@ -400,39 +400,67 @@ export function drawQuad(c, cam, q, env) {
 /** a small period GALVANIZED steel can with a domed lid + a handle (+ the corrugated ribs): can = { x, z, h, r, lid: 'on' | 'askew' |
  *  'off', lift (0..1 — carried by the collector: off the ground), tilt (radians — tipped as it's emptied), lidT (0..1 the lid's slide) } */
 export function drawTrashCan(c, cam, can, env) {
+  // C2 — THE CLASSIC 1920s CITY CAN (the owner: "it looks like a fire hydrant"): a ribbed galvanized cylinder — vertical corrugations,
+  // two raised hoops, a BRIGHT rolled rim, small drop handles flush under it (the old ear loops read as a hydrant's nozzles), a shallow
+  // lid + its bail handle, scraps of paper poking out under the lid; standing against the lamppost, held to it by an iron strap
   const s = cam.F / can.z, lift = (can.lift || 0) * 0.5, [gx, gy] = project(cam, can.x, lift, can.z), H = can.h * s, Rr = can.r * s;
   c.save();
   const col = k => litCol(k, env, can.x, can.z, 1.6), sun = sunOf(env);
   if (!can.lift) { contact(c, cam, can.x, 0, can.z, can.r * 1.25, 0.4); cast(c, cam, can.x, 0, can.z, can.h, can.r, env); }
+  // the strap to the post (behind the can's body: from its back, round the post) — only while it stands there
+  if (!can.lift && !can.tilt && can.post != null) {
+    const [px] = project(cam, can.post, 0, can.z), y = gy - H * 0.62, iron = col([44, 44, 50]);
+    c.strokeStyle = rgb(iron); c.lineWidth = Math.max(0.8, s * 0.06); c.beginPath(); c.moveTo(gx - Rr * 0.6, y); c.lineTo(px - s * 0.05, y - s * 0.02); c.stroke();
+    c.fillStyle = rgb(mix(iron, [200, 200, 210], 0.35)); c.fillRect(px - s * 0.12, y - s * 0.1, s * 0.24, s * 0.16);   // (the clamp round the post)
+  }
   c.translate(gx, gy); if (can.tilt) c.rotate(can.tilt);
-  // the body: a cylinder (slightly tapered), its curved shading — the sun's side bright zinc, the far side darker; ribs
-  const steel = [168, 172, 174], g = c.createLinearGradient(-Rr, 0, Rr, 0), hi = col(mix(steel, [255, 252, 240], 0.35 * sun.k)), lo = col(mix(steel, [40, 40, 54], 0.45)), mid = col(steel);
+  const steel = [178, 182, 184], hi = col(mix(steel, [255, 252, 240], 0.45 * sun.k + 0.12)), lo = col(mix(steel, [40, 40, 54], 0.5)), mid = col(steel);
   const L0 = sun.s > 0 ? lo : hi, L1 = sun.s > 0 ? hi : lo;
-  g.addColorStop(0, rgb(L0)); g.addColorStop(0.35, rgb(mix(L0, mid, 0.7))); g.addColorStop(0.62, rgb(mix(mid, L1, 0.5))); g.addColorStop(0.82, rgb(L1)); g.addColorStop(1, rgb(mix(L1, lo, 0.4)));
-  const ry = Rr * 0.32;
-  c.fillStyle = g; c.beginPath(); c.moveTo(-Rr * 0.92, 0); c.lineTo(-Rr, -H * 0.93); c.lineTo(Rr, -H * 0.93); c.lineTo(Rr * 0.92, 0); c.ellipse(0, 0, Rr * 0.92, ry * 0.92, 0, 0, PI); c.closePath(); c.fill();
-  // the ribs (two raised bands) + the bottom hoop
-  c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.2), 0.7); c.lineWidth = Math.max(0.4, s * 0.025);
-  for (const v of [0.28, 0.62]) { c.beginPath(); c.ellipse(0, -H * v, Rr * (0.97 - 0.06 * (1 - v)), ry, 0, 0.05, PI - 0.05); c.stroke(); }
-  c.strokeStyle = rgb(hi, 0.5); c.lineWidth = Math.max(0.3, s * 0.015);
-  for (const v of [0.3, 0.64]) { c.beginPath(); c.ellipse(0, -H * v, Rr * 0.96, ry, 0, 0.3, PI - 0.3); c.stroke(); }
-  // the side handles
-  c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.3)); c.lineWidth = Math.max(0.5, s * 0.03);
-  for (const d of [-1, 1]) { c.beginPath(); c.arc(d * Rr * 1.0, -H * 0.8, Rr * 0.16, d > 0 ? -PI / 2 : PI / 2, d > 0 ? PI / 2 : PI * 1.5, d < 0); c.stroke(); }
-  // the opening's rim (a dark mouth when the lid is off)
-  const top = -H * 0.93;
-  if (can.lid !== 'on') { c.fillStyle = rgb(mix(lo, [0, 0, 0], 0.65)); c.beginPath(); c.ellipse(0, top, Rr, ry, 0, 0, TAU); c.fill(); c.strokeStyle = rgb(hi); c.lineWidth = Math.max(0.4, s * 0.02); c.beginPath(); c.ellipse(0, top, Rr, ry, 0, 0, TAU); c.stroke(); }
-  // the lid: on (a shallow dome + its handle) | askew (tipped on the rim, sliding off one side) | off (on the ground beside it)
+  const g = c.createLinearGradient(-Rr, 0, Rr, 0);
+  g.addColorStop(0, rgb(L0)); g.addColorStop(0.3, rgb(mix(L0, mid, 0.75))); g.addColorStop(0.58, rgb(mix(mid, L1, 0.45))); g.addColorStop(0.8, rgb(L1)); g.addColorStop(1, rgb(mix(L1, lo, 0.5)));
+  const ry = Rr * 0.3, top = -H * 0.94, taper = 0.93;
+  c.fillStyle = g; c.beginPath(); c.moveTo(-Rr * taper, 0); c.lineTo(-Rr, top); c.lineTo(Rr, top); c.lineTo(Rr * taper, 0); c.ellipse(0, 0, Rr * taper, ry * taper, 0, 0, PI); c.closePath(); c.fill();
+  // the corrugations: vertical ribs round the cylinder (bunched toward its edges — a lit edge + a dark groove each)
+  for (let i = -3; i <= 3; i++) {
+    const a = i * 0.36, x = Math.sin(a), w = Math.cos(a);
+    c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.15), 0.55 * w); c.lineWidth = Math.max(0.35, s * 0.02);
+    c.beginPath(); c.moveTo(x * Rr * taper + s * 0.01, -H * 0.06); c.lineTo(x * Rr + s * 0.01, top + H * 0.08); c.stroke();
+    c.strokeStyle = rgb(hi, 0.4 * w); c.lineWidth = Math.max(0.3, s * 0.014);
+    c.beginPath(); c.moveTo(x * Rr * taper - s * 0.02, -H * 0.06); c.lineTo(x * Rr - s * 0.02, top + H * 0.08); c.stroke();
+  }
+  // two raised hoops + the foot's hoop (a shadowed underside, a lit top edge)
+  for (const v of [0.3, 0.66, 0.04]) {
+    const rr = Rr * (taper + (1 - taper) * v);
+    c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.25), 0.85); c.lineWidth = Math.max(0.6, s * 0.05); c.beginPath(); c.ellipse(0, -H * v, rr, ry, 0, 0.04, PI - 0.04); c.stroke();
+    c.strokeStyle = rgb(hi, 0.75); c.lineWidth = Math.max(0.35, s * 0.02); c.beginPath(); c.ellipse(0, -H * v - s * 0.04, rr, ry, 0, 0.25, PI - 0.25); c.stroke();
+  }
+  // the drop handles: flat iron bars flush under the rim on either side
+  c.fillStyle = rgb(mix(lo, [0, 0, 0], 0.35));
+  for (const d of [-1, 1]) c.fillRect(d > 0 ? Rr * 0.62 : -Rr * 0.98, top + H * 0.1, Rr * 0.36, Math.max(0.6, s * 0.045));
+  // the opening (a dark mouth when the lid is off) + THE BRIGHT ROLLED RIM
+  if (can.lid !== 'on') { c.fillStyle = rgb(mix(lo, [0, 0, 0], 0.65)); c.beginPath(); c.ellipse(0, top, Rr, ry, 0, 0, TAU); c.fill(); }
+  c.strokeStyle = rgb(mix(hi, [255, 255, 255], 0.35)); c.lineWidth = Math.max(0.7, s * 0.05); c.beginPath(); c.ellipse(0, top, Rr * 1.02, ry, 0, 0, PI); c.stroke();
+  // scraps of paper under the lid (a full can — gone once it's been emptied: can.empty)
+  const scraps = () => {
+    if (can.empty) return;
+    const paper = col([236, 230, 212]), shadeP = col([196, 188, 168]);
+    // (crumpled sheets + a folded newspaper, out from under the lid's edges — their feet under it)
+    poly(c, [[-Rr * 1.12, top - ry * 0.1], [-Rr * 1.02, top - ry * 3.2], [-Rr * 0.62, top - ry * 2.4], [-Rr * 0.66, top + ry * 0.1]], rgb(paper));
+    poly(c, [[-Rr * 1.0, top - ry * 2.9], [-Rr * 0.8, top - ry * 3.5], [-Rr * 0.7, top - ry * 2.5]], rgb(shadeP));
+    poly(c, [[Rr * 0.62, top + ry * 0.1], [Rr * 0.86, top - ry * 3.6], [Rr * 1.22, top - ry * 2.2], [Rr * 1.12, top + ry * 0.1]], rgb(shadeP));
+    poly(c, [[Rr * 0.76, top - ry * 1.4], [Rr * 1.05, top - ry * 2.0], [Rr * 1.0, top - ry * 1.2]], rgb(mix(paper, [60, 60, 70], 0.35)));   // (a line of newsprint)
+  };
+  // the lid: on (a shallow dome, a bright edge, its bail handle) | askew / off (leaning against the can on the ground)
   const lid = (x, y, rot, k = 1) => {
     c.save(); c.translate(x, y); c.rotate(rot);
     const lg = c.createLinearGradient(-Rr, 0, Rr, 0); lg.addColorStop(0, rgb(L0)); lg.addColorStop(0.7, rgb(L1)); lg.addColorStop(1, rgb(mix(L1, lo, 0.4)));
-    c.fillStyle = lg; c.beginPath(); c.ellipse(0, 0, Rr * 1.08 * k, ry * 1.05 * k, 0, 0, TAU); c.fill();
-    c.beginPath(); c.ellipse(0, -ry * 0.2, Rr * 0.95 * k, Rr * 0.38 * k, 0, PI, 0); c.fill();
-    c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.3)); c.lineWidth = Math.max(0.5, s * 0.03); c.beginPath(); c.arc(0, -Rr * 0.38 * k - ry * 0.2, Rr * 0.22 * k, PI, 0); c.stroke();
-    c.strokeStyle = rgb(hi, 0.6); c.lineWidth = Math.max(0.3, s * 0.015); c.beginPath(); c.ellipse(0, 0, Rr * 1.08 * k, ry * 1.05 * k, 0, PI * 1.05, PI * 1.6); c.stroke();
+    c.fillStyle = lg; c.beginPath(); c.ellipse(0, 0, Rr * 1.1 * k, ry * 1.08 * k, 0, 0, TAU); c.fill();
+    c.beginPath(); c.ellipse(0, -ry * 0.15, Rr * 0.92 * k, Rr * 0.26 * k, 0, PI, 0); c.fill();
+    c.strokeStyle = rgb(mix(hi, [255, 255, 255], 0.3), 0.9); c.lineWidth = Math.max(0.5, s * 0.03); c.beginPath(); c.ellipse(0, 0, Rr * 1.1 * k, ry * 1.08 * k, 0, PI * 0.02, PI * 0.98); c.stroke();
+    c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.35)); c.lineWidth = Math.max(0.6, s * 0.04); c.beginPath(); c.moveTo(-Rr * 0.3 * k, -Rr * 0.26 * k - ry * 0.15); c.lineTo(-Rr * 0.22 * k, -Rr * 0.42 * k - ry * 0.15); c.lineTo(Rr * 0.22 * k, -Rr * 0.42 * k - ry * 0.15); c.lineTo(Rr * 0.3 * k, -Rr * 0.26 * k - ry * 0.15); c.stroke();
     c.restore();
   };
-  if (can.lid === 'on') lid(0, top, 0);
+  if (can.lid === 'on') { scraps(); lid(0, top - ry * 0.35, -0.06); }
   else lid(Rr * 1.55, -Rr * 0.95, 1.3);          // ('off' / 'askew': the lid leaning on the ground against the can — the same, no jump)
   c.restore();
 }

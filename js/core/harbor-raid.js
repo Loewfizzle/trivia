@@ -21,7 +21,7 @@ import { legendNight } from './harbor-legend.js';
 import { holidayOf } from './sky.js';
 import { signalAt } from './harbor-promenade.js';
 import { trafficLanes } from './harbor-traffic.js';
-import { FOLK } from './harbor-people.js';
+import { FOLK, folkMap, route } from './harbor-people.js';
 
 const H = 3600;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -31,8 +31,12 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const RAID = Object.freeze({
   cars: 4, len: 4.75, gap: 2.6, v: 4.6, crawl: 2.2, acc: 1.5, brake: 2.4, dt: 0.1,
   window: [21.33, 22.75], after: 0.5, party: 0.12,
-  officer: { out: 1.4, sweep: 10.5, back: 1.2, kerb: 0.45 },
-  back: { delay: 4.5, stagger: [0, 2.4, 4.4, 5.6, 6.8, 8.2], full: 11 },
+  // (C2 — the owner: "he shines on the speakeasy's FRONT while standing at its SIDE — he must WALK to where he can see the front":
+  // out of the car he strides (FOLK.speed.brisk) round the bench + the crabapple onto the promenade, to `stand` (in front of the
+  // facade, right of its corner — z under the front's z0), turns to the windows, shines for `sweep` s, strides back; the raid ~10 s
+  // shorter in all: the sweep 10.5 → 6 s, the stopper leaves on the green that keeps the wait shortest, the lights back sooner)
+  officer: { out: 1.4, sweep: [5, 11], back: 1.0, v: 1.9, stand: { x: 1.2, z: 42.6 } },
+  back: { delay: 3, stagger: [0, 2.0, 3.6, 4.6, 5.6, 6.8], full: 9 },
   cap: 120, forced: 150,
   // 8b2 add-on — THE RAID FROM THE FRONT: one patrol car pulls up on the FRONT street (under the dock), right below the speakeasy, as the
   // lights cut (it's what they're running from); its car-mounted spotlight sweeps the facade; it leaves with the convoy. `screen`: where
@@ -96,11 +100,19 @@ export function raidPlan(raid, L) {
   // (the crossing's span the rolling cars occupy: their nose at the stop line → their tail past the far edge)
   const crossSpan = [ln.line - 0.2, cw.x1 + len + 0.3];
   const N = RAID.cars, spacing = len + RAID.gap;
+  // THE OFFICER's walk (planned first: the stopper waits for him): out of the kerb-side door → round the furniture → `stand`
+  const O = RAID.officer, door = { x: ln.line - len / 2 + 0.55, z: ln.z - 1.15 };
+  // (a cop steps straight over the kerb — the people's map keeps walkers to the crosswalk; his has no road / kerb blocks, still round
+  // the bench + the crabapple's baked corner)
+  const M0 = folkMap(L), M = { ...M0, rects: M0.rects.filter(r => !['road', 'curb-l', 'curb-r'].includes(r.id)) };
+  const pathTo = route(M, door, O.stand), pathBack = [...pathTo].reverse();
+  let walkLen = 0; for (let i = 1; i < pathTo.length; i++) walkLen += Math.hypot(pathTo[i].x - pathTo[i - 1].x, pathTo[i].z - pathTo[i - 1].z);
+  const walkS = walkLen / O.v, offBase = O.out + walkS + walkS + O.back + 0.8;   // (+ his sweep: it fits the next green — below)
   // the speed a rolling car wants at x: cruise in, CRAWL from the speakeasy's corner past the crossing, then away
   const vWant = x => (x < slow0 ? RAID.v : x < past ? RAID.crawl : RAID.v + 0.4);
   const simulate = t0 => {
     const cars = Array.from({ length: N }, (_, i) => ({ i, x: ln.xIn - i * spacing, vel: RAID.v, xs: [], stopper: i === N - 1, held: false, ts: t0 }));
-    let tStop = null, tReady = null, tDepart = null, onCross = [];
+    let tStop = null, tReady = null, tDepart = null, sweep = O.sweep[0], onCross = [];
     const tMax = t0 + RAID.cap;
     for (let t = t0; t < tMax; t += dt) {
       for (const c of cars) {
@@ -112,7 +124,11 @@ export function raidPlan(raid, L) {
         let v = vT > c.vel ? Math.min(vT, c.vel + RAID.acc * dt) : Math.max(vT, c.vel - RAID.brake * 1.4 * dt);
         if (c.stopper && tDepart == null && v * dt > room) v = Math.max(0, room / dt);
         c.vel = Math.max(0, v); c.x += c.vel * dt; c.xs.push(c.x);
-        if (c.stopper && tStop == null && c.vel < 0.03 && c.x > stopX - 0.3) { tStop = t; tReady = t + RAID.officer.out + 2 * 1.4 + RAID.officer.sweep + RAID.officer.back + 1.4; }
+        if (c.stopper && tStop == null && c.vel < 0.03 && c.x > stopX - 0.3) { tStop = t; 
+          // (C2: his sweep — O.sweep s — stretched so he's back in just as the road turns green: the car leaves straight away)
+          const b0 = t + offBase; tReady = b0 + O.sweep[0];
+          for (let u = b0 + O.sweep[0]; u <= b0 + O.sweep[1]; u += 0.25) { const S = signalAt(u * 1000); if (S.road === 'green' && S.left > 4.5) { tReady = u; break; } if (u + 0.25 > b0 + O.sweep[1]) tReady = b0 + O.sweep[0]; }
+          sweep = tReady - b0; }
         if (!c.stopper && c.x + len / 2 > crossSpan[0] && c.x - len / 2 < crossSpan[1]) onCross.push(t);
       }
       if (tReady != null && tDepart == null && t >= tReady) {
@@ -121,37 +137,44 @@ export function raidPlan(raid, L) {
       }
       if (cars.every(c => c.x > Math.abs(ln.xOut) + len)) break;
     }
-    return { cars, tStop, tReady, tDepart, onCross };
+    return { cars, tStop, tReady, tDepart, sweep, onCross };
   };
-  // the shift: the first t0 (from the raid's own, in 1 s steps over a signal cycle) whose rolling cars only cross on green
-  let best = null;
+  // the shift (from the raid's own t0, in 1 s steps over a signal cycle): its rolling cars only cross on green, and — C2 — of those,
+  // the one whose stopper waits LEAST for its green to pull away (it waited ~17 s every time: the convoy's phase was always the same)
+  let best = null, bestWait = Infinity, fallback = null;
   for (let s = 0; s <= 60; s += 1) {
     const sim = simulate(raid.t0 + s);
-    if (sim.onCross.every(t => signalAt(t * 1000).road === 'green')) { best = { sim, t0: raid.t0 + s }; break; }
-    if (!best) best = { sim, t0: raid.t0 + s };
+    if (!fallback) fallback = { sim, t0: raid.t0 + s };
+    if (!sim.onCross.every(t => signalAt(t * 1000).road === 'green')) continue;
+    // (scored: the wait + a little for each second it starts later — a preview from the panel shouldn't keep him waiting either)
+    const wait = (sim.tDepart != null && sim.tReady != null ? sim.tDepart - sim.tReady : 99) + 0.3 * s;
+    if (wait < bestWait - 0.2) { best = { sim, t0: raid.t0 + s }; bestWait = wait; }
+    if (wait < 2.5) break;
   }
+  if (!best) best = fallback;
   const { sim, t0 } = best, last = sim.cars[N - 1];
   const tAt = (c, x) => { const i = c.xs.findIndex(v => v >= x); return i < 0 ? null : t0 + i * dt; };
   const tAppear = tAt(sim.cars[0], appearX - len / 2) ?? t0 + 3;
   const tPast = tAt(last, cw.x1 + len / 2 + 1.5) ?? (sim.tDepart || t0 + 60) + 3;
   const tEnd = t0 + Math.max(...sim.cars.map(c => c.xs.length)) * dt;
   const tBack = tPast + RAID.back.delay;
-  // THE OFFICER: out of the stopped car's kerb side, a few steps to the kerb, the flashlight swept over the speakeasy's dark windows,
-  // back in (a people visit: folk.js draws him; raid.js draws the beam from his hand)
+  // THE OFFICER: out of the stopped car's kerb side, striding round the bench + the crabapple onto the promenade IN FRONT of the
+  // facade (C2), turned to the windows, the flashlight swept over them from his hand, back the same way + in (a people visit: folk.js
+  // draws him; raid.js draws the beam from his hand)
   let officer = null;
   if (sim.tStop != null) {
-    const O = RAID.officer, x0 = stopX + 0.55, z0 = ln.z - 1.15, kz = FOLK.roadZ + O.kerb, kx = stopX - 0.4;
-    const ta = sim.tStop + O.out, tb = ta + 1.4, ts = tb + O.sweep, tc = ts + 1.4;
-    const aim = Math.atan2((L.speakeasy ? L.speakeasy.z0 : 44) - kz, sx - 3 - kx);
+    const ta = sim.tStop + O.out, tb = ta + walkS, ts = tb + sim.sweep, tc = ts + walkS;
+    const fx = L.speakeasy ? (L.speakeasy.x0 + L.speakeasy.x1) / 2 + 2 : -9, fz = L.speakeasy ? L.speakeasy.z0 : 44;
+    const aim = Math.atan2(fz - O.stand.z, fx - O.stand.x);
     officer = {
       id: `raid.${raid.key}.officer`, kind: 'officer', routine: 'raid', idx: 0, look: 'cop', gait: 'walk', t0: ta, t1: tc, tEnd: tc,
       legs: [
-        { k: 'walk', pts: [{ x: x0, z: z0 }, { x: kx, z: kz }], t0: ta, t1: tb, v: Math.hypot(kx - x0, kz - z0) / 1.4 },
-        { k: 'pose', pose: 'flash', x: kx, z: kz, t0: tb, t1: ts, hd: aim, carry: 'flashlight' },
-        { k: 'walk', pts: [{ x: kx, z: kz }, { x: x0, z: z0 }], t0: ts, t1: tc, v: Math.hypot(kx - x0, kz - z0) / 1.4 },
+        { k: 'walk', pts: pathTo, t0: ta, t1: tb, v: O.v },
+        { k: 'pose', pose: 'flash', x: O.stand.x, z: O.stand.z, t0: tb, t1: ts, hd: aim, carry: 'flashlight' },
+        { k: 'walk', pts: pathBack, t0: ts, t1: tc, v: O.v },
       ],
       members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: 4471 }],
-      beam: { t0: tb, t1: ts },
+      beam: { t0: tb + 0.5, t1: ts },
     };
   }
   // THE FRONT CAR (the add-on): in from the right on the street's far lane (westbound, by the curb), braking to its stop below the
@@ -221,8 +244,8 @@ export function raidAt(P, t) {
   const phase = t < P.tAppear ? 'coming' : P.tStop != null && t >= P.tStop && t < (P.tDepart || P.tStop) ? 'stopped' : dark ? 'dark' : 'back';
   // the front car + its spotlight (0..1) + the sweep's place along its path (u: 0..1 a cycle — screens/harbor/raid.js#spotPath maps it)
   const fc = frontCarAt(P.front, t), fs = P.front && P.front.spot, spot = fs && t >= fs.t0 && t < fs.t1 ? Math.min(1, (t - fs.t0) / 0.4, (fs.t1 - t) / 0.4) : 0;
-  const spotU = fs ? Math.max(0, t - fs.t0) / 13 : 0;
-  return { on: true, cars, power, shades, win, wash: wash || (fc ? 1 : 0), beam, sweep, club, phase, dark, front: fc, spot, spotU };
+  const spotT = fs ? Math.max(0, t - fs.t0) : 0;
+  return { on: true, key: P.key, cars, power, shades, win, wash: wash || (fc ? 1 : 0), beam, sweep, club, phase, dark, front: fc, spot, spotT };
 }
 /** the convoy as a hold on the near lane (core/harbor-traffic.js: no car enters the near lane while it's on the road; they wait behind
  *  its last car) — { tE, tX, hold, x(t), len } */
@@ -230,3 +253,58 @@ export function raidHold(P) {
   const last = P.cars[P.cars.length - 1];
   return { id: `${P.key}.hold`, tE: P.t0 - 2, tX: P.tEnd, hold: true, len: P.len, x: t => { const s = raidCarAt(last, t); return s ? s.x : -99; }, riders: { off: 0, on: 0 } };
 }
+
+// ------------------------------------------------------------------ THE FRONT CAR's SPOTLIGHT TOUR (C2)
+/**
+ * The owner (8b2 review): "the SPOTLIGHT must land on the WINDOWS (and the door), never the building's corners / blank brick, and sweep
+ * FLUIDLY with randomness (lingering on a window, darting to another, a different eased path every raid — no fixed back-and-forth)".
+ * The targets (spotTargets) are the facade's own openings in its units (u along the front from x0, v up from the pavement — a
+ * half-width + half-height each): the side door, the shop door, the shop window's two halves, the six upper windows. The tour
+ * (spotTour, seeded by the raid's key — every phone the same, every raid different) is a list of STOPS: the circle rests on a target
+ * (lingering — a slow searching drift inside it — or a quick glance), then moves on: to a NEIGHBOUR (a slow eased sweep) or DARTS across
+ * the front. spotOn(tour, T, t) → { u, v } t s into the spotlight. PURE.
+ */
+export const SPOT = Object.freeze({ linger: [1.4, 2.5], glance: [0.5, 0.95], sweep: [0.8, 1.3], dart: [0.32, 0.48], pLinger: 0.38, pDart: 0.32, drift: 0.32 });
+export function spotTargets(s) {
+  if (!s || !s.shop || !s.door) return [];
+  const T = [], box = (id, u0, u1, v0, v1) => T.push({ id, u: (u0 + u1) / 2, v: (v0 + v1) / 2, hu: (u1 - u0) / 2, hv: (v1 - v0) / 2 });
+  box('side', s.door.u0, s.door.u1, 0.12, s.door.h);
+  const [w0, w1, v0, v1] = s.shop.win, wm = (w0 + w1) / 2;
+  box('shopL', w0, wm, v0, v1); box('shopR', wm, w1, v0, v1);
+  box('shopDoor', s.shop.door[0], s.shop.door[1], 0.55, s.shop.door[2]);
+  (s.rows || []).forEach((r, j) => (s.windows || []).forEach(([a, b], i) => box(`w${j}${i}`, a, b, r[0], r[1])));
+  return T;
+}
+export function spotTour(key, T, dur = 60) {
+  const n = T.length; if (!n) return [];
+  const r = rngFrom(hashString(`raid-spot|${key}`)), pick = ([a, b]) => a + (b - a) * r(), out = [];
+  // (it opens on a door — the side door most raids: what they're after — then wanders)
+  let cur = r() < 0.6 ? 0 : Math.floor(r() * n), prev = -1, t = 0;
+  while (t < dur) {
+    const lg = r() < SPOT.pLinger, d = lg ? pick(SPOT.linger) : pick(SPOT.glance);
+    const cand = T.map((q, j) => ({ j, d: Math.hypot(q.u - T[cur].u, (q.v - T[cur].v) * 1.15) })).filter(o => o.j !== cur && o.j !== prev).sort((a, b) => a.d - b.d);
+    const dart = cand.length > 3 && r() < SPOT.pDart;
+    const nx = cand.length ? (dart ? cand[2 + Math.floor(r() * (cand.length - 2))] : cand[Math.floor(r() * Math.min(2, cand.length))]) : { j: cur, d: 0 };
+    const mv = dart ? Math.max(pick(SPOT.dart), nx.d / 16) : pick(SPOT.sweep) * Math.min(1.4, 0.65 + nx.d / 7);   // (a dart: quick, never a jump — ≤ ~32 units / s at its fastest)
+    out.push({ i: cur, t0: t, t1: t + d, t2: t + d + mv, lg, dart, ph: r() < 0.5 ? 1 : -1, to: nx.j });
+    t += d + mv; prev = cur; cur = nx.j;
+  }
+  return out;
+}
+const smoother = k => k * k * k * (k * (k * 6 - 15) + 10);
+export function spotOn(tour, T, t) {
+  if (!tour.length) return null;
+  let a = 0, b = tour.length - 1;
+  while (a < b) { const m = (a + b + 1) >> 1; if (tour[m].t0 <= t) a = m; else b = m - 1; }
+  const S = tour[a], P = T[S.i];
+  if (t < S.t1) {
+    // resting: a searching drift inside the opening (zero at both ends, no jolt — a loop through its corners when it lingers)
+    const k = Math.max(0, (t - S.t0) / (S.t1 - S.t0)), A = S.lg ? SPOT.drift : SPOT.drift * 0.35;
+    return { u: P.u + S.ph * P.hu * A * Math.sin(2 * Math.PI * k) * Math.sin(Math.PI * k), v: P.v + P.hv * A * 0.8 * (1 - Math.cos(2 * Math.PI * k)) / 2 * (S.lg ? 1 : -1) };
+  }
+  const Q = T[S.to], k = Math.min(1, (t - S.t1) / (S.t2 - S.t1));
+  // moving: a slow eased sweep to a neighbour, or a dart — fast off the mark, settling onto the next (a gentle arc either way)
+  const e = S.dart ? 1 - Math.pow(1 - smoother(k), 1.6) : smoother(k), arc = Math.sin(Math.PI * e) * Math.min(0.6, Math.hypot(Q.u - P.u, Q.v - P.v) * 0.08) * S.ph;
+  return { u: P.u + (Q.u - P.u) * e, v: P.v + (Q.v - P.v) * e + arc };
+}
+

@@ -13,6 +13,7 @@ import { project, groundY } from '../../core/harbor-layout.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { createMotorcar } from './motorcar.js';
 import { MODELS } from './vehicles.js';
+import { spotTargets, spotTour, spotOn } from '../../core/harbor-raid.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -36,20 +37,18 @@ export function drawBeacon(c, x, y, sp, b, k, night) {
   c.restore();
 }
 /**
- * THE FRONT CAR's SPOTLIGHT PATH over the facade (screen): u (0..1 a cycle) → [x, y] — the side door, the barbershop's window, up to the
- * upper windows left → right, up the BLADE, back down to the door; eased between the stops (a slow searching sweep, a beat on each).
- * o: { windows ([{ rect }]), side (the side wall polygon: its first point is the front's ground corner) }
+ * THE FRONT CAR's SPOTLIGHT on the facade (screen) now: R = raidAt (its key + spotT), L = the layout → [x, y] | null. C2 — the tour
+ * (core/harbor-raid.js#spotTour): only the windows + the doors, lingering, darting, a different eased path every raid.
  */
-export function spotPath(u, o) {
-  const ws = (o.windows || []).map(w => w.rect); if (!ws.length || !o.side) return null;
-  const xs = ws.map(r => r.x + r.w / 2), ys = ws.map(r => r.y + r.h / 2), x0 = Math.min(...xs), x1 = Math.max(...xs), yT = Math.min(...ys), yB = Math.max(...ys);
-  const [cx, gy] = o.side[0], ptop = o.side[1][1], fw = Math.max(20, x1 - x0), rowH = Math.max(8, (yB - yT) || 30);
-  const door = [cx - fw * 0.18, gy - rowH * 0.45], shop = [x0 + fw * 0.08, gy - rowH * 0.5], blade = [cx + 2, (yT + ptop) / 2];
-  const P = [door, shop, [x0, yB], [x0, yT], [(x0 + x1) / 2, yT], [x1, yT], blade, [cx, yB + rowH * 0.3], door];
-  const n = P.length - 1, w = (((u % 1) + 1) % 1) * n, i = Math.floor(w), f = w - i, e = f < 0.7 ? smooth(f / 0.7) : 1;
-  return [P[i][0] + (P[i + 1][0] - P[i][0]) * e, P[i][1] + (P[i + 1][1] - P[i][1]) * e];
+let tourKey = '', tour = [], tourT = [];
+export function spotPath(R, L) {
+  const s = L && L.speakeasy; if (!R || !s) return null;
+  const key = `${R.key}|${s.x0.toFixed(3)}|${L.cam.W}`;
+  // (only the openings wholly on the screen — at 402 the speakeasy's left column of windows is cut by the edge)
+  if (key !== tourKey) { tourKey = key; tourT = spotTargets(s).filter(q => project(L.cam, s.x0 + q.u - q.hu, q.v, s.z0)[0] >= 6); tour = spotTour(R.key, tourT, 90); }
+  const p = spotOn(tour, tourT, R.spotT || 0); if (!p) return null;
+  return project(L.cam, s.x0 + p.u, p.v, s.z0);
 }
-
 export function createRaid() {
   let L = null, spr = null;
   const motor = createMotorcar();

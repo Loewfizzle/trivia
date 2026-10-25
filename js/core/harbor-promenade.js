@@ -62,7 +62,7 @@ export const PHONE = Object.freeze({
   // tested) and that tree is a FLOWERING CRABAPPLE (pink-white blossom in spring — spring reads again; golden autumn + red fruit).
   // So the back row is: crabapple with the bench · tall lamp · [the crossing's landing] · tall lamp. The framing maple keeps its
   // own colour (v: the BLAZING ORANGE mix — core/harbor-trees.js#MAPLE_AUTUMN 1, "the big one on the front walk").
-  // PF — THE FINAL LAYOUT (the owner, Oct 24): THE CART is HIDDEN (CART_SHOWN — it returns in 8b with the moving things); THE BENCH +
+  // PF — THE FINAL LAYOUT (the owner, Oct 24; the cart is back since FP3b — the vendor spot): THE BENCH +
   // ITS CRABAPPLE move to where the cart's umbrella stood — just LEFT of the crossing, a little FORWARD, the tree bigger (the DOUBLE
   // AGENT blade free, the tree shows); THE TALL LAMPS a matched PAIR FLANKING THE CROSSING (symmetric about its centre, 0.6675 — just
   // outside the two stop lights: the crossing framed + lit, the bench in the left one's light); the two short globes stay at the
@@ -85,7 +85,6 @@ export const PHONE = Object.freeze({
   mailbox: null,
 });
 /** the vendor cart is SHOWN (8P brought it back, placed right of the inlay — PF had hidden it); false hides it (L.cart.shown) */
-export const CART_SHOWN = true;
 
 /**
  * THE CENTREPIECE'S RULES (FP2 — for 8b + the seasonal pieces):
@@ -170,7 +169,7 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   const bench = { x: X(S.bench.f, S.bench.z), z: S.bench.z, w: P.bench.w };
   // (live: drawn by the people's near pass on its schedule, never baked; hand 1: its handles on the right end — FP3b: a low roaster
   // cart, no umbrella: props.js#drawCart)
-  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: CART_SHOWN, live: true, scale: S.cart.scale || 1, hand: 1 };
+  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: true, live: true, scale: S.cart.scale || 1, hand: 1 };
   const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring, clear: EVENT_CLEAR };
   // (FP2 — THE CART'S RULE for 8b: it rests LEFT of the medallion; on a normal day its route rolls across the floor — over the
   // medallion — to the open right side and back; during an event on the medallion it stops short: never right of stopX)
@@ -227,14 +226,16 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
  *  above the dock at every phone size (its foot `pad` pt over the dock's top), clear of the lobby line (it forms LEFT of that lamp —
  *  core/harbor-people.js#linePlaces) + the walk to the door; nearer than anyone on the floor (z ≤ the people's zMin − 0.55). h / r: its
  *  height + radius (world units: ~0.8 m × 0.5 m) */
-export const CAN = Object.freeze({ dx: 1.75, pad: 4, zMin: 37.2, zMax: 38.2, h: 0.98, r: 0.3 });
+// (C2 — the owner: "it looks like a fire hydrant": a size up (h 0.98 → 1.24, r 0.3 → 0.4), against the lamppost (dx 1.75 → 0.8 — strapped
+// to it: `post` is the post's x at the can's depth), the classic ribbed galvanized can — fauna.js#drawTrashCan)
+export const CAN = Object.freeze({ dx: 0.8, pad: 4, zMin: 37.2, zMax: 38.2, h: 1.24, r: 0.4 });
 export function trashCanSpot(cam, lamps) {
   const g = (lamps || []).filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0];
   const dockY = cam.dock && cam.dock.y && !cam.wide ? cam.dock.y : cam.H;
   const zFoot = cam.F * cam.CAMH / Math.max(1, dockY - CAN.pad - cam.VPY);
   const z = Math.max(CAN.zMin, Math.min(CAN.zMax, zFoot));
   const gx = g ? g.x * z / g.z : xOfF(cam, 0.322, z);
-  return { x: gx + CAN.dx, z, h: CAN.h, r: CAN.r };
+  return { x: gx + CAN.dx, z, h: CAN.h, r: CAN.r, post: g ? gx : null };
 }
 
 // ------------------------------------------------------------------ THE SEASON (the trees, the planters)

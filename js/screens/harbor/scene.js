@@ -64,7 +64,7 @@ import { createRoadLight } from './roadlight.js';
 import { createLeaves } from './trees.js';
 import { createWaterfront } from './waterfront.js';
 import { createSkyBeams } from './skybeams.js';
-import { createStrings, STRINGS_ON } from './strings.js';   // (the roof's café-light canopy — SP2; STRINGS_ON is true)
+import { createStrings } from './strings.js';   // (the roof's café-light canopy — SP2)
 import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
 import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
 import { setCityClock } from '../../core/city.js';
@@ -1150,7 +1150,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (RR && fadeIn > 0 && !off.has('no-speakeasy')) {
       const side = speak.sidePoly(), ws = speak.windows();
       // (the add-on: the FRONT car's spotlight — where its circle lands on the facade this frame: the door, the windows, the blade)
-      raidFrame.spotAt = RR.spot > 0.01 ? raidFx.spotPath(RR.spotU, { windows: ws, side }) : null;
+      raidFrame.spotAt = RR.spot > 0.01 ? raidFx.spotPath(RR, L) : null;
       raidFx.facade(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn, tier }, { side, windows: ws, officer: people.officer(), spotAt: raidFrame.spotAt });
     }
     // PF — THE CENTREPIECE on the inlay + its rig's floor spots (nothing without one; &force=centrepiece-test: the test obelisk)
@@ -1201,8 +1201,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const lampK = fadeIn * (LL.ramp > 0.02 ? 1 : 0) * (lit > 0 ? 1 : 0.3);
     drawLampLight(c, L, lampK, glow, coolGlow || (coolGlow = radial('205,222,255')), Math.min(2, dpr), LL.levels);
     // THE STRING LIGHTS on the speakeasy's roof (NEON PASS 4): warm from dusk; a party night's colours chasing on the beat.
-    // (SP2: the CAFÉ-LIGHT CANOPY over the roof's deck — strings.js; STRINGS_ON is true, &force=strings-party previews the party's colours)
-    if (fadeIn > 0 && !off.has('no-strings') && (STRINGS_ON || clock.force.has('strings-party'))) {
+    // (SP2: the CAFÉ-LIGHT CANOPY over the roof's deck — strings.js; &force=strings-party previews the party's colours)
+    if (fadeIn > 0 && !off.has('no-strings')) {
       const fp = clock.force.has('strings-party') || clock.force.has('neon-party'), tb = t / 0.5;
       const sp = PT.on > 0 ? { on: PT.ramp, energy: PT.energy, beats: PT.beats, beatU: PT.beatU, punch: PT.punch } : fp ? { on: 1, energy: 1, beats: Math.floor(tb), beatU: tb % 1, punch: S.motion ? pulseOut(punchEnv(tb % 1, 0.5), PT.pulse) : 0 } : null;
       strings.draw(c, { k: fadeIn * litK(DK, 'strings') * (lit > 0 ? lit : 0) * legendPow(W * 0.16, 'near', 201), day: TW.day || 0, party: sp, t, motion: S.motion, tier });
@@ -1865,7 +1865,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },
-      strings: { ...strings.debug(), on: STRINGS_ON || clock.force.has('strings-party'), set: o => strings.set(o) },
+      strings: { ...strings.debug(), on: true, set: o => strings.set(o) },
       sky: { state: sky.debug(), ...sky.api },
       // (6b: THE LEGENDARY SKY — start('ufo' | 'tr3b', { at, dir }) loads the module if it must; state: what runs, its phase)
       legend: { state: legends ? legends.debug() : { run: null, loaded: false, loading: legendsLoading },
