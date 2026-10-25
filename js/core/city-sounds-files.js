@@ -186,6 +186,12 @@ export const FILES = /*FILES*/{
   "police-whistle": [
     {"f": "police-whistle.mp3", "v": "fd81b718", "d": 1.25, "lufs": -20.4, "peak": 0.45, "sw": [0.15, 0.8], "from": [0.05, 1.3], "src": "police-whistle"}
   ],
+  "power-failure": [
+    {"f": "power-failure.mp3", "v": "1daff7fd", "d": 9.35, "lufs": -20.4, "peak": 2.5, "sw": [0.2, 8.15], "from": [0.0, 9.35], "src": "power-failure"}
+  ],
+  "power-restore": [
+    {"f": "power-restore.mp3", "v": "b23fec82", "d": 9.0, "lufs": -20.4, "peak": 6.9, "sw": [3.65, 8.4], "from": [0.0, 9.0], "src": "power-restore"}
+  ],
   "prop-plane": [
     {"f": "prop-plane.mp3", "v": "0818f33b", "d": 39.0, "lufs": -20.4, "peak": 7.55, "sw": [0.8, 23.6], "from": [1.0, 40.0], "src": "prop-plane", "r": 16000}
   ],
@@ -248,11 +254,23 @@ export const FILES = /*FILES*/{
   "tr3b-power-down": [
     {"f": "tr3b-powerdown.mp3", "v": "e638ac76", "d": 30.5, "lufs": -20.4, "peak": 3.25, "sw": [0.3, 5.45], "from": [131.5, 162.0], "hit": 3.25, "src": "tr3b-powerdown", "r": 16000}
   ],
+  "tr3b-presence": [
+    {"f": "tr3b-presence.mp3", "v": "6b06ca6c", "d": 30.5, "lufs": -24.4, "loop": 28.5, "xf": 2.0, "from": [1.5, 32.0], "src": "tr3b-presence", "r": 16000}
+  ],
   "trash-can-lid": [
     {"f": "trash-can-lid.mp3", "v": "1e81a64e", "d": 3.25, "lufs": -20.4, "peak": 0.85, "sw": [0.15, 2.55], "from": [0.05, 3.3], "hit": 0.07, "src": "trash-can-lid"}
   ],
+  "trash-truck-arrive": [
+    {"f": "trash-truck-arrive.mp3", "v": "39239282", "d": 26.3, "lufs": -20.4, "peak": 11.8, "sw": [1.15, 25.15], "from": [0.0, 26.3], "hit": 16.0, "src": "trash-truck-2"}
+  ],
+  "trash-truck-depart": [
+    {"f": "trash-truck-depart.mp3", "v": "254ae604", "d": 38.9, "lufs": -20.4, "peak": 26.7, "sw": [0.5, 36.15], "from": [58.0, 96.9], "hit": 15.0, "src": "trash-truck-2"}
+  ],
   "truck-delivery": [
     {"f": "car-1920s-pass-3.mp3", "v": "28684b80", "d": 23.5, "lufs": -20.4, "peak": 9.35, "sw": [0.35, 22.1], "from": [283.0, 306.5], "src": "car-1920s-pass-3", "w": 0.35}
+  ],
+  "tv-murmur": [
+    {"f": "tv-murmur-2.mp3", "v": "2b596661", "d": 17.0, "lufs": -24.4, "loop": 15.0, "xf": 2.0, "from": [16.3, 33.3], "src": "tv-murmur-2", "r": 16000}
   ],
   "ufo-beam": [
     {"f": "ufo-beam.mp3", "v": "b05b355b", "d": 14.0, "lufs": -20.4, "peak": 6.65, "sw": [3.35, 9.45], "from": [3.0, 17.0], "src": "ufo-beam"}
