@@ -56,6 +56,15 @@ export const MODELS = Object.freeze({
     paints: [['taxi', 'black', 'black']] },
 });
 export const MODEL_IDS = Object.freeze(Object.keys(MODELS));
+/** 8b1: the paint a slot wears AFTER DARK — the VAN's pale body (luminance > 150: the cream dairy livery) steps on to its next deep
+ *  paint (a big pale panel reads as a flat grey box at night; the sedans' small cream / primrose bodies read fine); every other paint
+ *  unchanged. PURE (tests/harbor-traffic.test.mjs) */
+export function nightPaint(id, paint) {
+  const M = MODELS[id] || MODELS.modelA, n = M.paints.length, lum = p => 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2];
+  if (M.roof !== 'van') return paint;
+  for (let k = 0; k < n; k++) { const i = (((paint + k) % n) + n) % n; if (lum(PAINT[M.paints[i][0]]) <= 150) return i; }
+  return paint;
+}
 /** the order the models take on a road (a fixed cycle, stepped on every seventh pass: never the same model twice in a row) */
 /** the order the models take on a road (a fixed cycle, stepped on at the end of every lap: never the same model twice in a row on
  *  consecutive slots). THE BACK ROAD takes all seven; THE STREET under the dock only the ones whose roof stays under the dock's top
@@ -439,9 +448,13 @@ export function createVehicles() {
       for (const [da, a] of [[0, 1], [-step * 0.5, 0.45]]) { c.save(); c.translate(wx, wy); c.rotate(roll + da); c.globalAlpha = k * a; c.drawImage(wh.spin, -wn / 2, -wn / 2, wn, wn); c.restore(); }
     }
     c.globalAlpha = k;
-    const b = body(id, look, v.paint || 0, s, v), bw = b.width / dpr, bh = b.height / dpr, bx = (-A.pad - M.len / 2) * sp, by = -(A.top + 0.06) * sp + (v.bob || 0);
+    // (8b1 — POL4's known issue "the cream van reads grey at night": a big pale panel at night is a flat grey box. The cream DAIRY livery
+    // is a daytime van — after dark its slot wears one of the van's deep paints (forest / navy / maroon, cream lettering), which keep
+    // their colour + a lamp-lit gloss in the dark; every phone the same (the slot's paint, stepped))
+    const pnt = look === 'night' ? nightPaint(id, v.paint || 0) : v.paint || 0;
+    const b = body(id, look, pnt, s, v), bw = b.width / dpr, bh = b.height / dpr, bx = (-A.pad - M.len / 2) * sp, by = -(A.top + 0.06) * sp + (v.bob || 0);
     c.drawImage(b, bx, by, bw, bh);
-    if ((v.lampK || 0) > 0.03 && look === 'night') { c.globalAlpha = k * v.lampK; c.drawImage(body(id, 'lamp', v.paint || 0, s, v), bx, by, bw, bh); c.globalAlpha = k; }
+    if ((v.lampK || 0) > 0.03 && look === 'night') { c.globalAlpha = k * v.lampK; c.drawImage(body(id, 'lamp', pnt, s, v), bx, by, bw, bh); c.globalAlpha = k; }
     // a party night's LIT TRIM: the running board's edge + the belt line in the underglow's colour (crisp, a tight glow)
     if (v.underglow && (v.glowK || 0) > 0.02) {
       const col = v.underglow, rb0 = A.wheels[0] + M.r + 0.12 - M.len / 2, rb1 = A.wheels[1] - M.r - 0.12 - M.len / 2;
@@ -456,7 +469,8 @@ export function createVehicles() {
       if (!glowW) glowW = glowSprite('255,236,200', 0.28);
       if (!glowR) glowR = glowSprite('255,40,40', 0.3);
       c.globalCompositeOperation = 'lighter';
-      const [hu, hv] = A.head, hx = (hu - M.len / 2) * sp, hy = -hv * sp + (v.bob || 0), hr = (id === 'packard' ? 0.25 : M.roof === 'box' ? 0.16 : 0.2), r1 = (hr * 3) * sp, r2 = hr * sp * 1.1;
+      // (8b1: the van's lamps a size up — a tall box body read as unlit behind the sedans' lamps)
+      const [hu, hv] = A.head, hx = (hu - M.len / 2) * sp, hy = -hv * sp + (v.bob || 0), hr = (id === 'packard' ? 0.25 : M.roof === 'van' ? 0.26 : M.roof === 'box' ? 0.16 : 0.2), r1 = (hr * 3) * sp, r2 = hr * sp * 1.1;
       c.globalAlpha = 0.55 * hk; c.drawImage(glowW, hx - r1, hy - r1, r1 * 2, r1 * 2);
       c.globalAlpha = hk; c.drawImage(glowW, hx - r2, hy - r2 * 1.6, r2 * 2, r2 * 3.2);
       c.globalCompositeOperation = 'source-over'; c.fillStyle = `rgba(255,250,236,${Math.min(1, hk)})`; c.beginPath(); c.ellipse(hx, hy, 0.045 * sp, hr * 0.9 * sp, 0, 0, TAU); c.fill();

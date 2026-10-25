@@ -62,14 +62,16 @@ export const BARN_LEN = 16;
 
 /**
  * THE SURPRISE FLYBY (POLISH 4, the owner): now and then, unannounced, a few F-16s scream straight across the sky — from GOLDEN
- * HOUR until 11 pm, weighted toward after dark (when the afterburners look best), in a random direction. ~2 evenings a week, the
+ * HOUR until 11 pm, weighted toward after dark (when the afterburners look best), in a random direction. ~Twice a month, the
  * same for everyone (seeded by the date). duskH: tonight's sunset as a local hour (the golden hour starts ~1 h before it).
  * → { h (local hour), dir (±1), n (2–4 jets), night (after dark) } | null
  */
-export const FLYBY_P = 0.3;
+// (8b1, the owner's decision: ~TWICE A MONTH on random days — POLISH 4 shipped ~2 evenings a week — and NEVER on a legendary night:
+// the UFO / the TR-3B own that sky. 0.073 × the nights that aren't legendary ≈ 2.0 a month.)
+export const FLYBY_P = 0.073;
 export function flybyDay(y, m, d, duskH = 19) {
   const r = rngFrom(hashString(`flyby|${dateKey(y, m, d)}`));
-  if (r() >= FLYBY_P) return null;
+  if (r() >= FLYBY_P || legendNight(y, m, d)) return null;
   const night = r() < 0.72, u = r(), dark0 = Math.min(22.4, duskH + 0.6), gold0 = Math.min(dark0 - 0.25, duskH - 1);
   const h = night ? lerp(dark0, 23, u) : lerp(gold0, dark0, u);
   return { h: Math.round(h * 120) / 120, dir: r() < 0.5 ? 1 : -1, n: 2 + Math.floor(r() * 3), night };

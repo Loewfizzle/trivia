@@ -137,12 +137,14 @@ export function createStrings() {
     for (const b of bulbs) { c.fillRect(b.x - 0.25 * K, b.w[1], 0.5 * K, b.y - rb - b.w[1] + 0.3); c.fillRect(b.x - rb * 0.42, b.y - rb - BULB.socket * K * 0.7, rb * 0.84, BULB.socket * K * 0.8); }
     // by day (and fading as they light): clear glass globes — pale glass, a dark filament, a highlight
     if (k < 0.98) {
-      const a = (1 - k) * (0.55 + 0.45 * day);
+      // (8b1 — the blackout's leftovers: after dark an UNLIT globe is dark glass catching a little of the night sky — the daylight's
+      // pale glass + white glint read as lit bulbs in the TR-3B's blackout)
+      const a = (1 - k) * (0.55 + 0.45 * day), dg = Math.max(0, Math.min(1, day)), gc = [0, 1, 2].map(i => Math.round([58, 60, 76][i] + ([226, 230, 234][i] - [58, 60, 76][i]) * dg)).join(',');
       for (const b of bulbs) {
-        c.fillStyle = `rgba(226,230,234,${(0.55 * a).toFixed(3)})`; c.beginPath(); c.arc(b.x, b.y, rb, 0, Math.PI * 2); c.fill();
+        c.fillStyle = `rgba(${gc},${(0.55 * a).toFixed(3)})`; c.beginPath(); c.arc(b.x, b.y, rb, 0, Math.PI * 2); c.fill();
         c.strokeStyle = `rgba(150,156,166,${(0.7 * a).toFixed(3)})`; c.lineWidth = Math.max(0.4, 0.3 * K); c.beginPath(); c.arc(b.x, b.y, rb - 0.2, 0, Math.PI * 2); c.stroke();
         c.strokeStyle = `rgba(90,70,60,${(0.8 * a).toFixed(3)})`; c.beginPath(); c.moveTo(b.x - rb * 0.18, b.y - rb * 0.55); c.lineTo(b.x - rb * 0.12, b.y + rb * 0.3); c.lineTo(b.x + rb * 0.12, b.y + rb * 0.3); c.lineTo(b.x + rb * 0.18, b.y - rb * 0.55); c.stroke();
-        c.fillStyle = `rgba(255,255,255,${(0.85 * a).toFixed(3)})`; c.beginPath(); c.arc(b.x - rb * 0.4, b.y - rb * 0.38, rb * 0.26, 0, Math.PI * 2); c.fill();
+        c.fillStyle = `rgba(255,255,255,${(0.85 * a * (0.25 + 0.75 * dg)).toFixed(3)})`; c.beginPath(); c.arc(b.x - rb * 0.4, b.y - rb * 0.38, rb * 0.26, 0, Math.PI * 2); c.fill();
       }
     }
     if (k > 0.01) {

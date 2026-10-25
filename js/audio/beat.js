@@ -53,9 +53,11 @@ function outLatency() {
   return Math.min(0.35, Math.max(0, l + (c.baseLatency || 0)));
 }
 const CAL_KEY = 'na:beatcal';
+let savedEl = false, savedBuf = false;   // (8b1: a lead learned on an earlier visit — the safety rule's grace)
 const cal = (() => {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(CAL_KEY) || 'null'); } catch { /* private mode */ }
+  savedEl = !!(s && s.el != null); savedBuf = !!(s && s.buf != null);
   return { el: createLead(s ? s.el : null, WEBKIT ? IOS_LEAD : 0), buf: createLead(s ? s.buf : null, 0) };
 })();
 let calSaved = 0;
@@ -210,6 +212,12 @@ export function beatKick(nowMs = performance.now()) {
     }
   }
   return { hit, live: nowMs - heardAt < 2000, energy: onsetEnergy(ons) };
+}
+/** 8b1 — THE SAFETY RULE's input (core/harbor-beat.js#stepSafety): the lead's calibration for the song sounding — the agreed residual,
+ *  settling, the kicks behind it — the song clock's identity + re-anchors, and whether this device had a lead saved from a visit before */
+export function beatCal() {
+  const c = lobbyNow() ? cal.buf : cal.el;
+  return { res: c.res, fast: c.fast ? { why: c.fast.why } : null, n: c.n, seen: c.seen, errs: c.errs.length, song: sclock.id, anchors: sclock.anchors, saved: lobbyNow() ? savedBuf : savedEl };
 }
 /** the debug view (window.__arcade.beat / the readout) */
 export function beatDebug() {

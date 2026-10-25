@@ -127,19 +127,20 @@ test('THE DIRECTOR: a spectacle budget per tier, holidays > party > legendary > 
   assert.ok(d.may('drones', 'holiday'), 'a holiday outranks what runs below it');
 });
 
-test('POLISH 4 — THE SURPRISE FLYBY: ~2 evenings a week, golden hour → 11 pm, mostly after dark, either way', async () => {
-  const { flybyDay } = await import('../js/core/harbor-legend.js');
+test('POLISH 4 — THE SURPRISE FLYBY: ~twice a month (8b1), never on a legendary night, golden hour → 11 pm, mostly after dark, either way', async () => {
+  const { flybyDay, legendNight } = await import('../js/core/harbor-legend.js');
   let n = 0, night = 0, dirs = new Set();
   for (let d = 0; d < 730; d++) {
     const dt = new Date(Date.UTC(2026, 0, 1) + d * 864e5), dusk = 17 + 4 * Math.sin(((d % 365) / 365) * Math.PI);   // (a dusk between 17:00 and 21:00)
     const f = flybyDay(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate(), dusk);
     if (!f) continue;
     n++; if (f.night) night++; dirs.add(f.dir);
+    assert.equal(legendNight(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()), null, 'never on a legendary night');
     assert.ok(f.h >= dusk - 1.01 && f.h <= 23, `in its window (${f.h} vs dusk ${dusk.toFixed(2)})`);
     assert.ok(f.n >= 2 && f.n <= 4);
   }
-  const perWeek = n / (730 / 7);
-  assert.ok(perWeek > 1.5 && perWeek < 3, `${perWeek.toFixed(2)} a week`);
+  const perMonth = n / (730 / 30.44);
+  assert.ok(perMonth > 1.3 && perMonth < 2.8, `${perMonth.toFixed(2)} a month`);
   assert.ok(night / n > 0.6, 'weighted toward after dark'); assert.equal(dirs.size, 2);
   assert.deepEqual(flybyDay(2026, 10, 24, 18.6), flybyDay(2026, 10, 24, 18.6), 'the same for everyone');
 });

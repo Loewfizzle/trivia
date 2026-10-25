@@ -80,7 +80,7 @@ export const EVENTS = [
   { id: 'skytype', label: 'SKYTYPING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 140, hint: 'up to 3 lines × ~16 letters a page, 3 pages; | starts a page' },
   { id: 'helicopter', label: 'HELICOPTER', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   { id: 'jets', label: 'AIR SHOW (F-16s)', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a diamond of four: two straight formation flybys, smooth smoke trails by day — July 4th' },
-  { id: 'flyby', label: 'SURPRISE FLYBY', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: '2–4 F-16s straight across on afterburner — ~2 evenings a week, golden hour → 11 pm' },
+  { id: 'flyby', label: 'SURPRISE FLYBY', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: '2–4 F-16s straight across on afterburner — ~twice a month, golden hour → 11 pm' },
   { id: 'barnstormer', label: 'BARNSTORMER', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a red 1920s biplane threading THROUGH the NEON letters + a loop (~3 days a week)' },
   { id: 'missing-man', label: 'MISSING MAN', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a finger-four, #3 pulls up + away — Memorial + Veterans Day' },
   { id: 'balloons', label: 'BALLOONS', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
