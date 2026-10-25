@@ -68,6 +68,9 @@ import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
 import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
 import { setCityClock } from '../../core/city.js';
 import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
+import { tracesAt } from '../../core/harbor-crew.js';
+import { folkMap } from '../../core/harbor-people.js';
+import { drawSheets, sheetArt, bladeArt, drawBlade } from './workers.js';
 import { createDayFx } from './dayfx.js';
 import { createClouds } from './clouds.js';
 import { safeCtx, starvedCount, blurWorks } from '../../ui/canvas-safe.js';
@@ -266,6 +269,27 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const SHOW_FORCES = ['party', 'neon-party', 'finale', 'fireworks', 'drones', 'dance', 'strings-party', 'beams'];
   setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k), show: () => (!clock.force.has('no-party') && SHOW_FORCES.some(f => clock.force.has(f)) ? 'party' : null) });
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
+  // 8b1 — THE WORKERS: &force=work-<kind> previews that worker (one every few minutes, any day); &force=no-work keeps them all home
+  const workForced = () => { for (const id of clock.force) if (id.startsWith('work-')) return id.slice(5); return null; };
+  // the real DUSK for a local day (the doorman takes his post, the flower seller comes): the sun's set + ~25 min, from the real sun here
+  const duskMemo = new Map();
+  const duskFor = key => {
+    if (duskMemo.has(key)) return duskMemo.get(key);
+    let h = null;
+    try {
+      const [y, m, d] = key.split('-').map(Number), off = LK.local ? LK.local.off : 0, t0 = Date.UTC(y, m - 1, d) - off * 60000;
+      if (LK.lat != null && LK.lon != null) { let a = 14, b = 23; for (let i = 0; i < 18; i++) { const mid = (a + b) / 2; if (sunPosition(t0 + mid * 3600e3, LK.lat, LK.lon).el > -0.83) a = mid; else b = mid; } h = (a + b) / 2 + 0.42; }
+    } catch { h = null; }
+    duskMemo.set(key, h); if (duskMemo.size > 8) duskMemo.delete(duskMemo.keys().next().value);
+    return h;
+  };
+  // the traces outside a frame (the billboard's game at a layout): the crew's pure plan on the base map
+  let workCache = new Map(), workCacheL = null;
+  function workTraceNow() {
+    if (!L || !LK.local || clock.force.has('no-work')) return null;
+    if (workCacheL !== L) { workCache = new Map(); workCacheL = L; }
+    try { return tracesAt(clock.now() / 1000, { L, M: folkMap(L), ctx: { off: LK.local.off, seed: L.seed || 1924, force: workForced(), dusk: duskFor } }, workCache); } catch { return null; }
+  }
   // (DT1: the palette + the facades' tones from the Harbor's weights — the sky model's + THE BLUE HOUR: tones.js#harborWeights)
   let LH = harborWeights(LK), P = paletteFor(LH), skyKey = '', lookAt = 0, TW = toneWeights(LH);
   const skyKeyNow = () => `${LK.key}|${Math.round(((LH && LH.blue) || 0) * 40)}`;
@@ -309,7 +333,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     skyline = roofline(L);
     archFor();
     lights.layout(L);
-    neon.layout(L, { dpr, tier, night: nightKey(LK.local) }); neon.setTier(tier);
+    { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardGame: bt ? boardGameOf(bt.board.key, L) : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
     water.layout(L, { dpr, tier });
     waterfront.layout(L, { dpr });
     wheel.layout(L, { dpr, tier }); beam.layout(L); boats.layout(L, { dpr, tier, taxi: clock.force.has('taxi') });
@@ -441,16 +465,47 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       lampWas[i] = on;
       let lv = on ? (mo ? warmUp(t - lampOnAt[i]) : 1) : 0;
       if (m && m.i === i) lv *= m.level(ms);
+      // (8b1 — CAUSE AND EFFECT: a lamp's BAD NIGHT — it stutters every minute or so until the morning's short ladder fixes it)
+      if (lv > 0 && mo && lampFaultNow && lampFaultNow.lamp === i && ms / 1000 >= lampFaultNow.from) { const u = ((ms / 1000 - lampFaultNow.from) % lampFaultNow.period); if (u < 1.1) lv *= u < 0.12 ? 0.1 : u < 0.3 ? 0.75 : u < 0.42 ? 0.05 : u < 0.62 ? 0.6 : u < 0.75 ? 0.15 : 1; }
       if (legends && legends.busy()) lv *= legendPow(project(cam, L.lamps[i].x, 0, L.lamps[i].z)[0], 'near', 100 + i);   // (6b: a legendary's power)
       levels.push(lv); off.push(1 - lv); if (lv < 0.98) dim = true;
     }
     lampDbg = { levels: levels.map(v => +v.toFixed(2)), th: lampTh.map(v => +v.toFixed(2)), moment: m ? { i: m.i, kind: m.kind, at: m.at, len: +m.len.toFixed(2) } : null };
     return { levels, off, dim: dim && ramp > 0.02, ramp };
   }
-  let lampDbg = null;
+  let lampDbg = null, lampFaultNow = null;
+  // 8b1 — the roof board + the blade, kept in step with the workers' traces
+  const BOARD_ID = 'bb-left';
+  let sheetK = '', sheetV = null, bladeK = '', bladeV = null, boardCheck = 0;
+  // (8b1: the BLADE is the week's — stable from the Monday painters to the next; the roof board steps aside from the blade's game, never the
+  // other way round, so the billposter's daily change can never flip the blade)
+  const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), games.filter(g => g.playable !== false).map(g => g.id), null); };
+  const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g; } catch { return null; } };
+  function workBoard(c, tr) {
+    lampFaultNow = tr.lampFault || null;
+    const now = performance.now();
+    if (now - boardCheck > 500) {
+      boardCheck = now;
+      const want = boardGameOf(tr.board.key), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
+      // (the board shows the key's game; a paste in progress keeps the OLD one under the sheets until the last sheet is up)
+      if (want && (neon.boardGame(BOARD_ID) !== want || neon.boardDead(BOARD_ID) !== dead)) neon.billboard(BOARD_ID, { game: want, dead });
+    }
+    const ps = tr.board.pasting;
+    if (!ps || !bakeTones) return;
+    const g = boardGameOf(ps.to), key = `${g}|${toneKey(TW)}|${camSig}|${tr.boardLampDead}`;
+    if (key !== sheetK) { sheetK = key; const b = neon.boardArt(BOARD_ID, { game: g, dead: tr.boardLampDead }); sheetV = b ? sheetArt(b, bakeTones, dpr) : null; }
+    if (sheetV) drawSheets(c, sheetV, ps);
+  }
+  function workBlade(c, tr) {
+    const g = speakCtxFor(clock.now() + (tr.monday && !workForced() ? 0 : 7 * 864e5)).game;      // (the NEW week's name — on a Monday this week's; a preview: next week's)
+    const key = `${g ? g.id : ''}|${toneKey(TW)}|${camSig}`;
+    if (key !== bladeK) { bladeK = key; bladeV = bladeArt(L, bakeTones, g, dpr); }
+    if (bladeV) drawBlade(c, bladeV, tr.blade, performance.now() / 1000);
+  }
   // 8P — THE PEOPLE's inputs: the clock + the place (every phone the same), the rain (Part 9: only when real), an event on the inlay,
   // the shop's hours; the previews: &force=line&n=6 (the lobby line), &force=bus (a bus every 90 s), &force=no-people
   const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924,
+    forceWork: workForced(), noWork: clock.force.has('no-work'), dusk: duskFor,
     forceBus: clock.force.has('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   function peopleEnv(lit, fadeIn) {
     const h = LK.local ? LK.local.h + LK.local.mi / 60 : 12;
@@ -475,12 +530,23 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // PART 7a: the speakeasy's bake inputs — this week's GHOST AD (the same for everyone: core/harbor-speakeasy.js), the month (the ivy)
   const playable = games.filter(g => g.playable !== false);
   let speakMemo = null;
+  // (8b1 — THE SIGN PAINTERS: on Monday the blade keeps LAST week's name until they've finished repainting it, ~4 pm)
+  function speakCtxFor(ms) {
+    const id = ghostAdGame(ms, playable.map(g => g.id), null);
+    return { game: playable.find(g => g.id === id) || null };
+  }
+  function bladeMs() {
+    const ms = clock.now(), tr = pplLive0() ? (people.crew() || {}).traces : null;
+    if (tr && tr.monday && tr.bladeDone && ms / 1000 < tr.bladeDone) return ms - 2 * 864e5;
+    return ms;
+  }
+  const pplLive0 = () => !clock.force.has('no-people') && !clock.force.has('no-work');
   function speakCtx() {
     const now = performance.now();
     if (speakMemo && now - speakMemo.at < 4000) return speakMemo.v;
     const board = (neon.debug().boards[0] || {}).game || null;
     const want = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('ad') : null;     // (SP2: &ad=<game> previews any game's blade)
-    const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(clock.now(), playable.map(g => g.id), board), month = seasonForced() ? { spring: 5, summer: 7, autumn: 10, winter: 1 }[seasonForced()] : LK && LK.local ? LK.local.m : 10;   // (8a: a forced season's month — the ivy matches the trees)
+    const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(bladeMs(), playable.map(g => g.id), null), month = seasonForced() ? { spring: 5, summer: 7, autumn: 10, winter: 1 }[seasonForced()] : LK && LK.local ? LK.local.m : 10;   // (8a: a forced season's month — the ivy matches the trees)
     const v = { game: playable.find(g => g.id === id) || null, month, key: `${id}|${month}` };
     speakMemo = { at: now, v };
     return v;
@@ -924,6 +990,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         fr.b.dayDraw(c, bakeTones); c.restore();
       } }
     neon.draw(c, 'bill', LB ? { ...nf, fade: nf.fade * legendPow(W * 0.16, 'near', 205) } : nf);   // (8a: the roof billboard's lamps + their light on the poster)
+    // 8b1 — THE WORKERS' TRACES on the city (core/harbor-crew.js#tracesAt): the roof board's game follows the billposter (+ its dead
+    // gooseneck until he fixes it), his sheets pasted over the old poster, the blade's dead bulb, a lamppost's bad night
+    const wTr = pplLive && !off.has('no-work') ? (people.crew() || {}).traces : null;
+    if (wTr && fadeIn > 0) workBoard(c, wTr);
     layer('stage');
     // 8P — THE LAMPS' LIFE: one by one at dusk with a warm-up stutter, a rare flicker / a rarer short outage (core/harbor-lamps.js); a
     // lamp that is off takes its baked pool back down
@@ -938,6 +1008,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     speak.doors(pplLive ? { ...people.doors(), inside: (cc, id) => { if (pplOn) people.drawInside(cc, id, pplEnv); } } : { side: 0, shop: 0 });
     // (POLISH 4: the TR-3B's blackout drives the facade's ONE power hook — every light on the building, its rooms + their life too)
     if (LB) { speak.power(legendPow(W * 0.16, 'near', 200)); speakPw = true; } else if (speakPw) { speakPw = false; speak.power(1); }
+    { const bd = wTr && wTr.bulbDead; speak.bulb(bd ? bd.i : null, bd ? bd.k : 1); }
     if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
       tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment() }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     snd.speakeasy(speak.beds());                    // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them)
@@ -948,6 +1019,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (fadeIn > 0 && bakeTones) centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * (LB ? legendPow(W * 0.5, 'near', 207) : 1), fade: fadeIn, t });
     // 8P — THE PEOPLE on the promenade (after the stage + the speakeasy's live layer, before the front row: the corner globes, the framing
     // maple, the cart stand nearer than anyone on the floor) + the ROOF's guests (clipped to the sky over the parapet)
+    // 8b1 — MONDAY's REPAINT over the baked blade (still the old week's name until the painters finish)
+    if (wTr && wTr.blade && fadeIn > 0 && bakeTones) workBlade(c, wTr);
     if (pplOn) { people.draw(c, 'near', pplEnv); people.draw(c, 'roof', pplEnv); }
     if (pplLive) people.tick(pplEnv);
     // PART 6b — THE UFO ABDUCTION over the compass (its pool, the beam, the walker + the figure lifted, the saucer) — in front of everyone
@@ -1631,7 +1704,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (6b: THE DIRECTOR — the budget, what runs, who asked + got a yes)
       director: director.state(),
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
-      people: { ...people.debug(), cars: people.cars(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
+      people: { ...people.debug(), cars: people.cars(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k) },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },

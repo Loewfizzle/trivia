@@ -52,6 +52,8 @@ const IDLE = !!opt('idle', false);
 // --dsf N: the device scale factor (default 2 on a phone size, 1 on desktop) — FP2: the barber pole's frame burst at dpr 3 (an iPhone)
 const DSF = Number(opt('dsf', 0)) || 0;
 const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
+// --when 2026-10-26T06:00:30: every scene at that moment instead of its own (8b1: a worker's show, a wildlife moment)
+const WHEN = opt('when', '') || '';
 const LOAD = !!opt('load', false), NET = { '3g': { latency: 150, down: 1.6e6, up: 0.75e6 }, '4g': { latency: 60, down: 9e6, up: 3e6 } }[opt('net', '')] || null, CPU = Number(opt('cpu', 0)) || 0;
 const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900', harbor: '390x844,402x874,412x915,430x932,874x402,1440x900' };
 const SIZES = String(SIZE_SETS[opt('sizes', 'quick')] || opt('sizes')).split(',').map(s => s.split('x').map(Number));
@@ -162,7 +164,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   await p.evaluateOnNewDocument(guest => {
     try { localStorage.setItem('nd:entered', '1'); if (!guest) localStorage.setItem('na:sh:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, GUEST || !!o.guest);
-  const qs = `when=${when}${PLACE}${o.qs ? `&${o.qs}` : ''}${CITY}${EXTRA}`;
+  const qs = `when=${WHEN || when}${PLACE}${o.qs ? `&${o.qs}` : ''}${CITY}${EXTRA}`;
   if (NET || CPU) {
     const cdp = await p.target().createCDPSession();
     if (NET) { await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: NET.latency, downloadThroughput: NET.down / 8, uploadThroughput: NET.up / 8 }); }

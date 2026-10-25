@@ -20,6 +20,7 @@ import { signalAt, SIGNAL_CYCLE, xOfF } from './harbor-promenade.js';
 import { partyAt } from './harbor-moments.js';
 import { carsAt } from './harbor-traffic.js';
 import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
+import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -333,7 +334,7 @@ export const doorOpenK = (lg, t) => (t < lg.tOpen || t > lg.tClose + DOOR.close 
  * A visit's itinerary from its goals, starting at t (s abs) → { legs: [{ k: 'walk', pts, t0, t1, v } | { k: 'pose', pose, x, z, t0,
  * t1, face } | { k: 'fade', x, z, t0, t1, out: bool }], t0, t1 } or null when it can't be laid out (a closed shop, no bus).
  */
-function planVisit(spec, t, M, ctx = {}) {
+export function planVisit(spec, t, M, ctx = {}) {
   const F = FOLK, r = ctx.r || Math.random, legs = [], rain = ctx.rain || 0;
   const v = F.speed[spec.gait] * (1 + MOOD.rainFast * rain) * (0.88 + r() * 0.24);
   let cur = ctx.start ? { ...ctx.start } : null, now = t;
@@ -467,7 +468,7 @@ function visitAt(vis, t) {
         const d = (t - lg.t0) * lg.v, p = alongLeg(lg.pts, d, len);
         // (setting off after a pose / a door: turn from where they faced over the first steps)
         let hd = p.hd; if (lastHd != null && d < TURN.start) hd = lerpHd(lastHd, p.hd, d / TURN.start);
-        return out({ x: p.x, z: p.z, pose: 'walk', dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross }, hd);
+        return out({ x: p.x, z: p.z, y: lg.y || 0, pose: 'walk', dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross, carry: lg.carry }, hd);
       }
       dist += len;
       // (the heading they really ended the leg with — a short leg may end mid-turn: the next leg turns on from there)
@@ -480,16 +481,20 @@ function visitAt(vis, t) {
         const moving = u >= lg.w0 && u < lg.w1;
         // (the bus's floor: on it for the first part of the walk out / the last part in — a step up or down over ~0.3 of the walk)
         const zNow = lg.z0 + (lg.z1 - lg.z0) * w, yy = lg.steps != null ? sideStepY(zNow, lg.steps) : lg.y0 === lg.y1 ? lg.y0 || 0 : lg.dir === 'in' ? lg.y1 * smooth01((w - 0.32) / 0.3) : lg.y0 * (1 - smooth01((w - 0.38) / 0.3));
-        return out({ x: lg.x0 + (lg.x1 - lg.x0) * w, z: zNow, y: yy, pose: moving ? 'walk' : 'wait', dist: dist + ln * w, v: moving ? ln / ((lg.w1 - lg.w0) * (lg.t1 - lg.t0)) : 0, a: 1, door: { id: lg.door, k: lg.dir, u, bus: !!lg.bus } }, lastHd != null && !moving && u < lg.w0 ? lerpHd(lastHd, hd, u / Math.max(1e-3, lg.w0)) : hd);
+        return out({ x: lg.x0 + (lg.x1 - lg.x0) * w, z: zNow, y: yy, pose: moving ? 'walk' : 'wait', dist: dist + ln * w, v: moving ? ln / ((lg.w1 - lg.w0) * (lg.t1 - lg.t0)) : 0, a: 1, door: { id: lg.door, k: lg.dir, u, bus: !!lg.bus }, carry: lg.carry }, lastHd != null && !moving && u < lg.w0 ? lerpHd(lastHd, hd, u / Math.max(1e-3, lg.w0)) : hd);
       }
       dist += ln; lastHd = segHd({ x: lg.x0, z: lg.z0 }, { x: lg.x1, z: lg.z1 });
+    } else if (lg.k === 'gap') {
+      if (t < lg.t1 && t >= lg.t0) return null;           // (8b1: indoors between two doors — not on the promenade)
     } else if (t < lg.t1 && t >= lg.t0) {
       if (lg.k === 'pose') {
         const want = lg.hd != null ? lg.hd : hdOfDir(lg.face === 0 ? 0 : lg.face || (lastHd != null && Math.cos(lastHd) < 0 ? -1 : 1)), since = t - lg.t0;
-        return out({ x: lg.x, z: lg.z, pose: lg.pose, dist, v: 0, a: 1, since, left: lg.t1 - t, from: lastHd == null ? want : lastHd, to: want }, lastHd != null && since < TURN.pose ? lerpHd(lastHd, want, since / TURN.pose) : want);
+        // (8b1 — the workers: a carried prop, a height — a ladder's rungs, the platform, the catwalk — and a climb moving along its ladder)
+        const uu = (t - lg.t0) / Math.max(1e-3, lg.t1 - lg.t0), px = lg.x1 != null ? lg.x + (lg.x1 - lg.x) * uu : lg.x, pz = lg.z1 != null ? lg.z + (lg.z1 - lg.z) * uu : lg.z, py = lg.y0 != null ? lg.y0 + (lg.y1 - lg.y0) * uu : lg.y || 0;
+        return out({ x: px, z: pz, y: py, pose: lg.pose, dist, v: 0, a: 1, since, left: lg.t1 - t, from: lastHd == null ? want : lastHd, to: want, carry: lg.carry, plat: !!lg.plat }, lastHd != null && since < TURN.pose ? lerpHd(lastHd, want, since / TURN.pose) : want);
       }
       const u = (t - lg.t0) / (lg.t1 - lg.t0);
-      return out({ x: lg.x, z: lg.z, pose: 'walk', dist: dist + u * 0.6, v: 0.8, a: lg.out ? 1 - u : u, bus: lg.bus || null }, lg.out ? PI / 2 : -PI / 2);
+      return out({ x: lg.x, z: lg.z, y: lg.y || 0, pose: 'walk', dist: dist + u * 0.6, v: 0.8, a: lg.out ? 1 - u : u, bus: lg.bus || null, carry: lg.carry }, lg.out ? PI / 2 : -PI / 2);
     } else if (lg.k === 'pose' && t >= lg.t1) lastHd = lg.hd != null ? lg.hd : hdOfDir(lg.face === 0 ? 0 : lg.face || (lastHd != null && Math.cos(lastHd) < 0 ? -1 : 1));
   }
   return null;
@@ -607,7 +612,9 @@ function blockVisits(phase, k, M, ctx = {}) {
   const occ = [...(ctx.others || [])];
   // (the peak count over [a, b): exact — it can only rise at a or where someone arrives inside it)
   const load = (a, b) => { let mx = 0; for (const tt of [a, ...occ.filter(o => o.t0 > a && o.t0 < b).map(o => o.t0)]) { let n = 0; for (const o of occ) if (tt >= o.t0 && tt < o.t1) n += o.n; if (n > mx) mx = n; } return mx; };
-  let spent = 0;
+  // (8b1 — THE WORKERS ARE PART OF THE COUNT: the crowd gives way to them — a phase's budget starts with half the workers' time out
+  // on the promenade in its block already spent, so the owner's calmer counts hold with the milkman, the newsboy, the cop out)
+  let spent = ctx.workLoad ? ctx.workLoad(t0, t1) / 2 : 0;
   // (POLISH 4 — NEVER A BURST: two arrivals at least STREAM.gap s apart, whoever they are — the other phase's, the bus's riders' too)
   const spaced = tt => !occ.some(o => Math.abs(o.t0 - tt) < STREAM.gap);
   // (POLISH 4 — THE SIDE DOOR's GUESTS on their own schedule, before the mix: phase A only, seeded per block — a pair now and then in the
@@ -669,7 +676,9 @@ export function folkAt(t, world, cache = new Map()) {
   const { M, ctx = {} } = world, L = world.L, B = FOLK.block;
   const get = (key, make) => { if (!cache.has(key)) { cache.set(key, make()); if (cache.size > 40) cache.delete(cache.keys().next().value); } return cache.get(key); };
   const hourBuses = hAbs => get(`bus|${hAbs}|${ctx.forceBus ? 1 : 0}`, () => { const loc = localOf(hAbs * 3600 + 1, ctx.off); return busesOf(L, loc.key, Math.floor(loc.h), hAbs * 3600 - (((ctx.off || 0) * 60) % 3600 + 3600) % 3600, { force: !!ctx.forceBus }); });
-  const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600); };
+  const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600 && !busBlocked(x)); };
+  // (8b1: a bus due while a worker's truck holds the stop rides on — it never comes)
+  const busBlocked = x => get(`BB|${x.id}`, () => trucksNear(x.tE - 60, x.tX + 60).some(T => x.tE < T.tX + 12 && x.tX > T.tE - 35));
   // (FP3b: while the dance circle holds the promenade, nobody gets off here — they ride on: the circle's people stay within the cap)
   const riders = bus => get(`riders|${bus.id}`, () => (closed(bus.tA - 20, bus.tA + 90) ? [] : busRiders(bus, M, ctx)));
   // (FP3a, POL4: the bus's door shuts 6–9 s after the LAST rider the planner placed — off or on — seeded per bus; never after the departure)
@@ -684,6 +693,12 @@ export function folkAt(t, world, cache = new Map()) {
     return Math.min(b.tD - 0.5, last + BUS.shut[0] + r() * (BUS.shut[1] - BUS.shut[0]));
   });
   const occOf = vs => vs.map(v => ({ t0: v.t0, t1: v.tEnd || v.t1, n: heads(v.members) }));
+  // 8b1 — THE CREW (core/harbor-crew.js): the workers' visits on the clock (planned on the base map: every phone the same), their trucks
+  // at the stop (leaders for the back road's cars; a bus due while one stands there doesn't come); their people count against the cap
+  if (cache.crewM !== M || cache.crewF !== (ctx.forceWork || '')) { cache.crew = new Map(); cache.crewM = M; cache.crewF = ctx.forceWork || ''; }
+  const crewW = { L, M, ctx: { off: ctx.off, seed: ctx.seed, party: ctx.party, force: ctx.forceWork || null, canAskew: ctx.canAskew || null, dusk: ctx.dusk || null } };
+  const crewIn = (a, b) => (ctx.noWork ? { visits: [], roof: [], trucks: [], props: [], marks: {} } : crewSpan(a, b, crewW, cache.crew));
+  const trucksNear = (a, b) => crewIn(a - 300, b + 300).trucks.filter(T => T.tX > a && T.tE < b);
   // THE ROUTINES (FP3b — core/harbor-routines.js): the dance circle's sessions near t, their people; while one runs the inlay is
   // CLOSED to the crowd (the blocks route round it: Mev) and its people count against the cap (the blocks plan around them)
   const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceDance };
@@ -722,8 +737,9 @@ export function folkAt(t, world, cache = new Map()) {
   const mapAt = (a, b, M0) => { const ev = closed(a, b), ct = cartOut(a, b), ln = lineOn(a, b); if (!ev && !ct && !ln) return M0;
     return get(`MX|${ev ? 1 : 0}${ct ? 1 : 0}${ln ? 1 : 0}`, () => folkMap(L, { event: ev, cart: ct, line: ln ? lineRect(L, LINE.max) : null })); };
   // (POLISH 4: the dance circle is ON TOP of the crowd's count — the owner: "8–12 (the dance circle on top)"; the vendor + the line count)
-  const routineOcc = (a, b) => [...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 })), ...occOf(lineVisits(a, b))];
-  const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt };
+  const routineOcc = (a, b) => [...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 })), ...occOf(lineVisits(a, b)), ...occOf(crewIn(a, b).visits)];
+  const workLoad = (a, b) => get(`WL|${a}`, () => crewIn(a, b).visits.filter(v => !v.plat).reduce((s, v) => s + Math.max(0, Math.min(b, v.tEnd || v.t1) - Math.max(a, v.t0)), 0));
+  const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt, workLoad };
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
   const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B)] }); });
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
@@ -736,14 +752,15 @@ export function folkAt(t, world, cache = new Map()) {
     const st0 = k * 24 + (spec.goals[0].from === 'right' ? -9 : 1), vis = planVisit(spec, st0, M, { r, shopOpen: true });
     if (!vis) return null; const members = membersOf(spec, r); return { id: `door.${k}`, kind: spec.group ? 'guests' : spec.pair ? 'leaving' : 'customer', look: spec.look, gait: spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members };
   })).filter(Boolean) : [];
-  const evNow = cartEv(t), nowSess = sessionsNear(t - 120, t + 10), routine = [...nowSess.flatMap(danceVisits), ...(evNow && t >= evNow.t0 && t < evNow.t1 ? [vendorVisit(evNow)] : []), ...lineVisits(t - 2, t + 2)];
+  const crewNow = ctx.noWork ? { visits: [], roof: [], trucks: [], props: [], marks: {} } : crewAt(t, crewW, cache.crew);
+  const evNow = cartEv(t), nowSess = sessionsNear(t - 120, t + 10), routine = [...nowSess.flatMap(danceVisits), ...(evNow && t >= evNow.t0 && t < evNow.t1 ? [vendorVisit(evNow)] : []), ...lineVisits(t - 2, t + 2), ...crewNow.visits];
   const all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   const members = [];
   for (const v of all) {
     for (const m of v.members) {
       const s = visitAt(v, t - m.lag);
       if (!s) continue;
-      if (m.role === 'lead') { members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, routine: v.routine || null, idx: v.idx, m, s }); continue; }
+      if (m.role === 'lead') { members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, routine: v.routine || null, idx: v.idx, m, s, plat: !!v.plat }); continue; }
       // (FP3b: beside / behind the lead in the lead's OWN frame — forward along its heading, the lateral to its left — so the offset
       // turns smoothly with it, never jumping at a 4-way threshold; a dog keeps the old world offsets: it trots on the walker's right)
       // (in a pose: the walking offset of the heading they arrived with / will leave with — fixed, never the lead's turn in place)
@@ -799,9 +816,14 @@ export function folkAt(t, world, cache = new Map()) {
   // the cart now: where it is (wheeled in / parked / wheeled out) — people.js draws it
   const cart = evNow ? { ...cartAt(evNow, t, cartIn(L.cam), cartX), z: L.cart.z, parked: t >= evNow.ta && t < evNow.tb } : { on: false };
   // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
-  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: busesNear, off: ctx.off, seed: ctx.seed, party: ctx.party });
+  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b)], off: ctx.off, seed: ctx.seed, party: ctx.party });
+  // 8b1 — THE CREW now: the roof's workers (the billposter, the gardener, the cleanup crew), their props, their trucks, the traces
+  const crewRoof = [];
+  for (const v of crewNow.roof) { const s = visitAt(v, t); if (s) crewRoof.push({ vid: v.id, kind: v.kind, look: v.look, party: false, routine: 'work', m: v.members[0], s, roof: true }); }
+  const trucks = crewNow.trucks.map(T => { const x = T.x(t); return { id: T.id, model: T.model, word: T.word, trade: T.trade, paint: T.paint, dark: T.dark, len: T.len, z: T.z, dir: 1, x, dist: T.dist(t), speed: t < T.tA ? Math.max(0, (T.x(t + 0.05) - x) / 0.05) : t >= T.tD ? (T.x(t + 0.05) - x) / 0.05 : 0, n: 3, glow: -1, truck: true, parked: t >= T.tA && t < T.tD, tA: T.tA, tD: T.tD }; });
+  const crew = { roof: crewRoof, props: crewNow.props, trucks, marks: crewNow.marks, traces: ctx.noWork ? null : tracesAt(t, crewW, cache.crew), spots: cache.crew.get('P') || null, works: (crewNow.works || []).map(w => w.kind) };
   const ln = lineOf(t), line = ln && t >= ln.T0 - 60 && t < ln.T1 + 120 ? { on: true, n: members.filter(m => m.kind === 'liner' && m.s.pose === 'wait' && !m.s.door).length, admits: ln.admits.filter(a => a > t - 600 && a < t + 600).length } : { on: false, n: 0 };
-  return { visits: all, members, doors, dance, cart, cars, line, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
+  return { visits: all, members, doors, dance, cart, cars, line, crew, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
 }
 
 // ------------------------------------------------------------------ THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)

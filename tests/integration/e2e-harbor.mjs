@@ -2110,6 +2110,44 @@ G('life', async () => {
     await Q.ctx.close(); }
 });
 
+// ================================================================ PART 8b1 — THE WORKERS' SCHEDULE (ONLY=workers)
+G('workers', async () => {
+  const P = 'window.__district.harbor()';
+  // ---- THE MILK TRUCK (&force=work-milk — one every 3 minutes): the dairy van parks at the stop, the milkman round its nose to the
+  // barbershop's step, his bottles left there (a trace), the van away on green
+  { const Q = await open({ slot: 'wk1', qs: `when=2026-10-22T13:00:02${GR}&force=work-milk`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(${P}.people.crew || {}).trucks && ${P}.people.crew.trucks.some(T => T.parked)`, 'the dairy van at the stop', 60000);
+    const c1 = await ev(Q.page, `${P}.people.crew`);
+    ok(c1.trucks.length === 1 && c1.trucks[0].model === 'van', `THE MILK TRUCK: the ${c1.trucks[0] && c1.trucks[0].model} parked at x ${c1.trucks[0] && c1.trucks[0].x}`);
+    await waitFor(Q.page, `${P}.people.crew.traces.milk`, 'the bottles on the step', 90000);
+    const c2 = await ev(Q.page, `${P}.people.crew`);
+    ok(c2.traces.milk && c2.members.some(m => m.kind === 'milk'), `THE MILK TRUCK: the bottles on the step, the milkman ${(c2.members.find(m => m.kind === 'milk') || {}).pose} on his way back`);
+    await Q.ctx.close(); }
+  // ---- THE BILLPOSTER (&force=work-billposter): up on the roof's catwalk, the new poster pasted over the old one sheet by sheet
+  { const Q = await open({ slot: 'wk2', qs: `when=2026-10-22T13:06:00${GR}&force=work-billposter`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(${P}.people.crew.roof || []).some(m => m.kind === 'billposter' && m.y > 1)`, 'the billposter on the catwalk', 60000);
+    const c = await ev(Q.page, `${P}.people.crew`);
+    ok(!!c.traces.board.pasting, `THE BILLPOSTER: on the catwalk (y ${c.roof.find(m => m.kind === 'billposter').y}), pasting ${c.traces.board.pasting && c.traces.board.pasting.from} → ${c.traces.board.pasting && c.traces.board.pasting.to}`);
+    await Q.ctx.close(); }
+  // ---- THE SIGN PAINTERS (&force=work-painters: the Monday repaint compressed into 20 minutes): the ladder against the blade, the
+  // old name painted out, the new one going on
+  { const Q = await open({ slot: 'wk3', qs: `when=2026-10-22T13:07:00${GR}&force=work-painters`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(${P}.people.crew.props || []).includes('ladder') && !!${P}.people.crew.traces.blade`, 'the ladder up, the repaint on', 60000);
+    const c = await ev(Q.page, `${P}.people.crew`);
+    ok(c.members.filter(m => m.kind === 'painter').length === 2, `THE SIGN PAINTERS: two painters, the ladder up, the blade at '${c.traces.blade.stage}'`);
+    await Q.ctx.close(); }
+  // ---- THE REAL DAY: a Monday 8:31 am — the barber at his shop, the newsboy at his stand (fixed times, no &force)
+  { const Q = await open({ slot: 'wk4', qs: `when=2026-10-26T08:31:00${GR}`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(${P}.people.crew.works || []).includes('barber')`, 'the barber out', 30000);
+    const c = await ev(Q.page, `${P}.people.crew`);
+    ok(c.works.includes('newsboy') && c.props.includes('stand'), `THE REAL DAY (Mon 8:31): out — ${c.works.join(', ')}; props ${c.props.join(', ')}`);
+    await Q.ctx.close(); }
+});
+
 
 // ================================================================ PART 6b — THE LEGENDARY SKY (ONLY=legends)
 G('legends', async () => {

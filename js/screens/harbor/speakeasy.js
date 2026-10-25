@@ -206,7 +206,7 @@ export function createSpeakeasy() {
     const x = safeCtx(bulbCv); x.setTransform(dpr, 0, 0, dpr, -x0 * dpr, -y0 * dpr); x.clearRect(x0, y0, bulbAt.w, bulbAt.h);
     x.globalCompositeOperation = 'lighter';
     for (const b of S) {
-      const lv = marqueeLevel(b.i, pk, beats, beatU) * a;
+      const lv = marqueeLevel(b.i, pk, beats, beatU) * a * (b.i === dead.i ? dead.k : 1);   // (8b1: a dead bulb — the repairman's next morning)
       if (tier !== 0) soft(x, [255, 206, 140], b.x, b.y, b.r * MARQUEE.halo, 0.55 * lv);
       soft(x, [255, 236, 196], b.x, b.y, b.r * 1.7, 0.9 * lv);
       soft(x, [255, 252, 240], b.x, b.y, b.r * 0.95, lv);
@@ -333,6 +333,8 @@ export function createSpeakeasy() {
   let quiet = false, quietF = null;   // (FP3b: the tests' hold — the basement steady, the windows' moments paused, the facade's light levels
   // frozen where they were (a slow machine may still be ramping the city up): a light probe compares only what it switches)
   let power = 1, doorState = { side: 0, shop: 0, inside: null }, doorRects = { side: null, shop: null };
+  // 8b1 — CAUSE AND EFFECT: one marquee bulb out (its index, its level: 0 dead, the repairman's test flicker between) — core/harbor-crew.js
+  let dead = { i: -1, k: 1 };
   function draw(c, f1) {
     if (!G) return;
     if (quiet && !quietF) quietF = { k: f1.k, lamp: f1.lamp, sconce: f1.sconce, night: f1.night, fade: f1.fade, day: f1.day };
@@ -438,7 +440,7 @@ export function createSpeakeasy() {
       const pt = f.party, pk = pt && f.motion ? clamp01(pt.ramp == null ? 1 : pt.ramp) : 0;
       // (one sprite of every lit bulb, re-painted only when the level or the chase steps — a steady night is one drawImage a frame)
       const beats = pt ? pt.beats || 0 : 0, fq = pt ? Math.round(clamp01((pt.beatU || 0) * 3) * 4) / 4 : 1, aq = Math.round(a * 16) / 16;
-      const bk = `${aq}|${f.tier === 0 ? 0 : 1}|${pk > 0.01 ? `${((beats % 3) + 3) % 3}|${fq}|${Math.round(pk * 8)}` : 's'}|${dpr}|${G.K.toFixed(2)}`;
+      const bk = `${dead.i}:${dead.k}|${aq}|${f.tier === 0 ? 0 : 1}|${pk > 0.01 ? `${((beats % 3) + 3) % 3}|${fq}|${Math.round(pk * 8)}` : 's'}|${dpr}|${G.K.toFixed(2)}`;
       if (bk !== bulbKey) { bulbKey = bk; paintBulbs(aq, f.tier, pk, beats, fq / 3); }
       if (bulbCv && bulbAt) { c.globalAlpha = 1; c.drawImage(bulbCv, bulbAt.x, bulbAt.y, bulbAt.w, bulbAt.h); }
       c.globalCompositeOperation = 'source-over';
@@ -494,6 +496,8 @@ export function createSpeakeasy() {
     doors(o) { if (o) doorState = { side: clamp01(o.side || 0), shop: clamp01(o.shop || 0), inside: o.inside || null }; return { side: doorState.side, shop: doorState.shop, rects: { ...doorRects } }; },
     /** FP3a: every light on the facade × k (0 = dark, 1 = as the night has it) → the level now; power() reads it */
     power(k) { if (k !== undefined) power = clamp01(+k); return power; },
+    /** 8b1: a dead marquee bulb — bulb(i, k): bulb i at level k (0 dead … 1 fixed); bulb(null) all lit; bulb() → { i, k, n } */
+    bulb(i, k = 0) { if (i !== undefined) { const ni = i == null ? -1 : i | 0, nk = Math.round(clamp01(k) * 8) / 8; dead = { i: ni, k: ni < 0 ? 1 : nk }; } return { ...dead, n: marqueeBulbs().length }; },
     /** the barber pole: { on: false } dark + still (7b's raid), { on: true } back to its lamp + its turn */
     pole(o = {}) { if ('on' in o) poleOff = !o.on; },
     roomDraw(id, fn) { if (fn) drawers.set(id, fn); else drawers.delete(id); },

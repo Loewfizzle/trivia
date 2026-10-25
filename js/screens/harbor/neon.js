@@ -66,6 +66,9 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     // (THE DAY PASS: the first layout's key holds — a re-layout never re-picks; only night() changes it)
     assignKey = assignKey || o.night || 'x';
     const pick = assignSigns(games, spots, assignKey);
+    // (8b1 — THE BILLPOSTER: the roof board keeps YESTERDAY's poster until he has pasted today's (~5–6 pm) — o.board: the key it shows;
+    // o.boardDead: a gooseneck lamp that has burnt out — he fixes it on his next visit)
+    const bKey = o.board || assignKey, bPick = bKey === assignKey ? pick : assignSigns(games, spots, bKey);
     const s = cam.F / 600;
     // the signs (named, icons, the fixed ones); the billboards
     for (const sp of spots) {
@@ -73,8 +76,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       if (sp.kind === 'billboard') {
         // tonight's billboard advertises the game with NO sign tonight (NEON PASS 5: 11 signs for 12 games — the nightly shuffle
         // picks which), else one with no named sign (an icon one), never the one up the street
-        const show = billboardPick(games, spots, pick, assignKey, boards.length) || sp.show;
-        boards.push({ ...buildBillboard(sp, billboardContent({ game: show }, games), { dpr, roofY }), roofY, item: true }); continue;
+        const show = (boards.length === 0 && o.boardGame) || billboardPick(games, spots, bPick, bKey, boards.length) || sp.show;
+        boards.push({ ...buildBillboard(sp, billboardContent({ game: show }, games), { dpr, roofY, dead: o.boardDead }), roofY, item: true }); continue;
       }
       const g = sp.kind === 'fixed' ? null : games.find(x => x.id === pick.get(sp.id));
       if (sp.kind !== 'fixed' && !g) continue;
@@ -989,10 +992,17 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       else if (name === 'flash') { const g = v && v.game && games.find(x => x.id === v.game); const cols = (v && v.cols) || (g ? markFor(g).tubes.map(t => hexRgb(t.col)).concat([hexRgb(SIGN_ACC[g.id] || '#ffffff')]) : [[255, 46, 151], [46, 230, 255]]); moment.flash = { t0: performance.now(), dur: 1.6, cols }; }
       else if (name === 'scheme' && (SCHEMES[v] || v === 'city')) { schemeX = v === 'city' ? null : v; applyScheme(); }
     },
+    /** 8b1 — the roof board's game for a night key (the same pick its layout makes: neon's own games, with their signs' full names) */
+    boardPick(key, n = 0, l = L) { if (!l) return null; const sp = signSpots(l); return billboardPick(games, sp, assignSigns(games, sp, key), key, n); },
+    /** 8b1 — THE BILLPOSTER: a board built for `show` (not hung — its poster + light for the sheets he pastes) */
+    boardArt(id, show) { const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return null; const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY }); free(b.nightS); return b; },
+    /** the game a board shows now (null: none / CITY CONTROL's own content) */
+    boardGame(id) { const it = items.find(x => x.kind === 'board' && x.id === id); return it && it.b.content && it.b.content.game ? it.b.content.game.id : null; },
+    boardDead(id) { const it = items.find(x => x.kind === 'board' && x.id === id); return it ? (it.b.dead == null ? null : it.b.dead) : null; },
     /** a billboard's content (CITY CONTROL later): { game } or { title, sub, bg, ink } */
     billboard(id, show) {
       const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return false;
-      const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY });
+      const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY, dead: show ? show.dead : null });
       const i = boards.indexOf(it.b);
       free(it.night); it.b = { ...b, roofY: it.b.roofY }; it.night = b.nightS; if (i >= 0) boards[i] = it.b;
       dropComp(); rev++; fresh = { b: it.b, rev }; onContent();

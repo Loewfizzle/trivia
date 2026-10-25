@@ -1061,6 +1061,7 @@ test('colours through the night + a burnt-out letter (NEON PASS 3): stages on th
 // ------------------------------------------------------------------ THE PREVIEW PANEL (core/harbor-remote.js)
 import { readFileSync, readdirSync } from 'node:fs';
 import { MOMENTS } from '../js/core/harbor-moments.js';
+import { SHOWS, REGULARS } from '../js/core/harbor-workers.js';
 import { EVENTS, INPUTS, REMOTE_KEYS, SHOW_SCENE_LIST, HOLIDAYS, TIMES, cleanRemote, toParams, describe, timeAt, holidayDay, textMax, isEmpty } from '../js/core/harbor-remote.js';
 import { skyClock, holidayOf, sunTimes, localParts } from '../js/core/sky.js';
 
@@ -1072,6 +1073,8 @@ test('the preview panel: one registry — every &force= preview the Harbor runs 
   for (const m of src.matchAll(/again\('([a-z0-9-]+)'/g)) used.add(m[1]);
   // (PART 7b: the WINDOWS rows — scene.js#forcedMoment reads any `window-<id>` of the catalogue)
   if (src.includes("id.startsWith('window-')")) for (const m of MOMENTS) used.add(`window-${m.id}`);
+  // (PART 8b1: the WORKERS rows — scene.js#workForced reads any `work-<kind>` of the timetable)
+  if (src.includes("id.startsWith('work-')")) for (const k of [...Object.keys(SHOWS), ...Object.keys(REGULARS)]) used.add(`work-${k}`);
   // (not events: the perf A/B switches, the panel's own party switches, the debug-only demo, sky internals)
   const tools = id => id.startsWith('no-') || ['party', 'demo', 'sat'].includes(id);
   const ids = new Set(EVENTS.map(e => e.id));
