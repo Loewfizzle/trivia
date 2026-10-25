@@ -1643,3 +1643,20 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   sign — two men must CARRY it ON from the screen edge (level between them, in step), raise it, and carry it OFF after;
   the same for every worker prop (the billposter's ladder + bucket, the repairmen's ladders, the window washers' gear):
   props arrive and leave in hands, never pop. (4) THE CAB drop-off looks fine.
+
+## OWNER'S NOTES — OCT 25 (after the TR-3B pass)
+- **THE TR-3B PASS REVIEW** (the owner: "the TR-3B looks really good now, the audio sounds great"). Fixes (for C2): (1) the GAP
+  between the TR-3B leaving the screen and the jets arriving is too long → ~2 s; (2) the F-22s ~25 % FASTER across and ~15 %
+  SMALLER ("way too big"); (3) THE POWER COMING BACK looks glitchy — the WHOLE SCREEN seems to go black / flicker, not just the
+  lights: review that sequence (a full-frame clear or a dark layer flashing over everything?) — the sky, moon + stars never
+  flicker; only the city's lights stutter back, far skyline → foreground; (4) during the jets' pass some BUILDINGS BEHIND them
+  seemed to FLICKER / interact oddly (the heat haze sampling the blackout layers? a skyline strip redraw under the jets?) —
+  find it with frame bursts and fix it.
+- **THE WEATHER + PARTY + HOLIDAY SOUNDS ARRIVED** (Grok, Oct 25): 35 of 36 files in ~/Downloads/city-sfx (~115 MB of
+  originals), credits.txt section "Weather + party + holiday sounds", with Grok's per-file processing brief (the owner has it;
+  its chain: HPF, light 200–1200 Hz saturation for phones, distance LPF + reverb, de-harsh, beds −30 LUFS, one-shots −20,
+  −1 dBTP, seamless loops, mono-safe). EACH PART IMPORTS ITS OWN (Part 9 the weather, Part 10 fireworks + crowds + the yacht,
+  Part 11 the holiday + spooky + legendary ones, the tower event its four); listen-check, reject words / melody / modern.
+  Calls: SKIP periscope.wav (a modern tank turret — the slot stays empty); warning-horn → ship-horn.mp3 if the klaxon sounds
+  synthetic; yacht-party only pushed far across the water; crane-work far + low or skipped; helicopter-landing far off;
+  marching-drums loop 8–26 s only; carol-singers EMPTY; the big "-lossless" originals stay OUT of the repo (size).
