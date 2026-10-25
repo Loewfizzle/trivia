@@ -20,15 +20,17 @@ export const SECONDS = {
   life: 90,            // (FP3b: real doors + the dance circle — a circle forming ~40 s after the page opens)
   load: 30,            // (FP3a: the load gate — measured on the laptop)
   legends: 40,         // (6b: the legendary sky — three pages, a guess)
-  wildlife: 110,       // (8b1: the animals — eight pages incl. the panel rows, measured on the laptop)
+  wildlife: 85,        // (8b1: the animals — eight pages incl. the panel rows; 81 s on the laptop)
 };
 
 // ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
 export const CI_JOBS = {
-  audio: ['music', 'flags', 'harbor', 'dock', 'legends', 'wildlife'],
+  audio: ['music', 'flags', 'harbor', 'dock', 'legends'],
   show: ['neon', 'party', 'sky', 'life'],
   city: ['core', 'skyline', 'water', 'load', 'panel', 'perf'],
   street: ['speakeasy', 'windows', 'sounds', 'promenade', 'people'],
+  // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
+  wild: ['wildlife'],
 };
 
 export const SERIAL = ['panel', 'perf'];

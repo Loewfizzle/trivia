@@ -5053,6 +5053,13 @@ and its pass (`items()` for the ground, `draw(pass)` for a perch); (4) its id in
 dawn + dusk most · the duck crossing Apr 1–Jun 15 (~1 day in 6, 7 am–6 pm) · the cat out dusk–11 pm (~35 %) · fireflies Jun 10–Aug 31
 21:15–00:35 · the coyote 10 pm–4 am (rare, quiet nights) · the raccoon 11 pm–3:30 am (~40 %), its lid askew until 8:30.
 
+**Tests (Group 2)**: unit `tests/harbor-wildlife.test.mjs` (14: the can above the dock at 390 / 402 / 430 + clear of the lobby line, every
+perch on screen, the flock's counts + seasons + capacities + the same on every phone + joined mid-way, the owl's distance, the gulls by day,
+the owl / squirrel / coyote / raccoon + lid / cat / fireflies / heron / fish / ducks' windows + rarities, the duck crossing holding the
+walkers back); E2E group `wildlife` (9 checks: the flock drawn above the dock, the scatter, the coyote's eye-flash, the raccoon + the lid,
+every panel row's animal by day + at night, the ducks) in its OWN cloud job `wild` (harbor-jobs.mjs + harbor.yml — the four others were
+within a minute of their 5-min cap); `people` re-run green (19/19 together locally).
+
 **Decisions (Group 2)**: the snowy owl not on the lighthouse gallery (~3 pt at z 150) — the billboard's corners, the date stone, a lamp top;
 the heron on a NEW mooring piling at z 100 (the pier's pilings are too far; a nearer spot hid it behind a lamp's globe); the squirrel 2×
 with a dark coat (1.5× didn't read); the trash can 1.75 units right of the globe (at 0.95 the raccoon stood hidden behind the lamp post) and no
