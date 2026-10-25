@@ -14,7 +14,8 @@
 // Every path is a function of (its seed, the seconds since the flight began): frame-rate independent, no per-frame dice.
 // (The bats' old JITTER: they rode the raw roofline — a step function with 50–90 pt jumps at the building edges — so a bat
 // teleported up and down as it crossed one, flickering when its ±6 pt wobble straddled an edge. Now: core#smoothRoof.)
-//   HERON   sky(c)     the district's rare slow crossing on spring-to-autumn nights (neck folded, legs trailing)
+//   HERON   sky(c)     the district's rare slow crossing on spring-to-autumn nights (neck folded, legs trailing) — &force=heron-sky
+//                      (8b1: &force=heron is the heron on its PILING at dawn now — wildlife.js)
 // Reduced effects: no birds on the wing (the district's rule). Heavy events elsewhere thin them (fs.density).
 import { birdsNow } from '../../core/harbor-sky.js';
 import { smoothRoof, roofAt as roofLerp, batPlan, batAt, geesePlan, goosePose, geeseTail } from '../../core/harbor-flight.js';
@@ -199,8 +200,8 @@ export function createBirds() {
       // THE HERON (the district's rare night crossing, spring to autumn)
       const mn = L.local ? L.local.m : 6;
       nextHeron -= sec;
-      if (!heron && motion && (force.has('heron') || (nextHeron <= 0 && ink.dark > 0.6 && mn >= 4 && mn <= 10))) {
-        const lane = s.lanes && (free['sky-low'] ? s.lanes['sky-low'] : free['sky-high'] ? s.lanes['sky-high'] : force.has('heron') ? s.lanes['sky-low'] : null);   // (forced: a lane anyway)
+      if (!heron && motion && (force.has('heron-sky') || (nextHeron <= 0 && ink.dark > 0.6 && mn >= 4 && mn <= 10))) {
+        const lane = s.lanes && (free['sky-low'] ? s.lanes['sky-low'] : free['sky-high'] ? s.lanes['sky-high'] : force.has('heron-sky') ? s.lanes['sky-low'] : null);   // (forced: a lane anyway)
         if (lane) { const dir = Math.random() < 0.5 ? 1 : -1; heron = { x: dir > 0 ? -40 : W + 40, y: lane.y + lane.h * 0.45, dir, v: 13 * K, t: 0 }; }
         nextHeron = rnd(900, 2400);
       }

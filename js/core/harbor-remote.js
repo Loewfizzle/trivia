@@ -58,6 +58,8 @@ export const CATS = [
   { id: 'windows', label: 'WINDOWS' },
   // (PART 8a: THE PROMENADE — the trees' seasons, the implied road on / off, a car passing now)
   { id: 'promenade', label: 'PROMENADE' },
+  // (PART 8b1: THE WILDLIFE — every animal + behaviour on a loop: screens/harbor/wildlife.js#WILD_FORCES)
+  { id: 'wildlife', label: 'WILDLIFE' },
   { id: 'holidays', label: 'HOLIDAYS' },
   { id: 'music', label: 'MUSIC' },
   // (PART 8a: every CITY SOUND slot — filled / empty, ▶ plays it on this phone; core/city-sounds.js. No events: its rows are the panel's own)
@@ -106,7 +108,7 @@ export const EVENTS = [
   { id: 'swifts', label: 'SWIFTS', cat: 'sky', group: 'BIRDS' },
   { id: 'bats-dusk', label: 'BATS AT DUSK', cat: 'sky', group: 'BIRDS' },
   { id: 'bats', label: 'HALLOWEEN BATS', cat: 'sky', group: 'BIRDS', night: true },
-  { id: 'heron', label: 'HERON', cat: 'sky', group: 'BIRDS' },
+  { id: 'heron-sky', label: 'HERON (NIGHT CROSSING)', cat: 'sky', group: 'BIRDS', hint: 'the rare slow heron crossing a night sky, neck folded (spring → autumn)' },
   { id: 'rainbow', label: 'RAINBOW', cat: 'weather', group: 'RAINBOWS' },
   { id: 'rainbow2', label: 'DOUBLE RAINBOW', cat: 'weather', group: 'RAINBOWS' },
   { id: 'moonbow', label: 'MOONBOW', cat: 'weather', group: 'RAINBOWS', night: true },
@@ -151,6 +153,22 @@ export const EVENTS = [
   { id: 'doors', label: 'THE DOORS', cat: 'promenade', group: 'THE PEOPLE', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
   { id: 'no-dance', label: 'NO DANCE CIRCLE', cat: 'promenade', group: 'THE PEOPLE', hint: 'a party night without the glow-wand circle — compare (its cost)' },
   { id: 'no-people', label: 'NO PEOPLE', cat: 'promenade', group: 'THE PEOPLE', hint: 'the promenade + the roof empty — compare' },
+  // ---- PART 8b1 — THE WILDLIFE (screens/harbor/wildlife.js#WILD_FORCES; each on a loop, any hour — the light is the hour's)
+  { id: 'pigeons', label: 'PIGEONS', cat: 'wildlife', group: 'THE PIGEONS', hint: 'the whole flock of 8 on the cobbles + the ledges (they flush when people walk close)' },
+  { id: 'pigeons-scatter', label: 'PIGEONS SCATTER', cat: 'wildlife', group: 'THE PIGEONS', hint: 'a scare every 25 s: they burst up — some to a ledge, some away a while and back from another side' },
+  { id: 'dog-pigeons', label: 'A DOG CHASES THEM', cat: 'wildlife', group: 'THE PIGEONS', hint: 'every dog walking past the flock lunges at it (its owner’s leash goes taut) — best by day' },
+  { id: 'cat-out', label: 'THE CAT OUTSIDE', cat: 'wildlife', group: 'THE CAT', hint: 'the speakeasy’s black cat out on the barbershop’s sill / the side door’s step (every ~3 min)' },
+  { id: 'cat-stalk', label: 'THE CAT STALKS', cat: 'wildlife', group: 'THE CAT', hint: 'the cat drops down, creeps up on a pigeon, pounces — the flock bursts' },
+  { id: 'gulls-land', label: 'GULLS LANDING', cat: 'wildlife', group: 'THE BIRDS', hint: 'three gulls land on the roof billboard + the waterside railing, preen, take off' },
+  { id: 'snowy-owl', label: 'SNOWY OWL', cat: 'wildlife', group: 'THE BIRDS', hint: 'the winter visitor on the billboard / the date stone / a lamp — moving perch every ~70 s' },
+  { id: 'heron', label: 'HERON ON THE PILING', cat: 'wildlife', group: 'THE BIRDS', hint: 'the great blue heron glides in to its piling, stands, strikes at the water, flies off (every 80 s)' },
+  { id: 'ducks', label: 'THE DUCK CROSSING', cat: 'wildlife', group: 'THE BIRDS', hint: 'three mallards cross on WALK while the people wait (every 90 s)' },
+  { id: 'squirrel', label: 'THE SQUIRREL', cat: 'wildlife', group: 'ON THE GROUND', hint: 'down the big maple, hops across the cobbles, sits up — dashes back up if someone comes' },
+  { id: 'coyote', label: 'THE COYOTE', cat: 'wildlife', group: 'ON THE GROUND', night: true, hint: 'across the empty promenade, a stop under the lamp, the eye-flash — every 70 s (a howl every third)' },
+  { id: 'raccoon', label: 'THE RACCOON', cat: 'wildlife', group: 'ON THE GROUND', night: true, hint: 'at the trash can by the front-left lamp: the lid’s clang, rummaging, away (every 95 s)' },
+  { id: 'fireflies', label: 'FIREFLIES', cat: 'wildlife', group: 'ON THE GROUND', night: true, hint: 'summer nights round the trees + the bench' },
+  { id: 'fish', label: 'FISH JUMPING', cat: 'wildlife', group: 'ON THE WATER', hint: 'a fish jumps in the near water every 45 s — the ripple rings' },
+  { id: 'no-wildlife', label: 'NO WILDLIFE', cat: 'wildlife', group: 'ON THE GROUND', hint: 'every animal off — compare (the speed A/B)' },
   // (8P: THE HUSH WORD SIGN in the barbershop window — JAZZ by default, &hush=<word> another; Lobby 2.0 lights the real word)
   { id: 'hushsign', label: 'HUSH WORD SIGN', cat: 'speakeasy', group: 'SPEAKEASY', hint: 'the lobby’s password in neon in the barbershop window (JAZZ; &hush=<word>)' },
   // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the

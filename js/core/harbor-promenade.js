@@ -216,7 +216,25 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   };
   const mailbox = S.mailbox ? { x: X(S.mailbox.f, S.mailbox.z), z: S.mailbox.z } : null;   // (PF: props.js#drawMailbox)
   if (mailbox) zones.block.push({ x: mailbox.x, z: mailbox.z + 0.3, r: 0.6 });
-  return { lamps, trees, bench, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones, mailbox };
+  // 8b1 wildlife — THE TRASH CAN (the raccoon's; Group 1's trash collector empties it): just right of the front-left globe lamp
+  const trashCan = trashCanSpot(cam, lamps);
+  zones.block.push({ x: trashCan.x, z: trashCan.z, r: 0.7 });
+  return { lamps, trees, bench, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones, mailbox, trashCan };
+}
+
+/** 8b1 wildlife — THE TRASH CAN (the owner's pick, Oct 24): a small galvanized can with a lid just RIGHT of the front-left globe lamp
+ *  (by the curb + the brick street — a city litter can by a lamppost is true to the period + right where the trash truck stops), fully
+ *  above the dock at every phone size (its foot `pad` pt over the dock's top), clear of the lobby line (it forms LEFT of that lamp —
+ *  core/harbor-people.js#linePlaces) + the walk to the door; nearer than anyone on the floor (z ≤ the people's zMin − 0.55). h / r: its
+ *  height + radius (world units: ~0.8 m × 0.5 m) */
+export const CAN = Object.freeze({ dx: 1.75, pad: 4, zMin: 37.2, zMax: 38.2, h: 0.98, r: 0.3 });
+export function trashCanSpot(cam, lamps) {
+  const g = (lamps || []).filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0];
+  const dockY = cam.dock && cam.dock.y && !cam.wide ? cam.dock.y : cam.H;
+  const zFoot = cam.F * cam.CAMH / Math.max(1, dockY - CAN.pad - cam.VPY);
+  const z = Math.max(CAN.zMin, Math.min(CAN.zMax, zFoot));
+  const gx = g ? g.x * z / g.z : xOfF(cam, 0.322, z);
+  return { x: gx + CAN.dx, z, h: CAN.h, r: CAN.r };
 }
 
 // ------------------------------------------------------------------ THE SEASON (the trees, the planters)

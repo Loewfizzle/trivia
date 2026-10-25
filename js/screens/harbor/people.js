@@ -52,8 +52,8 @@ export function createPeople() {
   function frame(f) {
     if (!L) return;
     ensureMap(!!f.event);
-    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event, lobby: lineN };
+    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}${f.forceDucks ? 1 : 0}`;   // (8b1: the ducks' preview re-plans the crossings) if (fk !== forced) { forced = fk; cache.clear(); }
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event, lobby: lineN, crossBlocked: f.crossBlocked || null };   // (8b1 wildlife: crossBlocked — the ducks on the crossing)
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
     lastT = t;
@@ -98,13 +98,14 @@ export function createPeople() {
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ && !insideDoor(m)));
     }
     const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? now.cars || [] : [];
-    if (!items.length && !buses.length && !cars.length) return;
+    if (!items.length && !buses.length && !cars.length && !(env.extra && env.extra.length)) return;
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);
     // far first; a bus is one item at its own depth
     const cartNow = pass === 'near' && now.cart && now.cart.on ? now.cart : null;
-    const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...cars.map(car => ({ z: car.z, car })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : [])].sort((a, b) => b.z - a.z);
-    const hands = new Map(), collars = new Map();
+    // (8b1 wildlife: the animals on this pass — env.extra: [{ z, draw(c) }] from wildlife.js#items — sorted in by depth with everyone)
+    const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...cars.map(car => ({ z: car.z, car })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : []), ...(env.extra || []).map(x => ({ z: x.z, x }))].sort((a, b) => b.z - a.z);
+    const hands = new Map(), collars = new Map(), taut = new Set();
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
     const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, advance = pass === 'near' && env.t !== wandT;
     if (advance) { wandT = env.t; if (trails.size > 40) trails.clear(); }
@@ -112,6 +113,7 @@ export function createPeople() {
     const riding = new Set();
     for (const b of buses) for (const m of items) if (inBus(m, b)) riding.add(m);
     for (const it of list) {
+      if (it.x) { c.save(); it.x.draw(c); c.restore(); continue; }   // (8b1 wildlife)
       if (it.b) {
         const box = drawBus(c, cam, { ...it.b, dist: it.b.xNow - it.b.xc + 40, seed: it.b.id.length, riders: 2 }, E);
         // (FP3b: whoever is in its doorway — stepping up in / down out — through the open door, clipped to it)
@@ -126,7 +128,9 @@ export function createPeople() {
       let st = mem.s, mv = null;
       if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF, mem.vid); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
       else if (mem.kind === 'watcher') st = { ...st, beatF: beatsF };
-      if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { collars.set(mem.vid, drawDog(c, cam, { ...st, dist: st.dist * 1.6 }, look, E, pass === 'roof' ? roofY() : 0)); continue; }
+      // (8b1 wildlife: a dog LUNGING at the pigeons — env.dogLunge(vid) 0..1 — its owner's leash taut)
+      const lunge = env.dogLunge ? env.dogLunge(mem.vid) : 0;
+      if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { collars.set(mem.vid, drawDog(c, cam, { ...st, dist: st.dist * 1.6, lunge }, look, E, pass === 'roof' ? roofY() : 0)); if (lunge > 0.2) taut.add(mem.vid); continue; }
       // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
       const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
       const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() : st.y || 0 });
@@ -136,7 +140,7 @@ export function createPeople() {
         hands.set(mem.vid, [fx + h[0] * H, fy - h[1] * H]);
       }
     }
-    for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E); }
+    for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E, taut.has(vid)); }
     c.restore();
   }
   // ---- POL4 — THE BACK ROAD'S MOTORCARS (core/harbor-traffic.js plans them; vehicles.js paints them): side-on on the waterside road,
@@ -353,6 +357,8 @@ export function createPeople() {
     line(n) { lineN = Math.max(0, Math.min(12, Math.round(n || 0))); },
     /** 6b's director: the street's share of its people (0..1) */
     budget(k) { budget = clamp01(k == null ? 1 : k); cache.clear(); },
+    /** 8b1 wildlife — everyone on the promenade now, cheaply (the plan's people, not the tier's cut: every phone reacts alike) */
+    positions: () => now.members.map(m => ({ x: m.s.x, z: m.s.z, v: m.s.v || 0, kind: m.kind, vid: m.vid, role: m.m.role })),
     /** what's on the promenade now (tests, the readout) */
     debug: () => ({ n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
