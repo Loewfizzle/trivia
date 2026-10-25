@@ -96,7 +96,7 @@ test('8b1 — THE CREW joins mid-way + never pops: a truck at the stop (not on t
   for (let t = milk.t0 - 5; t < milk.t1 + 60; t += 1.5) {
     const c = crewAt(t, w, cache);
     for (const T of c.trucks) { sawTruck = true; const x = T.x(t); if (t > T.tA && t < T.tD) assert.ok(x + T.len / 2 <= L.crosswalk.x0, 'parked short of the crosswalk'); }
-    for (const v of c.visits) if (v.kind === 'milk') for (const lg of v.legs) if (lg.k === 'pose' && lg.pose === 'garden' && Math.abs(lg.x - P.step.x) < 0.3) sawStep = true;
+    for (const v of c.visits) if (v.kind === 'milk') for (const lg of v.legs) if (lg.k === 'pose' && (lg.pose === 'garden' || lg.pose === 'set') && Math.abs(lg.x - P.step.x) < 0.3) sawStep = true;
   }
   assert.ok(sawTruck && sawStep, 'the dairy van at the stop, the carrier set down on the step');
   const T = crewSpan(milk.t0, milk.t1, w, cache).trucks[0];

@@ -319,8 +319,8 @@ export function createPeople() {
       const id = m.vid, pz = m.s.pose, prev = wk.pose.get(id), pan = panOf(m.s.x), carry = m.s.carry || null;
       seen.add(id);
       if (prev && prev.pose !== pz) {
-        if (pz === 'garden') {
-          const cs = prev.carry || carry, slot = m.kind === 'milk' || m.kind === 'barber' ? 'milk-bottles' : m.kind === 'trash' ? 'trash-can-lid' : m.kind === 'newsdrop' || m.kind === 'newsboy' ? 'newspaper-rustle' : cs === 'crate' ? 'crates-clink' : cs === 'ladder' || cs === 'steps' ? 'ladder-clank' : null;
+        if (pz === 'garden' || pz === 'set' || pz === 'pick' || pz === 'raise') {
+          const cs = prev.carry || carry, slot = m.kind === 'milk' || m.kind === 'barber' ? 'milk-bottles' : m.kind === 'trash' ? 'trash-can-lid' : m.kind === 'newsdrop' || m.kind === 'newsboy' ? 'newspaper-rustle' : cs === 'crate' ? 'crates-clink' : cs === 'ladder' || cs === 'ladderA' || cs === 'steps' ? 'ladder-clank' : null;
           if (slot) snd.play(slot, { pan, gain: 0.55 });
         } else if (pz === 'cart' && m.kind === 'buyer') snd.play('newspaper-rustle', { pan, gain: 0.45 });
         else if (pz === 'tip') snd.play('trash-can-lid', { pan, gain: 0.6 });

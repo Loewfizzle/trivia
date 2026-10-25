@@ -21,7 +21,7 @@ const ONLY = (qs.get('only') || '').split(',').filter(Boolean), show = k => !ONL
 const LIGHT = qs.get('light') || 'day', SCALE = Number(qs.get('scale') || 2), season = qs.get('season') || 'autumn', party = qs.get('party') === '1', rain = qs.get('rain') === '1' ? 1 : 0;
 const T = LIGHT === 'night' ? { night: 1, sunDir: 0 } : LIGHT === 'gold' ? { gold: 1, sunDir: -0.6, sunEl: 8 } : { day: 1, sunDir: -0.5, sunEl: 34 };
 const dark = LIGHT === 'night' ? 1 : 0;
-const W = 402 * SCALE, H = 1060 + 4 * (34 * SCALE + 14), dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
+const W = 402 * SCALE, H = 1060 + 12 * (34 * SCALE + 14), dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
 cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
 const c = cv.getContext('2d'); c.scale(dpr, dpr);
 c.fillStyle = dark ? '#3a3650' : LIGHT === 'gold' ? '#b08870' : '#9a948c'; c.fillRect(0, 0, W, H);
@@ -82,6 +82,43 @@ y += 2 * (34 * SCALE + 10) + 14;
 if (show('couple')) {
 label('arm in arm · a dog walker', 4, y - 70);
 for (let i = 0; i < 4; i++) { const dist = i * 0.5; draw(40 * SCALE / 2 + i * 90 * SCALE / 2 + 6, y - 6, { pose: 'walk', dir: 1, dist, v: 1, link: -1 }, 'couple', 40, 'partner'); draw(40 * SCALE / 2 + i * 90 * SCALE / 2, y, { pose: 'walk', dir: 1, dist, v: 1, link: 1 }, 'couple', 41, 'lead'); }
+}
+// 8b2 — THE WORKERS: each trade's clothes (3/4 toward us, with their gear) · a LIFT with the knees (pick: 8 frames) · a ladder climbed
+// RUNG BY RUNG (8 frames of one rung) · the work STROKES over a cycle (paint · paste · squeegee · sweep, 8 frames each) · loads carried
+const ROW = 34 * SCALE + 14, at8 = i => 40 * SCALE / 2 + i * 44 * SCALE / 2;
+if (show('workers')) {
+  const W8 = [['milkman', 'bottles'], ['sweeper', 'broom'], ['cop', null], ['mailman', null], ['barber', null], ['painter', 'brush'], ['washer', 'squeegee'],
+    ['billposter', 'paste'], ['iceman', 'ice'], ['trashman', 'can'], ['repairman', 'steps'], ['bootlegger', 'crate'], ['lookout', null], ['staff', null]];
+  label('the trades: milkman · white wing · beat cop · mailman · barber · painter · washer / billposter · iceman · collector · repairman · bootlegger · lookout · staff', 4, y - 70);
+  W8.forEach(([lk, carry], i) => draw(at8(i % 7) + (i % 7) * 4 * SCALE, y + (i >= 7 ? ROW : 0), { pose: 'wait', hd: -Math.PI / 2 + 0.6, dist: 0, v: 0, ...(carry ? { carry } : {}) }, lk, 50 + i));
+  y += 2 * ROW;
+}
+if (show('lift')) {
+  label('LIFT with the knees: the collector picks up the can (pick, 1.6 s) · the bootlegger sets a crate down (set)', 4, y - 70);
+  for (let i = 0; i < 8; i++) { const since = i / 7 * 1.6; draw(at8(i), y, { pose: 'pick', hd: -Math.PI / 2 + 0.7, since, left: 1.6 - since, carry: 'can' }, 'trashman', 61); }
+  y += ROW;
+  for (let i = 0; i < 8; i++) { const since = i / 7 * 1.6; draw(at8(i), y, { pose: 'set', hd: 0.4, since, left: 1.6 - since, carry: 'crate' }, 'bootlegger', 62); }
+  y += ROW;
+}
+if (show('climb')) {
+  label('RUNG BY RUNG: one rung up (8 frames) — the stepping foot lifts, the opposite hand reaches', 4, y - 70);
+  for (let i = 0; i < 8; i++) { const q = i / 7; draw(at8(i), y - q * 0.32 * cam.F / z, { pose: 'climb', hd: Math.PI, y: 1 + q * 0.32, rung: { n: 0, q, up: true } }, 'painter', 63); }
+  y += ROW;
+}
+if (show('strokes')) {
+  label('STROKES (a cycle, 8 frames): paint (on the ladder) · paste (smoothing) · squeegee · sweep', 4, y - 70);
+  const rows = [['paint', 'painter', 'brush', 1.5, { y: 1.2 }], ['paste', 'billposter', 'brush', 1.9, {}], ['squeegee', 'washer', 'squeegee', 1.6, {}], ['sweep', 'sweeper', 'broom', 1.25, {}]];
+  for (const [pz, lk, carry, P, ex] of rows) { for (let i = 0; i < 8; i++) { env.t = 10 + i / 8 * P; draw(at8(i), y, { pose: pz, hd: pz === 'sweep' ? 0.3 : Math.PI / 2 + 0.5, carry, ...ex }, lk, 64); } y += ROW; }
+  env.t = 1.3;
+}
+if (show('carry')) {
+  label('LOADS: a crate on the shoulder · milk in the hand · the ice block · THE LADDER CARRIED BY TWO (walking right)', 4, y - 70);
+  for (let i = 0; i < 4; i++) { const dist = i * 0.4; draw(at8(i), y, { pose: 'walk', hd: 0, dist, v: 1.1, carry: i < 2 ? 'crate' : 'bottles' }, i < 2 ? 'bootlegger' : 'milkman', 65 + i); }
+  for (let i = 0; i < 2; i++) draw(at8(4 + i * 2), y, { pose: 'walk', hd: Math.PI, dist: i * 0.5, v: 1, carry: 'ice' }, 'iceman', 70);
+  y += ROW;
+  const gapPt = 3.55 * cam.F / z;
+  for (let i = 0; i < 2; i++) { const x0 = 30 * SCALE + i * (gapPt + 60 * SCALE); draw(x0 + gapPt, y, { pose: 'walk', hd: 0, dist: 0.3 + i * 0.4, v: 1.1, carry: 'ladderA' }, 'painter', 71); draw(x0, y, { pose: 'walk', hd: 0, dist: 0.55 + i * 0.4, v: 1.1, carry: 'ladderB' }, 'painter', 72); }
+  y += ROW;
 }
 document.body.dataset.ready = '1';
 </script>

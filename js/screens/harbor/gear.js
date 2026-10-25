@@ -9,6 +9,8 @@
 const TAU = Math.PI * 2;
 const WOOD = [150, 118, 78], WOOD_LO = [108, 82, 54], ZINC = [156, 160, 166], ZINC_LO = [96, 100, 108], GLASS = [236, 240, 238];
 const shoulderOf = g => { const s = g.J.shs[g.J.near]; return [g.X(s[0]), g.Y(s[1] + 0.03)]; };
+// (8b2: a load on the shoulder sits a little BEHIND the neck — side-on it no longer covers the face)
+const loadOf = g => { const [x, y] = shoulderOf(g); return [x - g.d * g.H * 0.065 * Math.abs(g.J.cx), y]; };
 const lw = (g, k) => Math.max(0.35, g.H * k);
 
 export const GEAR = {
@@ -41,7 +43,7 @@ export const GEAR = {
     c.fillStyle = g.f([220, 214, 196]); c.fillRect(x - H * 0.025 * g.d - H * 0.03, y - H * 0.06, H * 0.06, H * 0.11);
   },
   can(c, g) {
-    const H = g.H; let [x, y] = shoulderOf(g), rot = 0.12 * g.d;
+    const H = g.H; let [x, y] = loadOf(g), rot = 0.12 * g.d;
     if (g.pose === 'tip') { const [hx, hy] = g.hand; x = hx; y = hy - H * 0.05; rot = (1.25 + 0.2 * Math.sin(g.t * 2)) * g.d; }
     else y -= H * 0.08;
     c.save(); c.translate(x, y); c.rotate(rot);
@@ -53,14 +55,14 @@ export const GEAR = {
     c.restore();
   },
   ice(c, g) {
-    const H = g.H, [x, y0] = shoulderOf(g), y = y0 - H * 0.07;
+    const H = g.H, [x, y0] = loadOf(g), y = y0 - H * 0.07;
     c.fillStyle = g.f([92, 70, 52]); c.fillRect(x - H * 0.06, y0 - H * 0.015, H * 0.12, H * 0.03);
     c.fillStyle = g.f([188, 216, 232], 1.15); c.beginPath(); c.roundRect(x - H * 0.075, y - H * 0.055, H * 0.15, H * 0.11, H * 0.012); c.fill();
     c.fillStyle = g.f([244, 252, 255], 1.3); c.fillRect(x - H * 0.06, y - H * 0.048, H * 0.12, lw(g, 0.01)); c.fillRect(x - H * 0.066, y - H * 0.04, lw(g, 0.01), H * 0.07);
     c.strokeStyle = g.f([40, 36, 36]); c.lineWidth = lw(g, 0.01); c.beginPath(); c.moveTo(x - H * 0.06, y - H * 0.02); c.quadraticCurveTo(x, y - H * 0.11, x + H * 0.06, y - H * 0.02); c.stroke();
   },
   crate(c, g) {
-    const H = g.H, [x, y0] = shoulderOf(g), y = y0 - H * 0.065;
+    const H = g.H, [x, y0] = loadOf(g), y = y0 - H * 0.065;
     c.fillStyle = g.f(WOOD); c.fillRect(x - H * 0.08, y - H * 0.05, H * 0.16, H * 0.1);
     c.fillStyle = g.f(WOOD_LO); for (const v of [-0.02, 0.02]) c.fillRect(x - H * 0.08, y + H * v, H * 0.16, lw(g, 0.007));
     c.fillStyle = g.f([210, 200, 160], 1.1); for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(x - H * 0.06 + i * H * 0.03, y - H * 0.055, lw(g, 0.01), 0, TAU); c.fill(); }
@@ -90,6 +92,10 @@ export const GEAR = {
   },
   chalk(c, g) { const [x, y] = g.hand; c.fillStyle = g.f([250, 250, 246], 1.2); c.fillRect(x - 0.5, y - 1.2, 1, 1.2); },
   ladder(c, g) { carriedLadder(c, g, 1.95, 0.075); },
+  // (8b2 — THE LONG LADDER CARRIED BY TWO, core/harbor-crew.js#LADDER: the lead's front end on his shoulder, the rest reaching back the
+  // gap (3.55 units ≈ 1.69 body heights) to his mate's shoulder; the mate's end draws nothing more — his hand is up on it)
+  ladderA(c, g) { carriedLadder(c, g, 1.83, 0.075, 0.925); },
+  ladderB() { /* the back end: drawn by the lead's ladderA */ },
   steps(c, g) { carriedLadder(c, g, 0.95, 0.06); },
   paste(c, g) {
     GEAR.bucket(c, g);
@@ -142,12 +148,16 @@ export const GEAR = {
   },
 };
 /** a ladder carried on the shoulder, level, along the way they walk (foreshortened as they turn) */
-function carriedLadder(c, g, len, gap) {
-  const H = g.H, [sx, sy] = shoulderOf(g), ax = Math.max(0.3, Math.abs(g.J.cx)), L2 = len * H * ax, back = 0.58;
+function carriedLadder(c, g, len, gap, back = 0.58) {
+  const H = g.H, [sx, sy] = shoulderOf(g), ax = Math.max(0.3, Math.abs(g.J.cx)), L2 = len * H * ax;
   const x0 = sx - g.d * L2 * back, x1 = sx + g.d * L2 * (1 - back), y = sy - H * 0.01;
-  c.strokeStyle = g.f(WOOD); c.lineWidth = Math.max(0.55, H * 0.014);
+  // (8b2: bolder — a dark edge under each rail + a lit top edge: it reads against the cobbles + the sky at 27 pt)
+  c.lineCap = 'butt';
+  c.strokeStyle = g.f(WOOD_LO.map(v => v * 0.55)); c.lineWidth = Math.max(0.9, H * 0.024);
+  c.beginPath(); c.moveTo(x0, y + 0.25); c.lineTo(x1, y + 0.25); c.moveTo(x0, y - gap * H + 0.25); c.lineTo(x1, y - gap * H + 0.25); c.stroke();
+  c.lineWidth = lw(g, 0.013); c.beginPath(); for (let u = 0.04; u < 1; u += 0.12 / len) { const x = x0 + (x1 - x0) * u; c.moveTo(x, y); c.lineTo(x, y - gap * H); } c.stroke();
+  c.strokeStyle = g.f(WOOD, 1.15); c.lineWidth = Math.max(0.6, H * 0.016);
   c.beginPath(); c.moveTo(x0, y); c.lineTo(x1, y); c.moveTo(x0, y - gap * H); c.lineTo(x1, y - gap * H); c.stroke();
-  c.lineWidth = lw(g, 0.009); c.beginPath(); for (let u = 0.04; u < 1; u += 0.12 / len) { const x = x0 + (x1 - x0) * u; c.moveTo(x, y); c.lineTo(x, y - gap * H); } c.stroke();
 }
 /** the white wing's can cart: a can on two wheels with a broom + a shovel standing in it, pushed ahead of him on the ground */
 export function gearCart(c, J, X, Y, H, f, st) {

@@ -67,10 +67,16 @@ export function truckPlan(L, P, id, spec, tE, tReady) {
   return { id, truck: true, model: spec.model, word: spec.word || null, trade: spec.trade || 0, paint: spec.paint || 0, dark: !!spec.dark, len, z, tE, tA, tD, tX, xc, x, dist, hold: true, riders: { off: 0, on: 0 } };
 }
 
+/** 8b2 — the long ladder carried by two: the gap between them (world units — the ladder's length less a hand at each end); folk.js's
+ *  GEAR.ladderA draws it back from the lead's shoulder that far */
+export const LADDER = Object.freeze({ gap: 3.55 });
 // ------------------------------------------------------------------ A WORKER's ITINERARY (a small builder over the people's legs)
-function crewOf(M, P, r, gait, t, start) {
-  const legs = [], v = FOLK.speed[gait || 'walk'] * (0.92 + r() * 0.16);
+/** 8b2 — WEIGHT + TIMING (the owner): a heavy load slows the walk (ice, a crate, the can, a ladder, a bucket of paste) */
+export const HEAVY = Object.freeze({ ice: 0.78, crate: 0.84, can: 0.84, ladder: 0.86, ladderA: 0.86, ladderB: 0.86, steps: 0.9, bucket: 0.92, paste: 0.92, bundle: 0.9 });
+function crewOf(M, P, r, gait, t, start, vFix = null) {
+  const legs = [], v0 = vFix != null ? vFix : FOLK.speed[gait || 'walk'] * (0.92 + r() * 0.16);
   let now = t, cur = start ? { ...start } : null, carry = null, y = 0;
+  const vNow = () => v0 * (HEAVY[carry] || 1), v = v0;
   const push = lg => { legs.push({ carry, ...lg }); now = lg.t1; };
   const B = {
     get now() { return now; }, get cur() { return cur; }, v,
@@ -81,9 +87,9 @@ function crewOf(M, P, r, gait, t, start) {
     hold(c) { carry = c; return B; },
     at(p) { cur = { x: p.x, z: p.z }; return B; },
     /** a straight walk (explicit points — onto / off the road, along the catwalk) */
-    line(pts, vv = v) { let d = 0, last = cur; for (const p of pts) { d += Math.hypot(p.x - last.x, p.z - last.z); last = p; } if (d < 0.02) { cur = { ...last }; return B; } push({ k: 'walk', pts: [cur, ...pts], t0: now, t1: now + d / vv, v: vv, y }); cur = { x: last.x, z: last.z }; return B; },
+    line(pts, vv = vNow()) { let d = 0, last = cur; for (const p of pts) { d += Math.hypot(p.x - last.x, p.z - last.z); last = p; } if (d < 0.02) { cur = { ...last }; return B; } push({ k: 'walk', pts: [cur, ...pts], t0: now, t1: now + d / vv, v: vv, y }); cur = { x: last.x, z: last.z }; return B; },
     /** a routed walk on the map (round the bench, the lamps, the building) */
-    go(p, vv = v) {
+    go(p, vv = vNow()) {
       const vis = planVisit({ look: 'worker', gait: 'walk', goals: [{ at: p }] }, now, M, { r, start: cur });
       if (!vis) return B.line([p], vv);
       const k = vv / Math.max(0.01, vis.v), t0 = now;
@@ -152,20 +158,20 @@ function truckShow(L, w, M, P, r, crew) {
 PLAN.milk = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
   // 6:00 — the milkman round the truck's tail with his wire carrier, to the barbershop's step, sets it down, back
   const c = crewOf(M, P, r, 'brisk', T.tA + 1.4).fromTruck(T).tail(T).pose('reach', 1.6, { hd: 0 }).hold('bottles').fromTail(T).go(P.stepStand).go(P.step);
-  const drop = c.now + 0.9; c.pose('garden', 1.8, { hd: PI / 2 }).hold(null).go(P.stepStand).toTruck(T);
+  const drop = c.now + 0.9; c.pose('set', 1.8, { hd: PI / 2 }).hold(null).go(P.stepStand).toTruck(T);
   return { visits: [c.out(w.id, 'milk', 'milkman')], marks: { milkDrop: drop } };
 });
 PLAN.newsdrop = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
   const c = crewOf(M, P, r, 'brisk', T.tA + 1.2).fromTruck(T).tail(T).pose('reach', 1.2, { hd: 0 }).hold('bundle').fromTail(T).go({ x: P.vendor.x - 0.9, z: P.vendor.z + 0.9 });
-  const drop = c.now + 0.6; c.pose('garden', 1.3, { hd: -PI / 2 }).hold(null).toTruck(T);
+  const drop = c.now + 0.65; c.pose('set', 1.3, { hd: -PI / 2 }).hold(null).toTruck(T);
   return { visits: [c.out(w.id, 'newsdrop', 'worker')], marks: { bundles: drop } };
 });
 PLAN.trash = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
   // the collector to the can beside the front-left lamppost: the lid off, the can up on his shoulder, to the truck's tail, tipped in
   // over the side, carried back, set down, the lid on
-  const c = crewOf(M, P, r, 'walk', T.tA + 1.6).fromTruck(T).go(P.canStand).pose('garden', 1.6, { hd: PI + 0.4 });
+  const c = crewOf(M, P, r, 'walk', T.tA + 1.6).fromTruck(T).go(P.canStand).pose('pick', 1.6, { hd: PI + 0.4, carry: 'can' });
   const lift = c.now; c.hold('can').tail(T).pose('tip', 2.8, { hd: PI / 2 }).fromTail(T).go(P.canStand);
-  const set = c.now + 0.8; c.pose('garden', 1.8, { hd: PI + 0.4 }).hold(null).toTruck(T);
+  const set = c.now + 0.9; c.pose('set', 1.8, { hd: PI + 0.4 }).hold(null).toTruck(T);
   return { visits: [c.out(w.id, 'trash', 'trashman')], marks: { canHeld: [lift + 0.8, set] } };
 });
 PLAN.ice = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
@@ -188,7 +194,7 @@ function bootlegCrew(w, M, P, r, T, trips) {
   const vs = [], hatchAt = T.tA + 4, endAt = [];
   for (let i = 0; i < 2; i++) {
     const c = crewOf(M, P, r, 'brisk', T.tA + 1.2 + i * 1.4).fromTruck(T, i);
-    for (let k = 0; k < trips; k++) { c.tail(T, i).pose('reach', 1.4, { hd: 0 }).hold('crate').fromTail(T, i).go({ x: P.cellar.x + (i ? 0.7 : -0.7), z: P.cellar.z - 0.55 }).pose('garden', 1.6, { hd: PI / 2 }).hold(null); }
+    for (let k = 0; k < trips; k++) { c.tail(T, i).pose('reach', 1.4, { hd: 0 }).hold('crate').fromTail(T, i).go({ x: P.cellar.x + (i ? 0.7 : -0.7), z: P.cellar.z - 0.55 }).pose('set', 1.6, { hd: PI / 2 }).hold(null); }
     endAt.push(c.now); c.toTruck(T, i); vs.push(c.out(`${w.id}.${i}`, 'bootlegger', 'bootlegger'));
   }
   const lo = crewOf(M, P, r, 'walk', T.tA + 2.2).fromTruck(T, 2).go(P.lookout).until(Math.max(...endAt) + 4, 'lookout', { hd: -PI / 2 }).toTruck(T, 2);
@@ -268,12 +274,13 @@ const onLadder = (foot, top, y) => { const f = Math.max(0, Math.min(1, y / Math.
 function ladderShow(w, M, P, r, { tall, foot, top, y, work, look, kind, fix }) {
   // a worker carrying his ladder in from the right edge, raising it, up, the work, down, the ladder away
   const c = crewOf(M, P, r, 'walk', w.t0).edge('right', foot.z).hold(tall ? 'ladder' : 'steps').go({ x: foot.x + 0.5, z: foot.z - 0.6 });
-  const up = c.now + 1; c.pose('garden', 3.2, { hd: PI }).hold(null).go(onLadder(foot, top, 0));
+  // (8b2: down into a squat with it, then HOISTED — the prop swings up off the cobbles as his arms go overhead)
+  const up = c.now; c.pose('raise', 3.2, { hd: PI, carry: null }).hold(null).go(onLadder(foot, top, 0));
   c.climb(onLadder(foot, top, y), y, tall ? 6.5 : 2.2, PI);
   const f0 = c.now; c.pose('reach', work, { hd: PI });
   const f1 = c.now; c.climb(onLadder(foot, top, 0), 0, tall ? 6.0 : 2.0, -PI / 2).go({ x: foot.x + 0.5, z: foot.z - 0.6 });
-  const down = c.now + 0.6; c.pose('garden', 2.6, { hd: PI }).hold(tall ? 'ladder' : 'steps').exit('right', foot.z);
-  return { visits: [c.out(w.id, kind, look)], props: [{ kind: tall ? 'ladder' : 'steps', t0: up + 1.6, t1: down + 1.2, foot, top }], marks: { [fix]: { t: f0 + work * 0.72, t0: f0, t1: f1 } } };
+  const down = c.now; c.pose('pick', 2.6, { hd: PI, carry: tall ? 'ladder' : 'steps' }).hold(tall ? 'ladder' : 'steps').exit('right', foot.z);
+  return { visits: [c.out(w.id, kind, look)], props: [{ kind: tall ? 'ladder' : 'steps', t0: up + 0.55, t1: down + 1.3, foot, top }], marks: { [fix]: { t: f0 + work * 0.72, t0: f0, t1: f1 } } };
 }
 PLAN.bulb = (w, M, P, r) => ladderShow(w, M, P, r, { tall: true, foot: P.ladder.foot, top: P.ladder.top, y: P.ladder.top.y - 2.0, work: 26, look: 'repairman', kind: 'repairman', fix: 'bulbFix' });
 PLAN.lamp = (w, M, P, r) => {
@@ -283,13 +290,18 @@ PLAN.lamp = (w, M, P, r) => {
   return ladderShow(w, M, P, r, { tall: false, foot, top, y, work: 38, look: 'repairman', kind: 'lampman', fix: 'lampFix' });
 };
 PLAN.painters = (w, M, P, r) => {
-  // MONDAY 1–4 pm: two painters carry the long ladder in together, raise it against the blade's edge; one up it through the stages
-  // (the old name painted out bottom → top, the new letters chalked, filled + gilded top → bottom), climbing down between stages;
+  // MONDAY 1–4 pm: two painters carry the long ladder in TOGETHER (8b2: the lead with its front end on his shoulder, his mate a ladder's
+  // length behind with the back end — the same pace, in step), set it down, raise it against the blade's edge; one up it through the
+  // stages (the old name painted out bottom → top, the new letters chalked, filled + gilded top → bottom), climbing down between stages;
   // the other at the foot steadying it + mixing; the drop cloth on the cobbles under the blade
-  const Ld = P.ladder, vs = [], F = Ld.foot, mate = P.holder;
-  const a = crewOf(M, P, r, 'walk', w.t0).edge('right', F.z).hold('ladder').go({ x: F.x + 0.5, z: F.z - 0.6 });
-  const up = a.now + 1.5; a.pose('garden', 3.2, { hd: PI }).hold(null).go(onLadder(F, Ld.top, 0));
-  const b = crewOf(M, P, r, 'walk', w.t0 + 1.2).edge('right', F.z - 0.8).hold('bucket').go(mate);
+  const Ld = P.ladder, vs = [], F = Ld.foot, mate = P.holder, stand = { x: F.x + 0.5, z: F.z - 0.6 };
+  const vP = FOLK.speed.walk * (0.94 + r() * 0.1);
+  const a = crewOf(M, P, r, 'walk', w.t0, null, vP).edge('right', F.z).hold('ladderA').go(stand);
+  // (the mate: the same way in, LADDER.gap behind — he starts that much later from the same edge, so both stop together)
+  const b = crewOf(M, P, r, 'walk', w.t0 + LADDER.gap / (vP * HEAVY.ladderA), null, vP).edge('right', F.z).hold('ladderB').go({ x: stand.x + LADDER.gap, z: stand.z });
+  const meet = Math.max(a.now, b.now); a.until(meet, 'wait', { hd: PI }); b.until(meet, 'wait', { hd: PI });
+  b.pose('set', 1.6, { hd: PI }).hold('bucket').go(mate);
+  const up = a.now + 0.4; a.pose('wait', 0.4, { hd: PI }).pose('raise', 3.2, { hd: PI, carry: null }).hold(null).go(onLadder(F, Ld.top, 0));
   // the painter's height through the stages: v (the row he works at) per stage — out: bottom → top; chalk / letters / gilt: top → bottom
   let u0 = 0, yNow = 0;
   const topY = Ld.v1 - 2.6, lowY = Math.max(0.4, Ld.v0 - 1.4);
@@ -309,10 +321,13 @@ PLAN.painters = (w, M, P, r) => {
     if (stage !== 'gilt') { a.climb(onLadder(F, Ld.top, 0), 0, 1.4 + yNow * 0.6, -PI / 2); yNow = 0; a.pose('wait', 20, { face: 0 }); }
   }
   a.climb(onLadder(F, Ld.top, 0), 0, 1.4 + yNow * 0.6, -PI / 2).until(w.t1 - 150, 'wait', { face: 0 }).go({ x: F.x + 0.5, z: F.z - 0.6 });
-  const down = a.now + 0.6; a.pose('garden', 2.8, { hd: PI }).hold('ladder').exit('right', F.z);
-  b.until(w.t1 - 148, 'hold', { hd: PI - 0.5 }).hold('bucket').exit('right', F.z - 0.8);
+  // (out the same way: the lead lifts the front end at the foot, his mate the back end a ladder's length to the left — then off right
+  // together, in step)
+  const down = a.now; a.pose('pick', 2.8, { hd: 0, carry: 'ladderA' }).hold('ladderA');
+  b.until(down - 6, 'hold', { hd: PI - 0.5 }).go({ x: stand.x - LADDER.gap, z: stand.z }).until(down, 'wait', { hd: 0 }).pose('pick', 2.8, { hd: 0, carry: 'ladderB' }).hold('ladderB');
+  const off = Math.max(a.now, b.now); a.until(off, 'wait', { hd: 0 }).exit('right', F.z); b.until(off, 'wait', { hd: 0 }).exit('right', F.z);
   vs.push(a.out(`${w.id}.a`, 'painter', 'painter'), b.out(`${w.id}.b`, 'painter', 'painter'));
-  return { visits: vs, props: [{ kind: 'ladder', t0: up + 1.6, t1: down + 1.2, foot: F, top: Ld.top }, { kind: 'cloth', x: Ld.top.x + 0.5, z: F.z - 0.55, t0: w.t0 + 70, t1: w.t1 - 120 }], marks: { paint: { t0: w.t0, t1: w.t1 } } };
+  return { visits: vs, props: [{ kind: 'ladder', t0: up + 0.55, t1: down + 1.3, foot: F, top: Ld.top }, { kind: 'cloth', x: Ld.top.x + 0.5, z: F.z - 0.55, t0: w.t0 + 70, t1: w.t1 - 120 }], marks: { paint: { t0: w.t0, t1: w.t1 } } };
 };
 // ---- THE REGULARS
 PLAN.newsboy = (w, M, P, r) => {
@@ -339,7 +354,7 @@ PLAN.barber = (w, M, P, r, L, ctx) => {
   // 8:30 (fixed): in from the left, the milk taken in off the step, into the shop; out
   // again with his broom: the step swept, the awning cranked out, back in
   const c = crewOf(M, P, r, 'walk', w.t0 - 6).edge('left', 43.2).go(P.stepStand).go(P.step);
-  const take = c.now + 0.8; c.pose('garden', 1.8, { hd: PI / 2 }).hold('bottles');
+  const take = c.now + 0.9; c.pose('pick', 1.8, { hd: PI / 2, carry: 'bottles' }).hold('bottles');
   c.door('shop', 'in').hold(null).inside(5.5 * 60).door('shop', 'out').hold('broom').go(P.stepStand).pose('sweep', 48, { face: -1 }).hold(null).go(P.awning).pose('crank', 7.5, { hd: PI / 2 }).door('shop', 'in');
   return { visits: [c.out(w.id, 'barber', 'barber')], marks: { milkTake: take } };
 };
