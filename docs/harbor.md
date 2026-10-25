@@ -4907,7 +4907,10 @@ screen — both gone (a legendary holds the tier; the sprites baked ahead) — h
 ~20 figures at tier 2 (the crowd + the circle on top): the iPhone readout on `&force=dance` decides; tier 0 keeps the circle inside its cap.
 
 ### Known issues (POLISH 4)
-- **THE CLOUD**: see below (filled after the final `[harbor]` run). Not run locally: the emulator-backed checks (no Java on this laptop) —
+- **THE CLOUD (1 run of the 2 allowed)**: 7a2bbc3 `[harbor]` — all four jobs GREEN on the first run (audio 128/128, city 77/77, street 75/75,
+  show 67/67); its only warnings the CI machine's absolute speed budgets (the city job's PERF lines — warnings by design). The quick `tests`
+  workflow had failed from the Group 2 merge on (the server's preview-panel check still expected the drone show's `show: 'heart'`) —
+  brought to the message design (32d59f6), green. Not run locally: the emulator-backed checks (no Java on this laptop) —
   every touched E2E group (legends, sky, life, speakeasy, promenade, people, windows) ran green locally on the preview.
 - THE SURPRISE FLYBY was built from the owner's CORRECTION of its window alone — the original note never reached this session (Decision 9).
 - THE BILLBOARD: `harbor().billboard()` swaps the NIGHT poster live; the DAY poster is baked with the stage — a game changed by day shows at
