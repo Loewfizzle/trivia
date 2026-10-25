@@ -798,7 +798,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // warm-up to its peak)
       const hr = partyHour(LK.local), nB = skyBeams.count(), pl = PT.plan || harborPartyPlan(), onN = forced || PT.name === 'peak' || PT.name === 'after' || hr == null ? nB : 1 + (nB - 1) * smooth(pl.warm + 0.15, pl.peak, hr);
       const k = off.has('no-beams') ? 0 : (forced ? 1 : PT.on > 0 ? PT.ramp * (sh.beams || (tier === 0 ? 0.8 : 0)) : 0) * litK(DK, 'beams') * lit;
-      if (k > 0.004) skyBeams.draw(c, { k, on: onN, signs: neon.signRects(), cols: ids => neon.beamCols(ids), punch: PT.punch || 0, haze: Math.max(LK.fog || 0, (LK.cloud || 0) * 0.6), fade: fadeIn, motion: S.motion, tier, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, gw) => clouds.beamPatch(c, h, col, a, gw) }); }
+      if (k > 0.004) skyBeams.draw(c, { k, on: onN, signs: neon.signRects(), cols: ids => neon.beamCols(ids), punch: PT.punch || 0, haze: Math.max(LK.fog || 0, (LK.cloud || 0) * 0.6), fog: LK.fog || 0, fade: fadeIn, motion: S.motion, tier, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, gw) => clouds.beamPatch(c, h, col, a, gw) }); }
     // the party show's drops for the title (the NEON word joins the biggest ones) + the wheel (its sparkle, its party colours)
     { const sh = neon.show(); PT.drop = sh.drop; PT.big = sh.big; PT.scene = sh.scene;
       const wantParty = PT.on > 0.5;          // (NEON PASS 4: the wheel wears the party's colours all party night)
@@ -816,7 +816,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)
     if ((LK.fog || 0) > 0.35) lights.beacons(c, now, nightK * (lit > 0 ? lit : 0), 0, S.motion, LK.fog, true);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
-    if (beamK > 0.01) drawBeams(c, L, beamK * nightK, t, { fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, w, ux, uy) => clouds.beamPatch(c, h, col, a, w, ux, uy) });
+    if (beamK > 0.01) drawBeams(c, L, beamK * nightK, t, { mist: LK.fog || 0, tier, fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, w, ux, uy) => clouds.beamPatch(c, h, col, a, w, ux, uy) });
     // the drones up in the sky + the gulls over the harbor (in front of the city, before the water: the mirror doubles them)
     sky.city(c, fs);
     // ---- THE HARBOR'S HERO PIECES (Part 5): their state for this frame, their reflections queued for the water's mirror

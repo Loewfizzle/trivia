@@ -13,6 +13,7 @@
 // behind the near band, right under the billboard); word tower B's light BEHIND its roof sign (the sign hides its foot: the
 // beam rises from behind the sign — it never crosses it).
 import { project, screenBoxes } from '../../core/harbor-layout.js';
+import { drawFogBeam, fogPatches, fogGlow } from './fogbeam.js';
 import { signSpots } from '../../core/harbor-neon.js';
 import { rgb, mix } from './shapes.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -142,12 +143,15 @@ function beamSprite() {
  * The beams (every frame while on). k: on × night (0..1); fog: 0..1 how thick the air is (fog / low cloud: brighter beams,
  * the cloud lit where they hit); cloudY: the cloud base's screen y (the top of the sky, or lower in fog).
  */
-export function drawBeams(c, L, k, t, { fog = 0, cloudY = 40, motion = true, col = [214, 226, 255], hit = null, patch = null } = {}) {
+export function drawBeams(c, L, k, t, { fog = 0, mist = 0, tier = 2, cloudY = 40, motion = true, col = [214, 226, 255], hit = null, patch = null } = {}) {
   if (k <= 0.01) return;
   const cam = L.cam, spr = beamSprite(), len = cam.H * 0.95;
   c.save();
   c.globalCompositeOperation = 'lighter';
   const air = 0.55 + 0.45 * fog;
+  // (POLISH 4 — IN REAL FOG (mist: the fog alone, not a low cloud deck) the crisp wedge hands over to a VOLUME (fogbeam.js): a wide soft
+  // body dimming exponentially along the beam — shorter the thicker the fog — the fog's patches lit as it sweeps, a big glow at the lamp)
+  const vol = mist < 0.12 ? 0 : mist > 0.45 ? 1 : ((mist - 0.12) / 0.33) ** 2 * (3 - 2 * (mist - 0.12) / 0.33), heavy = Math.min(1, Math.max(0, (mist - 0.35) / 0.6)), crisp = 1 - 0.9 * vol;
   for (const cv of beamCover(L)) {
     const { sp, sx, sy, s } = cv;
     const ang = sp.base + sp.amp * (motion ? Math.sin(t * sp.sp + sp.ph) : Math.sin(sp.ph));
@@ -167,9 +171,19 @@ export function drawBeams(c, L, k, t, { fog = 0, cloudY = 40, motion = true, col
       }
       if (ll - d0 > 0.5) { c.globalAlpha = a * keep; c.drawImage(spr, 0, 0, spr.width, rowOf(d0), -ww / 2, -ll, ww, ll - d0); }
     };
-    part(w, len, 0.6 * air * k);
-    part(w * 0.36, len * 0.8, 0.45 * air * k);         // the core
+    if (crisp > 0.03) {
+      part(w, len, 0.6 * air * k * crisp);
+      part(w * 0.36, len * 0.8, 0.45 * air * k * crisp);         // the core
+    }
     c.restore();
+    if (vol > 0.01) {
+      const lv = len * (0.75 - 0.4 * heavy), hw = w * 0.5 * (1 + 0.9 * heavy), av = k * vol * (0.85 + 0.3 * heavy);
+      c.save(); c.clip(cv.path);
+      drawFogBeam(c, sx, sy, ux * lv, uy * lv, -uy * hw, ux * hw, col, av, 0.3 * (1 - 0.6 * heavy));
+      if (tier > 0) fogPatches(c, sx, sy, ux * lv, uy * lv, hw, col, av * 0.8, motion ? t : 0, tier === 2 ? 4 : 2);
+      fogGlow(c, sx, sy, s * (8 + 18 * heavy), col, av * 0.4);
+      c.restore();
+    }
     if (h && patch) { let pk = Math.min(1, 0.8 * air * k); for (let hh = h; hh && hh.d < len; hh = hh.next) { patch(hh, col, pk, w * 0.7, ux, uy); pk *= 0.1 + 0.9 * hh.trans; } }
     // where it hits the low cloud: a lit patch
     if (fog > 0.15) {

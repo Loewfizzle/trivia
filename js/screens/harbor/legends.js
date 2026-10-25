@@ -55,48 +55,100 @@ function tint(col) {
 const glow = (c, col, x, y, rx, ry = rx, a = 1) => { if (a <= 0.004) return; c.globalAlpha = Math.min(1, a); c.drawImage(tint(col), x - rx, y - ry, rx * 2, ry * 2); };
 
 // ================================================================== THE SAUCER (baked once per size: the hull; the lights live)
-const NEON_REF = [[255, 70, 180], [60, 210, 255], [255, 176, 70]];
+// POLISH 4 (the owner: "cartoonish" → MIRROR-SILVER): a polished chrome disc seen slightly from below. Chrome reads as chrome by
+// what it REFLECTS — so every surface is a band of the world it faces: the upper lens the dark sky with the city's glow along its
+// foot (a white-hot horizon line), the rim's knife edge a crisp specular line, the belly the CITY BELOW (dark, with the neon smeared
+// round it in lathe-turned arcs, brighter toward its edge where it turns to face the horizon). A translucent glass DOME on top (the
+// sky through it, a faint teal light inside, a fresnel edge + one window highlight). The emitter's ORANGE pulse + the rim lights are live.
+const NEON_REF = [[255, 70, 180], [60, 210, 255], [255, 176, 70], [190, 120, 255]];
+const SAUCER_OY = 0.47;                                          // (the rim's centre down the sprite, of its height)
 function saucerSprite(sw, dpr) {
-  const W = sw * 1.16, H = sw * 0.6, d = Math.min(3, Math.max(1.5, dpr));
+  const W = sw * 1.16, H = sw * 0.72, d = Math.min(3, Math.max(1.5, dpr));
   const cv = mk(W * d, H * d), x = safeCtx(cv);
-  x.setTransform(d, 0, 0, d, (W / 2) * d, (H * 0.42) * d);
-  const R = sw / 2;
-  // the DOME cap peeking over the far rim (dark glass, a soft violet sheen + one long highlight)
-  x.save(); x.beginPath(); x.ellipse(0, -R * 0.13, R * 0.42, R * 0.24, 0, Math.PI, 0); x.closePath();
-  const dg = x.createLinearGradient(0, -R * 0.4, 0, -R * 0.1); dg.addColorStop(0, 'rgb(70,52,110)'); dg.addColorStop(1, 'rgb(22,14,40)');
-  x.fillStyle = dg; x.fill();
-  x.strokeStyle = 'rgba(200,180,255,0.55)'; x.lineWidth = R * 0.018; x.beginPath(); x.ellipse(0, -R * 0.13, R * 0.38, R * 0.2, 0, Math.PI * 1.12, Math.PI * 1.55); x.stroke();
-  x.restore();
-  // the UPPER HULL's far band (a sliver of the top surface over the far rim)
-  x.beginPath(); x.ellipse(0, -R * 0.05, R * 0.98, R * 0.2, 0, Math.PI, 0); x.closePath();
-  const ug = x.createLinearGradient(0, -R * 0.25, 0, 0); ug.addColorStop(0, 'rgb(46,32,76)'); ug.addColorStop(1, 'rgb(18,12,32)');
-  x.fillStyle = ug; x.fill();
-  // THE RIM: a glossy band all round (lit underneath by the city: a warm-violet lower lip)
-  x.beginPath(); x.ellipse(0, 0, R, R * 0.235, 0, 0, TAU);
-  const rg = x.createLinearGradient(0, -R * 0.24, 0, R * 0.24);
-  rg.addColorStop(0, 'rgb(60,44,96)'); rg.addColorStop(0.45, 'rgb(28,18,48)'); rg.addColorStop(0.8, 'rgb(70,44,96)'); rg.addColorStop(1, 'rgb(150,110,190)');
-  x.fillStyle = rg; x.fill();
-  // THE BELLY (seen from below): a wide shallow dome, deep violet at the middle, near-black at its edge
-  x.save(); x.beginPath(); x.ellipse(0, R * 0.05, R * 0.93, R * 0.25, 0, 0, TAU); x.clip();
-  const bg = x.createRadialGradient(0, R * 0.08, 0, 0, R * 0.08, R * 0.95);
-  bg.addColorStop(0, 'rgb(64,40,104)'); bg.addColorStop(0.55, 'rgb(34,20,60)'); bg.addColorStop(1, 'rgb(12,8,22)');
-  x.fillStyle = bg; x.fillRect(-R, -R, R * 2, R * 2);
-  // the city's neon sliding on the glossy hull (soft smudges along the near edge) + the specular arcs
+  x.setTransform(d, 0, 0, d, (W / 2) * d, (H * SAUCER_OY) * d);
+  const R = sw / 2, RY = R * 0.235;
+  const lin = (y0, y1, stops) => { const g = x.createLinearGradient(0, y0, 0, y1); for (const [u, c] of stops) g.addColorStop(u, c); return g; };
+  // ---- THE DOME: translucent glass on a chrome collar (drawn first: the lens's near slope covers its foot)
+  const dy = -R * 0.2, dw = R * 0.37, dh = R * 0.37;
+  x.save();
+  x.beginPath(); x.ellipse(0, dy, dw, dh, 0, Math.PI, 0); x.ellipse(0, dy, dw, dw * 0.24, 0, 0, Math.PI); x.closePath(); x.clip();
+  x.fillStyle = lin(dy - dh, dy, [[0, 'rgba(70,110,140,0.42)'], [0.6, 'rgba(36,60,90,0.55)'], [1, 'rgba(18,30,52,0.72)']]); x.fillRect(-dw, dy - dh, dw * 2, dh * 1.3);
+  // (the light inside: a faint teal glow low in the glass + the shadow of a seat-back / console)
+  { const g = x.createRadialGradient(0, dy + dh * 0.05, 0, 0, dy + dh * 0.05, dw * 0.9); g.addColorStop(0, 'rgba(120,240,230,0.42)'); g.addColorStop(0.6, 'rgba(80,190,210,0.14)'); g.addColorStop(1, 'rgba(80,190,210,0)');
+    x.fillStyle = g; x.fillRect(-dw, dy - dh, dw * 2, dh * 1.3); }
+  x.fillStyle = 'rgba(10,18,30,0.5)'; x.beginPath(); x.ellipse(-dw * 0.08, dy - dh * 0.05, dw * 0.2, dh * 0.24, 0, Math.PI, 0); x.fill();
+  // (fresnel: the glass brightens toward its edge — the sky's glow caught at a grazing angle)
+  { const g = x.createRadialGradient(0, dy, dw * 0.55, 0, dy, dw * 1.02); g.addColorStop(0, 'rgba(200,230,255,0)'); g.addColorStop(1, 'rgba(200,230,255,0.38)');
+    x.fillStyle = g; x.fillRect(-dw, dy - dh, dw * 2, dh * 1.3); }
+  // the city's pink caught low on its right, a long window highlight upper-left + a glint
   x.globalCompositeOperation = 'lighter';
-  NEON_REF.forEach((col, i) => { x.globalAlpha = 0.32; x.drawImage(tint(col), (-0.6 + i * 0.55) * R - R * 0.3, R * 0.1, R * 0.6, R * 0.2); });
-  x.globalAlpha = 0.5; x.strokeStyle = 'rgba(220,200,255,0.6)'; x.lineWidth = R * 0.012;
-  x.beginPath(); x.ellipse(0, R * 0.05, R * 0.86, R * 0.21, 0, Math.PI * 0.12, Math.PI * 0.45); x.stroke();
-  x.beginPath(); x.ellipse(0, R * 0.05, R * 0.86, R * 0.21, 0, Math.PI * 0.6, Math.PI * 0.78); x.stroke();
-  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
-  // radial panel seams (subtle), the CONCENTRIC RINGS round the emitter (their glow is live)
-  x.strokeStyle = 'rgba(0,0,0,0.35)'; x.lineWidth = R * 0.008;
-  for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; x.beginPath(); x.moveTo(Math.cos(a) * R * 0.38, R * 0.08 + Math.sin(a) * R * 0.1); x.lineTo(Math.cos(a) * R * 0.9, R * 0.05 + Math.sin(a) * R * 0.23); x.stroke(); }
-  for (const [rr, a] of [[0.62, 0.35], [0.46, 0.5]]) { x.strokeStyle = `rgba(190,170,255,${a})`; x.lineWidth = R * 0.016; x.beginPath(); x.ellipse(0, R * 0.08, R * rr, R * rr * 0.26, 0, 0, TAU); x.stroke(); }
-  x.fillStyle = 'rgb(24,14,44)'; x.beginPath(); x.ellipse(0, R * 0.08, R * 0.34, R * 0.09, 0, 0, TAU); x.fill();
+  x.globalAlpha = 0.35; x.drawImage(tint([255, 70, 180]), dw * 0.15, dy - dh * 0.32, dw * 0.8, dh * 0.4); x.globalAlpha = 1;
+  x.strokeStyle = 'rgba(255,255,255,0.75)'; x.lineWidth = R * 0.022; x.lineCap = 'round';
+  x.beginPath(); x.ellipse(0, dy, dw * 0.78, dh * 0.8, 0, Math.PI * 1.13, Math.PI * 1.4); x.stroke();
+  x.strokeStyle = 'rgba(255,255,255,0.35)'; x.lineWidth = R * 0.012; x.beginPath(); x.ellipse(0, dy, dw * 0.66, dh * 0.68, 0, Math.PI * 1.17, Math.PI * 1.32); x.stroke();
+  x.globalCompositeOperation = 'source-over';
   x.restore();
-  // the rim's outer edge: a fine bright line (the city's light along the metal)
-  x.strokeStyle = 'rgba(210,190,255,0.5)'; x.lineWidth = R * 0.012; x.beginPath(); x.ellipse(0, 0, R, R * 0.235, 0, Math.PI * 0.05, Math.PI * 0.95); x.stroke();
-  return { cv, w: W, h: H, oy: H * 0.42, R };
+  x.strokeStyle = 'rgba(214,236,255,0.6)'; x.lineWidth = R * 0.01; x.beginPath(); x.ellipse(0, dy, dw, dh, 0, Math.PI * 1.02, Math.PI * 1.98); x.stroke();
+  // the chrome collar round the dome's foot
+  x.beginPath(); x.ellipse(0, dy + R * 0.015, dw * 1.12, dw * 0.27, 0, 0, TAU);
+  x.fillStyle = lin(dy - dw * 0.27, dy + dw * 0.3, [[0, 'rgb(60,66,88)'], [0.45, 'rgb(236,240,250)'], [0.6, 'rgb(150,156,178)'], [1, 'rgb(40,42,58)']]); x.fill();
+  // ---- THE UPPER LENS: the sky above it (dark blue-grey) down to the city's glow along its foot (a white-hot horizon line)
+  const uy = -R * 0.01, uh = R * 0.33;
+  x.save(); x.beginPath(); x.ellipse(0, uy, R * 0.975, uh, 0, Math.PI, 0); x.closePath();
+  x.clip();
+  x.fillStyle = lin(uy - uh, uy, [[0, 'rgb(30,36,58)'], [0.38, 'rgb(62,70,98)'], [0.66, 'rgb(150,158,186)'], [0.8, 'rgb(246,246,255)'], [0.86, 'rgb(255,214,236)'], [0.93, 'rgb(120,104,140)'], [1, 'rgb(60,56,80)']]);
+  x.fillRect(-R, uy - uh, R * 2, uh);
+  // (the lens turns away at its sides: darker there — the round form)
+  { const g = x.createLinearGradient(-R, 0, R, 0); g.addColorStop(0, 'rgba(8,10,20,0.62)'); g.addColorStop(0.22, 'rgba(8,10,20,0.1)'); g.addColorStop(0.5, 'rgba(8,10,20,0)'); g.addColorStop(0.72, 'rgba(8,10,20,0.06)'); g.addColorStop(1, 'rgba(8,10,20,0.66)');
+    x.fillStyle = g; x.fillRect(-R, uy - uh, R * 2, uh); }
+  // the dome's own reflection on the lens + the lathe's fine concentric lines + a panel ring
+  x.fillStyle = 'rgba(20,30,46,0.35)'; x.beginPath(); x.ellipse(0, uy - uh * 0.62, dw * 1.3, uh * 0.22, 0, 0, TAU); x.fill();
+  for (const [k, a] of [[0.55, 0.22], [0.72, 0.16], [0.86, 0.3]]) { x.strokeStyle = `rgba(${k > 0.8 ? '20,22,34' : '230,236,255'},${a})`; x.lineWidth = R * 0.006; x.beginPath(); x.ellipse(0, uy, R * 0.975 * k, uh * k, 0, Math.PI * 1.04, Math.PI * 1.96); x.stroke(); }
+  // the neon caught on the lens near its foot (soft, stretched along it)
+  x.globalCompositeOperation = 'lighter';
+  NEON_REF.forEach((col, i) => { x.globalAlpha = 0.3; x.drawImage(tint(col), (-0.82 + i * 0.46) * R, uy - uh * 0.36, R * 0.44, uh * 0.3); });
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  x.restore();
+  // ---- THE RIM: the knife edge between the lens + the belly (polished: a dark band with a crisp specular line top + bottom)
+  x.beginPath(); x.ellipse(0, R * 0.02, R, RY, 0, 0, TAU);
+  x.fillStyle = lin(R * 0.02 - RY, R * 0.02 + RY, [[0, 'rgb(220,224,240)'], [0.1, 'rgb(96,100,124)'], [0.5, 'rgb(36,38,54)'], [0.85, 'rgb(84,86,110)'], [1, 'rgb(236,230,250)']]); x.fill();
+  // ---- THE BELLY (seen from below): chrome reflecting the CITY BELOW — dark, the neon smeared round it in arcs, brighter toward the edge
+  const by = R * 0.07, bw = R * 0.94, bh = R * 0.24;
+  x.save(); x.beginPath(); x.ellipse(0, by, bw, bh, 0, 0, TAU); x.clip();
+  { const g = x.createRadialGradient(0, by, 0, 0, by, bw);
+    g.addColorStop(0, 'rgb(46,48,64)'); g.addColorStop(0.42, 'rgb(28,30,42)'); g.addColorStop(0.7, 'rgb(64,66,88)'); g.addColorStop(0.86, 'rgb(170,174,200)'); g.addColorStop(0.93, 'rgb(236,238,250)'); g.addColorStop(1, 'rgb(110,112,136)');
+    x.setTransform(d, 0, 0, d * (bh / bw), (W / 2) * d, (H * SAUCER_OY + by * (1 - bh / bw)) * d * 1);
+    x.fillStyle = g; x.fillRect(-bw, by - bw, bw * 2, bw * 2);
+    x.setTransform(d, 0, 0, d, (W / 2) * d, (H * SAUCER_OY) * d); }
+  // the neon of the city below, smeared round the lathe-turned metal: soft colour arcs (pink, cyan, amber, violet) at two radii
+  x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
+  const arc = (k, a0, a1, col, al, wd) => { x.strokeStyle = rgb(col, al); x.lineWidth = R * wd; x.beginPath(); x.ellipse(0, by, bw * k, bh * k, 0, a0, a1); x.stroke(); };
+  arc(0.8, 0.25, 0.95, NEON_REF[0], 0.32, 0.07); arc(0.8, 1.35, 2.0, NEON_REF[1], 0.28, 0.07); arc(0.8, 2.25, 2.85, NEON_REF[2], 0.26, 0.06);
+  arc(0.62, 0.55, 1.1, NEON_REF[3], 0.2, 0.05); arc(0.62, 1.9, 2.6, NEON_REF[0], 0.18, 0.05);
+  arc(0.8, 0.25, 0.95, [255, 220, 240], 0.3, 0.012); arc(0.8, 1.35, 2.0, [220, 250, 255], 0.28, 0.012);
+  // the lathe's anisotropic sheen: thin bright rings
+  for (const [k, a] of [[0.9, 0.42], [0.74, 0.16], [0.56, 0.12]]) arc(k, 0, TAU, [230, 236, 255], a, 0.008);
+  x.globalCompositeOperation = 'source-over';
+  // radial panel seams + small rivet dots on the outer ring
+  x.strokeStyle = 'rgba(6,8,14,0.45)'; x.lineWidth = R * 0.006;
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU, c0 = Math.cos(a), s0 = Math.sin(a); x.beginPath(); x.moveTo(c0 * bw * 0.66, by + s0 * bh * 0.66); x.lineTo(c0 * bw * 0.97, by + s0 * bh * 0.97); x.stroke(); }
+  x.fillStyle = 'rgba(240,244,255,0.5)';
+  for (let i = 0; i < 32; i++) { const a = (i / 32) * TAU + 0.1; x.beginPath(); x.arc(Math.cos(a) * bw * 0.86, by + Math.sin(a) * bh * 0.86, R * 0.006, 0, TAU); x.fill(); }
+  // THE EMITTER: stepped grooves (a dark cut + its bright lip) round a dark glass lens (its orange pulse + the beam's white are live)
+  for (const k of [0.6, 0.47, 0.36]) {
+    x.strokeStyle = 'rgba(6,6,12,0.85)'; x.lineWidth = R * 0.022; x.beginPath(); x.ellipse(0, by + R * 0.01, bw * k, bh * k, 0, 0, TAU); x.stroke();
+    x.strokeStyle = 'rgba(214,220,240,0.55)'; x.lineWidth = R * 0.008; x.beginPath(); x.ellipse(0, by + R * 0.01 + R * 0.012, bw * k, bh * k, 0, 0.1, Math.PI - 0.1); x.stroke();
+  }
+  { const g = x.createRadialGradient(0, by + R * 0.01, 0, 0, by + R * 0.01, bw * 0.3); g.addColorStop(0, 'rgb(70,40,30)'); g.addColorStop(0.7, 'rgb(30,18,20)'); g.addColorStop(1, 'rgb(10,8,12)');
+    x.fillStyle = g; x.beginPath(); x.ellipse(0, by + R * 0.01, bw * 0.3, bh * 0.3, 0, 0, TAU); x.fill(); }
+  x.restore();
+  // the belly's outline where it meets the rim: a thin dark crease + a white-hot lip along the near (lower) edge — the horizon's glow
+  x.strokeStyle = 'rgba(8,8,16,0.7)'; x.lineWidth = R * 0.01; x.beginPath(); x.ellipse(0, by, bw, bh, 0, Math.PI, TAU); x.stroke();
+  x.strokeStyle = 'rgba(255,255,255,0.85)'; x.lineWidth = R * 0.01; x.beginPath(); x.ellipse(0, R * 0.02, R * 0.995, RY * 0.995, 0, Math.PI * 0.08, Math.PI * 0.92); x.stroke();
+  // the rim's crisp specular line along its top (the city's glow on the knife edge) — brightest left of centre, fading round the sides
+  { const g = x.createLinearGradient(-R, 0, R, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.3, 'rgba(255,255,255,0.95)'); g.addColorStop(0.55, 'rgba(255,240,250,0.7)'); g.addColorStop(1, 'rgba(255,255,255,0.05)');
+    x.strokeStyle = g; x.lineWidth = R * 0.012; x.beginPath(); x.ellipse(0, R * 0.02, R * 0.99, RY * 0.97, 0, Math.PI * 1.04, Math.PI * 1.96); x.stroke(); }
+  return { cv, w: W, h: H, oy: H * SAUCER_OY, R, by };
 }
 
 // ================================================================== THE BEAM (baked per size: a soft cone, rays converging up)
@@ -112,14 +164,16 @@ function beamSprite(top, bot, len, dpr) {
     for (let xx = 0; xx < w; xx++) {
       const s = (xx - cx) / hw, a = Math.abs(s);
       if (a > 1.45) continue;
-      const edge = 1 - smooth(0.42, 1.3, a);
+      // (POLISH 4, the owner: "more concentrated in the centre" — a bright CORE down the axis over the soft body, fading to the edges)
+      const edge = 1 - smooth(0.3, 1.3, a), core = Math.exp(-(s * s) / 0.075);
       const r = ray[Math.min(255, Math.max(0, Math.round((s * 0.5 + 0.5) * 255)))];
-      const k = edge * vert * r;
+      const k = Math.min(1.1, (0.84 * edge * r + 0.5 * core * (0.85 + 0.15 * r)) * vert);
       if (k <= 0.003) continue;
       // the colour: pale cyan-white in the core, faint violet toward the left edge, faint teal-pink right, warmer low down
       const side = Math.max(-1, Math.min(1, s));
       let R = 222, G = 234, B = 255;
       if (side < 0) { R += -side * -18; G += side * 40; B += 0; } else { R += side * 10; G += side * -4; B += side * -28; }
+      R += core * 30; G += core * 20;                                     // (the core whiter)
       R += u * 18; G += u * 4; B -= u * 22;
       const i4 = (yy * w + xx) * 4;
       D[i4] = R; D[i4 + 1] = G; D[i4 + 2] = B; D[i4 + 3] = Math.min(255, k * 235);
@@ -447,7 +501,7 @@ export function createLegends({ clock, qp } = {}) {
       c.globalCompositeOperation = 'lighter';
       glow(c, [150, 160, 255], med.x, top + Math.min(reach, len) * 0.5, bw * 0.85, Math.max(20, reach * 0.62), 0.2 * beamK);
       pass(beamK * sh, 1);
-      glow(c, [236, 244, 255], med.x, top + Math.min(reach, len * 0.64) * 0.5, bw * 0.16, Math.max(12, Math.min(reach, len * 0.64) * 0.65), 0.32 * beamK);
+      glow(c, [236, 244, 255], med.x, top + Math.min(reach, len * 0.7) * 0.5, bw * 0.14, Math.max(12, Math.min(reach, len * 0.7) * 0.66), 0.46 * beamK);
       // the shimmer: a second pass a touch wider, its strength wandering — the light breathing
       pass(beamK * (mo ? 0.18 + 0.12 * Math.sin(t * 1.3 + 1) : 0.2), 1.08);
       // the motes: slowly rising (a few falling), drifting toward the axis as they climb; twinkling
@@ -474,34 +528,52 @@ export function createLegends({ clock, qp } = {}) {
       // vanishing into the light: a soft burst at the emitter
       if (st.lift.fade > 0.6) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, [240, 246, 255], med.x, bellyY + Hh * 0.2, Hh * 1.1, Hh * 0.7, smooth(0.6, 1, st.lift.fade) * 0.7); c.restore(); }
     }
-    // ---- THE SAUCER (its underglow in the haze, the hull, the emitter rings, the rim lights)
+    // ---- THE SAUCER (its underglow in the haze, the hull, the emitter's ORANGE pulse → the beam's white, the rim lights, a glint)
     c.save(); c.translate(sa.x, sa.y); c.rotate(sa.tilt); c.scale(sa.s, sa.s);
-    const R0 = saucer.R;
+    const R0 = saucer.R, eY = saucer.by + R0 * 0.01, bw = R0 * 0.94, bh = R0 * 0.24;
+    // (THE ORANGE PULSE: the emitter breathes orange from the approach; the tractor beam's white OVERTAKES it as it opens)
+    const pulse = mo ? 0.5 + 0.5 * Math.sin(t * 3.1) : 0.6, org = clamp01(1 - beamK * 1.25) * (0.45 + 0.55 * pulse);
     c.globalCompositeOperation = 'lighter';
-    glow(c, [170, 150, 255], 0, R0 * 0.3, R0 * 1.6, R0 * 0.8, 0.22 * night + 0.1);
+    glow(c, [255, 130, 50], 0, R0 * 0.32, R0 * 1.5, R0 * 0.62, (0.16 * night + 0.06) * org);
+    glow(c, [170, 186, 255], 0, R0 * 0.32, R0 * 1.6, R0 * 0.8, (0.2 * night + 0.08) * beamK);
     c.globalCompositeOperation = 'source-over';
     // (leaving: a short streak — the hull drawn a few times back along its path, fading)
     if (st.craft.out > 0.05) for (let i = 3; i >= 1; i--) { c.globalAlpha = 0.18 * st.craft.out / i; c.drawImage(saucer.cv, -saucer.w / 2 - i * 14 / sa.s, -saucer.oy + i * 6 / sa.s, saucer.w, saucer.h); }
     c.globalAlpha = 1; c.drawImage(saucer.cv, -saucer.w / 2, -saucer.oy, saucer.w, saucer.h);
     c.globalCompositeOperation = 'lighter';
-    // the emitter rings: on softly while it hovers, white-hot with the beam
-    const e = 0.25 + 0.75 * beamK;
-    for (const [rr, a] of [[0.62, 0.45], [0.46, 0.65], [0.3, 0.9]]) { c.globalAlpha = a * e; c.strokeStyle = 'rgb(214,200,255)'; c.lineWidth = R0 * 0.03; c.beginPath(); c.ellipse(0, R0 * 0.08, R0 * rr, R0 * rr * 0.26, 0, 0, TAU); c.stroke(); }
-    glow(c, [236, 240, 255], 0, R0 * 0.09, R0 * 0.42, R0 * 0.12, 0.85 * e);
-    glow(c, [255, 255, 255], 0, R0 * 0.09, R0 * 0.2, R0 * 0.06, e);
-    // THE RIM LIGHTS: 16 evenly spaced round the rim, chasing
+    // the grooves + the lens: orange (pulsing), then white-hot with the beam
+    const rings = [[0.6, 0.5], [0.47, 0.7], [0.36, 0.9]];
+    if (org > 0.01) {
+      rings.forEach(([k, a], i) => { const ph = mo ? 0.6 + 0.4 * Math.sin(t * 3.1 - i * 0.9) : 0.8; c.globalAlpha = Math.min(1, a * org * ph * 1.2); c.strokeStyle = 'rgb(255,140,46)'; c.lineWidth = R0 * 0.02; c.beginPath(); c.ellipse(0, eY, bw * k, bh * k, 0, 0, TAU); c.stroke(); });
+      glow(c, [255, 120, 40], 0, eY, bw * 0.62, bh * 0.75, 0.75 * org);
+      glow(c, [255, 200, 120], 0, eY, bw * 0.3, bh * 0.34, 0.95 * org);
+      glow(c, [255, 246, 220], 0, eY, bw * 0.12, bh * 0.13, 0.7 * org);
+    }
+    if (beamK > 0.01) {
+      rings.forEach(([k, a]) => { c.globalAlpha = a * beamK; c.strokeStyle = 'rgb(214,226,255)'; c.lineWidth = R0 * 0.026; c.beginPath(); c.ellipse(0, eY, bw * k, bh * k, 0, 0, TAU); c.stroke(); });
+      glow(c, [236, 242, 255], 0, eY, bw * 0.45, bh * 0.5, 0.9 * beamK);
+      glow(c, [255, 255, 255], 0, eY, bw * 0.22, bh * 0.24, beamK);
+    }
+    // THE DOME's light inside (a slow teal breath)
+    glow(c, [120, 240, 230], 0, -R0 * 0.24, R0 * 0.3, R0 * 0.2, 0.18 + (mo ? 0.08 * Math.sin(t * 1.3) : 0));
+    // THE RIM LIGHTS: 16 evenly spaced round the knife edge, ROTATING with the hull (a brighter pair chasing round)
     const n = 16;
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU + (mo ? t * 0.9 : 0), ex = Math.cos(a) * R0 * 0.985, ey = Math.sin(a) * R0 * 0.235 + R0 * 0.012;
-      const ch = mo ? Math.pow(0.5 + 0.5 * Math.cos(a * 2 - t * 4.2), 3) : 0.5, col = i % 2 ? [255, 236, 200] : [210, 196, 255];
-      const front = Math.sin(a) > -0.15 ? 1 : 0.55;
-      glow(c, col, ex, ey, R0 * 0.07, R0 * 0.045, (0.35 + 0.65 * ch) * front * 0.8);
-      c.globalAlpha = (0.55 + 0.45 * ch) * front; c.fillStyle = rgb(mix(col, [255, 255, 255], 0.5)); c.beginPath(); c.ellipse(ex, ey, R0 * 0.018, R0 * 0.012, 0, 0, TAU); c.fill();
+      const a = (i / n) * TAU + (mo ? t * 0.9 : 0), ex = Math.cos(a) * R0 * 0.99, ey = Math.sin(a) * R0 * 0.235 + R0 * 0.02;
+      const ch = mo ? Math.pow(0.5 + 0.5 * Math.cos(a * 2 - t * 4.2), 3) : 0.5, col = i % 2 ? [255, 226, 170] : [200, 236, 255];
+      const front = Math.sin(a) > -0.15 ? 1 : 0.5;
+      glow(c, col, ex, ey, R0 * 0.08, R0 * 0.05, (0.35 + 0.65 * ch) * front * 0.85);
+      c.globalAlpha = (0.6 + 0.4 * ch) * front; c.fillStyle = rgb(mix(col, [255, 255, 255], 0.6)); c.beginPath(); c.ellipse(ex, ey, R0 * 0.02, R0 * 0.013, 0, 0, TAU); c.fill();
     }
+    // a STAR GLINT sliding slowly along the polished rim (a lamp's reflection as the disc turns)
+    { const ga = Math.PI * 1.32 + (mo ? 0.22 * Math.sin(t * 0.45) : 0), gx = Math.cos(ga) * R0 * 0.97, gy = Math.sin(ga) * R0 * 0.23 + R0 * 0.02, gk = 0.75 + (mo ? 0.25 * Math.sin(t * 2.3) : 0);
+      glow(c, [255, 255, 255], gx, gy, R0 * 0.09, R0 * 0.09, 0.8 * gk);
+      c.globalAlpha = 0.85 * gk; c.strokeStyle = '#fff'; c.lineWidth = Math.max(0.5, R0 * 0.008);
+      c.beginPath(); c.moveTo(gx - R0 * 0.16, gy); c.lineTo(gx + R0 * 0.16, gy); c.moveTo(gx, gy - R0 * 0.07); c.lineTo(gx, gy + R0 * 0.07); c.stroke(); }
     c.restore();
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-    // its glow on the water under it (the water draws its own reflection column)
-    if (env && env.waterLight && sa.s > 0.6) env.waterLight(sa.x, sa.y, [190, 180, 255], 0.5 * (0.4 + 0.6 * beamK), R0 * 0.5);
+    // its glow on the water under it (the water draws its own reflection column): orange, then the beam's blue-white
+    if (env && env.waterLight && sa.s > 0.6) env.waterLight(sa.x, sa.y, mix([255, 150, 70], [190, 196, 255], beamK), 0.5 * (0.4 + 0.6 * Math.max(beamK, org * 0.6)), R0 * 0.5);
   }
 
   return {

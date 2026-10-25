@@ -13,6 +13,7 @@
 //   draw(c, f)   f: { signs ([rects]: a roof sign over a crown — the beam rises from above it), k (0..1 strength), on (how many are on, fractional: one by one), cols(ids) → [rgb] per beam, punch,
 //                haze (0..1), motion, tier, fade }
 import { project } from '../../core/harbor-layout.js';
+import { drawFogBeam, fogPatches, fogGlow } from './fogbeam.js';
 import { ctx2d, safeCtx } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -136,6 +137,9 @@ export function createSkyBeams() {
     if (!beams.length || f.k <= 0.004) return;
     const cols = f.cols ? f.cols(beams.map(b => b.id)) : beams.map(() => [255, 255, 255]);
     const haze = 1 + 0.7 * clamp01(f.haze || 0);
+    // (POLISH 4 — IN REAL FOG a beam is a VOLUME, never a crisp line to the top of the sky (fogbeam.js): the crisp beam hands over to a
+    // wide soft body dimming exponentially upward — SHORTER the thicker the fog — the fog's patches lit along it, a big glow round its root)
+    const fog = clamp01(f.fog || 0), vol = (f.fog == null ? 0 : 1) * (fog < 0.12 ? 0 : fog > 0.45 ? 1 : ((fog - 0.12) / 0.33) ** 2 * (3 - 2 * (fog - 0.12) / 0.33)), heavy = clamp01((fog - 0.35) / 0.6), crisp = 1 - 0.92 * vol;
     const pulse = 0.5 + 1.0 * (f.punch || 0);                         // (NEON PASS 5: a clear punch on the strong beats; 7a: 0.55 + 0.75 → 0.5 + 1.0)
     c.save(); c.globalCompositeOperation = 'lighter';
     const rs = f.signs || [];
@@ -151,7 +155,14 @@ export function createSkyBeams() {
       if (b.far) col = col.map((v, j) => Math.round([224, 240, 255][j] * 0.72 + v * 0.28));      // (the glass tower's: ice-white, a touch of the sweep)
       const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.9 + 0.3 * (f.punch || 0)) * (b.far ? 0.5 : 1);   // (7a: the beam swells more on the beat)
       if (!sp) return;
-      c.globalAlpha = Math.min(1, a * pulse * haze * 0.95 * (b.far ? 0.5 : 1));
+      if (vol > 0.01) {
+        const lv = (y0 - b.top) * (1 - 0.55 * heavy) * (1.05 - 0.2 * vol), hw = 30 * K * cfg.width * (1 + 1.3 * heavy) * (b.far ? 0.55 : 1), av = a * pulse * vol * (b.far ? 0.5 : 1);
+        drawFogBeam(c, b.x, y0, 0, -lv, hw, 0, col, av * 0.95, 0.35 * (1 - 0.6 * heavy));
+        if (f.tier > 0) fogPatches(c, b.x, y0, 0, -lv, hw, col, av * 0.8, f.motion ? performance.now() / 1000 : 0, f.tier === 2 ? 4 : 2);
+        fogGlow(c, b.x, y0, (14 + 28 * heavy) * K * (b.far ? 0.6 : 1), col, av * (0.32 + 0.25 * (f.punch || 0)));
+      }
+      if (crisp < 0.03) return;
+      c.globalAlpha = Math.min(1, a * pulse * haze * 0.95 * (b.far ? 0.5 : 1) * crisp);
       // (NEON PASS 6, the owner: the beam ended in a sharp horizontal line at the crown — its last FOOT pt now come from a fade sprite:
       // the same beam, fading out softly into the crown; everything above exactly as before)
       const ft = FOOT * K, yf = y0 + 2 - ft;
@@ -173,7 +184,7 @@ export function createSkyBeams() {
       if (fs) c.drawImage(fs, b.x - gw / 2, yf, gw, ft + 3 * K);
       // the beam's root: a bright flare where it leaves the crown (it punches on the beat)
       const r = (5 + 7 * (f.punch || 0)) * K * (b.far ? 0.55 : 1);
-      c.globalAlpha = Math.min(1, a * (0.55 + 0.6 * (f.punch || 0)) * (b.far ? 0.6 : 1));
+      c.globalAlpha = Math.min(1, a * (0.55 + 0.6 * (f.punch || 0)) * (b.far ? 0.6 : 1) * (0.4 + 0.6 * crisp));
       c.drawImage(flareSprite(), b.x - r, y0 - r * 0.7, r * 2, r * 2);
       // (SP: the cloud it goes into lights up there — clouds.js#beamPatch)
       // (the patch's size from the beam's own width, not its beat pulse — the beat is only its brightness)

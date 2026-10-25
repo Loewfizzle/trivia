@@ -2,12 +2,12 @@
 // (it quiets the other lanes), at night only:
 //   THE BARGE     out on the harbor: a dark steel hull, a deck of landing pads (each a soft blue light), a control hut with a
 //                 lit window, red mast lights — it fades in as the show begins
-//   LAUNCH        the drones lift off their pads in a rising stream (reflected in the water as they climb above the far quay),
-//                 gather into a loose cloud over the harbor
-//   FORMATIONS    a sequence of shapes and messages (core/harbor-sky.js#droneShape: letters in the skytyping font's dots, a
-//                 heart, a star, the flag, each game's mark, ₿, a pumpkin, a tree, a firework burst, a shamrock, an egg) — the
-//                 swarm flows from one to the next (each drone matched in order across the picture, so they stream rather than
-//                 cross; a soft arc on the way, the colour changing mid-flight), holds with a faint hover
+//   POLISH 4 (the owner): THE DRONE SHOW IS A MESSAGE — the NIGHT version of skytyping; no opening figure, no shapes, no closing star.
+//   LAUNCH        the drones lift off their pads in a rising stream from below the skyline (reflected in the water as they climb
+//                 above the far quay) and CONVERGE STRAIGHT INTO the message's first page, lighting as they arrive
+//   THE PAGES     each page of the message (core/harbor-sky.js#messagePages, the skytyping font's dots) held READABLE ~15 s
+//                 (DRONE_READ) — the swarm flows into the next page (each drone matched in order across the picture, so they
+//                 stream rather than cross; a soft arc on the way, the colour changing mid-flight), holds with a faint hover
 //   HOME          a scatter (a slow outward breath + twinkle), then down to the barge, lights off as each one lands
 // Every position is a function of the time since the show began (every phone sees the same show; a refresh lands mid-show).
 // Drones: 180 / 140 / 90 by tier (the shapes resample to them). The formation fills the sky-low lane (+ a little of the
@@ -64,6 +64,8 @@ export function createDrones() {
   function start(specs, at, o) {
     const need = Math.max(0, ...specs.filter(sp => sp.text != null).map(sp => { const T = dotLayout(Array.isArray(sp.lines) && sp.lines.length ? sp.lines : messagePages(fillText(sp.text, o.year || 2026))[0] || []); return T ? T.dots.length : 0; }));
     const n = Math.min(DRONES_CAP[tier], Math.max(DRONES_BY_TIER[tier], need)), R = rng(o.seed || 11);
+    // (POLISH 4: a message only — any shape asked for (an old link, the API) is left out)
+    specs = specs.filter(sp => sp && sp.text != null);
     const shapes = specs.map(sp => droneShape(sp, n, { year: o.year || 2026, marks: MARKS })).filter(Boolean);
     if (!shapes.length || !o.box || !o.barge) return false;
     const B = bargeArt(o.barge);
@@ -72,9 +74,8 @@ export function createDrones() {
     const tl = droneTimeline(shapes.length, !!o.calm), box = o.box;
     // the pads (one drone each; the barge has 72: more drones stack a little above), the staging cloud over the harbor
     const home = Array.from({ length: n }, (_, i) => { const p = B.pads[i % B.pads.length]; return [p[0], p[1] - Math.floor(i / B.pads.length) * 1.4]; });
-    const cloud = Array.from({ length: n }, () => [box.x + box.w * (0.2 + 0.6 * R()), box.y + box.h * (0.45 + 0.5 * R())]);
-    // each formation: its points scaled into the box (centred; letters a touch bigger), the drones matched in order (x, then y)
-    const sets = [cloud], sizes = [3.3 * K], xns = [cloud.map(p => clamp01((p[0] - box.x) / Math.max(1, box.w)))];
+    // (POLISH 4: no staging cloud — the first page is matched to the PADS in order, so the stream rises + fans out into it uncrossed)
+    const sets = [home], sizes = [3.3 * K], xns = [home.map(p => clamp01((p[0] - box.x) / Math.max(1, box.w)))];
     const cols = [Array.from({ length: n }, () => IDLE)], on = [Array.from({ length: n }, () => 1)];
     for (const sh of shapes) {
       // (letters: a cell ≤ 13 pt — big enough to read at a glance, tight enough that each cell's drones merge into one pixel)
@@ -108,15 +109,17 @@ export function createDrones() {
     const C = cur, tl = C.tl, ph = C.phase[i];
     const hov = motion ? [Math.sin(e * 1.3 + ph) * 0.45, Math.cos(e * 1.1 + ph * 1.7) * 0.45] : [0, 0];
     if (e < tl.launch) {
-      // LAUNCH: on the pad until its turn, then up to the staging cloud along a soft S
-      const t0 = C.lift[i], k = clamp01((e - t0) / 5.5), h = C.home[i], c = C.sets[0][i];
+      // LAUNCH: on the pad until its turn, then UP (rising first, then fanning out) straight into its place on the first page — its
+      // light turning to the page's colour on the way; a drone the page doesn't need dims out as it arrives
+      const t0 = C.lift[i], k = clamp01((e - t0) / 5.5), h = C.home[i], c = C.sets[1][i];
       if (k <= 0) return [h[0], h[1], C.idleG, 0.55];
-      const u = ease(k);
-      return [h[0] + (c[0] - h[0]) * u * u, h[1] + (c[1] - h[1]) * Math.sqrt(u), C.idleG, 0.8 + 0.2 * k];
+      const u = ease(k), lit = C.on[1][i];
+      const x = h[0] + (c[0] - h[0]) * u * u + (k >= 1 ? hov[0] : 0), y = h[1] + (c[1] - h[1]) * Math.sqrt(u) + (k >= 1 ? hov[1] : 0);
+      return [x, y, k < 0.55 ? C.idleG : C.glw[1][i], lit ? 0.8 + 0.2 * k : 0.85 * (1 - smoothK(k, 0.55, 1))];
     }
     if (e < tl.scatter) {
       let s = 0; while (s < tl.shapes.length - 1 && e >= tl.shapes[s + 1].t0) s++;
-      const sh = tl.shapes[s], a = C.sets[s][i], b = C.sets[s + 1][i], k = clamp01((e - sh.t0) / sh.morph), u = ease(k);
+      const sh = tl.shapes[s], a = C.sets[s][i], b = C.sets[s + 1][i], k = sh.morph > 0 ? clamp01((e - sh.t0) / sh.morph) : 1, u = ease(k);
       // the flow: a soft arc sideways on the way (each drone its own lean), the colour switching mid-flight
       const arc = Math.sin(Math.PI * u) * 7 * K * Math.sin(ph);
       const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
@@ -176,8 +179,8 @@ export function createDrones() {
       if (e < 0) return true;
       // (the glow's size: the formation's — a morph eases it between the two)
       const tl = cur.tl; let si = 0; while (si < tl.shapes.length && e >= tl.shapes[si].t0) si++;
-      const sh0 = tl.shapes[si - 1], mk0 = sh0 ? clamp01((e - sh0.t0) / sh0.morph) : 1;
-      const top = cur.waterTop, r = e >= tl.scatter ? 3.3 * K : cur.sizes[Math.max(0, si - 1)] + (cur.sizes[si] - cur.sizes[Math.max(0, si - 1)]) * mk0;
+      const sh0 = tl.shapes[si - 1], mk0 = sh0 && sh0.morph > 0 ? clamp01((e - sh0.t0) / sh0.morph) : 1;
+      const top = cur.waterTop, r = e >= tl.scatter ? 3.3 * K : si === 0 ? 3.3 * K + (cur.sizes[1] - 3.3 * K) * clamp01((e - 6) / 9) : cur.sizes[Math.max(0, si - 1)] + ((cur.sizes[si] || cur.sizes[si - 1]) - cur.sizes[Math.max(0, si - 1)]) * mk0;
       if (!cur.fr || cur.fr.now !== s.now) { const fr = cur.fr || (cur.fr = { x: new Float32Array(cur.n), y: new Float32Array(cur.n), a: new Float32Array(cur.n), g: new Array(cur.n) }); fr.now = s.now; for (let i = 0; i < cur.n; i++) { const d = droneAt(i, e, s.motion); fr.x[i] = d[0]; fr.y[i] = d[1]; fr.g[i] = d[2]; fr.a[i] = d[3]; } }
       const F = cur.fr, sky = part === 'sky';
       c.save(); c.globalCompositeOperation = 'lighter';

@@ -225,16 +225,16 @@ export function birdsNow(L) {
 //   specs: { text } | { shape }], h }, calm?: true (a respectful show: slower, steady lights, no burst) }
 const lastMonday = (y, m) => { const d = new Date(Date.UTC(y, m, 0)); return d.getUTCDate() - ((d.getUTCDay() + 6) % 7); };
 export const SKY_HOLIDAYS = [
-  { id: 'valentine', date: () => ({ m: 2, d: 14 }), day: { kind: 'skytype', text: '♥ LOVE ♥', h: 13 }, night: { show: [{ shape: 'heart' }, { text: 'LOVE' }, { shape: 'heart' }], h: 21 } },
-  { id: 'stpatrick', date: () => ({ m: 3, d: 17 }), day: { kind: 'skytype', text: 'HAPPY ST PATRICKS DAY', h: 13 }, night: { show: [{ shape: 'shamrock' }, { text: 'SLAINTE' }], h: 21 } },
-  { id: 'easter', date: y => easter(y), day: { kind: 'skytype', text: 'HAPPY EASTER', h: 13 }, night: { show: [{ shape: 'egg' }, { text: 'EASTER' }], h: 21 } },
-  { id: 'memorial', date: y => ({ m: 5, d: lastMonday(y, 5) }), calm: true, show: { kind: 'missing', h: 11 }, day: { kind: 'skytype', text: 'WE REMEMBER', h: 12 }, night: { show: [{ shape: 'flag' }], h: 21.25 } },
-  { id: 'july4', date: () => ({ m: 7, d: 4 }), show: { kind: 'airshow', h: 15.5 }, day: { kind: 'skytype', text: 'HAPPY 4TH OF JULY', h: 13 }, night: { show: [{ shape: 'flag' }, { text: 'USA' }, { shape: 'star' }], h: 21.25 } },
-  { id: 'halloween', date: () => ({ m: 10, d: 31 }), day: { kind: 'skytype', text: 'BOO!', h: 14 }, night: { show: [{ shape: 'pumpkin' }, { text: 'BOO' }], h: 20.5 } },
-  { id: 'veterans', date: () => ({ m: 11, d: 11 }), calm: true, show: { kind: 'missing', h: 11 }, day: { kind: 'skytype', text: 'THANK YOU VETERANS', h: 12 }, night: { show: [{ shape: 'flag' }, { text: 'THANK YOU' }], h: 21 } },
-  { id: 'thanksgiving', date: y => thanksgiving(y), day: { kind: 'skytype', text: 'HAPPY THANKSGIVING', h: 12.5 }, night: { show: [{ text: 'THANKS' }, { shape: 'pumpkin' }, { shape: 'heart' }], h: 20.5 } },
-  { id: 'christmas-eve', date: () => ({ m: 12, d: 24 }), day: { kind: 'skytype', text: 'MERRY CHRISTMAS', h: 13 }, night: { show: [{ shape: 'tree' }, { text: 'MERRY' }, { text: 'CHRISTMAS' }, { shape: 'star' }], h: 19.5 } },
-  { id: 'nye', date: () => ({ m: 12, d: 31 }), day: { kind: 'skytype', text: 'HAPPY NEW YEAR', h: 14 }, night: { show: [{ shape: 'burst' }, { text: 'HAPPY' }, { text: 'NEW YEAR' }, { text: '{next}' }], h: 21 } },
+  { id: 'valentine', date: () => ({ m: 2, d: 14 }), day: { kind: 'skytype', text: '♥ LOVE ♥', h: 13 }, night: { show: [{ text: 'HAPPY VALENTINES DAY' }], h: 21 } },
+  { id: 'stpatrick', date: () => ({ m: 3, d: 17 }), day: { kind: 'skytype', text: 'HAPPY ST PATRICKS DAY', h: 13 }, night: { show: [{ text: 'SLAINTE' }], h: 21 } },
+  { id: 'easter', date: y => easter(y), day: { kind: 'skytype', text: 'HAPPY EASTER', h: 13 }, night: { show: [{ text: 'HAPPY EASTER' }], h: 21 } },
+  { id: 'memorial', date: y => ({ m: 5, d: lastMonday(y, 5) }), calm: true, show: { kind: 'missing', h: 11 }, day: { kind: 'skytype', text: 'WE REMEMBER', h: 12 }, night: { show: [{ text: 'WE REMEMBER' }], h: 21.25 } },
+  { id: 'july4', date: () => ({ m: 7, d: 4 }), show: { kind: 'airshow', h: 15.5 }, day: { kind: 'skytype', text: 'HAPPY 4TH OF JULY', h: 13 }, night: { show: [{ text: 'HAPPY 4TH OF JULY' }], h: 21.25 } },
+  { id: 'halloween', date: () => ({ m: 10, d: 31 }), day: { kind: 'skytype', text: 'BOO!', h: 14 }, night: { show: [{ text: 'HAPPY HALLOWEEN' }], h: 20.5 } },
+  { id: 'veterans', date: () => ({ m: 11, d: 11 }), calm: true, show: { kind: 'missing', h: 11 }, day: { kind: 'skytype', text: 'THANK YOU VETERANS', h: 12 }, night: { show: [{ text: 'THANK YOU VETERANS' }], h: 21 } },
+  { id: 'thanksgiving', date: y => thanksgiving(y), day: { kind: 'skytype', text: 'HAPPY THANKSGIVING', h: 12.5 }, night: { show: [{ text: 'HAPPY THANKSGIVING' }], h: 20.5 } },
+  { id: 'christmas-eve', date: () => ({ m: 12, d: 24 }), day: { kind: 'skytype', text: 'MERRY CHRISTMAS', h: 13 }, night: { show: [{ text: 'MERRY CHRISTMAS' }], h: 19.5 } },
+  { id: 'nye', date: () => ({ m: 12, d: 31 }), day: { kind: 'skytype', text: 'HAPPY NEW YEAR', h: 14 }, night: { show: [{ text: 'HAPPY NEW YEAR' }, { text: '{next}' }], h: 21 } },
 ];
 const overrides = new Map();
 /** CITY CONTROL (later): cancel (null) or override (a patch: { day, night } — either may be null) one holiday's sky; undefined resets */
@@ -341,10 +341,17 @@ export function hsv(h, sa, v) {
   const [r, g, b] = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][((i % 6) + 6) % 6];
   return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
-/** the show's timeline (s): launch → each formation (a morph + a hold) → the scatter → home. calm: slower, longer holds */
+/** a page of a drone message: how long it holds READABLE once formed (s) — skytyping's own READ (smoke.js) */
+export const DRONE_READ = 15;
+/**
+ * The show's timeline (s) — POLISH 4 (the owner: "the drone show = A MESSAGE", the night version of skytyping): the drones RISE from the
+ * barge below the skyline straight INTO the message's first page (the launch: no staging cloud, no opening figure), each page HOLDS
+ * readable (DRONE_READ), the next page flows in (a morph), then they DISPERSE (the scatter) and fly home. count: the pages.
+ * calm: slower morphs, longer holds (Memorial + Veterans Day). shapes[0] has no morph: the launch forms it.
+ */
 export function droneTimeline(count, calm = false) {
-  const launch = 14, morph = calm ? 7 : 5, hold = calm ? 16 : 11, scatter = 4, home = 14;
-  const shapes = Array.from({ length: count }, (_, i) => ({ t0: launch + i * (morph + hold), morph, hold }));
-  const s0 = launch + count * (morph + hold);
+  const launch = 15, morph = calm ? 7 : 5, hold = calm ? 18 : DRONE_READ, scatter = 4, home = 14;
+  const shapes = Array.from({ length: count }, (_, i) => ({ t0: i ? launch + hold + (i - 1) * (morph + hold) : launch, morph: i ? morph : 0, hold }));
+  const s0 = count ? launch + hold + (count - 1) * (morph + hold) : launch;
   return { launch, shapes, scatter: s0, home: s0 + scatter, end: s0 + scatter + home };
 }

@@ -1153,7 +1153,7 @@ test('the preview panel: validation keeps plain values only (the server refuses 
   assert.deepEqual(r.bad.sort(), ['colours', 'force:nope', 'show'].sort());
   assert.deepEqual(r.state.force, ['drones', 'aurora']);
   assert.equal(r.state.text, 'HI BTHEREB', 'no markup survives: letters only, upper case');
-  assert.equal(r.state.show, 'heart,mark:pulse');
+  assert.equal(r.state.show, undefined, 'POLISH 4: the drone show is a message only — no row reads the SHAPES any more, so they are dropped');
   assert.equal(r.state.colours, 'ff2e97');
   assert.ok(!('evil' in r.state));
   r = cleanRemote({ force: 'banner,spell', text: 'a very long message for the sky — longer than any banner can carry across' });
