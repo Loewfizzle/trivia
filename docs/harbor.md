@@ -5116,6 +5116,128 @@ seller's sale is a gesture only (no couple stops yet); the stream guests don't s
 sweeper's wet streak is a stroke along his passes (not per-cobble); `&force=work-<kind>` slots are on the clock (a page may wait up to ~3
 min for a short worker to start).
 
+### Group 2 — THE WILDLIFE (`core/harbor-wildlife.js` PURE + `tests/harbor-wildlife.test.mjs`; `screens/harbor/wildlife.js` live; `screens/harbor/fauna.js` the art; preview `tests/integration/fauna-preview.html`)
+The spec: plan.md "8b — THE WILDLIFE, ALL NEW FOR CITY 2.0" + "8b — WILDLIFE THAT REACTS TO PEOPLE" + the coyote / raccoon lines + the gulls on
+the billboard. Nothing of City 1.0's wildlife art is reused (the sky's own birds — geese, swifts, bats, the far gulls wheeling over the water —
+stay in `birds.js`).
+- **HOW IT WORKS.** Every animal's SCHEDULE is planned from a seed (the local date + a slot) like the people + the routines — a pure function of
+  the clock, so every phone sees the same animal in the same place and a page opened mid-way joins it mid-way; nothing pops in or out (they
+  fly / walk / climb in + out). Only the REACTIONS are live (`wildlife.js`): the people are a pure function of the clock too, so every phone
+  watching sees the same scare. `frame(f)` once a frame (the plan + the reactions), then the PASSES, each where the animal really stands:
+  `water` (the heron's piling + the heron, the fish — before the road layer), `far` + `near` → `items()` sorted by depth INTO the people's own
+  passes (`people.js#draw`'s `env.extra`), `bill` (after the roof billboard: its top edge + catwalk), `front` (after the people: the trash can
+  + the raccoon), `high` (after the café lights: the blade's top, the parapet, the date stone, the canopy's posts), `top` (after the front row
+  + the leaves: the squirrel on the big maple's trunk, the fireflies). `&force=no-wildlife` takes all of it off (the speed A/B).
+- **THE ART** (`fauna.js`): every animal is a handful of 3-D points in its own frame (forward / lateral / up) projected through the REAL
+  camera — the bodies are ellipsoids drawn as their exact projected outline (`ellipsoid()`), so the FACING comes for free (front-on walking
+  toward us, side-on crossing, 3/4 on a diagonal, the wings' undersides from behind). One light model (`litCol`): the day's sun + its side
+  across each body (a lit + a shade side), the gold hour warmer, a deck flatter; at night a dark form lifted by the lamps' light where it
+  stands (core/harbor-light.js#lightField) + a crisp RIM on the lamp's side (tier 0: no rim, one flat fill a body). A contact shadow under
+  each, the sun's cast shadow by day. `fauna-preview.html?light=day|night|gold&scale=3&only=…` shows each at 8 headings + its poses + at the
+  phone's own size (the right column).
+- **THE PIGEONS** (`PIGEON`, `pigeonCount`, `groundShare`, `pigeonSlot`, `pigeonAt`, `groundLife`): the same eight birds a day, planned per
+  9-minute slot — how many are out (2–8 by the hour: a full flock mornings, fewer midday, two roosting asleep at night; winter fewer, Sundays a
+  few more, rain fewer) and where each sits: the cobbles (three patches on the open floor) or a LEDGE (`wildSpots`: the blade's top, the
+  parapet either side of the date stone, the billboard's top + its catwalk railing, the tall lamps' crossarms, the café-light posts); the
+  share on the ground falls in winter (huddled up high, rarely on the snowy cobbles), in rain (huddled on the ledges), on a busy promenade +
+  in the evening. Between slots each bird flies to its new spot at its own moment in the first 70 s (never all together); some slots the
+  whole flock is gone (in runs — "sometimes the whole flock is gone for a long stretch"). On the cobbles each walks + pecks + looks round
+  (pure in t). THE SCATTER (live): a person walking within ~1.4–2 units flushes a bird + most of its neighbours, staggered (not always
+  together) — ~70 % to a free ledge nearby for 1–4 min, ~30 % off the screen for 1.5–6 min, back from the OTHER side to a ledge if people
+  are still on its patch; a scare (`scare(x, z, r)`, `startle()`) does the same. The wing-clatter (`pigeon-flutter`) at a burst, a coo now +
+  then (`pigeon-coo`). The pigeons keep away from the snowy owl (no ledge within 4 units of its perch — the plan knows the owl's day).
+  **A DOG CHASES THEM**: a dog walking within 2.8 units of the flock lunges at it half the time (seeded per walk) — its body stretched low,
+  the front legs reaching, a bark (`dog-bark`), its owner's leash TAUT (`folk.js#drawDog`'s `lunge`, `drawLeash(…, taut)`), the flock bursts.
+- **THE GULLS** (`GULL`, `gullSlot`): by day, 0–3 landings an 8-minute slot (more on windy / stormy days) on the billboard's top, its catwalk
+  railing or the waterside railing either side of the WALK / WAIT lantern: a glide in from the side over the harbor, braking beats, the legs
+  down, a hop on the touchdown, the wings folding; then preening, looking round, the odd call (`gulls`); a crouch + jump + hard beats away.
+  Huddled (puffed, the head drawn in) in rain; none at night; a railing gull takes off early if someone comes close.
+- **THE SNOWY OWL** (`OWL`, `owlDay`, `owlAt`): Dec–Mar, ~28 % of the days: glides in mid-morning to early afternoon, sits through the day on
+  the billboard's corners / the date stone's top / a tall lamp's top (big, white, ~11–13 pt), a slow head turn every ~11 s, a blink, a
+  silent glide to another perch every 25–60 min; at dusk the yellow eyes catch the light (a soft glow); off at dusk. NOT the lighthouse
+  gallery (Decision: at z 150 it would be ~3 pt).
+- **THE SQUIRREL** (`SQUIRREL`, `squirrelSlot`): on the big framing maple (the nearest, biggest tree): down the trunk in a spiral (out of the
+  crown — it fades in), hops across the cobbles to 2–5 spots, sits up, the tail flicking; back up the trunk into the leaves (fading into the
+  crown); in winter in + out of a HOLLOW in the trunk (a dark knot-hole, drawn in winter). Autumn the busiest (dashing to and fro), spring +
+  summer often, winter rare; never in rain. Someone walking up to it → the dash back + a fast spiral climb + a chatter (`squirrel-chatter`).
+  PHONE TEST: 1.5× was lost among the autumn leaves at 402 → **ENLARGED to 2× and a dark coat** (Michigan's black squirrel, common in
+  Grand Rapids) with a frosted fringe on its plume — it reads by its sitting-up silhouette + the curled tail + the hops.
+- **THE COYOTE** (`COYOTE`, `coyoteNight`, `coyotePath`, `coyoteTracks`): rare (~30 % of nights pass the dice; only when the people's own
+  count by the clock is nearly empty): from 10 pm, likeliest 1–4 am; in from the right edge across the promenade (or the reverse from behind
+  the speakeasy along the waterside sidewalk), STOPS UNDER THE LEFT TALL LAMP, turns its head to us — the green-gold EYE-FLASH in the
+  lamplight — then trots on over the road + off behind the speakeasy. Someone appearing → it slinks off fast to the nearest edge. Full-moon
+  nights: its own howl at the stop (the head raised, `coyote-howl`) + a distant howl later (sound only); otherwise a yip now + then.
+  TRACKS IN FRESH SNOW: Part 9's hook — `frame({ snow })` > 0.3 → its prints along its path, fading over ~25 min.
+- **THE RACCOON + THE TRASH CAN** (`RACCOON`, `raccoonNight`, `canAt`, `lidFixed`; the can: `core/harbor-promenade.js#CAN`, `trashCanSpot`,
+  `L.trashCan`; `fauna.js#drawTrashCan`): the owner's small period GALVANIZED can with a domed lid + handles just RIGHT of the front-left globe
+  lamp (by the curb + the brick street), its foot ≥ 4 pt above the dock at 390 / 402 / 430, IN FRONT of the walkable floor (no route reaches
+  it), clear of the lobby line (left of that lamp). ~40 % of nights (11 pm – 3:30 am) the raccoon comes along the front walk from the left
+  edge, rears up with its paws on the rim, tips the lid off (a clang, `trash-can-lid`), rummages (the head in, popping up now + then), and
+  goes; the lid lies against the can until the BARBER rights it at 8:30 (or whoever empties it first — `ctx.lidFixedAt(tTip)`, Group 1's
+  trash collector). It bolts if someone comes within ~3.6 units or the trash truck arrives (`frame({ truck(a, b) })`). `raccoon-chitter`
+  stays EMPTY (the only file was a hiss).
+- **THE SPEAKEASY CAT, OUTSIDE** (`CAT`, `catEvening`, `catPath`, `catSpot`): the window's black cat out on ~35 % of warm evenings (~12 % in
+  winter), dusk → 11 pm, 6–16 min: along the facade from the left edge, a hop up onto the barbershop's outside window SILL (or the side door's
+  step), sitting, the tail flicking, a lick, looking round, a meow now + then (`cat-meow`); NEVER while the window moment "THE CAT ON THE SILL"
+  shows it inside (`catInside` — the same hour plan the window life builds, core/harbor-moments.js#hourPlan with its dusk / dawn). THE STALK
+  (half its outings, if pigeons are on the cobbles): it drops down, creeps low toward the nearest pigeon, wiggles, POUNCES — the flock bursts —
+  sits + licks a paw, walks back, hops up.
+- **FIREFLIES** (`FIREFLY`, `fireflyCount`, `fireflyAt`): Jun 10 – Aug 31, 21:15 → 00:35 after dark, no rain, a light wind: up to 24 (tier
+  10 / 16 / 24) drifting round the trees' feet, the bench + the compass, each its own slow glow (a soft rise, a long decay, some double).
+- **THE HERON** (`HERON`, `heronMorning`; the piling: `PILING`, `pilingSpot`, `fauna.js#drawPiling`): a new weathered three-timber MOORING
+  DOLPHIN out in the open water between the WALK / WAIT lantern and the right stop light (z 100 — clear of the lamps' globes + the lantern;
+  Decision: the plan's "pilings" — the pier's are at z 118+, ~4 pt a heron there), painted once into a sprite. April–October on ~45 % of
+  mornings the great blue heron glides in round the sunrise (slow broad beats), stands 25–70 min (a big still S-necked shape against the
+  bright water, ~15 pt), strikes at the water now + then, flies off low. The old night sky crossing (birds.js) is now `&force=heron-sky`.
+- **FISH JUMPING** (`FISH`, `fishSlot`): in the near water (z 66–104): a silver arc out + back in (a glint by day), the splash, three ripple
+  rings spreading ~3 s; likeliest at dawn + dusk, a few by day, rare at night.
+- **THE DUCK CROSSING** (`DUCKS`, `duckDay`, `duckPlan`, `ducksBlock`): spring (Apr 1 – Jun 15), ~1 day in 6, once between 7 am and 6 pm: 2–4
+  adult mallards (a drake's green head + white collar + chestnut breast, the hens mottled) waddle along the waterside sidewalk from the right,
+  set off across on WALK in single file, then along the curb to the right edge; a quack as they start. THE PEOPLE WAIT: `walkStart` asks
+  `ctx.crossBlocked(a, b)` (core/harbor-people.js — the duck plan, pure) and nobody sets off across while the ducks are on it (the unit test
+  counts the walkers it held back).
+- **THE PANEL** (category WILDLIFE): PIGEONS · PIGEONS SCATTER · A DOG CHASES THEM · THE CAT OUTSIDE · THE CAT STALKS · GULLS LANDING · SNOWY
+  OWL · HERON ON THE PILING · THE DUCK CROSSING · THE SQUIRREL · THE COYOTE · THE RACCOON · FIREFLIES · FISH JUMPING · NO WILDLIFE. Each preview
+  LOOPS FROM THE MOMENT ITS ROW COMES ON (`since` — not from the epoch): the animal is on screen within ~2 s; the previews never bolt from
+  passers-by (the coyote, the raccoon).
+- **HOOKS**: `harbor().wildlife` — the debug state + `scare(x, z, r)`, `startle()` (Group 3's witnesses: the pigeons burst up, the coyote /
+  raccoon / squirrel bolt), `budget(k)` (THE DIRECTOR: the share of the flock drawn), `crossBlocked(a, b)`, `canState()`; `people.positions()`
+  (8b1: everyone on the promenade, the plan's — not the tier's cut); `people.draw(c, pass, { …env, extra, dogLunge })`; `frame({ canHeld(t),
+  lidFixedAt(tTip), truck(a, b) })` — Group 1's trash collector carrying the can, putting the lid back, the truck scaring the raccoon.
+
+**ADDING AN ANIMAL**: (1) its plan in `core/harbor-wildlife.js` — a function of a slot / a day + ctx → its sessions, seeded (`R(…)`), the
+season / hour / weather as weights, a `force` branch; (2) its painter in `fauna.js` (3-D points through `frameOf` + `ellipsoid`, `litCol`,
+`contact`, `rimOf`) + a row in `fauna-preview.html`; (3) its live state in `wildlife.js#frame` (+ a `fbase(id, period)` loop for its preview)
+and its pass (`items()` for the ground, `draw(pass)` for a perch); (4) its id in `WILD_FORCES` + a row in `core/harbor-remote.js` (cat
+`wildlife`); (5) a check in `tests/harbor-wildlife.test.mjs` + the panel loop of the `wildlife` E2E group.
+
+**WHEN (for the hour-by-week planning table):** pigeons all day (2 roosting at night; the cobbles busiest early + quiet times) · gulls by day
+(windy days more) · the snowy owl Dec–Mar days (~28 %) · the squirrel by day (autumn most) · the heron at sunrise Apr–Oct (~45 %) · fish
+dawn + dusk most · the duck crossing Apr 1–Jun 15 (~1 day in 6, 7 am–6 pm) · the cat out dusk–11 pm (~35 %) · fireflies Jun 10–Aug 31
+21:15–00:35 · the coyote 10 pm–4 am (rare, quiet nights) · the raccoon 11 pm–3:30 am (~40 %), its lid askew until 8:30.
+
+**Tests (Group 2)**: unit `tests/harbor-wildlife.test.mjs` (14: the can above the dock at 390 / 402 / 430 + clear of the lobby line, every
+perch on screen, the flock's counts + seasons + capacities + the same on every phone + joined mid-way, the owl's distance, the gulls by day,
+the owl / squirrel / coyote / raccoon + lid / cat / fireflies / heron / fish / ducks' windows + rarities, the duck crossing holding the
+walkers back); E2E group `wildlife` (9 checks: the flock drawn above the dock, the scatter, the coyote's eye-flash, the raccoon + the lid,
+every panel row's animal by day + at night, the ducks) in its OWN cloud job `wild` (harbor-jobs.mjs + harbor.yml — the four others were
+within a minute of their 5-min cap); `people` re-run green (19/19 together locally).
+
+**Decisions (Group 2)**: the snowy owl not on the lighthouse gallery (~3 pt at z 150) — the billboard's corners, the date stone, a lamp top;
+the heron on a NEW mooring piling at z 100 (the pier's pilings are too far; a nearer spot hid it behind a lamp's globe); the squirrel 2×
+with a dark coat (1.5× didn't read); the trash can 1.75 units right of the globe (at 0.95 the raccoon stood hidden behind the lamp post) and no
+route circle round it (it stands in front of the walkable floor); `askew` = the lid leaning on the ground against the can (the same as
+`off` — no jump when the raccoon leaves); the panel's old HERON row (the night sky crossing) renamed `heron-sky`; the previews loop from the
+moment their row comes on + never bolt; the whole flock (`&force=pigeons`) shows at any tier.
+
+**Known issues (Group 2)**: the pigeons' scare reads the people's plan positions (every phone the same), but a page opened mid-scatter starts
+from the plan (the live flush history isn't shared — a minute later every phone agrees again); the gull + pigeon wing poses are geometric
+panels (premium at their 8–24 pt, plain in the 8× preview); the coyote's body reads a little two-humped side-on; the cat on the sill is a
+black silhouette on a dark shopfront at night (its eyes + the window behind it carry it); the squirrel's spiral is a fade into / out of the
+crown (no occlusion by the leaves themselves); the speed: one A/B on a loaded laptop (three agents at once) — the whole forced menagerie at
+noon +1.1 ms at tier 2 (noise ±1.3) and +1.7–2.9 ms at tier 0 (noise ±2.5–5.7) → tier 0 now one flat fill a body + the piling baked;
+the final A-B-B-A round decides.
+
 ## Review findings (Part 1)
 Read-only review of Part 1 against this file (Oct 21 2026): the camera + layout numbers at the six sizes, the scene API against
 title.js / title-dock.js / backdrop.js, the baker + the budget, the scheduler, the flag, and what Parts 2–12 will hit. The camera

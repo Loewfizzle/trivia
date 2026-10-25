@@ -373,7 +373,7 @@ async function neonPass5Panel() {
   const SKY = [
     ['banner', 'st.banner'], ['skywrite', 'st.smoke && st.smoke.kind === "skytype"'], ['skytype', 'st.smoke && st.smoke.kind === "skytype"'], ['helicopter', 'st.air.heli'],
     ['balloons', 'st.balloons'], ['balloon-festival', 'st.balloons'], ['planes', 'st.air.planes.length > 0'], ['approach', 'st.air.planes.some(p => p.approach)'],
-    ['geese', 'st.birds.geese > 0'], ['swifts', 'st.birds.swifts > 0'], ['bats-dusk', 'st.birds.bats > 0'], ['heron', 'st.birds.heron'],
+    ['geese', 'st.birds.geese > 0'], ['swifts', 'st.birds.swifts > 0'], ['bats-dusk', 'st.birds.bats > 0'], ['heron-sky', 'st.birds.heron'],   // (8b1: 'heron' is the heron on its piling now — the wildlife group)
   ];
   const NIGHT_SKY = [['satellites', 'st.air.train'], ['drones', 'st.drones']];
   for (const [when, list] of [[`when=2026-10-21T13:00${GR}&wind=2`, SKY], [NIGHT, NIGHT_SKY]]) {
@@ -2087,6 +2087,72 @@ G('people', async () => {
     ok(pp.roof >= 2 && pp.roof <= 6, `THE ROOF on a party night: ${pp.roof} guests (${pp.roofMembers.map(m => m.pose).join(', ')})`);
     await Q.ctx.close(); }
 
+});
+// ---- PART 8b1 — THE WILDLIFE (core/harbor-wildlife.js + screens/harbor/wildlife.js + fauna.js): the animals drawn where they stand,
+// the pigeons flushing + coming back, the night's coyote + raccoon + the can, the gulls landing, every panel row showing its animal
+G('wildlife', async () => {
+  const P = 'window.__district.harbor()', W = `${P}.wildlife`;
+  const band = p => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, c = ${P}.cam, y0 = Math.round((c.dock.y - 130) * k), h = Math.round(120 * k);
+    const d = cv.getContext('2d').getImageData(0, y0, cv.width, h).data, out = []; for (let i = 0; i < d.length; i += 4 * 97) out.push(d[i] + d[i + 1] + d[i + 2]); res(out); }))`);
+  // ---- THE FLOCK (&force=pigeons at noon, no people: nothing scares them): all eight out, every one on screen above the dock; drawn
+  { const Q = await open({ slot: 'wl1', qs: `when=2026-10-22T12:00${GR}&force=pigeons,no-people`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${W}.pigeons.filter(p => !p.away).length >= 6`, 'the flock out', 10000).catch(() => {});
+    const wl = await ev(Q.page, W), cam = await ev(Q.page, `${P}.cam`);
+    const out = wl.pigeons.filter(p => !p.away), scr = await ev(Q.page, `${W}.pigeons.filter(p => !p.away).map(p => [p.x, p.y, p.z])`);
+    const ys = scr.map(([x, y, z]) => cam.VPY + cam.F * (cam.CAMH - y) / z);
+    ok(out.length >= 6 && ys.every(y => y < cam.dock.y - 1), `THE PIGEONS (&force=pigeons): ${out.length} of 8 out (${[...new Set(out.map(p => p.spot))].join(', ')}), every one above the dock (lowest ${Math.max(...ys).toFixed(0)} < ${cam.dock.y})`);
+    const a = await band(Q.page);
+    const O = await open({ slot: 'wl1b', qs: `when=2026-10-22T12:00${GR}&force=pigeons,no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(O.page);
+    const b = await band(O.page), diff = a.reduce((s, v, i) => s + (Math.abs(v - b[i]) > 30 ? 1 : 0), 0);
+    ok(diff > 3, `THE WILDLIFE is drawn: the promenade's band differs from &force=no-wildlife in ${diff} samples (the flock + the can)`);
+    const can = await ev(Q.page, `${W}.canState()`);
+    ok(can && can.lid === 'on', `THE TRASH CAN by the front-left lamp, its lid on at noon (${JSON.stringify(can)})`);
+    await O.ctx.close(); await Q.ctx.close(); }
+  // ---- THE SCATTER (&force=pigeons-scatter: a scare every 25 s): they burst up — in the air within the loop, then each lands on a
+  // ledge or is away a while (never back on the same cobbles at once)
+  { const Q = await open({ slot: 'wl2', qs: `when=2026-10-22T12:00${GR}&force=pigeons,pigeons-scatter,no-people`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${W}.pigeons.some(p => p.air)`, 'a pigeon in the air', 30000);
+    await waitFor(Q.page, `${W}.pigeons.some(p => p.ov === 'away' || (p.ov === 'at' && p.spot !== 'air'))`, 'landed on a ledge / away', 15000);
+    const wl = await ev(Q.page, W);
+    ok(wl.pigeons.some(p => p.ov), `THE SCATTER: the flock burst up — now ${wl.pigeons.map(p => (p.away ? 'away' : p.spot) + (p.ov ? `(${p.ov})` : '')).join(' ')}`);
+    await Q.ctx.close(); }
+  // ---- THE NIGHT: the coyote (its stop under the lamp + the eye-flash) and the raccoon at the can (the lid tipped off)
+  { const Q = await open({ slot: 'wl3', qs: `when=2026-10-22T23:40${GR}&force=coyote,raccoon`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!${W}.coyote`, 'the coyote', 15000);
+    const eyes = await waitFor(Q.page, `${W}.coyote && ${W}.coyote.eyes > 0.3`, 'the eye-flash under the lamp', 40000).then(() => true).catch(() => false);
+    ok(eyes, 'THE COYOTE: trots in, stops under the tall lamp, turns its head to us — the green-gold eye-flash');
+    await waitFor(Q.page, `${W}.canState().lid !== 'on'`, 'the lid off', 30000);
+    const wl = await ev(Q.page, W);
+    ok(wl.raccoon && /rear|rummage/.test(wl.raccoon.pose), `THE RACCOON at the can: ${wl.raccoon && wl.raccoon.pose}, the lid ${wl.can && wl.can.lid}`);
+    await Q.ctx.close(); }
+  // ---- THE PANEL: every WILDLIFE row brings its animal (JUST ME), the night ones at night
+  for (const [when, list] of [[`when=2026-07-10T12:00${GR}`, [['pigeons', 'w.pigeons.some(p => !p.away)'], ['gulls-land', 'w.gulls.length > 0'], ['squirrel', '!!w.squirrel'], ['snowy-owl', '!!w.owl'], ['heron', '!!w.heron'], ['fish', 'w.fish > 0'], ['cat-out', '!!w.cat']]],
+    [`when=2026-07-10T23:30${GR}`, [['coyote', '!!w.coyote'], ['raccoon', '!!w.raccoon'], ['fireflies', 'w.fireflies > 0']]]]) {
+    const Q = await open({ slot: `wl4${list.length}`, qs: `${when}&panel=1`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, '!!window.__district.remote()', 'the panel', 10000);
+    const got = [], missing = [];
+    for (const [id, cond] of list) {
+      await ev(Q.page, `window.__district.remote().setMine({ force: ['${id}'] })`);
+      const okk = await waitFor(Q.page, `(() => { const w = ${W}; return !!(${cond}); })()`, id, 12000).then(() => true).catch(() => false);
+      (okk ? got : missing).push(id);
+      await ev(Q.page, 'window.__district.remote().setMine({})');
+      await waitFor(Q.page, '!window.__district.harbor().flags.remote', 'cleared', 4000).catch(() => {});
+    }
+    ok(!missing.length, `THE PANEL'S WILDLIFE (${/T12/.test(when) ? 'by day' : 'at night'}): ${got.join(', ')} each appeared within 12 s${missing.length ? ` — MISSING: ${missing.join(', ')}` : ''}`);
+    await Q.ctx.close();
+  }
+  // ---- THE DUCK CROSSING (&force=ducks): the mallards out, the people at the kerb held back while they're on the crossing
+  { const Q = await open({ slot: 'wl5', qs: `when=2026-05-12T10:00${GR}&force=ducks`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${W}.ducks > 0`, 'the ducks', 30000);
+    const wl = await ev(Q.page, W);
+    ok(wl.ducks >= 2, `THE DUCK CROSSING: ${wl.ducks} mallards out`);
+    await Q.ctx.close(); }
 });
 // ---- FP3b — THE PEOPLE'S LIFE: REAL DOORS + THE GLOW-WAND DANCE CIRCLE (their own group: the `show` cloud job has the room)
 G('life', async () => {

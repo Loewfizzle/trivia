@@ -83,6 +83,10 @@ const SCENES = {
   's-day': 'when=2026-10-14T14:00&wx=clear&force=planes', 's-night': 'when=2026-10-14T21:30&wx=clear&force=approach',
   's-banner': 'when=2026-10-14T14:00&wx=clear&force=no-planes,banner', 's-skytype': 'when=2026-10-14T14:00&wx=clear&wind=2&force=no-planes,skytype&text=HAPPY%20BIRTHDAY%20STEVE',
   's-heli': 'when=2026-10-14T21:30&wx=clear&force=no-planes,helicopter', 's-drones': 'when=2026-10-14T21:30&wx=clear&force=no-planes,drones&text=HELLO&show=heart',
+  // PART 8b1: THE WILDLIFE — a busy weekday noon with the whole flock + the gulls landing + the squirrel + the fish (wl-noon), a party
+  // night with the coyote, the raccoon + the cat out (wl-party); -off: the same with every animal off (--vs: the wildlife's cost)
+  'wl-noon': 'when=2026-10-14T12:15&wx=clear&force=no-planes,pigeons,gulls-land,squirrel,fish', 'wl-noon-off': 'when=2026-10-14T12:15&wx=clear&force=no-planes,pigeons,gulls-land,squirrel,fish,no-wildlife',
+  'wl-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes,coyote,raccoon,cat-out', 'wl-party-off': 'when=2026-10-17T23:00&wx=clear&force=no-planes,coyote,raccoon,cat-out,no-wildlife',
   's-aurora': 'when=2026-10-14T23:30&wx=clear&force=no-planes,aurora', 's-worst': 'when=2026-10-17T23:00&wx=clear&force=no-planes,neon-party,drones&text=HELLO&show=heart',
 };
 const names = arg('scenes', 'party,night,day').split(',');

@@ -488,19 +488,21 @@ export function drawDog(c, cam, st, L, env, yUp = 0) {
   let col = L.dog; if (dark > 0.01) { col = mix(col, [18, 16, 28], 0.74 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); col = col.map((v, i) => Math.min(255, v + lt[i] * q * 0.17 * lampK)); } }
   c.fillStyle = `rgba(8,6,16,${(0.3 + 0.15 * dark).toFixed(3)})`; c.beginPath(); c.ellipse(fx, fy, H * 0.65, H * 0.08, 0, 0, TAU); c.fill();
   const p = st.v > 0.05 ? (st.dist / 0.9) % 1 : 0, trot = st.v > 0.05 ? 1 : 0;
+  // (8b1 wildlife — THE LUNGE at the pigeons, st.lunge 0..1: the body stretched + low, the front legs reaching, the head down + out)
+  const lg = Math.max(0, Math.min(1, st.lunge || 0)), fwd = 0.3 * lg, low = 0.1 * lg;
   c.strokeStyle = rgb(col.map(v => v * 0.8)); c.lineWidth = Math.max(0.6, H * 0.09); c.lineCap = 'round';
-  for (const [bx, ph] of [[-0.42, 0], [0.38, 0.5], [-0.32, 0.5], [0.28, 0]]) { const sw = trot * Math.sin((p + ph) * TAU) * 0.16; c.beginPath(); c.moveTo(X(bx), Y(0.42)); c.lineTo(X(bx + sw), Y(0.02)); c.stroke(); }
-  c.fillStyle = rgb(col); c.beginPath(); c.ellipse(X(0), Y(0.52), H * 0.5, H * 0.17, 0, 0, TAU); c.fill();
-  c.beginPath(); c.ellipse(X(0.55), Y(0.72), H * 0.16, H * 0.14, 0, 0, TAU); c.fill();                      // the head
-  c.beginPath(); c.ellipse(X(0.7), Y(0.68), H * 0.1, H * 0.06, 0, 0, TAU); c.fill();                       // the muzzle
-  c.beginPath(); c.moveTo(X(0.5), Y(0.82)); c.lineTo(X(0.46), Y(0.98)); c.lineTo(X(0.58), Y(0.84)); c.fill();   // an ear
+  for (const [bx, ph] of [[-0.42, 0], [0.38, 0.5], [-0.32, 0.5], [0.28, 0]]) { const sw = trot * Math.sin((p + ph) * TAU) * 0.16, reach = bx > 0 ? fwd * 1.4 : -fwd * 0.3; c.beginPath(); c.moveTo(X(bx + (bx > 0 ? fwd : 0)), Y(0.42 - low)); c.lineTo(X(bx + sw + reach), Y(0.02)); c.stroke(); }
+  c.fillStyle = rgb(col); c.beginPath(); c.ellipse(X(fwd * 0.5), Y(0.52 - low), H * (0.5 + fwd * 0.5), H * 0.17, 0, 0, TAU); c.fill();
+  c.beginPath(); c.ellipse(X(0.55 + fwd * 1.1), Y(0.72 - low * 2), H * 0.16, H * 0.14, 0, 0, TAU); c.fill();                      // the head
+  c.beginPath(); c.ellipse(X(0.7 + fwd * 1.15), Y(0.68 - low * 2), H * 0.1, H * 0.06, 0, 0, TAU); c.fill();                       // the muzzle
+  c.beginPath(); c.moveTo(X(0.5 + fwd * 1.1), Y(0.82 - low * 2)); c.lineTo(X(0.46 + fwd), Y(0.98 - low * 2.6)); c.lineTo(X(0.58 + fwd * 1.1), Y(0.84 - low * 2)); c.fill();   // an ear (flat back in the lunge)
   const wag = env.mo !== false ? Math.sin((env.t || 0) * 11 + st.x) * 0.08 : 0;
   c.strokeStyle = rgb(col); c.lineWidth = Math.max(0.6, H * 0.07); c.beginPath(); c.moveTo(X(-0.48), Y(0.58)); c.quadraticCurveTo(X(-0.66), Y(0.78 + wag), X(-0.62), Y(0.92 + wag)); c.stroke();
-  return [X(0.48), Y(0.62)];
+  return [X(0.48 + fwd * 1.1), Y(0.62 - low * 2)];
 }
-/** the leash: a gently sagging line from the hand to the collar */
-export function drawLeash(c, a, b, env) {
+/** the leash: a gently sagging line from the hand to the collar (taut: straight — 8b1 wildlife, the owner tugging a lunging dog) */
+export function drawLeash(c, a, b, env, taut = false) {
   const dark = clamp01(env.dark || 0);
-  c.strokeStyle = dark > 0.5 ? 'rgba(10,8,16,0.9)' : 'rgba(40,30,26,0.85)'; c.lineWidth = 0.6;
-  c.beginPath(); c.moveTo(a[0], a[1]); c.quadraticCurveTo((a[0] + b[0]) / 2, Math.max(a[1], b[1]) + 2, b[0], b[1]); c.stroke();
+  c.strokeStyle = dark > 0.5 ? 'rgba(10,8,16,0.9)' : 'rgba(40,30,26,0.85)'; c.lineWidth = taut ? 0.75 : 0.6;
+  c.beginPath(); c.moveTo(a[0], a[1]); c.quadraticCurveTo((a[0] + b[0]) / 2, taut ? (a[1] + b[1]) / 2 : Math.max(a[1], b[1]) + 2, b[0], b[1]); c.stroke();
 }

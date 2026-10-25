@@ -148,6 +148,8 @@ export function folkMap(L, { event = false, line = null, cart = false } = {}) {
   if (line) rects.push({ id: 'line', ...line });
   const circles = [];
   for (const l of L.lamps || []) if (l.kind === 'tall') circles.push({ x: l.x, z: l.z, r: 0.5 });
+  // (8b1 wildlife: the trash can by the front-left globe stands IN FRONT of the walkable floor — z ≤ FOLK.zMin − 0.55, the layout's
+  // CAN — so no route can reach it; a circle here only added way points under the dock: none)
   // (the cart, only while it's OUT — FP3b's vendor spot is shared by time: nobody walks through it or behind its handles; the vendor's
   // own spot behind it stays free for him)
   if (cart && L.cart && L.cart.shown !== false) { rects.push({ id: 'cart', x0: L.cart.x - 1.3, x1: L.cart.x + 2.0, z0: F.zMin - 2, z1: L.cart.z + 0.75 }); }
@@ -213,11 +215,12 @@ const pathLen = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += Ma
 // ------------------------------------------------------------------ THE CROSSING: wait for WALK (core/harbor-promenade.js#signalAt)
 /** the next moment (s, absolute) at or after t when a walker may start across: in the WALK phase, early enough to be over before the
  *  blinking WAIT ends (`cross` s to cross — a walker may finish during the blink, never start in it) */
-function walkStart(t, cross = 8) {
+function walkStart(t, cross = 8, blocked = null) {
   let u = t;
   for (let i = 0; i < 14; i++) {
     const S = signalAt(u * 1000);
-    if (S.phase === 'walk' && S.left + SIGNAL_CYCLE.blink - 0.6 >= cross && S.left >= 2) return u;
+    // (8b1 wildlife — THE DUCK CROSSING: never set off while the ducks are on the crossing — blocked(a, b); the people wait for the next WALK)
+    if (S.phase === 'walk' && S.left + SIGNAL_CYCLE.blink - 0.6 >= cross && S.left >= 2 && !(blocked && blocked(u, u + cross))) return u;
     u += S.left + 0.02;                       // (on to the next phase's start)
   }
   return t;
@@ -357,7 +360,7 @@ export function planVisit(spec, t, M, ctx = {}) {
         // across from the waterside sidewalk: along it to the crossing, wait for WALK, cross
         cur = { ...M.exits[r() < 0.5 ? 'farLeft' : 'farRight'] };
         walkTo({ x: M.cw.x0 + r() * (M.cw.x1 - M.cw.x0), z: F.farZ });
-        const cv = crossV(v), react = 0.3 + r() * 0.8, ws = walkStart(now, (F.farZ - F.curbZ) / cv + react + 0.3);
+        const cv = crossV(v), react = 0.3 + r() * 0.8, ws = walkStart(now, (F.farZ - F.curbZ) / cv + react + 0.3, ctx.crossBlocked);
         if (ws > now) { legs.push({ k: 'pose', pose: 'wait', x: cur.x, z: cur.z, t0: now, t1: ws + react, face: 0 }); now = ws + react; }
         else if (signalAt(now * 1000).phase !== 'walk') return null;
         const p = { x: cur.x + (r() - 0.5) * 0.4, z: F.curbZ }, d = Math.hypot(p.x - cur.x, p.z - cur.z);
@@ -373,7 +376,7 @@ export function planVisit(spec, t, M, ctx = {}) {
     else if (g.pose) { legs.push({ k: 'pose', pose: g.pose, x: cur.x, z: cur.z, t0: now, t1: now + g.dur, face: g.face == null ? (r() < 0.5 ? -1 : 1) : g.face }); now += g.dur; }
     else if (g.cross === 'out') {
       walkTo({ x: M.cw.x0 + r() * (M.cw.x1 - M.cw.x0), z: F.curbZ });
-      const cv = crossV(v), react = 0.3 + r() * 0.9, ws = walkStart(now, (F.farZ - F.curbZ) / cv + react + 0.3);
+      const cv = crossV(v), react = 0.3 + r() * 0.9, ws = walkStart(now, (F.farZ - F.curbZ) / cv + react + 0.3, ctx.crossBlocked);
       if (ws > now) { const w = ws + react; legs.push({ k: 'pose', pose: 'wait', x: cur.x, z: cur.z, t0: now, t1: w, face: 2 }); now = w; }
       else { const S = signalAt(now * 1000); if (S.phase !== 'walk') return null; }
       const p = { x: cur.x + (r() - 0.5) * 0.4, z: F.farZ }, d = Math.hypot(p.x - cur.x, p.z - cur.z);
@@ -621,7 +624,7 @@ function blockVisits(phase, k, M, ctx = {}) {
   // evening, leavers later; on party nights the guests go in by THE LINE (lineNight) and only the leavers come out here)
   if (phase === 0) for (const e of streamOf(k, t0, ctx, party)) {
     if (!spaced(e.t)) continue;
-    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, r: rngFrom(e.seed) });
+    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, r: rngFrom(e.seed), crossBlocked: ctx.crossBlocked || null });
     if (!vis || vis.t1 > t1 - 1) continue;
     const members = membersOf(e.spec, rngFrom(e.seed + 1)), n = heads(members);
     if (load(vis.t0, vis.t1) + n > cap) continue;
@@ -636,7 +639,7 @@ function blockVisits(phase, k, M, ctx = {}) {
     const start = t0 + 2 + r() * (B * 0.75);
     // (FP3b: each visit on its own seed — one that would still be out while the dance circle closes the compass is planned again
     // round it: ctx.closed(t0, t1) + ctx.Mev)
-    const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [] };
+    const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [], crossBlocked: ctx.crossBlocked || null };
     if (!spaced(start)) continue;
     let vis = planVisit(spec, start, M, { ...vctx, r: rngFrom(vseed) });
     // (a visit while the dance circle closes the compass / the cart stands / THE LINE queues: planned again on that map — mapAt)
@@ -659,7 +662,7 @@ function busRiders(bus, M, ctx = {}) {
     // (FP3b: each steps DOWN out of the open door onto the road by the kerb — no fade)
     const t = bus.tA + BUS.offAt + i * BUS.offGap, dx = bus.x(bus.tA) + bus.len / 2 - 0.9, lg = doorLeg(bus.id, 'out', dx, t - 1.2, FOLK.speed.walk, bus.z, { bus: true });
     const spec = { look: r() < 0.5 ? 'commuter' : r() < 0.5 ? 'lady' : 'walker', gait: 'walk', goals: [{ from: 'bus' }, { at: { x: dx + 0.7, z: FOLK.curbZ - 0.3 } }, ...(r() < 0.3 ? [{ door: 'shop' }] : [{ exit: r() < 0.25 ? 'cross' : 'any' }])] };
-    const vis = planVisit(spec, lg.t1, M, { r, rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(lg.t1) : true, start: { x: lg.x1, z: lg.z1 } });
+    const vis = planVisit(spec, lg.t1, M, { r, crossBlocked: ctx.crossBlocked || null, rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(lg.t1) : true, start: { x: lg.x1, z: lg.z1 } });
     if (!vis) continue;
     vis.legs.unshift(lg); vis.t0 = lg.t0;
     const members = membersOf(spec, r);
