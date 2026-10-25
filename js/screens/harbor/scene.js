@@ -83,6 +83,7 @@ import { legendNight, eveningOf, UFO_LEN, TR3B_LEN } from '../../core/harbor-leg
 import { raidEvening, raidPlan, raidAt, forcedRaid, RAID } from '../../core/harbor-raid.js';
 import { dayOf as workDayOf } from '../../core/harbor-workers.js';
 import { createRaid } from './raid.js';
+import { roadLampAt } from '../../core/harbor-light.js';
 import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
 import { hornsBetween } from '../../core/harbor-boats.js';
 import { createDirector } from '../../core/harbor-director.js';
@@ -213,7 +214,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   /** what's left of the power at a screen x for a band (1 without a legendary) — the harbor, the promenade's lights */
   const legendPow = (x, band, i) => (legends && legends.busy() ? legends.power(x / W, band, i) : 1);
-  let LB = null, speakPw = false, raidPole = false, raidLit = new Set(), raidCue = new Set();
+  let LB = null, speakPw = false, raidPole = false, raidLit = new Set(), raidCue = new Set(), raidFrame = { R: null, spotAt: null };
   // 8b2 — THE RAID (core/harbor-raid.js): the night's raid (seeded by the date: the night after the bootleggers' delivery, a rare party
   // night) or the preview (&force=raid: one every 2½ min from the moment it's on) → its plan for this layout, kept 4 h after (the people's
   // reaction holds on their new paths — never the old ones popping back)
@@ -1128,7 +1129,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment() }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     { const bd = speak.beds(); snd.speakeasy(RR && bd ? { ...bd, club: (bd.club || 0) * RR.club } : bd); }   // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them; 8b2: the raid hushes it, it creeps back — louder on a party night)
     // 8b2 — THE RAID on the facade: the wash up the side wall, the shades down, the officer's flashlight sweeping the windows
-    if (RR && fadeIn > 0 && !off.has('no-speakeasy')) raidFx.facade(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn }, { side: speak.sidePoly(), windows: speak.windows(), officer: people.officer() });
+    raidFrame = { R: RR, spotAt: null };
+    if (RR && fadeIn > 0 && !off.has('no-speakeasy')) {
+      const side = speak.sidePoly(), ws = speak.windows();
+      // (the add-on: the FRONT car's spotlight — where its circle lands on the facade this frame: the door, the windows, the blade)
+      raidFrame.spotAt = RR.spot > 0.01 ? raidFx.spotPath(RR.spotU, { windows: ws, side }) : null;
+      raidFx.facade(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn }, { side, windows: ws, officer: people.officer(), spotAt: raidFrame.spotAt });
+    }
     // PF — THE CENTREPIECE on the inlay + its rig's floor spots (nothing without one; &force=centrepiece-test: the test obelisk)
     centre.test(off.has('centrepiece-test'));
     // FP3b — THE DANCE CIRCLE lights the inlay's floor spots (the rig without a piece), in the party palette's colour of the phrase
@@ -1165,7 +1172,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       c.restore(); } }
     // THE IMPLIED ROAD (8a): a passing car's headlights sweeping the near cobbles at night, its soft shadow by day, its sound
     if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps') * (LB ? legendPow(W * 0.5, 'near', 208) : 1), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
-      gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0, party: PT.on > 0.5 /* (POL4: a party night — a few cars glow) */ }; roadLight.tick(rf); roadLight.draw(c, rf); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
+      gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0, party: PT.on > 0.5 /* (POL4: a party night — a few cars glow) */ }; roadLight.tick(rf); roadLight.draw(c, rf); }
+    // 8b2 add-on — THE RAID FROM THE FRONT: its patrol car on the street under the dock (seen whole while the dock rests; behind JOIN / HOST
+    // otherwise — its beam + its circle on the brick read above them), its red + blue, the spotlight's beam
+    if (raidFrame.R && raidFrame.R.front && fadeIn > 0) { const st = L.impliedRoad && L.impliedRoad.street; raidFx.front(c, raidFrame.R, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn, T: bakeTones || T, night: litK(DK, 'lamps'), lampAt: x => roadLampAt(L.lamps, x), dpr, wet: L.wet || 0, rails: st ? st.rails : null, motion: S.motion }, { spotAt: raidFrame.spotAt }); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
     // the trees' falling leaves (autumn) / the crabapple's petals (its blossom) in the real wind (8a: trees.js)
     if (fadeIn > 0 && !off.has('no-leaves')) { const wd = LK.windDir == null ? 250 : LK.windDir; leaves.draw(c, { t, dt, motion: S.motion, wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), season: L.season, phase: L.seasonPhase, fade: fadeIn, night: litK(DK, 'lamps'), tier }); }
     // ---- the lights (every frame): the lamps' light on the promenade, the knock's warm flash at the door

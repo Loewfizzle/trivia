@@ -17,7 +17,7 @@ import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP } from './folk.js';
 import { drawBus } from './bus.js';
 import { createVehicles, UNDERGLOW } from './vehicles.js';
-import { beaconOf } from './raid.js';
+import { beaconOf, drawBeacon } from './raid.js';
 import { danceMoves, drawWands } from './wands.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
@@ -182,14 +182,6 @@ export function createPeople() {
     kit.draw(c, { id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
     // 8b2 — THE PATROL CAR's BEACON: red, then blue, each a hard double flash (the raid's wash comes from it: raid.js)
     if (car.beacon) { const A = kit.anatomy(car.model); if (A.beacon) drawBeacon(c, cx + car.dir * (A.beacon[0] - car.len / 2) * sp, gy - A.beacon[1] * sp + bob, sp, beaconOf(env.t || 0, car.n), env.fade == null ? 1 : env.fade, night); }
-  }
-  /** the beacon's lamps lit: b = { red, blue } (0..1 each) — a hot core + a halo each, 'lighter' */
-  let beaconSpr = null;
-  function drawBeacon(c, x, y, sp, b, k, night) {
-    if (!beaconSpr) { beaconSpr = {}; for (const [n, col] of [['red', '255,40,46'], ['blue', '60,110,255']]) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g2 = safeCtx(cv); if (g2) { const gr = g2.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.12, `rgba(${col},1)`); gr.addColorStop(0.4, `rgba(${col},0.35)`); gr.addColorStop(1, `rgba(${col},0)`); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); } beaconSpr[n] = cv; } }
-    c.save(); c.globalCompositeOperation = 'lighter';
-    for (const [n, dx] of [['red', -0.09], ['blue', 0.09]]) { const v = b[n]; if (v < 0.02) continue; const r = (0.8 + 1.7 * night) * sp * (0.55 + 0.45 * v); c.globalAlpha = k * v; c.drawImage(beaconSpr[n], x + dx * sp - r, y - r, r * 2, r * 2); }
-    c.restore();
   }
   // ---- THE CHESTNUT CART, live (FP3b item 11b — the vendor spot: core/harbor-routines.js#VENDOR): wheeled in + out by its vendor,
   // parked at the front curb in the evening; a sprite while it stands (re-painted when the look changes), painted directly while it

@@ -9,8 +9,10 @@
 //                       bright spot sweeping the dark windows
 // Depth: the wash is light on surfaces (road, kerb, water, the side wall) — never in front of the promenade's people (drawn before their
 // near pass); the beam starts at the officer at the kerb (z ≈ 54) and lands on the facade (z 44): behind everyone on the promenade.
-import { project } from '../../core/harbor-layout.js';
+import { project, groundY } from '../../core/harbor-layout.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { createMotorcar } from './motorcar.js';
+import { MODELS } from './vehicles.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -25,8 +27,32 @@ export function beaconOf(t, n = 0) {
 /** the WASH's colour balance at t for car n (smooth: red ⇄ blue over ~1.1 s, the sum steady) → { r, b } */
 export function washOf(t, n = 0) { const s = 0.5 + 0.5 * Math.sin((t / 1.1 + n * 0.29) * TAU); return { r: s, b: 1 - s }; }
 
+/** the beacon's lamps lit at screen (x, y) (sp: pt a unit): b = { red, blue } (0..1 each) — a hot core + a halo each, 'lighter' */
+let beaconSpr = null;
+export function drawBeacon(c, x, y, sp, b, k, night) {
+  if (!beaconSpr) { beaconSpr = {}; for (const [n, col] of [['red', '255,40,46'], ['blue', '60,110,255']]) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g2 = safeCtx(cv); if (g2) { const gr = g2.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.12, `rgba(${col},1)`); gr.addColorStop(0.4, `rgba(${col},0.35)`); gr.addColorStop(1, `rgba(${col},0)`); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); } beaconSpr[n] = cv; } }
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (const [n, dx] of [['red', -0.09], ['blue', 0.09]]) { const v = b[n]; if (v < 0.02) continue; const r = (0.8 + 1.7 * night) * sp * (0.55 + 0.45 * v); c.globalAlpha = k * v; c.drawImage(beaconSpr[n], x + dx * sp - r, y - r, r * 2, r * 2); }
+  c.restore();
+}
+/**
+ * THE FRONT CAR's SPOTLIGHT PATH over the facade (screen): u (0..1 a cycle) → [x, y] — the side door, the barbershop's window, up to the
+ * upper windows left → right, up the BLADE, back down to the door; eased between the stops (a slow searching sweep, a beat on each).
+ * o: { windows ([{ rect }]), side (the side wall polygon: its first point is the front's ground corner) }
+ */
+export function spotPath(u, o) {
+  const ws = (o.windows || []).map(w => w.rect); if (!ws.length || !o.side) return null;
+  const xs = ws.map(r => r.x + r.w / 2), ys = ws.map(r => r.y + r.h / 2), x0 = Math.min(...xs), x1 = Math.max(...xs), yT = Math.min(...ys), yB = Math.max(...ys);
+  const [cx, gy] = o.side[0], ptop = o.side[1][1], fw = Math.max(20, x1 - x0), rowH = Math.max(8, (yB - yT) || 30);
+  const door = [cx - fw * 0.18, gy - rowH * 0.45], shop = [x0 + fw * 0.08, gy - rowH * 0.5], blade = [cx + 2, (yT + ptop) / 2];
+  const P = [door, shop, [x0, yB], [x0, yT], [(x0 + x1) / 2, yT], [x1, yT], blade, [cx, yB + rowH * 0.3], door];
+  const n = P.length - 1, w = (((u % 1) + 1) % 1) * n, i = Math.floor(w), f = w - i, e = f < 0.7 ? smooth(f / 0.7) : 1;
+  return [P[i][0] + (P[i + 1][0] - P[i][0]) * e, P[i][1] + (P[i + 1][1] - P[i][1]) * e];
+}
+
 export function createRaid() {
   let L = null, spr = null;
+  const motor = createMotorcar();
   const sprite = col => {
     const cv = document.createElement('canvas'); cv.width = cv.height = 96;
     const x = safeCtx(cv); if (x) { const g = x.createRadialGradient(48, 48, 0, 48, 48, 48); g.addColorStop(0, `rgba(${col},1)`); g.addColorStop(0.35, `rgba(${col},0.5)`); g.addColorStop(0.7, `rgba(${col},0.14)`); g.addColorStop(1, `rgba(${col},0)`); x.fillStyle = g; x.fillRect(0, 0, 96, 96); }
@@ -84,6 +110,16 @@ export function createRaid() {
       }
       c.restore();
     }
+    // (the add-on) THE WASH FROM THE FRONT: the front car's red + blue up the speakeasy's brick + across the promenade toward it
+    if (R.front && L.speakeasy) {
+      const fc = R.front, w = washOf(t, 7), k = (0.3 + 0.7 * dk) * fade, sx0 = cam.VPX + cam.F * fc.x / fc.z;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for (const [z, y, rx, ry, a] of [[L.speakeasy.z0, 3.2, 8.5, 5.5, 0.5], [41, 0, 6.5, 1.6, 0.32], [37.5, 0, 6, 1.5, 0.4]]) {
+        const wx = ((sx0 - cam.VPX) * z) / cam.F, [px, py] = project(cam, wx, y, z), sp = cam.F / z;
+        pool(c, px, py, rx * sp, ry * sp, w, a * k);
+      }
+      c.restore();
+    }
     // THE SHADES: snapped down over every window the instant the cars show; each raised as its light comes back
     const wins = o.windows || [];
     if (wins.length && (R.shades > 0.01 || R.dark)) {
@@ -100,6 +136,15 @@ export function createRaid() {
         for (let k = 1; k < 3; k++) if (r.h * k / 3 < h) c.fillRect(r.x, r.y + r.h * k / 3, r.w, Math.max(0.5, r.h * 0.012));
         c.globalAlpha = 0.9 * fade; c.fillRect(r.x, r.y + h - Math.max(0.8, r.h * 0.04), r.w, Math.max(0.8, r.h * 0.04));
       });
+      c.restore();
+    }
+    // (the add-on) THE SPOTLIGHT's HARD CIRCLE on the brick (its beam: front()) — a crisp disc of white light, a brighter core
+    if (R.spot > 0.01 && o.spotAt) {
+      const [tx, ty] = o.spotAt, sp = cam.F / (L.speakeasy ? L.speakeasy.z0 : 44), r = 1.25 * sp, a = R.spot * fade * (0.6 + 0.4 * dk);
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const g = c.createRadialGradient(tx, ty, 0, tx, ty, r);
+      g.addColorStop(0, `rgba(255,250,236,${(0.95 * a).toFixed(3)})`); g.addColorStop(0.55, `rgba(255,248,230,${(0.72 * a).toFixed(3)})`); g.addColorStop(0.86, `rgba(255,244,222,${(0.5 * a).toFixed(3)})`); g.addColorStop(0.95, `rgba(255,240,215,${(0.14 * a).toFixed(3)})`); g.addColorStop(1, 'rgba(255,240,215,0)');
+      c.fillStyle = g; c.beginPath(); c.ellipse(tx, ty, r, r * 0.92, 0, 0, TAU); c.fill();
       c.restore();
     }
     // THE FLASHLIGHT: a cone from the officer's hand to a bright spot sweeping across the dark windows
@@ -119,5 +164,31 @@ export function createRaid() {
       c.restore();
     }
   }
-  return { layout, ground, facade, destroy() { spr = null; } };
+  /**
+   * (the add-on) THE FRONT CAR on the street under the dock (after the street's own pass — the dock, DOM, hides what it covers): its
+   * red + blue on the setts, the car (the street's motorcar painter: its shadow, its lamps), its beacon, the SPOTLIGHT's crisp beam from
+   * the windshield post to the circle on the facade. env { t, dark, fade, T, night, lampAt, dpr, wet, rails, motion }, o { spotAt }
+   */
+  function front(c, R, env, o = {}) {
+    if (!L || !R || !R.front) return;
+    const cam = L.cam, fc = R.front, t = env.t || 0, dk = clamp01(env.dark == null ? 1 : env.dark), fade = env.fade == null ? 1 : env.fade;
+    const sp = cam.F / fc.z, gy = groundY(cam, fc.z), cx = cam.VPX + cam.F * fc.x / fc.z, M = MODELS.police;
+    c.save(); c.globalCompositeOperation = 'lighter'; pool(c, cx, gy, 7 * sp, 1.6 * sp, washOf(t, 7), (0.35 + 0.65 * dk) * 0.8 * fade); c.restore();
+    motor.draw(c, { x: fc.x, z: fc.z, dir: fc.dir, speed: fc.speed, env: 1, on: true }, { cam, T: env.T, k: fade, night: env.night || 0, lampAt: env.lampAt || (() => 0), vehicle: { model: 'police', paint: 0 }, dpr: env.dpr || 2, t, motion: env.motion !== false, wet: env.wet || 0, rails: env.rails });
+    const bu = (M.cab[0] + M.cab[1]) / 2 + 0.15;
+    drawBeacon(c, cx + fc.dir * (bu - M.len / 2) * sp, gy - (M.h + 0.12) * sp, sp, beaconOf(t, 7), fade, dk);
+    if (R.spot > 0.01 && o.spotAt) {
+      const pu = M.cowl + M.rake * 0.6 + 0.15, sx = cx + fc.dir * (pu - M.len / 2) * sp, sy = gy - (M.belt + 0.42) * sp, [tx, ty] = o.spotAt;
+      const rT = 1.15 * cam.F / (L.speakeasy ? L.speakeasy.z0 : 44), dx = tx - sx, dy = ty - sy, dl = Math.hypot(dx, dy) || 1, nx = -dy / dl, ny = dx / dl, r0 = 0.09 * sp;
+      const a = R.spot * fade * (0.55 + 0.45 * dk);
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const g = c.createLinearGradient(sx, sy, tx, ty); g.addColorStop(0, `rgba(255,250,236,${(0.42 * a).toFixed(3)})`); g.addColorStop(0.25, `rgba(255,248,232,${(0.24 * a).toFixed(3)})`); g.addColorStop(1, `rgba(255,246,228,${(0.13 * a).toFixed(3)})`);
+      c.fillStyle = g; c.beginPath(); c.moveTo(sx + nx * r0, sy + ny * r0); c.lineTo(tx + nx * rT, ty + ny * rT); c.lineTo(tx - nx * rT, ty - ny * rT); c.lineTo(sx - nx * r0, sy - ny * r0); c.closePath(); c.fill();
+      c.strokeStyle = `rgba(255,250,240,${(0.2 * a).toFixed(3)})`; c.lineWidth = 0.8;
+      c.beginPath(); c.moveTo(sx + nx * r0, sy + ny * r0); c.lineTo(tx + nx * rT, ty + ny * rT); c.moveTo(sx - nx * r0, sy - ny * r0); c.lineTo(tx - nx * rT, ty - ny * rT); c.stroke();
+      const S = sprites(); c.globalAlpha = a; c.drawImage(S.w, sx - 0.5 * sp, sy - 0.5 * sp, sp, sp);
+      c.restore();
+    }
+  }
+  return { layout, ground, facade, front, spotPath, destroy() { spr = null; motor.reset(); } };
 }

@@ -34,6 +34,10 @@ export const RAID = Object.freeze({
   officer: { out: 1.4, sweep: 10.5, back: 1.2, kerb: 0.45 },
   back: { delay: 4.5, stagger: [0, 2.4, 4.4, 5.6, 6.8, 8.2], full: 11 },
   cap: 120, forced: 150,
+  // 8b2 add-on — THE RAID FROM THE FRONT: one patrol car pulls up on the FRONT street (under the dock), right below the speakeasy, as the
+  // lights cut (it's what they're running from); its car-mounted spotlight sweeps the facade; it leaves with the convoy. `screen`: where
+  // its middle stops (a share of the screen's width — under the speakeasy, the whole car on screen when the dock rests)
+  front: { v: 6.4, brake: 2.8, acc: 1.4, lead: 3.2, screen: 0.19, on: 1.0, off: 1.2 },
 });
 
 // ------------------------------------------------------------------ WHEN
@@ -150,12 +154,35 @@ export function raidPlan(raid, L) {
       beam: { t0: tb, t1: ts },
     };
   }
+  // THE FRONT CAR (the add-on): in from the right on the street's far lane (westbound, by the curb), braking to its stop below the
+  // speakeasy as the lights cut, its spotlight on, away to the left once the last of the convoy is past the crossing
+  let front = null;
+  const st = L.impliedRoad && L.impliedRoad.street, cam = L.cam;
+  if (st && cam) {
+    const F = RAID.front, lane = st.lanes[0], z = lane.z, hw = cam.hw(z), xStop = ((F.screen * cam.W - cam.VPX) * z) / cam.F;
+    const xIn = hw + len, dB = F.v * F.v / (2 * F.brake), tB = F.v / F.brake;
+    const tStopF = tAppear + F.lead, tBrake = tStopF - tB, tEnter = tBrake - Math.max(0, xIn - xStop - dB) / F.v;
+    const tGo = Math.max(tStopF + 8, tPast + 1.5), xOut = -hw - len;
+    const tOut = tGo + Math.sqrt(2 * Math.abs(xOut - xStop) / F.acc);
+    front = { z, dir: -1, len, xStop, xIn, tEnter, tBrake, tStop: tStopF, tGo, tOut, spot: { t0: tStopF + F.on, t1: tGo - F.off } };
+  }
   return {
-    key: raid.key, party: !!raid.party, why: raid.why, t0, tAppear, tStop: sim.tStop, tReady: sim.tReady, tDepart: sim.tDepart, tPast, tBack, tEnd: Math.max(tEnd, tBack + RAID.back.full + 2),
+    key: raid.key, party: !!raid.party, why: raid.why, t0, tAppear, front, tStop: sim.tStop, tReady: sim.tReady, tDepart: sim.tDepart, tPast, tBack, tEnd: Math.max(tEnd, tBack + RAID.back.full + 2),
     stopX, appearX, z: ln.z, dir: ln.dir, len,
     cars: sim.cars.map(c => ({ id: `raid.${raid.key}.${c.i}`, n: c.i, ts: t0, xs: Float32Array.from(c.xs), len, z: ln.z, dir: ln.dir, stopper: c.stopper })),
     officer,
   };
+}
+/** the front car at t → { x, z, dir, speed, dist, stopped } | null (off the street) */
+export function frontCarAt(f, t) {
+  if (!f || t < f.tEnter || t > f.tOut) return null;
+  const F = RAID.front, dB = F.v * F.v / (2 * F.brake);
+  let x, v;
+  if (t < f.tBrake) { x = f.xStop + dB + (f.tBrake - t) * F.v; v = F.v; }
+  else if (t < f.tStop) { const u = f.tStop - t; x = f.xStop + 0.5 * F.brake * u * u; v = F.brake * u; }
+  else if (t < f.tGo) { x = f.xStop; v = 0; }
+  else { const u = t - f.tGo; x = f.xStop - 0.5 * F.acc * u * u; v = F.acc * u; }
+  return { x, z: f.z, dir: f.dir, speed: v, dist: Math.abs(f.xIn - x), stopped: t >= f.tStop && t < f.tGo };
 }
 /** a convoy car at t → { x, speed, dist } | null (THE BACK ROAD's carState shape) */
 export function raidCarAt(car, t) {
@@ -192,7 +219,10 @@ export function raidAt(P, t) {
   const sweep = ob ? Math.sin(((t - ob.t0) / (ob.t1 - ob.t0)) * Math.PI * 2.5) : 0;
   const club = t < P.tAppear ? 1 : dark ? 0.04 : Math.min(P.party ? 1.35 : 1, 0.04 + sinceBack / 12) * (P.party && sinceBack > 12 ? Math.max(1, 1.35 - (sinceBack - 24) / 30) : 1);
   const phase = t < P.tAppear ? 'coming' : P.tStop != null && t >= P.tStop && t < (P.tDepart || P.tStop) ? 'stopped' : dark ? 'dark' : 'back';
-  return { on: true, cars, power, shades, win, wash, beam, sweep, club, phase, dark };
+  // the front car + its spotlight (0..1) + the sweep's place along its path (u: 0..1 a cycle — screens/harbor/raid.js#spotPath maps it)
+  const fc = frontCarAt(P.front, t), fs = P.front && P.front.spot, spot = fs && t >= fs.t0 && t < fs.t1 ? Math.min(1, (t - fs.t0) / 0.4, (fs.t1 - t) / 0.4) : 0;
+  const spotU = fs ? Math.max(0, t - fs.t0) / 13 : 0;
+  return { on: true, cars, power, shades, win, wash: wash || (fc ? 1 : 0), beam, sweep, club, phase, dark, front: fc, spot, spotU };
 }
 /** the convoy as a hold on the near lane (core/harbor-traffic.js: no car enters the near lane while it's on the road; they wait behind
  *  its last car) — { tE, tX, hold, x(t), len } */
