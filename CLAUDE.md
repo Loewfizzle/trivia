@@ -25,7 +25,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 ## Ground rules
 - **No build step.** Plain HTML/CSS/ES modules. No npm deps in the shipped site (the root `package.json` only gives the `/api`
   functions firebase-admin; Vercel installs it, the browser never sees it). Firebase comes
-  from `https://www.gstatic.com/firebasejs/11.10.0/…` — loaded with a *dynamic* import inside `initFirebase()`;
+  from `https://www.gstatic.com/firebasejs/13.0.0/…` — loaded with a *dynamic* import inside `initFirebase()`;
   `js/firebase.js` exports thin wrappers (`ref`, `get`, `set`…) that are only valid after `firebaseReady` resolves.
   Never add a static import of the SDK (it would block the first paint on ~450 KB).
 - **Stability first.** Phones lock, switch apps and drop signal. Every screen must render purely

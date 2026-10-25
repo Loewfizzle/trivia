@@ -125,6 +125,8 @@ for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
    `FIREBASE_DATABASE_URL` = the database URL from `js/firebase-config.js`, optional `KEY_PEPPER` (a long random string; set it once
    and never change it, or every profile key stops working), `ADMIN_PIDS` = your profile id (from /admin or the profile screen).
 3. Redeploy. 4. Re-publish `database.rules.json` in the Firebase console.
+5. Node: firebase-admin 14 needs **Node 22+** (`engines` in the root package.json is `>=22`, which Vercel follows over the
+   dashboard's Node.js Version setting).
 
 ## Local + tests
 - `npm install` at the repo root (firebase-admin, for `/api` only). `node scripts/serve.mjs --emu` serves `/api/*` against the

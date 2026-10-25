@@ -6,7 +6,7 @@
 import { firebaseConfig } from './firebase-config.js';
 import { slot, useEmulator } from './identity.js';
 
-const SDK = 'https://www.gstatic.com/firebasejs/11.10.0';
+const SDK = 'https://www.gstatic.com/firebasejs/13.0.0';
 let sdk = null;
 const call = name => (...args) => sdk[name](...args);
 

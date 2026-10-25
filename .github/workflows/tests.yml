@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24   # @firebase/rules-unit-testing 6 (firebase 13) asks for Node >= 24.12
           cache: npm
           cache-dependency-path: |
             package-lock.json

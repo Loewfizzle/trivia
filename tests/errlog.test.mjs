@@ -9,7 +9,7 @@ test('our own files become short paths; other sites and extensions are not ours'
   assert.equal(ownPath(`${O}/js/games/golf/view.js?v=3`, O), 'js/games/golf/view.js');
   assert.equal(ownPath('', O), '');
   assert.equal(ownPath('chrome-extension://abc/content.js', O), null);
-  assert.equal(ownPath('https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js', O), null);
+  assert.equal(ownPath('https://www.gstatic.com/firebasejs/13.0.0/firebase-database.js', O), null);
   assert.equal(ownPath('webkit-masked-url://hidden/', O), null);
 });
 
