@@ -3230,3 +3230,19 @@ test('SP2 — THE ROOMS: the TV window upper-RIGHT, clean panes (the rail high),
   assert.ok(ROOM_TINT.edge2[0] < 245 && ROOM_TINT.edge3[0] < 245, 'the edge windows a little dimmer');
   assert.ok(LATE_TINT[0] > LATE_TINT[2] && lateOf(22) === 0 && lateOf(1.5) === 1 && lateOf(0.5) > 0 && lateOf(12) === 0, 'late: dimmer + warmer from ~11:30 pm, full by 1:30');
 });
+
+test('POLISH 4 — THE ROOF BILLBOARD: no poster stands on a warm orange / amber / gold field (it blends under the warm lamps); its letters contrast', async () => {
+  const { posterPaint } = await import('../js/screens/harbor/signs.js');
+  const { GAMES } = await import('../js/config.js');
+  const hsv = ([r, g, b]) => { const mx = Math.max(r, g, b) / 255, mn = Math.min(r, g, b) / 255, d = mx - mn; let h = 0;
+    if (d) { const R = r / 255, G = g / 255, B = b / 255; h = mx === R ? ((G - B) / d) % 6 : mx === G ? (B - R) / d + 2 : (R - G) / d + 4; h *= 60; if (h < 0) h += 360; }
+    return { h, s: mx ? d / mx : 0, v: mx }; };
+  const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  for (const g of GAMES) {
+    const p = posterPaint(g), q = hsv(p.face);
+    // (warm = a hue from red-orange to gold, saturated and not dark — a deep red / oxblood also reads orange-brown under the lamps)
+    assert.ok(!(q.h >= 0 && q.h <= 62 && q.s > 0.35 && q.v > 0.3), `${g.id}: the poster's field ${p.face} is warm (h ${q.h.toFixed(0)} s ${q.s.toFixed(2)} v ${q.v.toFixed(2)})`);
+    const a = lum(p.face), b = lum(p.ink), cr = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    assert.ok(cr >= 4.5, `${g.id}: its letters ${cr.toFixed(1)} : 1 on the field`);
+  }
+});

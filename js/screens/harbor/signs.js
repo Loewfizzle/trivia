@@ -44,6 +44,24 @@ export const DAY_PAINT = {
   gridlock: { face: [34, 70, 150], ink: [248, 238, 214], edge: GOLD_LEAF },            // cream on royal blue
   slip: { face: [232, 174, 74], ink: [28, 38, 84], edge: [250, 236, 206] },            // navy on amber
 };
+// POLISH 4 — THE ROOF BILLBOARD's POSTERS (the owner: OVERCLOCK read amber-on-amber under the warm gooseneck lamps): a poster may not
+// stand on a warm orange / amber / gold field — under those lamps it blends; each game's poster gets a field that CONTRASTS with warm
+// light (DOUBLE AGENT's navy + cream-gold is the bar) — only the posters change (the day signs keep DAY_PAINT). `mark`: the icon's own
+// bright accent (else the mark's tube colours toward the ink)
+export const POSTER_PAINT = {
+  overclock: { face: [10, 70, 104], ink: [250, 238, 210], edge: [12, 14, 26], mark: [255, 150, 44] },       // cream on electric teal-blue, the orange icon
+  slip: { face: [30, 34, 72], ink: [246, 206, 110], edge: [10, 12, 26], mark: [92, 226, 255] },             // gold on midnight, the cyan icon
+  // (its deep red / oxblood read ORANGE-brown under the lamps at night)
+  signal: { face: [34, 26, 56], ink: [250, 238, 214], edge: [10, 8, 18], mark: [255, 74, 74] },            // cream on deep violet-black, the red icon
+  rum: { face: [16, 30, 42], ink: [240, 202, 116], edge: [6, 10, 16], mark: [255, 176, 70] },              // gold on night-harbour blue, the amber bottle
+};
+/** a poster's scheme: POSTER_PAINT's override, else the sign's painted scheme */
+export function posterPaint(game, col) {
+  const id = game && (game.id || game), o = id && POSTER_PAINT[id];
+  if (!o) return dayPaint(game, col);
+  const f = c => mix(c, FADE, 0.06);
+  return { face: f(o.face), ink: f(o.ink), edge: f(o.edge), band: f(mix(o.edge, o.face, 0.15)), shade: [6, 6, 14], light: false, mark: o.mark };
+}
 const FADE = [236, 226, 204];           // the sun fades every painted colour a touch toward warm paper
 /** a sign's painted scheme (sun-faded): { face, ink, edge, band, shade } */
 export function dayPaint(game, col) {
@@ -521,7 +539,7 @@ export function buildBillboard(spot, content, ctx) {
   const SQ = 0.8;                                               // (the name's condensed hand: 80 % width)
   // THE POSTER (the same art by day + night; sd: the sun's side for the paint's shadows, 0 at night)
   const poster = (x, sd) => {
-    const pt = dayPaint(content.game, content.acc);
+    const pt = posterPaint(content.game, content.acc);
     x.fillStyle = rgba(pt.face); x.fillRect(R.x, R.y, R.w, R.h);
     // the name: as big as one line across 90 % of the board allows (condensed), its baseline clear of the catwalk's railing
     const tw = R.w * 0.9;
@@ -543,7 +561,7 @@ export function buildBillboard(spot, content, ctx) {
       x.save(); x.translate(mx, my); x.scale(s2, s2); x.lineCap = 'round'; x.lineJoin = 'round';
       for (const t of m.tubes) { const p = new Path2D(t.d); x.save(); x.translate((sd > 0 ? -1 : 1) * 4, 5); x.strokeStyle = rgba(pt.shade, 0.45); x.lineWidth = lw + 9; x.stroke(p); x.restore(); }
       for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(pt.edge); x.lineWidth = lw + 7; x.stroke(p); }
-      for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(mix(hexRgb(t.col), pt.ink, 0.45)); x.lineWidth = lw; x.stroke(p); }
+      for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(pt.mark ? pt.mark : mix(hexRgb(t.col), pt.ink, 0.45)); x.lineWidth = lw; x.stroke(p); }
       x.restore();
     }
     // the name: shadow → keyline → the letters → a lighter top edge (condensed: drawn in a squeezed frame)
