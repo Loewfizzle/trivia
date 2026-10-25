@@ -128,11 +128,13 @@ export function signalSteps(L, T) {
     x.fillStyle = rgb(M.ironLit, 0.7); x.beginPath(); x.ellipse(cx + sd * hw * 0.2, ty - 0.1 * s, hw * 0.16, SIG.top * s * 0.4, 0, Math.PI, Math.PI * 2); x.closePath(); x.fill();
     x.fillStyle = rgb(M.brass); x.beginPath(); x.arc(cx, Y(sg.h + 0.04), Math.max(0.6, 0.07 * s), 0, Math.PI * 2); x.fill();
     x.fillStyle = rgb(M.brassLit); x.fillRect(cx - Math.max(0.3, 0.02 * s), Y(sg.h + 0.24), Math.max(0.6, 0.04 * s), 0.16 * s);
-    // the three lamps on EACH side: the lens (its unlit glass) + the hood over it, projecting along the road
+    // POLISH 4 (the owner): ONE signal head a pole — a single vertical stack (red / amber / green) on the side facing the traffic that
+    // comes toward it (the left pole's lamps face left, the right pole's right), ONE lamp lit at a time: two lit in all, never four
+    const cxw = L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : 0, face = sg.x < cxw ? -1 : 1;
     const lens = [];
     for (let i = 0; i < 3; i++) {
       const y = Y(top - SIG.HH * ROW(i)), r = SIG.ry * s, sides = [];
-      for (const d of [-1, 1]) {
+      for (const d of [face]) {
         const ex = cx + d * hw / 2, lx = ex + d * 0.1 * s;
         x.fillStyle = rgb(M.ironSh); x.beginPath(); x.ellipse(lx, y, SIG.rx * s * 1.25, r * 1.12, 0, 0, Math.PI * 2); x.fill();   // (the lens's rim)
         x.fillStyle = rgb(LENS_DIM[i]); x.beginPath(); x.ellipse(lx, y, SIG.rx * s, r, 0, 0, Math.PI * 2); x.fill();
@@ -168,11 +170,14 @@ export function drawSignalLamps(c, L, st, o) {
       c.globalAlpha = o.fade; c.fillStyle = rgb(col); c.beginPath(); c.ellipse(sd.x, ln.y, ln.rx, ln.r, 0, 0, Math.PI * 2); c.fill();
       c.fillStyle = rgb(mix(col, [255, 255, 255], 0.6)); c.beginPath(); c.ellipse(sd.x + sd.d * ln.rx * 0.15, ln.y + ln.r * 0.12, ln.rx * 0.45, ln.r * 0.5, 0, 0, Math.PI * 2); c.fill();
       c.restore();
+      // POLISH 4 (the owner: "the green haze across the railing + the water"): a CRISP small lamp — a TIGHT halo of a few pt round the
+      // lens, a touch dimmer than the street lamps, no spill along the road; after dark the faintest coloured glint on the ground
+      // right under it
       const g = o.glow(i); if (!g) continue;
       c.globalCompositeOperation = 'lighter';
-      const gw = ln.r * (3 + 7 * lk), gh = ln.r * (2.2 + 2.6 * lk);                  // (the spill ALONG the road: long, low)
-      c.globalAlpha = o.fade * (0.3 + 0.45 * lk); c.drawImage(g, sd.x + sd.d * gw * 0.32 - gw / 2, ln.y - gh / 2, gw, gh);
-      c.globalAlpha = o.fade * (0.25 + 0.35 * lk); const r2 = ln.r * (1.6 + 1.4 * lk); c.drawImage(g, sd.x - r2, ln.y - r2, r2 * 2, r2 * 2);
+      const r2 = ln.r * (1.35 + 0.35 * lk);
+      c.globalAlpha = o.fade * (0.22 + 0.26 * lk); c.drawImage(g, sd.x - r2, ln.y - r2, r2 * 2, r2 * 2);
+      if (lk > 0.05) { const [, gy] = project(L.cam, sg.x, 0, sg.z), gw = ln.r * 2.4; c.globalAlpha = o.fade * 0.07 * lk; c.drawImage(g, sd.x - gw, gy - gw * 0.18, gw * 2, gw * 0.36); }
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     }
   }
