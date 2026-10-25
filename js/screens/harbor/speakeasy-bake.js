@@ -120,7 +120,16 @@ export function paintFrontDeco(x, M, P) {
   }
   // THE CREST: a stepped Deco ziggurat over the middle bay, a sunburst relief, the pier finials
   const cm = 5.6;
-  for (const [hw, v0, v1] of [[1.38, V.parapet - 0.02, V.parapet + 0.3], [0.9, V.parapet + 0.3, V.parapet + 0.55], [0.42, V.parapet + 0.55, V.crest]]) {
+  // POL4 — THE DATE STONE SET INTO THE PARAPET (the owner: "cheap paper" at night, a pale panel standing on the roof edge): the parapet
+  // rises over the middle bay as a brick PANEL flush with the wall (DATE.panel: its half width + its coping's top), and the stone is set
+  // INTO it — the coping runs over it, brick round its sides; the Deco steps sit on the panel's coping
+  { const D = DATE, hw = D.panel, top = D.top;
+    if (P.pat) fillPat(x, P.pat, cm - hw, V.parapet - 0.3, cm + hw, top - 0.12); else R(x, cm - hw, V.parapet - 0.3, cm + hw, top - 0.12, M.brick);
+    R(x, cm - hw - 0.05, top - 0.14, cm + hw + 0.05, top, P.trim); stoneTex(x, cm - hw - 0.05, top - 0.14, cm + hw + 0.05, top, P.trim, rngFrom(61));
+    R(x, cm - hw - 0.05, top - 0.04, cm + hw + 0.05, top, hi); R(x, cm - hw - 0.05, top - 0.18, cm + hw + 0.05, top - 0.14, lo);
+    R(x, cm + hw - 0.05, V.parapet - 0.3, cm + hw, top - 0.18, sd >= 0 ? shade(M.brick, -0.3) : mix(M.brick, hi, 0.3));
+    R(x, cm - hw, V.parapet - 0.3, cm - hw + 0.05, top - 0.18, sd >= 0 ? mix(M.brick, hi, 0.2) : shade(M.brick, -0.3)); }
+  for (const [hw, v0, v1] of [[0.9, DATE.top, DATE.top + 0.24], [0.42, DATE.top + 0.24, V.crest]]) {
     R(x, cm - hw, v0, cm + hw, v1, shade(M.brick, -0.04)); R(x, cm - hw - 0.04, v1 - 0.1, cm + hw + 0.04, v1, trim); R(x, cm - hw - 0.04, v1 - 0.03, cm + hw + 0.04, v1, hi);
     R(x, cm + hw - 0.05, v0, cm + hw, v1 - 0.1, sd >= 0 ? shade(M.brick, -0.3) : mix(M.brick, hi, 0.3));
   }
@@ -130,51 +139,66 @@ export function paintFrontDeco(x, M, P) {
   for (const u of [9.95]) { R(x, u - 0.24, V.parapet - 0.02, u + 0.24, V.parapet + 0.18, trim); R(x, u - 0.13, V.parapet + 0.18, u + 0.13, V.parapet + 0.32, trim); R(x, u - 0.24, V.parapet + 0.14, u + 0.24, V.parapet + 0.18, hi); }
 }
 
-/** THE DATE STONE — FP3b (the owner's 8P note 7: "a flat white box with 1924 — not clear it's a year"): an intricate CARVED TABLET of
- *  warm limestone set across the parapet under the crest — "EST. 1924" in INCISED letters (the cut in shadow, its lower lip catching the
- *  light), a RAISED MOULDED BORDER (lit top, shadowed foot), small Deco SCROLLS at its ends; a hidden lamp on the cornice washes it softly
- *  from below at night. DATE: its size + place (wall units), the two words + their cap heights */
-export const DATE = Object.freeze({ w: 4.1, v0: 10.6, v1: 11.62, est: 'EST.', year: '1924', capE: 0.4, capY: 0.6, gap: 0.2, ear: 0.36 });
-export function paintDateStone(x, M, cm, hi, lo) {
-  const D = DATE, a = cm - D.w / 2, b = cm + D.w / 2, day = 1 - M.night;
-  const stone = mix(mix(M.trim, [232, 214, 178], 0.45 * day), hi, 0.12 + 0.25 * M.night), lit = mix(stone, [255, 248, 230], 0.35 * day), dk = shade(stone, -0.3);
+/** THE DATE STONE — POL4 (the owner's FP3b notes 4 + 10: "at night it looks like CHEAP PAPER with words on it", "must not look so WHITE /
+ *  clean"): an old carved stone SET INTO the parapet's raised panel over the middle bay (paintFrontDeco) — flush with the brick, a fine
+ *  mortar joint round it, the coping running over it; never a pale tablet standing on the roof edge. AGED: a warm grey-buff limestone
+ *  (never white), a century of WEATHERING — dark streaks running down from its top edge, soot settled in the cut letters, a few chips +
+ *  spots, lichen-dark corners. "EST. 1924" INCISED: by day the light from above catches the cut's lower wall; at night the stone keeps its
+ *  own dim tone, washed softly from BELOW (a lamp hidden on the cornice) — the cut's upper wall catches it, so the letters cast shadows.
+ *  DATE: the panel (its half width + its coping's top), the stone (u half width, v0 → v1, wall units), the two words + their cap heights */
+export const DATE = Object.freeze({ panel: 1.95, top: V.parapet + 0.37, hw: 1.66, v0: 10.62, v1: 11.4, est: 'EST.', year: '1924', capE: 0.27, capY: 0.42, gap: 0.2 });
+export function paintDateStone(x, M, cm) {
+  const D = DATE, a = cm - D.hw, b = cm + D.hw, h = D.v1 - D.v0, day = clamp01((M.day || 0) + (M.gold || 0)), night = M.night || 0, r = rngFrom(1924);
+  const stone = tri(M.T, [178, 165, 140], [190, 156, 118], [40, 37, 42]);
+  const stain = tri(M.T, [92, 82, 66], [96, 74, 56], [30, 27, 32]), lichen = tri(M.T, [70, 72, 52], [76, 66, 46], [24, 25, 26]);
   const font = (px, w = 800) => `${w} ${px}px "Chakra Petch", Orbitron, sans-serif`;
-  // its shadow on the brick + the parapet under it (the tablet stands proud of the wall)
-  R(x, a + 0.05, D.v0 - 0.13, b + 0.07, D.v0 - 0.02, M.soot, 0.35 * day + 0.2);
-  // the Deco SCROLLS at the ends: a stepped ear + a curl, either side
-  for (const s of [-1, 1]) {
-    const e = s < 0 ? a : b, o = e + s * D.ear;
-    R(x, Math.min(e, o), D.v0 + 0.16, Math.max(e, o), D.v1 - 0.16, stone);
-    R(x, Math.min(e, e + s * D.ear * 0.55), D.v0 + 0.06, Math.max(e, e + s * D.ear * 0.55), D.v1 - 0.06, stone);
-    R(x, Math.min(e, o), D.v1 - 0.2, Math.max(e, o), D.v1 - 0.16, lit); R(x, Math.min(e, o), D.v0 + 0.16, Math.max(e, o), D.v0 + 0.2, dk);
-    x.strokeStyle = rgb(dk); x.lineWidth = 0.045; x.beginPath(); x.arc(e + s * D.ear * 0.6, (D.v0 + D.v1) / 2, 0.16, 0, Math.PI * 2); x.stroke();
-    x.strokeStyle = rgb(lit); x.lineWidth = 0.03; x.beginPath(); x.arc(e + s * D.ear * 0.6, (D.v0 + D.v1) / 2 + 0.01, 0.075, s < 0 ? 0 : Math.PI, s < 0 ? Math.PI * 1.5 : Math.PI * 2.5); x.stroke();
+  // the mortar joint round it (a crisp dark line: the stone is IN the wall, not on it)
+  R(x, a - 0.04, D.v0 - 0.04, b + 0.04, D.v1 + 0.04, shade(M.brick, -0.45));
+  // the face: the stone, a soft fall of tone (a touch lighter where the weather washed it, darker low where the soot settles)
+  { const g = x.createLinearGradient(0, D.v1, 0, D.v0); g.addColorStop(0, rgb(shade(stone, 0.05))); g.addColorStop(0.6, rgb(stone)); g.addColorStop(1, rgb(shade(stone, -0.1)));
+    x.fillStyle = g; x.fillRect(a, D.v0, b - a, h); }
+  stoneTex(x, a, D.v0, b, D.v1, stone, r);
+  // THE WEATHERING: streaks from the top edge (rain carrying the coping's grime down the face), the lichen-dark corners, spots
+  for (let i = 0; i < 16; i++) { const u = a + 0.06 + r() * (b - a - 0.12); streak(x, u, D.v1, 0.03 + r() * 0.1, h * (0.25 + r() * 0.75), stain, 0.16 + r() * 0.26); }
+  for (const [cu, cv] of [[a, D.v0], [b, D.v0], [a, D.v1], [b, D.v1]]) {
+    const g = x.createRadialGradient(cu, cv, 0, cu, cv, 0.42); g.addColorStop(0, rgb(lichen, 0.55)); g.addColorStop(1, rgb(lichen, 0));
+    x.fillStyle = g; x.fillRect(Math.max(a, cu - 0.42), Math.max(D.v0, cv - 0.42), 0.42, 0.42);
   }
-  // the tablet: the raised border (lit top, shadowed foot + side), a sunk field inside it
-  R(x, a, D.v0, b, D.v1, stone);
-  R(x, a, D.v1 - 0.06, b, D.v1, lit); R(x, a, D.v0, b, D.v0 + 0.06, dk); R(x, b - 0.05, D.v0, b, D.v1, M.sd >= 0 ? dk : lit); R(x, a, D.v0, a + 0.05, D.v1, M.sd >= 0 ? lit : dk);
-  const f0 = a + 0.17, f1 = b - 0.17, g0 = D.v0 + 0.15, g1 = D.v1 - 0.15;
-  R(x, f0, g0, f1, g1, shade(stone, -0.06));
-  R(x, f0, g1 - 0.045, f1, g1, dk); R(x, f0, g0, f1, g0 + 0.035, lit);                 // (the field is SUNK: its top edge in shadow, its foot lit)
-  stoneTex(x, a, D.v0, b, D.v1, stone, rngFrom(1924));
-  // the letters — INCISED: the lower lip catching the light (a light copy a hair below), the cut itself dark, its floor a shade lighter
-  const carve = mix(shade(stone, -0.6), [44, 32, 28], 0.35), floor = shade(stone, -0.4), base = D.v0 + (D.v1 - D.v0 - D.capY) / 2 + 0.01, sz = c => c / 0.72;
+  for (let i = 0; i < 12; i++) { x.fillStyle = rgb(r() < 0.6 ? lichen : stain, 0.18 + r() * 0.22); x.beginPath(); x.ellipse(a + r() * (b - a), D.v0 + r() * h, 0.03 + r() * 0.06, 0.02 + r() * 0.04, r() * 3, 0, Math.PI * 2); x.fill(); }
+  // a fine incised rule round the face (the mason's border), its lower edge lit by day / its upper edge at night
+  { const m = 0.1, lw = 0.028, cut = mix(shade(stone, -0.55), [24, 20, 20], 0.4), lip = mix(stone, [255, 246, 226], 0.3 * day + 0.12);
+    x.lineWidth = lw; x.strokeStyle = rgb(lip, 0.7); x.strokeRect(a + m, D.v0 + m - (day > 0.5 ? 0.012 : -0.012), b - a - 2 * m, h - 2 * m);
+    x.strokeStyle = rgb(cut, 0.85); x.strokeRect(a + m, D.v0 + m, b - a - 2 * m, h - 2 * m); }
+  // THE CHIPS: a few bites out of the edges (the joint + shadow showing in them, a paler fresh break beside)
+  for (let i = 0; i < 5; i++) {
+    const top = r() < 0.6, u = a + 0.15 + r() * (b - a - 0.3), w = 0.06 + r() * 0.08, d = 0.03 + r() * 0.04, v = top ? D.v1 : D.v0, s = top ? -1 : 1;
+    x.fillStyle = rgb(shade(M.brick, -0.5)); x.beginPath(); x.moveTo(u - w / 2, v); x.lineTo(u - w * 0.1, v + s * d); x.lineTo(u + w * 0.3, v + s * d * 0.6); x.lineTo(u + w / 2, v); x.closePath(); x.fill();
+    x.fillStyle = rgb(mix(stone, [255, 248, 230], 0.18 * day + 0.06), 0.6); x.fillRect(u - w * 0.1, v + s * d, w * 0.4, s * 0.012);
+  }
+  // THE LETTERS — incised; soot settled in the cut. The light: from above by day (the cut's LOWER wall lit), from below at night (its
+  // UPPER wall lit — a lamp hidden on the cornice): the lit wall drawn first, the shadowed cut over it a hair toward the light
+  const carve = mix(shade(stone, -0.62), [26, 20, 18], 0.55), lipC = mix(stone, [255, 244, 222], 0.28 * day);
+  const base = D.v0 + (h - D.capY) / 2 + 0.005, sz = c => c / 0.72;
   x.save(); x.font = font(sz(D.capE) * 100); const wE = x.measureText(D.est).width / 100; x.font = font(sz(D.capY) * 100); const wY = x.measureText(D.year).width / 100; x.restore();
-  const tw = wE + D.gap + wY, uE = cm - tw / 2 + wE / 2, uY = cm + tw / 2 - wY / 2, sqz = Math.min(1, (f1 - f0 - 0.2) / tw);
-  const word = (s, u, cap, col, du = 0, dv = 0) => text(x, s, cm + (u - cm) * sqz + du, base + dv, sz(cap), { fill: rgb(col), sq: sqz, font });
+  const tw = wE + D.gap + wY, uE = cm - tw / 2 + wE / 2, uY = cm + tw / 2 - wY / 2, sqz = Math.min(1, (b - a - 0.5) / tw);
+  const word = (s, u, cap, col, dv = 0) => text(x, s, cm + (u - cm) * sqz, base + dv, sz(cap), { fill: rgb(col), sq: sqz, font });
+  const up = night > 0.5;                                   // (the light's side: from below at night)
   for (const [s, u, cap] of [[D.est, uE, D.capE], [D.year, uY, D.capY]]) {
-    word(s, u, cap, mix(lit, [255, 255, 250], 0.3 * day), 0.012, -0.03);    // the lit lower lip
-    word(s, u, cap, carve);                                                   // the cut (in shadow)
-    word(s, u, cap, floor, 0.008, -0.012);                                    // its floor, a shade lighter toward the lit lip
+    word(s, u, cap, up ? mix(stone, [255, 200, 140], 0.5) : lipC);
+    word(s, u, cap, carve, up ? -0.03 : 0.03);
   }
-  // at night: a soft warm wash from a lamp hidden on the cornice, brightest at the foot (baked by the lamps' ramp)
-  const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
+  // at night: the soft wash from below (strongest at the stone's foot, gone two thirds of the way up) + the cornice lamp's warm line
+  const lk = clamp01(M.T.lamps == null ? night : M.T.lamps) * clamp01((night - 0.3) / 0.5);
   if (lk > 0.01) {
     x.save(); x.globalCompositeOperation = 'lighter';
-    const g = x.createLinearGradient(0, D.v0, 0, D.v1 + 0.3); g.addColorStop(0, rgb([255, 204, 150], 0.7 * lk)); g.addColorStop(0.75, rgb([255, 192, 134], 0.32 * lk)); g.addColorStop(1, rgb([255, 190, 130], 0));
-    x.fillStyle = g; x.fillRect(a - D.ear, D.v0 - 0.1, D.w + D.ear * 2, D.v1 - D.v0 + 0.4); x.restore();
-    R(x, cm - 0.3, D.v0 - 0.18, cm + 0.3, D.v0 - 0.1, M.iron);                       // (the little lamp's hood on the cornice)
-    for (const [s, u, cap] of [[D.est, uE, D.capE], [D.year, uY, D.capY]]) word(s, u, cap, mix(carve, [30, 18, 16], 0.5));
+    const g = x.createLinearGradient(0, D.v0, 0, D.v0 + h * 0.9); g.addColorStop(0, rgb([255, 190, 128], 0.62 * lk)); g.addColorStop(0.35, rgb([255, 184, 122], 0.26 * lk)); g.addColorStop(0.7, rgb([255, 180, 120], 0.07 * lk)); g.addColorStop(1, rgb([255, 190, 130], 0));
+    x.fillStyle = g; x.fillRect(a, D.v0, b - a, h);
+    // (the hidden lamp itself: a warm line along the cornice's lip under the stone, its light spilling onto the joint)
+    const gl = x.createLinearGradient(a, 0, b, 0); gl.addColorStop(0, rgb([255, 200, 140], 0)); gl.addColorStop(0.5, rgb([255, 214, 160], 0.7 * lk)); gl.addColorStop(1, rgb([255, 200, 140], 0));
+    x.fillStyle = gl; x.fillRect(a - 0.2, D.v0 - 0.09, b - a + 0.4, 0.05);
+    x.restore();
+    // (the cuts stay in shadow — the wash lights the face, not the bottom of the letters)
+    for (const [s, u, cap] of [[D.est, uE, D.capE], [D.year, uY, D.capY]]) word(s, u, cap, carve, -0.03);
   }
 }
 
@@ -347,14 +371,14 @@ export function paintGround(x, M, s) {
     if (lk > 0.01) { const sc = sh.sconce, R0 = SHOP_GLOW.landR;
       x.save(); x.globalCompositeOperation = 'lighter'; x.translate(sc.u, sc.v - 0.05); x.scale(1, 1.25);
       const g = x.createRadialGradient(0, -0.12, 0, 0, -0.12, R0);
-      for (const [t, a] of [[0, 0.46], [0.15, 0.3], [0.35, 0.12], [0.6, 0.03], [1, 0]]) g.addColorStop(t, rgb([255, 184, 116], a * lk));
+      for (const [t, a] of [[0, 0.62], [0.15, 0.4], [0.35, 0.17], [0.6, 0.05], [1, 0]]) g.addColorStop(t, rgb([255, 184, 116], a * lk));
       x.fillStyle = g; x.fillRect(-R0, -R0 - 0.12, 2 * R0, 2 * R0); x.restore();
       // (SP2 — CRISP: the light catching what's under it — the granite surround's top edge, the door's upper planks fading down, the
       // two steps' fronts faintly; the brick round it only a small tight pool)
       const d = s.door, W = [255, 196, 130];
       x.save(); x.globalCompositeOperation = 'lighter';
       { const g2 = x.createLinearGradient(d.u0 - 0.2, 0, d.u1 + 0.2, 0); g2.addColorStop(0, rgb(W, 0.1 * lk)); g2.addColorStop((sc.u - d.u0 + 0.2) / (d.u1 - d.u0 + 0.4), rgb(W, 0.6 * lk)); g2.addColorStop(1, rgb(W, 0.12 * lk)); x.fillStyle = g2; x.fillRect(d.u0 - 0.2, d.h + 0.2, d.u1 - d.u0 + 0.4, 0.08); }
-      { const g3 = x.createLinearGradient(0, d.h, 0, d.h - 1.2); g3.addColorStop(0, rgb(W, 0.3 * lk)); g3.addColorStop(0.4, rgb(W, 0.1 * lk)); g3.addColorStop(1, rgb(W, 0)); x.fillStyle = g3; x.fillRect(d.u0, d.h - 1.2, d.u1 - d.u0, 1.2); }
+      { const g3 = x.createLinearGradient(0, d.h, 0, d.h - 1.8); g3.addColorStop(0, rgb(W, 0.42 * lk)); g3.addColorStop(0.45, rgb(W, 0.16 * lk)); g3.addColorStop(1, rgb(W, 0)); x.fillStyle = g3; x.fillRect(d.u0, d.h - 1.8, d.u1 - d.u0, 1.8); }
       x.fillStyle = rgb(W, 0.18 * lk); x.fillRect(d.u0 - 0.3, 0.12, d.u1 - d.u0 + 0.6, 0.02); x.fillRect(d.u0 - 0.15, 0.25, d.u1 - d.u0 + 0.3, 0.02);
       x.restore();
       R(x, sc.u - 0.2, sc.v + 0.38, sc.u + 0.2, sc.v + 0.5, M.soot, 0.25 * lk); } }
@@ -455,71 +479,6 @@ export function paintLight(x, M, u0, u1, side, seed) {
   for (let i = 0; i < 10; i++) { const u = u0 + r() * (u1 - u0), v = r() < 0.5 ? V.ground + 0.05 + r() * 0.35 : V.cornice[0] + r() * 0.6, w = 0.04 + r() * 0.07; x.fillStyle = rgb(shade(mix(side ? M.trimS : M.trim, side ? M.brickS : M.brick, 0.45), -0.12), 0.7); x.beginPath(); x.ellipse(u, v, w, w * (0.5 + r() * 0.4), r() * 3, 0, Math.PI * 2); x.fill(); }
 }
 
-/** BOSTON IVY up the corner pier — FP3b (the owner: the 8P mat "reads like FIRE", then FP3a's "a bunch of fall leaves stuck against the
- *  wall"): a FEW branching woody VINES climbing the corner from the bed by the door ALL THE WAY UP to the parapet, the brick showing
- *  between them, small CLUSTERS of three-lobed leaves at the nodes — fuller low down, sparse at the top. By the month: September still
- *  mostly green turning, October crimson + scarlet with a few amber + green, November thinning to a few dark reds, winter BARE vines,
- *  spring a fresh light green (small), summer deep green. width(v): how far from the corner it may wander at height v (never over the
- *  door, the sconce or the blade). o: { top (wall units — default the parapet), leaders } */
-export const IVY = Object.freeze({ top: V.parapet - 0.12, bed: [10.78, 11.2], leaders: 3, node: 0.2, leaf: 0.065 });
-export function ivyColours(m) {
-  if (m === 9) return { leaves: [[62, 110, 52], [92, 120, 48], [150, 40, 36], [178, 70, 40], [70, 104, 46]], k: 0.9 };
-  if (m === 10) return { leaves: [[150, 22, 32], [178, 32, 38], [196, 46, 40], [128, 18, 34], [214, 112, 46], [92, 112, 50]], k: 0.62 };
-  if (m === 11) return { leaves: [[124, 22, 34], [150, 30, 36], [104, 20, 40]], k: 0.4 };
-  if (m === 12 || m <= 3) return { leaves: null, k: 0 };
-  if (m <= 5) return { leaves: [[108, 168, 78], [128, 186, 88], [94, 150, 66]], k: 0.55 };
-  return { leaves: [[44, 96, 44], [56, 114, 50], [36, 84, 40], [70, 126, 56]], k: 0.9 };
-}
-export function paintIvy(x, M, u, dir, seed, month, width = () => 0.4, o = {}) {
-  const r = rngFrom(seed), m = month || 10, C = ivyColours(m), top = o.top || IVY.top, nLead = o.leaders || IVY.leaders;
-  const stem = tri(M.T, [96, 70, 52], [104, 66, 48], [22, 16, 20]), dark = c => mix(c, [12, 8, 20], 0.82 * M.night);
-  const nodes = [];
-  // a vine: a wandering climb (the lateral distance from the corner, inside width(v)), a node every IVY.node, side shoots now and then
-  const vine = (u0, v0, v1, w0, depth) => {
-    let d = u0, v = v0, lw = w0; const pts = [[u + dir * d, v]];
-    while (v < v1) {
-      v += IVY.node * (0.8 + r() * 0.4);
-      d = Math.max(0.03, Math.min(width(v) - 0.04, d + (r() - 0.46) * 0.2));
-      pts.push([u + dir * d, v]); nodes.push({ u: u + dir * d, v, depth, f: v / top });
-      if (depth < 2 && r() < (depth ? 0.14 : 0.42)) {
-        // a side shoot: out + up, short, leaves along it
-        const len = 0.4 + r() * 0.7, a = 0.5 + r() * 0.7, ud = Math.min(width(v + len) - 0.04, d + Math.sin(a) * len);
-        branches.push([d, v, ud, v + Math.cos(a) * len, lw * 0.6, depth + 1]);
-      }
-    }
-    x.lineWidth = lw; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (const p of pts.slice(1)) x.lineTo(p[0], p[1]); x.stroke();
-    // (thinner toward the top: the upper third drawn again finer over the first pass — cheap tapering)
-  };
-  const branches = [];
-  x.strokeStyle = rgb(dark(stem), 0.95); x.lineCap = 'round'; x.lineJoin = 'round';
-  for (let i = 0; i < nLead; i++) vine(0.06 + r() * 0.16, 0.26, i === 0 ? top : top * (0.45 + r() * 0.35), 0.05 - i * 0.008, 0);
-  for (const [d0, v0, d1, v1, lw, depth] of branches) {
-    x.lineWidth = lw; x.beginPath(); x.moveTo(u + dir * d0, v0);
-    const mid = [u + dir * ((d0 + d1) / 2 + 0.05), (v0 + v1) / 2 + 0.04]; x.quadraticCurveTo(mid[0], mid[1], u + dir * d1, v1); x.stroke();
-    for (let k = 1; k <= 3; k++) { const t = k / 3; nodes.push({ u: u + dir * (d0 + (d1 - d0) * t), v: v0 + (v1 - v0) * t, depth, f: v1 / top }); }
-  }
-  if (!C.leaves) return;
-  // the leaves: a small cluster at most nodes — fuller low down, sparse up high; the brick shows between
-  for (const n of nodes) {
-    if (r() > C.k * (0.8 - 0.4 * n.f)) continue;
-    const cnt = 2 + Math.floor(r() * 3);
-    for (let k = 0; k < cnt; k++) {
-      const lu = n.u + (r() - 0.5) * 0.18, lv = n.v + (r() - 0.4) * 0.14, a = IVY.leaf * (0.8 + r() * 0.45) * (1 - 0.25 * n.f);
-      const c = dark(shade(C.leaves[Math.floor(r() * C.leaves.length)], (r() - 0.45) * 0.24));
-      x.fillStyle = rgb(dark(shade(c, -0.5)), 0.85); x.beginPath(); x.arc(lu + 0.012, lv - 0.02, a * 1.05, 0, Math.PI * 2); x.fill();   // (its shadow on the brick)
-      x.fillStyle = rgb(c); const rot = (r() - 0.5) * 1.4;
-      for (const t of [rot - 1.15, rot, rot + 1.15]) { x.beginPath(); x.arc(lu + Math.sin(t) * a * 0.72, lv + Math.cos(t) * a * 0.72, a * 0.78, 0, Math.PI * 2); x.fill(); }
-      if (M.day + M.gold > 0.3) { x.fillStyle = rgb(mix(c, [255, 240, 210], 0.28), 0.7); x.beginPath(); x.arc(lu - a * 0.2, lv + a * 0.45, a * 0.32, 0, Math.PI * 2); x.fill(); }   // (a lit lobe)
-    }
-  }
-}
-/** the bed at the corner pier's foot: a little granite kerb + its soil (the ivy's roots) */
-export function paintIvyBed(x, M) {
-  const [a, b] = IVY.bed, g = M.stone;
-  R(x, a, 0, b + 0.02, 0.3, shade(g, -0.05)); R(x, a, 0.26, b + 0.02, 0.3, mix(g, [255, 250, 240], 0.2 * (1 - M.night)));
-  R(x, a + 0.05, 0.22, b - 0.03, 0.27, tri(M.T, [58, 40, 30], [64, 40, 30], [14, 10, 14]));
-}
-
 // ------------------------------------------------------------------ THE BAKE
 /**
  * The speakeasy's baked steps (into 'stage'), far → near: the rooftop's pieces behind the parapet (the stair bulkhead, the
@@ -569,7 +528,6 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
         R(sx, len * 0.2 - 0.08, 1.38, len * 0.2 + 0.98, 1.5, M.trimS);
       }
       paintLight(sx, M, 0, len, true, 33);
-      paintIvy(sx, M, 0.04, 1, 3, ctx.month, () => 0.3, { leaders: 2, top: V.rows[1][0] });
       st.sideK = k;
     },
     // … projected: one source column per device pixel (exact perspective for a vertical wall)
@@ -592,7 +550,7 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       const dpr = dprOf(x); x.save(); frontMap(x);
       const pat = x.createPattern(brickTile(M.brick, course(dpr), blen(dpr), 9, M.night > 0.5), 'repeat');
       st.P = paintStructure(x, M, { u0: 0, u1: W_FRONT, side: false, pat });
-      paintFrontDeco(x, M, st.P);
+      paintFrontDeco(x, M, { ...st.P, pat });
       const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
       if (lk > 0.01) paintWashers(x, M, lk, brickTile(WASH.brick, course(dpr), blen(dpr), 9, false));
       paintWasherLamps(x, M, lk);
@@ -611,8 +569,8 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
     },
     // the ground floor: the barbershop, the side door, the basement window, the sconce
     x => { x.save(); frontMap(x); paintGround(x, M, s); x.restore(); },
-    // the light + the weather + the ivy on the corner
-    x => { x.save(); frontMap(x); paintLight(x, M, 0, W_FRONT, false, 51); paintIvyBed(x, M); paintIvy(x, M, W_FRONT - 0.03, -1, 4, ctx.month, v => (v < 3.0 ? 0.38 : v < 3.6 ? 0.38 + (v - 3.0) * 0.6 : v < 4.4 ? 0.74 + (v - 3.6) * 0.5 : 1.2)); x.restore(); },
+    // the light + the weather (POL4: the ivy removed — the owner)
+    x => { x.save(); frontMap(x); paintLight(x, M, 0, W_FRONT, false, 51); x.restore(); },
     // what stands out from the walls: the awning, the side door's steps, the parapet's posts, the ad's lamps
     x => {
       const aw = s.awning, at = (u, y, z) => [s.x0 + u, y, z];

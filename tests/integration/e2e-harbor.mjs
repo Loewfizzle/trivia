@@ -1906,7 +1906,7 @@ G('promenade', async () => {
     ok(band.sd > 5 && band.m > 14, `FP2 — THE STREET at rest: the band under the dock is cobbled (σ ${band.sd.toFixed(1)}, mean ${band.m.toFixed(0)}) — never the old flat grey, never black`);
     await waitFor(Q.page, '!!window.__district.harbor().road.car', 'the motorcar on screen', 16000);
     const car = (await ev(Q.page, 'window.__district.harbor().road')).car;
-    ok(car.drawn && car.top >= cam.dock.y - 1 && car.y <= 874 && car.h > 36 && car.h < 52 && car.w / car.h > 2.2, `FP2 — THE MOTORCAR: ${car.look}, dir ${car.dir}, ${car.w.toFixed(0)} × ${car.h.toFixed(0)} pt, roof ${car.top.toFixed(0)} under the dock's top ${cam.dock.y}, wheels ${car.y.toFixed(0)}`);
+    ok(car.drawn && car.top >= cam.dock.y - 1 && car.y <= 874 && car.h > 26 && car.h < 56 && car.w / car.h > 2.0, `FP2 + POL4 — THE MOTORCAR (${car.model}): ${car.look}, dir ${car.dir}, ${car.w.toFixed(0)} × ${car.h.toFixed(0)} pt, roof ${car.top.toFixed(0)} under the dock's top ${cam.dock.y}, wheels ${car.y.toFixed(0)}`);
     const fast = await ev(Q.page, 'window.__district.harbor().rate.fast');
     ok(fast !== '', `FP2 — 60 fps while it shows (its wheels; the reason now: ${fast} — 'car' when nothing else asks)`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}street-car-night-402x874.png` });

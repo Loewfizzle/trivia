@@ -32,8 +32,9 @@ const SCHEMES = {
 /** the front's top silhouette (wall units u → v): the parapet, the pier finials, the stepped Deco crest (speakeasy.js#paintFrontDeco) */
 export function frontProfile() {
   const P = SPEAK_V.parapet, rects = [];
-  for (const u of [3.55, 6.75, 9.95]) rects.push([u - 0.24, u + 0.24, P + 0.18], [u - 0.13, u + 0.13, P + 0.32]);
-  for (const [hw, top] of [[1.38, P + 0.3], [0.9, P + 0.55], [0.42, SPEAK_V.crest]]) rects.push([5.6 - hw - 0.04, 5.6 + hw + 0.04, top]);
+  for (const u of [9.95]) rects.push([u - 0.24, u + 0.24, P + 0.18], [u - 0.13, u + 0.13, P + 0.32]);
+  // (POL4: the raised panel that holds the date stone, then the Deco's two steps — speakeasy-bake.js#DATE)
+  for (const [hw, top] of [[1.95, P + 0.37], [0.9, P + 0.61], [0.42, SPEAK_V.crest]]) rects.push([5.6 - hw - 0.04, 5.6 + hw + 0.04, top]);
   const xs = [...new Set([-3, 11.2, ...rects.flatMap(r => [r[0], r[1]])])].sort((a, b) => a - b), out = [];
   for (let i = 0; i < xs.length; i++) {
     const m = i + 1 < xs.length ? (xs[i] + xs[i + 1]) / 2 : xs[i] - 1e-6, h = Math.max(P, ...rects.filter(r => m >= r[0] && m <= r[1]).map(r => r[2]));

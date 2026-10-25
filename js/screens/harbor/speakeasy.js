@@ -21,9 +21,10 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
 import { paintRoom, createWindowLife, SASH_RAIL, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
-import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
+import { frontProfile } from './strings.js';
+import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, DOOR_FLOOD, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
-import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, paintGilt, GILT, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, IVY, ivyColours, paintIvy, paintIvyBed, bladeStep, speakeasySteps } from './speakeasy-bake.js';
+import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, paintGilt, GILT, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, bladeStep, speakeasySteps } from './speakeasy-bake.js';
 export * from './speakeasy-geo.js';
 export * from './speakeasy-blade.js';
 export * from './speakeasy-bake.js';
@@ -279,6 +280,16 @@ export function createSpeakeasy() {
     x.putImageData(im, 0, 0);
     return { cv: haloCv, X: X0, Y: Y0 };
   }
+  /** POL4 — a door's FLOOD: a warm wash from its lamp at (u, v top) down over the door (half width hw, height h) + onto its step — an
+   *  elliptical falloff brightest just under the lamp, additive (the caller is in 'lighter') */
+  function flood(c, u, v, hw, h, a) {
+    const [cx, cy] = G.front(u, v - h * 0.38), rx = hw * DOOR_FLOOD.w * 2.2 * G.K, ry = h * DOOR_FLOOD.h * 0.62 * G.K;
+    const g = c.createRadialGradient(cx, cy - ry * 0.35, 0, cx, cy - ry * 0.35, Math.max(rx, ry));
+    const col = DOOR_FLOOD.col.join(','), k = DOOR_FLOOD.k * a;
+    g.addColorStop(0, `rgba(${col},${k.toFixed(3)})`); g.addColorStop(0.45, `rgba(${col},${(k * 0.45).toFixed(3)})`); g.addColorStop(1, `rgba(${col},0)`);
+    c.save(); c.globalAlpha = 1; c.translate(cx, cy); c.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry)); c.translate(-cx, -cy);
+    c.fillStyle = g; c.fillRect(cx - Math.max(rx, ry), cy - Math.max(rx, ry) * 1.4, Math.max(rx, ry) * 2, Math.max(rx, ry) * 2.8); c.restore();
+  }
   function drawPole(c, f) {
     const s = G.s, p = s.shop.pole, z = s.z0 - 0.42, [cx, y0] = project(G.cam, s.x0 + p.u, p.v1, z), [, y1] = project(G.cam, s.x0 + p.u, p.v0, z), sc = G.cam.F / z, r = 0.17 * sc, h = y1 - y0;
     const day = clamp01(f.day), lit = poleOff ? 0 : clamp01(f.pole == null ? f.k : f.pole), fade = f.fade == null ? 1 : f.fade;
@@ -348,7 +359,8 @@ export function createSpeakeasy() {
     // PART 7b — THE LIFE: the people, the cat, the TV, the night lamp, the bar's afternoon + last light, the shop's day, the mirror door
     c.globalAlpha = 1;
     const [ox, oy] = G.front(0, 0);
-    if (!quiet) life.draw(c, { map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
+    if (!quiet && P > 0.04) life.draw(c, {   // (POL4: in a blackout the life's own lit windows — the TV, the night lamp — go dark with the rest)
+      map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
     // 8P — THE HUSH WORD SIGN: bare neon tubes inside the lower-right upstairs window (the jazz room — its life shows between the letters),
     // only while a lobby is open (hushsign.js); the window's meeting rail laid back over them (they hang inside the glass)
     { if (f.hush !== undefined) hush.set(f.hush);
@@ -373,7 +385,9 @@ export function createSpeakeasy() {
     // soft wash it threw over the door is gone
     { const sc = G.s.shop.sconce, [sx, sy] = G.front(sc.u, sc.v + 0.13), a = clamp01(f.sconce == null ? f.k : f.sconce) * fade;
       if (a > 0.004) { const [p, py] = G.front(sc.u - 0.1, sc.v + 0.26), [q, qy] = G.front(sc.u + 0.1, sc.v); c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,226,170)'; c.fillRect(p, py, q - p, qy - py); c.globalCompositeOperation = 'lighter'; }
-      soft(c, [255, 210, 150], sx, sy, G.K * SHOP_GLOW.sconce, 0.72 * a); glowAt.sconce = [sx, sy]; }
+      soft(c, [255, 210, 150], sx, sy, G.K * SHOP_GLOW.sconce, 0.95 * a); glowAt.sconce = [sx, sy];
+      // (POL4: THE DOOR FLOODED — the sconce's warm wash down over the side door + its steps)
+      if (a > 0.004) { const d = G.s.door; flood(c, (d.u0 + d.u1) / 2, d.h + 0.15, (d.u1 - d.u0) / 2, d.h, a); } }
     // 8P — THE AWNING'S THREE LAMPS lit: each bulb a crisp warm globe + a small TIGHT halo (their light on the canvas, the shopfront and
     // the pavement is baked — speakeasySteps); the barber pole stays the brightest light on the front
     { const a = clamp01(f.sconce == null ? f.k : f.sconce) * fade;
@@ -382,7 +396,9 @@ export function createSpeakeasy() {
         soft(c, [255, 204, 146], bx, by, AWNING_LAMP.halo * G.cam.F / b.z, 0.55 * a * AWNING_LAMP.k);
         c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,238,208)'; c.beginPath(); c.arc(bx, by, r, 0, Math.PI * 2); c.fill();
         c.fillStyle = 'rgb(255,252,240)'; c.beginPath(); c.arc(bx, by + r * 0.15, r * 0.5, 0, Math.PI * 2); c.fill(); c.globalCompositeOperation = 'lighter';
-      } }
+      }
+      // (POL4: the barbershop's door flooded from the lamp now centred over it — awningBulbs' first)
+      if (a > 0.004) { const dd = G.s.shop.door; flood(c, (dd[0] + dd[1]) / 2, dd[2] - 0.1, (dd[1] - dd[0]) / 2, dd[2] - V.plinth, a * 0.85); } }
     // THE BASEMENT WINDOW: the one hint of the secret — 8P (the owner: "you can't really tell"): the club's heart, unlike every room above —
     // a DEEPER smoky amber edging to copper, a bit brighter; alive through MOVEMENT: now and then the shadows of people passing behind it
     // (the light warming + dimming as they pass), a gentle pulse with the beat on party nights (the music's heart is down there), a very
@@ -429,6 +445,25 @@ export function createSpeakeasy() {
     }
     c.globalAlpha = fade;
     drawPole(c, f);
+    if (P < 0.999) blackout(c, P, fade);
+    c.restore();
+  }
+  // POL4 — THE BLACKOUT (the TR-3B's power drain, 8b's raid): power(0) takes EVERY light on the building dark — the live ones are × the
+  // power above; the BAKED ones (the wall-washers' light on the brick, the sconce's + the awning lamps' landing, the date stone's wash)
+  // are taken down by a MULTIPLY over the building's own silhouette (the front's roofline + the side wall — light: the promenade's own
+  // blackout veil (scene.js) lays over it too): warm light falls to a dim
+  // moonlit tone, the dark brick stays nearly as it was. One fill a frame, only while the power is down.
+  let outline = null, outlineKey = '';
+  function blackout(c, P, fade) {
+    const key = `${G.cam.W}x${G.cam.H}|${G.K.toFixed(3)}`;
+    if (key !== outlineKey) {
+      outlineKey = key;
+      const top = frontProfile().filter(([u]) => u >= -0.05 && u <= W_FRONT + 0.05).map(([u, v]) => G.front(Math.max(0, Math.min(W_FRONT, u)), v));
+      outline = { front: [G.front(0, -0.05), ...top, G.front(W_FRONT, -0.05)], side: [G.side(0, -0.05), G.side(0, V.parapet), G.side(G.len, V.parapet), G.side(G.len, -0.05)] };
+    }
+    const k = (1 - clamp01(P)) * fade, col = [162, 158, 192].map(v => Math.round(255 - (255 - v) * k));
+    c.save(); c.globalCompositeOperation = 'multiply'; c.globalAlpha = 1; c.fillStyle = `rgb(${col.join(',')})`;
+    for (const poly of [outline.front, outline.side]) { c.beginPath(); poly.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.fill(); }
     c.restore();
   }
   return {

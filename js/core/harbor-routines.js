@@ -17,9 +17,15 @@ import { partyAt } from './harbor-moments.js';
  *  slot + how long it dances (s), the dancers (tier 0: the first `tier0`), their ring (× the inlay's ring) + the watchers' */
 export const DANCE = Object.freeze({
   slot: 900, from: 22, to: 24.75, chance: 0.75, start: 150, len: 360, stagger: 2.2,
-  n: 6, tier0: 4, ring: 0.92, watchers: [3, 5], watchRing: [1.55, 1.75],
-  // (the spots round the compass, by index: the first four even — a square — so tier 0's four still stand round it)
-  angles: [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4, Math.PI / 2, 3 * Math.PI / 2],
+  // (POL4 — the owner: "bunched in the exact centre": SPREAD OUT loosely in a ring ACROSS + AROUND the compass — each its own radius
+  // (ring × [min, max] of the inlay's ring, seeded per circle) + its own angle (the base angle ± jitter); reach: the floor the crowd
+  // keeps clear of while it dances (× the ring), the watchers further out behind + beside)
+  // (the first four on the diagonals just outside the inlay's rim (ring × [1.0, 1.22], ± 0.3 rad) — tier 0's four still stand all round —
+  // the last two out to the LEFT + RIGHT (× [1.36, 1.52], ± 0.12 rad): the circle reads ACROSS the floor at phone size. The closed floor:
+  // a circle of `reach` × the ring + 0.4 (it must leave the bench's corner a path) + a small one round each side spot (`side`))
+  n: 6, tier0: 4, ring: [1.0, 1.22], ringSide: [1.36, 1.52], jitter: 0.3, jitterSide: 0.12, reach: 1.15, side: { at: 1.45, r: 0.75 },
+  watchers: [3, 5], watchRing: [1.6, 1.8],
+  angles: [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4, 0, Math.PI],
   // (&force=dance: a circle every 5 minutes, any night)
   force: { slot: 300, start: 8, len: 240 },
 });
@@ -48,12 +54,16 @@ export function danceSlotsNear(a, b, ctx = {}) {
   for (let j = Math.floor(a / S) - 1; j <= Math.floor(b / S); j++) out.push(j);
   return out;
 }
-/** a dancer's spot (world x, z) round the inlay m */
-export const danceSpot = (m, i) => ({ x: m.x + Math.cos(DANCE.angles[i]) * m.ring * DANCE.ring, z: m.z + Math.sin(DANCE.angles[i]) * m.ring * DANCE.ring });
+/** a dancer's spot (world x, z) round the inlay m — its own radius + angle, seeded by the circle (seed) so every phone agrees */
+export function danceSpot(m, i, seed = 0) {
+  const side = i >= 4, r = rngFrom(hashString(`spot|${seed}|${i}`)), a = DANCE.angles[i % DANCE.angles.length] + (r() - 0.5) * 2 * (side ? DANCE.jitterSide : DANCE.jitter);
+  const rg = side ? DANCE.ringSide : DANCE.ring, R = m.ring * (rg[0] + r() * (rg[1] - rg[0]));
+  return { x: m.x + Math.cos(a) * R, z: m.z + Math.sin(a) * R };
+}
 /** a watcher's spot (world): behind + beside the circle (never in front of the dancers — they'd hide them), spread by the seed */
 export function watchSpot(m, k, n, r) {
   const a0 = -0.15 * Math.PI, a1 = 1.15 * Math.PI, a = a0 + (a1 - a0) * ((k + 0.5) / n) + (r() - 0.5) * 0.25;
-  const R = m.ring * (DANCE.watchRing[0] + r() * (DANCE.watchRing[1] - DANCE.watchRing[0]));
+  const R = m.ring * (DANCE.watchRing[0] + r() * (DANCE.watchRing[1] - DANCE.watchRing[0]) + 0.5 * Math.abs(Math.cos(a)));   // (POL4: further out beside it — past the side dancers)
   return { x: m.x + Math.cos(a) * R, z: m.z + Math.sin(a) * R };
 }
 /** the circle's state at t (0..1 formed: everyone on their spots; the floor spots + the moves follow it) */
