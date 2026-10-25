@@ -868,6 +868,9 @@ The legendary events (docs/harbor.md#part-6b) report their state through `legend
   swarm', …)`) but ~51.5 LUFS down and under the bed's duck — never heard; its gain 0.064 → 0.15 (+7.4 dB), still under the helicopter;
   plays while the show flies (now a message — docs/harbor.md#polish-4).
 - **THE BARNSTORMER's prop** (`prop-plane`) follows the plane's own flight (`barn.flying()`), not its smoke lingering ~10 s after.
+- **THE TR-3B's TAPE STOP, HEARD** (the owner's iPhone): the sag now happens while the music is LOUD (never under 0.5 × — iOS mutes a media
+  element below half speed), the fade after it; coming back, the volume first, then a slow spin-up; the lost time made up by a seek while
+  silent (`musicCatchUp()`, new) + the rest drained at 1.05 × with the pitch kept (`bendMusic`: no end-of-bend skip) — docs/harbor.md#polish-4.
 
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,

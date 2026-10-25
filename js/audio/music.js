@@ -524,11 +524,20 @@ export function bendMusic(rate, seconds = 0.5) {
     b.rate = r;
     try { b.el.preservesPitch = r >= 0.999; b.el.webkitPreservesPitch = r >= 0.999; b.el.playbackRate = r; } catch { /* fine */ }
     if (r === b.to && b.to >= 0.999) {
-      clearInterval(b.timer); b.timer = 0;
-      if (b.lost > 0.05 && isFinite(b.el.duration)) { try { b.el.currentTime = Math.min(b.el.duration - 0.5, b.el.currentTime + b.lost); } catch { /* fine */ } }
-      b.lost = 0;
+      // (POLISH 4: back at speed — what it lost is made up WITHOUT a skip: a big debt seeks (the TR-3B seeks while the music is silent:
+      // musicCatchUp), a small one drains at 1.05 ×, the pitch kept)
+      if (b.lost > 3 && isFinite(b.el.duration)) { try { b.el.currentTime = Math.min(b.el.duration - 0.5, b.el.currentTime + b.lost); } catch { /* fine */ } b.lost = 0; }
+      if (b.lost > 0.05) { b.lost -= 0.05 * dt; try { b.el.preservesPitch = true; b.el.webkitPreservesPitch = true; b.el.playbackRate = 1.05; } catch { /* fine */ } return; }
+      try { b.el.playbackRate = 1; } catch { /* fine */ }
+      clearInterval(b.timer); b.timer = 0; b.lost = 0;
     } else if (r === b.to) { /* held bent: keep counting the time it loses */ b.step = 0; }
   }, 50);
+}
+/** POLISH 4: make up the time a tape stop lost NOW, by a seek — call it while the music is silent (the TR-3B: just before it comes back) */
+export function musicCatchUp() {
+  const b = bendNow; if (!b.el || !(b.lost > 0.05) || !isFinite(b.el.duration)) return false;
+  try { b.el.currentTime = Math.min(b.el.duration - 0.5, b.el.currentTime + b.lost); } catch { return false; }
+  b.lost = 0; return true;
 }
 /** the tape stop's state (tests, the AUDIO panel): { rate, lost (s behind), bent } */
 export const musicBend = () => ({ rate: +bendNow.rate.toFixed(3), lost: +bendNow.lost.toFixed(2), bent: bendNow.rate < 0.999 });

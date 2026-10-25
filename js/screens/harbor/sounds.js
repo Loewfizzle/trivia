@@ -26,7 +26,7 @@ import { citySound, cityLoop, cityPrefetch, citySoundsDebug } from '../../audio/
 import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { isUnlocked } from '../../audio/engine.js';
-import { musicSounding, duckMusic, filterMusic, bendMusic } from '../../audio/music.js';
+import { musicSounding, duckMusic, filterMusic, bendMusic, musicCatchUp } from '../../audio/music.js';
 import { settings } from '../../audio/settings.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -267,6 +267,8 @@ export function createCitySounds() {
     if (Math.abs(st.music.hz - lgHz) > lgHz * 0.06) { lgHz = st.music.hz; filterMusic(lgHz, 0.6); }
     const r = st.music.rate == null ? 1 : st.music.rate;
     if (Math.abs(r - lgRate) > 0.02 || (r === 1 && lgRate !== 1)) { lgRate = r; bendMusic(r, r < 1 ? 1.2 : 1.5); }
+    // (POLISH 4: the time the tape stop lost made up while the music is still silent, before it powers back on — never a skip)
+    if (st.music.catchUp && !lgRun.caught) { lgRun.caught = true; musicCatchUp(); }
   }
 
   // ---------------------------------------------------------------- 8P — THE BUS (its takes: the 1945 truck's — core/city-sounds.js)

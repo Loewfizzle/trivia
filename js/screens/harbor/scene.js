@@ -869,7 +869,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the drones up in the sky + the gulls over the harbor (in front of the city, before the water: the mirror doubles them)
     sky.city(c, fs);
     // ---- THE HARBOR'S HERO PIECES (Part 5): their state for this frame, their reflections queued for the water's mirror
-    lastNf = nf;
+    lastNf = LB ? { ...nf, fade: nf.fade * legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) } : nf;   // (POLISH 4: the water's reflection of the harbor's neon goes dark with it)
     const hf = harborFrame(t, fadeIn, T);
     layer('water');
     drawWater(c, t, fs, T, fadeIn, sunNow);
@@ -938,8 +938,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (LB && fadeIn > 0) { const pn = legendPow(W * 0.5, 'near', 210), rg = baker.group('road'); if (pn < 0.98 && rg && rg.ready) { const y0 = rg.show.y0, nk = clamp01(LK.w.night + LK.w.late);
       c.save(); c.globalCompositeOperation = 'multiply'; c.globalAlpha = (1 - pn) * nk; c.fillStyle = 'rgb(118,116,150)'; c.fillRect(0, y0, W, H - y0);
       // (the trees' baked UPLIGHTS: their warm glow under each crown + up the trunk taken down a little more — the crown a dark mass)
-      for (const tr of L.trees) { if (!tr.grate) continue; const [tx, ty] = project(cam, tr.x, tr.trunk || 2, tr.z), r = cam.F * (tr.w || 3) / 2 / tr.z, g = c.createRadialGradient(tx, ty, 0, tx, ty, r * 1.1);
-        g.addColorStop(0, 'rgb(150,138,160)'); g.addColorStop(1, 'rgb(255,255,255)'); c.fillStyle = g; c.fillRect(tx - r * 1.1, ty - r * 1.1, r * 2.2, r * 2.4); }
+      for (const tr of L.trees) { if (!tr.grate) continue; const ch = (tr.h || (tr.w || 3)) * 0.3, [tx, ty] = project(cam, tr.x, (tr.trunk || 2) + ch, tr.z), r = cam.F * (tr.w || 3) / 2 / tr.z, g = c.createRadialGradient(tx, ty, 0, tx, ty, r * 1.25);
+        g.addColorStop(0, 'rgb(84,76,100)'); g.addColorStop(0.55, 'rgb(150,140,164)'); g.addColorStop(1, 'rgb(255,255,255)'); c.fillStyle = g; c.fillRect(tx - r * 1.25, ty - r * 1.25, r * 2.5, r * 2.9); }
       c.restore(); } }
     // THE IMPLIED ROAD (8a): a passing car's headlights sweeping the near cobbles at night, its soft shadow by day, its sound
     if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12; const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps') * (LB ? legendPow(W * 0.5, 'near', 208) : 1), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,

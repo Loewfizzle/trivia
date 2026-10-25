@@ -323,19 +323,19 @@ function circuit(len) {
     const r0 = ring ? 0.3 : HUB_R + 0.025;
     let p = [Math.cos(a) * r0, Math.sin(a) * r0];
     if (!inside(p, 0.84)) continue;
-    const pts = [p], vias = [], maxL = 0.28 + 0.4 * hash01(i, 63);
+    const pts = [p], vias = [], viaK = [], maxL = 0.28 + 0.4 * hash01(i, 63);
     let L = 0;
     for (let k = 0; k < 12 && L < maxL; k++) {
       const seg = 0.03 + 0.06 * hash01(i, 70 + k), da = dir * Math.PI / 4, q = [p[0] + Math.cos(da) * seg, p[1] + Math.sin(da) * seg];
       if (!inside(q, 0.84) || Math.hypot(q[0], q[1]) < HUB_R + 0.015) break;          // (never into the hub)
       p = q; pts.push(p); L += seg;
       const r = hash01(i, 90 + k);
-      if (r < 0.52) { dir = (dir + (r < 0.26 ? 1 : 7)) & 7; vias.push(p); }
+      if (r < 0.52) { dir = (dir + (r < 0.26 ? 1 : 7)) & 7; vias.push(p); viaK.push(pts.length - 1); }
     }
     if (pts.length < 2) continue;
     const sp = pts.map(map);
     let tl = 0; const cum = [0]; for (let k = 1; k < sp.length; k++) { tl += Math.hypot(sp[k][0] - sp[k - 1][0], sp[k][1] - sp[k - 1][1]); cum.push(tl); }
-    out.push({ pts: sp, vias: vias.map(map), len: tl, cum, ph: hash01(i, 99), sp: 0.7 + 0.6 * hash01(i, 101) });
+    out.push({ pts: sp, vias: vias.map(map), viaD: viaK.map(k => cum[k]), len: tl, cum, ph: hash01(i, 99), sp: 0.7 + 0.6 * hash01(i, 101) });
   }
   circCache.set(key, out);
   return out;
@@ -580,25 +580,42 @@ export function createLegends({ clock, qp } = {}) {
     c.globalCompositeOperation = 'lighter';
     // its own red glow on the belly round the hub (the matte skin catching it — a wide, faint sheen)
     glow(c, [255, 50, 24], 0, 0, len * 0.42, len * 0.17, 0.12 + 0.1 * pulse);
-    // THE CIRCUITRY's PULSES (POLISH 4): light racing out along the etched traces from the hub — a bright head, a fading tail, a
-    // touch of glow; each trace its own speed + phase, now and then a second pulse close behind (tier 0: one pulse a trace, no glow)
-    { const T = circuit(len), sp = len * 0.32, tail = len * 0.09, lwP = Math.max(0.7, len * 0.0042);
+    // THE CIRCUITRY's PULSES (POLISH 4, the owner's iPhone: "level up the visuals, or slow down considerably" — both): now and then a
+    // pulse of energy flows SLOWLY out along a trace from the hub (each trace its own long rest + speed: a few at a time, never a
+    // race), LIGHTING the trace behind it — a long trail fading back along the etched groove, a hot elongated head with a teal bloom;
+    // each via it passes FLASHES, and at the trace's end its pad FLARES + fades (tier 0: the trail without the bloom)
+    { const T = circuit(len), sp = len * 0.075, tail = len * 0.16, lwP = Math.max(0.6, len * 0.0036), TEAL = [120, 236, 255];
       c.lineCap = 'round';
       for (const tr of T) {
-        const per = (tr.len + tail * 2) / (sp * tr.sp) + 0.6 + 1.4 * tr.ph, ts = mo ? t : 0.6 * per;
-        for (const off of tier === 0 ? [0] : [0, 0.22]) {
-          if (off && tr.ph < 0.5) continue;
-          const u = (((ts / per) + tr.ph + off) % 1 + 1) % 1, d = u * per * sp * tr.sp;
-          if (d > tr.len + tail) continue;
-          const hd = Math.min(d, tr.len), d0 = Math.max(0, d - tail), fade = 1 - smooth(tr.len - tail * 0.2, tr.len + tail, d);
-          if (hd <= d0) continue;
-          const A = along(tr, d0), B = along(tr, hd);
-          c.globalAlpha = 0.85 * fade; c.strokeStyle = 'rgb(150,240,255)'; c.lineWidth = lwP;
-          c.beginPath(); c.moveTo(A[0], A[1]); for (let k = A[2]; k < B[2]; k++) c.lineTo(tr.pts[k][0], tr.pts[k][1]); c.lineTo(B[0], B[1]); c.stroke();
+        const travel = tr.len / (sp * tr.sp), per = travel + 3.5 + 6 * tr.ph, ts = mo ? t : 0.45 * per;
+        const e = (((ts + tr.ph * 17) % per) + per) % per, d = e * sp * tr.sp;            // (distance the pulse has come; past the end it rests)
+        // the pad's flare as it arrives (0.6 s), the trail draining out after it
+        const over = d - tr.len, flare = over > 0 ? Math.max(0, 1 - over / (sp * tr.sp * 0.6)) : 0;
+        if (over > tail + sp * tr.sp * 0.6) continue;
+        const hd = Math.min(d, tr.len), d0 = Math.max(0, d - tail);
+        if (hd > d0) {
+          // the trail: 10 segments back from the head, brightening toward it (the groove lit as the energy passes)
+          const n = 10;
+          c.lineCap = 'butt'; c.lineJoin = 'round';                       // (flat ends: no beads where the segments meet)
+          let A = along(tr, d0);
+          for (let k = 1; k <= n; k++) {
+            const dd = d0 + (hd - d0) * k / n, B = along(tr, dd), w = k / n;
+            c.globalAlpha = (0.08 + 0.72 * w * w) * (over > 0 ? Math.max(0, 1 - over / tail) : 1);
+            c.strokeStyle = w > 0.8 ? 'rgb(214,252,255)' : 'rgb(110,232,255)'; c.lineWidth = lwP * (0.7 + 0.6 * w);
+            c.beginPath(); c.moveTo(A[0], A[1]); for (let q = A[2]; q < B[2]; q++) c.lineTo(tr.pts[q][0], tr.pts[q][1]); c.lineTo(B[0], B[1]); c.stroke();
+            A = B;
+          }
           c.globalAlpha = 1;
-          if (tier > 0) glow(c, [120, 236, 255], B[0], B[1], len * 0.022, len * 0.014, 0.75 * fade);
-          glow(c, [230, 255, 255], B[0], B[1], len * 0.007, len * 0.006, fade);
         }
+        if (d <= tr.len) {
+          // the head: a hot core elongated along its run + a soft teal bloom
+          const H = along(tr, hd), Bk = along(tr, Math.max(0, hd - len * 0.01)), ang = Math.atan2(H[1] - Bk[1], H[0] - Bk[0]);
+          if (tier > 0) glow(c, TEAL, H[0], H[1], len * 0.03, len * 0.018, 0.85);
+          c.save(); c.translate(H[0], H[1]); c.rotate(ang); glow(c, [236, 255, 255], 0, 0, len * 0.014, len * 0.006, 1); c.restore();
+          // the vias it passes flash (a quick bright bloom fading over ~0.5 s)
+          for (const vd of tr.viaD) { const since = (d - vd) / (sp * tr.sp); if (since > 0 && since < 0.5) { const V = along(tr, vd); glow(c, TEAL, V[0], V[1], len * 0.02, len * 0.014, 0.9 * (1 - since / 0.5)); } }
+        }
+        if (flare > 0.01) { const E = tr.pts[tr.pts.length - 1]; glow(c, TEAL, E[0], E[1], len * 0.04 * (1.3 - 0.3 * flare), len * 0.026, 0.9 * flare); glow(c, [240, 255, 255], E[0], E[1], len * 0.012, len * 0.009, flare); }
       }
       c.globalAlpha = 1; }
     // THE EDGE LIGHTS: small lamps along every edge, a slow pulse running from the rear to the nose

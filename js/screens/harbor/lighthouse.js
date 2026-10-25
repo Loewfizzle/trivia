@@ -379,6 +379,9 @@ export function harborBlackout(c, L, k) {
   // the tower's one lit slit (the fourth up the spiral)
   { const R = y => l.r0 + (l.r1 - l.r0) * (y / l.h), yy = l.h * 0.76, s = cam.F / l.z, [wx, wy] = P(l.x - 0.1 * R(yy), yy + 0.9, l.z);
     c.fillStyle = 'rgb(28,24,40)'; c.beginPath(); c.roundRect(wx - s * 0.17, wy, s * 0.34, s * 0.82, [s * 0.17, s * 0.17, 0, 0]); c.fill(); }
+  // the pier's ticket booth window (pier.js: the head's near right corner)
+  if (L.pier && L.pier.head) { const p = L.pier, h = p.head, bx0 = h.x1 - 2.6, bx1 = h.x1 - 0.8, bz = h.z0 + 0.9, dy = p.y;
+    const [wa, wy] = P(bx0 + 0.35, dy + 1.75, bz), [wb, wy2] = P(bx1 - 0.35, dy + 0.95, bz); c.fillStyle = 'rgb(24,22,34)'; c.fillRect(wa - 0.3, wy - 0.3, wb - wa + 0.6, wy2 - wy + 0.6); }
   // the keeper's cottage windows
   if (ck && b) { const cz = ck.z + 1;
     for (const u0 of [0.16, 0.62]) { const [a, ya] = P(ck.x + ck.w * u0, b.h + 2.6, cz), [cc, yc] = P(ck.x + ck.w * (u0 + 0.2), b.h + 1.3, cz); c.fillStyle = 'rgb(22,20,32)'; c.fillRect(a, ya, cc - a, yc - ya); } }

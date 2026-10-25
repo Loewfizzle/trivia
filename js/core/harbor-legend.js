@@ -126,15 +126,18 @@ export function tr3bAt(s, dir = 1) {
   const x = dir > 0 ? xf : 1 - xf;
   const chaseU = (s - CHASE.t0) / CHASE.dur;
   const P = s < TR3B_CROSS ? 'cross' : s < CHASE.t0 ? 'gap' : s < BLACK.on0 ? 'chase' : s < TR3B_LEN ? 'restore' : 'gone';
-  // THE MUSIC POWERS DOWN as it nears (a tape stop: the speed sags, muffled, a warble), almost gone overhead, comes back after the jets
-  const down = smooth(3, 10, s) * (1 - smooth(38.8, 45, s));
+  // THE MUSIC POWERS DOWN as it nears — a record player losing power (POLISH 4, the owner's iPhone: "it doesn't do that weird drone
+  // down … and slowly get back up to speed"): the SPEED + PITCH sag first while it's still LOUD (3.5 → 10.5 s: an audible drone-down,
+  // never under 0.5 — iOS Safari mutes a media element below half speed), only then muffled + faded to a hum (8.5 → 12.5 s); after the
+  // jets the VOLUME comes back first (38.6 → 40.4 s) at the low speed, then it SPINS UP slowly (39.4 → 45.5 s) as the filter opens
+  const sag = smooth(3.5, 10.5, s), up = smooth(39.4, 45.5, s), fadeOut = smooth(8.5, 12.5, s), back = smooth(38.6, 40.4, s);
   return {
     phase: P, len: TR3B_LEN, x, dir, u,
     dip: smooth(0, 8, s) * 0.6 + 0.4 * smooth(8, TR3B_CROSS, s) * 0.5,
     pulse: 0.5 + 0.5 * Math.sin(s * 2.1),
     drain: smooth(0.5, 3.5, s) * (1 - smooth(TR3B_CROSS - 1, TR3B_CROSS + 3, s)),
     chase: { on: chaseU > -0.15 && chaseU < CHASE.uOff, u: chaseU },
-    music: { rate: lerp(1, 0.42, smooth(4, 11, s) * (1 - smooth(39, 40.5, s))), hz: lerp(20000, 380, down), duck: lerp(1, 0.1, down), crackle: smooth(4, 9, s) * (1 - smooth(30, 36, s)) },
+    music: { rate: lerp(1, 0.5, sag * (1 - up)), hz: lerp(20000, 380, smooth(6, 12, s) * (1 - smooth(39.4, 45, s))), duck: lerp(1, 0.12, fadeOut * (1 - back)), crackle: smooth(4, 9, s) * (1 - smooth(30, 36, s)), catchUp: s > 38.2 && s < 38.9 },
   };
 }
 /** THE CHASE's pass (s into the event): three F-16s a few seconds behind the TR-3B, across the screen in `dur` s — the lead's x

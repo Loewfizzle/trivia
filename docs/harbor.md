@@ -4927,6 +4927,22 @@ screen — both gone (a legendary holds the tier; the sprites baked ahead) — h
 - THE BLACKOUT on the promenade is one multiply veil (+ a darker patch over each tree's crown) over the baked night light: the cobbles'
   pools + the uplights fall to ~45 %, not to zero (a moonlit promenade).
 
+### POLISH 4 — the owner's first iPhone look (Oct 25, ~3:40 am)
+- **THE CIRCUITRY's PULSES** ("level up the visuals, or slow down considerably" — both, `legends.js` the pulses block): ~4 × slower (0.075 of the
+  craft's length a second), each trace resting 3.5–9.5 s between pulses (a few at a time, never a race); each pulse LIGHTS the groove behind it
+  (a long trail fading back, flat-ended segments: no beads), a hot head elongated along its run + a teal bloom, the vias it passes flash, the
+  end pad flares + fades.
+- **THE TAPE STOP, HEARD** (`core/harbor-legend.js#tr3bAt` music; `audio/music.js#bendMusic`, `musicCatchUp`; `sounds.js#legendSounds`): it
+  worked, but the duck took the music to 11 % while it sagged (inaudible), and it snapped back in 1.5 s with an 18 s skip. Now the speed +
+  pitch sag while the music is still LOUD (3.5 → 10.5 s, never under 0.5 × — iOS Safari mutes a media element below half speed), the fade to
+  a hum after (8.5 → 12.5 s); after the jets the volume comes back first at the low speed (38.6 → 40.4 s), then it SPINS UP slowly (39.4 →
+  45.5 s) as the filter opens; the time it lost is made up by a seek while it's still silent (38.2 s) and the small rest drains at 1.05 ×
+  (the pitch kept) — never a skip. Measured live in Chrome: 0.89 × at full volume at 6.7 s, 0.67 × at full volume at 42.9 s, 1.0 by ~47 s.
+- **THE LIGHTS STILL ON IN THE BLACKOUT** (his screenshot): the speakeasy's BAKED lights — the three wall-washers' lit lamp heads + their warm
+  cones down the piers, the side door's sconce + its landing on the brick, the date stone's wash — laid back dark in the facade's units
+  (`speakeasy.js#blackout`); the keeper's-house neon's REFLECTION in the water ("HY": the mirror drew the unscaled neon — `scene.js` lastNf);
+  the pier's ticket booth window (`lighthouse.js#harborBlackout`); the crabapple's baked glow under its crown (a deeper patch).
+
 ### Handoff → 8b (THE LIFE)
 - **THE VEHICLE KIT** is 8b's: a police car, the bootleggers' truck, the trash truck = new `MODELS` entries (the same numbers + flags), painted
   by `kit.draw`; add each to the road cycles (`vehicles.js`, `core/harbor-traffic.js`); sirens / special lamps go in the live block of

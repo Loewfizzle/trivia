@@ -465,6 +465,23 @@ export function createSpeakeasy() {
     c.save(); c.globalCompositeOperation = 'multiply'; c.globalAlpha = 1; c.fillStyle = `rgb(${col.join(',')})`;
     for (const poly of [outline.front, outline.side]) { c.beginPath(); poly.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.fill(); }
     c.restore();
+    // (the BAKED lights themselves, which the multiply only dims — the owner's iPhone after POLISH 4: "these lights are still on": the
+    // three wall-washers' lit lamp heads, the side door's sconce + its warm landing on the brick, the date stone's wash — laid back dark,
+    // in the facade's own units)
+    if (k > 0.01) {
+      const [ox, oy] = G.front(0, 0);
+      c.save(); wallMap(c, ox, oy, G.K); c.globalAlpha = Math.min(1, k);
+      for (const [a0, b0] of WASH.piers) { const u = (a0 + b0) / 2, v = WASH.lampV; R(c, u - 0.21, v - 0.09, u + 0.21, v + 0.05, 'rgb(20,18,26)'); }
+      c.globalCompositeOperation = 'multiply';
+      for (const [a0, b0] of WASH.piers) { const v = WASH.lampV; R(c, a0 - 0.15, v - WASH.drop - 0.3, b0 + 0.15, v, 'rgb(104,96,116)'); }   // (their warm cones down the piers)
+      c.globalCompositeOperation = 'source-over';
+      const sc = G.s.shop.sconce; R(c, sc.u - 0.11, sc.v - 0.01, sc.u + 0.11, sc.v + 0.27, 'rgb(34,26,24)');
+      c.globalCompositeOperation = 'multiply';
+      { const r0 = SHOP_GLOW.landR * 1.3, g = c.createRadialGradient(sc.u, sc.v - 0.17, 0, sc.u, sc.v - 0.17, r0);
+        g.addColorStop(0, 'rgb(96,88,104)'); g.addColorStop(0.5, 'rgb(170,162,176)'); g.addColorStop(1, 'rgb(255,255,255)'); c.fillStyle = g; c.fillRect(sc.u - r0, sc.v - 0.17 - r0, r0 * 2, r0 * 2); }
+      R(c, 5.6 - DATE.hw - 0.05, DATE.v0 - 0.05, 5.6 + DATE.hw + 0.05, DATE.v1 + 0.05, 'rgb(118,112,130)');
+      c.restore();
+    }
   }
   return {
     layout, draw,
