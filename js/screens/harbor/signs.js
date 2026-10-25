@@ -533,6 +533,8 @@ export function lampGlows(x, lamps, R, k = 1) {
  */
 export function buildBillboard(spot, content, ctx) {
   const R = spot.rect, dpr = ctx.dpr, lamps = gooseneckLamps(R), dun = spot.mount === 'speak';
+  // (8b1: a burnt-out gooseneck — ctx.dead, its index — throws no light until the billposter fixes it; its shade still hangs there)
+  const litLamps = ctx.dead != null ? lamps.filter((l, i) => i !== ctx.dead) : lamps;
   const gy = R.y + R.h, foot = Math.max(gy + 4, ctx.roofY || gy + 7), k = Math.max(0.6, R.h / 40);
   const deckY = gy + 0.75 * k, railTop = gy - 2.2 * k;
   const FONT = fs => `700 ${fs}px "Chakra Petch", Orbitron, sans-serif`;
@@ -657,15 +659,25 @@ export function buildBillboard(spot, content, ctx) {
   const nightS = sprite(box, 2, dpr, x => {
     poster(x, 0);
     const lightC = document.createElement('canvas'); lightC.width = Math.ceil(R.w * dpr); lightC.height = Math.ceil(R.h * dpr);
-    const lx = safeCtx(lightC); lx.scale(dpr, dpr); lampLightMap(lx, R, lamps);
+    const lx = safeCtx(lightC); lx.scale(dpr, dpr); lampLightMap(lx, R, litLamps);
     x.globalCompositeOperation = 'multiply'; x.drawImage(lightC, R.x, R.y, R.w, R.h); lightC.width = lightC.height = 0;
     x.globalCompositeOperation = 'source-over';
     structure(x, 0, 0);
     // the catwalk + railing in the poster's spill (a faint warm edge)
     x.save(); x.globalCompositeOperation = 'lighter'; x.strokeStyle = rgba(LAMP_C, 0.22); x.lineWidth = Math.max(0.25, 0.22 * k);
     x.beginPath(); x.moveTo(R.x - 2 * k, railTop); x.lineTo(R.x + R.w + 2 * k, railTop); x.moveTo(R.x - 2 * k, deckY - 0.45 * k); x.lineTo(R.x + R.w + 2 * k, deckY - 0.45 * k); x.stroke(); x.restore();
-    lampGlows(x, lamps, R, 1);
+    lampGlows(x, litLamps, R, 1);
   });
-  return { id: spot.id, spot, rect: R, content, dayDraw, nightS, lamps };
+  // (8b1 — THE BILLPOSTER's sheets: the poster alone + the board's light on it now — by day the sun's wash, at night × the lamps' map)
+  const light = (x, T) => {
+    const day = Math.min(1, T.day + 0.8 * T.gold), dk = Math.max(T.night || 0, 1 - day);
+    x.fillStyle = `rgba(238,226,204,${0.1 * day})`; x.fillRect(R.x, R.y, R.w, R.h);
+    if (dk > 0.02) {
+      const lc = document.createElement('canvas'); lc.width = Math.max(1, Math.ceil(R.w * 2)); lc.height = Math.max(1, Math.ceil(R.h * 2));
+      const lx = safeCtx(lc); if (!lx) return; lx.scale(2, 2); lampLightMap(lx, R, litLamps);
+      x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = dk; x.drawImage(lc, R.x, R.y, R.w, R.h); x.restore(); lc.width = lc.height = 0;
+    }
+  };
+  return { id: spot.id, spot, rect: R, content, dayDraw, nightS, lamps, poster, light, dead: ctx.dead == null ? null : ctx.dead };
 }
 export { MARKS };

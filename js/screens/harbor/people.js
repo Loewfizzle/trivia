@@ -24,6 +24,7 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
 import { frontProfile } from './strings.js';
 import { SPEAK_V } from '../../core/harbor-speakeasy.js';
+import { propItems } from './workers.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -52,8 +53,10 @@ export function createPeople() {
   function frame(f) {
     if (!L) return;
     ensureMap(!!f.event);
-    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event, lobby: lineN };
+    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.noWork ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
+      // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
+      forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, canAskew: f.canAskew || null };
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     roofNow = roofAt(t, L, ctx, roofCache);
     lastT = t;
@@ -89,21 +92,24 @@ export function createPeople() {
     if (pass === 'roof') { const warm = env.party ? [255, 170, 150] : [255, 196, 128], k = 0.9 * E.dark; E.lightAt = k > 0.02 ? () => warm.map(v => v * k) : null; E.rimSide = () => -1; E.shadow = () => null; }
     let items;
     if (pass === 'roof') {
-      if (!roofNow.members.length || env.tier === 0) return;            // (FP3a: the roof's guests off at tier 0)
-      items = roofNow.members;
+      // (FP3a: the roof's guests off at tier 0; 8b1: the roof's WORKERS — the billposter, the gardener, the crew — at every tier)
+      items = [...(env.tier === 0 ? [] : roofNow.members), ...((now.crew && now.crew.roof) || [])];
+      if (!items.length) return;
     } else {
       const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...(pass === 'near' ? lineMembers(env.t || 0) : [])];   // (FP3a: the cap by tier)
       // (FP3b: the cart's vendor is a routine member now — core/harbor-people.js#folkAt — wheeling it in + out on its schedule)
       // (behind the speakeasy on the waterside sidewalk: hidden by the building — not drawn)
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ && !insideDoor(m)));
     }
-    const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? now.cars || [] : [];
-    if (!items.length && !buses.length && !cars.length) return;
+    const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? [...(now.cars || []), ...((now.crew && now.crew.trucks) || [])] : [];
+    // 8b1 — THE WORKERS' PROPS at their own depths (ladders, the platform, the stand, the bottles, the hatch, the wet streak…)
+    const props = pass === 'near' ? propItems(L, now.crew, pass, env.t || 0) : [];
+    if (!items.length && !buses.length && !cars.length && !props.length) return;
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);
     // far first; a bus is one item at its own depth
     const cartNow = pass === 'near' && now.cart && now.cart.on ? now.cart : null;
-    const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...cars.map(car => ({ z: car.z, car })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : [])].sort((a, b) => b.z - a.z);
+    const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...cars.map(car => ({ z: car.z, car })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : []), ...props.map(p => ({ z: p.z, prop: p }))].sort((a, b) => b.z - a.z);
     const hands = new Map(), collars = new Map();
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
     const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, advance = pass === 'near' && env.t !== wandT;
@@ -121,15 +127,18 @@ export function createPeople() {
       }
       if (it.cart) { drawCartLive(c, it.cart, env); continue; }
       if (it.car) { drawCar(c, it.car, env); continue; }
+      if (it.prop) { it.prop.draw(c, E); continue; }
       if (riding.has(it.m)) continue;
       const mem = it.m, look = lookFor(mem, env);
       let st = mem.s, mv = null;
       if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF, mem.vid); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+      // (8b1: the bootleggers' lookout keeps turning his head — up the street, down it, back)
+      else if (st.pose === 'lookout') st = { ...st, hd: st.hd + 0.85 * Math.sin((env.t || 0) * 0.55 + (mem.m.seed % 7)) };
       else if (mem.kind === 'watcher') st = { ...st, beatF: beatsF };
       if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { collars.set(mem.vid, drawDog(c, cam, { ...st, dist: st.dist * 1.6 }, look, E, pass === 'roof' ? roofY() : 0)); continue; }
       // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
       const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
-      const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() : st.y || 0 });
+      const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 });
       if (box && mv) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false); drawWands(c, J, fx, fy, H, { idx: mem.idx || 0, n: nDancers, beatsF, punch: bt ? bt.punch || 0 : (1 - (beatsF % 1)) ** 3, pal: bt && bt.pal, move: mv.move, t: env.t || 0, tier: env.tier, k: now.dance ? Math.max(0.35, now.dance.k) : 1, trails: env.mo === false ? null : trails, key: mem.vid, advance }); }
       if (box && mem.kind === 'dogwalker' && mem.m.role === 'lead') {
         const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near];
@@ -151,7 +160,7 @@ export function createPeople() {
     // the contact shadow (the body keeps the light off the road between its wheels)
     c.save(); c.globalAlpha = (env.fade == null ? 1 : env.fade) * (0.42 - 0.12 * night); c.fillStyle = 'rgb(14,12,24)';
     c.beginPath(); c.ellipse(cx, gy - 0.05 * sp, len * 0.5, Math.max(1, 0.32 * sp), 0, 0, Math.PI * 2); c.fill(); c.restore();
-    const lit = night * pw;
+    const lit = car.dark ? 0 : night * pw;                // (8b1: the bootleggers' truck runs without lamps)
     if (lit > 0.05) {
       if (!carPool) { carPool = document.createElement('canvas'); carPool.width = carPool.height = 64; const x = safeCtx(carPool); if (x) { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,226,172,1)'); g.addColorStop(0.4, 'rgba(255,226,172,0.4)'); g.addColorStop(1, 'rgba(255,226,172,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); } }
       const fx = cx + car.dir * (len / 2 + 2.4 * sp), rw = 2.8 * sp, rh = Math.max(1.5, 0.55 * sp);
@@ -159,7 +168,7 @@ export function createPeople() {
     }
     let lampK = 0; for (const l of L.lamps) if (l.kind === 'tall') { const d = (car.x - l.x) / 7; if (d * d < 1) lampK = Math.max(lampK, (1 - d * d) ** 2); }
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
-    kit.draw(c, { id: car.model, paint: car.paint, trade: car.trade, rumble: car.rumble, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
+    kit.draw(c, { id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
   }
   // ---- THE CHESTNUT CART, live (FP3b item 11b — the vendor spot: core/harbor-routines.js#VENDOR): wheeled in + out by its vendor,
   // parked at the front curb in the evening; a sprite while it stands (re-painted when the look changes), painted directly while it
@@ -292,6 +301,46 @@ export function createPeople() {
     busSounds(env);
     doorSounds(env);
     danceSounds(env);
+    workSounds(env);
+  }
+  // 8b1 — THE WORKERS, HEARD (through their slots — silent while empty; quiet): the milk bottles set down + taken in, the newspaper
+  // bundles + a sale, the can's lid, the crates, the broom, the squeegee, the ladder going up + down, the cop's whistle, the trucks
+  const wk = { pose: new Map(), at: new Map(), props: new Set(), trucks: new Map(), whistle: new Set() };
+  function workSounds(env) {
+    const snd = env.snd, crew = now.crew; if (!snd || !snd.play || env.mo === false || !crew) return;
+    const t = env.t || 0, seen = new Set();
+    for (const m of [...now.members.filter(x => x.routine === 'work'), ...(crew.roof || [])]) {
+      const id = m.vid, pz = m.s.pose, prev = wk.pose.get(id), pan = panOf(m.s.x), carry = m.s.carry || null;
+      seen.add(id);
+      if (prev && prev.pose !== pz) {
+        if (pz === 'garden') {
+          const cs = prev.carry || carry, slot = m.kind === 'milk' || m.kind === 'barber' ? 'milk-bottles' : m.kind === 'trash' ? 'trash-can-lid' : m.kind === 'newsdrop' || m.kind === 'newsboy' ? 'newspaper-rustle' : cs === 'crate' ? 'crates-clink' : cs === 'ladder' || cs === 'steps' ? 'ladder-clank' : null;
+          if (slot) snd.play(slot, { pan, gain: 0.55 });
+        } else if (pz === 'cart' && m.kind === 'buyer') snd.play('newspaper-rustle', { pan, gain: 0.45 });
+        else if (pz === 'tip') snd.play('trash-can-lid', { pan, gain: 0.6 });
+        if (prev.pose === 'reach' && carry === 'crate') snd.play('crates-clink', { pan, gain: 0.45 });
+      }
+      // the broom + the squeegee while they work (a stroke every few seconds)
+      const last = wk.at.get(id) || 0;
+      if ((pz === 'sweep' && t - last > 2.4) || (pz === 'squeegee' && t - last > 4.5 + (m.m.seed % 3))) { snd.play(pz === 'sweep' ? 'broom-sweep' : 'squeegee', { pan, gain: pz === 'sweep' ? 0.4 : 0.35 }); wk.at.set(id, t); }
+      wk.pose.set(id, { pose: pz, carry });
+    }
+    for (const id of [...wk.pose.keys()]) if (!seen.has(id)) { wk.pose.delete(id); wk.at.delete(id); }
+    // the ladders: a clank as one goes up against the wall / comes down
+    const ps = new Set((crew.props || []).filter(p => p.kind === 'ladder' || p.kind === 'steps').map(p => p.work + '|' + p.t0));
+    for (const k of ps) if (!wk.props.has(k)) snd.play('ladder-clank', { pan: -0.4, gain: 0.5 });
+    for (const k of wk.props) if (!ps.has(k)) snd.play('ladder-clank', { pan: -0.4, gain: 0.4 });
+    wk.props = ps;
+    // the cop's whistle (now + then, at the crossing)
+    const tr = crew.traces; if (tr && tr.whistle) for (const wt of tr.whistle) if (lastT >= wt && lastT < wt + 1.5 && !wk.whistle.has(wt)) { wk.whistle.add(wt); snd.play('police-whistle', { pan: 0.1, gain: 0.45 }); }
+    // the trucks: in (an old engine slowing to the kerb), away (pulling off) — the dump truck its own takes; the bootleggers' quiet
+    for (const T of crew.trucks || []) {
+      const st = wk.trucks.get(T.id) || '', pan = panOf(T.x);
+      const arrive = T.model === 'dump' ? 'trash-truck-arrive' : 'truck-delivery', depart = T.model === 'dump' ? 'trash-truck-depart' : 'truck-delivery';
+      if (!st) { snd.play(arrive, { pan, gain: T.dark ? 0.25 : 0.5 }); wk.trucks.set(T.id, 'in'); }
+      else if (st === 'in' && !T.parked && lastT > T.tA + 1) { snd.play(depart, { pan, gain: T.dark ? 0.25 : 0.5 }); wk.trucks.set(T.id, 'out'); }
+    }
+    for (const id of [...wk.trucks.keys()]) if (!(crew.trucks || []).some(T => T.id === id)) wk.trucks.delete(id);
   }
   const roofY = () => L.speakeasy.h;
   // the roof's clip: the sky ABOVE the building's front silhouette, as ONE small polygon over the deck (a whole-screen even-odd path
@@ -347,6 +396,8 @@ export function createPeople() {
     cars: () => (now.cars || []).map(c => ({ id: c.id, model: c.model, lane: c.lane, x: +c.x.toFixed(2), speed: +c.speed.toFixed(2), glow: c.glow })),
     /** FP3b — THE DANCE CIRCLE now: { on, k (0..1 formed), id, s0, s1 } (the scene lights the inlay's floor spots + keeps the cart away) */
     dance: () => ({ ...(now.dance || { on: false, k: 0 }) }),
+    /** 8b1 — THE WORKERS now: who's out (kinds), the traces (the milk on the step, the board's game, the blade's repaint, the faults…), the props, the trucks */
+    crew: () => (now.crew ? { works: now.crew.works, traces: now.crew.traces, props: (now.crew.props || []).map(p => p.kind), trucks: (now.crew.trucks || []).map(T => ({ id: T.id, model: T.model, x: +T.x.toFixed(2), parked: T.parked })), roof: (now.crew.roof || []).map(m => ({ kind: m.kind, pose: m.s.pose, x: +m.s.x.toFixed(2), y: +(m.s.y || 0).toFixed(2) })), members: now.members.filter(m => m.routine === 'work').map(m => ({ id: m.vid, kind: m.kind, pose: m.s.pose, carry: m.s.carry || null, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), y: +(m.s.y || 0).toFixed(2) })) } : null),
     /** FP3b — THE VENDOR SPOT now: the chestnut cart { on, x, parked, moving } */
     cart: () => ({ ...(now.cart || { on: false }) }),
     /** Lobby 2.0: n guests in the line at the speakeasy's door (0 = none) */

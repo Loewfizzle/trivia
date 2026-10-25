@@ -72,7 +72,8 @@ function greenAge(ms) { const S = signalAt(ms); return S.road === 'green' ? SIGN
 export function simulateLane(j, laneId, ctx = {}) {
   const lanes = ctx.lanes, ln = lanes[laneId], dir = ln.dir, B = TRAFFIC.block, dt = TRAFFIC.dt;
   const buses = laneId === 'near' ? (ctx.buses || []) : [];
-  const keep = s => !buses.some(b => s.t0 > b.tE - 25 && s.t0 < b.tE + 3);
+  // (8b1: a worker's truck HOLDS the stop for minutes — `hold`: no car enters the near lane from just before it comes until it's gone)
+  const keep = s => !buses.some(b => s.t0 > b.tE - (b.hold ? 45 : 25) && s.t0 < (b.hold ? b.tX : b.tE + 3));
   const prev = laneSpawns(j - 1, laneId, ctx).filter(keep), mine = laneSpawns(j, laneId, ctx).filter(keep);
   const all = [...prev, ...mine].map(s => ({ ...s, x: ln.xIn, vel: s.v, on: false, done: false, xs: [], ts: null, stopped: 0 }));
   const t0 = (j - 1) * B, t1 = (j + 1) * B + TRAFFIC.tail;

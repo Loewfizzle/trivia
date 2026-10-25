@@ -54,6 +54,12 @@ export const MODELS = Object.freeze({
     paints: [['dairy', 'black', 'forest'], ['forest', 'black', 'cream'], ['navy', 'black', 'cream'], ['maroon', 'black', 'cream']], trades: ['HARBOR DAIRY', 'BAKERY', 'ICE CO.', 'LAUNDRY'] },
   taxi: { len: 4.85, h: 2.18, r: 0.47, base: 3.2, ovR: 0.82, sill: 0.66, belt: 1.4, hood: 1.44, cowl: 3.16, cab: [0.5, 3.02], rake: 0.08, roof: 'hard', grille: 'nickel', fender: 'sweep', wheel: 'wood', white: false, spare: 'rear', louvre: 12, checker: true, taxiSign: true,
     paints: [['taxi', 'black', 'black']] },
+  // 8b1 — THE WORKERS' TRUCKS (roof 'cab': a closed cab behind the hood + a BED behind it): the city's DUMP TRUCK (a riveted steel body
+  // with its ribs, CITY SANITATION stencilled on it) + the bootleggers' STAKE TRUCK (wooden stakes + a canvas tarp lashed over the load)
+  dump: { len: 6.0, h: 2.32, r: 0.5, base: 3.75, ovR: 1.02, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.62, cab: [3.62, 4.5], rake: 0.04, roof: 'cab', grille: 'nickel', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
+    bed: { u0: 0.1, u1: 3.48, v1: 2.42, kind: 'dump' }, paints: [['forest', 'black', 'cream'], ['grey', 'black', 'cream']], trades: ['CITY SANITATION'] },
+  stake: { len: 6.25, h: 2.26, r: 0.5, base: 3.95, ovR: 1.05, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.86, cab: [3.86, 4.74], rake: 0.04, roof: 'cab', grille: 'brass', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
+    bed: { u0: 0.1, u1: 3.72, v1: 2.5, kind: 'tarp' }, paints: [['black', 'black'], ['green', 'black']] },
 });
 export const MODEL_IDS = Object.freeze(Object.keys(MODELS));
 /** the order the models take on a road (a fixed cycle, stepped on every seventh pass: never the same model twice in a row) */
@@ -119,7 +125,13 @@ export function bodySprite(id, s, K, o = {}) {
     x.beginPath();
     const tail = 0.1, top = M.h;
     x.moveTo(X(tail + 0.12), Y(M.sill - 0.02));
-    if (M.roof === 'van') {
+    if (M.roof === 'cab') {
+      // (8b1) the truck's closed cab: its back wall straight up behind the bed, a flat roof, the windshield
+      const b0 = M.cab[0] - 0.12; x.lineTo(X(b0), Y(M.sill - 0.02)); x.lineTo(X(b0), Y(top - 0.1)); x.quadraticCurveTo(X(b0), Y(top), X(b0 + 0.12), Y(top));
+      const r1 = M.cab[1] - 0.04;
+      x.lineTo(X(r1 - 0.12), Y(top)); x.quadraticCurveTo(X(r1 - 0.02), Y(top - 0.01), X(r1 + 0.02), Y(top - 0.08));
+      x.lineTo(X(M.cowl + M.rake), Y(M.hood + 0.04));
+    } else if (M.roof === 'van') {
       // the box: square-ish, its top a gentle crown, the cab's roof stepping down to the windshield
       x.lineTo(X(0.04), Y(M.sill + 0.2)); x.lineTo(X(0.02), Y(top - 0.12)); x.quadraticCurveTo(X(0.04), Y(top), X(0.2), Y(top));
       x.lineTo(X(M.cab[0] - 0.08), Y(top)); x.quadraticCurveTo(X(M.cab[0] + 0.04), Y(top), X(M.cab[0] + 0.06), Y(top - 0.14));
@@ -153,9 +165,10 @@ export function bodySprite(id, s, K, o = {}) {
     x.lineTo(X(rU), Y(M.hood)); x.lineTo(X(rU + 0.02), Y(M.hood + 0.05)); x.lineTo(X(M.len - 0.04), Y(M.hood + 0.04)); x.lineTo(X(M.len - 0.02), Y(M.sill - 0.02));
     x.closePath();
   };
+  if (M.bed) truckBed(x, X, Y, s, K, M, o);
   x.fillStyle = g; shell(); x.fill();
   // the roof's top: a black leatherette crown (the sedans), the van's box the body colour
-  if (M.roof === 'hard' || M.roof === 'box') {
+  if (M.roof === 'hard' || M.roof === 'box' || M.roof === 'cab') {
     x.save(); shell(); x.clip(); x.fillStyle = rgb(K.bk); x.fillRect(X(-0.1), Y(M.h + 0.1), (M.cab[1] + 0.2) * s, 0.24 * s); x.restore();
     x.strokeStyle = rgb(K.bkHi, 0.55); x.lineWidth = lw(0.025); x.beginPath(); x.moveTo(X(M.cab[0] + 0.3), Y(M.h - 0.03)); x.quadraticCurveTo(X((M.cab[0] + M.cab[1]) / 2), Y(M.h - 0.01), X(M.cab[1] - 0.2), Y(M.h - 0.03)); x.stroke();
     // the sun visor over the windshield
@@ -173,7 +186,7 @@ export function bodySprite(id, s, K, o = {}) {
   // ---- THE WINDOWS: the glass mirroring the sky, the driver behind the front one (+ a passenger in the back on the big sedans)
   if (M.roof !== 'none') {
     const v1 = M.h - (M.roof === 'van' ? 0.32 : 0.12), v0 = M.belt + 0.1, h = v1 - v0;
-    const panes = M.roof === 'van' ? [[M.cab[0] + 0.16, M.cab[1] - 0.04, true]] : M.deck ? [[M.cab[0] + 0.2, M.cab[1] - 0.06, true]]
+    const panes = M.roof === 'van' ? [[M.cab[0] + 0.16, M.cab[1] - 0.04, true]] : M.roof === 'cab' ? [[M.cab[0] + 0.06, M.cab[1] - 0.06, true]] : M.deck ? [[M.cab[0] + 0.2, M.cab[1] - 0.06, true]]
       : M.roof === 'box' ? [[0.32, 1.32, false], [1.42, M.cab[1] - 0.06, true]] : id === 'packard' ? [[0.62, 1.6, false], [1.7, 2.6, 'p'], [2.7, M.cab[1] - 0.06, true]] : [[0.56, 1.74, false], [1.86, M.cab[1] - 0.06, true]];
     for (const [u0, u1, drv] of panes) {
       const rr = [0.03 * s, u1 > M.cab[1] - 0.2 ? 0.1 * s : 0.03 * s, 0.03 * s, 0.03 * s];
@@ -206,7 +219,7 @@ export function bodySprite(id, s, K, o = {}) {
   if (id === 'packard') { x.strokeStyle = rgb(K.chrome); x.lineWidth = lw(0.035); x.beginPath(); x.moveTo(X(0.34), Y(M.belt + 0.42)); x.bezierCurveTo(X(0.64), Y(M.belt + 0.48), X(0.4), Y(M.belt + 0.12), X(0.72), Y(M.belt + 0.14)); x.stroke(); x.fillStyle = 'rgba(255,255,255,0.7)'; x.fillRect(X(0.4), Y(M.belt + 0.44), Math.max(0.4, 0.04 * s), Math.max(0.4, 0.015 * s)); }
   // ---- the doors (their seams + the handle), the belt moulding (a fine pinstripe), the cowl's vent
   x.strokeStyle = rgb(shade(p, -0.45), 0.9); x.lineWidth = lw(0.016);
-  const doors = M.roof === 'van' ? [[M.cab[0] + 0.08, M.cowl - 0.04]] : M.roof === 'none' || M.deck ? [[M.cab[0] + 0.02, M.cowl - 0.06]] : M.roof === 'box' ? [[1.38, M.cowl - 0.06]] : id === 'packard' ? [[0.96, 2.0], [2.1, M.cowl - 0.06]] : [[1.8, M.cowl - 0.06]];
+  const doors = M.roof === 'van' || M.roof === 'cab' ? [[M.cab[0] + 0.0, M.cowl - 0.04]] : M.roof === 'none' || M.deck ? [[M.cab[0] + 0.02, M.cowl - 0.06]] : M.roof === 'box' ? [[1.38, M.cowl - 0.06]] : id === 'packard' ? [[0.96, 2.0], [2.1, M.cowl - 0.06]] : [[1.8, M.cowl - 0.06]];
   for (const [a, b] of doors) {
     x.beginPath(); x.moveTo(X(a), Y(M.sill + 0.04)); x.lineTo(X(a), Y(M.roof === 'none' ? M.belt + 0.06 : M.h - 0.14)); x.moveTo(X(b), Y(M.sill + 0.04)); x.lineTo(X(b), Y(M.roof === 'none' ? M.belt + 0.06 : M.h - 0.16)); x.moveTo(X(a), Y(M.sill + 0.04)); x.lineTo(X(b), Y(M.sill + 0.04)); x.stroke();
     x.fillStyle = rgb(K.chrome); x.fillRect(X(a + 0.07), Y(M.belt - 0.08), 0.13 * s, Math.max(0.6, 0.03 * s));
@@ -216,7 +229,7 @@ export function bodySprite(id, s, K, o = {}) {
   if (M.deck) { x.fillStyle = rgb(K.chrome, 0.85); x.fillRect(X(0.2), Y(M.belt - 0.16), (rU - 0.3) * s, Math.max(0.5, 0.02 * s)); }   // (the coupe's chrome strip)
   // THE VAN's trade, lettered on its box (gilt, shadowed — a sign-writer's hand)
   if (M.roof === 'van') {
-    const word = (M.trades || [''])[o.trade || 0], cx = X(M.cab[0] / 2 + 0.05), cy = Y((M.belt + M.h) / 2 - 0.06), size = 0.36 * s;
+    const word = o.word || (M.trades || [''])[o.trade || 0], cx = X(M.cab[0] / 2 + 0.05), cy = Y((M.belt + M.h) / 2 - 0.06), size = 0.36 * s;
     x.save(); x.font = `800 ${size}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
     const tw = x.measureText(word).width, sq = Math.min(1, (M.cab[0] - 0.36) * s / Math.max(1, tw));
     x.translate(cx, cy); x.scale(sq, 1);
@@ -298,6 +311,43 @@ export function bodySprite(id, s, K, o = {}) {
     x.save(); x.font = `800 ${0.18 * s}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = rgb(K.bk); x.fillText('TAXI', X(u), Y(M.h + 0.18)); x.restore();
   }
   return cv;
+}
+/** 8b1 — A TRUCK's BED behind its cab (drawn before the cab + hood): the city's riveted steel DUMP body (its ribs, a lit top rail, CITY
+ *  SANITATION stencilled in cream) or the bootleggers' STAKE sides + a CANVAS TARP lashed over the load on its hoops (the ropes, the
+ *  folds, a crate's corner showing at the tail) */
+function truckBed(x, X, Y, s, K, M, o) {
+  const B = M.bed, v0 = M.sill + 0.02, u0 = B.u0, u1 = B.u1, p = K.p, lw = v => Math.max(0.5, v * s);
+  if (B.kind === 'dump') {
+    const g = x.createLinearGradient(0, Y(B.v1), 0, Y(v0));
+    g.addColorStop(0, rgb(mix(p, K.hi, 0.28))); g.addColorStop(0.12, rgb(p)); g.addColorStop(0.7, rgb(shade(p, -0.12))); g.addColorStop(1, rgb(shade(p, -0.35)));
+    x.fillStyle = g; x.beginPath(); x.moveTo(X(u0), Y(v0)); x.lineTo(X(u0 - 0.05), Y(B.v1)); x.lineTo(X(u1), Y(B.v1)); x.lineTo(X(u1), Y(v0)); x.closePath(); x.fill();
+    // the ribs (vertical stiffeners, each a lit edge + a shadow), the top rail, the rivets along it, the tailgate's hinge
+    for (let u = u0 + 0.42; u < u1 - 0.1; u += 0.62) { x.fillStyle = rgb(shade(p, -0.42)); x.fillRect(X(u), Y(B.v1 - 0.06), 0.06 * s, (B.v1 - v0 - 0.08) * s); x.fillStyle = rgb(mix(p, K.hi, 0.4), 0.7); x.fillRect(X(u - 0.02), Y(B.v1 - 0.06), lw(0.018), (B.v1 - v0 - 0.08) * s); }
+    x.fillStyle = rgb(shade(p, -0.3)); x.fillRect(X(u0 - 0.06), Y(B.v1 + 0.02), (u1 - u0 + 0.06) * s, 0.1 * s);
+    x.fillStyle = rgb(mix(p, K.hi, 0.6), 0.8); x.fillRect(X(u0 - 0.06), Y(B.v1 + 0.02), (u1 - u0 + 0.06) * s, lw(0.02));
+    x.fillStyle = rgb(mix(p, [240, 236, 220], 0.4), 0.7); for (let u = u0 + 0.1; u < u1; u += 0.22) { x.beginPath(); x.arc(X(u), Y(B.v1 - 0.03), Math.max(0.35, 0.018 * s), 0, TAU); x.fill(); }
+    const word = o.word || (M.trades || [''])[0];
+    if (word) { x.save(); x.font = `800 ${0.27 * s}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; const tw = x.measureText(word).width, sq = Math.min(1, (u1 - u0 - 0.4) * s / Math.max(1, tw)); x.translate(X((u0 + u1) / 2), Y((B.v1 + v0) / 2 + 0.04)); x.scale(sq, 1); x.fillStyle = rgb(shade(p, -0.5), 0.8); x.fillText(word, 0.025 * s, 0.025 * s); x.fillStyle = rgb(mix([226, 214, 170], p, K.name === 'night' ? 0.55 : 0.1)); x.fillText(word, 0, 0); x.restore(); }
+    return;
+  }
+  // THE STAKE BED: the deck's edge, the wooden stakes + two rails, then the tarp over the hoops (rounded, sagging between them)
+  const wood = mix([118, 92, 60], p, 0.15), wv = M.belt + 0.32;
+  x.fillStyle = rgb(shade(wood, -0.2)); x.fillRect(X(u0), Y(v0 + 0.16), (u1 - u0) * s, 0.16 * s);
+  x.fillStyle = rgb(K.name === 'night' ? shade(wood, -0.5) : wood); for (let u = u0 + 0.05; u < u1; u += 0.5) x.fillRect(X(u), Y(wv), 0.08 * s, (wv - v0 - 0.02) * s);
+  for (const v of [wv - 0.06, (wv + v0) / 2]) x.fillRect(X(u0), Y(v), (u1 - u0) * s, 0.07 * s);
+  const canvas = K.name === 'night' ? [34, 36, 32] : K.name === 'golden' ? [104, 96, 70] : [86, 90, 70], hoops = 4;
+  const tg = x.createLinearGradient(0, Y(B.v1), 0, Y(wv));
+  tg.addColorStop(0, rgb(mix(canvas, K.hi, 0.22))); tg.addColorStop(0.5, rgb(canvas)); tg.addColorStop(1, rgb(shade(canvas, -0.3)));
+  x.fillStyle = tg; x.beginPath(); x.moveTo(X(u0), Y(wv - 0.04));
+  x.quadraticCurveTo(X(u0 - 0.02), Y(B.v1), X(u0 + 0.3), Y(B.v1));
+  for (let i = 1; i <= hoops; i++) { const ua = u0 + 0.3 + (u1 - u0 - 0.6) * (i - 1) / hoops, ub = u0 + 0.3 + (u1 - u0 - 0.6) * i / hoops; x.quadraticCurveTo(X((ua + ub) / 2), Y(B.v1 - 0.09), X(ub), Y(B.v1)); }
+  x.quadraticCurveTo(X(u1), Y(B.v1), X(u1), Y(wv - 0.04)); x.closePath(); x.fill();
+  // the folds (darker creases from each hoop down), the ropes lashed to the stakes, a crate's corner peeking under the tail flap
+  x.strokeStyle = rgb(shade(canvas, -0.45), 0.8); x.lineWidth = lw(0.022);
+  for (let i = 0; i <= hoops; i++) { const u = u0 + 0.3 + (u1 - u0 - 0.6) * i / hoops; x.beginPath(); x.moveTo(X(u), Y(B.v1 - 0.02)); x.quadraticCurveTo(X(u + 0.06), Y((B.v1 + wv) / 2), X(u - 0.04), Y(wv)); x.stroke(); }
+  x.strokeStyle = rgb(K.name === 'night' ? [70, 64, 52] : [196, 178, 132], 0.9); x.lineWidth = lw(0.018);
+  for (let u = u0 + 0.35; u < u1 - 0.2; u += 0.75) { x.beginPath(); x.moveTo(X(u - 0.3), Y(B.v1 - 0.1)); x.lineTo(X(u + 0.1), Y(wv - 0.02)); x.stroke(); }
+  x.fillStyle = rgb(K.name === 'night' ? shade(wood, -0.45) : mix(wood, [200, 170, 120], 0.3)); x.fillRect(X(u0 + 0.02), Y(wv + 0.04), 0.34 * s, 0.22 * s);
 }
 /** a person seated behind the glass / in the open cockpit: shoulders, a head, a hat (a fedora / a cloche), a rim of the light outside */
 function figure(x, X, Y, s, u, v, col, rimC, wheel, look = 'man', skin = null, hatC = null) {
@@ -406,8 +456,8 @@ export function createVehicles() {
   const paintsOf = (id, paint) => { const M = MODELS[id] || MODELS.modelA, P = M.paints[((paint % M.paints.length) + M.paints.length) % M.paints.length]; return { body: PAINT[P[0]], fender: PAINT[P[1]], trim: P[2] ? PAINT[P[2]] : null }; };
   /** the body sprite for a model / look / paint at s px a unit */
   function body(id, look, paint, s, o = {}) {
-    const key = `b|${id}|${look}|${paint}|${o.trade || 0}|${o.rumble ? 1 : 0}|${Math.round(s * 8)}`;
-    return get(key, () => { const P = paintsOf(id, paint), K = lookOf(look, P.body), F = lookOf(look, P.fender), Tm = P.trim ? lookOf(look, P.trim).p : null; return bodySprite(id, s, K, { fender: F.p, trim: Tm, trade: o.trade, rumble: o.rumble }); });
+    const key = `b|${id}|${look}|${paint}|${o.trade || 0}|${o.word || ''}|${o.rumble ? 1 : 0}|${Math.round(s * 8)}`;
+    return get(key, () => { const P = paintsOf(id, paint), K = lookOf(look, P.body), F = lookOf(look, P.fender), Tm = P.trim ? lookOf(look, P.trim).p : null; return bodySprite(id, s, K, { fender: F.p, trim: Tm, trade: o.trade, word: o.word, rumble: o.rumble }); });
   }
   function wheel(id, look, s) {
     const M = MODELS[id] || MODELS.modelA;

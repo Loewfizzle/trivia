@@ -9,6 +9,7 @@
 // shadow. ADDING A LOOK: one entry in LOOKS (what it wears — a function of the season + the night) — the planner names it.
 import { project } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
+import { GEAR, gearCart } from './gear.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -33,6 +34,26 @@ const SIT_COATS = [[52, 66, 112], [58, 104, 82], [132, 50, 62], [84, 98, 124], [
 const SIT_LEGS = [[70, 74, 92], [96, 98, 108], [52, 56, 78]];
 const DOGS = [[120, 82, 50], [36, 32, 34], [214, 196, 160], [170, 120, 66], [236, 232, 224]];
 
+/** 8b1 — the workers' uniforms: coat ('long' | 'short' | 'none'), hat, colours (c coat, l legs, h hat, s shirt, d dress), trim (brass
+ *  buttons / a badge), vest (a waistcoat), apron, overalls */
+const WORKWEAR = {
+  milkman: { coat: 'short', hat: 'peaked', c: [234, 232, 222], l: [58, 60, 74], h: [236, 234, 226], trim: [70, 76, 96] },
+  sweeper: { coat: 'short', hat: 'peaked', c: [238, 238, 232], l: [232, 232, 226], h: [240, 240, 236], trim: [190, 190, 186] },
+  cop: { coat: 'long', hat: 'peaked', c: [34, 42, 86], l: [30, 36, 70], h: [28, 34, 66], trim: [226, 190, 96], badge: true, carry: 'baton' },
+  mailman: { coat: 'short', hat: 'peaked', c: [98, 110, 132], l: [84, 94, 114], h: [82, 92, 112], trim: [210, 190, 120], carry: 'mailbag' },
+  barber: { coat: 'short', hat: null, c: [238, 236, 228], l: [48, 46, 54], trim: [40, 40, 52] },
+  painter: { coat: 'none', hat: 'flatcap', s: [230, 226, 210], l: [228, 222, 206], h: [226, 222, 208], overalls: true },
+  washer: { coat: 'short', hat: 'flatcap', c: [70, 86, 100], l: [78, 76, 72], h: [60, 64, 70] },
+  billposter: { coat: 'short', hat: 'flatcap', c: [118, 96, 70], l: [70, 66, 62], h: [84, 70, 58], apron: [214, 206, 186] },
+  iceman: { coat: 'none', hat: 'flatcap', s: [196, 190, 176], l: [70, 66, 60], h: [90, 76, 60], apron: [110, 76, 48] },
+  trashman: { coat: 'short', hat: 'flatcap', c: [74, 72, 62], l: [64, 62, 58], h: [56, 54, 50] },
+  repairman: { coat: 'none', hat: 'flatcap', s: [196, 186, 160], l: [58, 76, 112], h: [58, 74, 108], overalls: true },
+  bootlegger: { coat: 'short', hat: 'flatcap', c: [46, 44, 50], l: [40, 40, 46], h: [36, 36, 42] },
+  lookout: { coat: 'long', hat: 'fedora', c: [62, 58, 56], l: [44, 44, 50], h: [40, 38, 42] },
+  flowers: { woman: true, coat: 'short', hat: null, c: [124, 62, 72], d: [92, 80, 110], carry: 'flowers' },
+  musician: { coat: 'long', hat: 'fedora', c: [30, 30, 38], l: [26, 26, 32], h: [26, 26, 32], carry: 'bass' },
+  staff: { coat: 'none', hat: null, s: [238, 234, 224], l: [30, 30, 36], vest: [40, 34, 40] },
+};
 /**
  * LOOKS: what a visitor wears → { woman, kid, coat ('long' | 'short' | 'none'), dress ('day' | 'flapper' | null), hat ('fedora' |
  * 'cloche' | 'newsboy' | 'boater' | 'flatcap' | 'top' | null), cols: { coat, legs, hat, skin, hair, scarf?, dress?, shirt }, carry
@@ -63,6 +84,12 @@ export function lookOf(name, seed, o = {}) {
   if (name === 'night') { L.cols.coat = pick(r, [[58, 58, 70], [74, 66, 60], [52, 62, 84]]); L.coat = 'long'; if (!L.woman) L.hat = 'fedora'; }
   // (POLISH 4 — THE DOORMAN at the side door on party nights: a big man in a long dark overcoat, a dark fedora, gloves — broad, still)
   if (name === 'doorman') { L.woman = false; L.dress = null; L.coat = 'long'; L.hat = 'fedora'; L.carry = null; L.cols.coat = [52, 58, 96]; L.cols.legs = [30, 30, 40]; L.cols.hat = [26, 26, 34]; L.cols.scarf = null; L.scarf = null; }
+  // 8b1 — THE WORKERS' CLOTHES (period uniforms that read by colour + shape at ~27 pt): the white-wing sweeper all in white, the milkman's
+  // white jacket + cap, the beat cop's navy tunic + peaked cap, the mailman's grey-blue, the barber's white jacket, the painters' white
+  // overalls, the iceman's leather apron, the bootleggers in dark caps, the bar staff in shirt-sleeves + waistcoats
+  const W8 = WORKWEAR[name];
+  if (W8) { L.woman = !!W8.woman; L.dress = W8.woman ? 'day' : null; L.coat = W8.coat; L.hat = W8.hat; L.carry = W8.carry || null; L.scarf = null; L.cols.scarf = null;
+    if (W8.c) L.cols.coat = W8.c; if (W8.l) L.cols.legs = W8.l; if (W8.h) L.cols.hat = W8.h; if (W8.s) L.cols.shirt = W8.s; if (W8.d) L.cols.dress = W8.d; L.trim = W8.trim || null; L.vest = W8.vest || null; L.apron = W8.apron || null; L.overalls = !!W8.overalls; L.badge = !!W8.badge; }
   if (L.woman && L.coat === 'long') L.dress = L.dress || 'day';
   // (FP3b, the owner after FP3a: people ON THE BENCH blended into its wood at noon — a sitter wears cloth AWAY from the oak's browns:
   // navy, bottle green, burgundy, slate, dove grey, a cream mac; grey / navy trousers)
@@ -145,6 +172,14 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   }
   if (pose === 'sit') hipY = 0.27;
   if (pose === 'garden') hipY = 0.36;
+  // 8b1 — ON A LADDER: the feet on the rungs (just in front), climbing = the legs + arms trading rung by rung with the height gained;
+  // working at a height one foot a rung up
+  const onRungs = pose === 'climb' || ((pose === 'reach' || pose === 'paint') && (st.y || 0) > 0.3 && !st.plat);
+  if (onRungs) {
+    const ph = ((st.y || 0) / 0.3) * Math.PI;
+    for (let i = 0; i < 2; i++) foot[i] = { a: 0.06, b: sg[i] * 0.05, y: ANKLE + (pose === 'climb' ? 0.13 * Math.max(0, Math.sin(ph + i * Math.PI)) : i ? 0.14 : 0) };
+    hipY = HIP0 - 0.01;
+  }
   // (a dip on the beat — the dancers + the bobbing watchers: the knees give, the whole body drops a little; FP3b item 9)
   const bph = st.beatF != null ? ((st.beatF % 1) + 1) % 1 : mo ? (t * (st.bps || 2)) % 1 : 0.5;
   const dip = pose === 'wands' && st.moves ? st.moves.dip || 0 : pose === 'bob' ? 0.022 * (1 - bph) * (1 - bph) : 0;
@@ -196,6 +231,23 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'dance') { const b = mo ? Math.sin(t * 3.4 + L.h * 9) : 0; shJ.forEach(s => { s.b += 0.02 * b; }); head.b += 0.03 * b; arm(N, 1.4 + 0.9 * Math.max(0, b), 0.6, 0.25); arm(Fa, 0.9 - 0.5 * b, 0.9, 0.2); }
   if (pose === 'toast') { toast = mo ? 0.5 + 0.5 * Math.sin(t * 0.6 + L.h * 3) : 1; arm(N, 1.2 + 1.5 * toast, 0.4); }
   if (pose === 'garden') { arm(0, 0.35, 0.2); arm(1, 0.25, 0.25); }
+  // 8b1 — THE WORKERS' POSES (big, readable motions: the broom's push, the crank's turn, the brush's strokes, the squeegee's sweep)
+  const tw8 = mo ? t : 0, k8 = Math.sin(tw8 * 3.1 + L.h * 7);
+  if (pose === 'sweep') { arm(N, 0.66 + 0.24 * k8, 0.5); arm(Fa, 0.98 + 0.24 * k8, 0.22); }
+  if (pose === 'crank') { const c8 = tw8 * 4.2; arm(N, 2.0 + 0.45 * Math.sin(c8), 0.5 + 0.3 * Math.cos(c8)); arm(Fa, 1.75 + 0.45 * Math.sin(c8), 0.6 + 0.3 * Math.cos(c8)); }
+  if (pose === 'climb') { const ph = ((st.y || 0) / 0.3) * Math.PI; arm(0, 2.55 + 0.3 * Math.sin(ph), 0.45); arm(1, 2.55 - 0.3 * Math.sin(ph), 0.45); }
+  if (pose === 'reach') { arm(N, 2.8 + 0.1 * Math.sin(tw8 * 2.3), 0.25 + 0.15 * Math.sin(tw8 * 3.7)); arm(Fa, onRungs ? 1.55 : 0.4, onRungs ? 0.7 : 0.6); }
+  if (pose === 'paint') { arm(N, 2.15 + 0.38 * Math.sin(tw8 * 2.4), 0.45 + 0.2 * Math.sin(tw8 * 4.8)); arm(Fa, onRungs ? 1.5 : 0.5, onRungs ? 0.7 : 0.5); }
+  if (pose === 'paste') { const p8 = Math.sin(tw8 * 1.7); arm(N, 1.85 + 0.55 * p8, 0.35); arm(Fa, 1.6 + 0.4 * p8, 0.45); }
+  if (pose === 'pastehi') { const p8 = Math.sin(tw8 * 1.4); arm(N, 2.75 + 0.12 * p8, 0.15); arm(Fa, 2.35 + 0.1 * p8, 0.3); }
+  if (pose === 'squeegee') { arm(N, 2.1 + 0.55 * Math.sin(tw8 * 2.2 + L.h * 3), 0.35); arm(Fa, 0.4, 0.5); }
+  if (pose === 'tip') { arm(0, 2.75, 0.55); arm(1, 2.65, 0.6); }
+  if (pose === 'hold') { arm(0, 1.65, 0.55); arm(1, 1.75, 0.5); }
+  if (pose === 'twirl') { arm(N, 1.15, 0.8); }
+  if (pose === 'tipHat') { arm(N, 2.7, 1.7); }
+  if (pose === 'offer') { arm(N, 1.45 + 0.06 * Math.sin(tw8 * 1.3), 0.25); }
+  if (pose === 'post') { arm(N, 1.3, 0.55); }
+  if (pose === 'lookout') { arm(0, 0.18, 0.45); arm(1, 0.18, 0.45); }
   // THE WANDS' dancer (FP3b item 9): st.moves = { arms: [[ang, bend, out], [ang, bend, out]], sway, dip } from people.js's routine
   // (phi: the arm raised in the FRONTAL plane — 0 hanging, π/2 out to the side, π straight up — so the moves read from the front)
   if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) { const [phi, bend] = m.arms[i]; arm(i, phi <= Math.PI / 2 ? 0 : Math.PI, bend, phi <= Math.PI / 2 ? phi : Math.PI - phi); } shJ.forEach(s => { s.b += (m.sway || 0) * 0.03; }); head.b += (m.sway || 0) * 0.045; }
@@ -268,7 +320,12 @@ export function drawFolk(c, cam, it, env) {
     for (const [ox, oy] of [[-0.8, -0.5], [0.8, -0.5], [0, -0.9]]) { c.save(); c.translate(ox, oy); rimUpper(c, J, L, X, Y, H, 'rgb(236,232,220)'); c.restore(); }
     c.restore();
   }
-  body(c, J, L, X, Y, H, lit, env);
+  // (8b1: a worker's carried gear changes leg by leg — st.carry; the sweeper's can cart stands on the ground ahead of him: behind him
+  // when he faces away)
+  const LL = st.carry != null ? (st.carry === L.carry ? L : { ...L, carry: st.carry }) : L;
+  if (LL.carry === 'sweepcart' && J.cz > 0.15) gearCart(c, J, X, Y, H, (col, k) => rgb(lit(col, k)), st);
+  body(c, J, LL, X, Y, H, lit, env);
+  if (LL.carry === 'sweepcart' && J.cz <= 0.15) gearCart(c, J, X, Y, H, (col, k) => rgb(lit(col, k)), st);
   c.restore();
   return { x: fx - H * 0.2, y: fy - H, w: H * 0.4, h: H };
 }
@@ -324,6 +381,21 @@ function body(c, J, L, X, Y, H, lit, env) {
   if (L.tux && cz < 0.4) { const v0 = tX + cx * sx * 0.45; c.fillStyle = f(cols.shirt, 1.2); c.beginPath(); c.moveTo(X(v0 - 0.03 * (1 - ax * 0.5)), Y(top)); c.lineTo(X(v0 + 0.03 * (1 - ax * 0.5)), Y(top)); c.lineTo(X(v0), Y(top - 0.13)); c.closePath(); c.fill(); }
   if (L.coat !== 'none' && ax > 0.5) { c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(X(tX - sx * 0.1 * d), Y(top - 0.05), Math.max(0.4, H * 0.012), (top - 0.05 - hem) * H * 0.95); }
   if (cols.scarf && L.coat !== 'none') { c.fillStyle = f(cols.scarf); c.beginPath(); c.ellipse(X(tX), Y(top - 0.005), sx * H * 0.92, H * 0.026, 0, 0, TAU); c.fill(); if (ax > 0.5 || cz < -0.5) c.fillRect(X(tX + (ax > 0.5 ? -d * 0.05 : 0.02)), Y(top - 0.005), Math.max(0.6, 0.03 * H), 0.13 * H); }
+  // 8b1 — THE UNIFORMS' DETAILS: an overalls' bib + straps, an apron, a waistcoat, brass buttons down the front (+ the cop's badge)
+  if (L.overalls) {
+    const bw = sx * (0.62 + 0.3 * (1 - ax)); c.fillStyle = f(cols.legs); c.fillRect(X(tX - bw), Y(top - 0.07), bw * 2 * H, (top - 0.07 - hipY + 0.02) * H);
+    c.strokeStyle = f(cols.legs); c.lineWidth = Math.max(0.4, 0.016 * H); c.beginPath(); c.moveTo(X(tX - bw * 0.8), Y(top - 0.07)); c.lineTo(X(tX - sx * 0.7), Y(top)); c.moveTo(X(tX + bw * 0.8), Y(top - 0.07)); c.lineTo(X(tX + sx * 0.7), Y(top)); c.stroke();
+  }
+  if (L.apron && cz < 0.55) { const aw = sx * (0.5 + 0.4 * (1 - ax)), ax0 = tX + cx * sx * 0.35 * ax; c.fillStyle = f(L.apron); c.fillRect(X(ax0 - aw), Y(top - 0.06), aw * 2 * H, (top - 0.06 - hem + 0.06) * H); }
+  if (L.vest) {
+    c.fillStyle = f(L.vest); c.beginPath(); c.moveTo(X(tX - sx * 0.95), Y(top - 0.005)); c.lineTo(X(tX - sx * 0.25), Y(top - 0.005)); c.lineTo(X(tX), Y(top - 0.1)); c.lineTo(X(tX + sx * 0.25), Y(top - 0.005));
+    c.lineTo(X(tX + sx * 0.95), Y(top - 0.005)); c.lineTo(X(hX + sx * 0.85), Y(hipY + 0.03)); c.lineTo(X(hX - sx * 0.85), Y(hipY + 0.03)); c.closePath(); c.fill();
+  }
+  if (L.trim && cz < 0.35) {
+    const bx = tX + cx * sx * 0.12; c.fillStyle = f(L.trim, 1.3);
+    for (let i = 0; i < 4; i++) { const by = top - 0.05 - i * (top - hipY - 0.02) / 4; c.beginPath(); c.arc(X(bx), Y(by), Math.max(0.35, H * 0.009), 0, TAU); c.fill(); }
+    if (L.badge) { c.beginPath(); c.arc(X(tX - cx * sx * 0.35 - sx * 0.35 * (1 - ax)), Y(top - 0.06), Math.max(0.45, H * 0.014), 0, TAU); c.fill(); }
+  }
   // THE DAY'S LIGHT (FP3a, note 3): a LIT side + a SHADE side across the whole torso from the real sun (warm at golden hour)
   const sun = sunSide(env);
   if (sun) {
@@ -351,7 +423,8 @@ function body(c, J, L, X, Y, H, lit, env) {
   let hand;
   if (armsSide) hand = armP(ao[1], sleeve, 0.062);
   else { const h0 = armP(ao[0], sleeve, 0.062), h1 = armP(ao[1], sleeve, 0.062); hand = J.near === ao[1] ? h1 : h0; }
-  if (J.pose !== 'wands' && L.carry && !['point', 'wave', 'toast', 'dance', 'garden', 'clap'].includes(J.pose)) carry(c, L.carry, hand, H, f, d);
+  if (J.pose !== 'wands' && L.carry && GEAR[L.carry]) GEAR[L.carry](c, { hand, J, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
+  else if (J.pose !== 'wands' && L.carry && !['point', 'wave', 'toast', 'dance', 'garden', 'clap'].includes(J.pose)) carry(c, L.carry, hand, H, f, d);
   if (J.pose === 'toast') { const [gx, gy] = hand; c.fillStyle = 'rgba(236,226,190,0.9)'; c.beginPath(); c.moveTo(gx - H * 0.03, gy - H * 0.05); c.lineTo(gx + H * 0.03, gy - H * 0.05); c.lineTo(gx, gy - H * 0.015); c.closePath(); c.fill(); c.fillRect(gx - 0.25, gy - H * 0.015, 0.5, H * 0.03); }
   if (L.umbrella && J.pose !== 'sit') { const [ux, uy] = hand; c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(ux, Y(1.18)); c.stroke(); c.fillStyle = f(L.umbrella); c.beginPath(); c.ellipse(ux, Y(1.18), H * 0.3, H * 0.12, 0, Math.PI, 0); c.fill(); }
 }
@@ -388,6 +461,13 @@ function hat(c, L, X, Y, H, hx, hy, hr, J, f) {
     c.beginPath(); c.ellipse(X(hx + cx * hr * 0.15), Y(hy + hr * 0.6), hr * 1.18 * H, hr * 0.62 * H, 0, Math.PI, 0); c.fill();
     const pw = hr * (0.9 + 0.3 * ax), px = hx + cx * hr * 0.75;
     if (J.cz < 0.6) c.fillRect(X(px - pw), Y(hy + hr * 0.62), pw * 2 * H * (0.55 + 0.45 * (1 - ax)), Math.max(0.5, 0.012 * H));
+  }
+  else if (L.hat === 'peaked') {
+    // (8b1) a 1920s service cap: a flat-topped crown a little wider than the head, a dark band, a short glossy VISOR the way they face
+    const top = hy + hr * 1.32, w0 = hr * 1.12, w1 = hr * 1.3;
+    c.beginPath(); c.moveTo(X(hx - w0), Y(hy + hr * 0.5)); c.lineTo(X(hx - w1), Y(top)); c.lineTo(X(hx + w1), Y(top)); c.lineTo(X(hx + w0), Y(hy + hr * 0.5)); c.closePath(); c.fill();
+    c.fillStyle = f(k.map(v => v * 0.55)); c.fillRect(X(hx - w0), Y(hy + hr * 0.78), w0 * 2 * H, Math.max(0.5, hr * 0.3 * H));
+    if (J.cz < 0.6) { c.fillStyle = f([22, 22, 26]); const pw = hr * (0.75 + 0.45 * ax), px = hx + cx * hr * 0.9; c.fillRect(X(px - pw), Y(hy + hr * 0.52), pw * 2 * H, Math.max(0.5, 0.013 * H)); }
   }
   else if (L.hat === 'band') { c.fillStyle = f([210, 180, 90]); c.fillRect(X(hx - hr), Y(hy + hr * 0.62), hr * 2 * H, Math.max(0.5, hr * 0.25 * H)); c.fillStyle = f([236, 230, 220]); c.beginPath(); c.ellipse(X(hx + hr * 0.6), Y(hy + hr * 1.3), Math.max(0.5, hr * 0.18 * H), hr * 0.65 * H, 0.4, 0, TAU); c.fill(); }
 }
