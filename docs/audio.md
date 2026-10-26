@@ -441,6 +441,23 @@ imports them like recordings. The spray follows the hydrant's spray level (`soun
 (`sounds.periscope()`: the music to 50 % for 1.6 s, back over 3.2 s) when the periscope's legendary lands. The wake moment's sash
 cues are gone with the window box (its blind's roll stays).
 
+## THE WEATHER SOUNDS (PART 9a, Oct 25 2026; City 2.0) — `screens/harbor/sounds.js` (THE WEATHER), `scripts/add-city-sfx.py` CUTS
+Ten of Grok's weather recordings (~/Downloads/city-sfx, credits.txt "Weather + party + holiday sounds"; all Pixabay / Mixkit / CC0) imported
+into their slots — four NEW: `rain-drizzle`, `rain-awning`, `thunder-far` (2 takes), `gutter-drip`; filled: `rain-pavement`, `rain-water`,
+`wind-leaves`, `foghorn` (3 blasts), `crickets-night`, `birdsong-morning`. Checked by MEASUREMENT (no ears here): each file's loudness
+envelope (steady windows for the beds; wind-leaves' first 9 s carry a tonal hum — cut after it), its spectral centroid + a tonality share
+(no words, no melody found); the thunder's two rolls + three separate foghorn blasts cut out. Grok's chain where the script has it: a low
+cut, distance by low-pass (the water 5.2 kHz, the thunder 2.6–3.2, the foghorn 2.4), the phone's saturation on the low ones (`sat`); lean
+encodes (22 kHz for the rain + the insects, 16 kHz for the low-passed ones, 40–48 kbps — 1.8 MB in all; the `audio/city` budget 11 → 13 MB).
+The lossless originals stay out of the repo.
+**The mix** (`sounds.js#tick` → `weather` from the scene's WXS): the rain's BEDS by intensity + by where you stand — `rain-drizzle` (light
+rain), `rain-pavement` (the street round you, from moderate rain), `rain-awning` (close, panned LEFT: the speakeasy's awning), `rain-water`
+(far, panned RIGHT: the harbor, heavy rain); `gutter-drip` after the rain (the drips' level, gone as it dries); `wind-leaves` on a windy day
+(the gusts); `crickets-night` on warm summer nights (≥ 16 °C, Jun–Sep, no rain); `birdsong-morning` on spring / summer mornings (~5:15 →
+9:45); `foghorn` in real fog (the existing 40–80 s gaps). THE THUNDER: `sounds.thunder(ev)` — the lightning's strike → `thunder-far` after
+the time sound takes from its distance (3–16 s), never two rolls on top of each other. Everything under the music (the bed's duck); City
+1.0's rain loop + recorded thunder are off in City 2.0. The AUDIO panel's `weather <state> · beds …` line names what sounds.
+
 ## 7b — THE SPEAKEASY'S SLOTS (Oct 24 2026; City 2.0) — `screens/harbor/windows.js`, `screens/harbor/sounds.js#speakeasy`
 The speakeasy's life calls five Part 7 slots — all EMPTY today, so all silent; a recording dropped in starts sounding with its event
 (8P: filled, + the moments' own cues, the barbershop, the broom — tv-murmur stays empty; see 8P below):

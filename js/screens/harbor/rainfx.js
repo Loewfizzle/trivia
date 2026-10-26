@@ -139,11 +139,11 @@ export function createHarborRain() {
         let col = base, a = b.a * (day > 0.5 ? 0.85 : 0.75);
         if (L) { const m = Math.min(1, L[3] * 0.9) * night; col = [base[0] + (L[0] - base[0]) * m, base[1] + (L[1] - base[1]) * m, base[2] + (L[2] - base[2]) * m]; a *= 1 + 1.6 * m; }
         if (flash > 0) { a = Math.min(1, a * (1 + 1.8 * flash)); col = [col[0] + (235 - col[0]) * flash, col[1] + (240 - col[1]) * flash, col[2] + (255 - col[2]) * flash]; }
-        const cq = [q(col[0]), q(col[1]), q(col[2])], aq = Math.round(Math.min(1, a) * 10) / 10, key = `${cq}|${aq}|${p.d}`;
+        const cq = [q(col[0]), q(col[1]), q(col[2])], aq = Math.round(Math.min(1, a) * 10) / 10, key = ((((cq[0] >> 5) * 9 + (cq[1] >> 5)) * 9 + (cq[2] >> 5)) * 11 + Math.round(aq * 10)) * 3 + p.d;   // (a number: no string per drop)
         // the tail (fainter) + the head
         const mx = (hx + tx) / 2, my = (hy + ty) / 2;
-        add(`${key}|t`, cq, aq * 0.45, b.w, tx, ty, mx, my);
-        add(`${key}|h`, cq, aq, b.w, mx, my, hx, hy);
+        add(key * 2, cq, aq * 0.45, b.w, tx, ty, mx, my);
+        add(key * 2 + 1, cq, aq, b.w, mx, my, hx, hy);
       }
       c.save(); c.lineCap = 'round';
       c.globalCompositeOperation = day > 0.5 ? 'source-over' : 'lighter';

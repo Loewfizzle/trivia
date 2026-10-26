@@ -52,6 +52,8 @@ const SCENES = {
   // without the planes (their contrail grows the cost over a pass: docs/harbor.md Known issues) — np-party, np-night, np-day
   neon: 'when=2026-10-17T23:00&wx=clear&force=no-planes,neon-party,searchlights,spell&text=2027',
   'np-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes', 
+  // 9a — THE WEATHER's A/B scenes (both sides read &wx=: A draws City 1.0's rain + fog, B the Harbor's own): rain + a storm at night, fog by day
+  'w-rain': 'when=2026-10-14T21:30&wx=rain&force=no-planes', 'w-storm': 'when=2026-10-14T21:30&wx=storm&force=no-planes', 'w-fog': 'when=2026-10-14T13:00&wx=fog&force=no-planes',
   // NEON PASS 4: the party peak with one new piece off at a time (the A/B of its cost on one page)
   'n4-race': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race', 'n4-punch': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-punch', 'n4-shim': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-shimmer',
   'n4-beams': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-beams', 'n4-str': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-strings', 'n4-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race,no-punch,no-shimmer,no-beams,no-strings',

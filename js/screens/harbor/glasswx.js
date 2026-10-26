@@ -77,7 +77,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   let dpr = 1, geo = null, signRect = null, glass = [], idle = false;
   const layers = new Map();                  // id → { cv, x, y, w, h, ctx }
   let beads = [], drips = [], sprites = new Map(), on = false, R = rng(1924);
-  let frostCv = new Map(), frostK = 0, iceK = 0, glassBeads = new Map(), runners = [], spawnAcc = 0, first = true, icDrip = 0;
+  let frostCv = new Map(), frostK = 0, iceK = 0, glassBeads = new Map(), runners = [], spawnAcc = 0, first = true, icDrip = 0, frameN = 0, glassKey = '', hadRunners = false;
 
   function layer(id, box) {
     if (!host) return null;
@@ -108,7 +108,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     if (!geo) return;
     // drops landing: on the tubes' TOPS mostly (where they fall) — they gather + run down to the underside
     spawnAcc += sec * o.rain * 34 * (o.tier === 0 ? 0.5 : 1);
-    while (spawnAcc >= 1 && beads.length < BEAD.max) {
+    while (spawnAcc >= 1 && beads.length < (o.tier === 0 ? BEAD.max * 0.5 : BEAD.max)) {
       spawnAcc--;
       const t = Math.floor(R() * geo.tubes.length), pts = geo.tubes[t].pts;
       beads.push({ t, i: Math.floor(R() * pts.length), f: 0, r: BEAD.r0 + R() * 0.5, side: R() < 0.5 ? -1 : 1, age: 0 });
@@ -318,17 +318,22 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
       const glassOn = o.motion && glass.length && (o.glassWet > 0.01 || frostK > 0.01);
       on = signOn || glassOn;
       if (!on) { if (layers.size) dropLayers(); return; }
+      // (the speed round: tier 0 redraws the sign's beads every other frame — they move slowly; the drips at 30 fps still read)
+      frameN++;
       if (signOn) {
-        if (o.motion) stepBeads(sec, o);
-        const x = layer('sign', geo.box);
-        if (x) drawSign(x, o);
+        if (o.motion) stepBeads(o.tier === 0 ? sec : sec, o);
+        if (o.tier !== 0 || frameN % 2 === 0 || !layers.has('sign')) { const x = layer('sign', geo.box); if (x) drawSign(x, o); }
       } else if (layers.has('sign')) { layers.get('sign').cv.remove(); layers.delete('sign'); }
       if (glassOn) {
         stepRunners(sec, o);
         const dockG = glass.filter(g => g.group === 'dock'), corner = glass.filter(g => g.group !== 'dock');
-        if (dockG.length && !idle) { const bx = Math.min(...dockG.map(g => g.x)) - 2, by = Math.min(...dockG.map(g => g.y)) - 2, ex = Math.max(...dockG.map(g => g.x + g.w)) + 2, ey = Math.max(...dockG.map(g => g.y + g.h)) + 2; const x = layer('dock', { x: bx, y: by, w: ex - bx, h: ey - by }); if (x) for (const g of dockG) drawGlass(x, g, o); }
+        // (the glass is STILL most of the time: redrawn only when its wetness / frost / light / shapes move a step or a runner runs)
+        const gk = `${Math.round(o.glassWet * 20)}|${Math.round(frostK * 40)}|${Math.round(o.day * 4)}|${glass.map(g => `${g.id}${Math.round(g.x)},${Math.round(g.y)},${Math.round(g.w)}`).join(';')}|${idle ? 1 : 0}`;
+        const dirty = gk !== glassKey || runners.length > 0 || hadRunners;
+        hadRunners = runners.length > 0; glassKey = gk;
+        if (dockG.length && !idle) { if (dirty || !layers.has('dock')) { const bx = Math.min(...dockG.map(g => g.x)) - 2, by = Math.min(...dockG.map(g => g.y)) - 2, ex = Math.max(...dockG.map(g => g.x + g.w)) + 2, ey = Math.max(...dockG.map(g => g.y + g.h)) + 2; const x = layer('dock', { x: bx, y: by, w: ex - bx, h: ey - by }); if (x) for (const g of dockG) drawGlass(x, g, o); } }
         else if (layers.has('dock')) { layers.get('dock').cv.remove(); layers.delete('dock'); }
-        for (const g of corner) { const x = layer(`c-${g.id}`, { x: g.x - 1, y: g.y - 1, w: g.w + 2, h: g.h + 2 }); if (x) drawGlass(x, g, o); }
+        for (const g of corner) if (dirty || !layers.has(`c-${g.id}`)) { const x = layer(`c-${g.id}`, { x: g.x - 1, y: g.y - 1, w: g.w + 2, h: g.h + 2 }); if (x) drawGlass(x, g, o); }
       } else for (const id of [...layers.keys()]) if (id !== 'sign') { layers.get(id).cv.remove(); layers.delete(id); }
     },
     debug: () => ({ on, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), layers: [...layers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id) }),

@@ -2256,6 +2256,73 @@ function motionReport(frames) {
   const iv = []; for (let i = 1; i < D.length; i++) iv.push(D[i].t - D[i - 1].t);
   return { frames: frames.length, drawn: D.length, iv: { med: +med(iv).toFixed(1), p95: +pct(iv, 0.95).toFixed(1) }, walkers, dancers, fastShare: walkingFrames.length ? +(fast / walkingFrames.length).toFixed(2) : null, why: [...new Set(D.map(f => f.fast || 'calm'))] };
 }
+// ================================================================ PART 9a — THE WEATHER (only when real or forced): no weather on a clear day,
+// each state forced + its look, the lightning's safety caps, reduced motion, the weather on the sign + the glass (the labels clear), the
+// drying street, the festival's line-up
+G('weather', async () => {
+  const P = 'window.__district.harbor()', W = `${P}.weather`;
+  // ---- a CLEAR day: no rain, no fog, no lightning, nothing on the glass, no weather beds
+  { const Q = await open({ slot: 'wx0', qs: `when=2026-10-22T13:00${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1500);
+    const w = await ev(Q.page, W);
+    ok(w && w.state === 'clear' && w.rain === 0 && w.fog === 0 && !w.lightning && w.rainFx.drops === 0 && !w.glass.on && w.wet === 0, `NO WEATHER ON A CLEAR DAY: ${w && w.line}`);
+    await Q.ctx.close(); }
+  // ---- EACH STATE, forced by name (&force=…): the model's state + its look on the city
+  const STATES = [
+    ['drizzle', w => w.state === 'drizzle' && w.rain > 0.1 && w.rain < 0.35 && w.rainFx.drops > 20],
+    ['rain', w => w.state === 'rain' && w.rain > 0.35 && w.rainFx.drops > 60 && w.wet === 1],
+    ['heavy-rain', w => w.state === 'heavy' && w.rain > 0.7 && w.rainFx.drops > 120],
+    ['storm', w => w.state === 'storm' && w.lightning && w.rain > 0.6],
+    ['fog', w => w.state === 'fog' && w.fog > 0.6 && w.rainFx.drops === 0],
+    ['mist', w => w.state === 'mist' && w.fog > 0.2 && w.fog < 0.6],
+    ['windy', w => w.state === 'windy' && w.wind > 10 && w.rain === 0],
+    ['freezing-rain', w => w.state === 'freezing' && w.ice > 0.3 && w.rain > 0.2],
+  ];
+  for (const [id, test] of STATES) {
+    const Q = await open({ slot: `wx-${id}`, qs: `when=2026-10-22T22:30${GR}&force=${id}`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1200);
+    const w = await ev(Q.page, W);
+    ok(w && test(w), `THE WEATHER — ${id.toUpperCase()}: ${w && w.line} · drops ${w && w.rainFx.drops}`);
+    if (id === 'rain') {
+      // the night rain catches the tubes' + the lamps' light; the beads on the NEON sign; the dock's glass beaded — never over a label
+      await waitFor(Q.page, `${W}.glass.beads > 8`, 'beads on the sign', 12000).catch(() => {});
+      const g = await ev(Q.page, `${W}.glass`), lit = await ev(Q.page, `${W}.rainFx.lit`);
+      ok(g.beads > 8 && g.layers.includes('sign') && lit > 50, `THE SIGN IN THE RAIN: ${g.beads} beads on the tubes (layers ${g.layers.join(',')}), the rain lit by ${lit} light cells`);
+      const clear = await ev(Q.page, `(() => { const out = []; for (const cv of document.querySelectorAll('canvas.nd-wxc')) { const r = cv.getBoundingClientRect(); const x = cv.getContext('2d'); for (const sel of ['.nd-joinring .nd-host-label', '.nd-hostbtn .nd-host-label', '.nd-tab-games .nd-tab-ic', '.music-btn svg', '.menu-btn svg']) { const el = document.querySelector(sel); if (!el) continue; const e = el.getBoundingClientRect(), cx = e.left + e.width / 2, cy = e.top + e.height / 2; if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) continue; const k = cv.width / r.width, d = x.getImageData(Math.round((cx - r.left) * k), Math.round((cy - r.top) * k), 1, 1).data; out.push([sel, d[3]]); } } return out; })()`);
+      ok(clear.length >= 3 && clear.every(([, a]) => a === 0), `THE GLASS UI KEEPS ITS LABELS CLEAR: nothing drawn over ${clear.map(([s2, a]) => `${s2.split(' ')[0]} (${a})`).join(', ')}`);
+      if (SHOTS) await Q.page.screenshot({ path: `${OUT}weather-rain-night-402x874.png` });
+    }
+    if (id === 'storm') {
+      // THE LIGHTNING's SAFETY: over ~14 s the flash never passes its cap, the strikes >= 4.5 s apart, the city never washed white
+      const tr = await ev(Q.page, `new Promise(res => { const out = [], t0 = performance.now(); (function lp() { const z = ${W}.zap; out.push([performance.now() - t0, z.flash, z.strikes]); if (performance.now() - t0 < 14000) setTimeout(lp, 40); else res(out); })(); })`);
+      const mx = Math.max(...tr.map(r => r[1])), st = []; for (let i = 1; i < tr.length; i++) if (tr[i][2] > tr[i - 1][2]) st.push(tr[i][0]);
+      const gaps = st.slice(1).map((t2, i) => t2 - st[i]);
+      ok(mx <= 0.43 && gaps.every(g2 => g2 >= 4400), `THE LIGHTNING IS CAPPED: the brightest flash ${mx.toFixed(2)} (<= 0.42), ${st.length} strikes ${gaps.length ? `${Math.round(Math.min(...gaps))} ms+ apart` : ''}`);
+      if (SHOTS) await Q.page.screenshot({ path: `${OUT}weather-storm-night-402x874.png` });
+    }
+    if (id === 'freezing-rain') { const g = await ev(Q.page, `${W}.glass`); ok(g.ice > 0.3 && g.frost > 0.2 && g.layers.includes('dock'), `FREEZING RAIN: the glaze on the tubes (${g.ice}), the frost on the glass (${g.frost}), layers ${g.layers.join(',')}`); }
+    await Q.ctx.close();
+  }
+  // ---- REDUCED MOTION (the app's setting): no lightning flash, no weather on the glass UI
+  { const Q = await open({ slot: 'wx-rm', qs: `when=2026-10-22T22:30${GR}&force=storm`, view: [402, 874], init: { fn: () => { try { const k = 'na:settings', s = JSON.parse(localStorage.getItem(k) || '{}'); s.reducedFx = true; localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, arg: null } });
+    await harborUp(Q.page);
+    const tr = await ev(Q.page, `new Promise(res => { let mx = 0; const n0 = ${W}.zap.strikes, t0 = performance.now(); (function lp() { mx = Math.max(mx, ${W}.zap.flash); if (performance.now() - t0 < 9000) setTimeout(lp, 50); else res({ mx, n: ${W}.zap.strikes - n0, layers: ${W}.glass.layers }); })(); })`);
+    ok(tr.mx === 0 && !tr.layers.includes('dock') && !tr.layers.some(l => l.startsWith('c-')), `REDUCED MOTION: no flash (${tr.mx}) through ${tr.n} strikes (the thunder still rumbles), no weather on the glass UI (${tr.layers.join(',') || 'none'})`);
+    await Q.ctx.close(); }
+  // ---- THE WET STREET DRYING: 12 min after the rain stopped (&rained=12) — still wet, drying; the puddles still there
+  { const Q = await open({ slot: 'wx-dry', qs: `when=2026-10-22T22:30${GR}&wx=clear&rained=12`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1200);
+    const w = await ev(Q.page, W);
+    ok(w.rain === 0 && w.wet > 0.6 && w.wet < 0.85 && w.ground.puddles >= 5, `THE WET STREET DRYING: wet ${w.wet} 12 min after the rain, ${w.ground.puddles} puddles (drying one by one), no rain`);
+    await Q.ctx.close(); }
+  // ---- THE BALLOON FESTIVAL's LINE-UP (the owner's order) + the long flight
+  { const Q = await open({ slot: 'wx-bal', qs: `when=2026-10-24T09:30${GR}&wind=1&force=balloon-festival`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!${P}.sky.state.balloons`, 'the festival', 10000).catch(() => {});
+    const b = await ev(Q.page, `${P}.sky.state.balloons`);
+    ok(b && b.order.join() === 'btc-orange,alien,bitcoin,bullseye,smiley,flag' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
+    await Q.ctx.close(); }
+});
 G('motion', async () => {
   const P = 'window.__district.harbor()';
   // ---- a weekday afternoon (the owner's "stutter now and then on an ordinary afternoon")

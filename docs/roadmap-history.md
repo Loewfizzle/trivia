@@ -1197,3 +1197,16 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       corner, the tired tube + its preview); e2e-harbor groups (the panel + dock need the emulators: no Java on this machine); the unit
       suite 456; the default city pixel-compared against the commit before (the same as its own run-to-run noise)
 - [x] Perf (A-B-B-A, 4× CPU): day t2 5.84 → 6.11, a cloudy day 5.78 → 6.36, golden 7.83 → 7.67, night 8.24 → 8.18 ms
+
+## CITY 2.0 — PART 9a: THE WEATHER + THE POLISH 5 REVIEW FIXES (Oct 25 2026) — docs/harbor.md#part-9a
+- [x] Group 0: the wheel dark in the TR-3B blackout + the LIGHT AUDIT; the promenade's lamps restored (a POLISH 5 rename slip); Rosie's
+      navy boot-top + gold pinstripe; the balloons stay up (45–90 min, joined mid-way, the burner rare) + the festival's line-up (orange ₿,
+      alien, black ₿, a violet / teal bullseye, a smiley, the American flag) painted on the sphere; the dancers' own clock; the drone
+      message under the letters; the ladder's hands; the music-on surge on the song's beat
+- [x] Group 1: core/harbor-weather.js — one city state + its transitions; the rate + gusts from /api/sky; &force=<state>, &wxk=; the panel
+- [x] Group 2: the Harbor's rain (rainfx.js, lit by the tubes + lamps), the storm sky (clouds.set, DARK_TERMS on, the gloom), the lightning
+      (capped, delayed thunder), the fog on the water
+- [x] Group 3: the wet promenade (puddles drying patch by patch, the lamps' wet streaks, the awning's drips, the speakeasy's wet glass);
+      the people (a storm empties it, shelter, umbrellas, newspapers, hats held, fog); the fan on a hot day
+- [x] Group 4: glasswx.js — beads + drips + glaze + icicles on the NEON tubes, rain + frost on the dock's + the corner buttons' glass
+- [x] Group 5: ten weather sounds + the mix + thunder; the `weather` e2e group; docs
