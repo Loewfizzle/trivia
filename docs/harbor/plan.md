@@ -2185,3 +2185,69 @@ the owner, Oct 25 10:05 pm.)
   window (backlit) or in a dark room / the ghost scenes. Judged at the real window size at 402. (4) MUSIC-OFF WORKS (the
   song stays off with the slash) → the AUDIO readout's "sounding / el playing" while the music is off is WRONG wording —
   make it say the truth (e.g. "music off — the element paused / silent").
+
+## OWNER'S NOTES — OCT 26 (after SP4)
+- THE BUILD TABLE: WIN (this pass: the windows pass — 2.5D rooms, the TV room rebuilt, the cash count, the hush word on the wall,
+  the window bugs, PLAY ALL + a tidy panel) → then 11a-2 THANKSGIVING (+ the parade), 9b WINTER, ATM (the FABLE ATMOSPHERE pass),
+  10 PARTY NIGHTS, 11b CHRISTMAS + NYE (live by Nov 26). SP4's own review: the rain + the awning's drips look great; the sundial
+  idea was dropped (unreadable on a phone).
+- THE ROOMS IN DEPTH (the owner asked, Oct 26 9:35 am: model the rooms in 3D?) — Claude: NOT real 3D (the camera never moves, four
+  3D scenes cost a rewrite + battery, CLAUDE.md's Canvas 2D rule) → "2.5D" ROOMS, the follow-up IF the rooms still feel flat after
+  SP4: each room a BOX IN PERSPECTIVE seen from the street's real angle (back wall, floor, ceiling, a sliver of side wall), the
+  lamp's light FALLING OFF (a pool on the floor, darker corners), people placed AT DEPTH (nearer = bigger, walking toward / away
+  from the window scales them, overlapping furniture + each other), their shadows on the floor + the back wall, with SP4's
+  3D-shaded figures. DECIDED (the owner, Oct 26 10:14 am — "rooms felt a little flat, let's try 2.5D"): BUILD IT in the windows pass.
+- A NEW WINDOW MOMENT — COUNTING THE CASH (the owner, Oct 26 9:41 am): someone at a table counting a BIG PILE OF CASH (the
+  bootlegger's take — fits the speakeasy + the raid's story): a man in shirtsleeves + braces (or the boss in a waistcoat) under a
+  green banker's lamp, stacks of banded bills + a loose heap, licking a thumb, counting bills off into piles, a glance over his
+  shoulder at the window now and then, sweeping it into a bag when a shadow passes the door; readable at the real window size at
+  402 by COLOUR + LIGHT + MOTION (the green lamp's pool, the pale-green bills, the counting motion). Late evening on bootlegger
+  nights; hidden on raid nights (the cash vanishes before the police come).
+- SMOKE IN THE BLUE ROOM (the owner, Oct 26 9:41 am): the upper-right TV room (the blue one) now and then fills with a little
+  SMOKE — someone lights a cigarette / cigar: a curl rising from the chair, then a soft layered haze drifting slowly across the
+  room, LIT BY THE TV's flickering blue (the smoke catching the light, the beams of the screen through it), thinning out over a
+  few minutes; not every night, not constantly. Readable at 402 by light (blue light on soft smoke), cheap (a few baked wisps
+  moved + faded).
+  + THE COUCH (the owner, 9:42 am — agreed): the blue room's scene = a COUCH seen from BEHIND (facing the TV on the back wall)
+  with a HEAD above it (sometimes two), lit from the front by the TV's flicker (a blue rim on the hair + shoulders, the screen
+  glowing beyond them); small life (a nod, leaning on a shoulder, an arm reaching for a drink); the smoke rises from that head;
+  at 3 am the TV clicks off + the room goes dark.
+- SP4 PHONE REVIEW (the owner, Oct 26 10:02 am): (1) THE TANGO plays in ALL the windows at once — a moment belongs to ONE window
+  (the "one star window" rule; check every forced + scheduled moment: never mirrored across panes); (2) THE GHOST needs BIGGER
+  EYES — two dark hollow eyes (+ a mouth) big enough to read as a ghost on the iPhone at window size; (3) THE TV ROOM IS A
+  REGRESSION — the couch silhouette looks "unbelievably cheap" and the TV set must NOT be visible (it's implied — off-frame /
+  facing them, below the sill line): rebuild as the room LIT BY THE UNSEEN TV — the blue glow filling the room from one side /
+  below, the back of the couch + the heads as SHADED 3D forms (rim + soft shading from the screen light, never a flat cut-out),
+  the walls + ceiling washed in the light; THE GLOW must FLICKER much more — real TV light: irregular brightness jumps at scene
+  cuts, colour shifts (cool blue ↔ a warmer flash ↔ dim), short flickers between, never a steady pulse; the smoke caught in that
+  changing light. Premium, judged zoomed + full at 402.
+- THE HUSH WORD MOVES TO THE WALL (the owner, Oct 26 10:05 am — DECIDED, replaces the lower-right-window hush sign): a VERTICAL
+  NEON SIGN mounted FLAT on the brick PIER between the right window column and the vertical blade (above the door + its lamp) —
+  the hush word's letters STACKED top to bottom (4 letters, sized for 5), ~18–22 pt each at 402 (≈2× the window sign), ICE-CYAN
+  with white-hot cores (POLISH 5's look), in a thin dark frame / door-plate mount so it reads as THE DOOR's PASSWORD SIGN and never
+  as another game blade: flush (not projecting), letters a little smaller than the blade's, a clear gap from the blade's glow,
+  centred in the pier. NO LOBBY = plain brick (no mount showing). A lobby opens → it FLICKERS ON letter by letter like real neon;
+  its cyan glows on the wet brick in rain; dark in the TR-3B blackout; the burnt-out-letter rule never applies to it (the word must
+  always read). ALL FOUR WINDOWS stay free for the moments during a lobby (the lower-right window back to its scenes). Lobby 2.0
+  calls set(word) as today.
+- SP4 PHONE REVIEW, PART 2 (the owner, Oct 26 10:09 am): THE RAIN + THE AWNING's DRIPS look great ✔. BUG: TAPPING THE SPIDER DOES
+  NOTHING on his iPhone (it should drop on its glowing thread). Suspects: a `click` listener (iOS Safari sends no click to a plain
+  area — CLAUDE.md's pointerdown + pointerup rule), the NEON logo's own letter-tap handler / the sign's DOM layer sitting over the
+  spider and eating the tap, a hit box that doesn't follow the spider's live position, or the tap only wired in the forced preview.
+  Fix + an E2E tap on a touch-emulated device (with the letter taps still working beside it).
+- SP4 PHONE REVIEW, PART 3 (the owner, Oct 26 10:12 am): (1) THE JAZZ SOLO (moment=sax) IS GLITCHED — the window shows the word
+  "JAZZ" and you can't see the scene behind it: the hush sign drawn over a moment (a stale JUST ME &force=hushsign? the 3× overlay
+  never clearing? the sign shown without a lobby?) → find it; the move of the hush word to the wall pier ends the overlap for good,
+  but the overlay must never show without a lobby / a force. (2) THE TOAST looks CHOPPY — investigate the window moments' frame
+  pacing (do the figures update every frame or in steps? the live 3D gradients' cost? a moment clock on a coarse tick? pose snaps
+  between keyframes?) — measured like PEO, smooth at 60 fps. (3) THE CASH COUNT (not added to SP4) → build it as a CLOSE-UP moment:
+  a guy counting money, head + shoulders + hands + the pile filling the pane, the green banker's lamp, banded stacks, bills peeled
+  off one by one, a glance at the window — on the new lit 3D kit.
+- THE PREVIEW PANEL — A "PLAY ALL WINDOW SCENES" LOOP + TIDY IT UP AGAIN (the owner, Oct 26 10:13 am): (1) ONE button in the
+  panel's SPEAKEASY / WINDOWS section — "PLAY ALL SCENES" — that cycles through EVERY window moment in turn (each its full length,
+  in its own window, a small chip saying which one + "n / N", tap the chip to skip / pause, ✕ to stop), looping until stopped, the
+  right time of day for each (a night scene at night) without a reload; the same idea reusable for other catalogues ("PLAY ALL"
+  for the holiday moments, the wildlife, the workers). (2) THE PANEL IS CLUTTERED AGAIN (C2 reworked it; the passes since added
+  many rows): re-organize — collapsed sections by default with a count, rows grouped inside (e.g. SPEAKEASY → windows / signs /
+  door; SKY → messages / aircraft / legendaries; WEATHER → rain / storm / fog / cold), the rarely-used debug rows in a TOOLS section
+  at the bottom, PLAY ALL rows at the top of their section, search still finds everything; readable at 390.
