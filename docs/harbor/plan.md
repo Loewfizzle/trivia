@@ -814,6 +814,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   real moon stays + a neon tube RING lights around it on party nights, cycling the party colours, pulsing on the beat
   (none when the moon isn't up); (b) a RARE full "neon moon" night (New Year's Eve / a few times a year) where the moon
   turns into a neon tube outline, flickering on like the roof signs. Never replace the real NASA-map moon by default.
+  + TAP A WINDOW TO PEEK INSIDE (the owner, Oct 26 — parked after WIN: a tap on a speakeasy window zooms into the room's scene for a
+  moment; not now — the windows must read as-is at the real size first).
   NOCTILUCENT CLOUDS (a RARE sky event, true to life): the highest clouds there are
   (~80 km), glowing electric blue-silver because they're still lit by the sun after it has set. Only when real-ish:
   SUMMER (late May → early August), only in deep TWILIGHT (the sun ~6–16° below the horizon — ~45–100 min after sunset or
@@ -2252,3 +2254,86 @@ the owner, Oct 25 10:05 pm.)
   many rows): re-organize — collapsed sections by default with a count, rows grouped inside (e.g. SPEAKEASY → windows / signs /
   door; SKY → messages / aircraft / legendaries; WEATHER → rain / storm / fog / cold), the rarely-used debug rows in a TOOLS section
   at the bottom, PLAY ALL rows at the top of their section, search still finds everything; readable at 390.
+
+## OWNER'S NOTES — OCT 26 (after WIN)
+- THE BUILD TABLE: WIN2 (this pass: the spiders + their nerves, the windows that read AS-IS, PLAY ALL on its own clock, the quality
+  step after the reveal, the debug strips) → 11a-2 THANKSGIVING (+ the parade) → 9b WINTER → ATM (the FABLE ATMOSPHERE pass) →
+  10 PARTY NIGHTS → 11b CHRISTMAS + NYE (live by Nov 26). FUTURE IDEAS: "TAP A WINDOW TO PEEK INSIDE" (parked by the owner). WIN's
+  cloud fixes (pushed without [harbor]) are proven by WIN2's run.
+- HOLIDAY SET PIECES BIG ENOUGH TO READ (the owner, Oct 26 10:23 am — DECIDED, a rule for EVERY holiday / event / season; BUILT in WIN
+  as an add-on — core/harbor-spots.js): (1) THE PUMPKINS round the speakeasy door are too crowded on small iPhones → fewer, better laid
+  out (a neat stepped group on the steps + one each side of the door, clear of the door's swing + the walk-in + the lobby line),
+  checked at 390; (2) BIG JACK-O'-LANTERNS out on the promenade, readable at a glance: a BIG one next to the BENCH, another by a LAMP
+  POST or the FIRE HYDRANT (carved faces glowing at night, a stack / a straw bale under some); (3) THE RULE: the promenade has room —
+  the holiday system gets named DRESSING SPOTS (by the bench, the lamp posts, the hydrant, the planters, the quay railing, the corners
+  clear of the dock + the walk paths + the lobby line + the people's routes) that every holiday fills with a few BIG, readable set
+  pieces in its own style (Halloween pumpkins + bales; Thanksgiving cornstalks, gourds + hay; Christmas lit trees, wreaths, gift piles;
+  New Year's balloons; Valentine's roses; St. Patrick's shamrock planters; July 4th bunting + flags) so anyone NOTICES the holiday /
+  the season at a glance on a phone.
+- A QUALITY STEP ~9.5 s AFTER THE REVEAL RE-BAKES THE CITY (the owner's LOAD log, Oct 26 12:47 pm — the header's "9 changes after the
+  reveal" was RIGHT; its list was just scrolled): a perfect reveal at 0.35 s (live weather cached 1 min old), then at +9.50 s "canvas
+  ⚠ 402×874@2 → @1.5 (a tier step)" → a ⚠ layout, a ⚠ 1200 ms bake crossfade, a ⚠ lit crossfade, ⚠ clouds re-planned (the +9.60 s
+  power-on entries are the music's surge, by design). On a calm day the phone judged itself slow (load-time work?) and dropped a tier,
+  and the whole city visibly crossfades + softens 10 s in (the readout flips t1 ↔ t2 between loads). FIX: (1) find why it steps (which
+  frames counted as slow — the reveal's own work, the audio start, the PLAY / surge?); (2) never judge the tier on the first ~15 s or
+  on frames during a known heavy moment (the surge, a bake); require SUSTAINED slowness; (3) step EFFECTS first (particles, glows,
+  reflections) and the canvas RESOLUTION last; (4) a step after the reveal must be invisible — no full-city crossfade; (5) the
+  readout's tier line says why it stepped. Also the open LOAD log hides its first lines under its own header (scroll it to show the top).
+- THE DEBUG STRIPS BLOCK THE TEST PILL (the owner, Oct 26 12:49 pm, frustrated): with &debug=1 the readout + AUDIO + LOAD strips (the
+  LOAD log opened) cover the TEST pill so he can't reach the panel. FIX: every strip starts FOLDED to one line on every load (never
+  remembered open), they sit BELOW the TEST pill + the corner buttons and never over them, the open LOAD log is height-capped + scrolls
+  inside itself, and one tap on the readout's header hides ALL the strips.
+- THE SPIDER's TAP + ITS NERVES (the owner, Oct 26 12:51 pm — DECIDED): (1) THE TAP: it drops on its glowing thread DOWN TO THE
+  "SPEAKEASY" WORD, lands on the tubes, CRAWLS BACK AND FORTH along the word for ~10–15 s (stop-start, pausing on a letter, a leg
+  test-tapping a tube), then CLIMBS BACK up its thread (reeling it in) to its starting spot on the web; a second tap mid-way doesn't
+  restart it (a short cooldown). (2) IT REACTS TO THE NEON: whenever a tube NEAR it flickers, blinks, buzzes or races (the burnt-out
+  letter, the boot flicker, the race / surge, a tapped letter re-igniting, the TR-3B blackout + power-back, a lightning flash), it
+  gets SCARED / AGITATED — freezes, crouches low on its legs, then skitters a short burst away from the flicker (or back toward the
+  web's hub), its eyes / seams flaring; bigger events (the race, the blackout) = a bigger reaction; it calms + resumes after a few
+  seconds. Readable at 402.
+- WIN PHONE REVIEW (the owner, Oct 26 12:53–12:54 pm): (1) THE TV ROOM "good but not perfect" — still hard to read as someone on a
+  couch watching TV; Claude offered A (lower the couch back so head + shoulders show, bigger viewer, an armrest, the flicker throwing
+  their shadow on the wall) vs B (recommended: the couch FACING the window — the TV just inside below the sill — so their FACE +
+  shoulders are lit blue by the screen, flickering with every cut; reactions: a laugh, a lean in, a yawn, nodding off late) — DECIDED
+  (the owner, 12:55 pm): OPTION B. (2) THE TOAST "good" but people SNAP from the bar scene to the front of the window → they must
+  WALK to the window (from the bar / the room's depth, growing as they come forward in the 2.5D room), then clink glasses + toast,
+  then drift back; the same rule for EVERY close moment: people arrive + leave by walking through the room's depth, never a cut.
+- THE BARBERSHOP's CUSTOMER LOOKS LIKE A WHITE BOX (the owner, Oct 26 12:58 pm — the scene is good otherwise): the man in the chair
+  reads as a white rectangle (the barber's cape as a flat block) → a real seated customer: his head + face + hair above the cape (the
+  barber working on it), the striped / white cape draped over his shoulders + knees with folds + shading (the 3D kit), the barber's
+  chair's chrome + leather visible (the headrest, the armrests, the footrest), his shoes poking out, the barber's comb + scissors /
+  razor moving at his head; by day + lit at night, readable at 402.
+- PLAY ALL SCENES DOESN'T SET THE TIME (the owner, Oct 26 1:01 pm): run by day, the night moments play in a daytime room (or don't
+  show) — WIN's "the clock jumps once per day / night half" isn't enough. FIX: before EACH moment the sequencer jumps the city's
+  clock to a time that moment belongs to (its own hour: the TV room ~23:00, the cash count late, the morning wake ~7:00, the
+  barbershop by day…), the light + the rooms + the sky following (a quick fade, not a jarring cut), then plays it in full; the chip
+  shows the moment's name + its time; ✕ restores the real clock. The same for the holiday / animals / workers PLAY ALLs (each item at
+  its own date + time). A check: every moment in the catalogue plays at a time it's allowed to.
+- THE HYDRANT's PUMPKIN LOOKS STRETCHED (the owner, Oct 26 1:01 pm): the big jack-o'-lantern by the fire hydrant reads squashed /
+  stretched wide (~25 pt across, too flat) — a real pumpkin's proportions (round, ribbed, a slight squat, a stem), drawn at its true
+  aspect (no non-uniform scaling of the sprite), the carved face centred on its curve, sitting on the ground with a contact shadow;
+  all three big jack-o'-lanterns checked the same way at 390 / 402 / 430.
+- THE EDGE WINDOWS' MOOD LIGHTS (the owner, Oct 26 1:04 pm — DECIDED; the ghosts look good ✔): the half-cut windows at the left
+  screen edge get ACTION from LIGHT + SHADOW only (NO people, NO scenes): each night a seeded MOOD from a rotating set — TV BLUE
+  flicker (scene cuts, as if someone watches out of sight), an EERIE RED darkroom bulb that buzzes / flickers now + then, a wavering
+  CANDLE glow, a GREEN BANKER's LAMP with a shadow passing the wall, HEADLIGHT SWEEPS (a dark room, slatted blind shadows crossing the
+  ceiling), a CEILING FAN's turning shadow under a warm lamp, LIGHTS OUT (a lamp that clicks off ~midnight), PARTY nights a slow colour
+  cycle on the beat, HOLIDAYS their tints (Halloween orange / purple, Christmas red / green). The two edge windows never share a mood
+  the same night; flickers occasional + soft (never a strobe); they follow the blackout + the weather (lightning flashes in them). The
+  "never fully dark" low lamp folds in.
+- WIN PHONE REVIEW, PART 2 (the owner, Oct 26 1:12 pm): (1) THE RIGHT PIER's WALL-WASHER: removed ONLY WHILE THE LOBBY SIGN IS IN USE
+  (lit, so the hush word grows to ~17 pt / 4 letters); with no lobby the washer stays (the plain brick lit as today); a smooth swap
+  when a lobby opens / closes. (2) THE WALL SIGN: may read a little busy beside the blade — KEEP IT for now (he may change it later).
+  (3) THE CASH COUNT: "good for now" but hard to see what's going on → clearer: bigger hands + bills, the bills a brighter pale green
+  against a darker table, the counting motion bigger + slower (a bill lifted + snapped down onto the pile), the stacks taller, the
+  lamp's pool tighter on the money. (4) A SECOND SPIDER on the last N of NEON (its web is already there) — the same bio-mechanical
+  design + the SAME behaviour (its own tap → down to SPEAKEASY, crawl 10–15 s, climb back; scared by flickers near it), the two never
+  in sync. (5) A plain reload's LOAD log: reveal 477 ms, "clear (cached · 9 min old … the weather is live)", the header green ("still
+  after the reveal") ✔ — the only later entry was his own CLEAR ALL at +6.9 s (expected).
+- THE WINDOWS MUST READ AS-IS (the owner, Oct 26 1:14 pm: "we are on iPhone and NO ZOOM — it must be seen as is"; the 2.5D floor +
+  wall lines only show zoomed; two connected floors considered + dropped — the windows stay the same size, he likes the layout).
+  DECIDED for the next window work — every scene ACTS BIG: (1) PUPPET-THEATRE staging: exaggerated poses, ONE clear action per scene,
+  slower + larger motions (a toast = two arms raised high; the cash = a bill lifted + slapped down); (2) STRONG VALUE CONTRAST: a lit
+  figure on a darker wall or a dark figure on a bright one — never the same warm tone for both; (3) FEWER, BIGGER SHAPES: one or two
+  figures, one lamp, nothing under a few pt; (4) DEPTH ONLY WHERE IT READS: a bright pool of light + dark corners (the floor / wall
+  lines may stay faint). Judged ONLY at the real size on a 402 screenshot, never zoomed.
