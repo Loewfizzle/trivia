@@ -6081,7 +6081,12 @@ pieces cost only while they run (the hydrant's spray, the thinned clouds under a
 - **The banner can fly behind a cloud** (only skytyped messages push the clouds back); **the plane's banner lags its path** — on the
   undulating line of flight the train is never perfectly level (by design).
 - **The hydrant's patch** isn't walked round (nobody walks there — it lies in front of the floor).
-- **Not run locally**: the `music`, `flags`, `motion`, `perf`, `tape` groups (untouched areas) — the `[harbor]` cloud run covers them.
+- **The cloud (one run, 40254745016)**: audio, show, city, wild green; `street` 66/67 — THE DANCERS' ARMS NEVER JUMP saw **1** jump over 1 rad
+  in 489 frames on the cloud's slow, uneven frames. Locally the `motion` group passes (0 jumps over 638 frames, p99 17.4 rad/s). Likely
+  this pass's "start at the fire": `&force=dance` now begins its circle 8 s after the page opens, so the 15-s trace covers the first
+  phrases (a dancer settling into the wands pose) where it used to join a circle mid-dance. Not re-run (the two-run rule). Next pass: either
+  start the trace a few seconds into the dance, or look for a jump at the first phrase's start.
+- **Not run locally**: the `music`, `flags`, `perf`, `tape` groups (untouched areas) — green in the cloud run.
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
 - **THE LOAD + its log**: the plain link `https://neonspeakeasy.com/?city=2&debug=1` (NO `&tz` / `&at` / `&when` — those make a preview clock
