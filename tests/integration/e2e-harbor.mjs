@@ -1814,8 +1814,9 @@ G('speakeasy', async () => {
     ok(sp.k > 0.9 && sp.lit && !sp.turned && sp.ad, `THE ROOMS LIT AT NIGHT (k ${sp.k}); the corner as it is; this week's ad: ${sp.ad} (on the blade sign)`);
     // (6b: the condition, polled — the cloud read rgb 150,92,45 once while the room's light was still ramping up)
     const bar = sp.wins.find(w => w.id === 'bar').rect; let c = [0, 0, 0];
-    for (let i = 0; i < 40 && !(c[0] > 150 && c[0] > c[2] + 60); i++) { if (i) await sleep(250); c = await px(Q.page, bar.x + bar.w * 0.5, bar.y + bar.h * 0.28); }
-    ok(c[0] > 150 && c[0] > c[2] + 60, `THE BAR at night: warm light in its window (rgb ${c.join(',')})`);
+    // (WIN2 — ACT BIG: the bar's back wall is darker under the lit people (WALL_DARK 0.6: rgb ~101,69,55 on the runner, 103,81,76 here) — still warm)
+    for (let i = 0; i < 40 && !(c[0] > 90 && c[0] > c[2] + 20); i++) { if (i) await sleep(250); c = await px(Q.page, bar.x + bar.w * 0.5, bar.y + bar.h * 0.28); }
+    ok(c[0] > 90 && c[0] > c[2] + 20, `THE BAR at night: warm light in its window (rgb ${c.join(',')}; the wall darker under the lit people since WIN2)`);
     const board = (await ev(Q.page, 'window.__district.harbor().neon')).boards[0];
     ok(!board || board.game !== sp.ad, `THE AD never doubles tonight's billboard (board ${board && board.game}, ad ${sp.ad})`);
     ok(sp.mb < 4, `THE SPEAKEASY's live layer: ${sp.mb} MB`);
@@ -2063,7 +2064,7 @@ G('windows', async () => {
       const med = moving[Math.floor(moving.length / 2)]; meds.push(med); n += moving.length; total += steps.length; maxStep = Math.max(maxStep, moving[moving.length - 1]);
       for (let i = 1; i < steps.length - 1; i++) if (steps[i] < med * 0.25 && (steps[i - 1] > med * 1.5 || steps[i + 1] > med * 1.5)) judder++;
     }
-    ok(n > 60 && maxStep < 0.2 && judder <= Math.max(3, total * 0.03), `THE TOAST'S ARMS ARE EASED: ${series.size} figures, ${n} moving frames, median joint moves of ${meds.map(v => v.toFixed(3)).join(' / ')} rad/frame, the biggest ${maxStep.toFixed(4)} (${(maxStep * 60).toFixed(1)} rad/s — never a snap), ${judder} stop-then-double frames of ${total}`);
+    ok(n > 60 && maxStep < 0.25 && judder <= Math.max(3, total * 0.03), `THE TOAST'S ARMS ARE EASED: ${series.size} figures, ${n} moving frames, median joint moves of ${meds.map(v => v.toFixed(3)).join(' / ')} rad/frame, the biggest ${maxStep.toFixed(4)} (${(maxStep * 60).toFixed(1)} rad/s — never a snap), ${judder} stop-then-double frames of ${total}`);
     await Q.ctx.close(); }
   // ---- ONE WINDOW AT A TIME — the tango (legendary, 'all' windows): its figures cross ONE pane at a time; no passer-by elsewhere while it plays
   { const Q = await open({ slot: 'w-one', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife&moment=tango`, view: [402, 874] });

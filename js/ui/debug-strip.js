@@ -69,7 +69,8 @@ export function createDebugStrip(id) {
       const h = fold ? (o.line || o.head) : o.head;
       const hc = 'dbg-h ' + (o.ok === false ? 'dbg-bad' : 'dbg-ok');
       if (force || h !== lastHead || head.className !== hc) { lastHead = h; head.textContent = h; head.className = hc; }
-      if (fold) return;
+      // (WIN2: the rows are kept up to date while FOLDED too — the CSS hides them; the AUDIO panel's e2e reads them from the DOM, and a
+      // strip opened by a tap shows its last state at once. Text is set only when it changed: a folded strip costs nothing visible.)
       const rows = (o.rows || []).map(r => (Array.isArray(r) ? r : ['dbg-ok', r]));
       const text = rows.map(r => r.join('\u0001')).join('\n');
       if (!force && text === lastBody) return;

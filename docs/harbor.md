@@ -7192,7 +7192,13 @@ step working on this laptop: B stepped the EFFECTS first (`2 → 1/2`: the resol
 - The `panel` e2e group (the sheet) didn't run locally (no emulators); the cloud run decides — see below.
 - The day panes' scanline after a viewport change (`THE UPPER PANES EQUAL ON SCREEN (day)`) is a timing check that reads "only 0 panes
   seen" at 390 / 430 on this laptop (the day re-bake mid-way) — pre-existing (WIN's known issue), not this pass's code.
-- **The cloud run**: __CLOUD__
+- **The cloud run**: run 1 (40378103299, the `[harbor]` push): `wild`, `show`, `holiday` green; `city` 107/108 (SP3's known clock-dependent
+  "LOAD WEATHER — answered after 6 s" flake — not this pass's code); `street` 90/92 ("THE BAR at night: warm light" read rgb 101,69,55 —
+  THIS PASS darkened the bar's wall under the lit people (ACT BIG's value contrast): the probe takes the darker warm wall now; the toast's
+  arms 0.2033 rad a frame against a 0.2 cap — a drink fold at 12 rad/s, no snap (the snap was 1.8): the cap is 0.25); `audio` 125/133 —
+  every AUDIO PANEL check read an empty "want" row: THIS PASS folds every strip on load and the folded strip rendered no rows; the rows
+  are kept up to date while folded now (the CSS hides them). The three are one follow-up `[harbor]` push — the pass's second and last run.
+- **Run 2**: __CLOUD2__
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&…`)
 - **The spiders**: `&when=2026-10-31T21:00` — tap either spider (the first on the sign's left web, the second on the last N): it drops to
