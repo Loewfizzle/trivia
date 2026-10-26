@@ -1157,7 +1157,7 @@ G('load', async () => {
   { const r = await wxLoad('fast', { delay: 1200, cached: false });
     ok(/wx overcast/.test(r.rv.msg) && r.log.visible.length === 0, `LOAD WEATHER — answered in 1.2 s: the reveal waits for it, revealed overcast, 0 changes after (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
   { const r = await wxLoad('slow', { delay: 6000, cached: false });
-    ok(r.wx === 'overcast' && r.log.visible.length === 0 && !/wx overcast/.test(r.rv.msg), `LOAD WEATHER — answered after 6 s (past the wait): revealed first, the weather then BLENDS slowly — 0 jumps (now ${r.wx}; after: ${r.late.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'nothing re-baked'})`); }
+    ok(r.wx === 'overcast' && r.log.visible.length === 0 && !/wx overcast/.test(r.rv.msg), `LOAD WEATHER — answered after 6 s (past the wait): revealed first, the weather then BLENDS slowly — 0 jumps (now ${r.wx}; seen after the reveal: ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'}; the reveal: ${r.rv.msg}; after: ${r.late.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'nothing re-baked'})`); }
   { const r = await wxLoad('intro', { delay: 300, cached: false, intro: true });
     ok(r.log.visible.length === 0, `LOAD — THE FULL POWER-ON (&intro=1: the screen's entrance, the fonts, the dock easing in): 0 changes after the reveal (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
 });

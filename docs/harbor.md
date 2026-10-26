@@ -6437,7 +6437,12 @@ while its level moves). The laptop's tier-0 party is over its absolute budget on
   rim from the room's lamp at the new size are the Halloween pass's first job (its window ghosts ride on it).
 - **Rivulets in the gutter** (heavy rain) not built.
 - **The tree sway** at the strongest gust shows a hair of the baked crown on its trailing side.
-- **The cloud `city` job's load check** (9a): the retry + the ask's note are in; the next `[harbor]` run tells.
+- **The cloud run (40278509066)**: audio, show, street, wild green; `city` 103/104. 9a's flake ("LOAD WEATHER — answered in 1.2 s") now
+  PASSES in the cloud (revealed `wx overcast (live · 0 min old)`). The one failure: "answered after 6 s … 0 jumps" — passes locally twice;
+  the cloud's late bake diff reads `sun, flood` (locally `sun`): the test runs on the REAL clock and the runner is on UTC (06:15 — dawn
+  there), where the overcast arriving also re-bakes the windows / floodlights with a crossfade the load log counts as visible — 9a's
+  dawn behaviour, clock-dependent, not this pass's change. The check now prints the visible rows + the reveal; not re-run (the two-run
+  rule). Fix next: pin that test's clock (`&when=` a mid-afternoon) or let a weather-caused lit re-bake ride the slow blend.
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
 - **NEON + SPEAKEASY**: night `&when=2026-10-22T22:30` · day `&when=2026-10-22T13:00` · the dusk catch `&when=2026-10-22T18:52` (tap).
