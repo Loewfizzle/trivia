@@ -37,6 +37,7 @@ function dice(y, m, d) {
 }
 /** tonight's legendary (y, m, d = the EVENING's local date) → { kind, h } | null. Never two legendary nights in a row. */
 export function legendNight(y, m, d) {
+  if (m === 10 && d === 31) return null;      // (11a-1: Halloween night is the GHOST SHIP's — core/harbor-holiday.js#ghostShipAt)
   const t = dice(y, m, d);
   if (!t.kind) return null;
   if (dice(...prevDay(y, m, d)).kind) return null;

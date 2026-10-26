@@ -147,58 +147,188 @@ function paintLampRoom(x, G, lamp = 1) {
 // ------------------------------------------------------------------ THE FIGURE KIT (wall units, v up)
 /**
  * figure(c, P): a person from the WAIST up (+ the legs with P.legs) — (P.x, P.y) the waist; P.s the scale (1: ~1.02 units from the
- * waist to the crown ≈ 14 pt at 402); lean (rad, + = the top to the right), tilt (the head), face (-1 left, 1 right, 0 front / back),
+ * waist to the crown ≈ 14 pt at 402); lean (rad, + = the top to the right), tilt (the head), face (-1 left … 0 front / back … 1 right —
+ * CONTINUOUS: the head turns through it, the nose + the chin grow into profile; 11a-1 — no more snapping from side to side),
  * arms: [[a, e], [a, e]] (left, right: the upper arm's angle from hanging, + = out / up; e = the elbow's bend on top of it),
- * hat: 'fedora' | 'top' | 'cloche' | 'cap', hair: 'bob' | 'bun' | null, dress (a flapper: narrower, a dropped waist + a fringed skirt),
+ * hat: 'fedora' | 'top' | 'cloche' | 'cap' | 'witch' | 'horns' | 'ears' | 'crown' (flowers) | 'sombrero',
+ * hair: 'bob' | 'bun' | 'short' | 'long' | null, dress (a flapper: narrower, a dropped waist + a fringed skirt) | gown (to the floor),
  * skirt (the skirt's flare 0..1), legs (the leg length: a full figure), step (-1..1 the stride), hold: [prop, prop] ('glass' | 'can'
- * | 'shaker' | 'broom' | 'cup' | 'scissors' | 'paper' | 'cloth' | 'sax'), col (one fill: a silhouette) or pal { body, skin, hair,
- * hat, legs, prop } (lit by day). glint: where the glasses catch the light (filled into P.glints for a 'lighter' pass)
+ * | 'shaker' | 'broom' | 'cup' | 'scissors' | 'paper' | 'cloth' | 'candle' | 'wand'), col (one fill: a silhouette) or pal { body, skin,
+ * hair, hat, legs, prop, arm } (lit by day). glints: where the glasses catch the light (P.glints for a 'lighter' pass).
+ * THE RIM (11a-1 — the owner: "a warm rim from each room's lamp"): a silhouette against a lit room carries a thin warm edge all round
+ * (the room's light wrapping it) + a stronger one on the lamp's side — P.rim { col: [r,g,b], a, side (-1 | 1: where the lamp is), w }
+ * (default: the window's own — setRim()). Costumes ride on the same kit: wraps (a mummy's bandages), sheet (a sheet ghost: the
+ * whole figure one draped cloth), cape (a high-collared cape), bones (a skeleton's ribs + arm bones in the lit colour).
  */
-export function figure(c, P) {
+let RIM = null;
+/** the window being drawn sets its lamp's rim for the figures in it (null: none) */
+export function setRim(r) { RIM = r; }
+export function figure(c, P) { rimPass(c, P); body(c, P, 0); }
+/** a GROUP that overlaps (the toast's three, the tango's couple): every rim first, then every body — one figure's rim never lands on
+ *  another's dark shape */
+export function figures(c, list) { for (const P of list) if (P) rimPass(c, P); for (const P of list) if (P) body(c, P, 0); }
+function rimPass(c, P) {
+  const rim = P.rim === undefined ? (P.pal ? null : RIM) : P.rim;
+  if (rim && rim.a > 0.01) {
+    // THE RIM PASS: the same figure inflated by the rim's width in the room's light, nudged toward the lamp — the dark figure over it
+    // leaves a thin warm line round the head, the hat, the shoulders, the arms (crisp, no blur: a few hundredths of a unit)
+    const s = P.s || 1, w = (rim.w || 0.03) * s;
+    c.save(); c.globalAlpha *= Math.min(1, rim.a);
+    body(c, { ...P, col: rgb(rim.col), pal: null, x: P.x + (rim.side || 0) * w * 0.8, y: P.y + w * 0.35 }, w);
+    c.restore();
+  }
+}
+function body(c, P, inf) {
   const s = P.s || 1, pal = P.pal || null, col = P.col || 'rgb(26,12,10)';
   const fill = k => (pal ? pal[k] || pal.body : col);
+  // every shape: filled (+ stroked by the rim's width in the rim pass)
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  const F = k => { c.fillStyle = fill(k); c.fill(); if (inf) { c.strokeStyle = fill(k); c.lineWidth = inf * 2; c.stroke(); } };
+  const f = Math.max(-1, Math.min(1, P.face || 0)), af = Math.abs(f), sf = f < 0 ? -1 : 1;
   c.save(); c.translate(P.x, P.y);
-  const wh = (P.dress ? 0.15 : 0.19) * s, sh = (P.dress ? 0.235 : 0.29) * s, shY = 0.64 * s;
+  const woman = !!(P.dress || P.gown || P.hair === 'bob' || P.hair === 'bun' || P.hair === 'long');
+  const wh = (woman ? 0.14 : 0.175) * s, sh = (woman ? 0.235 : 0.295) * s * (1 - 0.22 * af), shY = 0.64 * s;
+  // ---- the legs (a full figure): trousers tapering to the shoes / stockings under a skirt
   if (P.legs) {
-    const L = P.legs, st = (P.step || 0) * 0.16 * s;
-    c.fillStyle = fill('legs');
-    for (const [dx, sx] of [[-0.085 * s, -st], [0.085 * s, st]]) { c.beginPath(); c.moveTo(dx - 0.075 * s, 0.02 * s); c.lineTo(dx + 0.075 * s, 0.02 * s); c.lineTo(dx + sx + 0.06 * s, -L); c.lineTo(dx + sx - 0.06 * s, -L); c.closePath(); c.fill(); c.fillRect(dx + sx - 0.07 * s + (P.face || 0) * 0.03 * s, -L - 0.02 * s, 0.14 * s, 0.05 * s); }
+    const L = P.legs, st = (P.step || 0) * 0.16 * s, lw = (woman ? 0.06 : 0.075) * s;
+    for (const [dx, sx] of [[-0.075 * s, -st], [0.075 * s, st]]) {
+      c.beginPath(); c.moveTo(dx - lw * 1.15, 0.03 * s); c.lineTo(dx + lw * 1.15, 0.03 * s); c.lineTo(dx + sx + lw * 0.72, -L + 0.04 * s); c.lineTo(dx + sx - lw * 0.72, -L + 0.04 * s); c.closePath(); F('legs');
+      // the shoe: a low wedge pointing the way the figure faces
+      const fx = f === 0 ? 0 : sf * 0.05 * s;
+      c.beginPath(); c.ellipse(dx + sx + fx, -L + 0.012 * s, (0.075 + 0.02 * af) * s, 0.03 * s, 0, 0, TAU); F('legs');
+    }
   }
-  if (P.dress) {
-    // the flapper's skirt from a dropped waist, the fringe at its hem (it flares in a spin / a dip)
-    const fl = clamp01(P.skirt || 0), hw = (0.2 + 0.18 * fl) * s, hy = -(0.52 - 0.12 * fl) * s;
-    c.fillStyle = fill('body'); c.beginPath(); c.moveTo(-wh, 0.05 * s); c.lineTo(wh, 0.05 * s); c.lineTo(hw, hy); c.lineTo(-hw, hy); c.closePath(); c.fill();
-    c.beginPath(); for (let i = 0; i <= 8; i++) { const u = -hw + (2 * hw) * i / 8; c.lineTo(u, hy - (i % 2 ? 0.07 : 0.02) * s); } c.lineTo(-hw, hy); c.fill();
+  // ---- the skirt: the flapper's from a dropped waist (its fringe), the gown to the floor
+  if (P.dress || P.gown) {
+    const fl = clamp01(P.skirt || 0), hw = (P.gown ? 0.26 + 0.12 * fl : 0.2 + 0.18 * fl) * s, hy = P.gown ? -(P.legs || 0.62 * s) + 0.03 * s : -(0.52 - 0.12 * fl) * s;
+    c.beginPath(); c.moveTo(-wh, 0.06 * s); c.quadraticCurveTo(-wh - 0.02 * s, hy * 0.4, -hw, hy); c.lineTo(hw, hy); c.quadraticCurveTo(wh + 0.02 * s, hy * 0.4, wh, 0.06 * s); c.closePath(); F('body');
+    if (P.dress) { c.beginPath(); for (let i = 0; i <= 10; i++) { const u = -hw + (2 * hw) * i / 10; c.lineTo(u, hy - (i % 2 ? 0.075 : 0.025) * s); } c.lineTo(hw, hy + 0.01 * s); c.lineTo(-hw, hy + 0.01 * s); c.closePath(); F('body'); }
+  }
+  // ---- a sheet ghost: one draped cloth from the crown to the floor (P.sheet: its sway), two dark eye holes — drawn instead of the body
+  if (P.sheet) {
+    const sw = P.sway || 0, top = shY + 0.36 * s, foot = P.legs ? -P.legs : -0.5 * s, hw2 = 0.34 * s;
+    c.rotate(-(P.lean || 0));
+    c.beginPath(); c.moveTo(0, top + 0.03 * s);
+    c.bezierCurveTo(0.2 * s, top + 0.02 * s, 0.24 * s, shY + 0.08 * s, sh * 1.05, shY - 0.04 * s);
+    c.bezierCurveTo(hw2 + sw * 0.05 * s, shY * 0.4, hw2 + 0.02 * s + sw * 0.08 * s, foot * 0.5, hw2 + sw * 0.1 * s, foot);
+    for (let i = 6; i >= 0; i--) { const u = -hw2 + (2 * hw2) * i / 6 + sw * 0.1 * s; c.lineTo(u, foot + (i % 2 ? 0.07 : -0.01) * s + Math.sin(i * 1.7 + sw * 3) * 0.02 * s); }
+    c.bezierCurveTo(-hw2 - 0.02 * s + sw * 0.08 * s, foot * 0.5, -hw2 + sw * 0.05 * s, shY * 0.4, -sh * 1.05, shY - 0.04 * s);
+    c.bezierCurveTo(-0.24 * s, shY + 0.08 * s, -0.2 * s, top + 0.02 * s, 0, top + 0.03 * s);
+    F('body');
+    if (!inf && P.eyes !== false) { c.fillStyle = P.eyeCol || 'rgba(10,8,14,0.92)'; for (const ex of [-0.05, 0.05]) { c.beginPath(); c.ellipse(ex * s + f * 0.03 * s, shY + 0.21 * s, 0.024 * s, 0.036 * s, 0, 0, TAU); c.fill(); } }
+    c.restore();
+    return;
   }
   c.rotate(-(P.lean || 0));
-  c.fillStyle = fill('body');
-  c.beginPath(); c.moveTo(-wh, 0); c.lineTo(-sh, shY - 0.1 * s); c.quadraticCurveTo(-sh, shY + 0.01 * s, -sh + 0.1 * s, shY + 0.02 * s); c.lineTo(sh - 0.1 * s, shY + 0.02 * s); c.quadraticCurveTo(sh, shY + 0.01 * s, sh, shY - 0.1 * s); c.lineTo(wh, 0); c.closePath(); c.fill();
-  if (P.tails) { c.beginPath(); c.moveTo(-wh * 0.9, 0.02 * s); c.lineTo(-wh * 1.15 - (P.face || 0) * 0.06 * s, -0.42 * s); c.lineTo(-wh * 0.1, -0.1 * s); c.lineTo(wh * 0.1, -0.1 * s); c.lineTo(wh * 1.15 - (P.face || 0) * 0.06 * s, -0.42 * s); c.lineTo(wh * 0.9, 0.02 * s); c.fill(); }
-  // the head on its neck
-  c.fillStyle = fill('skin'); c.fillRect(-0.05 * s, shY - 0.02 * s, 0.1 * s, 0.13 * s);
-  c.save(); c.translate(0, shY + 0.09 * s); c.rotate(-(P.tilt || 0));
-  const f = P.face || 0, hx = f * 0.015 * s, hy = 0.15 * s, hr = 0.135 * s;
-  c.beginPath(); c.arc(hx, hy, hr, 0, TAU); c.fill();
-  if (f) { c.beginPath(); c.moveTo(hx + f * hr * 0.85, hy + 0.02 * s); c.lineTo(hx + f * (hr + 0.045 * s), hy - 0.03 * s); c.lineTo(hx + f * hr * 0.8, hy - 0.06 * s); c.fill(); }
-  if (P.hair === 'bob') { c.fillStyle = fill('hair'); c.beginPath(); c.arc(hx - f * 0.01 * s, hy + 0.02 * s, hr * 1.12, Math.PI * 1.05, Math.PI * 1.95, true); c.lineTo(hx + hr * 1.12, hy - 0.08 * s); c.lineTo(hx - hr * 1.12, hy - 0.08 * s); c.fill(); }
-  else if (P.hair === 'bun') { c.fillStyle = fill('hair'); c.beginPath(); c.arc(hx, hy + 0.04 * s, hr * 1.04, 0.4, Math.PI - 0.4); c.closePath(); c.fill(); c.beginPath(); c.arc(hx - (f || 0) * 0.13 * s, hy + (f ? 0.05 : 0.15) * s, 0.06 * s, 0, TAU); c.fill(); }
-  else if (pal && P.hair !== null) { c.fillStyle = fill('hair'); c.beginPath(); c.arc(hx, hy + 0.04 * s, hr * 1.04, 0.4, Math.PI - 0.4); c.closePath(); c.fill(); }
-  c.fillStyle = fill('hat');
-  if (P.hat === 'fedora') { c.beginPath(); c.ellipse(hx, hy + 0.09 * s, 0.23 * s, 0.035 * s, 0, 0, TAU); c.fill(); c.beginPath(); c.moveTo(hx - 0.13 * s, hy + 0.09 * s); c.lineTo(hx - 0.12 * s, hy + 0.24 * s); c.quadraticCurveTo(hx, hy + 0.2 * s, hx + 0.12 * s, hy + 0.24 * s); c.lineTo(hx + 0.13 * s, hy + 0.09 * s); c.fill(); }
-  else if (P.hat === 'top') { c.beginPath(); c.ellipse(hx, hy + 0.1 * s, 0.21 * s, 0.032 * s, 0, 0, TAU); c.fill(); c.beginPath(); c.moveTo(hx - 0.115 * s, hy + 0.1 * s); c.lineTo(hx - 0.13 * s, hy + 0.46 * s); c.lineTo(hx + 0.13 * s, hy + 0.46 * s); c.lineTo(hx + 0.115 * s, hy + 0.1 * s); c.fill(); }
-  else if (P.hat === 'cloche') { c.beginPath(); c.arc(hx, hy + 0.03 * s, hr * 1.12, -0.25, Math.PI + 0.25); c.fill(); c.lineWidth = 0.025 * s; c.strokeStyle = fill('hat'); c.beginPath(); c.moveTo(hx - f * 0.08 * s, hy + 0.14 * s); c.quadraticCurveTo(hx - f * 0.14 * s, hy + 0.32 * s, hx - f * 0.24 * s, hy + 0.38 * s); c.stroke(); }
-  else if (P.hat === 'cap') { c.beginPath(); c.arc(hx, hy + 0.04 * s, hr * 1.05, 0, Math.PI); c.fill(); c.fillRect(hx + (f || 1) * 0.02 * s - 0.01 * s, hy + 0.03 * s, (f || 1) * 0.2 * s, 0.03 * s); }
+  // ---- the torso: the waist up the flanks to the armpits, the deltoids' round caps, the trapezius sloping up to the neck
+  {
+    const ch = (woman ? 0.02 : 0.03) * s * f;      // (in profile the chest leads, the back follows)
+    c.beginPath();
+    c.moveTo(-wh, 0);
+    c.bezierCurveTo(-wh - 0.015 * s, 0.22 * s, -sh + 0.03 * s - (f < 0 ? ch : 0), shY - 0.26 * s, -sh + 0.01 * s, shY - 0.1 * s);
+    c.bezierCurveTo(-sh - 0.005 * s, shY - 0.02 * s, -sh + 0.03 * s, shY + 0.035 * s, -sh + 0.1 * s, shY + 0.045 * s);
+    c.quadraticCurveTo(-0.11 * s, shY + 0.06 * s, -0.06 * s, shY + 0.1 * s);
+    c.lineTo(0.06 * s, shY + 0.1 * s);
+    c.quadraticCurveTo(0.11 * s, shY + 0.06 * s, sh - 0.1 * s, shY + 0.045 * s);
+    c.bezierCurveTo(sh - 0.03 * s, shY + 0.035 * s, sh + 0.005 * s, shY - 0.02 * s, sh - 0.01 * s, shY - 0.1 * s);
+    c.bezierCurveTo(sh - 0.03 * s + (f > 0 ? ch : 0), shY - 0.26 * s, wh + 0.015 * s, 0.22 * s, wh, 0);
+    c.closePath(); F('body');
+    if (P.tails) { c.beginPath(); c.moveTo(-wh * 0.9, 0.02 * s); c.lineTo(-wh * 1.2 - f * 0.06 * s, -0.44 * s); c.lineTo(-wh * 0.15, -0.12 * s); c.lineTo(wh * 0.15, -0.12 * s); c.lineTo(wh * 1.2 - f * 0.06 * s, -0.44 * s); c.lineTo(wh * 0.9, 0.02 * s); c.closePath(); F('body'); }
+    // the cape: a high stand-up collar behind the head + the cloth falling wide from the shoulders (a vampire's, a witch's cloak)
+    if (P.cape) {
+      const cw = sh + 0.1 * s, fl = P.capeFlare || 0;
+      c.beginPath(); c.moveTo(-sh + 0.04 * s, shY + 0.03 * s); c.quadraticCurveTo(-cw - 0.06 * s - fl * 0.1 * s, -0.1 * s, -cw - fl * 0.18 * s, -(P.legs ? P.legs * 0.85 : 0.5 * s));
+      c.lineTo(cw + fl * 0.18 * s, -(P.legs ? P.legs * 0.85 : 0.5 * s)); c.quadraticCurveTo(cw + 0.06 * s + fl * 0.1 * s, -0.1 * s, sh - 0.04 * s, shY + 0.03 * s); c.closePath(); F('cape');
+      if (P.cape === 'collar') { c.beginPath(); c.moveTo(-0.16 * s, shY + 0.04 * s); c.lineTo(-0.22 * s, shY + 0.3 * s); c.quadraticCurveTo(-0.1 * s, shY + 0.18 * s, -0.04 * s, shY + 0.1 * s); c.lineTo(0.04 * s, shY + 0.1 * s); c.quadraticCurveTo(0.1 * s, shY + 0.18 * s, 0.22 * s, shY + 0.3 * s); c.lineTo(0.16 * s, shY + 0.04 * s); c.closePath(); F('cape'); }
+    }
+  }
+  // ---- the neck (tapered) + the head on it
+  c.beginPath(); c.moveTo(-0.048 * s, shY + 0.06 * s); c.lineTo(-0.042 * s + f * 0.012 * s, shY + 0.17 * s); c.lineTo(0.042 * s + f * 0.012 * s, shY + 0.17 * s); c.lineTo(0.048 * s, shY + 0.06 * s); c.closePath(); F('skin');
+  c.save(); c.translate(f * 0.012 * s, shY + 0.13 * s); c.rotate(-(P.tilt || 0));
+  const hx = f * 0.012 * s, hy = 0.15 * s, rx = (0.112 + 0.012 * af) * s, ry = 0.138 * s;
+  // the skull + the jaw: an egg, the chin a little forward in profile; the nose + the brow in profile (grow in with |face|)
+  c.beginPath(); c.ellipse(hx - f * 0.008 * s, hy + 0.01 * s, rx, ry, 0, 0, TAU); F('skin');
+  if (af > 0.05) {
+    const nx = hx + f * rx * 0.86;
+    c.beginPath(); c.moveTo(nx, hy + 0.045 * s); c.lineTo(nx + f * 0.042 * s * af, hy - 0.012 * s); c.lineTo(nx + f * 0.012 * s, hy - 0.03 * s);
+    c.quadraticCurveTo(nx + f * 0.02 * s * af, hy - 0.075 * s, nx - f * 0.01 * s, hy - 0.1 * s); c.lineTo(nx - f * 0.06 * s, hy - 0.11 * s); c.lineTo(nx - f * 0.05 * s, hy + 0.04 * s); c.closePath(); F('skin');
+  } else if (!P.hat || P.hat === 'cap' || P.hat === 'crown') {
+    // (front / back: the ears' small bumps break the egg — the head reads as a head, not a ball)
+    for (const e of [-1, 1]) { c.beginPath(); c.ellipse(hx + e * rx * 0.98, hy + 0.005 * s, 0.022 * s, 0.035 * s, 0, 0, TAU); F('skin'); }
+  }
+  // the hair
+  const hair = P.hair === undefined ? (!P.hat && !woman ? 'short' : null) : P.hair;
+  if (hair === 'bob') {
+    // the 1920s bob: a sleek cap to the jaw, flicking forward at the cheek, the nape bare
+    c.beginPath(); c.moveTo(hx - rx * 1.12, hy - 0.06 * s); c.bezierCurveTo(hx - rx * 1.22, hy + 0.12 * s, hx - rx * 0.7, hy + ry * 1.18, hx, hy + ry * 1.12); c.bezierCurveTo(hx + rx * 0.7, hy + ry * 1.18, hx + rx * 1.22, hy + 0.12 * s, hx + rx * 1.12, hy - 0.06 * s);
+    c.quadraticCurveTo(hx + rx * 1.0 + f * 0.03 * s, hy - 0.1 * s, hx + rx * 0.82, hy - 0.05 * s); c.lineTo(hx + rx * 0.7, hy + 0.04 * s); c.quadraticCurveTo(hx, hy + ry * 0.62, hx - rx * 0.7, hy + 0.04 * s); c.lineTo(hx - rx * 0.82, hy - 0.05 * s); c.quadraticCurveTo(hx - rx * 1.0 + f * 0.03 * s, hy - 0.1 * s, hx - rx * 1.12, hy - 0.06 * s); c.closePath(); F('hair');
+  } else if (hair === 'bun') {
+    c.beginPath(); c.ellipse(hx - f * 0.01 * s, hy + 0.045 * s, rx * 1.05, ry * 0.92, 0, Math.PI * 0.08, Math.PI * 0.92); c.closePath(); F('hair');
+    c.beginPath(); c.arc(hx - f * 0.13 * s, hy + (af > 0.3 ? 0.06 : 0.17) * s, 0.06 * s, 0, TAU); F('hair');
+  } else if (hair === 'long') {
+    c.beginPath(); c.moveTo(hx - rx * 1.1, hy + 0.05 * s); c.quadraticCurveTo(hx, hy + ry * 1.35, hx + rx * 1.1, hy + 0.05 * s); c.quadraticCurveTo(hx + rx * 1.25 - f * 0.05 * s, hy - 0.16 * s, hx + rx * 0.9 - f * 0.08 * s, hy - 0.36 * s); c.lineTo(hx - rx * 0.9 - f * 0.08 * s, hy - 0.36 * s); c.quadraticCurveTo(hx - rx * 1.25 - f * 0.05 * s, hy - 0.16 * s, hx - rx * 1.1, hy + 0.05 * s); c.closePath(); F('hair');
+  } else if (hair === 'short') {
+    c.beginPath(); c.ellipse(hx - f * 0.015 * s, hy + 0.05 * s, rx * 1.04, ry * 0.9, 0, Math.PI * 0.06, Math.PI * 0.94); c.closePath(); F('hair');
+  }
+  // the hat
+  const hat = P.hat;
+  if (hat === 'fedora') {
+    // the brim (a shallow ellipse, dipping toward the face) + the pinched crown with its dent + the band
+    c.save(); c.translate(hx, hy + 0.085 * s); c.rotate(-f * 0.08);
+    c.beginPath(); c.ellipse(0, 0, 0.235 * s, 0.038 * s, 0, 0, TAU); F('hat');
+    c.beginPath(); c.moveTo(-0.13 * s, 0.01 * s); c.bezierCurveTo(-0.14 * s, 0.1 * s, -0.12 * s, 0.17 * s, -0.07 * s, 0.17 * s); c.quadraticCurveTo(0, 0.145 * s, 0.07 * s, 0.17 * s); c.bezierCurveTo(0.12 * s, 0.17 * s, 0.14 * s, 0.1 * s, 0.13 * s, 0.01 * s); c.closePath(); F('hat');
+    c.restore();
+  } else if (hat === 'top') {
+    c.beginPath(); c.ellipse(hx, hy + 0.1 * s, 0.205 * s, 0.032 * s, 0, 0, TAU); F('hat');
+    c.beginPath(); c.moveTo(hx - 0.118 * s, hy + 0.1 * s); c.quadraticCurveTo(hx - 0.105 * s, hy + 0.28 * s, hx - 0.132 * s, hy + 0.46 * s); c.lineTo(hx + 0.132 * s, hy + 0.46 * s); c.quadraticCurveTo(hx + 0.105 * s, hy + 0.28 * s, hx + 0.118 * s, hy + 0.1 * s); c.closePath(); F('hat');
+  } else if (hat === 'cloche') {
+    // the bell down to the brows, its small turned-down brim, the feather sweeping back
+    c.beginPath(); c.moveTo(hx - rx * 1.2, hy + 0.0 * s); c.bezierCurveTo(hx - rx * 1.25, hy + ry * 1.5, hx + rx * 1.25, hy + ry * 1.5, hx + rx * 1.2, hy + 0.0 * s); c.quadraticCurveTo(hx + rx * 1.32 + f * 0.03 * s, hy - 0.045 * s, hx + rx * 0.9, hy - 0.02 * s); c.lineTo(hx - rx * 0.9, hy - 0.02 * s); c.quadraticCurveTo(hx - rx * 1.32 + f * 0.03 * s, hy - 0.045 * s, hx - rx * 1.2, hy); c.closePath(); F('hat');
+    c.lineWidth = 0.024 * s + inf * 2; c.strokeStyle = fill('hat'); c.beginPath(); c.moveTo(hx - f * 0.06 * s, hy + 0.15 * s); c.quadraticCurveTo(hx - f * 0.14 * s - 0.02 * s, hy + 0.33 * s, hx - f * 0.26 * s - 0.04 * s, hy + 0.38 * s); c.stroke();
+  } else if (hat === 'cap') {
+    c.beginPath(); c.ellipse(hx - f * 0.01 * s, hy + 0.075 * s, rx * 1.12, 0.07 * s, -f * 0.1, Math.PI, 0, true); c.closePath(); F('hat');
+    c.beginPath(); c.ellipse(hx + (f || 1) * 0.1 * s, hy + 0.07 * s, 0.09 * s, 0.022 * s, 0, 0, TAU); F('hat');
+  } else if (hat === 'witch') {
+    // the witch's hat: a wide soft brim + a tall cone that bends over at the tip
+    c.beginPath(); c.ellipse(hx, hy + 0.08 * s, 0.27 * s, 0.04 * s, -f * 0.06, 0, TAU); F('hat');
+    c.beginPath(); c.moveTo(hx - 0.12 * s, hy + 0.08 * s); c.quadraticCurveTo(hx - 0.07 * s, hy + 0.32 * s, hx + 0.02 * s, hy + 0.52 * s); c.quadraticCurveTo(hx + 0.12 * s + f * 0.04 * s, hy + 0.58 * s, hx + 0.2 * s + f * 0.06 * s, hy + 0.5 * s); c.quadraticCurveTo(hx + 0.08 * s, hy + 0.45 * s, hx + 0.12 * s, hy + 0.08 * s); c.closePath(); F('hat');
+  } else if (hat === 'horns') {
+    for (const e of [-1, 1]) { c.beginPath(); c.moveTo(hx + e * 0.05 * s, hy + 0.1 * s); c.quadraticCurveTo(hx + e * 0.15 * s, hy + 0.2 * s, hx + e * 0.11 * s, hy + 0.27 * s); c.quadraticCurveTo(hx + e * 0.1 * s, hy + 0.19 * s, hx + e * 0.1 * s, hy + 0.09 * s); c.closePath(); F('hat'); }
+  } else if (hat === 'ears') {
+    for (const e of [-1, 1]) { c.beginPath(); c.moveTo(hx + e * 0.03 * s, hy + 0.12 * s); c.lineTo(hx + e * 0.1 * s, hy + 0.24 * s); c.lineTo(hx + e * 0.12 * s, hy + 0.08 * s); c.closePath(); F('hat'); }
+  } else if (hat === 'crown') {
+    // a crown of flowers (Day of the Dead): blooms round the head — their colours by day / lit, a bumpy silhouette at night
+    const cols = P.crownCols || ['rgb(255,140,30)', 'rgb(236,60,120)', 'rgb(255,200,40)', 'rgb(160,70,200)', 'rgb(255,110,40)'];
+    for (let i = 0; i < 7; i++) { const a = Math.PI * (0.12 + 0.76 * i / 6), bx = hx + Math.cos(a) * rx * 1.08, by = hy + 0.02 * s + Math.sin(a) * ry * 0.95; c.beginPath(); c.arc(bx, by, (i % 2 ? 0.042 : 0.052) * s, 0, TAU); if (pal || P.crownLit) { c.fillStyle = cols[i % cols.length]; c.fill(); if (inf) { c.strokeStyle = c.fillStyle; c.lineWidth = inf * 2; c.stroke(); } } else F('hat'); }
+  } else if (hat === 'sombrero') {
+    c.beginPath(); c.ellipse(hx, hy + 0.08 * s, 0.36 * s, 0.05 * s, -f * 0.05, 0, TAU); F('hat');
+    c.beginPath(); c.moveTo(hx - 0.13 * s, hy + 0.09 * s); c.quadraticCurveTo(hx - 0.11 * s, hy + 0.3 * s, hx, hy + 0.32 * s); c.quadraticCurveTo(hx + 0.11 * s, hy + 0.3 * s, hx + 0.13 * s, hy + 0.09 * s); c.closePath(); F('hat');
+  }
   c.restore();
-  // the arms (two segments, round joints) + what the hands hold
-  c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = 0.105 * s;
+  // ---- the arms: tapered (the upper arm fuller than the forearm), round joints, a hand at the end + what it holds
   const arms = P.arms || [[0.1, 0.1], [0.1, 0.1]];
   for (let i = 0; i < 2; i++) {
-    const side = i ? 1 : -1, [a, e] = arms[i] || [0.1, 0.1], sx = side * (sh - 0.05 * s), sy = shY - 0.05 * s;
-    const ex = sx + side * Math.sin(a) * 0.33 * s, ey = sy - Math.cos(a) * 0.33 * s, fa = a + e, hx2 = ex + side * Math.sin(fa) * 0.3 * s, hy2 = ey - Math.cos(fa) * 0.3 * s;
-    c.strokeStyle = fill('arm'); c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.lineTo(hx2, hy2); c.stroke();
-    c.fillStyle = fill('skin'); c.beginPath(); c.arc(hx2, hy2, 0.052 * s, 0, TAU); c.fill();
+    const side = i ? 1 : -1, [a, e] = arms[i] || [0.1, 0.1], sx = side * (sh - 0.055 * s), sy = shY - 0.045 * s;
+    const ex = sx + side * Math.sin(a) * 0.32 * s, ey = sy - Math.cos(a) * 0.32 * s, fa = a + e, hx2 = ex + side * Math.sin(fa) * 0.29 * s, hy2 = ey - Math.cos(fa) * 0.29 * s;
+    const seg = (x0, y0, x1, y1, w0, w1) => { const dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d; c.beginPath(); c.moveTo(x0 + nx * w0, y0 + ny * w0); c.lineTo(x1 + nx * w1, y1 + ny * w1); c.arc(x1, y1, w1, Math.atan2(ny, nx), Math.atan2(ny, nx) + Math.PI, true); c.lineTo(x0 - nx * w0, y0 - ny * w0); c.arc(x0, y0, w0, Math.atan2(-ny, -nx), Math.atan2(-ny, -nx) + Math.PI, true); c.closePath(); F('arm'); };
+    const aw = (woman ? 0.042 : 0.054) * s;
+    seg(sx, sy, ex, ey, aw * 1.08, aw * 0.86);
+    seg(ex, ey, hx2, hy2, aw * 0.86, aw * 0.66);
+    // the hand: a small mitten along the forearm's line (the fingers' mass + the thumb's nub)
+    { const dx = Math.sin(fa) * side, dy = -Math.cos(fa); c.beginPath(); c.ellipse(hx2 + dx * 0.035 * s, hy2 + dy * 0.035 * s, 0.05 * s, 0.036 * s, Math.atan2(dy, dx), 0, TAU); F('skin'); }
+    if (P.bones && !inf) { c.strokeStyle = P.bones; c.lineWidth = 0.018 * s; c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.lineTo(hx2, hy2); c.stroke(); }
     const hold = P.hold && P.hold[i];
-    if (hold) prop(c, hold, hx2, hy2, side, fa, s, fill('prop'), P);
+    if (hold && !inf) prop(c, hold, hx2, hy2, side, fa, s, fill('prop'), P);
+  }
+  // ---- the costumes' marks over the body: a skeleton's ribs + spine, a mummy's bandages (in their own lit colour)
+  if (!inf && P.bones) {
+    c.strokeStyle = P.bones; c.lineWidth = 0.02 * s;
+    c.beginPath(); c.moveTo(0, 0.08 * s); c.lineTo(0, shY); for (let k = 0; k < 4; k++) { const y = shY - 0.1 * s - k * 0.085 * s, w = (0.17 - k * 0.012) * s; c.moveTo(-w, y - 0.03 * s); c.quadraticCurveTo(-w * 0.4, y + 0.02 * s, 0, y); c.quadraticCurveTo(w * 0.4, y + 0.02 * s, w, y - 0.03 * s); } c.stroke();
+  }
+  if (!inf && P.wraps) {
+    c.save(); c.strokeStyle = P.wraps; c.lineWidth = 0.022 * s;
+    for (let k = 0; k < 9; k++) { const y = 0.04 * s + k * 0.085 * s, tl = (k % 3 - 1) * 0.06; c.beginPath(); c.moveTo(-0.3 * s, y + tl * s); c.lineTo(0.3 * s, y - tl * s + 0.03 * s); c.stroke(); }
+    c.restore();
   }
   c.restore();
 }
@@ -219,6 +349,8 @@ function prop(c, kind, x, y, side, fa, s, col, P) {
     c.restore();
   } else if (kind === 'scissors') { c.lineWidth = 0.022 * s; const o = P.snip || 0; c.beginPath(); c.moveTo(x, y); c.lineTo(x + side * 0.14 * s, y + (0.04 + 0.05 * o) * s); c.moveTo(x, y); c.lineTo(x + side * 0.14 * s, y + (0.04 - 0.05 * o) * s); c.stroke(); if (P.glints) P.glints(c, x + side * 0.1 * s, y + 0.04 * s, s * 0.6); }
   else if (kind === 'paper') { c.fillRect(x - 0.02 * s - (side > 0 ? 0.3 * s : 0), y - 0.05 * s, 0.32 * s, 0.4 * s); }
+  else if (kind === 'candle') { c.fillRect(x - 0.022 * s, y - 0.02 * s, 0.044 * s, 0.16 * s); c.fillStyle = P.flame || 'rgb(255,214,120)'; c.beginPath(); c.ellipse(x, y + 0.2 * s, 0.02 * s, 0.04 * s, 0, 0, TAU); c.fill(); if (P.glints) P.glints(c, x, y + 0.2 * s, s * 1.6); }
+  else if (kind === 'wand') { c.lineWidth = 0.02 * s; c.beginPath(); c.moveTo(x, y); c.lineTo(x + side * 0.2 * s, y + 0.18 * s); c.stroke(); if (P.glints) P.glints(c, x + side * 0.2 * s, y + 0.18 * s, s); }
   else if (kind === 'cloth') { c.beginPath(); c.ellipse(x, y + 0.02 * s, 0.06 * s, 0.045 * s, 0.4, 0, TAU); c.fill(); }
 }
 /** the sax (a curved silhouette held at the mouth: the neck, the body down, the bell turned out) — at (x, y) the mouth, ang the lift */
@@ -262,6 +394,9 @@ const DAY_PALS = [
 ];
 const BARBER = { body: 'rgb(238,236,228)', skin: 'rgb(210,164,130)', hair: 'rgb(44,32,28)', hat: 'rgb(44,32,28)', legs: 'rgb(46,44,52)', prop: 'rgb(214,220,228)', arm: 'rgb(232,230,222)' };
 const pals = n => DAY_PALS[((n % 3) + 3) % 3];
+/** 11a-1 — THE RIM: each room's lamp colour on its silhouettes' edges + the lamp's side (-1 left, 1 right, 0 behind) */
+const RIM_COL = { bar: [255, 190, 116], jazz: [255, 214, 160], apartment: [255, 206, 190], back: [255, 222, 170], edge2: [255, 230, 196], edge3: [255, 230, 196] };
+const RIM_SIDE = { apartment: -1, bar: 0, jazz: 0, back: 0, edge2: 0, edge3: 0 };
 
 // ------------------------------------------------------------------ THE LIVE LAYER
 export function createWindowLife() {
@@ -287,7 +422,7 @@ export function createWindowLife() {
     return { key: dayKey(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()), dow: d.getUTCDay(), month: d.getUTCMonth() + 1, sec: (((lms / 1000) % 86400) + 86400) % 86400, lms };
   }
   function block(key, hour, ctx) {
-    const k = `${key}|${hour}|${ctx.dow}|${ctx.dark.map(v => v.toFixed(2)).join(',')}|${ctx.wx || ''}`;
+    const hl = ctx.hol, k = `${key}|${hour}|${ctx.dow}|${ctx.dark.map(v => v.toFixed(2)).join(',')}|${ctx.wx || ''}|${hl ? `${hl.id}${hl.stage}${hl.eve ? 'e' : ''}${hl.w}` : ''}`;
     let b = blocks.get(k);
     if (!b) { b = hourPlan(key, hour, ctx); blocks.set(k, b); if (blocks.size > 8) blocks.delete(blocks.keys().next().value); }
     return b;
@@ -305,7 +440,7 @@ export function createWindowLife() {
       darkKey = loc.key;
       try { const st = sunTimes(ms, L.tz, L.lat, L.lon), hr = t => ((((t + (L.off || 0) * 60000) / 3.6e6) % 24) + 24) % 24; dark = st.rise && st.set ? [hr(st.set) + 0.35, hr(st.rise) - 0.35] : [19, 7]; } catch { dark = [19, 7]; }
     }
-    const ctx = { dow: loc.dow, month: loc.month, dark: dark || [19, 7], wx: L.wx || null };   // (9a: the weather gate — 'hot' | 'rain' | null)
+    const ctx = { dow: loc.dow, month: loc.month, dark: dark || [19, 7], wx: L.wx || null, hol: L.hol || null };   // (11a-1: the holiday's scenes — scene.js passes the DAY's stage)   // (9a: the weather gate — 'hot' | 'rain' | null)
     if (rKey !== loc.key) { rKey = loc.key; routines = {}; for (const m of ['wake', 'shop-open', 'bartender', 'lights-out']) routines[m] = routineAt(m, loc.key); }
     let on;
     const forced = L.moment && MOMENT[L.moment] ? L.moment : null;
@@ -328,7 +463,7 @@ export function createWindowLife() {
     if (states.bar === 'last') full.add('bar');
     for (const e of on) if (['wake', 'lights-out'].includes(e.id)) full.add('apartment'); else if (e.id === 'bartender') full.add('bar');
     const cur = block(loc.key, Math.floor(h), ctx), nx = cur.find(e => e.t0 > loc.sec);
-    last = { on, states, sec: loc.sec, h, key: loc.key, forced, full, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark };
+    last = { on, states, sec: loc.sec, h, key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark };
     return last;
   }
 
@@ -355,17 +490,23 @@ export function createWindowLife() {
       const G = glassOf(w), lv = env.levels[env.wins.indexOf(w)], kl = k * (fr.full.has(w.id) ? 1 : lv);
       const list = byWin.get(w.id) || [];
       const tap = taps.find(o => o.id === w.id && t - o.at < 3.2);
-      if (!list.length && !tap && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp')) continue;
+      const dress = holDress(fr.hol, w.id) || (list.some(e => e.id === 'ofrenda') ? 'ofrenda' : null);
+      if (!list.length && !tap && !dress && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp')) continue;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
       const E = { c, G, w, k, kl, day, t, mo, T, glints, f, env, frameC, after: [] };
+      // (11a-1: each room's lamp rims its silhouettes — its own warm tone, stronger on the lamp's side)
+      setRim(k > 0.25 && kl > 0.05 ? { col: RIM_COL[w.id] || [255, 222, 176], a: 0.48 * Math.min(1, kl * 1.2), side: RIM_SIDE[w.id] || 0, w: 0.026 } : null);
       // (SP3 — THE STAGING: a zoom about the pane's foot — close moments bold at the glass, cropped by the frame; core#STAGE)
       const zoomed = (z, fn) => { if (z === 1) return fn(); c.save(); c.translate(G.cx, G.h0); c.scale(z, z); c.translate(-G.cx, -G.h0); const r = fn(); c.restore(); return r; };
       // the room's own state (POLISH 5: single panes — nothing is laid back over the glass after)
       if (w.id === 'apartment') zoomed(STAGE_ROOM, () => apartmentState(E, fr.states.apartment, list));
       if (w.id === 'bar') zoomed(STAGE_ROOM, () => barState(E, fr.states.bar, list));
-      if (w.id === 'jazz' && kl > 0.01) { const solo = list.find(e => e.id === 'sax'); zoomed(solo ? STAGE.sax : STAGE_ROOM, () => saxPlayer(E, solo)); }
+      if (w.id === 'jazz' && kl > 0.01 && !list.some(e => e.id === 'mummy')) { const solo = list.find(e => e.id === 'sax'); zoomed(solo ? STAGE.sax : STAGE_ROOM, () => saxPlayer(E, solo)); }
       // (SP3 — the windows that aren't the star keep SLOW SIMPLE LIFE: now and then someone passes deep in the room, a soft shadow)
       if (!list.length && kl > 0.05 && mo && w.id !== 'apartment') passing(E);
+      // 11a-1 — THE HOLIDAY IN THE ROOM: the ofrenda on its sill (its candles lit one by one while the ofrenda moment runs) · a jack-o'-lantern
+      if (dress === 'ofrenda') ofrendaState(E, list.find(e => e.id === 'ofrenda'), fr.hol && fr.hol.id === 'dotd' ? fr.hol.ofrendas : 1);
+      else if (dress === 'pumpkin' && kl > 0.05) sillPumpkin(E);
       // the moments in this window
       for (const e of list) { const p = PAINT[e.id]; if (p) zoomed(STAGE[e.id] || 1, () => p(E, e.el, e.len, e)); }
       if (tap) tapPaint(E, tap);
@@ -373,6 +514,7 @@ export function createWindowLife() {
       for (const fn of E.after) fn();
     }
     c.restore();
+    setRim(null);
     // the shop (the barbershop's big window): its day life, its CLOSED card, the hidden mirror door
     shop(c, env, fr, byWin.get('shop') || [], { k, day, t, mo, T, f });
     // the TV's blue spill on the brick round the apartment window (the bake's warm blobs belong to the lit rooms)
@@ -387,7 +529,7 @@ export function createWindowLife() {
     const u = cyc / len, dir = Math.floor((t + ph) / per) % 2 ? 1 : -1, x = G.cx + dir * (u - 0.5) * (G.cw + 1.2), y = G.h0 + G.ch * 0.08, s = 1.15;
     const a = 0.26 * kl * Math.sin(Math.PI * u);
     c.save(); c.globalAlpha = a;
-    figure(c, { x, y, s, lean: -dir * 0.04, tilt: 0, face: dir, arms: [[0.06 + 0.06 * Math.sin(t * 3), 0.1], [0.06 - 0.06 * Math.sin(t * 3), 0.1]], col: 'rgb(40,20,14)', hat: seed % 2 ? 'fedora' : null, hair: seed % 2 ? null : 'bob' });
+    figure(c, { x, y, s, rim: null, lean: -dir * 0.04, tilt: 0, face: dir, arms: [[0.06 + 0.06 * Math.sin(t * 3), 0.1], [0.06 - 0.06 * Math.sin(t * 3), 0.1]], col: 'rgb(40,20,14)', hat: seed % 2 ? 'fedora' : null, hair: seed % 2 ? null : 'bob' });
     c.restore();
   }
 
@@ -466,6 +608,7 @@ export function createWindowLife() {
     const full = toast && !toast.solo;
     const who = full ? [[0.2, 'fedora', 0.88, 1], [0.5, 'cloche', 0.8, 0], [0.8, 'fedora', 0.9, -1]] : [[0.74, 'fedora', 0.9, -1]];
     const p = toast ? toast.p : 0, up = toast ? sm(0.06, 0.26, p) * (1 - sm(0.84, 0.98, p)) : 0, clink = full ? sm(0.3, 0.38, p) * (1 - sm(0.44, 0.52, p)) : 0, drink = toast ? sm(0.54, 0.62, p) * (1 - sm(0.74, 0.82, p)) : 0;
+    const group = [];
     for (const [u, hat, s, toward] of who) {
       const x = G.g0 + G.cw * u;
       // the toasting arm: down → straight up over the head (→ leaning in over the middle for the clink) → folded to the mouth
@@ -473,8 +616,9 @@ export function createWindowLife() {
       const arm = drink > 0.01 ? [lerp(a, 0.7, drink), lerp(e, 2.3, drink)] : [a, e];
       // (toward: +1 = the centre is to his right — his right arm toasts; −1 his left; 0 the middle one, her right)
       const arms = toward < 0 ? [arm, [0.12, 0.2]] : [[0.12, 0.2], arm], hold = toward < 0 ? ['glass', null] : [null, 'glass'];
-      figure(c, { x: x + toward * 0.05 * clink, y, s, face: 0, lean: toward * 0.12 * clink, tilt: -0.4 * drink, arms, hold: up > 0.05 || !toast ? hold : null, hat, hair: hat === 'cloche' ? 'bob' : null, col: SIL, glints: up > 0.3 ? E.glints : null });
+      group.push({ x: x + toward * 0.05 * clink, y, s, face: 0, lean: toward * 0.12 * clink, tilt: -0.4 * drink, arms, hold: up > 0.05 || !toast ? hold : null, hat, hair: hat === 'cloche' ? 'bob' : null, col: SIL, glints: up > 0.3 ? E.glints : null });
     }
+    figures(c, group);
     if (full) {
       const k = sm(0.33, 0.38, p) * (1 - sm(0.4, 0.52, p));
       if (k > 0.01) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, [255, 244, 210], G.cx, G.h0 + G.ch * 0.72, 0.42, 0.95 * k); glow(c, [255, 255, 255], G.cx, G.h0 + G.ch * 0.72, 0.14, k); c.restore(); }
@@ -489,7 +633,7 @@ export function createWindowLife() {
     c.save(); c.globalAlpha = kl;
     c.beginPath(); c.rect(G.g0, sv, G.cw, G.h1 - sv); c.clip();
     const x = G.g0 + G.cw * 0.46, y = sv - 0.08 + bob, s = 1.08;
-    figure(c, { x, y, s, lean, tilt: -0.2 - big * 0.35, face: 1, arms: [[0.55 - big * 0.2, 1.4], [0.75 - big * 0.25, 1.15]], col: SHADOW, hat: 'fedora' });
+    figure(c, { x, y, s, lean, tilt: -0.2 - big * 0.35, face: 1, arms: [[0.55 - big * 0.2, 1.4], [0.75 - big * 0.25, 1.15]], col: SHADOW, hat: 'fedora', rim: null });
     // the sax: its mouthpiece at the lips, the body down + out, the bell up in the solo
     const mx = x + Math.sin(-lean) * 0.0 + 0.12 * s, my = y + 0.86 * s;
     sax(c, mx + lean * -0.5, my, s * 1.35, 0.15 + big * 0.75, 1, SHADOW);
@@ -686,7 +830,7 @@ export function createWindowLife() {
       // under the jazz room's shade: someone ducks under its hem and looks out, left then right (the shade's hem lifted over the head)
       const sv = G.h0 + G.ch * 0.26, x = G.g0 + G.cw * (0.36 + 0.28 * hsh(seed | 0, 9)), rise = 0.42 * o;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, sv - G.h0 + 0.1 * o); c.clip();
-      figure(c, { x, y: sv - 0.86 + rise, s: 0.95, face: look > 0.1 ? 1 : look < -0.1 ? -1 : 0, tilt: 0.1, col, arms: [[2.4, 0.5], [0.3, 0.3]] });
+      figure(c, { x, y: sv - 0.86 + rise, s: 0.95, face: look, tilt: 0.1, col, arms: [[2.4, 0.5], [0.3, 0.3]], hair: 'short' });
       c.restore();
       c.fillStyle = 'rgba(110,60,30,0.85)'; c.beginPath(); c.moveTo(x - 0.34, sv); c.quadraticCurveTo(x, sv + 0.26 * o, x + 0.34, sv); c.lineTo(x + 0.34, sv + 0.05); c.quadraticCurveTo(x, sv + 0.3 * o, x - 0.34, sv + 0.05); c.fill();
       return;
@@ -695,7 +839,7 @@ export function createWindowLife() {
     // street, left then right), the hand gripping the edge
     const side = hsh(seed | 0, 9) < 0.5 ? -1 : 1, open = -side, x0 = side < 0 ? G.g0 : G.g1;
     const xe = x0 + open * (0.3 + 0.32 * o), y = G.h0 + 0.02;
-    figure(c, { x: xe - open * 0.14, y, s: 1, face: look > 0.1 ? 1 : look < -0.1 ? -1 : open, lean: open * 0.24 * o, tilt: -0.12 * look, col, arms: [[0.2, 0.3], [0.2, 0.3]] });
+    figure(c, { x: xe - open * 0.14, y, s: 1, face: Math.max(-1, Math.min(1, look + open * 0.55 * (1 - Math.abs(look)))), hair: 'short', lean: open * 0.24 * o, tilt: -0.12 * look, col, arms: [[0.2, 0.3], [0.2, 0.3]] });
     const cc = night ? 'rgb(130,36,40)' : rgb(tri(E.T, [140, 40, 44], [150, 50, 44], [20, 10, 18]));
     c.fillStyle = cc; c.beginPath(); c.moveTo(x0, G.h1); c.lineTo(xe, G.h1); c.quadraticCurveTo(xe - open * 0.06, G.mid, xe + open * 0.04, G.h0); c.lineTo(x0, G.h0); c.fill();
     c.fillStyle = 'rgba(0,0,0,0.25)'; for (let u = 0.08; u < Math.abs(xe - x0) - 0.04; u += 0.11) c.fillRect(x0 + open * u, G.h0, 0.03, G.ch);
@@ -714,6 +858,89 @@ export function createWindowLife() {
       return { kind: 'window', id: w.id, tap: kind };
     }
     return null;
+  }
+
+  // ---------------------------------------------------------------- 11a-1 — THE HOLIDAYS IN THE ROOMS
+  /** which holiday dressing a window wears tonight: 'ofrenda' (Day of the Dead's altars: the edge windows + the back room) ·
+   *  'pumpkin' (Halloween's last week: a jack-o'-lantern on the edge windows' sills) · null */
+  function holDress(hol, id) {
+    if (!hol) return null;
+    if (hol.id === 'dotd' && (hol.ofrendas || 0) > 0.05 && (id === 'edge2' || id === 'edge3' || id === 'back')) return 'ofrenda';
+    if (hol.id === 'halloween' && (hol.stage || 0) >= 0.75 && (id === 'edge2' || id === 'edge3')) return 'pumpkin';
+    return null;
+  }
+  const CANDLE = [255, 196, 110];
+  /** THE OFRENDA: three tiers at the window's foot under a white cloth — candles (lit one by one through the lighting moment), the
+   *  marigolds' orange masses, a framed photo, a sugar skull, the bread — papel picado across the glass's top; its candlelight the room's
+   *  warm flickering glow (the edge's curtains + the back room's walls take it). up: the piece's 0..1 (going up / coming down). */
+  function ofrendaState(E, lighting, up) {
+    const { c, G, k, kl, t, mo, day } = E, a = clamp01(up), L = Math.max(kl, 0.25 * day);
+    if (a <= 0.01 || L <= 0.01) return;
+    const lit = lighting ? sm(0.18, 0.78, lighting.el / lighting.len) : (k > 0.25 ? 1 : 0);
+    const x0 = G.g0 + G.cw * 0.08, x1 = G.g1 - G.cw * 0.08, base = G.h0 + 0.02, th = G.ch * 0.085;
+    c.save(); c.globalAlpha *= a;
+    // the room in candlelight: a warm glow rising from the altar (the curtains + the walls take it)
+    if (k > 0.05) { c.globalCompositeOperation = 'lighter'; const fl = mo ? 0.88 + 0.12 * Math.sin(t * 7.3) * Math.sin(t * 3.1) : 1; glow(c, CANDLE, G.cx, base + th * 2.6, G.cw * 0.95, 0.42 * k * Math.max(0.35, lit) * fl, 0.85); c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; }
+    // the tiers: a white cloth, its lace edge, a band of papel colour on each riser
+    const cloth = k > 0.25 ? 'rgb(246,232,214)' : 'rgb(214,206,196)', bands = ['rgb(236,60,140)', 'rgb(255,140,30)', 'rgb(150,70,210)'];
+    for (let i = 0; i < 3; i++) {
+      const w = (x1 - x0) * (1 - i * 0.22), u0 = G.cx - w / 2, v0 = base + i * th;
+      R(c, u0, v0, u0 + w, v0 + th, cloth);
+      R(c, u0, v0 + th * 0.62, u0 + w, v0 + th * 0.86, bands[i]);
+      c.fillStyle = cloth; for (let u = u0; u < u0 + w - 0.01; u += 0.05) { c.beginPath(); c.arc(u + 0.025, v0 + th * 0.62, 0.022, Math.PI, 0); c.fill(); }
+    }
+    // the photo (a dark frame in gold) + the sugar skull + the bread on the top tier
+    const top = base + th * 3;
+    R(c, G.cx - 0.13, top, G.cx + 0.13, top + 0.3, 'rgb(196,150,70)'); R(c, G.cx - 0.105, top + 0.025, G.cx + 0.105, top + 0.275, 'rgb(70,54,48)');
+    c.fillStyle = 'rgb(120,100,92)'; c.beginPath(); c.arc(G.cx, top + 0.17, 0.05, 0, TAU); c.fill(); c.fillRect(G.cx - 0.07, top + 0.03, 0.14, 0.09);
+    c.fillStyle = 'rgb(250,246,240)'; c.beginPath(); c.ellipse(G.cx - 0.26, top + 0.07, 0.075, 0.068, 0, 0, TAU); c.fill(); c.fillRect(G.cx - 0.3, top, 0.08, 0.05);
+    c.fillStyle = 'rgb(40,24,40)'; for (const e of [-0.028, 0.028]) { c.beginPath(); c.arc(G.cx - 0.26 + e, top + 0.08, 0.018, 0, TAU); c.fill(); }
+    c.fillStyle = 'rgb(236,60,150)'; c.beginPath(); c.arc(G.cx - 0.26, top + 0.125, 0.016, 0, TAU); c.fill();
+    c.fillStyle = 'rgb(176,104,52)'; c.beginPath(); c.ellipse(G.cx + 0.27, top + 0.02, 0.09, 0.07, 0, Math.PI, 0, true); c.fill();
+    // the marigolds: orange masses at each tier's ends, each bloom two tones
+    const r = rngFrom(77);
+    for (let i = 0; i < 3; i++) { const w = (x1 - x0) * (1 - i * 0.22), v = base + (i + 1) * th; for (const e of [-1, 1]) for (let j = 0; j < 3; j++) { const bx = G.cx + e * (w / 2 - 0.06 - j * 0.07), by = v + 0.03 + r() * 0.03, br = 0.04 + r() * 0.015; c.fillStyle = 'rgb(226,110,16)'; c.beginPath(); c.arc(bx, by, br, 0, TAU); c.fill(); c.fillStyle = 'rgb(255,176,40)'; c.beginPath(); c.arc(bx - br * 0.2, by + br * 0.25, br * 0.6, 0, TAU); c.fill(); } }
+    // the candles: white sticks along the tiers, flames lit in their order (a fine flicker each), their light round them
+    const n = 9;
+    for (let i = 0; i < n; i++) {
+      const tier = i % 3, w = (x1 - x0) * (1 - tier * 0.22), u = G.cx + (((i * 0.37) % 1) - 0.5) * (w - 0.24), v = base + (tier + 1) * th, hgt = 0.07 + (i % 2) * 0.03;
+      R(c, u - 0.016, v, u + 0.016, v + hgt, 'rgb(252,244,230)');
+      const on = lit * n > i + (lighting ? 0.5 : 0);
+      if (!on || k < 0.05) continue;
+      const fl = mo ? 0.8 + 0.2 * Math.sin(t * (9 + i) + i * 2.1) : 1;
+      c.fillStyle = 'rgb(255,236,170)'; c.beginPath(); c.ellipse(u, v + hgt + 0.03 * fl, 0.012, 0.03 * fl, 0, 0, TAU); c.fill();
+      c.globalCompositeOperation = 'lighter'; glow(c, CANDLE, u, v + hgt + 0.03, 0.14, 0.55 * k * fl); glow(c, [255, 250, 220], u, v + hgt + 0.03, 0.04, 0.8 * k * fl); c.globalCompositeOperation = 'source-over'; c.globalAlpha = a;
+    }
+    // papel picado across the glass's top: a string of cut tissue flags, swaying a little
+    const pc = ['rgb(236,60,140)', 'rgb(255,150,30)', 'rgb(140,80,220)', 'rgb(40,190,170)', 'rgb(255,214,40)', 'rgb(90,200,80)'], fy = G.h1 - 0.04, nf = Math.max(5, Math.round(G.cw / 0.2));
+    R(c, G.g0, fy - 0.006, G.g1, fy + 0.006, 'rgba(60,40,40,0.8)');
+    for (let i = 0; i < nf; i++) {
+      const fw = G.cw / nf * 0.86, u = G.g0 + (i + 0.07) * G.cw / nf, sw = mo ? Math.sin(t * 1.7 + i * 1.3) * 0.012 : 0, fh = 0.2;
+      c.fillStyle = pc[i % pc.length]; c.globalAlpha = a * (k > 0.25 ? 0.95 : 0.8);
+      c.beginPath(); c.moveTo(u, fy); c.lineTo(u + fw, fy); c.lineTo(u + fw + sw, fy - fh); for (let z = 4; z >= 0; z--) c.lineTo(u + sw + fw * z / 4, fy - fh + (z % 2 ? 0.03 : 0)); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(30,16,24,0.55)'; c.fillRect(u + fw * 0.3 + sw * 0.5, fy - fh * 0.62, fw * 0.4, 0.035); c.fillRect(u + fw * 0.44 + sw * 0.5, fy - fh * 0.85, fw * 0.12, fh * 0.6);
+      c.globalAlpha = a;
+    }
+    // the moment: someone kneels at the altar with a lit candle (its glow on the face), lighting them one by one
+    if (lighting) {
+      const p = lighting.el / lighting.len, inn = sm(0, 0.14, p), out = sm(0.86, 1, p), x = G.g0 + G.cw * (1.1 - 0.45 * inn + 0.55 * out);
+      const reach = mo ? 0.5 + 0.5 * Math.sin(lighting.el * 1.4) : 0.5;
+      figure(c, { x, y: base + 0.12, s: 0.9, face: -0.8, lean: -0.32 - 0.12 * reach, tilt: 0.2, hair: 'long', arms: [[1.1 + 0.3 * reach, 0.5], [0.4, 1.2]], hold: [null, 'candle'], col: SIL, glints: E.glints, flame: 'rgb(255,236,170)' });
+    }
+    c.restore();
+  }
+  /** a jack-o'-lantern on the edge window's sill (Halloween's last week): backlit by the room, its carved face glowing from its candle */
+  function sillPumpkin(E) {
+    const { c, G, k, t, mo, w } = E, x = G.g0 + G.cw * (w.id === 'edge2' ? 0.24 : 0.74), y = G.h0 + 0.02, rx = 0.2, ry = 0.15;
+    const fl = mo ? 0.82 + 0.18 * Math.sin(t * 8.1 + x) * Math.sin(t * 3.7) : 1;
+    c.fillStyle = 'rgb(46,20,8)'; for (const [dx, sx] of [[-0.09, 0.62], [0.09, 0.62], [0, 0.8]]) { c.beginPath(); c.ellipse(x + dx, y + ry, rx * sx, ry, 0, 0, TAU); c.fill(); }
+    c.fillStyle = 'rgb(30,40,16)'; c.fillRect(x - 0.015, y + ry * 1.9, 0.03, 0.07);
+    c.strokeStyle = 'rgba(255,170,80,0.45)'; c.lineWidth = 0.02; c.beginPath(); c.ellipse(x, y + ry, rx * 1.02, ry * 1.02, 0, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+    if (k < 0.05) return;
+    c.fillStyle = 'rgba(255,' + Math.round(170 + 50 * fl) + ',70,' + (0.95 * k).toFixed(2) + ')';
+    for (const e of [-1, 1]) { c.beginPath(); c.moveTo(x + e * 0.1, y + ry * 1.1); c.lineTo(x + e * 0.03, y + ry * 1.1); c.lineTo(x + e * 0.065, y + ry * 1.5); c.closePath(); c.fill(); }
+    c.beginPath(); c.moveTo(x - 0.12, y + ry * 0.75); c.quadraticCurveTo(x, y + ry * 0.2, x + 0.12, y + ry * 0.75); c.lineTo(x + 0.07, y + ry * 0.62); c.lineTo(x + 0.04, y + ry * 0.72); c.lineTo(x, y + ry * 0.58); c.lineTo(x - 0.04, y + ry * 0.72); c.lineTo(x - 0.07, y + ry * 0.62); c.closePath(); c.fill();
+    c.globalCompositeOperation = 'lighter'; glow(c, [255, 150, 50], x, y + ry, 0.5, 0.45 * k * fl); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
   }
 
   // ---------------------------------------------------------------- THE MOMENTS' PAINTERS (PAINT[id](E, el, len, inst))
@@ -756,7 +983,7 @@ export function createWindowLife() {
       const look = sm(0.58, 0.64, p) * (1 - sm(0.8, 0.86, p));
       if (inx > 0.01 && outx < 0.99) {
         const arms = st > 0.02 ? [[0.2 + 2.6 * st, 0.15], [0.2 + 2.6 * st, 0.15]] : look > 0.02 ? [[0.12, 0.15], [0.3 + 0.2 * look, 0.25]] : [[0.12, 0.15], [0.12, 0.15]];
-        figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.08 * look, tilt: -0.3 * st, face: look > 0.2 ? 1 : 0, arms, hair: 'bun', col, pal });
+        figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.08 * look, tilt: -0.3 * st, face: look, arms, hair: 'bun', col, pal });
       }
       // the blind: down until the wake, rolled up in its first seconds
       const up = sm(0.02, 0.16, p), bv = lerp(G.h0, G.h1, up);
@@ -791,8 +1018,8 @@ export function createWindowLife() {
         c.save(); c.beginPath(); if (pass === 'shade') c.rect(G.g0, sv, G.cw, G.h1 - sv); else c.rect(G.g0, G.h0, G.cw, sv - G.h0); c.clip();
         const col = pass === 'shade' ? SHADOW : LEGS_SH, s = 1.12, y = G.h0 + 0.46;
         // HIM (a fedora, his arm round her / up for her twirl) · HER (the bob, the dress flaring as she spins)
-        figure(c, { x: x - dir * 0.26, y, s, legs: 0.5, step: ph, lean: dir * 0.08 * sway, face: dir, hat: 'fedora', col, arms: dir > 0 ? [[0.3, 0.5], [0.9 + 1.6 * spin, 0.5 - 0.4 * spin]] : [[0.9 + 1.6 * spin, 0.5 - 0.4 * spin], [0.3, 0.5]] });
-        figure(c, { x: x + dir * (0.24 + 0.08 * spin), y: y - 0.02, s: s * 0.92, legs: 0.48, step: -ph, lean: -dir * 0.1 * sway, face: spin > 0.5 ? dir : -dir, hair: 'bob', dress: true, skirt: 0.3 + 0.7 * spin, col, arms: dir > 0 ? [[0.9 + 1.8 * spin, 0.6], [0.4, 0.3]] : [[0.4, 0.3], [0.9 + 1.8 * spin, 0.6]] });
+        figure(c, { rim: null, x: x - dir * 0.26, y, s, legs: 0.5, step: ph, lean: dir * 0.08 * sway, face: dir, hat: 'fedora', col, arms: dir > 0 ? [[0.3, 0.5], [0.9 + 1.6 * spin, 0.5 - 0.4 * spin]] : [[0.9 + 1.6 * spin, 0.5 - 0.4 * spin], [0.3, 0.5]] });
+        figure(c, { rim: null, x: x + dir * (0.24 + 0.08 * spin), y: y - 0.02, s: s * 0.92, legs: 0.48, step: -ph, lean: -dir * 0.1 * sway, face: spin > 0.5 ? dir : -dir, hair: 'bob', dress: true, skirt: 0.3 + 0.7 * spin, col, arms: dir > 0 ? [[0.9 + 1.8 * spin, 0.6], [0.4, 0.3]] : [[0.4, 0.3], [0.9 + 1.8 * spin, 0.6]] });
         c.restore();
       }
       c.restore(); c.globalAlpha = 1;
@@ -829,14 +1056,102 @@ export function createWindowLife() {
         const col = pass === 'shade' ? SHADOW : pass === 'legs' ? LEGS_SH : SIL;
         const dip = move === 'dip' ? m : 0, kick = move === 'kick' ? m : 0, turn = move === 'turn' ? m : 0;
         // him: the top hat, the tails, his arm out with her hand (the tango's line), leaning over her in the dip
-        figure(c, { x: x - dir * 0.24, y, s, legs: 0.48, step: step * (1 - dip), lean: dir * (0.12 + 0.28 * dip), face: dir, hat: 'top', tails: true, col, arms: dir > 0 ? [[0.2, 0.4], [1.5 - 0.4 * dip, 0.1]] : [[1.5 - 0.4 * dip, 0.1], [0.2, 0.4]] });
+        figures(c, [{ rim: pass === 'clear' ? undefined : null, x: x - dir * 0.24, y, s, legs: 0.48, step: step * (1 - dip), lean: dir * (0.12 + 0.28 * dip), face: dir, hat: 'top', tails: true, col, arms: dir > 0 ? [[0.2, 0.4], [1.5 - 0.4 * dip, 0.1]] : [[1.5 - 0.4 * dip, 0.1], [0.2, 0.4]] },
         // her: the cloche + its feather, the bob, the fringed dress — bent back in the dip, a leg up in the kick, flaring in the turn
-        figure(c, { x: x + dir * (0.26 + 0.1 * dip), y: y - 0.04 - 0.12 * dip, s: s * 0.93, legs: 0.46 + 0.1 * kick, step: kick ? -1.6 * kick : -step, lean: -dir * (0.1 + 0.95 * dip), face: -dir, hat: 'cloche', hair: 'bob', dress: true, skirt: 0.2 + 0.8 * Math.max(turn, kick), col, arms: dir > 0 ? [[1.45 - 0.3 * dip, 0.1], [0.6 + 1.6 * dip, 0.8]] : [[0.6 + 1.6 * dip, 0.8], [1.45 - 0.3 * dip, 0.1]] });
+        { rim: pass === 'clear' ? undefined : null, x: x + dir * (0.26 + 0.1 * dip), y: y - 0.04 - 0.12 * dip, s: s * 0.93, legs: 0.46 + 0.1 * kick, step: kick ? -1.6 * kick : -step, lean: -dir * (0.1 + 0.95 * dip), face: -dir, hat: 'cloche', hair: 'bob', dress: true, skirt: 0.2 + 0.8 * Math.max(turn, kick), col, arms: dir > 0 ? [[1.45 - 0.3 * dip, 0.1], [0.6 + 1.6 * dip, 0.8]] : [[0.6 + 1.6 * dip, 0.8], [1.45 - 0.3 * dip, 0.1]] }]);
         c.restore();
       }
       c.restore(); c.globalAlpha = 1;
     },
     mirror() { /* (drawn by shop: mirrorDoor) */ },
+    // 11a-1 — A GHOST BEHIND THE CURTAIN (Halloween): a pale glowing sheet rises behind the drawn curtains, drifts to the gap, its eyes at
+    // the gap a moment (crisp there — no fabric between), the room's light shivering, then it sinks away
+    ghost(E, el, len, inst) {
+      const { c, G, kl, mo, w } = E, p = el / len, a = sm(0.02, 0.2, p) * (1 - sm(0.8, 1, p)), behind = !!w.edge;
+      if (a <= 0.01) return;
+      const dir = hsh(inst.n, 4) < 0.5 ? -1 : 1, u = sm(0.12, 0.42, p) * (1 - 0.7 * sm(0.66, 0.86, p));
+      const x = lerp(G.cx + dir * G.cw * 0.3, G.cx + dir * 0.01, u) + (mo ? Math.sin(el * 1.2) * 0.035 : 0), y = G.h0 + 0.05 + 0.32 * sm(0.02, 0.25, p) + (mo ? Math.sin(el * 2.3) * 0.04 : 0);
+      const shiver = mo ? (Math.sin(el * 27) > 0.5 ? 1 : 0) * sm(0.42, 0.48, p) * (1 - sm(0.56, 0.62, p)) : 0;
+      c.save();
+      c.globalAlpha = (0.3 * a + 0.3 * shiver) * kl; R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(34,58,50)');
+      // through the fabric: soft, green-white, glowing
+      c.globalCompositeOperation = 'lighter'; c.globalAlpha = a * kl;
+      const ghostP = { x, y, s: 1.08, sheet: true, sway: mo ? Math.sin(el * 1.7) : 0, legs: 0.42, face: dir * -0.3, eyes: false, lean: -dir * 0.06 * (1 - u) };
+      figure(c, { ...ghostP, col: 'rgba(150,255,196,0.16)', rim: { col: [120, 255, 170], a: 0.14, w: 0.11 } });
+      figure(c, { ...ghostP, col: 'rgba(228,255,238,0.42)', rim: { col: [170, 255, 205], a: 0.3, w: 0.045 } });
+      c.globalCompositeOperation = 'source-over';
+      if (!behind) { c.globalAlpha = a * kl * 0.85; figure(c, { ...ghostP, col: 'rgba(236,255,244,0.55)', eyes: true, eyeCol: 'rgba(12,20,18,0.85)', rim: { col: [120, 255, 170], a: 0.5, w: 0.03 } }); c.restore(); c.globalAlpha = 1; return; }
+      // the curtains' folds over it (it's BEHIND them) — except at the gap, where its eyes look out crisp
+      c.globalAlpha = 0.4 * kl; c.fillStyle = 'rgba(120,70,40,1)'; for (const fx of [0.1, 0.22, 0.34, 0.66, 0.78, 0.9]) c.fillRect(G.g0 + G.cw * fx, G.h0, 0.035, G.ch);
+      const gap0 = G.g0 + G.cw * 0.46, gap1 = G.g0 + G.cw * 0.56, at = sm(0.36, 0.44, p) * (1 - sm(0.62, 0.7, p));
+      if (at > 0.01) { c.save(); c.beginPath(); c.rect(gap0, G.h0, gap1 - gap0, G.ch); c.clip(); c.globalAlpha = at * kl; figure(c, { ...ghostP, col: 'rgb(236,255,244)', eyes: true, eyeCol: 'rgb(12,20,18)', rim: { col: [120, 255, 170], a: 0.6, w: 0.03 } }); c.restore(); }
+      c.restore(); c.globalAlpha = 1;
+    },
+    // 11a-1 — A MUMMY ON THE SHADE (Halloween): its shadow lurches across the jazz room's shade, arms out stiff, the wraps' loose ends
+    // swinging, the legs dark under the hem
+    mummy(E, el, len, inst) {
+      const { c, G, kl, mo } = E, p = el / len, dir = hsh(inst.n, 2) < 0.5 ? 1 : -1, sv = G.h0 + G.ch * 0.26;
+      const x = lerp(dir > 0 ? G.g0 - 0.7 : G.g1 + 0.7, dir > 0 ? G.g1 + 0.7 : G.g0 - 0.7, p), lurch = mo ? Math.sin(el * 2.4) : 0;
+      c.save(); c.globalAlpha = kl;
+      for (const pass of ['shade', 'legs']) {
+        c.save(); c.beginPath(); if (pass === 'shade') c.rect(G.g0, sv, G.cw, G.h1 - sv); else c.rect(G.g0, G.h0, G.cw, sv - G.h0); c.clip();
+        const col = pass === 'shade' ? SHADOW : LEGS_SH, s = 1.14, y = G.h0 + 0.48 + 0.03 * Math.abs(lurch);
+        figure(c, { rim: null, x, y, s, legs: 0.5, step: 0.45 * lurch, lean: dir * (0.1 + 0.07 * lurch), tilt: -dir * 0.25 + 0.1 * lurch, face: dir * 0.9, col, hair: null, arms: dir > 0 ? [[1.25, 0.15], [1.45 + 0.08 * lurch, 0.05]] : [[1.45 + 0.08 * lurch, 0.05], [1.25, 0.15]] });
+        // the wraps' loose ends hanging from the arms + the hip, swinging with the lurch
+        c.strokeStyle = col; c.lineCap = 'round'; c.lineWidth = 0.035;
+        for (const [ox, oy, l] of [[0.34, 0.6, 0.22], [0.5, 0.58, 0.16], [0.12, 0.05, 0.26]]) { const bx = x + dir * ox * s, by = y + oy * s, sw = mo ? Math.sin(el * 3.1 + ox * 9) * 0.06 : 0; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + sw - dir * 0.03, by - l * 0.5, bx + sw * 1.6 - dir * 0.06, by - l); c.stroke(); }
+        c.restore();
+      }
+      c.restore(); c.globalAlpha = 1;
+    },
+    // 11a-1 — A WITCH AT HER CAULDRON (Halloween): the room dark, the cauldron's green glow from below lighting her front, the bubbles
+    // rising; she stirs, leans in, then throws her head back in a cackle
+    witchsil(E, el, len) {
+      const { c, G, k, t, mo } = E, p = el / len, a = sm(0, 0.08, p) * (1 - sm(0.92, 1, p));
+      if (a <= 0.01 || k < 0.05) return;
+      c.save(); c.globalAlpha = a * k;
+      R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(16,22,20)');
+      const px = G.cx + 0.05, py = G.h0 + 0.02, pr = Math.min(0.46, G.cw * 0.22);
+      const pulse = mo ? 0.85 + 0.15 * Math.sin(t * 4.3) * Math.sin(t * 1.9) : 1;
+      c.globalCompositeOperation = 'lighter';
+      glow(c, [90, 255, 140], px, py + pr * 1.1, G.cw * 0.7, 0.55 * pulse * a * k, 1.1);
+      glow(c, [170, 255, 120], px, py + pr * 1.05, pr * 1.1, 0.7 * pulse * a * k, 0.5);
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = a * k;
+      // the witch behind the pot: the hat, the long hair, the cloak; her right arm circling with the paddle
+      const cackle = sm(0.66, 0.72, p) * (1 - sm(0.84, 0.9, p)), stir = mo ? el * 2.6 : 0;
+      const hx = px + Math.cos(stir) * pr * 0.45, hy = py + pr * 1.25 + Math.sin(stir) * 0.04;
+      figure(c, { x: px - 0.06, y: py + pr * 0.8, s: 0.92, face: 0.55 - 0.4 * cackle, lean: 0.12 * (1 - cackle) - 0.1 * cackle, tilt: -0.5 * cackle, hat: 'witch', hair: 'long', cape: true, col: 'rgb(8,10,10)', rim: { col: [120, 255, 150], a: 0.75, side: 1, w: 0.03 },
+        arms: cackle > 0.3 ? [[2.4, 0.3], [2.5, 0.25]] : [[0.5, 0.9], [0.9 + 0.25 * Math.cos(stir), 0.5 + 0.3 * Math.sin(stir)]] });
+      if (cackle < 0.3) { c.strokeStyle = 'rgb(10,12,10)'; c.lineWidth = 0.04; c.beginPath(); c.moveTo(hx, hy + 0.2); c.lineTo(px + Math.cos(stir) * pr * 0.25, py + pr * 0.9); c.stroke(); }
+      // the cauldron: a black iron pot, its rim lit green, the brew's surface glowing, bubbles rising + bursting
+      c.fillStyle = 'rgb(8,9,10)'; c.beginPath(); c.ellipse(px, py + pr * 0.6, pr, pr * 0.62, 0, 0, TAU); c.fill();
+      c.fillStyle = 'rgb(140,255,150)'; c.beginPath(); c.ellipse(px, py + pr * 1.08, pr * 0.86, pr * 0.14, 0, 0, TAU); c.fill();
+      c.strokeStyle = 'rgb(20,24,22)'; c.lineWidth = 0.05; c.beginPath(); c.ellipse(px, py + pr * 1.08, pr * 0.9, pr * 0.16, 0, 0, TAU); c.stroke();
+      c.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 6; i++) { const ph = ((t * 0.5 + i * 0.37) % 1), bx = px + (hsh(i, 8) - 0.5) * pr * 1.4 + Math.sin(t * 2 + i) * 0.03, by = py + pr * 1.1 + ph * pr * 1.6; glow(c, [160, 255, 150], bx, by, 0.05 + 0.03 * (1 - ph), 0.8 * (1 - ph) * a * k); }
+      c.globalCompositeOperation = 'source-over';
+      c.restore(); c.globalAlpha = 1;
+    },
+    // 11a-1 — THE COSTUME PARTY at the bar (Halloween): a witch, a devil, a cat + a sheet ghost raise their glasses — the clink in the middle
+    costume(E, el, len) {
+      const { c, G, kl } = E, p = el / len, y = G.h0 - 0.02;
+      const up = sm(0.06, 0.24, p) * (1 - sm(0.84, 0.98, p)), clink = sm(0.3, 0.38, p) * (1 - sm(0.46, 0.54, p)), drink = sm(0.56, 0.64, p) * (1 - sm(0.74, 0.82, p));
+      c.globalAlpha = kl;
+      const who = [[0.18, { hat: 'witch', hair: 'long', cape: true }, 0.86, 1], [0.41, { hat: 'horns', hair: 'short' }, 0.9, 1], [0.63, { hat: 'ears', hair: 'bob' }, 0.82, -1], [0.85, { sheet: true, legs: 0.3, col: 'rgb(222,214,198)', eyes: true }, 0.88, -1]];
+      const group = [];
+      for (const [u, look, s, toward] of who) {
+        const x = G.g0 + G.cw * u, a = lerp(lerp(0.15, 2.7, up), 2.25, clink), e = lerp(lerp(0.25, 0.15, up), 0.45, clink);
+        const arm = drink > 0.01 ? [lerp(a, 0.7, drink), lerp(e, 2.3, drink)] : [a, e];
+        const arms = toward < 0 ? [arm, [0.12, 0.2]] : [[0.12, 0.2], arm], hold = toward < 0 ? ['glass', null] : [null, 'glass'];
+        group.push({ x: x + toward * 0.05 * clink, y: look.sheet ? y + 0.3 : y, s, face: 0, lean: toward * 0.12 * clink, tilt: -0.4 * drink, arms: look.sheet ? null : arms, hold: look.sheet ? null : (up > 0.05 ? hold : null), col: SIL, glints: up > 0.3 ? E.glints : null, ...look });
+      }
+      figures(c, group);
+      const kk = sm(0.33, 0.38, p) * (1 - sm(0.4, 0.52, p));
+      if (kk > 0.01) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, [255, 244, 210], G.cx, G.h0 + G.ch * 0.72, 0.42, 0.95 * kk); c.restore(); }
+      c.globalAlpha = 1;
+    },
+    ofrenda() { /* (drawn by ofrendaState with the lighting) */ },
+
   };
 
   return {

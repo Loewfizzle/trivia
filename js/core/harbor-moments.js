@@ -41,6 +41,13 @@ export const MOMENTS = Object.freeze([
   { id: 'peek', label: 'A PEEK AT THE STREET', rarity: 'rare', windows: ['apartment', 'jazz'], hours: [7.5, 2], len: 6.5, cooldown: 1800, kind: 'a silhouette behind the curtain, looking left and right' },
   { id: 'tango', label: 'THE TANGO (LEGENDARY)', rarity: 'legendary', windows: 'all', hours: [20.5, 23.75], light: 'night', len: 30, plays: 3, nights: 4, kind: 'a top hat + a flapper dress tango past every window in turn' },
   // ---- THE HIDDEN MIRROR DOOR (the barbershop's back wall — not one of the starter ten: the speakeasy's own secret)
+  // ---- 11a-1 — THE HOLIDAYS' WINDOW SCENES (core/harbor-holiday.js gates them: holiday = its id, minStage = how far the build-up must
+  // be, eve = × its weight on the holiday's own night; ctx.hol = { id, stage, eve, w (the build-up's window weight 0..1) })
+  { id: 'ghost', label: 'A GHOST BEHIND THE CURTAIN', rarity: 'common', holiday: 'halloween', minStage: 0.45, windows: ['apartment', 'back'], hours: [18, 3], light: 'night', len: 11, cooldown: 70, eve: 2.4, starter: false, kind: 'a pale glowing sheet rising out of the room’s shadows, drifting across behind the glass, its eyes looking out, the room’s light shivering' },
+  { id: 'mummy', label: 'A MUMMY ON THE SHADE', rarity: 'common', holiday: 'halloween', minStage: 0.6, windows: ['jazz'], hours: [19, 2.5], light: 'night', len: 10, cooldown: 110, eve: 2, starter: false, kind: 'a mummy’s shadow lurching across the jazz room’s shade, arms out stiff, its loose wraps swinging' },
+  { id: 'witchsil', label: 'A WITCH AT HER CAULDRON', rarity: 'common', holiday: 'halloween', minStage: 0.7, windows: ['apartment', 'back'], hours: [19, 2.5], light: 'night', len: 14, cooldown: 160, eve: 1.6, starter: false, kind: 'a witch’s silhouette stirring a cauldron, its green glow from below, the bubbles rising' },
+  { id: 'costume', label: 'THE COSTUME PARTY', rarity: 'common', holiday: 'halloween', minStage: 0.85, windows: ['bar'], hours: [19.5, 2.5], light: 'night', len: 9, cooldown: 45, eve: 3, party: 2, starter: false, kind: 'a witch, a devil, a cat + a sheet ghost raising their glasses at the bar' },
+  { id: 'ofrenda', label: 'LIGHTING THE OFRENDA', rarity: 'common', holiday: 'dotd', minStage: 0.5, windows: ['back'], hours: [16.5, 23.5], len: 14, cooldown: 120, eve: 1.5, starter: false, kind: 'someone kneels at the ofrenda and lights its candles one by one, then a moment of stillness' },
   { id: 'mirror', label: 'THE MIRROR DOOR', rarity: 'uncommon', windows: ['shop'], hours: [20.75, 2.5], light: 'night', len: 8.5, cooldown: 150, party: 3, starter: false, kind: 'the mirror swings open on the bar: amber light, bottles, silhouettes, a burst of jazz' },
 ]);
 export const MOMENT = Object.freeze(Object.fromEntries(MOMENTS.map(m => [m.id, m])));
@@ -99,7 +106,7 @@ export function fixedPlan(key, only = null) {
 /**
  * hourPlan(key, hour, ctx) → [{ id, win, t0, len, n }] sorted by t0 (seconds after local midnight) — one HOUR of the day's schedule:
  * the fixed starts in it + the random draws, each seeded by (date, hour) so a phone builds only the hour it needs (< 1 ms) and every
- * phone gets the same. A random draw starts and ENDS inside its hour (the next hour's block can't see it), never in a window a fixed
+ * phone gets the same (11a-1: ctx.hol — the holiday's id, stage, eve + window weight — gates the holiday scenes). A random draw starts and ENDS inside its hour (the next hour's block can't see it), never in a window a fixed
  * start holds, never two in one window, never more than MAX_AT_ONCE together. ctx: { dow (0 Sun … 6 Sat), month, dark: [duskH,
  * dawnH], wx?: a weather kind, only?: [ids] (a subset — tests), seed? }.
  */
@@ -123,7 +130,10 @@ export function hourPlan(key, hour, ctx = {}) {
       if (m.days === 'weekday' && (ctx.dow === 0 || ctx.dow === 6)) continue;
       if (m.months && !m.months.includes(ctx.month)) continue;
       if (m.wx && !m.wx.includes(ctx.wx)) continue;
-      const pw = party ? (m.party == null ? 1 : m.party) : 1;
+      // (11a-1: a holiday's scene only in its season, past its stage; its weight from the build-up, × eve on its own night)
+      let hw = 1;
+      if (m.holiday) { const hl = ctx.hol; if (!hl || hl.id !== m.holiday || (hl.stage || 0) < (m.minStage || 0)) continue; hw = (hl.w == null ? 1 : hl.w) * (hl.eve ? (m.eve || 1) : 1); if (hw <= 0) continue; }
+      const pw = (party ? (m.party == null ? 1 : m.party) : 1) * hw;
       if (pw <= 0) continue;
       if (last[m.id] != null && t - last[m.id] < (m.cooldown || 0) * (party ? 0.6 : 1)) continue;
       const wins = windowsOf(m).filter(w => free(w, t, t + m.len));
@@ -171,7 +181,7 @@ export function starOnly(on) {
 /** SP3 — THE STAGING (the owner: "too small — you can't make anything out"): how close each moment plays to the glass — a zoom about the
  *  pane's foot, so a close moment is a BOLD silhouette cropped by the frame (~60–70 % of the pane's height: head + shoulders the shape),
  *  a 'room' moment full-body a little deeper in a simplified room. 1 = as drawn. */
-export const STAGE = Object.freeze({ peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
+export const STAGE = Object.freeze({ ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
 /** the rooms' own steady figures (the jazz room's player, the TV couch, the bar's afternoon) — a step closer too */
 export const STAGE_ROOM = 1.22;
 /** the next start after `sec` (the readout + the e2e): { id, win, in: seconds } or null */
