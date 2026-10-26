@@ -1241,3 +1241,22 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Day of the Dead: the sign's marigold garland, papel picado + candles + warm tubes; marigolds, lamp garlands, the petal path, papel
       picado in the real wind; the ofrendas in the windows; monarchs; Nov 2's candlelight procession (Catrinas, the mariachi trio)
 - [x] The sounds: the witch, the ghost ship's creak + bell, the haunted wind, a synthesized cat hiss; a new CI job (holiday)
+
+## CITY 2.0 — SP4: THE SPIDER + WEB FUTURISTIC, THE WINDOW PEOPLE LIT, THE WEATHER SOURCE FIXED FOR GOOD (Oct 26 2026) — docs/harbor.md#sp4
+- [x] THE WEB: a perfect geometric web of laser-thin filaments (ice-white core, violet halo, an Archimedean spiral, nodes of light at the
+      crossings, a shimmer travelling along the threads), still spun day by day through October
+- [x] THE SPIDER: bio-mechanical — black-chrome plates with violet seams, glowing eyes, the NEON reflected on its shell, precisely
+      articulated legs; a mechanical stop-start gait whose feet never leave their sectors (tested: ten minutes, no crossing); a tap → it
+      drops on a glowing thread
+- [x] THE WINDOW PEOPLE LIT: in a lit room real colours (skin, hair, a red dress, a white shirt + braces, a dark suit + pocket square…),
+      the lamp's modelling (a lit side, a shade side, the warm rim); silhouettes only on the jazz shade / in a dark room / against the TV
+- [x] THE WEATHER SOURCE: measured — the panel's stored JUST ME jump landed after the reveal and threw the live answer away; now the
+      panel's clock keeps the live weather and a stored state lands before the reveal; the readout names the source + what is forced
+- [x] A calm seeded wind (1–3.4 m/s); the clouds cross a phone in minutes (the screen speed bounded)
+- [x] The JAZZ hush sign inside its pane on every phone (the overlay placed through the canvas transform + clipped; a halo margin)
+- [x] The awning's drips by the rain (drizzle / rain / heavy + the corners' sheets; tapering after)
+- [x] The debug strips step aside while the panel is open; the AUDIO panel says "music off — silent (the element plays MUTED)"
+- [x] e2e-harbor.mjs's parse error (an unescaped apostrophe from 11a-1's cloud-run fix) that broke the whole suite
+- [x] The upper panes equal on screen (the apartment's day curtains narrowed its glass 22 % — gone; a 2 % check on the painted panes at 390 / 402 / 430)
+- [x] THE WINDOW PEOPLE IN 3D: every lit form shaded round from the room's lamp (lit side → core shadow → reflected edge), hair sheen, folds, joint occlusion, a cast shadow on the wall, the far arm of a ¾ turn
+

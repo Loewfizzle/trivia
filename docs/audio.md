@@ -304,6 +304,7 @@ pulse any more".
   wheel `0.82 + 0.45p` → `0.6p` (hub 0.7 → 0.92, rim sets 0.45 → 0.6, hub ring 0.6 → 0.8), the sky beams `0.55 + 0.75p` → `0.5 + 1.0p`
   (width swing 0.2 → 0.3, the root flare 5p → 7p, its alpha 0.45p → 0.6p), the NEON logo's party glow `min(0.8, 0.78p)` → `min(0.95,
   1.02p)`, SPEAKEASY's rings 0.95p → 1.2p, its party word 1.15p → 1.45p.
+- **MUSIC OFF, TRUTHFULLY** (SP4, Oct 26 — the owner's screenshot said "sounding · el playing" with the ♪ slashed): music off MUTES the element (it keeps playing, silent, so the next tap brings the song straight back) — `audioStatus` now answers `music off — silent (the element plays MUTED)` (or `paused`) BEFORE any "sounding", and the header says `el playing muted`.
 - **THE AUDIO PANEL'S ONE STATUS** (`diag.js#audioStatus`; the owner saw the header say "sounding" over a row saying "sounding NO · locked
   (no tap yet)" — the header counted "nothing wanted yet" as fine): the header and the `want` row print the same verdict: `sounding` /
   `sounding DIRECT` / `silent (music off | muted | nothing to play)` / `LOCKED (no tap yet)` / `NEEDS TAP` / `DEAD VOICE` / `NOT SOUNDING`.
