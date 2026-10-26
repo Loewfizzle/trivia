@@ -19,6 +19,7 @@ import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHo
 import { hexRgb, markFor } from '../district/marks.js';
 import { showItems, showFrame, newShowOut, FX, everyday, signMotion, spellNow, spellParty, spellMotion, sceneAt, nightStage, rotateMix, burnout, burnoutFlicker, PARTY_PAL, partyPlan, planColours } from '../../core/harbor-show.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { roofModes, roofMove, restartLevel, breathLevel, spellLevel, raceAt, ROOF_MODES } from '../../core/harbor-roofmodes.js';
 import { powerOrder, lightOn, litK, STAGE } from '../../core/harbor-dark.js';
 // NEON PASS 4: the racing light's head (white-hot) and the shimmer's glints
 const HOT = [255, 250, 244];
@@ -45,6 +46,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   // NEON PASS 3: THE PARTY SHOW (core/harbor-show.js) — the cast (the items' descriptors, per layout), this frame's plan; THE
   // EVERYDAY MOTION (tonight's blinking / spelling signs, the colour-cycling sign, the slow chasers)
   let castOf = null, cast = [], showOut = newShowOut(0), showOn = false, daily = null, dailyKey = '';
+  let rmNow = null, rmKey = '', rmModes = null, rmMot = null;   // (SP3: THE ROOF SIGNS' HOURLY MODES — this frame's { modes, move, restart })
   let showFr = null, spellSt = null;        // (7a: the show's frame this frame; THE SPELL-ON ROUND's sign now — { id, u, dur } | null)
   // A BURNT-OUT LETTER (core/harbor-show.js#burnout): tonight's dead letter, picked from the night's date (or &force=burnout)
   let burn = null, burnKey = '';
@@ -412,7 +414,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     const bx = it.sg.letterBoxes[burn.letter];
     if (!bx) { c.globalAlpha = Math.min(1, a); c.drawImage(s.c, s.x, s.y, s.w, s.h); return; }
     c.save(); c.beginPath(); c.rect(s.x - 4, s.y - 4, s.w + 8, s.h + 8); c.rect(bx.x0, bx.y0, bx.x1 - bx.x0, bx.y1 - bx.y0); c.clip('evenodd');
-    if (dm === 'spell' || dm === 'blink') signText(c, it, s, a, dm, t); else { c.globalAlpha = Math.min(1, a); c.drawImage(s.c, s.x, s.y, s.w, s.h); }
+    if (dm === 'spell' || dm === 'blink' || dm === 'roofspell') signText(c, it, s, a, dm, t); else { c.globalAlpha = Math.min(1, a); c.drawImage(s.c, s.x, s.y, s.w, s.h); }
     c.restore();
     const fl = burnoutFlicker(t);
     if (fl > 0.01) { c.save(); c.beginPath(); c.rect(bx.x0, bx.y0, bx.x1 - bx.x0, bx.y1 - bx.y0); c.clip(); c.globalAlpha = Math.min(1, a * fl); c.drawImage(s.c, s.x, s.y, s.w, s.h); c.restore(); }
@@ -535,7 +537,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     // tonight's everyday motion (once every item is built; a new pick each night)
     if (group === 'far' && dailyKey !== `${assignKey}|${items.length}` && items.length && items.every(it => it.ready)) { dailyKey = `${assignKey}|${items.length}`; castOf = null; castFor(); daily = everyday(assignKey, cast, signs.map(sg => ({ id: sg.id, kind: sg.kind, edge: !!sg.rect && (sg.rect.x < 36 * cam.F / 600 || sg.rect.x + sg.rect.w > W - 36 * cam.F / 600) }))); }
     // THE PARTY SHOW (NEON PASS 3): this frame's plan, once a frame (the far group draws first)
-    if (group === 'far') { planShow(f, partyK); spellSt = planSpell(f); }
+    if (group === 'far') { planShow(f, partyK); spellSt = planSpell(f); rmNow = planRoof(f, t); }
     // (POLISH 4 — THE TR-3B's BLACKOUT: the whole group is dead — its bookkeeping above still runs, nothing is drawn)
     if (f.off) { c.restore(); return; }
     // the glass towers' LED facades (far): slow, smooth colour gradients sweeping across the face (a calm night: subtle)
@@ -642,13 +644,17 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
         }
       }
       // THE EVERYDAY MOTION on the signs: a name that blinks or spells itself on, the colour-cycling sign
-      const dm = it.kind === 'sign' && daily && motion && tier > 0 ? (spellSt && spellSt.id === it.sg.id ? 'spell' : daily.blink.has(it.sg.id) ? 'blink' : daily.cycle === it.sg.id ? 'cycle' : null) : null;
+      // (SP3: a roof sign in its hourly mode — the mode's level (the restart flicker, the breath) + its turn (the spell, the race))
+      const rmM = it.kind === 'sign' && rmNow ? rmNow.modes.get(it.sg.id) : null, rmMv = rmM && rmNow.move && rmNow.move.id === it.sg.id ? rmNow.move : null;
+      const rmLv = rmM ? rmNow.restart * (rmM === 'breath' ? breathLevel(t, it.i) : 1) : 1;
+      rmMot = rmMv && rmMv.kind === 'spell' ? spellLevel(rmMv.u) : null;
+      const dm = rmM ? (rmMot ? 'roofspell' : null) : it.kind === 'sign' && daily && motion && tier > 0 ? (spellSt && spellSt.id === it.sg.id ? 'spell' : daily.blink.has(it.sg.id) ? 'blink' : daily.cycle === it.sg.id ? 'cycle' : null) : null;
       it.lit.forEach((s, i) => {
-        let a = alpha(it, i, t, motion) * base * beat;
+        let a = alpha(it, i, t, motion) * base * beat * rmLv;
         if (a <= 0.01) return;
         // (a BURNT-OUT LETTER: the sign's text drawn with that letter cut out — dark glass — and a weak sputter now and then)
         if (s.role === 'text' && burn && burn.id === it.sg.id) { deadText(c, it, s, a, dm, t); return; }
-        if (dm && s.role === 'text' && (dm === 'spell' || dm === 'blink')) { signText(c, it, s, a, dm, t); return; }
+        if (dm && s.role === 'text' && (dm === 'spell' || dm === 'blink' || dm === 'roofspell')) { signText(c, it, s, a, dm, t); return; }
         if (dm === 'cycle' && (s.role === 'mark' || it.sg.type === 'icon')) { if (!it.cyc) buildCycle(it); if (it.cyc) { cycleDraw(c, it, a, t); return; } }
         if (alt > 0) { c.globalAlpha = Math.min(1, a * (1 - alt)); c.drawImage(s.c, s.x, s.y, s.w, s.h); c.globalAlpha = Math.min(1, a * alt * 1.1); c.drawImage(it.alt.c, it.alt.x, it.alt.y, it.alt.w, it.alt.h); if (a > 1.01) { const A = alt > 0.5 ? it.alt : s; c.globalAlpha = Math.min(1, a - 1); c.drawImage(A.c, A.x, A.y, A.w, A.h); } return; }
         if (vk && i === 0) { const A = vk.from || s, B = vk.to || s; if (vk.k < 1) { c.globalAlpha = Math.min(1, a * (1 - vk.k)); c.drawImage(A.c, A.x, A.y, A.w, A.h); } c.globalAlpha = Math.min(1, a * vk.k); c.drawImage(B.c, B.x, B.y, B.w, B.h); return; }
@@ -658,8 +664,9 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       });
       // NEON PASS 6 (the owner): a ROOF SIGN spills a soft glow of its colour down onto the roof's steps and its steel frame — the
       // frame reads as structure in the sign's light, never a black blob (one cached sprite a sign; additive like the rest)
+      if (rmM === 'race') roofRace(c, it, alpha(it, 0, t, motion) * base * rmLv, rmMv);
       if (it.kind === 'sign' && it.sg.frame) {
-        const a = alpha(it, 0, t, motion) * base * beat;
+        const a = alpha(it, 0, t, motion) * base * beat * rmLv;
         if (a > 0.02) { if (it.spill === undefined) it.spill = spillSprite(it.sg); if (it.spill) { c.globalAlpha = Math.min(1, a * 0.95); c.drawImage(it.spill.c, it.spill.x, it.spill.y, it.spill.w, it.spill.h); } }
       }
       // the game blade's chaser bulbs (Part 6a; the HOTEL's before)
@@ -916,6 +923,44 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   }
   // THE SPELL-ON ROUND (7a — core/harbor-show.js#spellNow / spellParty): every named sign in its turn, never two at once — a normal
   // night on the city's clock (one every 2–4 min), a party night between the show's scenes; &force=spell-on: the next sign every 6 s
+  // SP3 — THE ROOF SIGNS' HOURLY MODES (core/harbor-roofmodes.js): the named signs in screen order; their modes this hour (seeded), the
+  // one big move now, the top of the hour's restart. Off on a party night (the show takes over), at tier 0 (one still image) + reduced
+  // motion. Previews: &force=roof-spell / roof-race / roof-breath (every sign in that mode, its turn coming round fast)
+  function planRoof(f, t) {
+    if (!f.motion || tier === 0 || showOn || (f.force && f.force.has('no-roofmodes'))) return null;
+    const ids = items.filter(it => it.kind === 'sign' && it.ready && it.sg.type !== 'icon' && it.sg.rect).sort((a, b) => a.sg.rect.x - b.sg.rect.x).map(it => it.sg.id);
+    if (!ids.length) return null;
+    const fm = f.force ? ROOF_MODES.find(m => f.force.has(`roof-${m}`)) : null;
+    const ms = f.ms ?? Date.now(), hour = Math.floor(ms / 3.6e6), sec = fm ? 3 + ((t * 2.5) % 3597) : (ms / 1000) % 3600;
+    const key = `${hour}|${ids.join(',')}|${fm || ''}`;
+    if (key !== rmKey) { rmKey = key; rmModes = fm ? new Map(ids.map(id => [id, fm])) : roofModes(ids, hour); }
+    return { modes: rmModes, move: roofMove(ids, rmModes, sec, hour), restart: fm ? 1 : restartLevel(sec), sec };
+  }
+  // the race's head (a white-hot dot + its colour's glow) — one sprite per colour
+  const raceDots = new Map();
+  function raceDot(col) {
+    const k = col.join(','); let s = raceDots.get(k); if (s) return s;
+    s = document.createElement('canvas'); s.width = s.height = 48; const x = safeCtx(s), g = x.createRadialGradient(24, 24, 0, 24, 24, 24);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.16, 'rgba(255,255,255,0.95)'); g.addColorStop(0.36, `rgba(${k},0.6)`); g.addColorStop(1, `rgba(${k},0)`);
+    x.fillStyle = g; x.fillRect(0, 0, 48, 48); raceDots.set(k, s); return s;
+  }
+  /** THE BORDER RACE: a thin tube round the sign's cabinet (its track, lit dim all its race hour) + the bright pulse running once round */
+  function roofRace(c, it, a, mv) {
+    const r = it.sg.rect; if (!r) return;
+    // (the skyline's named signs all have their border tube — the pulse runs along it, a few pt inside the cabinet's edge; a sign
+    // without one (bare letters) gets a thin border tube as its track)
+    const bare = it.sg.type !== 'box' && it.sg.type !== 'vbox', col = Array.isArray(it.sg.col) ? it.sg.col : hexRgb(String(it.sg.col || '#d6f0ff'));
+    const pad = bare ? 1.5 : -Math.max(2, Math.min(4, Math.min(r.w, r.h) * 0.075)), x0 = r.x - pad, y0 = r.y - pad, w = r.w + pad * 2, h = r.h + pad * 2;
+    c.save(); c.lineJoin = 'round';
+    if (bare) { c.globalAlpha = Math.min(1, a * 0.35); c.strokeStyle = `rgb(${col.join(',')})`; c.lineWidth = 1.1; c.strokeRect(x0, y0, w, h); c.globalAlpha = Math.min(1, a * 0.55); c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 0.4; c.strokeRect(x0, y0, w, h); }
+    const ra = mv ? raceAt(mv.u) : null;
+    if (ra) {
+      const per = 2 * (w + h), at = q => { let d = ((q % 1) + 1) % 1 * per; if (d < w) return [x0 + d, y0]; d -= w; if (d < h) return [x0 + w, y0 + d]; d -= h; if (d < w) return [x0 + w - d, y0 + h]; d -= w; return [x0, y0 + h - d]; };
+      const D = raceDot(col), R = Math.max(4, Math.min(9, h * 0.32));
+      for (let i = 7; i >= 0; i--) { const [px, py] = at(ra.p - i * 0.012), k = ra.k * (i ? Math.pow(1 - i / 8, 1.6) * 0.6 : 1), rr = R * (i ? 0.7 : 1); c.globalAlpha = Math.min(1, a * k); c.drawImage(D, px - rr, py - rr, rr * 2, rr * 2); }
+    }
+    c.restore();
+  }
   function planSpell(f) {
     if (!daily || !daily.spell.size || !f.motion || tier === 0) return null;
     const ids = [...daily.spell];
@@ -925,7 +970,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   }
   // a sign's name: BLINK (soft off-on twice) or SPELL ON (dark, then its letters strike one by one down / across the sign)
   function signText(c, it, s, a, dm, t) {
-    const m = dm === 'spell' ? (spellSt ? spellMotion(spellSt.u, spellSt.dur) : { a: 1, reveal: 1 }) : signMotion(dm, t, it.i * 7 + 3);
+    const m = dm === 'roofspell' ? (rmMot || { a: 1, reveal: 1 }) : dm === 'spell' ? (spellSt ? spellMotion(spellSt.u, spellSt.dur) : { a: 1, reveal: 1 }) : signMotion(dm, t, it.i * 7 + 3);
     if (m.a <= 0.01) return;
     if (m.reveal >= 1) { c.globalAlpha = Math.min(1, a * m.a); c.drawImage(s.c, s.x, s.y, s.w, s.h); return; }
     const n = Math.max(1, it.sg.nText || 4);
@@ -1032,6 +1077,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     /** tonight's everyday motion (debug) */
     /** DT1: tonight's power-up order (the sweep + each item's place) */
     power: () => (order ? { sweep: order.sweep, on: items.filter(it => it.pw && it.pw.on).length, of: items.length, pos: Object.fromEntries([...order.pos].map(([k2, v]) => [k2, +v.toFixed(3)])) } : null),
+    roofModes: () => (rmNow ? { modes: Object.fromEntries(rmNow.modes), move: rmNow.move ? { ...rmNow.move, u: +rmNow.move.u.toFixed(2) } : null, restart: +rmNow.restart.toFixed(2), sec: Math.round(rmNow.sec) } : null),
     daily: () => (daily ? { spell: [...daily.spell], spellOn: spellSt ? { id: spellSt.id, u: +spellSt.u.toFixed(2), k: spellSt.k } : null, blink: [...daily.blink], cycle: daily.cycle, chase: [...daily.chase].map(i => items[i] && items[i].id), rotate: [...daily.rotate].map(i => items[i] && items[i].id), stages: [...daily.stages.keys()].map(i => items[i] && items[i].id), burnout: burn ? { ...burn } : null } : null),
     debug: () => ({ signs: signs.map(sg => ({ id: sg.id, game: sg.game, kind: sg.kind, type: sg.type, rect: { x: +sg.rect.x.toFixed(1), y: +sg.rect.y.toFixed(1), w: +sg.rect.w.toFixed(1), h: +sg.rect.h.toFixed(1) }, on: !!(items.find(i => i.sg === sg) || {}).pw?.on })), boards: boards.map(b => ({ id: b.id, show: b.content.title, game: b.content.game ? b.content.game.id : null, rect: { x: +b.rect.x.toFixed(1), y: +b.rect.y.toFixed(1), w: +b.rect.w.toFixed(1), h: +b.rect.h.toFixed(1) } })), outlines: outs.map(o2 => ({ id: o2.id, group: o2.group, strength: o2.strength, runs: o2.runs.length, roles: o2.roles })), items: items.length, built, queued: queue.length, mb: +(mbSprites + palMb() + (comp.far ? comp.far.mb : 0) + (comp.near ? comp.near.mb : 0)).toFixed(2), pal: palDebug(), comp: { far: !!comp.far, near: !!comp.near }, tier, night: assignKey, scheme, led: glassFaces.length, moment: { party: moment.party, chase: moment.chase, flash: !!moment.flash }, partyLook, show: { ...showState } }),
     destroy() { for (const it of [...items, ...(pending ? pending.items : [])]) freeItem(it); items = []; pending = null; queue = []; dropComp(); free({ c: dot }); },

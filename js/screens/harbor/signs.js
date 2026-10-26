@@ -443,9 +443,12 @@ export const LAMP_C = [255, 196, 122];
  * the board's top edge, so the lamps never cover the mark or the name (their light falls on them). → [{ x, y (the shade's mouth),
  * top (the arm's peak), x0 (the conduit), dir (which way it reaches), a, W (the shade's width) }]
  */
-export function gooseneckLamps(R) {
+export function gooseneckLamps(R, n = 4) {
   const W = Math.max(5.5, Math.min(8, R.w * 0.085)), a = W * 1.25;
-  return [0.09, 0.25, 0.75, 0.91].map(f => { const dir = f < 0.5 ? 1 : -1, x0 = R.x + R.w * f; return { x: x0 + dir * W * 0.55, y: R.y - W * 0.12, top: R.y - a * 1.05, x0, dir, a, W }; });
+  // (SP3 — THE HIGH STAKES BOARD on the speakeasy's roof, the owner: ~15 % brighter, Claude's call: FIVE lamps EVENLY spaced, the centre one
+  // lighting the spade — a brighter, more even board; its arm reaches from the left, its shade over the middle)
+  const fs = n === 5 ? [0.08, 0.29, 0.5, 0.71, 0.92] : [0.09, 0.25, 0.75, 0.91];
+  return fs.map(f => { const dir = f <= 0.5 ? 1 : -1, x = R.x + R.w * f + (f === 0.5 ? 0 : dir * W * 0.55), x0 = x - dir * W * 0.55; return { x, y: R.y - W * 0.12, top: R.y - a * 1.05, x0, dir, a, W }; });
 }
 /** the lamps as hardware (any hour: by day in the sun, at night dark): the conduit, the gooseneck, the shade */
 export function drawGooseneck(x, lamps, day, sd = 0) {
@@ -482,12 +485,13 @@ export function drawGooseneck(x, lamps, day, sd = 0) {
  *  be able to see it at night"): the four lamps WASH THE WHOLE BOARD — a warm wash from top to bottom (bright under the lamps, ~62 %
  *  at the foot, so the full name reads like the neon around it), the pools under each lamp brighter still at the top, a little
  *  fall-off at the two ends: a lit painted billboard, never a dark board with a lit strip */
-export function lampLightMap(lx, R, lamps) {
+export function lampLightMap(lx, R, lamps, lift = 0) {
   const wash = lx.createLinearGradient(0, 0, 0, R.h);
   // (PF — the owner: "a little BRIGHTER": the wash ~+7 % top to foot, the pools under the lamps 0.5 → 0.6)
   wash.addColorStop(0, 'rgb(248,212,164)'); wash.addColorStop(0.35, 'rgb(228,190,144)'); wash.addColorStop(0.75, 'rgb(192,156,118)'); wash.addColorStop(1, 'rgb(162,128,100)');
   lx.fillStyle = wash; lx.fillRect(0, 0, R.w, R.h);
   lx.globalCompositeOperation = 'lighter';
+  if (lift > 0) { lx.fillStyle = `rgba(255,214,160,${lift.toFixed(3)})`; lx.fillRect(0, 0, R.w, R.h); }   // (SP3: the roof board's small lift)
   for (const l of lamps) {
     const cx = l.x - R.x, g = lx.createRadialGradient(cx, -R.h * 0.08, 0, cx, -R.h * 0.08, R.h * 0.8);
     g.addColorStop(0, 'rgba(255,230,186,0.6)'); g.addColorStop(0.4, 'rgba(250,204,146,0.27)'); g.addColorStop(1, 'rgba(220,160,110,0)');
@@ -532,7 +536,7 @@ export function lampGlows(x, lamps, R, k = 1) {
  * → { id, spot, rect, content, dayDraw(x, T), nightS, lamps }
  */
 export function buildBillboard(spot, content, ctx) {
-  const R = spot.rect, dpr = ctx.dpr, lamps = gooseneckLamps(R), dun = spot.mount === 'speak';
+  const R = spot.rect, dpr = ctx.dpr, dun = spot.mount === 'speak', lamps = gooseneckLamps(R, dun ? 5 : 4);
   // (8b1: a burnt-out gooseneck — ctx.dead, its index — throws no light until the billposter fixes it; its shade still hangs there)
   const litLamps = ctx.dead != null ? lamps.filter((l, i) => i !== ctx.dead) : lamps;
   const gy = R.y + R.h, foot = Math.max(gy + 4, ctx.roofY || gy + 7), k = Math.max(0.6, R.h / 40);
@@ -659,7 +663,7 @@ export function buildBillboard(spot, content, ctx) {
   const nightS = sprite(box, 2, dpr, x => {
     poster(x, 0);
     const lightC = document.createElement('canvas'); lightC.width = Math.ceil(R.w * dpr); lightC.height = Math.ceil(R.h * dpr);
-    const lx = safeCtx(lightC); lx.scale(dpr, dpr); lampLightMap(lx, R, litLamps);
+    const lx = safeCtx(lightC); lx.scale(dpr, dpr); lampLightMap(lx, R, litLamps, dun ? 0.17 : 0);
     x.globalCompositeOperation = 'multiply'; x.drawImage(lightC, R.x, R.y, R.w, R.h); lightC.width = lightC.height = 0;
     x.globalCompositeOperation = 'source-over';
     structure(x, 0, 0);
@@ -674,7 +678,7 @@ export function buildBillboard(spot, content, ctx) {
     x.fillStyle = `rgba(238,226,204,${0.1 * day})`; x.fillRect(R.x, R.y, R.w, R.h);
     if (dk > 0.02) {
       const lc = document.createElement('canvas'); lc.width = Math.max(1, Math.ceil(R.w * 2)); lc.height = Math.max(1, Math.ceil(R.h * 2));
-      const lx = safeCtx(lc); if (!lx) return; lx.scale(2, 2); lampLightMap(lx, R, litLamps);
+      const lx = safeCtx(lc); if (!lx) return; lx.scale(2, 2); lampLightMap(lx, R, litLamps, dun ? 0.17 : 0);
       x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = dk; x.drawImage(lc, R.x, R.y, R.w, R.h); x.restore(); lc.width = lc.height = 0;
     }
   };

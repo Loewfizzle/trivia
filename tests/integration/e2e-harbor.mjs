@@ -908,6 +908,22 @@ G('neon', async () => {
     await N.ctx.close(); }
 });
 G('neon', async () => {
+  // ================================================================ SP3: THE ROOF SIGNS' HOURLY MODES — one mode a sign this hour, neighbours
+  // different, one big move at a time; the previews put every sign in one mode and its turn comes round
+  { const N = await open({ slot: 'rm1', qs: NIGHT, view: [402, 874] });
+    await harborUp(N.page);
+    await waitFor(N.page, '!!window.__district.harbor().roofModes', 'the roof modes', 15000).catch(() => {});
+    const rm = await ev(N.page, 'window.__district.harbor().roofModes'), sg = (await ev(N.page, 'window.__district.harbor().neon.signs')).filter(s => s.rect).sort((a, b) => a.rect.x - b.rect.x).map(s => s.id);
+    const md = rm ? sg.map(id => rm.modes[id]) : [];
+    ok(rm && md.length >= 3 && md.every(Boolean) && md.every((m, i) => !i || m !== md[i - 1]), `THE ROOF SIGNS' MODES this hour: ${sg.map((id, i) => `${id} ${md[i]}`).join(', ')} (neighbours never the same)`);
+    await N.ctx.close(); }
+  for (const mode of ['spell', 'race']) {
+    const N = await open({ slot: `rm-${mode}`, qs: `${NIGHT}&force=roof-${mode}`, view: [402, 874] });
+    await harborUp(N.page);
+    const seen = await ev(N.page, `new Promise(res => { const ids = new Set(); let two = false; const t0 = performance.now(); (function lp() { const m = window.__district.harbor().roofModes; if (m && m.move) ids.add(m.move.id + ':' + m.move.kind); if (performance.now() - t0 < 30000) setTimeout(lp, 150); else res({ ids: [...ids], two }); })(); })`);
+    ok(seen.ids.length >= 2 && seen.ids.every(s => s.endsWith(':' + mode)), `THE ROOF SIGNS — ${mode.toUpperCase()} (&force=roof-${mode}): the signs take turns (${seen.ids.join(', ')})`);
+    await N.ctx.close();
+  }
   // ================================================================ C1.5: THE O KEEPS ITS WHITE CORE (review-2.md §2) + the holiday O + the sign-dim hook
   { const N = await open({ slot: 'h21', qs: NIGHT, view: [402, 874] });
     await harborUp(N.page);
@@ -1885,6 +1901,11 @@ G('windows', async () => {
     const L0 = await life(Q.page);
     ok(L0.states.bar === 'open' && L0.states.apartment === 'lamp' && L0.states.shop === 'closed' && !L0.forced, `THE ROOMS AT 9:30 PM: the bar open, the apartment's lamp, the shop closed (${JSON.stringify(L0.states)})`);
     ok(L0.on.length > 0 || (L0.next && L0.next.in <= 30), `THE SCHEDULE at night: ${L0.on.length ? `on now: ${L0.on.map(e => `${e.id} in ${e.win}`).join(', ')}` : `the next (${L0.next && L0.next.id}) in ${L0.next && L0.next.in} s`}`);
+    // SP3 — ONE STAR WINDOW AT A TIME + THE BIGGER PANES: over ~12 s never two moments (other than a room's routine) at once; the four
+    // upper windows equal (2.2 × 2.25 units)
+    { const tr = await ev(Q.page, `new Promise(res => { let worst = 0; const t0 = performance.now(); (function lp() { const L = window.__district.harbor().speakeasy.life; worst = Math.max(worst, L.on.filter(e => !['wake', 'shop-open', 'bartender', 'lights-out'].includes(e.id)).length); if (performance.now() - t0 < 12000) setTimeout(lp, 200); else res(worst); })(); })`);
+      const W0 = await wins(Q.page), up = ['bar', 'jazz', 'back', 'apartment'].map(id => W0[id]), same = up.every(r => Math.abs(r.w - up[0].w) < 0.6 && Math.abs(r.h - up[0].h) < 0.6);
+      ok(tr <= 1 && same, `ONE STAR WINDOW AT A TIME (at most ${tr} moment on at once); the four upper windows equal (${up.map(r => `${r.w.toFixed(1)}×${r.h.toFixed(1)}`).join(', ')} pt)`); }
     // the wall-washers: the pier between the bar + the jazz room lit warm (light on the brick, never the windows)
     // (SP2: the soft V's hot spot under the lamp, the pier between the back room + the apartment — the brightest of a few points down its
     // middle, against the same pier a floor lower where no washer reaches)
@@ -1938,11 +1959,11 @@ G('windows', async () => {
     ok(w.lateTvs >= 4 && w.lateK > 0.9, `THE LATE TVs: ${w.lateTvs} lone windows flickering blue across the skyline (level ${w.lateK})`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}windows-tv-402x874.png` });
     await Q.ctx.close(); }
-  // ---- 3:30 am: NEVER FULLY DARK — the night lamp upstairs, the bar's last light + the sweeping
+  // ---- 3:30 am: NEVER FULLY DARK — the bar's last light + the sweeping, the edge window's lamp; SP3: the TV room dark (the owner)
   { const Q = await open({ slot: 'w5', qs: `when=2026-10-22T03:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
     const L = await life(Q.page), W = await wins(Q.page), ap = await area(Q.page, W.apartment), bar = await area(Q.page, W.bar);
-    ok(L.states.apartment === 'nightlamp' && L.states.bar === 'last' && ap[0] > 110 && ap[0] > ap[2] + 40, `NEVER FULLY DARK (3:30 am): the night lamp upstairs (rgb ${ap.map(v => v.toFixed(0)).join(',')}), the bar's last light (rgb ${bar.map(v => v.toFixed(0)).join(',')})`);
+    ok(L.states.apartment === 'dark' && L.states.bar === 'last' && ap[0] < 40 && bar[0] > 60 && bar[0] > bar[2] + 25, `NEVER FULLY DARK (3:30 am) — SP3: the TV room DARK after its TV (rgb ${ap.map(v => v.toFixed(0)).join(',')}), the bar's last light (rgb ${bar.map(v => v.toFixed(0)).join(',')}) + the edge window's lamp`);
     await Q.ctx.close(); }
   // ---- the hidden mirror door (forced, 10:30 pm): the shop window glows amber while it stands open
   { const Q = await open({ slot: 'w6', qs: `when=2026-10-22T22:30${GR}&force=window&moment=mirror`, view: [402, 874] });
@@ -2182,15 +2203,16 @@ G('people', async () => {
     await waitFor(Q.page, `${P}.speakeasy.hush().since > 3`, 'the word lit through', 8000).catch(() => {});
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`);
     hushRect = hs.rect;
-    const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hs.rect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`);   // (POLISH 5: the neon's ice-cyan, never the room's amber)
+    // (SP3: the letters live on their own full-dpr overlay canvas over the window — canvas.nd-hushc)
+    const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('canvas.nd-hushc'); if (!cv) { res(0); return; } const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`);
     hushRed = red;
-    ok(hs.text === 'SWING' && hs.lit === 1 && red > 0.006 && hs.rows.join('/') === 'SWI/NG', `THE HUSH WORD SIGN at night with a lobby: ${hs.rows.join(' / ')} in ice-cyan neon tubes in the upstairs window (${(red * 100).toFixed(1)} % of its glass glowing, ${hs.capPt} pt)`);
+    ok(hs.text === 'SWING' && hs.lit === 1 && hs.overlay && red > 0.006 && hs.rows.join('/') === 'SWI/NG', `THE HUSH WORD SIGN at night with a lobby: ${hs.rows.join(' / ')} in ice-cyan neon tubes in the upstairs window (${(red * 100).toFixed(1)} % of its glass glowing, ${hs.capPt} pt)`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'pp3', qs: `when=2026-10-22T22:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await settle(Q.page);
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`), lamps = await ev(Q.page, `${P}.lampLife()`);
-    const red0 = hushRect ? await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, r = ${JSON.stringify(hushRect)}; const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`) : 0;
-    ok(!hs.text && hs.lit === 0 && red0 < hushRed / 3, `THE HUSH WORD SIGN at night, no lobby: absent (the window's neon cyan ${(red0 * 100).toFixed(2)} % vs ${(hushRed * 100).toFixed(2)} % with the word)`);
+    const red0 = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('canvas.nd-hushc'); if (!cv) { res(0); return; } const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`);
+    ok(!hs.text && hs.lit === 0 && !hs.overlay && red0 < hushRed / 3, `THE HUSH WORD SIGN at night, no lobby: absent (the window's neon cyan ${(red0 * 100).toFixed(2)} % vs ${(hushRed * 100).toFixed(2)} % with the word)`);
     ok(lamps && lamps.levels.length >= 4 && lamps.levels.filter((v, i) => !(lamps.moment && lamps.moment.i === i)).every(v => v === 1), `THE LAMPS' LIFE at 10:30 pm: every lamp on (${lamps && lamps.levels.join(' ')}; switch-on order ${lamps && lamps.th.join(' ')})`);
     await Q.ctx.close(); }
   // ---- THE BUS (&force=bus: one a minute): it comes, stops at the curb short of the crossing with its door open, then goes
