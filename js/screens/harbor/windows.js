@@ -5,6 +5,7 @@
 //   THE PEOPLE   silhouettes ~12–18 pt (figure(): a body, a head, two jointed arms, a hat, a prop) — dark against a lit room at
 //                night, lit by the daylight against a dark room by day; on the jazz room's shade a soft shadow (the legs below it dark)
 //   THE CAT      a large sitting silhouette, its tail flicking (cat())
+//   (WIN3: THE BOSS'S TV ROOM — the apartment's TV glow with NO PERSON; the quiet nights' beds; THE PARTY IN THE WINDOWS — docs/harbor.md#win3)
 //   THE STATES   the apartment's TV glow (22:00 → 3 am: an IRREGULAR blue flicker — core#tvLight), its switch-off at 3 (SP3: a last
 //                flicker, then DARK until the wake — the edge window's low lamp keeps the building never fully dark), the bar's afternoon (a half-drawn shade, the lower half lit), its last light + the
 //                sweeping (3 → 4 am), the barbershop's day (the barber + a customer every ~8 min; the barber reading in his own

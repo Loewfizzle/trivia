@@ -1277,6 +1277,28 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE PANEL: PLAY ALL (scenes / holiday moments / animals / workers — a chip beside the pill: skip, pause, stop) + the tidy (a SPEAKEASY
       section, the weather in groups, the off-switches + debug pieces in TOOLS)
 
+## CITY 2.0 — WIN3: THE SPIDERS RIGHT FOR HALLOWEEN, THE PANEL'S SCENE BUTTONS, THE BOSS'S TV ROOM, THE CASH COUNT, THE PARTY IN THE WINDOWS (Oct 26 2026) — docs/harbor.md#win3
+- [x] THE SPIDERS: the second spider arrives Oct 29 by date (the build-up: the 30th + the 31st have two); both walk ON TOP of the SPEAKEASY
+      tubes (the dressing canvas above the word); THE DROP a dangle — the legs gather into a tuck, it hangs below the thread swaying + slowly
+      turning, lands FEET FIRST with the legs unfolding as it settles onto the word; the climb home head-up reeling the line, legs gathered
+- [x] THE LAMP POST'S JACK-O'-LANTERN (the owner's add-on): hidden behind the maple → the corner-right dressing spot is the front strip's
+      right end, left of the cart, nearer than any walker, above the dock + the HOST ring at every phone; the piece bigger (~25 pt)
+- [x] THE PANEL'S WINDOW ROWS: every row jumps JUST ME's clock to its moment's own hour (even over a picked time), the pill naming it with
+      the time; a `panelrows` e2e taps every row in the real sheet by day — 20 of 20 fire
+- [x] THE BOSS'S TV ROOM — NO PERSON: the dark room lit only by the unseen set below the sill (the glow thrown up the back wall + the ceiling
+      through a half-drawn curtain whose edge catches it), real TV flicker (irregular cuts, long steady dim stretches, a channel-flipping burst
+      late), a rare shadow across the glow; every night 10 pm → 3 am, the only cool-blue window; the lore — a raid snaps it off as the siren
+      starts (a shadow at the curtain watches the street), it never joins the window party, the holiday film's faint tint; THE QUIET NIGHTS
+      (~1 in 6, mostly Sun–Wed, never a party night): the other rooms go to bed one by one after midnight — a last shadow, the lamp clicking
+      off — until the blue glow is the only light on the building, the beds ending at 3 am with the TV's click-off
+- [x] THE CASH COUNT: the close-up only from the first frame — the man counting under the green lamp with NATURAL HANDS (the left holds the
+      stack, the right thumb flicks bills off one at a time onto the pile, a lick of the thumb, the pile squared + tapped, a band snapped
+      on, the brick set aside); the poker-table opening + the bag gone
+- [x] THE PARTY IN THE WINDOWS: at the party's peak the blinds go up ONE ROOM AT A TIME (~every 10 s, all within ~60 s, a seeded order), each
+      room its own neon colour (never two alike), dark silhouettes jumping on the beat with their arms swinging + a few glow wands, the colour
+      pooled on the cobbles; down room by room over the last minute; the edge windows light only; the boss's room never; a raid cuts it (the
+      lights snap off, the dancers scatter, the blinds drop); `&force=window-party`, a panel row + a PLAY ALL item
+
 ## CITY 2.0 — WIN2: THE SPIDERS' TRIP + NERVES, THE WINDOWS THAT READ AS-IS, THE QUALITY STEP (Oct 26 2026) — docs/harbor.md#win2
 - [x] THE SPIDERS: a tap drops either spider on its glowing thread down to the SPEAKEASY word, a 10–15 s stop-start crawl along the tubes,
       the climb home reeling the thread; a second tap consumed; SCARED by the flickers / blinks / the race / the blackout / lightning near

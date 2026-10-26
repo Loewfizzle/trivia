@@ -2344,7 +2344,7 @@ the owner, Oct 25 10:05 pm.)
   Mothman exists yet: the hook `ctx.mothman`). Readable unzoomed at 402. In PLAY ALL + `&force=window&moment=eyes`.
 
 ## OWNER'S NOTES — OCT 26 (after WIN2)
-Build table from here: **WIN3** (this pass: the spiders right for Halloween, the panel's scene buttons, the boss's TV room, the cash
+Build table from here: **WIN3** (DONE Oct 26 — docs/harbor.md#win3; the lamp post's jack-o'-lantern add-on moved to the front strip in it; this pass: the spiders right for Halloween, the panel's scene buttons, the boss's TV room, the cash
 count, the party in the windows) → 11a-2 THANKSGIVING (+ the parade; Opus) → 9b WINTER → ATM (the FABLE ATMOSPHERE pass) → 10 PARTY
 NIGHTS → 11b CHRISTMAS + NYE (live by Nov 26) … 13 CITY CONTROL (+ THE BIRTHDAY EVENT). WIN2's two test fixes pushed without `[harbor]`
 are proven by THIS pass's cloud run.
@@ -2365,19 +2365,19 @@ are proven by THIS pass's cloud run.
   mid-way; a preview in the panel. Composed from existing events (no new art beyond the birthday dressings). LATER (Progression 2.0):
   a player may add their birthday (MONTH + DAY only, never the year) to their profile → a small personal celebration only THEY see
   on the day. Depends on: the parade (11a-2), fireworks (10), City Control (13).
-- THE SPIDERS — WIN2 REVIEW (the owner, Oct 26 3:10 pm): (1) THE SECOND SPIDER only appears ON Halloween → part of the BUILD-UP: it
+- THE SPIDERS — WIN2 REVIEW (the owner, Oct 26 3:10 pm — BUILT in WIN3 Group 1, docs/harbor.md#win3): (1) THE SECOND SPIDER only appears ON Halloween → part of the BUILD-UP: it
   arrives ~2 days before (Oct 29), so the 30th + 31st have two; (2) on SPEAKEASY they must WALK ON TOP of the word (in front of the
   tubes, feet on them), never BEHIND it — draw the crawling spider over the white-neon letters; (3) THE DROP: the spider descends ON
   ITS THREAD and DANGLES down onto the word — body hanging below the thread, legs tucked / relaxed around it as real spiders do (a
   gentle sway + a slow spin), touching down feet-first, then walking; NOT its legs stretched down to reach the letters (unnatural).
   The climb home the same in reverse (reeling the thread, legs gathered). Check: both visible + tappable on Oct 29 / 30 / 31 at
   390 / 402 / 430, unzoomed.
-- THE PANEL's WINDOW-SCENE BUTTONS DON'T WORK (the owner, Oct 26 3:14 pm): PEEK AT THE STREET + CASH COUNT (and likely the others) do
+- THE PANEL's WINDOW-SCENE BUTTONS DON'T WORK (the owner, Oct 26 3:14 pm — BUILT in WIN3 Group 2: a row jumps the clock to its moment's own hour): PEEK AT THE STREET + CASH COUNT (and likely the others) do
   nothing from the preview panel — the `&force=window&moment=` links work but the panel's rows don't fire them (a wrong id after WIN's
   rename / the new sections, a gate like "only on its own nights" blocking a forced moment, the JUST ME clock not jumping to the
   moment's hour). Fix every row in SPEAKEASY → windows + a check that EACH row starts its moment (in its window, at a time it's
   allowed, the chip naming it).
-- PARTY NIGHT IN THE SPEAKEASY (the owner, Oct 26 3:14 pm — agreed, with Claude's notes): on PARTY NIGHTS, during the party's PEAK (not
+- PARTY NIGHT IN THE SPEAKEASY (the owner, Oct 26 3:14 pm — agreed, with Claude's notes; BUILT in WIN3 Group 4): on PARTY NIGHTS, during the party's PEAK (not
   the whole evening: normal moments in the warm-up, the party after), the BLINDS GO UP in every window — NOT ALL AT ONCE (the owner,
   3:26 pm): ONE ROOM AT A TIME, ~every 10 s, the whole building partying within ~60 s (a seeded order each night: blinds up, the
   colour floods in, the crowd starts jumping), winding down the same way at the end; the boss's TV room never joins — all glass — and
@@ -2388,11 +2388,11 @@ are proven by THIS pass's cloud run.
   exception to the "one star window" rule (a party is meant to be busy; it reads as colour + motion). The edge windows join with their
   party cycle. A RAID cuts it: the lights snap off, the dancers scatter, the blinds drop. Readable unzoomed at 402; the wall's hush
   sign stays readable beside it. A row in PLAY ALL + `&force=window-party`.
-- THE CASH COUNT — REWORK (the owner, Oct 26 3:20 pm): its opening reads like a poker table and is "almost unviewable" → ONLY the
+- THE CASH COUNT — REWORK (the owner, Oct 26 3:20 pm — BUILT in WIN3 Group 3): its opening reads like a poker table and is "almost unviewable" → ONLY the
   close-up: the man (head, shoulders, hands) counting under the green lamp from the first frame; NATURAL HANDS — a real counting
   rhythm (one hand holds the stack, the thumb flicks bills off one at a time into the other hand or onto the pile, a lick of the
   thumb now and then, a squared-up stack tapped on the table, a band snapped on), eased, never robotic; readable unzoomed at 402.
-- THE TV ROOM — WHAT IT'S REALLY ABOUT (the owner, Oct 26 3:20 pm — personal, "I need to get that one right"): driving late at night
+- THE TV ROOM — WHAT IT'S REALLY ABOUT (the owner, Oct 26 3:20 pm — personal, "I need to get that one right"; BUILT in WIN3 Group 3 incl. the revisions + the quiet nights): driving late at night
   he'd always see, on the TOP FLOOR of a house at 3 a.m., the BLUE GLOW of someone watching TV — you NEVER saw the person, so you
   wondered who he was, what he was watching, how he was doing. Seeing the person takes that away. DECIDED (Claude's suggestion): NO
   PERSON AT ALL — THE MYSTERY IS THE POINT. The room is DARK and the only light is the unseen TV's GLOW: a blue light thrown up onto
