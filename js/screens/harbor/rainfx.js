@@ -7,6 +7,7 @@
 //                The mid drops land on the HARBOR as RINGS (denser with the rate), the near ones on the PROMENADE as SPLASHES.
 // Batched: drops grouped by their quantized colour + alpha, ONE path + ONE stroke a batch (a tail + a head each). Particles capped per tier
 // (tier 0: a lighter rain, never a stall). Reduced motion: a still, light rain.
+import { safeCtx } from '../../ui/canvas-safe.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 export const RAIN_CAP = [150, 280, 440];
@@ -63,14 +64,14 @@ export function createHarborRain() {
 
   function bakeVeil() {
     tile = mk(64, 256);
-    const x = tile.getContext('2d');
+    const x = safeCtx(tile);
     for (let i = 0; i < 90; i++) {
       const px = Math.random() * 64, py = Math.random() * 256, len = 24 + Math.random() * 44;
       x.strokeStyle = `rgba(214,222,240,${0.06 + Math.random() * 0.1})`; x.lineWidth = 0.7 + Math.random() * 0.5;
       for (const oy of [0, -256, 256]) { x.beginPath(); x.moveTo(px, py + oy); x.lineTo(px, py + len + oy); x.stroke(); }
     }
     mask = mk(64, 256);
-    const m = mask.getContext('2d');
+    const m = safeCtx(mask);
     const g = m.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.22, 'rgba(0,0,0,1)'); g.addColorStop(0.8, 'rgba(0,0,0,0.85)'); g.addColorStop(1, 'rgba(0,0,0,0)');
     m.fillStyle = g; m.fillRect(0, 0, 64, 256);
     m.globalCompositeOperation = 'destination-in';
@@ -79,7 +80,7 @@ export function createHarborRain() {
     veil = mk(64, 256);
   }
   function veilAt(t) {
-    const x = veil.getContext('2d');
+    const x = safeCtx(veil);
     x.globalCompositeOperation = 'copy';
     const off = (t * 120) % 256;
     x.drawImage(tile, 0, off - 256); x.globalCompositeOperation = 'source-over'; x.drawImage(tile, 0, off);

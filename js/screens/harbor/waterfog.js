@@ -2,6 +2,7 @@
 // densest along the far quay (the far shore melts into it), thinning toward the near railing; soft wisps drifting slowly with the real
 // wind; pale grey-white by day, at night lit from inside by the city (its glow + a touch of the neon's colour). One baked tile of soft
 // blobs (made once), scrolled + drawn twice at two speeds (a parallax); a vertical gradient over it. A frame: three drawImage + a fill.
+import { safeCtx } from '../../ui/canvas-safe.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 
@@ -9,7 +10,7 @@ export function createWaterFog() {
   let tile = null, grad = null, gradKey = '';
   function bake() {
     tile = mk(512, 64);
-    const x = tile.getContext('2d');
+    const x = safeCtx(tile);
     let s = 7; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
     for (let i = 0; i < 46; i++) {
       const cx = r() * 512, cy = 20 + r() * 30, rw = 30 + r() * 70, rh = 6 + r() * 12, a = 0.18 + r() * 0.28;
