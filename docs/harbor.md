@@ -6266,6 +6266,9 @@ on both sides (warnings; the owner's iPhone readout decides).
 - **The hush sign's glow on the wet brick** is a soft cyan wash under its window — subtle at 402.
 - **The DOM NEON sign** doesn't light early on a storm afternoon (the city's neon + lamps do).
 - **The festival** at 402: six balloons in a ~100-pt band overlap a little at times.
+- **The cloud run (40267052199)**: audio, show, street, wild green (`weather` 16/16); `city` 103/104 — `load`'s "LOAD WEATHER — answered in
+  1.2 s" saw the reveal at 1480 ms with NO answer (seeded): the mocked `/api/sky` evidently failed / raced on the runner (a settled ask with
+  no answer reveals at once). Locally it passes twice (revealed overcast at ~2.2 s). 9a didn't touch the load path; not re-run (the two-run rule).
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
 - **The wheel in the TR-3B blackout**: `&when=2026-10-22T22:30&force=tr3b&lgs=15` (every light dark — the wheel too).
