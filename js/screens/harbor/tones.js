@@ -40,9 +40,11 @@ export function blueHour(el) {
   return el > -4 ? sm((-0.8 - el) / 3.2) : el > -7 ? 1 : sm((el + 12) / 5);
 }
 /** the Harbor's look weights: the sky model's, with the blue hour's share taken evenly from them (they still sum to 1) */
-export function harborWeights(LK) {
+export function harborWeights(LK, gloom = 0) {
   if (!LK || !LK.w || LK.alwaysNight || !LK.sun) return LK;
-  const b = blueHour(LK.sun.el);
+  // (9a — A STORM'S GLOOM: a share of the day's weights handed to the blue hour's — the facades + the sky darken toward its silhouettes
+  // while the city's lights come on early; 0 = none)
+  const b = Math.min(1, blueHour(LK.sun.el) + Math.max(0, Math.min(0.8, gloom || 0)) * (1 - blueHour(LK.sun.el)));
   if (b <= 0) return LK;
   const w = {};
   for (const [k, v] of Object.entries(LK.w)) w[k] = v * (1 - b);

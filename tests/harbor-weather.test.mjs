@@ -92,3 +92,18 @@ test('no weather on a clear day — and lightning never without a storm', () => 
   const h = createWeatherState(cityWeather(live({ weather_code: 65, precipitation: 3 })));
   assert.equal(h.lightning, false);
 });
+
+test('THE LIGHTNING\'s safety: capped brightness, ≤ 2 flickers inside 0.6 s, strikes ≥ 4.5 s apart, thunder after its flash', async () => {
+  const { strikeFlickers, flickerAt, thunderDelay, LIGHTNING } = await import('../js/screens/harbor/lightning.js');
+  let s = 3; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  for (let i = 0; i < 400; i++) {
+    const fl = strikeFlickers(r);
+    assert.ok(fl.length >= 1 && fl.length <= LIGHTNING.FLICKERS, 'one or two flickers');
+    for (const [t0, len, a] of fl) { assert.ok(t0 + len <= LIGHTNING.WINDOW, 'inside the window'); assert.ok(a <= LIGHTNING.CAP + 1e-9, 'capped'); }
+    let mx = 0; for (let e = 0; e < 1.5; e += 0.005) mx = Math.max(mx, flickerAt(fl, e));
+    assert.ok(mx <= LIGHTNING.CAP + 1e-9 && mx > 0.1);
+  }
+  assert.ok(LIGHTNING.CAP <= 0.5 && LIGHTNING.CITY <= 0.12, 'never a white screen: the sky ≤ 0.5, the city ≤ 0.12');
+  assert.ok(LIGHTNING.MIN_GAP >= 4 && LIGHTNING.GAP[0] >= LIGHTNING.MIN_GAP, 'never more than one strike in a few seconds');
+  assert.ok(thunderDelay(1.2) >= 3 && thunderDelay(5.4) <= 16 && thunderDelay(3) > thunderDelay(1.5), 'the thunder after the flash, later from further');
+});

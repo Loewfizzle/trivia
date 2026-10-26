@@ -19,7 +19,9 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const sm = t => t * t * (3 - 2 * t);
 
 /** how much each extra input darkens the city (0 = off). All 0 today. */
-export const DARK_TERMS = Object.freeze({ cloud: 0, storm: 0, eclipse: 0 });
+// (9a — THE WEATHER turns them on: an overcast day a touch darker; a STORM afternoon (scene.js#stormDark: the storm's rain, heavy rain
+// a little) much darker — the city's lights come on early: the lamps at ~0.36, the neon partly)
+export const DARK_TERMS = Object.freeze({ cloud: 0.08, storm: 0.55, eclipse: 0 });
 
 /**
  * THE DUSK CURVE (DT1): the sun's elevation (°) → the Harbor's darkness. [el, darkness] knots, high → low; between them a straight

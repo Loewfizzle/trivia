@@ -1832,7 +1832,8 @@ test('the panel: rows a later part still has to build stay hidden (ready: false)
 
 test('one darkness input (C1.5) on THE DUSK CURVE (DT1): the sun\'s elevation → darkness, golden hour barely dark, the power-up through the blue hour, every ramp full by night', async () => {
   const { darkness, duskDark, litK, LIT, DARK_TERMS, windowsNight, isNight, power, POWER } = await import('../js/core/harbor-dark.js');
-  assert.ok(Object.values(DARK_TERMS).every(v => v === 0), 'no extra term is on yet (Part 9 turns on the storm / cloud)');
+  assert.ok(DARK_TERMS.cloud > 0 && DARK_TERMS.cloud <= 0.12 && DARK_TERMS.storm >= 0.4 && DARK_TERMS.eclipse === 0, '9a turned on the storm + a touch of cloud');
+  assert.ok(litK(darkness({ el: 30, storm: 1 }), 'lamps') === 1 && darkness({ el: 30, cloud: 1 }) < 0.1, 'a storm afternoon lights the lamps; an overcast day barely darkens');
   // monotonic: darker as the sun sinks; 0 by day, 1 at night; golden hour light; sunset at the power-up's start, −7° its end
   let prev = -1;
   for (let el = 20; el >= -20; el -= 0.25) { const d = duskDark(el); assert.ok(d >= prev - 1e-12 && d >= 0 && d <= 1, `el ${el}`); prev = d; }
