@@ -276,12 +276,14 @@ export function createTitle() {
   let stopRain = null;
   let tl = null;                 // { plan, t0, raf, kind }
   let remote = null, remoteT = 0;  // CITY 2.0 only: THE PREVIEW PANEL (harbor/remote.js), loaded after the first paint
-  let flickerTimer = 0, lastFlick = -1, tiredT = 0, tiredKey = '';
+  let flickerTimer = 0, lastFlick = -1, tiredT = 0, tiredKey = '', tiredPokeAt = 0;
   function tiredTick() {
     if (destroyed || !scene || !els.sign) return;
     // (THE DAY PASS: &force=tired&letter=N|E|O|N2 holds that letter tired — the owner checks each one)
     const q = new URLSearchParams(location.search), forced = /(^|,)tired(,|$)/.test(q.get('force') || '');
     const L = scene.look ? scene.look() : null, t = forced ? tiredForced(q.get('letter')) : tiredLetters(L && L.local), k = t.join(',');
+    // (WIN2: a tired tube's flicker scares the spider beside it — when it starts, then now and then while it lasts)
+    if (t.length && scene && scene.poke && performance.now() - tiredPokeAt > 25000) { tiredPokeAt = performance.now(); scene.poke({ kind: 'tired', letter: t[0], k: 0.4 }); }
     if (k === tiredKey) return;
     tiredKey = k;
     els.sign.querySelectorAll('.nd-logo .ndl').forEach((l, i) => l.classList.toggle('is-tired', t.includes(i)));
@@ -884,6 +886,7 @@ export function createTitle() {
     if (blaze.length !== 4 || !H) return false;
     const track = logoTrack(), lit = day ? [true, true, true, true] : [...els.sign.querySelectorAll('.nd-logo .ndl')].map(l => l.classList.contains('on'));
     const bloom = cfg.bloom ? els.sign.querySelector('.nd-bloom') : null;
+    if (scene && scene.poke) scene.poke({ kind: 'race', k: 1 });   // (WIN2: the race runs the whole sign — both spiders)
     if (day) els.sign.classList.add('nd-surge');           // (the race's layers show through the daytime glass while it runs: title.css)
     const alive = () => (day ? els.sign.classList.contains('is-day') : els.sign.classList.contains('is-steady'));
     // the schedule: each stretch at the letters' speed (the connectors 2.5× faster), its time span + its global arc offset
@@ -1243,6 +1246,7 @@ export function createTitle() {
     const l = els.sign.querySelectorAll('.ndl')[i];
     if (!l || buzzing.has(i)) return;
     buzzing.add(i);
+    if (scene && scene.poke) scene.poke({ kind: 'tap', letter: i, k: 0.65 });   // (WIN2: the spiders near that letter get scared)
     const day = els.sign.classList.contains('is-day') || !els.sign.classList.contains('is-steady');
     // (City 2.0, NEON PASS 3: the tap's sounds — the dropout when the letter goes dark, the power-on (+ the hum fading after 10 s)
     // when it lights; by night: out at once, re-ignites at 1.6 s; by day: sparks on at once, out at 1.85 s)

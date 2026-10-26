@@ -315,7 +315,13 @@ export function createSpider(web, { seed = 7 } = {}) {
   const hub = web.hub;
   const legs = [], S2 = ([a, b]) => [a * SC, b * SC], SEC = legSectors();
   for (let s of [1, -1]) LEGS.forEach((L0, i) => { const L = { hip: S2(L0.hip), rest: S2(L0.rest), hang: S2(L0.hang), L1: L0.L1 * SC, L2: L0.L2 * SC }; legs.push({ s, i, L, sec: SEC[i], foot: null, step: null, group: (i + (s > 0 ? 0 : 1)) % 2 }); });
-  let tl = [], cyc = 0, lastT = -1, flee = -1e9, maxR = 30, body = { x: hub[0], y: hub[1], h: Math.PI / 2, mode: 'hub', hang: 0, sway: 0 };
+  let tl = [], cyc = 0, lastT = -1, maxR = 30, body = { x: hub[0], y: hub[1], h: Math.PI / 2, mode: 'hub', hang: 0, sway: 0 };
+  // WIN2 — THE TAP's TRIP (the owner): down the glowing thread to the SPEAKEASY word, a crawl back + forth along its tubes (stop-start, a
+  // pause on a letter, a leg test-tapping a tube), the climb home reeling the thread in; a second tap mid-way is ignored (a cooldown).
+  // ITS NERVES: a flicker / blink / race / blackout / lightning near it → it freezes, crouches, skitters a short burst (home, or away
+  // from the flicker), eyes + seams flaring, then calms + resumes. word: { x0, x1, y } (logo units: the tubes' line) — setWord()
+  let word = null, trip = null, tripEnd = -1e9, scare = null, crouch = 0, flare = 0, lastScare = -1e9;
+  const TRIP = Object.freeze({ drop: 0.95, land: 0.4, crawl: [10, 15], climb: 2.8, cool: 3 });
   const R0 = rngFrom(hashString(`spider|${seed}`));
   const W = (lx, ly, b = body) => { const fx = Math.cos(b.h), fy = Math.sin(b.h), rx = -fy, ry = fx; return [b.x + rx * lx + fx * ly, b.y + ry * lx + fy * ly]; };
   /** a world point → the body's frame (lx, ly) */
@@ -378,24 +384,92 @@ export function createSpider(web, { seed = 7 } = {}) {
     if (b.mode === 'still' && s.from.h !== undefined) b.h = s.to.h;
     return b;
   }
+  // ---- THE TRIP (lazy phases: drop → land → [still | turn | move]* along the word → climb → home)
+  function tripStart(t) {
+    const R = rngFrom(hashString(`trip|${seed}|${Math.floor(t * 10)}`));
+    const depth = word ? Math.max(12, word.y - hub[1]) : 34;
+    trip = { phase: 'drop', t0: t, dur: TRIP.drop, depth, x: hub[0], h: Math.PI / 2, until: t + TRIP.drop + TRIP.land + TRIP.crawl[0] + R() * (TRIP.crawl[1] - TRIP.crawl[0]), R, dir: 1, from: hub[0], to: hub[0], hFrom: Math.PI / 2, hTo: Math.PI / 2 };
+    settleAll();
+  }
+  function tripAt(t) {
+    const T = trip; let u = (t - T.t0) / T.dur;
+    while (u >= 1) {
+      T.t0 += T.dur;
+      if (T.phase === 'drop') { T.phase = 'land'; T.dur = TRIP.land; }
+      else if (T.phase === 'climb') { T.phase = 'home'; T.hFrom = T.h; T.hTo = Math.PI / 2; T.dur = Math.abs(wrap(T.hTo - T.hFrom)) / TURN_RATE + 0.3; }
+      else if (T.phase === 'home') { trip = null; tripEnd = t; tl = []; return bodyAt(t); }   // (the life resumes from the hub)
+      else if (t >= T.until && T.phase !== 'turn') { T.phase = 'climb'; T.dur = TRIP.climb; T.from = T.x; }
+      else if (T.phase === 'move') { T.phase = 'still'; T.dur = 0.4 + T.R() * 1.3; }
+      else if (T.phase === 'turn') { T.h = T.hTo; T.phase = 'move'; T.from = T.x; T.dur = Math.abs(T.to - T.x) / (16 + T.R() * 10); }
+      else {
+        // after a landing or a pause: the next run along the word (the tubes' line), a turn first when it faces the other way
+        const x0 = word ? word.x0 + 8 : hub[0] - 40, x1 = word ? word.x1 - 8 : hub[0] + 40;
+        let to = T.x + (T.R() < 0.5 ? -1 : 1) * (6 + T.R() * 22); to = Math.max(x0, Math.min(x1, to));
+        if (Math.abs(to - T.x) < 4) to = T.x + (T.x < (x0 + x1) / 2 ? 12 : -12);
+        T.to = to; T.dir = to > T.x ? 1 : -1;
+        const hTo = T.dir > 0 ? 0 : Math.PI;
+        if (Math.abs(wrap(hTo - T.h)) > 0.05) { T.phase = 'turn'; T.hFrom = T.h; T.hTo = hTo; T.dur = Math.abs(wrap(hTo - T.h)) / TURN_RATE + 0.06; }
+        else { T.phase = 'move'; T.from = T.x; T.dur = Math.abs(to - T.x) / (16 + T.R() * 10); }
+      }
+      u = (t - T.t0) / T.dur;
+    }
+    u = clamp01(u);
+    if (T.phase === 'drop') return { x: hub[0], y: hub[1], h: Math.PI / 2, mode: 'drop', hang: T.depth * (1 - Math.pow(1 - u, 2.4)), sway: 0 };
+    if (T.phase === 'move') T.x = lerp(T.from, T.to, ease(u));
+    if (T.phase === 'turn') T.h = angTo(T.hFrom, T.hTo, u);
+    if (T.phase === 'climb') { const e = ease(u); return { x: lerp(T.from, hub[0], e), y: hub[1], h: -Math.PI / 2, mode: 'climb', hang: T.depth * (1 - e), sway: Math.sin((t - T.t0) * 2.1) * 0.08 * (1 - e) }; }
+    if (T.phase === 'home') return { x: hub[0], y: hub[1], h: angTo(T.hFrom, T.hTo, u), mode: 'home', hang: 0, sway: 0 };
+    // on the word: the body ON the tubes (its thread still up to the hub), walking / turning / pausing
+    return { x: T.x, y: hub[1] + T.depth, h: T.h, mode: 'crawl', hang: 0, sway: 0, thread: T.depth, sub: T.phase, seg: T.phase === 'move' ? { from: { x: T.from, y: hub[1] + T.depth }, to: { x: T.to, y: hub[1] + T.depth } } : null };
+  }
+  // ---- THE SCARE
+  function scareNow(ev, t) {
+    if (t - lastScare < 4) return false;
+    const k = clamp01(ev.k == null ? 0.6 : ev.k), far = ev.x == null ? 0 : Math.abs(ev.x - body.x), reach = 60 + 120 * k;
+    if (far > reach) return false;
+    const kk = Math.max(0.3, k * (ev.x == null ? 1 : 1 - 0.5 * far / reach));
+    lastScare = t;
+    const pos = { x: body.x, y: body.y, h: body.h, hang: body.hang, thread: body.thread || 0, mode: body.mode === 'crawl' ? 'crawl' : 'web' };
+    let to;
+    if (pos.mode === 'crawl') { const dir = ev.x == null ? (trip ? -trip.dir : 1) : (ev.x > body.x ? -1 : 1), x0 = word ? word.x0 + 8 : body.x - 30, x1 = word ? word.x1 - 8 : body.x + 30; to = { x: Math.max(x0, Math.min(x1, body.x + dir * (8 + 10 * kk))), y: body.y }; }
+    else if (Math.hypot(body.x - hub[0], body.y - hub[1]) > 3 || body.hang > 0.5) to = { x: hub[0], y: hub[1] };
+    else { const a = ev.x == null ? Math.PI / 2 + (R0() - 0.5) : (ev.x > body.x ? Math.PI : 0) + (R0() - 0.5) * 0.8, d = 7 + 8 * kk; to = { x: hub[0] + Math.cos(a) * d, y: hub[1] + Math.sin(a) * d, back: true }; }
+    scare = { t0: t, k: kk, pos, to, freeze: 0.25 + 0.4 * kk, dash: 0.3, hold: 0.8 + 1.5 * kk, calm: 2.2 };
+    trip && (trip.scared = true);
+    return true;
+  }
+  function scareAt(t) {
+    const S = scare, e = t - S.t0, crawl = S.pos.mode === 'crawl';
+    const base = { x: S.pos.x, y: S.pos.y, h: S.pos.h, mode: crawl ? 'crawl' : 'scared', hang: S.pos.hang, sway: 0, thread: S.pos.thread };
+    if (e < S.freeze) { crouch = Math.max(crouch, Math.min(1, e / 0.18)); flare = 1; return base; }   // (down on its legs within 0.18 s)
+    const e2 = e - S.freeze;
+    if (e2 < S.dash) { const u = ease(e2 / S.dash); return { ...base, x: lerp(S.pos.x, S.to.x, u), y: lerp(S.pos.y, S.to.y, u), hang: S.pos.hang * (1 - u), h: crawl ? (S.to.x >= S.pos.x ? 0 : Math.PI) : Math.atan2(S.to.y - S.pos.y, S.to.x - S.pos.x), mode: crawl ? 'crawl' : 'skitter' }; }
+    const e3 = e2 - S.dash, goBack = S.to.back && e3 > S.hold, backing = goBack && e3 < S.hold + S.dash;
+    if (backing) { const u = ease((e3 - S.hold) / S.dash); return { ...base, x: lerp(S.to.x, hub[0], u), y: lerp(S.to.y, hub[1], u), hang: 0, h: Math.PI / 2, mode: 'skitter' }; }
+    const at = goBack ? { x: hub[0], y: hub[1] } : S.to;
+    crouch = Math.max(0, crouch - 0.012); flare = Math.max(0, 1 - e3 / S.calm);
+    if (e3 > S.hold + (S.to.back ? S.dash : 0) + S.calm) {
+      scare = null; crouch = 0; flare = 0;
+      if (trip) { trip.x = at.x; trip.h = crawl ? (S.to.x >= S.pos.x ? 0 : Math.PI) : trip.h; trip.phase = 'still'; trip.t0 = t; trip.dur = 0.5; return tripAt(t); }
+      tl = []; return bodyAt(t);
+    }
+    return { ...base, x: at.x, y: at.y, hang: 0, h: crawl ? (S.to.x >= S.pos.x ? 0 : Math.PI) : Math.PI / 2, mode: crawl ? 'crawl' : 'scared' };
+  }
   /** a foot's angular deviation from its leg's sector (the body's frame; rad, signed) */
   const dev = (g, foot, b = body) => { const [lx, ly] = Wi(foot[0], foot[1], b); return wrap(Math.atan2(ly - g.L.hip[1], lx * g.s - g.L.hip[0]) - g.sec); };
 
   /** advance to t (s). env: { motion } — reduced motion: the spider holds still in its hub */
   function step(t, env = {}) {
     const dt = lastT < 0 ? 0 : Math.min(0.25, t - lastT); lastT = t;
-    if (env.motion === false) { body = { x: hub[0], y: hub[1], h: Math.PI / 2, mode: 'still', hang: 0, sway: 0 }; settleAll(); return; }
-    // a tap: it bolts down its thread (+ a slow climb home), whatever it was doing
-    if (t - flee < 9) {
-      const e = t - flee, was = body.mode;
-      body = { ...body, x: hub[0], y: hub[1], h: Math.PI / 2, mode: e < 0.45 ? 'drop' : e < 6 ? 'hang' : 'climb', sway: 0, hang: e < 0.45 ? 34 * (1 - Math.pow(1 - e / 0.45, 2.2)) : e < 6 ? 34 : 34 * (1 - (e - 6) / 3) };
-      if (was !== 'drop' && was !== 'hang' && was !== 'climb') settleAll();   // (the bolt: it lets go wherever it was)
-    } else body = bodyAt(t);
+    if (env.motion === false) { body = { x: hub[0], y: hub[1], h: Math.PI / 2, mode: 'still', hang: 0, sway: 0 }; trip = null; scare = null; crouch = flare = 0; settleAll(); return; }
+    // (WIN2: a scare overrides everything for a few seconds; a tap's trip overrides the life; else the life on the clock)
+    if (scare) body = scareAt(t); else if (trip) body = tripAt(t); else { body = bodyAt(t); if (crouch > 0) crouch = Math.max(0, crouch - 0.03); if (flare > 0) flare = Math.max(0, flare - 0.02); }
     const hanging = body.hang > 0.3;
-    const moving = body.mode === 'move' || body.mode === 'turn';
+    const moving = body.mode === 'move' || body.mode === 'turn' || (body.mode === 'crawl' && (body.sub === 'move' || body.sub === 'turn')) || body.mode === 'skitter';
     const bs = { ...body, h: body.h + body.sway };               // (hanging, the feet sway with the body)
+    const spread = 1 + 0.3 * crouch;                             // (crouching: the legs out wide, the body low)
     for (const g of legs) {
-      const tgtL = hanging ? g.L.hang : g.L.rest, tgt = W(tgtL[0] * g.s, tgtL[1], hanging ? bs : body);
+      const tgtL = hanging ? g.L.hang : g.L.rest, tgt = W(tgtL[0] * g.s * spread, tgtL[1] * spread, hanging ? bs : body);
       if (hanging) { g.foot = tgt; g.step = null; continue; }
       if (!g.foot) { g.foot = tgt; continue; }
       if (g.step) {
@@ -413,10 +487,11 @@ export function createSpider(web, { seed = 7 } = {}) {
         const lead = body.mode === 'move' ? 0.6 : 0, v = body.mode === 'move' && body.seg ? [(body.seg.to.x - body.seg.from.x), (body.seg.to.y - body.seg.from.y)] : [0, 0], vl = Math.hypot(v[0], v[1]) || 1;
         const ld = [v[0] / vl * lead * 2.2, v[1] / vl * lead * 2.2];
         g.step = { from: g.foot, to: [tgt[0] + ld[0], tgt[1] + ld[1]], lead: ld, u: 0, dur: moving ? 0.085 : 0.16 };
+        if (body.mode === 'skitter') g.step.dur = 0.06;
       }
     }
     // now and then, at rest, one leg lifts + resets (the stop-start of a living machine)
-    if (body.mode === 'still' && !hanging) {
+    if ((body.mode === 'still' || (body.mode === 'crawl' && body.sub === 'still')) && !hanging) {
       const slot = Math.floor(t / 2.7), pick = Math.floor(rngFrom(hashString(`adj|${seed}|${slot}`))() * 16);
       if (pick < 8 && t - slot * 2.7 < 0.05 && !legs.some(o => o.step)) { const g = legs[pick]; const tl0 = g.L.rest, tgt = W(tl0[0] * g.s, tl0[1]); const ld = [(R0() - 0.5) * 1.4, (R0() - 0.5) * 1.4]; g.step = { from: g.foot || tgt, to: [tgt[0] + ld[0], tgt[1] + ld[1]], lead: ld, u: 0, dur: 0.3 }; }
     }
@@ -440,12 +515,12 @@ export function createSpider(web, { seed = 7 } = {}) {
     const day = look.day || 0, lit = look.lit == null ? 1 : look.lit, amb = lerp(0.3, 1, day);
     const b = { ...body, y: body.y + body.hang, h: body.h + body.sway };
     const L0 = look.light(b.x, b.y), Li = Math.min(1.3, L0.i) * lit, neon = [L0.r, L0.g, L0.b];
-    const seamA = (0.3 + 0.6 * lit) * (1 - 0.45 * day), glowK = 0.6 + 0.4 * lit;
+    const seamA = Math.min(1, (0.3 + 0.6 * lit) * (1 - 0.45 * day) * (1 + 0.9 * flare)), glowK = Math.min(1.6, (0.6 + 0.4 * lit) * (1 + 0.6 * flare));   // (WIN2: scared — the seams + eyes flare)
     const chrome = k => rgba([lerp(CH.base[0], CH.sheen[0], k * amb), lerp(CH.base[1], CH.sheen[1], k * amb), lerp(CH.base[2], CH.sheen[2], k * amb)], 1);
     const neonC = a => rgba([lerp(neon[0], 255, 0.25), lerp(neon[1], 255, 0.25), lerp(neon[2], 255, 0.25)], a * Math.min(1, Li));
     x.save();
     // the thread it hangs on: a glowing filament from the hub to the spinnerets (the web's own light), a bead at each end
-    if (body.hang > 0.2) {
+    if (body.hang > 0.2 || body.thread) {
       const sp = W(0, -10.6 * SC, b);
       x.strokeStyle = rgba(WEB_COL.halo, 0.6 * glowK); x.lineWidth = 1.3; x.beginPath(); x.moveTo(hub[0], hub[1]); x.lineTo(sp[0], sp[1]); x.stroke();
       x.strokeStyle = rgba(WEB_COL.core, 0.7 + 0.3 * lit); x.lineWidth = 0.36; x.beginPath(); x.moveTo(hub[0], hub[1]); x.lineTo(sp[0], sp[1]); x.stroke();
@@ -490,7 +565,7 @@ export function createSpider(web, { seed = 7 } = {}) {
       x.fillStyle = rgba(CH.seam, 0.5 * glowK); x.beginPath(); x.arc(f[0], f[1], 0.24, 0, TAU); x.fill();
     }
     // ---- THE BODY in its own frame (local +y = forward = the heading)
-    x.translate(b.x, b.y); x.rotate(b.h - Math.PI / 2); x.scale(SC, SC);
+    x.translate(b.x, b.y); x.rotate(b.h - Math.PI / 2); x.scale(SC * (1 + 0.1 * crouch), SC * (1 - 0.22 * crouch));   // (crouched: a flatter, wider body)
     const Ll = look.light(b.x, b.y), ldx = Ll.dx || 0, ldy = Ll.dy || 0;
     const cr = Math.cos(-(b.h - Math.PI / 2)), sr = Math.sin(-(b.h - Math.PI / 2)), lx = ldx * cr - ldy * sr, ly = ldx * sr + ldy * cr;
     // THE ABDOMEN: a machined teardrop shell in facets — a long plate with two shoulder plates, the dorsal seam, three cross seams
@@ -528,7 +603,7 @@ export function createSpider(web, { seed = 7 } = {}) {
     // THE EYES: two main eyes glowing violet-white with their halo, two small pairs beside them
     x.globalCompositeOperation = 'lighter';
     for (const [ex, ey, r] of [[0.66, 4.4, 0.6], [-0.66, 4.4, 0.6]]) {
-      const g = x.createRadialGradient(ex, ey, 0, ex, ey, r * 2.8); g.addColorStop(0, rgba(CH.eye, 0.95 * glowK)); g.addColorStop(0.4, rgba(CH.seam, 0.5 * glowK)); g.addColorStop(1, rgba(CH.seam, 0)); x.fillStyle = g; x.beginPath(); x.arc(ex, ey, r * 2.8, 0, TAU); x.fill();
+      const rr = r * (2.8 + 1.6 * flare), g = x.createRadialGradient(ex, ey, 0, ex, ey, rr); g.addColorStop(0, rgba(CH.eye, 0.95 * glowK)); g.addColorStop(0.4, rgba(CH.seam, 0.5 * glowK)); g.addColorStop(1, rgba(CH.seam, 0)); x.fillStyle = g; x.beginPath(); x.arc(ex, ey, rr, 0, TAU); x.fill();
     }
     x.globalCompositeOperation = 'source-over';
     for (const [ex, ey, r] of [[0.66, 4.4, 0.6], [-0.66, 4.4, 0.6], [1.6, 3.7, 0.24], [-1.6, 3.7, 0.24], [1.35, 4.8, 0.18], [-1.35, 4.8, 0.18]]) {
@@ -541,12 +616,16 @@ export function createSpider(web, { seed = 7 } = {}) {
   return {
     step, draw, legCheck,
     /** its box in logo units (the legs' reach round the body + the thread) */
-    bbox() { const r = 18 * SC; return { x0: Math.min(body.x, hub[0]) - r, y0: Math.min(body.y, hub[1]) - r, x1: Math.max(body.x, hub[0]) + r, y1: body.y + body.hang + r }; },
-    moving: () => body.mode !== 'still' || body.hang > 0.2 || legs.some(g => g.step),
-    /** a tap near it: it bolts down its thread */
-    near: (px, py, t) => { const d = Math.hypot(px - body.x, py - (body.y + body.hang)); if (d < 16) { flee = t; return true; } return false; },
+    bbox() { const r = 18 * SC * (1 + 0.3 * crouch) + 4 * flare; return { x0: Math.min(body.x, hub[0]) - r, y0: Math.min(body.y, hub[1]) - r, x1: Math.max(body.x, hub[0]) + r, y1: body.y + body.hang + r }; },
+    moving: () => body.mode !== 'still' || body.hang > 0.2 || legs.some(g => g.step) || !!trip || !!scare || crouch > 0 || flare > 0,
+    /** a tap near it (its drawn body): the trip to the SPEAKEASY word — ignored while one runs or just ended (a cooldown); true = consumed */
+    near: (px, py, t) => { const d = Math.hypot(px - body.x, py - (body.y + body.hang)); if (d >= 16 + 6 * crouch) return false; if (!trip && t - tripEnd >= TRIP.cool) { if (scare) { scare = null; crouch = flare = 0; } tripStart(t); } return true; },   // (a tap mid-scare: the drop is its answer)
+    /** WIN2: the SPEAKEASY word's tubes (logo units: { x0, x1, y }) — where the trip lands */
+    setWord: w => { word = w && Number.isFinite(w.y) ? { x0: w.x0, x1: w.x1, y: w.y } : null; },
+    /** WIN2 — ITS NERVES: a flicker near it (ev: { kind, x (logo units | null = the whole sign), k 0..1 }) → true when it reacts */
+    scare: (ev, t) => scareNow(ev || {}, t),
     setReach: r => { maxR = r; },
-    state: () => ({ mode: body.mode, x: +body.x.toFixed(1), y: +(body.y + body.hang).toFixed(1), h: +body.h.toFixed(2), stepping: legs.filter(g => g.step).length }),
+    state: () => ({ mode: body.mode, sub: body.sub || null, x: +body.x.toFixed(1), y: +(body.y + body.hang).toFixed(1), h: +body.h.toFixed(2), stepping: legs.filter(g => g.step).length, trip: trip ? trip.phase : null, scared: +flare.toFixed(2), crouch: +crouch.toFixed(2), word: word ? +word.y.toFixed(1) : null }),
   };
 }
 export { SPIDER_LEN };

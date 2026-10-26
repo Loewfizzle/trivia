@@ -138,6 +138,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // logo's wrap (S.dressHost, from title.js). &force=sign-web (the finished web + the spider, any day) · &force=sign-dotd (the sign dressed)
   let dress = null, dressLoading = false;
   const DRESS_COLS = { halloween: [[255, 122, 18], [155, 61, 255], [255, 122, 18], [155, 61, 255]], dotd: [[255, 166, 42], [255, 46, 151], [255, 166, 42], [255, 46, 151]] };
+  // WIN2 — THE SPIDERS' WORLD: the SPEAKEASY word's tubes in LOGO units (the sign's viewBox: -26 -30 384 …; logoRect() is the SVG's
+  // rect inset 7 % / 18 %), and the letters' middles for a poke's x
+  const LOGO_VB = { x: -26, y: -30, w: 384 }, LETTER_X = [32, 128, 208, 300];
+  function wordLogo() {
+    const rr = rects(); if (!rr.neon || !rr.word || !(rr.neon.w > 0)) return null;
+    const svgL = rr.neon.x - rr.neon.w / 0.86 * 0.07, svgT = rr.neon.y - rr.neon.h / 0.64 * 0.18, k = (rr.neon.w / 0.86) / LOGO_VB.w;
+    const lx = px => LOGO_VB.x + (px - svgL) / k, ly = py => LOGO_VB.y + (py - svgT) / k;
+    return { x0: lx(rr.word.x) + 6, x1: lx(rr.word.x + rr.word.w) - 6, y: ly(rr.word.y + rr.word.h * 0.5) };
+  }
+  // the flicker detector: a jump of the sign's live level between frames (the boot flicker, a blackout, the power back, a sky dim), a
+  // lightning flash → the spiders are scared; title.js pokes the taps, the race, the tired tube (scene.poke)
+  let lastSignLv = -1, pokeLog = [];
+  function pokeDress(ev) { if (!dress || !dress.scare) return 0; const x = ev.x != null ? ev.x : ev.letter != null ? LETTER_X[Math.max(0, Math.min(3, ev.letter | 0))] : null; const n = dress.scare({ kind: ev.kind || 'poke', x, k: ev.k }); pokeLog.push({ t: +nowT.toFixed(1), kind: ev.kind, x, n }); if (pokeLog.length > 12) pokeLog.shift(); return n; }
   function dressTick(t) {
     const fw = clock.force.has('sign-web'), fd = clock.force.has('sign-dotd');
     const H = fw && HS.id !== 'halloween' ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd && HS.id !== 'dotd' ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : HS;
@@ -147,7 +160,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       return;
     }
     if (S.dressHost) dress.setHost(S.dressHost);
-    dress.frame({ holiday: H, pieces: P, t, motion: !!S.motion, tier, dpr, signLit: signLive(), letterCols: HR && HR.sign && H === HS ? DRESS_COLS[HR.sign] || null : null,
+    { const lv = signLive(); if (lastSignLv >= 0 && Math.abs(lv - lastSignLv) > 0.3) pokeDress({ kind: lv < lastSignLv ? 'dim' : 'flash', k: Math.min(1, 0.4 + Math.abs(lv - lastSignLv)) }); lastSignLv = lv;
+      if (zap.flash() > 0.35) pokeDress({ kind: 'lightning', k: 0.85 }); }
+    dress.frame({ holiday: H, pieces: P, t, motion: !!S.motion, tier, dpr, signLit: signLive(), word: wordLogo(), letterCols: HR && HR.sign && H === HS ? DRESS_COLS[HR.sign] || null : null,
       dark: clamp01(1 - (LK.w.day || 0) - 0.5 * (LK.w.golden || 0)), wind: WXS ? WXS.gust || 0 : (LK.wind == null ? 3 : LK.wind) });
   }
   const dressDebug = () => (dress ? dress.debug() : null);
@@ -2222,6 +2237,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** WIN — THE SPIDER'S TAP (the owner's iPhone: tapping it did nothing — title.js answered every tap inside the logo's rect with a
      *  letter buzz before the scene was asked): the dressing's hit alone, asked FIRST by title.js#onCityTap; { kind: 'spider' } or null */
     spiderHit(x, y) { if (!dress) return null; const d = dress.hit(x, y); if (d) fastUntil = performance.now() + 1500; return d; },
+    /** WIN2 — a flicker on the sign the city can't see itself (title.js: a tapped letter re-igniting, the race / surge, the tired tube):
+     *  { kind, letter (0..3) | x (logo units), k } → how many spiders reacted */
+    poke(ev) { fastUntil = performance.now() + 1500; return pokeDress(ev || {}); },
     signOn: () => P.sign > 0.5,
     palette: () => P,
     signCol: () => S.signCol || null,
@@ -2275,7 +2293,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
+    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),

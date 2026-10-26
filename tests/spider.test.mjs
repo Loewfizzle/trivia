@@ -24,16 +24,33 @@ test('ten minutes of its life at 60 fps: no foot past the hard limit, no crossin
   assert.equal(crossings, 0, 'the legs never crossed');
   for (const m of ['still', 'turn', 'move', 'drop', 'hang', 'climb']) assert.ok(modes.has(m), `it ${m}s`);
   assert.ok(steps > 100, 'the feet step');
-  // a tap: it bolts down (the hang grows within half a second), hangs, climbs home by 9 s
-  const t0 = 600, y0 = sp.state().y;
+  // WIN2 — THE TAP's TRIP: down the thread to the SPEAKEASY word (set below the hub), a crawl back + forth along it for 10–15 s (the
+  // stop-start: still / turn / move), the climb home; a second tap mid-way is ignored; home + still again
+  const t0 = 600, y0 = sp.state().y, WORD = { x0: web.hub[0] - 60, x1: web.hub[0] + 80, y: web.hub[1] + 96 };
+  sp.setWord(WORD);
   assert.ok(sp.near(web.hub[0], web.hub[1] + 2, t0), 'a tap near it');
-  sp.step(t0 + 0.5, { motion: true }); assert.ok(sp.state().y > y0 + 20 && /drop|hang/.test(sp.state().mode), `dropped: ${JSON.stringify(sp.state())}`);
-  sp.step(t0 + 3, { motion: true }); assert.equal(sp.state().mode, 'hang');
-  sp.step(t0 + 8.5, { motion: true }); assert.equal(sp.state().mode, 'climb');
-  let home = false; for (let t = t0 + 9; t < t0 + 20 && !home; t += 1 / 30) { sp.step(t, { motion: true }); home = sp.state().y < y0 + 2; }
-  assert.ok(home, `home within 20 s: ${JSON.stringify(sp.state())}`);
+  sp.step(t0 + 0.5, { motion: true }); assert.ok(sp.state().y > y0 + 20 && sp.state().mode === 'drop', `dropped: ${JSON.stringify(sp.state())}`);
+  sp.step(t0 + 2.2, { motion: true }); assert.equal(sp.state().mode, 'crawl'); assert.ok(Math.abs(sp.state().y - WORD.y) < 0.5, `on the word's tubes (y ${sp.state().y} vs ${WORD.y})`);
+  let xs = [], subs = new Set(), rev = 0, lastDir = 0;
+  for (let t = t0 + 2.2; t < t0 + 11; t += 1 / 30) { sp.step(t, { motion: true }); const st = sp.state(); if (st.mode === 'crawl') { xs.push(st.x); subs.add(st.sub); } }
+  for (let i = 1; i < xs.length; i++) { const d = Math.sign(xs[i] - xs[i - 1]); if (d && lastDir && d !== lastDir) rev++; if (d) lastDir = d; }
+  assert.ok(Math.max(...xs) - Math.min(...xs) > 12 && rev >= 1 && subs.has('still') && subs.has('move'), `it crawls back + forth along the word (${(Math.max(...xs) - Math.min(...xs)).toFixed(0)} units, ${rev} reversals, ${[...subs].join('/')})`);
+  assert.ok(xs.every(x => x >= WORD.x0 + 7 && x <= WORD.x1 - 7), 'never off the word');
+  assert.ok(sp.near(sp.state().x, sp.state().y, t0 + 6) && sp.state().mode === 'crawl', 'a second tap mid-way is consumed but does not restart it');
+  let climbed = false, home = false;
+  for (let t = t0 + 11; t < t0 + 24 && !home; t += 1 / 30) { sp.step(t, { motion: true }); const st = sp.state(); if (st.mode === 'climb') climbed = true; if (climbed && st.mode === 'still' && st.y < y0 + 2) home = true; }
+  assert.ok(climbed && home, `climbs back + home within 24 s: ${JSON.stringify(sp.state())}`);
+  // ITS NERVES: a flicker beside it → frozen + crouched at once, a skitter, calm again within 6 s; a flicker far away is ignored
+  const t1 = t0 + 30; sp.step(t1, { motion: true });
+  assert.ok(sp.scare({ kind: 'tap', x: web.hub[0] + 20, k: 0.7 }, t1), 'scared by a flicker beside it');
+  sp.step(t1 + 0.1, { motion: true }); assert.ok(sp.state().crouch > 0.3 && sp.state().scared > 0.9 && sp.state().mode === 'scared', `frozen + crouched: ${JSON.stringify(sp.state())}`);
+  let skit = false; for (let t = t1 + 0.1; t < t1 + 2; t += 1 / 30) { sp.step(t, { motion: true }); if (sp.state().mode === 'skitter') skit = true; }
+  assert.ok(skit, 'it skitters');
+  let calm = false; for (let t = t1 + 2; t < t1 + 8 && !calm; t += 1 / 30) { sp.step(t, { motion: true }); const st = sp.state(); calm = st.scared === 0 && st.crouch === 0 && st.mode !== 'scared' && st.mode !== 'skitter'; }
+  assert.ok(calm && sp.legCheck().crossed === false, `calm again: ${JSON.stringify(sp.state())}`);
+  assert.ok(!sp.scare({ kind: 'tap', x: web.hub[0] + 400, k: 0.4 }, t1 + 20), 'a flicker far away is ignored');
   // reduced motion: still in the hub, the legs settled
-  sp.step(t0 + 10, { motion: false }); assert.equal(sp.state().mode, 'still'); assert.equal(sp.legCheck().crossed, false);
+  sp.step(t0 + 60, { motion: false }); assert.equal(sp.state().mode, 'still'); assert.equal(sp.legCheck().crossed, false);
 });
 
 test('the shimmer: no pulses on an unspun web, pulses on a spun one, none under reduced motion', () => {

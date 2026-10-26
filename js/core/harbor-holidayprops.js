@@ -23,7 +23,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 export const PUMPKIN_KINDS = Object.freeze({
   classic: { w: 1, h: 0.82, skin: [232, 118, 26], dark: [150, 58, 10], ribs: 8, stem: [92, 96, 46] },
   tall: { w: 0.86, h: 1.04, skin: [226, 112, 24], dark: [140, 56, 12], ribs: 7, stem: [86, 82, 44] },
-  squat: { w: 1.18, h: 0.66, skin: [214, 88, 22], dark: [128, 42, 12], ribs: 10, stem: [78, 70, 40] },   // a Cinderella: flat + red-orange
+  squat: { w: 1.1, h: 0.78, skin: [214, 88, 22], dark: [128, 42, 12], ribs: 10, stem: [78, 70, 40] },   // a Cinderella: a slight squat + red-orange (WIN2: 1.18 × 0.66 read as a stretched disc at 25 pt)
   white: { w: 1.04, h: 0.74, skin: [236, 230, 212], dark: [168, 160, 140], ribs: 9, stem: [96, 104, 70] },
   warty: { w: 0.96, h: 0.86, skin: [212, 128, 40], dark: [120, 70, 20], ribs: 8, stem: [80, 88, 40], warts: true },
   gourds: { w: 1, h: 0.6, skin: [222, 170, 40], dark: [130, 90, 20], ribs: 0, stem: [80, 90, 40], cluster: true },
@@ -59,7 +59,7 @@ export const BALE = Object.freeze({ w: 1.8, h: 0.74, d: 1.0 });
 /** the farm delivery's three BIG jack-o'-lanterns (the owner: "readable at a glance: a big one next to the BENCH, another by a LAMP POST or
  *  the FIRE HYDRANT, carved faces glowing at night, some on a straw bale") — each on a named DRESSING SPOT (core/harbor-spots.js) */
 export const BIG_PIECES = Object.freeze([
-  { spot: 'hydrant', kind: 'squat', d: 1.6, face: 'toothy', bale: false },                  // the nearest + the biggest, on the pavement by the hydrant (~25 pt at 402)
+  { spot: 'hydrant', kind: 'classic', d: 1.5, face: 'toothy', bale: false },                // the nearest + the biggest, on the pavement by the hydrant (~23 pt at 402; WIN2: a round classic, the squat kind read stretched)
   { spot: 'bench-right', kind: 'classic', d: 1.5, face: 'scary', bale: true, gourd: true },  // on a straw bale at the bench's end, a gourd beside it (~19 pt)
   { spot: 'lamp-1', kind: 'tall', d: 1.35, face: 'happy', bale: true },                     // on a bale at the right tall lamp's foot (~16 pt)
 ]);

@@ -24,7 +24,7 @@ import { createDotdDress } from './dress-dotd.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** the overlay's box in logo units (the SVG's viewBox is −26 −30 384 160) */
-export const BOX = Object.freeze({ x0: -60, y0: -50, x1: 392, y1: 150 });
+export const BOX = Object.freeze({ x0: -60, y0: -50, x1: 392, y1: 210 });   // (WIN2: down to the SPEAKEASY word — the spiders' trip lands on it)
 const VB = { x: -26, y: -30, w: 384 };
 const PINK = [255, 46, 151];
 
@@ -111,7 +111,8 @@ export function createSignDress() {
   const cache = { silk: null, glow: null };
   let slowTask = { ms: 0 }, colsRef = null, colRef = null, job = null, staticKey = '', glowA = -1, lastDyn = 0, wasDyn = false, draws = 0, bakes = 0, lastMs = 0, lfKey = '', LF = null, on = false;
   const webs = WEB_SPECS.map(buildWeb);
-  let spider = null, dotd = null, shimmer = null, lastEnv = null, prevBox = null, prevShim = [];
+  let spiders = [null, null], dotd = null, shimmer = null, lastEnv = null, prevBox = null, prevShim = [];   // (WIN2: two spiders — the main web's + the corner web's on the last N)
+  const live = () => spiders.filter(Boolean);
 
   function setHost(el) {
     if (el === host && cv && cv.isConnected) return;
@@ -143,6 +144,7 @@ export function createSignDress() {
     if (H && H.id === 'halloween' && P) {
       if (P.web > 0) out.push('web');
       if (P.spider && webGrowth(webs[0], P.web) >= 0.36) out.push('spider');
+      if (P.spider && webGrowth(webs[1], P.web) >= 0.5) out.push('spider2');   // (WIN2: the second, once the corner web is half spun)
     }
     if (H && H.id === 'dotd' && P && P.sign > 0.01) out.push('dotd');
     return out;
@@ -152,7 +154,7 @@ export function createSignDress() {
     lastEnv = env;
     if (!host || !cv) return;
     const ids = want(env);
-    if (!ids.length) { if (on) { on = false; cv.style.display = 'none'; free(); spider = null; dotd = null; shimmer = null; } return; }
+    if (!ids.length) { if (on) { on = false; cv.style.display = 'none'; free(); spiders = [null, null]; dotd = null; shimmer = null; } return; }
     if (!wpx) return;
     if (!on) { on = true; cv.style.display = ''; }
     const t0 = performance.now();
@@ -199,29 +201,32 @@ export function createSignDress() {
       } else if (!cache.silk) return;
     }
     if (rebaked) {
-      if (ids.includes('spider') && !spider) { spider = createSpider(webs[0], { seed: 11 }); }
-      if (spider) spider.setReach(Math.max(10, 34 * webGrowth(webs[0], P.web)));
+      if (ids.includes('spider') && !spiders[0]) spiders[0] = createSpider(webs[0], { seed: 11 });
+      if (ids.includes('spider2') && !spiders[1]) spiders[1] = createSpider(webs[1], { seed: 23 });
+      if (spiders[0]) spiders[0].setReach(Math.max(10, 34 * webGrowth(webs[0], P.web)));
+      if (spiders[1]) spiders[1].setReach(Math.max(8, 18 * webGrowth(webs[1], P.web)));
     }
-    if (!ids.includes('spider')) spider = null;
+    if (!ids.includes('spider')) spiders[0] = null;
+    if (!ids.includes('spider2')) spiders[1] = null;
     if (!ids.includes('dotd')) dotd = null;
     // SP4: the web's shimmer (a faint light travelling along the threads) — only on a web that is spun
     if (ids.includes('web') && !shimmer) shimmer = createShimmer(webs);
     if (!ids.includes('web')) shimmer = null;
     // ---- what moves this frame
     const t = env.t || 0, motion = env.motion !== false;
-    if (spider) spider.step(t, { motion });
+    for (const sp of live()) { if (env.word) sp.setWord(env.word); sp.step(t, { motion }); }
     if (shimmer) shimmer.step(t, { motion: motion && env.tier !== 0, growth: webs.map(w => webGrowth(w, P.web)) });
-    const dyn = (spider && spider.moving()) || (shimmer && shimmer.moving()) || (dotd && dotd.moving({ motion, wind: env.wind, tier: env.tier }));
+    const dyn = live().some(sp => sp.moving()) || (shimmer && shimmer.moving()) || (dotd && dotd.moving({ motion, wind: env.wind, tier: env.tier }));
     const lit = clamp01(env.signLit == null ? 1 : env.signLit), gA = Math.round(lit * 48) / 48;
     const now = performance.now(), fps = env.tier === 0 ? 15 : 30;
     const due = rebaked || gA !== glowA || (dyn && now - lastDyn >= 1000 / fps - 2) || (!dyn && wasDyn);
     if (!due) return;
-    const full = rebaked || gA !== glowA || !(spider || dotd || shimmer);
+    const full = rebaked || gA !== glowA || !(live().length || dotd || shimmer);
     glowA = gA; lastDyn = now; wasDyn = !!dyn; draws++;
     // ---- compose: silk, the neon's glow × the sign's level, then the moving things — a frame where only they moved is CLIPPED to
     // their boxes (the spider's last + this frame's; the flames + their light, the flags)
     const look = { day: dayB, light: lightAt, lit, t, motion, wind: env.wind, tier: env.tier, px: 1 / sc };
-    const boxNow = spider ? spider.bbox() : null, shimNow = shimmer ? shimmer.boxes() : [];
+    const boxNow = live().length ? live().map(sp => sp.bbox()).reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) })) : null, shimNow = shimmer ? shimmer.boxes() : [];
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.save();
     if (!full) {
@@ -239,7 +244,7 @@ export function createSignDress() {
     toLogo(x);
     if (dotd) dotd.dyn(x, P.sign, look);
     if (shimmer) shimmer.draw(x, look);
-    if (spider) spider.draw(x, look);
+    for (const sp of live()) sp.draw(x, look);
     x.restore();
     prevBox = boxNow; prevShim = shimNow;
     lastMs = performance.now() - t0;
@@ -247,18 +252,24 @@ export function createSignDress() {
 
   /** a tap (screen pt): the spider bolts down its line → { kind: 'spider' } | null */
   function hit(px, py) {
-    if (!cv || !on || !spider || !lastEnv) return null;
+    if (!cv || !on || !live().length || !lastEnv) return null;
     const r = cv.getBoundingClientRect(); if (!r.width) return null;
     const lx = BOX.x0 + (px - r.left) / r.width * (BOX.x1 - BOX.x0), ly = BOX.y0 + (py - r.top) / r.height * (BOX.y1 - BOX.y0);
-    return spider.near(lx, ly, lastEnv.t || 0) ? { kind: 'spider' } : null;
+    const t = lastEnv.t || 0, L = live();
+    for (let i = 0; i < L.length; i++) if (L[i].near(lx, ly, t)) return { kind: 'spider', i };
+    return null;
   }
 
   return {
     setHost, frame, hit,
     /** WIN — the spider on screen (CSS px: the e2e's touch tap aims here) or null */
-    spiderAt() { if (!cv || !on || !spider || !cv.isConnected) return null; const r = cv.getBoundingClientRect(); if (!r.width) return null; const st = spider.state(); return { x: r.left + (st.x - BOX.x0) / (BOX.x1 - BOX.x0) * r.width, y: r.top + (st.y - BOX.y0) / (BOX.y1 - BOX.y0) * r.height, mode: st.mode }; },
+    spiderAt(i = 0) { const sp = live()[i]; if (!cv || !on || !sp || !cv.isConnected) return null; const r = cv.getBoundingClientRect(); if (!r.width) return null; const st = sp.state(); return { x: r.left + (st.x - BOX.x0) / (BOX.x1 - BOX.x0) * r.width, y: r.top + (st.y - BOX.y0) / (BOX.y1 - BOX.y0) * r.height, mode: st.mode, trip: st.trip }; },
+    /** WIN2: both spiders on screen */
+    spidersAt() { return live().map((sp, i) => this.spiderAt(i)); },
+    /** WIN2 — a flicker on the sign (scene.js / title.js pokes): every spider near it reacts → how many did */
+    scare(ev) { const t = lastEnv ? lastEnv.t || 0 : 0; let n = 0; for (const sp of live()) if (sp.scare(ev, t)) n++; return n; },
     debug: () => ({ on, pieces: lastEnv ? want(lastEnv) : [], web: lastEnv && lastEnv.pieces ? lastEnv.pieces.web : null, webs: webs.map(w => ({ id: w.id, radials: w.radials.length, spiral: w.spiral.length })),
-      spider: spider ? spider.state() : null, legs: spider ? spider.legCheck() : null, shimmer: shimmer ? shimmer.state() : null, dotd: dotd ? dotd.debug() : null, draws, bakes, slowTask, ms: +lastMs.toFixed(2), canvas: cv ? [cv.width, cv.height] : null, dpr }),
+      spider: spiders[0] ? spiders[0].state() : null, spider2: spiders[1] ? spiders[1].state() : null, legs: spiders[0] ? spiders[0].legCheck() : null, legs2: spiders[1] ? spiders[1].legCheck() : null, shimmer: shimmer ? shimmer.state() : null, dotd: dotd ? dotd.debug() : null, draws, bakes, slowTask, ms: +lastMs.toFixed(2), canvas: cv ? [cv.width, cv.height] : null, dpr }),
     destroy: detach,
   };
 }

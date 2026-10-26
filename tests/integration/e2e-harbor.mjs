@@ -2567,7 +2567,7 @@ G('holiday', async () => {
   const sign = Q => ev(Q.page, `[...document.querySelector('.nd-sign').classList].filter(c => c.startsWith('sg-')).join(',')`);
   // ---- OCT 10: early in the build-up — a web part-woven on the sign, its spider, a few pumpkins; the city's own light
   { const Q = await page('hol-o10', '2026-10-10T21:00');
-    await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.webs.length > 0`, 'the dressing', 12000).catch(() => {});
+    await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.webs.length > 0 && ${P}.dress.spider`, 'the dressing + its spider (after the bake)', 15000).catch(() => {});
     const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`), wh = await ev(Q.page, `${P}.wheel.schemeId`);
     ok(h.state.id === 'halloween' && h.state.phase === 'build' && h.state.stage > 0.25 && h.state.stage < 0.4 && d && d.on && d.web > 0.25 && d.web < 0.4 && d.spider && h.pieces.pumpkins.length >= 2 && h.pieces.pumpkins.length <= 4 && wh !== 'halloween',   // (Oct 10 2026 is a Saturday: the party's wheel)
       `OCT 10 — THE BUILD-UP BY DATE: stage ${h.state.stage.toFixed(2)}, the web ${d && d.web != null ? d.web.toFixed(2) : '?'} (${d ? d.pieces.join(',') : 'no dressing'}), ${h.pieces.pumpkins.length} pumpkins, the wheel ${wh}`);
@@ -2625,10 +2625,27 @@ G('holiday', async () => {
     await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.spider && ${P}.spiderAt`, 'the spider', 15000).catch(() => {});
     await Q.page.touchscreen.tap(30, 120); await sleep(900);            // (a priming tap: the idle title swallows the first touch after 10 s)
     const at = await ev(Q.page, `${P}.spiderAt`);
-    let dropped = false;
-    if (at) { await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'hang'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
-    const st = await ev(Q.page, `${P}.dress.spider`);
-    ok(at && dropped, `THE SPIDER'S TAP (touch, ${at ? `${at.x.toFixed(0)},${at.y.toFixed(0)}` : 'no spider'}): it bolts down its thread (${st && st.mode})`);
+    let dropped = false, onWord = false;
+    if (at) { await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false);
+      // (WIN2: it lands on the SPEAKEASY word's tubes and crawls along them — its y on the word, its x moving)
+      onWord = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'crawl' && s.word != null && Math.abs(s.y - s.word) < 1; })()`, 'on the word', 4000).then(() => true).catch(() => false); }
+    const st = await ev(Q.page, `${P}.dress.spider`), x0 = st && st.x;
+    await sleep(2500);
+    const st2 = await ev(Q.page, `${P}.dress.spider`), wordPx = await ev(Q.page, `(() => { const w = document.querySelector('.nd-word'); const r = w && w.getBoundingClientRect(); const s = ${P}.spiderAt; return r && s ? { in: s.y > r.top - 6 && s.y < r.bottom + 6 && s.x > r.left && s.x < r.right, sy: s.y, top: r.top, bottom: r.bottom } : null; })()`);
+    ok(at && dropped && onWord && st2 && st2.mode === 'crawl' && Math.abs(st2.x - x0) > 2 && wordPx && wordPx.in, `THE SPIDER'S TAP (touch, ${at ? `${at.x.toFixed(0)},${at.y.toFixed(0)}` : 'no spider'}): it drops to the SPEAKEASY word (${st && st.mode} → ${st2 && st2.mode}, y ${st2 && st2.y} on the word ${st2 && st2.word}; on screen ${wordPx && wordPx.sy} within ${wordPx && wordPx.top}–${wordPx && wordPx.bottom}) and crawls along it (x ${x0} → ${st2 && st2.x})`);
+    // THE SECOND SPIDER on the last N's web: its own tap, its own trip; the two never in step
+    const at2 = await ev(Q.page, `${P}.spiders[1] || null`);
+    let trip2 = false;
+    if (at2) { await Q.page.touchscreen.tap(at2.x, at2.y); trip2 = await waitFor(Q.page, `['drop', 'crawl'].includes(${P}.dress.spider2.mode)`, 'the second dropping', 2500).then(() => true).catch(() => false); }
+    const s2 = await ev(Q.page, `${P}.dress.spider2`), s1 = await ev(Q.page, `${P}.dress.spider`);
+    ok(at2 && trip2 && s2 && s1 && (s1.mode !== s2.mode || Math.abs(s1.x - s2.x) > 40), `THE SECOND SPIDER (touch at ${at2 ? `${at2.x.toFixed(0)},${at2.y.toFixed(0)}` : 'none'}): its own trip (${s2 && s2.mode}), the first still ${s1 && s1.mode} — never in step`);
+    // ITS NERVES: a flicker on the sign (a poke: the race) — both freeze + crouch, eyes flaring, then calm
+    await sleep(14000);   // (both trips done: home, calm)
+    const n = await ev(Q.page, `${P}.poke({ kind: 'race', k: 1 })`);
+    // (a spider scared by the tired tube's poke in the last 4 s sits that one out — the cooldown; at least one reacts)
+    const scared = await waitFor(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return [a, b].some(s => s && s.scared > 0.8 && s.crouch > 0.4); })()`, 'a spider scared', 1500).then(() => true).catch(() => false);
+    const calm = await waitFor(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return a && b && a.scared === 0 && b.scared === 0 && a.crouch === 0 && b.crouch === 0; })()`, 'both calm', 9000).then(() => true).catch(() => false);
+    ok(n >= 1 && scared && calm, `ITS NERVES: the race's poke scared ${n} spider(s) — frozen, crouched, eyes flaring (${scared}), calm again within 9 s (${calm})`);
     // a letter beside it: the letter farthest from the spider, tapped — its tube stutters out at once (the night plan: off at 0 ms)
     const letters = await ev(Q.page, `[...document.querySelectorAll('.nd-sign .ndl')].map(l => { const r = l.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, on: l.classList.contains('on') }; })`);
     const far = letters.map((l, i) => ({ ...l, i, d: at ? Math.hypot(l.x - at.x, l.y - at.y) : 999 })).sort((a, b) => b.d - a.d)[0];
@@ -2648,6 +2665,8 @@ G('holiday', async () => {
     let pairs = 0; for (let i = 0; i < steps.length; i++) for (let j = i + 1; j < steps.length; j++) if (ov(steps[i], steps[j]) && Math.abs(steps[i].y + steps[i].h - (steps[j].y + steps[j].h)) < 2) pairs++;
     ok(steps.length === 5 && pairs === 0 && steps.every(r => r.y + r.h < cam.dock.y), `THE DOOR'S PUMPKINS at 390 (Oct 27): ${steps.length} (five), ${pairs} overlapping on one level, all above the dock (${steps.map(r => `${r.w.toFixed(0)}pt@${r.x.toFixed(0)}`).join(' ')})`);
     ok(bigs.length === 3 && bigs.every(r => r.w >= 15 && r.y + r.h < cam.dock.y) && new Set(bigs.map(r => r.id)).size === 3, `THE BIG JACK-O'-LANTERNS at 390: ${bigs.map(r => `${r.id} ${r.w.toFixed(0)} pt`).join(', ')} — ≥ 15 pt each, above the dock ${cam.dock.y}`);
+    // (WIN2 — the owner: the hydrant's read stretched: every big one at a pumpkin's own proportions — its sprite box no wider than 1.2× its height, never a flat disc)
+    ok(bigs.every(r => r.w / r.h <= 1.2 && r.w / r.h >= 0.75), `THE BIG JACK-O'-LANTERNS' PROPORTIONS: ${bigs.map(r => `${r.id} ${(r.w / r.h).toFixed(2)}`).join(', ')} wide : tall (round, never stretched)`);
     ok(hp && hp.stat.bigGlows >= 3, `THEIR FACES GLOW after dark: ${hp && hp.stat.bigGlows} of 3 lit`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}holiday-setpieces-390x844.png` });
     await Q.ctx.close(); }
