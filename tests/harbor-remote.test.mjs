@@ -2,7 +2,7 @@
 // (The registry's own checks + the areas: tests/harbor.test.mjs; the sheet itself: e2e-harbor.mjs ONLY=panel.)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { momentHour, itemWhen, EVENTS, PANEL_EVENTS, CATS, SECTIONS, AREA_SECTION, sectionOf, toSection, blockOf, normQ, matchQuery, eventText, DELAYS, DEFAULT_DELAY, cleanDelay, checkRegistry, cleanRemote, PLAY_ALL, playlistOf, eventDef, WEATHER, WEATHER_GROUPS } from '../js/core/harbor-remote.js';
+import { momentWhen, momentHour, itemWhen, EVENTS, PANEL_EVENTS, CATS, SECTIONS, AREA_SECTION, sectionOf, toSection, blockOf, normQ, matchQuery, eventText, DELAYS, DEFAULT_DELAY, cleanDelay, checkRegistry, cleanRemote, PLAY_ALL, playlistOf, eventDef, WEATHER, WEATHER_GROUPS } from '../js/core/harbor-remote.js';
 import { MOMENTS } from '../js/core/harbor-moments.js';
 
 test('the panel: eleven sections in the owner\'s order (WIN: SPEAKEASY of its own); every area + every row lands in one; nothing dropped', () => {
@@ -87,4 +87,15 @@ test('WIN2 — PLAY ALL ON ITS OWN CLOCK: every window moment gets an hour insid
   assert.equal(itemWhen({ hour: 1.5 }, '2026-10-24'), '2026-10-25T01:30', 'the small hours land on the next day');
   assert.equal(itemWhen({ hour: 23 }, '2026-10-31'), '2026-10-31T23:00');
   for (const kind of ['holidays', 'wildlife', 'workers']) for (const it of playlistOf(kind)) assert.ok(it.hour != null && (it.night ? it.hour >= 19 : it.hour < 19), `${kind}/${it.id}: its own hour`);
+});
+
+test('WIN3 — A WINDOW ROW JUMPS THE CLOCK: momentWhen gives every window-<id> row its moment’s own wall time on the day (inside its allowed hours; the small hours on the next day); anything else null', () => {
+  const inHours = (m, h) => { if (m.at != null) return Math.abs(h - m.at - 0.25) < 0.01; if (!m.hours) return true; const [a, b] = m.hours; return b >= a ? h >= a && h < b : h >= a || h < b; };
+  for (const m of MOMENTS) {
+    const w = momentWhen(`window-${m.id}`, '2026-10-26'); assert.ok(w && /^2026-10-2[67]T\d\d:\d\d$/.test(w), `${m.id}: ${w}`);
+    const h = Number(w.slice(11, 13)) + Number(w.slice(14, 16)) / 60; assert.ok(inHours(m, h), `${m.id} at ${w} is inside its hours`);
+    if (h < 6) assert.ok(w.startsWith('2026-10-27'), `${m.id}: the small hours land on the next day`);
+  }
+  assert.equal(momentWhen('window-cash', '2026-10-26'), '2026-10-27T00:30'); assert.equal(momentWhen('window-wake', '2026-10-26'), '2026-10-26T07:15');
+  assert.equal(momentWhen('smoke', '2026-10-26'), null); assert.equal(momentWhen('raid', '2026-10-26'), null); assert.equal(momentWhen('window-nope', '2026-10-26'), null);
 });

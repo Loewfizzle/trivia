@@ -316,7 +316,11 @@ export function createRemote({ scene, api = apiCall }) {
     const def = R.eventDef(id); if (!def) return;
     const f = new Set(s.force || []); f.add(id); s.force = [...f];
     for (const k of def.inputs || []) { if (s[k] == null && u.mem && u.mem[k] != null) s[k] = u.mem[k]; if (s[k] == null && R.INPUTS[k].default) s[k] = R.INPUTS[k].default; }
-    if (def.night || id === 'satellites') toTonight(s, u, id === 'satellites' ? 'dusk' : 'night');
+    // WIN3 — a WINDOW ROW jumps the clock to the moment's OWN hour (its routine's `at` / the middle of its hours — like PLAY ALL), even
+    // over a chosen time: the owner's rows did nothing by day (a day moment at 3 pm, the cash count held by day by a picked time)
+    const mw = R.momentWhen(id, ymd(today()));
+    if (mw) { u.custom = mw; u.t = null; delete u.autoT; retime({ state: s, ui: u }); }
+    else if (def.night || id === 'satellites') toTonight(s, u, id === 'satellites' ? 'dusk' : 'night');
   }
   const toggleForce = id => edit((s, u) => { if ((s.force || []).includes(id)) s.force = s.force.filter(x => x !== id); else forceOn(s, u, id); });
   // a RECENT entry back on (an event, a time, a weather …)

@@ -26,6 +26,7 @@ export const SECONDS = {
   motion: 75,          // (PEO, Oct 25: THE PEOPLE'S MOTION — a 12-s trace of an afternoon + the dance circle (a wait for it); measured on the laptop)
   weather: 70,         // (9a: THE WEATHER — fourteen pages, joined at once; 66 s on the laptop)
   holiday: 75,         // (11a-1: THE HOLIDAYS — eight pages: the build-up by date, the night, the come-down, the procession, reduced motion)
+  panelrows: 100,      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
 };
 
 // ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
@@ -37,7 +38,7 @@ export const CI_JOBS = {
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
   wild: ['wildlife', 'workers', 'legends', 'weather'],
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
-  holiday: ['holiday'],   // (9a: the weather + legends; tape → audio)
+  holiday: ['holiday', 'panelrows'],   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };
 
 export const SERIAL = ['panel', 'perf'];

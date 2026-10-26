@@ -2889,6 +2889,41 @@ G('life', async () => {
     await Q.ctx.close(); }
 });
 
+// ================================================================ WIN3 — THE PANEL'S WINDOW ROWS (ONLY=panelrows; the holiday cloud job)
+// The owner (Oct 26): PEEK AT THE STREET + CASH COUNT (and likely the others) did nothing from the preview panel. Every row in
+// SPEAKEASY → windows, tapped IN THE REAL SHEET by day (3:14 pm, his case): JUST ME's clock jumps to the moment's OWN hour (its routine's
+// `at` / the middle of its hours — core/harbor-remote.js#momentWhen), the moment starts in one of its own windows within a few seconds,
+// the pill names it with the time. No emulators needed (JUST ME lives in sessionStorage).
+G('panelrows', async () => {
+  const R0 = await import('../../js/core/harbor-remote.js'), M0 = await import('../../js/core/harbor-moments.js');
+  const Q = await open({ slot: 'prow', qs: `when=2026-10-26T15:14${GR}&wx=clear&panel=1`, view: [402, 874] });
+  await harborUp(Q.page);
+  await waitFor(Q.page, '!!window.__district.remote()', 'the panel', 10000);
+  await ev(Q.page, 'window.__district.remote().delay(0)');
+  const rows = R0.PANEL_EVENTS.filter(e => e.cat === 'windows' && e.id !== 'window');
+  const inHours = (m, h) => { if (!m) return true; if (m.at != null) return Math.abs(h - m.at - 0.25) < 0.15; if (!m.hours) return true; const [a, b] = m.hours; return b >= a ? h >= a && h < b : h >= a || h < b; };
+  let fired = 0;
+  for (const row of rows) {
+    const id = row.id.startsWith('window-') ? row.id.slice(7) : null, m = id ? M0.MOMENT[id] : null;
+    await ev(Q.page, 'window.__district.remote().setMine({})'); await sleep(400);
+    await ev(Q.page, 'window.__district.remote().open()'); await sleep(500);
+    await ev(Q.page, "window.__district.remote().openCats('*')"); await sleep(250);
+    const at = await ev(Q.page, `(() => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(b => b.textContent.replace(/☾/g, '').trim() === ${JSON.stringify(row.label)}); if (!b) return null; b.scrollIntoView({ block: 'center' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; })()`);
+    if (at) await tapAt(Q.page, at.x, at.y);
+    await sleep(250);
+    await ev(Q.page, 'window.__district.remote().close()');
+    const want = id ? `(() => { const L = window.__district.harbor().speakeasy.life; return L.forced === '${id}' && L.on.some(o => o.id === '${id}'); })()` : `window.__district.harbor().flags.force.includes('${row.id}')`;
+    const went = at ? await waitFor(Q.page, want, row.label, 6000).then(() => true).catch(() => false) : false;
+    const st = await ev(Q.page, `(() => { const H = window.__district.harbor(), L = H.speakeasy.life, me = JSON.parse(sessionStorage.getItem('nd:hr-me') || '{}').state || {}; return { h: +L.h.toFixed(2), on: L.on.map(o => o.id + '@' + o.win), when: me.when || null, pill: (document.querySelector('.hr-pill') || {}).textContent || '' }; })()`);
+    const winOk = !m || st.on.some(o => o.startsWith(id + '@') && (m.windows === 'all' || m.windows.includes(o.split('@')[1])));
+    const hourOk = inHours(m, st.h), named = st.pill.includes(row.label) && (!m || / \d\d:\d\d$/.test(st.pill));
+    if (went && winOk && hourOk && named) fired++;
+    ok(!!at && went && winOk && hourOk && named, `THE ROW ${row.label}: ${at ? 'tapped' : 'NOT FOUND in the sheet'} → ${went ? 'fires' : 'NOTHING'} (${st.on.join(', ') || 'nothing on'}) at ${st.h} (${st.when || 'no jump'}${m ? `, allowed ${m.at != null ? `~${m.at}:00` : m.hours ? m.hours.join('–') : 'any hour'}` : ''}), the pill "${st.pill}"`);
+  }
+  ok(fired === rows.length && rows.length >= 18, `EVERY WINDOW ROW FIRES from the sheet: ${fired} of ${rows.length}`);
+  await Q.ctx.close();
+});
+
 // ================================================================ PART 8b1 — THE WORKERS' SCHEDULE (ONLY=workers)
 G('workers', async () => {
   const P = 'window.__district.harbor()';

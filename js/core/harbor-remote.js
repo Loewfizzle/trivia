@@ -387,6 +387,13 @@ export function playlistOf(kind) {
   }
   return [...items.filter(i => !i.night), ...items.filter(i => i.night)];
 }
+/** WIN3 — a WINDOW ROW's own wall time (the owner: the panel's window rows did nothing — a day moment by day, or a night moment while a
+ *  chosen time held the clock by day): a `window-<id>` force id → that moment's own hour on the day (momentHour: a routine's `at`, else
+ *  the middle of its hours; the small hours on the next day), or null for anything else. forceOn() jumps JUST ME's clock to it. */
+export function momentWhen(id, day) {
+  const m = typeof id === 'string' && id.startsWith('window-') ? MOMENTS.find(x => x.id === id.slice(7)) : null;
+  return m ? itemWhen({ hour: momentHour(m), night: m.light === 'night' }, day) : null;
+}
 /** an item's wall time on a day ('YYYY-MM-DD') → 'YYYY-MM-DDTHH:MM' (an hour under 6 lands on the NEXT day — the small hours) */
 export function itemWhen(item, day) {
   const h = item.hour == null ? (item.night ? 22.5 : 14) : item.hour, [y, m, d] = day.split('-').map(Number);
