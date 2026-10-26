@@ -7198,7 +7198,11 @@ step working on this laptop: B stepped the EFFECTS first (`2 → 1/2`: the resol
   arms 0.2033 rad a frame against a 0.2 cap — a drink fold at 12 rad/s, no snap (the snap was 1.8): the cap is 0.25); `audio` 125/133 —
   every AUDIO PANEL check read an empty "want" row: THIS PASS folds every strip on load and the folded strip rendered no rows; the rows
   are kept up to date while folded now (the CSS hides them). The three are one follow-up `[harbor]` push — the pass's second and last run.
-- **Run 2**: __CLOUD2__
+- **Run 2**: (40379879307): `wild`, `show`, `holiday` green; `city` 107/108 (the LOAD WEATHER flake again); `audio` 131/133 — the
+  AUDIO panel's two tape checks read the whole strip's text and matched the OPEN head's "AUDIO ▾": the folded one-liner reads "AUDIO ▸"
+  now (the regex takes both — a test fix); `street` 91/92 — the toast's biggest arm step read 0.31 rad a frame on the runner (0.20 in run 1,
+  0.17 here): the walk-in's blends at the runner's frame rate — the single-step cap is a TIMING check now, the judder count (the real snap)
+  stays hard. Both are test fixes pushed WITHOUT `[harbor]` (the two-run rule); the next pass's run proves them.
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&…`)
 - **The spiders**: `&when=2026-10-31T21:00` — tap either spider (the first on the sign's left web, the second on the last N): it drops to
