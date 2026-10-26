@@ -52,7 +52,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | C2 | ✅ (Oct 25 — docs/harbor.md#c2: the TR-3B pass review (the jets' gap ~2 s, faster + smaller, the power back without the flashes, the far strips fixed), the 8b2 review (the spotlight's tour, the officer out front, ~10 s shorter, Rosie blended + her wake, open-water turns, the props carried, the cab's door), the panel rework, the trash can, the harness; the Firebase upgrades on `deps/firebase-upgrade` — safe to merge, Ben decides) cleanup pass 2 (+ DEPENDENCY UPGRADES on a branch with the full tests: firebase-admin 13 → 14, the browser Firebase SDK past 11.10 — not urgent, Oct 24) | Opus 5.5 medium | 15–30 min |
 | PEO | ✅ (Oct 25 — docs/harbor.md#peo: the afternoon stutter measured — the battery saver's 30 fps + its flips, a partner's skate at turns, the planner's block in a frame — and fixed; speeds + steps against real walking; the dancers' arms continuous; the `motion` check) THE PEOPLE'S MOTION (a Fable review + fix: speed, gait, the afternoon stutter, the dancers' arms) | Fable 5.1 | 90–120 min |
 | POL5 | ✅ (Oct 25 — docs/harbor.md#polish-5: the load log + the load jumps fixed (the screen's entrance, the fonts, the weather, the clouds, 100lvh); the hush sign ice-cyan + single panes + JOIN/HOST lit + no music toast; Rosie navy + the wheel + the crabapple; the fire hydrant + its hot-day spray; every forced event from the fire; the barnstormer gone, the ₿ + the festival launch, 3-line sky messages, the biplane's banner, the periscope's ping; the glass tower's neon; the lobby-line shots) POLISH 5 — THE LOAD, THE SPEAKEASY'S GLASS, THE COLOURS, THE HYDRANT, THE SKY'S MESSAGES | Opus 5.5 high | 180–240 min |
-| 9 | seasons + weather | Opus 5.5 medium | 45–75 min |
+| 9a | THE WEATHER (rain, drizzle, storms, fog, wind, wet streets, the sign + the dock glass in rain / ice, the sounds) + the POLISH 5 review fixes — "(after POLISH 5)" | Opus 5.5 high | ~3–4 h |
+| 9b | WINTER + THE CONSTRUCTION TOWER (real snow on the ground, the stages, plows + salt + shovelers, the January snowman, snow on the sign + frost on the glass, the tower's yearly cycle) | Opus 5.5 high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11a | autumn holidays: the shared holiday system (calendar, build-ups, sign dressings), the parade system, the banner plane's messages, Halloween, Day of the Dead, Thanksgiving | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
@@ -1821,3 +1822,105 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   an aria-live line for screen readers (no visual). ONE exception: if ALL sound is muted in settings, a tap that can't
   play anything shows a short hint ("SOUND IS OFF — SETTINGS") placed clear of the sign. The toasts' LOOK in general
   belongs to the menus / settings redesign (Lobby 2.0 era) — there no toast ever sits over the NEON sign during a race.
+
+## OWNER'S NOTES — OCT 25 (after POLISH 5)
+(For PART 9a + later parts. Recorded as received, Oct 25 evening. Also: the banner plane is APPROVED as it is for now —
+the owner, Oct 25 10:05 pm.)
+
+- POLISH 5 PHONE REVIEW (the owner, Oct 25 ~9:55 pm): (1) ROSIE reads TOO WHITE now — add a stripe so she's more
+  noticeable: a broad DEEP NAVY band along the hull (the waterline / boot-top) + a thin GOLD pinstripe under the main
+  deck rail; the paddle box navy with a gold edge; black stacks kept; NO red (the middle has enough) — judged at phone
+  size by day + night (her lit windows + deck lamps at night). (2) REGRESSION: since POLISH 5's wheel recolour the
+  FERRIS WHEEL's lights no longer die in the TR-3B blackout — they must go dark with the city (bulbs, gondola glows,
+  the party sequence) and stutter back with the rest; add the wheel to the blackout's test so it can't slip again
+  (check every light source the blackout should kill, not only the wheel).
+- THE BALLOONS STAY UP (the owner, Oct 25 ~10 pm — DECIDED): they're rare, so when they come they should LINGER: today
+  an event lasts 12 min (balloons.js `dur: 12 * 60`) and the burner fires every 8–20 s. NEW: a single balloon ~45–60 min
+  on screen, the festival ~60–90 min (a real flight lasts 1–2 h), drifting SLOWLY across with the real wind (the crossing
+  spread over the whole stay — barely moving at a glance, like a real balloon), a gentle rise + fall; the BURNER RARE +
+  irregular: one short burn every ~45–120 s (seeded, never on a rhythm; more often only while climbing at launch); joins
+  mid-way on load (opening the city 30 min in shows it mid-sky); the panel's preview keeps a "fast" option to see the
+  whole crossing. Check it never parks behind the NEON sign or the dock for long.
+- A SOLO SECTION (the owner, Oct 25 ~10 pm — for the GAME LINEUP CHAT, then the build): besides the 3 daily puzzles, a
+  place to just PLAY ALONE any time — PRISM DROP for a high score, the WORDLE-type, the MINESWEEPER-type, practice runs,
+  and games VS AN AI (GRIDLOCK vs the AI — the Battleship-style one —, more game by game); personal bests + THE BOARD per
+  solo game; reachable from the dock's GAMES button without a room.
+- A TILT-STEERING DRIVING GAME (the owner's idea, Oct 25 7:50 pm — for the GAME LINEUP CHAT): steer by turning the phone
+  (DeviceOrientation; iOS asks permission on a tap — "TAP TO START YOUR ENGINE"); Claude: likely held sideways like a
+  wheel (prototype that vs upright tilt and let the owner feel both), the road counter-rotating to stay level, centred at
+  the countdown, a touch fallback (left / right halves) + keys on desktop; multiplayer like SLIPSTREAM (one seeded track,
+  your car simulated locally, the others as interpolated ghosts ~10 Hz), ghost cars (no fair online collisions) with
+  drafting / boosts instead; first past the line or last on the road.
+- PART 9 SPLIT (Claude, Oct 25 — the section grew into two passes): 9a = THE WEATHER (rain, drizzle, storms, fog, wind,
+  wet streets, the neon sign + the dock glass in rain / ice, the people + the water + the sky reacting, the weather sounds
+  imported); 9b = WINTER + THE CONSTRUCTION TOWER (real snow on the ground through the season, the snow stages, the plows +
+  salt + shovelers, the snowman, the snow on the sign + frost on the glass, the tower's yearly cycle).
+- THE BALLOON FESTIVAL's LINE-UP + NEW STYLES (the owner, Oct 25 10:10 pm — DECIDED): the festival launches SIX balloons
+  in THIS order, one after another from behind the buildings: (1) an ORANGE ₿ balloon (Bitcoin-orange envelope, the ₿ in
+  black / white), (2) the ALIEN balloon, (3) the BLACK ₿ balloon (today's: black envelope, orange ₿; lit orange at night),
+  (4) a BULLSEYE balloon (concentric rings round the envelope, e.g. red / white or navy / gold), (5) a classic YELLOW SMILEY
+  FACE balloon, (6) a STRIPED balloon (classic vertical gore stripes). New styles beside today's pinstripes: BULLSEYE,
+  SMILEY, VERTICAL STRIPES (keep two of the existing pinstripe schemes too). Everyday single balloons draw from the
+  ordinary styles (stripes / pinstripes / bullseye / smiley); ₿ + alien keep their rare odds. Premium, not clip-art: every
+  design painted ON the fabric — following the gores' curvature, shaded with the envelope's light (the sun side, the
+  burner's glow from inside), seams visible at phone size only as shading; the smiley's face wraps round the curve.
+- THE WEATHER ON THE SIGN + THE BUTTONS — THE QUALITY BAR (the owner, Oct 25 10:18 pm): the rain BEADING on the neon tubes
+  and DRIPPING off them, and the ICE / FROST GLAZE, must look legit + impressive, never cheap: real refraction (each bead a
+  tiny lens catching the tube's colour + a bright specular point), beads gathering + merging + running down the tube's
+  underside before a drip lets go (with a glint as it falls), the glaze a clear, slightly uneven sheet with sparkle that
+  catches the glow; several refine passes zoomed + full screen at night. THE MENU + MUSIC BUTTONS (and the dock's glass)
+  get the weather too: rain beading on their glass; in the COLD a frosty, cold-glass / cold-metal look building in from
+  the edges (a pale crystalline frost, a cooler tint) — NO icicles on the buttons; icons + text stay crisp.
+  THE DOCK TOO (the owner, Oct 25 10:20 pm): the dock's glass (JOIN · the middle buttons · HOST) gets the SAME rain
+  beading + the cold-glass frost as the menu + music buttons — like City 1.0 had it (js/screens/district/frost.js: the
+  feathery frost growing in from the edges when it's really cold, the rain from district/rain.js — City 1.0 is only the
+  FLOOR — the owner wants it clearly SUPERIOR, the best possible); taps, labels + contrast untouched.
+- SNOW ON THE NEON + THE SNOWMAN (the owner, Oct 25 10:18 pm — for 9b): (1) snow BUILDS UP on the sign's tubes + frame
+  while the sign is OFF (by day), and PILLOWS up softly on the tubes when snow falls on them; when the sign lights (or
+  while it's lit) it MELTS SLOWLY, like real life (soft mounds shrinking, wet glistening tubes, drips) — never a pop.
+  (2) THE JANUARY SNOWMAN — a BIG snowman built on the promenade's centre circle (the inlay / the centrepiece rig) over
+  JANUARY: started ~Jan 2 (kids + a couple of adults rolling the base), growing + decorated through the month (the
+  middle, the head, coal eyes + buttons, a carrot, a scarf, a hat, stick arms, finishing touches), DONE by ~Jan 31, then
+  it stands until it really melts. Claude's notes: tie it to REAL SNOW (building days only when there's snow on the
+  ground; no snow → no snowman, e.g. Florida); a brief January thaw makes it SLUMP + drip and the builders patch it up —
+  it only melts away on a real sustained thaw (several days above ~4 °C / the snowpack gone), slumping in stages; the
+  centrepiece rig shares the circle (no other centrepiece in January while it stands); the people's visits keep it alive
+  (a kid adding a pebble smile, someone taking a photo). Replaces the plan's old "a snowman that grows through a real
+  snowy day".
+- THE LOBBY-LINE SHOTS (POLISH 5, docs/harbor/refs/lobby-line/, Claude's read for LOBBY 2.0): BY DAY the coloured coats
+  tell 8 people apart well. AT NIGHT the coats go almost black and the pins float well ABOVE the heads (over the shop
+  window's glow), so they read as loose coloured dots, not "that's Jessica". Fix in Lobby 2.0: (1) the coats stay their
+  colour at night — lit by the shopfront + the globe lamp (a warm key light + a rim), never just silhouettes; (2) the
+  pin sits RIGHT above the hat (a few pt) so it belongs to the figure, a touch bigger; (3) 8 reach the left edge → the
+  last two step DOWN toward the camera (the two-deep stagger used properly) instead of running further left; (4) gaps
+  so no two figures merge.
+- THE MOTHMAN ON THE NEEDLE (the owner, Oct 25 7:30 pm — a NEW LEGENDARY, for Part 11c's legendaries / Part 12; Claude's
+  notes in brackets): a giant winged creature PERCHED ON THE NEEDLE's spire, a pure black silhouette against the night, TWO
+  GLOWING RED EYES looking straight at the camera. It doesn't move; it BLINKS rarely; now and then a slow shift of its
+  weight; it stays on the needle, then FLIES OFF straight up / out of the screen. RARE: ~TWICE A MONTH, only 2–5 am (a
+  night-owl reward; seeded, the same nights for everyone, joins mid-way, never on another legendary's night).
+  [Claude: (1) SIZE for the phone — big enough to read as a creature at 402, ~35–45 pt tall folded, its shape (hunched
+  shoulders, folded wings like a cloak, no detail) RIM-LIT by the needle's own neon + the moon, or black on dark sky
+  won't read; (2) the eyes must not read as the towers' red aviation beacons: larger, closer-set, a deeper red with a
+  soft glow, and they blink RARELY where the beacons blink on a rhythm — the contrast makes it creepier; (3) DECIDED (the
+  owner, Oct 25 7:37 pm): perched the WHOLE NIGHT — from 2 am until ~5–5:30 am (~3.5 h; the leaving time seeded per night
+  within 5:00–5:30, always before first light); he lands at 2 am (a silent glide onto the spire), anyone opening later
+  finds him already there; the needle's neon dims / flickers faintly while it's there; (4) THE DEPARTURE is the payoff:
+  the wings unfold to a huge span (the one moment of scale), a downdraft gust that makes the needle's neon stutter, then
+  straight up and gone; the city's night sounds (crickets) hush while it's there and return after; one low wingbeat
+  whoosh (synthesized or a Grok sound ahead of that part); (5) fog nights allowed — only the eyes through the fog;
+  (6) &force=mothman + a LEGENDARY panel row; maybe one extra night around Halloween. Folklore (Point Pleasant, 1966) =
+  free to use; an original silhouette, not a copy of the town's statue.]
+  QUALITY BAR (the owner, Oct 25 7:47 pm — "it's all about quality"): VERY HIGH — premium, top tier, STUNNING. He's
+  dark, but at ~65 pt he's big enough for real craft: a sculpted silhouette (no flat cut-out), subtle wing membrane
+  folds + texture catching the rim light, a fine soft-edged rim (no outline stroke), the eyes' glow wet and alive, the
+  weight shift + the rare blink eased like a living thing, the take-off a cinematic beat; the reference is the FLOOR —
+  several refine passes zoomed + full screen at 402, night + fog + a party night, before calling it done.
+  THE LOOK (the owner approved Claude's prototype, Oct 25 7:45 pm): ~65 pt tall perched at 402 (clearly a creature at a
+  glance); pure black, a hooded head (no ears / tufts — never Batman), wings folded like a cloak with the wrists rising
+  above the head, a soft ragged hem; RIM LIGHT from below in the NEEDLE's own neon colour that night (it follows the
+  needle — party colours included) + a silver rim on the moon side; the face stays dark; RED EYES (a large close-set pair,
+  a hot near-white core, a soft red glow; NOT yellow — the city's lit windows are amber), never blinking on a rhythm
+  like the beacons. If the needle is red / pink that night, the eyes get a hotter core so they still pop. THE TAKE-OFF:
+  wings open to ~half the screen's width (broader, more moth-like than bat-like), downdraft lines + the needle's neon
+  stuttering, then straight up.
