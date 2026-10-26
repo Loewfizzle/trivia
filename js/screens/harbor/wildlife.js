@@ -23,7 +23,7 @@ import { hourPlan } from '../../core/harbor-moments.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import {
   localOf, wildSpots, spotPoint, offPoint, hydrantOf, pilingSpot, PIGEON, pigeonAt, groundLife, GULL, gullSlot, gullSlotLen, OWL, owlDay, owlAt,
-  SQUIRREL, squirrelSlot, squirrelSlotLen, fishSlotLen, coyoteNight, coyotePath, pathAt, coyoteTracks, catEvening, catPath, catSpot,
+  SQUIRREL, squirrelSlot, squirrelSlotLen, fishSlotLen, coyoteNight, coyotePath, pathAt, coyoteTracks, catEvening, catPath, catSpot, halloweenCat, CAT,
   fireflyCount, fireflyAt, FIREFLY, heronMorning, heronForced, HERON, FISH, fishSlot,
 } from '../../core/harbor-wildlife.js';
 import { drawBird, drawOwl, drawHeron, drawQuad, drawHydrant, drawHydrantSpray, drawHydrantWet, drawPiling, drawJump, drawFirefly, fireflySprite } from './fauna.js';
@@ -34,7 +34,7 @@ const smooth = u => { const x = clamp01(u); return x * x * (3 - 2 * x); };
 const lerp = (a, b, u) => a + (b - a) * u;
 const hash = (...k) => rngFrom(hashString(k.join('|')));
 /** the forced previews (THE PREVIEW PANEL's WILDLIFE rows + &force=…) */
-export const WILD_FORCES = ['pigeons', 'pigeons-scatter', 'dog-pigeons', 'cat-out', 'cat-stalk', 'gulls-land', 'squirrel', 'snowy-owl', 'coyote', 'fireflies', 'heron', 'fish'];
+export const WILD_FORCES = ['pigeons', 'pigeons-scatter', 'dog-pigeons', 'cat-out', 'cat-stalk', 'gulls-land', 'squirrel', 'snowy-owl', 'coyote', 'fireflies', 'heron', 'fish', 'black-cat'];
 
 export function createWildlife() {
   let L = null, spots = [], byId = new Map(), hyd = null, piling = null, maple = null, cache = new Map(), budgetK = 1;
@@ -42,7 +42,7 @@ export function createWildlife() {
   let sunKey = '', sun = { rise: 7.2, set: 18.6 }, catWinKey = '', catWin = null;
   const pig = Array.from({ length: PIGEON.max }, (_, i) => ({ i, ov: null, now: null, flushes: 0, hold: 0 }));
   const gullOv = new Map(), lunges = new Map(), bolts = { coyote: null, squirrel: null };
-  let catOv = null, catStalkDone = -1, sqHide = -1, sqId = null, lastFlutter = -1e9, nextCoo = 0, nextCall = 0, sounds = [];
+  let catOv = null, catTapS = null, darkK = 0, catStalkDone = -1, sqHide = -1, sqId = null, lastFlutter = -1e9, nextCoo = 0, nextCall = 0, sounds = [];
   let scareQ = [], ffSprite = null, now = { birds: [], gulls: [], owl: null, sq: null, coyote: null, cat: null, fish: [], heron: null, ff: [], hyd: null };
 
   function layout(l) {
@@ -77,7 +77,7 @@ export function createWildlife() {
     if (!L) return;
     t = f.ms / 1000; force = f.force || new Set();
     { const fk = `${[...force].filter(x => WILD_FORCES.includes(x)).sort().join(',')}|${(f.rain || 0) > 0.3 ? 1 : 0}|${f.season || ''}`; if (fk !== forceKey) { forceKey = fk; cache.clear(); } } tier = f.tier == null ? 2 : f.tier; motion = f.motion !== false; season = f.season || 'autumn';
-    people = f.people || []; frameT = f.t == null ? performance.now() / 1000 : f.t;
+    people = f.people || []; frameT = f.t == null ? performance.now() / 1000 : f.t; darkK = f.dark || 0;
     // THE PREVIEWS start AT ONCE: each forced loop counts from the moment its row was switched on (2 s ago) — not from the epoch
     for (const id of WILD_FORCES) { if (force.has(id)) { if (!since.has(id)) since.set(id, t - 2); } else since.delete(id); }
     // the sun's times today (local hours) — once a day
@@ -87,7 +87,7 @@ export function createWildlife() {
       try { const st = sunTimes(f.ms, f.tz, f.lat, f.lon), hr = ms => ((((ms + (f.off || 0) * 60000) / 3.6e6) % 24) + 24) % 24; if (st.rise && st.set) sun = { rise: hr(st.rise), set: hr(st.set) }; } catch { /* keep the last */ }
     }
     ctx = { off: f.off || 0, seed: f.seed || 1924, spots, sun, rain: f.rain || 0, wind: f.wind || 3, force, season, moon: f.moon || 0,
-      catInside: (a, b) => catInsideFn(a, b, f) };
+      catInside: (a, b) => catInsideFn(a, b, f), halloween: !!(f.hpieces && f.hpieces.cat) };
     ctx.owl = tt => { const d = owlDayAt(tt); const o = owlAt(d, tt); return o ? o.spot || o.to || o.from : null; };
     lastT = t;
     stepPigeons();
@@ -381,15 +381,33 @@ export function createWildlife() {
     return seen.some(([x, y]) => b > x && a < y);
   }
   function catPlan() {
+    // (11a-1 — THE BLACK CAT: Halloween's evenings on the side door's step, beside the jack-o'-lanterns; &force=black-cat: out now, on a loop)
+    if (force.has('black-cat')) { const { n, base } = fbase('black-cat', 900); return get(`bcatF|${n}`, () => ({ ...catPath(L, base + 1, 840, 'step'), black: true, stalk: null })); }
+    if (ctx.halloween) { const ev = nightKeyOf(t), lc = localOf(t, ctx.off), day = lc.h < 12 ? ev : lc; return get(`bcat|${day.key}`, () => halloweenCat(day.key, day.day0, L, ctx)); }
     if (force.has('cat-out') || force.has('cat-stalk')) { const { n, base } = fbase(force.has('cat-stalk') ? 'cat-stalk' : 'cat-out', 200); return get(`catF|${n}`, () => ({ ...catPath(L, base + 1, 160, n % 2 ? 'step' : 'sill'), stalk: force.has('cat-stalk') ? base + 24 : null })); }
     const ev = nightKeyOf(t), lc = localOf(t, ctx.off);
     const day = lc.h < 12 ? ev : lc;
     return get(`cat|${day.key}`, () => catEvening(day.key, day.day0, L, ctx));
   }
   function catNow() {
-    const plan = catPlan(); if (!plan || !plan.legs) return null;
-    if (t < plan.t0 || t > plan.t1) { catOv = null; return null; }
+    const plan = catPlan(); if (!plan || !plan.legs) { catTapS = null; return null; }
+    if (t < plan.t0 || t > plan.t1) { catOv = null; catTapS = null; return null; }
     const sp = catSpot(L, plan.spot), below = plan.legs[0].pts[1];
+    // 11a-1 — THE TAP: it HISSES (the arched back, the tail up + puffed, the ears flat — facing you), then DARTS off the left edge; a minute
+    // later it strolls back in + hops up again
+    if (catTapS) {
+      const o = catTapS, el = t - o.at, edge = plan.legs[0].pts[0], run = 5.2, hop = 0.28;
+      if (el < 0.95) return { kind: 'cat', x: o.x, y: o.y, z: o.z, hd: 0.12, pose: 'hiss', turn: -1.45, puff: Math.min(1, el / 0.12), eyes: 0.5 * darkK, black: true };
+      const e2 = el - 0.95, dRun = Math.hypot(below.x - edge.x, below.z - edge.z) / run;
+      if (e2 < hop) { const u = e2 / hop; return { kind: 'cat', x: lerp(o.x, below.x, u), y: o.y * (1 - smooth(u)) + Math.sin(u * PI) * 0.18, z: lerp(o.z, below.z, u), hd: PI, pose: 'run', gait: u, moving: 1, black: true }; }
+      if (e2 < hop + dRun) { const u = (e2 - hop) / dRun; return { kind: 'cat', x: lerp(below.x, edge.x, u), y: 0, z: lerp(below.z, edge.z, u), hd: PI, pose: 'run', gait: (e2 - hop) * run / 0.85, moving: 1, black: true }; }
+      const back = o.at + 60;
+      if (t < back) return null;
+      const dWalk = Math.hypot(below.x - edge.x, below.z - edge.z) / CAT.walk, e3 = t - back;
+      if (e3 < dWalk) { const u = e3 / dWalk; return { kind: 'cat', x: lerp(edge.x, below.x, u), y: 0, z: lerp(edge.z, below.z, u), hd: 0, pose: 'trot', gait: e3 * CAT.walk / 0.55, moving: 0.7, black: true }; }
+      if (e3 < dWalk + 0.6) { const u = (e3 - dWalk) / 0.6; return { kind: 'cat', x: lerp(below.x, sp.x, u), y: sp.y * smooth(u) + Math.sin(u * PI) * 0.25, z: lerp(below.z, sp.z, u), hd: -PI / 2, pose: 'stand', black: true }; }
+      catTapS = null;
+    }
     // THE STALK (live): drop down, creep low toward the nearest pigeon on the cobbles, a wiggle, the pounce (the flock bursts), a sit
     // + a lick, back to its place
     if (plan.stalk && t >= plan.stalk && catStalkDone !== plan.stalk && !catOv) {
@@ -422,7 +440,7 @@ export function createWildlife() {
     if (left < 0.6) { const u = 1 - left / 0.6; return { kind: 'cat', x: lerp(sp.x, below.x, u), y: sp.y * (1 - smooth(u)) + Math.sin(u * PI) * 0.25, z: lerp(sp.z, below.z, u), hd: PI, pose: 'stand' }; }
     if (catNow.meow !== plan.t0 && since > 4) { catNow.meow = plan.t0; if (hash('meow', plan.t0)() < 0.5) sounds.push({ slot: 'cat-meow', x: sp.x, gain: 0.45 }); }
     const lick = Math.sin(t * 0.13 + plan.t0) > 0.86;
-    return { kind: 'cat', x: sp.x, y: sp.y, z: sp.z, hd: sp.hd + 0.25 * Math.sin(t * 0.05), pose: lick ? 'lick' : 'sit', turn: lick ? 0.3 : 0.9 * Math.sin(t * 0.27 + plan.t0) * (Math.sin(t * 0.08) > 0 ? 1 : 0.2), tailFlick: Math.sin(t * 2.1) * 0.5 };
+    return { kind: 'cat', x: sp.x, y: sp.y, z: sp.z, hd: sp.hd + 0.25 * Math.sin(t * 0.05), eyes: plan.black ? 0.4 * darkK : 0, black: !!plan.black, pose: lick ? 'lick' : 'sit', turn: lick ? 0.3 : 0.9 * Math.sin(t * 0.27 + plan.t0) * (Math.sin(t * 0.08) > 0 ? 1 : 0.2), tailFlick: Math.sin(t * 2.1) * 0.5 };
   }
 
   // ---------------------------------------------------------------- THE FISH · THE HERON · THE FIREFLIES
@@ -555,6 +573,14 @@ export function createWildlife() {
 
   return {
     layout, frame, items, draw, tick,
+    /** 11a-1 — a tap on the outside cat (screen pt): it hisses + darts off (true when it was hit; the scene plays the hiss) */
+    catTap(x, y) {
+      const q = now.cat; if (!q || catTapS || !L || (q.pose !== 'sit' && q.pose !== 'lick' && q.pose !== 'stand')) return false;
+      const [sx, sy] = project(L.cam, q.x, q.y || 0, q.z), s = L.cam.F / q.z, r = Math.max(22, 0.9 * s);
+      if (Math.hypot(x - sx, (y - (sy - 0.3 * s)) * 1.1) > r) return false;
+      catTapS = { at: t, x: q.x, y: q.y || 0, z: q.z }; catOv = null;
+      return { x: q.x, pan: Math.max(-1, Math.min(1, (sx / (L.cam.W || 402)) * 2 - 1)) };
+    },
     /** Group 3 — THE WITNESSES: scare everything within r of (x, z) / everything at once */
     scare(x, z, r = 4) { scareQ.push({ x, z, r }); if (now.sq) bolts.squirrel = bolts.squirrel || { id: lastSq(), t0: t, x: now.sq.x, z: now.sq.z }; },
     startle() { scareQ.push({ all: true }); if (now.coyote) bolts.coyote = { t0: t, x: now.coyote.x, z: now.coyote.z, to: { x: L.cam.hw(now.coyote.z) + 3, z: now.coyote.z } }; if (now.sq && !now.sq.onTree) bolts.squirrel = { id: lastSq(), t0: t, x: now.sq.x, z: now.sq.z }; },

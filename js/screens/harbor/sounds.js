@@ -88,7 +88,7 @@ export function createCitySounds() {
     } else if (r) { for (const h of r.hs) h.stop(fade); runs.delete(slot); }
   }
 
-  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null, hydrant = null, weather = null } = {}) {
+  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null, hydrant = null, weather = null, hween = 0 } = {}) {
     if (dead) return;
     const t = performance.now();
     if (t - lastT < 250) return;
@@ -138,7 +138,9 @@ export function createCitySounds() {
       keep('gutter-drip', wxBed.drip * on, -0.45, { ramp: 4, linger: 30, fadeIn: 3 });
       keep('wind-leaves', wxBed.wind * on, 0.2, { ramp: 4, linger: 30, fadeIn: 5 });
       keep('crickets-night', wxBed.crickets * on, 0.15, { ramp: 6, linger: 60, fadeIn: 8 });
-      keep('birdsong-morning', wxBed.birds * on, -0.15, { ramp: 6, linger: 60, fadeIn: 8 }); }
+      keep('birdsong-morning', wxBed.birds * on, -0.15, { ramp: 6, linger: 60, fadeIn: 8 });
+      // 11a-1 — HALLOWEEN NIGHT: a hollow haunted wind moaning low through the streets, under everything (the scene's `hween` 0..1)
+      keep('haunted-wind', clamp(hween || 0, 0, 1) * 0.9 * on, 0.25, { ramp: 6, linger: 40, fadeIn: 10 }); }
     // ---- 8P — THE SPEAKEASY's LIFE, heard: each moment's cues (on the clock), the barbershop's day
     life(t);
     // ---- THE SKY (skyfx.listen(): what's up there now) — under the bed, ducked with it under the music (bm.k)

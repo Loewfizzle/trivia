@@ -438,7 +438,7 @@ export function createRemote({ scene, api = apiCall }) {
       },
     },
     holidays: {
-      sec: 'time', last: true, label: 'HOLIDAY', q: 'holiday holidays date',
+      sec: 'holidays', last: false, label: 'HOLIDAY', q: 'holiday holidays date',
       n: () => R.HOLIDAYS.length,
       on: st => [st.hol ? R.HOLIDAYS.find(x => x.id === st.hol).label : null],
       kids: st => [h('p.hr-note', 'jumps to its next date (keeps the time you picked; else 21:00)'),

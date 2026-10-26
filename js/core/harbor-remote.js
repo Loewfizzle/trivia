@@ -78,6 +78,8 @@ export const catOf = id => { const e = EV[id]; return e && CAT_IDS.has(e.cat) ? 
 export const SECTIONS = [
   { id: 'sky', label: 'SKY' },
   { id: 'legendary', label: 'LEGENDARY' },
+  // (11a-1: THE HOLIDAYS — the date jump + every holiday moment on demand)
+  { id: 'holidays', label: 'HOLIDAYS' },
   { id: 'people', label: 'PEOPLE + WORKERS' },
   { id: 'wildlife', label: 'WILDLIFE' },
   { id: 'harbor', label: 'HARBOR' },
@@ -89,7 +91,7 @@ export const SECTIONS = [
 const SEC_IDS = new Set(SECTIONS.map(s => s.id));
 /** each area's section (the panel's own blocks use the same ids: time, holidays, weather, party, lights = PULSE, music, sounds, tools) */
 export const AREA_SECTION = {
-  time: 'time', holidays: 'time', weather: 'weather', sky: 'sky', lights: 'lightsmusic', signs: 'lightsmusic', party: 'lightsmusic',
+  time: 'time', holidays: 'holidays', weather: 'weather', sky: 'sky', lights: 'lightsmusic', signs: 'lightsmusic', party: 'lightsmusic',
   speakeasy: 'lightsmusic', music: 'lightsmusic', harbor: 'harbor', promenade: 'harbor', windows: 'people', workers: 'people',
   wildlife: 'wildlife', sounds: 'tools', tools: 'tools',
 };
@@ -152,7 +154,16 @@ export const EVENTS = [
   { id: 'fireworks', label: 'FIREWORKS', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
   { id: 'finale', label: 'PARTY FINALE', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
   { id: 'sleigh', label: 'SLEIGH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
-  { id: 'witch', label: 'WITCH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
+  { id: 'witch', label: 'WITCH', cat: 'holidays', group: 'HALLOWEEN', night: true, hint: 'she crosses the sky on her broom (the moon when it’s up), a trail of neon sparks + her cackle' },
+  // (11a-1 — HALLOWEEN + DAY OF THE DEAD: the moments on demand; the build-up itself is DATE-driven — the HOLIDAY jump or &when=Oct 1 → Nov 3)
+  { id: 'ghost-ship', label: 'THE GHOST SHIP', cat: 'holidays', sec: 'legendary', group: 'ON THE WATER', kw: 'halloween legendary galleon green', night: true, hint: 'Halloween night’s legendary: a translucent green ghost ship drifts across the harbor (~2½ min, on a loop)' },
+  { id: 'trick-or-treat', label: 'TRICK-OR-TREATERS', cat: 'holidays', group: 'HALLOWEEN', kw: 'kids costumes candy', hint: 'kids in costumes + a grown-up, door to door along the promenade' },
+  { id: 'zombies', label: 'ZOMBIES', cat: 'holidays', group: 'HALLOWEEN', kw: 'costume party shamble', night: true, hint: 'a costume party’s zombies shambling along the promenade (playful)' },
+  { id: 'sign-web', label: 'THE WEB ON THE SIGN', cat: 'holidays', group: 'HALLOWEEN', kw: 'spider cobweb dew neon', hint: 'the finished web across NEON + its spider, any day (the real one grows Oct 1 → 31)' },
+  { id: 'sign-dotd', label: 'THE SIGN · DAY OF THE DEAD', cat: 'holidays', group: 'DAY OF THE DEAD', kw: 'marigold papel picado candles neon', hint: 'the marigold garland, papel picado + candles on NEON, any day' },
+  { id: 'black-cat', label: 'THE BLACK CAT', cat: 'holidays', group: 'HALLOWEEN', kw: 'cat hiss tap', hint: 'on the speakeasy’s step — tap it: it hisses + darts off' },
+  { id: 'procession', label: 'CANDLELIGHT PROCESSION', cat: 'holidays', group: 'DAY OF THE DEAD', kw: 'dia de muertos catrina mariachi candles', hint: 'Nov 2 at dusk: candles, Catrinas with flower crowns, a mariachi trio along the waterside road' },
+  { id: 'monarchs', label: 'MONARCH BUTTERFLIES', cat: 'holidays', group: 'DAY OF THE DEAD', kw: 'butterfly', hint: 'the rare monarchs of Nov 1 + 2, by day' },
   // (PART 6b — THE LEGENDARY SKY: ~1–2 nights a month each for everyone; here on demand, repeating while on — JUST ME or EVERYONE, the same moment)
   { id: 'ufo', label: 'UFO ABDUCTION', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'alien saucer beam', oneShot: true, night: true, hint: 'the saucer, the beam, someone lifted off the compass (~30 s)' },
   { id: 'tr3b', label: 'TR-3B + JET CHASE', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'triangle ufo blackout power drain f-16 jets tape stop', oneShot: true, night: true, hint: 'the black triangle drains the city’s power, then F-16s chase it (~50 s)' },
@@ -160,7 +171,7 @@ export const EVENTS = [
   { id: 'geese', sec: 'wildlife', label: 'GEESE', cat: 'sky', group: 'FLYING OVER' },
   { id: 'swifts', sec: 'wildlife', label: 'SWIFTS', cat: 'sky', group: 'FLYING OVER' },
   { id: 'bats-dusk', sec: 'wildlife', label: 'BATS AT DUSK', cat: 'sky', group: 'FLYING OVER' },
-  { id: 'bats', sec: 'wildlife', label: 'HALLOWEEN BATS', cat: 'sky', group: 'FLYING OVER', night: true },
+  { id: 'bats', label: 'HALLOWEEN BATS', cat: 'holidays', group: 'HALLOWEEN', night: true, hint: 'a colony pours out of a tower’s crown at dusk, then a few jink round the roofs' },
   { id: 'heron-sky', sec: 'wildlife', label: 'HERON (NIGHT CROSSING)', cat: 'sky', group: 'FLYING OVER', hint: 'the rare slow heron crossing a night sky, neck folded (spring → autumn)' },
   { id: 'rainbow', label: 'RAINBOW', cat: 'weather', group: 'RAINBOWS' },
   { id: 'rainbow2', label: 'DOUBLE RAINBOW', cat: 'weather', group: 'RAINBOWS' },
@@ -329,7 +340,12 @@ export const HOLIDAYS = [
   { id: 'easter', label: 'EASTER', date: y => easter(y) },
   { id: 'memorial', label: 'MEMORIAL DAY', date: y => ({ m: 5, d: lastMonday(y, 5) }) },
   { id: 'july4', label: 'JULY 4TH', date: () => ({ m: 7, d: 4 }) },
+  { id: 'halloween-10', label: 'HALLOWEEN · OCT 10', date: () => ({ m: 10, d: 10 }) },
+  { id: 'halloween-20', label: 'HALLOWEEN · OCT 20', date: () => ({ m: 10, d: 20 }) },
+  { id: 'halloween-27', label: 'HALLOWEEN · OCT 27', date: () => ({ m: 10, d: 27 }) },
   { id: 'halloween', label: 'HALLOWEEN', date: () => ({ m: 10, d: 31 }) },
+  { id: 'dotd', label: 'DAY OF THE DEAD · NOV 1', date: () => ({ m: 11, d: 1 }) },
+  { id: 'dotd-2', label: 'DAY OF THE DEAD · NOV 2', date: () => ({ m: 11, d: 2 }) },
   { id: 'veterans', label: 'VETERANS DAY', date: () => ({ m: 11, d: 11 }) },
   { id: 'thanksgiving', label: 'THANKSGIVING', date: y => thanksgiving(y) },
   { id: 'christmas-eve', label: 'CHRISTMAS EVE', date: () => ({ m: 12, d: 24 }) },

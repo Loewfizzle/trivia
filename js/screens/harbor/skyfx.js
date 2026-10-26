@@ -177,7 +177,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       if (handled.has(key) || !['banner', 'helicopter', 'balloons', 'balloon-festival'].includes(e.id)) continue;
       handled.add(key); if (handled.size > 200) handled.clear();
       if (e.lanes.some(l => u.has(l))) continue;                             // (a holiday / API piece holds the lane)
-      if (e.id === 'banner' && bannerWeather(Lk)) startBanner(s, eventMessage('banner', e.seed, games), e.start, { passes: 2 });
+      if (e.id === 'banner' && bannerWeather(Lk)) startBanner(s, eventMessage('banner', e.seed, games, s.holiday || null), e.start, { passes: 2 });   // (11a-1: a holiday's lines)
       else if (e.id === 'helicopter' && !Lk.storm && (Lk.wind || 0) < 14) air.heli(s, e.start, e.seed);
       else if ((e.id === 'balloons' || e.id === 'balloon-festival') && balloonWeather(Lk) && (e.id === 'balloons' || may('festival', 'rare'))) startBalloons(s, e.start, e.id === 'balloon-festival', e.seed);
     }

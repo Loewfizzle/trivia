@@ -6,7 +6,7 @@ import { EVENTS, PANEL_EVENTS, CATS, SECTIONS, AREA_SECTION, sectionOf, toSectio
 import { MOMENTS } from '../js/core/harbor-moments.js';
 
 test('the panel: nine sections in the owner\'s order; every area + every row lands in one; nothing dropped', () => {
-  assert.deepEqual(SECTIONS.map(s => s.label), ['SKY', 'LEGENDARY', 'PEOPLE + WORKERS', 'WILDLIFE', 'HARBOR', 'WEATHER', 'TIME', 'LIGHTS + MUSIC', 'TOOLS']);
+  assert.deepEqual(SECTIONS.map(s => s.label), ['SKY', 'LEGENDARY', 'HOLIDAYS', 'PEOPLE + WORKERS', 'WILDLIFE', 'HARBOR', 'WEATHER', 'TIME', 'LIGHTS + MUSIC', 'TOOLS']);
   const ids = new Set(SECTIONS.map(s => s.id));
   for (const c of CATS) assert.ok(ids.has(AREA_SECTION[c.id]), `${c.id}: its section`);
   for (const e of EVENTS) assert.ok(ids.has(sectionOf(e.id)), `${e.id}: a section`);
@@ -19,7 +19,10 @@ test('the panel: nine sections in the owner\'s order; every area + every row lan
 
 test('the panel: the mapping — the legendaries together, the birds with the wildlife, the people + the windows with the workers', () => {
   for (const id of ['ufo', 'tr3b', 'raid', 'window-tango']) assert.equal(sectionOf(id), 'legendary', id);
-  for (const id of ['geese', 'swifts', 'bats-dusk', 'bats', 'heron-sky', 'pigeons', 'coyote']) assert.equal(sectionOf(id), 'wildlife', id);
+  for (const id of ['geese', 'swifts', 'bats-dusk', 'heron-sky', 'pigeons', 'coyote']) assert.equal(sectionOf(id), 'wildlife', id);
+  // (11a-1: THE HOLIDAYS — Halloween's + Day of the Dead's moments together; the ghost ship with the legendaries)
+  for (const id of ['bats', 'witch', 'trick-or-treat', 'zombies', 'black-cat', 'procession', 'monarchs']) assert.equal(sectionOf(id), 'holidays', id);
+  assert.equal(sectionOf('ghost-ship'), 'legendary');
   for (const id of ['line', 'bus', 'dance', 'doors', 'no-people', 'work-milk', 'no-work']) assert.equal(sectionOf(id), 'people', id);
   for (const m of MOMENTS) assert.equal(sectionOf(`window-${m.id}`), m.rarity === 'legendary' ? 'legendary' : 'people', m.id);
   for (const id of ['taxi', 'rosie-turn', 'ships-bell', 'season-winter', 'road-pass', 'wet-street', 'centrepiece-test']) assert.equal(sectionOf(id), 'harbor', id);
@@ -27,7 +30,7 @@ test('the panel: the mapping — the legendaries together, the birds with the wi
   for (const id of ['spell', 'searchlights', 'neon-party', 'beams', 'burnout', 'first-tap', 'strings-party', 'hushsign', 'lamps-on']) assert.equal(sectionOf(id), 'lightsmusic', id);
   for (const id of ['drones', 'banner', 'jets', 'flyby', 'aurora', 'fireworks', 'satellites']) assert.equal(sectionOf(id), 'sky', id);
   // the old category ids still open their section (the shots' + the tests' openCats(['lights']))
-  assert.equal(toSection('lights'), 'lightsmusic'); assert.equal(toSection('sounds'), 'tools'); assert.equal(toSection('holidays'), 'time');
+  assert.equal(toSection('lights'), 'lightsmusic'); assert.equal(toSection('sounds'), 'tools'); assert.equal(toSection('holidays'), 'holidays');
   assert.equal(toSection('promenade'), 'harbor'); assert.equal(toSection('legendary'), 'legendary'); assert.equal(toSection('nope'), null);
   // the block headings name their area where a group alone would be unclear
   assert.equal(blockOf('work-milk'), 'WORKERS · MORNING'); assert.equal(blockOf('window-cat'), 'WINDOWS · UNCOMMON'); assert.equal(blockOf('ufo'), 'IN THE SKY');

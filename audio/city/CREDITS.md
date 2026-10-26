@@ -110,6 +110,12 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Mechanical%20Wave%20-%20Sound%20Effects%20Collection/BELLHand_Metallic%20Bell_%2022_MWSFX_SEC.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## cat-hiss.wav  →  cat-hiss
+
+- MD5 `e3fd9f08bad28028bcf715c24ac600ba`
+- cat-hiss.wav
+- a cat’s hiss (11a-1) — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)
+
 ## cat-land.mp3  →  cat-land
 
 - MD5 `a8d30a70e995d1d91b1029d8d61a007b`
@@ -271,6 +277,25 @@ are kept anyway, with each source file's MD5.
 - Original: Freesound user jackmichaelking, https://freesound.org/people/jackmichaelking/ (CC0 1.0) - "Brent geese flying overhead in Essex Wetland.WAV"
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## ghost-bell.mp3  →  ghost-bell
+
+- MD5 `2bc3a96759f07938193e233afe71c859`
+- ghost-bell.mp3   (137,926 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "Ship Bell Single Ring" - Sojan (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/film-special-effects-ship-bell-single-ring-81833/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_2b08b6e711.mp3?filename=freesound_community-ship-bell-single-ring-81833.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user Sojan, "Ship Bell Single Ring" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+
+## ghost-ship-creak.wav  →  ghost-ship-creak
+
+- MD5 `6d05551bee763cce30f14c712b7862c8`
+- ghost-ship-creak.wav   (5,882,904 bytes)
+- "Wooden ship on the sea" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/water/
+- Source: https://assets.mixkit.co/active_storage/sfx/1187/1187.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
 ## glasses-clink.wav  →  glasses-clink
 
 - MD5 `34722db3e10660e827292c85c1af84f2`
@@ -325,6 +350,15 @@ are kept anyway, with each source file's MD5.
 - Page: https://pixabay.com/sound-effects/nature-autumn-rain-in-the-gutter-306966/
 - Source: https://cdn.pixabay.com/download/audio/2025/02/27/audio_e484b3a048.mp3?filename=audiopapkin-autumn-rain-in-the-gutter-306966.mp3
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+
+## haunted-wind.wav  →  haunted-wind
+
+- MD5 `dad5e46867bb16ac6342c94b5f920067`
+- haunted-wind.wav   (7,676,918 bytes)
+- "Abstract wind howl interior" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/wind/
+- Source: https://assets.mixkit.co/active_storage/sfx/1275/1275.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
 ## heli-flyby.mp3  →  helicopter
 
@@ -758,3 +792,12 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - Original: Freesound user jamesdrake89, "Sash Window Open and Close" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## witch-cackle.mp3  →  witch-cackle
+
+- MD5 `ef70277b6bc0b32d8e5a6425ceecb427`
+- witch-cackle.mp3   (148,793 bytes)   (MP3 - the only version offered)
+- "Witchy Cackle" - Shut_Up_Ghost
+- Page: https://pixabay.com/sound-effects/horror-witchy-cackle-140925/
+- Source: https://cdn.pixabay.com/download/audio/2023/02/28/audio_36e55132ef.mp3?filename=shut_up_ghost-witchy-cackle-140925.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/

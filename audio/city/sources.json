@@ -169,6 +169,18 @@
   ],
   "note": null
  },
+ "cat-hiss": {
+  "file": "cat-hiss.wav",
+  "md5": "e3fd9f08bad28028bcf715c24ac600ba",
+  "slots": [
+   "cat-hiss"
+  ],
+  "credit": [
+   "cat-hiss.wav",
+   "    a cat’s hiss (11a-1) — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)"
+  ],
+  "note": null
+ },
  "cat-land": {
   "file": "cat-land.mp3",
   "md5": "a8d30a70e995d1d91b1029d8d61a007b",
@@ -434,6 +446,37 @@
   ],
   "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
  },
+ "ghost-bell": {
+  "file": "ghost-bell.mp3",
+  "md5": "2bc3a96759f07938193e233afe71c859",
+  "slots": [
+   "ghost-bell"
+  ],
+  "credit": [
+   "ghost-bell.mp3   (137,926 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)",
+   "  \"Ship Bell Single Ring\" - Sojan (re-hosted on Pixabay as freesound_community)",
+   "  Page: https://pixabay.com/sound-effects/film-special-effects-ship-bell-single-ring-81833/",
+   "  Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_2b08b6e711.mp3?filename=freesound_community-ship-bell-single-ring-81833.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/",
+   "  Original: Freesound user Sojan, \"Ship Bell Single Ring\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
+  ],
+  "note": null
+ },
+ "ghost-ship-creak": {
+  "file": "ghost-ship-creak.wav",
+  "md5": "6d05551bee763cce30f14c712b7862c8",
+  "slots": [
+   "ghost-ship-creak"
+  ],
+  "credit": [
+   "ghost-ship-creak.wav   (5,882,904 bytes)",
+   "  \"Wooden ship on the sea\" - Mixkit",
+   "  Page: https://mixkit.co/free-sound-effects/water/",
+   "  Source: https://assets.mixkit.co/active_storage/sfx/1187/1187.wav",
+   "  Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree"
+  ],
+  "note": null
+ },
  "glasses-clink": {
   "file": "glasses-clink.wav",
   "md5": "34722db3e10660e827292c85c1af84f2",
@@ -521,6 +564,21 @@
    "  Page: https://pixabay.com/sound-effects/nature-autumn-rain-in-the-gutter-306966/",
    "  Source: https://cdn.pixabay.com/download/audio/2025/02/27/audio_e484b3a048.mp3?filename=audiopapkin-autumn-rain-in-the-gutter-306966.mp3",
    "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/"
+  ],
+  "note": null
+ },
+ "haunted-wind": {
+  "file": "haunted-wind.wav",
+  "md5": "dad5e46867bb16ac6342c94b5f920067",
+  "slots": [
+   "haunted-wind"
+  ],
+  "credit": [
+   "haunted-wind.wav   (7,676,918 bytes)",
+   "  \"Abstract wind howl interior\" - Mixkit",
+   "  Page: https://mixkit.co/free-sound-effects/wind/",
+   "  Source: https://assets.mixkit.co/active_storage/sfx/1275/1275.wav",
+   "  Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree"
   ],
   "note": null
  },
@@ -1225,5 +1283,20 @@
    "  Original: Freesound user jamesdrake89, \"Sash Window Open and Close\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
   ],
   "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "witch-cackle": {
+  "file": "witch-cackle.mp3",
+  "md5": "ef70277b6bc0b32d8e5a6425ceecb427",
+  "slots": [
+   "witch-cackle"
+  ],
+  "credit": [
+   "witch-cackle.mp3   (148,793 bytes)   (MP3 - the only version offered)",
+   "  \"Witchy Cackle\" - Shut_Up_Ghost",
+   "  Page: https://pixabay.com/sound-effects/horror-witchy-cackle-140925/",
+   "  Source: https://cdn.pixabay.com/download/audio/2023/02/28/audio_36e55132ef.mp3?filename=shut_up_ghost-witchy-cackle-140925.mp3",
+   "  Licence: Pixabay Content License - https://pixabay.com/service/license-summary/"
+  ],
+  "note": null
  }
 }

@@ -189,3 +189,11 @@ export function titleHoliday(H) {
   if (H.id === 'dotd') return { id: 'dotd', full: H.phase !== 'down', k: H.stage * (1 - H.down), c2: true };
   return null;
 }
+
+/** THE SPOOKY LIGHT's lamp gutter (Halloween night): lamp i at second s → how far it drops now (0 = steady … ~0.9 = nearly out) — each lamp
+ *  its own 7–13 s cycle, half of its cycles a short stutter (a dip, a catch, a dip) in the cycle's first second */
+export function spookyFlicker(s, i) {
+  const per = 7 + 6 * h01(i, 31), sh = per * h01(i, 37), n = Math.floor((s + sh) / per), u = s + sh - n * per;
+  if (u > 0.95 || h01(n * 31 + i, 41) > 0.5) return 0;
+  return u < 0.08 ? 0.85 : u < 0.2 ? 0.25 : u < 0.32 ? 0.7 : u < 0.5 ? 0.1 : u < 0.64 ? 0.55 : u < 0.8 ? 0.15 : 0;
+}

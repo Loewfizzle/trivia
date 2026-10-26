@@ -151,7 +151,7 @@ if (PAGE) {
   for (const [w, h] of SIZES) {
     const p = await browser.newPage();
     p.on('pageerror', e => console.log('PAGEERROR', e.message));
-    await p.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
+    await p.setViewport({ width: w, height: h, deviceScaleFactor: DSF || 1 });   // (11a-1: --dsf on a --page too)
     await p.goto(`${BASE}/${String(PAGE).replace(/^\/+/, '')}`);
     await p.waitForFunction(() => document.body && document.body.dataset.ready, { timeout: 60000 }).catch(() => {});
     await sleep(opt('wait', 0) ? WAIT : 300);

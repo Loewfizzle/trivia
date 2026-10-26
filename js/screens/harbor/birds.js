@@ -6,6 +6,10 @@
 //                      bigger. Drawn before the water: the mirror reflects them.
 //   SWIFTS  low(c)     a screaming party darting round the rooftops on summer evenings (scythe wings, fast flicker)
 //   BATS    low(c)     summer dusk into the night: smooth looping paths with quick darts (a fast but smooth swerve ~once a
+//                      (11a-1: THE HALLOWEEN COLONY — s.hween: at dusk on Halloween night a stream of bats POURING out of a tower
+//                      crown (core/harbor-ghost.js#colonyBat: a corkscrew up out of the crown that opens into the sky), then a few
+//                      jinking round the roofs through the night; every bat a membrane silhouette — the arm, the fingers fanning to
+//                      the tip, the scalloped trailing edge, the ears — the leading edge rim-lit by the neon)
 //                      second, the bat banking into it), fast scalloped wings — core/harbor-flight.js#batAt
 //   GEESE   sky(c)     V's crossing a sky lane (never across the sign): never a perfect V — uneven arms, irregular spacing,
 //                      birds drifting in their slots, 1–2 stragglers trailing with a gap (flapping harder), now and then one
@@ -19,6 +23,7 @@
 // Reduced effects: no birds on the wing (the district's rule). Heavy events elsewhere thin them (fs.density).
 import { birdsNow } from '../../core/harbor-sky.js';
 import { smoothRoof, roofAt as roofLerp, batPlan, batAt, geesePlan, goosePose, geeseTail } from '../../core/harbor-flight.js';
+import { colonyBat, COLONY_LEN } from '../../core/harbor-ghost.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -30,7 +35,7 @@ export function createBirds() {
   let gulls = [], gullKey = '';
   let geese = null, nextGeese = rnd(20, 80);
   let swifts = null, nextSwifts = rnd(8, 30);
-  let bats = null, nextBats = rnd(5, 20);
+  let bats = null, nextBats = rnd(5, 20), jinkSlot = -1, colonyOn = 0;
   let heron = null, nextHeron = rnd(300, 900);
   let who = { gulls: 0, swifts: 0, geese: 0, bats: 0 }, whoAt = -1e9;
   let roofSrc = null, roofS = null;                       // the smoothed roofline (re-made when the layout's changes)
@@ -104,20 +109,51 @@ export function createBirds() {
     c.quadraticCurveTo(s * 0.05, s * 0.18 * f, s * 0.3, 0);
     c.fill(); c.restore();
   }
-  function bat(c, x, y, s, flap, roll, ink) {
-    c.save(); c.translate(x, y); c.rotate(roll); c.scale(s / 10, s / 10);
-    const up = Math.sin(flap) * 0.9;
-    c.fillStyle = ink.sil; c.beginPath();
-    c.moveTo(0, -1);
-    for (const side of [1, -1]) {
-      c.lineTo(side * 1.4, -1.6 - 2.2 * up); c.lineTo(side * 3.2, -2.4 - 3.4 * up); c.lineTo(side * 5, -1.2 - 3.2 * up);
-      // the scalloped trailing edge
-      c.quadraticCurveTo(side * 4.2, 0.2 - 1.6 * up, side * 3.4, -0.2 - 1.8 * up); c.quadraticCurveTo(side * 2.6, 0.9 - 1 * up, side * 1.8, 0.2 - 0.9 * up); c.quadraticCurveTo(side * 1.2, 1.2 - 0.4 * up, 0, 1.2);
-      if (side > 0) c.moveTo(0, -1);
+  // a bat (11a-1, premium): the membrane between the arm, the three long fingers + the leg — the scalloped trailing edge between the
+  // finger tips; on the upstroke the wings half fold (the span shrinks), on the downstroke they open wide; the ears + the furry body;
+  // the leading edge (the arm) rim-lit (rimCol: the neon / the sky's rim). s = the wingspan (pt), facing the viewer (a top-down-ish view)
+  function bat(c, x, y, s, flap, roll, ink, rimCol) {
+    c.save(); c.translate(x, y); c.rotate(roll); c.scale(s / 12.4, s / 12.4);
+    // up: the wings' place in the beat (−1 low … 1 high); fold: the span shrinks on the way up (the wing half folded), opens on the
+    // way down
+    const up = Math.sin(flap), fold = 0.84 + 0.16 * Math.cos(flap + 0.6), L = up * 2.7;
+    const pts = side => {
+      const X = v => side * v * fold;
+      return {
+        sh: [X(0.5), -0.6], el: [X(2.2), -1.45 - L * 0.45], wr: [X(3.6), -1.65 - L * 0.8], th: [X(3.45), -2.15 - L * 0.8],
+        f1: [X(6.2), -0.5 - L], f2: [X(5.2), 1.05 - L * 0.72], f3: [X(3.85), 1.8 - L * 0.45], f4: [X(2.4), 2.05 - L * 0.22], leg: [X(0.6), 2.15],
+        c1: [X(5.25), -0.05 - L * 0.85], c2: [X(4.3), 0.75 - L * 0.58], c3: [X(2.95), 1.3 - L * 0.32], c4: [X(1.5), 1.55 - L * 0.08],
+      };
+    };
+    const wing = side => {
+      const p = pts(side);
+      c.moveTo(p.sh[0], p.sh[1]);
+      c.quadraticCurveTo((p.sh[0] + p.el[0]) / 2, p.el[1] - 0.25, p.el[0], p.el[1]);
+      c.lineTo(p.wr[0], p.wr[1]); c.lineTo(p.th[0], p.th[1]); c.lineTo(p.wr[0] + side * 0.25, p.wr[1] + 0.05);
+      c.quadraticCurveTo((p.wr[0] + p.f1[0]) / 2, Math.min(p.wr[1], p.f1[1]) - 0.35, p.f1[0], p.f1[1]);
+      c.quadraticCurveTo(p.c1[0], p.c1[1], p.f2[0], p.f2[1]);
+      c.quadraticCurveTo(p.c2[0], p.c2[1], p.f3[0], p.f3[1]);
+      c.quadraticCurveTo(p.c3[0], p.c3[1], p.f4[0], p.f4[1]);
+      c.quadraticCurveTo(p.c4[0], p.c4[1], p.leg[0], p.leg[1]);
+      c.lineTo(0, 2.95);                                   // (the tail membrane between the legs)
+      c.closePath();
+    };
+    c.fillStyle = ink.sil; c.beginPath(); wing(1); wing(-1); c.fill();
+    // the body (furry: an oval), the head, the two tall ears
+    c.beginPath(); c.ellipse(0, 0.35, 0.68, 1.4, 0, 0, TAU); c.fill();
+    c.beginPath(); c.arc(0, -1.15, 0.6, 0, TAU); c.fill();
+    c.beginPath(); c.moveTo(-0.52, -1.35); c.lineTo(-0.56, -2.5); c.lineTo(-0.1, -1.6); c.moveTo(0.52, -1.35); c.lineTo(0.56, -2.5); c.lineTo(0.1, -1.6); c.fill();
+    // the finger bones faintly through the membrane + the rim on the leading edges (the arms) + the ears
+    if (rimCol) {
+      c.lineCap = 'round';
+      c.strokeStyle = rimCol; c.lineWidth = 0.34; c.beginPath();
+      for (const side of [1, -1]) { const p = pts(side); c.moveTo(p.sh[0], p.sh[1] - 0.05); c.quadraticCurveTo((p.sh[0] + p.el[0]) / 2, p.el[1] - 0.3, p.el[0], p.el[1] - 0.05); c.lineTo(p.wr[0], p.wr[1] - 0.05); c.quadraticCurveTo((p.wr[0] + p.f1[0]) / 2, Math.min(p.wr[1], p.f1[1]) - 0.4, p.f1[0], p.f1[1] - 0.05); }
+      c.moveTo(-0.56, -2.45); c.lineTo(-0.45, -1.55); c.moveTo(0.56, -2.45); c.lineTo(0.45, -1.55);
+      c.stroke();
+      c.globalAlpha *= 0.45; c.lineWidth = 0.14; c.beginPath();
+      for (const side of [1, -1]) { const p = pts(side); for (const q of [p.f2, p.f3, p.f4]) { c.moveTo(p.wr[0], p.wr[1]); c.lineTo(q[0], q[1]); } }
+      c.stroke();
     }
-    c.fill();
-    c.beginPath(); c.ellipse(0, 0, 0.9, 1.5, 0, 0, TAU); c.fill();
-    c.beginPath(); c.moveTo(-0.6, -1.3); c.lineTo(-0.4, -2.2); c.lineTo(-0.1, -1.4); c.moveTo(0.6, -1.3); c.lineTo(0.4, -2.2); c.lineTo(0.1, -1.4); c.fill();
     c.restore();
   }
   function heronDraw(c, x, y, s, flap, dir, ink) {
@@ -230,9 +266,27 @@ export function createBirds() {
         }
         if (g.x < -140 * K || g.x > W + 140 * K) swifts = null;
       }
-      // BATS: summer dusk into the night — a handful jinking over the roofs
+      // 11a-1 — THE HALLOWEEN COLONY: at dusk on Halloween night (s.hween.colony = seconds into it) a stream of bats pours out of a tower
+      // crown, corkscrewing up + opening into the sky (each bat a function of the colony's seconds: a refresh lands mid-stream)
+      const hw = s.hween;
+      colonyOn = 0;
+      if (hw && hw.colony != null && hw.crown && motion) {
+        const n = Math.round((tier === 0 ? 26 : tier === 1 ? 40 : 56) * Math.max(0.35, hw.weight || 1)), cs = hw.colony;
+        const rims = ['rgba(255,150,70,0.75)', 'rgba(190,120,255,0.7)', 'rgba(255,110,190,0.6)'];
+        for (let i = 0; i < n; i++) {
+          const b = colonyBat(i, n, cs, K);
+          if (!b || b.a <= 0.01) continue;
+          colonyOn++;
+          c.globalAlpha = b.a;
+          bat(c, hw.crown.x + b.x, hw.crown.y + b.y, b.s, b.flap, b.roll, ink, ink.dark > 0.3 ? rims[i % 3] : ink.rim);
+        }
+        c.globalAlpha = 1;
+      }
+      // BATS: summer dusk into the night — a handful jinking over the roofs (11a-1: + Halloween night's few, every few minutes)
       nextBats -= sec;
-      if (!bats && motion && (force.has('bats-dusk') || (nextBats <= 0 && who.bats > 0.2 && dens >= 1))) {
+      const jink = hw && hw.jink && hw.jink.slot !== jinkSlot;
+      if (!bats && motion && (force.has('bats-dusk') || jink || (nextBats <= 0 && who.bats > 0.2 && dens >= 1))) {
+        if (jink) jinkSlot = hw.jink.slot;
         const n = tier === 0 ? 3 : 5 + Math.floor(Math.random() * 4);
         // each bat: a home over the roofs (drifting slowly) + its own seeded flight (core/harbor-flight.js#batPlan)
         bats = { t: 0, life: rnd(26, 40), b: Array.from({ length: n }, () => ({ hx: rnd(0.15, 0.85) * W, hy: rnd(24, 56) * K, s: rnd(7, 9.5) * K, drift: rnd(-6, 6) * K, p: batPlan(seed32()) })) };
@@ -247,7 +301,7 @@ export function createBirds() {
           const hx = b.hx + b.drift * g.t;
           batAt(b.p, g.t, BP);
           const roll = BP.ax > 0 ? Math.min(0.55, BP.ax / 2600) : Math.max(-0.55, BP.ax / 2600);   // banked into each dart
-          bat(c, hx + BP.x * K, roofAt(hx) - b.hy + BP.y * K - Math.sin(BP.flap) * 0.5 * K, b.s, BP.flap, roll, ink);
+          bat(c, hx + BP.x * K, roofAt(hx) - b.hy + BP.y * K - Math.sin(BP.flap) * 0.5 * K, b.s, BP.flap, roll, ink, hw ? 'rgba(255,150,70,0.6)' : ink.rim);
         }
         c.globalAlpha = 1;
         if (g.t >= g.life) bats = null;
@@ -273,8 +327,10 @@ export function createBirds() {
       c.globalAlpha = 1;
     },
     /** birds on the wing (geese, swifts, bats, the heron) keep 60 fps; the gulls glide slowly (30 is smooth) */
-    busy: () => !!(geese || swifts || bats || heron),
+    busy: () => !!(geese || swifts || bats || heron || colonyOn),
     hit: () => null,
-    debug: () => ({ who: Object.fromEntries(Object.entries(who).map(([k, v]) => [k, +v.toFixed(2)])), gulls: gulls.length, geese: geese ? geese.n : 0, geeseX: geese ? Math.round(geese.x) : null, swifts: swifts ? swifts.b.length : 0, bats: bats ? bats.b.length : 0, heron: !!heron }),
+    /** the preview page: one bat */
+    drawBat(c, x, y, size, flap, roll, rim) { bat(c, x, y, size, flap, roll, { sil: 'rgba(10,8,18,0.95)' }, rim); },
+    debug: () => ({ who: Object.fromEntries(Object.entries(who).map(([k, v]) => [k, +v.toFixed(2)])), gulls: gulls.length, geese: geese ? geese.n : 0, geeseX: geese ? Math.round(geese.x) : null, swifts: swifts ? swifts.b.length : 0, bats: bats ? bats.b.length : 0, colony: colonyOn, heron: !!heron }),
   };
 }

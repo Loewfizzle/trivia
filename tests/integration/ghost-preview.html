@@ -1,0 +1,47 @@
+<!doctype html><meta charset="utf-8"><title>Ghost preview</title>
+<!-- 11a-1 — HALLOWEEN's SKY + WATER heroes close up (screens/harbor/ghostship.js, witch.js, birds.js's bat): THE GHOST SHIP at a
+     phone's size (k 3.5 pt a unit — z 172 on a 402 phone) and blown up, over a night city strip (its lit windows must show through);
+     THE WITCH at a phone's size + blown up across a full moon; THE BATS (a few wing phases). ?t=<s> the time, ?dir=-1 sailing left.
+     node shots.mjs "<browser>" --page "tests/integration/ghost-preview.html" --name ghost --sizes 1400x1700 -->
+<body style="margin:0;background:#0b0a1c;color:#cfd3ff;font:12px system-ui;padding:10px">
+<script type="module">
+import { createGhostShip } from '/js/screens/harbor/ghostship.js';
+import { createWitch } from '/js/screens/harbor/witch.js';
+import { createBirds } from '/js/screens/harbor/birds.js';
+const q = new URLSearchParams(location.search), T = Number(q.get('t') || 3.2), dir = Number(q.get('dir') || 1);
+const d = 2, env = { dpr: d, t: T, motion: true };
+function panel(W, H, label) {
+  const c = document.createElement('canvas'); c.width = W * d; c.height = H * d; c.style.width = W + 'px'; c.style.height = H + 'px'; c.style.display = 'block'; c.style.marginBottom = '8px';
+  const x = c.getContext('2d'); x.scale(d, d);
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0b0a20'); g.addColorStop(0.75, '#3a2766'); g.addColorStop(0.76, '#140f26'); g.addColorStop(1, '#07060f'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // a night city strip behind (lit windows, a neon outline) — the ship must let it show through
+  let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let bx = 0; bx < W; bx += 30 + r() * 40) {
+    const bw = 24 + r() * 40, bh = H * (0.25 + r() * 0.45), by = H * 0.75 - bh;
+    x.fillStyle = `rgb(${30 + r() * 20},${22 + r() * 16},${50 + r() * 30})`; x.fillRect(bx, by, bw, bh);
+    for (let wy = by + 6; wy < H * 0.75 - 6; wy += 8) for (let wx = bx + 4; wx < bx + bw - 4; wx += 7) if (r() < 0.4) { x.fillStyle = r() < 0.7 ? '#ffd38a' : r() < 0.5 ? '#ff5fb4' : '#5fe0ff'; x.fillRect(wx, wy, 3, 4); }
+    if (r() < 0.3) { x.strokeStyle = r() < 0.5 ? '#ff2e97' : '#2ee0ff'; x.lineWidth = 1.5; x.strokeRect(bx + 1, by + 1, bw - 2, bh - 2); }
+  }
+  x.fillStyle = '#fff'; x.fillText(label, 8, 16);
+  document.body.append(c);
+  return x;
+}
+// THE GHOST SHIP — the phone's size (k 3.5) + blown up (k 11)
+{
+  const ship = createGhostShip();
+  const x = panel(1380, 520, 'ghost ship — phone size (k 3.5) · blown up (k 11)');
+  ship.drawAt(x, { cx: 150, axis: 390, k: 3.5, dir, a: 1 }, env);
+  ship.drawAt(x, { cx: 820, axis: 390, k: 11, dir, a: 1 }, env);
+}
+// THE WITCH — the phone's size (46) + blown up (300) across a full moon; THE BATS
+{
+  const witch = createWitch(), birds = createBirds();
+  const x = panel(1380, 520, 'witch — phone size (46) · blown up (300) · bats');
+  const moon = (mx, my, r) => { const g = x.createRadialGradient(mx - r * 0.3, my - r * 0.3, 0, mx, my, r); g.addColorStop(0, '#fffbe8'); g.addColorStop(1, '#e8dcb8'); x.fillStyle = g; x.beginPath(); x.arc(mx, my, r, 0, Math.PI * 2); x.fill(); };
+  moon(120, 130, 16); witch.drawAt(x, { x: 120, y: 132, size: 46, dir, tilt: 0.05, near: 1 }, env);
+  moon(600, 220, 150); witch.drawAt(x, { x: 600, y: 240, size: 300, dir, tilt: 0.05, near: 1 }, { ...env, dpr: 2 });
+  for (let i = 0; i < 6; i++) birds.drawBat(x, 1000 + i * 60, 80, 9, i * 1.05, 0.1 * (i - 3), 'rgba(255,150,70,0.75)');
+  for (let i = 0; i < 3; i++) birds.drawBat(x, 1040 + i * 120, 260, 90, i * 2.1, 0, 'rgba(190,120,255,0.7)');
+}
+document.body.dataset.ready = '1';
+</script></body>

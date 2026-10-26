@@ -268,7 +268,7 @@ function xmasWrapSvg(svg, k) {
 
 // the colour each holiday's sign throws on the haze and the wet street
 // the dock's neon line icons, each drawn twice: the tube (its colour, glowing) and a thin white-hot core on top
-const SIGN_LIGHT = { halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
+const SIGN_LIGHT = { dotd: '#ffa62a', halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
 
 export function createTitle() {
   const els = {};
@@ -335,6 +335,8 @@ export function createTitle() {
         : h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'))),
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
+    // (11a-1: THE SIGN DECORATION SYSTEM's overlay lives in the logo's wrap — harbor/signdress.js; the scene drives it)
+    if (createHarbor && scene) scene.set({ dressHost: els.sign.querySelector('.nd-logo-wrap') });
     els.actions = buildActions();
     { const st0 = neonNow(); if (!st0.caught) { els.sign.classList.add('is-day'); if (st0.stage !== 'goodbye') els.actions.classList.add('is-daylit'); } }
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },
@@ -1054,12 +1056,13 @@ export function createTitle() {
     dressKey = key;
     const s = els.sign;
     const full = hol && hol.full ? hol.id : null;
-    for (const k of ['halloween', 'christmas', 'nye', 'valentine', 'stpatrick', 'easter', 'thanksgiving', 'july4']) s.classList.toggle(`sg-${k}`, full === k);
+    for (const k of ['halloween', 'christmas', 'nye', 'valentine', 'stpatrick', 'easter', 'thanksgiving', 'july4', 'dotd']) s.classList.toggle(`sg-${k}`, full === k);
     if (scene) scene.set({ signCol: SIGN_LIGHT[full] || null });
     s.querySelectorAll('.nd-dress').forEach(e => e.remove());
     swapO(s.querySelector('svg.nd-logo'), full === 'halloween' || full === 'stpatrick' ? full : null);
     const wrap = s.querySelector('.nd-logo-wrap');
-    if (full === 'halloween') {
+    // (City 2.0 — 11a-1: the web + the spider are THE SIGN DECORATION SYSTEM's — harbor/signdress.js, a canvas in this wrap; City 1.0 keeps these)
+    if (full === 'halloween' && !hol.c2) {
       wrap.append(h('div.nd-dress.nd-webs', { 'aria-hidden': 'true', html: WEBS }));
       wrap.append(h('div.nd-dress.nd-spider', { 'aria-hidden': 'true' }, h('div.nd-spider-b', h('i.nd-silk'), h('div.nd-spider-s', { html: SPIDER }))));
     }

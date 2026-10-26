@@ -19,6 +19,7 @@ export const PARTS = [
   { id: '9', label: 'PART 9 · SEASONS + WEATHER' },
   { id: 'tower', label: 'PART 9 · THE CONSTRUCTION TOWER' },
   { id: '10', label: 'PART 10 · PARTY NIGHTS + FIREWORKS' },
+  { id: '11', label: 'PART 11 · THE HOLIDAYS' },
   { id: 'sky', label: '6b + THE SKY' },
   { id: 'legend', label: 'LEGENDARY EVENTS' },
 ];
@@ -168,7 +169,10 @@ export const SLOTS = [
   S('tr3b-presence', 'sky', 'loop', 0.22, 'the TR-3B’s presence: a real electromagnetic hum, saturated (its harmonics carry it on a phone), ominous', 'the TR-3B while it crosses (sounds.js#legendSounds)'),
   S('power-failure', 'sky', 'once', 0.2, 'the city’s power failing: a big machine spinning down (~9 s)', 'the TR-3B’s blackout as the lights die (sounds.js#legendSounds)'),
   S('power-restore', 'sky', 'once', 0.2, 'the power coming back: a tube hum swelling up (~9 s, saturated + a high-passed layer for a phone)', 'the lights stuttering back after the jets (sounds.js#legendSounds)'),
-  S('witch-cackle', 'sky', 'once', 0.1, 'a witch’s cackle (Halloween)'),
+  S('witch-cackle', 'sky', 'once', 0.1, 'a witch’s cackle (Halloween)', 'the witch crossing the moon (11a-1: witch.js)'),
+  // (11a-1 — HALLOWEEN: the haunted wind under Halloween night; the black cat's hiss when tapped — synthesized, scripts/build-synth-sfx.py)
+  S('haunted-wind', '11', 'loop', 0.05, 'a haunted wind: a hollow moaning wind through the streets (Halloween night)', 'Halloween night, low under the city (sounds.js#holiday)'),
+  S('cat-hiss', '11', 'once', 0.12, 'a cat’s hiss: a sharp breathy spit + hold (synthesized)', 'the black cat on the speakeasy’s step, tapped (11a-1)'),
   S('sleigh-bells', 'sky', 'once', 0.1, 'sleigh bells (Christmas)'),
   // ---- LEGENDARY EVENTS
   S('ghost-ship-creak', 'legend', 'loop', 0.08, 'the ghost ship: creaking wood'),

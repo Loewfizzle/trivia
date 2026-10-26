@@ -372,6 +372,9 @@ body.reduced-fx .nd-word-s, body.reduced-fx .nd-word-p { animation: none !import
 .sg-christmas .ndl-2, .sg-christmas .ndl-4 { --g: #10e070; --b: #4dff9a; --c: #f0fff6; }
 .sg-halloween .ndl-1, .sg-halloween .ndl-3 { --g: #ff7a12; --b: #ffa040; --c: #fff4e0; }
 .sg-halloween .ndl-2, .sg-halloween .ndl-4 { --g: #9b3dff; --b: #b874ff; --c: #f6ecff; }
+/* (City 2.0 — 11a-1: DAY OF THE DEAD, the tubes warmed to marigold + Mexican pink) */
+.sg-dotd .ndl-1, .sg-dotd .ndl-3 { --g: #ff8a10; --b: #ffb040; --c: #fff6e2; }
+.sg-dotd .ndl-2, .sg-dotd .ndl-4 { --g: #ff2e8a; --b: #ff6aac; --c: #fff0f7; }
 .sg-nye .ndl { --g: #ffc24a; --b: #ffdb8a; --c: #fffaf0; }
 .sg-valentine .ndl { --g: #ff2e6e; --b: #ff6a98; --c: #fff0f5; }
 .sg-stpatrick .ndl { --g: #18e070; --b: #5dff9e; --c: #f0fff6; }

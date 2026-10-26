@@ -1231,11 +1231,14 @@ test('the preview panel: time presets follow the real sun; holidays jump to thei
   assert.equal(holidayDay('valentine', { y: 2026, m: 10, d: 22 }), '2027-02-14', 'past this year: next year');
   assert.equal(holidayDay('thanksgiving', { y: 2026, m: 10, d: 22 }), '2026-11-26');
   for (const h of HOLIDAYS) { const d = holidayDay(h.id, { y: 2026, m: 1, d: 1 }), [y, m, dd] = d.split('-').map(Number); const hol = holidayOf(y, m, dd);
+    // (11a-1: Halloween's build-up days + Day of the Dead are City 2.0's own calendar — core/harbor-holiday.js)
+    if (/^(halloween-|dotd)/.test(h.id)) { assert.equal(holidayAt({ y, m, d: dd, h: 21, mi: 0 }).id, h.id.split('-')[0], `${h.id} → ${d}`); continue; }
     if (!['memorial', 'veterans', 'christmas-eve'].includes(h.id)) assert.equal(hol && hol.id, h.id, `${h.id} → ${d}`); }
 });
 
 // ------------------------------------------------------------------ NEON PASS 4: the signs — never clipped, nothing in front, the beams behind them
 import { buildSign } from '../js/screens/harbor/signs.js';
+import { holidayAt } from '../js/core/harbor-holiday.js';
 import { beamCover, searchlightSpots } from '../js/screens/harbor/searchlights.js';
 import { pierLamps } from '../js/screens/harbor/pier.js';
 

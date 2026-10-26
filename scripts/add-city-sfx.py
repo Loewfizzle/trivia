@@ -80,6 +80,9 @@ CUTS = {
     # ---- PART 9a — THE WEATHER (measured: tests by loudness envelope + tonality — no words, no melody found; Grok's chain: a low cut, a
     # touch of phone saturation on the low ones, distance by low-pass; the beds' level set at runtime ×slot gain)
     # (2:23 "Balkan street rain echo": steady −32…−38 dB the whole way — a long window, a little presence for the patter)
+    # (11a-1 — HALLOWEEN: the ghost ship's creak + the haunted wind lean like the weather beds — heard rarely, low, under the music)
+    'ghost-ship-creak': [{'loop': (1.9, 28.5), 'xf': 2.5, 'hp': 90, 'lp': 7000, 'rate': 22050, 'kbps': 40}],
+    'haunted-wind': [{'loop': (1.4, 24.0), 'xf': 2.5, 'hp': 120, 'lp': 6000, 'rate': 16000, 'kbps': 40}],
     'rain-pavement': [{'loop': (6.0, 34.0), 'xf': 2.5, 'hp': 140, 'presence': (2.0, 1800), 'rate': 22050, 'kbps': 48}],
     # (0:39 a light rain loop, flat ±1 dB: nearly all of it)
     'rain-drizzle': [{'loop': (1.0, 32.0), 'xf': 2.0, 'hp': 160, 'lp': 9000, 'rate': 22050, 'kbps': 48}],

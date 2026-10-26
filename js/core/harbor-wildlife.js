@@ -364,6 +364,15 @@ export function catEvening(key, day0, L, ctx = {}) {
   if (ctx.catInside && ctx.catInside(p.t0, p.t1)) return null;
   return { ...p, stalk: r() < 0.5 ? p.ta + 60 + r() * Math.max(10, len - 160) : null };
 }
+/** PART 11a-1 — THE BLACK CAT (Halloween: core/harbor-holiday.js#halloweenPieces cat — from mid-October): every evening of the build-up
+ *  the speakeasy's cat is out on the side door's STEP (beside the jack-o'-lanterns) from just before sunset to 11:45 pm — to 1:30 am on
+ *  Halloween night itself; it walks in from the street's left edge + hops up, walks off at the end (the same legs as catPath). PURE. */
+export const BLACK_CAT = Object.freeze({ lead: 0.15, until: 23.75, untilEve: 25.5 });
+export function halloweenCat(key, day0, L, ctx = {}) {
+  const set = ctx.sun ? ctx.sun.set : 18.5, [, m, d] = String(key).split('-').map(Number), eve = m === 10 && d === 31;
+  const t0 = day0 + (set - BLACK_CAT.lead) * 3600, t1 = day0 + (eve ? BLACK_CAT.untilEve : BLACK_CAT.until) * 3600;
+  return { ...catPath(L, t0, Math.max(600, t1 - t0 - 20), 'step'), black: true, stalk: null };
+}
 export function catSpot(L, spot) {
   const s = L.speakeasy;
   return spot === 'sill' ? { x: s.x0 + (s.shop.win[0] + 1.25), y: s.shop.win[2] + 0.02, z: s.z0 - 0.16, hd: -PI / 2 } : { x: s.x0 + s.door.u1 + 0.32, y: 0.26, z: s.z0 - 0.32, hd: -PI / 2 + 0.4 };

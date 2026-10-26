@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign dress preview</title>
+<!-- CITY 2.0 — 11a-1: THE SIGN DECORATION SYSTEM without the title (js/screens/harbor/signdress.js on the real premium logo SVG).
+     ?hol=halloween|dotd &stages=0.1,0.4,0.7,1 (the build-up's stage; Day of the Dead: the sign's k) &light=night|dusk|day
+     &w=330 (the logo's width in pt — 330 = an iPhone's) &sg=1 (the holiday's own tube colours: Halloween night / Day of the Dead)
+     &t=12 (start the clock there) &speed=1 &wind=4 &freeze=1 (no motion: the reduced-motion look)
+     node shots.mjs "<browser>" - -page "tests/integration/signdress-preview.html?hol=halloween&stages=0.2,0.5,1" - -sizes 402x900 -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/title.css">
+<style>
+  html, body { margin: 0; color: #ccc; font: 11px monospace; }
+  body { background: var(--pv-bg); min-height: 100vh; }
+  .pv { position: relative; padding: 46px 0 40px; display: flex; flex-direction: column; align-items: center; }
+  .pv .lab { position: absolute; left: 8px; top: 8px; }
+  .pv .nd-sign { position: relative; }
+  .pv .nd-logo-wrap { position: relative; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module">
+import { logoSvg } from '/js/ui/logo.js';
+import { createSignDress } from '/js/screens/harbor/signdress.js';
+import { halloweenPieces, dotdPieces } from '/js/core/harbor-holiday.js';
+const qs = new URLSearchParams(location.search);
+const HOL = qs.get('hol') || 'halloween', LIGHT = qs.get('light') || 'night', W = Number(qs.get('w') || 330), SG = qs.get('sg') === '1';
+const STAGES = (qs.get('stages') || '0.15,0.4,0.7,1').split(',').map(Number), T0 = Number(qs.get('t') || 5), SPEED = Number(qs.get('speed') || 1), FREEZE = qs.get('freeze') === '1';
+const WIND = Number(qs.get('wind') || 2.5);
+document.body.style.setProperty('--pv-bg', LIGHT === 'day' ? 'linear-gradient(#6f9fd0,#b9d3ea)' : LIGHT === 'dusk' ? 'linear-gradient(#1c1838,#5a3a5e)' : 'linear-gradient(#05040c,#140c22)');
+const dark = LIGHT === 'day' ? 0 : LIGHT === 'dusk' ? 0.7 : 1, signLit = LIGHT === 'day' ? 0 : LIGHT === 'dusk' ? 0.85 : 1;
+const root = document.getElementById('root'), panes = [];
+const HCOL = [[255, 122, 18], [155, 61, 255], [255, 122, 18], [155, 61, 255]], DCOL = [[255, 166, 42], [255, 46, 151], [255, 166, 42], [255, 46, 151]];
+for (const st of STAGES) {
+  const pv = document.createElement('div'); pv.className = 'pv';
+  pv.innerHTML = `<div class="lab">${HOL} ${st}</div><div class="title-screen nd nd-c2"><div class="nd-sign ${SG ? (HOL === 'dotd' ? 'sg-thanksgiving' : 'sg-halloween') : ''}"><div class="nd-logo-wrap" style="width:${W}px">${logoSvg({ id: 'pv' + panes.length, premium: true, lit: LIGHT !== 'day' })}</div></div></div>`;
+  root.append(pv);
+  // &focus=lx,ly: a close-up — the logo at a big &w, its point (logo units) in the middle of a 600-pt window
+  if (qs.get('focus')) { const [fx, fy] = qs.get('focus').split(',').map(Number), k = W / 384, sg = pv.querySelector('.nd-sign'); Object.assign(pv.style, { height: '600px', overflow: 'hidden', display: 'block', padding: 0 }); Object.assign(sg.style, { position: 'absolute', left: `${innerWidth / 2 - (fx + 26) * k}px`, top: `${300 - (fy + 30) * k}px` }); }
+  const wrap = pv.querySelector('.nd-logo-wrap'), dress = createSignDress();
+  dress.setHost(wrap);
+  const H = HOL === 'halloween' ? { id: 'halloween', phase: st >= 1 ? 'night' : 'build', stage: st, days: st * 30, eve: st >= 1, down: 0 } : { id: 'dotd', phase: 'day', stage: st, down: 0, days: 1, day: 0, eve: false };
+  const P = HOL === 'halloween' ? halloweenPieces(H, { hour: 21 }) : { ...dotdPieces({ ...H, stage: 1 }, { hour: 12 }), sign: st };
+  panes.push({ dress, H, P });
+}
+const t0 = performance.now();
+let frames = 0;
+function loop() {
+  const t = FREEZE ? T0 : T0 + (performance.now() - t0) / 1000 * SPEED;
+  const f0 = performance.now();
+  for (const p of panes) p.dress.frame({ holiday: p.H, pieces: p.P, t, motion: !FREEZE, tier: 2, dark, signLit, letterCols: SG ? (HOL === 'dotd' ? DCOL : HCOL) : null, wind: WIND });
+  (window.__pvms = window.__pvms || []).push(performance.now() - f0);
+  if (++frames === 30) document.body.dataset.ready = '1';
+  requestAnimationFrame(loop);
+}
+// (the wrap's width is known after layout: one frame first)
+requestAnimationFrame(loop);
+window.__pv = { panes, debug: () => panes.map(p => p.dress.debug()) };
+</script>
+</body>
+</html>

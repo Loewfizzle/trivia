@@ -15,7 +15,7 @@
 // The camera + every position come from core/harbor-layout.js (pure, tested); the static layers are baked per look key in
 // small chunks into a second set of canvases and crossfaded in (bake.js: the memory budget); only lights and moving things
 // draw every frame. Progressive start: the sky first, the city fades in when its first bake is done.
-import { look as skyLook, skyClock, sunPosition, moonPhase } from '../../core/sky.js';
+import { look as skyLook, skyClock, sunPosition, moonPhase, sunTimes } from '../../core/sky.js';
 import { paletteFor } from '../district/palette.js';
 import { createStars } from '../district/stars.js';
 import { createFx } from '../district/fx.js';
@@ -97,6 +97,7 @@ import { createDirector } from '../../core/harbor-director.js';
 import { createLoadLog, keyDiff } from '../../core/harbor-loadlog.js';
 import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk } from '../district/live-weather.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
+import { holidayAt, halloweenPieces, dotdPieces, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
 
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
 /** DT1: how far the billboard's lamps drop once the neon is fully up (1 − LAMP_DIM of full). M3 (the owner: "an advertisement — you
@@ -131,7 +132,45 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const people = createPeople();                   // 8P: THE PEOPLE — the promenade's visitors, the bus, the line, the roof (harbor().people)
   const raidFx = createRaid();                     // 8b2: THE RAID's light — the wash, the shades, the flashlight (harbor().raid)
   const wild = createWildlife();                   // 8b1: THE WILDLIFE — pigeons, gulls, the owl, the squirrel, the coyote, the trash can, the cat, fish, the heron, fireflies (harbor().wildlife)
-  const strings = createStrings();                 // NEON PASS 4: STRING LIGHTS on the speakeasy's roof (Parts 8 + 11 reuse them)          // NEON PASS 2: THE WATERFRONT STRIP — the far shore's bars, diners, the theatre
+  const strings = createStrings();
+  // 11a-1 — THE SIGN DECORATION SYSTEM (screens/harbor/signdress.js, LAZY: loaded on a dressed day or a preview): the holiday's dressing
+  // on the NEON sign — Halloween's web + spider, Day of the Dead's marigolds, papel picado + candles — on its own full-dpr canvas inside the
+  // logo's wrap (S.dressHost, from title.js). &force=sign-web (the finished web + the spider, any day) · &force=sign-dotd (the sign dressed)
+  let dress = null, dressLoading = false;
+  const DRESS_COLS = { halloween: [[255, 122, 18], [155, 61, 255], [255, 122, 18], [155, 61, 255]], dotd: [[255, 166, 42], [255, 46, 151], [255, 166, 42], [255, 46, 151]] };
+  function dressTick(t) {
+    const fw = clock.force.has('sign-web'), fd = clock.force.has('sign-dotd');
+    const H = fw && HS.id !== 'halloween' ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd && HS.id !== 'dotd' ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : HS;
+    const P = H === HS ? HP : H.id === 'halloween' ? { web: 1, spider: true } : { sign: 1 };
+    if (!dress) {
+      if (!dressLoading && (H.id === 'halloween' || H.id === 'dotd')) { dressLoading = true; import('./signdress.js').then(m => { if (!destroyed) dress = m.createSignDress(); }).catch(e => { dressLoading = false; console.warn('[harbor] sign dress', e); }); }
+      return;
+    }
+    if (S.dressHost) dress.setHost(S.dressHost);
+    dress.frame({ holiday: H, pieces: P, t, motion: !!S.motion, tier, dpr, signLit: signLive(), letterCols: HR && HR.sign && H === HS ? DRESS_COLS[HR.sign] || null : null,
+      dark: clamp01(1 - (LK.w.day || 0) - 0.5 * (LK.w.golden || 0)), wind: WXS ? WXS.gust || 0 : (LK.wind == null ? 3 : LK.wind) });
+  }
+  const dressDebug = () => (dress ? dress.debug() : null);
+  // 11a-1 — HALLOWEEN's SKY + WATER (screens/harbor/ghostship.js — the LEGENDARY GHOST SHIP, the WITCH (witch.js), the bats' colony
+  // from a tower crown (birds.js via fs.hween)): loaded lazily — in October or for a preview (&force=ghost-ship / witch / bats)
+  let hsky = null, hskyLoading = false;
+  const hskyWanted = () => HS.id === 'halloween' || clock.force.has('ghost-ship') || clock.force.has('witch') || clock.force.has('bats');
+  const hskyEnv = o => ({ L, W, HZ, dpr, lc: LK.local, nowS: clock.now() / 1000, motion: S.motion, tier, hp: HP, dusk: duskH, force: clock.force, forceAt: forceAtOf, play: S.motion ? snd.play : null, dark: clamp01((LK.w.night || 0) + (LK.w.late || 0) + 0.6 * (LK.w.dusk || 0)), ...o });
+  // PART 11a-1 — THE HOLIDAY DRESSINGS ON THE GROUND (screens/harbor/holidayprops.js, LAZY: a holiday or a preview): the jack-o'-lanterns
+  // on the side door's steps; Day of the Dead's petal path, marigolds, garlands, papel picado + the monarchs — three passes (ground · air · top)
+  let hprops = null, hpropsLoading = false, hpropsMs = 0;
+  function hpropsDraw(c, pass, fadeIn, lit) {
+    const mon = clock.force.has('monarchs');
+    if (!hprops) {
+      if (!hpropsLoading && (HS.id || mon)) { hpropsLoading = true; import('./holidayprops.js').then(m => { if (!destroyed) hprops = m.createHolidayProps(); }).catch(e => { hpropsLoading = false; console.warn('[harbor] holiday props', e); }); }
+      return;
+    }
+    if ((!HS.id && !mon) || clock.force.has('no-holiday-props') || !bakeTones || !L) return;
+    const t0 = DEBUG ? performance.now() : 0, wd = LK.windDir == null ? 250 : LK.windDir;
+    hprops.draw(c, pass, { L, HS, HP, T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), t: performance.now() / 1000, ms: clock.now(), motion: S.motion, tier, dpr, fade: fadeIn,
+      wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), gust: WXS ? WXS.gust || 0 : 0, power: LB ? legendPow(W * 0.3, 'near', 211) : 1, monarchAt: mon ? forceAtOf('monarchs') * 1000 : null });
+    if (DEBUG) { const d = performance.now() - t0; hpropsMs = hpropsMs * 0.97 + d * 0.03 * 3; if (typeof window !== 'undefined') { window.__hpropsMs = +(hpropsMs / 3).toFixed(3); window.__hprops = hprops; const b = window.__hpropsLog || (window.__hpropsLog = []); if (pass === 'ground') b.push(d); else if (b.length) b[b.length - 1] += d; if (b.length > 900) b.splice(0, 300); } }
+  }                 // NEON PASS 4: STRING LIGHTS on the speakeasy's roof (Parts 8 + 11 reuse them)          // NEON PASS 2: THE WATERFRONT STRIP — the far shore's bars, diners, the theatre
   let pierLampsAt = [];
   let litFadeFrom = -1, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
@@ -368,6 +407,26 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const SHOW_FORCES = ['party', 'neon-party', 'finale', 'fireworks', 'drones', 'dance', 'strings-party', 'beams'];
   setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k), show: () => (!clock.force.has('no-party') && SHOW_FORCES.some(f => clock.force.has(f)) ? 'party' : null) });
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
+  // PART 11a-1 — THE HOLIDAY (core/harbor-holiday.js, PURE): what the city is dressed for now (HS), what of it shows (HP), the holiday
+  // light rules (HR) — refreshed with the look; every holiday piece reads these (the sign's dressing, the steps, the windows, the people)
+  let HS = holidayAt(null), HP = null, HR = lightRules(HS), HL = null, duskH = 17.6, duskDay = '', wheelWant = 'city', beamWant = 'null', stringsWant = null;
+  function holidayTick() {
+    const lc = LK.local;
+    HS = holidayAt(lc);
+    const hr = lc ? lc.h + lc.mi / 60 + (lc.s || 0) / 3600 : 12;
+    if (lc && duskDay !== `${lc.y}-${lc.m}-${lc.d}`) { duskDay = `${lc.y}-${lc.m}-${lc.d}`; try { const st = sunTimes(clock.now(), clock.tz, LK.lat, LK.lon); if (st.set) duskH = ((((st.set + lc.off * 60000) / 3.6e6) % 24) + 24) % 24; } catch { /* the default */ } }
+    HP = HS.id === 'halloween' ? halloweenPieces(HS, { hour: hr }) : HS.id === 'dotd' ? dotdPieces(HS, { hour: hr, dusk: duskH }) : null;
+    HR = lightRules(HS, { hour: hr, dark: clamp01((LK.w.night || 0) + (LK.w.late || 0) + 0.5 * (LK.w.dusk || 0)) });
+    // (City 2.0 owns Halloween + Day of the Dead: the district's Halloween — its witch, bats + rooftop pumpkin — never runs here; the
+    // title's sign dressing reads City 2.0's calendar through look())
+    if (LK.holiday && LK.holiday.id === 'halloween') LK.holiday = null;
+    LK.c2holiday = titleHoliday(HS);
+    // (the windows' scenes plan by the hour: they read the DAY's stage — noon's — so a plan never shifts mid-hour; eve flips once)
+    if (HS.id && lc) { const hd = holidayAt({ y: lc.y, m: lc.m, d: lc.d, h: 12, mi: 0 }), pd = hd.id === 'halloween' ? halloweenPieces(hd) : null;
+      HL = { id: HS.id, stage: Math.round((hd.id === HS.id ? hd.stage : HS.stage) * 100) / 100, eve: !!HS.eve, w: pd ? Math.round(pd.windows * 10) / 10 : 1, ofrendas: HP && HP.ofrendas != null ? HP.ofrendas : 0 };
+      if (HS.id === 'halloween' && HS.eve) HL.w = 1; } else HL = null;
+  }
+  holidayTick();
   // 8b1 — THE WORKERS: &force=work-<kind> previews that worker (one every few minutes, any day); &force=no-work keeps them all home
   const workForced = () => { if (clock.force.has('hydrant')) return 'hydrant'; for (const id of clock.force) if (id.startsWith('work-')) return id.slice(5); return null; };
   // POLISH 5 — EVERY FORCED EVENT STARTS AT THE MOMENT IT FIRES (the owner: a panel-fired worker popped in mid-job): the city clock (s)
@@ -679,6 +738,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       let lv = on ? (mo ? warmUp(t - lampOnAt[i]) : 1) : 0;
       if (m && m.i === i) lv *= m.level(ms);
       // (8b1 — CAUSE AND EFFECT: a lamp's BAD NIGHT — it stutters every minute or so until the morning's short ladder fixes it)
+      // (11a-1 — THE SPOOKY LIGHT: on Halloween night each lamp now and then GUTTERS — its own seeded stutter, a few times a minute)
+      if (lv > 0 && mo && HR.lampFlicker > 0.01) lv *= 1 - HR.lampFlicker * spookyFlicker(ms / 1000, i);
       if (lv > 0 && mo && lampFaultNow && lampFaultNow.lamp === i && ms / 1000 >= lampFaultNow.from) { const u = ((ms / 1000 - lampFaultNow.from) % lampFaultNow.period); if (u < 1.1) lv *= u < 0.12 ? 0.1 : u < 0.3 ? 0.75 : u < 0.42 ? 0.05 : u < 0.62 ? 0.6 : u < 0.75 ? 0.15 : 1; }
       if (legends && legends.active()) lv *= legendPow(project(cam, L.lamps[i].x, 0, L.lamps[i].z)[0], 'near', 100 + i);   // (6b: a legendary's power)
       levels.push(lv); off.push(1 - lv); if (lv < 0.98) dim = true;
@@ -759,7 +820,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // Oct 25 — NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold): the hold on every vehicle's start, now; the planners
   // read it through peopleFrame's legend; the street under the dock (roadLight) + the raid read it here
   const trafficHoldNow = () => { const h = trafficHold(legendForPeople()); return h ? { t0: h[0], t1: h[1], on: inHold(h, clock.now() / 1000) } : null; };
-  const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(),
+  const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(), holiday: HS, hpieces: HP, local: LK.local, forceHoliday: clock.force, forceAt: id => (clock.force.has(id) ? forceAtOf(id) * 1000 : null) /* (the clock ms the flag came on) */,
     forceWork: workForced(), forceWorkAt: workForceAt(), noWork: clock.force.has('no-work'), dusk: duskFor, hot: hotDay,
     forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
@@ -770,7 +831,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (Math.abs(ms - moonAt) > 6e5) { moonAt = ms; try { moonK = moonPhase(ms).illum; } catch { moonK = 0; } }
     if (Math.abs(ms - winDarkAt) > 6e4) { winDarkAt = ms; try { const d = speak.life().dark; winDark = Array.isArray(d) ? d : null; } catch { winDark = null; } }
     return { ms, off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, season: L.season, seed: L.seed || 1924, rain: LK.rain || 0, snow: LK.snow || 0, wind: LK.wind == null ? 3 : LK.wind,
-      moon: moonK, force: clock.force, tier, motion: S.motion, people: clock.force.has('no-people') ? [] : people.positions(), dark: litK(DK, 'lamps'), windowDark: winDark, t: performance.now() / 1000,
+      moon: moonK, force: clock.force, tier, motion: S.motion, holiday: HS, hpieces: HP, people: clock.force.has('no-people') ? [] : people.positions(), dark: litK(DK, 'lamps'), windowDark: winDark, t: performance.now() / 1000,
       // (POLISH 5 — THE WORKERS ↔ THE HYDRANT: a hot afternoon's spray + its wet patch, from the workers' traces)
       hydrant: () => { const cr = people.crew(); return cr && cr.traces ? cr.traces.hydrant || null : null; } };
   };
@@ -848,12 +909,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // hours still thin out and the kitchens still light before dawn; + the bias toward the lower floors while the city powers up)
   const winShare = () => Math.min((P.win || 0) + 0.5 * ((LK.w && LK.w.golden) || 0), windowShare(DK));
   const winBias = () => Math.round(windowBias(DK) * 10) / 10;
-  const lightKey = () => `${Math.round(winShare() * 60)}|${winBias()}|${Math.round((P.winWarm || 0) * 10)}|${windowsNight(DK) ? 1 : 0}|${camSig}|${partyLit() ? 'p' : ''}`;
+  const lightKey = () => `${Math.round(winShare() * 60)}|${winBias()}|${Math.round((P.winWarm || 0) * 10)}|${windowsNight(DK) ? 1 : 0}|${camSig}|${partyLit() ? 'p' : ''}|${holLit() ? `${holLit().id}${holLit().k}` : ''}`;
+  /** 11a-1 — THE HOLIDAY IN THE SKYLINE's WINDOWS (lights.js): Halloween night's eerie green + jack-o'-lantern orange share, Day of the
+   *  Dead's candlelight — { id, k (quarters) } or null; baked with the light key */
+  const holLit = () => (HR.windowTintK > 0.05 ? { id: 'halloween', k: Math.round(HR.windowTintK * 4) / 4 } : HR.sign === 'dotd' ? { id: 'dotd', k: 1 } : null);
   // (NEON PASS 3: a party night's windows — re-baked once when the party starts and once when it ends)
   const partyLit = () => PT.on > 0.5 || clock.force.has('neon-party');
   function rebakeLights() {
     LOADLOG.add('lit', `${shownAt >= 0 && litBaker.bakes >= 1 ? 'crossfade' : 'swap (dark)'} · ${keyDiff(litBaker.key, lightKey(), ['share', 'bias', 'warm', 'night', 'W', 'H', 'dock', 'limit', 'tier', 'party'])}`, { fade: shownAt >= 0 && litBaker.bakes >= 1 });
-    litLook = { share: Math.round(winShare() * 60) / 60, bias: winBias(), warm: P.winWarm || 0, night: DK, party: partyLit() };
+    litLook = { share: Math.round(winShare() * 60) / 60, bias: winBias(), warm: P.winWarm || 0, night: DK, party: partyLit(), hol: holLit() };
     const mf = newMeta(), mn = newMeta();
     litMeta = { far: mf, near: mn };
     // (NEON PASS 4: the signs' cabinets cut out of the lit windows — a window behind a sign never shines through it: signs.js)
@@ -874,6 +938,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     lookAt = now;
     const ms = clock.now();
     LK = skyLook(ms, clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
+    holidayTick();
     LH = harborWeights(LK, Math.round(0.5 * stormDark() * 10) / 10);     // (9a: a storm afternoon's gloom — in tenths)
     P = paletteFor(LH);
     DK = darkNow();
@@ -1087,12 +1152,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the scheduler's first read is at once, the moment it exists)
     if (now - eventsAt > 500 || (sched && !schedRead)) { eventsAt = now; if (sched) { events = sched.at(clock.now()); schedRead = true; } density = densityOf([...events.quiet, ...sky.quiet()]); }
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
-    const fs = { lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
+    const fs = { lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, holiday: HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
     if (now - legendCheckAt > 1000) { legendCheckAt = now; if (!legends && (off.has('ufo') || off.has('tr3b') || legendSoon())) needLegends(); }
     // (THE DIRECTOR's view of this frame: what heavy is on screen now)
-    director.frame([PT.on > 0.5 ? { id: 'party', kind: 'party' } : null, ...sky.heavies(), legends && legends.active() ? { id: 'legend', kind: 'legendary' } : null], tier);
+    director.frame([PT.on > 0.5 ? { id: 'party', kind: 'party' } : null, ...sky.heavies(), hsky && hsky.active && hsky.active() ? { id: 'ghost-ship', kind: 'legendary' } : null, legends && legends.active() ? { id: 'legend', kind: 'legendary' } : null], tier);
     if (legends) {
       legends.tick(fs, (id, kind) => director.may(id, kind));
       const gl = legends.signGlitch();
@@ -1134,13 +1199,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.moonSky({ band: tagBand(), veil: clouds.veil() });
     moonNow = fs.moonAt || null;
     logoHaze(c);
-    fx.back(c, fs);
+    // (11a-1: the district's witch + bats never fly on the Harbor — City 2.0's own (witch.js, birds.js) answer &force=witch / bats)
+    { const ff = fs.force; if (ff.has('witch') || ff.has('bats')) { fs.force = new Set([...ff].filter(id => id !== 'witch' && id !== 'bats')); fx.back(c, fs); fs.force = ff; } else fx.back(c, fs); }
     moonNow = fs.moonAt || null;
     // (the golden haze UNDER the disc — additive light over it bleached a 4° amber sun to lemon-white; sun.js#sunColourAt)
     sky.sunHaze(c, fs, sun.debug());
     sun.draw(c, fs);
     sky.tick(fs, events.active, events.recent || []);
-    snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W, legend: legends ? legends.listen() : null,
+    snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W, legend: legends ? legends.listen() : null, hween: HP && HP.spooky ? HP.spooky * clamp01((LK.w.night || 0) + (LK.w.late || 0)) : 0,
       weather: WXS ? { rain: LK.rain || 0, state: WXS.state, drip: WXS.drip, gust: WXS.gust, fog: LK.fog || 0, temp: (() => { const tq = qp.get('temp'); return tq != null && tq !== '' && Number.isFinite(+tq) ? +tq : LK.temp; })(), month: LK.local ? LK.local.m : 0, hour: LK.local ? LK.local.h + LK.local.mi / 60 : 12, night: clamp01((LK.w.night || 0) + (LK.w.late || 0)) } : null,
       hydrant: (() => { const h = wild.hydrantState && wild.hydrantState(); if (!h || !(h.spray > 0.01)) return null; const [hx] = project(cam, h.x + 1.3, 0, h.z); return { k: h.spray, pan: Math.max(-1, Math.min(1, (hx / W) * 2 - 1)) }; })() });
     // (POLISH 5 — CLOUDS NEVER COVER A MESSAGE, the owner: a cumulus hid part of "JESSICA": while a message is skytyped every cloud is
@@ -1169,6 +1235,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     bow.update(fs, bowT, { t, dt, motion: S.motion, breath: 0 });
     if (!off.has('no-rainbow')) bow.sky(c, fs);
     fw.draw(c, dt, S.motion);
+    // 11a-1 — THE WITCH across the moon (+ her sparks); the bats' Halloween input for birds.js (sky.low, below)
+    if (!hsky && !hskyLoading && hskyWanted()) { hskyLoading = true; import('./ghostship.js').then(m => { if (!destroyed) hsky = m.createHalloweenSky(); }).catch(e => { hskyLoading = false; console.warn('[harbor] halloween sky', e); }); }
+    fs.hween = null;
+    if (hsky) { fs.hween = hsky.sky(c, hskyEnv({ t, dt, lanes: L.lanes, moonAt: fs.moonAt || null, safeTop: safeTopV })); if (hsky.busy()) fastUntil = Math.max(fastUntil, performance.now() + 200); }
     drawEvents(c, 'sky');
     // ---- the city: the baked layers, far → near, with the moving things between them
     const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - shownAt);
@@ -1206,6 +1276,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (legends && legends.active()) drainCity(c, fadeIn, 'far');   // (C2: the far strips over the far layer only — before the near rows)
     const sunNow = sun.debug(), rk = off.has('no-rays') ? 0 : rayStrength(LK, sunNow);
     sun.halo(c, fs); drawRays(c, L, sunNow, rk * fadeIn, t, 'behind', S.motion, tier); sky.low(c, fs);
+    // 11a-1 — THE GHOST SHIP's place this frame + its reflection + its lanterns' columns into the water (before the water composes)
+    if (hsky) hsky.queue(hskyEnv({ t, dt, fade: fadeIn }), off.has('no-water') ? null : water);
     wfx.fogLayer(c, fs, 1, t);
     // SP3 — HEAVY RAIN's biggest read: the far skyline GREYED behind a rain haze (the far rows melt into it; the near rows stay clearer)
     rainHaze(c, 'far', 0.62, fadeIn);
@@ -1232,11 +1304,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the party show's drops for the title (the NEON word joins the biggest ones) + the wheel (its sparkle, its party colours)
     { const sh = neon.show(); PT.drop = sh.drop; PT.big = sh.big; PT.scene = sh.scene;
       const wantParty = PT.on > 0.5;          // (NEON PASS 4: the wheel wears the party's colours all party night)
-      if (wantParty !== wheelParty && !clock.force.has('wheel-scheme')) { wheelParty = wantParty; wheel.scheme(wantParty ? 'party' : 'city'); }
+      // (11a-1: THE HOLIDAY LIGHT RULES — core/harbor-holiday.js#lightRules — the holiday's scheme wins over the party's)
+      { const want = HR.wheel || (wantParty ? 'party' : 'city'); if ((want !== wheelWant || wantParty !== wheelParty) && !clock.force.has('wheel-scheme')) { wheelParty = wantParty; wheelWant = want; wheel.scheme(want); } }
       // (NEON PASS 4: Rosie in her party bulbs all party night — boats.set is a no-op while unchanged)
       // (SP3 — ROSIE ON THE MOVE: on a party night her deck strings CHASE in the party colours — two bands a beat when the music's grid is
       // trusted (hbeat.bpm), a lively 6 a second without it; quantized so set() changes only when the tempo does)
-      if (!clock.force.has('rosie-lights')) { const rate = hbeat.bpm && hbeat.locked > 0.5 ? Math.round(hbeat.bpm / 60 * 2 * 4) / 4 : 6; boats.set({ rosie: wantParty ? 'party' : 'city', chase: wantParty ? { rate, k: 0.85, span: 6 } : null }); } }
+      if (!clock.force.has('rosie-lights')) { const rate = hbeat.bpm && hbeat.locked > 0.5 ? Math.round(hbeat.bpm / 60 * 2 * 4) / 4 : 6; boats.set({ rosie: HR.rosie || (wantParty ? 'party' : 'city'), chase: wantParty ? { rate, k: 0.85, span: 6 } : null }); }
+      if (!clock.force.has('beam-green') && String(HR.beam) !== beamWant) { beamWant = String(HR.beam); beam.set({ colour: HR.beam }); }
+      if (HR.strings !== stringsWant && !clock.force.has('strings-party')) { stringsWant = HR.strings; strings.set({ scheme: HR.strings }); } }
     // the far shore's storefronts (before the quay's lamps + the water: the harbor reflects them)
     const pQuay = LB ? legendPow(W * 0.5, 'harbor', 304) : 1;
     if (!off.has('no-waterfront')) waterfront.draw(c, T, fadeIn * litK(DK, 'lamps') * (lit > 0 ? lit : 0) * pQuay, fadeIn, t, S.motion, off.has('no-water') ? null : water);
@@ -1270,6 +1345,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!off.has('no-beam')) beam.draw(c, hf.beam);
     neon.draw(c, 'harbor', LB ? { ...nf, fade: nf.fade * legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) } : nf);   // (NEON PASS 3: the lighthouse + the keeper's house in neon)
     if (!noB) boats.draw(c, hf.boat, L.wheel.z + L.wheel.frame + 0.5, L.lighthouse.z);
+    // 11a-1 — THE GHOST SHIP on the water (z 140: in front of the breakwater, the lighthouse + Rosie's berth; behind the wheel +
+    // the near boats — the taxi passes in front), its pool of green light, the mist rolling off it
+    if (hsky) hsky.water(c, hskyEnv({ t, dt, fade: fadeIn }));
     if (!off.has('no-wheel')) wheel.draw(c, hf.wheel);
     drawPierLamps(c, hf.lamps * (PT.on > 0 ? 0.85 + 0.7 * (PT.punch || 0) : 1));
     sky.harbor(c, fs);                              // (the drone show's barge in front of Rosie's landing + the drones still low by it)
@@ -1343,7 +1421,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (RR && RR.dark) { if (!raidPole) { raidPole = true; speak.pole({ on: false }); } } else if (raidPole) { raidPole = false; speak.pole({ on: true }); }
     { const bd = wTr && wTr.bulbDead; speak.bulb(bd ? bd.i : null, bd ? bd.k : 1); }
     if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
-      tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+      tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     // 9a — THE SPEAKEASY IN THE RAIN: the glass wet (a sheen, beads, rivulets), the hush sign's cyan on the wet pavement
     if (WXS && (LK.rain > 0.03 || WXS.drip > 0.05 || WXS.wet > 0.05) && fadeIn > 0 && !off.has('no-speakeasy')) { const hs = speak.hush(); wetGround.glass(c, { wins: speak.windows(), rain: LK.rain || 0, drip: WXS.drip, wet: WXS.wet, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, fade: fadeIn, hush: hs && hs.lit && hs.rect ? { rect: hs.rect, k: litK(DK, 'lamps') * 0.7 + 0.3 } : null }); }
     { const bd = speak.beds(); snd.speakeasy(RR && bd ? { ...bd, club: (bd.club || 0) * RR.club } : bd); }   // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them; 8b2: the raid hushes it, it creeps back — louder on a party night)
@@ -1360,6 +1438,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // FP3b — THE DANCE CIRCLE lights the inlay's floor spots (the rig without a piece), in the party palette's colour of the phrase
     { const dn = pplLive ? people.dance() : null; centre.dance(dn && dn.on ? { k: dn.k, col: PT.palette && PT.palette.length ? PT.palette[Math.floor((PT.beatsF || 0) / 8) % PT.palette.length] : null } : null); }
     if (fadeIn > 0 && bakeTones) centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * (LB ? legendPow(W * 0.5, 'near', 207) : 1), fade: fadeIn, t });
+    hpropsDraw(c, 'ground', fadeIn, lit);         // (11a-1: the petal path, the marigolds, the back garlands, the jack-o'-lanterns)
     // 8P — THE PEOPLE on the promenade (after the stage + the speakeasy's live layer, before the front row: the corner globes, the framing
     // maple, the cart stand nearer than anyone on the floor) + the ROOF's guests (clipped to the sky over the parapet)
     // 8b1 — MONDAY's REPAINT over the baked blade (still the old week's name until the painters finish)
@@ -1374,6 +1453,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // PART 6b — THE UFO ABDUCTION over the compass (its pool, the beam, the walker + the figure lifted, the saucer) — in front of everyone
     // on the floor, behind the front row (the framing maple + the near lamps stand in front of the beam)
     if (legends && legends.active() && fadeIn > 0 && !off.has('no-legends')) legends.near(c, fs, { ...(pplEnv || peopleEnv(lit, fadeIn)), waterLight: (x, y, col, k, r) => water.light(x, y, col, k, r) });
+    hpropsDraw(c, 'air', fadeIn, lit);            // (11a-1: the papel picado strung across the promenade, over the people)
     layer('front');
     swayTrees(c, 'front', t, xf, fadeIn);
     // (POLISH 4 — THE BLACKOUT on the promenade's BAKED night light: the lamps' pools, the trees' uplights, the hidden lamp's glow, the
@@ -1415,6 +1495,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // 8b1: the birds on the speakeasy (the blade's top, the parapet, the date stone, the café posts) in front of the canopy's wire; the
     // squirrel on the big maple's trunk (in front of it — it fades into the crown) + the fireflies on summer nights
     if (wlOn) { wild.draw(c, 'high', wlEnv); wild.draw(c, 'top', wlEnv); }
+    hpropsDraw(c, 'top', fadeIn, lit);            // (11a-1: the front garlands + marigolds, the monarchs)
     { const k = 1 - smooth(0, 900, (performance.now() - knockAt)); if (k > 0) { const d = L.door; c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.7 * k; const r = d.h * 1.6; c.drawImage(glow, d.x - r, d.y - d.h * 0.7 - r, r * 2, r * 2); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; } }
     // before the power-on the city sits in near-darkness (only at night)
     if (lit < 1) { c.fillStyle = `rgba(2,2,9,${0.58 * (1 - lit) * night})`; c.fillRect(0, 0, W, H); }
@@ -1436,8 +1517,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }
     // (9a: City 1.0's full-screen frost pane is off in the Harbor — the cold shows on the buttons' glass (glasswx.js); the frost of a
     // snowy night across the screen is 9b's)
+    // 11a-1 — THE SIGN'S DRESSING (its own canvas in the logo's wrap: redrawn only when it changes; the spider + flames ≤ 30 fps)
+    if (fadeIn > 0 || shownAt >= 0) dressTick(t);
     sun.dim(c, fs);
-    drawForeground(c, W, H, vignette, night);
+    drawForeground(c, W, H, vignette, Math.min(1.22, night + (HR.shadow > 0.01 ? HR.shadow * 1.4 : 0)));
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
     // (FP: or THE PREVIEW PANEL → TOOLS → READOUT on this device — ui/debug-tools.js, live, remembered; &debug=1 still shows it)
     if (debugTool('readout', DEBUG)) { readout(now); loadStrip(now); pixWatch(now); } else { if (roStrip) { roStrip.remove(); roStrip = null; } if (llStrip) { llStrip.remove(); llStrip = null; } }
@@ -2076,10 +2159,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // the tagline faded (title.js, City 2.0): the freed band joins the sky-low lane (no bake: nothing in the city moves)
       if ('tagGone' in v && cam && !!v.tagGone !== !!cam.tagGone) { cam.tagGone = !!v.tagGone; if (L) { L.lanes = laneRects(L); sky.setLanes(L.lanes); } }
     },
-    look: () => LK,
+    look: () => (LK.c2holiday ? { ...LK, holiday: LK.c2holiday } : LK),
+    /** PART 11a-1: the holiday now — { state (core/harbor-holiday.js#holidayAt), pieces, rules } */
+    holiday: () => ({ state: HS, pieces: HP, rules: HR, dusk: duskH }),
     /** a tap: the moon / UFO / cat (fx), the birds, then the speakeasy's door (last). { kind } or null */
     hit(x, y) {
       fastUntil = performance.now() + 1500;        // (a tap: whatever answers it moves at 60 fps)
+      if (dress) { const d = dress.hit(x, y); if (d) return d; }      // (11a-1: the spider on the sign bolts down its line)
+      // (11a-1: the black cat on the side door's step — a tap: it hisses + darts off, back a minute later)
+      { const ct = L && !clock.force.has('no-wildlife') && wild.catTap ? wild.catTap(x, y) : null; if (ct) { if (S.motion) snd.play('cat-hiss', { gain: 0.85, pan: ct.pan }); return { kind: 'black-cat' }; } }
       const f = fx.hit(x, y);
       if (f) return { kind: f };
       const sg = neon.hit(x, y);
@@ -2149,11 +2237,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze,
+    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
-      wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),
+      wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), schemeId: wheel.debug().scheme, x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),
       lighthouse: { ...beam.debug(), set: o => beam.set(o), spin: () => beam.spin() },
       boats: { ...boats.debug(), set: o => boats.set(o), steam: harborSteam(), clock: hcLast },
       waterfront: waterfront.debug(),
@@ -2202,6 +2290,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {
+      if (dress) { try { dress.destroy(); } catch { /* fine */ } }
+      if (hsky && hsky.destroy) { try { hsky.destroy(); } catch { /* fine */ } }
+      if (hprops && hprops.destroy) { try { hprops.destroy(); } catch { /* fine */ } }
       destroyed = true;
       stop();
       clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT);

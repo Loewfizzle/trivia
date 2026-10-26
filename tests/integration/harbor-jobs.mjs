@@ -25,6 +25,7 @@ export const SECONDS = {
   tape: 85,            // (Oct 25: THE TAPE STOP — one page, a whole TR-3B in real time + a second run; measured on the laptop)
   motion: 75,          // (PEO, Oct 25: THE PEOPLE'S MOTION — a 12-s trace of an afternoon + the dance circle (a wait for it); measured on the laptop)
   weather: 70,         // (9a: THE WEATHER — fourteen pages, joined at once; 66 s on the laptop)
+  holiday: 75,         // (11a-1: THE HOLIDAYS — eight pages: the build-up by date, the night, the come-down, the procession, reduced motion)
 };
 
 // ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
@@ -34,7 +35,9 @@ export const CI_JOBS = {
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'panel', 'perf'],   // (PEO: promenade moved here from street — motion took its room)
   street: ['speakeasy', 'windows', 'sounds', 'people', 'motion'],   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room)
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
-  wild: ['wildlife', 'workers', 'legends', 'weather'],   // (9a: the weather + legends; tape → audio)
+  wild: ['wildlife', 'workers', 'legends', 'weather'],
+  // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
+  holiday: ['holiday'],   // (9a: the weather + legends; tape → audio)
 };
 
 export const SERIAL = ['panel', 'perf'];

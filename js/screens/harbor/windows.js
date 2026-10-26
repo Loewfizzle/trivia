@@ -455,7 +455,7 @@ export function createWindowLife() {
       const hr = Math.floor(h), prev = hr ? block(loc.key, hr - 1, ctx) : block(localNow(ms - 86400e3, L.off).key, 23, { ...ctx, dow: (loc.dow + 6) % 7 }).map(e => ({ ...e, t0: e.t0 - 86400 }));
       on = starOnly(momentsAt([...prev, ...block(loc.key, hr, ctx)], loc.sec));   // (SP3: one star window at a time)
       // (Reduced motion: no moving moments — the rooms keep their states: the TV's light steady, the night lamp, the shop's barber still)
-      if (f.motion === false) on = [];
+      if (f.motion === false || f.motion === 0) on = [];   // (11a-1: the title passes motion 0 — the old === false never caught it)
     }
     const states = { apartment: roomState('apartment', h, routines), bar: roomState('bar', h, routines), shop: roomState('shop', h, routines) };
     const full = new Set();
@@ -474,7 +474,7 @@ export function createWindowLife() {
    * party, tier, fade), play(slot, o), loop(slot, o) }
    */
   function draw(c, env) {
-    const fr = last, f = env.f, t = f.t || 0, k = env.k, day = clamp01(1 - k), mo = f.motion !== false;
+    const fr = last, f = env.f, t = f.t || 0, k = env.k, day = clamp01(1 - k), mo = f.motion !== false && f.motion !== 0;
     const T = f.tw || { day: 1 - k, gold: 0, night: k };
     const frameC = rgb(tri(T, [30, 54, 46], [40, 40, 40], [11, 12, 22]));
     const winOf = id => env.wins.find(w => w.id === id);
@@ -790,7 +790,7 @@ export function createWindowLife() {
   function spills(c, env, fr, t) {
     const w = env.wins.find(o => o.id === 'apartment');
     if (!w || fr.states.apartment !== 'tv' || env.k < 0.02) return;
-    const tv = env.f.motion !== false ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0 };
+    const tv = env.f.motion !== false && env.f.motion !== 0 ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0 };
     c.save(); env.map(c); c.globalCompositeOperation = 'lighter';
     landing(c, glassOf(w), tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint), 0.75 * env.k * Math.min(0.92, tv.k));
     c.restore();
@@ -882,13 +882,18 @@ export function createWindowLife() {
     // the room in candlelight: a warm glow rising from the altar (the curtains + the walls take it)
     if (k > 0.05) { c.globalCompositeOperation = 'lighter'; const fl = mo ? 0.88 + 0.12 * Math.sin(t * 7.3) * Math.sin(t * 3.1) : 1; glow(c, CANDLE, G.cx, base + th * 2.6, G.cw * 0.95, 0.42 * k * Math.max(0.35, lit) * fl, 0.85); c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; }
     // the tiers: a white cloth, its lace edge, a band of papel colour on each riser
-    const cloth = k > 0.25 ? 'rgb(246,232,214)' : 'rgb(214,206,196)', bands = ['rgb(236,60,140)', 'rgb(255,140,30)', 'rgb(150,70,210)'];
+    // (the cloth a deep magenta + violet — the ofrenda reads by its COLOUR + its marigold arch + its candles, never a white cake)
+    const cloth = k > 0.25 ? 'rgb(150,26,92)' : 'rgb(120,40,90)', bands = ['rgb(255,140,30)', 'rgb(110,40,170)', 'rgb(255,190,40)'];
     for (let i = 0; i < 3; i++) {
       const w = (x1 - x0) * (1 - i * 0.22), u0 = G.cx - w / 2, v0 = base + i * th;
       R(c, u0, v0, u0 + w, v0 + th, cloth);
       R(c, u0, v0 + th * 0.62, u0 + w, v0 + th * 0.86, bands[i]);
       c.fillStyle = cloth; for (let u = u0; u < u0 + w - 0.01; u += 0.05) { c.beginPath(); c.arc(u + 0.025, v0 + th * 0.62, 0.022, Math.PI, 0); c.fill(); }
     }
+    // THE MARIGOLD ARCH over the altar (cempasúchil bound to a bent cane): orange + gold blooms round a half-ellipse
+    { const ax = G.cx, ay = base + th * 1.2, arx = (x1 - x0) * 0.48, ary = G.ch * 0.6, n2 = 22;
+      for (let i = 0; i <= n2; i++) { const a = Math.PI * i / n2, bx = ax - Math.cos(a) * arx, by = ay + Math.sin(a) * ary, br = 0.05 + 0.012 * ((i * 7) % 3);
+        c.fillStyle = 'rgb(214,92,10)'; c.beginPath(); c.arc(bx, by, br, 0, TAU); c.fill(); c.fillStyle = i % 3 ? 'rgb(255,170,30)' : 'rgb(255,206,60)'; c.beginPath(); c.arc(bx - br * 0.2, by + br * 0.2, br * 0.62, 0, TAU); c.fill(); } }
     // the photo (a dark frame in gold) + the sugar skull + the bread on the top tier
     const top = base + th * 3;
     R(c, G.cx - 0.13, top, G.cx + 0.13, top + 0.3, 'rgb(196,150,70)'); R(c, G.cx - 0.105, top + 0.025, G.cx + 0.105, top + 0.275, 'rgb(70,54,48)');

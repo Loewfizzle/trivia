@@ -330,10 +330,11 @@ export function drawQuad(c, cam, q, env) {
   c.save(); c.globalAlpha *= q.a == null ? 1 : q.a;
   if (!climb) { contact(c, cam, o.x, o.y, o.z, L * 0.36, 0.34); cast(c, cam, o.x, o.y, o.z, Ht * 0.6, L * 0.3, env); }
   const col = k => litCol(k, env, o.x, o.z, 1), rim = rimOf(env, o.x, o.z), mv = q.moving || 0;
-  const low = pose === 'crouch' ? 0.62 : pose === 'pounce' ? 0.8 : 1;
+  // (11a-1: 'hiss' — the Halloween cat's arched back, standing tall on stiff legs; 'run' — its dart away, low + stretched)
+  const hiss = pose === 'hiss', low = pose === 'crouch' ? 0.62 : pose === 'pounce' ? 0.8 : hiss ? 1.14 : pose === 'run' ? 0.86 : 1;
   const shY = Ht * 0.62 * low, hipY = Ht * 0.6 * low;
   // ---- the legs: a trot (diagonal pairs), a walk; sitting: the hind legs folded, the front ones straight
-  const legs = [], gp = (q.gait || 0) * TAU, st = 0.16 * L * mv;
+  const legs = [], gp = (q.gait || 0) * TAU, st = (pose === 'run' ? 0.3 : 0.16) * L * mv;
   const leg = (a, side, ph, top) => { const sw = Math.sin(gp + ph) * st, lift = Math.max(0, Math.cos(gp + ph)) * 0.08 * Ht * mv; return { top: Fp(a, side * 0.09 * L, top), foot: F(a * Math.cos(pitch) + sw, side * 0.09 * L, lift), side }; };
   if (!climb) {
     if (pose === 'sit' || pose === 'sitUp' || pose === 'lick') { for (const side of [-1, 1]) { legs.push({ top: Fp(0.3 * L, side * 0.07 * L, shY * 0.4), foot: F(0.2 * L, side * 0.07 * L, 0), side }); } }
@@ -345,12 +346,14 @@ export function drawQuad(c, cam, q, env) {
   const tailPts = (() => {
     const flick = q.tailFlick || 0;
     if (S.tail === 'plume') { const up = climb ? 0.3 : 1; return [Fp(-0.3 * L, 0, 0.3 * Ht), Fp(-0.55 * L, flick * 0.1 * L, (0.55 + 0.4 * up) * Ht), Fp(-0.3 * L, flick * 0.15 * L, (1.05 + 0.5 * up) * Ht), Fp(-0.1 * L + 0.1 * flick * L, 0, (1.15 + 0.4 * up) * Ht)]; }
+    if (S.tail === 'cat' && hiss) return [Fp(-0.4 * L, 0, hipY * 1.0), Fp(-0.47 * L, flick * 0.05 * L, hipY * 1.4), Fp(-0.46 * L, 0, hipY * 1.85), Fp(-0.43 * L, 0, hipY * 2.2)];
+    if (S.tail === 'cat' && pose === 'run') return [Fp(-0.42 * L, 0, hipY * 0.95), Fp(-0.62 * L, 0, hipY * 1.02), Fp(-0.8 * L, 0, hipY * 1.12), Fp(-0.96 * L, 0, hipY * 1.25)];
     if (S.tail === 'cat') return [Fp(-0.42 * L, 0, hipY * 0.95), Fp(-0.62 * L, flick * 0.1 * L, hipY * 0.7), Fp(-0.78 * L, 0, hipY * 1.1 + 0.2 * Ht), Fp(-0.74 * L + flick * 0.06, 0, hipY * 1.35 + 0.28 * Ht)];
     // (the coyote's brush: hanging low behind, a gentle droop — never a straight log)
     return [Fp(-0.42 * L, 0, hipY * 0.92), Fp(-0.55 * L, 0, hipY * 0.7), Fp(-0.63 * L, 0, hipY * 0.44), Fp(-0.66 * L, flick * 0.05, hipY * 0.24)];
   })();
   const drawTail = () => {
-    const pts = tailPts.map(p => P(cam, p)), w = (S.tailW || (S.tail === 'plume' ? 0.24 : 0.05)) * L * s;
+    const pts = tailPts.map(p => P(cam, p)), w = (S.tailW || (S.tail === 'plume' ? 0.24 : 0.05)) * L * s * (hiss ? 1 + 2.6 * (q.puff == null ? 1 : q.puff) : 1);
     c.lineCap = 'round'; c.lineJoin = 'round';
     if (rim) { c.strokeStyle = rgb(rim.col, rim.a); c.lineWidth = w + 1; c.beginPath(); c.moveTo(pts[0][0] + rim.side * 0.5, pts[0][1] - 0.4); c.bezierCurveTo(pts[1][0] + rim.side * 0.5, pts[1][1] - 0.4, pts[2][0] + rim.side * 0.5, pts[2][1] - 0.4, pts[3][0] + rim.side * 0.5, pts[3][1] - 0.4); c.stroke(); }
     c.strokeStyle = rgb(col(S.tail === 'plume' ? mix(S.coat, [200, 170, 140], 0.25) : S.coat)); c.lineWidth = Math.max(0.6, w);
@@ -365,6 +368,8 @@ export function drawQuad(c, cam, q, env) {
   const chE = ellipsoid(cam, Fp(0.17 * L, 0, shY + 0.06 * Ht), axesOf(q.hd || 0, pitch, 0.25 * L, 0.12 * L, bH * 1.15 * Ht));
   if (rim) { c.save(); c.translate(rim.side * Math.max(0.5, s * 0.02), -0.45); c.globalAlpha *= rim.a; fillE(c, hipE, rgb(rim.col)); fillE(c, chE, rgb(rim.col)); c.restore(); }
   bodyE(c, hipE, S.coat, env, o.x, o.z); bodyE(c, chE, S.coat, env, o.x, o.z);
+  // (the hiss: the back ARCHED high between the hips + the shoulders, the fur up along it)
+  if (hiss) { const pf = q.puff == null ? 1 : q.puff, arE = ellipsoid(cam, Fp(-0.01 * L, 0, shY + (0.14 + 0.3 * pf) * Ht), axesOf(q.hd || 0, pitch, 0.3 * L, 0.14 * L, bH * (1.15 + 0.35 * pf) * Ht)); if (rim) { c.save(); c.translate(rim.side * Math.max(0.5, s * 0.02), -0.45); c.globalAlpha *= rim.a; fillE(c, arE, rgb(rim.col)); c.restore(); } bodyE(c, arE, S.coat, env, o.x, o.z); }
   if (q.kind !== 'cat' && L * s > 10) { const be = ellipsoid(cam, Fp(0.02 * L, 0, shY * 0.68), axesOf(q.hd || 0, pitch, 0.3 * L, 0.09 * L, 0.06 * Ht)); fillE(c, be, rgb(col(S.belly), 0.55)); }
   // ---- the head: on the neck, turned by `turn`, raised for the howl; the snout along its heading; the ears; the eyes / eyeshine
   const hy = q.headUp || 0, hdH = (q.hd || 0) + (q.turn || 0), Fh = frameOf(o, hdH, climb ? pitch : hy * 0.9 - (pose === 'crouch' ? 0.15 : 0));
@@ -375,7 +380,7 @@ export function drawQuad(c, cam, q, env) {
   if (rim) { c.save(); c.translate(rim.side * 0.6, -0.4); c.globalAlpha *= rim.a; fillE(c, head, rgb(rim.col)); c.restore(); }
   line(c, P(cam, Fp(0.22 * L, 0, shY + 0.1 * Ht)), [head.x, head.y], rgb(col(S.coat)), Math.max(0.8, S.head * L * s * 1.3));
   // the ears (behind the head's outline)
-  const earPts = side => { const big = S.ear === 'big' ? 1.4 : S.ear === 'cat' ? 1.1 : 0.7; return [Fhc(-0.02 * L, side * S.head * L * 0.4, S.head * L * 0.55), Fhc(-0.06 * L, side * S.head * L * 0.55, S.head * L * (0.55 + 0.75 * big)), Fhc(-0.1 * L, side * S.head * L * 0.15, S.head * L * 0.6)].map(p => P(cam, p)); };
+  const earPts = side => { if (hiss) return [Fhc(-0.04 * L, side * S.head * L * 0.45, S.head * L * 0.45), Fhc(-0.2 * L, side * S.head * L * 0.85, S.head * L * 0.62), Fhc(-0.1 * L, side * S.head * L * 0.2, S.head * L * 0.6)].map(p => P(cam, p)); const big = S.ear === 'big' ? 1.4 : S.ear === 'cat' ? 1.1 : 0.7; return [Fhc(-0.02 * L, side * S.head * L * 0.4, S.head * L * 0.55), Fhc(-0.06 * L, side * S.head * L * 0.55, S.head * L * (0.55 + 0.75 * big)), Fhc(-0.1 * L, side * S.head * L * 0.15, S.head * L * 0.6)].map(p => P(cam, p)); };
   for (const side of [-1, 1]) poly(c, earPts(side), rgb(col(S.dark)));
   bodyE(c, head, S.coat, env, o.x, o.z);
   // the snout (the coyote's long one, the cat's short)

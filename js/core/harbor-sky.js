@@ -188,9 +188,16 @@ export const BANNER_POOL = [['FRESH LEMONADE', 'AT THE PIER'], ['RIDE THE WHEEL'
   ['ICE COLD ROOT BEER', '5¢ A GLASS'], ['WATCH THE SKIES'], ['HARBOR DAYS', 'THIS WEEKEND']];
 export const SKYTYPE_POOL = ['HAVE A NICE DAY', 'LOOK UP!', 'SEE YOU AT THE PIER', 'HELLO DOWN THERE', 'JAZZ TONIGHT AT NINE', 'WHAT A DAY'];
 /** a random event's message: from its pool by its seed (the same for everyone) — the banner may carry a game's name */
-export function eventMessage(kind, seed, games = []) {
+/** 11a-1 — THE BANNER PLANE's HOLIDAY MESSAGES: through a holiday's build-up + its days, two of three daily banners carry its own lines
+ *  (core/harbor-holiday.js decides the holiday — the scene passes its id); Thanksgiving + Christmas add rows here */
+export const HOLIDAY_BANNERS = Object.freeze({
+  halloween: [['HAPPY HALLOWEEN'], ['TRICK OR TREAT', 'OCTOBER 31'], ['COSTUME PARTY', 'AT THE SPEAKEASY'], ['FRESH PUMPKINS', 'AT THE PIER'], ['BEWARE THE', 'GHOST SHIP']],
+  dotd: [['FELIZ DIA DE MUERTOS'], ['REMEMBER THEM', 'WITH LOVE'], ['CANDLELIGHT PROCESSION', 'NOV 2 AT DUSK'], ['MARIGOLDS', 'AT THE MARKET']],
+});
+export function eventMessage(kind, seed, games = [], holiday = null) {
   const s = seed >>> 0;
   if (kind === 'skytype') return SKYTYPE_POOL[s % SKYTYPE_POOL.length];
+  if (kind === 'banner' && holiday && HOLIDAY_BANNERS[holiday] && s % 3 !== 2) { const p = HOLIDAY_BANNERS[holiday]; return p[(s >>> 2) % p.length]; }
   if (games.length && s % 3 === 0) { const g = games[(s >>> 3) % games.length]; return ['TONIGHT', String(g.name || g.id).toUpperCase().slice(0, 24)]; }
   return BANNER_POOL[s % BANNER_POOL.length];
 }

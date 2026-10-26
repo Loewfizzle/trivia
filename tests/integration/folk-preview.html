@@ -15,7 +15,7 @@
 <body>
 <canvas id="c"></canvas>
 <script type="module">
-import { lookOf, drawFolk, drawDog, drawLeash, jointsOf } from '/js/screens/harbor/folk.js';
+import { lookOf, drawFolk, drawDog, drawLeash, jointsOf, rigOf, drawOfrenda } from '/js/screens/harbor/folk.js';
 import { propItems } from '/js/screens/harbor/workers.js';
 import { LADDER, STEPS } from '/js/core/harbor-crew.js';
 const qs = new URLSearchParams(location.search);
@@ -23,7 +23,7 @@ const ONLY = (qs.get('only') || '').split(',').filter(Boolean), show = k => !ONL
 const LIGHT = qs.get('light') || 'day', SCALE = Number(qs.get('scale') || 2), season = qs.get('season') || 'autumn', party = qs.get('party') === '1', rain = qs.get('rain') === '1' ? 1 : 0;
 const T = LIGHT === 'night' ? { night: 1, sunDir: 0 } : LIGHT === 'gold' ? { gold: 1, sunDir: -0.6, sunEl: 8 } : { day: 1, sunDir: -0.5, sunEl: 34 };
 const dark = LIGHT === 'night' ? 1 : 0;
-const W = 402 * SCALE, H = 1060 + 12 * (34 * SCALE + 14) + 190 * SCALE, dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
+const W = 402 * SCALE, H = Number(qs.get('h')) || 1060 + 20 * (34 * SCALE + 14) + 190 * SCALE, dpr = window.devicePixelRatio || 1, cv = document.getElementById('c');
 cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
 const c = cv.getContext('2d'); c.scale(dpr, dpr);
 c.fillStyle = dark ? '#3a3650' : LIGHT === 'gold' ? '#b08870' : '#9a948c'; c.fillRect(0, 0, W, H);
@@ -152,6 +152,48 @@ if (show('raise')) {
     stepsAt(y, S);
     draw(k === 'climb' ? (gx - 0.62) * cam.F / z : sx0 * SCALE, y, k === 'carry' ? { pose: 'walk', hd: Math.PI, dist: 0.3, v: 1.1, carry: 'steps' } : k === 'climb' ? { pose: 'climb', hd: Math.PI, y: 1.0, rung: { n: 1, q: 0.4 } } : { pose: k, hd: Math.PI, since: u * 1.9, left: (1 - u) * 1.9 + 0.01, carry: k === 'upend' ? 'steps' : null }, 'repairman', 83);
   }
+  y += ROW;
+}
+// 11a-1 — THE PEOPLE OF THE HOLIDAYS: ?only=costumes,treat,zombies,proc (the member's own fields — costume, role, instrument — as
+// core/harbor-people.js#totVisit / #zombieVisit / #procVisit give them)
+const drawH = (sx, sy, st, look, seed, m) => { const L = lookOf(look, seed, { season, party, rain, role: m.role || 'lead', m }); c.save(); c.translate(0, sy); drawFolk(c, cam, { s: { x: sx * z / cam.F, z, a: 1, ...st }, L }, env); c.restore(); return L; };
+if (ONLY.length) y = Math.max(y, 50 * SCALE);
+if (show('costumes')) {
+  const C8 = ['ghost', 'witch', 'skeleton', 'pumpkin', 'vampire', 'hero', 'cat', 'pirate'];
+  for (const [hd, name] of [[-Math.PI / 2 + 0.35, 'toward us'], [0, 'walking right'], [Math.PI / 2 + 0.3, 'away']]) {
+    label('TRICK-OR-TREATERS (' + name + '): ghost · witch · skeleton · pumpkin · vampire · hero · cat · pirate', 4, y - 70);
+    C8.forEach((cos, i) => drawH(at8(i), y, { pose: 'walk', hd, dist: 0.3 + i * 0.13, v: 1.5 }, 'trick', 900 + i, { role: i ? 'kid' : 'lead', costume: cos, carry: i % 3 === 2 ? 'pillowcase' : 'bucket', glowstick: i === 5 }));
+    y += ROW;
+  }
+  label('the grown-ups: a witch hat · a torch · walking right', 4, y - 70);
+  for (let i = 0; i < 4; i++) drawH(at8(i * 2), y, { pose: 'walk', hd: i < 2 ? -Math.PI / 2 + 0.4 : 0, dist: i * 0.3, v: 1.4 }, 'trick', 930 + i, { role: 'chap', hat: i % 2 ? 'witch' : null, torch: i >= 1 });
+  y += ROW;
+}
+if (show('treat')) {
+  label('TRICK OR TREAT at the door (the pose over its length: the bucket up while it opens)', 4, y - 70);
+  for (let i = 0; i < 8; i++) { const since = i / 7 * 8; drawH(at8(i), y, { pose: 'treat', hd: Math.PI / 2 + 0.25, since, left: 8 - since }, 'trick', 940 + i, { role: 'kid', costume: ['ghost', 'witch', 'pumpkin', 'cat'][i % 4], carry: 'bucket' }); }
+  y += ROW;
+}
+if (show('zombies')) {
+  label('ZOMBIES: the shamble (8 frames, walking right) · then toward us · a walker startled (0 → 1)', 4, y - 70);
+  for (let i = 0; i < 8; i++) { const dist = i / 8 * 1.1; drawH(at8(i), y, { pose: 'walk', hd: 0, dist, v: 0.72 }, 'zombie', 950, { role: 'lead', zlook: ['suit', 'dress', 'worker', 'bride'][Math.floor(i / 2)] }); }
+  y += ROW;
+  for (let i = 0; i < 4; i++) drawH(at8(i), y, { pose: 'walk', hd: -Math.PI / 2 + 0.3, dist: i * 0.3, v: 0.72, reach: i / 3 }, 'zombie', 960 + i, { role: 'lead', zlook: ['suit', 'dress', 'worker', 'bride'][i] });
+  for (let i = 0; i < 4; i++) draw(at8(4 + i), y, { pose: 'walk', hd: Math.PI, dist: i * 0.3, v: 1.2, startle: i / 3 }, 'lady', 970 + i);
+  y += ROW;
+}
+if (show('proc')) {
+  label('THE PROCESSION (walking right): candles · Catrinas · marigolds · a photo · a child · the mariachi trio · the ofrenda', 4, y - 70);
+  const roles = ['candle', 'catrina', 'candle', 'marigolds', 'catrina', 'photo', 'child', 'candle'];
+  roles.forEach((r, i) => drawH(at8(i), y, { pose: 'walk', hd: 0, dist: i * 0.17, v: 0.62 }, 'proc', 980 + i, { role: 'lead', costume: r }));
+  y += ROW;
+  ['guitar', 'trumpet', 'violin'].forEach((ins, i) => drawH(at8(i), y, { pose: 'walk', hd: 0, dist: i * 0.2, v: 0.62 }, 'proc', 990, { role: i ? 'guest' : 'lead', costume: 'mariachi', inst: ins }));
+  ['guitar', 'trumpet', 'violin'].forEach((ins, i) => drawH(at8(i + 4) - 30 * SCALE, y, { pose: 'walk', hd: -Math.PI / 2 + 0.3, dist: i * 0.2, v: 0.62 }, 'proc', 991, { role: i ? 'guest' : 'lead', costume: 'mariachi', inst: ins }));
+  // the ofrenda between its two bearers
+  y += ROW;
+  { const gap = 1.55 * cam.F / z, x0 = at8(1), pts = [];
+    for (const [i, xx] of [[1, x0], [0, x0 + gap]]) { const m = { role: i ? 'guest' : 'lead', costume: 'bearer', bearer: i }; const L = lookOf('proc', 995 + i, { season, party, rain, role: m.role, m }), st = { x: xx * z / cam.F, z, a: 1, pose: 'walk', hd: 0, dist: 0.2 + i * 0.3, v: 0.62 }; c.save(); c.translate(0, y); drawFolk(c, cam, { s: st, L }, env); const { J, fx, fy, H: Hh } = rigOf(cam, st, L, env.t, true); const sh = J.shs[J.near]; pts.push([fx + sh[0] * Hh, fy - (sh[1] + 0.03) * Hh, Hh]); c.restore(); }
+    c.save(); c.translate(0, y); drawOfrenda(c, pts[0], pts[1], pts[0][2], env); c.restore(); }
   y += ROW;
 }
 document.body.dataset.ready = '1';

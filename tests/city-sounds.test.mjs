@@ -33,7 +33,9 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     'siren-1920s', 'squeegee', 'squirrel-chatter', 'steam-whistle', 'street-door', 'street-door-close', 'tr3b-crackle', 'tr3b-drone', 'tr3b-power-down', 'tr3b-presence', 'trash-can-lid',
     'trash-truck-arrive', 'trash-truck-depart', 'truck-delivery', 'tv-murmur', 'ufo-beam', 'ufo-hum', 'water-lapping', 'window-sash-down', 'window-sash-up',
     // (9a — THE WEATHER's sounds)
-    'birdsong-morning', 'crickets-night', 'foghorn', 'gutter-drip', 'rain-awning', 'rain-drizzle', 'rain-pavement', 'rain-water', 'thunder-far', 'wind-leaves'].sort());
+    'birdsong-morning', 'crickets-night', 'foghorn', 'gutter-drip', 'rain-awning', 'rain-drizzle', 'rain-pavement', 'rain-water', 'thunder-far', 'wind-leaves',
+    // (11a-1 — HALLOWEEN: the witch, the ghost ship, the haunted wind + the black cat's synthesized hiss)
+    'cat-hiss', 'ghost-bell', 'ghost-ship-creak', 'haunted-wind', 'witch-cackle'].sort());
   // (8b1 — Grok's second try: the TV window's walla (indistinct, through glass), the old truck's arrival + departure, the TR-3B heard on a phone)
   assert.ok(takesOf('tv-murmur')[0].src === 'tv-murmur-2' && takesOf('tv-murmur')[0].r === 16000, '8b1: the second try fills the TV window');
   assert.ok(takesOf('trash-truck-arrive')[0].hit > 10 && takesOf('trash-truck-depart')[0].hit > 10, '8b1: the truck stops / pulls out at its `hit`');
@@ -62,7 +64,7 @@ test('every take points at a real, small file whose content matches its cache ke
       assert.ok(t.lufs < -18 && t.lufs > (s.kind === 'once' ? -30 : -27), `${t.f}: levelled (${t.lufs} LUFS)`);
       if (s.kind === 'loop') {
         // (beds 30 s+; 8P's smaller beds — heard less often or under the music — 20 s+; the bus's idle a short engine loop)
-        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25 }[id] ?? 30;   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
+        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28 }[id] ?? 30;   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
         assert.ok(t.loop >= min && t.xf >= (min < 20 ? 0.5 : 2) && t.xf <= 3, `${t.f}: a ${min} s+ loop with its seam (${t.loop} + ${t.xf})`);
         assert.ok(Math.abs(t.loop + t.xf - t.d) < 0.1, `${t.f}: the file is the loop + its tail`);
       } else assert.ok(t.peak >= 0 && t.peak <= t.d, `${t.f}: its loudest moment is inside it`);
@@ -74,6 +76,7 @@ test('every take points at a real, small file whose content matches its cache ke
   // siren the biggest: 9.2 MB. Only what plays is ever fetched)
   // (8b1: + the second-try set 1.0 MB → 10.3 MB)
   // (9a: 11 → 13 MB — the weather's 1.8 MB (lean: 22 / 16 kHz, 40–48 kbps); every slot is fetched only when its event plays)
+  // (11a-1: + Halloween's five, lean like the weather: 12.84 MB)
   assert.ok(total < 13e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
@@ -81,10 +84,10 @@ test('every take points at a real, small file whose content matches its cache ke
 });
 
 test('pickTake: weighted, never the same take twice running; an empty slot gives nothing', () => {
-  assert.equal(pickTake('witch-cackle'), null);
+  assert.equal(pickTake('sleigh-bells'), null);
   assert.equal(pickTake('no-such-slot'), null);
-  assert.deepEqual(takesOf('witch-cackle'), []);
-  assert.equal(isFilled('witch-cackle'), false);
+  assert.deepEqual(takesOf('sleigh-bells'), []);
+  assert.equal(isFilled('sleigh-bells'), false);
   let last = -1, n = 0;
   const seen = new Map();
   let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -100,13 +103,13 @@ test('pickTake: weighted, never the same take twice running; an empty slot gives
 
 test('an EMPTY slot is silent: citySound → null, cityLoop → a handle that does nothing; a filled slot with audio locked → null, no throw', async () => {
   const { citySound, cityLoop, cityPreview, citySoundsDebug } = await import('../js/audio/city-sound.js');
-  assert.equal(citySound('witch-cackle'), null);
+  assert.equal(citySound('sleigh-bells'), null);
   assert.equal(citySound('nope'), null);
   const h = cityLoop('traffic-far', { gain: 1 });
   assert.equal(h.silent, true);
   assert.doesNotThrow(() => { h.set({ gain: 0.5, pan: 0.2 }); h.stop(1); });
   assert.equal(h.playing(), false);
-  assert.equal(cityPreview('witch-cackle').why, 'empty');
+  assert.equal(cityPreview('sleigh-bells').why, 'empty');
   // (node: no AudioContext — the engine was never unlocked)
   assert.equal(citySound('gulls'), null, 'locked: nothing, quietly');
   const l = cityLoop('water-lapping');

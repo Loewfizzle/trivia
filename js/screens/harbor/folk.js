@@ -11,6 +11,7 @@ import { project } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
 import { GEAR, gearCart } from './gear.js';
 import { LADDER, HANDS, liftSq, raiseK, railAhead } from '../../core/harbor-crew.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -98,11 +99,17 @@ export function lookOf(name, seed, o = {}) {
   if (W8) { L.woman = !!W8.woman; L.dress = W8.woman ? 'day' : null; L.coat = W8.coat; L.hat = W8.hat; L.carry = W8.carry || null; L.scarf = null; L.cols.scarf = null;
     if (W8.c) L.cols.coat = W8.c; if (W8.l) L.cols.legs = W8.l; if (W8.h) L.cols.hat = W8.h; if (W8.s) L.cols.shirt = W8.s; if (W8.d) L.cols.dress = W8.d; L.trim = W8.trim || null; L.vest = W8.vest || null; L.apron = W8.apron || null; L.overalls = !!W8.overalls; L.badge = !!W8.badge;
     L.bow = W8.bow || null; L.belt = W8.belt || null; L.gloves = W8.gloves || null; L.spatter = W8.spatter || null; L.collar = !!W8.collar; L.worker = name; }
+  // 11a-1 — THE PEOPLE OF THE HOLIDAYS (core/harbor-holidayfolk.js): Halloween's trick-or-treaters (their costumes) + their grown-up, the
+  // costume party's zombies, the Day of the Dead procession (Catrinas, candles, marigolds, photos, the mariachi trio, the ofrenda's bearers)
+  if (name === 'trick') trickLook(L, r, o.m || {});
+  if (name === 'zombie') zombieLook(L, r, o.m || {});
+  if (name === 'proc') procLook(L, r, o.m || {});
+  if (o.hween && name === 'guest') partyCostume(L, r);
   if (L.woman && L.coat === 'long') L.dress = L.dress || 'day';
   // (FP3b, the owner after FP3a: people ON THE BENCH blended into its wood at noon — a sitter wears cloth AWAY from the oak's browns:
   // navy, bottle green, burgundy, slate, dove grey, a cream mac; grey / navy trousers)
   if (o.sit) { L.cols.coat = pick(r, SIT_COATS); L.cols.legs = pick(r, SIT_LEGS); if (L.coat === 'none') L.coat = 'short'; if (L.woman) L.cols.dress = pick(r, SIT_COATS); }
-  L.h = kid ? 0.72 : name === 'doorman' ? 1.1 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08);
+  L.h = L.hh || (L.kid ? 0.72 : name === 'doorman' ? 1.1 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08));
   // (9a: mostly BLACK umbrellas, a few colours — readable as shapes; without one, some hold a NEWSPAPER over the head; in a strong wind a
   // hand goes to the hat)
   L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.74 ? pick(r, [[28, 28, 34], [28, 28, 34], [30, 30, 36], [26, 24, 30], [150, 36, 42], [44, 62, 110], [190, 150, 54], [80, 50, 96]]) : null;
@@ -193,13 +200,14 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   for (let i = 0; i < 2; i++) {
     let fa = 0, fy = ANKLE;
     if (walking) {
-      const q = (p + i * 0.5) % 1, s = G.stance;
+      // (11a-1 — THE SHAMBLE: the steps uneven (the stiff leg follows sooner), the stiff one barely lifted — dragged)
+      const q = (p + i * (L.zombie ? 0.42 : 0.5)) % 1, s = G.stance, lf = L.zombie ? (i === 1 ? 0.18 : 0.75) : 1;
       if (q < s) { fa = A - 2 * A * q / s; planted[i] = true; heel[i] = q > s - 0.14 ? (q - (s - 0.14)) / 0.14 : 0; fy = ANKLE + 0.02 * heel[i]; }
       else {
         const u = (q - s) / (1 - s);
         // (the swing: forward with a smooth start + stop; the foot lifts most just before the passing pose; the jog kicks the heel up behind)
         fa = -A + 2 * A * (jog ? Math.pow(smooth(u), 1.35) : smooth(u));
-        fy = ANKLE + G.lift * Math.sin(Math.PI * Math.pow(u, jog ? 0.55 : 0.7));
+        fy = ANKLE + G.lift * lf * Math.sin(Math.PI * Math.pow(u, jog ? 0.55 : 0.7));
       }
     }
     foot.push({ a: fa, b: sg[i] * (walking ? 0.038 : 0.05), y: fy });
@@ -209,8 +217,9 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
       // the pendulum: the hip as high as the straightest stance leg allows, half way back toward standing height (a gentle bob)
       let pend = HIP0;
       for (let i = 0; i < 2; i++) if (planted[i]) pend = Math.min(pend, ANKLE + Math.sqrt(Math.max(0, LEG * LEG - foot[i].a * foot[i].a)));
-      hipY = HIP0 - (heavy ? 0.45 : G.bob) * (HIP0 - pend);
-      lean = heavy ? 0.045 : 0.02;
+      // (11a-1: a kid's walk a little bouncier — the skip; a zombie lurches: the hip dropping hard onto the stiff leg, leaning on)
+      hipY = HIP0 - (heavy ? 0.45 : L.skip ? 0.95 : L.zombie ? 0.8 : G.bob) * (HIP0 - pend) - (L.zombie && planted[1] ? 0.012 : 0);
+      lean = heavy ? 0.045 : L.zombie ? 0.075 : 0.02;
     } else {
       // the run: the hip sinks through the stance (the knee flexes), rises into the flight
       let st0 = -1; for (let i = 0; i < 2; i++) if (planted[i]) st0 = i;
@@ -252,6 +261,8 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   for (let i = 0; i < 2; i++) {
     if (pose === 'sit') { foot[i] = { a: 0.25, b: sg[i] * 0.065, y: ANKLE }; knee.push({ a: 0.235, b: sg[i] * 0.06, y: 0.28 }); continue; }
     const h = hipJ[i], f = foot[i], dx = f.a - h.a, dy = f.y - h.y, dl = Math.hypot(dx, dy), l = Math.min(dl, LEG - 1e-4);
+    // (11a-1: the zombie's stiff leg never bends — the knee on the straight line, swung from the hip)
+    if (L.zombie && i === 1 && walking) { knee.push({ a: (h.a + f.a) / 2, b: (h.b + f.b) / 2, y: (h.y + f.y) / 2 }); continue; }
     const ang = Math.atan2(dy, dx) + Math.acos(clamp01(l / (2 * HALF)));
     knee.push({ a: h.a + Math.cos(ang) * HALF, b: (h.b + f.b) / 2, y: h.y + Math.sin(ang) * HALF });
   }
@@ -368,6 +379,11 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // (phi: the arm raised in the FRONTAL plane — 0 hanging, π/2 out to the side, π straight up — so the moves read from the front)
   // (PEO: the bend capped at 1.15 — the follow-through once pushed it to ~1.6: the forearm pointed straight at us and the wand shrank to a dot)
   if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) { const [phi, bend0] = m.arms[i], bend = Math.max(0, Math.min(1.15, bend0)); arm(i, phi <= Math.PI / 2 ? 0 : Math.PI, bend, phi <= Math.PI / 2 ? phi : Math.PI - phi); } shJ.forEach(s => { s.b += (m.sway || 0) * 0.03; }); head.b += (m.sway || 0) * 0.045; }
+  // 11a-1 — THE HOLIDAYS' BODIES: the zombie's arms out in front + the head lolling + the torso swaying on the shamble (reaching harder when
+  // it notices someone — st.reach); a walker STARTLED by one (st.startle 0..1: hands up, a lean back, then the shoulders shaking — a
+  // laugh); the trick-or-treaters at the door (the bucket held up while it's open); the procession's holds (a candle cupped at the chest,
+  // a photo held up, marigolds, the mariachis' instruments, the ofrenda's pole on the shoulder); the grown-up's torch pointed ahead
+  holidayArms({ L, st, pose, walking, p, t, mo, arm, shJ, head, near: N, farA: Fa, uP, cr: cr0 });
   // ---- onto the screen
   const k0 = kD[0], k1 = kD[1];
   const scr = j => { const D = j.a * cz + j.b * cx; return [j.a * cx - j.b * cz, j.y + D * (k0 - k1 * j.y)]; };
@@ -424,7 +440,9 @@ export function drawFolk(c, cam, it, env) {
   const lit = (col, k = 1) => {
     let cc = col;
     if (T.gold) cc = mix(cc, [cc[0] * 1.08 + 10, cc[1] * 0.95, cc[2] * 0.82], T.gold * 0.5);
-    if (dark > 0.01) { const lum = (col[0] * 0.3 + col[1] * 0.59 + col[2] * 0.11) / 255; cc = mix(cc, NIGHT, (0.86 - 0.24 * clamp01((lum - 0.55) / 0.4)) * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); cc = [cc[0] + lt[0] * q * 0.1 * k * lampK, cc[1] + lt[1] * q * 0.1 * k * lampK, cc[2] + lt[2] * q * 0.1 * k * lampK]; } }   // (FP3a: mostly silhouette; the rim carries the light)
+    // (11a-1: a costume's colours hold a little more at night — L.nightLift — the orange pumpkin, the white sheet, the Catrina's dress read
+    // under the lamps + the door's light; the candles add their own)
+    if (dark > 0.01) { const lum = (col[0] * 0.3 + col[1] * 0.59 + col[2] * 0.11) / 255; cc = mix(cc, NIGHT, (0.86 - 0.24 * clamp01((lum - 0.55) / 0.4)) * dark * (1 - (L.nightLift || 0))); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); cc = [cc[0] + lt[0] * q * 0.1 * k * lampK, cc[1] + lt[1] * q * 0.1 * k * lampK, cc[2] + lt[2] * q * 0.1 * k * lampK]; } }   // (FP3a: mostly silhouette; the rim carries the light)
     return cc.map(v => Math.min(255, v));
   };
   const X = u => fx + u * H, Y = v => fy - v * H;
@@ -486,13 +504,20 @@ function body(c, J, L, X, Y, H, lit, env) {
   const sleeve = L.coat === 'none' ? (L.jog ? cols.shirt : L.woman ? cols.dress : cols.shirt) : cols.coat;
   // the legs (both under the coat: its hem covers the thighs), the far one first + darker
   const lo = J.D.legs[0] > J.D.legs[1] ? [0, 1] : [1, 0], lgap = Math.abs(J.D.legs[0] - J.D.legs[1]) > 0.02;
+  // (11a-1: a cape / a tail BEHIND the figure — drawn first when it faces us or walks across, over the back when it walks away)
+  const behind = cz < 0.3;
+  if (L.cape && behind) cape(c, J, L, X, Y, H, f);
+  if (L.tail && behind) tail(c, J, X, Y, H, f, env);
   leg(lo[0], lgap ? far(legCol) : legCol, legW); leg(lo[1], legCol, legW);
+  if (L.bones) for (const i of lo) bones(c, [J.hips[i], J.knees[i], J.feet[i]], X, Y, H, f, L);
+  // (11a-1: THE SHEET GHOST — the whole kid under one white sheet: no arms, the feet under its swaying hem, the eye holes)
+  if (L.costume === 'ghost') { ghostSheet(c, J, L, X, Y, H, f, env); holidayCarry(c, J, L, X, Y, H, f, env, [X(J.hands[J.near][0]), Y(J.hands[J.near][1])]); return; }
   // the far arm behind the torso when it's turned side-on enough to hide it
   const ao = J.D.arms[0] > J.D.arms[1] ? [0, 1] : [1, 0], armsSide = ax > 0.35 && Math.abs(J.D.arms[0] - J.D.arms[1]) > 0.04;
-  if (armsSide) armP(ao[0], far(sleeve), 0.062);
+  if (armsSide) { armP(ao[0], far(sleeve), 0.062); if (L.bones) bones(c, [J.shs[ao[0]], J.elbows[ao[0]], J.hands[ao[0]]], X, Y, H, f, L); }
   // the torso / the coat / the dress
   const top = J.sh[1] + 0.01, hipY = J.hip[1], sx = J.tw, tX = J.sh[0], hX = J.hip[0];
-  const hem = J.pose === 'sit' ? hipY - 0.02 : L.coat === 'long' ? 0.27 : L.dress === 'flapper' ? 0.3 : L.dress ? 0.24 : L.coat === 'short' ? hipY - 0.06 : hipY - 0.02;
+  const hem = J.pose === 'sit' ? hipY - 0.02 : L.hem != null ? L.hem : L.coat === 'long' ? 0.27 : L.dress === 'flapper' ? 0.3 : L.dress ? 0.24 : L.coat === 'short' ? hipY - 0.06 : hipY - 0.02;
   const swingHem = J.walking ? Math.sin(J.p * TAU * 2) * 0.012 : 0;
   const torsoCol = L.coat !== 'none' ? cols.coat : L.dress ? cols.dress : cols.shirt;
   const flare = L.coat === 'long' ? 0.03 : L.dress === 'flapper' ? 0.035 : L.dress ? 0.045 : 0.01;
@@ -529,6 +554,9 @@ function body(c, J, L, X, Y, H, lit, env) {
     if (L.badge) { c.beginPath(); c.arc(X(tX - cx * sx * 0.35 - sx * 0.35 * (1 - ax)), Y(top - 0.06), Math.max(0.45, H * 0.014), 0, TAU); c.fill(); }
   }
   workwear(c, J, L, X, Y, H, f, { top, hipY, hem, sx, tX, hX, cx, cz, ax, d });
+  // 11a-1 — the costumes over the torso: the pumpkin's round body, the skeleton's ribs, the pirate's stripes, the zombie's torn hem, the
+  // hero's belt, a charro jacket's silver; the vampire's high collar behind the head
+  costumeTorso(c, J, L, X, Y, H, f, { top, hipY, hem, sx, tX, hX, cx, cz, ax, d });
   // THE DAY'S LIGHT (FP3a, note 3): a LIT side + a SHADE side across the whole torso from the real sun (warm at golden hour)
   const sun = sunSide(env);
   if (sun) {
@@ -550,12 +578,17 @@ function body(c, J, L, X, Y, H, lit, env) {
     c.restore();
   }
   if (sun) { const g = c.createLinearGradient(X(hx - hr * sun.s), 0, X(hx + hr * sun.s), 0); g.addColorStop(0, `rgba(${sun.hi},${(0.24 * sun.k).toFixed(3)})`); g.addColorStop(0.5, `rgba(${sun.hi},0)`); g.addColorStop(0.55, 'rgba(30,20,40,0)'); g.addColorStop(1, `rgba(30,20,40,${(0.3 * sun.k).toFixed(3)})`); c.fillStyle = g; c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); }
+  face(c, J, L, X, Y, H, f, hx, hy, hr);
   hat(c, L, X, Y, H, hx, hy, hr, J, f);
+  if (L.cape && !behind) cape(c, J, L, X, Y, H, f);
+  if (L.tail && !behind) tail(c, J, X, Y, H, f, env);
   if (L.hat && BRIM[L.hat] != null && back < 0.7) { const k = sunSide(env, true) * (1 - back); if (k > 0.05) { const by = BRIM[L.hat]; c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip(); c.fillStyle = `rgba(26,18,30,${(0.42 * k).toFixed(3)})`; c.fillRect(X(hx - hr * 1.2), Y(hy + hr * by), hr * 2.4 * H, hr * 0.55 * H); c.restore(); } }
   // the near arm (or both, from the front / the back) + what it carries
   let hand;
   if (armsSide) hand = armP(ao[1], sleeve, 0.062);
   else { const h0 = armP(ao[0], sleeve, 0.062), h1 = armP(ao[1], sleeve, 0.062); hand = J.near === ao[1] ? h1 : h0; }
+  if (L.bones) for (const i of armsSide ? [ao[1]] : ao) bones(c, [J.shs[i], J.elbows[i], J.hands[i]], X, Y, H, f, L);
+  if (L.hcarry) { holidayCarry(c, J, L, X, Y, H, f, env, hand); return; }
   const liftP = J.pose === 'pick' || J.pose === 'set';
   if (liftP && L.carry && !J.noCarry && GEAR[L.carry]) {
     // (8b2: lifting with the knees — the load between both hands, low, not on the shoulder)
@@ -574,7 +607,7 @@ function body(c, J, L, X, Y, H, lit, env) {
   if (L.umbrella && J.pose !== 'sit') { const [ux, uy] = hand; c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(ux, Y(1.18)); c.stroke(); c.fillStyle = f(L.umbrella); c.beginPath(); c.ellipse(ux, Y(1.18), H * 0.3, H * 0.12, 0, Math.PI, 0); c.fill(); }
 }
 // the brim's line on the head (in head radii above its centre) per hat — the band under it is in shade
-const BRIM = { fedora: 0.55, top: 0.6, boater: 0.6, cloche: 0.18, flatcap: 0.62, newsboy: 0.62, helmet: 0.45, pith: 0.5, painter: 0.62, peaked: 0.52 };
+const BRIM = { witch: 0.55, sombrero: 0.5, catrina: 0.5, fedora: 0.55, top: 0.6, boater: 0.6, cloche: 0.18, flatcap: 0.62, newsboy: 0.62, helmet: 0.45, pith: 0.5, painter: 0.62, peaked: 0.52 };
 /** 8b2 — a uniform's own details over the torso: a belt + its buckle, a bow tie at the collar, an apron's neck strap + waist ties,
  *  paint spatters on a smock (seeded per figure — a few bright flecks), the paste's splashes, a bootlegger's turned-up collar */
 function workwear(c, J, L, X, Y, H, f, g) {
@@ -672,6 +705,7 @@ function hat(c, L, X, Y, H, hx, hy, hr, J, f) {
     if (J.cz < 0.6) { const pw = hr * (0.55 + 0.35 * ax), px = hx + cx * hr * 0.85; c.fillRect(X(px - pw), Y(hy + hr * 0.64), pw * 2 * H * (0.6 + 0.4 * (1 - ax)), Math.max(0.5, 0.013 * H)); }
     c.fillStyle = f([150, 60, 50]); c.fillRect(X(hx - hr * 0.3), Y(hy + hr * 1.18), Math.max(0.4, hr * 0.22 * H), Math.max(0.4, hr * 0.2 * H));
   }
+  else if (HATS[L.hat]) HATS[L.hat](c, L, X, Y, H, hx, hy, hr, J, f);
   else if (L.hat === 'band') { c.fillStyle = f([210, 180, 90]); c.fillRect(X(hx - hr), Y(hy + hr * 0.62), hr * 2 * H, Math.max(0.5, hr * 0.25 * H)); c.fillStyle = f([236, 230, 220]); c.beginPath(); c.ellipse(X(hx + hr * 0.6), Y(hy + hr * 1.3), Math.max(0.5, hr * 0.18 * H), hr * 0.65 * H, 0.4, 0, TAU); c.fill(); }
 }
 function carry(c, what, [hx, hy], H, f, d) {
@@ -711,4 +745,406 @@ export function drawLeash(c, a, b, env, taut = false) {
   const dark = clamp01(env.dark || 0);
   c.strokeStyle = dark > 0.5 ? 'rgba(10,8,16,0.9)' : 'rgba(40,30,26,0.85)'; c.lineWidth = taut ? 0.75 : 0.6;
   c.beginPath(); c.moveTo(a[0], a[1]); c.quadraticCurveTo((a[0] + b[0]) / 2, taut ? (a[1] + b[1]) / 2 : Math.max(a[1], b[1]) + 2, b[0], b[1]); c.stroke();
+}
+
+// ================================================================== 11a-1 — THE PEOPLE OF THE HOLIDAYS (the owner's bar: premium, playful,
+// never gory, never clip-art — each reads at ~20 pt by SILHOUETTE + COLOUR + LIGHT: the sheet ghost's white, the witch's hat, the bones
+// under a lamp, the zombie's arms out, a river of candles, the Catrina's wide flowered hat, the sombreros)
+/** a trick-or-treater's costume (the kids) or the grown-up with them */
+function trickLook(L, r, m) {
+  L.scarf = null; L.cols.scarf = null; L.carry = null; L.umbrella = null; L.paper = false; L.holdHat = false;
+  if (m.role === 'chap') {
+    L.kid = false; L.coat = 'long'; L.dress = L.woman ? 'day' : null; L.hat = m.hat === 'witch' ? 'witch' : L.woman ? 'cloche' : 'fedora';
+    if (m.hat === 'witch') { L.cols.hat = [30, 26, 38]; L.cols.band = [150, 80, 220]; }
+    L.hcarry = m.torch ? 'torch' : null; return;
+  }
+  const cos = m.costume || 'ghost', C = L.cols;
+  Object.assign(L, { nightLift: 0.42, kid: true, woman: false, dress: null, tux: false, coat: 'none', hat: null, skip: true, costume: cos, hh: 0.62 + r() * 0.1 });
+  L.hcarry = m.carry || 'bucket'; L.glowstick = m.glowstick ? pick(r, [[90, 255, 150], [255, 90, 210], [90, 210, 255]]) : null;
+  if (cos === 'ghost') { C.sheet = [242, 240, 234]; C.legs = [40, 38, 46]; }
+  if (cos === 'witch') { L.dress = 'witch'; C.dress = [40, 30, 52]; C.legs = [30, 24, 40]; L.hem = 0.07; L.hat = 'witch'; C.hat = [34, 28, 44]; C.band = pick(r, [[170, 80, 230], [255, 130, 30], [80, 200, 110]]); L.cape = { col: [30, 22, 40], lining: C.band, len: 0.1 }; if (r() < 0.4) L.hcarry = 'broom'; C.hair = pick(r, [[230, 120, 40], [40, 30, 26], [90, 200, 110]]); }
+  if (cos === 'skeleton') { C.shirt = [26, 24, 30]; C.legs = [22, 20, 26]; L.bones = [238, 234, 222]; C.skin = [234, 230, 220]; C.hair = [22, 20, 26]; L.face = 'skull'; }
+  if (cos === 'pumpkin') { C.shirt = [236, 122, 28]; C.legs = [34, 64, 40]; L.pumpkin = true; L.hat = 'stem'; C.hat = [66, 120, 46]; }
+  if (cos === 'vampire') { C.shirt = [24, 22, 30]; C.legs = [20, 18, 26]; C.skin = [232, 226, 228]; C.hair = [16, 14, 18]; L.cape = { col: [18, 16, 24], lining: [184, 24, 42], len: 0.07, collar: true }; L.vest = [150, 20, 36]; }
+  if (cos === 'hero') { const h = pick(r, [[[40, 84, 204], [220, 40, 46], [250, 206, 60]], [[44, 150, 86], [140, 56, 184], [244, 226, 96]], [[200, 36, 44], [36, 64, 160], [250, 210, 70]]]); C.shirt = h[0]; C.legs = h[0]; L.cape = { col: h[1], lining: h[1].map(v => v * 0.72), len: 0.16, flutter: true }; L.belt = h[2]; L.trim = h[2]; L.mask = h[1]; L.face = 'mask'; }
+  if (cos === 'cat') { C.shirt = [22, 20, 26]; C.legs = [20, 18, 24]; L.hat = 'ears'; C.hat = [22, 20, 26]; L.tail = true; C.hair = [22, 20, 26]; L.face = 'cat'; }
+  if (cos === 'pirate') { C.shirt = [240, 236, 226]; L.stripes = [40, 52, 130]; C.legs = [30, 28, 34]; L.hat = 'bandana'; C.hat = [204, 36, 44]; L.belt = [70, 46, 30]; L.face = 'patch'; }
+}
+/** a costume-party ZOMBIE: their own clothes gone grey + grimy + torn, green-grey skin, dark eyes — playful, never gory */
+function zombieLook(L, r, m) {
+  const k = m.zlook || 'suit', C = L.cols;
+  Object.assign(L, { nightLift: 0.3, zombie: true, scarf: null, carry: null, umbrella: null, paper: false, holdHat: false, tatters: true, face: 'zombie' });
+  C.scarf = null;
+  L.woman = k === 'dress' || k === 'bride'; L.dress = L.woman ? 'day' : null;
+  L.coat = k === 'worker' ? 'short' : k === 'suit' ? 'long' : 'none';
+  L.hat = k === 'worker' ? 'flatcap' : k === 'bride' ? 'veil' : k === 'suit' && r() < 0.5 ? 'fedora' : null;
+  const grime = c => c.map((v, i) => v * 0.6 + [72, 78, 62][i] * 0.32);
+  C.coat = grime(C.coat); C.legs = grime(C.legs); C.shirt = grime(C.shirt); C.hat = grime(C.hat);
+  C.dress = k === 'bride' ? [218, 214, 200] : grime(C.dress);
+  if (k === 'bride') L.hem = 0.05;
+  C.skin = pick(r, [[150, 178, 138], [136, 160, 140], [172, 182, 150]]); C.hair = pick(r, [[64, 58, 50], [40, 36, 34], [126, 116, 92]]);
+}
+/** the DAY OF THE DEAD procession: mourners in their good dark clothes + bright REBOZOS (shawls) with a candle, Catrinas (the skull
+ *  face paint, the long dress, the wide flowered hat or a marigold crown), children in flower crowns, the mariachi trio (charro suits +
+ *  sombreros), the ofrenda's two bearers (white shirts, an orange sash) */
+function procLook(L, r, m) {
+  const role = m.costume || 'candle', C = L.cols, BRIGHT = [[196, 40, 120], [124, 44, 170], [30, 130, 140], [214, 90, 40], [44, 40, 56], [200, 40, 60]];
+  Object.assign(L, { nightLift: 0.32, scarf: null, carry: null, umbrella: null, paper: false, holdHat: false, hcarry: 'candle' });
+  C.scarf = null;
+  if (role === 'catrina') { Object.assign(L, { woman: true, dress: 'day', coat: 'none', hem: 0.045, hat: r() < 0.6 ? 'catrina' : 'crown', face: 'calavera', hcarry: r() < 0.6 ? 'candle' : 'marigolds' }); C.dress = pick(r, BRIGHT); C.hat = r() < 0.5 ? [30, 28, 34] : C.dress.map(v => v * 0.55); C.skin = [240, 236, 230]; L.shawl = pick(r, [[230, 150, 40], [206, 44, 96], [240, 230, 210]]); }
+  else if (role === 'child') { Object.assign(L, { kid: true, woman: r() < 0.5, coat: 'none', hh: 0.64 + r() * 0.08, hat: 'crown' }); L.dress = L.woman ? 'day' : null; C.dress = pick(r, BRIGHT); C.shirt = pick(r, [[236, 232, 220], [230, 200, 120]]); }
+  else if (role === 'mariachi') { Object.assign(L, { woman: false, dress: null, coat: 'short', hat: 'sombrero', charro: true, tux: true, hcarry: m.inst || 'guitar' }); C.coat = [24, 22, 28]; C.legs = [24, 22, 28]; C.hat = [34, 30, 36]; C.shirt = [236, 232, 222]; L.trim = [226, 222, 212]; L.bow = [176, 30, 46]; }
+  else if (role === 'bearer') { Object.assign(L, { woman: false, dress: null, coat: 'none', hat: null, hcarry: m.bearer ? 'poleB' : 'poleF' }); C.shirt = [236, 232, 220]; C.legs = [40, 38, 46]; L.sash = [222, 122, 30]; }
+  else {
+    if (L.woman) { L.coat = 'none'; L.dress = 'day'; L.hem = 0.08; C.dress = pick(r, [[44, 38, 52], [74, 40, 62], [38, 52, 74], [92, 32, 42]]); L.shawl = pick(r, [[222, 124, 30], [196, 42, 104], [124, 52, 166], [40, 146, 146], [232, 200, 80]]); L.hat = r() < 0.4 ? 'crown' : null; }
+    else { L.coat = 'short'; L.dress = null; C.coat = pick(r, [[34, 32, 40], [52, 46, 42], [30, 36, 54]]); L.hat = r() < 0.35 ? 'fedora' : null; }
+    L.hcarry = role === 'marigolds' ? 'marigolds' : role === 'photo' ? 'photo' : 'candle';
+  }
+}
+
+/** HALLOWEEN NIGHT at the speakeasy: its guests in costume over their evening clothes — a witch's hat + cape, a vampire's cape + collar,
+ *  cat ears with the flapper dress, a skeleton suit, now and then a zombie (one in four keeps the tux / the flapper: not every guest dresses up) */
+function partyCostume(L, r) {
+  const u = r();
+  if (u < 0.25) return;
+  L.nightLift = 0.25;
+  if (u < 0.42) { L.hat = 'witch'; L.cols.hat = [30, 26, 38]; L.cols.band = pick(r, [[170, 80, 230], [255, 130, 30], [60, 190, 110]]); L.cape = { col: [28, 22, 38], lining: L.cols.band, len: 0.12 }; }
+  else if (u < 0.6) { L.cape = { col: [18, 16, 24], lining: [184, 24, 42], len: 0.08, collar: true }; L.cols.skin = [232, 226, 228]; if (L.hat !== 'top') L.hat = null; }
+  else if (u < 0.74) { L.hat = 'ears'; L.cols.hat = [22, 20, 26]; L.tail = true; L.face = 'cat'; }
+  else if (u < 0.88) { L.coat = 'none'; L.dress = null; L.tux = false; L.cols.shirt = [24, 22, 28]; L.cols.legs = [22, 20, 26]; L.bones = [236, 232, 220]; L.cols.skin = [234, 230, 220]; L.face = 'skull'; L.hat = null; }
+  else { L.zombie = true; L.tatters = true; L.face = 'zombie'; L.cols.skin = [150, 176, 138]; L.holdHat = false; L.umbrella = null; }
+}
+/** the holidays' arms + bodies on the rig (jointsOf): see the call */
+function holidayArms({ L, st, pose, walking, p, t, mo, arm, shJ, head, near, farA, uP }) {
+  const hc = L.hcarry;
+  if (L.zombie && (walking || pose === 'wait')) {
+    // arms out in front (a little apart, drifting), reaching higher + further when it notices someone; the shoulders rolling with the
+    // stiff leg; the head lolling over, a little forward + down
+    const rr = clamp01(st.reach || 0), sway = walking ? Math.sin(p * TAU) : mo ? 0.5 * Math.sin(t * 0.8) : 0;
+    for (let i = 0; i < 2; i++) arm(i, 1.4 + 0.24 * rr + 0.07 * Math.sin(t * 1.1 + i * 2.1), 0.16 - 0.12 * rr, 0.06 + 0.05 * i);
+    shJ.forEach(q => { q.b += 0.035 * sway; q.a += 0.02; });
+    head.b += 0.042 * Math.sin(p * TAU + 0.8); head.y -= 0.014; head.a += 0.035;
+  }
+  // (Halloween: someone a zombie shambles up to — the hands fly up, a lean back, then the shoulders shake: they laugh)
+  const sk = clamp01(st.startle || 0);
+  if (sk > 0.01 && !L.zombie) {
+    const laugh = sk > 0.3 && mo ? Math.sin(t * 24) * 0.006 * sk : 0;
+    for (let i = 0; i < 2; i++) arm(i, 0.15 + 2.2 * sk, 0.3 + 0.55 * sk, 0.14 + 0.3 * sk);
+    shJ.forEach(q => { q.a -= 0.045 * sk; q.y += laugh; }); head.a -= 0.055 * sk; head.y += laugh;
+    return;
+  }
+  // (trick or treat at the door: the bucket held up while the door is open — a little bounce of excitement as it opens)
+  if (pose === 'treat' && L.kid) {
+    const up = smooth(clamp01((uP - 0.2) / 0.12)) * (1 - smooth(clamp01((uP - 0.74) / 0.1)));
+    arm(near, 0.25 + 1.3 * up, 0.35 - 0.2 * up, 0.08);
+    if (L.costume !== 'ghost') arm(farA, 0.12 + 0.35 * up, 0.5);
+    head.y += 0.01 * up * (mo ? Math.abs(Math.sin(t * 9)) : 0);
+    return;
+  }
+  if (!(walking || pose === 'wait' || pose === 'treat')) return;
+  if (hc === 'candle') { arm(near, 0.72, 1.62, 0.1); arm(farA, 0.64, 1.74, 0.16); }        // (cupped at the chest: the flame lights the face)
+  else if (hc === 'marigolds') arm(near, 0.82, 1.25, 0.1);
+  else if (hc === 'photo') { arm(near, 1.45, 0.95, 0.08); arm(farA, 1.3, 1.1, 0.1); }      // (held up for everyone to see)
+  else if (hc === 'guitar') { const s8 = mo ? 0.12 * Math.sin(t * 9.5) : 0; arm(near, 0.48 + s8, 1.38, 0.12); arm(farA, 1.02, 0.85, 0.28); }
+  else if (hc === 'trumpet') { const b = mo ? 0.05 * Math.sin(t * 2.2) : 0; arm(near, 1.25 + b, 1.78, 0.1); arm(farA, 1.15 + b, 1.86, 0.12); head.a -= 0.01; }
+  else if (hc === 'violin') { arm(farA, 1.45, 0.45, 0.36); arm(near, 1.2 + (mo ? 0.28 * Math.sin(t * 3.4) : 0), 1.5, 0.22); head.b += 0.02; }
+  else if (hc === 'poleF' || hc === 'poleB') arm(near, 2.62, 2.6, 0.14);                  // (the ofrenda's pole on the shoulder)
+  else if (hc === 'torch') arm(near, 0.78, 0.22, 0.08);                                     // (the torch pointed at the cobbles ahead)
+  else if (hc === 'broom') arm(near, 0.42, 0.3, 0.1);
+}
+
+// ---- the drawing (body() calls these; f = the scene's light on a colour)
+const GLOW = { cv: null, soft: null };
+/** a warm glow sprite (additive): a candle's light, a jack-o'-lantern's, the torch's pool */
+function glowSprite(soft = false) {
+  const k = soft ? 'soft' : 'cv';
+  if (GLOW[k] || typeof document === 'undefined') return GLOW[k];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = safeCtx(cv);
+  // (the point: a hot core with a quick falloff; the soft halo: a broad warm light — a candle's air, a pool on the cobbles)
+  const st = soft ? [[0, 0.62], [0.25, 0.42], [0.5, 0.18], [0.75, 0.05], [1, 0]] : [[0, 1], [0.12, 0.7], [0.32, 0.26], [0.6, 0.08], [1, 0]];
+  if (x) { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); for (const [o, a] of st) g.addColorStop(o, `rgba(255,${soft ? 176 : 190},${soft ? 96 : 110},${a})`); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }
+  GLOW[k] = cv; return cv;
+}
+const nightOf = env => Math.max(clamp01(env.dark || 0), clamp01((env.T && env.T.night) || 0));
+function glow(c, x, y, r, a, soft = false) { const g = glowSprite(soft); if (!g || a <= 0.01) return; c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, a) * (c.globalAlpha || 1); c.drawImage(g, x - r, y - r, r * 2, r * 2); c.restore(); }
+/** a cape from the shoulders: trailing behind the walk (a hero's flutters), its lining showing on the edge that swings out */
+function cape(c, J, L, X, Y, H, f) {
+  const K = L.cape, top = J.sh[1] + 0.012, sx = J.tw * 1.02, tX = J.sh[0], hem = K.len, walk = J.walking;
+  const trail = (walk ? 0.06 + (K.flutter ? 0.06 : 0) : 0.015) * -J.cx, fl = walk && K.flutter ? Math.sin(J.p * TAU * 2) * 0.022 : 0, w = sx * 1.3 + 0.025;
+  c.fillStyle = f(K.col);
+  c.beginPath(); c.moveTo(X(tX - sx), Y(top)); c.lineTo(X(tX + sx), Y(top));
+  c.quadraticCurveTo(X(tX + w + trail * 0.4), Y((top + hem) / 2), X(tX + w + trail + fl), Y(hem));
+  for (let i = 1; i <= 4; i++) c.lineTo(X(tX + w + trail + fl - (2 * w) * i / 4 - fl * i * 0.5), Y(hem + (i % 2 ? 0.012 : -0.004)));
+  c.quadraticCurveTo(X(tX - w + trail * 0.4), Y((top + hem) / 2), X(tX - sx), Y(top)); c.fill();
+  if (K.lining) {
+    const e = trail >= 0 ? 1 : -1; c.fillStyle = f(K.lining, 1.1);
+    c.beginPath(); c.moveTo(X(tX + e * sx * 0.92), Y(top - 0.02)); c.quadraticCurveTo(X(tX + e * (w + 0.008) + trail * 0.4), Y((top + hem) / 2), X(tX + e * w + trail + fl), Y(hem));
+    c.lineTo(X(tX + e * (w - 0.04) + trail), Y(hem + 0.01)); c.quadraticCurveTo(X(tX + e * (w - 0.035) + trail * 0.4), Y((top + hem) / 2), X(tX + e * sx * 0.7), Y(top - 0.02)); c.fill();
+  }
+}
+/** a cat costume's tail: from the small of the back, curling up, swaying with the walk */
+function tail(c, J, X, Y, H, f, env) {
+  const d = Math.abs(J.cx) > 0.2 ? -Math.sign(J.cx) : 1, hx = J.hip[0] - J.cx * 0.05, hy = J.hip[1] + 0.02;
+  const sw = env.mo !== false ? Math.sin((env.t || 0) * 3.1 + J.p * TAU) * 0.035 : 0;
+  c.strokeStyle = f([24, 22, 28]); c.lineWidth = Math.max(0.6, 0.026 * H); c.lineCap = 'round';
+  c.beginPath(); c.moveTo(X(hx), Y(hy)); c.bezierCurveTo(X(hx + d * 0.13), Y(hy - 0.12), X(hx + d * 0.22 + sw), Y(hy - 0.03), X(hx + d * 0.19 + sw * 1.6), Y(hy + 0.11)); c.stroke();
+}
+/** the skeleton costume's bones along a limb (hip → knee → ankle / shoulder → elbow → hand), a knob at the joint */
+function bones(c, pts, X, Y, H, f, L) {
+  const [a, b, e] = pts, e2 = [b[0] + (e[0] - b[0]) * 0.86, b[1] + (e[1] - b[1]) * 0.86];
+  c.strokeStyle = f(L.bones, 1.35); c.lineWidth = Math.max(0.35, 0.013 * H); c.lineCap = 'round';
+  c.beginPath(); c.moveTo(X(a[0]), Y(a[1] - 0.012)); c.lineTo(X(b[0]), Y(b[1])); c.lineTo(X(e2[0]), Y(e2[1])); c.stroke();
+  c.fillStyle = f(L.bones, 1.35); c.beginPath(); c.arc(X(b[0]), Y(b[1]), Math.max(0.35, 0.012 * H), 0, TAU); c.fill();
+}
+/** THE SHEET GHOST: one white sheet from the crown of the head to just above the shoes — round over the head, falling over the shoulders,
+ *  flaring to a wavy, swaying hem; soft folds; two eye holes (+ a little mouth) from the front + 3/4 */
+function ghostSheet(c, J, L, X, Y, H, f, env) {
+  const hx = J.head[0], hy = J.head[1] - 0.01, hr = HR * 1.18, tX = J.sh[0], sy = J.sh[1], sx = J.tw * 1.3 + 0.02, hem = 0.1, t = env.t || 0, mo = env.mo !== false;
+  const trail = J.walking ? -J.cx * 0.035 : 0, sw = mo ? (J.walking ? Math.sin(J.p * TAU * 2) : 0.4 * Math.sin(t * 1.3)) * 0.015 : 0;
+  const w = sx * 1.32, col = L.cols.sheet;
+  const path = () => {
+    c.beginPath(); c.moveTo(X(hx - hr), Y(hy));
+    c.arc(X(hx), Y(hy), hr * H, Math.PI, 0);
+    c.quadraticCurveTo(X(tX + sx * 0.95), Y(sy + 0.01), X(tX + sx * 1.08), Y(sy - 0.08));
+    c.quadraticCurveTo(X(tX + w * 0.98 + trail * 0.5), Y((sy + hem) / 2 - 0.05), X(tX + w + trail + sw), Y(hem + 0.01));
+    const n = 5; for (let i = 1; i <= n; i++) { const u = i / n, x0 = tX + w + trail + sw - 2 * w * u, ph = mo ? Math.sin(t * 3 + i * 1.7 + J.p * TAU) * 0.008 : 0; c.quadraticCurveTo(X(x0 + w / n + trail * 0.3), Y(hem - 0.03 + ph), X(x0), Y(hem + 0.008 * (i % 2) + ph)); }
+    c.quadraticCurveTo(X(tX - w * 0.98 + trail * 0.5), Y((sy + hem) / 2 - 0.05), X(tX - sx * 1.08), Y(sy - 0.08));
+    c.quadraticCurveTo(X(tX - sx * 0.95), Y(sy + 0.01), X(hx - hr), Y(hy)); c.closePath();
+  };
+  c.fillStyle = f(col, 1.25); path(); c.fill();
+  // the folds + the shade on the side away from the light (soft vertical gradients clipped to the sheet)
+  c.save(); path(); c.clip();
+  const g = c.createLinearGradient(X(tX - w), 0, X(tX + w), 0); g.addColorStop(0, 'rgba(60,64,96,0.28)'); g.addColorStop(0.35, 'rgba(60,64,96,0)'); g.addColorStop(0.7, 'rgba(60,64,96,0.06)'); g.addColorStop(1, 'rgba(60,64,96,0.34)');
+  c.fillStyle = g; c.fillRect(X(tX - w * 1.2), Y(hy + hr), w * 2.4 * H, (hy + hr) * H);
+  c.strokeStyle = 'rgba(70,74,104,0.32)'; c.lineWidth = Math.max(0.35, 0.01 * H);
+  c.beginPath(); for (const u of [-0.45, 0.1, 0.55]) { c.moveTo(X(tX + u * sx), Y(sy - 0.04)); c.quadraticCurveTo(X(tX + u * w * 0.9 + trail * 0.5), Y(0.35), X(tX + u * w + trail * 0.8), Y(hem + 0.03)); } c.stroke();
+  c.restore();
+  // the eye holes (+ a small round mouth): from the front + 3/4
+  if (J.cz < 0.45 && H > 9) {
+    const ax = Math.abs(J.cx), ex = hx + J.cx * hr * 0.38, sp = hr * 0.36 * (1 - ax * 0.55);
+    c.fillStyle = 'rgb(14,12,20)';
+    for (const s of [-1, 1]) { c.beginPath(); c.ellipse(X(ex + s * sp), Y(hy + hr * 0.08), Math.max(0.45, hr * 0.17 * H * (1 - ax * 0.4)), Math.max(0.6, hr * 0.27 * H), 0, 0, TAU); c.fill(); }
+    c.beginPath(); c.ellipse(X(ex), Y(hy - hr * 0.48), Math.max(0.35, hr * 0.12 * H), Math.max(0.4, hr * 0.15 * H), 0, 0, TAU); c.fill();
+  }
+}
+/** the costumes over the torso (after the coat / the dress; before the head) */
+function costumeTorso(c, J, L, X, Y, H, f, g) {
+  const { top, hipY, hem, sx, tX, hX, cz, ax, d } = g, front = cz < 0.45, cx = J.cx;
+  if (L.pumpkin) {
+    // a round, ribbed pumpkin body from the chest to the hips (the carved face on its front)
+    const my = (top + hipY) / 2 - 0.01, rx = sx * 1.75, ry = (top - hipY) * 0.72 + 0.02, mx = (tX + hX) / 2;
+    c.fillStyle = f([236, 122, 28], 1.1); c.beginPath(); c.ellipse(X(mx), Y(my), rx * H, ry * H, 0, 0, TAU); c.fill();
+    c.strokeStyle = f([176, 76, 16]); c.lineWidth = Math.max(0.35, 0.011 * H);
+    c.beginPath(); for (const u of [-0.55, 0, 0.55]) { const ux = mx + (u + cx * 0.2) * rx; c.moveTo(X(ux), Y(my + ry * 0.92)); c.quadraticCurveTo(X(ux + u * rx * 0.35), Y(my), X(ux), Y(my - ry * 0.92)); } c.stroke();
+    if (front && H > 10) { c.fillStyle = 'rgb(40,18,8)'; const fx = mx + cx * rx * 0.3; for (const s of [-1, 1]) { c.beginPath(); c.moveTo(X(fx + s * rx * 0.42), Y(my + ry * 0.3)); c.lineTo(X(fx + s * rx * 0.18), Y(my + ry * 0.3)); c.lineTo(X(fx + s * rx * 0.3), Y(my + ry * 0.58)); c.fill(); } c.beginPath(); c.moveTo(X(fx - rx * 0.45), Y(my - ry * 0.2)); c.quadraticCurveTo(X(fx), Y(my - ry * 0.62), X(fx + rx * 0.45), Y(my - ry * 0.2)); c.quadraticCurveTo(X(fx), Y(my - ry * 0.4), X(fx - rx * 0.45), Y(my - ry * 0.2)); c.fill(); }
+  }
+  if (L.bones) {
+    // the ribcage + the spine (from behind: the spine alone)
+    c.strokeStyle = f(L.bones, 1.35); c.lineWidth = Math.max(0.35, 0.012 * H); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(X(tX), Y(top - 0.01)); c.lineTo(X(hX), Y(hipY + 0.03));
+    if (front) for (let i = 0; i < 3; i++) { const y = top - 0.035 - i * 0.032, w = sx * (0.95 - i * 0.12) * (1 - ax * 0.35); c.moveTo(X(tX - w), Y(y - 0.01)); c.quadraticCurveTo(X(tX), Y(y + 0.012), X(tX + w), Y(y - 0.01)); }
+    c.stroke();
+    c.beginPath(); c.ellipse(X(hX), Y(hipY + 0.025), sx * 0.7 * H, Math.max(0.4, 0.018 * H), 0, 0, TAU); c.stroke();
+  }
+  if (L.stripes) { c.fillStyle = f(L.stripes); for (let i = 0; i < 3; i++) { const y = top - 0.03 - i * (top - hipY) / 3.3; c.fillRect(X(tX - sx * 0.98), Y(y), sx * 1.96 * H, Math.max(0.5, 0.022 * H)); } }
+  if (L.tatters) {
+    // a torn hem (dark points along it) + a rip or two — grimy, never gory
+    const tc = (L.coat !== 'none' ? L.cols.coat : L.dress ? L.cols.dress : L.cols.shirt).map(v => v * 0.55);
+    c.fillStyle = f(tc); const w = sx * 0.95 + 0.02;
+    c.beginPath(); for (let i = 0; i < 6; i++) { const u = -w + (2 * w) * (i + 0.5) / 6, h = (i % 2 ? 0.03 : 0.045) * (0.7 + 0.3 * Math.sin(i * 2.3 + L.h * 50)); c.moveTo(X(hX + u - w / 7), Y(hem)); c.lineTo(X(hX + u), Y(hem + h)); c.lineTo(X(hX + u + w / 7), Y(hem)); } c.fill();
+    c.strokeStyle = f(tc); c.lineWidth = Math.max(0.3, 0.008 * H); c.beginPath(); c.moveTo(X(tX - sx * 0.4), Y(top - 0.06)); c.lineTo(X(tX - sx * 0.1), Y(top - 0.1)); c.lineTo(X(tX - sx * 0.3), Y(top - 0.13)); c.stroke();
+  }
+  if (L.shawl) {
+    // the REBOZO: a bright shawl over the shoulders, one end falling down the front (from behind: across the back to the waist)
+    c.fillStyle = f(L.shawl, 1.1);
+    c.beginPath(); c.moveTo(X(tX - sx * 1.12), Y(top + 0.012)); c.lineTo(X(tX + sx * 1.12), Y(top + 0.012)); c.lineTo(X(tX + sx * 1.0), Y(top - 0.12)); c.lineTo(X(tX - sx * 1.0), Y(top - 0.12)); c.closePath(); c.fill();
+    // (its end falls down the FRONT — the side they face — tapering to a fringe at the hip)
+    if (front) { const ex = tX + (Math.abs(cx) > 0.3 ? Math.sign(cx) : -1) * sx * 0.42, w0 = sx * 0.3, w1 = sx * 0.2; c.beginPath(); c.moveTo(X(ex - w0), Y(top - 0.1)); c.lineTo(X(ex + w0), Y(top - 0.1)); c.lineTo(X(ex + w1 + cx * 0.01), Y(hipY - 0.02)); c.lineTo(X(ex - w1 + cx * 0.01), Y(hipY - 0.02)); c.closePath(); c.fill(); }
+    else { c.beginPath(); c.moveTo(X(tX - sx), Y(top - 0.1)); c.lineTo(X(tX + sx), Y(top - 0.1)); c.lineTo(X(hX), Y(hipY + 0.02)); c.closePath(); c.fill(); }
+    c.strokeStyle = f(L.shawl.map(v => v * 0.7)); c.lineWidth = Math.max(0.3, 0.008 * H); c.beginPath(); c.moveTo(X(tX - sx), Y(top - 0.075)); c.lineTo(X(tX + sx), Y(top - 0.075)); c.stroke();
+  }
+  if (L.sash) { c.strokeStyle = f(L.sash, 1.1); c.lineWidth = Math.max(0.6, 0.03 * H); c.beginPath(); c.moveTo(X(tX - sx * 0.9 * d), Y(top - 0.01)); c.lineTo(X(hX + sx * 0.9 * d), Y(hipY + 0.04)); c.stroke(); }
+  if (L.charro && front) {
+    // the charro jacket's silver: a short bolero's edges + the buttons down the trousers' outer seams
+    c.strokeStyle = f([210, 206, 196], 1.3); c.lineWidth = Math.max(0.3, 0.008 * H);
+    c.beginPath(); c.moveTo(X(tX - sx * 0.5), Y(top)); c.lineTo(X(tX - sx * 0.62), Y(hipY + 0.08)); c.moveTo(X(tX + sx * 0.5), Y(top)); c.lineTo(X(tX + sx * 0.62), Y(hipY + 0.08)); c.stroke();
+    c.fillStyle = f([226, 222, 212], 1.4); for (const i of [0, 1]) { const kn = J.knees[i], hp = J.hips[i]; for (let k = 0; k < 3; k++) { const u = 0.25 + k * 0.3; c.beginPath(); c.arc(X(hp[0] + (kn[0] - hp[0]) * u + 0.025), Y(hp[1] + (kn[1] - hp[1]) * u), Math.max(0.3, 0.007 * H), 0, TAU); c.fill(); } }
+  }
+  if (L.cape && L.cape.collar && J.cz < 0.5) {
+    // THE VAMPIRE's high collar standing up behind the head (red inside, black out)
+    for (const s of [-1, 1]) { const x0 = tX + s * sx * 0.95, x1 = tX + s * sx * 0.25; c.fillStyle = f(L.cape.col); c.beginPath(); c.moveTo(X(x0), Y(top + 0.005)); c.lineTo(X(tX + s * sx * 1.25), Y(top + 0.15)); c.lineTo(X(x1), Y(top + 0.04)); c.closePath(); c.fill(); c.fillStyle = f(L.cape.lining, 1.1); c.beginPath(); c.moveTo(X(tX + s * sx * 0.85), Y(top + 0.02)); c.lineTo(X(tX + s * sx * 1.12), Y(top + 0.12)); c.lineTo(X(tX + s * sx * 0.4), Y(top + 0.045)); c.closePath(); c.fill(); }
+  }
+}
+/** the faces of the holidays (no drawn features on everyday people — the owner; these costumes ARE their faces): a skull's sockets, a
+ *  Catrina's calavera (the sockets ringed in colour), a zombie's sunken eyes, the pirate's patch, the cat's nose + whiskers, a hero's mask */
+function face(c, J, L, X, Y, H, f, hx, hy, hr) {
+  if (!L.face || J.cz > 0.5 || H < 10) return;
+  const ax = Math.abs(J.cx), ex = hx + J.cx * hr * 0.4, sp = hr * 0.37 * (1 - ax * 0.55), ey = hy + hr * 0.12, R = (k) => Math.max(0.4, hr * k * H);
+  const eyes = (col, rx, ry) => { c.fillStyle = col; for (const s of [-1, 1]) { if (ax > 0.75 && s === -Math.sign(J.cx)) continue; c.beginPath(); c.ellipse(X(ex + s * sp), Y(ey), R(rx) * (1 - ax * 0.35), R(ry), 0, 0, TAU); c.fill(); } };
+  if (L.face === 'skull' || L.face === 'calavera') {
+    if (L.face === 'calavera') eyes(f([206, 46, 120], 1.3), 0.3, 0.3);
+    eyes('rgb(16,12,18)', 0.21, 0.23);
+    c.fillStyle = 'rgb(20,14,20)'; c.beginPath(); c.moveTo(X(ex - hr * 0.07), Y(hy - hr * 0.2)); c.lineTo(X(ex + hr * 0.07), Y(hy - hr * 0.2)); c.lineTo(X(ex), Y(hy - hr * 0.05)); c.fill();
+    c.strokeStyle = 'rgba(20,14,20,0.8)'; c.lineWidth = Math.max(0.25, 0.006 * H); c.beginPath(); c.moveTo(X(ex - hr * 0.3), Y(hy - hr * 0.48)); c.lineTo(X(ex + hr * 0.3), Y(hy - hr * 0.48)); for (let i = -2; i <= 2; i++) { c.moveTo(X(ex + i * hr * 0.12), Y(hy - hr * 0.4)); c.lineTo(X(ex + i * hr * 0.12), Y(hy - hr * 0.56)); } c.stroke();
+  } else if (L.face === 'zombie') { eyes('rgba(30,34,26,0.85)', 0.2, 0.16); c.fillStyle = 'rgba(40,30,30,0.8)'; c.fillRect(X(ex - hr * 0.22), Y(hy - hr * 0.42), hr * 0.44 * H, Math.max(0.35, hr * 0.12 * H)); }
+  else if (L.face === 'patch') { const s = J.cx >= 0 ? 1 : -1; c.fillStyle = 'rgb(16,14,18)'; c.beginPath(); c.ellipse(X(ex + s * sp), Y(ey), R(0.2), R(0.2), 0, 0, TAU); c.fill(); c.strokeStyle = 'rgb(16,14,18)'; c.lineWidth = Math.max(0.25, 0.007 * H); c.beginPath(); c.moveTo(X(hx - hr), Y(hy + hr * 0.45)); c.lineTo(X(hx + hr), Y(hy - hr * 0.05)); c.stroke(); }
+  else if (L.face === 'cat') { c.fillStyle = 'rgb(236,150,170)'; c.beginPath(); c.arc(X(ex), Y(hy - hr * 0.12), R(0.1), 0, TAU); c.fill(); c.strokeStyle = 'rgba(230,226,220,0.75)'; c.lineWidth = Math.max(0.2, 0.005 * H); c.beginPath(); for (const s of [-1, 1]) for (const k of [-0.08, 0.06]) { c.moveTo(X(ex + s * hr * 0.15), Y(hy - hr * 0.2)); c.lineTo(X(ex + s * hr * 0.75), Y(hy - hr * 0.2 + k * hr * 3)); } c.stroke(); }
+  else if (L.face === 'mask' && L.mask) { c.fillStyle = f(L.mask, 1.1); c.fillRect(X(hx - hr * 0.98), Y(ey + hr * 0.22), hr * 1.96 * H, R(0.42)); eyes('rgb(236,232,226)', 0.13, 0.09); }
+}
+/** the holidays' hats */
+const HATS = {
+  // the witch's hat: a wide brim, a tall cone whose tip flops back, a coloured band
+  witch(c, L, X, Y, H, hx, hy, hr, J, f) {
+    const by = hy + hr * 0.55, tipX = hx - J.cx * hr * 0.9 + hr * 0.25, tipY = hy + hr * 3.5;
+    c.beginPath(); c.ellipse(X(hx), Y(by), hr * 2.3 * H, Math.max(0.6, hr * 0.34 * H), 0, 0, TAU); c.fill();
+    c.beginPath(); c.moveTo(X(hx - hr * 0.95), Y(by)); c.quadraticCurveTo(X(hx - hr * 0.55), Y(hy + hr * 2.2), X(tipX), Y(tipY)); c.quadraticCurveTo(X(hx + hr * 0.4), Y(hy + hr * 2.0), X(hx + hr * 0.95), Y(by)); c.closePath(); c.fill();
+    if (L.cols.band) { c.fillStyle = f(L.cols.band, 1.2); c.beginPath(); c.moveTo(X(hx - hr * 0.93), Y(by + hr * 0.05)); c.lineTo(X(hx + hr * 0.93), Y(by + hr * 0.05)); c.lineTo(X(hx + hr * 0.82), Y(by + hr * 0.42)); c.lineTo(X(hx - hr * 0.84), Y(by + hr * 0.42)); c.closePath(); c.fill(); }
+  },
+  // cat ears (+ their pink insides from the front)
+  ears(c, L, X, Y, H, hx, hy, hr, J, f) {
+    for (const s of [-1, 1]) { const ex = hx + s * hr * 0.55 * (1 - Math.abs(J.cx) * 0.4); c.beginPath(); c.moveTo(X(ex - hr * 0.38), Y(hy + hr * 0.62)); c.lineTo(X(ex + s * hr * 0.12), Y(hy + hr * 1.55)); c.lineTo(X(ex + hr * 0.38), Y(hy + hr * 0.7)); c.closePath(); c.fill(); }
+    if (J.cz < 0.3) { c.fillStyle = f([226, 140, 160]); for (const s of [-1, 1]) { const ex = hx + s * hr * 0.55 * (1 - Math.abs(J.cx) * 0.4); c.beginPath(); c.moveTo(X(ex - hr * 0.18), Y(hy + hr * 0.78)); c.lineTo(X(ex + s * hr * 0.08), Y(hy + hr * 1.3)); c.lineTo(X(ex + hr * 0.18), Y(hy + hr * 0.82)); c.closePath(); c.fill(); } }
+  },
+  // the pumpkin's stem cap: a little green cap + a curled stem
+  stem(c, L, X, Y, H, hx, hy, hr, J, f) {
+    c.beginPath(); c.ellipse(X(hx), Y(hy + hr * 0.62), hr * 1.02 * H, hr * 0.5 * H, 0, Math.PI, 0); c.fill();
+    c.strokeStyle = f([88, 132, 52]); c.lineWidth = Math.max(0.5, hr * 0.32 * H); c.lineCap = 'round'; c.beginPath(); c.moveTo(X(hx), Y(hy + hr * 1.05)); c.quadraticCurveTo(X(hx + hr * 0.1), Y(hy + hr * 1.6), X(hx + hr * 0.5), Y(hy + hr * 1.55)); c.stroke();
+  },
+  // the pirate's bandana: tight over the crown, its knot's two tails behind
+  bandana(c, L, X, Y, H, hx, hy, hr, J, f) {
+    c.beginPath(); c.arc(X(hx), Y(hy + hr * 0.18), hr * 1.06 * H, Math.PI + 0.12, -0.12); c.closePath(); c.fill();
+    const bx = hx - J.cx * hr * 0.95, s = J.cx >= 0 ? -1 : 1; c.beginPath(); c.moveTo(X(bx), Y(hy + hr * 0.4)); c.lineTo(X(bx + s * hr * 0.7), Y(hy - hr * 0.2)); c.lineTo(X(bx + s * hr * 0.25), Y(hy - hr * 0.1)); c.closePath(); c.fill();
+    c.fillStyle = f([244, 240, 232]); for (const u of [-0.5, 0.2]) { c.beginPath(); c.arc(X(hx + u * hr), Y(hy + hr * 0.75), Math.max(0.3, hr * 0.1 * H), 0, TAU); c.fill(); }
+  },
+  // the Catrina's hat: a very wide dark brim, a low crown, a mound of flowers + a plume
+  catrina(c, L, X, Y, H, hx, hy, hr, J, f) {
+    const by = hy + hr * 0.6;
+    c.beginPath(); c.ellipse(X(hx), Y(by), hr * 2.75 * H, Math.max(0.7, hr * 0.42 * H), -0.08 * J.cx, 0, TAU); c.fill();
+    c.beginPath(); c.ellipse(X(hx), Y(by + hr * 0.28), hr * 0.95 * H, hr * 0.48 * H, 0, Math.PI, 0); c.fill();
+    const fl = [[255, 70, 90], [255, 196, 40], [255, 130, 30], [250, 110, 200], [250, 246, 236]], k = Math.max(0.5, hr * 0.3 * H);
+    for (let i = 0; i < 6; i++) { const u = (i - 2.5) / 2.5; c.fillStyle = f(fl[i % fl.length], 1.35); c.beginPath(); c.arc(X(hx + u * hr * 1.1 + J.cx * hr * 0.2), Y(by + hr * (0.55 + 0.25 * (1 - u * u))), k, 0, TAU); c.fill(); }
+    c.strokeStyle = f([240, 236, 226], 1.2); c.lineWidth = Math.max(0.4, hr * 0.14 * H); c.lineCap = 'round'; c.beginPath(); c.moveTo(X(hx + hr * 0.6), Y(by + hr * 0.6)); c.quadraticCurveTo(X(hx + hr * 1.5), Y(by + hr * 1.8), X(hx + hr * 2.1), Y(by + hr * 1.3)); c.stroke();
+  },
+  // a crown of marigolds (+ a pink + a red bloom)
+  crown(c, L, X, Y, H, hx, hy, hr, J, f) {
+    const fl = [[255, 150, 20], [255, 196, 40], [255, 120, 20], [240, 70, 110], [255, 170, 30], [210, 40, 60]], k = Math.max(0.5, hr * 0.28 * H);
+    for (let i = 0; i < 6; i++) { const a = Math.PI * (0.05 + 0.9 * i / 5), x = hx + Math.cos(a) * hr * 1.0 * (1 - Math.abs(J.cx) * 0.25), y = hy + hr * 0.45 + Math.sin(a) * hr * 0.42; c.fillStyle = f(fl[i], 1.35); c.beginPath(); c.arc(X(x), Y(y), k, 0, TAU); c.fill(); }
+  },
+  // the mariachi's SOMBRERO: a huge upturned brim, a tall rounded crown, a silver band
+  sombrero(c, L, X, Y, H, hx, hy, hr, J, f) {
+    const by = hy + hr * 0.62;
+    c.beginPath(); c.moveTo(X(hx - hr * 3.0), Y(by + hr * 0.35)); c.quadraticCurveTo(X(hx - hr * 2.4), Y(by - hr * 0.22), X(hx), Y(by - hr * 0.15)); c.quadraticCurveTo(X(hx + hr * 2.4), Y(by - hr * 0.22), X(hx + hr * 3.0), Y(by + hr * 0.35)); c.quadraticCurveTo(X(hx + hr * 2.2), Y(by + hr * 0.1), X(hx), Y(by + hr * 0.12)); c.quadraticCurveTo(X(hx - hr * 2.2), Y(by + hr * 0.1), X(hx - hr * 3.0), Y(by + hr * 0.35)); c.fill();
+    c.beginPath(); c.moveTo(X(hx - hr * 0.9), Y(by)); c.quadraticCurveTo(X(hx - hr * 0.8), Y(hy + hr * 2.6), X(hx), Y(hy + hr * 2.7)); c.quadraticCurveTo(X(hx + hr * 0.8), Y(hy + hr * 2.6), X(hx + hr * 0.9), Y(by)); c.closePath(); c.fill();
+    c.fillStyle = f([214, 210, 198], 1.35); c.fillRect(X(hx - hr * 0.88), Y(by + hr * 0.42), hr * 1.76 * H, Math.max(0.4, hr * 0.2 * H));
+    c.strokeStyle = f([214, 210, 198], 1.2); c.lineWidth = Math.max(0.25, hr * 0.08 * H); c.beginPath(); c.moveTo(X(hx - hr * 2.9), Y(by + hr * 0.3)); c.quadraticCurveTo(X(hx), Y(by - hr * 0.05), X(hx + hr * 2.9), Y(by + hr * 0.3)); c.stroke();
+  },
+  // a zombie bride's veil: a long torn sheer veil off the crown, down the back
+  veil(c, L, X, Y, H, hx, hy, hr, J, f) {
+    const s = J.cx >= 0 ? -1 : 1, col = f([226, 222, 210], 1.1);
+    c.save(); c.globalAlpha *= 0.6; c.fillStyle = col; c.beginPath(); c.moveTo(X(hx - hr * 0.9), Y(hy + hr * 0.8)); c.lineTo(X(hx + hr * 0.9), Y(hy + hr * 0.8)); c.lineTo(X(hx + s * hr * 1.6 + hr), Y(hy - 0.32)); c.lineTo(X(hx + s * hr * 1.9 - hr), Y(hy - 0.28)); c.closePath(); c.fill(); c.restore();
+    c.fillStyle = col; c.beginPath(); c.ellipse(X(hx), Y(hy + hr * 0.82), hr * 0.9 * H, hr * 0.3 * H, 0, 0, TAU); c.fill();
+  },
+};
+/** what the holidays' people carry + its light: a jack-o'-lantern bucket (its carved face glowing after dark), a pillowcase, a glow stick,
+ *  the grown-up's torch (its beam on the cobbles), a broom, the procession's CANDLE (its flame + a warm glow on the face + hands), a bunch of
+ *  marigolds, a framed photo held up, the mariachis' guitar / trumpet / violin */
+function holidayCarry(c, J, L, X, Y, H, f, env, hand) {
+  const hc = L.hcarry, nk = nightOf(env), t = env.t || 0, mo = env.mo !== false, [hx, hy] = hand, d = J.cx >= 0 ? 1 : -1, seed = L.h * 977;
+  const flick = mo ? 0.82 + 0.12 * Math.sin(t * 13.3 + seed) + 0.06 * Math.sin(t * 31.7 + seed * 1.7) : 0.9;
+  if (hc === 'bucket') {
+    const r = H * 0.048, bx = hx, by = hy + r * 1.05;
+    c.strokeStyle = f([40, 34, 30]); c.lineWidth = Math.max(0.3, H * 0.008); c.beginPath(); c.moveTo(bx - r * 0.9, by - r * 0.4); c.quadraticCurveTo(bx, hy - r * 0.2, bx + r * 0.9, by - r * 0.4); c.stroke();
+    c.fillStyle = f([240, 124, 24], 1.15); c.beginPath(); c.ellipse(bx, by, r, r * 0.9, 0, 0, TAU); c.fill();
+    if (H > 12) {
+      const lit = nk > 0.2, fc = lit ? `rgba(255,${(196 + 30 * flick) | 0},90,${(0.55 + 0.45 * nk).toFixed(2)})` : 'rgb(50,22,8)';
+      c.fillStyle = fc; for (const s of [-1, 1]) { c.beginPath(); c.moveTo(bx + s * r * 0.55, by - r * 0.15); c.lineTo(bx + s * r * 0.15, by - r * 0.15); c.lineTo(bx + s * r * 0.35, by - r * 0.5); c.fill(); }
+      c.beginPath(); c.moveTo(bx - r * 0.55, by + r * 0.15); c.quadraticCurveTo(bx, by + r * 0.75, bx + r * 0.55, by + r * 0.15); c.quadraticCurveTo(bx, by + r * 0.4, bx - r * 0.55, by + r * 0.15); c.fill();
+    }
+    if (nk > 0.2) glow(c, bx, by, H * 0.12, 0.32 * nk * flick);
+  } else if (hc === 'pillowcase') {
+    c.fillStyle = f([232, 230, 224], 1.2); c.beginPath(); c.moveTo(hx - H * 0.012, hy); c.quadraticCurveTo(hx - H * 0.06, hy + H * 0.05, hx - H * 0.035, hy + H * 0.11); c.lineTo(hx + H * 0.04, hy + H * 0.11); c.quadraticCurveTo(hx + H * 0.06, hy + H * 0.05, hx + H * 0.012, hy); c.closePath(); c.fill();
+  } else if (hc === 'torch') {
+    c.fillStyle = f([60, 58, 66], 1.2); c.beginPath(); c.arc(hx, hy, Math.max(0.5, H * 0.014), 0, TAU); c.fill();
+    if (nk > 0.25) {
+      // the beam on the cobbles ahead (a soft cone down to a pool) — the torch's own light, so it reads in the dark between the lamps
+      const gx = hx + d * H * 0.75 * Math.max(0.35, Math.abs(J.cx)), gy = hy + H * 0.62 * (J.cz < -0.3 ? 1.15 : 1);
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 * nk;
+      const g = c.createLinearGradient(hx, hy, gx, gy); g.addColorStop(0, 'rgba(255,240,200,0.9)'); g.addColorStop(1, 'rgba(255,240,200,0.15)');
+      c.fillStyle = g; c.beginPath(); c.moveTo(hx, hy); c.lineTo(gx - H * 0.18, gy); c.lineTo(gx + H * 0.18, gy); c.closePath(); c.fill(); c.restore();
+      c.save(); c.translate(gx, gy); c.scale(1, 0.32); glow(c, 0, 0, H * 0.24, 0.5 * nk); c.restore();
+      glow(c, hx, hy, H * 0.05, 0.6 * nk);
+    }
+  } else if (hc === 'broom') {
+    c.strokeStyle = f([110, 76, 44]); c.lineWidth = Math.max(0.4, H * 0.012); c.beginPath(); c.moveTo(hx - d * H * 0.12, hy - H * 0.14); c.lineTo(hx + d * H * 0.16, hy + H * 0.3); c.stroke();
+    c.fillStyle = f([176, 140, 70]); c.beginPath(); c.moveTo(hx + d * H * 0.13, hy + H * 0.25); c.lineTo(hx + d * H * 0.26, hy + H * 0.4); c.lineTo(hx + d * H * 0.12, hy + H * 0.42); c.closePath(); c.fill();
+  } else if (hc === 'candle') {
+    // the candle: a short white pillar in the cupped hands, its flame (a hot white core in an amber teardrop), a warm glow on the face
+    const cw = Math.max(0.7, H * 0.016), ch = Math.max(1.2, H * 0.04), fx = hx, fy = hy - ch - H * 0.004;
+    c.fillStyle = f([240, 232, 210], 1.4); c.fillRect(fx - cw / 2, hy - ch, cw, ch);
+    const fh = Math.max(1.7, H * 0.04) * flick, fw = Math.max(0.75, H * 0.013), sway = mo ? Math.sin(t * 5 + seed) * fw * 0.3 : 0;
+    c.fillStyle = 'rgba(255,170,60,0.95)'; c.beginPath(); c.moveTo(fx - fw, fy); c.quadraticCurveTo(fx - fw, fy - fh * 0.55, fx + sway, fy - fh); c.quadraticCurveTo(fx + fw, fy - fh * 0.55, fx + fw, fy); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,250,226,1)'; c.beginPath(); c.ellipse(fx, fy - fh * 0.3, fw * 0.5, fh * 0.3, 0, 0, TAU); c.fill();
+    // (the light: a wide warm glow round the hands + the face — never smaller than a few points, so a far walker still reads as a warm
+    // point in the line — a hot core, and its pool on the ground at their feet: at night the line reads as a river of candles)
+    const a = 0.08 + 0.92 * nk;
+    glow(c, fx, fy - fh * 0.4, Math.max(15, H * 0.95), a * flick, true);
+    glow(c, fx, fy - fh * 0.4, Math.max(5, H * 0.2), (0.8 + 0.2 * nk) * flick);
+    glow(c, X(J.head[0]), Y(J.head[1] - 0.02), Math.max(3, H * 0.09), 0.4 * nk * flick);     // (the face in its light)
+    if (nk > 0.2) { c.save(); c.translate(X(0), Y(0)); c.scale(1, 0.3); glow(c, 0, 0, Math.max(7, H * 0.42), 0.45 * nk * flick, true); c.restore(); }
+  } else if (hc === 'marigolds') {
+    const k = Math.max(0.6, H * 0.018);
+    c.fillStyle = f([60, 110, 50]); c.fillRect(hx - k * 0.4, hy - k * 0.5, k * 0.8, k * 3);
+    for (const [ox, oy, col] of [[0, -2.2, [255, 150, 20]], [-1.3, -1.4, [255, 190, 40]], [1.3, -1.5, [255, 120, 20]], [-0.6, -3.3, [255, 170, 30]], [0.8, -3.1, [255, 140, 20]]]) { c.fillStyle = f(col, 1.35); c.beginPath(); c.arc(hx + ox * k, hy + oy * k, k * 1.05, 0, TAU); c.fill(); }
+    if (nk > 0.2) glow(c, hx, hy - H * 0.05, H * 0.1, 0.08 * nk);
+  } else if (hc === 'photo') {
+    const w = Math.max(1.5, H * 0.07), h = w * 1.25, x0 = hx - w / 2, y0 = hy - h - H * 0.01;
+    c.fillStyle = f([200, 164, 80], 1.3); c.fillRect(x0, y0, w, h);
+    c.fillStyle = f([60, 54, 50], 1.1); c.fillRect(x0 + w * 0.14, y0 + h * 0.12, w * 0.72, h * 0.76);
+    c.fillStyle = f([196, 184, 164], 1.25); c.beginPath(); c.ellipse(hx, y0 + h * 0.42, w * 0.18, h * 0.17, 0, 0, TAU); c.fill(); c.fillRect(hx - w * 0.26, y0 + h * 0.62, w * 0.52, h * 0.26);
+    if (nk > 0.2) glow(c, hx, y0 + h / 2, H * 0.09, 0.12 * nk);
+  } else if (hc === 'guitar') {
+    // the guitar across the body: its two-lobed body at the near hip (the soundhole), the neck up across to the far hand
+    const fa = J.hands[1 - J.near], bx = X(J.hip[0] + J.cx * 0.05), by = Y(J.hip[1] + 0.08), nx = X(fa[0]), ny = Y(fa[1]);
+    c.strokeStyle = f([80, 50, 30]); c.lineWidth = Math.max(0.5, H * 0.016); c.beginPath(); c.moveTo(bx, by); c.lineTo(nx, ny); c.stroke();
+    c.fillStyle = f([188, 120, 56], 1.15); c.beginPath(); c.ellipse(bx, by + H * 0.012, H * 0.065, H * 0.05, 0.4 * d, 0, TAU); c.fill(); c.beginPath(); c.ellipse(bx + (nx - bx) * 0.18, by + (ny - by) * 0.18, H * 0.048, H * 0.038, 0.4 * d, 0, TAU); c.fill();
+    c.fillStyle = 'rgb(30,20,14)'; c.beginPath(); c.arc(bx + (nx - bx) * 0.1, by + (ny - by) * 0.1, Math.max(0.35, H * 0.014), 0, TAU); c.fill();
+  } else if (hc === 'trumpet') {
+    const mx = X(J.head[0] + J.cx * 0.06), my = Y(J.head[1] - 0.04), ex = mx + d * H * 0.2, ey = my + H * 0.01;
+    c.strokeStyle = f([226, 184, 80], 1.35); c.lineWidth = Math.max(0.5, H * 0.014); c.beginPath(); c.moveTo(mx, my); c.lineTo(ex, ey); c.stroke();
+    c.fillStyle = f([240, 200, 90], 1.4); c.beginPath(); c.moveTo(ex, ey - H * 0.006); c.lineTo(ex + d * H * 0.045, ey - H * 0.03); c.lineTo(ex + d * H * 0.045, ey + H * 0.03); c.lineTo(ex, ey + H * 0.006); c.closePath(); c.fill();
+  } else if (hc === 'violin') {
+    const fa = J.hands[1 - J.near], cx0 = X(J.sh[0] + J.cx * 0.02), cy0 = Y(J.sh[1] - 0.03), nx = X(fa[0]), ny = Y(fa[1]);
+    c.strokeStyle = f([60, 36, 22]); c.lineWidth = Math.max(0.4, H * 0.01); c.beginPath(); c.moveTo(cx0, cy0); c.lineTo(nx, ny); c.stroke();
+    c.fillStyle = f([150, 70, 30], 1.2); c.beginPath(); c.ellipse(cx0 + (nx - cx0) * 0.2, cy0 + (ny - cy0) * 0.2, H * 0.04, H * 0.026, Math.atan2(ny - cy0, nx - cx0), 0, TAU); c.fill();
+    c.strokeStyle = f([220, 210, 190], 1.2); c.lineWidth = Math.max(0.25, H * 0.005); c.beginPath(); c.moveTo(hx - d * H * 0.12, hy + H * 0.03); c.lineTo(hx + d * H * 0.08, hy - H * 0.03); c.stroke();
+  }
+  if (L.glowstick) {
+    const o = J.hands[1 - J.near], gx = X(o[0]), gy = Y(o[1]), col = L.glowstick, a = 0.5 + 0.5 * nk;
+    c.save(); c.strokeStyle = `rgba(${col.join(',')},${a.toFixed(2)})`; c.lineWidth = Math.max(0.6, H * 0.016); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(gx - d * H * 0.02, gy + H * 0.03); c.lineTo(gx + d * H * 0.03, gy - H * 0.05); c.stroke();
+    if (nk > 0.2) { c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(${col.join(',')},${(0.25 * nk).toFixed(2)})`; c.lineWidth = Math.max(1.5, H * 0.06); c.stroke(); }
+    c.restore();
+  }
+}
+/** THE OFRENDA between its two bearers (people.js: their shoulder points on screen): the poles shoulder to shoulder, a little stepped altar
+ *  on them — a marigold-orange cloth, two tiers of marigolds, a framed photo, candles glowing (their light on the poles + the bearers) */
+export function drawOfrenda(c, a, b, H, env) {
+  const nk = nightOf(env), t = env.t || 0, mo = env.mo !== false, dk = col => col.map(v => v * (1 - 0.55 * nk));
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2 + H * 0.01, w = Math.min(Math.abs(b[0] - a[0]) * 0.55, H * 0.42);
+  c.save();
+  c.strokeStyle = rgb(dk([96, 66, 40])); c.lineWidth = Math.max(0.6, H * 0.016); c.lineCap = 'round'; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke();
+  c.fillStyle = rgb(dk([236, 128, 30])); c.fillRect(mx - w / 2, my - H * 0.03, w, H * 0.05);                         // (the cloth over the base)
+  c.fillStyle = rgb(dk([150, 40, 110])); c.fillRect(mx - w / 2, my + H * 0.01, w, H * 0.012);
+  c.fillStyle = rgb(dk([120, 84, 52])); c.fillRect(mx - w * 0.32, my - H * 0.09, w * 0.64, H * 0.06);              // (the upper tier)
+  const fl = [[255, 150, 20], [255, 196, 40], [255, 120, 20]], k = Math.max(0.6, H * 0.02);
+  for (let i = 0; i < 7; i++) { c.fillStyle = rgb(dk(fl[i % 3]).map(v => Math.min(255, v * 1.15))); c.beginPath(); c.arc(mx - w / 2 + w * (i + 0.5) / 7, my - H * 0.035, k, 0, TAU); c.fill(); }
+  c.fillStyle = rgb(dk([200, 164, 80])); c.fillRect(mx - H * 0.03, my - H * 0.17, H * 0.06, H * 0.08);              // (the photo)
+  c.fillStyle = rgb(dk([60, 54, 50])); c.fillRect(mx - H * 0.022, my - H * 0.16, H * 0.044, H * 0.06);
+  for (const s of [-1, 1]) {
+    const cx0 = mx + s * w * 0.28, cy0 = my - H * 0.09, fl2 = mo ? 0.85 + 0.15 * Math.sin(t * 12 + s * 3) : 0.9;
+    c.fillStyle = 'rgb(236,228,206)'; c.fillRect(cx0 - H * 0.008, cy0 - H * 0.04, H * 0.016, H * 0.04);
+    c.fillStyle = 'rgba(255,200,110,0.95)'; c.beginPath(); c.ellipse(cx0, cy0 - H * 0.055, H * 0.008, H * 0.016 * fl2, 0, 0, TAU); c.fill();
+    glow(c, cx0, cy0 - H * 0.055, H * 0.22, (0.2 + 0.5 * nk) * fl2);
+  }
+  c.restore();
 }

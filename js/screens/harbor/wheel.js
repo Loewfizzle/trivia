@@ -50,6 +50,8 @@ export const WHEEL_SCHEMES = {
   nye: { rim: [[255, 214, 120], [230, 236, 255], [255, 214, 120]], rings: [[255, 214, 120], [230, 236, 255], [255, 214, 120], [230, 236, 255]], hub: [255, 255, 255] },
 };
 WHEEL_SCHEMES.thanksgiving = { rim: [[255, 170, 70], [255, 214, 150], [255, 140, 50]], rings: [[255, 140, 50], [255, 214, 150], [255, 170, 70], [255, 226, 170]], hub: [255, 214, 150] };
+// (11a-1: DAY OF THE DEAD — marigold, Mexican pink, violet, turquoise)
+WHEEL_SCHEMES.dotd = { rim: [[255, 150, 20], [236, 50, 140], [255, 200, 40]], rings: [[150, 70, 220], [255, 150, 20], [40, 200, 180], [236, 50, 140]], hub: [255, 214, 120] };
 WHEEL_SCHEMES.easter = { rim: [[255, 190, 230], [190, 230, 255], [255, 246, 170]], rings: [[200, 255, 210], [255, 190, 230], [190, 230, 255], [255, 246, 170]], hub: [255, 255, 255] };
 
 // (POLISH 5, the owner: the multicolour cars read toy-like — ALL ONE DEEP NAVY, matching Rosie's trim; a few pt on a phone: only colour,

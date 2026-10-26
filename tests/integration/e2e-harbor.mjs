@@ -2097,13 +2097,13 @@ G('sounds', async () => {
     ok(off.k === 1 && off.hum > hd.gain, `FP BED: MUSIC OFF → the bed is the main sound (×${off.k}: the day hum ${hd.gain} → ${off.hum})`);
     await ev(P.page, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: false }))"); }
   // ---- 2. a one-shot from a slot (the road's cars, the gulls) + an EMPTY slot is silent
-  const r = await ev(P.page, `(() => { const s = window.__district.harbor().sounds, car = s.play('car-1920s-pass', { pan: -0.5 }), gull = s.play('gulls'), cat = s.play('witch-cackle'), mute = s.loop('traffic-far');
+  const r = await ev(P.page, `(() => { const s = window.__district.harbor().sounds, car = s.play('car-1920s-pass', { pan: -0.5 }), gull = s.play('gulls'), cat = s.play('sleigh-bells'), mute = s.loop('traffic-far');
     return { car: car && { take: car.take, peak: car.peak }, gull: gull && gull.take, cat, mute: !!mute.silent }; })()`);
   await sleep(600);
   const log = await ev(P.page, `${PLAYER}.then(m => m.cityLog.slice(-4).map(x => x.slot))`);
   ok(r.car && r.car.peak > 5 && /car-1920s-pass/.test(r.car.take) && r.gull && log.includes('car-1920s-pass') && log.includes('gulls'),
     `ONE-SHOTS: play('car-1920s-pass') → ${r.car && r.car.take} (nearest at ${r.car && r.car.peak} s); play('gulls') → ${r.gull}; both sounded (${log.join(', ')})`);
-  ok(r.cat === null && r.mute, 'EMPTY SLOTS: play(\'witch-cackle\') → null, loop(\'traffic-far\') → a silent handle (no error, no beep)');
+  ok(r.cat === null && r.mute, 'EMPTY SLOTS: play(\'sleigh-bells\') → null, loop(\'traffic-far\') → a silent handle (no error, no beep)');
   // ---- 3. THE SEAM: a loop started 4 s before its end crossfades into a fresh pass (2 voices for 2.5 s), then carries on with one
   const seam = await ev(P.page, `${PLAYER}.then(async m => { const h = m.cityLoop('city-hum-day', { start: 66, fadeIn: 1, gain: 0.01 }); const v = []; for (let i = 0; i < 18; i++) { await new Promise(r => setTimeout(r, 500)); v.push(h.debug().voices); } h.stop(0.2); return v; })`);
   ok(seam.includes(2) && seam[seam.length - 1] === 1 && seam.indexOf(2) > 0, `THE SEAM: voices over 9 s ${seam.join('')} — one pass, the crossfade (two), one again`);
@@ -2357,6 +2357,72 @@ G('weather', async () => {
     await waitFor(Q.page, `!!${P}.sky.state.balloons`, 'the festival', 10000).catch(() => {});
     const b = await ev(Q.page, `${P}.sky.state.balloons`);
     ok(b && b.order.join() === 'btc-orange,alien,bitcoin,bullseye,smiley,flag' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
+    await Q.ctx.close(); }
+});
+// 11a-1 — THE HOLIDAYS: Halloween's build-up by date (Oct 10 / Oct 27), Halloween night, the come-down into Day of the Dead (Nov 1), the
+// procession (Nov 2 at dusk), all gone (Nov 3 evening); the forced moments; reduced motion (docs/harbor.md#part-11a-1)
+G('holiday', async () => {
+  const P = 'window.__district.harbor()';
+  const page = async (slot, when, extra = '', init = null) => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874], init }); await harborUp(Q.page); await sleep(1500); return Q; };
+  const sign = Q => ev(Q.page, `[...document.querySelector('.nd-sign').classList].filter(c => c.startsWith('sg-')).join(',')`);
+  // ---- OCT 10: early in the build-up — a web part-woven on the sign, its spider, a few pumpkins; the city's own light
+  { const Q = await page('hol-o10', '2026-10-10T21:00');
+    await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.webs.length > 0`, 'the dressing', 12000).catch(() => {});
+    const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`), wh = await ev(Q.page, `${P}.wheel.schemeId`);
+    ok(h.state.id === 'halloween' && h.state.phase === 'build' && h.state.stage > 0.25 && h.state.stage < 0.4 && d && d.on && d.web > 0.25 && d.web < 0.4 && d.spider && h.pieces.pumpkins.length >= 2 && h.pieces.pumpkins.length <= 4 && wh !== 'halloween',   // (Oct 10 2026 is a Saturday: the party's wheel)
+      `OCT 10 — THE BUILD-UP BY DATE: stage ${h.state.stage.toFixed(2)}, the web ${d && d.web != null ? d.web.toFixed(2) : '?'} (${d ? d.pieces.join(',') : 'no dressing'}), ${h.pieces.pumpkins.length} pumpkins, the wheel ${wh}`);
+    await Q.ctx.close(); }
+  // ---- OCT 27: far along — the window scenes, the wheel orange / purple; no night pieces yet
+  { const Q = await page('hol-o27', '2026-10-27T21:00');
+    const h = await ev(Q.page, `${P}.holiday`), wh = await ev(Q.page, `${P}.wheel.schemeId`);
+    ok(h.state.stage > 0.85 && h.state.stage < 0.92 && h.pieces.windows > 0.5 && !h.pieces.trickOrTreat && !h.pieces.ghostShip && wh === 'halloween' && (await sign(Q)) === '',
+      `OCT 27 — AS FAR ALONG AS IT SHOULD LOOK: stage ${h.state.stage.toFixed(2)}, the windows' weight ${h.pieces.windows.toFixed(2)}, the wheel ${wh}, the sign still pink`);
+    await Q.ctx.close(); }
+  // ---- HALLOWEEN NIGHT: everything — the web whole, the sign orange / purple + the pumpkin O, the beam green, the spooky light, the
+  // trick-or-treaters on the promenade, the witch + the bats' weight, the haunted wind's input
+  { const Q = await page('hol-hn', '2026-10-31T19:30');
+    await waitFor(Q.page, `${P}.dress && ${P}.dress.on`, 'the dressing', 12000).catch(() => {});
+    await waitFor(Q.page, `${P}.people.hol.trick > 0`, 'the trick-or-treaters', 25000).catch(() => {});
+    const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`), lh = await ev(Q.page, `${P}.lighthouse.colour`), ppl = await ev(Q.page, `${P}.people.hol`);
+    const swapped = await ev(Q.page, `!!document.querySelector('.nd-logo .ndl-3[data-kind="halloween"]')`);
+    ok(h.state.eve && d.web === 1 && (await sign(Q)) === 'sg-halloween' && swapped && lh && lh[1] > lh[0] && h.rules.lampFlicker > 0.5 && h.rules.windowTintK > 0.3,
+      `HALLOWEEN NIGHT — THE LOOK: the web ${d.web}, the sign ${await sign(Q)} + the pumpkin O ${swapped}, the beam ${lh}, the lamps gutter ${h.rules.lampFlicker}, the windows' tint ${h.rules.windowTintK.toFixed(2)}`);
+    ok(ppl.trick > 0, `HALLOWEEN NIGHT — THE TRICK-OR-TREATERS on the promenade: ${JSON.stringify(ppl)}`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}holiday-halloween-night-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- THE GHOST SHIP (forced on any night) + a window scene on the kit
+  { const Q = await page('hol-gs', '2026-10-22T22:00', '&force=ghost-ship,window&moment=ghost');
+    await waitFor(Q.page, `${P}.halloweenSky && ${P}.halloweenSky.ship.on`, 'the ghost ship', 15000).catch(() => {});
+    const g = await ev(Q.page, `${P}.halloweenSky`), w = await ev(Q.page, `${P}.speakeasy.life`);
+    ok(g && g.ship.on && g.ship.a > 0, `THE GHOST SHIP (forced): ${JSON.stringify(g && g.ship)}`);
+    await waitFor(Q.page, `${P}.speakeasy.life.on.some(e => e.id === 'ghost')`, 'the ghost scene', 8000).catch(() => {});
+    const w2 = await ev(Q.page, `${P}.speakeasy.life`);
+    ok(w2.on.some(e => e.id === 'ghost'), `A GHOST IN THE WINDOW (forced): ${JSON.stringify(w2.on)} (was ${JSON.stringify(w.on)})`);
+    await Q.ctx.close(); }
+  // ---- NOV 1: Halloween came down overnight — no web, no pumpkins; Day of the Dead's sign + promenade
+  { const Q = await page('hol-n1', '2026-11-01T11:00');
+    await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.dotd`, 'the dressing', 12000).catch(() => {});
+    const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`);
+    ok(h.state.id === 'dotd' && !h.pieces.pumpkins && h.pieces.marigolds === 1 && h.pieces.papel === 1 && d && d.dotd && !(d.pieces || []).some(p => /web|spider/.test(p)) && (await sign(Q)) === 'sg-dotd',
+      `NOV 1 — DAY OF THE DEAD: ${JSON.stringify({ marigolds: h.pieces.marigolds, papel: h.pieces.papel, petals: h.pieces.petals })}, the sign ${await sign(Q)} (${d ? d.pieces.join(',') : 'none'}) — the web + the pumpkins gone`);
+    await Q.ctx.close(); }
+  // ---- NOV 2 AT DUSK: the candlelight procession along the waterside road
+  { const Q = await page('hol-n2', '2026-11-02T18:20');
+    await waitFor(Q.page, `${P}.people.hol.proc > 3`, 'the procession', 20000).catch(() => {});
+    const h = await ev(Q.page, `${P}.holiday`), ppl = await ev(Q.page, `${P}.people.hol`);
+    ok(h.pieces.procession && ppl.proc > 3, `NOV 2 AT DUSK — THE PROCESSION: ${ppl.proc} walkers (${JSON.stringify(ppl)})`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}holiday-procession-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- NOV 3 EVENING: all down
+  { const Q = await page('hol-n3', '2026-11-03T20:00');
+    const h = await ev(Q.page, `${P}.holiday`), wh = await ev(Q.page, `${P}.wheel.schemeId`);
+    ok(h.state.id === null && wh !== 'dotd' && (await sign(Q)) === '', `NOV 3 EVENING — ALL DOWN: ${h.state.id}, the wheel ${wh}, the sign ${await sign(Q) || 'its own'}`);
+    await Q.ctx.close(); }
+  // ---- REDUCED MOTION on Halloween night: no witch, no bats, no window moments; the dressing still there, the spider still
+  { const Q = await page('hol-rm', '2026-10-31T21:30', '&force=witch,bats', { fn: () => { try { const k = 'na:settings', s = JSON.parse(localStorage.getItem(k) || '{}'); s.reducedFx = true; localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, arg: null });
+    await sleep(2500);
+    const g = await ev(Q.page, `${P}.halloweenSky`), w = await ev(Q.page, `${P}.speakeasy.life`), d = await ev(Q.page, `${P}.dress`);
+    ok((!g || (!g.witch.on && !g.bats.colony)) && w.on.length === 0 && d && d.on, `REDUCED MOTION: no witch (${g ? g.witch.on : 'none'}), no bats, no window moments (${JSON.stringify(w.on)}), the dressing still up`);
     await Q.ctx.close(); }
 });
 G('motion', async () => {

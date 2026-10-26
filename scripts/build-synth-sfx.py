@@ -86,6 +86,18 @@ def ping(dur=5.0):
     return norm(y * fade)
 
 
+def hiss(dur=0.95):
+    """11a-1: a cat's HISS — a sharp breathy spit at the start, a held hiss (2.4–7.5 kHz noise with a fast flutter), a throaty growl
+    under it (a phone barely plays it; the hiss carries), a quick release"""
+    n = int(dur * SR); t = np.arange(n) / SR
+    env = np.minimum(1, t / 0.018) * np.where(t < 0.62, 1.0 - 0.18 * t, np.exp(-(t - 0.62) / 0.11))
+    noise = band(rng.standard_normal(n), 2400, 7500) * env * (0.82 + 0.18 * smooth_noise(n, 22))
+    k = int(0.04 * SR); spit = np.zeros(n); spit[:k] = band(rng.standard_normal(k), 1200, 5200) * np.hanning(2 * k)[:k]
+    growl = band(rng.standard_normal(n), 320, 950) * env * (0.6 + 0.4 * np.sin(2 * np.pi * 38 * t))
+    y = 0.85 * norm(noise) + 0.7 * norm(spit) + 0.18 * norm(growl)
+    return norm(band(y, 600, 9000, 2))
+
+
 def write(name, y):
     os.makedirs(OUT, exist_ok=True)
     wf.write(os.path.join(OUT, name), SR, (np.clip(y, -1, 1) * 32767).astype(np.int16))
@@ -95,7 +107,8 @@ def write(name, y):
 if __name__ == '__main__':
     write('hydrant-spray.wav', hydrant())
     write('periscope-ping.wav', ping())
+    write('cat-hiss.wav', hiss())
     with open(os.path.join(OUT, 'credits.txt'), 'w', encoding='utf-8') as fh:
-        for f, what in (('hydrant-spray.wav', 'an open fire hydrant: the stream’s hiss + the splash on cobbles'), ('periscope-ping.wav', 'a submarine sonar ping with its underwater echo')):
+        for f, what in (('hydrant-spray.wav', 'an open fire hydrant: the stream’s hiss + the splash on cobbles'), ('periscope-ping.wav', 'a submarine sonar ping with its underwater echo'), ('cat-hiss.wav', 'a cat’s hiss (11a-1)')):
             fh.write(f'{f}\n    {what} — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)\n\n')
     print('credits.txt written')

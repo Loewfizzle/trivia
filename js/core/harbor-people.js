@@ -25,6 +25,7 @@ import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
 import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbor-witness.js';
 import { raidAt, raidHold } from './harbor-raid.js';
 import { cabEvents, cabPlan } from './harbor-cabs.js';
+import { totGroups, zombieGroups, procWindow, procWalkers, procHold, PROC, ZOMBIE, halloweenAt } from './harbor-holidayfolk.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -35,7 +36,8 @@ export const FOLK = Object.freeze({
   // (FP3b, the owner after FP3a — "a little TOO SLOW now": the everyday gaits back up ~12 %; the jog unchanged)
   // (PEO, Oct 25 — judged against real walking, 1 unit = 0.83 m: a walk 1.3 m/s, a stroll / window-shoppers / couples 1.0, the commuter's
   // brisk 1.5, a kid 1.3, a jog 2.6; each person ± 12 % — before: walk 1.07 m/s, stroll 0.75, brisk 1.4)
-  speed: { walk: 1.57, brisk: 1.8, stroll: 1.2, jog: 3.1, kid: 1.57, line: 0.75 },
+  // (11a-1: a zombie's shamble ~0.6 m/s; the procession's slow pace is core/harbor-holidayfolk.js#PROC.v)
+  speed: { walk: 1.57, brisk: 1.8, stroll: 1.2, jog: 3.1, kid: 1.57, line: 0.75, shamble: 0.72 },
   zMin: 38.75, zMax: 52.25, curbZ: 53.2, roadZ: 53.6, farZ: 63.55, doorZ: 43.55, busZ: 55.4,
 });
 
@@ -44,7 +46,14 @@ export const FOLK = Object.freeze({
  *  their id — every phone at the same tier keeps the same people. The roof's guests are off at tier 0 (people.js). */
 export const TIER_CAP = Object.freeze([6, 9, 12]);
 export function capByTier(members, tier = 2) {
-  const tt = Math.max(0, Math.min(2, tier | 0)), cap = TIER_CAP[tt];
+  const tt = Math.max(0, Math.min(2, tier | 0));
+  // (11a-1 — THE PROCESSION is on top of the crowd, like the dance circle: in the street, not on the promenade; an older phone draws
+  // every other walker (tier 0) or two in three (tier 1) — the same ones on every phone of that tier: their running number)
+  if (members.some(m => m.kind === 'proc')) {
+    const pr = members.filter(m => m.kind === 'proc' && (tt === 2 || (tt === 1 ? (m.m.pn % 3) !== 2 : m.m.pn % 2 === 0)));
+    return [...capByTier(members.filter(m => m.kind !== 'proc'), tt), ...pr];
+  }
+  const cap = TIER_CAP[tt];
   // (FP3b: the dance circle at tier 0 is its first DANCE.tier0 dancers — the square — and a routine's people are kept FIRST)
   // (POLISH 4: the dance circle is ON TOP of the crowd — its dancers always drawn (tier 0: the square), the cap is the crowd's)
   const ms = tt === 0 ? members.filter(m => !(m.routine === 'dance' && m.kind === 'dancer' && m.idx >= DANCE.tier0)) : members;
@@ -370,6 +379,8 @@ export function planVisit(spec, t, M, ctx = {}) {
   const exitPt = side => { const ex = M.exits[side]; return Array.isArray(ex) ? ex[Math.floor(r() * ex.length)] : ex; };
   const nearestSide = p => (p.x < 0 ? 'left' : 'right');
   for (const g of spec.goals) {
+    // (11a-1: while THE PROCESSION holds the street nobody crosses it — ctx.noCross(t))
+    if ((g.from === 'cross' || g.cross === 'out' || g.exit === 'cross') && ctx.noCross && ctx.noCross(now)) return null;
     if (g.from) {
       if (g.from === 'cross') {
         // across from the waterside sidewalk: along it to the crossing, wait for WALK, cross
@@ -397,6 +408,13 @@ export function planVisit(spec, t, M, ctx = {}) {
       const p = { x: cur.x + (r() - 0.5) * 0.4, z: F.farZ }, d = Math.hypot(p.x - cur.x, p.z - cur.z);
       legs.push({ k: 'walk', pts: [cur, p], t0: now, t1: now + d / cv, v: cv, cross: true }); now += d / cv; cur = p;
       walkTo({ x: cur.x + (r() - 0.5) * 2, z: F.farZ });
+    } else if (g.treat) {
+      // 11a-1 — TRICK OR TREAT: up to the door (the side door's pavement before its two steps / the shop's step), a knock, the door swings
+      // open on the warm light (the swing rides on the pose leg: folkAt's doors), a treat, it shuts — then on to the next
+      const d = M.nodes[g.treat === 'shop' ? 'shopDoor' : 'sideDoor'], dx0 = d.x + (r() - 0.5) * 0.3, zs = M.face - (g.treat === 'side' ? DOOR.stepSide + 0.25 : DOOR.step + 0.3);
+      walkTo({ x: dx0, z: zs - DOOR.approach }); walkTo({ x: dx0, z: zs });
+      const dur = g.dur || 8;
+      legs.push({ k: 'pose', pose: 'treat', x: cur.x, z: cur.z, t0: now, t1: now + dur, face: 2, swing: { door: g.treat, tOpen: now + 1.7, tClose: now + dur - 1.9 } }); now += dur;
     } else if (g.door) {
       if (g.door === 'shop' && ctx.shopOpen === false) return null;
       const d = M.nodes[g.door === 'shop' ? 'shopDoor' : 'sideDoor'];
@@ -685,7 +703,7 @@ function blockVisits(phase, k, M, ctx = {}) {
     const start = t0 + 2 + r() * (B * 0.75);
     // (FP3b: each visit on its own seed — one that would still be out while the dance circle closes the compass is planned again
     // round it: ctx.closed(t0, t1) + ctx.Mev)
-    const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, fog: ctx.fog || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [] };
+    const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, fog: ctx.fog || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [], noCross: ctx.noCross || null };
     if (!spaced(start)) continue;
     // (8b2: a sitter takes a FREE seat — this block's own sitters + the other phase's: ctx.seats — the seat order seeded with the visit)
     const order = spec.sit ? (r() < 0.5 ? [0, 2, 1] : [2, 0, 1]) : null, plan = Mx => (spec.sit ? planSeated(spec, start, Mx, vctx, vseed, taken, order) : planVisit(spec, start, Mx, { ...vctx, r: rngFrom(vseed) }));
@@ -725,11 +743,15 @@ function busRiders(bus, M, ctx = {}) {
  * buses: [bus on screen + its x] }. world: { L, M, ctx } — the caller passes `cache` (a Map) so the blocks are planned once.
  */
 export function folkAt(t, world, cache = new Map()) {
-  const { M, ctx = {} } = world, L = world.L, B = FOLK.block;
+  const { M, ctx = {} } = world, L = world.L, B = FOLK.block, cx0 = {};
   const get = (key, make) => { if (!cache.has(key)) { cache.set(key, make()); if (cache.size > 80) cache.delete(cache.keys().next().value); } return cache.get(key); };   // (PEO: 80 — the next block is warmed 70 s ahead; it must not evict the current one)
   // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: core/harbor-legend.js#trafficHold from ctx.legend { kind, t0 } — a bus, a cab or a car
   // that would ENTER inside the hold never comes; one already on screen when it starts finishes its business)
-  const hold = trafficHold(ctx.legend), hk = hold ? Math.round(hold[0]) : '';
+  // 11a-1 — THE PROCESSION (Nov 2 at dusk, or &force=procession): its window near t; while it's in the street NO car, bus or cab enters
+  // (its hold — the same rule as a legendary's); otherwise a legendary's hold
+  const HF = ctx.hforce || {}, PW = procWindow(t, { off: ctx.off, dusk: ctx.dusk, forceAt: HF.procession == null ? null : HF.procession });
+  const procX0 = L.speakeasy ? L.speakeasy.x1 - 2.6 : -20, procX1 = z => (L.cam && L.cam.hw ? L.cam.hw(z) : 20) + 1.6, procCross = (procX1(PROC.files[1]) - procX0 + 2) / PROC.v;
+  const hold = PW ? procHold(PW, procCross) : trafficHold(ctx.legend), hk = hold ? Math.round(hold[0]) : '';
   const hourBuses = hAbs => get(`bus|${hAbs}|${ctx.forceBus ? 1 : 0}`, () => { const loc = localOf(hAbs * 3600 + 1, ctx.off); return busesOf(L, loc.key, Math.floor(loc.h), hAbs * 3600 - (((ctx.off || 0) * 60) % 3600 + 3600) % 3600, { force: !!ctx.forceBus }); });
   const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600 && !inHold(hold, x.tE) && !busBlocked(x) && !(ctx.forceBus && ctx.forceBusAt != null && x.tE < ctx.forceBusAt)); };   // (POLISH 5: a forced bus never joins mid-stop — the first one drives in after the fire)
   // (8b1: a bus due while a worker's truck holds the stop rides on — it never comes)
@@ -814,16 +836,31 @@ export function folkAt(t, world, cache = new Map()) {
   // (the map a visit is planned on: the compass closed by the dance circle, the cart standing, the line queuing — any mix of them)
   const mapAt = (a, b, M0) => { const ev = closed(a, b), ct = cartOut(a, b), ln = lineOn(a, b); if (!ev && !ct && !ln) return M0;
     return get(`MX|${ev ? 1 : 0}${ct ? 1 : 0}${ln ? 1 : 0}`, () => folkMap(L, { event: ev, cart: ct, line: ln ? lineRect(L, LINE.max) : null })); };
+  // 11a-1 — the holidays' visits near t: [visit] (each block / chunk planned once: cached)
+  const HB = 600, totOf = k => get(`TOT|${k}|${HF.tot == null ? '' : Math.round(HF.tot)}`, () => totGroups(k, { off: ctx.off, seed: ctx.seed, forceAt: HF.tot == null ? null : HF.tot }).map(g => totVisit(g, M)).filter(Boolean));
+  const zomOf = k => get(`ZOM|${k}|${HF.zombies == null ? '' : Math.round(HF.zombies)}`, () => zombieGroups(k, { off: ctx.off, seed: ctx.seed, forceAt: HF.zombies == null ? null : HF.zombies }).map(g => zombieVisit(g, M)).filter(Boolean));
+  const procOf = c => get(`PR|${Math.round(PW.T0)}|${c}`, () => procWalkers(c, PW, { seed: ctx.seed }).map(e => procVisit(e, procX0, procX1)));
+  function holidayVisits(tt) {
+    const out = [], kb = Math.floor(tt / HB);
+    for (const k of [kb - 1, kb]) out.push(...totOf(k), ...zomOf(k));
+    if (PW && tt > PW.T0 - 10 && tt < PW.T1 + procCross + 10) { const c1 = Math.floor((tt - PW.T0) / PROC.chunk), c0 = Math.floor((tt - procCross - 8 - PW.T0) / PROC.chunk); for (let c = Math.max(0, c0); c <= c1; c++) out.push(...procOf(c)); }
+    return out.filter(v => tt >= v.t0 - 1 && tt < (v.tEnd || v.t1) + 1);
+  }
+  // (11a-1: while THE PROCESSION is in the street, nobody crosses it — the crowd's visits are planned without a crossing then)
+  cx0.noCross = PW ? tt => tt > PW.T0 - PROC.lead - 60 && tt < PW.T1 + procCross : null;
   // (POLISH 4: the dance circle is ON TOP of the crowd's count — the owner: "8–12 (the dance circle on top)"; the vendor + the line count)
   const routineOcc = (a, b) => [...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 })), ...occOf(lineVisits(a, b)), ...occOf(crewIn(a, b).visits)];
   // (8b2: the cabs' riders count in the crowd's budget too — the calmer counts hold on a night of cabs)
   const workLoad = (a, b) => get(`WL|${a}`, () => [...crewIn(a, b).visits.filter(v => !v.plat), ...cabsNear(a, b).flatMap(pl => pl.riders)].reduce((s, v) => s + Math.max(0, Math.min(b, v.tEnd || v.t1) - Math.max(a, v.t0)), 0));
-  const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt, workLoad };
+  const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt, workLoad, noCross: cx0.noCross };
   const cabOcc = (a, b) => cabsNear(a, b).flatMap(pl => occOf(pl.riders));
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)] }); });
   const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)], seats: [...seatsOf(A(k)), ...seatsOf(A(k + 1))] }); });
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
   const buses = busesNear(t, t).filter(b => t >= b.tE && t < b.tX);
+  // 11a-1 — THE PEOPLE OF THE HOLIDAYS (core/harbor-holidayfolk.js): Halloween night's trick-or-treaters + zombies (seeded per block, on
+  // the base map — they're on top of the crowd's count, like the routines), Nov 2's procession in the street (seeded per chunk)
+  const hol = holidayVisits(t);
   // (&force=doors — the preview: every 24 s someone walks through a door — at night guests in at the side door / a pair out of it, by
   // day a customer into the barbershop / one out of it — planned on the clock like the rest)
   const forced = ctx.forceDoors ? [-1, 0].map(o => get(`D|${Math.floor(t / 24) + o}`, () => { const k = Math.floor(t / 24) + o, r = rngFrom(hashString(`doors|${k}`)), loc = localOf(k * 24, ctx.off), day = loc.h >= 9 && loc.h < 18;
@@ -838,7 +875,7 @@ export function folkAt(t, world, cache = new Map()) {
   // 'raid' kind: freeze / casually away / look away, the doorman in at the side door) from the moment the first car shows
   const RP = ctx.raid && t >= ctx.raid.t0 - 20 && t < ctx.raid.tEnd + 4 * 3600 ? ctx.raid : null;
   if (RP && RP.officer && t >= RP.officer.t0 && t < RP.officer.t1) routine.push(RP.officer);
-  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...forced, ...routine].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
+  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...forced, ...routine, ...hol].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   // 8b1 — THE WITNESSES (core/harbor-witness.js): a legendary night (ctx.legend: { kind, t0 }) — everyone on the promenade when it comes
   // reacts (the UFO: they look up, then FLEE; the TR-3B: they stare up, a few hurry indoors); nobody new comes until the empty spell ends
   // (the reaction holds after the window too — a routine back at its post on its new path, never the old one popping back — for a few hours)
@@ -857,11 +894,14 @@ export function folkAt(t, world, cache = new Map()) {
     all = [...reacted.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...all.filter(v => !ids.has(v.id) && (!inWin || v.t0 < LG.t0 + 1 || !suppressed(LG, v) || v.kind === 'officer'))];   // (someone out of reach — on the road, in a doorway — carries on)
   }
   const members = [];
+  // (11a-1: on Halloween night the speakeasy's own guests come in costume — its costume party: the side door's pairs, THE LINE)
+  const hween = halloweenAt(t, ctx.off).zombies || halloweenAt(t, ctx.off).tot || HF.zombies != null, HWK = { guests: 1, leaving: 1, liner: 1, straggler: 1 };
   for (const v of all) {
+    const hw = hween && HWK[v.kind] ? true : undefined;
     for (const m of v.members) {
       const s = visitAt(v, t - m.lag);
       if (!s) continue;
-      if (m.role === 'lead') { members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, routine: v.routine || null, idx: v.idx, m, s, plat: !!v.plat }); continue; }
+      if (m.role === 'lead') { members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, routine: v.routine || null, idx: v.idx, m, s, plat: !!v.plat, hween: hw }); continue; }
       // (FP3b: beside / behind the lead in the lead's OWN frame — forward along its heading, the lateral to its left — so the offset
       // turns smoothly with it, never jumping at a 4-way threshold; a dog keeps the old world offsets: it trots on the walker's right)
       // (in a pose: the walking offset of the heading they arrived with / will leave with — fixed, never the lead's turn in place)
@@ -875,6 +915,8 @@ export function folkAt(t, world, cache = new Map()) {
         const dd = dirOfHd(s.to == null ? s.hd : s.to), d = dd === 1 || dd === -1 ? dd : 1;   // (the lead's settled facing, not its turn)
         let poseOff, poseHd = s.hd;
         if (s.pose === 'chat' || s.pose === 'shop' || s.pose === 'cart') { poseOff = { x: d * 0.95, z: 0.12 }; if (s.pose === 'chat') poseHd = hdOfDir(-d); }
+        // (11a-1 — TRICK OR TREAT: the kids in a little row at the door beside the first, the grown-up a step back watching)
+        else if (s.pose === 'treat') poseOff = m.role === 'chap' ? { x: 1.95, z: -0.6 } : { x: (m.slot % 2 ? 1 : -1) * 0.56 * Math.ceil(m.slot / 2), z: -0.12 * (m.slot % 2) };   // (the grown-up a step to the side: never between us + the kids)
         else if (s.pose === 'sit') poseOff = { x: 0.72, z: 0 };
         else { const i = Math.max(1, Math.round(Math.abs(m.dx) / 0.9)); poseOff = { x: (m.lag % 1.1 > 0.5 ? -1 : 1) * 0.75 * i, z: (i % 2 ? 0.2 : -0.15) }; }   // (waiting: a loose knot beside the lead)
         // (a short pose — a moment at the kerb — keeps the walking formation: nobody shuffles round for a second and a half)
@@ -903,18 +945,35 @@ export function folkAt(t, world, cache = new Map()) {
       // (FP3b — REAL DOORS: near a doorway a group falls into SINGLE FILE — each on the lead's path, its own lag behind — so nobody walks
       // through the wall beside the door; through the door itself, exactly on the path)
       else if (s.door) off = { x: 0, z: 0 };
-      else if (s.z > M.face - 2.4) { const dn = Math.min(Math.abs(s.x - M.nodes.sideDoor.x), Math.abs(s.x - M.nodes.shopDoor.x)); if (dn < 1.8) { const k = Math.max(0, Math.min(1, (M.face - 0.6 - s.z) / 1.8)); off = { x: off.x * k, z: off.z * k }; } }
+      else if (s.z > M.face - 2.4 && s.pose !== 'treat') {   // (11a-1: the trick-or-treaters' row at the door keeps its spacing)
+        const dn = Math.min(Math.abs(s.x - M.nodes.sideDoor.x), Math.abs(s.x - M.nodes.shopDoor.x)); if (dn < 1.8) { const k = Math.max(0, Math.min(1, (M.face - 0.6 - s.z) / 1.8)); off = { x: off.x * k, z: off.z * k }; } }
       // (never past the railing, never under the dock)
       const zz = s.z + off.z;
       if (!sniffK && (zz > FOLK.farZ + 0.25 || zz < FOLK.zMin - 0.3)) off.z = Math.max(FOLK.zMin - 0.3, Math.min(FOLK.farZ + 0.25, zz)) - s.z;
-      members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, m, s: { ...st, hd, dir: dirOfHd(hd), x: s.x + off.x, z: s.z + off.z } });
+      members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, m, s: { ...st, hd, dir: dirOfHd(hd), x: s.x + off.x, z: s.z + off.z }, hween: hw });
     }
+  }
+  // 11a-1 — A ZOMBIE NOTICES YOU: whoever walks within ZOMBIE.notice of a shambling zombie startles (arms up, a step back, then a laugh) and
+  // the zombie reaches for them — a smooth function of the distance (PURE: positions are), never a jump
+  const zs = members.filter(x => x.kind === 'zombie' && x.s.pose === 'walk');
+  if (zs.length) for (const x of members) {
+    if (x.kind === 'zombie' || x.kind === 'proc' || x.m.role === 'dog' || x.s.door) continue;
+    let best = null, bd = ZOMBIE.notice;
+    for (const z of zs) { const dd = Math.hypot(z.s.x - x.s.x, (z.s.z - x.s.z) * 1.3); if (dd < bd) { bd = dd; best = z; } }
+    if (!best) continue;
+    const k = smooth01((ZOMBIE.notice - bd) / 0.75);
+    x.s = { ...x.s, startle: k, startleDir: best.s.x < x.s.x ? -1 : 1 };
+    best.s = { ...best.s, reach: Math.max(best.s.reach || 0, k) };
   }
   // THE DOORS' openness now (FP3b: the leaf's swing — every member through it, each on its own lag, the closing tail included)
   const doors = { side: 0, shop: 0 };
-  for (const v of LG ? all : [...A(ka), ...Bv(kb), ...forced, ...routine]) {
+  for (const v of LG ? all : [...A(ka), ...Bv(kb), ...forced, ...routine, ...hol]) {
     if (t < v.t0 - 1 || t > (v.tEnd || v.t1) + 2) continue;
-    for (const lg of v.legs) if (lg.k === 'door' && lg.door in doors) for (const m of v.members) if (m.role !== 'dog') doors[lg.door] = Math.max(doors[lg.door], doorOpenK(lg, t - m.lag));
+    for (const lg of v.legs) {
+      if (lg.k === 'door' && lg.door in doors) for (const m of v.members) if (m.role !== 'dog') doors[lg.door] = Math.max(doors[lg.door], doorOpenK(lg, t - m.lag));
+      // (11a-1 — trick or treat: the door swings open on the kids at the step + shuts again — no one goes through)
+      if (lg.swing && lg.swing.door in doors) doors[lg.swing.door] = Math.max(doors[lg.swing.door], doorOpenK(lg.swing, t));
+    }
   }
   // the circle now: its level (0..1 formed — the floor spots + the moves follow it), its session
   const live = nowSess.find(x => t > x.s0 - 5 && t < x.s1 + 40), dance = live ? { on: true, k: danceLevel(live, t), id: live.id, s0: live.s0, s1: live.s1 } : { on: false, k: 0 };
@@ -934,6 +993,36 @@ export function folkAt(t, world, cache = new Map()) {
   const crew = { roof: crewRoof, props: crewNow.props, trucks, marks: crewNow.marks, traces: ctx.noWork ? null : tracesAt(t, crewW, cache.crew), spots: cache.crew.get('P') || null, works: (crewNow.works || []).map(w => w.kind) };
   const ln = lineOf(t), line = ln && t >= ln.T0 - 60 && t < ln.T1 + 120 ? { on: true, n: members.filter(m => m.kind === 'liner' && m.s.pose === 'wait' && !m.s.door).length, admits: ln.admits.filter(a => a > t - 600 && a < t + 600).length } : { on: false, n: 0 };
   return { visits: all, members, doors, dance, cart, cars, line, crew, witness: inWin ? { kind: LG.kind, t0: LG.t0, n: reacted.length } : null, buses: buses.map(b => { const sh = doorShut(b); return { ...b, shut: sh, xNow: b.x(t), door: t >= b.tA + 0.8 && t < sh }; }) };
+}
+
+// ------------------------------------------------------------------ 11a-1 — THE PEOPLE OF THE HOLIDAYS: the visits (PURE)
+/** a trick-or-treat group (core/harbor-holidayfolk.js#totGroups) → a visit: in from an edge, to the door (the treat), on to the other
+ *  side; the first kid leads, the others beside + behind it, the grown-up a step behind them all */
+function totVisit(g, M) {
+  const r = rngFrom(g.seed), spec = { look: 'trick', gait: 'walk', goals: [{ from: g.from }, { treat: g.door, dur: g.treat }, { exit: g.from === 'left' ? 'right' : r() < 0.6 ? 'left' : 'right' }] };
+  const vis = planVisit(spec, g.t, M, { r, shopOpen: true });
+  if (!vis) return null;
+  const members = g.kids.map((k, i) => ({ role: i ? 'kid' : 'lead', slot: i, costume: k.costume, carry: k.carry, glowstick: k.glow, dx: i ? -0.42 * Math.ceil(i / 2) : 0, dz: i ? (i % 2 ? 0.55 : -0.5) : 0, lag: i * 0.24, seed: k.seed }));
+  members.push({ role: 'chap', dx: -0.9, dz: 1.0, lag: 0.45, seed: g.chap.seed, hat: g.chap.hat, torch: g.chap.torch });
+  return { id: `tot.${Math.round(g.t * 10)}`, kind: 'trick', routine: 'holiday', look: 'trick', gait: 'walk', ...vis, tEnd: vis.t1 + 1, members };
+}
+/** a zombie group → a visit: shambling in from an edge, across the promenade + away, or in at the side door (the party) */
+function zombieVisit(g, M) {
+  const r = rngFrom(g.seed), spec = { look: 'zombie', gait: 'shamble', goals: [{ from: g.from }, ...(g.inside ? [{ door: 'side' }] : [{ at: { x: M.nodes.inlay.x + (r() - 0.5) * 6, z: M.nodes.inlay.z + (r() - 0.5) * 2.5 } }, { exit: g.from === 'left' ? 'right' : 'left' }])] };
+  const vis = planVisit(spec, g.t, M, { r, shopOpen: true });
+  if (!vis) return null;
+  const members = g.looks.map((o, i) => ({ role: i ? 'guest' : 'lead', zlook: o.look, dx: i ? -0.85 * Math.ceil(i / 2) : 0, dz: i ? (i % 2 ? 0.5 : -0.35) : 0, lag: i * 0.8, seed: o.seed }));
+  return { id: `zom.${Math.round(g.t * 10)}`, kind: 'zombie', routine: 'holiday', look: 'zombie', gait: 'shamble', ...vis, tEnd: vis.t1 + (g.n - 1) * 0.8, members };
+}
+/** a procession walker (or its trio / its ofrenda's two bearers) → a visit: out from behind the speakeasy, along the near lane, off the
+ *  right edge, at the procession's pace */
+function procVisit(e, x0, x1) {
+  const X1 = x1(e.z), t1 = e.t + (X1 - x0) / PROC.v;
+  const legs = [{ k: 'walk', pts: [{ x: x0, z: e.z }, { x: X1, z: e.z }], t0: e.t, t1, v: PROC.v }];
+  const members = e.members ? e.members.map((m, i) => ({ role: i ? 'guest' : 'lead', costume: e.role, inst: m.inst || null, bearer: e.group === 'ofrenda' ? i : null, dx: m.dx, dz: m.dz, lag: 0, seed: e.seed + i * 7, pn: e.n }))
+    : [{ role: 'lead', costume: e.role, dx: 0, dz: 0, lag: 0, seed: e.seed, pn: e.n }];
+  const back = e.members ? Math.max(...e.members.map(m => -m.dx)) : 0;
+  return { id: `proc.${Math.round(e.t * 10)}`, kind: 'proc', routine: 'proc', idx: e.n, group: e.group || null, look: 'proc', gait: 'stroll', legs, t0: e.t, t1, tEnd: t1 + back / PROC.v + 0.5, members };
 }
 
 // ------------------------------------------------------------------ THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)
