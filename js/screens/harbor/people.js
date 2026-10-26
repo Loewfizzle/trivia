@@ -13,7 +13,7 @@
 // speakeasy's doors (6b: filled), the dance circle (6b: the wands' swish on big moves, the watchers' clapping, a rare whoop).
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
-import { FOLK, folkMap, folkAt, roofAt, linePlaces, lineRect, capByTier } from '../../core/harbor-people.js';
+import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier } from '../../core/harbor-people.js';
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen } from './folk.js';
 import { drawBus } from './bus.js';
 import { createVehicles, UNDERGLOW } from './vehicles.js';
@@ -46,9 +46,12 @@ export function createPeople() {
     M = folkMap(L, { event, line: lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
   }
   const lookFor = (mem, env) => {
-    const key = `${mem.vid}|${mem.m.seed}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${mem.party ? 1 : 0}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
+    const key = `${mem.vid}|${mem.m.seed}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
     let lk = looks.get(key);
-    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, role: mem.m.role, sit }); looks.set(key, lk); if (looks.size > 160) looks.delete(looks.keys().next().value); }
+    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, role: mem.m.role, sit });
+      // (POLISH 5 — the line prototype: the COAT in the player's colour — a long coat, the colour a touch deep so it reads as cloth)
+      if (mem.coat) { lk = { ...lk, coat: 'long', dress: lk.woman ? 'day' : null, cols: { ...lk.cols, coat: mem.coat.map(v => Math.round(v * 0.82)), dress: mem.coat.map(v => Math.round(v * 0.82)) } }; }
+      looks.set(key, lk); if (looks.size > 160) looks.delete(looks.keys().next().value); }
     return lk;
   };
   /**
@@ -111,8 +114,17 @@ export function createPeople() {
   }
   const rimSide = (x, z) => { let best = 0, side = 1; for (const s of srcs) { const d = Math.hypot(x - s.x, (z - s.z) * 1.15); const w = s.k / (0.6 + d * d); if (w > best) { best = w; side = s.x >= x ? 1 : -1; } } return side; };
   /** the line's guests (Lobby 2.0): static, alive — shifting weight, a glance at a watch, two chatting */
+  // POLISH 5 — THE LOBBY LINE FEASIBILITY (&lineproto=1 only: core/harbor-people.js#linePlaces2): the staggered two-deep line, coats in
+  // the player colours, a glowing PIN over each head (the first — "you" — brighter, pulsing)
+  const PROTO = typeof location !== 'undefined' && /[?&]lineproto=1(?:&|$)/.test(location.search);
+  const PCOL = [[255, 43, 214], [0, 240, 255], [243, 255, 58], [61, 255, 139], [255, 140, 26], [166, 107, 255], [255, 51, 85], [61, 123, 255]];
   function lineMembers(t) {
     if (!lineN) return [];
+    if (PROTO) return linePlaces2(L, Math.min(8, lineN)).map(p => {
+      const seed = 4100 + p.i * 131, ph = (t / 9 + p.i * 0.41) % 1, chat = p.j === 1 && p.i % 4 === 1;
+      const pose = chat ? 'chat' : ph < 0.14 && p.i % 3 === 2 ? 'watch' : 'wait', hd = chat ? Math.PI : p.j ? -0.35 : 0.15;
+      return { vid: `line${p.i}`, kind: 'line', look: 'guest', party: false, coat: PCOL[p.i % 8], pin: { col: PCOL[p.i % 8], you: p.i === 0 }, m: { role: 'lead', seed, lag: 0 }, s: { x: p.x, z: p.z, pose, dir: chat ? -1 : 1, hd, dist: 0, v: 0, a: 1 } };
+    });
     return linePlaces(L, lineN).map(p => {
       const seed = 4000 + p.i * 131, ph = (t / 11 + p.i * 0.37) % 1, pose = p.wait ? (p.i % 2 ? 'chat' : 'wait') : ph < 0.12 && p.i % 3 === 1 ? 'watch' : 'wait';
       return { vid: `line${p.i}`, kind: 'line', look: 'guest', party: false, m: { role: 'lead', seed, lag: 0 }, s: { x: p.x, z: p.z, pose, dir: p.wait ? (p.i % 2 ? 1 : -1) : 1, hd: p.wait ? (p.i % 2 ? 0 : Math.PI) : 0, dist: 0, v: 0, a: 1 } };
@@ -155,7 +167,7 @@ export function createPeople() {
     const cartNow = pass === 'near' && now.cart && now.cart.on ? now.cart : null;
     // (8b1 wildlife: the animals on this pass — env.extra: [{ z, draw(c) }] from wildlife.js#items — sorted in by depth with everyone)
     const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...cars.map(car => ({ z: car.z, car })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : []), ...props.map(p => ({ z: p.z, prop: p })), ...(env.extra || []).map(x => ({ z: x.z, x }))].sort((a, b) => b.z - a.z);
-    const hands = new Map(), collars = new Map(), taut = new Set();
+    const hands = new Map(), collars = new Map(), taut = new Set(), pins = [];
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
     const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, advance = pass === 'near' && env.t !== wandT;
     if (advance) { wandT = env.t; if (trails.size > 40) trails.clear(); }
@@ -194,6 +206,7 @@ export function createPeople() {
       // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
       const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
       const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 });
+      if (box && mem.pin) pins.push([box.x + box.w / 2, box.y - box.h * 0.16, mem.pin, box.h]);
       // (8b2 — THE RAID: the officer's flashlight hand on screen, for the beam raid.js draws from it)
       if (box && mem.kind === 'officer' && st.pose === 'flash') { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near], e = J.elbows[J.near]; officerAt = { hand: [fx + h[0] * H, fy - h[1] * H], dir: [h[0] - e[0], -(h[1] - e[1])], H, t: env.t || 0 }; }
       if (box && mv) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false); drawWands(c, J, fx, fy, H, { idx: mem.idx || 0, n: nDancers, beatsF, punch: bt ? bt.punch || 0 : (1 - (beatsF % 1)) ** 3, pal: bt && bt.pal, move: mv.move, t: env.t || 0, tier: env.tier, k: now.dance ? Math.max(0.35, now.dance.k) : 1, trails: env.mo === false ? null : trails, key: mem.vid, advance }); }
@@ -203,6 +216,14 @@ export function createPeople() {
       }
     }
     for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E, taut.has(vid)); }
+    // (the prototype's pins: over everyone, in the player's colour — light reads at ~20 pt where an outfit doesn't)
+    for (const [px, py, pn, h] of pins.splice(0)) {
+      const pulse = pn.you && env.mo !== false ? 0.5 + 0.5 * Math.sin((env.t || 0) * 3.2) : 0.6, r = Math.max(1.8, h * 0.075) * (pn.you ? 1.25 : 1), k = pn.you ? 1 : 0.78;
+      const g = c.createRadialGradient(px, py, 0, px, py, r * (pn.you ? 4.2 + pulse : 3.2)); g.addColorStop(0, `rgba(${pn.col.join(',')},${(0.55 * k).toFixed(2)})`); g.addColorStop(1, `rgba(${pn.col.join(',')},0)`);
+      c.fillStyle = g; c.beginPath(); c.arc(px, py, r * (pn.you ? 4.2 + pulse : 3.2), 0, Math.PI * 2); c.fill();
+      c.fillStyle = `rgba(${pn.col.join(',')},${k})`; c.beginPath(); c.arc(px, py, r, 0, Math.PI * 2); c.fill();
+      c.fillStyle = `rgba(255,255,255,${(0.85 * k).toFixed(2)})`; c.beginPath(); c.arc(px, py, r * 0.45, 0, Math.PI * 2); c.fill();
+    }
     c.restore();
   }
   // ---- POL4 — THE BACK ROAD'S MOTORCARS (core/harbor-traffic.js plans them; vehicles.js paints them): side-on on the waterside road,

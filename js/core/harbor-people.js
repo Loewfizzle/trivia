@@ -986,6 +986,20 @@ export function linePlaces(L, n, { margin = 9, queue = 5 } = {}) {
   for (let i = queue; i < n; i++) { const j = i - queue, cols = Math.max(1, Math.floor((xs1 - xs0) / 1.05) + 1); out.push({ x: xs1 - (j % cols) * 1.05, z: F.doorZ - 1.85 - Math.floor(j / cols) * 1.0 - (j % 2) * 0.2, i, wait: true }); }
   return out;
 }
+/** POLISH 5 — THE LOBBY LINE, WHO IS WHO: a FEASIBILITY layout only (behind &lineproto=1 — never shipped on; Lobby 2.0 decides): ALL the
+ *  lobby's players (up to 8) in a STAGGERED TWO-DEEP LINE — pairs offset half a step so every head is clear, the front pair at the
+ *  door, the line running left along the barbershop front and stepping DOWN the sidewalk toward the camera (nearer = a little bigger),
+ *  clear of the left edge + the dock → [{ x, z, i, j (0 the back file, 1 the front) }] */
+export function linePlaces2(L, n, { margin = 14 } = {}) {
+  const cam = L.cam, s = L.speakeasy, F = FOLK, out = [];
+  const doorL = s.x0 + s.door.u0 - 0.5, xMin = z => (margin - cam.VPX) * z / cam.F + 0.5, step = 1.12, z0 = F.doorZ - 0.32;
+  for (let i = 0; i < n; i++) {
+    const k = Math.floor(i / 2), j = i % 2;
+    const z = Math.max(F.zMin + 0.12, z0 - j * 0.9 - k * 0.62), x = Math.max(xMin(z) + j * 0.55, doorL - k * step - j * step * 0.5);
+    out.push({ x, z, i, j });
+  }
+  return out;
+}
 /** the line's rect (the routes go round it) */
 export function lineRect(L, n) {
   const P = linePlaces(L, n); if (!P.length) return null;

@@ -4,6 +4,20 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
+### ✅ CITY 2.0 — POLISH 5: THE LOAD, THE SPEAKEASY'S GLASS, THE COLOURS, THE HYDRANT, THE SKY'S MESSAGES (Oct 25, 2026) — `docs/harbor.md#polish-5`
+- [x] THE LOAD: the LOAD LOG (&debug=1, folded; harbor().loadLog; tests/integration/load-log.mjs); the causes measured + fixed — the screen's
+      entrance transform under the title's rects, the late fonts, the live weather after the reveal (now kept per device + waited for +
+      blended slowly), the clouds + the weather's modules in the dark, a load tier step before the reveal, the canvas at 100lvh; `load` +5
+- [x] THE SPEAKEASY + THE DOCK: the hush sign ice-cyan (white-hot cores, tight halos, bold blocks, the room dimmed), single big panes, the
+      window box gone, JOIN + HOST always lit, the music toast gone (the button's OFF look, an aria-live line, the muted hint)
+- [x] THE COLOURS: Rosie white + navy + black stacks, the wheel heritage red, the gondolas one navy (one glow each); the lights proved
+      unchanged (pixdiff); the crabapple to the maple's standard
+- [x] THE PROMENADE: the fire hydrant (the dog's sniff, the hot-day spray + a kid + the wet patch, its synthesized hiss), the trash round off
+      screen, every forced event from the fire (workers, the raid ~7 s, the dance, the bus, Rosie, the timetable), the walk-up's hands, the cab
+- [x] THE SKY: the barnstormer removed, the real ₿ + the festival launch, sky messages 3 × 16 crisper + the clouds behind / thinned, the
+      drones crisper, the banner plane a 1920s biplane on a slack tow line (lagging, gusting, fluttering), the periscope's sonar ping
+- [x] The owner's add-on: the slanted glass tower's crown in ice neon; the lobby-line feasibility shots (docs/harbor/refs/lobby-line/)
+
 ### ✅ CITY 2.0 — PEO: THE PEOPLE'S MOTION (Oct 25, 2026) — `docs/harbor.md#peo`
 - **Measured first** (`harbor().people.rigs()` + `people.cost()`: every drawn figure's rig on screen per frame; Chrome with the GPU at 60 Hz, 402×874, tiers 2 / 1 / 0 + 4× CPU): the city at 30 fps ("calm") 9–15 % of an afternoon with 1–3 flips to 60 per 30 s as the sky changed (walkers were no 60-fps reason); a partner's feet 27–29 px/s of slide round the lead at turns (3× its speed); the planner's new block 3–6 ms (13–33 ms slow) inside one frame; positions even, never pixel-snapped; the work 3 ms a frame.
 - **Fixed:** `people.moving()` → `'people'` in `scene.js#fastNow`; `people.js#gait` integrates each member's own path into its stride phase (`folk.js#strideLen`); `people.js#warm` plans 70 s ahead in `requestIdleCallback` (the cache cap 40 → 80).

@@ -433,6 +433,14 @@ recordings imported into theirs; every event that exists today calls its slot; a
   one not loaded; 12.6 MB decoded; the car + gull one-shots; empty slots silent; THE SEAM's voices 1 → 2 → 1; Effects off / on; the panel's SOUNDS
   rows + ▶; at night the NIGHT hum; the neon tap at 0.28125 = 0.5 × 0.5625).
 
+**POLISH 5 — two sounds SYNTHESIZED** (no Grok batch): `python -I scripts/build-synth-sfx.py` writes `hydrant-spray.wav` (a loop: the
+stream's hiss 2.2–7 kHz with a slow uneven flutter over a dense rain of droplet grains 400 Hz–2.6 kHz + a soft wash) and `periscope-ping.wav`
+(a 1.25 kHz sonar ping, a 3.6 s dark underwater echo + two discrete returns, band-passed 450 Hz–4.2 kHz for a phone) into
+~/Downloads/city-sfx-synth/ with a CC0 credits.txt; then `add-city-sfx.py --src ~/Downloads/city-sfx-synth --only hydrant-spray,periscope-ping`
+imports them like recordings. The spray follows the hydrant's spray level (`sounds.js#tick: hydrant`, panned to it); the ping plays DUCKED
+(`sounds.periscope()`: the music to 50 % for 1.6 s, back over 3.2 s) when the periscope's legendary lands. The wake moment's sash
+cues are gone with the window box (its blind's roll stays).
+
 ## 7b — THE SPEAKEASY'S SLOTS (Oct 24 2026; City 2.0) — `screens/harbor/windows.js`, `screens/harbor/sounds.js#speakeasy`
 The speakeasy's life calls five Part 7 slots — all EMPTY today, so all silent; a recording dropped in starts sounding with its event
 (8P: filled, + the moments' own cues, the barbershop, the broom — tv-murmur stays empty; see 8P below):
