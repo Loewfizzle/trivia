@@ -19,7 +19,7 @@
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { LOGO_LETTERS } from '../../ui/logo.js';
 import { flattenPath } from '../../core/tube-path.js';
-import { WEB_SPECS, buildWeb, webGrowth, paintWeb, paintStrays, createSpider } from './dress-halloween.js';
+import { WEB_SPECS, buildWeb, webGrowth, paintWeb, paintStrays, createSpider, createShimmer } from './dress-halloween.js';
 import { createDotdDress } from './dress-dotd.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -111,7 +111,7 @@ export function createSignDress() {
   const cache = { silk: null, glow: null };
   let slowTask = { ms: 0 }, colsRef = null, colRef = null, job = null, staticKey = '', glowA = -1, lastDyn = 0, wasDyn = false, draws = 0, bakes = 0, lastMs = 0, lfKey = '', LF = null, on = false;
   const webs = WEB_SPECS.map(buildWeb);
-  let spider = null, dotd = null, lastEnv = null, prevBox = null;
+  let spider = null, dotd = null, shimmer = null, lastEnv = null, prevBox = null, prevShim = [];
 
   function setHost(el) {
     if (el === host && cv && cv.isConnected) return;
@@ -152,7 +152,7 @@ export function createSignDress() {
     lastEnv = env;
     if (!host || !cv) return;
     const ids = want(env);
-    if (!ids.length) { if (on) { on = false; cv.style.display = 'none'; free(); spider = null; dotd = null; } return; }
+    if (!ids.length) { if (on) { on = false; cv.style.display = 'none'; free(); spider = null; dotd = null; shimmer = null; } return; }
     if (!wpx) return;
     if (!on) { on = true; cv.style.display = ''; }
     const t0 = performance.now();
@@ -204,25 +204,30 @@ export function createSignDress() {
     }
     if (!ids.includes('spider')) spider = null;
     if (!ids.includes('dotd')) dotd = null;
+    // SP4: the web's shimmer (a faint light travelling along the threads) — only on a web that is spun
+    if (ids.includes('web') && !shimmer) shimmer = createShimmer(webs);
+    if (!ids.includes('web')) shimmer = null;
     // ---- what moves this frame
     const t = env.t || 0, motion = env.motion !== false;
     if (spider) spider.step(t, { motion });
-    const dyn = (spider && spider.moving()) || (dotd && dotd.moving({ motion, wind: env.wind, tier: env.tier }));
+    if (shimmer) shimmer.step(t, { motion: motion && env.tier !== 0, growth: webs.map(w => webGrowth(w, P.web)) });
+    const dyn = (spider && spider.moving()) || (shimmer && shimmer.moving()) || (dotd && dotd.moving({ motion, wind: env.wind, tier: env.tier }));
     const lit = clamp01(env.signLit == null ? 1 : env.signLit), gA = Math.round(lit * 48) / 48;
     const now = performance.now(), fps = env.tier === 0 ? 15 : 30;
     const due = rebaked || gA !== glowA || (dyn && now - lastDyn >= 1000 / fps - 2) || (!dyn && wasDyn);
     if (!due) return;
-    const full = rebaked || gA !== glowA || !(spider || dotd);
+    const full = rebaked || gA !== glowA || !(spider || dotd || shimmer);
     glowA = gA; lastDyn = now; wasDyn = !!dyn; draws++;
     // ---- compose: silk, the neon's glow × the sign's level, then the moving things — a frame where only they moved is CLIPPED to
     // their boxes (the spider's last + this frame's; the flames + their light, the flags)
     const look = { day: dayB, light: lightAt, lit, t, motion, wind: env.wind, tier: env.tier, px: 1 / sc };
-    const boxNow = spider ? spider.bbox() : null;
+    const boxNow = spider ? spider.bbox() : null, shimNow = shimmer ? shimmer.boxes() : [];
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.save();
     if (!full) {
       const rs = [];
       if (boxNow) { const pb = prevBox || boxNow; rs.push({ x0: Math.min(boxNow.x0, pb.x0), y0: Math.min(boxNow.y0, pb.y0), x1: Math.max(boxNow.x1, pb.x1), y1: Math.max(boxNow.y1, pb.y1) }); }
+      rs.push(...shimNow, ...prevShim);
       if (dotd) rs.push(...dotd.boxes());
       x.beginPath();
       for (const u of rs) { const rx = Math.floor((u.x0 - BOX.x0) * sc) - 2, ry = Math.floor((u.y0 - BOX.y0) * sc) - 2; x.rect(rx, ry, Math.ceil((u.x1 - u.x0) * sc) + 4, Math.ceil((u.y1 - u.y0) * sc) + 4); }
@@ -233,9 +238,10 @@ export function createSignDress() {
     if (gA > 0.01) { x.globalCompositeOperation = 'lighter'; x.globalAlpha = gA; x.drawImage(cache.glow, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
     toLogo(x);
     if (dotd) dotd.dyn(x, P.sign, look);
+    if (shimmer) shimmer.draw(x, look);
     if (spider) spider.draw(x, look);
     x.restore();
-    prevBox = boxNow;
+    prevBox = boxNow; prevShim = shimNow;
     lastMs = performance.now() - t0;
   }
 
@@ -250,7 +256,7 @@ export function createSignDress() {
   return {
     setHost, frame, hit,
     debug: () => ({ on, pieces: lastEnv ? want(lastEnv) : [], web: lastEnv && lastEnv.pieces ? lastEnv.pieces.web : null, webs: webs.map(w => ({ id: w.id, radials: w.radials.length, spiral: w.spiral.length })),
-      spider: spider ? spider.state() : null, dotd: dotd ? dotd.debug() : null, draws, bakes, slowTask, ms: +lastMs.toFixed(2), canvas: cv ? [cv.width, cv.height] : null, dpr }),
+      spider: spider ? spider.state() : null, legs: spider ? spider.legCheck() : null, shimmer: shimmer ? shimmer.state() : null, dotd: dotd ? dotd.debug() : null, draws, bakes, slowTask, ms: +lastMs.toFixed(2), canvas: cv ? [cv.width, cv.height] : null, dpr }),
     destroy: detach,
   };
 }

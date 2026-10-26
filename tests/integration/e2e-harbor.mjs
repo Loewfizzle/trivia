@@ -1982,7 +1982,7 @@ G('windows', async () => {
     await harborUp(Q.page);
     await waitFor(Q.page, '!window.__district.harbor().pending', 'settled', 20000);
     // (11a-1: on a slow runner the life's first frame can land after 'settled' — its states were read empty once in the cloud)
-    await waitFor(Q.page, '!!(window.__district.harbor().speakeasy.life.states || {}).shop', 'the rooms' states', 10000).catch(() => {});
+    await waitFor(Q.page, '!!(window.__district.harbor().speakeasy.life.states || {}).shop', "the rooms' states", 10000).catch(() => {});
     const L = await life(Q.page);
     ok(L.states.shop === 'open' && L.states.bar === 'closed', `BY DAY: the barbershop open, the bar closed (${JSON.stringify(L.states)})`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}windows-day-402x874.png` });
