@@ -1261,3 +1261,18 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE WINDOW PEOPLE IN 3D: every lit form shaded round from the room's lamp (lit side → core shadow → reflected edge), hair sheen, folds, joint occlusion, a cast shadow on the wall, the far arm of a ¾ turn
 - [x] THE BLUE TV ROOM: the set on the back wall, a couch seen from behind with a head (sometimes two) rimmed by the screen's blue, a tilt / a nod / leaning / an arm reaching for the drink, the cigarette's smoke; off at 3 am as before
 
+## CITY 2.0 — WIN: THE WINDOWS PASS (Oct 26 2026) — docs/harbor.md#win
+- [x] THE WINDOW BUGS: the spider's tap on iOS (the scene asked before the logo's letter buzz), the stale hush sign (one value a frame, never
+      outliving its force), one window at a time (SLOW LIFE's passers one at a time, measured: the tango never mirrored), the toast at 60 fps
+      (a window moment a 60-fps reason; the shake + the drink eased), the ghost's big eyes + mouth
+- [x] HALLOWEEN SET PIECES: the door's five pumpkins (a stepped group + one each side), three BIG jack-o'-lanterns on named DRESSING SPOTS
+      (the hydrant, the bench's straw bale, the lamp post's bale), the spots system every holiday fills (core/harbor-spots.js)
+- [x] THE HUSH WORD ON THE WALL: the door's password sign on the corner pier — the letters stacked on a dark plate, flickering on, dark in
+      the blackout, its cyan on the wet brick; the lower-right window back to its moments
+- [x] 2.5D ROOMS: every room a box in perspective (back wall, floor, a left-wall sliver), the lamp's light falling off, people at depth
+      through one uniform scale (the patrons nearer than the bartender), floor shadows, the furniture at depth
+- [x] THE TV ROOM lit by the unseen set (a shaded couch + spherical heads rimmed by the screen), REAL flicker, the smoke some nights
+- [x] COUNTING THE CASH: a close-up under the green banker's lamp — bills peeled into stacks, the lick, the glance, the bag at the shadow;
+      bootleg + Saturday nights only, never a raid night
+- [x] THE PANEL: PLAY ALL (scenes / holiday moments / animals / workers — a chip beside the pill: skip, pause, stop) + the tidy (a SPEAKEASY
+      section, the weather in groups, the off-switches + debug pieces in TOOLS)
