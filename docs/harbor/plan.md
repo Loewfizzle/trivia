@@ -53,9 +53,12 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | PEO | ✅ (Oct 25 — docs/harbor.md#peo: the afternoon stutter measured — the battery saver's 30 fps + its flips, a partner's skate at turns, the planner's block in a frame — and fixed; speeds + steps against real walking; the dancers' arms continuous; the `motion` check) THE PEOPLE'S MOTION (a Fable review + fix: speed, gait, the afternoon stutter, the dancers' arms) | Fable 5.1 | 90–120 min |
 | POL5 | ✅ (Oct 25 — docs/harbor.md#polish-5: the load log + the load jumps fixed (the screen's entrance, the fonts, the weather, the clouds, 100lvh); the hush sign ice-cyan + single panes + JOIN/HOST lit + no music toast; Rosie navy + the wheel + the crabapple; the fire hydrant + its hot-day spray; every forced event from the fire; the barnstormer gone, the ₿ + the festival launch, 3-line sky messages, the biplane's banner, the periscope's ping; the glass tower's neon; the lobby-line shots) POLISH 5 — THE LOAD, THE SPEAKEASY'S GLASS, THE COLOURS, THE HYDRANT, THE SKY'S MESSAGES | Opus 5.5 high | 180–240 min |
 | 9a | ✅ (Oct 25 — docs/harbor.md#part-9a: the weather model, the rain lit by the tubes, the storm sky + capped lightning + thunder, fog on the water, puddles drying, the people in the weather, beads + ice on the NEON tubes, rain + frost on the dock's glass, ten sounds; the POLISH 5 review fixes + the balloons stay up + the festival's line-up + the surge on the beat) THE WEATHER (rain, drizzle, storms, fog, wind, wet streets, the sign + the dock glass in rain / ice, the sounds) + the POLISH 5 review fixes — "(after POLISH 5)" | Opus 5.5 high | ~3–4 h |
+| SP3 | THE SPEAKEASY + CRISP NEON (Oct 26 — "OWNER'S NOTES — OCT 26 (after 9a)"): 9a's review + bugs (the logo lit early in a storm, the crowns in the wind, the festival at 402, the sign's rain follows its power, the buttons' rain fades with them, real water on the dock + buttons, drizzle / rain / heavy rain apart, Rosie's hourly run), CRISP NEON (the logo + SPEAKEASY in white neon + the hush sign on the tube look at full resolution), THE WINDOWS + THEIR PEOPLE (bigger panes, the premium figure kit, one star window, softer room light, the TV off at 3 am, bigger promenade people), the roof signs' hourly modes, HIGH STAKES' five lamps | Opus 5.5 high | ~3–4 h |
+| 11a-1 | HALLOWEEN + DAY OF THE DEAD + the shared holiday system (calendar, build-ups day by day, sign dressings; the web, the pumpkins, the window ghosts on SP3's window kit, the ghost ship, the witch, the trick-or-treaters) — LIVE BY ~OCT 29 | Opus 5.5 high | ~3 h |
+| 11a-2 | THANKSGIVING + the reusable PARADE system (the Wednesday party, Black Friday's first Christmas crew) — by mid-Nov | Opus 5.5 high | ~2–3 h |
 | 9b | WINTER + THE CONSTRUCTION TOWER (real snow on the ground, the stages, plows + salt + shovelers, the January snowman, snow on the sign + frost on the glass, the tower's yearly cycle) | Opus 5.5 high | ~3 h |
+| ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
-| 11a | autumn holidays: the shared holiday system (calendar, build-ups, sign dressings), the parade system, the banner plane's messages, Halloween, Day of the Dead, Thanksgiving | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
 | 11c | spring, summer + patriotic: Valentine's, St. Patrick's, Easter, Memorial Day, July 4th (air show + fireworks), September 11, Veterans Day | Opus 5.5 high | 60–90 min |
 | 12 | easter eggs, sounds, desktop, switch-over | Opus 5.5 medium | 60–90 min |
@@ -1924,3 +1927,193 @@ the owner, Oct 25 10:05 pm.)
   like the beacons. If the needle is red / pink that night, the eyes get a hotter core so they still pop. THE TAKE-OFF:
   wings open to ~half the screen's width (broader, more moth-like than bat-like), downdraft lines + the needle's neon
   stuttering, then straight up.
+
+## OWNER'S NOTES — OCT 26 (after 9a)
+- 9a REVIEW (Claude, from 9a's summary, Oct 26 12:20 am — for SP3 Group 0): (1) THE NEON LOGO doesn't light early in a
+  storm while the rest of the city does → it follows the same darkness input (core/harbor-dark.js) — a dark storm
+  afternoon powers it up like dusk, then back to daylight glass as the storm clears; (2) THE TREE CROWNS don't sway in
+  the wind (leaves, flags, smoke + rain do) → a gentle crown sway with the real wind + gusts, per-tree phase, cheap (a
+  baked crown moved as a whole + a slight shear), none in calm air; (3) at 402 the six festival balloons overlap at
+  times → their lanes / heights spread so no two overlap for long; (4) the cloud `city` job's weather LOAD check got no
+  answer once (passes locally) → time-box it: a real race in the cached-weather path or the mock, or a flake → Known issues.
+- 9a BUG — THE RAIN ON THE SIGN IGNORES THE POWER (the owner's iPhone, Oct 26 12:22 am: the TR-3B blackout in rain): the
+  NEON letters are dark but the BEADS on the tubes still glow as bright pink dots along every letter, and the rain
+  streaks near the sign stay PINK — the 9a rain-on-sign layer (beads, drips, lit streaks, any glaze sparkle) takes the
+  tube's colour without the sign's light level. FIX: every weather layer that borrows light from the sign / a lamp / a
+  window scales with THAT source's live level (the blackout, a burnt-out letter, the boot flicker, by day = unlit glass:
+  beads become clear water drops with a faint sky highlight); add it to the blackout test ("every light source goes dark"
+  includes the sign's weather light).
+- RAIN ON THE DOCK + THE ☰ / ♪ BUTTONS — REAL WATER (the owner, Oct 26 12:24 am — what he meant; 9a's beads at the edges
+  aren't it): in DRIZZLE + RAIN the glass gets the real rain-on-a-window effect: drops land and BEAD UP, grow as more
+  land + merge with neighbours, and once one is heavy enough it BREAKS the surface tension and STREAKS DOWN the glass —
+  picking up the drops in its path, leaving a thin wet trail that beads back up — and FALLS OFF the bottom edge (a tiny
+  drip). Super realistic: each drop a little lens (it refracts / flips the city behind + the button's own light, a bright
+  specular point, a darker rim), trails that fade, more + faster in heavier rain, the drops drying off slowly after the
+  rain stops. Drops may cross the whole glass, but the LABELS + ICONS draw ON TOP (crisp, contrast untouched, taps
+  unaffected); a small budget (a handful of drops per button, a dozen or two on the dock) on one small overlay canvas;
+  reduced motion = a few still beads. Frost in the cold stays as 9a built it.
+- DRIZZLE vs RAIN vs HEAVY RAIN LOOK ALMOST THE SAME (the owner, Oct 26 12:26 + 12:37 am — DECIDED: RAIN stays as it is
+  today = the anchor; DRIZZLE clearly LESS; HEAVY RAIN clearly MORE): make each step clearly different at a glance on the
+  phone — DRIZZLE: sparse, fine, slow, faint; RAIN: steady streaks, puddles growing; HEAVY RAIN: ~3× the streaks, longer
+  + brighter + faster, sheets / gusts of rain sweeping across in waves, the far skyline GREYED behind a rain haze (the
+  biggest read), splashes bouncing off the promenade + the water churned with rings, rivulets in the gutter, people
+  running / almost gone, the rain sound louder + closer (the heavy bed), the dock's drops streaking constantly.
+- 9a BUG — THE BUTTONS' RAIN STAYS WHEN THEY FADE (the owner's iPhone, Oct 26 12:26 am, rain at rest): the ☰ + ♪ buttons
+  fade out at rest but their drops stay — two rings of floating dots in the top corners over the sky (the dock likely
+  the same). FIX: the glass's weather (drops, trails, frost) belongs TO the button: it fades / hides with it every time
+  (rest, menus, games, the TR-3B), drawn in the same layer / opacity as the glass; a check that nothing of a hidden
+  button's weather remains visible.
+- THE STORM ISN'T A STORM YET (the owner, Oct 26 12:29 am, &force=storm): (1) THE LIGHTNING: more powerful — a THICK,
+  strong, branching bolt (a bright white-violet core, a hot glow, forks), now and then a big strike that reaches the
+  skyline / the water, the flash lighting the city + reflecting on the wet street + the harbor for a beat; (2) THE CLOUDS:
+  real CUMULONIMBUS — a towering, dark, heavy storm deck over the city (an anvil top far off, a low ragged base, rain
+  shafts hanging from it), and the lightning FLASHING INSIDE the clouds (sheet / intra-cloud flashes lighting their
+  billows from within, flickering 2–3 times) as well as the bolts; (3) THE THUNDER LOUDER: a close strike = a sharp CRACK
+  then a long rolling rumble (City 1.0's thunder is the reference — audio/weather/*.mp3 + its timing — and the Grok
+  thunder-far takes for the distant ones), the delay after the flash by distance, ducking the music briefly so it lands;
+  (4) HEAVIER RAIN in a storm (the heavy-rain look + gusting sheets). (5) THE NEEDLE GETS STRUCK (the owner, 12:30 am): now and then
+  (a seeded share of the close strikes, ~1 in 6) the bolt hits the NEEDLE's spire — the lightning rod: the bolt locks
+  onto its tip, the spire flashes white-hot, sparks + a glow crawl down a few floors of its neon, its tubes stutter /
+  flicker for a second (a power surge) and come back, a sharp crack with no delay (it's close) + the rumble. SAFETY KEPT: no full-screen white flash, never more
+  than 3 flashes a second, brightness capped, reduced motion = the sky dims + the thunder only.
+  → THE ATMOSPHERE pass (ATM) builds this.
+- WEATHER ON THE SPEAKEASY (the owner asked, Oct 26 12:31 am; Claude checked 9a's docs): RAIN already reaches it (a sheen,
+  beads + rivulets on the glass, drips off the awning, the hush sign's glow on the wet brick); FREEZING RAIN doesn't (only
+  the NEON sign + the glass UI glaze); SNOW is 9b. ADD (judged at phone size — big shapes + light): FREEZING RAIN =
+  ICICLES along the awning's front edge, the cornice, the gutter + the window heads (varying lengths, catching the lamps
+  + the hush sign's cyan), a glazed sparkle on the railings, the lamp posts, the bench + the cart, frosted corners on the
+  windows, the promenade a glossy ICE sheen (the lamps' reflections sharper + longer), people walking carefully (short
+  steps, arms out, a rare slip + catch); the icicles drip + drop off as it warms. (NO salt worker — the owner: too small to
+  see.) + ICICLES on the BILLBOARDS + SIGNS too (the owner, 12:33 am): hanging from the HIGH STAKES board's bottom edge,
+  the vertical OVERCLOCK blade's sides + bottom, the roof signs' frames, catching their own neon. FREEZING RAIN today
+  "just looked like rain" (the owner) → it must read as ICE at a glance: the glaze + icicles everywhere above, the ice
+  sheen on the ground, a colder, clearer light, the rain finer + glinting. → ATM builds the freezing rain.
+  SNOW (for 9b): snow on the sills, the awning (sagging, sliding off now and then), the cornice + the roof canopy's
+  posts, the steps shovelled + salted by the doorman, snow on the hat brims + shoulders of the people, the windows'
+  warm light glowing on the snow outside.
+- WINDY IS BUGGY + THE CLOUDS (the owner, Oct 26 12:33 am — "not right now, put it on the list"): &force=windy only sends
+  the cumulus flying across the sky; the TREES don't react (9a's known limit: crowns don't sway). THE CLOUD SYSTEM needs
+  a dedicated FABLE pass "to get it figured out once and for all": the clouds' look, kinds + motion (speed from the
+  real wind at their height, not racing), storm decks (cumulonimbus), the veil / overcast / fog layers, the light on them
+  through the day, the lightning inside them — and WIND as one system everything reads (trees swaying + gusts rolling
+  through the crowns, leaves, flags, smoke, the rain slant, coats + hats, the water's chop, the balloons + banner), with
+  a believable windy day / a gale. SLOT: a FABLE CLOUDS + WIND pass after 9b (before the holidays need the sky).
+  + FOG (the owner, 12:34 am: "fog doesn't really do anything") → the same Fable pass becomes THE ATMOSPHERE pass
+  (clouds + wind + fog): real fog = DEPTH — the far skyline gone, the middle rows ghostly silhouettes, only the near
+  buildings clear; every light a soft HALO + its glow hanging in the air (the lamps' cones, the neon sign's glow
+  blooming, the windows smeared warm); the lighthouse beam a visible broad cone (+ the foghorn); fog drifting in banks
+  across the water + the promenade (thicker + thinner, moving with the wind); people fading in and out of it; the
+  colours muted; dense fog vs mist clearly different.
+- 9a CHECKS (the owner, Oct 26 12:40 am): THE BALLOON FESTIVAL good; ROSIE's STRIPE good.
+- ROSIE ON THE MOVE, NOT PARKED (the owner, Oct 26 12:40 am — DECIDED, replaces her 8b1 timetable's long stays): she's
+  OFF SCREEN most of the time. EVERY HOUR ON THE HOUR she comes in: appears from off screen ~5 min before, glides in +
+  turns to the pier (her 3D turn), docks AT :00 (the bell / whistle), passengers off + on for ~3 min, casts off + steams
+  away, gone off screen by ~:10 — in motion the whole visit. Her service hours like a real ferry (e.g. ~7 am–midnight,
+  none in the small hours). PARTY NIGHTS: the same hourly run, with her deck + string lights flashing / chasing to the
+  party colours (the beat when music plays) and a livelier crowd on deck. Her wake, smoke + horn as now. Check the
+  harbor doesn't look empty between visits (the tug, the sailboats, the far ships keep it alive).
+- THE HOLIDAYS BEFORE THE GAMES (the owner, Oct 25 10:26 pm — DECIDED: keep banging out the city, the holidays with their
+  BUILD-UPS — things appearing in windows + on the steps day by day). ORDER BY THE CALENDAR (Claude): 9a (tonight) →
+  11a-1 HALLOWEEN + DAY OF THE DEAD + the shared holiday system (must be live by ~Oct 29: Halloween is Sat Oct 31; the
+  build-ups are date-driven, so arriving late in October simply shows the build-up as far along as the date says) →
+  11a-2 THANKSGIVING + the reusable PARADE system (by mid-Nov; Thanksgiving Nov 26, the Wednesday party, Black Friday's
+  first Christmas crew) → 9b WINTER (before Grand Rapids' first real snow, ~mid-Nov) → 10 PARTY NIGHTS + FIREWORKS →
+  11b CHRISTMAS + NYE (live by Nov 26: the build-up starts Nov 27) → then the games; 11c's spring / summer holidays,
+  12, C3 + 13 slot in before their dates. The holiday sounds are already in ~/Downloads/city-sfx (witch-cackle,
+  haunted-wind, ghost-ship-creak, ghost-bell, marching-drums, crowd-cheer…) — no Grok batch needed for Halloween or
+  Thanksgiving. NOTE: City 2.0 is still behind ?city=2 — this Halloween only the owner sees it; it's built for good.
+- THE MUSIC-ON RACE LANDS ON THE BEAT (the owner, Oct 25 10:32 pm — BUILT in 9a as an add-on): when the music is switched back ON (unmute), the neon
+  race along the tubes STARTS ON A BEAT of the song for extra punch — quantized to the song's next beat (or the next
+  downbeat if it's within ~0.6 s), using THE BEAT's grid (core/harbor-beat.js) once the song's clock is moving; if the
+  song's grid isn't trusted / the clock hasn't started within ~0.8 s, fire at once (never a long wait, never a missed
+  race); the first-tap surge on load the same way when the music starts with it. Keep the ~10 s cooldown.
+- THE FESTIVAL, REVISED (the owner, Oct 25 10:44 pm, watching 9a build it — BUILT in 9a): THE BULLSEYE not black + yellow (the smiley is)
+  → deep VIOLET + TEAL rings on cream; the 6th balloon is an AMERICAN FLAG balloon (the flag wrapped round the envelope:
+  the canton + stars on the upper part, the stripes down the gores; Old Glory red #B22234, navy #3C3B6E, white) instead
+  of the vertical stripes (they stay an everyday single-balloon style). Order: orange ₿, alien, black ₿, bullseye, smiley,
+  American flag.
+- THE PEOPLE IN THE SPEAKEASY's WINDOWS — NEXT UPGRADE (the owner asked, Oct 25 10:52 pm): built in 7b (the figure kit +
+  the starter moments), the windows redone in 7b / POLISH 5 (single big panes), never reworked since. PLAN (Claude): a
+  WINDOW PEOPLE upgrade (now SP3 GROUP 2 — moved out of the Halloween pass) — Halloween's window scenes (ghosts behind curtains,
+  mummy silhouettes, a costume party) use the same figure kit, so upgrade it first: premium silhouettes at the real
+  window size (posture, hats + hair shapes, a warm rim from the room's lamp), motion as natural as PEO's walkers (eased,
+  weight shifts, no snapping), each moment staged for the single panes, more moments in the catalogue; then every later
+  holiday's window scenes ride on it.
+  THE OWNER's COMPLAINTS (Oct 25 10:54 pm): (1) TOO SMALL — at phone size you can't make anything out, only light +
+  movement. FIX (Claude): stage the people CLOSE TO THE GLASS — big, bold silhouettes, head + shoulders or a torso
+  cropped by the frame, one or two per window, simple strong poses against the lit back wall (a person at the glass,
+  a couple dancing filling the pane, the bartender's shoulders), judged ONLY by shape + light + motion at 402; no
+  small furniture or props that can't read. (2) THE LIGHT IS WAY TOO ORANGE — move the rooms to softer, more varied
+  warm whites: cream, honey, a faint rose lamp, a cooler TV blue — each room its own tone, still cozy, never one flat
+  orange; the bar / basement keep their deeper amber as the one exception. (3) BUG: the upper-right TV room goes from
+  the TV's blue to ORANGE after ~3 am — it should be: the TV switches off (a brief fade / a last flicker) and the room
+  goes DARK until morning (only the faint night from outside on the glass); the other rooms keep the building's
+  "never fully dark" rule.
+  THE OWNER's DECISIONS (Oct 25 ~11 pm, after Claude measured: the upper row is 2.0 tall vs the lower 2.2 —
+  core/harbor-speakeasy.js SPEAK_V.rows [[4.6, 6.8], [7.6, 9.6]] — so the top windows really ARE ~10 % shorter):
+  (1) SIZE — REVISED (the owner, Oct 25 11:33 pm): all four upper-facade windows EQUAL, ~20 % TALLER and ~15 % WIDER
+  (~40 % more glass — the most the facade allows while it still reads as a brick 1920s building: keep real piers for the
+  wall-washers + a band above the shopfront + under the cornice; Claude's room check: rows today [4.6, 6.8] + [7.6, 9.6],
+  columns 1.9 wide with 1.3 gaps) (use the brick between the rows; the sills, reveals,
+  the EST. plaque, the cornice + the wall-washers re-placed to fit; every moment's staging + the hush sign re-fit);
+  (2) SCENES: a MIX — some moments as CLOSE BOLD silhouettes at the glass (head + shoulders, a body cropped by the frame),
+  some as FULL-BODY figures in a simplified room (one lamp, one or two strong shapes, no small props); every one judged
+  by shape + light + motion at 402; (3) ONE STAR WINDOW AT A TIME: one window carries the clear moment, the others stay
+  softly lit with slow simple life (a shadow passing, a lamp dimming, a curtain stirring) — the eye always knows where
+  to look; the star rotates through the evening; (4) LIGHT: varied soft warm whites per room — cream, honey, a faint
+  rose lamp, the TV's cool blue — never one flat orange (the bar + the basement keep their deeper amber). The half-cut
+  column at the left screen edge (at 402) holds only things that read when half-seen (the cat, plants, a lamp).
+  (5) BIGGER PEOPLE (the owner, Oct 25 11:35 pm — DECIDED): in the windows, the CLOSE silhouettes fill ~60–70 % of the
+  pane's height (head + shoulders the dominant shape — posture, a hat, a turned head read), the full-body figures deeper
+  in the room a little smaller (depth); ON THE PROMENADE every person ~8–10 % bigger, checked against the doors, the
+  bench, the lamps + the cart at 402 (no dollhouse look — if a prop now reads small, it scales with them).
+- THE ROOF SIGNS' HOURLY MODES (the owner, Oct 25 ~11:10 pm — DECIDED, now in SP3): every
+  HOUR each named roof sign (NEON PAR, PRISM, PULSE… — not the NEON logo, not the billboard) runs ONE of
+  three modes, seeded per sign per hour (the same for everyone, two neighbours never the same mode in one hour):
+  (1) THE SPELL — the letters light one at a time in order, hold, the word flashes twice + settles, every ~45–90 s;
+  (2) THE BORDER RACE — a bright pulse runs once round the sign's frame every 60 s (signs with no neon border get a thin
+  border tube round the cabinet so the race has a track); (3) THE BREATH — a slow ~5 s brighten / dim, never to off, not
+  on the music's beat. THEY TAKE TURNS on the big moves (only one sign spelling or racing at any moment; the rest breathe /
+  hold) so the skyline never fights the NEON logo. THE TOP OF EACH HOUR: a quick restart flicker, then the new mode
+  (that's the only "cold start" — no 4th mode). THE BURNT-OUT LETTER rule still applies in every mode (dark for its 2–3
+  days; skipped / one sputter in the spell; dead while the rest breathes). Party nights: the party show takes over as now.
+  THE BILLBOARD keeps its own life (the billposter's job pastes a new game poster now and then; it holds longer).
+- THE HIGH STAKES BILLBOARD ON THE SPEAKEASY's ROOF ~15 % BRIGHTER (the owner, Oct 25 11:15 pm): its lighting (the
+  gooseneck lamps' pools on the board + the lettering's glow) up ~15 % at night + dusk, the lettering still crisp (no
+  bloom wash); by day unchanged. HOW (Claude's call, the owner left it open): FIVE gooseneck lamps EVENLY SPACED across
+  the top (today two + two with a gap over the spade) — the centre one lighting the spade logo — which gives most of the
+  brighter, more even board on its own; then only a small lift to reach ~15 % overall.
+- CRISP NEON — THE LOGO + THE HUSH SIGN LOOK SOFTER THAN THE SKYLINE (the owner, Oct 25 11:38 pm: the buildings' neon is
+  "sharp, high def, looks really good"; the JAZZ hush sign looks FUZZY; the main NEON logo isn't as "4K" as the skyline).
+  Claude's read of the code (to be MEASURED on WebKit / the owner's screenshots, not assumed): (1) TWO DIFFERENT NEON
+  SYSTEMS — the skyline uses the city's TUBE renderer (screens/harbor/tubes.js: uneven body, a white-hot core, a glass
+  highlight, electrodes, sprites baked per tube) while the NEON LOGO is an SVG (ui/logo.js) of flat strokes (glass, two
+  feGaussianBlur glows, body, a core at 0.34× the tube, a 0.8-wide highlight at 35 %) — iOS Safari rasterises SVG filter
+  layers + composited, opacity-animated groups at a lower scale and scales them up → soft; (2) the city's canvases cap
+  the pixel ratio at 2 on the owner's 3× iPhone (hushsign.js + neon.js: dpr = min(2, …)) — fine for thin skyline tubes,
+  but small bold letters show it; (3) the hush sign's letters are small (~11–12 pt) with a halo wide for their stroke,
+  drawn at fractional positions. FIX (its own group, before Halloween): the NEON LOGO rebuilt on the city's TUBE look
+  (uneven body, white-hot core, the glass highlight, electrodes) at FULL device resolution (one element — a 3× canvas or
+  an SVG whose blurs never scale), keeping everything it does (the boot, the catch + the race, letter taps, the burnt-out
+  letter, the blaze, the weather layers, City 1.0 untouched or improved the same way); the HUSH SIGN at full DPR,
+  pixel-snapped, the tube treatment, a halo sized to its stroke. Prove it: zoomed 3× screenshots side by side (skyline
+  tube vs logo vs hush sign, before / after) + an A-B-B-A speed check.
+- SPEAKEASY IN WHITE NEON (the owner asked, Oct 26 12:04 am — Claude recommends YES, for SP3's CRISP NEON group): today
+  "SPEAKEASY" + the rules with the little diamonds either side are DOM TEXT (title.js .nd-word + glow layers), not tubes.
+  Rebuild them as real WHITE NEON on the same tube look as the new NEON logo: single-stroke tube letterforms (rounded
+  bends, electrodes, mounting clips) keeping today's wide letter-spacing; the side rules + diamonds as thin tubes with a
+  diamond bent in each; a cool white (a hint of warmth so it sits with the pink) at a CALMER glow than NEON (NEON stays
+  the star); size is fine (~13 pt caps — the skyline's roof-sign letters are about that and read great). BY DAY: real
+  white neon is phosphor-coated MILKY WHITE glass even when off, so the word stays readable unlit. Keep what it does today:
+  the beat punch, the race sweeping across it, the sign-dim hook, the dark halo over the moon; readable at 390 / 402 /
+  430 day + night. "YOUR FRIENDS ARE ALREADY INSIDE." stays text.
+- PASS ORDER UPDATE (Claude, Oct 25 ~11:40 pm): the Halloween pass got too big for a must-ship-by-Oct-29 pass, so split:
+  SP3 "THE SPEAKEASY + CRISP NEON" next (the window upgrade + bigger people, CRISP NEON, the roof signs' hourly modes, the
+  HIGH STAKES board's 5 lamps, the music-on race on the beat, 9a's review notes) → then 11a-1 HALLOWEEN + DAY OF THE DEAD
+  (the shared holiday system, the web, the pumpkins, the window ghosts on SP3's new kit, the ghost ship, the witch, the
+  trick-or-treaters) live by ~Oct 29.
+- THE MOTHMAN — HIS SIZE (an addition to his entry in "(after POLISH 5)"; the owner, Oct 25 10:50 pm — DECIDED): HULKING — feet on the needle's tip, his TOP (the hood / the raised
+  wing wrists) reaching UP TO JUST UNDER THE BOTTOM OF THE "SPEAKEASY" TAGLINE (a hair's gap, never over a letter).
+  Sized from the live layout (the needle's tip + the tagline's rect from the title's measure()), not a fixed number — on
+  the owner's iPhone that's ~50 pt above the spire tip, so with his folded wings hanging below his feet he stands ~60–70
+  pt tall. The take-off's open wings may pass BEHIND the sign + tagline (the sign always draws on top and stays readable).
