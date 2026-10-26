@@ -3,7 +3,8 @@
 // Run: node --test tests/harbor-holiday.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { holidayAt, halloweenPieces, dotdPieces, lightRules, titleHoliday, ghostShipAt, ghostShipTimes, GHOST_LEN, PUMPKIN_DAYS, PUMPKINS_MAX, processionAt, PROCESSION_LEN, spookyFlicker, HOLIDAY_TABLE } from '../js/core/harbor-holiday.js';
+import { holidayAt, halloweenPieces, dotdPieces, lightRules, titleHoliday, ghostShipAt, ghostShipTimes, GHOST_LEN, PUMPKIN_DAYS, PUMPKINS_MAX, processionAt, PROCESSION_LEN, spookyFlicker, HOLIDAY_TABLE, SPIDER2_DAY } from '../js/core/harbor-holiday.js';
+import { WEB_SPECS, buildWeb, webGrowth } from '../js/screens/harbor/dress-halloween.js';
 
 const lc = (m, d, h = 21, mi = 0, y = 2026) => ({ y, m, d, h, mi, s: 0 });
 const days = y => { const out = []; for (let t = Date.UTC(y, 0, 1); t < Date.UTC(y + 1, 0, 1); t += 864e5) { const D = new Date(t); out.push([D.getUTCMonth() + 1, D.getUTCDate()]); } return out; };
@@ -54,6 +55,14 @@ test('the pieces of Halloween: the pumpkins multiply + get carved, the scenes + 
   assert.ok(!b.trickOrTreat && !b.zombies && !b.ghostShip && b.windows === 0 && b.spooky === 0, 'Oct 10: none of the night\'s pieces');
   assert.ok(halloweenPieces(holidayAt(lc(10, 27, 21))).windows > 0.5, 'Oct 27: the window scenes most nights');
   assert.equal(halloweenPieces(holidayAt(lc(11, 2, 12))), null, 'not on Day of the Dead');
+  // WIN3 — THE SECOND SPIDER by date (the owner: part of the build-up — it arrives Oct 29, so the 30th + 31st have two), on a corner web
+  // already more than half spun that day (signdress.js wants both: the piece + the web's growth ≥ ½)
+  assert.equal(SPIDER2_DAY, 29);
+  for (const d of [26, 27, 28]) assert.ok(!halloweenPieces(holidayAt(lc(10, d, 21)), { hour: 21 }).spider2, `Oct ${d}: one spider`);
+  for (const [d, h] of [[29, 0], [29, 21], [30, 12], [31, 21]]) assert.ok(halloweenPieces(holidayAt(lc(10, d, h)), { hour: h }).spider2, `Oct ${d} ${h}:00: two spiders`);
+  const web = buildWeb(WEB_SPECS[1]);
+  assert.ok(webGrowth(web, holidayAt(lc(10, 29, 0)).stage) >= 0.5, `the corner web half spun by Oct 29 00:00 (${webGrowth(web, holidayAt(lc(10, 29, 0)).stage).toFixed(2)})`);
+  assert.ok(halloweenPieces(holidayAt(lc(11, 1, 1)), { hour: 1 }).spider2, 'still there in the small hours of Nov 1');
 });
 
 test('DAY OF THE DEAD: dressed 4 → 7 am Nov 1, up through Nov 2, taken down through Nov 3; the procession on Nov 2 at dusk only', () => {

@@ -348,7 +348,7 @@ body.reduced-fx .nd-word-s, body.reduced-fx .nd-word-p { animation: none !import
 .nd-sign.is-day .nd-logo .ndl > circle:not(.ndl-glint) { fill: #18121e; stroke: rgba(255, 255, 255, 0.4); stroke-width: 0.7px; }   /* the electrode caps only (the premium logo's glints + hot spots keep their own fills) */
 .nd-sign.is-day .nd-word { opacity: 1; color: rgba(255, 255, 255, 0.92); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55); }
 .nd-sign.is-day .nd-tag { opacity: 1; color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
-.nd-logo-wrap { position: relative; }
+.nd-logo-wrap { position: relative; z-index: 1; }   /* (WIN3: above the SPEAKEASY word's positioned tube letters — the dressing's spiders walk ON the word) */
 .nd-dress { position: absolute; pointer-events: none; }
 .nd-webs { left: -3.5%; top: -12%; width: 27%; }
 .nd-webs svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 1.5px rgba(255, 140, 210, 0.7)); }

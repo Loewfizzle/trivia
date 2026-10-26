@@ -155,7 +155,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function dressTick(t) {
     const fw = clock.force.has('sign-web'), fd = clock.force.has('sign-dotd');
     const H = fw && HS.id !== 'halloween' ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd && HS.id !== 'dotd' ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : HS;
-    const P = H === HS ? HP : H.id === 'halloween' ? { web: 1, spider: true } : { sign: 1 };
+    const P = H === HS ? HP : H.id === 'halloween' ? { web: 1, spider: true, spider2: true } : { sign: 1 };
     if (!dress) {
       if (!dressLoading && (H.id === 'halloween' || H.id === 'dotd')) { dressLoading = true; import('./signdress.js').then(m => { if (!destroyed) dress = m.createSignDress(); }).catch(e => { dressLoading = false; console.warn('[harbor] sign dress', e); }); }
       return;
@@ -2346,7 +2346,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
+    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),

@@ -119,7 +119,9 @@ export function createSignDress() {
     detach();
     host = el; if (!host || typeof document === 'undefined') return;
     cv = document.createElement('canvas'); cv.className = 'nd-dress-cv'; cv.setAttribute('aria-hidden', 'true');
-    Object.assign(cv.style, { position: 'absolute', pointerEvents: 'none', left: '0px', top: '0px', display: 'none' });
+    // (WIN3 — the owner: the spiders WALK ON TOP of SPEAKEASY, never behind it: the canvas above the word's tube letters, which are
+    // positioned siblings later in the DOM; title.css lifts .nd-logo-wrap itself for when a dim makes the wrap a stacking context)
+    Object.assign(cv.style, { position: 'absolute', pointerEvents: 'none', left: '0px', top: '0px', display: 'none', zIndex: '2' });
     host.append(cv);
     if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(es => { const w = es[0] && es[0].contentRect.width; if (w && Math.abs(w - wpx) > 0.25) { wpx = w; staticKey = ''; } }); ro.observe(host); }
     wpx = host.clientWidth || 0;           // (once, at attach — never in the frame loop)
@@ -144,7 +146,7 @@ export function createSignDress() {
     if (H && H.id === 'halloween' && P) {
       if (P.web > 0) out.push('web');
       if (P.spider && webGrowth(webs[0], P.web) >= 0.36) out.push('spider');
-      if (P.spider && webGrowth(webs[1], P.web) >= 0.5) out.push('spider2');   // (WIN2: the second, once the corner web is half spun)
+      if (P.spider2 && webGrowth(webs[1], P.web) >= 0.5) out.push('spider2');   // (WIN2: the second on the corner web, once half spun; WIN3: by date — halloweenPieces().spider2, Oct 29)
     }
     if (H && H.id === 'dotd' && P && P.sign > 0.01) out.push('dotd');
     return out;
@@ -266,6 +268,8 @@ export function createSignDress() {
     spiderAt(i = 0) { const sp = live()[i]; if (!cv || !on || !sp || !cv.isConnected) return null; const r = cv.getBoundingClientRect(); if (!r.width) return null; const st = sp.state(); return { x: r.left + (st.x - BOX.x0) / (BOX.x1 - BOX.x0) * r.width, y: r.top + (st.y - BOX.y0) / (BOX.y1 - BOX.y0) * r.height, mode: st.mode, trip: st.trip }; },
     /** WIN2: both spiders on screen */
     spidersAt() { return live().map((sp, i) => this.spiderAt(i)); },
+    /** WIN3 — a test hook (shots.mjs --js, the previews): spider i's trip as if tapped → true when it goes */
+    trip(i = 0) { const sp = live()[i]; if (!sp) return false; const st = sp.state(); return sp.near(st.x, st.y, lastEnv ? lastEnv.t || 0 : 0); },
     /** WIN2 — a flicker on the sign (scene.js / title.js pokes): every spider near it reacts → how many did */
     scare(ev) { const t = lastEnv ? lastEnv.t || 0 : 0; let n = 0; for (const sp of live()) if (sp.scare(ev, t)) n++; return n; },
     debug: () => ({ on, pieces: lastEnv ? want(lastEnv) : [], web: lastEnv && lastEnv.pieces ? lastEnv.pieces.web : null, webs: webs.map(w => ({ id: w.id, radials: w.radials.length, spiral: w.spiral.length })),

@@ -29,17 +29,24 @@ test('ten minutes of its life at 60 fps: no foot past the hard limit, no crossin
   const t0 = 600, y0 = sp.state().y, WORD = { x0: web.hub[0] - 60, x1: web.hub[0] + 80, y: web.hub[1] + 96 };
   sp.setWord(WORD);
   assert.ok(sp.near(web.hub[0], web.hub[1] + 2, t0), 'a tap near it');
-  sp.step(t0 + 0.5, { motion: true }); assert.ok(sp.state().y > y0 + 20 && sp.state().mode === 'drop', `dropped: ${JSON.stringify(sp.state())}`);
-  sp.step(t0 + 2.2, { motion: true }); assert.equal(sp.state().mode, 'crawl'); assert.ok(Math.abs(sp.state().y - WORD.y) < 0.5, `on the word's tubes (y ${sp.state().y} vs ${WORD.y})`);
+  // WIN3 — THE DANGLE (the owner): the legs gather into a tuck before it goes (no foot past ~half its stance), it hangs BELOW the thread
+  // head-down turning slowly, touches down with the front legs unfolding a little (never stretched to the letters: the body is never
+  // more than LAND_H above the tubes with its legs out), then stands on the word
+  { let gathered = false, minReach = 1, spun = false, stretched = 0, mid = null;
+    for (let t = t0; t < t0 + 2.3; t += 1 / 60) { sp.step(t, { motion: true }); const st = sp.state(); if (st.pose === 'tuck' && st.reach < 0.55 && st.y < y0 + 6) gathered = true; minReach = Math.min(minReach, st.reach); if (st.spin > 0.5) spun = true; if (st.reach > 0.7 && st.y > y0 + 10 && st.y < WORD.y - 16) stretched++; if (!mid && t >= t0 + 1.2) mid = st; assert.equal(sp.legCheck().crossed, false, `no crossing while dangling at ${(t - t0).toFixed(2)} s`); }
+    assert.ok(gathered && minReach < 0.45 && spun && stretched === 0, `the dangle: gathered first ${gathered}, the tightest reach ${minReach.toFixed(2)}, spun ${spun}, frames with the legs stretched toward the letters ${stretched}`);
+    assert.ok(mid && mid.y > y0 + 20 && mid.mode === 'drop' && mid.pose === 'tuck', `dropped, tucked at 1.2 s: ${JSON.stringify(mid)}`); }
+  sp.step(t0 + 2.6, { motion: true }); assert.equal(sp.state().mode, 'land', 'landing feet-first');
+  sp.step(t0 + 3.3, { motion: true }); assert.equal(sp.state().mode, 'crawl'); assert.ok(Math.abs(sp.state().y - WORD.y) < 0.5, `on the word's tubes (y ${sp.state().y} vs ${WORD.y})`);
   let xs = [], subs = new Set(), rev = 0, lastDir = 0;
-  for (let t = t0 + 2.2; t < t0 + 11; t += 1 / 30) { sp.step(t, { motion: true }); const st = sp.state(); if (st.mode === 'crawl') { xs.push(st.x); subs.add(st.sub); } }
+  for (let t = t0 + 3.3; t < t0 + 11; t += 1 / 30) { sp.step(t, { motion: true }); const st = sp.state(); if (st.mode === 'crawl') { xs.push(st.x); subs.add(st.sub); } }
   for (let i = 1; i < xs.length; i++) { const d = Math.sign(xs[i] - xs[i - 1]); if (d && lastDir && d !== lastDir) rev++; if (d) lastDir = d; }
   assert.ok(Math.max(...xs) - Math.min(...xs) > 12 && rev >= 1 && subs.has('still') && subs.has('move'), `it crawls back + forth along the word (${(Math.max(...xs) - Math.min(...xs)).toFixed(0)} units, ${rev} reversals, ${[...subs].join('/')})`);
   assert.ok(xs.every(x => x >= WORD.x0 + 7 && x <= WORD.x1 - 7), 'never off the word');
   assert.ok(sp.near(sp.state().x, sp.state().y, t0 + 6) && sp.state().mode === 'crawl', 'a second tap mid-way is consumed but does not restart it');
-  let climbed = false, home = false;
-  for (let t = t0 + 11; t < t0 + 24 && !home; t += 1 / 30) { sp.step(t, { motion: true }); const st = sp.state(); if (st.mode === 'climb') climbed = true; if (climbed && st.mode === 'still' && st.y < y0 + 2) home = true; }
-  assert.ok(climbed && home, `climbs back + home within 24 s: ${JSON.stringify(sp.state())}`);
+  let climbed = false, home = false, reeled = false;
+  for (let t = t0 + 11; t < t0 + 24 && !home; t += 1 / 30) { sp.step(t, { motion: true }); const st = sp.state(); if (st.mode === 'climb') climbed = true; if (st.mode === 'climb' && st.pose === 'reel' && st.head === -1 && st.reach < 0.55) reeled = true; if (climbed && st.mode === 'still' && st.y < y0 + 2) home = true; assert.equal(sp.legCheck().crossed, false, 'no crossing on the way home'); }
+  assert.ok(climbed && reeled && home, `climbs back head-up reeling the line, legs gathered (${reeled}) + home within 24 s: ${JSON.stringify(sp.state())}`);
   // ITS NERVES: a flicker beside it → frozen + crouched at once, a skitter, calm again within 6 s; a flicker far away is ignored
   const t1 = t0 + 30; sp.step(t1, { motion: true });
   assert.ok(sp.scare({ kind: 'tap', x: web.hub[0] + 20, k: 0.7 }, t1), 'scared by a flicker beside it');

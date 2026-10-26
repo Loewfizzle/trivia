@@ -76,6 +76,8 @@ export function h01(n, salt = 0) {
 /** the day (of October) the farm delivery brings the BIG jack-o'-lanterns to the promenade (core/harbor-holidayprops.js#BIG_PIECES) */
 export const BIG_DAY = 20;
 export const PUMPKINS_MAX = 5;   // (WIN: nine → five — the owner: too crowded on small iPhones)
+/** WIN3 — the day (of October) the SECOND SPIDER arrives on the last N's corner web (the owner: ~2 days before the night) */
+export const SPIDER2_DAY = 29;
 /** the day (of October) each pumpkin arrives (i 0..8) and the day it is carved — spread through the month, carving from ~the 18th */
 export const PUMPKIN_DAYS = Object.freeze(Array.from({ length: PUMPKINS_MAX }, (_, i) => {
   const arrive = 2 + Math.round(i * 6 + h01(i, 3) * 1.6);                     // Oct 2 → ~Oct 27 (five, a week apart)
@@ -93,6 +95,9 @@ export function halloweenPieces(H, o = {}) {
     web: H.stage,
     // the spider: on its web from the first week (it comes with its web)
     spider: H.stage > 0.08,
+    // WIN3 — THE SECOND SPIDER (the owner: part of the BUILD-UP, not a Halloween-only piece): it arrives on the corner web two days
+    // before the night (Oct 29), so the 30th + the 31st have two (BY DATE — the web's growth no longer decides)
+    spider2: day >= SPIDER2_DAY || night,
     pumpkins,                                     // [{ i, carved }] — the steps' jack-o'-lanterns (lit inside after dark)
     // WIN — THE BIG JACK-O'-LANTERNS on the promenade's dressing spots: the farm delivery comes Oct 20 (carved at the stand), lit after dark
     bigs: day >= BIG_DAY,

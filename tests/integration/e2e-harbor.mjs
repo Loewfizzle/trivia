@@ -2693,11 +2693,28 @@ G('holiday', async () => {
     await Q.page.touchscreen.tap(30, 120); await sleep(900);            // (a priming tap: the idle title swallows the first touch after 10 s)
     const at = await ev(Q.page, `${P}.spiderAt`);
     let dropped = false, onWord = false;
-    if (at) { await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false);
+    let dangled = false, landed = false;
+    if (at) { await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'land', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false);
+      // (WIN3 — the owner: it DANGLES on its thread — head down, the legs tucked in (the mean reach under half the stance), a slow turn — and
+      // lands feet first: the legs still pose-locked (never the full stance in the air) as it settles onto the tubes)
+      dangled = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'drop' && s.pose === 'tuck' && s.reach < 0.5 && s.spin > 0.5; })()`, 'the dangle', 2200).then(() => true).catch(() => false);
+      landed = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'land' && s.pose === 'reach' && s.reach < 0.9; })()`, 'landing feet first', 2500).then(() => true).catch(() => false);
       // (WIN2: it lands on the SPEAKEASY word's tubes and crawls along them — its y on the word, its x moving)
       onWord = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'crawl' && s.word != null && Math.abs(s.y - s.word) < 1; })()`, 'on the word', 4000).then(() => true).catch(() => false); }
+    ok(dangled && landed, `THE DANGLE (WIN3): on the way down it hangs tucked + turning (${dangled}), then lands feet first with its legs still gathered (${landed})`);
     const st = await ev(Q.page, `${P}.dress.spider`), x0 = st && st.x;
-    await sleep(2500);
+    // WIN3 — ON TOP OF THE WORD (the owner: the spiders walk on SPEAKEASY, never behind it): hit-testing follows the paint order — with
+    // pointer events switched on for the probe, the dressing's canvas is the TOPMOST element at the spider's point over the word's tubes
+    const onTop = await ev(Q.page, `(() => { const s = ${P}.spiderAt, cv = document.querySelector('.nd-dress-cv'), sign = document.querySelector('.nd-sign'); if (!s || !cv || !sign) return null;
+      const els = [sign, cv, ...sign.querySelectorAll('.nd-word, .nd-word *, .nd-logo-wrap, .nd-logo-wrap *')], was = els.map(e => e.style.pointerEvents); els.forEach(e => { e.style.pointerEvents = 'auto'; });
+      const w = document.querySelector('.nd-word').getBoundingClientRect(), y = Math.max(w.top + 1, Math.min(w.bottom - 1, s.y));
+      const st = [...document.elementsFromPoint(s.x, y)], top = st[0], i = st.indexOf(cv), j = st.findIndex(e => e.closest && e.closest('.nd-word'));
+      els.forEach((e, k) => { e.style.pointerEvents = was[k]; });
+      const cls = e => (e && (typeof e.className === 'string' ? e.className : e.className && e.className.baseVal)) || (e && e.tagName);
+      return { top: cls(top), cv: i, word: j, z: [getComputedStyle(cv).zIndex, getComputedStyle(document.querySelector('.nd-logo-wrap')).zIndex] }; })()`);
+    ok(onTop && onTop.cv === 0 && onTop.word > 0, `ON TOP OF THE WORD: at the spider's point the dressing canvas is the topmost element (${onTop ? `top ${onTop.top}, the canvas at ${onTop.cv}, the word's tubes at ${onTop.word}, z ${onTop.z.join(' / ')}` : 'no probe'})`);
+    // (WIN3: its first run may follow a turn-round at the turn rate — wait for the movement itself, up to 7 s)
+    await waitFor(Q.page, `Math.abs(${P}.dress.spider.x - ${x0}) > 2`, 'crawling along', 7000).catch(() => {});
     const st2 = await ev(Q.page, `${P}.dress.spider`), wordPx = await ev(Q.page, `(() => { const w = document.querySelector('.nd-word'); const r = w && w.getBoundingClientRect(); const s = ${P}.spiderAt; return r && s ? { in: s.y > r.top - 6 && s.y < r.bottom + 6 && s.x > r.left && s.x < r.right, sy: s.y, top: r.top, bottom: r.bottom } : null; })()`);
     ok(at && dropped && onWord && st2 && st2.mode === 'crawl' && Math.abs(st2.x - x0) > 2 && wordPx && wordPx.in, `THE SPIDER'S TAP (touch, ${at ? `${at.x.toFixed(0)},${at.y.toFixed(0)}` : 'no spider'}): it drops to the SPEAKEASY word (${st && st.mode} → ${st2 && st2.mode}, y ${st2 && st2.y} on the word ${st2 && st2.word}; on screen ${wordPx && wordPx.sy} within ${wordPx && wordPx.top}–${wordPx && wordPx.bottom}) and crawls along it (x ${x0} → ${st2 && st2.x})`);
     // THE SECOND SPIDER on the last N's web: its own tap, its own trip; the two never in step
@@ -2706,8 +2723,12 @@ G('holiday', async () => {
     if (at2) { await Q.page.touchscreen.tap(at2.x, at2.y); trip2 = await waitFor(Q.page, `['drop', 'crawl'].includes(${P}.dress.spider2.mode)`, 'the second dropping', 2500).then(() => true).catch(() => false); }
     const s2 = await ev(Q.page, `${P}.dress.spider2`), s1 = await ev(Q.page, `${P}.dress.spider`);
     ok(at2 && trip2 && s2 && s1 && (s1.mode !== s2.mode || Math.abs(s1.x - s2.x) > 40), `THE SECOND SPIDER (touch at ${at2 ? `${at2.x.toFixed(0)},${at2.y.toFixed(0)}` : 'none'}): its own trip (${s2 && s2.mode}), the first still ${s1 && s1.mode} — never in step`);
+    // WIN3 — THE CLIMB HOME, the same in reverse: head-up, reeling the line with the front legs, the legs gathered (the mean reach
+    // under 0.55), a slow turn; then both home + still (the wait is for the condition, not a fixed pause)
+    const reeled = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'climb' && s.pose === 'reel' && s.head === -1 && s.reach < 0.55; })()`, 'the first reeling home', 18000).then(() => true).catch(() => false);
+    const bothHome = await waitFor(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return a && b && !a.trip && !b.trip && a.mode === 'still' && b.mode === 'still'; })()`, 'both home', 24000).then(() => true).catch(() => false);
+    ok(reeled && bothHome, `THE CLIMB HOME: head-up, reeling the thread, the legs gathered (${reeled}); both home + still after (${bothHome})`);
     // ITS NERVES: a flicker on the sign (a poke: the race) — both freeze + crouch, eyes flaring, then calm
-    await sleep(14000);   // (both trips done: home, calm)
     const n = await ev(Q.page, `${P}.poke({ kind: 'race', k: 1 })`);
     // (a spider scared by the tired tube's poke in the last 4 s sits that one out — the cooldown; at least one reacts)
     const scared = await waitFor(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return [a, b].some(s => s && s.scared > 0.8 && s.crouch > 0.4); })()`, 'a spider scared', 1500).then(() => true).catch(() => false);
@@ -2720,6 +2741,26 @@ G('holiday', async () => {
     if (far && far.d > 24) { await Q.page.touchscreen.tap(far.x, far.y); buzzed = await waitFor(Q.page, `!document.querySelectorAll('.nd-sign .ndl')[${far.i}].classList.contains('on')`, 'the letter out', 1500).then(() => true).catch(() => false); }
     ok(far && far.d > 24 && buzzed, `A LETTER TAP BESIDE IT (letter ${far && far.i}, ${far && far.d.toFixed(0)} pt from the spider): it stutters out ${buzzed ? 'at once' : 'NEVER'}`);
     await Q.ctx.close(); }
+  // ---- WIN3 — THE SECOND SPIDER BY DATE (the owner: part of the build-up — it arrives Oct 29, so the 30th + 31st have two; Oct 28 has
+  // one), both on screen inside the sign and TAPPABLE at 390 + 430 unzoomed: a touch tap on each drops THAT spider (the other untouched)
+  for (const [when, view, want] of [['2026-10-28T21:00', [402, 874], 1], ['2026-10-29T21:00', [390, 844], 2], ['2026-10-29T21:00', [430, 932], 2]]) {
+    const Q = await open({ slot: `hol-sp${want}${view[0]}`, qs: `when=${when}${GR}&wx=clear`, view }); await harborUp(Q.page); await sleep(1500);
+    await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.spiders.length >= ${want}`, 'the spiders', 15000).catch(() => {});
+    const d = await ev(Q.page, `${P}.dress`), sp = await ev(Q.page, `${P}.spiders`), sr = await ev(Q.page, `(() => { const r = document.querySelector('.nd-sign').getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; })()`);
+    const inSign = s => s && s.x > Math.max(0, sr.x) && s.x < Math.min(view[0], sr.x + sr.w) && s.y > sr.y - 12 && s.y < sr.y + sr.h;
+    ok(d && (d.pieces || []).filter(p => /spider/.test(p)).length === want && sp.length === want && sp.every(inSign), `${when.slice(5, 10)} at ${view[0]}: ${sp.length} spider(s) (${((d && d.pieces) || []).join(',')}) — ${want} wanted, all inside the sign (${sp.map(s => `${s.x.toFixed(0)},${s.y.toFixed(0)}`).join(' · ')})`);
+    if (want === 2 && sp.length === 2) {
+      await Q.page.touchscreen.tap(30, 120); await sleep(900);            // (the priming tap)
+      const a2 = await ev(Q.page, `${P}.spiders[1]`); await Q.page.touchscreen.tap(a2.x, a2.y);
+      const t2 = await waitFor(Q.page, `${P}.dress.spider2 && ${P}.dress.spider2.trip === 'drop'`, 'the second dropping', 2500).then(() => true).catch(() => false);
+      const s1 = await ev(Q.page, `${P}.dress.spider.trip`);
+      const a1 = await ev(Q.page, `${P}.spiders[0]`); await Q.page.touchscreen.tap(a1.x, a1.y);
+      const t1 = await waitFor(Q.page, `${P}.dress.spider && ${P}.dress.spider.trip === 'drop'`, 'the first dropping', 2500).then(() => true).catch(() => false);
+      ok(t2 && s1 === null && t1, `${when.slice(5, 10)} at ${view[0]}: BOTH TAPPABLE — the second drops on its tap (${t2}; the first untouched: ${s1 === null}), the first on its own (${t1})`);
+    }
+    if (SHOTS && want === 2) await Q.page.screenshot({ path: `${OUT}holiday-spiders-${view[0]}x${view[1]}.png` });
+    await Q.ctx.close();
+  }
   // ---- WIN add-on — HALLOWEEN SET PIECES: the door's FIVE pumpkins at 390 (a stepped group on the steps + one each side, apart on screen,
   // above the dock) and the three BIG jack-o'-lanterns on the dressing spots (the hydrant, the bench's bale, the lamp post's bale: ≥ 15 pt
   // across, above the dock, drawn), their faces glowing after dark
