@@ -286,7 +286,24 @@ async function panelSection() {
   await waitFor(O.page, '!window.__district.harbor().flags.remote', 'cleared', 5000);
   await waitFor(O.page, '!window.__district.harbor().windows.spelling', 'the word gone', 5000);
   f1 = await flags(O.page);
-  ok(!f1.force.length && !f1.q.text && f1.speed === 1 && f1.wx === 'clear', `JUST ME: CLEAR ALL — the real city again (force [${f1.force}], wx ${f1.wx} from the link's own &at)`);
+  ok(!f1.force.length && !f1.q.text && f1.speed === 1 && f1.wx === null, `JUST ME: CLEAR ALL — the real city again (force [${f1.force}], wx ${f1.wx}: SP5 — the link's &at (a forced clear sky) goes too, the live weather is back)`);
+  // SP5 — CLEAR ALL = THE REAL CITY NOW (the owner: a preview LINK's flags kept forcing after CLEAR ALL): a link with &when + &force=drones
+  // + a JUST ME change (the aurora) — ONE tap on CLEAR ALL: no force, the clock the real one (not the link's night), the live weather
+  // path back (the zone's city: &at forces a clear sky, so it goes too — keepLive on the place-only clock), the URL stripped of &when /
+  // &force / &at (&city, &panel, &tz kept), the toast naming what went
+  { const P = await open({ slot: 'clearreal', qs: `when=2026-10-24T21:00&force=drones&panel=1${GR}`, view: [402, 874] });
+    await harborUp(P.page);
+    await waitFor(P.page, "window.__district.remote && window.__district.remote()", 'the panel', 15000);
+    await ev(P.page, "window.__district.remote().setMine({ force: ['aurora'] })");
+    await waitFor(P.page, "window.__district.harbor().flags.remote && window.__district.harbor().flags.force.includes('aurora')", 'JUST ME on', 8000);
+    const f0 = await flags(P.page), night0 = Math.abs(f0.now - Date.now()) > 3600e3;
+    await reopen(P.page); await tap(P.page, '.hr-clear');
+    await waitFor(P.page, '!window.__district.harbor().flags.remote', 'cleared', 5000);
+    await sleep(600);
+    const f1 = await flags(P.page), url = await ev(P.page, 'location.search'), q = new URLSearchParams(url), toastT = await ev(P.page, "(() => { const t = [...document.querySelectorAll('.toast')].map(e => e.textContent).join(' | '); return t; })()");
+    ok(night0 && !f1.force.length && !f1.q.when && !f1.q.force && f1.speed === 1 && (!f1.preview || f1.keepLive) && Math.abs(f1.now - Date.now()) < 120e3 && !q.has('when') && !q.has('force') && !q.has('at') && q.get('city') === '2' && q.get('panel') === '1' && q.has('tz') && /REAL CITY/.test(toastT) && /WHEN/.test(toastT) && /FORCE/.test(toastT),
+      `CLEAR ALL = THE REAL CITY NOW: from a night link (${new Date(f0.now).toISOString().slice(11, 16)} UTC, forced [${f0.force}]) one tap → force [${f1.force}], the real clock (${Math.round((f1.now - Date.now()) / 1000)} s off now), the live weather back (preview ${f1.preview}, keepLive ${f1.keepLive}), the URL "${url}", the toast "${toastT.slice(0, 90)}"`);
+    await P.ctx.close(); }
   // 7a §0 — THE WORD TOWERS from the panel: one word per tower, the one too long for its tower scrolls on it; the readout says so
   await ev(O.page, "window.__district.remote().setMine({ force: ['spell'], text: 'HAPPY BIRTHDAY SAM', tower: 'wordA,wordB,wordV' })");
   await waitFor(O.page, "(() => { const s = window.__district.harbor().windows.spelling; return !!s && s.towers.length === 3; })()", 'three towers', 8000).catch(() => {});
@@ -1933,7 +1950,10 @@ G('windows', async () => {
     // (at night the rooms' own content — a dark back room, the people, the TV — breaks a brightness run: the night measure is the rects
     // the rooms are painted into (paintRoom(glassOf(w)) — the same for every window) + their gaps; by day the painted glass itself)
     const judge = (o) => { if (mode === 'night') { const rs = o.rects.sort((p, q) => p.y - q.y || p.x - q.x), rows = [...new Set(rs.map(r => r.y))].map(y => rs.filter(r => r.y === y)); const ws = rs.map(r => r.w), hs = rs.map(r => r.h), mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rows.map(r => r.slice(1).map((q, i) => +(q.x - (r[i].x + r[i].w)).toFixed(1))).flat(); const gmn = Math.min(...gaps), gmx = Math.max(...gaps); return { ok: (mx - mn) / mx <= 0.02 && (gmx - gmn) / gmx <= 0.02 && (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs) <= 0.02, mn, mx, gaps, ws }; }
-      const rs = o.rows.map(r => r.slice(-2)); const ws = rs.flat().map(r => r.w); if (ws.length < 4) return { ok: false, why: `only ${ws.length} panes seen` }; const mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rs.map(r => r.length === 2 ? +(r[1].x - (r[0].x + r[0].w)).toFixed(1) : null); return { ok: (mx - mn) / mx <= 0.02, mn, mx, gaps, ws }; };
+      const rs = o.rows.map(r => r.slice(-2)); const ws = rs.flat().map(r => r.w);
+      // (SP5: by day the boss's pane is his DRAWN SHADE — no blue glass to run along; its painted rect stands in for it: the shade covers the whole pane)
+      if (ws.length === 3) { const ap = o.rects.find(r => r.id === 'apartment'); if (ap) ws.push(+ap.w.toFixed(1)); }
+      if (ws.length < 4) return { ok: false, why: `only ${ws.length} panes seen` }; const mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rs.map(r => r.length === 2 ? +(r[1].x - (r[0].x + r[0].w)).toFixed(1) : null); return { ok: (mx - mn) / mx <= 0.02, mn, mx, gaps, ws }; };
     const seen = [];
     for (const [w, h] of [[402, 874], [390, 844], [430, 932]]) {
       if (w !== 402) { await Q.page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await waitFor(Q.page, `window.__district.harbor().cam.W === ${w}`, 'the re-layout', 8000).catch(() => {}); await sleep(1800); }
@@ -1983,11 +2003,11 @@ G('windows', async () => {
     const L = await life(Q.page);
     ok(L.forced === 'dance' && L.on.every(e => e.id === 'dance'), `THE PREVIEW: only the forced moment plays (${L.on.map(e => e.id).join(', ') || 'between loops'})`);
     await Q.ctx.close(); }
-  // ---- the cat on the apartment's sill: a large dark silhouette in the lit window; a tap → it leaps off
+  // ---- the cat on the back room's sill (SP5: never the boss's — the apartment): a large dark silhouette in the lit window; a tap → it leaps off
   { const Q = await open({ slot: 'w3', qs: `when=2026-10-22T21:30${GR}&force=window&moment=cat`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
     await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'cat' && e.el > 4 && e.el < 18)", 'the cat settled', 20000);
-    const r = (await wins(Q.page)).apartment, c = await area(Q.page, r, 0.62, 0.78, 0.65, 0.85);
+    const r = (await wins(Q.page)).back, c = await area(Q.page, r, 0.62, 0.78, 0.65, 0.85);
     ok(lum(c) < 60, `THE CAT on the sill: a dark silhouette against the lamp-lit room (rgb ${c.map(v => v.toFixed(0)).join(',')})`);
     const tap = await ev(Q.page, `window.__district.harbor().speakeasy.hit(${r.x + r.w * 0.7}, ${r.y + r.h * 0.75})`);
     await sleep(1200);
@@ -2135,7 +2155,7 @@ G('windows', async () => {
     const r = (await wins(Q.page)).apartment, lv = [];
     for (let i = 0; i < 24; i++) { lv.push(lum(await area(Q.page, r, 0.25, 0.75, 0.2, 0.8))); await sleep(250); }
     const jumps = lv.filter((v, i) => i && Math.abs(v - lv[i - 1]) > 6).length, swing = Math.max(...lv) - Math.min(...lv);
-    ok(swing > 14 && jumps >= 3, `THE TV ROOM FLICKERS: its light swings ${swing.toFixed(0)} over 6 s with ${jumps} hard jumps (${lv.map(v => v.toFixed(0)).join(' ')})`);
+    ok(swing > 8 && jumps >= 1, `THE TV ROOM FLICKERS (SP5: calmer — the owner's nudge): its light swings ${swing.toFixed(0)} over 6 s with ${jumps} hard jumps (${lv.map(v => v.toFixed(0)).join(' ')})`);
     const c = await area(Q.page, r, 0.3, 0.7, 0.3, 0.7);
     ok(c[2] > c[0] + 12 && c[2] > c[1], `THE ROOM IS BLUE (rgb ${c.map(v => v.toFixed(0)).join(',')})`);
     // WIN3 — THE BOSS's ROOM (the owner: you never saw the person — the mystery is the point): NO FIGURE in the apartment over 3 s of frames;
@@ -2191,7 +2211,7 @@ G('windows', async () => {
     const iv = []; { let last = -1; ks.forEach((v, i) => { if (i && Math.abs(v - ks[i - 1]) > 0.2) { if (last >= 0) iv.push(i - last); last = i; } }); }
     const jumps = iv.length + 1, mean = iv.reduce((p, q) => p + q, 0) / Math.max(1, iv.length), sd = Math.sqrt(iv.reduce((p, q) => p + (q - mean) ** 2, 0) / Math.max(1, iv.length));
     const late = await ev(Q.page, 'window.__district.harbor().speakeasy.life.tv.late'), figs = await ev(Q.page, winTrace(1.5));
-    ok(ks.length > 100 && jumps >= 8 && sd / mean > 0.4 && late && figs.every(f => !(f.figs || []).some(g => g.w === 'apartment')), `THE FLICKER IS IRREGULAR (1 am): ${jumps} jumps in 9 s, the gaps' spread ${(sd / mean).toFixed(2)} of their mean (never periodic), the late mode ${late}, still nobody`);
+    ok(ks.length > 100 && jumps >= 3 && sd / mean > 0.4 && late && figs.every(f => !(f.figs || []).some(g => g.w === 'apartment')), `THE FLICKER IS IRREGULAR (1 am): ${jumps} jumps in 9 s, the gaps' spread ${(sd / mean).toFixed(2)} of their mean (never periodic), the late mode ${late}, still nobody`);
     await Q.ctx.close(); }
   // ---- WIN3 — A QUIET NIGHT (Oct 21 2026 is one): by 1:30 am every other room has gone to bed — the bar, the jazz club, the back room and
   // both edge windows dark — and the boss's blue glow is the ONLY light on the building; a normal night keeps its life around it
@@ -2208,6 +2228,37 @@ G('windows', async () => {
     const L2 = await ev(N.page, 'window.__district.harbor().speakeasy.life');
     ok(!L2.quiet && Object.values(L2.bed || {}).every(v => v === 1), `A NORMAL NIGHT at 1:30: quiet ${L2.quiet}, every room awake (${JSON.stringify(L2.bed)})`);
     await N.ctx.close(); }
+  // ---- SP5 — THE BOSS's ROOM BY DAY (the owner: the shade drawn all day — the one window that never opens to the daylight; never a person):
+  // at 1 pm the apartment's pane is DARK beside the back room's glass, its day plan runs (a peek / the cigar smoke / a shadow), no figure
+  { const Q = await open({ slot: 'w-bossday', qs: `when=2026-10-27T13:00${GR}&wx=clear`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1200);
+    const W = await wins(Q.page), apt = lum(await area(Q.page, W.apartment, 0.2, 0.8, 0.25, 0.85)), back = lum(await area(Q.page, W.back, 0.2, 0.8, 0.25, 0.85));
+    const B = await ev(Q.page, 'window.__district.harbor().speakeasy.life.boss'), fr = await ev(Q.page, winTrace(2)), inApt = fr.reduce((n, f) => n + ((f.figs || []).filter(g => g.w === 'apartment').length), 0);
+    ok(B && B.signal === 0 && !B.party && apt < back - 12 && inApt === 0, `THE BOSS's ROOM BY DAY: the shade drawn (its pane ${apt.toFixed(0)} vs the back room's ${back.toFixed(0)}), no tell on a Tuesday (${B && B.signal}), nobody in it (${inApt} figures over ${fr.length} frames)`);
+    await Q.ctx.close(); }
+  // ---- SP5 — THE BOOTLEGGERS' TELL: Saturday 5:30 pm (the big delivery at ~6:30) — the violet lamp + the spade behind the shade (the pane
+  // VIOLET: blue over red over green), the pane's middle darker than its sides (the spade); the same hour on a Tuesday: no violet
+  { const Q = await open({ slot: 'w-tell', qs: `when=2026-10-24T17:30${GR}&wx=clear`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1200);
+    const W = await wins(Q.page), c = await area(Q.page, W.apartment, 0.15, 0.85, 0.3, 0.8), mid = lum(await area(Q.page, W.apartment, 0.4, 0.6, 0.42, 0.62)), side = lum(await area(Q.page, W.apartment, 0.05, 0.2, 0.42, 0.62));
+    const B = await ev(Q.page, 'window.__district.harbor().speakeasy.life.boss');
+    ok(B && B.signal === 1 && c[2] > c[1] + 25 && c[0] > c[1] + 8 && mid < side - 8, `THE TELL (Saturday 5:30 pm): lit ${B && B.signal}, the pane violet (rgb ${c.map(v => v.toFixed(0)).join(',')}), the spade dark in its middle (${mid.toFixed(0)} vs ${side.toFixed(0)} at the side)`);
+    await Q.ctx.close();
+    const Q2 = await open({ slot: 'w-notell', qs: `when=2026-10-27T17:30${GR}&wx=clear`, view: [402, 874] });
+    await harborUp(Q2.page); await sleep(1200);
+    const W2 = await wins(Q2.page), c2 = await area(Q2.page, W2.apartment, 0.15, 0.85, 0.3, 0.8), B2 = await ev(Q2.page, 'window.__district.harbor().speakeasy.life.boss');
+    ok(B2 && B2.signal === 0 && !(c2[2] > c2[1] + 25 && c2[0] > c2[1] + 8), `NO TELL on a Tuesday at 5:30 pm (signal ${B2 && B2.signal}, rgb ${c2.map(v => v.toFixed(0)).join(',')})`);
+    await Q2.ctx.close(); }
+  // ---- SP5 — THE BOSS AT THE SHADE (a party night: the window party on; his shade all the way down glowing with the set's light, his
+  // shadow standing against it now + then with the cigar's ember — forced here so a stand comes within the wait)
+  { const Q = await open({ slot: 'w-watch', qs: `when=2026-10-24T22:30${GR}&wx=clear&force=window-party,boss-watch`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const seen = await waitFor(Q.page, '(() => { const B = window.__district.harbor().speakeasy.life.boss; return B && B.party && B.watch && B.watch.a > 0.95; })()', 'his shadow at the shade', 90000).then(() => true).catch(() => false);
+    const B = await ev(Q.page, 'window.__district.harbor().speakeasy.life.boss'), W = await wins(Q.page);
+    const col = await area(Q.page, W.apartment, 0.05, 0.2, 0.3, 0.7), midL = lum(await area(Q.page, W.apartment, Math.max(0, (B && B.watch ? B.watch.x : 0.5) - 0.08), Math.min(1, (B && B.watch ? B.watch.x : 0.5) + 0.08), 0.35, 0.6)), sideL = lum(col);
+    const fr = await ev(Q.page, winTrace(1.5)), inApt = fr.reduce((n, f) => n + ((f.figs || []).filter(g => g.w === 'apartment').length), 0);
+    ok(seen && B && B.party && B.watch && midL < sideL - 6 && inApt === 0, `THE BOSS AT THE SHADE: the shade down on the party (${B && B.party}), his shadow stands against the glow (${B && B.watch ? `a ${B.watch.a}, at ${B.watch.x}` : 'no stand'}: ${midL.toFixed(0)} under it vs ${sideL.toFixed(0)} beside), only ever a shadow (${inApt} figures)`);
+    await Q.ctx.close(); }
   // ---- WIN3 — THE RAID CUTS THE TV: a forced raid — the set snaps off as the siren starts (life.raidS ≥ 0 → tvOff), and stays off
   { const Q = await open({ slot: 'w3-raid', qs: `when=2026-10-22T23:30${GR}&force=raid,no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);

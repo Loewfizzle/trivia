@@ -28,6 +28,7 @@
 //   intro), so the reveal is seen frame by frame. --net 3g|4g: a cellular network (Fast 3G 1.6 Mbps / 150 ms; 4G 9 Mbps / 60 ms) —
 //   a fresh context has no cache: a first visit on a phone. --cpu N: the CPU slowed N × (4 ≈ a phone's worst moments).
 //   e.g. node shots.mjs "<browser>" --city 2 --scenes day --sizes 402x874 --load --net 3g --cpu 4 --every 250 --count 24
+// --until "<expr>": SP5 — wait until the expression is truthy in the page (≤ --until-ms, 90 s) before the shot — e.g. --until "__district.harbor().speakeasy.life.boss.watch"
 // --cast ms: C2 — a TRUE frame burst: a CDP screencast for ms after the wait (+ --js), every frame the page paints saved as
 //   <scene>-<w>x<h>-cast-<nnn>-<t ms>.jpg (t from the cast's start) — a flicker a 200 ms screenshot burst steps over shows here
 //   (e.g. the TR-3B's power coming back: --qs "force=tr3b" --js "__district.harbor().legend.start('tr3b',{at:Date.now()-32000})" --cast 9000)
@@ -196,6 +197,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
   // (POL4: --js "<expression>": run in the page before the shot — e.g. "__district.harbor().speakeasy.power(0)")
   if (opt('js', '')) { await p.evaluate(String(opt('js'))); await sleep(400); }
+  // (SP5: --until "<expression>": wait (≤ --until-ms, default 90 s) until it is truthy in the page before the shot — a seeded moment, a stand at the shade)
+  if (opt('until', '')) { const ms = Number(opt('until-ms', 90000)) || 90000; await p.waitForFunction(String(opt('until')), { timeout: ms, polling: 100 }).catch(e => console.warn(`  --until never came true within ${ms} ms`)); }
   if (IDLE) { await p.evaluate(() => window.__district.idle()); await p.waitForFunction(() => window.__district.isIdle(), { timeout: 5000 }).catch(() => {}); await sleep(2100); }
   const CAST = Number(opt('cast', 0)) || 0;
   if (CAST) {

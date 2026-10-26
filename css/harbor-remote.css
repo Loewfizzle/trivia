@@ -196,6 +196,8 @@
 .hr-stat .hr-line > span { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .sheet .btn.hr-clear { flex: none; width: 96px; min-height: 48px; padding: 6px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 700 12.5px/1.1 var(--font-ui); letter-spacing: 0.1em; white-space: nowrap; border-radius: 14px; }
 .hr-clear small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.16em; color: rgba(222, 228, 255, 0.76); }
+.sheet .btn.hr-clear.is-again { border-color: rgba(255, 196, 50, 0.85); box-shadow: 0 0 0 1px rgba(255, 196, 50, 0.35) inset, 0 0 14px rgba(255, 196, 50, 0.3); }   /* (SP5: EVERYONE's state is on — the second tap clears it too) */
+.sheet .btn.hr-clear.is-again small { color: rgba(255, 214, 110, 0.95); }
 
 /* SEARCH + THE DELAY: one row */
 .hr-find { display: flex; gap: 8px; align-items: stretch; }

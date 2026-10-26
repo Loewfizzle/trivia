@@ -21,6 +21,18 @@ import { MOMENTS } from './harbor-moments.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
 export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'mood', 'debug', 'grid', 'pulse'];
+/** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
+ *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
+ *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
+ *  &emu, &slot, &panel stay: they are where + how you look, not what is forced. */
+export const PREVIEW_KEYS = Object.freeze([...REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid'), 'moment', 'hush', 'letter', 'ad', 'season', 'n', 'wind', 'rained', 'tagms', 'at']);
+/** the page's search without its preview flags ('?city=2&debug=1' | '' ) + which flags were stripped */
+export function realCitySearch(search) {
+  const q = new URLSearchParams(search || ''), gone = [];
+  for (const k of PREVIEW_KEYS) if (q.has(k)) { gone.push(k); q.delete(k); }
+  const s = q.toString();
+  return { search: s ? `?${s}` : '', gone };
+}
 
 const GAME_IDS = ['cipher', 'signal', 'overclock', 'bluff', 'pulse', 'golf', 'prism', 'gridlock', 'slip', 'agent', 'stakes', 'rum'];
 const NEON_SCHEMES = ['halloween', 'christmas', 'july4', 'valentine', 'stpatrick', 'nye', 'thanksgiving', 'easter', 'party'];
@@ -283,6 +295,10 @@ export const EVENTS = [
   { id: 'window', label: 'WINDOW MOMENT', cat: 'windows', group: 'ROUTINES', ready: false, hint: 'with &moment=<id>' },
   // WIN3 — THE PARTY IN THE WINDOWS (&force=window-party): the peak's window party from the start, the rooms up one by one
   { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', cat: 'windows', group: 'PARTY NIGHTS', kw: 'dance blinds neon crowd jump wands party', night: true, hint: 'the party’s peak in the windows: the blinds go up one room at a time (~every 10 s), each room a dance party in its own neon colour — silhouettes jumping on the beat, a few glow wands, the colour spilling onto the cobbles; the boss’s TV room never joins; a raid cuts it' },
+  // SP5 — THE BOSS's ROOM: the bootleggers' tell (the violet lamp + the spade behind his drawn shade, lit the afternoon before a delivery
+  // until the truck comes), him at the shade on a party night (the shade down, his shadow + the cigar's ember)
+  { id: 'boss-signal', label: 'THE BOOTLEGGERS’ TELL', cat: 'windows', group: 'THE TV ROOM', kw: 'boss violet spade lamp shade bootleg signal tell', hint: 'the violet lamp + the dark spade behind the boss’s drawn shade — lit from 3 pm before Saturday’s delivery (5 pm before a weeknight run) until the truck arrives' },
+  { id: 'boss-watch', label: 'THE BOSS AT THE SHADE', cat: 'windows', group: 'THE TV ROOM', kw: 'boss shadow shade party cigar ember watch', night: true, hint: 'a party night: his shade all the way down, glowing with the set’s light — now + then his shadow stands against it looking down at the street, the cigar’s ember glowing through' },
   { id: 'smoke', label: 'A HAZE IN THE TV ROOM', cat: 'windows', group: 'THE TV ROOM', kw: 'smoke cigarette haze blue boss', night: true, hint: 'a faint haze in the boss’s dark room catching the screen’s blue (the TV on: 10 pm → 3 am) — nobody is ever seen' },
   ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', sec: m.rarity === 'legendary' ? 'legendary' : undefined, group: m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
   { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', sec: 'tools', group: 'DEBUG PIECES', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },

@@ -27,7 +27,7 @@ test('7b — THE CATALOGUE: one self-contained entry per moment — windows, rar
   assert.equal(STARTERS.length, 10, 'the starter set of ten (the mirror door is the speakeasy\'s own)');
   const by = r => STARTERS.filter(id => MOMENT[id].rarity === r).length;
   assert.equal(by('routine'), 4); assert.equal(by('common'), 2); assert.equal(by('uncommon'), 2); assert.equal(by('rare'), 1); assert.equal(by('legendary'), 1);
-  assert.deepEqual(TANGO_PATH.slice().sort(), ROOMS.map(r => r.id).sort(), 'the tango passes every upper window');
+  assert.deepEqual(TANGO_PATH.slice().sort(), ROOMS.map(r => r.id).filter(id => id !== 'apartment').sort(), 'the tango passes every window but the boss\'s (SP5)');
 });
 
 test('7b — THE SCHEDULE: something starts every ~10–20 s at night, never two in one window, never more than two at once; seeded by the date', () => {
@@ -277,4 +277,75 @@ test('WIN3 — THE PARTY IN THE WINDOWS: a seeded order a night (every phone the
   for (let i = 1; i < 300; i++) { const a = windowPartyAt(P, i * 0.2, 3000).k, b = windowPartyAt(P, (i + 1) * 0.2, 3000).k; for (const id of P.order) assert.ok(b[id] >= a[id] - 1e-9, 'monotonic on the way up'); }
   const cut = windowPartyAt(P, 200, 3000, 0.5); assert.ok(cut.cut && !cut.on && P.order.every(id => cut.k[id] === 0), 'a raid cuts it dead');
   assert.equal(partyRoomK(P, 'apartment', 500, 3000), 0);
+});
+
+// ---------------------------------------------------------------- SP5 — THE BOSS's ROOM
+test('SP5 — NO MOMENT EVER IN THE BOSS\'S ROOM: not in the catalogue, not the tango, not a year of schedules with every holiday + gate on', async () => {
+  const M = await import('../js/core/harbor-moments.js');
+  assert.equal(M.BOSS_ROOM, 'apartment');
+  // (the one routine left there, LIGHTS OUT, is the room's own state change — the lamp off, the set on — with NO figure: the e2e proves nobody is drawn)
+  for (const m of M.MOMENTS) if (m.id !== 'lights-out') assert.ok(!M.windowsOf(m).includes('apartment'), `${m.id} never plays in the boss's room (${M.windowsOf(m).join(',')})`);
+  assert.ok(!M.TANGO_PATH.includes('apartment'), 'the tango skips it');
+  assert.deepEqual(M.MOMENT.wake.windows, ['back'], 'THE UPSTAIRS WAKES moved to the back room (the owner saw it in the boss\'s window)');
+  // a year of days, the holidays at full stage on their eve, the bootleggers + a raid, hot + rain, party nights: never an entry in the apartment
+  let n = 0;
+  for (let d = 0; d < 366; d += 3) {
+    const day = new Date(Date.UTC(2026, 0, 1 + d)), key = M.dayKey(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate()), dow = day.getUTCDay();
+    for (const hol of [null, { id: 'halloween', stage: 1, eve: true, w: 1 }, { id: 'dotd', stage: 1, eve: true, w: 1, ofrendas: 1 }]) {
+      for (const e of M.dayPlan(key, { dow, month: day.getUTCMonth() + 1, dark: [19, 7], hol, boot: d % 2 === 0, raid: d % 4 === 0, wx: d % 3 === 0 ? 'hot' : 'rain', seed: 1924 })) { n++; if (e.id !== 'lights-out') assert.notEqual(e.win, 'apartment', `${key} ${e.id} in the boss's room`); if (e.win === 'all') assert.ok(!M.windowsOf(M.MOMENT[e.id]).includes('apartment')); }
+    }
+  }
+  assert.ok(n > 20000, `${n} entries checked`);
+});
+
+test('SP5 — THE TV LIGHT\'S SMALL NUDGE: calmer than WIN3 (the owner: mostly steady blue; fewer, gentler jumps; the yellow flashes much rarer) — not a redesign', async () => {
+  const { tvLight } = await import('../js/core/harbor-moments.js');
+  // WIN3 measured over the same ten minutes (seed 11): hard jumps (> 0.25 a frame) 86 / min, warm flashes 85, the mean frame change 0.034, steady stretches 2 %
+  for (const late of [false, true]) {
+    let warm = 0, dk = 0, n = 0, big = 0, quiet = 0, lastWarm = 0, lastK = null, lo = 2, hi = 0;
+    for (let t = 0; t < 600; t += 1 / 60) { const v = tvLight(t, 11, { late }); if (v.quiet) quiet++; if (v.warm && !lastWarm) warm++; lastWarm = v.warm; lo = Math.min(lo, v.k); hi = Math.max(hi, v.k); if (lastK != null) { const d = Math.abs(v.k - lastK); dk += d; n++; if (d > 0.25) big++; } lastK = v.k; }
+    assert.ok(big / 10 < 45 && big / 10 > 5, `${late ? 'late' : 'early'}: hard jumps ${(big / 10).toFixed(1)} / min (WIN3: 86 — fewer, still some)`);
+    assert.ok(warm >= 3 && warm <= 30, `warm flashes ${warm} in ten minutes (WIN3: 85 — much rarer, not gone)`);
+    assert.ok(dk / n < 0.024 && dk / n > 0.008, `the mean frame change ${(dk / n).toFixed(4)} (WIN3: 0.034 — gentler, still alive)`);
+    assert.ok(quiet / n > 0.08, `steady stretches ${(100 * quiet / n).toFixed(0)} % of the time (WIN3: 2 %)`);
+    assert.ok(lo >= 0.12 && hi > 0.9, `the range kept: ${lo.toFixed(2)} – ${hi.toFixed(2)} (the cuts still swing)`);
+  }
+});
+
+test('SP5 — THE BOSS\'S DAY: 5–8 seeded events between 7:30 and 21:30, never two at once, shadows only on an overcast day, the same for everyone', async () => {
+  const { bossDayPlan, bossDayAt } = await import('../js/core/harbor-moments.js');
+  for (let d = 1; d <= 30; d++) {
+    const key = `2026-11-${String(d).padStart(2, '0')}`;
+    for (const overcast of [false, true]) {
+      const P = bossDayPlan(key, { overcast });
+      assert.ok(P.length >= 5 && P.length <= 8, `${key}: ${P.length} events`);
+      for (let i = 0; i < P.length; i++) { const e = P[i]; assert.ok(e.t0 >= 7.5 * 3600 && e.t0 + e.len <= 21.6 * 3600, `${key} ${e.id} at ${(e.t0 / 3600).toFixed(2)}`); assert.ok(['peek', 'smoke', 'shadow'].includes(e.id)); if (i) assert.ok(e.t0 > P[i - 1].t0 + P[i - 1].len + 60, 'never two at once'); }
+      if (!overcast) assert.ok(!P.some(e => e.id === 'shadow'), 'no shadow behind the lit shade on a clear day');
+      assert.deepEqual(P, bossDayPlan(key, { overcast }), 'seeded');
+    }
+  }
+  const P = bossDayPlan('2026-11-03', { overcast: true }), e = P[0];
+  assert.deepEqual(bossDayAt(P, e.t0 - 1), null); assert.equal(bossDayAt(P, e.t0 + 1).id, e.id); assert.ok(bossDayAt(P, e.t0 + 1).p > 0);
+  assert.ok([...Array(30)].some((_, d) => bossDayPlan(`2026-11-${String(d + 1).padStart(2, '0')}`, { overcast: true }).some(x => x.id === 'shadow')), 'overcast days do get a shadow');
+});
+
+test('SP5 — THE BOOTLEGGERS\' TELL: the violet spade from 3 pm on a Saturday / 5 pm before a weeknight run until the truck arrives, never on another day', async () => {
+  const { bossSignal, SIGNAL_FROM } = await import('../js/core/harbor-moments.js');
+  assert.deepEqual(SIGNAL_FROM, { sat: 15, week: 17 });
+  assert.equal(bossSignal(16 * 3600, { boot: false, sat: true }), 0, 'not a bootleg day: dark');
+  assert.equal(bossSignal(14.9 * 3600, { boot: true, sat: true, truckAt: 18.6 * 3600 }), 0, 'Saturday 2:54 pm: not yet');
+  assert.ok(bossSignal(15.01 * 3600, { boot: true, sat: true, truckAt: 18.6 * 3600 }) > 0.9, 'Saturday 3:00:36 pm: lit (a 25-s fade)');
+  assert.equal(bossSignal(18.5 * 3600, { boot: true, sat: true, truckAt: 18.6 * 3600 }), 1, 'Saturday 6:30 pm: still lit');
+  assert.equal(bossSignal(18.6 * 3600, { boot: true, sat: true, truckAt: 18.6 * 3600 }), 0, 'the truck arrives: off at once');
+  assert.equal(bossSignal(16.5 * 3600, { boot: true, sat: false, truckAt: 22.8 * 3600 }), 0, 'a weeknight run: dark at 4:30 pm');
+  assert.equal(bossSignal(21 * 3600, { boot: true, sat: false, truckAt: 22.8 * 3600 }), 1, 'a weeknight run: lit at 9 pm');
+  assert.equal(bossSignal(23 * 3600, { boot: true, sat: false, truckAt: 22.8 * 3600 }), 0, 'off after the truck');
+  assert.equal(bossSignal(18 * 3600, { boot: true, sat: true }), 1, 'without the schedule: the delivery window\'s middle');
+});
+
+test('SP5 — THE BOSS AT THE SHADE on a party night: a stand every ~80 s on most slots, 7–14 s, stepping up + away over 1.4 s, the ember on a draw', async () => {
+  const { bossWatch } = await import('../js/core/harbor-moments.js');
+  let stands = 0, inStand = false, maxA = 0, ember = 0, longest = 0, cur = 0;
+  for (let t = 0; t < 1600; t += 0.05) { const w = bossWatch(t, 11); if (w) { maxA = Math.max(maxA, w.a); if (w.ember > 0.5) ember++; assert.ok(w.a >= 0 && w.a <= 1 && w.x > 0.4 && w.x < 0.73); cur += 0.05; if (!inStand) { stands++; inStand = true; assert.ok(w.a < 0.1, 'steps up from nothing'); } } else { if (inStand) longest = Math.max(longest, cur); cur = 0; inStand = false; } }
+  assert.ok(stands >= 10 && stands <= 20 && maxA === 1 && longest >= 7 && longest <= 14.2 && ember > 0, `${stands} stands in 1600 s, the longest ${longest.toFixed(1)} s, the ember glowed on ${ember} samples`);
 });

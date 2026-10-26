@@ -68,7 +68,7 @@ import { createWaterfront } from './waterfront.js';
 import { createSkyBeams } from './skybeams.js';
 import { createStrings } from './strings.js';   // (the roof's café-light canopy — SP2)
 import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
-import { REMOTE_KEYS, eventDef } from '../../core/harbor-remote.js';
+import { REMOTE_KEYS, PREVIEW_KEYS, eventDef } from '../../core/harbor-remote.js';
 import { setCityClock } from '../../core/city.js';
 import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
 import { tracesAt } from '../../core/harbor-crew.js';
@@ -88,7 +88,7 @@ import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyRe
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, UFO_LEN, TR3B_LEN, trafficHold, inHold } from '../../core/harbor-legend.js';
 import { raidEvening, raidPlan, raidAt, forcedRaid, RAID } from '../../core/harbor-raid.js';
-import { dayOf as workDayOf, HOT_C, bootlegNight } from '../../core/harbor-workers.js';
+import { dayOf as workDayOf, HOT_C, bootlegNight, workDay } from '../../core/harbor-workers.js';
 import { createRaid } from './raid.js';
 import { roadLampAt } from '../../core/harbor-light.js';
 import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
@@ -872,11 +872,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let lobbyLine = 0;
   /** WIN — the cash count's gates (core/harbor-moments.js: boot / noRaid): tonight a bootleggers' night (a weeknight delivery — the
    *  workers' schedule — or Saturday's big one), tonight a raid night (the evening's raid, already planned by raidPlanNow) */
+  let truckKey = '', truckAt = null;   // (SP5: the bootleggers' truck tonight — seconds after local midnight; the boss's tell goes off then)
   function nightGates() {
     const lc = LK.local; if (!lc) return { boot: false, raid: false };
     const key = momentDayKey(lc.y, lc.m, lc.d), seed = L ? L.seed || 1924 : 1924, dow = new Date(Date.UTC(lc.y, lc.m - 1, lc.d)).getUTCDay();
-    const r = raidDays.get(key);
-    return { boot: dow === 6 || bootlegNight(key, { seed }), raid: !!r };
+    const r = raidDays.get(key), boot = dow === 6 || bootlegNight(key, { seed });
+    if (boot && truckKey !== key) { truckKey = key; truckAt = null; try { const d = workDayOf(clock.now() / 1000, lc.off || 0); const w = workDay(d.key, { off: lc.off || 0, seed, day0: d.day0, dusk: duskFor, hot: hotDay }).find(o => o.kind === 'bootleg' || o.kind === 'delivery'); truckAt = w ? w.t0 - d.day0 : null; } catch { truckAt = null; } }
+    return { boot, raid: !!r, truckAt: boot ? truckAt : null, overcast: (LK.cloud || 0) >= 0.7, bossSignal: clock.force.has('boss-signal'), bossWatch: clock.force.has('boss-watch') };
   }
   // 8P — THE HUSH WORD SIGN's preview: &force=hushsign&hush=JAZZ (the lobby's word; Lobby 2.0 calls harbor().speakeasy.hush(word));
   // undefined = leave the sign to its hook
@@ -1853,9 +1855,25 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // value } in place of the page's own REMOTE_KEYS, or null (back to the page's own URL); o.at: when it began (server ms),
   // o.srv: the server clock — a time jump runs from o.at, so every phone shows the same minute, and a sky piece the state asks for
   // starts at o.at (a late arrival lands mid-flight).
-  const pageQ = new URLSearchParams(q);
-  const pageClock = { now: clock.now, wx: clock.wx, speed: clock.speed, tz: clock.tz, preview: clock.preview, force: new Set(clock.force) };
-  let remoteKey = '', remoteApplied = false;
+  let pageQ = new URLSearchParams(q);
+  let pageClock = { now: clock.now, wx: clock.wx, speed: clock.speed, tz: clock.tz, preview: clock.preview, force: new Set(clock.force) };
+  /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): the page's OWN link flags (&when / &force / &wx / &hush…) are dropped too — the
+   *  page clock becomes the real one at the place the link names (&tz / &at kept), the live weather comes back, every sky piece in
+   *  flight + a legendary are stopped, the forced events end with their flags. → the flags that were stripped (the panel's toast) */
+  function realCity() {
+    const gone = [];
+    for (const k of PREVIEW_KEYS) if (pageQ.has(k)) { gone.push(k); pageQ.delete(k); }
+    const c = skyClock('?' + pageQ.toString());
+    pageClock = { now: c.now, wx: c.wx, speed: c.speed, tz: c.tz, preview: c.preview, force: new Set(c.force) };
+    try { sky.api.stop(); } catch {}
+    try { legendWant = null; if (legends) legends.stop(); } catch {}
+    // (a link that only names the PLACE (&tz / &at) is still a 'preview' clock to skyClock — a seeded sky for the review links; the real
+    // city wants the LIVE weather: keepLive, as the panel's own moved clock does — the readout says so; every later clear keeps it)
+    realLive = !!(pageClock.preview && !pageClock.wx && !pageQ.has('when') && !(pageClock.speed > 1));
+    remoteKey = '~'; applyRemote(null, {});
+    return gone;
+  }
+  let remoteKey = '', remoteApplied = false, realLive = false;   // (SP5: realLive — after CLEAR ALL a place-only link keeps the LIVE weather on its 'preview' clock)
   // (SP4: a JUST ME state the panel kept for this tab — sessionStorage, remote.js#ME_KEY — is applied before the reveal: the gate waits)
   const remoteStored = (() => { try { return !!sessionStorage.getItem('nd:hr-me'); } catch { return false; } })();
   function applyRemote(params, o = {}) {
@@ -1879,7 +1897,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       clock.keepLive = timed && !pageClock.preview && !c.wx;
       if (timed) { const start = sp.get('when') ? c.now() : at, sp0 = c.speed; clock.now = () => start + (srv() - at) * sp0; }
       else clock.now = pageClock.now;
-    } else { clock.preview = pageClock.preview; clock.now = pageClock.now; clock.keepLive = false; }
+    } else { clock.preview = pageClock.preview; clock.now = pageClock.now; clock.keepLive = realLive; }
     for (const k of [...qp.keys()]) qp.delete(k);
     for (const [k, v] of sp) qp.append(k, v);
     GRID = sp.get('grid') === '1'; DEBUG = sp.get('debug') === '1';
@@ -2322,6 +2340,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     now: () => clock.now(),
     /** THE PREVIEW PANEL (City 2.0): the preview flags swapped live — params { key: value } or null (the page's own); o: { at, srv } */
     remote: (params, o) => applyRemote(params, o),
+    realCity,   // (SP5: CLEAR ALL — the link's own flags dropped too → the stripped keys)
     speed: () => clock.speed || 1,
     skyline: () => (skyline ? Array.from(skyline) : null),
     frames: () => frames.slice(),
@@ -2403,7 +2422,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
-      flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
+      flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3) },
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),

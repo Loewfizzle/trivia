@@ -94,6 +94,7 @@ const TEST_PANEL = typeof location !== 'undefined' && /[?&]panel=1(?:&|$)/.test(
 export function createRemote({ scene, api = apiCall }) {
   let destroyed = false, live = null, liveNext = null, nextT = 0, unsub = null, admin = false, chip = null, bar = null, xb = null, label = null, cdEl = null, sheet = null, sendBusy = false, typeT = 0;
   let mode = ss.get(MODE_KEY) === 'all' ? 'all' : 'me';
+  let clearAgainT = 0, ignoreLiveAt = null;   // (SP5: CLEAR ALL's second tap clears EVERYONE's state; a live state this phone cleared away stays ignored here until a new one)
   let stored = ss.get(ME_KEY);
   if (!linkChecked) {
     linkChecked = true;
@@ -124,7 +125,7 @@ export function createRemote({ scene, api = apiCall }) {
     if (liveNext && liveNext.startAt <= serverNow()) { live = liveNext; liveNext = null; }
     if (destroyed || !sc || !sc.remote) return;
     if (!R.isEmpty(mine.state)) sc.remote(R.toParams(mine.state), { at: mine.at, srv: serverNow });
-    else if (liveOn()) sc.remote(R.toParams(live.state), { at: live.startAt, srv: serverNow });
+    else if (liveOn() && live.startAt !== ignoreLiveAt) sc.remote(R.toParams(live.state), { at: live.startAt, srv: serverNow });
     else sc.remote(null, { srv: serverNow });
     paintChip();
   }
@@ -390,12 +391,31 @@ export function createRemote({ scene, api = apiCall }) {
   /** CLEAR ALL — at once, no countdown (nothing to watch start): JUST ME back to the real city; EVERYONE: cityClear */
   async function clearAll() {
     autoSetting();
-    if (play) stopPlay(false);
+    const cleared = [];
+    if (play) { stopPlay(false); cleared.push('PLAY ALL'); }
     if (mode === 'me') {
+      // SP5 — THE REAL CITY NOW (the owner: CLEAR ALL only emptied the panel's state — a preview LINK's flags kept forcing, EVERYONE's
+      // state could take over, running events kept going): JUST ME emptied, the link's own flags stripped from the URL + the scene (the
+      // real clock + the live weather back, every piece in flight stopped), an active EVERYONE state ignored here — a second tap within
+      // 8 s clears it for everyone too (the button says so; never a toast asking)
+      if (clearAgainT > Date.now()) { clearAgainT = 0; await clearEveryone(); return; }
       if (cd && cd.mode === 'me') stopCd();
-      pend = null; restart.clear(); mine.state = {}; mine.ui = {}; mine.at = serverNow(); saveMine(); apply(); render();
-      toast('BACK TO THE REAL CITY', 'info'); return;
+      if (!R.isEmpty(mine.state)) cleared.push(`JUST ME (${R.describe(mine.state).toUpperCase().slice(0, 40)})`);
+      pend = null; restart.clear(); mine.state = {}; mine.ui = {}; mine.at = serverNow(); saveMine();
+      if (liveOn()) ignoreLiveAt = live.startAt;
+      const sc = scene(), gone = sc && sc.realCity ? sc.realCity() : [];
+      if (gone.length) cleared.push(`THE LINK'S &${gone.join(' &').toUpperCase()}`);
+      try { const r = R.realCitySearch(location.search); if (r.gone.length) history.replaceState(history.state, '', location.pathname + r.search + location.hash); } catch {}
+      apply();
+      if (liveOn()) clearAgainT = Date.now() + 8000; else clearAgainT = 0;
+      render();
+      if (clearAgainT) setTimeout(() => { if (clearAgainT && clearAgainT <= Date.now()) { clearAgainT = 0; render(); } }, 8200);
+      toast(`BACK TO THE REAL CITY${cleared.length ? ` — CLEARED: ${cleared.join(' · ')}` : ' — NOTHING WAS FORCED HERE'}${liveOn() ? ' · EVERYONE’S STATE IS STILL ON' : ''}`, 'info', cleared.length ? 4200 : 2600);
+      return;
     }
+    await clearEveryone();
+  }
+  async function clearEveryone() {
     draft = { state: {}, ui: {} };
     if (!api || sendBusy) { render(); return; }
     sendBusy = true; render();
@@ -646,8 +666,8 @@ export function createRemote({ scene, api = apiCall }) {
           onclick: () => { if (mode === v) return; mode = v; ss.set(MODE_KEY, v); if (v === 'all' && !draftDirty()) draft = { state: clone(liveBase()), ui: {} }; if (v === 'me') ensurePend(); render(); } }, l))),
       h('div.hr-stat',
         statusEl = h('div.hr-status', { 'aria-live': 'polite' }),
-        h('button.btn.btn-ghost.hr-clear', { type: 'button', disabled: sendBusy || null, 'aria-label': mode === 'me' ? 'Clear all — back to the real city' : 'Clear all for everyone', onclick: clearAll },
-          h('span', 'CLEAR ALL'), h('small', mode === 'me' ? 'REAL CITY' : 'EVERYONE'))),
+        h('button.btn.btn-ghost.hr-clear', { type: 'button', disabled: sendBusy || null, class: clearAgainT > Date.now() ? 'is-again' : null, 'aria-label': mode === 'me' ? (clearAgainT > Date.now() ? 'Everyone’s state is still on — tap again to clear it for everyone too' : 'Clear all — back to the real city') : 'Clear all for everyone', onclick: clearAll },
+          h('span', clearAgainT > Date.now() ? 'TAP AGAIN' : 'CLEAR ALL'), h('small', mode === 'me' ? (clearAgainT > Date.now() ? 'EVERYONE TOO' : 'REAL CITY') : 'EVERYONE'))),
       h('div.hr-find',
         h('div.hr-search', h('span.hr-mag', { 'aria-hidden': 'true' }), qi, qx),
         h('div.hr-delay', { role: 'radiogroup', 'aria-label': 'Start after closing the panel' },
