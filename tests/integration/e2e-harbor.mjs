@@ -2105,6 +2105,47 @@ G('windows', async () => {
       return { bright, holes, box: [bx1 - bx0, by1 - by0], k }; })()`);
     ok(holes.bright >= 40 && holes.holes >= 24, `THE GHOST'S EYES + MOUTH: ${holes.holes} dark device px of holes inside the pale sheet (${holes.bright} px of sheet, ${holes.box ? holes.box.join('×') : '?'} at ${holes.k}×) in the ${win} window`);
     await Q.ctx.close(); }
+  // ---- WIN — 2.5D ROOMS: the people at DEPTH — in the bar the bartender stands deeper (0.55) than the patrons at the counter (0.28): the
+  // trace carries each figure's depth; a deeper figure is drawn through a smaller scale (the box's scale(t)); the rooms' boxes exist
+  { const Q = await open({ slot: 'w-deep', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife&moment=toast`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'toast' && e.el > 1)", 'the toast on', 25000);
+    const figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`);
+    const bar = (figs || []).filter(g => g.w === 'bar'), depths = [...new Set(bar.map(g => g.d))].sort((a, b) => a - b);
+    const deepest = bar.reduce((a, g) => (g.d > a.d ? g : a), { d: -1 }), nearest = bar.reduce((a, g) => (g.d < a.d ? g : a), { d: 9 });
+    ok(bar.length >= 4 && depths.length >= 2 && deepest.d > nearest.d && deepest.d >= 0.5 && nearest.d <= 0.3, `PEOPLE AT DEPTH in the bar: ${bar.length} figures at depths ${depths.join(' / ')} — the deepest (${deepest.d}: the bartender) behind the nearest (${nearest.d}: the patrons)`);
+    const box = await ev(Q.page, 'window.__district.harbor().speakeasy.life.box');
+    ok(box && box.faces && box.faces.includes('floor') && box.faces.includes('left') && !box.faces.includes('ceiling') && box.k < 1, `THE BOX: the bar's room shows its ${box && box.faces.join(' + ')}, the back wall at ${box && box.k} of the glass (${box && box.floorU} units of floor, ${box && box.leftU} of left wall)`);
+    await Q.ctx.close(); }
+  // ---- WIN — THE TV ROOM LIT BY THE UNSEEN SET: the room blue, REAL flicker (irregular jumps, a wide swing over 6 s), the set never drawn
+  // (no bright rectangle on the back wall — the brightest run of the pane is its lower right, where the light comes from)
+  { const Q = await open({ slot: 'w-tv', qs: `when=2026-10-22T23:10${GR}&force=smoke`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const r = (await wins(Q.page)).apartment, lv = [];
+    for (let i = 0; i < 24; i++) { lv.push(lum(await area(Q.page, r, 0.25, 0.75, 0.2, 0.8))); await sleep(250); }
+    const jumps = lv.filter((v, i) => i && Math.abs(v - lv[i - 1]) > 6).length, swing = Math.max(...lv) - Math.min(...lv);
+    ok(swing > 14 && jumps >= 3, `THE TV ROOM FLICKERS: its light swings ${swing.toFixed(0)} over 6 s with ${jumps} hard jumps (${lv.map(v => v.toFixed(0)).join(' ')})`);
+    const c = await area(Q.page, r, 0.3, 0.7, 0.3, 0.7);
+    ok(c[2] > c[0] + 12 && c[2] > c[1], `THE ROOM IS BLUE (rgb ${c.map(v => v.toFixed(0)).join(',')})`);
+    // the set is not drawn: the pane's brightest 5 × 5 cell is never a bright rectangle in the UPPER half (where the old set stood)
+    const grid = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x0 = Math.round(${r.x} * k), y0 = Math.round(${r.y} * k), w = Math.round(${r.w} * k), h = Math.round(${r.h} * k), d = cv.getContext('2d').getImageData(x0, y0, w, h).data, out = [];
+      for (let j = 0; j < 5; j++) { const row = []; for (let i = 0; i < 5; i++) { let s = 0, n = 0; for (let y = Math.floor(j * h / 5); y < Math.floor((j + 1) * h / 5); y++) for (let x = Math.floor(i * w / 5); x < Math.floor((i + 1) * w / 5); x++) { const q = (y * w + x) * 4; s += 0.2126 * d[q] + 0.7152 * d[q + 1] + 0.0722 * d[q + 2]; n++; } row.push(s / n); } out.push(row); } res(out); }))`);
+    // (no bright rectangle anywhere — the old set read ~150+ at the back wall's centre; the light lands low right, where the unseen set is)
+    const cells = grid.flat(), maxC = Math.max(...cells), lowR = (grid[3][3] + grid[3][4] + grid[4][3] + grid[4][4]) / 4, upL = (grid[0][0] + grid[0][1] + grid[1][0] + grid[1][1]) / 4;
+    okF(maxC < 120 && lowR >= upL * 0.8, `THE SET IS NEVER SEEN: the pane's brightest 5×5 cell ${maxC.toFixed(0)} (never a screen), its low right ${lowR.toFixed(0)} vs its top left ${upL.toFixed(0)} — the light comes from the unseen set below the sill`);
+    await Q.ctx.close(); }
+  // ---- WIN — COUNTING THE CASH (forced): the back room green under the banker's lamp, a lit figure, the pane changing as he counts
+  { const Q = await open({ slot: 'w-cash', qs: `when=2026-10-22T23:10${GR}&force=window&moment=cash`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'cash' && e.el > 3)", 'the count on', 30000);
+    const r = (await wins(Q.page)).back, c = await area(Q.page, r, 0.1, 0.9, 0.1, 0.9), figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`);
+    const man = (figs || []).find(g => g.w === 'back' && !g.sil);
+    ok(c[1] > c[0] + 10 && c[1] > c[2] + 6 && !!man && man.s >= 1.3, `THE CASH COUNT: the back room green (rgb ${c.map(v => v.toFixed(0)).join(',')}), a lit close-up figure (s ${man && man.s} at depth ${man && man.d})`);
+    const a = [], L0 = await ev(Q.page, 'window.__district.harbor().speakeasy.life');
+    for (let i = 0; i < 5; i++) { a.push(await area(Q.page, r, 0.3, 0.9, 0.1, 0.45)); await sleep(400); }
+    const ls = a.map(lum), moved = Math.max(...ls) - Math.min(...ls);
+    okT(moved > 1.5, `THE BILLS MOVE: the table's light changes as he counts (${ls.map(v => v.toFixed(1)).join(' → ')}) — ${JSON.stringify(L0.on)}`);
+    await Q.ctx.close(); }
 });
 
 // ================================================================ PART 8a — THE CITY SOUNDS (ONLY=sounds; docs/audio.md#the-city-sounds)

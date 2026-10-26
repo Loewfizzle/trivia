@@ -49,6 +49,10 @@ export const MOMENTS = Object.freeze([
   { id: 'costume', label: 'THE COSTUME PARTY', rarity: 'common', holiday: 'halloween', minStage: 0.85, windows: ['bar'], hours: [19.5, 2.5], light: 'night', len: 9, cooldown: 45, eve: 3, party: 2, starter: false, kind: 'a witch, a devil, a cat + a sheet ghost raising their glasses at the bar' },
   { id: 'ofrenda', label: 'LIGHTING THE OFRENDA', rarity: 'common', holiday: 'dotd', minStage: 0.5, windows: ['back'], hours: [16.5, 23.5], len: 14, cooldown: 120, eve: 1.5, starter: false, kind: 'someone kneels at the ofrenda and lights its candles one by one, then a moment of stillness' },
   { id: 'mirror', label: 'THE MIRROR DOOR', rarity: 'uncommon', windows: ['shop'], hours: [20.75, 2.5], light: 'night', len: 8.5, cooldown: 150, party: 3, starter: false, kind: 'the mirror swings open on the bar: amber light, bottles, silhouettes, a burst of jazz' },
+  // ---- WIN — COUNTING THE CASH (the owner): the bootlegger's take counted under the green banker's lamp in the back room — late on the
+  // bootleggers' nights (boot: a delivery night — core/harbor-workers.js#bootlegNight, or Saturday's big one), NEVER on a raid night
+  // (noRaid: the cash is gone before the police come — core/harbor-raid.js#raidEvening)
+  { id: 'cash', label: 'COUNTING THE CASH', rarity: 'uncommon', windows: ['back'], hours: [22.5, 2.5], light: 'night', len: 26, cooldown: 420, party: 0.6, boot: true, noRaid: true, starter: false, kind: 'a close-up: a man in shirtsleeves + braces under the green banker\'s lamp, bills peeled off the heap into banded stacks, a lick of the thumb, a glance over his shoulder; a shadow at the door — it all goes in the bag' },
 ]);
 export const MOMENT = Object.freeze(Object.fromEntries(MOMENTS.map(m => [m.id, m])));
 export const STARTERS = Object.freeze(MOMENTS.filter(m => m.starter !== false).map(m => m.id));
@@ -130,6 +134,8 @@ export function hourPlan(key, hour, ctx = {}) {
       if (m.days === 'weekday' && (ctx.dow === 0 || ctx.dow === 6)) continue;
       if (m.months && !m.months.includes(ctx.month)) continue;
       if (m.wx && !m.wx.includes(ctx.wx)) continue;
+      if (m.boot && !ctx.boot) continue;              // (WIN: only on a bootleggers' night)
+      if (m.noRaid && ctx.raid) continue;             // (WIN: never on a raid night)
       // (11a-1: a holiday's scene only in its season, past its stage; its weight from the build-up, × eve on its own night)
       let hw = 1;
       if (m.holiday) { const hl = ctx.hol; if (!hl || hl.id !== m.holiday || (hl.stage || 0) < (m.minStage || 0)) continue; hw = (hl.w == null ? 1 : hl.w) * (hl.eve ? (m.eve || 1) : 1); if (hw <= 0) continue; }
@@ -187,10 +193,10 @@ export function starOnly(on) {
  *  every moment in the table. */
 export const WINDOW_LOOKS = Object.freeze({
   wake: 'lit', 'shop-open': 'lit', bartender: 'lit', 'lights-out': 'silhouette', dance: 'shadow', toast: 'lit', sax: 'shadow', cat: 'silhouette',
-  fan: 'silhouette', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit',
+  fan: 'silhouette', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit', cash: 'lit',
 });
 export const LOOK_WHY = Object.freeze({ shadow: 'on the jazz room\'s shade (backlit)', silhouette: 'a dark room, or backlit by the TV', ghost: 'the holiday\'s own glow', lit: 'in a lit room' });
-export const STAGE = Object.freeze({ ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
+export const STAGE = Object.freeze({ cash: 1.0, ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
 /** the rooms' own steady figures (the jazz room's player, the TV couch, the bar's afternoon) — a step closer too */
 export const STAGE_ROOM = 1.22;
 /** the next start after `sec` (the readout + the e2e): { id, win, in: seconds } or null */
@@ -236,11 +242,13 @@ const h01 = (n, salt) => { let x = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b) ^
 export function tvLight(t, seed = 7) {
   const b = Math.floor(t / TV_STEP);
   let c = b;
-  for (let i = 0; i < 10; i++, c--) if (h01(c, seed) < 0.4) break;     // (the last cut; a scene lasts ≤ 3.5 s)
-  const lv = 0.38 + 0.62 * h01(c, seed + 1), tint = h01(c, seed + 2), warm = h01(c, seed + 3) < 0.12 ? 1 : 0, el = t - c * TV_STEP;
-  const drift = 0.06 * Math.sin(el * 1.7 + c), fl = 0.035 * Math.sin(t * 31 + c) + 0.02 * Math.sin(t * 57.3);
-  const flash = el < 0.08 && h01(c, seed + 4) < 0.3 ? 0.18 : 0;      // (a bright cut now and then)
-  return { k: Math.max(0.2, Math.min(1.1, lv + drift + fl + flash)), tint, warm, cut: el };
+  for (let i = 0; i < 10; i++, c--) if (h01(c, seed) < 0.45) break;     // (the last cut; a scene lasts ≤ 3.5 s)
+  // (WIN — the owner: "the glow must FLICKER much more": bigger jumps at the cuts (0.4 → 1.1), DIM spells (~1 scene in 7 at a quarter
+  // level), warm flashes, a dropped frame now and then, never a steady pulse)
+  const dim = h01(c, seed + 5) < 0.14 ? 1 : 0, lv = dim ? 0.2 + 0.16 * h01(c, seed + 1) : 0.4 + 0.7 * h01(c, seed + 1), tint = h01(c, seed + 2), warm = h01(c, seed + 3) < 0.12 ? 1 : 0, el = t - c * TV_STEP;
+  const drift = 0.07 * Math.sin(el * 1.7 + c), fl = 0.045 * Math.sin(t * 31 + c) + 0.03 * Math.sin(t * 57.3) + (h01(Math.floor(t * 12), seed + 7) < 0.08 ? -0.12 : 0);
+  const flash = el < 0.1 && h01(c, seed + 4) < 0.35 ? 0.32 : 0;      // (a bright cut now and then)
+  return { k: Math.max(0.12, Math.min(1.2, lv + drift + fl + flash)), tint, warm, cut: el, dim };
 }
 
 /** THE LATE TVs across the skyline (screens/harbor/lights.js): their level at hour h (local 0–24) — on from ~10 pm, full by 10:20,

@@ -21,6 +21,7 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
 import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
+import { wallVP } from '../../core/harbor-rooms.js';
 import { frontProfile } from './strings.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, DOOR_FLOOD, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
@@ -142,7 +143,8 @@ export function createSpeakeasy() {
     x.setTransform(dpr, 0, 0, dpr, -box.x * dpr, -box.y * dpr);
     const [ox, oy] = G.front(0, 0);
     x.save(); wallMap(x, ox, oy, G.K);
-    wins.forEach((w, i) => { const a = levels[i]; if (a > 0.01) { x.globalAlpha = a; paintRoom(x, w, { late }); x.globalAlpha = 1; } });
+    const vp = wallVP(ox, oy, G.K, G.cam.VPX, G.cam.VPY);   // (WIN: the rooms' vanishing point — each room a box in perspective)
+    wins.forEach((w, i) => { const a = levels[i]; if (a > 0.01) { x.globalAlpha = a; paintRoom(x, w, { late, vp }); x.globalAlpha = 1; } });
     // the barbershop after hours: one dim lamp over the empty chair, its pool on the floor + the chair, the mirror catching it
     const [w0, w1, wv0, wv1] = G.s.shop.win, lx = w0 + (w1 - w0) * 0.38;
     x.save(); x.beginPath(); x.rect(w0, wv0, w1 - w0, wv1 - wv0); x.clip();
@@ -362,7 +364,7 @@ export function createSpeakeasy() {
     c.globalAlpha = 1;
     const [ox, oy] = G.front(0, 0);
     if (!quiet && P > 0.04) life.draw(c, {   // (POL4: in a blackout the life's own lit windows — the TV, the night lamp — go dark with the rest)
-      map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
+      map: x => wallMap(x, ox, oy, G.K), vp: wallVP(ox, oy, G.K, G.cam.VPX, G.cam.VPY), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
     // 8P → WIN — THE HUSH WORD SIGN: the door's password sign on the corner pier (the letters stacked on a dark plate, over the sconce),
     // only while a lobby is open (hushsign.js) — POLISH 5: one clear pane, nothing laid over them
     { if (f.hush !== undefined) hush.set(f.hush);

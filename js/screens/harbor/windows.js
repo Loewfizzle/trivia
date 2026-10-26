@@ -17,6 +17,7 @@ const TV_END_S = 3 * 3600;
 import { sunTimes } from '../../core/sky.js';
 import { rngFrom } from '../../core/rng.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { roomBox, lampPool } from '../../core/harbor-rooms.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -37,29 +38,80 @@ export function glassOf(w) {
   return { a, b, r0, r1, g0, g1, h0, h1, mid: h0 + (h1 - h0) * 0.46, cw: g1 - g0, ch: h1 - h0, cx: (g0 + g1) / 2 };
 }
 
+// ------------------------------------------------------------------ WIN — 2.5D ROOMS (core/harbor-rooms.js: the box, PURE)
+// (the owner: "rooms felt a little flat, let's try 2.5D") Every room is a BOX IN PERSPECTIVE behind its glass: the back wall shrunk toward
+// the room's vanishing point (the scene's, pulled toward the pane), a FLOOR + a LEFT-WALL sliver (the camera is right of the building, its
+// eye over the roof — the right wall + the ceiling never show), the lamp's light FALLING OFF (a pool on the floor, a hot spot on the back
+// wall, dark corners), everyone AT DEPTH: deepAt(t) draws the glass's picture scaled about the vanishing point — nearer = bigger, walking
+// toward the window grows a figure — and a lit figure throws a contact shadow on the floor at its depth (floorShadow).
+/** the room's box behind a window (null without a vanishing point — a preview without one draws flat) */
+export const boxOf = (G, vp) => (vp ? roomBox(G, vp) : null);
+const quad = (x, q) => { x.beginPath(); x.moveTo(q[0][0], q[0][1]); for (let i = 1; i < q.length; i++) x.lineTo(q[i][0], q[i][1]); x.closePath(); };
+let CUR_DEPTH = 0;
+/** draw at depth t (0 = the glass, 1 = the back wall): ONE uniform scale about the room's vanishing point */
+export function deepAt(x, B, t, fn) {
+  if (!B || !(t > 0)) return fn();
+  x.save(); const s = B.scale(t); x.translate(B.vp.u, B.vp.v); x.scale(s, s); x.translate(-B.vp.u, -B.vp.v);
+  const was = CUR_DEPTH; CUR_DEPTH = t; const r = fn(); CUR_DEPTH = was; x.restore(); return r;
+}
+/** THE BOX's faces: the floor (floor[0] at the glass → floor[1] at the back), the left wall (side[0] → side[1]), the back wall (wall[0] at
+ *  its foot → wall[1] at its top), a hair of dark where they meet; o.flat() paints the old flat room when there is no box */
+function paintBox(x, G, B, o) {
+  if (!B) { if (o.flat) o.flat(); return; }
+  const { back } = B, F = B.faces;
+  if (F.floor) { const g = x.createLinearGradient(0, G.h0, 0, back.h0); g.addColorStop(0, rgb(o.floor[0])); g.addColorStop(1, rgb(o.floor[1] || o.floor[0])); x.fillStyle = g; quad(x, F.floor); x.fill(); }
+  if (F.ceiling) { x.fillStyle = rgb(mixc(o.wall[1], [0, 0, 0], 0.3)); quad(x, F.ceiling); x.fill(); }
+  if (F.left) { const g = x.createLinearGradient(G.g0, 0, back.g0, 0); g.addColorStop(0, rgb(o.side[0])); g.addColorStop(1, rgb(o.side[1] || o.side[0])); x.fillStyle = g; quad(x, F.left); x.fill(); }
+  if (F.right) { x.fillStyle = rgb(o.side[0]); quad(x, F.right); x.fill(); }
+  { const g = x.createLinearGradient(0, back.h0, 0, back.h1); g.addColorStop(0, rgb(o.wall[0])); g.addColorStop(1, rgb(o.wall[1])); x.fillStyle = g; x.fillRect(back.g0, back.h0, back.g1 - back.g0, back.h1 - back.h0); }
+  x.strokeStyle = 'rgba(0,0,0,0.3)'; x.lineWidth = 0.025; x.strokeRect(back.g0, back.h0, back.g1 - back.g0, back.h1 - back.h0);
+  if (F.floor) { x.beginPath(); x.moveTo(G.g0, G.h0); x.lineTo(back.g0, back.h0); x.stroke(); }
+}
+/** THE LAMP'S LIGHT FALLING OFF over the box: the far corners darkened (a multiply vignette), a pool on the floor under the lamp at its
+ *  depth, a hot spot on the back wall round it — lamp { u, v, t } in the glass's units, col [r,g,b], k 0..1 */
+function lampFall(x, G, B, lamp, col, k = 1, o = {}) {
+  if (!B || k <= 0.01) return;
+  const P = lampPool(B, G, lamp, o);
+  x.save(); x.beginPath(); x.rect(G.g0, G.h0, G.g1 - G.g0, G.h1 - G.h0); x.clip();
+  { const cx = (B.back.g0 + B.back.g1) / 2, cy = (B.back.h0 + B.back.h1) / 2, r = Math.hypot(G.g1 - G.g0, G.h1 - G.h0) * 0.6, d = Math.round(255 * (1 - P.corner * 0.72 * k));
+    const g = x.createRadialGradient(P.wall[0], P.wall[1], r * 0.12, cx, cy, r); g.addColorStop(0, 'rgb(255,255,255)'); g.addColorStop(0.5, 'rgb(255,255,255)'); g.addColorStop(1, `rgb(${d},${d},${d})`);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = g; x.fillRect(G.g0, G.h0, G.g1 - G.g0, G.h1 - G.h0); }
+  x.globalCompositeOperation = 'lighter';
+  { const [fu, fv, fr] = P.floor; x.save(); x.translate(fu, fv); x.scale(1, 0.3); const g = x.createRadialGradient(0, 0, 0, 0, 0, fr); g.addColorStop(0, rgb(col, 0.4 * k)); g.addColorStop(0.5, rgb(col, 0.13 * k)); g.addColorStop(1, rgb(col, 0)); x.fillStyle = g; x.fillRect(-fr, -fr, fr * 2, fr * 2); x.restore(); }
+  { const [wu, wv, wr] = P.wall; const g = x.createRadialGradient(wu, wv, 0, wu, wv, wr); g.addColorStop(0, rgb(col, 0.2 * k)); g.addColorStop(1, rgb(col, 0)); x.fillStyle = g; x.fillRect(wu - wr, wv - wr, wr * 2, wr * 2); }
+  x.restore();
+}
+/** a figure's contact shadow on the floor (drawn inside its depth frame: y = the floor line there) */
+export function floorShadow(c, x, y, s, a = 0.3) { c.save(); c.fillStyle = `rgba(10,6,12,${a.toFixed(3)})`; c.beginPath(); c.ellipse(x, y, 0.24 * s, 0.055 * s, 0, 0, TAU); c.fill(); c.restore(); }
+
 // ------------------------------------------------------------------ THE ROOMS' STILL LOOKS (cached in the lit canvas)
 /** a room's still look at night. SP2 — LESS INSIDE (the owner: the rooms read as busy fragments at ~25 pt): each room is a warm wall,
  *  ONE light source and one or two strong shapes; furniture dim + simple; curtains only framing the edges. (7b: the people are live.) */
 export function paintRoom(x, w, o = {}) {
-  const G = glassOf(w), { g0, g1, h0, h1, cw, ch } = G;
+  const G = glassOf(w), { g0, g1, h0, h1, cw, ch } = G, B = boxOf(G, o.vp);   // (WIN: the room's box — o.vp the vanishing point in wall units)
   x.save(); x.beginPath(); x.rect(g0, h0, cw, ch); x.clip();
   const warm = (c0, c1) => { const g = x.createLinearGradient(0, h1, 0, h0); g.addColorStop(0, c0); g.addColorStop(1, c1); x.fillStyle = g; x.fillRect(g0, h0, cw, ch); };
-  if (w.lit === 'bar') paintBar(x, G, 1, o.dim || 0);
+  if (w.lit === 'bar') paintBar(x, G, 1, o.dim || 0, B);
   else if (w.lit === 'shade') {
     // THE JAZZ ROOM behind an amber shade (three quarters down: the room's lamp behind it the one light) — the sax player is live
     // (SP3 — the owner: "way too orange": each room its own soft warm white — the jazz room HONEY behind its shade)
-    warm('rgb(236,198,146)', 'rgb(128,92,66)');
+    // (WIN: the box in honey — its floor + left wall show under the shade's hem)
+    paintBox(x, G, B, { wall: [[128, 92, 66], [236, 198, 146]], floor: [[66, 42, 30], [96, 62, 42]], side: [[98, 68, 48], [160, 112, 80]], flat: () => warm('rgb(236,198,146)', 'rgb(128,92,66)') });
+    if (B) lampFall(x, G, B, { u: G.cx + 0.2, v: h0 + ch * 0.62, t: 0.85 }, [255, 214, 150], 0.9, { reach: 1.3, corner: 0.5 });
     const sv = h0 + ch * 0.26;
     const g = x.createRadialGradient(G.cx, h0 + ch * 0.62, 0, G.cx, h0 + ch * 0.62, ch * 0.75);
     g.addColorStop(0, 'rgb(255,238,204)'); g.addColorStop(0.55, 'rgb(244,206,150)'); g.addColorStop(1, 'rgb(212,162,108)');
     x.fillStyle = g; x.fillRect(g0, sv, cw, h1 - sv);
     R(x, g0, sv, g1, sv + 0.05, 'rgba(110,60,30,0.8)');
-  } else if (w.lit === 'lamp') paintLampRoom(x, G, 1);
+  } else if (w.lit === 'lamp') paintLampRoom(x, G, 1, B);
   else if (w.lit === 'table') {
     // THE BACK ROOM: dark, ONE green-shaded lamp low over a round table (its pool of light), the heads round it
-    R(x, g0, h0, g1, h1, 'rgb(58,32,22)');
+    // (WIN: a dark box; the table + the players + the lamp at mid depth; the lamp's pool on the floor under them)
+    paintBox(x, G, B, { wall: [[46, 26, 18], [70, 40, 28]], floor: [[30, 18, 14], [46, 28, 20]], side: [[36, 20, 16], [54, 32, 22]], flat: () => R(x, g0, h0, g1, h1, 'rgb(58,32,22)') });
     const tx = G.cx, ty = h0 + ch * 0.22;
-    const pg = x.createRadialGradient(tx, ty + 0.18, 0, tx, ty + 0.18, 0.95); pg.addColorStop(0, 'rgba(255,234,198,0.95)'); pg.addColorStop(0.45, 'rgba(204,156,112,0.5)'); pg.addColorStop(1, 'rgba(58,32,22,0)'); x.fillStyle = pg; x.fillRect(g0, h0, cw, ch);
+    if (B) lampFall(x, G, B, { u: tx, v: ty + 0.8, t: 0.55 }, [255, 224, 160], 1, { reach: 0.9, corner: 0.7 });
+    deepAt(x, B, 0.55, () => {
+    const pg = x.createRadialGradient(tx, ty + 0.18, 0, tx, ty + 0.18, 0.95); pg.addColorStop(0, 'rgba(255,234,198,0.7)'); pg.addColorStop(0.45, 'rgba(204,156,112,0.35)'); pg.addColorStop(1, 'rgba(58,32,22,0)'); x.fillStyle = pg; x.fillRect(g0 - 0.5, h0 - 0.5, cw + 1, ch + 1);
     x.fillStyle = 'rgba(255,214,140,0.12)'; x.beginPath(); x.moveTo(tx - 0.16, ty + 0.78); x.lineTo(tx + 0.16, ty + 0.78); x.lineTo(tx + 0.6, ty + 0.04); x.lineTo(tx - 0.6, ty + 0.04); x.fill();
     // (SP4 — LIT PEOPLE: the card players under the lamp are lit from above — a white shirt + a navy jacket, skin, the lamp on the
     // crown + the shoulders, the undersides in shade)
@@ -78,9 +130,12 @@ export function paintRoom(x, w, o = {}) {
     R(x, tx - 0.008, ty + 0.92, tx + 0.008, h1, 'rgb(30,20,16)');
     x.fillStyle = 'rgb(36,104,58)'; x.beginPath(); x.moveTo(tx - 0.1, ty + 0.94); x.lineTo(tx + 0.1, ty + 0.94); x.lineTo(tx + 0.24, ty + 0.78); x.lineTo(tx - 0.24, ty + 0.78); x.fill();
     R(x, tx - 0.24, ty + 0.76, tx + 0.24, ty + 0.79, 'rgb(255,232,170)');
+    });
   } else {
     // an EDGE window (ambient only): curtains drawn, glowing with the room's light, a brighter gap between them, two soft folds
-    warm('rgb(242,218,178)', 'rgb(158,118,86)');      // (SP3: CREAM curtains)
+    // (WIN: the box behind the curtains — its floor + corner show through the gap)
+    paintBox(x, G, B, { wall: [[158, 118, 86], [242, 218, 178]], floor: [[72, 48, 36], [100, 68, 50]], side: [[112, 82, 60], [186, 146, 108]], flat: () => warm('rgb(242,218,178)', 'rgb(158,118,86)') });
+    if (B) lampFall(x, G, B, { u: G.cx - 0.3, v: h0 + ch * 0.6, t: 0.8 }, [255, 230, 190], 0.8, { reach: 1.2, corner: 0.45 });
     R(x, g0 + cw * 0.46, h0, g0 + cw * 0.56, h1, 'rgb(255,240,212)');
     x.fillStyle = 'rgba(120,40,24,0.28)'; for (const f of [0.22, 0.76]) x.fillRect(g0 + cw * f, h0, 0.05, ch);
     if (w.id === 'edge2') { x.fillStyle = 'rgba(30,20,14,0.9)'; for (let i = 0; i < 6; i++) { x.beginPath(); x.ellipse(g0 + 0.32 + i * 0.12, h0 + 0.2 + (i % 3) * 0.1, 0.13, 0.08, 0.4 * (i - 3), 0, TAU); x.fill(); } R(x, g0 + 0.28, h0, g0 + 0.95, h0 + 0.16, 'rgb(30,18,14)'); }
@@ -109,12 +164,14 @@ export function landing(x, G, col, a) {
 }
 /** THE BAR's room: the gold back-bar's glow (the pendant over the counter the one light), two shelves of bottles, the counter (lit
  *  0..1: the shelves' lights one by one while the bartender switches them on — lit ≥ 1 all; dim: the last light, only the pendant) */
-function paintBar(x, G, lit = 1, dim = 0) {
+function paintBar(x, G, lit = 1, dim = 0, B = null) {
   const { g0, g1, h0, h1, cw, ch } = G, L = (a, b) => Math.round(lerp(a, b, dim));
-  const g = x.createLinearGradient(0, h1, 0, h0);
-  g.addColorStop(0, `rgb(${L(150, 50)},${L(80, 28)},${L(40, 18)})`); g.addColorStop(0.42, `rgb(${L(255, 120)},${L(192, 84)},${L(108, 50)})`); g.addColorStop(1, `rgb(${L(176, 60)},${L(98, 34)},${L(46, 22)})`);
-  x.fillStyle = g; x.fillRect(g0, h0, cw, ch);
+  // (WIN: the bar as a box — the gold back-bar on the back wall, a dark wood floor, the left wall in the same amber a step darker)
+  paintBox(x, G, B, { wall: [[L(176, 60), L(98, 34), L(46, 22)], [L(255, 120), L(192, 84), L(108, 50)]], floor: [[L(56, 22), L(30, 14), L(18, 10)], [L(96, 36), L(52, 22), L(28, 14)]], side: [[L(110, 40), L(58, 22), L(28, 14)], [L(196, 80), L(118, 46), L(60, 28)]],
+    flat: () => { const g = x.createLinearGradient(0, h1, 0, h0); g.addColorStop(0, `rgb(${L(150, 50)},${L(80, 28)},${L(40, 18)})`); g.addColorStop(0.42, `rgb(${L(255, 120)},${L(192, 84)},${L(108, 50)})`); g.addColorStop(1, `rgb(${L(176, 60)},${L(98, 34)},${L(46, 22)})`); x.fillStyle = g; x.fillRect(g0, h0, cw, ch); } });
+  if (B) lampFall(x, G, B, { u: G.cx, v: h1 - 0.38, t: 0.5 }, [255, 206, 130], 1 - dim * 0.5, { reach: 1.1, corner: 0.55 });
   const r = rngFrom(31), bc = [[255, 170, 60], [90, 200, 110], [230, 60, 60], [255, 230, 170], [120, 170, 255], [255, 140, 40]];
+  deepAt(x, B, 1, () => {
   [h0 + ch * 0.44, h0 + ch * 0.64].forEach((v, si) => {
     const on = clamp01((lit * 2 - si)) * (1 - dim * 0.75);
     R(x, g0, v - 0.04, g1, v, 'rgb(96,52,28)');
@@ -124,26 +181,34 @@ function paintBar(x, G, lit = 1, dim = 0) {
       if (on > 0.05) R(x, u + 0.014, v + hh * 0.35, u + 0.028, v + hh * 0.85, `rgba(255,255,240,${(0.75 * on).toFixed(3)})`);
     }
   });
-  // the pendant: its cord, a small shade, the bulb (a crisp core + a tight halo)
-  const px = g0 + cw * 0.5, py = h1 - 0.34; R(x, px - 0.008, py, px + 0.008, h1, 'rgb(60,40,30)');
+  });
+  // the pendant over the counter (mid depth): its cord, a small shade, the bulb (a crisp core + a tight halo)
+  deepAt(x, B, 0.5, () => {
+  const px = g0 + cw * 0.5, py = h1 - 0.34; R(x, px - 0.008, py, px + 0.008, h1 + 0.6, 'rgb(60,40,30)');
   x.fillStyle = 'rgb(70,44,28)'; x.beginPath(); x.moveTo(px - 0.05, py + 0.06); x.lineTo(px + 0.05, py + 0.06); x.lineTo(px + 0.13, py - 0.02); x.lineTo(px - 0.13, py - 0.02); x.fill();
   const lg = x.createRadialGradient(px, py - 0.04, 0, px, py - 0.04, 0.3); lg.addColorStop(0, 'rgba(255,250,224,1)'); lg.addColorStop(0.3, 'rgba(255,220,150,0.55)'); lg.addColorStop(1, 'rgba(255,190,100,0)'); x.fillStyle = lg; x.fillRect(px - 0.3, py - 0.34, 0.6, 0.6);
-  R(x, g0, h0, g1, h0 + ch * 0.3, 'rgb(70,34,20)'); R(x, g0, h0 + ch * 0.3 - 0.05, g1, h0 + ch * 0.3, `rgb(${L(230, 120)},${L(170, 80)},${L(90, 40)})`);
+  });
+  // the counter (nearer than the pendant: its front + its lit top edge)
+  deepAt(x, B, 0.3, () => { R(x, g0 - 0.4, h0 - 0.4, g1 + 0.4, h0 + ch * 0.3, 'rgb(70,34,20)'); R(x, g0 - 0.4, h0 + ch * 0.3 - 0.05, g1 + 0.4, h0 + ch * 0.3, `rgb(${L(230, 120)},${L(170, 80)},${L(90, 40)})`); });
 }
 /** THE APARTMENT's lamp room: a warm wall, ONE fringed floor lamp (its light on the wall round it), the armchair's back, the curtains
  *  tied back at the edges (lamp: the lamp's light 0..1 — the lights-out click takes it down) */
-function paintLampRoom(x, G, lamp = 1) {
+function paintLampRoom(x, G, lamp = 1, B = null) {
   const { g0, g1, h0, h1, cw, ch } = G;
-  // (SP3: the apartment's lamp a faint ROSE — not one flat orange)
+  // (SP3: the apartment's lamp a faint ROSE — not one flat orange) (WIN: a rose box — the floor lamp by the back wall, the armchair mid-room)
   const c0 = mixc([40, 26, 30], [232, 180, 168], lamp), c1 = mixc([22, 14, 20], [146, 98, 96], lamp);
-  const g = x.createLinearGradient(0, h1, 0, h0); g.addColorStop(0, rgb(c0)); g.addColorStop(1, rgb(c1)); x.fillStyle = g; x.fillRect(g0, h0, cw, ch);
+  paintBox(x, G, B, { wall: [c0, c1], floor: [mixc([24, 16, 18], [84, 56, 50], lamp), mixc([30, 20, 22], [118, 80, 72], lamp)], side: [mixc([30, 18, 22], [150, 108, 100], lamp), mixc([36, 22, 26], [200, 150, 140], lamp)],
+    flat: () => { const g = x.createLinearGradient(0, h1, 0, h0); g.addColorStop(0, rgb(c0)); g.addColorStop(1, rgb(c1)); x.fillStyle = g; x.fillRect(g0, h0, cw, ch); } });
   const lx = g0 + cw * 0.3, ly = h0 + ch * 0.72;
-  if (lamp > 0.02) { const lg = x.createRadialGradient(lx, ly, 0, lx, ly, 1.0); lg.addColorStop(0, `rgba(255,236,190,${(0.75 * lamp).toFixed(3)})`); lg.addColorStop(0.4, `rgba(255,204,186,${(0.32 * lamp).toFixed(3)})`); lg.addColorStop(1, 'rgba(255,190,120,0)'); x.fillStyle = lg; x.fillRect(g0, h0, cw, ch); }
-  R(x, lx - 0.012, h0, lx + 0.012, ly - 0.08, 'rgb(64,38,26)');
+  if (B && lamp > 0.02) lampFall(x, G, B, { u: lx, v: ly, t: 0.8 }, [255, 230, 186], lamp, { reach: 1.25, corner: 0.55 });
+  deepAt(x, B, 0.8, () => {
+  if (lamp > 0.02) { const lg = x.createRadialGradient(lx, ly, 0, lx, ly, 1.0); lg.addColorStop(0, `rgba(255,236,190,${(0.6 * lamp).toFixed(3)})`); lg.addColorStop(0.4, `rgba(255,204,186,${(0.26 * lamp).toFixed(3)})`); lg.addColorStop(1, 'rgba(255,190,120,0)'); x.fillStyle = lg; x.fillRect(g0 - 0.5, h0 - 0.5, cw + 1, ch + 1); }
+  R(x, lx - 0.012, h0 - 0.4, lx + 0.012, ly - 0.08, 'rgb(64,38,26)');
   x.fillStyle = rgb(mixc([60, 46, 40], [255, 236, 180], lamp)); x.beginPath(); x.moveTo(lx - 0.2, ly - 0.08); x.lineTo(lx + 0.2, ly - 0.08); x.lineTo(lx + 0.12, ly + 0.08); x.lineTo(lx - 0.12, ly + 0.08); x.fill();
   x.fillStyle = rgb(mixc([40, 30, 28], [200, 130, 70], lamp)); for (let u = -0.18; u <= 0.18; u += 0.06) x.fillRect(lx + u - 0.008, ly - 0.14, 0.016, 0.06);
-  // the armchair's back (one dim shape low in the room)
-  x.fillStyle = rgb(mixc([26, 14, 16], [96, 40, 34], lamp)); x.beginPath(); x.ellipse(g0 + cw * 0.66, h0 + 0.05, 0.44, 0.34, 0, Math.PI, 0, true); x.fill();
+  });
+  // the armchair's back (one dim shape low in the room, mid depth)
+  deepAt(x, B, 0.5, () => { x.fillStyle = rgb(mixc([26, 14, 16], [96, 40, 34], lamp)); x.beginPath(); x.ellipse(g0 + cw * 0.66, h0 + 0.05, 0.44, 0.34, 0, Math.PI, 0, true); x.fill(); });
   for (const [p, q, d] of [[g0, g0 + 0.22, 1], [g1 - 0.22, g1, -1]]) { x.fillStyle = rgb(mixc([40, 14, 18], [130, 36, 40], lamp)); x.beginPath(); x.moveTo(p, h1); x.lineTo(q, h1); x.quadraticCurveTo(d > 0 ? q - 0.04 : p + 0.04, h0 + ch * 0.45, d > 0 ? q - 0.09 : p + 0.09, h0); x.lineTo(d > 0 ? p : q, h0); x.fill(); }
 }
 
@@ -173,7 +238,7 @@ let TRACE = [], TRACE_WIN = '';
 export function traceWindow(id) { TRACE_WIN = id || ''; }
 export function traceReset() { TRACE = []; }
 export const traceList = () => TRACE;
-const traceOf = P => ({ w: TRACE_WIN, x: +(P.x || 0).toFixed(4), y: +(P.y || 0).toFixed(4), s: +(P.s || 1).toFixed(3), lean: +(P.lean || 0).toFixed(4), face: +(P.face || 0).toFixed(3), step: +(P.step || 0).toFixed(4), arms: P.arms ? P.arms.map(a => (a ? [+a[0].toFixed(4), +a[1].toFixed(4)] : [0, 0])) : null, sil: !P.pal });
+const traceOf = P => ({ w: TRACE_WIN, d: CUR_DEPTH, x: +(P.x || 0).toFixed(4), y: +(P.y || 0).toFixed(4), s: +(P.s || 1).toFixed(3), lean: +(P.lean || 0).toFixed(4), face: +(P.face || 0).toFixed(3), step: +(P.step || 0).toFixed(4), arms: P.arms ? P.arms.map(a => (a ? [+a[0].toFixed(4), +a[1].toFixed(4)] : [0, 0])) : null, sil: !P.pal });
 /** SP4 — LIT PEOPLE (the owner: "if it's lit in the room you should be able to SEE them, not silhouettes"): P.lit = { col: [r,g,b]
  *  (the room's lamp), side (-1 | 0 | 1: where the lamp is; 0 = above), k (0..1 the room's level) } draws the figure in its palette's REAL
  *  colours tinted by the lamp, MODELLED by it — a lit side, a shade side (a gradient over every shape, away from the lamp; from above:
@@ -561,7 +626,7 @@ export function createWindowLife() {
   const blocks = new Map();           // `${key}|${hour}` → that hour's plan
   let dark = null, darkKey = '', routines = {}, rKey = '';
   const taps = [];                     // { id, kind, at (frame s) } — the viewer's own taps (local, not synced)
-  let catTap = -1, forcedT0 = -1, forcedId = null, last = { on: [], states: {}, sec: 0, key: '', next: null, forced: null }, busyNow = false;
+  let catTap = -1, forcedT0 = -1, forcedId = null, last = { on: [], states: {}, sec: 0, key: '', next: null, forced: null }, busyNow = false, smokeForced = false, lastBox = null;
   const sprites = new Map();
   function spot(col) {
     const key = col.join(','); let cv = sprites.get(key);
@@ -583,7 +648,7 @@ export function createWindowLife() {
     return { key: dayKey(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()), dow: d.getUTCDay(), month: d.getUTCMonth() + 1, sec: (((lms / 1000) % 86400) + 86400) % 86400, lms };
   }
   function block(key, hour, ctx) {
-    const hl = ctx.hol, k = `${key}|${hour}|${ctx.dow}|${ctx.dark.map(v => v.toFixed(2)).join(',')}|${ctx.wx || ''}|${hl ? `${hl.id}${hl.stage}${hl.eve ? 'e' : ''}${hl.w}` : ''}`;
+    const hl = ctx.hol, k = `${key}|${hour}|${ctx.dow}|${ctx.dark.map(v => v.toFixed(2)).join(',')}|${ctx.wx || ''}|${hl ? `${hl.id}${hl.stage}${hl.eve ? 'e' : ''}${hl.w}` : ''}|${ctx.boot ? 'b' : ''}${ctx.raid ? 'r' : ''}`;
     let b = blocks.get(k);
     if (!b) { b = hourPlan(key, hour, ctx); blocks.set(k, b); if (blocks.size > 8) blocks.delete(blocks.keys().next().value); }
     return b;
@@ -601,7 +666,8 @@ export function createWindowLife() {
       darkKey = loc.key;
       try { const st = sunTimes(ms, L.tz, L.lat, L.lon), hr = t => ((((t + (L.off || 0) * 60000) / 3.6e6) % 24) + 24) % 24; dark = st.rise && st.set ? [hr(st.set) + 0.35, hr(st.rise) - 0.35] : [19, 7]; } catch { dark = [19, 7]; }
     }
-    const ctx = { dow: loc.dow, month: loc.month, dark: dark || [19, 7], wx: L.wx || null, hol: L.hol || null };   // (11a-1: the holiday's scenes — scene.js passes the DAY's stage)   // (9a: the weather gate — 'hot' | 'rain' | null)
+    const ctx = { dow: loc.dow, month: loc.month, dark: dark || [19, 7], wx: L.wx || null, hol: L.hol || null, boot: !!L.boot, raid: !!L.raid };   // (WIN: the cash count's gates)
+    smokeForced = !!L.smoke;   // (11a-1: the holiday's scenes — scene.js passes the DAY's stage)   // (9a: the weather gate — 'hot' | 'rain' | null)
     if (rKey !== loc.key) { rKey = loc.key; routines = {}; for (const m of ['wake', 'shop-open', 'bartender', 'lights-out']) routines[m] = routineAt(m, loc.key); }
     let on;
     const forced = L.moment && MOMENT[L.moment] ? L.moment : null;
@@ -658,7 +724,9 @@ export function createWindowLife() {
       if (!list.length && !tap && !dress && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp')) continue;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
       traceWindow(w.id);
-      const E = { c, G, w, k, kl, day, t, mo, T, glints, f, env, frameC, after: [] };
+      const B = boxOf(G, env.vp);   // (WIN: the room's box — every painter places its people at a depth through E.deep(t, fn))
+      if (B && w.id === 'bar') lastBox = { faces: Object.keys(B.faces).filter(q => B.faces[q]), k: B.k, floorU: +(B.back.h0 - G.h0).toFixed(3), leftU: +(B.back.g0 - G.g0).toFixed(3) };
+      const E = { c, G, w, k, kl, day, t, mo, T, glints, f, env, frameC, after: [], B, deep: (t2, fn) => deepAt(c, B, t2, fn) };
       // (11a-1: each room's lamp rims its silhouettes — its own warm tone, stronger on the lamp's side)
       setRim(k > 0.25 && kl > 0.05 ? { col: RIM_COL[w.id] || [255, 222, 176], a: 0.48 * Math.min(1, kl * 1.2), side: RIM_SIDE[w.id] || 0, w: 0.026 } : null);
       // (SP3 — THE STAGING: a zoom about the pane's foot — close moments bold at the glass, cropped by the frame; core#STAGE)
@@ -705,7 +773,7 @@ export function createWindowLife() {
     const a = 0.26 * kl * Math.sin(Math.PI * u);
     busyNow = true;
     c.save(); c.globalAlpha = a;
-    figure(c, { x, y, s, rim: null, lean: -dir * 0.04, tilt: 0, face: dir, arms: [[0.06 + 0.06 * Math.sin(t * 3), 0.1], [0.06 - 0.06 * Math.sin(t * 3), 0.1]], col: 'rgb(40,20,14)', hat: seed % 2 ? 'fedora' : null, hair: seed % 2 ? null : 'bob' });
+    E.deep(0.9, () => figure(c, { x, y, s, rim: null, lean: -dir * 0.04, tilt: 0, face: dir, arms: [[0.06 + 0.06 * Math.sin(t * 3), 0.1], [0.06 - 0.06 * Math.sin(t * 3), 0.1]], col: 'rgb(40,20,14)', hat: seed % 2 ? 'fedora' : null, hair: seed % 2 ? null : 'bob' }));   // (deep in the room: small)
     c.restore();
   }
 
@@ -725,12 +793,12 @@ export function createWindowLife() {
     if (st === 'last') {
       // THE LAST LIGHT (3 → 4 am): the bar low, the pendant on, the stools up on the counter, someone sweeping up
       if (k < 0.01) return false;
-      c.globalAlpha = k; paintBar(c, G, 1, 0.62);
+      c.globalAlpha = k; paintBar(c, G, 1, 0.62, E.B);
       const cy = G.h0 + G.ch * 0.3;
-      c.fillStyle = 'rgb(30,16,12)';
-      for (const u of [0.18, 0.42, 0.66, 0.88]) { const x = G.g0 + G.cw * u; c.fillRect(x - 0.1, cy, 0.2, 0.04); c.fillRect(x - 0.09, cy + 0.04, 0.025, 0.22); c.fillRect(x + 0.065, cy + 0.04, 0.025, 0.22); }
+      E.deep(0.3, () => { c.fillStyle = 'rgb(30,16,12)';
+        for (const u of [0.18, 0.42, 0.66, 0.88]) { const x = G.g0 + G.cw * u; c.fillRect(x - 0.1, cy, 0.2, 0.04); c.fillRect(x - 0.09, cy + 0.04, 0.025, 0.22); c.fillRect(x + 0.065, cy + 0.04, 0.025, 0.22); } });
       const sw = mo ? Math.sin(t * 2.4) : 0, x = G.g0 + G.cw * (0.5 + 0.22 * Math.sin(t * 0.21));
-      figure(c, { x, y: G.h0 + 0.02, s: 0.92, lean: 0.18 + 0.08 * sw, tilt: 0.2, face: 1, arms: [[0.5 + 0.25 * sw, 0.6], [0.7 + 0.25 * sw, 0.4]], hold: [null, 'broom'], ...litP(E, whoM(0)), hair: null });
+      E.deep(0.6, () => figure(c, { x, y: G.h0 + 0.02, s: 0.92, lean: 0.18 + 0.08 * sw, tilt: 0.2, face: 1, arms: [[0.5 + 0.25 * sw, 0.6], [0.7 + 0.25 * sw, 0.4]], hold: [null, 'broom'], ...litP(E, whoM(0)), hair: null }));
       c.globalAlpha = 1;
       return true;
     }
@@ -749,7 +817,7 @@ export function createWindowLife() {
     const { c, G } = E, sv = G.h1 - G.ch * 0.34 * shade;
     // the lower half: the bar lit warm (or still dark)
     c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, sv - G.h0); c.clip();
-    if (lit > 0.01) { const a = c.globalAlpha; c.globalAlpha = a * Math.min(1, 0.35 + lit); paintBar(c, G, lit, 0.15 * (1 - lit)); c.globalAlpha = a; }
+    if (lit > 0.01) { const a = c.globalAlpha; c.globalAlpha = a * Math.min(1, 0.35 + lit); paintBar(c, G, lit, 0.15 * (1 - lit), E.B); c.globalAlpha = a; }
     else R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(36,26,26)');
     bartender(E, 'day', lit);
     // the glass: a little of the street's reflection over it
@@ -772,11 +840,12 @@ export function createWindowLife() {
     if (shake) { const su = sm(22, 22.3, ph) * (1 - sm(24.7, 25, ph)), u = Math.sin((ph - 22) * 11) * su; arms = [[lerp(0.55, 0.25, su), lerp(1.75 + 0.15 * pol, 2.3, su)], [lerp(0.35, 1.9 + 0.25 * u, su), lerp(1.9 - 0.12 * pol, 0.9 - 0.22 * u, su)]]; hold = su > 0.5 ? [null, 'shaker'] : ['cloth', 'glass']; }
     // (behind the counter = further back than the patrons: a step smaller + a lighter silhouette, the back-bar's glow round him — so the
     // patrons' raised glasses read against him)
-    if (mode === 'day') figure(c, { x, y, s: 0.86, face: 0, arms, hold, pal: { ...DAY_PALS[2], body: 'rgb(236,232,222)', arm: 'rgb(236,232,222)' }, glints: lit > 0.5 ? E.glints : null });
-    else figure(c, { x, y, s: 0.86, face: 0, arms, hold, ...litP(E, BARTENDER_PAL), glints: E.glints });   // (SP4: lit — a white shirt, a black waistcoat)
-    // the counter in front of him (his waist behind it)
-    R(c, G.g0, G.h0, G.g1, G.h0 + G.ch * 0.3, mode === 'day' ? 'rgb(70,40,28)' : 'rgb(70,34,20)');
-    R(c, G.g0, G.h0 + G.ch * 0.3 - 0.05, G.g1, G.h0 + G.ch * 0.3, mode === 'day' ? `rgba(230,170,90,${(0.5 + 0.5 * lit).toFixed(2)})` : 'rgb(230,170,90)');
+    // (WIN: behind the counter at depth 0.55 — a step smaller than the patrons in front of it)
+    E.deep(0.55, () => { if (mode === 'day') figure(c, { x, y, s: 0.86, face: 0, arms, hold, pal: { ...DAY_PALS[2], body: 'rgb(236,232,222)', arm: 'rgb(236,232,222)' }, glints: lit > 0.5 ? E.glints : null });
+    else figure(c, { x, y, s: 0.86, face: 0, arms, hold, ...litP(E, BARTENDER_PAL), glints: E.glints }); });   // (SP4: lit — a white shirt, a black waistcoat)
+    // the counter in front of him (his waist behind it), nearer
+    E.deep(0.3, () => { R(c, G.g0 - 0.4, G.h0 - 0.4, G.g1 + 0.4, G.h0 + G.ch * 0.3, mode === 'day' ? 'rgb(70,40,28)' : 'rgb(70,34,20)');
+    R(c, G.g0 - 0.4, G.h0 + G.ch * 0.3 - 0.05, G.g1 + 0.4, G.h0 + G.ch * 0.3, mode === 'day' ? `rgba(230,170,90,${(0.5 + 0.5 * lit).toFixed(2)})` : 'rgb(230,170,90)'); });
   }
   /** the patrons at the bar (their backs to us, in front of the counter): the regular in the hat; THE TOAST brings two friends —
    *  three glasses raised high over their heads (catching the light), the clink over the middle (a sparkle), a drink, glasses down.
@@ -796,11 +865,13 @@ export function createWindowLife() {
       const arms = toward < 0 ? [arm, [0.12, 0.2]] : [[0.12, 0.2], arm], hold = toward < 0 ? ['glass', null] : [null, 'glass'];
       group.push({ x: x + toward * 0.05 * clink, y, s, face: 0, lean: toward * 0.12 * clink, tilt: -0.4 * drink, arms, hold: up > 0.05 || !toast ? hold : null, hat, hair: hat === 'cloche' ? 'bob' : null, ...litP(E, pal), glints: up > 0.3 ? E.glints : null });
     }
+    E.deep(0.28, () => {   // (WIN: the patrons at the counter, nearest the glass — the biggest in the room)
     figures(c, group);
     if (full) {
       const k = sm(0.33, 0.38, p) * (1 - sm(0.4, 0.52, p));
       if (k > 0.01) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, [255, 244, 210], G.cx, G.h0 + G.ch * 0.72, 0.42, 0.95 * k); glow(c, [255, 255, 255], G.cx, G.h0 + G.ch * 0.72, 0.14, k); c.restore(); }
     }
+    });
   }
   /** the jazz room's sax player: his shadow on the shade (soft) — swaying gently all night; THE SOLO (sax) leans back hard */
   function saxPlayer(E, solo) {
@@ -811,95 +882,119 @@ export function createWindowLife() {
     c.save(); c.globalAlpha = kl;
     c.beginPath(); c.rect(G.g0, sv, G.cw, G.h1 - sv); c.clip();
     const x = G.g0 + G.cw * 0.46, y = sv - 0.08 + bob, s = 1.08;
+    E.deep(0.45, () => {
     figure(c, { x, y, s, lean, tilt: -0.2 - big * 0.35, face: 1, arms: [[0.55 - big * 0.2, 1.4], [0.75 - big * 0.25, 1.15]], col: SHADOW, hat: 'fedora', rim: null });
     // the sax: its mouthpiece at the lips, the body down + out, the bell up in the solo
     const mx = x + Math.sin(-lean) * 0.0 + 0.12 * s, my = y + 0.86 * s;
     sax(c, mx + lean * -0.5, my, s * 1.35, 0.15 + big * 0.75, 1, SHADOW);
+    });
     c.restore(); c.globalAlpha = 1;
   }
 
   // ---------------------------------------------------------------- THE APARTMENT AT NIGHT: the TV, the night lamp
-  /** SP4 — THE BLUE TV ROOM (the owner's add-on): the SET on the back wall (its screen the flickering blue, its glow on the wall round
-   *  it), a COUCH seen from behind — its back toward the window, facing the set — with a head above it (sometimes two), lit from the
-   *  FRONT by the screen: a blue rim on the hair + the shoulders, the screen glowing beyond them; small life (a slow head tilt, a nod,
-   *  the second leaning on the first's shoulder, an arm reaching for the drink on the side table); the cigarette's smoke rising from the
-   *  couch's end. The TV clicks off at 3 am (apartmentState: 'tvoff' → dark). people: true | 0..1 (a forced head level) | false */
+  /** WIN — THE BLUE TV ROOM REBUILT (the owner: the set must NOT be visible, the room LIT BY THE UNSEEN TV; the couch's back + the heads
+   *  SHADED 3D forms, never flat cut-outs; REAL TV FLICKER; the smoke caught in it). The set sits below the sill at the window's right,
+   *  facing the couch: its light comes from the FRONT-RIGHT + BELOW — the back wall + the left wall washed brightest low-right, the
+   *  ceiling line darker; the couch (mid depth, its back to us) rim-lit along its top + its right end; the heads spheres lit from the
+   *  front-right (a rim where the screen's light leaks round them, the far side dark). Small life as before (a slow tilt, a nod, a lean on
+   *  a shoulder, an arm to the drink); THE SMOKE some nights: a cigarette's ember at the right head, wisps rising + a layered haze drifting
+   *  across the room's upper half, lit by the flicker, thinning out over a few minutes. people: true | 0..1 (a forced head level) | false */
   function tvRoom(E, on = 1, people = true) {
-    const { c, G, t, k, mo } = E;
-    const tv = mo ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0, cut: 1 }, a = k * on;
-    // (8P — the owner: a touch BLUER, less white — even the brightest flicker frame never reads as a blank grey sheet: the blues deeper,
-    // the two glows lower, the level capped)
-    const tc = tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint), tk = Math.min(0.92, tv.k);
+    const { c, G, t, k, mo, B } = E;
+    const tv = mo ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0, cut: 1, dim: 0 }, a = k * on;
+    const tc = tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint), tk = Math.min(1, tv.k);
     c.globalAlpha = 1;
-    // the room in the TV's light: the walls take its colour (the whole window reads BLUE at a glance), brighter round the set
-    R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([8, 9, 20], mixc([30, 44, 96], tc, 0.25), clamp01(a * (0.5 + 0.45 * tv.k)))));
-    // THE SET on the back wall: a dark cabinet, the screen's picture (the flicker's colour, brighter at its centre), its glow on the wall
-    const sw = Math.min(0.95, G.cw * 0.46), sh = sw * 0.72, sx = G.cx + 0.02, sy = G.h0 + G.ch * 0.6;   // (the screen's centre)
+    // THE ROOM in the dark, as a box; then the set's light over it: from the front-right + below (the brightest corner the back wall's
+    // low right + the floor's near right), fading up the walls — three soft lights in the flicker's colour, 'lighter' over the dark box
+    const dark = [8, 9, 20], wash = mixc([40, 58, 150], tc, 0.55 * tk);
+    paintBox(c, G, B, { wall: [mixc(dark, wash, 0.7 * a), mixc(dark, wash, 0.3 * a)], floor: [mixc(dark, wash, 0.5 * a), mixc(dark, wash, 0.75 * a)], side: [mixc(dark, wash, 0.3 * a), mixc(dark, wash, 0.55 * a)], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc(dark, wash, 0.5 * a))) });
+    const sx = G.g1 - G.cw * 0.18, sy = G.h0 - 0.1;   // (the unseen set: below the sill, right)
     c.globalCompositeOperation = 'lighter';
-    glow(c, tc, sx, sy, sw * 1.9, 0.5 * a * tk, 0.85);
-    glow(c, tc, sx, G.h0 + G.ch * 0.9, sw * 1.2, 0.22 * a * tk, 0.5);
+    glow(c, tc, sx - 0.3, G.h0 + G.ch * 0.4, G.cw * 1.7, 0.72 * a * tk, 0.95);      // (the wall washed from the right)
+    glow(c, tc, sx - 0.4, G.h0 + G.ch * 0.1, G.cw * 1.1, 0.5 * a * tk, 0.45);       // (the floor's pool near the set)
+    glow(c, tc, G.g0 + G.cw * 0.3, G.h0 + G.ch * 0.72, G.cw * 1.0, 0.22 * a * tk, 0.8);   // (the far wall + the ceiling line, fainter)
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-    R(c, sx - sw / 2 - 0.05, sy - sh / 2 - 0.05, sx + sw / 2 + 0.05, sy + sh / 2 + 0.05, rgb(mixc([12, 12, 22], tc, 0.08 * a)));
-    { const g = c.createRadialGradient(sx, sy, 0, sx, sy, sw * 0.7); g.addColorStop(0, rgb(mixc([40, 60, 120], [255, 255, 255], 0.55 * tk), a)); g.addColorStop(0.6, rgb(mixc([30, 50, 110], tc, 0.75 * tk), a)); g.addColorStop(1, rgb(mixc([20, 30, 70], tc, 0.5 * tk), a));
-      c.fillStyle = g; c.fillRect(sx - sw / 2, sy - sh / 2, sw, sh); }
-    if (mo && tv.cut < 0.5) { c.fillStyle = `rgba(230,240,255,${(0.12 * a).toFixed(3)})`; c.fillRect(sx - sw / 2, sy - sh / 2 + sh * ((t * 7) % 1), sw, sh * 0.08); }   // (a scan line on a cut)
-    // the curtains tied back at the edges (their inner edges catching the blue)
-    for (const [p, q, d] of [[G.g0, G.g0 + 0.3, 1], [G.g1 - 0.3, G.g1, -1]]) { c.fillStyle = 'rgb(10,10,22)'; c.beginPath(); c.moveTo(p, G.h1); c.lineTo(q, G.h1); c.quadraticCurveTo(d > 0 ? q - 0.05 : p + 0.05, G.h0 + G.ch * 0.45, d > 0 ? q - 0.12 : p + 0.12, G.h0); c.lineTo(d > 0 ? p : q, G.h0); c.fill(); c.strokeStyle = rgb(tc, 0.22 * a * tv.k); c.lineWidth = 0.02; c.beginPath(); c.moveTo(d > 0 ? q - 0.12 : p + 0.12, G.h0); c.quadraticCurveTo(d > 0 ? q - 0.05 : p + 0.05, G.h0 + G.ch * 0.45, d > 0 ? q : p, G.h1); c.stroke(); }
-    // THE COUCH from behind: its back across the foot of the window (two cushions' round tops), the TV's light spilling over its top edge
-    const cy = G.h0 + G.ch * 0.34, cl = G.g0 + G.cw * 0.08, cr = G.g1 - G.cw * 0.1, cm = (cl + cr) / 2;
-    const couch = () => { c.beginPath(); c.moveTo(cl - 0.08, G.h0); c.lineTo(cl - 0.08, cy - 0.1); c.quadraticCurveTo(cl - 0.08, cy + 0.02, cl + 0.04, cy + 0.02); c.quadraticCurveTo(cl + (cm - cl) * 0.5, cy + 0.1, cm - 0.03, cy); c.quadraticCurveTo(cm + (cr - cm) * 0.5, cy + 0.1, cr - 0.04, cy + 0.02); c.quadraticCurveTo(cr + 0.08, cy + 0.02, cr + 0.08, cy - 0.1); c.lineTo(cr + 0.08, G.h0); c.closePath(); };
-    couch(); c.fillStyle = rgb(mixc([12, 12, 26], [36, 40, 74], 0.4 * a)); c.fill();
-    c.save(); couch(); c.clip(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgb(tc, 0.42 * a * tv.k); c.lineWidth = 0.045; couch(); c.stroke(); c.globalCompositeOperation = 'source-over'; c.restore();
-    R(c, cm - 0.012, G.h0, cm + 0.012, cy - 0.06, 'rgba(6,6,16,0.6)');   // (the seam between the cushions)
-    if (people) {
-      // one head above the couch (most of the time), a second beside it some evenings; lit from the FRONT by the set — we see their backs:
-      // the hair + the shoulders dark, a blue rim where the screen's light leaks round them
-      const slot = Math.floor(t / 47), head = typeof people === 'number' ? people : hsh(slot, 5) < 0.72 ? sm(0, 1.5, t - slot * 47) * (1 - sm(44, 46.5, t - slot * 47)) : 0;
-      if (head > 0.01) {
-        const two = hsh(slot, 9) < 0.45, lean = two && hsh(slot, 12) < 0.55 ? sm(14, 18, t - slot * 47) * (1 - sm(36, 40, t - slot * 47)) : 0;
-        const nod = mo ? (() => { const n = (t - slot * 47) % 9; return n > 6 && n < 6.7 ? Math.sin((n - 6) / 0.7 * Math.PI) : 0; })() : 0;
-        const tilt1 = mo ? 0.1 * Math.sin(t * 0.33 + slot) : 0, r = Math.min(0.2, G.cw * 0.095), shoulderW = r * 1.9;
-        const persons = [{ x: cm - (two ? 0.3 : 0.06) * (G.cw / 2), hair: 'bob', tilt: tilt1, dip: 0.04 * nod }];
-        if (two) persons.push({ x: cm + 0.3 * (G.cw / 2) - lean * 0.18, hair: 'short', tilt: (mo ? 0.08 * Math.sin(t * 0.27 + 2) : 0) + lean * 0.42, dip: lean * 0.1 });
-        // the arm reaching for the drink on the side table (the right end), every so often
-        const reach = mo ? (() => { const n = (t - slot * 47) % 23; return n > 15 && n < 18.4 ? sm(15, 16, n) * (1 - sm(17.4, 18.4, n)) : 0; })() : 0;
-        for (const P of persons) {
-          const hy = cy - 0.1 + (r * 1.15) * head - P.dip, sil = rgb(mixc([6, 8, 22], [20, 24, 46], 0.3 * a));
-          c.save(); c.translate(P.x, hy); c.rotate(P.tilt);
-          // the shoulders over the couch's top (a rounded slab), the neck, the head, the hair's shape
-          c.fillStyle = sil; c.beginPath(); c.moveTo(-shoulderW, -r * 1.2); c.quadraticCurveTo(-shoulderW, -r * 0.3, -r * 0.55, -r * 0.3); c.lineTo(r * 0.55, -r * 0.3); c.quadraticCurveTo(shoulderW, -r * 0.3, shoulderW, -r * 1.2); c.closePath(); c.fill();
-          c.fillRect(-r * 0.3, -r * 0.5, r * 0.6, r * 0.4);
-          c.beginPath(); c.arc(0, r * 0.45, r, 0, TAU); c.fill();
-          if (P.hair === 'bob') { c.beginPath(); c.ellipse(0, r * 0.5, r * 1.12, r * 1.02, 0, Math.PI * 0.02, Math.PI * 1.12); c.fill(); c.beginPath(); c.arc(-r * 0.2, r * 1.15, r * 0.34, 0, TAU); c.fill(); }   // (a bun)
-          else { c.beginPath(); c.ellipse(0, r * 0.55, r * 1.05, r * 0.95, 0, Math.PI, TAU); c.fill(); }
-          // THE BLUE RIM (the screen's light leaking round the hair + the shoulders), a touch stronger on the side toward the set's centre
-          c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
-          const ra = 0.55 * a * tv.k;
-          c.strokeStyle = rgb(tc, ra); c.lineWidth = r * 0.22; c.beginPath(); c.arc(0, r * 0.45, r * 0.98, Math.PI * 1.08, Math.PI * 1.92); c.stroke();
-          c.strokeStyle = rgb(tc, ra * 0.7); c.lineWidth = r * 0.16; c.beginPath(); c.moveTo(-shoulderW * 0.92, -r * 1.05); c.quadraticCurveTo(-shoulderW * 0.9, -r * 0.42, -r * 0.6, -r * 0.4); c.moveTo(shoulderW * 0.92, -r * 1.05); c.quadraticCurveTo(shoulderW * 0.9, -r * 0.42, r * 0.6, -r * 0.4); c.stroke();
-          c.globalCompositeOperation = 'source-over';
-          c.restore();
+    // the curtains tied back at the edges (at the glass), their inner edges catching the blue
+    for (const [p, q, d] of [[G.g0, G.g0 + 0.3, 1], [G.g1 - 0.3, G.g1, -1]]) { c.fillStyle = 'rgb(10,10,22)'; c.beginPath(); c.moveTo(p, G.h1); c.lineTo(q, G.h1); c.quadraticCurveTo(d > 0 ? q - 0.05 : p + 0.05, G.h0 + G.ch * 0.45, d > 0 ? q - 0.12 : p + 0.12, G.h0); c.lineTo(d > 0 ? p : q, G.h0); c.fill(); c.strokeStyle = rgb(tc, 0.22 * a * tk); c.lineWidth = 0.02; c.beginPath(); c.moveTo(d > 0 ? q - 0.12 : p + 0.12, G.h0); c.quadraticCurveTo(d > 0 ? q - 0.05 : p + 0.05, G.h0 + G.ch * 0.45, d > 0 ? q : p, G.h1); c.stroke(); }
+    // THE COUCH from behind, mid-room: its back a rounded slab (a gradient across it: dark on the left, the screen's light warming its
+    // right end; the top edge a rim of the screen's colour), two cushions' crowns, the seam
+    E.deep(0.42, () => {
+      const cy = G.h0 + G.ch * 0.36, cl = G.g0 + G.cw * 0.06, cr = G.g1 - G.cw * 0.08, cm = (cl + cr) / 2, cb = G.h0 - 0.3;
+      const couch = () => { c.beginPath(); c.moveTo(cl - 0.08, cb); c.lineTo(cl - 0.08, cy - 0.1); c.quadraticCurveTo(cl - 0.08, cy + 0.02, cl + 0.04, cy + 0.02); c.quadraticCurveTo(cl + (cm - cl) * 0.5, cy + 0.1, cm - 0.03, cy); c.quadraticCurveTo(cm + (cr - cm) * 0.5, cy + 0.1, cr - 0.04, cy + 0.02); c.quadraticCurveTo(cr + 0.08, cy + 0.02, cr + 0.08, cy - 0.1); c.lineTo(cr + 0.08, cb); c.closePath(); };
+      const lit = mixc([14, 16, 34], tc, 0.42 * a * tk), base = [10, 11, 24];
+      const g = c.createLinearGradient(cl, 0, cr, 0); g.addColorStop(0, rgb(mixc(base, lit, 0.1))); g.addColorStop(0.55, rgb(mixc(base, lit, 0.3))); g.addColorStop(1, rgb(lit));
+      couch(); c.fillStyle = g; c.fill();
+      // the back's round: darker toward the floor (its shadow under the seat), the top edge lit by the set
+      { const g2 = c.createLinearGradient(0, cb, 0, cy); g2.addColorStop(0, 'rgba(0,0,0,0.5)'); g2.addColorStop(0.5, 'rgba(0,0,0,0.12)'); g2.addColorStop(0.9, 'rgba(0,0,0,0)'); g2.addColorStop(1, rgb(tc, 0.1 * a * tk)); couch(); c.fillStyle = g2; c.fill(); }
+      c.save(); couch(); c.clip(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgb(tc, 0.5 * a * tk); c.lineWidth = 0.05; couch(); c.stroke();
+      // the cushions' crowns: two soft bumps along the top edge, each lit on its right
+      for (const cx2 of [cl + (cr - cl) * 0.27, cl + (cr - cl) * 0.73]) { const gg = c.createRadialGradient(cx2 + 0.12, cy - 0.08, 0.02, cx2, cy - 0.1, 0.42); gg.addColorStop(0, rgb(tc, 0.16 * a * tk)); gg.addColorStop(1, rgb(tc, 0)); c.fillStyle = gg; c.fillRect(cx2 - 0.5, cy - 0.5, 1, 0.6); }
+      c.globalCompositeOperation = 'source-over'; c.restore();
+      R(c, cm - 0.012, cb, cm + 0.012, cy - 0.06, 'rgba(4,4,12,0.7)');   // (the seam between the cushions)
+      if (people) {
+        // one head above the couch (most of the time), a second beside it some evenings — SPHERES lit from the front-right by the set: the
+        // screen's rim round the hair + the shoulders, the far side dark; we see their backs
+        const slot = Math.floor(t / 47), head = typeof people === 'number' ? people : smokeForced ? 1 : hsh(slot, 5) < 0.72 ? sm(0, 1.5, t - slot * 47) * (1 - sm(44, 46.5, t - slot * 47)) : 0;
+        if (head > 0.01) {
+          const two = hsh(slot, 9) < 0.45, lean = two && hsh(slot, 12) < 0.55 ? sm(14, 18, t - slot * 47) * (1 - sm(36, 40, t - slot * 47)) : 0;
+          const nod = mo ? (() => { const n = (t - slot * 47) % 9; return n > 6 && n < 6.7 ? Math.sin((n - 6) / 0.7 * Math.PI) : 0; })() : 0;
+          const tilt1 = mo ? 0.1 * Math.sin(t * 0.33 + slot) : 0, r = Math.min(0.2, G.cw * 0.1), shoulderW = r * 1.9;
+          const persons = [{ x: cm - (two ? 0.3 : 0.06) * (G.cw / 2), hair: 'bob', tilt: tilt1, dip: 0.04 * nod }];
+          if (two) persons.push({ x: cm + 0.3 * (G.cw / 2) - lean * 0.18, hair: 'short', tilt: (mo ? 0.08 * Math.sin(t * 0.27 + 2) : 0) + lean * 0.42, dip: lean * 0.1 });
+          const reach = mo ? (() => { const n = (t - slot * 47) % 23; return n > 15 && n < 18.4 ? sm(15, 16, n) * (1 - sm(17.4, 18.4, n)) : 0; })() : 0;
+          const skin = mixc([10, 10, 24], tc, 0.5 * a * tk), hairC = [8, 7, 18];
+          for (const P of persons) {
+            const hy = cy - 0.1 + (r * 1.15) * head - P.dip;
+            c.save(); c.translate(P.x, hy); c.rotate(P.tilt);
+            // the shoulders: a rounded slab, its right side + top lit; then the neck; the head a sphere; the hair a cap over it
+            { const g3 = c.createLinearGradient(-shoulderW, 0, shoulderW, 0); g3.addColorStop(0, rgb(mixc([10, 10, 24], tc, 0.06 * a * tk))); g3.addColorStop(0.7, rgb(mixc([10, 10, 24], tc, 0.2 * a * tk))); g3.addColorStop(1, rgb(mixc([10, 10, 24], tc, 0.5 * a * tk)));
+              c.fillStyle = g3; c.beginPath(); c.moveTo(-shoulderW, -r * 1.2); c.quadraticCurveTo(-shoulderW, -r * 0.3, -r * 0.55, -r * 0.3); c.lineTo(r * 0.55, -r * 0.3); c.quadraticCurveTo(shoulderW, -r * 0.3, shoulderW, -r * 1.2); c.closePath(); c.fill(); }
+            c.fillStyle = rgb(mixc([10, 10, 24], tc, 0.25 * a * tk)); c.fillRect(-r * 0.3, -r * 0.5, r * 0.6, r * 0.4);
+            { const g4 = c.createRadialGradient(r * 0.45, r * 0.3, r * 0.05, 0, r * 0.45, r * 1.15); g4.addColorStop(0, rgb(skin)); g4.addColorStop(0.45, rgb(mixc([10, 10, 24], tc, 0.2 * a * tk))); g4.addColorStop(1, rgb([6, 6, 16])); c.fillStyle = g4; c.beginPath(); c.arc(0, r * 0.45, r, 0, TAU); c.fill(); }
+            { const g5 = c.createRadialGradient(r * 0.4, r * 0.55, r * 0.05, 0, r * 0.5, r * 1.2); g5.addColorStop(0, rgb(mixc(hairC, tc, 0.3 * a * tk))); g5.addColorStop(0.5, rgb(mixc(hairC, tc, 0.1 * a * tk))); g5.addColorStop(1, rgb(hairC)); c.fillStyle = g5;
+              if (P.hair === 'bob') { c.beginPath(); c.ellipse(0, r * 0.5, r * 1.12, r * 1.02, 0, Math.PI * 0.02, Math.PI * 1.12); c.fill(); c.beginPath(); c.arc(-r * 0.2, r * 1.15, r * 0.34, 0, TAU); c.fill(); }
+              else { c.beginPath(); c.ellipse(0, r * 0.55, r * 1.05, r * 0.95, 0, Math.PI, TAU); c.fill(); } }
+            // THE RIM: the screen's light leaking round the hair + the right shoulder (the set's side)
+            c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+            const ra = 0.6 * a * tk;
+            c.strokeStyle = rgb(tc, ra); c.lineWidth = r * 0.2; c.beginPath(); c.arc(0, r * 0.45, r * 0.98, Math.PI * 1.25, Math.PI * 2.05); c.stroke();
+            c.strokeStyle = rgb(tc, ra * 0.6); c.lineWidth = r * 0.14; c.beginPath(); c.moveTo(shoulderW * 0.92, -r * 1.05); c.quadraticCurveTo(shoulderW * 0.9, -r * 0.42, r * 0.6, -r * 0.4); c.stroke();
+            c.strokeStyle = rgb(tc, ra * 0.25); c.beginPath(); c.moveTo(-shoulderW * 0.92, -r * 1.05); c.quadraticCurveTo(-shoulderW * 0.9, -r * 0.42, -r * 0.6, -r * 0.4); c.stroke();
+            c.globalCompositeOperation = 'source-over';
+            c.restore();
+          }
+          if (reach > 0.01) {
+            const P = persons[persons.length - 1], ax = P.x + shoulderW * 0.8, ay = cy - 0.02, gx = cr + 0.02, gy = cy + 0.12 + 0.1 * reach;
+            c.strokeStyle = rgb(mixc([10, 10, 24], tc, 0.25 * a * tk)); c.lineWidth = r * 0.42; c.lineCap = 'round';
+            c.beginPath(); c.moveTo(ax, ay); c.lineTo(lerp(ax, gx, reach * 0.95), lerp(ay, gy, reach)); c.stroke();
+            c.globalCompositeOperation = 'lighter'; glow(c, tc, lerp(ax, gx, reach * 0.95), lerp(ay, gy, reach) + 0.03, 0.08, 0.6 * a * reach); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+          }
+          // the glass on the side table (its rim catching the blue)
+          c.globalCompositeOperation = 'lighter'; glow(c, tc, cr + 0.02, cy + 0.08, 0.06, 0.4 * a * tk); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+          // THE SMOKE (some nights): the ember at the right head's hand, wisps rising from it, the haze drifting across the room's upper
+          // half — lit by the flicker (its colour, its level), thinning out over the cycle
+          const smk = smokeLevel(t);
+          if (smk.on > 0.01) {
+            const P = persons[persons.length - 1], ex = P.x + shoulderW * 0.7, ey = cy + 0.14, draw = mo ? 0.5 + 0.5 * Math.sin(t * 1.6) * Math.sin(t * 0.37) : 0.4;
+            c.globalCompositeOperation = 'lighter';
+            glow(c, [255, 120, 40], ex, ey, 0.05, (0.3 + 0.5 * draw) * a * smk.on);
+            const sc = mixc([150, 160, 190], tc, 0.5), fl = 0.35 + 0.65 * tk;
+            for (let i = 0; i < 6; i++) { const u = ((t * 0.16 + i * 0.167) % 1), wx = ex + (mo ? Math.sin(t * 0.9 + u * 5.5 + i) * 0.06 * u + Math.sin(t * 0.33 + u * 2) * 0.1 * u : 0.04 * u) - 0.05 * u * u, wy = ey + u * 1.05; glow(c, sc, wx, wy, 0.08 + 0.18 * u, 0.16 * (1 - u) * a * smk.on * fl); }
+            for (let i = 0; i < 4; i++) { const hx2 = G.g0 + G.cw * ((0.15 + 0.25 * i + (mo ? t * 0.012 : 0)) % 1.1), hy2 = G.h0 + G.ch * (0.66 + 0.1 * Math.sin(t * 0.21 + i * 1.7)); glow(c, sc, hx2, hy2, G.cw * 0.34, 0.09 * smk.haze * a * fl, 0.42); }
+            c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+          }
+          if (hsh(Math.floor(t / 71), 6) < 0.5 && !two) cat(c, cr - 0.06, cy - 0.08, 0.56, { col: SIL_TV, flick: mo ? clamp01(Math.sin(t * 1.9) * 2 - 1) : 0, dir: -1 });
         }
-        if (reach > 0.01) {
-          // the near arm out to the side table: the upper arm along the couch's top, the forearm up to the glass (its glint in the blue)
-          const P = persons[persons.length - 1], ax = P.x + shoulderW * 0.8, ay = cy - 0.02, gx = cr + 0.02, gy = cy + 0.12 + 0.1 * reach;
-          c.strokeStyle = rgb(mixc([6, 8, 22], [20, 24, 46], 0.3 * a)); c.lineWidth = r * 0.42; c.lineCap = 'round';
-          c.beginPath(); c.moveTo(ax, ay); c.lineTo(lerp(ax, gx, reach * 0.95), lerp(ay, gy, reach)); c.stroke();
-          c.globalCompositeOperation = 'lighter'; glow(c, tc, lerp(ax, gx, reach * 0.95), lerp(ay, gy, reach) + 0.03, 0.08, 0.6 * a * reach); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-        }
-        // the glass on the side table (its rim catching the blue) + THE CIGARETTE: an ember pulsing now and then, its smoke rising in a slow wander
-        c.globalCompositeOperation = 'lighter';
-        glow(c, tc, cr + 0.02, cy + 0.08, 0.06, 0.4 * a * tv.k);
-        const ex = cr - 0.02, ey = cy + 0.1, draw = mo ? 0.5 + 0.5 * Math.sin(t * 1.6) * Math.sin(t * 0.37) : 0.4;
-        glow(c, [255, 120, 40], ex, ey, 0.05, (0.35 + 0.5 * draw) * a);
-        c.strokeStyle = `rgba(190,200,230,${(0.16 * a).toFixed(3)})`; c.lineWidth = 0.025; c.lineCap = 'round';
-        c.beginPath(); c.moveTo(ex, ey);
-        for (let i = 1; i <= 8; i++) { const u = i / 8, yy = ey + u * 0.85, xx = ex + (mo ? Math.sin(t * 0.9 + u * 5.5) * 0.05 * u + Math.sin(t * 0.33 + u * 2) * 0.08 * u : 0.04 * u) - 0.04 * u * u; c.lineTo(xx, yy); }
-        c.stroke();
-        c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-        if (hsh(Math.floor(t / 71), 6) < 0.5 && !two) cat(c, cr - 0.06, cy - 0.08, 0.56, { col: SIL_TV, flick: mo ? clamp01(Math.sin(t * 1.9) * 2 - 1) : 0, dir: -1 });
       }
-    }
+    });
+  }
+  /** THE SMOKE's cycle (seeded on the clock, not every night): a cigarette lit in the first minute of a ~4-min cycle on about a third of
+   *  them — the wisps for ~70 s (on), the haze building to ~1 over the first 90 s and thinning out by the cycle's end */
+  function smokeLevel(t) {
+    const CYC = 240, slot = Math.floor(t / CYC), el = t - slot * CYC;
+    if (smokeForced) return { on: 1, haze: 0.85 };   // (&force=smoke — the panel's row)
+    if (hsh(slot, 15) >= 0.38) return { on: 0, haze: 0 };
+    return { on: sm(2, 6, el) * (1 - sm(64, 76, el)), haze: sm(10, 90, el) * (1 - sm(120, 235, el)) };
   }
   /** the night lamp (3 am → the wake): the blind down, glowing warm from a small lamp low in the room — the speakeasy never goes dark */
   function nightLamp(E, up = 0) {
@@ -1061,7 +1156,7 @@ export function createWindowLife() {
       // under the jazz room's shade: someone ducks under its hem and looks out, left then right (the shade's hem lifted over the head)
       const sv = G.h0 + G.ch * 0.26, x = G.g0 + G.cw * (0.36 + 0.28 * hsh(seed | 0, 9)), rise = 0.42 * o;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, sv - G.h0 + 0.1 * o); c.clip();
-      figure(c, { x, y: sv - 0.86 + rise, s: 0.95, face: look, tilt: 0.1, ...lk, arms: [[2.4, 0.5], [0.3, 0.3]], hair: 'short' });
+      E.deep(0.08, () => figure(c, { x, y: sv - 0.86 + rise, s: 0.95, face: look, tilt: 0.1, ...lk, arms: [[2.4, 0.5], [0.3, 0.3]], hair: 'short' }));
       c.restore();
       c.fillStyle = 'rgba(110,60,30,0.85)'; c.beginPath(); c.moveTo(x - 0.34, sv); c.quadraticCurveTo(x, sv + 0.26 * o, x + 0.34, sv); c.lineTo(x + 0.34, sv + 0.05); c.quadraticCurveTo(x, sv + 0.3 * o, x - 0.34, sv + 0.05); c.fill();
       return;
@@ -1209,7 +1304,7 @@ export function createWindowLife() {
     wake(E, el, len) {
       const { c, G, k, t, mo } = E, p = el / len, day = 1 - k;
       // the room: the lamp room at night (the morning before the sun), the dark glass by day
-      if (k > 0.01) { c.globalAlpha = k; paintLampRoom(c, G, 1); c.fillStyle = 'rgba(236,240,255,0.14)'; c.fillRect(G.g0, G.h0, G.cw, G.ch); c.globalAlpha = 1; }   // (SP2: the dawn's lamp a little paler)
+      if (k > 0.01) { c.globalAlpha = k; paintLampRoom(c, G, 1, E.B); c.fillStyle = 'rgba(236,240,255,0.14)'; c.fillRect(G.g0, G.h0, G.cw, G.ch); c.globalAlpha = 1; }   // (SP2: the dawn's lamp a little paler)
       if (day > 0.01) { c.globalAlpha = day; R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(40,32,38)'); c.globalAlpha = 1; }
       const night = k > 0.4, lk = night ? litP(E, NIGHTGOWN) : { pal: DAY_PALS[0] };   // (SP4: lit by her lamp — a pale nightgown)
       // the figure: in from the back (0.18), THE STRETCH (arms up in a V, a yawn, side to side), a look out at the morning, away
@@ -1219,7 +1314,7 @@ export function createWindowLife() {
       const look = sm(0.58, 0.64, p) * (1 - sm(0.8, 0.86, p));
       if (inx > 0.01 && outx < 0.99) {
         const arms = st > 0.02 ? [[0.2 + 2.6 * st, 0.15], [0.2 + 2.6 * st, 0.15]] : look > 0.02 ? [[0.12, 0.15], [0.3 + 0.2 * look, 0.25]] : [[0.12, 0.15], [0.12, 0.15]];
-        figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.08 * look, tilt: -0.3 * st, face: look, arms, hair: 'bun', ...lk });
+        E.deep(0.35, () => figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.08 * look, tilt: -0.3 * st, face: look, arms, hair: 'bun', ...lk }));
       }
       // the blind: down until the wake, rolled up in its first seconds
       const up = sm(0.02, 0.16, p), bv = lerp(G.h0, G.h1, up);
@@ -1234,7 +1329,7 @@ export function createWindowLife() {
       if (k < 0.01) return;
       const lamp = 1 - sm(0.24, 0.27, p), tvOn = sm(0.36, 0.56, p);
       c.globalAlpha = k;
-      if (lamp > 0.01) { paintLampRoom(c, G, lamp); if (tvOn > 0) { c.globalAlpha = k * tvOn; tvRoom(E, tvOn, sm(0.55, 0.9, p)); } }
+      if (lamp > 0.01) { paintLampRoom(c, G, lamp, E.B); if (tvOn > 0) { c.globalAlpha = k * tvOn; tvRoom(E, tvOn, sm(0.55, 0.9, p)); } }
       else tvRoom(E, tvOn * (0.6 + 0.4 * ((E.t * 9) % 1 > 0.3 ? 1 : 0.4) * (1 - sm(0.5, 0.56, p)) + 0.4 * sm(0.5, 0.56, p)), sm(0.55, 0.9, p));
       c.globalAlpha = 1;
     },
@@ -1243,7 +1338,7 @@ export function createWindowLife() {
       // (an evening already dark — winter: the routine runs over the lit bar; by day the half-drawn shade + the lights one by one)
       const shade = sm(0.02, 0.12, p), lit = sm(0.14, 0.46, p);
       if (day > 0.01) { c.globalAlpha = day; barAfternoon(E, shade, lit); c.globalAlpha = 1; }
-      if (k > 0.01) { c.globalAlpha = k; paintBar(c, G, Math.max(0.2, lit), 0); bartender(E, 'night', lit); c.globalAlpha = 1; }
+      if (k > 0.01) { c.globalAlpha = k; paintBar(c, G, Math.max(0.2, lit), 0, E.B); bartender(E, 'night', lit); c.globalAlpha = 1; }
     },
     dance(E, el, len, inst) {
       const { c, G, kl, mo } = E, p = el / len, dir = hsh(inst.n, 2) < 0.5 ? 1 : -1, sv = G.h0 + G.ch * 0.26;
@@ -1254,8 +1349,10 @@ export function createWindowLife() {
         c.save(); c.beginPath(); if (pass === 'shade') c.rect(G.g0, sv, G.cw, G.h1 - sv); else c.rect(G.g0, G.h0, G.cw, sv - G.h0); c.clip();
         const col = pass === 'shade' ? SHADOW : LEGS_SH, s = 1.12, y = G.h0 + 0.46;
         // HIM (a fedora, his arm round her / up for her twirl) · HER (the bob, the dress flaring as she spins)
+        E.deep(0.4, () => {
         figure(c, { rim: null, x: x - dir * 0.26, y, s, legs: 0.5, step: ph, lean: dir * 0.08 * sway, face: dir, hat: 'fedora', col, arms: dir > 0 ? [[0.3, 0.5], [0.9 + 1.6 * spin, 0.5 - 0.4 * spin]] : [[0.9 + 1.6 * spin, 0.5 - 0.4 * spin], [0.3, 0.5]] });
         figure(c, { rim: null, x: x + dir * (0.24 + 0.08 * spin), y: y - 0.02, s: s * 0.92, legs: 0.48, step: -ph, lean: -dir * 0.1 * sway, face: spin > 0.5 ? dir : -dir, hair: 'bob', dress: true, skirt: 0.3 + 0.7 * spin, col, arms: dir > 0 ? [[0.9 + 1.8 * spin, 0.6], [0.4, 0.3]] : [[0.4, 0.3], [0.9 + 1.8 * spin, 0.6]] });
+        });
         c.restore();
       }
       c.restore(); c.globalAlpha = 1;
@@ -1294,9 +1391,12 @@ export function createWindowLife() {
         const him = pass === 'clear' ? litP(E, TANGO_HIM) : { col }, her = pass === 'clear' ? litP(E, whoW(0)) : { col };
         const dip = move === 'dip' ? m : 0, kick = move === 'kick' ? m : 0, turn = move === 'turn' ? m : 0;
         // him: the top hat, the tails, his arm out with her hand (the tango's line), leaning over her in the dip
+        E.deep(0.45, () => {
+        if (pass === 'clear') { floorShadow(c, x - dir * 0.24, y - 0.44, s, 0.28); floorShadow(c, x + dir * 0.26, y - 0.46, s * 0.93, 0.26); }   // (WIN: their shadows on the floor)
         figures(c, [{ rim: pass === 'clear' ? undefined : null, x: x - dir * 0.24, y, s, legs: 0.48, step: step * (1 - dip), lean: dir * (0.12 + 0.28 * dip), face: dir, hat: 'top', tails: true, ...him, arms: dir > 0 ? [[0.2, 0.4], [1.5 - 0.4 * dip, 0.1]] : [[1.5 - 0.4 * dip, 0.1], [0.2, 0.4]] },
         // her: the cloche + its feather, the bob, the fringed dress — bent back in the dip, a leg up in the kick, flaring in the turn
         { rim: pass === 'clear' ? undefined : null, x: x + dir * (0.26 + 0.1 * dip), y: y - 0.04 - 0.12 * dip, s: s * 0.93, legs: 0.46 + 0.1 * kick, step: kick ? -1.6 * kick : -step, lean: -dir * (0.1 + 0.95 * dip), face: -dir, hat: 'cloche', hair: 'bob', dress: true, skirt: 0.2 + 0.8 * Math.max(turn, kick), ...her, arms: dir > 0 ? [[1.45 - 0.3 * dip, 0.1], [0.6 + 1.6 * dip, 0.8]] : [[0.6 + 1.6 * dip, 0.8], [1.45 - 0.3 * dip, 0.1]] }]);
+        });
         c.restore();
       }
       c.restore(); c.globalAlpha = 1;
@@ -1315,10 +1415,11 @@ export function createWindowLife() {
       // through the fabric: soft, green-white, glowing
       c.globalCompositeOperation = 'lighter'; c.globalAlpha = a * kl;
       const ghostP = { x, y, s: 1.08, sheet: true, sway: mo ? Math.sin(el * 1.7) : 0, legs: 0.42, face: dir * -0.3, eyes: false, lean: -dir * 0.06 * (1 - u) };
-      figure(c, { ...ghostP, col: 'rgba(150,255,196,0.16)', rim: { col: [120, 255, 170], a: 0.14, w: 0.11 } });
-      figure(c, { ...ghostP, col: 'rgba(228,255,238,0.42)', rim: { col: [170, 255, 205], a: 0.3, w: 0.045 } });
+      const gd = 0.7 - 0.5 * u;   // (WIN: it rises deep in the room and drifts to the glass — growing as it comes)
+      E.deep(gd, () => { figure(c, { ...ghostP, col: 'rgba(150,255,196,0.16)', rim: { col: [120, 255, 170], a: 0.14, w: 0.11 } });
+      figure(c, { ...ghostP, col: 'rgba(228,255,238,0.42)', rim: { col: [170, 255, 205], a: 0.3, w: 0.045 } }); });
       c.globalCompositeOperation = 'source-over';
-      if (!behind) { c.globalAlpha = a * kl * 0.85; figure(c, { ...ghostP, col: 'rgba(236,255,244,0.55)', eyes: true, eyeCol: 'rgba(12,20,18,0.85)', rim: { col: [120, 255, 170], a: 0.5, w: 0.03 } }); c.restore(); c.globalAlpha = 1; return; }
+      if (!behind) { c.globalAlpha = a * kl * 0.85; E.deep(gd, () => figure(c, { ...ghostP, col: 'rgba(236,255,244,0.55)', eyes: true, eyeCol: 'rgba(12,20,18,0.85)', rim: { col: [120, 255, 170], a: 0.5, w: 0.03 } })); c.restore(); c.globalAlpha = 1; return; }
       // the curtains' folds over it (it's BEHIND them) — except at the gap, where its eyes look out crisp
       c.globalAlpha = 0.4 * kl; c.fillStyle = 'rgba(120,70,40,1)'; for (const fx of [0.1, 0.22, 0.34, 0.66, 0.78, 0.9]) c.fillRect(G.g0 + G.cw * fx, G.h0, 0.035, G.ch);
       const gap0 = G.g0 + G.cw * 0.46, gap1 = G.g0 + G.cw * 0.56, at = sm(0.36, 0.44, p) * (1 - sm(0.62, 0.7, p));
@@ -1334,7 +1435,7 @@ export function createWindowLife() {
       for (const pass of ['shade', 'legs']) {
         c.save(); c.beginPath(); if (pass === 'shade') c.rect(G.g0, sv, G.cw, G.h1 - sv); else c.rect(G.g0, G.h0, G.cw, sv - G.h0); c.clip();
         const col = pass === 'shade' ? SHADOW : LEGS_SH, s = 1.14, y = G.h0 + 0.48 + 0.03 * Math.abs(lurch);
-        figure(c, { rim: null, x, y, s, legs: 0.5, step: 0.45 * lurch, lean: dir * (0.1 + 0.07 * lurch), tilt: -dir * 0.25 + 0.1 * lurch, face: dir * 0.9, col, hair: null, arms: dir > 0 ? [[1.25, 0.15], [1.45 + 0.08 * lurch, 0.05]] : [[1.45 + 0.08 * lurch, 0.05], [1.25, 0.15]] });
+        E.deep(0.4, () => figure(c, { rim: null, x, y, s, legs: 0.5, step: 0.45 * lurch, lean: dir * (0.1 + 0.07 * lurch), tilt: -dir * 0.25 + 0.1 * lurch, face: dir * 0.9, col, hair: null, arms: dir > 0 ? [[1.25, 0.15], [1.45 + 0.08 * lurch, 0.05]] : [[1.45 + 0.08 * lurch, 0.05], [1.25, 0.15]] }));
         // the wraps' loose ends hanging from the arms + the hip, swinging with the lurch
         c.strokeStyle = col; c.lineCap = 'round'; c.lineWidth = 0.035;
         for (const [ox, oy, l] of [[0.34, 0.6, 0.22], [0.5, 0.58, 0.16], [0.12, 0.05, 0.26]]) { const bx = x + dir * ox * s, by = y + oy * s, sw = mo ? Math.sin(el * 3.1 + ox * 9) * 0.06 : 0; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + sw - dir * 0.03, by - l * 0.5, bx + sw * 1.6 - dir * 0.06, by - l); c.stroke(); }
@@ -1348,7 +1449,7 @@ export function createWindowLife() {
       const { c, G, k, t, mo } = E, p = el / len, a = sm(0, 0.08, p) * (1 - sm(0.92, 1, p));
       if (a <= 0.01 || k < 0.05) return;
       c.save(); c.globalAlpha = a * k;
-      R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(16,22,20)');
+      paintBox(c, G, E.B, { wall: [[16, 22, 20], [24, 34, 30]], floor: [[10, 14, 12], [16, 22, 18]], side: [[12, 18, 16], [20, 28, 24]], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(16,22,20)') });   // (WIN: her dark box)
       const px = G.cx + 0.05, py = G.h0 + 0.02, pr = Math.min(0.46, G.cw * 0.22);
       const pulse = mo ? 0.85 + 0.15 * Math.sin(t * 4.3) * Math.sin(t * 1.9) : 1;
       c.globalCompositeOperation = 'lighter';
@@ -1384,12 +1485,64 @@ export function createWindowLife() {
         const arms = toward < 0 ? [arm, [0.12, 0.2]] : [[0.12, 0.2], arm], hold = toward < 0 ? ['glass', null] : [null, 'glass'];
         group.push({ x: x + toward * 0.05 * clink, y: look.sheet ? y + 0.3 : y, s, face: 0, lean: toward * 0.12 * clink, tilt: -0.4 * drink, arms: look.sheet ? null : arms, hold: look.sheet ? null : (up > 0.05 ? hold : null), col: SIL, glints: up > 0.3 ? E.glints : null, ...look });
       }
-      figures(c, group);
+      E.deep(0.28, () => { figures(c, group);
       const kk = sm(0.33, 0.38, p) * (1 - sm(0.4, 0.52, p));
-      if (kk > 0.01) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, [255, 244, 210], G.cx, G.h0 + G.ch * 0.72, 0.42, 0.95 * kk); c.restore(); }
+      if (kk > 0.01) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, [255, 244, 210], G.cx, G.h0 + G.ch * 0.72, 0.42, 0.95 * kk); c.restore(); } });
       c.globalAlpha = 1;
     },
     ofrenda() { /* (drawn by ofrendaState with the lighting) */ },
+    // WIN — COUNTING THE CASH (the owner): a CLOSE-UP in the back room — the bootlegger's take under the green banker's lamp: a man in
+    // shirtsleeves + braces, head + shoulders + hands filling the pane, banded stacks + a loose heap, bills peeled off one by one into
+    // the stacks, a thumb licked now and then, a glance over his shoulder; at the end a shadow passes the door and it all goes in the
+    // bag. Late on the bootleggers' nights (core: boot), never on a raid night (the cash is gone before the police come)
+    cash(E, el, len) {
+      const { c, G, kl, k, t, mo, B } = E, p = el / len, a = sm(0, 0.05, p) * (1 - sm(0.97, 1, p));
+      if (a <= 0.01 || k < 0.05) return;
+      const al = a * Math.max(0.5, kl);
+      c.save(); c.globalAlpha = al;
+      // the room dark but for the lamp
+      paintBox(c, G, B, { wall: [[26, 22, 18], [40, 34, 26]], floor: [[16, 12, 10], [24, 18, 14]], side: [[20, 16, 12], [32, 26, 20]], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(28,22,18)') });
+      const GREEN = [96, 220, 150], PALE = [196, 232, 196], lx = G.g0 + G.cw * 0.2, ly = G.h0 + G.ch * 0.9;
+      const out = sm(0.955, 0.985, p);                       // (the lamp clicks off at the end)
+      const lampK = (1 - out) * (mo ? 0.95 + 0.05 * Math.sin(t * 47) * Math.sin(t * 13) : 1);
+      const ty = G.h0 + G.ch * 0.36;
+      // the table (near, filling the lower third): green baize, the lamp's pool on it, its wooden edge
+      E.deep(0.22, () => {
+        R(c, G.g0 - 0.4, G.h0 - 0.4, G.g1 + 0.4, ty, 'rgb(30,52,38)');
+        c.globalCompositeOperation = 'lighter'; glow(c, GREEN, lx + 0.15, ty - 0.1, G.cw * 0.75, 0.42 * lampK, 0.5); c.globalCompositeOperation = 'source-over'; c.globalAlpha = al;
+        R(c, G.g0 - 0.4, ty - 0.04, G.g1 + 0.4, ty, 'rgb(70,46,28)');
+      });
+      // the man at the table: shirtsleeves + braces, lit by the green lamp from the left; the counting hand, the lick, the glance
+      const cnt = mo ? (el % 0.55) / 0.55 : 0.3, lk = mo ? (el % 5.5) / 5.5 : 0.5, lick = sm(0, 0.12, lk) * (1 - sm(0.2, 0.32, lk));
+      const gl = mo ? (el % 8.2) / 8.2 : 0.6, glance = sm(0, 0.12, gl) * (1 - sm(0.3, 0.45, gl));
+      const sweep = sm(0.84, 0.9, p), shadow = sm(0.8, 0.83, p) * (1 - sm(0.86, 0.9, p));
+      // (the arms reach down to the table in front of him: out a little, the elbows bent; the counting hand sweeps out to the stacks)
+      const rArm = lick > 0.3 ? [0.2 + 0.1 * lick, 1.4 + 1.1 * lick] : sweep > 0.01 ? [0.9 - 0.5 * sweep, 1.1] : [0.45 + 0.6 * Math.sin(cnt * Math.PI), 1.25 + 0.3 * Math.sin(cnt * Math.PI)];
+      const lArm = sweep > 0.01 ? [0.9 + 0.4 * sweep, 1.1] : [0.5, 1.35];
+      const pal = litPal(whoM(0), [214, 248, 222], 0.95);
+      E.deep(0.4, () => figure(c, { x: G.cx + G.cw * 0.12, y: ty - 0.42, s: 1.35, face: 0.6 * glance, tilt: -0.1 + 0.16 * glance, lean: 0.04, hair: 'short', arms: [lArm, rArm], pal, lit: { side: -1, a: 0.6, cast: 0.3 }, marks: ['braces'], rim: { col: GREEN, a: 0.55 * lampK, side: -1, w: 0.03 } }));
+      // the cash on the table (nearest): the loose heap left, the banded stacks right growing as he counts, the bill in flight between
+      E.deep(0.22, () => {
+        const sl = sweep, bx = G.cx - G.cw * 0.36 + sl * G.cw * 0.9, by = ty - 0.02, r = rngFrom(4242);
+        const bill = (x, y, rot, lit2 = 1) => { c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = rgb(mixc([60, 90, 60], PALE, 0.5 + 0.5 * lit2 * lampK)); c.fillRect(-0.17, -0.08, 0.34, 0.16); c.fillStyle = rgb(mixc([40, 70, 44], [150, 196, 150], lit2 * lampK)); c.fillRect(-0.1, -0.03, 0.2, 0.06); c.restore(); };
+        for (let i = 0; i < 14; i++) bill(bx + (r() - 0.5) * 0.5, by + r() * 0.16 + i * 0.012, (r() - 0.5) * 1.2, 0.8 + 0.2 * r());
+        const n = Math.min(5, Math.floor(p * 6.5)), sx = G.cx + G.cw * 0.42 - sl * G.cw * 0.2;
+        for (let i = 0; i < n; i++) { const x = sx - (i % 2) * 0.42, y = by + Math.floor(i / 2) * 0.24 - 0.06; c.fillStyle = rgb(mixc([70, 100, 70], PALE, 0.6 * lampK)); c.fillRect(x - 0.18, y, 0.36, 0.2); c.fillStyle = rgb(mixc([120, 80, 40], [220, 190, 120], lampK)); c.fillRect(x - 0.19, y + 0.07, 0.38, 0.06); c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(x - 0.18, y, 0.36, 0.025); }
+        if (sweep < 0.3 && cnt > 0.15 && cnt < 0.85 && lick < 0.3) bill(lerp(bx + 0.2, sx - 0.2, (cnt - 0.15) / 0.7), by + 0.28 + 0.2 * Math.sin((cnt - 0.15) / 0.7 * Math.PI), 0.2, 1);
+        // the bag at the end: a dark leather mouth at the table's right, the cash sliding into it
+        if (sweep > 0.01) { c.fillStyle = 'rgb(28,20,14)'; c.beginPath(); c.ellipse(G.g1 + 0.1, by + 0.1, 0.5, 0.22 + 0.3 * sweep, 0, 0, TAU); c.fill(); c.fillStyle = 'rgb(48,34,22)'; c.beginPath(); c.ellipse(G.g1 + 0.1, by + 0.1 + 0.3 * sweep, 0.5, 0.12, 0, 0, TAU); c.fill(); }
+      });
+      // the lamp: the green glass shade on its brass stem (near, top-left), the bulb's light under it, its glow on the wall
+      E.deep(0.18, () => {
+        c.fillStyle = 'rgb(150,120,60)'; c.fillRect(lx - 0.02, ly - 0.5, 0.04, 0.5);
+        c.fillStyle = rgb(mixc([30, 90, 60], GREEN, 0.5 * lampK)); c.beginPath(); c.moveTo(lx - 0.42, ly - 0.02); c.lineTo(lx + 0.42, ly - 0.02); c.quadraticCurveTo(lx + 0.3, ly + 0.24, lx, ly + 0.26); c.quadraticCurveTo(lx - 0.3, ly + 0.24, lx - 0.42, ly - 0.02); c.fill();
+        c.fillStyle = rgb(mixc([200, 255, 220], [255, 255, 240], lampK), 0.9 * lampK); c.fillRect(lx - 0.36, ly - 0.07, 0.72, 0.05);
+        c.globalCompositeOperation = 'lighter'; glow(c, GREEN, lx, ly + 0.08, 0.55, 0.35 * lampK); c.globalCompositeOperation = 'source-over'; c.globalAlpha = al;
+      });
+      // the shadow passing the door: a dark sweep across the back wall (his cue to sweep the cash)
+      if (shadow > 0.01) { const sx2 = G.g1 - shadow * (G.cw + 0.6); c.fillStyle = `rgba(4,4,8,${(0.55 * al).toFixed(3)})`; c.fillRect(sx2, G.h0 + G.ch * 0.3, 0.5, G.ch * 0.7); }
+      c.restore(); c.globalAlpha = 1;
+    },
 
   };
 
@@ -1400,7 +1553,7 @@ export function createWindowLife() {
     catReset() { catTap = -1; },
     /** WIN: something in a window is MOVING (a moment, a tap's answer, a passer-by) — a 60-fps reason (scene.js#fastNow) */
     busy: () => busyNow,
-    debug: () => ({ on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice() }),
+    debug: () => ({ on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
     destroy() { for (const cv of sprites.values()) cv.width = cv.height = 0; sprites.clear(); blocks.clear(); },
   };
 }

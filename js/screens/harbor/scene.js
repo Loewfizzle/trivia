@@ -48,7 +48,7 @@ import { createBoats } from './boats.js';
 import { createWheel } from './wheel.js';
 import { roadSteps, signalSteps, drawSignalLamps, drawLantern, LENS, WORDS } from './road.js';
 import { speakeasySteps, bladeStep, createSpeakeasy } from './speakeasy.js';
-import { lateTvK } from '../../core/harbor-moments.js';
+import { lateTvK, dayKey as momentDayKey } from '../../core/harbor-moments.js';
 import { createCentre } from './centre.js';
 import { ghostAdGame } from '../../core/harbor-speakeasy.js';
 import { promenadeSteps, furnitureSteps, drawLampLight, dimPools } from './stage.js';
@@ -88,7 +88,7 @@ import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyRe
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, UFO_LEN, TR3B_LEN, trafficHold, inHold } from '../../core/harbor-legend.js';
 import { raidEvening, raidPlan, raidAt, forcedRaid, RAID } from '../../core/harbor-raid.js';
-import { dayOf as workDayOf, HOT_C } from '../../core/harbor-workers.js';
+import { dayOf as workDayOf, HOT_C, bootlegNight } from '../../core/harbor-workers.js';
 import { createRaid } from './raid.js';
 import { roadLampAt } from '../../core/harbor-light.js';
 import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
@@ -854,6 +854,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
   }
   let lobbyLine = 0;
+  /** WIN — the cash count's gates (core/harbor-moments.js: boot / noRaid): tonight a bootleggers' night (a weeknight delivery — the
+   *  workers' schedule — or Saturday's big one), tonight a raid night (the evening's raid, already planned by raidPlanNow) */
+  function nightGates() {
+    const lc = LK.local; if (!lc) return { boot: false, raid: false };
+    const key = momentDayKey(lc.y, lc.m, lc.d), seed = L ? L.seed || 1924 : 1924, dow = new Date(Date.UTC(lc.y, lc.m - 1, lc.d)).getUTCDay();
+    const r = raidDays.get(key);
+    return { boot: dow === 6 || bootlegNight(key, { seed }), raid: !!r };
+  }
   // 8P — THE HUSH WORD SIGN's preview: &force=hushsign&hush=JAZZ (the lobby's word; Lobby 2.0 calls harbor().speakeasy.hush(word));
   // undefined = leave the sign to its hook
   // (WIN — the owner's "JAZZ over the sax solo": a stale JUST ME &force=hushsign kept the word SET after CLEAR ALL, because an un-forced
@@ -1435,7 +1443,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (RR && RR.dark) { if (!raidPole) { raidPole = true; speak.pole({ on: false }); } } else if (raidPole) { raidPole = false; speak.pole({ on: true }); }
     { const bd = wTr && wTr.bulbDead; speak.bulb(bd ? bd.i : null, bd ? bd.k : 1); }
     if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
-      tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+      tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     // 9a — THE SPEAKEASY IN THE RAIN: the glass wet (a sheen, beads, rivulets), the hush sign's cyan on the wet pavement
     if (WXS && (LK.rain > 0.03 || WXS.drip > 0.05 || WXS.wet > 0.05) && fadeIn > 0 && !off.has('no-speakeasy')) { const hs = speak.hush(); wetGround.glass(c, { wins: speak.windows(), rain: LK.rain || 0, drip: WXS.drip, wet: WXS.wet, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, fade: fadeIn, hush: hs && hs.lit && hs.rect ? { rect: hs.rect, k: litK(DK, 'lamps') * 0.7 + 0.3 } : null }); }
     { const bd = speak.beds(); snd.speakeasy(RR && bd ? { ...bd, club: (bd.club || 0) * RR.club } : bd); }   // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them; 8b2: the raid hushes it, it creeps back — louder on a party night)

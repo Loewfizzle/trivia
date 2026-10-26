@@ -151,14 +151,16 @@ test('7b — THE TV GLOW: an IRREGULAR flicker — scenes of different lengths +
   let prev = null;
   for (let t = 0; t < 120; t += 0.05) {
     const v = tvLight(t);
-    assert.ok(v.k >= 0.2 && v.k <= 1.1);
+    assert.ok(v.k >= 0.1 && v.k <= 1.25, `level ${v.k}`);   // (WIN: a wider swing — dim spells, bright cuts)
     if (prev && v.cut < prev.cut) cuts.push(t);
     prev = v; lv.push(v.k);
   }
   const lens = cuts.slice(1).map((t, i) => t - cuts[i]);
   assert.ok(lens.length > 30, `${lens.length} scene cuts in 2 min`);
   assert.ok(Math.min(...lens) < 0.8 && Math.max(...lens) > 2, `scenes of different lengths (${Math.min(...lens).toFixed(2)}–${Math.max(...lens).toFixed(2)} s): never a steady beat`);
-  assert.ok(Math.max(...lv) - Math.min(...lv) > 0.5, 'a real swing in level');
+  assert.ok(Math.max(...lv) - Math.min(...lv) > 0.7, 'a real swing in level');
+  // (WIN — the owner: "flicker much more": a DIM spell somewhere in two minutes, and a jump of ≥ 0.3 in one step at a cut)
+  assert.ok(lv.some(v => v < 0.3), 'a dim spell'); assert.ok(lv.some((v, i) => i && Math.abs(v - lv[i - 1]) >= 0.3), 'a hard jump at a cut');
   assert.deepEqual(tvLight(33.3, 7), tvLight(33.3, 7), 'a pure function of time');
   // the late TVs across the skyline: ~10 pm → ~3 am
   assert.equal(lateTvK(21.5), 0); assert.equal(lateTvK(23), 1); assert.equal(lateTvK(1.5), 1); assert.equal(lateTvK(3.5), 0); assert.equal(lateTvK(12), 0);
