@@ -61,6 +61,8 @@ const SCENES = {
   // 11a-1 — HALLOWEEN NIGHT at its peak (a Saturday: the party + the zombies + the spooky light + the web + the pumpkins + the ghost ship forced) ·
   // DAY OF THE DEAD's procession at dusk (Nov 2: the candles along the waterside + the papel picado + the ofrendas)
   'hw-peak': 'when=2026-10-31T21:45&wx=clear&force=no-planes,ghost-ship', 'dd-proc': 'when=2026-11-02T18:20&wx=clear&force=no-planes',
+  // (the night's pieces off one at a time — the attribution of hw-peak's cost: the ghost ship + witch, the ground props, the people)
+  'hw-nosky': 'when=2026-10-31T21:45&wx=clear&force=no-planes,no-ghost-ship,no-witch', 'hw-noprops': 'when=2026-10-31T21:45&wx=clear&force=no-planes,ghost-ship,no-holiday-props', 'hw-nopeople': 'when=2026-10-31T21:45&wx=clear&force=no-planes,ghost-ship,no-people',
   // C1.5: the party's three fill costs, one flag each (review-2.md §1b), against np-party (n4-punch, n4-beams are the other two)
   'f-water': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water', 'f-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-punch,no-water,no-beams',
   'np-day': 'when=2026-10-14T14:00&wx=clear&force=no-planes', 'np-golden': 'when=2026-10-14T18:30&wx=clear&force=no-planes',

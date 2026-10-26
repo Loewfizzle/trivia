@@ -1136,3 +1136,15 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   the element back with its clock moving after a swallowed play(), a second run back to back, 13 checks); the browser rig without the
   city: `tests/integration/tape-preview.html` (RUN: a compressed drain you can hear). **WebKit**: Playwright's WebKit download stalled
   twice on this machine (224 KB of ~100 MB); not run here — the owner's AUDIO panel decides (the test link in docs/harbor.md).
+
+## 11a-1 — THE HOLIDAY SOUNDS (Oct 26 2026; City 2.0 — docs/harbor.md#part-11a-1)
+- **Imported** from ~/Downloads/city-sfx (credits.txt "Weather + party + holiday sounds"; the importer's levels): `witch-cackle` (4.65 s,
+  −20.4 LUFS — once as the witch crosses the moon: witch.js), `ghost-bell` (3.1 s, −20.5 LUFS — twice a crossing), `ghost-ship-creak`
+  (a 28.5 s loop + its 2.5 s seam, −24.3 LUFS, 22 kHz / 40 kbps, a low-pass at 7 kHz — as the ship materialises), `haunted-wind` (a 24 s
+  loop, −24.4 LUFS, 16 kHz / 40 kbps, LP 6 kHz — a BED under Halloween night: sounds.js `keep('haunted-wind', hween…)`, the scene's
+  `hween` = the spooky light × the night, under the music like every bed). The `-lossless` originals stay out of the repo (only the
+  encoded MP3s land in audio/city/). audio/city/ is 12.84 MB (the test's 13 MB cap holds: the two loops lean like the weather beds).
+- **Synthesized** (no hiss in the folder): `cat-hiss` — scripts/build-synth-sfx.py#hiss: a sharp breathy spit, a held 2.4–7.5 kHz hiss with
+  a fast flutter, a throaty growl under it (0.95 s, −20.4 LUFS) — the black cat tapped (scene.js HOOK-HIT-D).
+- New slots in core/city-sounds.js: PART 11 · THE HOLIDAYS (`haunted-wind`, `cat-hiss`); the witch + the ghost ship's were 8a's empty
+  slots, filled now. The trick-or-treaters' treats use the doors' own sounds.

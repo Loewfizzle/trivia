@@ -1224,3 +1224,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       the TV switches off at 3 am and the room goes dark (the edge window's lamp keeps the building never fully dark)
 - [x] The promenade's people + the animals ~9 % bigger
 - [x] The roof signs' hourly modes (spell / race / breath, one big move at a time, the restart flicker); HIGH STAKES's five lamps (+14 %)
+
+## CITY 2.0 — 11a-1: HALLOWEEN + DAY OF THE DEAD (+ the holiday system + the window figures) (Oct 26 2026) — docs/harbor.md#part-11a-1
+- [x] The window figure kit redrawn (real shoulders + neck, a profile that grows with a CONTINUOUS head turn, tapered arms + hands, the bob /
+      bun / short / long hair, the pinched fedora, the cloche + feather) + THE RIM (each room's lamp round its silhouettes; figures() for groups)
+- [x] Costume pieces on the kit (witch hat, horns, ears, a flower crown, a sombrero, a cape, a sheet ghost, bones, wraps)
+- [x] Reduced motion really stops the window moments (the title passes motion 0)
+- [x] THE HOLIDAY CALENDAR (core/harbor-holiday.js, pure, three whole years tested): date-driven build-ups, the night, the come-down
+- [x] THE SIGN DECORATION SYSTEM (signdress.js: a full-dpr canvas in the logo's wrap; baked pieces + the neon's light field; visitors)
+- [x] THE HOLIDAY LIGHT RULES: the wheel, the beam, Rosie, the roof strings, the sign, the skyline's windows, the lamps' gutter, the shadows
+- [x] The banner plane's holiday lines; a HOLIDAYS section in the preview panel (the date jumps + every moment)
+- [x] Halloween: the web growing on NEON by date + a realistic orb-weaver (stop-start, the dragline, a tap); the pumpkins multiplying +
+      carved on the steps; the window scenes (a ghost, a mummy, a witch at her cauldron, the costume party, sill pumpkins); the witch across
+      the moon; bats pouring out of a crown; the black cat (tap: hiss + dart); trick-or-treaters + zombies; the green beam, the orange /
+      purple wheel, the spooky light, the haunted wind; THE LEGENDARY GHOST SHIP (twice on the night)
+- [x] Day of the Dead: the sign's marigold garland, papel picado + candles + warm tubes; marigolds, lamp garlands, the petal path, papel
+      picado in the real wind; the ofrendas in the windows; monarchs; Nov 2's candlelight procession (Catrinas, the mariachi trio)
+- [x] The sounds: the witch, the ghost ship's creak + bell, the haunted wind, a synthesized cat hiss; a new CI job (holiday)
