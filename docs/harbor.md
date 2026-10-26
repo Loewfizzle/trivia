@@ -7025,6 +7025,12 @@ means a moment never drops to the saver's 30 fps — the work per drawn frame is
   `perf` group's "timeout: re-bake" at tier 2 — the runner's bake stayed pending for two 30-s waits; locally the group passes 8/8 (the
   tier-2 re-bake included) — a slow-runner flake of the class the timing checks already warn on. The follow-up push is the pass's second
   (and last) cloud run.
+- **The second run** (40357576752): `show`, `holiday`, `audio`, `wild` green, the REAL label + the perf re-bake fixed / gone; `city` 105/107
+  (the LOAD WEATHER flake again + "THE POOLS": the Oct 21 night now carries the hydrant's big jack-o'-lantern whose candle glow lands on
+  the probe's cobbles — the A/B pages take `no-holiday-props` now); `street` 84/86 (the day panes' scanline after a viewport change on
+  the slow runner — "only 2 panes seen": a timing check now; and the toast's 60-fps check wanted the reason to READ `window` while the
+  runner's neon + sky kept it fast anyway — it judges the share alone now). The three are test fixes, pushed without `[harbor]` (the
+  two-run rule); the next pass's run proves them.
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
 - **PLAY ALL SCENES**: open the panel (the TEST pill), SPEAKEASY → ▶ PLAY ALL SCENES; the chip beside the pill: tap it to skip, ❚❚ to pause,

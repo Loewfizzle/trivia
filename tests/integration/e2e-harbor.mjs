@@ -2175,7 +2175,7 @@ G('promenade', async () => {
   const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
   const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   const settle = p => waitFor(p, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 20000);
-  { const Q = await open({ slot: 'pr1', qs: NIGHT, view: [402, 874] });
+  { const Q = await open({ slot: 'pr1', qs: `${NIGHT}&force=no-holiday-props`, view: [402, 874] });   // (WIN: Oct 21 is in the farm delivery's window — the hydrant's jack-o'-lantern glow would land on the pools' probe)
     await harborUp(Q.page); await settle(Q.page);
     await waitFor(Q.page, 'window.__district.harbor().promenade.lampK >= 0.99', 'the lamps fully on (baked)', 25000); await settle(Q.page);
     const pr = await ev(Q.page, 'window.__district.harbor().promenade');
@@ -2192,7 +2192,7 @@ G('promenade', async () => {
     const patch = (X, Y) => patchOn(Q.page, X, Y);
     const a = lum(await patch(pr.pool.lit[0], pr.pool.lit[1]));
     // the same patch with the lamps' pools switched off (&force=no-lamp-light, the A/B): the pool is the lamps' light, the ground dim
-    const O = await open({ slot: 'pr1b', qs: `${NIGHT}&force=no-lamp-light`, view: [402, 874] });
+    const O = await open({ slot: 'pr1b', qs: `${NIGHT}&force=no-lamp-light,no-holiday-props`, view: [402, 874] });
     await harborUp(O.page); await settle(O.page);
     const b = lum(await patchOn(O.page, pr.pool.lit[0], pr.pool.lit[1]));
     await O.ctx.close();
