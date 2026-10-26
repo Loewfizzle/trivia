@@ -57,6 +57,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 11a-1 | ✅ (Oct 26 — docs/harbor.md#part-11a-1: the window figures redrawn + their rim; the holiday calendar (date-driven) + THE SIGN DECORATION SYSTEM + the light rules + the banner lines + a HOLIDAYS panel section; Halloween: the web + a realistic orb-weaver, the pumpkins, the window scenes, the witch, the bats from a crown, the black cat, trick-or-treaters + zombies, the green beam, the spooky light, THE GHOST SHIP; Day of the Dead: the sign's marigolds + papel picado + candles, the promenade's marigolds + petal path + papel picado, the ofrendas, monarchs, Nov 2's procession) |
 | SP4 | ✅ (Oct 26 — docs/harbor.md#sp4: the spider + web redone FUTURISTIC (a geometric web of light filaments + nodes + a shimmer; a bio-mechanical chrome spider, legs that never tangle, a tap → the glowing thread); the window people LIT in lit rooms (real colours, the lamp's modelling, the rim; silhouettes only backlit / dark / ghost); the weather source: the panel's stored JUST ME jump was the cause (it landed after the reveal) — the panel's clock keeps the live weather + lands before the reveal, a calm seeded wind, clouds crossing in minutes, the readout names the source; the JAZZ sign inside its pane; the awning's drips by the rain; the strips under the panel; the AUDIO panel's music-off wording; the owner's mid-pass add-ons: the upper panes equal on screen (the day curtains gone) + THE WINDOW PEOPLE IN 3D (volume from the lamp, a cast shadow, the ¾ turn) + THE BLUE TV ROOM (the set, the couch from behind, the rimmed heads, the smoke)) |
 | WIN | ✅ (Oct 26 — docs/harbor.md#win: the window bugs (the spider's tap on iOS, the stale hush sign, one window at a time, the toast at 60 fps, the ghost's eyes); the Halloween set pieces + the DRESSING SPOTS; the hush word on the wall; 2.5D rooms + people at depth; the TV room lit by the unseen set + the smoke; the cash count; PLAY ALL + the tidy panel) |
+| WIN2 / WIN3 | ✅ (Oct 26 — docs/harbor.md#win2, #win3: the eyes in the haze, ACT BIG, the edge moods; the spiders for Halloween, the panel rows, the boss's TV room with no person + the quiet nights, the cash close-up, the window party) |
+| SP5 | THE SPEAKEASY FOLLOW-UPS (Fable, Oct 26 — "OWNER'S NOTES — OCT 26 (after WIN3)": the spiders independent + the drop's feet + the bigger scare (FIRST, for Halloween), the boss's room by day + the violet spade + the TV nudge + his shadow at the party, the roller shades, the barbershop's values, the cash count's one arm pair + walk-up, the edge dancers + depth + between songs, the vendor's side, the promenade dance on the hour, the blade's weekly repaint) | Fable | ~4 h |
 | 11a-1 | HALLOWEEN + DAY OF THE DEAD + the shared holiday system (calendar, build-ups day by day, sign dressings; the web, the pumpkins, the window ghosts on SP3's window kit, the ghost ship, the witch, the trick-or-treaters) — LIVE BY ~OCT 29 | Opus 5.5 high | ~3 h |
 | 11a-2 | THANKSGIVING + the reusable PARADE system (the Wednesday party, Black Friday's first Christmas crew) — by mid-Nov | Opus 5.5 high | ~2–3 h |
 | 9b | WINTER + THE CONSTRUCTION TOWER (real snow on the ground, the stages, plows + salt + shovelers, the January snowman, snow on the sign + frost on the glass, the tower's yearly cycle) | Opus 5.5 high | ~3 h |
@@ -816,6 +818,8 @@ docs/harbor.md (what it built, the stubs table, the handoff note) and gives prev
   turns into a neon tube outline, flickering on like the roof signs. Never replace the real NASA-map moon by default.
   + TAP A WINDOW TO PEEK INSIDE (the owner, Oct 26 — parked after WIN: a tap on a speakeasy window zooms into the room's scene for a
   moment; not now — the windows must read as-is at the real size first).
+  + SYNCHRONIZED DANCES (the owner, Oct 26 5:45 pm — parked): a few choreographed group dances in step with the beat (a 1920s
+  Charleston line, a swing circle, a modern line dance on party nights), picked per song.
   NOCTILUCENT CLOUDS (a RARE sky event, true to life): the highest clouds there are
   (~80 km), glowing electric blue-silver because they're still lit by the sun after it has set. Only when real-ish:
   SUMMER (late May → early August), only in deep TWILIGHT (the sun ~6–16° below the horizon — ~45–100 min after sunset or
@@ -2413,3 +2417,121 @@ are proven by THIS pass's cloud run.
 - THANKSGIVING SOUNDS (Oct 26 3:28 pm): the owner is giving Grok a batch for 11a-2 — geese-v, parade-crowd (+ parade-cheer),
   marching-band-far (a PUBLIC-DOMAIN recording only, e.g. a pre-1926 Sousa march), leaves-rake, balloon-flap — into
   ~/Downloads/city-sfx, credits.txt "Thanksgiving + parade sounds". 11a-2 imports them.
+
+## OWNER'S NOTES — OCT 26 (after WIN3)
+Build table from here: **SP5** (this pass, Fable — the speakeasy follow-ups: the spiders, the boss's room, the windows, the party, the
+promenade dance, the blade's weekly repaint; Group 1 — the spiders — ships FIRST for Halloween, Sat Oct 31) → 11a-2 THANKSGIVING + THE
+PARADE (Opus; its sounds are in ~/Downloads/city-sfx with Grok's processing brief — the next prompt carries it) → 9b WINTER (+ the
+climate-aware weather fallback) → ATM (the FABLE ATMOSPHERE pass) → 10 PARTY NIGHTS → 11b CHRISTMAS + NYE (live by Nov 26) … 13 CITY
+CONTROL (+ the birthday event). FUTURE IDEAS: SYNCHRONIZED DANCES (parked — see the end of this section).
+
+- THE RIGHT LAMP POST's JACK-O'-LANTERN IS HIDDEN (the owner, Oct 26 3:53 pm, by day — BUILT in WIN3, spot `corner-right`): the one on
+  the straw bale by the right lamp post sits BEHIND the right tree, mostly covered → MOVE it FORWARD to the front of the promenade, just
+  LEFT of the right tree's planter (nearer the camera = bigger + fully seen, the tree framing it from behind), clear of the HOST button's
+  zone (the dock at rest and shown), the walkers' routes + the crosswalk path, never overlapping the couple's usual standing spot; update
+  that DRESSING SPOT in core/harbor-spots.js so later holidays use the new spot too.
+- THE WEATHER's FAILSAFE (the owner, Oct 26 3:57 pm — DECIDED): the live weather comes from Open-Meteo (+ NOAA's Kp) through our own
+  /api/sky; if it's down the site never breaks (cached answer → the SEEDED fallback). Make the fallback CLIMATE-AWARE, not random: built
+  from the DATE + the player's LOCATION (lat / lon, else the time zone's region) using simple climate normals by month + latitude
+  (temperature range, cloudiness, chance of rain / snow, typical wind, fog season), seeded by the date so everyone at a place sees the
+  same, changing gently through the day — "even if live weather isn't working, you're still going to be close" (a cloudy cool November
+  in Michigan, a sunny one in Arizona). No fresh snow invented on a mild day; snow on the ground in the fallback only where + when the
+  climate makes it likely (9b's snowpack model). The readout names it ("weather: climate fallback — live failed: <why>"). For 9b (the
+  snow states depend on it).
+- THE SPEAKEASY's BLADE — VARIETY (the owner, Oct 26 4:00 pm): not always warm-white letters; vary the COLOURS + the LETTER STYLES so the
+  sign never gets boring. Claude's rules: each game's blade night takes its OWN LOOK — the letters lit in the GAME's accent colour (its
+  theme in css/base.css: PULSE's, CIPHER's…) with a white-hot core so they still read, or a classic warm-white / amber; the marquee
+  BULBS warm-white, amber or a coloured chase to match; 3–4 LETTER STYLES from one 1920s Art Deco family (a bold deco block, a condensed
+  marquee sans, a slab, an inline / outline style) — never a script (unreadable stacked); CORRECTED (the owner, 4:09 pm — Claude checked
+  core/harbor-workers.js: the blade changes ONLY when THE SIGN PAINTERS repaint it, MONDAY 1–4 pm, for the new week): the colour +
+  letter style are part of EACH WEEK's REPAINT — the painters' stages (paint-out → chalk → letters → gilt) paint the new game IN its new
+  style + colours, chosen per week (seeded, the same for everyone), never the same style two weeks running; the design then holds all
+  week (only the bulbs' chase varies on party nights); DECIDED (the owner, 4:13 pm): each Monday's repaint changes THE GAME + THE LETTER
+  COLOUR + THE LETTER STYLE + THE PANEL COLOUR; THE BULBS STAY WARM WHITE (the incandescent building — the letters carry the colour) and
+  keep their behaviour (the calm chase, the beat on party nights, the weekly burnt-out bulb + the repairman); by day the painted letters
+  + the panel colour vary the same way. Readability first: every combo checked unzoomed at 390 / 402 / 430 for the longest names.
+  (BUILT in SP5 Group 4.)
+- REMIND THE OWNER BEFORE THE NEXT PROMPT (Oct 26 4:14 pm): when he asks for the next prompt (Thanksgiving), FIRST remind him to send
+  Claude the THANKSGIVING SOUNDS Grok found (the list / credits.txt section, what landed in ~/Downloads/city-sfx), so the prompt imports
+  exactly those.
+- NOTES FOR THE NEXT PROMPT (the owner, Oct 26 5:05 pm): (1) THE SPIDERS' SCARE must be BIGGER — they scatter FARTHER + FASTER away from
+  a flickering / racing tube (a real panicked dash across the web or up their thread, legs blurring), then a slow, wary return (BUILT in
+  SP5 Group 1); (2) THE EDGE WINDOWS' CURTAINS look like BOW TIES (two swags tied in the middle) + block what little window there is → NO
+  CURTAINS in the half-cut windows; instead a 1920s ROLLER SHADE (a plain fabric blind with a ring pull) at a seeded HEIGHT each night —
+  UP (the full mood light), HALF-WAY (the light + shadows below a straight edge), or DOWN (the shade itself glowing as a warm translucent
+  panel, the moods' shadows playing ON it — a fan's turning shadow, a figure's shadow passing, a flicker behind it); one clean horizontal
+  edge reads at phone size; the two edge windows never at the same height the same night. DECIDED (the owner, 5:07 pm). (BUILT in SP5
+  Group 3.)
+- THE BOSS's ROOM BY DAY + THE WAKE MOVES (the owner, Oct 26 5:09 pm — DECIDED: he saw "THE UPSTAIRS WAKES" via PLAY ALL — a person
+  stretching in the upper-right window, which is THE BOSS's TV room → it breaks the mystery). (1) MOVE "THE UPSTAIRS WAKES" (+ any other
+  moment that shows a person in that room) to ANOTHER upper window; the boss's room NEVER shows a person, day or night. (2) THE BOSS's
+  ROOM BY DAY (Claude's set, all light + shape, readable at 402): the SHADE DRAWN all day — the one window that never opens to the
+  daylight (dark against the sunlit facade); now + then the shade LIFTS an inch and drops (someone peeking out); a BINOCULARS GLINT — a
+  sharp sun flash from the gap aimed at the harbor, when Rosie docks or a boat comes in (the boss watching the docks); a thin curl of
+  CIGAR SMOKE drifting out of a sash cracked open at the top; on BOOTLEGGER days, late afternoon, A SIGNAL — a lamp behind the shade
+  blinks twice and a boat's light out on the water answers; on overcast days a SHADOW crossing behind the lit shade. Rare + seeded, a
+  few a day, never two at once.
+  REVISED (the owner, 5:12 pm): DROP the binoculars glint + the harbor light-signal (nobody would catch it); KEEP the drawn shade, the
+  peek, the cigar smoke, the shadow. THE BOOTLEGGER SIGNAL becomes something the STREET can see (to explore + decide): a coloured LAMP
+  behind the drawn shade on bootlegger days (e.g. VIOLET — the one window that colour), and / or a SYMBOL backlit on the shade (e.g. the
+  spade ♠), lit from late afternoon until the bootleggers arrive, then off — a "tell" players can learn (the violet lamp = a shipment
+  tonight).
+  DECIDED (the owner, 5:14 pm): BOTH — the VIOLET LAMP behind the drawn shade + a dark SPADE ♠ cut-out against it, lit from late
+  afternoon until the bootleggers' truck arrives, then off; on BOTH bootlegger occasions (the quiet weeknight ~10:40–11:15 pm, Sun–Thu,
+  ~9 % of those nights ≈ 2 a month + the big SATURDAY delivery ~6:30–7 pm before every party night): the Saturday one lights ~3 pm, a
+  weeknight one ~5 pm. (A raid follows a weeknight delivery rarely — the tell.) (BUILT in SP5 Group 2.)
+- THANKSGIVING SOUNDS ARRIVED (Oct 26 5:20 pm; Grok's full processing brief saved as grok-thanksgiving-processing.md — goes into the
+  11a-2 prompt): in ~/Downloads/city-sfx: geese-v.wav (Mixkit, 5.2 s), parade-crowd.mp3 (Pixabay, kids + claps, 31 s), parade-cheer.flac
+  (Sonniss 5.1 → fold to stereo), marching-band-far.mp3 (the US Marine Band's "Washington Post March", Edison 1923 78 rpm — public
+  domain), balloon-flap.mp3 (Pixabay, a big flag flapping, 79 s); + two Freesound CC0 files the owner downloaded himself — IN THE FOLDER
+  (he confirmed, 5:23 pm): leaves-rake.wav, parade-crowd-2.wav (the adult murmur under the kids). Grok's chain: trim, HPF, 200–1200 Hz
+  phone saturation, distance LPF + reverb (the band "two blocks away"), de-harsh, beds −30 LUFS-I / one-shots −20, −1 dBTP, seamless
+  loops, a mono check; nothing auditioned by ear — skip anything harsh, modern or wordy.
+- THE BARBERSHOP: TWO WHITE SHAPES (the owner, Oct 26 5:25 pm): the barber + the customer both read as white shirts — hard to tell apart
+  at the shop window's size. FIX (Claude): keep the barber's classic WHITE JACKET but give it a dark VEST + a black bow tie (a dark shape
+  across the white), and put the customer under a COLOURED CAPE — a deep NAVY (or burgundy) with a thin pinstripe — so the two are
+  opposite values; the customer's face + hair above it; readable unzoomed at 402. (BUILT in SP5 Group 3.)
+- WIN3 PHONE REVIEW — THE SPIDERS (the owner, Oct 26 5:28 pm): (1) the two MIRROR EACH OTHER's motion → fully INDEPENDENT (their own
+  seeds, timings, pauses, paths, never in step); (2) a BIGGER range on the web: each roams at least the LENGTH OF ONE LETTER along its
+  tubes / web (wandering, pausing, turning back); (3) BUG — on the DROP the FEET stay pinned to the web / tube and the legs STRETCH as
+  the body falls: the feet must LET GO at the drop (legs gather with the body, the IK released) and re-plant only on touchdown.
+  Otherwise the spiders look good ✔. (BUILT in SP5 Group 1.)
+- WIN3 PHONE REVIEW — HALLOWEEN NIGHT + THE CART (the owner, Oct 26 5:30 pm): Halloween night looks great ✔; the moved jack-o'-lantern's
+  placement good ✔ — BUT the CHESTNUT VENDOR stands on the cart's LEFT, right behind that jack-o'-lantern, so he's hidden → move him to
+  the cart's RIGHT side (his serving spot, facing customers), visible at 390 / 402 / 430 with the lantern in place; the newsboy sharing
+  the spot follows the same rule. (BUILT in SP5 Group 4.)
+- WIN3 PHONE REVIEW — THE BOSS's TV LIGHT + A FIGURE IN HIS WINDOW (the owner, Oct 26 5:31 pm): (1) THE BOSS's ROOM is good ✔, but the
+  TV LIGHT flickers too much: MOSTLY CALM — long stretches of steady cool blue with a slight, occasional shimmer; the fast flicker only
+  now + then; the warm / YELLOW scene-change flashes much LESS often (the shadows + the rare silhouette moments as decided stay). (2) A
+  GREEN SILHOUETTE showed in the UPPER-RIGHT window (likely Halloween's WITCH AT HER CAULDRON) — that's the BOSS's ROOM: NO moment ever
+  plays there (holiday scenes included — the witch, the ghost, the mummy, the costume party, ofrendas, Thanksgiving tables… all go to
+  the other windows); the holiday tint on his TV glow is his only holiday touch. A check: no figure / moment in the boss's room, ever.
+  THE OWNER, 5:35 pm: "you finally nailed it" — the curtain's lit edge reads even unzoomed, the "only light on" night is "beautiful".
+  The flicker change is a SMALL NUDGE, NOT A REDESIGN: keep everything (the room, the curtain, the colours, the shadows, the quiet
+  nights), only lower the flicker's aggressiveness — fewer + gentler jumps, longer calm blue stretches, rarer yellow flashes. Compare
+  before / after side by side and keep the change modest. (BUILT in SP5 Group 2.)
+- WIN3 PHONE REVIEW — THE CASH COUNT (the owner, Oct 26 5:37 pm, screenshot): (1) BUG — FOUR ARMS: the figure's own outstretched arms
+  stay drawn while the counting hands play on top (two arm sets) → ONE pair of arms: the counting pose REPLACES the figure's default
+  arms (one rig, the hands at the ends of his own arms), checked frame by frame; (2) HE SNAPS IN → he WALKS UP to the table through the
+  room's depth (WIN2's walk-in rule), sits / leans in, THEN counts (this overrides WIN3's "the close-up from the first frame": the
+  walk-up first, then the close-up counting). (BUILT in SP5 Group 3.)
+- WIN3 PHONE REVIEW — THE WINDOW PARTY (the owner, Oct 26 5:40 pm): "looks really good" ✔. (1) THE HALF-CUT EDGE WINDOWS join with
+  DANCERS during the party: one or two silhouettes each (the only time people appear there — party only), cut off by the screen edge
+  like the room continues past it, on the beat in their room's colour; (2) DEPTH in the party rooms: one extra dancer BEHIND each group
+  — smaller, dimmer, partly hidden (the 2.5D depth), never crowding the front row; (3) THE BOSS's ROOM DURING THE PARTY — DECIDED (the
+  owner, 5:45 pm): HE WATCHES OVER HIS PARTY — the shade comes all the way down, glowing softly with the TV light behind it; now + then
+  HIS SHADOW appears against the shade, standing still, looking down at the party in the street, sometimes the tiny orange EMBER of
+  his cigar glowing through; then he steps away. Only ever a shadow. (BUILT in SP5 Groups 2 + 3.)
+- THE PROMENADE DANCE ON THE HOUR (the owner, Oct 26 5:41 pm — DECIDED, replaces the always-on glow-wand circle from 10 pm): on PARTY
+  NIGHTS (any party mode), EVERY HOUR ON THE HOUR the dancers WALK UP to the centre circle (from the crossing / the speakeasy / the
+  edges, arriving over ~30 s), DANCE FOR TWO SONGS (the music's own song boundaries when it plays — the beat-locked moves, a little
+  cheer between songs; without music ~2 × 3.5 min on the party's clock), then LEAVE (drifting off in twos + threes). Same for everyone
+  (the room / city clock), joins mid-way, the glow wands kept. Clear of the dock, the lobby line + a holiday centrepiece; never during a
+  raid or the TR-3B. (BUILT in SP5 Group 4.)
+- THE WINDOW DANCERS BETWEEN SONGS (the owner, Oct 26 5:53 pm): when the song switches, the dancers JITTER (a snap as their beat clock
+  re-aligns to the new song) and keep dancing at full speed through the gap — wrong. FIX: at a song's end they WIND DOWN (the moves
+  slow + soften over the last bars), and in the gap they IDLE — swaying lightly, shifting weight, turning to each other, a clap or a
+  cheer, a sip — then PICK UP smoothly on the new song's first downbeat; every change of tempo / phase BLENDED over ~1 s (never a
+  snap); the same for the promenade's hourly dance between its two songs. (BUILT in SP5 Group 3.)
+- FUTURE IDEAS + SYNCHRONIZED DANCES (the owner, Oct 26 5:45 pm — PARKED): a few choreographed group dances in step with the beat (a
+  1920s Charleston line, a swing circle, a modern line dance on party nights), picked per song.
