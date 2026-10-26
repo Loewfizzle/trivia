@@ -6786,6 +6786,18 @@ music off). Built unattended by Fable, group by group, each pushed as it passed.
 - Judged at 402 (`--crop upper --dsf 3 --zoom 2`): the tango's red dress + black tails round, the costume party's four modelled by the
   bar's pendant, the card players' crowns lit from above.
 
+### 6. THE BLUE TV ROOM (the owner's add-on, mid-pass; `windows.js#tvRoom`)
+- **THE SET on the back wall**: a dark cabinet with the screen's picture in the flicker's colour (`core/harbor-moments.js#tvLight`: the
+  irregular blue, the warm cuts, a scan line on a cut), brighter at its centre, its glow on the wall round it and low on the floor.
+- **THE COUCH from behind**: its back across the foot of the window (two cushions' round tops, the seam), its top edge rimmed by the
+  screen's light. **A HEAD above it** most evenings (the bob + a bun), **sometimes two** (a short-haired second); we see their backs — the
+  hair + the shoulders dark, a BLUE RIM where the screen's light leaks round them, the screen glowing beyond.
+- **Small life**: a slow head tilt, a nod every ~9 s, the second now and then leaning on the first's shoulder for twenty-odd seconds, an
+  arm reaching out to the glass on the side table (its rim glinting blue) every ~23 s; THE CIGARETTE at the couch's end — an ember
+  pulsing as it is drawn on, its smoke rising in a slow wander; the cat on the arm when there is one person. Reduced motion: still.
+- The TV clicks off at 3 am as before (`apartmentState` 'tvoff': the last flicker, the picture shrinking away, the room DARK). Readable at
+  402: the heads ~6 pt, the screen ~14 pt (`--crop upper --dsf 3 --zoom 3`).
+
 ### Decisions made (the owner was on his phone — each the most reasonable reading; easy to reverse)
 - The web's light is ITS OWN (violet / ice white) × the sign's level, with only a tint of the neon near the tubes — not the tubes' pink.
 - The spider's eyes violet-white (cool, with the web) rather than red; its size up a touch (1.32 → 1.5) so the chrome reads at 1×.

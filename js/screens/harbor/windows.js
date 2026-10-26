@@ -788,6 +788,11 @@ export function createWindowLife() {
   }
 
   // ---------------------------------------------------------------- THE APARTMENT AT NIGHT: the TV, the night lamp
+  /** SP4 — THE BLUE TV ROOM (the owner's add-on): the SET on the back wall (its screen the flickering blue, its glow on the wall round
+   *  it), a COUCH seen from behind — its back toward the window, facing the set — with a head above it (sometimes two), lit from the
+   *  FRONT by the screen: a blue rim on the hair + the shoulders, the screen glowing beyond them; small life (a slow head tilt, a nod,
+   *  the second leaning on the first's shoulder, an arm reaching for the drink on the side table); the cigarette's smoke rising from the
+   *  couch's end. The TV clicks off at 3 am (apartmentState: 'tvoff' → dark). people: true | 0..1 (a forced head level) | false */
   function tvRoom(E, on = 1, people = true) {
     const { c, G, t, k, mo } = E;
     const tv = mo ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0, cut: 1 }, a = k * on;
@@ -795,26 +800,73 @@ export function createWindowLife() {
     // the two glows lower, the level capped)
     const tc = tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint), tk = Math.min(0.92, tv.k);
     c.globalAlpha = 1;
-    // the room in the TV's light: the walls take its colour (the whole window reads BLUE at a glance), brighter toward the set
-    R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([8, 9, 20], mixc([30, 44, 96], tc, 0.25), clamp01(a * (0.55 + 0.45 * tv.k)))));
-    // the TV's light on the walls + the ceiling (the set low at the left, out of sight below the sill)
+    // the room in the TV's light: the walls take its colour (the whole window reads BLUE at a glance), brighter round the set
+    R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([8, 9, 20], mixc([30, 44, 96], tc, 0.25), clamp01(a * (0.5 + 0.45 * tv.k)))));
+    // THE SET on the back wall: a dark cabinet, the screen's picture (the flicker's colour, brighter at its centre), its glow on the wall
+    const sw = Math.min(0.95, G.cw * 0.46), sh = sw * 0.72, sx = G.cx + 0.02, sy = G.h0 + G.ch * 0.6;   // (the screen's centre)
     c.globalCompositeOperation = 'lighter';
-    glow(c, tc, G.g0 + G.cw * 0.3, G.h0 + G.ch * 0.45, G.ch * 1.15, 0.5 * a * tk, 0.9);
-    glow(c, tc, G.g0 + G.cw * 0.22, G.h0 + G.ch * 0.18, G.ch * 0.6, 0.36 * a * tk);
+    glow(c, tc, sx, sy, sw * 1.9, 0.5 * a * tk, 0.85);
+    glow(c, tc, sx, G.h0 + G.ch * 0.9, sw * 1.2, 0.22 * a * tk, 0.5);
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-    // the picture on the wall (faint), the curtains tied back (their inner edges catching the blue)
-    R(c, G.g0 + G.cw * 0.58, G.h0 + G.ch * 0.58, G.g0 + G.cw * 0.82, G.h0 + G.ch * 0.77, rgb(mixc([10, 12, 24], tc, 0.16 * a * tv.k)));
-    for (const [p, q, d] of [[G.g0, G.g0 + 0.3, 1], [G.g1 - 0.3, G.g1, -1]]) { c.fillStyle = 'rgb(10,10,22)'; c.beginPath(); c.moveTo(p, G.h1); c.lineTo(q, G.h1); c.quadraticCurveTo(d > 0 ? q - 0.05 : p + 0.05, G.h0 + G.ch * 0.45, d > 0 ? q - 0.12 : p + 0.12, G.h0); c.lineTo(d > 0 ? p : q, G.h0); c.fill(); }
-    // the couch's back across the foot of the window; now and then a head on it (+ the cat beside, ears up)
-    const cy = G.h0 + G.ch * 0.2;
-    c.fillStyle = SIL_TV; c.beginPath(); c.moveTo(G.g0, G.h0); c.lineTo(G.g0, cy - 0.04); c.quadraticCurveTo(G.g0 + G.cw * 0.5, cy + 0.08, G.g1, cy - 0.04); c.lineTo(G.g1, G.h0); c.fill();
+    R(c, sx - sw / 2 - 0.05, sy - sh / 2 - 0.05, sx + sw / 2 + 0.05, sy + sh / 2 + 0.05, rgb(mixc([12, 12, 22], tc, 0.08 * a)));
+    { const g = c.createRadialGradient(sx, sy, 0, sx, sy, sw * 0.7); g.addColorStop(0, rgb(mixc([40, 60, 120], [255, 255, 255], 0.55 * tk), a)); g.addColorStop(0.6, rgb(mixc([30, 50, 110], tc, 0.75 * tk), a)); g.addColorStop(1, rgb(mixc([20, 30, 70], tc, 0.5 * tk), a));
+      c.fillStyle = g; c.fillRect(sx - sw / 2, sy - sh / 2, sw, sh); }
+    if (mo && tv.cut < 0.5) { c.fillStyle = `rgba(230,240,255,${(0.12 * a).toFixed(3)})`; c.fillRect(sx - sw / 2, sy - sh / 2 + sh * ((t * 7) % 1), sw, sh * 0.08); }   // (a scan line on a cut)
+    // the curtains tied back at the edges (their inner edges catching the blue)
+    for (const [p, q, d] of [[G.g0, G.g0 + 0.3, 1], [G.g1 - 0.3, G.g1, -1]]) { c.fillStyle = 'rgb(10,10,22)'; c.beginPath(); c.moveTo(p, G.h1); c.lineTo(q, G.h1); c.quadraticCurveTo(d > 0 ? q - 0.05 : p + 0.05, G.h0 + G.ch * 0.45, d > 0 ? q - 0.12 : p + 0.12, G.h0); c.lineTo(d > 0 ? p : q, G.h0); c.fill(); c.strokeStyle = rgb(tc, 0.22 * a * tv.k); c.lineWidth = 0.02; c.beginPath(); c.moveTo(d > 0 ? q - 0.12 : p + 0.12, G.h0); c.quadraticCurveTo(d > 0 ? q - 0.05 : p + 0.05, G.h0 + G.ch * 0.45, d > 0 ? q : p, G.h1); c.stroke(); }
+    // THE COUCH from behind: its back across the foot of the window (two cushions' round tops), the TV's light spilling over its top edge
+    const cy = G.h0 + G.ch * 0.34, cl = G.g0 + G.cw * 0.08, cr = G.g1 - G.cw * 0.1, cm = (cl + cr) / 2;
+    const couch = () => { c.beginPath(); c.moveTo(cl - 0.08, G.h0); c.lineTo(cl - 0.08, cy - 0.1); c.quadraticCurveTo(cl - 0.08, cy + 0.02, cl + 0.04, cy + 0.02); c.quadraticCurveTo(cl + (cm - cl) * 0.5, cy + 0.1, cm - 0.03, cy); c.quadraticCurveTo(cm + (cr - cm) * 0.5, cy + 0.1, cr - 0.04, cy + 0.02); c.quadraticCurveTo(cr + 0.08, cy + 0.02, cr + 0.08, cy - 0.1); c.lineTo(cr + 0.08, G.h0); c.closePath(); };
+    couch(); c.fillStyle = rgb(mixc([12, 12, 26], [36, 40, 74], 0.4 * a)); c.fill();
+    c.save(); couch(); c.clip(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgb(tc, 0.42 * a * tv.k); c.lineWidth = 0.045; couch(); c.stroke(); c.globalCompositeOperation = 'source-over'; c.restore();
+    R(c, cm - 0.012, G.h0, cm + 0.012, cy - 0.06, 'rgba(6,6,16,0.6)');   // (the seam between the cushions)
     if (people) {
-      const slot = Math.floor(t / 47), head = typeof people === 'number' ? people : hsh(slot, 5) < 0.62 ? sm(0, 1.5, t - slot * 47) * (1 - sm(44, 46.5, t - slot * 47)) : 0;
+      // one head above the couch (most of the time), a second beside it some evenings; lit from the FRONT by the set — we see their backs:
+      // the hair + the shoulders dark, a blue rim where the screen's light leaks round them
+      const slot = Math.floor(t / 47), head = typeof people === 'number' ? people : hsh(slot, 5) < 0.72 ? sm(0, 1.5, t - slot * 47) * (1 - sm(44, 46.5, t - slot * 47)) : 0;
       if (head > 0.01) {
-        const hx = G.g0 + G.cw * 0.44, hy = cy - 0.22 + 0.34 * head;
-        c.fillStyle = SIL_TV; c.beginPath(); c.arc(hx, hy, 0.15, 0, TAU); c.fill(); c.fillRect(hx - 0.06, hy - 0.2, 0.12, 0.12);
-        c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgb(tc, 0.5 * a * tv.k); c.lineWidth = 0.035; c.beginPath(); c.arc(hx, hy, 0.15, Math.PI * 0.15, Math.PI * 0.85); c.stroke(); c.globalCompositeOperation = 'source-over';
-        if (hsh(Math.floor(t / 71), 6) < 0.5) cat(c, hx + 0.48, cy - 0.06, 0.62, { col: SIL_TV, flick: mo ? clamp01(Math.sin(t * 1.9) * 2 - 1) : 0, dir: -1 });
+        const two = hsh(slot, 9) < 0.45, lean = two && hsh(slot, 12) < 0.55 ? sm(14, 18, t - slot * 47) * (1 - sm(36, 40, t - slot * 47)) : 0;
+        const nod = mo ? (() => { const n = (t - slot * 47) % 9; return n > 6 && n < 6.7 ? Math.sin((n - 6) / 0.7 * Math.PI) : 0; })() : 0;
+        const tilt1 = mo ? 0.1 * Math.sin(t * 0.33 + slot) : 0, r = Math.min(0.2, G.cw * 0.095), shoulderW = r * 1.9;
+        const persons = [{ x: cm - (two ? 0.3 : 0.06) * (G.cw / 2), hair: 'bob', tilt: tilt1, dip: 0.04 * nod }];
+        if (two) persons.push({ x: cm + 0.3 * (G.cw / 2) - lean * 0.18, hair: 'short', tilt: (mo ? 0.08 * Math.sin(t * 0.27 + 2) : 0) + lean * 0.42, dip: lean * 0.1 });
+        // the arm reaching for the drink on the side table (the right end), every so often
+        const reach = mo ? (() => { const n = (t - slot * 47) % 23; return n > 15 && n < 18.4 ? sm(15, 16, n) * (1 - sm(17.4, 18.4, n)) : 0; })() : 0;
+        for (const P of persons) {
+          const hy = cy - 0.1 + (r * 1.15) * head - P.dip, sil = rgb(mixc([6, 8, 22], [20, 24, 46], 0.3 * a));
+          c.save(); c.translate(P.x, hy); c.rotate(P.tilt);
+          // the shoulders over the couch's top (a rounded slab), the neck, the head, the hair's shape
+          c.fillStyle = sil; c.beginPath(); c.moveTo(-shoulderW, -r * 1.2); c.quadraticCurveTo(-shoulderW, -r * 0.3, -r * 0.55, -r * 0.3); c.lineTo(r * 0.55, -r * 0.3); c.quadraticCurveTo(shoulderW, -r * 0.3, shoulderW, -r * 1.2); c.closePath(); c.fill();
+          c.fillRect(-r * 0.3, -r * 0.5, r * 0.6, r * 0.4);
+          c.beginPath(); c.arc(0, r * 0.45, r, 0, TAU); c.fill();
+          if (P.hair === 'bob') { c.beginPath(); c.ellipse(0, r * 0.5, r * 1.12, r * 1.02, 0, Math.PI * 0.02, Math.PI * 1.12); c.fill(); c.beginPath(); c.arc(-r * 0.2, r * 1.15, r * 0.34, 0, TAU); c.fill(); }   // (a bun)
+          else { c.beginPath(); c.ellipse(0, r * 0.55, r * 1.05, r * 0.95, 0, Math.PI, TAU); c.fill(); }
+          // THE BLUE RIM (the screen's light leaking round the hair + the shoulders), a touch stronger on the side toward the set's centre
+          c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+          const ra = 0.55 * a * tv.k;
+          c.strokeStyle = rgb(tc, ra); c.lineWidth = r * 0.22; c.beginPath(); c.arc(0, r * 0.45, r * 0.98, Math.PI * 1.08, Math.PI * 1.92); c.stroke();
+          c.strokeStyle = rgb(tc, ra * 0.7); c.lineWidth = r * 0.16; c.beginPath(); c.moveTo(-shoulderW * 0.92, -r * 1.05); c.quadraticCurveTo(-shoulderW * 0.9, -r * 0.42, -r * 0.6, -r * 0.4); c.moveTo(shoulderW * 0.92, -r * 1.05); c.quadraticCurveTo(shoulderW * 0.9, -r * 0.42, r * 0.6, -r * 0.4); c.stroke();
+          c.globalCompositeOperation = 'source-over';
+          c.restore();
+        }
+        if (reach > 0.01) {
+          // the near arm out to the side table: the upper arm along the couch's top, the forearm up to the glass (its glint in the blue)
+          const P = persons[persons.length - 1], ax = P.x + shoulderW * 0.8, ay = cy - 0.02, gx = cr + 0.02, gy = cy + 0.12 + 0.1 * reach;
+          c.strokeStyle = rgb(mixc([6, 8, 22], [20, 24, 46], 0.3 * a)); c.lineWidth = r * 0.42; c.lineCap = 'round';
+          c.beginPath(); c.moveTo(ax, ay); c.lineTo(lerp(ax, gx, reach * 0.95), lerp(ay, gy, reach)); c.stroke();
+          c.globalCompositeOperation = 'lighter'; glow(c, tc, lerp(ax, gx, reach * 0.95), lerp(ay, gy, reach) + 0.03, 0.08, 0.6 * a * reach); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+        }
+        // the glass on the side table (its rim catching the blue) + THE CIGARETTE: an ember pulsing now and then, its smoke rising in a slow wander
+        c.globalCompositeOperation = 'lighter';
+        glow(c, tc, cr + 0.02, cy + 0.08, 0.06, 0.4 * a * tv.k);
+        const ex = cr - 0.02, ey = cy + 0.1, draw = mo ? 0.5 + 0.5 * Math.sin(t * 1.6) * Math.sin(t * 0.37) : 0.4;
+        glow(c, [255, 120, 40], ex, ey, 0.05, (0.35 + 0.5 * draw) * a);
+        c.strokeStyle = `rgba(190,200,230,${(0.16 * a).toFixed(3)})`; c.lineWidth = 0.025; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(ex, ey);
+        for (let i = 1; i <= 8; i++) { const u = i / 8, yy = ey + u * 0.85, xx = ex + (mo ? Math.sin(t * 0.9 + u * 5.5) * 0.05 * u + Math.sin(t * 0.33 + u * 2) * 0.08 * u : 0.04 * u) - 0.04 * u * u; c.lineTo(xx, yy); }
+        c.stroke();
+        c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+        if (hsh(Math.floor(t / 71), 6) < 0.5 && !two) cat(c, cr - 0.06, cy - 0.08, 0.56, { col: SIL_TV, flick: mo ? clamp01(Math.sin(t * 1.9) * 2 - 1) : 0, dir: -1 });
       }
     }
   }

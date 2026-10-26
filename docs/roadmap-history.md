@@ -1259,4 +1259,5 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] e2e-harbor.mjs's parse error (an unescaped apostrophe from 11a-1's cloud-run fix) that broke the whole suite
 - [x] The upper panes equal on screen (the apartment's day curtains narrowed its glass 22 % — gone; a 2 % check on the painted panes at 390 / 402 / 430)
 - [x] THE WINDOW PEOPLE IN 3D: every lit form shaded round from the room's lamp (lit side → core shadow → reflected edge), hair sheen, folds, joint occlusion, a cast shadow on the wall, the far arm of a ¾ turn
+- [x] THE BLUE TV ROOM: the set on the back wall, a couch seen from behind with a head (sometimes two) rimmed by the screen's blue, a tilt / a nod / leaning / an arm reaching for the drink, the cigarette's smoke; off at 3 am as before
 
