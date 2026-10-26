@@ -2202,7 +2202,7 @@ G('windows', async () => {
     const without = await probe(O.page);
     // (the swap is in the facade's bake context: hushLit in its key → the re-bake without the corner pier's washer — the look is the
     // reviewed A/B shot; the pixel band is reported, not judged: the plate + the tubes sit where the lamp was)
-    const scA = await ev(Q.page, `${P}.speakCtx()`), scB = await ev(O.page, `${P}.speakCtx()`);
+    const scA = await ev(Q.page, "window.__district.speakCtx()"), scB = await ev(O.page, "window.__district.speakCtx()");   // (the scene object: beside tiering())
     ok(hs.capPt >= 16 && scA.hushLit === true && scB.hushLit === false && scA.key !== scB.key, `THE WASHER OFF WHILE THE SIGN IS LIT: the facade baked with the sign (${scA.key}: no corner washer) vs without (${scB.key}), the caps ${hs.capPt} pt (the pier's top band red ${withSign.toFixed(0)} vs ${without.toFixed(0)})`);
     await O.ctx.close(); await Q.ctx.close(); }
   // ---- WIN — PLAY ALL SCENES (the panel's sequencer, this phone): it cycles the whole catalogue — every window moment once, in its own

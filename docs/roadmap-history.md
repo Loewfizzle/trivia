@@ -1276,3 +1276,26 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       bootleg + Saturday nights only, never a raid night
 - [x] THE PANEL: PLAY ALL (scenes / holiday moments / animals / workers — a chip beside the pill: skip, pause, stop) + the tidy (a SPEAKEASY
       section, the weather in groups, the off-switches + debug pieces in TOOLS)
+
+## CITY 2.0 — WIN2: THE SPIDERS' TRIP + NERVES, THE WINDOWS THAT READ AS-IS, THE QUALITY STEP (Oct 26 2026) — docs/harbor.md#win2
+- [x] THE SPIDERS: a tap drops either spider on its glowing thread down to the SPEAKEASY word, a 10–15 s stop-start crawl along the tubes,
+      the climb home reeling the thread; a second tap consumed; SCARED by the flickers / blinks / the race / the blackout / lightning near
+      them (freeze, crouch, a skitter, the eyes flaring, calm after); a second spider on the last N's web, never in sync; the hydrant's
+      pumpkin at its true proportions
+- [x] ACT BIG: every moment re-staged on the puppet-theatre rules (one clear action, exaggerated, slower + larger, strong value contrast,
+      fewer bigger shapes); people WALK to the glass through the room's depth and drift back — never a cut (walkIn); the toast's two
+      friends with both arms high; the TV ROOM option B (the couch facing the window, the set below the sill, faces + shoulders lit blue
+      from below, a laugh / a lean in / a yawn / nodding off late); a real seated customer in the barber's chrome + leather chair under a
+      draped cape; the cash count clearer (bigger hands + bills, pale green on a dark table, a bill lifted + snapped down)
+- [x] THE EDGE WINDOWS' MOOD LIGHTS: light + shadow only — a seeded mood per edge window a night from a rotating set (TV blue, an eerie red
+      bulb, a candle, the banker's lamp + a passing shadow, headlight sweeps through blinds, a ceiling fan's shadow, lights out ~midnight),
+      the two never alike, PARTY nights a colour cycle on the beat, the holidays' tints; the blackout + lightning in them
+- [x] THE EYES IN THE HAZE: a dark window of slow haze lit ember-red from below with two big red eyes watching the street (rare slow
+      blinks, a drift, a narrowing); two weekend nights a month 11 pm–4 am, never a legendary's / an eerie-red / a Mothman night
+- [x] THE RIGHT PIER's WASHER off only while the lobby sign is lit (a re-bake through the crossfade): the hush word ~17 pt / 4 letters
+- [x] PLAY ALL ON ITS OWN CLOCK: each moment at its own hour (the TV room ~23:00, the wake ~7:15, the shop by day), the chip with the time,
+      ✕ the real clock back; the holiday / animals / workers lists the same
+- [x] THE DEBUG STRIPS: folded on every load, under the TEST pill + the corner buttons, the readout's title opens → hides all → folds,
+      the LOAD log capped + scrolling with its first lines on top
+- [x] THE QUALITY STEP: never judged in the first 15 s, in a bake, the crossfade or the sign's surge; sustained slowness only (four looks);
+      the EFFECTS tier first (live, no re-bake — invisible), the canvas resolution last; what the judge measured in the readout's tier line

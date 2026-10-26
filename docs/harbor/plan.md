@@ -2270,7 +2270,7 @@ the owner, Oct 25 10:05 pm.)
   pieces in its own style (Halloween pumpkins + bales; Thanksgiving cornstalks, gourds + hay; Christmas lit trees, wreaths, gift piles;
   New Year's balloons; Valentine's roses; St. Patrick's shamrock planters; July 4th bunting + flags) so anyone NOTICES the holiday /
   the season at a glance on a phone.
-- A QUALITY STEP ~9.5 s AFTER THE REVEAL RE-BAKES THE CITY (the owner's LOAD log, Oct 26 12:47 pm — the header's "9 changes after the
+- A QUALITY STEP ~9.5 s AFTER THE REVEAL RE-BAKES THE CITY (the owner's LOAD log, Oct 26 12:47 pm — BUILT in WIN2 Group 4, docs/harbor.md#win2 — the header's "9 changes after the
   reveal" was RIGHT; its list was just scrolled): a perfect reveal at 0.35 s (live weather cached 1 min old), then at +9.50 s "canvas
   ⚠ 402×874@2 → @1.5 (a tier step)" → a ⚠ layout, a ⚠ 1200 ms bake crossfade, a ⚠ lit crossfade, ⚠ clouds re-planned (the +9.60 s
   power-on entries are the music's surge, by design). On a calm day the phone judged itself slow (load-time work?) and dropped a tier,
@@ -2279,11 +2279,11 @@ the owner, Oct 25 10:05 pm.)
   on frames during a known heavy moment (the surge, a bake); require SUSTAINED slowness; (3) step EFFECTS first (particles, glows,
   reflections) and the canvas RESOLUTION last; (4) a step after the reveal must be invisible — no full-city crossfade; (5) the
   readout's tier line says why it stepped. Also the open LOAD log hides its first lines under its own header (scroll it to show the top).
-- THE DEBUG STRIPS BLOCK THE TEST PILL (the owner, Oct 26 12:49 pm, frustrated): with &debug=1 the readout + AUDIO + LOAD strips (the
+- THE DEBUG STRIPS BLOCK THE TEST PILL (the owner, Oct 26 12:49 pm, frustrated — BUILT in WIN2 Group 3): with &debug=1 the readout + AUDIO + LOAD strips (the
   LOAD log opened) cover the TEST pill so he can't reach the panel. FIX: every strip starts FOLDED to one line on every load (never
   remembered open), they sit BELOW the TEST pill + the corner buttons and never over them, the open LOAD log is height-capped + scrolls
   inside itself, and one tap on the readout's header hides ALL the strips.
-- THE SPIDER's TAP + ITS NERVES (the owner, Oct 26 12:51 pm — DECIDED): (1) THE TAP: it drops on its glowing thread DOWN TO THE
+- THE SPIDER's TAP + ITS NERVES (the owner, Oct 26 12:51 pm — DECIDED; BUILT in WIN2 Group 1): (1) THE TAP: it drops on its glowing thread DOWN TO THE
   "SPEAKEASY" WORD, lands on the tubes, CRAWLS BACK AND FORTH along the word for ~10–15 s (stop-start, pausing on a letter, a leg
   test-tapping a tube), then CLIMBS BACK up its thread (reeling it in) to its starting spot on the web; a second tap mid-way doesn't
   restart it (a short cooldown). (2) IT REACTS TO THE NEON: whenever a tube NEAR it flickers, blinks, buzzes or races (the burnt-out
@@ -2291,29 +2291,29 @@ the owner, Oct 25 10:05 pm.)
   gets SCARED / AGITATED — freezes, crouches low on its legs, then skitters a short burst away from the flicker (or back toward the
   web's hub), its eyes / seams flaring; bigger events (the race, the blackout) = a bigger reaction; it calms + resumes after a few
   seconds. Readable at 402.
-- WIN PHONE REVIEW (the owner, Oct 26 12:53–12:54 pm): (1) THE TV ROOM "good but not perfect" — still hard to read as someone on a
+- WIN PHONE REVIEW (the owner, Oct 26 12:53–12:54 pm — BUILT in WIN2 Group 2): (1) THE TV ROOM "good but not perfect" — still hard to read as someone on a
   couch watching TV; Claude offered A (lower the couch back so head + shoulders show, bigger viewer, an armrest, the flicker throwing
   their shadow on the wall) vs B (recommended: the couch FACING the window — the TV just inside below the sill — so their FACE +
   shoulders are lit blue by the screen, flickering with every cut; reactions: a laugh, a lean in, a yawn, nodding off late) — DECIDED
   (the owner, 12:55 pm): OPTION B. (2) THE TOAST "good" but people SNAP from the bar scene to the front of the window → they must
   WALK to the window (from the bar / the room's depth, growing as they come forward in the 2.5D room), then clink glasses + toast,
   then drift back; the same rule for EVERY close moment: people arrive + leave by walking through the room's depth, never a cut.
-- THE BARBERSHOP's CUSTOMER LOOKS LIKE A WHITE BOX (the owner, Oct 26 12:58 pm — the scene is good otherwise): the man in the chair
+- THE BARBERSHOP's CUSTOMER LOOKS LIKE A WHITE BOX (the owner, Oct 26 12:58 pm — the scene is good otherwise; BUILT in WIN2 Group 2): the man in the chair
   reads as a white rectangle (the barber's cape as a flat block) → a real seated customer: his head + face + hair above the cape (the
   barber working on it), the striped / white cape draped over his shoulders + knees with folds + shading (the 3D kit), the barber's
   chair's chrome + leather visible (the headrest, the armrests, the footrest), his shoes poking out, the barber's comb + scissors /
   razor moving at his head; by day + lit at night, readable at 402.
-- PLAY ALL SCENES DOESN'T SET THE TIME (the owner, Oct 26 1:01 pm): run by day, the night moments play in a daytime room (or don't
+- PLAY ALL SCENES DOESN'T SET THE TIME (the owner, Oct 26 1:01 pm — BUILT in WIN2 Group 3): run by day, the night moments play in a daytime room (or don't
   show) — WIN's "the clock jumps once per day / night half" isn't enough. FIX: before EACH moment the sequencer jumps the city's
   clock to a time that moment belongs to (its own hour: the TV room ~23:00, the cash count late, the morning wake ~7:00, the
   barbershop by day…), the light + the rooms + the sky following (a quick fade, not a jarring cut), then plays it in full; the chip
   shows the moment's name + its time; ✕ restores the real clock. The same for the holiday / animals / workers PLAY ALLs (each item at
   its own date + time). A check: every moment in the catalogue plays at a time it's allowed to.
-- THE HYDRANT's PUMPKIN LOOKS STRETCHED (the owner, Oct 26 1:01 pm): the big jack-o'-lantern by the fire hydrant reads squashed /
+- THE HYDRANT's PUMPKIN LOOKS STRETCHED (the owner, Oct 26 1:01 pm — BUILT in WIN2 Group 1): the big jack-o'-lantern by the fire hydrant reads squashed /
   stretched wide (~25 pt across, too flat) — a real pumpkin's proportions (round, ribbed, a slight squat, a stem), drawn at its true
   aspect (no non-uniform scaling of the sprite), the carved face centred on its curve, sitting on the ground with a contact shadow;
   all three big jack-o'-lanterns checked the same way at 390 / 402 / 430.
-- THE EDGE WINDOWS' MOOD LIGHTS (the owner, Oct 26 1:04 pm — DECIDED; the ghosts look good ✔): the half-cut windows at the left
+- THE EDGE WINDOWS' MOOD LIGHTS (the owner, Oct 26 1:04 pm — DECIDED; the ghosts look good ✔; BUILT in WIN2 Group 2): the half-cut windows at the left
   screen edge get ACTION from LIGHT + SHADOW only (NO people, NO scenes): each night a seeded MOOD from a rotating set — TV BLUE
   flicker (scene cuts, as if someone watches out of sight), an EERIE RED darkroom bulb that buzzes / flickers now + then, a wavering
   CANDLE glow, a GREEN BANKER's LAMP with a shadow passing the wall, HEADLIGHT SWEEPS (a dark room, slatted blind shadows crossing the
@@ -2321,7 +2321,7 @@ the owner, Oct 25 10:05 pm.)
   cycle on the beat, HOLIDAYS their tints (Halloween orange / purple, Christmas red / green). The two edge windows never share a mood
   the same night; flickers occasional + soft (never a strobe); they follow the blackout + the weather (lightning flashes in them). The
   "never fully dark" low lamp folds in.
-- WIN PHONE REVIEW, PART 2 (the owner, Oct 26 1:12 pm): (1) THE RIGHT PIER's WALL-WASHER: removed ONLY WHILE THE LOBBY SIGN IS IN USE
+- WIN PHONE REVIEW, PART 2 (the owner, Oct 26 1:12 pm — BUILT in WIN2 Groups 1 + 2): (1) THE RIGHT PIER's WALL-WASHER: removed ONLY WHILE THE LOBBY SIGN IS IN USE
   (lit, so the hush word grows to ~17 pt / 4 letters); with no lobby the washer stays (the plain brick lit as today); a smooth swap
   when a lobby opens / closes. (2) THE WALL SIGN: may read a little busy beside the blade — KEEP IT for now (he may change it later).
   (3) THE CASH COUNT: "good for now" but hard to see what's going on → clearer: bigger hands + bills, the bills a brighter pale green
@@ -2337,3 +2337,8 @@ the owner, Oct 25 10:05 pm.)
   figure on a darker wall or a dark figure on a bright one — never the same warm tone for both; (3) FEWER, BIGGER SHAPES: one or two
   figures, one lamp, nothing under a few pt; (4) DEPTH ONLY WHERE IT READS: a bright pool of light + dark corners (the floor / wall
   lines may stay faint). Judged ONLY at the real size on a 402 screenshot, never zoomed.
+- THE EYES IN THE HAZE (the owner, Oct 26, mid-WIN2 — an add-on; BUILT in WIN2 Group 2): one of the four full windows = a dark room filled
+  with slow drifting smoky haze, faintly lit from below by a dim ember-red glow, with just a pair of big red glowing eyes watching the
+  street, blinking rarely (slow, deliberate; now and then drifting a little or narrowing). No body, no face. 11 pm–4 am on 2 random
+  weekend nights a month (seeded; never on a legendary's night, never with the edge windows' "eerie red" mood or a Mothman night — no
+  Mothman exists yet: the hook `ctx.mothman`). Readable unzoomed at 402. In PLAY ALL + `&force=window&moment=eyes`.
