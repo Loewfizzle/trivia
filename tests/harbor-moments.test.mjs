@@ -2,7 +2,8 @@
 // js/core/harbor-moments.js). Run: node --test tests/harbor-moments.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MOMENTS, MOMENT, STARTERS, RARITIES, WINDOW_IDS, TANGO_PATH, MAX_AT_ONCE, hourPlan, dayPlan, fixedPlan, momentsAt, routineAt, legendNights, roomState, tvLight, lateTvK, inHours, partyAt, darkAt, windowsOf } from '../js/core/harbor-moments.js';
+import { MOMENTS, MOMENT, STARTERS, RARITIES, WINDOW_IDS, TANGO_PATH, MAX_AT_ONCE, hourPlan, dayPlan, fixedPlan, momentsAt, routineAt, legendNights, roomState, tvLight, lateTvK, inHours, partyAt, darkAt, windowsOf, dayKey, edgeMoods, EDGE_MOODS, redMoodNight, eyesNights, eyesPlaysOn } from '../js/core/harbor-moments.js';
+import { legendNight } from '../js/core/harbor-legend.js';
 import { ROOMS, roomLight } from '../js/core/harbor-speakeasy.js';
 import { EVENTS, PANEL_EVENTS, CATS } from '../js/core/harbor-remote.js';
 
@@ -15,7 +16,7 @@ test('7b — THE CATALOGUE: one self-contained entry per moment — windows, rar
   for (const m of MOMENTS) {
     assert.ok(!ids.has(m.id), `${m.id}: unique`); ids.add(m.id);
     assert.ok(RARITIES.includes(m.rarity), `${m.id}: a rarity`);
-    assert.ok(m.len > 3 && m.len <= 60, `${m.id}: a length`);
+    assert.ok(m.len > 3 && (m.len <= 60 || m.calendar === 'eyes'), `${m.id}: a length`);   // (WIN2: the eyes WATCH — a long presence, its own calendar)
     assert.ok(m.label && m.kind, `${m.id}: a label + what it is`);
     for (const w of windowsOf(m)) assert.ok(WINDOW_IDS.includes(w), `${m.id}: ${w} is a real window`);
     if (m.rarity === 'routine') assert.ok(m.at != null && m.at >= 0 && m.at < 24, `${m.id}: its hour`);
@@ -185,4 +186,38 @@ test('SP3 — ONE STAR WINDOW AT A TIME: of the moments on now, the routines + t
   assert.deepEqual(kept, ['bartender', 'toast'], 'the routine + the first-started star only');
   assert.deepEqual(starOnly([]), []);
   assert.ok(STAGE.peek > 1.4 && STAGE.toast > 1.3 && STAGE.dance >= 1.1 && STAGE_ROOM > 1, 'close moments bold at the glass, room moments a little deeper');
+});
+
+test("WIN2 — THE EDGE WINDOWS' MOODS: a seeded mood per edge window a night, never the same in both, every mood over a season; a party night turns one PARTY; the holidays tint them; lights-out near midnight", () => {
+  const seen = new Set();
+  for (let d = 0; d < 120; d++) { const t = new Date(Date.UTC(2026, 9, 1 + d)), key = dayKey(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()), m = edgeMoods(key);
+    assert.ok(EDGE_MOODS.includes(m.edge2) && EDGE_MOODS.includes(m.edge3) && m.edge2 !== m.edge3, `${key}: ${m.edge2} / ${m.edge3}`); seen.add(m.edge2); seen.add(m.edge3);
+    assert.ok(m.off >= 23.8 * 3600 && m.off <= 24.3 * 3600, 'lights out near midnight'); assert.deepEqual(edgeMoods(key), m, 'seeded: the same for everyone'); }
+  assert.equal(seen.size, EDGE_MOODS.length, `every mood seen over a season (${[...seen].join(', ')})`);
+  const p = edgeMoods('2026-10-24', { party: true }); assert.ok((p.edge2 === 'party') !== (p.edge3 === 'party'), 'a party night: one window on the party cycle');
+  assert.equal(edgeMoods('2026-10-31', { hol: 'halloween' }).tint, 'halloween'); assert.equal(edgeMoods('2026-12-24', { hol: 'christmas' }).tint, 'christmas'); assert.equal(edgeMoods('2026-10-31').tint, null);
+});
+
+test("WIN2 — THE EYES IN THE HAZE: two weekend nights a month, three plays each between 11 pm and 4 am in ONE of the four full windows, never a legendary's night, never with the eerie-red mood; the small hours' plays land on the next day's plan", () => {
+  let total = 0, red = 0;
+  for (let mo = 1; mo <= 12; mo++) {
+    const nights = eyesNights(2026, mo);
+    for (const [key, starts] of Object.entries(nights)) {
+      const [y, m, d] = key.split('-').map(Number), dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+      assert.ok(dow === 5 || dow === 6, `${key}: a weekend night`); assert.equal(starts.length, 3, `${key}: three plays`);
+      for (const s of starts) assert.ok(s >= 23 * 3600 && s + MOMENT.eyes.len <= 28 * 3600, `${key}: 11 pm → 4 am (${(s / 3600).toFixed(2)} h)`);
+      assert.ok(!legendNight(y, m, d), `${key}: never a legendary's night`); assert.ok(!redMoodNight(key), `${key}: never with the eerie-red mood`);
+      total++;
+      // the plays on the day's plans: tonight's before midnight, the rest on the next day's, each in ONE window
+      const today = eyesPlaysOn(key), next = eyesPlaysOn(`${y}-${String(m).padStart(2, '0')}-${String(d + 1).padStart(2, '0')}`);
+      assert.equal(today.filter(p => p.t0 >= 23 * 3600).length + next.filter(p => p.t0 < 4 * 3600).length, 3, `${key}: every play lands on a day's plan (tonight's before midnight + the next day's small hours; a Friday's late plays may share the Saturday's plan)`);
+      for (const p of [...today, ...next]) assert.ok(MOMENT.eyes.windows.includes(p.win), `${key}: in a full window (${p.win})`);
+    }
+    if (Object.keys(nights).length < 2) red++;
+  }
+  assert.equal(total, 24, `${total} eyes nights in 2026 (two a month, drawn from the eligible nights: ${red} months short)`);
+  assert.deepEqual(eyesNights(2026, 10, { mothman: true }), {}, 'a Mothman night: none (the hook)');
+  // the day's fixed plan carries them in one window; a play straddling midnight shows on both days' clocks
+  const key = Object.keys(eyesNights(2026, 10))[0];
+  if (key) { const fp = fixedPlan(key).filter(e => e.id === 'eyes'); assert.ok(fp.length >= 1 && fp.every(e => e.win !== 'all' && e.len === 150), `${key}: on the fixed plan in one window`); }
 });

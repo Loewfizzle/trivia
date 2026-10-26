@@ -557,45 +557,37 @@ G('core', async () => {
   { const N = await open({ slot: 'hn', qs: NIGHT, city: false });
     ok(!N.files.some(u => /\/harbor\//.test(u)) && (await ev(N.page, 'window.__district.scene()')).city !== 2, 'NORMAL VISIT: the default city, no harbor module requested');
     await N.ctx.close(); }
-  // ---- FP3a (FREV B4): THE DEBUG STRIPS — the readout + the AUDIO panel as DOM strips at the TOP under the corner buttons, never over
-  // the promenade or the dock; a tap on a title folds it to ONE line (pointerup, not click), remembered on this device; taps pass through
+  // ---- FP3a → WIN2: THE DEBUG STRIPS — every strip FOLDED on every load (never remembered open); the column under the TEST pill + the
+  // corner buttons, never over them; the readout's title cycles folded → open → EVERY OTHER STRIP HIDDEN (one tap hides them all) → folded;
+  // the open LOAD log is capped + scrolls inside itself, its first lines on top; taps pass through
   for (const [w, h] of [[390, 844], [430, 932]]) {
-    const D = await open({ slot: 'hdb', qs: `${NIGHT}&debug=1`, view: [w, h] });
+    const D = await open({ slot: 'hdb', qs: `${NIGHT}&debug=1&panel=1`, view: [w, h] });
     await harborUp(D.page);
-    await waitFor(D.page, "!!document.querySelector('.dbg-s[data-id=readout] .dbg-b div') && !!document.querySelector('.dbg-s[data-id=audio] .dbg-b div')", 'both strips', 8000);
-    const geo = () => ev(D.page, `(() => { const r = s => document.querySelector(s).getBoundingClientRect(), c = window.__district.harbor().cam, col = r('.dbg-col');
+    await waitFor(D.page, "document.querySelectorAll('.dbg-s').length >= 3", 'the strips', 15000);
+    const geo = () => ev(D.page, `(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; }, c = window.__district.harbor().cam, col = r('.dbg-col'), pill = r('.hr-bar');
       const btn = [...document.querySelectorAll('.menu-btn, .music-btn')].map(e => e.getBoundingClientRect());
-      return { col: { top: col.top, bottom: col.bottom, left: col.left, right: col.right }, ro: r('.dbg-s[data-id=readout]').height, au: r('.dbg-s[data-id=audio]').height, limitY: c.limitY, dock: c.dock.y, H: innerHeight,
-        overBtn: btn.some(b => b.bottom > col.top && b.top < col.bottom && b.right > col.left && b.left < col.right),
-        folded: [...document.querySelectorAll('.dbg-s')].map(s => s.classList.contains('dbg-fold')) }; })()`);
+      const over = b => !!b && b.bottom > col.top && b.top < col.bottom && b.right > col.left && b.left < col.right;
+      return { col: { top: col.top, bottom: col.bottom, left: col.left, right: col.right }, limitY: c.limitY, dock: c.dock.y, H: innerHeight, pill: !!pill, overPill: over(pill), overBtn: btn.some(over),
+        folded: [...document.querySelectorAll('.dbg-s')].map(s => s.classList.contains('dbg-fold')), fold: Object.fromEntries([...document.querySelectorAll('.dbg-s')].map(s => [s.dataset.id, s.classList.contains('dbg-fold')])), shown: [...document.querySelectorAll('.dbg-s')].filter(s => s.getBoundingClientRect().height > 0).length,
+        load: (() => { const b = document.querySelector(".dbg-s[data-id='load'] .dbg-b"); return b ? { h: b.clientHeight, sh: b.scrollHeight, st: b.scrollTop, first: b.firstElementChild ? b.firstElementChild.getBoundingClientRect().top >= b.getBoundingClientRect().top - 1 : null } : null; })() }; })()`);
     const g0 = await geo();
-    ok(g0.col.bottom <= g0.H * 0.4 && g0.col.bottom < g0.dock && !g0.overBtn && g0.col.top < g0.limitY, `DEBUG STRIPS ${w}: at the top under the corner buttons (${Math.round(g0.col.top)}–${Math.round(g0.col.bottom)} pt of ${g0.H}; the skyline's limit ${Math.round(g0.limitY)}, the dock ${Math.round(g0.dock)})`);
-    // (one tap, then wait for THAT strip's fold to flip before the next — the other strip moves as one opens; a tap the loaded cloud
-    // machine dropped is tried once more)
-    const head = async id => {
-      const folded = () => ev(D.page, `document.querySelector('.dbg-s[data-id=${id}]').classList.contains('dbg-fold')`);
-      const was = await folded();
-      for (let k = 0; k < 2; k++) {
-        const b = await ev(D.page, `(() => { const r = document.querySelector('.dbg-s[data-id=${id}] .dbg-h').getBoundingClientRect(); return { x: r.left + 20, y: r.top + r.height / 2 }; })()`);
-        await tapAt(D.page, b.x, b.y);
-        if (await waitFor(D.page, `document.querySelector('.dbg-s[data-id=${id}]').classList.contains('dbg-fold') === ${!was}`, `${id} flipped`, 2000).then(() => true, () => false)) return;
-      }
-    };
-    await head('readout'); await head('audio');   // (POLISH 5: the LOAD strip starts folded)
-    await waitFor(D.page, "[...document.querySelectorAll('.dbg-s')].every(s => s.classList.contains('dbg-fold'))", 'both folded', 3000).catch(() => {});
-    await sleep(600);
-    const g1 = await geo(), line1 = await ev(D.page, "document.querySelector('.dbg-s[data-id=readout] .dbg-h').textContent");
-    ok(g1.folded.every(Boolean) && g1.ro < 26 && g1.au < 26 && g1.col.bottom < g1.limitY, `DEBUG STRIPS ${w}: a tap folds each to ONE line (${Math.round(g1.ro)} + ${Math.round(g1.au)} pt; "${line1}"), above the skyline's limit`);
-    if (SHOTS && w === 390) await D.page.screenshot({ path: `${OUT}debug-strips-folded-390x844.png` });
-    await D.page.reload(); await waitFor(D.page, "!!document.querySelector('.dbg-s[data-id=readout]') && !!document.querySelector('.dbg-s[data-id=audio]')", 'the strips again', 15000);
-    const g2 = await geo();
-    ok(g2.folded.every(Boolean), `DEBUG STRIPS ${w}: the fold remembered on this device (${g2.folded.join(' / ')})`);
-    await head('readout'); await head('audio'); await head('load');
-    await waitFor(D.page, "[...document.querySelectorAll('.dbg-s')].every(s => !s.classList.contains('dbg-fold'))", 'unfolded', 3000).catch(() => {});
-    await sleep(600);
-    const g3 = await geo();
-    ok(!g3.folded.some(Boolean) && g3.ro > 60, `DEBUG STRIPS ${w}: a second tap opens them again (${Math.round(g3.ro)} + ${Math.round(g3.au)} pt)`);
-    if (SHOTS && w === 390) await D.page.screenshot({ path: `${OUT}debug-strips-open-390x844.png` });
+    ok(g0.folded.every(Boolean) && !g0.overPill && !g0.overBtn && g0.col.top >= 50 && g0.col.bottom < g0.dock, `DEBUG STRIPS ${w}: every strip FOLDED on load, the column under the TEST pill (${g0.pill ? 'shown' : 'none'}) + the corner buttons (${Math.round(g0.col.top)}–${Math.round(g0.col.bottom)} pt; folded ${g0.folded.join('/')})`);
+    const head = async (id, want) => { for (let k = 0; k < 2; k++) { const b = await ev(D.page, `(() => { const r = document.querySelector('.dbg-s[data-id=${id}] .dbg-h').getBoundingClientRect(); return { x: r.left + 20, y: r.top + r.height / 2 }; })()`); await tapAt(D.page, b.x, b.y); if (await waitFor(D.page, want, `${id} tapped`, 2000).then(() => true, () => false)) return true; } return false; };
+    await head('readout', "!document.querySelector('.dbg-s[data-id=readout]').classList.contains('dbg-fold')");
+    await sleep(300); const g1 = await geo();
+    await head('readout', "document.querySelector('.dbg-col').classList.contains('dbg-min')");
+    await sleep(300); const g2 = await geo();
+    await head('readout', "!document.querySelector('.dbg-col').classList.contains('dbg-min')");
+    await sleep(300); const g3 = await geo();
+    ok(!g1.fold.readout && g1.shown >= 3 && g2.shown === 1 && g3.shown >= 3 && g3.folded.every(Boolean), `DEBUG STRIPS ${w}: the readout's title opens it (${g1.shown} shown), then HIDES EVERY OTHER STRIP (${g2.shown} shown), then brings them back folded (${g3.shown})`);
+    await head('load', "!document.querySelector('.dbg-s[data-id=load]').classList.contains('dbg-fold')");
+    await waitFor(D.page, "!!document.querySelector('.dbg-s[data-id=load] .dbg-b div')", 'the log rows', 5000).catch(() => {});
+    await sleep(400); const g4 = await geo();
+    ok(g4.load && g4.load.h <= 232 && g4.load.st === 0 && g4.load.first !== false && g4.col.bottom < g4.dock && !g4.overPill, `DEBUG STRIPS ${w}: the open LOAD log is capped (${g4.load && g4.load.h} pt of ${g4.load && g4.load.sh}) + scrolls inside, its first line on top, still under the pill`);
+    if (SHOTS && w === 390) await D.page.screenshot({ path: `${OUT}debug-strips-load-390x844.png` });
+    await D.page.reload(); await waitFor(D.page, "document.querySelectorAll('.dbg-s').length >= 3", 'the strips again', 15000);
+    await sleep(300); const g5 = await geo();
+    ok(g5.folded.every(Boolean), `DEBUG STRIPS ${w}: folded again after a reload — never remembered open (${g5.folded.join(' / ')})`);
     await D.ctx.close();
   }
 });
@@ -1179,6 +1171,19 @@ G('load', async () => {
     ok(r.log.visible.length === 0, `LOAD — THE FULL POWER-ON (&intro=1: the screen's entrance, the fonts, the dock easing in): 0 changes after the reveal (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
 });
 G('perf', async () => {
+  // ---- WIN2 — THE QUALITY STEP: a CALM LOAD on a mid phone profile (2x CPU) — 30 s after the reveal, NO tier step: nothing is judged in
+  // the first 15 s, in a bake, the crossfade or the sign's surge, and only SUSTAINED slowness steps (the effects first, live — never the
+  // full-city crossfade the owner saw ~9.5 s after the reveal); what the judge measured is in tiering().judge + the readout's tier line
+  { const C2 = await open({ slot: 'calm', qs: `when=2026-10-22T21:30${GR}&debug=1`, view: [402, 874] });
+    await C2.page.bringToFront();
+    const cd = await C2.page.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: 2 });
+    await harborUp(C2.page);
+    await waitFor(C2.page, '(window.__district.tiering().sinceReveal || 0) >= 30', '30 s after the reveal', 60000).catch(() => {});
+    const ti = await ev(C2.page, 'window.__district.tiering()');
+    const calm = ti.hist.length === 1 && ti.why.length === 0 && ti.tier === 2 && ti.dprTier === 2;
+    const machine = !!(ti.judge && ti.judge.p75 > 28);   // (this machine itself can't hold 60 fps here: a timing check, not the city's)
+    (machine ? okT : ok)(calm && ti.grace >= 15000, `A CALM LOAD STEPS NOTHING (2x CPU, 30 s): tier ${ti.tier}/${ti.dprTier}, steps ${ti.hist.join('->')}${ti.why.length ? ` (${ti.why.join(' | ')})` : ''}, judged from ${ti.grace / 1000} s${ti.judge ? `; the judge: ${ti.judge.text}` : ''}`);
+    await cd.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await C2.ctx.close(); }
   // ================================================================ 5. frame pacing at 4× CPU, memory over 20 cycles, a hidden tab
   const Q = await open({ slot: 'hq', qs: `when=2026-10-24T23:00${GR}` });   // a Saturday at the party's peak
   await harborUp(Q.page);
@@ -2051,7 +2056,7 @@ G('windows', async () => {
     for (let i = 1; i < drawn.length; i++) {
       const a = drawn[i - 1], b = drawn[i]; if (!a.figs || !b.figs || a.figs.length !== b.figs.length || !a.on.length || !b.on.length) continue;
       const dt = Math.max(0.5, (b.t - a.t) / 16.7);
-      for (let k = 0; k < b.figs.length; k++) { const p = a.figs[k], q = b.figs[k]; if (!p.arms || !q.arms || p.w !== q.w || Math.abs(p.x - q.x) > 0.3) continue; const d = Math.max(...[0, 1].flatMap(j => [Math.abs(q.arms[j][0] - p.arms[j][0]), Math.abs(q.arms[j][1] - p.arms[j][1])])) / dt; (series.get(k) || series.set(k, []).get(k)).push(d); }   // (the biggest single JOINT move, like PEO's dancers)
+      for (let k = 0; k < b.figs.length; k++) { const p = a.figs[k], q = b.figs[k]; if (!p.arms || !q.arms || p.w !== q.w || Math.abs(p.x - q.x) > 0.3 || p.s !== q.s || Math.abs(p.d - q.d) > 0.1) continue; /* (WIN2: the same figure — its size + its depth; the walk-in re-sorts the list) */ const d = Math.max(...[0, 1].flatMap(j => [Math.abs(q.arms[j][0] - p.arms[j][0]), Math.abs(q.arms[j][1] - p.arms[j][1])])) / dt; (series.get(k) || series.set(k, []).get(k)).push(d); }   // (the biggest single JOINT move, like PEO's dancers)
     }
     for (const steps of series.values()) {
       const moving = steps.filter(v => v > 0.004).sort((a, b) => a - b); if (moving.length < 20) continue;
@@ -2111,11 +2116,11 @@ G('windows', async () => {
   // trace carries each figure's depth; a deeper figure is drawn through a smaller scale (the box's scale(t)); the rooms' boxes exist
   { const Q = await open({ slot: 'w-deep', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife&moment=toast`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
-    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'toast' && e.el > 1)", 'the toast on', 25000);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'toast' && e.el > e.len * 0.3 && e.el < e.len * 0.7)", 'the toast on (walked in)', 25000);   // (WIN2: after the friends' walk-in)
     const figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`);
     const bar = (figs || []).filter(g => g.w === 'bar'), depths = [...new Set(bar.map(g => g.d))].sort((a, b) => a - b);
     const deepest = bar.reduce((a, g) => (g.d > a.d ? g : a), { d: -1 }), nearest = bar.reduce((a, g) => (g.d < a.d ? g : a), { d: 9 });
-    ok(bar.length >= 4 && depths.length >= 2 && deepest.d > nearest.d && deepest.d >= 0.5 && nearest.d <= 0.3, `PEOPLE AT DEPTH in the bar: ${bar.length} figures at depths ${depths.join(' / ')} — the deepest (${deepest.d}: the bartender) behind the nearest (${nearest.d}: the patrons)`);
+    ok(bar.length >= 3 && depths.length >= 2 && deepest.d > nearest.d && deepest.d >= 0.5 && nearest.d <= 0.3, `PEOPLE AT DEPTH in the bar: ${bar.length} figures at depths ${depths.join(' / ')} — the deepest (${deepest.d}: the bartender) behind the nearest (${nearest.d}: the patrons)`);
     const box = await ev(Q.page, 'window.__district.harbor().speakeasy.life.box');
     ok(box && box.faces && box.faces.includes('floor') && box.faces.includes('left') && !box.faces.includes('ceiling') && box.k < 1, `THE BOX: the bar's room shows its ${box && box.faces.join(' + ')}, the back wall at ${box && box.k} of the glass (${box && box.floorU} units of floor, ${box && box.leftU} of left wall)`);
     await Q.ctx.close(); }
@@ -2134,7 +2139,7 @@ G('windows', async () => {
       for (let j = 0; j < 5; j++) { const row = []; for (let i = 0; i < 5; i++) { let s = 0, n = 0; for (let y = Math.floor(j * h / 5); y < Math.floor((j + 1) * h / 5); y++) for (let x = Math.floor(i * w / 5); x < Math.floor((i + 1) * w / 5); x++) { const q = (y * w + x) * 4; s += 0.2126 * d[q] + 0.7152 * d[q + 1] + 0.0722 * d[q + 2]; n++; } row.push(s / n); } out.push(row); } res(out); }))`);
     // (no bright rectangle anywhere — the old set read ~150+ at the back wall's centre; the light lands low right, where the unseen set is)
     const cells = grid.flat(), maxC = Math.max(...cells), meanC = cells.reduce((a, b) => a + b, 0) / cells.length;
-    okF(maxC < 120 && maxC < meanC * 3.2, `THE SET IS NEVER SEEN: the pane's brightest 5×5 cell ${maxC.toFixed(0)} against its mean ${meanC.toFixed(0)} — never a bright screen on the wall (the old set read 150+)`);
+    okF(maxC < 140 && maxC < meanC * 3.2, `THE SET IS NEVER SEEN (WIN2: option B — the viewers' lit faces read ~120, the set stays below the sill): the pane's brightest 5×5 cell ${maxC.toFixed(0)} against its mean ${meanC.toFixed(0)} — never a bright screen on the wall (the old set read 150+)`);
     await Q.ctx.close(); }
   // ---- WIN — COUNTING THE CASH (forced): the back room green under the banker's lamp, a lit figure, the pane changing as he counts
   { const Q = await open({ slot: 'w-cash', qs: `when=2026-10-22T23:10${GR}&force=window&moment=cash`, view: [402, 874] });
@@ -2148,6 +2153,58 @@ G('windows', async () => {
     const ls = a.map(lum), moved = Math.max(...ls) - Math.min(...ls);
     okT(moved > 1.5, `THE BILLS MOVE: the table's light changes as he counts (${ls.map(v => v.toFixed(1)).join(' → ')}) — ${JSON.stringify(L0.on)}`);
     await Q.ctx.close(); }
+  // ================================================================ WIN2 — THE WINDOWS READ AS-IS (judged unzoomed at 402)
+  // ---- THE TOAST's WALK-IN: the two friends come up through the room's depth (their depth falling from ~0.78 toward 0.14 over the first
+  // quarter — never a cut: no frame jumps more than 0.06 of depth), raise both arms high, and drift back the same way
+  { const Q = await open({ slot: 'w2-walk', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife&moment=toast`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'toast' && e.el < 0.4)", 'a toast starting', 25000);
+    const fr = await ev(Q.page, winTrace(3.2)), ds = [];
+    // (the friends: the two figures sharing ONE depth in the frame — the bartender keeps his own)
+    for (const f of fr) { const g = (f.figs || []).filter(q => q.w === 'bar' && !q.sil), cnt = new Map(); for (const q of g) cnt.set(q.d, (cnt.get(q.d) || 0) + 1); const pair = [...cnt.entries()].find(([, n]) => n >= 2); if (pair) ds.push(pair[0]); }
+    let jump = 0; for (let i = 1; i < ds.length; i++) jump = Math.max(jump, Math.abs(ds[i] - ds[i - 1]));
+    ok(ds.length > 60 && ds[0] > 0.6 && ds[ds.length - 1] < 0.3 && jump < 0.06, `THE TOAST WALKS IN: the friends' depth ${ds[0] && ds[0].toFixed(2)} → ${ds.length && ds[ds.length - 1].toFixed(2)} over 3 s, the biggest step ${jump.toFixed(3)} (never a cut)`);
+    await Q.ctx.close(); }
+  // ---- THE TV ROOM, OPTION B: the viewers face the window — LIT figures (skin, real colours in the screen's blue) in the apartment, not silhouettes
+  { const Q = await open({ slot: 'w2-tv', qs: `when=2026-10-22T23:10${GR}&force=smoke`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`), v = (figs || []).filter(g => g.w === 'apartment');
+    const r = (await wins(Q.page)).apartment, face = await area(Q.page, r, 0.3, 0.7, 0.35, 0.6), floor = await area(Q.page, r, 0.3, 0.7, 0.85, 0.98);
+    ok(v.length >= 1 && v.every(g => !g.sil) && lum(face) > lum(floor) + 8, `THE TV ROOM (B): ${v.length} viewer(s) facing the window, LIT by the screen (the faces' band ${lum(face).toFixed(0)} vs the ceiling line ${lum(floor).toFixed(0)}; rgb ${face.map(x => x.toFixed(0)).join(',')})`);
+    await Q.ctx.close(); }
+  // ---- THE EDGE WINDOWS' MOODS: light + shadow only (no figures in them), a seeded mood each — never the same two — and the two panes
+  // really differ in colour; the next night's moods differ from tonight's
+  { const Q = await open({ slot: 'w2-mood', qs: `when=2026-10-22T22:30${GR}&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const L1 = await ev(Q.page, 'window.__district.harbor().speakeasy.life'), W = await wins(Q.page);
+    const figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`), inEdge = (figs || []).filter(g => g.w === 'edge2' || g.w === 'edge3').length;
+    const a = await area(Q.page, W.edge2, 0.55, 0.95, 0.2, 0.8), b = await area(Q.page, W.edge3, 0.55, 0.95, 0.2, 0.8), dc = Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+    ok(L1.moods && L1.moods.edge2 !== L1.moods.edge3 && inEdge === 0 && (dc > 18 || Math.abs(lum(a) - lum(b)) > 10), `THE EDGE WINDOWS' MOODS tonight: ${L1.moods && L1.moods.edge2} / ${L1.moods && L1.moods.edge3} — light + shadow only (${inEdge} figures), the panes differ (rgb ${a.map(x => x.toFixed(0)).join(',')} vs ${b.map(x => x.toFixed(0)).join(',')})`);
+    await Q.ctx.close(); }
+  // ---- THE EYES IN THE HAZE (forced): one full window goes dark with two red glows in it; nothing else in that window
+  { const Q = await open({ slot: 'w2-eyes', qs: `when=2026-10-22T23:30${GR}&force=window&moment=eyes`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'eyes' && e.el > 8)", 'the eyes on (faded in)', 40000);   // (the room fades in over the first 6 s)
+    const L2 = await ev(Q.page, 'window.__district.harbor().speakeasy.life'), win = L2.on[0].win, r = (await wins(Q.page))[win];
+    const reds = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round(${r.x} * k), Math.round(${r.y} * k), Math.round(${r.w} * k), Math.round(${r.h} * k)).data; let red = 0, dark = 0, n = 0, mx = [0, 0, 0]; for (let i = 0; i < d.length; i += 4) { n++; if (d[i] > 120 && d[i] > d[i + 1] * 1.6 && d[i] > d[i + 2] * 1.6) red++; if (d[i] + d[i + 1] + d[i + 2] < 90) dark++; if (d[i] > mx[0]) mx = [d[i], d[i + 1], d[i + 2]]; } res({ red, dark, n, mx }); }))`);
+    const figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`), inWin = (figs || []).filter(g => g.w === win).length;
+    ok(reds.red >= 12 && reds.dark / reds.n > 0.5 && inWin === 0 && ['bar', 'jazz', 'back', 'apartment'].includes(win), `THE EYES IN THE HAZE (forced) in the ${win}: ${reds.red} red device px of eyes in a dark pane (${Math.round(reds.dark / reds.n * 100)} % dark; the reddest ${reds.mx.join(',')}), no figure (${inWin})`);
+    await Q.ctx.close(); }
+  // ---- THE RIGHT PIER's WALL-WASHER OFF while the lobby sign is lit (the hush word grows): the pier's top under the cornice is darker
+  // with the sign than without, and the sign's caps read ~17 pt
+  { const Q = await open({ slot: 'w2-wash', qs: `when=2026-10-22T22:30${GR}&force=hushsign&hush=JAZZ`, view: [402, 874] }), P = 'window.__district.harbor()';
+    await harborUp(Q.page); await lit(Q.page); await waitFor(Q.page, `!${P}.pending && !${P}.fading`, 'settled', 20000).catch(() => {});
+    // (the washer's lamp + its warm cone sit in the pier's top band: the RED channel there — the lit sign's plate + cyan tubes take its place)
+    const hs = await ev(Q.page, `${P}.speakeasy.hush()`), pier = hs.pier, probe = async p => (await area(p, { x: pier.x, y: pier.y, w: pier.w, h: pier.h * 0.12 }, 0.15, 0.85, 0.05, 0.95))[0];
+    const withSign = await probe(Q.page);
+    const O = await open({ slot: 'w2-washb', qs: `when=2026-10-22T22:30${GR}`, view: [402, 874] });
+    await harborUp(O.page); await lit(O.page); await waitFor(O.page, `!${P}.pending && !${P}.fading`, 'settled', 20000).catch(() => {});
+    const without = await probe(O.page);
+    // (the swap is in the facade's bake context: hushLit in its key → the re-bake without the corner pier's washer — the look is the
+    // reviewed A/B shot; the pixel band is reported, not judged: the plate + the tubes sit where the lamp was)
+    const scA = await ev(Q.page, `${P}.speakCtx()`), scB = await ev(O.page, `${P}.speakCtx()`);
+    ok(hs.capPt >= 16 && scA.hushLit === true && scB.hushLit === false && scA.key !== scB.key, `THE WASHER OFF WHILE THE SIGN IS LIT: the facade baked with the sign (${scA.key}: no corner washer) vs without (${scB.key}), the caps ${hs.capPt} pt (the pier's top band red ${withSign.toFixed(0)} vs ${without.toFixed(0)})`);
+    await O.ctx.close(); await Q.ctx.close(); }
   // ---- WIN — PLAY ALL SCENES (the panel's sequencer, this phone): it cycles the whole catalogue — every window moment once, in its own
   // window, the forced moment following the chip; skip steps it; ✕ restores what was on before
   { const Q = await open({ slot: 'w-play', qs: `when=2026-10-22T21:30${GR}&panel=1`, view: [390, 844] });
@@ -2162,9 +2219,15 @@ G('windows', async () => {
     const follows = await waitFor(Q.page, `window.__district.harbor().speakeasy.life.forced === '${pN && pN.id.slice(7)}'`, 'the forced moment follows the chip', 6000).then(() => true).catch(() => false);
     const chip = await ev(Q.page, `(() => { const c = document.querySelector('.hr-pa'); return c ? { n: c.querySelector('.hr-pa-n').textContent, l: c.querySelector('.hr-pa-l').textContent, w: c.getBoundingClientRect().width } : null; })()`);
     ok(p0 && pN && pN.n >= 18 && p0.i === 0 && pN.i === 3 && new Set(seen).size === 4 && follows && chip && chip.n === '4 / ' + pN.n, `PLAY ALL SCENES: ${pN && pN.n} moments in the loop, skipped ${seen.join(' → ')}, the forced moment follows (${follows}), the chip says ${chip && chip.n} · ${chip && chip.l} (${chip && chip.w.toFixed(0)} pt wide at 390)`);
+    // WIN2 — PLAY ALL ON ITS OWN CLOCK: the item's wall time is its own hour; the city's clock followed it (the life's hour) before the moment
+    const own = await ev(Q.page, 'window.__district.remote().playing()');
+    const hourOk = !!(own && own.when && Math.abs((+own.when.slice(11, 13) + (+own.when.slice(14, 16)) / 60) - own.hour) < 0.02);
+    const followed = await waitFor(Q.page, `Math.abs(window.__district.harbor().speakeasy.life.h - ${own && own.hour}) < 0.75`, "the clock at the moment's hour", 12000).then(() => true).catch(() => false);
+    const chip2 = await ev(Q.page, `(() => { const c = document.querySelector('.hr-pa'); return c ? c.querySelector('.hr-pa-l').textContent : ''; })()`);
+    ok(hourOk && followed && / · \d\d:\d\d$/.test(chip2), `PLAY ALL ON ITS OWN CLOCK: ${own && own.id} at ${own && own.when} (its hour ${own && own.hour}), the city's clock followed; the chip "${chip2}"`);
     await ev(Q.page, 'window.__district.remote().playStop()');
     const after = await ev(Q.page, '({ play: window.__district.remote().playing(), mine: window.__district.remote().debug().mine })');
-    ok(!after.play && (after.mine.force || []).join() === 'hushsign', `✕ STOPS THE LOOP + restores what was on before (${JSON.stringify(after.mine)})`);
+    ok(!after.play && (after.mine.force || []).join() === 'hushsign' && !after.mine.when, `✕ STOPS THE LOOP + restores what was on before, the real clock back (${JSON.stringify(after.mine)})`);
     await Q.ctx.close(); }
 });
 

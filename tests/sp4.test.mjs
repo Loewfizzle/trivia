@@ -22,11 +22,12 @@ test("WIN — the hush word on the WALL: every lobby word stacked on its plate i
     assert.ok(p0 >= H.u0 + H.margin - 1e-6 && p1 <= H.u1 - H.margin + 1e-6 && q0 >= H.v0 - 1e-6 && q1 <= H.v1 + 1e-6, `${word}: the plate inside the pier's run (${p0.toFixed(2)}–${p1.toFixed(2)} × ${q0.toFixed(2)}–${q1.toFixed(2)})`);
     assert.ok(Math.abs((p0 + p1) / 2 - (H.u0 + H.u1) / 2) < 1e-6 && Math.abs((q0 + q1) / 2 - (H.v0 + H.v1) / 2) < 0.02, `${word}: centred in the pier`);
   }
-  assert.ok(wallPlan('JAZZ').cap * K402 > 14.5 && wallPlan('JAZZ').cap * K402 < 17, `four letters ${(wallPlan('JAZZ').cap * K402).toFixed(1)} pt at 402`);
-  assert.ok(wallPlan('SWING').cap * K402 > 11.5, `five letters ${(wallPlan('SWING').cap * K402).toFixed(1)} pt at 402`);
+  // (WIN2: the right washer gone while the sign is lit — the run to 9.62: ~17 pt for four letters)
+  assert.ok(wallPlan('JAZZ').cap * K402 > 16 && wallPlan('JAZZ').cap * K402 < 18, `four letters ${(wallPlan('JAZZ').cap * K402).toFixed(1)} pt at 402`);
+  assert.ok(wallPlan('SWING').cap * K402 > 12.5, `five letters ${(wallPlan('SWING').cap * K402).toFixed(1)} pt at 402`);
   assert.equal(wallPlan('GIN').cap, wallPlan('JAZZ').cap, 'a 3-letter word sized as four (never huge)');
   assert.equal(wallPlan(''), null, 'no word, no sign');
-  assert.ok(H.v0 > 3.43 && H.v1 < 9.09, "the run: over the sconce, under the washer's hood");
+  assert.ok(H.v0 > 3.43 && H.v1 < 9.85, "the run: over the sconce, under the cornice (the washer is gone while the sign is lit)");
 });
 
 test('the seeded fallback is CALM: a light breeze (1–3.5 m/s) on every day of a year, never the old 2–6', () => {

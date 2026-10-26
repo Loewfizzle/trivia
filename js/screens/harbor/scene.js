@@ -113,6 +113,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const q = typeof location !== 'undefined' ? location.search : '';
   let GRID = /[?&]grid=1(?:&|$)/.test(q), DEBUG = /[?&]debug=1(?:&|$)/.test(q);
   let tier = tier0, W = 0, H = 0, dpr = 1, HZ = 0;
+  let dprTier = tier0;   // (WIN2 — THE QUALITY STEP: the canvas RESOLUTION's own tier — after the reveal a step takes the EFFECTS (tier) first, the resolution last)
   let cam = null, L = null, skyline = null, vignette = null, glow = null, coolGlow = null, camSig = '';
   const skyCv = document.createElement('canvas');
   const skyMix = { cv: document.createElement('canvas'), sky: null, ver: -1, v: -1 };     // (the sky + the stars: FILL)
@@ -510,7 +511,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function build(why = 'the start') {
     const r = canvas.getBoundingClientRect(), was = W ? `${Math.round(W)}×${Math.round(H)}@${dpr}` : '';
     W = Math.max(320, r.width); H = Math.max(320, r.height);
-    dpr = Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr);
+    dpr = Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     { const now = `${Math.round(W)}×${Math.round(H)}@${dpr}`; if (now !== was) LOADLOG.add('canvas', `${was || 'none'} → ${now} (${why})`); }
     layout(why);
@@ -907,11 +908,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const pplLive0 = () => !clock.force.has('no-people') && !clock.force.has('no-work');
   function speakCtx() {
     const now = performance.now();
-    if (speakMemo && now - speakMemo.at < 4000) return speakMemo.v;
+    if (speakMemo && now - speakMemo.at < 4000 && speakMemo.v.hushLit === !!hushPreview()) return speakMemo.v;
     const board = (neon.debug().boards[0] || {}).game || null;
     const want = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('ad') : null;     // (SP2: &ad=<game> previews any game's blade)
     const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(bladeMs(), playable.map(g => g.id), null), month = seasonForced() ? { spring: 5, summer: 7, autumn: 10, winter: 1 }[seasonForced()] : LK && LK.local ? LK.local.m : 10;   // (8a: a forced season's month — the ivy matches the trees)
-    const v = { game: playable.find(g => g.id === id) || null, month, key: `${id}|${month}` };
+    // (WIN2 — the owner: the right pier's wall-washer is removed ONLY while the lobby sign is lit, so the hush word grows to ~17 pt; the
+    // facade re-bakes through the city's crossfade — a smooth swap — when the sign comes or goes)
+    const hushLit = !!hushPreview();
+    const v = { game: playable.find(g => g.id === id) || null, month, hushLit, key: `${id}|${month}|${hushLit ? 'h' : ''}` };
     speakMemo = { at: now, v };
     return v;
   }
@@ -1458,7 +1462,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (RR && RR.dark) { if (!raidPole) { raidPole = true; speak.pole({ on: false }); } } else if (raidPole) { raidPole = false; speak.pole({ on: true }); }
     { const bd = wTr && wTr.bulbDead; speak.bulb(bd ? bd.i : null, bd ? bd.k : 1); }
     if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
-      tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+      tw: TW, hush: hushPreview(), flash: lightningFlash(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     // 9a — THE SPEAKEASY IN THE RAIN: the glass wet (a sheen, beads, rivulets), the hush sign's cyan on the wet pavement
     if (WXS && (LK.rain > 0.03 || WXS.drip > 0.05 || WXS.wet > 0.05) && fadeIn > 0 && !off.has('no-speakeasy')) { const hs = speak.hush(); wetGround.glass(c, { wins: speak.windows(), rain: LK.rain || 0, drip: WXS.drip, wet: WXS.wet, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, fade: fadeIn, hush: hs && hs.lit && hs.rect ? { rect: hs.rect, k: litK(DK, 'lamps') * 0.7 + 0.3 } : null }); }
     { const bd = speak.beds(); snd.speakeasy(RR && bd ? { ...bd, club: (bd.club || 0) * RR.club } : bd); }   // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them; 8b2: the raid hushes it, it creeps back — louder on a party night)
@@ -1620,8 +1624,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);
     const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
     const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
-    const head = `t${tier} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`;
-    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
+    const head = `t${tier}${dprTier !== tier ? `/${dprTier}` : ''} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`;
+    const hv = heavyNow(now), sinceR = shownAt < 0 ? -1 : (now - shownAt) / 1000;
+    const tierLine = lastJudge ? `tier ${lastJudge.text}` : `tier: no step${sinceR >= 0 && sinceR < TIER_GRACE / 1000 ? ` · not judged until ${TIER_GRACE / 1000} s (${sinceR.toFixed(0)} s)` : hv ? ` · not judged now (${hv})` : slowN ? ` · slow ${slowN}/4 looks` : ''} · effects first, resolution last`;
+    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, tierLine, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
     if (!roStrip) roStrip = createDebugStrip('readout');
     roStrip.set({ head: `${head} ▾`, line: `t${tier} · ${fps} fps · ${slow}% slow${PT.on > 0 ? ` · beat ${hbeat.src}` : ''} ▸`, rows });
   }
@@ -2012,9 +2018,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // mid-event; its ~50 s are judged by nobody, and the window after it starts fresh)
     if (legends && legends.active()) { legendHeld = true; return; }
     if (legendHeld) { legendHeld = false; frames.length = 0; tierHold = Math.max(tierHold, now + 3000); return; }
+    // (WIN2 — THE QUALITY STEP (the owner's iPhone: a step ~9.5 s after the reveal, a full-city crossfade for it): KNOWN HEAVY MOMENTS are
+    // judged by nobody — a bake in flight, the crossfade of one, the sign's surge / race / a tapped letter — their frames never enter
+    // the window, and the window after them starts fresh)
+    { const hv = heavyNow(now); if (hv) { heavyHeld = hv; frames.length = 0; return; } if (heavyHeld) { heavyHeld = null; frames.length = 0; tierHold = Math.max(tierHold, now + 1500); return; } }
     if (frames.length < 90 || document.visibilityState !== 'visible' || now < tierHold || shownAt < 0 || now - shownAt < TIER_GRACE) return;
     if (!graceDone) { graceDone = true; frames.length = 0; return; }
-    if (wantStep) { const w = wantStep; wantStep = null; if (tier > 0) { stepWhy.push(w); stepTier(tier - 1); cool = 150; frames.length = 0; return; } }
+    if (wantStep) { const w = wantStep; wantStep = null; if (tier > 0 || dprTier > 0) { judge(now, w, 'down'); stepDown(w); cool = 150; frames.length = 0; return; } }
     if (++perfN % 30) return;                 // (the sort every half second, not every frame)
     const s = [...frames].sort((a, b) => a - b);
     // NEON PASS 5 — A CAPPED FRAME RATE IS NOT A SLOW CITY (the owner's iPhone: a party night with NOTHING racing — tier 0): iOS
@@ -2025,28 +2035,70 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // a real overload of its own work (mean > 12 ms a frame) still steps it down.
     if (probe && now - probe.at > 4000) {
       const p50 = s[45];
-      if (p50 >= probe.p50 * 0.85) { capped = Math.round(1000 / p50); const back = probe.from; probe = null; stepTier(back); cool = 150; frames.length = 0; return; }
+      if (p50 >= probe.p50 * 0.85) { capped = Math.round(1000 / p50); const back = probe.from; probe = null; LOADLOG.add('tier', `capped at ${capped} Hz — the step gave nothing: back to ${back.tier}/${back.dprTier}`); stepTo(back.tier, back.dprTier, 'capped: back'); cool = 150; frames.length = 0; return; }
       probe = null;
     }
-    if (s[67] > 19.5 && tier > 0 && !probe) {
+    // (WIN2: SUSTAINED slowness only — the 75th-percentile frame over 19.5 ms on FOUR half-second looks in a row (≈ 3.5 s of frames),
+    // never one bad window; what was measured goes to the LOAD log + the readout's tier line)
+    slowN = s[67] > 19.5 ? slowN + 1 : 0;
+    if (slowN >= 4 && (tier > 0 || dprTier > 0) && !probe) {
       const cs = costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : 0;
       if (capped && cs <= 12) return;
       if (upAt) upLock = true;
-      if (!capped) probe = { from: tier, p50: s[45], at: now };
-      stepTier(tier - 1); cool = 150; frames.length = 0; return;
+      if (!capped) probe = { from: { tier, dprTier }, p50: s[45], at: now };
+      const why = judge(now, 'the frame rate', 'down');
+      slowN = 0; stepDown(why); cool = 150; frames.length = 0; return;
     }
-    if (tier < TOP_TIER && !manualTier && !upLock && ups < 2 && now - tierAt > 20000 && costs.length >= 60) {
+    if ((tier < TOP_TIER || dprTier < TOP_TIER) && !manualTier && !upLock && ups < 2 && now - tierAt > 20000 && costs.length >= 60) {
       const cs = [...costs].sort((a, b) => a - b), mean = cs.reduce((a, b) => a + b, 0) / cs.length, slow = s.filter(v => v > 20).length / s.length;
-      if (s[67] <= 17.5 && slow <= 0.05 && mean <= 4.5 && cs[Math.floor(cs.length * 0.95)] <= 8) { ups++; upAt = now; stepTier(tier + 1); cool = 150; frames.length = 0; }
+      if (s[67] <= 17.5 && slow <= 0.05 && mean <= 4.5 && cs[Math.floor(cs.length * 0.95)] <= 8) { ups++; upAt = now; judge(now, 'steady 60 fps', 'up'); stepUp(); cool = 150; frames.length = 0; }
     }
   }
-  const TOP_TIER = 2, TIER_GRACE = 8000;
-  let graceDone = false, legendHeld = false;
+  const TOP_TIER = 2, TIER_GRACE = 15000;   // (WIN2: never judged in the first 15 s after the reveal — the bakes, the people, the windows, the fonts + images landing)
+  let graceDone = false, legendHeld = false, heavyHeld = null, heavyUntil = 0, heavyWhy = '', slowN = 0, lastJudge = null;
+  /** WIN2: a known heavy moment right now (its name) — nothing is judged in it */
+  function heavyNow(now) {
+    if (baker.pending || litBaker.pending || wantBake || wantBuild || resizeT) return 'a bake';
+    if (fadeFrom >= 0) return 'the crossfade';
+    if (now < heavyUntil) return heavyWhy;
+    return null;
+  }
+  /** WIN2: what the judge measured — the window's frames (p50 / p75 / p95 / the worst), the work, the slow share — kept for the readout */
+  function judge(now, why, dir) {
+    const s = [...frames].sort((a, b) => a - b), cs = [...costs].sort((a, b) => a - b), n = s.length;
+    const at = (now - shownAt) / 1000, p = q => (n ? s[Math.min(n - 1, Math.floor(n * q))] : 0), mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0;
+    const slow = n ? Math.round(100 * s.filter(v => v > 20).length / n) : 0;
+    const text = `${dir === 'down' ? '↓' : '↑'} ${at.toFixed(1)} s after the reveal: frames p50 ${p(0.5).toFixed(1)} · p75 ${p(0.75).toFixed(1)} · p95 ${p(0.95).toFixed(1)} · worst ${(n ? s[n - 1] : 0).toFixed(0)} ms, ${slow} % slow over ${(n / 60).toFixed(1)} s · work ${mean.toFixed(1)} ms (${why})`;
+    lastJudge = { at: +at.toFixed(1), dir, why, p50: +p(0.5).toFixed(1), p75: +p(0.75).toFixed(1), p95: +p(0.95).toFixed(1), worst: +(n ? s[n - 1] : 0).toFixed(1), slow, work: +mean.toFixed(1), n, text };
+    return text;
+  }
   let tierHold = 0, perfN = 0, tierAt = performance.now(), ups = 0, upAt = 0, upLock = false, manualTier = false, probe = null, capped = 0;
   const tierHist = [tier];                      // (the readout shows the steps: 2→1→2)
-  function stepTier(t, why = 'the frame rate') { fastUntil = Math.max(fastUntil, performance.now() + 1500); const was = tier; tier = Math.max(0, Math.min(2, t));   // (NEON PASS 5: build() clears the canvas — the battery saver must never skip the next draw: a black frame)
+  const applyFx = () => { wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); if (legends) legends.setTier(tier); if (bow) bow.setTier(tier); if (fw) fw.setTier(tier); };
+  const histPush = () => { tierHist.push(dprTier === tier ? tier : `${tier}/${dprTier}`); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); };
+  /** the whole step (before the reveal, from outside): the effects AND the resolution to t — a re-bake */
+  function stepTier(t, why = 'the frame rate') { fastUntil = Math.max(fastUntil, performance.now() + 1500); const was = tier; tier = Math.max(0, Math.min(2, t)); dprTier = tier;   // (NEON PASS 5: build() clears the canvas — the battery saver must never skip the next draw: a black frame)
      LOADLOG.add('tier', `${was} → ${tier} (${why})`, { applied: shownAt >= 0 });
-     tierHist.push(tier); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); if (legends) legends.setTier(tier); build('a tier step'); if (DEBUG) console.info('[harbor] tier', tier); }
+     histPush(); applyFx(); build('a tier step'); if (DEBUG) console.info('[harbor] tier', tier); }
+  /** WIN2 — a step DOWN after the reveal: the EFFECTS first (live modules only — no bake, no crossfade: invisible), the canvas RESOLUTION
+   *  last (a re-bake through the crossfade, the last resort); → true when something stepped */
+  function stepDown(why) {
+    const now = performance.now(), was = `${tier}/${dprTier}`; fastUntil = Math.max(fastUntil, now + 1500);
+    let kind;
+    if (tier > 0) { tier--; applyFx(); kind = 'effects — live, no re-bake'; }
+    else if (dprTier > 0) { dprTier--; kind = 'resolution — a re-bake'; }
+    else return false;
+    stepWhy.push(why); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (${kind}; ${why})`, { applied: true }); histPush();
+    if (kind[0] === 'r') build('a tier step'); if (DEBUG) console.info('[harbor] tier', tier, dprTier);
+    return true;
+  }
+  /** a step UP after a step down: the resolution back first, then the effects */
+  function stepUp() {
+    const was = `${tier}/${dprTier}`; fastUntil = Math.max(fastUntil, performance.now() + 1500);
+    if (dprTier < TOP_TIER) { dprTier++; LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (resolution back)`, { applied: true }); histPush(); build('a tier step up'); }
+    else if (tier < TOP_TIER) { tier++; applyFx(); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (effects back)`, { applied: true }); histPush(); }
+  }
+  function stepTo(t, d, why) { const was = `${tier}/${dprTier}`, rb = d !== dprTier; tier = t; dprTier = d; applyFx(); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (${why})`, { applied: true }); histPush(); if (rb) build('a tier step'); }
   function setTier(t) { manualTier = true; stepTier(t); }
 
   // 8a — THE LOOP COMES BACK (the owner's iPhone after 7a: back from the home screen the music + Web Audio recovered — the DOM AUDIO
@@ -2097,7 +2149,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       resizeT = 0;
       if (destroyed) return;
       const r = canvas.getBoundingClientRect();
-      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr) === dpr) { LOADLOG.add('note', 'the resize changed nothing the city uses: kept'); return; }
+      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr) === dpr) { LOADLOG.add('note', 'the resize changed nothing the city uses: kept'); return; }
       fastUntil = Math.max(fastUntil, performance.now() + 1500);
       if (running) wantBuild = 'a resize'; else { measure(); build('a resize'); }
     }, inLoad(now) && !big ? 400 : 180);
@@ -2239,7 +2291,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     spiderHit(x, y) { if (!dress) return null; const d = dress.hit(x, y); if (d) fastUntil = performance.now() + 1500; return d; },
     /** WIN2 — a flicker on the sign the city can't see itself (title.js: a tapped letter re-igniting, the race / surge, the tired tube):
      *  { kind, letter (0..3) | x (logo units), k } → how many spiders reacted */
-    poke(ev) { fastUntil = performance.now() + 1500; return pokeDress(ev || {}); },
+    poke(ev) { fastUntil = performance.now() + 1500; if (ev && /^(race|tap|tired|surge)$/.test(ev.kind || '')) { heavyUntil = performance.now() + 3000; heavyWhy = `the sign's ${ev.kind}`; } return pokeDress(ev || {}); },
     signOn: () => P.sign > 0.5,
     palette: () => P,
     signCol: () => S.signCol || null,
@@ -2266,7 +2318,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** C1.5: the session's frame pacing since the city showed (the readout's 'session' line) */
     session: () => ({ ...sess, after: { ...sess.after } }),
     /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
-    tiering: () => ({ tier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())) }),
+    speakCtx: () => { const v = speakCtx(); return { key: v.key, hushLit: !!v.hushLit, month: v.month }; },   // (WIN2: the facade's bake context — the washer swap)
+    tiering: () => ({ tier, dprTier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())), grace: TIER_GRACE, heavy: heavyNow(performance.now()), judge: lastJudge, slowN, sinceReveal: shownAt < 0 ? null : +((performance.now() - shownAt) / 1000).toFixed(1) }),
     cost: () => costs.slice(),
     party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, safe: PT.safe || null, safeK: PT.safeK == null ? null : +PT.safeK.toFixed(3), pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
     finale: () => startFinale(),

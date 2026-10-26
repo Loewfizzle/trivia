@@ -68,7 +68,9 @@ export const darkLevel = dt => (dt < 0 ? 1 : dt < 0.08 ? 0.35 : dt < 0.16 ? 0.9 
  * +0.65 units of run → ~17 pt). minN: a 3-letter word is sized as four (never huge). The plate hugs the word (margin + plate), centred in
  * the pier's run; its right edge ~3 pt from the corner, ~7 pt from the blade's board. ALL FOUR WINDOWS stay free for the moments.
  */
-export const HUSH_WALL = Object.freeze({ u0: 9.35, u1: 11.2, v0: 3.55, v1: 8.95, margin: 0.08, plate: 0.12, gap: 0.12, lw: 0.84, tube: 0.17, minN: 4, col: [96, 232, 255] });
+// (WIN2 — the owner: the right pier's wall-washer is REMOVED while the sign is lit (speakeasy-bake.js: ctx.hushLit), so the run reaches
+// up under the cornice: v1 8.95 → 9.62 → a 4-letter word ≈ 1.22-unit caps ≈ 16.6 pt at 402 (16.1 at 390, 17.8 at 430), five ≈ 13.2)
+export const HUSH_WALL = Object.freeze({ u0: 9.35, u1: 11.2, v0: 3.55, v1: 9.62, margin: 0.08, plate: 0.12, gap: 0.12, lw: 0.84, tube: 0.17, minN: 4, col: [96, 232, 255] });
 /**
  * wallPlan(text) → { text, cap, tube, letters: [{ ch, u0, w, base, polys }] (top → bottom), plate: [u0, u1, v0, v1], pier: [u0, u1, v0, v1] }
  * in WALL UNITS (u across the facade, v up) — or null without a word

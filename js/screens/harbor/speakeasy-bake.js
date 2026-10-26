@@ -389,9 +389,9 @@ export function washCone(du, d) {
   return on * side * fall;
 }
 export const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
-export function paintWashers(x, M, lk, tile) {
+export function paintWashers(x, M, lk, tile, piers = WASH.piers) {
   const m = x.getTransform(), top = WASH.lampV - 0.05, foot = top - WASH.drop;
-  for (const [a0, b0] of WASH.piers) {
+  for (const [a0, b0] of piers) {
     const a = a0 + 0.07, b = b0 - 0.07, mid = (a + b) / 2;
     // the pier's rect in device px (the bake's own pixels): an offscreen of lit brick, aligned to the wall's pattern, its alpha the cone
     const p = (u, v) => [m.a * u + m.c * v + m.e, m.b * u + m.d * v + m.f], [X0, Y0] = p(a, top), [X1, Y1] = p(b, foot);
@@ -413,8 +413,8 @@ export function paintWashers(x, M, lk, tile) {
 }
 /** the washers' fixtures, VISIBLE (by day too): a short iron arm out of the capital's foot, a black bowl-shaped hood aimed down; lit,
  *  its rim a crisp warm line + a white-hot lamp just showing under it */
-export function paintWasherLamps(x, M, lk) {
-  for (const [a0, b0] of WASH.piers) {
+export function paintWasherLamps(x, M, lk, piers = WASH.piers) {
+  for (const [a0, b0] of piers) {
     const u = (a0 + b0) / 2, v = WASH.lampV;
     R(x, u - 0.03, v + 0.06, u + 0.03, v + 0.32, M.iron);
     x.fillStyle = rgb(M.iron); x.beginPath(); x.moveTo(u - 0.2, v - 0.04); x.lineTo(u + 0.2, v - 0.04); x.quadraticCurveTo(u + 0.2, v + 0.12, u + 0.06, v + 0.14); x.lineTo(u - 0.06, v + 0.14); x.quadraticCurveTo(u - 0.2, v + 0.12, u - 0.2, v - 0.04); x.closePath(); x.fill();
@@ -519,8 +519,10 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       st.P = paintStructure(x, M, { u0: 0, u1: W_FRONT, side: false, pat });
       paintFrontDeco(x, M, { ...st.P, pat });
       const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
-      if (lk > 0.01) paintWashers(x, M, lk, brickTile(WASH.brick, course(dpr), blen(dpr), 9, false));
-      paintWasherLamps(x, M, lk);
+      // (WIN2: the corner pier's washer — its cone + its fixture — is gone while the lobby's hush sign is lit there: ctx.hushLit)
+      const piers = ctx.hushLit ? WASH.piers.slice(0, -1) : WASH.piers;
+      if (lk > 0.01) paintWashers(x, M, lk, brickTile(WASH.brick, course(dpr), blen(dpr), 9, false), piers);
+      paintWasherLamps(x, M, lk, piers);
       x.restore();
     },
     // the upper windows (by day: the sky in the glass, shades at their heights, curtains, the plant)

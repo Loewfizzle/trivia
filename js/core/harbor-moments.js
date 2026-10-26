@@ -17,6 +17,7 @@
 // never two in the same window at once, never more than MAX_AT_ONCE together. RARITY = the chance a slot (when the eligible ones sum
 // under 1 — by day — the rest of the slot stays empty: rare stays rare).
 import { rngFrom, hashString } from './rng.js';
+import { legendNight } from './harbor-legend.js';
 
 export const RARITY = Object.freeze({ common: 1, uncommon: 0.34, rare: 0.008 });
 export const RARITIES = Object.freeze(['routine', 'common', 'uncommon', 'rare', 'legendary']);
@@ -52,6 +53,11 @@ export const MOMENTS = Object.freeze([
   // ---- WIN — COUNTING THE CASH (the owner): the bootlegger's take counted under the green banker's lamp in the back room — late on the
   // bootleggers' nights (boot: a delivery night — core/harbor-workers.js#bootlegNight, or Saturday's big one), NEVER on a raid night
   // (noRaid: the cash is gone before the police come — core/harbor-raid.js#raidEvening)
+  // ---- WIN2 — THE EYES IN THE HAZE (the owner's add-on): one of the four full windows a dark room full of slow drifting haze, lit faintly
+  // from below by an ember-red glow, with just a pair of big red glowing eyes watching the street — blinking rarely, drifting a little,
+  // narrowing now + then; no body, no face. Its own calendar (eyesNights): 2 random weekend nights a month, 11 pm → 4 am, 3 plays of
+  // 150 s; never a legendary's night, never with the edge windows' eerie-red mood, never a Mothman night (ctx.mothman — none yet)
+  { id: 'eyes', label: 'THE EYES IN THE HAZE', rarity: 'legendary', calendar: 'eyes', windows: ['bar', 'jazz', 'back', 'apartment'], hours: [23, 4], light: 'night', len: 150, plays: 3, starter: false, kind: 'a dark room full of slow haze, an ember-red glow from below, a pair of big red eyes watching the street — blinking rarely, drifting, narrowing; no body, no face' },
   { id: 'cash', label: 'COUNTING THE CASH', rarity: 'uncommon', windows: ['back'], hours: [22.5, 2.5], light: 'night', len: 26, cooldown: 420, party: 0.6, boot: true, noRaid: true, starter: false, kind: 'a close-up: a man in shirtsleeves + braces under the green banker\'s lamp, bills peeled off the heap into banded stacks, a lick of the thumb, a glance over his shoulder; a shadow at the door — it all goes in the bag' },
 ]);
 export const MOMENT = Object.freeze(Object.fromEntries(MOMENTS.map(m => [m.id, m])));
@@ -96,14 +102,62 @@ export function legendNights(y, id = 'tango') {
   return out;
 }
 
+// ------------------------------------------------------------------ WIN2 — THE EDGE WINDOWS' MOOD LIGHTS (the owner: light + shadow only)
+/** the moods: TV blue flicker · an eerie RED darkroom bulb · a wavering CANDLE · a green BANKER's lamp + a shadow passing · HEADLIGHT sweeps
+ *  through slatted blinds · a CEILING FAN's turning shadow · LIGHTS OUT at ~midnight · a PARTY colour cycle (party nights only) */
+export const EDGE_MOODS = Object.freeze(['tv', 'red', 'candle', 'banker', 'headlights', 'fan', 'out']);
+/** tonight's moods for the two edge windows (seeded by the night's date: every phone the same), never the same in both; a party night
+ *  turns one into 'party'; the holidays tint them (hol: 'halloween' | 'christmas'); off: the lights-out minute (s after midnight) →
+ *  { edge2, edge3, tint, off } */
+export function edgeMoods(key, ctx = {}) {
+  const r = rngFrom(hashString(`edge-mood|${key}`)), n = EDGE_MOODS.length;
+  const a = EDGE_MOODS[Math.floor(r() * n)], b = EDGE_MOODS[(EDGE_MOODS.indexOf(a) + 1 + Math.floor(r() * (n - 1))) % n];
+  const out = { edge2: a, edge3: b, tint: ctx.hol === 'halloween' ? 'halloween' : ctx.hol === 'christmas' ? 'christmas' : null, off: Math.round(23.8 * 3600 + r() * 1800) };
+  if (ctx.party) out[r() < 0.5 ? 'edge2' : 'edge3'] = 'party';
+  return out;
+}
+/** the eerie-red mood is on tonight (the eyes never share a night with it) */
+export const redMoodNight = (key, ctx = {}) => { const m = edgeMoods(key, ctx); return m.edge2 === 'red' || m.edge3 === 'red'; };
+
+// ------------------------------------------------------------------ WIN2 — THE EYES' CALENDAR
+const ymdOf = key => String(key).split('-').map(Number);
+const shiftKey = (key, days) => { const [y, m, d] = ymdOf(key), t = new Date(Date.UTC(y, m - 1, d + days)); return dayKey(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()); };
+/**
+ * the eyes' nights of a month: TWO weekend nights (Fri / Sat evenings, seeded by the month), each with `plays` starts between 11 pm and
+ * 4 am (seconds after the EVENING's midnight — the small hours' starts run past 86400) → { 'YYYY-MM-DD': [s, s, s] }; a legendary's
+ * night (harbor-legend.js) or a night the edge windows show the eerie-red mood is skipped (ctx.mothman: none yet — the hook)
+ */
+export function eyesNights(y, m, ctx = {}) {
+  const M = MOMENT.eyes, r = rngFrom(hashString(`eyes|${y}|${m}`)), out = {};
+  // (the eligible weekend nights first — a legendary's night, an eerie-red night, a Mothman night are never in the draw — then two of them)
+  const days = []; for (let d = 1; d <= 31; d++) { const t = new Date(Date.UTC(y, m - 1, d)); if (t.getUTCMonth() !== m - 1) break; const dow = t.getUTCDay(); if ((dow === 5 || dow === 6) && !legendNight(y, m, d) && !redMoodNight(dayKey(y, m, d), ctx) && !ctx.mothman) days.push(d); }
+  const picks = []; while (picks.length < 2 && days.length) { const i = Math.floor(r() * days.length); picks.push(days.splice(i, 1)[0]); }
+  for (const d of picks.sort((a, b) => a - b)) {
+    const key = dayKey(y, m, d);
+    const span = (M.hours[1] + 24 - M.hours[0]) * 3600 - M.len, starts = [];
+    for (let i = 0; i < M.plays; i++) starts.push(Math.round(M.hours[0] * 3600 + span * ((i + 0.1 + r() * 0.8) / M.plays)));
+    out[key] = starts;
+  }
+  return out;
+}
+/** the eyes' plays landing on a day's clock: tonight's before midnight + last night's after it (shifted back a day) → [{ t0, n, win }] */
+export function eyesPlaysOn(key, ctx = {}) {
+  const [y, m] = ymdOf(key), prev = shiftKey(key, -1), [py, pm] = ymdOf(prev), out = [];
+  const pick = (k, i) => MOMENT.eyes.windows[Math.floor(rngFrom(hashString(`eyes-win|${k}|${i}`))() * MOMENT.eyes.windows.length)];
+  const tonight = eyesNights(y, m, ctx)[key] || []; tonight.forEach((t0, i) => { if (t0 < 86400) out.push({ t0, n: i, win: pick(key, i) }); });
+  const last = eyesNights(py, pm, ctx)[prev] || []; last.forEach((t0, i) => { if (t0 >= 86400) out.push({ t0: t0 - 86400, n: i, win: pick(prev, i) }); });
+  return out;
+}
+
 // ------------------------------------------------------------------ THE DAY'S SCHEDULE (in HOUR BLOCKS)
 /** the day's fixed starts: the routines (their seeded minutes) + the legendary night's plays → [{ id, win, t0, len, n }] */
-export function fixedPlan(key, only = null) {
+export function fixedPlan(key, only = null, ctx = {}) {
   const out = [], y = Number(String(key).slice(0, 4));
   for (const m of MOMENTS) {
     if (only && !only.includes(m.id)) continue;
     if (m.rarity === 'routine') out.push({ id: m.id, win: m.windows[0], t0: routineAt(m.id, key), len: m.len, n: 0 });
-    if (m.rarity === 'legendary') { const s = legendNights(y, m.id)[key]; if (s) s.forEach((t0, i) => out.push({ id: m.id, win: 'all', t0, len: m.len, n: i })); }
+    else if (m.calendar === 'eyes') { for (const p of eyesPlaysOn(key, ctx)) out.push({ id: m.id, win: p.win, t0: p.t0, len: m.len, n: p.n }); }   // (WIN2: its own calendar, in ONE window)
+    else if (m.rarity === 'legendary') { const s = legendNights(y, m.id)[key]; if (s) s.forEach((t0, i) => out.push({ id: m.id, win: 'all', t0, len: m.len, n: i })); }
   }
   return out;
 }
@@ -117,7 +171,7 @@ export function fixedPlan(key, only = null) {
 export function hourPlan(key, hour, ctx = {}) {
   const r = rngFrom(hashString(`moments|${key}|${hour}|${ctx.seed || 1924}`));
   const H0 = hour * 3600, H1 = H0 + 3600;
-  const fixed = fixedPlan(key, ctx.only).filter(e => e.t0 + e.len > H0 - 120 && e.t0 < H1 + 120);
+  const fixed = fixedPlan(key, ctx.only, ctx).filter(e => e.t0 + e.len > H0 - 120 && e.t0 < H1 + 120);
   const out = fixed.filter(e => e.t0 >= H0 && e.t0 < H1), busyTill = {}, last = {};
   const pool = MOMENTS.filter(m => RARITY[m.rarity] && (!ctx.only || ctx.only.includes(m.id)));
   const free = (win, a, b) => (busyTill[win] || 0) <= a && !fixed.some(e => (e.win === win || e.win === 'all') && e.t0 < b + 1.5 && e.t0 + e.len + 1.5 > a);
@@ -193,10 +247,10 @@ export function starOnly(on) {
  *  every moment in the table. */
 export const WINDOW_LOOKS = Object.freeze({
   wake: 'lit', 'shop-open': 'lit', bartender: 'lit', 'lights-out': 'silhouette', dance: 'shadow', toast: 'lit', sax: 'shadow', cat: 'silhouette',
-  fan: 'silhouette', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit', cash: 'lit',
+  fan: 'silhouette', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit', cash: 'lit', eyes: 'light',
 });
-export const LOOK_WHY = Object.freeze({ shadow: 'on the jazz room\'s shade (backlit)', silhouette: 'a dark room, or backlit by the TV', ghost: 'the holiday\'s own glow', lit: 'in a lit room' });
-export const STAGE = Object.freeze({ cash: 1.0, ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
+export const LOOK_WHY = Object.freeze({ shadow: 'on the jazz room\'s shade (backlit)', silhouette: 'a dark room, or backlit by the TV', ghost: 'the holiday\'s own glow', lit: 'in a lit room', light: 'light + shadow only — no figure (WIN2)' });
+export const STAGE = Object.freeze({ eyes: 1.0, cash: 1.0, ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
 /** the rooms' own steady figures (the jazz room's player, the TV couch, the bar's afternoon) — a step closer too */
 export const STAGE_ROOM = 1.22;
 /** the next start after `sec` (the readout + the e2e): { id, win, in: seconds } or null */
