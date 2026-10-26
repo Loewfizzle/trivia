@@ -61,13 +61,16 @@ export function paintRoom(x, w, o = {}) {
     const tx = G.cx, ty = h0 + ch * 0.22;
     const pg = x.createRadialGradient(tx, ty + 0.18, 0, tx, ty + 0.18, 0.95); pg.addColorStop(0, 'rgba(255,234,198,0.95)'); pg.addColorStop(0.45, 'rgba(204,156,112,0.5)'); pg.addColorStop(1, 'rgba(58,32,22,0)'); x.fillStyle = pg; x.fillRect(g0, h0, cw, ch);
     x.fillStyle = 'rgba(255,214,140,0.12)'; x.beginPath(); x.moveTo(tx - 0.16, ty + 0.78); x.lineTo(tx + 0.16, ty + 0.78); x.lineTo(tx + 0.6, ty + 0.04); x.lineTo(tx - 0.6, ty + 0.04); x.fill();
-    const sil = 'rgb(22,12,10)';
-    for (const [dx, sc, hat] of [[-0.56, 1, true], [0.58, 0.96, false]]) {
-      const px = tx + dx, sh = 0.34 * sc;
-      x.fillStyle = sil; x.beginPath(); x.moveTo(px - 0.25 * sc, ty); x.quadraticCurveTo(px - 0.25 * sc, ty + sh, px, ty + sh + 0.02); x.quadraticCurveTo(px + 0.25 * sc, ty + sh, px + 0.25 * sc, ty); x.fill();
-      x.beginPath(); x.arc(px, ty + sh + 0.13 * sc, 0.12 * sc, 0, TAU); x.fill();
-      if (hat) { R(x, px - 0.19 * sc, ty + sh + 0.2 * sc, px + 0.19 * sc, ty + sh + 0.235 * sc, sil); R(x, px - 0.11 * sc, ty + sh + 0.23 * sc, px + 0.11 * sc, ty + sh + 0.33 * sc, sil); }
-      x.fillStyle = 'rgba(255,190,110,0.4)'; x.beginPath(); x.arc(px + (dx < 0 ? 0.06 : -0.06) * sc, ty + sh + 0.16 * sc, 0.1 * sc, 0, Math.PI); x.fill();
+    // (SP4 — LIT PEOPLE: the card players under the lamp are lit from above — a white shirt + a navy jacket, skin, the lamp on the
+    // crown + the shoulders, the undersides in shade)
+    for (const [dx, sc, hat, shirt] of [[-0.56, 1, true, [236, 226, 206]], [0.58, 0.96, false, [54, 70, 112]]]) {
+      const px = tx + dx, sh = 0.34 * sc, top = ty + sh;
+      const sg = x.createLinearGradient(0, ty, 0, top); sg.addColorStop(0, rgb(mixc(shirt, [22, 12, 10], 0.72))); sg.addColorStop(1, rgb(mixc(shirt, [255, 234, 198], 0.12)));
+      x.fillStyle = sg; x.beginPath(); x.moveTo(px - 0.25 * sc, ty); x.quadraticCurveTo(px - 0.25 * sc, top, px, top + 0.02); x.quadraticCurveTo(px + 0.25 * sc, top, px + 0.25 * sc, ty); x.fill();
+      const hy = top + 0.13 * sc, hg = x.createRadialGradient(px, hy + 0.08 * sc, 0.02, px, hy, 0.15 * sc); hg.addColorStop(0, 'rgb(236,196,160)'); hg.addColorStop(0.7, 'rgb(188,136,104)'); hg.addColorStop(1, 'rgb(92,56,40)');
+      x.fillStyle = hg; x.beginPath(); x.arc(px, hy, 0.12 * sc, 0, TAU); x.fill();
+      if (hat) { R(x, px - 0.19 * sc, top + 0.2 * sc, px + 0.19 * sc, top + 0.235 * sc, 'rgb(70,52,44)'); R(x, px - 0.11 * sc, top + 0.23 * sc, px + 0.11 * sc, top + 0.33 * sc, 'rgb(96,72,58)'); }
+      else { x.fillStyle = 'rgb(52,34,24)'; x.beginPath(); x.ellipse(px, hy + 0.05 * sc, 0.125 * sc, 0.1 * sc, 0, Math.PI, 0); x.fill(); }
     }
     x.fillStyle = 'rgb(46,104,62)'; x.beginPath(); x.ellipse(tx, ty, 0.62, 0.13, 0, 0, TAU); x.fill();
     x.fillStyle = 'rgb(98,166,104)'; x.beginPath(); x.ellipse(tx, ty + 0.02, 0.46, 0.075, 0, 0, TAU); x.fill();
@@ -163,12 +166,27 @@ function paintLampRoom(x, G, lamp = 1) {
 let RIM = null;
 /** the window being drawn sets its lamp's rim for the figures in it (null: none) */
 export function setRim(r) { RIM = r; }
+/** SP4 — LIT PEOPLE (the owner: "if it's lit in the room you should be able to SEE them, not silhouettes"): P.lit = { col: [r,g,b]
+ *  (the room's lamp), side (-1 | 0 | 1: where the lamp is; 0 = above), k (0..1 the room's level) } draws the figure in its palette's REAL
+ *  colours tinted by the lamp, MODELLED by it — a lit side, a shade side (a gradient over every shape, away from the lamp; from above:
+ *  the shoulders + the hat lit, the waist in shade), the warm rim on the lamp's side — the face a simple lit shape. P.marks = the
+ *  clothes' patterns as blocks of colour: 'braces' | 'pocket' (a pocket square) | 'bow' | 'pearls' | 'pinstripe' | 'collar' | 'sash'. */
 export function figure(c, P) { rimPass(c, P); body(c, P, 0); }
+/** a palette in a room's light: each colour toward the lamp's tone, the whole a little under daylight (a lit room at night) */
+export function litPal(pal, lamp, k = 1) {
+  const out = {}, L = lamp || [255, 222, 176], m = Math.min(1, 0.72 + 0.28 * k);
+  for (const key of Object.keys(pal)) {
+    const v = pal[key]; if (typeof v !== 'string' || !v.startsWith('rgb')) { out[key] = v; continue; }
+    const c = v.match(/[\d.]+/g).map(Number);
+    out[key] = `rgb(${Math.min(255, (c[0] * (0.62 + 0.38 * L[0] / 255)) * m) | 0},${Math.min(255, (c[1] * (0.62 + 0.38 * L[1] / 255)) * m) | 0},${Math.min(255, (c[2] * (0.62 + 0.38 * L[2] / 255)) * m) | 0})`;
+  }
+  return out;
+}
 /** a GROUP that overlaps (the toast's three, the tango's couple): every rim first, then every body — one figure's rim never lands on
  *  another's dark shape */
 export function figures(c, list) { for (const P of list) if (P) rimPass(c, P); for (const P of list) if (P) body(c, P, 0); }
 function rimPass(c, P) {
-  const rim = P.rim === undefined ? (P.pal ? null : RIM) : P.rim;
+  const rim = P.rim === undefined ? (P.pal && !P.lit ? null : RIM) : P.rim;
   if (rim && rim.a > 0.01) {
     // THE RIM PASS: the same figure inflated by the rim's width in the room's light, nudged toward the lamp — the dark figure over it
     // leaves a thin warm line round the head, the hat, the shoulders, the arms (crisp, no blur: a few hundredths of a unit)
@@ -215,7 +233,7 @@ function body(c, P, inf) {
     c.bezierCurveTo(-hw2 - 0.02 * s + sw * 0.08 * s, foot * 0.5, -hw2 + sw * 0.05 * s, shY * 0.4, -sh * 1.05, shY - 0.04 * s);
     c.bezierCurveTo(-0.24 * s, shY + 0.08 * s, -0.2 * s, top + 0.02 * s, 0, top + 0.03 * s);
     F('body');
-    if (!inf && P.eyes !== false) { c.fillStyle = P.eyeCol || 'rgba(10,8,14,0.92)'; for (const ex of [-0.05, 0.05]) { c.beginPath(); c.ellipse(ex * s + f * 0.03 * s, shY + 0.21 * s, 0.024 * s, 0.036 * s, 0, 0, TAU); c.fill(); } }
+    if (!inf && P.eyes !== false && !P.shadePass) { c.fillStyle = P.eyeCol || 'rgba(10,8,14,0.92)'; for (const ex of [-0.05, 0.05]) { c.beginPath(); c.ellipse(ex * s + f * 0.03 * s, shY + 0.21 * s, 0.024 * s, 0.036 * s, 0, 0, TAU); c.fill(); } }
     c.restore();
     return;
   }
@@ -330,6 +348,29 @@ function body(c, P, inf) {
     for (let k = 0; k < 9; k++) { const y = 0.04 * s + k * 0.085 * s, tl = (k % 3 - 1) * 0.06; c.beginPath(); c.moveTo(-0.3 * s, y + tl * s); c.lineTo(0.3 * s, y - tl * s + 0.03 * s); c.stroke(); }
     c.restore();
   }
+  // ---- SP4: the clothes' marks (blocks of colour that read at 14 pt: braces over a shirt, a pocket square, a bow tie, pearls, pinstripes)
+  if (!inf && P.marks && pal) {
+    const mk = pal.marks || 'rgb(40,30,34)', lt = pal.light || 'rgb(240,236,228)';
+    for (const m of P.marks) {
+      if (m === 'braces') { c.strokeStyle = mk; c.lineWidth = 0.03 * s; c.beginPath(); for (const e of [-1, 1]) { c.moveTo(e * 0.075 * s, 0.02 * s); c.lineTo(e * 0.11 * s, shY - 0.02 * s); } c.stroke(); }
+      else if (m === 'pocket') { c.fillStyle = lt; c.fillRect(0.08 * s + f * 0.02 * s, shY - 0.22 * s, 0.07 * s, 0.028 * s); }
+      else if (m === 'bow') { c.fillStyle = mk; c.beginPath(); c.moveTo(0, shY + 0.07 * s); c.lineTo(-0.06 * s, shY + 0.1 * s); c.lineTo(-0.06 * s, shY + 0.04 * s); c.closePath(); c.fill(); c.beginPath(); c.moveTo(0, shY + 0.07 * s); c.lineTo(0.06 * s, shY + 0.1 * s); c.lineTo(0.06 * s, shY + 0.04 * s); c.closePath(); c.fill(); }
+      else if (m === 'pearls') { c.fillStyle = lt; for (let i = -2; i <= 2; i++) { c.beginPath(); c.arc(i * 0.03 * s + f * 0.01 * s, shY + 0.03 * s - Math.abs(i) * 0.012 * s, 0.013 * s, 0, TAU); c.fill(); } }
+      else if (m === 'pinstripe') { c.strokeStyle = lt; c.lineWidth = 0.008 * s; c.globalAlpha *= 0.55; c.beginPath(); for (const u of [-0.12, -0.06, 0, 0.06, 0.12]) { c.moveTo(u * s * 0.8, 0.04 * s); c.lineTo(u * s * 1.3, shY - 0.05 * s); } c.stroke(); c.globalAlpha /= 0.55; }
+      else if (m === 'collar') { c.fillStyle = lt; c.beginPath(); c.moveTo(-0.05 * s, shY + 0.08 * s); c.lineTo(-0.1 * s, shY - 0.04 * s); c.lineTo(0, shY - 0.0 * s); c.lineTo(0.1 * s, shY - 0.04 * s); c.lineTo(0.05 * s, shY + 0.08 * s); c.closePath(); c.fill(); }
+      else if (m === 'sash') { c.fillStyle = mk; c.beginPath(); c.moveTo(-wh, 0.08 * s); c.lineTo(wh, 0.02 * s); c.lineTo(wh, 0.1 * s); c.lineTo(-wh, 0.16 * s); c.closePath(); c.fill(); }
+    }
+  }
+  // ---- SP4: THE SHADE SIDE — the lamp's modelling: every shape again, filled with one gradient away from the lamp (dark on the far side,
+  // nothing on the lit side; from above: the shoulders + the hat lit, the waist in shade). The same shapes, so nothing spills.
+  if (!inf && P.lit && pal && !P.sheet) {
+    const side = P.lit.side || 0, a = P.lit.a == null ? 0.5 : P.lit.a;
+    const g = side ? c.createLinearGradient(side * sh * 1.1, 0, -side * sh * 1.1, 0) : c.createLinearGradient(0, shY + 0.25 * s, 0, -0.35 * s);
+    g.addColorStop(0, 'rgba(20,10,14,0)'); g.addColorStop(0.45, `rgba(20,10,14,${(a * 0.35).toFixed(3)})`); g.addColorStop(1, `rgba(20,10,14,${a.toFixed(3)})`);
+    c.restore();
+    body(c, { ...P, lit: null, pal: null, col: g, hold: null, glints: null, marks: null, bones: null, wraps: null, rim: null, shadePass: true }, 0);
+    return;
+  }
   c.restore();
 }
 function prop(c, kind, x, y, side, fa, s, col, P) {
@@ -394,6 +435,31 @@ const DAY_PALS = [
 ];
 const BARBER = { body: 'rgb(238,236,228)', skin: 'rgb(210,164,130)', hair: 'rgb(44,32,28)', hat: 'rgb(44,32,28)', legs: 'rgb(46,44,52)', prop: 'rgb(214,220,228)', arm: 'rgb(232,230,222)' };
 const pals = n => DAY_PALS[((n % 3) + 3) % 3];
+/** SP4 — THE NIGHT'S CLOTHES in real colours (+ `m`: the marks drawn as blocks — braces, a pocket square, a bow tie, pearls, pinstripes),
+ *  lit by each room's lamp through litPal(); `light` = the pale marks' colour, `marks` the dark ones' */
+const NIGHT_PALS = {
+  men: [
+    { body: 'rgb(242,238,228)', arm: 'rgb(242,238,228)', skin: 'rgb(224,180,148)', hair: 'rgb(48,32,24)', hat: 'rgb(52,42,44)', legs: 'rgb(44,40,48)', prop: 'rgb(214,220,228)', marks: 'rgb(70,36,40)', light: 'rgb(248,246,240)', m: ['braces'] },     // a white shirt + braces
+    { body: 'rgb(38,38,54)', arm: 'rgb(38,38,54)', skin: 'rgb(206,160,128)', hair: 'rgb(30,22,20)', hat: 'rgb(30,30,42)', legs: 'rgb(34,34,46)', prop: 'rgb(214,220,228)', marks: 'rgb(20,20,30)', light: 'rgb(248,246,240)', m: ['collar', 'pocket'] },   // a dark suit + a pocket square
+    { body: 'rgb(104,58,40)', arm: 'rgb(104,58,40)', skin: 'rgb(236,196,164)', hair: 'rgb(120,80,40)', hat: 'rgb(90,56,40)', legs: 'rgb(70,46,36)', prop: 'rgb(214,220,228)', marks: 'rgb(40,20,20)', light: 'rgb(248,244,236)', m: ['collar', 'bow'] },      // a brown suit, a bow tie
+    { body: 'rgb(50,72,124)', arm: 'rgb(50,72,124)', skin: 'rgb(190,140,110)', hair: 'rgb(24,20,20)', hat: 'rgb(40,44,70)', legs: 'rgb(40,50,84)', prop: 'rgb(214,220,228)', marks: 'rgb(20,24,40)', light: 'rgb(230,236,248)', m: ['collar', 'pinstripe'] }, // navy pinstripe
+  ],
+  women: [
+    { body: 'rgb(184,30,48)', arm: 'rgb(226,184,150)', skin: 'rgb(226,184,150)', hair: 'rgb(60,34,24)', hat: 'rgb(160,24,44)', legs: 'rgb(214,186,166)', prop: 'rgb(214,220,228)', marks: 'rgb(90,10,24)', light: 'rgb(250,246,240)', m: ['pearls'] },        // a red dress + pearls
+    { body: 'rgb(36,126,116)', arm: 'rgb(214,170,140)', skin: 'rgb(214,170,140)', hair: 'rgb(28,20,18)', hat: 'rgb(30,100,96)', legs: 'rgb(206,176,156)', prop: 'rgb(214,220,228)', marks: 'rgb(20,60,60)', light: 'rgb(246,240,230)', m: ['sash'] },        // a teal dress, a sash
+    { body: 'rgb(238,216,170)', arm: 'rgb(230,188,156)', skin: 'rgb(230,188,156)', hair: 'rgb(136,62,30)', hat: 'rgb(220,190,140)', legs: 'rgb(220,194,174)', prop: 'rgb(214,220,228)', marks: 'rgb(120,80,40)', light: 'rgb(255,252,244)', m: ['pearls'] },  // champagne + pearls, auburn
+    { body: 'rgb(72,42,104)', arm: 'rgb(222,178,146)', skin: 'rgb(222,178,146)', hair: 'rgb(206,166,92)', hat: 'rgb(60,34,90)', legs: 'rgb(210,182,162)', prop: 'rgb(214,220,228)', marks: 'rgb(40,20,60)', light: 'rgb(248,244,250)', m: ['sash'] },         // plum, blonde
+  ],
+};
+const BARTENDER_PAL = { body: 'rgb(32,30,38)', arm: 'rgb(238,234,224)', skin: 'rgb(216,170,136)', hair: 'rgb(36,26,22)', hat: 'rgb(36,26,22)', legs: 'rgb(32,30,38)', prop: 'rgb(214,220,228)', marks: 'rgb(20,18,24)', light: 'rgb(246,244,238)', m: ['collar'] };   // a black waistcoat over a white shirt
+const whoM = n => NIGHT_PALS.men[((n % 4) + 4) % 4], whoW = n => NIGHT_PALS.women[((n % 4) + 4) % 4];
+const NIGHTGOWN = { body: 'rgb(206,218,238)', arm: 'rgb(226,184,150)', skin: 'rgb(226,184,150)', hair: 'rgb(96,56,32)', hat: 'rgb(206,218,238)', legs: 'rgb(206,218,238)', prop: 'rgb(214,220,228)', light: 'rgb(248,250,255)', m: [] };
+const TANGO_HIM = { body: 'rgb(22,20,28)', arm: 'rgb(22,20,28)', skin: 'rgb(214,170,136)', hair: 'rgb(24,18,16)', hat: 'rgb(18,16,22)', legs: 'rgb(22,20,28)', prop: 'rgb(214,220,228)', marks: 'rgb(10,8,12)', light: 'rgb(250,248,244)', m: ['collar', 'bow'] };
+const COSTUME_PALS = {
+  witch: { body: 'rgb(22,18,34)', arm: 'rgb(22,18,34)', skin: 'rgb(214,178,150)', hair: 'rgb(150,40,40)', hat: 'rgb(18,14,30)', cape: 'rgb(92,36,140)', legs: 'rgb(22,18,34)', prop: 'rgb(214,220,228)', m: [] },
+  devil: { body: 'rgb(188,30,40)', arm: 'rgb(188,30,40)', skin: 'rgb(220,170,140)', hair: 'rgb(30,20,20)', hat: 'rgb(230,50,50)', legs: 'rgb(150,24,32)', prop: 'rgb(214,220,228)', m: [] },
+  cat: { body: 'rgb(20,18,24)', arm: 'rgb(20,18,24)', skin: 'rgb(224,184,150)', hair: 'rgb(20,18,24)', hat: 'rgb(20,18,24)', legs: 'rgb(20,18,24)', prop: 'rgb(214,220,228)', light: 'rgb(246,240,236)', m: ['collar'] },
+};
 /** 11a-1 — THE RIM: each room's lamp colour on its silhouettes' edges + the lamp's side (-1 left, 1 right, 0 behind) */
 const RIM_COL = { bar: [255, 190, 116], jazz: [255, 214, 160], apartment: [255, 206, 190], back: [255, 222, 170], edge2: [255, 230, 196], edge3: [255, 230, 196] };
 const RIM_SIDE = { apartment: -1, bar: 0, jazz: 0, back: 0, edge2: 0, edge3: 0 };
@@ -415,6 +481,9 @@ export function createWindowLife() {
     return cv;
   }
   const glow = (c, col, x, y, r, a, sy = 1) => { if (a <= 0.004) return; c.globalAlpha = Math.min(1, a); c.drawImage(spot(col), x - r, y - r * sy, r * 2, r * 2 * sy); };
+  /** SP4 — a figure's look in a LIT room: its palette in this room's lamp light, the lamp's modelling (the shade side), its marks; the
+   *  rim comes from setRim (the room's). o.lamp: a colour to override the room's (the ofrenda's candles) */
+  const litP = (E, pal, o = {}) => ({ pal: litPal(pal, o.lamp || RIM_COL[E.w.id] || [255, 222, 176], E.kl), lit: { side: o.side == null ? (RIM_SIDE[E.w.id] || 0) : o.side, a: o.a == null ? 0.5 : o.a }, marks: pal.m || null });
 
   // the local clock: seconds after local midnight, the date's key + weekday (the tz offset from the look: core/sky.js#localParts)
   function localNow(ms, off) {
@@ -554,7 +623,7 @@ export function createWindowLife() {
       c.fillStyle = 'rgb(30,16,12)';
       for (const u of [0.18, 0.42, 0.66, 0.88]) { const x = G.g0 + G.cw * u; c.fillRect(x - 0.1, cy, 0.2, 0.04); c.fillRect(x - 0.09, cy + 0.04, 0.025, 0.22); c.fillRect(x + 0.065, cy + 0.04, 0.025, 0.22); }
       const sw = mo ? Math.sin(t * 2.4) : 0, x = G.g0 + G.cw * (0.5 + 0.22 * Math.sin(t * 0.21));
-      figure(c, { x, y: G.h0 + 0.02, s: 0.92, lean: 0.18 + 0.08 * sw, tilt: 0.2, face: 1, arms: [[0.5 + 0.25 * sw, 0.6], [0.7 + 0.25 * sw, 0.4]], hold: [null, 'broom'], col: SIL, hair: null });
+      figure(c, { x, y: G.h0 + 0.02, s: 0.92, lean: 0.18 + 0.08 * sw, tilt: 0.2, face: 1, arms: [[0.5 + 0.25 * sw, 0.6], [0.7 + 0.25 * sw, 0.4]], hold: [null, 'broom'], ...litP(E, whoM(0)), hair: null });
       c.globalAlpha = 1;
       return true;
     }
@@ -595,7 +664,7 @@ export function createWindowLife() {
     // (behind the counter = further back than the patrons: a step smaller + a lighter silhouette, the back-bar's glow round him — so the
     // patrons' raised glasses read against him)
     if (mode === 'day') figure(c, { x, y, s: 0.86, face: 0, arms, hold, pal: { ...DAY_PALS[2], body: 'rgb(236,232,222)', arm: 'rgb(236,232,222)' }, glints: lit > 0.5 ? E.glints : null });
-    else figure(c, { x, y, s: 0.86, face: 0, arms, hold, col: SIL_BACK, glints: E.glints });
+    else figure(c, { x, y, s: 0.86, face: 0, arms, hold, ...litP(E, BARTENDER_PAL), glints: E.glints });   // (SP4: lit — a white shirt, a black waistcoat)
     // the counter in front of him (his waist behind it)
     R(c, G.g0, G.h0, G.g1, G.h0 + G.ch * 0.3, mode === 'day' ? 'rgb(70,40,28)' : 'rgb(70,34,20)');
     R(c, G.g0, G.h0 + G.ch * 0.3 - 0.05, G.g1, G.h0 + G.ch * 0.3, mode === 'day' ? `rgba(230,170,90,${(0.5 + 0.5 * lit).toFixed(2)})` : 'rgb(230,170,90)');
@@ -606,17 +675,17 @@ export function createWindowLife() {
   function patrons(E, toast) {
     const { c, G } = E, y = G.h0 - 0.02;
     const full = toast && !toast.solo;
-    const who = full ? [[0.2, 'fedora', 0.88, 1], [0.5, 'cloche', 0.8, 0], [0.8, 'fedora', 0.9, -1]] : [[0.74, 'fedora', 0.9, -1]];
+    const who = full ? [[0.2, 'fedora', 0.88, 1, whoM(0)], [0.5, 'cloche', 0.8, 0, whoW(0)], [0.8, 'fedora', 0.9, -1, whoM(1)]] : [[0.74, 'fedora', 0.9, -1, whoM(1)]];
     const p = toast ? toast.p : 0, up = toast ? sm(0.06, 0.26, p) * (1 - sm(0.84, 0.98, p)) : 0, clink = full ? sm(0.3, 0.38, p) * (1 - sm(0.44, 0.52, p)) : 0, drink = toast ? sm(0.54, 0.62, p) * (1 - sm(0.74, 0.82, p)) : 0;
     const group = [];
-    for (const [u, hat, s, toward] of who) {
+    for (const [u, hat, s, toward, pal] of who) {
       const x = G.g0 + G.cw * u;
       // the toasting arm: down → straight up over the head (→ leaning in over the middle for the clink) → folded to the mouth
       const a = lerp(lerp(0.15, toward ? 2.75 : 3.0, up), toward ? 2.25 : 3.0, clink), e = lerp(lerp(0.25, 0.15, up), toward ? 0.45 : 0.05, clink);
       const arm = drink > 0.01 ? [lerp(a, 0.7, drink), lerp(e, 2.3, drink)] : [a, e];
       // (toward: +1 = the centre is to his right — his right arm toasts; −1 his left; 0 the middle one, her right)
       const arms = toward < 0 ? [arm, [0.12, 0.2]] : [[0.12, 0.2], arm], hold = toward < 0 ? ['glass', null] : [null, 'glass'];
-      group.push({ x: x + toward * 0.05 * clink, y, s, face: 0, lean: toward * 0.12 * clink, tilt: -0.4 * drink, arms, hold: up > 0.05 || !toast ? hold : null, hat, hair: hat === 'cloche' ? 'bob' : null, col: SIL, glints: up > 0.3 ? E.glints : null });
+      group.push({ x: x + toward * 0.05 * clink, y, s, face: 0, lean: toward * 0.12 * clink, tilt: -0.4 * drink, arms, hold: up > 0.05 || !toast ? hold : null, hat, hair: hat === 'cloche' ? 'bob' : null, ...litP(E, pal), glints: up > 0.3 ? E.glints : null });
     }
     figures(c, group);
     if (full) {
@@ -771,8 +840,9 @@ export function createWindowLife() {
     const r = rngFrom(57), bc = [[255, 196, 90], [120, 220, 140], [255, 90, 80], [255, 240, 190], [140, 190, 255]];
     for (const v of [mv0 + 0.62, mv0 + 0.9, mv0 + 1.16]) { R(c, m0, v - 0.03, m1, v, 'rgb(90,44,22)'); for (let u = m0 + 0.04; u < m1 - 0.04; u += 0.08 + r() * 0.04) { const cc = bc[Math.floor(r() * bc.length)], hh = 0.1 + r() * 0.08; R(c, u, v, u + 0.045, v + hh, rgb(cc)); } }
     const sway = Math.sin(t * 1.6) * 0.05;
-    figure(c, { x: m0 + 0.5, y: mv0 + 0.32, s: 0.86, lean: sway, face: -1, hat: 'fedora', arms: [[0.15, 0.3], [0.4, 1.9]], hold: [null, 'glass'], col: 'rgb(40,16,10)' });
-    figure(c, { x: m0 + 0.14, y: mv0 + 0.3, s: 0.76, lean: -sway, face: 1, hat: 'cloche', hair: 'bob', dress: true, arms: [[0.2, 0.5], [0.3, 0.4]], col: 'rgb(40,16,10)' });
+    // (SP4: lit by the bar's amber — a dark suit, a red dress)
+    figure(c, { x: m0 + 0.5, y: mv0 + 0.32, s: 0.86, lean: sway, face: -1, hat: 'fedora', arms: [[0.15, 0.3], [0.4, 1.9]], hold: [null, 'glass'], pal: litPal(whoM(1), RIM_COL.bar, 1), lit: { side: 0, a: 0.55 }, marks: whoM(1).m, rim: { col: RIM_COL.bar, a: 0.5, side: 0, w: 0.026 } });
+    figure(c, { x: m0 + 0.14, y: mv0 + 0.3, s: 0.76, lean: -sway, face: 1, hat: 'cloche', hair: 'bob', dress: true, arms: [[0.2, 0.5], [0.3, 0.4]], pal: litPal(whoW(0), RIM_COL.bar, 1), lit: { side: 0, a: 0.55 }, marks: whoW(0).m, rim: { col: RIM_COL.bar, a: 0.5, side: 0, w: 0.026 } });
     // the mirror itself, swung in on its left hinge (foreshortened: narrower, its far edge shorter), catching the light
     const th = o * 1.25, wv = (m1 - m0) * Math.cos(th), ins = 0.12 * Math.sin(th);
     c.fillStyle = 'rgb(46,40,52)'; c.beginPath(); c.moveTo(m0, mv0); c.lineTo(m0 + wv, mv0 + ins); c.lineTo(m0 + wv, mv1 - ins); c.lineTo(m0, mv1); c.closePath(); c.fill();
@@ -825,12 +895,12 @@ export function createWindowLife() {
   function peekPaint(E, p, seed = 0) {
     const { c, G, k, w } = E, night = k > 0.3;
     const o = sm(0, 0.18, p) * (1 - sm(0.82, 1, p)), look = Math.sin(sm(0.22, 0.8, p) * Math.PI * 2);
-    const col = night ? SIL : 'rgb(70,58,60)';
+    const lk = night ? litP(E, w.id === 'jazz' ? whoM(2) : whoW(1)) : { col: 'rgb(70,58,60)' };   // (SP4: lit by the room)
     if (w.id === 'jazz') {
       // under the jazz room's shade: someone ducks under its hem and looks out, left then right (the shade's hem lifted over the head)
       const sv = G.h0 + G.ch * 0.26, x = G.g0 + G.cw * (0.36 + 0.28 * hsh(seed | 0, 9)), rise = 0.42 * o;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, sv - G.h0 + 0.1 * o); c.clip();
-      figure(c, { x, y: sv - 0.86 + rise, s: 0.95, face: look, tilt: 0.1, col, arms: [[2.4, 0.5], [0.3, 0.3]], hair: 'short' });
+      figure(c, { x, y: sv - 0.86 + rise, s: 0.95, face: look, tilt: 0.1, ...lk, arms: [[2.4, 0.5], [0.3, 0.3]], hair: 'short' });
       c.restore();
       c.fillStyle = 'rgba(110,60,30,0.85)'; c.beginPath(); c.moveTo(x - 0.34, sv); c.quadraticCurveTo(x, sv + 0.26 * o, x + 0.34, sv); c.lineTo(x + 0.34, sv + 0.05); c.quadraticCurveTo(x, sv + 0.3 * o, x - 0.34, sv + 0.05); c.fill();
       return;
@@ -930,7 +1000,7 @@ export function createWindowLife() {
     if (lighting) {
       const p = lighting.el / lighting.len, inn = sm(0, 0.14, p), out = sm(0.86, 1, p), x = G.g0 + G.cw * (1.1 - 0.45 * inn + 0.55 * out);
       const reach = mo ? 0.5 + 0.5 * Math.sin(lighting.el * 1.4) : 0.5;
-      figure(c, { x, y: base + 0.12, s: 0.9, face: -0.8, lean: -0.32 - 0.12 * reach, tilt: 0.2, hair: 'long', arms: [[1.1 + 0.3 * reach, 0.5], [0.4, 1.2]], hold: [null, 'candle'], col: SIL, glints: E.glints, flame: 'rgb(255,236,170)' });
+      figure(c, { x, y: base + 0.12, s: 0.9, face: -0.8, lean: -0.32 - 0.12 * reach, tilt: 0.2, hair: 'long', arms: [[1.1 + 0.3 * reach, 0.5], [0.4, 1.2]], hold: [null, 'candle'], ...litP(E, whoW(2), { lamp: [255, 200, 120], side: -1, a: 0.6 }), glints: E.glints, flame: 'rgb(255,236,170)' });   // (SP4: lit by her candle)
     }
     c.restore();
   }
@@ -980,7 +1050,7 @@ export function createWindowLife() {
       // the room: the lamp room at night (the morning before the sun), the dark glass by day
       if (k > 0.01) { c.globalAlpha = k; paintLampRoom(c, G, 1); c.fillStyle = 'rgba(236,240,255,0.14)'; c.fillRect(G.g0, G.h0, G.cw, G.ch); c.globalAlpha = 1; }   // (SP2: the dawn's lamp a little paler)
       if (day > 0.01) { c.globalAlpha = day; R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(40,32,38)'); c.globalAlpha = 1; }
-      const night = k > 0.4, col = night ? SIL : null, pal = night ? null : DAY_PALS[0];
+      const night = k > 0.4, lk = night ? litP(E, NIGHTGOWN) : { pal: DAY_PALS[0] };   // (SP4: lit by her lamp — a pale nightgown)
       // the figure: in from the back (0.18), THE STRETCH (arms up in a V, a yawn, side to side), a look out at the morning, away
       // (POLISH 5: the window box is gone — no watering can, no raised sash)
       const inx = sm(0.17, 0.3, p), outx = sm(0.86, 0.97, p), x = G.g0 + G.cw * (1.05 - 0.55 * inx + 0.6 * outx);
@@ -988,7 +1058,7 @@ export function createWindowLife() {
       const look = sm(0.58, 0.64, p) * (1 - sm(0.8, 0.86, p));
       if (inx > 0.01 && outx < 0.99) {
         const arms = st > 0.02 ? [[0.2 + 2.6 * st, 0.15], [0.2 + 2.6 * st, 0.15]] : look > 0.02 ? [[0.12, 0.15], [0.3 + 0.2 * look, 0.25]] : [[0.12, 0.15], [0.12, 0.15]];
-        figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.08 * look, tilt: -0.3 * st, face: look, arms, hair: 'bun', col, pal });
+        figure(c, { x, y: G.h0 + 0.02 - 0.06 * st, s: 1.02, lean: 0.14 * sway + 0.08 * look, tilt: -0.3 * st, face: look, arms, hair: 'bun', ...lk });
       }
       // the blind: down until the wake, rolled up in its first seconds
       const up = sm(0.02, 0.16, p), bv = lerp(G.h0, G.h1, up);
@@ -1059,11 +1129,13 @@ export function createWindowLife() {
         c.save();
         if (pass !== 'clear') { c.beginPath(); if (pass === 'shade') c.rect(G.g0, sv, G.cw, G.h1 - sv); else c.rect(G.g0, G.h0, G.cw, sv - G.h0); c.clip(); }
         const col = pass === 'shade' ? SHADOW : pass === 'legs' ? LEGS_SH : SIL;
+        // (SP4: through a lit room they're LIT — his black tails + white front, her red dress + pearls; on the jazz shade a shadow)
+        const him = pass === 'clear' ? litP(E, TANGO_HIM) : { col }, her = pass === 'clear' ? litP(E, whoW(0)) : { col };
         const dip = move === 'dip' ? m : 0, kick = move === 'kick' ? m : 0, turn = move === 'turn' ? m : 0;
         // him: the top hat, the tails, his arm out with her hand (the tango's line), leaning over her in the dip
-        figures(c, [{ rim: pass === 'clear' ? undefined : null, x: x - dir * 0.24, y, s, legs: 0.48, step: step * (1 - dip), lean: dir * (0.12 + 0.28 * dip), face: dir, hat: 'top', tails: true, col, arms: dir > 0 ? [[0.2, 0.4], [1.5 - 0.4 * dip, 0.1]] : [[1.5 - 0.4 * dip, 0.1], [0.2, 0.4]] },
+        figures(c, [{ rim: pass === 'clear' ? undefined : null, x: x - dir * 0.24, y, s, legs: 0.48, step: step * (1 - dip), lean: dir * (0.12 + 0.28 * dip), face: dir, hat: 'top', tails: true, ...him, arms: dir > 0 ? [[0.2, 0.4], [1.5 - 0.4 * dip, 0.1]] : [[1.5 - 0.4 * dip, 0.1], [0.2, 0.4]] },
         // her: the cloche + its feather, the bob, the fringed dress — bent back in the dip, a leg up in the kick, flaring in the turn
-        { rim: pass === 'clear' ? undefined : null, x: x + dir * (0.26 + 0.1 * dip), y: y - 0.04 - 0.12 * dip, s: s * 0.93, legs: 0.46 + 0.1 * kick, step: kick ? -1.6 * kick : -step, lean: -dir * (0.1 + 0.95 * dip), face: -dir, hat: 'cloche', hair: 'bob', dress: true, skirt: 0.2 + 0.8 * Math.max(turn, kick), col, arms: dir > 0 ? [[1.45 - 0.3 * dip, 0.1], [0.6 + 1.6 * dip, 0.8]] : [[0.6 + 1.6 * dip, 0.8], [1.45 - 0.3 * dip, 0.1]] }]);
+        { rim: pass === 'clear' ? undefined : null, x: x + dir * (0.26 + 0.1 * dip), y: y - 0.04 - 0.12 * dip, s: s * 0.93, legs: 0.46 + 0.1 * kick, step: kick ? -1.6 * kick : -step, lean: -dir * (0.1 + 0.95 * dip), face: -dir, hat: 'cloche', hair: 'bob', dress: true, skirt: 0.2 + 0.8 * Math.max(turn, kick), ...her, arms: dir > 0 ? [[1.45 - 0.3 * dip, 0.1], [0.6 + 1.6 * dip, 0.8]] : [[0.6 + 1.6 * dip, 0.8], [1.45 - 0.3 * dip, 0.1]] }]);
         c.restore();
       }
       c.restore(); c.globalAlpha = 1;
@@ -1142,7 +1214,8 @@ export function createWindowLife() {
       const { c, G, kl } = E, p = el / len, y = G.h0 - 0.02;
       const up = sm(0.06, 0.24, p) * (1 - sm(0.84, 0.98, p)), clink = sm(0.3, 0.38, p) * (1 - sm(0.46, 0.54, p)), drink = sm(0.56, 0.64, p) * (1 - sm(0.74, 0.82, p));
       c.globalAlpha = kl;
-      const who = [[0.18, { hat: 'witch', hair: 'long', cape: true }, 0.86, 1], [0.41, { hat: 'horns', hair: 'short' }, 0.9, 1], [0.63, { hat: 'ears', hair: 'bob' }, 0.82, -1], [0.85, { sheet: true, legs: 0.3, col: 'rgb(222,214,198)', eyes: true }, 0.88, -1]];
+      // (SP4: lit by the bar — the witch in black + a purple cape, a red devil, the cat in black, the sheet ghost white)
+      const who = [[0.18, { hat: 'witch', hair: 'long', cape: true, ...litP(E, COSTUME_PALS.witch) }, 0.86, 1], [0.41, { hat: 'horns', hair: 'short', ...litP(E, COSTUME_PALS.devil) }, 0.9, 1], [0.63, { hat: 'ears', hair: 'bob', ...litP(E, COSTUME_PALS.cat) }, 0.82, -1], [0.85, { sheet: true, legs: 0.3, col: 'rgb(222,214,198)', eyes: true }, 0.88, -1]];
       const group = [];
       for (const [u, look, s, toward] of who) {
         const x = G.g0 + G.cw * u, a = lerp(lerp(0.15, 2.7, up), 2.25, clink), e = lerp(lerp(0.25, 0.15, up), 0.45, clink);
